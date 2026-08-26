@@ -1,0 +1,164 @@
+/* ===========================================================
+   메이플풍 외피 — 규칙 코드는 한 줄도 건드리지 않는다
+   -----------------------------------------------------------
+   역사블로의 css/diablo.css 와 같은 방식이다: index.html 에서 이 <link>
+   한 줄만 빼면 예전 모습으로 그대로 돌아온다.
+
+   원작에서 옮긴 그림 문법 다섯:
+     1) 밝다               — 어두운 유리 UI 를 **밝은 종이·하늘색 창**으로
+     2) 각지고 두껍다      — 둥근 유리 대신 **굵은 남색 테두리 + 흰 바탕**
+     3) 굵은 글씨          — 제목은 무겁게, 숫자는 더 무겁게
+     4) 체력은 빨강·기력은 파랑 — 원작 조작판의 그 두 줄
+     5) 단추는 볼록하다    — 위쪽이 밝고 아래에 그림자 한 줄
+
+   닌텐도·넥슨의 실제 에셋은 쓰지 않는다. 여기 있는 것은 전부 CSS 도형이다.
+   =========================================================== */
+
+:root {
+  --mp-ink: #2b2440;          /* 글자 */
+  --mp-line: #3d3560;         /* 테두리 */
+  --mp-paper: #fdfbf4;        /* 창 바탕 */
+  --mp-paper-2: #eef3fb;      /* 카드 바탕 */
+  --mp-blue: #3f7fd0;
+  --mp-blue-2: #7fb6f0;
+  --mp-red: #e05555;
+  --mp-gold: #f0a92b;
+  --mp-shadow: 0 3px 0 rgba(61,53,96,.35), 0 8px 18px rgba(30,26,50,.28);
+}
+
+/* ── 글꼴 ─────────────────────────────────────────────── */
+body, .btn, .card, #sheet, #camp, #hud, .glass {
+  font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", system-ui, sans-serif;
+  letter-spacing: -.1px;
+}
+
+/* ── 창 (시트 · 쉬는 판 · 조작 띠 · 상단) ──────────────── */
+#sheet, .camp-card, .hud-card, .glass, .enc-card {
+  background: var(--mp-paper) !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--mp-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: var(--mp-ink) !important;
+}
+#sheet { border-radius: 12px 12px 0 0 !important; }
+#sheet-body, .sheet-head h3, #camp, #hud, .glass, .enc-card { color: var(--mp-ink) !important; }
+.sheet-head { border-bottom: 2px solid var(--mp-line); }
+.sheet-head h3 { font-weight: 800; }
+.grip { background: var(--mp-line) !important; }
+
+/* 상단 띠 — 원작에서 늘 위에 붙어 있던 그 줄 */
+#top .glass {
+  padding: 6px 10px !important;
+  background: linear-gradient(180deg, #ffffff, #e8eefb) !important;
+}
+
+/* ── 카드 ─────────────────────────────────────────────── */
+.card {
+  background: var(--mp-paper-2) !important;
+  border: 2px solid rgba(61,53,96,.45) !important;
+  border-radius: 8px !important;
+  color: var(--mp-ink) !important;
+}
+.card.on {
+  background: #fff6de !important;
+  border-color: var(--mp-gold) !important;
+}
+.hint {
+  background: #eaf2ff !important;
+  border: 2px dashed rgba(63,127,208,.5) !important;
+  border-radius: 8px !important;
+  color: #3a4568 !important;
+}
+.hint b { color: var(--mp-blue) !important; }
+.muted, small.muted, .stat-row .muted { color: #6a6f8c !important; }
+.sec h4 { color: var(--mp-ink) !important; font-weight: 800; }
+.stat-row b { color: var(--mp-ink) !important; }
+
+/* ── 단추 — 볼록하게 ──────────────────────────────────── */
+.btn, .icon-btn {
+  background: linear-gradient(180deg, #ffffff, #dfe7f5) !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 8px !important;
+  color: var(--mp-ink) !important;
+  font-weight: 700;
+  box-shadow: 0 2px 0 rgba(61,53,96,.4);
+}
+.btn:active, .icon-btn:active { transform: translateY(2px); box-shadow: none; }
+.btn.primary {
+  background: linear-gradient(180deg, #7fb6f0, #3f7fd0) !important;
+  color: #fff !important;
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+.btn.ghost { background: linear-gradient(180deg, #f2f2f6, #dcdce6) !important; color: #6a6f8c !important; }
+.btn[disabled] { opacity: .55; box-shadow: none; }
+.icon-btn.on {
+  background: linear-gradient(180deg, #ffd98a, #f0a92b) !important;
+  color: #4a3208 !important;
+}
+
+/* ── 조작 띠 — 원작의 체력(빨강)·기력(파랑) 두 줄 ──────── */
+.hud-bar {
+  height: 16px !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 9px !important;
+  background: #e4e4ee !important;
+}
+.hud-bar i { border-radius: 0 !important; }
+.hud-bar.hp i { background: linear-gradient(180deg, #ff8a8a, var(--mp-red)) !important; }
+.hud-bar.mp i { background: linear-gradient(180deg, #8ec6ff, var(--mp-blue)) !important; }
+.hud-bar span {
+  color: #fff !important;
+  font-weight: 800; font-size: 10.5px;
+  text-shadow: 0 1px 2px rgba(20,16,40,.9);
+}
+.hud-hint { color: var(--mp-blue) !important; text-shadow: none !important; font-weight: 800; }
+
+/* 무예 칸 — 각지고 번호가 크게 */
+.hud-sk {
+  background: linear-gradient(180deg, #ffffff, #e2e8f6) !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 7px !important;
+  color: var(--mp-ink) !important;
+}
+.hud-sk.ready { border-color: var(--mp-gold) !important; background: linear-gradient(180deg, #fff6de, #ffe6ac) !important; }
+.hud-sk small { color: #6a6f8c !important; font-weight: 800; }
+.hud-sk u { background: rgba(43,36,64,.35) !important; }
+
+/* ── 아래 독 ──────────────────────────────────────────── */
+#dock {
+  background: linear-gradient(180deg, #ffffff, #dfe7f5) !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--mp-shadow) !important;
+}
+#dock button { color: #5a6180 !important; }
+#dock button.on { color: var(--mp-blue) !important; background: #eaf2ff !important; border-radius: 8px; }
+
+/* ── 알림 ─────────────────────────────────────────────── */
+#toast {
+  background: var(--mp-paper) !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 8px !important;
+  color: var(--mp-ink) !important;
+  font-weight: 700;
+  box-shadow: var(--mp-shadow) !important;
+}
+
+/* 밝은 화면이라 어둡게 깔던 비네트는 걷는다 */
+#vignette { display: none !important; }
+
+/* 가입 화면(account.js 가 끼워 넣는 것)도 같은 결로 덮는다 */
+#acc-host .acc-card, #acc-host .acc-row {
+  background: var(--mp-paper) !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 10px !important;
+  color: var(--mp-ink) !important;
+}
+#acc-host input {
+  background: #fff !important;
+  border: 2px solid var(--mp-line) !important;
+  border-radius: 7px !important;
+  color: var(--mp-ink) !important;
+}
