@@ -68,7 +68,7 @@
 
   /* ── 균형 손잡이(튜닝) ────────────────────────────────────
    * 규칙 상수를 밖에서 잡을 수 있게 하는 얇은 층이다. 어드민(`_admin.html`)이 쓴다.
-   * 역사고(`saga-go`)에 먼저 둔 것을 **같은 이름으로** 이 판에도 옮겼다.
+   * 사가고(`saga-go`)에 먼저 둔 것을 **같은 이름으로** 이 판에도 옮겼다.
    *
    * **세이브와 다른 칸에 산다.** 세이브에 섞으면 프로필마다 규칙이 달라지고,
    * 세이브를 넘길 때 규칙까지 따라간다. 규칙은 "이 기기의 사정" 이지 진행이 아니다.
@@ -344,6 +344,27 @@
     return h + '시간 ' + (m % 60) + '분';
   }
 
+  /* ── 손가락으로 하는가 ─────────────────────────────────
+   * 폰·태블릿에는 Space 키가 없다. 말풍선과 안내에 "Space" 를 그대로 내보내면
+   * 폰에서는 누를 수 없는 것을 누르라고 하는 셈이다.
+   * hover 가 없고 포인터가 뭉툭한 기기 = 손가락뿐인 기기로 본다.
+   * (마우스와 터치를 함께 쓰는 노트북은 키보드가 있으니 Space 를 그대로 둔다)
+   * 헤드리스 크롬은 hover 가 있으므로 진단 출력은 바뀌지 않는다.
+   */
+  var TOUCH = null;
+  function touchOnly() {
+    if (TOUCH === null) {
+      try {
+        TOUCH = !!(global.matchMedia &&
+                   global.matchMedia('(hover: none) and (pointer: coarse)').matches);
+      } catch (e) { TOUCH = false; }
+    }
+    return TOUCH;
+  }
+
+  /** "손을 쓴다" 를 무엇으로 안내할지 — 키보드면 Space, 손가락이면 손 단추 */
+  function actHint() { return touchOnly() ? '✋' : 'Space'; }
+
   global.DG = global.DG || {};
   global.DG.core = {
     SAVE_BASE: SAVE_BASE,
@@ -358,6 +379,7 @@
     TUNE_KEY: TUNE_KEY, POKE_KEY: POKE_KEY,
     tuned: tuned, tune: tuneAll, setTune: setTune, clearTune: clearTune,
     tuneCount: tuneCount,
-    hash2: hash2, pick: pick, clamp: clamp, fmt: fmt, fmtTime: fmtTime
+    hash2: hash2, pick: pick, clamp: clamp, fmt: fmt, fmtTime: fmtTime,
+    touchOnly: touchOnly, actHint: actHint
   };
 })(window);

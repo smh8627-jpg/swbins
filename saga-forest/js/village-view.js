@@ -53,7 +53,19 @@
     ctx = cv.getContext('2d');
     resize();
     global.addEventListener('resize', resize);
-    cv.addEventListener('click', onClick);
+    /* 걷기 입력 — 새 이름은 onDown/onMove/onUp 이다.
+       팏만으로는 목표를 한 번 찍고 기다려야 해서 폰에서 걸음이 뚝뚝 끊긴다.
+       눌러 있는 동안 손가라 자리를 목표로 계속 갈아 주면 따라 걷는 을이 된다.
+       마우스도 같은 길을 쓴다(끌면 따라온다).
+       PointerEvent 가 없는 오람 부라우자는 팏으로 돌아간다 */
+    if (global.PointerEvent) {
+      cv.addEventListener('pointerdown', onDown);
+      cv.addEventListener('pointermove', onMove);
+      cv.addEventListener('pointerup', onUp);
+      cv.addEventListener('pointercancel', onUp);
+    } else {
+      cv.addEventListener('click', onClick);
+    }
   }
 
   function resize() {
@@ -101,12 +113,37 @@
     return { x: cam.x + d / (ZOOM * s), y: cam.y + a * R };
   }
 
-  function onClick(e) {
+  /** 화면에서 눌린 자리를 마을 좌표로 되짚는다 */
+  function pointAt(e) {
     var r = cv.getBoundingClientRect();
     var sx = e.clientX - r.left, sy = e.clientY - r.top;
     /* 집 안은 투영이 다르다 — 마을 식으로 되짚으면 엉뚱한 자리를 짚는다 */
     var p = V.indoors() ? unprojIn(sx, sy) : unproject(sx, sy);
-    V.walkTo(p.x, p.y);
+    return p;
+  }
+
+  function onClick(e) { var p = pointAt(e); V.walkTo(p.x, p.y); }
+
+  /* 눌러 끌는 동안은 그 자리로 간다 */
+  var dragging = false;
+
+  function onDown(e) {
+    if (e.button) { return; }              // 가운대·오른쪽 단추는 짚지 않는다
+    dragging = true;
+    /* 캡처 — 손가라가 HUD 나 화면 밖으로 나가도 계속 따른다 */
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 안 되면 그대로 */ }
+    onClick(e);
+  }
+
+  function onMove(e) {
+    if (!dragging) { return; }
+    e.preventDefault();
+    onClick(e);
+  }
+
+  function onUp(e) {
+    dragging = false;
+    try { cv.releasePointerCapture(e.pointerId); } catch (err) { /* 이문 없다 */ }
   }
 
   /* ── 색 도구 ──────────────────────────────────────────── */
@@ -166,7 +203,7 @@
     }
 
     if (starHint) {
-      bubble('🌠 흐르는 별 — 소원을 빈다 [Space]', starHint.x, starHint.y, '#3a3a5a', '#f2f0ff');
+      bubble('🌠 흐르는 별 — 소원을 빈다 [' + core.actHint() + ']', starHint.x, starHint.y, '#3a3a5a', '#f2f0ff');
     }
 
     drawWeather(se, now);
@@ -545,7 +582,7 @@
       var bite = fs.state === 'bite';
       drawFloat(p.x, p.y, k, bite, now);
       if (bite) {
-        bubble('입질! — 지금 당긴다 [Space]', p.x, p.y - 62 * k + Math.sin(now / 90) * 3, '#ff8a4a', '#fff3e6');
+        bubble('입질! — 지금 당긴다 [' + core.actHint() + ']', p.x, p.y - 62 * k + Math.sin(now / 90) * 3, '#ff8a4a', '#fff3e6');
       } else {
         bubble('🎣 기다린다…', p.x, p.y - 52 * k, '#2f6f9a', '#eaf6ff');
       }
@@ -554,7 +591,7 @@
 
     if (f && f.type === 'prop' && f.obj.id === prop.id) {
       ring(p.x, p.y + 3 * k, k, spent ? 'rgba(190,190,190,.55)' : 'rgba(255,206,92,.95)');
-      bubble(spent ? def.name + ' (오늘 몫 끝)' : def.name + ' — ' + def.hint + ' [Space]',
+      bubble(spent ? def.name + ' (오늘 몫 끝)' : def.name + ' — ' + def.hint + ' [' + core.actHint() + ']',
         p.x, p.y - (big ? 118 : 74) * k, spent ? '#7a7a7a' : '#8a5a10',
         spent ? '#e9e9e9' : '#fff0c9');
     } else if (big) {
@@ -1137,7 +1174,7 @@
     if (pending && !line) { mark(p.x + 26 * k, p.y - 70 * k, k, now); }
     if (f && f.type === 'resident' && f.obj.id === res.id) {
       ring(p.x, p.y + 2 * k, k, 'rgba(120,205,255,.95)');
-      bubble('말을 건다 [Space]', p.x, p.y - 84 * k, '#0d5b86', '#e6f5ff');
+      bubble('말을 건다 [' + core.actHint() + ']', p.x, p.y - 84 * k, '#0d5b86', '#e6f5ff');
     }
   }
 
@@ -1366,11 +1403,11 @@
     ctx.restore();
 
     if (b.chase) {
-      bubble('벌떼! 달아나거나 [Space] 로 받아친다', cx, cy - 36 * k, '#8a2020', '#ffe2e2');
+      bubble('벌떼! 달아나거나 ' + core.actHint() + ' 로 받아친다', cx, cy - 36 * k, '#8a2020', '#ffe2e2');
     } else if (f && f.type === 'bug' && f.obj === b) {
       var net = global.DG.bug.hasNet();
       ring(cx, p.y + 2 * k, k * 0.8, net ? 'rgba(255,240,150,.95)' : 'rgba(220,120,120,.9)');
-      bubble(net ? ref.name + ' — 휘두른다 [Space]' : '🥅 잠자리채가 없다 (전방)',
+      bubble(net ? ref.name + ' — 휘두른다 [' + core.actHint() + ']' : '🥅 잠자리채가 없다 (전방)',
         cx, cy - 34 * k, net ? '#6a5200' : '#8a2020', net ? '#fff6cc' : '#ffe2e2');
     } else if (b.state === 'flee') {
       bubble('달아난다!', cx, cy - 30 * k, '#8a2020', '#ffe2e2');
@@ -1792,7 +1829,7 @@
 
     /* 문 앞에 서면 안내 */
     if (f && f.type === 'door') {
-      bubble('밖으로 나간다 [Space]', dx, dtop - 14 * u, '#54402c', '#f7ecd8');
+      bubble('밖으로 나간다 [' + core.actHint() + ']', dx, dtop - 14 * u, '#54402c', '#f7ecd8');
     }
 
     /* 시간대 빛 — 방 안에서도 밤은 밤이다. 등잔·화로가 있으면 그 언저리만 따뜻하다 */
@@ -1874,7 +1911,7 @@
     }
     if (focused) {
       ring(q.x, q.y + 2 * u, u * 0.8, 'rgba(255,206,92,.95)');
-      bubble(d.name + ' — 거둔다 [Space]', q.x, q.y - 52 * u, '#8a5a10', '#fff0c9');
+      bubble(d.name + ' — 거둔다 [' + core.actHint() + ']', q.x, q.y - 52 * u, '#8a5a10', '#fff0c9');
     }
   }
 
