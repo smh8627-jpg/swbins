@@ -2,6 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script>/* 주소창에서 파일 이름을 지운다 — /xxx/index.html → /xxx/ */
+try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))history.replaceState(null,'',location.pathname.replace(/index\.html$/,'')+location.search+location.hash);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#3b5570">
 <title>사가스토리 — 뛰고 썬다</title>

@@ -2,6 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<script>/* 주소창에서 파일 이름을 지운다 — /xxx/index.html → /xxx/ */
+try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))history.replaceState(null,'',location.pathname.replace(/index\.html$/,'')+location.search+location.hash);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>사가(Saga) — 역사 인물로 노는 다섯 판</title>
 <meta name="description" content="한국사·삼국지·유럽사 인물로 노는 웹 게임 다섯. 그림은 전부 코드가 그린다.">
