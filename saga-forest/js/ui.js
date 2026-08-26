@@ -1,11 +1,11 @@
 /**
  * UI — 프로필 / 재화 / 근처 대상 / 시트(서당·도감·사관·기록) / 상세 / 토스트
  * ---------------------------------------------------------------
- * 역사GO 본편(포켓몬GO 형태) 화면. 던전·전투·장비 UI 는 js/_expansion/ 으로 뺐고,
+ * 사가GO 본편(포켓몬GO 형태) 화면. 던전·전투·장비 UI 는 js/_expansion/ 으로 뺐고,
  * 경영(영지·태수·건설)은 게임에서 아예 제거했다 (v1.0-full 커밋 94850f8 에 이력이 남아 있다).
  */
 /**
- * 화면 — 역사GO 마을(동물의숲식)
+ * 화면 — 사가GO 마을(동물의숲식)
  * ---------------------------------------------------------------
  * 던전 게임의 ui.js 에서 갈라져 나왔다. 도감·상세·승급·서당·기록은 그대로 쓰고,
  * 던전 전용(본영·부대·장비)을 걷어낸 자리에 **손이 닿는 것**(아래 가운데 카드)과
@@ -154,6 +154,14 @@
       } else if (act === 'v-flag') {
         var fr = global.DG.town.setFlag(b.getAttribute('data-kind'), id);
         if (fr) { toast(fr.text); }
+      } else if (act === 'v-pick') {
+        buildSel = { dx: parseInt(b.getAttribute('data-dx'), 10) || 0,
+                     dy: parseInt(b.getAttribute('data-dy'), 10) || 0 };
+      } else if (act === 'v-build') {
+        var bh = global.DG.terrain.cell();
+        var bw = global.DG.terrain.work(bh.tx + buildSel.dx, bh.ty + buildSel.dy,
+                                        b.getAttribute('data-kind'));
+        if (bw) { toast(bw.text); }
       } else if (act === 'v-town') {
         openSheet('town');
         return;
@@ -233,7 +241,10 @@
     }
 
     core.on('toast', toast);
-    core.on('changed', function () { renderTop(); renderSheet(); renderFocus(); });
+    /* syncDock 도 여기서 부른다 — 공사 단추는 개토패를 산 순간 서야 한다.
+       시트를 여닫을 때만 돌리면, 전방에서 사고 나서 한 번 여닫기 전에는 안 뜬다 */
+    core.on('changed', function () { syncDock(); renderTop(); renderSheet(); renderFocus(); });
+    syncDock();
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
@@ -247,7 +258,7 @@
   var SHEET_TITLE = {
     bag: '🎒 가방', folks: '🏡 주민', dex: '📖 도감', log: '📜 기록',
     mail: '📮 편지', home: '🏠 집', museum: '🏛️ 사고(史庫)', town: '🏳️ 마을',
-    wear: '🧵 침선방'
+    wear: '🧵 침선방', build: '🪧 공사'
   };
 
   function openSheet(name) {
@@ -273,6 +284,12 @@
     for (var i = 0; i < bs.length; i++) {
       var name = bs[i].getAttribute('data-sheet');
       bs[i].classList.toggle('on', name === openTab);
+      /* 공사 단추는 **개토패를 산 뒤에** 선다 — 못 하는 일을 독에 세워 두지 않는다.
+         `hidden` 속성은 #dock button 의 display:grid 에 진다. 그래서 인라인으로 끈다 */
+      if (name === 'build') {
+        var T = global.DG.terrain;
+        bs[i].style.display = (T && T.has()) ? '' : 'none';
+      }
       /* 안 읽은 편지는 독에서 바로 보여야 한다 — 우편함까지 걸어가 봐야 아는 건 불친절하다 */
       if (name === 'mail') {
         var n = global.DG.mail ? global.DG.mail.unread() : 0;
@@ -291,6 +308,7 @@
           : openTab === 'museum' ? viewMuseum()
           : openTab === 'town' ? viewTown()
           : openTab === 'wear' ? viewWear()
+          : openTab === 'build' ? viewBuild()
           : openTab === 'dex' ? viewDex() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
@@ -390,7 +408,7 @@
       html = '<div class="focus-card">' +
         '<span class="fc-ico">' + bref.emoji + '</span>' +
         '<span class="fc-meta"><b>' + esc(bref.name) + '</b>' +
-          '<small class="muted">' + (net ? '살금살금 다가가 휘두릅니다 — Space'
+          '<small class="muted">' + (net ? '살금살금 다가가 휘두릅니다 — ' + core.actHint()
                                          : '🥅 잠자리채가 없습니다 (전방)') + '</small></span>' +
         '<button class="btn ' + (net ? 'primary' : 'ghost') + '"' + (net ? '' : ' disabled') +
           ' data-act="v-do">휘두른다</button>' +
@@ -403,7 +421,7 @@
       key = 'door';
       html = '<div class="focus-card">' +
         '<span class="fc-ico">🚪</span>' +
-        '<span class="fc-meta"><b>문</b><small class="muted">밖으로 나갑니다 — Space</small></span>' +
+        '<span class="fc-meta"><b>문</b><small class="muted">밖으로 나갑니다 — ' + core.actHint() + '</small></span>' +
         '<button class="btn primary" data-act="v-do">나간다</button></div>';
       if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
       els.focusbar.classList.add('show');
@@ -415,7 +433,7 @@
       html = '<div class="focus-card">' +
         '<span class="fc-ico">🪑</span>' +
         '<span class="fc-meta"><b>' + esc(fd ? fd.name : '가구') + '</b>' +
-          '<small class="muted">거두면 창고로 들어갑니다 — Space</small></span>' +
+          '<small class="muted">거두면 창고로 들어갑니다 — ' + core.actHint() + '</small></span>' +
         '<button class="btn" data-act="v-do">거둔다</button></div>';
       if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
       els.focusbar.classList.add('show');
@@ -428,7 +446,7 @@
       html = '<div class="focus-card">' +
         '<span class="fc-ico">' + def.emoji + '</span>' +
         '<span class="fc-meta"><b>' + esc(def.name) + '</b>' +
-          '<small class="muted">' + (spent ? '오늘 몫은 다 냈습니다' : def.hint + ' — Space') + '</small></span>' +
+          '<small class="muted">' + (spent ? '오늘 몫은 다 냈습니다' : def.hint + ' — ' + core.actHint()) + '</small></span>' +
         (spent ? '<button class="btn ghost" disabled>비었음</button>'
                : '<button class="btn primary" data-act="v-do">' + esc(def.hint) + '</button>') +
         '</div>';
@@ -581,6 +599,75 @@
       '갈아 끼우면 집 평가도 오릅니다.</small></div>';
 
     html += viewTurnip();
+    return html;
+  }
+
+  /* ── 공사 ─────────────────────────────────────────────────
+   * 원작의 길·물길 공사. 손이 닿는 자리는 **선 칸 둘레 3×3** 뿐이라,
+   * 고른 칸을 좌표가 아니라 **선 칸에서의 어긋남(dx,dy)** 으로 들고 있는다 —
+   * 걸어가면 격자가 따라오고, 고른 칸도 함께 옮겨 간다.
+   *
+   * 규칙은 하나도 여기 두지 않았다. 무엇이 막는지는 `terrain.can()` 이
+   * **말로** 돌려주므로, 화면은 그걸 그대로 단추에 적기만 한다.
+   */
+  var buildSel = { dx: 0, dy: 0 };
+
+  function viewBuild() {
+    var T = global.DG.terrain, V = global.DG.village, VD = global.DG.villageData;
+    if (!T.has()) {
+      return '<div class="hint">🪧 <b>개토패(開土牌)</b>가 없습니다 — ' +
+        '🎒 가방 시트의 전방에서 살 수 있습니다.</div>';
+    }
+    if (V.indoors()) {
+      return '<div class="hint">집 안에서는 땅을 고칠 수 없습니다 — 밖으로 나가세요.</div>';
+    }
+
+    var here = T.cell(), cells = T.around();
+    var sel = { tx: here.tx + buildSel.dx, ty: here.ty + buildSel.dy };
+    var selTile = VD.TILES[V.tileAt(sel.tx, sel.ty)];
+    var html = '', i;
+
+    html += '<div class="sec"><h4>선 자리</h4><div class="card">' +
+      '<div class="stat-row"><span>내가 선 칸</span><b>(' + here.tx + ', ' + here.ty + ')</b></div>' +
+      '<div class="stat-row"><span>고쳐 둔 칸</span><b>🪧 ' + T.count() + '</b></div>' +
+      '<small class="muted">손이 닿는 것은 <b>선 칸과 그 둘레 여덟 칸</b>뿐입니다. ' +
+      '걸어가면 아래 격자도 따라옵니다. 절벽은 이 판에 없습니다 — ' +
+      '땅에 높이가 없는 투영이라 넣지 않았습니다.</small></div></div>';
+
+    html += '<div class="sec"><h4>어느 칸</h4><div class="tgrid">';
+    for (i = 0; i < cells.length; i++) {
+      var c = cells[i];
+      var on = c.tx === sel.tx && c.ty === sel.ty;
+      var pd = c.prop ? VD.PROPS[c.prop.kind] : null;
+      var mark = c.here ? '🧍' : (pd ? pd.emoji : (c.folk ? '🏡' : (c.worked ? '🪧' : '')));
+      html += '<button class="tcell' + (on ? ' on' : '') + (c.outside ? ' out' : '') + '"' +
+        (c.outside ? ' disabled' : '') +
+        ' data-act="v-pick" data-dx="' + (c.tx - here.tx) + '" data-dy="' + (c.ty - here.ty) + '"' +
+        ' style="background:' + c.color + '">' +
+        '<span class="tc-mark">' + mark + '</span>' +
+        '<span class="tc-name">' + esc(c.name) + '</span></button>';
+    }
+    html += '</div><small class="muted">🧍 내가 선 칸 · 🪧 고쳐 둔 칸 · ' +
+      '사물이 선 칸은 그 사물이 뜹니다.</small></div>';
+
+    html += '<div class="sec"><h4>무엇으로 — (' + sel.tx + ', ' + sel.ty + ') ' +
+      esc(selTile ? selTile.name : '') + '</h4>';
+    for (i = 0; i < T.PAVE.length; i++) {
+      var pv = T.PAVE[i];
+      var chk = T.can(sel.tx, sel.ty, pv.kind);
+      html += '<div class="card gearcard">' +
+        '<div class="gearname">' + pv.emoji + ' ' + esc(pv.name) +
+          ' <small class="muted">' + esc(pv.desc) + '</small></div>' +
+        '<div class="bagtools">' +
+          (chk.ok
+            ? '<button class="btn tiny primary" data-act="v-build" data-kind="' + pv.kind +
+              '">고친다 (🪙 ' + core.fmt(chk.cost) + ')</button>'
+            : '<button class="btn tiny ghost" disabled>' + esc(chk.why) + '</button>') +
+        '</div></div>';
+    }
+    html += '<small class="muted">고치면 그 칸의 사물이 다시 짜입니다 — ' +
+      '모래펄에는 조개가 나고 낚시터가 설 수 있습니다. 그래서 모래가 가장 비쌉니다. ' +
+      '되돌리면 세이브에서도 그 칸이 지워집니다.</small></div>';
     return html;
   }
 
@@ -862,8 +949,8 @@
       html += '<div class="hint">' +
         (stt.inside
           ? (can.ok ? '지금 선 자리에 놓을 수 있습니다.' : '지금 자리에는 못 놓습니다 — ' + esc(can.why) + '.')
-          : '집 안에 들어가야 놓을 수 있습니다 (🏠 앞에서 Space).') +
-        ' 놓인 것 곁에서 <b>Space</b> 를 누르면 다시 거둡니다.</div>';
+          : '집 안에 들어가야 놓을 수 있습니다 (🏠 앞에서 ' + core.actHint() + ').') +
+        ' 놓인 것 곁에서 <b>' + core.actHint() + '</b> 를 누르면 다시 거둡니다.</div>';
     }
     html += '</div>';
     return html;
@@ -1418,7 +1505,9 @@
     renderAutoBar();
     var a = document.activeElement;
     if (a && (a.tagName === 'SELECT' || a.tagName === 'INPUT') && els['sheet-body'].contains(a)) { return; }
-    if (openTab === 'bag' || openTab === 'folks') { renderSheet(); }
+    /* 공사 시트는 **선 칸을 가운데로 한 3×3** 을 보여 준다 — 걸어가면 따라와야 한다.
+       안 그러면 화면에 그린 칸과 실제로 고쳐지는 칸이 어긋난다 */
+    if (openTab === 'bag' || openTab === 'folks' || openTab === 'build') { renderSheet(); }
   }
 
   /* ── 자동 순행 상태줄 ─────────────────────────────────── */

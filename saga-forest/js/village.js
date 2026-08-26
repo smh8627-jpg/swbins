@@ -52,6 +52,7 @@
         gifted: {},              // { heroId: 마지막으로 선물한 날 }
         wrote: {},               // { heroId: 마지막으로 편지를 부친 날 }
         weeds: [],               // 잡초 { x, y } — 안 뽑으면 쌓인다
+        terrain: {},             // { "tx,ty": 타일 } — 사람이 고친 칸만 (terrain.js)
         soldGold: 0,             // 전방에 판 금 누계 (전방이 자라는 기준)
         wish: null,              // 별똥별에 빈 소원 { day, n, last }
         wear: null,              // 차림 { on, owned } (wear.js)
@@ -68,6 +69,7 @@
     if (!s.village.donated) { s.village.donated = {}; }
     if (!s.village.gifted) { s.village.gifted = {}; }
     if (!s.village.weeds) { s.village.weeds = []; }
+    if (!s.village.terrain) { s.village.terrain = {}; }
     if (s.village.soldGold === undefined) { s.village.soldGold = 0; }
     return s.village;
   }
@@ -93,6 +95,12 @@
   function tileAt(tx, ty) {
     if (tx < 0 || ty < 0 || tx >= W || ty >= H) { return 'water'; }
     var s = st();
+    /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
+       예전 그대로 해시로 풀린다 — 세이브가 늘지 않는 까닭이 이것이다 */
+    if (s.terrain) {
+      var ov = s.terrain[tx + ',' + ty];
+      if (ov) { return ov; }
+    }
     var h = core.hash2(tx + s.seed % 977, ty + (s.seed >> 7) % 883);
     /* 가운데 가로로 흙길, 아래쪽에 못(물) */
     if (ty === Math.floor(H * 0.5)) { return 'path'; }
@@ -158,11 +166,17 @@
     return VD.TILES[t] && VD.TILES[t].walk;
   }
 
-  /** 사물 배치 — 해시로 정하므로 늘 같은 마을이다 */
+  /**
+   * 사물 배치 — 해시로 정하므로 늘 같은 마을이다.
+   *
+   * id 는 **자리**로 짓는다(`p<tx>_<ty>`). 순번으로 지으면 공사(`terrain.js`)로
+   * 사물이 하나 생기거나 사라질 때 뒤 번호가 전부 밀려, 오늘 이미 딴 표시(`used`)가
+   * 엉뚱한 나무에 붙는다.
+   */
   function buildProps() {
     var s = st();
     props = [];
-    var id = 0, tx, ty;
+    var tx, ty;
     for (ty = 0; ty < H; ty++) {
       for (tx = 0; tx < W; tx++) {
         var t = tileAt(tx, ty);
@@ -171,15 +185,16 @@
            자리가 바뀐다. 그래서 마을을 한 바퀴 도는 일이 날마다 새로 생긴다 */
         var hd = core.hash2(tx * 53 + s.day % 991, ty * 29 + (s.day * 7) % 877);
         var x = tx * TILE + TILE * 0.5, y = ty * TILE + TILE * 0.5;
+        var pid = 'p' + tx + '_' + ty;
         if (t === 'grass') {
-          if (h > 0.93) { props.push({ id: 'p' + (id++), kind: 'tree', x: x, y: y }); }
-          else if (h > 0.90) { props.push({ id: 'p' + (id++), kind: 'pine', x: x, y: y }); }
-          else if (h > 0.875) { props.push({ id: 'p' + (id++), kind: 'rock', x: x, y: y }); }
-          else if (h > 0.845) { props.push({ id: 'p' + (id++), kind: 'flower', x: x, y: y }); }
-          else if (hd > 0.974) { props.push({ id: 'p' + (id++), kind: 'dig', x: x, y: y }); }
+          if (h > 0.93) { props.push({ id: pid, kind: 'tree', x: x, y: y }); }
+          else if (h > 0.90) { props.push({ id: pid, kind: 'pine', x: x, y: y }); }
+          else if (h > 0.875) { props.push({ id: pid, kind: 'rock', x: x, y: y }); }
+          else if (h > 0.845) { props.push({ id: pid, kind: 'flower', x: x, y: y }); }
+          else if (hd > 0.974) { props.push({ id: pid, kind: 'dig', x: x, y: y }); }
         } else if (t === 'sand') {
-          if (h > 0.80) { props.push({ id: 'p' + (id++), kind: 'spot', x: x, y: y }); }
-          else if (hd > 0.86) { props.push({ id: 'p' + (id++), kind: 'shell', x: x, y: y }); }
+          if (h > 0.80) { props.push({ id: pid, kind: 'spot', x: x, y: y }); }
+          else if (hd > 0.86) { props.push({ id: pid, kind: 'shell', x: x, y: y }); }
         }
       }
     }

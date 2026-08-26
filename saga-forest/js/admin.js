@@ -440,6 +440,10 @@
       ['weed.perDay', '하루에 나는 수 (안)', 3],
       ['weed.max', '상한', 40]
     ] },
+    /* 공사 — 삯만 잡는다. 무엇을 깔 수 있는지는 규칙이지 손잡이가 아니다 */
+    { name: '공사', keys: [
+      ['build.costMul', '삯 배수', 1, '0.1']
+    ] },
     { name: '이사', keys: [
       ['move.stayMin', '머문 날 문턱', 8],
       ['move.friendKeep', '안 떠나는 친밀도', 3],
@@ -584,6 +588,11 @@
       } },
     { t: '💰 부자', n: '금 100만. 사는 것들을 한 번에 확인할 때.',
       f: function () { C.save.player.gold = 1000000; } },
+    { t: '🪧 공사 채비', n: '개토패와 금 20만. 길·물길을 바로 깔아 볼 때.',
+      f: function () {
+        V.state().tools.deed = true;
+        C.save.player.gold = Math.max(C.save.player.gold, 200000);
+      } },
     { t: '🧵 옷장 전부', n: '침선방의 모든 옷을 옷장에 넣습니다.',
       f: function () {
         VD.WEAR_PARTS.forEach(function (p) {

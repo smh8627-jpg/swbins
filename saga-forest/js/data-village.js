@@ -13,6 +13,8 @@
     path:  { name: '흙길', walk: true, color: '#cbab74', color2: '#d5b681' },
     sand:  { name: '모래', walk: true, color: '#ecdfb0', color2: '#f2e7bd' },
     water: { name: '물', walk: false, color: '#4fbcda', color2: '#5cc7e2' },
+    /* 돌길 — 공사(terrain.js)로만 생긴다. 마을 생성 해시는 이 타일을 내지 않는다 */
+    stone: { name: '돌길', walk: true, color: '#a9a7a2', color2: '#b5b3ae' },
     floor: { name: '마루', walk: true, color: '#c2925c', color2: '#cc9d67' }
   };
 
@@ -333,7 +335,12 @@
     net:   { key: 'net', name: '잠자리채', emoji: '🥅', price: 800,
              desc: '곤충을 잡을 수 있게 됩니다' },
     spade: { key: 'spade', name: '삽', emoji: '🪏', price: 700,
-             desc: '갈라진 자리를 파낼 수 있게 됩니다' }
+             desc: '갈라진 자리를 파낼 수 있게 됩니다' },
+    /* 개토패(開土牌) — 원작의 공사 면허. 이걸 사야 독에 🪧 공사 단추가 선다.
+       값이 셋 중 가장 비싼 것은 일부러다 — 땅을 고치는 일은 마을을 어지간히
+       돌아본 뒤에 손댈 일이다 */
+    deed:  { key: 'deed', name: '개토패(開土牌)', emoji: '🪧', price: 4800,
+             desc: '땅을 고쳐 길과 물길을 낼 수 있게 됩니다' }
   };
 
   /**

@@ -24,7 +24,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SRC = path.resolve(HERE, '..');
 const DIST = path.join(SRC, 'dist');
 /** 결과 파일 이름 — 게임마다 다르다 (다섯 판을 한 폴더에 모아도 안 겹친다) */
-const OUT_NAME = '역사의숲.html';
+const OUT_NAME = '사가의숲.html';
 
 const indexHtml = fs.readFileSync(path.join(SRC, 'index.html'), 'utf8');
 
@@ -73,7 +73,7 @@ html = html.replace(/<script>\s*\/\* 서비스 워커[\s\S]*?<\/script>/, '');
 
 /* 단독판 표시 — 어디서 온 파일인지 알 수 있게 */
 const stamp = process.env.DG_BUILD_STAMP || '';
-const banner = `<!-- 역사GO 단독 실행판 (build/build-single.mjs 로 생성${stamp ? ' · ' + stamp : ''}) -->\n<title>`;
+const banner = `<!-- 사가GO 단독 실행판 (build/build-single.mjs 로 생성${stamp ? ' · ' + stamp : ''}) -->\n<title>`;
 html = html.replace('<title>', () => banner);
 
 fs.mkdirSync(DIST, { recursive: true });
@@ -91,7 +91,7 @@ fs.writeFileSync(path.join(DIST, 'play.bat'),
 
 fs.writeFileSync(path.join(DIST, '사용법.txt'),
   [
-    '역사GO 단독 실행판',
+    '사가GO 단독 실행판',
     '',
     '1) 이 폴더를 통째로 집 PC 로 복사하세요 (USB · 메일 · 클라우드 아무거나).',
     '2) play.bat 을 더블클릭하면 기본 브라우저로 열립니다.',

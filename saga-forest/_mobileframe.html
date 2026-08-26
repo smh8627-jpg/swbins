@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>사가의숲 — 폰 화면 확인용</title>
+<style>
+  html,body{margin:0;background:#2a2d34;height:100%;font:13px "Malgun Gothic",system-ui;color:#eee}
+  body{display:grid;place-items:center}
+  iframe{width:390px;height:844px;border:0;background:#12141a;box-shadow:0 0 0 2px #555}
+  #probe{position:fixed;left:8px;top:8px;white-space:pre;font-family:Consolas,monospace}
+</style></head><body>
+<div id="probe"></div>
+<script>
+/* 폰 폭(390px)을 헤드리스에서 그대로 보기 위한 확인용 껍데기.
+   헤드리스 크롬은 --window-size 를 500px 아래로 못 내리므로,
+   iframe 안쪽 뷰포트로 진짜 390px 을 만든다.
+
+   ?fresh    가입 화면부터 본다
+   #probe    끌어서 걷기가 실제로 듣는지 이벤트를 쏘아 확인한다 (--dump-dom 으로 읽는다)
+*/
+(function () {
+  var BASE = 'yeoksa-village/save';
+  if (location.search.indexOf('fresh') < 0) {
+    try {
+      var raw = localStorage.getItem(BASE + '/accounts');
+      var o = raw ? JSON.parse(raw) : null;
+      if (!o || !o.list || !o.list.length) {
+        localStorage.setItem(BASE + '/accounts',
+          JSON.stringify({ list: [{ id: 'pmobile', name: '확인용', at: 1, lastSeen: 1 }], cur: 'pmobile' }));
+      }
+    } catch (e) {}
+  }
+  var f = document.createElement('iframe');
+  f.src = 'index.html' + (location.hash === '#probe' ? '' : location.hash);
+  document.body.appendChild(f);
+
+  /* #bag · #dex … 를 부으면 그 시트를 열어 둔 채 찍는다 */
+  var SHEETS = ['bag', 'folks', 'home', 'mail', 'dex', 'log'];
+  var want = location.hash.replace('#', '');
+  if (SHEETS.indexOf(want) >= 0) {
+    setTimeout(function () {
+      try {
+        var b = f.contentDocument.querySelector('#dock [data-sheet="' + want + '"]');
+        if (b) { b.click(); }
+      } catch (e) {}
+    }, 3200);
+    return;
+  }
+
+  if (location.hash !== '#probe') { return; }
+
+  var out = document.getElementById('probe');
+  function say(s) { out.textContent += s + '\n'; }
+
+  setTimeout(function () {
+    var w = f.contentWindow, d = f.contentDocument;
+    var V = w.DG && w.DG.village;
+    var cv = d.getElementById('map');
+    if (!V || !cv) { say('PROBE FAIL: 게임이 켜지지 않았다'); return; }
+
+    /* 걷기 진행은 헤드리스 가상시간에서 잘 흐르지 않는다.
+       그래서 "목표가 잡혔는가" 를 본다 — walkTo 를 감싸 부름을 적는다 */
+    var calls = [];
+    var orig = V.walkTo;
+    V.walkTo = function (x, y) { calls.push([Math.round(x), Math.round(y)]); return orig(x, y); };
+
+    var p0 = V.raw().player, x0 = p0.x, y0 = p0.y;
+    say('시작 자리 ' + Math.round(x0) + ',' + Math.round(y0));
+    say('PointerEvent ' + (w.PointerEvent ? 'O' : 'X'));
+    say('hover:none+coarse ' +
+        (w.matchMedia('(hover: none) and (pointer: coarse)').matches ? 'O' : 'X') +
+        ' / touchOnly ' + (w.DG.core.touchOnly() ? 'O' : 'X') +
+        ' / 안내 "' + w.DG.core.actHint() + '"');
+
+    function send(type, cx, cy) {
+      var E = w.PointerEvent || w.MouseEvent;
+      cv.dispatchEvent(new E(type, {
+        bubbles: true, cancelable: true, clientX: cx, clientY: cy,
+        pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0, buttons: 1
+      }));
+    }
+
+    /* 화면 왼쪽 아래를 눌러 끈다 — 그쪽으로 걸어야 한다 */
+    send('pointerdown', 90, 620);
+    send('pointermove', 90, 700);
+    send('pointerup', 90, 700);
+
+    setTimeout(function () {
+      var p = V.raw().player;
+      var moved = Math.round(Math.abs(p.x - x0) + Math.abs(p.y - y0));
+      say('walkTo 부름 ' + calls.length + '회 ' + JSON.stringify(calls));
+      say('끌고 난 뒤 ' + Math.round(p.x) + ',' + Math.round(p.y) + ' (' + moved + ' 움직임)');
+      /* 누름과 끌기가 제각기 목표를 갈아 주면 된 것이다.
+         뗄 때는 새 목표를 잡지 않는다 — 마지막 자리까지 걸어가는 것이 제 모습이다
+         걸음이 실제로 얼마나 나갔는지로는 판정하지 않는다 — 헤드리스의 가상 시간은
+         돌릴 때마다 다르게 흘러서 같은 코드가 OK/FAIL 을 오간다 */
+      var ok = calls.length === 2 && calls[0][0] < x0 && calls[1][1] > calls[0][1];
+      say(ok ? 'PROBE OK 눌러 끌면 그쪽으로 걷는다'
+             : 'PROBE FAIL 목표가 안 잡힌다');
+    }, 6000);
+  }, 3500);
+})();
+</script>
+</body></html>

@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#7ec8e8">
-<title>역사의숲 — 모으고 나눈다</title>
+<title>사가의숲 — 모으고 나눈다</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="역사의숲">
+<meta name="apple-mobile-web-app-title" content="사가의숲">
 <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
@@ -47,6 +47,8 @@
   <button data-sheet="folks"><span>🏡</span><small>주민</small></button>
   <button data-sheet="home"><span>🏠</span><small>집</small></button>
   <button data-sheet="mail"><span>📮</span><small>편지</small></button>
+  <!-- 공사 — 개토패를 사기 전에는 숨어 있다 (ui.js 의 syncDock) -->
+  <button data-sheet="build" style="display:none"><span>🪧</span><small>공사</small></button>
   <button data-sheet="dex"><span>📖</span><small>도감</small></button>
   <button data-sheet="log"><span>📜</span><small>기록</small></button>
 </nav>
@@ -80,6 +82,7 @@
 <script src="js/folk.js"></script>
 <script src="js/turnip.js"></script>
 <script src="js/wear.js"></script>
+<script src="js/terrain.js"></script>
 <script src="js/village-view.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
