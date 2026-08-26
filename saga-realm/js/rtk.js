@@ -46,6 +46,8 @@
       desc: '백성을 병사로 뽑는다. 인구가 그만큼 준다.' },
     { key: 'train',  name: '훈련', emoji: '🎯', stat: 'might',   gold: 50,  base: 3, per: 0.05,
       desc: '훈련도를 올린다. 같은 병력이 더 오래 버틴다.' },
+    { key: 'ships',  name: '조선', emoji: '🛶', stat: 'command', gold: 150, base: 4, per: 0.06,
+      desc: '배를 짓는다. 물길은 배가 있어야 건넌다 (강을 낀 성에서만).' },
     { key: 'search', name: '수색', emoji: '🔍', stat: 'wisdom',  gold: 80,  base: 0, per: 0,
       desc: '재야에 묻힌 인재를 찾는다. 찾아야 등용할 수 있다.' },
     { key: 'hire',   name: '등용', emoji: '🤝', stat: 'wisdom',  gold: 150, base: 0, per: 0,
@@ -141,6 +143,9 @@
         agri: d.agri, comm: d.comm, tech: 100, sec: 60,
         pop: d.pop, troops: 0, food: 0, train: 40,
         wall: d.wall, maxWall: d.wall,
+        /* 강을 낀 성은 처음부터 배를 좀 갖고 있다 — 없이 시작하면 강동이 첫해
+           내내 아무 데도 못 가고, 판이 그대로 언다 */
+        ships: d.land === 'river' ? 60 : 0,
         gov: null, disaster: null, dLeft: 0
       };
     }
@@ -228,6 +233,7 @@
     if (key === 'tech') { return 900; }
     if (key === 'sec') { return 100; }
     if (key === 'train') { return 100; }
+    if (key === 'ships') { return (d && d.land === 'river') ? 300 : 0; }
     if (key === 'wall') { return Math.round((d ? d.wall : 4000) * 2); }
     return 999999;
   }
@@ -246,6 +252,10 @@
     if (r.force !== c.force) { return { ok: false, why: '남의 무장입니다' }; }
     if (r.done) { return { ok: false, why: '이 달에 이미 명령을 썼습니다' }; }
     if (r.hurt) { return { ok: false, why: '부상 중입니다' }; }
+    /* 배는 물가에서만 짓는다. 여기서 막지 않으면 금만 나가고 아무것도 안 는다 */
+    if (orderKey === 'ships' && CD.find(cityId).land !== 'river') {
+      return { ok: false, why: '물길이 없는 성입니다' };
+    }
     var fs = force(c.force);
     if (!fs || fs.gold < o.gold) { return { ok: false, why: '금이 모자랍니다' }; }
 
@@ -645,10 +655,11 @@
 
   function summary(forceId) {
     forceId = forceId || me();
-    var cs = citiesOf(forceId), i, troops = 0, food = 0, income = 0;
+    var cs = citiesOf(forceId), i, troops = 0, food = 0, income = 0, ships = 0;
     for (i = 0; i < cs.length; i++) {
       troops += state().cities[cs[i]].troops;
       food += state().cities[cs[i]].food;
+      ships += state().cities[cs[i]].ships || 0;
       income += goldOf(cs[i]);
     }
     var f = force(forceId) || { gold: 0 };
@@ -657,7 +668,7 @@
       id: forceId, name: forceName(forceId),
       cities: cs.length, gold: f.gold, income: income,
       upkeep: offs.length * UPKEEP_PER_OFFICER,
-      troops: troops, food: food, officers: offs.length
+      troops: troops, food: food, ships: ships, officers: offs.length
     };
   }
 

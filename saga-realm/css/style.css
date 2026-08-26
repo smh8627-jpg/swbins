@@ -1072,6 +1072,13 @@ body.tilted3 #vignette {
 .gearname small { font-weight: 400; margin-left: 4px; }
 
 
+/* 물길 — 배로만 건너는 길. 뭍길과 눈에 띄게 달라야 한다 */
+.rmap .rlink.water { stroke: #5aa9d8; stroke-opacity: .55; stroke-dasharray: 1.4 1.2; }
+.rmap .rlink.water.same { stroke-opacity: .8; }
+
+/* 명령표에서 못 고르는 칸 */
+.ordbtn.disabled { opacity: .32; cursor: not-allowed; }
+
 /* 진영(원정) — 보급·증원 버튼을 나란히 */
 .camp-acts { display: flex; gap: 6px; margin-top: 8px; }
 .camp-acts .btn { flex: 1; }

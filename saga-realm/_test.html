@@ -660,6 +660,145 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         ('돌아갈 성이 없어져 장수 ' + ids.length + '명이 낙양 앞에서 사로잡혔다');
     });
 
+    /* ── 수군 (물길 · 배 · 수전) ─────────────────────── */
+
+    t('물길은 양쪽이 다 강일 때만 난다', function () {
+      /* 물길 목록을 따로 안 둔 까닭이다 — 지형 한 글자만 고치면 따라 움직인다 */
+      var w = CD.WATERWAYS;
+      var bad = w.filter(function (p) {
+        return CD.find(p[0]).land !== 'river' || CD.find(p[1]).land !== 'river';
+      });
+      return w.length > 0 && bad.length === 0 &&
+        CD.isWater('chaisang', 'jiangxia') && CD.isWater('jiangxia', 'chaisang') &&
+        !CD.isWater('chenliu', 'luoyang') && !CD.isWater('chaisang', 'chengdu') &&
+        ('물길 ' + w.length + ' — ' + w.map(function (p) {
+          return CD.find(p[0]).name + '↔' + CD.find(p[1]).name;
+        }).join(' · '));
+    });
+
+    t('배 없이는 물길을 못 건넌다', function () {
+      fresh('ce');
+      var from = R.city('chaisang');
+      from.food = 999999; from.troops = 30000;
+      from.ships = 0;
+      var r0 = W.canMarch('chaisang', 'jiangxia', 5000);
+      from.ships = 10;
+      var r1 = W.canMarch('chaisang', 'jiangxia', 5000);
+      var r2 = W.canMarch('chaisang', 'jiangxia', 900);
+      return !r0.ok && r0.why.indexOf('배가 없') >= 0 &&
+        !r1.ok && r1.why.indexOf('모자랍') >= 0 &&
+        r2.ok && r2.water === true && r2.ships === 9 &&
+        ('배 0척 → "' + r0.why + '" · 10척에 5,000명 → "' + r1.why + '" · 900명 → 9척');
+    });
+
+    t('수전은 성벽을 쓰지 않는다', function () {
+      /* 배로는 성벽을 못 깎는다 — 대신 성벽 뒤에 숨지도 못한다 */
+      fresh('ce');
+      var from = R.city('chaisang'), to = R.city('jiangxia');
+      from.troops = 20000; from.food = 999999; from.ships = 300;
+      var w0 = to.wall;
+      var lead = off.atCity('chaisang', 'ce').slice(0, 3).map(function (h) { return h.id; });
+      var rep = W.march('chaisang', 'jiangxia', lead, 20000);
+      var said = rep.log.join(' ');
+      return rep.water === true && rep.sortie === false && R.city('jiangxia').wall === w0 &&
+        said.indexOf('수전') >= 0 && said.indexOf('성벽') >= 0 &&
+        ('성벽 ' + C.fmt(w0) + ' 그대로 · ' + (rep.won ? '함락' : rep.routed ? '퇴각' : '수채'));
+    });
+
+    t('수전에 능한 장수가 물에서 더 세다', function () {
+      /* 난수를 타지 않는 자리(부대 힘)에서 잰다 — 전투를 두 번 굴리면 씨앗이 흘러간다 */
+      function pw(id, water) {
+        return W.armyPower({ troops: 10000, train: 60, tech: 300, morale: 1,
+                             officers: [id], water: water });
+      }
+      var zLand = pw('sg_zhouyu', false), zSea = pw('sg_zhouyu', true);
+      var dLand = pw('rf_dianwei', false), dSea = pw('rf_dianwei', true);
+      var yi = pw('kr_yisunsin', true) / pw('kr_yisunsin', false);
+      return Math.abs(zSea / zLand - FD.navyOf('sg_zhouyu')) < 1e-9 &&
+        dSea === dLand && Math.abs(yi - 1.4) < 1e-9 &&
+        ('주유 물에서 ×' + (zSea / zLand).toFixed(2) + ' · 전위 ×' + (dSea / dLand).toFixed(2) +
+         ' · 이순신 ×' + yi.toFixed(2));
+    });
+
+    t('화공은 지력이 받쳐야 터진다', function () {
+      var hot = 0, cold = 0, i, tgt;
+      for (i = 0; i < 400; i++) {
+        tgt = { troops: 10000, ships: 100, morale: 1, officers: ['rf_dianwei'] };
+        if (W.fireRoll({ officers: ['sg_zhouyu'] }, tgt)) { hot++; }
+      }
+      for (i = 0; i < 400; i++) {
+        tgt = { troops: 10000, ships: 100, morale: 1, officers: ['sg_zhouyu'] };
+        if (W.fireRoll({ officers: ['rf_dianwei'] }, tgt)) { cold++; }
+      }
+      /* 한 번 터지면 배가 타고 병사가 물에 빠진다 */
+      var t2 = { troops: 10000, ships: 100, morale: 1, officers: [] };
+      var n = 0;
+      while (n < 500 && !W.fireRoll({ officers: ['sg_zhouyu'] }, t2)) { n++; }
+      return hot > 0 && cold === 0 && t2.troops < 10000 && t2.ships < 100 &&
+        ('주유 ' + hot + '/400 · 전위(지력 34) ' + cold + '/400 · 한 번에 병력 ' +
+         C.fmt(10000 - t2.troops) + ' · 배 ' + (100 - t2.ships) + '척');
+    });
+
+    t('조선은 강을 낀 성에서만 한다', function () {
+      fresh('cao');
+      var dryMan = R.readyAt('xuchang')[0];          // 허창 — 평야
+      var wetMan = R.readyAt('puyang')[0];           // 복양 — 강
+      var g0 = R.force('cao').gold;
+      var r1 = R.order('xuchang', dryMan.id, 'ships');
+      var noCost = R.force('cao').gold === g0;      // 막힌 명령은 금도 안 쓴다
+      var s0 = R.city('puyang').ships;
+      var r2 = R.order('puyang', wetMan.id, 'ships');
+      return !r1.ok && r1.why.indexOf('물길') >= 0 && noCost &&
+        r2.ok && R.city('puyang').ships > s0 &&
+        R.capOf('xuchang', 'ships') === 0 && R.capOf('puyang', 'ships') === 300 &&
+        ('허창 — "' + r1.why + '"(금도 안 나갔다) · 복양 ' + s0 + ' → ' +
+         R.city('puyang').ships + '척');
+    });
+
+    t('수전에서 배가 가라앉고, 이기면 성으로 들어간다', function () {
+      fresh('ce');
+      var from = R.city('chaisang'), to = R.city('jiangxia');
+      from.troops = 60000; from.food = 999999; from.ships = 800;
+      to.wall = 1;
+      var toShips = to.ships;
+      var lead = off.atCity('chaisang', 'ce').slice(0, 3).map(function (h) { return h.id; });
+      var sent = Math.ceil(60000 / W.SHIP_CREW);
+      var rep = W.march('chaisang', 'jiangxia', lead, 60000);
+      var left = R.city('jiangxia').ships;
+      return rep.won && R.city('chaisang').ships === 800 - sent &&
+        left > 0 && left < toShips + sent &&
+        ('실어 보낸 배 ' + sent + '척 · 시상에 남은 배 ' + R.city('chaisang').ships +
+         '척 · 함락 뒤 강하의 배 ' + left + '척 (가라앉은 만큼 준다)');
+    });
+
+    t('수군 명부는 data.js 를 건드리지 않고 정한다', function () {
+      /* 자질을 넷째로 늘리면 다섯 판의 data.js 를 다 고쳐야 한다. 그래서 목록으로 둔다 */
+      var ids = Object.keys(FD.NAVY);
+      var miss = ids.filter(function (id) { return !off.find(id); });
+      var clean = ids.every(function (id) {
+        var h = DG.data.find(id);
+        return !h || h.navy === undefined;
+      });
+      return miss.length === 0 && clean && ids.length >= 12 &&
+        FD.navyOf('kr_yisunsin') > FD.navyOf('sg_zhouyu') && FD.navyOf('rf_dianwei') === 1 &&
+        ('수전 무장 ' + ids.length + '인 · 이순신 ×' + FD.navyOf('kr_yisunsin') +
+         ' · 주유 ×' + FD.navyOf('sg_zhouyu') + ' · data.js 는 한 줄도 안 늘었다');
+    });
+
+    t('AI 는 배 없이 물길을 고르지 않는다', function () {
+      /* AI 전용 판정을 만들지 않는다 — 사람을 막는 canMarch 가 AI 도 그대로 막는다 */
+      fresh('ce');
+      var st = R.state(), k;
+      for (k in st.cities) { st.cities[k].ships = 0; }
+      st.cities['chaisang'].troops = 120000; st.cities['chaisang'].food = 999999;
+      var dryPick = AI.tryWar('ce', AI.CREED.aggressive);
+      var wentWet = !!dryPick && CD.isWater(dryPick.from, dryPick.to);
+      return !wentWet &&
+        ('배를 다 없애니 ' + (dryPick
+          ? CD.find(dryPick.from).name + '→' + CD.find(dryPick.to).name + ' (뭍길)'
+          : '아무 데도 못 쳤다'));
+    });
+
     /* ── 외교 · 계략 ─────────────────────────────────── */
 
     t('맹약이 있으면 칠 수 없다', function () {

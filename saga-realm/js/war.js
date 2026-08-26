@@ -10,6 +10,8 @@
  *
  *   야전   성 밖에서 붙는다. 수비가 병력에 자신이 있을 때만 나온다
  *   공성   성벽이 수비 쪽 힘에 곱해진다. 깎을수록 그 곱이 준다
+ *   수전   **물길로 가면 배끼리 붙는다** — 성벽이 소용없는 대신 배가 든다.
+ *          지력이 높으면 화공(火攻)이 터진다. 적벽이 이 줄이다
  *   일기토 붙기 전에 딱 한 번. 이긴 쪽은 그 싸움 내내 기세를 탄다
  *   진영   치중(輜重)이 바닥나거나 사기가 꺾이면 **스스로 물러난다**.
  *          그래서 긴 원정은 보급(`supply`)이 있어야 이어진다
@@ -22,6 +24,9 @@
 
   var core = global.DG.core;
   var CD = global.DG.cityData;
+  var FD = global.DG.forceData;
+
+  var SHIP_CREW = 100;          // 배 한 척에 타는 병사
 
   var ROUNDS = 10;              // 한 달에 붙는 횟수
   var ROUT = 0.35;              // 처음 병력의 이만큼까지 줄면 물러난다
@@ -89,17 +94,49 @@
     var off = global.DG.off;
     var trainF = 0.5 + core.clamp(army.train, 0, 100) / 200;
     var techF = 0.7 + core.clamp(army.tech, 0, 900) / 900 * 0.6;
-    var bestCmd = 0, bestMight = 0, extra = 0, i, s;
+    var bestCmd = 0, bestMight = 0, extra = 0, navy = 1, i, s;
     for (i = 0; i < army.officers.length; i++) {
       s = off.stats(army.officers[i]);
       if (s.command > bestCmd) { bestCmd = s.command; }
       if (s.might > bestMight) { bestMight = s.might; }
       extra += (s.command + s.might) / 2;
+      /* 물에서는 수전에 능한 **한 사람**이 부대를 끈다 (장수 보정과 같은 결이다) */
+      if (army.water) { navy = Math.max(navy, FD.navyOf(army.officers[i])); }
     }
     var lead = 1 + bestCmd / 100 * 0.5 + bestMight / 100 * 0.25 +
       Math.max(0, army.officers.length - 1) * 0.03;
     if (extra === 0) { lead = 0.6; }         // 장수 없는 군대는 오합지졸이다
-    return army.troops * trainF * techF * lead * (army.morale || 1);
+    return army.troops * trainF * techF * lead * navy * (army.morale || 1);
+  }
+
+  /**
+   * 화공(火攻) — 물 위에서는 불이 곧 승부다.
+   * 부대에서 지력이 가장 높은 사람이 건다. 성공하면 상대 배가 타고 병사가 물에 빠진다.
+   * **가늠(dry)에서도 굴린다** — 여기서 빼면 AI 가 보는 승산과 실제가 어긋난다
+   * (일기토만 뺀 것은 장수가 진짜로 다치기 때문이다).
+   */
+  function fireRoll(from, to) {
+    var off = global.DG.off, best = null, bw = -1, i, w;
+    for (i = 0; i < from.officers.length; i++) {
+      w = off.stats(from.officers[i]).wisdom;
+      if (w > bw) { bw = w; best = from.officers[i]; }
+    }
+    if (!best || bw < 60) { return null; }
+    if (Math.random() > core.clamp(bw / 1400, 0, 0.075)) { return null; }
+    var burn = Math.round(to.troops * 0.18);
+    to.troops = Math.max(0, to.troops - burn);
+    to.ships = Math.max(0, Math.round((to.ships || 0) * 0.75));
+    to.morale = (to.morale || 1) * 0.9;
+    return off.find(best).name + ' 의 화공(火攻) — 배가 타고 병사 ' +
+      core.fmt(burn) + ' 이 물에 빠졌다';
+  }
+
+  /** 배도 병사와 함께 가라앉는다 */
+  function sinkShips(ships, lost, left) {
+    if (!ships) { return 0; }
+    var before = lost + left;
+    if (before <= 0) { return 0; }
+    return Math.max(0, Math.round(ships * (1 - lost / before)));
   }
 
   function topBy(officerIds, key) {
@@ -166,7 +203,18 @@
     if (campAt(toId, from.force)) {
       return { ok: false, why: '이미 진을 치고 있습니다 (보급으로 늘리십시오)' };
     }
-    return { ok: true, food: need };
+    /* 물길은 배로만 건넌다 */
+    var water = CD.isWater(fromId, toId);
+    if (water) {
+      var have = from.ships || 0;
+      if (have <= 0) { return { ok: false, why: '물길입니다 — 배가 없습니다 (조선으로 지으십시오)' }; }
+      if (troops > have * SHIP_CREW) {
+        return { ok: false, why: '배가 모자랍니다 (' + have + '척으로 ' +
+          core.fmt(have * SHIP_CREW) + '명)' };
+      }
+    }
+    return { ok: true, food: need, water: water,
+             ships: water ? Math.ceil(troops / SHIP_CREW) : 0 };
   }
 
   /**
@@ -190,6 +238,7 @@
 
     from.troops -= troops;
     from.food -= chk.food;
+    if (chk.water) { from.ships -= chk.ships; }
 
     /* 구원군 — 수비 쪽도 이웃한 제 성에서 병력을 끌어온다.
        이게 없으면 공격 쪽만 모을 수 있어 **큰 세력이 무조건 이긴다**
@@ -200,11 +249,13 @@
 
     var atk = {
       side: 'atk', force: from.force, troops: troops, start: troops,
-      train: from.train, tech: from.tech, officers: valid, morale: 1
+      train: from.train, tech: from.tech, officers: valid, morale: 1,
+      water: chk.water, ships: chk.ships
     };
     var def = {
       side: 'def', force: to.force, troops: to.troops, start: to.troops,
-      train: to.train, tech: to.tech, officers: defOff, morale: 1
+      train: to.train, tech: to.tech, officers: defOff, morale: 1,
+      water: chk.water, ships: chk.water ? (to.ships || 0) : 0
     };
 
     var report = fight(atk, def, to, toId, land, false);
@@ -220,15 +271,18 @@
       capture(toId, from.force, atk, def, report);
       to.food += baggage;                       // 치중은 뺏은 성으로 들어간다
     } else if (report.routed) {
-      /* 물러났다 — 살아 돌아온 병력과 치중은 출진한 성으로 되돌린다 */
+      /* 물러났다 — 살아 돌아온 병력·치중·배는 출진한 성으로 되돌린다 */
       from.troops += atk.troops;
       from.food += baggage;
+      from.ships += atk.ships || 0;
       to.troops = def.troops;
+      if (chk.water) { to.ships = def.ships; }
       for (i = 0; i < valid.length; i++) { off.addLoyal(valid[i], -2); }
     } else {
       /* 날이 저물었을 뿐이다 — 여기서 군을 되돌리면 공성이 영영 한 달짜리가 된다.
          물러나지 않고 **성 밖에 진을 친다**. 다음 달은 resolveAll() 이 잇는다 */
       to.troops = def.troops;
+      if (chk.water) { to.ships = def.ships; }
       report.campId = encamp(fromId, toId, atk, baggage, report).id;
     }
 
@@ -280,10 +334,16 @@
     var off = global.DG.off;
     var log = [];
     var lines = function (s) { log.push(s); };
+    var water = !!atk.water;
+    if (water) { def.water = true; }
 
-    lines('⚔️ ' + CD.find(toId).name + ' — ' + global.DG.rtk.forceName(atk.force) +
-      ' ' + core.fmt(atk.troops) + ' vs ' + global.DG.rtk.forceName(def.force) +
-      ' ' + core.fmt(def.troops));
+    lines((water ? '🌊 ' : '⚔️ ') + CD.find(toId).name + ' — ' +
+      global.DG.rtk.forceName(atk.force) + ' ' + core.fmt(atk.troops) +
+      ' vs ' + global.DG.rtk.forceName(def.force) + ' ' + core.fmt(def.troops));
+    if (water) {
+      lines('🛶 물길로 건넜다 — 배 ' + (atk.ships || 0) + '척 대 ' + (def.ships || 0) +
+        '척. 성벽은 소용이 없다');
+    }
 
     /* 일기토 */
     var du = null;
@@ -304,16 +364,18 @@
       }
     }
 
-    /* 야전 — 수비가 병력에 자신이 있으면 성 밖으로 나온다 */
-    var sortie = def.troops > atk.troops * 0.85;
-    if (sortie) { lines('🏇 성문이 열리고 수비군이 마주 나왔다 (야전)'); }
+    /* 야전 — 수비가 병력에 자신이 있으면 성 밖으로 나온다.
+       수전이면 성문이 뜻이 없다 — 둘 다 배 위에 있다 */
+    var sortie = !water && def.troops > atk.troops * 0.85;
+    if (water) { lines('⛵ 배와 배가 맞붙는다 (수전)'); }
+    else if (sortie) { lines('🏇 성문이 열리고 수비군이 마주 나왔다 (야전)'); }
     else { lines('🧱 수비군은 성을 닫고 지킨다 (공성)'); }
 
     var startWall = wallRef.wall;
     var r, won = false, routed = false;
     for (r = 0; r < ROUNDS; r++) {
-      /* 성벽이 온전할수록 수비가 세다. 야전이면 성벽을 못 쓴다 */
-      var wallF = sortie ? land.def
+      /* 성벽이 온전할수록 수비가 세다. 야전·수전이면 성벽을 못 쓴다 */
+      var wallF = (sortie || water) ? land.def
         : land.def * (1 + (wallRef.wall / Math.max(1, wallRef.maxWall)) * 0.9);
 
       var ap = armyPower(atk);
@@ -327,9 +389,21 @@
       atk.troops = Math.max(0, atk.troops - lossA);
       def.troops = Math.max(0, def.troops - lossD);
 
-      /* 공성추 — 성벽을 깎는다 */
-      if (!sortie) {
+      /* 공성추 — 성벽을 깎는다 (배로는 성벽을 못 깎는다) */
+      if (!sortie && !water) {
         wallRef.wall = Math.max(0, Math.round(wallRef.wall - atk.troops * 0.045 * land.siege));
+      }
+
+      if (water) {
+        /* 배도 함께 가라앉는다 — 잃은 병력 비율만큼 */
+        atk.ships = sinkShips(atk.ships, lossA, atk.troops);
+        def.ships = sinkShips(def.ships, lossD, def.troops);
+        var fa = fireRoll(atk, def);
+        if (fa) { lines('🔥 ' + fa); }
+        var fd = fireRoll(def, atk);
+        if (fd) { lines('🔥 ' + fd); }
+        if (def.troops <= 0) { won = true; lines('🏳️ 수비 수군이 흩어졌다'); break; }
+        if (atk.troops <= atk.start * ROUT) { routed = true; lines('↩️ 공격군이 뱃머리를 돌렸다'); break; }
       }
 
       if (def.troops <= 0) { won = true; lines('🏳️ 수비군이 무너졌다'); break; }
@@ -353,11 +427,14 @@
     if (startWall !== wallRef.wall) {
       lines('🧱 성벽 ' + core.fmt(startWall) + ' → ' + core.fmt(wallRef.wall));
     }
+    if (water) {
+      lines('🛶 남은 배 — 공 ' + (atk.ships || 0) + '척 · 수 ' + (def.ships || 0) + '척');
+    }
 
     return {
       ok: true, won: won, routed: routed, duel: du, log: log,
       lossA: atk.start - atk.troops, lossD: def.start - def.troops,
-      wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie
+      wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water
     };
   }
 
@@ -400,6 +477,9 @@
 
     to.force = newForce;
     to.troops = atk.troops;
+    /* 배 — 수전으로 들어갔으면 남은 배끼리 합친다(수비 배를 통째로 뺏는다).
+       뭍으로 들어갔으면 성에 매인 배가 그대로 새 주인에게 간다 */
+    to.ships = (atk.water ? (def.ships || 0) : (to.ships || 0)) + (atk.ships || 0);
     to.gov = atk.officers.length ? atk.officers[0] : null;
     to.sec = Math.max(10, Math.round(to.sec * 0.5));      // 갓 뺏은 성은 어수선하다
     to.train = atk.train;
@@ -448,18 +528,20 @@
     var land = CD.landOf(toId);
     var wallRef = { wall: to.wall, maxWall: to.maxWall };
     var defTroops = to.troops + reliefOf(toId);
+    var water = CD.isWater(fromId, toId);
     var atk = {
       troops: troops, start: troops, train: from.train, tech: from.tech,
-      officers: officerIds, morale: 1
+      officers: officerIds, morale: 1,
+      water: water, ships: water ? Math.ceil(troops / SHIP_CREW) : 0
     };
     var def = {
       troops: defTroops, start: defTroops, train: to.train, tech: to.tech,
       officers: global.DG.off.atCity(toId, to.force).map(function (h) { return h.id; }),
-      morale: 1
+      morale: 1, water: water, ships: water ? (to.ships || 0) : 0
     };
     var rep = fight(atk, def, wallRef, toId, land, true);
     return { won: rep.won, routed: rep.routed, lossA: rep.lossA, lossD: rep.lossD,
-             wallTo: wallRef.wall, defTroops: defTroops };
+             wallTo: wallRef.wall, defTroops: defTroops, water: water };
   }
 
   /* ── 우리 성끼리 ──────────────────────────────────────── */
@@ -512,6 +594,7 @@
       force: atk.force, from: fromId, to: toId,
       troops: atk.troops, officers: atk.officers.slice(),
       train: atk.train, tech: atk.tech, morale: atk.morale,
+      water: !!atk.water, ships: atk.ships || 0,
       food: baggage, months: 1
     };
     camps().push(cp);
@@ -550,7 +633,7 @@
     var home = homeFor(cp);
     if (!home) { return disband(cp); }
     var h = R.city(home), i;
-    h.troops += cp.troops; h.food += cp.food;
+    h.troops += cp.troops; h.food += cp.food; h.ships = (h.ships || 0) + (cp.ships || 0);
     for (i = 0; i < cp.officers.length; i++) {
       off.placeAt(cp.officers[i], home, cp.force);
       off.addLoyal(cp.officers[i], -2);
@@ -566,7 +649,7 @@
   function enterCity(cp) {
     var R = global.DG.rtk, off = global.DG.off;
     var to = R.city(cp.to), i;
-    to.troops += cp.troops; to.food += cp.food;
+    to.troops += cp.troops; to.food += cp.food; to.ships = (to.ships || 0) + (cp.ships || 0);
     for (i = 0; i < cp.officers.length; i++) {
       off.placeAt(cp.officers[i], cp.to, cp.force);
     }
@@ -625,6 +708,14 @@
     food = Math.max(0, Math.round(food || 0));
     if (troops > from.troops || food > from.food) { return { ok: false, why: '보낼 것이 모자랍니다' }; }
     if (!troops && !food) { return { ok: false, why: '보낼 것이 없습니다' }; }
+    /* 물 위의 진영은 **배에 타는 만큼만** 늘어난다 */
+    if (cp.water && troops > 0) {
+      var room = Math.max(0, (cp.ships || 0) * SHIP_CREW - cp.troops);
+      if (troops > room) {
+        return { ok: false, why: '배가 모자랍니다 (' + (cp.ships || 0) + '척에 ' +
+          core.fmt(room) + '명 더 탑니다)' };
+      }
+    }
     from.troops -= troops; from.food -= food;
     /* 갓 온 병사가 섞이면 훈련도가 내려간다 — 성에서 징병할 때와 같다 */
     if (troops > 0 && cp.troops + troops > 0) {
@@ -687,12 +778,14 @@
     var land = CD.landOf(cp.to);
     var atk = {
       side: 'atk', force: cp.force, troops: cp.troops, start: cp.troops,
-      train: cp.train, tech: cp.tech, officers: cp.officers, morale: cp.morale
+      train: cp.train, tech: cp.tech, officers: cp.officers, morale: cp.morale,
+      water: !!cp.water, ships: cp.ships || 0
     };
     var def = {
       side: 'def', force: to.force, troops: to.troops, start: to.troops,
       train: to.train, tech: to.tech,
-      officers: off.atCity(cp.to, to.force).map(function (h) { return h.id; }), morale: 1
+      officers: off.atCity(cp.to, to.force).map(function (h) { return h.id; }), morale: 1,
+      water: !!cp.water, ships: cp.water ? (to.ships || 0) : 0
     };
 
     var report = fight(atk, def, to, cp.to, land, false);
@@ -706,7 +799,7 @@
       report.log.splice(2, 0, '🚩 이웃 성에서 구원군 ' + core.fmt(relief) + ' 이 들어왔다');
     }
 
-    cp.troops = atk.troops; cp.morale = atk.morale;
+    cp.troops = atk.troops; cp.morale = atk.morale; cp.ships = atk.ships || 0;
     sendHomeHurt(cp, was);
 
     if (report.won) {
@@ -715,9 +808,11 @@
       drop(cp);
     } else if (report.routed) {
       to.troops = def.troops;
+      if (cp.water) { to.ships = def.ships; }
       retreat(cp, '공격군이 무너져');
     } else {
       to.troops = def.troops;
+      if (cp.water) { to.ships = def.ships; }
       cp.months += 1;
     }
     core.emit('rtk:battle', report);
@@ -740,9 +835,9 @@
 
   global.DG = global.DG || {};
   global.DG.war = {
-    ROUNDS: ROUNDS, ROUT: ROUT, DUEL_GAP: DUEL_GAP,
+    ROUNDS: ROUNDS, ROUT: ROUT, DUEL_GAP: DUEL_GAP, SHIP_CREW: SHIP_CREW,
     CAMP_DECAY: CAMP_DECAY, CAMP_QUIT: CAMP_QUIT, CAMP_MIN: CAMP_MIN,
-    armyPower: armyPower, topBy: topBy, duel: duel,
+    armyPower: armyPower, topBy: topBy, duel: duel, fireRoll: fireRoll,
     reinforce: reinforce, reliefOf: reliefOf, forecast: forecast,
     canMarch: canMarch, march: march, capture: capture,
     transfer: transfer, moveOfficer: moveOfficer,

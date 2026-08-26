@@ -11,6 +11,9 @@
  *   wall     성벽 초기값. 공성전이 이 값을 깎는다
  *   land     지형. 'plain'(평야) | 'hill'(구릉) | 'river'(강) | 'mount'(산)
  *            공성·야전 보정과 내정 상한이 여기서 갈린다
+ *            **양쪽이 다 river 인 길은 물길(水路)** 이다 — 배가 있어야 건넌다.
+ *            물길 목록을 따로 두지 않은 것은, 지형 한 글자만 고치면 물길이
+ *            따라 움직이게 두려는 것이다(장강·회수 줄기가 저절로 잡힌다)
  *
  * 도시를 늘릴 때는 이 파일만 고친다. 세력 배치는 data-force.js 다.
  */
@@ -164,6 +167,38 @@
 
   function provName(key) { return PROVINCES[key] || key; }
 
+  /**
+   * 두 성 사이가 **물길**인가 — 맞닿아 있고 양쪽이 다 강(river)이면 그렇다.
+   * 물길로는 **배로만** 군대가 건넌다. 그래서 강동은 배가 있어야 나가고,
+   * 강하와 시상 사이(적벽)는 언제나 수전이 된다.
+   */
+  function isWater(a, b) {
+    var ca = byId[a], cb = byId[b];
+    return !!ca && !!cb && ca.land === 'river' && cb.land === 'river' &&
+      ca.adj.indexOf(b) >= 0;
+  }
+
+  /** 물길로 이어진 이웃 */
+  function waterAdj(id) {
+    var c = byId[id], out = [], j;
+    if (!c) { return out; }
+    for (j = 0; j < c.adj.length; j++) {
+      if (isWater(id, c.adj[j])) { out.push(c.adj[j]); }
+    }
+    return out;
+  }
+
+  /** 물길 전부 (자가진단이 센다) */
+  var WATERWAYS = [];
+  for (i = 0; i < CITIES.length; i++) {
+    for (var wj = 0; wj < CITIES[i].adj.length; wj++) {
+      var wb = CITIES[i].adj[wj];
+      if (CITIES[i].id < wb && isWater(CITIES[i].id, wb)) {
+        WATERWAYS.push([CITIES[i].id, wb]);
+      }
+    }
+  }
+
   /** a 에서 b 까지 몇 성을 거치는가 (인접 그래프 너비 우선). 못 가면 -1 */
   function hops(a, b) {
     if (a === b) { return 0; }
@@ -186,7 +221,9 @@
   global.DG = global.DG || {};
   global.DG.cityData = {
     CITIES: CITIES, LINKS: LINKS, LANDS: LANDS, PROVINCES: PROVINCES,
+    WATERWAYS: WATERWAYS,
     find: find, landOf: landOf, provName: provName, hops: hops,
+    isWater: isWater, waterAdj: waterAdj,
     /** 자가진단용 — 없는 도시를 가리켜 버려진 링크 */
     _dropped: dropped
   };

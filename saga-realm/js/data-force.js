@@ -165,6 +165,33 @@
       officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi'] }
   ];
 
+  /* ── 수전(水戰)에 능한 사람 ─────────────────────────────
+   * 이 판의 자질은 무력·지력·통솔 셋뿐이다 — `data.js` 의 인물과 **모양이 같아야**
+   * 도감·초상·능력치가 그대로 돌기 때문이다. 그래서 "물에서 더 잘 싸운다" 는
+   * 넷째 자질을 만드는 대신 **이 파일의 목록**으로 둔다.
+   * 다섯 판이 나눠 가진 `data.js` 를 한 줄도 건드리지 않고 적벽이 선다.
+   *
+   * 값은 수전에서 부대 힘에 곱하는 배수다. 부대에서 **가장 나은 한 사람**만 센다.
+   */
+  var NAVY = {
+    kr_yisunsin: 1.40,      // 재야에서 온 수군 — "아직 신에게는 열두 척이 남아 있사옵니다"
+    sg_zhouyu:   1.35,      // 적벽
+    rf_huanggai: 1.30,      // 이 늙은 몸을 태워서라도
+    sg_ganning:  1.30,
+    rf_caimao:   1.30,      // 수군은 형주의 자랑입니다
+    rf_handang:  1.25,      // 배 위에서라면 지지 않소
+    rf_chengpu:  1.25,
+    sg_luxun:    1.25,
+    rf_zhoutai:  1.20,
+    sg_taishici: 1.20,
+    rf_huangzu:  1.15,      // 강하는 내가 지킨다
+    sg_sunquan:  1.15,
+    rf_sunce:    1.15
+  };
+
+  /** 수전 배수 — 물에서만 쓴다 (뭍에서는 언제나 1) */
+  function navyOf(id) { return NAVY[id] || 1; }
+
   var byId = {}, i;
   for (i = 0; i < OFFICERS.length; i++) { byId[OFFICERS[i].id] = OFFICERS[i]; }
 
@@ -180,7 +207,7 @@
 
   global.DG = global.DG || {};
   global.DG.forceData = {
-    OFFICERS: OFFICERS, FORCES: FORCES,
+    OFFICERS: OFFICERS, FORCES: FORCES, NAVY: NAVY, navyOf: navyOf,
     find: function (id) { return byId[id] || null; },
     force: function (id) { return forceById[id] || null; },
     roster: roster

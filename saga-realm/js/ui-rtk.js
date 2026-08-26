@@ -172,8 +172,11 @@
     var c = R().city(fromId);
     var ready = R().readyAt(fromId);
     if (!ready.length) { toast('출진할 장수가 없습니다'); return; }
-    var max = c.troops;
-    var t = parseInt(prompt('몇 명을 이끌고 갈까요? (성에 ' + core.fmt(max) + ')',
+    var wet = CD.isWater(fromId, toId);
+    var max = wet ? Math.min(c.troops, (c.ships || 0) * global.DG.war.SHIP_CREW) : c.troops;
+    if (wet && max < 500) { toast('배가 모자랍니다 — 조선(造船)으로 지으십시오'); return; }
+    var t = parseInt(prompt('몇 명을 이끌고 갈까요? (성에 ' + core.fmt(c.troops) +
+      (wet ? ' · 배로 ' + core.fmt(max) + '까지' : '') + ')',
       String(Math.floor(max * 0.8))), 10);
     if (!(t > 0)) { return; }
     var lead = off().sortByPower(ready).slice(0, 3).map(function (h) { return h.id; });
@@ -265,9 +268,11 @@
         drawn[key] = true;
         var fa = st.cities[a.id].force, fb = st.cities[b.id].force;
         var same = fa && fa === fb;
-        s += '<line class="rlink' + (same ? ' same' : '') + '" x1="' + a.x + '" y1="' + a.y +
+        var wet = CD.isWater(a.id, b.id);
+        s += '<line class="rlink' + (same ? ' same' : '') + (wet ? ' water' : '') +
+          '" x1="' + a.x + '" y1="' + a.y +
           '" x2="' + b.x + '" y2="' + b.y + '"' +
-          (same ? ' stroke="' + forceColor(fa) + '"' : '') + '/>';
+          (same && !wet ? ' stroke="' + forceColor(fa) + '"' : '') + '/>';
       }
     }
 
@@ -399,6 +404,11 @@
       '<div class="stat-row"><span>🪖 병력</span><b>' + core.fmt(c.troops) + '</b></div>' +
       '<div class="stat-row"><span>🍚 군량</span><b>' + core.fmt(c.food) +
         ' <span class="muted">(월 ' + core.fmt(R().eatOf(openCityId)) + ' 소모)</span></b></div>' +
+      (d.land === 'river'
+        ? '<div class="stat-row"><span>🛶 배</span><b>' + core.fmt(c.ships || 0) +
+          '척 <span class="muted">(' + core.fmt((c.ships || 0) * global.DG.war.SHIP_CREW) +
+          '명까지 실린다)</span></b></div>'
+        : '') +
       (mine
         ? '<div class="stat-row"><span>🪙 이 성의 달 수입</span><b>' +
           core.fmt(R().goldOf(openCityId)) + '</b></div>'
@@ -437,9 +447,13 @@
       for (var j = 0; j < R().ORDERS.length; j++) {
         var o = R().ORDERS[j];
         var afford = R().force(c.force).gold >= o.gold;
-        html += '<button class="ordbtn' + (afford ? '' : ' poor') + '" data-act="sel-order" data-key="' +
-          o.key + '" title="' + esc(o.desc) + '"><span>' + o.emoji + '</span><b>' + o.name +
-          '</b><small>🪙' + o.gold + '</small></button>';
+        /* 조선(造船)은 강을 낀 성에서만 — 아닌 성에서는 아예 못 고르게 둔다 */
+        var dry = o.key === 'ships' && d.land !== 'river';
+        html += '<button class="ordbtn' + (afford && !dry ? '' : ' poor') +
+          (dry ? ' disabled" disabled' : '"') + ' data-act="sel-order" data-key="' +
+          o.key + '" title="' + esc(dry ? '물길이 없는 성입니다' : o.desc) +
+          '"><span>' + o.emoji + '</span><b>' + o.name +
+          '</b><small>' + (dry ? '물길 없음' : '🪙' + o.gold) + '</small></button>';
       }
       html += '</div><small class="muted">명령을 고르면 <b>그 일에 맞는 사람</b> 순으로 뜹니다.</small>';
     } else {
@@ -553,10 +567,19 @@
     for (i = 0; i < d.adj.length; i++) {
       if (!R().isMine(d.adj[i])) { continue; }
       var fc = R().city(d.adj[i]);
+      var wet = CD.isWater(d.adj[i], openCityId);
+      var cap = (fc.ships || 0) * global.DG.war.SHIP_CREW;
       html += '<div class="card"><div class="stat-row"><span><b>' + esc(CD.find(d.adj[i]).name) +
-        '</b> 에서</span><span class="muted">🪖 ' + core.fmt(fc.troops) + '</span></div>' +
-        '<button class="btn tiny wide primary" data-act="march" data-from="' + d.adj[i] +
-        '" data-to="' + openCityId + '">⚔️ 친다</button></div>';
+        '</b>에서</span><span class="muted">🪖 ' + core.fmt(fc.troops) + '</span></div>' +
+        (wet
+          ? '<small class="muted">🌊 <b>물길</b>입니다 — 배로만 건넙니다. ' +
+            '🛶 ' + core.fmt(fc.ships || 0) + '척 · ' + core.fmt(cap) + '명까지. ' +
+            '수전은 <b>성벽이 소용없고</b> 화공이 터집니다.</small>'
+          : '') +
+        '<button class="btn tiny wide' + (wet && cap < 500 ? '' : ' primary') +
+        '" data-act="march" data-from="' + d.adj[i] +
+        '" data-to="' + openCityId + '">' + (wet ? '🌊 물길로 친다' : '⚔️ 친다') +
+        '</button></div>';
     }
     return html + '</div>';
   }
@@ -592,10 +615,17 @@
     }).join(' · ');
 
     var html = '<div class="card">' +
-      '<div class="stat-row"><span>🏕️ <b>' + esc(d.name) + '</b> 을(를) 에워쌌다</span>' +
+      '<div class="stat-row"><span>' + (cp.water ? '⛵' : '🏕️') + ' <b>' + esc(d.name) +
+      '</b> 을(를) 에워쌌다' + (cp.water ? ' <span class="tag">수채</span>' : '') + '</span>' +
       '<span class="muted">' + cp.months + '달째</span></div>' +
       '<div class="stat-row"><span class="muted">우리 군</span><b>🪖 ' + core.fmt(cp.troops) +
       ' · 🌾 ' + core.fmt(cp.food) + ' <span class="muted">(' + left + '달치)</span></b></div>' +
+      (cp.water
+        ? '<div class="stat-row"><span class="muted">배</span><b>🛶 ' + core.fmt(cp.ships || 0) +
+          '척 <span class="muted">(' +
+          core.fmt(Math.max(0, (cp.ships || 0) * global.DG.war.SHIP_CREW - cp.troops)) +
+          '명 더 탄다)</span></b></div>'
+        : '') +
       '<div class="stat-row"><span class="muted">사기 · 훈련</span><b>' +
       Math.round(cp.morale * 100) + ' · ' + cp.train + '</b></div>' +
       '<div class="stat-row"><span class="muted">성 안</span><b>🪖 ' + core.fmt(to.troops) +

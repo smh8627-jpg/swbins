@@ -56,6 +56,9 @@
     if (c.food < R.eatOf(cityId) * 3 && c.agri < R.capOf(cityId, 'agri')) { return 'agri'; }
     if (f.gold < keep && c.comm < R.capOf(cityId, 'comm')) { return 'comm'; }
     if (c.wall < c.maxWall * 0.7) { return 'wall'; }
+    /* 물길을 낀 성은 배가 있어야 나간다 — 없으면 강동이 제자리에서 늙는다 */
+    if (d.land === 'river' && c.ships < R.capOf(cityId, 'ships') * 0.4 &&
+        f.gold > keep) { return 'ships'; }
     if (c.troops < c.pop * 0.035 && f.gold > keep) { return 'draft'; }
     if (c.train < 70) { return 'train'; }
     if (c.agri < R.capOf(cityId, 'agri') * 0.7) { return 'agri'; }
@@ -218,16 +221,23 @@
         var to = R.city(adj[j]);
         if (!to || !to.force || to.force === forceId) { continue; }
         if (global.DG.diplo.blocked(forceId, to.force)) { continue; }
-        var f = war.forecast(cities[i], adj[j], lead, send);
+        /* 물길이면 배에 타는 만큼만 간다 — 배가 없으면 아예 못 간다 */
+        var wet = CD.isWater(cities[i], adj[j]);
+        var sendHere = wet ? Math.min(send, (from.ships || 0) * war.SHIP_CREW) : send;
+        if (sendHere < 800) { continue; }
+        var f = war.forecast(cities[i], adj[j], lead, sendHere);
         if (!f) { continue; }
-        if (f.lossA > send * cr.lossCap) { continue; }   // 이겨도 너무 비싸면 참는다
+        if (f.lossA > sendHere * cr.lossCap) { continue; }   // 이겨도 너무 비싸면 참는다
         /* 이 달에 못 떨어뜨려도 **성벽을 크게 깎으면** 친다.
-           한 달 안에 끝날 싸움만 고르게 두면 공성이라는 것이 판에서 사라진다 */
-        var grind = !f.won && f.wallTo < to.wall * 0.4 && f.lossA < send * cr.lossCap * 0.7;
+           한 달 안에 끝날 싸움만 고르게 두면 공성이라는 것이 판에서 사라진다
+           (수전은 성벽을 안 깎으므로 이 길로는 안 걸린다) */
+        var grind = !f.won && !wet && f.wallTo < to.wall * 0.4 &&
+          f.lossA < sendHere * cr.lossCap * 0.7;
         if (!f.won && !grind) { continue; }
-        var gain = (f.won ? 1 : 0.35) - f.lossA / Math.max(1, send);
+        var gain = (f.won ? 1 : 0.35) - f.lossA / Math.max(1, sendHere);
         if (!best || gain > best.gain) {
-          best = { from: cities[i], to: adj[j], gain: gain, lead: lead, send: send };
+          best = { from: cities[i], to: adj[j], gain: gain, lead: lead,
+                   send: sendHere, water: wet };
         }
       }
     }
@@ -240,6 +250,7 @@
     var keepHome = Math.round(threatAt(forceId, best.from) * 0.5);
     var real = Math.min(Math.floor(staging.troops * 0.85),
                         Math.max(0, staging.troops - keepHome));
+    if (best.water) { real = Math.min(real, (staging.ships || 0) * war.SHIP_CREW); }
     if (real < 800) { return null; }
     var chk = war.canMarch(best.from, best.to, real);
     if (!chk.ok) { return null; }
