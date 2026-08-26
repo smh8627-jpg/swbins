@@ -236,6 +236,68 @@
       return;
     }
 
+    if (mood === 'fire') {
+      /* 불타는 골짜기(호로곡) — 겹 셋. 뒤로 갈수록 어둡고 크다.
+         **에셋은 없다** — 도형과 그러데이션만 쓴다(다른 맵과 같은 규칙).
+         불길은 시각으로 흔들리지만 **판정에는 닿지 않는다**(그리기 층에만 있다). */
+      var t2 = Date.now() / 620;
+
+      /* ① 멀리 선 검은 산줄기 */
+      ctx.fillStyle = 'rgba(24,10,8,0.55)';
+      var gf0 = -camX * 0.22;
+      for (m = 0; m < 16; m++) {
+        mx = gf0 + m * 420;
+        ctx.beginPath();
+        ctx.moveTo(mx, floor);
+        ctx.lineTo(mx + 130, floor - 230 - (m % 3) * 60);
+        ctx.lineTo(mx + 270, floor);
+        ctx.closePath(); ctx.fill();
+      }
+
+      /* ② 골짜기 벽 — 앞쪽 한 겹이 더 진하다 */
+      ctx.fillStyle = 'rgba(40,16,10,0.62)';
+      var gf1 = -camX * 0.46;
+      for (m = 0; m < 14; m++) {
+        mx = gf1 + m * 310;
+        ctx.beginPath();
+        ctx.moveTo(mx, floor);
+        ctx.lineTo(mx + 74, floor - 150 - (m % 4) * 44);
+        ctx.lineTo(mx + 158, floor);
+        ctx.closePath(); ctx.fill();
+      }
+
+      /* ③ 바닥에서 오르는 불길 — 두 갈래로 흔들린다 */
+      var gf2 = -camX * 0.72;
+      for (m = 0; m < 22; m++) {
+        mx = gf2 + m * 190;
+        if (mx < -80 || mx > W + 80) { continue; }
+        var sway = Math.sin(t2 + m) * 14;
+        var tall = 150 + (m % 3) * 60 + Math.sin(t2 * 1.7 + m * 2) * 22;
+        var fg = ctx.createLinearGradient(0, floor, 0, floor - tall);
+        fg.addColorStop(0, 'rgba(255,196,86,0.85)');
+        fg.addColorStop(0.35, 'rgba(240,120,40,0.55)');
+        fg.addColorStop(0.75, 'rgba(200,52,24,0.22)');
+        fg.addColorStop(1, 'rgba(180,40,20,0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        ctx.moveTo(mx - 34, floor);
+        ctx.quadraticCurveTo(mx + sway, floor - tall, mx + 34, floor);
+        ctx.closePath(); ctx.fill();
+      }
+
+      /* ④ 떠오르는 불티 — 자리는 해시라 늘 같고, 오르는 것만 시각을 탄다 */
+      ctx.fillStyle = 'rgba(255,190,110,0.75)';
+      for (m = 0; m < 26; m++) {
+        var ex2 = -camX * 0.9 + m * 168;
+        if (ex2 < -20 || ex2 > W + 20) { continue; }
+        var rise2 = (t2 * 26 + m * 37) % 400;
+        ctx.globalAlpha = Math.max(0, 0.85 - rise2 / 400);
+        ctx.fillRect(ex2 + Math.sin(t2 * 2 + m) * 16, floor - 40 - rise2, 4, 4);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+
     if (mood === 'forest') {
       /* 둥근 나무 두 겹 — 뒤엣것이 크고 흐리다 */
       var layers = [{ p: 0.28, s: 1.35, a: 0.18, step: 300 },

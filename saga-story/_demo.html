@@ -12,6 +12,7 @@
     #boss   보스 앞                  #field 사냥터 시트
     #dex    도감                     #log   기록
     #crit   전투 연출(급소·넉백·넘어가는 몸) — 정지 화면으로 볼 유일한 수단
+    #gorge  호로곡(넷째 사냥터) — 불타는 골짜기
   해시에 chibi·tall·anime·classic 을 붙이면 등신·양식도 바뀐다 (예: #boss-chibi).
 
   이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
@@ -130,7 +131,22 @@ setTimeout(function () {
   if (hash.indexOf('classic') >= 0) { DG.sprite.setStyle('classic'); C.emit('changed'); }
   var tab = hash.split('-')[0];
 
-  if (tab === 'hunt' || tab === 'boss') {
+  if (tab === 'gorge') {
+    /* 넷째 사냥터 — 불타는 골짜기. 배경 겹 넷이 다 보이는 자리에 세운다 */
+    C.save.player.level = 46;
+    C.save.job = 'marshal';
+    DG.jobData.skillsOf('marshal').forEach(function (sk) {
+      if (sk.max) { C.save.skills[sk.key] = sk.max; }
+    });
+    S.enter('gorge');
+    var rg = S.raw();
+    if (rg) {
+      rg.player.x = 980;
+      rg.player.invuln = 9999;
+      S.update(0.016);
+    }
+  }
+  else if (tab === 'hunt' || tab === 'boss') {
     S.enter('field');
     var run = S.raw();
     if (tab === 'boss' && run && run.boss) {

@@ -1329,6 +1329,122 @@ window.DG_NO_TUNE = true;
         '진단 우회 동작';
     });
 
+    /* ── 넷째 사냥터 (2026-08-26) ───────────────────────── */
+
+    t('사냥터 넷이 레벨 순으로 계단을 이룬다', function () {
+      /* 넷째(호로곡)를 넣은 까닭이 이 계단이다 — 3차 전직이 Lv.45 인데 마지막
+         사냥터가 Lv.12 에 열려 있어, 무예를 스물 얹어 놓고 쓸 데가 없었다. */
+      var need = SD.STAGES.map(function (x) { return x.need; });
+      var lvs = SD.STAGES.map(function (x) { return x.enemyLv; });
+      var up = true, i;
+      for (i = 1; i < need.length; i++) {
+        if (need[i] <= need[i - 1] || lvs[i] <= lvs[i - 1]) { up = false; }
+      }
+      return SD.STAGES.length === 4 && up &&
+        ('문턱 ' + need.join('→') + ' · 적 Lv.' + lvs.join('→'));
+    });
+
+    t('호로곡은 처음으로 정예(tier 4)가 나오는 자리다', function () {
+      /* enemyLv 가 data-enemy.js 의 tierOf 를 거쳐 적 풀을 고른다. 26 이상이라야
+         정예가 나온다 — 그 문턱을 넘긴 것이 이 사냥터의 성격이다. */
+      var ED = DG.enemyData;
+      var g = SD.stage('gorge');
+      var t4 = ED.tierOf(g.enemyLv);
+      var t3 = ED.tierOf(SD.stage('cave').enemyLv);
+      var pool = ED.poolFor(g.enemyLv, false);
+      var boss = ED.bossByName(g.boss.name);
+      var allElite = pool.every(function (e) { return e.tier === 4; });
+      return t4 === 4 && t3 === 3 && allElite && boss.tier === 4 &&
+        pool.length >= 4 &&
+        ('굴혈 tier ' + t3 + ' → 호로곡 tier ' + t4 + ' · 적 ' + pool.length + '종 · 보스 ' + boss.name);
+    });
+
+    t('굴혈 오른쪽 문으로 호로곡에 걸어 넘어간다', function () {
+      /* 문 사슬이 한 군데라도 끊기면 그 사냥터는 영영 못 간다 — 지도에는 있는데
+         걸어갈 길이 없는 꼴이다. 넷을 오가며 사슬이 이어졌는지 본다. */
+      if (S.active()) { S.leave(); }
+      unlearn();
+      C.save.player.level = 46;
+      S.state().stage = 'cave';
+      S.enter('cave');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      var gate = null, i;
+      for (i = 0; i < run.stage.portals.length; i++) {
+        if (run.stage.portals[i][1] === 'gorge') { gate = run.stage.portals[i]; }
+      }
+      var went = false, where = '';
+      if (gate) {
+        p.x = gate[0] - S.P_W / 2;
+        p.y = run.stage.floor - S.P_H;
+        p.onGround = true;
+        went = S.useUp();
+        where = S.raw() ? S.raw().stage.key : '(나감)';
+      }
+      /* 되돌아오는 길도 있어야 한다 — 한쪽만 나면 갇힌다 */
+      var back = SD.stage('gorge').portals.some(function (q) { return q[1] === 'cave'; });
+      S.leave();
+      return !!gate && went && where === 'gorge' && back &&
+        ('굴혈 x' + gate[0] + ' → ' + where + ' · 돌아오는 문 있음');
+    });
+
+    t('모든 사냥터의 mood 는 화면이 아는 이름이다', function () {
+      /* 모르는 이름을 주면 하늘만 있고 뒤가 빈다 — 데이터만 늘리고 화면을 안 고치면
+         나는 흠이라 여기서 못을 박는다. 실제로 그려 보기까지 한다. */
+      var KNOWN = ['sky', 'forest', 'cave', 'fire'];
+      var bad = SD.STAGES.filter(function (x) { return KNOWN.indexOf(x.mood || 'sky') < 0; });
+      var drew = 0;
+      SD.STAGES.forEach(function (x) {
+        if (S.active()) { S.leave(); }
+        C.save.player.level = 99;
+        S.enter(x.key);
+        DG.sideView.resize();
+        DG.sideView.draw();
+        drew++;
+      });
+      if (S.active()) { S.leave(); }
+      return bad.length === 0 && drew === SD.STAGES.length &&
+        (SD.STAGES.map(function (x) { return x.mood; }).join('·') + ' · 넷 다 그려짐');
+    });
+
+    t('3차 무예라야 호로곡의 정예를 감당한다', function () {
+      /* 넷째를 넣은 값이 여기서 드러난다 — 같은 적을 2차와 3차로 쳐 본다.
+         2차로도 잡히기는 해야 하고(들어갈 수는 있어야 한다), 3차가 뚜렷이 세야 한다. */
+      if (S.active()) { S.leave(); }
+      function hitOnce(job, skills, key) {
+        unlearn();
+        C.save.player.level = 46;
+        C.save.job = job;
+        C.save.skills = skills;
+        S.enter('gorge');
+        var run = S.raw(), p = run.player;
+        calm(run);
+        p.x = 300; p.y = run.stage.floor - S.P_H; p.onGround = true; p.facing = 1;
+        run.enemies = [{ ref: { name: '허수아비', kind: 'human', look: {} },
+                         x: p.x + 40, y: p.y, w: 34, h: 34,
+                         hp: 9e9, hpMax: 9e9, dmg: 0, dir: -1, homeY: p.y + 34,
+                         spd: 0, phase: 0, hurt: 0, cd: 99 }];
+        run.mp = run.mpMax = 9999;
+        var bar = J.bar(), at = -1, i;
+        for (i = 0; i < bar.length; i++) { if (bar[i].key === key) { at = i; } }
+        if (at < 0) { S.leave(); return 0; }
+        p.cds[at] = 0;
+        S.castSkill(at);
+        var dealt = 9e9 - run.enemies[0].hp;
+        S.leave();
+        return dealt;
+      }
+      C.setTune('crit.rate', 0);                  // 재지 않는 축은 붙들어 둔다
+      var two = hitOnce('general', { w_cut: 10, g_smash: 10 }, 'g_smash');
+      var three = hitOnce('marshal', { w_cut: 10, g_smash: 10, n_heaven: 10 }, 'n_heaven');
+      C.setTune('crit.rate', null);
+      unlearn();
+      var hp = Math.round(18 * Math.pow(1.22, SD.stage('gorge').enemyLv - 1));
+      return two > 0 && three > two * 1.8 &&
+        ('정예 체력 ' + C.fmt(hp) + ' · 패왕격 ' + C.fmt(two) + ' → 천붕격 ' + C.fmt(three) +
+         ' (×' + (three / two).toFixed(1) + ')');
+    });
+
     /* ── 전투 연출 (2026-08-26) ─────────────────────────── */
 
     t('급소는 확률로 터지고 그만큼 더 아프다', function () {
