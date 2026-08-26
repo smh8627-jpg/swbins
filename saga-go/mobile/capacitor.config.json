@@ -1,6 +1,6 @@
 {
   "appId": "com.swbin.deungyonggo",
-  "appName": "역사GO",
+  "appName": "사가GO",
   "webDir": "www",
   "android": {
     "allowMixedContent": true

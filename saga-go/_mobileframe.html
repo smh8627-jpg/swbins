@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>사가고 — 폰 화면 확인용</title>
+<style>
+  html,body{margin:0;background:#2a2d34;height:100%;font:13px "Malgun Gothic",system-ui;color:#eee}
+  body{display:grid;place-items:center}
+  iframe{width:390px;height:844px;border:0;background:#12141a;box-shadow:0 0 0 2px #555}
+  #probe{position:fixed;left:8px;top:8px;white-space:pre;font-family:Consolas,monospace;line-height:1.5}
+  #warn{position:fixed;right:8px;top:8px;color:#f5b445;font-family:Consolas,monospace}
+</style></head><body>
+<div id="probe"></div>
+<div id="warn"></div>
+<script>
+/* 폰 폭(390px)을 헤드리스에서 그대로 보기 위한 확인용 껍데기.
+   헤드리스 크롬은 --window-size 를 500px 아래로 못 내리므로,
+   iframe 안쪽 뷰포트로 진짜 390px 을 만든다.
+   (사가의숲·사가스토리의 같은 이름 파일이 먼저 낸 길이다)
+
+   **데모(_demo.html)로는 이 일을 못 한다.** 데모는 `DG_NO_TUNE` 이라 손잡이를
+   아예 안 읽어서, 켠 것과 끈 것이 똑같이 나온다. 그래서 여기서는 index.html 을 띄운다.
+
+     (해시 없음)  그냥 폰 화면
+     ?fresh       가입 화면부터 본다 (기본은 확인용 프로필로 건너뛴다)
+     #quest #bag #letters #dex #oracle #log   그 시트를 열어 둔 채
+     #tools       상단 ⋯ 서랍을 펼친 채   (2026-08-26 에 넣은 것)
+     #3d          시점을 3D 로 돌린 채
+     #fit0 / #fit1   세로 화면 시야각 보정을 끄고/켜고 (world3d.portraitFit)
+     #fitreset    ↑ 로 건드린 손잡이를 도로 놓는다
+     #probe       상단·독·근처카드가 화면 밖으로 넘치는지 재고 PROBE OK/FAIL
+
+   섞어 쓴다: `#3d-fit0-probe` 처럼 이어 붙이면 된다.
+*/
+(function () {
+  var BASE = 'deungyong-go/save';
+  var TUNE = 'deungyong-go/tune';
+  var hash = location.hash.replace('#', '');
+  var has = function (k) { return hash.indexOf(k) >= 0; };
+  var warn = document.getElementById('warn');
+
+  /* ── 손잡이 — iframe 을 띄우기 **전에** 심어야 게임이 읽는다 ────────────
+     주의: 여기는 실제 게임과 같은 출처라 **진짜 손잡이를 건드린다.**
+     그래서 해시로 시킬 때만 손대고, 되돌리는 길(#fitreset)을 같이 둔다. */
+  function tuneRead() {
+    try { return JSON.parse(localStorage.getItem(TUNE) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function tuneWrite(o) {
+    try { localStorage.setItem(TUNE, JSON.stringify(o)); } catch (e) {}
+  }
+  if (has('fitreset')) {
+    var t0 = tuneRead();
+    delete t0['world3d.portraitFit'];
+    tuneWrite(t0);
+    warn.textContent = 'world3d.portraitFit 놓았다 (기본 1 로 돌아간다)';
+  } else if (has('fit0') || has('fit1')) {
+    var t1 = tuneRead();
+    t1['world3d.portraitFit'] = has('fit0') ? 0 : 1;
+    tuneWrite(t1);
+    warn.textContent = '⚠ world3d.portraitFit = ' + t1['world3d.portraitFit'] +
+                       ' 로 잡아 뒀다 — 끝나면 #fitreset';
+  }
+
+  /* ── 가입 화면 건너뛰기 ──────────────────────────────────────────── */
+  if (location.search.indexOf('fresh') < 0) {
+    try {
+      var raw = localStorage.getItem(BASE + '/accounts');
+      var o = raw ? JSON.parse(raw) : null;
+      if (!o || !o.list || !o.list.length) {
+        localStorage.setItem(BASE + '/accounts',
+          JSON.stringify({ list: [{ id: 'pmobile', name: '확인용', at: 1, lastSeen: 1 }], cur: 'pmobile' }));
+      }
+    } catch (e) {}
+  }
+
+  var f = document.createElement('iframe');
+  f.src = 'index.html';
+  document.body.appendChild(f);
+
+  var out = document.getElementById('probe');
+  function say(s) { out.textContent += s + '\n'; }
+
+  /* 계정을 심어도 가입 화면이 남아 있으면 손으로 넘긴다 (심는 쪽이 실패했을 때의 보루) */
+  function passGate(d) {
+    try {
+      var inp = d.querySelector('#acc-name, input[type="text"]');
+      if (!inp || !inp.offsetParent) { return false; }
+      var bs = d.querySelectorAll('button'), btn = null;
+      for (var i = 0; i < bs.length; i++) { if (/시작/.test(bs[i].textContent)) { btn = bs[i]; } }
+      if (!btn) { return false; }
+      inp.value = '확인용';
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      btn.click();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  var SHEETS = ['quest', 'bag', 'letters', 'dex', 'oracle', 'log'];
+
+  setTimeout(function () {
+    var w = f.contentWindow, d = f.contentDocument;
+    passGate(d);
+
+    setTimeout(function () {
+      /* 시점을 3D 로 — 단추가 2D → 2.5D → 3D 로 돌아간다 */
+      if (has('3d')) {
+        try {
+          var t = d.getElementById('btn-tilt');
+          for (var k = 0; k < 3 && t && t.textContent.indexOf('3D') < 0; k++) { t.click(); }
+        } catch (e) {}
+      }
+      /* 상단 ⋯ 서랍 */
+      if (has('tools')) {
+        try { d.getElementById('btn-more').click(); } catch (e) {}
+      }
+      /* 시트 */
+      for (var i = 0; i < SHEETS.length; i++) {
+        if (has(SHEETS[i])) {
+          try {
+            var b = d.querySelector('#dock [data-sheet="' + SHEETS[i] + '"]');
+            if (b) { b.click(); }
+          } catch (e) {}
+          break;
+        }
+      }
+      if (!has('probe')) { return; }
+
+      /* ── 넘침 측정 ────────────────────────────────────────────────
+         2026-08-26 에 폰에서 UI 가 잘린 것을 이 방식으로 찾았다.
+         그때 `.tools` 는 416px 을 달라 하고 **160px 이 화면 밖**에 있었다. */
+      setTimeout(function () {
+        var W = w.innerWidth, bad = [];
+        say('뷰포트 ' + W + 'x' + w.innerHeight);
+        try { say('시야각 ' + w.DG.world3d.fov().toFixed(1) + '도  (가로 화면은 52)'); } catch (e) {}
+
+        [['#top', '상단'], ['.profile', '프로필'], ['.tools', '도구'],
+         ['.wallet', '지갑'], ['#dock', '독'], ['.near-card', '근처카드']
+        ].forEach(function (pair) {
+          var e = d.querySelector(pair[0]);
+          if (!e) { say(pair[1] + ' : (없음)'); return; }
+          var r = e.getBoundingClientRect();
+          var over = '';
+          if (r.right > W + 0.5) { over = ' >>> 오른쪽 ' + Math.round(r.right - W) + 'px 밖'; }
+          else if (r.left < -0.5) { over = ' >>> 왼쪽 ' + Math.round(-r.left) + 'px 밖'; }
+          else if (e.scrollWidth > Math.ceil(r.width) + 1) {
+            over = ' >>> 내용 ' + (e.scrollWidth - Math.round(r.width)) + 'px 넘침';
+          }
+          if (over) { bad.push(pair[1]); }
+          say(pair[1] + ' : ' + Math.round(r.left) + '~' + Math.round(r.right) +
+              ' (폭 ' + Math.round(r.width) + ')' + over);
+        });
+
+        /* 근처 카드의 단추가 줄바꿈으로 쪼개지지 않았는지 — 폭이 절반뿐이던 흔적 */
+        var nb = d.querySelector('.near-card .btn');
+        if (nb) {
+          var h = nb.getBoundingClientRect().height;
+          say('가까이가기 단추 높이 ' + Math.round(h) + 'px' +
+              (h > 46 ? ' >>> 여러 줄로 쪼개졌다' : ''));
+          if (h > 46) { bad.push('가까이가기'); }
+        }
+
+        say(bad.length ? 'PROBE FAIL 화면 밖으로 나간 것: ' + bad.join(' · ')
+                       : 'PROBE OK 넘치는 것이 없다');
+      }, 1200);
+    }, 2500);
+  }, 3000);
+})();
+</script>
+</body></html>

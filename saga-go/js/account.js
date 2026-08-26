@@ -26,7 +26,7 @@
   var core = global.DG.core;
 
   /** 이 게임의 표시 이름 — 가입 화면 제목에 쓴다 (게임마다 다르다) */
-  var GAME_NAME = '역사고';
+  var GAME_NAME = '사가고';
 
   var STORE = core.SAVE_BASE + '/accounts';     // 프로필 목록이 사는 곳
   var LEGACY = core.SAVE_BASE + '/v1';          // 가입 개념이 없던 시절의 세이브
@@ -371,7 +371,11 @@
     b.title = (acc ? acc.name : '프로필') + ' — 이름 바꾸기 · 다른 이름으로 놀기';
     b.textContent = '👤';
     b.addEventListener('click', showSwitch);
-    tools.insertBefore(b, tools.firstChild);
+    /* 폰에서는 도구가 ⋯ 서랍으로 접힌다 — 👤 도 그 안에 들어가야 한다.
+       서랍이 없는 판(옛 index.html)이면 예전처럼 도구줄 맨 앞에 선다 */
+    var drawer = document.getElementById('tools-drawer');
+    if (drawer) { drawer.insertBefore(b, drawer.firstChild); }
+    else { tools.insertBefore(b, tools.firstChild); }
   }
 
   global.DG = global.DG || {};

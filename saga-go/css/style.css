@@ -1,4 +1,4 @@
-/* 역사GO — UI
+/* 사가GO — UI
    지도를 전체화면에 깔고, 그 위에 유리(glass) 패널을 띄우는 구성. */
 
 :root {
@@ -104,7 +104,11 @@ body.r3d.tilted #vignette {
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
 
-.tools { grid-area: tools; display: flex; gap: 7px; }
+.tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
+/* 도구 서랍 — 넓은 화면에서는 **없는 셈** 치고(display:contents) 안의 단추가
+   도구줄에 그대로 늘어선다. 좁은 화면에서만 ⋯ 뒤로 접힌다(아래 600px 규칙) */
+.tools-drawer { display: contents; }
+#btn-more { display: none; font-size: 19px; line-height: 1; padding-bottom: 4px; }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   background: var(--glass); border: 1px solid var(--glass-br);
@@ -465,6 +469,41 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   #dock button { width: 52px; height: 52px; border-radius: 17px; }
   #near { bottom: calc(84px + var(--safe-b)); }
   .wallet { flex-wrap: wrap; }
+}
+
+/* ── 폰 폭: 상단 도구를 ⋯ 뒤로 접는다 ─────────────────────
+ * 도구가 아홉이라(👤 는 account.js 가 끼운다) 390px 에서 416px 을 달라 한다.
+ * 그리드의 tools 칸이 `auto` 라 줄지 않고 그대로 화면 밖으로 밀려 나가 —
+ * 뒤쪽 서넛은 보이지도, 눌리지도 않았다. 실제 폰에서 밟은 자리다.
+ */
+@media (max-width: 600px) {
+  #btn-more { display: inline-block; }
+  .tools-drawer {
+    display: none;
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 14;
+    flex-wrap: wrap; justify-content: flex-end; gap: 7px;
+    width: max-content; max-width: calc(100vw - 24px);
+    padding: 9px; border-radius: var(--r-md);
+    background: var(--glass); border: 1px solid var(--glass-br);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
+  }
+  .tools-drawer.show { display: flex; }
+  /* 독이 일곱이 되는 때(던전이 열린 뒤)가 있다. `right` 만 잡혀 있으면 폭이
+     내용을 따라 늘어 왼쪽으로 화면을 넘어간다 — 양쪽을 붙들어 그 안에서 굴린다 */
+  #dock { left: 12px; justify-content: flex-end; }
+  /* 근처 카드가 `left:50%` 라 **화면 절반**만 쓸 수 있었다. 폰에서는 그 절반이
+     195px 이라 '가까이 가기' 가 석 줄로 쪼개졌다. 양쪽을 잡고 가운데로 모은다 */
+  #near { left: 12px; right: 12px; transform: translateY(14px); }
+  #near.show { transform: translateY(0); }
+  .near-card { width: 100%; max-width: 348px; }
+}
+
+/* 근처 카드 — 이름은 줄여도 되지만 단추는 줄이면 안 된다 */
+.near-card .btn { white-space: nowrap; flex: 0 0 auto; }
+.near-card .near-meta { flex: 1 1 auto; min-width: 0; }
+.near-card .near-meta b, .near-card .near-meta small {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;
 }
 
 /* ══ 인물 성장 · 영지 경영 (v0.7) ═══════════════════════════════ */
@@ -863,7 +902,7 @@ body.dungeon-open { overflow: hidden; }
   .modeswitch { flex-direction: column; }
 }
 
-/* ══ 역사GO v1.0 — 고딕 던전 · 오브 HUD · 서당 · 3D ═══════════════ */
+/* ══ 사가GO v1.0 — 고딕 던전 · 오브 HUD · 서당 · 3D ═══════════════ */
 
 /* ── 3D 모드 — 지평선 안개를 더 깊게 (포켓몬GO식 카메라) ── */
 body.tilted3 #vignette {

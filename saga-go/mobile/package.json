@@ -3,7 +3,7 @@
   "version": "0.9.0",
   "private": true,
   "type": "module",
-  "description": "역사GO 모바일 앱 껍데기 (Capacitor) — 게임 파일을 그대로 담는다",
+  "description": "사가GO 모바일 앱 껍데기 (Capacitor) — 게임 파일을 그대로 담는다",
   "scripts": {
     "www": "node build-www.mjs",
     "sync": "node build-www.mjs && npx cap sync",

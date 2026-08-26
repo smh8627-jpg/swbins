@@ -54,6 +54,36 @@
   function DENSITY() { return core.tuned('world3d.density', 1); }
   /** 시각을 따라 해가 뜨고 질까 — 0 이면 늘 한낮 */
   function DAYNIGHT() { return core.tuned('world3d.dayNight', 1) ? true : false; }
+  /** 세로 화면에서 카메라를 물릴까 — 0 이면 옛 그림(폰에서 지형지물이 화면을 덮는다) */
+  function PORTRAIT_FIT() { return core.tuned('world3d.portraitFit', 1) ? true : false; }
+  /** 물리는 정도의 상한(배) — 1 이면 안 물린다 */
+  function PORTRAIT_MAX() { return core.tuned('world3d.portraitMax', 1.8); }
+
+  /** 기본 시야각(도) — 가로 화면에서 쓰던 값 */
+  function FOV() { return core.tuned('world3d.fov', 52); }
+  /** 세로 화면에서 벌릴 수 있는 시야각의 상한(도) */
+  function FOV_MAX() { return core.tuned('world3d.fovMax', 80); }
+
+  /* 이 판의 거리·높이 값은 **PC 가로 화면**에서 잡혔다. three 의 fov 는 세로
+     기준이라, 세로로 긴 폰(가로세로비 0.53)에서는 가로 시야가 PC 의 절반 밑으로
+     좁아진다 — 같은 자리인데 건물과 나무가 화면을 덮는다.
+     **카메라를 물리지는 않는다.** 물려 봤더니 안개(lightingAt 의 fog)가 가로
+     화면 거리에 맞춰져 있어 화면이 통째로 하얘졌다 — 실제로 찍어 보고 접은 길이다.
+     대신 **시야각만 벌린다**: 카메라는 제자리라 안개도 그림자 상자도 그대로다.
+     REF 는 그 거리 값들이 잡힌 화면의 가로세로비다. */
+  var REF_ASPECT = 1.5;
+  var DEG = 180 / Math.PI;
+  /** 이 화면에서 쓸 시야각(도). 가로 화면이면 기본값 그대로 */
+  function fovFor(w, h) {
+    var base = FOV();
+    if (!PORTRAIT_FIT() || !w || !h) { return base; }
+    var a = w / h;
+    if (a >= REF_ASPECT) { return base; }
+    /* 제곱근을 쓴다 — 가로 시야를 그대로 되찾으려면 폰에서 112도가 되어 휜다 */
+    var mul = Math.min(PORTRAIT_MAX(), Math.sqrt(REF_ASPECT / a));
+    var t = Math.tan(base / 2 / DEG) * mul;
+    return Math.min(FOV_MAX(), 2 * Math.atan(t) * DEG);
+  }
 
   /** 3D 로 그릴까 — 손잡이로 끌 수 있다(0 이면 예전 2D 화면) */
   function wanted() { return core.tuned('world.render3d', 1) ? true : false; }
@@ -203,7 +233,9 @@
       scene.fog = new T.Fog(L0.bg, L0.fog.near, L0.fog.far);
     }
 
-    camera = new T.PerspectiveCamera(52, 1, 0.5, 1400);
+    camera = new T.PerspectiveCamera(
+      fovFor(canvas.clientWidth || global.innerWidth, canvas.clientHeight || global.innerHeight),
+      1, 0.5, 1400);
 
     /* 빛은 둘뿐이다 — 하늘/땅에서 오는 반사광과, 그림자를 만드는 해 하나 */
     sky = new T.HemisphereLight(L0.hemi.sky, L0.hemi.ground, L0.hemi.intensity);
@@ -243,6 +275,7 @@
     var h = canvas.clientHeight || global.innerHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / Math.max(1, h);
+    camera.fov = fovFor(w, h);
     camera.updateProjectionMatrix();
   }
 
@@ -1012,6 +1045,8 @@
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     lightingAt: lightingAt, propPlan: propPlan, urbanity: urbanity, camAim: camAim,
+    /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
+    fov: function () { return camera ? camera.fov : FOV(); },
     forceTime: forceTime,
     /* 조우 무대 — `encounter3d.js` 가 켜고 끈다. 여기 있는 것은 **카메라와 자리**뿐이고
        링·사료·빛 같은 소품은 그쪽이 만들어 `addFx` 로 얹는다 */

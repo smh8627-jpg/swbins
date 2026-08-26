@@ -1,5 +1,5 @@
 /**
- * 부트스트랩 & 메인 루프 — 역사GO 본편 (포켓몬GO / 몬스터헌터 NOW 형태)
+ * 부트스트랩 & 메인 루프 — 사가GO 본편 (포켓몬GO / 몬스터헌터 NOW 형태)
  * ---------------------------------------------------------------
  * 본편의 놀이 순환은 셋뿐이다:
  *   걷는다  → 일정 거리마다 보급(등용서·사료·명성)을 받는다
@@ -238,6 +238,40 @@
     }
 
     document.getElementById('btn-help').addEventListener('click', showHelp);
+    bindMore();
+  }
+
+  /* ── 도구 서랍 (⋯) ────────────────────────────────────────
+   * 폰 폭에서만 열린다. 넓은 화면에서는 CSS 가 서랍을 풀어(display:contents)
+   * 단추가 도구줄에 그대로 서므로 여기서 하는 일은 아무 뜻이 없다.
+   * 단추를 옮기지 않는다 — 옮기면 위에서 건 이벤트를 다시 걸어야 한다.
+   */
+  function bindMore() {
+    var more = document.getElementById('btn-more');
+    var drawer = document.getElementById('tools-drawer');
+    if (!more || !drawer) { return; }
+    function close() {
+      drawer.classList.remove('show');
+      more.classList.remove('on');
+      more.setAttribute('aria-expanded', 'false');
+    }
+    more.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = !drawer.classList.contains('show');
+      drawer.classList.toggle('show', open);
+      more.classList.toggle('on', open);
+      more.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    /* 서랍 안의 무엇을 누르든 닫는다 — 시점·양식은 눌러 본 결과를 지도에서
+       봐야 하는데 서랍이 덮고 있으면 볼 수가 없다 */
+    drawer.addEventListener('click', function (e) {
+      if (e.target.closest('button')) { close(); }
+    });
+    document.addEventListener('click', function (e) {
+      if (!drawer.classList.contains('show')) { return; }
+      if (e.target.closest('.tools')) { return; }
+      close();
+    });
   }
 
   function showHelp() {
