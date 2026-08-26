@@ -107,6 +107,9 @@
     /* 3) 싸울 만한가 — 살림보다 먼저 본다(장수를 명령에 다 써 버리면 못 친다) */
     acted.march = tryWar(forceId, cr);
 
+    /* 3.5) 공이 쌓인 사람을 올린다 — 관직이 사람을 붙들어 둔다 */
+    acted.promote = tryPromote(forceId, cr);
+
     /* 4) 계략 · 외교 — 각각 한 달에 한 번까지 */
     if (Math.random() < cr.plotRate) { acted.plot = tryPlot(forceId); }
     if (Math.random() < cr.envoyRate) { acted.envoy = tryEnvoy(forceId); }
@@ -259,6 +262,31 @@
     return rep && rep.ok ? { from: best.from, to: best.to, won: rep.won, send: real } : null;
   }
 
+  /**
+   * 승진 — **사람이 쓰는 `off.promote` 를 그대로 부른다.**
+   * 고르는 눈은 하나뿐이다: 올릴 수 있는 사람 가운데 **충성이 가장 낮은 사람**.
+   * 원작에서 관직이 하는 일이 그것이다 — 떠나려는 사람을 붙든다.
+   * 이 줄이 없으면 AI 는 120개월을 굴려도 승진이 한 단도 없고,
+   * 사람 쪽만 관직 배수를 받아 판이 한쪽으로 기운다(실제로 그렇게 재 봤다).
+   */
+  function tryPromote(forceId, cr) {
+    var R = global.DG.rtk, off = global.DG.off;
+    var f = R.force(forceId);
+    if (!f || !off.promoteCheck) { return null; }
+    var list = off.ofForce(forceId), best = null, low = 101, i;
+    for (i = 0; i < list.length; i++) {
+      var chk = off.promoteCheck(list[i].id);
+      if (!chk.ok) { continue; }
+      /* 금고를 승진에 다 쓰지 않는다 — 성향이 정한 살림 밑돈은 남긴다 */
+      if (f.gold - chk.cost.gold < (cr || creedOf(forceId)).keepGold) { continue; }
+      var lo = off.loyalOf(list[i].id);
+      if (lo < low) { low = lo; best = list[i]; }
+    }
+    if (!best) { return null; }
+    var res = off.promote(best.id);
+    return res.ok ? { id: best.id, rank: res.rank } : null;
+  }
+
   function tryPlot(forceId) {
     var R = global.DG.rtk;
     var off = global.DG.off;
@@ -339,7 +367,8 @@
     pickOrder: pickOrder, bestFor: bestFor,
     runForce: runForce, threatAt: threatAt, spareOf: spareOf,
     gatherable: gatherable, gather: gather,
-    tryWar: tryWar, trySupply: trySupply, tryPlot: tryPlot, tryEnvoy: tryEnvoy,
+    tryWar: tryWar, trySupply: trySupply, tryPromote: tryPromote,
+    tryPlot: tryPlot, tryEnvoy: tryEnvoy,
     runAll: runAll
   };
 })(window);

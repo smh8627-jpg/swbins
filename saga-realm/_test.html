@@ -104,7 +104,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
      * **항목은 자기가 쓸 상태를 스스로 만든다** — 앞 항목이 남긴 성·충성·맹약이
      * 다음 항목으로 흘러 들어가면 통과와 실패가 순서에 달리게 된다.
      */
-    function fresh(meId) { R.setup(meId || 'cao'); return R.state(); }
+    function fresh(meId, scen) {
+      /* 무장 성장(`save.heroes`)은 setup 이 건드리지 않는다 — 세이브 공용 칸이라
+         일부러 그렇게 두었다. 진단에서는 **함께 비운다**. 안 비우면 앞 항목이
+         올려 놓은 레벨이 뒤 항목의 능력치로 흘러 들어가 수치가 순서에 달린다 */
+      C.save.heroes = {};
+      R.setup(meId || 'cao', scen);
+      return R.state();
+    }
 
     /** 그 성의 장수를 모두 성하게(명령 안 쓴 상태로) 만든다 */
     function freeUp(cityId) {
@@ -400,6 +407,96 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
     });
 
     /* ── 등용 ────────────────────────────────────────── */
+
+    /* ── 무장 성장 (경험과 승진) ─────────────────────── */
+
+    t('일을 시키면 경험이 붙는다', function () {
+      fresh('cao');
+      var who = R.readyAt('xuchang')[0];
+      var g0 = off.grow(who.id).exp;
+      R.order('xuchang', who.id, 'agri');
+      var g1 = off.grow(who.id).exp;
+      /* 태수로 앉아 한 달을 나도 는다 */
+      var gov = R.city('xuchang').gov;
+      var e0 = off.grow(gov).exp;
+      R.settleMonth();
+      return g1 === g0 + off.EXP.order && off.grow(gov).exp > e0 &&
+        ('명령 +' + off.EXP.order + ' · 태수로 한 달 +' + off.EXP.gov);
+    });
+
+    t('싸우면 더 크게 붙는다', function () {
+      fresh('cao');
+      var from = R.city('chenliu'), to = R.city('luoyang');
+      from.troops = to.troops * 6; from.food = 999999;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+      var e0 = off.grow(lead[0]).exp + 0;
+      var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+      var got = off.grow(lead[0]).lv > 1 ? '레벨이 올랐다' :
+        (off.grow(lead[0]).exp - e0) + '';
+      return rep.won && off.EXP.win > off.EXP.order &&
+        (off.grow(lead[0]).exp !== e0 || off.grow(lead[0]).lv > 1) &&
+        ('출진 +' + off.EXP.march + ' · 함락 +' + off.EXP.win + ' → ' + got);
+    });
+
+    t('레벨과 관직이 능력치로 이어진다 (판정 한 곳을 지난다)', function () {
+      /* 성장이 전투에 듣는 것은 armyPower 가 같은 off.stats 를 읽기 때문이지,
+         전투에 따로 붙인 보정이 아니다 */
+      fresh('cao');
+      var id = 'sg_xiahoudun';
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      var base = off.stats(id).might;
+      var p0 = W.armyPower({ troops: 10000, train: 60, tech: 300, morale: 1, officers: [id] });
+      C.save.heroes[id] = { lv: 11, exp: 0, rank: 0 };
+      var lv11 = off.stats(id).might;
+      C.save.heroes[id] = { lv: 11, exp: 0, rank: 3 };
+      var ranked = off.stats(id).might;
+      var p1 = W.armyPower({ troops: 10000, train: 60, tech: 300, morale: 1, officers: [id] });
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      return lv11 > base && ranked > lv11 && p1 > p0 &&
+        ('하후돈 무력 ' + base + ' → Lv.11 ' + lv11 + ' → ★3 ' + ranked +
+         ' · 부대 힘 ' + Math.round(p0) + ' → ' + Math.round(p1));
+    });
+
+    t('공이 쌓여야 승진한다 — 올리면 충성이 오른다', function () {
+      fresh('cao');
+      var id = 'sg_xiahoudun';
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      var r = off.rec(id);
+      r.feats = 0; r.loyal = 50;
+      var no = off.promoteCheck(id);
+      var cost = off.promoteCost(0);
+      r.feats = cost.feats;
+      R.force('cao').gold = cost.gold + 10;
+      var res = off.promote(id);
+      var after = off.rec(id);
+      return !no.ok && no.why.indexOf('공이 모자') >= 0 && res.ok && res.rank === 1 &&
+        after.loyal > 50 && after.feats === 0 && R.force('cao').gold === 10 &&
+        ('공 ' + cost.feats + ' · 금 ' + cost.gold + ' → ' + res.name +
+         ' · 충성 50 → ' + after.loyal);
+    });
+
+    t('재야는 승진시킬 수 없다', function () {
+      fresh('cao');
+      var free = off.freeAt(off.rec('kr_yisunsin').city, false)[0] || { id: 'kr_yisunsin' };
+      var chk = off.promoteCheck('kr_yisunsin');
+      return !chk.ok && chk.why.indexOf('재야') >= 0 && (chk.why);
+    });
+
+    t('AI 도 공이 쌓인 사람을 올린다', function () {
+      /* 이게 없으면 사람 쪽만 관직 배수를 받아 판이 한쪽으로 기운다 */
+      fresh('cao');
+      var list = off.ofForce('shao'), i;
+      for (i = 0; i < list.length; i++) {
+        off.rec(list[i].id).feats = 60;
+        C.save.heroes[list[i].id] = { lv: 1, exp: 0, rank: 0 };
+      }
+      off.rec(list[0].id).loyal = 20;              // 가장 흔들리는 사람
+      R.force('shao').gold = 99999;
+      var res = AI.tryPromote('shao', AI.CREED.balanced);
+      return !!res && off.grow(res.id).rank === 1 && res.id === list[0].id &&
+        ('충성이 가장 낮던 ' + off.find(res.id).name + ' 을(를) ' +
+         off.rankName(res.id) + ' 로 올렸다');
+    });
 
     t('수색해야 등용할 수 있다', function () {
       fresh('cao');

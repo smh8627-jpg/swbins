@@ -258,6 +258,9 @@
       water: chk.water, ships: chk.water ? (to.ships || 0) : 0
     };
 
+    /* 따라나선 것만으로도 는다 — 이기고 지고는 그다음이다 */
+    off.gainExpAll(valid, off.EXP.march);
+
     var report = fight(atk, def, to, toId, land, false);
     report.from = fromId; report.to = toId; report.relief = relief;
     report.force = from.force;
@@ -356,6 +359,7 @@
         var loseSide = winSide === atk ? def : atk;
         winSide.morale *= 1.15;
         loseSide.morale *= 0.92;
+        off.gainExp(du.winner, off.EXP.duel);
         if (du.hurt) {
           /* 다친 장수는 그 싸움에서 빠진다 */
           var li = loseSide.officers.indexOf(du.loser);
@@ -489,6 +493,7 @@
       off.placeAt(atk.officers[i], toId, newForce);
       off.rec(atk.officers[i]).feats += 3;
       off.addLoyal(atk.officers[i], 3);
+      off.gainExp(atk.officers[i], off.EXP.win);
     }
 
     report.taken = toId;
@@ -787,6 +792,8 @@
       officers: off.atCity(cp.to, to.force).map(function (h) { return h.id; }), morale: 1,
       water: !!cp.water, ships: cp.water ? (to.ships || 0) : 0
     };
+
+    off.gainExpAll(cp.officers, off.EXP.siege);
 
     var report = fight(atk, def, to, cp.to, land, false);
     report.from = cp.from; report.to = cp.to; report.relief = relief;

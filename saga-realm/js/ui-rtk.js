@@ -126,6 +126,9 @@
       pickOrder = null;
     } else if (a === 'set-gov') {
       R().setGov(openCityId, g('data-id') || null);
+    } else if (a === 'promote') {
+      var pr = off().promote(g('data-id'));
+      toast(pr.ok ? '✨ ' + pr.name + ' — 충성 ' + pr.loyal : pr.why);
     } else if (a === 'reward') {
       var rr = R().reward(g('data-id'), 300);
       toast(rr.ok ? '🎁 충성 ' + rr.loyal : rr.why);
@@ -659,7 +662,9 @@
   function viewOfficers() {
     var list = off().ofForce(R().me());
     var html = '<div class="sec"><h4>우리 무장 <span class="muted">' + list.length + '명</span></h4>' +
-      '<small class="muted">충성이 <b>바닥</b>나면 스스로 떠납니다. 금을 내려 붙듭니다.</small></div>';
+      '<small class="muted">충성이 <b>바닥</b>나면 스스로 떠납니다. 금을 내려 붙듭니다.<br>' +
+      '일을 시키면 <b>경험</b>이 붙어 능력치가 오르고, 쌓인 <b>공</b>으로 <b>승진</b>시키면 ' +
+      '능력치와 충성이 함께 오릅니다.</small></div>';
     var byCity = {};
     for (var i = 0; i < list.length; i++) {
       var r = off().rec(list[i].id);
@@ -692,19 +697,49 @@
           (c && c.gov === h.id ? ' <span class="tag">태수</span>' : '') +
           (r.hurt ? ' <span class="tag warnt">부상 ' + r.hurt + '개월</span>' : '') +
           (r.done ? ' <span class="muted">· 이 달 명령 씀</span>' : '') +
+          (r.camp ? ' <span class="tag">원정 중</span>' : '') +
         '<div class="dt-stats"><span>무 <b>' + s.might + '</b></span>' +
           '<span>지 <b>' + s.wisdom + '</b></span>' +
           '<span>통 <b>' + s.command + '</b></span>' +
-          '<span class="muted">Lv.' + g.lv + (g.rank ? ' ★' + g.rank : '') + '</span></div>' +
+          '<span class="muted">Lv.' + g.lv + '</span></div>' +
         '</div></div>' +
       '<div class="rstat"><span>충성</span><div class="bar sm' +
         (r.loyal < 25 ? ' bad' : '') + '"><i style="width:' + r.loyal + '%"></i></div>' +
         '<b>' + r.loyal + '</b></div>' +
+      growRow(h) +
       (bio ? '<small class="muted dt-bio">' + esc(bio) + '</small>' : '') +
       (h.quote ? '<small class="quote">“' + esc(h.quote) + '”</small>' : '') +
-      (isLord ? '' : '<button class="btn tiny" data-act="reward" data-id="' + h.id +
-        '">🎁 금 300 을 내린다</button>') +
+      /* 군주는 상도 승진도 없다 — 제 나라에서 제가 올라갈 자리가 없다 */
+      (isLord ? '' :
+        '<div class="camp-acts">' +
+          '<button class="btn tiny" data-act="reward" data-id="' + h.id + '">🎁 금 300</button>' +
+          promoteBtn(h) +
+        '</div>') +
       '</div>';
+  }
+
+  /** 관직과 경험 — 무장이 자라는 것이 보여야 기르는 뜻이 산다 */
+  function growRow(h) {
+    var H = global.DG.hero;
+    var g = off().grow(h.id);
+    var need = H.expNeed(g.lv);
+    var pct = g.lv >= H.MAX_LV ? 100 : Math.round(core.clamp(g.exp / need, 0, 1) * 100);
+    return '<div class="rstat"><span>' + esc(off().rankName(h.id)) + '</span>' +
+      '<div class="bar sm gold"><i style="width:' + pct + '%"></i></div>' +
+      '<b>' + (g.lv >= H.MAX_LV ? '만렙' : g.exp + '/' + need) + '</b></div>';
+  }
+
+  function promoteBtn(h) {
+    var chk = off().promoteCheck(h.id);
+    var g = off().grow(h.id);
+    if (g.rank >= global.DG.hero.MAX_RANK) {
+      return '<button class="btn tiny" disabled>✨ 더 올릴 자리 없음</button>';
+    }
+    var c = off().promoteCost(g.rank);
+    return '<button class="btn tiny' + (chk.ok ? ' primary' : '') + '"' +
+      (chk.ok ? '' : ' disabled') + ' data-act="promote" data-id="' + h.id +
+      '" title="' + esc(chk.ok ? '올린다' : chk.why) + '">✨ 승진 <span class="muted">공 ' +
+      off().rec(h.id).feats + '/' + c.feats + ' · 🪙' + c.gold + '</span></button>';
   }
 
   /* ── 외교 ─────────────────────────────────────────────── */

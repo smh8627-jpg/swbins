@@ -1072,6 +1072,9 @@ body.tilted3 #vignette {
 .gearname small { font-weight: 400; margin-left: 4px; }
 
 
+/* 무장의 경험 막대 — 충성(초록)과 눈으로 갈라야 한다 */
+.bar.sm.gold i { background: linear-gradient(90deg, #d9a441, #f7c96b); }
+
 /* 시나리오 고르기 — 카드 셋이 나란히 서기엔 글이 길다. 한 줄에 하나씩 */
 .fpick.scen { grid-template-columns: 1fr; }
 .fcard.wide-card { text-align: left; align-items: flex-start; gap: 3px; }

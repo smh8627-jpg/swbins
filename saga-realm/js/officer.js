@@ -149,6 +149,113 @@
     return (s[statKey] || 0) / 100;
   }
 
+  /* ── 성장 (經驗과 昇進) ────────────────────────────────
+   * 능력치는 `hero.stats(id)` **한 곳**에서 나온다. 여기서 하는 일은
+   * 그 함수가 읽는 `save.heroes[id]` 의 lv·rank 를 올려 주는 것뿐이다 —
+   * 성장한 무장이 실제로 더 세게 싸우는 것은 `war.armyPower` 가 같은
+   * `off.stats()` 를 읽기 때문이지, 전투에 따로 붙인 보정이 아니다.
+   *
+   * **`hero.gainExp` 를 쓰지 않는다.** 그쪽은 `save.dex.heroes[id]`(도감에서
+   * 뽑은 인물)만 올려 주는데, 이 판에는 뽑기도 도감 획득도 없어 언제나 0 을 준다.
+   * 같은 까닭으로 승진도 `hero.rankUp`(중복 인물 소모)이 아니라 **공(feats)** 으로 한다.
+   */
+
+  /* 무엇을 하면 얼마나 느는가. 120개월을 굴리면 무장이 Lv.8~12 언저리에 선다 —
+     ×1.15~1.24 다. 이보다 후하게 주면 늦게 시작한 세력이 영영 못 따라잡는다 */
+  var EXP = {
+    order: 4,     // 내정 명령 하나
+    march: 12,    // 출진에 따라나섰다
+    siege: 8,     // 진을 치고 한 달을 더 버텼다
+    win: 20,      // 성을 떨어뜨렸다
+    duel: 15,     // 일기토에서 이겼다
+    gov: 2        // 태수로 한 달을 앉아 있었다
+  };
+
+  function grow(id) {
+    var m = core.save.heroes;
+    if (!m[id]) { m[id] = { lv: 1, exp: 0, rank: 0 }; }
+    return m[id];
+  }
+
+  /** 경험을 준다 — 레벨이 오르면 hero.stats 가 그만큼 곱해진다 */
+  function gainExp(id, amount) {
+    var H = global.DG.hero;
+    amount = Math.max(0, Math.round(amount || 0));
+    if (!amount || !find(id)) { return { gained: 0, levels: 0 }; }
+    var g = grow(id);
+    if (g.lv >= H.MAX_LV) { g.exp = 0; return { gained: 0, levels: 0 }; }
+    g.exp += amount;
+    var levels = 0, need = H.expNeed(g.lv);
+    while (g.exp >= need && g.lv < H.MAX_LV) {
+      g.exp -= need; g.lv += 1; levels++;
+      need = H.expNeed(g.lv);
+    }
+    if (g.lv >= H.MAX_LV) { g.exp = 0; }
+    if (levels) {
+      var r = rec(id);
+      /* 남의 무장이 크는 것까지 알릴 것은 없다 — 기록이 그것으로 덮인다 */
+      if (r.force && r.force === global.DG.rtk.me()) {
+        core.log('📈 ' + find(id).name + ' 이(가) Lv.' + g.lv + ' 이 되었다', 'level');
+      }
+      core.emit('rtk:grew', { id: id, lv: g.lv, levels: levels });
+    }
+    return { gained: amount, levels: levels };
+  }
+
+  /** 여럿에게 한꺼번에 */
+  function gainExpAll(ids, amount) {
+    var n = 0;
+    for (var i = 0; i < (ids || []).length; i++) { n += gainExp(ids[i], amount).levels; }
+    return n;
+  }
+
+  /** 승진에 드는 공과 금 — 올라갈수록 가파르다 */
+  function promoteCost(rank) {
+    return { feats: 20 + rank * 20, gold: 300 + rank * 300 };
+  }
+
+  var RANK_KOR = ['무관(無官)', '교위(校尉)', '중랑장(中郞將)', '장군(將軍)',
+                  '대장군(大將軍)', '도독(都督)'];
+
+  function rankName(id) { return RANK_KOR[grow(id).rank] || RANK_KOR[0]; }
+
+  function promoteCheck(id) {
+    var H = global.DG.hero, R = global.DG.rtk;
+    var h = find(id);
+    if (!h) { return { ok: false, why: '없는 무장입니다' }; }
+    var r = rec(id);
+    if (!r.force) { return { ok: false, why: '재야입니다' }; }
+    var g = grow(id);
+    if (g.rank >= H.MAX_RANK) { return { ok: false, why: '더 올릴 자리가 없습니다' }; }
+    var c = promoteCost(g.rank);
+    var f = R.force(r.force);
+    if (r.feats < c.feats) { return { ok: false, why: '공이 모자랍니다 (' + r.feats + '/' + c.feats + ')', cost: c }; }
+    if (!f || f.gold < c.gold) { return { ok: false, why: '금이 모자랍니다 (' + c.gold + ')', cost: c }; }
+    return { ok: true, cost: c };
+  }
+
+  /**
+   * 승진 — 쌓인 공과 금으로 관직을 올린다.
+   * 능력치가 오르고(hero.growMul 의 rank 축), **충성이 크게 오른다** —
+   * 원작에서 관직이 사람을 붙들어 두는 힘이 그것이다.
+   */
+  function promote(id) {
+    var chk = promoteCheck(id);
+    if (!chk.ok) { return chk; }
+    var r = rec(id), g = grow(id);
+    var f = global.DG.rtk.force(r.force);
+    r.feats -= chk.cost.feats;
+    f.gold -= chk.cost.gold;
+    g.rank += 1;
+    addLoyal(id, 12);
+    core.log('✨ ' + find(id).name + ' 을(를) ' + rankName(id) + ' 로 올렸다 — 충성 ' +
+      rec(id).loyal, 'good');
+    core.emit('rtk:promote', { id: id, rank: g.rank });
+    core.emit('changed');
+    core.persist();
+    return { ok: true, rank: g.rank, name: rankName(id), loyal: rec(id).loyal };
+  }
+
   /* ── 충성 ─────────────────────────────────────────────── */
 
   var STAT_KOR = { might: '무력', wisdom: '지력', command: '통솔' };
@@ -180,7 +287,10 @@
 
   global.DG = global.DG || {};
   global.DG.off = {
-    STAT_KOR: STAT_KOR,
+    STAT_KOR: STAT_KOR, EXP: EXP, RANK_KOR: RANK_KOR,
+    grow: grow, gainExp: gainExp, gainExpAll: gainExpAll,
+    promoteCost: promoteCost, promoteCheck: promoteCheck, promote: promote,
+    rankName: rankName,
     mergeRoster: mergeRoster, all: all, find: find, isThree: isThree,
     rec: rec, has: has, placeAt: placeAt,
     atCity: atCity, freeAt: freeAt, ofForce: ofForce, sortByPower: sortByPower,

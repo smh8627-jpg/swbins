@@ -312,6 +312,7 @@
 
     r.feats += 1;
     off.addLoyal(officerId, 1);
+    off.gainExp(officerId, off.EXP.order);
 
     var txt = h.name + ' — ' + o.emoji + ' ' + o.name + ' ' +
       (amount > 0 ? '+' + core.fmt(amount) : '더 올릴 곳이 없다') + (crit && amount > 0 ? ' (대성공!)' : '');
@@ -515,6 +516,14 @@
             ' — ' + (was ? was.name : '') + ' 이(가) 지나갔다', 'info');
           c.disaster = null;
         }
+      }
+    }
+
+    /* 태수로 한 달을 앉아 있으면 그만큼 는다 — 자리가 사람을 기른다 */
+    for (k in st.cities) {
+      if (!Object.prototype.hasOwnProperty.call(st.cities, k)) { continue; }
+      if (st.cities[k].force && st.cities[k].gov) {
+        off.gainExp(st.cities[k].gov, off.EXP.gov);
       }
     }
 
