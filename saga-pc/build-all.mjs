@@ -20,11 +20,11 @@ const TOOLS = path.resolve(HERE, '..');
 const DIST = path.join(HERE, 'dist');
 
 const GAMES = [
-  { dir: 'saga-go',      name: '역사고',     sub: '포켓몬GO 처럼 — 걷고 만난다',        icon: '🧭' },
-  { dir: 'saga-dungeon', name: '역사블로',   sub: '디아블로 처럼 — 내려간다',           icon: '🕳️' },
-  { dir: 'saga-forest',  name: '역사의숲',   sub: '동물의숲 처럼 — 모으고 나눈다',      icon: '🏡' },
-  { dir: 'saga-story',   name: '역사스토리', sub: '메이플스토리 처럼 — 뛰고 썬다',      icon: '🏃' },
-  { dir: 'saga-realm',   name: '역사경영',   sub: '문답으로 강역을 넓힌다 (상상)',      icon: '🏯' }
+  { dir: 'saga-go',      name: '사가고',     sub: '포켓몬GO 처럼 — 걷고 만난다',        icon: '🧭' },
+  { dir: 'saga-dungeon', name: '사가블로',   sub: '디아블로 처럼 — 내려간다',           icon: '🕳️' },
+  { dir: 'saga-forest',  name: '사가의숲',   sub: '동물의숲 처럼 — 모으고 나눈다',      icon: '🏡' },
+  { dir: 'saga-story',   name: '사가스토리', sub: '메이플스토리 처럼 — 뛰고 썬다',      icon: '🏃' },
+  { dir: 'saga-realm',   name: '사가국지',   sub: '턴제 삼국지 — 다스리고 꾀고 친다',   icon: '🏯' }
 ];
 
 fs.rmSync(DIST, { recursive: true, force: true });
@@ -57,7 +57,7 @@ const launcher = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>역사 시리즈 — 다섯 판</title>
+<title>사가 시리즈 — 다섯 판</title>
 <style>
   :root { color-scheme: dark; }
   body { margin:0; min-height:100vh; display:grid; place-items:center;
@@ -82,13 +82,13 @@ const launcher = `<!DOCTYPE html>
 </head>
 <body>
   <div class="wrap">
-    <h1>역사 시리즈</h1>
+    <h1>사가 시리즈</h1>
     <p class="sub">다섯 판이 각각 따로 돌아갑니다 — 진행도 따로 저장됩니다.</p>
 ${cards}
     <div class="foot">
       · 처음 열면 <b>이름</b>을 물어봅니다. 그 이름으로 진행이 저장됩니다(이 PC 안에만).<br>
       · 이름은 게임마다 따로입니다. 상단 <b>👤</b> 에서 바꾸거나 새 이름으로 시작할 수 있습니다.<br>
-      · 인터넷이 되면 역사고의 지도가 실제 지도로 깔립니다. 안 되면 그림 지형으로 바뀝니다.<br>
+      · 인터넷이 되면 사가고의 지도가 실제 지도로 깔립니다. 안 되면 그림 지형으로 바뀝니다.<br>
       · 실제 위치(GPS)는 파일로 열면 브라우저가 막습니다 — 키보드 이동과 🤖 자동으로 노세요.
     </div>
   </div>
@@ -107,23 +107,23 @@ fs.writeFileSync(path.join(DIST, 'play.bat'),
 
 fs.writeFileSync(path.join(DIST, '사용법.txt'),
   [
-    '역사 시리즈 — PC 단독 실행판 (다섯 판)',
+    '사가 시리즈 — PC 단독 실행판 (다섯 판)',
     '',
     '1) 이 폴더를 통째로 집 PC 로 복사하세요 (USB · 메일 · 클라우드 아무거나).',
     '2) play.bat 을 더블클릭하면 런처가 열립니다.',
     '   (index.html 을 직접 더블클릭해도 같습니다)',
     '',
     '다섯 판은 각각 따로 돌아갑니다 — 진행도 따로 저장됩니다.',
-    '  역사고      포켓몬GO 처럼 걷고 만난다',
-    '  역사블로    디아블로 처럼 내려간다',
-    '  역사의숲    동물의숲 처럼 모으고 나눈다',
-    '  역사스토리  메이플스토리 처럼 뛰고 썬다',
-    '  역사경영    문답으로 강역을 넓힌다 (상상)',
+    '  사가고      포켓몬GO 처럼 걷고 만난다',
+    '  사가블로    디아블로 처럼 내려간다',
+    '  사가의숲    동물의숲 처럼 모으고 나눈다',
+    '  사가스토리  메이플스토리 처럼 뛰고 썬다',
+    '  사가국지    턴제 삼국지 — 다스리고 꾀고 친다',
     '',
     '알아 둘 것',
     '  · 처음 열면 이름을 물어봅니다 — 그 이름으로 진행이 저장됩니다(이 PC 안에만).',
     '  · 이름은 게임마다 따로입니다. 상단 사람 아이콘에서 바꾸거나 새 이름을 만듭니다.',
-    '  · 인터넷이 되면 역사고의 지도가 실제 지도로 깔립니다. 안 되면 그림 지형입니다.',
+    '  · 인터넷이 되면 사가고의 지도가 실제 지도로 깔립니다. 안 되면 그림 지형입니다.',
     '  · 실제 위치(GPS)는 파일로 열면 브라우저가 막습니다 — 키보드 이동과 자동으로 노세요.',
     ''
   ].join('\r\n'), 'utf8');

@@ -1,4 +1,4 @@
-# 사가경영 (saga-realm)
+# 사가국지 (saga-realm)
 
 > 시리즈 전체 인계(다섯 게임 표·지시 이력·함정·다음 할 일)는 **`../SAGA-HANDOFF.md`** 다.
 
@@ -21,7 +21,7 @@ _demo.html       →  스크린샷용 장면 (#pick · #map · #grown · #city �
 | **사가블로** | `saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/v1` |
 | **사가의숲** | `saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/v1` |
 | **사가스토리** | `saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/v1` |
-| **사가경영** | `saga-realm` | 8795 | **삼국지(코에이)** | `saga-realm/save/v1` |
+| **사가국지** | `saga-realm` | 8795 | **삼국지(코에이)** | `saga-realm/save/v1` |
 
 **세이브 키는 갈아엎으면서도 안 바꿨다.** 바꾸면 지금까지의 진행이 통째로 사라진다.
 옛 세이브의 문답·지식은 그대로 살아 있고, 삼국지 판은 `save.rtk` 로 **따로 붙는다**.

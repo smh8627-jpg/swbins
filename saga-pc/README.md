@@ -1,4 +1,4 @@
-# 역사 시리즈 PC 묶음 (saga-pc)
+# 사가 시리즈 PC 묶음 (saga-pc)
 
 > 시리즈 전체 인계(다섯 게임 표·지시 이력·함정·다음 할 일)는 **`../SAGA-HANDOFF.md`** 다.
 
@@ -18,11 +18,11 @@ dist/
   index.html      런처 — 다섯 판을 고르는 화면 (이름이 ASCII 라 배치가 가리킬 수 있다)
   play.bat        런처를 여는 배치 (내용은 ASCII 만 — 한글 cmd 가 오파싱하지 않게)
   사용법.txt
-  역사고.html      ~332KB   포켓몬GO 처럼 걷고 만난다
-  역사블로.html    ~375KB   디아블로 처럼 내려간다
-  역사의숲.html    ~301KB   동물의숲 처럼 모으고 나눈다
-  역사스토리.html  ~308KB   메이플스토리 처럼 뛰고 썬다
-  역사경영.html    ~376KB   문답으로 강역을 넓힌다 (상상)
+  사가고.html      ~332KB   포켓몬GO 처럼 걷고 만난다
+  사가블로.html    ~375KB   디아블로 처럼 내려간다
+  사가의숲.html    ~301KB   동물의숲 처럼 모으고 나눈다
+  사가스토리.html  ~308KB   메이플스토리 처럼 뛰고 썬다
+  사가국지.html    ~376KB   턴제 삼국지 — 다스리고 꾀고 친다
 ```
 
 각 판은 그 게임의 `build/build-single.mjs` 가 굽는다(css·js 를 한 파일에 인라인).
@@ -34,11 +34,11 @@ dist/
 다르기 때문이다:
 
 ```
-역사고      deungyong-go/save/<프로필>
-역사블로    yeoksa-dungeon/save/<프로필>
-역사의숲    yeoksa-village/save/<프로필>
-역사스토리  yeoksa-side/save/<프로필>
-역사경영    saga-realm/save/<프로필>
+사가고      deungyong-go/save/<프로필>
+사가블로    yeoksa-dungeon/save/<프로필>
+사가의숲    yeoksa-village/save/<프로필>
+사가스토리  yeoksa-side/save/<프로필>
+사가국지    saga-realm/save/<프로필>
 ```
 
 가입(프로필) 목록도 `<게임>/save/accounts` 로 따로 산다. **그래서 이름도 게임마다 따로다.**

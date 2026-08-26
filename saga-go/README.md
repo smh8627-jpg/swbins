@@ -1,22 +1,22 @@
-# 역사고 (saga-go)
+# 사가고 (saga-go)
 
 > 시리즈 전체 인계(다섯 게임 표·지시 이력·함정·다음 할 일)는 **`../SAGA-HANDOFF.md`** 다.
 
 **포켓몬GO 를 그대로 모방한 판.** 걷고(보급), 만난다(등용·포획).
 
-## 역사 시리즈 — 완전히 별개인 다섯 프로젝트
+## 사가 시리즈 — 완전히 별개인 다섯 프로젝트
 
 | 게임 | 폴더 | 포트 | 원작 | 세이브 키 |
 |---|---|---|---|---|
-| **역사고** | `saga-go` | 8791 | 포켓몬GO | `deungyong-go/save/v1` |
-| **역사블로** | `saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/v1` |
-| **역사의숲** | `saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/v1` |
-| **역사스토리** | `saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/v1` |
-| **역사경영** | `saga-realm` | 8795 | (상상) 퀴즈+경영 | `saga-realm/save/v1` |
+| **사가고** | `saga-go` | 8791 | 포켓몬GO | `deungyong-go/save/v1` |
+| **사가블로** | `saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/v1` |
+| **사가의숲** | `saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/v1` |
+| **사가스토리** | `saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/v1` |
+| **사가국지** | `saga-realm` | 8795 | 삼국지(코에이) | `saga-realm/save/v1` |
 
-네 게임은 **원작 장르를 그대로 모방**하고, 역사경영만 상상으로 만든 판이다.
+다섯 게임이 다 **원작 장르를 그대로 모방**한다.
 그래서 원작에 없는 축은 각 게임에서 뺐다 — 이 게임(포켓몬고)에는 던전도 장비도
-문답도 없다. 던전은 역사블로, 문답과 경영은 역사경영이 맡는다.
+문답도 없다. 던전은 사가블로, 문답과 삼국지는 사가국지가 맡는다.
 
 **공용 파일은 복사본이다** — `data.js`(인물 70·펫 41)·`sprite.js`·`core.js`·`hero.js` 가
 다섯 프로젝트에 각각 한 벌씩 있다. 인물을 하나 추가하면 다섯 곳을 고쳐야 한다
@@ -32,7 +32,7 @@
 run.bat          오프라인 모드 — 파이썬 정적 서버 (http://127.0.0.1:8791)
 run-online.bat   온라인 모드   — 노드 서버 + AI 사관 (http://127.0.0.1:8790)
 run-phone.bat    폰에서 하기   — 같은 서버를 https·0.0.0.0 으로 (인증서 자동 생성)
-build-pc.bat     집 PC 용 단독 실행판 만들기 → dist/역사GO.html (+ play.bat · 사용법.txt)
+build-pc.bat     집 PC 용 단독 실행판 만들기 → dist/사가GO.html (+ play.bat · 사용법.txt)
 ```
 
 **집 PC 에서 하려면** `build-pc.bat` 을 한 번 돌려 `dist/` 를 통째로 옮긴 뒤
@@ -113,7 +113,7 @@ js/
   ui.js           프로필 · 재화 · 근처 대상 · 시트(천거/도감/사관/기록) · 상세
   game.js         부트 · 메인 루프 · 걷기 보급
   _expansion/     분리 보관 — 방치 전투·환생·방치 강화 (→ _expansion/README.md)
-build/            build-single.mjs — PC 단독 실행판(dist/역사고.html) 빌더
+build/            build-single.mjs — PC 단독 실행판(dist/사가고.html) 빌더
 dist/             단독 실행판 산출물 (build-pc.bat 이 만든다)
 _test.html        자가진단 178항목 (브라우저로 열면 바로 결과가 나온다)
                   손잡이(어드민)를 읽지 않는다 — DG_NO_TUNE
@@ -377,7 +377,7 @@ classic·anime 는 **도형을 다르게 그려서** 만든다(얼굴·머리·�
   → 스탬프는 `inner:false` 로 실루엣만, 그것도 어두운 지도에 묻히지 않게 **밝은 테**로 두른다
 
 ### PC 단독 실행판 (구현됨)
-`build-pc.bat` → `build/build-single.mjs` → `dist/역사GO.html`.
+`build-pc.bat` → `build/build-single.mjs` → `dist/사가GO.html`.
 `index.html` 이 부르는 순서를 그대로 읽어 css·js 를 인라인한다(순서를 두 곳에 적지 않는다).
 
 - `String.replace` 의 치환값은 **반드시 함수로** 넘긴다. 문자열로 넘기면 코드 안의 `$'`

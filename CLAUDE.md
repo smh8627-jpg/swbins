@@ -15,7 +15,7 @@
 | **사가블로** | `saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/<프로필>` |
 | **사가의숲** | `saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/<프로필>` |
 | **사가스토리** | `saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/<프로필>` |
-| **사가경영** | `saga-realm` | 8795 | 코에이 삼국지 | `saga-realm/save/<프로필>` |
+| **사가국지** | `saga-realm` | 8795 | 코에이 삼국지 | `saga-realm/save/<프로필>` |
 
 `saga-pc` 는 다섯을 파일 하나씩으로 묶는 빌드다.
 

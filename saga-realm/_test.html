@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>사가경영 자가진단</title>
+<title>사가국지 자가진단</title>
 <link rel="stylesheet" href="css/style.css">
 <style>
   body { overflow: auto; }
@@ -791,7 +791,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 
     var failCount = out.filter(function (s) { return s.indexOf('FAIL') >= 0; }).length;
     document.getElementById('report').innerHTML =
-      '<h3>사가경영(삼국지) 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
+      '<h3>사가국지(삼국지) 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
       out.join('<br>') +
       (errors.length ? '<br><br><b class="fail">런타임 에러</b><br>' + errors.join('<br>') : '');
     document.title = 'RESULT ' + (out.length - failCount) + '/' + out.length;
