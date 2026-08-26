@@ -77,35 +77,31 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    /* 먼 산 — 카메라보다 느리게 흘러 깊이가 생긴다 */
-    ctx.fillStyle = 'rgba(0,0,0,0.16)';
-    var far = -camX * 0.35;
-    for (var m = 0; m < 8; m++) {
-      var mx = far + m * 460;
-      ctx.beginPath();
-      ctx.moveTo(mx, stg.floor);
-      ctx.quadraticCurveTo(mx + 230, stg.floor - 250, mx + 460, stg.floor);
-      ctx.closePath();
-      ctx.fill();
-    }
+    drawBackdrop(stg);
 
     /* 바닥 */
     ctx.fillStyle = stg.ground;
     ctx.fillRect(0, stg.floor, W, H - stg.floor);
-    ctx.fillStyle = 'rgba(255,255,255,0.07)';
-    ctx.fillRect(0, stg.floor, W, 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.30)';
+    ctx.fillRect(0, stg.floor, W, 5);
+    ctx.fillStyle = 'rgba(40,32,24,0.35)';
+    ctx.fillRect(0, stg.floor + 5, W, 2);
 
     /* 발판 */
     for (var i = 0; i < stg.plats.length; i++) {
       var pl = stg.plats[i];
       var x = pl[0] - camX;
       if (x + pl[2] < -40 || x > W + 40) { continue; }
+      /* 원작의 발판 — 위에 잔디(밝은 띠) · 아래에 흙, 그리고 진한 테 한 줄 */
       ctx.fillStyle = stg.ground;
-      ctx.fillRect(x, pl[1], pl[2], 14);
-      ctx.fillStyle = 'rgba(255,255,255,0.10)';
-      ctx.fillRect(x, pl[1], pl[2], 3);
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.fillRect(x, pl[1] + 14, pl[2], 5);
+      ctx.fillRect(x, pl[1], pl[2], 16);
+      ctx.fillStyle = 'rgba(255,255,255,0.34)';
+      ctx.fillRect(x, pl[1], pl[2], 4);
+      ctx.fillStyle = 'rgba(0,0,0,0.30)';
+      ctx.fillRect(x, pl[1] + 16, pl[2], 6);
+      ctx.strokeStyle = 'rgba(40,32,24,0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x + 0.5, pl[1] + 0.5, pl[2] - 1, 16);
     }
 
     drawRopes(stg);
@@ -165,17 +161,100 @@
   }
 
   /**
-   * 미니맵 — 원작에서 왼쪽 위에 늘 떠 있던 그 작은 지도다.
-   * 사냥터 전체를 한 칸에 줄여 담아 **어디로 가야 문·보스가 있는지**를 보여 준다.
+   * 뒷배경 — 원작의 그림 문법을 옮긴 것이다. 에셋은 가져오지 않고 **도형만** 쓴다.
+   *   하늘 맵  둥근 언덕 두 겹 + 흰 구름          (원작 초반 들판)
+   *   숲 맵    둥근 나무 두 겹                     (원작 숲)
+   *   굴 맵    바위 이빨과 종유석                   (원작 동굴)
+   * 겹마다 카메라보다 느리게 흘러 깊이가 난다.
    */
+  function drawBackdrop(stg) {
+    var mood = stg.mood || 'sky';
+    var floor = stg.floor, m, mx;
+
+    if (mood === 'cave') {
+      /* 위에서 내려온 종유석 · 아래 바위 */
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      var f0 = -camX * 0.3;
+      for (m = 0; m < 14; m++) {
+        mx = f0 + m * 260;
+        ctx.beginPath();
+        ctx.moveTo(mx, 0); ctx.lineTo(mx + 60, 0); ctx.lineTo(mx + 30, 150 + (m % 3) * 50);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      var f1 = -camX * 0.5;
+      for (m = 0; m < 12; m++) {
+        mx = f1 + m * 330;
+        ctx.beginPath();
+        ctx.moveTo(mx, floor);
+        ctx.quadraticCurveTo(mx + 80, floor - 130, mx + 165, floor);
+        ctx.closePath(); ctx.fill();
+      }
+      return;
+    }
+
+    if (mood === 'forest') {
+      /* 둥근 나무 두 겹 — 뒤엣것이 크고 흐리다 */
+      var layers = [{ p: 0.28, s: 1.35, a: 0.18, step: 300 },
+                    { p: 0.52, s: 1.0, a: 0.26, step: 210 }];
+      for (var L = 0; L < layers.length; L++) {
+        var lay = layers[L];
+        ctx.fillStyle = 'rgba(20,60,30,' + lay.a + ')';
+        var fx0 = -camX * lay.p;
+        for (m = 0; m < 20; m++) {
+          mx = fx0 + m * lay.step;
+          var th = 150 * lay.s, tw = 62 * lay.s;
+          ctx.fillRect(mx - 7 * lay.s, floor - th * 0.45, 14 * lay.s, th * 0.45);
+          ctx.beginPath();
+          ctx.ellipse(mx, floor - th * 0.55, tw, tw * 0.82, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      return;
+    }
+
+    /* 하늘 맵 — 둥근 언덕 두 겹 + 구름 */
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    var cf = -camX * 0.14;
+    for (m = 0; m < 12; m++) {
+      mx = cf + m * 380 + (m % 3) * 60;
+      var cy = 70 + (m % 4) * 46;
+      ctx.beginPath();
+      ctx.ellipse(mx, cy, 46, 20, 0, 0, Math.PI * 2);
+      ctx.ellipse(mx + 38, cy + 6, 32, 15, 0, 0, Math.PI * 2);
+      ctx.ellipse(mx - 34, cy + 8, 26, 13, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    var hills = [{ p: 0.24, h: 210, a: 'rgba(120,180,120,0.45)', step: 520 },
+                 { p: 0.44, h: 150, a: 'rgba(90,155,95,0.55)', step: 380 }];
+    for (var k = 0; k < hills.length; k++) {
+      var hl = hills[k];
+      ctx.fillStyle = hl.a;
+      var hf = -camX * hl.p;
+      for (m = 0; m < 16; m++) {
+        mx = hf + m * hl.step;
+        ctx.beginPath();
+        ctx.moveTo(mx, floor);
+        ctx.quadraticCurveTo(mx + hl.step * 0.5, floor - hl.h, mx + hl.step, floor);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+  }
+
   /** 미니맵의 자리·축척 — **그리기와 떼어 둔다.** 값을 내는 층이라 진단이 붙는다 */
   function miniBox(stg) {
     var w = Math.min(210, W - 24), h = 58;
     var top = 240, bot = stg.floor + 30;          // 세로로 담을 구간
-    return { x: 12, y: Math.min(96, H * 0.16), w: w, h: h,
+    /* 상단 띠(프로필·지갑) 아래로 내려 앉힌다 — 겹치면 둘 다 못 읽는다 */
+    return { x: 12, y: Math.min(148, H * 0.26), w: w, h: h,
              sx: w / stg.width, sy: h / (bot - top), top: top };
   }
 
+  /**
+   * 미니맵 — 원작에서 왼쪽 위에 늘 떠 있던 그 작은 지도다.
+   * 사냥터 전체를 한 칸에 줄여 담아 **어디로 가야 문·보스가 있는지**를 보여 준다.
+   */
   function drawMiniMap(run) {
     var stg = run.stage;
     var b = miniBox(stg);
@@ -183,14 +262,15 @@
     function mx(vx) { return x + vx * sx; }
     function my(vy) { return y + (vy - b.top) * sy; }
 
-    ctx.fillStyle = 'rgba(10,12,16,0.62)';
-    ctx.fillRect(x - 5, y - 5, w + 10, h + 10);
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x - 5, y - 5, w + 10, h + 10);
+    /* 원작의 미니맵 창 — 밝은 종이에 굵은 남색 테 */
+    ctx.fillStyle = 'rgba(253,251,244,0.92)';
+    ctx.fillRect(x - 6, y - 6, w + 12, h + 12);
+    ctx.strokeStyle = 'rgba(61,53,96,0.9)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 6, y - 6, w + 12, h + 12);
 
     /* 바닥과 발판 */
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillStyle = 'rgba(61,53,96,0.45)';
     ctx.fillRect(x, my(stg.floor), w, 1.5);
     var i;
     for (i = 0; i < stg.plats.length; i++) {
@@ -198,7 +278,7 @@
       ctx.fillRect(mx(pl[0]), my(pl[1]), pl[2] * sx, 1.5);
     }
     /* 줄 */
-    ctx.strokeStyle = 'rgba(205,175,120,0.5)';
+    ctx.strokeStyle = 'rgba(150,110,60,0.55)';
     for (i = 0; i < (stg.ropes || []).length; i++) {
       var r = stg.ropes[i];
       ctx.beginPath();
@@ -209,23 +289,26 @@
     /* 문 */
     for (i = 0; i < (stg.portals || []).length; i++) {
       var g = stg.portals[i];
-      ctx.fillStyle = S.unlocked(g[1]) ? 'rgba(150,215,255,0.95)' : 'rgba(160,160,170,0.7)';
+      ctx.fillStyle = S.unlocked(g[1]) ? '#3f7fd0' : 'rgba(120,120,135,0.7)';
       ctx.fillRect(mx(g[0]) - 2, my(stg.floor) - 7, 4, 7);
     }
     /* 적 · 보스 · 나 */
     for (i = 0; i < run.enemies.length; i++) {
       var e = run.enemies[i];
-      ctx.fillStyle = e.boss ? '#ff7a4a' : 'rgba(224,101,101,0.9)';
+      ctx.fillStyle = e.boss ? '#e0501f' : 'rgba(200,60,60,0.9)';
       var d = e.boss ? 4 : 2;
       ctx.fillRect(mx(e.x + e.w / 2) - d / 2, my(e.y + e.h) - d, d, d);
     }
-    ctx.fillStyle = '#f5d76e';
-    ctx.fillRect(mx(run.player.x + S.P_W / 2) - 2, my(run.player.y + S.P_H) - 4, 4, 4);
+    ctx.fillStyle = '#f0a92b';
+    ctx.fillRect(mx(run.player.x + S.P_W / 2) - 2.5, my(run.player.y + S.P_H) - 5, 5, 5);
+    ctx.strokeStyle = 'rgba(61,53,96,0.8)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mx(run.player.x + S.P_W / 2) - 2.5, my(run.player.y + S.P_H) - 5, 5, 5);
 
     ctx.font = '600 9.5px system-ui, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(240,226,200,0.8)';
-    ctx.fillText(stg.name, x, y - 8);
+    ctx.fillStyle = 'rgba(43,36,64,0.85)';
+    ctx.fillText(stg.name, x, y - 10);
   }
 
   /** 밧줄·사다리 — 발판 뒤에 걸린다. 사다리는 가로대가 있고 밧줄은 한 가닥이다 */
@@ -377,10 +460,17 @@
       var f = list[i];
       var x = f.x - camX;
       if (f.t === 'hit') {
-        ctx.font = '700 15px "Malgun Gothic", system-ui';
+        /* 데미지 숫자 — 원작처럼 **굵고 크게, 검은 테를 둘러** 위로 튄다 */
+        var a = Math.min(1, f.life * 2.2);
+        var rise = (0.6 - f.life) * 52;
+        var big = f.v >= 100;
+        ctx.font = '900 ' + (big ? 21 : 17) + 'px "Malgun Gothic", system-ui';
         ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(255,235,150,' + Math.min(1, f.life * 2) + ')';
-        ctx.fillText(f.v, x, f.y - (0.6 - f.life) * 40);
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = 'rgba(30,24,20,' + a + ')';
+        ctx.strokeText(f.v, x, f.y - rise);
+        ctx.fillStyle = (big ? 'rgba(255,196,86,' : 'rgba(255,240,190,') + a + ')';
+        ctx.fillText(f.v, x, f.y - rise);
       } else if (f.t === 'slash') {
         ctx.fillStyle = 'rgba(255,255,255,' + (f.life * 3) + ')';
         ctx.fillRect(x, f.y, f.w, f.h);

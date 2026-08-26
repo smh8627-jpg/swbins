@@ -63,8 +63,8 @@
    * 선화·플랫 채색은 도형마다 손보는 게 아니라 화면 전체에 걸리는 성질이라
    * 그쪽이 인물 48·짐승 25·장비까지 한 번에 맞추는 유일한 길이다 (storyize 참조).
    */
-  var styleMode = 'classic';
-  var STYLES = ['classic', 'story', 'anime'];
+  var styleMode = 'maple';
+  var STYLES = ['classic', 'story', 'anime', 'maple'];
 
   /** 등신 모드 변경 — 캐시를 전부 비워 다음 프레임부터 새 비례로 굽는다 */
   function setProp(mode) {
@@ -2098,6 +2098,7 @@
     /* 그림책풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
        실루엣만 밝은 테를 둘러 형태가 묻히지 않게 한다 */
     if (story()) { storyize(cv, { rim: STORY_RIM_MAP, inner: H >= 40, thick: 1 }); }
+    else if (maple()) { storyize(cv, mapleOpts(H < 40)); }
     return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc };
   }
 
@@ -2177,6 +2178,13 @@
     try { img = c.getImageData(0, 0, W, H); } catch (e) { return; }   // 오염된 캔버스면 그냥 둔다
     var d = img.data, n = W * H, i, q;
 
+    /* 색 처리 손잡이 — 그림책(story)과 메이플풍(maple)이 같은 훑기를 값만 달리 쓴다 */
+    var sat = opts.sat === undefined ? 0.74 : opts.sat;
+    var mulL = opts.mulL === undefined ? 0.90 : opts.mulL;
+    var addL = opts.addL || [22, 20, 15];
+    var step = opts.step || STORY_STEP;
+    var edgeAt = opts.edgeAt || STORY_EDGE;
+
     var alp = new Uint8Array(n);
     for (i = 0; i < n; i++) {
       q = i * 4;
@@ -2185,13 +2193,13 @@
       if (!a) { continue; }
       var r = d[q], g = d[q + 1], b = d[q + 2];
       var y = 0.299 * r + 0.587 * g + 0.114 * b;
-      r = y + (r - y) * 0.74;                    // 채도 낮추기
-      g = y + (g - y) * 0.74;
-      b = y + (b - y) * 0.74;
-      r = r * 0.90 + 22; g = g * 0.90 + 20; b = b * 0.90 + 15;   // 종이 톤으로 살짝 들어올리기
-      r = Math.round(r / STORY_STEP) * STORY_STEP;               // 계단
-      g = Math.round(g / STORY_STEP) * STORY_STEP;
-      b = Math.round(b / STORY_STEP) * STORY_STEP;
+      r = y + (r - y) * sat;                     // 채도 (그림책은 낮추고, 메이플풍은 올린다)
+      g = y + (g - y) * sat;
+      b = y + (b - y) * sat;
+      r = r * mulL + addL[0]; g = g * mulL + addL[1]; b = b * mulL + addL[2];
+      r = Math.round(r / step) * step;                           // 계단
+      g = Math.round(g / step) * step;
+      b = Math.round(b / step) * step;
       d[q] = r < 0 ? 0 : (r > 255 ? 255 : r);
       d[q + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
       d[q + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
@@ -2219,8 +2227,8 @@
             (y2 + 1 < H && alp[i + W] < 60) || (y2 > 0 && alp[i - W] < 60)) {
           edge[i] = 2;
         } else if (inner &&
-                   ((x + 1 < W && alp[i + 1] > 120 && diff(i, i + 1) > STORY_EDGE) ||
-                    (y2 + 1 < H && alp[i + W] > 120 && diff(i, i + W) > STORY_EDGE))) {
+                   ((x + 1 < W && alp[i + 1] > 120 && diff(i, i + 1) > edgeAt) ||
+                    (y2 + 1 < H && alp[i + W] > 120 && diff(i, i + W) > edgeAt))) {
           edge[i] = 1;
         }
       }
@@ -2256,6 +2264,23 @@
   }
 
   function story() { return styleMode === 'story'; }
+  function maple() { return styleMode === 'maple'; }
+
+  /**
+   * 메이플풍 — 원작의 그림 문법을 옮긴 것이다(에셋은 가져오지 않는다).
+   * 셋이 전부다: **채도를 올리고 · 색을 넓은 계단으로 눕히고 · 실루엣을 진하게 두른다.**
+   * 그림책풍(storyize)과 같은 훑기를 값만 달리 쓴다 — 안쪽 선은 옅게 둬서
+   * 플랫한 면이 살고, 실루엣만 굵게 둘러 밝은 배경에서도 형태가 또렷하다.
+   */
+  var MAPLE_LINE = [62, 50, 78];
+  var MAPLE_RIM = [28, 24, 38];
+  function mapleOpts(small) {
+    /* 작은 그림에 안쪽 선까지 그으면 형태가 선에 먹혀 검은 덩어리가 된다 —
+       storyize 가 지도 스탬프에서 겪은 그 함정이 여기서도 똑같이 난다. */
+    return { sat: 1.4, mulL: 0.94, addL: [44, 42, 38], step: 32, edgeAt: 34,
+             line: MAPLE_LINE, rim: MAPLE_RIM, inner: !small,
+             thick: storyThick() };
+  }
 
   /* ── 초상 캐시 (HTML 목록용) ──────────────────────────── */
 
@@ -2282,6 +2307,10 @@
     if (story()) {
       c.fillStyle = '#f2e7cf';
       c.fillRect(0, 0, size, size);
+    } else if (maple()) {
+      /* 원작풍도 바탕을 깐다 — 밝은 외피 위에 검은 실루엣만 뜨면 그림이 묻힌다 */
+      c.fillStyle = '#eaf2ff';
+      c.fillRect(0, 0, size, size);
     }
 
     if (kind === 'hero') {
@@ -2301,6 +2330,7 @@
       building(c, { x: size * 0.5, y: size * 0.95, s: size / 58, form: ref.key, color: ref.color, t: 0 });
     }
     if (story()) { storyize(cv); }
+    else if (maple()) { storyize(cv, mapleOpts(size < 80)); }
     cache[key] = cv.toDataURL();
     return cache[key];
   }
@@ -2420,7 +2450,7 @@
       });
     }
     if (figCv) {
-      storyize(figCv);
+      storyize(figCv, maple() ? mapleOpts(false) : {});
       c.save();
       c.setTransform(1, 0, 0, 1, 0, 0);      // 이미 배율이 반영된 캔버스라 그대로 얹는다
       c.drawImage(figCv, 0, 0);

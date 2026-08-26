@@ -115,8 +115,8 @@
       });
     }
 
-    var STYLE_ORDER = ['classic', 'story', 'anime'];
-    var STYLE_ICON = { classic: '🖌️', story: '📗', anime: '🎴' };
+    var STYLE_ORDER = ['maple', 'classic', 'story', 'anime'];
+    var STYLE_ICON = { maple: '🍁', classic: '🖌️', story: '📗', anime: '🎴' };
     var styleBtn = document.getElementById('btn-style');
     if (styleBtn) {
       var syncStyleBtn = function () {

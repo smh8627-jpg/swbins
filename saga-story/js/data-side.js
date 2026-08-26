@@ -15,8 +15,8 @@
 
   var STAGES = [
     {
-      key: 'field', name: '허창 들판', need: 1, sky: ['#3b5570', '#6a86a0'],
-      ground: '#4e6b3d', width: 2200, floor: 560,
+      key: 'field', name: '허창 들판', need: 1, sky: ['#79c3e8', '#c6e6f2'], mood: 'sky',
+      ground: '#6faf55', width: 2200, floor: 560,
       plats: [[320, 430, 260], [760, 350, 220], [1180, 440, 300], [1620, 340, 240], [1900, 450, 220]],
       ropes: [[340, 430, 560, 'rope'], [790, 350, 560, 'rope'], [1210, 440, 560, 'rope'],
               [1650, 340, 560, 'rope'], [1930, 450, 560, 'ladder']],
@@ -27,8 +27,8 @@
       boss: { name: '황건 두목', cool: 15, hpMul: 12, dmgMul: 2.0 }
     },
     {
-      key: 'forest', name: '오림 숲', need: 5, sky: ['#26402f', '#4a6b4a'],
-      ground: '#3d5a34', width: 2600, floor: 560,
+      key: 'forest', name: '오림 숲', need: 5, sky: ['#5fa06a', '#a8d49a'], mood: 'forest',
+      ground: '#417a3f', width: 2600, floor: 560,
       plats: [[260, 450, 220], [620, 360, 200], [980, 280, 220], [1340, 380, 260],
               [1720, 300, 200], [2060, 430, 260]],
       ropes: [[285, 450, 560, 'rope'], [650, 360, 560, 'rope'], [1010, 280, 560, 'rope'],
@@ -38,8 +38,8 @@
       boss: { name: '오랑캐 족장', cool: 20, hpMul: 14, dmgMul: 2.2 }
     },
     {
-      key: 'cave', name: '한중 굴혈', need: 12, sky: ['#241d28', '#3d3040'],
-      ground: '#332a36', width: 3000, floor: 560,
+      key: 'cave', name: '한중 굴혈', need: 12, sky: ['#2b2436', '#4a3d58'], mood: 'cave',
+      ground: '#3c3145', width: 3000, floor: 560,
       plats: [[300, 470, 240], [700, 390, 200], [1080, 300, 240], [1460, 400, 220],
               [1840, 320, 240], [2240, 440, 300]],
       ropes: [[325, 470, 560, 'ladder'], [730, 390, 560, 'ladder'], [1110, 300, 560, 'ladder'],
