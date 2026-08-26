@@ -24,6 +24,7 @@
   var pickOrder = null;        // 명령을 고른 뒤 사람을 고르는 두 걸음
   var quizCur = null;
   var lastBattle = null;
+  var pickScen = '194';        // 세력을 고르기 **전에** 고른 시나리오
 
   function $(id) { return document.getElementById(id); }
 
@@ -81,7 +82,7 @@
     core.on('rtk:camp', function () { syncDock(); });
     core.on('rtk:end', function (kind) { showEnd(kind); });
 
-    if (!R().state().started) { showForcePick(); }
+    if (!R().state().started) { showScenPick(); }
     renderTop(); renderMap();
   }
 
@@ -96,10 +97,16 @@
   function act(a, b) {
     var g = function (k) { return b.getAttribute(k); };
 
+    if (a === 'pick-scen') {
+      pickScen = g('data-id');
+      showForcePick(pickScen);
+      return;
+    }
+    if (a === 'back-scen') { showScenPick(); return; }
     if (a === 'pick-force') {
-      R().setup(g('data-id'));
+      R().setup(g('data-id'), pickScen);
       closeEnc();
-      renderTop(); renderMap();
+      renderTop(); renderMap(); syncDock();
       return;
     }
     if (a === 'next-month') {
@@ -228,7 +235,8 @@
       (lord ? '<span class="avatar-pt">' + pt(lord, 40) + '</span>' : '') +
       '<div class="p-meta">' +
         '<div class="p-title">' + esc(s.name) + ' — ' + st.year + '년 ' + st.month + '월' +
-          ' <span class="muted">' + MONTH_SEASON[st.month] + '</span></div>' +
+          ' <span class="muted">' + MONTH_SEASON[st.month] + '</span>' +
+          ' <span class="tag">' + esc((FD.current() || {}).name || '') + '</span></div>' +
         '<div class="p-sub">🏯 성 <b>' + s.cities + '/' + CD.CITIES.length + '</b>' +
           ' · 👤 <b>' + s.officers + '</b>' +
           ' · 수입 <b>' + core.fmt(s.income - s.upkeep) + '</b>/월</div>' +
@@ -827,9 +835,30 @@
     els.encounter.innerHTML = '';
   }
 
-  function showForcePick() {
-    var html = '<h3 style="margin:0 0 2px;font-size:19px">삼국지 194년 — 군웅할거</h3>' +
-      '<small class="muted">어느 깃발을 드시겠습니까. 성이 적을수록 어렵습니다.</small>' +
+  /** 먼저 **판(시나리오)** 을 고른다 */
+  function showScenPick() {
+    var html = '<h3 style="margin:0 0 2px;font-size:19px">어느 해에서 시작하시겠습니까</h3>' +
+      '<small class="muted">같은 서른 성이지만, 누가 어디를 쥐고 있는지가 다릅니다.</small>' +
+      '<div class="fpick scen">';
+    for (var i = 0; i < FD.SCENARIOS.length; i++) {
+      var sc = FD.SCENARIOS[i];
+      html += '<button class="fcard wide-card" data-act="pick-scen" data-id="' + sc.id + '">' +
+        '<b>' + sc.year + '년 · ' + esc(sc.name) + '</b>' +
+        '<small class="muted">' + esc(sc.hanja) + ' · 세력 ' + sc.forces.length + '</small>' +
+        '<small class="muted">' + esc(sc.desc) + '</small>' +
+        '</button>';
+    }
+    showEnc(html + '</div>');
+  }
+
+  function showForcePick(scenId) {
+    var sc = FD.scenario(scenId || pickScen);
+    pickScen = sc.id;
+    FD.use(sc.id);               // 이 화면이 보여 줄 표를 그 시나리오 것으로 갈아 끼운다
+    var html = '<h3 style="margin:0 0 2px;font-size:19px">삼국지 ' + sc.year + '년 — ' +
+      esc(sc.name) + '</h3>' +
+      '<small class="muted">' + esc(sc.desc) + ' 성이 적을수록 어렵습니다.</small>' +
+      '<button class="btn tiny ghost" data-act="back-scen" style="margin:8px 0 0">↩ 다른 해</button>' +
       '<div class="fpick">';
     var list = FD.FORCES.slice().sort(function (a, b) { return b.cities.length - a.cities.length; });
     for (var i = 0; i < list.length; i++) {
@@ -896,7 +925,8 @@
     init: init, toast: toast,
     openSheet: openSheet, closeSheet: closeSheet, openCity: openCity,
     renderTop: renderTop, renderMap: renderMap, renderSheet: renderSheet,
-    showForcePick: showForcePick, showHelp: showHelp, showBattle: showBattle,
+    showScenPick: showScenPick, showForcePick: showForcePick,
+    showHelp: showHelp, showBattle: showBattle,
     closeEnc: closeEnc,
     /** 자가진단용 */
     _act: act, _tab: function () { return openTab; }, _city: function () { return openCityId; },

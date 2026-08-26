@@ -111,14 +111,24 @@
     O('rf_wuyi',       '오의',   '吳懿',   3, 'command',80, 66, 82, '🪧', '익주의 병사는 아직 쓸 만합니다.')
   ];
 
-  /* ── 세력 13 · 194년 군웅할거 ──────────────────────────── */
-  /*   lord     군주 무장 id
+  /* ── 시나리오 ───────────────────────────────────────────
+   * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
+   *
+   *   lord     군주 무장 id
    *   cities   시작 시 가진 도시
    *   officers 군주를 뺀 소속 무장 (data.js 인물도 섞인다)
    *   color    지도에 칠하는 색
    *   creed    AI 성향 — 'aggressive' 치고 나간다 | 'balanced' | 'turtle' 지킨다
+   *
+   * **어느 표에도 안 적힌 무장은 저절로 재야가 된다**(rtk.scatterFree).
+   * 그래서 200년 표에 여포·이각을 안 적으면 그들은 재야로 흩어진다 —
+   * 죽은 사람을 지우는 대신 판에 남겨 두는 것이 이 판의 결이다.
+   *
+   * **성 서른 곳이 하나도 빠짐없이, 겹치지 않게** 나뉘어야 한다.
+   * 진단이 그걸 시나리오마다 센다(빠뜨리면 주인 없는 성이 생겨 아무도 못 친다).
    */
-  var FORCES = [
+
+  var FORCES_194 = [
     { id: 'cao', name: '조조', color: '#5b8ff0', creed: 'aggressive',
       lord: 'sg_caocao', cities: ['chenliu', 'puyang', 'xuchang'],
       officers: ['sg_xiahoudun', 'sg_xunyu', 'rf_xiahouyuan', 'rf_caoren', 'rf_caohong',
@@ -165,6 +175,117 @@
       officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi'] }
   ];
 
+  /* ── 200년 관도(官渡) ────────────────────────────────────
+   * 군웅이 정리되고 하북(원소)과 중원(조조)이 마주 선다.
+   * 여포·원술·공손찬·공융·이각은 이미 없다 — 그 사람들은 재야로 흩어진다.
+   */
+  var FORCES_200 = [
+    { id: 'shao', name: '원소', color: '#c9a227', creed: 'aggressive',
+      lord: 'rf_yuanshao', cities: ['ye', 'nanpi', 'jixian', 'beiping', 'jinyang', 'beihai'],
+      officers: ['rf_yanliang', 'rf_wenchou', 'rf_jushou', 'rf_tianfeng',
+                 'rf_shenpei', 'rf_zhanghe', 'rf_gaolan'] },
+    { id: 'cao', name: '조조', color: '#5b8ff0', creed: 'aggressive',
+      lord: 'sg_caocao',
+      cities: ['xuchang', 'chenliu', 'puyang', 'luoyang', 'changan',
+               'xiaopei', 'xiapi', 'shouchun'],
+      officers: ['sg_xiahoudun', 'sg_xunyu', 'sg_zhangliao', 'rf_xiahouyuan', 'rf_caoren',
+                 'rf_caohong', 'rf_xuchu', 'rf_yujin', 'rf_yuejin', 'rf_lidian',
+                 'rf_chengyu', 'rf_guojia', 'rf_jiaxu'] },
+    { id: 'bei', name: '유비', color: '#4caf72', creed: 'balanced',
+      lord: 'sg_liubei', cities: ['runan'],
+      officers: ['sg_guanyu', 'sg_zhangfei', 'sg_zhaoyun', 'rf_mizhu', 'rf_jianyong'] },
+    { id: 'quan', name: '손권', color: '#e05c5c', creed: 'balanced',
+      lord: 'sg_sunquan', cities: ['jianye', 'chaisang', 'kuaiji'],
+      officers: ['sg_zhouyu', 'sg_taishici', 'rf_chengpu', 'rf_huanggai',
+                 'rf_handang', 'rf_zhoutai'] },
+    { id: 'biao', name: '유표', color: '#7fb8d8', creed: 'turtle',
+      lord: 'rf_liubiao',
+      cities: ['xiangyang', 'wan', 'xinye', 'jiangling', 'jiangxia', 'changsha'],
+      officers: ['sg_huangzhong', 'sg_ganning', 'rf_caimao', 'rf_kuailiang',
+                 'rf_huangzu', 'rf_wenpin'] },
+    { id: 'teng', name: '마등', color: '#c07b4a', creed: 'balanced',
+      lord: 'rf_mateng', cities: ['tianshui', 'wuwei'],
+      officers: ['sg_machao', 'rf_pangde', 'rf_hansui'] },
+    { id: 'lu', name: '장로', color: '#a8a2c8', creed: 'turtle',
+      lord: 'rf_zhanglu', cities: ['hanzhong'],
+      officers: ['rf_yangren', 'rf_yangsong'] },
+    /* 유비(초록)와 색이 붙어 지도에서 헷갈렸다 — 이각이 없는 판이니 그 보라를 쓴다 */
+    { id: 'zhang', name: '유장', color: '#9a6b9a', creed: 'turtle',
+      lord: 'rf_liuzhang', cities: ['chengdu', 'jiangzhou', 'yongan'],
+      officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi'] }
+  ];
+
+  /* ── 208년 적벽(赤壁) ────────────────────────────────────
+   * 조조가 스물 가까운 성을 쥐고 강을 내려온다. **아주 기울어진 판이다** —
+   * 조조를 잡으면 마무리, 손권이나 유비를 잡으면 이 판에서 가장 어려운 싸움이다.
+   * 손권과 유비는 **동맹으로 시작한다**(SCENARIOS 의 pacts). 그것 없이는 적벽이 아니다.
+   */
+  var FORCES_208 = [
+    { id: 'cao', name: '조조', color: '#5b8ff0', creed: 'aggressive',
+      lord: 'sg_caocao',
+      cities: ['xuchang', 'chenliu', 'puyang', 'luoyang', 'changan', 'runan',
+               'xiaopei', 'xiapi', 'shouchun', 'ye', 'nanpi', 'jixian', 'beiping',
+               'jinyang', 'beihai', 'wan', 'xinye', 'xiangyang', 'jiangling'],
+      officers: ['sg_xiahoudun', 'sg_xunyu', 'sg_zhangliao', 'sg_simayi',
+                 'rf_xiahouyuan', 'rf_caoren', 'rf_caohong', 'rf_xuchu', 'rf_yujin',
+                 'rf_yuejin', 'rf_lidian', 'rf_chengyu', 'rf_jiaxu', 'rf_zhanghe',
+                 'rf_caimao', 'rf_wenpin', 'rf_kuailiang'] },
+    { id: 'quan', name: '손권', color: '#e05c5c', creed: 'balanced',
+      lord: 'sg_sunquan', cities: ['jianye', 'chaisang', 'kuaiji'],
+      officers: ['sg_zhouyu', 'sg_luxun', 'sg_ganning', 'sg_taishici', 'rf_chengpu',
+                 'rf_huanggai', 'rf_handang', 'rf_zhoutai'] },
+    { id: 'bei', name: '유비', color: '#4caf72', creed: 'balanced',
+      lord: 'sg_liubei', cities: ['jiangxia', 'changsha'],
+      officers: ['sg_guanyu', 'sg_zhangfei', 'sg_zhaoyun', 'sg_zhugeliang',
+                 'sg_huangzhong', 'rf_mizhu', 'rf_jianyong'] },
+    { id: 'chao', name: '마초', color: '#c07b4a', creed: 'aggressive',
+      lord: 'sg_machao', cities: ['tianshui', 'wuwei'],
+      officers: ['rf_pangde', 'rf_hansui', 'rf_mateng'] },
+    { id: 'lu', name: '장로', color: '#a8a2c8', creed: 'turtle',
+      lord: 'rf_zhanglu', cities: ['hanzhong'],
+      officers: ['rf_yangren', 'rf_yangsong'] },
+    { id: 'zhang', name: '유장', color: '#9a6b9a', creed: 'turtle',
+      lord: 'rf_liuzhang', cities: ['chengdu', 'jiangzhou', 'yongan'],
+      officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi', 'sg_pangtong'] }
+  ];
+
+  var SCENARIOS = [
+    { id: '194', year: 194, name: '군웅할거', hanja: '群雄割據',
+      desc: '열세 깃발이 한꺼번에 섰다. 누구를 잡아도 갈 길이 멀다.',
+      forces: FORCES_194, pacts: [] },
+    { id: '200', year: 200, name: '관도', hanja: '官渡',
+      desc: '하북의 원소와 중원의 조조가 마주 섰다. 여포도 원술도 이미 없다.',
+      forces: FORCES_200, pacts: [] },
+    { id: '208', year: 208, name: '적벽', hanja: '赤壁',
+      desc: '조조가 스물 가까운 성을 쥐고 강을 내려온다. 손권과 유비는 손을 잡았다.',
+      forces: FORCES_208, pacts: [['quan', 'bei', 'ally', 24]] }
+  ];
+
+  function scenario(id) {
+    for (var s = 0; s < SCENARIOS.length; s++) {
+      if (SCENARIOS[s].id === id) { return SCENARIOS[s]; }
+    }
+    return SCENARIOS[0];
+  }
+
+  /**
+   * 지금 쓰는 시나리오.
+   * `FORCES` 는 **배열 그대로 갈아 끼운다**(새 배열로 바꾸지 않는다) —
+   * 다른 파일이 `FD.FORCES` 를 이미 붙들고 있어서, 참조를 바꾸면 그쪽이 옛 표를 본다.
+   */
+  var FORCES = [];
+  var current = null;
+
+  function use(id) {
+    var sc = scenario(id);
+    current = sc;
+    FORCES.length = 0;
+    for (var s = 0; s < sc.forces.length; s++) { FORCES.push(sc.forces[s]); }
+    forceById = {};
+    for (s = 0; s < FORCES.length; s++) { forceById[FORCES[s].id] = FORCES[s]; }
+    return sc;
+  }
+
   /* ── 수전(水戰)에 능한 사람 ─────────────────────────────
    * 이 판의 자질은 무력·지력·통솔 셋뿐이다 — `data.js` 의 인물과 **모양이 같아야**
    * 도감·초상·능력치가 그대로 돌기 때문이다. 그래서 "물에서 더 잘 싸운다" 는
@@ -196,7 +317,7 @@
   for (i = 0; i < OFFICERS.length; i++) { byId[OFFICERS[i].id] = OFFICERS[i]; }
 
   var forceById = {};
-  for (i = 0; i < FORCES.length; i++) { forceById[FORCES[i].id] = FORCES[i]; }
+  use('194');                       // 기본은 194년 군웅할거
 
   /** 이 세력의 무장 전부 (군주 포함) */
   function roster(forceId) {
@@ -208,6 +329,8 @@
   global.DG = global.DG || {};
   global.DG.forceData = {
     OFFICERS: OFFICERS, FORCES: FORCES, NAVY: NAVY, navyOf: navyOf,
+    SCENARIOS: SCENARIOS, scenario: scenario, use: use,
+    current: function () { return current; },
     find: function (id) { return byId[id] || null; },
     force: function (id) { return forceById[id] || null; },
     roster: roster

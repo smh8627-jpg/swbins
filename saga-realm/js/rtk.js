@@ -19,7 +19,7 @@
   var CD = global.DG.cityData;
   var FD = global.DG.forceData;
 
-  var START_YEAR = 194;
+  var START_YEAR = 194;              // 표가 연도를 안 적었을 때의 값
   var UPKEEP_PER_OFFICER = 12;      // 무장 한 사람의 달 봉급 (금)
   var FOOD_PER_1000 = 10;           // 병사 1000명이 한 달에 먹는 군량
   var HARVEST_MONTHS = [6, 10];     // 군량이 들어오는 달
@@ -76,16 +76,26 @@
 
   /* ── 상태 ─────────────────────────────────────────────── */
 
+  /**
+   * 세이브에 적힌 시나리오를 **다시 세워 준다**.
+   * 세이브를 갈아 끼우거나(프로필) 새로고침해도 세력 표가 따라와야 한다 —
+   * 이 한 줄이 없으면 208년 판을 열어 두고 새로고침했을 때 194년 표로 읽혀
+   * 세력 이름과 색이 통째로 어긋난다.
+   */
+  var scenApplied = null;
+
   function state() {
     var s = core.save;
     if (!s.rtk) {
       s.rtk = {
-        started: false, year: START_YEAR, month: 1, me: null,
+        started: false, year: START_YEAR, month: 1, me: null, scen: '194',
         cities: {}, forces: {}, officers: {}, captives: {},
         camps: [], campSeq: 0,
         result: null, turn: 0
       };
     }
+    var want = s.rtk.scen || '194';
+    if (scenApplied !== want) { FD.use(want); scenApplied = want; }
     return s.rtk;
   }
 
@@ -121,14 +131,18 @@
   /* ── 판 세우기 ────────────────────────────────────────── */
 
   /**
-   * 194년 군웅할거로 판을 세운다.
-   * @param meId 내가 잡을 세력 id
+   * 판을 세운다.
+   * @param meId  내가 잡을 세력 id
+   * @param scen  시나리오 id ('194' · '200' · '208'). 없으면 194년
    */
-  function setup(meId) {
+  function setup(meId, scen) {
     var st = state();
     var off = global.DG.off;
+    var sc = FD.use(scen || '194');
+    scenApplied = sc.id;
+    st.scen = sc.id;
     st.started = true;
-    st.year = START_YEAR; st.month = 1; st.turn = 0;
+    st.year = sc.year || START_YEAR; st.month = 1; st.turn = 0;
     st.me = meId; st.result = null;
     st.cities = {}; st.forces = {}; st.officers = {}; st.captives = {};
     st.camps = []; st.campSeq = 0;
@@ -172,10 +186,19 @@
       }
     }
 
-    /* 재야 — 삼국지 사람이 아닌 인물과, 아직 아무 세력에도 없는 삼국지 사람 */
+    /* 어느 표에도 안 적힌 사람은 재야가 된다 — 200·208년의 여포·이각이 그렇다 */
     scatterFree();
 
-    core.log('🏳️ ' + START_YEAR + '년 봄 — ' + forceName(meId) + ' 의 깃발을 들었다.', 'good');
+    /* 시나리오가 정한 맹약 — 적벽의 손·유 동맹이 여기서 선다 */
+    var pacts = sc.pacts || [];
+    for (i = 0; i < pacts.length; i++) {
+      if (global.DG.diplo) {
+        global.DG.diplo.setPact(pacts[i][0], pacts[i][1], pacts[i][2], pacts[i][3]);
+      }
+    }
+
+    core.log('🏳️ ' + st.year + '년 봄 · ' + sc.name + '(' + sc.hanja + ') — ' +
+      forceName(meId) + ' 의 깃발을 들었다.', 'good');
     core.emit('changed');
     core.persist();
     return st;
@@ -683,6 +706,7 @@
   global.DG = global.DG || {};
   global.DG.rtk = {
     START_YEAR: START_YEAR, ORDERS: ORDERS, DISASTERS: DISASTERS,
+    scen: function () { return state().scen || '194'; },
     UPKEEP_PER_OFFICER: UPKEEP_PER_OFFICER, FOOD_PER_1000: FOOD_PER_1000,
     HARVEST_MONTHS: HARVEST_MONTHS, LORE_PER_FIND: LORE_PER_FIND,
     orderByKey: orderByKey, disasterByKey: disasterByKey,

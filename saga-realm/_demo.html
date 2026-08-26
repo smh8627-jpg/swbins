@@ -70,7 +70,8 @@ window.DG_NO_ACCOUNT = true;
 <script>
 /**
  * 장면 — 주소 뒤에 #를 붙여 고른다.
- *   #pick   세력 고르기        #map   지도 (194년, 조조)
+ *   #scen   판(시나리오) 고르기 #pick  세력 고르기
+ *   #map    지도 (194년, 조조)  #chibi 208년 적벽의 지도
  *   #grown  다섯 해 뒤의 지도   #city  성(허창) — 명령표
  *   #enemy  남의 성(낙양) — 계략·출진
  *   #war    전황 보고          #camp  진영 (달을 넘긴 원정)
@@ -95,7 +96,12 @@ window.DG_NO_ACCOUNT = true;
     }
   }
 
-  if (scene === 'pick') {
+  if (scene === 'scen') {
+    DG.ui.showScenPick();
+  } else if (scene === 'chibi') {
+    R.setup('quan', '208');
+    DG.ui.renderTop(); DG.ui.renderMap();
+  } else if (scene === 'pick') {
     DG.ui.showForcePick();
   } else if (scene === 'grown') {
     for (var m = 0; m < 60 && !R.state().result; m++) { R.endMonth(); }

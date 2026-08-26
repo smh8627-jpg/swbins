@@ -1072,6 +1072,11 @@ body.tilted3 #vignette {
 .gearname small { font-weight: 400; margin-left: 4px; }
 
 
+/* 시나리오 고르기 — 카드 셋이 나란히 서기엔 글이 길다. 한 줄에 하나씩 */
+.fpick.scen { grid-template-columns: 1fr; }
+.fcard.wide-card { text-align: left; align-items: flex-start; gap: 3px; }
+.fcard.wide-card b { font-size: 15px; }
+
 /* 물길 — 배로만 건너는 길. 뭍길과 눈에 띄게 달라야 한다 */
 .rmap .rlink.water { stroke: #5aa9d8; stroke-opacity: .55; stroke-dasharray: 1.4 1.2; }
 .rmap .rlink.water.same { stroke-opacity: .8; }
