@@ -1,4 +1,4 @@
-# 사가GO 마을 (yeoksa-village)
+# 사가의숲 (saga-forest)
 
 > 시리즈 전체 인계(다섯 게임 표·지시 이력·함정·다음 할 일)는 **`../SAGA-HANDOFF.md`** 다.
 

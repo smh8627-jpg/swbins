@@ -53,7 +53,7 @@ CSS 통째 교체 금지 · 라이브러리 무단 추가 금지.** 한 단계�
 run.bat          오프라인 모드 — 파이썬 정적 서버 (http://127.0.0.1:8791)
 run-online.bat   온라인 모드   — 노드 서버 + AI 사관 (http://127.0.0.1:8790)
 run-phone.bat    폰에서 하기   — 같은 서버를 https·0.0.0.0 으로 (인증서 자동 생성)
-build-pc.bat     집 PC 용 단독 실행판 만들기 → dist/사가GO.html (+ play.bat · 사용법.txt)
+build-pc.bat     집 PC 용 단독 실행판 만들기 → dist/사가고.html (+ play.bat · 사용법.txt)
 ```
 
 **집 PC 에서 하려면** `build-pc.bat` 을 한 번 돌려 `dist/` 를 통째로 옮긴 뒤
@@ -398,7 +398,7 @@ classic·anime 는 **도형을 다르게 그려서** 만든다(얼굴·머리·�
   → 스탬프는 `inner:false` 로 실루엣만, 그것도 어두운 지도에 묻히지 않게 **밝은 테**로 두른다
 
 ### PC 단독 실행판 (구현됨)
-`build-pc.bat` → `build/build-single.mjs` → `dist/사가GO.html`.
+`build-pc.bat` → `build/build-single.mjs` → `dist/사가고.html`.
 `index.html` 이 부르는 순서를 그대로 읽어 css·js 를 인라인한다(순서를 두 곳에 적지 않는다).
 
 - `String.replace` 의 치환값은 **반드시 함수로** 넘긴다. 문자열로 넘기면 코드 안의 `$'`

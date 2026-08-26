@@ -1,4 +1,4 @@
-# 사가GO 던전 (yeoksa-dungeon)
+# 사가블로 (saga-dungeon)
 
 > 시리즈 전체 인계(다섯 게임 표·지시 이력·함정·다음 할 일)는 **`../SAGA-HANDOFF.md`** 다.
 

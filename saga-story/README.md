@@ -1,4 +1,4 @@
-# 사가GO 사냥터 (yeoksa-side)
+# 사가스토리 (saga-story)
 
 > 시리즈 전체 인계(다섯 게임 표·지시 이력·함정·다음 할 일)는 **`../SAGA-HANDOFF.md`** 다.
 
@@ -113,7 +113,7 @@ chrome --headless=new --disable-gpu --dump-dom http://127.0.0.1:PORT/_sfxcheck.h
 
 **규칙은 한 줄도 안 건드렸다.** 외피는 새 파일 `css/maple.css` 한 장이고,
 `index.html` 에서 그 `<link>` 한 줄을 빼면 예전 모습으로 돌아온다
-(역사블로의 `css/diablo.css` 와 같은 방식이다).
+(사가블로의 `css/diablo.css` 와 같은 방식이다).
 
 옮긴 것 여섯 —
 **밝은 창**(어두운 유리 → 흰 종이 + 굵은 남색 테) ·
