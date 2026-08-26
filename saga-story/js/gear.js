@@ -21,7 +21,10 @@
   var core = global.DG.core;
   var GD = global.DG.gearData;
 
-  var BAG = 24;                 // 가방 칸
+  /* 규칙 값은 균형 손잡이를 거친다 — 어드민이 잡고, 켜질 때 한 번 읽는다 */
+  var BAG = core.tuned('gear.bag', 24);         // 가방 칸
+  var DROP_MUL = core.tuned('drop.gearMul', 1); // 장비·주문서가 떨어질 확률 (배수)
+  var SCROLL_MUL = core.tuned('scroll.rateMul', 1); // 주문서 성공률 (배수 — 1 을 넘으면 상한 1)
 
   function st() {
     var s = core.save;
@@ -182,7 +185,7 @@
 
     core.save.scrolls[scrollKey] -= 1;
     it.left -= 1;
-    var hit = Math.random() < sc.rate;
+    var hit = Math.random() < Math.min(1, sc.rate * SCROLL_MUL);
     if (hit) {
       it.up += 1;
       if (sc.atk) { it.atk = (it.atk || 0) + sc.atk; }
@@ -264,8 +267,8 @@
    */
   function rollDrop(lv, boss) {
     var r = Math.random();
-    var gearRate = boss ? 0.9 : 0.035;
-    var scrollRate = boss ? 0.7 : 0.05;
+    var gearRate = Math.min(1, (boss ? 0.9 : 0.035) * DROP_MUL);
+    var scrollRate = Math.min(1 - gearRate, (boss ? 0.7 : 0.05) * DROP_MUL);
     if (r < gearRate) {
       var pool = GD.poolFor(lv);
       return { kind: 'gear', key: core.pick(pool).key };

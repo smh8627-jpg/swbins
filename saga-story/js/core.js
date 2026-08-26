@@ -66,6 +66,102 @@
 
   var save = freshSave();
 
+  /* ── 균형 손잡이(튜닝) ────────────────────────────────────
+   * 규칙 상수를 밖에서 잡을 수 있게 하는 얇은 층이다. 어드민(`_admin.html`)이 쓴다.
+   * 사가고(`saga-go`)·사가의숲(`saga-forest`)에 먼저 둔 것을 **같은 이름으로** 옮겼다.
+   *
+   * **세이브와 다른 칸에 산다.** 세이브에 섞으면 프로필마다 규칙이 달라지고,
+   * 세이브를 넘길 때 규칙까지 따라간다. 규칙은 "이 기기의 사정" 이지 진행이 아니다.
+   *
+   * **자가진단·데모는 읽지 않는다**(`DG_NO_TUNE`). 읽으면 손잡이를 잡아 둔 기기에서
+   * 판정과 스크린샷이 흔들린다 — 씨앗을 고정한 것과 같은 이유다.
+   * 그 자리에서도 `setTune()` 은 메모리에만 반영하고 저장하지 않는다.
+   *
+   * 이 판에서 가장 값진 손잡이는 **물리(중력·점프·달리기)** 다.
+   * 사이드스크롤은 손맛이 곧 게임이라, 수를 바꾸고 곧바로 뛰어 보는 것이 검증이다.
+   */
+  var TUNE_KEY = 'yeoksa-side/tune';
+  var tuneCache = null;
+
+  function tuneAll() {
+    if (tuneCache) { return tuneCache; }
+    tuneCache = {};
+    if (global.DG_NO_TUNE) { return tuneCache; }
+    try {
+      var raw = localStorage.getItem(TUNE_KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o && typeof o === 'object') { tuneCache = o; }
+      }
+    } catch (e) { /* 깨져 있으면 기본값으로 돈다 */ }
+    return tuneCache;
+  }
+
+  /** 손잡이가 잡혀 있으면 그 값, 아니면 코드의 기본값 */
+  function tuned(key, def) {
+    var v = tuneAll()[key];
+    if (v === undefined || v === null || v === '') { return def; }
+    if (typeof def === 'number') {
+      var n = Number(v);
+      return isFinite(n) ? n : def;
+    }
+    return v;
+  }
+
+  /** 하나 또는 여러 개를 잡는다. 값이 null 이면 그 손잡이를 놓는다 */
+  function setTune(k, v) {
+    var t = tuneAll(), o = {}, key;
+    if (k && typeof k === 'object') { o = k; } else { o[k] = v; }
+    for (key in o) {
+      if (!Object.prototype.hasOwnProperty.call(o, key)) { continue; }
+      if (o[key] === null || o[key] === undefined || o[key] === '') { delete t[key]; }
+      else { t[key] = o[key]; }
+    }
+    saveTune();
+    return t;
+  }
+
+  function clearTune() {
+    tuneCache = {};
+    saveTune();
+  }
+
+  function saveTune() {
+    emit('tune', tuneCache);
+    if (global.DG_NO_TUNE) { return; }          // 진단·데모는 남기지 않는다
+    try {
+      if (tuneCount()) { localStorage.setItem(TUNE_KEY, JSON.stringify(tuneCache)); }
+      else { localStorage.removeItem(TUNE_KEY); }
+    } catch (e) { /* 저장 못 해도 이번 판은 돈다 */ }
+  }
+
+  function tuneCount() {
+    var t = tuneAll(), n = 0, k;
+    for (k in t) { if (Object.prototype.hasOwnProperty.call(t, k)) { n++; } }
+    return n;
+  }
+
+  /** 어드민이 세이브를 고친 뒤 두드리는 자리 — 게임 창이 그걸 보고 다시 읽는다 */
+  var POKE_KEY = 'yeoksa-side/admin/poke';
+
+  /* 다른 창(어드민)에서 손잡이를 잡거나 세이브를 고치면 이 창도 안다.
+     **어드민이 이긴다** — 게임 창이 들고 있던 것을 버리고 저장된 것을 다시 읽는다.
+     (게임은 틈틈이 persist 하므로, 안 그러면 어드민이 고친 값이 곧 덮인다) */
+  global.addEventListener('storage', function (e) {
+    if (e.key === TUNE_KEY) {
+      tuneCache = null;
+      emit('tune', tuneAll());
+      emit('changed');
+      return;
+    }
+    if (e.key === POKE_KEY) {
+      load();
+      emit('toast', '🎛️ 어드민이 세이브를 고쳤습니다 — 다시 읽었습니다');
+      emit('changed');
+    }
+  });
+
+
   /* ── 저장 / 불러오기 ──────────────────────────────────── */
 
   function load() {
@@ -260,6 +356,8 @@
     gainFeat: gainFeat, gainExp: gainExp, expNeed: expNeed,
     effect: effect,
     log: pushLog,
+    TUNE_KEY: TUNE_KEY, POKE_KEY: POKE_KEY,
+    tuned: tuned, tune: tuneAll, setTune: setTune, clearTune: clearTune,
     hash2: hash2, pick: pick, clamp: clamp, fmt: fmt, fmtTime: fmtTime
   };
 })(window);

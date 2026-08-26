@@ -17,18 +17,28 @@
   var core = global.DG.core;
   var SD = global.DG.sideData;
 
-  var GRAV = 1900;              // 중력 (단위/초²)
-  var JUMP = 760;               // 점프 속도
-  var SPEED = 270;              // 달리기
+  /* 규칙 값은 균형 손잡이(core.tuned)를 거친다 — 어드민(`_admin.html`)이 잡는다.
+     **켜질 때 한 번** 읽으므로 손잡이를 바꾼 뒤에는 게임 창을 새로고침해야 듣는다.
+     자가진단·데모는 읽지 않는다(`DG_NO_TUNE`) — 판정이 흔들리면 안 된다. */
+  var GRAV = core.tuned('side.grav', 1900);     // 중력 (단위/초²)
+  var JUMP = core.tuned('side.jump', 760);      // 점프 속도
+  var SPEED = core.tuned('side.speed', 270);    // 달리기
   var P_W = 26, P_H = 54;       // 사람 크기 (충돌 상자)
   var REACH = 78;               // 평타 사거리
-  var MP_MAX = 100, MP_REGEN = 8;
+  var MP_MAX = 100, MP_REGEN = core.tuned('side.mpRegen', 8);
   var BRACE_SEC = 8;
   var HIT_COOL = 0.7;           // 맞고 나서 무적
-  var CLIMB = 168;              // 줄을 오르내리는 속도
+  var CLIMB = core.tuned('side.climb', 168);    // 줄을 오르내리는 속도
   var GRAB = 18;                // 줄에 붙는 좌우 여유 (중심에서)
   var PORTAL_R = 46;            // 문 앞으로 치는 좌우 여유
   var DROP_THRU = 0.26;         // ↓+점프로 발판을 빠져나가는 동안
+
+  var E_HP = core.tuned('enemy.hpMul', 1);      // 적 체력 배수 (보스도 같이 탄다)
+  var E_DMG = core.tuned('enemy.dmgMul', 1);    // 적 공격 배수
+  var GAIN_EXP = core.tuned('gain.expMul', 1);  // 경험치 배수
+  var GAIN_GOLD = core.tuned('gain.goldMul', 1);// 금 배수
+  var DROP_POTION = core.tuned('drop.potion', 0.14);  // 탕약이 떨어질 확률
+  var BOSS_COOL = core.tuned('boss.coolMul', 1);// 보스가 다시 나오기까지 (배수)
 
   var run = null;               // 지금 사냥 중인 판
   var input = { left: false, right: false, jump: false, up: false, down: false };
@@ -289,7 +299,7 @@
     var stg = SD.stage(key);
     if (!stg.boss) { return false; }
     var at = st().bossAt[key] || 0;
-    return Date.now() - at >= stg.boss.cool * 60000;
+    return Date.now() - at >= stg.boss.cool * 60000 * BOSS_COOL;
   }
 
   /** 다시 나오기까지 남은 밀리초 (0 이면 지금 나와 있다) */
@@ -297,7 +307,7 @@
     var stg = SD.stage(key);
     if (!stg.boss) { return 0; }
     var at = st().bossAt[key] || 0;
-    return Math.max(0, stg.boss.cool * 60000 - (Date.now() - at));
+    return Math.max(0, stg.boss.cool * 60000 * BOSS_COOL - (Date.now() - at));
   }
 
   function spawnBoss() {
@@ -308,12 +318,12 @@
     var ref = ed ? ed.bossByName(stg.boss.name) : { name: stg.boss.name, kind: 'human', color: '#7a3a3a' };
     var lv = stg.enemyLv;
     var baseHp = Math.round(18 * Math.pow(1.22, lv - 1));
-    var hp = Math.round(baseHp * stg.boss.hpMul);
+    var hp = Math.max(1, Math.round(baseHp * stg.boss.hpMul * E_HP));
     var e = {
       ref: ref, boss: true,
       x: stg.width - 220, y: stg.floor - 52, w: 52, h: 52,
       hp: hp, hpMax: hp,
-      dmg: Math.round((4 + lv * 1.6) * stg.boss.dmgMul),
+      dmg: Math.round((4 + lv * 1.6) * stg.boss.dmgMul * E_DMG),
       dir: -1, homeY: stg.floor,
       spd: 38 + Math.min(40, lv * 2),
       phase: 0, hurt: 0, cd: 0,
@@ -347,11 +357,11 @@
       x = pl[0] + Math.random() * pl[2];
       y = pl[1];
     }
-    var hp = Math.round(18 * Math.pow(1.22, lv - 1));
+    var hp = Math.max(1, Math.round(18 * Math.pow(1.22, lv - 1) * E_HP));
     var rw = SD.rangedOf(ref);              // 활·조총을 들었으면 멀리서 쏜다
     run.enemies.push({
       ref: ref, x: x, y: y - 22, w: 34, h: 34,
-      hp: hp, hpMax: hp, dmg: Math.round(4 + lv * 1.6),
+      hp: hp, hpMax: hp, dmg: Math.round((4 + lv * 1.6) * E_DMG),
       dir: Math.random() < 0.5 ? -1 : 1, homeY: y,
       spd: 42 + Math.min(50, lv * 2), phase: Math.random() * 6.28, hurt: 0, cd: 0,
       ranged: rw, shotCd: rw ? rw.cd * (0.4 + Math.random() * 0.8) : 0
@@ -426,13 +436,13 @@
     st().kills = (st().kills || 0) + 1;
     var lv = run.stage.enemyLv;
     var mul = e.boss ? 12 : 1;
-    var gold = Math.round((6 + lv * 3) * (0.8 + Math.random() * 0.6) * mul);
+    var gold = Math.round((6 + lv * 3) * (0.8 + Math.random() * 0.6) * mul * GAIN_GOLD);
     run.gold += gold;
     run.drops.push({ kind: 'gold', x: e.x + e.w / 2, y: e.y, vy: -180, n: gold });
     if (e.boss) {
       /* 보스는 탕약을 확정으로 떨군다 — 다음 판을 이어 갈 밑천이다 */
       run.drops.push({ kind: 'potion', x: e.x + e.w / 2 + 14, y: e.y, vy: -220, n: 3 });
-    } else if (Math.random() < 0.14) {
+    } else if (Math.random() < DROP_POTION) {
       run.drops.push({ kind: 'potion', x: e.x + e.w / 2 + 10, y: e.y, vy: -200, n: 1 });
     }
     /* 장비·주문서 — 무엇이 나올지는 gear.js 가 정한다 (여기는 떨구기만 한다) */
@@ -444,7 +454,7 @@
                          x: e.x + e.w / 2 - 12, y: e.y, vy: -240, n: 1 });
       }
     }
-    core.gainExp((6 + lv * 4) * (e.boss ? 15 : 1));
+    core.gainExp((6 + lv * 4) * (e.boss ? 15 : 1) * GAIN_EXP);
     /* 사명(quest.js)이 이 소식을 듣는다 — 규칙이 서로를 부르지 않게 알림으로만 잇는다 */
     core.emit('side:kill', { ref: e.ref, boss: !!e.boss, lv: lv, stage: run.stage.key });
     if (global.DG.hero.awardParty) { global.DG.hero.awardParty((2 + lv) * (e.boss ? 8 : 1)); }
