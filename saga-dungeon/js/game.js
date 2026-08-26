@@ -78,6 +78,21 @@
     /* 행상 — 회차가 끝날 때마다 새 물건이 온다(vendor.js 가 dungeon:end 를 듣는다) */
     if (global.DG.vendor) { global.DG.vendor.init(); }
 
+    /* 던전이 끝나면 마을로 돌아온다.
+       **dungeonView.init() 보다 먼저 걸어 둔다** — 화면도 dungeon:end 를 듣고
+       스스로 내려가는데, 그때 마을이 이미 켜져 있어야 한 틱 검게 깜빡이지 않는다.
+       core.on 은 걸어 둔 순서대로 부르므로, 이 순서가 곧 판정이다. */
+    core.on('dungeon:end', function () {
+      global.DG.town.enter({ fromDungeon: true });
+    });
+
+    /* **장면은 하나만 켜져 있어야 한다.** 둘이 동시에 켜지면 화면(dungeon-view)이
+       마을을 그리는 동안 던전이 뒤에서 조용히 흘러간다 — 맞고 있는데 마을이
+       보이는 꼴이다. 그 규칙을 여기서 지킨다. dungeon.js 는 마을을 몰라도 된다
+       (자동 순행처럼 enter 를 직접 부르는 길이 여럿이라, 부르는 쪽마다
+       마을을 끄게 맡기면 반드시 하나가 빠진다). */
+    core.on('dungeon:enter', function () { global.DG.town.leave(); });
+
     ui.init();
     global.DG.dungeonView.init();
 
@@ -97,6 +112,10 @@
         bossReward(cleared);
       }
     });
+
+    /* 마을에서 시작한다 — 원작에서 판이 열리면 야영지에 서 있다.
+       예전에는 카드 한 장(ui.renderCamp)이 첫 화면이었다. */
+    global.DG.town.enter();
 
     bindTopbar();
     lastFrame = performance.now();
@@ -210,6 +229,8 @@
         '<h3 style="margin:0 0 4px;font-size:18px">🕳️ 조작 안내</h3>' +
         '<div class="helplist">' +
           '<div><b>이동</b> WASD · 방향키 · 화면을 누른 채 끌면 그쪽으로 걷습니다</div>' +
+          '<div><b>마을</b> 사람과 표식은 <b>다가서면</b> 말이 걸립니다 — ' +
+            '굴혈 🕳️ 로 들어가고, 역참 🌀 으로 밟아 둔 층으로 건너뜁니다</div>' +
           '<div><b>공격</b> 사거리에 들어오면 알아서 칩니다 (평타)</div>' +
           '<div><b>무예</b> Z X C V — <b>직업마다 아홉</b>. 배워서 네 칸에 겁니다 (📜 무예)</div>' +
           '<div><b>직업</b> <b>장착한 무기</b>가 정합니다 — 각궁이면 궁장, 선채면 책사…</div>' +
@@ -242,7 +263,9 @@
 
     global.DG.auto.update(dt);
     global.DG.dungeonView.update(dt);
-    if (!global.DG_NO_DRAW && global.DG.dungeon.active()) {
+    /* 마을도 같은 화면에 그린다 — 마을과 던전은 한 무대를 나눠 쓴다 */
+    if (!global.DG_NO_DRAW &&
+        (global.DG.dungeon.active() || global.DG.town.active())) {
       global.DG.dungeonView.draw();
     }
 

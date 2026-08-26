@@ -52,7 +52,17 @@
      이 값을 빼지 않으면 인물이 판 뒤에 숨는다. */
   var PAD_BOT = 92;
 
-  function d() { return global.DG.dungeon; }
+  /**
+   * 지금 그리는 장면 — 마을이거나 던전이다.
+   *
+   * 둘은 **같은 모양의 상태**를 내놓기로 약속돼 있다(raw · status · fx ·
+   * setInput · moveTo · update). 그래서 아래 그리기·조작 코드는 자기가 마을을
+   * 그리는지 던전을 그리는지 몰라도 된다 — 이 한 줄이 그 약속의 전부다.
+   */
+  function d() {
+    var T = global.DG.town;
+    return (T && T.active()) ? T : global.DG.dungeon;
+  }
   function shade(c, amt) { return global.DG.sprite.shade(c, amt); }
 
   function build() {
@@ -150,6 +160,20 @@
 
     global.addEventListener('keydown', onKey);
     global.addEventListener('keyup', onKeyUp);
+  }
+
+  /* 조작 안내 한 줄 — 마을과 던전은 손이 다르다. 바뀔 때만 건드린다 */
+  var tipTown = null;
+  function setTip(town) {
+    if (tipTown === town) { return; }
+    tipTown = town;
+    var el = host && host.querySelector('.dg-tip');
+    if (!el) { return; }
+    el.innerHTML = town
+      ? '이동 <b>WASD</b> · <b>화면을 누른 채 끌면</b> 그쪽으로 걷습니다 · ' +
+        '사람과 표식은 <b>다가서면</b> 말이 걸립니다'
+      : '이동 <b>WASD</b> · 물약 <b>1 2 3 4</b> · 스킬 <b>Z X C V</b> · ' +
+        '<b>화면을 누른 채 끌면</b> 그쪽으로 걷습니다';
   }
 
   /**
@@ -347,6 +371,21 @@
     if (!shown) { return; }
     var st = d().status();
     if (!st.active) { return; }
+    /* 마을은 층도 방도 노획도 없다 — "여기가 어디인가" 만 말한다 */
+    if (st.town) {
+      var kt = 'town|' + (st.best || 0);
+      if (kt === hudKey) { return; }
+      hudKey = kt;
+      hud.innerHTML =
+        '<div class="dg-row1">' +
+          '<b class="dg-floor">🏯 마을</b>' +
+          '<span class="dg-theme">' + st.theme.name + '</span>' +
+          '<span class="dg-room">최고 제' + (st.best || 0) + '층</span>' +
+        '</div>';
+      setTip(true);
+      return;
+    }
+    setTip(false);
     var k = st.floor + '|' + st.room + '|' + st.loot.gold + '|' +
             st.loot.items + '|' + JSON.stringify(st.boons) + '|' + (st.cleared ? 1 : 0);
     if (k === hudKey) { return; }
@@ -534,7 +573,7 @@
     if (!run) { return; }
     var m = metrics();
     var W = d().ROOM_W, H = d().ROOM_H, WALLT = d().WALL;
-    var theme = DD.themeOf(run.floor);
+    var theme = run.theme || DD.themeOf(run.floor);
     var now = Date.now();
     var i, p;
 
@@ -710,6 +749,19 @@
       if (e.hp <= 0) { continue; }
       items.push({ z: e.x + e.y, kind: 'foe', o: e });
     }
+    /* 마을 사람과 표식 — 던전에는 없다(빈 배열이라 그냥 지나간다).
+       **플레이어와의 거리**를 같이 담는다. 이름표를 아홉 개 늘 띄우면 폰에서
+       글자가 뭉쳐 아무것도 못 읽는다 — 원작도 가리킨 것 하나만 이름을 보여 준다. */
+    var npcs = run.room.npcs || [], marks = run.room.marks || [];
+    var NEAR = 170;
+    for (i = 0; i < npcs.length; i++) {
+      items.push({ z: npcs[i].x + npcs[i].y, kind: 'npc', o: npcs[i],
+        near: Math.hypot(npcs[i].x - run.player.x, npcs[i].y - run.player.y) < NEAR });
+    }
+    for (i = 0; i < marks.length; i++) {
+      items.push({ z: marks[i].x + marks[i].y, kind: 'mark', o: marks[i],
+        near: Math.hypot(marks[i].x - run.player.x, marks[i].y - run.player.y) < NEAR });
+    }
     items.push({ z: run.player.x + run.player.y, kind: 'player', o: run.player });
 
     items.sort(function (a, b) { return a.z - b.z; });
@@ -800,6 +852,8 @@
       else if (it.kind === 'pillar') { drawPillar(m, it.o, theme, wh); }
       else if (it.kind === 'thing') { drawThing(m, it.o, it.icon, now); }
       else if (it.kind === 'foe') { drawFoe(m, it.o, now, bars); }
+      else if (it.kind === 'npc') { drawNpc(m, it.o, now, plates, it.near); }
+      else if (it.kind === 'mark') { drawMark(m, it.o, now, plates, it.near); }
       else { drawPlayer(m, run, now); }
     }
 
@@ -955,6 +1009,64 @@
     ctx.font = Math.round(22 * m.s + 8) + 'px "Malgun Gothic", system-ui';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(icon, p.x, p.y - 12 * m.s + Math.sin(now / 500) * 2);
+  }
+
+  /**
+   * 마을 사람 하나 — **플레이어와 같은 붓**(sprite.stamp)으로 그린다.
+   * 다른 붓을 쓰면 마을에서만 사람이 다르게 생겨서 곧바로 눈에 걸린다.
+   * 이름표는 여기서 바로 그리지 않고 plates 에 얹는다 — 조명 뒤에 그려야
+   * 어둠에 먹히지 않는다(바닥에 떨어진 물건 이름과 같은 처리다).
+   */
+  function drawNpc(m, o, now, plates, near) {
+    var p = proj(m, o.x, o.y);
+    var sf = m.s * 1.12;
+    var z = Math.max(0.7, m.s);
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    isoEllipse(ctx, m, o.x, o.y, 12);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.restore();
+    global.DG.sprite.stamp(ctx, {
+      kind: 'human', ref: o.ref,
+      x: p.x, y: p.y, s: 0.86 * sf, facing: o.facing,
+      phase: o.phase, walking: false,
+      color: o.color, look: global.DG.sprite.lookOf(o.ref), t: now
+    });
+    /* 멀면 **무슨 일을 하는 사람인지**만(그림 하나), 다가서면 이름까지.
+       아홉을 다 이름으로 띄우면 폰에서 글자가 겹쳐 죄다 못 읽는다. */
+    plates.push({ x: p.x, y: p.y - 44 * z,
+      text: near ? (o.emoji + ' ' + o.name) : o.emoji, color: '#e6d3a6' });
+  }
+
+  /**
+   * 표식 하나 — 사람이 아니라 **밟는 자리**다. 굴혈 입구 · 역참 돌 · 결사비.
+   * 발밑 고리가 숨 쉬듯 늘었다 줄어든다 — 원작의 웨이포인트가 그렇게 뛴다.
+   * 이 고리가 없으면 바닥에 이모지 하나 놓인 것으로만 보여서 밟을 것인 줄 모른다.
+   */
+  function drawMark(m, o, now, plates, near) {
+    var p = proj(m, o.x, o.y);
+    var z = Math.max(0.7, m.s);
+    var puls = 0.5 + Math.sin(now / 420) * 0.5;
+    ctx.save();
+    ctx.beginPath();
+    isoEllipse(ctx, m, o.x, o.y, 15);
+    ctx.fillStyle = 'rgba(0,0,0,0.42)';
+    ctx.fill();
+    ctx.beginPath();
+    isoEllipse(ctx, m, o.x, o.y, 26 + puls * 5);
+    ctx.strokeStyle = 'rgba(245,180,69,' + (0.18 + puls * 0.24).toFixed(3) + ')';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+    ctx.font = Math.round(23 * m.s + 9) + 'px "Malgun Gothic", system-ui';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(o.emoji, p.x, p.y - 13 * m.s + Math.sin(now / 500) * 2);
+    /* 표식은 바닥에 큰 그림이 이미 있다 — 멀면 이름표를 걸지 않는다 */
+    if (near) {
+      plates.push({ x: p.x, y: p.y - 38 * z, text: o.name, color: '#f5b445' });
+    }
   }
 
   /** 벽에 걸린 횃불 하나 — 받침과 흔들리는 불꽃 */
@@ -1128,6 +1240,15 @@
       ctx.strokeStyle = 'rgba(240,180,90,0.55)';
       ctx.lineWidth = 2; ctx.stroke();
     }
+    /* 마을에서는 **내가 누구인지**가 안 보인다 — 서 있는 사람이 아홉이고
+       다 같은 붓으로 그려지기 때문이다. 발밑 금빛 고리 하나로 가른다.
+       던전에서는 필요 없다(거기 서 있는 사람은 나 하나다). */
+    if (run.town) {
+      ctx.beginPath();
+      isoEllipse(ctx, m, pl.x, pl.y, 19);
+      ctx.strokeStyle = 'rgba(245,180,69,0.60)';
+      ctx.lineWidth = 2; ctx.stroke();
+    }
 
     ctx.save();
     if (pl.hurt > 0) { ctx.globalAlpha = 0.6; }
@@ -1152,13 +1273,21 @@
   function drawLights(m, run, theme, now) {
     var c = lightCtx;
     c.clearRect(0, 0, m.cw, m.ch);
-    /* 원작의 던전은 등불 반경 밖이 거의 검다 — 그 어둠이 "내려간다" 는 감각을 만든다 */
-    c.fillStyle = 'rgba(2,2,4,0.74)';
+    /* 원작의 던전은 등불 반경 밖이 거의 검다 — 그 어둠이 "내려간다" 는 감각을 만든다.
+       **마을은 그 반대다.** 불을 피워 두고 사람이 사는 자리라 훤하다 —
+       던전과 같은 어둠을 씌우면 여섯 사람이 죄다 그림자에 잠겨 누가 누군지 안 보인다. */
+    c.fillStyle = run.town ? 'rgba(3,3,6,0.30)' : 'rgba(2,2,4,0.74)';
     c.fillRect(0, 0, m.cw, m.ch);
     c.globalCompositeOperation = 'destination-out';
 
     /* 플레이어 빛 */
-    hole(c, m, run.player.x, run.player.y, 178, 1);
+    hole(c, m, run.player.x, run.player.y, run.town ? 300 : 178, 1);
+
+    /* 마을 표식 빛 — 밟을 자리는 멀리서도 보여야 간다 */
+    var mks = run.room.marks || [];
+    for (var mi = 0; mi < mks.length; mi++) {
+      hole(c, m, mks[mi].x, mks[mi].y, 76, 0.8);
+    }
 
     /* 횃불 빛 (일렁인다) */
     var dec = run.room.decor || [];
@@ -1183,6 +1312,9 @@
        구멍만 뚫린 회색 무대가 된다. */
     c.globalCompositeOperation = 'lighter';
     glow(c, m, run.player.x, run.player.y, 170, 'rgba(255,186,112,0.085)');
+    for (mi = 0; mi < mks.length; mi++) {
+      glow(c, m, mks[mi].x, mks[mi].y, 80, 'rgba(255,196,96,0.10)');
+    }
     for (i = 0; i < dec.length; i++) {
       if (dec[i].t !== 'torch') { continue; }
       var fw = 0.16 + Math.sin(now / 140 + dec[i].seed) * 0.05;
@@ -1361,7 +1493,13 @@
     build();
     hide();
     global.addEventListener('resize', function () { if (shown) { resize(); } });
-    core.on('dungeon:end', function () { hide(); });
+    /* 던전이 끝나면 화면을 내렸었다. 이제는 **마을이 그 자리를 받는다** —
+       update() 가 d().active() 로 알아서 갈아 끼우므로, 마을이 없을 때만 내린다.
+       여기서 무조건 hide 하면 던전에서 나온 순간 한 틱 검게 깜빡인다. */
+    core.on('dungeon:end', function () {
+      var T = global.DG.town;
+      if (!T || !T.active()) { hide(); }
+    });
   }
 
   global.DG = global.DG || {};

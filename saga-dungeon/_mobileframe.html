@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>사가블로 — 폰 화면 확인용</title>
+<style>
+  html,body{margin:0;background:#2a2d34;height:100%;font:13px "Malgun Gothic",system-ui;color:#eee}
+  body{display:grid;place-items:center}
+  iframe{width:390px;height:844px;border:0;background:#12141a;box-shadow:0 0 0 2px #555}
+  #probe{position:fixed;left:8px;top:8px;white-space:pre;font-family:Consolas,monospace;font-size:12px}
+</style></head><body>
+<div id="probe"></div>
+<script>
+/* 폰 폭(390px)을 헤드리스에서 그대로 보기 위한 확인용 껍데기.
+   **헤드리스 크롬은 --window-size 를 500px 아래로 못 내린다** — 그래서 폰 폭으로
+   찍으면 오른쪽이 잘려 CSS 가 깨진 것처럼 보인다. iframe 안쪽 뷰포트로 진짜
+   390px 을 만들면 그 착각 없이 볼 수 있다. (사가의숲 _mobileframe.html 과 같은 꼴)
+
+   그냥 열면   마을을 폰 폭으로 본다 (가입 화면은 건너뛴다)
+   ?fresh      가입 화면부터 본다
+   #party …    그 시트를 열어 둔 채 찍는다
+   #probe      폭 넘침 · 마을 닿음이 실제로 도는지 재서 적는다 (--dump-dom 으로 읽는다)
+*/
+(function () {
+  var BASE = 'yeoksa-dungeon/save';          // 폴더 이름과 다르다 — 바꾸면 진행이 사라진다
+  var W = 390;
+
+  if (location.search.indexOf('fresh') < 0) {
+    try {
+      var raw = localStorage.getItem(BASE + '/accounts');
+      var o = raw ? JSON.parse(raw) : null;
+      if (!o || !o.list || !o.list.length) {
+        localStorage.setItem(BASE + '/accounts',
+          JSON.stringify({ list: [{ id: 'pmobile', name: '확인용', at: 1, lastSeen: 1 }], cur: 'pmobile' }));
+      }
+    } catch (e) {}
+  }
+
+  var f = document.createElement('iframe');
+  f.src = 'index.html' + (location.hash === '#probe' ? '' : location.hash);
+  document.body.appendChild(f);
+
+  /* #party · #gear … 를 부으면 그 시트를 열어 둔 채 찍는다 */
+  var SHEETS = ['party', 'gear', 'skill', 'craft', 'vendor', 'dex', 'log'];
+  var want = location.hash.replace('#', '');
+  if (SHEETS.indexOf(want) >= 0) {
+    setTimeout(function () {
+      try {
+        var b = f.contentDocument.querySelector('#dock [data-sheet="' + want + '"]');
+        if (b) { b.click(); }
+      } catch (e) {}
+    }, 3200);
+    return;
+  }
+
+  /* #dungeon — 던전 화면을 폰 폭으로 본다(조작판이 한 줄에 들어오는지) */
+  if (location.hash === '#dungeon') {
+    setTimeout(function () {
+      try {
+        var w = f.contentWindow;
+        w.DG.ui.closeSheet();
+        w.DG.dungeon.enter({ floor: 1 });
+      } catch (e) {}
+    }, 3400);
+    return;
+  }
+
+  if (location.hash !== '#probe') { return; }
+
+  var out = document.getElementById('probe');
+  function say(s) { out.textContent += s + '\n'; }
+
+  setTimeout(function () {
+    var w = f.contentWindow, d = f.contentDocument;
+    var T = w.DG && w.DG.town;
+    if (!T) { say('PROBE FAIL: 게임이 켜지지 않았다'); return; }
+    say('마을 켜짐 ' + (T.active() ? 'O' : 'X'));
+
+    /* 1) 폭 넘침 — 폰 폭에서 화면 밖으로 나간 것이 있나.
+          잘려 보이는 것과 **실제로 넘친 것**은 다르다. right 를 직접 잰다. */
+    var over = [];
+    d.querySelectorAll('*').forEach(function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.right > W + 1 && r.width > 0) {
+        over.push((el.id || el.className || el.tagName) + '@' + Math.round(r.right));
+      }
+    });
+    say('scrollW ' + d.documentElement.scrollWidth);
+    say('넘침[' + over.length + '] ' + over.slice(0, 12).join(' | '));
+
+    /* 2) 닿음이 실제로 도는가 — 사람 하나에게 옮겨 놓고 한 틱 굴려 본다.
+          움직인 거리로 재지 않는다(헤드리스 가상시간은 돌릴 때마다 다르게 흐른다).
+          **이벤트가 몇 번 울렸는지**를 본다. 그러면 세 번 돌려 같은 값이 난다. */
+    var hits = [];
+    w.DG.core.on('town:npc', function (o) { hits.push(o.key); });
+    var smith = null;
+    T.raw().room.npcs.forEach(function (o) { if (o.key === 'smith') { smith = o; } });
+    T._put(smith.x, smith.y);
+    T.update(0.05);
+    T.update(0.05);
+    say('야장에게 다가섬 → town:npc ' + hits.length + '번 (' + hits.join(',') + ')');
+    var sheetOpen = d.body.classList.contains('sheet-open');
+    say('시트 열림 ' + (sheetOpen ? 'O' : 'X') +
+        ' · 조작판 숨음 ' + (d.body.classList.contains('town-open') ? 'O' : 'X'));
+
+    /* 3) 하단 독이 폰 폭에 다 들어오나 — 일곱 칸이다 */
+    var btns = d.querySelectorAll('#dock button');
+    var last = btns.length ? btns[btns.length - 1].getBoundingClientRect() : null;
+    say('독 ' + btns.length + '칸 · 오른쪽 끝 ' + (last ? Math.round(last.right) : '?'));
+
+    /* 4) 던전 조작판 — 마을과 **다른 화면**이다. 구슬 둘과 무예 넷이 한 줄에
+          다 들어오는지는 실제로 들어가 봐야 안다(여기서 기력 구슬이 화면 밖이었다). */
+    d.body.classList.remove('sheet-open');
+    w.DG.ui.closeSheet();
+    w.DG.dungeon.enter({ floor: 1 });
+    setTimeout(function () {
+      var over2 = [];
+      d.querySelectorAll('#dungeon *').forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.right > W + 1 && r.width > 0) {
+          over2.push((el.id || el.className || el.tagName) + '@' + Math.round(r.right));
+        }
+      });
+      var gl = d.querySelectorAll('.d2-globe');
+      var mana = gl.length > 1 ? gl[1].getBoundingClientRect() : null;
+      say('던전 넘침[' + over2.length + '] ' + over2.slice(0, 10).join(' | '));
+      say('기력 구슬 오른쪽 끝 ' + (mana ? Math.round(mana.right) : '?'));
+      document.title = 'PROBE ' + out.textContent.replace(/\n/g, ' ;; ');
+    }, 1500);
+  }, 4200);
+})();
+</script>
+</body></html>

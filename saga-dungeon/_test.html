@@ -79,6 +79,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 <script src="js/hero.js"></script>
 <script src="js/skill.js"></script>
 <script src="js/dungeon.js"></script>
+<script src="js/town.js"></script>
 <script src="js/dungeon-view.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
@@ -2117,9 +2118,134 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         ' · 사냥 ' + C.fmt(DN.state().kills || 0));
     });
 
+    /* ── 마을(村) ──────────────────────────────────────
+     * 2026-08-26. 첫 화면이 **카드 한 장**이던 것을 걸어다니는 마을로 바꿨다.
+     * 마을에는 판정이 없다. 그 대신 던전과 **같은 모양의 상태**를 내놓기로
+     * 약속했고, 화면(dungeon-view.js)은 그 약속만 믿고 그린다 — 약속이 깨지면
+     * 화면이 예외 하나 없이 조용히 빈 판을 그린다. 그래서 약속 자체를 검사한다.
+     */
+
+    t('마을이 켜지고 사람 여섯 · 표식 셋이 선다', function () {
+      if (DN.active()) { DN.leave(); }
+      var T = DG.town;
+      T._reset();
+      T.enter();
+      var raw = T.raw();
+      if (!raw) { return false; }
+      return T.active() && raw.room.npcs.length === 6 && raw.room.marks.length === 3 &&
+        ('사람 ' + raw.room.npcs.length + ' · 표식 ' + raw.room.marks.length);
+    });
+
+    t('마을 상태가 던전과 같은 모양이다 (화면이 요구하는 것이 다 있다)', function () {
+      var raw = DG.town.raw(), st = DG.town.status(), miss = [];
+      ['room', 'player', 'shots', 'floor', 'theme'].forEach(function (k) {
+        if (raw[k] === undefined) { miss.push('raw.' + k); }
+      });
+      ['active', 'hp', 'hpMax', 'mp', 'mpMax', 'skills', 'loot', 'boons', 'theme', 'best']
+        .forEach(function (k) { if (st[k] === undefined) { miss.push('status.' + k); } });
+      ['enemies', 'drops', 'doors', 'decor'].forEach(function (k) {
+        if (!Array.isArray(raw.room[k])) { miss.push('room.' + k); }
+      });
+      if (st.skills.length !== 4) { miss.push('무예 칸이 ' + st.skills.length); }
+      if (raw.room.enemies.length) { miss.push('마을에 적이 있다'); }
+      return miss.length === 0 && ('빠진 것 없음 · 무예 칸 4 · 적 0');
+    });
+
+    t('마을 사람과 표식이 모두 통행 영역 안에 있다', function () {
+      var T = DG.town, raw = T.raw(), outs = [];
+      var lo = T.WALL + T.P_R;
+      var hiX = T.ROOM_W - T.WALL - T.P_R, hiY = T.ROOM_H - T.WALL - T.P_R;
+      raw.room.npcs.concat(raw.room.marks).forEach(function (o) {
+        if (o.x < lo || o.x > hiX || o.y < lo || o.y > hiY) { outs.push(o.key); }
+      });
+      return outs.length === 0 && ('아홉 자리 모두 벽 안쪽');
+    });
+
+    t('한 자리에서 둘이 동시에 걸리지 않는다', function () {
+      var T = DG.town, raw = T.raw();
+      var all = raw.room.npcs.concat(raw.room.marks), i, j, close = [], min = 1e9;
+      for (i = 0; i < all.length; i++) {
+        for (j = i + 1; j < all.length; j++) {
+          var dd = Math.hypot(all[i].x - all[j].x, all[i].y - all[j].y);
+          if (dd < min) { min = dd; }
+          if (dd < T.TALK_R * 2) { close.push(all[i].key + '/' + all[j].key); }
+        }
+      }
+      return close.length === 0 &&
+        ('가장 가까운 둘도 ' + Math.round(min) + ' (문턱 ' + (T.TALK_R * 2) + ') 떨어짐');
+    });
+
+    t('다가서면 말이 걸리고, 벗어나야 다시 걸린다', function () {
+      var T = DG.town, hits = [];
+      C.on('town:npc', function (o) { hits.push(o.key); });
+      var smith = null;
+      T.raw().room.npcs.forEach(function (o) { if (o.key === 'smith') { smith = o; } });
+      T._put(smith.x, smith.y);
+      T.update(0.05);
+      T.update(0.05);                 // 붙어 있는 동안에는 다시 걸리지 않는다
+      var once = hits.length;
+      T._put(60, 420);                // 멀리 물러난다
+      T.update(0.05);
+      T._put(smith.x, smith.y);       // 다시 다가선다
+      T.update(0.05);
+      DG.ui.closeSheet();
+      return once === 1 && hits.length === 2 &&
+        ('붙어 있는 동안 1번 · 벗어나 다시 오면 2번');
+    });
+
+    t('역참 창은 밟아 둔 층만 내놓는다', function () {
+      var T = DG.town, wpMark = null, f;
+      if (!T.active()) { T.enter(); }
+      T.raw().room.marks.forEach(function (o) { if (o.key === 'waypoint') { wpMark = o; } });
+      T._put(wpMark.x, wpMark.y);
+      T.update(0.05);
+      var html = document.getElementById('encounter').innerHTML;
+      var every = DN.WAYPOINT_EVERY, deep = DN.waypoint(), want = [];
+      for (f = every; f <= deep; f += every) { want.push('data-floor="' + f + '"'); }
+      var miss = want.filter(function (w) { return html.indexOf(w) < 0; });
+      /* 밟지 않은 **다음** 역참은 없어야 한다 — 가 보지 않은 데로 뛰는 것은 원작에 없다 */
+      var over = html.indexOf('data-floor="' + (deep + every) + '"') >= 0;
+      return !miss.length && !over && html.indexOf('역참') >= 0 &&
+        ('밟은 ' + want.length + '곳만 (가장 깊은 역참 제' + deep + '층)');
+    });
+
+    t('굴혈에 닿으면 마을이 꺼지고 제1층이 열린다', function () {
+      var T = DG.town, gate = null;
+      document.getElementById('encounter').innerHTML = '';
+      if (!T.active()) { T.enter(); }
+      T.raw().room.marks.forEach(function (o) { if (o.key === 'gate') { gate = o; } });
+      T._put(gate.x, gate.y);
+      T.update(0.05);
+      var st = DN.status();
+      return DN.active() && !T.active() && st.floor === 1 &&
+        ('제' + st.floor + '층 · 마을 꺼짐');
+    });
+
+    t('던전에서 나오면 마을로 돌아오고, 굴혈에 다시 빨려들지 않는다', function () {
+      DN.leave();
+      var T = DG.town;
+      if (!T.active()) { return false; }
+      /* 나온 자리가 굴혈 앞이라 한 걸음이면 다시 들어간다. 그래서 나올 때
+         **그 표식만 잠가 둔다**(town.js enter 의 armed). 잠기지 않으면 나오는
+         순간 다시 들어가서 던전을 벗어날 길이 없다 — 실제로 그렇게 만들었다가 고쳤다. */
+      T.update(0.05);
+      T.update(0.05);
+      return !DN.active() && T.active() &&
+        ('마을 복귀 · 다시 빨려들지 않음');
+    });
+
+    t('던전에 들어가면 마을은 반드시 꺼진다 (장면은 하나만)', function () {
+      var T = DG.town;
+      if (!T.active()) { T.enter(); }
+      DN.enter({ floor: 1 });          // 마을을 끄지 않고 곧바로 부른다
+      var ok = DN.active() && !T.active();
+      DN.leave();
+      return ok && ('enter 한 번으로 마을이 꺼진다');
+    });
+
     /* ── 화면 ─────────────────────────────────────────── */
 
-    t('본영·시트 5개가 예외 없이 그려진다', function () {
+    t('마을·시트 5개가 예외 없이 그려진다', function () {
       DG.ui.renderHud();
       /* 세공(craft)도 함께 연다 — 2026-08-26 에 주옥 칸이 붙은 자리다 */
       var bad = [], tabs = ['party', 'gear', 'craft', 'dex', 'log'];
@@ -2129,9 +2255,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         if (!html || html.length < 20) { bad.push(tabs[i]); }
       }
       DG.ui.closeSheet();
+      /* 본영 카드는 없앴다 — 마을이 그 자리다. #camp 는 **비어 있어야** 한다.
+         카드가 되살아나면 마을 위에 두 겹으로 뜨고, 층을 고르는 길이 둘이 된다. */
       var camp = document.getElementById('camp').innerHTML;
-      return bad.length === 0 && camp.indexOf('본영') >= 0 &&
-        ('시트 ' + tabs.length + '개 + 본영 렌더');
+      return bad.length === 0 && !camp &&
+        ('시트 ' + tabs.length + '개 · 본영 카드 없음');
     });
 
     t('인물 상세(승급 화면)가 그려진다', function () {

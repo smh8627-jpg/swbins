@@ -81,6 +81,17 @@
       handleAct(b.getAttribute('data-act'), b);
     });
 
+    /* 마을 창(역참·결사비)의 눌림도 시트와 같은 data-act 결을 따른다 */
+    var enc = $('encounter');
+    if (enc) {
+      enc.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-act]');
+        if (!b) { return; }
+        handleAct(b.getAttribute('data-act'), b);
+      });
+    }
+
+    bindTown();
     bindRest();
   }
 
@@ -90,6 +101,25 @@
       var id = b.getAttribute('data-id');
       if (act === 'detail') {
         openDetail(b.getAttribute('data-kind') || 'hero', id);
+        return;
+      }
+      if (act === 'enc-close') { encClose(); return; }
+      if (act === 'town-wp') {
+        var wf = parseInt(b.getAttribute('data-floor'), 10) || 1;
+        encClose();
+        closeSheet();
+        if (global.DG.town) { global.DG.town.leave(); }
+        global.DG.dungeon.enter({ floor: wf });
+        return;
+      }
+      if (act === 'town-mode') {
+        global.DG.dungeon.setMode(b.getAttribute('data-mode'));
+        openWaypoint();
+        return;
+      }
+      if (act === 'town-vow') {
+        global.DG.dungeon.setHardcore();
+        openVow();
         return;
       }
       if (act === 'dg-enter') {
@@ -349,7 +379,9 @@
 
   function renderSheet() {
     if (!openTab) { return; }
-    var v = openTab === 'party' ? viewParty()
+    /* 자동 순행은 본영 카드에 있었다. 카드를 없애면서 **군교**에게 옮겼다 —
+       부대를 맡기는 일이니 부대 시트가 그 자리다 */
+    var v = openTab === 'party' ? (viewParty() + sectionAuto())
           : openTab === 'gear' ? (gearSection() || '<div class="hint">장비 모듈이 없습니다</div>')
           : openTab === 'craft' ? viewCraft()
           : openTab === 'vendor' ? viewVendor()
@@ -372,7 +404,7 @@
         '<div class="p-title">' + titleOf(p.featTotal) + ' · Lv.' + p.level + '</div>' +
         '<div class="p-sub">' +
           (st.active ? '⚔️ 제' + st.floor + '층 · 체력 ' + st.hp + '/' + st.hpMax
-                     : '🏯 본영 · 최고 제' + (st.best || 0) + '층') +
+                     : '🏯 마을 · 최고 제' + (st.best || 0) + '층') +
           ' · 동행 <b>' + core.save.party.length + '</b>명</div>' +
       '</div>';
 
@@ -388,85 +420,142 @@
     return '<div class="coin' + (hi ? ' hi' : '') + '" title="' + label + '"><span>' + icon + '</span>' + val + '</div>';
   }
 
-  /* ── 본영(本營) — 첫 화면 ──────────────────────────────
-   * 지도가 없는 게임이라 "여기서 시작한다" 는 자리를 만들어 준다.
-   * 진입 · 부대 요약 · 자동 순회를 한 판에 보여 준다.
+  /* ── 마을 ────────────────────────────────────────────
+   * 예전에는 이 자리에 **본영 카드** 한 장을 그렸다. 층을 버튼으로 고르고
+   * 난도를 버튼으로 골랐다. 그 카드는 지웠다 — 마을(town.js)이 그 자리를
+   * 대신하기 때문이다. 원작에서 바깥은 메뉴가 아니라 **장소**다.
+   *
+   *   고르다 → 가다
+   *   난도 · 밟은 층   →  역참 🌀
+   *   결사(決死)       →  결사비 ☠️
+   *   자동 순행        →  군교(부대 시트 아래)
+   *   진입             →  굴혈 입구 🕳️
+   *
+   * 같은 것을 두 군데 두면 반드시 어긋난다. 그래서 옮기고 지웠다.
    */
-
-  var campKey = null;
   function renderCamp() {
     if (!els.camp) { return; }
-    var D = global.DG.dungeon;
-    var st = D.status();
-    if (st.active) {                       // 던전 화면이 덮는다 — 본영은 숨긴다
-      els.camp.classList.remove('show');
-      campKey = null;
+    els.camp.classList.remove('show');
+    if (els.camp.innerHTML) { els.camp.innerHTML = ''; }
+    /* 마을이 켜진 동안에는 캔버스가 곧 화면이다. 그때 캔버스를 맨 아래로 내리고
+       (상단·독이 그 위에 떠야 볼일을 본다) 조작판을 숨긴다 — 돌리는 것은
+       css 쪽이다(body.town-open). */
+    var T = global.DG.town;
+    document.body.classList.toggle('town-open', !!(T && T.active()));
+  }
+
+  /* ── 마을에서 닿은 것 ──────────────────────────────────
+   * town.js 는 "닿았다" 만 알린다. 그것이 무엇을 뜻하는지는 여기서 정한다 —
+   * 마을은 시트를 모르고, 이 파일은 좌표를 모른다.
+   */
+  function bindTown() {
+    core.on('town:npc', function (o) {
+      toast(o.emoji + ' ' + o.name + ' — ' + o.line);
+      openSheet(o.sheet);
+    });
+    core.on('town:mark', function (o) {
+      if (o.key === 'gate') { enterGate(); }
+      else if (o.key === 'waypoint') { openWaypoint(); }
+      else { openVow(); }
+    });
+    /* 장면이 바뀌는 순간 곧바로 다시 그린다. tickRefresh(0.3초)를 기다리면
+       조작판이 숨은 채로 던전이 시작해서 눈에 띈다. */
+    core.on('town:enter', renderCamp);
+    core.on('dungeon:enter', renderCamp);
+    core.on('dungeon:end', renderCamp);
+  }
+
+  /**
+   * 굴혈(窟穴) 입구 — 원작의 던전 입구다. **고르는 창이 없다.**
+   * 밟으면 제1층부터 내려간다 — 깊은 데로 뛰어넘는 것은 역참의 일이다.
+   */
+  function enterGate() {
+    var D = global.DG.dungeon, T = global.DG.town;
+    if (D.fallen()) {
+      toast('☠️ 결사로 스러진 판입니다 — 상단 👤 에서 새 이름으로');
       return;
     }
-    var pw = hero().partyPower();
-    var key = [st.best, st.runs, st.deaths, core.save.party.length, pw.total,
-               global.DG.auto.active(), global.DG.auto.status().doing].join('|');
-    if (key === campKey) { els.camp.classList.add('show'); return; }
-    campKey = key;
-
-    var best = st.best || 0;
-    var half = Math.max(1, Math.floor(best / 2));
-    var html = '<div class="camp-card">' +
-      '<div class="camp-head"><b>🏯 본영</b>' +
-        '<span class="muted">최고 제' + best + '층 · 탐험 ' + (st.runs || 0) +
-        ' · 패퇴 ' + (st.deaths || 0) + '</span></div>';
-
     if (!core.save.party.length) {
-      html += '<div class="hint">동행이 없습니다. 📖 도감에서 인물을 골라 <b>동행에 넣기</b>를 하세요.</div>';
-    } else {
-      html += '<div class="stat-row"><span>부대 전투력</span>' +
-        '<b>공 ' + core.fmt(pw.atk) + ' · 방 ' + core.fmt(pw.def) + '</b></div>';
+      toast('⚠️ 부대가 없습니다 — 군교 ⚔️ 에게 먼저 가세요');
+      return;
     }
+    encClose();
+    closeSheet();
+    if (T) { T.leave(); }
+    D.enter({ floor: 1 });
+  }
 
-    /* 난도 — 원작의 노멀·나이트메어·헬. 최고 층으로 열린다 */
-    var D2 = global.DG.dungeon;
-    var open = D2.modesOpen(), cur = D2.mode();
-    html += '<div class="stat-row"><span>난도</span><b>' + esc(cur.name) + '</b></div>';
-    html += '<div class="bagtools">';
-    for (var mi = 0; mi < D2.MODES.length; mi++) {
-      var md = D2.MODES[mi];
+  /**
+   * 역참(驛站) — 원작의 웨이포인트. 밟으면 **밟아 둔 곳**이 목록으로 뜬다.
+   * 가 보지 않은 층은 뜨지 않는다 — 그게 웨이포인트의 전부다.
+   * 난도도 여기서 고른다(예전에는 본영 카드에 있었다).
+   */
+  function openWaypoint() {
+    var D = global.DG.dungeon;
+    var wp = D.waypoint(), every = D.WAYPOINT_EVERY;
+    var open = D.modesOpen(), cur = D.mode(), mi, f;
+    var html = '<div class="enc-card">' +
+      '<h3 style="margin:0 0 4px;font-size:18px">🌀 역참(驛站)</h3>' +
+      '<small class="muted">' + every + '층마다 밟습니다. 밟아 둔 곳으로 곧장 갑니다.</small>' +
+      '<div class="sec"><h4>난도</h4><div class="bagtools">';
+    for (mi = 0; mi < D.MODES.length; mi++) {
+      var md = D.MODES[mi];
       var opened = open.indexOf(md) >= 0;
-      html += '<button class="btn tiny ' + (cur.key === md.key ? 'primary' : (opened ? '' : 'ghost')) +
-        '"' + (opened ? '' : ' disabled') + ' data-act="dg-mode" data-mode="' + md.key + '"' +
-        ' title="' + esc(md.desc) + '">' +
-        esc(md.name) + (opened ? '' : ' 🔒 제' + md.need + '층') + '</button>';
+      html += '<button class="btn tiny ' +
+        (cur.key === md.key ? 'primary' : (opened ? '' : 'ghost')) + '"' +
+        (opened ? '' : ' disabled') +
+        ' data-act="town-mode" data-mode="' + md.key + '"' +
+        ' title="' + esc(md.desc) + '">' + esc(md.name) +
+        (opened ? '' : ' 🔒 제' + md.need + '층') + '</button>';
     }
-    html += '</div>';
-    html += '<small class="muted">' + esc(cur.desc) + '</small>';
-
-    html += '<button class="btn primary wide" data-act="dg-enter" data-floor="1">' +
-      '🕳️ 제1층부터 내려간다</button>';
-    /* 역참(驛站) — 원작의 웨이포인트. **밟은 곳**에서 시작한다.
-       "최고의 절반" 은 밟지 않아도 열리던 자리라, 원작 쪽으로 옮겼다 */
-    var wp = global.DG.dungeon.waypoint();
-    if (wp >= DG.dungeon.WAYPOINT_EVERY) {
-      html += '<button class="btn wide" data-act="dg-enter" data-floor="' + wp + '">' +
-        '🪜 제' + wp + '층 역참부터</button>';
-    } else if (best >= 2) {
-      html += '<small class="muted">역참은 <b>' + DG.dungeon.WAYPOINT_EVERY +
-        '층마다</b> 밟습니다 — 밟아 두면 다음부터 거기서 시작합니다.</small>';
-    }
-
-    /* 결사(決死) — 원작의 하드코어. 켜면 못 끈다 */
-    if (global.DG.dungeon.fallen()) {
-      html += '<div class="hint warn">☠️ <b>결사로 스러진 판입니다.</b> ' +
-        '더 내려갈 수 없습니다 — 상단 👤 에서 새 이름으로 시작하세요.</div>';
-    } else if (!global.DG.dungeon.hardcore()) {
-      html += '<button class="btn wide ghost" data-act="dg-hardcore">' +
-        '☠️ 결사(決死)로 바꾼다 — 쓰러지면 이 판이 끝난다</button>';
+    html += '</div><small class="muted">' + esc(cur.desc) + '</small></div>' +
+      '<div class="sec"><h4>어디로</h4>';
+    if (wp >= every) {
+      for (f = every; f <= wp; f += every) {
+        html += '<button class="btn wide" data-act="town-wp" data-floor="' + f + '">' +
+          '🪜 제' + f + '층으로</button>';
+      }
     } else {
-      html += '<div class="hint">☠️ <b>결사(決死)</b> — 쓰러지면 이 판이 끝납니다.</div>';
+      html += '<div class="hint">아직 밟은 역참이 없습니다 — <b>제' + every +
+        '층</b>에 닿으면 여기 뜹니다. 굴혈 🕳️ 로 들어가서 밟으십시오.</div>';
     }
-    html += '<div class="camp-auto">' + sectionAuto() + '</div>';
-    html += '<small class="muted">체력이 0이 되면 그 회차에 주운 것을 <b>모두 잃습니다</b>. ' +
-      '보스(3층마다)를 잡으면 새 인물이 합류합니다.</small>';
-    els.camp.innerHTML = html + '</div>';
-    els.camp.classList.add('show');
+    html += '</div><button class="btn primary wide" data-act="enc-close">닫는다</button></div>';
+    encOpen(html);
+  }
+
+  /** 결사비(決死碑) — 원작의 하드코어. 켜면 못 끈다. 그래서 한 번 묻는다 */
+  function openVow() {
+    var D = global.DG.dungeon;
+    var html = '<div class="enc-card">' +
+      '<h3 style="margin:0 0 4px;font-size:18px">☠️ 결사비(決死碑)</h3>';
+    if (D.fallen()) {
+      html += '<div class="hint warn">이 판은 <b>결사로 스러졌습니다.</b> ' +
+        '더 내려갈 수 없습니다 — 상단 👤 에서 새 이름으로 시작하세요.</div>';
+    } else if (D.hardcore()) {
+      html += '<div class="hint">이미 <b>결사(決死)</b> 입니다. 쓰러지면 이 판이 끝납니다.</div>';
+    } else {
+      html += '<small class="muted">비석에 이름을 새기면 <b>되돌릴 수 없습니다.</b> ' +
+        '쓰러지는 순간 이 판이 끝납니다 — 그 대신 무엇도 더 드리지 않습니다. ' +
+        '원작의 하드코어가 정확히 그러합니다.</small>' +
+        '<button class="btn wide ghost" data-act="town-vow">☠️ 이름을 새긴다</button>';
+    }
+    html += '<button class="btn primary wide" data-act="enc-close">물러난다</button></div>';
+    encOpen(html);
+  }
+
+  /** 마을 창 한 장 — #encounter 를 쓴다 (도움말 창과 같은 자리) */
+  function encOpen(html) {
+    var el = $('encounter');
+    if (!el) { return; }
+    el.innerHTML = html;
+    el.classList.add('show');
+  }
+
+  function encClose() {
+    var el = $('encounter');
+    if (!el) { return; }
+    el.classList.remove('show');
+    el.innerHTML = '';
   }
 
   /* ── 부대 ─────────────────────────────────────────────── */

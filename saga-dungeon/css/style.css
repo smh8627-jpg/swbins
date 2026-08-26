@@ -1,4 +1,4 @@
-/* 역사GO — UI
+/* 사가GO — UI
    지도를 전체화면에 깔고, 그 위에 유리(glass) 패널을 띄우는 구성. */
 
 :root {
@@ -463,6 +463,31 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   #widgets { width: calc(100% - 96px); max-width: 236px; }
   #dock { flex-direction: row; }
   #dock button { width: 52px; height: 52px; border-radius: 17px; }
+
+  /* 상단이 폰 폭을 넘어가던 자리 — 마지막 도구(↺ 처음부터)가 화면 밖이었다.
+     까닭은 `auto 1fr auto` 였다. 프로필도 도구줄도 auto 라 **둘 다 제 콘텐츠
+     폭을 지키려 하고**, 프로필 글이 길어지면(제후 · Lv.16 · 최고 제24층 ·
+     동행 4명) 도구줄이 그만큼 오른쪽으로 밀려난다.
+     한 줄에 프로필과 도구 여섯을 같이 넣으려다 프로필이 129px 로 눌려
+     이름이 잘렸다(「유사…」). 폰에서는 **세 줄로 편다** — 세로는 남는다.
+     아이소메트릭 마름모는 가로세로 1.83:1 이라 폰 세로 화면에서 늘 위아래가
+     비기 때문이다. 던전에서는 #dungeon 이 이 상단을 통째로 덮으므로 손해가 없다.
+     (390px 실측: 넘침 3개 → 0개) */
+  #top {
+    grid-template-columns: 1fr;
+    grid-template-areas: "profile" "tools" "wallet";
+    gap: 7px;
+  }
+  .profile { min-width: 0; overflow: hidden; }
+  .p-title, .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tools { gap: 6px; justify-content: flex-end; }
+  .icon-btn { width: 36px; height: 36px; font-size: 15px; }
+
+  /* 토스트가 top:84px 라 폰에서는 **지갑 줄 위에 겹쳐** 둘 다 못 읽혔다.
+     좁은 화면은 상단이 두 줄(프로필·도구 / 지갑)이므로 그 아래로 내린다.
+     자동 순행 띠는 한 칸 더 아래 — 둘이 같이 뜨는 때가 있다. */
+  #toast { top: 168px; }
+  #autobar { top: calc(212px + var(--safe-t)); }
   #near { bottom: calc(84px + var(--safe-b)); }
   .wallet { flex-wrap: wrap; }
 }
@@ -863,7 +888,7 @@ body.dungeon-open { overflow: hidden; }
   .modeswitch { flex-direction: column; }
 }
 
-/* ══ 역사GO v1.0 — 고딕 던전 · 오브 HUD · 서당 · 3D ═══════════════ */
+/* ══ 사가GO v1.0 — 고딕 던전 · 오브 HUD · 서당 · 3D ═══════════════ */
 
 /* ── 3D 모드 — 지평선 안개를 더 깊게 (포켓몬GO식 카메라) ── */
 body.tilted3 #vignette {
@@ -1133,3 +1158,36 @@ body.tilted3 #vignette {
 .pr-meta { display: flex; flex-direction: column; gap: 1px; flex: 1 1 auto; min-width: 0; }
 .pr-meta b { font-size: 13px; }
 .pr-meta small { font-size: 10.5px; }
+
+/* ══ 마을(村) ═══════════════════════════════════════════════════
+ * 마을은 던전과 **같은 화면**(#dungeon)을 쓴다. 그림·조작·조명을 두 벌 만들
+ * 이유가 없다. 다만 마을은 내려가는 곳이 아니라 **사는 곳**이라 셋이 다르다.
+ *
+ *   1) 캔버스가 맨 아래로 내려간다
+ *      던전에서는 #dungeon 이 z-index 60 으로 전부 덮는다 — 그 화면에서는
+ *      상단도 독도 쓸 일이 없으니 그게 맞다. 마을에서는 정반대다. 볼일이
+ *      상단(프로필·지갑·도구)과 독(부대·장비·…)에 있으므로 캔버스는 배경이 된다.
+ *   2) 조작판(#dg-bottom)을 숨긴다
+ *      마을에서는 구슬이 늘 가득이고 무예를 쓸 일이 없다 — 값이 없는 판이다.
+ *      게다가 폰에서는 조작판과 독이 같은 자리를 두고 싸운다.
+ *   3) 조작 안내(.dg-tip)를 되살린다
+ *      diablo.css 가 그 줄을 조작판 안(.d2-keys)으로 옮겨 감췄는데, 마을에는
+ *      그 판이 없다. 독 위로 한 줄 올린다.
+ */
+body.town-open #dungeon { z-index: 3; }
+/* 넓은 화면에서 독은 **오른쪽에 세로로** 선다. 마름모는 화면 폭까지 꽉 차니
+   그 오른쪽 끝이 독 아래로 들어가 사람이 가렸다. 무대를 그만큼 물린다.
+   좁은 화면은 독이 하단으로 눕고, 그 자리는 metrics() 의 PAD_BOT 이 이미 비운다. */
+@media (min-width: 781px) {
+  body.town-open .dg-stage { right: 84px; }
+}
+body.town-open #dg-bottom { display: none !important; }
+/* 층은 상단 프로필이 이미 말한다("🏯 마을 · 최고 제N층") — 두 번 쓰지 않는다 */
+body.town-open #dg-hud { display: none !important; }
+body.town-open .dg-tip {
+  display: block !important;
+  position: absolute; left: 0; right: 0;
+  bottom: calc(88px + var(--safe-b));
+  padding: 0 14px; pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,.9);
+}
