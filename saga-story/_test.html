@@ -1329,6 +1329,35 @@ window.DG_NO_TUNE = true;
         '진단 우회 동작';
     });
 
+    /* ── 폰 (2026-08-26) ────────────────────────────────── */
+
+    t('화면을 넷으로 나눠 조작을 읽는다 (폰에는 방향키가 없다)', function () {
+      /* 위 45% 는 ↑/점프, 아래는 좌·↓·우 셋이다. **아래 가운데가 ↓ 자리**인데
+         그전에는 좌우뿐이라 폰에서 줄을 타고 내려갈 수도, 앉아 쉴 수도,
+         발판을 빠져나갈 수도 없었다 — 규칙은 다 있는데 손이 닿지 않았다. */
+      DG.sideView.resize();
+      var Z = DG.sideView._zone;
+      var w = window.innerWidth, h = window.innerHeight;
+      var up = Z(w * 0.5, h * 0.2);
+      var lf = Z(w * 0.1, h * 0.8);
+      var dn = Z(w * 0.5, h * 0.8);
+      var rt = Z(w * 0.9, h * 0.8);
+      /* 가운데는 좁아야 한다 — 넓으면 걷다가 잘못 눌린다 */
+      var edgeL = Z(w * 0.30, h * 0.8), edgeR = Z(w * 0.70, h * 0.8);
+      return up === 'up' && lf === 'left' && dn === 'down' && rt === 'right' &&
+        edgeL === 'left' && edgeR === 'right' &&
+        (up + '·' + lf + '·' + dn + '·' + rt);
+    });
+
+    t('손가락 안내는 키보드 기기에서 예전 문구 그대로다', function () {
+      /* 손가락뿐인 기기(hover:none + pointer:coarse)에서만 문구가 바뀐다.
+         **진단은 늘 키보드 기기로 돈다** — 그래서 이 항목이 있어도 출력이 안 흔들린다.
+         (헤드리스 크롬은 hover 가 있는 기기로 잡힌다) */
+      return C.touchOnly() === false && C.actHint() === 'Space' &&
+        C.upHint() === '↑' && C.downHint() === '↓' &&
+        ('키보드 기기 · ' + C.actHint() + ' / ' + C.upHint() + ' / ' + C.downHint());
+    });
+
     /* ── 넷째 사냥터 (2026-08-26) ───────────────────────── */
 
     t('사냥터 넷이 레벨 순으로 계단을 이룬다', function () {

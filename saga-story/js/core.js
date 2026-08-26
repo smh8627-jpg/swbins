@@ -345,6 +345,29 @@
     return h + '시간 ' + (m % 60) + '분';
   }
 
+  /* ── 손가락뿐인 기기인가 ──────────────────────────────────
+   * 폰에는 Space 도 ↑ 도 없다. 그런데 안내는 그것을 누르라고 했다.
+   * 사가의숲에 먼저 둔 것을 **같은 이름으로** 옮겼다.
+   * **키보드가 있는 기기는 예전 문구 그대로다** — 그래서 자가진단 출력도 안 바뀐다
+   * (헤드리스는 hover 가 있는 기기로 잡히므로 늘 키보드 쪽으로 떨어진다).
+   */
+  var TOUCH = null;
+
+  function touchOnly() {
+    if (TOUCH === null) {
+      try {
+        TOUCH = !!(global.matchMedia &&
+                   global.matchMedia('(hover: none) and (pointer: coarse)').matches);
+      } catch (e) { TOUCH = false; }
+    }
+    return TOUCH;
+  }
+
+  /** 누르라고 안내할 것 — 손가락이면 화면의 그 자리를, 아니면 키를 */
+  function actHint() { return touchOnly() ? '✋' : 'Space'; }
+  function upHint() { return touchOnly() ? '화면 위쪽' : '↑'; }
+  function downHint() { return touchOnly() ? '화면 아래 가운데' : '↓'; }
+
   global.DG = global.DG || {};
   global.DG.core = {
     SAVE_BASE: SAVE_BASE,
@@ -358,6 +381,7 @@
     log: pushLog,
     TUNE_KEY: TUNE_KEY, POKE_KEY: POKE_KEY,
     tuned: tuned, tune: tuneAll, setTune: setTune, clearTune: clearTune,
-    hash2: hash2, pick: pick, clamp: clamp, fmt: fmt, fmtTime: fmtTime
+    hash2: hash2, pick: pick, clamp: clamp, fmt: fmt, fmtTime: fmtTime,
+    touchOnly: touchOnly, actHint: actHint, upHint: upHint, downHint: downHint
   };
 })(window);

@@ -369,10 +369,13 @@
     var hint = els.hud.querySelector('.hud-hint');
     if (hint) {
       var msg = '';
-      if (st.climbing) { msg = '↑ ↓ 오르내리기 · Space 손 떼기'; }
+      /* 폰에는 ↑ 도 Space 도 없다 — 손가락뿐인 기기에는 누를 자리를 알려 준다.
+         키보드가 있으면 예전 문구 그대로다(진단 출력도 그래서 안 바뀐다) */
+      var UP = core.upHint(), ACT = core.actHint();
+      if (st.climbing) { msg = UP + ' ' + core.downHint() + ' 오르내리기 · ' + ACT + ' 손 떼기'; }
       else if (st.gate) {
-        msg = st.gate.open ? ('↑ ' + st.gate.name + ' 으로') : ('🔒 ' + st.gate.name + ' — Lv.' + st.gate.need + ' 부터');
-      } else if (st.rope) { msg = '↑ 줄을 탄다'; }
+        msg = st.gate.open ? (UP + ' → ' + st.gate.name) : ('🔒 ' + st.gate.name + ' — Lv.' + st.gate.need + ' 부터');
+      } else if (st.rope) { msg = UP + ' 줄을 탄다'; }
       hint.textContent = msg;
       hint.classList.toggle('show', !!msg);
     }
@@ -424,12 +427,21 @@
     html += viewQuestSection();
 
     html += '<div class="sec"><h4>규칙</h4><div class="rulelist">' +
-      '<div><b>이동</b> ← → · 점프 Space — 발판은 위에서만 밟힙니다</div>' +
-      '<div><b>오르기</b> ↑ 밧줄·사다리 · ↓ 내려가기 · ↓+Space 발판 빠져나가기</div>' +
-      '<div><b>문</b> 사냥터 끝의 빛 앞에서 ↑ — 옆 사냥터로 걸어 넘어갑니다 ' +
-        '(체력·기력·주운 금은 그대로 이어집니다)</div>' +
-      '<div><b>공격</b> 1 평타 · 2 횡소 · 3 기탄 · 4 기합. 기력을 씁니다</div>' +
-      '<div><b>탕약</b> Q — 체력 45% 회복. 잡을 때 가끔 떨어집니다</div>' +
+      (core.touchOnly()
+        ? ('<div><b>손가락으로</b> 화면 <b>아래 좌우</b>를 눌러 걷고, 누른 채 끌면 ' +
+             '그쪽으로 계속 걷습니다</div>' +
+           '<div><b>위쪽</b>을 누르면 점프 — 밧줄·사다리·문 앞에서는 <b>오르기·들어가기</b>가 ' +
+             '됩니다</div>' +
+           '<div><b>아래 가운데</b>가 ↓ 입니다 — 줄에서 내려가고, 가만히 있으면 앉아 쉬고, ' +
+             '발판을 빠져나갑니다</div>')
+        : ('<div><b>이동</b> ← → · 점프 Space — 발판은 위에서만 밟힙니다</div>' +
+           '<div><b>오르기</b> ↑ 밧줄·사다리 · ↓ 내려가기 · ↓+Space 발판 빠져나가기</div>' +
+           '<div><b>문</b> 사냥터 끝의 빛 앞에서 ↑ — 옆 사냥터로 걸어 넘어갑니다 ' +
+             '(체력·기력·주운 금은 그대로 이어집니다)</div>')) +
+      '<div><b>공격</b> 조작 띠의 단추 ' +
+        (core.touchOnly() ? '을 누릅니다' : '· 키 1~8') + '. 기력을 씁니다</div>' +
+      '<div><b>탕약</b> ' + (core.touchOnly() ? '🧪 단추' : 'Q') +
+        ' — 체력 45% 회복. 잡을 때 가끔 떨어집니다</div>' +
       '<div><b>궁수</b> 활·조총을 든 적은 멀리서 쏘고, 사거리 안에서는 다가오지 ' +
         '않습니다 (❗ 가 뜨면 화살이 옵니다)</div>' +
       '<div><b>쓰러짐</b> 주운 금의 절반만 남습니다 (사냥터는 그대로)</div>' +

@@ -1182,3 +1182,66 @@ body.tilted3 #vignette {
 .hud-sk.potion { border-color: rgba(208,89,107,.55); }
 .hud-sk.potion small { color: #f0b7bf; }
 .hud-out { margin-left: auto; }
+
+/* ══ 폰 화면 (2026-08-26) ═════════════════════════════════════════
+ * 이 아래는 **좁은 폭에서만** 걸린다. 780px 미디어쿼리가 이미 시트·독을
+ * 하단으로 내려 주지만 상단과 조작 띠는 손대지 않아, 폰(390px)에서 무너졌다 —
+ * 프로필 이름이 한 글자씩 줄바꿈되고, 도구 여섯 중 둘이 화면 밖으로 나가고,
+ * **조작 띠 여덟 칸이 독에 덮여** 아예 누를 수 없었다.
+ * (사가의숲에서 같은 자리를 먼저 밟았다 — 그 커밋과 같은 결로 짰다)
+ */
+@media (max-width: 560px) {
+  /* ── 상단 ─────────────────────────────────────────────────── */
+  #top { gap: 7px; padding: calc(8px + var(--safe-t)) 10px 0; }
+
+  /* 프로필 — 도구가 먹고 남은 폭만 쓴다. 이름은 한 줄로 자른다 */
+  .profile { min-width: 0; max-width: calc(100vw - 196px); padding: 6px 12px 6px 7px; gap: 8px; }
+  .avatar { width: 36px; height: 36px; }
+  .avatar i { font-size: 16px; }
+  .p-meta { min-width: 0; }
+  .p-title { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 사냥터·잡은 수·금·탕약이 다 들어가야 하니 여기만 두 줄을 허락한다 */
+  .p-sub { font-size: 9.5px; white-space: normal; word-break: keep-all; }
+
+  /* 도구 — 셋씩 두 줄로 접는다. 여섯을 한 줄에 두면 ❔·↺ 가 화면 밖이다 */
+  /* 넷씩 두 줄. 셋씩 잡았더니 (가입 단추까지 일곱이라) 세 줄이 되어 화면을 깊이 먹었다 */
+  .tools { flex-wrap: wrap; justify-content: flex-end; max-width: 174px; gap: 6px; }
+  .icon-btn { width: 38px; height: 38px; font-size: 15px; }
+  .icon-btn.txt { font-size: 10.5px; }
+
+  .wallet { flex-wrap: wrap; padding: 4px 6px; }
+  .coin { padding: 3px 7px; font-size: 11px; }
+
+  /* ── 조작 띠 ───────────────────────────────────────────────
+   * 3차 전직으로 칸이 여섯에서 여덟으로 늘었다. 폰에서는 한 줄에 못 들어가므로
+   * **접어서 두 줄**로 두고, 독보다 위로 올린다(같은 높이에 두면 독이 덮는다).
+   */
+  #hud { width: calc(100vw - 16px); bottom: calc(76px + var(--safe-b)); }
+  .hud-card { padding: 7px 8px; border-radius: 15px; }
+  .hud-bars { gap: 3px; margin-bottom: 6px; }
+  .hud-bar { height: 12px; }
+  .hud-skills { flex-wrap: wrap; gap: 5px; justify-content: center; }
+  .hud-sk { width: 40px; height: 40px; border-radius: 12px; }
+  .hud-sk b { font-size: 17px; }
+  .hud-sk small { font-size: 8.5px; right: 3px; }
+  /* '나온다' 는 마지막 줄 오른쪽 끝에 붙인다 — margin-left:auto 가 접힌 줄에서
+     제 몫을 못 해 단추 사이가 벌어졌다 */
+  .hud-out { margin-left: 0; flex: 1 1 100%; text-align: center; }
+
+  /* 독 — 가로로 깔린다(780px 규칙). 폰에서는 한 칸 더 줄여 여섯이 들어가게 */
+  #dock { left: 8px; right: 8px; justify-content: space-between; gap: 4px; }
+  #dock button { width: 47px; height: 47px; border-radius: 15px; flex: 0 0 auto; }
+  #dock button span { font-size: 18px; }
+  #dock button small { font-size: 9px; }
+
+  /* 자동 상태 띠 — 상단이 두 줄이 되었으니 그만큼 내려온다 */
+  #autobar { top: calc(122px + var(--safe-t)); }
+}
+
+/* 손가락에는 :hover 가 없다 — 뜬 채로 굳는 것을 막는다 */
+@media (hover: none) {
+  .icon-btn:hover, #dock button:hover, .hud-sk:hover, .btn:hover:not(:disabled) {
+    transform: none; filter: none;
+  }
+  .icon-btn:hover { background: var(--glass); }
+}

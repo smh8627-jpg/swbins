@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>사가스토리 — 폰 화면 확인용</title>
+<style>
+  html,body{margin:0;background:#2a2d34;height:100%;font:13px "Malgun Gothic",system-ui;color:#eee}
+  body{display:grid;place-items:center}
+  iframe{width:390px;height:844px;border:0;background:#12141a;box-shadow:0 0 0 2px #555}
+  #probe{position:fixed;left:8px;top:8px;white-space:pre;font-family:Consolas,monospace}
+</style></head><body>
+<div id="probe"></div>
+<script>
+/* 폰 폭(390px)을 헤드리스에서 그대로 보기 위한 확인용 껍데기.
+   헤드리스 크롬은 `--window-size` 를 500px 아래로 못 내리므로,
+   iframe 안쪽 뷰포트로 진짜 390px 을 만든다.
+   (사가의숲 `_mobileframe.html` 과 같은 꼴이다 — 세이브 키만 이 판의 것이다)
+
+   ?fresh    가입 화면부터 본다
+   #hunt     사냥에 들어간 채로 본다 (조작 띠가 폰에서 어떻게 되는지 보는 자리)
+   #gorge    넷째 사냥터에서 본다
+   #field·#bag·#job·#shop·#dex·#log   그 시트를 열어 둔 채 찍는다
+   #probe    손가락 조작이 실제로 듣는지 이벤트를 쏘아 확인한다 (--dump-dom 으로 읽는다)
+*/
+(function () {
+  var BASE = 'yeoksa-side/save';                 // 폴더 이름과 다르다
+  var want = location.hash.replace('#', '');
+
+  if (location.search.indexOf('fresh') < 0) {
+    try {
+      var raw = localStorage.getItem(BASE + '/accounts');
+      var o = raw ? JSON.parse(raw) : null;
+      if (!o || !o.list || !o.list.length) {
+        localStorage.setItem(BASE + '/accounts',
+          JSON.stringify({ list: [{ id: 'pmobile', name: '확인용', at: 1, lastSeen: 1 }], cur: 'pmobile' }));
+      }
+      /* 조작 띠를 보려면 무예가 놓여 있어야 한다 — 3차까지 익힌 판을 심는다.
+         (세이브 키는 프로필 아래다. 가입 화면을 건너뛰는 것과 같은 사정이다) */
+      var key = BASE + '/pmobile';
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, JSON.stringify({
+          v: 1, createdAt: 1, lastSeen: 1,
+          player: { title: '태수(太守)', level: 46, exp: 0, gold: 82000, fame: 300,
+                    feat: 900, featTotal: 900, pos: { x: 0, y: 0 }, distance: 0,
+                    supplyMark: 0, supplyCount: 0 },
+          items: { scroll: 3, feed: 5 },
+          dex: { heroes: { kr_yisunsin: { count: 1, firstAt: 1 } }, pets: {} },
+          heroes: { kr_yisunsin: { lv: 20, exp: 0, rank: 2 } },
+          party: ['kr_yisunsin'], petEquip: {},
+          job: 'marshal',
+          skills: { w_cut: 10, w_whirl: 10, w_rush: 10, w_iron: 10,
+                    g_smash: 10, g_roar: 10, g_wall: 10,
+                    n_heaven: 10, n_quake: 10, n_charge: 10, n_banner: 10 },
+          side: { stage: 'gorge', potions: 30, kills: 900, deaths: 3,
+                  best: 'gorge', bosses: 12, bossAt: {} },
+          auto: { on: false, hunt: true, potion: true, retry: true, review: true },
+          ai: { spent: 0, calls: 0, log: [], buff: null },
+          settings: { mapStyle: 0, tilt: 1, prop: 'normal', style: 'maple',
+                      mode: 'offline', aiBase: '', sound: false },
+          log: []
+        }));
+      }
+    } catch (e) {}
+  }
+
+  var f = document.createElement('iframe');
+  var SHEETS = ['field', 'bag', 'job', 'shop', 'dex', 'log'];
+  var INNER = ['hunt', 'gorge'];
+  f.src = 'index.html' + ((want === 'probe' || SHEETS.indexOf(want) >= 0 ||
+                           INNER.indexOf(want) >= 0) ? '' : location.hash);
+  document.body.appendChild(f);
+
+  function later(ms, fn) { setTimeout(fn, ms); }
+
+  if (SHEETS.indexOf(want) >= 0) {
+    later(3200, function () {
+      try {
+        var b = f.contentDocument.querySelector('#dock [data-sheet="' + want + '"]');
+        if (b) { b.click(); }
+      } catch (e) {}
+    });
+    return;
+  }
+
+  if (INNER.indexOf(want) >= 0) {
+    later(3200, function () {
+      try {
+        var w = f.contentWindow;
+        w.DG.side.enter(want === 'gorge' ? 'gorge' : 'field');
+        w.DG.side.raw().player.invuln = 9999;
+        w.DG.side.update(0.016);
+        w.DG.ui.tickRefresh();
+      } catch (e) {}
+    });
+    return;
+  }
+
+  if (want !== 'probe') { return; }
+
+  var out = document.getElementById('probe');
+  function say(s) { out.textContent += s + '\n'; }
+
+  later(3500, function () {
+    var w = f.contentWindow, d = f.contentDocument;
+    var S = w.DG && w.DG.side;
+    var cv = d.getElementById('stage');
+    if (!S || !cv) { say('PROBE FAIL: 게임이 켜지지 않았다'); return; }
+
+    S.enter('gorge');
+    var run = S.raw();
+    run.player.invuln = 9999;
+    run.enemies.length = 0;                      // 조작만 본다 — 적이 끼면 자리가 흔들린다
+    var p = run.player;
+    p.x = 300; p.y = run.stage.floor - w.DG.side.P_H; p.onGround = true;
+    w.DG.ui.tickRefresh();                       // 조작 띠를 그려 놓고 재야 한다
+
+    say('PointerEvent ' + (w.PointerEvent ? 'O' : 'X'));
+    say('hover:none+coarse ' +
+        (w.matchMedia('(hover: none) and (pointer: coarse)').matches ? 'O' : 'X') +
+        ' / touchOnly ' + (w.DG.core.touchOnly ? (w.DG.core.touchOnly() ? 'O' : 'X') : '(없음)'));
+    say('안내 ' + (w.DG.core.actHint ? '"' + w.DG.core.actHint() + '"' : '(없음)'));
+    say('캔버스 ' + cv.clientWidth + 'x' + cv.clientHeight +
+        ' · touch-action ' + (w.getComputedStyle(cv).touchAction || '(없음)'));
+
+    /* 조작 띠가 폰 폭에 들어가는가 — 넘치면 오른쪽 칸을 아예 누를 수 없다 */
+    var hud = d.getElementById('hud');
+    var sks = hud ? hud.querySelectorAll('.hud-sk') : [];
+    var over = 0, last = null;
+    for (var i = 0; i < sks.length; i++) {
+      var r = sks[i].getBoundingClientRect();
+      if (r.right > 390.5 || r.left < -0.5) { over++; }
+      last = r;
+    }
+    say('띠 단추 ' + sks.length + '개 · 화면 밖 ' + over +
+        (last ? (' · 마지막 오른쪽 끝 ' + Math.round(last.right)) : ''));
+
+    /* 상단 도구도 같은 눈으로 본다 */
+    var tools = d.querySelectorAll('#top .tools .icon-btn');
+    var tOver = 0;
+    for (i = 0; i < tools.length; i++) {
+      var tr = tools[i].getBoundingClientRect();
+      if (tr.right > 390.5 || tr.bottom > 844.5) { tOver++; }
+    }
+    say('상단 도구 ' + tools.length + '개 · 화면 밖 ' + tOver);
+
+    function send(type, cx, cy) {
+      var E = w.PointerEvent || w.MouseEvent;
+      cv.dispatchEvent(new E(type, {
+        bubbles: true, cancelable: true, clientX: cx, clientY: cy,
+        pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0, buttons: 1
+      }));
+    }
+
+    /* ① 오른쪽 아래를 누르면 오른쪽으로 걸어야 한다 */
+    var x0 = p.x;
+    send('pointerdown', 320, 700);
+    var k;
+    for (k = 0; k < 12; k++) { S.update(0.02); }
+    var walked = p.x - x0;
+    send('pointerup', 320, 700);
+
+    /* ② 위쪽을 누르면 뛰어야 한다 */
+    p.y = run.stage.floor - w.DG.side.P_H; p.vy = 0; p.onGround = true;
+    send('pointerdown', 195, 200);
+    S.update(0.02);
+    var jumped = p.vy < -100;
+    send('pointerup', 195, 200);
+
+    /* ③ 줄 앞에서 아래로 내려갈 수 있는가 — 폰에는 ↓ 키가 없다 */
+    var rope = run.stage.ropes[0];
+    p.x = rope[0] - w.DG.side.P_W / 2;
+    p.y = rope[1] - w.DG.side.P_H;               // 발판 위, 줄 꼭대기
+    p.onGround = true; p.vy = 0; p.climb = null;
+    var before = Math.round(p.y);
+    send('pointerdown', 195, 780);               // 화면 맨 아래 = 내려가기 자리
+    for (k = 0; k < 14; k++) { S.update(0.02); }
+    var down = Math.round(p.y) - before;
+    var grabbed = !!p.climb;
+    send('pointerup', 195, 780);
+
+    say('걸음 ' + Math.round(walked) + ' · 점프 ' + (jumped ? 'O' : 'X') +
+        ' · 아래로 ' + down + (grabbed ? ' (줄을 잡았다)' : ''));
+
+    var ok = walked > 4 && jumped && over === 0 && tOver === 0 && down > 0 && grabbed;
+    say(ok ? 'PROBE OK 폰에서 걷고 뛰고 내려가며, 단추가 다 화면 안에 있다'
+           : 'PROBE FAIL ' +
+             (walked <= 4 ? '걸음 ' : '') + (!jumped ? '점프 ' : '') +
+             (over ? '띠넘침 ' : '') + (tOver ? '도구넘침 ' : '') +
+             (down <= 0 || !grabbed ? '내려가기' : ''));
+  });
+})();
+</script>
+</body></html>

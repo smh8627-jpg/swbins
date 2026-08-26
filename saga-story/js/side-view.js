@@ -24,6 +24,7 @@
     global.addEventListener('resize', resize);
     /* 화면 아래쪽 절반을 누르면 그 방향으로 달린다 (손가락 조작) */
     cv.addEventListener('pointerdown', onDown);
+    cv.addEventListener('pointermove', onMove);
     cv.addEventListener('pointerup', onUp);
     cv.addEventListener('pointercancel', onUp);
   }
@@ -38,22 +39,70 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  function onDown(e) {
-    if (!S.active()) { return; }
+  /**
+   * 화면을 넷으로 나눠 읽는다 — **폰에는 방향키도 Space 도 없다.**
+   *
+   *      ┌─────────────────────┐
+   *      │   위 45%  ↑ / 점프   │   줄·문 앞이면 오르기·들어가기, 아니면 점프
+   *      ├──────┬───────┬──────┤
+   *      │  ←   │   ↓   │  →   │   가운데 22% 가 ↓ 다
+   *      └──────┴───────┴──────┘
+   *
+   * **↓ 자리를 뒤늦게 냈다.** 그전에는 아래쪽이 좌우뿐이라 폰에서 **줄을 타고 내려갈
+   * 수도, 앉아 쉴 수도, 발판을 빠져나갈 수도 없었다** — 규칙은 다 있는데 손이 닿지
+   * 않는 자리였다. 가운데를 좁게(22%) 잡은 것은 걷다가 잘못 눌리지 않게 하려는 것이다.
+   */
+  function readZone(e) {
     var r = cv.getBoundingClientRect();
     var x = e.clientX - r.left, y = e.clientY - r.top;
-    /* 위쪽 절반 — 줄이나 문 앞이면 **오르기·들어가기**, 아니면 점프.
-       손가락에는 ↑ 키가 없으니 그 자리를 대신 읽어 준다. */
-    if (y < H * 0.45) {
+    if (y < H * 0.45) { return 'up'; }
+    if (x > W * 0.39 && x < W * 0.61) { return 'down'; }
+    return x < W * 0.5 ? 'left' : 'right';
+  }
+
+  var zone = null;
+
+  function apply(z) {
+    /* 누르고 있는 자리 하나만 켜 둔다 — 끌어서 옮기면 앞의 것이 꺼진다 */
+    S.setInput('left', z === 'left');
+    S.setInput('right', z === 'right');
+    S.setInput('down', z === 'down');
+    if (z === 'up') {
       var s = S.status();
+      /* 줄·문 앞이면 오르기·들어가기, 아니면 점프. 점프는 누르는 순간 한 번이다 */
       if (s.climbing || s.rope || s.gate) { S.setInput('up', true); }
       else { S.setInput('jump', true); }
-      return;
+    } else {
+      S.setInput('up', false);
     }
-    if (x < W * 0.5) { S.setInput('left', true); } else { S.setInput('right', true); }
+  }
+
+  function onDown(e) {
+    if (!S.active()) { return; }
+    zone = readZone(e);
+    apply(zone);
+    /* 손가락이 HUD 위를 지나도 안 끊긴다 (사가의숲에서 같은 자리를 밟았다) */
+    if (cv.setPointerCapture && e.pointerId !== undefined) {
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    }
+  }
+
+  /** 누른 채 끌면 그쪽으로 — 손가락을 떼지 않고 방향을 바꾼다 */
+  function onMove(e) {
+    if (!S.active() || zone === null) { return; }
+    var z = readZone(e);
+    if (z === zone) { return; }
+    /* 끌어서 위로 올라가는 것은 점프로 읽지 않는다 — 걷다가 뛰어 버린다 */
+    if (z === 'up' && zone !== 'up') {
+      var s = S.status();
+      if (!(s.climbing || s.rope || s.gate)) { return; }
+    }
+    zone = z;
+    apply(zone);
   }
 
   function onUp() {
+    zone = null;
     S.setInput('left', false);
     S.setInput('right', false);
     S.setInput('up', false);
@@ -351,8 +400,10 @@
   function miniBox(stg) {
     var w = Math.min(210, W - 24), h = 58;
     var top = 240, bot = stg.floor + 30;          // 세로로 담을 구간
-    /* 상단 띠(프로필·지갑) 아래로 내려 앉힌다 — 겹치면 둘 다 못 읽는다 */
-    return { x: 12, y: Math.min(148, H * 0.26), w: w, h: h,
+    /* 상단 띠(프로필·지갑) 아래로 내려 앉힌다 — 겹치면 둘 다 못 읽는다.
+       **좁은 폭에서는 그 띠가 두 줄로 접히므로** 더 내려야 한다(폰에서 지갑에 겹쳤다) */
+    var y = W <= 560 ? 196 : Math.min(148, H * 0.26);
+    return { x: 12, y: y, w: w, h: h,
              sx: w / stg.width, sy: h / (bot - top), top: top };
   }
 
@@ -468,7 +519,7 @@
       ctx.font = '600 12px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillStyle = open ? '#dff0ff' : 'rgba(220,220,230,0.6)';
-      ctx.fillText((open ? '↑ ' : '🔒 ') + to.name, x, base - 104);
+      ctx.fillText((open ? (core.upHint() + ' ') : '🔒 ') + to.name, x, base - 104);
       if (!open) {
         ctx.fillStyle = 'rgba(220,220,230,0.5)';
         ctx.fillText('Lv.' + to.need, x, base - 90);
@@ -485,7 +536,10 @@
     var run = S.raw();
     if (!run || !run.boss) { return; }
     var b = run.boss;
-    var w = Math.min(W - 40, 420), x = (W - w) / 2, y = 14;
+    /* 좁은 폭에서는 상단 UI 가 두 줄로 접힌다(프로필·도구·지갑) — 그 아래로 내린다.
+       폰에서 보스 이름이 도구 단추에 가려 "무엇이 달려드는지" 를 못 읽었다. */
+    var narrow = W <= 560;
+    var w = Math.min(W - 40, 420), x = (W - w) / 2, y = narrow ? 254 : 14;
     var r = Math.max(0, b.hp / b.hpMax);
     ctx.fillStyle = 'rgba(10,12,16,0.72)';
     ctx.fillRect(x - 6, y - 4, w + 12, 26);
@@ -690,6 +744,8 @@
     init: init, draw: draw, resize: resize, miniBox: miniBox,
     _cam: function () { return camX; },
     /** 진단용 — **흔들림의 세기는 화면 층이 정한다**(side.js 는 'shake' 한 줄만 남긴다) */
-    _shake: shakeOf
+    _shake: shakeOf,
+    /** 진단용 — 화면의 그 자리가 어느 조작인가 (폰에는 방향키가 없다) */
+    _zone: function (x, y) { return readZone({ clientX: x, clientY: y }); }
   };
 })(window);
