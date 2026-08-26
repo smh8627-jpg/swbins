@@ -1223,6 +1223,69 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       return bad.length === 0 && (line.join(' · '));
     });
 
+    /* ── 폰에서 손이 닿는가 ──────────────────────────── */
+
+    t('출진은 카드로 묻는다 — prompt 를 쓰지 않는다', function () {
+      /* 폰에서 prompt() 는 글자판을 띄우고, 홈 화면에 담아 띄운 앱에서는
+         아예 안 뜨는 기기가 있다. 출진은 이 판에서 가장 자주 누르는 자리다 */
+      fresh('cao');
+      R.city('chenliu').troops = 20000; R.city('chenliu').food = 999999;
+      var asked = 0, realPrompt = window.prompt;
+      window.prompt = function () { asked++; return null; };
+      DG.ui._act('march', { getAttribute: function (k) {
+        return k === 'data-from' ? 'chenliu' : 'luoyang';
+      } });
+      var rg = document.getElementById('askrange');
+      var ok1 = !!rg && parseInt(rg.max, 10) === 20000;
+      /* ¼ 을 누르면 그만큼으로 준다 */
+      DG.ui._act('ask-part', { getAttribute: function () { return '0.25'; } });
+      var quarter = parseInt(document.getElementById('askrange').value, 10);
+      /* 확인을 누르면 실제로 나간다 — 이기고 지고는 여기서 재지 않는다
+         (물러나면 병력이 되돌아오므로 성의 병력 차로는 못 잰다) */
+      var ready0 = R.readyAt('chenliu').length;
+      DG.ui._act('ask-ok', { getAttribute: function () { return null; } });
+      var used = ready0 - R.readyAt('chenliu').length;
+      var battle = document.getElementById('encounter').innerHTML.indexOf('전황') >= 0;
+      window.prompt = realPrompt;
+      DG.ui.closeEnc();
+      return asked === 0 && ok1 && quarter === 5000 && used >= 1 && battle &&
+        !document.getElementById('askrange') &&
+        ('prompt 를 한 번도 안 불렀다 · ¼ → ' + C.fmt(quarter) +
+         ' · 장수 ' + used + '명이 나가고 전황이 떴다');
+    });
+
+    t('보급도 병력 보내기도 같은 카드를 쓴다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var asked = 0, realPrompt = window.prompt;
+      window.prompt = function () { asked++; return null; };
+      R.city('chenliu').food = 50000;
+      DG.ui.openSheet('camp');
+      DG.ui._act('camp-food', { getAttribute: function () { return s.cp.id; } });
+      var a1 = !!document.getElementById('askrange');
+      DG.ui._act('ask-no', { getAttribute: function () { return null; } });
+      DG.ui.openCity('chenliu');
+      DG.ui._act('send-troops', { getAttribute: function () { return 'xuchang'; } });
+      var a2 = !!document.getElementById('askrange');
+      DG.ui._act('ask-no', { getAttribute: function () { return null; } });
+      window.prompt = realPrompt;
+      DG.ui.closeSheet(); DG.ui.closeEnc();
+      return asked === 0 && a1 && a2 && ('보급 · 병력 보내기 둘 다 카드로 묻는다');
+    });
+
+    t('지도의 성마다 손가락이 닿는 목표가 있다', function () {
+      /* 성 점은 화면에서 8px 남짓이다 — 폰에서는 그대로면 못 누른다 */
+      fresh('cao');
+      DG.ui.renderMap();
+      var hits = document.querySelectorAll('#realm .rcity .rhit');
+      var small = 0;
+      for (var i = 0; i < hits.length; i++) {
+        if (parseFloat(hits[i].getAttribute('r')) < 3.5) { small++; }
+      }
+      return hits.length === CD.CITIES.length && small === 0 &&
+        ('성 ' + hits.length + '곳에 반지름 ' + hits[0].getAttribute('r') + ' 의 목표');
+    });
+
     /* ── 세이브 ──────────────────────────────────────── */
 
     t('세이브 키는 그대로다 (진행이 사라지지 않는다)', function () {

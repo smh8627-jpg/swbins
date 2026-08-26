@@ -117,6 +117,22 @@
       return;
     }
     if (a === 'close-enc') { closeEnc(); return; }
+    if (a === 'ask-part') {
+      var rg = $('askrange');
+      if (rg) {
+        rg.value = String(Math.max(1, Math.round(parseInt(rg.max, 10) * parseFloat(g('data-p')))));
+        askShow();
+      }
+      return;
+    }
+    if (a === 'ask-ok') {
+      var rv = $('askrange');
+      var val = rv ? parseInt(rv.value, 10) : 0;
+      var cb = askCb; askCb = null; closeEnc();
+      if (cb) { cb(val); }
+      return;
+    }
+    if (a === 'ask-no') { askCb = null; closeEnc(); return; }
     if (a === 'open-city') { openCity(g('data-city')); return; }
 
     if (a === 'sel-order') { pickOrder = g('data-key'); renderSheet(); return; }
@@ -140,11 +156,21 @@
       var mv = global.DG.war.moveOfficer(g('data-id'), g('data-to'));
       toast(mv.ok ? '🚶 옮겼습니다' : mv.why);
     } else if (a === 'send-troops') {
-      var t = parseInt(prompt('몇 명을 보낼까요?', '3000'), 10);
-      if (t > 0) {
-        var tr = global.DG.war.transfer(openCityId, g('data-to'), t, Math.round(t / 1000 * 20));
-        toast(tr.ok ? '🚚 ' + core.fmt(tr.troops) + ' 을 보냈습니다' : tr.why);
-      }
+      var sFrom = openCityId, sTo = g('data-to');
+      var sc = R().city(sFrom);
+      if (sc.troops < 1) { toast('보낼 병력이 없습니다'); return; }
+      askNumber({
+        title: '🚚 ' + CD.find(sFrom).name + ' → ' + CD.find(sTo).name,
+        hint: '몇 명을 보낼까요? 성에 🪖 ' + core.fmt(sc.troops) +
+          ' <span class="muted">(군량도 그만큼 딸려 갑니다)</span>',
+        max: sc.troops, value: Math.floor(sc.troops * 0.5), ok: '🚚 보낸다',
+        done: function (n) {
+          var tr = global.DG.war.transfer(sFrom, sTo, n, Math.round(n / 1000 * 20));
+          toast(tr.ok ? '🚚 ' + core.fmt(tr.troops) + ' 을 보냈습니다' : tr.why);
+          core.persist(); renderTop(); renderMap(); renderSheet();
+        }
+      });
+      return;
     } else if (a === 'march') {
       doMarch(g('data-from'), g('data-to'));
       return;
@@ -185,11 +211,20 @@
     var wet = CD.isWater(fromId, toId);
     var max = wet ? Math.min(c.troops, (c.ships || 0) * global.DG.war.SHIP_CREW) : c.troops;
     if (wet && max < 500) { toast('배가 모자랍니다 — 조선(造船)으로 지으십시오'); return; }
-    var t = parseInt(prompt('몇 명을 이끌고 갈까요? (성에 ' + core.fmt(c.troops) +
-      (wet ? ' · 배로 ' + core.fmt(max) + '까지' : '') + ')',
-      String(Math.floor(max * 0.8))), 10);
-    if (!(t > 0)) { return; }
+    if (max < 500) { toast('오백은 넘겨야 군대라 하지요'); return; }
     var lead = off().sortByPower(ready).slice(0, 3).map(function (h) { return h.id; });
+    askNumber({
+      title: (wet ? '🌊 ' : '⚔️ ') + CD.find(fromId).name + ' → ' + CD.find(toId).name,
+      hint: '몇 명을 이끌고 갈까요? 성에 🪖 ' + core.fmt(c.troops) +
+        (wet ? ' · <b>물길</b>이라 배로 ' + core.fmt(max) + '까지' : '') +
+        '<br>장수 — ' + lead.map(function (id) { return esc(off().find(id).name); }).join(' · '),
+      max: max, value: Math.floor(max * 0.8), ok: (wet ? '🌊 물길로 친다' : '⚔️ 친다'),
+      done: function (t) { runMarch(fromId, toId, lead, t); }
+    });
+  }
+
+  function runMarch(fromId, toId, lead, t) {
+    if (!(t > 0)) { return; }
     for (var i = 0; i < lead.length; i++) { off().rec(lead[i]).done = true; }
     var rep = global.DG.war.march(fromId, toId, lead, t);
     if (!rep.ok) {
@@ -198,7 +233,7 @@
       return;
     }
     showBattle(rep);
-    renderTop(); renderMap(); renderSheet();
+    renderTop(); renderMap(); renderSheet(); syncDock();
   }
 
   /** 진영에 군량이나 병력을 보낸다 */
@@ -209,13 +244,24 @@
     var home = R().city(cp.from);
     if (!home || home.force !== R().me()) { toast('보급할 성이 없습니다'); return; }
     var have = men ? home.troops : home.food;
-    var n = parseInt(prompt((men ? '병력' : '군량') + '을 얼마나 보낼까요? (' +
-      CD.find(cp.from).name + ' 에 ' + core.fmt(have) + ')',
-      String(Math.floor(have * 0.4))), 10);
-    if (!(n > 0)) { return; }
-    var res = men ? W.supply(campId, n, 0, cp.from) : W.supply(campId, 0, n, cp.from);
-    toast(res.ok ? '🚚 보냈습니다 — 치중 ' + res.left + '달치' : res.why);
-    renderTop(); renderMap(); renderSheet(); syncDock();
+    if (have < 1) { toast('보낼 것이 없습니다'); return; }
+    /* 물 위의 진영은 배에 타는 만큼만 더 받는다 — 물어보기 전에 그만큼으로 줄인다 */
+    if (men && cp.water) {
+      have = Math.min(have, Math.max(0, (cp.ships || 0) * W.SHIP_CREW - cp.troops));
+      if (have < 1) { toast('배가 다 찼습니다'); return; }
+    }
+    askNumber({
+      title: (men ? '🪖 증원' : '🌾 보급') + ' — ' + CD.find(cp.from).name + ' → ' +
+        CD.find(cp.to).name + ' 진중',
+      hint: CD.find(cp.from).name + '에 ' + (men ? '🪖 ' : '🌾 ') + core.fmt(have) +
+        '<br>지금 치중 ' + core.fmt(cp.food) + ' (' + W.monthsLeft(cp) + '달치)',
+      max: have, value: Math.floor(have * 0.4), ok: '🚚 보낸다',
+      done: function (n) {
+        var res = men ? W.supply(campId, n, 0, cp.from) : W.supply(campId, 0, n, cp.from);
+        toast(res.ok ? '🚚 보냈습니다 — 치중 ' + res.left + '달치' : res.why);
+        renderTop(); renderMap(); renderSheet(); syncDock();
+      }
+    });
   }
 
   /* ── 상단 ─────────────────────────────────────────────── */
@@ -293,6 +339,9 @@
       var mine = c.force === st.me;
       var rad = 1.5 + Math.min(2.2, c.troops / 12000);
       s += '<g class="rcity' + (mine ? ' mine' : '') + '" data-city="' + d.id + '">' +
+        /* 손가락이 닿는 목표 — 성 점은 화면에서 8px 남짓이라 폰에서 못 누른다.
+           보이지 않는 큰 원을 하나 깔아 둔다(그림은 그대로, 손만 커진다) */
+        '<circle class="rhit" cx="' + d.x + '" cy="' + d.y + '" r="4.2"/>' +
         '<circle cx="' + d.x + '" cy="' + d.y + '" r="' + rad.toFixed(2) + '" fill="' +
           forceColor(c.force) + '"/>' +
         (mine ? '<circle cx="' + d.x + '" cy="' + d.y + '" r="' + (rad + 1.1).toFixed(2) +
@@ -859,6 +908,44 @@
   }
 
   /* ── 덮개 화면 ────────────────────────────────────────── */
+
+  /* ── 수를 묻는다 (prompt 대신) ────────────────────────
+   * 폰에서 `prompt()` 는 숫자 키패드가 아니라 글자판을 띄우고, 홈 화면에 담아
+   * 띄운 앱(standalone)에서는 아예 뜨지 않는 기기가 있다. 출진·보급·병력 보내기는
+   * 이 판에서 가장 자주 누르는 자리라, 막히면 폰에서는 놀 수가 없다.
+   * 그래서 **자체 카드**로 바꿨다 — 미는 막대와 ¼·½·⅘·전부.
+   */
+  var askCb = null;
+
+  function askNumber(opt) {
+    askCb = opt.done;
+    var max = Math.max(1, Math.floor(opt.max));
+    var init = Math.max(1, Math.min(max, Math.floor(opt.value || max)));
+    showEnc(
+      '<h3 style="margin:0 0 2px;font-size:17px">' + esc(opt.title) + '</h3>' +
+      (opt.hint ? '<small class="muted">' + opt.hint + '</small>' : '') +
+      '<div class="numask">' +
+        '<b id="asknum">' + core.fmt(init) + '</b>' +
+        '<input id="askrange" type="range" min="1" max="' + max + '" value="' + init + '">' +
+        '<div class="camp-acts">' +
+          '<button class="btn tiny" data-act="ask-part" data-p="0.25">¼</button>' +
+          '<button class="btn tiny" data-act="ask-part" data-p="0.5">½</button>' +
+          '<button class="btn tiny" data-act="ask-part" data-p="0.8">⅘</button>' +
+          '<button class="btn tiny" data-act="ask-part" data-p="1">전부</button>' +
+        '</div>' +
+        '<div class="camp-acts">' +
+          '<button class="btn primary" data-act="ask-ok">' + esc(opt.ok || '보낸다') + '</button>' +
+          '<button class="btn ghost" data-act="ask-no">그만</button>' +
+        '</div>' +
+      '</div>');
+    var rg = $('askrange');
+    if (rg) { rg.addEventListener('input', askShow); }
+  }
+
+  function askShow() {
+    var rg = $('askrange'), n = $('asknum');
+    if (rg && n) { n.textContent = core.fmt(parseInt(rg.value, 10)); }
+  }
 
   function showEnc(html) {
     els.encounter.innerHTML = '<div class="enc-card">' + html + '</div>';

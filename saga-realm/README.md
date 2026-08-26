@@ -9,7 +9,8 @@
 ```
 run.bat          →  http://127.0.0.1:8795
 start_server.bat →  같은 것, 브라우저를 열지 않는다 (허브 워치독용)
-_test.html       →  자가진단 92항목
+_test.html       →  자가진단 95항목
+_mobileframe.html→  폰 화면(390px) 확인용 껍데기
 _demo.html       →  스크린샷용 장면 (#scen · #pick · #map · #chibi · #grown · #city · #enemy · #war · #camp · #officers · #diplo · #school)
 ```
 
@@ -211,12 +212,46 @@ js/game.js        부트 — **rAF 루프가 없다**(턴제라 시간은 사람
 
 ```
 chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom \
-  http://127.0.0.1:8795/_test.html        → RESULT 92/92
+  http://127.0.0.1:8795/_test.html        → RESULT 95/95
 ```
 
 **무작위는 씨앗(mulberry32, 20260824)으로 고정돼 있다.** 세 번 돌려 **한 줄도 다르지 않은지**로
 확인한다. 이 판은 턴제라 **rAF 함정이 아예 없다** — 헤드리스에서 프레임이 몇 번 돌든
 `endMonth()` 를 부른 횟수만이 시간을 옮긴다.
+
+## 폰에서
+
+**절반은 처음부터 돼 있었다** — manifest·서비스워커·safe-area·780px 미디어쿼리.
+폰 폭(390px)에서 실제로 열어 보고 **막히는 것만** 골라 고쳤다.
+
+```
+_mobileframe.html          폰 화면(390px)을 헤드리스에서 보는 껍데기
+_mobileframe.html#probe    상단·독·지도·다음달이 화면 안에 있는지 재서 PROBE OK
+_mobileframe.html#camp     그 장면을 폰 폭으로 (…#city #officers #ask #scen …)
+_mobileframe.html?fresh    가입 화면부터
+```
+
+헤드리스 크롬은 창 폭을 **500px 아래로 안 내려 준다**. 그래서 iframe 안쪽에
+진짜 390px 뷰포트를 만든다(사가의숲·사가블로 것과 같은 꼴이다).
+
+고친 것은 넷이다.
+
+1. **`prompt()` 를 걷어냈다.** 출진·보급·증원·병력 보내기 넷이 `prompt` 로 숫자를
+   받고 있었다. 폰에서 `prompt` 는 숫자 키패드가 아니라 글자판을 띄우고,
+   홈 화면에 담아 띄운 앱(standalone)에서는 아예 안 뜨는 기기가 있다.
+   **미는 막대와 ¼·½·⅘·전부** 를 가진 카드로 바꿨다(`ui.askNumber`)
+2. **지도의 성이 손가락에 안 닿았다.** 성 점은 화면에서 8px 남짓이다.
+   보이지 않는 큰 원(`.rhit`, r=4.2)을 하나 깔았다 — 그림은 그대로, 손만 커진다
+3. **상단이 두 줄로 접히는데 지도가 그대로였다.** 780px 아래에서 `#realm` 을
+   148px 로 내렸다. 안 내리면 북쪽 성들이 상단 유리판 밑으로 들어가 못 눌린다.
+   `.p-sub` 는 한 줄로 — "수입 388/월" 의 '월' 이 떨어져 나갔다
+4. **`touch-action: manipulation`** — iOS 사파리는 `user-scalable=no` 를 무시해서
+   더블탭 줌이 성 누르기를 방해한다
+
+폰에서 여는 길은 둘이다. **GitHub Pages(https)가 확실하다** — 서비스워커와
+홈 화면 추가가 거기서만 붙는다. 같은 와이파이에서 `run.bat`(0.0.0.0 바인딩)으로
+`:8795` 를 열어도 놀 수는 있지만 http 라 캐시가 안 붙는다.
+**이 판은 위치 API 를 쓰지 않아 HTTPS 가 필수는 아니다** — 그래서 `run-phone.bat` 이 없다.
 
 ## 손볼 때
 

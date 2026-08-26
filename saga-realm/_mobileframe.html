@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<title>사가국지 — 폰 화면 확인용</title>
+<style>
+  html,body{margin:0;background:#2a2d34;height:100%;font:13px "Malgun Gothic",system-ui;color:#eee}
+  body{display:grid;place-items:center}
+  iframe{width:390px;height:844px;border:0;background:#12141a;box-shadow:0 0 0 2px #555}
+  #probe{position:fixed;left:8px;top:8px;white-space:pre;font-family:Consolas,monospace}
+</style></head><body>
+<div id="probe"></div>
+<script>
+/* 폰 폭(390px)을 헤드리스에서 그대로 보기 위한 확인용 껍데기.
+   헤드리스 크롬은 --window-size 를 500px 아래로 못 내리므로,
+   iframe 안쪽 뷰포트로 진짜 390px 을 만든다. (사가의숲 것과 같은 꼴이다)
+
+   (해시 없음)  index.html — 판이 안 섰으면 시나리오 고르기부터
+   #city #camp #officers #diplo #school #enemy #war #scen #pick #chibi
+                _demo.html 의 그 장면을 폰 폭으로 본다
+   #probe       상단 도구·독이 화면 안에 있는지 재서 PROBE OK / FAIL 로 적는다
+   ?fresh       심어 둔 프로필을 지우고 가입 화면부터 본다
+*/
+(function () {
+  var BASE = 'saga-realm/save';
+  if (location.search.indexOf('fresh') < 0) {
+    try {
+      var raw = localStorage.getItem(BASE + '/accounts');
+      var o = raw ? JSON.parse(raw) : null;
+      if (!o || !o.list || !o.list.length) {
+        localStorage.setItem(BASE + '/accounts',
+          JSON.stringify({ list: [{ id: 'pmobile', name: '확인용', at: 1, lastSeen: 1 }], cur: 'pmobile' }));
+      }
+    } catch (e) {}
+  }
+
+  var h = (location.hash || '').slice(1);
+  var DEMO = ['city', 'camp', 'officers', 'diplo', 'school', 'enemy', 'war', 'ask',
+              'scen', 'pick', 'chibi', 'map', 'grown'];
+  /* 재는 것은 **판이 선 화면**이어야 한다 — index.html 은 판이 안 섰으면
+     시나리오 고르기만 떠서 '다음 달' 도 살림도 없다 */
+  var src = h === 'probe' ? '_demo.html#map'
+          : (DEMO.indexOf(h) >= 0 ? '_demo.html#' + h : 'index.html');
+
+  var f = document.createElement('iframe');
+  f.src = src;
+  document.body.appendChild(f);
+
+  if (h !== 'probe') { return; }
+
+  /* 손이 닿는가 — 상단 도구와 독이 390px 안에 다 들어오는지 잰다 */
+  f.addEventListener('load', function () {
+    setTimeout(function () {
+      var d = f.contentDocument, w = f.contentWindow, out = [], bad = 0;
+      function box(sel) {
+        var n = d.querySelector(sel);
+        return n ? n.getBoundingClientRect() : null;
+      }
+      var vw = w.innerWidth, vh = w.innerHeight;
+      out.push('뷰포트 ' + vw + '×' + vh);
+
+      var tools = d.querySelectorAll('#top .tools .icon-btn');
+      for (var i = 0; i < tools.length; i++) {
+        var r = tools[i].getBoundingClientRect();
+        if (r.right > vw + 0.5 || r.left < -0.5 || r.width < 28 || r.height < 28) {
+          out.push('FAIL 도구 ' + i + ' ' + Math.round(r.left) + '~' + Math.round(r.right) +
+            ' (' + Math.round(r.width) + '×' + Math.round(r.height) + ')');
+          bad++;
+        }
+      }
+      out.push('도구 ' + tools.length + '개');
+
+      var dock = d.querySelectorAll('#dock button');
+      var dr = box('#dock');
+      if (dr) {
+        out.push('독 ' + dock.length + '칸 ' + Math.round(dr.left) + '~' + Math.round(dr.right) +
+          ' · ' + Math.round(dr.top) + '~' + Math.round(dr.bottom));
+        if (dr.right > vw + 0.5 || dr.bottom > vh + 0.5 || dr.top < 0) {
+          out.push('FAIL 독이 화면 밖으로 나갔다'); bad++;
+        }
+      }
+      for (i = 0; i < dock.length; i++) {
+        var b = dock[i].getBoundingClientRect();
+        if (b.width < 36 || b.height < 36) {
+          out.push('FAIL 독 ' + i + ' 이 너무 작다 ' + Math.round(b.width) + '×' + Math.round(b.height));
+          bad++;
+        }
+      }
+
+      var prof = box('#profile'), wal = box('#wallet');
+      if (prof && prof.right > vw + 0.5) { out.push('FAIL 프로필이 넘친다'); bad++; }
+      if (wal && wal.right > vw + 0.5) { out.push('FAIL 살림이 넘친다'); bad++; }
+      if (prof) { out.push('프로필 높이 ' + Math.round(prof.height)); }
+      if (wal) { out.push('살림 ' + Math.round(wal.left) + '~' + Math.round(wal.right) +
+        ' 높이 ' + Math.round(wal.height)); }
+
+      /* 지도가 상단·독에 눌려 남는 자리가 있는가 */
+      var map = box('#realm');
+      if (map) {
+        out.push('지도 ' + Math.round(map.width) + '×' + Math.round(map.height));
+        if (map.height < 260) { out.push('FAIL 지도가 너무 눌렸다'); bad++; }
+      }
+
+      /* '다음 달' 버튼이 눌리는 자리에 있는가 */
+      var nb = d.querySelector('.next-btn');
+      if (!nb) { out.push('FAIL 다음 달 버튼이 없다'); bad++; }
+      else {
+        var nr = nb.getBoundingClientRect();
+        out.push('다음 달 ' + Math.round(nr.left) + '~' + Math.round(nr.right) +
+          ' (' + Math.round(nr.width) + '×' + Math.round(nr.height) + ')');
+        if (nr.right > vw + 0.5 || nr.height < 32) { out.push('FAIL 다음 달이 손에 안 닿는다'); bad++; }
+      }
+
+      document.getElementById('probe').textContent = out.join('\n');
+      document.title = bad ? 'PROBE FAIL ' + bad : 'PROBE OK';
+    }, 1200);
+  });
+})();
+</script>
+</body></html>

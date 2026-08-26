@@ -75,6 +75,7 @@ window.DG_NO_ACCOUNT = true;
  *   #grown  다섯 해 뒤의 지도   #city  성(허창) — 명령표
  *   #enemy  남의 성(낙양) — 계략·출진
  *   #war    전황 보고          #camp  진영 (달을 넘긴 원정)
+ *   #ask    출진 물음 카드 (폰에서 prompt 를 걷어낸 자리)
  *   #officers 무장   #diplo 외교   #school 학당
  */
 (function () {
@@ -128,6 +129,11 @@ window.DG_NO_ACCOUNT = true;
     if (cp) { cp.months = 3; cp.morale = 0.82; }     // 석 달째 에워싼 그림
     DG.ui.closeEnc();                                // 전황 카드가 시트를 가린다
     DG.ui.openSheet('camp');
+  } else if (scene === 'ask') {
+    freeUp('chenliu');
+    DG.ui._act('march', {
+      getAttribute: function (k) { return k === 'data-from' ? 'chenliu' : 'luoyang'; }
+    });
   } else if (scene === 'officers') {
     DG.ui.openSheet('officers');
   } else if (scene === 'diplo') {
