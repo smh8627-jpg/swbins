@@ -26,6 +26,7 @@
 <nav id="dock">
   <button data-sheet="city"><span>c</span><small>c</small></button>
   <button data-sheet="officers"><span>o</span><small>o</small></button>
+  <button data-sheet="camp"><span>p</span><small>p</small></button>
   <button data-sheet="diplo"><span>d</span><small>d</small></button>
   <button data-sheet="school"><span>s</span><small>s</small></button>
   <button data-sheet="log"><span>l</span><small>l</small></button>
@@ -112,6 +113,25 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         var r = off.rec(list[i].id); r.done = false; r.hurt = 0;
       }
       return list;
+    }
+
+    /**
+     * 낙양 앞에 진(陣)을 하나 세운다.
+     * **배수를 올려 가며 진영이 설 때까지** 해 본다 — 한 배수에 못을 박아 두면
+     * 앞 항목이 난수를 얼마나 썼느냐에 따라 함락이 되거나 퇴각이 되어 흔들린다.
+     */
+    function campSet() {
+      var ms = [1, 1.2, 1.5, 1.8, 2.2], i;
+      for (i = 0; i < ms.length; i++) {
+        fresh('cao');
+        var from = R.city('chenliu'), to = R.city('luoyang');
+        from.troops = Math.round(to.troops * ms[i]); from.food = 999999;
+        var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+        var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+        var cp = W.campsOf('cao')[0];
+        if (cp) { return { rep: rep, cp: cp, lead: lead, mult: ms[i] }; }
+      }
+      return null;
     }
 
     function countFound() {
@@ -505,6 +525,141 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         ('여포 vs 순욱 ' + far + '회 · 관우 vs 장비 ' + near + '/200회');
     });
 
+    /* ── 여러 달에 걸치는 원정 ───────────────────────── */
+
+    t('한 달에 못 떨어뜨리면 물러나지 않고 진을 친다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var home = R.city('chenliu');
+      return !s.rep.won && !s.rep.routed && s.cp.to === 'luoyang' && s.cp.force === 'cao' &&
+        s.cp.months === 1 && s.cp.troops > 0 && home.troops === 1 &&
+        ('×' + s.mult + ' → 병력 ' + C.fmt(s.cp.troops) + ' 이 성 밖에 남았다 · 치중 ' +
+         C.fmt(s.cp.food) + ' (' + W.monthsLeft(s.cp) + '달치)');
+    });
+
+    t('원정 나간 장수는 성에 없다 (봉급은 그대로 나간다)', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var ids = s.cp.officers;
+      var atFrom = off.atCity('chenliu', 'cao').map(function (h) { return h.id; });
+      var ready = R.readyAt('chenliu').map(function (h) { return h.id; });
+      var gone = ids.every(function (id) {
+        return atFrom.indexOf(id) < 0 && ready.indexOf(id) < 0 && off.rec(id).camp === s.cp.id;
+      });
+      var paid = off.ofForce('cao').filter(function (h) { return ids.indexOf(h.id) >= 0; }).length;
+      return gone && paid === ids.length &&
+        ('진중 ' + ids.length + '명 — 성 명부에서 빠지고 봉급은 그대로 ' + paid + '명분');
+    });
+
+    t('진영은 달마다 한 번씩 더 친다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      s.cp.food = 99999;                     // 재지 않는 축(치중)은 붙들어 둔다
+      var wall0 = R.city('luoyang').wall;
+      var rep = W.resolveCamp(s.cp);
+      var fought = !!rep && rep.siege === true && (rep.lossA > 0 || rep.lossD > 0);
+      var moved = W.campById(s.cp.id) ? s.cp.months === 2 : true;
+      return fought && moved &&
+        ('두 달째 — 잃은 병력 공 ' + C.fmt(rep.lossA) + ' · 수 ' + C.fmt(rep.lossD) +
+         ' · 성벽 ' + C.fmt(wall0) + ' → ' + C.fmt(R.city('luoyang').wall));
+    });
+
+    t('치중이 바닥나면 스스로 물러난다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var before = R.city('chenliu').troops;
+      s.cp.food = 0;
+      var res = W.resolveCamp(s.cp);
+      return !!res && res.kind === 'retreat' && res.why.indexOf('군량') >= 0 &&
+        W.campsOf('cao').length === 0 && R.city('chenliu').troops > before &&
+        s.cp.officers.every(function (id) { return off.rec(id).city === 'chenliu'; }) &&
+        ('군량이 떨어져 ' + C.fmt(R.city('chenliu').troops - before) + ' 이 진류로 돌아왔다');
+    });
+
+    t('사기가 꺾이면 군이 지쳐 물러난다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      s.cp.food = 99999;                     // 군량 탓이 아님을 못 박는다
+      s.cp.morale = W.CAMP_QUIT;             // 한 달만 더 지나면 문턱 아래로 내려간다
+      var res = W.resolveCamp(s.cp);
+      return !!res && res.kind === 'retreat' && res.why.indexOf('지쳐') >= 0 &&
+        W.campsOf('cao').length === 0 &&
+        ('사기 ' + Math.round(W.CAMP_QUIT * 100) + ' × ' + W.CAMP_DECAY + ' → 물러났다');
+    });
+
+    t('보급하면 원정이 길어진다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var before = W.monthsLeft(s.cp);
+      R.city('chenliu').food = 50000;
+      var res = W.supply(s.cp.id, 0, 20000, 'chenliu');
+      /* 남의 성에서는 못 보낸다 (장안은 이각 것이다) */
+      var theirs = W.supply(s.cp.id, 0, 100, 'changan');
+      /* 맞닿지 않은 우리 성에서도 못 보낸다 (복양은 낙양과 길이 없다) */
+      R.city('puyang').force = 'cao'; R.city('puyang').food = 5000;
+      var far = W.supply(s.cp.id, 0, 100, 'puyang');
+      return res.ok && W.monthsLeft(s.cp) > before && !theirs.ok && !far.ok &&
+        ('치중 ' + before + '달치 → ' + W.monthsLeft(s.cp) +
+         '달치 · 남의 성(' + theirs.why + ') · 먼 성(' + far.why + ')');
+    });
+
+    t('이미 진을 친 성에는 새로 출진하지 않는다', function () {
+      /* 이 줄이 없으면 AI 가 달마다 새 진영을 세워 같은 성 앞에 군대가 쌓인다 */
+      var s = campSet();
+      if (!s) { return false; }
+      R.city('chenliu').troops = 30000; R.city('chenliu').food = 999999;
+      var r = W.canMarch('chenliu', 'luoyang', 20000);
+      return !r.ok && r.why.indexOf('진을 치고') >= 0 && (r.why);
+    });
+
+    t('에워싸인 성은 수확을 거두지 못한다', function () {
+      /* 재지 않는 축(재해·인구)은 붙들어 두고 포위만 갈아 끼운다 */
+      function run(siege) {
+        fresh('cao');
+        var st = R.state();
+        st.month = 6;                        // 거두는 달
+        var c = R.city('luoyang');
+        c.disaster = null; c.dLeft = 0;
+        if (siege) {
+          st.camps.push({ id: 'x', force: 'cao', from: 'chenliu', to: 'luoyang',
+            troops: 1000, officers: [], train: 40, tech: 100, morale: 1, food: 999, months: 1 });
+        }
+        var f0 = c.food;
+        R.settleMonth();
+        return R.city('luoyang').food - f0;
+      }
+      var open = run(false), shut = run(true);
+      return open > shut &&
+        ('열린 성 ' + C.fmt(open) + ' · 에워싸인 성 ' + C.fmt(shut) + ' (거두지 못한다)');
+    });
+
+    t('포위 끝에 함락하면 진영이 걷히고 치중이 성으로 들어간다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var f0 = R.city('luoyang').food;
+      s.cp.food = 30000; s.cp.troops = 200000;
+      R.city('luoyang').wall = 1;
+      var res = W.resolveCamp(s.cp);
+      var clean = s.cp.officers.every(function (id) { return !off.rec(id).camp; });
+      return !!res && res.won && R.city('luoyang').force === 'cao' && W.camps().length === 0 &&
+        clean && R.city('luoyang').food >= f0 + 20000 &&
+        ('함락 · 치중이 성으로 들어갔다 (군량 ' + C.fmt(f0) + ' → ' +
+         C.fmt(R.city('luoyang').food) + ') · 남은 진영 0');
+    });
+
+    t('나라를 잃은 원정군은 그 자리에서 사로잡힌다', function () {
+      /* 그냥 지우면 판에서 사람이 조용히 사라져 등용할 거리가 준다 */
+      var s = campSet();
+      if (!s) { return false; }
+      var ids = s.cp.officers.slice();
+      var mine = R.citiesOf('cao'), i;
+      for (i = 0; i < mine.length; i++) { R.city(mine[i]).force = 'jue'; }
+      var res = W.resolveCamp(s.cp);
+      var caught = ids.every(function (id) { return R.state().captives[id] === 'luoyang'; });
+      return !!res && res.kind === 'disband' && caught && W.camps().length === 0 &&
+        ('돌아갈 성이 없어져 장수 ' + ids.length + '명이 낙양 앞에서 사로잡혔다');
+    });
+
     /* ── 외교 · 계략 ─────────────────────────────────── */
 
     t('맹약이 있으면 칠 수 없다', function () {
@@ -699,6 +854,18 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       return body.indexOf('조조') >= 0 && body.indexOf('충성') >= 0 &&
         bio.length > 0 && body.indexOf(bio.slice(0, 10)) >= 0 &&
         ('열전이 붙는다 — "' + bio.slice(0, 18) + '…"');
+    });
+
+    t('진영 칸이 나가 있는 원정을 보여 준다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      DG.ui.openSheet('camp');
+      var body = document.getElementById('sheet-body').innerHTML;
+      var acts = document.querySelectorAll('#sheet-body [data-act^="camp-"]').length;
+      var badge = document.querySelector('#dock [data-sheet="camp"] i.badge');
+      DG.ui.closeSheet();
+      return body.indexOf('낙양') >= 0 && acts === 3 && !!badge && badge.textContent === '1' &&
+        ('낙양 포위가 뜨고 손잡이 ' + acts + '개 · 독 배지 ' + badge.textContent);
     });
 
     t('세력 고르기 화면에 열세 깃발이 뜬다', function () {

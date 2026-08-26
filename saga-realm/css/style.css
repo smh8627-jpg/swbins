@@ -1072,6 +1072,10 @@ body.tilted3 #vignette {
 .gearname small { font-weight: 400; margin-left: 4px; }
 
 
+/* 진영(원정) — 보급·증원 버튼을 나란히 */
+.camp-acts { display: flex; gap: 6px; margin-top: 8px; }
+.camp-acts .btn { flex: 1; }
+
 /* ── 사가국지 ─────────────────────────────────────────────── */
 #camp-bg {
   position: fixed; inset: 0; z-index: 0;

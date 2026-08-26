@@ -97,14 +97,18 @@
       R.setGov(cities[i], here.length ? here[0].id : null);
     }
 
-    /* 2) 싸울 만한가 — 살림보다 먼저 본다(장수를 명령에 다 써 버리면 못 친다) */
+    /* 2) 진을 친 곳에 군량을 댄다 — 이것이 없으면 모든 포위가 두 달에 끝난다
+          (출진할 때 들고 나가는 군량이 두 달치다) */
+    acted.supply = trySupply(forceId);
+
+    /* 3) 싸울 만한가 — 살림보다 먼저 본다(장수를 명령에 다 써 버리면 못 친다) */
     acted.march = tryWar(forceId, cr);
 
-    /* 3) 계략 · 외교 — 각각 한 달에 한 번까지 */
+    /* 4) 계략 · 외교 — 각각 한 달에 한 번까지 */
     if (Math.random() < cr.plotRate) { acted.plot = tryPlot(forceId); }
     if (Math.random() < cr.envoyRate) { acted.envoy = tryEnvoy(forceId); }
 
-    /* 4) 남은 장수는 내정 */
+    /* 5) 남은 장수는 내정 */
     for (i = 0; i < cities.length; i++) {
       var ready = R.readyAt(cities[i]);
       for (var g = 0; g < ready.length; g++) {
@@ -117,6 +121,30 @@
       }
     }
     return acted;
+  }
+
+  /**
+   * 진을 친 곳에 **군량만** 댄다.
+   * 병력 증원은 사람 쪽 손잡이로 남겨 둔다 — AI 가 달마다 뒷마당을 비워 진영에
+   * 몰아주면 균형이 통째로 달라진다(가늠·전투는 그대로인데 판이 쓸려 나간다).
+   * 보내는 성의 두 달치는 남긴다 — 대 주다 제 성이 굶으면 그게 더 아프다.
+   */
+  function trySupply(forceId) {
+    var R = global.DG.rtk, war = global.DG.war;
+    if (!war.campsOf) { return null; }
+    var list = war.campsOf(forceId), sent = 0, i;
+    for (i = 0; i < list.length; i++) {
+      var cp = list[i];
+      var home = R.city(cp.from);
+      if (!home || home.force !== forceId) { continue; }
+      var eat = Math.round(cp.troops / 1000 * R.FOOD_PER_1000);
+      var want = Math.max(0, eat * 2 - cp.food);
+      var spare = Math.max(0, home.food - R.eatOf(cp.from) * 2);
+      var food = Math.min(want, spare);
+      if (food < 100) { continue; }
+      if (war.supply(cp.id, 0, food, cp.from).ok) { sent += food; }
+    }
+    return sent || null;
   }
 
   /** 그 성과 맞닿은 적 가운데 가장 센 수비 */
@@ -299,7 +327,8 @@
     CREED: CREED, creedOf: creedOf,
     pickOrder: pickOrder, bestFor: bestFor,
     runForce: runForce, threatAt: threatAt, spareOf: spareOf,
-    gatherable: gatherable, gather: gather, tryWar: tryWar, tryPlot: tryPlot, tryEnvoy: tryEnvoy,
+    gatherable: gatherable, gather: gather,
+    tryWar: tryWar, trySupply: trySupply, tryPlot: tryPlot, tryEnvoy: tryEnvoy,
     runAll: runAll
   };
 })(window);

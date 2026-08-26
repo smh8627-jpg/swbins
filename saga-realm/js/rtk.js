@@ -80,6 +80,7 @@
       s.rtk = {
         started: false, year: START_YEAR, month: 1, me: null,
         cities: {}, forces: {}, officers: {}, captives: {},
+        camps: [], campSeq: 0,
         result: null, turn: 0
       };
     }
@@ -128,6 +129,7 @@
     st.year = START_YEAR; st.month = 1; st.turn = 0;
     st.me = meId; st.result = null;
     st.cities = {}; st.forces = {}; st.officers = {}; st.captives = {};
+    st.camps = []; st.campSeq = 0;
 
     var i, j;
 
@@ -443,7 +445,11 @@
       c = st.cities[k];
       if (!c.force) { continue; }
 
-      if (harvest) { c.food += foodOf(k); }
+      /* 에워싸인 성은 들에 나가지 못한다 — **수확을 못 거둔다**.
+         이것이 없으면 긴 포위가 수비 쪽에 아무 값도 물리지 못해,
+         "성문을 닫고 버틴다" 가 언제나 옳은 수가 된다 */
+      var sieged = global.DG.war ? global.DG.war.besieged(k) : false;
+      if (harvest && !sieged) { c.food += foodOf(k); }
       c.food -= eatOf(k);
       if (c.food < 0) {
         /* 굶으면 병사가 흩어진다 — 이 판에서 가장 아픈 벌이다 */
@@ -455,8 +461,8 @@
         }
       }
 
-      /* 인구 — 치안과 논밭이 사람을 부른다 */
-      var grow = c.pop * 0.006 * (c.agri / 320) * (secMul(k) * 2 - 0.8);
+      /* 인구 — 치안과 논밭이 사람을 부른다 (에워싸인 성은 늘지 않는다) */
+      var grow = sieged ? 0 : c.pop * 0.006 * (c.agri / 320) * (secMul(k) * 2 - 0.8);
       var dz = c.disaster ? disasterByKey(c.disaster) : null;
       if (dz && dz.pop) { grow += c.pop * dz.pop; }
       if (c.sec < 35) { grow -= c.pop * 0.008; }

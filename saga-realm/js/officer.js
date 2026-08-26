@@ -60,10 +60,13 @@
    *   done   이 달에 명령을 이미 썼는가
    *   hurt   부상 — 남은 달 수 (0 이면 성하다)
    *   feats  세운 공 (승진·상 판단에 쓴다)
+   *   camp   원정 나가 있는 진영 id (null 이면 성에 있다)
    */
   function rec(id) {
     var m = global.DG.rtk.state().officers;
-    if (!m[id]) { m[id] = { force: null, city: null, loyal: 50, done: false, hurt: 0, feats: 0 }; }
+    if (!m[id]) {
+      m[id] = { force: null, city: null, loyal: 50, done: false, hurt: 0, feats: 0, camp: null };
+    }
     return m[id];
   }
 
@@ -81,11 +84,17 @@
     return r;
   }
 
-  /** 그 도시에 있는, 그 세력 소속 무장 */
+  /**
+   * 그 도시에 있는, 그 세력 소속 무장.
+   * **원정 나간 사람(`camp`)은 빠진다** — 성에 없는 사람이 내정을 하거나
+   * 수비에 서면, 군대를 내보내고도 아무것도 잃지 않은 셈이 된다.
+   * (봉급은 그대로 나간다 — `ofForce` 는 진중에 있는 사람도 센다)
+   */
   function atCity(cityId, forceId) {
     var m = global.DG.rtk.state().officers, out = [], k;
     for (k in m) {
       if (!Object.prototype.hasOwnProperty.call(m, k)) { continue; }
+      if (m[k].camp) { continue; }
       if (m[k].city !== cityId) { continue; }
       if (forceId === undefined ? false : (m[k].force !== forceId)) { continue; }
       var h = find(k);

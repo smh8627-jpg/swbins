@@ -73,13 +73,12 @@
     els.encounter.addEventListener('click', onAct);
 
     core.on('toast', toast);
-    core.on('changed', function () { renderTop(); renderMap(); renderSheet(); });
+    core.on('changed', function () { renderTop(); renderMap(); renderSheet(); syncDock(); });
     core.on('rtk:battle', function (rep) {
-      if (rep.from && R().city(rep.from) && R().city(rep.from).force === R().me()) {
-        lastBattle = rep; showBattle(rep);
-      } else if (rep.taken && rep.to && R().isMine(rep.to) === false &&
-                 rep.log && rep.relief !== undefined) { /* 남의 싸움은 기록으로만 */ }
+      /* 내 세력이 친 싸움만 띄운다. 진영에서 벌어진 것(달을 넘긴 원정)도 여기로 온다 */
+      if (rep.force === R().me()) { lastBattle = rep; showBattle(rep); }
     });
+    core.on('rtk:camp', function () { syncDock(); });
     core.on('rtk:end', function (kind) { showEnd(kind); });
 
     if (!R().state().started) { showForcePick(); }
@@ -139,6 +138,12 @@
     } else if (a === 'march') {
       doMarch(g('data-from'), g('data-to'));
       return;
+    } else if (a === 'camp-food' || a === 'camp-men') {
+      doSupply(g('data-id'), a === 'camp-men');
+      return;
+    } else if (a === 'camp-quit') {
+      var wr = global.DG.war.withdraw(g('data-id'));
+      toast(wr.ok ? '↩️ 포위를 풀었습니다' : wr.why);
     } else if (a === 'plot') {
       var pr = global.DG.diplo.plot(g('data-kind'), g('data-by'), openCityId, null);
       toast(pr.ok ? pr.text : pr.why);
@@ -181,6 +186,23 @@
     }
     showBattle(rep);
     renderTop(); renderMap(); renderSheet();
+  }
+
+  /** 진영에 군량이나 병력을 보낸다 */
+  function doSupply(campId, men) {
+    var W = global.DG.war;
+    var cp = W.campById(campId);
+    if (!cp) { toast('없는 진영입니다'); return; }
+    var home = R().city(cp.from);
+    if (!home || home.force !== R().me()) { toast('보급할 성이 없습니다'); return; }
+    var have = men ? home.troops : home.food;
+    var n = parseInt(prompt((men ? '병력' : '군량') + '을 얼마나 보낼까요? (' +
+      CD.find(cp.from).name + ' 에 ' + core.fmt(have) + ')',
+      String(Math.floor(have * 0.4))), 10);
+    if (!(n > 0)) { return; }
+    var res = men ? W.supply(campId, n, 0, cp.from) : W.supply(campId, 0, n, cp.from);
+    toast(res.ok ? '🚚 보냈습니다 — 치중 ' + res.left + '달치' : res.why);
+    renderTop(); renderMap(); renderSheet(); syncDock();
   }
 
   /* ── 상단 ─────────────────────────────────────────────── */
@@ -261,6 +283,8 @@
           '" class="ring"/>' : '') +
         (c.disaster ? '<text class="rdis" x="' + (d.x + rad + 0.6) + '" y="' + (d.y - rad) +
           '">' + R().disasterByKey(c.disaster).emoji + '</text>' : '') +
+        (global.DG.war.besieged(d.id) ? '<text class="rdis" x="' + (d.x - rad - 2.4) +
+          '" y="' + (d.y - rad) + '">🏕️</text>' : '') +
         '<text class="rlab" x="' + d.x + '" y="' + (d.y + rad + 2.6) + '">' + esc(d.name) + '</text>' +
         '</g>';
     }
@@ -281,8 +305,8 @@
 
   /* ── 시트 ─────────────────────────────────────────────── */
 
-  var SHEET_TITLE = { city: '🏯 성', officers: '👤 무장', diplo: '🤝 외교',
-                      school: '📚 학당', log: '📜 기록' };
+  var SHEET_TITLE = { city: '🏯 성', officers: '👤 무장', camp: '🏕️ 진영',
+                      diplo: '🤝 외교', school: '📚 학당', log: '📜 기록' };
 
   function openSheet(name) {
     openTab = name;
@@ -313,12 +337,22 @@
     for (var i = 0; i < bs.length; i++) {
       bs[i].classList.toggle('on', bs[i].getAttribute('data-sheet') === openTab);
     }
+    /* 나가 있는 원정 수 — 진영은 눌러 보지 않으면 잊기 쉬운 칸이다 */
+    var cb = els.dock.querySelector('[data-sheet="camp"]');
+    if (!cb) { return; }
+    var n = R().state().started ? global.DG.war.campsOf(R().me()).length : 0;
+    var badge = cb.querySelector('i.badge');
+    if (n > 0) {
+      if (!badge) { badge = document.createElement('i'); badge.className = 'badge'; cb.appendChild(badge); }
+      badge.textContent = String(n);
+    } else if (badge) { badge.parentNode.removeChild(badge); }
   }
 
   function renderSheet() {
     if (!openTab || !R().state().started) { return; }
     var v = openTab === 'city' ? viewCity()
           : openTab === 'officers' ? viewOfficers()
+          : openTab === 'camp' ? viewCamp()
           : openTab === 'diplo' ? viewDiplo()
           : openTab === 'school' ? viewSchool() : viewLog();
     els['sheet-body'].innerHTML = v;
@@ -525,6 +559,61 @@
         '" data-to="' + openCityId + '">⚔️ 친다</button></div>';
     }
     return html + '</div>';
+  }
+
+  /* ── 진영 (여러 달에 걸치는 원정) ─────────────────────── */
+
+  function viewCamp() {
+    var W = global.DG.war;
+    var list = W.campsOf(R().me());
+    if (!list.length) {
+      return '<div class="hint">나가 있는 원정이 없습니다.<br><br>' +
+        '남의 성을 눌러 <b>친다</b> 를 고르면, 그 달에 못 떨어뜨린 군대는 ' +
+        '물러나지 않고 성 밖에 <b>진(陣)</b> 을 칩니다. 진영은 달마다 한 번씩 더 치고, ' +
+        '<b>치중이 바닥나거나 사기가 꺾이면 스스로 물러납니다</b>.</div>';
+    }
+    var html = '<div class="sec"><h4>나가 있는 원정 <span class="muted">' + list.length + '</span></h4>' +
+      '<small class="muted">출진할 때 들고 나가는 군량은 <b>두 달치</b>입니다. ' +
+      '그보다 길게 에워싸려면 맞닿은 우리 성에서 <b>보급</b>해야 합니다. ' +
+      '에워싸인 성은 그동안 <b>수확을 거두지 못합니다</b>.</small></div>';
+    for (var i = 0; i < list.length; i++) { html += campCard(list[i]); }
+    return html;
+  }
+
+  function campCard(cp) {
+    var W = global.DG.war;
+    var d = CD.find(cp.to), to = R().city(cp.to);
+    var left = W.monthsLeft(cp);
+    var home = R().city(cp.from);
+    var canFeed = !!home && home.force === R().me();
+    var names = cp.officers.map(function (id) {
+      var h = off().find(id);
+      return h ? esc(h.name) : id;
+    }).join(' · ');
+
+    var html = '<div class="card">' +
+      '<div class="stat-row"><span>🏕️ <b>' + esc(d.name) + '</b> 을(를) 에워쌌다</span>' +
+      '<span class="muted">' + cp.months + '달째</span></div>' +
+      '<div class="stat-row"><span class="muted">우리 군</span><b>🪖 ' + core.fmt(cp.troops) +
+      ' · 🌾 ' + core.fmt(cp.food) + ' <span class="muted">(' + left + '달치)</span></b></div>' +
+      '<div class="stat-row"><span class="muted">사기 · 훈련</span><b>' +
+      Math.round(cp.morale * 100) + ' · ' + cp.train + '</b></div>' +
+      '<div class="stat-row"><span class="muted">성 안</span><b>🪖 ' + core.fmt(to.troops) +
+      ' · 🧱 ' + core.fmt(to.wall) + '</b></div>' +
+      '<small class="muted">장수 — ' + names + '</small>';
+
+    if (canFeed) {
+      html += '<div class="camp-acts">' +
+        '<button class="btn tiny" data-act="camp-food" data-id="' + cp.id + '">🌾 보급</button>' +
+        '<button class="btn tiny" data-act="camp-men" data-id="' + cp.id + '">🪖 증원</button></div>' +
+        '<small class="muted">' + esc(CD.find(cp.from).name) + '에서 보냅니다 — 🪖 ' +
+        core.fmt(home.troops) + ' · 🌾 ' + core.fmt(home.food) + '</small>';
+    } else {
+      html += '<div class="hint" style="margin-top:8px">보급할 성이 없습니다 — ' +
+        esc(CD.find(cp.from).name) + ' 이(가) 우리 손을 떠났습니다.</div>';
+    }
+    return html + '<button class="btn tiny wide" data-act="camp-quit" data-id="' + cp.id +
+      '">↩️ 포위를 푼다</button></div>';
   }
 
   /* ── 무장 ─────────────────────────────────────────────── */

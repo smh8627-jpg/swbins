@@ -22,6 +22,7 @@
 <nav id="dock">
   <button data-sheet="city"><span>🏯</span><small>성</small></button>
   <button data-sheet="officers"><span>👤</span><small>무장</small></button>
+  <button data-sheet="camp"><span>🏕️</span><small>진영</small></button>
   <button data-sheet="diplo"><span>🤝</span><small>외교</small></button>
   <button data-sheet="school"><span>📚</span><small>학당</small></button>
   <button data-sheet="log"><span>📜</span><small>기록</small></button>
@@ -72,7 +73,8 @@ window.DG_NO_ACCOUNT = true;
  *   #pick   세력 고르기        #map   지도 (194년, 조조)
  *   #grown  다섯 해 뒤의 지도   #city  성(허창) — 명령표
  *   #enemy  남의 성(낙양) — 계략·출진
- *   #war    전황 보고          #officers 무장   #diplo 외교   #school 학당
+ *   #war    전황 보고          #camp  진영 (달을 넘긴 원정)
+ *   #officers 무장   #diplo 외교   #school 학당
  */
 (function () {
   var C = DG.core, R = DG.rtk, off = DG.off, W = DG.war;
@@ -110,6 +112,16 @@ window.DG_NO_ACCOUNT = true;
     from.troops = Math.round(to.troops * 2.4); from.food = 999999;
     var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
     DG.ui.showBattle(W.march('chenliu', 'luoyang', lead, from.troops - 1));
+  } else if (scene === 'camp') {
+    /* 낙양 앞에 진을 세워 둔다 — 한 달에 안 떨어지는 크기로 친다 */
+    var cf = R.city('chenliu'), ct = R.city('luoyang');
+    cf.troops = Math.round(ct.troops * 1.5); cf.food = 999999;
+    var clead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+    W.march('chenliu', 'luoyang', clead, cf.troops - 1);
+    var cp = W.campsOf('cao')[0];
+    if (cp) { cp.months = 3; cp.morale = 0.82; }     // 석 달째 에워싼 그림
+    DG.ui.closeEnc();                                // 전황 카드가 시트를 가린다
+    DG.ui.openSheet('camp');
   } else if (scene === 'officers') {
     DG.ui.openSheet('officers');
   } else if (scene === 'diplo') {
