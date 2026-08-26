@@ -49,6 +49,12 @@
     /* 적이 사라질 때 — 원작의 그 짧은 '펑' */
     kill:   { gap: 0.05, l: [{ v: 'noise', dur: 0.14, lp: 2600, lp2: 300, gain: 0.14 },
                              { v: 'tone', f: 520, f2: 160, dur: 0.14, wave: 'triangle', gain: 0.10 }] },
+    /* 급소(急所) — 원작의 크리티컬. 타격음 위에 **맑은 한 음**을 얹어 가른다.
+       귀가 먼저 안다 — 숫자를 읽기 전에 손이 반응한다 */
+    crit:   { gap: 0.05, l: [{ v: 'noise', dur: 0.08, lp: 3200, lp2: 600, gain: 0.16 },
+                             { v: 'tone', f: 1568, f2: 2093, dur: 0.10, wave: 'sine', gain: 0.10 },
+                             { v: 'tone', f: 780, f2: 340, dur: 0.09, wave: 'square', gain: 0.07 }] },
+
     /* 보스 — 등장할 때 한 번, 달려들기 직전에 한 번 */
     boss:   { gap: 0.5,  l: [{ v: 'tone', f: 160, f2: 96, dur: 0.7, wave: 'sawtooth', gain: 0.16 },
                              { v: 'noise', dur: 0.5, lp: 700, lp2: 130, gain: 0.16 }] },

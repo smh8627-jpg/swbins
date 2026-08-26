@@ -39,6 +39,14 @@
   var GAIN_GOLD = core.tuned('gain.goldMul', 1);// 금 배수
   var DROP_POTION = core.tuned('drop.potion', 0.14);  // 탕약이 떨어질 확률
   var BOSS_COOL = core.tuned('boss.coolMul', 1);// 보스가 다시 나오기까지 (배수)
+  /* 전투 연출(2026-08-26) — 판정에 닿는 것은 이 셋뿐이다.
+     화면 흔들림·먼지·죽는 모습은 side-view.js 에만 있고 여기서는 모른다.
+     **이 셋만 때릴 때마다 손잡이를 읽는다.** 다른 규칙 값은 켜질 때 한 번 읽지만
+     (그래야 한 판 안에서 물리가 안 흔들린다), 이 셋은 어드민에서 눌러 보며 맞추는
+     수라 곧바로 들어야 값이 있다. 한 번 더 읽는 값이 그만큼 싸기도 하다. */
+  function critRate() { return core.tuned('crit.rate', 0.15); }   // 급소가 터질 확률
+  function critMul() { return core.tuned('crit.mul', 1.6); }      // 그때 곱하는 값
+  function knockPow() { return core.tuned('hit.knock', 62); }     // 맞은 적이 밀리는 힘
 
   /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
   function sfx(key) {
@@ -430,13 +438,28 @@
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
 
+  /**
+   * 한 대 친다.
+   * **급소(急所)** — 원작의 크리티컬이다. 같은 무예를 같은 적에게 써도 수치가 갈려야
+   * 손이 계속 간다. 확률과 배수는 손잡이로 열려 있다(어드민 '균형 손잡이').
+   * **넉백** — 맞은 적이 뒤로 밀린다. 위치만 바뀌고 피해는 그대로다 —
+   * 판정을 흔들지 않으면서 "때렸다" 는 감각을 주는 가장 싼 값이다.
+   * 다만 **보스는 밀리지 않는다**(밀리면 달려드는 패턴이 뜻을 잃는다).
+   */
   function strike(e, mul) {
-    var dmg = atkOf() * (mul || 1) * (0.88 + Math.random() * 0.24);
+    var crit = Math.random() < critRate();
+    var dmg = atkOf() * (mul || 1) * (0.88 + Math.random() * 0.24) * (crit ? critMul() : 1);
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
-    e.hurt = 0.22;
-    fx.push({ t: 'hit', x: e.x + e.w / 2, y: e.y, v: dmg, life: 0.6 });
-    sfx('hit');
+    e.hurt = crit ? 0.3 : 0.22;
+    if (!e.boss) {
+      var away = (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1;
+      e.kx = (e.kx || 0) + away * knockPow() * (crit ? 1.5 : 1) * (mul >= 2 ? 1.4 : 1);
+    }
+    fx.push({ t: 'hit', x: e.x + e.w / 2, y: e.y, v: dmg, life: 0.6, crit: crit });
+    /* 화면 층이 읽는다 — 큰 것은 화면이 흔들리고, 손이 한 박자 멎는다 */
+    if (crit || dmg >= 100) { fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.22, big: crit }); }
+    sfx(crit ? 'crit' : 'hit');
     if (e.hp <= 0) { kill(e); }
   }
 
@@ -469,6 +492,11 @@
     core.emit('side:kill', { ref: e.ref, boss: !!e.boss, lv: lv, stage: run.stage.key });
     if (global.DG.hero.awardParty) { global.DG.hero.awardParty((2 + lv) * (e.boss ? 8 : 1)); }
     fx.push({ t: 'pop', x: e.x + e.w / 2, y: e.y, life: e.boss ? 0.9 : 0.5 });
+    /* 뒤로 넘어가며 사라진다 — 원작에서 몹이 죽던 그 모습이다(화면 층이 그린다) */
+    fx.push({ t: 'fall', x: e.x + e.w / 2, y: e.y, w: e.w, h: e.h,
+              dir: (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1,
+              ref: e.ref, boss: !!e.boss, life: e.boss ? 1.1 : 0.55 });
+    if (e.boss) { fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.6, big: true }); }
     sfx(e.boss ? 'bosskill' : 'kill');
 
     var idx = run.enemies.indexOf(e);
@@ -501,6 +529,8 @@
     if (b && b.guard) { cut = Math.min(0.85, cut + b.guard); }   // 철갑 같은 것
     run.hp -= Math.max(1, Math.round(amount * (1 - cut)));
     sfx('hurt');
+    fx.push({ t: 'ouch', x: p.x, y: p.y, life: 0.45 });
+    fx.push({ t: 'shake', x: p.x, y: p.y, life: 0.18, big: false });
     p.hurt = 0.3;
     p.invuln = HIT_COOL;
     if (run.hp <= 0) { die(); }
@@ -681,6 +711,7 @@
 
       /* 중력 · 발판 */
       var prevBottom = p.y + P_H;
+      p.vyPrev = p.vy;                        // 착지 먼지가 읽는다 (닿는 순간엔 0 이 된다)
       p.vy += GRAV * dt;
       p.y += p.vy * dt;
       var bottom = p.y + P_H;
@@ -700,7 +731,11 @@
           }
         }
       }
-      if (p.onGround && wasFalling) { sfx('land'); }
+      if (p.onGround && wasFalling) {
+        sfx('land');
+        /* 세게 떨어졌을 때만 먼지가 인다 — 계단을 걸어 내려갈 때마다 일면 어지럽다 */
+        if (p.vyPrev > 620) { fx.push({ t: 'dust', x: p.x + P_W / 2, y: p.y + P_H, life: 0.32 }); }
+      }
 
       /* 떨어지다가 줄에 닿았을 때 ↑ 를 누르고 있으면 그대로 매달린다 */
       if (!p.onGround && input.up) {
@@ -787,6 +822,8 @@
             e.chargeCd = 5 + Math.random() * 3;
             sfx('charge');
             fx.push({ t: 'ring', x: e.x + e.w / 2, y: e.y + e.h / 2, r: 46, life: 0.3 });
+            /* 소리만으로는 못 듣는 사람이 있다 — 화면에도 한 박자 띄운다 */
+            fx.push({ t: 'warn', x: e.x + e.w / 2, y: e.y, life: 0.9 });
           }
         }
       }
@@ -813,8 +850,14 @@
         }
       }
       e.x += (holding ? 0 : e.dir * e.spd * (near ? 1.25 : 0.7) * chargeMul) * dt;
-      if (e.x < 20) { e.x = 20; e.dir = 1; }
-      if (e.x > stg.width - 40) { e.x = stg.width - 40; e.dir = -1; }
+      /* 밀린 만큼 미끄러지고 곧 잦아든다 — 맞는 동안은 못 붙는다는 뜻이기도 하다 */
+      if (e.kx) {
+        e.x += e.kx * dt;
+        e.kx *= Math.max(0, 1 - dt * 9);
+        if (Math.abs(e.kx) < 4) { e.kx = 0; }
+      }
+      if (e.x < 20) { e.x = 20; e.dir = 1; e.kx = 0; }
+      if (e.x > stg.width - 40) { e.x = stg.width - 40; e.dir = -1; e.kx = 0; }
       e.cd -= dt;
       if (overlap({ x: p.x, y: p.y, w: P_W, h: P_H }, e) && e.cd <= 0) {
         e.cd = 1.0;

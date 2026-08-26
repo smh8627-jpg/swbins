@@ -70,6 +70,18 @@
 
     camX = core.clamp(p.x + S.P_W / 2 - W / 2, 0, Math.max(0, stg.width - W));
 
+    /* 화면 흔들림 — **화면 층에만 있다.** side.js 는 'shake' 한 줄을 남길 뿐이고
+       세기도 위상도 여기서 정한다. 그래서 흔들림을 꺼도 판정은 한 자도 안 바뀐다.
+       (사가고의 duel.js 가 판정 층과 화면 층을 가른 것과 같은 자리다) */
+    var sh2 = shakeOf(S.fx()), sx = 0, sy = 0;
+    if (sh2 > 0.2) {
+      var ph = Date.now() / 18;
+      sx = Math.sin(ph) * sh2;
+      sy = Math.cos(ph * 1.7) * sh2 * 0.6;
+    }
+    ctx.save();
+    ctx.translate(Math.round(sx), Math.round(sy));
+
     /* 하늘 */
     var g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, stg.sky[0]);
@@ -156,8 +168,39 @@
 
     drawMe(p);
     drawFx();
+    ctx.restore();
+
+    /* 흔들리지 않는 것 — 조작에 쓰는 것은 흔들리면 안 읽힌다 */
     drawBossBar();
     drawMiniMap(run);
+    drawOuch();
+  }
+
+  /** 지금 얼마나 흔들려야 하나 — fx 의 남은 목숨에서 곧바로 낸다(따로 상태를 안 둔다) */
+  function shakeOf(list) {
+    var amp = 0, i;
+    for (i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (f.t !== 'shake') { continue; }
+      var span = f.big ? 0.22 : 0.18;
+      amp = Math.max(amp, (f.big ? 8 : 3.6) * Math.min(1, Math.max(0, f.life / span)));
+    }
+    return amp;
+  }
+
+  /** 맞았을 때 화면 가장자리가 붉어진다 — 체력 막대를 안 봐도 안다 */
+  function drawOuch() {
+    var list = S.fx(), a = 0, i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].t === 'ouch') { a = Math.max(a, Math.min(1, list[i].life / 0.45)); }
+    }
+    if (a <= 0.02) { return; }
+    var g2 = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.28,
+                                      W / 2, H / 2, Math.max(W, H) * 0.62);
+    g2.addColorStop(0, 'rgba(200,40,40,0)');
+    g2.addColorStop(1, 'rgba(200,40,40,' + (a * 0.42) + ')');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, W, H);
   }
 
   /**
@@ -460,17 +503,76 @@
       var f = list[i];
       var x = f.x - camX;
       if (f.t === 'hit') {
-        /* 데미지 숫자 — 원작처럼 **굵고 크게, 검은 테를 둘러** 위로 튄다 */
+        /* 데미지 숫자 — 원작처럼 **굵고 크게, 검은 테를 둘러** 위로 튄다.
+           **급소는 한눈에 갈린다** — 더 크고, 붉은 금빛이고, 뒤에 느낌표가 붙고,
+           처음 한 박자 부풀었다 가라앉는다(원작의 크리티컬 숫자가 그렇다) */
         var a = Math.min(1, f.life * 2.2);
         var rise = (0.6 - f.life) * 52;
-        var big = f.v >= 100;
-        ctx.font = '900 ' + (big ? 21 : 17) + 'px "Malgun Gothic", system-ui';
+        /* 한 번에 여럿을 치면 숫자가 겹쳐 한 덩어리로 읽힌다(주위를 쓰는 무예가 그렇다.
+           실제로 "24"·"42"·"35" 셋이 "244235" 로 보였다). **층을 쌓아 올린다** —
+           같은 순간에 가까이서 난 숫자를 세어 그만큼 위로 올린다. 판정에는 닿지 않고,
+           세는 값이 fx 목록의 순서라 늘 같은 자리에 선다 */
+        var stack = 0, si;
+        for (si = 0; si < i; si++) {
+          var g0 = list[si];
+          if (g0.t === 'hit' && Math.abs(g0.life - f.life) < 0.002 &&
+              Math.abs(g0.x - f.x) < 52) { stack++; }
+        }
+        rise += stack * 21;
+        x += (core.hash2(Math.round(f.x), Math.round(f.y)) - 0.5) * 12;
+        var big = f.v >= 100 || f.crit;
+        var pop = f.crit ? (1 + Math.max(0, f.life - 0.44) * 2.6) : 1;
+        var size = (f.crit ? 25 : (big ? 21 : 17)) * pop;
+        ctx.font = '900 ' + size.toFixed(1) + 'px "Malgun Gothic", system-ui';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = f.crit ? 4.5 : 3.5;
+        ctx.strokeStyle = 'rgba(30,24,20,' + a + ')';
+        var txt = f.crit ? (f.v + '!') : String(f.v);
+        ctx.strokeText(txt, x, f.y - rise);
+        ctx.fillStyle = (f.crit ? 'rgba(255,150,70,'
+                                : (big ? 'rgba(255,196,86,' : 'rgba(255,240,190,')) + a + ')';
+        ctx.fillText(txt, x, f.y - rise);
+      } else if (f.t === 'fall') {
+        /* 죽는 모습 — **뒤로 넘어가며 흐려진다.** 원작에서 몹이 죽던 그 모습이다.
+           적을 목록에서 이미 뺀 뒤라 여기서만 그린다(판정에는 없는 몸이다) */
+        var span = f.boss ? 1.1 : 0.55;
+        var k = 1 - Math.min(1, f.life / span);        // 0 → 1 로 간다
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - k * 1.1);
+        ctx.translate(x + f.dir * k * 46, f.y + f.h / 2 + k * k * 40);
+        ctx.rotate(f.dir * k * 1.5);
+        ctx.fillStyle = (f.ref && f.ref.color) ? f.ref.color : 'rgba(60,48,40,0.85)';
+        ctx.fillRect(-f.w / 2, -f.h / 2, f.w, f.h * 0.9);
+        ctx.fillStyle = 'rgba(0,0,0,0.30)';
+        ctx.fillRect(-f.w / 2, -f.h / 2 + f.h * 0.55, f.w, f.h * 0.35);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillRect(-f.w / 2, -f.h / 2, f.w, 4);
+        ctx.restore();
+      } else if (f.t === 'dust') {
+        /* 착지 먼지 — 세게 떨어졌을 때만 인다 */
+        var dk = 1 - Math.min(1, f.life / 0.32);
+        ctx.globalAlpha = Math.max(0, 0.5 - dk * 0.5);
+        ctx.fillStyle = '#d8cbb4';
+        for (var dq = -1; dq <= 1; dq += 2) {
+          ctx.beginPath();
+          ctx.ellipse(x + dq * (6 + dk * 22), f.y - 3 - dk * 5,
+                      5 + dk * 9, 3 + dk * 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      } else if (f.t === 'warn') {
+        /* 보스가 달려들기 직전 — 소리만으로는 못 듣는 사람이 있다 */
+        var wa = Math.min(1, f.life / 0.9);
+        ctx.font = '900 17px "Malgun Gothic", system-ui';
         ctx.textAlign = 'center';
         ctx.lineWidth = 3.5;
-        ctx.strokeStyle = 'rgba(30,24,20,' + a + ')';
-        ctx.strokeText(f.v, x, f.y - rise);
-        ctx.fillStyle = (big ? 'rgba(255,196,86,' : 'rgba(255,240,190,') + a + ')';
-        ctx.fillText(f.v, x, f.y - rise);
+        ctx.strokeStyle = 'rgba(30,10,10,' + wa + ')';
+        ctx.strokeText('달려든다!', x, f.y - 26);
+        ctx.fillStyle = 'rgba(255,90,70,' + wa + ')';
+        ctx.fillText('달려든다!', x, f.y - 26);
+      } else if (f.t === 'shake' || f.t === 'ouch') {
+        /* 화면 전체에 쓰는 것 — 여기서는 아무것도 안 그린다(위에서 이미 썼다) */
+        continue;
       } else if (f.t === 'slash') {
         ctx.fillStyle = 'rgba(255,255,255,' + (f.life * 3) + ')';
         ctx.fillRect(x, f.y, f.w, f.h);
@@ -524,6 +626,8 @@
   global.DG = global.DG || {};
   global.DG.sideView = {
     init: init, draw: draw, resize: resize, miniBox: miniBox,
-    _cam: function () { return camX; }
+    _cam: function () { return camX; },
+    /** 진단용 — **흔들림의 세기는 화면 층이 정한다**(side.js 는 'shake' 한 줄만 남긴다) */
+    _shake: shakeOf
   };
 })(window);

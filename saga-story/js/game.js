@@ -191,9 +191,30 @@
     });
   }
 
+  /* 경직(硬直) — 급소가 터지면 손이 한 박자 멎는다. 원작에서 큰 타격에 잠깐
+     화면이 멈추던 그 감각이고, 손맛의 절반이 여기서 나온다.
+     **판정 층이 아니라 이 루프에만 둔다** — 자가진단과 자동 사냥은 update(dt) 를
+     직접 굴리므로 경직에 닿지 않는다. 그래서 균형이 한 자도 안 바뀐다. */
+  var freeze = 0;
+
   function loop(now) {
     var dt = Math.min((now - lastFrame) / 1000, 0.1);
     lastFrame = now;
+
+    /* side.js 가 남긴 'shake' 를 보고 멎는다 — 새 이벤트를 만들지 않았다 */
+    if (S.active()) {
+      var list = S.fx(), i;
+      for (i = 0; i < list.length; i++) {
+        if (list[i].t === 'shake' && list[i].big && !list[i].froze) {
+          list[i].froze = true;
+          freeze = 0.055;
+        }
+      }
+    }
+    if (freeze > 0) {
+      freeze -= dt;
+      dt *= 0.12;                                   // 아주 멎지는 않는다 — 느려질 뿐이다
+    }
 
     global.DG.auto.update(dt);
     S.update(dt);

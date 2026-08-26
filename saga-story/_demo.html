@@ -11,6 +11,7 @@
     #camp   쉬는 중(사냥터 고르기)   #hunt  사냥 중
     #boss   보스 앞                  #field 사냥터 시트
     #dex    도감                     #log   기록
+    #crit   전투 연출(급소·넉백·넘어가는 몸) — 정지 화면으로 볼 유일한 수단
   해시에 chibi·tall·anime·classic 을 붙이면 등신·양식도 바뀐다 (예: #boss-chibi).
 
   이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
@@ -141,6 +142,31 @@ setTimeout(function () {
       /* 카메라가 따라붙도록 한 프레임 굴린다 */
       S.update(0.016);
     }
+  }
+  else if (tab === 'crit') {
+    /* 전투 연출 — 정지 화면으로 볼 수 있는 유일한 수단이다.
+       급소 숫자 · 넉백 · 넘어가는 몸 · 흔들림을 한 장면에 세운다.
+       손잡이를 여기서만 못 박는다(데모는 세이브에 남기지 않는다). */
+    C.setTune('crit.rate', 1);
+    S.enter('field');
+    var r2 = S.raw();
+    if (r2) {
+      var pp = r2.player;
+      pp.x = 300; pp.y = r2.stage.floor - S.P_H; pp.onGround = true;
+      pp.facing = 1; pp.invuln = 9999;
+      r2.mp = r2.mpMax;
+      r2.enemies = r2.enemies.slice(0, 3);
+      r2.enemies.forEach(function (e, i) {
+        e.x = pp.x + 40 + i * 42;
+        e.y = pp.y;
+        e.homeY = pp.y + e.h;
+        e.hp = e.hpMax = i === 0 ? 1 : 99999;      // 첫 하나는 이 한 대에 넘어간다
+        e.cd = 99;
+      });
+      S.castSkill(1);              // 횡소 — 주위를 쓸어 세 마리를 한 번에 친다
+      S.update(0.016);
+    }
+    C.setTune('crit.rate', null);
   }
   else if (['field', 'dex', 'log'].indexOf(tab) >= 0) { DG.ui.openSheet(tab); }
 }, 350);
