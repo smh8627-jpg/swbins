@@ -656,15 +656,21 @@
         S.state().potions = 1;
         C.setTune({ 'enemy.dmgMul': 6 });
       }],
-    ['🏆 다 갖춘 판', 'Lv.40 · 2차 · 무예 끝까지 · 4단 한 벌 · 금 100만',
+    ['🎖️ 3차 전직 직전', 'Lv.44 장군 · 패왕격 8 — 한 레벨만 더 오르면 원수다',
+      function () {
+        C.save.player.level = 44;
+        C.save.job = 'general';
+        C.save.skills = { w_cut: 8, w_whirl: 5, w_rush: 5, w_iron: 5, g_smash: 8, g_roar: 5, g_wall: 5 };
+        equipTier(4);
+        S.state().stage = 'cave';
+      }],
+    ['🏆 다 갖춘 판', 'Lv.60 · 3차 원수 · 무예 끝까지 · 4단 한 벌 · 금 100만',
       function () {
         var p = C.save.player;
-        p.level = 40; p.gold = 1000000; p.feat = 5000;
-        C.save.job = 'general';
-        JD.skillsOf('general').forEach(function (sk) {
-          if (sk.max) { C.save.skills[sk.key] = sk.max; }
-        });
-        JD.skillsOf('warrior').forEach(function (sk) {
+        p.level = 60; p.gold = 1000000; p.feat = 5000;
+        C.save.job = 'marshal';
+        /* 갈래를 거슬러 올라가며 다 찍는다 — skillsOf 가 아랫자리 것도 준다 */
+        JD.skillsOf('marshal').forEach(function (sk) {
           if (sk.max) { C.save.skills[sk.key] = sk.max; }
         });
         equipTier(4);
@@ -683,6 +689,15 @@
         JD.skillsOf('archer').forEach(function (sk) { if (sk.max) { C.save.skills[sk.key] = 5; } });
         JD.skillsOf('sniper').forEach(function (sk) { if (sk.max) { C.save.skills[sk.key] = 3; } });
         equipTier(4);
+      }],
+    ['🦅 3차 넷을 한 번에', 'Lv.60 · 네 갈래의 끝을 차례로 눌러 본다 (지금은 비장)',
+      function () {
+        C.save.player.level = 60;
+        C.save.job = 'flier';
+        JD.skillsOf('flier').forEach(function (sk) { if (sk.max) { C.save.skills[sk.key] = sk.max; } });
+        equipTier(4);
+        S.state().stage = 'cave';
+        S.state().potions = 50;
       }],
     ['🤖 자동 사냥 켬', '자동을 켜고 굴혈로 보낸다',
       function () {

@@ -63,7 +63,7 @@
       else if (k === 'arrowdown' || k === 's') { S.setInput('down', true); }
       else if (k === ' ') { S.setInput('jump', true); }
       else if (k === 'q') { S.drink(); }
-      else if (k >= '1' && k <= '6') { S.castSkill(parseInt(k, 10) - 1); }
+      else if (k >= '1' && k <= '8') { S.castSkill(parseInt(k, 10) - 1); }
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) >= 0) {
         if (e.target === document.body) { e.preventDefault(); }
       }
@@ -167,7 +167,7 @@
             '(줄 위에서 Space 를 누르면 손을 뗍니다)</div>' +
           '<div><b>내려서기</b> ↓ + Space — 밟고 선 발판을 빠져나갑니다</div>' +
           '<div><b>문</b> 사냥터 끝의 빛 앞에서 ↑ — 옆 사냥터로 걸어 넘어갑니다</div>' +
-          '<div><b>공격</b> 1~6 — 무엇이 놓이는지는 직업과 익힌 무예에 따릅니다</div>' +
+          '<div><b>공격</b> 1~8 — 무엇이 놓이는지는 직업과 익힌 무예에 따릅니다</div>' +
           '<div><b>전직</b> Lv.10 에 무사·궁수·협객·방사 중 하나를 고릅니다 (🥋 무예). ' +
             'Lv.25 에 윗자리로 오릅니다 — <b>되돌릴 수 없습니다</b></div>' +
           '<div><b>무예 점수</b> 레벨마다 3점. 무예를 올리면 세지고, ' +

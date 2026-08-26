@@ -651,8 +651,8 @@
         esc(bar[i].name) + '</span><span class="muted">' +
         (bar[i].max ? '레벨 ' + J.levelOf(bar[i].key) : '고정') + '</span></div>';
     }
-    html += '<small class="muted">키 1~6 · 화면 아래 단추. 자리가 여섯을 넘으면 ' +
-      '앞의 여섯만 놓입니다.</small></div></div>';
+    html += '<small class="muted">키 1~8 · 화면 아래 단추. 자리가 여덟을 넘으면 ' +
+      '<b>윗자리 무예부터</b> 놓입니다 — 3차까지 열리면 한 갈래가 열둘입니다.</small></div></div>';
     return html;
   }
 

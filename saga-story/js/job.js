@@ -16,7 +16,9 @@
   var core = global.DG.core;
   var JD = global.DG.jobData;
 
-  var BAR = 6;                  // 조작 띠에 놓이는 무예 칸
+  /* 조작 띠 여덟 칸(2026-08-26, 3차 전직과 함께 여섯에서 늘렸다).
+     3차까지 열리면 한 갈래의 무예가 열둘이라 여섯 칸에는 새로 얻은 것이 못 든다. */
+  var BAR = 8;                  // 조작 띠에 놓이는 무예 칸
 
   function st() {
     var s = core.save;
@@ -55,12 +57,14 @@
     var j = JD.job(key);
     if (!j || j.from !== core.save.job) { return '지금 자리에서 갈 수 없는 길입니다'; }
     if (core.save.player.level < j.need) { return 'Lv.' + j.need + ' 부터입니다'; }
-    if (j.tier === 2) {
-      /* 윗자리는 **아랫자리 무예를 어느 정도 익혀야** 오른다 (원작의 그 조건이다) */
+    if (j.tier >= 2) {
+      /* 윗자리는 **아랫자리 무예를 어느 정도 익혀야** 오른다 (원작의 그 조건이다).
+         자리가 높을수록 무거워진다 — 2차는 5, 3차는 8. */
+      var need = j.tier >= 3 ? 8 : 5;
       var low = JD.SKILLS.filter(function (s) { return s.job === j.from; });
       var best = 0;
       for (var i = 0; i < low.length; i++) { best = Math.max(best, levelOf(low[i].key)); }
-      if (best < 5) { return '아랫자리 무예 하나를 5 이상 익혀야 합니다'; }
+      if (best < need) { return '아랫자리 무예 하나를 ' + need + ' 이상 익혀야 합니다'; }
     }
     return null;
   }
@@ -119,8 +123,18 @@
    * 지금 쓸 수 있는 무예 — **찍은 것만** 놓인다(무명의 넷은 늘 놓인다).
    * 순서는 데이터 순서 그대로다. 칸은 여섯.
    */
+  /**
+   * 조작 띠 — **윗자리 무예부터** 놓는다.
+   * 3차까지 열리면 한 갈래의 무예가 열둘이라 여덟 칸에도 다 못 든다. 표 순서대로
+   * 아래에서부터 채우면 **새로 얻은 무예가 영영 자리를 못 잡는다**(1차 넷이 앞을 다 먹는다).
+   * 원작에서는 사람이 골라 놓지만 이 판은 자동으로 놓으므로, 윗자리를 먼저 놓는 것이 옳다.
+   * 같은 자리 안에서는 표 순서 그대로다.
+   */
   function bar() {
-    var mine = JD.skillsOf(core.save.job), out = [];
+    var mine = JD.skillsOf(core.save.job).slice().sort(function (a, b) {
+      return (JD.job(b.job).tier || 0) - (JD.job(a.job).tier || 0);
+    });
+    var out = [];
     for (var i = 0; i < mine.length && out.length < BAR; i++) {
       var sk = mine[i];
       if (sk.max === 0) {

@@ -1329,6 +1329,126 @@ window.DG_NO_TUNE = true;
         '진단 우회 동작';
     });
 
+    /* ── 3차 전직 (2026-08-26) ──────────────────────────── */
+
+    t('갈래 넷이 저마다 3차까지 이어진다', function () {
+      /* 갈래를 늘리지 않고 **한 단 더 높였다** — 넷을 다섯으로 늘리면 인물 능력치와
+         무기가 따라가야 한다. from 사슬이 한 군데라도 끊기면 그 갈래가 막힌다. */
+      var ends = JD.JOBS.filter(function (j) { return j.tier === 3; });
+      var ok = ends.length === 4;
+      ends.forEach(function (j) {
+        var chain = [], k = j;
+        while (k) { chain.unshift(k.key); k = k.from ? JD.job(k.from) : null; }
+        if (chain.length !== 4 || chain[0] !== 'none') { ok = false; }
+      });
+      return ok && (ends.map(function (j) { return j.name; }).join(' · '));
+    });
+
+    t('3차는 Lv.45 이고 아랫자리 무예 8 을 요구한다', function () {
+      /* 자리가 높을수록 문턱이 무거워진다 — 2차는 5, 3차는 8. */
+      unlearn();
+      C.save.player.level = 44;
+      J.join('warrior');
+      var i;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }  // 2차의 문턱은 5
+      J.join('general');
+      var tooLow = J.canJoin('marshal');             // 레벨이 모자란다
+      C.save.player.level = 46;
+      var noSkill = J.canJoin('marshal');            // 무예가 모자란다
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      var okNow = J.canJoin('marshal');
+      var joined = J.join('marshal');
+      var out = 'Lv.44 "' + tooLow + '" · 무예 0 "' + noSkill + '" · 8 익힌 뒤 ' + (joined ? '오름' : '못 오름');
+      unlearn();
+      return !!tooLow && !!noSkill && okNow === null && joined &&
+        noSkill.indexOf('8') >= 0 && out;
+    });
+
+    t('3차 무예는 앞 단계를 밟아야 열린다', function () {
+      unlearn();
+      C.save.player.level = 60;
+      J.join('warrior');
+      var i;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      J.join('marshal');
+      var locked = J.canRaise('n_heaven');            // 패왕격 8 이라 이미 열려 있다
+      var lockedToo = J.canRaise('n_banner');         // 철벽 0 — 아직 못 연다
+      for (i = 0; i < 5; i++) { J.raise('w_iron'); }
+      for (i = 0; i < 5; i++) { J.raise('g_wall'); }
+      var openNow = J.canRaise('n_banner');
+      var out = '패왕격 8 → 천붕격 ' + (locked ? '잠김' : '열림') +
+        ' · 철벽 0 → 대장기 ' + (lockedToo ? '잠김' : '열림') +
+        ' · 철벽 5 → ' + (openNow ? '잠김' : '열림');
+      unlearn();
+      return locked === null && !!lockedToo && openNow === null && out;
+    });
+
+    t('조작 띠는 윗자리 무예부터 놓는다', function () {
+      /* 3차까지 열리면 한 갈래의 무예가 열둘이다. 표 순서대로 아래에서부터 채우면
+         **새로 얻은 무예가 영영 자리를 못 잡는다** — 1차 넷이 앞을 다 먹는다. */
+      unlearn();
+      C.save.player.level = 60;
+      J.join('warrior');
+      var i, k;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      J.join('marshal');
+      ['w_whirl', 'w_rush', 'w_iron', 'g_roar', 'g_wall'].forEach(function (key) {
+        for (k = 0; k < 5; k++) { J.raise(key); }
+      });
+      ['n_heaven', 'n_quake', 'n_charge', 'n_banner'].forEach(function (key) { J.raise(key); });
+      var bar = J.bar();
+      var tiers = bar.map(function (sk) { return JD.job(sk.job).tier; });
+      var top = tiers.filter(function (n) { return n === 3; }).length;
+      var out = '띠 ' + bar.length + '칸 · 3차 ' + top + '개 (' +
+        bar.map(function (sk) { return sk.name; }).join(' ') + ')';
+      unlearn();
+      return bar.length === 8 && top === 4 && tiers[0] === 3 && out;
+    });
+
+    t('무예 마흔여덟은 side.js 가 아는 효과 아홉만 쓴다', function () {
+      /* 데이터는 **무엇을 할지만** 적고 어떻게 하는지는 side.js 에만 있다.
+         새 효과를 만들면 그 규칙을 두 곳에 적게 된다 — 3차를 넣으며 하나도 안 늘렸다. */
+      var KNOWN = ['melee', 'aoe', 'bolt', 'arrow', 'volley', 'dash', 'rain', 'buff', 'heal'];
+      var bad = JD.SKILLS.filter(function (sk) { return KNOWN.indexOf(sk.effect) < 0; });
+      return JD.SKILLS.length === 48 && bad.length === 0 &&
+        ('무예 ' + JD.SKILLS.length + ' · 효과 ' + KNOWN.length + ' · 모르는 것 0');
+    });
+
+    t('3차 무예도 실제로 적을 친다', function () {
+      unlearn();
+      if (S.active()) { S.leave(); }
+      C.save.player.level = 60;
+      J.join('warrior');
+      var i;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      J.join('marshal');
+      for (i = 0; i < 3; i++) { J.raise('n_heaven'); }
+      S.enter('field');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      p.x = 200; p.y = run.stage.floor - S.P_H; p.onGround = true; p.facing = 1;
+      run.enemies = [{ ref: { name: '허수아비', kind: 'human', look: {} },
+                       x: p.x + 40, y: p.y, w: 34, h: 34,
+                       hp: 99999, hpMax: 99999, dmg: 0, dir: -1, homeY: p.y + 34,
+                       spd: 0, phase: 0, hurt: 0, cd: 99 }];
+      run.mp = run.mpMax = 999;
+      var bar = J.bar();
+      var at = -1;
+      for (i = 0; i < bar.length; i++) { if (bar[i].key === 'n_heaven') { at = i; } }
+      var before = run.enemies[0].hp;
+      if (at >= 0) { S.castSkill(at); }
+      var dealt = before - run.enemies[0].hp;
+      S.leave();
+      unlearn();
+      return at >= 0 && dealt > 0 && ('천붕격 ' + at + '번 자리 · 피해 ' + dealt);
+    });
+
     /* ── 소리 ───────────────────────────────────────────── */
 
     t('소리는 요청을 다 적는다 — 꺼져 있어도 남는다', function () {
