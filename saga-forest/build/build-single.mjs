@@ -73,7 +73,7 @@ html = html.replace(/<script>\s*\/\* 서비스 워커[\s\S]*?<\/script>/, '');
 
 /* 단독판 표시 — 어디서 온 파일인지 알 수 있게 */
 const stamp = process.env.DG_BUILD_STAMP || '';
-const banner = `<!-- 사가GO 단독 실행판 (build/build-single.mjs 로 생성${stamp ? ' · ' + stamp : ''}) -->\n<title>`;
+const banner = `<!-- 사가의숲 단독 실행판 (build/build-single.mjs 로 생성${stamp ? ' · ' + stamp : ''}) -->\n<title>`;
 html = html.replace('<title>', () => banner);
 
 fs.mkdirSync(DIST, { recursive: true });
@@ -91,7 +91,7 @@ fs.writeFileSync(path.join(DIST, 'play.bat'),
 
 fs.writeFileSync(path.join(DIST, '사용법.txt'),
   [
-    '사가GO 단독 실행판',
+    '사가의숲 단독 실행판',
     '',
     '1) 이 폴더를 통째로 집 PC 로 복사하세요 (USB · 메일 · 클라우드 아무거나).',
     '2) play.bat 을 더블클릭하면 기본 브라우저로 열립니다.',

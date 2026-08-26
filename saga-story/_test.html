@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>사가GO 사냥터 자가진단</title>
+<title>사가스토리 자가진단</title>
 <link rel="stylesheet" href="css/style.css">
 <!-- 원작풍 외피 — 이 한 줄을 빼면 예전 모습으로 돌아온다 (css/maple.css 머리말 참조) -->
 <link rel="stylesheet" href="css/maple.css">
@@ -1202,7 +1202,7 @@ window.DG_NO_TUNE = true;
     });
 
     t('원작풍 외피는 CSS 한 장이고, 그림 양식은 넷째로 들어갔다', function () {
-      /* 역사블로의 css/diablo.css 와 같은 방식 — <link> 한 줄을 빼면 되돌아온다 */
+      /* 사가블로의 css/diablo.css 와 같은 방식 — <link> 한 줄을 빼면 되돌아온다 */
       var links = [], ls = document.querySelectorAll('link[rel="stylesheet"]'), i;
       for (i = 0; i < ls.length; i++) { links.push(ls[i].getAttribute('href')); }
       var skin = links.indexOf('css/maple.css') >= 0;
@@ -1849,7 +1849,7 @@ window.DG_NO_TUNE = true;
 
     var failCount = out.filter(function (s) { return s.indexOf('FAIL') >= 0; }).length;
     document.getElementById('report').innerHTML =
-      '<h3>사가GO 사냥터 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
+      '<h3>사가스토리 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
       out.join('<br>') +
       (errors.length ? '<br><br><b class="fail">런타임 에러</b><br>' + errors.join('<br>') : '');
     document.title = 'RESULT ' + (out.length - failCount) + '/' + out.length;
