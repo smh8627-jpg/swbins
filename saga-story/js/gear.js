@@ -191,9 +191,11 @@
       if (sc.atk) { it.atk = (it.atk || 0) + sc.atk; }
       if (sc.def) { it.def = (it.def || 0) + sc.def; }
       if (sc.hp) { it.hp = (it.hp || 0) + sc.hp; }
+      sfx('scrollok');
       core.log('📜 ' + sc.name + ' 이(가) ' + d.name + ' 에 붙었다 (+' + it.up + ')', 'good');
       core.emit('toast', '✨ 성공! ' + nameOf(it));
     } else {
+      sfx('scrollno');
       core.log('📜 ' + sc.name + ' 이(가) ' + d.name + ' 에서 흩어졌다 (업횟 ' + it.left + ')', 'bad');
       core.emit('toast', '💨 실패 — 업횟 ' + it.left + ' 남음');
     }
@@ -203,6 +205,12 @@
   }
 
   /* ── 상점 ─────────────────────────────────────────────── */
+
+  /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
+  function sfx(key) {
+    var S = global.DG.sfx;
+    if (S) { S.play(key); }
+  }
 
   var SELL_RATE = 0.3;          // 판 값은 산 값의 3할 (원작도 헐값이다)
 
@@ -220,6 +228,7 @@
     if (bagLeft() <= 0) { core.emit('toast', '🎒 가방이 가득 찼습니다'); return false; }
     core.save.player.gold -= d.price;
     put(make(key));
+    sfx('coin');
     core.log('🏪 ' + d.name + ' 을(를) 샀다 · 🪙 -' + core.fmt(d.price), 'info');
     core.persist();
     return true;
@@ -254,6 +263,7 @@
     var got = Math.max(1, Math.round(d.price * SELL_RATE));
     core.save.player.gold += got;
     drop(uid);
+    sfx('coin');
     core.log('🏪 ' + nameOf(it) + ' 을(를) 팔았다 · 🪙 +' + core.fmt(got), 'info');
     core.persist();
     return got;

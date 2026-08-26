@@ -40,6 +40,12 @@
   var DROP_POTION = core.tuned('drop.potion', 0.14);  // 탕약이 떨어질 확률
   var BOSS_COOL = core.tuned('boss.coolMul', 1);// 보스가 다시 나오기까지 (배수)
 
+  /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
+  function sfx(key) {
+    var S = global.DG.sfx;
+    if (S) { S.play(key); }
+  }
+
   var run = null;               // 지금 사냥 중인 판
   var input = { left: false, right: false, jump: false, up: false, down: false };
   var fx = [];
@@ -197,6 +203,7 @@
   /** 줄에 붙는다 */
   function grab(rope) {
     var p = run.player;
+    sfx('grab');
     p.climb = rope;
     p.x = rope.x - P_W / 2;
     p.vx = 0; p.vy = 0;
@@ -331,6 +338,7 @@
     };
     run.enemies.push(e);
     run.boss = e;
+    sfx('boss');
     return e;
   }
 
@@ -389,6 +397,7 @@
     if (input.down && dropThrough()) { return true; }
     p.vy = -JUMP;
     p.onGround = false;
+    sfx('jump');
     return true;
   }
 
@@ -427,6 +436,7 @@
     e.hp -= dmg;
     e.hurt = 0.22;
     fx.push({ t: 'hit', x: e.x + e.w / 2, y: e.y, v: dmg, life: 0.6 });
+    sfx('hit');
     if (e.hp <= 0) { kill(e); }
   }
 
@@ -459,6 +469,7 @@
     core.emit('side:kill', { ref: e.ref, boss: !!e.boss, lv: lv, stage: run.stage.key });
     if (global.DG.hero.awardParty) { global.DG.hero.awardParty((2 + lv) * (e.boss ? 8 : 1)); }
     fx.push({ t: 'pop', x: e.x + e.w / 2, y: e.y, life: e.boss ? 0.9 : 0.5 });
+    sfx(e.boss ? 'bosskill' : 'kill');
 
     var idx = run.enemies.indexOf(e);
     if (idx >= 0) { run.enemies.splice(idx, 1); }
@@ -489,6 +500,7 @@
     var b = buffOn();
     if (b && b.guard) { cut = Math.min(0.85, cut + b.guard); }   // 철갑 같은 것
     run.hp -= Math.max(1, Math.round(amount * (1 - cut)));
+    sfx('hurt');
     p.hurt = 0.3;
     p.invuln = HIT_COOL;
     if (run.hp <= 0) { die(); }
@@ -514,6 +526,7 @@
     s.potions -= 1;
     run.hp = Math.min(run.hpMax, run.hp + Math.round(run.hpMax * 0.45));
     fx.push({ t: 'heal', x: run.player.x, y: run.player.y, life: 0.5 });
+    sfx('potion');
     core.emit('changed');
     return true;
   }
@@ -545,6 +558,8 @@
     if (p.cds[i] > 0 || run.mp < sk.cost) { return false; }
     run.mp -= sk.cost;
     p.cds[i] = sk.cd;
+    var S0 = global.DG.sfx;
+    sfx(sk.cost === 0 ? 'swing' : (S0 ? S0.skillCue(sk.effect) : 'skill'));
 
     var j, e, dx, dy, mul = mulOf(sk);
     var eff = sk.effect;
@@ -647,7 +662,7 @@
       p.vy = 0;
       var mv = input.up ? -CLIMB * dt : (input.down ? CLIMB * dt : 0);
       p.y += mv;
-      if (mv) { p.phase += dt * 7; }
+      if (mv) { p.phase += dt * 7; sfx('climb'); }
       p.x = p.climb.x - P_W / 2;
       var foot = p.y + P_H;
       /* **움직인 방향으로만** 끝을 판정한다 — 아래 끝(바닥)에서 막 잡은 줄이
@@ -669,6 +684,7 @@
       p.vy += GRAV * dt;
       p.y += p.vy * dt;
       var bottom = p.y + P_H;
+      var wasFalling = p.vy > 0;
       p.onGround = false;
 
       if (bottom >= stg.floor) {
@@ -684,6 +700,8 @@
           }
         }
       }
+      if (p.onGround && wasFalling) { sfx('land'); }
+
       /* 떨어지다가 줄에 닿았을 때 ↑ 를 누르고 있으면 그대로 매달린다 */
       if (!p.onGround && input.up) {
         var rr = ropeAt(p.x + P_W / 2, p.y + P_H);
@@ -702,8 +720,10 @@
     }
     var canRest = input.down && p.onGround && !p.climb && !input.left && !input.right && !foeNear;
     if (canRest) {
+      var wasUp = p.resting <= 0.4;
       p.resting += dt;
       if (p.resting > 0.4) {                    // 앉는 데 한 박자
+        if (wasUp) { sfx('sit'); }
         run.hp = Math.min(run.hpMax, run.hp + run.hpMax * 0.020 * dt);
         run.mp = Math.min(run.mpMax, run.mp + run.mpMax * 0.055 * dt);
       }
@@ -765,6 +785,7 @@
           if (e.chargeCd <= 0 && near) {
             e.charge = 1.1;
             e.chargeCd = 5 + Math.random() * 3;
+            sfx('charge');
             fx.push({ t: 'ring', x: e.x + e.w / 2, y: e.y + e.h / 2, r: 46, life: 0.3 });
           }
         }
@@ -787,6 +808,7 @@
               kind: e.ref.look.weapon, life: 2.4
             });
             fx.push({ t: 'aim', x: e.x + e.w / 2, y: e.y, life: 0.22 });
+            sfx('aim');
           }
         }
       }
@@ -810,6 +832,7 @@
       if (Math.abs((d.x) - (p.x + P_W / 2)) < 40 && Math.abs(d.y - (p.y + P_H)) < 60) {
         if (d.kind === 'potion') {
           st().potions += d.n;
+          sfx('potion');
           core.emit('toast', '🧪 탕약 +' + d.n);
         } else if (d.kind === 'gear' || d.kind === 'scroll') {
           var GG = global.DG.gear;
@@ -817,14 +840,17 @@
             if (d.kind === 'gear') {
               var made = GG.make(d.key);
               /* 가방이 가득 차면 **줍지 못하고 그대로 남는다** — 원작의 그 답답함이다 */
-              if (!GG.put(made)) { continue; }
+              if (!GG.put(made)) { sfx('bagfull'); continue; }
+              sfx('gear');
               core.emit('toast', '📦 ' + GG.nameOf(made));
             } else {
               GG.addScroll(d.key, 1);
+              sfx('scroll');
               core.emit('toast', '📜 ' + global.DG.gearData.scroll(d.key).name);
             }
           }
         }
+        if (d.kind === 'gold') { sfx('gold'); }
         run.drops.splice(i, 1);
       }
     }

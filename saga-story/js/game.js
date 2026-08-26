@@ -136,6 +136,22 @@
       });
     }
 
+    /* 소리 — 첫 눌림에서 깨어난다(브라우저 규칙). 그 규칙은 sfx.js 가 스스로 걸어 두므로
+       여기서는 켜고 끄기만 한다. 끈 상태는 세이브(settings.sound)에 남는다 */
+    var soundBtn = document.getElementById('btn-sound');
+    if (soundBtn && global.DG.sfx) {
+      var syncSoundBtn = function () {
+        var on = global.DG.sfx.enabled();
+        soundBtn.textContent = on ? '🔊' : '🔇';
+        soundBtn.classList.toggle('on', on);
+      };
+      syncSoundBtn();
+      soundBtn.addEventListener('click', function () {
+        global.DG.sfx.setEnabled(!global.DG.sfx.enabled());
+        syncSoundBtn();
+      });
+    }
+
     document.getElementById('btn-help').addEventListener('click', showHelp);
   }
 

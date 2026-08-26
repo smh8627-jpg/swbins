@@ -21,6 +21,7 @@
     <button class="icon-btn" id="btn-auto">a</button>
     <button class="icon-btn" id="btn-prop">p</button>
     <button class="icon-btn" id="btn-style">s</button>
+    <button class="icon-btn" id="btn-sound">v</button>
     <button class="icon-btn" id="btn-help">h</button>
     <button class="icon-btn" id="btn-reset">r</button>
   </div>
@@ -82,6 +83,7 @@ window.DG_NO_TUNE = true;
 <script src="js/gear.js"></script>
 <script src="js/job.js"></script>
 <script src="js/quest.js"></script>
+<script src="js/sfx.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/auto.js"></script>
@@ -1325,6 +1327,95 @@ window.DG_NO_TUNE = true;
       /* DG_NO_ACCOUNT 가 켜져 있으면 고정 키로 바로 시작한다 (안 그러면 게임이 안 켜진다) */
       return window.DG_NO_ACCOUNT === true && !document.getElementById('acc-host') &&
         '진단 우회 동작';
+    });
+
+    /* ── 소리 ───────────────────────────────────────────── */
+
+    t('소리는 요청을 다 적는다 — 꺼져 있어도 남는다', function () {
+      /* 판정 층과 소리 층을 가른 것이다(side.js 의 fx 와 같다).
+         그래야 이 진단이 "이때 이 소리를 냈어야 한다" 를 검사할 수 있다 —
+         진단은 아무것도 누르지 않으므로 브라우저가 소리를 늘 잠가 둔다. */
+      var X = DG.sfx;
+      X._clear();
+      var rang = X.play('levelup');
+      return X.ready() === false && rang === false &&
+        X._tail(3).join(',') === 'levelup' && '잠긴 채로도 적힌다';
+    });
+
+    t('없는 소리를 불러도 부르는 쪽이 안 죽는다', function () {
+      var X = DG.sfx;
+      X._clear();
+      var r = X.play('그런소리없음');
+      return r === false && X._tail(2).join(',') === '그런소리없음' && '조용히 흘린다';
+    });
+
+    t('적을 잡으면 타격과 죽음이 소리로 남는다', function () {
+      var X = DG.sfx;
+      C.save.job = 'none';                          // 연참(0번 자리)이 놓이게
+      S.enter('field');
+      var run = S.raw();
+      var p0 = run.player;
+      run.enemies.length = 0;
+      /* 코앞에 한 대면 죽는 적을 하나 세운다 — 소리 둘이 이 순서로 나야 한다 */
+      run.enemies.push({ ref: { name: '허수아비', kind: 'human', look: {} },
+                         x: p0.x + 30, y: p0.y, w: 34, h: 34,
+                         hp: 1, hpMax: 1, dmg: 1, dir: -1, homeY: p0.y + 34,
+                         spd: 0, phase: 0, hurt: 0, cd: 0 });
+      p0.facing = 1;
+      X._clear();
+      S.castSkill(0);
+      var tail = X._tail(8).join(',');
+      S.leave();
+      return tail.indexOf('hit') >= 0 && tail.indexOf('kill') >= 0 && tail;
+    });
+
+    t('무예는 스물여덟이지만 소리는 넷으로 묶인다', function () {
+      /* 하나씩 두면 서로 구별되지 않는다. 귀가 가리는 것은 넷뿐이다 —
+         가까이 벤다 · 멀리 쏜다 · 몸을 두른다 · 낫는다. */
+      var X = DG.sfx;
+      var got = {};
+      ['melee', 'aoe', 'dash', 'bolt', 'arrow', 'volley', 'rain', 'buff', 'heal']
+        .forEach(function (eff) { got[X.skillCue(eff)] = true; });
+      var keys = Object.keys(got).sort().join(',');
+      return keys === 'buff,heal,shot,skill' && keys;
+    });
+
+    t('주문서는 성패가 서로 다른 소리를 낸다', function () {
+      /* 원작에서 화면을 보기 전에 소리로 성패를 안다 — 이 판이 소리를 들인 까닭의 절반이다 */
+      var X = DG.sfx;
+      C.reset();
+      C.save.player.level = 20;
+      var it = G.make('sword1');
+      G.state().inv.push(it);
+      G.equip(it.uid);
+      G.addScroll('atk100', 1);
+      X._clear();
+      G.apply(it.uid, 'atk100');                    // 100% — 반드시 붙는다
+      var okTail = X._tail(4).join(',');
+      G.addScroll('atk10', 1);
+      var tries = 0, noTail = '';
+      while (tries < 60 && noTail.indexOf('scrollno') < 0) {
+        G.addScroll('atk10', 1);
+        it.left = 5;                                // 업횟을 도로 채워 계속 굴린다
+        X._clear();
+        G.apply(it.uid, 'atk10');
+        noTail = X._tail(4).join(',');
+        tries++;
+      }
+      return okTail.indexOf('scrollok') >= 0 && noTail.indexOf('scrollno') >= 0 &&
+        ('성공 ' + okTail + ' · 실패 ' + noTail);
+    });
+
+    t('소리를 끄면 요청은 남되 아무것도 울지 않는다', function () {
+      var X = DG.sfx;
+      var had = X.enabled();
+      X.setEnabled(false);
+      X._clear();
+      var rang = X.play('gold');
+      var seen = X._tail(2).join(',');
+      X.setEnabled(had);
+      return rang === false && seen === 'gold' && C.save.settings.sound === had &&
+        ('꺼짐 → 적힘(' + seen + ') · 울지 않음');
     });
 
     /* ── 어드민 손잡이 ──────────────────────────────────── */

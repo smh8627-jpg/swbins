@@ -81,6 +81,12 @@
 
   /* ── 받기 · 바치기 ────────────────────────────────────── */
 
+  /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
+  function sfx(key) {
+    var S = global.DG.sfx;
+    if (S) { S.play(key); }
+  }
+
   function take(key) {
     var d = QD.find(key);
     if (!d) { return false; }
@@ -92,6 +98,7 @@
     var r = rec(key);
     r.taken = Date.now();
     r.n = 0;                                    // 받은 뒤부터 센다
+    sfx('quest');
     core.log('📋 사명을 받았다 — ' + d.name, 'info');
     core.emit('changed');
     core.persist();
@@ -124,6 +131,7 @@
       bits.push('📦 ' + global.DG.gearData.find(rw.gear).name);
     }
     core.gainFeat(6 + Math.round(d.need / 2), '사명');
+    sfx('questdone');
     core.log('📋 ' + d.name + ' 을(를) 마쳤다 — ' + bits.join(' · '), 'good');
     core.emit('toast', '📋 ' + d.name + ' 완수!');
     core.emit('changed');

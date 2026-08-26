@@ -66,12 +66,19 @@
   }
 
   /** 전직 — 되돌릴 수 없다 (원작도 그렇다) */
+  /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
+  function sfx(key) {
+    var S = global.DG.sfx;
+    if (S) { S.play(key); }
+  }
+
   function join(key) {
     var why = canJoin(key);
     if (why) { core.emit('toast', '⚠️ ' + why); return false; }
     var j = JD.job(key);
     st();
     core.save.job = key;
+    sfx('jobup');
     core.log('🎓 ' + j.name + ' 이(가) 되었다 — ' + j.desc, 'good');
     core.emit('toast', j.emoji + ' ' + j.name);
     core.emit('changed');
@@ -100,6 +107,7 @@
     if (why) { core.emit('toast', '⚠️ ' + why); return false; }
     st();
     core.save.skills[key] = (core.save.skills[key] || 0) + 1;
+    sfx('skillup');
     core.emit('changed');
     core.persist();
     return true;
