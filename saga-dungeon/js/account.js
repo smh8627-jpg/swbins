@@ -26,7 +26,7 @@
   var core = global.DG.core;
 
   /** 이 게임의 표시 이름 — 가입 화면 제목에 쓴다 (게임마다 다르다) */
-  var GAME_NAME = '역사블로';
+  var GAME_NAME = '사가블로';
 
   var STORE = core.SAVE_BASE + '/accounts';     // 프로필 목록이 사는 곳
   var LEGACY = core.SAVE_BASE + '/v1';          // 가입 개념이 없던 시절의 세이브
