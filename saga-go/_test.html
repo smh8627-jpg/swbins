@@ -1,0 +1,2446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>역사GO 자가진단</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { overflow: auto; }
+  #report { padding: 16px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.8; }
+  .pass { color: #5ec26a; } .fail { color: #e06565; }
+</style>
+</head>
+<body>
+<!-- 게임이 요구하는 DOM 뼈대 (index.html 과 동일) -->
+<canvas id="map-ground"></canvas><canvas id="map3d"></canvas><canvas id="map"></canvas><div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">auto</button>
+    <button class="icon-btn" id="btn-geo">geo</button>
+    <button class="icon-btn" id="btn-help">help</button>
+    <button class="icon-btn" id="btn-reset">reset</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="near"></div>
+<div id="autobar"></div>
+<nav id="dock">
+  <button data-sheet="dex"><span>d</span><small>d</small></button>
+  <button data-sheet="oracle"><span>o</span><small>o</small></button>
+  <button data-sheet="log"><span>l</span><small>l</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title"></h3>
+    <button class="icon-btn sm" id="sheet-close">x</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<div id="report">진단 중…</div>
+
+<script>
+window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
+
+/* 무작위 고정 — 진단이 굴릴 때마다 달라지면 판정이 흔들린다.
+   게임 스크립트보다 **먼저** 갈아 둬야 부트에서 쓰는 난수까지 잡힌다.
+   (실제 플레이는 그대로다 — 이 파일 안에서만 바꾼다)
+   mulberry32: 짧고 분포가 고르며 같은 씨앗이면 같은 수열이 나온다. */
+(function (seed) {
+  var s = seed >>> 0;
+  Math.random = function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  window.DG_SEED = seed;
+})(20260824);
+</script>
+<script src="js/data.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/bag.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/quest.js"></script>
+<script src="js/growth.js"></script>
+<script src="js/buddy.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/world.js"></script>
+<script src="js/actor3d.js"></script>
+<script src="js/world3d.js"></script>
+<script src="js/encounter.js"></script>
+<script src="js/encounter3d.js"></script>
+<script src="js/station.js"></script>
+<script src="js/letter.js"></script>
+<script src="js/duel.js"></script>
+<script src="js/rogue.js"></script>
+<script src="js/fort.js"></script>
+<script src="js/raid.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 자가진단 — 헤드리스에서 게임 로직이 실제로 도는지 확인한다.
+   브라우저로 직접 열어도 되고, 아래 명령으로 자동 확인해도 된다.
+     chrome --headless=new --virtual-time-budget=25000 --dump-dom http://127.0.0.1:8791/_test.html
+*/
+(function () {
+  var out = [], errors = [];
+  window.addEventListener('error', function (e) { errors.push(e.message); });
+
+  function t(name, fn) {
+    try {
+      var r = fn();
+      out.push((r ? '<span class="pass">PASS</span> ' : '<span class="fail">FAIL</span> ') + name + (typeof r === 'string' ? ' — ' + r : ''));
+      return !!r;
+    } catch (e) {
+      out.push('<span class="fail">FAIL</span> ' + name + ' — 예외: ' + e.message);
+      return false;
+    }
+  }
+
+  setTimeout(function () {
+    /* 천후는 세 시간마다 바뀐다 — 진단이 돌리는 시각에 끌려다니지 않도록 하나로 고정한다.
+       (씨앗을 고정한 것과 같은 이유다. 게임 코드는 그대로 두고 여기서만 갈아 끼운다) */
+    DG.weather.force('clear');
+    /* 적도(賊徒)도 같은 이유로 붙들어 둔다 — 칸마다 역참의 두 할이 점거되므로,
+       하필 그 칸에 진단을 돌리면 보급 항목이 통째로 깨진다(토벌에서 밟은 함정).
+       적도 자신을 재는 아래 항목들만 그 자리에서 잠깐 풀었다 다시 묶는다. */
+    DG.rogue.force(false);
+
+    var C = DG.core, W = DG.world, D = DG.data;
+    var HR = DG.hero, NT = DG.net, AI = DG.ai;
+    localStorage.removeItem(C.SAVE_KEY);   // 깨끗한 상태로 판정
+
+    /* ── 본편 뼈대 ─────────────────────────────────────── */
+
+    t('데이터 적재', function () {
+      return D.heroes.length + '명 인물 / ' + D.pets.length + '종 펫';
+    });
+
+    t('중복 id 없음', function () {
+      var seen = {}, dup = [];
+      D.heroes.concat(D.pets).forEach(function (e) { if (seen[e.id]) { dup.push(e.id); } seen[e.id] = 1; });
+      return dup.length ? false : '고유 id ' + Object.keys(seen).length + '개';
+    });
+
+    t('이 게임에 실린 것만 실려 있다 (포켓몬고식)', function () {
+      /* 던전·장비는 saga-dungeon, 문답은 saga-quiz 로 갈라져 나갔다.
+         경영(영지·건설)은 saga-quiz 가 맡는다. 여기는 걷기·조우·도감만. */
+      var here = ['world', 'encounter', 'auto', 'hero', 'sprite'];
+      var gone = ['dungeon', 'dungeonView', 'item', 'itemData', 'enemyData', 'quiz', 'quizData',
+                  'battle', 'prestige', 'idle', 'territory', 'build'];
+      var missing = here.filter(function (k) { return !DG[k]; });
+      var leaked = gone.filter(function (k) { return !!DG[k]; });
+      return missing.length === 0 && leaked.length === 0 &&
+        ('실린 것 ' + here.length + '개 · 없는 것 ' + gone.length + '개');
+    });
+
+    t('경영은 완전히 제거됐다 (세이브·효과·구역 이름)', function () {
+      var fresh = !C.save.territory && !C.save.build;          // 기본 세이브에 골격이 없다
+      var noRegionCount = typeof C.regionCount === 'undefined'; // core 의 영지 집계도 없다
+      var name = W.regionName('3,4');                          // 구역 이름은 world 가 자체 보유
+      var stable = name === W.regionName('3,4') && name.length > 0;
+      var eff = C.effect();                                    // 건설 효과 키가 남아 있지 않다
+      var noProd = !eff['gold/min'] && !eff['fame/min'];
+      return fresh && noRegionCount && stable && noProd &&
+        ('세이브·집계·건설효과 없음 · 구역 이름 "' + name + '" 유지');
+    });
+
+    t('스폰 생성', function () {
+      W.update(0.016);
+      return W.spawns.length > 0 && W.spawns.length + '개 배치';
+    });
+
+    t('지형 결정성(같은 좌표=같은 지형)', function () {
+      return W.terrainAt(3, 7) === W.terrainAt(3, 7) && W.terrainAt(3, 7);
+    });
+
+    /* ── 조우 (등용 · 포획) ────────────────────────────── */
+
+    t('등용 성공 → 도감·동행·공적·동행 경험치·금', function () {
+      C.save.items.scroll = 9; C.save.player.fame = 999;
+      var gold0 = C.save.player.gold;
+      // 먼저 한 명을 동행에 앉혀 두고, 새 인물을 등용하면 경험치가 흐르는지 본다
+      var senior = D.heroes[5];
+      C.save.dex.heroes[senior.id] = { count: 1, firstAt: Date.now() };
+      C.save.heroes[senior.id] = { lv: 1, exp: 0, rank: 0 };
+      C.save.party = [senior.id];
+      var hero = D.heroes[0];
+      var sp = { uid: 99991, kind: 'hero', ref: hero, x: 0, y: 0, bornAt: Date.now() };
+      W.spawns.push(sp);
+      DG.encounter.open(sp);
+      for (var i = 0; i < 4; i++) {
+        var btn = document.querySelector('[data-appeal="' + hero.trait + '"]');
+        if (!btn) { break; }
+        btn.click();
+      }
+      DG.encounter.close();
+      var g = HR.info(senior.id);
+      var goldGain = C.save.player.gold - gold0;
+      return !!C.save.dex.heroes[hero.id] && C.save.party.indexOf(hero.id) >= 0 &&
+        C.save.player.featTotal > 0 && (g.exp > 0 || g.lv > 1) &&
+        goldGain === hero.rarity * 15 &&
+        ('공적 누적 ' + C.save.player.featTotal + ' · 동행 경험치 ' + g.exp + ' · 금 +' + goldGain);
+    });
+
+    t('포획 시도 → 사료 소모·종료 (성공 시 명성·금)', function () {
+      C.save.items.feed = 5;
+      var fame0 = C.save.player.fame, gold0 = C.save.player.gold;
+      var pets0 = Object.keys(C.save.dex.pets).length;
+      var pet = D.pets[D.pets.length - 1];
+      var sp = { uid: 99992, kind: 'pet', ref: pet, x: 0, y: 0, bornAt: Date.now() };
+      W.spawns.push(sp);
+      DG.encounter.open(sp);
+      var before = C.save.items.feed;
+      document.querySelector('[data-act="throw"]').click();
+      var after = C.save.items.feed;
+      var caught = Object.keys(C.save.dex.pets).length > pets0;
+      DG.encounter.close();
+      var fameOk = caught ? C.save.player.fame > fame0 : true;
+      var goldGain = C.save.player.gold - gold0;
+      var goldOk = caught ? goldGain === pet.rarity * 10 : goldGain === 0;
+      return after === before - 1 && fameOk && goldOk &&
+        ('사료 ' + before + '→' + after + (caught ? ' · 포획 성공(명성·금 +' + goldGain + ')' : ' · 놓침'));
+    });
+
+    /* ── 걷기 보급 ─────────────────────────────────────── */
+
+    t('걷기 보급 — 250m 마다 사료·명성·금, 500m 마다 등용서', function () {
+      var p = C.save.player;
+      p.distance = 1000; p.supplyMark = 1000; p.supplyCount = 0;
+      var feed0 = C.save.items.feed, scroll0 = C.save.items.scroll, fame0 = p.fame, gold0 = p.gold;
+      p.distance += DG.game.SUPPLY_STEP * 2;         // 500m 걸었다
+      DG.game.tickSupply();
+      return C.save.items.feed === feed0 + 2 && C.save.items.scroll === scroll0 + 1 &&
+        p.fame === fame0 + 20 && p.gold === gold0 + 16 && p.supplyMark === p.distance &&
+        ('🍖 +2 · 📜 +1 · 🎖️ +20 · 🪙 +16');
+    });
+
+    t('보급 기준점은 거리보다 앞서지 않는다 (리셋 보호)', function () {
+      var p = C.save.player;
+      p.supplyMark = p.distance + 9999;
+      DG.game.tickSupply();
+      return p.supplyMark <= p.distance && '기준점 보정 확인';
+    });
+
+    /* ── 역참(驛站) — 원작의 포켓스탑 ─────────────────── */
+
+    t('역참 자리는 늘 같다 (좌표 해시)', function () {
+      var a = DG.world.stationsIn(3, -2), b = DG.world.stationsIn(3, -2);
+      var ok = a.length === 2 && a.length === b.length;
+      for (var i = 0; ok && i < a.length; i++) {
+        ok = a[i].key === b[i].key && a[i].x === b[i].x && a[i].y === b[i].y;
+      }
+      return ok && ('구역당 ' + a.length + '곳 · 두 번 물어도 같은 자리');
+    });
+
+    t('역참이 구역 한쪽에 몰리지 않는다 (hash2 0~0.5 함정)', function () {
+      /* 이 판의 core.hash2 는 0~0.5 만 돌려준다. 그대로 쓰면 역참이 구역의
+         왼쪽 위 사분면에만 선다 — world.js 가 두 배로 펴서 쓰는지 여기서 못박는다. */
+      var R = DG.world.REGION_SIZE, maxU = 0, maxV = 0;
+      for (var rx = -6; rx <= 6; rx++) {
+        for (var ry = -6; ry <= 6; ry++) {
+          var list = DG.world.stationsIn(rx, ry);
+          for (var i = 0; i < list.length; i++) {
+            var u = list[i].x / R - rx, v = list[i].y / R - ry;
+            if (u > maxU) { maxU = u; }
+            if (v > maxV) { maxV = v; }
+          }
+        }
+      }
+      return maxU > 0.6 && maxV > 0.6 &&
+        ('구역 안 최대 위치 ' + maxU.toFixed(2) + ' · ' + maxV.toFixed(2) + ' (0.6 넘어야 정상)');
+    });
+
+    t('역참에 들르면 등용서·사료·금·경험치를 받는다', function () {
+      C.save.stations = {};
+      var st = DG.world.stationsIn(0, 0)[0];
+      var s0 = C.save.items.scroll, f0 = C.save.items.feed, g0 = C.save.player.gold;
+      var visits0 = C.save.player.stationVisits || 0;
+      var r = DG.station.visit(st);
+      return r.ok &&
+        C.save.items.scroll === s0 + r.reward.scroll &&
+        C.save.items.feed === f0 + r.reward.feed &&
+        C.save.player.gold === g0 + r.reward.gold &&
+        C.save.player.stationVisits === visits0 + 1 &&
+        ('📜 +' + r.reward.scroll + ' · 🍖 +' + r.reward.feed + ' · 🪙 +' + r.reward.gold);
+    });
+
+    t('한 번 들른 역참은 쉬는 중 — 다시 줘도 아무것도 안 준다', function () {
+      var st = DG.world.stationsIn(0, 0)[0];
+      var s0 = C.save.items.scroll, g0 = C.save.player.gold;
+      var r = DG.station.visit(st);
+      var stt = DG.station.stateOf(st.key);
+      return !r.ok && r.reason === 'cooldown' && !stt.ready &&
+        C.save.items.scroll === s0 && C.save.player.gold === g0 &&
+        ('남은 시간 ' + DG.station.leftLabel(stt.left));
+    });
+
+    t('쉬는 시간이 지나면 다시 찬다', function () {
+      var st = DG.world.stationsIn(0, 0)[0];
+      C.save.stations[st.key] = Date.now() - DG.station.COOLDOWN - 1000;
+      var ready = DG.station.stateOf(st.key).ready;
+      var r = DG.station.visit(st);
+      return ready && r.ok && ('다시 참 · 📜 +' + r.reward.scroll);
+    });
+
+    t('다 쉰 역참 기록은 세이브에서 지워진다 (키가 무한히 쌓이지 않게)', function () {
+      var st = DG.world.stationsIn(5, 5)[0];
+      C.save.stations[st.key] = Date.now() - DG.station.COOLDOWN - 1000;
+      DG.station.stateOf(st.key);
+      return C.save.stations[st.key] === undefined && '만료 항목 정리 확인';
+    });
+
+    t('자동 순행이 채워진 역참으로 걸어가 들른다', function () {
+      C.save.stations = {};
+      DG.auto.state().on = true; DG.auto.state().stop = true;
+      /* 밑천을 비워 대상을 못 고르게 하면 역참이 목표가 된다 */
+      C.save.items.scroll = 0; C.save.items.feed = 0;
+      var st = DG.world.stationsNear()[0];
+      C.save.player.pos.x = st.x; C.save.player.pos.y = st.y;   // 사거리 안에 세운다
+      var s0 = C.save.items.scroll;
+      for (var i = 0; i < 12; i++) { DG.auto._tickMap(0.5); }
+      DG.auto.state().on = false;
+      /* 뒤처리 — 자동이 걸어 둔 목표를 지운다.
+         남겨 두면 뒤에 오는 걷기 항목이 "멈춰 있는데 계속 걷는" 상태로 깨진다. */
+      DG.world.walkTo(C.save.player.pos.x, C.save.player.pos.y);
+      DG.world.update(0.05);
+      return C.save.items.scroll > s0 &&
+        ('자동이 들러 등용서 ' + s0 + '→' + C.save.items.scroll);
+    });
+
+    /* ── 적도(賊徒) — 원작의 로켓단 ─────────────────────
+       살피는 내내 **칸의 첫머리**에서 본다. 머무는 시간을 칸 첫머리부터 재므로,
+       그냥 Date.now() 로 보면 진단이 **돌린 시각**에 끌려다닌다(토벌에서 밟은 함정). */
+
+    t('적도 — 진단은 기본으로 붙들어 둔다 (force)', function () {
+      var stn = DG.world.stationsIn(0, 0)[0];
+      return DG.rogue.occupied(stn) === false && '어느 칸에 돌려도 점거 없음';
+    });
+
+    t('적도 — 같은 역참·같은 칸이면 늘 같은 판이다 (해시)', function () {
+      DG.rogue.force(null);
+      C.save.rogue = null;
+      var stn = DG.world.stationsIn(0, 0)[0];
+      var found = null, i;
+      /* 어느 칸에서는 반드시 든다 — 칸의 첫머리만 훑는다 */
+      for (i = 0; i < 80 && !found; i++) { found = DG.rogue.at(stn, i * DG.rogue.SLOT_MS); }
+      if (!found) { return false; }
+      var again = DG.rogue.at(stn, (i - 1) * DG.rogue.SLOT_MS);
+      return again && again.key === found.key && again.boss.id === found.boss.id &&
+        again.dark.id === found.dark.id && again.hp === found.hp &&
+        (found.rank.name + ' ' + found.boss.name + ' · 암영 ' + found.dark.name);
+    });
+
+    t('적도 — 머물 시간이 지나면 스스로 물러간다', function () {
+      var stn = DG.world.stationsIn(0, 0)[0];
+      var slot = null, i;
+      for (i = 0; i < 80 && slot === null; i++) {
+        if (DG.rogue.at(stn, i * DG.rogue.SLOT_MS)) { slot = i; }
+      }
+      if (slot === null) { return false; }
+      var head = slot * DG.rogue.SLOT_MS;
+      var during = !!DG.rogue.at(stn, head + DG.rogue.STAY_MS - 1000);
+      var after = !!DG.rogue.at(stn, head + DG.rogue.STAY_MS + 1000);
+      return during && !after && (DG.rogue.STAY_MS / 60000 + '분까지 있고 그 뒤엔 없다');
+    });
+
+    t('적도 — 점거된 역참은 보급을 주지 않는다', function () {
+      /* 시계를 돌릴 수 없으니 **지금 칸**에 점거된 역참을 찾아 본다.
+         지금 칸이 비어 있으면 그 사실만 확인하고 넘어간다(규칙상 있을 수 있다). */
+      C.save.stations = {};
+      var all = DG.world.stationsIn(0, 0)
+        .concat(DG.world.stationsIn(1, 0), DG.world.stationsIn(0, 1),
+                DG.world.stationsIn(2, 3), DG.world.stationsIn(-2, 4));
+      var held = null, i;
+      for (i = 0; i < all.length; i++) { if (DG.rogue.occupied(all[i])) { held = all[i]; break; } }
+      if (!held) { return '지금 칸엔 점거된 역참이 없다 (규칙상 정상)'; }
+      var g0 = C.save.player.gold;
+      var r = DG.station.visit(held);
+      return !r.ok && r.reason === 'rogue' && C.save.player.gold === g0 &&
+        (held.name + ' — 보급 없음');
+    });
+
+    t('적도 — 물리치면 역참이 풀리고 암영이 남는다 (도감엔 아직 안 든다)', function () {
+      C.save.rogue = null;
+      C.save.party = [D.heroes[0].id];
+      DG.hero.ensure(D.heroes[0].id);
+      var stn = DG.world.stationsIn(2, 2)[0];
+      var rg = null, i;
+      for (i = 0; i < 80 && !rg; i++) { rg = DG.rogue.at(stn, i * DG.rogue.SLOT_MS); }
+      if (!rg) { return false; }
+      var dex0 = Object.keys(C.save.dex.pets).length;
+      /* 교전을 거치고 온 것과 같은 길 — 낸 피해가 곧 판정이다 */
+      var res = DG.rogue.fight(rg, { live: true, dealt: rg.hp });
+      var cleared = !DG.rogue.at(rg.station, rg.slot * DG.rogue.SLOT_MS);
+      return res.ok && res.win && cleared && DG.rogue.darkCount() === 1 &&
+        Object.keys(C.save.dex.pets).length === dex0 &&
+        ('탈환 · 암영 ' + res.dark.name);
+    });
+
+    t('적도 — 정화해야 비로소 도감에 든다 (단사를 쓴다)', function () {
+      var list = DG.rogue.darkList();
+      if (!list.length) { return false; }
+      var d = list[0];
+      C.save.dust = 0;
+      var no = DG.rogue.purify(d.pet.id);          // 단사가 없으면 안 풀린다
+      DG.growth.addDust(d.cost.dust);
+      var dex0 = !!C.save.dex.pets[d.pet.id];
+      var herb0 = DG.growth.herbOf(d.pet.id);
+      var yes = DG.rogue.purify(d.pet.id);
+      return !no.ok && yes.ok && !dex0 && !!C.save.dex.pets[d.pet.id] &&
+        DG.growth.herbOf(d.pet.id) > herb0 && DG.rogue.darkCount() === 0 &&
+        (d.pet.name + ' — ✨ −' + d.cost.dust + ' · 도감 등록 · 🌿 +' +
+         (DG.growth.herbOf(d.pet.id) - herb0));
+    });
+
+    t('적도 — 지면 쉬는 시간이 붙고 그 사이엔 다시 못 붙는다', function () {
+      C.save.rogue = null;
+      var stn = DG.world.stationsIn(4, -3)[0];
+      var rg = null, i;
+      for (i = 0; i < 80 && !rg; i++) { rg = DG.rogue.at(stn, i * DG.rogue.SLOT_MS); }
+      if (!rg) { return false; }
+      var lose = DG.rogue.fight(rg, { live: true, dealt: 0 });
+      var again = DG.rogue.fight(rg, { live: true, dealt: rg.hp });
+      return lose.ok && !lose.win && !again.ok && again.reason === 'cool' &&
+        ('쉬는 시간 ' + DG.rogue.leftLabel(again.left));
+    });
+
+    t('적도 — 자동은 이길 만할 때만 붙는다', function () {
+      C.save.rogue = null;
+      var stn = DG.world.stationsIn(-4, 6)[0];
+      var rg = null, i;
+      for (i = 0; i < 80 && !rg; i++) { rg = DG.rogue.at(stn, i * DG.rogue.SLOT_MS); }
+      if (!rg) { return false; }
+      var pw = DG.hero.partyPower();
+      var hopeless = pw.atk * 7 < rg.hp;
+      var r = DG.rogue.autoFight(rg);
+      return (hopeless ? r === null : !!r) &&
+        ('부대 공격 ' + pw.atk + ' · 기세 ' + rg.hp + ' → ' + (hopeless ? '붙지 않음' : '붙음'));
+    });
+
+    t('적도 — 지난 칸의 기록은 세이브에서 지워진다', function () {
+      C.save.rogue = null;
+      var r = DG.rogue.state();
+      var soon = '9,9#0@' + (DG.rogue.slotOf() + 5);
+      r.cleared['9,9#0@1'] = true;                  // 아주 예전 칸
+      r.cool['9,9#1@1'] = Date.now() - 1000;        // 이미 지난 쉬는 시간
+      r.cleared[soon] = true;                       // 아직 안 온 칸
+      DG.rogue.sweep();
+      return r.cleared['9,9#0@1'] === undefined && r.cool['9,9#1@1'] === undefined &&
+        r.cleared[soon] === true && '지난 것만 지운다';
+    });
+
+    t('적도 — 급 셋이 다 나오고 두목·암영의 등급이 짝맞는다', function () {
+      var seen = {}, bad = [], stns = [], i, j;
+      for (i = -3; i <= 3; i++) { stns = stns.concat(DG.world.stationsIn(i, i)); }
+      for (i = 0; i < stns.length; i++) {
+        for (j = 0; j < 40; j++) {
+          var rg = DG.rogue.at(stns[i], j * DG.rogue.SLOT_MS);
+          if (!rg) { continue; }
+          seen[rg.rank.name] = (seen[rg.rank.name] || 0) + 1;
+          if (rg.boss.rarity !== rg.rank.rarity) { bad.push(rg.boss.name); }
+          if (rg.dark.rarity < rg.rank.darkRarity[0] ||
+              rg.dark.rarity > rg.rank.darkRarity[1]) { bad.push(rg.dark.name); }
+        }
+      }
+      return !bad.length && Object.keys(seen).length === 3 &&
+        Object.keys(seen).map(function (k) { return k + ' ' + seen[k]; }).join(' · ');
+    });
+
+    t('적도 — 살핀 뒤에는 다시 붙들어 둔다', function () {
+      DG.rogue.force(false);
+      C.save.rogue = null;
+      C.save.stations = {};
+      C.save.dust = 0;
+      var stn = DG.world.stationsIn(0, 0)[0];
+      return DG.rogue.occupied(stn) === false && '아래 항목들은 다시 시각과 무관하다';
+    });
+
+    /* ── 토벌(討伐) — 원작의 레이드 ────────────────────── */
+
+    /**
+     * 적장이 든 시간 칸을 찾는다.
+     * **칸의 첫머리부터** 봐야 한다 — 적장은 칸이 열리고 45분만 머무는데,
+     * `Date.now() + i*SLOT` 으로 훑으면 '지금이 몇 분인지'가 그대로 따라와서
+     * 45분이 지난 시각에 진단을 돌리면 한 칸도 못 찾는다(실제로 그렇게 깨졌다).
+     */
+    function findRaid(f) {
+      var R = DG.raid;
+      var base = Math.floor(Date.now() / R.SLOT_MS) * R.SLOT_MS;
+      for (var i = 0; i < 400; i++) {
+        var ms = base + i * R.SLOT_MS + 60000;      // 칸이 열리고 1분 뒤
+        var rd = R.at(f, ms);
+        if (rd) { return { raid: rd, ms: ms }; }
+      }
+      return null;
+    }
+
+    t('적장은 드물게 들고, 마흔다섯 분이면 물러간다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      if (!f) { return false; }
+      var found0 = findRaid(f);
+      if (!found0) { return '400칸 안에 한 번도 안 든다' && false; }
+      var start = Math.floor(found0.ms / R.SLOT_MS) * R.SLOT_MS;
+      var inside = R.at(f, start + R.STAY_MS - 1000);
+      var outside = R.at(f, start + R.STAY_MS + 1000);
+      return inside && !outside &&
+        ('든 칸에서 44분엔 있고 46분엔 없다 · ' + inside.tier.name);
+    });
+
+    t('같은 성채·같은 시간 칸이면 늘 같은 적장이다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      var fr = findRaid(f);
+      if (!fr) { return false; }
+      var a = fr.raid, b = R.at(f, fr.ms);
+      return a && b && a.hero.id === b.hero.id && a.tier.tier === b.tier.tier &&
+        a.hp === b.hp && (a.hero.name + ' · 기세 ' + a.hp);
+    });
+
+    t('격문이 없으면 칠 수 없다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      var fr2 = findRaid(f);
+      var raid = fr2 && fr2.raid;
+      C.save.raid = { pass: 0, day: R.state().day, won: 0, tried: {} };
+      var r = R.fight(raid);
+      return !r.ok && r.reason === 'nopass' && '격문 0 이면 막힌다';
+    });
+
+    t('격문을 쓰고 치면, 이겼을 때만 등용 기회가 온다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      var fr3 = findRaid(f);
+      var raid = fr3 && fr3.raid;
+      C.save.raid = { pass: 3, day: R.state().day, won: 0, tried: {} };
+      /* 이길 수 있게 부대를 세워 둔다 */
+      if (!C.save.party.length) {
+        var h = D.heroes[0];
+        C.save.dex.heroes[h.id] = { count: 1, firstAt: Date.now() };
+        C.save.party = [h.id];
+      }
+      var g0 = C.save.player.gold;
+      var r = R.fight(raid);
+      var passLeft = R.passCount();
+      return r.ok && passLeft === 2 && r.rounds.length > 0 &&
+        (r.win ? C.save.player.gold > g0 : C.save.player.gold === g0) &&
+        ((r.win ? '격파' : '실패') + ' · ' + r.rounds.length + '합 · 격문 3→' + passLeft);
+    });
+
+    t('한 판에는 한 번만 도전한다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      var fr4 = findRaid(f);
+      var raid = fr4 && fr4.raid;
+      var again = R.fight(raid);
+      return !again.ok && again.reason === 'tried' && R.triedOf(raid) &&
+        '같은 판 재도전은 막힌다';
+    });
+
+    t('자동은 이길 만할 때만 붙는다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      var fr5 = findRaid(f);
+      var raid = fr5 && fr5.raid;
+      C.save.raid = { pass: 2, day: R.state().day, won: 0, tried: {} };
+      var party0 = C.save.party.slice();
+      C.save.party = [];                       // 부대가 없으면 승산이 없다
+      var no = R.autoFight(raid);
+      C.save.party = party0;
+      return no === null && R.passCount() === 2 && '가망 없으면 격문을 안 쓴다';
+    });
+    /* ── 교전(交戰) — 원작의 탭 전투 ─────────────────────
+     * 화면 층(rAF)은 헤드리스에서 돌지 않는다. 판정 층을 직접 굴려 본다. */
+
+    t('교전을 세우면 기세·사기·기가 잡힌다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 1000, myAtk: 100, myDef: 200 });
+      return s.hp === 1000 && s.foeHp === 1000 && s.morale === 600 &&
+        s.ki === 0 && s.left === Dl.TIME_SEC && !s.over &&
+        ('기세 1000 · 사기 ' + s.morale + ' · ' + s.left + '초');
+    });
+
+    t('속공은 쿨이 있어 무한 연타가 안 된다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 100000, myAtk: 100, myDef: 100000 });
+      var a = Dl.act(s, 'quick');
+      var b = Dl.act(s, 'quick');                 // 쿨 중이다
+      Dl.step(s, Dl.QUICK_CD);
+      var c = Dl.act(s, 'quick');
+      return a.ok && !b.ok && b.reason === 'cd' && c.ok && s.hits === 2 &&
+        s.ki === Dl.QUICK_KI * 2 && ('속공 2회 · 기 ' + s.ki + ' · 막힌 연타 1');
+    });
+
+    t('필살은 기가 만충일 때만 나가고, 속공보다 세다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 100000, myAtk: 100, myDef: 100000 });
+      var no = Dl.act(s, 'ult');
+      s.ki = Dl.KI_MAX;
+      var yes = Dl.act(s, 'ult');
+      return !no.ok && no.reason === 'noki' && yes.ok && s.ki === 0 && s.ults === 1 &&
+        yes.dmg > 100 * Dl.QUICK_MUL &&
+        ('필살 ' + yes.dmg + ' vs 속공 ' + Math.round(100 * Dl.QUICK_MUL));
+    });
+
+    t('강타는 예고 뒤에 오고, 예고 중 피하면 피해가 크게 줄어든다', function () {
+      var Dl = DG.duel;
+      function firstHeavy(dodge) {
+        var s = Dl.create({ foeHp: 100000, myAtk: 1, myDef: 1000 });
+        var told = false, guard = 0;
+        while (!s.over && guard++ < 4000) {
+          var ev = Dl.step(s, 0.05);
+          for (var i = 0; i < ev.length; i++) {
+            if (ev[i].t === 'tell') { told = true; if (dodge) { Dl.act(s, 'dodge'); } }
+            if (ev[i].t === 'heavy') { return { told: told, dmg: ev[i].dmg, dodged: ev[i].dodged }; }
+          }
+        }
+        return { told: told, dmg: 0, dodged: false };
+      }
+      var plain = firstHeavy(false), duck = firstHeavy(true);
+      return plain.told && plain.dmg > 0 && !plain.dodged &&
+        duck.dodged && duck.dmg < plain.dmg &&
+        ('강타 ' + plain.dmg + ' → 회피하면 ' + duck.dmg);
+    });
+
+    t('예고가 없을 때 회피는 헛동작이다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 1000, myAtk: 100, myDef: 200 });
+      var r = Dl.act(s, 'dodge');
+      return !r.ok && r.reason === 'notell' && s.dodgeTry === 1 && s.dodgeOk === 0 &&
+        '헛회피도 시도로는 센다';
+    });
+
+    t('사기가 다하면 패퇴한다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 100000, myAtk: 1, myDef: 1 });   // 사기 200 · 적 타격 1000
+      var rout = false, guard = 0;
+      while (!s.over && guard++ < 4000) {
+        var ev = Dl.step(s, 0.05);
+        for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'rout') { rout = true; } }
+      }
+      return s.over && rout && !s.cleared && s.morale === 0 &&
+        ('사기 0 · ' + Math.round(s.left) + '초 남기고 패퇴');
+    });
+
+    t('시간이 다하면 끝난다 — 못 꺾었으면 진 것이다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 1000000, myAtk: 1, myDef: 200000 });
+      var guard = 0;
+      while (!s.over && guard++ < 8000) { Dl.step(s, 0.05); }
+      return s.over && !s.cleared && s.left === 0 && s.hp > 0 &&
+        (Dl.TIME_SEC + '초를 다 썼다 · 남은 기세 ' + DG.core.fmt(s.hp));
+    });
+
+    t('기세를 다 깎으면 그 자리에서 끝난다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 10, myAtk: 1000, myDef: 100000 });
+      var r = Dl.act(s, 'quick');
+      return r.ok && s.over && s.cleared && s.hp <= 0 &&
+        ('한 방 ' + r.dmg + ' 로 기세 10 을 넘겼다');
+    });
+
+    t('성과는 낸 피해를 기세로 나눈 값이다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 1000, myAtk: 1000, myDef: 100000 });
+      Dl.act(s, 'quick');
+      var p = Dl.perf(s);
+      return p.live && p.dealt > 0 && !p.cleared &&
+        Math.abs(p.ratio - p.dealt / 1000) < 1e-9 && p.score > 0 &&
+        ('낸 피해 ' + p.dealt + ' / 1000 = ' + p.ratio.toFixed(2));
+    });
+
+    t('교전 실적은 열 덩이로 접히고, 합은 낸 피해와 같다', function () {
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 1000000, myAtk: 100, myDef: 100000 });
+      for (var i = 0; i < 45; i++) { Dl.act(s, 'quick'); Dl.step(s, Dl.QUICK_CD); }
+      var f = Dl.fold(s), sum = 0;
+      for (var j = 0; j < f.length; j++) { sum += f[j].dmg; }
+      return f.length > 0 && f.length <= 10 && sum === s.dealt &&
+        (s.hits + '회 → ' + f.length + '덩이 · 합 ' + sum);
+    });
+
+    t('교전 성과를 넘기면 토벌은 그 피해를 그대로 쓴다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      var fd = findRaid(f);
+      var raid = fd && fd.raid;
+      if (!raid) { return false; }
+      C.save.raid = { pass: 2, day: R.state().day, won: 0, tried: {} };
+      var r = R.fight(raid, { live: true, dealt: raid.hp, folded: [{ n: 1, dmg: raid.hp, left: 0 }] });
+      return r.ok && r.win && r.rounds.length === 1 &&
+        ('낸 피해 ' + DG.core.fmt(raid.hp) + ' = 기세 → 격파');
+    });
+
+    t('교전에서 기세를 못 깎으면 토벌도 실패다', function () {
+      var R = DG.raid;
+      var f = DG.world.fortsNear()[0];
+      var fd = findRaid(f);
+      var raid = fd && fd.raid;
+      if (!raid) { return false; }
+      C.save.raid = { pass: 2, day: R.state().day, won: 0, tried: {} };
+      var r = R.fight(raid, { live: true, dealt: 1, folded: [] });
+      return r.ok && !r.win && r.left === raid.hp - 1 &&
+        ('1 만 깎았다 · 남은 기세 ' + DG.core.fmt(r.left));
+    });
+
+    t('성채는 교전을 잘 치른 쪽이 더 자주 이긴다', function () {
+      var f = DG.world.fortsNear()[0];
+      /* 이 항목은 판을 많이 굴린다 — 남기는 것이 없게 스스로 되돌린다 */
+      var keep = {
+        player: JSON.parse(JSON.stringify(C.save.player)),
+        heroes: JSON.parse(JSON.stringify(C.save.heroes)),
+        quests: JSON.parse(JSON.stringify(C.save.quests || {})),
+        party: C.save.party.slice(),
+        forts: JSON.parse(JSON.stringify(C.save.forts))
+      };
+      /* 동행 셋을 세워 둔다. **약한 쪽으로 골라야 한다** — 센 인물을 세우면 승률이
+         천장에 붙어 배율 차이가 묻힌다(잘 치름 38승 vs 못 치름 35승 같은 우연이 된다). */
+      var weak = D.heroes.slice().sort(function (a, b) {
+        return (a.stats.might + a.stats.wisdom + a.stats.command) -
+               (b.stats.might + b.stats.wisdom + b.stats.command);
+      });
+      var pt = [], n;
+      for (n = 0; n < 3 && n < weak.length; n++) {
+        C.save.dex.heroes[weak[n].id] = { count: 1, firstAt: Date.now() };
+        pt.push(weak[n].id);
+      }
+      C.save.party = pt;
+      function tally(score) {
+        var win = 0;
+        for (var i = 0; i < 60; i++) {
+          C.save.forts = {};
+          var r = DG.fort.challenge(f, { live: true, score: score });
+          if (r.ok && r.win) { win++; }
+        }
+        return win;
+      }
+      var good = tally(1.6), bad = tally(0.1);
+      C.save.player = keep.player; C.save.heroes = keep.heroes;
+      C.save.quests = keep.quests; C.save.party = keep.party;
+      C.save.forts = keep.forts;
+      return good > bad && ('잘 치름 ' + good + '승 vs 못 치름 ' + bad + '승 (각 60판)');
+    });
+
+    t('교전 무대에 둘이 마주 서고, 친 쪽에 동작이 붙는다', function () {
+      /* 교전 진단은 판정 층만 굴리는 것이 원칙이다(헤드리스는 rAF 가 거의 안 돈다).
+         이 항목만 예외로 화면 층을 본다 — paint() 와 동작 클래스는 rAF 가 아니라
+         **부르는 그 자리에서** 동기로 붙으므로 헤드리스에서도 판정이 선다. */
+      var keepParty = C.save.party.slice();
+      var lead = D.heroes[0];
+      C.save.dex.heroes[lead.id] = C.save.dex.heroes[lead.id] || { count: 1, firstAt: Date.now() };
+      C.save.party = [lead.id];
+      var foe = D.heroes[1];
+      var ds = DG.duel.open({
+        title: '⚔️ 시험', foeName: foe.name,
+        portrait: DG.sprite.portrait('hero', foe, 96),
+        foeHp: 500, myAtk: 100, myDef: 100, onDone: function () {}
+      });
+      var host = document.getElementById('encounter');
+      var me = host.querySelector('#d-me'), fo = host.querySelector('#d-face');
+      var named = host.innerHTML.indexOf(lead.name) >= 0 && host.innerHTML.indexOf(foe.name) >= 0;
+      var qb = host.querySelector('.dbtn.quick');
+      if (qb) { qb.click(); }
+      var swung = !!me && me.classList.contains('lunge') && !!fo && fo.classList.contains('hurt');
+      var fb = host.querySelector('[data-d="flee"]');
+      if (fb) { fb.click(); }                      // 남기지 않는다 — 화면을 닫고 되돌린다
+      host.classList.remove('show');
+      C.save.party = keepParty;
+      return !!ds && !!me && !!fo && named && swung &&
+        (lead.name + ' 대 ' + foe.name + ' · 속공에 뛰어들고 맞는 쪽이 흔들린다');
+    });
+
+    /* ── 연성(鍊成) · 승화(昇華) — 원작의 사탕과 진화 ───── */
+
+    t('첫 포획에 영초는 정확히 셋이다 (도감 등록과 겹치지 않는다)', function () {
+      var G = DG.growth;
+      var pet = D.pets[0];
+      C.save.petGrow = {}; C.save.dust = 0;
+      /* 실제 순서대로 — encounter 가 registerDex 로 마리수를 올린 뒤에 부른다 */
+      C.save.dex.pets[pet.id] = { count: 1, firstAt: Date.now() };
+      var got = G.onCatch(pet);
+      var ok = got.herb === G.HERB_PER_CATCH &&
+        got.dust === pet.rarity * G.DUST_PER_RARITY &&
+        G.herbOf(pet.id) === G.HERB_PER_CATCH && G.dust() === got.dust;
+      delete C.save.dex.pets[pet.id];
+      C.save.petGrow = {}; C.save.dust = 0;
+      return ok && ('영초 +' + got.herb + ' (여섯이 아니다) · 단사 +' + got.dust);
+    });
+
+    t('옛 세이브의 마리수는 영초로 환산된다 — 한 번만', function () {
+      var G = DG.growth;
+      var pet = D.pets[1];
+      C.save.petGrow = {}; C.save.petGrowV = 0;
+      C.save.dex.pets[pet.id] = { count: 4, firstAt: Date.now() };
+      var n = G.migrate();                     // 부트에서 한 번 도는 그 문
+      var first = G.herbOf(pet.id);
+      C.save.dex.pets[pet.id].count = 9;       // 마리수가 늘어도 다시 환산하지 않는다
+      var again = G.migrate();
+      var still = G.herbOf(pet.id);
+      delete C.save.dex.pets[pet.id];
+      C.save.petGrow = {}; C.save.petGrowV = 0;
+      return n > 0 && again === 0 && first === 4 * G.HERB_PER_CATCH && still === first &&
+        ('4마리 → 영초 ' + first + ' · 두 번째 환산은 없다');
+    });
+
+    t('연성은 영초와 단사를 쓰고 보정을 올린다', function () {
+      var G = DG.growth;
+      var pet = D.pets[2];
+      C.save.dex.pets[pet.id] = { count: 1, firstAt: Date.now() };
+      C.save.petGrow = {}; C.save.petGrow[pet.id] = { lv: 0, herb: 50 };
+      C.save.dust = 5000;
+      var b0 = G.bonusOf(pet);
+      var cost = G.refineCost(0);
+      var ok = G.refine(pet.id);
+      var gi = G.info(pet.id);
+      var res = ok && gi.lv === 1 && gi.herb === 50 - cost.herb &&
+        G.dust() === 5000 - cost.dust && G.bonusOf(pet) >= b0;
+      C.save.petGrow = {}; C.save.dust = 0;
+      return res && ('1단 · 영초 -' + cost.herb + ' · 단사 -' + cost.dust);
+    });
+
+    t('영초나 단사가 모자라면 연성이 막힌다', function () {
+      var G = DG.growth;
+      var pet = D.pets[3];
+      C.save.dex.pets[pet.id] = { count: 1, firstAt: Date.now() };
+      C.save.petGrow = {}; C.save.petGrow[pet.id] = { lv: 0, herb: 0 };
+      C.save.dust = 99999;
+      var noHerb = G.refineCheck(pet.id);
+      C.save.petGrow[pet.id].herb = 999; C.save.dust = 0;
+      var noDust = G.refineCheck(pet.id);
+      var res = !noHerb.ok && noHerb.why === '영초 부족' &&
+        !noDust.ok && noDust.why === '단사 부족' &&
+        !G.refine(pet.id) && G.info(pet.id).lv === 0;
+      C.save.petGrow = {}; C.save.dust = 0;
+      return res && '둘 중 하나만 모자라도 막힌다';
+    });
+
+    t('연성 값은 올라갈수록 오른다', function () {
+      var G = DG.growth;
+      var a = G.refineCost(0), b = G.refineCost(10), c = G.refineCost(19);
+      return b.dust > a.dust && c.dust > b.dust && c.herb >= b.herb && b.herb >= a.herb &&
+        ('0단 ' + a.dust + ' → 10단 ' + b.dust + ' → 19단 ' + c.dust + ' 단사');
+    });
+
+    t('연성은 상한에서 멈춘다', function () {
+      var G = DG.growth;
+      var pet = D.pets[4];
+      C.save.dex.pets[pet.id] = { count: 1, firstAt: Date.now() };
+      C.save.petGrow = {}; C.save.petGrow[pet.id] = { lv: G.MAX_LV, herb: 9999 };
+      C.save.dust = 999999;
+      var chk = G.refineCheck(pet.id);
+      var res = !chk.ok && chk.why === '최대 연성' && !G.refine(pet.id);
+      C.save.petGrow = {}; C.save.dust = 0;
+      return res && ('상한 ' + G.MAX_LV + '단에서 막힌다');
+    });
+
+    t('연성이 인물 능력치에 실제로 반영된다', function () {
+      var G = DG.growth;
+      var pet = null, i;
+      for (i = 0; i < D.pets.length; i++) { if (D.pets[i].bonus.stat === 'might') { pet = D.pets[i]; break; } }
+      if (!pet) { return false; }
+      var h = D.heroes[0];
+      C.save.dex.heroes[h.id] = { count: 1, firstAt: Date.now() };
+      C.save.dex.pets[pet.id] = { count: 1, firstAt: Date.now() };
+      C.save.petEquip[h.id] = pet.id;
+      C.save.petGrow = {};
+      var before = HR.stats(h.id).might;
+      C.save.petGrow[pet.id] = { lv: 10, herb: 0 };
+      var after = HR.stats(h.id).might;
+      delete C.save.petEquip[h.id];               // 남기지 않는다
+      C.save.petGrow = {};
+      return after > before && (pet.name + ' 무력 ' + before + ' → ' + after + ' (연성 10단)');
+    });
+
+    t('승화 사슬은 양쪽이 실재하고, 등급이 오른다', function () {
+      var G = DG.growth;
+      var list = G.chainList(), n = 0, k, up = true;
+      for (k in G.CHAIN) { if (Object.prototype.hasOwnProperty.call(G.CHAIN, k)) { n++; } }
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].to.rarity <= list[i].from.rarity) { up = false; }
+      }
+      return list.length === n && n >= 6 && up &&
+        (n + '사슬 · 모두 등급이 오른다');
+    });
+
+    t('승화하면 상위 종이 도감에 들고 연성이 승계된다', function () {
+      var G = DG.growth;
+      var ch = G.chainList()[0];
+      var from = ch.from, to = ch.to;
+      C.save.petGrow = {}; C.save.dust = 0;
+      C.save.dex.pets[from.id] = { count: 1, firstAt: Date.now() };
+      delete C.save.dex.pets[to.id];
+      C.save.petGrow[from.id] = { lv: 7, herb: ch.herb };
+      var ok = G.ascend(from.id);
+      var had = !!C.save.dex.pets[to.id];
+      var kept = C.save.dex.pets[from.id].count;
+      var res = ok && had && G.lvOf(to.id) === 7 && kept === 1 && G.herbOf(from.id) === 0;
+      /* 남기지 않는다 — 승화가 올려 둔 상위 종의 연성 단계가 흘러가면
+         뒷 항목("펫 보정은 성장 배율 뒤에 더해진다")이 그 배율에 걸려 넘어진다 */
+      delete C.save.dex.pets[to.id];
+      C.save.petGrow = {}; C.save.dust = 0;
+      return res && (from.name + ' → ' + to.name + ' · 연성 7단 승계 · 원래 종도 남는다');
+    });
+
+    t('영초가 모자라면 승화가 막힌다', function () {
+      var G = DG.growth;
+      var ch = G.chainList()[1];
+      C.save.petGrow = {};
+      C.save.dex.pets[ch.from.id] = { count: 1, firstAt: Date.now() };
+      C.save.petGrow[ch.from.id] = { lv: 0, herb: ch.herb - 1 };
+      var chk = G.ascendCheck(ch.from.id);
+      var res = !chk.ok && chk.why === '영초 부족' && !G.ascend(ch.from.id);
+      C.save.petGrow = {}; C.save.dust = 0;
+      return res && ('영초 ' + (ch.herb - 1) + ' / ' + ch.herb + ' 이면 막힌다');
+    });
+
+    t('승화하지 않는 종은 승화 문이 닫혀 있다', function () {
+      var G = DG.growth;
+      var none = null, i;
+      for (i = 0; i < D.pets.length; i++) { if (!G.chainOf(D.pets[i].id)) { none = D.pets[i]; break; } }
+      if (!none) { return false; }
+      var chk = G.ascendCheck(none.id);
+      return !chk.ok && chk.why === '승화하지 않는 종' &&
+        (none.name + ' 은 승화하지 않는다');
+    });
+
+    t('연성·승화는 도감 마리수를 줄이지 않는다 (인물 승급과 다른 축)', function () {
+      var G = DG.growth;
+      var ch = G.chainList()[0];
+      C.save.petGrow = {}; C.save.dust = 999999;
+      C.save.dex.pets[ch.from.id] = { count: 2, firstAt: Date.now() };
+      C.save.petGrow[ch.from.id] = { lv: 0, herb: 9999 };
+      G.refine(ch.from.id);
+      G.ascend(ch.from.id);
+      var res = C.save.dex.pets[ch.from.id].count === 2;
+      delete C.save.dex.pets[ch.to.id];
+      C.save.petGrow = {}; C.save.dust = 0;
+      return res && '연성·승화를 해도 2마리 그대로';
+    });
+
+
+    /* ── 반려(伴侶) — 원작의 버디 ───────────────────────
+     * 곁에 세운 짐승 하나와 걸으면 그 종의 영초가 나온다.
+     * 항목은 저마다 쓸 상태를 스스로 만들고, 남긴 것(반려·우애·영초·사료·거리)은
+     * 스스로 치운다 — 다음 항목으로 흘러가면 엉뚱한 곳이 깨진다. */
+
+    function bdOwn(pet) {                     // 잡은 것으로 쳐 준다
+      C.save.dex.pets[pet.id] = C.save.dex.pets[pet.id] || { count: 1, firstAt: Date.now() };
+      return pet;
+    }
+    function bdWipe(id) {                     // 이 종에 남긴 자국을 지운다
+      DG.buddy.clear();
+      if (C.save.buddyLog) { delete C.save.buddyLog[id]; }
+    }
+
+    t('반려는 포획한 종만 곁에 세울 수 있다', function () {
+      var B = DG.buddy, none = null, i;
+      for (i = 0; i < D.pets.length; i++) {
+        if (!C.save.dex.pets[D.pets[i].id]) { none = D.pets[i]; break; }
+      }
+      if (!none) { return false; }
+      var res = !B.set(none.id) && !C.save.buddy.id;
+      return res && (none.name + ' 은 잡기 전엔 곁에 세울 수 없다');
+    });
+
+    t('함께 걸으면 정해진 거리마다 그 종의 영초가 나온다', function () {
+      var B = DG.buddy, G = DG.growth;
+      var pet = bdOwn(D.pets[0]);
+      var d0 = C.save.player.distance, herb0 = G.herbOf(pet.id);
+      B.set(pet.id);
+      /* 우애를 끝까지 올려 붙들어 둔다 — 걷는 도중에 단계가 깊어지면 몫마다 나오는
+         수가 달라져 "거리마다 나온다" 를 볼 수 없다. 그건 아래 다른 항목이 본다. */
+      C.save.buddyLog[pet.id].walked = B.BOND[B.BOND.length - 1].at;
+      var per = B.herbPerLeg(pet.id);
+      var leg = B.legOf(pet);
+      C.save.player.distance += leg * 2 + 10;            // 두 몫하고 10m 더
+      var r = B.tick();
+      var got = G.herbOf(pet.id) - herb0;
+      var carry = C.save.player.distance - C.save.buddy.mark;
+      bdWipe(pet.id);
+      if (C.save.petGrow[pet.id]) { C.save.petGrow[pet.id].herb = herb0; }
+      C.save.player.distance = d0;
+      return r && r.legs === 2 && got === per * 2 && carry === 10 &&
+        (pet.name + ' · ' + C.fmt(leg) + 'm ×2 → 🌿+' + got + ' · 남은 10m 는 다음 몫으로');
+    });
+
+    t('영초는 곁을 걷는 종에만 들어온다', function () {
+      var B = DG.buddy, G = DG.growth;
+      var mine = bdOwn(D.pets[0]), other = bdOwn(D.pets[1]);
+      var d0 = C.save.player.distance;
+      var h0 = G.herbOf(mine.id), o0 = G.herbOf(other.id);
+      B.set(mine.id);
+      C.save.player.distance += B.legOf(mine);
+      B.tick();
+      var res = G.herbOf(mine.id) > h0 && G.herbOf(other.id) === o0;
+      bdWipe(mine.id);
+      if (C.save.petGrow[mine.id]) { C.save.petGrow[mine.id].herb = h0; }
+      C.save.player.distance = d0;
+      return res && (mine.name + ' 만 늘고 ' + other.name + ' 은 그대로');
+    });
+
+    t('등급이 높을수록 한 몫에 더 멀리 걸어야 한다', function () {
+      var B = DG.buddy, lo = null, hi = null, i;
+      for (i = 0; i < D.pets.length; i++) {
+        if (!lo || D.pets[i].rarity < lo.rarity) { lo = D.pets[i]; }
+        if (!hi || D.pets[i].rarity > hi.rarity) { hi = D.pets[i]; }
+      }
+      return B.legOf(lo) < B.legOf(hi) &&
+        (lo.name + '(★' + lo.rarity + ') ' + C.fmt(B.legOf(lo)) + 'm < ' +
+         hi.name + '(★' + hi.rarity + ') ' + C.fmt(B.legOf(hi)) + 'm');
+    });
+
+    t('반려를 세우지 않으면 걸어도 영초가 나오지 않는다', function () {
+      var B = DG.buddy, G = DG.growth;
+      B.clear();
+      var pet = D.pets[0];
+      var h0 = G.herbOf(pet.id), d0 = C.save.player.distance;
+      C.save.player.distance += 20000;
+      var r = B.tick();
+      var res = r === null && G.herbOf(pet.id) === h0;
+      C.save.player.distance = d0;
+      return res && '20km 를 걸어도 🌿 그대로';
+    });
+
+    t('반려 기준점은 거리보다 앞서지 않는다 (리셋 보호)', function () {
+      var B = DG.buddy, pet = bdOwn(D.pets[0]);
+      B.set(pet.id);
+      C.save.buddy.mark = C.save.player.distance + 9999;
+      B.tick();
+      var ok = C.save.buddy.mark <= C.save.player.distance;
+      bdWipe(pet.id);
+      return ok && '기준점 보정 확인';
+    });
+
+    t('우애는 함께 걸은 거리로 깊어지고, 깊어질 때 단사가 들어온다', function () {
+      var B = DG.buddy, G = DG.growth;
+      var pet = bdOwn(D.pets[0]);
+      var d0 = C.save.player.distance, dust0 = G.dust(), h0 = G.herbOf(pet.id);
+      B.set(pet.id);
+      var lv0 = B.bondLv(pet.id);
+      var leg = B.legOf(pet);
+      C.save.player.distance += Math.ceil(B.BOND[1].at / leg) * leg;   // 친교 문턱까지
+      B.tick();
+      var lv1 = B.bondLv(pet.id);
+      var res = lv0 === 0 && lv1 === 1 && G.dust() === dust0 + B.BOND_DUST;
+      bdWipe(pet.id);
+      if (C.save.petGrow[pet.id]) { C.save.petGrow[pet.id].herb = h0; }
+      C.save.dust = dust0;
+      C.save.player.distance = d0;
+      return res && ('면식 → ' + B.BOND[1].name + ' · ✨ +' + B.BOND_DUST);
+    });
+
+    t('사료를 먹이면 우애만 오르고 영초는 나오지 않는다', function () {
+      var B = DG.buddy, G = DG.growth;
+      var pet = bdOwn(D.pets[0]);
+      var feed0 = C.save.items.feed;
+      B.set(pet.id);
+      C.save.items.feed = 3;
+      var care0 = B.careOf(pet.id), h0 = G.herbOf(pet.id);
+      var r = B.feed();
+      var res = r.ok && C.save.items.feed === 2 &&
+        B.careOf(pet.id) === care0 + B.FEED_M && G.herbOf(pet.id) === h0;
+      bdWipe(pet.id);
+      C.save.items.feed = feed0;
+      return res && ('🍖 한 줌 = 우애 +' + B.FEED_M + ' · 🌿 는 그대로');
+    });
+
+    t('사료가 없으면 먹일 수 없다', function () {
+      var B = DG.buddy, pet = bdOwn(D.pets[0]);
+      var feed0 = C.save.items.feed;
+      B.set(pet.id);
+      C.save.items.feed = 0;
+      var r = B.feed();
+      bdWipe(pet.id);
+      C.save.items.feed = feed0;
+      return !r.ok && r.why === '사료 없음' && ('거절 이유: ' + r.why);
+    });
+
+    t('사이가 깊을수록 한 몫에 나오는 영초가 는다', function () {
+      var B = DG.buddy, pet = bdOwn(D.pets[0]);
+      B.set(pet.id);
+      var n0 = B.herbPerLeg(pet.id);
+      C.save.buddyLog[pet.id].walked = B.BOND[B.BOND.length - 1].at;
+      var n3 = B.herbPerLeg(pet.id);
+      bdWipe(pet.id);
+      return n0 === B.HERB_BASE && n3 === B.HERB_BASE + B.BOND.length - 1 &&
+        ('면식 🌿' + n0 + ' → ' + B.BOND[B.BOND.length - 1].name + ' 🌿' + n3);
+    });
+
+    t('장착 보정은 반려로 세워 둔 동안에만 오른다', function () {
+      var B = DG.buddy, G = DG.growth;
+      var pet = null, i;
+      for (i = 0; i < D.pets.length; i++) {          // 반올림에 묻히지 않게 보정이 큰 종으로
+        if (!pet || D.pets[i].bonus.value > pet.bonus.value) { pet = D.pets[i]; }
+      }
+      bdOwn(pet);
+      var keep = C.save.petGrow[pet.id];
+      C.save.petGrow[pet.id] = { lv: 0, herb: 0 };
+      var plain = G.bonusOf(pet);
+      B.set(pet.id);
+      C.save.buddyLog[pet.id].walked = B.BOND[B.BOND.length - 1].at;   // 막역
+      var best = G.bonusOf(pet);
+      B.clear();
+      var after = G.bonusOf(pet);
+      if (C.save.buddyLog) { delete C.save.buddyLog[pet.id]; }
+      if (keep) { C.save.petGrow[pet.id] = keep; } else { delete C.save.petGrow[pet.id]; }
+      return best > plain && after === plain &&
+        (pet.name + ' ' + plain + ' → ' + best + ' (막역) → 물리면 ' + after);
+    });
+
+    t('반려를 갈아도 종별 우애는 남는다', function () {
+      var B = DG.buddy;
+      var a = bdOwn(D.pets[0]), b = bdOwn(D.pets[1]);
+      var d0 = C.save.player.distance;
+      B.set(a.id);
+      C.save.buddyLog[a.id].walked = 4200;
+      B.set(b.id);
+      var kept = B.info(a.id).walked;
+      var markOk = C.save.buddy.mark === C.save.player.distance;
+      bdWipe(a.id);
+      delete C.save.buddyLog[b.id];
+      C.save.player.distance = d0;
+      return kept === 4200 && markOk &&
+        (a.name + ' 과 걸은 4,200m 는 남고, ' + b.name + ' 은 갈아탄 자리에서 다시 센다');
+    });
+
+    t('반려 기록이 저장에서 살아 남는다', function () {
+      var B = DG.buddy, pet = bdOwn(D.pets[0]);
+      B.set(pet.id);
+      C.save.buddyLog[pet.id] = { walked: 5000, fed: 2, gained: 7, since: 1 };
+      C.persist();
+      C.load();
+      var lg = C.save.buddyLog[pet.id];
+      var res = C.save.buddy.id === pet.id && lg && lg.walked === 5000 && lg.fed === 2;
+      var bond = B.bondOf(pet.id).def.name;
+      bdWipe(pet.id);
+      return res && ('함께 5,000m · 사료 2줌 · ' + bond + ' 복원');
+    });
+
+    t('펫 상세에 반려 칸이 열린다', function () {
+      var B = DG.buddy, pet = bdOwn(D.pets[0]);
+      B.clear();
+      DG.ui.openDetail('pet', pet.id);
+      var off = document.getElementById('detail').innerHTML;
+      B.set(pet.id);
+      DG.ui.openDetail('pet', pet.id);
+      var on = document.getElementById('detail').innerHTML;
+      DG.ui.closeDetail();
+      bdWipe(pet.id);
+      return off.indexOf('반려로 세운다') >= 0 && on.indexOf('곁에서 물린다') >= 0 &&
+        on.indexOf('사료를 먹인다') >= 0 && ('세우기 전/후 화면이 바뀐다 (' + on.length + '자)');
+    });
+
+    /* ── 사명(使命) — 원작의 필드 리서치 ───────────────── */
+
+    t('사명은 셋까지 들고, 같은 것을 두 번 받지 않는다', function () {
+      var Q = DG.quest;
+      C.save.quests = { list: [], stamps: 0, day: '', stampedToday: false, done: 0, breaks: 0 };
+      var got = 0;
+      for (var i = 0; i < 8; i++) { if (Q.take()) { got++; } }
+      var keys = {};
+      Q.list().forEach(function (q) { keys[q.key] = true; });
+      return got === Q.MAX && Q.full() && Object.keys(keys).length === Q.MAX &&
+        ('셋에서 멈춤 · ' + Object.keys(keys).join('·'));
+    });
+
+    t('일이 끝나면 사명이 그만큼 찬다', function () {
+      var Q = DG.quest;
+      C.save.quests = { list: [], stamps: 0, day: '', stampedToday: false, done: 0, breaks: 0 };
+      Q.take('catch');
+      var q0 = Q.list()[0];
+      Q.progress('catch', 2);
+      var q1 = Q.list()[0];
+      Q.progress('walk', 999);                    // 다른 종류는 안 센다
+      var q2 = Q.list()[0];
+      return q0.got === 0 && q1.got === 2 && q2.got === 2 &&
+        ('0 → 2 · 다른 일에는 안 찬다');
+    });
+
+    t('채운 사명을 거두면 보상과 인장을 받는다', function () {
+      var Q = DG.quest, B = DG.bag;
+      C.save.quests = { list: [], stamps: 0, day: '', stampedToday: false, done: 0, breaks: 0 };
+      C.save.items = { scroll: 0, feed: 0, treat: 0, incense: 0, prayer: 0 };
+      Q.take('catch');
+      var need = Q.list()[0].need;
+      Q.progress('catch', need);
+      var g0 = C.save.player.gold;
+      var r = Q.claim(0);
+      return r && r.stamped && C.save.quests.stamps === 1 &&
+        C.save.player.gold > g0 && Q.list().length === 0 &&
+        ('🪙 +' + r.got.gold + ' · 🔖 인장 1');
+    });
+
+    t('인장은 하루 한 개만 찍힌다', function () {
+      var Q = DG.quest;
+      /* 앞 항목에서 오늘 몫을 이미 받았다 */
+      Q.take('station');
+      Q.progress('station', 99);
+      var before = C.save.quests.stamps;
+      var r = Q.claim(0);
+      return r && !r.stamped && C.save.quests.stamps === before &&
+        r.got.gold > 0 && ('보상은 받고 인장은 그대로 ' + before);
+    });
+
+    t('인장 일곱이면 명사가 코앞에 선다', function () {
+      var Q = DG.quest;
+      C.save.quests = { list: [], stamps: Q.STAMPS_FOR_BREAK - 1, day: '',
+                        stampedToday: false, done: 0, breaks: 0 };
+      DG.world.spawns.length = 0;
+      Q.take('catch');
+      Q.progress('catch', 999);
+      var r = Q.claim(0);
+      var sp = DG.world.spawns.filter(function (s) { return s.special; });
+      return r && r.breakthrough && sp.length === 1 && sp[0].ref.rarity >= 4 &&
+        C.save.quests.stamps === 0 &&
+        ('명사 ' + sp[0].ref.name + ' (★' + sp[0].ref.rarity + ') 가 ' +
+         Math.round(Math.hypot(sp[0].x - C.save.player.pos.x, sp[0].y - C.save.player.pos.y)) + 'm 앞에');
+    });
+
+    t('역참이 사명을 준다', function () {
+      var Q = DG.quest;
+      C.save.quests = { list: [], stamps: 0, day: '', stampedToday: false, done: 0, breaks: 0 };
+      C.save.stations = {};
+      C.save.items = { scroll: 0, feed: 0, treat: 0, incense: 0, prayer: 0 };
+      var list = [];
+      for (var rx = 0; rx < 14; rx++) { list = list.concat(DG.world.stationsIn(rx, 2)); }
+      for (var i = 0; i < list.length && !Q.list().length; i++) { DG.station.visit(list[i]); }
+      return Q.list().length > 0 && ('역참 ' + i + '곳째에서 ' + Q.list()[0].def.name);
+    });
+
+    /* ── 천후(天候) — 원작의 날씨 부스트 ───────────────── */
+
+    t('천후는 세 시간마다 바뀌고, 같은 시각이면 늘 같다', function () {
+      var W = DG.weather;
+      var t0 = 1756000000000;                       // 아무 시각 하나
+      var a = W.at(t0), b = W.at(t0 + 1000), c = W.at(t0 + W.SPAN_MS);
+      var seen = {};
+      for (var i = 0; i < 200; i++) { seen[W.at(t0 + i * W.SPAN_MS).key] = true; }
+      return a.key === b.key && Object.keys(seen).length >= 4 &&
+        ('같은 칸 ' + a.name + ' · 200칸에서 ' + Object.keys(seen).length + '종');
+    });
+
+    t('천후가 보정을 낸다 (core.effect 로 흘러든다)', function () {
+      var W = DG.weather;
+      W.force('snow');
+      var snow = C.effect('spawnRarePct');
+      W.force('fog');
+      var fog = C.effect('divinePct');
+      W.force('clear');
+      return snow >= 16 && fog >= 12 && ('눈 spawnRarePct ' + snow + ' · 안개 divinePct ' + fog);
+    });
+
+    t('비 오는 날은 짐승이, 바람 부는 날은 사람이 많다', function () {
+      var W = DG.weather;
+      function ratio(key) {
+        W.force(key);
+        C.save.player.pos.x = 0; C.save.player.pos.y = 0;
+        var hero = 0, n = 300;
+        for (var i = 0; i < n; i++) {
+          DG.world.spawns.length = 0;
+          DG.world.update(0.016);
+          var list = DG.world.spawns;
+          if (list.length && list[0].kind === 'hero') { hero++; }
+        }
+        return hero / n;
+      }
+      var rain = ratio('rain'), wind = ratio('wind');
+      W.force('clear');
+      return wind > rain && ('비 인물비 ' + rain.toFixed(2) + ' · 바람 ' + wind.toFixed(2));
+    });
+
+    t('눈 오는 날은 인적이 드물다 (대상이 준다)', function () {
+      var W = DG.weather;
+      W.force('clear');
+      C.save.boosts = {};
+      var plain = DG.world.maxSpawns();
+      W.force('snow');
+      var snow = DG.world.maxSpawns();
+      W.force('clear');
+      return snow < plain && ('맑음 ' + plain + ' → 눈 ' + snow);
+    });
+
+    /* ── 행낭(行囊) — 원작의 가방 ──────────────────────── */
+
+    t('행낭에는 상한이 있다 (넘치면 안 들어간다)', function () {
+      var B = DG.bag;
+      C.save.items = { scroll: 0, feed: 0, treat: 0, incense: 0, prayer: 0 };
+      var got = B.add('scroll', B.CAP + 50);
+      return got === B.CAP && B.total() === B.CAP && B.full() &&
+        B.add('feed', 5) === 0 && ('상한 ' + B.CAP + ' 에서 멈춤');
+    });
+
+    t('가득 찬 행낭에는 역참도 더 넣지 못한다', function () {
+      var B = DG.bag;
+      C.save.items = { scroll: B.CAP, feed: 0, treat: 0, incense: 0, prayer: 0 };
+      C.save.stations = {};
+      var st = DG.world.stationsIn(1, 1)[0];
+      var g0 = C.save.player.gold;
+      var res = DG.station.visit(st);
+      return res.ok && res.reward.scroll === 0 && res.reward.feed === 0 &&
+        C.save.player.gold > g0 && ('물건은 0, 금은 +' + (C.save.player.gold - g0));
+    });
+
+    t('쓰는 물건은 한동안 효과가 이어진다', function () {
+      var B = DG.bag;
+      C.save.items = { scroll: 0, feed: 0, treat: 2, incense: 0, prayer: 0 };
+      C.save.boosts = {};
+      var before = C.effect('catchPct');
+      var r = B.use('treat');
+      var after = C.effect('catchPct');
+      /* 천후도 포획 보정을 줄 수 있다 — **늘어난 몫**으로 본다 */
+      return r.ok && B.count('treat') === 1 && after - before === 25 &&
+        B.bonus().catchPct === 25 &&
+        B.boostOf('treat') && ('포획 보정 ' + before + ' → ' + after +
+        ' · ' + B.leftLabel(B.boostOf('treat').leftMs));
+    });
+
+    t('같은 것을 또 쓰면 시간이 이어 붙는다 (겹쳐 쓰지 않는다)', function () {
+      var B = DG.bag;
+      C.save.items.treat = 1;
+      var left0 = B.boostOf('treat').leftMs;
+      B.use('treat');
+      var left1 = B.boostOf('treat').leftMs;
+      var eff = B.bonus().catchPct;
+      return left1 > left0 && eff === 25 &&
+        ('남은 시간 ' + Math.round(left0 / 1000) + '초 → ' + Math.round(left1 / 1000) + '초 · 보정은 그대로 25');
+    });
+
+    t('축문은 경험치를 두 배로 만든다', function () {
+      var B = DG.bag;
+      C.save.items = { scroll: 0, feed: 0, treat: 0, incense: 0, prayer: 1 };
+      C.save.boosts = {};
+      var plain = C.gainExp(100);
+      B.use('prayer');
+      var doubled = C.gainExp(100);
+      /* 천후가 경험치를 함께 밀 수 있으니 **차이**로 본다 (축문 몫은 +100%p) */
+      return doubled - plain === 100 && B.bonus().expPct === 100 &&
+        ('경험치 ' + plain + ' → ' + doubled);
+    });
+
+    t('향을 피우면 근처가 붐빈다', function () {
+      var B = DG.bag;
+      C.save.items = { scroll: 0, feed: 0, treat: 0, incense: 1, prayer: 0 };
+      C.save.boosts = {};
+      var plain = DG.world.maxSpawns();
+      B.use('incense');
+      var lured = DG.world.maxSpawns();
+      return B.lured() && lured > plain && ('대상 ' + plain + ' → ' + lured);
+    });
+
+    t('쓸 수 없는 것은 써지지 않는다', function () {
+      var B = DG.bag;
+      C.save.items = { scroll: 5, feed: 5, treat: 0, incense: 0, prayer: 0 };
+      var a = B.use('scroll');            // 등용서는 조우에서 쓰는 밑천이다
+      var b = B.use('treat');             // 가진 게 없다
+      return !a.ok && a.reason === 'nouse' && !b.ok && b.reason === 'none' &&
+        C.save.items.scroll === 5 && '등용서는 못 쓰고, 없는 별미도 못 쓴다';
+    });
+
+    /* ── 천거장(薦擧狀) — 원작의 알 ────────────────────── */
+
+    t('천거장은 가방에 아홉 통까지만 (원작 알 가방)', function () {
+      C.save.letters = { bag: [], slots: [null, null, null], opened: 0 };
+      var got = 0;
+      for (var i = 0; i < 20; i++) { if (DG.letter.give('g2')) { got++; } }
+      return got === DG.letter.BAG_MAX && C.save.letters.bag.length === DG.letter.BAG_MAX &&
+        ('아홉 통에서 멈춤 (' + got + ')');
+    });
+
+    t('받아만 둔 천거장은 걸어도 줄지 않는다', function () {
+      C.save.letters = { bag: ['g2'], slots: [null, null, null], opened: 0 };
+      C.save.player.distance += 5000;
+      DG.letter.tick();
+      return C.save.letters.bag.length === 1 && C.save.letters.opened === 0 &&
+        '5km 걸어도 그대로';
+    });
+
+    t('행낭에 넣은 뒤부터 거리를 센다', function () {
+      C.save.letters = { bag: ['g2'], slots: [null, null, null], opened: 0 };
+      var ok = DG.letter.put(0, 0);
+      var pr0 = DG.letter.progress(C.save.letters.slots[0]);
+      C.save.player.distance += 1000;                 // 2km 중 1km
+      var pr1 = DG.letter.progress(C.save.letters.slots[0]);
+      return ok && pr0.pct === 0 && pr1.pct === 50 && !pr1.done &&
+        ('0% → ' + pr1.pct + '% · ' + Math.round(pr1.left) + 'm 남음');
+    });
+
+    t('다 걸으면 봉이 떨어지고 그 사람이 온다 (도감·공적·금)', function () {
+      C.save.letters = { bag: ['g2'], slots: [null, null, null], opened: 0 };
+      DG.letter.put(0, 0);
+      var dex0 = Object.keys(C.save.dex.heroes).length;
+      var feat0 = C.save.player.featTotal, gold0 = C.save.player.gold;
+      C.save.player.distance += 2000;
+      var n = DG.letter.tick();
+      DG.letter.close();
+      var dex1 = Object.keys(C.save.dex.heroes).length;
+      return n === 1 && C.save.letters.slots[0] === null && C.save.letters.opened === 1 &&
+        C.save.player.featTotal > feat0 && C.save.player.gold > gold0 &&
+        (dex1 >= dex0) &&
+        ('한 통 열림 · 공적 +' + (C.save.player.featTotal - feat0) +
+         ' · 금 +' + (C.save.player.gold - gold0));
+    });
+
+    t('먼 천거장일수록 높은 등급이 온다', function () {
+      /* 10km 는 ★4~5 만 나온다 — 등급표가 어긋나면 여기서 잡힌다 */
+      var g10 = DG.letter.gradeOf('g10');
+      var lows = D.heroes.filter(function (h) { return g10.rarity.indexOf(h.rarity) < 0; });
+      var bad = 0;
+      for (var i = 0; i < 40; i++) {
+        C.save.letters = { bag: ['g10'], slots: [null, null, null], opened: 0 };
+        DG.letter.put(0, 0);
+        C.save.player.distance += 10000;
+        var before = C.save.letters.opened;
+        DG.letter.tick();
+        DG.letter.close();
+        if (C.save.letters.opened !== before + 1) { bad++; }
+      }
+      return bad === 0 && lows.length > 0 &&
+        ('40통 모두 열림 · 10km 등급 ★' + g10.rarity.join('·★'));
+    });
+
+    t('역참이 천거장도 준다', function () {
+      C.save.letters = { bag: [], slots: [null, null, null], opened: 0 };
+      C.save.stations = {};
+      /* 확률(22%)이라 한 번으로는 못 본다 — 여러 역참을 돌아 한 통이라도 나오는지 본다 */
+      var list = [];
+      for (var rx = 0; rx < 12; rx++) {
+        list = list.concat(DG.world.stationsIn(rx, 0), DG.world.stationsIn(rx, 1));
+      }
+      for (var i = 0; i < list.length && C.save.letters.bag.length === 0; i++) {
+        DG.station.visit(list[i]);
+      }
+      return C.save.letters.bag.length > 0 &&
+        ('역참 ' + i + '곳째에서 ' + DG.letter.gradeOf(C.save.letters.bag[0]).name);
+    });
+
+    t('자동은 빈 칸을 먼 것부터 채운다', function () {
+      C.save.letters = { bag: ['g2', 'g10', 'g5'], slots: [null, null, null], opened: 0 };
+      var n = DG.letter.autoFill();
+      var order = C.save.letters.slots.map(function (s) { return s && s.g; }).join(',');
+      return n === 3 && order === 'g10,g5,g2' && C.save.letters.bag.length === 0 &&
+        ('행낭 ' + order);
+    });
+
+    /* ── 성채(城砦) — 원작의 체육관 ────────────────────── */
+
+    t('성채는 역참보다 드물다 (구역의 약 4할)', function () {
+      var have = 0, total = 0;
+      for (var rx = -10; rx <= 10; rx++) {
+        for (var ry = -10; ry <= 10; ry++) {
+          total++;
+          if (DG.world.fortAt(rx, ry)) { have++; }
+        }
+      }
+      var pct = have / total;
+      return pct > 0.2 && pct < 0.6 && ('구역 ' + total + '곳 중 ' + have + '곳 (' +
+        Math.round(pct * 100) + '%)');
+    });
+
+    t('같은 성채는 늘 같은 세력·수비대가 지킨다', function () {
+      var f = DG.world.fortAt(2, 3);
+      if (!f) { f = DG.world.fortAt(0, 0); }
+      if (!f) { return false; }
+      var a = DG.fort.infoOf(f), b = DG.fort.infoOf(f);
+      var same = a.factionName === b.factionName && a.tier.tier === b.tier.tier &&
+        a.guards.length === 3 && b.guards.length === 3;
+      for (var i = 0; same && i < 3; i++) { same = a.guards[i].id === b.guards[i].id; }
+      var uniq = a.guards[0].id !== a.guards[1].id && a.guards[1].id !== a.guards[2].id &&
+        a.guards[0].id !== a.guards[2].id;
+      return same && uniq &&
+        (a.factionName + ' ' + a.tier.name + ' · ' +
+         a.guards.map(function (g) { return g.name; }).join('·'));
+    });
+
+    t('도전 — 이기면 점령, 지면 수비가 경계한다', function () {
+      C.save.forts = {};
+      var f = DG.world.fortsNear()[0];
+      if (!f) { return false; }
+      if (!C.save.party.length) { return '동행이 없어 건너뜀'; }
+      var res = DG.fort.challenge(f);
+      if (!res.ok) { return false; }
+      var info = DG.fort.infoOf(f);
+      var ok = res.rounds.length > 0 &&
+        (res.win ? (info.mine && info.coolLeft === 0)
+                 : (!info.mine && info.coolLeft > 0));
+      return ok && ('겨룸 ' + res.rounds.length + '판 · ' + (res.win ? '점령' : '패퇴(경계)'));
+    });
+
+    t('경계 중에는 다시 도전할 수 없다', function () {
+      C.save.forts = {};
+      var f = DG.world.fortsNear()[0];
+      C.save.forts[f.key] = { cool: Date.now() + 60000 };
+      var res = DG.fort.challenge(f);
+      return !res.ok && res.reason === 'cool' && '재도전 막힘 확인';
+    });
+
+    t('점령한 성채는 시간당 공물이 쌓이고, 걷으면 금이 된다', function () {
+      C.save.forts = {};
+      var f = DG.world.fortsNear()[0];
+      var at = Date.now() - 2 * 3600000;                 // 두 시간 전에 점령했다 치고
+      C.save.forts[f.key] = { at: at, coll: at };
+      var due = DG.fort.tributeOf(f);
+      var g0 = C.save.player.gold;
+      var got = DG.fort.collect(f);
+      return due === DG.fort.GOLD_PER_HOUR * 2 && got === due &&
+        C.save.player.gold === g0 + due && DG.fort.tributeOf(f) === 0 &&
+        ('두 시간 → 🪙 ' + got + ' · 걷은 뒤 0');
+    });
+
+    t('공물에는 하루 상한이 있다 (원작의 코인 상한)', function () {
+      C.save.forts = {};
+      var f = DG.world.fortsNear()[0];
+      var at = Date.now() - 11 * 3600000;
+      var d = new Date();
+      C.save.forts[f.key] = {
+        at: at, coll: at,
+        day: d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(),
+        dayGold: 480
+      };
+      return DG.fort.tributeOf(f) === 0 && '상한에 닿으면 더 안 쌓임';
+    });
+
+    t('사기가 다하면 손을 떼고 남은 공물을 준다', function () {
+      C.save.forts = {};
+      var f = DG.world.fortsNear()[0];
+      var at = Date.now() - DG.fort.HOLD_MS - 1000;      // 열두 시간이 지났다
+      C.save.forts[f.key] = { at: at, coll: at + DG.fort.HOLD_MS - 3600000 };
+      var g0 = C.save.player.gold;
+      var lost = DG.fort.tick();
+      return lost === 1 && C.save.forts[f.key] === undefined &&
+        C.save.player.gold > g0 &&
+        ('성채 반환 · 남은 공물 🪙 +' + (C.save.player.gold - g0));
+    });
+
+    t('자동은 가망 없는 성채에 부딪히지 않는다', function () {
+      C.save.forts = {};
+      var f = DG.world.fortsNear()[0];
+      var party0 = C.save.party.slice();
+      C.save.party = [];                                  // 부대가 없으면 승산 0
+      var act = DG.fort.autoAct(f);
+      C.save.party = party0;
+      return act === null && C.save.forts[f.key] === undefined &&
+        '부대 없이 도전하지 않음';
+    });
+
+    /* ── 저장 · UI ─────────────────────────────────────── */
+
+    t('저장 → 불러오기 왕복', function () {
+      C.save.player.gold = 12345;
+      C.persist();
+      var ok = C.load();
+      return ok && C.save.player.gold === 12345 && ('금 ' + C.save.player.gold + ' 복원');
+    });
+
+    t('UI 시트 렌더 (사명·행낭·천거·도감·사관·기록)', function () {
+      var names = ['quest', 'bag', 'letters', 'dex', 'oracle', 'log'], bad = [];
+      names.forEach(function (name) {
+        DG.ui.openSheet(name);
+        if (document.getElementById('sheet-body').innerHTML.length < 30) { bad.push(name); }
+      });
+      DG.ui.closeSheet();
+      return bad.length ? false : (names.length + '/' + names.length + ' 정상');
+    });
+
+    t('근처 대상 조회', function () {
+      var n = DG.world.nearest();
+      return n && typeof n.dist === 'number' && ('최근접 ' + Math.round(n.dist) + 'm');
+    });
+
+    /* ── 지도 투영 (2D · 2.5D · 3D) ────────────────────── */
+
+    t('좌표 왕복 (미터 ↔ 위경도)', function () {
+      var ll = DG.world.latLng();
+      return ll && Math.abs(ll.lat) > 1 && ('현재 ' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5));
+    });
+
+    t('원근 투영 왕복 (2.5D)', function () {
+      C.save.settings.tilt = 1; W.resize();
+      var pts = [[0, 0], [120, -200], [-300, 180], [40, -600], [500, 350]];
+      var maxErr = 0;
+      for (var i = 0; i < pts.length; i++) {
+        var pr = W.project(pts[i][0], pts[i][1]);
+        var back = W.unproject(pr.x, pr.y);
+        maxErr = Math.max(maxErr, Math.abs(back.u - pts[i][0]), Math.abs(back.v - pts[i][1]));
+      }
+      return maxErr < 0.6 && ('최대 오차 ' + maxErr.toFixed(4) + 'px');
+    });
+
+    t('원근 투영 왕복 (3D)', function () {
+      C.save.settings.tilt = 2; W.resize();
+      var pts = [[0, 0], [120, -200], [-300, 180], [40, -400], [500, 350]];
+      var maxErr = 0;
+      for (var i = 0; i < pts.length; i++) {
+        var pr = W.project(pts[i][0], pts[i][1]);
+        var back = W.unproject(pr.x, pr.y);
+        maxErr = Math.max(maxErr, Math.abs(back.u - pts[i][0]), Math.abs(back.v - pts[i][1]));
+      }
+      C.save.settings.tilt = 1; W.resize();
+      return maxErr < 0.6 && ('최대 오차 ' + maxErr.toFixed(4) + 'px');
+    });
+
+    t('먼 곳은 작게 투영된다', function () {
+      C.save.settings.tilt = 1; W.resize();
+      var far = W.project(0, -400).s, near = W.project(0, 400).s;
+      return far < 1 && near > 1 && ('먼 곳 ×' + far.toFixed(2) + ' / 가까운 곳 ×' + near.toFixed(2));
+    });
+
+    t('2D 로 되돌리면 투영은 항등', function () {
+      C.save.settings.tilt = 0; W.resize();
+      var pr = W.project(50, -80);
+      var back = W.unproject(pr.x, pr.y);
+      var ok = Math.abs(back.u - 50) < 0.001 && Math.abs(back.v + 80) < 0.001 && pr.s === 1;
+      C.save.settings.tilt = 1; W.resize();
+      return ok && '항등 확인';
+    });
+
+    t('시점 3모드 순환 — 2D→2.5D→3D→2D', function () {
+      C.save.settings.tilt = 0;
+      var a = W.cycleTilt(), b = W.cycleTilt(), c = W.cycleTilt();
+      C.save.settings.tilt = 2; W.resize();
+      var t3 = document.body.classList.contains('tilted3');
+      C.save.settings.tilt = 1; W.resize();
+      var back = !document.body.classList.contains('tilted3');
+      return a === 1 && b === 2 && c === 0 && t3 && back && '0→1→2→0 · tilted3 클래스';
+    });
+
+    t('3D 는 플레이어를 화면 아래쪽에 세운다 (포켓몬GO식)', function () {
+      C.save.settings.tilt = 1; W.resize();
+      var y25 = W.project(0, 0).y;
+      C.save.settings.tilt = 2; W.resize();
+      var y3 = W.project(0, 0).y;
+      C.save.settings.tilt = 1; W.resize();
+      return y3 > y25 && ('기준점 y ' + Math.round(y25) + ' → ' + Math.round(y3));
+    });
+
+    /* ── 3D 렌더러 (world3d · actor3d) ──────────────────────
+     * 그리기는 진단에서 켜지 않는다(DG_NO_DRAW) — WebGL 이 없는 자리에서도 판정이
+     * 서야 하기 때문이다. 대신 **값을 내는 함수**만 따로 굴린다: 조명·건물 계획·
+     * 카메라·배우 조립은 three 없이도 답이 나온다.
+     */
+
+    var R3 = DG.world3d, A3 = DG.actor3d;
+    /* 시각을 못박는다 — 진단을 저녁에 돌렸다고 값이 달라지면 안 된다
+       (천후를 clear 로 붙들어 둔 것과 같은 이유다) */
+    function atH(h, m) { return new Date(2026, 7, 26, h, m || 0, 0, 0).getTime(); }
+
+    t('조명 — 한낮이 한밤보다 밝다', function () {
+      var noon = R3.lightingAt(atH(12), 'clear');
+      var mid = R3.lightingAt(atH(0), 'clear');
+      return noon.sun.intensity > mid.sun.intensity * 2 &&
+        noon.hemi.intensity > mid.hemi.intensity &&
+        R3.lum(noon.bg) > R3.lum(mid.bg) * 2 &&
+        ('해 ' + noon.sun.intensity.toFixed(2) + ' vs ' + mid.sun.intensity.toFixed(2) +
+         ' · 하늘밝기 ' + R3.lum(noon.bg).toFixed(2) + ' vs ' + R3.lum(mid.bg).toFixed(2));
+    });
+
+    t('조명 — 시각이 아침·낮·저녁·밤을 가른다', function () {
+      var ps = [7, 13, 17, 23].map(function (h) { return R3.lightingAt(atH(h), 'clear').phase; });
+      return ps.join('/') === 'dawn/day/dusk/night' && ('7·13·17·23시 → ' + ps.join(' · '));
+    });
+
+    t('조명 — 밤에는 지도가 어두워지고 등롱이 켜진다', function () {
+      var n = R3.lightingAt(atH(23), 'clear'), d = R3.lightingAt(atH(13), 'clear');
+      return R3.lum(n.tint) < R3.lum(d.tint) * 0.7 && n.lamp > 0.5 && d.lamp === 0 &&
+        ('지도 물감 ' + R3.lum(n.tint).toFixed(2) + ' vs ' + R3.lum(d.tint).toFixed(2) +
+         ' · 등롱 ' + n.lamp.toFixed(2) + ' vs ' + d.lamp);
+    });
+
+    t('조명 — 천후가 해와 시야를 바꾼다', function () {
+      var c = R3.lightingAt(atH(13), 'clear');
+      var r = R3.lightingAt(atH(13), 'rain');
+      var f = R3.lightingAt(atH(13), 'fog');
+      return r.sun.intensity < c.sun.intensity * 0.6 &&
+        f.fog.far < c.fog.far * 0.4 && r.fog.far < c.fog.far &&
+        ('맑음 시야 ' + Math.round(c.fog.far) + 'm · 비 ' + Math.round(r.fog.far) +
+         'm · 안개 ' + Math.round(f.fog.far) + 'm');
+    });
+
+    t('조명 — 해는 동에서 떠 서로 진다', function () {
+      var m = R3.lightingAt(atH(8), 'clear'), e = R3.lightingAt(atH(16), 'clear');
+      return m.sun.x < -50 && e.sun.x > 50 && m.sun.y > 0 && e.sun.y > 0 &&
+        ('8시 x ' + Math.round(m.sun.x) + ' → 16시 x ' + Math.round(e.sun.x));
+    });
+
+    t('조명 — 같은 시각·천후면 같은 값이다', function () {
+      var a = R3.lightingAt(atH(15, 20), 'snow');
+      var b = R3.lightingAt(atH(15, 20), 'snow');
+      return JSON.stringify(a) === JSON.stringify(b) && (a.phase + ' · ' + a.weather + ' 재현');
+    });
+
+    t('사물 — 같은 격자면 늘 같은 계획이다', function () {
+      var p1 = R3.propPlan('town', 12, -7), p2 = R3.propPlan('town', 12, -7);
+      return p1.length > 0 && JSON.stringify(p1) === JSON.stringify(p2) &&
+        ('(12,-7) 마을 ' + p1.length + '개 재현');
+    });
+
+    t('사물 — 마을이 들판보다 빽빽하다', function () {
+      var i, town = 0, grass = 0;
+      for (i = 0; i < 40; i++) {
+        town += R3.propPlan('town', i, 3).length;
+        grass += R3.propPlan('grass', i, 3).length;
+      }
+      return town > grass * 3 && ('40칸에 마을 ' + town + ' · 들 ' + grass);
+    });
+
+    t('사물 — 도심에는 높은 집이 서고 변두리에는 안 선다', function () {
+      var i, j, q, tall = 0, roof = 0;
+      for (i = -20; i < 20; i++) {
+        for (j = -20; j < 20; j++) {
+          var pl = R3.propPlan('town', i, j);
+          for (q = 0; q < pl.length; q++) {
+            if (pl[q].t === 'tower') { tall++; }
+            if (pl[q].t === 'house') { roof++; }
+          }
+        }
+      }
+      return tall > 0 && roof > tall && ('1600칸에 높은 집 ' + tall + ' · 기와집 ' + roof);
+    });
+
+    t('사물 — 길에는 등롱이 선다', function () {
+      var lamps = 0, i;
+      for (i = 0; i < 12; i++) {
+        lamps += R3.propPlan('road', i, 5).filter(function (o) { return o.t === 'lamp'; }).length;
+      }
+      return lamps >= 12 && ('길 12칸에 등롱 ' + lamps + '개');
+    });
+
+    t('사물 — 물·산·숲은 저마다 다른 것을 세운다', function () {
+      function kinds(k) {
+        var o = {}, pl = R3.propPlan(k, 3, 4), i;
+        for (i = 0; i < pl.length; i++) { o[pl[i].t] = 1; }
+        return Object.keys(o).sort().join('+');
+      }
+      var w = kinds('water'), m = kinds('mount'), f = kinds('forest');
+      return w.indexOf('water') >= 0 && m.indexOf('peak') >= 0 && f.indexOf('tree') >= 0 &&
+        w !== m && m !== f && ('물 ' + w + ' · 산 ' + m + ' · 숲 ' + f);
+    });
+
+    t('사물 — 밀도 손잡이가 수를 바꾸고, 놓으면 되돌아온다', function () {
+      var before = R3.propPlan('town', 9, 9).length;
+      C.setTune('world3d.density', 2);
+      var after = R3.propPlan('town', 9, 9).length;
+      C.setTune('world3d.density', null);          // 남기지 않는다
+      var back = R3.propPlan('town', 9, 9).length;
+      return after > before && back === before &&
+        ('×1 ' + before + '개 → ×2 ' + after + '개 → 되돌려 ' + back + '개');
+    });
+
+    t('배우 — 관우는 투구·언월도·망토를 갖춘다', function () {
+      var pl = A3.plan('hero', D.find('sg_guanyu'));
+      return pl.indexOf('helm:helmet') >= 0 && pl.indexOf('weapon:guandao') >= 0 &&
+        pl.indexOf('cape') >= 0 && pl.indexOf('beard') >= 0 && pl.indexOf('pauldron') >= 0 &&
+        (pl.length + '부품 · ' + pl.slice(5).join(' '));
+    });
+
+    t('배우 — 도포 인물에게는 갑주 어깨가 붙지 않는다', function () {
+      var pl = A3.plan('hero', D.find('kr_sejong'));
+      return pl.indexOf('robe') >= 0 && pl.indexOf('pauldron') < 0 &&
+        pl.indexOf('helm:crown') >= 0 && ('세종 · ' + pl.slice(5).join(' '));
+    });
+
+    t('배우 — ★5 만 발밑에 금테를 두른다', function () {
+      var five = 0, low = 0, i;
+      for (i = 0; i < D.heroes.length; i++) {
+        var has = A3.plan('hero', D.heroes[i]).indexOf('aura') >= 0;
+        if (D.heroes[i].rarity >= 5) { if (has) { five++; } }
+        else if (has) { low++; }
+      }
+      return five > 0 && low === 0 && ('★5 ' + five + '명만 금테 · 그 아래 ' + low + '명');
+    });
+
+    t('배우 — 유럽 인물도 갓을 쓰지 않는다', function () {
+      /* LOOKS 에 빠지면 규칙이 갓·도포를 씌운다 — 도감을 넓힐 때마다 여기서 걸린다 */
+      var eu = D.heroes.filter(function (h) { return h.id.indexOf('eu_') === 0; });
+      var gat = eu.filter(function (h) { return A3.plan('hero', h).indexOf('helm:gat') >= 0; });
+      return eu.length === 22 && gat.length === 0 && ('유럽 ' + eu.length + '인 · 갓 0명');
+    });
+
+    t('배우 — 짐승 여덟 형태가 저마다 다른 뼈대다', function () {
+      var bone = {}, i;
+      for (i = 0; i < D.pets.length; i++) {
+        var form = DG.sprite.beastFormOf(D.pets[i]);
+        /* 무늬·광배를 뺀 **뼈대**만 본다 — 같은 형태라도 무늬는 종마다 다르다 */
+        bone[form] = A3.plan('pet', D.pets[i]).filter(function (p) {
+          return p.indexOf('mark:') < 0 && p !== 'halo';
+        }).join(',');
+      }
+      var forms = Object.keys(bone), uniq = {};
+      forms.forEach(function (f) { uniq[bone[f]] = 1; });
+      return forms.length === 8 && Object.keys(uniq).length === 8 &&
+        ('형태 ' + forms.length + '가지가 모두 다른 뼈대');
+    });
+
+    t('배우 — 구미호는 꼬리 아홉, 신수는 광배를 두른다', function () {
+      var gu = A3.plan('pet', D.find('pt_gumiho'));
+      var divine = D.pets.filter(function (p) { return p.kind === 'divine'; });
+      var haloed = divine.filter(function (p) { return A3.plan('pet', p).indexOf('halo') >= 0; });
+      return gu.indexOf('mark:ninetail') >= 0 && divine.length > 0 &&
+        haloed.length === divine.length && ('신수 ' + divine.length + '종 모두 광배');
+    });
+
+    t('배우 — 조립하면 부품이 실제로 선다', function () {
+      if (!A3.ready()) { return false; }             // three 가 있어야 한다(vendor 로 들어 있다)
+      var node = A3.build('hero', D.find('sg_guanyu'));
+      var pet = A3.build('pet', D.find('pt_cheongryong'));
+      var n = A3.partCount(node), pn = A3.partCount(pet);
+      return n > 15 && pn > 8 && node.userData.rig.legL && node.userData.rig.head &&
+        ('관우 ' + n + '부품 · 청룡 ' + pn + '부품');
+    });
+
+    t('배우 — 걸으면 다리가 엇갈린다', function () {
+      if (!A3.ready()) { return false; }
+      var node = A3.build('hero', D.find('kr_yisunsin'));
+      A3.step(node, { t: 1, walking: true, phase: Math.PI / 2 });
+      var rig = node.userData.rig;
+      var l = rig.legL.rotation.x, r = rig.legR.rotation.x;
+      A3.step(node, { t: 1, walking: false, phase: 0 });
+      var still = Math.abs(rig.legL.rotation.x) < 0.1;
+      return Math.abs(l) > 0.5 && Math.abs(l + r) < 1e-9 && still &&
+        ('걸을 때 ' + l.toFixed(2) + '/' + r.toFixed(2) + ' · 서면 0');
+    });
+
+    t('카메라 — 조우가 열리면 대상 쪽을 본다', function () {
+      var pos = { x: 0, y: 0 };
+      var free = R3.camAim(pos, 2, null);
+      var aim = R3.camAim(pos, 2, { x: 60, y: 0 });
+      return aim.look.x > free.look.x && Math.abs(aim.look.x - 30) < 0.001 &&
+        ('평소 ' + Math.round(free.look.x) + ' → 조우 중 ' + Math.round(aim.look.x) + ' (둘 사이)');
+    });
+
+    t('카메라 — 시점을 눕힐수록 낮게 깔린다', function () {
+      var pos = { x: 0, y: 0 };
+      var a = R3.camAim(pos, 0, null), b = R3.camAim(pos, 1, null), c = R3.camAim(pos, 2, null);
+      return a.pos.y > b.pos.y && b.pos.y > c.pos.y &&
+        ('2D ' + Math.round(a.pos.y) + 'm · 2.5D ' + Math.round(b.pos.y) +
+         'm · 3D ' + Math.round(c.pos.y) + 'm');
+    });
+
+    t('3D — 값을 내도 세이브는 그대로다', function () {
+      /* 화면 층이 판정에 스미지 않는지 — 조명·계획·카메라를 굴려 보고 세이브를 비교한다 */
+      var before = JSON.stringify(C.save);
+      R3.lightingAt(atH(3), 'fog');
+      R3.propPlan('town', 4, 4);
+      R3.camAim(C.save.player.pos, 2, { x: 10, y: 10 });
+      A3.plan('hero', D.heroes[0]);
+      return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
+    });
+
+    /* ── 조우 무대 (encounter3d) ─────────────────────────
+     * 화면만 바뀌었고 **판정은 그대로**여야 한다. 진단에서는 3D 가 안 켜지므로
+     * 무대는 잠들어 있고, 조우는 예전과 같은 길로 간다 — 그 사실부터 못박는다.
+     */
+
+    var E3 = DG.encounter3d;
+
+    t('조우 무대 — 3D 가 없으면 잠들고 예전 카드 화면으로 간다', function () {
+      var opened = E3.open('pet', { x: 0, y: 0, uid: 1 });
+      return E3.on() === false && E3.active() === false && opened === false &&
+        E3.state() === null && '무대 꺼짐 · 판정 경로는 그대로';
+    });
+
+    t('조우 무대 — 바늘이 나아갈수록 고리가 좁아진다', function () {
+      var prev = Infinity, i, ok = true;
+      for (i = 0; i <= 20; i++) {
+        var r = E3.ringR(i / 20, 1.2);
+        if (!(r < prev)) { ok = false; }
+        prev = r;
+      }
+      return ok && E3.ringR(0, 1.2) > E3.ringR(1, 1.2) * 2 &&
+        ('반지름 ' + E3.ringR(0, 1.2).toFixed(2) + 'm → ' + E3.ringR(1, 1.2).toFixed(2) + 'm');
+    });
+
+    t('조우 무대 — 초록 테는 막대의 적중 구간을 그대로 옮긴 것이다', function () {
+      /* 막대에서 맞는 값은 원에서도 맞아야 한다. 여기가 어긋나면 **보이는 것과
+         판정이 달라진다** — 눈으로는 들어왔는데 빗나가는, 가장 고약한 어긋남이다 */
+      var zone = 0.5, zw = 0.22, base = 1.3;
+      var z = E3.zoneR(zone, zw, base);
+      var bad = 0, i;
+      for (i = 0; i <= 200; i++) {
+        var n = i / 200;
+        var r = E3.ringR(n, base);
+        var inRing = r <= z.outer + 1e-9 && r >= z.inner - 1e-9;
+        var inBar = Math.abs(n - zone) <= zw / 2 + 1e-9;
+        if (inRing !== inBar) { bad++; }
+      }
+      return bad === 0 && z.inner < z.outer &&
+        ('201칸 모두 일치 · 테 ' + z.inner.toFixed(2) + '~' + z.outer.toFixed(2) + 'm');
+    });
+
+    t('조우 무대 — 던진 것은 포물선을 그린다', function () {
+      var from = { x: 0, y: 1, z: 0 }, to = { x: 6, y: 1.8, z: 2 };
+      var a = E3.arcAt(0, from, to, 1.1);
+      var mid = E3.arcAt(0.5, from, to, 1.1);
+      var b = E3.arcAt(1, from, to, 1.1);
+      return a.x === 0 && Math.abs(b.x - 6) < 1e-9 && Math.abs(b.y - 1.8) < 1e-9 &&
+        mid.y > Math.max(a.y, b.y) + 0.5 &&
+        ('가운데가 ' + mid.y.toFixed(2) + 'm 로 솟는다');
+    });
+
+    t('조우 무대 — 무대가 없으면 결과가 곧바로 뜬다', function () {
+      /* 화면 층이 잠들어 있으면 기다리지 않는다. 자동 순행과 진단이 이 길로 간다 */
+      var n = 0;
+      E3.throwFx(true, 1, function () { n++; });
+      return n === 1 && '콜백 즉시 1회';
+    });
+
+    t('조우 — 조준 값은 읽기만 한다 (판정은 안 바뀐다)', function () {
+      C.save.items.feed = 3;
+      var pet = D.pets[0];
+      var sp = { uid: 99993, kind: 'pet', ref: pet, x: 0, y: 0, bornAt: Date.now() };
+      W.spawns.push(sp);
+      DG.encounter.open(sp);
+      var a1 = DG.encounter.aim(), a2 = DG.encounter.aim();
+      var ok = !!a1 && !!a2 && a1.needle === a2.needle && a1.zone === 0.5 && a1.zoneW > 0;
+      DG.encounter.close();
+      return ok && DG.encounter.aim() === null &&
+        ('구간 폭 ' + a1.zoneW.toFixed(2) + ' · 창을 닫으면 null');
+    });
+
+    /* ── 지도 위 움직임 ────────────────────────────────── */
+
+    t('야생 대상이 제자리를 벗어나 배회한다', function () {
+      var pos = C.save.player.pos;
+      var s0 = { uid: 88881, kind: 'pet', ref: D.pets[0],
+                 x: pos.x + 150, y: pos.y + 150, homeX: pos.x + 150, homeY: pos.y + 150,
+                 tx: pos.x + 150, ty: pos.y + 150, moving: false, pause: 0,
+                 facing: 1, phase: 0, bornAt: Date.now(), wob: 0 };
+      W.spawns.push(s0);
+      var ox = s0.x, oy = s0.y, maxOff = 0, moved = 0;
+      for (var i = 0; i < 300; i++) {
+        W.update(0.05);                       // 15초 상당
+        if (!W.spawns.some(function (x) { return x.uid === 88881; })) { break; }
+        moved = Math.max(moved, Math.hypot(s0.x - ox, s0.y - oy));
+        maxOff = Math.max(maxOff, Math.hypot(s0.x - s0.homeX, s0.y - s0.homeY));
+      }
+      W.removeSpawn(88881);
+      return moved > 3 && maxOff < 22 &&
+        ('이동 ' + moved.toFixed(1) + 'm · 집에서 최대 ' + maxOff.toFixed(1) + 'm');
+    });
+
+    t('플레이어가 움직이면 걸음·발자국이 생긴다', function () {
+      var pos = C.save.player.pos;
+      var before = W.footprints.length;
+      for (var i = 0; i < 60; i++) {
+        pos.x += 1.4;                          // 직접 밀어서 이동을 흉내낸다
+        W.update(0.05);
+      }
+      var m = W.motion;
+      return W.footprints.length > before && m.speed > 1 && m.facing === 1 &&
+        ('발자국 ' + (W.footprints.length - before) + '개 · 속도 ' + m.speed.toFixed(1) + 'm/s');
+    });
+
+    t('걸음 배속(손잡이)은 이동만 곱한다 — 거리 규칙은 그대로다', function () {
+      /* 확인용 손잡이라 규칙을 건드리면 안 된다 — 같은 시간에 더 멀리 갈 뿐,
+         보급도 반려도 "걸은 거리" 로 세니 얻는 것은 그 거리를 실제로 걸은 값과 같다. */
+      function walked(mul) {
+        C.setTune('world.speedMul', mul);
+        C.save.player.pos.x = 0; C.save.player.pos.y = 0;
+        var d0 = C.save.player.distance;
+        W.walkTo(100000, 0);                   // 한참 먼 곳을 찍어 두고 1초를 굴린다
+        for (var i = 0; i < 20; i++) { W.update(0.05); }
+        W.walkTo(C.save.player.pos.x, C.save.player.pos.y);
+        return C.save.player.distance - d0;
+      }
+      var one = walked(1), four = walked(4);
+      C.setTune('world.speedMul', null);       // 남기지 않는다
+      return Math.abs(four / one - 4) < 0.05 && W.speedMul === 1 &&
+        ('1초에 ' + one.toFixed(1) + 'm → ×4 면 ' + four.toFixed(1) + 'm · 손잡이를 놓으면 ×1');
+    });
+
+    t('손잡이는 세이브와 다른 칸에 살고, 진단은 저장하지 않는다', function () {
+      /* 진단·데모는 DG_NO_TUNE 이라 손잡이를 **읽지도 남기지도** 않는다.
+         읽으면 판정이 그 기기의 설정에 끌려다니고, 남기면 실제 게임 규칙이 바뀐다. */
+      C.setTune('duel.timeSec', 5);
+      var applied = C.tuned('duel.timeSec', 60) === 5 && C.tuneCount() === 1;
+      var notInSave = typeof C.save.tune === 'undefined';
+      var notStored = !localStorage.getItem(C.TUNE_KEY);
+      C.clearTune();
+      return applied && notInSave && notStored && C.tuneCount() === 0 &&
+        ('메모리에만 반영 · 세이브에도 localStorage 에도 남지 않는다');
+    });
+
+    t('멈추면 걸음이 잦아든다', function () {
+      for (var i = 0; i < 40; i++) { W.update(0.05); }   // 위치를 안 바꾸고 시간만 흘림
+      return W.motion.speed < 1.5 && ('속도 ' + W.motion.speed.toFixed(2) + 'm/s');
+    });
+
+    t('탭한 지점으로 걸어간다', function () {
+      C.save.player.pos.x = 0; C.save.player.pos.y = 0;
+      W.walkTo(60, 0);
+      for (var i = 0; i < 200 && W.walkingTo(); i++) { W.update(0.05); }
+      var p = C.save.player.pos;
+      return Math.abs(p.x - 60) < 8 && !W.walkingTo() &&
+        ('x 0 → ' + Math.round(p.x) + 'm 이동');
+    });
+
+    t('스틱 입력이 키보드와 같은 통로로 들어간다', function () {
+      C.save.player.pos.x = 0; C.save.player.pos.y = 0;
+      W.setStick(0, -1, false);
+      for (var i = 0; i < 40; i++) { W.update(0.05); }
+      var moved = -C.save.player.pos.y;
+      W.setStick(0, 0, false);
+      var before = C.save.player.pos.y;
+      for (var j = 0; j < 20; j++) { W.update(0.05); }
+      return moved > 1 && Math.abs(C.save.player.pos.y - before) < 0.001 &&
+        ('위로 ' + moved.toFixed(1) + 'm · 손 떼면 멈춘다');
+    });
+
+    /* ── 스프라이트 ────────────────────────────────────── */
+
+    t('스프라이트 스탬프 캐시 재사용', function () {
+      var cv = document.createElement('canvas'); cv.width = 240; cv.height = 240;
+      var c = cv.getContext('2d');
+      var hero = D.heroes[0];
+      var b0 = DG.sprite.stampStats();
+      for (var i = 0; i < 200; i++) {
+        DG.sprite.stamp(c, {
+          kind: 'human', ref: hero, x: 120, y: 210, s: 1, facing: (i % 2) ? 1 : -1,
+          phase: i * 0.7, walking: true, color: '#2f7d5c',
+          look: DG.sprite.lookOf(hero), t: i * 16
+        });
+      }
+      var b1 = DG.sprite.stampStats();
+      var made = b1.miss - b0.miss, reused = b1.hit - b0.hit;
+      return made <= 9 && reused >= 180 &&
+        ('컷 ' + made + '장으로 ' + reused + '회 재사용 (' +
+         Math.round(reused / (made + reused) * 100) + '% 적중)');
+    });
+
+    t('크기가 달라지면 다시 굽는다', function () {
+      var cv = document.createElement('canvas'); cv.width = 240; cv.height = 240;
+      var c = cv.getContext('2d');
+      var pet = D.pets[0];
+      var b0 = DG.sprite.stampStats();
+      for (var i = 0; i < 20; i++) {
+        DG.sprite.stamp(c, { kind: 'beast', ref: pet, x: 120, y: 200, s: 1.0,
+          facing: 1, phase: 0, walking: false, form: 'quad', color: '#888', t: 0 });
+      }
+      DG.sprite.stamp(c, { kind: 'beast', ref: pet, x: 120, y: 200, s: 1.6,
+        facing: 1, phase: 0, walking: false, form: 'quad', color: '#888', t: 0 });
+      var b1 = DG.sprite.stampStats();
+      return (b1.miss - b0.miss) === 2 && '같은 크기 1장 + 다른 크기 1장';
+    });
+
+    t('캐시가 무한히 늘지 않는다', function () {
+      var cv = document.createElement('canvas'); cv.width = 120; cv.height = 120;
+      var c = cv.getContext('2d');
+      for (var i = 0; i < 700; i++) {
+        var ref = D.heroes[i % D.heroes.length];
+        DG.sprite.stamp(c, {
+          kind: 'human', ref: ref, x: 60, y: 110, s: 0.4 + (i % 12) * 0.09,
+          facing: 1, phase: i, walking: true, color: '#555',
+          look: DG.sprite.lookOf(ref), t: 0
+        });
+      }
+      var sz = DG.sprite.stampStats().size;
+      return sz <= 420 && ('캐시 ' + sz + '장 (상한 420)');
+    });
+
+    t('등신 비례 — 모드가 바뀌고 스탬프 캐시가 비워진다', function () {
+      var SP = DG.sprite;
+      SP.setProp('normal');
+      var cv2 = document.createElement('canvas'); cv2.width = 100; cv2.height = 100;
+      var c2 = cv2.getContext('2d');
+      SP.stamp(c2, { kind: 'human', ref: D.heroes[0], x: 50, y: 90, s: 1,
+        color: '#888', look: SP.lookOf(D.heroes[0]) });
+      var size0 = SP.stampStats().size;
+      var m1 = SP.setProp('chibi');
+      var size1 = SP.stampStats().size;
+      var m2 = SP.setProp('tall');
+      SP.setProp('normal');
+      C.save.settings.prop = 'chibi';
+      C.persist();
+      var saved = C.load() && C.save.settings.prop === 'chibi';
+      C.save.settings.prop = 'normal';
+      return m1 === 'chibi' && m2 === 'tall' && size0 >= 1 && size1 === 0 && saved &&
+        '2등/8등 전환 · 캐시 초기화 · 저장 왕복';
+    });
+
+    t('그림 양식 — 그림책풍(story) 은 별개의 그림이 되고 되돌아온다', function () {
+      var SP = DG.sprite;
+      var h = D.heroes[0];
+      SP.setStyle('classic');
+      var c1 = SP.portrait('hero', h, 64);
+      var m = SP.setStyle('story');
+      var s1 = SP.portrait('hero', h, 64);
+      var s2 = SP.portrait('hero', h, 64);          // 같은 양식 → 같은 그림 (캐시)
+      var card = SP.portraitCard('hero', h, 90, 104);
+      SP.setStyle('anime');
+      var a1 = SP.portrait('hero', h, 64);
+      SP.setStyle('classic');
+      var c2 = SP.portrait('hero', h, 64);
+      return m === 'story' && s1 !== c1 && s1 !== a1 && s1 === s2 && c1 === c2 &&
+        card.indexOf('data:image/png') === 0 &&
+        '전통·그림책·만화 셋이 서로 다르고 · 결정적 · 카드도 굽힌다';
+    });
+
+    t('그림 양식 — 없는 이름은 무시한다', function () {
+      var SP = DG.sprite;
+      SP.setStyle('classic');
+      var r = SP.setStyle('doodle');
+      return r === 'classic' && SP.style() === 'classic' && '알 수 없는 양식은 거절';
+    });
+
+    t('그림 양식 — 전통/만화 전환, 같은 인물은 항상 같은 그림', function () {
+      var SP = DG.sprite;
+      SP.setStyle('classic');
+      var h = D.heroes[0];
+      var a1 = SP.portrait('hero', h, 48);
+      var m1 = SP.setStyle('anime');
+      var b1 = SP.portrait('hero', h, 48);
+      var b2 = SP.portrait('hero', h, 48);          // 같은 인물·같은 양식 → 같은 그림
+      var other = SP.portrait('hero', D.heroes[3], 48);
+      SP.setStyle('classic');
+      var a2 = SP.portrait('hero', h, 48);
+      C.save.settings.style = 'anime';
+      C.persist();
+      var saved = C.load() && C.save.settings.style === 'anime';
+      C.save.settings.style = 'classic';
+      return m1 === 'anime' && a1 !== b1 && b1 === b2 && b1 !== other && a1 === a2 && saved &&
+        '양식마다 그림이 다르고 · 결정적 · 저장 왕복';
+    });
+
+    /* ── 인물 성장 ─────────────────────────────────────── */
+
+    t('인물 성장 — 경험치로 레벨이 오르고 능력치가 커진다', function () {
+      var id = D.heroes[0].id;
+      C.save.dex.heroes[id] = C.save.dex.heroes[id] || { count: 1, firstAt: Date.now() };
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      var before = HR.stats(id).might;
+      HR.gainExp(id, 400);
+      var g = HR.info(id);
+      var after = HR.stats(id).might;
+      return g.lv > 1 && after > before &&
+        ('Lv.' + g.lv + ' · 무력 ' + before + ' → ' + after);
+    });
+
+    t('기본 능력치는 변하지 않는다 (성장은 배율로만)', function () {
+      var h = D.heroes[0];
+      return h.stats.might === 97 && '관우 기본 무력 97 유지';
+    });
+
+    t('승급 — 중복 인물과 금을 소모하고 배율이 오른다', function () {
+      var id = D.heroes[1].id;
+      C.save.dex.heroes[id] = { count: 3, firstAt: Date.now() };
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      C.save.player.gold = 9999;
+      var m0 = HR.growMul(id);
+      var gold0 = C.save.player.gold;
+      var ok = HR.rankUp(id);
+      var m1 = HR.growMul(id);
+      return ok && HR.info(id).rank === 1 && m1 > m0 &&
+        C.save.dex.heroes[id].count === 2 && C.save.player.gold < gold0 &&
+        ('★1 · 배율 ' + m0.toFixed(2) + ' → ' + m1.toFixed(2));
+    });
+
+    t('중복이 없으면 승급되지 않는다', function () {
+      var id = D.heroes[2].id;
+      C.save.dex.heroes[id] = { count: 1, firstAt: Date.now() };
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      C.save.player.gold = 9999;
+      var chk = HR.rankUpCheck(id);
+      return !chk.ok && !HR.rankUp(id) && HR.info(id).rank === 0 && ('거절 이유: ' + chk.why);
+    });
+
+    t('펫 보정은 성장 배율 뒤에 더해진다', function () {
+      var id = D.heroes[0].id;
+      C.save.heroes[id] = { lv: 10, exp: 0, rank: 0 };
+      delete C.save.petEquip[id];
+      var plain = HR.stats(id);
+      var pet = null;
+      for (var i = 0; i < D.pets.length; i++) { if (D.pets[i].bonus.stat === 'might') { pet = D.pets[i]; break; } }
+      C.save.dex.pets[pet.id] = C.save.dex.pets[pet.id] || { count: 1, firstAt: Date.now() };
+      C.save.petEquip[id] = pet.id;
+      var withPet = HR.stats(id);
+      var diff = withPet.might - plain.might;
+      delete C.save.petEquip[id];
+      return diff === pet.bonus.value && (pet.name + ' 장착 시 무력 정확히 +' + diff);
+    });
+
+    /* ── 상세 화면 ─────────────────────────────────────── */
+
+    t('인물 상세 화면이 열린다', function () {
+      var h = D.heroes[0];
+      DG.ui.openDetail('hero', h.id);
+      var el = document.getElementById('detail');
+      var html = el.innerHTML;
+      DG.ui.closeDetail();
+      return html.indexOf(h.name) >= 0 && html.indexOf(h.hanja) >= 0 &&
+        html.indexOf('승급') >= 0 && ('초상 · 한자 · 능력치 · 승급 버튼 렌더 (' + html.length + '자)');
+    });
+
+    t('미획득 인물은 열전이 가려진다', function () {
+      var target = null, i;
+      for (i = 0; i < D.heroes.length; i++) {
+        if (!C.save.dex.heroes[D.heroes[i].id]) { target = D.heroes[i]; break; }
+      }
+      if (!target) { return false; }
+      DG.ui.openDetail('hero', target.id);
+      var html = document.getElementById('detail').innerHTML;
+      DG.ui.closeDetail();
+      var bio = D.bio(target.id);
+      return html.indexOf('등용하지 않은') >= 0 && (!bio || html.indexOf(bio) < 0) &&
+        (target.name + ' — 미획득 표시');
+    });
+
+    t('펫 상세 화면이 열린다', function () {
+      var pet = D.pets[0];
+      DG.ui.openDetail('pet', pet.id);
+      var html = document.getElementById('detail').innerHTML;
+      DG.ui.closeDetail();
+      return html.indexOf(pet.name) >= 0 && html.indexOf('장착 보정') >= 0 && (pet.name + ' 상세 렌더');
+    });
+
+    t('열전이 인물마다 채워져 있다', function () {
+      var missing = [], i;
+      for (i = 0; i < D.heroes.length; i++) {
+        if (!D.bio(D.heroes[i].id)) { missing.push(D.heroes[i].name); }
+      }
+      return missing.length === 0 && (D.heroes.length + '명 전원 열전 있음');
+    });
+
+    t('성장이 저장에서 살아 남는다', function () {
+      var id = D.heroes[0].id;
+      C.save.heroes[id] = { lv: 7, exp: 3, rank: 2 };
+      C.persist();
+      C.load();
+      var g = C.save.heroes[id];
+      return g && g.lv === 7 && g.rank === 2 && 'Lv.7 ★2 복원';
+    });
+
+    /* ── 서당 문답 ─────────────────────────────────────── */
+
+    /* ── 오프라인 / 온라인 (사관) ──────────────────────── */
+
+    t('기본은 오프라인 모드다', function () {
+      C.save.settings.mode = 'offline';
+      NT._setHealth(null);
+      return NT.mode() === 'offline' && !NT.online() && '로컬만';
+    });
+
+    t('오프라인에서는 사관을 부를 수 없다', function () {
+      var pr = NT.ask('omen', {})['catch'](function () {});
+      return pr && typeof pr.then === 'function' && '요청이 거절된다(Promise reject)';
+    });
+
+    t('서버가 살아 있으면 온라인으로 잡힌다', function () {
+      C.save.settings.mode = 'online';
+      NT._setHealth({ ok: true, model: 'claude-opus-5', cap: 0.5,
+        ledger: { day: 'x', cost: 0.1, calls: 3 } });
+      var st = NT.status();
+      return NT.online() && st.left > 0.39 && st.left < 0.41 &&
+        ('남은 몫 $' + st.left.toFixed(3) + ' · ' + st.calls + '회 호출');
+    });
+
+    t('길조 보정이 effect 에 붙고 시간이 지나면 사라진다', function () {
+      var a = AI.state();
+      var before = C.effect('lootPct');
+      a.buff = { eff: 'lootPct', val: 12, label: '전리품 +12%', until: Date.now() + 60000 };
+      var during = C.effect('lootPct');
+      a.buff.until = Date.now() - 1;
+      var after = C.effect('lootPct');
+      return during === before + 12 && after === before && !a.buff &&
+        ('전리품 ' + before + ' → ' + during + ' → ' + after + ' (만료 후 스스로 사라짐)');
+    });
+
+    t('상태 요약에 본편 판단 재료가 다 들어간다', function () {
+      C.save.party = [D.heroes[0].id];
+      var sum = AI.summary();
+      /* 서당 줄은 빠졌다 — 문답은 saga-quiz 로 갈라져 나갔다 */
+      return sum.indexOf('동행:') >= 0 && sum.indexOf('도감:') >= 0 &&
+        sum.indexOf('서당:') < 0 && sum.indexOf('소모품:') >= 0 &&
+        sum.length < 500 && ('요약 ' + sum.length + '자 (짧을수록 토큰 절약)');
+    });
+
+    t('사관 기록은 40건에서 잘린다', function () {
+      var a = AI.state();
+      a.log = [];
+      for (var i = 0; i < 50; i++) {
+        a.log.unshift({ t: Date.now(), kind: 'omen', text: 'x', cost: 0.001, inTok: 1, outTok: 1 });
+        if (a.log.length > 40) { a.log.length = 40; }
+      }
+      return a.log.length === 40 && '상한 40건';
+    });
+
+    t('사관 시트가 두 모드에서 다 렌더된다', function () {
+      var bad = [];
+      ['offline', 'online'].forEach(function (m) {
+        C.save.settings.mode = m;
+        if (m === 'online') {
+          NT._setHealth({ ok: true, model: 'claude-opus-5', cap: 0.5, ledger: { cost: 0.05, calls: 1 } });
+        } else { NT._setHealth(null); }
+        DG.ui.openSheet('oracle');
+        var h = document.getElementById('sheet-body').innerHTML;
+        if (h.length < 200) { bad.push(m); }
+      });
+      DG.ui.closeSheet();
+      C.save.settings.mode = 'offline';
+      NT._setHealth(null);
+      return bad.length === 0 && '오프라인·온라인 화면 모두 렌더';
+    });
+
+    t('AI 는 게임 규칙을 바꾸지 않는다 (길조 보정만 예외)', function () {
+      var a = AI.state();
+      a.buff = null;
+      var none = Object.keys(AI.bonus()).length;
+      a.buff = { eff: 'goldPct', val: 15, label: 'x', until: Date.now() + 1000 };
+      var keys = Object.keys(AI.bonus());
+      a.buff = null;
+      return none === 0 && keys.length === 1 && keys[0] === 'goldPct' &&
+        '평상시 0개 · 길조 때 1개';
+    });
+
+    /* -- 던전 (디아블로식) -- */
+
+    /* -- 장비 -- */
+
+    /* -- 자동 순행 -- */
+
+    t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {
+      DG.auto.setOn(true);
+      var on1 = DG.auto.active() && C.save.auto.on === true;
+      DG.auto.setOn(false);
+      return on1 && !DG.auto.active() && '켜짐·꺼짐 저장';
+    });
+
+    t('자동 — 밑천이 없으면 순행하며 거리를 쌓는다', function () {
+      C.save.items.scroll = 0; C.save.items.feed = 0;
+      DG.auto.setOn(true);
+      var d0 = C.save.player.distance;
+      for (var i = 0; i < 60; i++) { DG.auto.update(0.1); W.update(0.1); }
+      var moved = C.save.player.distance - d0;
+      DG.auto.setOn(false);
+      return moved > 5 && ('걸은 거리 ' + Math.round(moved) + 'm');
+    });
+
+    t('자동 — 사거리 안 대상을 미니게임 규칙대로 상대한다', function () {
+      C.save.items.scroll = 20; C.save.items.feed = 20; C.save.player.fame = 5000;
+      DG.auto.setOn(true);
+      var pos = C.save.player.pos;
+      W.spawns[0].x = pos.x + 3; W.spawns[0].y = pos.y + 3;
+      var uid = W.spawns[0].uid;
+      for (var i = 0; i < 40; i++) { DG.auto.update(0.1); }
+      var gone = true;
+      for (var j = 0; j < W.spawns.length; j++) { if (W.spawns[j].uid === uid) { gone = false; } }
+      DG.auto.setOn(false);
+      return gone && '앞에 세운 대상을 처리';
+    });
+
+    t('자동 — 승급 조건을 채운 인물을 올린다', function () {
+      var id = 'sg_guanyu';
+      var before = HR.info(id).rank;
+      C.save.dex.heroes[id].count = 99;
+      C.save.player.gold += 999999;
+      C.save.heroes[id].lv = HR.MAX_LV;
+      var did = DG.auto._autoRankUp();
+      var after = HR.info(id).rank;
+      return (did ? after > before : true) && ('승급 ' + before + ' → ' + after);
+    });
+
+    /* ── 가입해서 저장 ─────────────────────────────────── */
+
+    t('세이브는 프로필 아래로 들어간다', function () {
+      var A = DG.account;
+      return C.SAVE_BASE === 'deungyong-go/save' &&
+        C.SAVE_KEY.indexOf(C.SAVE_BASE + '/') === 0 &&
+        A._store === C.SAVE_BASE + '/accounts' &&
+        ('기준 ' + C.SAVE_BASE + ' · 지금 ' + C.SAVE_KEY);
+    });
+
+    t('가입 — 이름을 넣으면 프로필이 만들어지고 그 키로 갈아탄다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var acc = A.create('진단이', false);
+      var key = A.keyOf(acc.id);
+      C.setSaveKey(key);
+      C.save.player.gold = 4242;
+      C.persist();
+      var raw = localStorage.getItem(key);
+      localStorage.removeItem(key);
+      /* 프로필 id 는 시각 기반이라 실행마다 다르다 — 결과 문구에는 넣지 않는다
+         (넣으면 진단 출력이 매번 달라져 "무엇이 바뀌었나" 를 눈으로 못 쫓는다) */
+      return acc.name === '진단이' && A.current().id === acc.id &&
+        key.indexOf(C.SAVE_BASE + '/') === 0 &&
+        raw && JSON.parse(raw).player.gold === 4242 &&
+        (acc.name + ' · 키는 ' + C.SAVE_BASE + '/<프로필> 아래');
+    });
+
+    t('가입 — 프로필마다 진행이 갈린다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('갑', false), b = A.create('을', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.save.player.gold = 100; C.persist();
+      C.setSaveKey(A.keyOf(b.id));
+      C.save.player.gold = 999; C.persist();
+      var ga = JSON.parse(localStorage.getItem(A.keyOf(a.id))).player.gold;
+      var gb = JSON.parse(localStorage.getItem(A.keyOf(b.id))).player.gold;
+      localStorage.removeItem(A.keyOf(a.id));
+      localStorage.removeItem(A.keyOf(b.id));
+      return ga === 100 && gb === 999 && A.list().length === 2 &&
+        ('갑 ' + ga + ' · 을 ' + gb + ' (서로 안 섞인다)');
+    });
+
+    t('가입 — 옛 세이브를 첫 프로필로 이어받는다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      localStorage.setItem(A._legacy, JSON.stringify({ v: 1, player: { level: 7, gold: 777 } }));
+      var acc = A.create('이어받기', true);
+      var moved = JSON.parse(localStorage.getItem(A.keyOf(acc.id)));
+      localStorage.removeItem(A._legacy);
+      localStorage.removeItem(A.keyOf(acc.id));
+      return A.hasLegacy() === false && moved && moved.player.gold === 777 &&
+        ('Lv.' + moved.player.level + ' · 금 ' + moved.player.gold + ' 이 옮겨졌다');
+    });
+
+    t('가입 — 프로필을 지우면 그 세이브도 사라진다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('지울사람', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.persist();
+      var had = !!localStorage.getItem(A.keyOf(a.id));
+      A.remove(a.id);
+      var gone = !localStorage.getItem(A.keyOf(a.id));
+      return had && gone && A.list().length === 0 && '프로필·세이브 함께 삭제';
+    });
+
+    t('가입 — 진단에서는 가입 화면을 띄우지 않는다', function () {
+      /* DG_NO_ACCOUNT 가 켜져 있으면 고정 키로 바로 시작한다 (안 그러면 게임이 안 켜진다) */
+      return window.DG_NO_ACCOUNT === true && !document.getElementById('acc-host') &&
+        '진단 우회 동작';
+    });
+
+    t('진단의 무작위는 씨앗으로 고정된다', function () {
+      /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
+      return window.DG_SEED === 20260824 &&
+        Math.random() >= 0 && Math.random() < 1 &&
+        ('씨앗 ' + window.DG_SEED);
+    });
+
+    t('런타임 에러 없음', function () {
+      return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
+    });
+
+    var failCount = out.filter(function (s) { return s.indexOf('FAIL') >= 0; }).length;
+    document.getElementById('report').innerHTML =
+      '<h3>역사GO 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
+      out.join('<br>') +
+      (errors.length ? '<br><br><b class="fail">런타임 에러</b><br>' + errors.join('<br>') : '');
+    document.title = 'RESULT ' + (out.length - failCount) + '/' + out.length;
+    localStorage.removeItem(C.SAVE_KEY);   // 진단 흔적 제거
+  }, 400);
+})();
+</script>
+</body>
+</html>

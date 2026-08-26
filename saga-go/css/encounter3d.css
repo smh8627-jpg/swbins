@@ -1,0 +1,47 @@
+/**
+ * 조우 무대 외피 — 3D 로 만날 때만 걸린다 (`body.enc3d`)
+ * ---------------------------------------------------------------
+ * 규칙 코드는 한 줄도 안 건드린다. `encounter3d.js` 가 body 에 클래스를 붙이면
+ * 조우 카드가 **화면 아래로 내려앉고**, 3D 에 이미 서 있는 것(초상·조준 막대)이
+ * 카드에서 사라진다. index.html 에서 이 `<link>` 한 줄을 빼면 예전 카드 화면이다.
+ *
+ * 오버레이는 **투명하되 클릭은 받는다** — 안 받으면 조우 중에 화면을 누른 것이
+ * 아래 지도 캔버스로 새어 나가 그쪽으로 걸어가 버린다.
+ */
+
+body.enc3d #encounter {
+  background: transparent;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  align-items: flex-end;
+  padding: 0 12px 18px;
+}
+
+body.enc3d .enc-card {
+  max-width: 450px;
+  padding: 13px 16px;
+  background: rgba(13,16,22,.86);
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.55);
+}
+
+/* 3D 무대에 이미 있는 것은 카드에서 지운다 — 초상은 눈앞에 서 있고,
+   조준 막대는 상대 둘레의 고리가 대신한다 */
+body.enc3d .enc-icon,
+body.enc3d .enc-stats,
+body.enc3d .catch-track { display: none; }
+
+body.enc3d .enc-head { margin-bottom: 8px; gap: 0; }
+body.enc3d .enc-hist { min-height: 0; margin: 7px 0; }
+body.enc3d .enc-cost { margin: 6px 0; }
+
+/* 결과 카드는 무대가 끝난 화면이다 — 조금 더 진하게 세운다 */
+body.enc3d .enc-card.result {
+  background: rgba(13,16,22,.94);
+  padding: 18px 16px;
+}
+
+/* 조우 중에는 지도 UI 를 걷는다 — 원작도 포획 화면에서 하단 메뉴가 사라진다.
+   (특히 근처 목록은 무대 한복판을 가로지른다) */
+body.enc3d #near,
+body.enc3d #autobar,
+body.enc3d #dock { display: none; }

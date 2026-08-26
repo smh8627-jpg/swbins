@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>사가블로 데모</title><link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/diablo.css"></head>
+<body class="camp">
+<!--
+  스크린샷용 데모 상태 — "한동안 내려가 본 뒤" 를 재현한다. 게임 코드는 건드리지 않는다.
+
+  장면(해시)
+    #camp  본영(난도 고르기)   #dg    던전 안(정예가 섞여 나온다)
+    #craft 세공(보석·부문)      #word  부문어가 이루어진 장비
+    #loot  바닥에 떨어진 것(등급색 이름표)
+    #vendor 행상(사다)   #gamble 투전   #buyback 되사기   #forge 연단   #skill 무예
+    #gear  장비                 #party 부대   #dex 도감   #log 기록
+
+  던전 장면은 **update 를 직접 굴린다** — 헤드리스에서는 rAF 가 거의 돌지 않아
+  게임 루프에 기댈 수 없다(SAGA-HANDOFF 의 함정표 참고).
+
+  이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
+  화면이 통째로 죽는다 (사가고에서 실제로 그렇게 오래 죽어 있었다).
+-->
+<div id="camp-bg"></div>
+<div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">🤖</button>
+    <button class="icon-btn txt" id="btn-prop">4등</button>
+    <button class="icon-btn" id="btn-style">📗</button>
+    <button class="icon-btn" id="btn-sound">🔊</button>
+    <button class="icon-btn" id="btn-help">❔</button>
+    <button class="icon-btn" id="btn-reset">↺</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="autobar"></div>
+<div id="camp"></div>
+<nav id="dock">
+  <button data-sheet="party"><span>⚔️</span><small>부대</small></button>
+  <button data-sheet="gear"><span>🎒</span><small>장비</small></button>
+  <button data-sheet="skill"><span>📜</span><small>무예</small></button>
+  <button data-sheet="craft"><span>🔨</span><small>세공</small></button>
+  <button data-sheet="vendor"><span>🧺</span><small>행상</small></button>
+  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title">부대</h3>
+    <button class="icon-btn sm" id="sheet-close">✕</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<script>
+/* 가입 화면을 건너뛴다 — 데모는 진단과 같은 고정 키(…/save/test)로 켠다 */
+window.DG_NO_ACCOUNT = true;
+</script>
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-item.js"></script>
+<script src="js/data-gem.js"></script>
+<script src="js/data-elem.js"></script>
+<script src="js/data-skill.js"></script>
+<script src="js/data-set.js"></script>
+<script src="js/data-unique.js"></script>
+<script src="js/data-dungeon.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/account.js"></script>
+<script src="js/item.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/skill.js"></script>
+<script src="js/dungeon.js"></script>
+<script src="js/dungeon-view.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/potion.js"></script>
+<script src="js/vendor.js"></script>
+<script src="js/forge.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 세이브 보호 — 루프가 주기적으로 persist() 한다. 데모 상태로 덮이지 않게 막는다. */
+DG.core.persist = function () {};
+
+window.addEventListener('error', function (e) {
+  var msg = e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno;
+  document.title = 'DEMO ERROR: ' + msg;
+  var box = document.getElementById('demo-err');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'demo-err';
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:9999;padding:8px 10px;' +
+      'background:#5b1414;color:#ffd9d9;border:1px solid #ff8f8f;border-radius:10px;' +
+      'font:600 12px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+    document.body.appendChild(box);
+  }
+  box.textContent = '⚠️ ' + msg;
+});
+</script>
+<script>
+setTimeout(function () {
+  var C = DG.core, IT = DG.item, DN = DG.dungeon;
+
+  var party = ['kr_yisunsin', 'sg_zhaoyun', 'kr_ganggamchan', 'sg_zhangliao'];
+  party.forEach(function (id, i) {
+    C.save.dex.heroes[id] = { count: i === 0 ? 3 : 1, firstAt: Date.now() };
+  });
+  C.save.party = party.slice();
+  C.save.heroes = {
+    kr_yisunsin: { lv: 18, exp: 10, rank: 2 },
+    sg_zhaoyun: { lv: 14, exp: 4, rank: 1 },
+    kr_ganggamchan: { lv: 12, exp: 8, rank: 1 },
+    sg_zhangliao: { lv: 10, exp: 2, rank: 0 }
+  };
+  C.save.player.level = 16;
+  C.save.player.gold = 9400;
+  C.save.player.featTotal = 2100;
+  C.save.dungeon = { best: 24, runs: 31, kills: 1840, clears: 22, deaths: 5, mode: 'hard' };
+
+  /* 장비 몇 점 — 구멍이 뚫린 것으로 */
+  C.save.gear = { seq: 1, bag: [], equip: {}, mats: { gem: {}, rune: {} } };
+  /* 입고 있는 것은 **확인된 채**로 만든다 — 미확인은 입을 수 없다(원작 규칙).
+     데모가 이걸 놓쳐서 종이인형이 통째로 비어 보인 적이 있다. */
+  var sword = IT.roll(22, { slot: 'weapon', tier: 4, sock: 3, unid: false });
+  var armor = IT.roll(20, { slot: 'armor', tier: 3, sock: 2, unid: false });
+  var charm = IT.roll(18, { slot: 'charm', tier: 2, sock: 1, unid: false });
+  [sword, armor, charm].forEach(function (g) { IT.add(g); });
+  IT.equip('kr_yisunsin', sword.uid);
+  IT.equip('sg_zhaoyun', armor.uid);
+
+  /* 미확인 몇 점 + 감정서 — 감정 줄이 어떻게 보이는지 남게 */
+  IT.add(IT.roll(21, { slot: 'weapon', tier: 3 }));
+  IT.add(IT.roll(19, { slot: 'armor', tier: 2 }));
+  IT.addScroll(4);
+
+  /* 요대 — 원작의 벨트. 네 칸이 어떻게 보이는지 스크린샷에 남게 채워 둔다 */
+  DG.potion.add('heal', 1); DG.potion.add('heal', 1); DG.potion.add('heal', 1);
+  DG.potion.add('heal', 0); DG.potion.add('mana', 1);
+  DG.potion.add('mana', 2);
+
+  /* 세공 재료 */
+  IT.addMat('gem', 'jade', 2, 3);
+  IT.addMat('gem', 'agate', 4, 1);
+  IT.addMat('gem', 'amber', 1, 2);
+  ['cheon', 'ji', 'in', 'mu', 'mun', 'ui'].forEach(function (k) { IT.addMat('rune', k, 0, 1); });
+  /* 주옥 둘 — 굴러 나오는 물건이라 데모에서는 **값을 박아 둔다**(장면이 매번 달라지면
+     스크린샷을 견줄 수 없다) */
+  IT.addJewel({ aff: [{ k: 'j_fire', v: 11 }, { k: 'j_crit', v: 4 }] });
+  IT.addJewel({ aff: [{ k: 'j_rcold', v: 8 }] });
+
+  C.save.log = [];
+  C.log('🔨 환도 에 완(完) 마노 을(를) 박았다', 'info');
+  C.log('👤 그림자가 갈라졌다', 'info');
+  C.log('💼 노획물 확정 (탈출) · 금 4,210 · 장비 3점', 'good');
+  C.log('🕳️ 던전 진입 · 제12층 (한중 굴혈) · 험(險)', 'info');
+
+  var hash = location.hash.replace('#', '');
+  var tab = hash.split('-')[0];
+
+  if (tab === 'word') {
+    /* 부문어가 이루어진 장비를 하나 만들어 둔다 */
+    IT.socket(armor.uid, 'rune', 'cheon');
+    IT.socket(armor.uid, 'rune', 'ji');
+    IT.addMat('rune', 'in', 0, 1);
+    var third = IT.roll(20, { slot: 'armor', tier: 4, sock: 3 });
+    IT.add(third);
+    ['cheon', 'ji', 'in'].forEach(function (k) { IT.addMat('rune', k, 0, 1); });
+    IT.socket(third.uid, 'rune', 'cheon');
+    IT.socket(third.uid, 'rune', 'ji');
+    IT.socket(third.uid, 'rune', 'in');
+    DG.ui.openSheet('craft');
+  }
+  else if (tab === 'dg') {
+    /* 던전 안 — 자동에게 맡기고 update 를 직접 굴린다 */
+    DN.enter({ floor: 14, mode: 'hard' });
+    DG.auto.setOn(true);
+    setInterval(function () {
+      if (!DN.active()) { DN.enter({ floor: 14, mode: 'hard' }); }
+      DG.auto.update(0.05);
+      DN.update(0.05);
+      DG.dungeonView.update(0.05);
+      DG.dungeonView.draw();
+    }, 40);
+  }
+  else if (tab === 'loot') {
+    /* 바닥에 떨어진 것 — 원작에서 물건은 **이름으로** 바닥에 놓이고,
+       등급색만 보고 주울지 말지를 정한다. 다섯 등급을 한 화면에 늘어놓는다. */
+    DN.enter({ floor: 18, mode: 'hard' });
+    var run = DN.raw();
+    run.room.enemies.length = 0;
+    run.room.cleared = true;
+    run.player.x = 150; run.player.y = 180;
+    var slots = ['weapon', 'armor', 'charm', 'weapon', 'armor'];
+    for (var t = 0; t < 5; t++) {
+      var g = IT.roll(24, { slot: slots[t], tier: t, sock: t >= 3 ? 2 : 0 });
+      run.room.drops.push({ kind: 'item', item: g, x: 210 + t * 62, y: 120 + (t % 2) * 92 });
+    }
+    run.room.drops.push({ kind: 'gold', gold: 640, x: 180, y: 250 });
+    run.room.drops.push({ kind: 'mat', mat: { kind: 'gem', key: 'jade', g: 3 }, x: 150, y: 96 });
+    run.room.drops.push({ kind: 'mat', mat: { kind: 'rune', key: 'cheon' }, x: 262, y: 262 });
+    setInterval(function () {
+      DN.update(0.05);
+      DG.dungeonView.update(0.05);
+      DG.dungeonView.draw();
+    }, 40);
+  }
+  else if (tab === 'forge') {
+    /* 연단 — 넷이 다 뜨게 재료를 깔아 둔다 (보석 셋 · 부문 셋 · 장비 셋 · 완 보석 둘) */
+    IT.addMat('gem', 'jade', 0, 3);
+    IT.addMat('rune', 'cheon', 0, 3);
+    IT.addMat('gem', 'agate', 4, 2);
+    ['weapon', 'weapon', 'weapon'].forEach(function (sl) {
+      IT.add(IT.roll(16, { slot: sl, tier: 1 }));
+    });
+    IT.add(IT.roll(22, { slot: 'armor', tier: 3, sock: 2 }));
+    DG.ui.openSheet('craft');
+    document.querySelector('[data-act="craft-tab"][data-tab="forge"]').click();
+  }
+  else if (tab === 'vendor' || tab === 'gamble' || tab === 'buyback') {
+    /* 행상 — 재고를 채우고 탭을 골라 둔다 */
+    DG.vendor.refresh();
+    if (tab === 'buyback') {
+      var spare = IT.roll(18, { slot: 'charm', tier: 1 });
+      IT.add(spare);
+      DG.vendor.sell(spare.uid);
+    }
+    DG.ui.openSheet('vendor');
+    var want = tab === 'gamble' ? 'gamble' : (tab === 'buyback' ? 'back' : 'buy');
+    document.querySelector('[data-act="vendor-tab"][data-tab="' + want + '"]').click();
+  }
+  else if (tab === 'skill') {
+    /* 무예 — 점수를 몇 점 주고 나무가 어떻게 보이는지 남게 */
+    DG.skill.ensureStarter(C.save.party[0]);
+    DG.ui.openSheet('skill');
+  }
+  else if (['party', 'gear', 'craft', 'dex', 'log'].indexOf(tab) >= 0) {
+    DG.ui.openSheet(tab);
+  }
+
+  C.emit('changed');
+  document.getElementById('sheet').style.transition = 'none';
+  document.getElementById('dock').style.transition = 'none';
+}, 350);
+</script>
+</body></html>

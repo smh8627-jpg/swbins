@@ -1,0 +1,23 @@
+{
+  "name": "역사고 — 걷고 만난다",
+  "short_name": "역사고",
+  "description": "실제 지도를 걸으며 삼국지·한국사 인물을 등용하고 짐승을 포획하는 위치 기반 수집 게임.",
+  "lang": "ko",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "saga-go",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#12141a",
+  "theme_color": "#12141a",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "도감", "short_name": "도감", "url": "./index.html#dex", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

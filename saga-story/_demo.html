@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>사가스토리 데모</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<!--
+  스크린샷용 데모 상태 — "며칠 사냥한 뒤" 를 재현한다. 게임 코드는 건드리지 않는다.
+
+  장면(해시)
+    #camp   쉬는 중(사냥터 고르기)   #hunt  사냥 중
+    #boss   보스 앞                  #field 사냥터 시트
+    #dex    도감                     #log   기록
+  해시에 chibi·tall·anime·classic 을 붙이면 등신·양식도 바뀐다 (예: #boss-chibi).
+
+  이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
+  화면이 통째로 죽는다 (사가고에서 실제로 그렇게 오래 죽어 있었다).
+-->
+<canvas id="stage"></canvas>
+<div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">🤖</button>
+    <button class="icon-btn txt" id="btn-prop">4등</button>
+    <button class="icon-btn" id="btn-style">📗</button>
+    <button class="icon-btn" id="btn-help">❔</button>
+    <button class="icon-btn" id="btn-reset">↺</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="autobar"></div>
+<div id="camp"></div>
+<div id="hud"></div>
+<nav id="dock">
+  <button data-sheet="field"><span>🏃</span><small>사냥터</small></button>
+  <button data-sheet="bag"><span>🎒</span><small>가방</small></button>
+  <button data-sheet="job"><span>🥋</span><small>무예</small></button>
+  <button data-sheet="shop"><span>🏪</span><small>저자</small></button>
+  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title">사냥터</h3>
+    <button class="icon-btn sm" id="sheet-close">✕</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<script>
+/* 가입 화면을 건너뛴다 — 데모는 진단과 같은 고정 키(…/save/test)로 켠다 */
+window.DG_NO_ACCOUNT = true;
+</script>
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-side.js"></script>
+<script src="js/data-gear.js"></script>
+<script src="js/data-job.js"></script>
+<script src="js/data-quest.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/side.js"></script>
+<script src="js/side-view.js"></script>
+<script src="js/gear.js"></script>
+<script src="js/job.js"></script>
+<script src="js/quest.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 세이브 보호 — 루프가 주기적으로 persist() 한다. 데모 상태로 덮이지 않게 막는다. */
+DG.core.persist = function () {};
+
+/* 데모에서 터진 예외는 제목과 화면에 남긴다 (스크린샷만 보면 죽은 걸 모른다) */
+window.addEventListener('error', function (e) {
+  var msg = e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno;
+  document.title = 'DEMO ERROR: ' + msg;
+  var box = document.getElementById('demo-err');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'demo-err';
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:9999;padding:8px 10px;' +
+      'background:#5b1414;color:#ffd9d9;border:1px solid #ff8f8f;border-radius:10px;' +
+      'font:600 12px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+    document.body.appendChild(box);
+  }
+  box.textContent = '⚠️ ' + msg;
+});
+</script>
+<script>
+setTimeout(function () {
+  var C = DG.core, S = DG.side;
+
+  var party = ['kr_yisunsin', 'sg_zhaoyun', 'kr_ganggamchan'];
+  party.forEach(function (id) { C.save.dex.heroes[id] = { count: 1, firstAt: Date.now() }; });
+  C.save.party = party.slice();
+  C.save.heroes = {
+    kr_yisunsin: { lv: 14, exp: 20, rank: 1 },
+    sg_zhaoyun: { lv: 9, exp: 5, rank: 0 },
+    kr_ganggamchan: { lv: 7, exp: 2, rank: 0 }
+  };
+  C.save.player.level = 12;
+  C.save.player.gold = 2840;
+  C.save.player.featTotal = 900;
+  C.save.side = { stage: 'field', potions: 6, kills: 412, deaths: 3,
+                  best: 'forest', bosses: 5, bossAt: {} };
+
+  C.save.log = [];
+  C.log('👺 황건 두목 을(를) 잡았다! · 🪙 640 · 🧪 +3 (15분 뒤 다시 나온다)', 'good');
+  C.log('공적 +23 (토벌)', 'feat');
+  C.log('🏃 허창 들판 에 들어섰다 — 안쪽에 황건 두목 이(가) 있다', 'info');
+  C.log('레벨 업! Lv.12', 'level');
+
+  C.emit('changed');
+  document.getElementById('sheet').style.transition = 'none';
+  document.getElementById('dock').style.transition = 'none';
+
+  var hash = location.hash.replace('#', '');
+  if (hash.indexOf('chibi') >= 0) { DG.sprite.setProp('chibi'); C.emit('changed'); }
+  if (hash.indexOf('tall') >= 0) { DG.sprite.setProp('tall'); C.emit('changed'); }
+  if (hash.indexOf('anime') >= 0) { DG.sprite.setStyle('anime'); C.emit('changed'); }
+  if (hash.indexOf('classic') >= 0) { DG.sprite.setStyle('classic'); C.emit('changed'); }
+  var tab = hash.split('-')[0];
+
+  if (tab === 'hunt' || tab === 'boss') {
+    S.enter('field');
+    var run = S.raw();
+    if (tab === 'boss' && run && run.boss) {
+      /* 보스 앞에 세운다 — 체력을 조금 깎아 두어야 바가 읽힌다 */
+      run.boss.hp = Math.round(run.boss.hpMax * 0.62);
+      run.player.x = run.boss.x - 110;
+      run.player.facing = 1;
+      run.player.invuln = 9999;
+      /* 카메라가 따라붙도록 한 프레임 굴린다 */
+      S.update(0.016);
+    }
+  }
+  else if (['field', 'dex', 'log'].indexOf(tab) >= 0) { DG.ui.openSheet(tab); }
+}, 350);
+</script>
+</body></html>

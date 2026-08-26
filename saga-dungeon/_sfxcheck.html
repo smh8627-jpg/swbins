@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>소리 점검</title></head>
+<body>
+<div id="report">…</div>
+<script>window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;</script>
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-item.js"></script>
+<script src="js/data-gem.js"></script>
+<script src="js/data-elem.js"></script>
+<script src="js/data-skill.js"></script>
+<script src="js/data-set.js"></script>
+<script src="js/data-unique.js"></script>
+<script src="js/data-dungeon.js"></script>
+<script src="js/core.js"></script>
+<script src="js/sfx.js"></script>
+<script>
+(function () {
+  var S = DG.sfx, errs = [], keys = Object.keys(S.CUES), i = 0, played = 0;
+  window.addEventListener('error', function (e) { errs.push(e.message); });
+  var ok = S.unlock();
+  function step() {
+    if (i >= keys.length) {
+      var msg = 'unlock=' + ok + ' · 낸 소리 ' + played + '/' + keys.length +
+        ' · 예외 ' + errs.length + (errs.length ? ' :: ' + errs.join(' | ') : '');
+      document.getElementById('report').textContent = msg;
+      document.title = 'SFX ' + msg;
+      return;
+    }
+    S._clear();
+    try { if (S.play(keys[i])) { played++; } }
+    catch (e) { errs.push(keys[i] + ': ' + e.message); }
+    i++;
+    setTimeout(step, 800);
+  }
+  step();
+})();
+</script>
+</body>
+</html>

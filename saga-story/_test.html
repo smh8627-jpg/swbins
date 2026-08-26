@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>사가GO 사냥터 자가진단</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { overflow: auto; }
+  #report { padding: 16px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.8;
+            position: relative; z-index: 50; background: rgba(10,12,16,.92); }
+  .pass { color: #5ec26a; } .fail { color: #e06565; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas><div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">a</button>
+    <button class="icon-btn" id="btn-prop">p</button>
+    <button class="icon-btn" id="btn-style">s</button>
+    <button class="icon-btn" id="btn-help">h</button>
+    <button class="icon-btn" id="btn-reset">r</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="autobar"></div><div id="camp"></div><div id="hud"></div>
+<nav id="dock">
+  <button data-sheet="field"><span>f</span><small>f</small></button>
+  <button data-sheet="bag"><span>b</span><small>b</small></button>
+  <button data-sheet="job"><span>j</span><small>j</small></button>
+  <button data-sheet="shop"><span>s</span><small>s</small></button>
+  <button data-sheet="dex"><span>d</span><small>d</small></button>
+  <button data-sheet="log"><span>l</span><small>l</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title"></h3>
+    <button class="icon-btn sm" id="sheet-close">x</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<div id="report">진단 중…</div>
+
+<script>
+window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
+
+/* 무작위 고정 — 진단이 굴릴 때마다 달라지면 판정이 흔들린다.
+   게임 스크립트보다 **먼저** 갈아 둬야 부트에서 쓰는 난수까지 잡힌다.
+   (실제 플레이는 그대로다 — 이 파일 안에서만 바꾼다)
+   mulberry32: 짧고 분포가 고르며 같은 씨앗이면 같은 수열이 나온다. */
+(function (seed) {
+  var s = seed >>> 0;
+  Math.random = function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  window.DG_SEED = seed;
+})(20260824);
+</script>
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-side.js"></script>
+<script src="js/data-gear.js"></script>
+<script src="js/data-job.js"></script>
+<script src="js/data-quest.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/side.js"></script>
+<script src="js/side-view.js"></script>
+<script src="js/gear.js"></script>
+<script src="js/job.js"></script>
+<script src="js/quest.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+(function () {
+  var out = [], errors = [];
+  window.addEventListener('error', function (e) { errors.push(e.message); });
+
+  function t(name, fn) {
+    try {
+      var r = fn();
+      out.push((r ? '<span class="pass">PASS</span> ' : '<span class="fail">FAIL</span> ') +
+        name + (typeof r === 'string' ? ' — ' + r : ''));
+      return !!r;
+    } catch (e) {
+      out.push('<span class="fail">FAIL</span> ' + name + ' — 예외: ' + e.message);
+      return false;
+    }
+  }
+
+  setTimeout(function () {
+    var C = DG.core, S = DG.side, SD = DG.sideData, AU = DG.auto;
+
+    t('다른 게임의 모듈은 실려 있지 않다', function () {
+      var gone = ['world', 'encounter', 'dungeon', 'village', 'item'];
+      var leaked = gone.filter(function (k) { return !!DG[k]; });
+      return leaked.length === 0 && '지도·조우·던전·마을·장비 없음';
+    });
+
+    t('데이터는 그대로 물려받았다', function () {
+      return DG.data.heroes.length === 70 &&
+        DG.enemyData.enemies.length > 5 &&
+        ('인물 ' + DG.data.heroes.length +          ' · 적 ' + DG.enemyData.enemies.length);
+    });
+
+    t('시작하면 싸울 몸(앞에 세운 인물)이 있다', function () {
+      return core_party_ok() && ('앞에 ' + DG.data.find(C.save.party[0]).name);
+    });
+    function core_party_ok() { return C.save.party.length === 1; }
+
+    /* ── 사냥터 ───────────────────────────────────────── */
+
+    t('사냥터는 레벨로 열린다', function () {
+      C.save.player.level = 1;
+      var a = S.unlocked('field'), b = S.unlocked('forest');
+      C.save.player.level = 6;
+      var c = S.unlocked('forest');
+      C.save.player.level = 1;
+      return a && !b && c && '들판 열림 · 숲은 Lv.5 부터';
+    });
+
+    t('못 열린 사냥터에는 들어가지 못한다', function () {
+      var ok = S.enter('cave');
+      return ok === false && !S.active() && '거절됨';
+    });
+
+    t('진입 — 발판·적·체력이 준비된다 (보스가 있으면 한 마리 더)', function () {
+      var ok = S.enter('field');
+      var st = S.status();
+      var want = st.stage.spawn + (st.boss ? 1 : 0);
+      return ok && st.active && st.hpMax > 0 && st.enemies === want &&
+        st.stage.plats.length >= 3 &&
+        ('체력 ' + st.hpMax + ' · 적 ' + st.enemies + ' · 발판 ' + st.stage.plats.length +
+         (st.boss ? ' · 보스 ' + st.boss.name : ''));
+    });
+
+    t('중력 — 발판에서 떨어지면 바닥에 선다', function () {
+      var run = S.raw(), p = run.player;
+      p.y = 100; p.vy = 0; p.onGround = false;
+      for (var i = 0; i < 60; i++) { S.update(0.05); }
+      return p.onGround && Math.abs((p.y + S.P_H) - run.stage.floor) < 2 &&
+        ('바닥 y=' + Math.round(p.y + S.P_H));
+    });
+
+    t('점프 — 땅에서만 뛴다', function () {
+      var run = S.raw(), p = run.player;
+      p.onGround = true;
+      var a = S.jump();
+      var b = S.jump();          // 공중에서는 안 된다
+      return a === true && b === false && ('속도 ' + Math.round(p.vy));
+    });
+
+    t('발판은 위에서만 밟힌다', function () {
+      var run = S.raw(), p = run.player;
+      var pl = run.stage.plats[0];
+      p.x = pl[0] + 20;
+      p.y = pl[1] - S.P_H - 30; p.vy = 200; p.onGround = false;
+      for (var i = 0; i < 12; i++) { S.update(0.03); }
+      var landed = p.onGround && Math.abs((p.y + S.P_H) - pl[1]) < 3;
+      /* 아래에서 위로 지날 때는 통과해야 한다 */
+      p.y = pl[1] + 40; p.vy = -400; p.onGround = false;
+      var before = p.y;
+      for (i = 0; i < 6; i++) { S.update(0.03); }
+      var passed = p.y < before;
+      return landed && passed && '착지 O · 아래에서 통과 O';
+    });
+
+    /* ── 줄과 문 (원작의 세로 이동) ─────────────────────
+       항목은 **자기가 쓸 상태를 스스로 만들고 남긴 것은 스스로 치운다.**
+       줄을 타는 동안 적에게 맞아 죽으면 판이 끝나 뒤 항목이 줄줄이 넘어진다 —
+       그래서 무적(invuln)을 걸어 두고 끝에서 되돌린다. */
+
+    function calm(run) {                     // 판정에 상관없는 축은 붙들어 둔다
+      run.hp = run.hpMax;
+      run.player.invuln = 999;
+    }
+    function restInput() {
+      S.setInput('up', false); S.setInput('down', false);
+      S.setInput('left', false); S.setInput('right', false);
+      S.setInput('jump', false);
+    }
+
+    t('사냥터마다 줄과 문이 놓여 있다', function () {
+      var bad = [], rn = [], gn = [];
+      for (var i = 0; i < SD.STAGES.length; i++) {
+        var s = SD.STAGES[i];
+        rn.push((s.ropes || []).length);
+        gn.push((s.portals || []).length);
+        if (!s.ropes || s.ropes.length < s.plats.length) { bad.push(s.key + ' 줄'); }
+        if (!s.portals || !s.portals.length) { bad.push(s.key + ' 문'); }
+      }
+      return bad.length === 0 && ('줄 ' + rn.join('·') + ' · 문 ' + gn.join('·'));
+    });
+
+    t('↑ — 줄을 잡고 오르면 발판 위에 올라선다', function () {
+      var run = S.raw(), p = run.player, stg = run.stage;
+      var r = stg.ropes[0];
+      calm(run);
+      p.climb = null; p.x = r[0] - S.P_W / 2; p.y = stg.floor - S.P_H;
+      p.vy = 0; p.onGround = true;
+      S.setInput('up', true);
+      var grabbed = !!p.climb;
+      for (var i = 0; i < 200 && p.climb; i++) { S.update(0.03); }
+      restInput();
+      var landed = p.onGround && Math.abs((p.y + S.P_H) - r[1]) < 2;
+      p.invuln = 0;
+      return grabbed && landed && ('바닥 ' + stg.floor + ' → 발판 ' + r[1]);
+    });
+
+    t('줄에 매달린 동안은 중력도 좌우 이동도 없다', function () {
+      var run = S.raw(), p = run.player, stg = run.stage;
+      var r = stg.ropes[0];
+      calm(run);
+      p.climb = null; p.x = r[0] - S.P_W / 2; p.y = stg.floor - S.P_H - 60;
+      p.vy = 0; p.onGround = false;
+      S.setInput('up', true);
+      var y0 = p.y, x0 = p.x;
+      S.setInput('up', false);               // 잡기만 하고 손은 멈춘다
+      var held = !!p.climb;
+      S.setInput('left', true);
+      for (var i = 0; i < 20; i++) { S.update(0.03); }
+      restInput();
+      var still = Math.abs(p.y - y0) < 0.5 && Math.abs(p.x - x0) < 0.5;
+      var out = '매달림 ' + (held ? 'O' : 'X') + ' · 20프레임 뒤 제자리 ' + (still ? 'O' : 'X');
+      p.climb = null; p.invuln = 0;
+      return held && still && out;
+    });
+
+    t('줄 위에서 점프하면 손을 떼고 튄다', function () {
+      var run = S.raw(), p = run.player, stg = run.stage;
+      var r = stg.ropes[0];
+      calm(run);
+      p.climb = null; p.x = r[0] - S.P_W / 2; p.y = stg.floor - S.P_H - 60;
+      p.vy = 0; p.onGround = false;
+      S.setInput('up', true); S.setInput('up', false);
+      var held = !!p.climb;
+      S.setInput('left', true);                 // 방향키와 함께 눌러야 그쪽으로 튄다
+      S.jump();
+      var freed = !p.climb && p.vy < 0 && p.facing === -1;
+      var vy = Math.round(p.vy);
+      /* 방향키 없이 누르면 그 자리에서 손만 뗀다 — 원작도 그렇다 */
+      S.setInput('left', false);
+      p.y = stg.floor - S.P_H - 60; p.vy = 0; p.onGround = false;
+      S.setInput('up', true); S.setInput('up', false);
+      var held2 = !!p.climb;
+      S.jump();
+      var dropped = !p.climb && p.vy >= 0;
+      restInput();
+      p.climb = null; p.vy = 0; p.invuln = 0;
+      return held && freed && held2 && dropped &&
+        ('← 와 함께면 속도 ' + vy + ' · 방향키 없이면 그대로 떨어짐');
+    });
+
+    t('↓ + 점프 — 밟고 선 발판을 빠져나간다 (바닥에서는 안 된다)', function () {
+      var run = S.raw(), p = run.player, stg = run.stage;
+      var pl = stg.plats[0];
+      calm(run);
+      p.climb = null; p.x = pl[0] + 40; p.y = pl[1] - S.P_H;
+      p.vy = 0; p.onGround = true;
+      S.setInput('down', true);
+      S.setInput('jump', true);
+      for (var i = 0; i < 14; i++) { S.update(0.03); }
+      var fellThrough = p.y + S.P_H > pl[1] + 10;
+      /* 바닥에서는 빠져나갈 곳이 없다 */
+      p.y = stg.floor - S.P_H; p.vy = 0; p.onGround = true;
+      var atFloor = S.dropThrough() === false;
+      restInput();
+      p.invuln = 0;
+      return fellThrough && atFloor &&
+        ('발판 ' + pl[1] + ' → 발밑 ' + Math.round(p.y + S.P_H) + ' · 바닥에서는 거절');
+    });
+
+    t('문 — ↑ 로 옆 사냥터로 넘어가고 몸과 벌이는 이어진다', function () {
+      var run = S.raw(), p = run.player;
+      var lv0 = C.save.player.level;
+      C.save.player.level = 6;                  // 숲이 열린다
+      calm(run);
+      run.gold = 777; run.kills = 5; run.hp = Math.round(run.hpMax * 0.6);
+      var hp0 = run.hp, from = run.stage.key;
+      var gate = run.stage.portals[0];
+      p.climb = null; p.x = gate[0] - S.P_W / 2; p.y = run.stage.floor - S.P_H;
+      p.vy = 0; p.onGround = true;
+      S.setInput('up', true);
+      restInput();
+      var moved = S.raw().stage.key === 'forest';
+      var kept = S.raw().gold === 777 && S.raw().kills === 5 && S.raw().hp === hp0;
+      var placed = S.raw().player.x < 300;      // 오른쪽 문으로 나갔으니 왼쪽에서 나온다
+      S.travel('field');                        // 되돌린다 (숲에도 들판으로 가는 문이 있다)
+      C.save.player.level = lv0;
+      S.raw().player.invuln = 0;
+      return moved && kept && placed &&
+        (from + ' → 오림 숲 · 금 777·5마리·체력 ' + hp0 + ' 그대로');
+    });
+
+    t('못 열린 사냥터의 문은 거절한다', function () {
+      var lv0 = C.save.player.level;
+      C.save.player.level = 1;
+      var run = S.raw();
+      var before = run.stage.key;
+      var ok = S.travel('cave');
+      C.save.player.level = lv0;
+      return ok === false && S.raw().stage.key === before && '굴혈 거절됨';
+    });
+
+    t('공격 — 앞에 있는 적만 맞는다', function () {
+      var run = S.raw(), p = run.player;
+      var e = run.enemies[0];
+      e.x = p.x + 40; e.y = p.y; e.hp = e.hpMax = 9999;
+      p.facing = 1;
+      run.player.cds = [0, 0, 0, 0];
+      var hit = S.castSkill(0);
+      var damaged = e.hp < 9999;
+      /* 뒤로 돌면 안 맞는다 */
+      e.hp = 9999; p.facing = -1; run.player.cds = [0, 0, 0, 0];
+      S.castSkill(0);
+      var behind = e.hp === 9999;
+      return hit && damaged && behind && '앞 O · 뒤 X';
+    });
+
+    t('스킬은 기력을 쓰고 쿨다운이 걸린다', function () {
+      var run = S.raw();
+      run.mp = 100;
+      run.player.cds = [0, 0, 0, 0];
+      var cast = S.castSkill(1);
+      var st = S.status();
+      return cast && !S.castSkill(1) && st.mp < 100 && st.skills[1].cd > 0 &&
+        ('기력 ' + st.mp + ' · 쿨 ' + st.skills[1].cd.toFixed(1) + 's');
+    });
+
+    t('잡으면 경험치·금이 들어오고 다음 적이 나온다', function () {
+      var run = S.raw();
+      var n0 = run.enemies.length, g0 = run.gold, xp0 = C.save.player.exp;
+      var e = run.enemies[0];
+      var p = run.player;
+      e.x = p.x + 40; e.y = p.y; e.hp = 1;
+      p.facing = 1; run.player.cds = [0, 0, 0, 0];
+      S.castSkill(0);
+      return run.kills >= 1 && run.gold > g0 && run.enemies.length === n0 &&
+        (C.save.player.exp !== xp0 || C.save.player.level > 1) &&
+        ('잡음 ' + run.kills + ' · 금 ' + run.gold + ' · 적 수 유지 ' + run.enemies.length);
+    });
+
+    t('탕약 — 체력을 채우고 개수가 줄어든다', function () {
+      var run = S.raw(), s = S.state();
+      run.hp = Math.round(run.hpMax * 0.3);
+      s.potions = 2;
+      var ok = S.drink();
+      return ok && s.potions === 1 && run.hp > run.hpMax * 0.3 &&
+        ('체력 ' + run.hp + '/' + run.hpMax + ' · 남은 탕약 ' + s.potions);
+    });
+
+    t('맞으면 체력이 줄고 잠깐 무적이 된다', function () {
+      var run = S.raw(), p = run.player;
+      var e = run.enemies[0];
+      e.x = p.x; e.y = p.y; e.cd = 0; e.dmg = 5;
+      var hp0 = run.hp;
+      S.update(0.03);
+      var hurt = run.hp < hp0;
+      var hp1 = run.hp;
+      e.cd = 0;
+      S.update(0.03);                    // 무적 동안에는 더 안 깎인다
+      return hurt && run.hp === hp1 && ('체력 ' + hp0 + ' → ' + hp1 + ' (무적 유지)');
+    });
+
+    /* ── 멀리서 쏘는 적 ─────────────────────────────────── */
+
+    t('쏘는 적은 든 무기로 갈린다 (적 데이터에 칸을 만들지 않는다)', function () {
+      var ed = DG.enemyData, shooters = [], melee = 0, i;
+      for (i = 0; i < ed.enemies.length; i++) {
+        if (SD.rangedOf(ed.enemies[i])) { shooters.push(ed.enemies[i].name); } else { melee++; }
+      }
+      var bossShooters = 0;
+      for (i = 0; i < ed.bosses.length; i++) { if (SD.rangedOf(ed.bosses[i])) { bossShooters++; } }
+      /* 던전 게임과 나눠 든 파일이라 ranged 같은 칸이 새로 생기면 안 된다 */
+      var clean = !('ranged' in ed.enemies[0]);
+      return shooters.length >= 3 && melee > shooters.length && bossShooters === 0 && clean &&
+        ('쏘는 적 ' + shooters.length + '(' + shooters[0] + ' 등) · 붙는 적 ' + melee +
+         ' · 적 데이터는 그대로');
+    });
+
+    t('쏘는 적은 사거리에서 멈춰 화살을 날린다', function () {
+      var run = S.raw(), p = run.player, stg = run.stage;
+      var e = run.enemies[0];
+      var old = { ref: e.ref, ranged: e.ranged, x: e.x, y: e.y, shotCd: e.shotCd, dir: e.dir };
+      var bow = null, i;
+      for (i = 0; i < DG.enemyData.enemies.length; i++) {
+        if (SD.rangedOf(DG.enemyData.enemies[i])) { bow = DG.enemyData.enemies[i]; break; }
+      }
+      e.ref = bow; e.ranged = SD.rangedOf(bow); e.shotCd = 0.05;
+      calm(run);                                 // 화살에 맞아 죽지 않게
+      p.climb = null; p.x = 400; p.y = stg.floor - S.P_H; p.vy = 0; p.onGround = true;
+      e.x = p.x + 240; e.y = stg.floor - e.h;
+      run.eshots = [];
+      var x0 = e.x, shot = false;
+      for (i = 0; i < 20; i++) {
+        S.update(0.03);
+        if (run.eshots.length) { shot = true; }
+      }
+      var held = Math.abs(e.x - x0) < 8;          // 사거리 안이면 다가오지 않는다
+      var out = '쏨 ' + (shot ? 'O' : 'X') + ' · 제자리 ' + (held ? 'O' : 'X') +
+        ' (' + bow.name + ')';
+      run.eshots = [];
+      e.ref = old.ref; e.ranged = old.ranged; e.x = old.x; e.y = old.y;
+      e.shotCd = old.shotCd; e.dir = old.dir;
+      p.invuln = 0;
+      return shot && held && out;
+    });
+
+    t('화살이 맞으면 체력이 깎이고, 무적 동안에는 스친다', function () {
+      var run = S.raw(), p = run.player;
+      p.invuln = 0; run.hp = run.hpMax;
+      var hp0 = run.hp;
+      run.eshots = [{ x: p.x + 6, y: p.y + 14, dir: 1, spd: 0, dmg: 7, kind: 'bow', life: 2 }];
+      S.update(0.03);
+      var hit = run.hp === hp0 - 7 && run.eshots.length === 0;
+      var hp1 = run.hp;
+      run.eshots = [{ x: p.x + 6, y: p.y + 14, dir: 1, spd: 0, dmg: 7, kind: 'bow', life: 2 }];
+      S.update(0.03);
+      var grazed = run.hp === hp1 && run.eshots.length === 0;
+      run.eshots = []; p.invuln = 0;
+      return hit && grazed && ('체력 ' + hp0 + ' → ' + hp1 + ' · 무적 중에는 안 깎임');
+    });
+
+    t('화살은 사거리 끝이나 수명이 다하면 사라진다', function () {
+      var run = S.raw(), p = run.player;
+      calm(run);
+      p.climb = null; p.x = 900; p.y = run.stage.floor - S.P_H; p.onGround = true;
+      run.eshots = [
+        { x: 40, y: 200, dir: -1, spd: 700, dmg: 1, kind: 'bow', life: 9 },   // 벽 밖으로
+        { x: 300, y: 200, dir: 1, spd: 0, dmg: 1, kind: 'staff', life: 0.05 } // 수명
+      ];
+      for (var i = 0; i < 6; i++) { S.update(0.03); }
+      var gone = run.eshots.length === 0;
+      run.eshots = []; p.invuln = 0;
+      return gone && '벽 밖·수명 둘 다 걷힘';
+    });
+
+    t('쓰러지면 판이 끝나고 금은 절반만 남는다', function () {
+      var run = S.raw();
+      run.gold = 1000;
+      var g0 = C.save.player.gold;
+      run.hp = 1;
+      var e = run.enemies[0], p = run.player;
+      e.x = p.x; e.y = p.y; e.cd = 0; e.dmg = 9999;
+      p.invuln = 0;
+      S.update(0.03);
+      return !S.active() && C.save.player.gold === g0 + 500 &&
+        (S.state().deaths + '회 쓰러짐 · 금 +500');
+    });
+
+    /* ── 보스 ─────────────────────────────────────────── */
+
+    t('보스는 사냥터 오른쪽 끝을 지킨다', function () {
+      C.save.side.bossAt = {};
+      if (S.active()) { S.leave(); }
+      S.enter('field');
+      var run = S.raw();
+      var b = run.boss;
+      if (!b) { return false; }
+      var mine = run.enemies.filter(function (e) { return !e.boss; });
+      var far = b.x > run.stage.width * 0.6;
+      return far && b.boss === true && b.hp > mine[0].hpMax * 5 &&
+        ('x ' + Math.round(b.x) + ' / 폭 ' + run.stage.width +
+         ' · 체력 ' + b.hp + ' (잡졸 ' + mine[0].hpMax + ')');
+    });
+
+    t('보스를 잡으면 크게 주고, 그 자리는 다시 안 채운다', function () {
+      var run = S.raw();
+      var b = run.boss;
+      if (!b) { return false; }
+      var n0 = run.enemies.length;
+      var gold0 = run.gold, pots0 = C.save.side.potions, bosses0 = C.save.side.bosses;
+      b.hp = 1;
+      /* 보스 앞에 서서 벤다 — 평타 사거리 안에 두면 된다 */
+      run.player.x = b.x - 40; run.player.facing = 1;
+      S.castSkill(0);
+      var killed = run.boss === null;
+      /* 떨군 탕약을 줍는다 */
+      run.player.x = b.x; run.player.y = run.stage.floor - S.P_H;
+      for (var i = 0; i < 40; i++) { S.update(0.05); }
+      return killed && run.enemies.length === n0 - 1 &&
+        run.gold > gold0 && C.save.side.bosses === bosses0 + 1 &&
+        C.save.side.potions >= pots0 + 3 &&
+        ('🪙 +' + Math.round(run.gold - gold0) + ' · 🧪 ' + pots0 + '→' + C.save.side.potions);
+    });
+
+    t('잡은 보스는 한동안 다시 나오지 않는다', function () {
+      var justKilled = !S.bossReady('field');
+      var left = S.bossLeft('field');
+      /* 대기가 지나면 다시 선다 */
+      C.save.side.bossAt.field = Date.now() - SD.stage('field').boss.cool * 60000 - 1000;
+      var back = S.bossReady('field');
+      return justKilled && left > 0 && back &&
+        ('잡은 직후 ' + Math.ceil(left / 60000) + '분 대기 · 지나면 다시 나옴');
+    });
+
+    t('보스는 뜸을 들이다 달려든다', function () {
+      if (S.active()) { S.leave(); }
+      C.save.side.bossAt = {};
+      S.enter('field');
+      var run = S.raw(), b = run.boss;
+      if (!b) { return false; }
+      b.hp = b.hpMax;
+      run.player.x = b.x - 200;                 // 인지 거리 안에 선다
+      run.player.y = run.stage.floor - S.P_H;
+      run.player.invuln = 999;                  // 맞아서 죽지 않게
+      var sawCharge = false;
+      for (var i = 0; i < 400 && !sawCharge; i++) {
+        S.update(0.05);
+        if (!S.raw()) { break; }
+        if (b.charge > 0) { sawCharge = true; }
+      }
+      if (S.active()) { S.leave(); }
+      return sawCharge && '달려드는 패턴 확인';
+    });
+
+    /* ── 자동 사냥 ────────────────────────────────────── */
+
+    t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {
+      AU.setOn(true);
+      var on1 = AU.active() && C.save.auto.on === true;
+      AU.setOn(false);
+      return on1 && !AU.active() && '켜짐·꺼짐 저장';
+    });
+
+    t('자동 — 쉬는 중이면 열린 사냥터로 들어간다', function () {
+      C.save.player.level = 6;              // 숲까지 열린다
+      AU.setOn(true);
+      for (var i = 0; i < 60; i++) { AU.update(0.1); }
+      var went = S.active();
+      var name = went ? S.status().stage.name : '';
+      return went && (name + ' 로 들어감');
+    });
+
+    t('자동 — 가까운 적을 골라 쫓아간다', function () {
+      var run = S.raw();
+      var e = AU._nearestEnemy(run);
+      var p = run.player;
+      var d0 = Math.abs((e.x + e.w / 2) - (p.x + S.P_W / 2));
+      for (var i = 0; i < 40; i++) { AU.update(0.05); S.update(0.05); }
+      var e2 = AU._nearestEnemy(S.raw());
+      return e && e2 && ('처음 거리 ' + Math.round(d0) + ' → 지금 ' +
+        Math.round(Math.abs((e2.x + e2.w / 2) - (S.raw().player.x + S.P_W / 2))));
+    });
+
+    t('자동 — 한 층 위의 적에게는 줄을 타고 간다', function () {
+      /* **무대를 스스로 만든다** — 앞 항목이 어느 사냥터에 있었느냐에 따라
+         발판·줄 좌표가 달라지면 이 항목이 애먼 자리를 짚는다 */
+      if (S.active()) { S.leave(); }
+      S.enter('field');
+      var run = S.raw(), p = run.player, stg = run.stage;
+      var keep = run.enemies.slice();
+      var r = stg.ropes[0], pl = stg.plats[0];
+      var e = keep[0], hp0 = e.hp, ex0 = e.x, ey0 = e.y;
+      run.enemies = [e];                        // 목표를 하나로 좁힌다
+      e.x = pl[0] + 130; e.y = pl[1] - e.h; e.hp = e.hpMax = 99999;
+      run.hp = run.hpMax; p.invuln = 999;
+      p.climb = null; p.x = r[0] + 260; p.y = stg.floor - S.P_H;
+      p.vy = 0; p.onGround = true;
+      var climbed = false, onPlat = false, i;
+      for (i = 0; i < 400 && !onPlat; i++) {
+        AU._tickHunt(0.05); S.update(0.05);
+        if (p.climb) { climbed = true; }
+        if (climbed) { onPlat = p.onGround && Math.abs((p.y + S.P_H) - pl[1]) < 3; }
+      }
+      /* 치운다 — 남기면 다음 항목이 이 상태를 딛는다 */
+      restInput();
+      e.x = ex0; e.y = ey0; e.hp = e.hpMax = hp0;
+      run.enemies = keep;
+      p.invuln = 0; p.climb = null;
+      p.x = 80; p.y = stg.floor - S.P_H; p.vy = 0; p.onGround = true;
+      return climbed && onPlat && ('줄을 잡고 발판 ' + pl[1] + ' 까지 · ' + i + '프레임');
+    });
+
+    t('자동 — 5분치를 굴리면 실제로 잡힌다', function () {
+      var s = S.state();
+      s.kills = 0;
+      C.save.player.gold = 0;
+      if (!S.active()) { S.enter('field'); }
+      AU.setOn(true);
+      for (var i = 0; i < 3000; i++) { AU.update(0.1); S.update(0.1); }
+      AU.setOn(false);
+      return s.kills > 3 &&
+        ('잡음 ' + s.kills + '마리 · Lv.' + C.save.player.level +
+         ' · 쓰러짐 ' + (s.deaths || 0));
+    });
+
+    /* ── 장비 · 주문서 · 저자 ───────────────────────────
+       모든 항목은 가방·낀 것을 **스스로 비우고 시작한다**. 앞 항목이 남긴
+       물건이 흘러들면 합산이 어긋난다. */
+
+    var G = DG.gear, GD = DG.gearData;
+
+    function bare() {                          // 맨몸으로 되돌린다
+      var g = G.state();
+      g.inv = []; g.equip = {};
+      C.save.scrolls = {};
+      C.emit('changed');
+    }
+
+    t('장비 데이터 — 부위 일곱에 단이 넷씩', function () {
+      var bad = [], i;
+      for (i = 0; i < GD.SLOTS.length; i++) {
+        var s = GD.SLOTS[i];
+        var mine = GD.GEAR.filter(function (g) { return g.slot === s.key; });
+        if (mine.length < 4) { bad.push(s.key); }
+        /* 요구 수준이 오를수록 값도 올라야 한다 */
+        for (var j = 1; j < mine.length; j++) {
+          if (mine[j].need <= mine[j - 1].need || mine[j].price <= mine[j - 1].price) {
+            bad.push(s.key + ':' + mine[j].key);
+          }
+        }
+      }
+      return bad.length === 0 &&
+        ('부위 ' + GD.SLOTS.length + ' · 물건 ' + GD.GEAR.length + ' · 주문서 ' + GD.SCROLLS.length);
+    });
+
+    t('낀 것이 몸에 얹힌다 (인물의 힘 위에 더한다)', function () {
+      bare();
+      var before = S.power();
+      var w = G.make('sword2');                // 환도 — 공격 +11, Lv.5
+      G.put(w);
+      C.save.player.level = 6;
+      var ok = G.equip(w.uid);
+      var after = S.power();
+      var got = after.atk - before.atk;
+      var bareSame = after.bare.atk === before.bare.atk;   // 맨몸 값은 안 변한다
+      bare();
+      return ok && got === 11 && bareSame &&
+        ('공격 ' + before.atk + ' → ' + after.atk + ' (맨몸은 ' + after.bare.atk + ' 그대로)');
+    });
+
+    t('요구 수준을 못 채우면 못 낀다', function () {
+      bare();
+      var w = G.make('sword4');                // 용린도 — Lv.20
+      G.put(w);
+      C.save.player.level = 6;
+      var no = G.equip(w.uid);
+      C.save.player.level = 20;
+      var yes = G.equip(w.uid);
+      C.save.player.level = 6;
+      /* 레벨이 도로 내려가면 **효과도 빠진다** (승급 전 세이브가 이 길로 온다) */
+      var off = G.bonus().atk === 0;
+      bare();
+      return no === false && yes === true && off && 'Lv.20 물건은 Lv.6 에서 안 붙는다';
+    });
+
+    t('방어는 맞는 값을 깎되 6할까지만 막는다', function () {
+      bare();
+      var mid = G.cut(40), big = G.cut(100000);
+      var zero = G.cut(0);
+      return zero === 0 && Math.abs(mid - 0.5) < 0.001 && big === 0.6 &&
+        ('방어 40 → ' + Math.round(mid * 100) + '% · 아무리 높아도 ' +
+         Math.round(big * 100) + '%');
+    });
+
+    t('방어를 끼면 실제로 덜 맞는다', function () {
+      bare();
+      if (!S.active()) { S.enter('field'); }
+      var run = S.raw(), p = run.player;
+      C.save.player.level = 20;
+      /* 같은 매를 맨몸과 갑주 차림으로 한 대씩 — 재지 않는 축은 붙들어 둔다 */
+      var e = run.enemies[0];
+      e.x = p.x; e.y = p.y; e.cd = 0; e.dmg = 100;
+      p.invuln = 0; run.hp = run.hpMax;
+      var hp0 = run.hp;
+      S.update(0.03);
+      var barehit = hp0 - run.hp;
+
+      var t1 = G.make('top4'); G.put(t1); G.equip(t1.uid);      // 두정갑 — 방어 19
+      var h1 = G.make('hat4'); G.put(h1); G.equip(h1.uid);      // 갑주투 — 방어 15
+      run.hp = run.hpMax = S.power().hp;
+      p.invuln = 0; e.cd = 0;
+      var hp1 = run.hp;
+      S.update(0.03);
+      var armored = hp1 - run.hp;
+      bare();
+      C.save.player.level = 6;
+      run.hpMax = S.power().hp; run.hp = run.hpMax; p.invuln = 0;
+      return armored < barehit && armored > 0 &&
+        ('맨몸 ' + barehit + ' → 갑주 ' + armored + ' (방어 34)');
+    });
+
+    t('주문서 100% 는 반드시 붙고 업횟이 닳는다', function () {
+      bare();
+      var w = G.make('sword1');
+      G.put(w);
+      G.addScroll('atk100', 3);
+      var left0 = w.left;
+      var r1 = G.apply(w.uid, 'atk100');
+      var r2 = G.apply(w.uid, 'atk100');
+      var s = G.statsOf(w);
+      var def = GD.find('sword1');
+      var ok = r1.ok && r1.hit && r2.hit && w.up === 2 && w.left === left0 - 2 &&
+        s.atk === def.atk + 2 && G.scrollCount('atk100') === 1;
+      var out = def.name + ' 공격 ' + def.atk + ' → ' + s.atk + ' · 업횟 ' + w.left;
+      bare();
+      return ok && out;
+    });
+
+    t('주문서가 실패해도 물건은 남고 업횟만 닳는다', function () {
+      bare();
+      var w = G.make('sword1');
+      G.put(w);
+      G.addScroll('atk10', 30);
+      var fails = 0, hits = 0, i;
+      for (i = 0; i < 30 && w.left > 0; i++) {
+        var r = G.apply(w.uid, 'atk10');
+        if (!r.ok) { break; }
+        if (r.hit) { hits++; } else { fails++; }
+      }
+      var alive = !!G.byUid(w.uid);            // 터지지 않는다
+      var spent = fails + hits;
+      var no = G.apply(w.uid, 'atk10');        // 업횟 0 이면 거절
+      var out = '시도 ' + spent + ' · 붙음 ' + hits + ' · 남은 업횟 ' + w.left +
+        ' · 거절 "' + (no.why || '') + '"';
+      var ok = alive && fails > 0 && w.left === 0 && no.ok === false;
+      bare();
+      return ok && out;
+    });
+
+    t('주문서는 제 자리에만 붙는다', function () {
+      bare();
+      var a = G.make('top1'); G.put(a);
+      G.addScroll('atk60', 1);
+      var no = G.apply(a.uid, 'atk60');        // 무기 주문서를 갑옷에
+      var kept = G.scrollCount('atk60') === 1; // 못 쓴 주문서는 그대로 있다
+      bare();
+      return no.ok === false && kept && ('거절 "' + no.why + '" · 주문서는 그대로');
+    });
+
+    t('가방은 24칸 — 차면 더 못 넣는다', function () {
+      bare();
+      var i, ok = true;
+      for (i = 0; i < G.BAG; i++) { if (!G.put(G.make('hat1'))) { ok = false; } }
+      var full = G.bagLeft() === 0;
+      var over = G.put(G.make('hat1'));
+      var out = '넣은 것 ' + G.inv().length + ' · 넘겨 넣기 ' + (over ? '됨' : '거절');
+      bare();
+      return ok && full && over === false && out;
+    });
+
+    t('저자 — 사면 금이 줄고, 팔면 산 값의 3할이 돌아온다', function () {
+      bare();
+      C.save.player.level = 6;
+      C.save.player.gold = 5000;
+      var d = GD.find('hat2');
+      var bought = G.buyGear('hat2');
+      var afterBuy = C.save.player.gold;
+      var it = G.inv()[0];
+      var got = G.sell(it.uid);
+      var afterSell = C.save.player.gold;
+      var ok = bought && afterBuy === 5000 - d.price &&
+        got === Math.round(d.price * G.SELL_RATE) && afterSell === afterBuy + got &&
+        G.inv().length === 0;
+      var out = '🪙 5000 → ' + afterBuy + ' → ' + afterSell + ' (' + d.name + ')';
+      bare();
+      return ok && out;
+    });
+
+    t('끼고 있는 것은 못 판다', function () {
+      bare();
+      C.save.player.level = 6;
+      var w = G.make('sword2'); G.put(w); G.equip(w.uid);
+      var no = G.sell(w.uid);
+      var still = G.inv().length === 1;
+      bare();
+      return no === false && still && '거절됨';
+    });
+
+    t('금이 모자라면 못 산다', function () {
+      bare();
+      C.save.player.gold = 10;
+      var no = G.buyGear('hat2');
+      var noScroll = G.buyScroll('atk10');
+      C.save.player.gold = 5000;
+      bare();
+      return no === false && noScroll === false && '물건·주문서 둘 다 거절';
+    });
+
+    t('적은 장비와 주문서를 떨군다 (보스는 반드시)', function () {
+      var gear = 0, scroll = 0, none = 0, i;
+      for (i = 0; i < 2000; i++) {
+        var r = G.rollDrop(6, false);
+        if (!r) { none++; } else if (r.kind === 'gear') { gear++; } else { scroll++; }
+      }
+      var bossGear = 0;
+      for (i = 0; i < 200; i++) {
+        var b = G.rollDrop(6, true);
+        if (b && b.kind === 'gear') { bossGear++; }
+      }
+      /* 잡졸은 드물게, 보스는 거의 늘 */
+      return gear > 20 && gear < 200 && scroll > 20 && none > 1500 && bossGear > 150 &&
+        ('잡졸 2000마리 — 장비 ' + gear + ' · 주문서 ' + scroll + ' · 꽝 ' + none +
+         ' / 보스 200 — 장비 ' + bossGear);
+    });
+
+    t('떨어진 장비를 밟으면 가방에 들어온다 (가방이 차면 남는다)', function () {
+      bare();
+      if (!S.active()) { S.enter('field'); }
+      var run = S.raw(), p = run.player;
+      calm(run);
+      p.climb = null;
+      run.drops = [];                          // 앞서 굴러다니던 금·탕약을 치우고 시작한다
+      run.drops.push({ kind: 'gear', key: 'hat1', x: p.x + 10, y: p.y + S.P_H - 6, vy: 0, n: 1 });
+      run.drops.push({ kind: 'scroll', key: 'def100', x: p.x + 12, y: p.y + S.P_H - 6, vy: 0, n: 1 });
+      S.update(0.03);
+      var got = G.inv().length === 1 && G.scrollCount('def100') === 1;
+
+      /* 가방을 채운 뒤에는 줍지 못하고 바닥에 남는다 */
+      var i;
+      for (i = G.inv().length; i < G.BAG; i++) { G.put(G.make('hat1')); }
+      run.drops.push({ kind: 'gear', key: 'hat1', x: p.x + 10, y: p.y + S.P_H - 6, vy: 0, n: 1 });
+      S.update(0.03);
+      var stayed = run.drops.length === 1 && G.inv().length === G.BAG;
+      run.drops = [];
+      bare();
+      p.invuln = 0;
+      return got && stayed && '주움 O · 가방이 차면 바닥에 남음';
+    });
+
+    /* ── 직업과 무예 ─────────────────────────────────────
+       전직은 되돌릴 수 없으므로, 항목은 끝에서 **세이브를 직접 무명으로** 돌린다. */
+
+    var J = DG.job, JD = DG.jobData;
+
+    function unlearn() {                       // 무명으로 되돌린다
+      C.save.job = 'none';
+      C.save.skills = {};
+      C.emit('changed');
+    }
+
+    t('무명은 정해진 넷을 쓰고, 무예를 찍지 못한다', function () {
+      unlearn();
+      C.save.player.level = 9;
+      var bar = J.bar();
+      var names = bar.map(function (s) { return s.key; }).join(',');
+      var no = J.canRaise('w_cut');
+      var noJoin = J.canJoin('warrior');
+      return bar.length === 4 && names === 'slash,sweep,bolt,brace' && !!no && !!noJoin &&
+        ('띠 ' + bar.length + '칸 · 전직 거절 "' + noJoin + '"');
+    });
+
+    t('무예 점수는 레벨에서 나온다 (세이브에 담지 않는다)', function () {
+      unlearn();
+      C.save.player.level = 11;
+      var t1 = J.spTotal(), l1 = J.spLeft();
+      C.save.player.level = 21;
+      var t2 = J.spTotal();
+      C.save.player.level = 11;
+      var stored = ('sp' in C.save) || ('skillPoints' in C.save);
+      return t1 === 30 && l1 === 30 && t2 === 60 && !stored &&
+        ('Lv.11 → ' + t1 + '점 · Lv.21 → ' + t2 + '점 · 세이브에 칸 없음');
+    });
+
+    t('Lv.10 에 전직하면 띠가 그 직업 무예로 바뀐다', function () {
+      unlearn();
+      C.save.player.level = 12;
+      var ok = J.join('warrior');
+      var empty = J.bar().length;              // 아직 아무것도 안 찍었다
+      J.raise('w_cut');
+      J.raise('w_whirl');
+      var bar = J.bar();
+      var keys = bar.map(function (s) { return s.key; }).join(',');
+      var out = '전직 뒤 띠 ' + empty + '칸 → 두 점 붓고 ' + bar.length + '칸 (' + keys + ')';
+      unlearn();
+      return ok && empty === 0 && bar.length === 2 && keys === 'w_cut,w_whirl' && out;
+    });
+
+    t('무예 점수는 있는 만큼만 쓴다', function () {
+      unlearn();
+      C.save.player.level = 11;                // 30점
+      J.join('warrior');
+      var i, done = 0;
+      for (i = 0; i < 60; i++) { if (J.raise('w_cut')) { done++; } }
+      var maxed = J.levelOf('w_cut') === 10;   // 마스터 10 에서 멈춘다
+      var spent = J.spSpent();
+      var why = J.canRaise('w_cut');
+      unlearn();
+      return done === 10 && maxed && spent === 10 && why === '이미 다 익혔습니다' &&
+        ('열 점까지 · 남은 점수 ' + (30 - spent));
+    });
+
+    t('무예 레벨이 오르면 실제로 세진다', function () {
+      unlearn();
+      C.save.player.level = 12;
+      J.join('warrior');
+      J.raise('w_cut');
+      var one = J.mulOf(JD.skill('w_cut'));
+      for (var i = 0; i < 4; i++) { J.raise('w_cut'); }
+      var five = J.mulOf(JD.skill('w_cut'));
+      unlearn();
+      return five > one && Math.abs(five - (1.15 + 0.09 * 4)) < 0.001 &&
+        ('참격 1레벨 ×' + one.toFixed(2) + ' → 5레벨 ×' + five.toFixed(2));
+    });
+
+    t('윗자리는 아랫자리 무예를 5 이상 익혀야 오른다', function () {
+      unlearn();
+      C.save.player.level = 26;
+      J.join('warrior');
+      var no = J.canJoin('general');           // 아직 아무것도 안 익혔다
+      for (var i = 0; i < 5; i++) { J.raise('w_cut'); }
+      var yes = J.canJoin('general');
+      var joined = J.join('general');
+      /* 윗자리는 아랫자리 무예도 그대로 쓴다 */
+      var mine = JD.skillsOf('general').map(function (s) { return s.key; });
+      var keepsLow = mine.indexOf('w_cut') >= 0 && mine.indexOf('g_smash') >= 0;
+      var out = '거절 "' + no + '" → 익힌 뒤 통과 · 무예 ' + mine.length + '가지';
+      unlearn();
+      return !!no && yes === null && joined && keepsLow && out;
+    });
+
+    t('선행 무예를 못 채우면 윗자리 무예를 못 찍는다', function () {
+      unlearn();
+      C.save.player.level = 26;
+      J.join('warrior');
+      for (var i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      var okSmash = J.canRaise('g_smash');      // 참격 5 — 조건을 채웠다
+      var noRoar = J.canRaise('g_roar');        // 선풍 0 — 못 채웠다
+      unlearn();
+      return okSmash === null && !!noRoar && ('패왕격 O · 함성 거절 "' + noRoar + '"');
+    });
+
+    t('직업이 몸에 보탠다 (윗자리는 아랫자리 몫까지)', function () {
+      unlearn();
+      C.save.player.level = 26;
+      var base = S.power();
+      J.join('warrior');
+      var w = S.power();
+      for (var i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      var g = S.power();
+      var out = '맨몸 ' + base.hp + ' → 무사 ' + w.hp + ' → 장군 ' + g.hp + ' (체력)';
+      unlearn();
+      return w.hp === base.hp + 40 && g.hp === base.hp + 40 + 110 &&
+        g.atk === base.atk + 2 + 7 && out;
+    });
+
+    t('꿰뚫는 것과 화살이 다르게 걸린다', function () {
+      unlearn();
+      if (S.active()) { S.leave(); }
+      C.save.player.level = 12;
+      S.enter('field');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      p.climb = null; p.x = 300; p.y = run.stage.floor - S.P_H; p.facing = 1;
+      p.onGround = true;
+      /* 한 줄로 세 마리를 세운다 — 재지 않는 축은 붙들어 둔다 */
+      var keep = run.enemies.slice(), i;
+      var three = keep.slice(0, 3);
+      run.enemies = three;
+      for (i = 0; i < 3; i++) {
+        three[i].x = p.x + 90 + i * 44;
+        three[i].y = run.stage.floor - three[i].h;
+        three[i].hp = three[i].hpMax = 99999;
+      }
+      run.shots = [];
+      /* 꿰뚫는 것 — 셋 다 맞는다 */
+      run.shots.push({ x: p.x + 20, y: p.y + S.P_H * 0.4, dir: 1, spd: 520, life: 2,
+                       mul: 1, pierce: true, hit: {} });
+      for (i = 0; i < 30; i++) { S.update(0.02); }
+      var pierced = three.filter(function (e) { return e.hp < 99999; }).length;
+      for (i = 0; i < 3; i++) { three[i].hp = 99999; }
+      run.shots = [];
+      /* 화살 — 첫 하나에서 멈춘다 */
+      run.shots.push({ x: p.x + 20, y: p.y + S.P_H * 0.4, dir: 1, spd: 520, life: 2,
+                       mul: 1, pierce: false, hit: {} });
+      for (i = 0; i < 30; i++) { S.update(0.02); }
+      var single = three.filter(function (e) { return e.hp < 99999; }).length;
+      run.enemies = keep;
+      run.shots = [];
+      p.invuln = 0;
+      unlearn();
+      return pierced === 3 && single === 1 && ('관통 ' + pierced + '마리 · 화살 ' + single + '마리');
+    });
+
+    t('돌진은 앞으로 나가며 지나간 자리를 벤다', function () {
+      unlearn();
+      if (!S.active()) { S.enter('field'); }
+      C.save.player.level = 12;
+      J.join('warrior');
+      J.raise('w_rush');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      p.climb = null; p.x = 300; p.y = run.stage.floor - S.P_H; p.facing = 1;
+      p.onGround = true; run.mp = run.mpMax;
+      var keep = run.enemies.slice();
+      var e = keep[0];
+      run.enemies = [e];
+      e.x = p.x + 120; e.y = run.stage.floor - e.h; e.hp = e.hpMax = 99999;
+      var x0 = p.x;
+      /* 띠에는 돌진 하나뿐이다 — 0번 자리 */
+      var cast = S.castSkill(0);
+      var moved = p.x - x0;
+      var hurt = e.hp < 99999;
+      run.enemies = keep;
+      e.hp = e.hpMax = 99999;
+      p.invuln = 0;
+      unlearn();
+      return cast && moved > 150 && hurt && ('앞으로 ' + Math.round(moved) + ' · 지나며 벰');
+    });
+
+    t('치유는 몸을 채우고, 북돋움은 공격을 올린다', function () {
+      unlearn();
+      if (!S.active()) { S.enter('field'); }
+      C.save.player.level = 12;
+      J.join('mage');
+      J.raise('m_heal');
+      J.raise('m_talis');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      run.hp = Math.round(run.hpMax * 0.4);
+      run.mp = run.mpMax;
+      p.cds = [0, 0, 0, 0, 0, 0];
+      var hp0 = run.hp;
+      var healed = S.castSkill(0);             // 띠 0 = 치유
+      var hp1 = run.hp;
+      var atk0 = S.status().atk;
+      run.mp = run.mpMax;
+      var buffed = S.castSkill(1);             // 띠 1 = 부적
+      var atk1 = S.status().atk;
+      p.buff = null; p.braceUntil = 0; p.invuln = 0;
+      unlearn();
+      return healed && buffed && hp1 > hp0 && atk1 > atk0 &&
+        ('체력 ' + hp0 + ' → ' + hp1 + ' · 공격 ' + atk0 + ' → ' + atk1);
+    });
+
+    t('자동은 띠에 놓인 것을 종류대로 쓴다 (전직해도)', function () {
+      unlearn();
+      if (S.active()) { S.leave(); }
+      C.save.player.level = 12;
+      S.enter('field');
+      J.join('archer');                        // 근접이 하나도 없는 직업으로 확인한다
+      J.raise('a_shot'); J.raise('a_double'); J.raise('a_pierce'); J.raise('a_eye');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      p.climb = null; p.x = 200; p.y = run.stage.floor - S.P_H; p.onGround = true;
+      var e = run.enemies[0];
+      e.x = p.x + 300;                         // 멀리 — 붙지 않아도 닿아야 한다
+      e.y = run.stage.floor - e.h;
+      e.hp = e.hpMax = 99999;
+      var keep = run.enemies.slice();
+      run.enemies = [e];
+      run.shots = [];
+      var flew = 0, i;
+      for (i = 0; i < 40; i++) {
+        AU._tickHunt(0.05); S.update(0.05);
+        if (run.shots.length) { flew = Math.max(flew, run.shots.length); }
+      }
+      var hurt = e.hp < 99999;
+      run.enemies = keep;
+      e.hp = e.hpMax = 99999;
+      run.shots = []; p.invuln = 0;
+      restInput();
+      unlearn();
+      return flew > 0 && hurt && ('멀리서 쏨 · 한때 화살 ' + flew + '발');
+    });
+
+    t('전직해도 세이브의 옛 칸은 그대로다 (되돌릴 수 있는 것은 진단뿐)', function () {
+      unlearn();
+      C.save.player.level = 12;
+      J.join('rogue');
+      var kept = C.save.job === 'rogue' && typeof C.save.skills === 'object';
+      unlearn();
+      return kept && C.save.job === 'none' && '세이브 두 칸(job·skills)만 쓴다';
+    });
+
+    /* ── 사명 · 앉아 쉬기 ──────────────────────────────── */
+
+    var Q = DG.quest, QD = DG.questData;
+
+    function clearQuests() { C.save.quests = {}; C.emit('changed'); }
+
+    t('사명은 레벨이 되면 뜨고, 받은 뒤부터 센다', function () {
+      clearQuests();
+      C.save.player.level = 1;
+      var early = Q.list().map(function (q) { return q.ref.key; });
+      C.save.player.level = 12;
+      var many = Q.list().length;
+      /* 받지 않은 사명은 세지 않는다 */
+      Q._onKill({ boss: false, stage: 'field' });
+      var beforeTake = Q.progress('q_first');
+      Q.take('q_first');
+      Q._onKill({ boss: false, stage: 'field' });
+      Q._onKill({ boss: false, stage: 'field' });
+      var afterTake = Q.progress('q_first');
+      clearQuests();
+      return early.length === 1 && early[0] === 'q_first' && many > 5 &&
+        beforeTake === 0 && afterTake === 2 &&
+        ('Lv.1 에 ' + early.length + '개 · Lv.12 에 ' + many + '개 · 받기 전 ' +
+         beforeTake + ' → 받은 뒤 ' + afterTake);
+    });
+
+    t('사명은 제 사냥터의 적만 센다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      Q.take('q_field');                       // 허창 들판에서만
+      Q.take('r_hunt');                        // 어디서든
+      Q._onKill({ boss: false, stage: 'forest' });
+      Q._onKill({ boss: false, stage: 'field' });
+      var f = Q.progress('q_field'), r = Q.progress('r_hunt');
+      clearQuests();
+      return f === 1 && r === 2 && ('들판 사명 ' + f + ' · 아무 데나 사명 ' + r);
+    });
+
+    t('보는 사명(장비·무예·금)은 세지 않고 지금 값을 본다', function () {
+      clearQuests();
+      unlearn();
+      var g = DG.gear.state();
+      g.inv = []; g.equip = {};
+      C.save.player.level = 12;
+      C.save.player.gold = 9000;
+      Q.take('q_gear1');                       // 세 자리 채우기
+      Q.take('q_gold1');                       // 금 8000
+      var goldFull = Q.full('q_gold1');
+      var gear0 = Q.progress('q_gear1');
+      var a = DG.gear.make('hat1'); DG.gear.put(a); DG.gear.equip(a.uid);
+      var b2 = DG.gear.make('top1'); DG.gear.put(b2); DG.gear.equip(b2.uid);
+      var c2 = DG.gear.make('bot1'); DG.gear.put(c2); DG.gear.equip(c2.uid);
+      var gear3 = Q.progress('q_gear1');
+      DG.gear.unequip('hat');                  // 벗으면 **도로 준다** (세어 두지 않으니까)
+      var gear2 = Q.progress('q_gear1');
+      g.inv = []; g.equip = {};
+      clearQuests();
+      return goldFull && gear0 === 0 && gear3 === 3 && gear2 === 2 &&
+        ('금 9000 → 채움 · 장비 ' + gear0 + ' → ' + gear3 + ' → 벗으니 ' + gear2);
+    });
+
+    t('사명을 바치면 보상이 들어오고, 되받는 것만 다시 뜬다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      C.save.player.gold = 0;
+      var pot0 = S.state().potions;
+      Q.take('q_first');
+      var early = Q.turnIn('q_first');         // 아직 못 채웠다
+      var i;
+      for (i = 0; i < 10; i++) { Q._onKill({ boss: false, stage: 'field' }); }
+      var ok = Q.turnIn('q_first');
+      var gold = C.save.player.gold, pot = S.state().potions;
+      var gone = Q.list().filter(function (q) { return q.ref.key === 'q_first'; }).length;
+
+      /* 되받는 사명은 바쳐도 목록에 남는다 */
+      Q.take('r_hunt');
+      for (i = 0; i < 30; i++) { Q._onKill({ boss: false, stage: 'field' }); }
+      var again = Q.turnIn('r_hunt');
+      var still = Q.list().filter(function (q) { return q.ref.key === 'r_hunt'; });
+      var reset = still.length === 1 && still[0].taken === false && still[0].done === 1;
+      clearQuests();
+      return early === false && ok && gold === 200 && pot === pot0 + 3 && gone === 0 &&
+        again && reset &&
+        ('🪙 +' + gold + ' · 🧪 +' + (pot - pot0) + ' · 한 번뿐인 것은 사라지고 되받는 것은 남음');
+    });
+
+    t('앉아 쉬면 체력·기력이 찬다 (곁에 적이 있으면 못 앉는다)', function () {
+      if (S.active()) { S.leave(); }
+      C.save.player.level = 12;
+      S.enter('field');
+      var run = S.raw(), p = run.player, i;
+      var keep = run.enemies.slice();
+      run.enemies = [];                        // 곁에 아무도 없는 자리를 만든다
+      p.climb = null; p.x = 300; p.y = run.stage.floor - S.P_H;
+      p.vy = 0; p.onGround = true; p.invuln = 999;
+      run.hp = Math.round(run.hpMax * 0.3);
+      run.mp = 0;
+      var hp0 = run.hp;
+      S.setInput('down', true);
+      for (i = 0; i < 60; i++) { S.update(0.05); }
+      var rested = S.status().resting;
+      var hp1 = run.hp, mp1 = run.mp;
+
+      /* 적이 곁에 오면 일어선다 */
+      var e = keep[0];
+      run.enemies = [e];
+      e.x = p.x + 60; e.y = run.stage.floor - e.h;
+      S.update(0.05);
+      var up = !S.status().resting;
+      restInput();
+      run.enemies = keep;
+      p.invuln = 0;
+      return rested && hp1 > hp0 && mp1 > 0 && up &&
+        ('체력 ' + hp0 + ' → ' + Math.round(hp1) + ' · 기력 0 → ' + Math.round(mp1) +
+         ' · 적이 오면 일어섬');
+    });
+
+    t('미니맵은 사냥터 전체를 한 칸에 줄여 담는다', function () {
+      /* 자리·축척은 **그리기와 떼어 둔** 값이라 헤드리스에서도 잴 수 있다 */
+      var wide = DG.sideView.miniBox(SD.stage('cave'));    // 폭 3000
+      var narrow = DG.sideView.miniBox(SD.stage('field')); // 폭 2200
+      var fits = wide.sx * 3000 <= wide.w + 0.01 && narrow.sx * 2200 <= narrow.w + 0.01;
+      var smaller = wide.sx < narrow.sx;                   // 넓은 사냥터일수록 더 줄인다
+      var before = errors.length;
+      DG.sideView.draw();
+      return fits && smaller && errors.length === before &&
+        ('굴혈 ×' + wide.sx.toFixed(3) + ' · 들판 ×' + narrow.sx.toFixed(3) +
+         ' (칸 ' + Math.round(wide.w) + '×' + wide.h + ')');
+    });
+
+    /* ── 화면 ─────────────────────────────────────────── */
+
+    t('시트 다섯 · 쉬는 판 · 조작 띠가 그려진다', function () {
+      var bad = [], tabs = ['field', 'bag', 'shop', 'dex', 'log'];
+      for (var i = 0; i < tabs.length; i++) {
+        DG.ui.openSheet(tabs[i]);
+        var html = document.getElementById('sheet-body').innerHTML;
+        if (!html || html.length < 20) { bad.push(tabs[i]); }
+      }
+      DG.ui.closeSheet();
+      if (S.active()) { S.leave(); }
+      DG.ui.renderCamp();
+      var camp = document.getElementById('camp').innerHTML;
+      S.enter('field');
+      DG.ui.renderHudBar();
+      var hud = document.getElementById('hud').innerHTML;
+      return bad.length === 0 && camp.indexOf('쉬는 중') >= 0 && hud.indexOf('hud-sk') >= 0 &&
+        ('시트 ' + tabs.length + '개 · 쉬는 판 ' + camp.length + '자 · 띠 ' + hud.length + '자');
+    });
+
+    t('사냥터 화면이 예외 없이 그려진다', function () {
+      DG.sideView.resize();
+      DG.sideView.draw();
+      return typeof DG.sideView._cam() === 'number' && '카메라 x=' + Math.round(DG.sideView._cam());
+    });
+
+    /* ── 가입해서 저장 ─────────────────────────────────── */
+
+    t('세이브는 프로필 아래로 들어간다', function () {
+      var A = DG.account;
+      return C.SAVE_BASE === 'yeoksa-side/save' &&
+        C.SAVE_KEY.indexOf(C.SAVE_BASE + '/') === 0 &&
+        A._store === C.SAVE_BASE + '/accounts' &&
+        ('기준 ' + C.SAVE_BASE + ' · 지금 ' + C.SAVE_KEY);
+    });
+
+    t('가입 — 이름을 넣으면 프로필이 만들어지고 그 키로 갈아탄다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var acc = A.create('진단이', false);
+      var key = A.keyOf(acc.id);
+      C.setSaveKey(key);
+      C.save.player.gold = 4242;
+      C.persist();
+      var raw = localStorage.getItem(key);
+      localStorage.removeItem(key);
+      /* 프로필 id 는 시각 기반이라 실행마다 다르다 — 결과 문구에는 넣지 않는다
+         (넣으면 진단 출력이 매번 달라져 "무엇이 바뀌었나" 를 눈으로 못 쫓는다) */
+      return acc.name === '진단이' && A.current().id === acc.id &&
+        key.indexOf(C.SAVE_BASE + '/') === 0 &&
+        raw && JSON.parse(raw).player.gold === 4242 &&
+        (acc.name + ' · 키는 ' + C.SAVE_BASE + '/<프로필> 아래');
+    });
+
+    t('가입 — 프로필마다 진행이 갈린다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('갑', false), b = A.create('을', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.save.player.gold = 100; C.persist();
+      C.setSaveKey(A.keyOf(b.id));
+      C.save.player.gold = 999; C.persist();
+      var ga = JSON.parse(localStorage.getItem(A.keyOf(a.id))).player.gold;
+      var gb = JSON.parse(localStorage.getItem(A.keyOf(b.id))).player.gold;
+      localStorage.removeItem(A.keyOf(a.id));
+      localStorage.removeItem(A.keyOf(b.id));
+      return ga === 100 && gb === 999 && A.list().length === 2 &&
+        ('갑 ' + ga + ' · 을 ' + gb + ' (서로 안 섞인다)');
+    });
+
+    t('가입 — 옛 세이브를 첫 프로필로 이어받는다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      localStorage.setItem(A._legacy, JSON.stringify({ v: 1, player: { level: 7, gold: 777 } }));
+      var acc = A.create('이어받기', true);
+      var moved = JSON.parse(localStorage.getItem(A.keyOf(acc.id)));
+      localStorage.removeItem(A._legacy);
+      localStorage.removeItem(A.keyOf(acc.id));
+      return A.hasLegacy() === false && moved && moved.player.gold === 777 &&
+        ('Lv.' + moved.player.level + ' · 금 ' + moved.player.gold + ' 이 옮겨졌다');
+    });
+
+    t('가입 — 프로필을 지우면 그 세이브도 사라진다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('지울사람', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.persist();
+      var had = !!localStorage.getItem(A.keyOf(a.id));
+      A.remove(a.id);
+      var gone = !localStorage.getItem(A.keyOf(a.id));
+      return had && gone && A.list().length === 0 && '프로필·세이브 함께 삭제';
+    });
+
+    t('가입 — 진단에서는 가입 화면을 띄우지 않는다', function () {
+      /* DG_NO_ACCOUNT 가 켜져 있으면 고정 키로 바로 시작한다 (안 그러면 게임이 안 켜진다) */
+      return window.DG_NO_ACCOUNT === true && !document.getElementById('acc-host') &&
+        '진단 우회 동작';
+    });
+
+    t('진단의 무작위는 씨앗으로 고정된다', function () {
+      /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
+      return window.DG_SEED === 20260824 &&
+        Math.random() >= 0 && Math.random() < 1 &&
+        ('씨앗 ' + window.DG_SEED);
+    });
+
+    t('런타임 에러 없음', function () {
+      return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
+    });
+
+    var failCount = out.filter(function (s) { return s.indexOf('FAIL') >= 0; }).length;
+    document.getElementById('report').innerHTML =
+      '<h3>사가GO 사냥터 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
+      out.join('<br>') +
+      (errors.length ? '<br><br><b class="fail">런타임 에러</b><br>' + errors.join('<br>') : '');
+    document.title = 'RESULT ' + (out.length - failCount) + '/' + out.length;
+    localStorage.removeItem(C.SAVE_KEY);
+  }, 500);
+})();
+</script>
+</body>
+</html>

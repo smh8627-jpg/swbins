@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>역사고 어드민 — QA 운영판</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b26; --panel2: #1c2331; --line: #2a3345;
+    --ink: #e7ecf5; --dim: #93a0b5; --gold: #e8c15a; --blue: #4aa3f0;
+    --good: #5ec26a; --bad: #e06565; --purple: #9b6cd8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 13px/1.6 "Malgun Gothic", system-ui, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header .warn { font-size: 11px; color: var(--bad); }
+  .grow { flex: 1; }
+  select, input[type=text], input[type=number], textarea {
+    background: #0b0f16; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 5px 8px; font: inherit; font-size: 12px;
+  }
+  input[type=number] { width: 104px; }
+  textarea { width: 100%; min-height: 150px; font-family: Consolas, monospace; font-size: 11.5px; }
+  button {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 11px; cursor: pointer; font: inherit; font-size: 12px;
+  }
+  button:hover { border-color: #3d4a63; }
+  button.go { background: var(--gold); color: #1b1205; border-color: transparent; font-weight: 700; }
+  button.danger { background: #3a1e22; border-color: #6b2f36; color: #ffc9c9; }
+  button.on { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  nav { display: flex; gap: 6px; padding: 10px 14px 0; flex-wrap: wrap; }
+  nav button.sel { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  main { padding: 14px; max-width: 1180px; }
+  section { display: none; }
+  section.show { display: block; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 12px;
+  }
+  .card h2 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  .card p.note { margin: 0 0 10px; font-size: 11.5px; color: var(--dim); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 11.5px; color: var(--dim); min-width: 96px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 14px; }
+  .fld { display: flex; align-items: center; gap: 8px; }
+  .fld label { flex: 1; min-width: 78px; font-size: 11.5px; color: var(--dim); }
+  /* 배열 손잡이(등급별 거리 · 우애 문턱)는 입력이 넓어 두 칸을 쓴다 */
+  .fld.wide { grid-column: span 2; }
+  .fld .def { font-size: 10px; color: #6b7688; min-width: 62px; text-align: right; }
+  .dexlist {
+    max-height: 330px; overflow: auto; border: 1px solid var(--line);
+    border-radius: 9px; padding: 6px; display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 4px;
+  }
+  .dexrow { display: flex; align-items: center; gap: 6px; padding: 3px 5px; border-radius: 6px; }
+  .dexrow:hover { background: var(--panel2); }
+  .dexrow img { width: 26px; height: 26px; border-radius: 5px; background: #0b0f16; }
+  .dexrow span { font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dexrow small { color: var(--dim); font-size: 10px; }
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+  .preset {
+    text-align: left; padding: 10px 12px; line-height: 1.45;
+  }
+  .preset b { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .preset small { color: var(--dim); font-size: 10.5px; }
+  #log {
+    position: fixed; right: 14px; bottom: 14px; z-index: 20; max-width: 380px;
+    background: #10151f; border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; font-size: 11.5px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    display: none;
+  }
+  #log.show { display: block; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+  .pill.tuned { background: var(--gold); color: #1b1205; }
+  .pill.clean { background: #24303f; color: var(--dim); }
+  a { color: var(--blue); }
+  code { background: #0b0f16; padding: 1px 5px; border-radius: 5px; font-size: 11.5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎛️ 역사고 어드민</h1>
+  <label style="font-size:11.5px;color:var(--dim)">프로필</label>
+  <select id="prof"></select>
+  <span id="tunepill" class="pill clean">손잡이 없음</span>
+  <span class="grow"></span>
+  <span class="warn" id="warn">게임 창이 열려 있으면 저장한 값이 곧바로 그 창에도 반영됩니다</span>
+  <button class="go" id="save">💾 세이브 저장</button>
+  <button id="reload">↺ 다시 읽기</button>
+</header>
+
+<nav>
+  <button data-tab="save" class="sel">세이브</button>
+  <button data-tab="dex">도감 · 반려</button>
+  <button data-tab="tune">균형 손잡이</button>
+  <button data-tab="preset">QA 프리셋</button>
+  <button data-tab="data">데이터 조각</button>
+  <button data-tab="tools">점검 · 백업</button>
+</nav>
+
+<main>
+
+<!-- ── 세이브 ─────────────────────────────────────────── -->
+<section id="tab-save" class="show">
+  <div class="card">
+    <h2>지금 이 프로필</h2>
+    <p class="note" id="sum">…</p>
+  </div>
+
+  <div class="card">
+    <h2>재화 · 성장</h2>
+    <p class="note">고친 뒤 위의 <b>세이브 저장</b>을 누릅니다. 게임 창이 열려 있으면 그 창도 바로 다시 읽습니다.</p>
+    <div class="grid" id="basics"></div>
+  </div>
+
+  <div class="card">
+    <h2>행낭</h2>
+    <div class="grid" id="items"></div>
+  </div>
+
+  <div class="card">
+    <h2>쉬는 시간 · 진행 비우기</h2>
+    <p class="note">"들렀던 곳"과 "오늘 몫" 을 지웁니다 — 같은 곳을 다시 확인할 때 씁니다.</p>
+    <div class="row">
+      <button data-clear="stations">🏮 역참 쉬는 시간 초기화</button>
+      <button data-clear="forts">🏯 성채 점령·쉬는 시간 초기화</button>
+      <button data-clear="quests">📋 사명 비우기</button>
+      <button data-clear="letters">✉️ 천거장 비우기</button>
+      <button data-clear="raid">⚔️ 토벌 기록 초기화</button>
+      <button data-clear="log">📜 기록(로그) 비우기</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── 도감 · 반려 ────────────────────────────────────── -->
+<section id="tab-dex">
+  <div class="card">
+    <h2>반려(伴侶)</h2>
+    <p class="note">우애는 <b>종별로</b> 남습니다. 걸은 거리와 먹인 사료로 계산되니 두 값을 직접 넣습니다.</p>
+    <div class="row">
+      <label>곁에 세운 종</label>
+      <select id="bd-pet"></select>
+      <button id="bd-clear">물린다</button>
+    </div>
+    <div class="row">
+      <label>함께 걸은 m</label><input type="number" id="bd-walked">
+      <label style="min-width:60px">먹인 사료</label><input type="number" id="bd-fed">
+      <span id="bd-info" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <div class="row">
+      <label>다음 영초까지</label>
+      <button id="bd-near">🐾 코앞으로 (10m 남김)</button>
+      <button id="bd-bond">❤️ 다음 우애 코앞으로</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>연성 · 자원</h2>
+    <div class="row">
+      <label>종</label><select id="gr-pet"></select>
+      <label style="min-width:44px">연성단</label><input type="number" id="gr-lv">
+      <label style="min-width:44px">영초</label><input type="number" id="gr-herb">
+      <button id="gr-apply">적용</button>
+    </div>
+    <div class="row">
+      <label>단사(공통)</label><input type="number" id="gr-dust">
+      <button id="gr-dustapply">적용</button>
+      <button id="gr-allherb">모든 포획종에 영초 200</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>도감</h2>
+    <div class="row">
+      <input type="text" id="dexq" placeholder="이름으로 거르기" style="min-width:180px">
+      <button data-dex="all-hero">인물 전부 열기</button>
+      <button data-dex="none-hero" class="danger">인물 비우기</button>
+      <button data-dex="all-pet">펫 전부 열기</button>
+      <button data-dex="none-pet" class="danger">펫 비우기</button>
+      <span id="dexcount" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <div class="dexlist" id="dexlist"></div>
+  </div>
+</section>
+
+<!-- ── 균형 손잡이 ────────────────────────────────────── -->
+<section id="tab-tune">
+  <div class="card">
+    <h2>걸음 배속 — 곧바로 듣습니다</h2>
+    <p class="note">
+      이동만 곱합니다. <b>규칙은 그대로</b>라 보급 250m 도, 반려의 거리 문턱도 바뀌지 않습니다 —
+      배속으로 걸어도 얻는 것은 그 거리를 실제로 걸었을 때와 같습니다.
+      실제 위치(📡)로 걷는 중에는 듣지 않습니다.
+    </p>
+    <div class="row" id="speedrow"></div>
+  </div>
+
+  <div class="card">
+    <h2>규칙 값</h2>
+    <p class="note">
+      비워 두면 <b>코드의 기본값</b>으로 돕니다. 이 값들은 게임이 <b>켜질 때 한 번</b> 읽으므로
+      바꾼 뒤에는 게임 창을 <b>새로고침</b>해야 듣습니다.
+      자가진단(<code>_test.html</code>)과 데모는 손잡이를 읽지 않습니다 — 판정이 흔들리면 안 되니까요.
+    </p>
+    <div id="tunefields"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="danger" id="tune-clear">전부 놓기 (기본값으로)</button>
+      <span id="tunesum" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ── QA 프리셋 ──────────────────────────────────────── -->
+<section id="tab-preset">
+  <div class="card">
+    <h2>시나리오 한 번에 만들기</h2>
+    <p class="note">
+      확인하려는 상황을 바로 만듭니다. 누르면 <b>곧바로 저장</b>되고 게임 창에도 반영됩니다.
+      되돌리려면 아래 스냅샷을 먼저 떠 두세요.
+    </p>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="card">
+    <h2>스냅샷 — 확인 전에 떠 두고, 끝나면 되돌립니다</h2>
+    <p class="note">이 기기에만 남습니다(세이브와 별개 칸). 세 칸입니다.</p>
+    <div class="row" id="snaps"></div>
+  </div>
+</section>
+
+<!-- ── 데이터 조각 ────────────────────────────────────── -->
+<section id="tab-data">
+  <div class="card">
+    <h2>인물 한 명 만들기</h2>
+    <p class="note">
+      브라우저는 파일을 쓰지 못하니 <b>붙여넣을 조각</b>을 만들어 줍니다.
+      <b>다섯 판이 같은 도감을 다섯 벌 들고 있으므로 다섯 곳에 같이 붙여야 합니다</b>
+      (<code>saga-go · saga-dungeon · saga-forest · saga-story · saga-realm</code>).
+      <b>LOOK 에 반드시 등록</b>하세요 — 빠뜨리면 규칙이 갓·도포를 씌웁니다.
+    </p>
+    <div class="grid" id="heroform"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="go" id="hero-make">조각 만들기</button>
+      <button id="hero-preview">미리 그려 보기</button>
+      <img id="hero-img" width="72" height="72" style="border-radius:8px;background:#0b0f16" alt="">
+    </div>
+    <textarea id="hero-out" placeholder="여기에 조각이 나옵니다"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>펫 한 종 만들기</h2>
+    <div class="grid" id="petform"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="go" id="pet-make">조각 만들기</button>
+      <button id="pet-preview">미리 그려 보기</button>
+      <img id="pet-img" width="72" height="72" style="border-radius:8px;background:#0b0f16" alt="">
+    </div>
+    <textarea id="pet-out" placeholder="여기에 조각이 나옵니다"></textarea>
+  </div>
+</section>
+
+<!-- ── 점검 · 백업 ────────────────────────────────────── -->
+<section id="tab-tools">
+  <div class="card">
+    <h2>세이브 내보내기 · 불러오기</h2>
+    <p class="note">통째로 주고받는 칸입니다. 불러오면 <b>지금 프로필의 진행을 덮어씁니다</b>.</p>
+    <div class="row">
+      <button id="ex">현재 세이브 꺼내기</button>
+      <button id="im" class="danger">붙여넣은 것으로 덮어쓰기</button>
+      <button id="copy">복사</button>
+    </div>
+    <textarea id="json"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>프로필</h2>
+    <div class="row" id="profrow"></div>
+  </div>
+
+  <div class="card">
+    <h2>바로 가기</h2>
+    <div class="row">
+      <a href="index.html" target="_blank">게임</a> ·
+      <a href="_test.html" target="_blank">자가진단</a> ·
+      <a href="_demo.html#dex" target="_blank">데모</a> ·
+      <a href="_gallery.html" target="_blank">스프라이트 갤러리</a> ·
+      <a href="_autoprobe.html?sim=600" target="_blank">자동 순행 관찰</a> ·
+      <a href="_swreset.html?go=game" target="_blank">서비스워커·캐시 털기</a>
+    </div>
+    <p class="note" id="usage"></p>
+  </div>
+</section>
+
+</main>
+
+<div id="log"></div>
+
+<script>
+/* 어드민은 게임 루프를 돌리지 않는다 — world·ui·game 을 싣지 않는다.
+   가입 화면도 띄우지 않는다(프로필은 이 화면에서 직접 고른다). */
+window.DG_NO_DRAW = true;
+window.DG_NO_ACCOUNT = true;
+</script>
+<script src="js/data.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/bag.js"></script>
+<script src="js/growth.js"></script>
+<script src="js/buddy.js"></script>
+<script src="js/hero.js"></script>
+
+<script>
+(function () {
+  'use strict';
+  var C = DG.core, D = DG.data, A = DG.account, B = DG.buddy, G = DG.growth, BAG = DG.bag;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) { n.className = cls; }
+    if (html !== undefined) { n.innerHTML = html; }
+    return n;
+  }
+  var logT = null;
+  function say(msg) {
+    var b = $('log');
+    b.textContent = msg;
+    b.classList.add('show');
+    if (logT) { clearTimeout(logT); }
+    logT = setTimeout(function () { b.classList.remove('show'); }, 2600);
+  }
+
+  /* ── 프로필 ───────────────────────────────────────── */
+
+  function profiles() {
+    var l = A.list();
+    if (!l.length) { l = [{ id: 'v1', name: '(가입 전 세이브)' }]; }
+    return l;
+  }
+  function keyFor(id) { return id === 'v1' ? (C.SAVE_BASE + '/v1') : A.keyOf(id); }
+
+  function fillProfiles() {
+    var sel = $('prof');
+    sel.innerHTML = '';
+    profiles().forEach(function (p) {
+      var o = el('option');
+      o.value = p.id; o.textContent = p.name + ' (' + p.id + ')';
+      sel.appendChild(o);
+    });
+    var cur = A.current();
+    if (cur) { sel.value = cur.id; }
+    openProfile(sel.value);
+  }
+
+  function openProfile(id) {
+    C.setSaveKey(keyFor(id));
+    var ok = C.load();
+    say(ok ? '프로필을 읽었습니다 · ' + C.SAVE_KEY : '세이브가 비어 있어 새 판으로 엽니다');
+    renderAll();
+  }
+
+  /** 저장 — 게임 창이 열려 있으면 그 창도 다시 읽게 두드린다 */
+  function commit(msg) {
+    C.persist();
+    try { localStorage.setItem(C.POKE_KEY, String(Date.now())); } catch (e) {}
+    renderAll();
+    say(msg || '저장했습니다');
+  }
+
+  /* ── 요약 ─────────────────────────────────────────── */
+
+  function renderSummary() {
+    var p = C.save.player;
+    var hero = Object.keys(C.save.dex.heroes).length, pet = Object.keys(C.save.dex.pets).length;
+    var bd = B.current();
+    $('sum').innerHTML =
+      'Lv.' + p.level + ' · 🪙 ' + C.fmt(p.gold) + ' · 🎖️ ' + C.fmt(p.fame) +
+      ' · 🏅 ' + C.fmt(p.feat) + ' · ✨ ' + C.fmt(G.dust()) +
+      ' · 걸은 거리 ' + C.fmt(Math.round(p.distance)) + 'm<br>' +
+      '도감 인물 ' + hero + '/' + D.heroes.length + ' · 펫 ' + pet + '/' + D.pets.length +
+      ' · 반려 ' + (bd ? (bd.pet.name + ' ' + bd.bond.def.mark + ' ' + bd.bond.def.name +
+        ' · 다음 🌿 까지 ' + C.fmt(bd.left) + 'm') : '없음') +
+      '<br>세이브 키 <code>' + C.SAVE_KEY + '</code>';
+  }
+
+  /* ── 세이브 탭 ────────────────────────────────────── */
+
+  var BASICS = [
+    ['level', '레벨', function () { return C.save.player.level; }, function (v) { C.save.player.level = v; }],
+    ['exp', '경험치', function () { return C.save.player.exp; }, function (v) { C.save.player.exp = v; }],
+    ['gold', '금 🪙', function () { return C.save.player.gold; }, function (v) { C.save.player.gold = v; }],
+    ['fame', '명성 🎖️', function () { return C.save.player.fame; }, function (v) { C.save.player.fame = v; }],
+    ['feat', '공적 🏅', function () { return C.save.player.feat; }, function (v) { C.save.player.feat = v; }],
+    ['featTotal', '누적 공적(칭호)', function () { return C.save.player.featTotal; }, function (v) { C.save.player.featTotal = v; }],
+    ['distance', '누적 거리 m', function () { return Math.round(C.save.player.distance); }, function (v) { C.save.player.distance = v; }],
+    ['supplyMark', '보급 기준점 m', function () { return Math.round(C.save.player.supplyMark); }, function (v) { C.save.player.supplyMark = v; }]
+  ];
+
+  function renderBasics() {
+    var host = $('basics');
+    host.innerHTML = '';
+    BASICS.forEach(function (f) {
+      var wrap = el('div', 'fld');
+      wrap.appendChild(el('label', '', f[1]));
+      var inp = el('input');
+      inp.type = 'number'; inp.value = f[2]();
+      inp.addEventListener('change', function () { f[3](Number(inp.value) || 0); });
+      wrap.appendChild(inp);
+      host.appendChild(wrap);
+    });
+  }
+
+  function renderItems() {
+    var host = $('items');
+    host.innerHTML = '';
+    BAG.ITEMS.forEach(function (d) {
+      var wrap = el('div', 'fld');
+      wrap.appendChild(el('label', '', d.emoji + ' ' + d.name));
+      var inp = el('input');
+      inp.type = 'number'; inp.value = BAG.count(d.key);
+      inp.addEventListener('change', function () {
+        C.save.items[d.key] = Math.max(0, Number(inp.value) || 0);
+      });
+      wrap.appendChild(inp);
+      host.appendChild(wrap);
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-clear]');
+    if (!b) { return; }
+    var k = b.getAttribute('data-clear');
+    if (k === 'stations') { C.save.stations = {}; }
+    else if (k === 'forts') { C.save.forts = {}; }
+    else if (k === 'quests') { C.save.quests = { list: [], stamps: 0, day: '', stampedToday: false, done: 0, breaks: 0 }; }
+    else if (k === 'letters') { C.save.letters = { bag: [], slots: [null, null, null], opened: 0 }; }
+    else if (k === 'raid') { C.save.raid = { pass: 3, day: '', won: 0, tried: {} }; }
+    else if (k === 'log') { C.save.log = []; }
+    commit(b.textContent + ' — 비웠습니다');
+  });
+
+  /* ── 도감 · 반려 탭 ───────────────────────────────── */
+
+  function ownedPets() {
+    return Object.keys(C.save.dex.pets).map(function (id) { return D.find(id); }).filter(Boolean);
+  }
+
+  function renderBuddy() {
+    var sel = $('bd-pet');
+    var cur = C.save.buddy && C.save.buddy.id;
+    sel.innerHTML = '<option value="">— 없음 —</option>';
+    ownedPets().forEach(function (p) {
+      var o = el('option');
+      o.value = p.id;
+      o.textContent = p.emoji + ' ' + p.name + ' (★' + p.rarity + ' · ' + C.fmt(B.legOf(p)) + 'm)';
+      if (cur === p.id) { o.selected = true; }
+      sel.appendChild(o);
+    });
+    var lg = cur ? B.info(cur) : { walked: 0, fed: 0 };
+    $('bd-walked').value = lg.walked;
+    $('bd-fed').value = lg.fed;
+    var bd = B.current();
+    $('bd-info').textContent = bd
+      ? (bd.bond.def.mark + ' ' + bd.bond.def.name + ' · 우애 ' + C.fmt(bd.bond.care) +
+         (bd.bond.next ? (' · ' + bd.bond.next.name + ' 까지 ' + C.fmt(bd.bond.left)) : ' · 끝') +
+         ' · 한 몫 🌿' + bd.herbNext)
+      : '세우면 여기 우애가 뜹니다';
+  }
+
+  $('bd-pet').addEventListener('change', function () {
+    var v = $('bd-pet').value;
+    if (!v) { B.clear(); } else { B.set(v); }
+    commit('반려를 바꿨습니다');
+  });
+  $('bd-clear').addEventListener('click', function () { B.clear(); commit('반려를 물렸습니다'); });
+  $('bd-walked').addEventListener('change', writeBond);
+  $('bd-fed').addEventListener('change', writeBond);
+  function writeBond() {
+    var id = $('bd-pet').value;
+    if (!id) { say('먼저 반려를 세우세요'); return; }
+    if (!C.save.buddyLog) { C.save.buddyLog = {}; }
+    C.save.buddyLog[id] = {
+      walked: Math.max(0, Number($('bd-walked').value) || 0),
+      fed: Math.max(0, Number($('bd-fed').value) || 0),
+      gained: (C.save.buddyLog[id] || {}).gained || 0,
+      since: (C.save.buddyLog[id] || {}).since || Date.now()
+    };
+    commit('우애를 고쳤습니다');
+  }
+  $('bd-near').addEventListener('click', function () {
+    var bd = B.current();
+    if (!bd) { say('먼저 반려를 세우세요'); return; }
+    C.save.buddy.mark = C.save.player.distance - (bd.leg - 10);
+    commit('다음 영초까지 10m 남겼습니다 — 걸어서 확인하세요');
+  });
+  $('bd-bond').addEventListener('click', function () {
+    var bd = B.current();
+    if (!bd || !bd.bond.next) { say('다음 우애가 없습니다'); return; }
+    var id = C.save.buddy.id;
+    var lg = C.save.buddyLog[id];
+    lg.walked = Math.max(0, bd.bond.next.at - lg.fed * B.FEED_M - 10);
+    commit('다음 우애까지 10m 남겼습니다');
+  });
+
+  function renderGrowth() {
+    var sel = $('gr-pet');
+    var keep = sel.value;
+    sel.innerHTML = '';
+    ownedPets().forEach(function (p) {
+      var o = el('option');
+      o.value = p.id; o.textContent = p.emoji + ' ' + p.name;
+      sel.appendChild(o);
+    });
+    if (keep) { sel.value = keep; }
+    var id = sel.value;
+    if (id) {
+      var gi = G.info(id);
+      $('gr-lv').value = gi.lv; $('gr-herb').value = gi.herb;
+    }
+    $('gr-dust').value = G.dust();
+  }
+  $('gr-pet').addEventListener('change', renderGrowth);
+  $('gr-apply').addEventListener('click', function () {
+    var id = $('gr-pet').value;
+    if (!id) { return; }
+    if (!C.save.petGrow) { C.save.petGrow = {}; }
+    C.save.petGrow[id] = {
+      lv: Math.max(0, Math.min(G.MAX_LV, Number($('gr-lv').value) || 0)),
+      herb: Math.max(0, Number($('gr-herb').value) || 0)
+    };
+    commit('연성을 고쳤습니다');
+  });
+  $('gr-dustapply').addEventListener('click', function () {
+    C.save.dust = Math.max(0, Number($('gr-dust').value) || 0);
+    commit('단사를 고쳤습니다');
+  });
+  $('gr-allherb').addEventListener('click', function () {
+    ownedPets().forEach(function (p) { G.addHerb(p.id, Math.max(0, 200 - G.herbOf(p.id))); });
+    commit('포획한 종 전부 영초 200 이상으로');
+  });
+
+  function renderDex() {
+    var q = ($('dexq').value || '').trim();
+    var host = $('dexlist');
+    host.innerHTML = '';
+    var list = D.heroes.map(function (h) { return { kind: 'hero', ref: h }; })
+      .concat(D.pets.map(function (p) { return { kind: 'pet', ref: p }; }));
+    list.forEach(function (e) {
+      if (q && e.ref.name.indexOf(q) < 0) { return; }
+      var box = e.kind === 'hero' ? C.save.dex.heroes : C.save.dex.pets;
+      var have = !!box[e.ref.id];
+      var row = el('label', 'dexrow');
+      var cb = el('input');
+      cb.type = 'checkbox'; cb.checked = have;
+      cb.addEventListener('change', function () {
+        if (cb.checked) { box[e.ref.id] = box[e.ref.id] || { count: 1, firstAt: Date.now() }; }
+        else { delete box[e.ref.id]; }
+        commit(e.ref.name + (cb.checked ? ' 를 도감에 넣었습니다' : ' 를 도감에서 뺐습니다'));
+      });
+      row.appendChild(cb);
+      var im = el('img');
+      im.src = DG.sprite.portrait(e.kind, e.ref, 26);
+      row.appendChild(im);
+      row.appendChild(el('span', '', e.ref.name + (have && box[e.ref.id].count > 1
+        ? ' <small>+' + (box[e.ref.id].count - 1) + '</small>' : '')));
+      host.appendChild(row);
+    });
+    $('dexcount').textContent = '인물 ' + Object.keys(C.save.dex.heroes).length + '/' + D.heroes.length +
+      ' · 펫 ' + Object.keys(C.save.dex.pets).length + '/' + D.pets.length;
+  }
+  $('dexq').addEventListener('input', renderDex);
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-dex]');
+    if (!b) { return; }
+    var k = b.getAttribute('data-dex');
+    if (k === 'all-hero') { D.heroes.forEach(function (h) { C.save.dex.heroes[h.id] = C.save.dex.heroes[h.id] || { count: 1, firstAt: Date.now() }; }); }
+    if (k === 'none-hero') { C.save.dex.heroes = {}; }
+    if (k === 'all-pet') { D.pets.forEach(function (p) { C.save.dex.pets[p.id] = C.save.dex.pets[p.id] || { count: 1, firstAt: Date.now() }; }); }
+    if (k === 'none-pet') { C.save.dex.pets = {}; C.save.buddy = { id: null, mark: C.save.player.distance }; }
+    commit('도감을 고쳤습니다');
+  });
+
+  /* ── 균형 손잡이 탭 ───────────────────────────────── */
+
+  var BASE_SPEED = 8;                 // world.js 의 걷기 속도(m/s)
+  var SPEEDS = [1, 2, 4, 8, 16, 32];
+  function renderSpeed() {
+    var row = $('speedrow');
+    row.innerHTML = '';
+    var cur = C.tuned('world.speedMul', 1);
+    SPEEDS.forEach(function (m) {
+      var b = el('button', cur === m ? 'on' : '', '×' + m);
+      b.addEventListener('click', function () {
+        C.setTune('world.speedMul', m === 1 ? null : m);
+        renderTune(); renderSpeed(); renderPill();
+        say(m === 1 ? '본래 속도로 돌아갑니다' : '걸음 ×' + m + ' — 게임 창에 곧바로 듣습니다');
+      });
+      row.appendChild(b);
+    });
+    /* world.js 는 캔버스를 잡으므로 어드민에 싣지 않는다 — 기본 속도만 적어 둔다
+       (world.js 의 `var speed = 8` 과 같은 값이다. 그쪽을 고치면 여기도 고칠 것) */
+    row.appendChild(el('span', '', '<span style="font-size:11.5px;color:var(--dim)">기본 ' +
+      BASE_SPEED + 'm/s · 지금 ' + (BASE_SPEED * cur) + 'm/s</span>'));
+  }
+
+  var TUNES = [
+    ['걷기 보급', [
+      ['game.supplyStep', '보급 주기 m', 250],
+      ['game.supplyGold', '보급마다 금', 8]
+    ]],
+    ['반려', [
+      ['buddy.leg', '등급별 거리 m (5칸)', [1000, 1500, 2000, 3000, 5000]],
+      ['buddy.bondAt', '우애 문턱 (4칸)', [0, 2000, 10000, 30000]],
+      ['buddy.feedM', '사료 한 줌 = m', 300],
+      ['buddy.herbBase', '한 몫 영초', 1],
+      ['buddy.bondDust', '우애 한 단 단사', 250]
+    ]],
+    ['연성 · 승화', [
+      ['growth.maxLv', '연성 상한', 20],
+      ['growth.herbPerCatch', '포획당 영초', 3],
+      ['growth.dustPerRarity', '등급당 단사', 40],
+      ['growth.lvStep', '한 단 보정', 0.06]
+    ]],
+    ['3D 화면 (world3d)', [
+      ['world.render3d', '3D 로 그린다 1/0', 1],
+      ['world3d.mesh', '배우를 입체로 1/0', 1],
+      ['world3d.dayNight', '시각 따라 해가 뜬다 1/0', 1],
+      ['world3d.density', '사물 밀도 배수', 1],
+      ['world3d.camDist', '카메라 거리 m', 40],
+      ['world3d.camHeight', '카메라 높이 m', 15],
+      ['world3d.actorH', '사람 키 m', 3.4],
+      ['world3d.propRadius', '사물 반경 m', 260],
+      ['world3d.tileSpan', '지도 타일 반경', 3],
+      ['world3d.mapStyle', '지도 밝기(1=밝은 지도)', 1]
+    ]],
+    ['적도 (역참 점거)', [
+      ['rogue.slotMin', '뜨고 지는 주기 분', 30],
+      ['rogue.stayMin', '머무는 시간 분', 20],
+      ['rogue.rate', '점거되는 역참 비율', 0.22],
+      ['rogue.coolMin', '진 뒤 쉬는 시간 분', 10],
+      ['rogue.purifyDust', '정화 단사 = 등급 ×', 60],
+      ['rogue.purifyHerb', '정화 덤 영초', 6]
+    ]],
+    ['교전', [
+      ['duel.timeSec', '제한 시간 초', 60],
+      ['duel.quickMul', '속공 피해 배', 0.10],
+      ['duel.quickCd', '속공 쿨 초', 0.35],
+      ['duel.quickKi', '속공 기', 9],
+      ['duel.ultMul', '필살 피해 배', 0.62],
+      ['duel.foeGap', '적 공격 간격 초', 2.6],
+      ['duel.foeHeavy', '몇 번째마다 강타', 3],
+      ['duel.tellSec', '예고 초', 1.1],
+      ['duel.heavyMul', '강타 배수', 2.4],
+      ['duel.dodgeCut', '회피 후 남는 피해', 0.15],
+      ['duel.moraleMul', '사기 = 방어 ×', 3]
+    ]]
+  ];
+
+  function renderTune() {
+    var host = $('tunefields');
+    host.innerHTML = '';
+    TUNES.forEach(function (grp) {
+      var card = el('div');
+      card.appendChild(el('div', '', '<b style="font-size:12px;color:var(--blue)">' + grp[0] + '</b>'));
+      var grid = el('div', 'grid');
+      grp[1].forEach(function (f) {
+        var key = f[0], label = f[1], def = f[2];
+        var isArr0 = Object.prototype.toString.call(def) === '[object Array]';
+        var wrap = el('div', isArr0 ? 'fld wide' : 'fld');
+        wrap.appendChild(el('label', '', label));
+        var inp = el('input');
+        var isArr = Object.prototype.toString.call(def) === '[object Array]';
+        var val = C.tune()[key];
+        inp.type = 'text';
+        inp.style.width = isArr ? '160px' : '104px';
+        inp.placeholder = isArr ? def.join(',') : String(def);
+        inp.value = val === undefined ? '' : (isArr ? [].concat(val).join(',') : val);
+        inp.addEventListener('change', function () {
+          var raw = inp.value.trim();
+          if (!raw) { C.setTune(key, null); }
+          else if (isArr) {
+            var arr = raw.split(',').map(function (x) { return Number(x.trim()); });
+            if (arr.length !== def.length || arr.some(function (x) { return !isFinite(x); })) {
+              say('칸 ' + def.length + '개를 쉼표로 넣어 주세요'); inp.value = ''; return;
+            }
+            C.setTune(key, arr);
+          } else {
+            var n = Number(raw);
+            if (!isFinite(n)) { say('숫자를 넣어 주세요'); inp.value = ''; return; }
+            C.setTune(key, n);
+          }
+          renderTune(); renderPill(); renderSpeed();
+          say('손잡이를 잡았습니다 — 게임 창을 새로고침하면 듣습니다');
+        });
+        wrap.appendChild(inp);
+        wrap.appendChild(el('span', 'def', isArr ? '기본 ' + def.join('·') : '기본 ' + def));
+        grid.appendChild(wrap);
+      });
+      card.appendChild(grid);
+      card.appendChild(el('div', '', '<div style="height:10px"></div>'));
+      host.appendChild(card);
+    });
+    var n = C.tuneCount();
+    $('tunesum').textContent = n ? (n + '개를 잡고 있습니다') : '전부 기본값입니다';
+  }
+  $('tune-clear').addEventListener('click', function () {
+    C.clearTune(); renderTune(); renderSpeed(); renderPill();
+    say('손잡이를 전부 놓았습니다');
+  });
+
+  function renderPill() {
+    var n = C.tuneCount();
+    var p = $('tunepill');
+    p.className = 'pill ' + (n ? 'tuned' : 'clean');
+    p.textContent = n ? ('손잡이 ' + n + '개') : '손잡이 없음';
+  }
+
+  /* ── QA 프리셋 ────────────────────────────────────── */
+
+  var PRESETS = [
+    ['🚶 걷기 확인', '배속 ×16 · 반려를 세우고 다음 영초 10m 앞 · 행낭 가득', function () {
+      C.setTune('world.speedMul', 16);
+      if (!Object.keys(C.save.dex.pets).length) { C.save.dex.pets[D.pets[0].id] = { count: 1, firstAt: Date.now() }; }
+      var pet = ownedPets()[0];
+      B.set(pet.id);
+      C.save.buddy.mark = C.save.player.distance - (B.legOf(pet) - 10);
+      BAG.ITEMS.forEach(function (d) { C.save.items[d.key] = 40; });
+    }],
+    ['❤️ 우애 코앞', '지금 반려를 다음 우애 10m 앞에 세운다', function () {
+      var bd = B.current();
+      if (!bd || !bd.bond.next) { throw new Error('반려를 먼저 세우세요'); }
+      C.save.buddyLog[C.save.buddy.id].walked =
+        Math.max(0, bd.bond.next.at - B.info(C.save.buddy.id).fed * B.FEED_M - 10);
+    }],
+    ['✉️ 천거장 코앞', '행낭 세 칸에 2·5·10km 를 넣고 100m 만 남긴다', function () {
+      var d = C.save.player.distance;
+      C.save.letters = {
+        bag: [], opened: C.save.letters.opened || 0,
+        slots: [
+          { g: 'g2', startM: d - 1900 },
+          { g: 'g5', startM: d - 4900 },
+          { g: 'g10', startM: d - 9900 }
+        ]
+      };
+    }],
+    ['⚔️ 교전 확인', '동행 다섯을 세우고 성채·토벌 기록을 비운다', function () {
+      var picks = D.heroes.slice(0, 5);
+      picks.forEach(function (h) {
+        C.save.dex.heroes[h.id] = C.save.dex.heroes[h.id] || { count: 1, firstAt: Date.now() };
+        C.save.heroes[h.id] = { lv: 12, exp: 0, rank: 1 };
+      });
+      C.save.party = picks.map(function (h) { return h.id; });
+      C.save.forts = {}; C.save.raid = { pass: 9, day: '', won: 0, tried: {} };
+    }],
+    ['🌿 연성·승화 재료', '포획한 종에 영초 200 · 단사 99,999', function () {
+      ownedPets().forEach(function (p) { G.addHerb(p.id, Math.max(0, 200 - G.herbOf(p.id))); });
+      C.save.dust = 99999;
+    }],
+    ['🌑 암영 셋', '적도가 두고 간 것 세 종을 안기고 단사를 한 몫만 준다 (정화 화면 확인)', function () {
+      /* 어드민은 world.js·rogue.js 를 싣지 않는다 — 어느 역참이 점거되었는지는
+         해시와 시각이 정하므로 여기서 만들 수 없다. **정화 쪽만** 만들어 준다.
+         점거 자체를 보려면 게임 창에서 지도의 검은 깃발을 찾아 간다. */
+      var picks = D.pets.slice(0, 3);
+      var dark = {};
+      picks.forEach(function (x, i) {
+        dark[x.id] = { n: i === 0 ? 2 : 1, rank: 1 + i, at: Date.now() };
+      });
+      C.save.rogue = { beat: 5, purified: 0, cleared: {}, cool: {}, dark: dark };
+      /* 한 종만 풀 수 있는 만큼 — 정화가 '선택' 이 되는 자리를 보려는 것이다 */
+      C.save.dust = picks[0].rarity * 60;
+    }],
+    ['🏴 적도 기록 비우기', '탈환·쉬는 시간·암영을 통째로 지운다', function () {
+      C.save.rogue = { beat: 0, purified: 0, cleared: {}, cool: {}, dark: {} };
+    }],
+    ['💰 재화 넉넉히', '금·명성·공적과 행낭을 가득 채운다', function () {
+      var p = C.save.player;
+      p.gold = 999999; p.fame = 99999; p.feat = 9999; p.featTotal = 5000;
+      BAG.ITEMS.forEach(function (d) { C.save.items[d.key] = 60; });
+    }],
+    ['📖 도감 전부', '인물·펫을 전부 열고 중복 3마리씩 (승급·승화 확인용)', function () {
+      D.heroes.forEach(function (h) { C.save.dex.heroes[h.id] = { count: 3, firstAt: Date.now() }; });
+      D.pets.forEach(function (p) { C.save.dex.pets[p.id] = { count: 3, firstAt: Date.now() }; });
+    }],
+    ['🧹 새 판처럼', '이 프로필의 진행을 통째로 비운다 (손잡이는 그대로)', function () {
+      if (!confirm('이 프로필의 진행을 전부 지웁니다. 계속할까요?')) { throw new Error('취소'); }
+      localStorage.removeItem(C.SAVE_KEY);
+      C.load();
+    }]
+  ];
+
+  function renderPresets() {
+    var host = $('presets');
+    host.innerHTML = '';
+    PRESETS.forEach(function (p) {
+      var b = el('button', 'preset', '<b>' + p[0] + '</b><small>' + p[1] + '</small>');
+      b.addEventListener('click', function () {
+        try { p[2](); } catch (err) { say('⚠️ ' + err.message); return; }
+        commit(p[0] + ' — 만들었습니다');
+        renderSpeed();
+      });
+      host.appendChild(b);
+    });
+  }
+
+  function snapKey(i) { return 'deungyong-go/admin/snap/' + i; }
+  function renderSnaps() {
+    var host = $('snaps');
+    host.innerHTML = '';
+    for (var i = 1; i <= 3; i++) {
+      (function (n) {
+        var raw = null;
+        try { raw = localStorage.getItem(snapKey(n)); } catch (e) {}
+        var when = '';
+        if (raw) {
+          try { when = new Date(JSON.parse(raw)._at).toLocaleString(); } catch (e) { when = '있음'; }
+        }
+        var wrap = el('div', 'row');
+        wrap.style.margin = '0';
+        var save = el('button', '', '📸 ' + n + '번에 뜨기');
+        save.addEventListener('click', function () {
+          var o = JSON.parse(JSON.stringify(C.save));
+          o._at = Date.now();
+          try { localStorage.setItem(snapKey(n), JSON.stringify(o)); } catch (e) { say('자리가 모자랍니다'); return; }
+          renderSnaps(); say(n + '번에 떴습니다');
+        });
+        var load = el('button', raw ? 'go' : '', '↩️ ' + n + '번 되돌리기');
+        load.disabled = !raw;
+        load.addEventListener('click', function () {
+          try {
+            var o = JSON.parse(localStorage.getItem(snapKey(n)));
+            delete o._at;
+            localStorage.setItem(C.SAVE_KEY, JSON.stringify(o));
+            C.load();
+            commit(n + '번으로 되돌렸습니다');
+          } catch (e) { say('되돌리지 못했습니다'); }
+        });
+        wrap.appendChild(save); wrap.appendChild(load);
+        wrap.appendChild(el('span', '', '<span style="font-size:11px;color:var(--dim)">' +
+          (when || '비어 있음') + '</span>'));
+        host.appendChild(wrap);
+      })(i);
+    }
+  }
+
+  /* ── 데이터 조각 ──────────────────────────────────── */
+
+  var HERO_F = [
+    ['id', 'id (kr_/sg_/eu_ 접두)', 'kr_newhero'],
+    ['name', '이름', ''],
+    ['hanja', '한자', ''],
+    ['era', '시대', '조선'],
+    ['faction', '세력', '조선'],
+    ['rarity', '등급 1~5', '4'],
+    ['trait', '기질 might/wisdom/virtue', 'wisdom'],
+    ['might', '무력', '70'],
+    ['wisdom', '지력', '70'],
+    ['command', '통솔', '70'],
+    ['emoji', '이모지', '🎖️'],
+    ['quote', '대사', ''],
+    ['bio', '열전(한 줄)', ''],
+    ['look', 'LOOK (예: hat:gat,robe:dopo)', '']
+  ];
+  var PET_F = [
+    ['id', 'id (pt_/pk_ 접두)', 'pt_newpet'],
+    ['name', '이름', ''],
+    ['kind', 'divine(신수) / beast(동물)', 'beast'],
+    ['rarity', '등급 1~5', '3'],
+    ['catchBase', '기본 포획률 0~1', '0.4'],
+    ['stat', '보정 might/wisdom/command', 'might'],
+    ['value', '보정 값', '6'],
+    ['emoji', '이모지', '🐾'],
+    ['form', 'BEAST_FORM (quad/bird/fish/serpent)', 'quad'],
+    ['color', 'BEAST_COLOR (#rrggbb)', '#9a8f7a'],
+    ['desc', '설명', '']
+  ];
+
+  function renderForm(hostId, fields) {
+    var host = $(hostId);
+    host.innerHTML = '';
+    fields.forEach(function (f) {
+      var wrap = el('div', 'fld');
+      wrap.appendChild(el('label', '', f[1]));
+      var inp = el('input');
+      inp.type = 'text'; inp.id = hostId + '-' + f[0]; inp.value = f[2] || '';
+      wrap.appendChild(inp);
+      host.appendChild(wrap);
+    });
+  }
+  function fv(hostId, k) { return ($(hostId + '-' + k).value || '').trim(); }
+
+  $('hero-make').addEventListener('click', function () {
+    var g = function (k) { return fv('heroform', k); };
+    var line = "    { id: '" + g('id') + "', name: '" + g('name') + "', era: '" + g('era') +
+      "', faction: '" + g('faction') + "', rarity: " + (Number(g('rarity')) || 3) +
+      ", trait: '" + g('trait') + "', stats: { might: " + (Number(g('might')) || 0) +
+      ", wisdom: " + (Number(g('wisdom')) || 0) + ", command: " + (Number(g('command')) || 0) +
+      " }, hanja: '" + g('hanja') + "', emoji: '" + g('emoji') + "', quote: '" + g('quote') + "' },";
+    var bio = "    " + g('id') + ": '" + g('bio') + "',";
+    var look = "    " + g('id') + ": { " + (g('look') || "hat: 'gat', robe: 'dopo'") + " },";
+    $('hero-out').value =
+      '/* 1) js/data.js 의 HEROES 배열에 */\n' + line +
+      '\n\n/* 2) js/data.js 의 열전(BIO)에 */\n' + bio +
+      '\n\n/* 3) js/sprite.js 의 LOOK 에 — 빠뜨리면 규칙이 갓·도포를 씌운다 */\n' + look +
+      '\n\n/* 4) _test.html 의 인물 수 기대치, 5) 다섯 판 전부에 같은 조각을 붙인다 */\n';
+    say('조각을 만들었습니다 — 다섯 판에 같이 붙이세요');
+  });
+  $('hero-preview').addEventListener('click', function () {
+    var ref = {
+      id: fv('heroform', 'id'), name: fv('heroform', 'name'),
+      faction: fv('heroform', 'faction'), rarity: Number(fv('heroform', 'rarity')) || 3,
+      era: fv('heroform', 'era'), trait: fv('heroform', 'trait'),
+      stats: { might: 0, wisdom: 0, command: 0 }
+    };
+    try { $('hero-img').src = DG.sprite.portrait('hero', ref, 72); }
+    catch (e) { say('그리지 못했습니다 — 세력 이름을 확인하세요'); }
+  });
+
+  $('pet-make').addEventListener('click', function () {
+    var g = function (k) { return fv('petform', k); };
+    var line = "    { id: '" + g('id') + "', name: '" + g('name') + "', kind: '" + g('kind') +
+      "', rarity: " + (Number(g('rarity')) || 3) + ", emoji: '" + g('emoji') +
+      "', catchBase: " + (Number(g('catchBase')) || 0.4) + ", bonus: { stat: '" + g('stat') +
+      "', value: " + (Number(g('value')) || 5) + " }, desc: '" + g('desc') + "' },";
+    $('pet-out').value =
+      '/* 1) js/data.js 의 PETS 배열에 */\n' + line +
+      '\n\n/* 2) js/sprite.js 의 BEAST_FORM · BEAST_COLOR 에 */\n' +
+      "    " + g('id') + ": '" + g('form') + "',\n" +
+      "    " + g('id') + ": '" + g('color') + "',\n" +
+      '\n/* 3) 승화 사슬을 이으려면 js/growth.js 의 CHAIN 에 (역사고만) */\n' +
+      "    " + g('id') + ": { to: '상위종id', herb: 50, why: '까닭' },\n" +
+      '\n/* 4) _test.html 의 펫 수 기대치, 5) 다섯 판 전부에 같은 조각을 붙인다 */\n';
+    say('조각을 만들었습니다');
+  });
+  $('pet-preview').addEventListener('click', function () {
+    var ref = {
+      id: fv('petform', 'id'), name: fv('petform', 'name'),
+      kind: fv('petform', 'kind'), rarity: Number(fv('petform', 'rarity')) || 3
+    };
+    try { $('pet-img').src = DG.sprite.portrait('pet', ref, 72); }
+    catch (e) { say('그리지 못했습니다'); }
+  });
+
+  /* ── 점검 · 백업 ──────────────────────────────────── */
+
+  $('ex').addEventListener('click', function () {
+    $('json').value = JSON.stringify(C.save, null, 2);
+    say('꺼냈습니다');
+  });
+  $('copy').addEventListener('click', function () {
+    $('json').select();
+    try { document.execCommand('copy'); say('복사했습니다'); } catch (e) { say('직접 복사해 주세요'); }
+  });
+  $('im').addEventListener('click', function () {
+    var raw = $('json').value.trim();
+    if (!raw) { say('붙여넣은 것이 없습니다'); return; }
+    var o;
+    try { o = JSON.parse(raw); } catch (e) { say('JSON 이 아닙니다'); return; }
+    if (!o || !o.player || !o.dex) { say('역사고 세이브가 아닌 것 같습니다'); return; }
+    if (!confirm('지금 프로필의 진행을 덮어씁니다. 계속할까요?')) { return; }
+    try { localStorage.setItem(C.SAVE_KEY, JSON.stringify(o)); } catch (e) { say('저장하지 못했습니다'); return; }
+    C.load();
+    commit('불러왔습니다');
+  });
+
+  function renderProfRow() {
+    var host = $('profrow');
+    host.innerHTML = '';
+    profiles().forEach(function (p) {
+      var wrap = el('span', '', '<b>' + p.name + '</b> <small style="color:var(--dim)">' + p.id + '</small> ');
+      wrap.style.marginRight = '14px';
+      var b = el('button', '', '열기');
+      b.addEventListener('click', function () { $('prof').value = p.id; openProfile(p.id); });
+      wrap.appendChild(b);
+      host.appendChild(wrap);
+    });
+    var used = 0, k;
+    for (k in localStorage) {
+      if (Object.prototype.hasOwnProperty.call(localStorage, k)) { used += (localStorage[k] || '').length; }
+    }
+    $('usage').textContent = '이 기기의 localStorage 사용량 대략 ' + Math.round(used / 1024) + 'KB';
+  }
+
+  /* ── 탭 ───────────────────────────────────────────── */
+
+  /** 탭 — 주소에 남긴다(#tune 처럼). 링크로 바로 그 탭을 열 수 있다 */
+  function showTab(name) {
+    var found = false;
+    [].forEach.call(document.querySelectorAll('nav [data-tab]'), function (x) {
+      var on = x.getAttribute('data-tab') === name;
+      if (on) { found = true; }
+      x.classList.toggle('sel', on);
+    });
+    if (!found) { return showTab('save'); }
+    [].forEach.call(document.querySelectorAll('section'), function (s) {
+      s.classList.toggle('show', s.id === 'tab-' + name);
+    });
+    if (location.hash !== '#' + name) { location.hash = name; }
+  }
+
+  document.querySelector('nav').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tab]');
+    if (b) { showTab(b.getAttribute('data-tab')); }
+  });
+  window.addEventListener('hashchange', function () {
+    showTab((location.hash || '#save').replace('#', ''));
+  });
+
+  $('prof').addEventListener('change', function () { openProfile($('prof').value); });
+  $('save').addEventListener('click', function () { commit('저장했습니다'); });
+  $('reload').addEventListener('click', function () { openProfile($('prof').value); });
+
+  function renderAll() {
+    renderSummary(); renderBasics(); renderItems();
+    renderBuddy(); renderGrowth(); renderDex();
+    renderTune(); renderSpeed(); renderPill();
+    renderSnaps(); renderProfRow();
+  }
+
+  /* ── 자가 점검 ────────────────────────────────────────
+   * `_admin.html#selftest` — 이 화면이 실제로 세이브를 고치는지 스스로 확인한다.
+   * **전용 프로필(`…/save/_admintest`)로 갈아탄 뒤** 돌리고 끝나면 그 칸을 지운다 —
+   * 실제 진행을 건드리지 않기 위해서다. 손잡이도 떠 두었다가 되돌린다.
+   */
+  function runSelfTest() {
+    var out = [], pass = 0, total = 0;
+    function t(name, fn) {
+      total++;
+      try {
+        var r = fn();
+        if (r) { pass++; }
+        out.push((r ? 'PASS' : 'FAIL') + ' ' + name + (typeof r === 'string' ? ' — ' + r : ''));
+      } catch (e) {
+        out.push('FAIL ' + name + ' — 예외: ' + e.message);
+      }
+    }
+
+    var keepTune = JSON.stringify(C.tune());
+    var TEST_KEY = C.SAVE_BASE + '/_admintest';
+    C.setSaveKey(TEST_KEY);
+    localStorage.removeItem(TEST_KEY);
+    C.load();
+
+    t('전용 프로필로 갈아탄다 (실제 진행을 건드리지 않는다)', function () {
+      return C.SAVE_KEY === TEST_KEY && C.SAVE_KEY;
+    });
+
+    t('재화를 고치면 저장에서 살아 남는다', function () {
+      C.save.player.gold = 4242;
+      C.persist(); C.load();
+      return C.save.player.gold === 4242 && '금 4,242 복원';
+    });
+
+    t('도감을 전부 연다', function () {
+      D.heroes.forEach(function (h) { C.save.dex.heroes[h.id] = { count: 1, firstAt: 1 }; });
+      D.pets.forEach(function (x) { C.save.dex.pets[x.id] = { count: 1, firstAt: 1 }; });
+      var full = Object.keys(C.save.dex.heroes).length === D.heroes.length &&
+                 Object.keys(C.save.dex.pets).length === D.pets.length;
+      return full && (D.heroes.length + '명 · ' + D.pets.length + '종');
+    });
+
+    t('반려를 세우고 다음 영초 코앞으로 보낸다', function () {
+      var pet = D.pets[0];
+      B.set(pet.id);
+      C.save.player.distance = 50000;
+      C.save.buddy.mark = C.save.player.distance - (B.legOf(pet) - 10);
+      var cur = B.current();
+      return cur && cur.left === 10 && (pet.name + ' · 10m 남음');
+    });
+
+    t('연성·단사를 직접 고친다', function () {
+      var id = D.pets[0].id;
+      C.save.petGrow = C.save.petGrow || {};
+      C.save.petGrow[id] = { lv: 7, herb: 123 };
+      C.save.dust = 5000;
+      return G.info(id).lv === 7 && G.herbOf(id) === 123 && G.dust() === 5000 &&
+        ('연성 7단 · 영초 123 · 단사 5,000');
+    });
+
+    t('손잡이를 잡고 놓는다 (세이브와 다른 칸)', function () {
+      C.setTune('world.speedMul', 8);
+      var on = C.tuned('world.speedMul', 1) === 8 && typeof C.save.tune === 'undefined';
+      C.setTune('world.speedMul', null);
+      return on && C.tuned('world.speedMul', 1) === 1 && '×8 로 잡았다가 놓으면 ×1';
+    });
+
+    t('스냅샷을 뜨고 되돌린다', function () {
+      var snap = JSON.parse(JSON.stringify(C.save));
+      C.save.player.gold = 1;
+      localStorage.setItem(C.SAVE_KEY, JSON.stringify(snap));
+      C.load();
+      return C.save.player.gold === 4242 && '금 1 → 되돌려서 4,242';
+    });
+
+    t('프리셋이 상황을 만든다 (재화 넉넉히)', function () {
+      PRESETS.filter(function (x) { return x[0].indexOf('재화') >= 0; })[0][2]();
+      return C.save.player.gold === 999999 && BAG.count('feed') === 60 &&
+        ('금 999,999 · 사료 60');
+    });
+
+    t('데이터 조각이 만들어진다', function () {
+      $('heroform-id').value = 'kr_testman';
+      $('heroform-name').value = '아무개';
+      $('hero-make').click();
+      var v = $('hero-out').value;
+      return v.indexOf('kr_testman') >= 0 && v.indexOf('LOOK') >= 0 &&
+        ('data.js · 열전 · LOOK 조각 ' + v.length + '자');
+    });
+
+    /* 치운다 — 전용 칸을 지우고 손잡이를 되돌린다 */
+    localStorage.removeItem(TEST_KEY);
+    try {
+      var back = JSON.parse(keepTune);
+      C.clearTune();
+      if (Object.keys(back).length) { C.setTune(back); }
+    } catch (e) { /* 되돌릴 것이 없으면 그대로 */ }
+
+    var box = el('div', 'card');
+    box.innerHTML = '<h2>어드민 자가 점검</h2><pre style="font:12px/1.9 Consolas,monospace;' +
+      'white-space:pre-wrap">' + out.join('\n').replace(/PASS/g, '<b style="color:#5ec26a">PASS</b>')
+        .replace(/FAIL/g, '<b style="color:#e06565">FAIL</b>') +
+      '</pre><h2>RESULT ' + pass + '/' + total + '</h2>' +
+      '<p class="note">전용 프로필에서 돌렸고 그 칸은 지웠습니다 — 실제 진행과 손잡이는 그대로입니다.</p>';
+    document.querySelector('main').insertBefore(box, document.querySelector('main').firstChild);
+    document.title = 'RESULT ' + pass + '/' + total;
+  }
+
+  /* 해시를 보고 탭을 여는데, showTab 이 모르는 이름이면 해시를 'save' 로 되돌린다 —
+     그 전에 자가 점검 여부를 잡아 둬야 한다(안 그러면 #selftest 가 지워진 뒤에 본다) */
+  var SELFTEST = location.hash === '#selftest';
+  showTab((location.hash || '#save').replace('#', ''));
+  renderForm('heroform', HERO_F);
+  renderForm('petform', PET_F);
+  renderPresets();
+  fillProfiles();
+  if (SELFTEST) { runSelfTest(); }
+})();
+</script>
+</body>
+</html>

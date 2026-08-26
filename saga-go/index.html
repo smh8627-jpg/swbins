@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#12141a">
+<title>역사고 — 걷고 만난다</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/encounter3d.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="역사고">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+
+<!-- 지도 (전체화면) -->
+<canvas id="map-ground"></canvas>
+<canvas id="map3d"></canvas>
+<canvas id="map"></canvas>
+<div id="vignette"></div>
+
+<!-- 상단: 프로필 · 재화 · 도구 -->
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto" title="자동 순행 (AI가 대신 걷고 만난다)">🤖</button>
+    <button class="icon-btn" id="btn-geo" title="실제 위치로 전환">📡</button>
+    <button class="icon-btn" id="btn-map" title="지도 스타일 바꾸기">🗺️</button>
+    <button class="icon-btn txt" id="btn-tilt" title="2D / 2.5D / 3D 전환">2.5D</button>
+    <button class="icon-btn txt" id="btn-prop" title="캐릭터 등신 (4등신/2등신/8등신)">4등</button>
+    <button class="icon-btn" id="btn-style" title="그림 양식 (전통 삽화 / 일본 만화)">🖌️</button>
+    <button class="icon-btn" id="btn-help" title="도움말">❔</button>
+    <button class="icon-btn" id="btn-reset" title="처음부터">↺</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+
+<!-- 자동 순행 상태 (자동일 때만 보인다) -->
+<div id="autobar"></div>
+
+<!-- 하단 중앙: 근처 대상 -->
+<div id="near"></div>
+
+<!-- 우하단: 액션 독 -->
+<nav id="dock">
+  <button data-sheet="quest"><span>📋</span><small>사명</small></button>
+  <button data-sheet="bag"><span>🎒</span><small>행낭</small></button>
+  <button data-sheet="letters"><span>✉️</span><small>천거</small></button>
+  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+  <button data-sheet="oracle"><span>🔮</span><small>사관</small></button>
+  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+</nav>
+
+<!-- 슬라이드 시트 -->
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head">
+    <div class="grip"></div>
+    <h3 id="sheet-title">서당</h3>
+    <button class="icon-btn sm" id="sheet-close">✕</button>
+  </div>
+  <div id="sheet-body"></div>
+</aside>
+
+<div id="encounter"></div><div id="detail"></div>
+<div id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/bag.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/quest.js"></script>
+<script src="js/growth.js"></script>
+<script src="js/buddy.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/world.js"></script>
+<script src="js/actor3d.js"></script>
+<script src="js/world3d.js"></script>
+<script src="js/encounter.js"></script>
+<script src="js/encounter3d.js"></script>
+<script src="js/station.js"></script>
+<script src="js/letter.js"></script>
+<script src="js/duel.js"></script>
+<script src="js/rogue.js"></script>
+<script src="js/fort.js"></script>
+<script src="js/raid.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 서비스 워커 — 오프라인 모드의 캐시.
+   https 나 localhost 에서만 등록된다(브라우저 규칙). 사내 http 주소로 열면
+   홈 화면 추가는 되지만 이 캐시는 붙지 않는다 — 그때도 게임 자체는 그대로 돈다. */
+(function () {
+  if (!('serviceWorker' in navigator)) { return; }
+  var h = location.hostname;
+  var secure = location.protocol === 'https:' || h === 'localhost' || h === '127.0.0.1';
+  if (!secure) { return; }
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js')['catch'](function (e) {
+      console.warn('서비스 워커 등록 실패', e);
+    });
+  });
+})();
+</script>
+</body>
+</html>

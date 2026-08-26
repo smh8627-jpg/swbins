@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>역사GO 마을 자가진단</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { overflow: auto; }
+  #report { padding: 16px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.8;
+            position: relative; z-index: 50; background: rgba(10,12,16,.9); }
+  .pass { color: #5ec26a; } .fail { color: #e06565; }
+</style>
+</head>
+<body>
+<canvas id="map"></canvas><div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">a</button>
+    <button class="icon-btn" id="btn-do">d</button>
+    <button class="icon-btn" id="btn-sneak">n</button>
+    <button class="icon-btn" id="btn-prop">p</button>
+    <button class="icon-btn" id="btn-style">s</button>
+    <button class="icon-btn" id="btn-help">h</button>
+    <button class="icon-btn" id="btn-reset">r</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="autobar"></div><div id="focusbar"></div>
+<nav id="dock">
+  <button data-sheet="bag"><span>b</span><small>b</small></button>
+  <button data-sheet="folks"><span>f</span><small>f</small></button>
+  <button data-sheet="home"><span>h</span><small>h</small></button>
+  <button data-sheet="mail"><span>m</span><small>m</small></button>
+  <button data-sheet="dex"><span>d</span><small>d</small></button>
+  <button data-sheet="log"><span>l</span><small>l</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title"></h3>
+    <button class="icon-btn sm" id="sheet-close">x</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<div id="report">진단 중…</div>
+
+<script>
+window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_LOOP = true;
+/* 어드민의 균형 손잡이를 읽지 않는다 — 손잡이를 잡아 둔 기기에서
+   판정이 흔들리면 안 된다 (씨앗을 고정한 것과 같은 이유다) */
+window.DG_NO_TUNE = true;
+
+/* 무작위 고정 — 진단이 굴릴 때마다 달라지면 판정이 흔들린다.
+   게임 스크립트보다 **먼저** 갈아 둬야 부트에서 쓰는 난수까지 잡힌다.
+   (실제 플레이는 그대로다 — 이 파일 안에서만 바꾼다)
+   mulberry32: 짧고 분포가 고르며 같은 씨앗이면 같은 수열이 나온다. */
+(function (seed) {
+  var s = seed >>> 0;
+  Math.random = function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  window.DG_SEED = seed;
+})(20260824);
+</script>
+<script src="js/data.js"></script>
+<script src="js/data-village.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/village.js"></script>
+<script src="js/bug.js"></script>
+<script src="js/home.js"></script>
+<script src="js/mail.js"></script>
+<script src="js/museum.js"></script>
+<script src="js/town.js"></script>
+<script src="js/folk.js"></script>
+<script src="js/turnip.js"></script>
+<script src="js/wear.js"></script>
+<script src="js/village-view.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+(function () {
+  var out = [], errors = [];
+  window.addEventListener('error', function (e) { errors.push(e.message); });
+
+  function t(name, fn) {
+    try {
+      var r = fn();
+      out.push((r ? '<span class="pass">PASS</span> ' : '<span class="fail">FAIL</span> ') +
+        name + (typeof r === 'string' ? ' — ' + r : ''));
+      return !!r;
+    } catch (e) {
+      out.push('<span class="fail">FAIL</span> ' + name + ' — 예외: ' + e.message);
+      return false;
+    }
+  }
+
+  setTimeout(function () {
+    var C = DG.core, V = DG.village, VD = DG.villageData, AU = DG.auto;
+
+    t('다른 게임의 모듈은 실려 있지 않다', function () {
+      var gone = ['world', 'encounter', 'dungeon', 'item'];
+      var leaked = gone.filter(function (k) { return !!DG[k]; });
+      return leaked.length === 0 && '지도·조우·던전·장비 없음';
+    });
+
+    t('데이터는 그대로 물려받았다', function () {
+      return DG.data.heroes.length === 70 &&
+        ('인물 ' + DG.data.heroes.length);
+    });
+
+    /* ── 마을 ─────────────────────────────────────────── */
+
+    t('마을이 만들어졌다 — 땅·사물·주민', function () {
+      var raw = V.raw();
+      var kinds = {};
+      for (var i = 0; i < raw.props.length; i++) { kinds[raw.props[i].kind] = 1; }
+      return raw.props.length > 20 && raw.residents.length === 5 &&
+        kinds.tree && kinds.rock && kinds.shop && !kinds.school &&
+        ('사물 ' + raw.props.length + '개 · 주민 ' + raw.residents.length + '명 · ' +
+         Object.keys(kinds).length + '종');
+    });
+
+    t('같은 마을은 늘 같은 모습이다 (좌표 해시)', function () {
+      var a = V.tileAt(5, 5), b = V.tileAt(5, 5);
+      var c = V.tileAt(7, 9), d = V.tileAt(7, 9);
+      return a === b && c === d && ('(5,5)=' + a + ' · (7,9)=' + c);
+    });
+
+    t('물 위로는 걸어갈 수 없다', function () {
+      var T = V.TILE, tx, ty, water = null;
+      for (ty = 0; ty < V.H && !water; ty++) {
+        for (tx = 0; tx < V.W; tx++) {
+          if (V.tileAt(tx, ty) === 'water') { water = { tx: tx, ty: ty }; break; }
+        }
+      }
+      if (!water) { return '이 마을엔 물이 없다 (지형 규칙상 있어야 한다)' && false; }
+      return !V.walkable(water.tx * T + 20, water.ty * T + 20) &&
+        ('(' + water.tx + ',' + water.ty + ') 물 = 통행 불가');
+    });
+
+    t('걸으면 사람이 움직인다', function () {
+      var raw = V.raw();
+      var x0 = raw.player.x, y0 = raw.player.y;
+      V.walkTo(x0 + 120, y0);
+      for (var i = 0; i < 20; i++) { V.update(0.1); }
+      return Math.abs(raw.player.x - x0) > 20 &&
+        ('x ' + Math.round(x0) + ' → ' + Math.round(raw.player.x));
+    });
+
+    /* ── 채집 ─────────────────────────────────────────── */
+
+    t('채집 — 손이 닿으면 얻고, 그 사물은 오늘 몫을 다한다', function () {
+      var raw = V.raw();
+      var tree = null, i;
+      for (i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].kind === 'tree') { tree = raw.props[i]; break; }
+      }
+      raw.player.x = tree.x; raw.player.y = tree.y;      // 앞에 세운다
+      var f = V.focus();
+      var r = V.interact();
+      var again = V.interact();
+      return f && f.obj === tree && r && r.kind === 'gather' &&
+        V.spent(tree) && again.kind === 'empty' &&
+        (r.text + ' · 두 번째는 ' + again.kind);
+    });
+
+    /* ── 낚시 ─────────────────────────────────────────── */
+
+    function findSpot() {
+      var raw = V.raw();
+      for (var i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].kind === 'spot') { return raw.props[i]; }
+      }
+      return null;
+    }
+    function standAt(pr) {
+      var raw = V.raw();
+      raw.player.x = pr.x; raw.player.y = pr.y; raw.player.walking = false;
+    }
+
+    t('낚시터는 하루 몫이 없다 — 대신 던지고 기다린다', function () {
+      var spot = findSpot();
+      if (!spot) { return false; }
+      standAt(spot);
+      var a = V.interact();
+      var fs = V.fishState();
+      return a.kind === 'cast' && !V.spent(spot) && fs && fs.state === 'wait' &&
+        ('던짐 · ' + a.text);
+    });
+
+    t('성급하게 당기면 놓친다', function () {
+      var spot = findSpot();
+      standAt(spot);
+      var before = V.status().bag.length;
+      var r = V.interact();                       // 입질 전에 당긴다
+      return r.kind === 'miss' && V.fishState() === null &&
+        V.status().bag.length === before && ('“' + r.text + '”');
+    });
+
+    t('입질에 맞춰 당기면 잡는다', function () {
+      var spot = findSpot();
+      standAt(spot);
+      V.interact();                               // 던진다
+      var raw = V.raw();
+      raw.fishing.biteAt = Date.now() - 100;      // 방금 입질했다 치고
+      raw.fishing.ends = Date.now() + 400;
+      var n0 = V.state().gathered;
+      var r = V.interact();
+      return r.kind === 'gather' && V.state().gathered === n0 + 1 &&
+        (r.text + ' 을 낚았다');
+    });
+
+    t('입질 창을 넘기면 놓친다', function () {
+      var spot = findSpot();
+      standAt(spot);
+      V.interact();
+      var raw = V.raw();
+      raw.fishing.biteAt = Date.now() - 3000;
+      raw.fishing.ends = Date.now() - 2000;       // 이미 지나갔다
+      var n0 = V.state().gathered;
+      var r = V.interact();
+      return r.kind === 'miss' && V.state().gathered === n0 && ('“' + r.text + '”');
+    });
+
+    t('낚시터를 벗어나면 줄이 끊긴다', function () {
+      var spot = findSpot();
+      standAt(spot);
+      V.interact();
+      var raw = V.raw();
+      raw.player.x = spot.x + V.REACH * 3;        // 걸어서 멀어진다
+      raw.player.walking = true;
+      V.update(0.05);
+      return V.fishState() === null && '줄이 끊김 확인';
+    });
+
+    t('자동은 입질을 기다렸다 당긴다 (무한 반복이 아니다)', function () {
+      var spot = findSpot();
+      standAt(spot);
+      AU.state().on = true; AU.state().gather = true;
+      V.interact();                               // 던져 둔 상태에서 자동에 맡긴다
+      AU.update(0.05);
+      var waited = V.fishState() !== null;         // 성급하게 당기지 않는다
+      var raw = V.raw();
+      raw.fishing.biteAt = Date.now() - 50;
+      raw.fishing.ends = Date.now() + 500;
+      var n0 = V.state().gathered;
+      AU.update(0.05);                             // 입질 순간
+      AU.state().on = false;
+      return waited && V.state().gathered === n0 + 1 &&
+        '기다렸다 당겨서 한 마리';
+    });
+
+    t('가방·판매 — 판 만큼 금이 들어온다', function () {
+      var it = VD.ITEMS.fruit[0];
+      var s = V.state();
+      s.bag[it.key] = 3;
+      var g0 = C.save.player.gold;
+      var got = V.sell(it.key, 2);
+      return got === it.price * 2 && C.save.player.gold === g0 + got &&
+        V.bagCount(it.key) === 1 && (it.name + ' 2개 → 🪙 ' + got);
+    });
+
+    /* ── 계절 ─────────────────────────────────────────── */
+
+    t('계절은 달로 정해진다 (넷이 빠짐없이 덮는다)', function () {
+      var seen = {};
+      for (var m = 1; m <= 12; m++) { seen[VD.seasonOf(m).key] = true; }
+      return Object.keys(seen).length === 4 &&
+        VD.seasonOf(4).key === 'spring' && VD.seasonOf(7).key === 'summer' &&
+        VD.seasonOf(10).key === 'autumn' && VD.seasonOf(1).key === 'winter' &&
+        ('4월 ' + VD.seasonOf(4).name + ' · 7월 ' + VD.seasonOf(7).name +
+         ' · 10월 ' + VD.seasonOf(10).name + ' · 1월 ' + VD.seasonOf(1).name);
+    });
+
+    t('철 지난 것은 나오지 않는다', function () {
+      /* 진달래는 봄에만, 설중매는 겨울에만 */
+      var bad = 0;
+      for (var i = 0; i < 120; i++) {
+        if (VD.pick('flower', 'winter').key === 'azalea') { bad++; }
+        if (VD.pick('flower', 'spring').key === 'sulwha') { bad++; }
+      }
+      return bad === 0 && '겨울에 진달래 없음 · 봄에 설중매 없음 (120번씩)';
+    });
+
+    t('철이 없는 것은 사철 난다', function () {
+      var orchid = VD.item('orchid');
+      var ok = !orchid.season;
+      var keys = ['spring', 'summer', 'autumn', 'winter'];
+      for (var k = 0; k < keys.length && ok; k++) {
+        ok = VD.inSeason(orchid, keys[k]);
+      }
+      return ok && '난초는 네 철 모두 난다';
+    });
+
+    /* ── 심기 ─────────────────────────────────────────── */
+
+    t('열매를 심으면 묘목이 서고, 사흘 뒤 자란다', function () {
+      var s = V.state();
+      s.planted = [];
+      s.bag.apple = 3;
+      var raw = V.raw();
+      /* 사물이 없는 풀밭을 찾아 선다 */
+      var spot = null;
+      for (var ty = 1; ty < V.H - 1 && !spot; ty++) {
+        for (var tx = 1; tx < V.W - 1; tx++) {
+          var x = tx * V.TILE + V.TILE / 2, y = ty * V.TILE + V.TILE / 2;
+          if (V.tileAt(tx, ty) !== 'grass') { continue; }
+          raw.player.x = x; raw.player.y = y;
+          if (V.canPlantHere().ok) { spot = { x: x, y: y }; break; }
+        }
+      }
+      if (!spot) { return false; }
+      var r = V.plant('apple');
+      var sap = V.raw().props.filter(function (pr) { return pr.kind === 'sapling'; });
+      /* 사흘을 앞당긴다 */
+      s.planted[0].day -= V.PLANT_DAYS;
+      V.syncPlanted();
+      var grown = V.raw().props.filter(function (pr) {
+        return pr.planted && pr.kind === 'tree';
+      });
+      return r.kind === 'plant' && sap.length === 1 && grown.length === 1 &&
+        s.bag.apple === 2 && ('심음 → 묘목 1 → ' + V.PLANT_DAYS + '일 뒤 나무 1');
+    });
+
+    t('캐거나 낚은 것은 심을 수 없다', function () {
+      var s = V.state();
+      s.bag.iron = 2;
+      s.bag.crucian = 2;
+      var a = V.plant('iron'), b = V.plant('crucian');
+      return a.kind === 'no' && b.kind === 'no' &&
+        s.bag.iron === 2 && s.bag.crucian === 2 && ('“' + a.text + '”');
+    });
+
+    t('사물에 붙여서는 못 심는다', function () {
+      var raw = V.raw();
+      var tree = null;
+      for (var i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].kind === 'tree') { tree = raw.props[i]; break; }
+      }
+      if (!tree) { return false; }
+      raw.player.x = tree.x; raw.player.y = tree.y;
+      var chk = V.canPlantHere();
+      V.state().bag.apple = 1;
+      var r = V.plant('apple');
+      return !chk.ok && r.kind === 'no' && V.state().bag.apple === 1 &&
+        ('“' + chk.why + '”');
+    });
+
+    t('묘목은 아직 딸 수 없다', function () {
+      var s = V.state();
+      s.planted = [];
+      var raw = V.raw();
+      var spot = null;
+      for (var ty = 1; ty < V.H - 1 && !spot; ty++) {
+        for (var tx = 1; tx < V.W - 1; tx++) {
+          if (V.tileAt(tx, ty) !== 'grass') { continue; }
+          raw.player.x = tx * V.TILE + V.TILE / 2;
+          raw.player.y = ty * V.TILE + V.TILE / 2;
+          if (V.canPlantHere().ok) { spot = true; break; }
+        }
+      }
+      s.bag.apple = 1;
+      V.plant('apple');
+      var r = V.interact();                      // 방금 심은 자리에 서 있다
+      return r && r.kind === 'empty' && r.text.indexOf('묘목') >= 0 && ('“' + r.text + '”');
+    });
+
+    /* ── 주민 부탁 ────────────────────────────────────── */
+
+    t('부탁 — 못 채우면 안내, 채우면 금·친밀도', function () {
+      var raw = V.raw();
+      var res = raw.residents[0];
+      var req = V.requestOf(res.id);
+      V.state().bag[req.want] = 0;
+      var no = V.talk(res);
+      V.state().bag[req.want] = req.n;
+      var g0 = C.save.player.gold, f0 = V.friendOf(res.id);
+      var yes = V.talk(res);
+      return no.kind === 'request' && yes.kind === 'reward' &&
+        C.save.player.gold > g0 && V.friendOf(res.id) === f0 + 1 &&
+        (res.ref.name + ' · ' + yes.text);
+    });
+
+    t('날이 바뀌면 다시 여물고 부탁도 새로 붙는다', function () {
+      var s = V.state();
+      var raw = V.raw();
+      var tree = null;
+      for (var i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].kind === 'tree') { tree = raw.props[i]; break; }
+      }
+      s.used[tree.id] = s.day;                  // 오늘 다 썼다고 표시
+      s.day = V.today() - 1;                    // 하루 전으로 돌려 놓고
+      var rolled = V.rollDay();                 // 날이 바뀐 셈
+      return rolled && !V.spent(tree) && Object.keys(s.used).length === 0 &&
+        '채집물 되살아남 · 부탁 초기화';
+    });
+
+    /* ── 자동 마을살이 ────────────────────────────────── */
+
+    t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {
+      AU.setOn(true);
+      var on1 = AU.active() && C.save.auto.on === true;
+      AU.setOn(false);
+      return on1 && !AU.active() && '켜짐·꺼짐 저장';
+    });
+
+    t('자동 — 아직 여문 사물을 목표로 잡는다', function () {
+      var raw = V.raw();
+      var pick = AU._freshProp(raw);
+      return pick && pick.obj && VD.PROPS[pick.obj.kind].gather &&
+        (VD.PROPS[pick.obj.kind].name + ' · ' + Math.round(pick.dist) + ' 거리');
+    });
+
+    t('자동 — 부탁을 채운 주민을 먼저 본다', function () {
+      var raw = V.raw();
+      /* 가방을 비우고 시작한다 — 다른 주민의 부탁까지 채워져 있으면
+         '가장 가까운 사람' 이 뽑혀 이 항목이 흔들린다 */
+      V.state().bag = {};
+      /* 다른 사람의 부탁은 다 끝난 것으로 둔다 — 같은 것을 청한 사람이 더 가까이
+         있으면 '가장 가까운 사람' 이 뽑혀 이 항목이 흔들린다 */
+      var res = raw.residents[1], q;
+      for (q = 0; q < raw.residents.length; q++) {
+        V.requestOf(raw.residents[q].id).done = true;
+      }
+      var req = V.requestOf(res.id);
+      req.done = false;
+      V.state().bag[req.want] = req.n;
+      var pick = AU._readyResident(raw);
+      return pick && pick.obj.id === res.id && (res.ref.name + ' 을 먼저 고름');
+    });
+
+    t('자동 — 도구가 없는 것은 목표로 잡지 않는다', function () {
+      var raw = V.raw(), s = V.state();
+      var had = !!s.tools.spade;
+      s.tools.spade = false;
+      var withoutSpade = AU._freshProp(raw);
+      s.tools.spade = true;
+      var withSpade = AU._freshProp(raw);
+      s.tools.spade = had;
+      /* 삽이 없으면 갈라진 자리를 고르지 않는다 — 걸어가 아무것도 못 하고
+         다시 그리로 가는 되돌이에 빠졌던 자리다 */
+      return withoutSpade && withoutSpade.obj.kind !== 'dig' &&
+        (withoutSpade.obj.kind + ' → (삽을 쥐면) ' + (withSpade ? withSpade.obj.kind : '없음'));
+    });
+
+    t('자동 — 10분치를 굴리면 실제로 모이고 팔린다', function () {
+      var s = V.state();
+      s.day = V.today();
+      s.used = {};
+      s.gathered = 0; s.sold = 0;
+      C.save.player.gold = 0;
+      AU.setOn(true);
+      for (var i = 0; i < 6000; i++) { AU.update(0.1); V.update(0.1); }
+      AU.setOn(false);
+      return s.gathered > 5 &&
+        ('채집 ' + s.gathered + '개 · 판매 ' + s.sold + '개 · 금 ' + C.fmt(C.save.player.gold) +
+         ' · 심부름 ' + s.helped);
+    });
+
+    /* ── 시간 ─────────────────────────────────────────── */
+
+    t('시간대는 실제 시계를 본다', function () {
+      var names = [VD.phaseOf(6).name, VD.phaseOf(13).name, VD.phaseOf(18).name, VD.phaseOf(23).name];
+      return names[0] === '새벽' && names[1] === '낮' && names[2] === '저녁' && names[3] === '밤' &&
+        names.join(' · ');
+    });
+
+    /* ── 화면 ─────────────────────────────────────────── */
+
+    t('시트 5개와 손이 닿는 카드가 그려진다', function () {
+      var bad = [], tabs = ['bag', 'folks', 'dex', 'log'];
+      for (var i = 0; i < tabs.length; i++) {
+        DG.ui.openSheet(tabs[i]);
+        var html = document.getElementById('sheet-body').innerHTML;
+        if (!html || html.length < 20) { bad.push(tabs[i]); }
+      }
+      DG.ui.closeSheet();
+      /* 사물 앞에 세우고 카드를 그린다 */
+      var raw = V.raw();
+      raw.player.x = raw.props[0].x; raw.player.y = raw.props[0].y;
+      DG.ui.renderFocus();
+      var fb = document.getElementById('focusbar').innerHTML;
+      return bad.length === 0 && fb.length > 20 &&
+        ('시트 ' + tabs.length + '개 + 카드 ' + fb.length + '자');
+    });
+
+    t('마을 화면이 예외 없이 그려진다', function () {
+      DG.villageView.resize();
+      DG.villageView.draw();
+      var cam = DG.villageView._cam();
+      return typeof cam.x === 'number' && '카메라 (' + Math.round(cam.x) + ',' + Math.round(cam.y) + ')';
+    });
+
+    /* ── 곤충 채집 ──────────────────────────────────────── */
+
+    t('곤충 — 계절과 시간대를 탄다 (여름 밤 반딧불이 · 겨울엔 거의 없다)', function () {
+      var VD = DG.villageData;
+      var se0 = VD.season, ph0 = VD.phaseOf;
+      /* 하늘까지 고정한다 — 비 오는 날엔 나는 벌레가 빠져서 수가 달라진다 */
+      var wx0 = VD.weather;
+      VD.weather = function () { return VD.WEATHERS.clear; };
+      var fix = function (sk, pk) {
+        VD.season = function () {
+          return VD.SEASONS.filter(function (x) { return x.key === sk; })[0];
+        };
+        VD.phaseOf = function () {
+          return VD.PHASES.filter(function (x) { return x.key === pk; })[0];
+        };
+      };
+      fix('summer', 'night');
+      var sn = DG.bug.nowNames();
+      fix('summer', 'day');
+      var sd = DG.bug.nowNames();
+      fix('winter', 'night');
+      var wn = DG.bug.nowNames();
+      VD.season = se0; VD.phaseOf = ph0; VD.weather = wx0;
+      return sn.indexOf('반딧불이') >= 0 && sd.indexOf('반딧불이') < 0 &&
+        sd.indexOf('참매미') >= 0 && wn.length <= 2 &&
+        ('여름밤 ' + sn.length + '종 · 여름낮 ' + sd.length + '종 · 겨울밤 ' + wn.length + '종');
+    });
+
+    t('곤충 — 잠자리채가 없으면 못 잡는다', function () {
+      var s = V.state();
+      s.tools.net = false;
+      DG.bug.reset();
+      var raw = V.raw();
+      var b = DG.bug._spawnAt('ladybug', raw.player.x + 10, raw.player.y);
+      var r = DG.bug.swing(b);
+      var still = DG.bug.list().length === 1;
+      return r && r.kind === 'no' && still && ('막힘: ' + r.text);
+    });
+
+    t('곤충 — 잠자리채를 사면 잡히고 가방·도감에 남는다', function () {
+      var s = V.state();
+      C.save.player.gold = 5000;
+      var buy = V.buyTool('net');
+      var raw = V.raw();
+      var before = V.bagCount('ladybug'), dexBefore = V.caughtCount('ladybug');
+      var b = DG.bug.list()[0] || DG.bug._spawnAt('ladybug', raw.player.x + 10, raw.player.y);
+      var r = DG.bug.swing(b);
+      return buy.kind === 'buy' && r && r.kind === 'gather' &&
+        V.bagCount('ladybug') === before + 1 &&
+        V.caughtCount('ladybug') === dexBefore + 1 &&
+        DG.bug.list().length === 0 &&
+        ('잡음 · 가방 ' + V.bagCount('ladybug') + ' · 도감 ' + V.caughtCount('ladybug'));
+    });
+
+    t('곤충 — 성큼 걸으면 달아나고 살금살금이면 그대로다', function () {
+      var raw = V.raw();
+      DG.bug.reset();
+      var b1 = DG.bug._spawnAt('ladybug', raw.player.x + 20, raw.player.y);
+      raw.player.walking = true;
+      V.setAutoSneak(false);
+      DG.bug.update(0.016);
+      var fled = b1.state === 'flee';
+
+      DG.bug.reset();
+      var b2 = DG.bug._spawnAt('ladybug', raw.player.x + 20, raw.player.y);
+      V.setAutoSneak(true);
+      DG.bug.update(0.016);
+      var stayed = b2.state === 'idle';
+
+      V.setAutoSneak(false);
+      raw.player.walking = false;
+      DG.bug.reset();
+      return fled && stayed && ('성큼 → 달아남 · 살금 → 그대로');
+    });
+
+    t('곤충 — 손이 닿는 것에서 벌레가 사물보다 앞선다', function () {
+      var raw = V.raw();
+      /* 사물 바로 앞에 세워 놓고, 그 자리에 벌레를 하나 띄운다 */
+      var pr = raw.props.filter(function (x) { return x.kind === 'tree'; })[0];
+      raw.player.x = pr.x; raw.player.y = pr.y + 8;
+      var pf = V.focus();
+      DG.bug._spawnAt('ladybug', pr.x + 6, pr.y + 8);
+      var bf = V.focus();
+      DG.bug.reset();
+      return pf && pf.type === 'prop' && bf && bf.type === 'bug' &&
+        ('벌레 없을 때 ' + pf.type + ' → 있을 때 ' + bf.type);
+    });
+
+    /* ── 집 ─────────────────────────────────────────────── */
+
+    t('집 — 들어갔다 나오면 밖의 자리로 돌아온다', function () {
+      var raw = V.raw();
+      raw.player.x = 400; raw.player.y = 300;
+      var inR = V.enterHome();
+      var wasIn = V.indoors();
+      var inX = Math.round(raw.player.x), inY = Math.round(raw.player.y);
+      var outR = V.leaveHome();
+      return inR && outR && wasIn && !V.indoors() &&
+        Math.round(raw.player.x) === 400 && Math.round(raw.player.y) === 300 &&
+        ('안 (' + inX + ',' + inY + ') → 밖 (400,300)');
+    });
+
+    t('집 — 선 자리에 놓고 다시 거둔다 (창고로 돌아온다)', function () {
+      var Hm = DG.home, T = V.TILE;
+      Hm.state().items = [];
+      Hm.state().stock = { soban: 1 };
+      V.enterHome();
+      var raw = V.raw();
+      raw.player.x = 3 * T + T * 0.5; raw.player.y = 3 * T + T * 0.5;
+      var pl = Hm.place('soban');
+      var placed = Hm.state().items.length === 1 && Hm.stockCount('soban') === 0;
+      var again = Hm.place('soban');                 // 창고가 비었으니 막혀야 한다
+      var pick = Hm.pickUp(Hm.state().items[0]);
+      var back = Hm.state().items.length === 0 && Hm.stockCount('soban') === 1;
+      V.leaveHome();
+      return pl.kind === 'place' && placed && again.kind === 'no' &&
+        pick.kind === 'pick' && back && '놓기 → 거두기 왕복';
+    });
+
+    t('집 — 문 앞에는 놓지 못한다', function () {
+      var Hm = DG.home, d = Hm.door();
+      Hm.state().stock = { soban: 1 };
+      V.enterHome();
+      var raw = V.raw();
+      raw.player.x = d.x; raw.player.y = d.y + 6;
+      var r = Hm.place('soban');
+      V.leaveHome();
+      return r.kind === 'no' && Hm.stockCount('soban') === 1 && ('막힘: ' + r.text);
+    });
+
+    t('집 — 같은 계열 셋을 놓으면 어울림 점수가 붙는다', function () {
+      var Hm = DG.home, T = V.TILE;
+      Hm.state().items = [];
+      var one = Hm.score();
+      Hm.state().items = [
+        { key: 'soban', x: T * 1.5, y: T * 1.5 },
+        { key: 'bangseok', x: T * 2.5, y: T * 1.5 },
+        { key: 'deungjan', x: T * 3.5, y: T * 1.5 }
+      ];
+      var three = Hm.score();
+      Hm.state().items = [];
+      return one.bonus === 0 && three.bonus === 25 && three.total > one.total &&
+        ('셋 놓으니 어울림 +' + three.bonus + ' · 모두 ' + three.total + '점');
+    });
+
+    t('집 — 증축은 빚을 지우고, 빚이 남으면 다음 증축을 막는다', function () {
+      var Hm = DG.home;
+      Hm.state().tier = 0; Hm.state().debt = 0;
+      var w0 = Hm.room().tw;
+      var e1 = Hm.expand();
+      var debt = Hm.debt();
+      var e2 = Hm.expand();                          // 빚이 남았으니 막혀야 한다
+      C.save.player.gold = debt + 100;
+      var rp = Hm.repay();
+      var e3 = Hm.expand();
+      var w2 = Hm.room().tw;
+      Hm.state().tier = 0; Hm.state().debt = 0;
+      return e1.kind === 'expand' && debt > 0 && e2.kind === 'no' &&
+        rp.kind === 'repay' && e3.kind === 'expand' && w2 > w0 &&
+        ('칸 ' + w0 + ' → ' + w2 + ' · 빚 ' + C.fmt(debt) + ' 갚고 다시 증축');
+    });
+
+    t('전방 — 가구는 오늘 진열된 것만 살 수 있다', function () {
+      var Hm = DG.home, VD = DG.villageData;
+      var today = Hm.shopToday();
+      var off = VD.FURNITURE.filter(function (f) {
+        return today.filter(function (x) { return x.key === f.key; }).length === 0;
+      })[0];
+      C.save.player.gold = 99999;
+      Hm.state().stock = {};
+      var ok = Hm.buy(today[0].key);
+      var no = off ? Hm.buy(off.key) : { kind: 'no' };
+      var same = Hm.shopToday().map(function (f) { return f.key; }).join(',') ===
+                 today.map(function (f) { return f.key; }).join(',');
+      return today.length === 4 && ok.kind === 'buy' && no.kind === 'no' && same &&
+        ('오늘 ' + today.map(function (f) { return f.name; }).join('·'));
+    });
+
+    t('집 안에서는 마을이 돌지 않는다 (벌레도 낚시도 밖의 일)', function () {
+      var raw = V.raw();
+      DG.bug.reset();
+      V.enterHome();
+      raw.player.x = 100; raw.player.y = 100;
+      DG.bug._spawnAt('ladybug', 100, 100);
+      var b = DG.bug.list()[0];
+      var st0 = b.state;
+      raw.player.walking = true;
+      V.update(0.016);                               // 밖이었다면 달아났을 상황이다
+      var st1 = b.state;
+      raw.player.walking = false;
+      V.leaveHome();
+      DG.bug.reset();
+      return st0 === 'idle' && st1 === 'idle' && '집 안에서는 벌레가 굴러가지 않는다';
+    });
+
+    t('집 안의 투영은 휘지 않는다 (왕복이 그대로 돌아온다)', function () {
+      V.enterHome();
+      DG.villageView.resize();
+      DG.villageView.draw();
+      var a = DG.villageView._projectIn(120, 90);
+      var b = DG.villageView._unprojectIn(a.x, a.y);
+      V.leaveHome();
+      return Math.abs(b.x - 120) < 0.5 && Math.abs(b.y - 90) < 0.5 &&
+        ('(120,90) → 화면 (' + Math.round(a.x) + ',' + Math.round(a.y) + ') → 되돌림 정확');
+    });
+
+    /* ── 편지와 이사 ────────────────────────────────────── */
+
+    t('편지 — 부탁을 들어준 다음 날 감사장이 온다', function () {
+      var s = V.state();
+      s.mail = [];
+      var rid = s.residents[0];
+      V.requestOf(rid).done = true;
+      s.day -= 1;
+      V.rollDay();
+      var got = s.mail.filter(function (l) {
+        return l.kind === 'thanks' && l.from === rid;
+      });
+      return got.length === 1 && ('감사장 1통 (' + (DG.data.find(rid) || {}).name + ')');
+    });
+
+    t('편지 — 선물은 한 번만 받는다', function () {
+      var s = V.state(), M = DG.mail;
+      s.mail = [];
+      var l = M._put({ from: 'town', kind: 'hha', title: '평가서', body: '.',
+                       gift: { type: 'gold', n: 500 } });
+      var g0 = C.save.player.gold;
+      var a = M.take(l.id);
+      var g1 = C.save.player.gold;
+      var b = M.take(l.id);
+      return a.kind === 'gift' && g1 === g0 + 500 && b.kind === 'no' &&
+        C.save.player.gold === g1 && ('🪙 +500 한 번만');
+    });
+
+    t('편지 — 답장은 사람마다 하루 한 번, 정이 는다', function () {
+      var s = V.state(), M = DG.mail;
+      var rid = s.residents[0];
+      s.mail = []; s.replied = {};
+      var l1 = M._put({ from: rid, kind: 'warm', title: '안부', body: '.', gift: null });
+      var l2 = M._put({ from: rid, kind: 'warm', title: '안부 둘', body: '.', gift: null });
+      var f0 = V.friendOf(rid);
+      var a = M.reply(l1.id);
+      var f1 = V.friendOf(rid);
+      var b = M.reply(l2.id);
+      return a.kind === 'reply' && f1 === f0 + 1 && b.kind === 'no' &&
+        V.friendOf(rid) === f1 && ('친밀도 ' + f0 + ' → ' + f1 + ' · 두 번째는 막힘');
+    });
+
+    t('이사 — 날이 되면 떠나고 빈자리에 새 인물이 온다', function () {
+      var s = V.state();
+      s.mail = [];
+      var gone = s.residents[0];
+      var n0 = s.residents.length;
+      s.leaving[gone] = s.day;
+      s.day -= 1;
+      V.rollDay();
+      var left = s.residents.indexOf(gone) < 0;
+      var bye = s.mail.filter(function (l) { return l.kind === 'bye'; }).length;
+      var hi = s.mail.filter(function (l) { return l.kind === 'hello'; }).length;
+      return left && s.residents.length === n0 && bye === 1 && hi === 1 &&
+        ('떠남 ' + (DG.data.find(gone) || {}).name + ' · 작별 1 · 인사 1 · 주민 ' +
+         s.residents.length + '명 유지');
+    });
+
+    t('이사 — 부탁을 들어준 뒤에만 붙잡힌다', function () {
+      var s = V.state(), M = DG.mail;
+      var rid = s.residents[0];
+      s.leaving[rid] = s.day + 3;
+      V.requestOf(rid).done = false;
+      var no = M.keep(rid);
+      var stillLeaving = M.leavingOf(rid) !== null;
+      V.requestOf(rid).done = true;
+      var f0 = V.friendOf(rid);
+      var ok = M.keep(rid);
+      return no.kind === 'no' && stillLeaving && ok.kind === 'keep' &&
+        M.leavingOf(rid) === null && V.friendOf(rid) === f0 + 2 &&
+        ('부탁 전 막힘 → 부탁 뒤 붙잡음 (친밀도 +2)');
+    });
+
+    t('자동 — 잠자리채가 있으면 벌레를 노리고 살금살금 걷는다', function () {
+      var raw = V.raw();
+      /* 앞 항목이 던져 둔 낚싯줄이 남아 있으면 자동이 그것부터 본다 — 먼저 거둔다 */
+      if (V.fishState()) { V.hookLine(); }
+      V.state().tools.net = true;
+      DG.bug.reset();
+      DG.bug._spawnAt('ladybug', raw.player.x + 60, raw.player.y);
+      var A = DG.auto.state();
+      var keep = { errand: A.errand, gather: A.gather };
+      A.on = true; A.bug = true;
+      A.errand = false; A.gather = false;            // 벌레만 남겨 놓고 본다
+      DG.auto.update(0.5);                           // 목표를 고르는 주기를 넘긴다
+      var aim = DG.auto.status().aim;
+      var sneak = V.sneaking();
+      A.on = false; A.errand = keep.errand; A.gather = keep.gather;
+      V.setAutoSneak(false);
+      DG.bug.reset();
+      return aim && aim.type === 'bug' && sneak &&
+        ('목표 ' + aim.obj.ref.name + ' · 살금살금 켜짐');
+    });
+
+    /* ── 화석과 조개 ────────────────────────────────────── */
+
+    /** 진단이 끼워 넣은 사물을 걷어낸다.
+     *  `raw().props` 는 **살아 있는 배열**이다 — 스냅샷의 칸을 갈아 끼우는 것으로는
+     *  마을에서 빠지지 않는다(그렇게 했다가 다음 항목이 엉뚱한 것을 짚었다). */
+    function dropProp(id) {
+      var pr = V.raw().props;
+      for (var i = pr.length - 1; i >= 0; i--) {
+        if (pr[i].id === id) { pr.splice(i, 1); }
+      }
+    }
+
+    t('화석 — 삽이 없으면 갈라진 자리를 못 판다', function () {
+      var raw = V.raw(), s = V.state();
+      s.tools.spade = false;
+      DG.bug.reset();
+      raw.props.push({ id: 'digtest', kind: 'dig', x: raw.player.x + 4, y: raw.player.y });
+      raw.player.x = raw.player.x; raw.player.y = raw.player.y;
+      var r = V.interact();
+      return r && r.kind === 'no' && r.text.indexOf('삽') >= 0 && ('막힘: ' + r.text);
+    });
+
+    t('화석 — 삽을 사면 파지고 하루 한 번이다', function () {
+      var raw = V.raw(), s = V.state();
+      C.save.player.gold = 5000;
+      var buy = V.buyTool('spade');
+      var r1 = V.interact();
+      var r2 = V.interact();                          // 같은 자리는 오늘 몫이 끝났다
+      var isFossil = r1 && r1.item && r1.item.cat === 'fossil';
+      dropProp('digtest');
+      return buy.kind === 'buy' && r1.kind === 'gather' && isFossil &&
+        r2.kind === 'empty' && ('판 것: ' + r1.item.name + ' · 두 번째는 ' + r2.kind);
+    });
+
+    t('조개 — 도구 없이 줍는다', function () {
+      var raw = V.raw();
+      raw.props.push({ id: 'shelltest', kind: 'shell', x: raw.player.x + 4, y: raw.player.y });
+      var before = V.bagCount('godung') + V.bagCount('sora') + V.bagCount('daehap');
+      var r = V.interact();
+      dropProp('shelltest');
+      return r && r.kind === 'gather' && r.item.cat === 'shell' &&
+        ('주움: ' + r.item.name + ' (전 ' + before + ')');
+    });
+
+    t('갈라진 자리와 조개는 날마다 자리가 바뀐다', function () {
+      var s = V.state();
+      var pos = function () {
+        return V.raw().props.filter(function (p) {
+          return p.kind === 'dig' || p.kind === 'shell';
+        }).map(function (p) { return p.kind + Math.round(p.x) + ',' + Math.round(p.y); })
+          .sort().join('|');
+      };
+      var d0 = s.day;
+      V.buildProps();
+      var a = pos();
+      s.day = d0 + 1;
+      V.buildProps();
+      var b = pos();
+      s.day = d0;
+      V.buildProps();
+      var c = pos();
+      /* 나무·바위는 씨앗만 보므로 그대로여야 한다 */
+      var trees = V.raw().props.filter(function (p) { return p.kind === 'tree'; }).length;
+      return a !== b && a === c && trees > 0 &&
+        ('오늘 ' + a.split('|').length + '자리 → 내일 ' + b.split('|').length +
+         '자리 (되돌리면 같다) · 나무 ' + trees + '그루는 그대로');
+    });
+
+    /* ── 사고(史庫) ─────────────────────────────────────── */
+
+    function goMuseum() {
+      var raw = V.raw();
+      var m = raw.props.filter(function (p) { return p.kind === 'museum'; })[0];
+      raw.player.x = m.x; raw.player.y = m.y + 10;
+      return m;
+    }
+
+    t('사고 — 앞에 가야 받는다', function () {
+      var raw = V.raw(), s = V.state();
+      s.donated = {};
+      s.bag.crucian = 3;
+      raw.player.x = 60; raw.player.y = 60;
+      var far = DG.museum.donate('crucian');
+      goMuseum();
+      var near = DG.museum.near();
+      return far.kind === 'no' && far.text.indexOf('사고') >= 0 && near &&
+        ('멀리서: ' + far.text);
+    });
+
+    t('사고 — 들이면 가방에서 빠지고 두 번은 못 들인다', function () {
+      var s = V.state();
+      goMuseum();
+      var before = V.bagCount('crucian'), fame0 = C.save.player.fame;
+      var a = DG.museum.donate('crucian');
+      var b = DG.museum.donate('crucian');
+      return a.kind === 'donate' && V.bagCount('crucian') === before - 1 &&
+        C.save.player.fame > fame0 && b.kind === 'no' &&
+        DG.museum.donated('crucian') && ('들임 · 가방 ' + before + ' → ' + V.bagCount('crucian') +
+        ' · 🎖️ +' + (C.save.player.fame - fame0));
+    });
+
+    t('사고 — 등급은 들인 종 수로 오른다', function () {
+      var s = V.state(), VD = DG.villageData;
+      s.donated = {};
+      var g0 = DG.museum.grade().name;
+      goMuseum();
+      var keys = VD.ITEMS.shell.concat(VD.ITEMS.fish).slice(0, 6);
+      for (var i = 0; i < keys.length; i++) {
+        s.bag[keys[i].key] = 1;
+        DG.museum.donate(keys[i].key);
+      }
+      var g1 = DG.museum.grade().name;
+      return DG.museum.count().done === 6 && g0 !== g1 &&
+        (g0 + ' → ' + g1 + ' (6종)');
+    });
+
+    t('도감과 사고는 다른 자리다 (팔아도 도감은 남는다)', function () {
+      var s = V.state();
+      s.donated = {};
+      s.bag.pearl = 1;
+      V.bagAdd(DG.villageData.item('pearl'), 0);       // 도감에만 올린다
+      s.caught.pearl = 1;
+      V.sell('pearl', 1);
+      var dexKept = V.caughtCount('pearl') === 1;
+      var notDonated = !DG.museum.donated('pearl');
+      return dexKept && notDonated && '판 뒤에도 도감엔 남고 사고엔 없다';
+    });
+
+    /* ── 선물 ───────────────────────────────────────────── */
+
+    t('선물 — 곁에 있어야 하고 사람마다 하루 한 번이다', function () {
+      var raw = V.raw(), s = V.state();
+      var res = raw.residents[0];
+      s.gifted = {};
+      s.bag.apple = 5;
+      raw.player.x = res.x + 900; raw.player.y = res.y;
+      var far = V.giveGift(res.id, 'apple');
+      raw.player.x = res.x; raw.player.y = res.y + 8;
+      var a = V.giveGift(res.id, 'apple');
+      var b = V.giveGift(res.id, 'apple');
+      return far.kind === 'no' && a.kind === 'gift' && b.kind === 'no' &&
+        ('멀리서 막힘 → 곁에서 한 번 → 두 번째 막힘');
+    });
+
+    t('선물 — 좋아하는 갈래면 정이 더 는다', function () {
+      var raw = V.raw(), s = V.state(), VD = DG.villageData;
+      s.gifted = {}; s.friend = {};
+      var cheap = function (cat) {
+        return VD.ITEMS[cat].filter(function (i) { return i.price < 200; })[0];
+      };
+      var A = raw.residents[0], B = raw.residents[1];
+      var likeA = V.giftLike(A.id);
+      var other = ['fruit', 'nut', 'ore', 'flower', 'fish', 'bug', 'shell', 'fossil']
+        .filter(function (c) { return c !== V.giftLike(B.id); })[0];
+      var iA = cheap(likeA), iB = cheap(other);
+      s.bag[iA.key] = 3; s.bag[iB.key] = 3;
+
+      raw.player.x = A.x; raw.player.y = A.y + 8;
+      V.giveGift(A.id, iA.key);
+      var upA = V.friendOf(A.id);
+      raw.player.x = B.x; raw.player.y = B.y + 8;
+      V.giveGift(B.id, iB.key);
+      var upB = V.friendOf(B.id);
+      return upA === 3 && upB === 1 &&
+        ('좋아하는 ' + iA.name + ' → +' + upA + ' · 아닌 ' + iB.name + ' → +' + upB);
+    });
+
+    t('선물 — 다음 날 답례가 온다', function () {
+      var raw = V.raw(), s = V.state();
+      s.mail = []; s.gifted = {};
+      s.day -= 1;                                     // 어제 준 것으로 만든다
+      var res = raw.residents[0];
+      s.bag.apple = 3;
+      raw.player.x = res.x; raw.player.y = res.y + 8;
+      V.requestOf(res.id).done = false;               // 감사장과 겹치지 않게
+      V.giveGift(res.id, 'apple');
+      V.rollDay();
+      var back = s.mail.filter(function (l) {
+        return l.kind === 'giftback' && l.from === res.id;
+      });
+      return back.length === 1 && ('답례 1통 (' + (DG.data.find(res.id) || {}).name + ')');
+    });
+
+    /* ── 벽지와 장판 ────────────────────────────────────── */
+
+    t('벽지·장판 — 오늘 들어온 것만 사고, 가진 것만 바른다', function () {
+      var Hm = DG.home, VD = DG.villageData;
+      Hm.state().walls = {}; Hm.state().floors = {};
+      Hm.state().wall = 'earth'; Hm.state().floor = 'wood';
+      var fin = Hm.shopFinish();
+      C.save.player.gold = 99999;
+      var notYet = Hm.setFinish('wall', fin.wall.key);   // 아직 없다
+      var off = VD.WALLS.filter(function (w) {
+        return w.price > 0 && w.key !== fin.wall.key;
+      })[0];
+      var no = Hm.buyFinish('wall', off.key);
+      var ok = Hm.buyFinish('wall', fin.wall.key);
+      var set = Hm.setFinish('wall', fin.wall.key);
+      return notYet.kind === 'no' && no.kind === 'no' && ok.kind === 'buy' &&
+        set.kind === 'finish' && Hm.wallNow().key === fin.wall.key &&
+        ('오늘 벽지 ' + fin.wall.name + ' · 장판 ' + fin.floor.name);
+    });
+
+    t('벽지·장판 — 갈아 끼우면 집 평가가 오른다', function () {
+      var Hm = DG.home;
+      Hm.state().items = [];
+      Hm.state().wall = 'earth'; Hm.state().floor = 'wood';
+      var base = Hm.score();
+      Hm.state().walls.hanji = true;
+      Hm.state().floors.jangpan = true;
+      Hm.setFinish('wall', 'hanji');
+      Hm.setFinish('floor', 'jangpan');
+      var after = Hm.score();
+      Hm.state().wall = 'earth'; Hm.state().floor = 'wood';
+      return base.finish === 0 && after.finish === 24 &&
+        after.total === base.total + 24 &&
+        ('기본 ' + base.total + '점 → 갈아 끼우니 ' + after.total + '점');
+    });
+
+    t('프레임마다 도는 것은 공용 난수를 먹지 않는다', function () {
+      /* 벌레와 주민은 매 프레임 돌고, 헤드리스에서 프레임 수는 실행마다 다르다.
+         여기서 공용 Math.random 을 먹으면 **씨앗을 고정해 둔 이 진단이 실행마다
+         다른 수를 뽑는다** — 실제로 그렇게 깨져서 파일마다 제 난수를 두었다.
+         이 항목이 그 못이다. */
+      var real = Math.random, calls = 0;
+      Math.random = function () { calls++; return real(); };
+      DG.bug.reset();
+      DG.folk._reset();
+      for (var k = 0; k < 300; k++) {
+        DG.bug.update(0.1);
+        DG.folk.update(0.1);
+      }
+      DG.bug.reset();
+      DG.folk._reset();
+      Math.random = real;
+      return calls === 0 && '300프레임 동안 공용 난수 호출 0회';
+    });
+
+    /* ── 나무 흔들기 ────────────────────────────────────── */
+
+    /** 흔들기 결과를 확률이 아니라 **정해진 수**로 굴린다 (판정만 본다) */
+    function shakeWith(v) {
+      var real = Math.random;
+      Math.random = function () { return v; };
+      var raw = V.raw();
+      var tree = raw.props.filter(function (p) {
+        return p.kind === 'tree' && !V.spent(p);
+      })[0];
+      var out = tree ? V.shake(tree, DG.villageData.PROPS.tree) : null;
+      Math.random = real;
+      return { r: out, tree: tree };
+    }
+
+    t('나무 — 흔들면 대개 열매지만 가끔 다른 것이 떨어진다', function () {
+      var s = V.state();
+      s.used = {}; s.shakeDay = null;
+      DG.bug.reset();
+      var plain = shakeWith(0.5);                    // 여느 때
+      s.used = {}; s.shakeDay = null;
+      var furn = shakeWith(0.10);                    // 가구 구간
+      s.used = {}; s.shakeDay = null;
+      var gold = shakeWith(0.16);                    // 돈주머니 구간
+      DG.bug.reset();
+      return plain.r === null && furn.r.kind === 'furn' && gold.r.kind === 'gold' &&
+        ('0.5→열매 · 0.10→' + furn.r.text + ' · 0.16→' + gold.r.text);
+    });
+
+    t('나무 — 가구는 하루 둘, 돈주머니는 하루 하나까지', function () {
+      var s = V.state();
+      s.used = {}; s.shakeDay = null;
+      var a = shakeWith(0.10), b, c;
+      s.used = {};
+      b = shakeWith(0.10);
+      s.used = {};
+      c = shakeWith(0.10);                            // 셋째는 몫이 없다
+      s.used = {};
+      var g1 = shakeWith(0.16);
+      s.used = {};
+      var g2 = shakeWith(0.16);                       // 돈은 하루 하나
+      return a.r.kind === 'furn' && b.r.kind === 'furn' && c.r === null &&
+        g1.r.kind === 'gold' && g2.r === null &&
+        ('가구 2번 뒤 막힘 · 돈 1번 뒤 막힘');
+    });
+
+    t('나무 — 벌집을 건드리면 벌떼가 쫓아온다', function () {
+      var s = V.state();
+      s.used = {}; s.shakeDay = null; s.stung = null;
+      DG.bug.reset();
+      var r = shakeWith(0.02);                        // 벌집 구간
+      var sw = DG.bug.list().filter(function (b) { return b.chase; });
+      var spentNow = V.spent(r.tree);
+      DG.bug.reset();
+      return r.r.kind === 'bees' && sw.length === 1 && sw[0].key === 'wasp' &&
+        spentNow && ('벌떼 1 · 그 나무는 오늘 몫 끝');
+    });
+
+    t('벌떼 — 가만히 있으면 쏘이고, 달아나면 흩어진다', function () {
+      var s = V.state(), raw = V.raw();
+      var run = function (flee) {
+        s.stung = null;
+        DG.bug.reset();
+        var b = DG.bug.swarm(raw.player.x + 40, raw.player.y);
+        for (var k = 0; k < 40; k++) {
+          /* 벌떼는 오른쪽에 있다 — **반대쪽으로** 달아나야 벌어진다
+             (벌 쪽으로 달리면 그대로 쏘인다. 실제로 그렇게 한 번 틀렸다) */
+          if (flee) { raw.player.x -= 40; }           // 걸음이 벌보다 빠르다
+          DG.bug.update(0.1);
+          if (!DG.bug.list().length) { break; }
+        }
+        return DG.bug.stung();
+      };
+      var x0 = raw.player.x, y0 = raw.player.y;
+      var stuck = run(false);
+      raw.player.x = x0; raw.player.y = y0;
+      var fled = run(true);
+      raw.player.x = x0; raw.player.y = y0;
+      DG.bug.reset();
+      s.stung = null;
+      return stuck === true && fled === false &&
+        ('가만히 → 쏘임 · 달아나면 → 무사');
+    });
+
+    t('벌떼 — 잠자리채로 받아치면 잡히고 도감에 남는다', function () {
+      var s = V.state(), raw = V.raw();
+      s.tools.net = true;
+      s.stung = null;
+      DG.bug.reset();
+      var before = V.caughtCount('wasp');
+      var b = DG.bug.swarm(raw.player.x + 10, raw.player.y);
+      var r = DG.bug.swing(b);
+      DG.bug.reset();
+      s.stung = null;
+      return r.kind === 'gather' && r.item.key === 'wasp' &&
+        V.caughtCount('wasp') === before + 1 && DG.bug.list().length === 0 &&
+        ('받아침 · 도감 ' + V.caughtCount('wasp'));
+    });
+
+    t('말벌은 저절로 나오지 않는다 (나무를 흔들어야 만난다)', function () {
+      var names = DG.bug.poolNow();
+      var has = names.filter(function (it) { return it.key === 'wasp'; }).length;
+      var inDex = DG.villageData.ITEMS.bug.filter(function (it) {
+        return it.key === 'wasp';
+      }).length;
+      return has === 0 && inDex === 1 && '나오는 표엔 없고 도감엔 있다';
+    });
+
+    t('벌에 쏘인 날은 걸음이 무겁다', function () {
+      var s = V.state(), raw = V.raw();
+      var walk = function () {
+        raw.player.x = 400; raw.player.y = 300;
+        V.walkTo(1200, 300);
+        for (var k = 0; k < 10; k++) { V.update(0.1); }
+        V.walkTo(raw.player.x, raw.player.y);
+        return raw.player.x - 400;
+      };
+      s.stung = null;
+      var fine = walk();
+      s.stung = s.day;
+      var hurt = walk();
+      s.stung = null;
+      return hurt < fine && hurt > 0 &&
+        ('여느 때 ' + Math.round(fine) + ' · 쏘인 날 ' + Math.round(hurt));
+    });
+
+    /* ── 날씨 ───────────────────────────────────────────── */
+
+    /** 오늘 하늘을 그것인 것처럼 만든다 (되돌리는 함수를 준다) */
+    function fakeWeather(key) {
+      var VD = DG.villageData, old = VD.weather;
+      VD.weather = function () { return VD.WEATHERS[key]; };
+      return function () { VD.weather = old; };
+    }
+
+    t('날씨 — 날짜로 정해지고 같은 날이면 같은 하늘이다', function () {
+      var VD = DG.villageData;
+      var a = VD.weatherOf(new Date(2026, 5, 11));
+      var b = VD.weatherOf(new Date(2026, 5, 11));
+      var c = VD.weatherOf(new Date(2026, 5, 12));
+      var many = {}, i;
+      for (i = 1; i <= 90; i++) {                    // 석 달을 훑어 네 하늘이 다 나오는지
+        var w = VD.weatherOf(new Date(2026, 0, i));
+        many[w.key] = (many[w.key] || 0) + 1;
+      }
+      return a.key === b.key && !!VD.WEATHERS[a.key] && !!c &&
+        Object.keys(many).length >= 2 &&
+        ('6/11 ' + a.name + ' · 6/12 ' + c.name + ' · 1~3월 ' +
+         Object.keys(many).map(function (k) { return k + ' ' + many[k]; }).join(' · '));
+    });
+
+    t('날씨 — 겨울엔 비 대신 눈이 온다', function () {
+      var VD = DG.villageData, i, bad = 0, snow = 0;
+      for (i = 1; i <= 28; i++) {
+        var w = VD.weatherOf(new Date(2026, 0, i));   // 1월
+        if (w.key === 'rain') { bad++; }
+        if (w.key === 'snow') { snow++; }
+      }
+      return bad === 0 && snow > 0 && ('1월 28일 중 비 0일 · 눈 ' + snow + '일');
+    });
+
+    t('날씨 — 달·별·불꽃을 보는 행사날은 맑다', function () {
+      var VD = DG.villageData;
+      var out = [];
+      VD.EVENTS.forEach(function (e) {
+        if (!e.sky) { return; }
+        var w = VD.weatherOf(new Date(2026, e.m - 1, e.d));
+        out.push(e.name + '→' + w.key);
+      });
+      var allOk = out.filter(function (x) {
+        return x.indexOf('→clear') < 0 && x.indexOf('→snow') < 0;
+      }).length === 0;
+      return allOk && out.length >= 6 && out.join(' · ');
+    });
+
+    t('날씨 — 비 오는 날에만 나오는 것이 있고, 나는 벌레는 숨는다', function () {
+      var undo = fakeWeather('rain');
+      var wet = DG.bug.nowNames();
+      undo();
+      var undo2 = fakeWeather('clear');
+      var dry = DG.bug.nowNames();
+      undo2();
+      var hasSnail = wet.indexOf('달팽이') >= 0 && dry.indexOf('달팽이') < 0;
+      /* 나는 것(나비·잠자리·매미)은 비에 빠진다 */
+      var fliers = ['배추흰나비', '호랑나비', '잠자리', '참매미'];
+      var hidden = fliers.filter(function (n) { return wet.indexOf(n) >= 0; }).length === 0;
+      return hasSnail && hidden &&
+        ('비 ' + wet.length + '종 · 맑음 ' + dry.length + '종');
+    });
+
+    t('날씨 — 낚시도 하늘을 탄다 (미꾸라지는 비에만)', function () {
+      var VD = DG.villageData, i, wet = {}, dry = {};
+      for (i = 0; i < 300; i++) { wet[VD.pick('fish', 'summer', 'rain').key] = 1; }
+      for (i = 0; i < 300; i++) { dry[VD.pick('fish', 'summer', 'clear').key] = 1; }
+      return wet.loach === 1 && dry.loach === undefined &&
+        ('비에 ' + Object.keys(wet).length + '종 · 맑음에 ' + Object.keys(dry).length + '종');
+    });
+
+    t('부탁은 지금 나는 것 중에서만 청한다', function () {
+      var VD = DG.villageData, s = V.state(), i, bad = [];
+      /* `pick` 은 이 파일 안의 season()/weather() 를 본다 — 밖에서 갈아 끼워도 안 먹는다.
+         그러니 **오늘의 철과 하늘**을 기준으로 재 본다 */
+      var se = VD.season().key, wx = VD.weather().key;
+      for (i = 0; i < 60; i++) {
+        s.requests = {};
+        var req = V.requestOf(s.residents[0]);
+        var it = VD.item(req.want);
+        if (!VD.inSeason(it, se) || !VD.inWeather(it, wx)) { bad.push(it.name); }
+      }
+      s.requests = {};
+      return bad.length === 0 &&
+        ('오늘(' + se + '·' + wx + ') 부탁 60번 — 철 지난 것 0건');
+    });
+
+    /* ── 순무 장 ────────────────────────────────────────── */
+
+    t('날짜 — 요일이 실제 달력과 맞는다', function () {
+      /* 순무 장이 일요일에 서므로 여기가 어긋나면 장이 엉뚱한 날에 선다.
+         옛 today() 는 시간대 부호가 뒤집혀 날이 저녁 여섯 시에 바뀌었다 */
+      var d = new Date();
+      return DG.turnip.dow(V.today()) === d.getDay() &&
+        ('오늘 요일 ' + DG.turnip.dow(V.today()) + ' = getDay() ' + d.getDay());
+    });
+
+    t('순무 — 일요일 오전에만 장이 선다', function () {
+      var T = DG.turnip, s = V.state();
+      var day0 = s.day;
+      var sun = day0 - DG.turnip.dow(day0);          // 이번 주 일요일
+      var out = [];
+      [0, 1, 3, 6].forEach(function (k) {
+        s.day = sun + k;
+        out.push(k + '→' + T.dow(s.day));
+      });
+      s.day = day0;
+      return out.join(' ') === '0→0 1→1 3→3 6→6' &&
+        T.dow(sun) === 0 && ('일요일 기준 ' + out.join(' · '));
+    });
+
+    t('순무 — 살 값은 90~110, 같은 주면 늘 같다', function () {
+      var T = DG.turnip, i, lo = 999, hi = 0, same = true;
+      for (i = 0; i < 200; i++) {
+        var p = T.buyPrice(3000 + i);
+        if (p < lo) { lo = p; }
+        if (p > hi) { hi = p; }
+        if (T.buyPrice(3000 + i) !== p) { same = false; }
+      }
+      return lo >= 90 && hi <= 110 && same && ('200주 살 값 ' + lo + '~' + hi);
+    });
+
+    t('순무 — 시세는 네 무늬를 타고 일요일엔 값이 없다', function () {
+      var T = DG.turnip, i, pats = {}, zero = T.sellPrice(4000, 0, 0);
+      for (i = 0; i < 400; i++) { pats[T.PATTERNS[T.pattern(4000 + i)]] = 1; }
+      /* 어느 주든 열두 칸이 다 값을 갖는다 */
+      var bad = 0;
+      for (i = 1; i <= 6; i++) {
+        if (T.sellPrice(4000, i, 0) < 15 || T.sellPrice(4000, i, 1) < 15) { bad++; }
+      }
+      return zero === 0 && bad === 0 && Object.keys(pats).length === 4 &&
+        ('무늬 ' + Object.keys(pats).join('·') + ' · 일요일 값 0');
+    });
+
+    t('순무 — 폭등 주에는 서너 배까지 뛴다', function () {
+      var T = DG.turnip, i, best = 0, w = 0;
+      for (i = 0; i < 400; i++) {
+        if (T.pattern(5000 + i) !== 3) { continue; }
+        for (var d = 1; d <= 6; d++) {
+          for (var h = 0; h < 2; h++) {
+            var p = T.sellPrice(5000 + i, d, h);
+            if (p > best) { best = p; w = 5000 + i; }
+          }
+        }
+      }
+      return best >= 300 && ('폭등 주 최고 시세 🪙 ' + best);
+    });
+
+    t('순무 — 일요일 오전이 아니면 못 산다', function () {
+      var T = DG.turnip, s = V.state();
+      var day0 = s.day;
+      s.day = day0 - T.dow(day0) + 2;                // 화요일로 옮겨 본다
+      var r = T.buy(10);
+      s.day = day0;
+      return r.kind === 'no' && ('막힘: ' + r.text.replace(/\*\*/g, ''));
+    });
+
+    t('순무 — 사면 금이 빠지고, 팔면 이문이 남는다', function () {
+      var T = DG.turnip, s = V.state();
+      var day0 = s.day;
+      T._setOpen(true);                              // 장이 선 것으로 친다
+      s.turnip = null;
+      C.save.player.gold = 200000;
+      var g0 = C.save.player.gold;
+      var b = T.buy(100);
+      var cost = g0 - C.save.player.gold;
+      var held = T.have();
+      T._setOpen(null);
+
+      /* 팔 때는 화요일 오전으로 옮긴다 (일요일엔 전방이 받지 않는다) */
+      s.day = day0 - T.dow(day0) + 2;
+      s.turnip.week = T.week(s.day);                 // 아직 안 썩은 것으로
+      var g1 = C.save.player.gold;
+      var sl = T.sellAll();
+      var got = C.save.player.gold - g1;
+      s.day = day0;
+      s.turnip = null;
+      return b.kind === 'buy' && held.n === 100 && cost === held.buy * 100 &&
+        sl.kind === 'sell' && got > 0 && T.have() === null &&
+        ('100개 사 🪙 -' + C.fmt(cost) + ' → 팔아 🪙 +' + C.fmt(got));
+    });
+
+    t('순무 — 열 개 묶음이고 한 주 상한이 있다', function () {
+      var T = DG.turnip, s = V.state();
+      T._setOpen(true);
+      s.turnip = null;
+      C.save.player.gold = 9999999;
+      var odd = T.buy(7);                            // 열 개가 안 된다
+      var ok = T.buy(T.MAX_BUY);
+      var over = T.buy(10);                          // 상한을 넘는다
+      T._setOpen(null);
+      var n = T.have().n;
+      s.turnip = null;
+      return odd.kind === 'no' && ok.kind === 'buy' && over.kind === 'no' &&
+        n === T.MAX_BUY && ('7개 막힘 · ' + n + '개까지 · 더는 막힘');
+    });
+
+    t('순무 — 다음 주가 오면 썩어 개당 10 에 나간다', function () {
+      var T = DG.turnip, s = V.state();
+      var day0 = s.day;
+      s.turnip = { n: 100, buy: 100, week: T.week(s.day) - 1 };   // 지난주에 산 것
+      s.day = day0 - T.dow(day0) + 3;                // 수요일
+      s.turnip.week = T.week(s.day) - 1;
+      var rot = T.rotten();
+      var price = T.nowPrice();
+      C.save.player.gold = 0;
+      var r = T.sellAll();
+      var got = C.save.player.gold;
+      s.day = day0;
+      s.turnip = null;
+      return rot === true && price === T.ROT_PRICE && got === T.ROT_PRICE * 100 &&
+        r.profit < 0 && ('썩음 · 개당 🪙 ' + price + ' · 모두 ' + C.fmt(got));
+    });
+
+    t('순무 — 이번 주 시세표는 지나간 칸만 보여 준다', function () {
+      var T = DG.turnip, s = V.state();
+      var day0 = s.day;
+      s.day = day0 - T.dow(day0) + 4;                // 목요일
+      var tb = T.weekTable();
+      var shown = tb.filter(function (c) { return c.price !== null; }).length;
+      var hidden = tb.filter(function (c) { return c.price === null; }).length;
+      s.day = day0;
+      return tb.length === 12 && shown > 0 && hidden > 0 && shown + hidden === 12 &&
+        ('목요일 기준 지난 칸 ' + shown + ' · 앞 칸 ' + hidden);
+    });
+
+    /* ── 주민 성격 ──────────────────────────────────────── */
+
+    t('성격 — 인물마다 정해지고 늘 같다', function () {
+      var F = DG.folk, kinds = {}, i;
+      var ids = DG.data.heroes.slice(0, 60).map(function (h) { return h.id; });
+      for (i = 0; i < ids.length; i++) {
+        var a = F.typeOf(ids[i]), b = F.typeOf(ids[i]);
+        if (a.key !== b.key) { return false; }
+        kinds[a.key] = (kinds[a.key] || 0) + 1;
+      }
+      return Object.keys(kinds).length === DG.villageData.FOLK_TYPES.length &&
+        ('60명에 여섯 성격이 다 나온다 — ' +
+         Object.keys(kinds).map(function (k) { return k + ' ' + kinds[k]; }).join(' · '));
+    });
+
+    t('성격 — 청하는 갈래와 반기는 선물이 성격을 탄다', function () {
+      var F = DG.folk, VD = DG.villageData, s = V.state();
+      var id = s.residents[0], ty = F.typeOf(id);
+      var i, bad = 0;
+      for (i = 0; i < 40; i++) {
+        s.requests = {};
+        var req = V.requestOf(id);
+        var it = VD.item(req.want);
+        if (ty.req.indexOf(it.cat) < 0) { bad++; }
+      }
+      s.requests = {};
+      return bad === 0 && V.giftLike(id) === ty.like &&
+        (ty.name + ' — 청하는 갈래 ' + ty.req.join('·') + ' · 반기는 것 ' + ty.like);
+    });
+
+    t('성격 — 말투가 사람마다 다르다', function () {
+      var F = DG.folk, VD = DG.villageData, raw = V.raw(), s = V.state();
+      var lines = {}, i;
+      for (i = 0; i < raw.residents.length; i++) {
+        var res = raw.residents[i];
+        s.requests = {};
+        V.requestOf(res.id).done = false;
+        s.bag = {};
+        var r = V.talk(res);
+        lines[F.typeOf(res.id).key] = r.text;
+      }
+      s.requests = {};
+      var vals = Object.keys(lines).map(function (k) { return lines[k]; });
+      var uniq = vals.filter(function (v, j) { return vals.indexOf(v) === j; });
+      return uniq.length === vals.length && vals.length >= 3 &&
+        ('성격 ' + vals.length + '가지 문구가 다 다르다');
+    });
+
+    t('성격 — {it}·{n}·{have} 가 실제 물건으로 채워진다', function () {
+      var F = DG.folk, VD = DG.villageData;
+      var out = F.say('{it} {n}개만! ({have}/{n})', VD.item('apple'), 3, 1);
+      return out.indexOf('{') < 0 && out.indexOf('능금') >= 0 &&
+        out.indexOf('3') >= 0 && out.indexOf('1/3') >= 0 && ('「' + out + '」');
+    });
+
+    /* ── 내가 먼저 쓰는 편지 ────────────────────────────── */
+
+    t('편지 — 내가 먼저 부칠 수 있고 사람마다 하루 한 번이다', function () {
+      var M = DG.mail, s = V.state();
+      var id = s.residents[0];
+      s.wrote = {};
+      var f0 = V.friendOf(id);
+      var a = M.write(id, '  요즘 어떠신지요.  ');
+      var f1 = V.friendOf(id);
+      var b = M.write(id, '또 씁니다');
+      var empty = M.write(s.residents[1], '   ');
+      var far = M.write('없는사람', '여보세요');
+      return a.kind === 'write' && f1 === f0 + 1 && b.kind === 'no' &&
+        empty.kind === 'no' && far.kind === 'no' && M.wroteToday(id) &&
+        ('친밀도 ' + f0 + ' → ' + f1 + ' · 두 번째는 막힘');
+    });
+
+    t('편지 — 부친 다음 날 답장이 온다', function () {
+      var M = DG.mail, s = V.state();
+      s.mail = []; s.wrote = {};
+      s.day -= 1;                                    // 어제 부친 것으로 만든다
+      var id = s.residents[0];
+      V.requestOf(id).done = false;                  // 감사장과 겹치지 않게
+      s.gifted = {};
+      M.write(id, '요즘 어떠신지요');
+      V.rollDay();
+      var back = s.mail.filter(function (l) {
+        return l.kind === 'answer' && l.from === id;
+      });
+      return back.length === 1 &&
+        back[0].body.indexOf(DG.folk.typeOf(id).letter.slice(0, 6)) >= 0 &&
+        ('답장 1통 — 「' + back[0].body.slice(0, 24) + '…」');
+    });
+
+    t('편지 — 부치는 것과 답장은 다른 칸이다', function () {
+      var M = DG.mail, s = V.state();
+      var id = s.residents[0];
+      s.wrote = {}; s.replied = {}; s.mail = [];
+      var l = M._put({ from: id, kind: 'warm', title: '안부', body: '.', gift: null });
+      var f0 = V.friendOf(id);
+      M.write(id, '먼저 씁니다');                   // 부치기
+      var rep = M.reply(l.id);                       // 답장
+      return rep.kind === 'reply' && V.friendOf(id) === f0 + 2 &&
+        ('같은 날 부치고 답장까지 — 친밀도 +2');
+    });
+
+    /* ── 꽃 교배 ────────────────────────────────────────── */
+
+    t('꽃 — 곁에 다른 꽃이 있어야 교배로 핀다', function () {
+      var s = V.state(), T = V.TILE;
+      var raw = V.raw();
+      /* 꽃이 하나도 없는 풀밭을 찾아 둘을 나란히 심는다 */
+      var spot = null, tx, ty;
+      for (ty = 3; ty < V.H - 3 && !spot; ty++) {
+        for (tx = 3; tx < V.W - 3; tx++) {
+          if (V.tileAt(tx, ty) !== 'grass' || V.tileAt(tx + 1, ty) !== 'grass') { continue; }
+          var x0 = tx * T + T * 0.5, y0 = ty * T + T * 0.5;
+          var busy = raw.props.filter(function (p) {
+            return Math.hypot(p.x - x0, p.y - y0) < T * 3;
+          }).length;
+          if (!busy) { spot = { tx: tx, ty: ty }; break; }
+        }
+      }
+      if (!spot) { return false; }
+      var keep = s.planted.slice();
+
+      /* 홀로 심은 것 — 교배가 아니다 */
+      s.planted = [{ x: spot.tx * T + T * 0.5, y: spot.ty * T + T * 0.5,
+                     kind: 'flower', day: s.day - V.PLANT_DAYS, from: 'azalea' }];
+      V.syncPlanted();
+      var alone = V.raw().props.filter(function (p) { return p.id === 'pl0'; })[0];
+      var soloHybrid = !!alone.hybrid;
+
+      /* 곁에 하나 더 — 이제 교배가 일어난다 */
+      s.planted.push({ x: (spot.tx + 1) * T + T * 0.5, y: spot.ty * T + T * 0.5,
+                       kind: 'flower', day: s.day - V.PLANT_DAYS, from: 'azalea' });
+      V.syncPlanted();
+      var pair = V.raw().props.filter(function (p) {
+        return p.id === 'pl0' || p.id === 'pl1';
+      });
+      var anyHybrid = pair.filter(function (p) { return p.hybrid; }).length;
+
+      s.planted = keep;
+      V.syncPlanted();
+      return soloHybrid === false && anyHybrid > 0 &&
+        ('홀로 → 그대로 · 나란히 → 교배 ' + anyHybrid + '송이');
+    });
+
+    t('꽃 — 교배로 핀 것은 드문 꽃을 낸다', function () {
+      var VD = DG.villageData, s = V.state(), i, got = {};
+      var hyb = VD.ITEMS.flower.filter(function (f) { return f.hybrid; });
+      for (i = 0; i < 200; i++) { got[VD.pickHybrid().key] = 1; }
+      /* 저절로는 절대 안 핀다 (무게 0) */
+      var wild = {};
+      for (i = 0; i < 400; i++) { wild[VD.pick('flower').key] = 1; }
+      var leaked = hyb.filter(function (f) { return wild[f.key]; }).length;
+      return hyb.length === 3 && Object.keys(got).length === 3 && leaked === 0 &&
+        ('교배 꽃 ' + hyb.map(function (f) { return f.name; }).join('·') + ' — 저절로는 안 핀다');
+    });
+
+    /* ── 전방이 자란다 ──────────────────────────────────── */
+
+    t('전방 — 판 금이 쌓이면 커지고 값을 더 쳐준다', function () {
+      var s = V.state(), VD = DG.villageData;
+      var keep = s.soldGold;
+      var out = [];
+      [0, 30000, 120000, 400000].forEach(function (g) {
+        s.soldGold = g;
+        var lv = V.shopLevel();
+        out.push(lv.name + '(+' + Math.round((lv.bonus - 1) * 100) + '%·가구 ' +
+          DG.home.shopToday().length + ')');
+      });
+      s.soldGold = keep;
+      return out.length === 4 &&
+        out[0].indexOf('+0%') > 0 && out[3].indexOf('+12%') > 0 &&
+        out.join(' → ');
+    });
+
+    t('전방 — 웃돈이 실제 판값에 붙는다', function () {
+      var s = V.state(), VD = DG.villageData;
+      var keep = s.soldGold, it = VD.item('apple');
+      var undo = fakeEvent(null);                    // 행사 웃돈과 섞이지 않게
+      s.soldGold = 0;
+      s.bag.apple = 2;
+      C.save.player.gold = 0;
+      var plain = V.sell('apple', 1);
+      s.soldGold = 400000;
+      var rich = V.sell('apple', 1);
+      undo();
+      s.soldGold = keep;
+      return plain === it.price && rich === Math.round(it.price * 1.12) &&
+        ('전방 🪙 ' + plain + ' → 도가 🪙 ' + rich);
+    });
+
+    /* ── 별똥별과 소원 ──────────────────────────────────── */
+
+    t('별똥별 — 밤 맑은 하늘에서만, 정해진 때에만 흐른다', function () {
+      var T = DG.town, VD = DG.villageData;
+      var ph0 = VD.phaseOf, wx0 = VD.weather;
+      VD.phaseOf = function () { return VD.PHASES.filter(function (p) { return p.key === 'night'; })[0]; };
+      VD.weather = function () { return VD.WEATHERS.clear; };
+
+      /* **별이 흐르는 슬롯**을 골라 훑는다 (안 흐르는 슬롯을 잡으면 아무것도 못 본다) */
+      var slot = 100000, i;
+      for (i = 0; i < 200; i++) {
+        if (C.hash2(slot + i, (slot + i) % 883 + 3) <= 0.5) { slot = slot + i; break; }
+      }
+      var base = slot * T.STAR_SLOT;
+      var onCount = 0;
+      for (i = 0; i < T.STAR_SLOT; i += 100) {
+        if (T.starNow(base + i)) { onCount++; }
+      }
+      var rainy = (function () {
+        VD.weather = function () { return VD.WEATHERS.rain; };
+        var r = T.starNow(base + T.STAR_AT + 100);
+        VD.weather = function () { return VD.WEATHERS.clear; };
+        return r;
+      })();
+      var day = (function () {
+        VD.phaseOf = function () { return VD.PHASES.filter(function (p) { return p.key === 'day'; })[0]; };
+        var r = T.starNow(base + T.STAR_AT + 100);
+        VD.phaseOf = function () { return VD.PHASES.filter(function (p) { return p.key === 'night'; })[0]; };
+        return r;
+      })();
+
+      VD.phaseOf = ph0; VD.weather = wx0;
+      /* 흐르는 슬롯이면 창이 열려 있고, 아니면 내내 닫혀 있다 */
+      /* 흐르는 슬롯이면 2.6초(=26칸)만 열려 있다 — 하늘 내내 별이 흐르면 안 된다 */
+      var want = Math.round(T.STAR_MS / 100);
+      return Math.abs(onCount - want) <= 2 && rainy === null && day === null &&
+        ('흐르는 슬롯 ' + slot + ' 에서 열린 구간 ' + onCount + '칸(' +
+         Math.round(T.STAR_MS / 1000 * 10) / 10 + '초) · 비 오면 없음 · 낮에도 없음');
+    });
+
+    t('소원 — 별이 흐를 때만, 하룻밤 세 번까지', function () {
+      var T = DG.town, VD = DG.villageData, s = V.state();
+      var ph0 = VD.phaseOf, wx0 = VD.weather;
+      VD.phaseOf = function () { return VD.PHASES.filter(function (p) { return p.key === 'night'; })[0]; };
+      VD.weather = function () { return VD.WEATHERS.clear; };
+      s.wish = null;
+
+      T._setStar(null);                            // 흐르는 별이 없다
+      var noStar = T.wish();
+
+      var slot = 500;
+      var out = [];
+      for (var k = 0; k < 5; k++) {
+        T._setStar({ slot: slot + k, t: 0.5, x: 0.5, y: 0.2 });
+        out.push(T.wish().kind);
+      }
+      /* 같은 별에 두 번은 안 된다 */
+      T._setStar({ slot: slot, t: 0.5, x: 0.5, y: 0.2 });
+      var again = T.wish();
+
+      T._setStar(undefined); VD.phaseOf = ph0; VD.weather = wx0;
+      var n = T.wishesOn(s.day);
+      s.wish = null;
+      return noStar.kind === 'no' &&
+        out.join(',') === 'wish,wish,wish,no,no' && again.kind === 'no' &&
+        n === T.WISH_MAX && ('별 없을 때 막힘 · ' + n + '번까지 · 같은 별은 한 번');
+    });
+
+    t('소원 — 다음 날 별조각이 온다', function () {
+      var T = DG.town, s = V.state();
+      s.mail = []; s.gifted = {}; s.wrote = {};
+      s.day -= 1;
+      s.wish = { day: s.day, n: 2, last: -1 };
+      V.requestOf(s.residents[0]).done = false;
+      V.rollDay();
+      var got = s.mail.filter(function (l) { return l.kind === 'wish'; });
+      return got.length === 1 && got[0].gift.key === 'stardust' && got[0].gift.n === 2 &&
+        ('별조각 ' + got[0].gift.n + '개');
+    });
+
+    /* ── 잡초와 마을 평가 ───────────────────────────────── */
+
+    t('잡초 — 날마다 늘고, 뽑으면 준다', function () {
+      var s = V.state();
+      s.weeds = [];
+      var i;
+      for (i = 0; i < 5; i++) { s.day += 1; V.growWeeds(); }
+      var grew = s.weeds.length;
+      V.buildProps();
+      var props = V.raw().props.filter(function (p) { return p.kind === 'weed'; });
+      var r = V.pullWeed(props[0]);
+      var after = s.weeds.length;
+      s.weeds = [];
+      V.buildProps(); V.syncPlanted();
+      return grew >= 5 && props.length === grew && r.kind === 'weed' &&
+        after === grew - 1 && ('닷새에 ' + grew + '포기 · 하나 뽑아 ' + after);
+    });
+
+    t('잡초 — 상한이 있어 끝없이 늘지는 않는다', function () {
+      var s = V.state(), i;
+      s.weeds = [];
+      for (i = 0; i < 80; i++) { s.day += 1; V.growWeeds(); }
+      var n = s.weeds.length;
+      s.weeds = [];
+      V.buildProps(); V.syncPlanted();
+      return n === V.WEED_MAX && ('여든 날을 굴려도 ' + n + '포기에서 멈춘다');
+    });
+
+    t('마을 평가 — 잡초가 깎고 꽃이 올린다', function () {
+      var T = DG.town, s = V.state();
+      var keep = s.weeds.slice();
+      s.weeds = [];
+      V.buildProps();
+      var clean = T.beauty();
+      var i;
+      for (i = 0; i < 10; i++) { s.weeds.push({ x: 200 + i, y: 200 }); }
+      V.buildProps();
+      var dirty = T.beauty();
+      s.weeds = keep;
+      V.buildProps(); V.syncPlanted();
+      return dirty.score === clean.score - 30 && dirty.weeds === 10 &&
+        clean.flowers > 0 &&
+        ('잡초 없음 ' + clean.score + '점(' + clean.grade + ') → 열 포기 ' +
+         dirty.score + '점(' + dirty.grade + ')');
+    });
+
+    t('마을 평가 — 정갈하면 주민이 덜 떠난다', function () {
+      /* 등급이 오를수록 떠날 판정이 낮아진다 (mail.js 가 beauty 를 본다) */
+      var T = DG.town, s = V.state();
+      var keep = s.weeds.slice();
+      s.weeds = [];
+      V.buildProps();
+      var hi = T.beauty().level;
+      for (var i = 0; i < 40; i++) { s.weeds.push({ x: 100 + i, y: 100 }); }
+      V.buildProps();
+      var lo = T.beauty().level;
+      s.weeds = keep;
+      V.buildProps(); V.syncPlanted();
+      return hi > lo && ('정갈할 때 등급 ' + hi + ' · 거칠 때 ' + lo);
+    });
+
+    /* ── 어드민 손잡이 ──────────────────────────────────── */
+
+    t('자가진단은 어드민 손잡이를 읽지도 쓰지도 않는다', function () {
+      /* 손잡이를 잡아 둔 기기에서 판정이 흔들리면 안 된다 — 씨앗을 고정한 것과 같은 이유다.
+         이 항목이 그 못이다 (`DG_NO_TUNE`). */
+      var had = null;
+      try { had = localStorage.getItem(C.TUNE_KEY); } catch (e) { /* 무시 */ }
+      localStorage.setItem(C.TUNE_KEY, JSON.stringify({ 'walk.speedMul': 99 }));
+      var seen = C.tuned('walk.speedMul', 1);        // 저장된 것을 안 읽는다
+      C.setTune('_probe', 7);                        // 메모리엔 들지만
+      var wrote = {};
+      try { wrote = JSON.parse(localStorage.getItem(C.TUNE_KEY) || '{}'); } catch (e) { /* 무시 */ }
+      C.setTune('_probe', null);
+      if (had === null) { localStorage.removeItem(C.TUNE_KEY); }
+      else { localStorage.setItem(C.TUNE_KEY, had); }
+      return window.DG_NO_TUNE === true && seen === 1 && wrote._probe === undefined &&
+        ('읽지 않음(×' + seen + ') · 남기지 않음');
+    });
+
+    t('손잡이를 잡으면 규칙이 그 값으로 읽힌다', function () {
+      var a = V.speedMul();
+      C.setTune('walk.speedMul', 3);
+      var b = V.speedMul();
+      C.setTune('walk.speedMul', null);
+      var c = V.speedMul();
+      return a === 1 && b === 3 && c === 1 && ('×' + a + ' → ×' + b + ' → ×' + c);
+    });
+
+    /* ── 옷 (침선방) ────────────────────────────────────── */
+
+    t('옷 — 값이 0 인 것은 처음부터 옷장에 있다', function () {
+      var W2 = DG.wear, VD = DG.villageData;
+      V.state().wear = null;
+      var stt = W2.status();
+      var free = 0, paid = 0;
+      VD.WEAR_PARTS.forEach(function (p) {
+        p.list.forEach(function (it) {
+          if (it.price === 0) { if (W2.owned(p.key, it.key)) { free++; } }
+          else if (!W2.owned(p.key, it.key)) { paid++; }
+        });
+      });
+      return free === 5 && paid > 10 &&
+        ('공짜 ' + free + '벌은 있고 값나가는 ' + paid + '벌은 없다 · 지금 ' + stt.name);
+    });
+
+    t('옷 — 사야 입을 수 있고, 산 것은 옷장에 남는다', function () {
+      var W2 = DG.wear;
+      V.state().wear = null;
+      C.save.player.gold = 100000;
+      var early = W2.set('coat', 'plate');            // 아직 없다
+      var g0 = C.save.player.gold;
+      var buy = W2.buy('coat', 'plate');
+      var cost = g0 - C.save.player.gold;
+      var again = W2.buy('coat', 'plate');            // 두 번은 못 산다
+      var put = W2.set('coat', 'plate');
+      var bad = W2.buy('coat', '없는것');
+      return early.kind === 'no' && buy.kind === 'buy' && cost === 6800 &&
+        again.kind === 'no' && put.kind === 'wear' && W2.wearing('coat') === 'plate' &&
+        bad.kind === 'no' && ('갑옷 🪙 -' + C.fmt(cost) + ' → 입음');
+    });
+
+    t('옷 — 고른 것이 인물의 본래 외형을 덮는다 (원본은 그대로)', function () {
+      var W2 = DG.wear;
+      V.state().wear = null;
+      C.save.player.gold = 100000;
+      W2.buy('head', 'gat'); W2.set('head', 'gat');
+      W2.buy('cape', 'on'); W2.set('cape', 'on');
+      var ref = DG.data.heroes[0];
+      var base = DG.sprite.lookOf(ref);
+      var baseHelm = base.helm;
+      var worn = W2.applyLook(base);
+      return worn.helm === 'gat' && worn.cape === true &&
+        worn.armor === W2.wearing('coat') &&
+        DG.sprite.lookOf(ref).helm === baseHelm &&
+        ('본래 ' + baseHelm + ' → 입으면 갓 · 원본은 ' + DG.sprite.lookOf(ref).helm);
+    });
+
+    t('옷 — 옷 빛을 고르면 세력색을 덮고, 그대로면 안 덮는다', function () {
+      var W2 = DG.wear;
+      V.state().wear = null;
+      C.save.player.gold = 100000;
+      var plain = W2.color('#123456');
+      W2.buy('dye', 'indigo'); W2.set('dye', 'indigo');
+      var dyed = W2.color('#123456');
+      W2.set('dye', 'none');
+      return plain === '#123456' && dyed === '#3a6a9a' &&
+        W2.color('#123456') === '#123456' && ('그대로 → 세력색 · 쪽빛 → ' + dyed);
+    });
+
+    t('옷 — 차림표가 바뀌어야 그림이 다시 구워진다', function () {
+      var W2 = DG.wear;
+      V.state().wear = null;
+      C.save.player.gold = 100000;
+      var a = W2.sig();
+      W2.buy('head', 'gat'); W2.set('head', 'gat');
+      var b = W2.sig();
+      W2.buy('dye', 'crimson'); W2.set('dye', 'crimson');
+      var c = W2.sig();
+      /* 스탬프 캐시는 ref.id 로 갈린다 — 차림표가 안 바뀌면 옛 그림이 그대로 나온다 */
+      return a !== b && b !== c && a.indexOf('/') > 0 &&
+        ('차림표 ' + a + ' → ' + b + ' → ' + c);
+    });
+
+    t('침선방 — 건물 앞에서 옷 시트를 연다', function () {
+      var raw = V.raw();
+      var pr = raw.props.filter(function (p) { return p.kind === 'tailor'; })[0];
+      raw.player.x = pr.x; raw.player.y = pr.y + 8;
+      var r = V.interact();
+      return r && r.kind === 'open' && r.place === 'wear' &&
+        (r.text + ' → ' + r.place);
+    });
+
+    /* ── 마을 이름과 깃발 ───────────────────────────────── */
+
+    t('마을 — 이름은 씨앗으로 뽑히고 바꿀 수 있다', function () {
+      var T = DG.town;
+      var auto = T.name();
+      var again = T.pickName();
+      var r = T.setName('  버들골  ');
+      var tooLong = T.setName('열두자가넘는아주긴이름');
+      var empty = T.setName('   ');
+      var kept = T.name();
+      T.setName(auto);
+      return auto === again && r.kind === 'name' && kept.length <= 8 &&
+        tooLong.kind === 'name' && empty.kind === 'no' &&
+        ('씨앗 이름 ' + auto + ' · 바꾼 뒤 ' + kept);
+    });
+
+    t('마을 — 깃발은 바탕·무늬색·무늬 셋을 고른다', function () {
+      var T = DG.town;
+      var a = T.setFlag('bg', 'blue');
+      var b = T.setFlag('sym', 'crane');
+      var no1 = T.setFlag('sym', '없는무늬');
+      var no2 = T.setFlag('mid', 'blue');
+      var f = T.flag();
+      return a.kind === 'flag' && b.kind === 'flag' &&
+        no1.kind === 'no' && no2.kind === 'no' &&
+        f.bg === 'blue' && f.sym === 'crane' &&
+        (T.flagBg().name + ' 바탕에 ' + T.flagSym().name);
+    });
+
+    t('마을 — 깃발을 그림으로 뽑아 준다 (시트의 미리보기)', function () {
+      var url = DG.villageView.flagIconOf('red', 'white', 'taegeuk', 34);
+      return url.indexOf('data:image/png') === 0 && url.length > 200 &&
+        ('데이터 URL ' + url.length + '자');
+    });
+
+    t('게시판과 깃대는 마을 시트를 연다', function () {
+      var raw = V.raw();
+      var out = [];
+      ['board', 'pole'].forEach(function (kind) {
+        var pr = raw.props.filter(function (p) { return p.kind === kind; })[0];
+        raw.player.x = pr.x; raw.player.y = pr.y + 8;
+        var r = V.interact();
+        out.push(kind + '→' + (r && r.place));
+      });
+      return out.join(' · ') === 'board→town · pole→town' && out.join(' · ');
+    });
+
+    /* ── 계절 행사 ──────────────────────────────────────── */
+
+    /** 오늘을 그 행사날인 것처럼 만든다 (되돌리는 함수를 준다) */
+    function fakeEvent(key) {
+      var VD = DG.villageData, old = VD.eventOf;
+      var e = key ? VD.EVENTS.filter(function (x) { return x.key === key; })[0] : null;
+      VD.eventOf = function () { return e; };
+      return function () { VD.eventOf = old; };
+    }
+
+    t('행사 — 날짜로 정해지고 다음 행사가 며칠 남았는지 안다', function () {
+      var VD = DG.villageData;
+      var on = VD.eventOf(new Date(2026, 8, 17));      // 9월 17일 한가위
+      var off = VD.eventOf(new Date(2026, 8, 18));
+      var nx = VD.nextEventOf(new Date(2026, 8, 18));
+      return on && on.key === 'chuseok' && off === null &&
+        nx && nx.event.key === 'dongji' && nx.left > 0 &&
+        (on.name + ' · 다음은 ' + nx.event.name + ' ' + nx.left + '일 뒤');
+    });
+
+    t('행사 — 그날은 그 갈래가 비싸게 팔린다', function () {
+      var undo = fakeEvent('chuseok');                 // 과일 갑절
+      var s = V.state();
+      s.bag.apple = 4;
+      var it = DG.villageData.item('apple');
+      var g0 = C.save.player.gold;
+      var got = V.sell('apple', 2);
+      undo();
+      s.bag.apple = 2;
+      var g1 = C.save.player.gold;
+      var plain = V.sell('apple', 2);
+      return got === it.price * 2 * 2 && plain === it.price * 2 &&
+        C.save.player.gold === g1 + plain &&
+        ('한가위 ' + C.fmt(got) + ' · 여느 날 ' + C.fmt(plain));
+    });
+
+    t('행사 — 설날엔 세배로 세뱃돈을 준다 (사람마다 한 번)', function () {
+      var undo = fakeEvent('seollal');
+      var s = V.state();
+      s.bow = {};
+      var res = V.raw().residents[0];
+      var g0 = C.save.player.gold;
+      var a = V.talk(res);
+      var g1 = C.save.player.gold;
+      var b = V.talk(res);
+      undo();
+      return a.kind === 'bow' && g1 > g0 && b.kind !== 'bow' &&
+        ('세뱃돈 🪙 +' + C.fmt(g1 - g0) + ' · 두 번째는 ' + b.kind);
+    });
+
+    t('행사 — 그날 아침에 편지로 알린다', function () {
+      var undo = fakeEvent('chilseok');
+      var s = V.state();
+      s.mail = [];
+      s.day -= 1;
+      V.rollDay();
+      undo();
+      var got = s.mail.filter(function (l) { return l.kind === 'event'; });
+      return got.length === 1 && got[0].title.indexOf('칠석') >= 0 && ('알림 1통: ' + got[0].title);
+    });
+
+    /* ── 주민의 거동과 잡담 ─────────────────────────────── */
+
+    t('주민 — 제 자리 둘레만 돈다 (멀리 가지 않는다)', function () {
+      DG.folk._reset();
+      var res = V.raw().residents;
+      var i, k, moved = 0, far = 0;
+      for (i = 0; i < res.length; i++) { res[i].home = { x: res[i].x, y: res[i].y }; }
+      var from = res.map(function (r) { return { x: r.x, y: r.y }; });
+      for (k = 0; k < 400; k++) { DG.folk.update(0.1); }
+      DG.folk._reset();
+      for (i = 0; i < res.length; i++) {
+        var d = Math.hypot(res[i].x - res[i].home.x, res[i].y - res[i].home.y);
+        if (d > DG.folk.WANDER + 2) { far++; }
+        if (Math.hypot(res[i].x - from[i].x, res[i].y - from[i].y) > 1) { moved++; }
+      }
+      return far === 0 && moved > 0 &&
+        (moved + '/' + res.length + '명이 움직였고 아무도 ' + DG.folk.WANDER + ' 밖으로 안 나갔다');
+    });
+
+    t('주민 — 두 사람이 번갈아 말한다', function () {
+      DG.folk._reset();
+      var res = V.raw().residents;
+      var a = res[0], b = res[1];
+      var ch = DG.folk._start(a, b);
+      var l0 = DG.folk.lineOf(a.id), n0 = DG.folk.lineOf(b.id);
+      DG.folk.update(2.5);                             // 한 마디 넘긴다
+      var l1 = DG.folk.lineOf(b.id), n1 = DG.folk.lineOf(a.id);
+      DG.folk._reset();
+      return ch.lines.length >= 3 && l0 && !n0 && l1 && !n1 && l0 !== l1 &&
+        ('「' + l0 + '」 → 「' + l1 + '」');
+    });
+
+    t('주민 — 대화를 끝까지 들으면 정이 늘고, 자리를 뜨면 안 는다', function () {
+      var s = V.state(), raw = V.raw();
+      var a = raw.residents[0], b = raw.residents[1];
+      var run = function (stay) {
+        DG.folk._reset();
+        s.overheard = null;
+        s.friend[a.id] = 0; s.friend[b.id] = 0;
+        DG.folk._start(a, b);
+        /* 한 마디가 2.4초, 서너 마디다 — 넉넉히 굴려 대화가 끝나게 한다 */
+        for (var k = 0; k < 22; k++) {
+          raw.player.x = stay ? a.x : a.x + 4000;
+          raw.player.y = a.y;
+          DG.folk.update(0.5);
+        }
+        return V.friendOf(a.id);
+      };
+      var near = run(true);
+      var far = run(false);
+      DG.folk._reset();
+      raw.player.x = a.x; raw.player.y = a.y;
+      return near === 1 && far === 0 &&
+        ('곁에서 끝까지 → +' + near + ' · 자리를 뜨면 +' + far);
+    });
+
+    /* ── 가입해서 저장 ─────────────────────────────────── */
+
+    t('세이브는 프로필 아래로 들어간다', function () {
+      var A = DG.account;
+      return C.SAVE_BASE === 'yeoksa-village/save' &&
+        C.SAVE_KEY.indexOf(C.SAVE_BASE + '/') === 0 &&
+        A._store === C.SAVE_BASE + '/accounts' &&
+        ('기준 ' + C.SAVE_BASE + ' · 지금 ' + C.SAVE_KEY);
+    });
+
+    t('가입 — 이름을 넣으면 프로필이 만들어지고 그 키로 갈아탄다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var acc = A.create('진단이', false);
+      var key = A.keyOf(acc.id);
+      C.setSaveKey(key);
+      C.save.player.gold = 4242;
+      C.persist();
+      var raw = localStorage.getItem(key);
+      localStorage.removeItem(key);
+      /* 프로필 id 는 시각 기반이라 실행마다 다르다 — 결과 문구에는 넣지 않는다
+         (넣으면 진단 출력이 매번 달라져 "무엇이 바뀌었나" 를 눈으로 못 쫓는다) */
+      return acc.name === '진단이' && A.current().id === acc.id &&
+        key.indexOf(C.SAVE_BASE + '/') === 0 &&
+        raw && JSON.parse(raw).player.gold === 4242 &&
+        (acc.name + ' · 키는 ' + C.SAVE_BASE + '/<프로필> 아래');
+    });
+
+    t('가입 — 프로필마다 진행이 갈린다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('갑', false), b = A.create('을', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.save.player.gold = 100; C.persist();
+      C.setSaveKey(A.keyOf(b.id));
+      C.save.player.gold = 999; C.persist();
+      var ga = JSON.parse(localStorage.getItem(A.keyOf(a.id))).player.gold;
+      var gb = JSON.parse(localStorage.getItem(A.keyOf(b.id))).player.gold;
+      localStorage.removeItem(A.keyOf(a.id));
+      localStorage.removeItem(A.keyOf(b.id));
+      return ga === 100 && gb === 999 && A.list().length === 2 &&
+        ('갑 ' + ga + ' · 을 ' + gb + ' (서로 안 섞인다)');
+    });
+
+    t('가입 — 옛 세이브를 첫 프로필로 이어받는다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      localStorage.setItem(A._legacy, JSON.stringify({ v: 1, player: { level: 7, gold: 777 } }));
+      var acc = A.create('이어받기', true);
+      var moved = JSON.parse(localStorage.getItem(A.keyOf(acc.id)));
+      localStorage.removeItem(A._legacy);
+      localStorage.removeItem(A.keyOf(acc.id));
+      return A.hasLegacy() === false && moved && moved.player.gold === 777 &&
+        ('Lv.' + moved.player.level + ' · 금 ' + moved.player.gold + ' 이 옮겨졌다');
+    });
+
+    t('가입 — 프로필을 지우면 그 세이브도 사라진다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('지울사람', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.persist();
+      var had = !!localStorage.getItem(A.keyOf(a.id));
+      A.remove(a.id);
+      var gone = !localStorage.getItem(A.keyOf(a.id));
+      return had && gone && A.list().length === 0 && '프로필·세이브 함께 삭제';
+    });
+
+    t('가입 — 진단에서는 가입 화면을 띄우지 않는다', function () {
+      /* DG_NO_ACCOUNT 가 켜져 있으면 고정 키로 바로 시작한다 (안 그러면 게임이 안 켜진다) */
+      return window.DG_NO_ACCOUNT === true && !document.getElementById('acc-host') &&
+        '진단 우회 동작';
+    });
+
+    t('진단의 무작위는 씨앗으로 고정된다', function () {
+      /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
+      return window.DG_SEED === 20260824 &&
+        Math.random() >= 0 && Math.random() < 1 &&
+        ('씨앗 ' + window.DG_SEED);
+    });
+
+    t('런타임 에러 없음', function () {
+      return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
+    });
+
+    var failCount = out.filter(function (s) { return s.indexOf('FAIL') >= 0; }).length;
+    document.getElementById('report').innerHTML =
+      '<h3>역사GO 마을 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
+      out.join('<br>') +
+      (errors.length ? '<br><br><b class="fail">런타임 에러</b><br>' + errors.join('<br>') : '');
+    document.title = 'RESULT ' + (out.length - failCount) + '/' + out.length;
+    localStorage.removeItem(C.SAVE_KEY);
+  }, 500);
+})();
+</script>
+</body>
+</html>

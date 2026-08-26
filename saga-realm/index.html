@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#12141a">
+<title>사가경영 — 삼국지</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="사가경영">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="camp">
+
+<div id="camp-bg"></div>
+<div id="vignette"></div>
+
+<!-- 상단: 세력·연월 · 살림 · 다음 달 -->
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-style" title="그림 양식 (전통 / 그림책 / 만화)">📗</button>
+    <button class="icon-btn" id="btn-help" title="노는 법">❔</button>
+    <button class="icon-btn" id="btn-reset" title="처음부터">↺</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+
+<!-- 가운데: 지도 (성 서른 곳) -->
+<div id="realm"></div>
+
+<!-- 우하단: 액션 독 -->
+<nav id="dock">
+  <button data-sheet="city"><span>🏯</span><small>성</small></button>
+  <button data-sheet="officers"><span>👤</span><small>무장</small></button>
+  <button data-sheet="diplo"><span>🤝</span><small>외교</small></button>
+  <button data-sheet="school"><span>📚</span><small>학당</small></button>
+  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+</nav>
+
+<!-- 슬라이드 시트 -->
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head">
+    <div class="grip"></div>
+    <h3 id="sheet-title">성</h3>
+    <button class="icon-btn sm" id="sheet-close">✕</button>
+  </div>
+  <div id="sheet-body"></div>
+</aside>
+
+<div id="encounter"></div><div id="detail"></div>
+<div id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/data-city.js"></script>
+<script src="js/data-force.js"></script>
+<script src="js/data-quiz.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/officer.js"></script>
+<script src="js/rtk.js"></script>
+<script src="js/war.js"></script>
+<script src="js/diplo.js"></script>
+<script src="js/rtk-ai.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui-rtk.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 서비스 워커 — https · localhost 에서만 등록된다.
+   파일을 늘리거나 고쳤으면 sw.js 의 VERSION 도 같이 올릴 것. */
+(function () {
+  if (!('serviceWorker' in navigator)) { return; }
+  var h = location.hostname;
+  var secure = location.protocol === 'https:' || h === 'localhost' || h === '127.0.0.1';
+  if (!secure) { return; }
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js')['catch'](function (e) {
+      console.warn('서비스 워커 등록 실패', e);
+    });
+  });
+})();
+</script>
+</body>
+</html>

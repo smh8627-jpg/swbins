@@ -1,0 +1,13 @@
+{
+  "name": "saga-go-three-bundle",
+  "private": true,
+  "version": "1.0.0",
+  "description": "three.js 를 file:// 에서도 도는 IIFE 한 덩이로 묶는다 (PC 단독판용)",
+  "scripts": {
+    "build": "esbuild entry.js --bundle --format=iife --global-name=THREE --minify --outfile=../../js/vendor/three.iife.js"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.169.0"
+  }
+}

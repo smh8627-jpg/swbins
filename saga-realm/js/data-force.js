@@ -1,0 +1,188 @@
+/**
+ * 삼국지 — 세력(勢力)과 무장(武將)
+ * ---------------------------------------------------------------
+ * **`data.js` 를 건드리지 않는다.** 그 파일은 다섯 판이 나눠 가진 복사본이라
+ * 여기서 한 줄만 늘려도 다섯 곳을 맞춰야 한다(인계 문서의 못이다).
+ * 그래서 삼국지 무장은 이 파일이 따로 들고, `officer.js` 가 둘을 **합쳐서** 본다.
+ *
+ *   data.js 의 인물 70   — 삼국지 22 · 한국사 26 · 유럽사 22
+ *   이 파일의 무장 54     — 삼국지 군주와 그 부하들
+ *
+ * 삼국지 사람이 아닌 인물(한국사·유럽사 48)은 **재야(在野)** 다.
+ * 도시에서 수색하면 나온다 — 이 판이 '역사 전체' 를 다루는 판이라는 뜻이기도 하다.
+ *
+ * 무장 기록은 data.js 의 인물과 **같은 모양**이어야 한다.
+ * sprite.portrait('hero', ref) 가 rarity 를 읽고, hero.stats(id) 가 stats 를 읽는다.
+ *
+ *   stats  무력(전투) · 지력(내정·계략) · 통솔(치안·부대)
+ *          이 판은 정치·매력을 따로 두지 않는다 — 세 자질로 태수 적성을 이미 가른다
+ */
+(function (global) {
+  'use strict';
+
+  function O(id, name, hanja, rarity, trait, might, wisdom, command, emoji, quote) {
+    return {
+      id: id, name: name, hanja: hanja, era: '삼국지', faction: '삼국지',
+      rarity: rarity, trait: trait, emoji: emoji, quote: quote,
+      stats: { might: might, wisdom: wisdom, command: command }
+    };
+  }
+
+  /* ── 무장 54 (data.js 에 없는 사람만) ───────────────────── */
+  var OFFICERS = [
+    /* 조조군 */
+    O('rf_xiahouyuan', '하후연', '夏侯淵', 4, 'might',  91, 62, 86, '🏇', '사흘에 오백 리, 엿새에 천 리요.'),
+    O('rf_caoren',     '조인',   '曹仁',   4, 'command',88, 68, 91, '🧱', '성을 지키는 일이라면 제게 맡기십시오.'),
+    O('rf_caohong',    '조홍',   '曹洪',   3, 'might',  82, 50, 74, '🐴', '천하에 저는 없어도 되나 공은 없어선 안 됩니다.'),
+    O('rf_dianwei',    '전위',   '典韋',   4, 'might',  96, 34, 70, '🪓', '주공 앞을 지나려면 저를 넘어야 하오.'),
+    O('rf_xuchu',      '허저',   '許褚',   4, 'might',  96, 36, 72, '🐯', '싸움이라면 벗고도 하지요.'),
+    O('rf_yujin',      '우금',   '于禁',   3, 'command',80, 66, 86, '🎌', '군령은 무겁고 사정은 가볍습니다.'),
+    O('rf_yuejin',     '악진',   '樂進',   3, 'might',  85, 55, 78, '⚡', '선봉은 언제나 제 자리입니다.'),
+    O('rf_lidian',     '이전',   '李典',   3, 'wisdom', 76, 78, 80, '📗', '사사로운 원한으로 나라 일을 그르치겠습니까.'),
+    O('rf_chengyu',    '정욱',   '程昱',   3, 'wisdom', 48, 89, 74, '🕯️', '험한 말도 해야 할 때는 합니다.'),
+    O('rf_guojia',     '곽가',   '郭嘉',   5, 'wisdom', 32, 98, 70, '🍷', '열 가지로 이기고 열 가지로 집니다 — 들어 보시겠습니까.'),
+
+    /* 원소군 */
+    O('rf_yuanshao',   '원소',   '袁紹',   4, 'command',73, 74, 88, '🏆', '사대(四代)에 삼공을 낸 집안이오.'),
+    O('rf_yanliang',   '안량',   '顔良',   4, 'might',  92, 40, 76, '⚔️', '하북에 나만 한 창이 또 있겠는가.'),
+    O('rf_wenchou',    '문추',   '文醜',   4, 'might',  91, 38, 74, '🗡️', '안량의 원수를 갚겠다!'),
+    O('rf_jushou',     '저수',   '沮授',   4, 'wisdom', 40, 93, 82, '🧭', '천자를 받들면 명분이 우리에게 옵니다.'),
+    O('rf_tianfeng',   '전풍',   '田豊',   4, 'wisdom', 35, 94, 68, '⛓️', '옳은 말을 하고 옥에 갇히는 것이 신하의 팔자입니다.'),
+    O('rf_shenpei',    '심배',   '審配',   3, 'command',62, 82, 84, '🏯', '성이 무너져도 북쪽을 보고 죽겠소.'),
+    O('rf_zhanghe',    '장합',   '張郃',   5, 'command',89, 82, 91, '🌀', '지형을 읽는 것이 곧 병법입니다.'),
+    O('rf_gaolan',     '고람',   '高覽',   3, 'might',  84, 55, 76, '🛡️', '하북 사정주(四庭柱)의 하나요.'),
+
+    /* 공손찬군 */
+    O('rf_gongsunzan', '공손찬', '公孫瓚', 3, 'might',  84, 60, 82, '🐎', '백마의천(白馬義從)을 아느냐.'),
+    O('rf_yangang',    '엄강',   '嚴綱',   2, 'might',  72, 42, 66, '🏳️', '선봉은 백마가 맡습니다.'),
+
+    /* 공융군 */
+    O('rf_kongrong',   '공융',   '孔融',   3, 'wisdom', 24, 87, 58, '🍐', '자리에 손님이 늘 가득하고 잔이 비지 않으면 족하오.'),
+    O('rf_wuanguo',    '무안국', '武安國', 2, 'might',  74, 38, 60, '🔨', '철퇴로 여포를 맞겠소!'),
+
+    /* 유비군 */
+    O('rf_mizhu',      '미축',   '麋竺',   3, 'wisdom', 26, 84, 62, '💰', '집안의 재물을 다 내어 군자금에 보태겠습니다.'),
+    O('rf_jianyong',   '간옹',   '簡雍',   2, 'wisdom', 30, 80, 55, '🗣️', '말로 푸는 일이라면 제가 가지요.'),
+
+    /* 여포군 */
+    O('rf_chengong',   '진궁',   '陳宮',   4, 'wisdom', 45, 92, 80, '🕳️', '제 계책을 들었다면 이리 되지 않았습니다.'),
+    O('rf_gaoshun',    '고순',   '高順',   4, 'command',87, 66, 90, '🪖', '함진영(陷陣營)은 물러선 적이 없습니다.'),
+
+    /* 원술군 */
+    O('rf_yuanshu',    '원술',   '袁術',   3, 'command',60, 58, 72, '🍯', '옥새가 내게 왔으니 하늘의 뜻이 아니겠는가.'),
+    O('rf_jiling',     '기령',   '紀靈',   3, 'might',  85, 52, 78, '🌙', '삼첨도(三尖刀)의 무게를 견뎌 보아라.'),
+    O('rf_yanghong',   '양홍',   '楊弘',   2, 'wisdom', 30, 74, 58, '📜', '창고를 열어 인심을 사시지요.'),
+
+    /* 손책군 */
+    O('rf_sunce',      '손책',   '孫策',   5, 'might',  93, 72, 92, '🐅', '강동은 젊은 손으로 여는 것이오.'),
+    O('rf_chengpu',    '정보',   '程普',   4, 'command',84, 72, 88, '🔱', '삼대를 섬긴 늙은 신하올시다.'),
+    O('rf_huanggai',   '황개',   '黃蓋', 4, 'command', 85, 68, 86, '🔥', '이 늙은 몸을 태워서라도 이기겠소.'),
+    O('rf_handang',    '한당',   '韓當',   3, 'might',  83, 58, 80, '🏹', '활이든 창이든 배 위에서라면 지지 않소.'),
+    O('rf_zhoutai',    '주태',   '周泰',   4, 'might',  89, 48, 78, '🩸', '이 흉터 하나하나가 주공을 지킨 자립니다.'),
+
+    /* 유표군 */
+    O('rf_liubiao',    '유표',   '劉表',   3, 'wisdom', 45, 80, 76, '🌾', '형주를 조용히 지키는 것도 공(功)이오.'),
+    O('rf_caimao',     '채모',   '蔡瑁',   3, 'command',70, 72, 82, '⛵', '수군은 형주의 자랑입니다.'),
+    O('rf_kuailiang',  '괴량',   '蒯良',   3, 'wisdom', 28, 88, 70, '🪶', '형주의 호족을 달래는 일부터 하십시오.'),
+    O('rf_huangzu',    '황조',   '黃祖',   2, 'command',70, 50, 72, '🏹', '강하는 내가 지킨다.'),
+    O('rf_wenpin',     '문빙',   '文聘',   3, 'command',82, 66, 85, '🚩', '북쪽 국경은 제가 맡겠습니다.'),
+
+    /* 이각군 (동탁 잔당) */
+    O('rf_lijue',      '이각',   '李傕',   3, 'might',  84, 56, 76, '🔥', '장안은 우리 것이다.'),
+    O('rf_guosi',      '곽사',   '郭汜',   3, 'might',  82, 52, 74, '🐺', '천자를 끼고 있으면 누가 뭐라 하겠나.'),
+    O('rf_zhangji',    '장제',   '張濟',   2, 'might',  76, 50, 70, '🛖', '군량만 있으면 어디든 갑니다.'),
+    O('rf_jiaxu',      '가후',   '賈詡',   5, 'wisdom', 40, 99, 78, '🦊', '살아남는 계책만 말씀드립니다.'),
+
+    /* 마등군 */
+    O('rf_mateng',     '마등',   '馬騰',   3, 'might',  86, 60, 82, '🐫', '서량의 말은 바람을 탄다.'),
+    O('rf_pangde',     '방덕',   '龐德',   4, 'might',  92, 60, 84, '⚰️', '관을 지고 나왔으니 살아 돌아갈 뜻이 없소.'),
+    O('rf_hansui',     '한수',   '韓遂',   3, 'command',74, 74, 84, '🤝', '동맹은 오래갈 때만 동맹이오.'),
+
+    /* 장로군 */
+    O('rf_zhanglu',    '장로',   '張魯',   3, 'wisdom', 50, 78, 74, '☯️', '오두미(五斗米)면 병도 고치고 나라도 다스리오.'),
+    O('rf_yangren',    '양임',   '楊任',   2, 'might',  76, 52, 70, '⛰️', '한중의 산길은 제가 압니다.'),
+    O('rf_yangsong',   '양송',   '楊松',   1, 'wisdom', 20, 62, 30, '🪙', '금이면 열리지 않는 문이 없지요.'),
+
+    /* 유장군 */
+    O('rf_liuzhang',   '유장',   '劉璋',   2, 'wisdom', 30, 62, 55, '🍚', '백성을 싸움에 몰아넣고 싶지 않소.'),
+    O('rf_zhangren',   '장임',   '張任',   4, 'command',87, 74, 88, '🏹', '충신은 두 주인을 섬기지 않소.'),
+    O('rf_yanyan',     '엄안',   '嚴顔',   4, 'might',  86, 68, 84, '🧓', '목을 벨 장수는 있어도 항복할 장수는 없다.'),
+    O('rf_fazheng',    '법정',   '法正',   5, 'wisdom', 42, 95, 76, '🗺️', '촉으로 드는 길을 그려 드리지요.'),
+    O('rf_wuyi',       '오의',   '吳懿',   3, 'command',80, 66, 82, '🪧', '익주의 병사는 아직 쓸 만합니다.')
+  ];
+
+  /* ── 세력 13 · 194년 군웅할거 ──────────────────────────── */
+  /*   lord     군주 무장 id
+   *   cities   시작 시 가진 도시
+   *   officers 군주를 뺀 소속 무장 (data.js 인물도 섞인다)
+   *   color    지도에 칠하는 색
+   *   creed    AI 성향 — 'aggressive' 치고 나간다 | 'balanced' | 'turtle' 지킨다
+   */
+  var FORCES = [
+    { id: 'cao', name: '조조', color: '#5b8ff0', creed: 'aggressive',
+      lord: 'sg_caocao', cities: ['chenliu', 'puyang', 'xuchang'],
+      officers: ['sg_xiahoudun', 'sg_xunyu', 'rf_xiahouyuan', 'rf_caoren', 'rf_caohong',
+                 'rf_dianwei', 'rf_xuchu', 'rf_yujin', 'rf_yuejin', 'rf_lidian',
+                 'rf_chengyu', 'rf_guojia'] },
+    { id: 'shao', name: '원소', color: '#c9a227', creed: 'balanced',
+      lord: 'rf_yuanshao', cities: ['ye', 'nanpi', 'jinyang'],
+      officers: ['rf_yanliang', 'rf_wenchou', 'rf_jushou', 'rf_tianfeng',
+                 'rf_shenpei', 'rf_zhanghe', 'rf_gaolan'] },
+    { id: 'zan', name: '공손찬', color: '#d8dee9', creed: 'aggressive',
+      lord: 'rf_gongsunzan', cities: ['jixian', 'beiping'],
+      officers: ['sg_zhaoyun', 'rf_yangang'] },
+    { id: 'rong', name: '공융', color: '#8fbf8f', creed: 'turtle',
+      lord: 'rf_kongrong', cities: ['beihai'],
+      officers: ['sg_taishici', 'rf_wuanguo'] },
+    { id: 'bei', name: '유비', color: '#4caf72', creed: 'balanced',
+      lord: 'sg_liubei', cities: ['xiaopei'],
+      officers: ['sg_guanyu', 'sg_zhangfei', 'rf_mizhu', 'rf_jianyong'] },
+    { id: 'bu', name: '여포', color: '#b0524a', creed: 'aggressive',
+      lord: 'sg_lubu', cities: ['xiapi'],
+      officers: ['sg_zhangliao', 'sg_diaochan', 'rf_chengong', 'rf_gaoshun'] },
+    { id: 'shu', name: '원술', color: '#c98a3c', creed: 'aggressive',
+      lord: 'rf_yuanshu', cities: ['shouchun', 'runan'],
+      officers: ['rf_jiling', 'rf_yanghong'] },
+    { id: 'ce', name: '손책', color: '#e05c5c', creed: 'aggressive',
+      lord: 'rf_sunce', cities: ['jianye', 'chaisang', 'kuaiji'],
+      officers: ['sg_sunquan', 'sg_zhouyu', 'rf_chengpu', 'rf_huanggai',
+                 'rf_handang', 'rf_zhoutai'] },
+    { id: 'biao', name: '유표', color: '#7fb8d8', creed: 'turtle',
+      lord: 'rf_liubiao', cities: ['xiangyang', 'xinye', 'jiangling', 'jiangxia', 'changsha', 'wan'],
+      officers: ['sg_huangzhong', 'sg_ganning', 'rf_caimao', 'rf_kuailiang',
+                 'rf_huangzu', 'rf_wenpin'] },
+    { id: 'jue', name: '이각', color: '#9a6b9a', creed: 'balanced',
+      lord: 'rf_lijue', cities: ['luoyang', 'changan'],
+      officers: ['rf_guosi', 'rf_zhangji', 'rf_jiaxu'] },
+    { id: 'teng', name: '마등', color: '#c07b4a', creed: 'balanced',
+      lord: 'rf_mateng', cities: ['tianshui', 'wuwei'],
+      officers: ['sg_machao', 'rf_pangde', 'rf_hansui'] },
+    { id: 'lu', name: '장로', color: '#a8a2c8', creed: 'turtle',
+      lord: 'rf_zhanglu', cities: ['hanzhong'],
+      officers: ['rf_yangren', 'rf_yangsong'] },
+    { id: 'zhang', name: '유장', color: '#7ac0a8', creed: 'turtle',
+      lord: 'rf_liuzhang', cities: ['chengdu', 'jiangzhou', 'yongan'],
+      officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi'] }
+  ];
+
+  var byId = {}, i;
+  for (i = 0; i < OFFICERS.length; i++) { byId[OFFICERS[i].id] = OFFICERS[i]; }
+
+  var forceById = {};
+  for (i = 0; i < FORCES.length; i++) { forceById[FORCES[i].id] = FORCES[i]; }
+
+  /** 이 세력의 무장 전부 (군주 포함) */
+  function roster(forceId) {
+    var f = forceById[forceId];
+    if (!f) { return []; }
+    return [f.lord].concat(f.officers);
+  }
+
+  global.DG = global.DG || {};
+  global.DG.forceData = {
+    OFFICERS: OFFICERS, FORCES: FORCES,
+    find: function (id) { return byId[id] || null; },
+    force: function (id) { return forceById[id] || null; },
+    roster: roster
+  };
+})(window);

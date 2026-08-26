@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>역사GO 캐시 비우기</title>
+<style>
+  body { margin:0; background:#12141a; color:#eef1f6;
+         font:14px/1.8 "Malgun Gothic",system-ui; padding:26px; }
+  h1 { font-size:17px; color:#f5b445; margin:0 0 4px; }
+  p.sub { color:#9aa3b2; font-size:12.5px; margin:0 0 18px; }
+  pre { background:#0b0d12; border:1px solid #262b36; border-radius:12px;
+        padding:14px; font:12px/1.7 Consolas,monospace; color:#9fe8b0; white-space:pre-wrap; }
+  a.go { display:inline-block; margin-top:16px; padding:11px 18px; border-radius:12px;
+         background:#f5b445; color:#22190a; font-weight:700; text-decoration:none; }
+  a.alt { display:inline-block; margin:16px 0 0 8px; padding:11px 18px; border-radius:12px;
+          border:1px solid #3a4150; color:#cfd6e3; text-decoration:none; font-size:13px; }
+</style>
+</head>
+<body>
+<h1>🧹 캐시 비우기</h1>
+<p class="sub">서비스 워커를 등록 해제하고 앱 캐시를 지웁니다. 세이브(localStorage)는 건드리지 않습니다.</p>
+<pre id="out">시작…</pre>
+<a class="go" id="go" href="index.html">게임으로</a>
+<a class="alt" href="_demo.html#auto">자동 순행 데모 보기</a>
+
+<script>
+/* 왜 이 페이지가 필요한가
+ * ---------------------------------------------------------------
+ * sw.js 는 게임 파일을 캐시한다. 예전에 VERSION 을 올리지 않은 채 파일을 늘려서,
+ * 한 화면 안에 **옛 core.js + 새 auto.js** 가 섞여 죽은 일이 있었다.
+ * 버전을 올린 뒤에도 옛 워커가 남아 있으면 첫 한 번은 옛 파일이 나온다
+ * (하드 리로드로도 되지만, 그걸 눌러 달라고 부탁하는 것보다 이 페이지가 확실하다).
+ *
+ * 이 파일은 sw.js 의 SHELL 에 없으므로 **캐시에 걸리지 않는다** — 그래서
+ * 옛 워커가 살아 있어도 이 페이지 자체는 항상 새로 받아진다.
+ */
+(function () {
+  var lines = [];
+  function say(s) {
+    lines.push(s);
+    document.getElementById('out').textContent = lines.join('\n');
+  }
+
+  var jobs = [];
+
+  if ('serviceWorker' in navigator) {
+    jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+      if (!rs.length) { say('· 등록된 서비스 워커 없음'); return null; }
+      return Promise.all(rs.map(function (r) {
+        return r.unregister().then(function (ok) {
+          say('· 서비스 워커 해제 ' + (ok ? '성공' : '실패') + ' — ' + (r.scope || ''));
+        });
+      }));
+    }));
+  } else {
+    say('· 이 브라우저에는 서비스 워커가 없다');
+  }
+
+  if (window.caches) {
+    jobs.push(caches.keys().then(function (ks) {
+      if (!ks.length) { say('· 캐시 없음'); return null; }
+      return Promise.all(ks.map(function (k) {
+        return caches['delete'](k).then(function () { say('· 캐시 삭제 — ' + k); });
+      }));
+    }));
+  }
+
+  /* ?go=demo · ?go=game — 다 지운 뒤 알아서 그 화면으로 넘어간다.
+     (사람에게 "하드 리로드 눌러 주세요" 를 부탁하지 않아도 되게) */
+  var GO = { demo: '_demo.html#auto', game: 'index.html' };
+  var go = GO[new URLSearchParams(location.search).get('go')];
+
+  Promise.all(jobs).then(function () {
+    say('');
+    say('끝났습니다.' + (go ? ' 잠시 뒤 ' + go + ' 로 넘어갑니다.' : ' 아래 버튼으로 들어가면 전부 새로 받습니다.'));
+    say('(세이브는 그대로입니다 — 도감·지식 서고 안 사라집니다)');
+    document.title = 'SWRESET done';
+    if (go) { setTimeout(function () { location.replace(go); }, 900); }
+  })['catch'](function (e) {
+    say('· 오류: ' + e.message);
+    document.title = 'SWRESET error';
+  });
+})();
+</script>
+</body>
+</html>

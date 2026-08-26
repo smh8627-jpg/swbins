@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>역사고 데모</title><link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/encounter3d.css"></head>
+<body>
+<!--
+  스크린샷용 데모 상태 — "며칠 산책한 뒤" 를 재현한다. 게임 코드는 건드리지 않는다.
+
+  장면(해시)
+    #map     지도 (기본)          #walk    걷는 중
+    #dex     도감                 #oracle  사관        #log  기록
+    #detail  인물 상세(이순신)     #detail2 제갈량      #pet  청룡
+    #station 역참에 들른 화면       #letters 천거장(행낭)     #auto  자동 순행 중
+    #fort    성채(수비대·도전)      #fortmine 내가 점령한 성채
+    #quest   사명(인장)             #bag 행낭(쓰는 물건)      #raid 적장 토벌
+    #duel    교전 한복판(탭 전투)    #dueltell 강타 예고 — 피해야 하는 순간
+    #petgrow 연성·승화 (잉어 → 청룡)
+    #rogue   점거된 역참(적도)     #roguewin 탈환 — 암영이 남은 참
+    #dark    도감의 암영 칸(정화 대기)
+    #perf    프레임 측정
+  해시에 2d·3d·chibi·tall·anime·story 를 붙이면 시점·등신·양식도 바뀐다 (예: #map-3d-chibi).
+  뒤에 -b 를 붙이면 시트를 끝까지 내려서 찍는다 (예: #dex-b).
+
+  이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
+  화면이 통째로 죽는다 — 실제로 네 게임으로 가른 뒤 옛 목록(서당·던전·장비)을
+  그대로 두어 오래 죽어 있었다.
+-->
+<canvas id="map-ground"></canvas><canvas id="map3d"></canvas><canvas id="map"></canvas><div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">🤖</button>
+    <button class="icon-btn on" id="btn-geo">📡</button>
+    <button class="icon-btn" id="btn-map">🗺️</button>
+    <button class="icon-btn txt" id="btn-tilt">2.5D</button>
+    <button class="icon-btn txt" id="btn-prop">4등</button>
+    <button class="icon-btn" id="btn-style">🖌️</button>
+    <button class="icon-btn" id="btn-help">❔</button>
+    <button class="icon-btn" id="btn-reset">↺</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="autobar"></div>
+<div id="near"></div>
+<nav id="dock">
+  <button data-sheet="quest"><span>📋</span><small>사명</small></button>
+  <button data-sheet="bag"><span>🎒</span><small>행낭</small></button>
+  <button data-sheet="letters"><span>✉️</span><small>천거</small></button>
+  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+  <button data-sheet="oracle"><span>🔮</span><small>사관</small></button>
+  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title">도감</h3>
+    <button class="icon-btn sm" id="sheet-close">✕</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<script>
+/* 가입 화면을 건너뛴다 — 데모는 진단과 같은 고정 키(…/save/test)로 켠다.
+   이걸 빼면 가입 화면만 찍힌다. */
+window.DG_NO_ACCOUNT = true;
+/* 3D 는 그린 직후 버퍼를 비운다 — 스크린샷에 빈 캔버스가 찍히지 않게 붙들어 둔다 */
+window.DG_3D_PRESERVE = true;
+/* 손잡이(어드민)를 잡아 둔 기기에서도 스크린샷이 같도록 규칙은 기본값으로 */
+window.DG_NO_TUNE = true;
+</script>
+<script src="js/data.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/bag.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/quest.js"></script>
+<script src="js/growth.js"></script>
+<script src="js/buddy.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/world.js"></script>
+<script src="js/actor3d.js"></script>
+<script src="js/world3d.js"></script>
+<script src="js/encounter.js"></script>
+<script src="js/encounter3d.js"></script>
+<script src="js/station.js"></script>
+<script src="js/letter.js"></script>
+<script src="js/duel.js"></script>
+<script src="js/rogue.js"></script>
+<script src="js/fort.js"></script>
+<script src="js/raid.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* **세이브 보호** — 루프가 10초마다 persist() 를 부른다. 데모 상태로 덮이지 않도록 막는다.
+   (DG_NO_ACCOUNT 로 키가 …/save/test 라 실제 진행과는 이미 갈라져 있지만,
+    진단 세이브까지 데모 상태로 물들이지 않으려고 한 겹 더 둔다) */
+DG.core.persist = function () {};
+
+/* 데모에서 터진 예외는 제목과 화면에 남긴다 — 스크린샷으로만 보는 경우가 많고,
+   게임 루프는 예외 하나로 멈추므로 화면만 봐서는 죽은 걸 모른다. */
+window.addEventListener('error', function (e) {
+  var msg = e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno;
+  document.title = 'DEMO ERROR: ' + msg;
+  var box = document.getElementById('demo-err');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'demo-err';
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:9999;padding:8px 10px;' +
+      'background:#5b1414;color:#ffd9d9;border:1px solid #ff8f8f;border-radius:10px;' +
+      'font:600 12px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+    document.body.appendChild(box);
+  }
+  box.textContent = '⚠️ ' + msg;
+});
+</script>
+<script>
+setTimeout(function () {
+  var C = DG.core, W = DG.world;
+
+  // 등용한 인물 (동행 5 + 대기 3)
+  var party = ['kr_yisunsin', 'sg_zhugeliang', 'sg_guanyu', 'kr_ganggamchan', 'sg_zhaoyun'];
+  var bench = ['kr_sejong', 'sg_zhangliao', 'eu_caesar'];
+  party.concat(bench).forEach(function (id, i) {
+    C.save.dex.heroes[id] = { count: i === 0 ? 3 : 1, firstAt: Date.now() };
+  });
+  C.save.party = party.slice();
+
+  // 포획한 펫
+  ['pt_cheongryong', 'pt_samjogo', 'pt_haetae', 'pt_jindo', 'pt_tiger', 'pt_magpie', 'pk_pikachu']
+    .forEach(function (id) { C.save.dex.pets[id] = { count: 1, firstAt: Date.now() }; });
+  C.save.petEquip = {
+    kr_yisunsin: 'pt_cheongryong',
+    sg_zhugeliang: 'pt_samjogo',
+    sg_guanyu: 'pt_haetae'
+  };
+
+  // 인물 성장 (레벨 · 승급)
+  C.save.heroes = {
+    kr_yisunsin:   { lv: 16, exp: 40, rank: 2 },
+    sg_zhugeliang: { lv: 13, exp: 12, rank: 1 },
+    sg_guanyu:     { lv: 12, exp: 30, rank: 1 },
+    kr_ganggamchan:{ lv: 9,  exp: 8,  rank: 0 },
+    sg_zhaoyun:    { lv: 8,  exp: 22, rank: 0 },
+    kr_sejong:     { lv: 6,  exp: 4,  rank: 0 },
+    sg_zhangliao:  { lv: 5,  exp: 11, rank: 0 },
+    eu_caesar:     { lv: 4,  exp: 6,  rank: 0 }
+  };
+
+  // 자원 · 성장 · 보급
+  C.save.player.level = 14;
+  C.save.player.exp = 210;
+  C.save.player.gold = 3420;
+  C.save.player.fame = 640;
+  C.save.player.feat = 260;
+  C.save.player.featTotal = 1480;
+  C.save.player.distance = 12840;
+  C.save.player.supplyMark = 12750;
+  C.save.player.supplyCount = 51;
+  C.save.player.stationVisits = 37;
+  C.save.items = { scroll: 6, feed: 11, treat: 3, incense: 1, prayer: 1 };
+  C.save.boosts = {};
+  C.save.raid = { pass: 2, day: '', won: 4, tried: {} };
+  C.save.quests = { list: [], stamps: 5, day: '', stampedToday: false, done: 9, breaks: 1 };
+  C.save.items.scroll = 6;
+  C.save.items.feed = 11;
+  C.save.stations = {};
+  C.save.forts = {};
+
+  // 연성·승화 (원작의 사탕·별사탕) — 잉어는 승화 문턱을 넘겨 두고,
+  // 청룡은 이미 몇 단 올려 둔 참으로 보인다
+  C.save.dex.pets.pt_carp = { count: 34, firstAt: Date.now() };
+  C.save.petGrow = {
+    pt_carp:        { lv: 3, herb: 118 },
+    pt_cheongryong: { lv: 6, herb: 21 },
+    pt_tiger:       { lv: 1, herb: 12 }
+  };
+  C.save.petGrowV = 1;            // 환산은 끝난 것으로 (부트의 migrate 가 다시 돌지 않게)
+  C.save.dust = 8420;
+
+  // 반려(伴侶) — 청룡과 하루 넘게 걸은 참. 5,000m 중 3,200m 을 걸어 왔다
+  C.save.buddy = { id: 'pt_cheongryong', mark: C.save.player.distance - 3200 };
+  C.save.buddyLog = {
+    pt_cheongryong: { walked: 12600, fed: 9, gained: 21, since: Date.now() - 86400000 },
+    pt_jindo:       { walked: 1800,  fed: 2, gained: 2,  since: Date.now() - 3 * 86400000 }
+  };
+
+  // 천거장 — 행낭 두 칸이 돌아가는 중, 가방에 세 통
+  C.save.letters = {
+    bag: ['g2', 'g5', 'g10'],
+    slots: [
+      { g: 'g5',  startM: C.save.player.distance - 3100 },   // 5km 중 3.1km
+      { g: 'g2',  startM: C.save.player.distance - 400 },
+      null
+    ],
+    opened: 12
+  };
+
+  // 기록
+  C.save.log = [];
+  C.log('🏮 한성 동역(東驛) 에 들렀다 — 📜 +2 · 🍖 +3 · 🪙 +42', 'good');
+  C.log('🎒 보급 — 🍖 +1 · 🎖️ +10 · 🪙 +8 (누적 1.2만m)', 'good');
+  C.log('이순신 등용 성공!', 'good');
+  C.log('공적 +40 (등용)', 'feat');
+  C.log('청룡 포획 성공!', 'good');
+  C.log('여포 등용 실패…', 'bad');
+  C.log('레벨 업! Lv.14', 'level');
+
+  C.emit('changed');
+
+  // 스크린샷은 전환 애니메이션 중간이 찍히므로 데모에서만 전환을 끈다
+  document.getElementById('sheet').style.transition = 'none';
+  document.getElementById('dock').style.transition = 'none';
+
+  var hash = location.hash.replace('#', '');
+
+  /* 헤드리스에서는 rAF 가 거의 돌지 않아(6 프레임쯤) 지도 타일이 도착하기 전에
+     화면이 멈춘다. 데모에서만 타이머로 계속 그려 준다 — 게임 루프는 그대로다. */
+  if (DG.world3d && DG.world3d.available()) {
+    setInterval(function () { DG.world3d.render(); }, 400);
+  }
+
+  /* 3D 렌더러가 실제로 도는지 눈으로 본다 — 해시에 stat 을 붙이면 좌하단에 뜬다 */
+  if (hash.indexOf('stat') >= 0) {
+    var sb = document.createElement('div');
+    sb.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9999;padding:7px 10px;' +
+      'background:rgba(8,10,14,.9);color:#9fe8b0;border:1px solid #3a4657;border-radius:8px;' +
+      'font:600 11px ui-monospace,Consolas,monospace;white-space:pre';
+    document.body.appendChild(sb);
+    setInterval(function () {
+      var st = DG.world3d ? DG.world3d.stats() : { none: true };
+      if (DG.world3d) { st.px = DG.world3d.probe(); st.tile = DG.world3d.tileProbe(); }
+      var out = [];
+      for (var k in st) { if (Object.prototype.hasOwnProperty.call(st, k)) { out.push(k + '=' + st[k]); } }
+      sb.textContent = out.join(' | ');
+      document.title = 'STAT ' + out.join(' ');
+    }, 400);
+  }
+  if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
+  if (hash.indexOf('3d') >= 0) { C.save.settings.tilt = 2; W.resize(); }
+  /* 3D 조명 — 시각을 못박아 밤·노을을 눈으로 본다 (게임에서는 진짜 시계를 본다).
+     천후도 같이 붙들어 둔다 — 안개 낀 날에 찍으면 무엇이 바뀌었는지 안 보인다 */
+  if (DG.world3d && hash.indexOf('night') >= 0) {
+    DG.weather.force('clear');
+    DG.world3d.forceTime(new Date(2026, 7, 26, 22, 30).getTime());
+  }
+  if (DG.world3d && hash.indexOf('dusk') >= 0) {
+    DG.weather.force('clear');
+    DG.world3d.forceTime(new Date(2026, 7, 26, 17, 20).getTime());
+  }
+  if (DG.world3d && hash.indexOf('noon') >= 0) {
+    DG.weather.force('clear');
+    DG.world3d.forceTime(new Date(2026, 7, 26, 12, 30).getTime());
+  }
+  /* 조우 연출 — 카메라가 대상 쪽으로 돌고, 잡히면 빛기둥이 선다 */
+  if (hash.indexOf('meet') >= 0 && W.spawns.length) {
+    /* 포획 무대(조준 고리)를 보려면 **짐승**이어야 한다 — meethero 면 등용 쪽 */
+    var wantHero = hash.indexOf('meethero') >= 0;
+    var pick = W.spawns.filter(function (s) {
+      return wantHero ? s.kind === 'hero' : s.kind !== 'hero';
+    })[0] || W.spawns[0];
+    C.emit('encounter:request', pick);
+    if (hash.indexOf('meetbeam') >= 0 && DG.world3d) {
+      setTimeout(function () { DG.world3d.beam(pick.x, pick.y); }, 60);
+    }
+    /* 던지는 0.42초·맞는 0.4초·다가서는 0.5초는 그냥은 못 잡는다 —
+       데모에서만 그 한 순간에 세워 둔다(교전의 강타 예고와 같은 방식) */
+    if (DG.encounter3d) {
+      var poses = [
+        ['throw', { phase: 'fly', k: 0.5, ok: true }],
+        ['land', { phase: 'fly', k: 0.96, ok: true }],
+        ['miss', { phase: 'hit', k: 0.45, ok: false }],
+        ['nod', { nudge: 1, k: 0.5 }],
+        ['cold', { nudge: -1, k: 0.5 }]
+      ];
+      poses.forEach(function (pz) {
+        if (hash.indexOf(pz[0]) >= 0) {
+          setTimeout(function () { DG.encounter3d.hold(pz[1]); }, 80);
+        }
+      });
+    }
+  }
+  /* 3D 배율 — #3d-z9 처럼 붙이면 그 배율로 찍는다 */
+  var zm = hash.match(/z(\d+(?:\.\d+)?)/);
+  if (zm && DG.world.setZoom3d) { DG.world.setZoom3d(Number(zm[1])); }
+  if (hash.indexOf('chibi') >= 0) { DG.sprite.setProp('chibi'); C.emit('changed'); }
+  if (hash.indexOf('tall') >= 0) { DG.sprite.setProp('tall'); C.emit('changed'); }
+  if (hash.indexOf('anime') >= 0) { DG.sprite.setStyle('anime'); C.emit('changed'); }
+  if (hash.indexOf('story') >= 0) { DG.sprite.setStyle('story'); C.emit('changed'); }
+  var tab = hash.split('-')[0];
+
+  if (hash.indexOf('perf') >= 0) {
+    var box = document.createElement('div');
+    box.id = 'perf';
+    box.style.cssText = 'position:fixed;left:50%;top:44%;transform:translateX(-50%);z-index:99;' +
+      'background:rgba(10,12,16,.94);border:1px solid #f5b445;border-radius:16px;padding:18px 26px;' +
+      'font:600 15px system-ui;color:#eef1f6;text-align:center;line-height:1.7';
+    box.textContent = '측정 중…';
+    document.body.appendChild(box);
+    var frames = 0, worst = 0, prev = performance.now(), t0 = prev;
+    (function tick(now) {
+      var dt = now - prev; prev = now;
+      if (frames > 3 && dt > worst) { worst = dt; }
+      frames++;
+      if (now - t0 < 4000) { requestAnimationFrame(tick); }
+      else {
+        var sec = (now - t0) / 1000;
+        var fps = frames / sec;
+        box.innerHTML = 'PERF fps=' + fps.toFixed(1) +
+          ' frames=' + frames + ' worstFrame=' + worst.toFixed(1) + 'ms' +
+          '<br><span style="font-size:12px;color:#9aa3b2">스폰 ' + DG.world.spawns.length +
+          '개 · 시점 ' + (['2D', '2.5D', '3D'][DG.world.tiltMode]) + '</span>';
+        document.title = 'PERF ' + fps.toFixed(1);
+      }
+    })(prev);
+  }
+
+  var walking = hash.indexOf('walk') >= 0;
+  if (walking) {
+    setInterval(function () { C.save.player.pos.x += 0.14; C.save.player.pos.y -= 0.04; }, 16);
+  }
+
+  var toBottom = hash.indexOf('-b') > 0;
+  if (toBottom) {
+    setTimeout(function () {
+      var body = document.getElementById('sheet-body');
+      if (body) { body.scrollTop = body.scrollHeight; }
+    }, 300);
+  }
+
+  if (tab === 'detail') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'kr_yisunsin'); }
+  else if (tab === 'detail2') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'sg_zhugeliang'); }
+  else if (tab === 'pet') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_cheongryong'); }
+  else if (tab === 'petgrow') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_carp'); }
+  /* 반려 — 아직 곁에 세우지 않은 종(진돗개)의 화면. 세워 둔 쪽은 #pet(청룡)에서 본다 */
+  else if (tab === 'buddy') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_jindo'); }
+  else if (tab === 'rogue' || tab === 'roguewin') {
+    /* 적도가 든 역참 — 라이드(#raid)와 같은 손이다. **칸의 첫머리부터** 훑는다.
+       머무는 시간을 칸 첫머리부터 재므로 Date.now() 에 칸을 더해 가며 보면
+       '지금이 몇 분인지'가 그대로 따라온다(밟아 본 함정). */
+    var RG = DG.rogue;
+    var sl = W.stationsNear(), hit = null, when2 = null;
+    var base2 = Math.floor(Date.now() / RG.SLOT_MS) * RG.SLOT_MS;
+    for (var ri = 0; ri < sl.length && !hit; ri++) {
+      for (var rj = 0; rj < 200 && !hit; rj++) {
+        var ms2 = base2 + rj * RG.SLOT_MS + 60000;
+        if (RG.at(sl[ri], ms2)) { hit = sl[ri]; when2 = ms2; }
+      }
+    }
+    if (hit) {
+      var fixedRg = RG.at(hit, when2);
+      /* 지도도 그 역참을 검은 깃발로 그리게 붙들어 둔다 (데모에서만 — 규칙은 그대로다).
+         화면 층은 `open(station, rg)` 로 만들어 둔 판을 그대로 넘겨 연다 —
+         적도는 칸이 열리고 20분만 머물러서 찍는 순간에 곁에 있으리란 보장이 없다 */
+      RG.occupied = function (s2) { return !!(s2 && s2.key === hit.key); };
+      RG.rankAt = function (s2) { return (s2 && s2.key === hit.key) ? fixedRg.rank : null; };
+      C.save.player.pos.x = hit.x - 6; C.save.player.pos.y = hit.y - 6;
+      if (tab === 'roguewin') {
+        /* 탈환 직후 — 암영이 남고 단사는 정화에 못 미치는 참(선택이 보이게) */
+        C.save.dust = Math.floor(RG.purifyCost(fixedRg.dark).dust * 0.6);
+        DG.ui.renderHud();
+        RG._finish(RG.fight(fixedRg, { live: true, dealt: fixedRg.hp }));
+      } else {
+        RG.open(hit, fixedRg);
+      }
+    }
+  }
+  else if (tab === 'dark') {
+    /* 도감 맨 위 암영 칸 — 하나는 정화할 수 있고 하나는 단사가 모자란 상태 */
+    C.save.rogue = { beat: 3, purified: 1, cleared: {}, cool: {},
+      dark: { pt_jindo: { n: 2, rank: 1, at: Date.now() },
+              pt_cheongryong: { n: 1, rank: 3, at: Date.now() } } };
+    C.save.dust = 200;
+    DG.ui.openSheet('dex');
+  }
+  else if (tab === 'station') {
+    /* 역참에 들른 화면 — 가장 가까운 역참 옆에 세워 놓고 연다 */
+    var st = W.stationsNear()[0];
+    if (st) {
+      C.save.player.pos.x = st.x - 6; C.save.player.pos.y = st.y - 6;
+      DG.station.open(st);
+    }
+  }
+  else if (tab === 'quest') {
+    /* 사명 셋 — 하나는 다 채운 상태로 */
+    DG.quest.take('catch'); DG.quest.take('station'); DG.quest.take('walk');
+    DG.quest.progress('catch', 999);
+    DG.quest.progress('station', 1);
+    DG.ui.openSheet('quest');
+  }
+  else if (tab === 'raid') {
+    /* 적장이 든 성채를 찾아 그 앞에 세운다 */
+    var R = DG.raid;
+    /* 칸의 **첫머리부터** 훑는다 — 적장은 칸이 열리고 45분만 머물러서,
+       Date.now() 에 칸을 더해 가며 보면 '지금이 몇 분인지'가 그대로 따라온다 */
+    var fl = W.fortsNear(), found = null, when = null;
+    var base = Math.floor(Date.now() / R.SLOT_MS) * R.SLOT_MS;
+    for (var fi = 0; fi < fl.length && !found; fi++) {
+      for (var si = 0; si < 200 && !found; si++) {
+        var ms = base + si * R.SLOT_MS + 60000;
+        if (R.at(fl[fi], ms)) { found = fl[fi]; when = ms; }
+      }
+    }
+    if (found) {
+      /* 그 시간 칸이 지금인 것처럼 보이게 at() 을 붙들어 둔다 (데모에서만) */
+      var fixed = R.at(found, when);
+      R.current = function () { return fixed; };
+      C.save.player.pos.x = found.x - 8; C.save.player.pos.y = found.y - 8;
+      DG.fort.open(found);
+    }
+  }
+  else if (tab === 'fort' || tab === 'fortmine') {
+    var ft = W.fortsNear()[0];
+    if (ft) {
+      C.save.player.pos.x = ft.x - 8; C.save.player.pos.y = ft.y - 8;
+      if (tab === 'fortmine') {
+        var at = Date.now() - 3 * 3600000;               // 세 시간 전에 점령한 상태
+        C.save.forts[ft.key] = { at: at, coll: at };
+      }
+      DG.fort.open(ft);
+    }
+  }
+  else if (tab === 'duel' || tab === 'dueltell' || tab === 'duelhit' || tab === 'duelfoe') {
+    /* 교전 한복판 — 원작의 탭 전투.
+       헤드리스에서는 rAF 가 거의 돌지 않아(밟아 본 함정) 화면이 첫 프레임에
+       멈춰 있다. 그래서 상태를 만든 뒤 **속공을 한 번 눌러** 그 상태로 다시
+       그리게 한다 — doAct 안에서 refresh 가 돈다. */
+    var foes = DG.data.heroes.filter(function (h) { return h.rarity === 5; });
+    var foe = foes.length ? foes[0] : DG.data.heroes[0];
+    var pw = DG.hero.partyPower();
+    var ds = DG.duel.open({
+      title: '⚔️ 토벌 — ★5 적장',
+      foeName: foe.name,
+      portrait: DG.sprite.portrait('hero', foe, 96),
+      foeHp: 2600, myAtk: pw.atk, myDef: pw.def,
+      onDone: function () {}
+    });
+    if (ds) {
+      ds.hp = 1090;                                  // 기세를 절반 넘게 깎은 참
+      ds.ki = DG.duel.KI_MAX - DG.duel.QUICK_KI;     // 속공 한 번이면 기가 만충이 된다
+      ds.morale = Math.round(ds.moraleMax * 0.68);
+      ds.left = 37;
+      ds.hits = 24; ds.ults = 2; ds.dodgeOk = 3; ds.dodgeTry = 4;
+      /* 예고는 1.1초짜리다 — rAF 가 한 프레임만 돌아도 지나가 버려 스크린샷에
+         잡히지 않는다. 데모에서만 붙들어 둔다(게임 규칙은 그대로다) */
+      if (tab === 'dueltell') { ds.tell = 999; }
+      var qb = document.querySelector('.dbtn.quick');
+      if (qb) { qb.click(); }
+      /* 동작은 0.24~0.46초짜리 CSS 애니메이션이라 스크린샷에 걸리지 않는다.
+         **데모에서만** 음수 지연으로 중간 프레임을 찍고 그대로 멈춰 세운다
+         (규칙도, 실제 화면의 동작도 그대로다). */
+      if (tab === 'duelhit' || tab === 'duelfoe') {
+        /* 속공 클릭이 붙여 둔 클래스는 0.24초 뒤 스스로 떨어진다 — 같은 동작을
+           긴 시각으로 다시 걸어 그 타이머를 미뤄 둔다(데모에서만) */
+        if (tab === 'duelhit') {                       // 내가 속공으로 뛰어드는 참
+          DG.duel._motion('#d-me', 'lunge', 9999);
+          DG.duel._motion('#d-face', 'hurt', 9999);
+        } else {                                       // 적이 강타로 달려드는 참
+          DG.duel._motion('#d-face', 'lunge', 9999);
+          DG.duel._motion('#d-me', 'blast', 9999);
+        }
+        var mid = { lunge: '-0.09s', ulting: '-0.2s', blast: '-0.08s', hurt: '-0.06s' };
+        [].forEach.call(document.querySelectorAll('.d-unit'), function (n) {
+          var cls = ['lunge', 'ulting', 'blast', 'hurt', 'evade'].filter(function (c) {
+            return n.classList.contains(c);
+          })[0];
+          if (!cls) { return; }
+          n.style.animationDelay = mid[cls] || '-0.1s';
+          n.style.animationPlayState = 'paused';
+        });
+      }
+    }
+  }
+  else if (tab === 'auto') {
+    DG.auto.setOn(true);
+  }
+  else if (['letters', 'dex', 'oracle', 'log'].indexOf(tab) >= 0 && !walking) { DG.ui.openSheet(tab); }
+}, 350);
+</script>
+</body></html>

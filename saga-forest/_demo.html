@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>역사의숲 데모</title><link rel="stylesheet" href="css/style.css"></head>
+<body>
+<!--
+  스크린샷용 데모 상태 — "며칠 마을에 산 뒤" 를 재현한다. 게임 코드는 건드리지 않는다.
+
+  장면(해시)
+    #map    마을            #fish  낚시 중(입질)     #plant 심어 둔 묘목 곁
+    #bag    가방·심기 시트   #folks 주민            #dex 도감   #log 기록
+  계절을 지정하려면 -spring · -summer · -autumn · -winter 를 붙인다 (예: #map-winter).
+  등신·양식은 -chibi · -tall · -anime · -classic.
+
+  이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
+  화면이 통째로 죽는다 (역사고에서 실제로 그렇게 오래 죽어 있었다).
+-->
+<canvas id="map"></canvas>
+<div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">🤖</button>
+    <button class="icon-btn" id="btn-do">✋</button>
+    <button class="icon-btn" id="btn-sneak">🐾</button>
+    <button class="icon-btn txt" id="btn-prop">4등</button>
+    <button class="icon-btn" id="btn-style">📗</button>
+    <button class="icon-btn" id="btn-help">❔</button>
+    <button class="icon-btn" id="btn-reset">↺</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="autobar"></div>
+<div id="focusbar"></div>
+<nav id="dock">
+  <button data-sheet="bag"><span>🎒</span><small>가방</small></button>
+  <button data-sheet="folks"><span>🏡</span><small>주민</small></button>
+  <button data-sheet="home"><span>🏠</span><small>집</small></button>
+  <button data-sheet="mail"><span>📮</span><small>편지</small></button>
+  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title">가방</h3>
+    <button class="icon-btn sm" id="sheet-close">✕</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<script>
+/* 가입 화면을 건너뛴다 — 데모는 진단과 같은 고정 키(…/save/test)로 켠다 */
+window.DG_NO_ACCOUNT = true;
+/* 손잡이를 읽지 않는다 — 스크린샷이 기기 사정으로 흔들리면 안 된다 */
+window.DG_NO_TUNE = true;
+</script>
+<script src="js/data.js"></script>
+<script src="js/data-village.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/village.js"></script>
+<script src="js/bug.js"></script>
+<script src="js/home.js"></script>
+<script src="js/mail.js"></script>
+<script src="js/museum.js"></script>
+<script src="js/town.js"></script>
+<script src="js/folk.js"></script>
+<script src="js/turnip.js"></script>
+<script src="js/wear.js"></script>
+<script src="js/village-view.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 세이브 보호 — 루프가 주기적으로 persist() 한다. 데모 상태로 덮이지 않게 막는다. */
+DG.core.persist = function () {};
+
+window.addEventListener('error', function (e) {
+  var msg = e.message + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno;
+  document.title = 'DEMO ERROR: ' + msg;
+  var box = document.getElementById('demo-err');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'demo-err';
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:9999;padding:8px 10px;' +
+      'background:#5b1414;color:#ffd9d9;border:1px solid #ff8f8f;border-radius:10px;' +
+      'font:600 12px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+    document.body.appendChild(box);
+  }
+  box.textContent = '⚠️ ' + msg;
+});
+</script>
+<script>
+setTimeout(function () {
+  var C = DG.core, V = DG.village, VD = DG.villageData;
+
+  C.save.player.level = 11;
+  C.save.player.gold = 6200;
+  C.save.player.featTotal = 740;
+  var s = V.state();
+  s.gathered = 318; s.sold = 240; s.helped = 12;
+  s.bag = { apple: 6, chest: 4, iron: 3, crucian: 2, orchid: 1, maple: 3 };
+
+  C.save.log = [];
+  C.log('🐟 붕어 을 낚았다', 'good');
+  C.log('🌱 능금 을 심었다 — 3일 뒤에 자랍니다', 'good');
+  C.log('🤝 이순신 의 부탁을 들어주었다 — 🪙 +560', 'good');
+  C.log('🌅 날이 밝았습니다 — 마을이 다시 여물었습니다', 'good');
+
+  var hash = location.hash.replace('#', '');
+
+  /* 계절 고정 — 데모는 달에 끌려다니면 안 된다(스크린샷이 철마다 달라진다).
+     게임 코드는 그대로 두고, 데모에서만 VD.season 을 갈아 끼운다. */
+  var want = ['spring', 'summer', 'autumn', 'winter'].filter(function (k) {
+    return hash.indexOf(k) >= 0;
+  })[0];
+  if (want) {
+    var fixed = VD.SEASONS.filter(function (x) { return x.key === want; })[0];
+    VD.season = function () { return fixed; };
+  }
+
+  /* 시간대 고정 — 계절과 같은 이유다. 하늘·해·달·별을 눈으로 보려면
+     실제 시계를 기다릴 수 없다 (#map-night · -dawn · -even · -day) */
+  var wantPh = ['dawn', 'day', 'even', 'night'].filter(function (k) {
+    return hash.indexOf(k) >= 0;
+  })[0];
+  if (wantPh) {
+    var fixedPh = VD.PHASES.filter(function (x) { return x.key === wantPh; })[0];
+    VD.phaseOf = function () { return fixedPh; };
+  }
+
+  if (hash.indexOf('chibi') >= 0) { DG.sprite.setProp('chibi'); }
+  if (hash.indexOf('tall') >= 0) { DG.sprite.setProp('tall'); }
+  if (hash.indexOf('anime') >= 0) { DG.sprite.setStyle('anime'); }
+  if (hash.indexOf('classic') >= 0) { DG.sprite.setStyle('classic'); }
+  var tab = hash.split('-')[0];
+
+  var raw = V.raw();
+
+  if (tab === 'fish') {
+    for (var i = 0; i < raw.props.length; i++) {
+      if (raw.props[i].kind !== 'spot') { continue; }
+      raw.player.x = raw.props[i].x; raw.player.y = raw.props[i].y + 6;
+      V.castLine(raw.props[i]);
+      /* 입질 순간을 찍는다 — raw() 는 부를 때마다 새 스냅샷이라 다시 받아야 한다 */
+      var f = V.raw().fishing;
+      /* 입질 창을 길게 잡아 둔다 — 스크린샷을 찍을 때까지 그 순간이 유지되게
+         (게임에서는 0.7초다. 데모에서만 늘린다) */
+      f.biteAt = Date.now() - 100;
+      f.ends = Date.now() + 120000;
+      break;
+    }
+  } else if (tab === 'plant') {
+    /* 자란 나무 하나와 아직 묘목 하나를 나란히 둔다 */
+    s.planted = [];
+    for (var ty = 2; ty < V.H - 2; ty++) {
+      for (var tx = 2; tx < V.W - 2; tx++) {
+        if (V.tileAt(tx, ty) !== 'grass') { continue; }
+        raw.player.x = tx * V.TILE + V.TILE / 2;
+        raw.player.y = ty * V.TILE + V.TILE / 2;
+        if (!V.canPlantHere().ok) { continue; }
+        s.planted.push({ x: raw.player.x, y: raw.player.y, kind: 'tree',
+                         day: s.day - V.PLANT_DAYS, from: 'apple' });
+        s.planted.push({ x: raw.player.x + V.TILE, y: raw.player.y, kind: 'pine',
+                         day: s.day, from: 'chest' });
+        V.syncPlanted();
+        ty = V.H; break;
+      }
+    }
+  }
+
+  /* 곤충 — 자리를 고정해 세운다 (무작위로 나오길 기다리면 스크린샷이 매번 다르다) */
+  if (tab === 'bug') {
+    V.state().tools.net = true;
+    var B = DG.bug;
+    B.reset();
+    var kinds = ['swallow', 'ladybug', 'dragon', 'firefly', 'rhino', 'hopper'];
+    for (var bi = 0; bi < kinds.length; bi++) {
+      var ang = bi / kinds.length * Math.PI * 2;
+      B._spawnAt(kinds[bi], raw.player.x + Math.cos(ang) * 96,
+                            raw.player.y + Math.sin(ang) * 62);
+    }
+    B._spawnAt('cabbage', raw.player.x + 34, raw.player.y - 16);
+  }
+
+  /* 날씨 고정 — 계절·시간대와 같은 이유다 (#map-rain 처럼) */
+  var wantWx = ['clear', 'cloud', 'rain', 'snow'].filter(function (k) {
+    return hash.indexOf(k) >= 0;
+  })[0];
+  if (wantWx) { VD.weather = function () { return VD.WEATHERS[wantWx]; }; }
+
+  /* 행사 고정 — 계절·시간대와 같은 이유다 (그날을 기다릴 수 없다).
+     #map-chuseok-night 처럼 행사 이름(key)을 해시에 넣는다 */
+  var wantEv = VD.EVENTS.filter(function (e) { return hash.indexOf(e.key) >= 0; })[0];
+  if (wantEv) { VD.eventOf = function () { return wantEv; }; }
+
+  /* 마을 기 — 보기 좋은 한 벌로 고정한다 */
+  if (tab === 'flag' || tab === 'town') {
+    var Tw = DG.town;
+    Tw.setName('솔뫼');
+    Tw.setFlag('bg', 'blue');
+    Tw.setFlag('fg', 'white');
+    Tw.setFlag('sym', 'crane');
+    var pl = V.raw().props.filter(function (p) { return p.kind === 'pole'; })[0];
+    if (pl) { raw.player.x = pl.x - 26; raw.player.y = pl.y + 18; }
+  }
+
+  /* 주민끼리의 대화 — 두 사람을 나란히 세우고 말을 붙인다 */
+  if (tab === 'chat') {
+    var rs2 = V.raw().residents;
+    if (rs2.length >= 2) {
+      rs2[0].x = raw.player.x - 66; rs2[0].y = raw.player.y - 26;
+      rs2[1].x = raw.player.x + 62; rs2[1].y = raw.player.y - 20;
+      rs2[0].home = { x: rs2[0].x, y: rs2[0].y };
+      rs2[1].home = { x: rs2[1].x, y: rs2[1].y };
+      DG.folk._reset();
+      DG.folk._start(rs2[0], rs2[1]);
+    }
+  }
+
+  /* 차림 — 갈아입은 모습을 바로 보이게 (#map-dressed) */
+  if (hash.indexOf('dressed') >= 0) {
+    var Wr = DG.wear;
+    C.save.player.gold = 999999;
+    [['coat', 'robe'], ['head', 'gat'], ['dye', 'crimson'], ['cape', 'on']]
+      .forEach(function (e) { Wr.buy(e[0], e[1]); Wr.set(e[0], e[1]); });
+  }
+
+  /* 잡초 · 별똥별 — 며칠을 기다릴 수 없으니 데모에서 세운다 */
+  if (hash.indexOf('weedy') >= 0) {
+    var sw = V.state();
+    sw.weeds = [];
+    for (var wq = 0; wq < 6; wq++) { sw.day += 1; V.growWeeds(); }
+    V.buildProps(); V.syncPlanted();
+    raw = V.raw();
+  }
+  if (hash.indexOf('star') >= 0) {
+    DG.town._setStar({ slot: 1, t: 0.45, x: 0.34, y: 0.18 });
+  }
+
+  /* 순무 장 — 요일과 시각을 기다릴 수 없으니 데모에서 고정한다 */
+  if (tab === 'turnip' || tab === 'tmarket') {
+    var Tn = DG.turnip, sv2 = V.state();
+    if (tab === 'tmarket') {
+      Tn._setOpen(true);                              // 장이 선 일요일 오전
+      sv2.day = sv2.day - Tn.dow(sv2.day);
+      sv2.turnip = null;
+    } else {
+      Tn._setOpen(false);
+      sv2.day = sv2.day - Tn.dow(sv2.day) + 4;        // 목요일
+      sv2.turnip = { n: 300, buy: 97, week: Tn.week(sv2.day) };
+    }
+    DG.ui.openSheet('bag');
+  }
+
+  /* 갈라진 자리와 조개 — 자리를 고정해 둔다 */
+  if (tab === 'dig') {
+    V.state().tools.spade = true;
+    V.state().tools.net = true;
+    var pr = V.raw().props;
+    pr.push({ id: 'demo-dig1', kind: 'dig', x: raw.player.x - 60, y: raw.player.y + 20 });
+    pr.push({ id: 'demo-dig2', kind: 'dig', x: raw.player.x + 46, y: raw.player.y + 6 });
+    pr.push({ id: 'demo-dig3', kind: 'dig', x: raw.player.x + 10, y: raw.player.y + 70 });
+    pr.push({ id: 'demo-shell1', kind: 'shell', x: raw.player.x - 30, y: raw.player.y + 74 });
+    pr.push({ id: 'demo-shell2', kind: 'shell', x: raw.player.x + 92, y: raw.player.y + 52 });
+    V.state().used['demo-dig3'] = V.state().day;      // 이미 판 자리도 하나 보여 준다
+  }
+
+  /* 사고(史庫) — 앞에 서서 전시를 연다 */
+  if (tab === 'museum') {
+    var m = V.raw().props.filter(function (p) { return p.kind === 'museum'; })[0];
+    if (m) { raw.player.x = m.x; raw.player.y = m.y + 14; }
+    var sv = V.state();
+    sv.bag = { pearl: 1, ammon: 1, trilo: 2, cabbage: 1, crucian: 2, sora: 1 };
+    sv.donated = { crucian: true, carp: true, godung: true, daehap: true,
+                   cabbage: true, ladybug: true, shard: true };
+  }
+
+  /* 집 안 — 가구를 몇 점 놓고 들어간 상태 */
+  if (tab === 'room') {
+    var Hm = DG.home;
+    /* 벽지·장판은 해시로 갈아 끼운다 (#room-dan-stone 처럼) */
+    ['hanji', 'sol', 'muk', 'dan'].forEach(function (k) {
+      if (hash.indexOf(k) >= 0) { Hm.state().walls[k] = true; Hm.state().wall = k; }
+    });
+    ['mat', 'jangpan', 'stone', 'ondol'].forEach(function (k) {
+      if (hash.indexOf(k) >= 0) { Hm.state().floors[k] = true; Hm.state().floor = k; }
+    });
+    Hm.state().tier = 2;
+    Hm.state().items = [];
+    var T = V.TILE, rm = Hm.room();
+    var put = [['byeongpung', 2, 1], ['soban', 4, 2], ['bandaji', 7, 1],
+               ['hwaro', 5, 4], ['deungjan', 2, 4], ['geomungo', 8, 4],
+               ['hwabun', 9, 2], ['dokja', 1, 2], ['bangseok', 4, 3],
+               ['jokja', 6, 1]];
+    for (var hi = 0; hi < put.length; hi++) {
+      if (put[hi][1] >= rm.tw || put[hi][2] >= rm.th) { continue; }
+      Hm.state().items.push({ key: put[hi][0],
+        x: put[hi][1] * T + T * 0.5, y: put[hi][2] * T + T * 0.5 });
+    }
+    Hm.state().stock = { mungab: 1, badukpan: 2 };
+    Hm.state().debt = 26000;
+    V.enterHome();
+    raw = V.raw();
+    raw.player.x = 5 * T + T * 0.5;
+    raw.player.y = 3 * T + T * 0.5;
+  }
+
+  /* 편지 — 종류별로 한 통씩 */
+  if (tab === 'mail' || tab === 'folks') {
+    var M = DG.mail, ids = V.state().residents;
+    M._put({ from: ids[0], kind: 'thanks', title: (DG.data.find(ids[0]) || {}).name + ' 의 감사장',
+             body: '어제 일은 고마웠소. 변변찮으나 마음이오.',
+             gift: { type: 'item', key: 'apple', n: 3 } });
+    M._put({ from: ids[1], kind: 'notice',
+             title: (DG.data.find(ids[1]) || {}).name + ' 이(가) 떠날 뜻을 비쳤습니다',
+             body: '이 마을을 떠날까 하오. 사흘 뒤면 짐을 쌀 것이오.', gift: null });
+    M._put({ from: 'town', kind: 'hha', title: '집 평가서 — 정갈한 집',
+             body: '놓인 것 10점, 어울림 45점. 모두 118점이오.',
+             gift: { type: 'gold', n: 772 } });
+    V.state().leaving[ids[1]] = V.state().day + 3;
+    V.state().mail[1].read = true;
+  }
+
+  C.emit('changed');
+  document.getElementById('sheet').style.transition = 'none';
+  document.getElementById('dock').style.transition = 'none';
+
+  if (['bag', 'folks', 'dex', 'log', 'mail', 'home', 'museum', 'town', 'wear']
+        .indexOf(tab) >= 0) {
+    DG.ui.openSheet(tab);
+  }
+}, 350);
+</script>
+</body></html>

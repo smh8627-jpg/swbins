@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>역사의숲 어드민 — QA 운영판</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b26; --panel2: #1c2331; --line: #2a3345;
+    --ink: #e7ecf5; --dim: #93a0b5; --gold: #e8c15a; --blue: #4aa3f0;
+    --good: #5ec26a; --bad: #e06565; --leaf: #6fbb52;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 13px/1.6 "Malgun Gothic", system-ui, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header .warn { font-size: 11px; color: var(--bad); }
+  .grow { flex: 1; }
+  select, input[type=text], input[type=number], textarea {
+    background: #0b0f16; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 5px 8px; font: inherit; font-size: 12px;
+  }
+  input[type=number] { width: 104px; }
+  textarea { width: 100%; min-height: 160px; font-family: Consolas, monospace; font-size: 11.5px; }
+  button {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 11px; cursor: pointer; font: inherit; font-size: 12px;
+  }
+  button:hover { border-color: #3d4a63; }
+  button.go { background: var(--gold); color: #1b1205; border-color: transparent; font-weight: 700; }
+  button.danger { background: #3a1e22; border-color: #6b2f36; color: #ffc9c9; }
+  button.on { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  nav { display: flex; gap: 6px; padding: 10px 14px 0; flex-wrap: wrap; }
+  nav button.sel { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  main { padding: 14px; max-width: 1180px; }
+  section { display: none; }
+  section.show { display: block; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 12px;
+  }
+  .card h2 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  .card p.note { margin: 0 0 10px; font-size: 11.5px; color: var(--dim); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 11.5px; color: var(--dim); min-width: 96px; }
+  .row.tight label { min-width: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 8px 14px; }
+  .fld { display: flex; align-items: center; gap: 8px; }
+  .fld label { flex: 1; min-width: 84px; font-size: 11.5px; color: var(--dim); }
+  .fld .def { font-size: 10px; color: #6b7688; min-width: 58px; text-align: right; }
+  .folks { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+  /* 주민 카드 — 이름줄과 단추줄을 **두 줄로** 나눈다.
+     한 줄에 몰아넣었더니 단추가 폭을 다 먹어 이름이 세로로 흘렀다 */
+  .folk {
+    display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+  }
+  .folk img { width: 40px; height: 40px; border-radius: 8px; background: #0b0f16; flex: 0 0 auto; }
+  .folk .fm { flex: 1 1 150px; min-width: 0; }
+  .folk .fm b { font-size: 12.5px; }
+  .folk .fm small { display: block; color: var(--dim); font-size: 10.5px; }
+  .folk .fb { flex: 1 1 100%; display: flex; gap: 4px; flex-wrap: wrap; }
+  .folk .fb button { padding: 3px 7px; font-size: 11px; }
+  .bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 4px 10px; }
+  .bag .fld label { min-width: 0; }
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 8px; }
+  .preset { text-align: left; padding: 10px 12px; line-height: 1.45; }
+  .preset b { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .preset small { color: var(--dim); font-size: 10.5px; }
+  #log {
+    position: fixed; right: 14px; bottom: 14px; z-index: 20; max-width: 380px;
+    background: #10151f; border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; font-size: 11.5px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    display: none;
+  }
+  #log.show { display: block; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+  .pill.tuned { background: var(--gold); color: #1b1205; }
+  .pill.clean { background: #24303f; color: var(--dim); }
+  .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
+          background: #24303f; color: var(--dim); margin-right: 4px; }
+  .chip.on { background: var(--leaf); color: #0c1a08; font-weight: 700; }
+  a { color: var(--blue); }
+  code { background: #0b0f16; padding: 1px 5px; border-radius: 5px; font-size: 11.5px; }
+  .flagimg { width: 72px; height: 48px; border-radius: 5px; display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎛️ 역사의숲 어드민</h1>
+  <label style="font-size:11.5px;color:var(--dim)">프로필</label>
+  <select id="prof"></select>
+  <span id="tunepill" class="pill clean">손잡이 없음</span>
+  <span class="grow"></span>
+  <span class="warn">게임 창이 열려 있으면 저장한 값이 곧바로 그 창에도 반영됩니다</span>
+  <a href="index.html" target="_blank">게임 열기 ↗</a>
+  <button class="go" id="save">💾 세이브 저장</button>
+  <button id="reload">↺ 다시 읽기</button>
+</header>
+
+<nav>
+  <button data-tab="save" class="sel">세이브</button>
+  <button data-tab="folk">마을 · 주민</button>
+  <button data-tab="home">집 · 사고 · 옷</button>
+  <button data-tab="time">때(時)</button>
+  <button data-tab="tune">균형 손잡이</button>
+  <button data-tab="preset">QA 프리셋</button>
+  <button data-tab="tools">점검 · 백업</button>
+</nav>
+
+<main>
+
+<!-- ── 세이브 ─────────────────────────────────────────── -->
+<section id="tab-save" class="show">
+  <div class="card">
+    <h2>지금 이 프로필</h2>
+    <p class="note" id="sum">…</p>
+  </div>
+
+  <div class="card">
+    <h2>재화 · 성장</h2>
+    <p class="note">고친 뒤 위의 <b>세이브 저장</b>을 누릅니다. 게임 창이 열려 있으면 그 창도 바로 다시 읽습니다.</p>
+    <div class="grid" id="basics"></div>
+  </div>
+
+  <div class="card">
+    <h2>도구</h2>
+    <p class="note">도구가 없으면 곤충도 화석도 손을 못 댑니다 — 확인할 때 먼저 켭니다.</p>
+    <div class="row" id="tools"></div>
+  </div>
+
+  <div class="card">
+    <h2>가방</h2>
+    <p class="note">갈래별로 접어 두었습니다. 값을 0 으로 두면 사라집니다.</p>
+    <div class="row" id="bagcats"></div>
+    <div class="bag" id="bag"></div>
+  </div>
+
+  <div class="card">
+    <h2>진행 비우기</h2>
+    <p class="note">"오늘 몫" 과 쌓인 것을 지웁니다 — 같은 것을 다시 확인할 때 씁니다.</p>
+    <div class="row">
+      <button data-clear="used">🌳 오늘 몫 초기화 (나무·바위·꽃·자리)</button>
+      <button data-clear="requests">📋 부탁 새로 받기</button>
+      <button data-clear="mail">📮 편지 비우기</button>
+      <button data-clear="weeds">🌿 잡초 다 뽑기</button>
+      <button data-clear="planted">🌱 심은 것 비우기</button>
+      <button data-clear="log">📜 기록 비우기</button>
+      <button data-clear="village" class="danger">🏡 마을 진행 통째로 비우기</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── 마을 · 주민 ────────────────────────────────────── -->
+<section id="tab-folk">
+  <div class="card">
+    <h2>마을</h2>
+    <div class="row">
+      <label>마을 이름</label><input type="text" id="townname" maxlength="8">
+      <button id="townapply">바꾼다</button>
+      <img class="flagimg" id="flagimg" alt="">
+    </div>
+    <div class="row tight" id="flagrow"></div>
+  </div>
+
+  <div class="card">
+    <h2>전방 · 잡초 · 마을 평가</h2>
+    <div class="row">
+      <label>판 금 누계</label><input type="number" id="soldgold">
+      <span class="def" id="shopnow" style="font-size:11.5px;color:var(--dim)"></span>
+      <button id="shop-next">한 단 올린다</button>
+    </div>
+    <div class="row">
+      <label>잡초</label><input type="number" id="weedn">
+      <button id="weed-apply">그만큼 둔다</button>
+      <span id="beauty" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>주민</h2>
+    <p class="note">
+      친밀도 · 오늘 부탁 · 떠날 뜻을 사람마다 손봅니다.
+      <b>내보내면</b> 그 자리에 새 인물이 옵니다(다음 날 넘김에서).
+    </p>
+    <div class="row">
+      <button id="folk-shuffle">🔀 주민 다섯을 새로 뽑는다</button>
+      <button id="folk-love">💗 모두 친밀도 5</button>
+      <button id="folk-done">✔️ 오늘 부탁 모두 완료</button>
+    </div>
+    <div class="folks" id="folks"></div>
+  </div>
+</section>
+
+<!-- ── 집 · 사고 · 옷 ─────────────────────────────────── -->
+<section id="tab-home">
+  <div class="card">
+    <h2>집</h2>
+    <div class="row">
+      <label>단계</label><select id="home-tier"></select>
+      <label style="min-width:44px">빚</label><input type="number" id="home-debt">
+      <button id="home-apply">적용</button>
+      <span id="home-info" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <div class="row">
+      <button id="home-furn">🪑 가구를 창고에 두 벌씩</button>
+      <button id="home-finish">🎨 벽지·장판 전부 열기</button>
+      <button id="home-clear" class="danger">놓은 가구 치우기</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>사고(史庫)</h2>
+    <div class="row">
+      <span id="museum-info" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <div class="row">
+      <button id="mu-all">🏛️ 전부 기증한 것으로</button>
+      <button id="mu-near">한 종만 남기고 기증</button>
+      <button id="mu-none" class="danger">사고 비우기</button>
+      <button id="mu-dex">📖 도감(잡아 본 것)도 전부 채우기</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>옷 (침선방)</h2>
+    <div class="row">
+      <span id="wear-info" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <div class="row">
+      <button id="wear-all">🧵 옷장 전부 열기</button>
+      <button id="wear-reset" class="danger">차림 되돌리기</button>
+    </div>
+    <div class="row" id="wearrow"></div>
+  </div>
+</section>
+
+<!-- ── 때 ─────────────────────────────────────────────── -->
+<section id="tab-time">
+  <div class="card">
+    <h2>지금</h2>
+    <p class="note" id="timenow">…</p>
+  </div>
+
+  <div class="card">
+    <h2>때를 고정한다</h2>
+    <p class="note">
+      이 마을은 <b>실제 시계</b>에 크게 기댑니다 — 계절 · 시간대 · 날씨 · 행사가 다 날짜에서 나옵니다.
+      그날을 기다릴 수 없으니 여기서 못을 박습니다. <b>비워 두면 실제 시계</b>로 돕니다.
+      바꾼 뒤에는 게임 창을 <b>새로고침</b>하지 않아도 다음 프레임부터 듣습니다.
+    </p>
+    <div class="grid" id="timefields"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="danger" id="time-clear">때를 놓는다 (실제 시계로)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>날짜 밀기</h2>
+    <p class="note">
+      하루를 넘기면 <b>채집물이 다시 여물고 · 부탁이 새로 붙고 · 편지가 오고 · 잡초가 늘고 ·
+      이사가 판정</b>됩니다. 요일도 같이 갑니다(순무 장은 일요일 오전).
+      미룬 날수는 손잡이에 남으므로 <b>되돌리면 원래 날로</b> 돌아옵니다.
+    </p>
+    <div class="row">
+      <label>미룬 날</label>
+      <input type="number" id="dayshift">
+      <button id="day1">+1일</button>
+      <button id="day7">+7일</button>
+      <button id="daysun">🥬 다음 일요일로</button>
+      <button class="danger" id="day0">0 으로</button>
+    </div>
+    <div class="row">
+      <button class="go" id="rollnow">🌅 지금 하루를 넘긴다 (편지·이사·잡초까지)</button>
+      <span id="dayinfo" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ── 균형 손잡이 ────────────────────────────────────── -->
+<section id="tab-tune">
+  <div class="card">
+    <h2>걸음 배속 — 곧바로 듣습니다</h2>
+    <p class="note">이동만 곱합니다. 규칙은 그대로라 하루 몫도 벌레의 경계 반경도 바뀌지 않습니다.</p>
+    <div class="row" id="speedrow"></div>
+  </div>
+
+  <div class="card">
+    <h2>규칙 값</h2>
+    <p class="note">
+      비워 두면 <b>코드의 기본값</b>으로 돕니다. 이 값들은 게임이 <b>켜질 때 한 번</b> 읽으므로
+      바꾼 뒤에는 게임 창을 <b>새로고침</b>해야 듣습니다.
+      자가진단(<code>_test.html</code>)과 데모는 손잡이를 읽지 않습니다 — 판정이 흔들리면 안 되니까요.
+    </p>
+    <div id="tunefields"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="danger" id="tune-clear">전부 놓기 (기본값으로)</button>
+      <span id="tunesum" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ── QA 프리셋 ──────────────────────────────────────── -->
+<section id="tab-preset">
+  <div class="card">
+    <h2>시나리오 한 번에 만들기</h2>
+    <p class="note">
+      확인하려는 상황을 바로 만듭니다. 누르면 <b>곧바로 저장</b>되고 게임 창에도 반영됩니다.
+      되돌리려면 아래 스냅샷을 먼저 떠 두세요.
+    </p>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="card">
+    <h2>스냅샷 — 확인 전에 떠 두고, 끝나면 되돌립니다</h2>
+    <p class="note">이 기기에만 남습니다(세이브와 별개 칸). 세 칸입니다.</p>
+    <div class="row" id="snaps"></div>
+  </div>
+</section>
+
+<!-- ── 점검 · 백업 ────────────────────────────────────── -->
+<section id="tab-tools">
+  <div class="card">
+    <h2>세이브 조각</h2>
+    <p class="note">그대로 복사해 두었다가 붙여 넣으면 그 판으로 돌아갑니다.</p>
+    <div class="row">
+      <button id="dump">📋 지금 세이브 꺼내기</button>
+      <button id="load" class="danger">붙여 넣은 것으로 덮기</button>
+      <span id="usage" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <textarea id="json" placeholder="여기에 세이브 조각이 나옵니다"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>어드민 자가점검</h2>
+    <p class="note">
+      어드민이 세이브와 손잡이를 제대로 읽고 쓰는지 스스로 확인합니다.
+      <b>지금 프로필을 건드리지 않습니다</b> — 따로 만든 칸에서 확인하고 지웁니다.
+    </p>
+    <div class="row"><button class="go" id="selftest">🔍 점검</button></div>
+    <div id="selfout" style="font-family:Consolas,monospace;font-size:11.5px;line-height:1.8"></div>
+  </div>
+</section>
+
+</main>
+
+<div id="log"></div>
+
+<script src="js/data.js"></script>
+<script src="js/data-village.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/village.js"></script>
+<script src="js/bug.js"></script>
+<script src="js/home.js"></script>
+<script src="js/mail.js"></script>
+<script src="js/museum.js"></script>
+<script src="js/town.js"></script>
+<script src="js/folk.js"></script>
+<script src="js/turnip.js"></script>
+<script src="js/wear.js"></script>
+<script src="js/village-view.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

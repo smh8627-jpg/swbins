@@ -1,0 +1,2458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>사가GO 던전 자가진단</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/diablo.css">
+<style>
+  body { overflow: auto; }
+  #report { padding: 16px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.8; }
+  .pass { color: #5ec26a; } .fail { color: #e06565; }
+</style>
+</head>
+<body>
+<!-- 게임이 요구하는 DOM 뼈대 (index.html 과 같은 id) -->
+<div id="camp-bg"></div><div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto">a</button>
+    <button class="icon-btn" id="btn-prop">p</button>
+    <button class="icon-btn" id="btn-style">s</button>
+    <button class="icon-btn" id="btn-sound">v</button>
+    <button class="icon-btn" id="btn-help">h</button>
+    <button class="icon-btn" id="btn-reset">r</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="autobar"></div><div id="camp"></div>
+<nav id="dock">
+  <button data-sheet="party"><span>p</span><small>p</small></button>
+  <button data-sheet="gear"><span>g</span><small>g</small></button>
+  <button data-sheet="dex"><span>d</span><small>d</small></button>
+  <button data-sheet="log"><span>l</span><small>l</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title"></h3>
+    <button class="icon-btn sm" id="sheet-close">x</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<div id="report">진단 중…</div>
+
+<script>
+window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
+
+/* 무작위 고정 — 진단이 굴릴 때마다 달라지면 판정이 흔들린다.
+   게임 스크립트보다 **먼저** 갈아 둬야 부트에서 쓰는 난수까지 잡힌다.
+   (실제 플레이는 그대로다 — 이 파일 안에서만 바꾼다)
+   mulberry32: 짧고 분포가 고르며 같은 씨앗이면 같은 수열이 나온다. */
+(function (seed) {
+  var s = seed >>> 0;
+  Math.random = function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  window.DG_SEED = seed;
+})(20260824);
+</script>
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-item.js"></script>
+<script src="js/data-gem.js"></script>
+<script src="js/data-elem.js"></script>
+<script src="js/data-skill.js"></script>
+<script src="js/data-set.js"></script>
+<script src="js/data-unique.js"></script>
+<script src="js/data-dungeon.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/account.js"></script>
+<script src="js/item.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/skill.js"></script>
+<script src="js/dungeon.js"></script>
+<script src="js/dungeon-view.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/potion.js"></script>
+<script src="js/vendor.js"></script>
+<script src="js/forge.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 자가진단 — 헤드리스에서도 돈다 (rAF 가 아니라 setTimeout 을 쓴다).
+     chrome --headless=new --virtual-time-budget=25000 --dump-dom http://127.0.0.1:8792/_test.html
+*/
+(function () {
+  var out = [], errors = [];
+  window.addEventListener('error', function (e) { errors.push(e.message); });
+
+  function t(name, fn) {
+    try {
+      var r = fn();
+      out.push((r ? '<span class="pass">PASS</span> ' : '<span class="fail">FAIL</span> ') +
+        name + (typeof r === 'string' ? ' — ' + r : ''));
+      return !!r;
+    } catch (e) {
+      out.push('<span class="fail">FAIL</span> ' + name + ' — 예외: ' + e.message);
+      return false;
+    }
+  }
+
+  setTimeout(function () {
+    var C = DG.core, D = DG.data, HR = DG.hero;
+    var DN = DG.dungeon, IT = DG.item, AU = DG.auto, G = DG.game;
+    localStorage.removeItem(C.SAVE_KEY);
+
+    /* ── 진단용 밑작업 ──────────────────────────────────
+     * 2026-08-26 에 **요구 수준(要求)** 이 들어왔다 — 원작처럼 좋은 물건은
+     * 인물 레벨이 차야 입는다. 그런데 진단에는 갓 출사표로 붙은 **1레벨 인물**에게
+     * 수준 20짜리를 입히는 항목이 많다. 실제 플레이에서는 깊이 내려가는 동안
+     * 인물도 같이 크므로 저절로 맞는 자리다.
+     * 그래서 여기서 **동행을 한 번 키워 둔다.** 요구 수준 자체는 아래 전용 항목이
+     * 낮은 레벨로 따로 검사한다.
+     */
+    function levelParty(lv) {
+      C.save.party.forEach(function (hid) {
+        C.save.heroes[hid] = C.save.heroes[hid] || { lv: 1, exp: 0, rank: 0 };
+        C.save.heroes[hid].lv = lv;
+      });
+    }
+
+    /* ── 갈라져 나온 프로젝트로서의 조건 ─────────────── */
+
+    t('지도 게임의 모듈은 실려 있지 않다', function () {
+      var gone = ['world', 'encounter'];
+      var leaked = gone.filter(function (k) { return !!DG[k]; });
+      return leaked.length === 0 && '지도·조우 없음 (던전 전용)';
+    });
+
+    t('데이터는 그대로 물려받았다', function () {
+      return D.heroes.length === 70 && D.pets.length === 41 &&
+        ('인물 ' + D.heroes.length + ' · 펫 ' + D.pets.length);
+    });
+
+    /* ── 인물 합류 (지도가 없으니 이게 유일한 통로) ──── */
+
+    t('출사표 — 처음 시작하면 동행 3명이 붙는다', function () {
+      /* boot() 이 이미 돌았다 (fresh 세이브) */
+      return C.save.party.length === G.START_PARTY &&
+        (C.save.party.length + '명 · ' + C.save.party.join(', '));
+    });
+
+    t('밑작업 — 동행을 키워 둔다 (요구 수준 때문에)', function () {
+      levelParty(40);
+      return C.save.party.every(function (hid) { return HR.info(hid).lv === 40; }) &&
+        ('동행 ' + C.save.party.length + '명 Lv.40');
+    });
+
+    t('합류 — 없는 인물은 도감에, 있는 인물은 중복으로', function () {
+      var h = G.pickNewHero(5);
+      var before = Object.keys(C.save.dex.heroes).length;
+      G.joinHero(h, '진단');
+      var mid = Object.keys(C.save.dex.heroes).length;
+      G.joinHero(h, '진단');                       // 같은 인물 = 중복
+      var after = Object.keys(C.save.dex.heroes).length;
+      var dup = C.save.dex.heroes[h.id].count;
+      return mid === before + 1 && after === mid && dup === 2 &&
+        (h.name + ' · 도감 ' + after + '명 · 중복 ' + (dup - 1));
+    });
+
+    t('보스 보상 — 층이 깊을수록 좋은 인물이 온다', function () {
+      var low = 0, high = 0, i;
+      for (i = 0; i < 40; i++) {
+        var a = G.pickNewHero(2), b = G.pickNewHero(5);
+        if (a) { low = Math.max(low, a.rarity); }
+        if (b) { high = Math.max(high, b.rarity); }
+      }
+      return low <= 2 && high >= low && ('얕은 층 최대 ★' + low + ' · 깊은 층 최대 ★' + high);
+    });
+
+    /* ── 던전 ─────────────────────────────────────────── */
+
+    t('부대가 없으면 못 들어간다', function () {
+      var keep = C.save.party.slice();
+      C.save.party = [];
+      var ok = DN.enter({ floor: 1 });
+      C.save.party = keep;
+      return ok === false && !DN.active() && '거절됨';
+    });
+
+    t('진입 — 방·체력·전투력이 부대에서 나온다', function () {
+      var ok = DN.enter({ floor: 1 });
+      var st = DN.status();
+      var pw = HR.partyPower();
+      return ok && st.active && st.floor === 1 && st.roomTotal >= 4 &&
+        st.hpMax > 0 && pw.total > 0 &&
+        ('제1층 · 방 ' + st.roomTotal + ' · 체력 ' + st.hpMax + ' · 전투력 ' + pw.total);
+    });
+
+    t('스킬은 기력을 쓰고 쿨다운이 걸린다', function () {
+      var raw = DN.raw();
+      raw.mp = 100;
+      var cast = DN.castSkill(0);
+      var st = DN.status();
+      return cast && !DN.castSkill(0) && st.mp < 100 && st.skills[0].cd > 0 &&
+        ('기력 ' + st.mp + ' · 쿨 ' + st.skills[0].cd.toFixed(1) + 's');
+    });
+
+    t('은사는 상한을 넘지 않는다', function () {
+      var raw = DN.raw(), b = DG.dungeonData.BOONS[0];
+      raw.boons[b.key] = b.max;
+      raw.choice = [b.key];
+      return DN.pickBoon(b.key) === false && raw.boons[b.key] === b.max &&
+        (b.name + ' 상한 ' + b.max);
+    });
+
+    t('탈출하면 노획물이 확정된다', function () {
+      var raw = DN.raw();
+      raw.loot.gold = 400;
+      var g0 = C.save.player.gold;
+      var r = DN.leave();
+      return !DN.active() && r.gold === 400 && C.save.player.gold === g0 + 400 &&
+        ('금 +' + r.gold);
+    });
+
+    /* ── 장비 ─────────────────────────────────────────── */
+
+    t('장비 — 뽑고 담고 장착하면 능력치가 오른다', function () {
+      var id = C.save.party[0];
+      /* 감정(鑑定)은 아래에서 따로 검사한다 — 여기서는 **확인된** 물건을 쓴다.
+         안 그러면 미확인이라 장착이 거절되고 이 항목이 엉뚱하게 깨진다. */
+      var it = IT.roll(6, { unid: false });
+      IT.add(it);
+      var b = HR.stats(id);
+      var ok = IT.equip(id, it.uid);
+      var a = HR.stats(id);
+      var up = (a.might + a.wisdom + a.command) - (b.might + b.wisdom + b.command);
+      return ok && up >= 0 && (IT.name(it) + ' · 능력치 +' + up);
+    });
+
+    /* ── 세공(細工) — 원작의 소켓·젬·룬워드 ───────────── */
+
+    t('구멍은 장비가 나올 때 정해진다 (좋을수록 잘 뚫린다)', function () {
+      var IT = DG.item;
+      var lowN = 0, hiN = 0, i;
+      for (i = 0; i < 300; i++) {
+        if (IT.roll(10, { tier: 0 }).sock.length) { lowN++; }
+        if (IT.roll(10, { tier: 4 }).sock.length) { hiN++; }
+      }
+      var max = IT.roll(10, { tier: 4, slot: 'weapon', sock: 3 });
+      return hiN > lowN && max.sock.length === 3 &&
+        ('상품 ' + lowN + '/300 · 전설 ' + hiN + '/300 · 무기 최대 ' + IT.SOCK_MAX.weapon);
+    });
+
+    t('보석은 부위에 따라 다른 것을 준다', function () {
+      var IT = DG.item, GD = DG.gemData;
+      var w = IT.roll(10, { slot: 'weapon', tier: 4, sock: 1 });
+      var a = IT.roll(10, { slot: 'armor', tier: 4, sock: 1 });
+      IT.add(w); IT.add(a);
+      IT.addMat('gem', 'agate', 0, 2);
+      IT.socket(w.uid, 'gem', 'agate', 0);
+      IT.socket(a.uid, 'gem', 'agate', 0);
+      var we = IT.socketEffects(w)[0], ae = IT.socketEffects(a)[0];
+      return we && ae && we.v !== ae.v &&
+        ('무기 ' + IT.statKor(we.stat) + ' +' + we.v + ' · 갑주 ' + IT.statKor(ae.stat) + ' +' + ae.v);
+    });
+
+    t('등급이 높은 보석일수록 세다', function () {
+      var IT = DG.item;
+      var a = IT.roll(10, { slot: 'weapon', tier: 4, sock: 1 });
+      var b = IT.roll(10, { slot: 'weapon', tier: 4, sock: 1 });
+      IT.add(a); IT.add(b);
+      IT.addMat('gem', 'jade', 0, 1);
+      IT.addMat('gem', 'jade', 4, 1);
+      IT.socket(a.uid, 'gem', 'jade', 0);
+      IT.socket(b.uid, 'gem', 'jade', 4);
+      var lo = IT.socketEffects(a)[0].v, hi = IT.socketEffects(b)[0].v;
+      return hi > lo * 3 && ('조 +' + lo + ' → 완 +' + hi);
+    });
+
+    t('한 번 박은 것은 뺄 수 없고, 구멍이 차면 더 못 박는다', function () {
+      var IT = DG.item;
+      var g = IT.roll(10, { slot: 'charm', tier: 4, sock: 1 });
+      IT.add(g);
+      IT.addMat('gem', 'pearl', 1, 2);
+      var a = IT.socket(g.uid, 'gem', 'pearl', 1);
+      var b = IT.socket(g.uid, 'gem', 'pearl', 1);
+      return a.ok && !b.ok && b.reason === 'nosocket' &&
+        typeof IT.unsocket === 'undefined' && '뺄 방법이 없다 (원작과 같다)';
+    });
+
+    t('부문을 순서대로 박으면 부문어가 이루어진다', function () {
+      var IT = DG.item, GD = DG.gemData;
+      var g = IT.roll(20, { slot: 'armor', tier: 4, sock: 3, unid: false });
+      IT.add(g);
+      ['cheon', 'ji', 'in'].forEach(function (k) { IT.addMat('rune', k, 0, 1); });
+      IT.socket(g.uid, 'rune', 'cheon');
+      var mid = IT.wordOf(g);
+      IT.socket(g.uid, 'rune', 'ji');
+      IT.socket(g.uid, 'rune', 'in');
+      var w = IT.wordOf(g);
+      return !mid && w && w.key === 'cheonjiin' &&
+        IT.name(g).indexOf('천지인') >= 0 &&
+        ('《' + w.name + '》 · 이름 ' + IT.name(g));
+    });
+
+    t('순서가 틀리면 말이 되지 않는다', function () {
+      var IT = DG.item;
+      var g = IT.roll(20, { slot: 'armor', tier: 4, sock: 3 });
+      IT.add(g);
+      ['cheon', 'ji', 'in'].forEach(function (k) { IT.addMat('rune', k, 0, 1); });
+      IT.socket(g.uid, 'rune', 'in');       // 人 → 地 → 天 (거꾸로)
+      IT.socket(g.uid, 'rune', 'ji');
+      IT.socket(g.uid, 'rune', 'cheon');
+      return IT.wordOf(g) === null && '거꾸로 박으면 안 이루어진다';
+    });
+
+    t('부문어가 이루어지면 글자 대신 부문어의 효과가 붙는다', function () {
+      var IT = DG.item;
+      var g = IT.roll(20, { slot: 'weapon', tier: 4, sock: 2 });
+      IT.add(g);
+      IT.addMat('rune', 'mun', 0, 1);
+      IT.addMat('rune', 'mu', 0, 1);
+      IT.socket(g.uid, 'rune', 'mun');
+      var before = IT.socketEffects(g).length;
+      IT.socket(g.uid, 'rune', 'mu');
+      var eff = IT.socketEffects(g);
+      var word = IT.wordOf(g);
+      var same = eff.length === word.eff.length;
+      return before === 1 && word && word.key === 'munmu' && same &&
+        ('글자 하나일 땐 ' + before + '줄 · 《문무》 가 되면 ' + eff.length + '줄');
+    });
+
+    t('박힌 것이 인물 능력치에 실제로 붙는다 (부적)', function () {
+      /* 2026-08-26 부터 보석은 **부위마다 다른 것**을 준다(원작과 같다) —
+         무기는 원소 피해, 갑주는 원소 저항, 능력치는 **부적**이다.
+         그래서 이 항목은 부적에 박는다. 무기·갑주는 아래 원소 항목이 맡는다. */
+      var IT = DG.item;
+      var id = C.save.party[0] || Object.keys(C.save.dex.heroes)[0];
+      if (!id) { return false; }
+      var g = IT.roll(20, { slot: 'charm', tier: 4, sock: 1, unid: false });
+      IT.add(g);
+      IT.equip(id, g.uid);
+      var before = HR.stats(id).might;
+      IT.addMat('gem', 'agate', 4, 1);
+      IT.socket(g.uid, 'gem', 'agate', 4);
+      var after = HR.stats(id).might;
+      return after > before && ('무력 ' + Math.round(before) + ' → ' + Math.round(after));
+    });
+
+    t('세공 재료는 던전에서 나온다', function () {
+      var IT = DG.item;
+      C.save.gear.mats = { gem: {}, rune: {}, jewel: [] };
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 8 });
+      /* 적을 잡아야 나온다 — 자동이 조작을 넣고, 던전은 여기서 직접 굴린다.
+         (헤드리스에서는 rAF 가 거의 안 돌아 게임 루프에 기댈 수 없다) */
+      AU.setOn(true);
+      var guard = 0;
+      while (IT.matList().length === 0 && guard++ < 3000) {
+        AU.update(0.05);
+        if (DN.active()) { DN.update(0.05); }
+        else { DN.enter({ floor: 8 }); }
+      }
+      AU.setOn(false);
+      var got = IT.matList();
+      if (DN.active()) { DN.leave(); }
+      var lab = got[0].kind === 'jewel'
+        ? DG.gemData.jewelName(got[0].jewel) : got[0].def.name;
+      return got.length > 0 &&
+        ('바닥에서 ' + lab + ' 을(를) 주웠다 (' + guard + '틱)');
+    });
+
+    /* ── 정예(精銳) — 원작의 파란/노란 이름 몬스터 ────── */
+
+    t('정예는 접두를 달고 나오고, 깊을수록 잦다', function () {
+      var seen = {}, lowN = 0, hiN = 0, i;
+      for (i = 0; i < 400; i++) {
+        if (DN._spawnEnemy(2, false).elite) { lowN++; }
+        var e = DN._spawnEnemy(20, false);
+        if (e.elite) { hiN++; seen[e.elite] = true; }
+      }
+      return hiN > lowN && Object.keys(seen).length >= 3 &&
+        DN.eliteChance(20) > DN.eliteChance(2) &&
+        ('제2층 ' + lowN + '/400 · 제20층 ' + hiN + '/400 · 접두 ' +
+         Object.keys(seen).length + '종');
+    });
+
+    t('접두마다 규칙이 하나씩 다르다 (규칙 없는 접두는 없다)', function () {
+      /* 접두를 늘릴 때 규칙을 안 달면 이름만 바뀐 적이 된다 —
+         이 항목이 그걸 잡는다(실제로 '철갑 두른·호신 두른' 을 더할 때 걸렸다) */
+      var RULES = ['spd', 'hp', 'dmg', 'regen', 'thorn', 'split', 'resist'];
+      var keys = DN.ELITES.map(function (e) { return e.key; });
+      var kinds = {}, naked = [];
+      DN.ELITES.forEach(function (e) {
+        var has = false;
+        RULES.forEach(function (k) { if (e[k]) { kinds[k] = true; has = true; } });
+        if (!has) { naked.push(e.key); }
+      });
+      return keys.length >= 5 && naked.length === 0 && Object.keys(kinds).length >= 6 &&
+        ('접두 ' + keys.length + '종 · 규칙 ' + Object.keys(kinds).join('·'));
+    });
+
+    t('보스에는 접두가 붙지 않는다', function () {
+      var bad = 0;
+      for (var i = 0; i < 200; i++) { if (DN._spawnEnemy(20, true).elite) { bad++; } }
+      return bad === 0 && '보스는 그 자체로 특별하다';
+    });
+
+    /* ── 난도(難度) — 원작의 노멀·나이트메어·헬 ───────── */
+
+    t('난도는 최고 층으로 열린다', function () {
+      C.save.dungeon.best = 0;
+      var open0 = DN.modesOpen().length;
+      C.save.dungeon.best = 12;
+      var open1 = DN.modesOpen().length;
+      C.save.dungeon.best = 25;
+      var open2 = DN.modesOpen().length;
+      return open0 === 1 && open1 === 2 && open2 === 3 &&
+        ('0층 ' + open0 + ' · 12층 ' + open1 + ' · 25층 ' + open2 + '종');
+    });
+
+    t('안 열린 난도는 고를 수 없다', function () {
+      C.save.dungeon.best = 0;
+      C.save.dungeon.mode = 'normal';
+      var no = DN.setMode('hell');
+      return !no && DN.mode().key === 'normal' && '제20층 전에는 절(絕) 이 안 열린다';
+    });
+
+    t('난도가 오르면 적이 세지고 나오는 것이 좋아진다', function () {
+      C.save.dungeon.best = 30;
+      DN.setMode('normal');
+      var a = DN.modeOf('normal'), b = DN.modeOf('hell');
+      return b.hp > a.hp && b.dmg > a.dmg && b.bias > a.bias && b.gold > a.gold &&
+        ('평 체력 ×' + a.hp + ' → 절 ×' + b.hp + ' · 등급 보정 +' + b.bias);
+    });
+
+    t('회차 안에서는 난도가 바뀌지 않는다', function () {
+      C.save.dungeon.best = 30;
+      DN.setMode('hell');
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1 });
+      var inRun = DN.mode().key;
+      DN.setMode('normal');                    // 밖의 설정만 바뀐다
+      var still = DN.mode().key;
+      DN.leave();
+      var after = DN.mode().key;
+      return inRun === 'hell' && still === 'hell' && after === 'normal' &&
+        ('회차 중 ' + still + ' · 나온 뒤 ' + after);
+    });
+
+    /* ── 직업(職業)과 무예(武藝) — 원작의 클래스·스킬 트리 ──
+     * 인물 70명을 **data.js 를 안 건드리고** 직업으로 가른다 —
+     * 이미 있는 trait 과 손에 든 무기에서 끌어낸다.
+     */
+
+    var SK = DG.skill, SKD = DG.skillData;
+
+    t('직업 — 무기 밑감 열 가지가 다섯 직업을 다 연다', function () {
+      /* 기질로만 가르면 인물 70 중 방사가 하나뿐이라 그 나무는 영영 못 탄다.
+         그래서 **장착한 무기**가 직업을 정한다 — 사람이 고를 수 있고, 다섯이 다 열린다. */
+      var seen = {}, bad = [], i;
+      var weapons = DG.itemData.BASES.filter(function (b) { return b.slot === 'weapon'; });
+      for (i = 0; i < weapons.length; i++) {
+        var c = SKD.classOf(null, weapons[i].look);
+        if (!c) { bad.push(weapons[i].key); continue; }
+        seen[c.key] = (seen[c.key] || 0) + 1;
+      }
+      var used = Object.keys(seen).length;
+      return bad.length === 0 && used === SKD.CLASSES.length &&
+        (SKD.CLASSES.map(function (c) { return c.name + ' ' + (seen[c.key] || 0) + '자루'; })
+          .join(' · '));
+    });
+
+    t('직업 — 무기를 바꾸면 손이 통째로 바뀐다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      C.save.skills = {}; C.save.slots = {};
+
+      var bow = IT.roll(10, { base: 'w_gakgung', tier: 0, unid: false });   // 각궁
+      var fan = IT.roll(10, { base: 'w_seonchae', tier: 0, unid: false });  // 선채
+      C.save.gear.bag.push(bow, fan);
+
+      IT.equip(id, bow.uid);
+      var c1 = SK.classOf(id).key;
+      SK.ensureStarter(id);
+      var hand1 = SK.equipped(id)[0];
+
+      IT.equip(id, fan.uid);                            // 무기를 바꾼다
+      var c2 = SK.classOf(id).key;
+      var hand2 = SK.equipped(id)[0];                   // 딴 나무 것은 손에 안 잡힌다
+      SK.ensureStarter(id);
+      var hand2b = SK.equipped(id)[0];
+
+      IT.equip(id, bow.uid);                            // 도로 활을 쥐면
+      var backHand = SK.equipped(id)[0];                // 예전 나무가 살아난다
+
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      C.save.skills = {}; C.save.slots = {};
+      return c1 === 'archer' && c2 === 'scholar' &&
+        !!hand1 && !hand2 && !!hand2b &&
+        !!backHand && backHand.sk.key === hand1.sk.key &&
+        ('각궁 → 궁장 · 선채 → 책사 · 도로 쥐면 ' + backHand.sk.name);
+    });
+
+    t('직업 — 맨몸이면 기질을 본다 (무기를 줍기 전에도 손이 있다)', function () {
+      var id = C.save.party[0];
+      var keepEq = C.save.gear.equip;
+      C.save.gear.equip = {};
+      var c = SK.classOf(id);
+      C.save.gear.equip = keepEq;
+      return !!c && SKD.CLASSES.indexOf(c) >= 0 && ('맨몸 → ' + c.name);
+    });
+
+    t('무예 — 직업마다 아홉(세 갈래 × 세 단계)', function () {
+      var bad = [], i, j;
+      for (i = 0; i < SKD.CLASSES.length; i++) {
+        var tree = SKD.skillsOf(SKD.CLASSES[i].key);
+        if (tree.length !== 9) { bad.push(SKD.CLASSES[i].key + ' ' + tree.length); }
+        for (j = 0; j < 3; j++) {
+          var br = tree.filter(function (x) { return x.br === j; });
+          var rows = br.map(function (x) { return x.row; }).sort();
+          if (rows.join(',') !== '0,1,2') { bad.push(SKD.CLASSES[i].key + ' 갈래' + j); }
+        }
+      }
+      /* 키가 겹치면 안 된다 */
+      var keys = SKD.SKILLS.map(function (x) { return x.key; });
+      var dup = keys.filter(function (k, i2) { return keys.indexOf(k) !== i2; });
+      return bad.length === 0 && dup.length === 0 &&
+        (SKD.SKILLS.length + '가지 · 겹치는 키 없음');
+    });
+
+    t('무예 — 모양이 다 구현돼 있다 (표에만 있는 모양은 없다)', function () {
+      /* 표에 새 모양을 적어 놓고 dungeon.js 에 안 넣으면 눌러도 아무 일이 없다 */
+      var DONE = ['swing', 'bolt', 'nova', 'dash', 'buff', 'heal', 'curse', 'summon', 'passive'];
+      var used = {}, bad = [];
+      SKD.SKILLS.forEach(function (x) {
+        used[x.shape] = true;
+        if (DONE.indexOf(x.shape) < 0) { bad.push(x.key + ':' + x.shape); }
+      });
+      return bad.length === 0 && ('쓰는 모양 ' + Object.keys(used).length + '가지 · 미구현 없음');
+    });
+
+    t('무예 — 점수는 인물 레벨만큼이고 앞 단계가 있어야 열린다', function () {
+      var id = C.save.party[0];
+      C.save.skills = {}; C.save.slots = {};
+      var tree = SK.treeOf(id);
+      var row0 = tree.filter(function (x) { return x.br === 0 && x.row === 0; })[0];
+      var row1 = tree.filter(function (x) { return x.br === 0 && x.row === 1; })[0];
+      var total = SK.pointsTotal(id);
+
+      var blocked = SK.canLearn(id, row1.key);          // 앞 단계가 없다
+      var ok0 = SK.learn(id, row0.key).ok;
+      var open1 = SK.canLearn(id, row1.key).ok;
+      var spent = SK.pointsSpent(id);
+      C.save.skills = {}; C.save.slots = {};
+      return !blocked.ok && blocked.reason === 'prereq' && ok0 && open1 &&
+        spent === 1 && total === HR.info(id).lv &&
+        ('점수 ' + total + ' · 앞 단계 규칙 지켜짐');
+    });
+
+    t('무예 — 다섯 단이 끝이고 점수가 없으면 못 올린다', function () {
+      var id = C.save.party[0];
+      C.save.skills = {}; C.save.slots = {};
+      /* **차이가 드러나는 구간에 세운다** — 점수는 인물 레벨만큼 생긴다.
+         갓 출사표로 붙은 인물은 1레벨이라 한 번밖에 못 올린다. */
+      var keepLv = C.save.heroes[id];
+      C.save.heroes[id] = { lv: 20, exp: 0, rank: 0 };
+      var first = SK.treeOf(id).filter(function (x) { return x.row === 0; })[0];
+      var i, ok = 0;
+      for (i = 0; i < SKD.MAX_RANK + 3; i++) { if (SK.learn(id, first.key).ok) { ok++; } }
+      var capped = SK.rankOf(id, first.key) === SKD.MAX_RANK;
+      var why = SK.canLearn(id, first.key).reason;
+      C.save.skills = {}; C.save.slots = {};
+      C.save.heroes[id] = keepLv;
+      return capped && why === 'max' && ok === SKD.MAX_RANK &&
+        ('올린 횟수 ' + ok + ' · 상한 ' + SKD.MAX_RANK + '단');
+    });
+
+    t('무예 — 처음 배우면 빈 칸에 저절로 걸린다', function () {
+      var id = C.save.party[0];
+      C.save.skills = {}; C.save.slots = {};
+      var first = SK.treeOf(id).filter(function (x) {
+        return x.row === 0 && x.shape !== 'passive';
+      })[0];
+      SK.learn(id, first.key);
+      var eq = SK.equipped(id);
+      var on = eq[0] && eq[0].sk.key === first.key;
+      C.save.skills = {}; C.save.slots = {};
+      return on && '배우고도 못 쓰는 일이 없다';
+    });
+
+    t('무예 — 상시(常時)는 칸에 못 걸고, 대신 늘 붙는다', function () {
+      var id = C.save.party[0];
+      var keepP = C.save.party.slice();
+      C.save.skills = {}; C.save.slots = {};
+      /* 무장의 '단련' 은 부대 체력을 올리는 상시다 */
+      var warrior = D.heroes.filter(function (h) {
+        return SKD.classOf(h, DG.sprite.lookOf(h)).key === 'warrior';
+      })[0];
+      C.save.dex.heroes[warrior.id] = C.save.dex.heroes[warrior.id] || { count: 1, firstAt: 0 };
+      C.save.party = [warrior.id];
+      var pas = SKD.skillsOf('warrior').filter(function (x) {
+        return x.shape === 'passive' && x.eff === 'hpPct';
+      })[0];
+      /* 앞 단계 규칙을 통과하도록 그 갈래를 아래부터 올린다 */
+      var chain = SKD.skillsOf('warrior').filter(function (x) { return x.br === pas.br; })
+                     .sort(function (a, b) { return a.row - b.row; });
+      var i;
+      for (i = 0; i <= pas.row; i++) { SK.learn(warrior.id, chain[i].key); }
+
+      var before = DG.dungeon.status();                 // 회차 밖
+      var rank = SK.rankOf(warrior.id, pas.key);
+      var got = SK.passive(warrior.id, 'hpPct');
+      var slotted = SK.setSlot(warrior.id, 0, pas.key);
+
+      C.save.skills = {}; C.save.slots = {}; C.save.party = keepP;
+      return rank >= 1 && got > 0 && !slotted.ok && slotted.reason === 'passive' &&
+        ('체력 +' + Math.round(got) + '% · 칸에는 못 건다');
+    });
+
+    t('무예 — 상시가 던전 수치에 실제로 얹힌다 (boonVal 한 곳)', function () {
+      /* dungeon.js 의 수치가 전부 boonVal 을 거치므로 거기만 얹으면 다 따라온다 */
+      var keepP = C.save.party.slice();
+      var warrior = D.heroes.filter(function (h) {
+        return SKD.classOf(h, DG.sprite.lookOf(h)).key === 'warrior';
+      })[0];
+      C.save.dex.heroes[warrior.id] = C.save.dex.heroes[warrior.id] || { count: 1, firstAt: 0 };
+      C.save.party = [warrior.id];
+      C.save.skills = {}; C.save.slots = {};
+      var keepLv2 = C.save.heroes[warrior.id];
+      C.save.heroes[warrior.id] = { lv: 20, exp: 0, rank: 0 };   // 점수가 있어야 올린다
+
+      DN.enter({ floor: 3, mode: 'easy' });
+      var hpBefore = DN.raw().hpMax;
+      DN.leave();
+
+      var chain = SKD.skillsOf('warrior').filter(function (x) { return x.br === 2; })
+                     .sort(function (a, b) { return a.row - b.row; });
+      var r2;
+      for (r2 = 0; r2 < 5; r2++) { SK.learn(warrior.id, chain[0].key); }  // 단련 — 체력 +%
+      DN.enter({ floor: 3, mode: 'easy' });
+      var hpAfter = DN.raw().hpMax;
+      DN.leave();
+
+      C.save.skills = {}; C.save.slots = {}; C.save.party = keepP;
+      C.save.heroes[warrior.id] = keepLv2;
+      return hpAfter > hpBefore && ('최대 체력 ' + hpBefore + ' → ' + hpAfter);
+    });
+
+    t('무예 — 걸어 둔 것을 실제로 쓴다 (기력이 줄고 재냉각이 돈다)', function () {
+      var id = C.save.party[0];
+      C.save.skills = {}; C.save.slots = {};
+      var act = SK.treeOf(id).filter(function (x) {
+        return x.row === 0 && x.shape !== 'passive';
+      })[0];
+      SK.learn(id, act.key);
+      DN.enter({ floor: 4, mode: 'easy' });
+      var run = DN.raw();
+      run.mp = run.mpMax;
+      var before = run.mp;
+      var fired = DN.castSkill(0);
+      var again = DN.castSkill(0);                      // 재냉각 중이라 안 나간다
+      var st2 = DN.status();
+      DN.leave();
+      C.save.skills = {}; C.save.slots = {};
+      return fired && !again && run.mp === before - act.cost &&
+        st2.skills[0].key === act.key &&
+        (act.name + ' · 기력 -' + act.cost);
+    });
+
+    t('무예 — 빈 칸은 눌러도 아무 일이 없다', function () {
+      var id = C.save.party[0];
+      C.save.skills = {}; C.save.slots = {};
+      DN.enter({ floor: 4, mode: 'easy' });
+      var run = DN.raw();
+      run.mp = run.mpMax;
+      var before = run.mp;
+      var fired = DN.castSkill(3);                      // 첫 무예만 얹혔으니 넷째는 비었다
+      var empty = DN.status().skills[3].empty === true;
+      DN.leave();
+      C.save.skills = {}; C.save.slots = {};
+      return !fired && empty && run.mp === before && '빈 칸 · 기력 그대로';
+    });
+
+    t('무예 — 환원하면 점수를 전부 돌려받는다', function () {
+      var id = C.save.party[0];
+      C.save.skills = {}; C.save.slots = {};
+      var first = SK.treeOf(id).filter(function (x) { return x.row === 0; })[0];
+      SK.learn(id, first.key); SK.learn(id, first.key);
+      var spent = SK.pointsSpent(id);
+      var cost = DG.vendor.respecCost(id);
+      var back = SK.respec(id);
+      var okd = spent === 2 && back === 2 && SK.pointsSpent(id) === 0 &&
+        SK.pointsLeft(id) === SK.pointsTotal(id) && cost > 0;
+      C.save.skills = {}; C.save.slots = {};
+      return okd && ('2점 돌려받음 · 값 ' + cost + '금');
+    });
+
+    /* ── 원소(元素) — 원작의 피해 속성 ────────────────────
+     * 보석을 **어디에 박느냐**가 곧 결이다:
+     *   무기 → 원소 피해 · 갑주 → 원소 저항 · 부적 → 능력치.
+     * 원작 젬의 전부가 이것이다.
+     */
+
+    var ED = DG.elemData;
+
+    function bareLead() {
+      /* 선두를 맨몸으로 — 원소를 재는 항목은 다른 장비가 섞이면 못 잰다 */
+      C.save.gear.equip = {};
+      C.save.gear.bag = [];
+      return C.save.party[0];
+    }
+
+    t('원소 — 보석은 부위마다 다른 것을 준다 (무기 피해 · 갑주 저항 · 부적 능력치)', function () {
+      var G = DG.gemData, bad = [], i;
+      for (i = 0; i < G.GEMS.length; i++) {
+        var g = G.GEMS[i];
+        if (g.weapon.kind !== 'eldmg') { bad.push(g.key + ' 무기'); }
+        if (g.armor.kind !== 'elres') { bad.push(g.key + ' 갑주'); }
+        if (['flat', 'pct', 'world'].indexOf(g.charm.kind) < 0) { bad.push(g.key + ' 부적'); }
+        if (g.weapon.el !== g.armor.el) { bad.push(g.key + ' 결이 다름'); }
+      }
+      /* 다섯 보석이 다섯 결을 하나씩 맡는다 */
+      var els = G.GEMS.map(function (x) { return x.weapon.el; });
+      var uniq = els.filter(function (x, j) { return els.indexOf(x) === j; });
+      return bad.length === 0 && uniq.length === G.GEMS.length &&
+        uniq.length === ED.GEM_ELEMENTS.length &&
+        ('보석 ' + G.GEMS.length + '종 = 결 ' + uniq.length + '가지');
+    });
+
+    t('원소 — 무기에 박으면 그 결의 피해가 걷힌다', function () {
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      var id = bareLead();
+      var w = IT.roll(20, { slot: 'weapon', tier: 4, sock: 2, unid: false });
+      C.save.gear.bag.push(w);
+      IT.equip(id, w.uid);
+      var none = Object.keys(IT.elemDamage(id)).length;
+      IT.addMat('gem', 'agate', 4, 1);                 // 완(完) 마노 → 화(火)
+      IT.socket(w.uid, 'gem', 'agate', 4);
+      var d = IT.elemDamage(id);
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return none === 0 && d.fire > 0 && !d.cold &&
+        ('화(火) 피해 +' + d.fire);
+    });
+
+    t('원소 — 갑주에 박으면 그 결의 저항이 걷힌다', function () {
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      var id = bareLead();
+      var a = IT.roll(20, { slot: 'armor', tier: 4, sock: 2, unid: false });
+      C.save.gear.bag.push(a);
+      IT.equip(id, a.uid);
+      IT.addMat('gem', 'agate', 2, 1);
+      IT.socket(a.uid, 'gem', 'agate', 2);
+      var r = IT.elemResist(id);
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return r.fire > 0 && !r.cold && ('화(火) 저항 +' + r.fire + '%');
+    });
+
+    t('원소 — 갑주의 저항이 맞는 피해를 실제로 깎는다', function () {
+      /* **원작에서 갑옷에 젬을 박는 이유가 이것이다.** */
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      var id = bareLead();
+      var a = IT.roll(20, { slot: 'armor', tier: 4, sock: 3, unid: false });
+      C.save.gear.bag.push(a);
+      IT.equip(id, a.uid);
+      IT.addMat('gem', 'agate', 4, 3);
+      IT.socket(a.uid, 'gem', 'agate', 4);
+      IT.socket(a.uid, 'gem', 'agate', 4);
+      IT.socket(a.uid, 'gem', 'agate', 4);
+      var res = DN.elemResOf('fire');
+
+      DN.enter({ floor: 6, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      run.hp = run.hpMax;
+      DN._hurt(100, 'fire');
+      var tookFire = run.hpMax - run.hp;
+      run.hp = run.hpMax;
+      DN._hurt(100, 'cold');                           // 이 결은 안 막는다
+      var tookCold = run.hpMax - run.hp;
+      DN.leave();
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return res > 0 && tookFire < tookCold &&
+        ('화 저항 ' + res + '% · 화 ' + Math.round(tookFire) +
+         ' vs 빙 ' + Math.round(tookCold));
+    });
+
+    t('원소 — 결마다 성질이 다르다 (빙 느리게 · 독 몇 초에 · 뇌 편차)', function () {
+      var cold = ED.elemByKey('cold'), pois = ED.elemByKey('pois'), lit = ED.elemByKey('lit');
+      var fire = ED.elemByKey('fire');
+      return cold.slow > 0 && pois.dot > 0 && lit.spread > 0 &&
+        !fire.slow && !fire.dot && !fire.spread &&
+        ('빙 −' + Math.round(cold.slow * 100) + '% · 독 ' + pois.dot + '초 · 뇌 편차 ' + lit.spread);
+    });
+
+    t('원소 — 빙(氷)은 적을 굼뜨게 하고 독(毒)은 시간을 두고 깎는다', function () {
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      var id = bareLead();
+      var w = IT.roll(20, { slot: 'weapon', tier: 4, sock: 2, unid: false });
+      C.save.gear.bag.push(w);
+      IT.equip(id, w.uid);
+      IT.addMat('gem', 'pearl', 4, 1);                 // 빙
+      IT.addMat('gem', 'jade', 4, 1);                  // 독
+      IT.socket(w.uid, 'gem', 'pearl', 4);
+      IT.socket(w.uid, 'gem', 'jade', 4);
+
+      DN.enter({ floor: 8, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var e = DN._spawnEnemy(8, false, { spawned: true, x: 320, y: 180 });
+      e.ref = { name: '허수아비', kind: 'human', color: '#888' };
+      e.hp = 1e6; e.hpMax = 1e6;
+      run.room.enemies.push(e);
+      DN._strike(e, 1, 0, 'phys');
+      var chilled = e.slow > 0;
+      var dotted = !!(e.dots && e.dots.length);
+      var hpAfterHit = e.hp;
+      /* 독은 **즉발이 아니다** — 시간이 지나야 깎인다 */
+      run.player.x = -999;                             // 적이 못 때리게 멀리
+      DN.update(1.0);
+      var ticked = e.hp < hpAfterHit;
+      DN.leave();
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return chilled && dotted && ticked &&
+        ('빙 걸림 · 독 ' + (e.dots ? e.dots.length : 0) + '겹 · 시간 지나 깎임');
+    });
+
+    /* ── 저항(抵抗) — 원작의 몬스터 내성 ─────────────────
+     * 이 판에는 원소가 없어 때리는 두 결로 갈랐다 —
+     * 물리(평타·회전참·돌진) · 기(기공파).
+     */
+
+    t('저항 — 적마다 안 통하는 결이 있고 상한은 75%다', function () {
+      var e = DN._spawnEnemy(20, false, { spawned: true });
+      /* 어떤 적을 뽑아도 0~75 안에 있어야 한다 */
+      var bad = 0, i, seen = 0;
+      for (i = 0; i < 200; i++) {
+        var x = DN._spawnEnemy(20, false, { spawned: true });
+        var rp = DN.resistOf(x, 'phys'), rc = DN.resistOf(x, 'chi');
+        if (rp < 0 || rp > DN.RESIST_CAP || rc < 0 || rc > DN.RESIST_CAP) { bad++; }
+        if (rp > 0 || rc > 0) { seen++; }
+      }
+      return !!e && bad === 0 && seen > 0 &&
+        ('200마리 중 저항 있는 것 ' + seen + ' · 상한 ' + DN.RESIST_CAP + '%');
+    });
+
+    t('저항 — 결이 맞지 않으면 그만큼 덜 깎인다', function () {
+      /* **차이가 드러나는 구간에 세운다** — 저항이 확실히 있는 적을 손으로 만든다.
+         무작위가 섞이지 않게 같은 적에게 여러 번 때려 평균을 견준다. */
+      /* **재지 않는 축은 붙들어 둔다** — 무기에 원소 보석이 박혀 있으면
+         물리 말고도 피해가 들어가 비율이 어긋난다. 선두를 맨몸으로 만든다. */
+      var keepEq0 = C.save.gear.equip;
+      C.save.gear.equip = {};
+      DN.enter({ floor: 12, mode: 'normal' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var mk = function (res) {
+        var e = DN._spawnEnemy(12, false, { spawned: true, x: 300, y: 180 });
+        e.ref = { name: '허수아비', kind: 'human', color: '#888', resist: res };
+        e.hp = 1e9; e.hpMax = 1e9;
+        return e;
+      };
+      var plain = mk({}), tough = mk({ phys: 50 });
+      run.room.enemies.push(plain, tough);
+      var i, a = 0, b2 = 0;
+      for (i = 0; i < 200; i++) {
+        var h0 = plain.hp; DN._strike(plain, 1, 0, 'phys'); a += h0 - plain.hp;
+        var h1 = tough.hp; DN._strike(tough, 1, 0, 'phys'); b2 += h1 - tough.hp;
+      }
+      var ratio = b2 / a;
+      DN.leave();
+      C.save.gear.equip = keepEq0;
+      return ratio > 0.42 && ratio < 0.58 &&
+        ('저항 50% → 피해 ' + Math.round(ratio * 100) + '%');
+    });
+
+    t('저항 — 결이 다르면 안 걸린다 (칼 저항은 기공파를 못 막는다)', function () {
+      var keepEq1 = C.save.gear.equip;
+      C.save.gear.equip = {};                          // 무기의 원소를 붙들어 둔다
+      DN.enter({ floor: 12, mode: 'normal' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var e = DN._spawnEnemy(12, false, { spawned: true, x: 300, y: 180 });
+      e.ref = { name: '허수아비', kind: 'human', color: '#888', resist: { phys: 60 } };
+      e.hp = 1e9; e.hpMax = 1e9;
+      run.room.enemies.push(e);
+      var i, byBlade = 0, byChi = 0;
+      for (i = 0; i < 200; i++) {
+        var h0 = e.hp; DN._strike(e, 1, 0, 'phys'); byBlade += h0 - e.hp;
+        var h1 = e.hp; DN._strike(e, 1, 0, 'chi'); byChi += h1 - e.hp;
+      }
+      DN.leave();
+      C.save.gear.equip = keepEq1;
+      return byChi > byBlade * 1.8 &&
+        ('칼 ' + Math.round(byBlade) + ' vs 기 ' + Math.round(byChi));
+    });
+
+    t('저항 — 난도가 오르면 두꺼워진다', function () {
+      var e = DN._spawnEnemy(12, false, { spawned: true });
+      e.ref = { name: '허수아비', kind: 'human', color: '#888', resist: { phys: 20 } };
+      DN.setMode('normal');
+      var n = DN.resistOf(e, 'phys');
+      C.save.dungeon.best = 30;                        // 험·절을 연다
+      DN.setMode('hard');
+      var h = DN.resistOf(e, 'phys');
+      DN.setMode('hell');
+      var x = DN.resistOf(e, 'phys');
+      DN.setMode('normal');
+      return n === 20 && h === 30 && x === 40 && ('평 ' + n + ' · 험 ' + h + ' · 절 ' + x);
+    });
+
+    t('저항 — 정예 접두 둘이 결을 하나씩 막는다', function () {
+      var plated = DN.eliteOf('plated'), warded = DN.eliteOf('warded');
+      return !!plated && !!warded &&
+        plated.resist && plated.resist.phys > 0 && !plated.resist.chi &&
+        warded.resist && warded.resist.chi > 0 && !warded.resist.phys &&
+        (plated.name + '(칼) · ' + warded.name + '(기)');
+    });
+
+    t('저항 — 면역(100%)은 두지 않는다', function () {
+      /* 원작의 면역은 스킬이 여덟일 때 성립하는 장치다. 이 판은 넷이고
+         기(氣)는 하나뿐이라 물리 면역이 뜨면 재냉각만 기다리게 된다. */
+      var worst = 0, i;
+      C.save.dungeon.best = 30;
+      DN.setMode('hell');
+      for (i = 0; i < 300; i++) {
+        var e = DN._spawnEnemy(30, false, { spawned: true });
+        worst = Math.max(worst, DN.resistOf(e, 'phys'), DN.resistOf(e, 'chi'));
+      }
+      DN.setMode('normal');
+      return worst <= DN.RESIST_CAP && DN.RESIST_CAP < 100 &&
+        ('절(絕) 300마리 최대 ' + worst + '%');
+    });
+
+    /* ── 요구 수준 · 항아리 · 역참 · 결사 ─────────────────
+     * 원작에 있고 이 판에 없던 잔가지 넷.
+     */
+
+    t('요구 수준 — 좋은 물건일수록 늦게 입는다', function () {
+      var cheap = IT.roll(2, { slot: 'weapon', tier: 0, unid: false });
+      var rich = IT.roll(30, { slot: 'weapon', tier: 4, unid: false });
+      var charm = IT.roll(30, { slot: 'charm', tier: 4, unid: false });
+      /* 부적은 요구가 낮다 — 원작의 장신구도 그렇다 */
+      return IT.reqLevel(rich) > IT.reqLevel(cheap) &&
+        IT.reqLevel(charm) < IT.reqLevel(rich) && IT.reqLevel(cheap) >= 1 &&
+        ('상품 ' + IT.reqLevel(cheap) + ' · 전설 ' + IT.reqLevel(rich) +
+         ' · 전설 부적 ' + IT.reqLevel(charm));
+    });
+
+    t('요구 수준 — 못 미치면 못 입고, 자동도 안 고르고 안 판다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip, keepLv = C.save.heroes[id];
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };      // 갓 붙은 인물
+      var g = IT.roll(30, { slot: 'weapon', tier: 4, unid: false });
+      C.save.gear.bag.push(g);
+      var refused = IT.equip(id, g.uid) === false;
+      var noGain = IT.gainFor(id, g) === 0;
+      var cleaned = IT.autoClean();                        // 곧 입을 물건이라 안 판다
+      var kept = C.save.gear.bag.length === 1;
+      /* 레벨이 차면 입는다 */
+      C.save.heroes[id] = { lv: 60, exp: 0, rank: 0 };
+      var okNow = IT.equip(id, g.uid) === true;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq; C.save.heroes[id] = keepLv;
+      return refused && noGain && cleaned.sold === 0 && kept && okNow &&
+        ('요구 ' + IT.reqLevel(g) + ' · 1레벨 거절 · 60레벨 장착');
+    });
+
+    t('항아리 — 방마다 놓이고 지나가면 깨진다', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var jars = (run.room.decor || []).filter(function (o) { return o.t === 'jar'; });
+      var whole = jars.filter(function (o) { return !o.broken; }).length;
+      /* 하나에 다가간다 */
+      var j0 = jars[0];
+      run.player.x = j0.x; run.player.y = j0.y;
+      var drops0 = run.room.drops.length;
+      DN.update(0.05);
+      var broke = j0.broken;
+      DN.leave();
+      return jars.length >= DG.dungeonData.JARS.min && whole === jars.length && broke &&
+        ('항아리 ' + jars.length + '개 · 밟으니 깨짐 (바닥 ' + drops0 + '→' +
+         run.room.drops.length + ')');
+    });
+
+    t('역참 — 다섯 층마다 밟으면 다음부터 거기서 시작한다', function () {
+      var keep = C.save.dungeon.waypoint;
+      C.save.dungeon.waypoint = 0;
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      var i, guard = 0;
+      /* 방을 비우고 계단으로 내려가기를 되풀이한다 */
+      while (run.floor < DN.WAYPOINT_EVERY && guard < 60) {
+        guard++;
+        run.room.enemies.length = 0;
+        run.room.cleared = true;
+        DN.goRoom(run.room.index + 1 >= run.roomTotal ? 'stair' : 'fight');
+        run = DN.raw();
+        if (!run) { break; }
+      }
+      var got = DN.waypoint();
+      DN.leave();
+      var okd = got === DN.WAYPOINT_EVERY;
+      C.save.dungeon.waypoint = keep;
+      return okd && ('제' + got + '층 역참을 밟았다');
+    });
+
+    t('결사 — 켜면 못 끄고, 쓰러지면 그 판이 끝난다', function () {
+      /* 되돌릴 수 있으면 그건 하드코어가 아니다 */
+      var keepD = JSON.parse(JSON.stringify(C.save.dungeon));
+      var offBefore = !DN.hardcore();
+      DN.setHardcore();
+      var on = DN.hardcore();
+      var noSwitchBack = typeof DN.setHardcore === 'function' &&
+        Object.keys(DN).indexOf('unsetHardcore') < 0;    // 끄는 길이 아예 없다
+
+      DN.enter({ floor: 3, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      DN._hurt(run.hpMax * 99, null);                    // 쓰러진다
+      var over = DN.fallen() && !DN.active();
+      var cantEnter = DN.enter({ floor: 1 }) === false;   // 다시 못 들어간다
+
+      C.save.dungeon = keepD;
+      return offBefore && on && noSwitchBack && over && cantEnter &&
+        '켜짐 · 스러짐 · 재진입 거절';
+    });
+
+    /* ── 고유(固有) — 원작의 유니크 아이템 ────────────────
+     * 원작의 전설급은 **이름이 있다.** 옵션이 굴러 나오는 게 아니라 정해진 물건이다.
+     */
+
+    var UD = DG.uniqueData;
+
+    t('고유 — 표가 성하다 (밑감이 실재하고 겹치지 않는다)', function () {
+      var bad = [], seen = {}, i;
+      for (i = 0; i < UD.UNIQUES.length; i++) {
+        var u = UD.UNIQUES[i];
+        if (!DG.itemData.baseByKey(u.base)) { bad.push(u.key + ' 밑감 없음'); }
+        if (seen[u.base]) { bad.push(u.base + ' 두 번'); }
+        seen[u.base] = true;
+        if (!u.eff.length) { bad.push(u.key + ' 효과 없음'); }
+      }
+      return bad.length === 0 && (UD.UNIQUES.length + '가지 · 밑감 겹침 없음');
+    });
+
+    t('고유 — 전설 등급에서만, 정해진 밑감에서만 나온다', function () {
+      var u = UD.UNIQUES[0];
+      var hit = 0, i;
+      for (i = 0; i < 80; i++) {
+        if (IT.roll(20, { base: u.base, tier: 4 }).uniq) { hit++; }
+      }
+      var lower = 0;
+      for (i = 0; i < 60; i++) {
+        if (IT.roll(20, { base: u.base, tier: 3 }).uniq) { lower++; }
+      }
+      /* 고유가 없는 밑감은 전설이어도 안 된다 */
+      var none = 0;
+      for (i = 0; i < 60; i++) {
+        if (IT.roll(20, { base: 'a_jichap', tier: 4 }).uniq) { none++; }
+      }
+      return hit > 15 && hit < 80 && lower === 0 && none === 0 &&
+        ('전설 80번 중 ' + hit + '번 · 아래 등급·딴 밑감 0');
+    });
+
+    t('고유 — 제 이름으로 불리고 접사 대신 표의 것이 붙는다', function () {
+      var u = UD.UNIQUES[0];
+      var g = IT.roll(20, { base: u.base, tier: 4, uniq: u.key, unid: false, sock: 0 });
+      var shown = IT.lines(g);
+      var lines = shown.join(' · ');
+      var eff = IT.uniqEffects(g);
+      /* 접사(aff)가 있어도 화면에는 표의 것만 나온다.
+         **줄 수로 센다** — 글자를 맞춰 보면 굴러 나온 접사 값이 표의 값과
+         우연히 같아지는 날 깨진다(2026-08-26 에 실제로 그렇게 깨졌다).
+         구멍이 없으니 보이는 줄은 '주 능력치 한 줄 + 표의 것' 뿐이어야 한다 */
+      var affHidden = g.aff.length > 0 && shown.length === 1 + eff.length;
+      return IT.name(g) === u.name && eff.length === u.eff.length && affHidden &&
+        (u.name + ' — ' + lines);
+    });
+
+    t('고유 — 수치가 수준을 탄다 (깊이 내려간 것이 더 세다)', function () {
+      var u = UD.UNIQUES[0];
+      var shallow = IT.roll(5, { base: u.base, tier: 4, uniq: u.key, unid: false });
+      var deep = IT.roll(35, { base: u.base, tier: 4, uniq: u.key, unid: false });
+      var flatOf = function (g) {
+        return IT.uniqEffects(g).filter(function (e) { return e.kind === 'flat'; })[0].v;
+      };
+      var a = flatOf(shallow), b2 = flatOf(deep);
+      /* % 는 수준을 안 탄다 — 타면 깊은 층에서 걷잡을 수 없다 */
+      var pctOf = function (g) {
+        var p2 = IT.uniqEffects(g).filter(function (e) { return e.kind !== 'flat' && e.kind !== 'eldmg'; });
+        return p2.length ? p2[0].v : 0;
+      };
+      return b2 > a && pctOf(shallow) === pctOf(deep) &&
+        ('수준 5 → ' + a + ' · 수준 35 → ' + b2 + ' (%는 그대로)');
+    });
+
+    t('고유 — 능력치·전역·원소에 실제로 붙는다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip, keepP = C.save.party.slice();
+      C.save.gear.bag = []; C.save.gear.equip = {}; C.save.party = [id];
+      /* 쌍룡도 — 무력 flat · 화(火) 피해 · 치명타(전역) */
+      var u = UD.uniqueByKey('u_ssanggeom');
+      var g = IT.roll(20, { base: u.base, tier: 4, uniq: u.key, unid: false, sock: 0 });
+      C.save.gear.bag.push(g);
+      var before = { might: HR.stats(id).might, crit: C.effect('critPct') };
+      IT.equip(id, g.uid);
+      var after = { might: HR.stats(id).might, crit: C.effect('critPct') };
+      var fire = IT.elemDamage(id).fire || 0;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq; C.save.party = keepP;
+      return after.might > before.might && after.crit > before.crit && fire > 0 &&
+        ('무력 +' + (after.might - before.might) + ' · 치명타 +' +
+         (after.crit - before.crit) + '% · 화 피해 ' + fire);
+    });
+
+    t('고유 — 부서지면 아무 값도 안 낸다 (딴 물건과 같은 규칙)', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var u = UD.uniqueByKey('u_ssanggeom');
+      var g = IT.roll(20, { base: u.base, tier: 4, uniq: u.key, unid: false, sock: 0 });
+      C.save.gear.bag.push(g);
+      IT.equip(id, g.uid);
+      var full = HR.stats(id).might;
+      g.dur = 0;
+      var broke = HR.stats(id).might;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return broke < full && ('무력 ' + Math.round(full) + ' → ' + Math.round(broke));
+    });
+
+    /* ── 투장(套裝) — 원작의 세트 아이템 ─────────────────
+     * 여러 점을 **같은 인물이** 걸쳐야 값이 나온다.
+     */
+
+    var SD = DG.setData;
+
+    function wearSet(heroId, setKey, n) {
+      var set = SD.setByKey(setKey), made = [], i;
+      for (i = 0; i < n; i++) {
+        var g = IT.roll(24, { base: set.pieces[i], tier: SD.SET_TIER,
+                              set: setKey, unid: false });
+        C.save.gear.bag.push(g);
+        IT.equip(heroId, g.uid);
+        made.push(g);
+      }
+      return made;
+    }
+
+    t('투장 — 한 벌은 셋이고 부위가 겹치지 않는다', function () {
+      var bad = [], i, j;
+      for (i = 0; i < SD.SETS.length; i++) {
+        var slots = SD.SETS[i].pieces.map(function (k) {
+          var b = DG.itemData.baseByKey(k);
+          return b ? b.slot : '?';
+        });
+        if (slots.length !== 3) { bad.push(SD.SETS[i].key + ' 조각 ' + slots.length); }
+        for (j = 0; j < slots.length; j++) {
+          if (slots.indexOf(slots[j]) !== j) { bad.push(SD.SETS[i].key + ' 부위 겹침'); }
+        }
+      }
+      /* 한 밑감이 두 벌에 들어가도 안 된다 */
+      var seen = {};
+      for (i = 0; i < SD.SETS.length; i++) {
+        for (j = 0; j < SD.SETS[i].pieces.length; j++) {
+          var k2 = SD.SETS[i].pieces[j];
+          if (seen[k2]) { bad.push(k2 + ' 두 벌에'); }
+          seen[k2] = true;
+        }
+      }
+      return bad.length === 0 && (SD.SETS.length + '벌 × 3점 · 겹침 없음');
+    });
+
+    t('투장 — 조각은 보물 등급에서만, 정해진 밑감에서만 나온다', function () {
+      var set = SD.SETS[0];
+      /* 정해진 밑감 + 보물 → 조각이 될 수 있다 */
+      var hit = 0, i;
+      for (i = 0; i < 60; i++) {
+        if (IT.roll(20, { base: set.pieces[0], tier: SD.SET_TIER }).set) { hit++; }
+      }
+      /* 같은 밑감이라도 등급이 다르면 절대 안 된다 */
+      var wrongTier = 0;
+      for (i = 0; i < 40; i++) {
+        if (IT.roll(20, { base: set.pieces[0], tier: 4 }).set) { wrongTier++; }
+      }
+      /* 한 벌에 없는 밑감은 보물이어도 안 된다 */
+      var wrongBase = 0;
+      for (i = 0; i < 40; i++) {
+        if (IT.roll(20, { base: 'w_wolto', tier: SD.SET_TIER }).set) { wrongBase++; }
+      }
+      return hit > 15 && hit < 60 && wrongTier === 0 && wrongBase === 0 &&
+        ('보물 60번 중 ' + hit + '번 · 다른 등급·밑감 0');
+    });
+
+    t('투장 — 두 점이면 부분, 세 점이면 전부 붙는다 (누적)', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      wearSet(id, 'horang', 1);
+      var one = IT.setEffects(id).length;
+      C.save.gear.equip = {}; C.save.gear.bag = [];
+      wearSet(id, 'horang', 2);
+      var two = IT.setEffects(id).length;
+      C.save.gear.equip = {}; C.save.gear.bag = [];
+      wearSet(id, 'horang', 3);
+      var three = IT.setEffects(id).length;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return one === 0 && two === 1 && three === 3 &&
+        ('1점 ' + one + ' · 2점 ' + two + ' · 3점 ' + three + ' 효과');
+    });
+
+    t('투장 — 능력치에 실제로 붙는다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      /* **재지 않는 축은 붙들어 둔다** — 같은 물건 그대로 두고 투장 표시만 뗐다 붙인다.
+         새로 굴린 물건과 견주면 밑감·접사가 같이 움직여 무엇이 올렸는지 알 수 없다
+         (처음에 그렇게 짰다가 항목이 깨졌다). 호랑 2점은 무력 +16 이다. */
+      var made = wearSet(id, 'horang', 2);
+      var withSet = HR.stats(id).might;
+      made[0].set = null; made[1].set = null;
+      var without = HR.stats(id).might;
+      made[0].set = 'horang'; made[1].set = 'horang';
+      var okd = Math.round(withSet - without) === 16;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return okd && ('무력 ' + Math.round(without) + ' → ' + Math.round(withSet) +
+                     ' (투장 2점 +16)');
+    });
+
+    t('투장 — 전역 효과도 붙는다 (청낭 3점)', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      var keepParty = C.save.party.slice();
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      C.save.party = [id];
+      /* **재지 않는 축은 붙들어 둔다.** 새로 굴린 물건에는 '치부(금 획득)' 같은
+         전역 접사가 섞일 수 있다 — 그러면 무엇이 올렸는지 알 수 없다.
+         (처음엔 그냥 전후를 견줬는데, 씨앗이 밀리자 바로 깨졌다)
+         같은 물건 그대로 두고 **투장 표시만** 뗐다 붙인다. */
+      var made = wearSet(id, 'cheongnang', 3);
+      var withSet = C.effect('goldPct');
+      made.forEach(function (g) { g.set = null; });
+      var without = C.effect('goldPct');
+      made.forEach(function (g) { g.set = 'cheongnang'; });
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq; C.save.party = keepParty;
+      return withSet - without === 30 && ('금 획득 +' + (withSet - without) + '%');
+    });
+
+    t('투장 — 동행에 흩어 놓으면 안 센다 (한 인물 기준)', function () {
+      /* 다섯에 나눠 걸고 채워지면 그건 세트가 아니라 창고 정리다 */
+      if (C.save.party.length < 2) { return '동행이 하나뿐이라 건너뜀'; }
+      var a = C.save.party[0], b2 = C.save.party[1];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var set = SD.setByKey('waryong'), i;
+      var owners = [a, b2, a];
+      for (i = 0; i < 3; i++) {
+        var g = IT.roll(24, { base: set.pieces[i], tier: SD.SET_TIER,
+                              set: 'waryong', unid: false });
+        C.save.gear.bag.push(g);
+        IT.equip(owners[i], g.uid);
+      }
+      var ca = IT.setCounts(a).waryong, cb = IT.setCounts(b2).waryong;
+      var eff = IT.setEffects(a).length;               // 2점 → 하나
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return ca === 2 && cb === 1 && eff === 1 && ('갑 2점 · 을 1점 — 완성 안 됨');
+    });
+
+    t('투장 — 부서진 조각은 짝으로 안 센다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var made = wearSet(id, 'chungmu', 3);
+      var full = IT.setEffects(id).length;
+      made[0].dur = 0;                                 // 무기가 부서졌다
+      var broken = IT.setEffects(id).length;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return full === 3 && broken === 1 && ('3점 ' + full + ' → 부서지니 ' + broken);
+    });
+
+    t('투장 — 조각은 한 벌 이름으로 불린다', function () {
+      var g = IT.roll(24, { base: 'w_hwando', tier: SD.SET_TIER,
+                            set: 'chungmu', unid: false });
+      return IT.name(g).indexOf('충무') >= 0 && IT.name(g).indexOf('환도') >= 0 &&
+        IT.name(g);
+    });
+
+    /* ── 내구(耐久)와 수리(修理) ─────────────────────────
+     * 원작에서 장비는 쓰면 닳고 다 닳으면 부서져 아무 값도 안 낸다.
+     * 사라지지는 않는다 — 금을 내면 도로 쓴다.
+     */
+
+    t('내구 — 부적은 닳지 않고 무기·갑주는 닳는다', function () {
+      var w = IT.roll(10, { slot: 'weapon', tier: 2, unid: false });
+      var c = IT.roll(10, { slot: 'charm', tier: 2, unid: false });
+      return IT.durMaxOf(w) > 0 && IT.durMaxOf(c) === 0 &&
+        ('무기 ' + IT.durMaxOf(w) + ' · 부적 없음');
+    });
+
+    t('내구 — 층을 내려갈 때마다 입은 것이 닳는다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var g = IT.roll(20, { slot: 'weapon', tier: 2, unid: false });
+      C.save.gear.bag.push(g);
+      IT.equip(id, g.uid);
+      /* 가방에 든 것은 안 쓴 물건이라 안 닳아야 한다 */
+      var idle = IT.roll(20, { slot: 'armor', tier: 2, unid: false });
+      C.save.gear.bag.push(idle);
+      var d0 = IT.durOf(g);
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      run.room.cleared = true;
+      DN.goRoom('stair');                              // 한 층 내려간다
+      var worn = IT.durOf(g) === d0 - 1 && IT.durOf(idle) === IT.durMaxOf(idle);
+      DN.leave();
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return worn && ('내구 ' + d0 + ' → ' + (d0 - 1) + ' · 가방 것은 그대로');
+    });
+
+    t('내구 — 부서지면 능력치를 못 낸다 (없어지지는 않는다)', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var g = IT.roll(24, { slot: 'weapon', tier: 4, unid: false });
+      C.save.gear.bag.push(g);
+      IT.equip(id, g.uid);
+      var full = HR.stats(id).might;
+      IT.wearAll(999);                                 // 다 닳린다
+      var broke = IT.isBroken(g);
+      var dead = HR.stats(id).might;
+      /* 여전히 입고 있고 값도 그대로다 */
+      var kept = IT.equipped(id).weapon === g && IT.price(g) > 0;
+      var okd = broke && dead < full && kept;
+      /* 고치면 돌아온다 */
+      C.save.player.gold = 999999;
+      var rr = IT.repair(g.uid);
+      var backAgain = rr.ok && !IT.isBroken(g) && HR.stats(id).might === full;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return okd && backAgain &&
+        ('무력 ' + Math.round(full) + ' → ' + Math.round(dead) + ' → 수리 후 ' + Math.round(full));
+    });
+
+    t('내구 — 수리 값은 닳은 만큼만 낸다', function () {
+      var g = IT.roll(20, { slot: 'armor', tier: 3, unid: false });
+      var max = IT.durMaxOf(g);
+      var none = IT.repairCost(g);                     // 가득 → 0
+      g.dur = Math.round(max / 2);
+      var half = IT.repairCost(g);
+      g.dur = 0;
+      var all = IT.repairCost(g);
+      return none === 0 && half > 0 && all > half * 1.8 &&
+        ('가득 0 · 반 ' + half + ' · 바닥 ' + all);
+    });
+
+    t('내구 — 모두 수리는 입은 것만 세고 금이 그만큼 준다', function () {
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var id = C.save.party[0];
+      var w = IT.roll(20, { slot: 'weapon', tier: 2, unid: false });
+      var a = IT.roll(20, { slot: 'armor', tier: 2, unid: false });
+      var idle = IT.roll(20, { slot: 'armor', tier: 2, unid: false });
+      C.save.gear.bag.push(w, a, idle);
+      IT.equip(id, w.uid); IT.equip(id, a.uid);
+      IT.wearAll(5);
+      idle.dur = 1;                                    // 가방 것은 세지 않는다
+      var list = IT.repairList(), cost = IT.repairAllCost();
+      C.save.player.gold = cost + 7;
+      var r = IT.repairAll();
+      var okd = list.length === 2 && r.ok && C.save.player.gold === 7 &&
+        IT.durOf(w) === IT.durMaxOf(w) && idle.dur === 1;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return okd && ('입은 것 2점 · ' + cost + '금');
+    });
+
+    t('내구 — 부서진 것은 자동이 팔지도 고르지도 않는다', function () {
+      /* 금 내고 고치면 되는 물건이다. 팔아 버리면 되돌릴 수 없다 */
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var g = IT.roll(24, { slot: 'weapon', tier: 3, unid: false });
+      g.dur = 0;
+      C.save.gear.bag.push(g);
+      var cleaned = IT.autoClean();
+      var survived = C.save.gear.bag.length === 1;
+      var changed = IT.autoEquip();
+      var notWorn = !IT.equipped(C.save.party[0]).weapon;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return cleaned.sold === 0 && survived && changed === 0 && notWorn &&
+        '안 판다 · 안 입힌다';
+    });
+
+    t('내구 — 옛 세이브(내구 칸이 없는 물건)는 가득 찬 것으로 본다', function () {
+      var g = IT.roll(15, { slot: 'weapon', tier: 2, unid: false });
+      delete g.dur;
+      return IT.durOf(g) === IT.durMaxOf(g) && !IT.isBroken(g) &&
+        ('칸이 없으면 ' + IT.durMaxOf(g));
+    });
+
+    /* ── 창고(倉庫) — 원작의 stash ───────────────────────
+     * 자리가 모자라서 두는 게 아니다(가방이 예순 칸이다).
+     * 뜻은 하나 — **자동이 손대지 않는 자리**. 아래 넷이 그 약속을 지킨다.
+     */
+
+    function clearStash() { C.save.gear.stash = []; }
+
+    t('창고 — 넣으면 가방에서 빠지고 꺼내면 돌아온다', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = []; clearStash();
+      var g = IT.roll(12, { slot: 'charm', tier: 1, unid: false });
+      C.save.gear.bag.push(g);
+      var inR = IT.toStash(g.uid);
+      var moved = inR.ok && C.save.gear.bag.length === 0 && IT.stash().length === 1;
+      var outR = IT.fromStash(g.uid);
+      var back = outR.ok && C.save.gear.bag.length === 1 && IT.stash().length === 0;
+      /* 창고에 있어도 uid 로 찾을 수 있어야 한다 (쪽지·세공이 물어본다) */
+      IT.toStash(g.uid);
+      var findable = !!IT.findAnywhere(g.uid) && !IT.find(g.uid);
+      C.save.gear.bag = keep; clearStash();
+      return moved && back && findable && '가방 ↔ 창고';
+    });
+
+    t('창고 — 던전 안에서는 열리지 않는다 (원작 그대로)', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = []; clearStash();
+      var g = IT.roll(12, { slot: 'charm', tier: 0 });
+      C.save.gear.bag.push(g);
+      DN.enter({ floor: 4, mode: 'easy' });
+      var shut = !IT.stashOpen();
+      var r = IT.toStash(g.uid);
+      DN.leave();
+      var opens = IT.stashOpen();
+      C.save.gear.bag = keep; clearStash();
+      return shut && !r.ok && r.reason === 'dungeon' && opens && '던전 안 잠김 · 나오면 열림';
+    });
+
+    t('창고 — 자동 정리가 팔지 않는다', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = []; clearStash();
+      /* **차이가 드러나는 구간에 세운다** — 동행이 맨몸이면 어떤 부적이든
+         보탬이 되어 자동 정리가 아무것도 안 판다. 먼저 좋은 부적을 입혀 둔다.
+         뒤에 합류한 인물은 1레벨이라 **요구 수준** 때문에 못 입는다 — 여기서 한 번 더 키운다
+         (항목은 자기가 쓸 상태를 스스로 만든다). */
+      levelParty(40);
+      var keepEq = C.save.gear.equip;
+      C.save.gear.equip = {};
+      C.save.party.forEach(function (hid) {
+        var good = IT.roll(30, { slot: 'charm', tier: 4, unid: false });
+        C.save.gear.bag.push(good);
+        IT.equip(hid, good.uid);
+      });
+      /* 이제 이 둘은 아무에게도 보탬이 안 된다 — 가방에 두면 팔린다 */
+      var a = IT.roll(1, { slot: 'charm', tier: 0 });
+      var b2 = IT.roll(1, { slot: 'charm', tier: 0 });
+      C.save.gear.bag.push(a, b2);
+      IT.toStash(b2.uid);
+      var r = IT.autoClean();
+      var okd = r.sold === 1 && C.save.gear.bag.length === 0 && IT.stash().length === 1;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq; clearStash();
+      return okd && '가방 것만 팔린다 (창고 것은 그대로)';
+    });
+
+    t('창고 — 자동 장착이 고르지 않는다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.equip = {};
+      C.save.gear.bag = []; clearStash();
+      var g = IT.roll(24, { slot: 'weapon', tier: 4, unid: false });
+      C.save.gear.bag.push(g);
+      IT.toStash(g.uid);
+      var changed = IT.autoEquip();
+      var still = IT.stash().length === 1 && !IT.equipped(id).weapon;
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq; clearStash();
+      return changed === 0 && still && '창고 것은 안 입힌다';
+    });
+
+    t('창고 — 연단이 재료로 태우지 않는다', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = []; clearStash();
+      var i;
+      for (i = 0; i < 3; i++) {
+        C.save.gear.bag.push(IT.roll(10, { slot: 'armor', tier: 1, unid: false }));
+      }
+      IT.toStash(C.save.gear.bag[0].uid);              // 셋 중 하나를 창고로
+      var rows = DG.forge.recipeByKey('gear').find().filter(function (x) {
+        return x.id === 'gear:armor:1';
+      });
+      var r = DG.forge.make('gear:armor:1');
+      var okd = rows.length === 0 && !r.ok && r.reason === 'mat' && IT.stash().length === 1;
+      C.save.gear.bag = keep; clearStash();
+      return okd && '창고 것을 빼면 둘뿐';
+    });
+
+    t('창고 — 되는 데까지 감정이 건드리지 않는다', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = []; clearStash();
+      var g = IT.roll(18, { slot: 'charm', tier: 3 });
+      C.save.gear.bag.push(g);
+      IT.toStash(g.uid);
+      C.save.items.ident = 5;
+      var r = IT.identifyAll();
+      var okd = r.done === 0 && IT.isUnid(g) && IT.scrolls() === 5;
+      C.save.items.ident = 0;
+      C.save.gear.bag = keep; clearStash();
+      return okd && '감정서를 안 태운다';
+    });
+
+    t('창고 — 가득 차면 더 안 들어간다', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = []; clearStash();
+      var i;
+      for (i = 0; i < IT.stashCap(); i++) {
+        C.save.gear.stash.push(IT.roll(1, { slot: 'charm', tier: 0 }));
+      }
+      var g = IT.roll(1, { slot: 'charm', tier: 0 });
+      C.save.gear.bag.push(g);
+      var r = IT.toStash(g.uid);
+      var okd = !r.ok && r.reason === 'full' && C.save.gear.bag.length === 1;
+      C.save.gear.bag = keep; clearStash();
+      return okd && ('상한 ' + IT.stashCap() + '칸');
+    });
+
+    /* ── 감정(鑑定) — 원작의 미확인 물건 ─────────────────
+     * 원작에서 줍는 맛의 절반은 "?" 를 여는 것이다.
+     * 항목은 저마다 쓸 상태를 스스로 만들고 남긴 것은 스스로 치운다.
+     */
+
+    t('감정 — 양품 이상은 미확인으로 나오고 상품은 아니다', function () {
+      /* 원작의 흰 물건은 접사가 없어 감정이 필요 없다 */
+      var white = IT.roll(10, { tier: 0 });
+      var blue = IT.roll(10, { tier: 2 });
+      return !IT.isUnid(white) && IT.isUnid(blue) &&
+        ('상품 확인됨 · 명품 미확인');
+    });
+
+    t('감정 — 미확인이면 이름에 접사가 안 새고 옵션도 안 보인다', function () {
+      var g = IT.roll(18, { slot: 'weapon', tier: 4 });
+      var base = DG.itemData.baseByKey(g.base);
+      var hidden = IT.name(g) === base.name && IT.lines(g).length === 1;
+      /* 확인하면 그때 이름에 접사가 붙는다 */
+      IT.add(g);
+      IT.addScroll(1);
+      var r = IT.identify(g.uid);
+      var shown = r.ok && IT.lines(g).length > 1;
+      IT.take(g.uid);                                  // 뒷정리
+      return hidden && shown && ('미확인 "' + base.name + '" → 확인 "' + IT.name(g) + '"');
+    });
+
+    t('감정 — 미확인은 입을 수 없다', function () {
+      var id = C.save.party[0];
+      var g = IT.roll(18, { slot: 'weapon', tier: 3 });
+      IT.add(g);
+      var refused = IT.equip(id, g.uid) === false;
+      IT.addScroll(1);
+      IT.identify(g.uid);
+      var okNow = IT.equip(id, g.uid) === true;
+      IT.unequip(id, 'weapon');
+      IT.take(g.uid);                                  // 뒷정리
+      return refused && okNow && '감정 전 거절 · 감정 후 장착';
+    });
+
+    t('감정 — 감정서가 없으면 못 연다', function () {
+      C.save.items.ident = 0;
+      var g = IT.roll(18, { slot: 'charm', tier: 2 });
+      IT.add(g);
+      var r = IT.identify(g.uid);
+      var still = IT.isUnid(g);
+      IT.take(g.uid);                                  // 뒷정리
+      return !r.ok && r.reason === 'scroll' && still && '거절 · scroll';
+    });
+
+    t('감정 — 되는 데까지 열고 좋은 등급부터 연다', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      var low = IT.roll(12, { slot: 'charm', tier: 1 });
+      var high = IT.roll(12, { slot: 'charm', tier: 4 });
+      C.save.gear.bag.push(low, high);
+      C.save.items.ident = 1;                          // 한 장뿐
+      var r = IT.identifyAll();
+      var okd = r.done === 1 && r.left === 1 &&
+        !IT.isUnid(high) && IT.isUnid(low);            // 전설부터 열렸다
+      C.save.gear.bag = keep;                          // 뒷정리
+      return okd && '한 장으로 전설부터';
+    });
+
+    t('감정 — 미확인은 자동 정리에 팔리지 않는다', function () {
+      /* bestOwner 가 null 을 주므로 그냥 두면 감정도 안 해 본 보물이 팔려 나간다 */
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      var g = IT.roll(18, { slot: 'charm', tier: 3 });
+      C.save.gear.bag.push(g);
+      var r = IT.autoClean();
+      var survived = C.save.gear.bag.length === 1;
+      C.save.gear.bag = keep;                          // 뒷정리
+      return r.sold === 0 && survived && '자동 정리가 건너뛴다';
+    });
+
+    t('감정 — 미확인은 자동 장착을 헛돌게 하지 않는다', function () {
+      /* gainFor 가 0 을 안 주면 autoEquip 이 미확인을 고르고 equip 이 거절하고를
+         되풀이한다(실제로 그렇게 헛돌았다) */
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      var i;
+      for (i = 0; i < 3; i++) { C.save.gear.bag.push(IT.roll(20, { slot: 'weapon', tier: 4 })); }
+      var changed = IT.autoEquip();
+      var stayed = C.save.gear.bag.length === 3;
+      C.save.gear.bag = keep;                          // 뒷정리
+      return changed === 0 && stayed && '고르지 않는다';
+    });
+
+    t('감정 — 행상·투전에서 산 것은 확인된 채로 온다', function () {
+      /* 원작도 그렇다. 무엇이 나올지 모르는 것과 옵션을 모르는 것은 다른 이야기다 */
+      C.save.dungeon = C.save.dungeon || {};
+      C.save.dungeon.best = 12;
+      DG.vendor.refresh();
+      var stockUnid = DG.vendor.stock().filter(function (x) { return IT.isUnid(x); });
+      C.save.player.gold = 999999;
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      var gr = DG.vendor.gamble(0);
+      var gambledUnid = gr.ok && IT.isUnid(gr.item);
+      C.save.gear.bag = keep;                          // 뒷정리
+      return stockUnid.length === 0 && gr.ok && !gambledUnid && '재고·투전 모두 확인됨';
+    });
+
+    t('감정 — 연단이 낸 것과 다시 굴린 것은 미확인이다', function () {
+      /* 원작의 큐브 결과도 미확인으로 나온다 — 열어 보는 그 순간이 조합의 전부다 */
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      var i;
+      for (i = 0; i < 3; i++) {
+        C.save.gear.bag.push(IT.roll(14, { slot: 'armor', tier: 1, unid: false }));
+      }
+      var made = DG.forge.make('gear:armor:1');
+      var madeUnid = made.ok && IT.isUnid(made.out);
+
+      C.save.gear.bag = [];
+      var g = IT.roll(20, { slot: 'weapon', tier: 4, sock: 0, unid: false });
+      C.save.gear.bag.push(g);
+      IT.addMat('gem', 'pearl', DG.forge.REROLL_GEM_G, DG.forge.REROLL_GEM_N);
+      var re = DG.forge.make('reroll:' + g.uid);
+      var reUnid = re.ok && IT.isUnid(g);
+
+      C.save.gear.bag = keep;                          // 뒷정리
+      return madeUnid && reUnid && '연단 결과 · 다시 굴린 것 모두 미확인';
+    });
+
+    t('감정 — 행상이 감정서를 판다 (막는 관문이 아니다)', function () {
+      C.save.dungeon.best = 12;
+      C.save.items.ident = 0;
+      C.save.player.gold = 999999;
+      var one = DG.vendor.scrollPrice();
+      var gold0 = C.save.player.gold;
+      var r = DG.vendor.buyScroll(10);
+      var okd = r.ok && IT.scrolls() === 10 &&
+        C.save.player.gold === gold0 - one * 10 && one < 200;
+      C.save.items.ident = 0;                          // 뒷정리
+      return okd && ('한 장 ' + one + '금');
+    });
+
+    /* ── 단약(丹藥)과 요대(腰帶) — 원작의 물약과 벨트 ────
+     * 원작에서 손가락이 가장 자주 가는 자리가 1 2 3 4 다.
+     * 항목은 저마다 쓸 상태를 스스로 만들고 남긴 것은 스스로 치운다.
+     */
+
+    var PT = DG.potion;
+
+    function clearBelt() {
+      var b = PT.belt();
+      for (var i = 0; i < b.length; i++) { b[i] = null; }
+    }
+
+    t('요대 — 칸 넷, 한 칸에 넷까지 쌓인다', function () {
+      clearBelt();
+      var i, okAll = true;
+      for (i = 0; i < PT.STACK; i++) { okAll = PT.add('heal', 0).ok && okAll; }
+      var b = PT.belt();
+      var stacked = b[0] && b[0].n === PT.STACK && !b[1];
+      /* 넘치면 다음 칸으로 */
+      PT.add('heal', 0);
+      var spilled = PT.belt()[1] && PT.belt()[1].n === 1;
+      clearBelt();
+      return okAll && stacked && spilled && PT.SLOTS === 4 &&
+        ('칸 ' + PT.SLOTS + ' × ' + PT.STACK);
+    });
+
+    t('요대 — 등급이 다르면 다른 칸에 놓인다', function () {
+      clearBelt();
+      PT.add('heal', 0); PT.add('heal', 1); PT.add('mana', 0);
+      var b = PT.belt();
+      var okd = b[0].kind === 'heal' && b[0].g === 0 &&
+        b[1].kind === 'heal' && b[1].g === 1 &&
+        b[2].kind === 'mana' && b[2].g === 0;
+      clearBelt();
+      return okd && '종류·등급마다 한 칸';
+    });
+
+    t('요대 — 다 차면 더 못 넣는다', function () {
+      clearBelt();
+      var i, j;
+      for (i = 0; i < PT.SLOTS; i++) {
+        for (j = 0; j < PT.STACK; j++) { PT.add('heal', i % 3); }
+      }
+      var full = PT.total() === PT.SLOTS * PT.STACK;
+      var r = PT.add('mana', 2);
+      clearBelt();
+      return full && !r.ok && r.reason === 'full' && ('가득 ' + (PT.SLOTS * PT.STACK) + '알');
+    });
+
+    t('요대 — 다 찼으면 바닥에 그대로 남는다 (사라지지 않는다)', function () {
+      /* 원작에서도 못 주우면 바닥에 남는다. 사라지면 그 알이 증발한 셈이 된다. */
+      DN.enter({ floor: 5, mode: 'easy' });
+      clearBelt();
+      var i, j;
+      for (i = 0; i < PT.SLOTS; i++) {
+        for (j = 0; j < PT.STACK; j++) { PT.add('heal', i % 3); }
+      }
+      var run = DN.raw();
+      run.room.drops.length = 0;
+      run.room.drops.push({ kind: 'potion', p: { kind: 'mana', g: 0 },
+                            x: run.player.x, y: run.player.y });
+      DN.update(0.05);
+      var stayed = run.room.drops.length === 1;
+      /* 한 칸을 비우면 그때 주워진다 */
+      PT.belt()[0] = null;
+      DN.update(0.05);
+      var taken = run.room.drops.length === 0;
+      clearBelt(); DN.leave();
+      return stayed && taken && '가득이면 남고, 자리가 나면 줍는다';
+    });
+
+    t('단약 — 마시면 최대 체력의 등급 %만큼 오른다', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      clearBelt();
+      PT.add('heal', 1);                              // 중(中) 45%
+      var run = DN.raw();
+      run.hp = Math.round(run.hpMax * 0.2);
+      var before = run.hp;
+      var r = PT.use(0);
+      var want = Math.min(run.hpMax, before + Math.round(run.hpMax * 0.45));
+      var okd = r.ok && run.hp === want && PT.total() === 0;
+      clearBelt(); DN.leave();
+      return okd && ('체력 ' + before + ' → ' + run.hp + ' (+45%)');
+    });
+
+    t('단약 — 이미 가득이면 쓰지 않는다 (알을 아낀다)', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      clearBelt();
+      PT.add('heal', 2);
+      var run = DN.raw();
+      run.hp = run.hpMax;
+      var r = PT.use(0);
+      var okd = !r.ok && r.reason === 'full' && PT.total() === 1;
+      clearBelt(); DN.leave();
+      return okd && '대(大)를 날리지 않는다';
+    });
+
+    t('단약 — 던전 밖에서는 마시지 않는다', function () {
+      if (DN.active()) { DN.leave(); }
+      clearBelt();
+      PT.add('heal', 0);
+      var r = PT.use(0);
+      var okd = !r.ok && r.reason === 'off' && PT.total() === 1;
+      clearBelt();
+      return okd && '거절 · off';
+    });
+
+    t('요대 — 회차를 넘어 남는다 (은사와 다르다)', function () {
+      /* 원작의 벨트는 마을로 돌아와도 그대로다. 그래서 run 이 아니라 세이브에 산다. */
+      clearBelt();
+      PT.add('heal', 0); PT.add('heal', 0);
+      DN.enter({ floor: 3, mode: 'easy' });
+      var during = PT.total();
+      DN.leave();
+      var after = PT.total();
+      var inSave = !!C.save.belt && C.save.belt.length === PT.SLOTS;
+      clearBelt();
+      return during === 2 && after === 2 && inSave && '세이브에 산다';
+    });
+
+    t('키 배치 — 1 2 3 4 는 요대, 스킬은 Z X C V', function () {
+      /* 원작은 물약이 1~4 다. 스킬은 F1~F8 인데 브라우저가 F1 을 가로채므로
+         WASD 왼쪽 아래로 내렸다. W 는 이동이라 Q W E R 을 쓸 수 없다. */
+      var ks = DG.dungeonView.SKILL_KEYS;
+      var clash = ks.filter(function (k) { return 'WASD'.indexOf(k) >= 0; });
+      /* 2026-08-26 부터 스킬 넷은 고정 표가 아니라 **걸어 둔 무예**다 —
+         칸 수만 견준다 (DN.SKILL_SLOTS) */
+      return ks.join('') === 'ZXCV' && clash.length === 0 && DN.SKILL_SLOTS === ks.length &&
+        ('스킬 ' + ks.join(' ') + ' · 칸 ' + DN.SKILL_SLOTS + ' · 이동키와 안 겹침');
+    });
+
+    t('자동 — 체력이 깎이면 탈출보다 **먼저 마신다**', function () {
+      /* 마실 것이 있는데 나가 버리면 노획물을 그냥 접는 셈이다 */
+      DN.enter({ floor: 6, mode: 'easy' });
+      clearBelt();
+      PT.add('heal', 0);
+      var run = DN.raw();
+      run.hp = Math.round(run.hpMax * 0.15);          // 탈출 문턱(22%)보다 낮게
+      run.room.enemies.length = 0;
+      AU.setOn(true);
+      AU.update(0.05);
+      var stillIn = DN.active();
+      var drank = PT.total() === 0;
+      /* 이제 마실 것이 없으면 나간다 */
+      if (DN.active()) {
+        DN.raw().hp = Math.round(DN.raw().hpMax * 0.15);
+        AU.update(0.05);
+      }
+      var left = !DN.active();
+      AU.setOn(false);
+      clearBelt();
+      if (DN.active()) { DN.leave(); }
+      return stillIn && drank && left && '마시고 버티다 · 떨어지면 탈출';
+    });
+
+    t('행상 — 단약은 재고가 떨어지지 않고 등급이 깊이를 탄다', function () {
+      /* 원작의 상인은 물약이 늘 있다. 재고 목록(stock)을 안 탄다. */
+      C.save.dungeon = C.save.dungeon || {};
+      C.save.dungeon.best = 3;
+      var shallow = DG.vendor.potionsForSale();
+      C.save.dungeon.best = 20;
+      var deep = DG.vendor.potionsForSale();
+      var maxG = function (l) { return Math.max.apply(null, l.map(function (x) { return x.g; })); };
+      return shallow.length === 2 && maxG(shallow) === 0 &&
+        deep.length === 6 && maxG(deep) === 2 &&
+        ('제3층 ' + shallow.length + '종 → 제20층 ' + deep.length + '종');
+    });
+
+    t('행상 — 요대가 찼으면 단약을 팔지 않는다 (금만 사라지면 안 된다)', function () {
+      C.save.dungeon.best = 20;
+      clearBelt();
+      var i, j;
+      for (i = 0; i < PT.SLOTS; i++) {
+        for (j = 0; j < PT.STACK; j++) { PT.add('heal', i % 3); }
+      }
+      C.save.player.gold = 999999;
+      var gold0 = C.save.player.gold;
+      var r = DG.vendor.buyPotion('mana', 0);
+      clearBelt();
+      return !r.ok && r.reason === 'belt' && C.save.player.gold === gold0 && '거절 · belt';
+    });
+
+    /* ── 행상(行商) — 원작의 상인·되사기 ───────────────
+     * 항목은 저마다 쓸 상태를 스스로 만들고 남긴 것은 스스로 치운다
+     * (인계 문서의 규칙). 여기서는 금·가방·재고를 만졌다가 되돌린다.
+     */
+
+    var VD = DG.vendor;
+
+    t('행상 — 재고 등급은 명품(2)을 넘지 않는다', function () {
+      C.save.dungeon = C.save.dungeon || {};
+      C.save.dungeon.best = 12;
+      VD.refresh();
+      var st = VD.stock();
+      var over = st.filter(function (g) { return g.tier > VD.STOCK_TIER_MAX; });
+      return st.length === VD.STOCK_N && over.length === 0 &&
+        (st.length + '점 · 최고 등급 ' +
+         Math.max.apply(null, st.map(function (g) { return g.tier; })));
+    });
+
+    t('행상 — 사면 금이 줄고 가방에 들어오고 재고에서 빠진다', function () {
+      VD.refresh();
+      var g = VD.stock()[0];
+      var cost = VD.buyPrice(g);
+      C.save.player.gold = cost + 10;
+      var n0 = IT.bag().length, s0 = VD.stock().length;
+      var r = VD.buy(g.uid);
+      var okd = r.ok && C.save.player.gold === 10 &&
+        IT.bag().length === n0 + 1 && VD.stock().length === s0 - 1 &&
+        !!IT.find(g.uid);
+      IT.take(g.uid);                                   // 뒷정리
+      return okd && ('금 ' + cost + ' 지불 · 재고 ' + s0 + '→' + VD.stock().length);
+    });
+
+    t('행상 — 금이 모자라면 안 산다', function () {
+      VD.refresh();
+      var g = VD.stock()[0];
+      C.save.player.gold = VD.buyPrice(g) - 1;
+      var n0 = IT.bag().length;
+      var r = VD.buy(g.uid);
+      return !r.ok && r.reason === 'gold' && IT.bag().length === n0 && '거절 · gold';
+    });
+
+    t('행상 — 가방이 차 있으면 사지 않는다 (금만 사라지면 안 된다)', function () {
+      /* item.add 는 가방이 넘치면 그 자리에서 금으로 바꾼다. 그대로 두면
+         "샀는데 물건은 없고 돈만 줄었다" 가 된다 — vendor 가 먼저 막는다. */
+      VD.refresh();
+      var g = VD.stock()[0];
+      C.save.player.gold = 999999;
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      while (C.save.gear.bag.length < IT.bagCap()) { C.save.gear.bag.push(IT.roll(1, { tier: 0 })); }
+      var gold0 = C.save.player.gold;
+      var r = VD.buy(g.uid);
+      C.save.gear.bag = keep;                           // 뒷정리
+      return !r.ok && r.reason === 'bag' && C.save.player.gold === gold0 && '거절 · bag';
+    });
+
+    t('행상 — 판 것은 되사기에 남고 판 값 그대로 되산다', function () {
+      VD.refresh();
+      var g = IT.roll(10, { slot: 'charm', tier: 1 });
+      IT.add(g);
+      var worth = IT.price(g);
+      C.save.player.gold = 0;
+      var sr = VD.sell(g.uid);
+      var afterSell = C.save.player.gold;
+      var back = VD.backlog();
+      var listed = back.length === 1 && back[0].item.uid === g.uid && back[0].price === worth;
+      var br = VD.buyBack(g.uid);                       // 판 값 그대로
+      var okd = sr.ok && afterSell === worth && listed && br.ok &&
+        C.save.player.gold === 0 && !!IT.find(g.uid) && VD.backlog().length === 0;
+      IT.take(g.uid);                                   // 뒷정리
+      return okd && ('판 값 ' + worth + ' = 되산 값');
+    });
+
+    t('행상 — 잠근 것은 팔리지 않는다', function () {
+      var g = IT.roll(10, { slot: 'charm', tier: 0 });
+      IT.add(g);
+      IT.toggleLock(g.uid);
+      var gold0 = C.save.player.gold;
+      var r = VD.sell(g.uid);
+      var okd = !r.ok && r.reason === 'lock' && C.save.player.gold === gold0 && !!IT.find(g.uid);
+      IT.toggleLock(g.uid); IT.take(g.uid);             // 뒷정리
+      return okd && '거절 · lock';
+    });
+
+    t('행상 — 회차가 끝나면 재고가 갈리고 되사기가 비워진다', function () {
+      /* 원작에서 마을을 드나들면 재고가 새로 온다. 여기서는 dungeon:end 가 그 신호다. */
+      VD.refresh();
+      var g = IT.roll(10, { slot: 'charm', tier: 1 });
+      IT.add(g);
+      VD.sell(g.uid);
+      var before = VD.stock().map(function (x) { return x.uid; }).join(',');
+      var hadBack = VD.backlog().length === 1;
+      C.emit('dungeon:end', { reason: 'leave', floor: 1 });
+      var after = VD.stock().map(function (x) { return x.uid; }).join(',');
+      return hadBack && before !== after && VD.backlog().length === 0 &&
+        '재고 교체 · 되사기 비움';
+    });
+
+    /* ── 투전(投錢) — 원작의 도박 ─────────────────────── */
+
+    t('투전 — 등급 저울이 던전 드랍보다 위쪽으로 두껍다', function () {
+      /* 값이 비싼 대신 좋은 등급이 잘 나온다는 것이 도박의 전부다.
+         굴려서 세면 판마다 흔들리니 **저울 자체**를 견준다. */
+      function mean(w) {
+        var tot = 0, sum = 0, i;
+        for (i = 0; i < w.length; i++) { tot += w[i]; sum += w[i] * i; }
+        return sum / tot;
+      }
+      var drop = mean(DG.itemData.TIERS.map(function (x) { return x.weight; }));
+      var gam = mean(VD.GAMBLE_W);
+      return gam > drop * 1.8 &&
+        ('평균 등급 드랍 ' + drop.toFixed(2) + ' vs 투전 ' + gam.toFixed(2));
+    });
+
+    t('투전 — 걸면 금이 줄고 그 자리에 새 물건이 놓인다', function () {
+      VD.refresh();
+      var row = VD.gambleList()[0];
+      C.save.player.gold = row.price + 5;
+      var n0 = IT.bag().length;
+      var r = VD.gamble(0);
+      var fresh = VD.gambleList()[0];
+      var okd = r.ok && C.save.player.gold === 5 && IT.bag().length === n0 + 1 &&
+        !!fresh && VD.gambleList().length === VD.GAMBLE_N;
+      if (r.ok) { IT.take(r.item.uid); }                // 뒷정리
+      return okd && ('금 ' + row.price + ' · 칸 다시 채움');
+    });
+
+    /* ── 연단(鍊丹) — 원작의 호라드릭 큐브 ──────────────── */
+
+    var FG = DG.forge;
+
+    t('연단 — 보석 셋이 한 등급 위 한 알이 된다', function () {
+      IT.addMat('gem', 'jade', 0, 3);
+      var up0 = IT.matCount('gem', 'jade', 1);
+      var r = FG.make('gem:jade:0');
+      return r.ok && IT.matCount('gem', 'jade', 0) === 0 &&
+        IT.matCount('gem', 'jade', 1) === up0 + 1 && '조(粗)×3 → 양(良)×1';
+    });
+
+    t('연단 — 완(完)은 더 올릴 수 없다', function () {
+      var top = DG.gemData.GRADES.length - 1;
+      IT.addMat('gem', 'jade', top, 3);
+      var rows = FG.recipeByKey('gem').find().filter(function (x) {
+        return x.id === 'gem:jade:' + top;
+      });
+      var r = FG.make('gem:jade:' + top);
+      IT.addMat('gem', 'jade', top, -3);                // 뒷정리
+      return rows.length === 0 && !r.ok && r.reason === 'top' && '완(完)이 끝';
+    });
+
+    t('연단 — 부문 셋이 다음 글자가 된다', function () {
+      var nx = FG.nextRune('cheon');
+      IT.addMat('rune', 'cheon', 0, 3);
+      var n0 = IT.matCount('rune', nx.key, 0);
+      var r = FG.make('rune:cheon');
+      return r.ok && IT.matCount('rune', 'cheon', 0) === 0 &&
+        IT.matCount('rune', nx.key, 0) === n0 + 1 &&
+        ('天×3 → ' + nx.glyph);
+    });
+
+    t('연단 — 장비 셋이 한 등급 위 한 점이 된다 (수준은 가장 높은 것)', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      [8, 14, 21].forEach(function (lv) {
+        C.save.gear.bag.push(IT.roll(lv, { slot: 'weapon', tier: 1 }));
+      });
+      var r = FG.make('gear:weapon:1');
+      var okd = r.ok && r.out.tier === 2 && r.out.ilvl === 21 &&
+        C.save.gear.bag.length === 1 && C.save.gear.bag[0].uid === r.out.uid;
+      C.save.gear.bag = keep;                           // 뒷정리
+      return okd && '양품×3 → 명품 · 수준 21';
+    });
+
+    t('연단 — 잠근 장비는 재료로 쓰지 않는다', function () {
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      var three = [0, 1, 2].map(function () { return IT.roll(10, { slot: 'armor', tier: 1 }); });
+      three.forEach(function (g) { C.save.gear.bag.push(g); });
+      three[0].lock = true;
+      var rows = FG.recipeByKey('gear').find().filter(function (x) {
+        return x.id === 'gear:armor:1';
+      });
+      var r = FG.make('gear:armor:1');
+      C.save.gear.bag = keep;                           // 뒷정리
+      return rows.length === 0 && !r.ok && r.reason === 'mat' && '잠근 것 빼면 둘뿐';
+    });
+
+    t('연단 — 접사를 다시 굴려도 밑감·등급·구멍은 그대로다', function () {
+      /* 원작의 규칙(박은 것은 못 뺀다)을 지킨다 — 구멍과 박힌 것은 손대지 않는다 */
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      var g = IT.roll(20, { slot: 'weapon', tier: 4, sock: 2 });
+      C.save.gear.bag.push(g);
+      IT.socket(g.uid, 'gem', 'jade', 0);
+      var base0 = g.base, tier0 = g.tier, ilvl0 = g.ilvl;
+      var sock0 = JSON.stringify(IT.socketsOf(g));
+      var aff0 = JSON.stringify(g.aff);
+      IT.addMat('gem', 'agate', FG.REROLL_GEM_G, FG.REROLL_GEM_N);
+      var have0 = IT.matCount('gem', 'agate', FG.REROLL_GEM_G);
+      var r = FG.make('reroll:' + g.uid);
+      var okd = r.ok && g.base === base0 && g.tier === tier0 && g.ilvl === ilvl0 &&
+        JSON.stringify(IT.socketsOf(g)) === sock0 &&
+        JSON.stringify(g.aff) !== aff0 &&
+        IT.matCount('gem', 'agate', FG.REROLL_GEM_G) === have0 - FG.REROLL_GEM_N;
+      C.save.gear.bag = keep;                           // 뒷정리
+      return okd && ('구멍 ' + IT.socketsOf(g).length + '개 유지 · 완 보석 ' +
+                     FG.REROLL_GEM_N + '알 소모');
+    });
+
+    t('연단 — 구멍은 만들어 주지 않는다', function () {
+      /* 원작에서 소켓은 물건이 나올 때 정해진다. 연단으로 뚫을 수 있으면
+         "구멍 뚫린 물건을 찾는" 재미가 통째로 사라진다. */
+      var keys = FG.RECIPES.map(function (r) { return r.key; }).join(',');
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [];
+      [1, 2, 3].forEach(function () {
+        C.save.gear.bag.push(IT.roll(6, { slot: 'charm', tier: 0, sock: 0 }));
+      });
+      var r = FG.make('gear:charm:0');
+      var made = r.ok ? IT.socketsOf(r.out).length : -1;
+      C.save.gear.bag = keep;                           // 뒷정리
+      /* 새로 굴린 물건은 제 규칙대로 구멍이 뚫릴 수 있다. 여기서 막는 것은
+         **연단이 구멍을 늘려 주는 조합을 갖지 않는다**는 것이다. */
+      return keys.indexOf('socket') < 0 && made >= 0 &&
+        ('조합 넷: ' + keys);
+    });
+
+    /* ── 자동 순회 ────────────────────────────────────── */
+
+    t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {
+      AU.setOn(true);
+      var on1 = AU.active() && C.save.auto.on === true;
+      AU.setOn(false);
+      return on1 && !AU.active() && '켜짐·꺼짐 저장';
+    });
+
+    t('자동 — 본영에서 알아서 내려간다', function () {
+      AU.setOn(true);
+      for (var i = 0; i < 60; i++) { AU.update(0.1); }
+      var went = DN.active();
+      var st = DN.status();
+      AU.setOn(false);
+      if (DN.active()) { DN.leave(); }
+      return went && ('제' + st.floor + '층으로 진입');
+    });
+
+    t('자동 — 은사는 오래 버티는 쪽을 고른다', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.choice = ['greed', 'wall'];      // 재물운 vs 철벽 → 철벽을 골라야 한다
+      AU._tickDungeon(0.1);
+      var picked = raw.boons.wall === 1 && !raw.choice;
+      DN.leave();
+      return picked && '철벽 선택';
+    });
+
+    t('서고 방은 이 게임에 없다 (문답은 saga-quiz 로 갔다)', function () {
+      var kinds = DG.dungeonData.ROOMS.map(function (r) { return r.key; });
+      return kinds.indexOf('study') < 0 && !DG.quiz &&
+        ('방 종류 ' + kinds.join('·'));
+    });
+
+    t('자동 — 던전을 실제로 굴리면 층이 내려간다', function () {
+      C.save.player.gold = 0;
+      AU.setOn(true);
+      for (var i = 0; i < 3000; i++) {
+        AU.update(0.1);
+        if (DN.active()) { DN.update(0.1); }
+      }
+      var best = DN.state().best || 0;
+      AU.setOn(false);
+      if (DN.active()) { DN.leave(); }
+      return best >= 1 && ('최고 제' + best + '층 · 금 ' + C.fmt(C.save.player.gold) +
+        ' · 사냥 ' + C.fmt(DN.state().kills || 0));
+    });
+
+    /* ── 화면 ─────────────────────────────────────────── */
+
+    t('본영·시트 5개가 예외 없이 그려진다', function () {
+      DG.ui.renderHud();
+      /* 세공(craft)도 함께 연다 — 2026-08-26 에 주옥 칸이 붙은 자리다 */
+      var bad = [], tabs = ['party', 'gear', 'craft', 'dex', 'log'];
+      for (var i = 0; i < tabs.length; i++) {
+        DG.ui.openSheet(tabs[i]);
+        var html = document.getElementById('sheet-body').innerHTML;
+        if (!html || html.length < 20) { bad.push(tabs[i]); }
+      }
+      DG.ui.closeSheet();
+      var camp = document.getElementById('camp').innerHTML;
+      return bad.length === 0 && camp.indexOf('본영') >= 0 &&
+        ('시트 ' + tabs.length + '개 + 본영 렌더');
+    });
+
+    t('인물 상세(승급 화면)가 그려진다', function () {
+      DG.ui.openDetail('hero', C.save.party[0]);
+      var html = document.getElementById('detail').innerHTML;
+      DG.ui.closeDetail();
+      return html.indexOf('승급') >= 0 && '상세 + 승급 버튼';
+    });
+
+    /* ── 주옥(珠玉) — 원작의 주얼 ─────────────────────── */
+
+    t('주옥은 접사가 굴러 나온다 (하나거나 둘)', function () {
+      var GD = DG.gemData, one = 0, two = 0, i;
+      for (i = 0; i < 300; i++) {
+        var j = GD.rollJewel(20);
+        if (j.aff.length === 1) { one++; } else if (j.aff.length === 2) { two++; }
+      }
+      return one + two === 300 && two > 0 && one > two &&
+        ('접사 하나 ' + one + ' · 둘 ' + two + ' (둘이 드물다)');
+    });
+
+    t('주옥은 부위를 안 가린다 (보석과 다른 점이 이것뿐이다)', function () {
+      var IT = DG.item;
+      var mk = function (slot) {
+        var g = IT.roll(10, { slot: slot, tier: 4, sock: 1, unid: false });
+        IT.add(g);
+        var r = IT.addJewel({ aff: [{ k: 'j_might', v: 9 }] });
+        IT.socket(g.uid, 'jewel', r.jewel.id, 0);
+        return IT.socketEffects(g)[0];
+      };
+      var w = mk('weapon'), a = mk('armor'), c = mk('charm');
+      return w && a && c && w.stat === 'might' && a.stat === 'might' && c.stat === 'might' &&
+        w.v === 9 && a.v === 9 && c.v === 9 &&
+        ('무기·갑주·부적 셋 다 무력 +' + w.v);
+    });
+
+    t('주옥을 박으면 주머니에서 사라진다 (보석과 같이 못 뺀다)', function () {
+      var IT = DG.item;
+      var r = IT.addJewel({ aff: [{ k: 'j_crit', v: 4 }] });
+      var before = IT.jewels().length;
+      var g = IT.roll(10, { slot: 'weapon', tier: 4, sock: 1, unid: false });
+      IT.add(g);
+      var s0 = IT.socket(g.uid, 'jewel', r.jewel.id, 0);
+      return s0.ok && IT.jewels().length === before - 1 && !IT.jewelById(r.jewel.id) &&
+        IT.socketEffects(g).length === 1 &&
+        ('주머니 ' + before + ' → ' + IT.jewels().length + ' · 구멍으로 옮겨졌다');
+    });
+
+    t('주옥이 끼면 부문어는 이루어지지 않는다', function () {
+      var IT = DG.item;
+      var g = IT.roll(20, { slot: 'armor', tier: 4, sock: 3, unid: false });
+      IT.add(g);
+      IT.addMat('rune', 'cheon', 0, 1);
+      IT.addMat('rune', 'ji', 0, 1);
+      IT.socket(g.uid, 'rune', 'cheon');
+      IT.socket(g.uid, 'rune', 'ji');
+      var r = IT.addJewel({ aff: [{ k: 'j_all', v: 2 }] });
+      IT.socket(g.uid, 'jewel', r.jewel.id, 0);
+      return IT.wordOf(g) === null && '天 地 + 주옥 — 말이 되지 않는다';
+    });
+
+    t('주옥 주머니가 차면 더 안 들어온다 (바닥에 남는다)', function () {
+      var IT = DG.item;
+      C.save.gear.mats.jewel = [];
+      var cap = IT.jewelCap(), okN = 0, i;
+      for (i = 0; i < cap; i++) {
+        if (IT.addJewel({ aff: [{ k: 'j_find', v: 5 }] }).ok) { okN++; }
+      }
+      var over = IT.addJewel({ aff: [{ k: 'j_find', v: 5 }] });
+      C.save.gear.mats.jewel = [];
+      return okN === cap && !over.ok && over.reason === 'full' &&
+        ('상한 ' + cap + '개 — 요대와 같은 규칙');
+    });
+
+    t('주옥이 인물 능력치에 실제로 붙는다', function () {
+      var IT = DG.item;
+      var id = C.save.party[0] || Object.keys(C.save.dex.heroes)[0];
+      if (!id) { return false; }
+      var g = IT.roll(20, { slot: 'weapon', tier: 4, sock: 1, unid: false });
+      IT.add(g);
+      IT.equip(id, g.uid);
+      var before = HR.stats(id).might;
+      var r = IT.addJewel({ aff: [{ k: 'j_might', v: 12 }] });
+      IT.socket(g.uid, 'jewel', r.jewel.id, 0);
+      var after = HR.stats(id).might;
+      return after > before && ('무력 ' + Math.round(before) + ' → ' + Math.round(after));
+    });
+
+    t('주옥의 %는 수준을 안 탄다 (flat 과 원소 피해만 탄다)', function () {
+      /* 고유(data-unique.js)와 같은 규칙이다 — %가 수준을 타면 깊은 층에서
+         저항과 전역 효과가 걷잡을 수 없이 커진다 */
+      var GD = DG.gemData;
+      var peak = function (ilvl, key) {
+        var mx = 0, i, k;
+        for (i = 0; i < 600; i++) {
+          var j = GD.rollJewel(ilvl);
+          for (k = 0; k < j.aff.length; k++) {
+            if (j.aff[k].k === key) { mx = Math.max(mx, j.aff[k].v); }
+          }
+        }
+        return mx;
+      };
+      var w1 = peak(1, 'j_find'), w60 = peak(60, 'j_find');
+      var f1 = peak(1, 'j_might'), f60 = peak(60, 'j_might');
+      return w1 > 0 && w60 <= 10 && w1 === w60 && f60 > f1 * 2 &&
+        ('탐색 ' + w1 + '→' + w60 + ' (그대로) · 무력 ' + f1 + '→' + f60);
+    });
+
+    t('주옥은 제4층부터 · 보석·부문보다 드물게 나온다', function () {
+      /* 던전을 실제로 굴려 기다리면 몇 백 번 잡아야 하나가 나온다(그게 이 물건의
+         값어치다). 그래서 **드랍 표를 직접 굴려** 본다 — _dropMat 은 진단용 문이다 */
+      var count = function (floor, n) {
+        if (DN.active()) { DN.leave(); }
+        DN.enter({ floor: floor });
+        var room = DN.raw().room, c = { gem: 0, rune: 0, jewel: 0 }, i;
+        room.drops.length = 0;
+        for (i = 0; i < n; i++) { DN._dropMat(room, 100, 100, 0); }
+        for (i = 0; i < room.drops.length; i++) { c[room.drops[i].mat.kind]++; }
+        room.drops.length = 0;
+        DN.leave();
+        return c;
+      };
+      var shallow = count(2, 400), deep = count(14, 400);
+      return shallow.jewel === 0 && deep.jewel > 0 &&
+        deep.jewel < deep.rune && deep.jewel < deep.gem &&
+        ('제2층 주옥 ' + shallow.jewel + ' · 제14층 주옥 ' + deep.jewel +
+         ' / 부문 ' + deep.rune + ' / 보석 ' + deep.gem + ' (400번씩)');
+    });
+
+    t('바닥의 주옥을 밟으면 주머니로 들어간다', function () {
+      var IT = DG.item;
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 8 });
+      var r = DN.raw(), before = IT.jewels().length;
+      r.room.drops.push({ kind: 'mat', mat: { kind: 'jewel', j: DG.gemData.rollJewel(9) },
+                          x: r.player.x, y: r.player.y });
+      DN.update(0.05);
+      var after = IT.jewels().length, left = r.room.drops.length;
+      DN.leave();
+      var got = IT.jewels()[after - 1];
+      C.save.gear.mats.jewel = [];
+      return after === before + 1 && left === 0 && got &&
+        ('바닥에서 ' + DG.gemData.jewelName(got) + ' 을(를) 주웠다');
+    });
+
+    /* ── 소리(音) — WebAudio 로 그 자리에서 만든다 ────── */
+
+    t('소리표에 등급별 드랍과 고유 종소리가 있다', function () {
+      var S = DG.sfx;
+      var need = ['hit', 'crit', 'kill', 'hurt', 'die', 'gold', 'uniq', 'potion',
+                  'levelup', 'door', 'floor', 'socket', 'word', 'rune', 'jewel',
+                  'drop0', 'drop1', 'drop2', 'drop3', 'drop4'];
+      var miss = [], i;
+      for (i = 0; i < need.length; i++) { if (!S.CUES[need[i]]) { miss.push(need[i]); } }
+      var keys = Object.keys(S.CUES);
+      return miss.length === 0 && ('소리 ' + keys.length + '가지 · 빠진 것 없음');
+    });
+
+    t('첫 눌림 전에는 소리가 안 난다 (브라우저 규칙)', function () {
+      /* 진단은 아무것도 누르지 않는다 — 그래서 여기서 늘 잠겨 있다.
+         이 항목이 깨졌다면 어딘가가 사람 입력 없이 소리를 깨우고 있다는 뜻이다 */
+      var S = DG.sfx;
+      return S.ready() === false && S.play('hit') === false &&
+        '깨우기 전에는 play() 가 false';
+    });
+
+    t('소리는 꺼져 있어도 요청을 남긴다 (판정 층과 소리 층이 갈렸다)', function () {
+      var S = DG.sfx;
+      S._clear();
+      S.play('hit'); S.play('uniq');
+      var tail = S._tail(2);
+      return tail.length === 2 && tail[0] === 'hit' && tail[1] === 'uniq' &&
+        '소리가 안 나도 기록은 남는다';
+    });
+
+    t('없는 소리를 불러도 안 죽는다', function () {
+      var S = DG.sfx;
+      S._clear();
+      var r = S.play('그런소리없음');
+      return r === false && S._tail(1)[0] === '그런소리없음' &&
+        '모르는 키는 조용히 흘린다';
+    });
+
+    t('등급마다 다른 소리 · 고유는 종소리', function () {
+      var S = DG.sfx;
+      return S.dropCue(0, null) === 'drop0' && S.dropCue(4, null) === 'drop4' &&
+        S.dropCue(4, { key: 'x' }) === 'uniq' && S.dropCue(2, null) === 'drop2' &&
+        '상품→drop0 · 전설→drop4 · 고유→uniq';
+    });
+
+    t('이미 있는 이벤트에 물려 있다 (층·레벨업)', function () {
+      var S = DG.sfx;
+      S._clear();
+      C.emit('dungeon:floor', 3);
+      C.emit('levelup', 2);
+      C.emit('dungeon:end', { reason: 'dead' });
+      var tail = S._tail(3);
+      return tail[0] === 'floor' && tail[1] === 'levelup' && tail[2] === 'die' &&
+        (tail.join(' · '));
+    });
+
+    t('적을 때리면 타격음을 부른다', function () {
+      var S = DG.sfx;
+      S._clear();
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 3 });
+      AU.setOn(true);
+      var guard = 0, hit = false;
+      while (!hit && guard++ < 3000) {
+        AU.update(0.05);
+        if (DN.active()) { DN.update(0.05); } else { DN.enter({ floor: 3 }); }
+        hit = S._tail(40).indexOf('hit') >= 0 || S._tail(40).indexOf('crit') >= 0;
+      }
+      AU.setOn(false);
+      if (DN.active()) { DN.leave(); }
+      return hit && ('타격음까지 ' + guard + '틱');
+    });
+
+    t('소리를 끄면 세이브에 남는다', function () {
+      var S = DG.sfx;
+      S.setEnabled(false);
+      var off = C.save.settings.sound === false && S.enabled() === false;
+      S.setEnabled(true);
+      return off && S.enabled() === true && C.save.settings.sound === true &&
+        '설정에 남는다 (settings.sound)';
+    });
+
+    /* ── 가입해서 저장 ─────────────────────────────────── */
+
+    t('세이브는 프로필 아래로 들어간다', function () {
+      var A = DG.account;
+      return C.SAVE_BASE === 'yeoksa-dungeon/save' &&
+        C.SAVE_KEY.indexOf(C.SAVE_BASE + '/') === 0 &&
+        A._store === C.SAVE_BASE + '/accounts' &&
+        ('기준 ' + C.SAVE_BASE + ' · 지금 ' + C.SAVE_KEY);
+    });
+
+    t('가입 — 이름을 넣으면 프로필이 만들어지고 그 키로 갈아탄다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var acc = A.create('진단이', false);
+      var key = A.keyOf(acc.id);
+      C.setSaveKey(key);
+      C.save.player.gold = 4242;
+      C.persist();
+      var raw = localStorage.getItem(key);
+      localStorage.removeItem(key);
+      /* 프로필 id 는 시각 기반이라 실행마다 다르다 — 결과 문구에는 넣지 않는다
+         (넣으면 진단 출력이 매번 달라져 "무엇이 바뀌었나" 를 눈으로 못 쫓는다) */
+      return acc.name === '진단이' && A.current().id === acc.id &&
+        key.indexOf(C.SAVE_BASE + '/') === 0 &&
+        raw && JSON.parse(raw).player.gold === 4242 &&
+        (acc.name + ' · 키는 ' + C.SAVE_BASE + '/<프로필> 아래');
+    });
+
+    t('가입 — 프로필마다 진행이 갈린다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('갑', false), b = A.create('을', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.save.player.gold = 100; C.persist();
+      C.setSaveKey(A.keyOf(b.id));
+      C.save.player.gold = 999; C.persist();
+      var ga = JSON.parse(localStorage.getItem(A.keyOf(a.id))).player.gold;
+      var gb = JSON.parse(localStorage.getItem(A.keyOf(b.id))).player.gold;
+      localStorage.removeItem(A.keyOf(a.id));
+      localStorage.removeItem(A.keyOf(b.id));
+      return ga === 100 && gb === 999 && A.list().length === 2 &&
+        ('갑 ' + ga + ' · 을 ' + gb + ' (서로 안 섞인다)');
+    });
+
+    t('가입 — 옛 세이브를 첫 프로필로 이어받는다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      localStorage.setItem(A._legacy, JSON.stringify({ v: 1, player: { level: 7, gold: 777 } }));
+      var acc = A.create('이어받기', true);
+      var moved = JSON.parse(localStorage.getItem(A.keyOf(acc.id)));
+      localStorage.removeItem(A._legacy);
+      localStorage.removeItem(A.keyOf(acc.id));
+      return A.hasLegacy() === false && moved && moved.player.gold === 777 &&
+        ('Lv.' + moved.player.level + ' · 금 ' + moved.player.gold + ' 이 옮겨졌다');
+    });
+
+    t('가입 — 프로필을 지우면 그 세이브도 사라진다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('지울사람', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.persist();
+      var had = !!localStorage.getItem(A.keyOf(a.id));
+      A.remove(a.id);
+      var gone = !localStorage.getItem(A.keyOf(a.id));
+      return had && gone && A.list().length === 0 && '프로필·세이브 함께 삭제';
+    });
+
+    t('가입 — 진단에서는 가입 화면을 띄우지 않는다', function () {
+      /* DG_NO_ACCOUNT 가 켜져 있으면 고정 키로 바로 시작한다 (안 그러면 게임이 안 켜진다) */
+      return window.DG_NO_ACCOUNT === true && !document.getElementById('acc-host') &&
+        '진단 우회 동작';
+    });
+
+    t('진단의 무작위는 씨앗으로 고정된다', function () {
+      /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
+      return window.DG_SEED === 20260824 &&
+        Math.random() >= 0 && Math.random() < 1 &&
+        ('씨앗 ' + window.DG_SEED);
+    });
+
+    t('런타임 에러 없음', function () {
+      return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
+    });
+
+    var failCount = out.filter(function (s) { return s.indexOf('FAIL') >= 0; }).length;
+    document.getElementById('report').innerHTML =
+      '<h3>사가GO 던전 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
+      out.join('<br>') +
+      (errors.length ? '<br><br><b class="fail">런타임 에러</b><br>' + errors.join('<br>') : '');
+    document.title = 'RESULT ' + (out.length - failCount) + '/' + out.length;
+    localStorage.removeItem(C.SAVE_KEY);
+  }, 500);
+})();
+</script>
+</body>
+</html>

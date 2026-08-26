@@ -1,0 +1,22 @@
+# Capacitor 껍데기의 산출물 — 다시 만들 수 있는 것은 담지 않는다
+node_modules/
+www/
+
+# Android 빌드 산출물
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/app/release/
+*.apk
+*.aab
+
+# iOS — CocoaPods 산출물과 사용자별 Xcode 설정
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/output/
+ios/App/App/public/
+ios/capacitor-cordova-ios-plugins/
+*.xcuserstate
+xcuserdata/

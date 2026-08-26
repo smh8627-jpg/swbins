@@ -1,0 +1,18 @@
+{
+  "appId": "com.swbin.deungyonggo",
+  "appName": "역사GO",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": true,
+      "style": "DARK",
+      "backgroundColor": "#12141a"
+    }
+  }
+}

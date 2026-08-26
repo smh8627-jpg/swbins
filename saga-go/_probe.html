@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>스프라이트 클로즈업</title>
+<style>
+  body { margin:0; background:#20242c; color:#eef1f6; font:12px "Malgun Gothic",system-ui; }
+  .row { display:flex; flex-wrap:wrap; gap:4px; padding:8px; }
+  .c { text-align:center; }
+  /* 배경 격자 — 스프라이트만 보고 판정하려면 카드 배경이 없어야 한다 */
+  canvas { background:
+      linear-gradient(45deg,#3a3f4a 25%,transparent 25%,transparent 75%,#3a3f4a 75%) 0 0/16px 16px,
+      linear-gradient(45deg,#3a3f4a 25%,transparent 25%,transparent 75%,#3a3f4a 75%) 8px 8px/16px 16px,
+      #2b3038; border-radius:6px; display:block; }
+  .c small { display:block; font-size:11px; color:#f5b445; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>window.DG_NO_DRAW = true;</script>
+<script src="js/data.js"></script>
+<script src="js/sprite.js"></script>
+<script>
+/* 카드 배경·문양 없이 스프라이트만 크게 그린다 (만화풍 다듬기 판정용)
+     ?ids=sg_guanyu,sg_zhugeliang   인물 id 지정 (없으면 앞에서 n명)
+     ?n=8  ?s=6                     인원 · 배율(스케일)
+     ?style=anime|classic|story  ?prop=chibi|normal|tall
+     ?head=1                        머리만 크게 잘라 본다 */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var D = DG.data, S = DG.sprite;
+  var wantStyle = q.get('style');
+  S.setStyle(wantStyle === 'classic' ? 'classic'
+    : (wantStyle === 'story' ? 'story' : 'anime'));
+  if (q.get('prop')) { S.setProp(q.get('prop')); }
+  var sc = parseFloat(q.get('s') || '6');
+  var head = q.get('head') === '1';
+  var ids = (q.get('ids') || '').split(',').filter(Boolean);
+  var list = ids.length
+    ? ids.map(function (id) { return D.heroes.filter(function (h) { return h.id === id; })[0]; }).filter(Boolean)
+    : D.heroes.slice(0, parseInt(q.get('n') || '6', 10));
+
+  var H = 40 * sc;                       // human() 의 기준 높이
+  /* 머리 중심은 발에서 headY 만큼 위. head 모드는 그 지점을 캔버스 중앙에 둔다 */
+  var pr = S.PROPS[S.prop()] || S.PROPS.normal;
+  var W = Math.ceil(H * 1.9), CH = Math.ceil(head ? H * 0.95 : H * 1.75);
+  var out = document.getElementById('out');
+  var html = '<div class="row">';
+  for (var i = 0; i < list.length; i++) {
+    html += '<div class="c"><canvas id="cv' + i + '" width="' + W + '" height="' + CH + '"></canvas>' +
+      '<small>' + list[i].name + '</small></div>';
+  }
+  out.innerHTML = html + '</div>';
+
+  /* ?trace=1 — 아주 얇은 stroke(=lineWidth 지정을 잊은 것)의 호출 위치를 찍는다 */
+  if (q.get('trace')) {
+    var proto = CanvasRenderingContext2D.prototype, rawStroke = proto.stroke;
+    var hits = {};
+    var rawFill = proto.fill;
+    proto.fill = function () {
+      var fs = String(this.fillStyle);
+      if (/^rgba|^#8|^#9|^#a/.test(fs)) {
+        var st2 = (new Error()).stack.split(String.fromCharCode(10)).slice(2, 3).join('');
+        var k2 = 'FILL ' + st2 + '  col=' + fs;
+        hits[k2] = (hits[k2] || 0) + 1;
+      }
+      return rawFill.apply(this, arguments);
+    };
+    proto.stroke = function () {
+      if (this.lineWidth <= 1.4) {
+        var st = (new Error()).stack.split(String.fromCharCode(10)).slice(2, 4).join(' | ');
+        var k = st + '  lw=' + this.lineWidth.toFixed(2) + ' col=' + this.strokeStyle;
+        hits[k] = (hits[k] || 0) + 1;
+      }
+      return rawStroke.apply(this, arguments);
+    };
+    window.__thin = hits;
+  }
+
+  for (var j = 0; j < list.length; j++) {
+    var h = list[j];
+    var c = document.getElementById('cv' + j).getContext('2d');
+    var fac = D.faction(h.faction);
+    /* head 모드면 발 위치를 캔버스 아래로 밀어내 머리만 남긴다 */
+    /* ?strip=helm,weapon,cape,armor — 그 요소를 지우고 그린다 (군더더기 선의 출처 찾기용) */
+    var lk = S.lookOf(h), strip = (q.get('strip') || '').split(',');
+    if (strip.indexOf('helm') >= 0) { lk = Object.assign({}, lk, { helm: 'none' }); }
+    if (strip.indexOf('weapon') >= 0) { lk = Object.assign({}, lk, { weapon: 'none' }); }
+    if (strip.indexOf('cape') >= 0) { lk = Object.assign({}, lk, { cape: false }); }
+    if (strip.indexOf('armor') >= 0) { lk = Object.assign({}, lk, { armor: 'robe' }); }
+    S.human(c, {
+      x: W / 2, y: head ? CH * 0.52 + H * pr.headY : CH * 0.96, s: sc, facing: 1, phase: 0,
+      walking: false, noBounce: true, color: fac.color, look: lk,
+      rarity: h.rarity, ref: h, t: 0
+    });
+  }
+  if (q.get('trace')) {
+    var rep = Object.keys(window.__thin).map(function (k) { return window.__thin[k] + 'x  ' + k; });
+    document.title = 'THIN ' + rep.length;
+    var pre = document.createElement('pre');
+    pre.id = 'thin';
+    pre.textContent = rep.length ? rep.join(String.fromCharCode(10)) : '(얇은 stroke 없음)';
+    document.body.appendChild(pre);
+  }
+})();
+</script>
+</body></html>

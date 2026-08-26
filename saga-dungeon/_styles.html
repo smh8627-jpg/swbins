@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><title>양식 비교</title>
+<style>body{margin:0;background:#0b0906;color:#cdc3ac;font:13px system-ui}
+h3{margin:8px 12px 2px;font-size:13px;color:#c7b377}canvas{display:block;margin:0 12px}</style>
+</head><body>
+<script>window.DG_NO_ACCOUNT = true;</script>
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-item.js"></script>
+<script src="js/data-gem.js"></script>
+<script src="js/data-dungeon.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script>
+/* 양식 넷을 나란히 굽는다 — 눈으로 고르려고 잠깐 쓰는 판이다 */
+var SP = DG.sprite, D = DG.data;
+var who = ['kr_yisunsin', 'sg_zhaoyun', 'sg_guanyu', 'sg_zhugeliang', 'kr_ganggamchan'];
+['diablo', 'classic', 'story', 'anime'].forEach(function (st) {
+  SP.setStyle(st);
+  var h = document.createElement('h3'); h.textContent = st; document.body.appendChild(h);
+  var cv = document.createElement('canvas');
+  cv.width = 720; cv.height = 150;
+  var c = cv.getContext('2d');
+  c.fillStyle = '#161109'; c.fillRect(0, 0, 720, 150);
+  who.forEach(function (id, i) {
+    var ref = D.find(id);
+    var f = D.faction(ref.faction);
+    SP.stamp(c, { kind: 'human', ref: ref, key: ref.name,
+      x: 70 + i * 140, y: 142, s: 3.0, facing: 1, phase: 0, walking: false,
+      color: f.color, look: SP.lookOf(ref), t: 0 });
+  });
+  document.body.appendChild(cv);
+});
+SP.setStyle('diablo');
+</script>
+</body></html>

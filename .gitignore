@@ -1,0 +1,29 @@
+node_modules/
+dist/node_modules/
+
+# 비밀 — server/README.md 가 "저장소에 담지 않는다" 고 적어 둔 것들
+saga-go/server/certs/
+saga-go/server/usage.json
+.env
+*.env
+*.local.json
+*.local.key
+
+# 안드로이드 빌드 산출물
+saga-go/mobile/android/.gradle/
+saga-go/mobile/android/app/build/
+saga-go/mobile/android/build/
+saga-go/mobile/android/local.properties
+saga-go/mobile/ios/App/Pods/
+*.apk
+*.aab
+*.keystore
+
+# 찌꺼기
+*.log
+logs/
+*.stackdump
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

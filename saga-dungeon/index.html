@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#12141a">
+<title>사가블로 — 내려간다</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/diablo.css">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="사가블로">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="camp">
+
+<!-- 본영(本營) 배경 — 지도가 없는 게임이라 캔버스 대신 CSS 로 깐다 -->
+<div id="camp-bg"></div>
+<div id="vignette"></div>
+
+<!-- 상단: 프로필 · 재화 · 도구 -->
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-auto" title="자동 순회 (AI가 대신 던전을 돈다)">🤖</button>
+    <button class="icon-btn" id="btn-prop" title="캐릭터 등신 (4등신/2등신/8등신)">4등</button>
+    <button class="icon-btn" id="btn-style" title="그림 양식 (전통 / 그림책 / 만화)">📗</button>
+    <button class="icon-btn" id="btn-sound" title="소리 (끄기/켜기)">🔊</button>
+    <button class="icon-btn" id="btn-help" title="도움말">❔</button>
+    <button class="icon-btn" id="btn-reset" title="처음부터">↺</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+
+<!-- 자동 순회 상태 -->
+<div id="autobar"></div>
+
+<!-- 가운데: 본영 — 던전에 들어가기 전 화면 -->
+<div id="camp"></div>
+
+<!-- 우하단: 액션 독 -->
+<nav id="dock">
+  <button data-sheet="party"><span>⚔️</span><small>부대</small></button>
+  <button data-sheet="gear"><span>🎒</span><small>장비</small></button>
+  <button data-sheet="skill"><span>📜</span><small>무예</small></button>
+  <button data-sheet="craft"><span>🔨</span><small>세공</small></button>
+  <button data-sheet="vendor"><span>🧺</span><small>행상</small></button>
+  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+</nav>
+
+<!-- 슬라이드 시트 -->
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head">
+    <div class="grip"></div>
+    <h3 id="sheet-title">부대</h3>
+    <button class="icon-btn sm" id="sheet-close">✕</button>
+  </div>
+  <div id="sheet-body"></div>
+</aside>
+
+<div id="encounter"></div><div id="detail"></div>
+<div id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-item.js"></script>
+<script src="js/data-gem.js"></script>
+<script src="js/data-elem.js"></script>
+<script src="js/data-skill.js"></script>
+<script src="js/data-set.js"></script>
+<script src="js/data-unique.js"></script>
+<script src="js/data-dungeon.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/account.js"></script>
+<script src="js/item.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/skill.js"></script>
+<script src="js/dungeon.js"></script>
+<script src="js/dungeon-view.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/potion.js"></script>
+<script src="js/vendor.js"></script>
+<script src="js/forge.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+<script>
+/* 서비스 워커 — https · localhost 에서만 등록된다 (브라우저 규칙).
+   파일을 늘리거나 고쳤으면 sw.js 의 VERSION 도 같이 올릴 것. */
+(function () {
+  if (!('serviceWorker' in navigator)) { return; }
+  var h = location.hostname;
+  var secure = location.protocol === 'https:' || h === 'localhost' || h === '127.0.0.1';
+  if (!secure) { return; }
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js')['catch'](function (e) {
+      console.warn('서비스 워커 등록 실패', e);
+    });
+  });
+})();
+</script>
+</body>
+</html>
