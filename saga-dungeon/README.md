@@ -16,6 +16,26 @@ _sfxcheck.html   →  소리 33가지를 하나씩 내 본다 (진단은 늘 잠
                     → 제목이 `SFX unlock=true · 낸 소리 33/33 · 예외 0` 이면 성한 것
 ```
 
+## 앞으로 — 3D 로 옮긴다 (`PLAN.md`)
+
+이 폴더의 **`PLAN.md`** 가 앞으로의 방향이다. 이 README 의 나머지는 **지금까지 만든 것**이니,
+손대기 전에 둘을 같이 본다.
+
+가는 곳은 **top-down/isometric 3D 액션 RPG** 다. "방 하나 → 방 하나" 로 이어지는 고정 던전
+대신, **넓은 필드를 돌다가 전투가 나는 구조**가 기본이 된다 — 몬스터 발견 → 즉시 전투 →
+스킬 → 처치 → 금·장비 → 교체 → 강화 → 다음 지역.
+
+계획에 함께 적혀 있는 것들:
+
+- 스킬의 결: Fire Slash · Shadow Dash · Meteor · Whirlwind · Chain Lightning · Blood Nova
+- 필드에서 터지는 사건: 악마 침공 · 저주받은 상자 · 방랑 상인 · 영혼 제단 · 보물 고블린
+- 다시 돌 거리: Rift · Boss Hunt · Horde · Elite Zone · World Event · Challenge
+- 3D 는 **게임 로직에 강제로 붙이지 않고** 화면 계층으로 분리한다
+  (Three.js + GLB · InstancedMesh · Frustum Culling · LOD · Object Pool)
+
+작업은 **Step 1~6** — 구조 1회 분석 → 핵심 파일만 확인 → 작은 단위로 수정 →
+실행·빌드 확인 → 오류가 난 파일만 다시 → 되면 다음 기능.
+
 ## 네 게임 중 하나
 
 사가 시리즈는 2026-08-24 부터 **완전히 별개인 다섯 프로젝트**다.
