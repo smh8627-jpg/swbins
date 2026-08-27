@@ -54,6 +54,8 @@
   function DENSITY() { return core.tuned('world3d.density', 1); }
   /** 시각을 따라 해가 뜨고 질까 — 0 이면 늘 한낮 */
   function DAYNIGHT() { return core.tuned('world3d.dayNight', 1) ? true : false; }
+  /** 비·눈에 강물이 불까 — 0 이면 늘 마른 날의 그림이다 */
+  function WET() { return core.tuned('world3d.wetRiver', 1) ? true : false; }
   /** 세로 화면에서 카메라를 물릴까 — 0 이면 옛 그림(폰에서 지형지물이 화면을 덮는다) */
   function PORTRAIT_FIT() { return core.tuned('world3d.portraitFit', 1) ? true : false; }
   /** 물리는 정도의 상한(배) — 1 이면 안 물린다 */
@@ -127,7 +129,11 @@
 
     var phase = alt > 0.30 ? 'day'
       : (alt > 0.04 ? (hour < 12 ? 'dawn' : 'dusk')
-        : (alt > -0.14 ? 'twilight' : 'night'));
+        : (alt > -0.14 ? 'twilight'
+          /* **깊은 밤** — `PLAN.md` 20절이 콕 집은 02:00 Deep Night 이다.
+             자정부터 네 시까지, 밤 중에서도 가장 어두운 때. 23시는 그대로 `night`
+             이라 이 갈래를 더해도 여태 값이 안 흔들린다 */
+          : ((hour < 4) ? 'deepnight' : 'night')));
 
     /* 낮섞임(k)과 노을섞임(gold) 둘로 색을 만든다.
        노을은 해가 지평선 가까이 있을 때만 세다 — 한낮에도 섞으면 늘 누렇다 */
@@ -156,6 +162,16 @@
       /* 밤에는 배우 발밑에 등불이 켜진다 (원작의 밤 화면에서 아바타가 안 묻히게) */
       lamp: alt < 0.06 ? Math.min(1, (0.06 - alt) * 4) : 0
     };
+
+    /* 깊은 밤은 한 겹 더 어둡다. 대신 **등롱은 더 밝다** — 다 같이 어두워지면
+       그냥 안 보이는 화면이 되고, 밤이 깊었다는 것이 안 읽힌다 */
+    if (phase === 'deepnight') {
+      out.sun.intensity *= 0.72;
+      out.hemi.intensity *= 0.78;
+      out.bg = mixHex(out.bg, 0x05070c, 0.42);
+      out.tint = mixHex(out.tint, 0x2a3040, 0.30);
+      out.lamp = 1;
+    }
 
     var w = wkey || 'clear';
     if (w === 'rain') {
@@ -407,6 +423,9 @@
        지도에 없는 땅이라 지도가 깔려 있어도 제 지형을 세워야 한다 */
     var RG = global.DG.land;
     var authored = !!(RG && RG.owns(gx, gy));
+    /* 젖은 날인가 — 비·눈이면 물이 분다. 화면에만 쓰는 값이다 */
+    var wk0 = weatherKey();
+    var wet = WET() && (wk0 === 'rain' || wk0 === 'snow');
     /* 손으로 그린 땅이 번화도를 못박아 두었으면 그것을 쓴다 — 작은 마을에
        탑이 솟지 않게 하는 것이 여기다 */
     if (authored) {
@@ -466,11 +485,18 @@
          지도에 없는 **높이**뿐이다. 갈대는 높이라서 남긴다 */
       /* 다만 **손으로 그린 땅**(`land.js`)의 강은 지도에 없는 물이다 —
          지도가 깔려 있어도 여기서 수면을 깔지 않으면 강이 아예 안 보인다 */
-      if (!mapped || authored) { out.push({ t: 'water', x: 0, z: 0, h: 0, sq: authored }); }
+      /* **비가 오면 강물이 분다**(PLAN 21절 "강물 수위 변화") — 수면이 올라오고
+         조금 넓어진다. 화면에만 쓰는 값이라 건너는 판정은 한 줄도 안 바뀐다 */
+      if (!mapped || authored) {
+        out.push({ t: 'water', x: 0, z: 0, h: 0, sq: authored, rise: wet ? 1 : 0 });
+      }
+      /* 물이 불면 갈대가 잠긴다 — 물만 올리고 갈대를 그대로 두면 물 위에 떠 있다 */
       n = h1(gx * 9, gy * 13) > 0.5 ? 3 : 1;
+      if (wet) { n = Math.max(0, n - 2); }
       for (i = 0; i < n; i++) {
         var ws = spot(i + 90);
-        out.push({ t: 'reed', x: ws.x, z: ws.z, h: 1.2 + h1(gx + i, gy) * 1.0 });
+        out.push({ t: 'reed', x: ws.x, z: ws.z,
+                   h: (1.2 + h1(gx + i, gy) * 1.0) * (wet ? 0.7 : 1) });
       }
     } else if (kind === 'road') {
       /* 길 — 여태 아무것도 없었다. 길가에 등롱과 나무가 서야 길로 보인다 */
@@ -601,9 +627,12 @@
            다만 **손으로 그린 강**(p.sq)은 이야기가 다르다 — 이어지라고 그은 물이라
            원반으로 깔면 가장자리가 부채꼴로 패어 강이 아니라 물웅덩이 줄로 보인다.
            그 자리는 격자를 꽉 채우는 네모로 깐다(눈으로 보고 알았다) */
+        var wy = 0.12 + (p.rise ? 0.55 : 0);          // 불면 수면이 올라온다
+        var wg = p.rise ? 1.06 : 1;
+        var whex = p.rise ? 0x2a5f88 : 0x2f6f9e;       // 흙탕물은 더 어둡다
         var w = p.sq
-          ? box(g, 'plane', pmat(0x2f6f9e, 'water'), 0, 0.12, 0, GRID + 0.5, GRID + 0.5, 1, false)
-          : box(g, 'disc', pmat(0x2f6f9e, 'water'), 0, 0.12, 0, GRID * 0.62, GRID * 0.62, 1, false);
+          ? box(g, 'plane', pmat(whex, 'water'), 0, wy, 0, (GRID + 0.5) * wg, (GRID + 0.5) * wg, 1, false)
+          : box(g, 'disc', pmat(whex, 'water'), 0, wy, 0, GRID * 0.62 * wg, GRID * 0.62 * wg, 1, false);
         w.rotation.x = -Math.PI / 2;
       } else if (p.t === 'field') {
         /* 논 한 뙈기 — 물 댄 낯을 얇게 깔고 두렁을 두른다. 지면보다 조금만 띄운다
@@ -694,6 +723,8 @@
        세우는 것이 다르다. 캐시 키에도 넣어야 상태가 바뀔 때 다시 세운다 */
     var mapped = !!(W.tilesUsable && W.tilesUsable());
     var RG3 = global.DG.land;
+    var wkNow = weatherKey();
+    var wetNow = WET() && (wkNow === 'rain' || wkNow === 'snow');
     for (var gy = g0y; gy <= g1y; gy++) {
       for (var gx = g0x; gx <= g1x; gx++) {
         var kind = W.terrainAt(gx, gy);
@@ -705,7 +736,9 @@
         var far = Math.hypot((gx + 0.5) * GRID - pos.x, (gy + 0.5) * GRID - pos.y) > R * 0.5;
         if (far && !mk && (kind === 'grass' || kind === 'road')) { continue; }
         /* 이 땅을 켜고 끄면 같은 격자가 다른 땅이 된다 — 캐시 키에 넣어야 다시 세운다 */
-        var key = kind + ':' + gx + ':' + gy + ':' + (mapped ? 'm' : 'n') + (mk ? ':' + mk : '');
+        /* 젖음도 키에 넣는다 — 안 넣으면 비가 그쳐도 강이 분 채로 남는다 */
+        var key = kind + ':' + gx + ':' + gy + ':' + (mapped ? 'm' : 'n') +
+          (mk ? ':' + mk : '') + (wetNow ? ':w' : '');
         live[key] = 1;
         if (propMeshes[key]) { continue; }
         var node = buildProp(kind, gx, gy, mapped);
@@ -1207,6 +1240,7 @@
     sweepActors(dt);
     if (global.DG.encounter3d) { global.DG.encounter3d.tick(dt); }
     if (global.DG.battle3d) { global.DG.battle3d.tick(dt); }
+    if (global.DG.sky3d) { global.DG.sky3d.tick(dt, lightNow); }
     syncBeams(dt);
     syncCamera(W, dt);
 

@@ -213,6 +213,26 @@
       ]
     },
     {
+      /* **비에만 나는 사건**(PLAN 21절 "특정 이벤트 발생"). 물이 불면 여울이 잠긴다 —
+         PHASE 10 에서 강물이 실제로 불어나는 것과 같은 자리를 가리킨다 */
+      id: 'flood_ford', name: '불어난 여울', emoji: '🌊', w: 14,
+      when: 'any', where: ['water', 'road', 'farm'], marks: ['bridge'], wet: true,
+      quote: '물이 부어 건널목이 잠겼다. 물살 소리가 크다.',
+      choices: [
+        { id: 'cross', label: '그대로 건넌다',
+          out: function (ctx, roll) {
+            return roll < 0.55
+              ? { exp: 25, feat: 10, text: '허리께까지 잠기며 건넜다.' }
+              : { items: [{ key: 'scroll', n: -1 }], exp: 8,
+                  text: '물살에 밀려 등용서 한 장이 젖어 버렸다.' };
+          } },
+        { id: 'wait', label: '물이 빠지기를 기다린다',
+          out: function () { return { fame: 3, text: '비가 잦아들 때까지 처마 밑에 섰다.' }; } },
+        { id: 'around', label: '돌아간다',
+          out: function () { return { text: '위쪽 여울로 크게 돌았다.' }; } }
+      ]
+    },
+    {
       id: 'enemy_scout', name: '적군 정찰병', emoji: '🏹', w: 8,
       when: 'night', where: ['mount', 'road', 'grass'],
       foe: 'scout',
@@ -302,11 +322,18 @@
       }
       if (ev.when === 'day' && ctx.night) { continue; }
       if (ev.when === 'night' && !ctx.night) { continue; }
+      var wet = ctx.weather === 'rain' || ctx.weather === 'snow';
+      /* 젖은 날에만 나는 것 — 마른 날에는 아예 안 난다 */
+      if (ev.wet && !wet) { continue; }
       w = ev.w;
       /* 밤에 더 자주 나는 것 (도적) */
       if (ctx.night && ev.nightW) { w *= ev.nightW; }
       /* 비가 오면 길에서 사람을 덜 만난다 */
-      if ((ctx.weather === 'rain' || ctx.weather === 'snow') && ev.when === 'day') { w *= 0.5; }
+      if (wet && ev.when === 'day') { w *= 0.5; }
+      /* **안개가 끼면 숨은 곳이 드러난다**(PLAN 21절 "희귀 장소 등장 확률 증가").
+         표식 위에서만 나는 것들 — 사당의 비문, 폐허의 지도 조각이 그것이다 */
+      if (ctx.weather === 'fog' && ev.marks && ev.marks.length &&
+          ev.marks.indexOf(ctx.mark) >= 0) { w *= 2.4; }
       if (w > 0) { out.push({ ev: ev, w: w }); }
     }
     return out;

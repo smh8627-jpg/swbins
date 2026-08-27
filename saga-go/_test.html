@@ -81,6 +81,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
 <script src="js/battle3d.js"></script>
+<script src="js/sky3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/letter.js"></script>
@@ -2340,15 +2341,20 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     }
 
     t('사건 — 열 가지에 적 셋이 걸려 있다', function () {
-      var foes = {}, i, ev, bad = [];
+      /* PLAN 46절이 바라는 것은 **열 가지**다. 그 위에 PHASE 10 이
+         **비에만 나는 것** 하나를 얹었다(21절 "특정 이벤트 발생") — 그래서 열하나다 */
+      var foes = {}, i, ev, bad = [], wet = 0;
       for (i = 0; i < EV.EVENTS.length; i++) {
         ev = EV.EVENTS[i];
         if (ev.foe) { foes[ev.foe] = 1; }
+        if (ev.wet) { wet++; }
         if (!ev.choices || ev.choices.length < 2) { bad.push(ev.id + ' 선택지 부족'); }
         if (!EV.FOES[ev.foe] && ev.foe) { bad.push(ev.id + ' 모르는 적 ' + ev.foe); }
       }
-      return EV.EVENTS.length === 10 && Object.keys(foes).length === 3 && bad.length === 0 &&
-        ('사건 10 · 적 ' + Object.keys(foes).join('/') + ' · 모든 사건에 고를 것이 둘 이상');
+      return EV.EVENTS.length >= 10 && Object.keys(foes).length === 3 &&
+        bad.length === 0 && wet === 1 &&
+        ('사건 ' + EV.EVENTS.length + '(그중 비 전용 ' + wet + ') · 적 ' +
+         Object.keys(foes).join('/') + ' · 모든 사건에 고를 것이 둘 이상');
     });
 
     t('사건 — 표식 위에서만 나는 것이 있다', function () {
@@ -2554,6 +2560,108 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       B3.tick(0.2);
       B3.stats();
       B3.reset();
+      return JSON.stringify(C.save) === before && '세이브 그대로';
+    });
+
+    /* ── 시간·날씨 (PHASE 10) ───────────────────────────────
+     * 이 판에는 천후(`weather.js`)와 시각대 조명(`lightingAt`)이 원래 있었다.
+     * PHASE 10 이 채운 빈자리는 셋이다 — **깊은 밤** · **실제로 내리는 비·눈** ·
+     * **천후가 세상을 바꾸는 것**(21절 "단순한 장식이 아니게 한다").
+     */
+
+    var SK = DG.sky3d;
+
+    t('시각 — 깊은 밤이 밤보다 어둡다', function () {
+      /* PLAN 20절의 02:00 Deep Night. 23시는 그대로 `night` 이라 옛 값이 안 흔들린다 */
+      var deep = R3.lightingAt(atH(2), 'clear');
+      var night = R3.lightingAt(atH(23), 'clear');
+      return deep.phase === 'deepnight' && night.phase === 'night' &&
+        R3.lum(deep.bg) < R3.lum(night.bg) && deep.lamp === 1 &&
+        deep.hemi.intensity < night.hemi.intensity &&
+        ('2시 ' + deep.phase + '(하늘 ' + R3.lum(deep.bg).toFixed(3) + ') · 23시 ' +
+         night.phase + '(' + R3.lum(night.bg).toFixed(3) + ')');
+    });
+
+    t('시각 — 하루가 여섯 얼굴을 갖는다', function () {
+      /* **새벽·노을은 창이 좁다** — 해 고도로 가르는데 0.04~0.30 사이가
+         한 시간 남짓이다(6:03~7:10, 16:50~17:57). 정시로만 훑으면 통째로 건너뛴다 */
+      var at = [[2, 0], [5, 0], [6, 30], [12, 0], [17, 30], [18, 0], [22, 0]];
+      var ps = at.map(function (o) { return R3.lightingAt(atH(o[0], o[1]), 'clear').phase; });
+      var uniq = {};
+      ps.forEach(function (x) { uniq[x] = 1; });
+      return Object.keys(uniq).length === 6 && ps[0] === 'deepnight' && ps[3] === 'day' &&
+        ('2·5·6:30·12·17:30·18·22시 → ' + ps.join(' · '));
+    });
+
+    t('하늘 — 비·눈·바람만 내린다', function () {
+      var f = ['clear', 'cloud', 'rain', 'snow', 'fog', 'wind'].map(function (w) {
+        return w + ':' + (SK.fallOf(w) || '-');
+      });
+      /* 안개는 알갱이를 안 만든다 — 이미 `fog` 로 시야를 좁히고 있어 두 겹이 된다 */
+      return SK.fallOf('rain') === 'rain' && SK.fallOf('snow') === 'snow' &&
+        SK.fallOf('wind') === 'wind' && SK.fallOf('fog') === null &&
+        SK.fallOf('clear') === null && SK.fallOf('cloud') === null &&
+        (f.join(' · '));
+    });
+
+    t('하늘 — 비가 눈보다 많고 빠르다', function () {
+      var r = SK.KINDS.rain, s = SK.KINDS.snow;
+      return SK.countOf('rain') > SK.countOf('snow') && r.fall > s.fall * 5 &&
+        s.sway > 0 && r.sway === 0 && SK.countOf('clear') === 0 &&
+        ('비 ' + SK.countOf('rain') + '개 · ' + r.fall + 'm/s · 눈 ' +
+         SK.countOf('snow') + '개 · ' + s.fall + 'm/s(좌우로 흔들린다)');
+    });
+
+    t('하늘 — 손잡이가 알갱이 수를 줄인다', function () {
+      var full = SK.countOf('rain');
+      C.setTune('sky3d.density', 0.5);
+      var half = SK.countOf('rain');
+      C.setTune('sky3d.density', null);
+      return half < full && half > 0 && SK.countOf('rain') === full &&
+        ('배수 1 → ' + full + '개 · 0.5 → ' + half + '개');
+    });
+
+    t('날씨 — 비가 오면 강물이 분다 (PLAN 21절)', function () {
+      /* 화면에만 쓰는 값이다 — 건너는 판정은 한 줄도 안 바뀐다 */
+      var br = LD.place('bridge');
+      DG.weather.force('clear');
+      var dry = R3.propPlan('water', br.tx, br.ty, true);
+      DG.weather.force('rain');
+      var wet = R3.propPlan('water', br.tx, br.ty, true);
+      DG.weather.force('clear');                  // 진단이 붙들어 둔 값으로 되돌린다
+      function water(pl) { return pl.filter(function (x) { return x.t === 'water'; })[0]; }
+      function reeds(pl) { return pl.filter(function (x) { return x.t === 'reed'; }).length; }
+      return water(dry).rise === 0 && water(wet).rise === 1 && reeds(wet) < reeds(dry) &&
+        ('맑음 수위 그대로 · 갈대 ' + reeds(dry) + ' → 비 오면 물이 붇고 갈대 ' +
+         reeds(wet) + '(잠긴다)');
+    });
+
+    t('날씨 — 안개가 끼면 숨은 곳이 드러난다 (PLAN 21절)', function () {
+      function wOf(wx, id) {
+        var c = ctxOf({ kind: 'forest', mark: 'shrine', h: 13, weather: wx });
+        var f = EV.candidates(c).filter(function (x) { return x.ev.id === id; });
+        return f.length ? f[0].w : 0;
+      }
+      var clear = wOf('clear', 'stone_text');
+      var fog = wOf('fog', 'stone_text');
+      return clear > 0 && fog > clear * 2 &&
+        ('사당의 비문 가중치 — 맑음 ' + clear + ' → 안개 ' + fog);
+    });
+
+    t('날씨 — 비에만 나는 사건이 있다', function () {
+      function ids(wx) {
+        return EV.candidates(ctxOf({ kind: 'water', mark: 'bridge', h: 13, weather: wx }))
+          .map(function (x) { return x.ev.id; });
+      }
+      var dry = ids('clear'), wet = ids('rain');
+      return wet.indexOf('flood_ford') >= 0 && dry.indexOf('flood_ford') < 0 &&
+        ('맑은 날 다리 ' + (dry.join('/') || '없음') + ' · 비 오는 날 ' + wet.join('/'));
+    });
+
+    t('날씨 — 값을 내도 세이브는 그대로다', function () {
+      var before = JSON.stringify(C.save);
+      SK.countOf('rain'); SK.fallOf('snow'); SK.stats();
+      R3.lightingAt(atH(2), 'snow');
       return JSON.stringify(C.save) === before && '세이브 그대로';
     });
 

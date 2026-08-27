@@ -89,6 +89,7 @@ window.DG_NO_TUNE = true;
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
 <script src="js/battle3d.js"></script>
+<script src="js/sky3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/letter.js"></script>
@@ -245,6 +246,10 @@ setTimeout(function () {
       /* 사람과 짐승도 같이 센다 — 화면에 안 보일 때 **없는 것인지 멀리 있는 것인지**를
          눈이 아니라 값으로 가른다 */
       if (DG.npc) { st.npc = DG.npc.stats().live + '/' + DG.npc.stats().all; }
+      if (DG.sky3d) {
+        var sk = DG.sky3d.stats();
+        st.sky = sk.weather + '→' + (sk.falls || '-') + ' ' + sk.shown + '/' + sk.want;
+      }
       if (DG.battle3d) {
         var b3 = DG.battle3d.stats();
         st.fx = b3.alive + '/' + b3.pool + ' 교전=' + b3.battle + ' 흔들림=' + b3.shake;
@@ -313,6 +318,13 @@ setTimeout(function () {
         if (--left <= 0) { clearInterval(iv); }
       }, 120);
     }, 200);
+  }
+  /* 천후를 못박는다 — `#wx=rain`. 비·눈은 **눈으로 볼 수밖에 없는 것**이라
+     (알갱이가 내리는가, 강물이 부는가) 데모에 손잡이를 둔다 */
+  if (/wx=/.test(hash)) {
+    var wm = /wx=([a-z]+)/.exec(hash);
+    DG.weather.force(wm[1]);
+    if (DG.sky3d) { DG.sky3d.reset(); }
   }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
