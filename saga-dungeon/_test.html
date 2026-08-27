@@ -44,6 +44,12 @@
 
 <div id="report">진단 중…</div>
 
+<!-- three 를 **씨앗보다 먼저** 싣는다.
+     three 는 켜지면서 UUID 를 만드느라 `Math.random()` 을 **76번** 부른다
+     (직접 세어 봤다). 씨앗을 갈아 둔 뒤에 실으면 그 76번이 수열을 밀어
+     게임과 무관한 항목이 깨진다 — 실제로 원소 피해 항목 하나가 그렇게 넘어졌다.
+     본판(`index.html`)은 순서를 안 바꿨다. 거기서는 씨앗을 안 갈기 때문이다. -->
+<script src="js/vendor/three.iife.js"></script>
 <script>
 window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 
@@ -81,6 +87,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 <script src="js/skill.js"></script>
 <script src="js/dungeon.js"></script>
 <script src="js/town.js"></script>
+<script src="js/dungeon3d.js"></script>
 <script src="js/dungeon-view.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
@@ -2560,6 +2567,95 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       /* DG_NO_ACCOUNT 가 켜져 있으면 고정 키로 바로 시작한다 (안 그러면 게임이 안 켜진다) */
       return window.DG_NO_ACCOUNT === true && !document.getElementById('acc-host') &&
         '진단 우회 동작';
+    });
+
+    /* ── 3D 던전 (dungeon3d) — 3D 전환 1단계 ─────────────────
+     * 그리기는 진단에서 안 켠다(DG_NO_DRAW) — WebGL 이 없는 자리에서도 판정이
+     * 서야 하기 때문이다. 대신 **값을 내는 함수**만 따로 굴린다: 카메라와 조명은
+     * three 없이도 답이 나온다.
+     */
+
+    var D3 = DG.dungeon3d;
+
+    t('3D — 화면 층이 없어도 판정은 그대로 돈다', function () {
+      /* 이 판의 심장인 던전 판정에 3D 가 스미면 안 된다 */
+      return D3.available() === false && D3.active() === false &&
+        DN.active !== undefined && '진단에서는 3D 가 잠들어 있다';
+    });
+
+    t('3D — 카메라가 방을 담을 만큼 물러난다', function () {
+      var W = DN.ROOM_W, H = DN.ROOM_H;
+      var a = D3.camAim(W / 2, H / 2, W, H, 1, 0.62);
+      var span = Math.sqrt(W * W + H * H);
+      /* 화면에 담기는 세로는 대략 0.85·dist 다(fov 46°) — 방 대각선보다 커야 한다 */
+      return a.dist > span * 0.9 && a.pos.y > 0 && a.pos.z > a.look.z &&
+        ('방 대각선 ' + Math.round(span) + ' · 카메라 거리 ' + Math.round(a.dist));
+    });
+
+    t('3D — 플레이어를 따라가되 절반만 끌린다', function () {
+      /* 온전히 따라가면 벽에 붙었을 때 방 밖 검은 여백이 화면 절반을 차지한다 */
+      var W = DN.ROOM_W, H = DN.ROOM_H;
+      var mid = D3.camAim(W / 2, H / 2, W, H, 1, 0.62);
+      var edge = D3.camAim(20, H / 2, W, H, 1, 0.62);
+      var moved = mid.look.x - edge.look.x;
+      return moved > 0 && moved < (W / 2 - 20) &&
+        ('가운데 → 왼쪽 끝으로 가면 카메라는 ' + Math.round(moved) + '만 움직인다 (' +
+         Math.round(W / 2 - 20) + ' 중)');
+    });
+
+    t('3D — 회전이 없다 (원작이 그렇다)', function () {
+      /* PLAN 8절 "카메라 회전은 기본적으로 제한". 각을 받는 자리 자체가 없다 */
+      var W = DN.ROOM_W, H = DN.ROOM_H;
+      var a = D3.camAim(W / 2, H / 2, W, H, 1, 0.62);
+      return Math.abs(a.pos.x - a.look.x) < 0.001 && a.pos.z > a.look.z &&
+        '카메라는 늘 같은 쪽에서 내려다본다';
+    });
+
+    t('3D — 줌과 기울기가 듣는다', function () {
+      var W = DN.ROOM_W, H = DN.ROOM_H;
+      var near = D3.camAim(W / 2, H / 2, W, H, 0.6, 0.62);
+      var far = D3.camAim(W / 2, H / 2, W, H, 1.6, 0.62);
+      var flat = D3.camAim(W / 2, H / 2, W, H, 1, 0.2);
+      var low = D3.camAim(W / 2, H / 2, W, H, 1, 0.9);
+      return near.dist < far.dist && flat.pos.y > low.pos.y &&
+        ('줌 ' + Math.round(near.dist) + ' → ' + Math.round(far.dist) +
+         ' · 기울기 0.2 높이 ' + Math.round(flat.pos.y) + ' → 0.9 는 ' +
+         Math.round(low.pos.y));
+    });
+
+    t('3D — 층이 깊을수록 어둡고 시야가 좁다', function () {
+      var a = D3.lightPlan(1, 'fight', 0.45);
+      var z = D3.lightPlan(40, 'fight', 0.45);
+      return a.ambient > z.ambient && a.fog.far > z.fog.far &&
+        a.torchRange > z.torchRange && z.deep >= 0.97 &&
+        ('1층 바탕 ' + a.ambient.toFixed(2) + ' 시야 ' + Math.round(a.fog.far) +
+         ' · 40층 ' + z.ambient.toFixed(2) + ' / ' + Math.round(z.fog.far));
+    });
+
+    t('3D — 보스 방은 붉게 깔린다', function () {
+      var f = D3.lightPlan(20, 'fight', 0.45);
+      var bo = D3.lightPlan(20, 'boss', 0.45);
+      return bo.boss === true && f.boss === false &&
+        bo.ambientHex !== f.ambientHex && bo.bgHex !== f.bgHex &&
+        ('보스 방 바탕 #' + bo.ambientHex.toString(16) + ' vs 여느 방 #' +
+         f.ambientHex.toString(16));
+    });
+
+    t('3D — 어둠 손잡이가 바탕과 횃불을 함께 움직인다', function () {
+      /* 어둡게 할수록 바탕은 죽고 **횃불은 세진다** — 그래야 도려낸 맛이 산다 */
+      var lit = D3.lightPlan(10, 'fight', 0.1);
+      var dark = D3.lightPlan(10, 'fight', 0.9);
+      return lit.ambient > dark.ambient && dark.torchIntensity > lit.torchIntensity &&
+        ('밝게 바탕 ' + lit.ambient.toFixed(2) + '/횃불 ' + Math.round(lit.torchIntensity) +
+         ' · 어둡게 ' + dark.ambient.toFixed(2) + '/' + Math.round(dark.torchIntensity));
+    });
+
+    t('3D — 값을 내도 세이브는 그대로다', function () {
+      var before = JSON.stringify(C.save);
+      D3.camAim(100, 100, DN.ROOM_W, DN.ROOM_H, 1, 0.62);
+      D3.lightPlan(30, 'boss', 0.5);
+      D3.stats();
+      return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
     });
 
     t('진단의 무작위는 씨앗으로 고정된다', function () {

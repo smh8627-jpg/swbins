@@ -75,7 +75,7 @@
     host.innerHTML =
       '<div class="dg-wrap">' +
         '<div id="dg-hud"></div>' +
-        '<div class="dg-stage"><canvas id="dg-canvas"></canvas>' +
+        '<div class="dg-stage"><canvas id="dg3d"></canvas><canvas id="dg-canvas"></canvas>' +
           '<div id="d2-foe"></div>' +
           '<div id="dg-choice"></div>' +
         '</div>' +
@@ -85,6 +85,13 @@
       '</div>';
     cv = document.getElementById('dg-canvas');
     ctx = cv.getContext('2d');
+    /* 3D 층은 **있으면 쓴다.** WebGL 이 없거나 켜다 실패하면 그대로 2D 로 돈다
+       (`dungeon3d.js`). 조작판·입력·시트는 그대로 이쪽 DOM 이 받는다.
+       자가진단(DG_NO_DRAW)에서는 켜지도 않는다 — 헤드리스에도 WebGL 이 있어서
+       켜 두면 켜진 것으로 판정되고, 화면 층이 그 값을 보고 갈린다 */
+    if (global.DG.dungeon3d && !global.DG_NO_DRAW) {
+      global.DG.dungeon3d.init(document.getElementById('dg3d'));
+    }
     hud = document.getElementById('dg-hud');
     choiceEl = document.getElementById('dg-choice');
     bottomEl = document.getElementById('dg-bottom');
@@ -567,10 +574,28 @@
      영영 안 뜨는 아이콘이 남는다(서고 📖 가 실제로 그렇게 남아 있었다). */
   var DOOR_ICON = { fight: '⚔️', trove: '🎁', well: '💧', shrine: '⛩️', stair: '🪜' };
 
+  /** 3D 를 쓰는 동안에는 2D 캔버스를 비워 둔다 (같은 그림을 두 번 그리지 않게) */
+  function sync3d() {
+    var on = !!(global.DG.dungeon3d && global.DG.dungeon3d.active());
+    var el3 = document.getElementById('dg3d');
+    if (el3) { el3.style.display = on ? 'block' : 'none'; }
+    /* 2D 캔버스는 **입력을 받는 자리**라 지우지 않고 투명하게만 둔다(css `body.dg3d`) */
+    if (document.body) { document.body.classList.toggle('dg3d', on); }
+    return on;
+  }
+
   function draw() {
     if (!shown || !ctx) { return; }
     var run = d().raw();
     if (!run) { return; }
+    if (sync3d()) {
+      /* 3D 가 그렸다 — 2D 방 그림은 건너뛴다. 조작판(HUD)은 DOM 이라 그대로다 */
+      var m3 = metrics();
+      ctx.clearRect(0, 0, m3.cw, m3.ch);
+      global.DG.dungeon3d.resize();
+      global.DG.dungeon3d.render();
+      return;
+    }
     var m = metrics();
     var W = d().ROOM_W, H = d().ROOM_H, WALLT = d().WALL;
     var theme = run.theme || DD.themeOf(run.floor);
