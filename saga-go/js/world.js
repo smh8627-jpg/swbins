@@ -824,6 +824,19 @@
       return;
     }
     if (!best) {
+      /* 스폰·역참·성채가 **아무것도 안 잡혔을 때만** 주민·짐승을 본다(`talk.js`).
+         잡고 설득하는 판정의 순서는 한 치도 안 바뀐다 — 여태 그냥 "빈 땅" 으로
+         흘러가던 자리에 한 겹이 끼어들 뿐이다 */
+      var T = global.DG.talk;
+      var folk = T ? T.pick(wx, wy, hitR) : null;
+      if (folk) {
+        var r2 = T.tap(folk);
+        if (r2 === 'walk') {
+          if (mode === 'keyboard') { walkTo(folk.it.x, folk.it.y); }
+          return;
+        }
+        if (r2) { return; }
+      }
       // 빈 땅을 눌렀다 — 그쪽으로 걸어간다 (손가락으로 하는 이동)
       if (mode === 'keyboard') { walkTo(wx, wy); }
       return;

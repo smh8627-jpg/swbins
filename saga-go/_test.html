@@ -86,6 +86,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
+<script src="js/talk.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
 <script src="js/rogue.js"></script>
@@ -2928,6 +2929,95 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var a = R3.camAim(pos, 2, null, st, 1, false, 0);
       var b2 = R3.camAim(pos, 2, null, st, 1, false, Math.PI / 2);
       return a.pos.x === b2.pos.x && a.pos.z === b2.pos.z && '무대는 돌려도 같다';
+    });
+
+    /* ── 말 걸기 (talk) — 주민·짐승을 눌러 본다 ─────────────
+     * 이 축은 **조우 판정에 손을 댄다**. 그래서 여기서 가장 중요한 것은
+     * "기존에 잡히던 것이 그대로 잡히는가" 다.
+     */
+
+    var TK = DG.talk;
+
+    t('말 걸기 — 스폰 판정이 한 치도 안 밀렸다', function () {
+      /* 이 축은 조우 판정에 손을 댄 유일한 자리다. 눌러서 잡히던 것이 그대로
+         잡히는지부터 본다 — `talk` 는 `onClick` 의 **`!best` 안쪽**에 있으므로,
+         스폰이 잡히는 한 불리지도 않는다 */
+      var pos = C.save.player.pos;
+      var sp = W.spawns[0];
+      var ox = sp.x, oy = sp.y;
+      sp.x = pos.x + 6; sp.y = pos.y + 6;
+      var n = W.nearest();
+      sp.x = ox; sp.y = oy;
+      return !!n && n.spawn.uid === sp.uid && n.inRange === true &&
+        ('코앞의 스폰을 그대로 집는다 (uid ' + n.spawn.uid + ' · ' +
+         Math.round(n.dist) + 'm · 사거리 안)');
+    });
+
+    t('말 걸기 — 누른 자리에서 가장 가까운 쪽을 고른다', function () {
+      NP.forceTime(atT(10)); NP.reset(); AN.forceTime(atT(10)); AN.reset();
+      var v = LD.place('village');
+      C.save.player.pos.x = v.x; C.save.player.pos.y = v.y;
+      var ns = NP.live(C.save.player.pos, atT(10));
+      var got = null;
+      if (ns.length) { got = TK.pick(ns[0].x, ns[0].y, 20); }
+      NP.forceTime(null); NP.reset(); AN.forceTime(null); AN.reset();
+      C.save.player.pos.x = 0; C.save.player.pos.y = 0;
+      return ns.length > 0 && got && got.kind === 'npc' &&
+        ('마을 한가운데에서 주민 ' + ns.length + '명 중 하나를 집었다');
+    });
+
+    t('말 걸기 — 손잡이를 내리면 예전처럼 빈 땅이 된다', function () {
+      C.setTune('talk.on', 0);
+      var off = TK.pick(0, 0, 40);
+      C.setTune('talk.on', null);
+      return off === null && 'talk.on=0 이면 아무것도 안 집는다 → 그 자리로 걸어간다';
+    });
+
+    t('말 걸기 — 멀면 창을 안 열고 그쪽으로 걸어간다', function () {
+      var r = TK.NPC_R();
+      var far = { kind: 'npc', it: { dist: r + 50, x: 999, y: 999, p: NP.PEOPLE[0] } };
+      var res = TK.tap(far);
+      return res === 'walk' && r > 0 &&
+        ('주민은 ' + r + 'm 안에서만 열린다 · 밖이면 걸어간다');
+    });
+
+    t('말 걸기 — 자리 이름의 조사가 안 어긋난다', function () {
+      /* 자리가 열한 가지고 받침이 제각각이다 — 손으로 적으면 하나만 늘려도 어긋난다
+         (사가국지에서 '사가국지이·사가국지을' 로 어긋났던 그 건) */
+      var bad = LD.places().filter(function (p) {
+        var c = p.name.charCodeAt(p.name.length - 1);
+        if (!(c >= 0xac00 && c <= 0xd7a3)) { return false; }
+        var jong = (c - 0xac00) % 28;
+        var want = (jong === 0 || jong === 8) ? '로' : '으로';
+        return DG.talk.josaRo(p.name) !== want;
+      });
+      return bad.length === 0 &&
+        ('열한 자리 — ' + LD.places().slice(0, 3).map(function (p) {
+          return p.name + DG.talk.josaRo(p.name);
+        }).join(' · ') + ' …');
+    });
+
+    t('말 걸기 — 짐승은 조금 더 멀리서도 열린다', function () {
+      /* 다가가면 도망가는 것이 있어서다 — 코앞까지 가야 열리면 영영 못 본다 */
+      return TK.BEAST_R() > TK.NPC_R() &&
+        ('주민 ' + TK.NPC_R() + 'm · 짐승 ' + TK.BEAST_R() + 'm');
+    });
+
+    t('말 걸기 — 잡히지도 설득되지도 않는다', function () {
+      /* 카드에 미니게임이 없다. 세이브가 바뀌는 것은 발견 도장 하나뿐이다 */
+      CX.clear();
+      var p = C.save.player;
+      var g0 = p.gold, f0 = p.feat, e0 = p.exp;
+      var dex0 = JSON.stringify(C.save.dex || {});
+      var sp0 = W.spawns.length;
+      TK.tap({ kind: 'beast', it: { dist: 5, alarm: 0, kind: AN.KINDS.deer } });
+      TK.close();
+      var stamped = CX.has('beast', 'deer');
+      CX.clear();
+      return p.gold === g0 && p.feat === f0 && p.exp === e0 &&
+        JSON.stringify(C.save.dex || {}) === dex0 && W.spawns.length === sp0 &&
+        stamped === true &&
+        '금·공적·경험치·도감·스폰 그대로 · 발견 도장만 찍힌다';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {

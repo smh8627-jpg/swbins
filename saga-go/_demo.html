@@ -94,6 +94,7 @@ window.DG_NO_TUNE = true;
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
+<script src="js/talk.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
 <script src="js/rogue.js"></script>
@@ -441,6 +442,20 @@ setTimeout(function () {
     DG.codex.discover('event', 'map_scrap');
     DG.codex.discover('record', 'map_scrap');
     DG.ui.openSheet('log');
+  }
+  /* 주민·짐승 카드 — `#talk=npc` · `#talk=beast`. 누르는 조작은 못 찍으니 바로 연다 */
+  else if (tab === 'talk' || tab === 'talkbeast') {
+    var wn = new Date(2026, 7, 26, 10, 0).getTime();
+    DG.npc.forceTime(wn); DG.npc.reset();
+    DG.animal.forceTime(wn); DG.animal.reset();
+    var v2 = DG.land.place('village');
+    C.save.player.pos.x = v2.x; C.save.player.pos.y = v2.y;
+    if (tab === 'talk') {
+      var ns2 = DG.npc.live(C.save.player.pos, wn);
+      if (ns2.length) { DG.talk.tap({ kind: 'npc', it: ns2[0] }); }
+    } else {
+      DG.talk.tap({ kind: 'beast', it: { dist: 12, alarm: 0.7, kind: DG.animal.KINDS.deer } });
+    }
   }
   else if (tab === 'detail') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'kr_yisunsin'); }
   else if (tab === 'detail2') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'sg_zhugeliang'); }
