@@ -87,6 +87,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 <script src="js/skill.js"></script>
 <script src="js/dungeon.js"></script>
 <script src="js/town.js"></script>
+<script src="js/field3d.js"></script>
 <script src="js/dungeon3d.js"></script>
 <script src="js/dungeon-view.js"></script>
 <script src="js/net.js"></script>
@@ -2655,6 +2656,106 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       D3.camAim(100, 100, DN.ROOM_W, DN.ROOM_H, 1, 0.62);
       D3.lightPlan(30, 'boss', 0.5);
       D3.stats();
+      return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
+    });
+
+    /* ── 들판 (field3d) — 3D 전환 2단계 ─────────────────────
+     * PLAN 4·5·6절. **전부 순수 함수**라 화면 없이 값으로 다 본다 —
+     * 씨앗이 같으면 같은 세상인가 · 조각이 몇이나 되는가 · 방 안은 평평한가.
+     */
+
+    var F3 = DG.field3d;
+
+    t('들판 — 같은 씨앗이면 같은 세상이다 (PLAN 5절)', function () {
+      var a = F3.seedOf(14, 2, '산채'), b2 = F3.seedOf(14, 2, '산채');
+      var c2 = F3.seedOf(15, 2, '산채'), d2 = F3.seedOf(14, 3, '산채');
+      var l1 = F3.chunkAt(2, -1, a, 2, 1).map(function (p) { return p.t; }).join('/');
+      var l2 = F3.chunkAt(2, -1, b2, 2, 1).map(function (p) { return p.t; }).join('/');
+      return a === b2 && a !== c2 && a !== d2 && l1 === l2 && l1.length > 0 &&
+        ('14층 2방 씨앗이 늘 같다 · 조각 하나 = ' + l1);
+    });
+
+    t('들판 — 방 안은 평평하고 밖은 기복이 진다 (PLAN 4절)', function () {
+      /* 방 안까지 지형이 들어오면 **보이는 것과 걷는 것이 어긋난다** —
+         판정은 평면에서 돌기 때문이다 */
+      var W = DN.ROOM_W, H = DN.ROOM_H;
+      var s = F3.seedOf(14, 0, 'x');
+      var inside = [[10, 10], [W / 2, H / 2], [W - 10, H - 10]]
+        .map(function (p) { return F3.heightAt(p[0], p[1], s, W, H); });
+      var far = [];
+      for (var i = 1; i <= 6; i++) { far.push(F3.heightAt(-i * 120, -i * 120, s, W, H)); }
+      var flat = inside.every(function (v) { return v === 0; });
+      var bumpy = far.some(function (v) { return Math.abs(v) > 20; });
+      return flat && bumpy &&
+        ('방 안 셋 다 높이 0 · 밖 여섯 중 가장 센 것 ' +
+         Math.round(Math.max.apply(null, far.map(Math.abs))));
+    });
+
+    t('들판 — 방 가까이는 사람이 지난 자리다 (PLAN 5절 "플레이 가능한 결과만")', function () {
+      /* 완전 랜덤이면 방 바로 옆이 절벽으로 막히기도 한다 — 가까이는 길·캠프·폐허다 */
+      var s = F3.seedOf(20, 1, 'y'), i, near = {}, far = {};
+      for (i = 0; i < 40; i++) {
+        near[F3.kindOf(i, -1, s + i, 1)] = 1;
+        far[F3.kindOf(i, -5, s + i, 4)] = 1;
+      }
+      var nk = Object.keys(near).sort();
+      return nk.indexOf('cliff') < 0 && nk.indexOf('water') < 0 &&
+        Object.keys(far).length > nk.length &&
+        ('가까이 ' + nk.join('/') + ' · 멀리 ' + Object.keys(far).sort().join('/'));
+    });
+
+    t('들판 — 방보다 대여섯 배 넓다 (PLAN 6절)', function () {
+      var W = DN.ROOM_W, H = DN.ROOM_H;
+      var sv = F3.survey(F3.seedOf(14, 0, 'z'), 3, W, H);
+      var room = Math.max(W, H);
+      return sv.chunks === 49 && sv.span >= room * 2 &&
+        (sv.span / room) >= 2 &&
+        ('조각 ' + sv.chunks + '개 · ' + sv.span + ' 사방 (방은 ' + W + '×' + H + ')');
+    });
+
+    t('들판 — 아홉 가지가 다 난다', function () {
+      var s = F3.seedOf(7, 0, 'w'), seen = {}, cx, cz;
+      for (cz = -6; cz <= 6; cz++) {
+        for (cx = -6; cx <= 6; cx++) { seen[F3.kindOf(cx, cz, s, 3)] = 1; }
+      }
+      var got = Object.keys(seen).sort();
+      var want = F3.KINDS.slice().sort();
+      return got.length === want.length && got.join('/') === want.join('/') &&
+        ('열세 칸 사방에서 ' + got.join('/'));
+    });
+
+    t('들판 — 이웃한 조각이 같은 성격으로 뭉치지 않는다', function () {
+      /* 격자 좌표용 해시를 쓰면 이웃한 입력이 이웃한 답을 준다 —
+         그러면 온 세상이 숲 한 판이 된다(사가고에서 밟은 그 함정) */
+      var s = F3.seedOf(3, 1, 'q'), same = 0, n = 0, cx, cz;
+      for (cz = -5; cz <= 5; cz++) {
+        for (cx = -5; cx < 5; cx++) {
+          n++;
+          if (F3.kindOf(cx, cz, s, 3) === F3.kindOf(cx + 1, cz, s, 3)) { same++; }
+        }
+      }
+      return same / n < 0.35 &&
+        ('가로로 이웃한 110쌍 중 같은 성격은 ' + same + '쌍 (' +
+         Math.round(same / n * 100) + '%)');
+    });
+
+    t('들판 — 밀도를 내리면 세울 것이 준다', function () {
+      var s = F3.seedOf(9, 0, 'r');
+      var full = 0, half = 0, cx, cz;
+      for (cz = -3; cz <= 3; cz++) {
+        for (cx = -3; cx <= 3; cx++) {
+          full += F3.chunkAt(cx, cz, s, 2, 1).length;
+          half += F3.chunkAt(cx, cz, s, 2, 0.4).length;
+        }
+      }
+      return half < full && half > 0 &&
+        ('배수 1 → ' + full + '개 · 0.4 → ' + half + '개');
+    });
+
+    t('들판 — 값을 내도 세이브는 그대로다', function () {
+      var before = JSON.stringify(C.save);
+      var s = F3.seedOf(11, 2, 't');
+      F3.chunkAt(1, 1, s, 2, 1); F3.heightAt(500, 500, s, 560, 360); F3.survey(s, 2);
       return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
     });
 

@@ -29,6 +29,8 @@
   var T = null;
   var renderer = null, scene = null, camera = null;
   var floorMesh = null, wallGroup = null, actorGroup = null, fxGroup = null;
+  var fieldGroup = null;           // 방 밖 들판 (2단계)
+  var fieldKey = null;             // 지금 세워 둔 들판의 씨앗+반경
   var amb = null, key = null, torch = null;
   var canvas = null;
   var ready = false, failed = false;
@@ -64,6 +66,12 @@
   function TILT() { return tuned('dg3d.tilt', 0.62); }
   /** 어둠의 깊이 — 1 이면 횃불 밖이 새까맣다 */
   function DARK() { return tuned('dg3d.dark', 0.45); }
+  /** 방 밖 들판을 세울까 (2단계) — 0 이면 1단계의 허공에 뜬 상자로 돌아간다 */
+  function FIELD() { return tuned('dg3d.field', 1) ? true : false; }
+  /** 들판을 몇 조각까지 세울까 (PLAN 6절 — 멀면 안 세운다) */
+  function FIELD_R() { return tuned('dg3d.fieldR', 3); }
+  /** 들판 밀도 배수 — 버거우면 여기를 내린다 */
+  function FIELD_D() { return tuned('dg3d.fieldDens', 1); }
 
   function available() { return ready && !failed; }
   function active() { return available() && wanted(); }
@@ -164,6 +172,7 @@
     wallGroup = new T.Group(); scene.add(wallGroup);
     actorGroup = new T.Group(); scene.add(actorGroup);
     fxGroup = new T.Group(); scene.add(fxGroup);
+    fieldGroup = new T.Group(); scene.add(fieldGroup);
 
     ready = true;
     resize();
@@ -190,6 +199,7 @@
     var m = new T.MeshLambertMaterial({ color: new T.Color(hex) });
     if (opt === 'flat') { m.flatShading = true; }
     if (opt === 'glow') { m.emissive = new T.Color(hex); m.emissiveIntensity = 0.7; }
+    if (opt === 'water') { m.transparent = true; m.opacity = 0.78; m.depthWrite = false; }
     matCache[k] = m;
     return m;
   }
@@ -261,6 +271,97 @@
     }
   }
 
+  /* ── 들판 (2단계) ────────────────────────────────────
+   * `field3d.js` 가 **무엇이 어디 서는지**를 값으로 낸다. 여기서는 그 목록을 받아
+   * 도형으로 세우기만 한다 — 판단과 그림을 갈라 둔 것이다(진단이 값만 본다).
+   */
+  function buildField(run) {
+    var F = global.DG.field3d;
+    if (!fieldGroup) { return; }
+    while (fieldGroup.children.length) { fieldGroup.remove(fieldGroup.children[0]); }
+    if (!F || !FIELD()) { fieldKey = null; return; }
+
+    var W = d().ROOM_W, H = d().ROOM_H;
+    var DD = global.DG.dataDungeon;
+    var th = run.theme || (DD ? DD.themeOf(run.floor) : null);
+    var seed = F.seedOf(run.floor, run.roomIdx, th && th.name);
+    var R = FIELD_R(), dens = FIELD_D();
+    var stone = themeHex(run);
+    var cx, cz, i;
+
+    /* 바깥 땅 — 조각마다 한 판씩 깔고 **네 귀퉁이의 높이**로 기울인다.
+       한 판을 크게 깔면 높낮이가 안 나온다(4절이 바라는 것이 그 높낮이다) */
+    for (cz = -R; cz <= R; cz++) {
+      for (cx = -R; cx <= R; cx++) {
+        var ring = F.ringOf(cx, cz, W, H);
+        if (ring === 0) { continue; }             // 방이 걸친 조각은 방 바닥이 맡는다
+        var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
+        var hh = F.heightAt(gx + F.CHUNK / 2, gz + F.CHUNK / 2, seed, W, H);
+        var tile = box(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
+          F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, 0.62), 'flat', false);
+        tile.receiveShadow = true;
+
+        var list = F.chunkAt(cx, cz, seed, ring, dens);
+        for (i = 0; i < list.length; i++) { piece(list[i], seed, W, H, stone); }
+      }
+    }
+    fieldKey = seed + ':' + R + ':' + Math.round(dens * 100);
+  }
+
+  /** 들판 조각 하나를 도형으로 세운다 */
+  function piece(p, seed, W, H, stone) {
+    var F = global.DG.field3d;
+    var g = fieldGroup;
+    var y = F.heightAt(p.x, p.z, seed, W, H);
+    var s = p.s || 1;
+    if (p.t === 'tree') {
+      box(g, p.x, y + p.h * 0.22, p.z, 9 * s, p.h * 0.44, 9 * s, 0x3a2c1e, 'flat', true);
+      box(g, p.x, y + p.h * 0.68, p.z, p.h * 0.62 * s, p.h * 0.7, p.h * 0.62 * s,
+        0x24361f, 'flat', true);
+    } else if (p.t === 'rock') {
+      box(g, p.x, y + p.h * 0.4, p.z, p.h * 1.3 * s, p.h * 0.9, p.h * 1.1 * s,
+        mix(stone, 0x000000, 0.35), 'flat', true).rotation.y = p.rot;
+    } else if (p.t === 'pillar') {
+      box(g, p.x, y + p.h / 2, p.z, 16, p.h, 16, mix(stone, 0xffffff, 0.12), 'flat', true);
+    } else if (p.t === 'wall') {
+      box(g, p.x, y + p.h / 2, p.z, 90, p.h, 14, mix(stone, 0x000000, 0.2), 'flat', true)
+        .rotation.y = p.rot;
+    } else if (p.t === 'cliff') {
+      /* 절벽 — 큰 덩이를 비스듬히 세운다. 4절의 "높낮이" 를 눈에 보이게 하는 것 */
+      var cl = box(g, p.x, y + p.h * 0.4, p.z, 120 * s, p.h, 90 * s,
+        mix(stone, 0x000000, 0.45), 'flat', true);
+      cl.rotation.set(0.08, p.rot, 0.06);
+    } else if (p.t === 'path') {
+      var pt = box(g, p.x, y + 1, p.z, F.CHUNK + 2, 3, 46, 0x4a3f30, 'flat', false);
+      pt.rotation.y = p.rot;
+      pt.receiveShadow = true;
+    } else if (p.t === 'post') {
+      box(g, p.x, y + p.h / 2, p.z, 6, p.h, 6, 0x5a4a34, 'flat', true);
+      box(g, p.x, y + p.h, p.z, 30, 8, 4, 0x6b5a3f, 'flat', false);
+    } else if (p.t === 'pond') {
+      var pd = box(g, p.x, y + 2, p.z, F.CHUNK * 0.8 * s, 3, F.CHUNK * 0.7 * s,
+        0x1f4a63, 'flat', false);
+      pd.material = mat(0x1f4a63, 'water');
+    } else if (p.t === 'reed') {
+      box(g, p.x, y + p.h / 2, p.z, 3, p.h, 3, 0x3f5a34, 'flat', false);
+    } else if (p.t === 'cavemouth') {
+      box(g, p.x, y + p.h * 0.45, p.z, p.h * 1.5, p.h, p.h * 1.2,
+        mix(stone, 0x000000, 0.5), 'flat', true).rotation.y = p.rot;
+      /* 입구는 **새까맣다** — 빛이 안 닿는 자리가 있어야 굴로 보인다 */
+      box(g, p.x, y + p.h * 0.3, p.z + p.h * 0.6, p.h * 0.5, p.h * 0.55, 6,
+        0x000000, '', false).rotation.y = p.rot;
+    } else if (p.t === 'altar') {
+      box(g, p.x, y + 6, p.z, 60, 12, 60, mix(stone, 0xffffff, 0.2), 'flat', true);
+      box(g, p.x, y + p.h * 0.6, p.z, 20, p.h * 0.8, 20, 0x4a3f6b, 'flat', true);
+      box(g, p.x, y + p.h + 6, p.z, 14, 14, 14, 0xc9a3ff, 'glow', false);
+    } else if (p.t === 'tent') {
+      box(g, p.x, y + p.h / 2, p.z, 44, p.h, 40, 0x5a4a3a, 'flat', true).rotation.y = p.rot;
+    } else if (p.t === 'fire') {
+      box(g, p.x, y + 4, p.z, 26, 8, 26, 0x2f2a24, 'flat', false);
+      box(g, p.x, y + p.h, p.z, 14, 16, 14, 0xff7a2a, 'glow', false);
+    }
+  }
+
   function mix(a, b, k) {
     var ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
     var br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
@@ -323,7 +424,7 @@
 
     var W = d().ROOM_W, H = d().ROOM_H;
     var rk = run.floor + ':' + run.roomIdx + ':' + (run.room && run.room.cleared ? 'c' : 'o');
-    if (rk !== roomKey) { roomKey = rk; buildRoom(run); }
+    if (rk !== roomKey) { roomKey = rk; buildRoom(run); buildField(run); }
 
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());
@@ -438,6 +539,8 @@
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     camAim: camAim, lightPlan: lightPlan,
+    /** 들판이 몇 조각인지 (2단계) */
+    fieldKey: function () { return fieldKey; },
     three: function () { return T; },
     addFx: function (n) { if (fxGroup && n) { fxGroup.add(n); } return n; },
     camNode: function () { return camera; },
