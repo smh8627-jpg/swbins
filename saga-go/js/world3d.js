@@ -543,7 +543,9 @@
     var key = hex + '|' + (opt || '');
     if (propMat[key]) { return propMat[key]; }
     var m = new T.MeshLambertMaterial({ color: new T.Color(hex), flatShading: opt === 'flat' });
-    if (opt === 'water') { m.transparent = true; m.opacity = 0.72; }
+    /* 수면은 **깊이를 안 적는다** — 적으면 물속에 있는 것(잉어)을 통째로 가린다.
+       반투명이라 비쳐 보여야 맞는데, 깊이 버퍼가 먼저 잘라내 아무것도 안 남았다 */
+    if (opt === 'water') { m.transparent = true; m.opacity = 0.72; m.depthWrite = false; }
     if (opt === 'glow') { m.emissive = new T.Color(hex); m.emissiveIntensity = 0.9; }
     propMat[key] = m;
     return m;
@@ -931,6 +933,28 @@
         ? Math.abs(Math.sin(n.phase)) * h * 0.04
         : Math.sin(now / 700 + i) * h * 0.014;
       placeActor(na, n.x, n.y, h * 0.94 * farBoost(n.x, n.y), nbob, n.walking, n.phase, now);
+    }
+
+    /* 짐승 — 들·강의 다섯 종(`animal.js`). 잡는 대상이 아니라 **거기 사는 것**이라
+       등급 고리도 이름표도 없다. 새는 뜨고 물고기는 잠기므로 세운 뒤 높이를 준다 */
+    var AN = global.DG.animal;
+    var beasts = AN ? AN.live(pos, now) : [];
+    for (i = 0; i < beasts.length; i++) {
+      var bt = beasts[i];
+      var ba = actorOf('an' + bt.m.id, 'pet', AN.refOf(bt.kind), 96);
+      var bh = h * bt.kind.h * farBoost(bt.x, bt.y);
+      placeActor(ba, bt.x, bt.y, bh, 0, bt.moving, bt.phase, now);
+      if (bt.lift) {
+        /* 날아오른 새는 **그림자가 작아지고 흐려진다** — 높이만 주면 지면에 붙어
+           보인다(발밑 그림자가 그대로면 눈이 높이를 못 읽는다) */
+        ba.node.position.y = bt.lift;
+        ba.shadow.scale.setScalar(bh * 0.30 * Math.max(0.25, 1 - bt.lift / 12));
+      }
+      if (bt.kind.act !== null && bt.alarm > 0.05) {
+        /* 놀랐거나 쫓는 짐승은 그쪽을 본다 — 옆을 보고 도망치면 도망으로 안 보인다 */
+        ba.node.rotation.y = bt.ang;
+        ba.ang = bt.ang;
+      }
     }
 
     /* 역참 · 성채 */

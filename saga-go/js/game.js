@@ -322,6 +322,7 @@
     global.DG.buddy.tick();             // 곁을 걷는 반려가 영초를 물어 온다
     global.DG.fort.tick();              // 사기가 다한 성채에서 손을 뗀다
     global.DG.npc.tick();               // 이 땅에 사는 열 사람 — 가까이 가면 한 마디 한다
+    global.DG.animal.tick();            // 들·강의 짐승 — 늑대가 붙으면 알린다
     if (!global.DG_NO_DRAW) { world.draw(); }
 
     uiAcc += dt;

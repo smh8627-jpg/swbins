@@ -82,6 +82,7 @@ window.DG_NO_TUNE = true;
 <script src="js/land.js"></script>
 <script src="js/world.js"></script>
 <script src="js/npc.js"></script>
+<script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
 <script src="js/world3d.js"></script>
@@ -236,6 +237,13 @@ setTimeout(function () {
     document.body.appendChild(sb);
     setInterval(function () {
       var st = DG.world3d ? DG.world3d.stats() : { none: true };
+      /* 사람과 짐승도 같이 센다 — 화면에 안 보일 때 **없는 것인지 멀리 있는 것인지**를
+         눈이 아니라 값으로 가른다 */
+      if (DG.npc) { st.npc = DG.npc.stats().live + '/' + DG.npc.stats().all; }
+      if (DG.animal) {
+        var an = DG.animal.stats();
+        st.animal = an.live + '/' + an.all + ' ' + JSON.stringify(an.by);
+      }
       if (DG.world3d) { st.px = DG.world3d.probe(); st.tile = DG.world3d.tileProbe(); }
       var out = [];
       for (var k in st) { if (Object.prototype.hasOwnProperty.call(st, k)) { out.push(k + '=' + st[k]); } }
@@ -264,6 +272,7 @@ setTimeout(function () {
     DG.weather.force('clear');
     if (DG.world3d) { DG.world3d.forceTime(when); }
     if (DG.npc) { DG.npc.forceTime(when); DG.npc.reset(); }
+    if (DG.animal) { DG.animal.forceTime(when); DG.animal.reset(); }
   }
   /* 옛 2D 캔버스로 본다 — `#flat`. `#2d` 는 시점만 눕히는 것이라 **그리는 쪽은
      여전히 3D** 다(위에서 내려다보는 3D). 캔버스 그림을 눈으로 보려면 이쪽이다 */
@@ -276,16 +285,19 @@ setTimeout(function () {
     DG.weather.force('clear');
     DG.world3d.forceTime(new Date(2026, 7, 26, 22, 30).getTime());
     if (DG.npc) { DG.npc.forceTime(new Date(2026, 7, 26, 22, 30).getTime()); DG.npc.reset(); }
+    if (DG.animal) { DG.animal.forceTime(new Date(2026, 7, 26, 22, 30).getTime()); DG.animal.reset(); }
   }
   if (DG.world3d && hash.indexOf('dusk') >= 0) {
     DG.weather.force('clear');
     DG.world3d.forceTime(new Date(2026, 7, 26, 17, 20).getTime());
     if (DG.npc) { DG.npc.forceTime(new Date(2026, 7, 26, 17, 20).getTime()); DG.npc.reset(); }
+    if (DG.animal) { DG.animal.forceTime(new Date(2026, 7, 26, 17, 20).getTime()); DG.animal.reset(); }
   }
   if (DG.world3d && hash.indexOf('noon') >= 0) {
     DG.weather.force('clear');
     DG.world3d.forceTime(new Date(2026, 7, 26, 12, 30).getTime());
     if (DG.npc) { DG.npc.forceTime(new Date(2026, 7, 26, 12, 30).getTime()); DG.npc.reset(); }
+    if (DG.animal) { DG.animal.forceTime(new Date(2026, 7, 26, 12, 30).getTime()); DG.animal.reset(); }
   }
   /* 조우 연출 — 카메라가 대상 쪽으로 돌고, 잡히면 빛기둥이 선다 */
   if (hash.indexOf('meet') >= 0 && W.spawns.length) {

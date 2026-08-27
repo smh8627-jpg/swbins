@@ -74,6 +74,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/land.js"></script>
 <script src="js/world.js"></script>
 <script src="js/npc.js"></script>
+<script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
 <script src="js/world3d.js"></script>
@@ -2169,6 +2170,156 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       NP.posAt('npc_smith', atT(15), 'clear');
       NP.say('npc_elder', atT(9), 'clear');
       NP.reset();
+      var sp1 = JSON.stringify(W.spawns.map(function (s) { return s.uid; }));
+      return JSON.stringify(C.save) === before && sp0 === sp1 &&
+        '세이브 · 스폰 목록 그대로';
+    });
+
+    /* ── 짐승 (animal) — 들·강의 다섯 종 ────────────────────
+     * 주민과 다른 점 하나: **나를 보고 움직인다**. 그 반응도 순수 함수로 두었으므로
+     * ("사슴 앞 20m 에 서면 어디로 물러나나") 값으로 다 볼 수 있다.
+     */
+
+    var AN = DG.animal;
+
+    t('짐승 — 다섯 종이 무리로 산다', function () {
+      var kinds = Object.keys(AN.KINDS);
+      var acts = kinds.map(function (k) { return AN.KINDS[k].act || '-'; });
+      var bad = AN.HERDS.filter(function (hd) {
+        return !AN.KINDS[hd.kind] || !LD.place(hd.from) || !LD.place(hd.to);
+      });
+      return kinds.length === 5 && bad.length === 0 && AN.all().length >= 20 &&
+        acts.indexOf('flee') >= 0 && acts.indexOf('chase') >= 0 && acts.indexOf('fly') >= 0 &&
+        (kinds.length + '종 · 무리 ' + AN.HERDS.length + ' · 모두 ' + AN.all().length +
+         '마리 · 몸짓 ' + acts.join('/'));
+    });
+
+    t('짐승 — 무리가 하루에 한 번 자리를 옮긴다', function () {
+      /* PLAN 39절 "무리 이동" — 한자리에 붙박여 있으면 무리가 아니라 장식이다 */
+      var hd = AN.HERDS[2];                       // 늑대 (산등성이 ↔ 굴)
+      var far = 0, i, prev = null;
+      for (i = 0; i < 24; i += 2) {
+        var c = AN.herdCenter(hd, atT(i));
+        if (prev) { far = Math.max(far, Math.hypot(c.x - prev.x, c.y - prev.y)); }
+        prev = c;
+      }
+      var a = LD.place(hd.from), b2 = LD.place(hd.to);
+      var span = Math.hypot(b2.x - a.x, b2.y - a.y);
+      return far > 10 && span > 50 &&
+        ('늑대 무리 ' + hd.from + '↔' + hd.to + ' (' + Math.round(span) +
+         'm) · 두 시간에 최대 ' + Math.round(far) + 'm 이동');
+    });
+
+    t('짐승 — 같은 시각을 물으면 늘 같은 자리다', function () {
+      var m = AN.all()[0];
+      var a = AN.posAt(m, atT(10)), b2 = AN.posAt(m, atT(10));
+      return a.x === b2.x && a.y === b2.y &&
+        ('사슴 한 마리 ' + Math.round(a.x) + ',' + Math.round(a.y) + ' — 두 번 물어 같다');
+    });
+
+    t('짐승 — 사슴은 다가가면 물러난다', function () {
+      /* PLAN 39절: 풀을 먹음 → 접근 → 도망 */
+      var m = AN.all().filter(function (x) { return x.kind.id === 'deer'; })[0];
+      var base = AN.posAt(m, atT(10));
+      var far = AN.react(m, base, { x: base.x + 200, y: base.y }, atT(10));
+      var mid = AN.react(m, base, { x: base.x + 20, y: base.y }, atT(10));
+      var close = AN.react(m, base, { x: base.x + 5, y: base.y }, atT(10));
+      /* 나는 사슴의 **동쪽**(+x)에 섰다 — 그러니 사슴은 **서쪽**(-x)으로 물러나야 한다 */
+      var dMid = base.x - mid.x, dClose = base.x - close.x;
+      return far.x === base.x && far.moving === false &&
+        dMid > 0 && dClose > dMid && close.alarm > mid.alarm &&
+        ('200m 밖 그대로 · 20m 앞 ' + Math.round(dMid) + 'm 물러남 · 5m 앞 ' +
+         Math.round(dClose) + 'm 물러남 (나에게서 멀어지는 쪽으로)');
+    });
+
+    t('짐승 — 늑대는 다가온다. 다만 코앞까지는 안 온다', function () {
+      var m = AN.all().filter(function (x) { return x.kind.id === 'wolf'; })[0];
+      var base = AN.posAt(m, atT(13));
+      var r30 = AN.react(m, base, { x: base.x + 30, y: base.y }, atT(13));
+      var r8 = AN.react(m, base, { x: base.x + 8, y: base.y }, atT(13));
+      /* 나는 늑대의 **동쪽**에 섰다 — 늑대는 **나를 향해**(+x) 다가와야 한다 */
+      var d30 = Math.abs(r30.x - (base.x + 30));
+      var d8 = Math.abs(r8.x - (base.x + 8));
+      return r30.x > base.x && d30 < 30 && d8 >= 6 - 0.001 &&
+        ('30m 밖 → ' + Math.round(d30) + 'm 까지 · 8m 밖 → ' + Math.round(d8) +
+         'm 까지 (6m 는 남긴다)');
+    });
+
+    t('짐승 — 늑대는 밤에 더 멀리서 알아챈다', function () {
+      var m = AN.all().filter(function (x) { return x.kind.id === 'wolf'; })[0];
+      var base = AN.posAt(m, atT(13));
+      var day = AN.react(m, base, { x: base.x + 60, y: base.y }, atT(13));
+      var night = AN.react(m, base, { x: base.x + 60, y: base.y }, atT(23));
+      return day.moving === false && night.moving === true &&
+        ('낮 46m · 밤 70m — 60m 앞에서 낮에는 그대로, 밤에는 다가온다');
+    });
+
+    t('짐승 — 까치는 날아오른다 (높이가 생긴다)', function () {
+      var m = AN.all().filter(function (x) { return x.kind.id === 'magpie'; })[0];
+      var base = AN.posAt(m, atT(10));
+      var far = AN.react(m, base, { x: base.x + 100, y: base.y }, atT(10));
+      var near = AN.react(m, base, { x: base.x + 4, y: base.y }, atT(10));
+      /* 나는 까치의 **동쪽**에 섰다 — 뜨면서 **서쪽**으로 비킨다 */
+      return far.lift === 0 && near.lift > 3 && near.x < base.x &&
+        ('멀면 높이 0 · 4m 앞에서 ' + near.lift.toFixed(1) + 'm 떠오르며 ' +
+         Math.round(base.x - near.x) + 'm 비킨다');
+    });
+
+    t('짐승 — 소는 사람을 봐도 그대로다', function () {
+      /* 다 도망가면 도망이 눈에 안 띈다 — 안 움직이는 짐승을 하나 두었다 */
+      var m = AN.all().filter(function (x) { return x.kind.id === 'ox'; })[0];
+      var base = AN.posAt(m, atT(10));
+      var r = AN.react(m, base, { x: base.x + 2, y: base.y }, atT(10));
+      return r.x === base.x && r.y === base.y && r.moving === false && r.alarm === 0 &&
+        '2m 앞에 서도 꿈쩍 않는다';
+    });
+
+    t('짐승 — 잉어는 물속에 있다', function () {
+      var m = AN.all().filter(function (x) { return x.kind.id === 'carp'; })[0];
+      var base = AN.posAt(m, atT(10));
+      var r = AN.react(m, base, { x: base.x + 300, y: base.y }, atT(10));
+      var br = LD.place('bridge'), rv = LD.place('river');
+      var near = Math.min(Math.hypot(base.x - br.x, base.y - br.y),
+                          Math.hypot(base.x - rv.x, base.y - rv.y));
+      /* 놀라면 수면을 튄다 — 잠긴 채 흩어지기만 하면 물 위에서는 아무 일도 안 일어난다 */
+      var jump = AN.react(m, base, { x: base.x + 2, y: base.y }, atT(10));
+      return r.lift < 0 && jump.lift > 0 && jump.lift > r.lift &&
+        LD.at(Math.floor(base.x / 48), Math.floor(base.y / 48)) !== null && near < 260 &&
+        ('가만할 땐 수면 아래 ' + r.lift.toFixed(2) + 'm · 2m 앞에 서면 ' +
+         jump.lift.toFixed(2) + 'm 로 튄다 · 강 언저리(' + Math.round(near) + 'm)');
+    });
+
+    t('짐승 — 낮에만 나오는 종이 밤에는 없다', function () {
+      /* `live()` 가 아니라 `posAt()` 으로 본다 — `live()` 는 **내 자리에서 100m** 안만
+         주므로(LOD), 원점에 서서 보면 멀리 있는 종이 낮에도 안 잡힌다 */
+      function kinds(t) {
+        var s = {};
+        AN.all().forEach(function (m) { if (AN.posAt(m, t)) { s[m.kind.id] = 1; } });
+        return Object.keys(s).sort();
+      }
+      var dk = kinds(atT(13)), nk = kinds(atT(23));
+      return dk.length === 5 && nk.indexOf('deer') < 0 &&
+        nk.indexOf('magpie') < 0 && nk.indexOf('ox') < 0 &&
+        nk.indexOf('wolf') >= 0 && nk.indexOf('carp') >= 0 &&
+        ('낮 ' + dk.join('/') + ' · 밤 ' + nk.join('/'));
+    });
+
+    t('짐승 — 무리를 줄이는 손잡이가 듣는다', function () {
+      var full = AN.all().length;
+      C.setTune('animal.density', 0.5);
+      var half = AN.all().length;
+      C.setTune('animal.density', null);
+      var back = AN.all().length;
+      return half < full && half > 0 && back === full &&
+        ('배수 1 → ' + full + '마리 · 0.5 → ' + half + '마리');
+    });
+
+    t('짐승 — 판정에 한 칸도 안 닿는다', function () {
+      var before = JSON.stringify(C.save);
+      var sp0 = JSON.stringify(W.spawns.map(function (s) { return s.uid; }));
+      AN.live({ x: 24, y: 24 }, atT(9));
+      AN.stats(atT(9));
+      AN.reset();
       var sp1 = JSON.stringify(W.spawns.map(function (s) { return s.uid; }));
       return JSON.stringify(C.save) === before && sp0 === sp1 &&
         '세이브 · 스폰 목록 그대로';

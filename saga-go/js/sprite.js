@@ -1299,8 +1299,11 @@
   };
 
   function beastPatternOf(pet) { return (pet && BEAST_PATTERN[pet.id]) || ''; }
-  function beastFormOf(pet) { return (pet && BEAST_FORM[pet.id]) || 'quad'; }
-  function beastColorOf(pet) { return (pet && BEAST_COLOR[pet.id]) || '#9a8f7a'; }
+  /* 도감에 없는 짐승도 그린다 — 들·강의 **배경 생물**(`animal.js`)은 잡는 대상이
+     아니라서 도감에 자리가 없다. 그런 것은 제 형태·색을 직접 들고 온다.
+     도감 펫에는 `form`·`color` 가 없으므로 여태 그림은 한 획도 안 바뀐다 */
+  function beastFormOf(pet) { return (pet && (pet.form || BEAST_FORM[pet.id])) || 'quad'; }
+  function beastColorOf(pet) { return (pet && (pet.color || BEAST_COLOR[pet.id])) || '#9a8f7a'; }
 
   /**
    * @param o {x, y, s, facing, phase, walking, form, color, divine, t}

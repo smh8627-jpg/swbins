@@ -1030,6 +1030,16 @@
       })(ppl[pi]);
     }
 
+    // 짐승 (animal.js)
+    var AN = global.DG.animal;
+    var bts = AN ? AN.live(pos) : [];
+    for (var bi2 = 0; bi2 < bts.length; bi2++) {
+      (function (bt) {
+        var u = (bt.x - pos.x) * sc, v = (bt.y - pos.y) * sc;
+        items.push({ v: v, draw: function () { drawBeast(bt, u, v, now); } });
+      })(bts[bi2]);
+    }
+
     // 스폰
     for (var i = 0; i < spawns.length; i++) {
       (function (s) {
@@ -1276,6 +1286,38 @@
       ctx.fillText(n.p.name, p.x, ny);
       ctx.textAlign = 'left';
     }
+  }
+
+  /**
+   * 들·강의 짐승 한 마리. **스폰과 눈에 띄게 달라야 한다** — 잡는 대상이 아니라
+   * 그냥 거기 사는 것이다. 등급 고리도 이름표도 없이 그림자와 몸뚱이만 있다.
+   * 날아오른 새는 위로 옮겨 그리고 그림자를 줄인다(2D 에서 높이를 읽는 유일한 단서다).
+   */
+  function drawBeast(bt, u, v, now) {
+    var p = project(u, v);
+    if (p.s < 0.25 || p.y < -80 || p.y > geom.H + 80) { return; }
+    var z = core.clamp(p.s, 0.5, 1.6);
+    var sp = global.DG.sprite;
+    var K = bt.kind;
+    var lift = (bt.lift || 0) * z * 1.6;          // m → 화면 픽셀 (눈대중)
+
+    // 발밑 그림자 — 뜰수록 작고 흐려진다
+    var far = K.lift ? Math.max(0.25, 1 - (bt.lift || 0) / 12) : 1;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 10 * z * far, 4 * z * far, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,' + (0.30 * far).toFixed(2) + ')';
+    ctx.fill();
+
+    /* 물속 짐승은 흐리게 — 수면 아래에 있다는 것을 색으로 말한다 */
+    ctx.globalAlpha = (K.sink ? 0.62 : 1);
+    sp.stamp(ctx, {
+      kind: 'beast', ref: global.DG.animal.refOf(K),
+      x: p.x, y: p.y - lift, s: z * 1.25 * K.h,
+      facing: Math.sin(bt.ang) < 0 ? -1 : 1,
+      phase: bt.phase, walking: bt.moving,
+      color: K.color, form: K.form, t: now
+    });
+    ctx.globalAlpha = 1;
   }
 
   function drawPlayer(now, sc) {
