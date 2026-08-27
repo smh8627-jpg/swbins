@@ -72,6 +72,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/hero.js"></script>
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/world.js"></script>
+<script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
 <script src="js/world3d.js"></script>
 <script src="js/encounter.js"></script>
@@ -1808,6 +1809,115 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var still = Math.abs(rig.legL.rotation.x) < 0.1;
       return Math.abs(l) > 0.5 && Math.abs(l + r) < 1e-9 && still &&
         ('걸을 때 ' + l.toFixed(2) + '/' + r.toFixed(2) + ' · 서면 0');
+    });
+
+    /* ── 에셋 창고 (asset3d) — GLB 를 끼울 자리 ──────────────
+     * 지금 GLB 파일은 하나도 없다. 그래서 여기서 보는 것은 **표를 읽는 규칙**이다 —
+     * 표가 비면 예전 도형으로 가는가, 한 줄 적으면 그 배우만 갈리는가,
+     * 클립 이름이 제각각이어도 자리를 제대로 찾는가.
+     */
+
+    var AS = DG.asset3d;
+
+    t('에셋 — 표가 비어 있으면 예전 도형 그대로다', function () {
+      AS.clear();
+      var guan = D.find('sg_guanyu');
+      return AS.wants('hero', guan) === false && AS.urlOf('hero', guan) === null &&
+        AS.chain('hero', guan) === 'shape' && '표 0줄 · 관우는 도형으로 선다';
+    });
+
+    t('에셋 — 좁은 키가 넓은 키를 이긴다', function () {
+      AS.clear();
+      var guan = D.find('sg_guanyu');
+      AS.register('hero', 'a.glb');
+      var wide = AS.urlOf('hero', guan);
+      AS.register('hero:era:삼국지', 'b.glb');
+      var era = AS.urlOf('hero', guan);
+      AS.register('hero:sg_guanyu', 'c.glb');
+      var one = AS.urlOf('hero', guan);
+      var other = AS.urlOf('hero', D.find('kr_sejong'));
+      AS.clear();
+      return wide === 'a.glb' && era === 'b.glb' && one === 'c.glb' && other === 'a.glb' &&
+        ('관우 ' + one + ' · 세종 ' + other);
+    });
+
+    t('에셋 — 짐승은 형태로 묶어 한 번에 준다', function () {
+      AS.clear();
+      var dragons = D.pets.filter(function (p) { return DG.sprite.beastFormOf(p) === 'dragon'; });
+      var others = D.pets.filter(function (p) { return DG.sprite.beastFormOf(p) !== 'dragon'; });
+      AS.register('pet:form:dragon', 'dragon.glb');
+      var hit = dragons.every(function (p) { return AS.urlOf('pet', p) === 'dragon.glb'; });
+      var miss = others.every(function (p) { return AS.urlOf('pet', p) === null; });
+      AS.clear();
+      return dragons.length > 0 && hit && miss &&
+        ('용 ' + dragons.length + '마리만 갈린다 · 나머지 ' + others.length + '마리는 그대로');
+    });
+
+    t('에셋 — 손잡이를 내리면 표가 있어도 도형으로 간다', function () {
+      AS.clear();
+      var guan = D.find('sg_guanyu');
+      AS.register('hero', 'a.glb');
+      var on = AS.wants('hero', guan);
+      C.setTune('world3d.glb', 0);
+      var off = AS.wants('hero', guan);
+      C.setTune('world3d.glb', null);              // 남기지 않는다
+      AS.clear();
+      return on === true && off === false && '표에 적혀 있어도 world3d.glb=0 이면 도형';
+    });
+
+    t('에셋 — 클립 이름이 제각각이어도 자리를 찾는다', function () {
+      var m = AS.mapClips(['Armature|mixamo.com|Idle', 'Walk.001', 'Anim_Run_F',
+        'GetHit', 'Attack_01', 'Death', 'Roll']);
+      return m.idle === 'Armature|mixamo.com|Idle' && m.walk === 'Walk.001' &&
+        m.run === 'Anim_Run_F' && m.attack === 'Attack_01' && m.hit === 'GetHit' &&
+        m.dodge === 'Roll' && m.death === 'Death' &&
+        ('7개 클립 → idle/walk/run/attack/hit/dodge/death 다 찼다');
+    });
+
+    t('에셋 — 한 클립이 두 자리를 겸하지 않는다', function () {
+      /* `hit` 과 `attack` 은 서로 먹기 쉽다. 점수제라 정확히 맞는 쪽이 가져간다 */
+      var m = AS.mapClips(['hit', 'attack']);
+      return m.hit === 'hit' && m.attack === 'attack' &&
+        AS.score('hit', 'hit') > AS.score('attack', 'hit') &&
+        ('hit→hit(' + AS.score('hit', 'hit') + '점) · attack→attack');
+    });
+
+    t('에셋 — 없는 동작은 대타로 메운다', function () {
+      var m = AS.mapClips(['Idle', 'Walk']);
+      return m.run === 'Walk' && m.alias.run === 'walk' && m.sprint === 'Walk' &&
+        m.hit === 'Idle' && m.alias.hit === 'idle' &&
+        ('걷기밖에 없으면 뛰기도 걷기로 · 대타 ' + Object.keys(m.alias).length + '자리');
+    });
+
+    t('에셋 — 클립이 하나도 없어도 안 깨진다', function () {
+      var m = AS.mapClips([]);
+      return AS.SLOTS.every(function (s) { return m[s] === undefined; }) &&
+        Object.keys(m.alias).length === 0 && '빈 목록 → 빈 자리표';
+    });
+
+    t('에셋 — 이름을 씻는 규칙', function () {
+      return AS.normName('Armature|mixamo.com|Layer0') === 'layer0' &&
+        AS.normName('Walk.001') === 'walk' && AS.normName('Anim_Run_F') === 'animrunf' &&
+        AS.normName(null) === '' && '| 뒤를 취하고 .001 을 떼고 영숫자만 남긴다';
+    });
+
+    t('에셋 — 어떤 크기로 만들었든 키 1 로 눕힌다', function () {
+      /* 이 판의 배우는 전부 키 1 로 만들어 두고 세우는 쪽에서 배율을 준다 */
+      var big = AS.fit({ minX: -50, maxX: 50, minY: 0, maxY: 180, minZ: -50, maxZ: 50 });
+      var tiny = AS.fit({ minX: -0.1, maxX: 0.1, minY: -0.4, maxY: 0.4, minZ: -0.1, maxZ: 0.1 });
+      var h1 = 180 * big.scale, h2 = 0.8 * tiny.scale;
+      return Math.abs(h1 - 1) < 1e-9 && Math.abs(h2 - 1) < 1e-9 &&
+        Math.abs(big.dy) < 1e-9 && Math.abs(tiny.dy - 0.5) < 1e-9 &&
+        ('180 단위 · 0.8 단위 → 둘 다 키 1 · 발이 y=0');
+    });
+
+    t('에셋 — 표를 뒤져도 세이브는 그대로다', function () {
+      var before = JSON.stringify(C.save);
+      AS.register('hero', 'x.glb');
+      AS.chain('hero', D.find('sg_guanyu'));
+      AS.mapClips(['Idle', 'Walk']);
+      AS.clear();
+      return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
     });
 
     t('카메라 — 조우가 열리면 대상 쪽을 본다', function () {

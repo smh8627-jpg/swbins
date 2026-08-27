@@ -640,6 +640,9 @@
    * 걸음 배속이나 카메라가 바뀌어도 이 함수는 그대로다.
    */
   function step(node, o) {
+    /* GLB 로 선 배우는 뼈대 애니메이션이 돈다 — 그쪽이 처리했으면 여기서 손 뗀다 */
+    var A = global.DG.asset3d;
+    if (A && A.step && A.step(node, o)) { return; }
     if (!node || !node.userData || !node.userData.rig) { return; }
     var rig = node.userData.rig;
     var t = o.t || 0;
@@ -695,12 +698,30 @@
     }
   }
 
-  function build(kind, ref) {
+  /** 도형으로 조립한다 — 이 파일이 원래 하던 일 */
+  function shape(kind, ref) {
     if (kind === 'hero') { return buildHero(ref); }
     if (kind === 'pet') { return buildPet(ref); }
     if (kind === 'station') { return buildStation(ref && ref.color); }
     if (kind === 'fort') { return buildFort(ref && ref.color); }
     return null;
+  }
+
+  /**
+   * 배우 하나. **표(`asset3d`)에 GLB 가 적혀 있으면 그쪽에 양보한다** —
+   * 적힌 것이 없으면(지금이 그렇다) 예전 그대로 도형을 조립한다.
+   * 부르는 쪽(`world3d`)은 이 갈림길을 몰라도 된다.
+   */
+  function build(kind, ref) {
+    var A = global.DG.asset3d;
+    if (A && A.wants && A.wants(kind, ref)) {
+      var n = A.build(kind, ref, function () { return shape(kind, ref); });
+      if (n) { return n; }
+    }
+    var s = shape(kind, ref);
+    /* 모르는 종류가 들어와도 화면에 무언가는 선다 (PLAN 49절의 마지막 자리) */
+    if (!s && A && A.primitive) { return A.primitive(kind, ref); }
+    return s;
   }
 
   function plan(kind, ref) {
