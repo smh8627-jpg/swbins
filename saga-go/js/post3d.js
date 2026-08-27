@@ -274,8 +274,18 @@
         sat: look.sat, temp: look.temp, lift: look.lift
       },
       msaa: live ? tp.msaa : 0,
+      /* 맞닿은 자리의 그늘 — `ssao3d.js` 가 잰다. 여기서는 **켤지 말지**만 안다
+         (씬을 그린 타깃에 깊이를 붙여 둬야 하므로 처방에 들어와야 한다) */
+      ao: live ? aoPlan(tk, w, h) : { on: false },
       scale: scale, w: w, h: h
     };
+  }
+
+  /** 그늘 처방을 `ssao3d` 에게 받는다 — 그 파일이 없으면 그냥 안 건다 */
+  function aoPlan(tier, w, h) {
+    var A = global.DG.ssao3d;
+    if (!A || !A.plan) { return { on: false }; }
+    return A.plan({ tier: tier, w: w, h: h });
   }
 
   /* ══ 그림 층 — three 가 있을 때만 산다 ═════════════════════ */
@@ -285,7 +295,7 @@
   var rtScene = null, mips = [];
   var matBright = null, matDown = null, matUp = null, matOut = null;
   var ready = false, failed = false;
-  var curW = 0, curH = 0, curMsaa = -1, curMips = -1;
+  var curW = 0, curH = 0, curMsaa = -1, curMips = -1, curAO = null;
   var lastPlan = null, drawn = 0;
 
   var VERT = [
@@ -381,6 +391,8 @@
   var FRAG_OUT = [
     'uniform sampler2D tScene;',
     'uniform sampler2D tBloom;',
+    'uniform sampler2D tAO;',
+    'uniform float hasAO;',
     'uniform float strength;',
     'uniform float gradeAmt;',
     'uniform float sat;',
@@ -391,6 +403,9 @@
     LUM,
     'void main() {',
     '  vec3 c = texture2D(tScene, vUv).rgb;',
+    /* 그늘은 **번지기 전에** 곱한다 — 뒤에 곱하면 어둡게 만든 자리가
+       이미 번져 나가 테두리만 밝게 남는다 */
+    '  c *= mix(1.0, texture2D(tAO, vUv).r, hasAO);',
     '  c += texture2D(tBloom, vUv).rgb * (strength * hasBloom);',
     '  gl_FragColor = vec4(c, 1.0);',
     '  #include <tonemapping_fragment>',
@@ -426,12 +441,20 @@
     });
   }
 
-  function newTarget(w, h, msaa, depth) {
+  function newTarget(w, h, msaa, depth, wantDepthTex) {
     var rt = new T.WebGLRenderTarget(Math.max(1, w), Math.max(1, h), {
       type: T.HalfFloatType,          // 1.0 을 넘는 밝기를 담아야 블룸이 산다
       depthBuffer: !!depth,
       stencilBuffer: false
     });
+    /* **그늘을 재려면 깊이를 텍스처로 남겨야 한다.** 여기 한 줄 덕분에
+       `ssao3d` 는 씬을 한 번도 더 안 그린다 — 이미 그린 것의 깊이를 읽을 뿐이다.
+       표본이 여럿인 타깃(MSAA)도 three 가 깊이를 풀어 준다(`resolveDepthBuffer`) */
+    if (depth && wantDepthTex) {
+      var A = global.DG.ssao3d;
+      var dt = A && A.depthTexture ? A.depthTexture(T, w, h) : null;
+      if (dt) { rt.depthTexture = dt; }
+    }
     rt.texture.minFilter = T.LinearFilter;
     rt.texture.magFilter = T.LinearFilter;
     rt.texture.generateMipmaps = false;
@@ -474,6 +497,7 @@
       matUp.blending = T.AdditiveBlending;   // 올라오는 길에서 **더한다**
       matOut = shader(FRAG_OUT, {
         tScene: { value: null }, tBloom: { value: null },
+        tAO: { value: null }, hasAO: { value: 0 },
         strength: { value: 0.26 }, gradeAmt: { value: 1 },
         sat: { value: 1 }, temp: { value: 0 }, lift: { value: 0 },
         hasBloom: { value: 1 }
@@ -482,6 +506,8 @@
       failed = true;
       return false;
     }
+    /* 그늘도 같은 렌더러로 켠다 — 못 켜지면 조용히 없는 셈 친다 */
+    if (global.DG.ssao3d) { global.DG.ssao3d.init(T, rd); }
     ready = true;
     return true;
   }
@@ -490,7 +516,7 @@
     if (rtScene) { rtScene.dispose(); rtScene = null; }
     for (var i = 0; i < mips.length; i++) { mips[i].dispose(); }
     mips = [];
-    curW = 0; curH = 0; curMsaa = -1; curMips = -1;
+    curW = 0; curH = 0; curMsaa = -1; curMips = -1; curAO = null;
   }
 
   /**
@@ -499,11 +525,14 @@
    */
   function syncTargets(p) {
     var n = p.bloom.mips.length;
-    if (rtScene && curW === p.w && curH === p.h && curMsaa === p.msaa && curMips === n) {
+    var wantAO = !!(p.ao && p.ao.on);
+    if (rtScene && curW === p.w && curH === p.h && curMsaa === p.msaa &&
+        curMips === n && curAO === wantAO) {
       return;
     }
     disposeTargets();
-    rtScene = newTarget(p.w, p.h, p.msaa, true);
+    rtScene = newTarget(p.w, p.h, p.msaa, true, wantAO);
+    curAO = wantAO;
     for (var i = 0; i < n; i++) {
       mips.push(newTarget(p.bloom.mips[i].w, p.bloom.mips[i].h, 0, false));
     }
@@ -558,6 +587,13 @@
     renderer.setRenderTarget(rtScene);
     renderer.render(scene, camera);
 
+    /* ①' 그늘 — 방금 그린 것의 **깊이만** 읽는다 (씬을 또 그리지 않는다) */
+    var aoTex = null;
+    var A = global.DG.ssao3d;
+    if (A && p.ao && p.ao.on && rtScene.depthTexture) {
+      aoTex = A.render(rtScene.depthTexture, camera, p.ao);
+    }
+
     /* ② 문턱 → 첫 층 */
     var n = mips.length, i;
     if (n > 0) {
@@ -584,6 +620,8 @@
 
     /* ⑤ 합성 → 캔버스 */
     matOut.uniforms.tScene.value = rtScene.texture;
+    matOut.uniforms.tAO.value = aoTex || rtScene.texture;
+    matOut.uniforms.hasAO.value = aoTex ? 1 : 0;
     matOut.uniforms.tBloom.value = n > 0 ? mips[0].texture : rtScene.texture;
     matOut.uniforms.hasBloom.value = n > 0 ? 1 : 0;
     matOut.uniforms.strength.value = p.bloom.strength;
@@ -612,6 +650,7 @@
       mips: mips.length,
       exposure: p ? +p.exposure.toFixed(2) : '-',
       bloom: p ? +p.bloom.strength.toFixed(3) : '-',
+      ao: p && p.ao && p.ao.on ? (p.ao.samples + '표본 ' + p.ao.w + 'x' + p.ao.h) : 'off',
       sat: p ? +p.grade.sat.toFixed(2) : '-',
       temp: p ? +p.grade.temp.toFixed(2) : '-'
     };

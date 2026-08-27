@@ -698,6 +698,19 @@ window.DG_NO_ACCOUNT = true;
       ['post3d.grade', '색보정 세기 0~1', 1],
       ['post3d.scale', '렌더 배율 배수 (등급 값에 곱한다)', 1]
     ]],
+    ['물 (water3d)', [
+      ['water3d.on', '수면이 물결친다 1/0 (0 이면 옛 판 한 장)', 1],
+      ['water3d.wave', '물결 세기 배수', 1],
+      ['water3d.glint', '윤슬 세기 배수', 1],
+      ['water3d.opacity', '물의 불투명도 0~1', 0.78]
+    ]],
+    ['그늘 (ssao3d)', [
+      ['ssao3d.on', '맞닿은 자리에 그늘을 앉힌다 1/0', 1],
+      ['ssao3d.radius', '그늘이 닿는 거리 m', 2.4],
+      ['ssao3d.intensity', '그늘 짙기 0~2', 0.85],
+      ['ssao3d.bias', '자기 그림자를 피하는 여유', 0.045],
+      ['ssao3d.samples', '표본 수 못박기 (0 이면 등급이 정한다)', 0]
+    ]],
     ['전투 연출 (battle3d)', [
       ['battle3d.on', '교전 때 지도도 같이 싸운다 1/0', 1],
       ['battle3d.shake', '카메라 흔들림 세기 m', 0.5],

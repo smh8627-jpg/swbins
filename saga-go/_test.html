@@ -79,12 +79,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
+<script src="js/ssao3d.js"></script>
 <script src="js/post3d.js"></script>
 <script src="js/world3d.js"></script>
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
 <script src="js/battle3d.js"></script>
 <script src="js/sky3d.js"></script>
+<script src="js/water3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
@@ -3046,6 +3048,107 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var p = PS.plan({ tier: 'HIGH', alt: 0.9, w: 4, h: 3 });
       return p.w >= 1 && p.h >= 1 && p.bloom.mips.length === 0 &&
         ('4×3 → ' + p.w + 'x' + p.h + ' · 블룸 층 없음(끄는 편이 낫다)');
+    });
+
+    /* ── 물 (water3d) ─ 수면이 실제로 움직인다 ─────────
+     * 셰이더는 값으로 못 본다. **때·천후가 물결과 윤슬을 어떻게 바꾸나**만 본다.
+     */
+    var WA = DG.water3d;
+
+    t('물 — 등급이 LOW 면 통째로 잠든다 (옛 판 한 장으로) (12절)', function () {
+      var hi = WA.plan({ tier: 'HIGH', alt: 0.8, weather: 'clear' });
+      var lo = WA.plan({ tier: 'LOW', alt: 0.8, weather: 'clear' });
+      return hi.on === true && hi.wave > 0 && lo.on === false && lo.wave === 0 &&
+        ('HIGH 결 ' + hi.wave + ' → LOW 결 ' + lo.wave);
+    });
+
+    t('물 — 비가 오면 잘게 일고 덜 비친다', function () {
+      var c = WA.plan({ tier: 'HIGH', alt: 0.8, weather: 'clear' });
+      var r = WA.plan({ tier: 'HIGH', alt: 0.8, weather: 'rain' });
+      return r.wave > c.wave && r.ripple === 1 && c.ripple === 0 &&
+        r.glint < c.glint && r.sky < c.sky &&
+        ('맑음 결 ' + c.wave + ' → 비 ' + r.wave + ' · 잔결 1 · 하늘섞임 ' +
+         c.sky + '→' + r.sky);
+    });
+
+    t('물 — 눈 오는 날은 가라앉고 바람 부는 날은 인다', function () {
+      var c = WA.plan({ tier: 'HIGH', alt: 0.8, weather: 'clear' });
+      var s = WA.plan({ tier: 'HIGH', alt: 0.8, weather: 'snow' });
+      var w = WA.plan({ tier: 'HIGH', alt: 0.8, weather: 'wind' });
+      return s.wave < c.wave && w.wave > c.wave &&
+        ('눈 ' + s.wave + ' < 맑음 ' + c.wave + ' < 바람 ' + w.wave);
+    });
+
+    t('물 — 밤에는 윤슬이 잦아든다', function () {
+      var day = WA.plan({ tier: 'HIGH', alt: 0.9, weather: 'clear' });
+      var night = WA.plan({ tier: 'HIGH', alt: -0.6, weather: 'clear' });
+      return night.glint < day.glint * 0.4 && night.wave < day.wave &&
+        ('낮 윤슬 ' + day.glint + ' → 밤 ' + night.glint);
+    });
+
+    t('물 — 노을이 한낮보다 반짝이되 불길이 되지는 않는다', function () {
+      /* 처음에 노을 보정을 크게 잡았다가 강이 타는 것처럼 보였다 —
+         한낮보다는 세되 **곱절을 넘지 않는다** 를 여기 못박아 둔다 */
+      var noon = WA.plan({ tier: 'HIGH', alt: 0.95, weather: 'clear' });
+      var dusk = WA.plan({ tier: 'HIGH', alt: 0.16, weather: 'clear' });
+      return dusk.glint > noon.glint && dusk.glint < noon.glint * 2 &&
+        ('한낮 ' + noon.glint + ' → 노을 ' + dusk.glint + ' (곱절 미만)');
+    });
+
+    t('물 — 손잡이를 내리면 재질을 안 준다', function () {
+      C.setTune('water3d.on', 0);
+      var off = WA.plan({ tier: 'HIGH' }).on === false && WA.material(null, 0) === null;
+      C.setTune('water3d.on', null);
+      return off && WA.plan({ tier: 'HIGH' }).on === true &&
+        'water3d.on=0 → 옛 Lambert 판으로 돌아간다';
+    });
+
+    /* ── 그늘 (ssao3d) ─ 맞닿은 자리가 어두워진다 ────────
+     * 17절 여섯 가지 중 마지막. 여기서도 **처방**만 본다.
+     */
+    var AO = DG.ssao3d;
+
+    t('그늘 — 등급마다 표본 수가 갈리고 LOW 는 안 잰다 (17절 6번)', function () {
+      var hi = AO.plan({ tier: 'HIGH', w: 900, h: 700 });
+      var md = AO.plan({ tier: 'MEDIUM', w: 900, h: 700 });
+      var lo = AO.plan({ tier: 'LOW', w: 900, h: 700 });
+      return hi.on && md.on && !lo.on && hi.samples > md.samples && lo.samples === 0 &&
+        ('HIGH ' + hi.samples + '표본 · MEDIUM ' + md.samples + ' · LOW 안 잼');
+    });
+
+    t('그늘 — 절반 크기로 재고 흐린다 (값싼 쪽)', function () {
+      var p = AO.plan({ tier: 'HIGH', w: 900, h: 700 });
+      return p.w === 450 && p.h === 350 && p.scale === 0.5 &&
+        ('900x700 → ' + p.w + 'x' + p.h);
+    });
+
+    t('그늘 — 창이 아주 작으면 아예 안 잰다', function () {
+      var p = AO.plan({ tier: 'HIGH', w: 20, h: 16 });
+      return p.on === false && p.w === 0 &&
+        '20x16 → 흐리기가 화면을 넘어가므로 끈다';
+    });
+
+    t('그늘 — 손잡이로 표본 수를 못박을 수 있다', function () {
+      C.setTune('ssao3d.samples', 6);
+      var p = AO.plan({ tier: 'HIGH', w: 900, h: 700 });
+      C.setTune('ssao3d.samples', null);
+      return p.samples === 6 && AO.plan({ tier: 'HIGH', w: 900, h: 700 }).samples === 12 &&
+        '6 으로 못박았다 놓으면 12 로 돌아온다';
+    });
+
+    t('그늘 — 손잡이를 내리면 통째로 잠든다', function () {
+      C.setTune('ssao3d.on', 0);
+      var off = AO.plan({ tier: 'HIGH', w: 900, h: 700 }).on === false;
+      C.setTune('ssao3d.on', null);
+      return off && AO.plan({ tier: 'HIGH', w: 900, h: 700 }).on === true &&
+        'ssao3d.on=0 → 깊이 텍스처도 안 붙는다';
+    });
+
+    t('후처리 — 그늘이 켜지면 처방이 그것을 싣고 온다', function () {
+      var hi = PS.plan({ tier: 'HIGH', alt: 0.9, w: 900, h: 700 });
+      var lo = PS.plan({ tier: 'LOW', alt: 0.9, w: 900, h: 700 });
+      return hi.ao && hi.ao.on === true && lo.ao && lo.ao.on === false &&
+        ('HIGH 그늘 ' + hi.ao.samples + '표본 ' + hi.ao.w + 'x' + hi.ao.h + ' · LOW 없음');
     });
 
     /* ── 미니맵 (minimap) ─ 위에서 본 그림 한 장 ──────

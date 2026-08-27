@@ -19,6 +19,8 @@
     #rogue   점거된 역참(적도)     #roguewin 탈환 — 암영이 남은 참
     #dark    도감의 암영 칸(정화 대기)
     #perf    프레임 측정
+    #noao   맞닿은 자리의 그늘(SSAO)을 끄고 견줘 본다
+    #nowater 물결치는 수면을 끄고 옛 판 한 장으로 (물을 견줘 볼 때)
     #minimap 미니맵(좌하단) — mmfar 를 붙이면 360m, mmfold 를 붙이면 접힌 모습
   해시에 2d·3d·chibi·tall·anime·story 를 붙이면 시점·등신·양식도 바뀐다 (예: #map-3d-chibi).
   뒤에 -b 를 붙이면 시트를 끝까지 내려서 찍는다 (예: #dex-b).
@@ -88,12 +90,14 @@ window.DG_NO_TUNE = true;
 <script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
+<script src="js/ssao3d.js"></script>
 <script src="js/post3d.js"></script>
 <script src="js/world3d.js"></script>
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
 <script src="js/battle3d.js"></script>
 <script src="js/sky3d.js"></script>
+<script src="js/water3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
@@ -273,7 +277,12 @@ setTimeout(function () {
         var ps = DG.post3d.stats();
         st.post = (ps.on ? 'on' : 'off') + ' ' + ps.size + ' msaa' + ps.msaa +
           ' mip' + ps.mips + ' 노출' + ps.exposure + ' 블룸' + ps.bloom +
-          ' 채도' + ps.sat + ' 온도' + ps.temp;
+          ' 채도' + ps.sat + ' 온도' + ps.temp + ' 그늘' + ps.ao;
+      }
+      if (DG.water3d) {
+        var wt = DG.water3d.stats();
+        st.water = (wt.on ? 'on' : 'off') + ' 판' + wt.mats +
+          ' 결' + wt.wave + ' 윤슬' + wt.glint + ' 잔결' + wt.ripple + ' ' + wt.tier + ' why=' + wt.why + ' 물음' + wt.asks;
       }
       if (DG.battle3d) {
         var b3 = DG.battle3d.stats();
@@ -365,6 +374,8 @@ setTimeout(function () {
   if (hash.indexOf('noinst') >= 0) { C.setTune('world3d.instanced', 0); }
   /* 후처리를 끄고 견줘 본다 — `#nopost`. 톤매핑·블룸·색보정이 화면을 얼마나
      바꾸는지는 **두 장을 나란히 놓아야** 보인다(`post=on/off` 도 `#stat` 에 뜬다) */
+  if (hash.indexOf('noao') >= 0) { C.setTune('ssao3d.on', 0); }
+  if (hash.indexOf('nowater') >= 0) { C.setTune('water3d.on', 0); }
   if (hash.indexOf('nopost') >= 0) { C.setTune('post3d.on', 0); }
   /* 블룸만 끈다 — `#nobloom`. 어두워진 것이 톤매핑 탓인지 블룸 탓인지 가른다 */
   if (hash.indexOf('nobloom') >= 0) { C.setTune('post3d.bloom', 0); }
@@ -372,7 +383,14 @@ setTimeout(function () {
      기다릴 수 없으니 여기서 잡아 본다(28·29절의 세 프리셋) */
   if (/tier=/.test(hash) && DG.perf) {
     var tm2 = /tier=(HIGH|MEDIUM|LOW)/.exec(hash);
-    if (tm2) { C.setTune('perf.startTier', tm2[1]); DG.perf.set(tm2[1]); }
+    /* **자동 조정도 같이 멈춘다.** 안 그러면 헤드리스처럼 느린 자리에서
+       몇 초 뒤 스스로 LOW 로 내려앉아, 못박은 등급으로 찍은 줄 알았던 화면이
+       실제로는 LOW 화면이 된다 — 물결이 안 보여 한참 헤맨 자리다 */
+    if (tm2) {
+      C.setTune('perf.startTier', tm2[1]);
+      C.setTune('perf.auto', 0);
+      DG.perf.set(tm2[1]);
+    }
   }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }

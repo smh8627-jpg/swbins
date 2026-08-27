@@ -684,7 +684,13 @@
     var m = new T.MeshLambertMaterial({ color: new T.Color(hex), flatShading: opt === 'flat' });
     /* 수면은 **깊이를 안 적는다** — 적으면 물속에 있는 것(잉어)을 통째로 가린다.
        반투명이라 비쳐 보여야 맞는데, 깊이 버퍼가 먼저 잘라내 아무것도 안 남았다 */
-    if (opt === 'water') { m.transparent = true; m.opacity = 0.72; m.depthWrite = false; }
+    if (opt === 'water') {
+      /* 물결치는 수면이 있으면 그것을 쓴다(`water3d.js`). 없거나 등급이 LOW 면
+         null 이 와서 **여태 쓰던 판 한 장**으로 간다 — 그림만 어제로 돌아간다 */
+      var wm = global.DG.water3d ? global.DG.water3d.material(T, hex) : null;
+      if (wm) { propMat[key] = wm; return wm; }
+      m.transparent = true; m.opacity = 0.72; m.depthWrite = false;
+    }
     if (opt === 'glow') { m.emissive = new T.Color(hex); m.emissiveIntensity = 0.9; }
     propMat[key] = m;
     return m;
@@ -1517,6 +1523,7 @@
     if (global.DG.encounter3d) { global.DG.encounter3d.tick(dt); }
     if (global.DG.battle3d) { global.DG.battle3d.tick(dt); }
     if (global.DG.sky3d) { global.DG.sky3d.tick(dt, lightNow); }
+    if (global.DG.water3d) { global.DG.water3d.tick(dt, lightNow); }
     syncBeams(dt);
     syncCamera(W, dt);
 
