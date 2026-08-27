@@ -74,6 +74,7 @@ window.DG_NO_TUNE = true;
 <script src="js/perf.js"></script>
 <script src="js/account.js"></script>
 <script src="js/bag.js"></script>
+<script src="js/season.js"></script>
 <script src="js/weather.js"></script>
 <script src="js/quest.js"></script>
 <script src="js/growth.js"></script>
@@ -333,6 +334,11 @@ setTimeout(function () {
   if (/turn=/.test(hash) && DG.world3d) {
     var tm = /turn=(-?\d+)/.exec(hash);
     DG.world3d.yaw(+tm[1] * Math.PI / 180);
+  }
+  /* 계절을 못박는다 — `#se=autumn`. 잎·논밭·들 색이 갈리는 것은 눈으로 볼 수밖에 없다 */
+  if (/se=/.test(hash) && DG.season) {
+    var sm = /se=([a-z]+)/.exec(hash);
+    DG.season.force(sm[1]);
   }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }

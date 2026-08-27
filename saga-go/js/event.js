@@ -334,6 +334,9 @@
          표식 위에서만 나는 것들 — 사당의 비문, 폐허의 지도 조각이 그것이다 */
       if (ctx.weather === 'fog' && ev.marks && ev.marks.length &&
           ev.marks.indexOf(ctx.mark) >= 0) { w *= 2.4; }
+      /* 계절 — 약초는 봄·여름에 잦고 겨울에는 드물다 (PLAN 37절) */
+      var SE = global.DG.season;
+      if (SE) { w *= SE.eventWeight(ev.id); }
       if (w > 0) { out.push({ ev: ev, w: w }); }
     }
     return out;

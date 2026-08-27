@@ -362,7 +362,10 @@
     }
     if (!any) { return null; }
 
-    var ck = key + '|' + (img && img.ready ? 'i' : 'n') + '|' + Math.round(PAINT_A() * 100);
+    /* 계절도 키에 넣는다 — 안 넣으면 계절이 바뀌어도 지난 계절 색이 남는다 */
+    var SSk = global.DG.season;
+    var ck = key + '|' + (img && img.ready ? 'i' : 'n') + '|' + Math.round(PAINT_A() * 100) +
+      '|' + (SSk ? SSk.now().key : '-');
     if (landTex[ck]) { return landTex[ck]; }
 
     var S = 256;
@@ -392,8 +395,10 @@
            흔드는 값은 좌표에서 뽑으므로 **같은 칸은 늘 같은 색**이다 */
         /* 폭을 **아주 좁게** 둔다 — 0.16 으로 흔들었더니 들판이 바둑판이 됐다
            (눈으로 보고 알았다). 있는 줄 모를 만큼만 흔드는 것이 맞다 */
-        c.fillStyle = shadeHex(LAND_COLOR[at.kind] || LAND_COLOR.grass,
-          (h1(gx * 17 + 5, gy * 23 + 9) - 0.5) * 0.06);
+        var SSc = global.DG.season;
+        var baseCol = LAND_COLOR[at.kind] || LAND_COLOR.grass;
+        if (SSc) { baseCol = SSc.landColor(at.kind, baseCol); }
+        c.fillStyle = shadeHex(baseCol, (h1(gx * 17 + 5, gy * 23 + 9) - 0.5) * 0.06);
         /* **겹쳐 칠하지 않는다** — 알파가 있는 색을 두 번 얹으면 그 줄만 짙어진다.
            칸 경계는 픽셀로 딱 맞춰 자른다 */
         var rx = Math.round((gx * GRID - x0) * k);
@@ -712,8 +717,11 @@
             .rotation.y = p.rot;
         }
       } else if (p.t === 'tree') {
+        /* 잎 색은 **계절이 정한다**(`season.js`) — 계절이 꺼져 있으면 예전 초록 */
+        var SS = global.DG.season;
+        var leafHex = SS ? SS.leaf(0x2f5a34) : 0x2f5a34;
         box(g, 'cyl', pmat(0x4a3a2a), p.x, p.h * 0.21, p.z, 1.2, p.h * 0.42, 1.2, true);
-        box(g, 'cone', pmat(0x2f5a34), p.x, p.h * 0.58, p.z, p.h * 0.68, p.h * 0.72, p.h * 0.68, true);
+        box(g, 'cone', pmat(leafHex), p.x, p.h * 0.58, p.z, p.h * 0.68, p.h * 0.72, p.h * 0.68, true);
       } else if (p.t === 'rock') {
         var rk = box(g, 'sph', pmat(0x6b6a72, 'flat'), p.x, p.h * 0.32, p.z, p.h * 1.5, p.h * 0.9, p.h * 1.3, true);
         rk.rotation.set(0.3, p.x, 0.2);
@@ -828,12 +836,14 @@
     var RG3 = global.DG.land;
     var wkNow = weatherKey();
     var wetNow = WET() && (wkNow === 'rain' || wkNow === 'snow');
+    var seasonKey = global.DG.season ? global.DG.season.now().key : '-';
     /* **훑을 까닭이 있을 때만 훑는다.** 격자를 넘었거나 · 지도가 붙거나 떨어졌거나 ·
        비가 오거나 그쳤거나 · 품질이 바뀌었을 때. 그 밖에는 답이 지난 프레임과 같다 */
     var cell = Math.floor(pos.x / GRID) + ':' + Math.floor(pos.y / GRID) +
       ':' + Math.round(R) + ':' + (MESH_ON() ? 1 : 0) + ':' + Math.round(DENSITY() * 100) +
       ':' + (mapped ? 'm' : 'n') + ':' + (wetNow ? 'w' : 'd') +
-      ':' + (RG3 && RG3.on() ? 'L' : '-');
+      ':' + (RG3 && RG3.on() ? 'L' : '-') +
+      ':' + seasonKey;
     if (propScan === cell) { return; }
     propScan = cell;
     var g0x = Math.floor((pos.x - R) / GRID), g1x = Math.floor((pos.x + R) / GRID);
@@ -850,9 +860,12 @@
         var far = Math.hypot((gx + 0.5) * GRID - pos.x, (gy + 0.5) * GRID - pos.y) > R * 0.5;
         if (far && !mk && (kind === 'grass' || kind === 'road')) { continue; }
         /* 이 땅을 켜고 끄면 같은 격자가 다른 땅이 된다 — 캐시 키에 넣어야 다시 세운다 */
-        /* 젖음도 키에 넣는다 — 안 넣으면 비가 그쳐도 강이 분 채로 남는다 */
+        /* 젖음도 키에 넣는다 — 안 넣으면 비가 그쳐도 강이 분 채로 남는다.
+           **계절도 마찬가지다** — 안 넣으면 가을이 됐는데 나무 몇 그루가 초록으로
+           남는다(눈으로 보고 알았다). 훑는 조건에만 넣으면 다시 훑기는 하는데
+           이미 세워 둔 격자를 그대로 되쓴다 */
         var key = kind + ':' + gx + ':' + gy + ':' + (mapped ? 'm' : 'n') +
-          (mk ? ':' + mk : '') + (wetNow ? ':w' : '');
+          (mk ? ':' + mk : '') + (wetNow ? ':w' : '') + ':' + seasonKey;
         live[key] = 1;
         if (propMeshes[key]) { continue; }
         var node = buildProp(kind, gx, gy, mapped);

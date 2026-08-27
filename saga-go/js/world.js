@@ -1330,7 +1330,9 @@
       kind: 'human', ref: n.p,
       x: p.x, y: p.y, s: z * 1.05, facing: n.x < 0 ? -1 : 1,
       phase: n.phase, walking: n.walking,
-      color: n.p.color || '#6b6f78',
+      /* 옷 색은 계절을 탄다 — 겨울에는 짙고 두껍다 (`season.js`) */
+      color: (global.DG.season ? global.DG.season.cloth(n.p.color || '#6b6f78')
+                               : (n.p.color || '#6b6f78')),
       look: sp.lookOf(n.p),
       t: now
     });

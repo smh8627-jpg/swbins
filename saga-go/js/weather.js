@@ -56,11 +56,34 @@
   /* 이 판의 core.hash2 는 0~0.5 만 돌려준다(world.js 주석 참고) — 두 배로 편다 */
   function h01(a, b) { return Math.min(0.999999, core.hash2(a, b) * 2); }
 
-  /** 이 시각의 천후 — 세 시간마다 바뀌고, 같은 시각이면 늘 같다 */
+  /**
+   * 이 시각의 천후 — 세 시간마다 바뀌고, 같은 시각이면 늘 같다.
+   *
+   * **계절이 기울인다**(`season.js`, PLAN 37절) — 여름에 비가 잦고 겨울에 눈이 온다.
+   * 계절이 없거나 꺼져 있으면 여섯을 고르게 뽑던 예전과 한 글자도 다르지 않다.
+   * 이 판의 천후는 무엇이 잘 나오는지를 정하므로 **여기만 판정에 닿는다** —
+   * 그래서 `season.weather` 손잡이 하나로 이 갈래만 따로 끌 수 있게 두었다.
+   */
   function at(ms) {
     var slot = Math.floor((ms === undefined ? Date.now() : ms) / SPAN_MS);
     var h = h01(slot * 7919 + 13, slot * 104729 + 29);
-    return KINDS[Math.min(KINDS.length - 1, Math.floor(h * KINDS.length))];
+    var S = global.DG.season;
+    if (!S || !S.weatherOn()) {
+      return KINDS[Math.min(KINDS.length - 1, Math.floor(h * KINDS.length))];
+    }
+    /* 가중치대로 뽑는다. 뽑는 주사위(h)는 그대로라 **같은 시각이면 여전히 같다** */
+    var w = [], sum = 0, i;
+    for (i = 0; i < KINDS.length; i++) {
+      var v = Math.max(0, S.weatherWeight(KINDS[i].key, ms));
+      w.push(v); sum += v;
+    }
+    if (sum <= 0) { return KINDS[0]; }
+    var x = h * sum;
+    for (i = 0; i < KINDS.length; i++) {
+      x -= w[i];
+      if (x <= 0) { return KINDS[i]; }
+    }
+    return KINDS[KINDS.length - 1];
   }
 
   /* 진단·데모가 천후를 하나로 붙들어 둘 때 쓰는 문. 게임에서는 늘 null 이다.

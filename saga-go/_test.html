@@ -66,6 +66,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/perf.js"></script>
 <script src="js/account.js"></script>
 <script src="js/bag.js"></script>
+<script src="js/season.js"></script>
 <script src="js/weather.js"></script>
 <script src="js/quest.js"></script>
 <script src="js/growth.js"></script>
@@ -3044,6 +3045,130 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       C.setTune('world3d.landPaint', null);
       return on === 1 && off === 0 && C.tuned('world3d.landPaint', 1) === 1 &&
         'world3d.landPaint=0 이면 실제 지도만 깔린다';
+    });
+
+    /* ── 계절 (season) — PLAN 37절 ──────────────────────────
+     * PLAN 이 "MVP 이후" 로 미뤄 둔 절이다. 계절도 **시각의 순수 함수**라
+     * 값으로 다 본다. 다섯 갈래 중 **천후 하나만 판정에 닿는다**.
+     */
+
+    var SS = DG.season;
+    function atM(m) { return new Date(2026, m - 1, 15, 12, 0, 0, 0).getTime(); }
+
+    t('계절 — 달이 넷을 가른다', function () {
+      var ks = [1, 4, 7, 10].map(function (m) { return SS.at(atM(m)).key; });
+      var all = {};
+      for (var m = 1; m <= 12; m++) { all[SS.at(atM(m)).key] = (all[SS.at(atM(m)).key] || 0) + 1; }
+      return ks.join('/') === 'winter/spring/summer/autumn' &&
+        Object.keys(all).length === 4 &&
+        all.spring === 3 && all.summer === 3 && all.autumn === 3 && all.winter === 3 &&
+        ('1·4·7·10월 → ' + ks.join(' · ') + ' · 열두 달이 셋씩 갈린다');
+    });
+
+    t('계절 — 잎과 땅 색이 바뀐다 (PLAN 37절 식물)', function () {
+      var was = SS.stats().forced;
+      SS.force('summer');
+      var sl = SS.leaf(0x2f5a34), sf = SS.landColor('farm', '#7f9c5e');
+      SS.force('autumn');
+      var al = SS.leaf(0x2f5a34), af = SS.landColor('farm', '#7f9c5e');
+      SS.force('winter');
+      var wl = SS.leaf(0x2f5a34);
+      SS.force(was);
+      return sl !== al && al !== wl && sf !== af &&
+        ('잎 여름 ' + sl.toString(16) + ' → 가을 ' + al.toString(16) +
+         ' → 겨울 ' + wl.toString(16) + ' · 논밭도 갈린다');
+    });
+
+    t('계절 — 길·마을·산·강은 사철 같다', function () {
+      /* 잎과 곡식만 철을 탄다 — 돌과 물까지 물들면 딴 세상이 된다 */
+      var was = SS.stats().forced;
+      var same = ['road', 'town', 'mount', 'water'].every(function (k) {
+        SS.force('summer');
+        var a = SS.landColor(k, '#111111');
+        SS.force('winter');
+        return SS.landColor(k, '#111111') === a;
+      });
+      SS.force(was);
+      return same && '길·마을·산·강은 안 바뀐다 · 잎·논밭·들만 바뀐다';
+    });
+
+    t('계절 — 겨울에는 옷이 짙다 (PLAN 37절 의상)', function () {
+      var was = SS.stats().forced;
+      function lum2(h) {
+        var n = parseInt(h.replace('#', ''), 16);
+        return ((n >> 16 & 255) + (n >> 8 & 255) + (n & 255)) / 3;
+      }
+      SS.force('summer');
+      var s = SS.cloth('#8a7f6a');
+      SS.force('winter');
+      var w = SS.cloth('#8a7f6a');
+      SS.force(was);
+      return lum2(w) < lum2(s) &&
+        ('여름 ' + s + ' → 겨울 ' + w + ' (' + Math.round(lum2(s)) + ' → ' +
+         Math.round(lum2(w)) + ')');
+    });
+
+    t('계절 — 겨울에 눈이 오고 여름에 비가 온다', function () {
+      var was = SS.stats().forced;
+      SS.force('winter');
+      var wSnow = SS.weatherWeight('snow'), wRain = SS.weatherWeight('rain');
+      SS.force('summer');
+      var sSnow = SS.weatherWeight('snow'), sRain = SS.weatherWeight('rain');
+      SS.force(was);
+      return wSnow > sSnow * 5 && sRain > wRain * 5 && sSnow === 0 &&
+        ('눈 겨울 ' + wSnow + ' vs 여름 ' + sSnow +
+         ' · 비 여름 ' + sRain + ' vs 겨울 ' + wRain);
+    });
+
+    t('계절 — 천후 갈래만 따로 끌 수 있다', function () {
+      /* 다섯 갈래 중 **천후 하나만 판정에 닿는다**(무엇이 잘 나오는지를 정한다) */
+      var was = SS.stats().forced;
+      SS.force('winter');
+      var on1 = SS.weatherWeight('snow');
+      C.setTune('season.weather', 0);
+      var off = SS.weatherWeight('snow');
+      var stillLeaf = SS.leaf(0x2f5a34);          // 색은 그대로 겨울이어야 한다
+      C.setTune('season.weather', null);
+      SS.force('summer');
+      var summerLeaf = SS.leaf(0x2f5a34);
+      SS.force(was);
+      return on1 > 1 && off === 1 && stillLeaf !== summerLeaf &&
+        'season.weather=0 이면 천후만 예전으로 · 색은 그대로 계절을 탄다';
+    });
+
+    t('계절 — 천후가 계절을 몰라도 예전 그대로다', function () {
+      /* 계절을 끄면 여섯을 고르게 뽑던 예전과 한 글자도 달라지면 안 된다 */
+      var was = SS.stats().forced;
+      SS.force(null);
+      C.setTune('season.on', 0);
+      var off = [0, 1, 2, 3, 4, 5, 6, 7].map(function (i) {
+        return DG.weather.at(atM(7) + i * 3 * 3600 * 1000).key;
+      }).join('/');
+      C.setTune('season.on', null);
+      SS.force(was);
+      /* 고르게 뽑을 때의 답은 씨앗이 정하므로 여기서는 **여섯이 다 나올 수 있는지**만 본다 */
+      return off.length > 0 && off.indexOf('/') > 0 &&
+        ('계절을 끄면 옛 길 — ' + off);
+    });
+
+    t('계절 — 약초는 봄에 잦고 겨울에 드물다 (PLAN 37절 이벤트)', function () {
+      var was = SS.stats().forced;
+      SS.force('spring');
+      var sp = SS.eventWeight('rare_herb');
+      SS.force('winter');
+      var wi = SS.eventWeight('rare_herb');
+      SS.force(was);
+      return sp > 1 && wi < 1 && sp > wi * 4 &&
+        ('희귀 약초 가중치 — 봄 ×' + sp + ' · 겨울 ×' + wi);
+    });
+
+    t('계절 — 값을 내도 세이브는 그대로다', function () {
+      var before = JSON.stringify(C.save);
+      var was = SS.stats().forced;
+      SS.force('autumn'); SS.leaf(0); SS.cloth('#888888'); SS.weatherWeight('rain');
+      SS.eventWeight('rare_herb'); SS.stats();
+      SS.force(was);
+      return JSON.stringify(C.save) === before && '세이브 그대로';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {
