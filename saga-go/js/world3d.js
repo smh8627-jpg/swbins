@@ -1037,6 +1037,7 @@
    * 소품은 `battle3d.js` 가 만든다. 여기 있는 것은 **카메라가 하는 일**뿐이다 —
    * 줌인 · 흔들림 · 잠깐 멎기(hit-stop). 셋 다 화면에만 쓴다.
    */
+  var yaw = 0;             // 돌려 본 각(라디안) — 드래그로 바꾼다
   var battleOn = false;    // 교전 중인가
   var shakeAmp = 0;        // 남은 흔들림 세기(m)
   var holdUntil = 0;       // 이때까지 화면이 멎는다 (performance.now 기준)
@@ -1127,8 +1128,9 @@
       하나는 얼굴이 화면을 채우고 하나는 발치에 놓인다 */
   function STAGE_DIST() { return core.tuned('world3d.stageDist', 10.5); }
 
-  function camAim(pos, mode, focus, stage, zoom, battle) {
+  function camAim(pos, mode, focus, stage, zoom, battle, yaw) {
     var z = (zoom === undefined || !isFinite(zoom) || zoom <= 0) ? 1 : zoom;
+    var yw = yaw || 0;
     /* 교전이 열리면 **약간 줌인**한다(PLAN 23절). 무대(stage)처럼 자리를 통째로
        옮기지는 않는다 — 싸움은 내가 선 자리에서 벌어지고, 카메라만 다가선다 */
     if (battle) { z = z * 0.62; }
@@ -1164,16 +1166,22 @@
         look: { x: (pos.x + focus.x) / 2, y: 2.0, z: (pos.y + focus.y) / 2 }
       };
     }
+    /* **돌려 보기**(PLAN 7·26절 "마우스/터치 회전") — 카메라를 나를 축으로 돌린다.
+       보는 곳은 그대로 내 앞이라, 돌려도 **내가 화면 한가운데** 남는다 */
+    var cs = Math.cos(yw), sn = Math.sin(yw);
+    var ax = 0, az = back;                       // 안 돌렸을 때 카메라가 서는 자리
+    var ahead = CAM_AHEAD[mode];
     return {
-      pos: { x: pos.x, y: high, z: pos.y + back },
-      look: { x: pos.x, y: mode === 0 ? 0.5 : 2.4, z: pos.y - CAM_AHEAD[mode] }
+      pos: { x: pos.x + ax * cs - az * sn, y: high, z: pos.y + ax * sn + az * cs },
+      look: { x: pos.x + ahead * sn, y: mode === 0 ? 0.5 : 2.4, z: pos.y - ahead * cs }
     };
   }
 
   function syncCamera(W, dt) {
     var pos = core.save.player.pos;
     /* 조우 무대에서는 줌을 무시한다 — 무대는 늘 같은 그림이어야 한다 */
-    var aim = camAim(pos, W.tiltMode, focusLive(), stageAt, stageAt ? 1 : W.zoom3d, battleOn);
+    var aim = camAim(pos, W.tiltMode, focusLive(), stageAt,
+      stageAt ? 1 : W.zoom3d, battleOn, stageAt ? 0 : yaw);
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
@@ -1288,6 +1296,14 @@
     addFx: function (n) { if (fxGroup && n) { fxGroup.add(n); } return n; },
     removeFx: function (n) { if (fxGroup && n) { fxGroup.remove(n); } },
     camNode: function () { return camera; },
+    /** 돌려 보기 — 드래그가 두드린다(`world.js`). 라디안을 더한다 */
+    turn: function (d) {
+      yaw += d || 0;
+      while (yaw > Math.PI) { yaw -= Math.PI * 2; }
+      while (yaw < -Math.PI) { yaw += Math.PI * 2; }
+      return yaw;
+    },
+    yaw: function (v) { if (v !== undefined) { yaw = v; } return yaw; },
     /* 전투 연출 손잡이 — `battle3d.js` 가 두드린다 (PLAN 23절) */
     battle: function (on) { battleOn = !!on; if (!on) { shakeAmp = 0; } return battleOn; },
     inBattle: function () { return battleOn; },

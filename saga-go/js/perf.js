@@ -50,7 +50,47 @@
     { key: 'LOW', name: '낮음', prop: 0.25, radius: 0.55, animal: 0.5, sky: 0.25, mesh: 0, shadow: 0 }
   ];
 
+  /* ── 기기 보기 (PLAN 27절 "기기 성능을 자동 감지한다") ──
+   * 프레임을 재는 것만으로는 **처음 몇 초가 늘 버벅인다** — 폰에서 HIGH 로 켜고
+   * 두 초를 버틴 뒤에야 내려간다. 켤 때 기기를 한 번 보고 **시작 등급**을 고른다.
+   *
+   * 무엇을 보나: 코어 수 · 메모리(GB) · 그릴 픽셀 수 · 터치 기기인가.
+   * **점수를 내는 함수는 순수하다** — 값을 넣으면 답이 나오므로 자가진단이 값으로 본다.
+   * (브라우저마다 `deviceMemory` 가 없기도 하다. 없으면 모르는 채로 셈한다)
+   */
+  function score(o) {
+    var s = 0;
+    var cores = o.cores || 0, mem = o.mem || 0;
+    var px = (o.w || 0) * (o.h || 0) * (o.dpr || 1) * (o.dpr || 1);
+    /* 코어 — 넷이면 보통, 여덟이면 넉넉 */
+    s += cores >= 8 ? 2 : (cores >= 4 ? 1 : (cores > 0 ? 0 : 1));
+    /* 메모리 — 크롬 계열만 알려 준다. 모르면 깎지도 더하지도 않는다 */
+    s += mem >= 8 ? 2 : (mem >= 4 ? 1 : (mem > 0 ? 0 : 1));
+    /* 그릴 픽셀 — 많을수록 무겁다. 폰의 3배 화면이 여기서 걸린다 */
+    s += px > 4000000 ? -1 : (px > 1600000 ? 0 : 1);
+    /* 터치 기기는 대개 폰이다 — 같은 점수면 한 단 낮게 본다 */
+    if (o.touch) { s -= 1; }
+    return s;
+  }
+
+  /** 점수 → 등급 번호. 순수 함수 */
+  function tierOfScore(s) { return s >= 3 ? 0 : (s >= 1 ? 1 : 2); }
+
+  /** 이 기기를 재 본다 — 브라우저가 없으면(진단) 아무것도 안 한다 */
+  function probe() {
+    var n = global.navigator || {};
+    var sc = global.screen || {};
+    return {
+      cores: n.hardwareConcurrency || 0,
+      mem: n.deviceMemory || 0,
+      w: sc.width || 0, h: sc.height || 0,
+      dpr: global.devicePixelRatio || 1,
+      touch: !!(('ontouchstart' in global) || (n.maxTouchPoints > 0))
+    };
+  }
+
   var idx = 0;              // 지금 등급 (0 = HIGH)
+  var started = false;
   var lowFor = 0, highFor = 0;
   var fps = 60, acc = 0, frames = 0, worst = 0;
   var changedAt = 0, changes = 0;
@@ -81,11 +121,30 @@
   }
 
   /**
+   * 켤 때 한 번 — 기기를 보고 시작 등급을 고른다.
+   * 손잡이 `perf.startTier` 로 사람이 못박아 둘 수 있다(`HIGH`·`MEDIUM`·`LOW`).
+   */
+  function start() {
+    if (started || global.DG_NO_DRAW) { return tier(); }
+    started = true;
+    var forced = core.tuned('perf.startTier', '');
+    if (forced) { return set(forced); }
+    if (!auto()) { return tier(); }
+    var p = probe();
+    idx = tierOfScore(score(p));
+    if (idx > 0) {
+      core.emit('toast', '⚙️ 이 기기에 맞춰 화면 품질을 ' + TIERS[idx].name + ' 으로 시작합니다');
+    }
+    return tier();
+  }
+
+  /**
    * 한 프레임. `game.js` 가 부른다.
    * **화면이 없으면 재지 않는다** — 자가진단은 rAF 가 거의 안 돌아 늘 버거워 보인다.
    */
   function tick(dt) {
     if (global.DG_NO_DRAW || !dt) { return idx; }
+    if (!started) { start(); }
     frames++; acc += dt;
     if (dt * 1000 > worst) { worst = dt * 1000; }
     if (acc < 0.5) { return idx; }
@@ -123,6 +182,7 @@
   function stats() {
     return {
       auto: auto(), tier: tier().key, fps: Math.round(fps),
+      started: started, probe: probe(), score: score(probe()),
       lowFor: lowFor, highFor: highFor, changes: changes,
       mul: { prop: mul('prop'), radius: mul('radius'), animal: mul('animal'), sky: mul('sky') },
       mesh: meshOk(), shadow: shadowOk()
@@ -133,8 +193,10 @@
   global.DG.perf = {
     TIERS: TIERS,
     auto: auto, tier: tier, mul: mul, meshOk: meshOk, shadowOk: shadowOk,
+    /* 기기 보기 — `score`·`tierOfScore` 는 순수 함수다 */
+    score: score, tierOfScore: tierOfScore, probe: probe, start: start,
     decide: decide, tick: tick, set: set, stats: stats,
     fps: function () { return fps; },
-    reset: function () { idx = 0; lowFor = 0; highFor = 0; fps = 60; changes = 0; }
+    reset: function () { idx = 0; lowFor = 0; highFor = 0; fps = 60; changes = 0; started = false; }
   };
 })(window);

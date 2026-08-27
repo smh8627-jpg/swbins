@@ -2859,6 +2859,77 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return JSON.stringify(C.save) === before && '세이브 그대로';
     });
 
+    /* ── 모바일 (PHASE 13) ──────────────────────────────────
+     * 등급 셋은 PHASE 12 가 만들었다. 여기서 채운 것은 **켤 때 기기를 보고 시작
+     * 등급을 고르는 것**(27절 "기기 성능을 자동 감지")과 **돌려 보기**(7·26절)다.
+     */
+
+    t('모바일 — 기기를 보고 시작 등급을 고른다', function () {
+      var pc = PF.score({ cores: 12, mem: 16, w: 2560, h: 1440, dpr: 1, touch: false });
+      var mid = PF.score({ cores: 6, mem: 4, w: 1920, h: 1080, dpr: 1, touch: false });
+      var phone = PF.score({ cores: 4, mem: 4, w: 390, h: 844, dpr: 3, touch: true });
+      var old = PF.score({ cores: 2, mem: 2, w: 360, h: 640, dpr: 3, touch: true });
+      var t2 = [pc, mid, phone, old].map(PF.tierOfScore);
+      return pc > mid && mid > phone && phone > old &&
+        t2[0] === 0 && t2[3] === 2 &&
+        ('PC ' + pc + '점→' + PF.TIERS[t2[0]].key + ' · 노트북 ' + mid + '→' +
+         PF.TIERS[t2[1]].key + ' · 폰 ' + phone + '→' + PF.TIERS[t2[2]].key +
+         ' · 낡은 폰 ' + old + '→' + PF.TIERS[t2[3]].key);
+    });
+
+    t('모바일 — 같은 사양이어도 터치 기기를 한 단 낮게 본다', function () {
+      var o = { cores: 8, mem: 8, w: 1280, h: 720, dpr: 1 };
+      var desk = PF.score({ cores: 8, mem: 8, w: 1280, h: 720, dpr: 1, touch: false });
+      var touch = PF.score({ cores: 8, mem: 8, w: 1280, h: 720, dpr: 1, touch: true });
+      return desk === touch + 1 && ('같은 사양 — 데스크톱 ' + desk + ' · 터치 ' + touch);
+    });
+
+    t('모바일 — 모르는 값은 깎지 않는다', function () {
+      /* `deviceMemory` 는 크롬 계열만 알려 준다. 모른다고 낮게 보면
+         사파리(아이폰)가 늘 LOW 로 시작한다 */
+      var known = PF.score({ cores: 8, mem: 8, w: 390, h: 844, dpr: 3, touch: true });
+      var unknown = PF.score({ cores: 8, mem: 0, w: 390, h: 844, dpr: 3, touch: true });
+      return unknown >= known - 1 &&
+        ('메모리를 아는 기기 ' + known + '점 · 모르는 기기 ' + unknown + '점');
+    });
+
+    t('모바일 — 그릴 픽셀이 많으면 깎는다', function () {
+      var small = PF.score({ cores: 8, mem: 8, w: 1280, h: 720, dpr: 1, touch: false });
+      var retina = PF.score({ cores: 8, mem: 8, w: 1440, h: 900, dpr: 2, touch: false });
+      return small > retina && ('720p ' + small + '점 · 레티나 ' + retina + '점');
+    });
+
+    t('모바일 — 사람이 시작 등급을 못박을 수 있다', function () {
+      PF.reset();
+      C.setTune('perf.startTier', 'LOW');
+      var forced = C.tuned('perf.startTier', '');
+      C.setTune('perf.startTier', null);
+      PF.reset();
+      return forced === 'LOW' && C.tuned('perf.startTier', '') === '' &&
+        'perf.startTier 로 기기 감지를 건너뛴다';
+    });
+
+    t('모바일 — 돌려 보면 카메라가 나를 축으로 돈다', function () {
+      /* PLAN 7·26절. 돌려도 **내가 화면 한가운데** 남아야 한다 */
+      var pos = { x: 0, y: 0 };
+      var f = R3.camAim(pos, 2, null, null, 1, false, 0);
+      var q = R3.camAim(pos, 2, null, null, 1, false, Math.PI / 2);
+      var h = R3.camAim(pos, 2, null, null, 1, false, Math.PI);
+      function d(a) { return Math.hypot(a.pos.x - pos.x, a.pos.z - pos.y); }
+      return Math.abs(d(f) - d(q)) < 0.001 && Math.abs(d(f) - d(h)) < 0.001 &&
+        Math.abs(q.pos.x) > 1 && Math.abs(f.pos.x) < 0.001 &&
+        Math.abs(h.pos.z + f.pos.z) < 0.001 &&
+        ('거리 ' + Math.round(d(f)) + 'm 그대로 · 0°/90°/180° 로 자리만 돈다');
+    });
+
+    t('모바일 — 무대에서는 안 돌아간다', function () {
+      /* 조우 무대는 어느 시점에서 열었든 같은 그림이어야 한다(예전부터의 규칙) */
+      var pos = { x: 0, y: 0 }, st = { x: 40, y: 0, h: 3.2 };
+      var a = R3.camAim(pos, 2, null, st, 1, false, 0);
+      var b2 = R3.camAim(pos, 2, null, st, 1, false, Math.PI / 2);
+      return a.pos.x === b2.pos.x && a.pos.z === b2.pos.z && '무대는 돌려도 같다';
+    });
+
     t('3D — 값을 내도 세이브는 그대로다', function () {
       /* 화면 층이 판정에 스미지 않는지 — 조명·계획·카메라를 굴려 보고 세이브를 비교한다 */
       var before = JSON.stringify(C.save);

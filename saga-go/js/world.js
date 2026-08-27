@@ -648,7 +648,50 @@
     cv.addEventListener('touchend', function (e) {
       if (e.touches.length < 2 && pinch) { pinch = 0; core.persist(); }
     }, { passive: true });
+
+    /* ── 돌려 보기 (PLAN 7·26절 "마우스/터치 회전") ──────
+     * 한 손가락 · 마우스 왼쪽으로 가로로 끌면 카메라가 나를 축으로 돈다.
+     * **탭과 구분해야 한다** — 지도를 눌러 걸어가는 조작이 이미 그 자리에 있다.
+     * 그래서 **10px 을 넘게 끌어야** 돌기 시작하고, 그때부터는 탭으로 안 친다
+     * (`onClick` 이 `dragged` 를 보고 스스로 물러난다).
+     */
+    var dx0 = 0, dy0 = 0, moved = 0, turning = false;
+    function turnBy(px) {
+      var W3 = global.DG.world3d;
+      if (!W3 || !W3.turn || tiltMode() !== 2) { return; }
+      /* 화면 폭의 절반을 끌면 반 바퀴 — 폰에서도 손이 안 아프게 */
+      W3.turn(-px / Math.max(180, geom ? geom.W : 360) * Math.PI);
+    }
+    function down(x, y) { dx0 = x; dy0 = y; moved = 0; turning = false; }
+    function move(x, y) {
+      moved = Math.max(moved, Math.hypot(x - dx0, y - dy0));
+      if (!turning && moved > DRAG_MIN) { turning = true; }
+      if (!turning) { return false; }
+      turnBy(x - dx0);
+      dx0 = x; dy0 = y;
+      return true;
+    }
+    cv.addEventListener('mousedown', function (e) { down(e.clientX, e.clientY); });
+    cv.addEventListener('mousemove', function (e) {
+      if (e.buttons !== 1) { return; }
+      if (move(e.clientX, e.clientY)) { dragged = true; }
+    });
+    cv.addEventListener('touchstart', function (e) {
+      if (e.touches.length === 1) { down(e.touches[0].clientX, e.touches[0].clientY); }
+    }, { passive: true });
+    cv.addEventListener('touchmove', function (e) {
+      if (e.touches.length !== 1) { return; }
+      if (move(e.touches[0].clientX, e.touches[0].clientY)) {
+        dragged = true;
+        e.preventDefault();
+      }
+    }, { passive: false });
   }
+
+  /** 이만큼 끌어야 돌리는 것으로 본다(px) — 그 아래는 탭이다 */
+  var DRAG_MIN = 10;
+  /** 방금 끈 것인가 — `onClick` 이 이걸 보고 물러난다 */
+  var dragged = false;
 
   /** 3D 를 쓰는 동안에는 2D 두 장을 감춘다 (같은 그림을 두 번 그리지 않게) */
   function syncRenderMode() {
@@ -734,6 +777,9 @@
   }
 
   function onClick(e) {
+    /* 끌어서 돌린 뒤에 오는 클릭은 **탭이 아니다** — 안 걸러내면 시점을 돌릴
+       때마다 그쪽으로 걸어간다(터치에서 특히 티가 난다) */
+    if (dragged) { dragged = false; return; }
     var r = canvas.getBoundingClientRect();
     var sc = scale(), pos = core.save.player.pos;
     var loc = unproject(e.clientX - r.left, e.clientY - r.top);

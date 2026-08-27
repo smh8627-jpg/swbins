@@ -328,6 +328,11 @@ setTimeout(function () {
     DG.weather.force(wm[1]);
     if (DG.sky3d) { DG.sky3d.reset(); }
   }
+  /* 돌려 본 그림 — `#turn=90`(도). 드래그는 스크린샷으로 못 찍으니 각을 바로 넣는다 */
+  if (/turn=/.test(hash) && DG.world3d) {
+    var tm = /turn=(-?\d+)/.exec(hash);
+    DG.world3d.yaw(+tm[1] * Math.PI / 180);
+  }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
   if (hash.indexOf('3d') >= 0) { C.save.settings.tilt = 2; W.resize(); }
