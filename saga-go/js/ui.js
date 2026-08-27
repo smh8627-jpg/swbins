@@ -567,12 +567,51 @@
 
   function viewLog() {
     var log = core.save.log;
-    if (!log.length) { return '<div class="hint">아직 기록이 없습니다.</div>'; }
-    var out = '<div class="loglist">';
+    var out = viewCodex();
+    if (!log.length) { return out + '<div class="hint">아직 기록이 없습니다.</div>'; }
+    out += '<div class="loglist">';
     for (var i = 0; i < log.length; i++) {
       var t = new Date(log[i].t);
       var hh = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2);
       out += '<div class="lrow ' + log[i].kind + '"><span>' + hh + '</span>' + esc(log[i].text) + '</div>';
+    }
+    return out + '</div>';
+  }
+
+  /**
+   * 발견 — 무엇을 보았는지(`codex.js`). 기록 시트 **맨 위**에 붙인다.
+   * 새 시트를 만들지 않은 까닭: 기록과 발견은 "지나온 것" 이라는 한 갈래고,
+   * 아래 독(dock)에 칸을 더 늘리면 좁은 화면에서 글자가 뭉갠다.
+   */
+  function viewCodex() {
+    var CX = global.DG.codex;
+    if (!CX || !CX.on()) { return ''; }
+    var r = CX.rate();
+    var ts = CX.all();
+    var out = '<div class="sec"><h4>발견 <small class="muted">' +
+      r.seen + ' / ' + r.total + ' · ' + r.pct + '%</small></h4>' +
+      '<div class="bar blue"><i style="width:' + r.pct + '%"></i></div>' +
+      '<div class="cx-grid">';
+    for (var i = 0; i < ts.length; i++) {
+      var t = ts[i];
+      if (!t.total) { continue; }
+      out += '<div class="cx-cell' + (t.seen === t.total ? ' full' : '') +
+        '" title="' + esc(t.rows.filter(function (x) { return x.seen; })
+          .map(function (x) { return x.name; }).join(' · ') || '아직 없음') + '">' +
+        '<b>' + t.emoji + '</b><span>' + t.name + '</span>' +
+        '<small>' + t.seen + '/' + t.total + '</small></div>';
+    }
+    out += '<div class="cx-cell' + (r.dex.seen === r.dex.total ? ' full' : '') + '">' +
+      '<b>📕</b><span>도감</span><small>' + r.dex.seen + '/' + r.dex.total + '</small></div>';
+    out += '</div>';
+    /* 아직 못 본 것 중 **숨은 곳**만 귀띔한다 — 다 알려 주면 찾을 것이 없다 */
+    var hidden = [];
+    for (i = 0; i < ts.length; i++) {
+      if (ts[i].key !== 'place') { continue; }
+      hidden = ts[i].rows.filter(function (x) { return !x.seen && x.hint === '숨은 곳'; });
+    }
+    if (hidden.length) {
+      out += '<small class="muted">아직 못 찾은 숨은 곳이 ' + hidden.length + '군데 있습니다.</small>';
     }
     return out + '</div>';
   }

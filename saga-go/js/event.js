@@ -425,7 +425,13 @@
     core.log(res.ev.emoji + ' ' + res.ev.name + ' — ' + res.choice.label.replace(/ \(.*\)$/, '') +
       (bits.length ? ' · ' + bits.join(' · ') : ''),
       res.win === false ? 'bad' : (res.feat ? 'feat' : 'good'));
-    if (res.record && res.ev.record) {
+    /* 겪은 사건과 거기서 얻은 기록을 발견 목록에 남긴다(`codex.js`) —
+       로그 줄은 밀려 사라지지만 목록은 남는다 */
+    var CX = global.DG.codex;
+    if (CX) {
+      CX.discover('event', res.ev.id, { name: res.ev.name });
+      if (res.record && res.ev.record) { CX.discover('record', res.ev.id, { name: res.ev.record }); }
+    } else if (res.record && res.ev.record) {
       core.log('📖 [발견] ' + res.ev.record, 'feat');
     }
     core.emit('changed');

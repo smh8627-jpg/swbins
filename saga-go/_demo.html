@@ -92,6 +92,7 @@ window.DG_NO_TUNE = true;
 <script src="js/sky3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
+<script src="js/codex.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
 <script src="js/rogue.js"></script>
@@ -425,7 +426,17 @@ setTimeout(function () {
     }, 300);
   }
 
-  if (tab === 'detail') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'kr_yisunsin'); }
+  /* 발견 격자를 눈으로 볼 때 — `#codex`. 몇 가지를 미리 찍어 두고 기록 시트를 연다
+     (아무것도 안 본 화면은 0/0 뿐이라 볼 것이 없다) */
+  if (tab === 'codex' && DG.codex) {
+    ['bridge', 'village', 'ruin'].forEach(function (id) { DG.codex.discover('place', id); });
+    ['deer', 'carp'].forEach(function (id) { DG.codex.discover('beast', id); });
+    DG.codex.discover('people', 'npc_elder');
+    DG.codex.discover('event', 'map_scrap');
+    DG.codex.discover('record', 'map_scrap');
+    DG.ui.openSheet('log');
+  }
+  else if (tab === 'detail') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'kr_yisunsin'); }
   else if (tab === 'detail2') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'sg_zhugeliang'); }
   else if (tab === 'pet') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_cheongryong'); }
   else if (tab === 'petgrow') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_carp'); }

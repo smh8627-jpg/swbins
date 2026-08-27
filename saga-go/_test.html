@@ -84,6 +84,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/sky3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
+<script src="js/codex.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
 <script src="js/rogue.js"></script>
@@ -2663,6 +2664,119 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       SK.countOf('rain'); SK.fallOf('snow'); SK.stats();
       R3.lightingAt(atH(2), 'snow');
       return JSON.stringify(C.save) === before && '세이브 그대로';
+    });
+
+    /* ── 발견 (codex) — 무엇을 보았는지 ─────────────────────
+     * 목록을 **새로 만들지 않고** 이미 있는 것을 모은다. 그래서 여기서 볼 것은
+     * ① 분모가 다른 파일에서 저절로 온다 ② 도장이 한 번만 찍힌다
+     * ③ 발견은 **보상이 아니다**(금·공적을 안 준다).
+     */
+
+    var CX = DG.codex;
+
+    t('발견 — 분모를 다른 파일에서 가져온다', function () {
+      CX.clear();
+      var a = CX.all(), by = {};
+      a.forEach(function (t2) { by[t2.key] = t2.total; });
+      return by.place === LD.places().length && by.people === NP.PEOPLE.length &&
+        by.beast === Object.keys(AN.KINDS).length && by.event === EV.EVENTS.length &&
+        by.record === EV.EVENTS.filter(function (e) { return e.record; }).length &&
+        ('지역 ' + by.place + ' · 사람 ' + by.people + ' · 생물 ' + by.beast +
+         ' · 사건 ' + by.event + ' · 역사 ' + by.record + ' — 다 남의 목록에서 온다');
+    });
+
+    t('발견 — 처음 볼 때만 도장이 찍힌다', function () {
+      CX.clear();
+      var first = CX.discover('place', 'bridge');
+      var again = CX.discover('place', 'bridge');
+      var seen = CX.has('place', 'bridge');
+      CX.clear();
+      return first === true && again === false && seen === true &&
+        '두 번째부터는 아무 일도 안 일어난다';
+    });
+
+    t('발견 — 모르는 갈래·빈 id 는 안 받는다', function () {
+      CX.clear();
+      var bad = CX.discover('nosuch', 'x');
+      var empty = CX.discover('place', '');
+      CX.clear();
+      return bad === false && empty === false && '조용히 거른다';
+    });
+
+    t('발견 — 완성률이 기존 도감까지 함께 센다', function () {
+      /* PLAN 13절 "현재 도감을 적극 활용한다" — 따로 노는 두 숫자를 만들지 않는다 */
+      CX.clear();
+      var r0 = CX.rate();
+      CX.discover('beast', 'deer');
+      CX.discover('beast', 'wolf');
+      var r1 = CX.rate();
+      CX.clear();
+      return r1.seen === r0.seen + 2 && r1.total === r0.total &&
+        r0.total > EV.EVENTS.length && r0.dex.total > 100 &&
+        ('분모 ' + r0.total + '(그중 인물·짐승 도감 ' + r0.dex.total + ') · 둘 찍으니 ' +
+         r0.seen + ' → ' + r1.seen);
+    });
+
+    t('발견 — 보상이 아니다 (금·공적이 안 움직인다)', function () {
+      CX.clear();
+      var p = C.save.player;
+      var g0 = p.gold, f0 = p.feat, e0 = p.exp, lv0 = p.level;
+      CX.discover('place', 'cave');
+      CX.discover('event', 'stone_text');
+      CX.discover('record', 'stone_text');
+      var same = p.gold === g0 && p.feat === f0 && p.exp === e0 && p.level === lv0;
+      CX.clear();
+      return same && '본 것의 기록일 뿐 — 한 푼도 안 준다';
+    });
+
+    t('발견 — 도장은 세이브에 남고 손잡이로 끌 수 있다', function () {
+      CX.clear();
+      CX.discover('beast', 'carp');
+      var inSave = !!(C.save.codex && C.save.codex['beast:carp']);
+      C.setTune('codex.on', 0);
+      var off = CX.discover('beast', 'ox');
+      C.setTune('codex.on', null);
+      CX.clear();
+      return inSave === true && off === false && '세이브 칸 codex · codex.on=0 이면 안 찍는다';
+    });
+
+    t('발견 — 옛 세이브에 칸이 없어도 열린다', function () {
+      /* PLAN 44절 "기존 save format 을 깨지 않는다" */
+      var keep = C.save.codex;
+      delete C.save.codex;
+      var r = CX.rate();
+      var ok = CX.discover('place', 'village');
+      var made = !!C.save.codex;
+      C.save.codex = keep || {};
+      CX.clear();
+      return r.total > 0 && ok === true && made === true &&
+        '칸이 없으면 그 자리에서 만든다';
+    });
+
+    t('발견 — 사건을 겪으면 사건과 기록이 함께 남는다', function () {
+      CX.clear();
+      var c = ctxOf({ kind: 'grass', mark: 'ruin', h: 13 });
+      var p = C.save.player;
+      var g0 = p.gold, f0 = p.feat;
+      EV.apply(EV.resolve('map_scrap', 'dig', c, 0));      // 반드시 파낸다
+      var ev = CX.has('event', 'map_scrap'), rec = CX.has('record', 'map_scrap');
+      p.gold = g0; p.feat = f0;                            // 진단이 자국을 안 남긴다
+      CX.clear();
+      return ev === true && rec === true &&
+        '겪은 사건 + 거기서 얻은 기록 둘 다';
+    });
+
+    t('발견 — 겪었어도 기록이 안 나오는 고름이 있다', function () {
+      CX.clear();
+      var c = ctxOf({ kind: 'grass', mark: 'ruin', h: 13 });
+      var p = C.save.player;
+      var g0 = p.gold;
+      EV.apply(EV.resolve('map_scrap', 'sell', c, 0.5));   // 팔아 버린다
+      var ev = CX.has('event', 'map_scrap'), rec = CX.has('record', 'map_scrap');
+      p.gold = g0;
+      CX.clear();
+      return ev === true && rec === false &&
+        '조각을 팔면 사건은 남고 기록은 안 남는다';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {
