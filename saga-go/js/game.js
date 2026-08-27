@@ -323,6 +323,7 @@
     global.DG.fort.tick();              // 사기가 다한 성채에서 손을 뗀다
     global.DG.npc.tick();               // 이 땅에 사는 열 사람 — 가까이 가면 한 마디 한다
     global.DG.animal.tick();            // 들·강의 짐승 — 늑대가 붙으면 알린다
+    global.DG.event.tick();             // 걷다가 만나는 사건 — 거리로 잰다
     if (!global.DG_NO_DRAW) { world.draw(); }
 
     uiAcc += dt;

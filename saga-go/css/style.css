@@ -423,6 +423,10 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 .quote { font-size: 12.5px; color: var(--ink-dim); font-style: italic; margin: 10px 0; line-height: 1.7; }
 .enc-reward { font-size: 12.5px; color: var(--good); margin: 12px 0; line-height: 1.8; }
 
+/* 사건의 선택지 (event.js) — 고르는 것이 둘·셋이라 사이를 띄운다.
+   `.btn.wide` 를 그대로 쓰되 세로로 쌓기만 한다 */
+.enc-choices { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+
 .catch-track {
   position: relative; height: 38px; background: rgba(0,0,0,.4);
   border: 1px solid var(--glass-br); border-radius: 13px; margin: 16px 0; overflow: hidden;

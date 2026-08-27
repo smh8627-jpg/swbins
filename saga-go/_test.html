@@ -81,6 +81,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
 <script src="js/station.js"></script>
+<script src="js/event.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
 <script src="js/rogue.js"></script>
@@ -2323,6 +2324,147 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var sp1 = JSON.stringify(W.spawns.map(function (s) { return s.uid; }));
       return JSON.stringify(C.save) === before && sp0 === sp1 &&
         '세이브 · 스폰 목록 그대로';
+    });
+
+    /* ── 사건 (event) — 걷다가 만나는 열 가지 ────────────────
+     * 앞의 셋(땅·주민·짐승)과 달리 **이것은 판정에 닿는다**. 그래서 보는 것이 둘이다:
+     *   ① 값을 내는 함수는 세이브를 **안 만진다**(candidates·resolve)
+     *   ② 세이브가 바뀌는 곳은 `apply` 하나뿐이고, 바뀐 만큼만 바뀐다
+     */
+
+    var EV = DG.event;
+    function ctxOf(o) {
+      return { tx: 0, ty: 0, kind: o.kind || null, mark: o.mark || null,
+               night: !!o.night, weather: o.weather || 'clear', t: atT(o.h === undefined ? 13 : o.h) };
+    }
+
+    t('사건 — 열 가지에 적 셋이 걸려 있다', function () {
+      var foes = {}, i, ev, bad = [];
+      for (i = 0; i < EV.EVENTS.length; i++) {
+        ev = EV.EVENTS[i];
+        if (ev.foe) { foes[ev.foe] = 1; }
+        if (!ev.choices || ev.choices.length < 2) { bad.push(ev.id + ' 선택지 부족'); }
+        if (!EV.FOES[ev.foe] && ev.foe) { bad.push(ev.id + ' 모르는 적 ' + ev.foe); }
+      }
+      return EV.EVENTS.length === 10 && Object.keys(foes).length === 3 && bad.length === 0 &&
+        ('사건 10 · 적 ' + Object.keys(foes).join('/') + ' · 모든 사건에 고를 것이 둘 이상');
+    });
+
+    t('사건 — 표식 위에서만 나는 것이 있다', function () {
+      /* 비문은 사당에서, 지도 조각은 폐허에서 — 아무 데서나 나면 발견이 아니다 */
+      function ids(c) { return EV.candidates(c).map(function (x) { return x.ev.id; }); }
+      var atShrine = ids(ctxOf({ kind: 'forest', mark: 'shrine' }));
+      var atRuin = ids(ctxOf({ kind: 'grass', mark: 'ruin' }));
+      var plain = ids(ctxOf({ kind: 'forest' }));
+      return atShrine.indexOf('stone_text') >= 0 && plain.indexOf('stone_text') < 0 &&
+        atRuin.indexOf('map_scrap') >= 0 && plain.indexOf('map_scrap') < 0 &&
+        ('사당 → 비문 · 폐허 → 지도 조각 · 그냥 숲에서는 둘 다 안 난다');
+    });
+
+    t('사건 — 밤낮이 갈린다', function () {
+      function ids(c) { return EV.candidates(c).map(function (x) { return x.ev.id; }); }
+      var day = ids(ctxOf({ kind: 'mount', h: 13 }));
+      var night = ids(ctxOf({ kind: 'mount', night: true, h: 23 }));
+      return day.indexOf('rare_herb') >= 0 && night.indexOf('rare_herb') < 0 &&
+        night.indexOf('enemy_scout') >= 0 && day.indexOf('enemy_scout') < 0 &&
+        ('낮 산 ' + day.join('/') + ' · 밤 산 ' + night.join('/'));
+    });
+
+    t('사건 — 도적은 밤에 더 자주 난다', function () {
+      function wOf(c, id) {
+        var f = EV.candidates(c).filter(function (x) { return x.ev.id === id; });
+        return f.length ? f[0].w : 0;
+      }
+      var day = wOf(ctxOf({ kind: 'road', h: 13 }), 'bandit_ambush');
+      var night = wOf(ctxOf({ kind: 'road', night: true, h: 23 }), 'bandit_ambush');
+      return day > 0 && night > day && ('가중치 낮 ' + day + ' → 밤 ' + night);
+    });
+
+    t('사건 — 어디에도 걸릴 것이 없으면 아무 일도 안 난다', function () {
+      /* 이 땅 밖(kind null)에서도 터를 안 가리는 사건은 나야 한다 — 다만 물 위는 빈다 */
+      var water = EV.candidates(ctxOf({ kind: 'water', h: 13 }));
+      var road = EV.candidates(ctxOf({ kind: 'road', h: 13 }));
+      return water.length === 0 && road.length > 0 &&
+        ('물 위 ' + water.length + '가지 · 길 위 ' + road.length + '가지');
+    });
+
+    t('사건 — 같은 주사위는 늘 같은 것을 고른다', function () {
+      var cs = EV.candidates(ctxOf({ kind: 'road', h: 13 }));
+      var a = EV.pick(cs, 0.31), b2 = EV.pick(cs, 0.31), c2 = EV.pick(cs, 0.97);
+      return a === b2 && a.id && (a !== c2 || cs.length === 1) &&
+        ('0.31 → ' + a.id + ' (두 번 같다) · 0.97 → ' + c2.id);
+    });
+
+    t('사건 — 고른 것에 따라 결과가 갈린다', function () {
+      /* PLAN 35절 — 결과가 같으면 고르는 뜻이 없다 */
+      var c = ctxOf({ kind: 'road', h: 13 });
+      var buy = EV.resolve('road_merchant', 'buy', c, 0.5);
+      var pass = EV.resolve('road_merchant', 'pass', c, 0.5);
+      return buy.gold === -40 && buy.items.length === 2 && buy.fame > 0 &&
+        pass.gold === 0 && pass.items.length === 0 &&
+        ('산다 🪙-40 + 물건 2가지 · 지나간다 아무것도 없음');
+    });
+
+    t('사건 — 싸움은 힘 차이로 가망이 갈린다', function () {
+      var weak = EV.winChance('scout', 40);
+      var even = EV.winChance('scout', 170);
+      var strong = EV.winChance('scout', 900);
+      return weak < even && even < strong &&
+        Math.abs(even - 0.5) < 0.001 && weak >= 0.12 && strong <= 0.88 &&
+        ('정찰병(170) 상대 — 내 힘 40 → ' + Math.round(weak * 100) + '% · 170 → ' +
+         Math.round(even * 100) + '% · 900 → ' + Math.round(strong * 100) + '%');
+    });
+
+    t('사건 — 이기고 지는 것이 결과를 뒤집는다', function () {
+      var c = ctxOf({ kind: 'road', h: 13 });
+      var win = EV.resolve('bandit_ambush', 'fight', c, 0);       // 반드시 이긴다
+      var lose = EV.resolve('bandit_ambush', 'fight', c, 0.999);  // 반드시 진다
+      return win.win === true && win.gold > 0 && win.feat > 0 &&
+        lose.win === false && lose.gold < 0 &&
+        ('이기면 🪙+' + win.gold + ' 공적+' + win.feat + ' · 지면 🪙' + lose.gold);
+    });
+
+    t('사건 — 값을 내는 함수는 세이브를 안 만진다', function () {
+      var before = JSON.stringify(C.save);
+      var c = ctxOf({ kind: 'road', mark: 'ruin', h: 13 });
+      EV.candidates(c);
+      EV.resolve('bandit_ambush', 'fight', c, 0);
+      EV.resolve('map_scrap', 'dig', c, 0);
+      EV.stats(C.save.player.pos);
+      return JSON.stringify(C.save) === before && 'candidates·resolve·stats 는 읽기만 한다';
+    });
+
+    t('사건 — 주는 것은 apply 한 곳뿐이고, 준 만큼만 바뀐다', function () {
+      var p = C.save.player;
+      var g0 = p.gold, f0 = p.feat, sc0 = DG.bag.count('scroll');
+      var c = ctxOf({ kind: 'road', h: 13 });
+      var res = EV.resolve('road_merchant', 'buy', c, 0.5);
+      var got = EV.apply(res);
+      var dg = p.gold - g0, dsc = DG.bag.count('scroll') - sc0;
+      /* 되돌린다 — 진단이 세이브에 자국을 남기면 안 된다 */
+      p.gold = g0; p.feat = f0;
+      DG.bag.take('scroll', dsc > 0 ? dsc : 0);
+      DG.bag.take('feed', 3);
+      return dg === -40 && dsc === 2 && got.gold === -40 &&
+        ('🪙 ' + dg + ' · 📜 +' + dsc + ' — 적힌 것과 한 칸도 안 어긋난다');
+    });
+
+    t('사건 — 없는 것을 빼앗지 않는다', function () {
+      var p = C.save.player;
+      var g0 = p.gold;
+      p.gold = 10;                                   // 길세 45 를 낼 수 없다
+      var c = ctxOf({ kind: 'road', h: 13 });
+      EV.apply(EV.resolve('bandit_ambush', 'pay', c, 0.5));
+      var left = p.gold;
+      p.gold = g0;
+      return left === 0 && '금 10 에 길세 45 → 0 으로 그친다 (음수로 안 간다)';
+    });
+
+    t('사건 — 손잡이를 내리면 아무 일도 안 난다', function () {
+      C.setTune('event.on', 0);
+      var off = EV.on();
+      C.setTune('event.on', null);
+      return off === false && EV.on() === true && 'event.on=0 이면 잠든다';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {

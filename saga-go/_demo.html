@@ -89,6 +89,7 @@ window.DG_NO_TUNE = true;
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
 <script src="js/station.js"></script>
+<script src="js/event.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
 <script src="js/rogue.js"></script>
@@ -163,6 +164,9 @@ setTimeout(function () {
   C.save.player.feat = 260;
   C.save.player.featTotal = 1480;
   C.save.player.distance = 12840;
+  /* 사건 눈금도 같이 맞춘다 — 안 맞추면 이 거리가 통째로 "새로 걸은 몫" 으로 잡혀
+     데모를 열자마자 사건 카드가 뜬다(`event.js` 의 tick) */
+  C.save.player.eventMark = 12840;
   C.save.player.supplyMark = 12750;
   C.save.player.supplyCount = 51;
   C.save.player.stationVisits = 37;
@@ -276,6 +280,18 @@ setTimeout(function () {
   }
   /* 옛 2D 캔버스로 본다 — `#flat`. `#2d` 는 시점만 눕히는 것이라 **그리는 쪽은
      여전히 3D** 다(위에서 내려다보는 3D). 캔버스 그림을 눈으로 보려면 이쪽이다 */
+  /* 사건 카드를 열어 본다 — `#event=bandit_ambush`. 고르는 화면이라 눈으로 볼
+     수밖에 없다(값은 진단이 본다). 이름을 안 주면 첫 사건이다 */
+  if (hash.indexOf('event') >= 0 && DG.event) {
+    var em = /event=([a-z_]+)/.exec(hash);
+    var pk = /pick=([a-z_]+)/.exec(hash);
+    setTimeout(function () {
+      DG.event.force(em ? em[1] : DG.event.EVENTS[0].id);
+      /* `,pick=fight` 를 붙이면 고른 뒤의 **결과 화면**까지 간다 — 카드가 둘이라
+         고르기 전만 찍으면 절반만 본 것이다 */
+      if (pk) { DG.event.choose(pk[1]); }
+    }, 30);
+  }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
   if (hash.indexOf('3d') >= 0) { C.save.settings.tilt = 2; W.resize(); }

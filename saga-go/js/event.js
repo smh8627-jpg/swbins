@@ -1,0 +1,552 @@
+/**
+ * 사건 — 걷다가 만나는 열 가지 (3D 전환 PHASE 8)
+ * ---------------------------------------------------------------
+ * `PLAN.md` 가 이 판의 차별점으로 못박아 둔 한 줄이 있다 —
+ *
+ *   > **"걷다가 사건을 만난다"**
+ *
+ * 여태 걸으면 만나는 것은 **잡을 것**(스폰)과 **들를 곳**(역참·성채)뿐이었다.
+ * 여기 열 가지 사건을 들인다. 길에서 상인을 만나고, 도적에게 습격당하고,
+ * 사당의 비문을 읽고, 폐허에서 지도 조각을 줍는다. 그리고 **고른다**(35절) —
+ * 구할지 지나칠지, 맞설지 값을 치를지. 고른 것에 따라 결과가 다르다.
+ *
+ * **앞의 셋과 달리 이것은 판정에 닿는다.** 땅(`land.js`)·주민(`npc.js`)·짐승
+ * (`animal.js`)은 화면 층이라 "세이브에 한 칸도 안 남는다" 를 지켰지만, 사건은
+ * 금과 공적이 오가는 것이라 그럴 수가 없다. 대신 **닿는 자리를 한 군데로 좁혔다**:
+ *
+ *   contextAt · candidates · resolve   순수 함수. 세이브를 **읽기만** 한다
+ *   apply                              여기서만 세이브가 바뀐다
+ *   open · tick                        화면과 때를 맡는다
+ *
+ * 그래서 자가진단은 "도적에게 맞서 이기면 무엇을 얻나" 를 세이브를 건드리지 않고
+ * 값으로 물어볼 수 있고, `apply` 는 전후를 견주어 한 칸씩 확인한다.
+ *
+ * **싸움은 아직 화면이 없다.** 이겼는지 졌는지만 이 자리에서 가른다 —
+ * 제대로 된 전투는 PHASE 9 몫이다. 손잡이 `event.on` 을 0 으로 두면 통째로 잠든다.
+ */
+(function (global) {
+  'use strict';
+
+  var core = global.DG.core;
+
+  /** 사건을 들일까 — 0 이면 걸어도 아무 일도 안 생긴다 */
+  function on() { return core.tuned('event.on', 1) ? true : false; }
+  /** 몇 미터마다 한 번 주사위를 굴리나 */
+  function STEP() { return core.tuned('event.stepM', 420); }
+  /** 그 주사위에서 사건이 날 확률 */
+  function CHANCE() { return core.tuned('event.chance', 0.55); }
+
+  /* ── 적 셋 (PLAN 46절 "적 3종") ────────────────────────
+   * 따로 세우지 않고 **사건 안에서** 만난다. 힘은 내 부대(`hero.partyPower`)와
+   * 견주는 기준값이다 — 셋이 뚜렷이 다른 무게를 갖게 벌려 두었다.
+   */
+  var FOES = {
+    bandit: { id: 'bandit', name: '산적', emoji: '🗡️', power: 120, note: '수는 많고 솜씨는 거칠다' },
+    wolfpack: { id: 'wolfpack', name: '늑대 무리', emoji: '🐺', power: 90, note: '무리로 에워싼다' },
+    scout: { id: 'scout', name: '적군 정찰병', emoji: '🏹', power: 170, note: '혼자지만 잘 벼려져 있다' }
+  };
+
+  /* ── 열 가지 사건 ─────────────────────────────────────
+   * `PLAN.md` 11절이 늘어놓은 예시에서 **이 땅에 걸 수 있는 것**으로 골랐다.
+   *
+   *   where   어떤 터에서 나나 (`land.js` 의 땅 종류) · `marks` 는 그 표식 위에서만
+   *   when    'day' · 'night' · 'any'
+   *   w       가중치. 조건에 맞는 것들 사이에서 이 비로 뽑힌다
+   *   foe     싸움이 걸리는 사건이면 적 id
+   *   choices 고르는 것들. **결과가 갈려야 고르는 뜻이 있다**(35절)
+   *
+   * 결과 `out(ctx, roll)` 는 **순수 함수**다 — 세이브를 안 만지고 무엇이 오갈지만
+   * 적어 돌려준다. 실제로 주는 것은 `apply()` 한 군데다.
+   */
+  var EVENTS = [
+    {
+      id: 'road_merchant', name: '길 위의 상인', emoji: '🧺', w: 12,
+      when: 'day', where: ['road', 'town'],
+      quote: '"수레가 무거워 못 가겠소. 값은 후하게 쳐 드리리다."',
+      choices: [
+        { id: 'buy', label: '짐을 덜어 준다 (🪙 40)',
+          out: function () {
+            return { gold: -40, items: [{ key: 'scroll', n: 2 }, { key: 'feed', n: 3 }],
+                     fame: 8, text: '상인이 등용서와 사료를 얹어 주었다.' };
+          } },
+        { id: 'pass', label: '지나간다',
+          out: function () { return { text: '수레가 삐걱대는 소리가 뒤로 멀어졌다.' }; } }
+      ]
+    },
+    {
+      id: 'bandit_ambush', name: '도적의 습격', emoji: '🗡️', w: 10,
+      when: 'any', nightW: 2, where: ['grass', 'road', 'farm'], marks: ['ruin'],
+      foe: 'bandit',
+      quote: '"길세를 내고 가라. 아니면 두고 가든지."',
+      choices: [
+        { id: 'fight', label: '맞선다', fight: true,
+          out: function (ctx, roll) {
+            var r = fightRoll('bandit', roll);
+            return r.win
+              ? { feat: 22, gold: 60, exp: 40, win: true,
+                  text: '도적을 물리쳤다. 두고 간 전대가 남았다.' }
+              : { gold: -70, win: false,
+                  text: '밀렸다. 전대를 빼앗기고 물러났다.' };
+          } },
+        { id: 'pay', label: '값을 치른다 (🪙 45)',
+          out: function () { return { gold: -45, text: '길세를 치르고 지나갔다.' }; } },
+        { id: 'flee', label: '달아난다',
+          out: function (ctx, roll) {
+            return roll < 0.6
+              ? { text: '어둠 속으로 달아났다.' }
+              : { items: [{ key: 'feed', n: -2 }], text: '쫓기다 짐을 흘렸다.' };
+          } }
+      ]
+    },
+    {
+      id: 'wolf_ring', name: '늑대 무리에 둘러싸이다', emoji: '🐺', w: 9,
+      when: 'night', where: ['forest', 'mount', 'grass'],
+      foe: 'wolfpack',
+      quote: '풀숲에서 눈이 여럿 빛난다.',
+      choices: [
+        { id: 'fight', label: '맞선다', fight: true,
+          out: function (ctx, roll) {
+            var r = fightRoll('wolfpack', roll);
+            return r.win
+              ? { feat: 14, exp: 30, win: true, text: '무리를 흩었다.' }
+              : { items: [{ key: 'feed', n: -3 }], win: false,
+                  text: '사료를 던져 주고 겨우 빠져나왔다.' };
+          } },
+        { id: 'fire', label: '불을 피운다 (🕯️ 향 1)',
+          out: function () {
+            return { items: [{ key: 'incense', n: -1 }], exp: 12,
+                     text: '불빛에 눈들이 물러났다.' };
+          } },
+        { id: 'back', label: '천천히 물러난다',
+          out: function (ctx, roll) {
+            return roll < 0.55
+              ? { text: '등을 보이지 않고 물러났다.' }
+              : { exp: 6, text: '한참을 물러선 끝에 길을 잃었다 되찾았다.' };
+          } }
+      ]
+    },
+    {
+      id: 'hurt_soldier', name: '부상당한 병사', emoji: '🩹', w: 9,
+      when: 'any', where: ['road', 'mount', 'grass'],
+      quote: '"물… 물 좀 주시오."',
+      choices: [
+        { id: 'help', label: '돌본다 (🍖 2)',
+          out: function () {
+            return { items: [{ key: 'feed', n: -2 }], feat: 18, fame: 12, exp: 20,
+                     text: '병사가 제 부대의 표식을 쥐여 주었다.' };
+          } },
+        { id: 'pass', label: '지나간다',
+          out: function () { return { fame: -4, text: '뒤에서 기침 소리가 들렸다.' }; } }
+      ]
+    },
+    {
+      id: 'village_ask', name: '마을의 부탁', emoji: '🙏', w: 8,
+      when: 'day', where: ['town'],
+      quote: '"보아하니 멀리서 오신 분 같은데, 청이 하나 있소."',
+      choices: [
+        { id: 'take', label: '맡는다', quest: true,
+          out: function () { return { quest: true, fame: 6, text: '사명을 하나 맡았다.' }; } },
+        { id: 'no', label: '사양한다',
+          out: function () { return { text: '노인이 고개를 끄덕이고 돌아섰다.' }; } }
+      ]
+    },
+    {
+      id: 'lost_child', name: '사라진 아이', emoji: '🧒', w: 7,
+      when: 'day', where: ['town', 'forest', 'farm'],
+      quote: '"우리 아이를 못 보셨소? 아침부터 안 보이오."',
+      choices: [
+        { id: 'seek', label: '찾아 나선다',
+          out: function (ctx, roll) {
+            return roll < 0.62
+              ? { feat: 20, fame: 15, gold: 30,
+                  text: '숲 어귀에서 잠든 아이를 찾았다.' }
+              : { exp: 10, text: '해가 질 때까지 찾았지만 못 찾았다. 마을 사람들이 나섰다.' };
+          } },
+        { id: 'tell', label: '촌장에게 알린다',
+          out: function () { return { fame: 4, text: '촌장이 사람을 풀었다.' }; } }
+      ]
+    },
+    {
+      id: 'stone_text', name: '고대 비문', emoji: '🪨', w: 11,
+      when: 'any', where: [], marks: ['shrine'],
+      quote: '이끼 아래로 글자가 반쯤 남아 있다.',
+      record: '무너진 사당의 비문',
+      choices: [
+        { id: 'read', label: '읽어 본다',
+          out: function () {
+            return { exp: 35, fame: 10, record: true,
+                     text: '옛 싸움의 날짜와 이름 셋을 읽어 냈다.' };
+          } },
+        { id: 'leave', label: '그냥 둔다',
+          out: function () { return { text: '이끼를 도로 덮어 두었다.' }; } }
+      ]
+    },
+    {
+      id: 'map_scrap', name: '보물 지도 조각', emoji: '🗺️', w: 11,
+      when: 'any', where: [], marks: ['ruin'],
+      quote: '무너진 기둥 틈에 기름 먹인 종이가 끼여 있다.',
+      record: '강 건너 폐허의 지도 조각',
+      choices: [
+        { id: 'dig', label: '적힌 자리를 파 본다',
+          out: function (ctx, roll) {
+            return roll < 0.45
+              ? { gold: 180, feat: 25, record: true,
+                  text: '돌 아래에서 묻어 둔 전대가 나왔다.' }
+              : { exp: 15, record: true, text: '흙만 나왔다. 종이는 챙겨 두었다.' };
+          } },
+        { id: 'sell', label: '상인에게 판다 (🪙 60)',
+          out: function () { return { gold: 60, text: '조각을 넘기고 값을 받았다.' }; } }
+      ]
+    },
+    {
+      id: 'rare_herb', name: '희귀 약초', emoji: '🌿', w: 8,
+      when: 'day', where: ['forest', 'mount'],
+      quote: '바위 그늘에 보기 드문 잎이 돋아 있다.',
+      choices: [
+        { id: 'pick', label: '캔다',
+          out: function () {
+            return { items: [{ key: 'treat', n: 2 }], exp: 18,
+                     text: '별미로 쓸 만한 것을 두 몫 캤다.' };
+          } },
+        { id: 'keep', label: '남겨 둔다',
+          out: function () { return { fame: 3, text: '씨가 여물도록 두고 왔다.' }; } }
+      ]
+    },
+    {
+      id: 'enemy_scout', name: '적군 정찰병', emoji: '🏹', w: 8,
+      when: 'night', where: ['mount', 'road', 'grass'],
+      foe: 'scout',
+      quote: '능선 위로 사람 그림자 하나가 지나간다.',
+      choices: [
+        { id: 'fight', label: '잡는다', fight: true,
+          out: function (ctx, roll) {
+            var r = fightRoll('scout', roll);
+            return r.win
+              ? { feat: 35, exp: 55, items: [{ key: 'scroll', n: 1 }], win: true,
+                  text: '정찰병을 잡았다. 품에서 밀서가 나왔다.' }
+              : { fame: -6, win: false, text: '놓쳤다. 이쪽이 먼저 들켰다.' };
+          } },
+        { id: 'hide', label: '숨는다',
+          out: function () { return { exp: 12, text: '바위 뒤에서 지나가기를 기다렸다.' }; } },
+        { id: 'let', label: '보낸다',
+          out: function () { return { fame: -2, text: '가는 길을 막지 않았다.' }; } }
+      ]
+    }
+  ];
+
+  /* ── 싸움 ─────────────────────────────────────────────
+   * 화면은 없다. 내 부대의 힘과 적의 힘을 견주어 **이길 확률**을 내고 주사위를 굴린다.
+   * 두 배 세면 8할, 반이면 2할 — 어느 쪽도 확실하지 않게 0.12~0.88 로 눌러 둔다
+   * (확실해지면 고를 뜻이 사라진다).
+   */
+  function myPower() {
+    var H = global.DG.hero;
+    var base = H && H.partyPower ? H.partyPower().total : 0;
+    return base + core.save.player.level * 6;
+  }
+
+  function winChance(foeId, mine) {
+    var f = FOES[foeId];
+    if (!f) { return 1; }
+    mine = mine === undefined ? myPower() : mine;
+    var r = mine / (mine + f.power);
+    return Math.max(0.12, Math.min(0.88, r));
+  }
+
+  /** 주사위 하나로 승패를 가른다 — `roll` 을 밖에서 주면 순수 함수가 된다 */
+  function fightRoll(foeId, roll, mine) {
+    var c = winChance(foeId, mine);
+    return { win: roll < c, chance: c, foe: FOES[foeId] };
+  }
+
+  /* ── 지금 여기가 어디냐 ───────────────────────────────
+   * 사건은 **아무 데서나** 나지 않는다. 비문은 사당에서, 지도 조각은 폐허에서,
+   * 늑대는 밤 숲에서. 그 판단에 드는 것을 한 덩이로 모아 둔다(순수 함수).
+   */
+  function contextAt(pos, t, wx) {
+    var L = global.DG.land;
+    var tx = Math.floor(pos.x / 48), ty = Math.floor(pos.y / 48);
+    var a = L ? L.at(tx, ty) : null;
+    var W = global.DG.weather;
+    var h = new Date(t === undefined ? Date.now() : t).getHours();
+    return {
+      tx: tx, ty: ty,
+      kind: a ? a.kind : null,          // 이 땅 밖이면 null — 그래도 사건은 난다
+      mark: a ? a.mark : null,
+      night: h >= 21 || h < 4,
+      weather: wx || (W ? W.current().key : 'clear'),
+      t: t === undefined ? Date.now() : t
+    };
+  }
+
+  /** 이 자리·이 시각에 날 수 있는 사건들과 가중치 — 순수 함수 */
+  function candidates(ctx) {
+    var out = [], i, ev, w;
+    for (i = 0; i < EVENTS.length; i++) {
+      ev = EVENTS[i];
+      /* 표식을 요구하는 사건은 **그 표식 위에서만** 난다 (비문·지도 조각) */
+      if (ev.marks && ev.marks.length) {
+        if (ev.marks.indexOf(ctx.mark) < 0) {
+          /* 터 조건도 따로 있으면 그쪽으로 한 번 더 본다 */
+          if (!ev.where || !ev.where.length || ev.where.indexOf(ctx.kind) < 0) { continue; }
+        }
+      } else if (ev.where && ev.where.length) {
+        if (ev.where.indexOf(ctx.kind) < 0) { continue; }
+      }
+      if (ev.when === 'day' && ctx.night) { continue; }
+      if (ev.when === 'night' && !ctx.night) { continue; }
+      w = ev.w;
+      /* 밤에 더 자주 나는 것 (도적) */
+      if (ctx.night && ev.nightW) { w *= ev.nightW; }
+      /* 비가 오면 길에서 사람을 덜 만난다 */
+      if ((ctx.weather === 'rain' || ctx.weather === 'snow') && ev.when === 'day') { w *= 0.5; }
+      if (w > 0) { out.push({ ev: ev, w: w }); }
+    }
+    return out;
+  }
+
+  /** 가중치대로 하나 고른다 — `roll` 을 주면 순수 함수 */
+  function pick(cands, roll) {
+    if (!cands.length) { return null; }
+    var sum = 0, i;
+    for (i = 0; i < cands.length; i++) { sum += cands[i].w; }
+    var x = roll * sum;
+    for (i = 0; i < cands.length; i++) {
+      x -= cands[i].w;
+      if (x <= 0) { return cands[i].ev; }
+    }
+    return cands[cands.length - 1].ev;
+  }
+
+  function find(id) {
+    for (var i = 0; i < EVENTS.length; i++) { if (EVENTS[i].id === id) { return EVENTS[i]; } }
+    return null;
+  }
+  function choiceOf(ev, cid) {
+    for (var i = 0; i < ev.choices.length; i++) { if (ev.choices[i].id === cid) { return ev.choices[i]; } }
+    return null;
+  }
+
+  /**
+   * 이 사건에서 이것을 고르면 무엇이 오가나 — **순수 함수다. 세이브를 안 만진다.**
+   * `roll` 을 밖에서 주면 같은 값이 늘 같은 결과를 낸다(자가진단이 이걸 본다).
+   */
+  function resolve(ev, cid, ctx, roll) {
+    if (typeof ev === 'string') { ev = find(ev); }
+    if (!ev) { return null; }
+    var c = choiceOf(ev, cid);
+    if (!c) { return null; }
+    roll = roll === undefined ? Math.random() : roll;
+    var r = c.out(ctx || contextAt(core.save.player.pos), roll) || {};
+    return {
+      ev: ev, choice: c,
+      gold: r.gold || 0, exp: r.exp || 0, fame: r.fame || 0, feat: r.feat || 0,
+      items: r.items || [], quest: !!r.quest, record: !!r.record,
+      win: r.win === undefined ? null : r.win,
+      text: r.text || ''
+    };
+  }
+
+  /**
+   * 결과를 실제로 준다 — **이 파일에서 세이브가 바뀌는 곳은 여기뿐이다.**
+   * 없는 것을 빼앗지 않는다(금이 모자라면 있는 만큼만).
+   */
+  function apply(res) {
+    if (!res) { return null; }
+    var p = core.save.player, B = global.DG.bag, i, it;
+    var got = { gold: 0, items: [] };
+
+    if (res.gold) {
+      var g = res.gold < 0 ? -Math.min(p.gold, -res.gold) : res.gold;
+      p.gold += g;
+      got.gold = g;
+    }
+    for (i = 0; i < res.items.length; i++) {
+      it = res.items[i];
+      if (it.n > 0) {
+        var added = B.add(it.key, it.n);
+        if (added) { got.items.push({ key: it.key, n: added }); }
+      } else {
+        var lost = B.take ? B.take(it.key, -it.n) : 0;
+        if (lost) { got.items.push({ key: it.key, n: -lost }); }
+      }
+    }
+    if (res.fame) { p.fame = Math.max(0, p.fame + res.fame); }
+    if (res.feat) { core.gainFeat(res.feat, res.ev.name); }
+    if (res.exp) { core.gainExp(res.exp); }
+    if (res.quest && global.DG.quest && !global.DG.quest.full()) {
+      got.quest = global.DG.quest.take();
+    }
+
+    /* 기록 — PLAN 36절 "발견한 사건을 사관에 기록한다". 지금은 기록 줄로 남긴다
+       (다시 펼쳐 보는 발견 목록은 PHASE 11 몫이다) */
+    var bits = [];
+    if (got.gold) { bits.push('🪙 ' + (got.gold > 0 ? '+' : '') + got.gold); }
+    for (i = 0; i < got.items.length; i++) {
+      var d = B.def(got.items[i].key);
+      bits.push(d.emoji + ' ' + (got.items[i].n > 0 ? '+' : '') + got.items[i].n);
+    }
+    if (res.exp) { bits.push('경험치 +' + res.exp); }
+    if (res.fame) { bits.push('🎖️ ' + (res.fame > 0 ? '+' : '') + res.fame); }
+    core.log(res.ev.emoji + ' ' + res.ev.name + ' — ' + res.choice.label.replace(/ \(.*\)$/, '') +
+      (bits.length ? ' · ' + bits.join(' · ') : ''),
+      res.win === false ? 'bad' : (res.feat ? 'feat' : 'good'));
+    if (res.record && res.ev.record) {
+      core.log('📖 [발견] ' + res.ev.record, 'feat');
+    }
+    core.emit('changed');
+    return got;
+  }
+
+  /* ── 화면 ─────────────────────────────────────────────
+   * 조우·역참·성채가 쓰는 **같은 `#encounter` 한 칸**을 쓴다. 새 창을 만들지 않는다 —
+   * 하나만 열린다는 규칙이 그 한 칸으로 지켜지고 있다.
+   */
+  var live = null;          // 지금 열린 사건 {ev, ctx}
+
+  function host() { return document.getElementById('encounter'); }
+  function busy() {
+    var el = host();
+    return !!(el && el.classList.contains('show'));
+  }
+
+  function close() {
+    live = null;
+    var el = host();
+    if (el) { el.classList.remove('show'); el.innerHTML = ''; }
+    core.emit('changed');
+  }
+
+  function open(ev, ctx) {
+    if (typeof ev === 'string') { ev = find(ev); }
+    if (!ev || busy()) { return false; }
+    ctx = ctx || contextAt(core.save.player.pos);
+    var el = host();
+    if (!el) { return false; }
+    live = { ev: ev, ctx: ctx };
+
+    var foe = ev.foe ? FOES[ev.foe] : null;
+    var odds = foe ? Math.round(winChance(ev.foe) * 100) : 0;
+    var html =
+      '<div class="enc-card">' +
+        '<div class="enc-big"><span style="font-size:56px">' + ev.emoji + '</span></div>' +
+        '<h3>' + ev.name + '</h3>' +
+        '<p class="quote">' + ev.quote + '</p>' +
+        (foe
+          ? '<div class="enc-reward">' + foe.emoji + ' ' + foe.name + ' — ' + foe.note +
+            ' · 이길 가망 <b>' + odds + '%</b></div>'
+          : '') +
+        '<div class="enc-choices">';
+    for (var i = 0; i < ev.choices.length; i++) {
+      html += '<button class="btn wide' + (i === 0 ? ' primary' : ' ghost') +
+        '" data-pick="' + ev.choices[i].id + '">' + ev.choices[i].label + '</button>';
+    }
+    html += '</div></div>';
+    el.innerHTML = html;
+    el.classList.add('show');
+
+    var btns = el.querySelectorAll('[data-pick]');
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].addEventListener('click', function (e) {
+        choose(e.currentTarget.getAttribute('data-pick'));
+      });
+    }
+    return true;
+  }
+
+  /** 골랐다 — 결과를 내고, 주고, 결과 화면으로 바꾼다 */
+  function choose(cid) {
+    if (!live) { return null; }
+    var res = resolve(live.ev, cid, live.ctx);
+    if (!res) { return null; }
+    var got = apply(res);
+    var el = host();
+    if (!el) { live = null; return res; }
+    var B = global.DG.bag;
+    var rows = [];
+    if (got.gold) { rows.push('🪙 금 ' + (got.gold > 0 ? '+' : '') + got.gold); }
+    for (var i = 0; i < got.items.length; i++) {
+      var d = B.def(got.items[i].key);
+      rows.push(d.emoji + ' ' + d.name + ' ' + (got.items[i].n > 0 ? '+' : '') + got.items[i].n);
+    }
+    if (res.exp) { rows.push('경험치 +' + res.exp); }
+    if (res.feat) { rows.push('🏅 공적 +' + res.feat); }
+    if (res.fame) { rows.push('🎖️ 명성 ' + (res.fame > 0 ? '+' : '') + res.fame); }
+    if (got.quest) { rows.push('📋 사명 — ' + got.quest.emoji + ' ' + got.quest.name); }
+
+    el.innerHTML =
+      '<div class="enc-card">' +
+        '<div class="enc-big"><span style="font-size:56px">' +
+          (res.win === false ? '💢' : res.ev.emoji) + '</span></div>' +
+        '<h3>' + res.ev.name + '</h3>' +
+        '<p class="quote">' + res.text + '</p>' +
+        (rows.length ? '<div class="enc-reward">' + rows.join(' · ') + '</div>' : '') +
+        (res.record && res.ev.record
+          ? '<div class="enc-reward">📖 새로운 기록 — ' + res.ev.record + '</div>' : '') +
+        '<button class="btn primary wide" data-act="ok">닫는다</button>' +
+      '</div>';
+    var ok = el.querySelector('[data-act="ok"]');
+    if (ok) { ok.addEventListener('click', close); }
+    live = null;
+    return res;
+  }
+
+  /* ── 때 ───────────────────────────────────────────────
+   * 걸은 거리로 잰다 — 걷는 게임이라 시계보다 이쪽이 맞고, 가만히 서 있으면
+   * 아무 일도 안 생긴다(보급이 250m 마다 오는 것과 같은 결이다).
+   */
+  function mark() {
+    var p = core.save.player;
+    if (p.eventMark === undefined || p.eventMark > p.distance) { p.eventMark = p.distance; }
+    return p.eventMark;
+  }
+
+  function tick() {
+    if (!on() || global.DG_NO_DRAW) { return; }
+    var p = core.save.player;
+    var step = STEP();
+    mark();
+    var gap = p.distance - p.eventMark;
+    if (gap < step) { return; }
+    /* 걸음이 크게 뛴 판은 **한 번에 삼킨다.** 보급(`game.js`)은 밀린 몫을 다 주지만
+       사건은 그러면 안 된다 — 옛 세이브를 열거나 배속으로 걸으면 카드가 우수수 뜬다
+       (데모에서 실제로 밟았다: 거리를 12,840m 로 세워 두자 곧바로 터졌다) */
+    if (gap > step * 2) { p.eventMark = p.distance; return; }
+    p.eventMark += step;
+    if (busy()) { return; }               // 다른 창이 열려 있으면 이번 몫은 거른다
+    if (Math.random() >= CHANCE()) { return; }
+    var ctx = contextAt(p.pos);
+    var cs = candidates(ctx);
+    if (!cs.length) { return; }
+    var ev = pick(cs, Math.random());
+    if (ev) { open(ev, ctx); }
+  }
+
+  /** 진단·데모가 특정 사건을 열어 볼 때 */
+  function force(id, ctx) { return open(id, ctx); }
+
+  function stats(pos, t) {
+    var ctx = contextAt(pos || core.save.player.pos, t);
+    var cs = candidates(ctx);
+    return {
+      on: on(), all: EVENTS.length, here: cs.length,
+      kind: ctx.kind, mark: ctx.mark, night: ctx.night,
+      names: cs.map(function (c) { return c.ev.id; }),
+      power: myPower()
+    };
+  }
+
+  global.DG = global.DG || {};
+  global.DG.event = {
+    EVENTS: EVENTS, FOES: FOES,
+    on: on, find: find, choiceOf: choiceOf,
+    /* 값을 내는 함수 — 순수하다. 세이브를 읽기만 한다 */
+    contextAt: contextAt, candidates: candidates, pick: pick, resolve: resolve,
+    myPower: myPower, winChance: winChance, fightRoll: fightRoll,
+    /* 세이브가 바뀌는 곳은 여기 하나 */
+    apply: apply,
+    /* 화면과 때 */
+    open: open, close: close, choose: choose, tick: tick, force: force, stats: stats,
+    get live() { return live; }
+  };
+})(window);
