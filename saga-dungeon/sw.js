@@ -45,6 +45,7 @@ var SHELL = [
   './js/vendor/three.iife.js',
   './js/field3d.js',
   './js/dungeon3d.js',
+  './js/fx3d.js',
   './js/dungeon-view.js',
   './js/net.js',
   './js/ai.js',

@@ -11,6 +11,7 @@
     #camp  본영(난도 고르기)   #dg    던전 안(정예가 섞여 나온다)
     #craft 세공(보석·부문)      #word  부문어가 이루어진 장비
     #loot  바닥에 떨어진 것(등급색 이름표)
+    #fx    전투 연출 아홉 가지(3D · 정지 화면)
     #vendor 행상(사다)   #gamble 투전   #buyback 되사기   #forge 연단   #skill 무예
     #gear  장비                 #party 부대   #dex 도감   #log 기록
 
@@ -78,6 +79,7 @@ window.DG_NO_ACCOUNT = true;
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/field3d.js"></script>
 <script src="js/dungeon3d.js"></script>
+<script src="js/fx3d.js"></script>
 <script src="js/dungeon-view.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
@@ -212,6 +214,88 @@ setTimeout(function () {
       DG.dungeonView.update(0.05);
       DG.dungeonView.draw();
     }, 40);
+  }
+  else if (tab === 'fx') {
+    /* 전투 연출 (3단계) — 아홉 가지를 한 화면에 늘어놓는다.
+       자동 전투로 보면 한 순간이라 눈에 안 잡히고 스크린샷을 견줄 수도 없다.
+       그래서 **매 틱 같은 자리로 되돌린다** — 게임 루프는 계속 돌지만
+       수명·좌표·체력을 다시 박으니 화면은 멈춰 있다.
+       (가만히 서 있으면 적에게 맞아 죽는다. 처음엔 그래서 본영으로 튕겼다)
+       적은 **하나만** 남긴다 — 여럿이면 숫자와 겹쳐 무엇이 무엇인지 안 보인다. */
+    DN.enter({ floor: 14, mode: 'hard' });
+
+    function fxStage() {
+      if (!DN.active()) { DN.enter({ floor: 14, mode: 'hard' }); }
+      var runf = DN.raw(), qf;
+      runf.hp = runf.hpMax;
+      runf.player.x = 150; runf.player.y = 190;
+      runf.player.hurt = 0.14;              // 피격 기운이 화면에 어떻게 도는지 남게
+      runf.player.invuln = 999;             // 정지 화면이니 맞아 죽지 않게 둔다
+
+      var ef = runf.room.enemies;
+      if (ef.length > 1) { ef.length = 1; }
+      if (ef[0]) {
+        ef[0].x = 300; ef[0].y = 120;
+        ef[0].hp = Math.max(1, ef[0].hp);
+        /* **맞은 직후**로 둔다 — 번쩍임을 정지 화면에서 보려면 이 길뿐이다 */
+        ef[0].hurt = 0.2;
+      }
+
+      var fxa = DN.fx();
+      fxa.length = 0;
+      /* 숫자 — 여느 값 · 회심 · 저항에 깎인 것 · 내가 맞은 것 · 원소 · 독 · 획득 */
+      fxa.push({ t: 'hit', x: 240, y: 252, v: 138, life: 0.5 });
+      fxa.push({ t: 'hit', x: 300, y: 118, v: 902, crit: true, life: 0.55 });
+      fxa.push({ t: 'hit', x: 436, y: 300, v: 12, resist: true, life: 0.5 });
+      fxa.push({ t: 'hit', x: 150, y: 190, v: 46, foe: true, life: 0.62 });
+      fxa.push({ t: 'elem', x: 364, y: 208, v: 33, el: 'fire', color: '#e06565', life: 0.5 });
+      fxa.push({ t: 'elem', x: 452, y: 148, v: 7, el: 'poi', color: '#8ec06a', dot: true, life: 0.5 });
+      fxa.push({ t: 'get', x: 196, y: 300, text: '+4,210', color: '#f0c45a', life: 0.9 });
+      /* 칼궤적 · 격파 고리 · 파편 · 회전참 · 파문 · 돌진 잔상 */
+      fxa.push({ t: 'slash', x: 300, y: 132, a: 0.6, life: 0.10 });
+      fxa.push({ t: 'slash', x: 248, y: 238, a: -1.1, crit: true, life: 0.13 });
+      fxa.push({ t: 'pop', x: 432, y: 88, life: 0.14 });
+      fxa.push({ t: 'burst', x: 432, y: 88, color: '#c9a83a', seed: 1.2, life: 0.3 });
+      fxa.push({ t: 'pop', x: 486, y: 258, boss: true, life: 0.12 });
+      fxa.push({ t: 'whirl', x: 150, y: 190, r: 96, life: 0.26 });
+      fxa.push({ t: 'ring', x: 372, y: 322, life: 0.3 });
+      for (qf = 0; qf < 4; qf++) {
+        fxa.push({ t: 'trail', x: 96 + qf * 17, y: 190, life: 0.2 - qf * 0.04 });
+      }
+      /* 화면 흔들림은 **미리 겪은 것으로 표시해 둔다** — 안 그러면 매 틱 다시 흔들려
+         스크린샷을 견줄 수 없다 */
+      for (qf = 0; qf < fxa.length; qf++) { fxa[qf].shake3d = 1; }
+
+      /* 기공파 셋 — 색은 판정이 들려 준다(무예의 결마다 다르다) */
+      runf.shots.length = 0;
+      runf.shots.push({ x: 246, y: 160, dx: 1, dy: 0, el: 'fire', color: '#e06565', life: 1, hit: {} });
+      runf.shots.push({ x: 300, y: 296, dx: 0.8, dy: 0.6, el: 'cold', color: '#7fb8e0', life: 1, hit: {} });
+      runf.shots.push({ x: 404, y: 240, dx: 0.8, dy: -0.6, el: 'lit', color: '#e0d070', life: 1, hit: {} });
+
+      DG.dungeonView.draw();
+
+      /* 3D 가 실제로 섰는지 · 풀이 몇 칸 쓰였는지를 화면에 적어 둔다 —
+         WebGL 이 없는 자리에서는 이 줄만 보고도 왜 안 보이는지 알 수 있다 */
+      var sb = document.getElementById('fx-stat');
+      if (!sb) {
+        sb = document.createElement('div');
+        sb.id = 'fx-stat';
+        sb.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:9999;max-width:70vw;' +
+          'padding:4px 7px;background:#000b;color:#cfe;border-radius:6px;' +
+          'font:600 10px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+        document.body.appendChild(sb);
+      }
+      var s3 = DG.dungeon3d.stats(), sf = DG.fx3d.stats();
+      sb.textContent = '3D ' + (s3.none ? 'off(failed=' + s3.failed + ')' : 'on mesh=' + s3.drawn) +
+        ' · fx ready=' + sf.ready + ' drawn=' + sf.drawn +
+        (sf.num ? ' num=' + sf.num.used + '/' + sf.num.cap +
+          ' ring=' + sf.ring.used + ' slash=' + sf.slash.used +
+          ' burst=' + sf.burst.used + ' trail=' + sf.trail.used +
+          ' text=' + sf.text.used : '');
+    }
+
+    setInterval(fxStage, 60);
+    fxStage();
   }
   else if (tab === 'forge') {
     /* 연단 — 넷이 다 뜨게 재료를 깔아 둔다 (보석 셋 · 부문 셋 · 장비 셋 · 완 보석 둘) */

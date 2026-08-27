@@ -174,6 +174,9 @@
     fxGroup = new T.Group(); scene.add(fxGroup);
     fieldGroup = new T.Group(); scene.add(fieldGroup);
 
+    /* 전투 연출 (3단계) — 글리프판과 풀을 세운다 */
+    if (global.DG.fx3d) { global.DG.fx3d.init(T, fxGroup); }
+
     ready = true;
     resize();
     return true;
@@ -370,6 +373,20 @@
             Math.round(ab + (bb - ab) * k);
   }
 
+  /* ── 맞은 순간 번쩍인다 (3단계 · PLAN 51절 Hit Flash) ──────
+   * 재질은 `mat()` 이 색마다 하나씩 만들어 모든 배우가 나눠 쓴다.
+   * 그대로 만지면 적 하나가 맞을 때 방 전체가 번쩍인다 —
+   * 그래서 **몸통만** 사본을 들려 준다.
+   */
+  function ownMat(m) { m.material = m.material.clone(); return m.material; }
+
+  function flashMat(m, hurt, span) {
+    if (!m || !m.emissive) { return; }
+    var F = global.DG.fx3d;
+    var k = F ? F.flashOf(hurt, span) : 0;
+    m.emissive.setRGB(k, k * 0.8, k * 0.66);
+  }
+
   /* ── 배우 ───────────────────────────────────────────
    * 사람과 적을 도형으로 조립한다. 원작 에셋은 안 쓴다 —
    * 크기·색만 판정에서 읽어 온다(체력·등급이 그림에 드러나야 한다).
@@ -382,6 +399,7 @@
       box(g, 0, 40, 0, 15, 4, 15, 0x3a3f4a, 'flat', false);       // 갓
       box(g, 9, 18, 0, 3, 26, 3, 0xb9c2cf, 'flat', true);         // 칼
       g.userData.head = g.children[1];
+      g.userData.flash = ownMat(g.children[0]);
       return g;
     }
     var r = (ref && ref.r) || 12;
@@ -393,6 +411,7 @@
     if (ref && (ref.boss || ref.elite)) {
       box(g, 0, hh + r * 0.6, r * 0.5, r * 0.7, r * 0.2, r * 0.2, 0xff5a3a, 'glow', false);
     }
+    g.userData.flash = ownMat(g.children[0]);
     return g;
   }
 
@@ -435,10 +454,17 @@
     key.position.set(W * 0.3, 260, H * 0.1);
     key.target.position.set(W / 2, 0, H / 2);
     key.target.updateMatrixWorld();
-    if (!scene.fog) { scene.fog = new T.Fog(L.bgHex, L.fog.near, L.fog.far); }
-    scene.fog.color.setHex(L.bgHex);
+    /* 맞으면 · 위태로우면 바탕과 안개가 붉어진다 (3단계) */
+    var FX = global.DG.fx3d;
+    var p0 = run.player;
+    var lowHp = run.hpMax ? core.clamp((0.34 - run.hp / run.hpMax) / 0.34, 0, 1) : 0;
+    var bgHex = FX ? FX.hurtTint(L.bgHex, p0.hurt, lowHp) : L.bgHex;
+    if (FX) { amb.color.setHex(FX.hurtTint(L.ambientHex, p0.hurt, lowHp * 0.6)); }
+
+    if (!scene.fog) { scene.fog = new T.Fog(bgHex, L.fog.near, L.fog.far); }
+    scene.fog.color.setHex(bgHex);
     scene.fog.near = L.fog.near; scene.fog.far = L.fog.far;
-    scene.background = new T.Color(L.bgHex);
+    scene.background = new T.Color(bgHex);
 
     var p = run.player;
     torch.intensity = L.torchIntensity;
@@ -453,6 +479,7 @@
     me.node.rotation.y = me.ang;
     /* 걸으면 위아래로 튄다 — 굳어 있으면 인형으로 보인다 */
     me.node.position.y = p.walking ? Math.abs(Math.sin(p.phase || 0)) * 2.2 : 0;
+    flashMat(me.node.userData.flash, p.hurt, 0.28);
 
     /* 적 */
     var es = (run.room && run.room.enemies) || [], i;
@@ -464,6 +491,7 @@
       a.node.rotation.y = Math.atan2(p.x - e.x, p.y - e.y);
       /* 맞은 직후에는 흔들린다 */
       if (e.hurt > 0) { a.node.position.x += (Math.random() - 0.5) * 3; }
+      flashMat(a.node.userData.flash, e.hurt, 0.2);
     }
 
     /* 바닥의 전리품 — 등급색으로 빛나는 낮은 조각 */
@@ -487,10 +515,23 @@
       var sa = actorOf('s' + i, 'shot', null);
       if (!sa.node.userData.built) {
         while (sa.node.children.length) { sa.node.remove(sa.node.children[0]); }
-        box(sa.node, 0, 0, 0, 10, 10, 10, 0x9fe8ff, 'glow', false);
+        /* 알과 꼬리. 재질은 사본이다 — 원소마다 색이 다르다 */
+        var sc0 = box(sa.node, 0, 0, 0, 10, 10, 10, 0x9fe8ff, 'glow', false);
+        var st0 = box(sa.node, 0, 0, -9, 6, 6, 22, 0x9fe8ff, 'glow', false);
+        sa.node.userData.shotMat = [ownMat(sc0), ownMat(st0)];
+        sa.node.userData.shotMat[1].transparent = true;
+        sa.node.userData.shotMat[1].opacity = 0.45;
         sa.node.userData.built = true;
       }
+      /* 원소 색은 판정이 이미 들고 있다 (shots[].color) */
+      var shex = FX ? FX.shotHex(sh) : 0x9fe8ff;
+      var sm = sa.node.userData.shotMat, sj;
+      for (sj = 0; sm && sj < sm.length; sj++) {
+        sm[sj].color.setHex(shex);
+        if (sm[sj].emissive) { sm[sj].emissive.setHex(shex); }
+      }
       sa.node.position.set(sh.x, 22, sh.y);
+      sa.node.rotation.y = Math.atan2(sh.dx || 0, sh.dy || 0);
     }
 
     sweep();
@@ -504,6 +545,17 @@
     camLook.lerp(look, 0.14);
     camera.position.copy(camPos);
     camera.lookAt(camLook);
+    if (FX) {
+      /* 화면 흔들림 — 상한은 fx3d 가 진다 (51절) */
+      var sk = FX.shakeAmt();
+      if (sk > 0) {
+        camera.position.x += (Math.random() - 0.5) * sk * 0.9;
+        camera.position.y += (Math.random() - 0.5) * sk * 0.6;
+        camera.updateMatrixWorld();
+      }
+      /* 연출은 카메라가 정해진 뒤에 앉힌다 */
+      FX.step(run, d().fx(), camera);
+    }
 
     renderer.render(scene, camera);
     return true;
@@ -529,7 +581,8 @@
       ready: ready, failed: failed, wanted: wanted(),
       drawn: drawn, actors: Object.keys(actors).length,
       room: roomKey, floor: run ? run.floor : 0,
-      cam: camPos ? [Math.round(camPos.x), Math.round(camPos.y), Math.round(camPos.z)].join(',') : '-'
+      cam: camPos ? [Math.round(camPos.x), Math.round(camPos.y), Math.round(camPos.z)].join(',') : '-',
+      fx: global.DG.fx3d ? global.DG.fx3d.stats() : null
     };
   }
 

@@ -89,6 +89,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 <script src="js/town.js"></script>
 <script src="js/field3d.js"></script>
 <script src="js/dungeon3d.js"></script>
+<script src="js/fx3d.js"></script>
 <script src="js/dungeon-view.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
@@ -2756,6 +2757,128 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       var before = JSON.stringify(C.save);
       var s = F3.seedOf(11, 2, 't');
       F3.chunkAt(1, 1, s, 2, 1); F3.heightAt(500, 500, s, 560, 360); F3.survey(s, 2);
+      return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
+    });
+
+    /* ── 전투 연출 (fx3d) — 3D 전환 3단계 ────────────────────
+     * PLAN 51·52·53절. 판정이 흘려 주는 fx 를 입체로 세우는 층이다.
+     * 그림은 three 가 있어야 서지만 **처방은 값이라** 여기서 다 본다.
+     */
+
+    var FX = DG.fx3d;
+
+    t('연출 — 화면 층이 없어도 판정은 그대로 돈다', function () {
+      /* 진단은 three 를 안 켠다(DG_NO_DRAW). 그래도 처방은 나와야 한다 */
+      return FX.ready() === false &&
+        FX.plan({ t: 'hit', x: 0, y: 0, v: 12, life: 0.6 }) !== null &&
+        '진단에서는 그림 층이 잠들어 있다';
+    });
+
+    t('연출 — 숫자가 2D 와 한 글자도 다르지 않다 (PLAN 52절)', function () {
+      /* 2D 로 보다가 3D 로 켰을 때 숫자가 달라 보이면 같은 판이 아니다 */
+      var crit = FX.textOf({ t: 'hit', v: 450, crit: true });
+      var dot = FX.textOf({ t: 'elem', v: 7, dot: true });
+      var pure = FX.textOf({ t: 'elem', v: 7 });
+      return crit === '★450' && dot === '(7)' && pure === '7' &&
+        (crit + ' · ' + dot + ' · ' + pure);
+    });
+
+    t('연출 — 저항에 깎인 타격은 잿빛이다', function () {
+      var plain = FX.numHex({ t: 'hit', v: 10 });
+      var crit = FX.numHex({ t: 'hit', v: 10, crit: true });
+      var res = FX.numHex({ t: 'hit', v: 10, resist: true });
+      var foe = FX.numHex({ t: 'hit', v: 10, foe: true });
+      return plain === 0xffffff && crit !== plain && res !== plain && foe !== plain &&
+        res !== crit &&
+        ('여느 값 #' + plain.toString(16) + ' · 회심 #' + crit.toString(16) +
+         ' · 저항 #' + res.toString(16) + ' · 내가 맞음 #' + foe.toString(16));
+    });
+
+    t('연출 — 글리프판에 없는 글자는 자리를 비운다', function () {
+      /* 한글은 판에 없다 — 없는 글자에 0번 칸(숫자 0)이 뜨면 엉뚱한 값이 보인다 */
+      var num = FX.glyphs('★12');
+      var kor = FX.glyphs('감정서');
+      var ok = true, i;
+      for (i = 0; i < num.length; i++) { if (num[i] < 0) { ok = false; } }
+      for (i = 0; i < kor.length; i++) { if (kor[i] >= 0) { ok = false; } }
+      return ok && num.length === 3 && kor.length === 3 &&
+        ('★12 → ' + num.join(',') + ' · 한글 셋은 다 ' + kor.join(','));
+    });
+
+    t('연출 — 사그라지며 흐려지고 떠오른다', function () {
+      var fresh = FX.plan({ t: 'hit', x: 0, y: 0, v: 30, life: 0.58 });
+      var old = FX.plan({ t: 'hit', x: 0, y: 0, v: 30, life: 0.06 });
+      return fresh.alpha > old.alpha && old.rise > fresh.rise && old.k > fresh.k &&
+        ('진하기 ' + fresh.alpha.toFixed(2) + ' → ' + old.alpha.toFixed(2) +
+         ' · 높이 ' + Math.round(fresh.rise) + ' → ' + Math.round(old.rise));
+    });
+
+    t('연출 — 판정이 흘리는 아홉 가지를 다 받는다 (PLAN 51절)', function () {
+      var kinds = {}, miss = [], i;
+      var all = ['hit', 'elem', 'get', 'slash', 'pop', 'burst', 'whirl', 'ring', 'trail'];
+      for (i = 0; i < all.length; i++) {
+        var pl = FX.plan({ t: all[i], x: 0, y: 0, v: 1, r: 60, text: '금', life: 0.2 });
+        if (!pl) { miss.push(all[i]); continue; }
+        kinds[pl.kind] = 1;
+      }
+      /* 모르는 종류는 조용히 넘긴다 — 판정에 새 연출이 늘어도 안 깨진다 */
+      return miss.length === 0 && FX.plan({ t: 'newthing', life: 1 }) === null &&
+        ('아홉이 ' + Object.keys(kinds).sort().join('/') + ' 로 갈린다');
+    });
+
+    t('연출 — 숫자가 쏟아져도 노드를 더 만들지 않는다 (PLAN 52절 Object Pool)', function () {
+      var made = 0;
+      var p = FX.pool(function () { made++; return { id: made }; }, 8);
+      var got = 0, i;
+      for (i = 0; i < 300; i++) { if (p.take()) { got++; } }
+      var over = p.stats();
+      p.reset();
+      var again = p.take();
+      return made === 8 && got === 8 && over.dropped === 292 && again !== null &&
+        ('300번 달라 해도 만든 것은 ' + made + '개 · 넘긴 것 ' + over.dropped + '번');
+    });
+
+    t('연출 — 화면 흔들림은 상한이 있고 곧 죽는다 (PLAN 51절)', function () {
+      var boss = FX.shakeOf({ t: 'pop', boss: true });
+      var mob = FX.shakeOf({ t: 'pop' });
+      var mine = FX.shakeOf({ t: 'hit', foe: true });
+      var none = FX.shakeOf({ t: 'hit' });
+      var after = FX.shakeStep(boss, 0.5);
+      return boss > mob && mine > 0 && none === 0 && boss <= FX.SHAKE_MAX &&
+        after === 0 &&
+        ('보스 격파 ' + boss + ' · 잡졸 ' + mob + ' · 내가 맞음 ' + mine +
+         ' · 반 초 뒤 ' + after);
+    });
+
+    t('연출 — 맞은 순간만 번쩍인다', function () {
+      /* hurt 는 적이 0.2 · 사람이 0.28 에서 줄어든다 */
+      return FX.flashOf(0.2, 0.2) === 1 && FX.flashOf(0.1, 0.2) === 0.5 &&
+        FX.flashOf(0, 0.2) === 0 && FX.flashOf(0.28, 0.28) === 1 &&
+        '갓 맞으면 1 · 다 지나면 0';
+    });
+
+    t('연출 — 원소 색은 판정이 준 색을 쓴다', function () {
+      /* 색을 3D 가 새로 정하면 같은 무예가 2D 와 다른 결로 보인다 */
+      var fire = FX.shotHex({ color: '#e06565' });
+      var none = FX.shotHex({});
+      return fire === 0xe06565 && none === 0x9fe8ff &&
+        ('#' + fire.toString(16) + ' · 색이 없으면 #' + none.toString(16));
+    });
+
+    t('연출 — 맞으면 바탕이 붉게 물들되 다 붉어지지는 않는다', function () {
+      var calm = FX.hurtTint(0x101018, 0, 0);
+      var hit = FX.hurtTint(0x101018, 0.28, 0);
+      var dying = FX.hurtTint(0x101018, 0.28, 1);
+      return calm === 0x101018 && hit !== calm && dying !== hit &&
+        (dying & 255) < 200 &&
+        ('평시 #' + calm.toString(16) + ' → 피격 #' + hit.toString(16) +
+         ' → 위태 #' + dying.toString(16));
+    });
+
+    t('연출 — 값을 내도 세이브는 그대로다', function () {
+      var before = JSON.stringify(C.save);
+      FX.plan({ t: 'burst', x: 1, y: 1, boss: true, life: 0.3, seed: 1 });
+      FX.glyphs('123'); FX.shakeOf({ t: 'pop' }); FX.stats();
       return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
     });
 
