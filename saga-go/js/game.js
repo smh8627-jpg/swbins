@@ -321,6 +321,7 @@
     global.DG.letter.tick();            // 다 걸은 천거장을 연다
     global.DG.buddy.tick();             // 곁을 걷는 반려가 영초를 물어 온다
     global.DG.fort.tick();              // 사기가 다한 성채에서 손을 뗀다
+    global.DG.npc.tick();               // 이 땅에 사는 열 사람 — 가까이 가면 한 마디 한다
     if (!global.DG_NO_DRAW) { world.draw(); }
 
     uiAcc += dt;

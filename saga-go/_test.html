@@ -73,6 +73,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/land.js"></script>
 <script src="js/world.js"></script>
+<script src="js/npc.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
 <script src="js/world3d.js"></script>
@@ -2034,6 +2035,143 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var n1 = JSON.stringify(W.spawns.map(function (s) { return s.uid + ':' + Math.round(s.x) + ',' + Math.round(s.y); }));
       return JSON.stringify(C.save) === before && n0 === n1 &&
         '세이브 · 스폰 한 칸도 안 바뀐다';
+    });
+
+    /* ── 주민 (npc) — 이 땅에 사는 열 사람 ──────────────────
+     * 자리가 **시각의 순수 함수**라 값으로 다 본다. 시각과 천후는 인자로 못박는다 —
+     * 저녁에 돌렸다고 답이 달라지면 진단이 아니다(이 저장소의 오랜 규칙).
+     */
+
+    var NP = DG.npc;
+    function atT(h, m) { return new Date(2026, 7, 26, h, m || 0, 0, 0).getTime(); }
+
+    t('주민 — 열 사람이 다 이 땅 안에 산다', function () {
+      var b = LD.bounds(), i, out = [], names = [];
+      for (i = 0; i < NP.PEOPLE.length; i++) {
+        var p = NP.PEOPLE[i];
+        names.push(p.p || p.name);
+        var j;
+        for (j = 0; j < p.spots.length; j++) {
+          if (!LD.place(p.spots[j].at)) { out.push(p.id + '→' + p.spots[j].at); }
+        }
+        if (!LD.place(p.home)) { out.push(p.id + ' 집 ' + p.home); }
+      }
+      return NP.PEOPLE.length === 10 && out.length === 0 &&
+        ('열 사람 · 일과가 가리키는 자리가 다 이 땅 안 (격자 ' +
+         b.x0 + ',' + b.y0 + '..' + b.x1 + ',' + b.y1 + ')');
+    });
+
+    t('주민 — 같은 시각을 물으면 늘 같은 자리다', function () {
+      /* 걸음을 쌓아 올리지 않고 시각에서 곧바로 뽑는다 — 그래서 다시 물어도 같다 */
+      var a = NP.posAt('npc_elder', atT(10), 'clear');
+      var b = NP.posAt('npc_elder', atT(10), 'clear');
+      var c = NP.posAt('npc_elder', atT(10, 1), 'clear');
+      return a.x === b.x && a.y === b.y && (a.x !== c.x || a.y !== c.y || a.k === 1) &&
+        ('10시 촌장 ' + Math.round(a.x) + ',' + Math.round(a.y) + ' — 두 번 물어 같다');
+    });
+
+    t('주민 — 일과를 따라 자리를 옮긴다', function () {
+      var e7 = NP.posAt('npc_elder', atT(7), 'clear');
+      var e12 = NP.posAt('npc_elder', atT(12), 'clear');
+      var e18 = NP.posAt('npc_elder', atT(18), 'clear');
+      var moved = Math.hypot(e12.x - e7.x, e12.y - e7.y);
+      return e7.at === 'village' && e12.at === 'gate_n' && e18.at === 'village' &&
+        moved > 40 &&
+        ('7시 마을 → 12시 북문(' + Math.round(moved) + 'm 밖) → 18시 마을');
+    });
+
+    t('주민 — 자리를 옮기는 동안은 걷는다 (순간이동하지 않는다)', function () {
+      var s = NP.segAt(NP.find('npc_soldier'), atT(10, 1));
+      var a = NP.posAt('npc_soldier', atT(10, 1), 'clear');   // 막 떠났다
+      var b = NP.posAt('npc_soldier', atT(14), 'clear');      // 도착해 있다
+      var from = LD.place('gate_n'), to = LD.place('ridge');
+      var dA = Math.hypot(a.x - from.x, a.y - from.y);
+      var dB = Math.hypot(b.x - to.x, b.y - to.y);
+      var span = Math.hypot(to.x - from.x, to.y - from.y);
+      return a.walking === true && b.walking === false &&
+        a.k > 0.15 && a.k < 0.7 && dA < span && dB < 20 && s.cur.at === 'ridge' &&
+        ('북문→산등성이 ' + Math.round(span) + 'm · 10:01 에 ' +
+         Math.round(a.k * 100) + '% 지점(' + Math.round(dA) + 'm) · 14시 도착(' +
+         Math.round(dB) + 'm)');
+    });
+
+    t('주민 — 비가 오면 일과를 접고 집으로 간다', function () {
+      /* PLAN 14절 "비가 오면 이동한다" */
+      var dry = NP.posAt('npc_herb', atT(11), 'clear');
+      var wet = NP.posAt('npc_herb', atT(11), 'rain');
+      var home = LD.place('wood');
+      return dry.at === 'ridge' && wet.at === 'wood' &&
+        Math.hypot(wet.x - home.x, wet.y - home.y) < 20 &&
+        ('맑으면 산등성이 · 비 오면 숲 어귀(집)');
+    });
+
+    t('주민 — 여행자는 밤에만 나타난다', function () {
+      var day = NP.posAt('npc_stranger', atT(13), 'clear');
+      var night = NP.posAt('npc_stranger', atT(23), 'clear');
+      return day === null && night !== null && NP.isNight(atT(23)) &&
+        NP.isNight(atT(13)) === false &&
+        ('낮 13시 없음 · 밤 23시 ' + night.at + ' 에 있다');
+    });
+
+    t('주민 — 열 사람이 한 점에 겹치지 않는다', function () {
+      /* 같은 자리에 서는 사람들이 한 점에 포개지면 마을이 아니라 인형 무더기다 */
+      var i, j, pts = [], min = 1e9;
+      for (i = 0; i < NP.PEOPLE.length; i++) {
+        var q = NP.posAt(NP.PEOPLE[i], atT(9), 'clear');
+        if (q) { pts.push(q); }
+      }
+      for (i = 0; i < pts.length; i++) {
+        for (j = i + 1; j < pts.length; j++) {
+          min = Math.min(min, Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y));
+        }
+      }
+      return pts.length === 9 && min > 2 &&
+        ('9시에 아홉 사람 · 가장 가까운 둘이 ' + Math.round(min) + 'm');
+    });
+
+    t('주민 — LOD 가 거리로 갈린다', function () {
+      /* PLAN 15절: 0~20 고품질 · 20~50 단순 · 50~100 저비용 · 100m~ 정지 */
+      var tags = [5, 30, 80, 300].map(function (d) { return NP.lod(d).tag; });
+      return tags.join('/') === 'high/simple/cheap/off' &&
+        NP.lod(300).ms < 0 && NP.lod(5).ms === 0 &&
+        ('5·30·80·300m → ' + tags.join(' · '));
+    });
+
+    t('주민 — 말이 역할·시각·천후를 따라 갈린다', function () {
+      var d = NP.say('npc_bandit', atT(13), 'clear');
+      var n = NP.say('npc_bandit', atT(23), 'clear');
+      var r = NP.say('npc_bandit', atT(13), 'rain');
+      var all = NP.PEOPLE.every(function (p) { return !!NP.say(p, atT(13), 'clear'); });
+      return all && d !== n && n !== r && d !== r &&
+        ('도적 두목 낮/밤/비 세 마디가 다 다르다 · 열 사람 다 할 말이 있다');
+    });
+
+    t('주민 — 땅을 끄면 사람도 사라진다', function () {
+      /* 주민은 이 땅의 이름난 자리에 산다 — 땅이 없으면 설 자리가 없다 */
+      var pos = { x: 24, y: 24 };
+      var onN = NP.live(pos, atT(10)).length;
+      NP.reset();
+      C.setTune('land.on', 0);
+      var offN = NP.live(pos, atT(10)).length;
+      C.setTune('land.on', null);
+      NP.reset();
+      var backN = NP.live(pos, atT(10)).length;
+      NP.reset();
+      return onN > 0 && offN === 0 && backN === onN &&
+        ('땅 켜짐 ' + onN + '명 · 꺼짐 ' + offN + '명');
+    });
+
+    t('주민 — 판정에 한 칸도 안 닿는다', function () {
+      /* 주민은 스폰이 아니다 — 잡히지도, 세이브에 남지도 않는다 */
+      var before = JSON.stringify(C.save);
+      var sp0 = JSON.stringify(W.spawns.map(function (s) { return s.uid; }));
+      NP.live({ x: 24, y: 24 }, atT(9));
+      NP.posAt('npc_smith', atT(15), 'clear');
+      NP.say('npc_elder', atT(9), 'clear');
+      NP.reset();
+      var sp1 = JSON.stringify(W.spawns.map(function (s) { return s.uid; }));
+      return JSON.stringify(C.save) === before && sp0 === sp1 &&
+        '세이브 · 스폰 목록 그대로';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {

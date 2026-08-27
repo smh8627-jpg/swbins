@@ -81,6 +81,7 @@ window.DG_NO_TUNE = true;
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/land.js"></script>
 <script src="js/world.js"></script>
+<script src="js/npc.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
 <script src="js/world3d.js"></script>
@@ -255,6 +256,18 @@ setTimeout(function () {
       document.title = '땅 ' + spot.name + ' (' + spot.tx + ',' + spot.ty + ')';
     }
   }
+  /* 시각을 못박는다 — `#at=9` 처럼. 3D 조명과 **주민의 일과**가 같은 시각을 본다
+     (안 맞추면 한낮 그림에 밤 사람이 서 있다) */
+  if (/at=\d/.test(hash)) {
+    var hm = /at=(\d{1,2})(?::(\d{2}))?/.exec(hash);
+    var when = new Date(2026, 7, 26, +hm[1], hm[2] ? +hm[2] : 0).getTime();
+    DG.weather.force('clear');
+    if (DG.world3d) { DG.world3d.forceTime(when); }
+    if (DG.npc) { DG.npc.forceTime(when); DG.npc.reset(); }
+  }
+  /* 옛 2D 캔버스로 본다 — `#flat`. `#2d` 는 시점만 눕히는 것이라 **그리는 쪽은
+     여전히 3D** 다(위에서 내려다보는 3D). 캔버스 그림을 눈으로 보려면 이쪽이다 */
+  if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
   if (hash.indexOf('3d') >= 0) { C.save.settings.tilt = 2; W.resize(); }
   /* 3D 조명 — 시각을 못박아 밤·노을을 눈으로 본다 (게임에서는 진짜 시계를 본다).
@@ -262,14 +275,17 @@ setTimeout(function () {
   if (DG.world3d && hash.indexOf('night') >= 0) {
     DG.weather.force('clear');
     DG.world3d.forceTime(new Date(2026, 7, 26, 22, 30).getTime());
+    if (DG.npc) { DG.npc.forceTime(new Date(2026, 7, 26, 22, 30).getTime()); DG.npc.reset(); }
   }
   if (DG.world3d && hash.indexOf('dusk') >= 0) {
     DG.weather.force('clear');
     DG.world3d.forceTime(new Date(2026, 7, 26, 17, 20).getTime());
+    if (DG.npc) { DG.npc.forceTime(new Date(2026, 7, 26, 17, 20).getTime()); DG.npc.reset(); }
   }
   if (DG.world3d && hash.indexOf('noon') >= 0) {
     DG.weather.force('clear');
     DG.world3d.forceTime(new Date(2026, 7, 26, 12, 30).getTime());
+    if (DG.npc) { DG.npc.forceTime(new Date(2026, 7, 26, 12, 30).getTime()); DG.npc.reset(); }
   }
   /* 조우 연출 — 카메라가 대상 쪽으로 돌고, 잡히면 빛기둥이 선다 */
   if (hash.indexOf('meet') >= 0 && W.spawns.length) {

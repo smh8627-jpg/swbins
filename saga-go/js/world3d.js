@@ -920,6 +920,19 @@
       }
     }
 
+    /* 주민 — 이 땅에 사는 열 사람(`npc.js`). 스폰과 달리 **잡히지 않는 사람들**이라
+       발밑 등급 고리를 안 두르고, 조우 무대에도 오르지 않는다 */
+    var NP = global.DG.npc;
+    var people = NP ? NP.live(pos, now) : [];
+    for (i = 0; i < people.length; i++) {
+      var n = people[i];
+      var na = actorOf('np' + n.p.id, 'hero', n.p, 96);
+      var nbob = n.walking
+        ? Math.abs(Math.sin(n.phase)) * h * 0.04
+        : Math.sin(now / 700 + i) * h * 0.014;
+      placeActor(na, n.x, n.y, h * 0.94 * farBoost(n.x, n.y), nbob, n.walking, n.phase, now);
+    }
+
     /* 역참 · 성채 */
     var sts = W.stationsNear ? W.stationsNear() : [];
     for (i = 0; i < sts.length; i++) {

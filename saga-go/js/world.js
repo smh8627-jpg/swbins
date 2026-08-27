@@ -1020,6 +1020,16 @@
       })(fts[fi]);
     }
 
+    // 주민 (npc.js) — 스폰보다 먼저 담아도 v 정렬이 앞뒤를 잡아 준다
+    var NP = global.DG.npc;
+    var ppl = NP ? NP.live(pos) : [];
+    for (var pi = 0; pi < ppl.length; pi++) {
+      (function (n) {
+        var u = (n.x - pos.x) * sc, v = (n.y - pos.y) * sc;
+        items.push({ v: v, draw: function () { drawNpc(n, u, v, now); } });
+      })(ppl[pi]);
+    }
+
     // 스폰
     for (var i = 0; i < spawns.length; i++) {
       (function (s) {
@@ -1225,6 +1235,47 @@
       ctx.textAlign = 'left';
     }
     ctx.globalAlpha = 1;
+  }
+
+  /**
+   * 주민 한 사람. **스폰과 눈에 띄게 달라야 한다** — 잡거나 설득할 대상이 아니라
+   * 그냥 여기 사는 사람이다. 그래서 발밑 등급 고리를 안 두르고(그림자만 둔다)
+   * 이름표도 흐리게 단다. 가까이 가면 이름이 또렷해진다(말이 걸리는 거리다).
+   */
+  function drawNpc(n, u, v, now) {
+    var p = project(u, v);
+    if (p.s < 0.25 || p.y < -80 || p.y > geom.H + 80) { return; }
+    var z = core.clamp(p.s, 0.5, 1.6);
+    var sp = global.DG.sprite;
+    var talkR = core.tuned('npc.talkRadius', 14);
+    var near = n.dist <= talkR;
+    var bodyH = 40 * z * 1.05;
+
+    // 발밑 그림자 (등급 고리는 없다)
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, 11 * z, 4.5 * z, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.30)';
+    ctx.fill();
+
+    sp.stamp(ctx, {
+      kind: 'human', ref: n.p,
+      x: p.x, y: p.y, s: z * 1.05, facing: n.x < 0 ? -1 : 1,
+      phase: n.phase, walking: n.walking,
+      color: n.p.color || '#6b6f78',
+      look: sp.lookOf(n.p),
+      t: now
+    });
+
+    if (p.s > 0.45) {
+      ctx.textAlign = 'center';
+      ctx.font = '600 ' + Math.round(10 * z) + 'px system-ui, sans-serif';
+      var ny = p.y - bodyH * 1.10 - 5 * z;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillText(n.p.name, p.x + 1, ny + 1);
+      ctx.fillStyle = near ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.42)';
+      ctx.fillText(n.p.name, p.x, ny);
+      ctx.textAlign = 'left';
+    }
   }
 
   function drawPlayer(now, sc) {
