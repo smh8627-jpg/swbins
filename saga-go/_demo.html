@@ -79,6 +79,7 @@ window.DG_NO_TUNE = true;
 <script src="js/buddy.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/vendor/three.iife.js"></script>
+<script src="js/land.js"></script>
 <script src="js/world.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
@@ -240,6 +241,19 @@ setTimeout(function () {
       sb.textContent = out.join(' | ');
       document.title = 'STAT ' + out.join(' ');
     }, 400);
+  }
+  /* 손으로 그린 땅의 이름난 자리로 걸어가 본다 — `#land=bridge` 처럼 쓴다.
+     이 땅은 눈으로 볼 수밖에 없는 것이라(다리가 강을 가로지르는가, 폐허가 폐허로
+     보이는가) 데모에 자리를 옮기는 손잡이를 둔다. `#land` 만 쓰면 마을 한가운데다 */
+  if (hash.indexOf('land') >= 0 && DG.land) {
+    var lm = /land=([a-z_]+)/.exec(hash);
+    var spot = DG.land.place(lm ? lm[1] : 'village');
+    if (spot) {
+      C.save.player.pos.x = spot.x;
+      C.save.player.pos.y = spot.y;
+      W.resize();
+      document.title = '땅 ' + spot.name + ' (' + spot.tx + ',' + spot.ty + ')';
+    }
   }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
   if (hash.indexOf('3d') >= 0) { C.save.settings.tilt = 2; W.resize(); }

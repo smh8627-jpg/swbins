@@ -403,6 +403,16 @@
     var u = urbanity(gx, gy);
     var dens = DENSITY();
     var half = GRID * 0.42;
+    /* 이 격자를 손으로 그린 땅이 맡고 있나 (`land.js`) — 맡은 자리는
+       지도에 없는 땅이라 지도가 깔려 있어도 제 지형을 세워야 한다 */
+    var RG = global.DG.land;
+    var authored = !!(RG && RG.owns(gx, gy));
+    /* 손으로 그린 땅이 번화도를 못박아 두었으면 그것을 쓴다 — 작은 마을에
+       탑이 솟지 않게 하는 것이 여기다 */
+    if (authored) {
+      var lu = RG.urbanity(gx, gy);
+      if (lu !== null) { u = lu; }
+    }
     function spot(seed) {
       return {
         x: (h1(gx * 3 + seed * 13, gy * 7 + seed * 5) * 2 - 1) * half,
@@ -454,7 +464,9 @@
       /* **지도가 깔렸으면 물은 이미 지도에 칠해져 있다.** 그 위에 원반을 또 깔면
          지도에 없는 자리에 호수가 떠서 그림이 어긋난다 — 절차적 사물이 맡을 것은
          지도에 없는 **높이**뿐이다. 갈대는 높이라서 남긴다 */
-      if (!mapped) { out.push({ t: 'water', x: 0, z: 0, h: 0 }); }
+      /* 다만 **손으로 그린 땅**(`land.js`)의 강은 지도에 없는 물이다 —
+         지도가 깔려 있어도 여기서 수면을 깔지 않으면 강이 아예 안 보인다 */
+      if (!mapped || authored) { out.push({ t: 'water', x: 0, z: 0, h: 0, sq: authored }); }
       n = h1(gx * 9, gy * 13) > 0.5 ? 3 : 1;
       for (i = 0; i < n; i++) {
         var ws = spot(i + 90);
@@ -470,6 +482,23 @@
         var rs = spot(60);
         out.push({ t: 'tree', x: rs.x, z: rs.z, h: 4 + h1(gx, gy) * 3 });
       }
+    } else if (kind === 'farm') {
+      /* 논밭 — 손으로 그린 땅이 들고 온 것이다. 물 댄 뙈기를 낮게 깔고 두렁으로 나눈다.
+         뙈기는 **네모라서** 사람이 갈아 놓은 티가 난다 — 들의 둥근 풀덤불과 갈린다 */
+      n = Math.round((2 + h1(gx * 3 + 7, gy * 5 + 11) * 2) * dens);
+      for (i = 0; i < n; i++) {
+        var ds = spot(i + 130);
+        out.push({
+          t: 'field', x: ds.x, z: ds.z,
+          w: 11 + h1(gx + i, gy + i * 3) * 9,
+          d: 9 + h1(gy + i, gx + i * 5) * 8,
+          rot: h1(gx * 5 + i, gy * 7 + i) * 0.5 - 0.25
+        });
+      }
+      if (h1(gx * 17 + 3, gy * 13 + 5) > 0.5) {
+        var cs = spot(150);
+        out.push({ t: 'scare', x: cs.x, z: cs.z, h: 2.2 });
+      }
     } else {                                   // grass — 빈 들
       n = Math.round((h1(gx * 41, gy * 23) * 3) * dens);
       for (i = 0; i < n; i++) {
@@ -481,6 +510,15 @@
         out.push({ t: 'rock', x: grs.x, z: grs.z, h: 1.2 + h1(gx, gy) * 1.4 });
       }
     }
+
+    /* 손으로 못박아 둔 것 — 다리·굴 입구·무너진 기둥·옛 사당. 해시가 만든 것 **위에**
+       얹는다. 자리가 정해져 있으니 격자 한가운데다(찾아가는 표적이라 흔들리면 안 된다) */
+    var mk = RG ? RG.markAt(gx, gy) : null;
+    if (mk === 'bridge') { out.push({ t: 'bridge', x: 0, z: 0, h: 1.7 }); }
+    else if (mk === 'cave') { out.push({ t: 'cave', x: 0, z: 0, h: 7 }); }
+    else if (mk === 'ruin') { out.push({ t: 'ruin', x: 0, z: 0, h: 4.5 }); }
+    else if (mk === 'shrine') { out.push({ t: 'shrine', x: 0, z: 0, h: 5 }); }
+
     return out;
   }
 
@@ -557,9 +595,78 @@
           .receiveShadow = true;
       } else if (p.t === 'water') {
         /* 네모난 수면은 **격자를 그대로 드러낸다** — 한 칸만 물인 자리에 파란 사각형이
-           덩그러니 놓인다. 원반으로 깔면 홀로 있으면 못이 되고 이어지면 강이 된다 */
-        var w = box(g, 'disc', pmat(0x2f6f9e, 'water'), 0, 0.12, 0, GRID * 0.62, GRID * 0.62, 1, false);
+           덩그러니 놓인다. 원반으로 깔면 홀로 있으면 못이 되고 이어지면 강이 된다.
+           다만 **손으로 그린 강**(p.sq)은 이야기가 다르다 — 이어지라고 그은 물이라
+           원반으로 깔면 가장자리가 부채꼴로 패어 강이 아니라 물웅덩이 줄로 보인다.
+           그 자리는 격자를 꽉 채우는 네모로 깐다(눈으로 보고 알았다) */
+        var w = p.sq
+          ? box(g, 'plane', pmat(0x2f6f9e, 'water'), 0, 0.12, 0, GRID + 0.5, GRID + 0.5, 1, false)
+          : box(g, 'disc', pmat(0x2f6f9e, 'water'), 0, 0.12, 0, GRID * 0.62, GRID * 0.62, 1, false);
         w.rotation.x = -Math.PI / 2;
+      } else if (p.t === 'field') {
+        /* 논 한 뙈기 — 물 댄 낯을 얇게 깔고 두렁을 두른다. 지면보다 조금만 띄운다
+           (많이 띄우면 논이 공중에 뜨고, 안 띄우면 지면과 다퉈 얼룩진다) */
+        var fld = box(g, 'box', pmat(0x3f6b52), p.x, 0.09, p.z, p.w, 0.18, p.d, false);
+        fld.rotation.y = p.rot;
+        fld.receiveShadow = true;
+        /* 두렁은 **테두리**다. 한 덩이로 덮으면 논이 그 밑에 깔려 흙판만 보인다
+           (눈으로 보고 알았다) — 네 변만 두른다 */
+        var lw = 1.1, li;
+        for (li = 0; li < 4; li++) {
+          var ax = li < 2 ? p.w + lw : lw, az = li < 2 ? lw : p.d + lw;
+          var ox = li === 0 ? 0 : (li === 1 ? 0 : (li === 2 ? -(p.w + lw) / 2 : (p.w + lw) / 2));
+          var oz = li === 0 ? -(p.d + lw) / 2 : (li === 1 ? (p.d + lw) / 2 : 0);
+          var lv = box(g, 'box', pmat(0x7a6f57), 0, 0.20, 0, ax, 0.22, az, false);
+          lv.position.set(p.x + Math.cos(p.rot) * ox - Math.sin(p.rot) * oz, 0.20,
+                          p.z + Math.sin(p.rot) * ox + Math.cos(p.rot) * oz);
+          lv.rotation.y = p.rot;
+        }
+      } else if (p.t === 'scare') {
+        /* 허수아비 — 장대 하나에 가로대와 삿갓. 논에 사람이 산다는 표다 */
+        box(g, 'cyl', pmat(0x6b5a3f), p.x, p.h * 0.5, p.z, 0.16, p.h, 0.16, true);
+        box(g, 'box', pmat(0x6b5a3f), p.x, p.h * 0.78, p.z, 1.6, 0.13, 0.13, false);
+        box(g, 'cone', pmat(0xa8925f, 'flat'), p.x, p.h + 0.16, p.z, 1.1, 0.5, 1.1, false);
+      } else if (p.t === 'bridge') {
+        /* 다리 — 강을 **가로질러** 놓는다. 길이 남북이라 상판도 남북으로 길다.
+           난간이 없으면 멀리서 물 위의 널빤지로만 보인다 */
+        box(g, 'box', pmat(0x7a6a52), 0, p.h, 0, 7, 0.5, GRID * 1.02, true).receiveShadow = true;
+        var bi;
+        for (bi = -1; bi <= 1; bi += 2) {
+          box(g, 'box', pmat(0x8a7a60), bi * 3.3, p.h + 0.75, 0, 0.35, 1.0, GRID * 1.02, false);
+        }
+        for (bi = -1; bi <= 1; bi += 2) {          // 물속 교각
+          box(g, 'cyl', pmat(0x5d5347), 0, p.h * 0.5, bi * GRID * 0.28, 1.5, p.h * 2, 1.5, false);
+        }
+      } else if (p.t === 'cave') {
+        /* 굴 입구 — 바위 더미에 **검은 반원**을 박는다. 산 사면에 뚫린 구멍으로 보인다 */
+        box(g, 'sph', pmat(0x5a5560, 'flat'), 0, p.h * 0.34, 0, p.h * 2.4, p.h * 1.5, p.h * 2.0, true);
+        var mouth = box(g, 'disc', pmat(0x0d1014), 0, p.h * 0.34, p.h * 0.98, 2.6, 3.4, 1, false);
+        mouth.rotation.set(0, 0, 0);
+        box(g, 'box', pmat(0x6b6a72, 'flat'), -3.1, p.h * 0.25, p.h * 0.9, 0.9, p.h * 0.5, 0.9, false);
+        box(g, 'box', pmat(0x6b6a72, 'flat'), 3.1, p.h * 0.25, p.h * 0.9, 0.9, p.h * 0.5, 0.9, false);
+      } else if (p.t === 'ruin') {
+        /* 폐허 — 주춧돌 위에 **부러진 기둥 넷**. 높이를 서로 다르게 해야 폐허로 보인다
+           (같으면 짓다 만 집이다) */
+        box(g, 'box', pmat(0x5f5a52, 'flat'), 0, 0.2, 0, 13, 0.4, 13, false).receiveShadow = true;
+        var rp = [[-4.4, -4.4, 1.0], [4.4, -4.4, 0.55], [-4.4, 4.4, 0.75], [4.4, 4.4, 0.3]], ri;
+        for (ri = 0; ri < rp.length; ri++) {
+          box(g, 'cyl', pmat(0x8a8378, 'flat'),
+            rp[ri][0], 0.4 + p.h * rp[ri][2] * 0.5, rp[ri][1], 1.1, p.h * rp[ri][2], 1.1, true);
+        }
+        box(g, 'box', pmat(0x7c766c, 'flat'), 1.2, 0.7, 0, 6, 0.7, 1.2, false).rotation.y = 0.4;
+      } else if (p.t === 'shrine') {
+        /* 옛 사당 — 작은 기와집 하나에 돌계단과 등롱 둘. 숲 속에서 이것만 사람 손이다 */
+        box(g, 'box', pmat(0x6a6258, 'flat'), 0, 0.3, 0, 9, 0.6, 9, false).receiveShadow = true;
+        box(g, 'box', pmat(0xb9a88c), 0, p.h * 0.42, 0, 5.4, p.h * 0.66, 5.0, true);
+        box(g, 'cone4', pmat(0x4a5360, 'flat'), 0, p.h * 0.86, 0, 8.2, p.h * 0.42, 8.2, true)
+          .rotation.y = Math.PI / 4;
+        var si;
+        for (si = -1; si <= 1; si += 2) {
+          box(g, 'cyl', pmat(0x3f3a34), si * 3.4, 1.3, 4.6, 0.2, 2.6, 0.2, false);
+          var sb = box(g, 'sph', pmat(0xffd489, 'glow'), si * 3.4, 2.8, 4.6, 0.7, 0.9, 0.7, false);
+          sb.userData.lamp = true;
+          sb.visible = !!(lightNow && lightNow.lamp > 0.2);
+        }
       } else if (p.t === 'reed') {
         box(g, 'cone', pmat(0x6d7f4a), p.x, p.h * 0.5, p.z, 0.5, p.h, 0.5, false);
       } else if (p.t === 'lamp') {
@@ -584,14 +691,19 @@
     /* 지도가 깔렸는지 — 깔린 자리와 안 깔린 자리(오프라인·타일 실패)에서
        세우는 것이 다르다. 캐시 키에도 넣어야 상태가 바뀔 때 다시 세운다 */
     var mapped = !!(W.tilesUsable && W.tilesUsable());
+    var RG3 = global.DG.land;
     for (var gy = g0y; gy <= g1y; gy++) {
       for (var gx = g0x; gx <= g1x; gx++) {
         var kind = W.terrainAt(gx, gy);
+        /* 손으로 그린 땅이 못박아 둔 것은 **찾아가는 표적**이다 — 멀다고 빼면
+           폐허가 코앞에서야 솟는다. 표식이 있는 격자는 잔 사물 규칙에서 뺀다 */
+        var mk = RG3 ? RG3.markAt(gx, gy) : null;
         /* 풀·길의 잔 사물은 가까울 때만 세운다 — 반경 전체에 깔면 격자 백 개가
            한꺼번에 늘어나고, 멀리서는 어차피 한 픽셀이다 */
         var far = Math.hypot((gx + 0.5) * GRID - pos.x, (gy + 0.5) * GRID - pos.y) > R * 0.5;
-        if (far && (kind === 'grass' || kind === 'road')) { continue; }
-        var key = kind + ':' + gx + ':' + gy + ':' + (mapped ? 'm' : 'n');
+        if (far && !mk && (kind === 'grass' || kind === 'road')) { continue; }
+        /* 이 땅을 켜고 끄면 같은 격자가 다른 땅이 된다 — 캐시 키에 넣어야 다시 세운다 */
+        var key = kind + ':' + gx + ':' + gy + ':' + (mapped ? 'm' : 'n') + (mk ? ':' + mk : '');
         live[key] = 1;
         if (propMeshes[key]) { continue; }
         var node = buildProp(kind, gx, gy, mapped);

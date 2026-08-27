@@ -366,10 +366,25 @@
 
   var TERRAIN = {
     water: '#16324f', grass: '#243528', forest: '#1d2f22',
-    road: '#3a3f4a', town: '#3a352e', mount: '#333039'
+    road: '#3a3f4a', town: '#3a352e', mount: '#333039',
+    /* 손으로 그린 땅이 들고 온 것 (`land.js`) — 논밭은 들보다 밝고 누르스름하다 */
+    farm: '#2f3a26'
   };
 
+  /**
+   * 이 격자가 무슨 땅이냐. **그리는 데만 쓴다** — 스폰·거리·조우는 이 값을 안 본다.
+   *
+   * 원래는 좌표를 넣으면 답이 나오는 **무한한 해시**뿐이었다. 이제 그 앞에
+   * **손으로 그린 땅**(`land.js`)을 한 겹 둔다 — 그 땅이 맡은 격자면 그쪽이
+   * 답하고, 아니면(대부분) 여태 하던 대로 해시가 답한다. 그 땅이 없거나 꺼져 있으면
+   * 이 함수는 예전과 한 글자도 다르지 않다.
+   */
   function terrainAt(tx, ty) {
+    var R = global.DG.land;
+    if (R) {
+      var authored = R.terrainAt(tx, ty);
+      if (authored) { return authored; }
+    }
     var h = core.hash2(tx, ty);
     if (tx % 7 === 0 || ty % 9 === 0) { return 'road'; }
     if (h < 0.07) { return 'water'; }

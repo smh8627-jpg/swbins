@@ -71,6 +71,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/buddy.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/vendor/three.iife.js"></script>
+<script src="js/land.js"></script>
 <script src="js/world.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
@@ -1934,6 +1935,105 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return a.pos.y > b.pos.y && b.pos.y > c.pos.y &&
         ('2D ' + Math.round(a.pos.y) + 'm · 2.5D ' + Math.round(b.pos.y) +
          'm · 3D ' + Math.round(c.pos.y) + 'm');
+    });
+
+    /* ── 손으로 그린 땅 (land) — 시험 삼아 만든 한 조각 ────────
+     * 지도는 사람이 글자로 고치는 것이라 **고친 자리에서 곧바로 걸려야** 한다.
+     * 줄 길이 · 모르는 글자 · 끊긴 길 · 구역 밖으로 나간 명소를 여기서 붙든다.
+     * 전부 순수 함수라 three 없이도 돈다.
+     */
+
+    var LD = DG.land;
+
+    t('땅 — 지도가 성하다 (줄 길이 · 글자 · 명소)', function () {
+      var bad = LD.validate();
+      var b = LD.bounds();
+      return bad.length === 0 &&
+        (LD.info().w + '×' + LD.info().h + '칸 · ' + LD.info().m +
+         ' · 격자 ' + b.x0 + ',' + b.y0 + '..' + b.x1 + ',' + b.y1);
+    });
+
+    t('땅 — 길이 하나로 이어진다 (다리를 길로 친다)', function () {
+      var n = LD.roadIslands();
+      var tl = LD.tally();
+      return n === 1 && tl.road + (tl['@bridge'] || 0) > 30 &&
+        ('길 ' + (tl.road + (tl['@bridge'] || 0)) + '칸이 한 덩어리');
+    });
+
+    t('땅 — 아홉 가지 땅과 숨은 곳 셋이 다 있다', function () {
+      var tl = LD.tally();
+      var kinds = ['town', 'forest', 'mount', 'water', 'road', 'farm', 'grass'];
+      var all = kinds.every(function (k) { return tl[k] > 0; });
+      var hidden = LD.places().filter(function (p) { return p.hidden; });
+      return all && tl['@bridge'] === 1 && tl['@cave'] === 1 && tl['@ruin'] > 0 &&
+        tl['@shrine'] === 1 && hidden.length === 3 &&
+        ('마을 ' + tl.town + ' · 논 ' + tl.farm + ' · 숲 ' + tl.forest + ' · 산 ' + tl.mount +
+         ' · 강 ' + tl.water + ' · 숨은 곳 ' + hidden.map(function (p) { return p.name; }).join('·'));
+    });
+
+    t('땅 — 시작 자리가 마을 한가운데다', function () {
+      /* 원점(0,0)에서 시작하니, 켜면 곧바로 그 땅 안에 서 있어야 한다 */
+      var here = LD.at(0, 0);
+      var v = LD.place('village');
+      return here && here.kind === 'town' && v.x === 24 && v.y === 24 &&
+        W.terrainAt(0, 0) === 'town' && ('격자 0,0 = ' + here.kind + ' · ' + v.name);
+    });
+
+    t('땅 — 남문에서 다리까지 길로만 이어진다', function () {
+      /* 걸어서 이 땅을 가로지를 수 있어야 시험판 노릇을 한다 */
+      var g = LD.place('gate_s'), br = LD.place('bridge');
+      var ty, ok = true, kinds = [];
+      for (ty = g.ty; ty <= br.ty; ty++) {
+        var a = LD.at(br.tx, ty);
+        kinds.push(a ? (a.mark || a.kind) : '밖');
+        if (!a || (a.kind !== 'road' && a.mark !== 'bridge')) { ok = false; }
+      }
+      return ok && kinds[kinds.length - 1] === 'bridge' &&
+        ('남문 → ' + kinds.join('→'));
+    });
+
+    t('땅 — 밖은 예전 땅 그대로다', function () {
+      /* 이 땅이 세상을 다 덮으면 안 된다 — 한 조각일 뿐이다 */
+      var b = LD.bounds();
+      var out1 = LD.at(b.x1 + 1, 0), out2 = LD.at(0, b.y0 - 1);
+      C.setTune('land.on', 0);
+      var offInside = LD.at(0, 0);
+      var offWorld = W.terrainAt(0, 0);
+      C.setTune('land.on', null);                 // 남기지 않는다
+      var onWorld = W.terrainAt(0, 0);
+      return out1 === null && out2 === null && offInside === null &&
+        offWorld !== 'town' && onWorld === 'town' &&
+        ('땅 밖 null · 손잡이 끄면 옛 땅(' + offWorld + ') 으로 돌아간다');
+    });
+
+    t('땅 — 3D 가 논과 표식을 실제로 세운다', function () {
+      var f = LD.place('farm'), br = LD.place('bridge'), cv = LD.place('cave');
+      var farm = R3.propPlan('farm', f.tx, f.ty, true).map(function (p) { return p.t; });
+      var bridge = R3.propPlan('water', br.tx, br.ty, true).map(function (p) { return p.t; });
+      var cave = R3.propPlan('mount', cv.tx, cv.ty, true).map(function (p) { return p.t; });
+      return farm.indexOf('field') >= 0 && bridge.indexOf('bridge') >= 0 &&
+        cave.indexOf('cave') >= 0 &&
+        ('논 ' + farm.join('/') + ' · 다리 ' + bridge.join('/') + ' · 굴 ' + cave.join('/'));
+    });
+
+    t('땅 — 지도가 깔려 있어도 강물은 깐다', function () {
+      /* 이 땅의 강은 **지도에 없는 물**이다. 지도가 있다고 빼면 강이 아예 안 보인다 */
+      var br = LD.place('bridge');
+      var inside = R3.propPlan('water', br.tx, br.ty, true).map(function (p) { return p.t; });
+      var outside = R3.propPlan('water', 400, 400, true).map(function (p) { return p.t; });
+      return inside.indexOf('water') >= 0 && outside.indexOf('water') < 0 &&
+        ('땅 안 ' + inside.join('/') + ' · 땅 밖 ' + outside.join('/'));
+    });
+
+    t('땅 — 땅을 바꿔도 판정은 그대로다', function () {
+      /* terrainAt 은 **그리는 데만** 쓴다 — 스폰·거리·조우가 이 값을 보면 안 된다 */
+      var before = JSON.stringify(C.save);
+      var n0 = JSON.stringify(W.spawns.map(function (s) { return s.uid + ':' + Math.round(s.x) + ',' + Math.round(s.y); }));
+      LD.at(0, 0); LD.terrainAt(3, 3); LD.markAt(0, -9); LD.info();
+      R3.propPlan('farm', -6, 4, true);
+      var n1 = JSON.stringify(W.spawns.map(function (s) { return s.uid + ':' + Math.round(s.x) + ',' + Math.round(s.y); }));
+      return JSON.stringify(C.save) === before && n0 === n1 &&
+        '세이브 · 스폰 한 칸도 안 바뀐다';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {
