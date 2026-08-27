@@ -41,7 +41,9 @@
   /* ── 규칙 값 (화면에만 쓰는 값이라 손잡이로 열어 둔다) ── */
 
   function TILE_SPAN() { return core.tuned('world3d.tileSpan', 3); }      // 타일 반경(장)
-  function PROP_R() { return core.tuned('world3d.propRadius', 260); }     // 사물 반경(m)
+  /** 버거우면 스스로 깎는 배수 (`perf.js`) — 없으면 1 이라 예전과 같다 */
+  function PF(key) { var P = global.DG.perf; return P ? P.mul(key) : 1; }
+  function PROP_R() { return core.tuned('world3d.propRadius', 260) * PF('radius'); }
   function CAM_DIST() { return core.tuned('world3d.camDist', 40); }       // 카메라 거리(m)
   function CAM_HIGH() { return core.tuned('world3d.camHeight', 15); }     // 카메라 높이(m)
   /** 사람 키(m) — 원작처럼 지도 위에서는 실제보다 크게 세운다(1.8m 면 안 보인다) */
@@ -49,9 +51,13 @@
   /** 지도 스타일 — 1 은 밝은 지도(voyager). 원작의 파스텔 지도에 가깝다 */
   function MAP_STYLE() { return core.tuned('world3d.mapStyle', 1); }
   /** 배우를 도형으로 세울까 — 0 이면 1단계의 빌보드로 돌아간다 */
-  function MESH_ON() { return core.tuned('world3d.mesh', 1) ? true : false; }
+  function MESH_ON() {
+    var P = global.DG.perf;
+    if (P && !P.meshOk()) { return false; }      // 가장 버거울 때는 빌보드로 돌아간다
+    return core.tuned('world3d.mesh', 1) ? true : false;
+  }
   /** 건물 밀도 배수 — 기기가 버거우면 여기를 내린다 */
-  function DENSITY() { return core.tuned('world3d.density', 1); }
+  function DENSITY() { return core.tuned('world3d.density', 1) * PF('prop'); }
   /** 시각을 따라 해가 뜨고 질까 — 0 이면 늘 한낮 */
   function DAYNIGHT() { return core.tuned('world3d.dayNight', 1) ? true : false; }
   /** 비·눈에 강물이 불까 — 0 이면 늘 마른 날의 그림이다 */
@@ -713,18 +719,31 @@
     return g;
   }
 
+  /* 사물 격자를 마지막으로 훑은 자리 — **격자를 넘어설 때만** 다시 훑는다.
+     여태 매 프레임 11×11 칸을 다 재고 있었다. 한 걸음(8m/s)에 격자(48m)를 넘는 데
+     6초가 걸리니, 그 사이 360번쯤은 같은 답을 다시 낸 셈이다 */
+  var propScan = null;
+
   function syncProps(W) {
     var pos = core.save.player.pos;
     var R = PROP_R();
-    var g0x = Math.floor((pos.x - R) / GRID), g1x = Math.floor((pos.x + R) / GRID);
-    var g0y = Math.floor((pos.y - R) / GRID), g1y = Math.floor((pos.y + R) / GRID);
-    var live = {};
     /* 지도가 깔렸는지 — 깔린 자리와 안 깔린 자리(오프라인·타일 실패)에서
        세우는 것이 다르다. 캐시 키에도 넣어야 상태가 바뀔 때 다시 세운다 */
     var mapped = !!(W.tilesUsable && W.tilesUsable());
     var RG3 = global.DG.land;
     var wkNow = weatherKey();
     var wetNow = WET() && (wkNow === 'rain' || wkNow === 'snow');
+    /* **훑을 까닭이 있을 때만 훑는다.** 격자를 넘었거나 · 지도가 붙거나 떨어졌거나 ·
+       비가 오거나 그쳤거나 · 품질이 바뀌었을 때. 그 밖에는 답이 지난 프레임과 같다 */
+    var cell = Math.floor(pos.x / GRID) + ':' + Math.floor(pos.y / GRID) +
+      ':' + Math.round(R) + ':' + (MESH_ON() ? 1 : 0) + ':' + Math.round(DENSITY() * 100) +
+      ':' + (mapped ? 'm' : 'n') + ':' + (wetNow ? 'w' : 'd') +
+      ':' + (RG3 && RG3.on() ? 'L' : '-');
+    if (propScan === cell) { return; }
+    propScan = cell;
+    var g0x = Math.floor((pos.x - R) / GRID), g1x = Math.floor((pos.x + R) / GRID);
+    var g0y = Math.floor((pos.y - R) / GRID), g1y = Math.floor((pos.y + R) / GRID);
+    var live = {};
     for (var gy = g0y; gy <= g1y; gy++) {
       for (var gx = g0x; gx <= g1x; gx++) {
         var kind = W.terrainAt(gx, gy);
@@ -1181,7 +1200,8 @@
      경계에서 한 번만 갈아 끼운다 — 프레임마다 바꾸면 셰이더를 다시 컴파일한다 */
   var shadowOn = true;
   function syncShadow(zoom) {
-    var want = zoom < 4 && !(global.DG_3D_DEBUG || {}).noShadow;
+    var P = global.DG.perf;
+    var want = zoom < 4 && !(global.DG_3D_DEBUG || {}).noShadow && (!P || P.shadowOk());
     if (want === shadowOn) { return; }
     shadowOn = want;
     renderer.shadowMap.enabled = want;

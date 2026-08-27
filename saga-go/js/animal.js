@@ -31,7 +31,10 @@
   /** 짐승을 들일까 — 0 이면 빈 들로 돌아간다 */
   function on() { return core().tuned('animal.on', 1) ? true : false; }
   /** 무리 크기 배수 — 기기가 버거우면 여기를 내린다 */
-  function DENS() { return core().tuned('animal.density', 1); }
+  function DENS() {
+    var P = global.DG.perf;
+    return core().tuned('animal.density', 1) * (P ? P.mul('animal') : 1);
+  }
 
   /* ── 다섯 종 ──────────────────────────────────────────
    * `PLAN.md` 46절이 바라는 "동물 5종" 이고, 39절이 적어 둔 세 가지 몸짓

@@ -331,6 +331,7 @@
     if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
 
     tickFps(dt);
+    global.DG.perf.tick(dt);            // 버거우면 스스로 품질을 낮춘다
 
     saveAcc += dt;
     if (saveAcc >= 10) { saveAcc = 0; core.persist(); }

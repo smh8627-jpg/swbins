@@ -38,7 +38,10 @@
   /** 하늘에서 무언가 내릴까 — 0 이면 조명만 바뀌던 예전 화면이다 */
   function on() { return core.tuned('sky3d.on', 1) ? true : false; }
   /** 알갱이 수 배수 — 폰이 버거우면 여기를 내린다 */
-  function DENS() { return core.tuned('sky3d.density', 1); }
+  function DENS() {
+    var P = global.DG.perf;
+    return core.tuned('sky3d.density', 1) * (P ? P.mul('sky') : 1);
+  }
   /** 알갱이가 사는 상자의 반지름(m) */
   function BOX() { return core.tuned('sky3d.boxR', 22); }
 

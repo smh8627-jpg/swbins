@@ -63,6 +63,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/data.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
+<script src="js/perf.js"></script>
 <script src="js/account.js"></script>
 <script src="js/bag.js"></script>
 <script src="js/weather.js"></script>
@@ -2777,6 +2778,85 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       CX.clear();
       return ev === true && rec === false &&
         '조각을 팔면 사건은 남고 기록은 안 남는다';
+    });
+
+    /* ── 성능 (perf) — 버거우면 스스로 낮춘다 ───────────────
+     * 등급을 정하는 `decide` 를 **순수 함수**로 갈라 두었다 — "20fps 가 3초 이어지면
+     * 어디로 가나" 를 화면 없이 값으로 물어본다.
+     */
+
+    var PF = DG.perf;
+
+    t('성능 — 세 등급이 아래로 갈수록 가볍다', function () {
+      var T = PF.TIERS;
+      return T.length === 3 && T[0].key === 'HIGH' && T[2].key === 'LOW' &&
+        T[0].prop > T[1].prop && T[1].prop > T[2].prop &&
+        T[0].radius > T[2].radius && T[2].mesh === 0 && T[2].shadow === 0 &&
+        ('잔 사물 ' + T.map(function (x) { return x.prop; }).join(' → ') +
+         ' · 반경 ' + T.map(function (x) { return x.radius; }).join(' → ') +
+         ' · LOW 는 빌보드 · 그림자 끔');
+    });
+
+    t('성능 — 버거우면 내리고 넉넉하면 올린다', function () {
+      var down = PF.decide(0, 18, 3, 0);          // 18fps 가 3초
+      var stay = PF.decide(0, 18, 1, 0);          // 아직 1초뿐
+      var up = PF.decide(2, 58, 0, 20);           // 58fps 가 20초
+      var slow = PF.decide(2, 58, 0, 5);          // 아직 5초뿐
+      return down === 1 && stay === 0 && up === 1 && slow === 2 &&
+        '18fps 3초 → 한 칸 내림 · 58fps 20초 → 한 칸 올림 · 모자란 시간은 그대로';
+    });
+
+    t('성능 — 끝에서 더 가지 않는다', function () {
+      return PF.decide(2, 10, 99, 0) === 2 && PF.decide(0, 60, 0, 99) === 0 &&
+        'LOW 아래로도 HIGH 위로도 안 간다';
+    });
+
+    t('성능 — 내리는 것이 올리는 것보다 빠르다', function () {
+      /* 경계에서 오르내리면 그 자체가 더 나쁘다 — 사이를 벌리고 시간을 다르게 둔다 */
+      var lo = C.tuned('perf.lowFps', 26), hi = C.tuned('perf.highFps', 48);
+      var d = C.tuned('perf.downSec', 2), u = C.tuned('perf.upSec', 12);
+      return hi > lo + 15 && u > d * 4 &&
+        ('버겁다 ' + lo + 'fps/' + d + '초 · 넉넉하다 ' + hi + 'fps/' + u + '초');
+    });
+
+    t('성능 — 손잡이를 덮어쓰지 않고 곱한다', function () {
+      /* 어드민에서 잡아 둔 값을 뭉개면 사람이 고른 것이 사라진다 */
+      PF.reset();
+      var high = PF.mul('prop');
+      PF.set('LOW');
+      var low = PF.mul('prop');
+      var mesh = PF.meshOk(), shadow = PF.shadowOk();
+      PF.reset();
+      return high === 1 && low === 0.25 && mesh === false && shadow === false &&
+        PF.meshOk() === true && ('HIGH ×1 → LOW ×' + low + ' (손잡이에 곱한다)');
+    });
+
+    t('성능 — 스스로 낮추기를 끌 수 있다', function () {
+      PF.set('LOW');
+      var onLow = PF.tier().key;
+      C.setTune('perf.auto', 0);
+      var forced = PF.tier().key;               // 끄면 늘 HIGH 로 본다
+      C.setTune('perf.auto', null);
+      PF.reset();
+      return onLow === 'LOW' && forced === 'HIGH' && 'perf.auto=0 이면 사람이 잡은 대로만';
+    });
+
+    t('성능 — 화면이 없으면 재지 않는다', function () {
+      /* 진단은 rAF 가 거의 안 돌아 늘 버거워 보인다 — 여기서 등급이 내려가면
+         뒤따르는 항목들이 다른 밀도로 돌게 된다(밟을 뻔한 함정) */
+      PF.reset();
+      var before = PF.tier().key;
+      var i;
+      for (i = 0; i < 40; i++) { PF.tick(1.0); }   // 1fps 짜리 프레임 마흔 번
+      var after = PF.tier().key;
+      PF.reset();
+      return before === 'HIGH' && after === 'HIGH' && 'DG_NO_DRAW 면 tick 이 아무 일도 안 한다';
+    });
+
+    t('성능 — 판정에 한 칸도 안 닿는다', function () {
+      var before = JSON.stringify(C.save);
+      PF.set('LOW'); PF.mul('sky'); PF.stats(); PF.reset();
+      return JSON.stringify(C.save) === before && '세이브 그대로';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {

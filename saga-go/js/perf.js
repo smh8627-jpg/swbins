@@ -1,0 +1,140 @@
+/**
+ * 성능 — 버거우면 스스로 품질을 낮춘다 (3D 전환 PHASE 12)
+ * ---------------------------------------------------------------
+ * `PLAN.md` 28절이 우선순위를 못박아 두었다: **1 안정성 · 2 FPS · 3 로딩 · 4 그래픽**.
+ * 그런데 이 판에는 **재기만 하고 아무 일도 안 하는 자리**가 있었다 — `game.js` 의
+ * `tickFps` 는 숫자를 상자에 찍을 뿐이고, 품질 손잡이(`world3d.density` 따위)는
+ * **사람이 어드민에서 손으로** 내려야 했다. 폰에서 버거운 사람이 그걸 알 리 없다.
+ *
+ * 여기서 프레임을 보고 **스스로 내린다**. 27절이 적어 둔 세 등급 그대로다.
+ *
+ *   HIGH    다 켠다
+ *   MEDIUM  잔 사물 절반 · 사물 반경 0.75 · 비 알갱이 절반
+ *   LOW     잔 사물 1/4 · 반경 0.55 · 짐승 절반 · **배우를 빌보드로** · 그림자 끔
+ *
+ * **내려가는 것은 빠르고 올라가는 것은 느리다.** 두 초 연속 버거우면 곧바로 내리고,
+ * 열두 초 연속 넉넉해야 올린다 — 경계에서 오르내리면 그 자체가 더 나쁘다.
+ *
+ * **사람이 잡아 둔 손잡이를 뭉개지 않는다.** 손잡이 값을 덮어쓰는 대신 **곱한다** —
+ * 어드민에서 `world3d.density` 를 0.5 로 두었다면 LOW 에서는 0.125 가 된다.
+ * 그래서 세이브에도 아무것도 안 남는다(등급은 이 창이 열려 있는 동안의 사정이다).
+ *
+ * **판정에는 한 줄도 안 닿는다.** 손잡이 `perf.auto` 를 0 으로 두면 늘 HIGH 다.
+ */
+(function (global) {
+  'use strict';
+
+  var core = global.DG.core;
+
+  /** 스스로 내릴까 — 0 이면 늘 HIGH(사람이 잡은 대로만 간다) */
+  function auto() { return core.tuned('perf.auto', 1) ? true : false; }
+  /** 이 아래로 떨어지면 버거운 것으로 본다 */
+  function LOW_FPS() { return core.tuned('perf.lowFps', 26); }
+  /** 이 위로 올라가면 넉넉한 것으로 본다 (사이를 벌려 두어야 안 흔들린다) */
+  function HIGH_FPS() { return core.tuned('perf.highFps', 48); }
+  /** 내리기까지 버텨야 하는 시간(초) */
+  function DOWN_SEC() { return core.tuned('perf.downSec', 2); }
+  /** 올리기까지 버텨야 하는 시간(초) */
+  function UP_SEC() { return core.tuned('perf.upSec', 12); }
+
+  /* ── 세 등급 (PLAN 27절) ──────────────────────────────
+   * 값은 **곱하는 배수**다. 1 이면 손잡이 그대로.
+   *   prop    잔 사물 밀도      radius  사물 반경
+   *   animal  짐승 무리 크기    sky     비·눈 알갱이
+   *   mesh    배우를 입체로 세울까 (0 이면 1단계의 빌보드로 돌아간다)
+   *   shadow  그림자를 드리울까
+   */
+  var TIERS = [
+    { key: 'HIGH', name: '높음', prop: 1, radius: 1, animal: 1, sky: 1, mesh: 1, shadow: 1 },
+    { key: 'MEDIUM', name: '보통', prop: 0.5, radius: 0.75, animal: 0.7, sky: 0.5, mesh: 1, shadow: 1 },
+    { key: 'LOW', name: '낮음', prop: 0.25, radius: 0.55, animal: 0.5, sky: 0.25, mesh: 0, shadow: 0 }
+  ];
+
+  var idx = 0;              // 지금 등급 (0 = HIGH)
+  var lowFor = 0, highFor = 0;
+  var fps = 60, acc = 0, frames = 0, worst = 0;
+  var changedAt = 0, changes = 0;
+
+  function tier() { return TIERS[auto() ? idx : 0]; }
+
+  /**
+   * 이 갈래의 배수 — 각 모듈이 제 손잡이에 **곱한다**.
+   * 모르는 갈래는 1 을 준다(새 갈래가 생겨도 여기 없으면 그냥 안 깎인다).
+   */
+  function mul(key) {
+    var t = tier();
+    return t[key] === undefined ? 1 : t[key];
+  }
+
+  /** 배우를 입체로 세울까 · 그림자를 드리울까 — 0/1 이라 따로 낸다 */
+  function meshOk() { return mul('mesh') ? true : false; }
+  function shadowOk() { return mul('shadow') ? true : false; }
+
+  /**
+   * 등급을 정한다 — **순수 함수다.** 지금 등급과 최근 사정만 보고 다음 등급을 낸다.
+   * 그래서 자가진단이 "20fps 가 3초 이어지면 어디로 가나" 를 값으로 물어볼 수 있다.
+   */
+  function decide(cur, f, lowSec, highSec) {
+    if (f < LOW_FPS() && lowSec >= DOWN_SEC() && cur < TIERS.length - 1) { return cur + 1; }
+    if (f > HIGH_FPS() && highSec >= UP_SEC() && cur > 0) { return cur - 1; }
+    return cur;
+  }
+
+  /**
+   * 한 프레임. `game.js` 가 부른다.
+   * **화면이 없으면 재지 않는다** — 자가진단은 rAF 가 거의 안 돌아 늘 버거워 보인다.
+   */
+  function tick(dt) {
+    if (global.DG_NO_DRAW || !dt) { return idx; }
+    frames++; acc += dt;
+    if (dt * 1000 > worst) { worst = dt * 1000; }
+    if (acc < 0.5) { return idx; }
+
+    fps = frames / acc;
+    frames = 0; acc = 0; worst = 0;
+
+    if (fps < LOW_FPS()) { lowFor += 0.5; highFor = 0; }
+    else if (fps > HIGH_FPS()) { highFor += 0.5; lowFor = 0; }
+    else { lowFor = 0; highFor = 0; }
+
+    if (!auto()) { return idx; }
+    var next = decide(idx, fps, lowFor, highFor);
+    if (next !== idx) {
+      idx = next;
+      lowFor = 0; highFor = 0;
+      changes++;
+      changedAt = Date.now();
+      /* 조용히 바꾸지 않는다 — 갑자기 그림이 성글어지면 고장으로 보인다 */
+      core.emit('toast', '⚙️ 화면 품질 ' + TIERS[idx].name +
+        ' (' + Math.round(fps) + 'fps)');
+      core.emit('perf', { tier: TIERS[idx].key, fps: fps });
+    }
+    return idx;
+  }
+
+  /** 사람이 직접 고를 때 (어드민·데모) */
+  function set(key) {
+    for (var i = 0; i < TIERS.length; i++) {
+      if (TIERS[i].key === key) { idx = i; lowFor = 0; highFor = 0; return TIERS[i]; }
+    }
+    return tier();
+  }
+
+  function stats() {
+    return {
+      auto: auto(), tier: tier().key, fps: Math.round(fps),
+      lowFor: lowFor, highFor: highFor, changes: changes,
+      mul: { prop: mul('prop'), radius: mul('radius'), animal: mul('animal'), sky: mul('sky') },
+      mesh: meshOk(), shadow: shadowOk()
+    };
+  }
+
+  global.DG = global.DG || {};
+  global.DG.perf = {
+    TIERS: TIERS,
+    auto: auto, tier: tier, mul: mul, meshOk: meshOk, shadowOk: shadowOk,
+    decide: decide, tick: tick, set: set, stats: stats,
+    fps: function () { return fps; },
+    reset: function () { idx = 0; lowFor = 0; highFor = 0; fps = 60; changes = 0; }
+  };
+})(window);
