@@ -280,6 +280,12 @@
     lantern = new T.PointLight(0xffd9a0, 0, 34, 1.6);
     scene.add(lantern);
 
+    /* 후처리 — 톤매핑·블룸·색보정 (`post3d.js`, 그래픽 보강 16~18절).
+       **렌더러를 만든 직후 켜야 한다** — 여기서 `toneMapping` 을 한 번 켜 두면
+       뒤에 만드는 재질이 모두 그 상태로 컴파일된다. 늦게 켜면 씬 전체가
+       한 번 다시 컴파일되며 화면이 멎는다 */
+    if (global.DG.post3d) { global.DG.post3d.init(T, renderer); }
+
     groundGroup = new T.Group(); scene.add(groundGroup);
     propGroup = new T.Group(); scene.add(propGroup);
     actorGroup = new T.Group(); scene.add(actorGroup);
@@ -299,6 +305,7 @@
     camera.aspect = w / Math.max(1, h);
     camera.fov = fovFor(w, h);
     camera.updateProjectionMatrix();
+    if (global.DG.post3d) { global.DG.post3d.resize(); }
   }
 
   /* 좌표 — world.js 는 미터 평면(x 동쪽, y 남쪽)이고 3D 는 y 가 높이다.
@@ -1469,6 +1476,23 @@
 
   /* ── 그린다 ───────────────────────────────────────────── */
 
+  /**
+   * 화면에 낸다 — 후처리를 거치거나(있고 켜져 있을 때) 곧바로 그린다.
+   * **두 길 다 톤매핑은 한 번 걸린다**(`post3d.js` 머리 참고).
+   * 그리는 자리가 두 군데(여기와 hit-stop)라 함수로 묶었다 — 한쪽만 고치면
+   * 멎는 동안 후처리가 벗겨져 화면이 껌뻑인다.
+   */
+  function present() {
+    var P3 = global.DG.post3d;
+    if (P3) {
+      if (P3.draw(renderer, scene, camera, lightNow)) { return; }
+      /* 후처리가 켜졌다 꺼졌을 수 있다(등급이 LOW 로 내려간 순간).
+         마지막으로 쓰던 렌더 타깃이 물려 있으면 캔버스가 검게 남는다 */
+      renderer.setRenderTarget(null);
+    }
+    renderer.render(scene, camera);
+  }
+
   var last = 0;
 
   function render() {
@@ -1481,7 +1505,7 @@
 
     /* hit-stop — 큰 것이 꽂힌 순간 화면이 아주 잠깐 멎는다(PLAN 23절).
        **그린 것을 그대로 한 번 더 낸다** — 아무것도 안 그리면 검게 깜빡인다 */
-    if (now < holdUntil) { renderer.render(scene, camera); return true; }
+    if (now < holdUntil) { present(); return true; }
 
     syncLight(dt);
     syncShadow(W.zoom3d || 1);
@@ -1496,7 +1520,7 @@
     syncBeams(dt);
     syncCamera(W, dt);
 
-    renderer.render(scene, camera);
+    present();
     return true;
   }
 

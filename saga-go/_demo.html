@@ -87,6 +87,7 @@ window.DG_NO_TUNE = true;
 <script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
+<script src="js/post3d.js"></script>
 <script src="js/world3d.js"></script>
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
@@ -258,6 +259,12 @@ setTimeout(function () {
         var sk = DG.sky3d.stats();
         st.sky = sk.weather + '→' + (sk.falls || '-') + ' ' + sk.shown + '/' + sk.want;
       }
+      if (DG.post3d) {
+        var ps = DG.post3d.stats();
+        st.post = (ps.on ? 'on' : 'off') + ' ' + ps.size + ' msaa' + ps.msaa +
+          ' mip' + ps.mips + ' 노출' + ps.exposure + ' 블룸' + ps.bloom +
+          ' 채도' + ps.sat + ' 온도' + ps.temp;
+      }
       if (DG.battle3d) {
         var b3 = DG.battle3d.stats();
         st.fx = b3.alive + '/' + b3.pool + ' 교전=' + b3.battle + ' 흔들림=' + b3.shake;
@@ -346,6 +353,17 @@ setTimeout(function () {
   }
   /* 인스턴싱을 끄고 견줘 본다 — `#noinst`. 이득이 얼마인지 값으로 보려는 손잡이다 */
   if (hash.indexOf('noinst') >= 0) { C.setTune('world3d.instanced', 0); }
+  /* 후처리를 끄고 견줘 본다 — `#nopost`. 톤매핑·블룸·색보정이 화면을 얼마나
+     바꾸는지는 **두 장을 나란히 놓아야** 보인다(`post=on/off` 도 `#stat` 에 뜬다) */
+  if (hash.indexOf('nopost') >= 0) { C.setTune('post3d.on', 0); }
+  /* 블룸만 끈다 — `#nobloom`. 어두워진 것이 톤매핑 탓인지 블룸 탓인지 가른다 */
+  if (hash.indexOf('nobloom') >= 0) { C.setTune('post3d.bloom', 0); }
+  /* 품질 등급을 못박는다 — `#tier=MEDIUM`. 폰에서 어떻게 보이는지는 기기를
+     기다릴 수 없으니 여기서 잡아 본다(28·29절의 세 프리셋) */
+  if (/tier=/.test(hash) && DG.perf) {
+    var tm2 = /tier=(HIGH|MEDIUM|LOW)/.exec(hash);
+    if (tm2) { C.setTune('perf.startTier', tm2[1]); DG.perf.set(tm2[1]); }
+  }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
   if (hash.indexOf('3d') >= 0) { C.save.settings.tilt = 2; W.resize(); }

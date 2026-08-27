@@ -79,6 +79,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/actor3d.js"></script>
+<script src="js/post3d.js"></script>
 <script src="js/world3d.js"></script>
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
@@ -2930,6 +2931,120 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var a = R3.camAim(pos, 2, null, st, 1, false, 0);
       var b2 = R3.camAim(pos, 2, null, st, 1, false, Math.PI / 2);
       return a.pos.x === b2.pos.x && a.pos.z === b2.pos.z && '무대는 돌려도 같다';
+    });
+
+    /* ── 후처리 (post3d) — 톤매핑·블룸·색보정 ────────────────
+     * 그래픽 보강 16~18절. 화면 층이라 **눈으로 볼 수밖에 없는 것**이 많지만,
+     * 처방을 내는 함수를 순수하게 갈라 두었으므로 여기서는 그 처방을 값으로 본다.
+     * (셰이더가 실제로 무엇을 그렸는지는 `_demo.html#3d,night` 과 `#nopost` 를
+     *  나란히 찍어 눈으로 본다 — 실제로 그렇게 해서 두 번 고쳤다)
+     */
+
+    var PS = DG.post3d;
+
+    t('후처리 — 문턱 아래는 안 번지고 위는 번진다 (18절)', function () {
+      /* "강한 빛에만 Bloom" 이 지켜지는지. 이 판에서 0.9 위로 가는 것은
+         등롱 전구·후광·빛기둥·가산 혼합 검기뿐이다 */
+      var dark = PS.soft(0.30, 0.9, 0.45);
+      var lit = PS.soft(0.70, 0.9, 0.45);
+      var bulb = PS.soft(1.20, 0.9, 0.45);
+      var beam = PS.soft(2.50, 0.9, 0.45);
+      return dark === 0 && lit > 0 && lit < 0.2 && bulb > lit && beam > bulb &&
+        ('그늘 0.3→' + dark.toFixed(3) + ' · 햇빛 든 지붕 0.7→' + lit.toFixed(3) +
+         ' · 전구 1.2→' + bulb.toFixed(3) + ' · 빛기둥 2.5→' + beam.toFixed(3));
+    });
+
+    t('후처리 — 문턱이 무릎으로 부드럽게 열린다', function () {
+      /* 딱 잘라내면 밝기가 조금 흔들릴 때 화소가 문턱을 넘나들며 껌뻑인다 */
+      var soft = PS.soft(0.75, 0.9, 0.45);
+      var hard = PS.soft(0.75, 0.9, 0);
+      return soft > 0 && hard === 0 &&
+        ('무릎 0.45 → ' + soft.toFixed(4) + ' · 무릎 0 → 딱 끊긴다');
+    });
+
+    t('후처리 — 밤이 낮보다 더 번지고 색은 덜 만진다', function () {
+      var day = PS.lookAt(0.9, 'clear');
+      var night = PS.lookAt(-0.5, 'clear');
+      /* **색보정은 속삭이는 세기다** — ACES 로 세게 걸었다가 밤 화면을
+         망가뜨린 그 교훈. 채도·색온도가 크게 움직이면 여기서 걸린다 */
+      return night.bloom > day.bloom * 1.4 && Math.abs(day.sat - 1) < 0.05 &&
+        Math.abs(night.sat - 1) < 0.12 && Math.abs(night.temp) < 0.25 &&
+        night.temp < 0 && day.exposure === 1 &&
+        ('블룸 낮 ' + day.bloom.toFixed(2) + ' → 밤 ' + night.bloom.toFixed(2) +
+         ' · 밤 채도 ' + night.sat.toFixed(2) + ' 색온도 ' + night.temp.toFixed(2));
+    });
+
+    t('후처리 — 노을은 따뜻하고 밤은 차갑다', function () {
+      var gold = PS.lookAt(0.10, 'clear');
+      var night = PS.lookAt(-0.6, 'clear');
+      return gold.temp > 0 && night.temp < 0 && gold.sat > night.sat &&
+        ('노을 색온도 +' + gold.temp.toFixed(2) + ' · 밤 ' + night.temp.toFixed(2));
+    });
+
+    t('후처리 — 안개 낀 날은 덜 번진다', function () {
+      /* 안개는 이미 뿌옇다 — 번짐을 더하면 형체가 사라진다 */
+      var clear = PS.lookAt(0.9, 'clear');
+      var fog = PS.lookAt(0.9, 'fog');
+      var rain = PS.lookAt(0.9, 'rain');
+      return fog.bloom < clear.bloom && rain.bloom > clear.bloom &&
+        ('맑음 ' + clear.bloom.toFixed(2) + ' · 안개 ' + fog.bloom.toFixed(2) +
+         ' · 비 ' + rain.bloom.toFixed(2) + '(젖은 빛은 더 번진다)');
+    });
+
+    t('후처리 — LOW 등급에서는 통째로 안 건다 (28절)', function () {
+      var hi = PS.plan({ tier: 'HIGH', alt: 0.9, w: 900, h: 700 });
+      var md = PS.plan({ tier: 'MEDIUM', alt: 0.9, w: 900, h: 700 });
+      var lo = PS.plan({ tier: 'LOW', alt: 0.9, w: 900, h: 700 });
+      return hi.on === true && md.on === true && lo.on === false &&
+        hi.bloom.mips.length > md.bloom.mips.length && lo.bloom.mips.length === 0 &&
+        hi.msaa > md.msaa && md.msaa > 0 && lo.msaa === 0 &&
+        md.scale < hi.scale &&
+        ('층 ' + hi.bloom.mips.length + '/' + md.bloom.mips.length + '/0 · ' +
+         '표본 ' + hi.msaa + '/' + md.msaa + '/0 · 배율 ' + hi.scale + '/' + md.scale);
+    });
+
+    t('후처리 — 등급표와 perf 가 같은 것을 말한다', function () {
+      /* 두 곳에 적으면 어긋난다. `perf.postOk()` 가 곧 `TIER_POST[등급].post` 다 */
+      PF.reset();
+      var high = PF.postOk();
+      PF.set('LOW');
+      var low = PF.postOk();
+      PF.reset();
+      return high === true && low === false &&
+        !!PS.TIER_POST.HIGH.post === high && !!PS.TIER_POST.LOW.post === low &&
+        'HIGH 는 걸고 LOW 는 안 건다 — perf 와 post3d 가 한 말';
+    });
+
+    t('후처리 — 손잡이를 내리면 예전 화면 그대로다', function () {
+      C.setTune('post3d.on', 0);
+      var off = PS.plan({ tier: 'HIGH', alt: 0.9, w: 900, h: 700 });
+      C.setTune('post3d.on', null);
+      var on = PS.plan({ tier: 'HIGH', alt: 0.9, w: 900, h: 700 });
+      return off.on === false && off.tone === 'canvas' && on.on === true &&
+        'post3d.on=0 → 렌더 타깃을 안 거친다(톤매핑만 남는다)';
+    });
+
+    t('후처리 — 블룸만 따로 끌 수 있다', function () {
+      C.setTune('post3d.bloom', 0);
+      var nb = PS.plan({ tier: 'HIGH', alt: 0.9, w: 900, h: 700 });
+      C.setTune('post3d.bloom', null);
+      return nb.on === true && nb.bloom.on === false && nb.bloom.mips.length === 0 &&
+        'post3d.bloom=0 → 색보정만 남는다';
+    });
+
+    t('후처리 — 층 크기는 절반씩 줄고 너무 작아지면 멈춘다', function () {
+      var big = PS.mipSizes(1600, 1200, 4);
+      var tiny = PS.mipSizes(40, 30, 6);
+      return big.length === 4 && big[0].w === 800 && big[3].w === 100 &&
+        tiny.length < 6 &&
+        ('1600×1200 → ' + big.map(function (m) { return m.w + 'x' + m.h; }).join(' ') +
+         ' · 40×30 은 ' + tiny.length + '층에서 멈춘다');
+    });
+
+    t('후처리 — 창이 아주 작아도 안 터진다', function () {
+      var p = PS.plan({ tier: 'HIGH', alt: 0.9, w: 4, h: 3 });
+      return p.w >= 1 && p.h >= 1 && p.bloom.mips.length === 0 &&
+        ('4×3 → ' + p.w + 'x' + p.h + ' · 블룸 층 없음(끄는 편이 낫다)');
     });
 
     /* ── 말 걸기 (talk) — 주민·짐승을 눌러 본다 ─────────────

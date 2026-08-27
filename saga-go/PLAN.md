@@ -1599,3 +1599,1118 @@ NPC
 **고품질 + 모바일 최적화 + 빠른 로딩 + 적은 토큰 + 기존 코드 재사용**
 
 을 동시에 만족해야 한다.
+
+---
+---
+
+# 부록 A — 그래픽 대규모 업그레이드 (2026-08-27 추가)
+
+> 사용자가 둘째 지시문을 넣었다(원본 파일 이름 `saga-go 3D graphics up.md`).
+> 이 저장소는 폴더마다 **`PLAN.md` 한 벌**을 정본으로 두므로(커밋 `083354f`)
+> 여기 부록으로 옮겨 담았다. 아래 41절은 **원문 그대로**다.
+>
+> ## 어디까지 왔나 (부록 기준)
+>
+> | 절 | 무엇 | 상태 |
+> |---|---|---|
+> | 3~11 · 14~15 · 19~21 · 25~33 · 38 | 3D 카메라·절차적 캐릭터·지형·자연물·조명·그림자·이펙트·LOD·인스턴싱·등급 | **본편 PHASE 1~13 에서 이미 다 했다** |
+> | 17.1 Tone Mapping | 밝기 곡선 | **했다** — `js/post3d.js` (`NeutralToneMapping`) |
+> | 17.2 · 18 Bloom | 강한 빛만 번진다 | **했다** — `js/post3d.js` (mip 내림-올림) |
+> | 17.3 Vignette | 네 귀를 눌러 시선을 모은다 | **이미 있었다** — `css/style.css` 의 `#vignette` |
+> | 17.4 Color Grading | 채도·색온도·검은 자리 | **했다** — `js/post3d.js` |
+> | 17.5 Anti Aliasing | 계단 없애기 | **지켰다** — 렌더 타깃 `samples` 4/2/0 |
+> | 29 품질 프리셋 resolution scale | 렌더 배율 1 / 0.85 | **했다** — `post3d` 의 `scale` |
+> | 16 · 17.6 SSAO | 맞닿은 자리의 그늘 | **안 했다** — 씬을 한 번 더 그려야 한다. 따로 뗀 다음 단계 |
+> | 17.7 Depth of Field | 초점 흐림 | **안 넣는다** — 이 판의 카메라는 멀리서 내려다보므로 초점 밖이 없다. 17절의 "게임 화면이 선명해야 한다" 와 부딪힌다 |
+> | 12 물 | 물결·Fresnel·반사 | **안 했다** — 수면은 있으나 단색 평면(`world3d.js` 의 `pmat(...,'water')`) |
+> | 13 하늘 | 그라데이션 돔·해·구름 | **안 했다** — 지금은 시각·천후로 색만 바뀌는 단색 배경(`scene.background`) |
+> | 24 미니맵 | 3D 화면 안의 작은 지도 | **안 했다** — 2D 모드가 그 자리를 겸하고 있다 |
+> | 22~23 UI | 유리판·버튼 상태 | **이미 있었다** — `css/style.css` 의 `.glass` 와 버튼 상태들 |
+>
+> 남은 것은 **물 · 하늘 · 미니맵 · SSAO** 넷이다.
+
+## saga-go 그래픽 대규모 업그레이드 작업
+
+대상 프로젝트:
+
+https://smh8627-jpg.github.io/swbins/saga-go/
+
+### 0. 최우선 원칙
+
+현재 `saga-go` 프로젝트를 기반으로 그래픽 품질을 대폭 향상한다.
+
+### 절대 조건
+
+- 기존 게임 기능을 함부로 삭제하지 않는다.
+- 기존 게임 로직을 최대한 유지한다.
+- 기존 UI/게임플레이를 깨뜨리지 않는다.
+- 기존 저장 데이터 구조를 가능하면 유지한다.
+- 기존 프로젝트를 처음부터 다시 만드는 방식으로 접근하지 않는다.
+- 반드시 현재 코드 구조를 먼저 분석한다.
+- 작업 전에 실제 파일 구조와 렌더링 구조를 확인한다.
+- 변경은 작은 단위로 진행한다.
+- 각 단계마다 기존 기능이 정상 작동하는지 확인한다.
+
+### 가장 중요한 제한
+
+**외부 3D 에셋을 사용하지 않는다.**
+
+금지:
+
+- GLB
+- GLTF
+- FBX
+- OBJ
+- 외부 3D 모델
+- 외부 캐릭터 모델
+- 외부 텍스처에 의존하는 방식
+- Blender 작업물을 새로 요구하는 방식
+
+대신 모든 3D 비주얼은 코드로 생성한다.
+
+사용 가능:
+
+- Three.js Geometry
+- BoxGeometry
+- SphereGeometry
+- CylinderGeometry
+- ConeGeometry
+- CapsuleGeometry
+- PlaneGeometry
+- ShapeGeometry
+- ExtrudeGeometry
+- InstancedMesh
+- Line/LineSegments
+- CanvasTexture
+- SVG 기반 텍스처
+- ShaderMaterial
+- MeshStandardMaterial
+- MeshPhysicalMaterial
+- procedural texture
+- 파티클
+- 셰이더
+- 조명
+- 그림자
+- 안개
+- 후처리
+
+---
+
+## 1. 먼저 현재 프로젝트 분석
+
+작업을 시작하기 전에 다음을 수행한다.
+
+1. 전체 파일 구조 확인
+2. HTML 구조 확인
+3. JavaScript 모듈 확인
+4. Three.js 사용 여부 확인
+5. renderer 생성 위치 확인
+6. scene 생성 위치 확인
+7. camera 확인
+8. animation loop 확인
+9. 캐릭터 생성 코드 확인
+10. 맵 생성 코드 확인
+11. UI 코드 확인
+12. 전투/이동 로직 확인
+13. 저장 시스템 확인
+14. 모바일 대응 확인
+
+분석 결과를 간단히 내부적으로 정리한 후 구현한다.
+
+**불필요하게 사용자에게 긴 분석 보고서를 출력하지 않는다.**
+
+---
+
+## 2. 목표
+
+현재의 단순한 그래픽을 다음 수준으로 변경한다.
+
+목표 스타일:
+
+### "모바일 3D 판타지 어드벤처 + 동양 판타지 + 현대적인 캐주얼 RPG"
+
+참고 방향:
+
+- 현대 모바일 RPG
+- Zelda 계열의 탐험감
+- Genshin Impact의 공간감
+- Diablo의 분위기 연출
+- 캐주얼 모바일 RPG의 명확한 가독성
+
+단,
+
+**특정 게임의 그래픽이나 캐릭터를 복제하지 않는다.**
+
+---
+
+## 3. 2.5D에서 진짜 3D 공간감으로 확장
+
+현재 `2.5D` 버튼이 존재한다.
+
+이 기능을 제거하지 않는다.
+
+대신:
+
+### 2.5D 모드
+
+- 현재 게임의 익숙한 시점 유지
+- 약간의 카메라 회전
+- 깊이감 강화
+- 캐릭터와 지형의 높낮이 표현
+- 그림자 적용
+
+### 3D 모드
+
+새로운 카메라 모드를 추가한다.
+
+카메라:
+
+- PerspectiveCamera
+- 45~60도 정도의 전략 RPG 시점
+- 부드러운 카메라 follow
+- 마우스/터치 드래그 회전
+- 줌
+- 모바일에서는 제한된 회전
+- 카메라 clipping 최적화
+
+카메라 이동은 즉시 이동하지 말고 lerp/damping을 적용한다.
+
+---
+
+## 4. 코드로 만드는 3D 캐릭터
+
+외부 모델을 사용하지 않고 캐릭터를 생성한다.
+
+예:
+
+머리:
+SphereGeometry
+
+몸:
+CapsuleGeometry 또는 CylinderGeometry
+
+팔:
+CylinderGeometry
+
+다리:
+CylinderGeometry
+
+무기:
+BoxGeometry / CylinderGeometry / ConeGeometry
+
+망토:
+ShapeGeometry 또는 PlaneGeometry
+
+장식:
+SphereGeometry / TorusGeometry
+
+캐릭터를 하나의 Group으로 묶는다.
+
+예상 구조:
+
+Character
+├── body
+├── head
+├── hair
+├── eyes
+├── arms
+├── legs
+├── weapon
+├── cape
+└── shadow
+
+---
+
+## 5. 캐릭터 품질 향상
+
+단순 도형처럼 보이지 않도록 한다.
+
+다음 요소를 적용한다.
+
+- bevel 느낌의 형태
+- smooth shading
+- 적절한 roughness
+- metallic 값을 부분적으로 사용
+- skin material
+- cloth material
+- metal material
+- emissive material
+
+얼굴에는 최소한:
+
+- 눈
+- 눈썹
+- 머리카락
+- 얼굴 방향
+
+을 표현한다.
+
+단순한 구 하나가 떠 있는 형태가 되지 않도록 한다.
+
+---
+
+## 6. 캐릭터 애니메이션
+
+외부 animation 파일을 사용하지 않는다.
+
+코드 기반 animation을 만든다.
+
+### Idle
+
+- 몸 미세한 상하 움직임
+- 호흡
+- 머리 미세 움직임
+
+### Walk
+
+- 양팔 swing
+- 다리 교차 움직임
+- 몸 bounce
+
+### Run
+
+- 팔 swing 증가
+- 다리 swing 증가
+- 몸 전진 기울기
+
+### Attack
+
+- 무기 뒤로 당김
+- 몸 회전
+- 빠른 전진
+- 타격 순간 정지
+- recoil
+
+### Hit
+
+- 몸 흔들림
+- 뒤로 밀림
+
+### Death
+
+- 몸 회전
+- 천천히 쓰러짐
+- fade
+
+---
+
+## 7. 절차적 3D 맵 생성
+
+외부 맵 에셋을 사용하지 않는다.
+
+코드로 맵을 생성한다.
+
+기본 구성:
+
+- Terrain
+- Grass
+- Dirt
+- Stone
+- Water
+- Mountain
+- Tree
+- Bush
+- Rock
+- Flower
+- House
+- Shrine
+- Bridge
+- Road
+
+---
+
+## 8. 지형
+
+단순 Plane 하나만 사용하지 않는다.
+
+Grid 기반 procedural terrain을 만든다.
+
+높이값을 noise 또는 sin/cos 기반으로 생성한다.
+
+예:
+
+height = noise(x,z)
+
+또는 여러 octave를 조합한다.
+
+높이 차이가 자연스럽게 보이도록 한다.
+
+구역:
+
+- 평지
+- 언덕
+- 계곡
+- 작은 산
+- 강
+- 호수
+
+---
+
+## 9. 자연환경
+
+### 나무
+
+코드로 생성:
+
+Trunk:
+CylinderGeometry
+
+Leaves:
+여러 SphereGeometry 또는 ConeGeometry
+
+나무마다:
+
+- 높이 랜덤
+- 잎 크기 랜덤
+- 가지 방향 랜덤
+- 색상 약간 랜덤
+
+InstancedMesh를 사용해서 대량 배치한다.
+
+---
+
+## 10. 바위
+
+여러 개의 geometry를 합성해서 만든다.
+
+각 바위:
+
+- 크기 랜덤
+- 회전 랜덤
+- 색상 랜덤
+- roughness 랜덤
+
+---
+
+## 11. 풀
+
+많은 풀을 개별 Mesh로 만들지 않는다.
+
+InstancedMesh를 사용한다.
+
+거리별로 density를 줄인다.
+
+카메라에서 멀어질수록:
+
+- 풀 개수 감소
+- 그림자 감소
+- 디테일 감소
+
+---
+
+## 12. 물
+
+Water를 코드로 만든다.
+
+PlaneGeometry + ShaderMaterial 사용.
+
+효과:
+
+- 물결
+- 반사 느낌
+- 투명도
+- Fresnel
+- 작은 파동
+
+과도한 GPU 사용은 피한다.
+
+---
+
+## 13. 하늘
+
+단순 단색 배경을 제거한다.
+
+절차적으로:
+
+- Sky gradient
+- Sun
+- Clouds
+- Fog
+
+를 구현한다.
+
+시간대 시스템을 추가할 수 있도록 구조를 만든다.
+
+### Day
+
+밝은 하늘
+
+### Sunset
+
+주황색 광원
+
+### Night
+
+어두운 하늘 + 달빛
+
+---
+
+## 14. 조명 시스템
+
+그래픽 품질 향상에서 가장 중요한 부분 중 하나다.
+
+다음 조명을 조합한다.
+
+Ambient/환경광
+
+DirectionalLight
+
+PointLight
+
+HemisphereLight가 필요하면 사용한다.
+
+DirectionalLight는 태양광처럼 사용한다.
+
+캐릭터 아래에는 soft shadow를 표현한다.
+
+---
+
+## 15. 그림자
+
+가능하면 shadow map을 사용한다.
+
+단 모바일 성능을 고려한다.
+
+기본:
+
+shadowMap.enabled = true
+
+shadow map 해상도는 기기 성능에 따라 조절한다.
+
+고성능:
+
+2048
+
+일반:
+
+1024
+
+저사양:
+
+512
+
+---
+
+## 16. AO 느낌 구현
+
+외부 에셋 없이 코드로 AO 느낌을 강화한다.
+
+가능하면 SSAO 계열 후처리를 사용한다.
+
+단,
+
+모바일 저사양에서는 자동 비활성화한다.
+
+---
+
+## 17. 후처리
+
+그래픽 품질을 크게 올리기 위해 후처리를 추가한다.
+
+우선순위:
+
+1. Tone Mapping
+2. Bloom
+3. Vignette
+4. Color Grading
+5. Anti Aliasing
+6. SSAO
+7. Depth of Field
+
+모든 효과를 동시에 강하게 적용하지 않는다.
+
+게임 화면이 선명해야 한다.
+
+---
+
+## 18. Bloom
+
+강한 빛에만 Bloom이 발생하도록 한다.
+
+적용 대상:
+
+- 스킬
+- 마법
+- 보물
+- 신성한 오브젝트
+- 포털
+- 특수 이펙트
+
+일반 캐릭터와 맵에는 과도한 bloom을 적용하지 않는다.
+
+---
+
+## 19. 스킬 이펙트
+
+게임의 그래픽 체감 품질을 크게 높이는 핵심이다.
+
+외부 에셋 없이 코드로 생성한다.
+
+### 검 공격
+
+- slash arc
+- trail
+- particles
+- impact ring
+
+### 불
+
+- sphere
+- additive material
+- particle
+- noise
+
+### 번개
+
+LineSegments를 사용해서 번개 형태 생성
+
+### 얼음
+
+Cone/Sphere 조합 + emissive
+
+### 회복
+
+Particle + ring + glow
+
+---
+
+## 20. 전투 이펙트
+
+타격 순간 다음 효과를 넣는다.
+
+- impact flash
+- particle burst
+- shockwave
+- camera shake
+- hit stop
+- floating damage number
+
+단,
+
+과도한 화면 흔들림은 금지한다.
+
+---
+
+## 21. 파티클 시스템
+
+간단한 custom particle system을 만든다.
+
+Particle:
+
+- position
+- velocity
+- life
+- size
+- opacity
+- color
+
+ParticlePool을 사용한다.
+
+매번 new/delete하지 않는다.
+
+Object Pool을 사용한다.
+
+---
+
+## 22. UI 그래픽 개선
+
+현재 UI 구조를 유지하되 스타일을 현대적으로 변경한다.
+
+목표:
+
+- 반투명 glass panel
+- subtle blur 느낌
+- 둥근 모서리
+- gold accent
+- dark fantasy panel
+- 명확한 typography
+- 아이콘 중심 UI
+
+현재:
+
+사명
+행낭
+천거
+도감
+사관
+기록
+
+메뉴는 유지한다.
+
+---
+
+## 23. 버튼
+
+버튼에:
+
+- hover
+- pressed
+- selected
+- disabled
+
+상태를 만든다.
+
+모바일 터치에서도 피드백이 느껴지도록 한다.
+
+---
+
+## 24. 미니맵
+
+현재 맵 시스템과 연동 가능한 구조로 만든다.
+
+미니맵:
+
+- 플레이어
+- NPC
+- 적
+- 퀘스트
+- 주요 장소
+
+를 표시한다.
+
+---
+
+## 25. 원근감
+
+맵이 평면처럼 보이지 않게 한다.
+
+다음 요소를 사용한다.
+
+- Fog
+- Perspective Camera
+- Shadow
+- Height variation
+- Lighting
+- Atmospheric particles
+
+---
+
+## 26. 거리별 LOD
+
+성능 때문에 모든 오브젝트를 동일하게 렌더링하지 않는다.
+
+### 가까움
+
+고품질
+
+### 중간
+
+중간 품질
+
+### 멂
+
+단순 geometry
+
+### 매우 멂
+
+삭제/비활성화
+
+---
+
+## 27. Instancing
+
+나무, 풀, 바위, 꽃 등 반복되는 오브젝트는 반드시 InstancedMesh를 우선 검토한다.
+
+목표:
+
+수백~수천개의 자연물도 가능한 한 적은 draw call로 렌더링한다.
+
+---
+
+## 28. 모바일 최적화
+
+이 프로젝트는 모바일 브라우저에서도 실행된다.
+
+따라서 데스크톱 성능만 보고 개발하지 않는다.
+
+기기 성능을 측정해서:
+
+HIGH
+
+MEDIUM
+
+LOW
+
+세 단계로 자동 설정한다.
+
+---
+
+## 29. 그래픽 품질 프리셋
+
+Settings에 다음을 만든다.
+
+### HIGH
+
+- shadows ON
+- bloom ON
+- SSAO ON
+- particles HIGH
+- grass HIGH
+- resolution scale 1.0
+
+### MEDIUM
+
+- shadows ON
+- bloom ON
+- SSAO OFF
+- particles MEDIUM
+- grass MEDIUM
+- resolution scale 0.85
+
+### LOW
+
+- shadows OFF
+- bloom OFF
+- SSAO OFF
+- particles LOW
+- grass LOW
+- resolution scale 0.7
+
+---
+
+## 30. 성능 자동 조절
+
+FPS를 측정한다.
+
+60 FPS 이상:
+품질 유지
+
+45~60:
+현재 유지
+
+30~45:
+일부 효과 감소
+
+30 이하:
+자동 LOW 설정
+
+사용자가 수동으로 품질을 고정할 수도 있어야 한다.
+
+---
+
+## 31. 렌더링 최적화
+
+절대 다음과 같은 코드를 대량으로 만들지 않는다.
+
+```js
+new Mesh(...)
+```
+
+매 프레임
+
+또는
+
+```js
+new Geometry(...)
+```
+
+매 프레임
+
+또는
+
+```js
+new Material(...)
+```
+
+매 프레임
+
+금지.
+
+Geometry와 Material은 최대한 공유한다.
+
+Particle도 Pool을 사용한다.
+
+---
+
+## 32. Garbage Collection 최소화
+
+게임 loop에서:
+
+- 배열 생성 최소화
+- 객체 생성 최소화
+- Vector3 재사용
+- Quaternion 재사용
+- Color 재사용
+
+한다.
+
+---
+
+## 33. 렌더 루프
+
+animate/render loop를 점검한다.
+
+불필요한 계산을 매 프레임 하지 않는다.
+
+예:
+
+맵 장식 배치
+
+AI 탐색
+
+LOD 계산
+
+퀘스트 계산
+
+등은 적절한 interval 또는 이벤트 기반으로 변경한다.
+
+---
+
+## 34. 카메라 연출
+
+탐험 시:
+
+부드러운 follow
+
+전투 시:
+
+약간 확대
+
+보스 등장:
+
+cinematic zoom
+
+강력한 스킬:
+
+짧은 camera shake
+
+보스 사망:
+
+짧은 slow motion 느낌
+
+단 모바일에서 멀미를 유발할 정도로 과도한 움직임은 금지한다.
+
+---
+
+## 35. 환경 애니메이션
+
+맵이 정적인 느낌이 들지 않도록 한다.
+
+코드로:
+
+- 나무 흔들림
+- 풀 흔들림
+- 물 움직임
+- 먼지
+- 작은 반딧불
+- 새/나비 같은 간단한 파티클
+
+을 추가한다.
+
+외부 모델을 사용하지 않는다.
+
+---
+
+## 36. 분위기 연출
+
+게임 시작 시:
+
+짧은 카메라 이동
+
+맵 진입:
+
+fade
+
+퀘스트 지역:
+
+빛나는 marker
+
+보물:
+
+emissive + particle
+
+희귀 장소:
+
+fog + particles + light
+
+등을 사용한다.
+
+---
+
+## 37. 색감
+
+기본 팔레트는:
+
+- 자연색
+- 짙은 녹색
+- 청록
+- 따뜻한 금색
+- 어두운 남색
+
+을 중심으로 한다.
+
+하지만 전체 화면이 너무 어둡거나 채도가 과도하게 높아지지 않게 한다.
+
+---
+
+## 38. 현재 게임성 유지
+
+다음 요소가 있다면 절대 삭제하지 않는다.
+
+- 이동
+- 퀘스트
+- NPC
+- 전투
+- 인벤토리
+- 도감
+- 기록
+- 사관
+- 천거
+- 저장
+- 모바일 UI
+
+그래픽 업그레이드 때문에 게임 기능이 사라지면 실패다.
+
+---
+
+## 39. 토큰 절약 최우선
+
+Claude Code 작업 중 토큰을 최대한 절약한다.
+
+### 금지
+
+전체 파일을 매번 출력하지 않는다.
+
+전체 프로젝트를 반복해서 분석하지 않는다.
+
+이미 분석한 파일을 다시 읽지 않는다.
+
+불필요한 설명을 길게 출력하지 않는다.
+
+### 작업 방식
+
+1. 구조 분석
+2. 필요한 파일만 읽기
+3. 작은 수정
+4. 테스트
+5. 다음 수정
+
+으로 진행한다.
+
+가능하면 `grep`, `rg`, 파일 검색 등으로 필요한 부분만 확인한다.
+
+---
+
+## 40. 단계별 구현
+
+한 번에 모든 것을 구현하지 않는다.
+
+### Phase 1
+
+렌더러/카메라/조명 개선
+
+↓
+
+### Phase 2
+
+절차적 3D 캐릭터
+
+↓
+
+### Phase 3
+
+지형
+
+↓
+
+### Phase 4
+
+나무/풀/바위/환경
+
+↓
+
+### Phase 5
+
+그림자
+
+↓
+
+### Phase 6
+
+파티클
+
+↓
+
+### Phase 7
+
+스킬 이펙트
+
+↓
+
+### Phase 8
+
+후처리
+
+↓
+
+### Phase 9
+
+카메라 연출
+
+↓
+
+### Phase 10
+
+모바일 최적화
+
+---
+
+## 41. 완료 조건
+
+최종적으로 현재 `saga-go`가 다음처럼 보여야 한다.
+
+기존:
+
+단순한 웹 게임 그래픽
+
+↓
+
+목표:
+
+**모바일 3D RPG처럼 보이는 화면**
+
+특히 첫 화면에서 다음이 느껴져야 한다.
+
+- 입체적인 지형
+- 자연스러운 그림자
+- 3D 캐릭터
+- 살아 움직이는 환경
+- 스킬 이펙트
+- 빛과 안개
+- 깊이감
+- 현대적인 UI
+- 부드러운 카메라
+
+단, 이 모든 것을 **외부 3D 에셋 없이 코드로 구현**한다.
+
+---
+
+## Claude Code 실행 규칙
+
+작업 시작 전에 반드시 현재 프로젝트를 분석한다.
+
+그리고 바로 전체 코드를 갈아엎지 않는다.
+
+각 Phase별로 구현한다.
+
+각 단계 완료 후:
+
+- 기존 기능 확인
+- console error 확인
+- rendering error 확인
+- mobile layout 확인
+- FPS 확인
+
+후 다음 단계로 넘어간다.
+
+**가장 중요한 것은 "예쁜 화면"과 "기존 게임 기능 유지"를 동시에 달성하는 것이다.**
+
+추가로 필요하지 않은 dependency를 설치하지 않는다.
+
+기존 Three.js가 있다면 최대한 기존 버전을 활용한다.
+
+단, 현재 Three.js 버전이 너무 오래되어 필요한 그래픽 기능을 제대로 사용할 수 없다면 현재 구조를 분석한 후 최소한의 버전 업데이트를 검토한다.
+
+Three.js의 최신 후처리 구조에서는 RenderPipeline/WebGPU 계열도 사용할 수 있지만, 이 프로젝트는 모바일 브라우저 호환성이 중요하므로 **WebGL 기반 fallback을 반드시 유지한다.** Three.js 공식 문서에서도 WebGL 후처리와 WebGPU 후처리를 별도로 제공하고 있으므로 현재 프로젝트 상황에 맞춰 선택한다.
+
+최종적으로 기존 기능을 깨뜨리지 않고 그래픽 품질을 단계적으로 크게 향상시킨다.

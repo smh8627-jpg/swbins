@@ -43,11 +43,13 @@
    *   animal  짐승 무리 크기    sky     비·눈 알갱이
    *   mesh    배우를 입체로 세울까 (0 이면 1단계의 빌보드로 돌아간다)
    *   shadow  그림자를 드리울까
+   *   post    후처리(블룸·색보정)를 걸까 — 자세한 값은 `post3d.js` 의 `TIER_POST`
+   *           (톤매핑은 여기서 안 끈다. 캔버스에 바로 그리는 길에서도 걸린다)
    */
   var TIERS = [
-    { key: 'HIGH', name: '높음', prop: 1, radius: 1, animal: 1, sky: 1, mesh: 1, shadow: 1 },
-    { key: 'MEDIUM', name: '보통', prop: 0.5, radius: 0.75, animal: 0.7, sky: 0.5, mesh: 1, shadow: 1 },
-    { key: 'LOW', name: '낮음', prop: 0.25, radius: 0.55, animal: 0.5, sky: 0.25, mesh: 0, shadow: 0 }
+    { key: 'HIGH', name: '높음', prop: 1, radius: 1, animal: 1, sky: 1, mesh: 1, shadow: 1, post: 1 },
+    { key: 'MEDIUM', name: '보통', prop: 0.5, radius: 0.75, animal: 0.7, sky: 0.5, mesh: 1, shadow: 1, post: 1 },
+    { key: 'LOW', name: '낮음', prop: 0.25, radius: 0.55, animal: 0.5, sky: 0.25, mesh: 0, shadow: 0, post: 0 }
   ];
 
   /* ── 기기 보기 (PLAN 27절 "기기 성능을 자동 감지한다") ──
@@ -106,9 +108,10 @@
     return t[key] === undefined ? 1 : t[key];
   }
 
-  /** 배우를 입체로 세울까 · 그림자를 드리울까 — 0/1 이라 따로 낸다 */
+  /** 배우를 입체로 세울까 · 그림자를 드리울까 · 후처리를 걸까 — 0/1 이라 따로 낸다 */
   function meshOk() { return mul('mesh') ? true : false; }
   function shadowOk() { return mul('shadow') ? true : false; }
+  function postOk() { return mul('post') ? true : false; }
 
   /**
    * 등급을 정한다 — **순수 함수다.** 지금 등급과 최근 사정만 보고 다음 등급을 낸다.
@@ -185,14 +188,14 @@
       started: started, probe: probe(), score: score(probe()),
       lowFor: lowFor, highFor: highFor, changes: changes,
       mul: { prop: mul('prop'), radius: mul('radius'), animal: mul('animal'), sky: mul('sky') },
-      mesh: meshOk(), shadow: shadowOk()
+      mesh: meshOk(), shadow: shadowOk(), post: postOk()
     };
   }
 
   global.DG = global.DG || {};
   global.DG.perf = {
     TIERS: TIERS,
-    auto: auto, tier: tier, mul: mul, meshOk: meshOk, shadowOk: shadowOk,
+    auto: auto, tier: tier, mul: mul, meshOk: meshOk, shadowOk: shadowOk, postOk: postOk,
     /* 기기 보기 — `score`·`tierOfScore` 는 순수 함수다 */
     score: score, tierOfScore: tierOfScore, probe: probe, start: start,
     decide: decide, tick: tick, set: set, stats: stats,

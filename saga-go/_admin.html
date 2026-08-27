@@ -682,6 +682,16 @@ window.DG_NO_ACCOUNT = true;
       ['sky3d.density', '알갱이 수 배수', 1],
       ['sky3d.boxR', '알갱이가 사는 상자 반지름 m', 22]
     ]],
+    ['후처리 (post3d)', [
+      ['post3d.on', '톤매핑 뒤 블룸·색보정을 건다 1/0', 1],
+      ['post3d.tone', '밝기 곡선 neutral/aces/agx/cineon/reinhard/linear/none', 'neutral'],
+      ['post3d.bloom', '블룸 세기 배수 (0 이면 블룸만 뺀다)', 1],
+      ['post3d.threshold', '번지기 시작하는 밝기 (선형)', 0.9],
+      ['post3d.knee', '문턱의 무릎 — 넓을수록 부드럽게 번진다', 0.45],
+      ['post3d.exposure', '노출 배수 (1 이 여태 그대로)', 1],
+      ['post3d.grade', '색보정 세기 0~1', 1],
+      ['post3d.scale', '렌더 배율 배수 (등급 값에 곱한다)', 1]
+    ]],
     ['전투 연출 (battle3d)', [
       ['battle3d.on', '교전 때 지도도 같이 싸운다 1/0', 1],
       ['battle3d.shake', '카메라 흔들림 세기 m', 0.5],
