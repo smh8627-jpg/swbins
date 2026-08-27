@@ -19,6 +19,7 @@
     #rogue   점거된 역참(적도)     #roguewin 탈환 — 암영이 남은 참
     #dark    도감의 암영 칸(정화 대기)
     #perf    프레임 측정
+    #minimap 미니맵(좌하단) — mmfar 를 붙이면 360m, mmfold 를 붙이면 접힌 모습
   해시에 2d·3d·chibi·tall·anime·story 를 붙이면 시점·등신·양식도 바뀐다 (예: #map-3d-chibi).
   뒤에 -b 를 붙이면 시트를 끝까지 내려서 찍는다 (예: #dex-b).
 
@@ -96,6 +97,7 @@ window.DG_NO_TUNE = true;
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
+<script src="js/minimap.js"></script>
 <script src="js/talk.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
@@ -237,6 +239,14 @@ setTimeout(function () {
      화면이 멈춘다. 데모에서만 타이머로 계속 그려 준다 — 게임 루프는 그대로다. */
   if (DG.world3d && DG.world3d.available()) {
     setInterval(function () { DG.world3d.render(); }, 400);
+  }
+
+  /* 미니맵도 같은 이유로 타이머가 대신 돌린다 — 루프가 안 도는 화면에서는
+     좌하단이 빈 판으로 찍힌다 */
+  if (DG.minimap) {
+    if (hash.indexOf('mmfar') >= 0) { DG.minimap.set({ step: 1 }); }
+    if (hash.indexOf('mmfold') >= 0) { DG.minimap.set({ folded: true }); }
+    setInterval(function () { DG.minimap.draw(); }, 400);
   }
 
   /* 3D 렌더러가 실제로 도는지 눈으로 본다 — 해시에 stat 을 붙이면 좌하단에 뜬다 */

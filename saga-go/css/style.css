@@ -152,6 +152,35 @@ body.r3d.tilted #vignette {
 .w-foot { margin-top: 5px; font-size: 10.5px; color: var(--ink-faint); }
 .w-foot b { color: var(--ink-dim); }
 
+/* ── 미니맵 (minimap.js) ──────────────────── */
+/* 좌하단이다 — 독(dock)은 오른쪽, 근처 대상(#near)은 가운데라 서로 안 걸린다 */
+#minimap {
+  position: fixed; left: 12px; bottom: calc(14px + var(--safe-b)); z-index: 10;
+  padding: 5px; border-radius: 50%; line-height: 0; cursor: pointer;
+  transition: width .16s, height .16s, padding .16s;
+}
+#minimap canvas { display: block; border-radius: 50%; }
+#minimap .mm-range {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: -8px; padding: 1px 7px; border-radius: 999px;
+  background: var(--glass-2); border: 1px solid var(--glass-br);
+  font-size: 9.5px; font-weight: 700; color: var(--ink-dim);
+  line-height: 1.5; letter-spacing: -.2px; pointer-events: none;
+}
+/* 접으면 단추 하나만 남는다 — 그리기도 멈춘다(draw 가 바로 돌아선다) */
+#minimap.folded { padding: 0; width: 40px; height: 40px; border-radius: 50%; }
+#minimap.folded canvas { display: none; }
+#minimap.folded .mm-range {
+  position: static; transform: none; display: grid; place-items: center;
+  width: 40px; height: 40px; border-radius: 50%; font-size: 17px; background: none; border: 0;
+}
+/* 좁은 화면에서는 좌하단이 통째로 남의 자리다 — 독(#dock)이 가로 한 줄로 눕고
+   그 위에 근처 대상 카드(#near)가 두 장까지 쌓인다. 그래서 **위로 옮긴다**:
+   지갑 줄 아래, 자동 순행 띠(#autobar, top 106px)보다 더 아래. */
+@media (max-width: 780px) {
+  #minimap { top: calc(152px + var(--safe-t)); bottom: auto; left: 10px; }
+}
+
 /* ── 근처 대상 ────────────────────────────────────────── */
 #near {
   position: fixed; left: 50%; transform: translateX(-50%) translateY(14px);

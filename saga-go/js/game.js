@@ -95,6 +95,7 @@
 
     world.init(document.getElementById('map'), document.getElementById('map-ground'));
     ui.init();
+    global.DG.minimap.init();          // 좌하단 미니맵 — 화면에만 쓰는 층이라 판정 뒤에 붙인다
 
     if (fresh) {
       core.log('여정을 시작합니다. 걸으면 보급을 받고, 만나면 도감이 쌓입니다.', 'info');
@@ -325,7 +326,10 @@
     global.DG.animal.tick();            // 들·강의 짐승 — 늑대가 붙으면 알린다
     global.DG.event.tick();             // 걷다가 만나는 사건 — 거리로 잰다
     global.DG.codex.tick();             // 지나가며 본 것에 도장을 찍는다
-    if (!global.DG_NO_DRAW) { world.draw(); }
+    if (!global.DG_NO_DRAW) {
+      world.draw();
+      global.DG.minimap.tick(dt);      // 미니맵은 매 프레임이 아니라 제 박자로 다시 그린다
+    }
 
     uiAcc += dt;
     if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
