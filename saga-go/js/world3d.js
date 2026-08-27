@@ -318,6 +318,100 @@
     return tex;
   }
 
+  /* ── 손으로 그린 땅을 지면에 칠한다 ─────────────────
+   * 여태 이 땅(`land.js`)은 **사물로만** 드러났다 — 판교 지도 위에 하북 마을의
+   * 기와집이 서 있는 꼴이었다. 지면 그림 자체를 맞춘다.
+   *
+   * 지도 타일을 캔버스에 그대로 굽고, 그 위에 **48m 격자마다 제 색을 덧칠**한다.
+   * 지도가 안 왔으면 색만 칠한다 — 오프라인에서도 이 땅은 이 땅으로 보인다.
+   *
+   * **가장자리는 흐린다.** 딱 잘리면 종이를 오려 붙인 것으로 보인다 —
+   * 이웃 넷 중 몇이 이 땅인지 세어 그만큼만 진하게 칠한다.
+   */
+  var LAND_COLOR = {
+    grass: '#8fae6a', forest: '#5c7f4e', mount: '#9a9188',
+    water: '#4a7fa6', road: '#c9bfa8', town: '#c2b49a', farm: '#7f9c5e'
+  };
+  /** 덧칠을 할까 — 0 이면 예전처럼 실제 지도만 깔린다 */
+  function LAND_PAINT() { return core.tuned('world3d.landPaint', 1) ? true : false; }
+  /** 얼마나 진하게 — 1 이면 지도가 아예 안 비친다 */
+  function PAINT_A() { return core.tuned('world3d.landPaintAlpha', 0.88); }
+
+  var landTex = {};
+
+  /** '#rrggbb' 를 조금 밝게·어둡게 (k 는 -1~1) */
+  function shadeHex(hex, k) {
+    var n = parseInt(hex.slice(1), 16);
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, bb = n & 255;
+    function f(v) { return Math.max(0, Math.min(255, Math.round(v * (1 + k)))); }
+    return 'rgb(' + f(r) + ',' + f(g) + ',' + f(bb) + ')';
+  }
+
+  /**
+   * 이 타일이 이 땅과 겹치나 — 겹치면 덧칠한 텍스처를, 아니면 null.
+   * `x0·y0` 는 타일 왼쪽 위 모서리의 월드 좌표(m), `span` 은 한 변(m).
+   */
+  function landTexture(key, x0, y0, span, img) {
+    var L = global.DG.land;
+    if (!LAND_PAINT() || !L || !L.on()) { return null; }
+    var g0x = Math.floor(x0 / GRID), g1x = Math.floor((x0 + span) / GRID);
+    var g0y = Math.floor(y0 / GRID), g1y = Math.floor((y0 + span) / GRID);
+    var gx, gy, any = false;
+    for (gy = g0y; gy <= g1y && !any; gy++) {
+      for (gx = g0x; gx <= g1x && !any; gx++) { if (L.owns(gx, gy)) { any = true; } }
+    }
+    if (!any) { return null; }
+
+    var ck = key + '|' + (img && img.ready ? 'i' : 'n') + '|' + Math.round(PAINT_A() * 100);
+    if (landTex[ck]) { return landTex[ck]; }
+
+    var S = 256;
+    var cv = document.createElement('canvas');
+    cv.width = S; cv.height = S;
+    var c = cv.getContext('2d');
+    if (img && img.ready) { c.drawImage(img, 0, 0, S, S); }
+    else { c.fillStyle = '#d7dbe0'; c.fillRect(0, 0, S, S); }
+
+    var k = S / span;                    // 미터 → 캔버스 픽셀
+    var a0 = PAINT_A();
+    for (gy = g0y; gy <= g1y; gy++) {
+      for (gx = g0x; gx <= g1x; gx++) {
+        var at = L.at(gx, gy);
+        if (!at) { continue; }
+        /* 가장자리 흐리기 — 이웃 넷 중 이 땅인 것의 몫만큼만 진하게.
+           **차이를 크게 두면 안 된다**: 칸마다 알파가 다르면 그 경계가 실선으로
+           드러난다(눈으로 보고 알았다). 안쪽은 거의 같은 진하기로 두고
+           바깥 한 줄만 살짝 옅게 한다 */
+        var near = 0;
+        if (L.owns(gx + 1, gy)) { near++; }
+        if (L.owns(gx - 1, gy)) { near++; }
+        if (L.owns(gx, gy + 1)) { near++; }
+        if (L.owns(gx, gy - 1)) { near++; }
+        c.globalAlpha = a0 * (near === 4 ? 1 : (0.62 + 0.09 * near));
+        /* 칸마다 밝기를 아주 조금 흔든다 — 안 흔들면 마을이 흙빛 한 판이 된다.
+           흔드는 값은 좌표에서 뽑으므로 **같은 칸은 늘 같은 색**이다 */
+        /* 폭을 **아주 좁게** 둔다 — 0.16 으로 흔들었더니 들판이 바둑판이 됐다
+           (눈으로 보고 알았다). 있는 줄 모를 만큼만 흔드는 것이 맞다 */
+        c.fillStyle = shadeHex(LAND_COLOR[at.kind] || LAND_COLOR.grass,
+          (h1(gx * 17 + 5, gy * 23 + 9) - 0.5) * 0.06);
+        /* **겹쳐 칠하지 않는다** — 알파가 있는 색을 두 번 얹으면 그 줄만 짙어진다.
+           칸 경계는 픽셀로 딱 맞춰 자른다 */
+        var rx = Math.round((gx * GRID - x0) * k);
+        var ry = Math.round((gy * GRID - y0) * k);
+        var rw = Math.round((gx * GRID + GRID - x0) * k) - rx;
+        var rh = Math.round((gy * GRID + GRID - y0) * k) - ry;
+        c.fillRect(rx, ry, rw, rh);
+      }
+    }
+    c.globalAlpha = 1;
+
+    var tex = new T.CanvasTexture(cv);
+    tex.colorSpace = T.SRGBColorSpace;
+    tex.anisotropy = 4;
+    landTex[ck] = tex;
+    return tex;
+  }
+
   /** 지도 타일을 카메라 둘레에만 깐다 (멀어진 것은 지운다) */
   function syncGround(W) {
     var mpp = W.metersPerPixel();
@@ -351,7 +445,8 @@
         mesh.position.set(corner.x + span / 2, -0.02, corner.y + span / 2);
 
         var img = W.getTile(tx, ty, W.ZOOM, MAP_STYLE());
-        var tex = tileTexture(img);
+        /* 이 땅과 겹치는 타일은 **제 색으로 덧칠한 것**을 쓴다 */
+        var tex = landTexture(key, corner.x, corner.y, span, img) || tileTexture(img);
         if (tex) {
           if (mesh.material.map !== tex) {
             mesh.material.map = tex;
@@ -1317,6 +1412,8 @@
       return v;
     },
     lum: lum, GRID: GRID,
+    /** 지면에 칠하는 땅 색 — 진단이 빠진 갈래가 없는지 본다 */
+    LAND_COLOR: LAND_COLOR,
     /** 지금 조명 (데모·어드민이 들여다본다) */
     light: function () { return lightNow || lightingAt(undefined, weatherKey()); },
     /** 조우 연출을 밖에서 걸어 볼 때 (데모가 쓴다) */

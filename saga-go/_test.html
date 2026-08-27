@@ -3020,6 +3020,32 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         '금·공적·경험치·도감·스폰 그대로 · 발견 도장만 찍힌다';
     });
 
+    t('지면 — 이 땅의 모든 갈래에 칠할 색이 있다', function () {
+      /* 색이 빠진 갈래가 있으면 그 칸만 들색으로 칠해져 조용히 어긋난다 */
+      var kinds = {}, bad = [];
+      LD.places();                                   // 땅을 깨운다
+      var b2 = LD.bounds(), gx, gy;
+      for (gy = b2.y0; gy <= b2.y1; gy++) {
+        for (gx = b2.x0; gx <= b2.x1; gx++) {
+          var a = LD.at(gx, gy);
+          if (a) { kinds[a.kind] = 1; }
+        }
+      }
+      var ks = Object.keys(kinds).sort();
+      ks.forEach(function (k) { if (!R3.LAND_COLOR[k]) { bad.push(k); } });
+      return ks.length >= 7 && bad.length === 0 &&
+        ('땅 갈래 ' + ks.join('/') + ' — 다 색이 있다');
+    });
+
+    t('지면 — 칠하기를 끌 수 있다', function () {
+      var on = C.tuned('world3d.landPaint', 1);
+      C.setTune('world3d.landPaint', 0);
+      var off = C.tuned('world3d.landPaint', 1);
+      C.setTune('world3d.landPaint', null);
+      return on === 1 && off === 0 && C.tuned('world3d.landPaint', 1) === 1 &&
+        'world3d.landPaint=0 이면 실제 지도만 깔린다';
+    });
+
     t('3D — 값을 내도 세이브는 그대로다', function () {
       /* 화면 층이 판정에 스미지 않는지 — 조명·계획·카메라를 굴려 보고 세이브를 비교한다 */
       var before = JSON.stringify(C.save);
