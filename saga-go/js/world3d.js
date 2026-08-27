@@ -691,12 +691,127 @@
     return m;
   }
 
-  function buildProp(kind, gx, gy, mapped) {
+  /* ── 인스턴싱 (PLAN 16절) ───────────────────────────────
+   * 잔 사물은 **같은 도형에 같은 색**이다 — 나무 백 그루가 저마다 자기 Mesh 를
+   * 들고 있을 까닭이 없다. 종류마다 `InstancedMesh` 한 덩이를 두고 **자리(slot)만
+   * 빌려 준다.** 격자가 사라지면 자리를 돌려받는다.
+   *
+   * **집·탑·다리는 안 묶는다.** 크기와 색이 제각각이라 한 덩이로 못 모으고,
+   * 수도 적어 이득이 없다. 16절이 지목한 것도 "나무·돌·풀·꽃" 이다.
+   *
+   * 잎 색은 계절이 바꾸므로 **색이 이름의 일부**다 — 가을이 되면 새 덩이가 하나
+   * 생기고 옛 덩이는 빈 채로 남는다(넷뿐이라 그냥 둔다).
+   */
+  function INST_ON() { return core.tuned('world3d.instanced', 1) ? true : false; }
+  function INST_CAP() { return core.tuned('world3d.instCap', 1600); }
+
+  var instKinds = {};      // 이름 → {mesh, free:[], n}
+  var instOf = {};         // 격자 키 → [{name, slot}]
+  var ZERO = null;         // 안 쓰는 자리를 숨기는 행렬 (크기 0)
+
+  function instBox(name, geoName, hex, opt, cast) {
+    if (instKinds[name]) { return instKinds[name]; }
+    var cap = INST_CAP();
+    var m = new T.InstancedMesh(unitGeo(geoName), pmat(hex, opt), cap);
+    m.instanceMatrix.setUsage(T.DynamicDrawUsage);
+    m.castShadow = !!cast;
+    m.receiveShadow = false;
+    m.frustumCulled = false;          // 자리가 온 세상에 흩어져 있어 상자로 못 자른다
+    if (!ZERO) { ZERO = new T.Matrix4().makeScale(0, 0, 0); }
+    var free = [], i;
+    for (i = cap - 1; i >= 0; i--) { m.setMatrixAt(i, ZERO); free.push(i); }
+    m.instanceMatrix.needsUpdate = true;
+    propGroup.add(m);
+    instKinds[name] = { mesh: m, free: free, n: 0 };
+    return instKinds[name];
+  }
+
+  var _p = null, _q = null, _s = null, _m4 = null;
+  /** 자리 하나를 빌린다 — 창고가 다 차면 false 를 주고, 부르는 쪽이 옛 길로 간다 */
+  function instPut(key, name, geoName, hex, opt, cast, x, y, z, sx, sy, sz, rx, ry, rz) {
+    var K = instBox(name, geoName, hex, opt, cast);
+    if (!K.free.length) { return false; }
+    var slot = K.free.pop();
+    if (!_p) { _p = new T.Vector3(); _q = new T.Quaternion(); _s = new T.Vector3(); _m4 = new T.Matrix4(); }
+    _p.set(x, y, z);
+    _q.setFromEuler(new T.Euler(rx || 0, ry || 0, rz || 0));
+    _s.set(sx, sy, sz);
+    _m4.compose(_p, _q, _s);
+    K.mesh.setMatrixAt(slot, _m4);
+    K.mesh.instanceMatrix.needsUpdate = true;
+    K.n++;
+    if (!instOf[key]) { instOf[key] = []; }
+    instOf[key].push({ name: name, slot: slot });
+    return true;
+  }
+
+  /** 이 격자가 빌린 자리를 다 돌려받는다 */
+  function instDrop(key) {
+    var list = instOf[key];
+    if (!list) { return 0; }
+    for (var i = 0; i < list.length; i++) {
+      var K = instKinds[list[i].name];
+      if (!K) { continue; }
+      K.mesh.setMatrixAt(list[i].slot, ZERO);
+      K.mesh.instanceMatrix.needsUpdate = true;
+      K.free.push(list[i].slot);
+      K.n--;
+    }
+    delete instOf[key];
+    return list.length;
+  }
+
+  /** 지금 몇 덩이에 몇 자리가 차 있나 — 진단·데모가 값으로 본다 */
+  function instStats() {
+    var out = { on: INST_ON(), cap: INST_CAP(), kinds: 0, used: 0, by: {} };
+    for (var k in instKinds) {
+      if (!Object.prototype.hasOwnProperty.call(instKinds, k)) { continue; }
+      out.kinds++; out.used += instKinds[k].n; out.by[k] = instKinds[k].n;
+    }
+    return out;
+  }
+
+  /**
+   * 잔 사물을 인스턴스로 세운다 — 세웠으면 true.
+   * 좌표는 **월드 미터**다(격자 Group 안이 아니라 세상에 바로 놓기 때문).
+   */
+  function instProp(key, p, ox, oz) {
+    if (!INST_ON()) { return false; }
+    var x = ox + p.x, z = oz + p.z;
+    if (p.t === 'tree') {
+      var SS = global.DG.season;
+      var leafHex = SS ? SS.leaf(0x2f5a34) : 0x2f5a34;
+      var a = instPut(key, 'trunk', 'cyl', 0x4a3a2a, '', true,
+        x, p.h * 0.21, z, 1.2, p.h * 0.42, 1.2);
+      var bb = instPut(key, 'leaf:' + leafHex, 'cone', leafHex, '', true,
+        x, p.h * 0.58, z, p.h * 0.68, p.h * 0.72, p.h * 0.68);
+      return a && bb;
+    }
+    if (p.t === 'rock') {
+      return instPut(key, 'rock', 'sph', 0x6b6a72, 'flat', true,
+        x, p.h * 0.32, z, p.h * 1.5, p.h * 0.9, p.h * 1.3, 0.3, p.x, 0.2);
+    }
+    if (p.t === 'grass') {
+      return instPut(key, 'grass', 'cone', 0x5d7a44, '', false,
+        x, p.h * 0.5, z, p.h * 1.5, p.h, p.h * 1.5);
+    }
+    if (p.t === 'reed') {
+      return instPut(key, 'reed', 'cone', 0x6d7f4a, '', false,
+        x, p.h * 0.5, z, 0.5, p.h, 0.5);
+    }
+    return false;
+  }
+
+  function buildProp(kind, gx, gy, mapped, key) {
     var g = new T.Group();
     var plan = propPlan(kind, gx, gy, mapped);
+    var ox = gx * GRID + GRID / 2, oz = gy * GRID + GRID / 2;
     var i;
     for (i = 0; i < plan.length; i++) {
       var p = plan[i];
+      /* 잔 사물은 인스턴스 덩이가 받는다. 창고가 다 차면 false 가 와서
+         아래의 옛 길(제 Mesh 를 만드는 길)로 그대로 흘러간다 */
+      if (key && instProp(key, p, ox, oz)) { continue; }
       if (p.t === 'house' || p.t === 'tower') {
         /* 벽은 밝고 지붕은 짙다 — 한옥이 그렇고, 그래야 지붕선이 보인다.
            둘 다 어두우면 멀리서 회색 덩어리 하나로 뭉친다 */
@@ -868,7 +983,7 @@
           (mk ? ':' + mk : '') + (wetNow ? ':w' : '') + ':' + seasonKey;
         live[key] = 1;
         if (propMeshes[key]) { continue; }
-        var node = buildProp(kind, gx, gy, mapped);
+        var node = buildProp(kind, gx, gy, mapped, key);
         node.position.set(gx * GRID + GRID / 2, 0, gy * GRID + GRID / 2);
         propGroup.add(node);
         propMeshes[key] = node;
@@ -880,6 +995,7 @@
          하나를 버리면 남아 있는 다른 건물의 도형까지 같이 사라진다 */
       propGroup.remove(propMeshes[k]);
       delete propMeshes[k];
+      instDrop(k);                    // 빌려 준 인스턴스 자리도 돌려받는다
     }
   }
 
@@ -1425,6 +1541,8 @@
       return v;
     },
     lum: lum, GRID: GRID,
+    /** 인스턴스 덩이 현황 (PLAN 16절) — 진단·데모가 값으로 본다 */
+    instStats: instStats,
     /** 지면에 칠하는 땅 색 — 진단이 빠진 갈래가 없는지 본다 */
     LAND_COLOR: LAND_COLOR,
     /** 지금 조명 (데모·어드민이 들여다본다) */

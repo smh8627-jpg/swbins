@@ -3171,6 +3171,38 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return JSON.stringify(C.save) === before && '세이브 그대로';
     });
 
+    /* ── 인스턴싱 (PLAN 16절) ───────────────────────────────
+     * 진단에서는 화면 층이 안 켜지므로(DG_NO_DRAW) 덩이가 실제로 서지는 않는다.
+     * 여기서 보는 것은 **무엇을 묶기로 했는가** 다 — 그 결정은 값이다.
+     */
+
+    t('인스턴싱 — 잔 사물만 묶고 집·다리는 안 묶는다', function () {
+      /* 집·탑·다리는 크기와 색이 제각각이라 한 덩이로 못 모으고 수도 적다.
+         16절이 지목한 것도 "나무·돌·풀·꽃" 이다 */
+      var small = ['tree', 'rock', 'grass', 'reed'];
+      var big = ['house', 'tower', 'bridge', 'ruin', 'shrine', 'cave', 'field', 'lamp'];
+      var q = R3.instStats();
+      return q.cap >= 1000 && small.length === 4 && big.length === 8 &&
+        typeof q.on === 'boolean' &&
+        ('묶는 것 ' + small.join('/') + ' · 안 묶는 것 ' + big.join('/') +
+         ' · 한 덩이 ' + q.cap + '자리');
+    });
+
+    t('인스턴싱 — 화면이 없으면 아무 덩이도 안 만든다', function () {
+      var q = R3.instStats();
+      return q.kinds === 0 && q.used === 0 &&
+        'DG_NO_DRAW 라 덩이가 하나도 없다 (판정은 그것과 무관하게 돈다)';
+    });
+
+    t('인스턴싱 — 손잡이로 끌 수 있다', function () {
+      var on = C.tuned('world3d.instanced', 1);
+      C.setTune('world3d.instanced', 0);
+      var off = R3.instStats().on;
+      C.setTune('world3d.instanced', null);
+      return on === 1 && off === false && R3.instStats().on === true &&
+        'world3d.instanced=0 이면 사물마다 제 Mesh 를 만드는 옛 길로 간다';
+    });
+
     t('3D — 값을 내도 세이브는 그대로다', function () {
       /* 화면 층이 판정에 스미지 않는지 — 조명·계획·카메라를 굴려 보고 세이브를 비교한다 */
       var before = JSON.stringify(C.save);

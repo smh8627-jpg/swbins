@@ -250,6 +250,10 @@ setTimeout(function () {
       /* 사람과 짐승도 같이 센다 — 화면에 안 보일 때 **없는 것인지 멀리 있는 것인지**를
          눈이 아니라 값으로 가른다 */
       if (DG.npc) { st.npc = DG.npc.stats().live + '/' + DG.npc.stats().all; }
+      if (DG.world3d && DG.world3d.instStats) {
+        var iq = DG.world3d.instStats();
+        st.inst = iq.used + '/' + iq.cap + ' 덩이' + iq.kinds;
+      }
       if (DG.sky3d) {
         var sk = DG.sky3d.stats();
         st.sky = sk.weather + '→' + (sk.falls || '-') + ' ' + sk.shown + '/' + sk.want;
@@ -340,6 +344,8 @@ setTimeout(function () {
     var sm = /se=([a-z]+)/.exec(hash);
     DG.season.force(sm[1]);
   }
+  /* 인스턴싱을 끄고 견줘 본다 — `#noinst`. 이득이 얼마인지 값으로 보려는 손잡이다 */
+  if (hash.indexOf('noinst') >= 0) { C.setTune('world3d.instanced', 0); }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }
   if (hash.indexOf('3d') >= 0) { C.save.settings.tilt = 2; W.resize(); }
