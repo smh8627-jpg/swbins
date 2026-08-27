@@ -88,6 +88,7 @@ window.DG_NO_TUNE = true;
 <script src="js/world3d.js"></script>
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
+<script src="js/battle3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/letter.js"></script>
@@ -244,6 +245,10 @@ setTimeout(function () {
       /* 사람과 짐승도 같이 센다 — 화면에 안 보일 때 **없는 것인지 멀리 있는 것인지**를
          눈이 아니라 값으로 가른다 */
       if (DG.npc) { st.npc = DG.npc.stats().live + '/' + DG.npc.stats().all; }
+      if (DG.battle3d) {
+        var b3 = DG.battle3d.stats();
+        st.fx = b3.alive + '/' + b3.pool + ' 교전=' + b3.battle + ' 흔들림=' + b3.shake;
+      }
       if (DG.animal) {
         var an = DG.animal.stats();
         st.animal = an.live + '/' + an.all + ' ' + JSON.stringify(an.by);
@@ -291,6 +296,23 @@ setTimeout(function () {
          고르기 전만 찍으면 절반만 본 것이다 */
       if (pk) { DG.event.choose(pk[1]); }
     }, 30);
+  }
+  /* 전투 연출만 따로 걸어 본다 — `#fx=ult`. 카드 없이 알갱이와 흔들림만 본다
+     (교전을 열면 카드가 화면을 덮어 뒤의 연출이 안 보인다) */
+  if (/fx=/.test(hash)) {
+    var fm = /fx=([a-z]+)/.exec(hash);
+    setTimeout(function () {
+      C.emit('duel:open', { title: '연출' });
+      /* 계속 친다 — 알갱이는 0.3~0.6초면 스러지는데 이 화면은 400ms 에 한 번만
+         그린다(헤드리스의 rAF 함정). 한 번만 터뜨리면 스크린샷에 아무것도 안 남는다 */
+      var left = 40;
+      var iv = setInterval(function () {
+        C.emit('duel:fx', { kind: fm ? fm[1] : 'ult', dmg: 40, mine: true });
+        /* **끝을 정해 둔다.** 끝없이 도는 타이머는 헤드리스의 가상 시간에서
+           예산이 영영 안 닳아 스크린샷이 안 찍힌다(밟아 본 함정이다) */
+        if (--left <= 0) { clearInterval(iv); }
+      }, 120);
+    }, 200);
   }
   if (hash.indexOf('flat') >= 0) { C.setTune('world.render3d', 0); W.resize(); }
   if (hash.indexOf('2d') >= 0) { C.save.settings.tilt = 0; W.resize(); }

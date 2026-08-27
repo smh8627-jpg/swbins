@@ -981,6 +981,14 @@
    * 3D 는 **뒤에서 카메라를 돌려** 그 순간을 만든다. 잡히면 빛기둥이 선다.
    * 창이 열렸는지는 DOM 을 보고 안다 — `encounter.js` 를 고치지 않으려는 것이다.
    */
+  /* ── 전투 연출 (PLAN 23절) ────────────────────────────
+   * 소품은 `battle3d.js` 가 만든다. 여기 있는 것은 **카메라가 하는 일**뿐이다 —
+   * 줌인 · 흔들림 · 잠깐 멎기(hit-stop). 셋 다 화면에만 쓴다.
+   */
+  var battleOn = false;    // 교전 중인가
+  var shakeAmp = 0;        // 남은 흔들림 세기(m)
+  var holdUntil = 0;       // 이때까지 화면이 멎는다 (performance.now 기준)
+
   var focusAt = null;      // {x, y} 조우 중인 대상
   var stageAt = null;      // {x, y, uid} 조우 무대 — 대상 앞에 카메라를 세운다
   var beams = [];          // 빛기둥
@@ -1067,8 +1075,11 @@
       하나는 얼굴이 화면을 채우고 하나는 발치에 놓인다 */
   function STAGE_DIST() { return core.tuned('world3d.stageDist', 10.5); }
 
-  function camAim(pos, mode, focus, stage, zoom) {
+  function camAim(pos, mode, focus, stage, zoom, battle) {
     var z = (zoom === undefined || !isFinite(zoom) || zoom <= 0) ? 1 : zoom;
+    /* 교전이 열리면 **약간 줌인**한다(PLAN 23절). 무대(stage)처럼 자리를 통째로
+       옮기지는 않는다 — 싸움은 내가 선 자리에서 벌어지고, 카메라만 다가선다 */
+    if (battle) { z = z * 0.62; }
     if (stage) {
       /* 나와 대상을 잇는 선 위에서, **대상 쪽에서 나를 향해** 물러선 자리다.
          무대에서는 시점 모드를 안 본다 — 조우는 어느 시점에서 열었든 같은 그림이어야 한다 */
@@ -1110,15 +1121,25 @@
   function syncCamera(W, dt) {
     var pos = core.save.player.pos;
     /* 조우 무대에서는 줌을 무시한다 — 무대는 늘 같은 그림이어야 한다 */
-    var aim = camAim(pos, W.tiltMode, focusLive(), stageAt, stageAt ? 1 : W.zoom3d);
+    var aim = camAim(pos, W.tiltMode, focusLive(), stageAt, stageAt ? 1 : W.zoom3d, battleOn);
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
-    /* 카메라는 곧바로 붙지 않고 따라온다 — 원작의 그 미끄러지는 느낌이다 */
-    var k = Math.min(1, dt * 6.5);
+    /* 카메라는 곧바로 붙지 않고 따라온다 — 원작의 그 미끄러지는 느낌이다.
+       교전 중에는 조금 더 빨리 붙는다(줌인이 굼뜨면 때리는 맛이 죽는다) */
+    var k = Math.min(1, dt * (battleOn ? 9 : 6.5));
     camPos.lerp(want, k);
     camLook.lerp(look, k);
     camera.position.copy(camPos);
+    /* 흔들림 — **따라온 자리에 얹기만** 한다. camPos 자체를 흔들면 흔들림이
+       다음 프레임의 출발점이 되어 카메라가 조금씩 밀려난다 */
+    if (shakeAmp > 0.001) {
+      var ph = frame * 1.9;
+      camera.position.x += Math.sin(ph) * shakeAmp;
+      camera.position.y += Math.sin(ph * 1.7 + 1.1) * shakeAmp * 0.6;
+      camera.position.z += Math.cos(ph * 1.3) * shakeAmp;
+      shakeAmp *= Math.pow(0.02, dt);            // 초당 50분의 1로 잦아든다
+    } else { shakeAmp = 0; }
     camera.lookAt(camLook);
   }
 
@@ -1173,6 +1194,10 @@
     last = now;
     frame++;
 
+    /* hit-stop — 큰 것이 꽂힌 순간 화면이 아주 잠깐 멎는다(PLAN 23절).
+       **그린 것을 그대로 한 번 더 낸다** — 아무것도 안 그리면 검게 깜빡인다 */
+    if (now < holdUntil) { renderer.render(scene, camera); return true; }
+
     syncLight(dt);
     syncShadow(W.zoom3d || 1);
     syncGround(W);
@@ -1181,6 +1206,7 @@
     syncActors(W, now);
     sweepActors(dt);
     if (global.DG.encounter3d) { global.DG.encounter3d.tick(dt); }
+    if (global.DG.battle3d) { global.DG.battle3d.tick(dt); }
     syncBeams(dt);
     syncCamera(W, dt);
 
@@ -1208,6 +1234,18 @@
     addFx: function (n) { if (fxGroup && n) { fxGroup.add(n); } return n; },
     removeFx: function (n) { if (fxGroup && n) { fxGroup.remove(n); } },
     camNode: function () { return camera; },
+    /* 전투 연출 손잡이 — `battle3d.js` 가 두드린다 (PLAN 23절) */
+    battle: function (on) { battleOn = !!on; if (!on) { shakeAmp = 0; } return battleOn; },
+    inBattle: function () { return battleOn; },
+    /** 카메라를 흔든다. 세기는 m — 여러 번 부르면 센 쪽이 남는다 */
+    shake: function (amp) { shakeAmp = Math.max(shakeAmp, amp || 0); return shakeAmp; },
+    shakeAmp: function () { return shakeAmp; },
+    /** 잠깐 멎는다(ms). 너무 길면 끊긴 것으로 보이므로 상한을 둔다 */
+    hold: function (ms) {
+      var v = Math.min(180, Math.max(0, ms || 0));
+      holdUntil = Math.max(holdUntil, (global.performance ? performance.now() : 0) + v);
+      return v;
+    },
     lum: lum, GRID: GRID,
     /** 지금 조명 (데모·어드민이 들여다본다) */
     light: function () { return lightNow || lightingAt(undefined, weatherKey()); },

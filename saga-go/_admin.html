@@ -650,7 +650,14 @@ window.DG_NO_ACCOUNT = true;
     ['사건 (event)', [
       ['event.on', '걷다가 사건을 만난다 1/0', 1],
       ['event.stepM', '몇 m 마다 주사위를 굴리나', 420],
-      ['event.chance', '그 주사위에서 날 확률 0~1', 0.55]
+      ['event.chance', '그 주사위에서 날 확률 0~1', 0.55],
+      ['event.duel', '싸움을 교전 무대로 연다 1/0', 1],
+      ['event.foeHpMul', '적 기세 = 힘 × 이 값', 7]
+    ]],
+    ['전투 연출 (battle3d)', [
+      ['battle3d.on', '교전 때 지도도 같이 싸운다 1/0', 1],
+      ['battle3d.shake', '카메라 흔들림 세기 m', 0.5],
+      ['battle3d.pool', '알갱이 창고 크기', 48]
     ]],
     ['3D 화면 (world3d)', [
       ['world.render3d', '3D 로 그린다 1/0', 1],

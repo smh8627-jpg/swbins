@@ -248,6 +248,9 @@
     paint();
     bind();
     loop();
+    /* 3D 연출이 이 신호를 듣는다(`battle3d.js`) — 카메라가 당겨지고 흙먼지가 인다.
+       **판정에는 한 줄도 안 닿는다.** 듣는 쪽이 없어도 교전은 그대로 돈다 */
+    core.emit('duel:open', { title: meta.title, foeName: meta.foeName });
     return cur;
   }
 
@@ -386,6 +389,9 @@
           shake('#duel', e.dodged ? 'flash' : 'jolt');
           foeSwing(true, e.dodged);
         }
+        if (e.t === 'hit' || e.t === 'heavy') {
+          core.emit('duel:fx', { kind: e.t, dmg: e.dmg || 0, dodged: !!e.dodged, mine: false });
+        }
       }
       refresh();
       if (cur.over) { finish(); return; }
@@ -400,6 +406,7 @@
     if (r.ok && kind === 'quick') { pop('-' + r.dmg, ''); swing(false); }
     if (r.ok && kind === 'ult') { pop('필살 -' + r.dmg, 'big'); swing(true); }
     if (r.ok && kind === 'dodge') { pop('피했다', 'ok'); motion('#d-me', 'evade', 380); }
+    if (r.ok) { core.emit('duel:fx', { kind: kind, dmg: r.dmg || 0, mine: true }); }
     refresh();
     if (cur.over) {
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
@@ -430,6 +437,7 @@
     var cb = doneCb;
     cur = null; doneCb = null; meta = null;
     if (el) { el.innerHTML = ''; }
+    core.emit('duel:close', p);
     if (cb) { cb(p); }
   }
 

@@ -80,6 +80,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/world3d.js"></script>
 <script src="js/encounter.js"></script>
 <script src="js/encounter3d.js"></script>
+<script src="js/battle3d.js"></script>
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/letter.js"></script>
@@ -2465,6 +2466,95 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var off = EV.on();
       C.setTune('event.on', null);
       return off === false && EV.on() === true && 'event.on=0 이면 잠든다';
+    });
+
+    /* ── 전투 (PHASE 9) — 사건의 싸움을 교전 무대로 ───────────
+     * `duel.js` 는 예전부터 있었다(속공·필살·회피·적 AI·피해·죽음·성과). PLAN 22절이
+     * "기존 시스템을 최대한 재사용한다" 고 했으니 새로 짓지 않고 **이어 붙였다**.
+     * 여기서 보는 것은 그 이음매다 — 무대를 거치면 **주사위가 아니라 실제 결과**가
+     * 승패가 되는가, 그리고 연출이 판정에 스미지 않는가.
+     */
+
+    t('전투 — 무대를 거치면 주사위가 아니라 실제 결과가 승패다', function () {
+      var c = ctxOf({ kind: 'road', h: 13 });
+      /* 주사위로는 반드시 지는 값(0.999)인데, 무대에서 이겼다면 이겨야 한다 */
+      var byRoll = EV.resolve('bandit_ambush', 'fight', c, 0.999);
+      var cWin = ctxOf({ kind: 'road', h: 13 }); cWin.win = true;
+      var byDuel = EV.resolve('bandit_ambush', 'fight', cWin, 0.999);
+      var cLose = ctxOf({ kind: 'road', h: 13 }); cLose.win = false;
+      var lost = EV.resolve('bandit_ambush', 'fight', cLose, 0);   // 주사위로는 이길 값
+      return byRoll.win === false && byDuel.win === true && lost.win === false &&
+        ('주사위 0.999 → 패 · 무대에서 이기면 승 · 무대에서 지면(주사위 0 이라도) 패');
+    });
+
+    t('전투 — 무대를 안 거치면 예전 그대로 주사위다', function () {
+      var r0 = EV.fightRoll('bandit', 0, 200);
+      var r1 = EV.fightRoll('bandit', 0.999, 200);
+      var f = EV.fightRoll('bandit', 0.999, 200, true);
+      return r0.win === true && r0.live === false &&
+        r1.win === false && f.win === true && f.live === true &&
+        ('주사위 길은 live=false · 무대 길은 live=true');
+    });
+
+    t('전투 — 적 셋의 기세가 힘에 비례한다', function () {
+      var mul = C.tuned('event.foeHpMul', 7);
+      var hp = ['wolfpack', 'bandit', 'scout'].map(function (k) {
+        return Math.round(EV.FOES[k].power * mul);
+      });
+      return hp[0] < hp[1] && hp[1] < hp[2] &&
+        ('늑대 ' + hp[0] + ' < 산적 ' + hp[1] + ' < 정찰병 ' + hp[2] + ' (기세)');
+    });
+
+    t('전투 — 무대는 손잡이로 끌 수 있다', function () {
+      var wasOn = EV.useDuel();
+      C.setTune('event.duel', 0);
+      var off = EV.useDuel();
+      C.setTune('event.duel', null);
+      return wasOn === true && off === false &&
+        'event.duel=0 이면 예전처럼 주사위 하나로 갈린다';
+    });
+
+    /* ── 전투 연출 (battle3d) — 카메라와 알갱이 ─────────── */
+
+    var B3 = DG.battle3d;
+
+    t('연출 — 3D 가 꺼져 있으면 통째로 잠든다', function () {
+      /* 진단에서는 화면 층이 안 켜진다(DG_NO_DRAW) — 그래도 게임이 돌아야 한다 */
+      var s = B3.stats();
+      var n = B3.burst(0, 0, 'flame');
+      return s.live === false && n === 0 && B3.tick(0.1) === 0 &&
+        '화면 층이 없으면 알갱이가 하나도 안 난다';
+    });
+
+    t('연출 — 알갱이는 **미리 만들어 두고 꺼내 쓴다**', function () {
+      /* PLAN 24절의 못박은 요구다 — 칠 때마다 새로 만들면 안 된다.
+         창고 자체는 3D 가 있어야 차므로, 여기서는 **규칙**만 본다 */
+      var kinds = Object.keys(B3.KINDS);
+      var cap = C.tuned('battle3d.pool', 48);
+      var most = kinds.reduce(function (m, k) { return Math.max(m, B3.KINDS[k].n); }, 0);
+      return kinds.length === 4 && cap >= most * 2 && B3.pool.length === 0 &&
+        ('연출 ' + kinds.join('/') + ' · 한 번에 최대 ' + most + '개 · 창고 ' + cap +
+         ' — 창고가 한 번 터뜨리는 양의 두 배는 된다');
+    });
+
+    t('연출 — 교전 자세는 카메라를 당긴다 (PLAN 23절)', function () {
+      var pos = { x: 0, y: 0 };
+      var calm = R3.camAim(pos, 2, null, null, 1, false);
+      var fight = R3.camAim(pos, 2, null, null, 1, true);
+      var dCalm = Math.hypot(calm.pos.x - pos.x, calm.pos.z - pos.y);
+      var dFight = Math.hypot(fight.pos.x - pos.x, fight.pos.z - pos.y);
+      return dFight < dCalm && dFight > dCalm * 0.4 &&
+        ('평소 ' + Math.round(dCalm) + 'm → 교전 중 ' + Math.round(dFight) +
+         'm (당기되 얼굴이 화면을 채우지는 않는다)');
+    });
+
+    t('연출 — 판정에 한 칸도 안 닿는다', function () {
+      var before = JSON.stringify(C.save);
+      B3.burst(10, 10, 'slash');
+      B3.tick(0.2);
+      B3.stats();
+      B3.reset();
+      return JSON.stringify(C.save) === before && '세이브 그대로';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {

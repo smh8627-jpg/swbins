@@ -81,7 +81,7 @@
       choices: [
         { id: 'fight', label: '맞선다', fight: true,
           out: function (ctx, roll) {
-            var r = fightRoll('bandit', roll);
+            var r = fightRoll('bandit', roll, undefined, ctx && ctx.win);
             return r.win
               ? { feat: 22, gold: 60, exp: 40, win: true,
                   text: '도적을 물리쳤다. 두고 간 전대가 남았다.' }
@@ -106,7 +106,7 @@
       choices: [
         { id: 'fight', label: '맞선다', fight: true,
           out: function (ctx, roll) {
-            var r = fightRoll('wolfpack', roll);
+            var r = fightRoll('wolfpack', roll, undefined, ctx && ctx.win);
             return r.win
               ? { feat: 14, exp: 30, win: true, text: '무리를 흩었다.' }
               : { items: [{ key: 'feed', n: -3 }], win: false,
@@ -220,7 +220,7 @@
       choices: [
         { id: 'fight', label: '잡는다', fight: true,
           out: function (ctx, roll) {
-            var r = fightRoll('scout', roll);
+            var r = fightRoll('scout', roll, undefined, ctx && ctx.win);
             return r.win
               ? { feat: 35, exp: 55, items: [{ key: 'scroll', n: 1 }], win: true,
                   text: '정찰병을 잡았다. 품에서 밀서가 나왔다.' }
@@ -253,10 +253,17 @@
     return Math.max(0.12, Math.min(0.88, r));
   }
 
-  /** 주사위 하나로 승패를 가른다 — `roll` 을 밖에서 주면 순수 함수가 된다 */
-  function fightRoll(foeId, roll, mine) {
+  /**
+   * 승패를 가른다 — `roll` 을 밖에서 주면 순수 함수가 된다.
+   *
+   * **`forced` 가 참·거짓이면 그것이 그대로 답이다.** 교전 무대(`duel.js`)를 거쳐 온
+   * 경우가 그렇다 — 그때는 주사위가 아니라 **실제로 기세를 다 깎았는지**가 승패다.
+   * 무대를 안 거치면(손잡이를 껐거나 `duel` 이 없으면) 예전처럼 주사위로 간다.
+   */
+  function fightRoll(foeId, roll, mine, forced) {
     var c = winChance(foeId, mine);
-    return { win: roll < c, chance: c, foe: FOES[foeId] };
+    if (forced === true || forced === false) { return { win: forced, chance: c, foe: FOES[foeId], live: true }; }
+    return { win: roll < c, chance: c, foe: FOES[foeId], live: false };
   }
 
   /* ── 지금 여기가 어디냐 ───────────────────────────────
@@ -454,14 +461,64 @@
     return true;
   }
 
+  /** 교전 무대를 거칠까 — 손잡이가 켜져 있고 `duel.js` 가 있을 때만 */
+  function useDuel() {
+    return core.tuned('event.duel', 1) && global.DG.duel && global.DG.hero ? true : false;
+  }
+
+  /**
+   * 싸움을 **진짜 교전으로** 연다 (PLAN 22절 "기존 시스템을 최대한 재사용한다").
+   * 지금까지는 주사위 하나였다 — 이제 치고 피하고 필살을 지른 결과가 승패가 된다.
+   * 무대가 끝나면 그 승패를 들고 원래 자리로 돌아와 `resolve` → `apply` 로 흐른다.
+   */
+  function openDuel(ev, cid, ctx, after) {
+    var D = global.DG.duel;
+    var foe = FOES[ev.foe];
+    var pw = global.DG.hero.partyPower();
+    /* 적의 기세 — 힘에 비례한다. 싸움 하나가 대략 20~40초에 끝나게 잡았다 */
+    var hp = Math.max(1, Math.round(foe.power * core.tuned('event.foeHpMul', 7)));
+    close();                                   // 사건 카드를 걷고 무대를 연다
+    D.open({
+      title: ev.emoji + ' ' + ev.name,
+      foeName: foe.name,
+      emoji: foe.emoji,
+      foeHp: hp, myAtk: pw.atk, myDef: pw.def,
+      onDone: function (p) {
+        /* 한 대도 못 때리고 물러났으면 **싸움 자체가 없던 것**으로 둔다 —
+           빈손으로 도망친 것에 패배의 벌까지 얹지 않는다 */
+        if (p.fled && p.dealt <= 0) { return; }
+        var c2 = { tx: ctx.tx, ty: ctx.ty, kind: ctx.kind, mark: ctx.mark,
+                   night: ctx.night, weather: ctx.weather, t: ctx.t, win: !!p.cleared };
+        after(resolve(ev, cid, c2, 0.5), p);
+      }
+    });
+  }
+
   /** 골랐다 — 결과를 내고, 주고, 결과 화면으로 바꾼다 */
   function choose(cid) {
     if (!live) { return null; }
+    var c0 = choiceOf(live.ev, cid);
+    /* 싸움을 고르면 무대로 넘어간다. 결과 화면은 무대가 끝난 뒤에 뜬다 */
+    if (c0 && c0.fight && live.ev.foe && useDuel()) {
+      var ev0 = live.ev, ctx0 = live.ctx;
+      live = null;
+      openDuel(ev0, cid, ctx0, function (res2, p) {
+        if (res2) { showResult(res2, apply(res2), p); }
+      });
+      return { staged: true, ev: ev0, choice: c0 };
+    }
     var res = resolve(live.ev, cid, live.ctx);
     if (!res) { return null; }
     var got = apply(res);
+    live = null;
+    showResult(res, got, null);
+    return res;
+  }
+
+  /** 결과 화면 — 곧바로 고른 경우와 교전을 거친 경우가 **같은 화면**을 쓴다 */
+  function showResult(res, got, p) {
     var el = host();
-    if (!el) { live = null; return res; }
+    if (!el) { return res; }
     var B = global.DG.bag;
     var rows = [];
     if (got.gold) { rows.push('🪙 금 ' + (got.gold > 0 ? '+' : '') + got.gold); }
@@ -473,6 +530,12 @@
     if (res.feat) { rows.push('🏅 공적 +' + res.feat); }
     if (res.fame) { rows.push('🎖️ 명성 ' + (res.fame > 0 ? '+' : '') + res.fame); }
     if (got.quest) { rows.push('📋 사명 — ' + got.quest.emoji + ' ' + got.quest.name); }
+    /* 교전을 거쳤으면 그 자리에서 무엇을 했는지도 한 줄 — 주사위가 아니라
+       **내가 친 결과**라는 것이 보여야 무대를 연 뜻이 산다 */
+    if (p) {
+      rows.push('⚔️ ' + p.hits + '타 · 필살 ' + p.ults + ' · 회피 ' +
+        p.dodgeOk + '/' + p.dodgeTry + ' · ' + p.timeUsed + '초');
+    }
 
     el.innerHTML =
       '<div class="enc-card">' +
@@ -485,9 +548,9 @@
           ? '<div class="enc-reward">📖 새로운 기록 — ' + res.ev.record + '</div>' : '') +
         '<button class="btn primary wide" data-act="ok">닫는다</button>' +
       '</div>';
+    el.classList.add('show');
     var ok = el.querySelector('[data-act="ok"]');
     if (ok) { ok.addEventListener('click', close); }
-    live = null;
     return res;
   }
 
@@ -547,6 +610,7 @@
     apply: apply,
     /* 화면과 때 */
     open: open, close: close, choose: choose, tick: tick, force: force, stats: stats,
+    useDuel: useDuel, showResult: showResult,
     get live() { return live; }
   };
 })(window);
