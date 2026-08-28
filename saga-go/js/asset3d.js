@@ -70,6 +70,11 @@
     'pet:an_wolf': 'assets/models/animals/Wolf.glb',
     'pet:an_ox':   'assets/models/animals/Cow.glb',
     'pet:an_carp': 'assets/models/animals/Koi.glb'
+    /* 까치 — 파일을 놓고 **아래 한 줄의 주석만 풀면** 선다.
+       Poly by Google 의 `Crow`(CC-BY). 받는 법과 저작자 표시는
+       `assets/ASSET_LICENSES.md` 참고. 파일이 없는 채로 적어 두면
+       켤 때마다 헛되이 받으러 가므로 주석으로 둔다 */
+    // , 'pet:an_magpie': 'assets/models/animals/Mesh_Crow.gltf'
   };
 
   var REG = {};

@@ -98,15 +98,32 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
   | Google Poly 아카이브 | **딱 맞는 것이 있다** — `cTSOEPvVovs` "Bird" (검정 · 까마귀 · 삼각형 386, 저작자 **Poly by Google**, 메타데이터에 `license: CREATIVE_COMMONS_BY` 로 **명시**). 그런데 모델 파일은 `blob.polygone.art` 에 있고 **이 망에서 그 주소가 막힌다** — GitHub 저장소에는 메타데이터와 섬네일만 있다 |
   | three.js | `Parrot.glb` · `Stork.glb` · `Flamingo.glb` 가 있다. 예제에 *"model by mirada from rome"* 이라는 **표시**만 있고 **라이선스 문구가 없다** — 표시는 라이선스가 아니다 |
 
-  **가져오려면**(브라우저에서 `polygone.art` 가 열리는 자리에서):
+  **가져오려면** — `polygone.art` 가 열리는 자리에서. 주소는 그 사이트 소스
+  (`src/poly-env.ts` · `src/poly-model-view.ts`)에서 확인한 **실제 규칙**이다:
 
-  1. <https://polygone.art/view/cTSOEPvVovs> 에서 GLTF2 형식을 받는다
-     (`Bird_01.gltf` + `Bird_01.bin` 두 파일이다)
-  2. 둘을 `assets/models/animals/` 에 그대로 둔다
-  3. `js/asset3d.js` 의 `DEFAULTS` 에 한 줄:
-     `'pet:an_magpie': 'assets/models/animals/Bird_01.gltf',`
-  4. 이 문서의 짐승 표에 **저작자 표시**를 더한다 — CC-BY 는 표시가 **필수**다:
-     *"Bird — Poly by Google, CC-BY 3.0, Google Poly 아카이브(polygone.art)"*
+  - 보는 곳 <https://polygone.art/#page=model&guid=1MIvWQ5Q3R9>
+    (`#page=model&guid=` 다. 해시에 담긴다 — 경로가 아니다)
+  - 묶음 한 번에 `https://blob.polygone.art/archives/1MIvWQ5Q3R9/1MIvWQ5Q3R9_GLTF2.zip`
+  - 낱개 세 개 `https://blob.polygone.art/assets/1MIvWQ5Q3R9/GLTF2/Mesh_Crow.gltf`
+    · `…/Mesh_Crow.bin` · `…/Tex_Crow.png`
+
+  받은 **세 파일을 그대로** `assets/models/animals/` 에 둔다(이름을 바꾸면
+  `.gltf` 안의 참조가 끊긴다). 그 다음 `js/asset3d.js` 의 `DEFAULTS` 에서
+  까치 줄의 **주석을 푼다** — 한 줄이다.
+
+  그리고 아래 짐승 표에 **저작자 표시**를 더한다. **CC-BY 는 표시가 필수**다
+  (여태 넣은 것은 전부 CC0 라 표시가 필요 없었다 — 여기서 규칙이 달라진다):
+
+  > Crow — **Poly by Google**, CC-BY 3.0,
+  > Google Poly 아카이브(<https://polygone.art>) `1MIvWQ5Q3R9`
+
+  **고른 까닭:** 섬네일 넷을 나란히 놓고 봤다. `cTSOEPvVovs`("Bird")는 **날개를 편
+  나는 자세**라 나무에 앉아 있을 때 어색하고, `5oae0lwh9fF`("Raven")는 회색에 밝은
+  부리라 까치와 멀다. `1MIvWQ5Q3R9`("Crow")가 **앉은 자세에 꼬리가 길어** 까치에
+  가장 가깝다(682 삼각형, 텍스처 한 장).
+
+  **다만 정지 모델이라 날갯짓은 안 한다.** 지금 도형 까치는 코드가 날갯짓을 넣어
+  준다 — 모양은 좋아지고 움직임은 준다. 그 맞바꿈을 알고 넣을 것.
 
   그 전까지 까치는 도형으로 둔다. 작고(키 0.42) 대개 멀리 있거나 날아가는 중이라
   다섯 종 중 티가 가장 덜 난다.
