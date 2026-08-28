@@ -54,6 +54,7 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Wolf.glb` | 늑대 (`wolf`) |
 | `Cow.glb` | 소 (`ox`) |
 | `Koi.glb` | 잉어 (`carp`) — `cute_fish_pack` 에서. 헤엄·튀어오름 여섯 클립 |
+| `Mesh_Crow.gltf` + `.bin` + `Tex_Crow.png` | **까치** (`magpie`) — **Quaternius 것이 아니다. 아래 따로 적었다** |
 
 셋 다 뼈대 애니메이션을 열두어 개씩 들고 있다(Idle · Walk · Gallop · Eating …).
 `asset3d.js` 의 `mapClips` 가 이름을 씻어 자리에 맞춘다.
@@ -86,47 +87,37 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 
 ---
 
+## Poly by Google — 까치(`Crow`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | **Poly by Google** |
+| **라이선스** | **CC-BY 3.0** — `data.json` 에 `"license": "CREATIVE_COMMONS_BY"` 로 명시돼 있다 |
+| **저작자 표시** | **필수다.** 아래 문구를 지운 채 재배포하면 라이선스 위반이다 |
+| **받은 곳** | Google Poly 아카이브 <https://polygone.art> · `guid=1MIvWQ5Q3R9` |
+
+> **Crow** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> Google Poly 아카이브(<https://polygone.art>)의 `1MIvWQ5Q3R9` 에서 가져왔다.
+> 크기·자리만 맞추었고 형상은 그대로다.
+
+**이 저장소에서 CC-BY 는 이것 하나뿐이다.** 나머지는 전부 CC0(표시 불필요)라
+규칙이 여기서만 다르다 — 지우거나 옮길 때 위 문구를 같이 옮길 것.
+
+`.glb` 한 덩이가 아니라 **파일 셋**(`Mesh_Crow.gltf` + `Mesh_Crow.bin` +
+`Tex_Crow.png`)이다. `.gltf` 가 나머지 둘을 **이름으로** 부르므로 셋이 같은 폴더에
+그대로 있어야 한다 — 하나만 빠져도 조용히 도형으로 돌아간다.
+
+원본은 50 단위 키로 만들어져 있는데 `asset3d` 가 키 1 로 눕히므로,
+까치 키(`animal.js` 의 `h: 0.42`)로 세우면 **42cm** 가 된다 — 실제 까치와 같다.
+
+**날갯짓은 안 한다.** 이 모델에는 클립이 없다(정지 모델이다). 도형 까치는 코드가
+날갯짓을 넣어 주었으니 **모양을 얻고 움직임을 내준 맞바꿈**이다.
+되돌리려면 표에서 `pet:an_magpie` 줄을 지우면 도형으로 돌아간다.
+
+---
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
-- **새(까치).** 한참 찾았고 **맞는 것을 찾기는 했는데 못 받았다.** 남겨 둔다:
-
-  | 어디를 봤나 | 결과 |
-  |---|---|
-  | 이 미러의 GLB 302개 | 새가 **하나도** 없다 (이름으로 다 훑었다) |
-  | Quaternius 전체 목록 | `UltimateMonsters` 에 **SK_Birb · SK_Pigeon**, `CubeWorldKit` 에 `SK_Chicken` 이 있다. 그런데 그 묶음들의 GitHub 미러는 **USDA 뿐이고 GLB 가 없다**(<https://github.com/weftspun/quaternius-stage>) |
-  | Khronos glTF-Sample-Assets (150개) | 생물은 `Duck`(고무오리) · `Fox` · `BarramundiFish` 뿐 |
-  | Google Poly 아카이브 | **딱 맞는 것이 있다** — `cTSOEPvVovs` "Bird" (검정 · 까마귀 · 삼각형 386, 저작자 **Poly by Google**, 메타데이터에 `license: CREATIVE_COMMONS_BY` 로 **명시**). 그런데 모델 파일은 `blob.polygone.art` 에 있고 **이 망에서 그 주소가 막힌다** — GitHub 저장소에는 메타데이터와 섬네일만 있다 |
-  | three.js | `Parrot.glb` · `Stork.glb` · `Flamingo.glb` 가 있다. 예제에 *"model by mirada from rome"* 이라는 **표시**만 있고 **라이선스 문구가 없다** — 표시는 라이선스가 아니다 |
-
-  **가져오려면** — `polygone.art` 가 열리는 자리에서. 주소는 그 사이트 소스
-  (`src/poly-env.ts` · `src/poly-model-view.ts`)에서 확인한 **실제 규칙**이다:
-
-  - 보는 곳 <https://polygone.art/#page=model&guid=1MIvWQ5Q3R9>
-    (`#page=model&guid=` 다. 해시에 담긴다 — 경로가 아니다)
-  - 묶음 한 번에 `https://blob.polygone.art/archives/1MIvWQ5Q3R9/1MIvWQ5Q3R9_GLTF2.zip`
-  - 낱개 세 개 `https://blob.polygone.art/assets/1MIvWQ5Q3R9/GLTF2/Mesh_Crow.gltf`
-    · `…/Mesh_Crow.bin` · `…/Tex_Crow.png`
-
-  받은 **세 파일을 그대로** `assets/models/animals/` 에 둔다(이름을 바꾸면
-  `.gltf` 안의 참조가 끊긴다). 그 다음 `js/asset3d.js` 의 `DEFAULTS` 에서
-  까치 줄의 **주석을 푼다** — 한 줄이다.
-
-  그리고 아래 짐승 표에 **저작자 표시**를 더한다. **CC-BY 는 표시가 필수**다
-  (여태 넣은 것은 전부 CC0 라 표시가 필요 없었다 — 여기서 규칙이 달라진다):
-
-  > Crow — **Poly by Google**, CC-BY 3.0,
-  > Google Poly 아카이브(<https://polygone.art>) `1MIvWQ5Q3R9`
-
-  **고른 까닭:** 섬네일 넷을 나란히 놓고 봤다. `cTSOEPvVovs`("Bird")는 **날개를 편
-  나는 자세**라 나무에 앉아 있을 때 어색하고, `5oae0lwh9fF`("Raven")는 회색에 밝은
-  부리라 까치와 멀다. `1MIvWQ5Q3R9`("Crow")가 **앉은 자세에 꼬리가 길어** 까치에
-  가장 가깝다(682 삼각형, 텍스처 한 장).
-
-  **다만 정지 모델이라 날갯짓은 안 한다.** 지금 도형 까치는 코드가 날갯짓을 넣어
-  준다 — 모양은 좋아지고 움직임은 준다. 그 맞바꿈을 알고 넣을 것.
-
-  그 전까지 까치는 도형으로 둔다. 작고(키 0.42) 대개 멀리 있거나 날아가는 중이라
-  다섯 종 중 티가 가장 덜 난다.
 - **Quaternius 의 공식 몸짓 묶음**(Universal Animation Library). CC0 미러가
   있는데(<https://github.com/J-Ponzo/gltf-universal-animation-library>)
   그 판은 **Godot 용 Rigify 뼈대**(`DEF-*`)라 이 모델들의 뼈 이름과
