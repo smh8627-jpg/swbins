@@ -292,6 +292,9 @@
     fxGroup = new T.Group(); scene.add(fxGroup);
 
     bindEvents();
+    /* 소품 모델(나무·바위·풀)을 미리 받아 둔다 — 안 받아 두면 처음 몇 초 동안
+       원뿔 나무가 서 있다가 툭 바뀐다 (`prop3d.js`) */
+    if (global.DG.prop3d) { global.DG.prop3d.preload(); }
     ready = true;
     resize();
     return true;
@@ -717,15 +720,22 @@
    */
   function INST_ON() { return core.tuned('world3d.instanced', 1) ? true : false; }
   function INST_CAP() { return core.tuned('world3d.instCap', 1600); }
+  /* GLB 조각은 도형이 무거워 창고를 작게 잡는다 — 모양이 여럿이라 나눠 쓴다 */
+  function GLB_CAP() { return core.tuned('world3d.glbCap', 260); }
 
   var instKinds = {};      // 이름 → {mesh, free:[], n}
   var instOf = {};         // 격자 키 → [{name, slot}]
   var ZERO = null;         // 안 쓰는 자리를 숨기는 행렬 (크기 0)
 
   function instBox(name, geoName, hex, opt, cast) {
+    return instMake(name, unitGeo(geoName), pmat(hex, opt), cast);
+  }
+
+  /** 도형과 재질을 받아 덩이 하나를 만든다 (도형은 `unitGeo` 든 GLB 조각이든 같다) */
+  function instMake(name, geo, mtl, cast, cap) {
     if (instKinds[name]) { return instKinds[name]; }
-    var cap = INST_CAP();
-    var m = new T.InstancedMesh(unitGeo(geoName), pmat(hex, opt), cap);
+    cap = cap || INST_CAP();
+    var m = new T.InstancedMesh(geo, mtl, cap);
     m.instanceMatrix.setUsage(T.DynamicDrawUsage);
     m.castShadow = !!cast;
     m.receiveShadow = false;
@@ -734,15 +744,25 @@
     var free = [], i;
     for (i = cap - 1; i >= 0; i--) { m.setMatrixAt(i, ZERO); free.push(i); }
     m.instanceMatrix.needsUpdate = true;
+    /* **쓴 만큼만 그린다.** 안 그러면 빈 자리 1600 개까지 매 프레임 그린다 —
+       도형이 원뿔·공이던 때는 그래도 견뎠는데, 진짜 나무(삼각형 2900)를 넣자
+       한 덩이가 460만 삼각형이 되어 화면이 통째로 멎었다. 실제로 밟았다.
+       자리는 0 부터 차례로 나가므로 **가장 높이 쓴 자리 + 1** 이면 충분하다 */
+    m.count = 0;
     propGroup.add(m);
-    instKinds[name] = { mesh: m, free: free, n: 0 };
+    instKinds[name] = { mesh: m, free: free, n: 0, hi: 0 };
     return instKinds[name];
   }
 
   var _p = null, _q = null, _s = null, _m4 = null;
   /** 자리 하나를 빌린다 — 창고가 다 차면 false 를 주고, 부르는 쪽이 옛 길로 간다 */
   function instPut(key, name, geoName, hex, opt, cast, x, y, z, sx, sy, sz, rx, ry, rz) {
-    var K = instBox(name, geoName, hex, opt, cast);
+    return instAt(instBox(name, geoName, hex, opt, cast), key, name,
+                  x, y, z, sx, sy, sz, rx, ry, rz);
+  }
+
+  /** 덩이 하나에 자리를 하나 적는다 */
+  function instAt(K, key, name, x, y, z, sx, sy, sz, rx, ry, rz) {
     if (!K.free.length) { return false; }
     var slot = K.free.pop();
     if (!_p) { _p = new T.Vector3(); _q = new T.Quaternion(); _s = new T.Vector3(); _m4 = new T.Matrix4(); }
@@ -752,6 +772,7 @@
     _m4.compose(_p, _q, _s);
     K.mesh.setMatrixAt(slot, _m4);
     K.mesh.instanceMatrix.needsUpdate = true;
+    if (slot + 1 > K.hi) { K.hi = slot + 1; K.mesh.count = K.hi; }
     K.n++;
     if (!instOf[key]) { instOf[key] = []; }
     instOf[key].push({ name: name, slot: slot });
@@ -788,9 +809,39 @@
    * 잔 사물을 인스턴스로 세운다 — 세웠으면 true.
    * 좌표는 **월드 미터**다(격자 Group 안이 아니라 세상에 바로 놓기 때문).
    */
+  /**
+   * **GLB 소품** 하나를 세운다 (`prop3d.js`).
+   * 나무 한 그루는 줄기와 잎이 다른 재질이라 조각이 둘이다 — 조각마다 덩이를
+   * 하나씩 두고 **같은 행렬을 다 적는다.** 화면에서는 한 그루로 보인다.
+   *
+   * 아직 안 왔으면 false 를 주고, 부르는 쪽이 여태 쓰던 도형으로 간다.
+   */
+  function instGlb(key, want, x, z, h, gx, gy) {
+    var P3 = global.DG.prop3d;
+    if (!P3) { return false; }
+    var got = P3.parts(want, gx, gy);
+    if (!got || !got.parts.length) { return false; }
+    /* 자리마다 조금씩 돌려 세운다 — 안 돌리면 나무 백 그루가 같은 쪽을 본다 */
+    var ry = h1(gx * 41 + 7, gy * 83 + 13) * Math.PI * 2;
+    var i, ok = true;
+    for (i = 0; i < got.parts.length; i++) {
+      var K = instMake(got.url + '#' + i, got.parts[i].geometry,
+                        got.parts[i].material, P3.casts(want), GLB_CAP());
+      ok = instAt(K, key, got.url + '#' + i, x, 0, z, h, h, h, 0, ry, 0) && ok;
+    }
+    return ok;
+  }
+
   function instProp(key, p, ox, oz) {
     if (!INST_ON()) { return false; }
     var x = ox + p.x, z = oz + p.z;
+    /* **진짜 모델이 와 있으면 그것으로 세운다** (새 PLAN STEP 4).
+       격자 좌표를 같이 넘겨 같은 자리에는 늘 같은 모양이 서게 한다 */
+    var gx = Math.round((ox - GRID / 2) / GRID), gy = Math.round((oz - GRID / 2) / GRID);
+    var GLB = { tree: 'tree', rock: 'rock', grass: 'grass', reed: 'grass' };
+    if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x), gy + Math.round(p.z))) {
+      return true;
+    }
     if (p.t === 'tree') {
       var SS = global.DG.season;
       var leafHex = SS ? SS.leaf(0x2f5a34) : 0x2f5a34;
@@ -1531,9 +1582,29 @@
     return true;
   }
 
+  /**
+   * 세워 둔 소품을 통째로 지운다 — 다음 프레임에 다시 선다.
+   * `prop3d` 가 GLB 를 다 받은 뒤 한 번 부른다: 그 한 번에 원뿔 나무가
+   * 진짜 나무로 바뀐다. 인스턴스 덩이도 같이 비운다(빈 자리를 돌려받아야
+   * 새 덩이가 창고를 나눠 쓴다).
+   */
+  function refreshProps() {
+    if (!propGroup) { return 0; }
+    var n = 0, k;
+    for (k in propMeshes) {
+      if (!Object.prototype.hasOwnProperty.call(propMeshes, k)) { continue; }
+      instDrop(k);
+      propGroup.remove(propMeshes[k]);
+      n++;
+    }
+    propMeshes = {};
+    propScan = null;          // 다음 프레임에 다시 훑는다
+    return n;
+  }
+
   global.DG = global.DG || {};
   global.DG.world3d = {
-    init: init, resize: resize, render: render,
+    init: init, resize: resize, render: render, refreshProps: refreshProps,
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     lightingAt: lightingAt, propPlan: propPlan, urbanity: urbanity, camAim: camAim,

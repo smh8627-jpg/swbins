@@ -19,6 +19,7 @@
     #rogue   점거된 역참(적도)     #roguewin 탈환 — 암영이 남은 참
     #dark    도감의 암영 칸(정화 대기)
     #perf    프레임 측정
+    #noglb  실제 GLB 에셋을 끄고 옛 도형으로 견줘 본다 (나무·바위·짐승)
     #noao   맞닿은 자리의 그늘(SSAO)을 끄고 견줘 본다
     #nowater 물결치는 수면을 끄고 옛 판 한 장으로 (물을 견줘 볼 때)
     #minimap 미니맵(좌하단) — mmfar 를 붙이면 360m, mmfold 를 붙이면 접힌 모습
@@ -89,6 +90,7 @@ window.DG_NO_TUNE = true;
 <script src="js/npc.js"></script>
 <script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
+<script src="js/prop3d.js"></script>
 <script src="js/actor3d.js"></script>
 <script src="js/ssao3d.js"></script>
 <script src="js/post3d.js"></script>
@@ -279,6 +281,15 @@ setTimeout(function () {
           ' mip' + ps.mips + ' 노출' + ps.exposure + ' 블룸' + ps.bloom +
           ' 채도' + ps.sat + ' 온도' + ps.temp + ' 그늘' + ps.ao;
       }
+      if (DG.prop3d) {
+        var pr = DG.prop3d.stats();
+        st.prop = (pr.on ? 'on' : 'off') + ' ' + pr.season + ' 받음' + pr.ok +
+          '/' + pr.listed + ' 실패' + pr.fail + ' 받는중' + pr.loading;
+      }
+      if (DG.asset3d) {
+        var a3 = DG.asset3d.stats ? DG.asset3d.stats() : null;
+        if (a3) { st.glb = JSON.stringify(a3).slice(0, 90); }
+      }
       if (DG.water3d) {
         var wt = DG.water3d.stats();
         st.water = (wt.on ? 'on' : 'off') + ' 판' + wt.mats +
@@ -374,6 +385,7 @@ setTimeout(function () {
   if (hash.indexOf('noinst') >= 0) { C.setTune('world3d.instanced', 0); }
   /* 후처리를 끄고 견줘 본다 — `#nopost`. 톤매핑·블룸·색보정이 화면을 얼마나
      바꾸는지는 **두 장을 나란히 놓아야** 보인다(`post=on/off` 도 `#stat` 에 뜬다) */
+  if (hash.indexOf('noglb') >= 0) { C.setTune('prop3d.on', 0); C.setTune('world3d.glb', 0); }
   if (hash.indexOf('noao') >= 0) { C.setTune('ssao3d.on', 0); }
   if (hash.indexOf('nowater') >= 0) { C.setTune('water3d.on', 0); }
   if (hash.indexOf('nopost') >= 0) { C.setTune('post3d.on', 0); }

@@ -43,9 +43,28 @@
    *   asset3d.register('hero', 'assets/models/hero.glb');
    *   asset3d.register('pet:form:dragon', 'assets/models/dragon.glb');
    *
-   * 비워 두는 것이 기본값이다 — 파일이 없는데 적어 두면 매번 헛되이 받으러 간다.
+   * 오래 비어 있었다. **이제 셋이 찼다** — 들의 짐승 사슴 · 늑대 · 소다
+   * (Quaternius, CC0. `assets/ASSET_LICENSES.md`). 까치와 잉어는 아직 도형이다:
+   * 새와 물고기는 맞는 모델을 못 찾았고, 억지로 다른 짐승을 세우느니 도형이 낫다.
+   *
+   * 인물은 아직 비워 둔다 — 이 판의 인물 일흔은 저마다 갓·도포·빛깔이 다르고
+   * 그것을 `sprite.js` 가 정한다. 모델 하나를 일흔에 돌려 쓰면 **다 같은 사람**이
+   * 되어 도감이 무너진다. 인물마다 다른 모델을 얹을 때 이 표에 한 줄씩 는다.
    */
+  var DEFAULTS = {
+    'pet:an_deer': 'assets/models/animals/Deer.glb',
+    'pet:an_wolf': 'assets/models/animals/Wolf.glb',
+    'pet:an_ox':   'assets/models/animals/Cow.glb'
+  };
+
   var REG = {};
+  /** 기본 표를 옮겨 담는다 — `clear()` 로 비운 뒤 되돌릴 때도 이 함수를 쓴다 */
+  function restore() {
+    var k;
+    for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } }
+    return REG;
+  }
+  restore();
 
   function register(key, url) {
     if (!key) { return REG; }
@@ -375,6 +394,7 @@
     /* 세우기 — three 가 있어야 한다 */
     ready: function () { return !!three(); },
     hasLoader: function () { return !!loader(); },
+    DEFAULTS: DEFAULTS, restore: restore,
     build: build, step: step, play: play, primitive: primitive, stats: stats,
     /** 표를 비운다 (진단이 제 뒤를 치울 때) */
     clear: function () {

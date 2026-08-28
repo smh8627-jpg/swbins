@@ -11,13 +11,17 @@
  *       사내 http 주소로 폰에서 열면 홈 화면 추가는 되지만 이 캐시는 동작하지 않는다.
  */
 
-var VERSION = 'go-v4.9.0';
+var VERSION = 'go-v5.0.0';
 var APP_CACHE = 'dg-app-' + VERSION;
 var TILE_CACHE = 'dg-tiles-v1';
 var TILE_MAX = 500;
 
 /* index.html 이 부르는 스크립트가 여기 다 있어야 오프라인에서 게임이 돈다.
-   파일을 늘렸으면 **VERSION 도 같이 올릴 것** — 안 올리면 옛 캐시가 계속 나온다. */
+   파일을 늘렸으면 **VERSION 도 같이 올릴 것** — 안 올리면 옛 캐시가 계속 나온다.
+
+   **`assets/models/*.glb` 는 일부러 안 넣는다.** 3MB 가 넘어 설치가 느려지고,
+   못 받아도 게임은 도형으로 그대로 돈다(`prop3d`·`asset3d` 의 되돌림 길).
+   오프라인에서는 나무가 원뿔로 서지만 판정은 한 칸도 안 달라진다. */
 var SHELL = [
   './',
   './index.html',
@@ -37,6 +41,7 @@ var SHELL = [
   './js/growth.js',
   './js/buddy.js',
   './js/asset3d.js',
+  './js/prop3d.js',
   './js/actor3d.js',
   './js/ssao3d.js',
   './js/post3d.js',

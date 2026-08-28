@@ -78,6 +78,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/npc.js"></script>
 <script src="js/animal.js"></script>
 <script src="js/asset3d.js"></script>
+<script src="js/prop3d.js"></script>
 <script src="js/actor3d.js"></script>
 <script src="js/ssao3d.js"></script>
 <script src="js/post3d.js"></script>
@@ -3048,6 +3049,91 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var p = PS.plan({ tier: 'HIGH', alt: 0.9, w: 4, h: 3 });
       return p.w >= 1 && p.h >= 1 && p.bloom.mips.length === 0 &&
         ('4×3 → ' + p.w + 'x' + p.h + ' · 블룸 층 없음(끄는 편이 낫다)');
+    });
+
+    /* ── 소품 에셋 (prop3d) ─ 진짜 나무가 선다 ────────
+     * GLB 를 받는 것은 값으로 못 본다. **어느 자리에 어느 파일이 서나**만 본다.
+     */
+    var PR = DG.prop3d;
+
+    t('에셋 — 나무·바위·풀에 진짜 모델이 걸려 있다 (STEP 4)', function () {
+      var u = PR.urls();
+      var kinds = ['tree', 'pine', 'rock', 'grass'].filter(function (k) {
+        return !!PR.pick(k, 0, 0, 'all');
+      });
+      return kinds.length === 4 && u.length >= 12 &&
+        (kinds.join(' · ') + ' — 파일 ' + u.length + '개');
+    });
+
+    t('에셋 — 같은 자리에는 늘 같은 모양이 선다 (좌표 해시)', function () {
+      var a = PR.pick('tree', 3, 5, 'all'), b2 = PR.pick('tree', 3, 5, 'all');
+      var c2 = PR.pick('tree', 4, 5, 'all');
+      /* 자리가 다르면 대개 다른 모양이다 — 몇 자리를 훑어 실제로 갈리는지 본다 */
+      var seen = {}, i;
+      for (i = 0; i < 30; i++) { seen[PR.pick('tree', i, 0, 'all')] = 1; }
+      return a === b2 && Object.keys(seen).length > 1 &&
+        ('같은 자리 두 번 물어 같다 · 서른 자리에 ' +
+         Object.keys(seen).length + '가지가 섞인다');
+    });
+
+    t('에셋 — 철마다 다른 나무가 선다 (가을 단풍 · 겨울 눈)', function () {
+      var s = PR.pick('tree', 0, 0, 'all');
+      var au = PR.pick('tree', 0, 0, 'autumn');
+      var wi = PR.pick('tree', 0, 0, 'winter');
+      return au.indexOf('Autumn') > 0 && wi.indexOf('Snow') > 0 && s !== au && s !== wi &&
+        ('여름 ' + s.split('/').pop() + ' · 가을 ' + au.split('/').pop() +
+         ' · 겨울 ' + wi.split('/').pop());
+    });
+
+    t('에셋 — 철에 제 것이 없으면 기본으로 돌아간다', function () {
+      /* 바위는 철을 안 탄다 — 가을에도 같은 바위다 */
+      return PR.pick('rock', 2, 2, 'autumn') === PR.pick('rock', 2, 2, 'all') &&
+        '바위는 철을 안 탄다';
+    });
+
+    t('에셋 — 나무만 그림자를 진다 (풀·바위까지 지면 그림자 지도가 넘친다)', function () {
+      return PR.casts('tree') && PR.casts('pine') &&
+        !PR.casts('rock') && !PR.casts('grass') &&
+        '나무·침엽수만 castShadow';
+    });
+
+    t('에셋 — 손잡이를 내리면 옛 도형으로 돌아간다', function () {
+      C.setTune('prop3d.on', 0);
+      var off = PR.pick('tree', 0, 0, 'all') === null;
+      C.setTune('prop3d.on', null);
+      return off && PR.pick('tree', 0, 0, 'all') !== null &&
+        'prop3d.on=0 → 원뿔 나무·공 바위로';
+    });
+
+    t('에셋 — 섞는 가짓수를 손잡이로 줄일 수 있다', function () {
+      C.setTune('prop3d.variants', 1);
+      var one = {}, i;
+      for (i = 0; i < 20; i++) { one[PR.pick('tree', i, 0, 'all')] = 1; }
+      C.setTune('prop3d.variants', null);
+      return Object.keys(one).length === 1 &&
+        '1 로 줄이면 한 가지만 선다 (받는 양을 줄일 때)';
+    });
+
+    t('에셋 — 짐승 셋에 진짜 모델이 걸려 있다', function () {
+      var A = DG.asset3d, AN = DG.animal;
+      /* 위의 항목들이 표를 비웠다 가정했으므로(AS.clear) 배송 기본표를 되돌린다 */
+      A.restore();
+      var got = ['deer', 'wolf', 'ox'].map(function (k) {
+        return A.urlOf('pet', AN.refOf(AN.KINDS[k]));
+      });
+      /* 까치·잉어는 일부러 비워 두었다 — 맞는 모델이 없어 도형으로 남긴다 */
+      var empty = ['magpie', 'carp'].every(function (k) {
+        return !A.urlOf('pet', AN.refOf(AN.KINDS[k]));
+      });
+      return got.every(Boolean) && empty &&
+        (got.map(function (u) { return u.split('/').pop(); }).join(' · ') +
+         ' · 까치·잉어는 도형 그대로');
+    });
+
+    t('에셋 — 인물에는 아직 안 걸었다 (일흔이 다 같은 사람이 되면 안 된다)', function () {
+      var A = DG.asset3d;
+      return !A.urlOf('hero', D.heroes[0]) && A.chain('hero', D.heroes[0]) === 'shape' &&
+        '인물은 sprite.js 가 갓·도포·빛깔을 정한다 — 도형 그대로';
     });
 
     /* ── 물 (water3d) ─ 수면이 실제로 움직인다 ─────────
