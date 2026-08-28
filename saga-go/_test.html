@@ -3130,10 +3130,63 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          ' · 까치·잉어는 도형 그대로');
     });
 
-    t('에셋 — 인물에는 아직 안 걸었다 (일흔이 다 같은 사람이 되면 안 된다)', function () {
+    t('에셋 — 인물도 진짜 모델로 선다 (한 벌을 일흔이 나눠 쓴다)', function () {
       var A = DG.asset3d;
-      return !A.urlOf('hero', D.heroes[0]) && A.chain('hero', D.heroes[0]) === 'shape' &&
-        '인물은 sprite.js 가 갓·도포·빛깔을 정한다 — 도형 그대로';
+      A.restore();
+      var u = A.urlOf('hero', D.heroes[0]);
+      return !!u && u.indexOf('Knight') > 0 && A.chain('hero', D.heroes[0]) === 'glb' &&
+        ('모든 인물 → ' + u.split('/').pop());
+    });
+
+    t('에셋 — 그래서 빛깔로 물들인다 (일흔이 다 다른 빛깔이 된다)', function () {
+      var A = DG.asset3d;
+      var seen = {}, i;
+      for (i = 0; i < D.heroes.length; i++) { seen[A.tintOf('hero', D.heroes[i])] = 1; }
+      var again = A.tintOf('hero', D.heroes[0]);
+      /* 세력 빛깔을 바탕으로 좁은 폭 안에서 미는 것이라 몇은 겹친다 —
+         겹쳐도 눈에는 안 띈다. **거의 다 갈리는가**만 본다 */
+      var n = Object.keys(seen).length;
+      return n >= D.heroes.length * 0.85 &&
+        again === A.tintOf('hero', D.heroes[0]) &&
+        (D.heroes.length + '명 중 ' + n + '가지 빛깔 · 같은 사람은 늘 같은 빛깔');
+    });
+
+    t('에셋 — 같은 세력은 결이 이어진다 (촉은 촉끼리 가깝다)', function () {
+      /* 세력 빛깔을 바탕으로 조금씩 밀 뿐이라, 촉 사람끼리는 위 사람보다 가깝다 */
+      var A = DG.asset3d;
+      function hue(hex) {
+        var r = parseInt(hex.slice(1, 3), 16) / 255, g = parseInt(hex.slice(3, 5), 16) / 255,
+            bl = parseInt(hex.slice(5, 7), 16) / 255;
+        var mx = Math.max(r, g, bl), mn = Math.min(r, g, bl), d = mx - mn, hh = 0;
+        if (d === 0) { return 0; }
+        if (mx === r) { hh = ((g - bl) / d + 6) % 6; }
+        else if (mx === g) { hh = (bl - r) / d + 2; }
+        else { hh = (r - g) / d + 4; }
+        return hh / 6;
+      }
+      function gap(a, b2) { var d = Math.abs(hue(a) - hue(b2)); return Math.min(d, 1 - d); }
+      var shu = D.heroes.filter(function (h) { return h.faction === '촉'; });
+      var wei = D.heroes.filter(function (h) { return h.faction === '위'; });
+      if (shu.length < 2 || wei.length < 1) { return '세력 표본 부족 — 건너뜀'; }
+      var inShu = gap(A.tintOf('hero', shu[0]), A.tintOf('hero', shu[1]));
+      var cross = gap(A.tintOf('hero', shu[0]), A.tintOf('hero', wei[0]));
+      return inShu < cross &&
+        ('촉끼리 ' + inShu.toFixed(3) + ' < 촉↔위 ' + cross.toFixed(3));
+    });
+
+    t('에셋 — 주민 열 사람은 제 빛깔을 쓴다 (세력이 다 같아도)', function () {
+      var A = DG.asset3d, N = DG.npc;
+      var seen = {}, i;
+      for (i = 0; i < N.PEOPLE.length; i++) { seen[A.tintOf('hero', N.PEOPLE[i])] = 1; }
+      return Object.keys(seen).length === N.PEOPLE.length &&
+        (N.PEOPLE.length + '명이 다 다른 빛깔 (세력은 다 하북인데도)');
+    });
+
+    t('에셋 — 짐승은 물들이지 않는다 (제 털빛이 맞다)', function () {
+      var A = DG.asset3d, AN = DG.animal;
+      return A.tintOf('pet', AN.refOf(AN.KINDS.deer)) === null &&
+        A.tintOf('building', {}) === null &&
+        '인물만 물들인다';
     });
 
     /* ── 물 (water3d) ─ 수면이 실제로 움직인다 ─────────

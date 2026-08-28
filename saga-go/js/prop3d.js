@@ -51,8 +51,27 @@
     return tier !== 'LOW';
   }
 
-  /** 이 소품이 그림자를 지나 — 나무만 진다. 풀·바위까지 지면 그림자 지도가 넘친다 */
-  function casts(name) { return name === 'tree' || name === 'pine'; }
+  /** 이 소품이 그림자를 지나 — 나무와 집만 진다. 풀·바위까지 지면 그림자 지도가 넘친다 */
+  function casts(name) {
+    return name === 'tree' || name === 'pine' || name === 'house' || name === 'tower';
+  }
+
+  /**
+   * 이 소품의 키를 얼마나 보태나.
+   * 도형으로 세우던 때 `p.h` 는 **벽 높이**였고 지붕은 그 위에 따로 얹혔다.
+   * GLB 는 지붕까지가 키 1 이라 그대로 곱하면 집이 납작해진다 — 그만큼 보탠다.
+   */
+  function heightMul(name) {
+    /* 집은 한 번 더 키운다. 도형이던 때 집은 **넓적한 상자**(폭 14m 까지)였는데
+       GLB 는 키만 보고 고르게 늘이므로, 같은 `p.h` 로 세우면 마을이 훌쩍 작아
+       보인다 — 옛 화면과 나란히 찍어 보고 알았다 */
+    if (name === 'house') { return core().tuned('prop3d.houseScale', 1.8); }
+    if (name === 'tower') { return core().tuned('prop3d.towerScale', 1.4); }
+    return 1;
+  }
+
+  /** 집을 진짜 모델로 세울까 — 따로 뗀 손잡이다(마을 결이 바뀌므로 되돌리기 쉽게) */
+  function houseOn() { return core().tuned('prop3d.house', 1) ? true : false; }
   /** 한 종류에 몇 가지 모양까지 섞나 (많을수록 덜 되풀이되지만 더 받는다) */
   function VARIANTS() { return Math.max(1, Math.round(core().tuned('prop3d.variants', 3))); }
 
@@ -61,6 +80,7 @@
    * 자리 하나에 여럿이면 **좌표 해시로 골라** 늘 같은 자리에 같은 모양이 선다.
    */
   var BASE = 'assets/models/nature/';
+  var BLD = 'assets/models/buildings/';
   var REG = {
     tree: {
       all:    [BASE + 'CommonTree_1.glb', BASE + 'CommonTree_2.glb', BASE + 'CommonTree_3.glb'],
@@ -75,6 +95,17 @@
     },
     grass: {
       all: [BASE + 'Grass_2.glb', BASE + 'Bush_1.glb', BASE + 'Bush_2.glb']
+    },
+    /* 마을 — 유럽 중세풍이다. 이 판은 삼국지·한국사인데도 얹은 까닭은
+       사용자가 **품질을 먼저** 골랐기 때문이다(2026-08-28). 되돌리려면
+       손잡이 `prop3d.house` 를 0 으로 내리면 기와지붕 코드로 돌아간다 */
+    house: {
+      all: [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb',
+            BLD + 'House_4.glb', BLD + 'Blacksmith.glb']
+    },
+    tower: {
+      all: [BLD + 'Inn.glb', BLD + 'Tower.glb', BLD + 'PointyTower.glb',
+            BLD + 'LargeTower.glb', BLD + 'Watchtower.glb']
     }
   };
 
@@ -105,6 +136,7 @@
    */
   function pick(name, gx, gy, sk) {
     if (!ON()) { return null; }
+    if ((name === 'house' || name === 'tower') && !houseOn()) { return null; }
     var e = REG[name];
     if (!e) { return null; }
     var key = sk || seasonKey();
@@ -290,6 +322,7 @@
     REG: REG, register: register,
     /* 값을 내는 함수 — three 없이도 돈다 (자가진단이 이것만 따로 본다) */
     pick: pick, urls: urls, seasonKey: seasonKey, ready: ready, casts: casts,
+    houseOn: houseOn, heightMul: heightMul,
     /* 그림 층 */
     parts: parts, preload: preload, stats: stats,
     /** 진단이 제 뒤를 치울 때 */

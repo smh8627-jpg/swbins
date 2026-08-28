@@ -52,6 +52,13 @@
    * 되어 도감이 무너진다. 인물마다 다른 모델을 얹을 때 이 표에 한 줄씩 는다.
    */
   var DEFAULTS = {
+    /* 인물 — **한 벌을 일흔이 나눠 쓴다.** 그대로 두면 일흔이 다 같은 사람이 되므로
+       `tintOf` 가 세력 빛깔로 물들인다(아래). 그래도 갓·도포의 결은 잃는다 —
+       사용자가 그것을 알고 **품질을 먼저** 골랐다(2026-08-28).
+       `world3d.glb` 를 0 으로 내리면 여태 쓰던 도형으로 통째로 돌아간다.
+       (이 모델만 뼈대 애니메이션을 들고 있다. 다른 사람 모델은 애니메이션이
+        아예 없어 T 자로 서 버리므로 안 받았다 — 도형만 못하다) */
+    'hero': 'assets/models/people/Knight.glb',
     'pet:an_deer': 'assets/models/animals/Deer.glb',
     'pet:an_wolf': 'assets/models/animals/Wolf.glb',
     'pet:an_ox':   'assets/models/animals/Cow.glb'
@@ -251,6 +258,63 @@
     for (var i = 0; i < w.length; i++) { w[i](arg); }
   }
 
+  /**
+   * 이 배우를 무슨 빛깔로 물들이나 — **순수 함수다**(자가진단이 따로 본다).
+   *
+   * 모델 한 벌을 일흔 명이 나눠 쓰면 다 같은 사람이 된다. 그래서 **세력 빛깔**로
+   * 물들인다: 촉은 초록, 위는 파랑… 세력이 없으면 **id 해시로 색상환을 돈다** —
+   * 아무 두 사람도 같은 빛깔이 되지 않게.
+   *
+   * 흰 옷(1,1,1)에 곱하는 값이라 **너무 어두우면 안 된다** — 0.55 아래로 안 간다.
+   * 물들이지 않을 것은 null 을 준다(짐승은 제 털빛이 맞다).
+   */
+  function tintOf(kind, ref) {
+    if (kind !== 'hero' || !ref) { return null; }
+    var t = three();
+    if (!t) { return null; }
+    var D = global.DG.data;
+    /* 바탕색 — 제 빛깔이 있으면 그것(주민 열 사람은 저마다 색을 갖고 있다),
+       없으면 세력 빛깔(촉·위·오·고구려…), 그것도 없으면 잿빛 */
+    var base = ref.color || null;
+    if (!base && ref.faction && D && D.faction) { base = D.faction(ref.faction).color; }
+    if (!base) { base = '#8a94a6'; }
+
+    /* **같은 세력 안에서도 갈라야 한다.** 촉 사람 여럿이 다 같은 초록이면
+       한 벌을 나눠 쓰는 티가 그대로 난다 — id 해시로 색상과 밝기를 조금씩 민다 */
+    var s = String(ref.id || ref.name || ''), i, h = 0;
+    for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    var C = new t.Color(base);
+    var hsl = { h: 0, s: 0, l: 0 };
+    C.getHSL(hsl);
+    var dh = ((h % 1000) / 1000 - 0.5) * 0.14;          // ±0.07 바퀴
+    var dl = (((h >> 10) % 1000) / 1000 - 0.5) * 0.26;  // ±0.13
+    /* 흰 옷에 곱하는 값이라 **너무 어두우면 안 된다** — 0.42 아래로 안 간다 */
+    C.setHSL((hsl.h + dh + 1) % 1, Math.min(1, hsl.s * 0.9 + 0.12),
+             Math.max(0.42, Math.min(0.82, hsl.l + dl)));
+    return '#' + C.getHexString();
+  }
+
+  var tintCache = {};
+
+  /** 복제한 모델의 재질을 물들인다 — 원본은 안 건드린다(다른 배우가 같이 쓴다) */
+  function applyTint(model, hex) {
+    var t = three();
+    if (!hex || !t) { return model; }
+    var tc = new t.Color(hex);
+    model.traverse(function (o) {
+      if (!o.isMesh || !o.material) { return; }
+      var src = Array.isArray(o.material) ? o.material[0] : o.material;
+      var key = (src.uuid || '') + '|' + hex;
+      if (!tintCache[key]) {
+        var m = src.clone();
+        m.color = new t.Color(src.color ? src.color.getHex() : 0xffffff).multiply(tc);
+        tintCache[key] = m;
+      }
+      o.material = tintCache[key];
+    });
+    return model;
+  }
+
   /** 뼈대가 있는 모델은 그냥 복제하면 뼈대를 나눠 쓴다 — 배우 스물이 같이 걷는다 */
   function cloneScene(gltf) {
     var t = three();
@@ -324,7 +388,10 @@
     acquire(url, function (c) {
       if (!c) { shell.userData.assetState = 'fail'; return; }
       var model;
-      try { model = normalize(cloneScene(c.gltf)); } catch (e) { shell.userData.assetState = 'fail'; return; }
+      try {
+        model = normalize(cloneScene(c.gltf));
+        applyTint(model, tintOf(kind, ref));
+      } catch (e) { shell.userData.assetState = 'fail'; return; }
       while (shell.children.length) { shell.remove(shell.children[0]); }
       shell.add(model);
       shell.userData.rig = null;                 // 이제 관절은 mixer 가 돌린다
@@ -394,7 +461,7 @@
     /* 세우기 — three 가 있어야 한다 */
     ready: function () { return !!three(); },
     hasLoader: function () { return !!loader(); },
-    DEFAULTS: DEFAULTS, restore: restore,
+    DEFAULTS: DEFAULTS, restore: restore, tintOf: tintOf,
     build: build, step: step, play: play, primitive: primitive, stats: stats,
     /** 표를 비운다 (진단이 제 뒤를 치울 때) */
     clear: function () {

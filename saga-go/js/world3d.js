@@ -816,18 +816,20 @@
    *
    * 아직 안 왔으면 false 를 주고, 부르는 쪽이 여태 쓰던 도형으로 간다.
    */
-  function instGlb(key, want, x, z, h, gx, gy) {
+  function instGlb(key, want, x, z, h, gx, gy, rot) {
     var P3 = global.DG.prop3d;
     if (!P3) { return false; }
     var got = P3.parts(want, gx, gy);
     if (!got || !got.parts.length) { return false; }
-    /* 자리마다 조금씩 돌려 세운다 — 안 돌리면 나무 백 그루가 같은 쪽을 본다 */
-    var ry = h1(gx * 41 + 7, gy * 83 + 13) * Math.PI * 2;
+    /* 자리마다 조금씩 돌려 세운다 — 안 돌리면 나무 백 그루가 같은 쪽을 본다.
+       집은 제 회전을 이미 갖고 있으므로(길을 보고 선다) 그것을 그대로 쓴다 */
+    var ry = typeof rot === 'number' ? rot : h1(gx * 41 + 7, gy * 83 + 13) * Math.PI * 2;
+    var hh = h * P3.heightMul(want);
     var i, ok = true;
     for (i = 0; i < got.parts.length; i++) {
       var K = instMake(got.url + '#' + i, got.parts[i].geometry,
                         got.parts[i].material, P3.casts(want), GLB_CAP());
-      ok = instAt(K, key, got.url + '#' + i, x, 0, z, h, h, h, 0, ry, 0) && ok;
+      ok = instAt(K, key, got.url + '#' + i, x, 0, z, hh, hh, hh, 0, ry, 0) && ok;
     }
     return ok;
   }
@@ -838,8 +840,10 @@
     /* **진짜 모델이 와 있으면 그것으로 세운다** (새 PLAN STEP 4).
        격자 좌표를 같이 넘겨 같은 자리에는 늘 같은 모양이 서게 한다 */
     var gx = Math.round((ox - GRID / 2) / GRID), gy = Math.round((oz - GRID / 2) / GRID);
-    var GLB = { tree: 'tree', rock: 'rock', grass: 'grass', reed: 'grass' };
-    if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x), gy + Math.round(p.z))) {
+    var GLB = { tree: 'tree', rock: 'rock', grass: 'grass', reed: 'grass',
+                house: 'house', tower: 'tower' };
+    if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
+                            gy + Math.round(p.z), p.rot)) {
       return true;
     }
     if (p.t === 'tree') {
