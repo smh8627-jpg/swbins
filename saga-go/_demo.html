@@ -490,6 +490,8 @@ setTimeout(function () {
             ' [' + pieces.join(',') + ']';
         }).join('\n   ');
       }
+      var PR = DG.prop3d && DG.prop3d.stats ? DG.prop3d.stats() : null;
+      var pr = PR ? (' || prop3d 적힘' + PR.listed + ' 받음' + PR.ok + ' 실패' + PR.fail + ' 받는중' + PR.loading + ' 재질' + PR.mats) : '';
       b.textContent =
         'asset3d 표' + (A ? A.registered : '?') + ' 받음' + (A ? A.loaded : '?') +
         ' 실패' + (A ? A.failed : '?') + ' 세움' + (A ? A.built : '?') +

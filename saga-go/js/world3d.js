@@ -630,12 +630,23 @@
       n = Math.round((2 + h1(gx * 3 + 7, gy * 5 + 11) * 2) * dens);
       for (i = 0; i < n; i++) {
         var ds = spot(i + 130);
-        out.push({
-          t: 'field', x: ds.x, z: ds.z,
-          w: 11 + h1(gx + i, gy + i * 3) * 9,
-          d: 9 + h1(gy + i, gx + i * 5) * 8,
-          rot: h1(gx * 5 + i, gy * 7 + i) * 0.5 - 0.25
-        });
+        var fw = 11 + h1(gx + i, gy + i * 3) * 9;
+        var fd = 9 + h1(gy + i, gx + i * 5) * 8;
+        out.push({ t: 'field', x: ds.x, z: ds.z, w: fw, d: fd,
+                   rot: h1(gx * 5 + i, gy * 7 + i) * 0.5 - 0.25 });
+        /* **벼를 심는다.** 논바닥과 두렁은 코드가 그대로 깔고(물 댄 낯이라
+           모델보다 그쪽이 낫다), 그 위에 자란 것만 진짜 모델로 얹는다.
+           못 받으면 벼만 안 서고 논은 그대로다 — 되돌림이 저절로 된다.
+           **뙈기 안에 골고루** 심는다 — 가운데로 몰면 논이 빈 채로 보인다 */
+        var rn = Math.round(5 * dens), rj;
+        for (rj = 0; rj < rn; rj++) {
+          var ra = h1(gx * 7 + rj * 5 + i, gy * 11 + rj * 3 + i * 2);
+          var rb = h1(gx * 13 + rj * 3 + i * 7, gy * 5 + rj * 11 + i);
+          out.push({ t: 'rice',
+                     x: ds.x + (ra * 2 - 1) * fw * 0.36,
+                     z: ds.z + (rb * 2 - 1) * fd * 0.36,
+                     h: 1.4 + ra * 0.7 });
+        }
       }
       if (h1(gx * 17 + 3, gy * 13 + 5) > 0.5) {
         var cs = spot(150);
@@ -656,7 +667,20 @@
     /* 손으로 못박아 둔 것 — 다리·굴 입구·무너진 기둥·옛 사당. 해시가 만든 것 **위에**
        얹는다. 자리가 정해져 있으니 격자 한가운데다(찾아가는 표적이라 흔들리면 안 된다) */
     var mk = RG ? RG.markAt(gx, gy) : null;
-    if (mk === 'bridge') { out.push({ t: 'bridge', x: 0, z: 0, h: 1.7 }); }
+    if (mk === 'bridge') {
+      /* 다리 — 받아 온 모델은 **한 칸짜리**라 강(격자 48m)을 못 건넌다.
+         남북으로 이어 놓는다(길이 남북이므로 상판도 남북이다).
+         **첫 칸만 `seg` 가 없다** — 모델을 못 받았을 때 도형 다리가 일곱 겹
+         겹쳐 서지 않도록, 도형은 그 한 칸만 옛 모습(48m 상판)으로 그린다 */
+      /* **키가 곧 이음매다.** 이 모델은 키 1 로 눕히면 깊이가 0.76 이라,
+         칸 간격(`GRID/bn`)과 같아지려면 키를 그만큼 잡아야 한다 —
+         짧게 잡았더니 아치 사이가 벌어져 사다리처럼 보였다(눈으로 보고 고쳤다) */
+      var bn = 7, bj, bh = (GRID / bn) / 0.76;
+      for (bj = 0; bj < bn; bj++) {
+        out.push({ t: 'bridge', x: 0, z: (bj - (bn - 1) / 2) * (GRID / bn),
+                   h: bh, seg: bj });
+      }
+    }
     else if (mk === 'cave') { out.push({ t: 'cave', x: 0, z: 0, h: 7 }); }
     else if (mk === 'ruin') { out.push({ t: 'ruin', x: 0, z: 0, h: 4.5 }); }
     else if (mk === 'shrine') { out.push({ t: 'shrine', x: 0, z: 0, h: 5 }); }
@@ -840,8 +864,12 @@
     /* **진짜 모델이 와 있으면 그것으로 세운다** (새 PLAN STEP 4).
        격자 좌표를 같이 넘겨 같은 자리에는 늘 같은 모양이 서게 한다 */
     var gx = Math.round((ox - GRID / 2) / GRID), gy = Math.round((oz - GRID / 2) / GRID);
+    /* 왼쪽이 이 판의 소품 이름, 오른쪽이 `prop3d` 표의 이름이다.
+       손으로 그린 땅의 일곱(산·등롱·사당·굴·폐허·다리·벼)도 여기서 갈린다 */
     var GLB = { tree: 'tree', rock: 'rock', grass: 'grass', reed: 'grass',
-                house: 'house', tower: 'tower' };
+                house: 'house', tower: 'tower',
+                peak: 'peak', lamp: 'lamp', shrine: 'shrine', cave: 'cave',
+                ruin: 'ruin', bridge: 'bridge', rice: 'rice' };
     if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
                             gy + Math.round(p.z), p.rot)) {
       return true;
@@ -870,6 +898,18 @@
     return false;
   }
 
+  /**
+   * 등불 한 알. **밤에만 보인다** — 낮에 켜 두면 흰 점으로만 남는다.
+   * 지금이 밤인지 여기서 곧바로 정한다: 나중에 걸어 들어온 격자는
+   * `syncLamps` 가 이미 훑고 지나간 뒤라 낮에도 켜진 채 남는다.
+   */
+  function addLampBulb(g, x, y, z, r) {
+    var b = box(g, 'sph', pmat(0xffd489, 'glow'), x, y, z, r, r * 1.25, r, false);
+    b.userData.lamp = true;
+    b.visible = !!(lightNow && lightNow.lamp > 0.2);
+    return b;
+  }
+
   function buildProp(kind, gx, gy, mapped, key) {
     var g = new T.Group();
     var plan = propPlan(kind, gx, gy, mapped);
@@ -879,7 +919,18 @@
       var p = plan[i];
       /* 잔 사물은 인스턴스 덩이가 받는다. 창고가 다 차면 false 가 와서
          아래의 옛 길(제 Mesh 를 만드는 길)로 그대로 흘러간다 */
-      if (key && instProp(key, p, ox, oz)) { continue; }
+      var inst = key && instProp(key, p, ox, oz);
+      if (inst) {
+        /* **불만은 인스턴스가 못 맡는다.** 등롱과 사당의 등은 밤에만 켜지는데
+           (`syncLamps` 가 `userData.lamp` 를 훑는다) 인스턴스 덩이는 낱개를
+           켜고 끌 수가 없다. 몸은 모델이 세웠으니 **불만 여기서 얹는다** */
+        if (p.t === 'lamp') { addLampBulb(g, p.x, p.h + 0.25, p.z, 0.8); }
+        else if (p.t === 'shrine') {
+          addLampBulb(g, -3.4, 2.8, 4.6, 0.7);
+          addLampBulb(g, 3.4, 2.8, 4.6, 0.7);
+        }
+        continue;
+      }
       if (p.t === 'house' || p.t === 'tower') {
         /* 벽은 밝고 지붕은 짙다 — 한옥이 그렇고, 그래야 지붕선이 보인다.
            둘 다 어두우면 멀리서 회색 덩어리 하나로 뭉친다 */
@@ -951,14 +1002,17 @@
         box(g, 'cone', pmat(0xa8925f, 'flat'), p.x, p.h + 0.16, p.z, 1.1, 0.5, 1.1, false);
       } else if (p.t === 'bridge') {
         /* 다리 — 강을 **가로질러** 놓는다. 길이 남북이라 상판도 남북으로 길다.
-           난간이 없으면 멀리서 물 위의 널빤지로만 보인다 */
-        box(g, 'box', pmat(0x7a6a52), 0, p.h, 0, 7, 0.5, GRID * 1.02, true).receiveShadow = true;
+           난간이 없으면 멀리서 물 위의 널빤지로만 보인다.
+           **모델을 못 받았을 때만 여기 온다.** 계획은 일곱 칸으로 나뉘어 있으므로
+           첫 칸(`seg` 0)에서만 옛 모습대로 48m 상판 하나를 세운다 */
+        if (p.seg) { continue; }
+        box(g, 'box', pmat(0x7a6a52), 0, 1.7, 0, 7, 0.5, GRID * 1.02, true).receiveShadow = true;
         var bi;
         for (bi = -1; bi <= 1; bi += 2) {
-          box(g, 'box', pmat(0x8a7a60), bi * 3.3, p.h + 0.75, 0, 0.35, 1.0, GRID * 1.02, false);
+          box(g, 'box', pmat(0x8a7a60), bi * 3.3, 1.7 + 0.75, 0, 0.35, 1.0, GRID * 1.02, false);
         }
         for (bi = -1; bi <= 1; bi += 2) {          // 물속 교각
-          box(g, 'cyl', pmat(0x5d5347), 0, p.h * 0.5, bi * GRID * 0.28, 1.5, p.h * 2, 1.5, false);
+          box(g, 'cyl', pmat(0x5d5347), 0, 1.7 * 0.5, bi * GRID * 0.28, 1.5, 1.7 * 2, 1.5, false);
         }
       } else if (p.t === 'cave') {
         /* 굴 입구 — 바위 더미에 **검은 반원**을 박는다. 산 사면에 뚫린 구멍으로 보인다 */

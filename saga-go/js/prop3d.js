@@ -53,7 +53,9 @@
 
   /** 이 소품이 그림자를 지나 — 나무와 집만 진다. 풀·바위까지 지면 그림자 지도가 넘친다 */
   function casts(name) {
-    return name === 'tree' || name === 'pine' || name === 'house' || name === 'tower';
+    return name === 'tree' || name === 'pine' || name === 'house' || name === 'tower' ||
+      name === 'peak' || name === 'shrine' || name === 'ruin' || name === 'cave' ||
+      name === 'bridge';
   }
 
   /**
@@ -67,6 +69,12 @@
        보인다 — 옛 화면과 나란히 찍어 보고 알았다 */
     if (name === 'house') { return core().tuned('prop3d.houseScale', 1.8); }
     if (name === 'tower') { return core().tuned('prop3d.towerScale', 1.4); }
+    /* 손으로 그린 땅의 것들. 도형이던 때의 **덩치**를 잇는 값이다 —
+       도형은 키(`p.h`)와 따로 폭을 넓게 잡고 있었기 때문에, 키만 맞추면
+       굴도 폐허도 홀쭉해진다. 나란히 찍어 보고 정했다 */
+    if (name === 'cave') { return core().tuned('prop3d.caveScale', 1.6); }
+    if (name === 'ruin') { return core().tuned('prop3d.ruinScale', 1.8); }
+    if (name === 'shrine') { return core().tuned('prop3d.shrineScale', 1.15); }
     return 1;
   }
 
@@ -81,6 +89,7 @@
    */
   var BASE = 'assets/models/nature/';
   var BLD = 'assets/models/buildings/';
+  var PRP = 'assets/models/props/';
   var REG = {
     tree: {
       all:    [BASE + 'CommonTree_1.glb', BASE + 'CommonTree_2.glb', BASE + 'CommonTree_3.glb'],
@@ -111,7 +120,29 @@
     tower: {
       all: [BLD + 'Tower.glb', BLD + 'PointyTower.glb', BLD + 'LargeTower.glb',
             BLD + 'Watchtower.glb', BLD + 'LargeSquareTowerBricks.glb']
-    }
+    },
+
+    /* ── 여기부터는 **손으로 그린 땅**(`land.js`)이 세우는 것들 ──────────
+     * 여태 이 일곱은 코드가 상자·원뿔을 쌓아 만들고 있었다. 사용자 방침
+     * ("스크립트로 그리는 것은 다 에셋으로")에 따라 실제 모델로 갈아 끼운다.
+     * **되돌림 길은 그대로다** — 못 받으면 조용히 옛 도형으로 남는다.
+     */
+    /** 산봉우리 — 여태 원뿔 하나였다 */
+    peak: { all: [BASE + 'Mountain_1.glb', BASE + 'Mountain_2.glb'] },
+    /** 등롱 — 기둥에 빛나는 공 하나였다. **불은 코드가 그대로 얹는다**(밤에만 켠다) */
+    lamp: { all: [PRP + 'WoodenTorch.glb'] },
+    /** 옛 사당 — 정자(Gazebo). 숲 속에서 이것만 사람 손인 자리다 */
+    shrine: { all: [PRP + 'Gazebo.glb'] },
+    /** 굴 입구 — 광산 어귀(Mine). 바위 더미에 검은 반원을 박던 자리 */
+    cave: { all: [PRP + 'Mine.glb'] },
+    /** 폐허 — 무너진 아치. 부러진 기둥 넷을 세우던 자리 */
+    ruin: { all: [PRP + 'Arch.glb'] },
+    /** 다리 — 짧은 한 칸을 **여러 개 이어** 강을 건넌다(`propPlan` 이 나눠 놓는다) */
+    bridge: { all: [PRP + 'Bridge.glb'] },
+    /** 벼 — 논 위에 심는다. 논바닥과 두렁은 코드가 그대로 깐다.
+        **다 자란 것(`_4`)을 쓴다.** `Rice_Crop` 은 키가 5cm 인 **밭 바닥**이라
+        키 1 로 눕히면 폭이 20 이 되어 논을 통째로 덮고도 안 보였다 */
+    rice: { all: [PRP + 'Rice_4.glb'] }
   };
 
   function register(name, season, urls) {

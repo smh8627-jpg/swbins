@@ -85,6 +85,25 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 그대로 갈아 끼우면 성채가 어느 세력인지 화면에서 사라지므로, `asset3d.markOf` ·
 `addMark` 가 깃발만 다시 얹는다(손잡이 `asset3d.mark` 를 0 으로 내리면 안 얹는다).
 
+`models/props/` — **손으로 그린 땅**(`land.js`)의 것들. `js/prop3d.js` 가 세운다.
+여태 코드가 상자·원뿔을 쌓아 만들던 자리다(사용자 방침: "스크립트로 그리는 것은 다 에셋으로")
+
+| 파일 | 쓰이는 곳 | 어느 묶음에서 |
+|---|---|---|
+| `Bridge.glb` | **다리** — 한 칸짜리라 일곱을 이어 강(48m)을 건넌다 | `modular_medieval_buildings_pack` |
+| `Mine.glb` | **굴 입구** (광산 어귀) | `real_time_strategy_pack` |
+| `Gazebo.glb` | **옛 사당** (정자) | `medieval_village_pack` |
+| `Arch.glb` | **폐허** (무너진 아치) | `modular_dungeon_1` |
+| `WoodenTorch.glb` | **등롱** — 불은 코드가 얹는다(밤에만 켜야 한다) | `survival_pack` |
+| `Rice_4.glb` | **벼** — 논 위에 심는다. 논바닥·두렁은 코드가 깐다 | `crops_pack` |
+| `Temple.glb` · `Wall.glb` | 아직 안 걸었다 — 사당·폐허의 다른 후보 | `real_time_strategy_pack` |
+
+`models/nature/` 에 **산봉우리**도 더했다 — `Mountain_1.glb` · `Mountain_2.glb`
+(`real_time_strategy_pack`). 여태 원뿔 하나였다.
+
+**허수아비만 CC0 로 못 찾았다.** 미러 1545 개를 다 훑어도 없다 —
+그 자리는 코드가 그대로 그린다(장대 + 가로대 + 삿갓).
+
 `models/people/` — 인물. `js/asset3d.js` 표의 `hero` 한 줄이 다 받는다
 
 | 파일 | 쓰이는 곳 |
