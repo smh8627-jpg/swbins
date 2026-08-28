@@ -107,6 +107,7 @@ window.DG_NO_TUNE = true;
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/minimap.js"></script>
+<script src="js/portrait3d.js"></script>
 <script src="js/talk.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
@@ -435,70 +436,76 @@ setTimeout(function () {
       var n = document.getElementById('near');
       if (n) { n.style.display = 'none'; }
     }, 300);
-    /* **상태 한 줄.** 사람이 안 보일 때 그림만 봐서는 왜인지 알 수 없다 —
-       모델을 못 받은 것인지, 받고도 갈아 끼우다 터진 것인지, 세우긴 했는데
-       크기가 0 인지. 값으로 찍어 두면 원인이 곧바로 드러난다
-       (사가블로 `#fx` 가 같은 이유로 이 한 줄을 달고 있다) */
-    setInterval(function () {
-      var b = document.getElementById('demo-stat');
-      if (!b) {
-        b = document.createElement('div');
-        b.id = 'demo-stat';
-        b.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9998;padding:6px 9px;' +
-          'background:#101820cc;color:#cfe6ff;border-radius:8px;max-width:92vw;' +
-          'font:600 11px ui-monospace,Consolas,monospace;white-space:pre-wrap';
-        document.body.appendChild(b);
-      }
-      var A = DG.asset3d ? DG.asset3d.stats() : null;
-      var W3 = DG.world3d && DG.world3d.stats ? DG.world3d.stats() : null;
-      /* **자를 하나 세워 둔다.** 배우가 안 보일 때 "안 왔나 / 왔는데 크기가 0 인가 /
-         땅속인가" 를 가르는 것은 결국 **실제 상자 크기**다. 한 벌만 따로 세워 잰다 */
-      var t3 = DG.world3d && DG.world3d.three ? DG.world3d.three() : null;
-      if (t3 && !window._probeNode && DG.actor3d) {
-        /* 여섯 벌을 **각각** 세워 잰다 — 한 벌만 재면 어느 벌이 뒤틀렸는지 모른다.
-           몸짓 원본(`Knight`)을 입는 사람과 **옮겨 입는** 사람이 갈리는지가 요점이다 */
-        window._probeNode = who.map(function (id) {
-          var n = DG.actor3d.build('hero', D.find(id));
-          if (n) { n.userData.probeId = id; }
-          return n;
-        }).filter(Boolean);
-      }
-      var pt = '';
-      if (window._probeNode && t3) {
-        pt = '\n자 ' + window._probeNode.map(function (n) {
-          var bb = new t3.Box3().setFromObject(n);
-          var url = (DG.asset3d.urlOf('hero', D.find(n.userData.probeId)) || '').split('/').pop();
-          /* 껍데기 → wrap → 모델 순으로 **한 겹씩 벗겨** 잰다. 어느 겹에서
-             비율이 무너지는지가 곧 원인이다 */
-          var wrap = n.children[0], inner = wrap && wrap.children[0], deep = '';
-          if (inner) {
-            var ib = new t3.Box3().setFromObject(inner);
-            deep = ' /안 h' + (ib.max.y - ib.min.y).toFixed(2) +
-              ' w' + (ib.max.x - ib.min.x).toFixed(2) +
-              ' 배' + inner.scale.x.toFixed(3) + ',' + inner.scale.y.toFixed(3) +
-              ' 아이' + inner.children.length;
-          }
-          /* **조각마다 이름과 켜짐을 적는다.** 사람에게서 몸통이나 다리가
-             사라질 때, 그것이 안 켜진 것인지 아예 없는 것인지를 가른다 */
-          var pieces = [];
-          n.traverse(function (o) {
-            if (o.isMesh) { pieces.push((o.visible ? '' : '×') + (o.name || '?')); }
-          });
-          return url.replace('.glb', '') + ':' + (n.userData.assetState || '?') +
-            ' y' + bb.min.y.toFixed(1) + '~' + bb.max.y.toFixed(1) +
-            ' 폭' + (bb.max.x - bb.min.x).toFixed(1) + deep +
-            ' [' + pieces.join(',') + ']';
-        }).join('\n   ');
-      }
-      var PR = DG.prop3d && DG.prop3d.stats ? DG.prop3d.stats() : null;
-      var pr = PR ? (' || prop3d 적힘' + PR.listed + ' 받음' + PR.ok + ' 실패' + PR.fail + ' 받는중' + PR.loading + ' 재질' + PR.mats) : '';
-      b.textContent =
-        'asset3d 표' + (A ? A.registered : '?') + ' 받음' + (A ? A.loaded : '?') +
-        ' 실패' + (A ? A.failed : '?') + ' 세움' + (A ? A.built : '?') +
-        ' 갈아낌' + (A ? A.swapped : '?') + ' 클립' + (A ? A.clips : '?') +
-        ' 빈클립' + (A ? A.empty : '?') + (A && A.broke ? (' 터짐[' + A.broke + ']') : '') +
-        pt + '\nworld3d ' + (W3 ? JSON.stringify(W3).slice(0, 220) : '?');
-    }, 400);
+  }
+  /* **상태 한 줄** — `#stat` 을 붙이면 어느 장면에서나 뜬다(`#people` 은 늘 뜬다).
+     그림만 봐서는 "안 왔나 / 왔는데 크기가 0 인가 / 땅속인가" 를 못 가른다.
+     `asset3d`(배우) 와 `prop3d`(소품) 를 함께 찍고, 인물 여섯을 따로 세워 재 둔다.
+     (사가블로 `#fx` 가 같은 이유로 이 한 줄을 달고 있다) */
+  if (hash.indexOf('people') >= 0 || hash.indexOf('stat') >= 0) {
+    var pw = ['sg_guanyu', 'sg_zhugeliang', 'kr_leesunsin', 'kr_sejong',
+              'eu_caesar', 'eu_napoleon'];
+  setInterval(function () {
+    var b = document.getElementById('demo-stat');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'demo-stat';
+      b.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:9998;padding:6px 9px;' +
+        'background:#101820cc;color:#cfe6ff;border-radius:8px;max-width:92vw;' +
+        'font:600 11px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+      document.body.appendChild(b);
+    }
+    var A = DG.asset3d ? DG.asset3d.stats() : null;
+    var W3 = DG.world3d && DG.world3d.stats ? DG.world3d.stats() : null;
+    /* **자를 하나 세워 둔다.** 배우가 안 보일 때 "안 왔나 / 왔는데 크기가 0 인가 /
+       땅속인가" 를 가르는 것은 결국 **실제 상자 크기**다. 한 벌만 따로 세워 잰다 */
+    var t3 = DG.world3d && DG.world3d.three ? DG.world3d.three() : null;
+    if (t3 && !window._probeNode && DG.actor3d) {
+      /* 여섯 벌을 **각각** 세워 잰다 — 한 벌만 재면 어느 벌이 뒤틀렸는지 모른다.
+         몸짓 원본(`Knight`)을 입는 사람과 **옮겨 입는** 사람이 갈리는지가 요점이다 */
+      window._probeNode = pw.map(function (id) {
+        var n = DG.actor3d.build('hero', D.find(id));
+        if (n) { n.userData.probeId = id; }
+        return n;
+      }).filter(Boolean);
+    }
+    var pt = '';
+    if (window._probeNode && t3) {
+      pt = '\n자 ' + window._probeNode.map(function (n) {
+        var bb = new t3.Box3().setFromObject(n);
+        var url = (DG.asset3d.urlOf('hero', D.find(n.userData.probeId)) || '').split('/').pop();
+        /* 껍데기 → wrap → 모델 순으로 **한 겹씩 벗겨** 잰다. 어느 겹에서
+           비율이 무너지는지가 곧 원인이다 */
+        var wrap = n.children[0], inner = wrap && wrap.children[0], deep = '';
+        if (inner) {
+          var ib = new t3.Box3().setFromObject(inner);
+          deep = ' /안 h' + (ib.max.y - ib.min.y).toFixed(2) +
+            ' w' + (ib.max.x - ib.min.x).toFixed(2) +
+            ' 배' + inner.scale.x.toFixed(3) + ',' + inner.scale.y.toFixed(3) +
+            ' 아이' + inner.children.length;
+        }
+        /* **조각마다 이름과 켜짐을 적는다.** 사람에게서 몸통이나 다리가
+           사라질 때, 그것이 안 켜진 것인지 아예 없는 것인지를 가른다 */
+        var pieces = [];
+        n.traverse(function (o) {
+          if (o.isMesh) { pieces.push((o.visible ? '' : '×') + (o.name || '?')); }
+        });
+        return url.replace('.glb', '') + ':' + (n.userData.assetState || '?') +
+          ' y' + bb.min.y.toFixed(1) + '~' + bb.max.y.toFixed(1) +
+          ' 폭' + (bb.max.x - bb.min.x).toFixed(1) + deep +
+          ' [' + pieces.join(',') + ']';
+      }).join('\n   ');
+    }
+    var PR = DG.prop3d && DG.prop3d.stats ? DG.prop3d.stats() : null;
+    var pr = PR ? (' || prop3d 적힘' + PR.listed + ' 받음' + PR.ok + ' 실패' + PR.fail + ' 받는중' + PR.loading + ' 재질' + PR.mats) : '';
+    var PT = DG.portrait3d && DG.portrait3d.stats ? DG.portrait3d.stats() : null;
+    var ptx = PT ? (' || 초상 준비' + PT.ready + ' 구움' + PT.made + ' 쌓임' + PT.cached + ' 굽는중' + PT.baking + ' 포기' + PT.gaveUp) : '';
+    b.textContent =
+      'asset3d 표' + (A ? A.registered : '?') + ' 받음' + (A ? A.loaded : '?') +
+      ' 실패' + (A ? A.failed : '?') + ' 세움' + (A ? A.built : '?') +
+      ' 갈아낌' + (A ? A.swapped : '?') + ' 클립' + (A ? A.clips : '?') +
+      ' 빈클립' + (A ? A.empty : '?') + (A && A.broke ? (' 터짐[' + A.broke + ']') : '') +
+      pr + ptx + pt + '\nworld3d ' + (W3 ? JSON.stringify(W3).slice(0, 220) : '?');
+  }, 400);
   }
   /* 역참·성채를 코앞에 세워 놓고 본다 — `#stands`.
      이 둘은 구역마다 하나씩이라 **걸어서 만나려면 한참 걸리고**, 성채는 등급 셋이
@@ -565,6 +572,11 @@ setTimeout(function () {
   /* 몸짓 옮겨 입기만 끈다 — `#noretarget`. 사람이 뒤틀릴 때 **그것이 원인인지**
      를 가른다(꺼지면 클립 0 벌로 가만히 선다) */
   if (hash.indexOf('noretarget') >= 0) { C.setTune('asset3d.retarget', 0); }
+  /* GLB 조각 창고를 키운다 — `#cap=1200`. 한 격자에 수십 개씩 서는 것
+     (벼 같은 것)이 **창고가 차서 밀려나는지**를 가를 때 쓴다 */
+  if (/cap=/.test(hash)) {
+    C.setTune('world3d.glbCap', Math.max(60, Math.min(4000, parseInt(/cap=(\d+)/.exec(hash)[1], 10))));
+  }
   if (hash.indexOf('noglb') >= 0) { C.setTune('prop3d.on', 0); C.setTune('world3d.glb', 0); }
   if (hash.indexOf('noao') >= 0) { C.setTune('ssao3d.on', 0); }
   if (hash.indexOf('nowater') >= 0) { C.setTune('water3d.on', 0); }

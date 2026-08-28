@@ -92,6 +92,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/minimap.js"></script>
+<script src="js/portrait3d.js"></script>
 <script src="js/talk.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
@@ -3089,6 +3090,24 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       /* 바위는 철을 안 탄다 — 가을에도 같은 바위다 */
       return PR.pick('rock', 2, 2, 'autumn') === PR.pick('rock', 2, 2, 'all') &&
         '바위는 철을 안 탄다';
+    });
+
+    t('소품 — 다리는 여러 칸으로 나뉜다 (한 칸짜리 모델이라)', function () {
+      var W3 = DG.world3d, RG = DG.land;
+      /* 다리가 놓인 칸을 손으로 그린 땅에서 찾는다 */
+      var at = null, gx, gy;
+      for (gx = -11; gx <= 11 && !at; gx++) {
+        for (gy = -11; gy <= 11 && !at; gy++) {
+          if (RG.markAt(gx, gy) === 'bridge') { at = [gx, gy]; }
+        }
+      }
+      if (!at) { return '다리 칸을 못 찾음 — 건너뜀'; }
+      var pl = W3.propPlan('water', at[0], at[1], false);
+      var segs = pl.filter(function (p) { return p.t === 'bridge'; });
+      /* 첫 칸만 `seg` 가 없다 — 모델을 못 받았을 때 도형이 겹쳐 서지 않게 */
+      var noSeg = segs.filter(function (p) { return !p.seg; }).length;
+      return segs.length === 7 && noSeg === 1 &&
+        ('일곱 칸 · 그중 도형으로 떨어지는 칸은 ' + noSeg);
     });
 
     t('에셋 — 역참 여관은 마을에 안 선다 (헛걸음 막기)', function () {

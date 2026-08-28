@@ -634,19 +634,7 @@
         var fd = 9 + h1(gy + i, gx + i * 5) * 8;
         out.push({ t: 'field', x: ds.x, z: ds.z, w: fw, d: fd,
                    rot: h1(gx * 5 + i, gy * 7 + i) * 0.5 - 0.25 });
-        /* **벼를 심는다.** 논바닥과 두렁은 코드가 그대로 깔고(물 댄 낯이라
-           모델보다 그쪽이 낫다), 그 위에 자란 것만 진짜 모델로 얹는다.
-           못 받으면 벼만 안 서고 논은 그대로다 — 되돌림이 저절로 된다.
-           **뙈기 안에 골고루** 심는다 — 가운데로 몰면 논이 빈 채로 보인다 */
-        var rn = Math.round(5 * dens), rj;
-        for (rj = 0; rj < rn; rj++) {
-          var ra = h1(gx * 7 + rj * 5 + i, gy * 11 + rj * 3 + i * 2);
-          var rb = h1(gx * 13 + rj * 3 + i * 7, gy * 5 + rj * 11 + i);
-          out.push({ t: 'rice',
-                     x: ds.x + (ra * 2 - 1) * fw * 0.36,
-                     z: ds.z + (rb * 2 - 1) * fd * 0.36,
-                     h: 1.4 + ra * 0.7 });
-        }
+
       }
       if (h1(gx * 17 + 3, gy * 13 + 5) > 0.5) {
         var cs = spot(150);
@@ -869,7 +857,7 @@
     var GLB = { tree: 'tree', rock: 'rock', grass: 'grass', reed: 'grass',
                 house: 'house', tower: 'tower',
                 peak: 'peak', lamp: 'lamp', shrine: 'shrine', cave: 'cave',
-                ruin: 'ruin', bridge: 'bridge', rice: 'rice' };
+                ruin: 'ruin', bridge: 'bridge' };
     if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
                             gy + Math.round(p.z), p.rot)) {
       return true;
