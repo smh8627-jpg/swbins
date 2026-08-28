@@ -39,7 +39,20 @@
   var camPos = null, camLook = null;
   var roomKey = null;              // 지금 세워 둔 방 (바뀌면 벽을 다시 세운다)
 
-  function d() { return global.DG.dungeon; }
+  /**
+   * 지금 그리는 장면 — 마을이거나 던전이다.
+   *
+   * `dungeon-view.js` 의 같은 이름 함수와 **한 글자도 다르지 않아야 한다.**
+   * 그쪽은 마을이면 `DG.town` 을 그리라고 넘기는데 이쪽이 던전만 보고 있으면,
+   * 마을에서 `DG.dungeon.raw()` 가 `null` 이라 render() 가 첫 줄에서 나가 버린다.
+   * 그러면 2D 는 "3D 가 그렸다" 고 믿어 캔버스를 지우고, 3D 는 아무것도 안 그려
+   * **마을이 통째로 검은 화면**이 된다(실제로 그랬다).
+   */
+  function d() {
+    var T2 = global.DG.town;
+    return (T2 && T2.active()) ? T2 : global.DG.dungeon;
+  }
+  function isTown() { var T2 = global.DG.town; return !!(T2 && T2.active()); }
 
   /* ── 손잡이 ───────────────────────────────────────────
    * **이 판의 `core.js` 에는 손잡이(`tuned`)가 없다** — 사가고에만 있는 기능이다.
@@ -72,9 +85,24 @@
   function FIELD_R() { return tuned('dg3d.fieldR', 3); }
   /** 들판 밀도 배수 — 버거우면 여기를 내린다 */
   function FIELD_D() { return tuned('dg3d.fieldDens', 1); }
+  /**
+   * 마을(모루골)도 3D 로 그릴까 — **기본은 0, 곧 예전 그림이다.**
+   *
+   * 3D 전환은 던전 방부터 하기로 했고 `PLAN.md` 에 마을 단계는 아직 없다.
+   * 그리고 마을 2D 그림은 이미 사람이 사람으로 보이는 수준으로 완성돼 있다 —
+   * 그것을 상자 인형으로 바꾸는 것은 12절("정상 작동하는 부분은 건드리지 않는다")과
+   * 저장소 방침("코드로 그리지 말고 에셋으로")에 함께 어긋난다.
+   * 아래 3D 마을 코드는 다음 단계의 발판으로 남겨 두고, 볼 때만 켠다:
+   *
+   *   DG.dungeon3d.set('dg3d.town', 1)
+   */
+  function TOWN3D() { return tuned('dg3d.town', 0) ? true : false; }
 
   function available() { return ready && !failed; }
-  function active() { return available() && wanted(); }
+  function active() {
+    if (!available() || !wanted()) { return false; }
+    return isTown() ? TOWN3D() : true;
+  }
 
   /* ── 값을 내는 함수 (three 없이도 돈다) ────────────────
    * 자가진단이 이것만 따로 굴린다 — 화면이 없어도 카메라와 조명은 값이다.
@@ -115,6 +143,18 @@
     var dk = dark === undefined ? 0.82 : dark;
     var deep = Math.min(1, Math.max(0, (floor - 1) / 40));   // 40층에서 가장 깊다
     var boss = roomKind === 'boss';
+    /* 마을은 **불을 피워 둔 자리**다 — 던전의 어둠 손잡이를 그대로 물리면
+       사람 여섯이 어둠에 잠겨 누가 누구인지 안 보인다. 2D 마을이 어둠을
+       0.74 → 0.30 으로 옅게 깔던 그 뜻을 3D 에서도 지킨다. */
+    if (roomKind === 'town') {
+      return {
+        ambient: 0.86, ambientHex: 0x4a4038,
+        keyIntensity: 1.15, keyHex: 0xffd9a8,
+        torchIntensity: 2600, torchHex: 0xffc070, torchRange: 420,
+        fog: { near: 620, far: 2100 },
+        bgHex: 0x14100c, boss: false, deep: 0, town: true
+      };
+    }
     return {
       /* 바탕 밝기 — 어둠 손잡이와 깊이가 함께 깎는다 */
       ambient: (0.62 - deep * 0.20) * (1 - dk * 0.45),
@@ -263,6 +303,27 @@
       box(wallGroup, r.shrine.x, 16, r.shrine.y, 18, 32, 18, 0x6a5c8c, 'flat', true);
       box(wallGroup, r.shrine.x, 34, r.shrine.y, 10, 10, 10, 0xc9a3ff, 'glow', false);
     }
+    /* 장식 — 기둥·횃불·바닥 균열. 판정이 자리를 정해 두고(`decor`) 2D 가 오래 그려
+       온 것들이다. 이것이 없으면 방이 **빈 상자**로 보인다 — 마을은 특히 그렇다
+       (모루골의 집과 불이 전부 여기 들어 있다).
+       항아리(`jar`)는 부수면 사라지므로 여기 세우지 않는다 — 방이 바뀔 때만 도는
+       자리라 부순 뒤에도 남는다. 그것은 배우로 다룰 몫이다. */
+    var dec = (r && r.decor) || [], dj, o;
+    for (dj = 0; dj < dec.length; dj++) {
+      o = dec[dj];
+      if (o.t === 'pillar') {
+        box(wallGroup, o.x, 34, o.y, 22, 68, 22, mix(stone, 0xffffff, 0.08), 'flat', true);
+        box(wallGroup, o.x, 70, o.y, 28, 6, 28, mix(stone, 0x000000, 0.2), 'flat', true);
+      } else if (o.t === 'torch') {
+        box(wallGroup, o.x, 20, o.y, 6, 40, 6, 0x4a3a2a, 'flat', false);
+        box(wallGroup, o.x, 44, o.y, 11, 11, 11, 0xffb45a, 'glow', false);
+      } else if (o.t === 'crack') {
+        var cl = o.len || 30;
+        var cm = box(wallGroup, o.x, 0.6, o.y, cl, 1.2, 4, mix(stone, 0x000000, 0.7), 'flat', false);
+        cm.rotation.y = -(o.a || 0);
+      }
+    }
+
     /* 문 — 다음 방으로 가는 자리. 원작처럼 벽에 난 밝은 틈이다 */
     if (r && r.doors) {
       for (var i = 0; i < r.doors.length; i++) {
@@ -391,8 +452,104 @@
    * 사람과 적을 도형으로 조립한다. 원작 에셋은 안 쓴다 —
    * 크기·색만 판정에서 읽어 온다(체력·등급이 그림에 드러나야 한다).
    */
+  /* ── 이름표 ─────────────────────────────────────────
+   * 마을에서는 **누구인지가 곧 기능**이다 — 야장에게 가야 물건을 박고, 행상에게
+   * 가야 산다. 2D 는 머리 위에 글자를 얹어 그것을 알렸다. 3D 에서 그 글자가
+   * 사라지면 마당에 사람 여섯이 말없이 서 있는 그림이 된다.
+   * 글자판은 이름마다 하나만 만들어 두고 돌려 쓴다(아홉 장이면 끝이다).
+   */
+  var labelTexCache = {};
+  function labelTex(text) {
+    if (labelTexCache[text]) { return labelTexCache[text]; }
+    var cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 64;
+    var c = cv.getContext('2d');
+    c.font = '600 27px "Malgun Gothic", system-ui, sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    var w = Math.min(248, c.measureText(text).width + 22);
+    c.fillStyle = 'rgba(6,7,10,0.62)';
+    c.fillRect((256 - w) / 2, 13, w, 38);
+    c.fillStyle = '#f2e4c2';
+    c.fillText(text, 128, 33);
+    var t = new T.CanvasTexture(cv);
+    t.needsUpdate = true;
+    labelTexCache[text] = t;
+    return t;
+  }
+
+  /** 이름표 한 장 — 카메라를 늘 마주 본다. `depthTest` 를 끈 것은 기둥 뒤에
+      선 사람도 누구인지 읽히게 하려는 것이다(마을이라 그래도 된다) */
+  function labelNode(text, y, w) {
+    var m = new T.SpriteMaterial({ map: labelTex(text), transparent: true, depthTest: false });
+    var s = new T.Sprite(m);
+    s.position.set(0, y, 0);
+    s.scale.set(w, w / 4, 1);
+    return s;
+  }
+
+  /**
+   * 마을의 사람·표식 하나에 "말이 걸리나" 를 입힌다.
+   * 이름표 아홉 장이 늘 같은 진하기로 떠 있으면 마당이 글자로 덮인다 —
+   * **멀리 있는 것은 흐리게**, 말이 걸리는 거리에 들면 진하게 하고 발밑 고리를 켠다.
+   */
+  function townMark(node, dist, talkR) {
+    var near = dist < talkR;
+    if (node.userData.ring) { node.userData.ring.visible = near; }
+    var lb = node.userData.label;
+    if (lb && lb.material) {
+      lb.material.opacity = near ? 1 : core.clamp(1 - (dist - talkR) / 260, 0.34, 0.9);
+    }
+  }
+
+  function hexOf(css, def) {
+    if (!css) { return def; }
+    var n = parseInt(String(css).replace('#', ''), 16);
+    return isNaN(n) ? def : n;
+  }
+
   function buildActor(kind, ref) {
     var g = new T.Group();
+    if (kind === 'npc') {
+      /* 마을 사람 — 나와 같은 뼈대에 **옷 빛깔만** 다르다(진영색을 쓰지 않는다는
+         town.js 의 뜻을 그대로 따른다). 무기는 안 든다 */
+      var nc = hexOf(ref && ref.color, 0x8a6f4e);
+      box(g, 0, 15, 0, 13, 20, 10, nc, 'flat', true);            // 몸
+      box(g, 0, 30, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);      // 머리
+      box(g, 0, 38, 0, 14, 4, 14, 0x2f333c, 'flat', false);      // 갓
+      /* 발밑 고리 — 말이 걸리는 거리에 들어서면 켜진다 */
+      var nr = box(g, 0, 0.8, 0, 44, 1.6, 44, 0xffd489, 'glow', false);
+      nr.visible = false;
+      g.userData.ring = nr;
+      g.userData.label = labelNode(((ref && ref.emoji) || '') + ' ' + ((ref && ref.name) || ''), 54, 72);
+      g.add(g.userData.label);
+      g.userData.flash = ownMat(g.children[0]);
+      return g;
+    }
+    if (kind === 'mark') {
+      /* 표식 — 사람이 아니라 **밟는 것**이다. 셋의 성격이 달라 빛깔로 가른다 */
+      var mkey = (ref && ref.key) || '';
+      var glow = mkey === 'waypoint' ? 0x3aa9c9 : (mkey === 'vow' ? 0xe06565 : 0xffb45a);
+      var base = mkey === 'gate' ? 0x14161c : 0x4a4f5a;
+      box(g, 0, 2.5, 0, 46, 5, 46, base, 'flat', false);         // 밟는 자리
+      if (mkey === 'gate') {
+        /* 굴혈 — 내려가는 구멍이다. 기둥을 세우지 않고 **바닥을 뚫어** 보이게 한다 */
+        box(g, 0, 4, 0, 30, 3, 30, 0x000000, 'flat', false);
+        box(g, 0, 6, 0, 22, 1.5, 22, glow, 'glow', false);
+      } else if (mkey === 'waypoint') {
+        box(g, 0, 12, 0, 20, 20, 20, 0x2a3a4a, 'flat', true);
+        box(g, 0, 25, 0, 26, 4, 26, glow, 'glow', false);
+      } else {
+        box(g, 0, 17, 0, 16, 34, 8, 0x6a6a75, 'flat', true);     // 비석
+        box(g, 0, 36, 0, 12, 4, 10, glow, 'glow', false);
+      }
+      var mr = box(g, 0, 0.8, 0, 56, 1.6, 56, glow, 'glow', false);
+      mr.visible = false;
+      g.userData.ring = mr;
+      g.userData.label = labelNode(((ref && ref.emoji) || '') + ' ' + ((ref && ref.name) || ''), 50, 82);
+      g.add(g.userData.label);
+      return g;
+    }
     if (kind === 'me') {
       box(g, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
       box(g, 0, 32, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);       // 머리
@@ -442,7 +599,8 @@
     frame++;
 
     var W = d().ROOM_W, H = d().ROOM_H;
-    var rk = run.floor + ':' + run.roomIdx + ':' + (run.room && run.room.cleared ? 'c' : 'o');
+    var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
+             (run.room && run.room.cleared ? 'c' : 'o');
     if (rk !== roomKey) { roomKey = rk; buildRoom(run); buildField(run); }
 
     /* 조명 */
@@ -494,6 +652,26 @@
       flashMat(a.node.userData.flash, e.hurt, 0.2);
     }
 
+    /* 마을 사람과 표식 — 던전 방에는 없는 것들이다(`room.npcs` · `room.marks`).
+       판정은 이미 이 둘을 방 안에 놓아 두었다 — 여기서는 세우기만 한다. */
+    var TW = global.DG.town;
+    var talkR = (TW && TW.TALK_R) || 40;
+    var ns = (run.room && run.room.npcs) || [];
+    for (i = 0; i < ns.length; i++) {
+      var np = ns[i];
+      var na = actorOf('n' + np.key, 'npc', np);
+      na.node.position.set(np.x, 0, np.y);
+      na.node.rotation.y = Math.atan2(p.x - np.x, p.y - np.y);   // 다가서면 나를 본다
+      townMark(na.node, Math.hypot(np.x - p.x, np.y - p.y), talkR);
+    }
+    var mks = (run.room && run.room.marks) || [];
+    for (i = 0; i < mks.length; i++) {
+      var mo = mks[i];
+      var ma = actorOf('m' + mo.key, 'mark', mo);
+      ma.node.position.set(mo.x, 0, mo.y);
+      townMark(ma.node, Math.hypot(mo.x - p.x, mo.y - p.y), talkR);
+    }
+
     /* 바닥의 전리품 — 등급색으로 빛나는 낮은 조각 */
     var ds = (run.room && run.room.drops) || [];
     for (i = 0; i < ds.length; i++) {
@@ -537,7 +715,16 @@
     sweep();
 
     /* 카메라 — 회전은 막는다(8절). 부드럽게 따라온다 */
-    var aim = camAim(p.x, p.y, W, H, ZOOM(), TILT());
+    /* 마을에서는 조금 더 물러난다. 마당(560×380)에 사람이 3×3 으로 앉아 있어
+       **한눈에 들어와야** 누구에게 갈지 정할 수 있다(town.js 가 크기를 그렇게 잡았다).
+       세로로 긴 화면에서는 가로가 먼저 잘리므로 화면비까지 셈에 넣는다 —
+       던전 쪽 거리는 건드리지 않는다(연출·조작 감각이 거기 맞춰져 있다). */
+    var zNow = ZOOM();
+    if (run.town) {
+      var asp = camera.aspect || 1;
+      zNow *= 1.15 * (asp < 1 ? Math.min(1.5, 1 / Math.max(0.5, asp)) : 1);
+    }
+    var aim = camAim(p.x, p.y, W, H, zNow, TILT());
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
@@ -578,7 +765,7 @@
     scene.traverse(function (o) { if (o.isMesh) { drawn++; } });
     var run = d().raw();
     return {
-      ready: ready, failed: failed, wanted: wanted(),
+      ready: ready, failed: failed, wanted: wanted(), town: isTown(),
       drawn: drawn, actors: Object.keys(actors).length,
       room: roomKey, floor: run ? run.floor : 0,
       cam: camPos ? [Math.round(camPos.x), Math.round(camPos.y), Math.round(camPos.z)].join(',') : '-',
