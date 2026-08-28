@@ -500,13 +500,15 @@ setTimeout(function () {
     var PR = DG.prop3d && DG.prop3d.stats ? DG.prop3d.stats() : null;
     var pr = PR ? (' || prop3d 적힘' + PR.listed + ' 받음' + PR.ok + ' 실패' + PR.fail + ' 받는중' + PR.loading + ' 재질' + PR.mats) : '';
     var PT = DG.portrait3d && DG.portrait3d.stats ? DG.portrait3d.stats() : null;
+    var IR = DG.world3d && DG.world3d.instReport ? DG.world3d.instReport(/inst=([A-Za-z_0-9]+)/.test(hash) ? /inst=([A-Za-z_0-9]+)/.exec(hash)[1] : '') : null;
+    var irx = IR ? (' || 덩이[' + IR.join(' ') + ']') : '';
     var ptx = PT ? (' || 초상 준비' + PT.ready + ' 구움' + PT.made + ' 쌓임' + PT.cached + ' 굽는중' + PT.baking + ' 포기' + PT.gaveUp) : '';
     b.textContent =
       'asset3d 표' + (A ? A.registered : '?') + ' 받음' + (A ? A.loaded : '?') +
       ' 실패' + (A ? A.failed : '?') + ' 세움' + (A ? A.built : '?') +
       ' 갈아낌' + (A ? A.swapped : '?') + ' 클립' + (A ? A.clips : '?') +
       ' 빈클립' + (A ? A.empty : '?') + (A && A.broke ? (' 터짐[' + A.broke + ']') : '') +
-      pr + ptx + pt + '\nworld3d ' + (W3 ? JSON.stringify(W3).slice(0, 220) : '?');
+      pr + ptx + irx + pt + '\nworld3d ' + (W3 ? JSON.stringify(W3).slice(0, 220) : '?');
   }, 400);
   }
   /* 역참·성채를 코앞에 세워 놓고 본다 — `#stands`.

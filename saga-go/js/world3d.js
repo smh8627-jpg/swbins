@@ -1742,8 +1742,45 @@
   }
 
   global.DG = global.DG || {};
+  /**
+   * 인스턴스 창고 속 — **어느 덩이에 몇이 서 있나.**
+   * "계획은 나오는데 화면에 없다" 를 가를 때 이것 하나면 끝난다(벼에서 밟았다).
+   */
+  function instReport(filter) {
+    var out = [], k;
+    for (k in instKinds) {
+      if (!Object.prototype.hasOwnProperty.call(instKinds, k)) { continue; }
+      if (filter && k.indexOf(filter) < 0) { continue; }
+      var K = instKinds[k], m = K.mesh;
+      var det = '';
+      if (filter) {
+        /* 걸러 볼 때는 **속까지** 본다 — 창고에는 있는데 화면에 없을 때
+           보이지 않는 이유는 결국 이 넷 중 하나다 */
+        var g = m.geometry, pa = g && g.getAttribute('position');
+        m.updateMatrixWorld(true);
+        var e = m.matrixWorld.elements;
+        var m0 = new T.Matrix4();
+        if (m.count > 0) { m.getMatrixAt(0, m0); }
+        var p0 = new T.Vector3(), q0 = new T.Quaternion(), s0 = new T.Vector3();
+        m0.decompose(p0, q0, s0);
+        det = ' [보임' + (m.visible ? 1 : 0) +
+          ' 재질' + (m.material && m.material.visible ? 1 : 0) +
+          ' 투명' + (m.material && m.material.opacity !== undefined ? m.material.opacity : '?') +
+          ' 정점' + (pa ? pa.count : '?') +
+          ' 부모' + (m.parent ? m.parent.name || 'group' : 'none') +
+          ' 월드' + e[12].toFixed(0) + ',' + e[13].toFixed(0) + ',' + e[14].toFixed(0) +
+          ' 첫자리' + p0.x.toFixed(0) + ',' + p0.y.toFixed(1) + ',' + p0.z.toFixed(0) +
+          ' 배율' + s0.x.toFixed(2) + ']';
+      }
+      out.push(k.split('/').pop() + '=' + K.n + '/' + m.count + det);
+    }
+    return out;
+  }
+
   global.DG.world3d = {
     init: init, resize: resize, render: render, refreshProps: refreshProps,
+    /** 인스턴스 창고 속을 들여다본다(진단·데모용). 이름 조각으로 걸러 볼 수 있다 */
+    instReport: instReport,
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     lightingAt: lightingAt, propPlan: propPlan, urbanity: urbanity, camAim: camAim,
