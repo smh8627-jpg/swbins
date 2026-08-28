@@ -19,6 +19,8 @@
     #rogue   점거된 역참(적도)     #roguewin 탈환 — 암영이 남은 참
     #dark    도감의 암영 칸(정화 대기)
     #perf    프레임 측정
+    #people 인물 여섯을 코앞에 한 줄로 세운다 (몸·차림·빛깔 확인용)
+    #zoom=1 카메라를 당겨 배우를 크게 본다 (사람 모델 확인용)
     #noglb  실제 GLB 에셋을 끄고 옛 도형으로 견줘 본다 (나무·바위·짐승)
     #noao   맞닿은 자리의 그늘(SSAO)을 끄고 견줘 본다
     #nowater 물결치는 수면을 끄고 옛 판 한 장으로 (물을 견줘 볼 때)
@@ -288,7 +290,7 @@ setTimeout(function () {
       }
       if (DG.asset3d) {
         var a3 = DG.asset3d.stats ? DG.asset3d.stats() : null;
-        if (a3) { st.glb = JSON.stringify(a3).slice(0, 90); }
+        if (a3) { st.glb = JSON.stringify(a3); }
       }
       if (DG.water3d) {
         var wt = DG.water3d.stats();
@@ -385,6 +387,48 @@ setTimeout(function () {
   if (hash.indexOf('noinst') >= 0) { C.setTune('world3d.instanced', 0); }
   /* 후처리를 끄고 견줘 본다 — `#nopost`. 톤매핑·블룸·색보정이 화면을 얼마나
      바꾸는지는 **두 장을 나란히 놓아야** 보인다(`post=on/off` 도 `#stat` 에 뜬다) */
+  /* 카메라를 당겨 배우를 크게 본다 — `#zoom=1`. 사람 모델이 제대로 섰는지
+     (사지가 안 뒤틀렸는지) 눈으로 보려면 가까이 가야 한다 */
+  if (/zoom=/.test(hash)) {
+    var zm = /zoom=([\d.]+)/.exec(hash);
+    C.save.settings.zoom3d = Math.max(0.7, Math.min(9, parseFloat(zm[1])));
+    W.resize();
+  }
+  /* 사람을 한 줄로 세워 놓고 본다 — `#people`.
+     인물 모델은 마을에서 멀거나 UI 카드에 가려 눈으로 잡기 어렵다. 여기서는
+     **정해진 여섯을 코앞에 세운다** — 여섯 벌의 몸이 다 나오는지, 사지가
+     안 뒤틀렸는지, 차림과 빛깔이 갈리는지를 한 화면에서 본다.
+     (연출을 정지 화면으로 붙잡는 `#fx` 와 같은 뜻의 장면이다)
+
+     **타이머로 계속 다시 세운다.** 한 번만 넣으면 `world.init` 의 `tickSpawns` 가
+     제 스폰으로 덮어 버린다 — 데모 스크립트가 부팅보다 먼저 돌기 때문이다. */
+  if (hash.indexOf('people') >= 0) {
+    var who = ['sg_guanyu', 'sg_zhugeliang', 'kr_leesunsin', 'kr_sejong',
+               'eu_caesar', 'eu_napoleon'];
+    setInterval(function () {
+      var pos0 = C.save.player.pos;
+      var sp = W.spawns;
+      sp.length = 0;
+      who.forEach(function (id, i2) {
+        var ref = D.find(id);
+        if (!ref) { return; }
+        var x = pos0.x + (i2 - (who.length - 1) / 2) * 2.6;
+        var y = pos0.y - 6.5;
+        sp.push({
+          uid: 9000 + i2, kind: 'hero', ref: ref,
+          x: x, y: y, homeX: x, homeY: y, tx: x, ty: y,
+          moving: false, pause: 999999, facing: 1, phase: 0,
+          bornAt: Date.now(), wob: 0
+        });
+      });
+      C.save.settings.zoom3d = 0.9;
+    }, 120);
+    /* 근처 대상 카드가 사람을 가린다 — 이 장면에서는 접어 둔다 */
+    setTimeout(function () {
+      var n = document.getElementById('near');
+      if (n) { n.style.display = 'none'; }
+    }, 300);
+  }
   if (hash.indexOf('noglb') >= 0) { C.setTune('prop3d.on', 0); C.setTune('world3d.glb', 0); }
   if (hash.indexOf('noao') >= 0) { C.setTune('ssao3d.on', 0); }
   if (hash.indexOf('nowater') >= 0) { C.setTune('water3d.on', 0); }

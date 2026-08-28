@@ -3130,12 +3130,106 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          ' · 까치·잉어는 도형 그대로');
     });
 
-    t('에셋 — 인물도 진짜 모델로 선다 (한 벌을 일흔이 나눠 쓴다)', function () {
+    t('에셋 — 인물이 여섯 벌의 몸을 나눠 입는다', function () {
       var A = DG.asset3d;
       A.restore();
-      var u = A.urlOf('hero', D.heroes[0]);
-      return !!u && u.indexOf('Knight') > 0 && A.chain('hero', D.heroes[0]) === 'glb' &&
-        ('모든 인물 → ' + u.split('/').pop());
+      var seen = {}, i;
+      for (i = 0; i < D.heroes.length; i++) {
+        seen[A.urlOf('hero', D.heroes[i]).split('/').pop()] = 1;
+      }
+      return Object.keys(seen).length === A.DEFAULTS.hero.length &&
+        A.chain('hero', D.heroes[0]) === 'glb' &&
+        (Object.keys(seen).sort().join(' · '));
+    });
+
+    t('에셋 — 같은 사람은 늘 같은 몸을 입는다 (id 해시)', function () {
+      var A = DG.asset3d;
+      var a = A.urlOf('hero', D.heroes[3]), b2 = A.urlOf('hero', D.heroes[3]);
+      /* 표를 뒤집어 다시 물어도 같아야 한다 — 목록 순서가 아니라 id 로 고르므로 */
+      return a === b2 && A.oneOf(['x', 'y', 'z'], { id: 'sg_guanyu' }) ===
+        A.oneOf(['x', 'y', 'z'], { id: 'sg_guanyu' }) &&
+        ('관우는 늘 ' + A.urlOf('hero', D.find('sg_guanyu')).split('/').pop());
+    });
+
+    t('에셋 — 한 줄짜리 표는 예전 그대로 동작한다', function () {
+      var A = DG.asset3d;
+      A.register('hero:sg_guanyu', 'one.glb');
+      var one = A.urlOf('hero', D.find('sg_guanyu'));
+      A.register('hero:sg_guanyu', null);
+      return one === 'one.glb' && '글자 하나든 목록이든 같은 문으로 나온다';
+    });
+
+    t('에셋 — 모듈형 몸은 부위마다 하나씩만 켠다', function () {
+      var A = DG.asset3d;
+      /* 세 무리(몸통 셋 · 머리 둘)와, 무리가 아닌 부품 둘을 섞어 만든 가짜 모델 */
+      function fake() {
+        var names = ['X_Body_1', 'X_Body_2', 'X_Body_3', 'X_Head_1', 'X_Head_2',
+                     'X_Pants', 'Knight_1', 'Knight_2'];
+        var kids = names.map(function (n) {
+          return { isMesh: true, name: n, visible: true };
+        });
+        return { traverse: function (f) { kids.forEach(f); }, kids: kids };
+      }
+      var m = fake();
+      A.pickPieces(m, { id: 'sg_guanyu' });
+      function on(pre) {
+        return m.kids.filter(function (k) {
+          return k.visible && k.name.indexOf(pre) === 0;
+        }).length;
+      }
+      /* 몸통 셋 중 하나 · 머리 둘 중 하나 · 무리가 아닌 것은 그대로 */
+      return on('X_Body') === 1 && on('X_Head') === 1 &&
+        on('X_Pants') === 1 && on('Knight') === 2 &&
+        '몸통 1/3 · 머리 1/2 · 부품(Knight_1·2)은 둘 다 그대로';
+    });
+
+    t('에셋 — 사람이 다르면 차림이 갈리고, 같으면 늘 같다', function () {
+      var A = DG.asset3d;
+      function outfit(id) {
+        var kids = ['X_Body_1', 'X_Body_2', 'X_Body_3', 'X_Body_4',
+                    'X_Head_1', 'X_Head_2', 'X_Head_3'].map(function (n) {
+          return { isMesh: true, name: n, visible: true };
+        });
+        A.pickPieces({ traverse: function (f) { kids.forEach(f); } }, { id: id });
+        return kids.filter(function (k) { return k.visible; })
+          .map(function (k) { return k.name; }).join(',');
+      }
+      var seen = {}, i;
+      for (i = 0; i < D.heroes.length; i++) { seen[outfit(D.heroes[i].id)] = 1; }
+      return Object.keys(seen).length >= 8 &&
+        outfit('sg_guanyu') === outfit('sg_guanyu') &&
+        ('일흔 명이 ' + Object.keys(seen).length + '가지 차림 (몸통 넷 × 머리 셋 = 열둘 중)');
+    });
+
+    t('에셋 — 무리가 통째로 꺼지지 않는다 (부호 있는 자리이동 함정)', function () {
+      /* `>>` 로 밀면 32비트 부호를 타 음수가 나오고 무리가 통째로 꺼진다 —
+         몸통도 머리도 없는 사람이 섰다. 일흔을 다 훑어 하나라도 비면 잡는다 */
+      var A = DG.asset3d, bad = [], i;
+      for (i = 0; i < D.heroes.length; i++) {
+        var kids = ['X_Body_1', 'X_Body_2', 'X_Body_3', 'X_Body_4',
+                    'X_Head_1', 'X_Head_2', 'X_Head_3', 'X_Head_4', 'X_Head_5',
+                    'X_Legs_1', 'X_Legs_2', 'X_Feet_1', 'X_Feet_2'].map(function (n) {
+          return { isMesh: true, name: n, visible: true };
+        });
+        A.pickPieces({ traverse: function (f) { kids.forEach(f); } },
+                     { id: D.heroes[i].id });
+        ['X_Body', 'X_Head', 'X_Legs', 'X_Feet'].forEach(function (g) {
+          var n = kids.filter(function (k) {
+            return k.visible && k.name.indexOf(g) === 0;
+          }).length;
+          if (n !== 1) { bad.push(D.heroes[i].id + ':' + g + '=' + n); }
+        });
+      }
+      return bad.length === 0 &&
+        ('일흔 명 × 네 무리 = ' + (D.heroes.length * 4) + '자리 모두 정확히 하나');
+    });
+
+    t('에셋 — 몸짓 원본이 정해져 있다 (스물한 벌은 몸짓이 0개다)', function () {
+      var A = DG.asset3d;
+      /* 이 한 벌만 제 몸짓(열둘)을 들고 있다 — 나머지는 여기서 옮겨 입는다 */
+      return A.ANIM_SRC.indexOf('Knight') > 0 &&
+        A.DEFAULTS.hero.indexOf(A.ANIM_SRC) >= 0 &&
+        ('몸짓 원본 ' + A.ANIM_SRC.split('/').pop());
     });
 
     t('에셋 — 그래서 빛깔로 물들인다 (일흔이 다 다른 빛깔이 된다)', function () {

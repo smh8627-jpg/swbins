@@ -69,7 +69,17 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 
 | 파일 | 쓰이는 곳 |
 |---|---|
-| `Knight.glb` | **모든 인물과 주민** (세력 빛깔로 물들여 갈린다 — `asset3d.tintOf`) |
+| `Knight.glb` | 인물 몸 한 벌 + **몸짓 원본**(열두 클립. 나머지 다섯 벌이 여기서 옮겨 입는다) |
+| `King.glb` · `Casual.glb` · `Farmer.glb` · `Worker.glb` | 인물 몸 (`modular_men`) |
+| `Lady.glb` | 인물 몸 (`modular_women` 의 `Medieval.glb`) |
+
+여섯 벌을 **인물 id 해시로** 나눠 입고, 그 위에 `asset3d.tintOf` 가 세력 빛깔을 입힌다.
+같은 사람은 늘 같은 몸 · 같은 빛깔이다.
+
+`Knight` 를 뺀 다섯 벌은 **몸짓이 하나도 없다**(직접 열어 세었다 — 0개).
+`three` 의 `SkeletonUtils.retargetClip` 으로 `Knight` 의 열두 클립을 옮겨 입힌다.
+뼈 이름은 열여덟이 겹치는데 **쉬는 자세가 팔·다리에서 최대 180° 어긋나** 그냥 틀면
+사지가 뒤틀린다 — 리타기팅이 월드 자세를 거쳐 풀어 주므로 맞는다.
 
 **까치와 잉어는 아직 도형이다.** 이 묶음에 맞는 새·물고기가 없었고, 억지로 다른
 짐승을 세우느니 여태 쓰던 도형이 낫다고 봤다.
@@ -78,10 +88,11 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
-- **사람 모델을 여러 벌.** `modular_men` · `modular_women` 은 스물한 벌이나 되는데
-  **애니메이션이 하나도 없다**(직접 열어 세어 봤다 — 0개). 몸짓 묶음을 따로 받아
-  뼈대를 맞춰야 하는 물건이라, 그대로 얹으면 마을 사람들이 **T 자로 서 있는다.**
-  도형만 못하다. 지금 쓰는 `Knight.glb` 는 몸짓 열둘을 제 안에 들고 있어 골랐다
+- **Quaternius 의 공식 몸짓 묶음**(Universal Animation Library). CC0 미러가
+  있는데(<https://github.com/J-Ponzo/gltf-universal-animation-library>)
+  그 판은 **Godot 용 Rigify 뼈대**(`DEF-*`)라 이 모델들의 뼈 이름과
+  **하나도 안 겹친다**(0/53. 직접 재 봤다). 그래서 안 받았다 —
+  대신 `Knight.glb` 의 몸짓을 옮겨 입힌다
 - **동양풍 건물.** 없다. 받을 수 있는 CC0 건물은 전부 유럽 중세다.
   **사용자가 그것을 알고 품질을 먼저 골랐다**(2026-08-28) — 그래서 얹었다.
   되돌리려면 손잡이 `prop3d.house` 를 0 으로 내리면 기와지붕 코드로 돌아간다
