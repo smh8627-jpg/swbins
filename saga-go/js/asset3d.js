@@ -357,6 +357,29 @@
    * 원본의 클립들을 이 몸에 맞게 다시 굽는다. 못 하면 빈 배열 — 그러면
    * 이 몸은 **가만히 선다**(뒤틀리는 것보다는 낫다).
    */
+  /**
+   * 목표 뼈 이름 → 원본 뼈 이름 표. **이름이 같은 것만** 잇는다(항등).
+   * 겹치지 않는 뼈(손가락 · IK · 이 몸에만 있는 `Root`·`Chest`)는 표에 안 넣는다 —
+   * 표에 없으면 그 뼈는 건드리지 않고 제 자세로 남는다. 그게 맞는 동작이다.
+   */
+  function boneNameMap(tm, sm) {
+    var map = {}, n = 0, i;
+    if (!tm.skeleton || !sm.skeleton) { return { map: map, count: 0 }; }
+    var have = {}, sb = sm.skeleton.bones, tb = tm.skeleton.bones;
+    for (i = 0; i < sb.length; i++) { have[sb[i].name] = 1; }
+    for (i = 0; i < tb.length; i++) {
+      if (have[tb[i].name]) { map[tb[i].name] = tb[i].name; n++; }
+    }
+    return { map: map, count: n };
+  }
+
+  /** 이 장면의 키(m) — 뼈대 크기를 견줄 때 쓴다 */
+  function sceneHeight(obj) {
+    var t = three();
+    var b = new t.Box3().setFromObject(obj);
+    return Math.max(1e-4, b.max.y - b.min.y);
+  }
+
   function retargetInto(c, src) {
     var t = three();
     if (!t || !t.SkeletonUtils || !t.SkeletonUtils.retargetClip) { return []; }
@@ -368,18 +391,43 @@
     var tm = firstSkinned(tc), sm = firstSkinned(sc);
     if (!tm || !sm) { return []; }
     tc.updateMatrixWorld(true); sc.updateMatrixWorld(true);
+
+    /* **뼈대 크기를 맞춘다.** `retargetClip` 은 회전은 월드 자세로 풀어 주지만
+       **엉덩이(hip)의 위치만은 원본 값을 그대로 옮긴다** — 되돌려 주는 것은
+       hip 이 아닌 뼈뿐이다(`preserveBonePositions`). 그런데 몸짓 원본
+       `Knight.glb` 는 키 5.60 으로 만들어져 있고 옮겨 입을 다섯 벌은 1.87 이라
+       **세 배**다. 그대로 옮기면 엉덩이가 세 배 높이로 튀고 발은 땅에 붙은 채라
+       몸이 늘어난다 — 재 보니 **폭이 키의 4.3 배**가 됐고, 그렇게 뭉개진 메시는
+       화면에서 아예 사라졌다(2026-08-28 에 사용자가 발견했다).
+       `options.scale` 이 정확히 이 자리에 곱해지는 값이다 */
+    var mul = sceneHeight(tc) / sceneHeight(sc);
+
+    /* **뼈 이름표를 손으로 만들어 준다.** 이것이 없으면 옮겨지지 않는다.
+       번들된 `SkeletonUtils.retarget` 은 목표 뼈의 짝을 `options.names[뼈이름]`
+       으로만 찾는다 — 세 군데 중 두 군데에 `|| bone.name` 되돌림이 **없어서**,
+       표를 안 주면 `undefined` 로 찾다가 **한 뼈도 못 맞춘다**(직접 번들 소스를
+       읽고 알았다). 이름이 같은 뼈끼리 항등으로 이어 준다 */
+    var names = boneNameMap(tm, sm);
+    if (!names.count) { return []; }
+
     var out = [], i, clip;
     for (i = 0; i < src.clips.length; i++) {
       try {
-        clip = t.SkeletonUtils.retargetClip(tm, sm, src.clips[i], { hip: 'Hips' });
+        clip = t.SkeletonUtils.retargetClip(tm, sm, src.clips[i],
+          { hip: 'Hips', scale: mul, names: names.map });
         if (clip) { clip.name = src.clips[i].name; out.push(clip); }
       } catch (e) { /* 이 클립 하나만 건너뛴다 */ }
     }
+    c.retargetScale = mul;
     return out;
   }
 
+  /** 몸짓을 옮겨 입힐까 — 0 이면 안 입는다(클립 0 벌로 가만히 선다). 되돌림 손잡이 */
+  function RETARGET_ON() { return core().tuned('asset3d.retarget', 1) ? true : false; }
+
   /** 몸짓 원본을 받아 두고, 그것을 이 몸에 입힌 뒤 기다리던 쪽에 넘긴다 */
   function dressUp(c, done) {
+    if (!RETARGET_ON()) { done(); return; }
     acquire(ANIM_SRC, function (src) {
       if (src && src.clips && src.clips.length) {
         c.clips = retargetInto(c, src);
@@ -538,6 +586,11 @@
    */
   function normalize(obj, mul) {
     var t = three();
+    /* **재기 전에 월드 행렬을 갱신한다.** 이 한 줄이 없으면 계층에 걸린 스케일이
+       빠진 채로 재어, 키가 스무 배로 나오고 그만큼 잘게 줄여 놓는다 —
+       **사람이 몸통만 옆으로 4배 넓은 조각**이 되어 화면에서 사라졌다.
+       (`prop3d.partsOf` 는 이 줄이 있어서 나무·집은 멀쩡했다. 여기만 빠져 있었다) */
+    obj.updateMatrixWorld(true);
     var b = new t.Box3().setFromObject(obj);
     var f = fit({
       minX: b.min.x, maxX: b.max.x, minY: b.min.y, maxY: b.max.y, minZ: b.min.z, maxZ: b.max.z
