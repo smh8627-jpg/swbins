@@ -258,16 +258,23 @@
       '</div>';
 
     els.wallet.innerHTML =
-      coin('🪙', core.fmt(p.gold), '금') +
-      coin('🎖️', core.fmt(p.fame), '명성') +
-      coin('🏅', core.fmt(p.feat), '공적', true) +
-      coin('📜', core.fmt(core.save.items.scroll), '등용서') +
-      coin('🍖', core.fmt(core.save.items.feed), '사료') +
-      coin('✨', core.fmt(growth() ? growth().dust() : 0), '단사(丹砂) — 펫 연성에 쓴다');
+      coin('🪙', core.fmt(p.gold), '금', false, 'coins') +
+      coin('🎖️', core.fmt(p.fame), '명성', false, 'medal') +
+      coin('🏅', core.fmt(p.feat), '공적', true, 'award') +
+      coin('📜', core.fmt(core.save.items.scroll), '등용서', false, 'scroll') +
+      coin('🍖', core.fmt(core.save.items.feed), '사료', false, 'ham') +
+      coin('✨', core.fmt(growth() ? growth().dust() : 0), '단사(丹砂) — 펫 연성에 쓴다', false, 'sparkles');
+    /* 지갑은 값이 바뀔 때마다 다시 그려지므로 **그릴 때마다 한 번 훑는다** */
+    if (global.DG.icon) { global.DG.icon.sweep(els.wallet); }
   }
 
-  function coin(icon, val, label, hi) {
-    return '<div class="coin' + (hi ? ' hi' : '') + '" title="' + label + '"><span>' + icon + '</span>' + val + '</div>';
+  /**
+   * 지갑의 한 칸. `ic` 를 주면 그 이름의 아이콘으로 갈린다(`icon.js`) —
+   * 안 주거나 손잡이를 내리면 이모지가 그대로 남는다.
+   */
+  function coin(icon, val, label, hi, ic) {
+    var tag = ic ? ' data-icon="' + ic + '"' : '';
+    return '<div class="coin' + (hi ? ' hi' : '') + '" title="' + label + '"><span' + tag + '>' + icon + '</span>' + val + '</div>';
   }
 
   /* ── 근처 대상 ────────────────────────────────────────── */

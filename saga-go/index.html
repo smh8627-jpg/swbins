@@ -29,20 +29,20 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <div id="top">
   <div class="glass profile" id="profile"></div>
   <div class="tools">
-    <button class="icon-btn" id="btn-auto" title="자동 순행 (AI가 대신 걷고 만난다)">🤖</button>
-    <button class="icon-btn" id="btn-geo" title="실제 위치로 전환">📡</button>
+    <button class="icon-btn" id="btn-auto" title="자동 순행 (AI가 대신 걷고 만난다)"><span data-icon="bot">🤖</span></button>
+    <button class="icon-btn" id="btn-geo" title="실제 위치로 전환"><span data-icon="satellite-dish">📡</span></button>
     <!-- 좁은 화면에서만 접힌다. 넓은 화면에서는 서랍이 `display:contents` 로
          풀려 아래 단추들이 이 줄에 그대로 늘어선다 — 단추를 옮기지 않으므로
          이벤트도 손잡이도 건드릴 것이 없다 -->
     <div class="tools-drawer" id="tools-drawer">
-      <button class="icon-btn" id="btn-map" title="지도 스타일 바꾸기">🗺️</button>
+      <button class="icon-btn" id="btn-map" title="지도 스타일 바꾸기"><span data-icon="map">🗺️</span></button>
       <button class="icon-btn txt" id="btn-tilt" title="2D / 2.5D / 3D 전환">2.5D</button>
       <button class="icon-btn txt" id="btn-prop" title="캐릭터 등신 (4등신/2등신/8등신)">4등</button>
-      <button class="icon-btn" id="btn-style" title="그림 양식 (전통 삽화 / 일본 만화)">🖌️</button>
-      <button class="icon-btn" id="btn-help" title="도움말">❔</button>
-      <button class="icon-btn" id="btn-reset" title="처음부터">↺</button>
+      <button class="icon-btn" id="btn-style" title="그림 양식 (전통 삽화 / 일본 만화)"><span data-icon="palette">🖌️</span></button>
+      <button class="icon-btn" id="btn-help" title="도움말"><span data-icon="circle-question-mark">❔</span></button>
+      <button class="icon-btn" id="btn-reset" title="처음부터"><span data-icon="rotate-ccw">↺</span></button>
     </div>
-    <button class="icon-btn" id="btn-more" title="도구 더 보기" aria-expanded="false">⋯</button>
+    <button class="icon-btn" id="btn-more" title="도구 더 보기" aria-expanded="false"><span data-icon="ellipsis">⋯</span></button>
   </div>
   <div class="glass wallet" id="wallet"></div>
 </div>
@@ -55,12 +55,12 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 
 <!-- 우하단: 액션 독 -->
 <nav id="dock">
-  <button data-sheet="quest"><span>📋</span><small>사명</small></button>
-  <button data-sheet="bag"><span>🎒</span><small>행낭</small></button>
-  <button data-sheet="letters"><span>✉️</span><small>천거</small></button>
-  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
-  <button data-sheet="oracle"><span>🔮</span><small>사관</small></button>
-  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+  <button data-sheet="quest"><span data-icon="clipboard-list">📋</span><small>사명</small></button>
+  <button data-sheet="bag"><span data-icon="backpack">🎒</span><small>행낭</small></button>
+  <button data-sheet="letters"><span data-icon="mail">✉️</span><small>천거</small></button>
+  <button data-sheet="dex"><span data-icon="book-open">📖</span><small>도감</small></button>
+  <button data-sheet="oracle"><span data-icon="sparkles">🔮</span><small>사관</small></button>
+  <button data-sheet="log"><span data-icon="scroll-text">📜</span><small>기록</small></button>
 </nav>
 
 <!-- 슬라이드 시트 -->
@@ -110,6 +110,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <script src="js/codex.js"></script>
 <script src="js/minimap.js"></script>
 <script src="js/portrait3d.js"></script>
+<script src="js/icon.js"></script>
 <script src="js/talk.js"></script>
 <script src="js/letter.js"></script>
 <script src="js/duel.js"></script>
