@@ -68,7 +68,8 @@
     ],
     'pet:an_deer': 'assets/models/animals/Deer.glb',
     'pet:an_wolf': 'assets/models/animals/Wolf.glb',
-    'pet:an_ox':   'assets/models/animals/Cow.glb'
+    'pet:an_ox':   'assets/models/animals/Cow.glb',
+    'pet:an_carp': 'assets/models/animals/Koi.glb'
   };
 
   var REG = {};

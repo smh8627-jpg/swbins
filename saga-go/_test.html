@@ -3114,20 +3114,19 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         '1 로 줄이면 한 가지만 선다 (받는 양을 줄일 때)';
     });
 
-    t('에셋 — 짐승 셋에 진짜 모델이 걸려 있다', function () {
+    t('에셋 — 짐승 넷에 진짜 모델이 걸려 있다', function () {
       var A = DG.asset3d, AN = DG.animal;
       /* 위의 항목들이 표를 비웠다 가정했으므로(AS.clear) 배송 기본표를 되돌린다 */
       A.restore();
-      var got = ['deer', 'wolf', 'ox'].map(function (k) {
+      var got = ['deer', 'wolf', 'ox', 'carp'].map(function (k) {
         return A.urlOf('pet', AN.refOf(AN.KINDS[k]));
       });
-      /* 까치·잉어는 일부러 비워 두었다 — 맞는 모델이 없어 도형으로 남긴다 */
-      var empty = ['magpie', 'carp'].every(function (k) {
-        return !A.urlOf('pet', AN.refOf(AN.KINDS[k]));
-      });
+      /* 까치만 비어 있다 — 라이선스가 뚜렷한 새 모델을 못 찾았다.
+         억지로 딴 새를 세우느니 여태 쓰던 도형이 낫다 */
+      var empty = !A.urlOf('pet', AN.refOf(AN.KINDS.magpie));
       return got.every(Boolean) && empty &&
         (got.map(function (u) { return u.split('/').pop(); }).join(' · ') +
-         ' · 까치·잉어는 도형 그대로');
+         ' · 까치만 도형 그대로');
     });
 
     t('에셋 — 인물이 여섯 벌의 몸을 나눠 입는다', function () {

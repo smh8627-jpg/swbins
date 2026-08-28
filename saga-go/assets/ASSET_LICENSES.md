@@ -53,6 +53,7 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Deer.glb` | 사슴 (`animal.js` 의 `deer`) |
 | `Wolf.glb` | 늑대 (`wolf`) |
 | `Cow.glb` | 소 (`ox`) |
+| `Koi.glb` | 잉어 (`carp`) — `cute_fish_pack` 에서. 헤엄·튀어오름 여섯 클립 |
 
 셋 다 뼈대 애니메이션을 열두어 개씩 들고 있다(Idle · Walk · Gallop · Eating …).
 `asset3d.js` 의 `mapClips` 가 이름을 씻어 자리에 맞춘다.
@@ -81,13 +82,34 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 뼈 이름은 열여덟이 겹치는데 **쉬는 자세가 팔·다리에서 최대 180° 어긋나** 그냥 틀면
 사지가 뒤틀린다 — 리타기팅이 월드 자세를 거쳐 풀어 주므로 맞는다.
 
-**까치와 잉어는 아직 도형이다.** 이 묶음에 맞는 새·물고기가 없었고, 억지로 다른
-짐승을 세우느니 여태 쓰던 도형이 낫다고 봤다.
+**까치만 아직 도형이다.** 아래 '아직 안 가져온 것' 참고.
 
 ---
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
+- **새(까치).** 한참 찾았고 **맞는 것을 찾기는 했는데 못 받았다.** 남겨 둔다:
+
+  | 어디를 봤나 | 결과 |
+  |---|---|
+  | 이 미러의 GLB 302개 | 새가 **하나도** 없다 (이름으로 다 훑었다) |
+  | Quaternius 전체 목록 | `UltimateMonsters` 에 **SK_Birb · SK_Pigeon**, `CubeWorldKit` 에 `SK_Chicken` 이 있다. 그런데 그 묶음들의 GitHub 미러는 **USDA 뿐이고 GLB 가 없다**(<https://github.com/weftspun/quaternius-stage>) |
+  | Khronos glTF-Sample-Assets (150개) | 생물은 `Duck`(고무오리) · `Fox` · `BarramundiFish` 뿐 |
+  | Google Poly 아카이브 | **딱 맞는 것이 있다** — `cTSOEPvVovs` "Bird" (검정 · 까마귀 · 삼각형 386, 저작자 **Poly by Google**, 메타데이터에 `license: CREATIVE_COMMONS_BY` 로 **명시**). 그런데 모델 파일은 `blob.polygone.art` 에 있고 **이 망에서 그 주소가 막힌다** — GitHub 저장소에는 메타데이터와 섬네일만 있다 |
+  | three.js | `Parrot.glb` · `Stork.glb` · `Flamingo.glb` 가 있다. 예제에 *"model by mirada from rome"* 이라는 **표시**만 있고 **라이선스 문구가 없다** — 표시는 라이선스가 아니다 |
+
+  **가져오려면**(브라우저에서 `polygone.art` 가 열리는 자리에서):
+
+  1. <https://polygone.art/view/cTSOEPvVovs> 에서 GLTF2 형식을 받는다
+     (`Bird_01.gltf` + `Bird_01.bin` 두 파일이다)
+  2. 둘을 `assets/models/animals/` 에 그대로 둔다
+  3. `js/asset3d.js` 의 `DEFAULTS` 에 한 줄:
+     `'pet:an_magpie': 'assets/models/animals/Bird_01.gltf',`
+  4. 이 문서의 짐승 표에 **저작자 표시**를 더한다 — CC-BY 는 표시가 **필수**다:
+     *"Bird — Poly by Google, CC-BY 3.0, Google Poly 아카이브(polygone.art)"*
+
+  그 전까지 까치는 도형으로 둔다. 작고(키 0.42) 대개 멀리 있거나 날아가는 중이라
+  다섯 종 중 티가 가장 덜 난다.
 - **Quaternius 의 공식 몸짓 묶음**(Universal Animation Library). CC0 미러가
   있는데(<https://github.com/J-Ponzo/gltf-universal-animation-library>)
   그 판은 **Godot 용 Rigify 뼈대**(`DEF-*`)라 이 모델들의 뼈 이름과
