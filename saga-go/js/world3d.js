@@ -427,6 +427,52 @@
     return tex;
   }
 
+  /* ── 땅의 높낮이 (PLAN 14절) ─────────────────────────
+   * 값은 `relief3d.js` 가 낸다(순수 함수). 여기 있는 것은 **그 값을 화면에
+   * 바르는 일**뿐이다 — 지면 정점을 밀고, 배우를 앉히고, 카메라를 띄운다.
+   * `world.js` 의 좌표·거리·스폰은 여전히 평면 2D 라 **균형이 안 움직인다.**
+   */
+  function RELIEF() { return global.DG.relief3d || null; }
+  function RELIEF_ON() { var R = RELIEF(); return !!(R && R.on()); }
+  /** 타일 한 장을 몇 칸으로 나누나 — 클수록 곱지만 정점이 제곱으로 는다 */
+  function RELIEF_SEG() { return Math.max(1, Math.round(core.tuned('relief3d.seg', 8))); }
+
+  /** 그 자리의 땅 높이(m). 높낮이가 꺼져 있으면 0 — 부르는 쪽은 몰라도 된다 */
+  function groundY(x, z) {
+    var R = RELIEF();
+    return R ? R.heightAt(x, z) : 0;
+  }
+
+  /**
+   * 타일 한 장의 정점을 실제 높이로 민다.
+   *
+   * **눕히기 전 좌표계라 y 가 아니라 z 를 민다.** 이 메시는 `rotation.x = -90°`
+   * 로 눕혀 놓았으므로, 로컬의 +z 가 월드의 +y 다. 여기서 y 를 밀면 땅이
+   * 옆으로 밀린다(한 번 밟았다).
+   *
+   * 같은 자리에 다시 깔릴 때는 **건너뛴다** — 타일은 격자를 넘을 때마다 재활용되는데
+   * 매번 정점 수백 개를 다시 재면 걸을 때마다 화면이 걸린다.
+   */
+  function liftTile(mesh, x0, z0, span) {
+    if (!RELIEF_ON()) { return false; }
+    var mark = Math.round(x0) + '/' + Math.round(z0) + '/' + Math.round(span);
+    if (mesh.userData.lifted === mark) { return false; }
+    var pos = mesh.geometry.getAttribute('position');
+    if (!pos) { return false; }
+    var i;
+    for (i = 0; i < pos.count; i++) {
+      /* 로컬 x·y → 월드 x·z (눕히기 전이므로 로컬 y 가 월드 z 의 **반대**다) */
+      var lx = pos.getX(i), ly = pos.getY(i);
+      var wx = x0 + span / 2 + lx;
+      var wz = z0 + span / 2 - ly;
+      pos.setZ(i, groundY(wx, wz));
+    }
+    pos.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
+    mesh.userData.lifted = mark;
+    return true;
+  }
+
   /** 지도 타일을 카메라 둘레에만 깐다 (멀어진 것은 지운다) */
   function syncGround(W) {
     var mpp = W.metersPerPixel();
@@ -446,18 +492,24 @@
         var key = tx + '/' + ty;
         live[key] = 1;
         var mesh = tileMeshes[key];
+        var corner = worldOfLatLng(tile2lat(ty, W), tile2lng(tx, W));
         if (!mesh) {
-          var geo = new T.PlaneGeometry(span, span);
+          /* **한 장을 잘게 나눈다.** 여태 네 꼭짓점뿐이라 아무리 높이를 줘도
+             땅이 기울 뿐 굽지 않았다. 241m 타일을 `RELIEF_SEG` 칸으로 나누면
+             한 칸이 30m 남짓 — 지형 격자(48m)보다 촘촘해 경사가 살아난다 */
+          var seg = RELIEF_ON() ? RELIEF_SEG() : 1;
+          var geo = new T.PlaneGeometry(span, span, seg, seg);
           var mat = new T.MeshLambertMaterial({ color: 0x1a1f28 });
           mesh = new T.Mesh(geo, mat);
           mesh.rotation.x = -Math.PI / 2;           // 눕힌다
           mesh.receiveShadow = true;
           groundGroup.add(mesh);
           tileMeshes[key] = mesh;
+          mesh.userData.lifted = '';
         }
         /* 타일의 왼쪽 위 모서리를 월드 미터로 환산해 한가운데에 놓는다 */
-        var corner = worldOfLatLng(tile2lat(ty, W), tile2lng(tx, W));
         mesh.position.set(corner.x + span / 2, -0.02, corner.y + span / 2);
+        liftTile(mesh, corner.x, corner.y, span);
 
         var img = W.getTile(tx, ty, W.ZOOM, MAP_STYLE());
         /* 이 땅과 겹치는 타일은 **제 색으로 덧칠한 것**을 쓴다 */
@@ -841,7 +893,7 @@
     for (i = 0; i < got.parts.length; i++) {
       var K = instMake(got.url + '#' + i, got.parts[i].geometry,
                         got.parts[i].material, P3.casts(want), GLB_CAP());
-      ok = instAt(K, key, got.url + '#' + i, x, 0, z, hh, hh, hh, 0, ry, 0) && ok;
+      ok = instAt(K, key, got.url + '#' + i, x, groundY(x, z), z, hh, hh, hh, 0, ry, 0) && ok;
     }
     return ok;
   }
@@ -1094,7 +1146,11 @@
         live[key] = 1;
         if (propMeshes[key]) { continue; }
         var node = buildProp(kind, gx, gy, mapped, key);
-        node.position.set(gx * GRID + GRID / 2, 0, gy * GRID + GRID / 2);
+        /* 격자 한가운데의 땅 높이에 앉힌다. 이 노드 안의 조각들은 제 자리
+           (`p.x`·`p.z`)만큼 옆으로 벌어져 있어 그만큼은 어긋나지만, 격자가
+           48m 라 한 칸 안에서는 땅이 거의 평평하다 — 눈에 안 띈다 */
+        var pcx = gx * GRID + GRID / 2, pcz = gy * GRID + GRID / 2;
+        node.position.set(pcx, groundY(pcx, pcz), pcz);
         propGroup.add(node);
         propMeshes[key] = node;
       }
@@ -1196,9 +1252,12 @@
   }
 
   function placeActor(a, x, y, h, bob, walk, phase, now) {
+    /* **땅에 앉힌다.** 땅이 굽었으므로 y=0 에 세우면 산에서는 발이 묻히고
+       골짜기에서는 허공에 뜬다(PLAN 14절) */
+    var gy0 = groundY(x, y);
     if (a.mesh) {
       a.node.scale.set(h, h, h);
-      a.node.position.set(x, 0, y);
+      a.node.position.set(x, gy0, y);
       /* 방향 — 지난 프레임과의 차이로 정한다. 판정에는 방향이 없으니
          (world.js 는 좌표만 준다) 화면 층에서 만들어 쓴다 */
       if (a.lx !== null) {
@@ -1216,9 +1275,9 @@
       global.DG.actor3d.step(a.node, { t: now / 1000, walking: walk, phase: phase });
     } else {
       a.node.scale.set(h, h, 1);
-      a.node.position.set(x, h / 2 + (bob || 0), y);
+      a.node.position.set(x, gy0 + h / 2 + (bob || 0), y);
     }
-    a.shadow.position.set(x, 0.06, y);
+    a.shadow.position.set(x, gy0 + 0.06, y);
     a.shadow.scale.setScalar(h * 0.30);
   }
 
@@ -1544,8 +1603,14 @@
     /* 조우 무대에서는 줌을 무시한다 — 무대는 늘 같은 그림이어야 한다 */
     var aim = camAim(pos, W.tiltMode, focusLive(), stageAt,
       stageAt ? 1 : W.zoom3d, battleOn, stageAt ? 0 : yaw);
-    var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
-    var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
+    /* **카메라와 시선도 땅을 따라 오른다.** 안 그러면 산에 오를 때 카메라가
+       제자리에 남아 땅이 화면을 덮고, 골짜기에서는 하늘만 보인다.
+       `camAim` 은 평면 기준으로 값을 내므로 여기서 땅 높이만 얹는다 —
+       그쪽은 순수 함수로 남겨 둔다(자가진단이 값으로 붙들고 있다) */
+    var camLift = groundY(aim.pos.x, aim.pos.z);
+    var lookLift = groundY(aim.look.x, aim.look.z);
+    var want = new T.Vector3(aim.pos.x, aim.pos.y + camLift, aim.pos.z);
+    var look = new T.Vector3(aim.look.x, aim.look.y + lookLift, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
     /* 카메라는 곧바로 붙지 않고 따라온다 — 원작의 그 미끄러지는 느낌이다.
        교전 중에는 조금 더 빨리 붙는다(줌인이 굼뜨면 때리는 맛이 죽는다) */
