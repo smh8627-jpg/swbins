@@ -6,7 +6,7 @@
  * 언젠가 제대로 만든 모델(GLB)을 얹고 싶은데, 그때 가서 배우 세우는 코드를 뜯어고치면
  * 지금 서 있는 그림이 통째로 흔들린다. 그래서 **미리 자리만 파 둔다**.
  *
- *   REG           무엇을 무엇으로 세울지 적은 표. **지금은 비어 있다**
+ *   REG           무엇을 무엇으로 세울지 적은 표. **인물 · 짐승 다섯 · 역참 · 성채가 차 있다**
  *   register()    표에 한 줄 적으면 그날부터 그 배우는 GLB 로 선다
  *   build()       GLB 를 받는 동안에도 화면은 안 빈다 — 도형을 먼저 세워 두고
  *                 다 받으면 그 자리에서 갈아 끼운다
@@ -20,8 +20,9 @@
  * 표를 읽는 함수(`lookup`·`chain`·`mapClips`·`fit`)는 **three 없이도 돈다** —
  * 자가진단이 그것만 따로 본다. 세우는 함수만 three 를 쓴다.
  *
- * 아직 GLB 파일은 한 개도 없다. 그래서 **오늘 화면은 어제와 똑같다** — 그게 맞다.
- * 이 파일이 하는 일은 "나중에 파일만 놓으면 된다" 를 참으로 만드는 것이다.
+ * **자리는 다 찼다.** 인물 여섯 벌 · 짐승 다섯 종 · 역참 · 성채 셋(등급마다 하나)이
+ * 진짜 모델로 선다. 파 둔 자리가 옳았다는 증거는 **표에 줄만 늘었다는 것**이다 —
+ * 세우는 코드는 그대로다.
  *
  * file:// (PC 단독판)에서는 GLB 를 못 받는다(브라우저가 막는다). 실패하면 조용히
  * 도형으로 남으므로 단독판도 그대로 돈다 — 그래서 실패를 시끄럽게 알리지 않는다.
@@ -43,15 +44,12 @@
    *   asset3d.register('hero', 'assets/models/hero.glb');
    *   asset3d.register('pet:form:dragon', 'assets/models/dragon.glb');
    *
-   * 오래 비어 있었다. **이제 셋이 찼다** — 들의 짐승 사슴 · 늑대 · 소다
-   * (Quaternius, CC0. `assets/ASSET_LICENSES.md`). 까치와 잉어는 아직 도형이다:
-   * 새와 물고기는 맞는 모델을 못 찾았고, 억지로 다른 짐승을 세우느니 도형이 낫다.
-   *
-   * 인물은 아직 비워 둔다 — 이 판의 인물 일흔은 저마다 갓·도포·빛깔이 다르고
-   * 그것을 `sprite.js` 가 정한다. 모델 하나를 일흔에 돌려 쓰면 **다 같은 사람**이
-   * 되어 도감이 무너진다. 인물마다 다른 모델을 얹을 때 이 표에 한 줄씩 는다.
+   * 오래 비어 있었다. **이제 다 찼다** — 인물 여섯 벌 · 짐승 다섯 종 ·
+   * 역참 · 성채 셋이다(Quaternius CC0, 까치만 Poly by Google CC-BY.
+   * 출처는 `assets/ASSET_LICENSES.md`).
    */
   var PEOPLE = 'assets/models/people/';
+  var BLD = 'assets/models/buildings/';
 
   var DEFAULTS = {
     /* 인물 — **한 벌을 일흔이 나눠 쓴다.** 그대로 두면 일흔이 다 같은 사람이 되므로
@@ -74,7 +72,23 @@
        저작자 표시가 **필수**이고 `assets/ASSET_LICENSES.md` 에 적어 두었다.
        `.glb` 한 덩이가 아니라 `.gltf` + `.bin` + `.png` 세 파일이라
        **셋이 같은 폴더에 이름 그대로** 있어야 한다 */
-    'pet:an_magpie': 'assets/models/animals/Mesh_Crow.gltf'
+    'pet:an_magpie': 'assets/models/animals/Mesh_Crow.gltf',
+
+    /* 역참 — **여관 한 벌**이다. 역참은 들러서 쉬고 보급받는 자리이니
+       여관이 그 자체다. 여러 벌로 섞고 싶었지만 `Well`(우물 1.25m)·
+       `MarketStand`(좌판 1.05m)는 **원본 키가 절반도 안 된다** — 이 창고는
+       무엇이든 키 1 로 눕히므로(`normalize`) 섞으면 우물이 여관만 해진다.
+       키가 비슷한 것끼리만 한 줄에 묶는다 */
+    'station': BLD + 'Inn.glb',
+
+    /* 성채 — **등급마다 다른 탑이 선다.** `fort.js` 의 세 등급(보·진·웅진)은
+       수비대의 세기가 다른데 여태 화면에서는 다 같은 성채였다. 멀리서 보고
+       "저건 웅진이다" 를 알면 걸어갈지 말지가 눈으로 정해진다.
+       좁은 키(`fort:t3`)부터 찾으므로 등급이 안 실려 와도 `fort` 로 떨어진다 */
+    'fort:t1': BLD + 'Watchtower.glb',
+    'fort:t2': [BLD + 'Tower.glb', BLD + 'PointyTower.glb'],
+    'fort:t3': [BLD + 'LargeTower.glb', BLD + 'LargeSquareTowerBricks.glb'],
+    'fort': BLD + 'Tower.glb'
   };
 
   var REG = {};
@@ -103,7 +117,12 @@
         global.DG.sprite.beastFormOf(r) : null);
       return ['pet:' + r.id, form ? 'pet:form:' + form : null, 'pet'].filter(Boolean);
     }
-    if (kind === 'station' || kind === 'fort') { return [kind]; }
+    /* 성채는 **등급이 먼저다** — `fort:t3` 가 있으면 그것, 없으면 `fort`.
+       등급이 안 실려 와도(옛 부름) 넓은 키로 떨어지므로 화면은 안 빈다 */
+    if (kind === 'fort') {
+      return [r.tier ? 'fort:t' + r.tier : null, 'fort'].filter(Boolean);
+    }
+    if (kind === 'station') { return [kind]; }
     return kind ? [kind] : [];
   }
 
@@ -248,6 +267,48 @@
       dx: -((box.minX + box.maxX) / 2) * s,
       dz: -((box.minZ + box.maxZ) / 2) * s
     };
+  }
+
+  /**
+   * 키 1 위에 **얼마를 더 곱하나** — 순수 함수다.
+   *
+   * 배우는 전부 키 1 로 눕는데(`fit`), 도형으로 세우던 역참·성채는 그 규약을
+   * 안 지키고 제 키로 서 있었다 — 역참 **1.73** · 성채 **2.64**(직접 재 봤다).
+   * `world3d` 가 주는 배율은 그 키를 곱할 셈으로 잡힌 값이라, GLB 를 키 1 로
+   * 그대로 세우면 **역참이 절반, 성채가 셋에 하나로 쪼그라든다.** 그만큼 보탠다.
+   * (`prop3d.houseScale` 이 집에서 같은 함정을 밟고 남긴 자리와 같은 뜻이다)
+   *
+   * 성채는 여기에 **등급을 한 번 더 태운다.** 보(堡)는 작고 웅진(雄鎭)은 크다 —
+   * 걸어가기 전에 멀리서 세기를 가늠하는 것이 이 판의 성채가 하는 일이다.
+   */
+  function heightMul(kind, ref) {
+    var C = core();
+    if (kind === 'station') { return C.tuned('asset3d.stationScale', 1.73); }
+    if (kind === 'fort') {
+      var base = C.tuned('asset3d.fortScale', 2.64);
+      var t = ref && ref.tier;
+      return base * (t === 1 ? 0.78 : (t === 3 ? 1.24 : 1));
+    }
+    return 1;
+  }
+
+  /**
+   * 이 건물에 **표식 깃발**을 세우나 — 세우면 규격, 아니면 null. 순수 함수다.
+   *
+   * 왜 필요한가. 도형 역참에는 노란 깃발이, 도형 성채에는 세력 빛깔 배너가
+   * 달려 있었고 **그것이 멀리서 알아보는 유일한 표식**이었다. 받아 온 탑과
+   * 여관에는 깃발이 없다 — 그대로 갈아 끼우면 성채가 어느 세력인지 화면에서
+   * 사라진다. 모양을 얻고 뜻을 잃는 맞바꿈이 되므로, 깃발만 다시 얹는다.
+   *
+   * 값은 **키 1 기준의 비율**이다(`heightMul` 을 곱한 뒤의 단위계).
+   */
+  function markOf(kind, ref) {
+    if (kind !== 'station' && kind !== 'fort') { return null; }
+    if (!core().tuned('asset3d.mark', 1)) { return null; }
+    var col = (ref && ref.color) || (kind === 'fort' ? '#8a5cc0' : '#e8c15a');
+    /* 성채는 **세로로 긴 배너**, 역참은 **가로로 넓은 작은 깃발** — 도형이 그랬다 */
+    if (kind === 'fort') { return { color: col, pole: 1.02, w: 0.22, flag: 0.34 }; }
+    return { color: col, pole: 0.95, w: 0.30, flag: 0.18 };
   }
 
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
@@ -468,17 +529,55 @@
     return model;
   }
 
-  /** 키 1 로 눕혀 담는다 */
-  function normalize(obj) {
+  /**
+   * 키 1 로 눕혀 담는다. `mul` 을 주면 그 키로 선다(`heightMul` 이 정한다).
+   *
+   * 눕힌 **뒤의 폭**을 껍데기에 적어 둔다 — 깃대를 건물 옆에 세우려면
+   * 이 건물이 얼마나 넓은지를 알아야 하는데, 탑(폭비 0.28)과 여관(1.15)이
+   * 네 배 넘게 차이 난다. 못박은 값을 쓰면 한쪽은 벽에 박히고 한쪽은 허공에 뜬다.
+   */
+  function normalize(obj, mul) {
     var t = three();
     var b = new t.Box3().setFromObject(obj);
     var f = fit({
       minX: b.min.x, maxX: b.max.x, minY: b.min.y, maxY: b.max.y, minZ: b.min.z, maxZ: b.max.z
     });
+    var m = mul || 1;
     var wrap = new t.Group();
-    obj.scale.setScalar(f.scale);
-    obj.position.set(f.dx, f.dy, f.dz);
+    obj.scale.setScalar(f.scale * m);
+    obj.position.set(f.dx * m, f.dy * m, f.dz * m);
+    wrap.userData.span = {
+      w: (b.max.x - b.min.x) * f.scale * m,
+      d: (b.max.z - b.min.z) * f.scale * m,
+      h: m
+    };
     wrap.add(obj);
+    return wrap;
+  }
+
+  /** 표식 깃발을 건물 옆에 세운다 — 규격은 `markOf` 가 정한다(순수) */
+  function addMark(wrap, mark) {
+    var t = three();
+    if (!t || !mark || !wrap) { return wrap; }
+    var span = (wrap.userData && wrap.userData.span) || { w: 1, d: 1, h: 1 };
+    var h = span.h || 1;
+    /* 앞을 가리지 않게 **옆 뒤쪽**에 세운다 — 도형 성채도 뒤 왼편에 꽂혀 있었다 */
+    var x = span.w / 2 + h * 0.07;
+    var z = -(span.d / 2) - h * 0.05;
+    var poleH = h * mark.pole;
+    var pole = new t.Mesh(
+      new t.CylinderGeometry(h * 0.013, h * 0.013, poleH, 5),
+      new t.MeshLambertMaterial({ color: 0x6b5533 })
+    );
+    pole.position.set(x, poleH / 2, z);
+    wrap.add(pole);
+    var fw = h * mark.w, fh = h * mark.flag;
+    var cloth = new t.Mesh(
+      new t.BoxGeometry(fw, fh, h * 0.008),
+      new t.MeshLambertMaterial({ color: new t.Color(mark.color) })
+    );
+    cloth.position.set(x + fw / 2, poleH - fh * 0.62, z);
+    wrap.add(cloth);
     return wrap;
   }
 
@@ -538,8 +637,10 @@
       try {
         model = cloneScene(c.gltf);
         pickPieces(model, ref);           // 부위 변형은 무리마다 하나씩만
-        model = normalize(model);
+        model = normalize(model, heightMul(kind, ref));
         applyTint(model, tintOf(kind, ref));
+        /* 건물은 물들이지 않는다(제 빛깔이 맞다) — 대신 **표식 깃발**을 얹는다 */
+        addMark(model, markOf(kind, ref));
       } catch (e) {
         shell.userData.assetState = 'fail';
         broke = (e && e.message) ? e.message : 'swap 실패';
@@ -623,6 +724,7 @@
     wants: wants, chain: chain, SLOTS: SLOTS,
     /* 이름·크기 맞추기 — 순수 함수 */
     normName: normName, score: score, mapClips: mapClips, fit: fit,
+    heightMul: heightMul, markOf: markOf,
     /* 세우기 — three 가 있어야 한다 */
     ready: function () { return !!three(); },
     hasLoader: function () { return !!loader(); },

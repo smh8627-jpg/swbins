@@ -3091,6 +3091,17 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         '바위는 철을 안 탄다';
     });
 
+    t('에셋 — 역참 여관은 마을에 안 선다 (헛걸음 막기)', function () {
+      /* 같은 `Inn.glb` 가 마을의 높은 집으로도 서면, 들판에서 여관 모양을 보고
+         역참인 줄 알고 걸어갔다가 그냥 남의 집이 된다 — 마을 목록에서 뺐다 */
+      var A = DG.asset3d;
+      A.restore();
+      var inn = A.urlOf('station', {});
+      var town = PR.urls();
+      return town.indexOf(inn) < 0 && /Inn\.glb$/.test(inn) &&
+        ('마을 소품 ' + town.length + '개에 ' + inn.split('/').pop() + ' 는 없다');
+    });
+
     t('에셋 — 나무만 그림자를 진다 (풀·바위까지 지면 그림자 지도가 넘친다)', function () {
       return PR.casts('tree') && PR.casts('pine') &&
         !PR.casts('rock') && !PR.casts('grass') &&
@@ -3279,6 +3290,120 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return A.tintOf('pet', AN.refOf(AN.KINDS.deer)) === null &&
         A.tintOf('building', {}) === null &&
         '인물만 물들인다';
+    });
+
+    /* ── 역참 · 성채 ─ 건물도 진짜 모델로 선다 ──────────
+     * 값을 내는 함수만 본다(three 없이 돈다) — 표 · 등급 · 키 · 표식 깃발.
+     */
+
+    t('에셋 — 역참은 여관 한 벌로 선다', function () {
+      var A = DG.asset3d;
+      A.restore();
+      var u = A.urlOf('station', { id: 'st_0,0#1' });
+      /* 우물·좌판을 섞지 않은 것이 요점이다 — 이 창고는 무엇이든 키 1 로 눕히므로
+         원본 키가 절반인 것을 섞으면 우물이 여관만 해진다 */
+      return /Inn\.glb$/.test(u) && A.chain('station', {}) === 'glb' &&
+        ('역참 ' + u.split('/').pop());
+    });
+
+    t('에셋 — 성채는 등급마다 다른 탑이 선다 (보 < 진 < 웅진)', function () {
+      var A = DG.asset3d;
+      A.restore();
+      var a = A.urlOf('fort', { id: 'ft_A', tier: 1 });
+      var b2 = A.urlOf('fort', { id: 'ft_A', tier: 2 });
+      var c2 = A.urlOf('fort', { id: 'ft_A', tier: 3 });
+      return a !== b2 && b2 !== c2 && a !== c2 && /Watchtower/.test(a) &&
+        ([a, b2, c2].map(function (u) { return u.split('/').pop(); }).join(' · '));
+    });
+
+    t('에셋 — 등급이 안 실려 와도 성채는 선다 (넓은 키로 떨어진다)', function () {
+      var A = DG.asset3d;
+      A.restore();
+      /* 옛 부름(`tier` 없음)에서도 화면이 비면 안 된다 */
+      return A.keysFor('fort', {}).join(',') === 'fort' &&
+        A.keysFor('fort', { tier: 3 }).join(',') === 'fort:t3,fort' &&
+        !!A.urlOf('fort', {}) && '등급 없으면 fort 한 줄로';
+    });
+
+    t('에셋 — 같은 성채는 늘 같은 탑이다 (id 해시)', function () {
+      var A = DG.asset3d;
+      A.restore();
+      var one = A.urlOf('fort', { id: 'ft_F3,7', tier: 2 });
+      var two = A.urlOf('fort', { id: 'ft_F3,7', tier: 2 });
+      /* 같은 등급 안에서도 둘로 갈린다 — 어느 쪽이든 늘 같아야 한다 */
+      var seen = {}, i;
+      for (i = 0; i < 40; i++) { seen[A.urlOf('fort', { id: 'ft_F' + i, tier: 2 })] = 1; }
+      return one === two && Object.keys(seen).length === 2 &&
+        ('진(鎭) 마흔 곳이 두 가지 탑으로');
+    });
+
+    t('에셋 — 키 1 위에 보태는 배수 (도형 키를 그대로 잇는다)', function () {
+      var A = DG.asset3d;
+      /* 도형 역참은 1.73m, 도형 성채는 2.64m 로 서 있었다(직접 재 봤다).
+         GLB 를 키 1 로 그대로 세우면 그만큼 쪼그라든다 */
+      var st = A.heightMul('station', {});
+      var f2 = A.heightMul('fort', { tier: 2 });
+      var f1 = A.heightMul('fort', { tier: 1 });
+      var f3 = A.heightMul('fort', { tier: 3 });
+      return Math.abs(st - 1.73) < 1e-6 && Math.abs(f2 - 2.64) < 1e-6 &&
+        f1 < f2 && f2 < f3 && A.heightMul('hero', {}) === 1 &&
+        A.heightMul('pet', {}) === 1 &&
+        ('역참 ' + st + ' · 성채 ' + f1.toFixed(2) + ' < ' + f2 + ' < ' + f3.toFixed(2));
+    });
+
+    t('에셋 — 손잡이를 내리면 옛 키로 돌아간다', function () {
+      var A = DG.asset3d;
+      C.setTune('asset3d.fortScale', 1);
+      var one = A.heightMul('fort', { tier: 2 });
+      C.setTune('asset3d.fortScale', null);
+      return one === 1 && A.heightMul('fort', { tier: 2 }) === 2.64 &&
+        'asset3d.fortScale = 1 → 키 1 그대로';
+    });
+
+    t('에셋 — 건물에는 표식 깃발이 다시 얹힌다', function () {
+      var A = DG.asset3d;
+      /* 받아 온 탑·여관에는 깃발이 없다. 그대로 갈아 끼우면 **성채가 어느
+         세력인지 화면에서 사라진다** — 모양을 얻고 뜻을 잃는 맞바꿈이 된다 */
+      var f2 = A.markOf('fort', { color: '#31609f' });
+      var st = A.markOf('station', { color: '#e8c15a' });
+      return f2 && st && f2.color === '#31609f' && st.color === '#e8c15a' &&
+        f2.flag > f2.w && st.w > st.flag &&
+        A.markOf('hero', {}) === null && A.markOf('pet', {}) === null &&
+        '성채는 세로 배너 · 역참은 가로 깃발 · 사람과 짐승에는 안 단다';
+    });
+
+    t('에셋 — 빛깔이 안 실려 와도 깃발은 선다', function () {
+      var A = DG.asset3d;
+      return A.markOf('fort', {}).color === '#8a5cc0' &&
+        A.markOf('station', {}).color === '#e8c15a' &&
+        '옛 기본 빛깔로 떨어진다';
+    });
+
+    t('에셋 — 깃발을 통째로 끌 수 있다 (되돌림 손잡이)', function () {
+      var A = DG.asset3d;
+      C.setTune('asset3d.mark', 0);
+      var off = A.markOf('fort', { color: '#31609f' });
+      C.setTune('asset3d.mark', null);
+      return off === null && !!A.markOf('fort', {}) && 'asset3d.mark = 0 → 깃발 없음';
+    });
+
+    t('성채 — 등급과 세력이 화면까지 이어진다', function () {
+      var F = DG.fort;
+      /* 화면(`world3d.fortStyle`)이 판정 층에 묻는 그 두 가지다.
+         성채마다 갈리는지, 같은 성채는 늘 같은지 */
+      var seen = {}, fac = {}, rx, ry;
+      for (rx = 0; rx < 6; rx++) {
+        for (ry = 0; ry < 6; ry++) {
+          var ft = { key: 'F' + rx + ',' + ry, rx: rx, ry: ry };
+          seen[F.tierOf(ft).tier] = 1;
+          fac[F.factionNameOf(ft)] = 1;
+        }
+      }
+      var one = { key: 'F2,3', rx: 2, ry: 3 };
+      return Object.keys(seen).length === 3 && Object.keys(fac).length >= 2 &&
+        F.tierOf(one).tier === F.tierOf(one).tier &&
+        F.factionNameOf(one) === F.factionNameOf(one) &&
+        ('서른여섯 곳에 등급 셋 · 세력 ' + Object.keys(fac).length + '가지');
     });
 
     /* ── 물 (water3d) ─ 수면이 실제로 움직인다 ─────────

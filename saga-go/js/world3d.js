@@ -1314,10 +1314,38 @@
     var fts = W.fortsNear ? W.fortsNear() : [];
     for (i = 0; i < fts.length; i++) {
       var ft = fts[i];
+      var fs = fortStyle(ft);
       var fa = actorOf('ft' + ft.key, 'building',
-        { key: 'wall', id: 'ft_' + ft.key, color: (ft.color || '#8a5cc0') }, 128);
+        { key: 'wall', id: 'ft_' + ft.key, color: ft.color || fs.color, tier: fs.tier }, 128);
       placeActor(fa, ft.x, ft.y, h * 2.4 * farBoost(ft.x, ft.y), 0, false, 0, now);
     }
+  }
+
+  /**
+   * 성채의 **겉모습** — 등급과 지키는 세력의 빛깔.
+   *
+   * 여태 성채는 화면에서 다 같았다(늘 보라색 배너에 같은 크기). 등급 셋(보·진·웅진)도
+   * 세력도 판정 층은 알고 있는데 화면이 안 물어봤을 뿐이다. 물어보고 나면
+   * **걸어가기 전에 멀리서 세기와 임자를 가늠**할 수 있다.
+   *
+   * **키로 캐시한다.** `factionNameOf` 는 도감 일흔을 훑으므로 프레임마다 부르면
+   * 안 된다. 같은 성채의 등급·세력은 늘 같으니(해시로 정해진다) 캐시가 맞다 —
+   * 점령 여부만 바뀌는데 그것은 여기서 안 쓴다.
+   */
+  var fortStyleCache = {};
+  function fortStyle(ft) {
+    if (fortStyleCache[ft.key]) { return fortStyleCache[ft.key]; }
+    var F = global.DG.fort, D = global.DG.data;
+    var o = { tier: 2, color: '#8a5cc0' };
+    try {
+      if (F && F.tierOf) {
+        o.tier = F.tierOf(ft).tier;
+        var fc = D && D.faction ? D.faction(F.factionNameOf(ft)) : null;
+        if (fc && fc.color) { o.color = fc.color; }
+      }
+    } catch (e) { /* 판정 층이 아직 없으면 옛 빛깔 그대로 — 화면은 안 빈다 */ }
+    fortStyleCache[ft.key] = o;
+    return o;
   }
 
   /* ── 조우 연출 ────────────────────────────────────────────

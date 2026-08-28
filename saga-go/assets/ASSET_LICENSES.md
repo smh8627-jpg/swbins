@@ -59,13 +59,31 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 셋 다 뼈대 애니메이션을 열두어 개씩 들고 있다(Idle · Walk · Gallop · Eating …).
 `asset3d.js` 의 `mapClips` 가 이름을 씻어 자리에 맞춘다.
 
-`models/buildings/` — 마을. `js/prop3d.js` 가 `InstancedMesh` 로 세운다
+`models/buildings/` — 마을은 `js/prop3d.js` 가 `InstancedMesh` 로,
+**역참·성채는 `js/asset3d.js` 가 배우로** 세운다. 같은 파일이 양쪽에 걸려 있다
 
 | 파일 | 쓰이는 곳 |
 |---|---|
-| `House_1·2·3·4.glb` · `Blacksmith.glb` | 민가 (`house`) |
-| `Inn.glb` · `Tower.glb` · `PointyTower.glb` · `LargeTower.glb` · `Watchtower.glb` | 높은 집 (`tower`) |
-| `Well.glb` · `MarketStand_1.glb` · `LargeSquareTowerBricks.glb` | 아직 안 걸었다 — 우물·역참·성채 자리를 볼 때 쓴다 |
+| `House_1·2·3·4.glb` · `Blacksmith.glb` | 민가 (`prop3d` 의 `house`) |
+| `Tower.glb` · `PointyTower.glb` · `LargeTower.glb` · `Watchtower.glb` · `LargeSquareTowerBricks.glb` | 마을의 높은 집 (`prop3d` 의 `tower`) |
+| `Inn.glb` | **역참** (`asset3d` 의 `station`) |
+| `Watchtower.glb` | **성채 1등급 · 보(堡)** (`asset3d` 의 `fort:t1`) |
+| `Tower.glb` · `PointyTower.glb` | **성채 2등급 · 진(鎭)** (`fort:t2`) |
+| `LargeTower.glb` · `LargeSquareTowerBricks.glb` | **성채 3등급 · 웅진(雄鎭)** (`fort:t3`) |
+| `Well.glb` · `MarketStand_1.glb` | 아직 안 걸었다 — 우물·좌판 자리를 볼 때 쓴다 |
+
+**`Inn.glb` 는 마을 목록에서 뺐다.** 그 여관이 이제 역참이다 — 마을에도 같은 여관이
+서면, 들판에서 여관 모양을 보고 역참인 줄 알고 걸어갔다가 그냥 남의 집이 된다.
+
+**역참에 우물·좌판을 섞지 않은 까닭.** `asset3d` 는 무엇이든 **키 1 로 눕히고**
+(`normalize`) 세우는 쪽이 배율을 준다. 그런데 원본 키가 여관 3.49m · 우물 1.25m ·
+좌판 1.05m 로 **셋에 하나까지 차이 난다** — 한 줄에 섞으면 우물이 여관만 해진다.
+**키가 비슷한 것끼리만 한 줄에 묶는다.**
+
+**받아 온 탑·여관에는 깃발이 없다.** 도형으로 세우던 역참에는 노란 깃발이,
+성채에는 세력 빛깔 배너가 달려 있었고 **그것이 멀리서 알아보는 유일한 표식**이었다.
+그대로 갈아 끼우면 성채가 어느 세력인지 화면에서 사라지므로, `asset3d.markOf` ·
+`addMark` 가 깃발만 다시 얹는다(손잡이 `asset3d.mark` 를 0 으로 내리면 안 얹는다).
 
 `models/people/` — 인물. `js/asset3d.js` 표의 `hero` 한 줄이 다 받는다
 

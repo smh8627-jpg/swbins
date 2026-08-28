@@ -103,9 +103,14 @@
       all: [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb',
             BLD + 'House_4.glb', BLD + 'Blacksmith.glb']
     },
+    /* 마을의 높은 집. **`Inn.glb` 를 여기서 뺐다** — 그 여관이 이제
+       `asset3d` 의 **역참**이다(2026-08-28). 마을에도 같은 여관이 서면
+       들판에서 여관 모양을 보고 역참인 줄 알고 걸어갔다가 그냥 남의 집이 된다.
+       역참은 들판에 홀로 서고 깃발이 있다 — 그 규칙을 깨끗하게 두려고 뺐다.
+       대신 남은 탑 하나(`LargeSquareTowerBricks`)를 넣어 가짓수를 지켰다 */
     tower: {
-      all: [BLD + 'Inn.glb', BLD + 'Tower.glb', BLD + 'PointyTower.glb',
-            BLD + 'LargeTower.glb', BLD + 'Watchtower.glb']
+      all: [BLD + 'Tower.glb', BLD + 'PointyTower.glb', BLD + 'LargeTower.glb',
+            BLD + 'Watchtower.glb', BLD + 'LargeSquareTowerBricks.glb']
     }
   };
 

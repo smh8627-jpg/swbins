@@ -20,6 +20,7 @@
     #dark    도감의 암영 칸(정화 대기)
     #perf    프레임 측정
     #people 인물 여섯을 코앞에 한 줄로 세운다 (몸·차림·빛깔 확인용)
+    #stands 역참 둘과 성채 셋(보·진·웅진)을 한 화면에 세운다 (건물 모델 확인용)
     #zoom=1 카메라를 당겨 배우를 크게 본다 (사람 모델 확인용)
     #noglb  실제 GLB 에셋을 끄고 옛 도형으로 견줘 본다 (나무·바위·짐승)
     #noao   맞닿은 자리의 그늘(SSAO)을 끄고 견줘 본다
@@ -427,6 +428,63 @@ setTimeout(function () {
     setTimeout(function () {
       var n = document.getElementById('near');
       if (n) { n.style.display = 'none'; }
+    }, 300);
+  }
+  /* 역참·성채를 코앞에 세워 놓고 본다 — `#stands`.
+     이 둘은 구역마다 하나씩이라 **걸어서 만나려면 한참 걸리고**, 성채는 등급 셋이
+     다 나오려면 더 걸린다. 그래서 `#people` 과 같은 뜻의 자리를 따로 둔다 —
+     역참 둘과 등급 셋의 성채를 한 화면에 세운다.
+
+     좌표는 `world.js` 가 해시로 정하므로 옮길 수 없다. 대신 **화면이 묻는 문**
+     (`stationsNear` · `fortsNear`)만 데모 것으로 바꾼다 — 판정 층은 그대로 돈다.
+     등급은 `tierOf` 를 감싸 못박는다(성채 키에 `demoTier` 를 적어 둔다). */
+  if (hash.indexOf('stands') >= 0) {
+    var Wd = DG.world, Ft = DG.fort;
+    /* `#stands,zoom=1.6` 처럼 붙이면 더 당겨 깃발까지 들여다볼 수 있다 */
+    var zmS = /zoom=([\d.]+)/.exec(hash);
+    var standsZoom = zmS ? Math.max(0.7, Math.min(9, parseFloat(zmS[1]))) : 3;
+    var realTier = Ft.tierOf;
+    Ft.tierOf = function (f) {
+      return (f && f.demoTier) ? Ft.TIERS[f.demoTier - 1] : realTier(f);
+    };
+    var standsMk = function () {
+      var p2 = C.save.player.pos;
+      /* **45m 안에 세운다.** 역참은 키 10m · 웅진 성채는 27m 라 코앞에 두면 화면을
+         뚫고 올라가는데, 뒤로 물리는 것으로는 안 작아진다 — `farBoost` 가 45m
+         (`FAR_NEAR`) 밖의 배우를 **화면에서 같은 크기로** 붙들기 때문이다.
+         그 문턱 안이라야 원근이 살아난다. 그래서 뒤가 아니라 **옆으로** 벌린다 */
+      var sts2 = [0, 1].map(function (i2) {
+        return { key: 'DS' + i2, dist: 30,
+                 x: p2.x + (i2 - 0.5) * 15, y: p2.y - 30, name: '데모 역참 ' + (i2 + 1) };
+      });
+      var fts2 = [1, 2, 3].map(function (i2) {
+        return { key: 'DF' + i2, rx: i2 * 3, ry: 1, demoTier: i2, dist: 42,
+                 x: p2.x + (i2 - 2) * 17, y: p2.y - 42, name: '데모 성채 ' + i2 };
+      });
+      Wd.stationsNear = function () { return sts2; };
+      Wd.fortsNear = function () { return fts2; };
+      /* **여기서 다시 넣는다.** 한 번만 넣으면 부팅 뒤의 설정이 덮어 버린다
+         (`#people` 이 같은 이유로 타이머 안에서 줌을 다시 넣는다) */
+      C.save.settings.zoom3d = standsZoom;
+    };
+    standsMk();
+    setInterval(standsMk, 300);
+    /* 나무를 걷어 낸다. 건물을 보는 자리인데 숲이 앞을 가리기도 하고,
+       **헤드리스가 소프트웨어 렌더러**라 나무 수백 그루를 얹으면 한 장 굽는 데
+       몇 분이 걸린다(`prop3d` 절에 적어 둔 그 함정) */
+    C.setTune('world3d.density', 0.1);
+    /* **이 장면에서만 배우 키를 낮춘다.** 역참은 10m · 웅진 성채는 27m 라
+       실제 크기로는 다섯이 한 화면에 절대 안 들어온다(카메라를 끝까지 빼도
+       화면 위쪽은 UI 다). 낮추면 **다 같은 비율로** 작아지므로 등급 사이의
+       크기 차이는 그대로 남는다 — 여기서 볼 것이 그것이다.
+       **실제 게임에서 보이는 크기가 아니다.** 그건 `#station` · `#fort` 로 본다 */
+    C.setTune('world3d.actorH', 1.15);
+    C.save.settings.zoom3d = standsZoom;
+    W.resize();
+    /* 근처 대상 카드가 건물을 가린다 — `#people` 과 같이 접어 둔다 */
+    setTimeout(function () {
+      var n2 = document.getElementById('near');
+      if (n2) { n2.style.display = 'none'; }
     }, 300);
   }
   if (hash.indexOf('noglb') >= 0) { C.setTune('prop3d.on', 0); C.setTune('world3d.glb', 0); }
