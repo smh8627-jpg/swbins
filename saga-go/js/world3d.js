@@ -1475,6 +1475,14 @@
     if (duelFoe) {
       var dfa = actorOf('duelfoe', duelFoe.kind, duelFoe.ref, 96);
       placeActor(dfa, duelFoe.x, duelFoe.y, h * (duelFoe.kind === 'pet' ? 0.86 : 1), 0, false, 0, now);
+      /* 상대는 **나를 마주 본다.** 걷지 않으니 `placeActor` 의 진행-방향 회전으로는
+         절대 안 돌아간다 — 새로 세운 순간의 기본값(뒤짐, PLAN 49절)이 그대로
+         남아 계속 등을 보이게 된다. 야생 대상의 무대 회전(위 `onStage`)과 같은 계산 */
+      if (dfa.mesh) {
+        var fax = pos.x - duelFoe.x, faz = pos.y - duelFoe.y;
+        dfa.node.rotation.y = Math.atan2(fax, faz);
+        dfa.ang = dfa.node.rotation.y;
+      }
     }
 
     /* 야생 대상 */
@@ -1627,11 +1635,40 @@
    * 상대는 `spawns` 목록에 없는 임시 배우라 `syncActors()` 가 따로 먹여야 한다. */
   var duelFoe = null;      // {kind, ref, x, y} — 없으면 교전 중이 아니거나 3D 상대가 없다
 
-  /** 상대를 세운다 — `x, y` 는 나에게서 6m 남쪽(`battle3d.spot()` 과 같은 자리) */
+  /** 이 자리가 집 몸통 안인가 — `world.js` 의 `hitsHouse` 와 같은 계산이지만
+      독립된 사본이다(world3d 가 world.js 를 되받아 부르지 않게 한다).
+      교전 상대를 세울 때만 쓰므로 여유를 조금 더 준다(발이 벽에 파묻히지 않게) */
+  function duelSpotBlocked(x, y) {
+    var gx0 = Math.floor(x / GRID), gy0 = Math.floor(y / GRID), gx, gy, rs, i, r;
+    for (gy = gy0 - 1; gy <= gy0 + 1; gy++) {
+      for (gx = gx0 - 1; gx <= gx0 + 1; gx++) {
+        rs = houseRects(gx, gy);
+        for (i = 0; i < rs.length; i++) {
+          r = rs[i];
+          var dx = x - r.x, dz = y - r.z;
+          var c = Math.cos(r.rot), s = Math.sin(r.rot);
+          var lx = dx * c + dz * s, lz = -dx * s + dz * c;
+          if (Math.abs(lx) < r.w / 2 + 1 && Math.abs(lz) < r.d / 2 + 1) { return true; }
+        }
+      }
+    }
+    return false;
+  }
+
+  /** 상대를 세운다 — `x, y` 는 나에게서 6m 남쪽(`battle3d.spot()` 과 같은 자리)이
+      먼저다. 그 자리가 집 안이면(마을 한복판에서 걸린 사건) 부채꼴로 돌며
+      가장 가까운 트인 자리를 대신 쓴다 — 안 그러면 상대가 벽 뒤에 완전히
+      가려진다(2026-08-30, 실기기 확인 중 발견) */
   function duelStage(kind, ref) {
     if (!kind || !ref) { return false; }
     var pos = core.save.player.pos;
-    duelFoe = { kind: kind, ref: ref, x: pos.x, y: pos.y - 6 };
+    var OFF = [[0, -6], [-6, -6], [6, -6], [-6, 0], [6, 0], [0, 6], [-6, 6], [6, 6]];
+    var fx = pos.x + OFF[0][0], fy = pos.y + OFF[0][1], i;
+    for (i = 0; i < OFF.length; i++) {
+      var tx = pos.x + OFF[i][0], ty = pos.y + OFF[i][1];
+      if (!duelSpotBlocked(tx, ty)) { fx = tx; fy = ty; break; }
+    }
+    duelFoe = { kind: kind, ref: ref, x: fx, y: fy };
     focusAt = { x: duelFoe.x, y: duelFoe.y };
     return true;
   }
@@ -1740,13 +1777,30 @@
       거리는 **상대 키에 비례**한다: 사람과 물뿜이를 같은 자리에서 보면
       하나는 얼굴이 화면을 채우고 하나는 발치에 놓인다 */
   function STAGE_DIST() { return core.tuned('world3d.stageDist', 10.5); }
+  /** 교전 상대가 실제로 서 있을 때(`duelFoe`) 카메라가 다가서는 거리 —
+      `stage` 보다 낮고 옆에서 본다(둘 다 한 화면에 담아야 한다) */
+  function DUEL_DIST() { return core.tuned('world3d.duelDist', 9); }
 
-  function camAim(pos, mode, focus, stage, zoom, battle, yaw) {
+  function camAim(pos, mode, focus, stage, zoom, battle, yaw, duel) {
     var z = (zoom === undefined || !isFinite(zoom) || zoom <= 0) ? 1 : zoom;
     var yw = yaw || 0;
     /* 교전이 열리면 **약간 줌인**한다(PLAN 23절). 무대(stage)처럼 자리를 통째로
        옮기지는 않는다 — 싸움은 내가 선 자리에서 벌어지고, 카메라만 다가선다 */
     if (battle) { z = z * 0.62; }
+    if (!stage && duel) {
+      /* 실제 상대가 3D 로 서 있으면(`world3d.duelStage()`) **둘을 옆에서 가까이**
+         담는다 — 위에서 내려다보는 기본 구도로는 화면 한복판의 카드에 다 가려진다.
+         무대(`stage`)의 "무릎께" 구도와 달리 상대가 아니라 **둘 사이**를 축으로 삼는다 */
+      var mx = (pos.x + duel.x) / 2, my = (pos.y + duel.y) / 2;
+      var ddx = duel.x - pos.x, ddy = duel.y - pos.y;
+      var dlen = Math.max(0.5, Math.hypot(ddx, ddy));
+      var px = -ddy / dlen, pz = ddx / dlen;   // 둘을 잇는 선에 수직 — 옆에서 본다
+      var DD = DUEL_DIST();
+      return {
+        pos: { x: mx + px * DD, y: DD * 0.55, z: my + pz * DD },
+        look: { x: mx, y: 2.2, z: my }
+      };
+    }
     if (stage) {
       /* 나와 대상을 잇는 선 위에서, **대상 쪽에서 나를 향해** 물러선 자리다.
          무대에서는 시점 모드를 안 본다 — 조우는 어느 시점에서 열었든 같은 그림이어야 한다 */
@@ -1794,7 +1848,7 @@
     var pos = core.save.player.pos;
     /* 조우 무대에서는 줌을 무시한다 — 무대는 늘 같은 그림이어야 한다 */
     var aim = camAim(pos, W.tiltMode, focusLive(), stageAt,
-      stageAt ? 1 : W.zoom3d, battleOn, stageAt ? 0 : yaw);
+      stageAt ? 1 : W.zoom3d, battleOn, stageAt ? 0 : yaw, duelFoe);
     /* **카메라와 시선도 땅을 따라 오른다.** 안 그러면 산에 오를 때 카메라가
        제자리에 남아 땅이 화면을 덮고, 골짜기에서는 하늘만 보인다.
        `camAim` 은 평면 기준으로 값을 내므로 여기서 땅 높이만 얹는다 —

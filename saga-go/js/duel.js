@@ -245,6 +245,12 @@
     meta = o;
     doneCb = o.onDone || null;
     el.classList.add('show');
+    /* 실제 3D 상대가 설 수 있을 때만 카드를 얇게 걷는다 — `battle3d.js` 의
+       `duel:open` 처리가 이 값을 보고 `world3d.duelStage()` 를 부른다(같은 조건).
+       3D 가 꺼져 있으면(WebGL 없음 등) 그대로 두어야 무대가 텅 빈 채로 카드만
+       얇아지는 일이 없다 */
+    var W3 = global.DG.world3d;
+    el.classList.toggle('duel3d', !!(o.stage3d && W3 && W3.available && W3.available()));
     paint();
     bind();
     loop();
@@ -438,7 +444,7 @@
     p.folded = fold(cur);
     var cb = doneCb;
     cur = null; doneCb = null; meta = null;
-    if (el) { el.innerHTML = ''; }
+    if (el) { el.innerHTML = ''; el.classList.remove('duel3d'); }
     core.emit('duel:close', p);
     if (cb) { cb(p); }
   }

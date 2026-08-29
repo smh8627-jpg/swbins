@@ -410,6 +410,23 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 #encounter.show { display: flex; animation: fade .18s ease-out; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
+/* 교전에 실제 3D 상대가 섰을 때(`duel.js` `open()` 이 `duel3d` 를 붙인다) —
+   무대가 카드 뒤에 있으니 어둡게+흐리게 덮으면 아무 뜻이 없다. 아래로
+   붙여 HUD 처럼 만들고, 배경은 거의 그대로 비친다(2026-08-30) */
+#encounter.duel3d {
+  align-items: flex-end;
+  background: rgba(6,8,12,.16);
+  backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px);
+}
+#encounter.duel3d .duel {
+  background: rgba(20,22,28,.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  margin-bottom: 4px;
+}
+/* 초상 둘은 이제 실제 배우가 대신한다 — 카드 안에 남겨 두면 같은 싸움이
+   둘로 겹쳐 보인다. 피해 숫자·강타 예고(`#d-pops`·`#d-tell`)는 정보라 남긴다 */
+#encounter.duel3d .d-unit, #encounter.duel3d .d-name { display: none; }
+#encounter.duel3d .duel-arena { height: 46px; background: none; margin: 0 0 2px; }
+
 .enc-card {
   width: 100%; max-width: 420px; border-radius: var(--r-lg); padding: 20px;
   background: rgba(24,27,34,.94); border: 1px solid var(--glass-br);
