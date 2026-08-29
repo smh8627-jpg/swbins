@@ -1656,7 +1656,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     t('조명 — 한낮이 한밤보다 밝다', function () {
       var noon = R3.lightingAt(atH(12), 'clear');
       var mid = R3.lightingAt(atH(0), 'clear');
-      return noon.sun.intensity > mid.sun.intensity * 2 &&
+      /* 밤 최저치를 세 번 올린 끝에 대비가 2배→1.1배까지 줄었다(2026-08-29) —
+         사용자가 실기기에서 밤이 안 보인다고 세 번 지적해, 결국 낮과 거의
+         같은 밝기로 가고 밤의 정체성은 색·안개로만 남기기로 했다 */
+      return noon.sun.intensity > mid.sun.intensity * 1.1 &&
         noon.hemi.intensity > mid.hemi.intensity &&
         R3.lum(noon.bg) > R3.lum(mid.bg) * 2 &&
         ('해 ' + noon.sun.intensity.toFixed(2) + ' vs ' + mid.sun.intensity.toFixed(2) +

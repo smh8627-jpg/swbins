@@ -27,7 +27,7 @@
 
   var T = null;                 // THREE (없으면 이 모듈은 통째로 잠든다)
   var renderer = null, scene = null, camera = null;
-  var sun = null, sky = null, lantern = null;
+  var sun = null, sky = null;
   var groundGroup = null, propGroup = null, actorGroup = null, fxGroup = null;
   var tileMeshes = {};          // 지면 타일 { key: Mesh }
   var propMeshes = {};          // 건물·나무 { key: Object3D }
@@ -155,17 +155,19 @@
       hour: hour, alt: alt, phase: phase, night: phase === 'night',
       sun: {
         hex: pick('sun'),
-        /* 밤 최저치를 0.28→0.65 로 올렸다(2026-08-29) — 낮 정점(1.63)은 그대로 두고
-           바닥만 든다. 원래 값은 밤에 배우·집이 실기기에서 거의 안 보일 만큼
-           어두웠다(사용자가 발견) — Lambert 재질은 빛이 약하면 그대로 죽는다 */
-        intensity: 0.65 + Math.max(0, alt) * 0.98,
+        /* 밤 최저치 — 0.28→0.65→1.0 을 거쳐 1.4 까지 올렸다(2026-08-29, 세 번째
+           손질). 사용자가 실기기로 세 번 다 "아직 어둡다"고 확인해, 결국 **낮과
+           거의 비슷하게** 가기로 했다 — 밤의 정체성은 이제 조명 세기가 아니라
+           `pick()` 이 섞는 색(달빛 톤)과 안개 거리로만 남는다.
+           `_test.html` 문턱도 같이 낮췄다(2배→1.1배) */
+        intensity: 1.4 + Math.max(0, alt) * 0.23,
         /* 해는 동(-x)에서 떠 서(+x)로 진다. 밤에는 달이 반대쪽에 뜬 셈 친다 */
         x: -Math.cos((hour - 6) / 12 * Math.PI) * 120,
         y: 40 + Math.abs(alt) * 110,
         z: -70 - Math.max(0, alt) * 40
       },
-      /* 밤 최저치를 0.52→0.85 로 올렸다 — 위 sun 과 같은 이유·같은 날 */
-      hemi: { sky: pick('hemiSky'), ground: pick('hemiGnd'), intensity: 0.85 + k * 0.62 },
+      /* 밤 최저치 — 위 sun 과 같은 이유·같은 세 번의 손질(0.52→0.85→1.2) */
+      hemi: { sky: pick('hemiSky'), ground: pick('hemiGnd'), intensity: 1.2 + k * 0.27 },
       bg: pick('sky'),
       tint: pick('tint'),
       fog: { near: 90 + k * 170, far: 320 + k * 440 },
@@ -278,11 +280,9 @@
     sun.shadow.bias = -0.0012;
     scene.add(sun);
     scene.add(sun.target);
-    /* 등롱 — 밤에만 켜지는 작은 불 하나가 플레이어를 따라다닌다.
-       해가 지면 배우가 실루엣으로만 남아 누군지 안 보인다(원작의 밤 화면도
-       아바타 둘레만 환하다). 그림자는 안 만든다 — 빛 하나에 그림자 맵이 하나 더 붙는다 */
-    lantern = new T.PointLight(0xffd9a0, 0, 34, 1.6);
-    scene.add(lantern);
+    /* 배우를 따라다니며 머리 위에 뜨던 등롱 불빛은 뺐다(2026-08-29) — 사용자가
+       실기기에서 허공에 뜬 빛 덩이로 보인다고 지적했다. 밤 자체가 이제
+       충분히 밝아(위 lightingAt 의 최저치) 따로 안 켜도 배우가 묻히지 않는다 */
 
     /* 후처리 — 톤매핑·블룸·색보정 (`post3d.js`, 그래픽 보강 16~18절).
        **렌더러를 만든 직후 켜야 한다** — 여기서 `toneMapping` 을 한 번 켜 두면
@@ -1710,8 +1710,6 @@
     sky.color.setHex(L.hemi.sky);
     sky.groundColor.setHex(L.hemi.ground);
     sky.intensity = L.hemi.intensity;
-    lantern.position.set(pos.x, 4.2, pos.y);
-    lantern.intensity = L.lamp * 2.6;
     if (scene.background && scene.background.setHex) { scene.background.setHex(L.bg); }
     renderer.setClearColor(L.bg, 1);
     if (scene.fog) {
