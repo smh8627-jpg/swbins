@@ -686,7 +686,17 @@
         var fd = 9 + h1(gy + i, gx + i * 5) * 8;
         out.push({ t: 'field', x: ds.x, z: ds.z, w: fw, d: fd,
                    rot: h1(gx * 5 + i, gy * 7 + i) * 0.5 - 0.25 });
-
+        /* **벼를 심는다.** 뙈기 안에 골고루 — 가운데로 몰면 논이 빈 채로 보인다.
+           못 받으면 벼만 안 서고 논은 그대로다(되돌림이 저절로 된다) */
+        var rn = Math.round(5 * dens), rj;
+        for (rj = 0; rj < rn; rj++) {
+          var ra = h1(gx * 7 + rj * 5 + i, gy * 11 + rj * 3 + i * 2);
+          var rb = h1(gx * 13 + rj * 3 + i * 7, gy * 5 + rj * 11 + i);
+          out.push({ t: 'rice',
+                     x: ds.x + (ra * 2 - 1) * fw * 0.36,
+                     z: ds.z + (rb * 2 - 1) * fd * 0.36,
+                     h: 1.4 + ra * 0.7 });
+        }
       }
       if (h1(gx * 17 + 3, gy * 13 + 5) > 0.5) {
         var cs = spot(150);
@@ -909,7 +919,7 @@
     var GLB = { tree: 'tree', rock: 'rock', grass: 'grass', reed: 'grass',
                 house: 'house', tower: 'tower',
                 peak: 'peak', lamp: 'lamp', shrine: 'shrine', cave: 'cave',
-                ruin: 'ruin', bridge: 'bridge' };
+                ruin: 'ruin', bridge: 'bridge', rice: 'rice' };
     if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
                             gy + Math.round(p.z), p.rot)) {
       return true;
@@ -1025,14 +1035,18 @@
         fld.receiveShadow = true;
         /* 두렁은 **테두리**다. 한 덩이로 덮으면 논이 그 밑에 깔려 흙판만 보인다
            (눈으로 보고 알았다) — 네 변만 두른다 */
+        /* **이름을 `lox`·`loz` 로 둔 까닭** — 여기서 `ox`·`oz` 를 쓰면 `var` 가
+           함수 범위라 이 함수 맨 위의 **격자 원점**(`ox`·`oz`)을 통째로 덮어쓴다.
+           그러면 이 논 뒤에 오는 소품이 전부 원점 근처(9, 0)로 끌려가 사라진다 —
+           벼가 안 서던 것이 이것이었다(2026-08-29에 잡았다) */
         var lw = 1.1, li;
         for (li = 0; li < 4; li++) {
           var ax = li < 2 ? p.w + lw : lw, az = li < 2 ? lw : p.d + lw;
-          var ox = li === 0 ? 0 : (li === 1 ? 0 : (li === 2 ? -(p.w + lw) / 2 : (p.w + lw) / 2));
-          var oz = li === 0 ? -(p.d + lw) / 2 : (li === 1 ? (p.d + lw) / 2 : 0);
+          var lox = li === 0 ? 0 : (li === 1 ? 0 : (li === 2 ? -(p.w + lw) / 2 : (p.w + lw) / 2));
+          var loz = li === 0 ? -(p.d + lw) / 2 : (li === 1 ? (p.d + lw) / 2 : 0);
           var lv = box(g, 'box', pmat(0x7a6f57), 0, 0.20, 0, ax, 0.22, az, false);
-          lv.position.set(p.x + Math.cos(p.rot) * ox - Math.sin(p.rot) * oz, 0.20,
-                          p.z + Math.sin(p.rot) * ox + Math.cos(p.rot) * oz);
+          lv.position.set(p.x + Math.cos(p.rot) * lox - Math.sin(p.rot) * loz, 0.20,
+                          p.z + Math.sin(p.rot) * lox + Math.cos(p.rot) * loz);
           lv.rotation.y = p.rot;
         }
       } else if (p.t === 'scare') {
