@@ -845,12 +845,20 @@
   }
 
   /**
-   * 이 칸에 선 집·높은 집의 충돌 사각형 — `world.js` 의 벽 충돌이 쓴다(PLAN 27절).
+   * 이 칸에 선 **집·높은 집·우물·장터**의 충돌 사각형 — `world.js` 의 벽 충돌과
+   * 교전 무대(`duelStage`·`camAim` 의 `duel` 구도)가 함께 쓴다(PLAN 27절,
+   * 2026-08-30 우물·장터로 넓힘).
    *
    * **판정에 화면 값을 들이는 유일한 자리다.** 이 저장소는 여태 "화면은 판정에
    * 안 닿는다"를 지켜 왔지만(땅의 높낮이·손으로 그린 강 등), 벽 충돌만은 **눈에
-   * 보이는 그 집과 어긋나면 의미가 없다** — 사용자가 직접 고른 값이다(2026-08-29).
+   * 보이는 그 소품과 어긋나면 의미가 없다** — 사용자가 직접 고른 값이다(2026-08-29).
    * `propPlan` 은 순수 함수이므로 여기서도 **같은 좌표·같은 크기**가 나온다.
+   *
+   * 우물·장터는 `w`·`d`(가로·세로)가 따로 없다 — 크기가 아니라 `h`(키)만 갖고
+   * 도는 소품이라, 실제 GLB 모델 발판 크기에 가깝게 `h` 에서 어림잡는다.
+   * 정확한 값은 아니지만(모델 자체를 재지는 않는다), **집이 아닌 것에도
+   * 카메라·발이 박히던 문제**(2026-08-30, 밀집 마을에서 교전 카메라가 우물/
+   * 장터에 박힌 것을 실제로 찍어서 발견했다)를 없애는 데는 이 정도로 충분하다.
    */
   function houseRects(gx, gy) {
     var plan = propPlan('town', gx, gy, false);
@@ -860,6 +868,10 @@
       var p = plan[i];
       if (p.t === 'house' || p.t === 'tower') {
         out.push({ x: ox + p.x, z: oz + p.z, w: p.w, d: p.d, rot: p.rot });
+      } else if (p.t === 'well') {
+        out.push({ x: ox + p.x, z: oz + p.z, w: p.h * 1.6, d: p.h * 1.6, rot: 0 });
+      } else if (p.t === 'market') {
+        out.push({ x: ox + p.x, z: oz + p.z, w: p.h * 2.8, d: p.h * 1.8, rot: p.rot || 0 });
       }
     }
     return out;
@@ -1803,7 +1815,8 @@
          (2026-08-30, 실기기 대신 스크린샷으로 확인하다 발견 — 벽 속에서
          찍은 듯한 그림이 떴다). 반대편을 대신 써 보고, 그마저 막히면 낮게
          깔지 않고 기본 카메라처럼 높이 물러난다(막힌 벽보다 먼 그림이 낫다) */
-      var CAM_MARGIN = 3.5;    // 카메라는 벽에서 이만큼은 떨어져야 근접 절단면이 안 보인다
+      var CAM_MARGIN = 7;      // 카메라는 벽에서 이만큼은 떨어져야 근접 절단면이 안 보인다
+                                // (지붕은 벽보다 넓게 튀어나오므로 바닥 사각형만으론 부족하다 — 넉넉히 잡는다)
       var side1 = { x: mx + px * DD, z: my + pz * DD };
       var side2 = { x: mx - px * DD, z: my - pz * DD };
       var pick = !duelSpotBlocked(side1.x, side1.z, CAM_MARGIN) ? side1 :
@@ -1811,8 +1824,21 @@
       if (pick) {
         return { pos: { x: pick.x, y: DD * 0.55, z: pick.z }, look: { x: mx, y: 2.2, z: my } };
       }
+      /* 마을 한복판이 너무 빽빽해 양옆 다 막히면(2026-08-30, 실제로 찍어서
+         걸린 자리를 재현했다 — 낮은 재시도까지 벽에 박혔다) **낮게 다가서는
+         것 자체를 포기한다.** 아래 `focus` 구도(늘 안전하다고 확인된, 멀리서
+         내려다보는 그림)를 그대로 따라 쓴다 — 상대(`duel`)를 `focus` 자리로
+         그대로 꽂아 넣는다 */
+      var dback = CAM_DIST() * CAM_BACK_MUL[mode] * z;
+      var dhigh = CAM_HIGH() * CAM_HIGH_MUL[mode] * Math.pow(z, 1.12);
+      var fdx = duel.x - pos.x, fdy = duel.y - pos.y;
+      var flen = Math.max(1, Math.hypot(fdx, fdy));
+      var fux = fdx / flen, fuy = fdy / flen;
+      var fspan = Math.min(dback * 2.2, Math.max(dback, flen * 0.9));
       return {
-        pos: { x: mx + px * DD * 1.8, y: DD * 1.8, z: my + pz * DD * 1.8 },
+        pos: { x: pos.x - fux * fspan * 0.7 - fuy * fspan * 0.45,
+               y: dhigh * 0.72,
+               z: pos.y - fuy * fspan * 0.7 + fux * fspan * 0.45 },
         look: { x: mx, y: 2.0, z: my }
       };
     }
