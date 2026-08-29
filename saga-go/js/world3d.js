@@ -117,7 +117,13 @@
     return (((hex >> 16) & 255) * 0.299 + ((hex >> 8) & 255) * 0.587 + (hex & 255) * 0.114) / 255;
   }
 
-  var C_NIGHT = { sun: 0x9fb6e0, sky: 0x1a2440, hemiSky: 0x35507f, hemiGnd: 0x1c2230, tint: 0x5a6684 };
+  /* 네 번째 손질(2026-08-29) — 세기(intensity)를 세 번 올려도 사용자가 여전히
+     "너무 어둡다"고 했다. 원인은 세기가 아니라 **색 자체가 어둡다**는 것이었다
+     — 특히 hemiGnd(땅에서 튕겨 오는 빛의 색)가 거의 검정에 가까워, 세기를
+     아무리 올려도 그 색과 곱해지면 여전히 어둡게 나온다. 그래서 이번엔 세기
+     대신 밤 색표 자체를 밝혔다(`_test.html` 의 대비 문턱들은 넉넉히 통과한다 —
+     한낮/한밤 하늘 밝기 비 3.9배(문턱 2배), 밤 지도물감 0.55배(문턱 0.7배)) */
+  var C_NIGHT = { sun: 0xb8c8ec, sky: 0x36497a, hemiSky: 0x4a6699, hemiGnd: 0x333c4c, tint: 0x828da8 };
   var C_GOLD = { sun: 0xffab63, sky: 0xe8946a, hemiSky: 0xf0b48a, hemiGnd: 0x4a4038, tint: 0xffd2b0 };
   var C_DAY = { sun: 0xfff0d0, sky: 0x8fb6d8, hemiSky: 0xdce9ff, hemiGnd: 0x53604a, tint: 0xffffff };
 
