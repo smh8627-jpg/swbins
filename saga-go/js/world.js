@@ -171,6 +171,59 @@
   }
 
   /**
+   * 벽 충돌 — 마을의 집·높은 집과 부딪히면 못 지나간다(PLAN 27절, 2026-08-29,
+   * 사용자가 실기기로 발견: "벽이라는 개념이 없네").
+   *
+   * **판정에 화면 값을 들이는 유일한 자리다.** 이 저장소는 "화면은 판정에
+   * 안 닿는다"를 지켜 왔지만(땅의 높낮이·손으로 그린 강 등), 벽만은 **눈에
+   * 보이는 그 집과 어긋나면 의미가 없어** 사용자가 그 값을 직접 골랐다 —
+   * `world3d.houseRects` 가 돌려주는 사각형은 `propPlan` 이 그리는 것과
+   * **완전히 같은 좌표**다(순수 함수라 gx·gy 만 같으면 늘 같은 답이 나온다).
+   *
+   * GPS 모드(`mode === 'geo'`)에서는 이 함수 자체가 안 불린다 — 실제로 걸을
+   * 때는 가상의 집이 실제 걸음을 막을 수 없으니 손대지 않는다.
+   */
+  function COLLIDE_ON() { return core.tuned('world.collide', 1) ? true : false; }
+  var PLAYER_R = 0.5;         // 사람 폭(0.9m, asset3d 규약)의 절반
+
+  var solidCache = [], solidCacheCell = null;
+  function solidRectsNear(x, y) {
+    if (!COLLIDE_ON()) { return []; }
+    var W3 = global.DG.world3d;
+    if (!W3 || !W3.houseRects) { return []; }
+    var gx0 = Math.floor(x / 48), gy0 = Math.floor(y / 48);
+    var cell = gx0 + ':' + gy0;
+    if (solidCacheCell === cell) { return solidCache; }
+    solidCacheCell = cell;
+    var out = [], gx, gy, i, rs;
+    for (gy = gy0 - 1; gy <= gy0 + 1; gy++) {
+      for (gx = gx0 - 1; gx <= gx0 + 1; gx++) {
+        if (terrainAt(gx, gy) !== 'town') { continue; }
+        rs = W3.houseRects(gx, gy);
+        for (i = 0; i < rs.length; i++) { out.push(rs[i]); }
+      }
+    }
+    solidCache = out;
+    return out;
+  }
+
+  /** 이 점이 집 몸통(반지름만큼 파고든 자리 포함) 안인가 — 회전한 사각형은
+      점을 거꾸로 돌려 재면 축에 나란한 사각형과 같은 셈이 된다 */
+  function hitsHouse(x, y, rects) {
+    for (var i = 0; i < rects.length; i++) {
+      var r = rects[i];
+      var dx = x - r.x, dz = y - r.z;
+      var c = Math.cos(r.rot), s = Math.sin(r.rot);
+      var lx = dx * c + dz * s, lz = -dx * s + dz * c;
+      var hw = r.w / 2, hd = r.d / 2;
+      var cx = core.clamp(lx, -hw, hw), cz = core.clamp(lz, -hd, hd);
+      var ddx = lx - cx, ddz = lz - cz;
+      if (ddx * ddx + ddz * ddz < PLAYER_R * PLAYER_R) { return true; }
+    }
+    return false;
+  }
+
+  /**
    * 이동 — 키보드 · 화면 스틱 · 탭한 지점 중 무엇이든 하나로 모은다.
    * GPS 모드에서는 아무것도 하지 않는다(실제로 걸어야 움직인다).
    *
@@ -202,9 +255,23 @@
     if (!dx && !dy) { return; }
     var len = Math.hypot(dx, dy) || 1;
     var step = speed * speedMul() * (run ? 2.2 : 1) * dt;
-    pos.x += (dx / len) * step;
-    pos.y += (dy / len) * step;
-    core.save.player.distance += step;
+    var ux = dx / len, uy = dy / len;
+    var nx = pos.x + ux * step, ny = pos.y + uy * step;
+    var rects = solidRectsNear(pos.x, pos.y);
+    var moved = 0;
+    if (!hitsHouse(nx, ny, rects)) {
+      pos.x = nx; pos.y = ny; moved = step;
+    } else if (!hitsHouse(nx, pos.y, rects)) {
+      /* 벽을 따라 미끄러진다 — 한 축만 막혔으면 나머지 축은 그대로 간다 */
+      pos.x = nx; moved = Math.abs(ux * step);
+    } else if (!hitsHouse(pos.x, ny, rects)) {
+      pos.y = ny; moved = Math.abs(uy * step);
+    } else {
+      /* 구석에 완전히 막혔다 — 탭 이동은 목표를 버린다. 안 버리면 벽에 붙어
+         제자리걸음만 치는 것처럼 보인다(자동 순행도 이 길로 온다) */
+      walkTarget = null;
+    }
+    core.save.player.distance += moved;
   }
 
   /** 화면 스틱 입력 (-1~1). touch 쪽에서 넣어 준다 */

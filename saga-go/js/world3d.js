@@ -749,6 +749,27 @@
     return out;
   }
 
+  /**
+   * 이 칸에 선 집·높은 집의 충돌 사각형 — `world.js` 의 벽 충돌이 쓴다(PLAN 27절).
+   *
+   * **판정에 화면 값을 들이는 유일한 자리다.** 이 저장소는 여태 "화면은 판정에
+   * 안 닿는다"를 지켜 왔지만(땅의 높낮이·손으로 그린 강 등), 벽 충돌만은 **눈에
+   * 보이는 그 집과 어긋나면 의미가 없다** — 사용자가 직접 고른 값이다(2026-08-29).
+   * `propPlan` 은 순수 함수이므로 여기서도 **같은 좌표·같은 크기**가 나온다.
+   */
+  function houseRects(gx, gy) {
+    var plan = propPlan('town', gx, gy, false);
+    var ox = gx * GRID + GRID / 2, oz = gy * GRID + GRID / 2;
+    var out = [], i;
+    for (i = 0; i < plan.length; i++) {
+      var p = plan[i];
+      if (p.t === 'house' || p.t === 'tower') {
+        out.push({ x: ox + p.x, z: oz + p.z, w: p.w, d: p.d, rot: p.rot });
+      }
+    }
+    return out;
+  }
+
   /* 사물의 도형은 **단위 하나씩만** 만들어 배율로 늘린다.
      크기마다 새 도형을 만들면 격자를 지날 때마다 GPU 메모리가 늘어난다. */
   var unit = {};
@@ -1810,6 +1831,7 @@
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     lightingAt: lightingAt, propPlan: propPlan, urbanity: urbanity, camAim: camAim,
+    houseRects: houseRects,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },
     forceTime: forceTime,
