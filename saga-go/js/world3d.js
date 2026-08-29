@@ -1637,8 +1637,11 @@
 
   /** 이 자리가 집 몸통 안인가 — `world.js` 의 `hitsHouse` 와 같은 계산이지만
       독립된 사본이다(world3d 가 world.js 를 되받아 부르지 않게 한다).
-      교전 상대를 세울 때만 쓰므로 여유를 조금 더 준다(발이 벽에 파묻히지 않게) */
-  function duelSpotBlocked(x, y) {
+      `margin` 은 여유(m) — 상대가 설 자리는 발이 벽에 안 묻힐 만큼(기본 1),
+      카메라가 설 자리는 그보다 훨씬 넉넉해야 한다(벽에 바짝 붙으면 근접
+      절단면이 벽 텍스처로 화면을 채운다) */
+  function duelSpotBlocked(x, y, margin) {
+    var m = margin === undefined ? 1 : margin;
     var gx0 = Math.floor(x / GRID), gy0 = Math.floor(y / GRID), gx, gy, rs, i, r;
     for (gy = gy0 - 1; gy <= gy0 + 1; gy++) {
       for (gx = gx0 - 1; gx <= gx0 + 1; gx++) {
@@ -1648,7 +1651,7 @@
           var dx = x - r.x, dz = y - r.z;
           var c = Math.cos(r.rot), s = Math.sin(r.rot);
           var lx = dx * c + dz * s, lz = -dx * s + dz * c;
-          if (Math.abs(lx) < r.w / 2 + 1 && Math.abs(lz) < r.d / 2 + 1) { return true; }
+          if (Math.abs(lx) < r.w / 2 + m && Math.abs(lz) < r.d / 2 + m) { return true; }
         }
       }
     }
@@ -1796,9 +1799,21 @@
       var dlen = Math.max(0.5, Math.hypot(ddx, ddy));
       var px = -ddy / dlen, pz = ddx / dlen;   // 둘을 잇는 선에 수직 — 옆에서 본다
       var DD = DUEL_DIST();
+      /* 마을 한복판에서 걸리면 이 낮고 가까운 자리가 **집 안**일 수 있다
+         (2026-08-30, 실기기 대신 스크린샷으로 확인하다 발견 — 벽 속에서
+         찍은 듯한 그림이 떴다). 반대편을 대신 써 보고, 그마저 막히면 낮게
+         깔지 않고 기본 카메라처럼 높이 물러난다(막힌 벽보다 먼 그림이 낫다) */
+      var CAM_MARGIN = 3.5;    // 카메라는 벽에서 이만큼은 떨어져야 근접 절단면이 안 보인다
+      var side1 = { x: mx + px * DD, z: my + pz * DD };
+      var side2 = { x: mx - px * DD, z: my - pz * DD };
+      var pick = !duelSpotBlocked(side1.x, side1.z, CAM_MARGIN) ? side1 :
+        (!duelSpotBlocked(side2.x, side2.z, CAM_MARGIN) ? side2 : null);
+      if (pick) {
+        return { pos: { x: pick.x, y: DD * 0.55, z: pick.z }, look: { x: mx, y: 2.2, z: my } };
+      }
       return {
-        pos: { x: mx + px * DD, y: DD * 0.55, z: my + pz * DD },
-        look: { x: mx, y: 2.2, z: my }
+        pos: { x: mx + px * DD * 1.8, y: DD * 1.8, z: my + pz * DD * 1.8 },
+        look: { x: mx, y: 2.0, z: my }
       };
     }
     if (stage) {
