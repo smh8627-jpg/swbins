@@ -438,6 +438,34 @@
     });
   }
 
+  /**
+   * **받은 그대로의 PBR 재질을 벗긴다.** Quaternius 인물·짐승 GLB 는 다 같은
+   * `metallicFactor 0.4` 를 지고 온다 — 금속 반사는 환경맵(IBL)이 있어야
+   * 밝게 보이는데 이 판은 방향광·반구광 둘뿐이라 환경맵이 없다. 그 결과
+   * 배우가 화면에서 **거의 새까맣게** 선다(2026-08-29, 사용자가 발견했다 —
+   * "캐릭터가 깨져 보인다"). 건물·나무는 `prop3d.js` 가 이미 빛깔만 뽑아 Lambert
+   * 로 갈아 끼우고 있어 멀쩡했는데, 배우(`asset3d`)만 원본 재질을 그대로 뒀다.
+   * **빛깔만 남기고 Lambert 로 바꾼다** — 스킨 메시도 그대로 움직인다(재질
+   * 종류는 스키닝과 무관하다). 사본이 아니라 **원본을 바로 고친다** — 이
+   * 모델을 처음 받은 그 순간(캐시에 한 번) 뿐이라 다른 배우와 부딪히지 않는다.
+   */
+  function delam(root) {
+    var t = three();
+    root.traverse(function (o) {
+      if (!o.isMesh || !o.material) { return; }
+      var one = Array.isArray(o.material) ? o.material : [o.material];
+      var out = one.map(function (m) {
+        if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
+        return new t.MeshLambertMaterial({
+          color: m.color ? m.color.clone() : new t.Color(0xffffff),
+          map: m.map || null, transparent: !!m.transparent, opacity: m.opacity,
+          alphaTest: m.alphaTest || 0, side: m.side
+        });
+      });
+      o.material = Array.isArray(o.material) ? out : out[0];
+    });
+  }
+
   function acquire(url, done) {
     var c = cache[url];
     if (c && c.state === 'ok') { done(c); return; }
@@ -450,6 +478,7 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
+      delam(gltf.scene);
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));
       /* 제 몸짓이 없으면 원본에서 옮겨 입힌다 (원본 자신은 빼고 — 무한 재귀) */
