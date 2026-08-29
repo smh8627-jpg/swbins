@@ -630,6 +630,17 @@
         var ls = spot(30 + i);
         out.push({ t: 'lamp', x: ls.x, z: ls.z, h: 3.2 + h1(gx + i, gy + i) * 1.2 });
       }
+      /* 우물·장터 — 마을에 하나씩만 서야 랜드마크로 보인다(집처럼 흔하면
+         눈에 안 띈다). 번화한 칸일수록 드물게 세운다 */
+      if (u > 0.35 && h1(gx * 23 + 5, gy * 29 + 7) > 0.86) {
+        var wsp = spot(200);
+        out.push({ t: 'well', x: wsp.x, z: wsp.z, h: 1.25 });
+      }
+      if (u > 0.5 && h1(gx * 31 + 9, gy * 37 + 3) > 0.90) {
+        var msp = spot(210);
+        out.push({ t: 'market', x: msp.x, z: msp.z, h: 1.3,
+                   rot: h1(gx * 3 + 1, gy * 5 + 2) * Math.PI * 2 });
+      }
     } else if (kind === 'forest') {
       n = Math.round((3 + h1(gx * 7 + 5, gy * 11 + 3) * 5) * dens);
       for (i = 0; i < n; i++) {
@@ -919,7 +930,8 @@
     var GLB = { tree: 'tree', rock: 'rock', grass: 'grass', reed: 'grass',
                 house: 'house', tower: 'tower',
                 peak: 'peak', lamp: 'lamp', shrine: 'shrine', cave: 'cave',
-                ruin: 'ruin', bridge: 'bridge', rice: 'rice' };
+                ruin: 'ruin', bridge: 'bridge', rice: 'rice',
+                well: 'well', market: 'market' };
     if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
                             gy + Math.round(p.z), p.rot)) {
       return true;
