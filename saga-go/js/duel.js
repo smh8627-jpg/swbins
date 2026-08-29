@@ -444,7 +444,13 @@
     p.folded = fold(cur);
     var cb = doneCb;
     cur = null; doneCb = null; meta = null;
-    if (el) { el.innerHTML = ''; el.classList.remove('duel3d'); }
+    /* `show` 도 여기서 내린다 — 안 그러면 콜백(`cb`)이 결과 카드를 새로
+       열지 않는 길(예: 한 대도 못 때리고 물러난 경우, `event.js` 가 "빈손
+       도주엔 벌을 안 물린다"며 곧바로 return 한다)에서 빈 채로 눌러붙어
+       다음 조우가 `busy()` 에 막혀 안 열린다(2026-08-30, 발견 즉시 고침).
+       결과 카드를 여는 길에서는 `cb` 안에서 곧바로 다시 `show` 를 붙이므로
+       화면 깜빡임 없이 그대로 이어진다 */
+    if (el) { el.innerHTML = ''; el.classList.remove('duel3d'); el.classList.remove('show'); }
     core.emit('duel:close', p);
     if (cb) { cb(p); }
   }
