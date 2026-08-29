@@ -1653,27 +1653,46 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
        (천후를 clear 로 붙들어 둔 것과 같은 이유다) */
     function atH(h, m) { return new Date(2026, 7, 26, h, m || 0, 0, 0).getTime(); }
 
-    t('조명 — 한낮이 한밤보다 밝다', function () {
+    t('조명 — 기본값은 밤 없이 늘 한낮이다', function () {
+      /* 다섯 번을 밝혀도(색·세기·깊은밤 감쇠 다 낮 수준까지) 사용자가 실기기에서
+         계속 어둡다고 했고, 결국 "밤을 낮으로 바꿔 달라"고 했다(2026-08-30).
+         그래서 `world3d.dayNight` 기본값을 1→0 으로 내렸다 — 손잡이를 안 만지면
+         한밤에 물어도 낮 그대로 나와야 한다 */
+      var mid = R3.lightingAt(atH(0), 'clear');
+      var noon = R3.lightingAt(atH(12), 'clear');
+      return mid.phase === 'day' && mid.sun.intensity === noon.sun.intensity &&
+        R3.lum(mid.bg) === R3.lum(noon.bg) &&
+        ('자정 phase=' + mid.phase + ' · 해 ' + mid.sun.intensity.toFixed(2));
+    });
+
+    t('조명 — 손잡이를 올리면 밤낮 주기가 여전히 돈다', function () {
+      /* 기능 자체를 지운 게 아니라 기본을 끈 것뿐이다 — `world3d.dayNight` 를
+         1 로 올리면 옛 밤낮 계산이 그대로 살아 있어야 한다 */
+      C.setTune('world3d.dayNight', 1);
       var noon = R3.lightingAt(atH(12), 'clear');
       var mid = R3.lightingAt(atH(0), 'clear');
-      /* 밤 최저치를 세 번 올린 끝에 대비가 2배→1.1배까지 줄었다(2026-08-29) —
-         사용자가 실기기에서 밤이 안 보인다고 세 번 지적해, 결국 낮과 거의
-         같은 밝기로 가고 밤의 정체성은 색·안개로만 남기기로 했다 */
-      return noon.sun.intensity > mid.sun.intensity * 1.1 &&
+      var ok = noon.sun.intensity > mid.sun.intensity * 1.1 &&
         noon.hemi.intensity > mid.hemi.intensity &&
-        R3.lum(noon.bg) > R3.lum(mid.bg) * 2 &&
-        ('해 ' + noon.sun.intensity.toFixed(2) + ' vs ' + mid.sun.intensity.toFixed(2) +
+        R3.lum(noon.bg) > R3.lum(mid.bg) * 2;
+      C.setTune('world3d.dayNight', null);
+      return ok &&
+        ('손잡이 켜면 해 ' + noon.sun.intensity.toFixed(2) + ' vs ' + mid.sun.intensity.toFixed(2) +
          ' · 하늘밝기 ' + R3.lum(noon.bg).toFixed(2) + ' vs ' + R3.lum(mid.bg).toFixed(2));
     });
 
-    t('조명 — 시각이 아침·낮·저녁·밤을 가른다', function () {
+    t('조명 — 손잡이를 올리면 시각이 아침·낮·저녁·밤을 가른다', function () {
+      C.setTune('world3d.dayNight', 1);
       var ps = [7, 13, 17, 23].map(function (h) { return R3.lightingAt(atH(h), 'clear').phase; });
+      C.setTune('world3d.dayNight', null);
       return ps.join('/') === 'dawn/day/dusk/night' && ('7·13·17·23시 → ' + ps.join(' · '));
     });
 
-    t('조명 — 밤에는 지도가 어두워지고 등롱이 켜진다', function () {
+    t('조명 — 손잡이를 올리면 밤에 지도가 어두워지고 등롱이 켜진다', function () {
+      C.setTune('world3d.dayNight', 1);
       var n = R3.lightingAt(atH(23), 'clear'), d = R3.lightingAt(atH(13), 'clear');
-      return R3.lum(n.tint) < R3.lum(d.tint) * 0.7 && n.lamp > 0.5 && d.lamp === 0 &&
+      var ok = R3.lum(n.tint) < R3.lum(d.tint) * 0.7 && n.lamp > 0.5 && d.lamp === 0;
+      C.setTune('world3d.dayNight', null);
+      return ok &&
         ('지도 물감 ' + R3.lum(n.tint).toFixed(2) + ' vs ' + R3.lum(d.tint).toFixed(2) +
          ' · 등롱 ' + n.lamp.toFixed(2) + ' vs ' + d.lamp);
     });
@@ -1688,8 +1707,12 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          'm · 안개 ' + Math.round(f.fog.far) + 'm');
     });
 
-    t('조명 — 해는 동에서 떠 서로 진다', function () {
+    t('조명 — 손잡이를 올리면 해는 동에서 떠 서로 진다', function () {
+      /* `world3d.dayNight` 기본이 꺼진 뒤로(2026-08-30) `hour` 자체가 정오로
+         못박히므로, 시각에 따라 해가 움직이는지는 손잡이를 켜야 잴 수 있다 */
+      C.setTune('world3d.dayNight', 1);
       var m = R3.lightingAt(atH(8), 'clear'), e = R3.lightingAt(atH(16), 'clear');
+      C.setTune('world3d.dayNight', null);
       return m.sun.x < -50 && e.sun.x > 50 && m.sun.y > 0 && e.sun.y > 0 &&
         ('8시 x ' + Math.round(m.sun.x) + ' → 16시 x ' + Math.round(e.sun.x));
     });
@@ -2586,22 +2609,28 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     var SK = DG.sky3d;
 
-    t('시각 — 깊은 밤이 밤보다 어둡다', function () {
-      /* PLAN 20절의 02:00 Deep Night. 23시는 그대로 `night` 이라 옛 값이 안 흔들린다 */
+    t('시각 — 손잡이를 올리면 깊은 밤이 밤보다 어둡다', function () {
+      /* PLAN 20절의 02:00 Deep Night. `world3d.dayNight` 기본이 꺼진 뒤로는
+         (2026-08-30, 위 "늘 한낮" 절) 이 계산도 손잡이를 켜야 살아난다 */
+      C.setTune('world3d.dayNight', 1);
       var deep = R3.lightingAt(atH(2), 'clear');
       var night = R3.lightingAt(atH(23), 'clear');
-      return deep.phase === 'deepnight' && night.phase === 'night' &&
+      var ok = deep.phase === 'deepnight' && night.phase === 'night' &&
         R3.lum(deep.bg) < R3.lum(night.bg) && deep.lamp === 1 &&
-        deep.hemi.intensity < night.hemi.intensity &&
+        deep.hemi.intensity < night.hemi.intensity;
+      C.setTune('world3d.dayNight', null);
+      return ok &&
         ('2시 ' + deep.phase + '(하늘 ' + R3.lum(deep.bg).toFixed(3) + ') · 23시 ' +
          night.phase + '(' + R3.lum(night.bg).toFixed(3) + ')');
     });
 
-    t('시각 — 하루가 여섯 얼굴을 갖는다', function () {
+    t('시각 — 손잡이를 올리면 하루가 여섯 얼굴을 갖는다', function () {
       /* **새벽·노을은 창이 좁다** — 해 고도로 가르는데 0.04~0.30 사이가
          한 시간 남짓이다(6:03~7:10, 16:50~17:57). 정시로만 훑으면 통째로 건너뛴다 */
+      C.setTune('world3d.dayNight', 1);
       var at = [[2, 0], [5, 0], [6, 30], [12, 0], [17, 30], [18, 0], [22, 0]];
       var ps = at.map(function (o) { return R3.lightingAt(atH(o[0], o[1]), 'clear').phase; });
+      C.setTune('world3d.dayNight', null);
       var uniq = {};
       ps.forEach(function (x) { uniq[x] = 1; });
       return Object.keys(uniq).length === 6 && ps[0] === 'deepnight' && ps[3] === 'day' &&

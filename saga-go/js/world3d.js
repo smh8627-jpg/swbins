@@ -58,8 +58,12 @@
   }
   /** 건물 밀도 배수 — 기기가 버거우면 여기를 내린다 */
   function DENSITY() { return core.tuned('world3d.density', 1) * PF('prop'); }
-  /** 시각을 따라 해가 뜨고 질까 — 0 이면 늘 한낮 */
-  function DAYNIGHT() { return core.tuned('world3d.dayNight', 1) ? true : false; }
+  /** 시각을 따라 해가 뜨고 질까 — 0 이면 늘 한낮.
+   * 기본을 끄기로 했다(2026-08-30) — 밤을 다섯 번 밝혀도(색·세기·깊은밤 감쇠
+   * 다 낮 수준까지 밀었다) 사용자가 실기기에서 계속 어둡다고 했고, 결국
+   * "밤을 낮으로 바꿔 달라"고 했다. 그래서 아예 밤 자체를 없앤다 — 손잡이는
+   * 그대로 있으니 `world3d.dayNight` 를 1 로 올리면 밤낮이 다시 돈다 */
+  function DAYNIGHT() { return core.tuned('world3d.dayNight', 0) ? true : false; }
   /** 비·눈에 강물이 불까 — 0 이면 늘 마른 날의 그림이다 */
   function WET() { return core.tuned('world3d.wetRiver', 1) ? true : false; }
   /** 세로 화면에서 카메라를 물릴까 — 0 이면 옛 그림(폰에서 지형지물이 화면을 덮는다) */
