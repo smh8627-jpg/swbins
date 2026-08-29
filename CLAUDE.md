@@ -82,6 +82,6 @@ PC 묶음     saga-pc/build-all.bat
 
 ## 알려진 흠
 
-- `saga-go/_autoprobe.html` 이 **죽어 있다** — 네 판으로 가르기 전 스크립트 목록
-  (`js/quiz.js`·`item.js`·`dungeon.js`·`data-enemy.js`, 넷 다 없는 파일)을 그대로 부른다.
-  `_demo.html` 이 같은 이유로 오래 죽어 있던 그 건과 같은 꼴이다.
+(2026-08-29: `saga-go/_autoprobe.html` 이 죽어 있던 건 고쳤다 — 네 판으로 가르기 전
+스크립트 목록을 그대로 부르고 있었다. 지금 스크립트 구성·세이브 스키마에 맞춰
+다시 짰고, `?sim=600&party=3` 로 자동 순행 600초를 헤드리스에서 실제로 돌려 확인했다)
