@@ -224,6 +224,31 @@ id 해시로 나눠 준다. 그 위에 `asset3d.tintOf` 가 세력 빛깔을 입
 
 ---
 
+## ambientCG — 땅 소재 텍스처 (`assets/textures/land/`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | ambientCG (<https://ambientcg.com>) |
+| **라이선스** | **CC0 1.0** — 저작자 표시 없이 자유롭게 쓰고 고치고 재배포할 수 있다 |
+| **받은 곳** | <https://ambientcg.com>, 1K-JPG 묶음에서 `Color` 맵만 골랐다 |
+
+| 파일 | 원본 자산 |
+|---|---|
+| `grass.jpg` | Grass005 |
+| `forest.jpg` | Ground106 |
+| `mount.jpg` | Rocks011 |
+| `road.jpg` | Ground081 |
+| `town.jpg` | Ground103 |
+| `farm.jpg` | Ground109 |
+
+`js/world3d.js` 의 `landTexture()` 가 `LAND_COLOR` 표로 색만 칠하던 자리를
+이 텍스처로 갈아 끼웠다(2026-08-30). **`water` 는 안 받았다** — 실제 물결은
+`water3d.js` 가 따로 그려서 이 칠은 거의 안 보인다. 이 판 재질(`delam`)과 같은
+원칙으로 **Color(BaseColor) 한 장만** 받았다 — Normal·Roughness·AO·Displacement
+는 원본 zip 에 있지만 옮기지 않았다.
+
+---
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로

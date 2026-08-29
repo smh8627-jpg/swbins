@@ -309,6 +309,7 @@
     /* 소품 모델(나무·바위·풀)을 미리 받아 둔다 — 안 받아 두면 처음 몇 초 동안
        원뿔 나무가 서 있다가 툭 바뀐다 (`prop3d.js`) */
     if (global.DG.prop3d) { global.DG.prop3d.preload(); }
+    preloadLandTex();
     ready = true;
     resize();
     return true;
@@ -361,6 +362,62 @@
   /** 얼마나 진하게 — 1 이면 지도가 아예 안 비친다 */
   function PAINT_A() { return core.tuned('world3d.landPaintAlpha', 0.88); }
 
+  /* ── 땅의 소재 텍스처 (2026-08-30, PLAN 부록 "코드로 그리지 말고 에셋으로") ──
+   * 여태 `LAND_COLOR` 로 **색만** 칠했다. ambientCG(CC0) 1K BaseColor 를 종류마다
+   * 하나씩 받아 캔버스 패턴으로 반복해 깐다 — `water` 는 뺐다(실제 물결은
+   * `water3d.js` 가 따로 그리므로 이 칠은 거의 안 보인다).
+   * 아직 못 받았으면(로딩 중·파일 없음) 늘 하던 `shadeHex` 채색으로 물러난다 —
+   * 화면이 한 번도 안 빈다(이 저장소의 다른 에셋들과 같은 원칙). */
+  var LAND_TEX_URL = {
+    grass: 'assets/textures/land/grass.jpg',
+    forest: 'assets/textures/land/forest.jpg',
+    mount: 'assets/textures/land/mount.jpg',
+    road: 'assets/textures/land/road.jpg',
+    town: 'assets/textures/land/town.jpg',
+    farm: 'assets/textures/land/farm.jpg'
+  };
+  var LAND_TEX_IMG = {};
+  function landTexImg(kind) {
+    if (LAND_TEX_IMG[kind]) { return LAND_TEX_IMG[kind]; }
+    var img = new Image();
+    var url = LAND_TEX_URL[kind];
+    if (url) { img.onload = function () { img.ready = true; }; img.src = url; }
+    LAND_TEX_IMG[kind] = img;
+    return img;
+  }
+  /** 텍스처 한 변이 세계에서 몇 m 를 덮나 — 작을수록 촘촘히(확대돼) 반복된다 */
+  var LAND_TEX_METERS = 12;
+  /**
+   * 이 소재의 반복 무늬 — 세계 좌표(`x0·y0`, m)에 맞춰 위상을 맞춘다.
+   * **타일마다 캔버스가 새로 생기므로**, 반복 시작점을 캔버스 원점이 아니라
+   * 세계 좌표의 나머지로 잡아야 옆 타일과 이어 붙었을 때 이음매가 안 보인다.
+   */
+  function landPattern(c, kind, x0, y0, k) {
+    var img = landTexImg(kind);
+    if (!img.ready || !img.naturalWidth || !c.createPattern) { return null; }
+    var pat = c.createPattern(img, 'repeat');
+    if (!pat || !pat.setTransform || typeof DOMMatrix === 'undefined') { return pat; }
+    var side = LAND_TEX_METERS * k;
+    var tx = -(((x0 % LAND_TEX_METERS) + LAND_TEX_METERS) % LAND_TEX_METERS) * k;
+    var ty = -(((y0 % LAND_TEX_METERS) + LAND_TEX_METERS) % LAND_TEX_METERS) * k;
+    pat.setTransform(new DOMMatrix([side / img.naturalWidth, 0, 0, side / img.naturalHeight, tx, ty]));
+    return pat;
+  }
+
+  /** 어느 소재가 왔는지 — 지형 텍스처 캐시 키에 넣어, 늦게 온 것도 다음에 반영되게 한다 */
+  function landTexReadyKey() {
+    var s = '', k;
+    for (k in LAND_TEX_URL) {
+      if (LAND_TEX_URL.hasOwnProperty(k)) { s += (LAND_TEX_IMG[k] && LAND_TEX_IMG[k].ready) ? '1' : '0'; }
+    }
+    return s;
+  }
+  /** 받아 두기만 한다 — 처음 걸을 때 한 박자씩 바뀌지 않게(`prop3d.preload` 와 같은 자리) */
+  function preloadLandTex() {
+    var k;
+    for (k in LAND_TEX_URL) { if (LAND_TEX_URL.hasOwnProperty(k)) { landTexImg(k); } }
+  }
+
   var landTex = {};
 
   /** '#rrggbb' 를 조금 밝게·어둡게 (k 는 -1~1) */
@@ -386,10 +443,12 @@
     }
     if (!any) { return null; }
 
-    /* 계절도 키에 넣는다 — 안 넣으면 계절이 바뀌어도 지난 계절 색이 남는다 */
+    /* 계절도 키에 넣는다 — 안 넣으면 계절이 바뀌어도 지난 계절 색이 남는다.
+       텍스처가 늦게 도착할 수도 있으니 **어느 것이 왔는지도 키에 넣는다** —
+       안 넣으면 도착 후에도 옛(색만 칠한) 캔버스가 캐시에 계속 나온다 */
     var SSk = global.DG.season;
-    var ck = key + '|' + (img && img.ready ? 'i' : 'n') + '|' + Math.round(PAINT_A() * 100) +
-      '|' + (SSk ? SSk.now().key : '-');
+    var ck = key + '|' + (img && img.ready ? 'i' : 'n') + '|' + landTexReadyKey() +
+      '|' + Math.round(PAINT_A() * 100) + '|' + (SSk ? SSk.now().key : '-');
     if (landTex[ck]) { return landTex[ck]; }
 
     var S = 256;
@@ -415,21 +474,39 @@
         if (L.owns(gx, gy + 1)) { near++; }
         if (L.owns(gx, gy - 1)) { near++; }
         c.globalAlpha = a0 * (near === 4 ? 1 : (0.62 + 0.09 * near));
-        /* 칸마다 밝기를 아주 조금 흔든다 — 안 흔들면 마을이 흙빛 한 판이 된다.
-           흔드는 값은 좌표에서 뽑으므로 **같은 칸은 늘 같은 색**이다 */
-        /* 폭을 **아주 좁게** 둔다 — 0.16 으로 흔들었더니 들판이 바둑판이 됐다
-           (눈으로 보고 알았다). 있는 줄 모를 만큼만 흔드는 것이 맞다 */
         var SSc = global.DG.season;
         var baseCol = LAND_COLOR[at.kind] || LAND_COLOR.grass;
         if (SSc) { baseCol = SSc.landColor(at.kind, baseCol); }
-        c.fillStyle = shadeHex(baseCol, (h1(gx * 17 + 5, gy * 23 + 9) - 0.5) * 0.06);
-        /* **겹쳐 칠하지 않는다** — 알파가 있는 색을 두 번 얹으면 그 줄만 짙어진다.
-           칸 경계는 픽셀로 딱 맞춰 자른다 */
         var rx = Math.round((gx * GRID - x0) * k);
         var ry = Math.round((gy * GRID - y0) * k);
         var rw = Math.round((gx * GRID + GRID - x0) * k) - rx;
         var rh = Math.round((gy * GRID + GRID - y0) * k) - ry;
-        c.fillRect(rx, ry, rw, rh);
+        var pat = landPattern(c, at.kind, gx * GRID, gy * GRID, k);
+        if (pat) {
+          /* 실제 텍스처가 왔다 — 무늬를 깐다. 칸마다 밝기를 흔들던 옛 방식은
+             안 쓴다(사진이 이미 자연스러운 결을 갖고 있다 — 흔들면 오히려
+             사진 위에 격자가 도드라진다) */
+          c.fillStyle = pat;
+          c.fillRect(rx, ry, rw, rh);
+          /* 계절 빛깔은 그 위에 **옅게 곱하기**로 얹는다 — 사진을 지우지 않고
+             물들이기만 한다(겨울 들판이 누렇게 뜨는 정도) */
+          var seasonAlpha = c.globalAlpha;
+          c.globalAlpha = seasonAlpha * 0.30;
+          c.globalCompositeOperation = 'multiply';
+          c.fillStyle = baseCol;
+          c.fillRect(rx, ry, rw, rh);
+          c.globalCompositeOperation = 'source-over';
+          c.globalAlpha = seasonAlpha;
+        } else {
+          /* 아직 못 받았다 — 옛 방식(색만 칠하기)으로 물러난다. 칸마다 밝기를
+             아주 조금 흔든다 — 안 흔들면 마을이 흙빛 한 판이 된다. 폭을
+             **아주 좁게** 둔다 — 0.16 으로 흔들었더니 들판이 바둑판이 됐다
+             (눈으로 보고 알았다). 있는 줄 모를 만큼만 흔드는 것이 맞다 */
+          c.fillStyle = shadeHex(baseCol, (h1(gx * 17 + 5, gy * 23 + 9) - 0.5) * 0.06);
+          /* **겹쳐 칠하지 않는다** — 알파가 있는 색을 두 번 얹으면 그 줄만 짙어진다.
+             칸 경계는 픽셀로 딱 맞춰 자른다 */
+          c.fillRect(rx, ry, rw, rh);
+        }
       }
     }
     c.globalAlpha = 1;
