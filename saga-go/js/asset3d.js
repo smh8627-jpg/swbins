@@ -347,9 +347,23 @@
    */
   var ANIM_SRC = PEOPLE + 'Knight.glb';
 
-  /** 이 모델은 제 몸짓이 있나 — 없으면 옮겨 입혀야 한다 */
+  /** 뼈대가 몇 벌인가 — 몸통·발·머리·다리가 **저마다 딴 뼈대**를 지고 오는
+   *  모델이 있다(Quaternius 의 몇몇 인물 팩이 그렇다: Farmer·Worker·Lady 넷 다
+   *  뼈대 넷). 옮겨 입히기는 그중 하나만(`firstSkinned` 가 찾는 것) 골라 돌리므로,
+   *  그 하나만 움직이고 나머지 셋은 제자리에 남아 걷는 동안 몸이 갈라진다.
+   *  (2026-08-29, 사용자가 실기기로 재확인 — 정지 화면에선 이어 보여도 걷기
+   *  시작하면 떨어졌다) */
+  function skeletonCount(obj) {
+    var set = {};
+    obj.traverse(function (o) { if (o.isSkinnedMesh && o.skeleton) { set[o.skeleton.uuid] = 1; } });
+    return Object.keys(set).length;
+  }
+
+  /** 이 모델은 제 몸짓이 있나 — 없으면 옮겨 입혀야 한다. 뼈대가 하나뿐일 때만
+   *  옮겨 입힌다 — 여럿이면 하나만 돌리다 몸이 갈라지느니 **가만히 서는 쪽**을
+   *  택한다(움직이는 부서진 몸보다 낫다) */
   function needsRetarget(c) {
-    return !!(c && c.gltf && (!c.clips || !c.clips.length));
+    return !!(c && c.gltf && (!c.clips || !c.clips.length) && skeletonCount(c.gltf.scene) === 1);
   }
 
   function firstSkinned(obj) {
