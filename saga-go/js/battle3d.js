@@ -175,40 +175,57 @@
   /* ── duel.js 가 내는 신호를 듣는다 ────────────────────
    * 저쪽은 우리가 있는지 모른다 — 신호만 던지고 제 일을 한다.
    */
+  /** 있으면 재생하고, 없으면(도형 배우·아직 안 받은 GLB) 조용히 넘어간다 */
+  function anim(w, who, name, ms) { if (w.playAnim) { w.playAnim(who, name, ms); } }
+
   function bind() {
-    core.on('duel:open', function () {
+    core.on('duel:open', function (o) {
       if (!live()) { return; }
       W3().battle(true);
       var s = spot();
       burst(s.x, s.z, 'dust', 0.5);
+      /* 상대를 실제로 세운다(2026-08-30) — `event.js`·`fort.js` 가 미리 정해
+         건네준 몸(`stage3d`)이 있을 때만. 카드만 뜨는 조우도 여전히 있다 */
+      if (o && o.stage3d && W3().duelStage) { W3().duelStage(o.stage3d.kind, o.stage3d.ref); }
     });
 
     core.on('duel:close', function () {
       var w = W3();
       if (w && w.battle) { w.battle(false); }
+      if (w && w.duelUnstage) { w.duelUnstage(); }
     });
 
     core.on('duel:fx', function (o) {
       if (!live() || !o) { return; }
       var w = W3(), s = spot();
       var amp = SHAKE();
-      if (o.kind === 'quick') {
-        w.shake(amp * 0.45);
-        burst(s.x, s.z, 'slash', 1.7);
-      } else if (o.kind === 'ult') {
-        /* 필살에만 hit-stop 을 준다 — 아무 데나 넣으면 화면이 계속 걸린다 */
-        w.hold(110);
-        w.shake(amp * 1.9);
-        burst(s.x, s.z, 'flame', 1.4);
-      } else if (o.kind === 'dodge') {
-        w.shake(amp * 0.25);
-        burst(s.x, s.z, 'wind', 1.2);
-      } else if (o.kind === 'heavy') {
-        if (o.dodged) { w.shake(amp * 0.5); burst(s.x, s.z, 'wind', 1.3); }
-        else { w.hold(70); w.shake(amp * 2.4); burst(s.x, s.z, 'dust', 1.0); }
-      } else if (o.kind === 'hit') {
-        w.shake(amp * 0.8);
-        burst(s.x, s.z, 'dust', 1.2);
+      /* 카메라·이펙트는 그대로 두고, **몸짓만 얹는다** — 세운 상대가 없으면
+         `playAnim` 이 조용히 아무 일도 안 한다(상대가 카드뿐인 조우도 있다) */
+      if (o.mine) {
+        if (o.kind === 'quick') {
+          w.shake(amp * 0.45); burst(s.x, s.z, 'slash', 1.7);
+          anim(w, 'me', 'attack', 240); anim(w, 'foe', 'hit', 240);
+        } else if (o.kind === 'ult') {
+          /* 필살에만 hit-stop 을 준다 — 아무 데나 넣으면 화면이 계속 걸린다 */
+          w.hold(110); w.shake(amp * 1.9); burst(s.x, s.z, 'flame', 1.4);
+          anim(w, 'me', 'attack', 460); anim(w, 'foe', 'hit', 460);
+        } else if (o.kind === 'dodge') {
+          w.shake(amp * 0.25); burst(s.x, s.z, 'wind', 1.2);
+          anim(w, 'me', 'dodge', 380);
+        }
+      } else {
+        if (o.kind === 'heavy') {
+          if (o.dodged) {
+            w.shake(amp * 0.5); burst(s.x, s.z, 'wind', 1.3);
+            anim(w, 'foe', 'attack', 420); anim(w, 'me', 'dodge', 380);
+          } else {
+            w.hold(70); w.shake(amp * 2.4); burst(s.x, s.z, 'dust', 1.0);
+            anim(w, 'foe', 'attack', 420); anim(w, 'me', 'hit', 420);
+          }
+        } else if (o.kind === 'hit') {
+          w.shake(amp * 0.8); burst(s.x, s.z, 'dust', 1.2);
+          anim(w, 'foe', 'attack', 300); anim(w, 'me', 'hit', 300);
+        }
       }
     });
   }

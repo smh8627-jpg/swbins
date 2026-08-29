@@ -2558,6 +2558,19 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         'event.duel=0 이면 예전처럼 주사위 하나로 갈린다';
     });
 
+    t('전투 — 적마다 3D 로 세울 몸이 정해진다', function () {
+      /* 2026-08-30 — 무대가 카드 안 이모지뿐이라 "전투 신이 없다"는 지적을 받고,
+         `event.js`·`battle3d.js`·`world3d.js` 를 이어 상대를 실제로 세우기로
+         했다. `foeVisual()` 은 그 몸을 정하는 순수 함수 — 사람은 임시 id 로
+         해시만 걸고, 짐승(늑대 무리)은 들판에 이미 사는 그 늑대를 그대로 쓴다 */
+      var b = EV.foeVisual(EV.FOES.bandit);
+      var s = EV.foeVisual(EV.FOES.scout);
+      var w = EV.foeVisual(EV.FOES.wolfpack);
+      return b.kind === 'hero' && s.kind === 'hero' && b.ref.id !== s.ref.id &&
+        w.kind === 'pet' && w.ref.id === 'an_wolf' &&
+        ('산적→' + b.kind + ' · 정찰병→' + s.kind + ' · 늑대무리→' + w.kind + '(' + w.ref.id + ')');
+    });
+
     /* ── 전투 연출 (battle3d) — 카메라와 알갱이 ─────────── */
 
     var B3 = DG.battle3d;

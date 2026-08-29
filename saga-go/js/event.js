@@ -41,10 +41,26 @@
    * 견주는 기준값이다 — 셋이 뚜렷이 다른 무게를 갖게 벌려 두었다.
    */
   var FOES = {
-    bandit: { id: 'bandit', name: '산적', emoji: '🗡️', power: 120, note: '수는 많고 솜씨는 거칠다' },
-    wolfpack: { id: 'wolfpack', name: '늑대 무리', emoji: '🐺', power: 90, note: '무리로 에워싼다' },
-    scout: { id: 'scout', name: '적군 정찰병', emoji: '🏹', power: 170, note: '혼자지만 잘 벼려져 있다' }
+    /* vkind — 교전 무대에 세울 때 몸이 사람이냐(hero) 짐승이냐(pet) */
+    bandit: { id: 'bandit', name: '산적', emoji: '🗡️', power: 120, note: '수는 많고 솜씨는 거칠다', vkind: 'hero' },
+    wolfpack: { id: 'wolfpack', name: '늑대 무리', emoji: '🐺', power: 90, note: '무리로 에워싼다', vkind: 'pet' },
+    scout: { id: 'scout', name: '적군 정찰병', emoji: '🏹', power: 170, note: '혼자지만 잘 벼려져 있다', vkind: 'hero' }
   };
+
+  /**
+   * 이 적을 3D 무대에 세우면 어떤 몸으로 서나 — **화면에만 쓴다**(판정에 안 닿는다).
+   * 사람은 아무 인물도 아니라 임시 id(`foe_산적` 식)로 해시만 걸고, 짐승은
+   * `animal.js` 가 들판에 세우는 그 늑대를 그대로 빌린다(따로 지을 필요가 없다).
+   */
+  function foeVisual(foe) {
+    if (!foe) { return null; }
+    if (foe.vkind === 'pet') {
+      var AN = global.DG.animal;
+      if (!AN || !AN.KINDS || !AN.KINDS.wolf) { return null; }
+      return { kind: 'pet', ref: AN.refOf(AN.KINDS.wolf) };
+    }
+    return { kind: 'hero', ref: { id: 'foe_' + foe.id, name: foe.name, faction: '도적', rarity: 2 } };
+  }
 
   /* ── 열 가지 사건 ─────────────────────────────────────
    * `PLAN.md` 11절이 늘어놓은 예시에서 **이 땅에 걸 수 있는 것**으로 골랐다.
@@ -519,6 +535,7 @@
       foeName: foe.name,
       emoji: foe.emoji,
       foeHp: hp, myAtk: pw.atk, myDef: pw.def,
+      stage3d: foeVisual(foe),
       onDone: function (p) {
         /* 한 대도 못 때리고 물러났으면 **싸움 자체가 없던 것**으로 둔다 —
            빈손으로 도망친 것에 패배의 벌까지 얹지 않는다 */
@@ -641,7 +658,7 @@
     on: on, find: find, choiceOf: choiceOf,
     /* 값을 내는 함수 — 순수하다. 세이브를 읽기만 한다 */
     contextAt: contextAt, candidates: candidates, pick: pick, resolve: resolve,
-    myPower: myPower, winChance: winChance, fightRoll: fightRoll,
+    myPower: myPower, winChance: winChance, fightRoll: fightRoll, foeVisual: foeVisual,
     /* 세이브가 바뀌는 곳은 여기 하나 */
     apply: apply,
     /* 화면과 때 */

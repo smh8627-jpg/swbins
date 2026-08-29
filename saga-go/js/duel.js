@@ -249,8 +249,10 @@
     bind();
     loop();
     /* 3D 연출이 이 신호를 듣는다(`battle3d.js`) — 카메라가 당겨지고 흙먼지가 인다.
-       **판정에는 한 줄도 안 닿는다.** 듣는 쪽이 없어도 교전은 그대로 돈다 */
-    core.emit('duel:open', { title: meta.title, foeName: meta.foeName });
+       **판정에는 한 줄도 안 닿는다.** 듣는 쪽이 없어도 교전은 그대로 돈다.
+       `stage3d` 는 부르는 쪽(`event.js`·`fort.js`)이 "상대를 3D 로 세우면 이 모습"
+       을 미리 정해 건네주는 값이다(`{kind:'hero'|'pet', ref}`) — 없으면 카드만 뜬다 */
+    core.emit('duel:open', { title: meta.title, foeName: meta.foeName, stage3d: o.stage3d || null });
     return cur;
   }
 

@@ -1414,7 +1414,11 @@
       }
       a.lx = x; a.ly = y;
       a.node.rotation.y = a.ang;
-      global.DG.actor3d.step(a.node, { t: now / 1000, walking: walk, phase: phase });
+      /* 교전 몸짓(`playAnim`) 이 걸려 있으면 그 자리 이름을 준다 — 끝나면
+         (`animUntil` 지나면) 도로 걷기/서기로 돌아간다. 클립이 없으면
+         `asset3d.play` 가 조용히 실패하니 여기서 따로 안 가른다 */
+      var animNow = (a.animUntil && now < a.animUntil) ? a.animName : undefined;
+      global.DG.actor3d.step(a.node, { t: now / 1000, walking: walk, phase: phase, anim: animNow });
     } else {
       a.node.scale.set(h, h, 1);
       a.node.position.set(x, gy0 + h / 2 + (bob || 0), y);
@@ -1465,6 +1469,13 @@
     /* 나에게도 같은 보정을 준다 — 안 그러면 크게 당겼을 때 **나만 점**이 되고
        야생 대상이 나보다 크게 보인다 */
     placeActor(meA, pos.x, pos.y, h * farBoost(pos.x, pos.y), walkBob, walking, mot.phase, now);
+
+    /* 교전 상대(`duelStage()` 로 세운 임시 배우) — `spawns` 에 없으니 여기서
+       직접 먹인다. 코앞이라 `farBoost` 는 안 준다(늘 가까이서 마주 선다) */
+    if (duelFoe) {
+      var dfa = actorOf('duelfoe', duelFoe.kind, duelFoe.ref, 96);
+      placeActor(dfa, duelFoe.x, duelFoe.y, h * (duelFoe.kind === 'pet' ? 0.86 : 1), 0, false, 0, now);
+    }
 
     /* 야생 대상 */
     var sp = W.spawns, i;
@@ -1608,6 +1619,45 @@
   var focusAt = null;      // {x, y} 조우 중인 대상
   var stageAt = null;      // {x, y, uid} 조우 무대 — 대상 앞에 카메라를 세운다
   var beams = [];          // 빛기둥
+
+  /* ── 교전 상대를 실제로 세운다 (PLAN 23절 다음, 2026-08-30) ──────────
+   * `duel.js` 는 여태 카드 안의 이모지로만 싸웠다 — 3D 지도에는 아무도 안 섰다.
+   * `battle3d.js` 가 `duel:open` 때 `duelStage()` 를 불러 상대를 실제로 세우면,
+   * 배우는 늘 있던 `actors['me']`(동행 선두) 옆에서 진짜로 마주 선다.
+   * 상대는 `spawns` 목록에 없는 임시 배우라 `syncActors()` 가 따로 먹여야 한다. */
+  var duelFoe = null;      // {kind, ref, x, y} — 없으면 교전 중이 아니거나 3D 상대가 없다
+
+  /** 상대를 세운다 — `x, y` 는 나에게서 6m 남쪽(`battle3d.spot()` 과 같은 자리) */
+  function duelStage(kind, ref) {
+    if (!kind || !ref) { return false; }
+    var pos = core.save.player.pos;
+    duelFoe = { kind: kind, ref: ref, x: pos.x, y: pos.y - 6 };
+    focusAt = { x: duelFoe.x, y: duelFoe.y };
+    return true;
+  }
+
+  /** 상대를 내린다 — `sweepActors()` 가 알아서 사라지게 두지 않고 바로 지운다
+   *  (교전 결과 카드가 곧바로 그 자리를 쓰므로 사라지는 연출은 필요 없다) */
+  function duelUnstage() {
+    var a = actors.duelfoe;
+    if (a) {
+      actorGroup.remove(a.node);
+      actorGroup.remove(a.shadow);
+      delete actors.duelfoe;
+    }
+    duelFoe = null;
+  }
+
+  /** 나 또는 상대에게 몸짓을 하나 재생한다(공격·피격·회피) — `who` 는 'me'·'foe'.
+   *  클립이 없는 몸(도형 배우, 아직 안 받은 GLB)이면 조용히 아무 일도 안 한다. */
+  function playAnim(who, name, ms) {
+    var key = who === 'foe' ? 'duelfoe' : 'me';
+    var a = actors[key];
+    if (!a) { return false; }
+    a.animName = name;
+    a.animUntil = (global.performance ? performance.now() : Date.now()) + (ms || 300);
+    return true;
+  }
 
   function bindEvents() {
     core.on('encounter:request', function (spawn) {
@@ -1950,6 +2000,9 @@
     /* 전투 연출 손잡이 — `battle3d.js` 가 두드린다 (PLAN 23절) */
     battle: function (on) { battleOn = !!on; if (!on) { shakeAmp = 0; } return battleOn; },
     inBattle: function () { return battleOn; },
+    /* 교전 상대를 실제로 세운다 — `battle3d.js` 가 duel:open/close 때 두드린다 */
+    duelStage: duelStage, duelUnstage: duelUnstage, playAnim: playAnim,
+    duelFoe: function () { return duelFoe; },
     /** 카메라를 흔든다. 세기는 m — 여러 번 부르면 센 쪽이 남는다 */
     shake: function (amp) { shakeAmp = Math.max(shakeAmp, amp || 0); return shakeAmp; },
     shakeAmp: function () { return shakeAmp; },
