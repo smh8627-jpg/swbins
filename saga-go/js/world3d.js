@@ -155,13 +155,17 @@
       hour: hour, alt: alt, phase: phase, night: phase === 'night',
       sun: {
         hex: pick('sun'),
-        intensity: 0.28 + Math.max(0, alt) * 1.35,
+        /* 밤 최저치를 0.28→0.65 로 올렸다(2026-08-29) — 낮 정점(1.63)은 그대로 두고
+           바닥만 든다. 원래 값은 밤에 배우·집이 실기기에서 거의 안 보일 만큼
+           어두웠다(사용자가 발견) — Lambert 재질은 빛이 약하면 그대로 죽는다 */
+        intensity: 0.65 + Math.max(0, alt) * 0.98,
         /* 해는 동(-x)에서 떠 서(+x)로 진다. 밤에는 달이 반대쪽에 뜬 셈 친다 */
         x: -Math.cos((hour - 6) / 12 * Math.PI) * 120,
         y: 40 + Math.abs(alt) * 110,
         z: -70 - Math.max(0, alt) * 40
       },
-      hemi: { sky: pick('hemiSky'), ground: pick('hemiGnd'), intensity: 0.52 + k * 0.95 },
+      /* 밤 최저치를 0.52→0.85 로 올렸다 — 위 sun 과 같은 이유·같은 날 */
+      hemi: { sky: pick('hemiSky'), ground: pick('hemiGnd'), intensity: 0.85 + k * 0.62 },
       bg: pick('sky'),
       tint: pick('tint'),
       fog: { near: 90 + k * 170, far: 320 + k * 440 },
@@ -172,8 +176,8 @@
     /* 깊은 밤은 한 겹 더 어둡다. 대신 **등롱은 더 밝다** — 다 같이 어두워지면
        그냥 안 보이는 화면이 되고, 밤이 깊었다는 것이 안 읽힌다 */
     if (phase === 'deepnight') {
-      out.sun.intensity *= 0.72;
-      out.hemi.intensity *= 0.78;
+      out.sun.intensity *= 0.82;
+      out.hemi.intensity *= 0.85;
       out.bg = mixHex(out.bg, 0x05070c, 0.42);
       out.tint = mixHex(out.tint, 0x2a3040, 0.30);
       out.lamp = 1;

@@ -58,10 +58,15 @@
        `world3d.glb` 를 0 으로 내리면 여태 쓰던 도형으로 통째로 돌아간다.
        (이 모델만 뼈대 애니메이션을 들고 있다. 다른 사람 모델은 애니메이션이
         아예 없어 T 자로 서 버리므로 안 받았다 — 도형만 못하다) */
-    /* **여섯 벌을 돌려 쓴다.** 인물 id 해시로 고르므로 같은 사람은 늘 같은 몸이다.
-       그 위에 `tintOf` 가 세력 빛깔을 입혀 한 벌 안에서도 갈린다 */
+    /* **네 벌을 돌려 쓴다.** 인물 id 해시로 고르므로 같은 사람은 늘 같은 몸이다.
+       그 위에 `tintOf` 가 세력 빛깔을 입혀 한 벌 안에서도 갈린다.
+       **`King.glb`·`Casual.glb` 는 뺐다**(2026-08-29) — 다리·몸통 사이에 잇는
+       조각이 아예 없어(~0.35~0.38, 모델 키의 1/3) `pickPieces` 가 아무리 골라도
+       몸이 갈라져 선다. 나머지 넷은 `pickPieces` 가 무리를 낮은 것부터 이어
+       고르도록 고쳐서 대개 틈이 0.1 아래로 잡힌다 — 실기기 스크린샷으로
+       확인했다("무명"이 다리만 남고 갓이 떠 있던 그 화면). */
     'hero': [
-      PEOPLE + 'Knight.glb', PEOPLE + 'King.glb', PEOPLE + 'Casual.glb',
+      PEOPLE + 'Knight.glb',
       PEOPLE + 'Farmer.glb', PEOPLE + 'Worker.glb', PEOPLE + 'Lady.glb'
     ],
     'pet:an_deer': 'assets/models/animals/Deer.glb',
@@ -577,31 +582,101 @@
    */
   var REGION = /_(body|head|legs?|feet|foot|hair|hat|arms?|torso|pants|shoes?|face|beard|helmet|cape|skirt|top|bottom|acc\w*)$/i;
 
+  /** 무리 하나의 세로 범위 — 다리 위에 몸통이, 몸통 위에 머리가 이어지는지 잰다.
+   *  잴 수 없으면(three 가 없거나, 자가진단의 가짜 traverse 뭉치) null 을 준다 —
+   *  그러면 `pickPieces` 가 옛 방식(해시만으로 고르기)으로 물러난다. */
+  function yRange(o) {
+    var t = three();
+    if (!t || !o.isMesh || !o.geometry) { return null; }
+    try {
+      var b = new t.Box3().setFromObject(o);
+      if (!isFinite(b.min.y) || !isFinite(b.max.y)) { return null; }
+      return { min: b.min.y, max: b.max.y };
+    } catch (e) { return null; }
+  }
+
+  /* 무리끼리 몸이 이어지려면 이 정도 틈은 넘어가 준다(옷깃이 살짝 뜨는 정도) —
+     실제로 벌어졌던 틈(0.3 안팎)에 비하면 훨씬 작다. 모델의 키를 1로 보는 단위다. */
+  var JOIN_GAP = 0.05;
+
   function pickPieces(model, ref) {
-    var groups = {};
+    /* **가지런히 잰다.** 갓 복제한 장면은 뼈대 자세가 계층에 안 갱신돼 있을 수
+       있다 — 안 갱신하고 재면 몸통이 스무 배로 잘못 잰다(normalize() 의 같은 함정) */
+    if (typeof model.updateMatrixWorld === 'function') { model.updateMatrixWorld(true); }
+
+    var groups = {}, base = null, measurable = true;
     model.traverse(function (o) {
       if (!o.isMesh) { return; }
       var m = /^(.*)_(\d+)$/.exec(o.name || '');
       /* **부위 이름이 붙은 것만 변형으로 본다.** `Knight_1·2·3` 은 변형이 아니라
          한 사람의 부품(몸·칼·방패)이라, 이름 끝의 숫자만 보고 고르면 둘이 꺼져
          칼만 남은 사람이 선다. 실제로 그렇게 됐다 */
-      if (!m || !REGION.test(m[1])) { return; }
+      if (!m || !REGION.test(m[1])) {
+        /* 무리가 아닌 것(다리 하나뿐인 몸통 등)은 항상 서 있다 — 그 꼭대기가
+           첫 무리를 이을 발판이다 */
+        var r = yRange(o);
+        if (r) { base = base ? { min: Math.min(base.min, r.min), max: Math.max(base.max, r.max) } : r; }
+        return;
+      }
       (groups[m[1]] = groups[m[1]] || []).push(o);
     });
     var s = String((ref && (ref.id || ref.name)) || ''), i, h = 0;
     for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
-    var g, list, keep, n = 0;
-    for (g in groups) {
-      if (!groups.hasOwnProperty(g)) { continue; }
-      list = groups[g];
-      if (list.length < 2) { continue; }
+
+    var names = [], g;
+    for (g in groups) { if (groups.hasOwnProperty(g)) { names.push(g); } }
+
+    /* **다리부터 머리 순서로 잇는다.** 무리 이름은 모델마다 다르므로(`Legs`·
+       `Head`·`Body`…) 이름이 아니라 **잰 높이**로 순서를 정한다 — 낮은 무리부터
+       하나씩 골라, 이미 고른 것들의 꼭대기에 잘 닿는 조각을 우선한다. 안 그러면
+       해시가 몸통 없이 머리와 다리만 고를 수 있다(2026-08-29, 사용자가 실기기로
+       발견 — 갓 하나가 허공에 떠 있었다). 잴 수 없으면(자가진단) 그냥 등장 순서로
+       돈다 — 어차피 결과는 안 본다, 무리가 하나만 켜지는지만 본다. */
+    var ranged = {}, gi;
+    for (gi = 0; gi < names.length; gi++) {
+      ranged[names[gi]] = groups[names[gi]].map(yRange);
+      if (ranged[names[gi]].indexOf(null) >= 0) { measurable = false; }
+    }
+    if (measurable) {
+      names.sort(function (ga, gb) {
+        var ra = ranged[ga].reduce(function (a, r) { return Math.min(a, r.min); }, Infinity);
+        var rb = ranged[gb].reduce(function (a, r) { return Math.min(a, r.min); }, Infinity);
+        return ra - rb;
+      });
+    }
+
+    var top = (measurable && base) ? base.max : -Infinity;
+    var n = 0;
+    for (gi = 0; gi < names.length; gi++) {
+      var list = groups[names[gi]];
+      if (list.length < 2) {
+        if (measurable && list.length === 1) {
+          var r1 = yRange(list[0]);
+          if (r1) { top = Math.max(top, r1.max); }
+        }
+        continue;
+      }
       /* 무리마다 다른 자릿수를 봐야 몸통과 머리가 같이 움직이지 않는다.
          **부호 없는 자리이동(`>>>`)이어야 한다** — `>>` 는 32비트 부호를 타서
          음수가 나오고, 그러면 무리 전체가 꺼져 몸통도 머리도 없는 사람이 선다.
          실제로 관우가 다리만 남았다 */
-      keep = (h >>> ((n * 3) % 29)) % list.length;
-      for (i = 0; i < list.length; i++) { list[i].visible = (i === keep); }
+      var hashPick = (h >>> ((n * 3) % 29)) % list.length;
       n++;
+
+      var keep = hashPick;
+      if (measurable) {
+        var ranges = ranged[names[gi]];
+        if (top === -Infinity) { top = Math.min.apply(null, ranges.map(function (r) { return r.min; })); }
+        var bestGap = Infinity;
+        keep = -1;
+        for (i = 0; i < ranges.length; i++) {
+          var gap = ranges[i].min - top;
+          if (gap <= JOIN_GAP && i === hashPick) { keep = i; break; }   // 이어지면 해시를 그대로 쓴다
+          if (Math.abs(gap) < bestGap) { bestGap = Math.abs(gap); keep = i; }
+        }
+        top = Math.max(top, ranges[keep].max);
+      }
+      for (i = 0; i < list.length; i++) { list[i].visible = (i === keep); }
     }
     return model;
   }
