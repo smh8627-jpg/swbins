@@ -106,23 +106,69 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 **허수아비만 CC0 로 못 찾았다.** 미러 1545 개를 다 훑어도 없다 —
 그 자리는 코드가 그대로 그린다(장대 + 가로대 + 삿갓).
 
-`models/people/` — 인물. `js/asset3d.js` 표의 `hero` 한 줄이 다 받는다
+`models/people/` — **옛 인물 표(Knight · King · Casual · Farmer · Worker · Lady,
+`modular_men`/`modular_women` 팩)는 2026-08-29 에 통째로 걷어 냈다.** 걷는 동안
+몸이 갈라지는 근본 원인(부위마다 뼈대가 따로였다)이 그 팩 자체의 설계였다 —
+아래 새 팩으로 갈아 끼웠다.
+
+---
+
+## Quaternius — 사람 창고 셋 (`models/people/regular/` · `models/anim/`)
+
+**2026-08-29, 몸이 갈라지던 문제를 근본에서 없애려고 갈아 끼웠다.** 옛 `modular_men`/
+`modular_women` 팩은 부위(몸통·머리·다리)마다 뼈대가 **따로** 붙어 있어, 몸짓을
+옮겨 입혀도 뼈대 하나만 움직이고 나머지는 제자리에 남아 걷는 동안 찢어졌다
+(세 겹으로 고쳐 봤지만 실기기에서 끝내 못 잡았다 — `SAGA-HANDOFF.md` 참고).
+
+새 셋은 **몸(Universal Base Characters) · 옷(Modular Character Outfits - Fantasy) ·
+몸짓(Universal Animation Library)** 이 뼈 이름·순서(65개)까지 한 글자도 안 다르게
+같은 뼈대로 나온다(직접 대조했다) — 옷·머리를 몸의 뼈대에 그대로 `bind()` 하면
+되고, 리타기팅이 아예 필요 없다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) — 세 팩 다 `License.txt` 에 명시 |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | itch.io — `quaternius.itch.io/universal-base-characters` ·
+  `quaternius.itch.io/universal-animation-library` ·
+  `quaternius.itch.io/modular-character-outfits-fantasy` (셋 다 `[Standard]` 무료 등급.
+  `quaternius.com` 이 이 망에서 직접 열려 itch.io 페이지까지 갔다 — 예전 세션이
+  적어 둔 "GitHub 미러만 열린다" 는 이제 안 맞는다) |
+
+### 넣은 파일 — **텍스처는 BaseColor 만** 골라 넣었다
+
+이 판의 재질(`asset3d.delam`)은 GLB 를 받는 순간 PBR 을 벗겨 **빛깔(BaseColor)만
+남기고 Lambert 로 갈아 끼운다** — Normal·Roughness·ORM 맵은 애초에 안 쓴다. 그래서
+원본 zip 에서 그 셋을 빼고 받았다(`Peasant` 한 벌만 해도 Normal 14MB·ORM 9.9MB를
+아꼈다) — `.gltf` 의 `materials[].normalTexture`·`.occlusionTexture`·
+`.pbrMetallicRoughness.metallicRoughnessTexture` 를 지우고 그 이미지 파일은
+아예 옮기지 않았다(GLTFLoader 는 참조가 없으면 그 이미지를 안 받는다).
+
+`models/people/regular/` (한 폴더 — `.gltf` 는 같은 폴더의 파일을 이름으로 부르므로
+흩어 두면 안 된다)
 
 | 파일 | 쓰이는 곳 |
 |---|---|
-| `Knight.glb` | 인물 몸 한 벌 + **몸짓 원본**(열두 클립. 나머지 다섯 벌이 여기서 옮겨 입는다) |
-| `King.glb` · `Casual.glb` · `Farmer.glb` · `Worker.glb` | 인물 몸 (`modular_men`) |
-| `Lady.glb` | 인물 몸 (`modular_women` 의 `Medieval.glb`) |
+| `Superhero_Male_FullBody.gltf`·`.bin` | 남자 몸(얼굴·눈·눈썹 포함) — Universal Base Characters |
+| `Superhero_Female_FullBody.gltf`·`.bin` | 여자 몸 |
+| `Male_Peasant.gltf`·`.bin` · `Female_Peasant.gltf`·`.bin` | 평민 옷(팔·몸통·다리·발) — Modular Character Outfits - Fantasy |
+| `Male_Ranger.gltf`·`.bin` · `Female_Ranger.gltf`·`.bin` | 순찰대 옷 |
+| `Hair_Buzzed`·`Hair_Beard`·`Hair_Long`·`Hair_Buns`·`Hair_SimpleParted`·`Hair_BuzzedFemale` (각 `.gltf`+`.bin`) | 머리 — "Rigged to Head Bone" 판(머리뼈에 물려 애니메이션을 따라간다) |
+| `T_Superhero_Male_Dark.png`·`T_Superhero_Female_Dark_BaseColor.png` | 몸 살빛 |
+| `T_Peasant_BaseColor.png`·`T_Ranger_BaseColor.png` | 옷감 |
+| `T_Regular_Male_Dark_BaseColor.png`·`T_Regular_Female_Dark_BaseColor.png` | 옷 밖으로 나온 손·팔 살빛(옷 쪽 재질이 이걸 쓴다 — 몸 쪽 살빛과 톤만 맞추면 되므로 옷이 몸을 그대로 덮는다) |
+| `T_Hair_1_BaseColor.png`·`T_Hair_2_BaseColor.png` | 머리카락·눈썹(몸 파일의 눈썹도 이 둘을 같이 쓴다) |
+| `T_Eye_Brown.png` | 눈동자 |
 
-여섯 벌을 **인물 id 해시로** 나눠 입고, 그 위에 `asset3d.tintOf` 가 세력 빛깔을 입힌다.
-같은 사람은 늘 같은 몸 · 같은 빛깔이다.
+`models/anim/UAL1_Standard.glb` — **몸짓 마흔한 벌**(idle·walk·jog·sprint·roll·
+sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본판**을 받았다 —
+루트 모션이 있으면 애니메이션 자체가 캐릭터를 밀어서 이 판이 좌표로 옮기는 것과
+겹친다. 이미지가 없어(도형 확인용 메시 하나뿐) 그대로 통째로 받았다.
 
-`Knight` 를 뺀 다섯 벌은 **몸짓이 하나도 없다**(직접 열어 세었다 — 0개).
-`three` 의 `SkeletonUtils.retargetClip` 으로 `Knight` 의 열두 클립을 옮겨 입힌다.
-뼈 이름은 열여덟이 겹치는데 **쉬는 자세가 팔·다리에서 최대 180° 어긋나** 그냥 틀면
-사지가 뒤틀린다 — 리타기팅이 월드 자세를 거쳐 풀어 주므로 맞는다.
-
-**까치만 아직 도형이다.** 아래 '아직 안 가져온 것' 참고.
+`js/asset3d.js` 의 `HERO_RECIPES` 가 몸·옷·머리 조합 여섯 벌(남 셋·여 셋)을 인물
+id 해시로 나눠 준다. 그 위에 `asset3d.tintOf` 가 세력 빛깔을 입힌다.
 
 ---
 
@@ -180,11 +226,6 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
-- **Quaternius 의 공식 몸짓 묶음**(Universal Animation Library). CC0 미러가
-  있는데(<https://github.com/J-Ponzo/gltf-universal-animation-library>)
-  그 판은 **Godot 용 Rigify 뼈대**(`DEF-*`)라 이 모델들의 뼈 이름과
-  **하나도 안 겹친다**(0/53. 직접 재 봤다). 그래서 안 받았다 —
-  대신 `Knight.glb` 의 몸짓을 옮겨 입힌다
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로
   그린다(장대 + 가로대 + 삿갓)
 - **인물 일흔의 초상 일러스트.** 애초에 존재하지 않는다 — 관우·이순신·세종의

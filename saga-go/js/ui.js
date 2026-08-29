@@ -89,6 +89,12 @@
         if (ns && ns.inRange) { core.emit('station:request', ns.station); }
         return;
       }
+      var appr = e.target.closest('[data-act="approach"]');
+      if (appr) {
+        var tx = parseFloat(appr.getAttribute('data-tx')), ty = parseFloat(appr.getAttribute('data-ty'));
+        if (isFinite(tx) && isFinite(ty)) { global.DG.world.walkTo(tx, ty); }
+        return;
+      }
       if (!e.target.closest('[data-act="meet"]')) { return; }
       var n = global.DG.world.nearest();
       if (n && n.inRange) { core.emit('encounter:request', n.spawn); }
@@ -281,6 +287,20 @@
 
   var nearUid = null;
 
+  /**
+   * "가까이 가기" 표시 — 대상이 사거리 밖일 때 뜬다. **시뮬레이션 이동
+   * (`mode === 'keyboard'`)에서는 눌러서 그쪽으로 걸어갈 수 있다** — 지도를
+   * 탭해 걷는 것과 같은 길(`world.walkTo`)을 그대로 쓴다. GPS 모드는 실제로
+   * 걸어야 움직이는 판이라 손대지 않는다(그대로 안내 문구로만 남는다).
+   */
+  function approachBtn(x, y) {
+    var w = global.DG.world;
+    if (w && w.mode === 'keyboard') {
+      return '<button class="btn ghost" data-act="approach" data-tx="' + x + '" data-ty="' + y + '">가까이 가기</button>';
+    }
+    return '<button class="btn ghost" disabled>가까이 가기</button>';
+  }
+
   /** 야생 대상 카드 (등용 · 포획) */
   function nearSpawnCard(n) {
     var s = n.spawn, rar = data.rarity[s.ref.rarity];
@@ -292,7 +312,7 @@
           (s.kind === 'hero' ? '등용 대상' : '포획 대상') + ' · ' + Math.round(n.dist) + 'm</small></div>' +
         (n.inRange
           ? '<button class="btn primary" data-act="meet">만난다</button>'
-          : '<button class="btn ghost" disabled>가까이 가기</button>') +
+          : approachBtn(s.x, s.y)) +
       '</div>';
   }
 
@@ -311,7 +331,7 @@
             Math.round(ns.dist) + 'm</small></div>' +
           (ns.inRange
             ? '<button class="btn primary" data-act="visit">맞선다</button>'
-            : '<button class="btn ghost" disabled>가까이 가기</button>') +
+            : approachBtn(st.x, st.y)) +
         '</div>';
     }
     var stt = stn.stateOf(st.key);
@@ -319,7 +339,7 @@
       ? '<button class="btn ghost" disabled>' + stn.leftLabel(stt.left) + '</button>'
       : (ns.inRange
           ? '<button class="btn primary" data-act="visit">들른다</button>'
-          : '<button class="btn ghost" disabled>가까이 가기</button>');
+          : approachBtn(st.x, st.y));
     return '<div class="near-card"' + (stt.ready ? '' : ' style="opacity:.62"') + '>' +
         '<div class="near-ico" style="border-color:' + (stt.ready ? '#e8c15a' : 'rgba(150,155,165,.5)') + '">🏮</div>' +
         '<div class="near-meta"><b>' + esc(st.name) + '</b>' +

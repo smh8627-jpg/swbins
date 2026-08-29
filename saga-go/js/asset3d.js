@@ -50,25 +50,47 @@
    */
   var PEOPLE = 'assets/models/people/';
   var BLD = 'assets/models/buildings/';
+  /* 사람 몸(body)·옷(outfit)·머리(hair) 셋이 **뼈 이름까지 완전히 같은 한 뼈대**를
+     쓰는 새 인물 창고(Quaternius `Universal Base Characters` + `Modular Character
+     Outfits - Fantasy`, 2026-08-29 갈아 끼움). `assets/ASSET_LICENSES.md` 참고 */
+  var REGULAR = PEOPLE + 'regular/';
+  var ANIM_DIR = 'assets/models/anim/';
+
+  /**
+   * 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
+   * 이름·순서가 파일 열둘(몸 둘·옷 넷·머리 여섯) 전부 한 글자도 안 다르다(직접
+   * 대조했다) — 그래서 옷·머리를 몸의 뼈대에 그대로 `bind()` 해 얹으면 되고,
+   * `Knight.glb` 를 빌려 옮겨 입히던 옛 리타기팅이 통째로 필요 없다.
+   *
+   * **옛 표(Farmer·Worker·Lady·King·Casual)는 뺐다** — 부위마다 뼈대가 따로 놀아
+   * 걷는 동안 몸이 갈라지던 그 근본 원인(2026-08-29, `db59219` 까지 세 겹으로
+   * 팠지만 못 고쳤다)이 새 표에는 아예 없다.
+   */
+  var HERO_RECIPES = [
+    { key: 'male_peasant_buzzed', body: REGULAR + 'Superhero_Male_FullBody.gltf',
+      outfit: REGULAR + 'Male_Peasant.gltf', hair: REGULAR + 'Hair_Buzzed.gltf' },
+    { key: 'male_ranger_long', body: REGULAR + 'Superhero_Male_FullBody.gltf',
+      outfit: REGULAR + 'Male_Ranger.gltf', hair: REGULAR + 'Hair_Long.gltf' },
+    { key: 'male_peasant_beard', body: REGULAR + 'Superhero_Male_FullBody.gltf',
+      outfit: REGULAR + 'Male_Peasant.gltf', hair: REGULAR + 'Hair_Beard.gltf' },
+    { key: 'female_peasant_buns', body: REGULAR + 'Superhero_Female_FullBody.gltf',
+      outfit: REGULAR + 'Female_Peasant.gltf', hair: REGULAR + 'Hair_Buns.gltf' },
+    { key: 'female_ranger_simple', body: REGULAR + 'Superhero_Female_FullBody.gltf',
+      outfit: REGULAR + 'Female_Ranger.gltf', hair: REGULAR + 'Hair_SimpleParted.gltf' },
+    { key: 'female_peasant_buzzed', body: REGULAR + 'Superhero_Female_FullBody.gltf',
+      outfit: REGULAR + 'Female_Peasant.gltf', hair: REGULAR + 'Hair_BuzzedFemale.gltf' }
+  ];
+
+  /* 위 열둘(몸·옷·머리)은 이미 한 뼈대라 `dressUp`(Knight 몸짓 옮겨 입히기)을
+     탈 필요가 없다 — 타면 파일마다 몸짓 마흔한 개를 헛되이 다시 굽는다. `acquire()`
+     가 이 표에 있는 url 이면 자동 리타기팅을 건너뛴다 */
+  var SKIP_AUTORETARGET = {};
+  HERO_RECIPES.forEach(function (r) {
+    SKIP_AUTORETARGET[r.body] = SKIP_AUTORETARGET[r.outfit] = SKIP_AUTORETARGET[r.hair] = true;
+  });
 
   var DEFAULTS = {
-    /* 인물 — **한 벌을 일흔이 나눠 쓴다.** 그대로 두면 일흔이 다 같은 사람이 되므로
-       `tintOf` 가 세력 빛깔로 물들인다(아래). 그래도 갓·도포의 결은 잃는다 —
-       사용자가 그것을 알고 **품질을 먼저** 골랐다(2026-08-28).
-       `world3d.glb` 를 0 으로 내리면 여태 쓰던 도형으로 통째로 돌아간다.
-       (이 모델만 뼈대 애니메이션을 들고 있다. 다른 사람 모델은 애니메이션이
-        아예 없어 T 자로 서 버리므로 안 받았다 — 도형만 못하다) */
-    /* **네 벌을 돌려 쓴다.** 인물 id 해시로 고르므로 같은 사람은 늘 같은 몸이다.
-       그 위에 `tintOf` 가 세력 빛깔을 입혀 한 벌 안에서도 갈린다.
-       **`King.glb`·`Casual.glb` 는 뺐다**(2026-08-29) — 다리·몸통 사이에 잇는
-       조각이 아예 없어(~0.35~0.38, 모델 키의 1/3) `pickPieces` 가 아무리 골라도
-       몸이 갈라져 선다. 나머지 넷은 `pickPieces` 가 무리를 낮은 것부터 이어
-       고르도록 고쳐서 대개 틈이 0.1 아래로 잡힌다 — 실기기 스크린샷으로
-       확인했다("무명"이 다리만 남고 갓이 떠 있던 그 화면). */
-    'hero': [
-      PEOPLE + 'Knight.glb',
-      PEOPLE + 'Farmer.glb', PEOPLE + 'Worker.glb', PEOPLE + 'Lady.glb'
-    ],
+    'hero': HERO_RECIPES,
     'pet:an_deer': 'assets/models/animals/Deer.glb',
     'pet:an_wolf': 'assets/models/animals/Wolf.glb',
     'pet:an_ox':   'assets/models/animals/Cow.glb',
@@ -154,9 +176,27 @@
     return list[h % list.length];
   }
 
+  /**
+   * 표 한 줄이 URL 문자열이 아니라 **조합 객체**(`{key, body, outfit, hair}`,
+   * 인물의 몸·옷·머리 조합)일 수 있다 — 그때는 `key` 만 문자열로 내준다.
+   * `chain()`·진단·데모는 이 문자열 하나로 "몇 벌 중 어느 벌인지"만 가르면
+   * 되고, 실제로 세울 때는 `heroRecipe()` 가 객체 그대로를 다시 돌려준다.
+   */
   function urlOf(kind, ref) {
     var h = lookup(kind, ref);
-    return h ? oneOf(h.url, ref) : null;
+    if (!h) { return null; }
+    var v = oneOf(h.url, ref);
+    if (v && typeof v === 'object') { return v.key || null; }
+    return v;
+  }
+
+  /** 인물의 몸·옷·머리 조합 — 표에 적힌 것이 조합 객체일 때만 준다(테스트가
+   *  `register('hero', 'a.glb')` 처럼 문자열 하나로 덮어써도 안 깨지게) */
+  function heroRecipe(ref) {
+    var h = lookup('hero', ref);
+    if (!h) { return null; }
+    var v = oneOf(h.url, ref);
+    return (v && typeof v === 'object' && v.body) ? v : null;
   }
   function wants(kind, ref) { return GLB_ON() && !!urlOf(kind, ref); }
 
@@ -345,7 +385,12 @@
    * 한 몸에 **한 번만** 한다(모델마다 캐시). 배우마다 하면 스물이 설 때마다
    * 열두 클립을 다시 굽는 셈이라 화면이 멎는다.
    */
-  var ANIM_SRC = PEOPLE + 'Knight.glb';
+  /* 예전엔 `Knight.glb`(제 몸짓 열둘) 하나를 빌려 나머지에게 옮겨 입혔다.
+     지금은 몸·옷·머리가 다 같은 뼈대를 쓰므로, **뼈대가 다른 옛 물건**
+     대신 **이름까지 같은 뼈대의 몸짓 마흔한 벌**(Quaternius
+     `Universal Animation Library`)을 원본으로 쓴다 — 옮겨 입힐 필요 없이
+     그대로 물린다(아래 `buildHero`). */
+  var ANIM_SRC = ANIM_DIR + 'UAL1_Standard.glb';
 
   /** 뼈대가 몇 벌인가 — 몸통·발·머리·다리가 **저마다 딴 뼈대**를 지고 오는
    *  모델이 있다(Quaternius 의 몇몇 인물 팩이 그렇다: Farmer·Worker·Lady 넷 다
@@ -500,8 +545,9 @@
       delam(gltf.scene);
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));
-      /* 제 몸짓이 없으면 원본에서 옮겨 입힌다 (원본 자신은 빼고 — 무한 재귀) */
-      if (needsRetarget(c) && url !== ANIM_SRC) {
+      /* 제 몸짓이 없으면 원본에서 옮겨 입힌다 (원본 자신은 빼고 — 무한 재귀,
+         이미 같은 뼈대인 몸·옷·머리도 빼고 — `buildHero` 가 따로 물린다) */
+      if (needsRetarget(c) && url !== ANIM_SRC && !SKIP_AUTORETARGET[url]) {
         dressUp(c, function () { flush(c, c); });
         return;
       }
@@ -776,17 +822,116 @@
   }
 
   /**
+   * 인물 하나 — **몸 위에 옷·머리를 얹어 한 뼈대에 묶는다.**
+   *
+   * 셋 다 뼈 이름·순서가 완전히 같으므로(직접 대조했다) 옷·머리의 스킨 메시를
+   * `mesh.bind(몸의 스켈레톤, mesh.bindMatrix)` 로 다시 물리기만 하면 된다 —
+   * `pickPieces`(부위 변형 고르기)도 `retargetClip`(몸짓 옮겨 입히기)도 필요
+   * 없다. 이게 옛 표(Farmer·Worker·Lady)가 걷다가 몸이 갈라지던 근본 원인
+   * (뼈대가 부위마다 따로였다)을 애초에 없앤 자리다.
+   *
+   * 몸의 메시(머리·눈썹·눈 포함)는 옷에 안 가려지는 손·목·얼굴만 남기고 옷이
+   * 그대로 덮는다 — Quaternius 가 옷 쪽에도 노출 피부(손·팔) 재질을 따로
+   * 태워 보내는 것이 그 뜻이다.
+   */
+  function assembleHero(parts, ref) {
+    var bodyScene = cloneScene(parts.body.gltf);
+    var master = firstSkinned(bodyScene);
+    if (!master || !master.skeleton) { throw new Error('몸에 스켈레톤이 없다'); }
+    var skeleton = master.skeleton;
+
+    [parts.outfit, parts.hair].forEach(function (p) {
+      if (!p || !p.gltf) { return; }
+      var scene = cloneScene(p.gltf);
+      var meshes = [];
+      scene.traverse(function (o) { if (o.isSkinnedMesh) { meshes.push(o); } });
+      meshes.forEach(function (m) {
+        m.bind(skeleton, m.bindMatrix);
+        bodyScene.add(m);
+      });
+    });
+
+    var model = normalize(bodyScene, heightMul('hero', ref));
+    applyTint(model, tintOf('hero', ref));
+    return model;
+  }
+
+  /**
+   * 인물 하나를 조합형(몸+옷+머리)으로 세운다 — `build()` 가 `kind==='hero'`
+   * 일 때 이 앞에서 부른다. 넷(몸·옷·머리·몸짓 원본)을 한꺼번에 받아 오고
+   * 넷 다 모이면 `assembleHero()` 로 묶는다.
+   */
+  function buildHero(ref, makeShape) {
+    var t = three();
+    var rec = heroRecipe(ref);
+    if (!rec) { return null; }
+
+    var shell = new t.Group();
+    var shape = makeShape ? makeShape() : null;
+    if (!shape) { shape = primitive('hero', ref); }
+    if (shape) {
+      shell.add(shape);
+      shell.userData.rig = shape.userData && shape.userData.rig;
+    }
+    shell.userData.assetUrl = rec.body;
+    shell.userData.assetState = 'shape';
+    built++;
+
+    var parts = {}, pending = 4;
+    function onOne() { pending--; if (pending === 0) { assemble(); } }
+    acquire(rec.body, function (c) { parts.body = c; onOne(); });
+    acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); });
+    acquire(rec.hair, function (c) { parts.hair = c; onOne(); });
+    acquire(ANIM_SRC, function (c) { parts.anim = c; onOne(); });
+
+    function assemble() {
+      if (!parts.body) { shell.userData.assetState = 'fail'; return; }
+      var model;
+      try {
+        model = assembleHero(parts, ref);
+      } catch (e) {
+        shell.userData.assetState = 'fail';
+        broke = (e && e.message) ? e.message : 'hero assemble 실패';
+        return;
+      }
+      while (shell.children.length) { shell.remove(shell.children[0]); }
+      shell.add(model);
+      shell.userData.rig = null;
+      shell.userData.assetState = 'glb';
+      swapped++;
+
+      var animC = parts.anim;
+      if (animC && animC.clips && animC.clips.length) {
+        var mx = new t.AnimationMixer(model);
+        var acts = {}, i;
+        for (i = 0; i < animC.clips.length; i++) { acts[animC.clips[i].name] = mx.clipAction(animC.clips[i]); }
+        shell.userData.mixer = mx;
+        shell.userData.actions = acts;
+        shell.userData.clipMap = mapClips(animC.clips.map(function (a) { return a.name; }));
+        shell.userData.anim = null;
+      }
+    }
+    return shell;
+  }
+
+  /**
    * 배우 하나를 GLB 로 세운다 — `actor3d.build` 가 이 앞에서 부른다.
    *
    * GLB 는 받아 오는 데 시간이 걸리는데 지도는 지금 그려야 한다. 그래서
    * **껍데기(Group)** 를 먼저 돌려주고 그 안에 도형을 넣어 둔다. 다 받으면
    * 안의 것만 갈아 끼운다 — 껍데기를 쥔 `world3d` 는 아무것도 모른 채 그대로 돈다.
    *
+   * `kind === 'hero'` 는 파일 하나가 아니라 몸+옷+머리 셋을 묶는 조합형이라
+   * `buildHero()` 에 넘긴다(아래) — 그 안에서 GLB_ON 손잡이도 따로 본다.
+   *
    * @param makeShape 도형을 만드는 함수 (actor3d 가 자기 것을 건네준다)
    */
   function build(kind, ref, makeShape) {
     var t = three();
     if (!t) { return null; }
+    if (kind === 'hero') {
+      return GLB_ON() ? buildHero(ref, makeShape) : null;
+    }
     var url = wants(kind, ref) ? urlOf(kind, ref) : null;
     if (!url) { return null; }
 
@@ -901,7 +1046,7 @@
     hasLoader: function () { return !!loader(); },
     DEFAULTS: DEFAULTS, restore: restore, tintOf: tintOf, oneOf: oneOf,
     pickPieces: pickPieces,
-    ANIM_SRC: ANIM_SRC,
+    ANIM_SRC: ANIM_SRC, heroRecipe: heroRecipe,
     build: build, step: step, play: play, primitive: primitive, stats: stats,
     /** 표를 비운다 (진단이 제 뒤를 치울 때) */
     clear: function () {

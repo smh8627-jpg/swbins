@@ -3370,12 +3370,15 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('일흔 명 × 네 무리 = ' + (D.heroes.length * 4) + '자리 모두 정확히 하나');
     });
 
-    t('에셋 — 몸짓 원본이 정해져 있다 (스물한 벌은 몸짓이 0개다)', function () {
+    t('에셋 — 몸·옷·머리가 다 같은 뼈대라 몸짓을 옮겨 입지 않는다', function () {
       var A = DG.asset3d;
-      /* 이 한 벌만 제 몸짓(열둘)을 들고 있다 — 나머지는 여기서 옮겨 입는다 */
-      return A.ANIM_SRC.indexOf('Knight') > 0 &&
-        A.DEFAULTS.hero.indexOf(A.ANIM_SRC) >= 0 &&
-        ('몸짓 원본 ' + A.ANIM_SRC.split('/').pop());
+      /* 몸짓 원본(Universal Animation Library)은 인물 조합 열둘(몸 둘·옷 넷·
+         머리 여섯)과 뼈 이름이 완전히 같다 — 그래서 여섯 조합 다 body·outfit·
+         hair 셋을 갖췄는지만 본다(Knight 를 빌려 옮겨 입히던 옛 자리는 없다) */
+      return A.ANIM_SRC.indexOf('UAL') >= 0 &&
+        A.DEFAULTS.hero.length === 6 &&
+        A.DEFAULTS.hero.every(function (r) { return r && r.body && r.outfit && r.hair && r.key; }) &&
+        ('몸짓 원본 ' + A.ANIM_SRC.split('/').pop() + ' · 조합 ' + A.DEFAULTS.hero.length + '벌');
     });
 
     t('에셋 — 그래서 빛깔로 물들인다 (일흔이 다 다른 빛깔이 된다)', function () {

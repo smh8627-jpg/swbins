@@ -210,12 +210,15 @@ DG.asset3d.register('pet:form:dragon', 'assets/dragon.glb');// 용 종류만
   사람이 옆으로 4배 넓은 조각이 되어 **화면에서 통째로 사라졌다**(2026-08-28,
   사용자가 "캐릭터가 안 보인다"로 발견). `prop3d.partsOf` 는 이 줄이 있어서
   나무·집은 멀쩡했다. **GLB 를 재는 자리마다 이 줄이 있는지 본다**
-- 몸짓이 없는 몸에는 `Knight.glb` 의 열두 클립을 **옮겨 입힌다**(`retargetClip`).
-  번들된 `SkeletonUtils.retarget` 은 짝 뼈를 `options.names[뼈이름]` 으로만 찾고
-  **되돌림(`|| bone.name`)이 없어서**, 이름표를 안 주면 한 뼈도 못 맞춘다 —
-  `boneNameMap` 이 이름이 같은 뼈끼리 항등으로 이어 준다. 뼈대 키가 세 배 차이라
-  (`Knight` 5.60 · 나머지 1.87) `options.scale` 에 키 비율도 함께 넘긴다.
-  손잡이 `asset3d.retarget` 을 0 으로 내리면 옮겨 입지 않는다(가만히 선다)
+- **인물은 몸+옷+머리 조합**(`HERO_RECIPES`, 여섯 벌)이다(2026-08-29 갈아 끼움).
+  셋 다 뼈 이름·순서(65개)가 완전히 같은 한 뼈대(Quaternius `Universal Base
+  Characters` + `Modular Character Outfits`)라, 옷·머리의 스킨 메시를
+  `mesh.bind(몸의 스켈레톤, mesh.bindMatrix)` 로 다시 물리기만 하면 된다 —
+  **리타기팅이 필요 없다.** 몸짓도 마흔한 벌짜리 원본(`Universal Animation
+  Library`, `UAL1_Standard.glb`)이 같은 뼈대라 그대로 물린다.
+  옛 표(`Knight.glb` 몸짓 하나를 나머지 다섯 벌에 `retargetClip` 으로 옮겨 입히던
+  방식)는 부위마다 뼈대가 따로였던 팩이 걷는 동안 몸을 갈랐던 근본 원인이라
+  통째로 걷어 냈다 — 자세한 내력은 `SAGA-HANDOFF.md` 참고
 - 손잡이 **`world3d.glb`** 를 0 으로 두면 표에 적혀 있어도 도형으로 간다
 - **재질은 받은 그대로 두면 안 된다.** Quaternius 인물·짐승·건물 GLB 는 다
   `metallicFactor 0.4` 를 지고 오는데, 이 판 조명은 방향광·반구광 둘뿐이고
