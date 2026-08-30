@@ -183,14 +183,25 @@
     if (ready || failed) { return available(); }
     if (global.DG_NO_DRAW) { failed = true; return false; }
     T = global.THREE || null;
-    if (!T || !el) { failed = true; return false; }
+    if (!T || !el) {
+      failed = true;
+      /* 조용히 2D 로 떨어지면 "왜 안 보이는지" 를 아무도 못 찾는다(실제로 놓친 적이
+         있다) — THREE 가 없다는 건 vendor/three.iife.js 가 안 실렸다는 뜻이라
+         꼭 콘솔에 남긴다. */
+      if (!T) { console.warn('[던전 3D] THREE 가 없다 — js/vendor/three.iife.js 로드를 확인할 것. 2D 로 돌아간다.'); }
+      return false;
+    }
     canvas = el;
     try {
       renderer = new T.WebGLRenderer({
         canvas: el, antialias: true, alpha: false,
         preserveDrawingBuffer: !!global.DG_3D_PRESERVE
       });
-    } catch (e) { failed = true; return false; }
+    } catch (e) {
+      failed = true;
+      console.warn('[던전 3D] WebGL 렌더러를 못 세웠다 — 이 브라우저/기기가 WebGL 을 못 쓰는 것으로 보인다. 2D 로 돌아간다.', e);
+      return false;
+    }
     renderer.setPixelRatio(Math.min(2, global.devicePixelRatio || 1));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = T.PCFSoftShadowMap;
