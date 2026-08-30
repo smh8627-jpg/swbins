@@ -47,6 +47,10 @@
 
 <div id="report">진단 중…</div>
 
+<!-- three.js 는 씨앗을 잠그기 전에 싣는다 — 라이브러리 자체 내부의 Math.random()
+     (UUID 생성 따위)가 게임 난수열에 끼어들지 않게. 게임 스크립트는 전부
+     아래 씨앗 고정 다음에 실린다 -->
+<script src="js/vendor/three.iife.js"></script>
 <script>
 window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_LOOP = true;
 /* 어드민의 균형 손잡이를 읽지 않는다 — 손잡이를 잡아 둔 기기에서
@@ -73,6 +77,7 @@ window.DG_NO_TUNE = true;
 <script src="js/data-village.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
+<script src="js/asset3d.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/village.js"></script>
@@ -120,6 +125,29 @@ window.DG_NO_TUNE = true;
     t('데이터는 그대로 물려받았다', function () {
       return DG.data.heroes.length === 70 &&
         ('인물 ' + DG.data.heroes.length);
+    });
+
+    /* ── 3D 에셋 창고 (PLAN 40절 PHASE 1 — 자리만 파 둔다) ────── */
+
+    t('THREE 가 실려 있다', function () {
+      return typeof THREE === 'object' && typeof THREE.GLTFLoader === 'function' &&
+        'THREE + GLTFLoader';
+    });
+
+    t('asset3d 표는 순수 함수로 검사할 수 있다 (렌더러 없이)', function () {
+      var A3 = DG.asset3d;
+      A3.clear();
+      return A3.lookup('tree', { id: 'pine' }) === null &&
+        A3.register('tree', 'x.glb') && A3.lookup('tree').url === 'x.glb' &&
+        A3.register('tree:pine', 'y.glb') &&
+        A3.lookup('tree', { id: 'pine' }).key === 'tree:pine' &&
+        '빈 표 → null · 넓은 키 → 좁은 키 우선';
+    });
+
+    t('asset3d 표를 되돌리면 비워 둔 채로 시작한다', function () {
+      var A3 = DG.asset3d;
+      A3.restore();
+      return Object.keys(A3.REG()).length === 0 && '아직 자리만 판 상태 (등록 0개)';
     });
 
     /* ── 마을 ─────────────────────────────────────────── */
