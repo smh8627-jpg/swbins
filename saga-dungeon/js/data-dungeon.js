@@ -85,7 +85,8 @@
        재사용한다(정예·보스 자체는 이미 다양화가 끝났다 — 새 규칙이 아니라
        새 자리다) */
     { key: 'elite',    weight: 10 },   // 정예 소굴 — 반드시 정예 하나를 낀다
-    { key: 'miniboss', weight: 6 }     // 미니보스 — 부하 없이 혼자, 보스급 노획
+    { key: 'miniboss', weight: 6 },    // 미니보스 — 부하 없이 혼자, 보스급 노획
+    { key: 'cave',     weight: 8 }     // 채광방(POI: Cave) — 광맥을 캐면 세공 재료
   ];
 
   global.DG = global.DG || {};

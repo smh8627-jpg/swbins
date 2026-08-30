@@ -275,12 +275,12 @@
 
   /**
    * 방 하나를 만든다.
-   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'boss' | 'stair'
+   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'boss' | 'stair'
    */
   function makeRoom(kind, floor, index, total) {
     var room = {
       kind: kind, index: index, cleared: false,
-      enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null
+      enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null
     };
     var n;
     if (kind === 'boss') {
@@ -309,6 +309,12 @@
          `kill()` 이 `e.boss` 만 보고 이미 보스급 노획(확정 드랍·재료·단약·
          감정서)을 주므로 여기서 따로 더 챙길 것은 없다 */
       room.enemies.push(spawnEnemy(floor, true));
+    } else if (kind === 'cave') {
+      /* 채광방(POI: Cave) — PLAN 12절 "희귀 광석" 을 문 하나로 꺼낸다.
+         광맥을 캐면(우물과 같은 손짓) 세공 재료가 확정으로 둘 나온다 —
+         행상에서 사는 것보다 후하게(우물의 회복량 40% 만큼 후한 셈이다) */
+      room.vein = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, used: false };
+      if (Math.random() < 0.35) { room.enemies.push(spawnEnemy(floor, false)); }
     }
     if (!room.enemies.length) { room.cleared = true; }
     room.last = index >= total - 1;
@@ -1084,6 +1090,16 @@
       shrineBoon();
       sfx('shrine');
       core.emit('toast', '⛩️ 사당 · 은사를 고르세요');
+    }
+    if (room.vein && !room.vein.used && room.cleared && dist(p, room.vein) < P_R + 20) {
+      /* 채광방(POI: Cave) — 광맥을 캔다. 상자·사당과 같은 손짓(지킴이가
+         있을 수 있으니 방을 다 치운 뒤에만)이지만, 나오는 것은 재료 둘
+         확정이다(우물의 회복량 40% 만큼 후하게 잡았다) */
+      room.vein.used = true;
+      dropMat(room, room.vein.x, room.vein.y, 26);
+      dropMat(room, room.vein.x, room.vein.y, 26);
+      sfx('chest');
+      core.emit('toast', '⛏️ 광맥 · 세공 재료를 캤다');
     }
 
     /* 문 */

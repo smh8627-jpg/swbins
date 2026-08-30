@@ -313,6 +313,13 @@
       box(wallGroup, r.shrine.x, 16, r.shrine.y, 18, 32, 18, 0x6a5c8c, 'flat', true);
       box(wallGroup, r.shrine.x, 34, r.shrine.y, 10, 10, 10, 0xc9a3ff, 'glow', false);
     }
+    if (r && r.vein && !r.vein.used) {
+      /* 채광방(POI: Cave) — 돌무더기에 박힌 광맥. 상자·우물·사당과 같은
+         "바닥에 박힌 소품" 요령이다 */
+      box(wallGroup, r.vein.x, 8, r.vein.y, 34, 16, 30, mix(stone, 0x000000, 0.3), 'flat', true);
+      box(wallGroup, r.vein.x - 6, 13, r.vein.y + 4, 8, 8, 8, 0x7ee091, 'glow', false);
+      box(wallGroup, r.vein.x + 7, 12, r.vein.y - 3, 7, 7, 7, 0xe8c15a, 'glow', false);
+    }
     /* 장식 — 기둥·횃불·바닥 균열. 판정이 자리를 정해 두고(`decor`) 2D 가 오래 그려
        온 것들이다. 이것이 없으면 방이 **빈 상자**로 보인다 — 마을은 특히 그렇다
        (모루골의 집과 불이 전부 여기 들어 있다).
