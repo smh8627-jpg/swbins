@@ -699,6 +699,89 @@
   function setInput(dx, dy) { input.dx = dx; input.dy = dy; if (dx || dy) { target = null; } }
   function moveTo(x, y) { target = { x: x, y: y }; }
 
+  /* ── 방 밖 들판으로 나간다 (PLAN 4·5·6절의 나머지 절반) ─────
+   * `field3d.js` 가 방 둘레에 세워 둔 세상은 여태 **눈에만 보였다** — 판정은
+   * 여전히 방 사각형 안에만 사람을 가뒀다. 여기서 그 절반을 마저 잇는다.
+   *
+   * 방 안(옛 사각형)에서는 **한 줄도 안 바뀐다** — 문 판정(`p.x > ROOM_W - WALL
+   * - P_R - 4`)이 그 경계에 그대로 물려 있으므로, 방 안 동작을 건드리면 그 판정도
+   * 같이 흔들린다. 대신 **방 밖으로는 더 나갈 수 있게** 사각형을 넓히고, 들판에
+   * 실제로 서 있는 소품(나무·바위·기둥·무너진 벽·절벽·굴 입구)과는 부딪힌다 —
+   * `dungeon3d.js` 가 그리는 것과 **같은 값**(`field3d.chunkAt`)을 그대로 읽으므로
+   * 눈에 보이는 나무를 그대로 통과하는 일은 없다.
+   *
+   * 렌더러가 없어도(자가진단) 그대로 돈다 — `field3d` 는 순수 함수다.
+   */
+  function fieldOn() {
+    var D3 = global.DG.dungeon3d;
+    return !D3 || !D3.tuned || D3.tuned('dg3d.field', 1) ? true : false;
+  }
+  function fieldRadiusUnits() {
+    var D3 = global.DG.dungeon3d;
+    var F = global.DG.field3d;
+    var r = (D3 && D3.tuned) ? D3.tuned('dg3d.fieldR', 3) : 3;
+    return r * (F ? F.CHUNK : 200);
+  }
+  function inRoomRect(x, y) {
+    var lo = WALL + P_R;
+    return x >= lo - 0.01 && x <= ROOM_W - WALL - P_R + 0.01 &&
+           y >= lo - 0.01 && y <= ROOM_H - WALL - P_R + 0.01;
+  }
+  /* 들판 소품 중 **막는 것만** 고른다 — 길·이정표·연못가 갈대 같은 장식은
+     지나갈 수 있어야 걷는 맛이 안 답답하다. */
+  var FIELD_BLOCK = { tree: 1, rock: 1, pillar: 1, wall: 1, cliff: 1, cavemouth: 1 };
+  function pieceRadius(pc) {
+    var s = pc.s || 1;
+    if (pc.t === 'tree') { return 5 * s + 6; }
+    if (pc.t === 'rock') { return pc.h * 0.55 * s; }
+    if (pc.t === 'pillar') { return 12; }
+    if (pc.t === 'wall') { return 46; }             // 길쭉해 원으로 뭉뚱그린다(넉넉하게)
+    if (pc.t === 'cliff') { return 45 * s; }
+    if (pc.t === 'cavemouth') { return pc.h * 0.6; }
+    return 0;
+  }
+  /** (x,y) 언저리 아홉 조각의 소품과 부딪히는지 — three 없이도 돈다 */
+  function fieldBlockedAt(x, y) {
+    var F = global.DG.field3d;
+    if (!F || !run) { return false; }
+    var DDf = global.DG.dataDungeon;
+    var th = run.theme || (DDf ? DDf.themeOf(run.floor) : null);
+    var seed = F.seedOf(run.floor, run.roomIdx, th && th.name);
+    var ccx = Math.floor(x / F.CHUNK), ccz = Math.floor(y / F.CHUNK), cx, cz, i, pc, r;
+    for (cz = ccz - 1; cz <= ccz + 1; cz++) {
+      for (cx = ccx - 1; cx <= ccx + 1; cx++) {
+        var ring = F.ringOf(cx, cz, ROOM_W, ROOM_H);
+        if (ring === 0) { continue; }              // 방이 걸친 조각엔 소품이 없다
+        var list = F.chunkAt(cx, cz, seed, ring, 1);
+        for (i = 0; i < list.length; i++) {
+          pc = list[i];
+          if (!FIELD_BLOCK[pc.t]) { continue; }
+          r = pieceRadius(pc);
+          if (r > 0 && Math.hypot(x - pc.x, y - pc.z) < r + P_R) { return true; }
+        }
+      }
+    }
+    return false;
+  }
+  /**
+   * 사각형 벽(방 안)은 그대로 지키고, 방 밖은 들판 반경까지 넓힌다.
+   * 축을 나눠 시도해 **한쪽이 막혀도 다른 쪽은 미끄러진다**(대각선으로 나무에
+   * 부딪혀도 그대로 안 멎는다 — 사가고 벽 충돌이 밟아 둔 요령과 같다).
+   */
+  function boundPlayer(p, px, py) {
+    var lo = WALL + P_R, hiX = ROOM_W - WALL - P_R, hiY = ROOM_H - WALL - P_R;
+    if (!fieldOn()) {
+      p.x = core.clamp(p.x, lo, hiX);
+      p.y = core.clamp(p.y, lo, hiY);
+      return;
+    }
+    var R = fieldRadiusUnits();
+    var nx = core.clamp(p.x, lo - R, hiX + R);
+    p.x = (inRoomRect(nx, py) || !fieldBlockedAt(nx, py)) ? nx : px;
+    var ny = core.clamp(p.y, lo - R, hiY + R);
+    p.y = (inRoomRect(p.x, ny) || !fieldBlockedAt(p.x, ny)) ? ny : py;
+  }
+
   /** 사기(士氣) 버프가 살아 있나 */
   function rallyOn() {
     return !!(run && run.player.rallyUntil > Date.now());
@@ -717,6 +800,7 @@
     var rally = rallyOn();
 
     /* 돌진 — 조작을 무시하고 정해진 방향으로 밀고 나간다 */
+    var px0 = p.x, py0 = p.y;
     if (p.dash) {
       var dsh = p.dash;
       p.x += dsh.dx * 620 * dt;
@@ -736,8 +820,7 @@
       }
       dsh.t -= dt;
       if (dsh.t <= 0) { p.dash = null; }
-      p.x = core.clamp(p.x, WALL + P_R, ROOM_W - WALL - P_R);
-      p.y = core.clamp(p.y, WALL + P_R, ROOM_H - WALL - P_R);
+      boundPlayer(p, px0, py0);
     } else {
       /* 이동 */
       var dx = input.dx, dy = input.dy;
@@ -760,8 +843,7 @@
       } else {
         p.walking = false;
       }
-      p.x = core.clamp(p.x, WALL + P_R, ROOM_W - WALL - P_R);
-      p.y = core.clamp(p.y, WALL + P_R, ROOM_H - WALL - P_R);
+      boundPlayer(p, px0, py0);
     }
     if (p.hurt > 0) { p.hurt -= dt; }
 
