@@ -65,6 +65,9 @@
   var DEFAULTS = {
     'hero': HERO_RECIPES,
     'beast': ANIMALS + 'Wolf.glb',
+    /* 몬스터 다양화 — 코끼리병처럼 몸집 큰 짐승 형 적은 소 GLB 로 대신한다
+       (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
+    'beast_big': ANIMALS + 'Cow.glb',
     'tree': [NATURE + 'CommonTree_1.glb', NATURE + 'CommonTree_2.glb', NATURE + 'CommonTree_3.glb'],
     'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb'],
     /* 폐허의 기둥·무너진 벽 — 딱 맞는 "부러진 돌기둥" 낱개는 못 찾아

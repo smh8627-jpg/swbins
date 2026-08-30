@@ -603,6 +603,72 @@
     return sg;
   }
 
+  /**
+   * 몬스터 다양화(PLAN 14절) — 사람 형 적의 무기·투구·망토·수염을 `data-enemy.js`
+   * 의 `look` 그대로 걸친다. 옛 도형 시절부터 있던 정보였는데(황건적은 몽둥이,
+   * 왜장은 투구+망토…) 3D 화면엔 여태 하나도 안 실렸다 — 다들 같은 사람 모델에
+   * 색만 다른 채로 섰다. GLB 갈아 끼우기와 별개로 **`g`(바깥 껍데기)에 얹는다** —
+   * `foeBody` 안쪽은 GLB 가 늦게 와서 통째로 갈릴 수 있지만 이 장식은 그대로다.
+   */
+  function foeGear(g, look, hh, r, tint) {
+    var handX = r * 1.05, handZ = r * 0.25, shoulderY = hh * 0.68;
+    var wcol = 0xb9c2cf, woodcol = 0x5a4a34;
+    if (look.weapon === 'club') {
+      box(g, handX, shoulderY, handZ, r * 0.5, r * 1.1, r * 0.5, woodcol, 'flat', true);
+    } else if (look.weapon === 'axe') {
+      box(g, handX, shoulderY, handZ, r * 0.2, r * 1.6, r * 0.2, woodcol, 'flat', true);
+      box(g, handX, shoulderY + r * 0.7, handZ, r * 0.85, r * 0.5, r * 0.14, wcol, 'flat', true);
+    } else if (look.weapon === 'sword') {
+      box(g, handX, shoulderY, handZ, r * 0.15, r * 1.7, r * 0.15, wcol, 'flat', true);
+    } else if (look.weapon === 'spear') {
+      box(g, handX, shoulderY, handZ, r * 0.12, r * 2.6, r * 0.12, woodcol, 'flat', true);
+      box(g, handX, shoulderY + r * 1.2, handZ, r * 0.13, r * 0.5, r * 0.13, wcol, 'flat', true);
+    } else if (look.weapon === 'halberd') {
+      box(g, handX, shoulderY, handZ, r * 0.13, r * 2.8, r * 0.13, woodcol, 'flat', true);
+      box(g, handX, shoulderY + r * 1.3, handZ, r * 0.85, r * 0.6, r * 0.15, wcol, 'flat', true);
+    } else if (look.weapon === 'staff') {
+      box(g, handX, shoulderY, handZ, r * 0.12, r * 2.2, r * 0.12, woodcol, 'flat', true);
+      box(g, handX, shoulderY + r * 1.1, handZ, r * 0.4, r * 0.4, r * 0.4, 0x9fe8ff, 'glow', false);
+    } else if (look.weapon === 'bow') {
+      var bow = new T.Mesh(geo('bowArc', function () { return new T.TorusGeometry(1, 0.09, 5, 10, Math.PI * 1.4); }),
+        mat(woodcol, 'flat'));
+      bow.scale.setScalar(r * 0.85);
+      bow.position.set(handX, shoulderY, handZ);
+      bow.rotation.z = Math.PI / 2;
+      bow.castShadow = true;
+      g.add(bow);
+    }
+    if (look.cape) {
+      var cape = box(g, 0, hh * 0.42, -r * 0.85, r * 1.25, hh * 0.7, r * 0.13,
+        mix(tint, 0x000000, 0.25), 'flat', true);
+      cape.rotation.x = -0.1;
+    }
+    var headY = hh + r * 0.5;
+    if (look.helm === 'helmet') {
+      box(g, 0, headY + r * 0.35, 0, r * 1.0, r * 0.55, r * 1.0, 0x5a5a62, 'flat', true);
+    } else if (look.helm === 'gapju') {
+      var cone = new T.Mesh(geo('helmCone', function () { return new T.ConeGeometry(1, 1.3, 8); }),
+        mat(woodcol, 'flat'));
+      cone.scale.setScalar(r * 0.65);
+      cone.position.set(0, headY + r * 0.55, 0);
+      cone.castShadow = true;
+      g.add(cone);
+    } else if (look.helm === 'crown') {
+      var ring = new T.Mesh(geo('crownRing', function () { return new T.TorusGeometry(1, 0.18, 6, 12); }),
+        mat(0xe8c15a, 'glow'));
+      ring.scale.setScalar(r * 0.55);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(0, headY + r * 0.5, 0);
+      g.add(ring);
+    } else if (look.helm === 'plume') {
+      box(g, 0, headY + r * 0.35, 0, r * 1.0, r * 0.55, r * 1.0, 0x5a5a62, 'flat', true);
+      box(g, 0, headY + r * 0.85, 0, r * 0.2, r * 0.85, r * 0.2, mix(tint, 0xff5a3a, 0.5), 'glow', false);
+    }
+    if (look.beard) {
+      box(g, 0, headY - r * 0.35, r * 0.45, r * 0.4, r * 0.35, r * 0.22, 0x3a3226, 'flat', false);
+    }
+  }
+
   /** 지금 보이는 것(도형이든 GLB 든) 위 모든 메시의 재질 사본 — 맞으면 이걸 번쩍인다.
    *  GLB 가 도형에서 갈아 끼워지는 순간 사본이 낡으므로, 그 전환(assetState)이
    *  바뀔 때만 다시 뜬다(매 프레임 새로 뜨면 낭비다). */
@@ -673,9 +739,12 @@
     var isBeast = !!(enemyDef && enemyDef.kind === 'beast');
     var foeBody;
     if (AS3 && isBeast) {
-      /* 짐승 형 적(들개·코끼리병…) — 사가고의 늑대 GLB 로 선다. 세력색은
-         안 물들인다(짐승 제 털빛이 맞다) */
-      foeBody = AS3.build('beast', (ref && ref.ref && ref.ref.name) || 'beast',
+      /* 짐승 형 적(들개·코끼리병…) — 큰 놈은 소, 작은 놈은 늑대 GLB 로 선다
+         (몬스터 다양화 — 딱 맞는 코끼리는 없어 몸집 큰 네발짐승으로 대신한다).
+         세력색은 안 물들인다(짐승 제 털빛이 맞다) */
+      var bigBeast = !!(enemyDef && /코끼리/.test(enemyDef.name || ''));
+      foeBody = AS3.build(bigBeast ? 'beast_big' : 'beast',
+        (ref && ref.ref && ref.ref.name) || 'beast',
         hh + r * 0.95, null, function () { return foeShape(r, hh, col); });
     } else if (AS3) {
       /* 사람 형 적(황건적·왜구…) — 사람 창고 GLB. 보스·정예가 아니면
@@ -691,6 +760,11 @@
     /* 엘리트·보스는 눈이 빛난다 — 실루엣만으로 위험을 읽게 한다(GLB 위에도 그대로 얹는다) */
     if (ref && (ref.boss || ref.elite)) {
       box(g, 0, hh + r * 0.6, r * 0.5, r * 0.7, r * 0.2, r * 0.2, 0xff5a3a, 'glow', false);
+    }
+    /* 몬스터 다양화 — 사람 형 적은 무기·투구·망토·수염을 `look` 데이터 그대로
+       걸친다. 옛 도형 시절부터 있던 정보인데 여태 3D 화면엔 하나도 안 실렸다 */
+    if (!isBeast && enemyDef && enemyDef.look) {
+      foeGear(g, enemyDef.look, hh, r, col);
     }
     return g;
   }
@@ -844,6 +918,31 @@
       }
       sa.node.position.set(sh.x, 22, sh.y);
       sa.node.rotation.y = Math.atan2(sh.dx || 0, sh.dy || 0);
+    }
+
+    /* 궁수·조총병이 쏜 것 — 판정이 굴리는 그대로, 색만 기본을 다르게 둔다
+       (몬스터 다양화 — 나에게 오는 화살이라는 걸 한눈에 가른다) */
+    var fss = run.foeShots || [];
+    for (i = 0; i < fss.length; i++) {
+      var fsh = fss[i];
+      var fa = actorOf('f' + i, 'shot', null);
+      if (!fa.node.userData.built) {
+        while (fa.node.children.length) { fa.node.remove(fa.node.children[0]); }
+        var fc0 = box(fa.node, 0, 0, 0, 8, 8, 8, 0xe08a5a, 'glow', false);
+        var ft0 = box(fa.node, 0, 0, -8, 4, 4, 18, 0xe08a5a, 'glow', false);
+        fa.node.userData.shotMat = [ownMat(fc0), ownMat(ft0)];
+        fa.node.userData.shotMat[1].transparent = true;
+        fa.node.userData.shotMat[1].opacity = 0.45;
+        fa.node.userData.built = true;
+      }
+      var fhex = FX ? FX.shotHex({ color: fsh.color || '#e08a5a' }) : 0xe08a5a;
+      var fm = fa.node.userData.shotMat, fj;
+      for (fj = 0; fm && fj < fm.length; fj++) {
+        fm[fj].color.setHex(fhex);
+        if (fm[fj].emissive) { fm[fj].emissive.setHex(fhex); }
+      }
+      fa.node.position.set(fsh.x, 20, fsh.y);
+      fa.node.rotation.y = Math.atan2(fsh.dx || 0, fsh.dy || 0);
     }
 
     sweep();

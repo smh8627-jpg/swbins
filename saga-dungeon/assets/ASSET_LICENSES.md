@@ -34,10 +34,11 @@
 `delam()`이 PBR을 벗기고 Lambert로 갈아 끼운다). `models/anim/UAL1_Standard.glb`는
 몸짓 마흔한 벌(기본판, 루트 모션 없음).
 
-## Quaternius — 배우·자연물 (`models/animals/Wolf.glb`, `models/nature/`)
+## Quaternius — 배우·자연물 (`models/animals/`, `models/nature/`)
 
 같은 만든 이·라이선스(CC0). `saga-go`의 `models/animals/Wolf.glb`(짐승 형
-적 — 들개·코끼리병처럼 `kind:'beast'`인 적의 몸으로 쓴다)와
+적 중 몸집 작은 쪽 — 들개)와 `Cow.glb`(몸집 큰 쪽 — 남만 코끼리병. 딱 맞는
+코끼리는 CC0 로 못 찾아 큰 네발짐승으로 대신한다, 몬스터 다양화)와
 `models/nature/CommonTree_1·2·3.glb`·`Rock_1·2·3.glb`(들판 소품 — 나무·바위)를
 그대로 복사했다.
 
