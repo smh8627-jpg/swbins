@@ -801,6 +801,11 @@
       }
     }
     thingItem(items, run.room.captive, run.room.captive && run.room.captive.freed ? '🙏' : '⛓️');
+    /* 비밀(POI: Secret) — 찾기 전엔 여느 균열과 똑같이 그려진다(위 균열
+       루프가 이미 그린다). 찾은 뒤에만 반짝임을 하나 더 얹는다 */
+    for (di = 0; di < dec.length; di++) {
+      if (dec[di].secret && dec[di].found) { thingItem(items, dec[di], '✨'); }
+    }
 
     for (i = 0; i < run.room.enemies.length; i++) {
       var e = run.room.enemies[i];

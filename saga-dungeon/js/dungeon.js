@@ -354,7 +354,7 @@
     }
     if (!room.enemies.length) { room.cleared = true; }
     room.last = index >= total - 1;
-    room.decor = makeDecor(kind);
+    room.decor = makeDecor(kind, floor, index);
     return room;
   }
 
@@ -362,7 +362,7 @@
    * 방 장식 — 기둥 · 횃불 · 균열. 통과에는 영향이 없고 눈으로만 쓴다
    * (충돌까지 넣으면 좁은 방에서 길이 막히는 사고가 난다).
    */
-  function makeDecor(kind) {
+  function makeDecor(kind, floor, index) {
     var out = [], i;
     var cols = 2 + Math.floor(Math.random() * 3);
     for (i = 0; i < cols; i++) {
@@ -393,14 +393,36 @@
       });
     }
     var cracks = 2 + Math.floor(Math.random() * 3);
+    var crackList = [];
     for (i = 0; i < cracks; i++) {
-      out.push({
+      var cr = {
         t: 'crack',
         x: ROOM_W * (0.15 + Math.random() * 0.7),
         y: ROOM_H * (0.2 + Math.random() * 0.6),
         a: Math.random() * 3.14,
         len: 18 + Math.random() * 34
-      });
+      };
+      out.push(cr);
+      crackList.push(cr);
+    }
+    /* 비밀(POI: Secret) — 문에 안 뜨고 숨어 있다. 겉보기엔 여느 균열과
+       똑같다 — **닿아 봐야 안다**(그래서 room.decor 항목에 얹지, 문
+       목록엔 아예 없다). 방마다 8% 확률로 균열 하나가 사실은 숨은 틈이다.
+       보스방은 뺀다(정신없는 싸움 중에 발밑을 뒤질 계제가 아니다).
+       **`Math.random()` 을 안 쓴다** — 여기서 하나 더 뽑으면 이 뒤로 도는
+       모든 굴림(전리품 등급·원소 접사…)이 한 칸씩 밀린다. 자가진단이
+       던전을 3000틱 자동으로 돌리는 항목이 있어(다른 방을 수백 번 만든다),
+       그 밀림이 한참 뒤 엉뚱한 테스트(원소 접사 값)까지 흔드는 걸 실제로
+       겪었다 — 대신 층·방 번호로만 결정되는 순수 해시(`core.hash2`)를
+       쓴다(자리를 옮기지 않는 층 테마·바닥 무늬와 같은 요령). */
+    if (kind !== 'boss' && crackList.length) {
+      var secRoll = core.hash2((floor || 0) * 131 + (index || 0) * 7, crackList.length * 29 + 3);
+      if (secRoll < 0.08) {
+        var pickH = core.hash2((floor || 0) * 131 + (index || 0) * 7 + 1, crackList.length * 29 + 11);
+        var sc = crackList[Math.min(crackList.length - 1, Math.floor(pickH * crackList.length))];
+        sc.secret = true;
+        sc.found = false;
+      }
     }
     return out;
   }
@@ -1248,6 +1270,21 @@
       dropGold(room, room.captive.x, room.captive.y, 2);
       sfx('shrine');
       core.emit('toast', '🙏 구출 · 은혜를 갚는다');
+    }
+    /* 비밀(POI: Secret) — 균열들 사이에 숨어 있다. 문 목록엔 아예 없으므로
+       여기서 방마다 있는 균열을 훑어 찾는다(있으면 하나뿐이다) */
+    for (i = 0; i < room.decor.length; i++) {
+      var dc = room.decor[i];
+      if (!dc.secret || dc.found) { continue; }
+      var dcNear = dist(p, dc) < P_R + 22;
+      if (dcNear && !dc.near) {
+        dc.found = true;
+        dropItem(room, dc.x, dc.y, 24);
+        dropGold(room, dc.x, dc.y, 2.6);
+        sfx('chest');
+        core.emit('toast', '🔍 비밀 통로를 찾았다!');
+      }
+      dc.near = dcNear;
     }
 
     /* 문 */

@@ -375,6 +375,11 @@
         var cl = o.len || 30;
         var cm = box(wallGroup, o.x, 0.6, o.y, cl, 1.2, 4, mix(stone, 0x000000, 0.7), 'flat', false);
         cm.rotation.y = -(o.a || 0);
+        /* 비밀(POI: Secret) — 찾기 전엔 여느 균열과 똑같다. 찾은 뒤에만
+           금빛 반짝임을 얹는다(2D 의 ✨ 와 같은 신호) */
+        if (o.secret && o.found) {
+          box(wallGroup, o.x, 4, o.y, 6, 6, 6, 0xffd489, 'glow', false);
+        }
       } else if (o.t === 'house') {
         /* 마을(모루골) 집 — `town.js`의 `DECOR`에만 나온다(던전 방엔 없다).
            넷을 자리 씨앗으로 섞어 세운다 — 나무·바위와 같은 요령(`piece()` 참고) */
@@ -925,8 +930,15 @@
     var pzProg = (run.room && run.room.puzzle) ? ':pz' + run.room.puzzle.progress : '';
     /* 이벤트방(구출)도 같은 사정이다 — 풀려난 순간 갇힌 우리 그림을 갈아 끼운다 */
     var capProg = (run.room && run.room.captive) ? (':cap' + (run.room.captive.freed ? 1 : 0)) : '';
+    /* 비밀(POI: Secret)도 마찬가지 — 찾은 순간 반짝임을 얹어야 한다 */
+    var secFound = 0;
+    if (run.room && run.room.decor) {
+      for (var sdi = 0; sdi < run.room.decor.length; sdi++) {
+        if (run.room.decor[sdi].secret && run.room.decor[sdi].found) { secFound = 1; break; }
+      }
+    }
     var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
-             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg;
+             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound;
     if (rk !== roomKey) { roomKey = rk; buildRoom(run); buildField(run); }
 
     /* 조명 */
