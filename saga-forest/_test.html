@@ -91,6 +91,7 @@ window.DG_NO_TUNE = true;
 <script src="js/wear.js"></script>
 <script src="js/terrain.js"></script>
 <script src="js/village-view.js"></script>
+<script src="js/village-view3d.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/auto.js"></script>
@@ -201,6 +202,24 @@ window.DG_NO_TUNE = true;
       return m.attack === 'idle' && m.alias.attack === 'idle' &&
         m.hit === 'idle' && m.alias.hit === 'idle' &&
         'attack·hit 모두 idle 대타';
+    });
+
+    /* ── 3D 마을 화면 (PLAN 40절 PHASE 2 — Player 3D) ─────── */
+
+    t('village-view3d — three 는 실려 있으니 available, init 을 안 불렀으니 active 는 아니다', function () {
+      var VV3 = DG.villageView3d;
+      return VV3.available() === true && VV3.active() === false &&
+        VV3.on() === false && '켜기 전 기본값 그대로';
+    });
+
+    t('village-view3d — toggle 은 손잡이를 뒤집지만, init 없이는 여전히 active 가 아니다', function () {
+      var VV3 = DG.villageView3d;
+      var before = VV3.on();
+      var after = VV3.toggle();
+      var stillOff = VV3.active();          // init() 을 부른 적이 없으니 ready 가 false
+      VV3.toggle();                          // 되돌린다 — 다른 항목에 안 번지게
+      return before === false && after === true && stillOff === false &&
+        '손잡이는 뒤집힘 · 화면은 init 없이 안 켜짐';
     });
 
     /* ── 마을 ─────────────────────────────────────────── */

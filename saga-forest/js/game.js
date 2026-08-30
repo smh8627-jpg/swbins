@@ -30,6 +30,9 @@
     V.init();
     V.bindKeys();
     global.DG.villageView.init(document.getElementById('map'));
+    if (global.DG.villageView3d && !global.DG_NO_DRAW) {
+      global.DG.villageView3d.init(document.getElementById('map3d'));
+    }
     ui.init();
 
     if (fresh) {
@@ -126,6 +129,18 @@
       });
     }
 
+    var btn3d = document.getElementById('btn-3d');
+    if (btn3d && global.DG.villageView3d) {
+      var VV3 = global.DG.villageView3d;
+      if (!VV3.available()) { btn3d.style.display = 'none'; }
+      btn3d.classList.toggle('on', VV3.active());
+      btn3d.addEventListener('click', function () {
+        var on = VV3.toggle();
+        btn3d.classList.toggle('on', on);
+        core.persist();
+      });
+    }
+
     document.getElementById('btn-help').addEventListener('click', showHelp);
   }
 
@@ -170,7 +185,10 @@
 
     global.DG.auto.update(dt);
     V.update(dt);
-    if (!global.DG_NO_DRAW) { global.DG.villageView.draw(); }
+    if (!global.DG_NO_DRAW) {
+      global.DG.villageView.draw();
+      if (global.DG.villageView3d) { global.DG.villageView3d.step(dt); }
+    }
 
     /* 날이 바뀌는 순간을 놓치지 않게 30초마다 본다 */
     dayAcc += dt;
