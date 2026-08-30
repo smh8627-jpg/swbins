@@ -86,6 +86,16 @@
   /** 들판 밀도 배수 — 버거우면 여기를 내린다 */
   function FIELD_D() { return tuned('dg3d.fieldDens', 1); }
   /**
+   * 카메라 구도 — 'iso'(3/4 top-down, 기본) 또는 'third'(어깨너머 3인칭).
+   * **2026-08-30, 사용자 요청.** 회전 조작까지 새로 놓는 큰 개편은 아니다 —
+   * WASD 는 그대로 **화면(월드) 기준 절대 방향**이다(dungeon-view.js 를 안 건드렸다).
+   * 3인칭은 인물의 **마지막 이동 방향**(`p.dirX`·`p.dirY` — 무예 방향에도 쓰는 값,
+   * 정지해도 그대로 남는다)을 등 뒤로 잡아 따라가는 구도만 새로 얹었다. 원작의
+   * 고정 카메라(17행)는 `camAim`(iso)에 그대로 남아 있다 — 기본값은 안 바꿨다.
+   */
+  function CAMMODE() { return tuned('dg3d.camMode', 'iso') === 'third' ? 'third' : 'iso'; }
+
+  /**
    * 마을(모루골)도 3D 로 그릴까 — **기본이 1로 켜졌다** (사용자 요청, 2026-08-30).
    *
    * 처음엔 마을에 집·우물·대장간 같은 건물 자리가 아예 없어서(NPC 여섯 명과
@@ -131,6 +141,30 @@
       pos: { x: cx, y: high, z: cy + back },
       look: { x: cx, y: 0, z: cy },
       dist: dist
+    };
+  }
+
+  /**
+   * 어깨너머 3인칭 — **역시 순수 함수다.** `camAim` 과 달리 방 크기(W·H)를 안
+   * 본다 — 방을 담는 구도가 아니라 **인물을 쫓는** 구도라서 방이 커져도 거리가
+   * 안 늘어난다(넓은 마을에서 카메라만 저 멀리 물러나면 3인칭의 뜻이 없어진다).
+   * `dir`가 0벡터(막 서 있는 참)면 "위" 를 본다 — 세워 두자마자 방향 없이
+   * 회전하면 어지럽다.
+   */
+  function camAim3rd(px, py, dirX, dirY, zoom, tilt) {
+    var z = (zoom === undefined || zoom <= 0) ? 1 : zoom;
+    var tl = tilt === undefined ? 0.62 : tilt;
+    var dx = dirX || 0, dy = dirY || 0;
+    var dlen = Math.hypot(dx, dy);
+    if (dlen < 0.01) { dx = 0; dy = -1; dlen = 1; }
+    dx /= dlen; dy /= dlen;
+    var back = 100 * z;                            // 등 뒤 거리
+    var high = 50 * z * (0.5 + tl * 0.8);           // 어깨 위 높이
+    var ahead = 65;                                 // 앞을 내다보는 만큼
+    return {
+      pos: { x: px - dx * back, y: high, z: py - dy * back },
+      look: { x: px + dx * ahead, y: 20, z: py + dy * ahead },
+      dist: back
     };
   }
 
@@ -1099,7 +1133,9 @@
       var asp = camera.aspect || 1;
       zNow *= 1.15 * (asp < 1 ? Math.min(1.5, 1 / Math.max(0.5, asp)) : 1);
     }
-    var aim = camAim(p.x, p.y, W, H, zNow, TILT());
+    var aim = CAMMODE() === 'third'
+      ? camAim3rd(p.x, p.y, p.dirX, p.dirY, zNow, TILT())
+      : camAim(p.x, p.y, W, H, zNow, TILT());
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
@@ -1153,7 +1189,7 @@
     init: init, resize: resize, render: render,
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
-    camAim: camAim, lightPlan: lightPlan,
+    camAim: camAim, camAim3rd: camAim3rd, camMode: CAMMODE, lightPlan: lightPlan,
     /** 들판이 몇 조각인지 (2단계) */
     fieldKey: function () { return fieldKey; },
     three: function () { return T; },

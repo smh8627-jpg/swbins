@@ -18,16 +18,36 @@
 
   var core = global.DG.core;
 
-  /* 던전 방과 **같은 크기**다(560×360 에 스물). 처음에는 720×460 으로 넓게
-     잡았는데, 폰에서 그만큼 작게 그려졌다 — 아이소메트릭 마름모의 가로세로 비는
-     1.83:1 로 고정이라(IX/IY), 폰 세로 화면에서는 늘 **가로가 병목**이다.
-     방이 넓어지면 그 병목에 맞춰 축소되어 사람이 개미만 해진다.
-     그래서 던전과 같은 스케일로 줄이고, 대신 사람을 3×3 으로 촘촘히 앉혔다.
-     (390px 실측: 이 크기에서 마름모 가로가 화면의 1.2배 — 거의 한눈에 들어온다) */
-  var ROOM_W = 560, ROOM_H = 380, WALL = 30, P_R = 13;
+  /* 던전 방과 **같은 크기**였다(560×380). 처음에는 720×460 으로 넓게 잡았는데,
+     폰에서 그만큼 작게 그려졌다 — 아이소메트릭 마름모의 가로세로 비는 1.83:1 로
+     고정이라(IX/IY), 폰 세로 화면에서는 늘 **가로가 병목**이다. 방이 넓어지면
+     그 병목에 맞춰 축소되어 사람이 개미만 해진다. 그래서 던전과 같은 스케일로
+     줄이고, 대신 사람을 3×3 으로 촘촘히 앉혔었다.
+     (390px 실측: 이 크기에서 마름모 가로가 화면의 1.2배 — 거의 한눈에 들어온다)
+
+     **2026-08-30 — 데스크톱에서만 다시 키운다.** 폰의 그 병목은 화면이 좁아서
+     생기는 문제지 방 크기 자체의 문제가 아니다 — `dungeon-view.js`(2D)의
+     `fit`도 `dungeon3d.js`(3D)의 `camAim` 거리도 **화면·방 크기에 맞춰 저절로
+     다시 잡힌다**(둘 다 순수하게 W·H·화면 크기의 함수다). 그래서 화면이 넉넉히
+     넓은(가로가 세로보다 크고 900px 이상인) 곳에서만 기준 크기의 1.4배로 켠다 —
+     폰 세로 화면은 `BASE_W`·`BASE_H` 그대로다. NPC·표식·장식은 전부 `BASE_W`·
+     `BASE_H` 기준 좌표로 적어 두고 `scalePt` 로 실제 방 크기에 맞춰 늘린다 —
+     그래야 두 크기에서 배치 비율이 그대로 유지된다. */
+  var BASE_W = 560, BASE_H = 380, WALL = 30, P_R = 13;
+  function wideDesktop() {
+    try { return global.innerWidth >= 900 && global.innerWidth > global.innerHeight; }
+    catch (e) { return false; }
+  }
+  var DESK_SCALE = 1.4;
+  var wide = wideDesktop();
+  var ROOM_W = wide ? Math.round(BASE_W * DESK_SCALE) : BASE_W;
+  var ROOM_H = wide ? Math.round(BASE_H * DESK_SCALE) : BASE_H;
+  var SX = ROOM_W / BASE_W, SY = ROOM_H / BASE_H;
+  function scalePt(x, y) { return { x: x * SX, y: y * SY }; }
   var SPD = 158;                        // 마을 걸음 (던전보다 조금 빠르다 — 볼일만 보는 곳이라)
-  var TALK_R = 40;                      // 이만큼 다가서면 말이 걸린다
-  var LEAVE_R = 58;                     // 이만큼 떨어져야 다시 걸린다 (문턱 — 아래 armed 설명)
+  var RSCALE = (SX + SY) / 2;           // 닿는 판정 반경도 방 크기를 따라간다
+  var TALK_R = 40 * RSCALE;             // 이만큼 다가서면 말이 걸린다
+  var LEAVE_R = 58 * RSCALE;            // 이만큼 떨어져야 다시 걸린다 (문턱 — 아래 armed 설명)
 
   /* 마을 테마 — 던전과 달리 **불을 피워 둔 자리**라 바닥이 따뜻하다.
      data-dungeon.js 의 THEMES 에 넣지 않았다. 거기 것은 층(floor)으로 고르는데
@@ -112,6 +132,21 @@
     { t: 'blacksmith', x: 520, y: 235, h: 140 }
   ];
 
+  /* DECOR 는 그대로 두고(BASE_W·BASE_H 기준 좌표), 실제 방 크기에 맞춘 사본을
+     한 번만 만들어 캔다 — 순수 배경이라 정확히 맞을 필요는 없지만(위 주석),
+     방마다 다시 계산할 것도 아니다. h·seed·a·len 은 좌표가 아니라 그대로 둔다. */
+  var _scaledDecor = null;
+  function scaledDecor() {
+    if (_scaledDecor) { return _scaledDecor; }
+    _scaledDecor = DECOR.map(function (d) {
+      var p = scalePt(d.x, d.y), o = {};
+      for (var k in d) { if (Object.prototype.hasOwnProperty.call(d, k)) { o[k] = d[k]; } }
+      o.x = p.x; o.y = p.y;
+      return o;
+    });
+    return _scaledDecor;
+  }
+
   var room = null;                      // 마을 방 (한 번 만들고 계속 쓴다)
   var player = null;
   var on = false;
@@ -125,30 +160,32 @@
   function D() { return global.DG.dungeon; }
 
   function build() {
-    var i, n;
+    var i, n, p;
     room = {
       kind: 'town', index: 0, cleared: true, last: true,
       enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null,
-      decor: DECOR, npcs: [], marks: []
+      decor: scaledDecor(), npcs: [], marks: []
     };
-    /* 원본(NPCS·MARKS)은 건드리지 않는다 — 진단이 마을을 두 번 세울 수 있다 */
+    /* 원본(NPCS·MARKS)은 건드리지 않는다 — 진단이 마을을 두 번 세울 수 있다.
+       좌표는 BASE_W·BASE_H 기준으로 적혀 있어 실제 방 크기에 맞춰 늘린다. */
     for (i = 0; i < NPCS.length; i++) {
-      n = NPCS[i];
+      n = NPCS[i]; p = scalePt(n.x, n.y);
       room.npcs.push({
         key: n.key, name: n.name, emoji: n.emoji, sheet: n.sheet, line: n.line,
-        x: n.x, y: n.y, color: n.color,
+        x: p.x, y: p.y, color: n.color,
         ref: { id: 'town_' + n.key, name: n.name, trait: n.trait, rarity: n.rarity },
         phase: core.hash2(i + 1, 7) * 6.28, facing: n.x > 380 ? -1 : 1
       });
     }
     for (i = 0; i < MARKS.length; i++) {
-      n = MARKS[i];
-      room.marks.push({ key: n.key, name: n.name, emoji: n.emoji, x: n.x, y: n.y });
+      n = MARKS[i]; p = scalePt(n.x, n.y);
+      room.marks.push({ key: n.key, name: n.name, emoji: n.emoji, x: p.x, y: p.y });
     }
+    p = scalePt(195, 240);
     player = {
       /* 역참과 굴혈 사이, 어느 쪽에도 닿지 않는 자리(둘 다 100 남짓 떨어진다).
          입구 코앞에 세우면 둘러보기 전에 아래로 한 번 끌자마자 내려가 버린다. */
-      x: 195, y: 240, phase: 0, walking: false, facing: 1, hurt: 0,
+      x: p.x, y: p.y, phase: 0, walking: false, facing: 1, hurt: 0,
       cds: [0, 0, 0, 0], dash: null, invuln: 0, rallyUntil: 0,
       dirX: 0, dirY: -1
     };
@@ -164,7 +201,8 @@
        그 자리에서 곧바로 다시 빨려 들어간다. 그래서 한 발 물려 세우고
        그 표식은 발동을 잠가 둔다(armed). */
     if (opts.fromDungeon) {
-      player.x = 200; player.y = 300;
+      var gp = scalePt(200, 300);
+      player.x = gp.x; player.y = gp.y;
       armed.gate = true;
     }
     on = true;

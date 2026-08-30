@@ -2614,6 +2614,44 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         '카메라는 늘 같은 쪽에서 내려다본다';
     });
 
+    t('3D — 3인칭은 인물 뒤에 서서 앞을 본다', function () {
+      /* 카메라(pos)는 이동 방향의 반대쪽, 시선(look)은 인물보다 앞쪽에 있어야
+         "어깨너머" 다. 아래로(dy=1) 걷는 참이면 카메라는 더 위(z 작게)에서
+         더 아래(z 크게)를 본다 */
+      var a = D3.camAim3rd(200, 200, 0, 1, 1, 0.62);
+      return a.pos.z < 200 && a.look.z > 200 && a.pos.y > 0 &&
+        ('등 뒤 z=' + Math.round(a.pos.z) + ' · 시선 z=' + Math.round(a.look.z));
+    });
+
+    t('3D — 3인칭은 방 크기와 무관하다', function () {
+      /* iso 는 방이 커지면 물러나지만(camAim 은 W·H 를 받는다), 3인칭은 인물만
+         쫓는다 — camAim3rd 는 W·H 를 아예 안 받으니 인물이 방 어디에 있어도
+         등 뒤 거리가 똑같다. 넓은 마을에서 카메라가 저 멀리 물러나면 3인칭의
+         뜻이 없어진다 (town.js 확대 대응) */
+      var corner = D3.camAim3rd(30, 30, 1, 0, 1, 0.62);
+      var mid = D3.camAim3rd(600, 400, 1, 0, 1, 0.62);
+      return corner.dist === mid.dist && corner.dist < 150 &&
+        ('거리 ' + Math.round(corner.dist) + ' — 인물 위치와 무관하다');
+    });
+
+    t('3D — 3인칭은 정지해도 마지막 방향을 본다', function () {
+      /* dirX·dirY 가 0,0(막 세워 둔 참) 이어도 기본은 "위" 를 본다 — 방향 없이
+         회전하면 어지럽다 */
+      var a = D3.camAim3rd(200, 200, 0, 0, 1, 0.62);
+      return a.pos.z > 200 && a.look.z < 200 && '기본 방향은 위(-y)';
+    });
+
+    t('3D — 시점을 손잡이로 바꿀 수 있다', function () {
+      var before = D3.camMode();
+      D3.set('dg3d.camMode', 'third');
+      var mid = D3.camMode();
+      D3.set('dg3d.camMode', 'iso');
+      var after = D3.camMode();
+      D3.set('dg3d.camMode', null);
+      return mid === 'third' && after === 'iso' && D3.camMode() === before &&
+        '기본은 iso, third 로 바꿀 수 있고 되돌릴 수 있다';
+    });
+
     t('3D — 줌과 기울기가 듣는다', function () {
       var W = DN.ROOM_W, H = DN.ROOM_H;
       var near = D3.camAim(W / 2, H / 2, W, H, 0.6, 0.62);

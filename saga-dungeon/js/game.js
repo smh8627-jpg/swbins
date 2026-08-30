@@ -219,6 +219,28 @@
       });
     }
 
+    /* 시점 — iso(원작의 3/4 부감, 기본) ↔ third(어깨너머 3인칭).
+       빌드 시점엔 dungeon3d 가 아직 WebGL 을 켜기 전일 수 있어(dungeon-view.js
+       가 던전 화면을 처음 세울 때 init 한다) **available() 는 누를 때 본다** —
+       그때도 안 켜져 있으면(WebGL 없음 등) 2D 뿐이라는 뜻이니 조용히 알린다. */
+    var camBtn = document.getElementById('btn-camera');
+    if (camBtn && global.DG.dungeon3d) {
+      var D3 = global.DG.dungeon3d;
+      var syncCamBtn = function () {
+        var third = D3.camMode() === 'third';
+        camBtn.classList.toggle('on', third);
+        camBtn.title = third ? '시점 (3인칭 어깨너머 — 눌러서 3/4 부감으로)'
+                              : '시점 (3/4 부감 — 눌러서 3인칭 어깨너머로)';
+      };
+      syncCamBtn();
+      camBtn.addEventListener('click', function () {
+        if (!D3.available()) { ui.toast('이 화면은 3D 가 꺼져 있어 시점을 못 바꿉니다'); return; }
+        D3.set('dg3d.camMode', D3.camMode() === 'third' ? 'iso' : 'third');
+        syncCamBtn();
+        ui.toast(D3.camMode() === 'third' ? '🎥 3인칭 어깨너머' : '🎥 3/4 부감');
+      });
+    }
+
     document.getElementById('btn-help').addEventListener('click', showHelp);
   }
 
