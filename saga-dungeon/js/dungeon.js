@@ -27,6 +27,13 @@
   var BASE_ATK_CD = 0.55;               // 공격 간격 (초)
   var BASE_REACH = 34;                  // 공격 사거리
   var ENEMY_CD = 1.15;                  // 적 공격 간격
+  /* 몬스터 다양화(PLAN 14절) — 궁수·조총병(`look.weapon` bow·staff)은 붙지
+     않고 거리를 두고 쏜다. 보스는 따로 텔레그래프가 있는 지진 강타를 쓴다 */
+  var RANGED_STOP = 150;                // 이 거리에서 더 안 다가온다
+  var RANGED_MAX = 260;                 // 이보다 멀면 아예 안 쏜다
+  var SLAM_WARN = 0.7;                  // 강타 예고 시간(초) — 이 사이에 벗어나면 안 맞는다
+  var SLAM_RANGE = 110;                 // 강타 반경
+  var SLAM_MUL = 1.8;                   // 강타 배율(평타 대비)
   var MP_MAX = 100;                     // 기력 최대치
   var MP_REGEN = 7;                     // 기력 자연 회복 (초당)
   var MP_ON_KILL = 9;                   // 적을 잡으면 기력 회복
@@ -447,6 +454,7 @@
       buffs: {}, minions: [],          // 잠깐짜리 무예 · 분신 (회차 안에서만 산다)
       mp: MP_MAX, mpMax: MP_MAX,
       shots: [],                          // 기공파 투사체
+      foeShots: [],                       // 궁수·조총병이 쏘는 것 (몬스터 다양화)
       roomIdx: 0, rooms: [], room: null,
       loot: { gold: 0, items: [] },
       kills: 0, startedAt: Date.now(), dead: false
@@ -480,6 +488,7 @@
       rallyUntil: 0                       // 사기 버프가 끝나는 시각 (ms)
     };
     run.shots = [];
+    run.foeShots = [];
     var heal = boonVal('healOnFloor');
     if (heal) { healBy(run.hpMax * heal / 100); }
     /* 역참(驛站) — 원작의 웨이포인트. **다섯 층마다** 밟으면 다음부터 거기서 시작한다.
@@ -871,6 +880,26 @@
       }
     }
 
+    /* 궁수·조총병이 쏜 것 — 근접 대신 거리를 두고 쏘는 적의 화살·탄환
+       (몬스터 다양화: `look.weapon` 이 bow·staff 인 적은 아래 "적" 루프에서
+       가까이 안 붙고 이걸 쏜다) */
+    for (i = run.foeShots.length - 1; i >= 0; i--) {
+      var fsh = run.foeShots[i];
+      fsh.x += fsh.dx * fsh.spd * dt;
+      fsh.y += fsh.dy * fsh.spd * dt;
+      fsh.life -= dt;
+      if (dist(fsh, p) < P_R + 8) {
+        hurtPlayer(fsh.dmg, fsh.el);
+        if (!run) { return; }
+        run.foeShots.splice(i, 1);
+        continue;
+      }
+      if (fsh.life <= 0 || fsh.x < WALL || fsh.x > ROOM_W - WALL ||
+          fsh.y < WALL || fsh.y > ROOM_H - WALL) {
+        run.foeShots.splice(i, 1);
+      }
+    }
+
     /* 내 공격 — 사거리 안에서 가장 가까운 적 */
     p.atkCd -= dt;
     var reach = reachOf();
@@ -918,15 +947,52 @@
       }
       var espd = (62 + Math.min(40, run.floor * 1.5)) *
                  (el && el.spd ? el.spd : 1) * chill;
-      if (ed > en.r + P_R - 2) {
+      /* 궁수·조총병은 붙지 않고 RANGED_STOP 거리에서 멈춘다 — 나머지는 그대로
+         닿을 때까지 다가온다(옛 동작과 완전히 같다) */
+      var lookW = en.ref && en.ref.look && en.ref.look.weapon;
+      var ranged = lookW === 'bow' || lookW === 'staff';
+      var stopAt = ranged ? RANGED_STOP : (en.r + P_R - 2);
+      if (ed > stopAt) {
         en.x += (p.x - en.x) / ed * espd * dt;
         en.y += (p.y - en.y) / ed * espd * dt;
       }
       en.cd -= dt;
       if (ed <= en.r + P_R + 6 && en.cd <= 0) {
+        /* 붙었으면 궁수·조총병도 그냥 몸으로 밀친다(막다른 곳에 몰렸을 때) */
         en.cd = ENEMY_CD * (el && el.cd ? el.cd : 1) / chill;
         hurtPlayer(en.dmg, en.ref && en.ref.atkEl);
         if (!run) { return; }
+      } else if (ranged && ed > en.r + P_R + 6 && ed <= RANGED_MAX && en.cd <= 0) {
+        en.cd = ENEMY_CD * 1.4 * (el && el.cd ? el.cd : 1) / chill;
+        var frdx = p.x - en.x, frdy = p.y - en.y;
+        var frd = Math.sqrt(frdx * frdx + frdy * frdy) || 1;
+        var frEl = (en.ref && en.ref.atkEl) || 'phys';
+        run.foeShots.push({
+          x: en.x, y: en.y - 8, dx: frdx / frd, dy: frdy / frd, spd: 260, life: 1.8,
+          dmg: en.dmg, el: frEl, color: elemColorOf(frEl)
+        });
+      }
+
+      /* 보스 강타 — 예고(붉은 파문) 뒤 터진다(PLAN 15절 "보스 패턴") */
+      if (en.boss) {
+        if (en.slamWarn > 0) {
+          en.slamWarn -= dt;
+          if (en.slamWarn <= 0) {
+            if (dist(en, p) < SLAM_RANGE) {
+              hurtPlayer(en.dmg * SLAM_MUL, en.ref && en.ref.atkEl);
+              if (!run) { return; }
+            }
+            fx.push({ t: 'pop', x: en.x, y: en.y, life: 0.5, boss: true });
+            en.slamCd = 6 + Math.random() * 2;
+          }
+        } else {
+          en.slamCd = (en.slamCd === undefined ? 4 : en.slamCd) - dt;
+          if (en.slamCd <= 0) {
+            en.slamWarn = SLAM_WARN;
+            fx.push({ t: 'whirl', x: en.x, y: en.y, r: SLAM_RANGE, life: SLAM_WARN,
+              el: 'fire', color: '#ff6a3a' });
+          }
+        }
       }
     }
 
