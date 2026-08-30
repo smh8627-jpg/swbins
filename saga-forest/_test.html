@@ -127,27 +127,52 @@ window.DG_NO_TUNE = true;
         ('인물 ' + DG.data.heroes.length);
     });
 
-    /* ── 3D 에셋 창고 (PLAN 40절 PHASE 1 — 자리만 파 둔다) ────── */
+    /* ── 3D 에셋 창고 (PLAN 40절 PHASE 1~2 — 자리를 파고 GLB 를 채웠다) ── */
 
     t('THREE 가 실려 있다', function () {
       return typeof THREE === 'object' && typeof THREE.GLTFLoader === 'function' &&
         'THREE + GLTFLoader';
     });
 
-    t('asset3d 표는 순수 함수로 검사할 수 있다 (렌더러 없이)', function () {
+    t('asset3d 표는 임의 키로도 순수 함수로 검사할 수 있다 (렌더러 없이)', function () {
       var A3 = DG.asset3d;
+      var before = Object.keys(A3.REG()).length;
       A3.clear();
-      return A3.lookup('tree', { id: 'pine' }) === null &&
-        A3.register('tree', 'x.glb') && A3.lookup('tree').url === 'x.glb' &&
-        A3.register('tree:pine', 'y.glb') &&
-        A3.lookup('tree', { id: 'pine' }).key === 'tree:pine' &&
-        '빈 표 → null · 넓은 키 → 좁은 키 우선';
+      var r = A3.lookup('scratch', { id: 'pine' }) === null &&
+        A3.register('scratch', 'x.glb') && A3.lookup('scratch').url === 'x.glb' &&
+        A3.register('scratch:pine', 'y.glb') &&
+        A3.lookup('scratch', { id: 'pine' }).key === 'scratch:pine';
+      A3.restore();
+      return r && Object.keys(A3.REG()).length === before &&
+        '빈 표 → null · 넓은 키 → 좁은 키 우선 · restore 로 원상복구';
     });
 
-    t('asset3d 표를 되돌리면 비워 둔 채로 시작한다', function () {
+    t('asset3d 기본 표에 PLAN 8·16절 어휘가 다 채워져 있다', function () {
       var A3 = DG.asset3d;
-      A3.restore();
-      return Object.keys(A3.REG()).length === 0 && '아직 자리만 판 상태 (등록 0개)';
+      var need = ['tree:common', 'tree:common:autumn', 'tree:common:snow', 'tree:dead',
+        'tree:pine', 'tree:birch', 'bush', 'rock', 'rock:moss', 'grass', 'flower', 'plant',
+        'mushroom', 'stump', 'log', 'bench', 'fence', 'cart', 'campfire', 'tent', 'lantern',
+        'well', 'bridge', 'animal:an_deer', 'animal:an_wolf', 'animal:an_fox', 'hero'];
+      var reg = A3.REG(), missing = need.filter(function (k) { return !reg[k]; });
+      return missing.length === 0 && (need.length + '개 키 다 참 · 등록 ' + Object.keys(reg).length + '개');
+    });
+
+    t('나무 키는 계절별로 갈라지고, ref.id 로 좁은 키를 먼저 찾는다', function () {
+      var A3 = DG.asset3d;
+      var spring = A3.lookup('tree:common', {});
+      var autumn = A3.lookup('tree:common:autumn', {});
+      var dead = A3.lookup('tree', { id: 'dead' });   // 'tree:dead' 를 좁은 키로 먼저 찾는다
+      return spring.key === 'tree:common' && autumn.key === 'tree:common:autumn' &&
+        spring.url !== autumn.url && dead.key === 'tree:dead' &&
+        '봄여름 ≠ 가을 · tree + id:dead → tree:dead';
+    });
+
+    t('같은 사람은 늘 같은 몸을 입는다 (hero 조합 해시)', function () {
+      var A3 = DG.asset3d;
+      var a1 = A3.oneOf(A3.lookup('hero').url, { id: 'h_012' });
+      var a2 = A3.oneOf(A3.lookup('hero').url, { id: 'h_012' });
+      return a1 === a2 && a1.body && a1.outfit && a1.hair &&
+        '같은 id → 같은 조합 (' + a1.key + ')';
     });
 
     /* ── 마을 ─────────────────────────────────────────── */

@@ -7,7 +7,7 @@
 ```
 run.bat          →  http://127.0.0.1:8793
 start_server.bat →  같은 것, 브라우저를 열지 않는다 (허브 워치독용)
-_test.html       →  자가진단 146항목
+_test.html       →  자가진단 148항목
 _admin.html      →  어드민(QA 운영판). http://127.0.0.1:8793/_admin.html
                     `#tools!` 로 열면 자가점검을 바로 돌린다
 _demo.html       →  스크린샷용 데모 상태 (#fish · #plant · #map · #bug · #dig · #room ·
@@ -51,6 +51,31 @@ _demo.html       →  스크린샷용 데모 상태 (#fish · #plant · #map · 
 (`index.html` 은 애초에 씨앗을 안 쓰므로 그대로 둬도 된다). **PHASE 2 이후 다른
 벤더 스크립트를 씨앗 고정 뒤에 넣을 때는 이 함정을 다시 확인할 것.**
 진단 143 → **146**, 세 번 불변.
+
+**2026-08-30 이어서 — PHASE 2 시작: GLB 모델을 찾아 표를 채웠다.** 출처는
+`assets/ASSET_LICENSES.md`. saga-go 가 이미 CC0 로 확인해 둔 Quaternius 미러
+(`trebeljahr/quaternius-showcase`)에서 PLAN 8절(숲 오브젝트)·16절(동물) 어휘에
+맞는 것을 새로 32개 받고(나무 8종·덤불 3·바위 2종·풀 2·꽃·풀숲 2·버섯 2·
+그루터기 2·통나무 2·벤치·울타리·카트·캠프파이어·천막·여우), 이미 사가고에
+있던 것(사슴·늑대·산·랜턴·우물·다리·정자·인물 뼈대 넉 벌)은 **md5 가 같은
+파일 그대로** 복사해 옮겼다. `js/asset3d.js` 표(`DEFAULTS`)에 전부 등록했다.
+
+렌더러는 아직 없다 — `village-view.js`(2D)는 그대로다. 대신 `THREE.GLTFLoader`
+로 32개 GLB 를 실제로 받아 파싱하는 것까지 헤드리스로 확인했다(진단 파일에는
+안 남겼다 — `_test.html` 은 오프라인·씨앗 고정을 지키므로 네트워크 요청을
+영구히 넣지 않는다).
+
+**아직 못 찾은 것** — PLAN 16절의 토끼·다람쥐·오리·새. 같은 미러의
+`animals_pack` 에는 없다(Alpaca·Bull·Cow·Deer·Donkey·Fox·Horse·Husky·
+ShibaInu·Stag·Wolf 뿐). 까치를 Poly by Google 에서 따로 구했던 것처럼
+다른 CC0 출처를 찾아야 한다 — 다음 세션 몫.
+
+진단 146 → **148**(표에 PLAN 어휘가 다 찼는지·계절별 나무 키 분기·인물 조합
+해시 재현성 확인 셋 추가), 세 번 불변.
+
+다음은 PHASE 2 나머지 — **GLTFLoader 로 실제로 세우는 로더 코드**(`build()` 를
+부르는 쪽), **Player 3D**, **Tree/Rock/Vegetation** scatter(PLAN 9절
+ForestDecorator), **Terrain** 순.
 > 3D 로 가더라도 평평한 탑다운으로 되돌리지 않는다.
 
 ## 네 게임 중 하나
