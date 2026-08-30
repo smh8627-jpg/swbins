@@ -453,9 +453,18 @@
     } else if (p.t === 'reed') {
       box(g, p.x, y + p.h / 2, p.z, 3, p.h, 3, 0x3f5a34, 'flat', false);
     } else if (p.t === 'cavemouth') {
-      box(g, p.x, y + p.h * 0.45, p.z, p.h * 1.5, p.h, p.h * 1.2,
-        mix(stone, 0x000000, 0.5), 'flat', true).rotation.y = p.rot;
-      /* 입구는 **새까맣다** — 빛이 안 닿는 자리가 있어야 굴로 보인다 */
+      /* 동굴 입구 — 사가고가 이미 "광산 어귀"로 적어 둔 그 Mine 을 세운다 */
+      var caveShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h * 0.45, 0, p.h * 1.5, p.h, p.h * 1.2, mix(stone, 0x000000, 0.5), 'flat', true);
+        return sg;
+      };
+      var cvnode = AS3 ? AS3.build('cavemouth', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.3, null, caveShape) : caveShape();
+      cvnode.position.set(p.x, y, p.z);
+      cvnode.rotation.y = p.rot || 0;
+      g.add(cvnode);
+      /* 입구는 **새까맣다** — 빛이 안 닿는 자리가 있어야 굴로 보인다(GLB 위에도 그대로 얹는다) */
       box(g, p.x, y + p.h * 0.3, p.z + p.h * 0.6, p.h * 0.5, p.h * 0.55, 6,
         0x000000, '', false).rotation.y = p.rot;
     } else if (p.t === 'altar') {
@@ -473,8 +482,22 @@
       g.add(alnode);
       box(g, p.x, y + p.h + 6, p.z, 14, 14, 14, 0xc9a3ff, 'glow', false);
     } else if (p.t === 'tent') {
-      box(g, p.x, y + p.h / 2, p.z, 44, p.h, 40, 0x5a4a3a, 'flat', true).rotation.y = p.rot;
+      /* 천막 — 꼭 맞는 텐트 에셋은 못 구했다. 기둥+지붕 얼개가 비슷한
+         장터 좌판(MarketStand)을 대신 세운다(`asset3d.js` 주석 참고) */
+      var tentShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h / 2, 0, 44, p.h, 40, 0x5a4a3a, 'flat', true);
+        return sg;
+      };
+      var tenode = AS3 ? AS3.build('tent', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h, null, tentShape) : tentShape();
+      tenode.position.set(p.x, y, p.z);
+      tenode.rotation.y = p.rot || 0;
+      g.add(tenode);
     } else if (p.t === 'fire') {
+      /* 모닥불 — CC0 로 딱 맞는 캠프파이어를 못 구했다(saga-go 창고에도 없다).
+         억지로 안 어울리는 것을 끼우느니 **도형 그대로** 둔다 — 잿더미(어두운
+         상자)+타오르는 불씨(빛나는 상자)는 그 자체로 충분히 읽힌다. */
       box(g, p.x, y + 4, p.z, 26, 8, 26, 0x2f2a24, 'flat', false);
       box(g, p.x, y + p.h, p.z, 14, 16, 14, 0xff7a2a, 'glow', false);
     }

@@ -40,6 +40,7 @@
   var NATURE = 'assets/models/nature/';
   var ANIMALS = 'assets/models/animals/';
   var PROPS = 'assets/models/props/';
+  var BLD = 'assets/models/buildings/';
 
   var HERO_RECIPES = [
     { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
@@ -74,7 +75,13 @@
     /* 절벽 — 나무나 헤드보다 큰 산 덩이(Mountain)를 대신 세운다 */
     'cliff': [NATURE + 'Mountain_1.glb', NATURE + 'Mountain_2.glb'],
     /* 제단 — 사가고가 "사당" 후보로 적어 둔 그 Temple 을 그대로 쓴다 */
-    'altar': PROPS + 'Temple.glb'
+    'altar': PROPS + 'Temple.glb',
+    /* 동굴 입구 — 사가고가 이미 "광산 어귀"로 적어 둔 그 Mine 을 그대로 쓴다 */
+    'cavemouth': PROPS + 'Mine.glb',
+    /* 천막 — 딱 맞는 "야영 텐트" 는 CC0 로 못 찾았다. 기둥+지붕 얼개가 비슷한
+       장터 좌판(MarketStand)을 대신 세운다 — 완벽한 대역은 아니다(주석에 적어
+       둔다, 나중에 진짜 텐트를 구하면 이 한 줄만 바꾸면 된다) */
+    'tent': BLD + 'MarketStand_1.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }
