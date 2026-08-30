@@ -351,6 +351,25 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 .lrow.level { border-left-color: var(--blue); }
 .lrow.feat { border-left-color: var(--purple); }
 
+/* ── 월드맵 (PLAN 28절) ───────────────────────────────── */
+.wm-list { display: flex; flex-direction: column; gap: 6px; }
+.wm-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 11px;
+  border-radius: var(--r-sm); background: rgba(255,255,255,.045);
+  border-left: 2.5px solid var(--gold);
+}
+.wm-row.locked { opacity: .38; border-left-color: transparent; }
+.wm-row.here { border-left-color: var(--good); background: rgba(120,200,120,.08); }
+.wm-ic { font-size: 22px; width: 30px; text-align: center; flex: none; }
+.wm-info { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.wm-info small { color: var(--ink-dim); font-size: 11px; }
+.wm-here, .wm-done {
+  font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+  flex: none;
+}
+.wm-here { background: var(--good); color: #08210c; }
+.wm-done { background: rgba(255,255,255,.08); color: var(--ink-dim); }
+
 /* ── 버튼 ─────────────────────────────────────────────── */
 .btn {
   border: 1px solid var(--glass-br); background: rgba(255,255,255,.06); color: var(--ink);

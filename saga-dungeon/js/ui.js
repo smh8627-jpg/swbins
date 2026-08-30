@@ -346,7 +346,7 @@
   /* ── 시트 ─────────────────────────────────────────────── */
 
   var SHEET_TITLE = {
-    party: '⚔️ 부대', gear: '🎒 장비', craft: '🔨 세공', skill: '📜 무예', vendor: '\uD83E\uDDFA 행상', dex: '📖 도감', log: '📜 기록'
+    party: '⚔️ 부대', gear: '🎒 장비', craft: '🔨 세공', skill: '📜 무예', vendor: '\uD83E\uDDFA 행상', dex: '📖 도감', log: '📜 기록', world: '🗺️ 월드맵'
   };
 
   /* 세공에서 지금 고른 재료 (화면 상태라 세이브에 남기지 않는다) */
@@ -386,7 +386,8 @@
           : openTab === 'craft' ? viewCraft()
           : openTab === 'vendor' ? viewVendor()
           : openTab === 'skill' ? viewSkill()
-          : openTab === 'dex' ? viewDex() : viewLog();
+          : openTab === 'dex' ? viewDex()
+          : openTab === 'world' ? viewWorldMap() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 
@@ -588,6 +589,42 @@
         '</button>';
     }
     return html + '</div>';
+  }
+
+  /* ── 월드맵 (PLAN 28절) ───────────────────────────────────
+   * 미니맵(지금 방)과 별도로 **얼마나 내려가 봤는지**를 지역 단위로 보여 준다.
+   * 층은 늘 순서대로 내려가므로(원작에도 층 건너뛰기가 없다) 최고 도달
+   * 층(`dstate().best`)만 있으면 "그 지역을 밟아 봤는지"가 그대로 나온다 —
+   * 따로 세이브 칸을 늘리지 않았다(이미 저장돼 있는 값에서 계산만 한다).
+   */
+  var THEME_ICON = {
+    '고분(古墳)': '🗿', '폐성(廢城)': '🏰', '산채(山寨)': '⛰️',
+    '수궁(水宮)': '🌊', '지옥문(地獄門)': '🔥', '천계(天界)': '☁️'
+  };
+
+  function viewWorldMap() {
+    var DD = global.DG.dungeonData;
+    var DN = global.DG.dungeon;
+    var st = DN.status();
+    var best = st.best || 0;
+    var curFloor = st.active ? st.floor : 0;
+    var THEMES = DD.THEMES;
+    var rows = '';
+    for (var i = 0; i < THEMES.length; i++) {
+      var th = THEMES[i];
+      var to = (i + 1 < THEMES.length) ? THEMES[i + 1].from - 1 : null;
+      var explored = best >= th.from;
+      var here = curFloor >= th.from && (to === null || curFloor <= to);
+      var range = to ? ('제' + th.from + '~' + to + '층') : ('제' + th.from + '층부터');
+      rows += '<div class="wm-row' + (explored ? '' : ' locked') + (here ? ' here' : '') + '">' +
+        '<span class="wm-ic">' + (explored ? (THEME_ICON[th.name] || '🗺️') : '❔') + '</span>' +
+        '<div class="wm-info"><b>' + (explored ? esc(th.name) : '???') + '</b><small>' + range + '</small></div>' +
+        (here ? '<span class="wm-here">현재</span>' : (explored ? '<span class="wm-done">답파</span>' : '')) +
+        '</div>';
+    }
+    return '<div class="sec"><h4>🗺️ 월드맵</h4>' +
+      '<div class="hint">층을 내려가며 지나온 지역이 열립니다 — 최고 <b>제' + best + '층</b>까지 밟았습니다.</div>' +
+      '<div class="wm-list">' + rows + '</div></div>';
   }
 
   /* ── 도감 ─────────────────────────────────────────────── */

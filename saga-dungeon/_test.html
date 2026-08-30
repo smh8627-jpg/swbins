@@ -2299,10 +2299,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 
     /* ── 화면 ─────────────────────────────────────────── */
 
-    t('마을·시트 5개가 예외 없이 그려진다', function () {
+    t('마을·시트 6개가 예외 없이 그려진다', function () {
       DG.ui.renderHud();
-      /* 세공(craft)도 함께 연다 — 2026-08-26 에 주옥 칸이 붙은 자리다 */
-      var bad = [], tabs = ['party', 'gear', 'craft', 'dex', 'log'];
+      /* 세공(craft)도 함께 연다 — 2026-08-26 에 주옥 칸이 붙은 자리다.
+         월드맵(world)은 PLAN 28절 — 2026-08-30 에 붙었다 */
+      var bad = [], tabs = ['party', 'gear', 'craft', 'dex', 'world', 'log'];
       for (var i = 0; i < tabs.length; i++) {
         DG.ui.openSheet(tabs[i]);
         var html = document.getElementById('sheet-body').innerHTML;
@@ -2314,6 +2315,32 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       var camp = document.getElementById('camp').innerHTML;
       return bad.length === 0 && !camp &&
         ('시트 ' + tabs.length + '개 · 본영 카드 없음');
+    });
+
+    t('월드맵 — 최고 도달 층 아래 지역만 열린다', function () {
+      var THEMES = DG.dungeonData.THEMES;      // 고분1·폐성6·산채11·수궁16·지옥문21·천계26
+      var keepBest = C.save.dungeon.best;
+      C.save.dungeon.best = 8;                 // 폐성(6층)까지만 밟았다
+      DG.ui.openSheet('world');
+      var html = document.getElementById('sheet-body').innerHTML;
+      DG.ui.closeSheet();
+      C.save.dungeon.best = keepBest;
+      var openCount = (html.match(/class="wm-row(?! locked)/g) || []).length;
+      var hasLocked = html.indexOf('wm-row locked') >= 0;
+      return openCount === 2 && hasLocked && THEMES.length === 6 &&
+        ('제8층까지 → 열린 지역 ' + openCount + ' (고분·폐성) · 잠긴 지역 있음');
+    });
+
+    t('월드맵 — 던전 안에 있으면 지금 지역이 표시된다', function () {
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 12, mode: 'easy' });     // 산채(11~15층) 구간
+      DG.ui.openSheet('world');
+      var html = document.getElementById('sheet-body').innerHTML;
+      DG.ui.closeSheet();
+      DN.leave();
+      var hereCount = (html.match(/class="wm-row here"/g) || []).length;
+      return hereCount === 1 && html.indexOf('산채') >= 0 &&
+        ('제12층 · 현재 지역 표시 ' + hereCount + '곳');
     });
 
     t('인물 상세(승급 화면)가 그려진다', function () {
