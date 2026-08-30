@@ -708,11 +708,23 @@ body.dungeon-open { overflow: hidden; }
   width: 100%; height: 100%; display: block; border-radius: var(--r-md);
   background: #14161c; border: 1px solid var(--glass-br); touch-action: none;
 }
-/* 3D 층 (dungeon3d.js) — 2D 캔버스 **뒤에** 깔린다.
-   앞의 캔버스가 입력(탭·드래그)을 받는 자리라 순서를 바꾸면 조작이 죽는다 */
+/* 3D 층 (dungeon3d.js) — 2D 캔버스 **뒤에 깔릴 셈**이었다.
+   2026-08-30 — 아이폰 사파리 실기기로 "핀치·휠 확대가 안 된다" 를 잡다가,
+   실은 안 된 지 오래였다는 걸 알았다: `#dg3d` 가 `position:absolute` 라
+   DOM 순서와 무관하게 **정적(static) 배치인 `#dg-canvas` 보다 항상 위에서
+   그려진다** — 페인트 순서뿐 아니라 **히트테스트(클릭이 어디로 가는지)도
+   그 순서를 따른다.** `document.elementFromPoint()` 로 재보니 던전 화면
+   한복판에서 실제로 잡히는 건 `#dg3d` 였다 — `#dg-canvas` 의 포인터
+   리스너(걷기·핀치·휠)는 3D 가 켜진 동안 **애초에 이벤트를 못 받고
+   있었다.** 그런데도 "3인칭에서 걸어 다니는" 것처럼 보였던 건 자동 순회
+   (`auto.js`)가 조작 없이도 인물을 움직였기 때문으로 보인다 — 수동
+   탭·드래그·핀치·휠은 전부 죽어 있었다.
+   `pointer-events:none` 으로 이 캔버스를 히트테스트에서 아예 빼면(그려지긴
+   그대로 그려진다 — 이건 페인트가 아니라 이벤트 라우팅만 바꾼다)
+   `#dg-canvas` 가 다시 모든 입력을 받는다. */
 #dg3d {
   position: absolute; inset: 0; width: 100%; height: 100%; display: none;
-  border-radius: var(--r-md); background: #070809;
+  border-radius: var(--r-md); background: #070809; pointer-events: none;
 }
 body.dg3d #dg-canvas { background: transparent !important; border-color: transparent !important; }
 
