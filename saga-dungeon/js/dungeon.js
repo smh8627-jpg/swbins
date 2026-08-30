@@ -275,12 +275,13 @@
 
   /**
    * 방 하나를 만든다.
-   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'merchant' | 'boss' | 'stair'
+   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'merchant' | 'puzzle' | 'boss' | 'stair'
    */
   function makeRoom(kind, floor, index, total) {
     var room = {
       kind: kind, index: index, cleared: false,
-      enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null, merchant: null
+      enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null,
+      merchant: null, puzzle: null
     };
     var n;
     if (kind === 'boss') {
@@ -322,6 +323,23 @@
          깨진다. 대신 이 자리에서만 파는 재고를 셋 굴린다(한 번뿐이다). */
       room.merchant = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, used: false };
       if (Math.random() < 0.15) { room.enemies.push(spawnEnemy(floor, false)); }
+    } else if (kind === 'puzzle') {
+      /* 퍼즐방(POI: Puzzle) — 제단 셋을 **맞는 순서**로 밟는다(원작에도 있는
+         "손잡이 셋" 류 장치). 순서는 방마다 새로 섞는다 — 틀리면 처음부터
+         (벌은 없다, 몸이 아니라 머리로 푸는 방이라 몸싸움을 안 섞었다) */
+      var order = [0, 1, 2];
+      for (var pi = order.length - 1; pi > 0; pi--) {
+        var pj = Math.floor(Math.random() * (pi + 1));
+        var tmp = order[pi]; order[pi] = order[pj]; order[pj] = tmp;
+      }
+      room.puzzle = {
+        pods: [
+          { x: ROOM_W * 0.55, y: ROOM_H * 0.28, idx: 0, lit: false },
+          { x: ROOM_W * 0.72, y: ROOM_H * 0.5,  idx: 1, lit: false },
+          { x: ROOM_W * 0.55, y: ROOM_H * 0.72, idx: 2, lit: false }
+        ],
+        order: order, progress: 0, solved: false
+      };
     }
     if (!room.enemies.length) { room.cleared = true; }
     room.last = index >= total - 1;
@@ -643,6 +661,32 @@
   function leaveMerchant() {
     run.merchantChoice = null;
     core.emit('changed');
+  }
+
+  /* ── 퍼즐(POI: Puzzle) ────────────────────────────────────
+   * 제단 셋을 맞는 순서로 밟는다. 틀리면 처음부터 — 벌은 없다(머리로
+   * 푸는 방이라 몸싸움을 안 섞었다, PLAN 13절 "환경 상호작용"과 같은 결).
+   */
+  function touchPuzzlePod(room, pz, pod) {
+    if (pz.order[pz.progress] === pod.idx) {
+      pod.lit = true;
+      pz.progress++;
+      sfx('door');
+      if (pz.progress >= pz.order.length) {
+        pz.solved = true;
+        dropItem(room, ROOM_W * 0.62, ROOM_H * 0.5, 20);
+        dropGold(room, ROOM_W * 0.62, ROOM_H * 0.5, 2.4);
+        sfx('chest');
+        core.emit('toast', '🧩 퍼즐을 풀었다!');
+      } else {
+        core.emit('toast', '🧩 ✓ · 다음 제단 (' + pz.progress + '/' + pz.order.length + ')');
+      }
+    } else {
+      var wasProgress = pz.progress > 0;
+      pz.progress = 0;
+      for (var i = 0; i < pz.pods.length; i++) { pz.pods[i].lit = false; }
+      if (wasProgress) { core.emit('toast', '🧩 ✗ · 처음부터'); }
+    }
   }
 
   /* ── 노획물 ───────────────────────────────────────────── */
@@ -1158,6 +1202,15 @@
       run.merchantChoice = rollMerchantStock(run.floor);
       sfx('shrine');
       core.emit('toast', '🧺 행상 · 살 것을 고르세요');
+    }
+    if (room.puzzle && !room.puzzle.solved) {
+      var pz = room.puzzle;
+      for (var pk = 0; pk < pz.pods.length; pk++) {
+        var pod = pz.pods[pk];
+        var podNear = dist(p, pod) < P_R + 20;
+        if (podNear && !pod.near) { touchPuzzlePod(room, pz, pod); }
+        pod.near = podNear;
+      }
     }
 
     /* 문 */

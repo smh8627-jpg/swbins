@@ -334,6 +334,17 @@
       stnode.position.set(r.merchant.x, 0, r.merchant.y);
       wallGroup.add(stnode);
     }
+    if (r && r.puzzle) {
+      /* 퍼즐방(POI: Puzzle) — 제단 셋. 맞게 밟은 자리는 금빛으로 켜진다 —
+         2D 의 🔆/🗿 아이콘과 같은 신호를 3D 에서도 준다 */
+      var pods3 = r.puzzle.pods;
+      for (var pzk = 0; pzk < pods3.length; pzk++) {
+        var pod3 = pods3[pzk];
+        box(wallGroup, pod3.x, 5, pod3.y, 22, 10, 22, mix(stone, 0xffffff, 0.1), 'flat', true);
+        box(wallGroup, pod3.x, 12, pod3.y, 9, 9, 9,
+          pod3.lit ? 0xe8c15a : 0x555b66, pod3.lit ? 'glow' : 'flat', false);
+      }
+    }
     /* 장식 — 기둥·횃불·바닥 균열. 판정이 자리를 정해 두고(`decor`) 2D 가 오래 그려
        온 것들이다. 이것이 없으면 방이 **빈 상자**로 보인다 — 마을은 특히 그렇다
        (모루골의 집과 불이 전부 여기 들어 있다).
@@ -897,8 +908,11 @@
     frame++;
 
     var W = d().ROOM_W, H = d().ROOM_H;
+    /* 퍼즐방은 제단이 켜질 때마다(맞게 밟을 때마다) 그림도 다시 세워야 한다 —
+       `rk` 에 진행도를 안 넣으면 데이터는 바뀌어도 화면은 그대로 남는다 */
+    var pzProg = (run.room && run.room.puzzle) ? ':pz' + run.room.puzzle.progress : '';
     var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
-             (run.room && run.room.cleared ? 'c' : 'o');
+             (run.room && run.room.cleared ? 'c' : 'o') + pzProg;
     if (rk !== roomKey) { roomKey = rk; buildRoom(run); buildField(run); }
 
     /* 조명 */
