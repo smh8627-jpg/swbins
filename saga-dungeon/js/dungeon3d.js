@@ -320,6 +320,20 @@
       box(wallGroup, r.vein.x - 6, 13, r.vein.y + 4, 8, 8, 8, 0x7ee091, 'glow', false);
       box(wallGroup, r.vein.x + 7, 12, r.vein.y - 3, 7, 7, 7, 0xe8c15a, 'glow', false);
     }
+    if (r && r.merchant && !r.merchant.used) {
+      /* 행상(POI: Merchant) — 마을 장터의 그 좌판(`tent`/MarketStand GLB)을
+         똑같이 세운다. 다 팔았으면(=used) 좌판을 걷은 것으로 보고 안 세운다 */
+      var AS3m = AS();
+      var standShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 34, 0, 46, 68, 40, 0x5a4a3a, 'flat', true);
+        return sg;
+      };
+      var stnode = AS3m ? AS3m.build('tent', 'poi:' + r.merchant.x + ':' + r.merchant.y,
+        68, null, standShape) : standShape();
+      stnode.position.set(r.merchant.x, 0, r.merchant.y);
+      wallGroup.add(stnode);
+    }
     /* 장식 — 기둥·횃불·바닥 균열. 판정이 자리를 정해 두고(`decor`) 2D 가 오래 그려
        온 것들이다. 이것이 없으면 방이 **빈 상자**로 보인다 — 마을은 특히 그렇다
        (모루골의 집과 불이 전부 여기 들어 있다).

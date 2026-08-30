@@ -275,12 +275,12 @@
 
   /**
    * 방 하나를 만든다.
-   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'boss' | 'stair'
+   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'merchant' | 'boss' | 'stair'
    */
   function makeRoom(kind, floor, index, total) {
     var room = {
       kind: kind, index: index, cleared: false,
-      enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null
+      enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null, merchant: null
     };
     var n;
     if (kind === 'boss') {
@@ -315,6 +315,13 @@
          행상에서 사는 것보다 후하게(우물의 회복량 40% 만큼 후한 셈이다) */
       room.vein = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, used: false };
       if (Math.random() < 0.35) { room.enemies.push(spawnEnemy(floor, false)); }
+    } else if (kind === 'merchant') {
+      /* 행상(POI: Merchant, PLAN 12절 "랜덤 상인") — 지나가는 길에 만난다.
+         본영의 행상(vendor.js)과는 따로다 — 그쪽은 "회차가 끝나야 재고가
+         새로 온다" 는 규칙이 있어 던전 안에서 함부로 같이 쓰면 그 규칙이
+         깨진다. 대신 이 자리에서만 파는 재고를 셋 굴린다(한 번뿐이다). */
+      room.merchant = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, used: false };
+      if (Math.random() < 0.15) { room.enemies.push(spawnEnemy(floor, false)); }
     }
     if (!room.enemies.length) { room.cleared = true; }
     room.last = index >= total - 1;
@@ -593,6 +600,51 @@
     return c;
   }
 
+  /* ── 행상(行商) — POI: Merchant, PLAN 12절 "랜덤 상인" ──────
+   * 본영 행상(vendor.js)과 값 매기는 규칙만 같이 쓰고(item.price), 재고는
+   * 따로 굴린다 — 그쪽 "회차가 끝나야 재고가 새로 온다" 는 규칙을 안 건드린다.
+   */
+  var MERCHANT_STOCK_N = 3;
+  var MERCHANT_MUL = 1.8;              // 본영 행상(3.2배)보다 싸다 — 대신 셋뿐이고 한 번뿐이다
+  var MERCHANT_TIER_MAX = 2;           // 본영과 같은 상한(명품까지) — 던전에서 다 사면 내려갈 맛이 준다
+
+  function rollMerchantStock(floor) {
+    var IT = global.DG.item, D = global.DG.itemData, i, w = [];
+    for (i = 0; i <= MERCHANT_TIER_MAX; i++) { w.push(D.TIERS[i].weight); }
+    var total = 0; for (i = 0; i < w.length; i++) { total += w[i]; }
+    var out = [];
+    for (i = 0; i < MERCHANT_STOCK_N; i++) {
+      var r = Math.random() * total, tier = 0, acc = 0;
+      for (var j = 0; j < w.length; j++) { acc += w[j]; if (r <= acc) { tier = j; break; } }
+      var g = IT.roll(floor + 1, { tier: tier, unid: false });
+      out.push({ item: g, price: Math.round(IT.price(g) * MERCHANT_MUL) });
+    }
+    return out;
+  }
+
+  /** 행상 재고 하나를 산다. `idx` 는 `run.merchantChoice` 의 자리 */
+  function buyMerchant(idx) {
+    if (!run || !run.merchantChoice || !run.merchantChoice[idx]) { return { ok: false, reason: 'gone' }; }
+    var row = run.merchantChoice[idx];
+    var IT = global.DG.item;
+    if (core.save.player.gold < row.price) { return { ok: false, reason: 'gold' }; }
+    if (IT.bag().length >= IT.bagCap()) { return { ok: false, reason: 'bag' }; }
+    core.save.player.gold -= row.price;
+    IT.add(row.item);
+    run.merchantChoice.splice(idx, 1);
+    if (!run.merchantChoice.length) { run.merchantChoice = null; }
+    sfx('coin');
+    core.log('🧺 ' + IT.name(row.item) + ' 을(를) 샀다 · 금 -' + core.fmt(row.price), 'info');
+    core.emit('changed');
+    return { ok: true, item: row.item, cost: row.price };
+  }
+
+  /** 행상 자리를 떠난다 (사지 않고 닫는다) */
+  function leaveMerchant() {
+    run.merchantChoice = null;
+    core.emit('changed');
+  }
+
   /* ── 노획물 ───────────────────────────────────────────── */
 
   /** 층을 내려가거나 탈출할 때 확정 */
@@ -816,7 +868,7 @@
   }
 
   function update(dt) {
-    if (!run || run.choice) { return; }              // 은사를 고르는 동안에는 멈춘다
+    if (!run || run.choice || run.merchantChoice) { return; }  // 고르는 동안에는 멈춘다
     dt = Math.min(dt, 0.05);
     var p = run.player, room = run.room, i;
 
@@ -1100,6 +1152,12 @@
       dropMat(room, room.vein.x, room.vein.y, 26);
       sfx('chest');
       core.emit('toast', '⛏️ 광맥 · 세공 재료를 캤다');
+    }
+    if (room.merchant && !room.merchant.used && room.cleared && dist(p, room.merchant) < P_R + 20) {
+      room.merchant.used = true;
+      run.merchantChoice = rollMerchantStock(run.floor);
+      sfx('shrine');
+      core.emit('toast', '🧺 행상 · 살 것을 고르세요');
     }
 
     /* 문 */
@@ -1612,7 +1670,7 @@
       room: run.room.index + 1, roomTotal: run.roomTotal,
       cleared: run.room.cleared, kind: run.room.kind,
       loot: { gold: Math.round(run.loot.gold), items: run.loot.items.length },
-      boons: run.boons, choice: run.choice,
+      boons: run.boons, choice: run.choice, merchantChoice: run.merchantChoice,
       kills: run.kills, best: dstate().best || 0,
       atk: Math.round(atkOf()), reach: Math.round(reachOf())
     };
@@ -1640,6 +1698,7 @@
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo,
     pickBoon: pickBoon, goRoom: goRoom,
+    buyMerchant: buyMerchant, leaveMerchant: leaveMerchant,
     castSkill: castSkill, refill: refill,
     boonVal: boonVal, boonEffect: boonEffect,
     status: status, state: dstate,

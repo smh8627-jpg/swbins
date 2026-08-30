@@ -86,7 +86,8 @@
        새 자리다) */
     { key: 'elite',    weight: 10 },   // 정예 소굴 — 반드시 정예 하나를 낀다
     { key: 'miniboss', weight: 6 },    // 미니보스 — 부하 없이 혼자, 보스급 노획
-    { key: 'cave',     weight: 8 }     // 채광방(POI: Cave) — 광맥을 캐면 세공 재료
+    { key: 'cave',     weight: 8 },    // 채광방(POI: Cave) — 광맥을 캐면 세공 재료
+    { key: 'merchant', weight: 7 }     // 행상(POI: Merchant) — 이 자리에서만 파는 재고 셋
   ];
 
   global.DG = global.DG || {};

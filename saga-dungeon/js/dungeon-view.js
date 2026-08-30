@@ -150,9 +150,11 @@
 
     choiceEl.addEventListener('click', function (e) {
       var b = e.target.closest('[data-boon]');
-      if (!b) { return; }
-      d().pickBoon(b.getAttribute('data-boon'));
-      renderChoice();
+      if (b) { d().pickBoon(b.getAttribute('data-boon')); renderChoice(); return; }
+      var m = e.target.closest('[data-buy]');
+      if (m) { d().buyMerchant(Number(m.getAttribute('data-buy'))); renderChoice(); return; }
+      var lv = e.target.closest('[data-leave-merchant]');
+      if (lv) { d().leaveMerchant(); renderChoice(); }
     });
 
 
@@ -547,23 +549,44 @@
     if (!shown) { return; }
     var st = d().status();
     var c = st.active ? st.choice : null;
-    var k = c ? c.join(',') : '';
+    var mc = st.active ? st.merchantChoice : null;
+    var k = c ? 'b:' + c.join(',') :
+      (mc ? 'm:' + mc.map(function (r) { return r.item.uid; }).join(',') : '');
     if (k === choiceKey) { return; }
     choiceKey = k;
-    if (!c) { choiceEl.classList.remove('show'); choiceEl.innerHTML = ''; return; }
-    var html = '<div class="dg-choice-in"><h4>은사(恩賜)를 하나 받는다</h4><div class="dg-cards">';
-    for (var i = 0; i < c.length; i++) {
-      var b = global.DG.dungeonData.boonByKey(c[i]);
-      if (!b) { continue; }
-      var have = st.boons[b.key] || 0;
-      html += '<button class="dg-card" data-boon="' + b.key + '">' +
-        '<span class="dg-ce">' + b.emoji + '</span>' +
-        '<b>' + b.name + '</b>' +
-        '<small>' + b.desc + '</small>' +
-        (have ? '<i class="dg-have">보유 ' + have + '</i>' : '') +
-        '</button>';
+    if (!c && !mc) { choiceEl.classList.remove('show'); choiceEl.innerHTML = ''; return; }
+    var html;
+    if (c) {
+      html = '<div class="dg-choice-in"><h4>은사(恩賜)를 하나 받는다</h4><div class="dg-cards">';
+      for (var i = 0; i < c.length; i++) {
+        var b = global.DG.dungeonData.boonByKey(c[i]);
+        if (!b) { continue; }
+        var have = st.boons[b.key] || 0;
+        html += '<button class="dg-card" data-boon="' + b.key + '">' +
+          '<span class="dg-ce">' + b.emoji + '</span>' +
+          '<b>' + b.name + '</b>' +
+          '<small>' + b.desc + '</small>' +
+          (have ? '<i class="dg-have">보유 ' + have + '</i>' : '') +
+          '</button>';
+      }
+      html += '</div><small class="muted">은사는 이 회차에만 남습니다 — 죽거나 나가면 사라집니다</small></div>';
+    } else {
+      /* 행상(POI: Merchant) — 은사와 같은 석판 틀을 쓰되 물건·값을 보여 준다 */
+      var IT = global.DG.item;
+      html = '<div class="dg-choice-in"><h4>🧺 행상 · 살 것을 고른다</h4><div class="dg-cards">';
+      for (var j = 0; j < mc.length; j++) {
+        var row = mc[j], t = IT.tierOf(row.item);
+        var afford = core.save.player.gold >= row.price;
+        html += '<button class="dg-card" data-buy="' + j + '"' + (afford ? '' : ' disabled') + '>' +
+          '<b style="color:' + t.color + '">' + IT.name(row.item) + '</b>' +
+          '<small>' + t.name + '</small>' +
+          '<i class="dg-have">금 ' + core.fmt(row.price) + '</i>' +
+          '</button>';
+      }
+      html += '</div><button class="dg-card" data-leave-merchant style="margin-top:10px">' +
+        '떠난다</button>' +
+        '<small class="muted">이 행상은 여기서만 만난다 — 놓치면 다시 안 옵니다</small></div>';
     }
-    html += '</div><small class="muted">은사는 이 회차에만 남습니다 — 죽거나 나가면 사라집니다</small></div>';
     choiceEl.innerHTML = html;
     choiceEl.classList.add('show');
   }
@@ -573,7 +596,7 @@
   /* 방 종류는 data-dungeon.js 의 ROOMS 가 정본이다 — 여기에 없는 종류를 적어 두면
      영영 안 뜨는 아이콘이 남는다(서고 📖 가 실제로 그렇게 남아 있었다). */
   var DOOR_ICON = { fight: '⚔️', trove: '🎁', well: '💧', shrine: '⛩️', stair: '🪜',
-    elite: '💠', miniboss: '👹', cave: '⛏️' };
+    elite: '💠', miniboss: '👹', cave: '⛏️', merchant: '🧺' };
 
   /** 3D 를 쓰는 동안에는 2D 캔버스를 비워 둔다 (같은 그림을 두 번 그리지 않게) */
   function sync3d() {
@@ -770,6 +793,7 @@
     thingItem(items, run.room.well, run.room.well && run.room.well.used ? '🕳️' : '💧');
     thingItem(items, run.room.shrine, run.room.shrine && run.room.shrine.used ? '🪨' : '⛩️');
     thingItem(items, run.room.vein, run.room.vein && run.room.vein.used ? '🕳️' : '⛏️');
+    thingItem(items, run.room.merchant, run.room.merchant && run.room.merchant.used ? '🚶' : '🧺');
 
     for (i = 0; i < run.room.enemies.length; i++) {
       var e = run.room.enemies[i];
