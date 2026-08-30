@@ -4144,6 +4144,27 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         'world3d.instanced=0 이면 사물마다 제 Mesh 를 만드는 옛 길로 간다';
     });
 
+    /* ── 월드 스트리밍 (PLAN 42절) ───────────────────────────
+     * 짓는 반경(R)과 부수는 반경(UR)을 분리해, 경계에서 왕복해도 짓고
+     * 부수고를 되풀이하지 않는다. `syncProps` 자체는 화면이 없으면
+     * three 메시를 만들다 죽으므로(DG_NO_DRAW), 여기서는 **반경 값**만 본다.
+     */
+
+    t('월드 스트리밍 — 부수는 반경(UR)이 짓는 반경(R)보다 크다', function () {
+      var R = R3.propRadius(), UR = R3.unloadRadius();
+      return UR > R && Math.abs(UR / R - 1.4) < 0.001 &&
+        'R=' + R + ' · UR=' + UR + ' (기본 ×1.4)';
+    });
+
+    t('월드 스트리밍 — unloadRadius 손잡이로 배수를 잡을 수 있다', function () {
+      var R = R3.propRadius();
+      C.setTune('world3d.unloadRadius', 1);
+      var same = R3.unloadRadius();
+      C.setTune('world3d.unloadRadius', null);
+      return same === R && R3.unloadRadius() > R &&
+        'world3d.unloadRadius=1 이면 R 과 UR 이 같아진다(히스테리시스 없음)';
+    });
+
     t('3D — 값을 내도 세이브는 그대로다', function () {
       /* 화면 층이 판정에 스미지 않는지 — 조명·계획·카메라를 굴려 보고 세이브를 비교한다 */
       var before = JSON.stringify(C.save);

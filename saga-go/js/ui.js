@@ -1122,9 +1122,27 @@
     renderTop();
     renderNear();
     renderAutoBar();
+    syncHeaderStack();
     var a = document.activeElement;
     if (a && (a.tagName === 'SELECT' || a.tagName === 'INPUT') && els['sheet-body'].contains(a)) { return; }
     if (openTab === 'oracle' || openTab === 'dungeon') { renderSheet(); }
+  }
+
+  /**
+   * 상단 띠(#top)의 실제 높이는 고정이 아니다 — 손잡이 줄(🎛️)이 붙거나 지갑이
+   * 두 줄로 접히면 늘어난다. `#autobar`·`#minimap` 이 그걸 모른 채 `top:106px`
+   * 같은 값으로 박혀 있으면 그 밑에 겹쳐 버린다(자동 순행 문구가 지갑을 덮은
+   * 실기기 신고로 잡았다) — 매 갱신마다 실제로 재서 CSS 변수로 넘긴다.
+   */
+  function syncHeaderStack() {
+    if (!els.wallet) { return; }
+    var topBottom = Math.ceil(els.wallet.getBoundingClientRect().bottom);
+    document.documentElement.style.setProperty('--top-bottom', topBottom + 'px');
+    var belowHeader = topBottom;
+    if (els.autobar && els.autobar.classList.contains('show')) {
+      belowHeader = Math.max(belowHeader, Math.ceil(els.autobar.getBoundingClientRect().bottom));
+    }
+    document.documentElement.style.setProperty('--below-header', belowHeader + 'px');
   }
 
   /* ── 자동 순행 상태줄 ─────────────────────────────────── */

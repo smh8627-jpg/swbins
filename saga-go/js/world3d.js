@@ -44,6 +44,9 @@
   /** 버거우면 스스로 깎는 배수 (`perf.js`) — 없으면 1 이라 예전과 같다 */
   function PF(key) { var P = global.DG.perf; return P ? P.mul(key) : 1; }
   function PROP_R() { return core.tuned('world3d.propRadius', 260) * PF('radius'); }
+  /* 부수는 반경 — 짓는 반경(R)보다 크게 잡아 경계에서 왕복해도 짓고 부수고를
+     되풀이하지 않는다 (PLAN 42절 ACTIVE/VISIBLE/UNLOAD) */
+  function PROP_UR(R) { return R * core.tuned('world3d.unloadRadius', 1.4); }
   function CAM_DIST() { return core.tuned('world3d.camDist', 40); }       // 카메라 거리(m)
   function CAM_HIGH() { return core.tuned('world3d.camHeight', 15); }     // 카메라 높이(m)
   /** 사람 키(m) — 원작처럼 지도 위에서는 실제보다 크게 세운다(1.8m 면 안 보인다) */
@@ -1309,8 +1312,22 @@
         propMeshes[key] = node;
       }
     }
+    /* 부수는 반경은 짓는 반경(R)보다 크다(PLAN 42절) — 경계에서 한 걸음
+       왕복해도 짓고 부수고를 되풀이하지 않는다 */
+    var UR = PROP_UR(R);
     for (var k in propMeshes) {
       if (!Object.prototype.hasOwnProperty.call(propMeshes, k) || live[k]) { continue; }
+      /* 이번에 훑은 격자 범위(g0x~g1x, g0y~g1y) **안**인데도 살아 있지 않다면
+         — 같은 자리의 내용(계절·젖음·지도 여부 등)이 바뀐 것이니 미룰 것 없이
+         바로 갈아 짓는다. UR 히스테리시스는 **범위 밖으로 걸어 나간 것**에만
+         쓴다 — 안 그러면 계절이 바뀌어도 헌 사물이 새 것과 겹친 채 남는다 */
+      var kp = k.split(':');
+      var kgx = +kp[1], kgy = +kp[2];
+      if (!(kgx >= g0x && kgx <= g1x && kgy >= g0y && kgy <= g1y)) {
+        var leftNode = propMeshes[k];
+        var d = Math.hypot(leftNode.position.x - pos.x, leftNode.position.z - pos.y);
+        if (d <= UR) { continue; }      // 아직 부수는 반경 안 — 그대로 둔다
+      }
       /* 도형·재질은 **모두가 나눠 쓰는 것**이라 여기서 dispose 하지 않는다.
          하나를 버리면 남아 있는 다른 건물의 도형까지 같이 사라진다 */
       propGroup.remove(propMeshes[k]);
@@ -2069,6 +2086,8 @@
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     lightingAt: lightingAt, propPlan: propPlan, urbanity: urbanity, camAim: camAim,
+    /** 짓는 반경(R)·부수는 반경(UR, PLAN 42절) — 손잡이로 잡는다 */
+    propRadius: PROP_R, unloadRadius: function () { return PROP_UR(PROP_R()); },
     houseRects: houseRects,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },

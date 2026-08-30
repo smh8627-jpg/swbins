@@ -27,7 +27,10 @@
      #3d          시점을 3D 로 돌린 채
      #fit0 / #fit1   세로 화면 시야각 보정을 끄고/켜고 (world3d.portraitFit)
      #fitreset    ↑ 로 건드린 손잡이를 도로 놓는다
-     #probe       상단·독·근처카드가 화면 밖으로 넘치는지 재고 PROBE OK/FAIL
+     #auto        자동 순행을 켠 채 (#autobar 문구가 채워진다)
+     #probe       상단·독·근처카드가 화면 밖으로 넘치는지 재고, #autobar·미니맵·
+                  지갑이 서로 겹치는지까지 PROBE OK/FAIL (2026-08-31, 자동 순행
+                  문구가 지갑을 덮던 실기기 신고로 겹침 검사를 추가했다)
 
    섞어 쓴다: `#3d-fit0-probe` 처럼 이어 붙이면 된다.
 */
@@ -112,6 +115,10 @@
       if (has('tools')) {
         try { d.getElementById('btn-more').click(); } catch (e) {}
       }
+      /* 자동 순행 켜기 — #autobar 넘침을 재려면 실제로 켜야 문구가 채워진다 */
+      if (has('auto')) {
+        try { d.getElementById('btn-auto').click(); } catch (e) {}
+      }
       /* 시트 */
       for (var i = 0; i < SHEETS.length; i++) {
         if (has(SHEETS[i])) {
@@ -133,7 +140,9 @@
         try { say('시야각 ' + w.DG.world3d.fov().toFixed(1) + '도  (가로 화면은 52)'); } catch (e) {}
 
         [['#top', '상단'], ['.profile', '프로필'], ['.tools', '도구'],
-         ['.wallet', '지갑'], ['#dock', '독'], ['.near-card', '근처카드']
+         ['.wallet', '지갑'], ['#dock', '독'], ['.near-card', '근처카드'],
+         ['#autobar', '자동띠'], ['.auto-card', '자동카드'],
+         ['.auto-card button', '자동멈춤단추'], ['#minimap', '미니맵']
         ].forEach(function (pair) {
           var e = d.querySelector(pair[0]);
           if (!e) { say(pair[1] + ' : (없음)'); return; }
@@ -146,7 +155,20 @@
           }
           if (over) { bad.push(pair[1]); }
           say(pair[1] + ' : ' + Math.round(r.left) + '~' + Math.round(r.right) +
-              ' (폭 ' + Math.round(r.width) + ')' + over);
+              ' (폭 ' + Math.round(r.width) + ') y' + Math.round(r.top) + '~' + Math.round(r.bottom) + over);
+        });
+        /* 자동띠·미니맵·지갑처럼 자리가 겹치는지는 넘침이 아니라 서로의 사각형이
+           맞물리는지로 본다 — x·y 축 둘 다 겹쳐야 진짜 겹친 것이다 */
+        function rectOf(sel) { var e = d.querySelector(sel); return e ? e.getBoundingClientRect() : null; }
+        function overlap(a, b) {
+          if (!a || !b) { return null; }
+          var ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          var oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          return (ox > 0 && oy > 0) ? Math.round(ox) + 'x' + Math.round(oy) : null;
+        }
+        [['#minimap', '.wallet'], ['#autobar', '#minimap'], ['#autobar', '.wallet']].forEach(function (pr) {
+          var ov = overlap(rectOf(pr[0]), rectOf(pr[1]));
+          if (ov) { say('겹침! ' + pr[0] + ' × ' + pr[1] + ' = ' + ov); bad.push(pr[0] + '×' + pr[1]); }
         });
 
         /* 근처 카드의 단추가 줄바꿈으로 쪼개지지 않았는지 — 폭이 절반뿐이던 흔적 */
