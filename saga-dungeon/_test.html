@@ -92,6 +92,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 <script src="js/dungeon3d.js"></script>
 <script src="js/fx3d.js"></script>
 <script src="js/dungeon-view.js"></script>
+<script src="js/minimap.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/potion.js"></script>
@@ -3032,6 +3033,80 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       FX.plan({ t: 'burst', x: 1, y: 1, boss: true, life: 0.3, seed: 1 });
       FX.glyphs('123'); FX.shakeOf({ t: 'pop' }); FX.stats();
       return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
+    });
+
+    /* ── 미니맵 (minimap.js, PLAN 27절) ────────────────────────
+     * 그리기(canvas)는 안 켠다 — 값을 내는 함수(blips·norm)만 순수하게 본다.
+     * DG_NO_DRAW 라 game.js 의 init()·tick() 은 안 불렸으므로 `node` 도 없다 —
+     * 여기서 만지는 건 오로지 `dungeon.raw()` 를 읽는 값 함수뿐이다. */
+    var MM = DG.minimap;
+
+    t('미니맵 — 방 안 좌표를 0~1 로 편다 (방 벽 네 모서리)', function () {
+      var W = DN.ROOM_W, H = DN.ROOM_H, WALL = DN.WALL;
+      var topLeft = MM.norm(WALL, WALL);
+      var botRight = MM.norm(W - WALL, H - WALL);
+      var mid = MM.norm(W / 2, H / 2);
+      var ok = Math.abs(topLeft.nx) < 0.01 && Math.abs(topLeft.ny) < 0.01 &&
+        Math.abs(botRight.nx - 1) < 0.01 && Math.abs(botRight.ny - 1) < 0.01 &&
+        Math.abs(mid.nx - 0.5) < 0.01 && Math.abs(mid.ny - 0.5) < 0.01;
+      return ok && ('모서리 (0,0)·(1,1) · 한가운데 (' + mid.nx.toFixed(2) + ',' + mid.ny.toFixed(2) + ')');
+    });
+
+    t('미니맵 — 전투방은 산 적만 점으로 찍힌다 (죽은 적은 빠진다)', function () {
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies = [
+        { x: 300, y: 180, hp: 10, hpMax: 10, boss: false, elite: null },
+        { x: 320, y: 190, hp: 0, hpMax: 10, boss: false, elite: null }   // 죽은 적
+      ];
+      var bs = MM.blips(run);
+      var enemyDots = bs.filter(function (b) { return b.t === 'enemy'; });
+      DN.leave();
+      return enemyDots.length === 1 && ('산 적 1점만 (죽은 적 제외) · 전체 ' + bs.length + '점(문 포함)');
+    });
+
+    t('미니맵 — 정예·보스는 다른 색으로 갈린다', function () {
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies = [
+        { x: 300, y: 180, hp: 10, hpMax: 10, boss: false, elite: null },
+        { x: 310, y: 180, hp: 10, hpMax: 10, boss: false, elite: 'brute' },
+        { x: 320, y: 180, hp: 10, hpMax: 10, boss: true, elite: null }
+      ];
+      var bs = MM.blips(run);
+      var kinds = bs.map(function (b) { return b.t; }).filter(function (t2) {
+        return t2 === 'enemy' || t2 === 'elite' || t2 === 'boss';
+      });
+      DN.leave();
+      return kinds.indexOf('enemy') >= 0 && kinds.indexOf('elite') >= 0 && kinds.indexOf('boss') >= 0 &&
+        ('종류 3개 다 나옴 · ' + kinds.join(','));
+    });
+
+    t('미니맵 — POI 는 다 쓰면(taken/used) 점이 사라진다', function () {
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      run.room.cleared = true;
+      DN.goRoom('trove');                        // 상자방
+      run = DN.raw();
+      var before = MM.blips(run).filter(function (b) { return b.t === 'poi'; }).length;
+      run.room.chest.taken = true;
+      var after = MM.blips(run).filter(function (b) { return b.t === 'poi'; }).length;
+      DN.leave();
+      return before === 1 && after === 0 && ('열기 전 ' + before + '점 → 연 뒤 ' + after + '점');
+    });
+
+    t('미니맵 — 문은 늘 오른쪽 벽 자리다', function () {
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      var bs = MM.blips(run).filter(function (b) { return b.t === 'door'; });
+      var rightX = MM.norm(DN.ROOM_W - DN.WALL, 0).nx;
+      var ok = bs.length === run.room.doors.length && bs.every(function (b) { return Math.abs(b.nx - rightX) < 0.01; });
+      DN.leave();
+      return ok && (bs.length + '개 문, 전부 오른쪽 벽 자리');
     });
 
     t('진단의 무작위는 씨앗으로 고정된다', function () {

@@ -306,6 +306,21 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 }
 .d2-plate { position: relative; min-height: 0; padding: 0; background: none; border: 0; }
 
+/* ── 미니맵 (minimap.js, PLAN 27절) — 지금 방을 위에서 본 판 ─── */
+#dg-minimap {
+  /* 위쪽은 #dg-hud(층·노획·탈출 단추)가 차지한다 — 그 아래로 내려 겹치지 않게 한다 */
+  position: fixed; right: calc(10px + var(--safe-r)); top: calc(64px + var(--safe-t));
+  z-index: 65; padding: 3px; border-radius: 7px; cursor: pointer; line-height: 0;
+  display: none;
+  border: 1px solid rgba(201, 162, 74, .4);
+  background: rgba(10, 8, 5, .4);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
+  transition: width .16s, height .16s, padding .16s;
+}
+#dg-minimap canvas { display: block; border-radius: 4px; }
+#dg-minimap.folded { padding: 0; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; }
+#dg-minimap.folded canvas { display: none; }
+
 /* 구슬 ---------------------------------------------------- */
 
 .d2-globe {

@@ -95,6 +95,7 @@
 
     ui.init();
     global.DG.dungeonView.init();
+    if (global.DG.minimap) { global.DG.minimap.init(); }   // 우상단 미니맵 (PLAN 27절)
 
     if (fresh) {
       /* 출사표 — 맨몸으로는 던전에 들어갈 수 없으니 셋을 붙여 준다 */
@@ -291,6 +292,7 @@
         (global.DG.dungeon.active() || global.DG.town.active())) {
       global.DG.dungeonView.draw();
     }
+    if (!global.DG_NO_DRAW && global.DG.minimap) { global.DG.minimap.tick(dt); }
 
     uiAcc += dt;
     if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
