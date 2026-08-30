@@ -48,6 +48,23 @@
   var D2_FONT = 'Cinzel, Georgia, "Nanum Myeongjo", "Batang", serif';
 
   var ZOOM = 1.20;
+  /**
+   * 사람이 핀치·휠로 조절하는 확대. `core.save.settings.camZoom` 에 저장돼
+   * 프로필마다 남는다 — 손가락을 벌리면(=확대) 커진다(`ZOOM` 과 같은 결).
+   * `dungeon3d.js`(3D)는 같은 값을 읽되 **거리에는 나눠서** 먹인다(그쪽 주석
+   * 참고) — 두 화면에서 손가락을 벌리는 동작이 똑같이 느껴져야 하기 때문이다.
+   */
+  var CAM_ZOOM_MIN = 0.55, CAM_ZOOM_MAX = 2.0;
+  function userZoom() {
+    var v = core.save && core.save.settings ? core.save.settings.camZoom : 1;
+    if (v === undefined || v === null) { v = 1; }
+    return core.clamp(v, CAM_ZOOM_MIN, CAM_ZOOM_MAX);
+  }
+  function setUserZoom(v) {
+    if (!core.save || !core.save.settings) { return; }
+    core.save.settings.camZoom = core.clamp(v, CAM_ZOOM_MIN, CAM_ZOOM_MAX);
+    core.persist();
+  }
   /* 화면 아래 조작판이 가리는 높이 — 무대를 그 위로 밀어 올린다.
      이 값을 빼지 않으면 인물이 판 뒤에 숨는다. */
   var PAD_BOT = 92;
@@ -81,7 +98,8 @@
         '</div>' +
         '<div id="dg-bottom"></div>' +
         '<div class="dg-tip">이동 <b>WASD</b> · 물약 <b>1 2 3 4</b> · 스킬 <b>Z X C V</b> · ' +
-          '<b>화면을 누른 채 끌면</b> 그쪽으로 걷습니다</div>' +
+          '<b>화면을 누른 채 끌면</b> 그쪽으로 걷습니다 · ' +
+          '<b>손가락 둘로 벌리거나 오므리면</b> 확대·축소</div>' +
       '</div>';
     cv = document.getElementById('dg-canvas');
     ctx = cv.getContext('2d');
@@ -100,8 +118,23 @@
     lightCtx = lightCv.getContext('2d');
     buildBottom();
 
-    /* 조작 — 누르고 있으면 손가락 쪽으로 계속 걷는다(폰), 짧게 누르면 그 지점으로(마우스). */
+    /* 조작 — 누르고 있으면 손가락 쪽으로 계속 걷는다(폰), 짧게 누르면 그 지점으로(마우스).
+       손가락 둘이면 걷기가 아니라 **핀치 확대**다 — 벌리면 커진다(userZoom). */
     var steering = false, downAt = 0, downPt = null;
+    var pointers = {};                      // pointerId → {x,y} (지금 닿아 있는 것)
+    var pinchStart = null, pinchZoom0 = null;
+
+    function pointerCount() {
+      var n = 0, k;
+      for (k in pointers) { if (Object.prototype.hasOwnProperty.call(pointers, k)) { n++; } }
+      return n;
+    }
+    function pinchDist() {
+      var ids = Object.keys(pointers);
+      if (ids.length < 2) { return null; }
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
 
     function steer(e) {
       var r = cv.getBoundingClientRect();
@@ -115,6 +148,18 @@
     }
 
     cv.addEventListener('pointerdown', function (e) {
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (pointerCount() === 2) {
+        /* 둘째 손가락이 닿는 순간 걷기는 멈춘다 — 걸으면서 동시에 확대하면
+           손도 헷갈리고, 판정도 "어느 손가락이 걷는 손가락인지" 를 몰라 애매하다 */
+        steering = false;
+        d().setInput(0, 0);
+        pinchStart = pinchDist();
+        pinchZoom0 = userZoom();
+        e.preventDefault();
+        return;
+      }
+      if (pointerCount() > 2) { return; }   // 셋째 손가락은 못 본 척한다
       steering = true;
       downAt = Date.now();
       downPt = { x: e.clientX, y: e.clientY };
@@ -123,10 +168,19 @@
       e.preventDefault();
     });
     cv.addEventListener('pointermove', function (e) {
+      if (pointers[e.pointerId]) { pointers[e.pointerId] = { x: e.clientX, y: e.clientY }; }
+      if (pointerCount() === 2 && pinchStart) {
+        var d2 = pinchDist();
+        if (d2) { setUserZoom(pinchZoom0 * (d2 / pinchStart)); }
+        e.preventDefault();
+        return;
+      }
       if (!steering) { return; }
       steer(e);
     });
     function release(e) {
+      delete pointers[e.pointerId];
+      if (pointerCount() < 2) { pinchStart = null; }
       if (!steering) { return; }
       steering = false;
       d().setInput(0, 0);
@@ -139,8 +193,17 @@
       }
     }
     cv.addEventListener('pointerup', release);
-    cv.addEventListener('pointercancel', function () { steering = false; d().setInput(0, 0); });
+    cv.addEventListener('pointercancel', function (e) {
+      delete pointers[e.pointerId];
+      if (pointerCount() < 2) { pinchStart = null; }
+      steering = false; d().setInput(0, 0);
+    });
     cv.addEventListener('pointerleave', function (e) { if (steering) { release(e); } });
+    /* 마우스 휠(데스크톱) — 폰의 핀치와 같은 자리를 대신한다 */
+    cv.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      setUserZoom(userZoom() * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+    }, { passive: false });
 
     hud.addEventListener('click', function (e) {
       var b = e.target.closest('[data-act]');
@@ -299,7 +362,7 @@
     var padTop = WALLH + 16;
     var chUse = Math.max(120, ch - PAD_BOT);   // 조작판에 가리지 않는 높이
     var fit = Math.min(cw / (uw + 20), chUse / (vh + padTop + 14));
-    var s = fit * ZOOM;
+    var s = fit * ZOOM * userZoom();
     var uMin = -H * IX, uMax = W * IX, vMax = (W + H) * IY;
 
     /* 카메라 — 원작은 인물을 화면 한가운데 붙들고 방이 그 밖으로 흘러간다.

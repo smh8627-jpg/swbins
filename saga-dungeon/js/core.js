@@ -60,7 +60,8 @@
         mode: 'offline',                  // 'offline' | 'online' (net.js)
         aiBase: '',                       // 온라인 서버 주소 (빈 값 = 같은 출처)
         sound: true,                      // 소리 (sfx.js) — 첫 눌림에서 깨어난다
-        soundVol: 0.5
+        soundVol: 0.5,
+        camZoom: 1                         // 3D 카메라 확대(핀치·휠) — dungeon3d.js 의 dg3d.zoom 값
       },
       log: []
     };

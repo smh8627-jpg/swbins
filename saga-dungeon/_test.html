@@ -2630,7 +2630,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
          뜻이 없어진다 (town.js 확대 대응) */
       var corner = D3.camAim3rd(30, 30, 1, 0, 1, 0.62);
       var mid = D3.camAim3rd(600, 400, 1, 0, 1, 0.62);
-      return corner.dist === mid.dist && corner.dist < 150 &&
+      return corner.dist === mid.dist && corner.dist < 250 &&
         ('거리 ' + Math.round(corner.dist) + ' — 인물 위치와 무관하다');
     });
 
@@ -2650,6 +2650,30 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       D3.set('dg3d.camMode', null);
       return mid === 'third' && after === 'iso' && D3.camMode() === before &&
         '기본은 iso, third 로 바꿀 수 있고 되돌릴 수 있다';
+    });
+
+    t('3D — 핀치·휠 확대는 세이브에 저장되고 범위를 넘지 않는다', function () {
+      /* dungeon-view.js 의 핀치·휠이 core.save.settings.camZoom 을 적어 두면
+         D3.userZoom() 이 그걸 읽는다 — 여기서는 화면 없이 값만 흉내 낸다 */
+      var before = C.save.settings.camZoom;
+      C.save.settings.camZoom = 1.6;
+      var mid = D3.userZoom();
+      C.save.settings.camZoom = 99;                 // 손잡이 범위를 넘겨도
+      var capped = D3.userZoom();
+      C.save.settings.camZoom = before;
+      return mid === 1.6 && capped <= 2.5 &&
+        ('1.6 그대로 읽고 · 99 는 ' + capped + ' 로 눌린다');
+    });
+
+    t('3D — 사람이 확대하면(userZoom↑) 3인칭이 물러난다', function () {
+      /* USERZOOM 은 ZOOM() 에 나눠 먹인다(주석) — 값이 커질수록(확대) 등 뒤
+         거리(back)는 오히려 줄어야 "가까이 당겨 본다" 는 뜻과 맞는다.
+         camAim3rd 는 zoom 인자를 그대로 배수로 쓰므로, render() 가 넘기는
+         ZOOM()/userZoom() 이 작아지는 방향이 맞는지를 여기서 확인한다. */
+      var near = D3.camAim3rd(200, 200, 0, 1, 1 / 1.6, 0.62);   // 확대(userZoom=1.6)
+      var far = D3.camAim3rd(200, 200, 0, 1, 1 / 0.7, 0.62);    // 축소(userZoom=0.7)
+      return near.dist < far.dist &&
+        ('확대 시 거리 ' + Math.round(near.dist) + ' · 축소 시 ' + Math.round(far.dist));
     });
 
     t('3D — 줌과 기울기가 듣는다', function () {

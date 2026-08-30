@@ -75,6 +75,22 @@
   function wanted() { return tuned('dg3d.on', 1) ? true : false; }
   /** 카메라가 방을 얼마나 담을까 (작을수록 당겨 본다) */
   function ZOOM() { return tuned('dg3d.zoom', 1); }
+  /**
+   * 사람이 핀치·휠로 직접 조절하는 확대 — **`dg3d.zoom` 손잡이와는 다른 값이다.**
+   * 저건 콘솔로 튜닝하는 개발용 상수고, 이건 `core.save.settings.camZoom` 에
+   * 저장돼 프로필마다 남는 사용자 값이다. 손가락으로 벌리면(=확대) 커지도록
+   * (2D `dungeon-view.js` 의 `ZOOM` 과 같은 결) 잡았는데, `ZOOM()`(거리 배수,
+   * 작을수록 가깝다)에는 **나눠서** 먹인다 — 그래야 두 화면(2D·3D)에서 손가락을
+   * 벌리는 동작이 똑같이 "가까워진다" 로 느껴진다. 값 자체는 `dungeon-view.js`
+   * 가 핀치·휠로 적어 두고, 여기서는 읽기만 한다.
+   */
+  function USERZOOM() {
+    try {
+      var v = core.save && core.save.settings ? core.save.settings.camZoom : 1;
+      v = (v === undefined || v === null) ? 1 : v;
+      return v < 0.4 ? 0.4 : (v > 2.5 ? 2.5 : v);
+    } catch (e) { return 1; }
+  }
   /** 카메라 기울기 — 0 은 완전 위, 1 은 낮게. 원작은 3/4 쯤이다 */
   function TILT() { return tuned('dg3d.tilt', 0.62); }
   /** 어둠의 깊이 — 1 이면 횃불 밖이 새까맣다 */
@@ -158,9 +174,13 @@
     var dlen = Math.hypot(dx, dy);
     if (dlen < 0.01) { dx = 0; dy = -1; dlen = 1; }
     dx /= dlen; dy /= dlen;
-    var back = 100 * z;                            // 등 뒤 거리
-    var high = 50 * z * (0.5 + tl * 0.8);           // 어깨 위 높이
-    var ahead = 65;                                 // 앞을 내다보는 만큼
+    /* 2026-08-30 — 실기기(아이폰 사파리)로 보니 처음 값(100/50/65)이 너무
+       바짝 붙어 답답했다. 값을 키워 인물이 몸통이 아니라 발밑까지 보이게
+       물렀다 — 그래도 iso(방 대각선 기준 700 안팎)보단 훨씬 가깝다, 그게
+       "어깨너머" 의 뜻이다. 이제 사람이 핀치·휠로도 더 물릴 수 있다(userZoom). */
+    var back = 150 * z;                             // 등 뒤 거리
+    var high = 78 * z * (0.5 + tl * 0.8);            // 어깨 위 높이
+    var ahead = 75;                                  // 앞을 내다보는 만큼
     return {
       pos: { x: px - dx * back, y: high, z: py - dy * back },
       look: { x: px + dx * ahead, y: 20, z: py + dy * ahead },
@@ -1128,7 +1148,7 @@
        **한눈에 들어와야** 누구에게 갈지 정할 수 있다(town.js 가 크기를 그렇게 잡았다).
        세로로 긴 화면에서는 가로가 먼저 잘리므로 화면비까지 셈에 넣는다 —
        던전 쪽 거리는 건드리지 않는다(연출·조작 감각이 거기 맞춰져 있다). */
-    var zNow = ZOOM();
+    var zNow = ZOOM() / USERZOOM();
     if (run.town) {
       var asp = camera.aspect || 1;
       zNow *= 1.15 * (asp < 1 ? Math.min(1.5, 1 / Math.max(0.5, asp)) : 1);
@@ -1189,7 +1209,7 @@
     init: init, resize: resize, render: render,
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
-    camAim: camAim, camAim3rd: camAim3rd, camMode: CAMMODE, lightPlan: lightPlan,
+    camAim: camAim, camAim3rd: camAim3rd, camMode: CAMMODE, userZoom: USERZOOM, lightPlan: lightPlan,
     /** 들판이 몇 조각인지 (2단계) */
     fieldKey: function () { return fieldKey; },
     three: function () { return T; },
