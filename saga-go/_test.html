@@ -4165,6 +4165,27 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         'world3d.unloadRadius=1 이면 R 과 UR 이 같아진다(히스테리시스 없음)';
     });
 
+    /* ── 프롭 LOD (PLAN 36절) ────────────────────────────────
+     * 나무·바위·풀·갈대는 `lodNear` 안에서만 진짜 모델을 받고, 밖은 곧장
+     * 싼 도형으로 선다. `instProp`·`buildProp` 자체는 화면이 없으면 three
+     * 메시를 만들다 죽으므로(DG_NO_DRAW), 여기서도 **거리 값**만 본다.
+     */
+
+    t('프롭 LOD — 진짜 모델을 받는 거리(lodNear)가 짓는 반경(R)보다 작다', function () {
+      var near = R3.lodNear(), R = R3.propRadius();
+      return near > 0 && near < R &&
+        'lodNear=' + near + ' · R=' + R + ' — 그 밖은 도형으로 곧장 간다';
+    });
+
+    t('프롭 LOD — lodNear 손잡이로 문턱을 잡을 수 있다', function () {
+      var before = R3.lodNear();
+      C.setTune('world3d.lodNear', 10);
+      var after = R3.lodNear();
+      C.setTune('world3d.lodNear', null);
+      return after === 10 && R3.lodNear() === before &&
+        'world3d.lodNear=10 이면 10m 밖은 다 도형';
+    });
+
     t('3D — 값을 내도 세이브는 그대로다', function () {
       /* 화면 층이 판정에 스미지 않는지 — 조명·계획·카메라를 굴려 보고 세이브를 비교한다 */
       var before = JSON.stringify(C.save);

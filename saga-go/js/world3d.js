@@ -47,6 +47,11 @@
   /* 부수는 반경 — 짓는 반경(R)보다 크게 잡아 경계에서 왕복해도 짓고 부수고를
      되풀이하지 않는다 (PLAN 42절 ACTIVE/VISIBLE/UNLOAD) */
   function PROP_UR(R) { return R * core.tuned('world3d.unloadRadius', 1.4); }
+  /** 잔 사물(나무·바위·풀)의 **진짜 모델**을 받는 거리(m, PLAN 36절 LOD).
+   * 이 밖은 곧장 싼 도형(원뿔·공)으로 선다 — 진짜 모델은 도형보다 삼각형이
+   * 백 배다(`prop3d.js` 의 `ON()` 과 같은 사정이지만, 그건 기기 등급으로
+   * 가르고 이건 **거리**로 가른다) */
+  function LOD_NEAR() { return core.tuned('world3d.lodNear', 90) * PF('radius'); }
   function CAM_DIST() { return core.tuned('world3d.camDist', 40); }       // 카메라 거리(m)
   function CAM_HIGH() { return core.tuned('world3d.camHeight', 15); }     // 카메라 높이(m)
   /** 사람 키(m) — 원작처럼 지도 위에서는 실제보다 크게 세운다(1.8m 면 안 보인다) */
@@ -1063,7 +1068,13 @@
                 peak: 'peak', lamp: 'lamp', shrine: 'shrine', cave: 'cave',
                 ruin: 'ruin', bridge: 'bridge', rice: 'rice',
                 well: 'well', market: 'market' };
-    if (GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
+    /* LOD(PLAN 36절) — 나무·바위·풀·갈대는 `LOD_NEAR` 안에 있을 때만 진짜
+       모델을 받는다. 밖이면 곧장 아래의 싼 도형(원뿔·공)으로 간다. 집·탑·
+       랜드마크는 칸당 수가 적어 거리를 안 가린다 */
+    var natureLod = p.t === 'tree' || p.t === 'rock' || p.t === 'grass' || p.t === 'reed';
+    var lodOk = !natureLod ||
+      Math.hypot(x - core.save.player.pos.x, z - core.save.player.pos.y) <= LOD_NEAR();
+    if (lodOk && GLB[p.t] && instGlb(key, GLB[p.t], x, z, p.h, gx + Math.round(p.x),
                             gy + Math.round(p.z), p.rot)) {
       return true;
     }
@@ -1289,17 +1300,24 @@
         /* 손으로 그린 땅이 못박아 둔 것은 **찾아가는 표적**이다 — 멀다고 빼면
            폐허가 코앞에서야 솟는다. 표식이 있는 격자는 잔 사물 규칙에서 뺀다 */
         var mk = RG3 ? RG3.markAt(gx, gy) : null;
+        var tileDist = Math.hypot((gx + 0.5) * GRID - pos.x, (gy + 0.5) * GRID - pos.y);
         /* 풀·길의 잔 사물은 가까울 때만 세운다 — 반경 전체에 깔면 격자 백 개가
            한꺼번에 늘어나고, 멀리서는 어차피 한 픽셀이다 */
-        var far = Math.hypot((gx + 0.5) * GRID - pos.x, (gy + 0.5) * GRID - pos.y) > R * 0.5;
+        var far = tileDist > R * 0.5;
         if (far && !mk && (kind === 'grass' || kind === 'road')) { continue; }
+        /* LOD(36절) 대(帶) — 이 칸이 나무·바위·풀을 세우는 종류(town 은 집·탑뿐이라
+           뺀다)라면 문턱(LOD_NEAR) 안쪽인지를 키에 넣는다. 문턱을 건너면 칸이
+           다시 지어지고, 그 안에서 `instProp` 이 진짜 모델과 도형을 맞바꾼다.
+           안 넣으면 가까이 가도 이미 지은 칸은 도형인 채로 남는다(칸이 안
+           다시 지어지므로) */
+        var lodBand = kind !== 'town' ? (tileDist <= LOD_NEAR() ? 'n' : 'f') : '-';
         /* 이 땅을 켜고 끄면 같은 격자가 다른 땅이 된다 — 캐시 키에 넣어야 다시 세운다 */
         /* 젖음도 키에 넣는다 — 안 넣으면 비가 그쳐도 강이 분 채로 남는다.
            **계절도 마찬가지다** — 안 넣으면 가을이 됐는데 나무 몇 그루가 초록으로
            남는다(눈으로 보고 알았다). 훑는 조건에만 넣으면 다시 훑기는 하는데
            이미 세워 둔 격자를 그대로 되쓴다 */
         var key = kind + ':' + gx + ':' + gy + ':' + (mapped ? 'm' : 'n') +
-          (mk ? ':' + mk : '') + (wetNow ? ':w' : '') + ':' + seasonKey;
+          (mk ? ':' + mk : '') + (wetNow ? ':w' : '') + ':' + seasonKey + ':' + lodBand;
         live[key] = 1;
         if (propMeshes[key]) { continue; }
         var node = buildProp(kind, gx, gy, mapped, key);
@@ -2088,6 +2106,8 @@
     lightingAt: lightingAt, propPlan: propPlan, urbanity: urbanity, camAim: camAim,
     /** 짓는 반경(R)·부수는 반경(UR, PLAN 42절) — 손잡이로 잡는다 */
     propRadius: PROP_R, unloadRadius: function () { return PROP_UR(PROP_R()); },
+    /** 잔 사물이 진짜 모델을 받는 거리(PLAN 36절 LOD) — 손잡이로 잡는다 */
+    lodNear: LOD_NEAR,
     houseRects: houseRects,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },
