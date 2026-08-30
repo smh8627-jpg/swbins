@@ -140,9 +140,11 @@
       };
     }
     if (f.t === 'slash') {
-      /* 투영이 눕어 있어 각을 죽여야 했던 2D 와 달리 3D 는 **진짜 각도**를 쓴다 */
+      /* 투영이 눕어 있어 각을 죽여야 했던 2D 와 달리 3D 는 **진짜 각도**를 쓴다.
+         **결이 있는 무예**(el)는 그 원소 색으로 벤다 — 강타(暴)와 같은 흰 궤적으로
+         뭉뚱그리면 화·빙·뇌를 눈으로 못 가른다. 강타(crit)는 그래도 금빛이 우선이다. */
       return {
-        kind: 'slash', hex: f.crit ? 0xffdc78 : 0xf0f5ff,
+        kind: 'slash', hex: f.crit ? 0xffdc78 : hexOf(f.color, 0xf0f5ff),
         alpha: a * (f.crit ? 1 : 0.85), k: k,
         r: (f.crit ? 46 : 36) * (0.7 + k * 0.6), ang: f.a || 0, glow: true
       };
@@ -155,15 +157,18 @@
       };
     }
     if (f.t === 'whirl') {
+      /* 회전참(swing) — 결이 있으면(el) 그 색, 없으면(맨 무기) 예전 하늘빛 */
       return {
-        kind: 'ring', hex: 0x96dcff, alpha: a * 0.8, k: k,
+        kind: 'ring', hex: hexOf(f.color, 0x96dcff), alpha: a * 0.8, k: k,
         r: (f.r || 60) * (1.15 - a * 0.4),
         thick: 0.09, lift: 6, glow: true, spin: true
       };
     }
     if (f.t === 'ring') {
+      /* 파문(nova·buff·curse 공용) — nova 만 결 색을 싣는다(sk.el),
+         버프·저주는 색이 안 실려 오므로 예전 금빛 그대로다 */
       return {
-        kind: 'ring', hex: 0xf0b45a, alpha: a, k: k,
+        kind: 'ring', hex: hexOf(f.color, 0xf0b45a), alpha: a, k: k,
         r: (FULL.ring - f.life) * 170,
         thick: 0.07, lift: 4, glow: true, wall: true
       };
@@ -177,7 +182,7 @@
     }
     if (f.t === 'trail') {
       return {
-        kind: 'trail', hex: 0x96dcff, alpha: a * 0.44, k: k,
+        kind: 'trail', hex: hexOf(f.color, 0x96dcff), alpha: a * 0.44, k: k,
         r: 14 * a, glow: false
       };
     }

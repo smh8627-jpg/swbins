@@ -807,7 +807,9 @@
       p.y += dsh.dy * 620 * dt;
       p.walking = true;
       p.phase += dt * 16;
-      fx.push({ t: 'trail', x: p.x, y: p.y, life: 0.22 });
+      fx.push({ t: 'trail', x: p.x, y: p.y, life: 0.22,
+        el: dsh.el && dsh.el !== 'phys' ? dsh.el : null,
+        color: dsh.el && dsh.el !== 'phys' ? elemColorOf(dsh.el) : null });
       /* 지나는 적을 벤다 (한 번씩만) */
       for (i = 0; i < room.enemies.length; i++) {
         var de = room.enemies[i];
@@ -1060,7 +1062,8 @@
       e.x = core.clamp(e.x + dx / d * push, WALL + e.r, ROOM_W - WALL - e.r);
       e.y = core.clamp(e.y + dy / d * push, WALL + e.r, ROOM_H - WALL - e.r);
       fx.push({ t: 'slash', x: e.x, y: e.y - e.r * 0.6,
-        a: Math.atan2(dy, dx), life: 0.16, crit: crit });
+        a: Math.atan2(dy, dx), life: 0.16, crit: crit,
+        el: kind !== 'phys' ? kind : null, color: kind !== 'phys' ? elemColorOf(kind) : null });
     }
     fx.push({ t: 'hit', x: e.x, y: e.y - e.r, v: dmg, crit: crit, life: 0.6,
               resist: res >= 20 });
@@ -1329,7 +1332,8 @@
 
     if (sk.shape === 'swing') {
       var radius = reachOf() * (sk.r || 2.0);
-      fx.push({ t: 'whirl', x: p.x, y: p.y, r: radius, life: 0.3 });
+      fx.push({ t: 'whirl', x: p.x, y: p.y, r: radius, life: 0.3,
+        el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
       for (j = 0; j < room.enemies.length; j++) {
         var we = room.enemies[j];
         if (we.hp <= 0) { continue; }
@@ -1340,7 +1344,8 @@
 
     } else if (sk.shape === 'nova') {
       var nr = (sk.r || 130);
-      fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.55 });
+      fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.55,
+        el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
       for (j = 0; j < room.enemies.length; j++) {
         var ne = room.enemies[j];
         if (ne.hp <= 0) { continue; }
