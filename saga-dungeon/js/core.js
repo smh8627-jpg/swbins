@@ -96,9 +96,17 @@
     }
   }
 
+  /**
+   * **저장한 채로 비우지 않는다.** persist() 로 빈 세이브를 그대로 적으면
+   * v:1 이 박힌 채로 남아 다음 load() 가 "있는 세이브"로 읽는다 — 그러면
+   * game.js 의 `fresh = !core.load()` 가 false 가 되어 출사표(첫 인물 셋)가
+   * 다시 안 나가고, 동행·도감이 영영 빈 채로 갇힌다(던전 입장도 막혀 있어
+   * 벗어날 길이 없다). localStorage 자체를 지워야 다음 load() 가 "세이브 없음"
+   * 을 돌려주고 fresh 가 제대로 true 가 된다.
+   */
   function reset() {
     save = freshSave();
-    persist();
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 사설 모드 등 */ }
   }
 
   function mergeDeep(base, over) {

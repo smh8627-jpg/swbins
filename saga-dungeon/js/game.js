@@ -72,6 +72,14 @@
 
   function start() {
     var fresh = !core.load();
+    /* 옛 `core.reset()` 은 빈 세이브를 그대로 저장해 v:1 이 박혀 있었다 —
+       그런 세이브는 load() 가 "있다"고 읽어 fresh 가 false 가 되고, 출사표가
+       다시 안 나가 동행·도감이 영영 비어 던전 입장(부대 필요)도 막히는
+       갇힌 자리였다. 세이브가 있어도 **동행·도감이 둘 다 빈 채**라면 아직
+       한 번도 인물을 못 얻은 것과 같으므로 출사표를 다시 내보낸다 */
+    if (!fresh && !core.save.party.length && !Object.keys(core.save.dex.heroes).length) {
+      fresh = true;
+    }
 
     if (core.save.settings.prop) { global.DG.sprite.setProp(core.save.settings.prop); }
     if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }

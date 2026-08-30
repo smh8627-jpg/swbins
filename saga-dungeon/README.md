@@ -7,7 +7,7 @@
 ```
 run.bat          →  http://127.0.0.1:8792
 start_server.bat →  같은 것, 브라우저를 열지 않는다 (허브 워치독용)
-_test.html       →  자가진단 156항목
+_test.html       →  자가진단 228항목
 _demo.html       →  스크린샷용 데모 (#camp · #dg · #loot · #craft · #forge · #word
                     · #gear · #vendor · #gamble · #buyback · #party · #dex · #log)
                     요대가 어떻게 보이는지는 #loot 가 낫다 — #dg 는 자동이 다 마셔 버린다
@@ -656,3 +656,23 @@ chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom   htt
   이미 그런 상태라면 `deungyong-go/_swreset.html` 과 같은 방식으로 캐시를 지우면 된다
 - 자동 설정(`save.auto`)은 `auto.js` 의 `st()` 가 **빠진 칸을 채워 준다** — 옛 세이브나
   다른 게임에서 넘어온 모양이어도 기능이 조용히 꺼지지 않는다
+
+## 잡은 함정 — "처음부터 다시 시작" 이 갇힌 채로 두던 버그 (2026-08-30)
+
+**증상.** 상단 🔄(`#btn-reset`) 로 초기화하면 동행·도감이 영영 빈 채로 남는다 —
+던전 입장은 부대가 있어야 막히고(`dungeon.js` `enter()`), 부대 화면의 안내는
+"도감에서 인물을 동행에 넣으라"는데 도감도 비어 있어 되짚을 데가 없다.
+
+**원인.** `core.reset()` 이 `freshSave()` 를 **그대로 저장**했다 — `v: 1` 이 박힌
+채로. 그러면 `location.reload()` 뒤 `game.js` 의 `fresh = !core.load()` 가
+"세이브가 있다"고 읽어 **false** 가 되고, 출사표(첫 인물 셋 자동 합류)가
+다시 안 나간다. `reset()` 은 **저장이 아니라 지우는** 동작이어야 했다.
+
+**고침.** `core.reset()` 은 이제 `localStorage.removeItem()` 으로 세이브 자체를
+지운다(`js/core.js`) — 다음 `load()` 가 정직하게 "없음" 을 돌려준다. 더해서
+`game.js` 의 `start()` 에 **자가치유**를 얹었다 — 세이브가 있어도(`fresh===false`)
+동행·도감이 **둘 다** 비어 있으면 fresh 로 다시 본다. 이미 갇혀 있던 옛 세이브도
+다음에 켜면 저절로 풀린다(사용자가 진행 중에 실제로 이 자리에 갇혀 신고했다).
+
+진단에 재현 테스트 둘을 넣었다(226 → **228**, 세 번 불변). `sw.js` VERSION →
+`dungeon-v0.36.1`.
