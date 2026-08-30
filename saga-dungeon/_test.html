@@ -78,6 +78,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 <script src="js/data-set.js"></script>
 <script src="js/data-unique.js"></script>
 <script src="js/data-dungeon.js"></script>
+<script src="js/data-quest.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/sfx.js"></script>
@@ -98,6 +99,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
 <script src="js/potion.js"></script>
 <script src="js/vendor.js"></script>
 <script src="js/forge.js"></script>
+<script src="js/quest.js"></script>
 <script src="js/auto.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
@@ -3187,6 +3189,92 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       var okHelm = r1.ok && eff1.length === 1 && eff1[0].kind === 'elres';
       var okRing = r2.ok && eff2.length === 1 && eff2[0].kind === 'pct';
       return okHelm && okRing && ('투구 ' + (eff1[0] && eff1[0].kind) + ' · 반지 ' + (eff2[0] && eff2[0].kind));
+    });
+
+    t('퀘스트(PLAN 36절) — 표 — 메인 8 · 지역은 THEMES 수와 같다 · 이벤트 3', function () {
+      var QD = DG.questData, DD = DG.dungeonData;
+      var mainOk = QD.MAIN.length === 8 && QD.MAIN.every(function (m) {
+        return m.req && m.req.t && m.reward && (m.reward.gold || m.reward.exp);
+      });
+      var regionOk = QD.REGION.length === DD.THEMES.length;
+      var eventOk = QD.EVENT.length === 3;
+      var poolOk = QD.RANDOM_POOL.every(function (p) { return typeof p.descOf === 'function'; });
+      return mainOk && regionOk && eventOk && poolOk &&
+        ('메인 ' + QD.MAIN.length + ' · 지역 ' + QD.REGION.length + ' · 이벤트 ' + QD.EVENT.length);
+    });
+
+    t('퀘스트 — 층에 닿으면 floor 형 메인이 그 자리에서 채워지고 보상이 나가 다음으로 넘어간다', function () {
+      var Q = DG.quest, keep = C.save.quest;
+      delete C.save.quest;
+      var g0 = C.save.player.gold;
+      Q._onFloor(3);                                    // 메인 1번 — 제3층까지
+      var st = Q.status();
+      var got = C.save.player.gold > g0 && st.mainIdx === 1;
+      C.save.quest = keep;
+      return got && ('금 +' + (C.save.player.gold - g0) + ' · 다음 메인 ' + (st.mainIdx + 1) + '번째');
+    });
+
+    t('퀘스트 — 지역은 최고 도달 층이 닿아야 열리고, 안 닿은 지역은 잠긴 채다', function () {
+      var Q = DG.quest, DN = DG.dungeon, keep = C.save.quest, keepBest = DN.state().best;
+      delete C.save.quest;
+      DN.state().best = 8;                              // 폐성(6층부터)까지는 닿았다
+      var st = Q.status();
+      var opened = !st.regions[0].locked && !st.regions[1].locked;
+      var stillLocked = st.regions[2].locked;            // 산채(11층부터)는 아직
+      DN.state().best = keepBest;
+      C.save.quest = keep;
+      return opened && stillLocked && ('0·1 열림 · 2 잠김');
+    });
+
+    t('퀘스트 — kill 은 태그(정예·보스)를 가리고, 지역 몫도 같이 채운다', function () {
+      var Q = DG.quest, DN = DG.dungeon, keep = C.save.quest, keepBest = DN.state().best;
+      delete C.save.quest;
+      DN.state().best = 8;
+      Q._onFloor(3);                                    // m1 끝 → m2(정예 3마리)로 넘어간다
+      var st0 = Q.status();
+      var region0have = st0.regions[1].have;             // 폐성(idx 1)
+      Q._onKill({ e: { elite: null, boss: false }, floor: 7 });   // 잡졸 — 메인(정예 3)엔 안 셈
+      var st1 = Q.status();
+      var mainUnchanged = st1.mainIdx === st0.mainIdx && st1.main.have === st0.main.have;
+      var regionGrew = st1.regions[1].have === region0have + 1;
+      Q._onKill({ e: { elite: 'brute', boss: false }, floor: 7 });  // 정예 — 메인이 는다
+      var st2 = Q.status();
+      var mainGrew = st2.main.have === st1.main.have + 1;
+      DN.state().best = keepBest;
+      C.save.quest = keep;
+      return mainUnchanged && regionGrew && mainGrew && ('잡졸은 메인 무시 · 지역은 다 셈 · 정예는 메인도 셈');
+    });
+
+    t('퀘스트 — 방 발견(discover)과 구출(rescue)이 각각 다른 퀘스트를 채운다', function () {
+      var Q = DG.quest, keep = C.save.quest;
+      delete C.save.quest;
+      /* 메인을 사당 발견(3번째)까지 밀어 둔다 */
+      Q._onFloor(3);                                     // m1 끝
+      Q._onKill({ e: { elite: 'brute', boss: false }, floor: 1 });
+      Q._onKill({ e: { elite: 'brute', boss: false }, floor: 1 });
+      Q._onKill({ e: { elite: 'brute', boss: false }, floor: 1 }); // m2(정예 3) 끝
+      var before = Q.status();
+      Q._onRoom({ kind: 'trove' });                       // m3 — 상자방
+      var afterRoom = Q.status();
+      var g0 = C.save.player.gold;
+      Q._onRescue();                                      // 이벤트 1단(구출 1명)
+      var afterRescue = Q.status();
+      var roomAdvanced = before.mainIdx === 2 && afterRoom.mainIdx === 3;
+      var rescueGranted = C.save.player.gold > g0 && afterRescue.eventDone === false;
+      C.save.quest = keep;
+      return roomAdvanced && rescueGranted && ('m3 완료 · 이벤트 1단 완료');
+    });
+
+    t('퀘스트 — 현상(무작위)은 늘 하나 떠 있고, 다시 뽑기가 딴 것으로 바꾼다', function () {
+      var Q = DG.quest, keep = C.save.quest;
+      delete C.save.quest;
+      var st0 = Q.status();
+      var has = !!st0.random && !!st0.random.name && st0.random.need > 0;
+      Q.reroll();
+      var st1 = Q.status();
+      var stillOne = !!st1.random;
+      C.save.quest = keep;
+      return has && stillOne && ('현상 · ' + st0.random.name + ' → ' + st1.random.name);
     });
 
     t('진단의 무작위는 씨앗으로 고정된다', function () {

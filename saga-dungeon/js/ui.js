@@ -104,6 +104,7 @@
         return;
       }
       if (act === 'enc-close') { encClose(); return; }
+      if (act === 'quest-reroll') { global.DG.quest.reroll(); return; }
       if (act === 'town-wp') {
         var wf = parseInt(b.getAttribute('data-floor'), 10) || 1;
         encClose();
@@ -346,7 +347,8 @@
   /* ── 시트 ─────────────────────────────────────────────── */
 
   var SHEET_TITLE = {
-    party: '⚔️ 부대', gear: '🎒 장비', craft: '🔨 세공', skill: '📜 무예', vendor: '\uD83E\uDDFA 행상', dex: '📖 도감', log: '📜 기록', world: '🗺️ 월드맵'
+    party: '⚔️ 부대', gear: '🎒 장비', craft: '🔨 세공', skill: '📜 무예', vendor: '\uD83E\uDDFA 행상', dex: '📖 도감', log: '📜 기록', world: '🗺️ 월드맵',
+    quest: '🚩 퀘스트'
   };
 
   /* 세공에서 지금 고른 재료 (화면 상태라 세이브에 남기지 않는다) */
@@ -387,7 +389,8 @@
           : openTab === 'vendor' ? viewVendor()
           : openTab === 'skill' ? viewSkill()
           : openTab === 'dex' ? viewDex()
-          : openTab === 'world' ? viewWorldMap() : viewLog();
+          : openTab === 'world' ? viewWorldMap()
+          : openTab === 'quest' ? viewQuest() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 
@@ -625,6 +628,63 @@
     return '<div class="sec"><h4>🗺️ 월드맵</h4>' +
       '<div class="hint">층을 내려가며 지나온 지역이 열립니다 — 최고 <b>제' + best + '층</b>까지 밟았습니다.</div>' +
       '<div class="wm-list">' + rows + '</div></div>';
+  }
+
+  /* ── 퀘스트 (PLAN 36절) ───────────────────────────────────
+   * 넷 — 메인(순서대로 하나씩) · 지역(월드맵 여섯 지역, 닿아야 열린다) ·
+   * 이벤트(구출 누적) · 무작위(늘 하나, 끝내면 곧바로 새것). 진행은
+   * quest.js 가 dungeon.js 의 사건을 듣고 센다 — 여기는 그 결과만 그린다.
+   */
+  function qstRow(icon, name, desc, have, need, cls) {
+    var pct = need ? Math.round(Math.min(1, have / need) * 100) : 0;
+    return '<div class="qst-row' + (cls ? ' ' + cls : '') + '">' +
+      '<span class="qst-ic">' + icon + '</span>' +
+      '<div class="qst-info"><b>' + esc(name) + '</b><small>' + esc(desc) + '</small>' +
+        (need ? '<div class="qst-bar"><i style="width:' + pct + '%"></i></div>' : '') +
+      '</div>' +
+      (need ? '<span class="qst-n">' + have + '/' + need + '</span>' : '') +
+      '</div>';
+  }
+
+  function viewQuest() {
+    var Q = global.DG.quest;
+    if (!Q) { return '<div class="hint">퀘스트 모듈이 없습니다.</div>'; }
+    var st = Q.status();
+    var html = '';
+
+    html += '<div class="sec"><h4>🚩 메인</h4>';
+    if (st.mainDone) {
+      html += '<div class="hint">메인 퀘스트를 모두 마쳤습니다 (' + st.mainTotal + '/' + st.mainTotal + ').</div>';
+    } else {
+      html += qstRow('🚩', st.main.name, st.main.desc, st.main.have, st.main.need) +
+        '<div class="hint">' + (st.mainIdx + 1) + ' / ' + st.mainTotal + '번째</div>';
+    }
+    html += '</div>';
+
+    html += '<div class="sec"><h4>🗺️ 지역</h4>';
+    for (var i = 0; i < st.regions.length; i++) {
+      var r = st.regions[i];
+      if (r.locked) {
+        html += qstRow('❔', '???', '이 지역에 아직 닿지 않았습니다', 0, 0, 'locked');
+      } else {
+        html += qstRow(r.done ? '✅' : '⚔️', r.name, r.desc, r.have, r.need, r.done ? 'done' : '');
+      }
+    }
+    html += '</div>';
+
+    html += '<div class="sec"><h4>🙏 이벤트</h4>';
+    if (st.eventDone) {
+      html += '<div class="hint">이벤트 퀘스트를 모두 마쳤습니다.</div>';
+    } else {
+      html += qstRow('🙏', st.event.name, st.event.desc, st.event.have, st.event.need);
+    }
+    html += '</div>';
+
+    html += '<div class="sec"><h4>📋 현상</h4>' +
+      qstRow('📋', st.random.name, st.random.desc, st.random.have, st.random.need) +
+      '<button class="btn tiny ghost" data-act="quest-reroll">🔄 다시 뽑기</button></div>';
+
+    return html;
   }
 
   /* ── 도감 ─────────────────────────────────────────────── */

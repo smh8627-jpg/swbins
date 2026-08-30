@@ -14,6 +14,7 @@
     #fx    전투 연출 아홉 가지(3D · 정지 화면)
     #vendor 행상(사다)   #gamble 투전   #buyback 되사기   #forge 연단   #skill 무예
     #gear  장비                 #party 부대   #dex 도감   #log 기록
+    #world 월드맵                #quest 퀘스트
 
   던전 장면은 **update 를 직접 굴린다** — 헤드리스에서는 rAF 가 거의 돌지 않아
   게임 루프에 기댈 수 없다(SAGA-HANDOFF 의 함정표 참고).
@@ -44,6 +45,8 @@
   <button data-sheet="craft"><span>🔨</span><small>세공</small></button>
   <button data-sheet="vendor"><span>🧺</span><small>행상</small></button>
   <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+  <button data-sheet="world"><span>🗺️</span><small>지도</small></button>
+  <button data-sheet="quest"><span>🚩</span><small>퀘스트</small></button>
   <button data-sheet="log"><span>📜</span><small>기록</small></button>
 </nav>
 <div id="scrim"></div>
@@ -67,6 +70,7 @@ window.DG_NO_ACCOUNT = true;
 <script src="js/data-set.js"></script>
 <script src="js/data-unique.js"></script>
 <script src="js/data-dungeon.js"></script>
+<script src="js/data-quest.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/sfx.js"></script>
@@ -87,6 +91,7 @@ window.DG_NO_ACCOUNT = true;
 <script src="js/potion.js"></script>
 <script src="js/vendor.js"></script>
 <script src="js/forge.js"></script>
+<script src="js/quest.js"></script>
 <script src="js/auto.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
@@ -327,7 +332,7 @@ setTimeout(function () {
     DG.skill.ensureStarter(C.save.party[0]);
     DG.ui.openSheet('skill');
   }
-  else if (['party', 'gear', 'craft', 'dex', 'log'].indexOf(tab) >= 0) {
+  else if (['party', 'gear', 'craft', 'dex', 'log', 'world', 'quest'].indexOf(tab) >= 0) {
     DG.ui.openSheet(tab);
   }
 

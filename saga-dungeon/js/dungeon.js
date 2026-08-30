@@ -1289,6 +1289,7 @@
       dropGold(room, room.captive.x, room.captive.y, 2);
       sfx('shrine');
       core.emit('toast', '🙏 구출 · 은혜를 갚는다');
+      core.emit('dungeon:rescue', { floor: run.floor });
     }
     if (room.forage) {
       /* 약초 — 항아리와 같은 손짓(닿기만 해도, 방을 안 치워도) */
@@ -1458,6 +1459,7 @@
   function kill(e) {
     run.kills += 1;
     dstate().kills = (dstate().kills || 0) + 1;
+    core.emit('dungeon:kill', { e: e, floor: run.floor });
     var drain = boonVal('drainPct');
     if (drain) { healBy(run.hpMax * drain / 100); }
     run.mp = Math.min(run.mpMax, run.mp + MP_ON_KILL);
