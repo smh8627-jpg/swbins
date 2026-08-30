@@ -84,7 +84,11 @@
     /* 천막 — 딱 맞는 "야영 텐트" 는 CC0 로 못 찾았다. 기둥+지붕 얼개가 비슷한
        장터 좌판(MarketStand)을 대신 세운다 — 완벽한 대역은 아니다(주석에 적어
        둔다, 나중에 진짜 텐트를 구하면 이 한 줄만 바꾸면 된다) */
-    'tent': BLD + 'MarketStand_1.glb'
+    'tent': BLD + 'MarketStand_1.glb',
+    /* 마을(모루골) 건물 — 집 넷은 자리마다 씨앗으로 섞어 세운다(나무·바위와 같은 요령) */
+    'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
+    'well': BLD + 'Well.glb',
+    'blacksmith': BLD + 'Blacksmith.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }

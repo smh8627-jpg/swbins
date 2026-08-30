@@ -86,17 +86,16 @@
   /** 들판 밀도 배수 — 버거우면 여기를 내린다 */
   function FIELD_D() { return tuned('dg3d.fieldDens', 1); }
   /**
-   * 마을(모루골)도 3D 로 그릴까 — **기본은 0, 곧 예전 그림이다.**
+   * 마을(모루골)도 3D 로 그릴까 — **기본이 1로 켜졌다** (사용자 요청, 2026-08-30).
    *
-   * 3D 전환은 던전 방부터 하기로 했고 `PLAN.md` 에 마을 단계는 아직 없다.
-   * 그리고 마을 2D 그림은 이미 사람이 사람으로 보이는 수준으로 완성돼 있다 —
-   * 그것을 상자 인형으로 바꾸는 것은 12절("정상 작동하는 부분은 건드리지 않는다")과
-   * 저장소 방침("코드로 그리지 말고 에셋으로")에 함께 어긋난다.
-   * 아래 3D 마을 코드는 다음 단계의 발판으로 남겨 두고, 볼 때만 켠다:
-   *
-   *   DG.dungeon3d.set('dg3d.town', 1)
+   * 처음엔 마을에 집·우물·대장간 같은 건물 자리가 아예 없어서(NPC 여섯 명과
+   * 횃불·기둥뿐) 켜면 빈 돌방에 사람만 서 있는 꼴이라 꺼 두었다. 그래서 던전과
+   * 같은 순서로 — `town.js` 의 `DECOR` 에 집 셋·우물·대장간을 얹고
+   * (`js/asset3d.js` 의 `house`·`well`·`blacksmith`, `saga-go` 의 건물 창고를
+   * 그대로 옮겼다) 이 방의 `buildRoom()` 이 그 자리를 GLB 로 세우게 고친 뒤에
+   * 켰다. 도로 끄려면 콘솔에서 `DG.dungeon3d.set('dg3d.town', 0)`.
    */
-  function TOWN3D() { return tuned('dg3d.town', 0) ? true : false; }
+  function TOWN3D() { return tuned('dg3d.town', 1) ? true : false; }
 
   function available() { return ready && !failed; }
   function active() {
@@ -332,6 +331,42 @@
         var cl = o.len || 30;
         var cm = box(wallGroup, o.x, 0.6, o.y, cl, 1.2, 4, mix(stone, 0x000000, 0.7), 'flat', false);
         cm.rotation.y = -(o.a || 0);
+      } else if (o.t === 'house') {
+        /* 마을(모루골) 집 — `town.js`의 `DECOR`에만 나온다(던전 방엔 없다).
+           넷을 자리 씨앗으로 섞어 세운다 — 나무·바위와 같은 요령(`piece()` 참고) */
+        var AS3h = AS();
+        var houseShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, o.h / 2, 0, 90, o.h, 80, mix(stone, 0xffffff, 0.1), 'flat', true);
+          box(sg, 0, o.h + 14, 0, 100, 28, 92, mix(stone, 0x000000, 0.32), 'flat', true);
+          return sg;
+        };
+        var hnode = AS3h ? AS3h.build('house', 'town:' + o.x + ':' + o.y,
+          o.h * 1.3, null, houseShape) : houseShape();
+        hnode.position.set(o.x, 0, o.y);
+        wallGroup.add(hnode);
+      } else if (o.t === 'well') {
+        var AS3w = AS();
+        var wellShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, o.h * 0.4, 0, 30, o.h * 0.8, 30, mix(stone, 0x000000, 0.2), 'flat', true);
+          return sg;
+        };
+        var wenode = AS3w ? AS3w.build('well', 'town:' + o.x + ':' + o.y,
+          o.h, null, wellShape) : wellShape();
+        wenode.position.set(o.x, 0, o.y);
+        wallGroup.add(wenode);
+      } else if (o.t === 'blacksmith') {
+        var AS3b = AS();
+        var smithShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, o.h / 2, 0, 100, o.h, 90, mix(stone, 0x000000, 0.25), 'flat', true);
+          return sg;
+        };
+        var smnode = AS3b ? AS3b.build('blacksmith', 'town:' + o.x + ':' + o.y,
+          o.h * 1.2, null, smithShape) : smithShape();
+        smnode.position.set(o.x, 0, o.y);
+        wallGroup.add(smnode);
       }
     }
 
