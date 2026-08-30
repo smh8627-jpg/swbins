@@ -3136,6 +3136,59 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       return ok && (bs.length + '개 문, 전부 오른쪽 벽 자리');
     });
 
+    t('장비 슬롯 — PLAN 30절로 8개(무기·갑주·투구·장갑·신발·반지·목걸이·부적)', function () {
+      var D = DG.itemData;
+      var need = ['weapon', 'armor', 'helm', 'glove', 'boot', 'ring', 'neck', 'charm'];
+      var ok = D.SLOTS.length === need.length &&
+        need.every(function (k) { return D.SLOTS.indexOf(k) >= 0 && D.slotKor(k) !== k; });
+      return ok && (D.SLOTS.length + '개 · ' + D.SLOTS.map(D.slotKor).join(' '));
+    });
+
+    t('장비 — 새 부위(투구·반지 등)도 굴리고 입을 수 있다', function () {
+      var IT = DG.item, id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      var slots = ['helm', 'glove', 'boot', 'ring', 'neck'], ok = true, i, worn = [];
+      for (i = 0; i < slots.length; i++) {
+        var g = IT.roll(1, { slot: slots[i], tier: 0, unid: false });
+        C.save.gear.bag.push(g);
+        if (!IT.equip(id, g.uid) || IT.equipped(id)[slots[i]] !== g) { ok = false; }
+        worn.push(slots[i]);
+      }
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return ok && ('입힘 ' + worn.join(' '));
+    });
+
+    t('장비 — 반지·목걸이·부적은 안 닳고, 투구·장갑·신발은 닳는다', function () {
+      var IT = DG.item;
+      var noDur = ['ring', 'neck', 'charm'].every(function (s) {
+        return IT.durMaxOf(IT.roll(10, { slot: s, tier: 2 })) === 0;
+      });
+      var hasDur = ['helm', 'glove', 'boot'].every(function (s) {
+        return IT.durMaxOf(IT.roll(10, { slot: s, tier: 2 })) > 0;
+      });
+      return noDur && hasDur && ('장신구 0 · 나머지 >0');
+    });
+
+    t('세공 — 투구·장갑·신발엔 갑주 결(저항), 반지·목걸이엔 부적 결(능력치)로 보석이 붙는다', function () {
+      var IT = DG.item, GD = DG.gemData;
+      var helm = IT.roll(10, { slot: 'helm', tier: 4, sock: 1, unid: false });
+      var keep = C.save.gear.bag;
+      C.save.gear.bag = [helm];
+      IT.addMat('gem', 'agate', 0, 1);
+      var r1 = IT.socket(helm.uid, 'gem', 'agate', 0);
+      var eff1 = IT.socketEffects(helm);
+      var ring = IT.roll(10, { slot: 'ring', tier: 4, sock: 1, unid: false });
+      C.save.gear.bag = [ring];
+      IT.addMat('gem', 'agate', 0, 1);
+      var r2 = IT.socket(ring.uid, 'gem', 'agate', 0);
+      var eff2 = IT.socketEffects(ring);
+      C.save.gear.bag = keep;
+      var okHelm = r1.ok && eff1.length === 1 && eff1[0].kind === 'elres';
+      var okRing = r2.ok && eff2.length === 1 && eff2[0].kind === 'pct';
+      return okHelm && okRing && ('투구 ' + (eff1[0] && eff1[0].kind) + ' · 반지 ' + (eff2[0] && eff2[0].kind));
+    });
+
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
       return window.DG_SEED === 20260824 &&

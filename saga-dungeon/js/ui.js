@@ -706,8 +706,15 @@
     fan: '\uD83E\uDEAD', staff: '\uD83E\uDD62', brush: '\uD83D\uDD8C\uFE0F',
     scroll: '\uD83D\uDCDC'
   };
-  var SLOT_ICON = { weapon: '\u2694\uFE0F', armor: '\uD83E\uDD4B', charm: '\uD83D\uDCFF' };
-  var SLOT_SPAN = { weapon: 2, armor: 2, charm: 1 };   // 세로로 먹는 칸 수
+  var SLOT_ICON = {
+    weapon: '\u2694\uFE0F', armor: '\uD83E\uDD4B', charm: '\uD83D\uDCFF',
+    helm: '\uD83E\uDE96', glove: '\uD83E\uDDE4', boot: '\uD83E\uDD7E',
+    ring: '\uD83D\uDC8D', neck: '\uD83D\uDCFF'
+  };
+  var SLOT_SPAN = {
+    weapon: 2, armor: 2, charm: 1,
+    helm: 1, glove: 1, boot: 1, ring: 1, neck: 1
+  };   // 세로로 먹는 칸 수
 
   function gearIcon(g) {
     var it = global.DG.item, b = it.baseOf(g);
@@ -869,8 +876,15 @@
           '<small>Lv.' + (hero().info(gearHero).lv || 1) + '</small></div>' +
         slot('armor', '갑주') +
       '</div>' +
-      '<div class="d2-doll" style="grid-template-columns:1fr">' +
-        slot('charm', '부적') + '</div>';
+      '<div class="d2-doll" style="grid-template-columns:1fr 1fr">' +
+        slot('helm', '투구') + slot('glove', '장갑') +
+      '</div>' +
+      '<div class="d2-doll" style="grid-template-columns:1fr 1fr">' +
+        slot('boot', '신발') + slot('ring', '반지') +
+      '</div>' +
+      '<div class="d2-doll" style="grid-template-columns:1fr 1fr">' +
+        slot('neck', '목걸이') + slot('charm', '부적') +
+      '</div>';
   }
 
   /** 격자 한 판 — 가방이든 창고든 같은 모양으로 그린다 */

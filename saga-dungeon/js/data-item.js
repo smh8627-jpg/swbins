@@ -55,17 +55,37 @@
     { key: 'a_pigap',    slot: 'armor',  name: '피갑',       main: 'command', base: 9 },
     { key: 'a_chalgap',  slot: 'armor',  name: '찰갑',       main: 'command', base: 11 },
     { key: 'a_dujeong',  slot: 'armor',  name: '두정갑',     main: 'command', base: 12 },
-    { key: 'a_myeongap', slot: 'armor',  name: '면갑',       main: 'wisdom',  base: 8 },
     { key: 'a_dopo',     slot: 'armor',  name: '도포',       main: 'wisdom',  base: 9 },
-    { key: 'a_cheollip', slot: 'armor',  name: '철립',       main: 'might',   base: 7 },
+
+    // ── 투구(PLAN 30절, 2026-08-30 추가) ─────────────────────
+    // 면갑·철립은 원래 갑주 칸에 있었다 — 이름부터 머리에 쓰는 것이라 옮겼다
+    { key: 'a_myeongap', slot: 'helm',   name: '면갑',       main: 'wisdom',  base: 8 },
+    { key: 'a_cheollip', slot: 'helm',   name: '철립',       main: 'might',   base: 7 },
+    { key: 'h_tumo',     slot: 'helm',   name: '투구',       main: 'command', base: 7 },
+
+    // ── 장갑(PLAN 30절) ───────────────────────────────────
+    { key: 'g_wangap',   slot: 'glove',  name: '완갑',       main: 'might',   base: 5 },
+    { key: 'g_wandae',   slot: 'glove',  name: '완대',       main: 'wisdom',  base: 5 },
+
+    // ── 신발(PLAN 30절) ───────────────────────────────────
+    { key: 'b_hwaje',    slot: 'boot',   name: '화자',       main: 'might',   base: 5 },
+    { key: 'b_jipsin',   slot: 'boot',   name: '짚신',       main: 'wisdom',  base: 4 },
+
+    // ── 목걸이(PLAN 30절) ─────────────────────────────────
+    { key: 'n_okpae',    slot: 'neck',   name: '옥패',       main: 'wisdom',  base: 5 },
+    { key: 'n_geumpae',  slot: 'neck',   name: '금패',       main: 'command', base: 6 },
 
     // ── 부적 ──────────────────────────────────────────────
     { key: 'c_hopae',    slot: 'charm',  name: '호패',       main: 'command', base: 5 },
     { key: 'c_yeombul',  slot: 'charm',  name: '염주',       main: 'wisdom',  base: 6 },
-    { key: 'c_okgae',    slot: 'charm',  name: '옥가락지',   main: 'wisdom',  base: 7 },
     { key: 'c_hobu',     slot: 'charm',  name: '호부',       main: 'might',   base: 6 },
     { key: 'c_dokkaebi', slot: 'charm',  name: '도깨비방울', main: 'might',   base: 7 },
-    { key: 'c_gyeong',   slot: 'charm',  name: '청동경',     main: 'command', base: 7 }
+    { key: 'c_gyeong',   slot: 'charm',  name: '청동경',     main: 'command', base: 7 },
+
+    // ── 반지(PLAN 30절) ───────────────────────────────────
+    // 옥가락지는 원래 부적 칸에 있었다 — '가락지'가 곧 반지라 옮겼다
+    { key: 'c_okgae',    slot: 'ring',   name: '옥가락지',   main: 'wisdom',  base: 7 },
+    { key: 'r_geumji',   slot: 'ring',   name: '금지환',     main: 'command', base: 5 }
   ];
 
   /**
@@ -105,11 +125,15 @@
     return null;
   }
 
-  var SLOT_KOR = { weapon: '무기', armor: '갑주', charm: '부적' };
+  var SLOT_KOR = {
+    weapon: '무기', armor: '갑주', helm: '투구', glove: '장갑',
+    boot: '신발', ring: '반지', neck: '목걸이', charm: '부적'
+  };
 
   global.DG = global.DG || {};
   global.DG.itemData = {
-    TIERS: TIERS, BASES: BASES, AFFIXES: AFFIXES, SLOTS: ['weapon', 'armor', 'charm'],
+    TIERS: TIERS, BASES: BASES, AFFIXES: AFFIXES,
+    SLOTS: ['weapon', 'armor', 'helm', 'glove', 'boot', 'ring', 'neck', 'charm'],
     slotKor: function (s) { return SLOT_KOR[s] || s; },
     tier: tier, baseByKey: baseByKey, affixByKey: affixByKey
   };

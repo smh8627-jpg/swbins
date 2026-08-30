@@ -223,7 +223,20 @@
    * 무기 3 · 갑주 3 · 부적 2 까지. 좋은 등급일수록 뚫려 나오기 쉽다.
    */
 
-  var SOCK_MAX = { weapon: 3, armor: 3, charm: 2 };
+  var SOCK_MAX = {
+    weapon: 3, armor: 3, helm: 2, glove: 1, boot: 1, ring: 1, neck: 1, charm: 2
+  };
+
+  /**
+   * 보석은 부위마다 다른 것을 준다(data-gem.js — 무기 원소피해 · 갑주 저항 ·
+   * 부적 능력치, 표엔 이 셋만 있다). PLAN 30절로 늘어난 새 부위는 결이 가까운
+   * 쪽으로 묶는다 — 투구·장갑·신발은 몸에 걸치는 갑주 쪽(저항), 반지·목걸이는
+   * 장신구라 부적 쪽(능력치). 표를 부위마다 새로 채우지 않고 묶기만 한다.
+   */
+  var GEM_SLOT_CAT = {
+    weapon: 'weapon', armor: 'armor', helm: 'armor', glove: 'armor', boot: 'armor',
+    ring: 'charm', neck: 'charm', charm: 'charm'
+  };
 
   function rollSockets(slot, tier, opts) {
     if (opts && opts.sock !== undefined) {
@@ -413,8 +426,9 @@
         out = out.concat(GD().jewelEff(s0.j));
       } else if (s0.t === 'gem') {
         var gd = GD().gemByKey(s0.key);
-        if (!gd || !gd[b.slot]) { continue; }
-        var e = gd[b.slot], mul = GD().grade(s0.g).mul;
+        var cat = GEM_SLOT_CAT[b.slot] || b.slot;
+        if (!gd || !gd[cat]) { continue; }
+        var e = gd[cat], mul = GD().grade(s0.g).mul;
         out.push({ kind: e.kind, stat: e.stat, eff: e.eff, el: e.el,
                    v: Math.max(1, Math.round(e.v * mul)) });
       } else {
@@ -560,12 +574,12 @@
    * 그 시간이 물건에 무게를 준다. 이 판은 여태 줍자마자 다 입었다.
    *
    * 수준(ilvl)과 등급으로 정한다 — 표를 새로 만들지 않는다.
-   * 부적은 요구가 낮다(원작의 장신구도 그렇다).
+   * 장신구(부적·반지·목걸이)는 요구가 낮다(원작에서도 그렇다).
    */
   function reqLevel(it) {
     var b = baseOf(it);
     if (!b) { return 1; }
-    var slotMul = b.slot === 'charm' ? 0.55 : 1;
+    var slotMul = NO_DUR_SLOT[b.slot] ? 0.55 : 1;
     var n = Math.round(((it.ilvl || 1) * 0.62 + it.tier * 3) * slotMul);
     return Math.max(1, n);
   }
@@ -625,17 +639,20 @@
    * 이 판에서 정한 것
    *   · **층을 내려갈 때마다 1** 닳는다. 한 대 맞을 때마다 닳게 하면 판정 층
    *     한복판을 건드려야 한다 — 층을 내려가는 자리(descend) 하나면 족하다
-   *   · **부적은 안 닳는다.** 원작에서도 반지·목걸이·부적에는 내구가 없다
+   *   · **부적·반지·목걸이는 안 닳는다.** 원작에서도 그 셋(장신구)에는 내구가 없다
    *   · 부서져도 **없어지지 않는다.** 값도 그대로다(팔 수 있다) —
    *     다만 능력치를 안 준다. `power()` 는 그 물건의 값어치이지 지금 내는
    *     값이 아니므로 손대지 않는다. 실제로 안 붙는 자리는 statBonus·partyEffect 다
    *   · **자동은 부서진 것을 팔지 않는다** — 수리하면 되는 물건이다
    */
 
-  /** 부위마다 다르다. 부적은 0 — 안 닳는다 */
+  /** 장신구(부적·반지·목걸이) 는 0 — 안 닳는다 */
+  var NO_DUR_SLOT = { charm: true, ring: true, neck: true };
+
+  /** 부위마다 다르다. 장신구는 0 — 안 닳는다 */
   function durMaxOf(it) {
     var b = baseOf(it);
-    if (!b || b.slot === 'charm') { return 0; }
+    if (!b || NO_DUR_SLOT[b.slot]) { return 0; }
     return 24 + it.tier * 10;                 // 상품 24 … 전설 64
   }
 
