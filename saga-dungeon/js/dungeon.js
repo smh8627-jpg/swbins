@@ -221,9 +221,11 @@
     var dmg = enemyDmg(floor, boss);
     var r = boss ? 22 : 13;
 
-    /* 정예 — 보스는 이미 특별하므로 붙이지 않는다. 분신에도 안 붙는다 */
+    /* 정예 — 보스는 이미 특별하므로 붙이지 않는다. 분신에도 안 붙는다.
+       `opts.forceElite` 는 정예 소굴(POI)이 "반드시 하나는 정예" 를 보장할 때
+       쓴다 — 안 쓰면 옛 확률 그대로다(값 규약을 안 깬다) */
     var elite = null;
-    if (!boss && !opts.spawned && Math.random() < eliteChance(floor)) {
+    if (!boss && !opts.spawned && (opts.forceElite || Math.random() < eliteChance(floor))) {
       elite = core.pick(ELITES);
       hp = Math.round(hp * (elite.hp || 1.35));
       dmg = Math.round(dmg * (elite.dmg || 1.15));
@@ -296,6 +298,17 @@
       room.well = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, used: false };
     } else if (kind === 'shrine') {
       room.shrine = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, used: false };
+    } else if (kind === 'elite') {
+      /* 정예 소굴(POI: Elite) — 반드시 정예 하나를 낀 채로 나온다. 잡졸 수는
+         전투방보다 적다(정예 하나가 이미 벅차다) */
+      n = Math.min(8, 3 + Math.floor(Math.random() * 3) + Math.min(3, Math.floor(floor / 5)));
+      room.enemies.push(spawnEnemy(floor, false, { forceElite: true }));
+      for (var ei = 1; ei < n; ei++) { room.enemies.push(spawnEnemy(floor, false)); }
+    } else if (kind === 'miniboss') {
+      /* 미니보스(POI: MiniBoss) — 층 끝 보스와 달리 부하 없이 혼자 나온다.
+         `kill()` 이 `e.boss` 만 보고 이미 보스급 노획(확정 드랍·재료·단약·
+         감정서)을 주므로 여기서 따로 더 챙길 것은 없다 */
+      room.enemies.push(spawnEnemy(floor, true));
     }
     if (!room.enemies.length) { room.cleared = true; }
     room.last = index >= total - 1;

@@ -76,10 +76,16 @@
 
   /** 방 종류 — 층마다 이 비율로 섞인다 */
   var ROOMS = [
-    { key: 'fight',  weight: 56 },
-    { key: 'trove',  weight: 13 },   // 보물방 — 상자 하나
-    { key: 'well',   weight: 11 },   // 우물방 — 체력 회복
-    { key: 'shrine', weight: 20 }    // 사당방 — 은사 하나를 바로 준다
+    { key: 'fight',    weight: 46 },
+    { key: 'trove',    weight: 12 },   // 보물방 — 상자 하나
+    { key: 'well',     weight: 10 },   // 우물방 — 체력 회복
+    { key: 'shrine',   weight: 16 },   // 사당방 — 은사 하나를 바로 준다
+    /* POI(PLAN 11절) — 처음 둘. 잡졸·보물·우물·사당만 있던 문 목록에
+       "가 볼 만한 곳" 을 늘린다. 판정은 기존 elite·boss 갈래를 그대로
+       재사용한다(정예·보스 자체는 이미 다양화가 끝났다 — 새 규칙이 아니라
+       새 자리다) */
+    { key: 'elite',    weight: 10 },   // 정예 소굴 — 반드시 정예 하나를 낀다
+    { key: 'miniboss', weight: 6 }     // 미니보스 — 부하 없이 혼자, 보스급 노획
   ];
 
   global.DG = global.DG || {};
