@@ -7,7 +7,7 @@
 ```
 run.bat          →  http://127.0.0.1:8793
 start_server.bat →  같은 것, 브라우저를 열지 않는다 (허브 워치독용)
-_test.html       →  자가진단 148항목
+_test.html       →  자가진단 151항목
 _admin.html      →  어드민(QA 운영판). http://127.0.0.1:8793/_admin.html
                     `#tools!` 로 열면 자가점검을 바로 돌린다
 _demo.html       →  스크린샷용 데모 상태 (#fish · #plant · #map · #bug · #dig · #room ·
@@ -76,6 +76,28 @@ ShibaInu·Stag·Wolf 뿐). 까치를 Poly by Google 에서 따로 구했던 것�
 다음은 PHASE 2 나머지 — **GLTFLoader 로 실제로 세우는 로더 코드**(`build()` 를
 부르는 쪽), **Player 3D**, **Tree/Rock/Vegetation** scatter(PLAN 9절
 ForestDecorator), **Terrain** 순.
+
+**2026-08-30 이어서 — `build()` 를 진짜 로더로 채웠다.** saga-go 의 `asset3d.js`
+에서 **몸+옷+머리+몸짓(UAL1) 조합 로직을 그대로 옮겼다**(`mapClips`·`fit`·
+`normalize`·`delam`·`acquire`·`assembleHero`·`buildHero`) — 넷 다 같은 뼈대(65뼈,
+이름까지 동일)라 **옮겨 입히기(retarget)가 필요 없다.** 인물이 아닌 사물은
+`buildGeneric()` 으로 표의 파일 하나를 그대로 받는다. `assets/models/anim/
+UAL1_Standard.glb`(몸짓 마흔한 벌)도 사가고에서 md5 동일 파일로 옮겼다.
+
+**헤드리스에서 실제로 인물을 세워 확인했다** — 몸+옷+머리를 한 스켈레톤에
+묶고, `AnimationMixer` 로 `idle` 클립("Idle_Loop")까지 잡히는 것(mesh 9 ·
+skinned 9 · mixer ✓ · idle action ✓)을 봤다. **함정 하나 더 잡았다** —
+이 개발 환경(GPU 없는 헤드리스)에서는 `createImageBitmap()` 이 영영 안 풀려
+텍스처 있는 GLB 로딩이 멈춘다(three 의 텍스처 로더가 기본으로 그 경로를 탄다).
+실제 사용자 브라우저(GPU 있음)에서는 문제 없다 — 사가고·사가블로가 같은
+텍스처로 이미 잘 돌고 있는 것이 그 증거다. 검증할 때만 `createImageBitmap`
+을 지워 옛 `Image()` 경로로 돌려 확인했다(코드 자체는 안 건드렸다).
+
+진단 148 → **151**(mapClips·heroRecipe 순수 함수 셋 추가 — three 나 네트워크
+없이도 도는 것들만), 세 번 불변.
+
+다음은 **Player 3D** — 실제 카메라·씬을 가진 3D 화면(`village-view3d.js`)을
+새로 만들고, `build('hero', ...)` 로 세운 인물을 그 위에 세우는 일.
 > 3D 로 가더라도 평평한 탑다운으로 되돌리지 않는다.
 
 ## 네 게임 중 하나

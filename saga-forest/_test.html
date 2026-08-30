@@ -175,6 +175,34 @@ window.DG_NO_TUNE = true;
         '같은 id → 같은 조합 (' + a1.key + ')';
     });
 
+    t('heroRecipe — 표에 조합 객체가 있을 때만 몸+옷+머리를 준다', function () {
+      var A3 = DG.asset3d;
+      var rec = A3.heroRecipe({ id: 'h_012' });
+      var ok = rec && rec.body && rec.outfit && rec.hair;
+      A3.register('hero', 'flat.glb');           // 문자열 하나로 덮으면
+      var flat = A3.heroRecipe({ id: 'h_012' });  // 조합이 아니니 null
+      A3.restore();
+      return ok && flat === null && '조합 객체 → 몸+옷+머리 · 문자열 하나 → null';
+    });
+
+    t('mapClips — 이름이 뒤섞인 클립도 자리(idle·walk·attack…)를 찾아낸다', function () {
+      var A3 = DG.asset3d;
+      var m = A3.mapClips(['Armature|mixamo.com|Idle_Loop', 'Walk.001', 'Anim_Attack_Slash', 'RunCycle']);
+      var empty = A3.mapClips([]);
+      return m.idle === 'Armature|mixamo.com|Idle_Loop' && m.walk === 'Walk.001' &&
+        m.attack === 'Anim_Attack_Slash' && m.run === 'RunCycle' &&
+        empty.idle === undefined && !!empty.alias &&
+        '넷 다 제자리 · 빈 목록 → 빈 표';
+    });
+
+    t('mapClips — 못 채운 자리는 대타로 메운다 (idle 하나뿐이면 나머지가 다 그걸로)', function () {
+      var A3 = DG.asset3d;
+      var m = A3.mapClips(['idle']);
+      return m.attack === 'idle' && m.alias.attack === 'idle' &&
+        m.hit === 'idle' && m.alias.hit === 'idle' &&
+        'attack·hit 모두 idle 대타';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {

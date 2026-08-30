@@ -74,6 +74,7 @@
 | `models/props/Bridge.glb` | `saga-go/assets/models/props/Bridge.glb` (나무다리) |
 | `models/props/Gazebo.glb` | `saga-go/assets/models/props/Gazebo.glb` |
 | `models/people/regular/*` (몸 둘·옷 넷·머리 여섯, gltf+bin+png) | `saga-go/assets/models/people/regular/` — Player 3D(PHASE 4) 에 쓸 인물 뼈대. 조합 규칙도 그대로: `saga-go/js/asset3d.js` 의 `HERO_RECIPES` 주석 참고 |
+| `models/anim/UAL1_Standard.glb` (Quaternius Universal Animation Library, 몸짓 마흔한 벌) | `saga-go/assets/models/anim/UAL1_Standard.glb` — 위 인물 뼈대와 이름까지 같은 뼈라 옮겨 입히기 없이 그대로 물린다 |
 
 ### 아직 못 채운 자리 (PLAN 16절 동물 콘텐츠)
 
