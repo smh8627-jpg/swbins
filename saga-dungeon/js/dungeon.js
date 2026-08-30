@@ -952,9 +952,23 @@
       var lookW = en.ref && en.ref.look && en.ref.look.weapon;
       var ranged = lookW === 'bow' || lookW === 'staff';
       var stopAt = ranged ? RANGED_STOP : (en.r + P_R - 2);
+      /* 잡졸 이동 패턴 — 여태 궁수·조총병 말고는 다 같은 속도로 똑바로 걸어왔다
+         (몬스터 다양화의 남은 절반). 무기마다 접근하는 결을 갈랐다 — 판정 값
+         (속도·피해)은 안 건드리고 **경로만** 흔든다. `en.phase` 는 이미 dt 로만
+         도는 결정적인 값이라 새 Math.random() 을 안 쓴다(진단이 이 흐름의
+         Math.random() 순서에 기대지 않게 하려는 뜻이다). */
+      var wob = (!ranged && lookW === 'axe') ? Math.sin(en.phase * 0.6) * 0.5 : 0;
+      var lunge = (!ranged && lookW === 'club') ? 1 + Math.max(0, Math.sin(en.phase * 0.9)) * 0.7 : 1;
       if (ed > stopAt) {
-        en.x += (p.x - en.x) / ed * espd * dt;
-        en.y += (p.y - en.y) / ed * espd * dt;
+        var mvx = (p.x - en.x) / ed, mvy = (p.y - en.y) / ed;
+        if (wob) {
+          var perpx = -mvy, perpy = mvx;
+          mvx += perpx * wob; mvy += perpy * wob;
+          var mvl = Math.sqrt(mvx * mvx + mvy * mvy) || 1;
+          mvx /= mvl; mvy /= mvl;
+        }
+        en.x += mvx * espd * lunge * dt;
+        en.y += mvy * espd * lunge * dt;
       }
       /* 창·극(戟) 은 자루가 길다 — 몸이 닿기 전에 먼저 닿는다(무기마다 다른
          사거리, 몬스터 다양화의 나머지 절반) */

@@ -728,6 +728,30 @@
     return mats;
   }
 
+  /** 그림자(shade) 정예의 분신 — 판정엔 있어도 3D 는 여태 본체와 똑같이 서
+   *  있었다(몬스터 다양화가 남긴 숙제). 지금 보이는 메시를 사본 떠서 반투명
+   *  보랏빛으로 물들인다. `ensureFlash` 와 달리 **`mixerNode`(진짜 shell) 의
+   *  `assetState`** 를 직접 본다 — 분신은 수명이 짧아 상자에서 GLB 로 갈아
+   *  끼워지는 순간을 놓치면 그냥 평범한 적으로 보인다. */
+  function ensureShade(node) {
+    var body = node.userData.mixerNode;
+    if (!body) { return; }
+    var st = body.userData.assetState;
+    if (node.userData.shadeState === st) { return; }
+    var purple = new T.Color(0x9a7ad9);
+    body.traverse(function (o) {
+      if (!o.isMesh || !o.material) { return; }
+      var m = Array.isArray(o.material) ? o.material[0].clone() : o.material.clone();
+      m.transparent = true;
+      m.opacity = 0.5;
+      m.depthWrite = false;
+      if (m.emissive) { m.emissive.copy(purple); m.emissiveIntensity = Math.max(m.emissiveIntensity || 0, 0.5); }
+      else if (m.color) { m.color.lerp(purple, 0.4); }
+      o.material = Array.isArray(o.material) ? [m] : m;
+    });
+    node.userData.shadeState = st;
+  }
+
   function buildActor(kind, ref) {
     var g = new T.Group();
     var AS3 = AS();
@@ -912,6 +936,7 @@
         var eWalking = Math.hypot(p.x - e.x, p.y - e.y) > (e.r || 12) + (d().P_R || 13) + 8;
         AS3.step(a.node.userData.mixerNode, { t: nowT, walking: eWalking, anim: e.hurt > 0 ? 'hit' : (eWalking ? 'walk' : 'attack') });
         AS3.flashAllMat(ensureFlash(a.node), e.hurt, 0.2);
+        if (e.shade) { ensureShade(a.node); }
       }
     }
 
