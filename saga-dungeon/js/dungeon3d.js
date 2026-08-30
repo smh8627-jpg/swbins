@@ -345,6 +345,18 @@
           pod3.lit ? 0xe8c15a : 0x555b66, pod3.lit ? 'glow' : 'flat', false);
       }
     }
+    if (r && r.captive) {
+      /* 이벤트방(POI: Event) — 갇힌 우리. 풀려나면(freed) 창살을 걷고
+         금빛 표식만 남긴다(2D 의 🙏/⛓️ 와 같은 신호) */
+      var cp = r.captive;
+      if (!cp.freed) {
+        box(wallGroup, cp.x, 20, cp.y, 34, 40, 34, 0x2a2a30, 'flat', true);
+        box(wallGroup, cp.x, 20, cp.y - 15, 30, 36, 3, 0x8a8a92, 'flat', false);
+        box(wallGroup, cp.x, 20, cp.y + 15, 30, 36, 3, 0x8a8a92, 'flat', false);
+      } else {
+        box(wallGroup, cp.x, 6, cp.y, 26, 3, 26, 0xffd489, 'glow', false);
+      }
+    }
     /* 장식 — 기둥·횃불·바닥 균열. 판정이 자리를 정해 두고(`decor`) 2D 가 오래 그려
        온 것들이다. 이것이 없으면 방이 **빈 상자**로 보인다 — 마을은 특히 그렇다
        (모루골의 집과 불이 전부 여기 들어 있다).
@@ -911,8 +923,10 @@
     /* 퍼즐방은 제단이 켜질 때마다(맞게 밟을 때마다) 그림도 다시 세워야 한다 —
        `rk` 에 진행도를 안 넣으면 데이터는 바뀌어도 화면은 그대로 남는다 */
     var pzProg = (run.room && run.room.puzzle) ? ':pz' + run.room.puzzle.progress : '';
+    /* 이벤트방(구출)도 같은 사정이다 — 풀려난 순간 갇힌 우리 그림을 갈아 끼운다 */
+    var capProg = (run.room && run.room.captive) ? (':cap' + (run.room.captive.freed ? 1 : 0)) : '';
     var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
-             (run.room && run.room.cleared ? 'c' : 'o') + pzProg;
+             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg;
     if (rk !== roomKey) { roomKey = rk; buildRoom(run); buildField(run); }
 
     /* 조명 */

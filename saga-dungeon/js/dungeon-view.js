@@ -596,7 +596,7 @@
   /* 방 종류는 data-dungeon.js 의 ROOMS 가 정본이다 — 여기에 없는 종류를 적어 두면
      영영 안 뜨는 아이콘이 남는다(서고 📖 가 실제로 그렇게 남아 있었다). */
   var DOOR_ICON = { fight: '⚔️', trove: '🎁', well: '💧', shrine: '⛩️', stair: '🪜',
-    elite: '💠', miniboss: '👹', cave: '⛏️', merchant: '🧺', puzzle: '🧩' };
+    elite: '💠', miniboss: '👹', cave: '⛏️', merchant: '🧺', puzzle: '🧩', event: '🙏' };
 
   /** 3D 를 쓰는 동안에는 2D 캔버스를 비워 둔다 (같은 그림을 두 번 그리지 않게) */
   function sync3d() {
@@ -800,6 +800,7 @@
         thingItem(items, pzPods[pzi], pzPods[pzi].lit ? '🔆' : '🗿');
       }
     }
+    thingItem(items, run.room.captive, run.room.captive && run.room.captive.freed ? '🙏' : '⛓️');
 
     for (i = 0; i < run.room.enemies.length; i++) {
       var e = run.room.enemies[i];

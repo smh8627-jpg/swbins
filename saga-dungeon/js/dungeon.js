@@ -275,13 +275,13 @@
 
   /**
    * 방 하나를 만든다.
-   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'merchant' | 'puzzle' | 'boss' | 'stair'
+   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'merchant' | 'puzzle' | 'event' | 'boss' | 'stair'
    */
   function makeRoom(kind, floor, index, total) {
     var room = {
       kind: kind, index: index, cleared: false,
       enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null,
-      merchant: null, puzzle: null
+      merchant: null, puzzle: null, captive: null
     };
     var n;
     if (kind === 'boss') {
@@ -340,6 +340,17 @@
         ],
         order: order, progress: 0, solved: false
       };
+    } else if (kind === 'event') {
+      /* 이벤트방(POI: Event, PLAN 35절 "NPC Rescue") — 잡혀 있는 이를
+         구한다. 지키는 잡졸을 다 치우면 풀려나 은사를 하나 갚는다(고르지
+         않고 바로 얹는다 — 사당과 다르게 "받은 은혜" 라 고를 처지가
+         아니다) + 노획물도 조금. Monster Ambush·Elite Monster·Merchant·
+         Shrine·Mini Boss 는 PLAN 35절에도 같이 있지만 이미 다른 POI 로
+         있으므로(elite·miniboss·merchant·shrine·fight) 여기서 새로 만든
+         것은 이 구출뿐이다. */
+      n = Math.min(6, 2 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(floor / 6)));
+      for (var evi = 0; evi < n; evi++) { room.enemies.push(spawnEnemy(floor, false)); }
+      room.captive = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, freed: false };
     }
     if (!room.enemies.length) { room.cleared = true; }
     room.last = index >= total - 1;
@@ -594,19 +605,26 @@
     return out;
   }
 
-  function pickBoon(key) {
-    if (!run || !run.choice || run.choice.indexOf(key) < 0) { return false; }
+  /** 은사 하나를 실제로 얹는다 — 고르기(`pickBoon`)와 구출 보상(이벤트방)이
+   *  같이 쓴다. 상한 확인·체력 재계산·즉시 회복까지 여기 한 곳에 모았다. */
+  function applyBoon(key) {
     var b = DD.boonByKey(key);
-    if (!b) { return false; }
-    // 후보를 뽑을 때 걸러지지만, 사당·중복 호출로도 상한을 넘지 않게 여기서도 막는다
-    if ((run.boons[key] || 0) >= b.max) { return false; }
+    if (!b) { return null; }
+    if ((run.boons[key] || 0) >= b.max) { return null; }
     run.boons[key] = (run.boons[key] || 0) + 1;
-    run.choice = null;
     run.hpMax = hpMaxOf();
     var heal = b.eff.healOnPick;
     if (heal) { healBy(run.hpMax * heal / 100); }
-    core.log('🎴 은사 · ' + b.name + ' (' + run.boons[key] + '중첩)', 'good');
     core.emit('changed');
+    return b;
+  }
+
+  function pickBoon(key) {
+    if (!run || !run.choice || run.choice.indexOf(key) < 0) { return false; }
+    var b = applyBoon(key);
+    if (!b) { return false; }
+    run.choice = null;
+    core.log('🎴 은사 · ' + b.name + ' (' + run.boons[key] + '중첩)', 'good');
     return true;
   }
 
@@ -1211,6 +1229,25 @@
         if (podNear && !pod.near) { touchPuzzlePod(room, pz, pod); }
         pod.near = podNear;
       }
+    }
+    if (room.captive && !room.captive.freed && room.cleared && dist(p, room.captive) < P_R + 20) {
+      /* 이벤트방(POI: Event) — 구출. 사당과 달리 고르지 않고 바로 하나
+         얹는다("받은 은혜" 라는 뜻이다) */
+      room.captive.freed = true;
+      var freePool = [], fi;
+      for (fi = 0; fi < DD.BOONS.length; fi++) {
+        var fb = DD.BOONS[fi];
+        if ((run.boons[fb.key] || 0) < fb.max) { freePool.push(fb.key); }
+      }
+      if (freePool.length) {
+        var freeKey = freePool[Math.floor(Math.random() * freePool.length)];
+        var gotBoon = applyBoon(freeKey);
+        if (gotBoon) { core.log('🙏 구출 · 은사 ' + gotBoon.name + ' (' + run.boons[freeKey] + '중첩)', 'good'); }
+      }
+      dropItem(room, room.captive.x, room.captive.y, 16);
+      dropGold(room, room.captive.x, room.captive.y, 2);
+      sfx('shrine');
+      core.emit('toast', '🙏 구출 · 은혜를 갚는다');
     }
 
     /* 문 */
