@@ -222,6 +222,22 @@ window.DG_NO_TUNE = true;
         '손잡이는 뒤집힘 · 화면은 init 없이 안 켜짐';
     });
 
+    t('village-view3d — 흩뿌릴 kind 는 전부 asset3d 표에 실제로 있다 (PLAN 9절)', function () {
+      var VV3 = DG.villageView3d, A3 = DG.asset3d;
+      var map = VV3.scatterKind(), k, missing = [];
+      for (k in map) {
+        if (Object.prototype.hasOwnProperty.call(map, k) && !A3.REG()[map[k]]) { missing.push(map[k]); }
+      }
+      var n = Object.keys(map).length;
+      return missing.length === 0 && n >= 5 &&
+        (n + '개 종류(' + Object.keys(map).join('·') + ') 모두 표에 있음');
+    });
+
+    t('village-view3d — init 전에는 세운 것이 없다 (0개)', function () {
+      var VV3 = DG.villageView3d;
+      return VV3.scatterCount() === 0 && '아직 아무것도 안 지음';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {
