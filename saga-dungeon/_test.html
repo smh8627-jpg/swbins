@@ -2544,6 +2544,39 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         (tail.join(' · '));
     });
 
+    t('환경음(PLAN 37절) — 여섯 지역 다 THEME_AMB 결을 가진다', function () {
+      var S = DG.sfx, DD = DG.dungeonData;
+      var miss = DD.THEMES.filter(function (th) { return !S.THEME_AMB[th.name]; });
+      return miss.length === 0 && (DD.THEMES.length + '개 지역 다 있음');
+    });
+
+    t('환경음 — 층에 들어가면 그 지역 결로 켜지고, 같은 지역이면 안 바뀐다', function () {
+      var S = DG.sfx, DD = DG.dungeonData;
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1 });                          // 고분(1~5층)
+      var a1 = S.ambience();
+      C.emit('dungeon:floor', 3);                       // 같은 지역 안에서 층만 바뀜
+      var a2 = S.ambience();
+      C.emit('dungeon:floor', 8);                       // 폐성(6~10층)으로 넘어감
+      var a3 = S.ambience();
+      DN.leave();
+      var a4 = S.ambience();                            // 던전을 나오면 꺼진다
+      return a1 === DD.themeOf(1).name && a2 === a1 && a3 === DD.themeOf(8).name &&
+        a3 !== a1 && a4 === null &&
+        (a1 + ' → (그대로) → ' + a3 + ' → 나가면 꺼짐');
+    });
+
+    t('환경음 — 조각(amb_*)은 foreground 소리 목록과 따로 쌓인다', function () {
+      var S = DG.sfx;
+      S._clear();
+      S.play('amb_wind', { amb: true });
+      S.play('hit');
+      var fg = S._tail(5), amb = S._ambTail(5);
+      return fg.indexOf('amb_wind') < 0 && fg.indexOf('hit') >= 0 &&
+        amb.indexOf('amb_wind') >= 0 && amb.indexOf('hit') < 0 &&
+        ('foreground[' + fg.join(',') + '] · 환경음[' + amb.join(',') + ']');
+    });
+
     t('적을 때리면 타격음을 부른다', function () {
       var S = DG.sfx;
       S._clear();

@@ -108,7 +108,52 @@
                               dur: 0.3, wave: 'triangle', gain: 0.11, at: 0.1 }] },
     coin:  { gap: 0.1,  l: [{ v: 'chime', notes: [1175, 1568], step: 0.04,
                               dur: 0.16, wave: 'triangle', gain: 0.10 }] },
-    ui:    { gap: 0.04, l: [{ v: 'tone', f: 660, f2: 620, dur: 0.05, wave: 'sine', gain: 0.07 }] }
+    ui:    { gap: 0.04, l: [{ v: 'tone', f: 660, f2: 620, dur: 0.05, wave: 'sine', gain: 0.07 }] },
+
+    /* 환경음(PLAN 37절) — 층 결(THEME_AMB)이 이 조각들을 드문드문 섞어 튼다.
+       늘 나는 결(드론·바람)은 CUES 가 아니라 startAmbience() 가 따로 잇는다 —
+       ADSR 한 방으로 끝나는 이 표의 소리와 달리 **눌러도 안 끊긴다.** */
+    amb_drip:  { gap: 1.4, l: [{ v: 'tone', f: 1200, f2: 700, dur: 0.12, wave: 'sine', gain: 0.06 }] },
+    amb_metal: { gap: 1.8, l: [{ v: 'noise', dur: 0.35, lp: 2200, lp2: 600, gain: 0.05 },
+                               { v: 'tone', f: 2400, f2: 1800, dur: 0.3, wave: 'triangle', gain: 0.03 }] },
+    amb_crow:  { gap: 2.6, l: [{ v: 'tone', f: 520, f2: 340, dur: 0.28, wave: 'sawtooth', gain: 0.05 }] },
+    amb_bird:  { gap: 1.6, l: [{ v: 'chime', notes: [2200, 2600, 2000], step: 0.045,
+                                dur: 0.18, wave: 'sine', gain: 0.045 }] },
+    amb_leaf:  { gap: 0.9, l: [{ v: 'noise', dur: 0.25, lp: 3800, lp2: 1600, gain: 0.035 }] },
+    amb_water: { gap: 0.7, l: [{ v: 'noise', dur: 0.18, lp: 2600, lp2: 900, gain: 0.04 }] },
+    amb_bug:   { gap: 1.2, l: [{ v: 'tone', f: 3200, f2: 2900, dur: 0.09, wave: 'sine', gain: 0.03 }] },
+    amb_ember: { gap: 0.9, l: [{ v: 'noise', dur: 0.14, lp: 1400, lp2: 400, gain: 0.05 }] },
+    amb_growl: { gap: 3.6, l: [{ v: 'tone', f: 90, f2: 55, dur: 0.6, wave: 'sawtooth', gain: 0.06 }] },
+    amb_chime: { gap: 2.2, l: [{ v: 'chime', notes: [1568, 2093, 1760], step: 0.09,
+                                dur: 0.6, wave: 'sine', gain: 0.05 }] },
+    amb_wind:  { gap: 1.8, l: [{ v: 'noise', dur: 0.9, lp: 900, lp2: 300, gain: 0.045 }] }
+  };
+
+  /**
+   * 층 테마(THEME_AMB) — PLAN 37절 "환경별 사운드". PLAN 원문은 Forest·Ruins·
+   * Swamp 셋인데 이 판은 층 테마가 여섯(data-dungeon.js THEMES)이라 그 결로
+   * 옮긴다 — 산채(山寨)가 숲의 자리(새·바람·나뭇잎), 폐성(廢城)이 폐허의
+   * 자리(바람·금속음), 수궁(水宮)이 늪의 자리(물·벌레)를 그대로 받고,
+   * 고분·지옥문·천계 셋을 이 판만의 결로 더했다(28절 월드맵·30절 장비와
+   * 같은 판단 — PLAN 은 자리표시자다).
+   *
+   *   drone  늘 우는 낮은 음 하나(없으면 안 켠다)
+   *   noise  늘 이는 걸러 낸 잡음(바람·물, 없으면 안 켠다)
+   *   ticks  드문드문 섞이는 CUES 키 (scheduleTick 이 무작위로 하나씩 고른다)
+   */
+  var THEME_AMB = {
+    '고분(古墳)':   { drone: { f: 55, wave: 'sine', gain: 0.05 }, noise: { lp: 500, gain: 0.02 },
+                     ticks: ['amb_drip', 'amb_metal'] },
+    '폐성(廢城)':   { drone: { f: 70, wave: 'sawtooth', gain: 0.035 }, noise: { lp: 900, gain: 0.035 },
+                     ticks: ['amb_wind', 'amb_metal', 'amb_crow'] },
+    '산채(山寨)':   { drone: null, noise: { lp: 1600, gain: 0.025 },
+                     ticks: ['amb_bird', 'amb_leaf', 'amb_wind'] },
+    '수궁(水宮)':   { drone: { f: 120, wave: 'sine', gain: 0.03 }, noise: { lp: 1200, gain: 0.03 },
+                     ticks: ['amb_water', 'amb_bug'] },
+    '지옥문(地獄門)': { drone: { f: 45, wave: 'sawtooth', gain: 0.06 }, noise: { lp: 600, gain: 0.03 },
+                     ticks: ['amb_ember', 'amb_growl'] },
+    '천계(天界)':   { drone: { f: 660, wave: 'sine', gain: 0.02 }, noise: null,
+                     ticks: ['amb_chime', 'amb_wind'] }
   };
 
   /* ── 상태 ─────────────────────────────────────────────── */
@@ -118,6 +163,9 @@
   var unlocked = false;
   var lastAt = {};                // 소리마다 마지막으로 낸 시각(초)
   var recent = [];                // 최근 요청 (진단이 읽는다)
+  var ambRecent = [];              // 환경음 조각의 최근 요청 — **따로** 쌓는다.
+                                    // 같이 쌓으면 배경에서 무작위로 섞이는 조각이
+                                    // "이 사건 다음엔 이 소리" 를 보는 진단을 흔든다
   var RECENT_MAX = 40;
   var VOICE_MAX = 8;              // 동시에 우는 겹의 상한 (넘으면 새 것을 버린다)
   var voices = 0;
@@ -238,13 +286,16 @@
 
   /**
    * @param key  CUES 의 키. 없는 키는 조용히 흘린다(부르는 쪽이 안 죽는다)
-   * @param opts {vol} 이번 한 번만 크기를 곱한다
+   * @param opts {vol, amb} 이번 한 번만 크기를 곱한다. amb 면 환경음 조각이라
+   *             foreground 요청 목록(recent/_tail) 대신 ambRecent 에 쌓인다
    * @returns {boolean} 실제로 소리가 났는가 (꺼져 있거나 안 깨웠으면 false)
    */
   function play(key, opts) {
     /* **요청은 무조건 적는다** — 소리가 안 나도 남는다. 진단이 이걸 읽는다 */
-    recent.push(key);
-    if (recent.length > RECENT_MAX) { recent.shift(); }
+    var amb = !!(opts && opts.amb);
+    var list = amb ? ambRecent : recent;
+    list.push(key);
+    if (list.length > RECENT_MAX) { list.shift(); }
 
     var cue = CUES[key];
     if (!cue) { return false; }
@@ -281,15 +332,111 @@
     return 'drop' + Math.max(0, Math.min(4, tier || 0));
   }
 
+  /* ── 환경음(ambience) — PLAN 37절 ─────────────────────────────
+   * CUES 의 소리는 다 **한 방(ADSR)** 이다. 환경음은 그 결로 못 낸다 —
+   * 층에 있는 내내 **눌러도 안 끊기는** 결(드론·바람)이 있어야 한다.
+   * 그래서 여기만 지속 노드(오실레이터·루프 버퍼)를 따로 쥔다.
+   *
+   * **판정 층은 여기서도 갈린다** — `ambTheme` 은 실제로 소리가 났든 안
+   * 났든(꺼져 있든, 안 깨웠든) 늘 "지금 몇째 결이어야 하는가"를 들고 있다.
+   * 헤드리스 진단은 이 값만 읽으면 되고, 진짜 노드는 `ambNodes` 에 있다.
+   */
+  var ambTheme = null;
+  var ambNodes = null;
+  var ambTimer = null;
+
+  function stopAmbience() {
+    ambTheme = null;
+    if (ambTimer) { global.clearTimeout(ambTimer); ambTimer = null; }
+    if (!ambNodes) { return; }
+    var nodes = ambNodes;
+    ambNodes = null;
+    if (ctx && nodes.bedGain) {
+      var now = ctx.currentTime;
+      try {
+        nodes.bedGain.gain.cancelScheduledValues(now);
+        nodes.bedGain.gain.setValueAtTime(nodes.bedGain.gain.value, now);
+        nodes.bedGain.gain.linearRampToValueAtTime(0.0001, now + 1.0);
+      } catch (e) { /* 무시 — 늦게 죽어도 그만이다 */ }
+    }
+    global.setTimeout(function () {
+      try { if (nodes.osc) { nodes.osc.stop(); } } catch (e) { /* 이미 죽었을 수 있다 */ }
+      try { if (nodes.noiseSrc) { nodes.noiseSrc.stop(); } } catch (e) { /* 이미 죽었을 수 있다 */ }
+    }, 1100);
+  }
+
+  /** 그 결의 조각(amb_*)을 드문드문 하나씩 튼다 — 화면이 바뀌면 스스로 멎는다 */
+  function scheduleTick(theme) {
+    if (ambTheme !== theme) { return; }
+    var def = THEME_AMB[theme];
+    if (!def || !def.ticks || !def.ticks.length) { return; }
+    play(def.ticks[Math.floor(Math.random() * def.ticks.length)], { amb: true });
+    ambTimer = global.setTimeout(function () { scheduleTick(theme); }, 1800 + Math.random() * 3200);
+  }
+
+  /** 층 테마가 바뀔 때마다 부른다. 같은 결이면 다시 안 켠다(끊기지 않는다) */
+  function startAmbience(theme) {
+    if (ambTheme === theme) { return; }
+    stopAmbience();
+    ambTheme = theme;
+    if (!THEME_AMB[theme]) { return; }
+    /* 첫 조각도 한 박 쉬고 튼다 — 문 넘자마자 바로 우는 것보다 자연스럽다 */
+    ambTimer = global.setTimeout(function () { scheduleTick(theme); }, 600 + Math.random() * 1400);
+    if (!enabled() || !unlocked || !ctx || !master) { return; }   // 이 밑은 진짜 노드 — 못 켜면 여기서 멎는다
+
+    var def = THEME_AMB[theme], now = ctx.currentTime;
+    var bedGain = ctx.createGain();
+    bedGain.gain.setValueAtTime(0.0001, now);
+    bedGain.gain.linearRampToValueAtTime(1, now + 1.5);
+    bedGain.connect(master);
+
+    var osc = null, noiseSrc = null;
+    if (def.drone) {
+      osc = ctx.createOscillator();
+      osc.type = def.drone.wave || 'sine';
+      osc.frequency.value = def.drone.f;
+      var oscGain = ctx.createGain();
+      oscGain.gain.value = def.drone.gain;
+      osc.connect(oscGain); oscGain.connect(bedGain);
+      osc.start(now);
+    }
+    if (def.noise) {
+      var len = Math.max(1, Math.round(ctx.sampleRate * 2));
+      var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      var d = buf.getChannelData(0), i;
+      for (i = 0; i < len; i++) { d[i] = Math.random() * 2 - 1; }
+      noiseSrc = ctx.createBufferSource();
+      noiseSrc.buffer = buf;
+      noiseSrc.loop = true;
+      var filt = ctx.createBiquadFilter();
+      filt.type = 'lowpass';
+      filt.frequency.value = def.noise.lp;
+      var noiseGain = ctx.createGain();
+      noiseGain.gain.value = def.noise.gain;
+      noiseSrc.connect(filt); filt.connect(noiseGain); noiseGain.connect(bedGain);
+      noiseSrc.start(now);
+    }
+    ambNodes = { osc: osc, noiseSrc: noiseSrc, bedGain: bedGain };
+  }
+
+  function DD() { return global.DG.dungeonData; }
+
   /* ── 이벤트에 물린다 ──────────────────────────────────────
    * 이미 있는 이벤트로 되는 것은 여기서 받는다 — 그 파일들을 안 건드린다.
    * 프레임마다 나는 소리(타격·줍기·문)는 dungeon.js 가 직접 부른다.
    */
   core.on('levelup', function () { play('levelup'); });
-  core.on('dungeon:enter', function () { play('enter'); });
-  core.on('dungeon:floor', function () { play('floor'); });
+  core.on('dungeon:enter', function (run) {
+    play('enter');
+    if (run && DD()) { startAmbience(DD().themeOf(run.floor).name); }
+  });
+  core.on('dungeon:floor', function (floor) {
+    play('floor');
+    if (DD()) { startAmbience(DD().themeOf(floor).name); }
+  });
   core.on('dungeon:skill', function () { play('skill'); });
   core.on('dungeon:end', function (e) {
+    stopAmbience();
     if (e && e.reason === 'dead') { play('die'); }
   });
 
@@ -297,13 +444,17 @@
 
   global.DG = global.DG || {};
   global.DG.sfx = {
-    CUES: CUES,
+    CUES: CUES, THEME_AMB: THEME_AMB,
     play: play, dropCue: dropCue,
     unlock: unlock, ready: function () { return unlocked; },
     enabled: enabled, setEnabled: setEnabled,
     volume: volume, setVolume: setVolume,
     /** 최근 요청 n 개 (진단용 — 소리가 꺼져 있어도 남는다) */
     _tail: function (n) { return recent.slice(-(n || 8)); },
-    _clear: function () { recent.length = 0; lastAt = {}; }
+    _ambTail: function (n) { return ambRecent.slice(-(n || 8)); },
+    _clear: function () { recent.length = 0; ambRecent.length = 0; lastAt = {}; },
+    /** 환경음 — 지금 켜져 있어야 할 결(테마 이름), 실제 노드 유무와 별개다 */
+    ambience: function () { return ambTheme; },
+    _startAmbience: startAmbience, _stopAmbience: stopAmbience
   };
 })(window);
