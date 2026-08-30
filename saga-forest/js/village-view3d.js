@@ -24,8 +24,14 @@
  * 형태). `MAX_SCATTER()` 로 한 프레임에 새로 세우는 개수도 눌러 둔다 — 마을
  * 전체를 한 프레임에 다 지으면 순간 버벅인다.
  *
+ * **땅바닥도 하나의 초록색이 아니다(PLAN 7절 지형 다양화).** `V.tileAt(tx,ty)`
+ * 를 그대로 읽어 풀·흙길·모래·물·돌길을 색으로 가른다(색은 `villageData.TILES`
+ * 에서 그대로 가져온다 — 2D 화면과 같은 색이다). 물은 살짝 낮춰 웅덩이처럼
+ * 보이게 한다. 타일마다 메시를 만들지 않고 **종류별 `InstancedMesh` 하나**에
+ * 자리만 채운다 — 인물 둘레 몇백 칸이라도 그리기 호출은 다섯 번뿐이다.
+ *
  * **한 줄도 판정에 닿지 않는다.** village.js 의 걷기·채집·시간 계산은 이 파일이
- * 없어도 완전히 돈다 — 여기서는 `V.raw()`를 읽기만 한다.
+ * 없어도 완전히 돈다 — 여기서는 `V.raw()`·`V.tileAt()`를 읽기만 한다.
  */
 (function (global) {
   'use strict';
@@ -55,6 +61,10 @@
   function CULL_R() { return RENDER_R() + C().tuned('village3d.cullMargin', 6); }
   /** 한 프레임에 새로 세우는 최대 개수 — 마을을 한꺼번에 안 짓는다 */
   function MAX_BUILD_PER_STEP() { return C().tuned('village3d.maxBuildPerStep', 4); }
+  /** 인물 둘레 몇 칸까지 색칠할까 (타일 수, 반지름) */
+  function GROUND_TILE_R() { return C().tuned('village3d.groundTileR', 14); }
+  /** 물은 이만큼 낮춘다(미터) — 웅덩이처럼 보이게 */
+  function WATER_DEPTH() { return C().tuned('village3d.waterDepth', 0.12); }
 
   var canvas = null, renderer = null, scene = null, camera = null;
   var ready = false, failed = false;
@@ -69,6 +79,25 @@
   var SCATTER_H = { tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4 };
 
   var scatter = {};   // propId → { group, kind, building }
+
+  /** 타일 색 — villageData.TILES 에서 그대로 가져온다(2D 와 같은 색). floor(방 안)는
+   *  마을 바닥에 안 나오니 뺀다. 색을 못 구하면(villageData 가 아직 안 실렸으면)
+   *  이 표는 비고, 땅은 예전처럼 균일한 초록 한 장으로 남는다 */
+  var TERRAIN_COLOR = null;
+  function terrainColors() {
+    if (TERRAIN_COLOR) { return TERRAIN_COLOR; }
+    var VD = global.DG.villageData;
+    if (!VD || !VD.TILES) { return {}; }
+    TERRAIN_COLOR = {};
+    var k;
+    for (k in VD.TILES) {
+      if (k === 'floor' || !Object.prototype.hasOwnProperty.call(VD.TILES, k)) { continue; }
+      TERRAIN_COLOR[k] = VD.TILES[k].color;
+    }
+    return TERRAIN_COLOR;
+  }
+  var terrainMesh = {};     // kind → InstancedMesh
+  var terrainCap = 0;       // 인스턴스 하나가 담을 수 있는 최대 칸 수
 
   /** three 자체가 없거나(파일 못 받음) WebGL 컨텍스트를 못 만들면 false */
   function available() { return !!three() && !failed; }
@@ -97,16 +126,42 @@
 
     var ground = new t.Mesh(
       new t.PlaneGeometry(GROUND_SIZE(), GROUND_SIZE()),
-      new t.MeshLambertMaterial({ color: 0x5a8a4a })
+      new t.MeshLambertMaterial({ color: 0x63b04a })
     );
     ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.02;     // 색칠한 타일(y=0)보다 살짝 아래 — 이음매가 안 보인다
     scene.add(ground);
 
+    initTerrain();
     resize();
     global.addEventListener('resize', resize);
     ready = true;
     syncVisibility();
     buildPlayer();
+  }
+
+  /** 종류별 InstancedMesh 를 미리 만들어 둔다 — 칸 수는 매 프레임 늘렸다 줄였다 한다 */
+  function initTerrain() {
+    var t = three();
+    var colors = terrainColors(), k, tileM = tileMeters();
+    var geo = new t.PlaneGeometry(tileM, tileM);
+    geo.rotateX(-Math.PI / 2);
+    var r = GROUND_TILE_R();
+    terrainCap = (2 * r + 1) * (2 * r + 1);
+    for (k in colors) {
+      if (!Object.prototype.hasOwnProperty.call(colors, k)) { continue; }
+      var mat = new t.MeshLambertMaterial({ color: new t.Color(colors[k]) });
+      var im = new t.InstancedMesh(geo, mat, terrainCap);
+      im.count = 0;
+      scene.add(im);
+      terrainMesh[k] = im;
+    }
+  }
+
+  /** 마을 좌표 한 타일(`V.TILE`)이 3D 로 몇 미터인지 — village.js 가 없으면(진단 등) 3.2m 기본값 */
+  function tileMeters() {
+    var V = global.DG.village;
+    return (V ? V.TILE : 40) * WORLD_SCALE();
   }
 
   function resize() {
@@ -237,10 +292,53 @@
     }
   }
 
+  var dummy = null;
+
+  /**
+   * 인물 둘레 타일에 색을 입힌다 (PLAN 7절 지형 다양화 · PLAN 40절 Terrain).
+   * `V.tileAt()` 을 그대로 읽으므로 2D 에서 보던 흙길·모래·물이 3D 에서도
+   * 같은 자리에 있다 — 여기서도 새 지형을 만들지 않는다.
+   */
+  function syncTerrain() {
+    var V = global.DG.village, t = three();
+    if (!V || !scene || !t) { return; }
+    var colors = terrainColors(), k;
+    if (!Object.keys(colors).length) { return; }     // villageData 가 아직이면 예전 초록 한 장 그대로
+    if (!dummy) { dummy = new t.Object3D(); }
+
+    var raw = V.raw(), px = raw.player.x, py = raw.player.y, TILE = V.TILE;
+    var scale = WORLD_SCALE();
+    var r = GROUND_TILE_R();
+    var ptx = Math.floor(px / TILE), pty = Math.floor(py / TILE);
+
+    var idx = {}, kind, tx, ty, wx, wy, im, y;
+    for (k in colors) { idx[k] = 0; }
+
+    for (ty = pty - r; ty <= pty + r; ty++) {
+      for (tx = ptx - r; tx <= ptx + r; tx++) {
+        kind = V.tileAt(tx, ty);
+        im = terrainMesh[kind];
+        if (!im || idx[kind] >= terrainCap) { continue; }   // 방 안 타일(floor)이나 자리가 다 찬 종류
+        wx = tx * TILE + TILE * 0.5;
+        wy = ty * TILE + TILE * 0.5;
+        y = kind === 'water' ? -WATER_DEPTH() : 0;
+        dummy.position.set((wx - px) * scale, y, (wy - py) * scale);
+        dummy.updateMatrix();
+        im.setMatrixAt(idx[kind]++, dummy.matrix);
+      }
+    }
+    for (k in terrainMesh) {
+      if (!Object.prototype.hasOwnProperty.call(terrainMesh, k)) { continue; }
+      terrainMesh[k].count = idx[k] || 0;
+      terrainMesh[k].instanceMatrix.needsUpdate = true;
+    }
+  }
+
   function step(dt) {
     if (!active() || !renderer || !scene || !camera) { return; }
     if (player.mixer) { player.mixer.update(dt); }
     syncCamera();
+    syncTerrain();
     syncScatter();
     renderer.render(scene, camera);
   }
@@ -251,6 +349,11 @@
     active: active, available: available, on: ON,
     /** 진단 전용 — 표(순수 함수)와 지금 세운 개수 */
     scatterKind: function () { return SCATTER_KIND; },
-    scatterCount: function () { return Object.keys(scatter).length; }
+    scatterCount: function () { return Object.keys(scatter).length; },
+    terrainColors: terrainColors,
+    terrainCount: function (kind) {
+      var im = terrainMesh[kind];
+      return im ? im.count : 0;
+    }
   };
 })(typeof window !== 'undefined' ? window : this);

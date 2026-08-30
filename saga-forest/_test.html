@@ -238,6 +238,23 @@ window.DG_NO_TUNE = true;
       return VV3.scatterCount() === 0 && '아직 아무것도 안 지음';
     });
 
+    t('village-view3d — 땅 색은 villageData.TILES 와 완전히 같다 (2D 와 같은 색)', function () {
+      var VV3 = DG.villageView3d, VD = DG.villageData;
+      var colors = VV3.terrainColors();
+      var mismatched = Object.keys(colors).filter(function (k) {
+        return colors[k] !== VD.TILES[k].color;
+      });
+      return mismatched.length === 0 && !colors.floor &&
+        Object.keys(colors).length >= 5 &&
+        (Object.keys(colors).length + '종(' + Object.keys(colors).join('·') + ') · floor 는 뺌');
+    });
+
+    t('village-view3d — init 전에는 색칠한 타일도 0개다', function () {
+      var VV3 = DG.villageView3d;
+      return VV3.terrainCount('grass') === 0 && VV3.terrainCount('water') === 0 &&
+        '아직 아무것도 안 지음';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {
