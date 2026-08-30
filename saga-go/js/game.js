@@ -170,11 +170,14 @@
     ];
     var tiltBtn = document.getElementById('btn-tilt');
     if (tiltBtn) {
-      /* 3D 에서는 배율을 라벨에 달아 둔다 — 걸음 배속을 늘 `×n` 으로 보여 주는 것과
-         같은 이유다(당겨 놓고 잊으면 왜 안 보이는지 모른다) */
+      /* 배율을 라벨에 달아 둔다 — 걸음 배속을 늘 `×n` 으로 보여 주는 것과 같은
+         이유다(당겨 놓고 잊으면 왜 안 보이는지 모른다). WebGL 3D 렌더러가 켜져
+         있으면(대부분의 기기) 2D·2.5D·3D 어느 시점이든 zoom3d 가 실제로 그려지는
+         카메라 배율이다 — 폴백(2D 캔버스)일 때만 camZoom2d 를 보여 준다 */
       var tiltLabel = function () {
         var m = world.tiltMode;
-        return TILT_LABEL[m] + (m === 2 ? ' ×' + world.zoom3d.toFixed(1) : '');
+        var z = world.render3dOn ? world.zoom3d : world.camZoom2d;
+        return TILT_LABEL[m] + ' ×' + z.toFixed(1);
       };
       tiltBtn.textContent = tiltLabel();
       tiltBtn.classList.toggle('on', world.tilt);
@@ -182,9 +185,22 @@
         var m = world.cycleTilt();
         tiltBtn.textContent = tiltLabel();
         tiltBtn.classList.toggle('on', m > 0);
-        ui.toast(TILT_MSG[m] + (m === 2 ? ' · 휠·두 손가락·+/- 로 당깁니다' : ''));
+        ui.toast(TILT_MSG[m] + ' · 휠·두 손가락·+/- 로 당깁니다');
       });
       core.on('zoom', function () { tiltBtn.textContent = tiltLabel(); });
+      core.on('zoom2d', function () { tiltBtn.textContent = tiltLabel(); });
+    }
+
+    /* 3인치 모드 — 폰을 멀리 든 것처럼 화면을 확 줄여 넓게 본다 */
+    var inchBtn = document.getElementById('btn-3inch');
+    if (inchBtn) {
+      inchBtn.classList.toggle('on', world.wide3in);
+      inchBtn.addEventListener('click', function () {
+        var on = world.toggle3inch();
+        inchBtn.classList.toggle('on', on);
+        ui.toast(on ? '🔍 3인치 모드 — 화면을 멀리서 봅니다' : '🔍 3인치 모드 해제 — 원래 배율로 돌아갑니다');
+        if (tiltBtn) { tiltBtn.textContent = tiltLabel(); }
+      });
     }
 
     /* 등신 비례 — 기본(4등신) → 2등신 → 8등신 순환 */

@@ -75,6 +75,8 @@
       settings: {
         mapStyle: 0, tilt: 1,
         zoom3d: 4,                        // 3D 카메라 배율 (화면 값 · world.js)
+        camZoom2d: 1,                     // 2D·2.5D 카메라 배율 (화면 값 · world.js)
+        wide3in: false,                   // 3인치 모드 — 켜면 화면을 멀리서 본다
         prop: 'normal',                   // 등신 비례 'normal'(4등신) | 'chibi'(2) | 'tall'(8)
         style: 'story',                   // 그림 양식 'classic'(전통 삽화) | 'story'(그림책) | 'anime'(일본 만화)
         mode: 'offline',                  // 'offline' | 'online' (net.js)

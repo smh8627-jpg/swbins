@@ -81,7 +81,10 @@
   function metersPerPixel() {
     return 156543.03392 * Math.cos(origin.lat * Math.PI / 180) / Math.pow(2, ZOOM);
   }
-  function scale() { return 1 / metersPerPixel(); }      // px per meter
+  /** px per meter — 2D·2.5D 화면 확대 배율(camZoom2d)을 얹는다. 지도 타일은
+      원래 zoom 레벨(ZOOM)대로 받아 두고 그리는 크기만 이 배율로 늘이거나
+      줄인다(drawGround) — 다시 받아올 필요가 없다 */
+  function scale() { return (1 / metersPerPixel()) * camZoom2d(); }
 
   /** 위경도 → 월드 미터 좌표 */
   function latLngToWorld(lat, lng) {
@@ -163,9 +166,8 @@
     global.addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
     /* PC 단독판에는 휠 없는 노트북도 있다 — 키로도 당기고 민다 */
     global.addEventListener('keydown', function (e) {
-      if (tiltMode() !== 2) { return; }
-      if (e.key === '+' || e.key === '=') { nudgeZoom(1 / 1.2); core.persist(); }
-      else if (e.key === '-' || e.key === '_') { nudgeZoom(1.2); core.persist(); }
+      if (e.key === '+' || e.key === '=') { nudgeCamZoom(1 / 1.2); core.persist(); }
+      else if (e.key === '-' || e.key === '_') { nudgeCamZoom(1.2); core.persist(); }
     });
     global.addEventListener('blur', function () { keys = {}; });
   }
@@ -663,6 +665,52 @@
   }
   function nudgeZoom(mul) { return setZoom3d(zoom3d() * mul); }
 
+  /* ── 2D·2.5D 줌 ───────────────────────────────────────────
+   * 3D 와 같은 결이다 — **화면 값이다.** scale() 에 곱해 넣으므로 지도 타일·
+   * 오브젝트·판정(onClick 히트 반경)까지 한 번에 늘고 준다. 좌표·거리·
+   * 조우 사거리는 그대로다.
+   */
+  var ZOOM2_MIN = 0.4, ZOOM2_MAX = 2.2, ZOOM2_DEFAULT = 1;
+
+  function camZoom2d() {
+    var raw = core.save.settings ? core.save.settings.camZoom2d : undefined;
+    if (raw === undefined || raw === null || raw === '') { raw = ZOOM2_DEFAULT; }
+    var z = Number(raw);
+    if (!isFinite(z) || z <= 0) { z = ZOOM2_DEFAULT; }
+    return core.clamp(z, ZOOM2_MIN, ZOOM2_MAX);
+  }
+  function setCamZoom2d(z) {
+    if (!core.save.settings) { return 1; }
+    core.save.settings.camZoom2d = core.clamp(z, ZOOM2_MIN, ZOOM2_MAX);
+    core.emit('zoom2d', core.save.settings.camZoom2d);
+    return core.save.settings.camZoom2d;
+  }
+  function nudgeZoom2d(mul) { return setCamZoom2d(camZoom2d() * mul); }
+
+  /**
+   * 3인치 모드 — 폰을 멀리 든 것처럼 화면을 확 줄여 넓게 본다(사용자 요청:
+   * "3인치 모드 넣어줘" → 카메라 시야 축소 모드). 켜기 전의 배율을 저장해
+   * 뒀다가 끄면 그 배율로 그대로 돌아간다. 2D·2.5D·3D 어느 시점에서 켜든
+   * 같은 스위치 하나로 그 시점의 배율만 넓힌다.
+   */
+  function is3inch() { return !!(core.save.settings && core.save.settings.wide3in); }
+  function toggle3inch() {
+    if (!core.save.settings) { return false; }
+    if (is3inch()) {
+      if (core.save.settings.zoom2dPrev !== undefined) { setCamZoom2d(core.save.settings.zoom2dPrev); }
+      if (core.save.settings.zoom3dPrev !== undefined) { setZoom3d(core.save.settings.zoom3dPrev); }
+      core.save.settings.wide3in = false;
+    } else {
+      core.save.settings.zoom2dPrev = camZoom2d();
+      core.save.settings.zoom3dPrev = zoom3d();
+      setCamZoom2d(ZOOM2_MIN);
+      setZoom3d(ZOOM3_MIN);
+      core.save.settings.wide3in = true;
+    }
+    core.persist();
+    return is3inch();
+  }
+
   /** 시점 모드 — 0: 2D · 1: 2.5D · 2: 3D */
   function tiltMode() {
     var t = core.save.settings ? core.save.settings.tilt : 0;
@@ -687,12 +735,32 @@
     syncRenderMode();
   }
 
-  /** 휠과 두 손가락으로 3D 카메라를 당기고 민다 (2D·2.5D 에서는 듣지 않는다) */
+  /**
+   * 지금 시점에 맞는 줌 손잡이를 고른다.
+   *
+   * **함정이었다** — `world3d`(WebGL) 는 시점 버튼이 2D 든 2.5D 든 3D 든
+   * 늘 켜져서(`active()`, `world.render3d` 튜닝이 꺼지지 않는 한) 카메라를
+   * 그린다(`world3d.js`의 `syncCamera` 가 `W.tiltMode` 셋 다에서 `W.zoom3d`
+   * 를 그대로 쓴다). 그런데 이 손잡이는 처음에 "3D(tiltMode===2)에서만
+   * zoom3d, 나머지는 camZoom2d" 로 갈랐다 — 그래서 대부분의 기기(WebGL이
+   * 되는 기기)에서는 2D·2.5D 에서 휠을 돌려도 실제로 그려지는 카메라와
+   * 무관한 값(camZoom2d)만 바뀌어 화면이 그대로였다("마우스로 확대 축소가
+   * 안되네", 2026-08-30 실사용 신고로 발견).
+   *
+   * `camZoom2d`(→ `scale()`)는 WebGL 이 없거나 꺼졌을 때 쓰는 2D 캔버스
+   * 폴백 렌더러(`drawGround`·`drawObjects`)에서만 실제로 읽힌다 — 그때만
+   * 골라 쓴다.
+   */
+  function nudgeCamZoom(mul) {
+    var W3 = global.DG.world3d;
+    return (W3 && W3.active && W3.active()) ? nudgeZoom(mul) : nudgeZoom2d(mul);
+  }
+
+  /** 휠과 두 손가락으로 카메라를 당기고 민다 — 2D·2.5D·3D 어디서든 듣는다 */
   function bindZoom(cv) {
     cv.addEventListener('wheel', function (e) {
-      if (tiltMode() !== 2) { return; }
       e.preventDefault();
-      nudgeZoom(e.deltaY > 0 ? 1.12 : 1 / 1.12);
+      nudgeCamZoom(e.deltaY > 0 ? 1.12 : 1 / 1.12);
       core.persist();
     }, { passive: false });
 
@@ -704,10 +772,10 @@
       if (e.touches.length === 2) { pinch = span(e.touches); }
     }, { passive: true });
     cv.addEventListener('touchmove', function (e) {
-      if (e.touches.length !== 2 || !pinch || tiltMode() !== 2) { return; }
+      if (e.touches.length !== 2 || !pinch) { return; }
       var now = span(e.touches);
       if (now > 8) {
-        nudgeZoom(pinch / now);        // 벌리면 가까이, 오므리면 멀리
+        nudgeCamZoom(pinch / now);        // 벌리면 가까이, 오므리면 멀리
         pinch = now;
       }
       e.preventDefault();
@@ -939,19 +1007,21 @@
     var camX = pos.x - g.ox / sc;      // 지면 좌상단이 가리키는 월드 좌표
     var camY = pos.y - g.oy / sc;
 
-    /* 지도 타일 */
+    /* 지도 타일 — 타일 자체는 늘 원래 zoom(ZOOM)레벨로 받아 둔다(다시 받아올
+       필요가 없게). camZoom2d 는 그리는 크기만 늘이거나 줄인다 */
     if (tilesUsable()) {
+      var cz = camZoom2d(), dTile = TILE_PX * cz;
       var ll = worldToLatLng(camX, camY);
       var px = latLngToPixel(ll.lat, ll.lng);
       var t0x = Math.floor(px.x / TILE_PX), t0y = Math.floor(px.y / TILE_PX);
-      var cols = Math.ceil(g.GW / TILE_PX) + 2, rows = Math.ceil(g.GH / TILE_PX) + 2;
+      var cols = Math.ceil(g.GW / dTile) + 2, rows = Math.ceil(g.GH / dTile) + 2;
       for (var ty = 0; ty < rows; ty++) {
         for (var tx = 0; tx < cols; tx++) {
           var TX = t0x + tx, TY = t0y + ty;
           var img = getTile(TX, TY, ZOOM);
-          var dx = TX * TILE_PX - px.x, dy = TY * TILE_PX - px.y;
-          if (img.ready) { gCtx.drawImage(img, dx, dy, TILE_PX, TILE_PX); }
-          else { gCtx.fillStyle = '#1a1d24'; gCtx.fillRect(dx, dy, TILE_PX, TILE_PX); }
+          var dx = (TX * TILE_PX - px.x) * cz, dy = (TY * TILE_PX - px.y) * cz;
+          if (img.ready) { gCtx.drawImage(img, dx, dy, dTile, dTile); }
+          else { gCtx.fillStyle = '#1a1d24'; gCtx.fillRect(dx, dy, dTile, dTile); }
         }
       }
     } else {
@@ -1544,10 +1614,20 @@
     get baseSpeed() { return speed; },
     get tilt() { return tiltOn(); },
     get tiltMode() { return tiltMode(); },
+    /** 지금 실제로 화면을 그리는 게 WebGL 3D 렌더러인가 — 이게 켜져 있으면
+        zoom3d 가 실제 카메라 배율이다(2D·2.5D·3D 어느 시점이든) */
+    get render3dOn() { var W3 = global.DG.world3d; return !!(W3 && W3.active && W3.active()); },
     /** 3D 카메라 배율 — 화면 값이다(판정에는 안 닿는다) */
     get zoom3d() { return zoom3d(); },
     setZoom3d: setZoom3d, nudgeZoom: nudgeZoom,
     ZOOM3_MIN: ZOOM3_MIN, ZOOM3_MAX: ZOOM3_MAX, ZOOM3_DEFAULT: ZOOM3_DEFAULT,
+    /** 2D·2.5D 카메라 배율 — 화면 값이다(판정에는 안 닿는다) */
+    get camZoom2d() { return camZoom2d(); },
+    setCamZoom2d: setCamZoom2d, nudgeZoom2d: nudgeZoom2d,
+    ZOOM2_MIN: ZOOM2_MIN, ZOOM2_MAX: ZOOM2_MAX, ZOOM2_DEFAULT: ZOOM2_DEFAULT,
+    /** 3인치 모드 — 화면을 멀리서 보는 스위치 (2D·2.5D·3D 어디서든 켠다) */
+    get wide3in() { return is3inch(); },
+    toggle3inch: toggle3inch,
     /** 시점 순환 — 2D → 2.5D → 3D → 2D */
     cycleTilt: function () {
       core.save.settings.tilt = (tiltMode() + 1) % 3;
