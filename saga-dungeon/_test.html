@@ -2652,6 +2652,37 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
         '기본은 iso, third 로 바꿀 수 있고 되돌릴 수 있다';
     });
 
+    t('3D — AUTO 품질은 프레임 시간이 나쁠수록 등급을 낮춘다', function () {
+      /* PLAN 19절. autoLevelFor 는 순수 함수라 실제 프레임 없이도 잰다 */
+      return D3.autoLevelFor(10) === 'high' && D3.autoLevelFor(25) === 'medium' &&
+        D3.autoLevelFor(40) === 'low' &&
+        '10ms(≈100fps)→high · 25ms(≈40fps)→medium · 40ms(≈25fps)→low';
+    });
+
+    t('3D — AUTO 품질이 들판 반경·밀도·그림자를 함께 낮춘다', function () {
+      var before = D3.quality();
+      D3._setPerfEma(45);                   // 아주 느린 프레임을 흉내
+      var lowQ = D3.quality(), lowR = D3.fieldR(), lowD = D3.fieldDens(), lowS = D3.shadow();
+      D3._setPerfEma(10);                   // 다시 빠르게
+      var highQ = D3.quality(), highR = D3.fieldR(), highD = D3.fieldDens(), highS = D3.shadow();
+      D3._setPerfEma(16.7);                 // 처음 값으로 되돌린다
+      return lowQ === 'low' && highQ === 'high' && before === 'high' &&
+        lowR < highR && lowD < highD && lowS === false && highS === true &&
+        ('느릴 때 반경' + lowR + '·밀도' + lowD + '·그림자' + lowS +
+         ' · 빠를 때 반경' + highR + '·밀도' + highD + '·그림자' + highS);
+    });
+
+    t('3D — 품질을 손잡이로 고정하면 AUTO 를 덮는다', function () {
+      D3._setPerfEma(45);                   // AUTO 라면 low 를 골랐을 상황
+      D3.set('dg3d.quality', 'high');
+      var forced = D3.quality();
+      D3.set('dg3d.quality', null);
+      var backToAuto = D3.quality();
+      D3._setPerfEma(16.7);
+      return forced === 'high' && backToAuto === 'low' &&
+        '손잡이로 high 고정 → 되돌리면 다시 AUTO(지금은 low)';
+    });
+
     t('3D — 핀치·휠 확대는 세이브에 저장되고 범위를 넘지 않는다', function () {
       /* dungeon-view.js 의 핀치·휠이 core.save.settings.camZoom 을 적어 두면
          D3.userZoom() 이 그걸 읽는다 — 여기서는 화면 없이 값만 흉내 낸다 */

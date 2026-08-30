@@ -24,6 +24,11 @@
   --shadow: 0 10px 34px rgba(0, 0, 0, 0.42);
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  /* 세로에서는 늘 0 이라 안 써도 티가 안 났다 — 가로로 돌리면 아이폰 노치가
+     좌우 어느 한쪽으로 붙는다(PLAN 23절). 그동안 위·아래만 있어서 가로
+     모드에서 조작판이 노치 밑에 깔릴 수 있었다. */
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -71,7 +76,7 @@ body.tilted #vignette {
   position: fixed; top: 0; left: 0; right: 0; z-index: 10;
   display: grid; grid-template-columns: auto 1fr auto;
   grid-template-areas: "profile . tools" "wallet wallet wallet";
-  gap: 10px; padding: 12px 12px 0;
+  gap: 10px; padding: calc(12px + var(--safe-t)) calc(12px + var(--safe-r)) 0 calc(12px + var(--safe-l));
   pointer-events: none;
 }
 #top > * { pointer-events: auto; }
@@ -124,7 +129,7 @@ body.tilted #vignette {
 
 /* ── 좌하단 위젯 ──────────────────────────────────────── */
 #widgets {
-  position: fixed; left: 12px; bottom: calc(14px + var(--safe-b)); z-index: 10;
+  position: fixed; left: calc(12px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); z-index: 10;
   display: flex; flex-direction: column; gap: 8px; width: 236px;
 }
 .widget { border-radius: var(--r-md); padding: 10px 12px; }
@@ -173,7 +178,7 @@ body.tilted #vignette {
 
 /* ── 액션 독 ──────────────────────────────────────────── */
 #dock {
-  position: fixed; right: 12px; bottom: calc(14px + var(--safe-b)); z-index: 12;
+  position: fixed; right: calc(12px + var(--safe-r)); bottom: calc(14px + var(--safe-b)); z-index: 12;
   display: flex; flex-direction: column; gap: 8px;
 }
 #dock button {

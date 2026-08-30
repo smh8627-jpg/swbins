@@ -249,7 +249,7 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   background: linear-gradient(180deg,
     rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0)) !important;
   border: 0 !important; box-shadow: none !important;
-  padding: 8px 14px 20px !important;
+  padding: calc(8px + var(--safe-t)) calc(14px + var(--safe-r)) 20px calc(14px + var(--safe-l)) !important;
   pointer-events: none;
 }
 #dg-hud [data-act], #dg-hud button { pointer-events: auto; }
@@ -286,7 +286,7 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   grid-template-columns: auto auto 1fr auto;
   align-items: end;
   gap: 0 10px;
-  padding: 6px 10px calc(6px + var(--safe-b));
+  padding: 6px calc(10px + var(--safe-r)) calc(6px + var(--safe-b)) calc(10px + var(--safe-l));
   background:
     repeating-linear-gradient(90deg,
       rgba(255, 255, 255, 0.016) 0 3px, rgba(0, 0, 0, 0.07) 3px 8px),

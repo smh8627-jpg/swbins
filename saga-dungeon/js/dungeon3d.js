@@ -97,10 +97,62 @@
   function DARK() { return tuned('dg3d.dark', 0.45); }
   /** 방 밖 들판을 세울까 (2단계) — 0 이면 1단계의 허공에 뜬 상자로 돌아간다 */
   function FIELD() { return tuned('dg3d.field', 1) ? true : false; }
+
+  /**
+   * 그래픽 품질 — PLAN 19절 "LOW/MEDIUM/HIGH/AUTO". 콘솔에서
+   * `DG.dungeon3d.set('dg3d.quality','low')` 로 고정하거나, 기본값인
+   * `'auto'` 로 두면 **실측 프레임 시간**(`updatePerf` 가 매 프레임 잰다)에
+   * 맞춰 스스로 오간다. 값 자체는 등급 표(`QUALITY_PRESET`) 하나로 들판
+   * 반경·밀도·그림자를 한꺼번에 정한다 — 등급이 세 갈래인데 손잡이가
+   * 셋(fieldR·fieldDens·shadow)이면 조합이 어긋날 수 있어서다.
+   * `dg3d.fieldR`·`dg3d.fieldDens` 를 손으로 직접 지정해 두면(콘솔 손잡이)
+   * 그 값이 등급표보다 **우선한다** — `tuned()` 가 `knobs` 를 먼저 보기
+   * 때문에 자동으로 그렇게 된다.
+   */
+  var QUALITY_PRESET = {
+    low: { fieldR: 1, fieldDens: 0.5, shadow: false },
+    medium: { fieldR: 2, fieldDens: 0.75, shadow: true },
+    high: { fieldR: 3, fieldDens: 1, shadow: true }
+  };
+  function QUALITY() { return tuned('dg3d.quality', 'auto'); }
+  var autoLevel = 'high';               // AUTO 가 지금 고른 등급
+  var perfEma = 16.7;                   // 프레임 시간 이동평균(ms) — 처음엔 60fps 로 가정
+  var lastFrameT = null;
+
+  /** ms 평균 → 등급. **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
+  function autoLevelFor(emaMs) {
+    if (emaMs > 33) { return 'low'; }     // 30fps 아래
+    if (emaMs > 20) { return 'medium'; }  // ~50fps 아래
+    return 'high';
+  }
+  /** QUALITY() 가 low/medium/high 로 고정돼 있으면 그걸, 'auto' 면 방금 잰 등급을 쓴다 */
+  function effectiveLevel() {
+    var q = QUALITY();
+    return (q === 'low' || q === 'medium' || q === 'high') ? q : autoLevel;
+  }
+  /**
+   * 매 프레임 부른다 — 실제 경과 시간을 재 이동평균에 얹고, AUTO 등급을
+   * 다시 고른다. 탭을 다른 데 갔다 오면 한 프레임이 몇 초씩 뛸 수 있어
+   * 그런 값(500ms 넘는 간격)은 평균에 안 섞는다.
+   */
+  function updatePerf() {
+    var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (lastFrameT !== null) {
+      var dtMs = now - lastFrameT;
+      if (dtMs > 0 && dtMs < 500) {
+        perfEma = perfEma * 0.9 + dtMs * 0.1;
+        autoLevel = autoLevelFor(perfEma);
+      }
+    }
+    lastFrameT = now;
+  }
+
   /** 들판을 몇 조각까지 세울까 (PLAN 6절 — 멀면 안 세운다) */
-  function FIELD_R() { return tuned('dg3d.fieldR', 3); }
+  function FIELD_R() { return tuned('dg3d.fieldR', QUALITY_PRESET[effectiveLevel()].fieldR); }
   /** 들판 밀도 배수 — 버거우면 여기를 내린다 */
-  function FIELD_D() { return tuned('dg3d.fieldDens', 1); }
+  function FIELD_D() { return tuned('dg3d.fieldDens', QUALITY_PRESET[effectiveLevel()].fieldDens); }
+  /** 그림자를 켤까 — LOW 에서는 렌더러의 가장 비싼 항목부터 끈다 */
+  function SHADOW() { return tuned('dg3d.shadow', QUALITY_PRESET[effectiveLevel()].shadow) ? true : false; }
   /**
    * 카메라 구도 — 'iso'(3/4 top-down, 기본) 또는 'third'(어깨너머 3인칭).
    * **2026-08-30, 사용자 요청.** 회전 조작까지 새로 놓는 큰 개편은 아니다 —
@@ -977,6 +1029,11 @@
     var run = d().raw();
     if (!run) { return false; }
     frame++;
+    updatePerf();
+    /* 렌더러가 이미 서 있을 때만 — init() 전에는 손댈 게 없다.
+       `enabled` 만 바꾸면 되고, 매 프레임 대입해도 three.js 쪽에서 값이
+       같으면 그냥 넘어가니 "등급이 바뀔 때만" 을 따로 가리지 않았다. */
+    if (renderer) { renderer.shadowMap.enabled = SHADOW(); }
 
     var W = d().ROOM_W, H = d().ROOM_H;
     /* 퍼즐방은 제단이 켜질 때마다(맞게 밟을 때마다) 그림도 다시 세워야 한다 —
@@ -1200,7 +1257,9 @@
       drawn: drawn, actors: Object.keys(actors).length,
       room: roomKey, floor: run ? run.floor : 0,
       cam: camPos ? [Math.round(camPos.x), Math.round(camPos.y), Math.round(camPos.z)].join(',') : '-',
-      fx: global.DG.fx3d ? global.DG.fx3d.stats() : null
+      fx: global.DG.fx3d ? global.DG.fx3d.stats() : null,
+      quality: effectiveLevel(), perfEma: Math.round(perfEma * 10) / 10,
+      shadow: SHADOW()
     };
   }
 
@@ -1210,6 +1269,11 @@
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     camAim: camAim, camAim3rd: camAim3rd, camMode: CAMMODE, userZoom: USERZOOM, lightPlan: lightPlan,
+    /** PLAN 19절 — 그래픽 품질 AUTO. ms 평균 → 등급의 순수 매핑(진단용) */
+    autoLevelFor: autoLevelFor, quality: effectiveLevel,
+    fieldR: FIELD_R, fieldDens: FIELD_D, shadow: SHADOW,
+    /** 자가진단용 — 실제 프레임 없이 이동평균을 강제로 넣어 등급이 바뀌는지 본다 */
+    _setPerfEma: function (ms) { perfEma = ms; autoLevel = autoLevelFor(ms); },
     /** 들판이 몇 조각인지 (2단계) */
     fieldKey: function () { return fieldKey; },
     three: function () { return T; },
