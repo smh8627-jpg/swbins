@@ -956,8 +956,11 @@
         en.x += (p.x - en.x) / ed * espd * dt;
         en.y += (p.y - en.y) / ed * espd * dt;
       }
+      /* 창·극(戟) 은 자루가 길다 — 몸이 닿기 전에 먼저 닿는다(무기마다 다른
+         사거리, 몬스터 다양화의 나머지 절반) */
+      var reachBonus = (lookW === 'spear' || lookW === 'halberd') ? 14 : 0;
       en.cd -= dt;
-      if (ed <= en.r + P_R + 6 && en.cd <= 0) {
+      if (ed <= en.r + P_R + 6 + reachBonus && en.cd <= 0) {
         /* 붙었으면 궁수·조총병도 그냥 몸으로 밀친다(막다른 곳에 몰렸을 때) */
         en.cd = ENEMY_CD * (el && el.cd ? el.cd : 1) / chill;
         hurtPlayer(en.dmg, en.ref && en.ref.atkEl);

@@ -733,7 +733,12 @@
     }
     var r = (ref && ref.r) || 12;
     var enemyDef = ref && ref.ref;                    // data-enemy.js 의 그 줄(kind·color·look)
-    var col = ref && ref.boss ? 0x9a3a3a : (ref && ref.elite ? 0x8a5cc0 :
+    /* 정예는 여덟 갈래(날쌘·완강한·사나운·되살아나는·가시 돋친·그림자·철갑·호신)
+       마다 제 빛깔이 `ELITES` 표에 이미 있는데(`js/dungeon.js`), 3D 는 여태
+       전부 같은 보랏빛으로 뭉뚱그렸다 — 그 표의 색을 그대로 쓴다 */
+    var DGd = global.DG.dungeon;
+    var eliteDef = ref && ref.elite && DGd ? DGd.eliteOf(ref.elite) : null;
+    var col = ref && ref.boss ? 0x9a3a3a : (eliteDef ? hexOf(eliteDef.color, 0x8a5cc0) :
       hexOf(enemyDef && enemyDef.color, 0x6a6a75));
     var hh = r * (ref && ref.boss ? 2.6 : 1.9);
     var isBeast = !!(enemyDef && enemyDef.kind === 'beast');
@@ -760,6 +765,11 @@
     /* 엘리트·보스는 눈이 빛난다 — 실루엣만으로 위험을 읽게 한다(GLB 위에도 그대로 얹는다) */
     if (ref && (ref.boss || ref.elite)) {
       box(g, 0, hh + r * 0.6, r * 0.5, r * 0.7, r * 0.2, r * 0.2, 0xff5a3a, 'glow', false);
+    }
+    /* 정예는 발밑에 제 빛깔 고리를 켠다 — 위 눈빛은 "정예다" 만 알리고,
+       이 고리 색이 "무슨 정예인지" 를 멀리서도 가른다 */
+    if (eliteDef) {
+      box(g, 0, 1.2, 0, r * 2.3, 2, r * 2.3, hexOf(eliteDef.color, 0x8a5cc0), 'glow', false);
     }
     /* 몬스터 다양화 — 사람 형 적은 무기·투구·망토·수염을 `look` 데이터 그대로
        걸친다. 옛 도형 시절부터 있던 정보인데 여태 3D 화면엔 하나도 안 실렸다 */
