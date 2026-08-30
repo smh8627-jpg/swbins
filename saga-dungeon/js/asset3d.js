@@ -39,6 +39,7 @@
   var ANIM_DIR = 'assets/models/anim/';
   var NATURE = 'assets/models/nature/';
   var ANIMALS = 'assets/models/animals/';
+  var PROPS = 'assets/models/props/';
 
   var HERO_RECIPES = [
     { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
@@ -64,7 +65,16 @@
     'hero': HERO_RECIPES,
     'beast': ANIMALS + 'Wolf.glb',
     'tree': [NATURE + 'CommonTree_1.glb', NATURE + 'CommonTree_2.glb', NATURE + 'CommonTree_3.glb'],
-    'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb']
+    'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb'],
+    /* 폐허의 기둥·무너진 벽 — 딱 맞는 "부러진 돌기둥" 낱개는 못 찾아
+       `Arch.glb`(무너진 아치)로 대신한다. 사가고가 이미 같은 후보를 적어 뒀다
+       (`saga-go/assets/ASSET_LICENSES.md` "사당·폐허의 다른 후보") */
+    'pillar': PROPS + 'Arch.glb',
+    'wall': PROPS + 'Wall.glb',
+    /* 절벽 — 나무나 헤드보다 큰 산 덩이(Mountain)를 대신 세운다 */
+    'cliff': [NATURE + 'Mountain_1.glb', NATURE + 'Mountain_2.glb'],
+    /* 제단 — 사가고가 "사당" 후보로 적어 둔 그 Temple 을 그대로 쓴다 */
+    'altar': PROPS + 'Temple.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }

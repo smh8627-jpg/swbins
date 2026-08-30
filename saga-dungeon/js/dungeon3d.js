@@ -404,15 +404,41 @@
       rnode.rotation.y = p.rot || 0;
       g.add(rnode);
     } else if (p.t === 'pillar') {
-      box(g, p.x, y + p.h / 2, p.z, 16, p.h, 16, mix(stone, 0xffffff, 0.12), 'flat', true);
+      /* 폐허의 부러진 기둥 — 꼭 맞는 낱개 기둥 에셋이 없어 무너진 아치(Arch)로
+         대신한다(사가고가 이미 "사당·폐허의 다른 후보"로 적어 둔 것) */
+      var pillarShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h / 2, 0, 16, p.h, 16, mix(stone, 0xffffff, 0.12), 'flat', true);
+        return sg;
+      };
+      var pnode = AS3 ? AS3.build('pillar', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h, null, pillarShape) : pillarShape();
+      pnode.position.set(p.x, y, p.z);
+      g.add(pnode);
     } else if (p.t === 'wall') {
-      box(g, p.x, y + p.h / 2, p.z, 90, p.h, 14, mix(stone, 0x000000, 0.2), 'flat', true)
-        .rotation.y = p.rot;
+      var wallShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h / 2, 0, 90, p.h, 14, mix(stone, 0x000000, 0.2), 'flat', true);
+        return sg;
+      };
+      var wnode = AS3 ? AS3.build('wall', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h, null, wallShape) : wallShape();
+      wnode.position.set(p.x, y, p.z);
+      wnode.rotation.y = p.rot || 0;
+      g.add(wnode);
     } else if (p.t === 'cliff') {
-      /* 절벽 — 큰 덩이를 비스듬히 세운다. 4절의 "높낮이" 를 눈에 보이게 하는 것 */
-      var cl = box(g, p.x, y + p.h * 0.4, p.z, 120 * s, p.h, 90 * s,
-        mix(stone, 0x000000, 0.45), 'flat', true);
-      cl.rotation.set(0.08, p.rot, 0.06);
+      /* 절벽 — 산 덩이(Mountain) 에셋을 세운다. 4절의 "높낮이" 를 눈에 보이게 하는 것 */
+      var cliffShape = function () {
+        var sg = new T.Group();
+        var cl = box(sg, 0, p.h * 0.4, 0, 120 * s, p.h, 90 * s, mix(stone, 0x000000, 0.45), 'flat', true);
+        cl.rotation.set(0.08, 0, 0.06);
+        return sg;
+      };
+      var clnode = AS3 ? AS3.build('cliff', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.8 * s, null, cliffShape) : cliffShape();
+      clnode.position.set(p.x, y, p.z);
+      clnode.rotation.y = p.rot || 0;
+      g.add(clnode);
     } else if (p.t === 'path') {
       var pt = box(g, p.x, y + 1, p.z, F.CHUNK + 2, 3, 46, 0x4a3f30, 'flat', false);
       pt.rotation.y = p.rot;
@@ -433,8 +459,18 @@
       box(g, p.x, y + p.h * 0.3, p.z + p.h * 0.6, p.h * 0.5, p.h * 0.55, 6,
         0x000000, '', false).rotation.y = p.rot;
     } else if (p.t === 'altar') {
-      box(g, p.x, y + 6, p.z, 60, 12, 60, mix(stone, 0xffffff, 0.2), 'flat', true);
-      box(g, p.x, y + p.h * 0.6, p.z, 20, p.h * 0.8, 20, 0x4a3f6b, 'flat', true);
+      /* 제단 — 사가고가 "사당" 후보로 적어 둔 Temple 을 세운다. 도형이 얹던
+         떠 있는 보랏빛 구슬은 **표식이라 그대로 남긴다**(멀리서도 제단인 줄 안다) */
+      var altarShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 6, 0, 60, 12, 60, mix(stone, 0xffffff, 0.2), 'flat', true);
+        box(sg, 0, p.h * 0.6, 0, 20, p.h * 0.8, 20, 0x4a3f6b, 'flat', true);
+        return sg;
+      };
+      var alnode = AS3 ? AS3.build('altar', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.1, null, altarShape) : altarShape();
+      alnode.position.set(p.x, y, p.z);
+      g.add(alnode);
       box(g, p.x, y + p.h + 6, p.z, 14, 14, 14, 0xc9a3ff, 'glow', false);
     } else if (p.t === 'tent') {
       box(g, p.x, y + p.h / 2, p.z, 44, p.h, 40, 0x5a4a3a, 'flat', true).rotation.y = p.rot;
