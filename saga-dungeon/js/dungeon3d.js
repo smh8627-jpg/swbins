@@ -372,19 +372,37 @@
     fieldKey = seed + ':' + R + ':' + Math.round(dens * 100);
   }
 
-  /** 들판 조각 하나를 도형으로 세운다 */
+  /** 들판 조각 하나를 도형으로 세운다 — 나무·바위는 사가고와 같은 GLB, 나머지는
+   *  여전히 도형이다(PLAN 4절의 우선순위 ⑤나무 ⑥바위까지만 이번에 옮겼다) */
   function piece(p, seed, W, H, stone) {
     var F = global.DG.field3d;
     var g = fieldGroup;
     var y = F.heightAt(p.x, p.z, seed, W, H);
     var s = p.s || 1;
+    var AS3 = AS();
     if (p.t === 'tree') {
-      box(g, p.x, y + p.h * 0.22, p.z, 9 * s, p.h * 0.44, 9 * s, 0x3a2c1e, 'flat', true);
-      box(g, p.x, y + p.h * 0.68, p.z, p.h * 0.62 * s, p.h * 0.7, p.h * 0.62 * s,
-        0x24361f, 'flat', true);
+      var treeShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h * 0.22, 0, 9 * s, p.h * 0.44, 9 * s, 0x3a2c1e, 'flat', true);
+        box(sg, 0, p.h * 0.68, 0, p.h * 0.62 * s, p.h * 0.7, p.h * 0.62 * s, 0x24361f, 'flat', true);
+        return sg;
+      };
+      var tnode = AS3 ? AS3.build('tree', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.35 * s, null, treeShape) : treeShape();
+      tnode.position.set(p.x, y, p.z);
+      tnode.rotation.y = p.rot || 0;
+      g.add(tnode);
     } else if (p.t === 'rock') {
-      box(g, p.x, y + p.h * 0.4, p.z, p.h * 1.3 * s, p.h * 0.9, p.h * 1.1 * s,
-        mix(stone, 0x000000, 0.35), 'flat', true).rotation.y = p.rot;
+      var rockShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h * 0.4, 0, p.h * 1.3 * s, p.h * 0.9, p.h * 1.1 * s, mix(stone, 0x000000, 0.35), 'flat', true);
+        return sg;
+      };
+      var rnode = AS3 ? AS3.build('rock', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 0.9 * s, null, rockShape) : rockShape();
+      rnode.position.set(p.x, y, p.z);
+      rnode.rotation.y = p.rot || 0;
+      g.add(rnode);
     } else if (p.t === 'pillar') {
       box(g, p.x, y + p.h / 2, p.z, 16, p.h, 16, mix(stone, 0xffffff, 0.12), 'flat', true);
     } else if (p.t === 'wall') {
@@ -440,13 +458,6 @@
    * 그래서 **몸통만** 사본을 들려 준다.
    */
   function ownMat(m) { m.material = m.material.clone(); return m.material; }
-
-  function flashMat(m, hurt, span) {
-    if (!m || !m.emissive) { return; }
-    var F = global.DG.fx3d;
-    var k = F ? F.flashOf(hurt, span) : 0;
-    m.emissive.setRGB(k, k * 0.8, k * 0.66);
-  }
 
   /* ── 배우 ───────────────────────────────────────────
    * 사람과 적을 도형으로 조립한다. 원작 에셋은 안 쓴다 —
@@ -508,22 +519,61 @@
     return isNaN(n) ? def : n;
   }
 
+  /** asset3d — 사가고와 같은 것을 쓴다(사가블로 4단계, `assets/ASSET_LICENSES.md`) */
+  function AS() { return global.DG.asset3d; }
+
+  function meShape() {
+    var sg = new T.Group();
+    box(sg, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
+    box(sg, 0, 32, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);       // 머리
+    box(sg, 0, 40, 0, 15, 4, 15, 0x3a3f4a, 'flat', false);       // 갓
+    box(sg, 9, 18, 0, 3, 26, 3, 0xb9c2cf, 'flat', true);         // 칼
+    return sg;
+  }
+  function npcShape(nc) {
+    var sg = new T.Group();
+    box(sg, 0, 15, 0, 13, 20, 10, nc, 'flat', true);
+    box(sg, 0, 30, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);
+    box(sg, 0, 38, 0, 14, 4, 14, 0x2f333c, 'flat', false);
+    return sg;
+  }
+  function foeShape(r, hh, col) {
+    var sg = new T.Group();
+    box(sg, 0, hh / 2, 0, r * 1.5, hh, r * 1.2, col, 'flat', true);
+    box(sg, 0, hh + r * 0.5, 0, r * 0.9, r * 0.9, r * 0.9, mix(col, 0xffffff, 0.2), 'flat', true);
+    return sg;
+  }
+
+  /** 지금 보이는 것(도형이든 GLB 든) 위 모든 메시의 재질 사본 — 맞으면 이걸 번쩍인다.
+   *  GLB 가 도형에서 갈아 끼워지는 순간 사본이 낡으므로, 그 전환(assetState)이
+   *  바뀔 때만 다시 뜬다(매 프레임 새로 뜨면 낭비다). */
+  function ensureFlash(node) {
+    var AS3 = AS();
+    var st = node.userData.assetState;
+    if (node.userData.flash && node.userData.flashState === st) { return node.userData.flash; }
+    var mats = AS3 ? AS3.ownAllMat(node.children[0]) : [];
+    node.userData.flash = mats;
+    node.userData.flashState = st;
+    return mats;
+  }
+
   function buildActor(kind, ref) {
     var g = new T.Group();
+    var AS3 = AS();
     if (kind === 'npc') {
-      /* 마을 사람 — 나와 같은 뼈대에 **옷 빛깔만** 다르다(진영색을 쓰지 않는다는
-         town.js 의 뜻을 그대로 따른다). 무기는 안 든다 */
+      /* 마을 사람 — 사가고와 같은 GLB(사람 창고)를 쓴다. 진영색 대신
+         **이 사람 고유의 옷 빛깔**로 물들인다(town.js 의 뜻 그대로) */
       var nc = hexOf(ref && ref.color, 0x8a6f4e);
-      box(g, 0, 15, 0, 13, 20, 10, nc, 'flat', true);            // 몸
-      box(g, 0, 30, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);      // 머리
-      box(g, 0, 38, 0, 14, 4, 14, 0x2f333c, 'flat', false);      // 갓
+      var body = AS3 ? AS3.buildHero('npc:' + ((ref && ref.key) || ''), 40, ref && ref.color,
+        function () { return npcShape(nc); }) : npcShape(nc);
+      g.add(body);
+      g.userData.mixerNode = body;
       /* 발밑 고리 — 말이 걸리는 거리에 들어서면 켜진다 */
       var nr = box(g, 0, 0.8, 0, 44, 1.6, 44, 0xffd489, 'glow', false);
       nr.visible = false;
       g.userData.ring = nr;
       g.userData.label = labelNode(((ref && ref.emoji) || '') + ' ' + ((ref && ref.name) || ''), 54, 72);
       g.add(g.userData.label);
-      g.userData.flash = ownMat(g.children[0]);
       return g;
     }
     if (kind === 'mark') {
@@ -551,24 +601,38 @@
       return g;
     }
     if (kind === 'me') {
-      box(g, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
-      box(g, 0, 32, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);       // 머리
-      box(g, 0, 40, 0, 15, 4, 15, 0x3a3f4a, 'flat', false);       // 갓
-      box(g, 9, 18, 0, 3, 26, 3, 0xb9c2cf, 'flat', true);         // 칼
-      g.userData.head = g.children[1];
-      g.userData.flash = ownMat(g.children[0]);
+      var meBody = AS3 ? AS3.buildHero('me', 42, null, meShape) : meShape();
+      g.add(meBody);
+      g.userData.mixerNode = meBody;
       return g;
     }
     var r = (ref && ref.r) || 12;
-    var col = ref && ref.boss ? 0x9a3a3a : (ref && ref.elite ? 0x8a5cc0 : 0x6a6a75);
+    var enemyDef = ref && ref.ref;                    // data-enemy.js 의 그 줄(kind·color·look)
+    var col = ref && ref.boss ? 0x9a3a3a : (ref && ref.elite ? 0x8a5cc0 :
+      hexOf(enemyDef && enemyDef.color, 0x6a6a75));
     var hh = r * (ref && ref.boss ? 2.6 : 1.9);
-    box(g, 0, hh / 2, 0, r * 1.5, hh, r * 1.2, col, 'flat', true);
-    box(g, 0, hh + r * 0.5, 0, r * 0.9, r * 0.9, r * 0.9, mix(col, 0xffffff, 0.2), 'flat', true);
-    /* 엘리트·보스는 눈이 빛난다 — 실루엣만으로 위험을 읽게 한다 */
+    var isBeast = !!(enemyDef && enemyDef.kind === 'beast');
+    var foeBody;
+    if (AS3 && isBeast) {
+      /* 짐승 형 적(들개·코끼리병…) — 사가고의 늑대 GLB 로 선다. 세력색은
+         안 물들인다(짐승 제 털빛이 맞다) */
+      foeBody = AS3.build('beast', (ref && ref.ref && ref.ref.name) || 'beast',
+        hh + r * 0.95, null, function () { return foeShape(r, hh, col); });
+    } else if (AS3) {
+      /* 사람 형 적(황건적·왜구…) — 사람 창고 GLB. 보스·정예가 아니면
+         **이 적의 원래 빛깔**(data-enemy.js 의 color)로 물들인다 */
+      var tint = ref && (ref.boss || ref.elite) ? col : (enemyDef && enemyDef.color) || null;
+      foeBody = AS3.buildHero((enemyDef && enemyDef.name) || 'foe', hh + r * 0.95, tint,
+        function () { return foeShape(r, hh, col); });
+    } else {
+      foeBody = foeShape(r, hh, col);
+    }
+    g.add(foeBody);
+    g.userData.mixerNode = foeBody;
+    /* 엘리트·보스는 눈이 빛난다 — 실루엣만으로 위험을 읽게 한다(GLB 위에도 그대로 얹는다) */
     if (ref && (ref.boss || ref.elite)) {
       box(g, 0, hh + r * 0.6, r * 0.5, r * 0.7, r * 0.2, r * 0.2, 0xff5a3a, 'glow', false);
     }
-    g.userData.flash = ownMat(g.children[0]);
     return g;
   }
 
@@ -630,14 +694,20 @@
     torch.distance = L.torchRange;
     torch.position.set(p.x, 46, p.y);
 
+    var AS3 = AS();
+    var nowT = Date.now() / 1000;
+
     /* 나 */
     var me = actorOf('me', 'me', null);
     me.node.position.set(p.x, 0, p.y);
     if (p.walking) { me.ang = Math.atan2(p.facing || 1, 0.001); }
     me.node.rotation.y = me.ang;
-    /* 걸으면 위아래로 튄다 — 굳어 있으면 인형으로 보인다 */
+    /* 걸으면 위아래로 튄다 — 도형으로 남아 있을 때만 도드라진다(GLB 는 제 다리로 걷는다) */
     me.node.position.y = p.walking ? Math.abs(Math.sin(p.phase || 0)) * 2.2 : 0;
-    flashMat(me.node.userData.flash, p.hurt, 0.28);
+    if (AS3) {
+      AS3.step(me.node.userData.mixerNode, { t: nowT, walking: !!p.walking, anim: p.walking ? 'walk' : 'idle' });
+      AS3.flashAllMat(ensureFlash(me.node), p.hurt, 0.28);
+    }
 
     /* 적 */
     var es = (run.room && run.room.enemies) || [], i;
@@ -649,7 +719,11 @@
       a.node.rotation.y = Math.atan2(p.x - e.x, p.y - e.y);
       /* 맞은 직후에는 흔들린다 */
       if (e.hurt > 0) { a.node.position.x += (Math.random() - 0.5) * 3; }
-      flashMat(a.node.userData.flash, e.hurt, 0.2);
+      if (AS3) {
+        var eWalking = Math.hypot(p.x - e.x, p.y - e.y) > (e.r || 12) + (d().P_R || 13) + 8;
+        AS3.step(a.node.userData.mixerNode, { t: nowT, walking: eWalking, anim: e.hurt > 0 ? 'hit' : (eWalking ? 'walk' : 'attack') });
+        AS3.flashAllMat(ensureFlash(a.node), e.hurt, 0.2);
+      }
     }
 
     /* 마을 사람과 표식 — 던전 방에는 없는 것들이다(`room.npcs` · `room.marks`).
@@ -663,6 +737,7 @@
       na.node.position.set(np.x, 0, np.y);
       na.node.rotation.y = Math.atan2(p.x - np.x, p.y - np.y);   // 다가서면 나를 본다
       townMark(na.node, Math.hypot(np.x - p.x, np.y - p.y), talkR);
+      if (AS3) { AS3.step(na.node.userData.mixerNode, { t: nowT, walking: false, anim: 'idle' }); }
     }
     var mks = (run.room && run.room.marks) || [];
     for (i = 0; i < mks.length; i++) {
