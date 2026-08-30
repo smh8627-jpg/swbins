@@ -275,13 +275,13 @@
 
   /**
    * 방 하나를 만든다.
-   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'merchant' | 'puzzle' | 'event' | 'boss' | 'stair'
+   * @param kind 'fight' | 'trove' | 'well' | 'shrine' | 'elite' | 'miniboss' | 'cave' | 'merchant' | 'puzzle' | 'event' | 'forage' | 'boss' | 'stair'
    */
   function makeRoom(kind, floor, index, total) {
     var room = {
       kind: kind, index: index, cleared: false,
       enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null,
-      merchant: null, puzzle: null, captive: null
+      merchant: null, puzzle: null, captive: null, forage: null
     };
     var n;
     if (kind === 'boss') {
@@ -351,6 +351,25 @@
       n = Math.min(6, 2 + Math.floor(Math.random() * 3) + Math.min(2, Math.floor(floor / 6)));
       for (var evi = 0; evi < n; evi++) { room.enemies.push(spawnEnemy(floor, false)); }
       room.captive = { x: ROOM_W * 0.72, y: ROOM_H * 0.5, freed: false };
+    } else if (kind === 'forage') {
+      /* 채집·낚시방(POI: Forage, PLAN 12절 "채집"·"낚시 가능한 지역") —
+         사용자가 2026-08-30에 직접 요청해 넣었다. 사가의숲(동물의숲 모방)
+         이 이미 낚시·채집을 담당하고 있어 처음엔 이 판(디아블로 모방)엔
+         안 맞다고 봤는데, 뜻이 분명해 넣었다 — 대신 **이 판의 결로**
+         옮긴다: 밭을 갈지 않고 낚싯대를 들지 않는다. 약초 셋은 **항아리와
+         같은 손짓**(지나가며 스치면 단약이 뜬다 — `dropPotion` 을 그대로
+         쓴다)이고, 못은 **우물·사당과 같은 손짓**(방을 다 치운 뒤 한 번,
+         "손맛" 하나) 이다. 새 재료·인벤 칸을 만들지 않았다 — 이미 있는
+         드랍 셋(potion·mat·gold·item)만 쓴다. */
+      room.forage = {
+        herbs: [
+          { x: ROOM_W * 0.30, y: ROOM_H * 0.30, picked: false },
+          { x: ROOM_W * 0.50, y: ROOM_H * 0.68, picked: false },
+          { x: ROOM_W * 0.66, y: ROOM_H * 0.32, picked: false }
+        ],
+        pond: { x: ROOM_W * 0.80, y: ROOM_H * 0.62, used: false }
+      };
+      if (Math.random() < 0.25) { room.enemies.push(spawnEnemy(floor, false)); }
     }
     if (!room.enemies.length) { room.cleared = true; }
     room.last = index >= total - 1;
@@ -1270,6 +1289,28 @@
       dropGold(room, room.captive.x, room.captive.y, 2);
       sfx('shrine');
       core.emit('toast', '🙏 구출 · 은혜를 갚는다');
+    }
+    if (room.forage) {
+      /* 약초 — 항아리와 같은 손짓(닿기만 해도, 방을 안 치워도) */
+      var fg = room.forage;
+      for (var fhi = 0; fhi < fg.herbs.length; fhi++) {
+        var herb = fg.herbs[fhi];
+        if (herb.picked || dist(p, herb) > P_R + 16) { continue; }
+        herb.picked = true;
+        fx.push({ t: 'pop', x: herb.x, y: herb.y, life: 0.3 });
+        sfx('jar');
+        dropPotion(room, herb.x, herb.y);
+      }
+      /* 못 — 우물·사당과 같은 손짓(방을 다 치운 뒤 한 번) */
+      if (fg.pond && !fg.pond.used && room.cleared && dist(p, fg.pond) < P_R + 20) {
+        fg.pond.used = true;
+        var catchRoll = Math.random();
+        if (catchRoll < 0.5) { dropGold(room, fg.pond.x, fg.pond.y, 1.4); }
+        else if (catchRoll < 0.85) { dropMat(room, fg.pond.x, fg.pond.y, 10); }
+        else { dropItem(room, fg.pond.x, fg.pond.y, 6); }
+        sfx('chest');
+        core.emit('toast', '🎣 손맛 · 무언가 걸렸다');
+      }
     }
     /* 비밀(POI: Secret) — 균열들 사이에 숨어 있다. 문 목록엔 아예 없으므로
        여기서 방마다 있는 균열을 훑어 찾는다(있으면 하나뿐이다) */

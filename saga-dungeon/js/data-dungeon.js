@@ -89,7 +89,8 @@
     { key: 'cave',     weight: 8 },    // 채광방(POI: Cave) — 광맥을 캐면 세공 재료
     { key: 'merchant', weight: 7 },    // 행상(POI: Merchant) — 이 자리에서만 파는 재고 셋
     { key: 'puzzle',   weight: 6 },    // 퍼즐방(POI: Puzzle) — 제단 셋을 맞는 순서로 밟는다
-    { key: 'event',    weight: 7 }     // 이벤트방(POI: Event, PLAN 35절 "NPC Rescue") — 잡혀 있는 이를 구한다
+    { key: 'event',    weight: 7 },    // 이벤트방(POI: Event, PLAN 35절 "NPC Rescue") — 잡혀 있는 이를 구한다
+    { key: 'forage',   weight: 8 }     // 채집·낚시방(POI: Forage, PLAN 12절, 2026-08-30 추가) — 약초 셋 + 못 하나
   ];
 
   global.DG = global.DG || {};

@@ -463,6 +463,21 @@
         box(wallGroup, cp.x, 6, cp.y, 26, 3, 26, 0xffd489, 'glow', false);
       }
     }
+    if (r && r.forage) {
+      /* 채집·낚시방(POI: Forage) — 약초는 낮은 풀포기(항아리보다 작고
+         납작하다 — 스치기만 하면 되는 것이라 굳이 위압적일 필요가 없다),
+         못은 파란 판(우물과 같은 요령이지만 둥글게 보이도록 얇고 넓게 깐다) */
+      var fg3 = r.forage;
+      for (var fh3 = 0; fh3 < fg3.herbs.length; fh3++) {
+        var hb3 = fg3.herbs[fh3];
+        if (hb3.picked) { continue; }
+        box(wallGroup, hb3.x, 4, hb3.y, 14, 8, 14, 0x4a7a3a, 'flat', false);
+        box(wallGroup, hb3.x, 9, hb3.y, 6, 6, 6, 0x8fd15a, 'glow', false);
+      }
+      if (fg3.pond && !fg3.pond.used) {
+        box(wallGroup, fg3.pond.x, 2, fg3.pond.y, 46, 3, 34, 0x2a6a8a, 'glow', false);
+      }
+    }
     /* 장식 — 기둥·횃불·바닥 균열. 판정이 자리를 정해 두고(`decor`) 2D 가 오래 그려
        온 것들이다. 이것이 없으면 방이 **빈 상자**로 보인다 — 마을은 특히 그렇다
        (모루골의 집과 불이 전부 여기 들어 있다).
@@ -1048,8 +1063,16 @@
         if (run.room.decor[sdi].secret && run.room.decor[sdi].found) { secFound = 1; break; }
       }
     }
+    /* 채집·낚시방도 같은 사정 — 약초를 뜯거나 못에서 손맛을 보면 그림도
+       다시 세워야 한다(안 그러면 뜯은 풀이 그대로 남아 보인다) */
+    var forageProg = '';
+    if (run.room && run.room.forage) {
+      var fgp = run.room.forage, fgPicked = 0;
+      for (var fgpi = 0; fgpi < fgp.herbs.length; fgpi++) { if (fgp.herbs[fgpi].picked) { fgPicked++; } }
+      forageProg = ':fg' + fgPicked + (fgp.pond && fgp.pond.used ? 'p1' : 'p0');
+    }
     var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
-             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound;
+             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg;
     if (rk !== roomKey) { roomKey = rk; buildRoom(run); buildField(run); }
 
     /* 조명 */

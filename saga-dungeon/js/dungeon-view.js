@@ -659,7 +659,8 @@
   /* 방 종류는 data-dungeon.js 의 ROOMS 가 정본이다 — 여기에 없는 종류를 적어 두면
      영영 안 뜨는 아이콘이 남는다(서고 📖 가 실제로 그렇게 남아 있었다). */
   var DOOR_ICON = { fight: '⚔️', trove: '🎁', well: '💧', shrine: '⛩️', stair: '🪜',
-    elite: '💠', miniboss: '👹', cave: '⛏️', merchant: '🧺', puzzle: '🧩', event: '🙏' };
+    elite: '💠', miniboss: '👹', cave: '⛏️', merchant: '🧺', puzzle: '🧩', event: '🙏',
+    forage: '🌿' };
 
   /** 3D 를 쓰는 동안에는 2D 캔버스를 비워 둔다 (같은 그림을 두 번 그리지 않게) */
   function sync3d() {
@@ -864,6 +865,13 @@
       }
     }
     thingItem(items, run.room.captive, run.room.captive && run.room.captive.freed ? '🙏' : '⛓️');
+    if (run.room.forage) {
+      var fgHerbs = run.room.forage.herbs;
+      for (var fghi = 0; fghi < fgHerbs.length; fghi++) {
+        if (!fgHerbs[fghi].picked) { thingItem(items, fgHerbs[fghi], '🌿'); }
+      }
+      thingItem(items, run.room.forage.pond, run.room.forage.pond.used ? '🌊' : '🎣');
+    }
     /* 비밀(POI: Secret) — 찾기 전엔 여느 균열과 똑같이 그려진다(위 균열
        루프가 이미 그린다). 찾은 뒤에만 반짝임을 하나 더 얹는다 */
     for (di = 0; di < dec.length; di++) {

@@ -2109,6 +2109,48 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true;
       return picked && '철벽 선택';
     });
 
+    t('채집·낚시방(POI: Forage) — 약초는 항아리처럼 스치면 뜬다', function () {
+      /* PLAN 12절 "채집"·"낚시" — 2026-08-30, 사용자 요청으로 추가.
+         손으로 방을 박아 넣고(다른 POI 손짓 테스트가 없던 관례를 따르되,
+         이번엔 실제로 하나 남긴다) 인물을 약초 자리에 세운 채 한 틱 돌린다. */
+      DN.enter({ floor: 5, mode: 'normal' });
+      var raw = DN.raw();
+      raw.room.enemies = []; raw.room.cleared = true;
+      raw.room.drops = [];
+      raw.room.forage = {
+        herbs: [{ x: raw.player.x, y: raw.player.y, picked: false }],
+        pond: { x: -999, y: -999, used: false }   // 멀리 둬서 이번엔 안 걸리게
+      };
+      DN.update(0.1);
+      var picked = raw.room.forage.herbs[0].picked;
+      var gotPotion = raw.room.drops.some(function (d) { return d.kind === 'potion'; });
+      DN.leave();
+      return picked && gotPotion && '스치자 뜯기고 단약이 바닥에 떴다';
+    });
+
+    t('채집·낚시방 — 못은 방을 다 치운 뒤 손맛 한 번', function () {
+      /* room.cleared 는 update() 가 매 틱 "산 적이 없나" 로 다시 정한다
+         (1195행) — false 를 손으로 박아도 적이 없으면 그 자리에서
+         true 로 되돌아간다. 그래서 안 치운 상태를 흉내 내려면 **산 적을
+         하나 남겨 둔다.** */
+      DN.enter({ floor: 5, mode: 'normal' });
+      var raw = DN.raw();
+      raw.room.enemies = [{ hp: 10, hpMax: 10, x: -500, y: -500 }];  // 멀리, 살아 있는 적 하나
+      raw.room.drops = [];
+      raw.room.forage = {
+        herbs: [],
+        pond: { x: raw.player.x, y: raw.player.y, used: false }
+      };
+      DN.update(0.1);
+      var lockedOut = raw.room.drops.length === 0 && !raw.room.forage.pond.used;
+      raw.room.enemies = [];                               // 이제 다 치웠다
+      DN.update(0.1);
+      var caught = raw.room.forage.pond.used && raw.room.drops.length > 0;
+      DN.leave();
+      return lockedOut && caught &&
+        '안 치웠을 땐 손맛이 없다가, 치우자 한 번 걸렸다';
+    });
+
     t('서고 방은 이 게임에 없다 (문답은 saga-quiz 로 갔다)', function () {
       var kinds = DG.dungeonData.ROOMS.map(function (r) { return r.key; });
       return kinds.indexOf('study') < 0 && !DG.quiz &&
