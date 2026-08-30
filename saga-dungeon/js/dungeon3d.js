@@ -319,6 +319,17 @@
     key = new T.DirectionalLight(0xbfd0e8, 0.8);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
+    /* 그림자 카메라(정사영) 틀 — **여기가 빠져 있었다.** three.js 의
+       DirectionalLight 그림자 카메라 기본값은 ±5(near 0.5·far 500) 다,
+       사람 손바닥만 한 방을 찍는 값이다. 이 방은 560×360 이 넘는데
+       그 밖은 그림자가 안 찍히는 게 아니라 **정사영 절두체 가장자리에서
+       잘려 커다란 검은 조각으로 번진다** — 실기기(PC 스크린샷)에서
+       "1층 시작하자마자 캐릭터를 가린다" 로 보인 그 쐐기꼴이 이것이다.
+       방 대각선(최대 820×520 짜리 데스크톱 마을까지 감안)을 넉넉히
+       담게 잡는다. */
+    key.shadow.camera.left = -520; key.shadow.camera.right = 520;
+    key.shadow.camera.top = 520; key.shadow.camera.bottom = -520;
+    key.shadow.camera.near = 10; key.shadow.camera.far = 900;
     scene.add(key);
     scene.add(key.target);
     /* 횃불 — 플레이어를 따라다닌다. 원작의 그 도려낸 빛이다 */
