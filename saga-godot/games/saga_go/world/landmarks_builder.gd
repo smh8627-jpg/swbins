@@ -87,6 +87,17 @@ func _add_ruins() -> void:
 		mi.name = "RuinPillar_%d" % i
 		add_child(mi)
 
+		var body := StaticBody3D.new()
+		body.name = "Collision"
+		body.position = mi.position
+		var cs := CollisionShape3D.new()
+		var shape := CylinderShape3D.new()
+		shape.radius = 1.1
+		shape.height = mesh.height
+		cs.shape = shape
+		body.add_child(cs)
+		add_child(body)
+
 func _add_bridge() -> void:
 	## 다리 밑은 강바닥(height -1.0)이고 그 위에 수면(-0.45)이 떠 있다
 	## (terrain_builder.gd _build_water 참고) — 널판은 수면보다 확실히 위에 놓는다.
