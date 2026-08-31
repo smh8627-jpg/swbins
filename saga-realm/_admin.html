@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사가국지 어드민 — QA 운영판</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b26; --panel2: #1c2331; --line: #2a3345;
+    --ink: #e7ecf5; --dim: #93a0b5; --gold: #e8c15a; --blue: #4aa3f0;
+    --good: #5ec26a; --bad: #e06565; --realm: #c9a227;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 13px/1.6 "Malgun Gothic", system-ui, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header .warn { font-size: 11px; color: var(--bad); }
+  .grow { flex: 1; }
+  select, input[type=text], input[type=number], textarea {
+    background: #0b0f16; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 5px 8px; font: inherit; font-size: 12px;
+  }
+  input[type=number] { width: 84px; }
+  textarea { width: 100%; min-height: 160px; font-family: Consolas, monospace; font-size: 11.5px; }
+  button {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 11px; cursor: pointer; font: inherit; font-size: 12px;
+  }
+  button:hover { border-color: #3d4a63; }
+  button.go { background: var(--gold); color: #1b1205; border-color: transparent; font-weight: 700; }
+  button.danger { background: #3a1e22; border-color: #6b2f36; color: #ffc9c9; }
+  button.on { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  nav { display: flex; gap: 6px; padding: 10px 14px 0; flex-wrap: wrap; }
+  nav button.sel { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  main { padding: 14px; max-width: 1260px; }
+  section { display: none; }
+  section.show { display: block; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 12px;
+  }
+  .card h2 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  .card p.note { margin: 0 0 10px; font-size: 11.5px; color: var(--dim); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 11.5px; color: var(--dim); min-width: 96px; }
+  .row.tight label { min-width: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 8px 14px; }
+  .fld { display: flex; align-items: center; gap: 8px; }
+  .fld label { flex: 1; min-width: 84px; font-size: 11.5px; color: var(--dim); }
+  .fld .def { font-size: 10px; color: #6b7688; min-width: 58px; text-align: right; }
+  .tablewrap { overflow-x: auto; }
+  table.grid-t { border-collapse: collapse; width: 100%; font-size: 11.5px; white-space: nowrap; }
+  table.grid-t th, table.grid-t td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  table.grid-t th { color: var(--dim); font-weight: 600; text-align: left; position: sticky; top: 0; background: var(--panel); }
+  table.grid-t input[type=number] { width: 66px; padding: 3px 5px; }
+  table.grid-t select { padding: 3px 5px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+  .one {
+    display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+  }
+  .one .fm { flex: 1 1 150px; min-width: 0; }
+  .one .fm b { font-size: 12.5px; }
+  .one .fm small { display: block; color: var(--dim); font-size: 10.5px; }
+  .one .fb { flex: 1 1 100%; display: flex; gap: 4px; flex-wrap: wrap; }
+  .one .fb button { padding: 3px 7px; font-size: 11px; }
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 8px; }
+  .preset { text-align: left; padding: 10px 12px; line-height: 1.45; }
+  .preset b { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .preset small { color: var(--dim); font-size: 10.5px; }
+  #log {
+    position: fixed; right: 14px; bottom: 14px; z-index: 20; max-width: 380px;
+    background: #10151f; border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; font-size: 11.5px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    display: none;
+  }
+  #log.show { display: block; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+  .pill.tuned { background: var(--gold); color: #1b1205; }
+  .pill.clean { background: #24303f; color: var(--dim); }
+  .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
+          background: #24303f; color: var(--dim); margin-right: 4px; }
+  .chip.on { background: var(--realm); color: #1a1400; font-weight: 700; }
+  a { color: var(--blue); }
+  code { background: #0b0f16; padding: 1px 5px; border-radius: 5px; font-size: 11.5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎛️ 사가국지 어드민</h1>
+  <label style="font-size:11.5px;color:var(--dim)">프로필</label>
+  <select id="prof"></select>
+  <span id="tunepill" class="pill clean">손잡이 없음</span>
+  <span class="grow"></span>
+  <span class="warn">게임 창이 열려 있으면 저장한 값이 곧바로 그 창에도 반영됩니다 (손잡이는 새로고침 필요)</span>
+  <a href="index.html" target="_blank">게임 열기 ↗</a>
+  <button class="go" id="save">💾 세이브 저장</button>
+  <button id="reload">↺ 다시 읽기</button>
+</header>
+
+<nav>
+  <button data-tab="save" class="sel">세이브</button>
+  <button data-tab="city">성(城)</button>
+  <button data-tab="officer">무장</button>
+  <button data-tab="war">전쟁 · 외교</button>
+  <button data-tab="tune">균형 손잡이</button>
+  <button data-tab="preset">QA 프리셋</button>
+  <button data-tab="tools">점검 · 백업</button>
+</nav>
+
+<main>
+
+<!-- ── 세이브 ─────────────────────────────────────────── -->
+<section id="tab-save" class="show">
+  <div class="card">
+    <h2>지금 이 판</h2>
+    <p class="note" id="sum">…</p>
+  </div>
+
+  <div class="card">
+    <h2>판을 새로 세운다</h2>
+    <p class="note">
+      시나리오와 잡을 세력을 골라 <b>지금 프로필의 삼국지 판을 통째로 새로 세웁니다</b>
+      (성·무장·외교가 초기 배치로 되돌아갑니다 — 학당 기록은 남습니다).
+      194 년 판은 13 세력, 208 년 판은 손·유가 이미 동맹으로 시작합니다.
+    </p>
+    <div class="row">
+      <label>시나리오</label><select id="scen"></select>
+      <label>잡을 세력</label><select id="meforce"></select>
+      <button class="go" id="setup-go">🏁 이 판으로 새로 세운다</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>연·월 · 승패</h2>
+    <div class="grid" id="ymfields"></div>
+    <div class="row" style="margin-top:6px">
+      <button id="result-clear">🔄 승패 판정 되돌리기(result=null)</button>
+      <button id="month-end">📅 한 달 진행시킨다 (endMonth)</button>
+      <button id="months-12" class="go">⏩ 12달 빨리 감기</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>순위 — 지금 살아 있는 세력</h2>
+    <div class="tablewrap"><table class="grid-t" id="ranktable"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>진행 비우기</h2>
+    <p class="note">쌓인 것을 지웁니다 — 같은 것을 처음부터 다시 확인할 때 씁니다.</p>
+    <div class="row">
+      <button data-clear="quiz">📚 학당 기록 비우기</button>
+      <button data-clear="log">📜 기록 비우기</button>
+      <button data-clear="all" class="danger">🕳️ 세이브 통째로 비우기</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── 성(城) ─────────────────────────────────────────── -->
+<section id="tab-city">
+  <div class="card">
+    <h2>서른 성 — 소속 · 내정 · 살림</h2>
+    <p class="note">
+      값을 바꾸면 그 칸만 곧바로 저장됩니다. <b>소속을 바꾸면 태수가 비고 치안이 절반으로 떨어집니다</b>
+      (전쟁으로 성을 빼앗았을 때와 같은 취급 — <code>war.capture</code> 를 그대로 흉내내지 않고
+      직접 짜맞췄습니다).
+    </p>
+    <div class="row">
+      <button id="city-capall">🌾 내 성 전부 내정 만땅(상한까지) + 성벽 최대</button>
+      <button id="city-secall">🪧 내 성 전부 치안 100 · 훈련 100</button>
+    </div>
+    <div class="tablewrap"><table class="grid-t" id="citytable"></table></div>
+  </div>
+</section>
+
+<!-- ── 무장 ───────────────────────────────────────────── -->
+<section id="tab-officer">
+  <div class="card">
+    <h2>내 세력 무장</h2>
+    <p class="note">
+      능력치는 <code>hero.stats</code> 하나에서 나옵니다(레벨·승급을 올리면 그 값이 바로 큽니다).
+      승진은 공(功)과 금을 실제로 깎습니다 — <b>강제 승진</b>은 그 검사를 건너뛰고 곧장 관직만 올립니다.
+    </p>
+    <div class="row">
+      <button id="off-loyalmax">💯 전원 충성 100</button>
+      <button id="off-featmax">🎖️ 전원 승진 가능하게 (공 900)</button>
+      <button id="off-healall">💊 전원 부상 해제</button>
+    </div>
+    <div class="tablewrap"><table class="grid-t" id="offtable"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>재야 — 내 성에 있는 사람</h2>
+    <p class="note"><b>찾아낸(found) 사람만</b> 실제 화면에도 보입니다. 등용은 성공을 그대로 대입합니다(주사위 없음).</p>
+    <div class="tablewrap"><table class="grid-t" id="freetable"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>포로</h2>
+    <p class="note">전쟁에서 사로잡힌 무장입니다. 세력에서 떨어져 나와 그 성에 갇혀 있습니다.</p>
+    <div class="tablewrap"><table class="grid-t" id="captable"></table></div>
+  </div>
+</section>
+
+<!-- ── 전쟁 · 외교 ────────────────────────────────────── -->
+<section id="tab-war">
+  <div class="card">
+    <h2>진(陣) — 달을 넘겨 이어지는 원정</h2>
+    <p class="note">
+      게임 창에서 <code>march()</code> 로 실제 출진해야 정상적으로 생깁니다. 여기서는 이미 있는 진의
+      상태만 보고 철수시키거나, QA 프리셋으로 미리 만든 진을 다룹니다.
+    </p>
+    <div class="tablewrap"><table class="grid-t" id="camptable"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>외교 — 세력 간 동맹 · 화친</h2>
+    <p class="note">
+      <code>diplo.setPact(a, b, kind, months)</code> 를 그대로 부릅니다. 우호도는 0~100 사이입니다.
+    </p>
+    <div class="row">
+      <label>A</label><select id="dip-a"></select>
+      <label>B</label><select id="dip-b"></select>
+      <select id="dip-kind"><option value="ally">동맹(18달)</option><option value="truce">화친(8달)</option></select>
+      <button class="go" id="dip-set">맺는다</button>
+      <button id="dip-rel100">우호 100으로</button>
+      <span id="dipinfo" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <div class="tablewrap"><table class="grid-t" id="diptable"></table></div>
+  </div>
+</section>
+
+<!-- ── 균형 손잡이 ────────────────────────────────────── -->
+<section id="tab-tune">
+  <div class="card">
+    <h2>내정 · 살림 상수 (<code>rtk.*</code>)</h2>
+    <p class="note">
+      이 판은 <b>턴제</b>라 대부분의 손잡이를 모듈이 뜰 때 한 번만 읽습니다 — 잡은 뒤
+      <b>게임 창을 새로고침</b>해야 듣습니다. 비워 두면 <b>코드의 기본값</b>으로 돕니다.
+      자가진단(<code>_test.html</code>)과 데모는 손잡이를 읽지 않습니다.
+    </p>
+    <div id="tunefields"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="danger" id="tune-clear">전부 놓기 (기본값으로)</button>
+      <span id="tunesum" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ── QA 프리셋 ──────────────────────────────────────── -->
+<section id="tab-preset">
+  <div class="card">
+    <h2>시나리오 한 번에 만들기</h2>
+    <p class="note">
+      확인하려는 상황을 바로 만듭니다. 누르면 <b>곧바로 저장</b>되고 게임 창에도 반영됩니다.
+      되돌리려면 아래 스냅샷을 먼저 떠 두세요. <b>결정적으로 짰습니다</b> — 몇 번을 눌러도
+      같은 성·같은 무장이 뽑힙니다(무작위로 흩으면 QA 가 재현이 안 됩니다).
+    </p>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="card">
+    <h2>스냅샷 — 확인 전에 떠 두고, 끝나면 되돌립니다</h2>
+    <p class="note">이 기기에만 남습니다(세이브와 별개 칸). 세 칸입니다.</p>
+    <div class="row" id="snaps"></div>
+  </div>
+</section>
+
+<!-- ── 점검 · 백업 ────────────────────────────────────── -->
+<section id="tab-tools">
+  <div class="card">
+    <h2>세이브 조각</h2>
+    <p class="note">그대로 복사해 두었다가 붙여 넣으면 그 판으로 돌아갑니다.</p>
+    <div class="row">
+      <button id="dump">📋 지금 세이브 꺼내기</button>
+      <button id="load" class="danger">붙여 넣은 것으로 덮기</button>
+      <span id="usage" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <textarea id="json" placeholder="여기에 세이브 조각이 나옵니다"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>어드민 자가점검</h2>
+    <p class="note">
+      어드민이 세이브와 손잡이를 제대로 읽고 쓰는지 스스로 확인합니다.
+      <b>지금 프로필을 건드리지 않습니다</b> — 따로 만든 칸에서 확인하고 지웁니다.
+    </p>
+    <div class="row"><button class="go" id="selftest">🔍 점검</button></div>
+    <div id="selfout" style="font-family:Consolas,monospace;font-size:11.5px;line-height:1.8"></div>
+  </div>
+</section>
+
+</main>
+
+<div id="log"></div>
+
+<script src="js/data.js"></script>
+<script src="js/data-city.js"></script>
+<script src="js/data-force.js"></script>
+<script src="js/data-quiz.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/officer.js"></script>
+<script src="js/rtk.js"></script>
+<script src="js/war.js"></script>
+<script src="js/diplo.js"></script>
+<script src="js/rtk-ai.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

@@ -20,8 +20,10 @@
   var FD = global.DG.forceData;
 
   var START_YEAR = 194;              // 표가 연도를 안 적었을 때의 값
-  var UPKEEP_PER_OFFICER = 12;      // 무장 한 사람의 달 봉급 (금)
-  var FOOD_PER_1000 = 10;           // 병사 1000명이 한 달에 먹는 군량
+  /* 아래 둘은 core.tuned 로 뽑았다(2026-08-31, 어드민 '균형 손잡이' 탭) —
+     이 판은 턴제라 모듈이 뜰 때 한 번만 읽는다. 바꾼 뒤 새로고침해야 듣는다. */
+  var UPKEEP_PER_OFFICER = core.tuned('rtk.upkeep', 12);      // 무장 한 사람의 달 봉급 (금)
+  var FOOD_PER_1000 = core.tuned('rtk.foodPer1000', 10);      // 병사 1000명이 한 달에 먹는 군량
   var HARVEST_MONTHS = [6, 10];     // 군량이 들어오는 달
 
   /* ── 내정 명령 ────────────────────────────────────────── */
@@ -417,7 +419,7 @@
     var c = city(cityId);
     if (!c || !c.gov) { return 1; }
     var s = global.DG.off.stats(c.gov);
-    return 1 + (s.wisdom * 0.6 + s.command * 0.4) / 100 * 0.35;
+    return 1 + (s.wisdom * 0.6 + s.command * 0.4) / 100 * core.tuned('rtk.govCap', 0.35);
   }
 
   /* ── 정산 ─────────────────────────────────────────────── */
@@ -439,14 +441,14 @@
   function goldOf(cityId) {
     var c = city(cityId);
     if (!c) { return 0; }
-    return Math.round(c.comm * 0.55 * secMul(cityId) * govMul(cityId) * harvestMul(cityId));
+    return Math.round(c.comm * core.tuned('rtk.goldMul', 0.55) * secMul(cityId) * govMul(cityId) * harvestMul(cityId));
   }
 
   /** 수확 달에 이 도시가 낳는 군량 */
   function foodOf(cityId) {
     var c = city(cityId);
     if (!c) { return 0; }
-    return Math.round(c.agri * 6 * secMul(cityId) * govMul(cityId) * harvestMul(cityId));
+    return Math.round(c.agri * core.tuned('rtk.foodMul', 6) * secMul(cityId) * govMul(cityId) * harvestMul(cityId));
   }
 
   /** 이 도시가 이 달에 먹는 군량 */
@@ -537,7 +539,7 @@
   /** 달마다 한 성쯤에 무슨 일이 난다 */
   function rollDisasters() {
     var st = state(), keys = Object.keys(st.cities);
-    if (Math.random() > 0.42) { return null; }
+    if (Math.random() > core.tuned('rtk.disasterChance', 0.42)) { return null; }
     var target = keys[Math.floor(Math.random() * keys.length)];
     var c = st.cities[target];
     if (!c || !c.force || c.disaster) { return null; }
