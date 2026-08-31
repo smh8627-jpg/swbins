@@ -54,15 +54,31 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     없음**. Godot headless는 실제 렌더링을 안 하므로(null 렌더러) 화면 확인은
     아직 못 했다 — **다음 세션이 에디터로 직접 열어 시각 확인할 것**
 
+- Phase 4(43·44·48·49) — **초목/바위 산포 + 높낮이 지형 + 강물 표면 완료.**
+  - `terrain_builder.gd`에 지형종류별 `height` 추가 — 산 +2.5 · 강바닥 -1.0 ·
+    나머지는 0~0.2 사이 미세 단차(사가의숲 웹판 "물은 12cm 낮춘다" 원칙과 같음).
+    강(~)·다리(B) 타일 위에 반투명 수면(WaterSurface) 한 겹을 별도 MultiMesh로 얹음
+  - `vegetation_builder.gd`(신규) — 숲(T) 타일마다 나무 3그루, 산(^) 타일마다
+    바위 1개를 **좌표+salt 결정적 해시**로 산포(`Math.random` 안 씀 — "자리는
+    시각의 순수 함수다" 원칙, SAGA-HANDOFF.md 전역 규칙과 동일). 나무는
+    trunk+canopy 각각 MultiMesh 하나씩(수십 그루라도 draw call 2회)
+  - `landmarks_builder.gd`를 새 높낮이에 맞게 수정 — 굴 입구·마을집·폐허는
+    각 타일의 `height`를 더해 얹고, 다리 널판은 강바닥(-1.0)과 수면(-0.45)
+    위로 확실히 띄움(`bed + 2.0`)
+  - 검증: `--headless --import`/`--quit` 둘 다 exit 0, 에러·경고 없음
+
 ## 다음 작업
 
 - **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
   기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
-- Phase 4 나머지: 41(GLB import 구조 — asset3d.js 패턴을 GDScript로) · 43~46
-  (Vegetation/Rock/Building/Landmark를 지금의 primitive에서 실제 배치 밀도로) ·
-  48(Water — 지금 강 타일은 색만 있고 표면 셰이더 없음) · 49(높낮이 지형 —
-  지금은 완전 평면)
+- Phase 4 나머지: 41(GLB import 구조 — asset3d.js 패턴을 GDScript로, 지금은
+  전부 primitive) · 45·46(Building/Landmark는 지금 primitive로 이미 있으나
+  GLB로 교체는 아직) · **50(첫 번째 플레이 가능 지역 완성 — 걸어 다닐
+  플레이어가 없어서 "플레이 가능"은 아직 아니다, Phase 5에서 채움)**
+- 헤드리스는 null 렌더러라 실제 화면을 못 봤다 — **다음 세션이 에디터로 열어
+  지형 높낮이·수면·나무 배치가 시각적으로 맞는지 확인할 것**(특히 다리가
+  물 위로 잘 뜨는지, 산이 두드러지는지)
 - Phase 5 — Player(실제 CharacterBody3D, PlayerSpawn 자리에 세우기)
 
 ## 알려진 오류

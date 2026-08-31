@@ -5,6 +5,7 @@ extends Node3D
 ## 붙기 전까지만 쓰는 자리다. 좌표는 test_map.gd의 글자 지도와 맞춘다.
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
+const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 
 func _ready() -> void:
 	_add_cave()
@@ -23,16 +24,18 @@ func _box(size: Vector3, color: Color) -> MeshInstance3D:
 	return mi
 
 func _add_cave() -> void:
+	var ground: float = TerrainBuilder.LEGEND["C"].height
 	var cave := _box(Vector3(10, 6, 4), Color(0.12, 0.12, 0.14))
 	cave.name = "CaveEntrance"
-	cave.position = TestMap.world_pos(3, 0) + Vector3(0, 3, 0)
+	cave.position = TestMap.world_pos(3, 0) + Vector3(0, ground + 3, 0)
 	add_child(cave)
 
 func _add_village() -> void:
+	var ground: float = TerrainBuilder.LEGEND["H"].height
 	for gx in [2, 3]:
 		var house := Node3D.new()
 		house.name = "House_%d" % gx
-		house.position = TestMap.world_pos(gx, 3)
+		house.position = TestMap.world_pos(gx, 3) + Vector3(0, ground, 0)
 		add_child(house)
 
 		var body := _box(Vector3(10, 4, 10), Color(0.85, 0.78, 0.6))
@@ -50,7 +53,8 @@ func _add_village() -> void:
 		house.add_child(roof)
 
 func _add_ruins() -> void:
-	var base := TestMap.world_pos(5, 3)
+	var ground: float = TerrainBuilder.LEGEND["R"].height
+	var base := TestMap.world_pos(5, 3) + Vector3(0, ground, 0)
 	var offsets := [Vector2(-3, -2), Vector2(2, 1), Vector2(-1, 3)]
 	for i in offsets.size():
 		var off: Vector2 = offsets[i]
@@ -68,7 +72,10 @@ func _add_ruins() -> void:
 		add_child(mi)
 
 func _add_bridge() -> void:
+	## 다리 밑은 강바닥(height -1.0)이고 그 위에 수면(-0.45)이 떠 있다
+	## (terrain_builder.gd _build_water 참고) — 널판은 수면보다 확실히 위에 놓는다.
+	var bed: float = TerrainBuilder.LEGEND["B"].height
 	var plank := _box(Vector3(6, 0.6, 44), Color(0.42, 0.3, 0.18))
 	plank.name = "Bridge"
-	plank.position = TestMap.world_pos(3, 5) + Vector3(0, 1.2, 0)
+	plank.position = TestMap.world_pos(3, 5) + Vector3(0, bed + 2.0, 0)
 	add_child(plank)
