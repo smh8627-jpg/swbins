@@ -30,12 +30,20 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 - Phase 1 나머지: 02(이름 확정 — 지금은 "SAGA"), 03(모바일 해상도 실기 확인),
   04(Portrait/Landscape 실제 동작 확인 — 지금은 project.godot 설정만 돼 있고 실기 미확인)
 
+- Phase 3 — Vertical Slice 설계 완료. `docs/VERTICAL_SLICE.md` 작성 — 첫
+  슬라이스는 **사가고(GO)** 기준(master.md 39장 순서 + GO만 웹판 코드가 실제로
+  도는 상태). "도적의 습격" 사건 하나로 좁힌 최소 루프: 걷기 → 주민 대화 →
+  사건 조우 → 전투(duel.js 재구현) → 승리 → 등용(부대 합류) → 저장. 보스·퀘스트·
+  던전·장비는 이번 슬라이스에서 의도적으로 제외(GO 정체성에 안 맞거나 다른
+  게임 설계를 먼저 봐야 함).
+
 ## 다음 작업
 
 - **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
   기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
-- Phase 3 — Vertical Slice 설계 (master.md 26~35단계)
+- Phase 4 — 3D World Foundation (master.md 36~50단계): 실제 Godot 씬 제작 시작
+  — TestVillage.tscn, Terrain, Lighting, GLB import 구조 등
 
 ## 알려진 오류
 
