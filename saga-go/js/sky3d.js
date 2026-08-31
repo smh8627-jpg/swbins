@@ -345,24 +345,34 @@
     return want;
   }
 
-  /** 먼지 한 프레임 — `tick` 안에서 나란히 굴린다 */
+  /** 먼지 한 프레임 — `tick` 안에서 나란히 굴린다.
+   * **어긋나면 스스로 꺼진다** — 여기서 예외가 나면 `tick()` 이 끊겨 그 뒤의
+   * 비·눈·새는 물론 `world3d.render` 의 남은 줄(카메라·전투 무대)까지 그
+   * 프레임에서 통째로 안 불린다. 장식 하나가 게임을 멈추는 것보다 낫다 */
+  var dustBroken = false;
   function tickDust(dt) {
-    if (!live()) { return 0; }
-    reshapeDust();
-    if (!dust.length) { return 0; }
-    var pos = core.save.player.pos, R = DUST_R(), n = 0, i;
-    for (i = 0; i < dust.length; i++) {
-      var d = dust[i];
-      if (!d.node.visible) { continue; }
-      d.ph += dt * d.spd;
-      d.x += d.vx * dt;
-      d.z += d.vz * dt;
-      if (Math.abs(d.x) > R || Math.abs(d.z) > R) { seedDust(d); }
-      var bob = Math.sin(d.ph) * 0.5 + 0.5;               // 0~1 을 오간다
-      d.node.position.set(pos.x + d.x, bob * DUST_H(), pos.y + d.z);
-      n++;
+    if (!live() || dustBroken) { return 0; }
+    try {
+      reshapeDust();
+      if (!dust.length) { return 0; }
+      var pos = core.save.player.pos, R = DUST_R(), n = 0, i;
+      for (i = 0; i < dust.length; i++) {
+        var d = dust[i];
+        if (!d.node.visible) { continue; }
+        d.ph += dt * d.spd;
+        d.x += d.vx * dt;
+        d.z += d.vz * dt;
+        if (Math.abs(d.x) > R || Math.abs(d.z) > R) { seedDust(d); }
+        var bob = Math.sin(d.ph) * 0.5 + 0.5;               // 0~1 을 오간다
+        d.node.position.set(pos.x + d.x, bob * DUST_H(), pos.y + d.z);
+        n++;
+      }
+      return n;
+    } catch (err) {
+      dustBroken = true;
+      if (global.console) { console.error('[sky3d] 먼지에서 멎어 껐다', err); }
+      return 0;
     }
-    return n;
   }
 
   /* ── 새 (PLAN 44절 "새가 날아감") ───────────────────────────
@@ -412,28 +422,36 @@
     return want;
   }
 
-  /** 새 한 프레임 — `tick` 안에서 나란히 굴린다 */
+  /** 새 한 프레임 — `tick` 안에서 나란히 굴린다. 어긋나면 스스로 꺼진다
+   * (`tickDust` 와 같은 이유) */
+  var birdBroken = false;
   function tickBirds(dt, light) {
-    if (!live()) { return 0; }
-    var W = global.DG.weather;
-    var wkey = (light && light.weather) || (W ? W.current().key : 'clear');
-    var isNight = !!(light && light.lamp > 0.2);
-    var want = (BIRD_ON() && birdSkyOk(wkey, isNight)) ? BIRD_N() : 0;
-    reshapeBirds(want);
-    if (!birds.length) { return 0; }
-    var pos = core.save.player.pos, spd = BIRD_SPD(), n = 0, i;
-    for (i = 0; i < birds.length; i++) {
-      var b = birds[i];
-      if (!b.node.visible) { continue; }
-      b.ang += dt * spd * (0.6 + (i % 3) * 0.2);
-      b.flap += dt * 9;
-      b.node.position.set(pos.x + Math.cos(b.ang) * b.r, b.h, pos.y + Math.sin(b.ang) * b.r);
-      b.node.rotation.set(0, -b.ang, 0);
-      var flapY = 0.35 + Math.abs(Math.sin(b.flap)) * 0.65;
-      b.node.scale.set(1, flapY, 1);
-      n++;
+    if (!live() || birdBroken) { return 0; }
+    try {
+      var W = global.DG.weather;
+      var wkey = (light && light.weather) || (W ? W.current().key : 'clear');
+      var isNight = !!(light && light.lamp > 0.2);
+      var want = (BIRD_ON() && birdSkyOk(wkey, isNight)) ? BIRD_N() : 0;
+      reshapeBirds(want);
+      if (!birds.length) { return 0; }
+      var pos = core.save.player.pos, spd = BIRD_SPD(), n = 0, i;
+      for (i = 0; i < birds.length; i++) {
+        var b = birds[i];
+        if (!b.node.visible) { continue; }
+        b.ang += dt * spd * (0.6 + (i % 3) * 0.2);
+        b.flap += dt * 9;
+        b.node.position.set(pos.x + Math.cos(b.ang) * b.r, b.h, pos.y + Math.sin(b.ang) * b.r);
+        b.node.rotation.set(0, -b.ang, 0);
+        var flapY = 0.35 + Math.abs(Math.sin(b.flap)) * 0.65;
+        b.node.scale.set(1, flapY, 1);
+        n++;
+      }
+      return n;
+    } catch (err) {
+      birdBroken = true;
+      if (global.console) { console.error('[sky3d] 새에서 멎어 껐다', err); }
+      return 0;
     }
-    return n;
   }
 
   /** 눈으로 확인할 때 */

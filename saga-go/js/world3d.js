@@ -1167,15 +1167,21 @@
    * **격자 키로 나눠 든다**(`smokeByKey`) — 그래야 그 격자가 부서질 때
    * (`syncProps`·`refreshProps`) 함께 치워 창고가 걸을수록 늘어나지 않는다 */
   var smokeByKey = {};
+  /* 여기서 어긋나면 **그 격자를 짓던 `buildProp` 통째로 멎는다**(같은 for 문
+   * 안이라, 이 뒤에 올 나무·집도 안 선다) — 그래서 몸만 남기고 조용히 넘어간다 */
   function addLampSmoke(g, key, x, y, z) {
-    var list = smokeByKey[key] || (smokeByKey[key] = []);
-    var i;
-    for (i = 0; i < 2; i++) {
-      var s = box(g, 'sph', pmat(0xb9b9b9, 'smoke').clone(), x, y, z, 0.4, 0.4, 0.4, false);
-      s.userData.lamp = true;
-      s.userData.smoke = { x: x, baseY: y, z: z, ph: Math.random() * 6.28 + i * Math.PI };
-      s.visible = !!(lightNow && lightNow.lamp > 0.2);
-      list.push(s);
+    try {
+      var list = smokeByKey[key] || (smokeByKey[key] = []);
+      var i;
+      for (i = 0; i < 2; i++) {
+        var s = box(g, 'sph', pmat(0xb9b9b9, 'smoke').clone(), x, y, z, 0.4, 0.4, 0.4, false);
+        s.userData.lamp = true;
+        s.userData.smoke = { x: x, baseY: y, z: z, ph: Math.random() * 6.28 + i * Math.PI };
+        s.visible = !!(lightNow && lightNow.lamp > 0.2);
+        list.push(s);
+      }
+    } catch (err) {
+      if (global.console) { console.error('[world3d] 연기 알갱이를 못 세웠다', err); }
     }
   }
 
@@ -1446,36 +1452,51 @@
   }
 
   /** 등롱·사당 불이 일렁인다(PLAN 44절 "불꽃") — 재질을 **모두가 나눠 쓰므로**
-   * 한 번만 써도 뜬 등롱 전부가 같이 일렁인다(값싸다) */
-  var flameClock = 0, smokeClock = 0;
+   * 한 번만 써도 뜬 등롱 전부가 같이 일렁인다(값싸다).
+   * **한 번이라도 어긋나면 스스로 꺼진다** — 이 축은 아직 실기기로 못 본
+   * 새 코드라, 여기서 예외가 나 렌더 루프 전체(`world3d.render`)를 끊으면
+   * 이동·전투 무대까지 통째로 멎는다(그 아래 줄들이 아예 안 불린다). 장식
+   * 하나가 게임 전체를 죽이는 것보다 그 장식만 조용히 빠지는 쪽이 낫다 */
+  var flameClock = 0, smokeClock = 0, flameBroken = false, smokeBroken = false;
   function syncFlame(dt) {
-    if (!FLAME_ON()) { return; }
-    flameClock += dt;
-    var m = pmat(0xffd489, 'glow');
-    m.emissiveIntensity = 0.9 + FLAME_AMT() *
-      (Math.sin(flameClock * 9.1) * 0.7 + Math.sin(flameClock * 23.7) * 0.3);
+    if (!FLAME_ON() || flameBroken) { return; }
+    try {
+      flameClock += dt;
+      var m = pmat(0xffd489, 'glow');
+      m.emissiveIntensity = 0.9 + FLAME_AMT() *
+        (Math.sin(flameClock * 9.1) * 0.7 + Math.sin(flameClock * 23.7) * 0.3);
+    } catch (err) {
+      flameBroken = true;
+      if (global.console) { console.error('[world3d] 불꽃 일렁임에서 멎어 껐다', err); }
+    }
   }
 
   /** 연기 알갱이를 한 프레임 굴린다(PLAN 44절) — 위로 오르다 다 오르면
    * 다시 밑에서 시작한다(비 알갱이가 상자를 벗어나면 되돌리는 것과 같은 손).
    * **재질을 낱개로 복제해 뒀으니**(`addLampSmoke`) 알갱이마다 다른 짙기로
-   * 옅어질 수 있다. 창고가 안 뜬 낮에는 굳이 돌리지 않는다 */
+   * 옅어질 수 있다. 창고가 안 뜬 낮에는 굳이 돌리지 않는다. `syncFlame` 과
+   * 같은 이유로 어긋나면 스스로 꺼진다 */
   function syncSmoke(dt) {
-    if (!SMOKE_ON() || !(lightNow && lightNow.lamp > 0.2)) { return; }
-    smokeClock += dt;
-    var RISE = 0.4, MAXH = 2.4, k;
-    for (k in smokeByKey) {
-      if (!Object.prototype.hasOwnProperty.call(smokeByKey, k)) { continue; }
-      var list = smokeByKey[k], i;
-      for (i = 0; i < list.length; i++) {
-        var s = list[i], d = s.userData.smoke;
-        var t = (smokeClock * RISE + d.ph) % MAXH;
-        var frac = t / MAXH;
-        s.position.set(d.x + Math.sin(smokeClock * 0.6 + d.ph) * 0.15, d.baseY + t, d.z);
-        var sc = 0.35 + frac * 0.55;
-        s.scale.set(sc, sc, sc);
-        s.material.opacity = 0.34 * (1 - frac);
+    if (!SMOKE_ON() || smokeBroken || !(lightNow && lightNow.lamp > 0.2)) { return; }
+    try {
+      smokeClock += dt;
+      var RISE = 0.4, MAXH = 2.4, k;
+      for (k in smokeByKey) {
+        if (!Object.prototype.hasOwnProperty.call(smokeByKey, k)) { continue; }
+        var list = smokeByKey[k], i;
+        for (i = 0; i < list.length; i++) {
+          var s = list[i], d = s.userData.smoke;
+          var t = (smokeClock * RISE + d.ph) % MAXH;
+          var frac = t / MAXH;
+          s.position.set(d.x + Math.sin(smokeClock * 0.6 + d.ph) * 0.15, d.baseY + t, d.z);
+          var sc = 0.35 + frac * 0.55;
+          s.scale.set(sc, sc, sc);
+          s.material.opacity = 0.34 * (1 - frac);
+        }
       }
+    } catch (err) {
+      smokeBroken = true;
+      if (global.console) { console.error('[world3d] 연기에서 멎어 껐다', err); }
     }
   }
 
