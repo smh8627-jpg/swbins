@@ -15,6 +15,16 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
   `run/main_scene`에 연결. `--headless --import` 로 프로젝트 첫 스캔/임포트,
   `--headless --quit` 로 실행 — **exit code 0, 오류 없음.**
 
+## 완료 단계 (추가)
+
+- Phase 2 — Legacy 분석 완료. `docs/LEGACY_FEATURE_AUDIT.md` 작성 —
+  5개 게임의 PLAN.md/PLAN1.md/PLAN2.md(15개, 21,665줄) + README 전체를 읽고
+  KEEP/REWORK/MERGE/DROP 분류. **가장 큰 발견: master.md 5장의 게임 재정의가
+  이 프로젝트의 핵심 정체성("역사 인물로 노는 웹 게임")을 빠뜨리고 제네릭
+  판타지 몬스터 RPG로 잘못 재정의했었다** — 감사 문서에 바로잡아 기록함.
+  또한 master.md 6장의 "SAGA Core 공통화"가 다섯 벌 복사 원칙(루트 CLAUDE.md)과
+  충돌한다는 것도 확인.
+
 ## 현재 작업
 
 - Phase 1 나머지: 02(이름 확정 — 지금은 "SAGA"), 03(모바일 해상도 실기 확인),
@@ -22,8 +32,10 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 
 ## 다음 작업
 
-- Phase 2 — Legacy 분석 (saga-go/dungeon/forest/story/realm 기존 PLAN*.md 분석,
-  LEGACY_FEATURE_AUDIT.md 작성)
+- **미결 사항(사용자 확인 필요)**: 다섯 게임이 인물 데이터(`data.js`)를
+  Godot에서도 공유할지, 지금처럼 각자 복사본을 가질지 — LEGACY_FEATURE_AUDIT.md
+  1·4장 참고
+- Phase 3 — Vertical Slice 설계 (master.md 26~35단계)
 
 ## 알려진 오류
 
