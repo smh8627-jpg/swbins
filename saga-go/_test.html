@@ -2814,16 +2814,43 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          r0.seen + ' → ' + r1.seen);
     });
 
-    t('발견 — 보상이 아니다 (금·공적이 안 움직인다)', function () {
+    t('발견 — 소액 보상을 준다 (PLAN 49절, 2026-08-31 갱신)', function () {
+      /* 예전엔 "발견은 기록이지 보상이 아니다"였다 — 사용자가 PLAN 49절대로
+         바꾸기로 했다. 공적(등용·포획 같은 큰 성취의 몫)은 여전히 안 건드린다 */
       CX.clear();
       var p = C.save.player;
-      var g0 = p.gold, f0 = p.feat, e0 = p.exp, lv0 = p.level;
+      var f0 = p.feat, g0 = p.gold;
+      CX.discover('beast', 'ox');            // exp 6 · gold 4
+      var gold1 = p.gold - g0;
       CX.discover('place', 'cave');
       CX.discover('event', 'stone_text');
       CX.discover('record', 'stone_text');
-      var same = p.gold === g0 && p.feat === f0 && p.exp === e0 && p.level === lv0;
+      var featSame = p.feat === f0;
       CX.clear();
-      return same && '본 것의 기록일 뿐 — 한 푼도 안 준다';
+      return gold1 === 4 && featSame &&
+        '생물 발견에 재화 +' + gold1 + ' · 공적은 여전히 안 움직인다';
+    });
+
+    t('발견 — 숨은 곳은 보상이 세 배다', function () {
+      /* land.js 의 'cave' 는 hidden:true, 'village' 는 아니다 — PLAN 49절
+         예시의 "희귀 장소 발견 → 특별 보상"을 이렇게 읽었다. `rewardOf` 는
+         순수 함수라(gainExp 의 장비·날씨 배수를 안 탄다) 절댓값을 그대로 잰다 */
+      var hidden = CX.rewardOf('place', 'cave');
+      var normal = CX.rewardOf('place', 'village');
+      return normal.exp === 12 && hidden.exp === 36 &&
+        'village ' + normal.exp + ' → cave(숨은 곳) ' + hidden.exp + ' (×3)';
+    });
+
+    t('발견 — 실제 지급도 세이브에 그대로 반영된다', function () {
+      /* rewardOf 는 값만 내고, discover 가 core.gainExp/gold 로 실제로 지급한다.
+         장비·날씨 경험치 배수가 껴 있어도 최소한 **양수만큼은** 늘어야 한다 */
+      CX.clear();
+      var p = C.save.player, e0 = p.exp, lv0 = p.level;
+      CX.discover('place', 'village');
+      var gained = p.exp - e0, lv;
+      for (lv = lv0; lv < p.level; lv++) { gained += C.expNeed(lv); }
+      CX.clear();
+      return gained > 0 && 'village 발견으로 경험치 +' + gained;
     });
 
     t('발견 — 도장은 세이브에 남고 손잡이로 끌 수 있다', function () {
@@ -3946,20 +3973,22 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('말 걸기 — 잡히지도 설득되지도 않는다', function () {
-      /* 카드에 미니게임이 없다. 세이브가 바뀌는 것은 발견 도장 하나뿐이다 */
+      /* 카드에 미니게임이 없다. 세이브가 바뀌는 것은 발견 도장과 그 소액
+         보상뿐이다(PLAN 49절, 2026-08-31 갱신 — 전엔 도장만 찍고 아무 것도
+         안 줬다). 공적은 여전히 그대로다 — 발견은 등용·포획만큼은 안 친다 */
       CX.clear();
       var p = C.save.player;
-      var g0 = p.gold, f0 = p.feat, e0 = p.exp;
+      var g0 = p.gold, f0 = p.feat;
       var dex0 = JSON.stringify(C.save.dex || {});
       var sp0 = W.spawns.length;
       TK.tap({ kind: 'beast', it: { dist: 5, alarm: 0, kind: AN.KINDS.deer } });
       TK.close();
       var stamped = CX.has('beast', 'deer');
       CX.clear();
-      return p.gold === g0 && p.feat === f0 && p.exp === e0 &&
+      return p.gold === g0 + 4 && p.feat === f0 &&
         JSON.stringify(C.save.dex || {}) === dex0 && W.spawns.length === sp0 &&
         stamped === true &&
-        '금·공적·경험치·도감·스폰 그대로 · 발견 도장만 찍힌다';
+        '공적·도감·스폰 그대로 · 발견 도장 + 소액 보상(재화 +4)만 찍힌다';
     });
 
     t('지면 — 이 땅의 모든 갈래에 칠할 색이 있다', function () {
@@ -4184,6 +4213,42 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       C.setTune('world3d.lodNear', null);
       return after === 10 && R3.lodNear() === before &&
         'world3d.lodNear=10 이면 10m 밖은 다 도형';
+    });
+
+    /* ── 잎·풀 흔들림 (PLAN 44절) ────────────────────────────
+     * 정점 셰이더로 하는 일이라 그림 자체는 화면이 있어야 보인다(DG_NO_DRAW
+     * 에서는 안 그려진다). 여기서는 **켬/폭 손잡이**만 값으로 본다.
+     */
+
+    t('잎·풀 흔들림 — 기본은 켜져 있고 폭이 있다', function () {
+      return R3.swayOn() === true && R3.swayAmt() > 0 &&
+        '기본 폭 ' + R3.swayAmt();
+    });
+
+    t('잎·풀 흔들림 — 손잡이로 끌 수 있다', function () {
+      C.setTune('world3d.sway', 0);
+      var off = R3.swayOn();
+      C.setTune('world3d.sway', null);
+      return off === false && R3.swayOn() === true &&
+        'world3d.sway=0 이면 정지 화면';
+    });
+
+    /* ── 구름 이동 (PLAN 44절) ───────────────────────────────
+     * 알갱이 창고와 같은 사정 — 그림은 화면이 있어야 보이고, 여기서는
+     * 켬/장수 손잡이만 본다.
+     */
+
+    t('구름 — 기본은 켜져 있고 몇 장 뜬다', function () {
+      return SK.cloudOn() === true && SK.cloudCount() > 0 &&
+        '기본 ' + SK.cloudCount() + '장';
+    });
+
+    t('구름 — 손잡이로 끌 수 있다', function () {
+      C.setTune('sky3d.clouds', 0);
+      var off = SK.cloudOn();
+      C.setTune('sky3d.clouds', null);
+      return off === false && SK.cloudOn() === true &&
+        'sky3d.clouds=0 이면 안 뜬다';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {

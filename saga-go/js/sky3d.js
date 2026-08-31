@@ -158,6 +158,7 @@
    * 돌릴 때 비가 통째로 미끄러진다.
    */
   function tick(dt, light) {
+    tickClouds(dt);
     if (!live()) {
       if (curKind && group) { reshape(null); }
       return 0;
@@ -191,6 +192,85 @@
     return n;
   }
 
+  /* ── 구름 (PLAN 44절 "구름 이동") ─────────────────────────
+   * 비·눈과 창고를 안 섞는다 — 그쪽은 천후가 바뀔 때마다 `reshape` 로 통째로
+   * 갈아 끼우는데, 구름은 천후와 무관하게 늘 몇 장 떠 있어야 한다.
+   * 플레이어를 살짝 벗어난 아주 넓은 반경에서 한 방향(+x)으로 아주 천천히
+   * 흐르다가, 바람 반대쪽 끝을 벗어나면 반대편(윗바람)에서 다시 태어난다 —
+   * 비가 상자를 벗어나면 위에서 다시 시작하는 것과 같은 손이다.
+   */
+  function CLOUD_ON() { return core.tuned('sky3d.clouds', 1) ? true : false; }
+  function CLOUD_N() { return Math.max(0, Math.round(core.tuned('sky3d.cloudN', 7) * DENS())); }
+  function CLOUD_R() { return core.tuned('sky3d.cloudR', 260); }        // 뜨는 반경(m)
+  function CLOUD_H() { return core.tuned('sky3d.cloudH', 140); }        // 높이(m)
+  function CLOUD_SPD() { return core.tuned('sky3d.cloudSpeed', 1.1); }  // 흐르는 빠르기(m/s)
+
+  var clouds = [], cloudGroup = null, cloudGeoCache = {}, cloudMat = null;
+
+  function cloudGeo(T, w, d) {
+    var k = Math.round(w) + 'x' + Math.round(d);
+    if (!cloudGeoCache[k]) { cloudGeoCache[k] = new T.BoxGeometry(w, w * 0.18, d); }
+    return cloudGeoCache[k];
+  }
+
+  function ensureClouds() {
+    var T = three();
+    if (!T || cloudGroup) { return !!cloudGroup; }
+    cloudGroup = new T.Group();
+    W3().addFx(cloudGroup);
+    /* **안개를 안 탄다** — 비 알갱이와 같은 사정이다. 안개까지 먹으면
+       흐린 날 구름이 배경과 뭉개져 안 보인다 */
+    cloudMat = new T.MeshBasicMaterial({
+      color: 0xf4f6fa, transparent: true, opacity: 0.5, depthWrite: false
+    });
+    return true;
+  }
+
+  /** 구름 한 장을 자리에 놓는다. `fresh` 면 반경 안 아무 데나, 아니면 윗바람 끝 */
+  function seedCloud(c, fresh) {
+    var R = CLOUD_R();
+    if (fresh) {
+      c.x = (Math.random() * 2 - 1) * R;
+    } else {
+      c.x = -R;                              // 바람이 +x 로 부니 -R 이 윗바람이다
+    }
+    c.z = (Math.random() * 2 - 1) * R;
+    c.w = R * (0.16 + Math.random() * 0.14);  // 장마다 크기를 조금씩 다르게
+  }
+
+  function reshapeClouds() {
+    var T = three();
+    if (!T || !ensureClouds()) { return 0; }
+    var want = CLOUD_ON() ? CLOUD_N() : 0;
+    while (clouds.length < want) {
+      var c = { x: 0, z: 0, w: 40, node: new T.Mesh(cloudGeo(T, 40, 26), cloudMat) };
+      seedCloud(c, true);
+      c.node.geometry = cloudGeo(T, c.w, c.w * 0.65);
+      cloudGroup.add(c.node);
+      clouds.push(c);
+    }
+    var i;
+    for (i = 0; i < clouds.length; i++) { clouds[i].node.visible = i < want; }
+    return want;
+  }
+
+  /** 구름 한 프레임 — `tick` 안에서 비·눈과 나란히 굴린다 */
+  function tickClouds(dt) {
+    if (!live()) { return 0; }
+    reshapeClouds();
+    if (!clouds.length) { return 0; }
+    var pos = core.save.player.pos, R = CLOUD_R(), spd = CLOUD_SPD(), n = 0, i;
+    for (i = 0; i < clouds.length; i++) {
+      var c = clouds[i];
+      if (!c.node.visible) { continue; }
+      c.x += spd * dt;
+      if (c.x > R) { seedCloud(c, false); c.node.geometry = cloudGeo(three(), c.w, c.w * 0.65); }
+      c.node.position.set(pos.x + c.x, CLOUD_H(), pos.y + c.z);
+      n++;
+    }
+    return n;
+  }
+
   /** 눈으로 확인할 때 */
   function stats() {
     var W = global.DG.weather;
@@ -199,7 +279,8 @@
     for (i = 0; i < pool.length; i++) { if (pool[i].node && pool[i].node.visible) { vis++; } }
     return {
       on: on(), live: live(), weather: wkey, falls: fallOf(wkey),
-      want: countOf(wkey), pool: pool.length, shown: vis, kind: curKind
+      want: countOf(wkey), pool: pool.length, shown: vis, kind: curKind,
+      clouds: CLOUD_ON() ? clouds.length : 0, cloudsWant: CLOUD_ON() ? CLOUD_N() : 0
     };
   }
 
@@ -208,9 +289,16 @@
     KINDS: KINDS,
     /* 값을 내는 함수 — 순수하다 */
     on: on, fallOf: fallOf, countOf: countOf,
+    cloudOn: CLOUD_ON, cloudCount: CLOUD_N,
     /* 화면이 쓰는 것 */
     tick: tick, reshape: reshape, stats: stats,
-    reset: function () { reshape(null); return pool.length; },
+    reset: function () {
+      reshape(null);
+      /* 구름은 반경 안에 있으면 눈에 보이므로, 진단이 뒤를 치울 때는
+         숨겨 둔다 — 다음 tick 에서 다시 그만큼 켜진다 */
+      var i; for (i = 0; i < clouds.length; i++) { clouds[i].node.visible = false; }
+      return pool.length;
+    },
     get pool() { return pool; }
   };
 })(window);

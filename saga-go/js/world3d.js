@@ -52,6 +52,10 @@
    * 백 배다(`prop3d.js` 의 `ON()` 과 같은 사정이지만, 그건 기기 등급으로
    * 가르고 이건 **거리**로 가른다) */
   function LOD_NEAR() { return core.tuned('world3d.lodNear', 90) * PF('radius'); }
+  /** 잎·풀이 바람에 흔들릴까(PLAN 44절) — 0 이면 정지 화면(느린 기기용) */
+  function SWAY_ON() { return core.tuned('world3d.sway', 1) ? true : false; }
+  /** 흔들리는 폭(정점 좌표 배율) — 크면 과장되게 흔든다 */
+  function SWAY_AMT() { return core.tuned('world3d.swayAmt', 0.06); }
   function CAM_DIST() { return core.tuned('world3d.camDist', 40); }       // 카메라 거리(m)
   function CAM_HIGH() { return core.tuned('world3d.camHeight', 15); }     // 카메라 높이(m)
   /** 사람 키(m) — 원작처럼 지도 위에서는 실제보다 크게 세운다(1.8m 면 안 보인다) */
@@ -901,6 +905,38 @@
     unit[name] = g;
     return g;
   }
+  /* 바람 흔들림(PLAN 44절) — 잎·풀·갈대에만 쓰는 재질에 정점 셰이더를 조금
+     보탠다. Lambert 의 조명·안개·톤매핑 조각은 손 안 댄다(`#include <begin_vertex>`
+     **뒤**에서 자리만 살짝 민다) — `water3d.js` 가 그랬듯 안개를 빼먹으면 안 되므로,
+     여기는 안개 조각째 그대로 두고 자리만 보탠 것이다.
+     인스턴스마다 다른 위상을 줘야 한 덩이가 통째로 같이 흔들리지 않는다 —
+     새 attribute 를 안 늘리려고 `instanceMatrix` 의 이동칸을 씨앗 삼아 해시를 만든다.
+     GLB(진짜 모델)에는 안 쓴다 — trunk/leaf 조각이 안 갈려 있어 뿌리까지 흔들리면
+     어색하고, 색으로 캐시하는 `prop3d.matCache` 를 건드리면 우연히 같은 색인
+     다른 사물까지 흔들릴 수 있다(LOD 밖의 도형 나무·풀만 흔든다) */
+  var swayShaders = [], swayClock = 0;
+  function swayify(m) {
+    m.onBeforeCompile = function (shader) {
+      shader.uniforms.uSwTime = { value: swayClock };
+      shader.uniforms.uSwAmt = { value: SWAY_AMT() };
+      shader.vertexShader = 'uniform float uSwTime;\nuniform float uSwAmt;\n' +
+        shader.vertexShader.replace('#include <begin_vertex>',
+          '#include <begin_vertex>\n' +
+          '#ifdef USE_INSTANCING\n' +
+          '  float swPhase = dot(instanceMatrix[3].xyz, vec3(12.9898, 78.233, 37.719));\n' +
+          '#else\n' +
+          '  float swPhase = 0.0;\n' +
+          '#endif\n' +
+          '  float swLift = (transformed.y + 0.5) * uSwAmt;\n' +
+          '  transformed.x += sin(uSwTime * 1.6 + swPhase) * swLift;\n' +
+          '  transformed.z += cos(uSwTime * 1.3 + swPhase) * swLift * 0.6;\n');
+      swayShaders.push(shader);
+    };
+    /* 흔들리는 것과 안 흔들리는 재질은 **다른 프로그램**이다 — 캐시 키를 안 가르면
+       three 가 컴파일된 프로그램을 서로 나눠 쓰려다 하나만 남는다 */
+    m.customProgramCacheKey = function () { return 'sway'; };
+  }
+
   var propMat = {};
   function pmat(hex, opt) {
     var key = hex + '|' + (opt || '');
@@ -916,6 +952,7 @@
       m.transparent = true; m.opacity = 0.72; m.depthWrite = false;
     }
     if (opt === 'glow') { m.emissive = new T.Color(hex); m.emissiveIntensity = 0.9; }
+    if (opt === 'sway') { swayify(m); }
     propMat[key] = m;
     return m;
   }
@@ -1083,7 +1120,7 @@
       var leafHex = SS ? SS.leaf(0x2f5a34) : 0x2f5a34;
       var a = instPut(key, 'trunk', 'cyl', 0x4a3a2a, '', true,
         x, p.h * 0.21, z, 1.2, p.h * 0.42, 1.2);
-      var bb = instPut(key, 'leaf:' + leafHex, 'cone', leafHex, '', true,
+      var bb = instPut(key, 'leaf:' + leafHex, 'cone', leafHex, 'sway', true,
         x, p.h * 0.58, z, p.h * 0.68, p.h * 0.72, p.h * 0.68);
       return a && bb;
     }
@@ -1092,11 +1129,11 @@
         x, p.h * 0.32, z, p.h * 1.5, p.h * 0.9, p.h * 1.3, 0.3, p.x, 0.2);
     }
     if (p.t === 'grass') {
-      return instPut(key, 'grass', 'cone', 0x5d7a44, '', false,
+      return instPut(key, 'grass', 'cone', 0x5d7a44, 'sway', false,
         x, p.h * 0.5, z, p.h * 1.5, p.h, p.h * 1.5);
     }
     if (p.t === 'reed') {
-      return instPut(key, 'reed', 'cone', 0x6d7f4a, '', false,
+      return instPut(key, 'reed', 'cone', 0x6d7f4a, 'sway', false,
         x, p.h * 0.5, z, 0.5, p.h, 0.5);
     }
     return false;
@@ -1159,12 +1196,12 @@
         var SS = global.DG.season;
         var leafHex = SS ? SS.leaf(0x2f5a34) : 0x2f5a34;
         box(g, 'cyl', pmat(0x4a3a2a), p.x, p.h * 0.21, p.z, 1.2, p.h * 0.42, 1.2, true);
-        box(g, 'cone', pmat(leafHex), p.x, p.h * 0.58, p.z, p.h * 0.68, p.h * 0.72, p.h * 0.68, true);
+        box(g, 'cone', pmat(leafHex, 'sway'), p.x, p.h * 0.58, p.z, p.h * 0.68, p.h * 0.72, p.h * 0.68, true);
       } else if (p.t === 'rock') {
         var rk = box(g, 'sph', pmat(0x6b6a72, 'flat'), p.x, p.h * 0.32, p.z, p.h * 1.5, p.h * 0.9, p.h * 1.3, true);
         rk.rotation.set(0.3, p.x, 0.2);
       } else if (p.t === 'grass') {
-        box(g, 'cone', pmat(0x5d7a44), p.x, p.h * 0.5, p.z, p.h * 1.5, p.h, p.h * 1.5, false);
+        box(g, 'cone', pmat(0x5d7a44, 'sway'), p.x, p.h * 0.5, p.z, p.h * 1.5, p.h, p.h * 1.5, false);
       } else if (p.t === 'peak') {
         box(g, 'cone', pmat(0x4a4752, 'flat'), p.x, p.h / 2, p.z, GRID * 0.84, p.h, GRID * 0.84, true)
           .receiveShadow = true;
@@ -1253,7 +1290,7 @@
           sb.visible = !!(lightNow && lightNow.lamp > 0.2);
         }
       } else if (p.t === 'reed') {
-        box(g, 'cone', pmat(0x6d7f4a), p.x, p.h * 0.5, p.z, 0.5, p.h, 0.5, false);
+        box(g, 'cone', pmat(0x6d7f4a, 'sway'), p.x, p.h * 0.5, p.z, 0.5, p.h, 0.5, false);
       } else if (p.t === 'lamp') {
         box(g, 'cyl', pmat(0x3f3a34), p.x, p.h * 0.5, p.z, 0.24, p.h, 0.24, false);
         /* 등롱의 불은 **밤에만** 켠다 — 낮에 켜 두면 흰 점으로만 보인다 */
@@ -1362,6 +1399,17 @@
     propGroup.traverse(function (o) {
       if (o.userData && o.userData.lamp) { o.visible = on; }
     });
+  }
+
+  /** 잎·풀 흔들림 시계를 굴린다(PLAN 44절) — 꺼져 있으면 마지막 자세로 멎는다 */
+  function syncSway(dt) {
+    if (!SWAY_ON() || !swayShaders.length) { return; }
+    swayClock += dt;
+    var amt = SWAY_AMT(), i;
+    for (i = 0; i < swayShaders.length; i++) {
+      swayShaders[i].uniforms.uSwTime.value = swayClock;
+      swayShaders[i].uniforms.uSwAmt.value = amt;
+    }
   }
 
   /* ── 배우 (사람 · 짐승 · 건물) ───────────────────────────
@@ -2028,6 +2076,7 @@
     syncGround(W);
     syncProps(W);
     syncLamps();
+    syncSway(dt);
     syncActors(W, now);
     sweepActors(dt);
     if (global.DG.encounter3d) { global.DG.encounter3d.tick(dt); }
@@ -2108,6 +2157,8 @@
     propRadius: PROP_R, unloadRadius: function () { return PROP_UR(PROP_R()); },
     /** 잔 사물이 진짜 모델을 받는 거리(PLAN 36절 LOD) — 손잡이로 잡는다 */
     lodNear: LOD_NEAR,
+    /** 잎·풀 흔들림 켬/폭(PLAN 44절) — 손잡이로 잡는다 */
+    swayOn: SWAY_ON, swayAmt: SWAY_AMT,
     houseRects: houseRects,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },

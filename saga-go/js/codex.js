@@ -17,8 +17,12 @@
  * 저절로 늘어난다(13절의 "적극 활용한다" 를 그렇게 읽었다).
  *
  * **세이브에 남는다** — `save.codex`. 없던 칸이라 옛 세이브도 열리면 그 자리에서
- * 채워진다(44절 "기존 save format 을 깨지 않는다"). 도장 말고는 아무것도 안 바꾼다:
- * 금도 공적도 안 준다. 발견은 **본 것의 기록**이지 보상이 아니다.
+ * 채워진다(44절 "기존 save format 을 깨지 않는다").
+ *
+ * **2026-08-31 갱신** — PLAN 49절("탐험 자체가 보상이 되도록 한다")에 맞춰
+ * 소액 경험치·재화를 더한다(사용자가 직접 골랐다 — 이 절은 원래 "발견은 기록이지
+ * 보상이 아니다"였다). **처음 볼 때 한 번뿐**이므로 보상도 소액으로 잡았다 —
+ * 큰 보상은 여전히 사냥·성채·퀘스트 같은 다른 판정의 몫이다.
  */
 (function (global) {
   'use strict';
@@ -76,6 +80,34 @@
     return null;
   }
 
+  /** 갈래별 발견 보상(PLAN 49절) — 소액이다. 지역은 "숨은 곳"이면 세 배 준다
+   * (PLAN 예시의 "희귀 장소 발견 → 특별 보상") */
+  var REWARD = {
+    place: { exp: 12, gold: 0 },
+    people: { exp: 8, gold: 6 },
+    beast: { exp: 6, gold: 4 },
+    event: { exp: 10, gold: 0 },
+    record: { exp: 14, gold: 0 }
+  };
+
+  /** 이 발견이 "숨은 곳" 같은 특별한 것인가 — 있으면 hint 문자열, 없으면 null */
+  function hintOf(kind, id) {
+    var K = kindOf(kind);
+    if (!K) { return null; }
+    var l = K.list(), i;
+    for (i = 0; i < l.length; i++) { if (l[i].id === id) { return l[i].hint; } }
+    return null;
+  }
+
+  /** 이 발견에 걸린 보상 — **순수 함수다**(gainExp 의 장비·날씨 배수를 안 탄다).
+   * 진단이 배수(숨은 곳 ×3)만 따로 보고 싶을 때 쓴다. 실제 지급은 `discover` 가 한다 */
+  function rewardOf(kind, id) {
+    var rw = REWARD[kind];
+    if (!rw) { return { exp: 0, gold: 0 }; }
+    var mul = (hintOf(kind, id) === '숨은 곳') ? 3 : 1;
+    return { exp: (rw.exp || 0) * mul, gold: (rw.gold || 0) * mul };
+  }
+
   /** 세이브 칸 — 없던 칸이라 옛 세이브도 여기서 채워진다 */
   function book() {
     if (!core.save.codex) { core.save.codex = {}; }
@@ -100,8 +132,14 @@
     b[k] = Date.now();
     var name = (opt && opt.name) || nameOf(kind, id) || id;
     core.log(K.emoji + ' [발견] ' + K.name + ' — ' + name, 'feat');
-    core.emit('toast', K.emoji + ' 새로 알게 되었습니다 — ' + name);
-    core.emit('codex', { kind: kind, id: id, name: name });
+    /* 발견 보상(PLAN 49절) — 숨은 곳이면 세 배 */
+    var rw = rewardOf(kind, id);
+    var got = { exp: 0, gold: 0 };
+    if (rw.exp) { got.exp = core.gainExp(rw.exp); }
+    if (rw.gold) { got.gold = rw.gold; core.save.player.gold += got.gold; }
+    var rwTxt = (got.exp ? ' · 경험치 +' + got.exp : '') + (got.gold ? ' · 🪙 +' + got.gold : '');
+    core.emit('toast', K.emoji + ' 새로 알게 되었습니다 — ' + name + rwTxt);
+    core.emit('codex', { kind: kind, id: id, name: name, reward: got });
     core.emit('changed');
     return true;
   }
@@ -207,7 +245,7 @@
   global.DG = global.DG || {};
   global.DG.codex = {
     KINDS: KINDS,
-    on: on, kindOf: kindOf, has: has, discover: discover, nameOf: nameOf,
+    on: on, kindOf: kindOf, has: has, discover: discover, nameOf: nameOf, rewardOf: rewardOf,
     tally: tally, all: all, rate: rate, dex: dex,
     tick: tick, stats: stats,
     /** 도장을 다 지운다 (진단이 제 뒤를 치울 때) */

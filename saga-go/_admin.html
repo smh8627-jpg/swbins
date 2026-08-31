@@ -689,7 +689,12 @@ window.DG_NO_ACCOUNT = true;
     ['하늘 (sky3d)', [
       ['sky3d.on', '비·눈이 실제로 내린다 1/0', 1],
       ['sky3d.density', '알갱이 수 배수', 1],
-      ['sky3d.boxR', '알갱이가 사는 상자 반지름 m', 22]
+      ['sky3d.boxR', '알갱이가 사는 상자 반지름 m', 22],
+      ['sky3d.clouds', '구름이 흐른다 1/0 — PLAN 44절', 1],
+      ['sky3d.cloudN', '구름 장 수', 7],
+      ['sky3d.cloudR', '구름이 뜨는 반경 m', 260],
+      ['sky3d.cloudH', '구름 높이 m', 140],
+      ['sky3d.cloudSpeed', '구름 흐르는 빠르기 m/s', 1.1]
     ]],
     ['후처리 (post3d)', [
       ['post3d.on', '톤매핑 뒤 블룸·색보정을 건다 1/0', 1],
@@ -753,6 +758,8 @@ window.DG_NO_ACCOUNT = true;
       ['world3d.propRadius', '사물 반경 m', 260],
       ['world3d.unloadRadius', '사물 부수는 반경 배수 (반경×) — PLAN 42절', 1.4],
       ['world3d.lodNear', '나무·바위 진짜 모델 받는 거리 m — PLAN 36절', 90],
+      ['world3d.sway', '잎·풀이 바람에 흔들린다 1/0 — PLAN 44절', 1],
+      ['world3d.swayAmt', '흔들리는 폭', 0.06],
       ['world3d.tileSpan', '지도 타일 반경', 3],
       ['world3d.mapStyle', '지도 밝기(1=밝은 지도)', 1],
       ['world3d.wetRiver', '비·눈에 강물이 분다 1/0', 1],
