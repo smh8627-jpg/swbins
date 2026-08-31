@@ -1,0 +1,12 @@
+{
+  "name": "saga",
+  "version": "1.0.0",
+  "private": true,
+  "description": "역사 인물로 노는 웹 게임 다섯 판(사가고·사가블로·사가의숲·사가스토리·사가국지) + Godot 3D 재구축(saga-godot). 그림은 코드가 직접 그리며 원작 에셋은 쓰지 않는다.",
+  "homepage": "https://smh8627-jpg.github.io/swbins/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smh8627-jpg/swbins"
+  },
+  "license": "UNLICENSED"
+}
