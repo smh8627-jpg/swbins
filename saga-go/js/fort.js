@@ -430,6 +430,7 @@
       title: '⚔️ 토벌 — ' + raid.tier.name,
       foeName: raid.hero.name,
       portrait: global.DG.sprite.portrait('hero', raid.hero, 96),
+      stage3d: { kind: 'hero', ref: raid.hero },
       foeHp: raid.hp, myAtk: pw.atk, myDef: pw.def,
       onDone: function (p) {
         /* 한 대도 못 때리고 물러났으면 격문을 쓰지 않는다 */
@@ -455,6 +456,10 @@
       title: '🏯 성채 공략 — ' + cur.name,
       foeName: info.factionName + ' 수비대 ' + info.guards.length + '명',
       emoji: info.faction.mark || '🛡️',
+      /* 세워 둘 몸은 수비대 중 하나(대표 격)를 쓴다 — 진짜로 셋 다 세우려면
+         `duelStage` 가 여럿을 받게 고쳐야 하는데, 그건 이 문제와 상관없는
+         더 큰 손질이라 미룬다 */
+      stage3d: info.guards[0] ? { kind: 'hero', ref: info.guards[0] } : null,
       foeHp: Math.max(1, gsum * 8), myAtk: pw.atk, myDef: pw.def,
       onDone: function (p) {
         if (p.fled && p.dealt <= 0) { render(); return; }

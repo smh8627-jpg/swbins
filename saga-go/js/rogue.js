@@ -496,6 +496,9 @@
       title: '🏴 적도 — ' + rg.station.name,
       foeName: rg.rank.name + ' ' + rg.boss.name,
       portrait: global.DG.sprite.portrait('hero', rg.boss, 96),
+      /* 3D 무대(`world3d.duelStage`) — `event.js` 만 이 값을 건네고 있었다.
+         적도의 두목은 `data.heroes` 의 진짜 인물이라 그대로 넘기면 된다 */
+      stage3d: { kind: 'hero', ref: rg.boss },
       foeHp: rg.hp, myAtk: pw.atk, myDef: pw.def,
       onDone: function (p) {
         /* 한 대도 못 때리고 물러났으면 없던 일로 한다 (쿨다운도 안 붙는다) */
