@@ -1440,14 +1440,22 @@
     });
   }
 
-  /** 잎·풀 흔들림 시계를 굴린다(PLAN 44절) — 꺼져 있으면 마지막 자세로 멎는다 */
+  /** 잎·풀 흔들림 시계를 굴린다(PLAN 44절) — 꺼져 있으면 마지막 자세로 멎는다.
+   * 이 축도 실기기로 못 본 채 나갔던 것이라, `syncFlame`·`syncSmoke`와 같은
+   * 이유로 어긋나면 스스로 꺼진다 */
+  var swayBroken = false;
   function syncSway(dt) {
-    if (!SWAY_ON() || !swayShaders.length) { return; }
-    swayClock += dt;
-    var amt = SWAY_AMT(), i;
-    for (i = 0; i < swayShaders.length; i++) {
-      swayShaders[i].uniforms.uSwTime.value = swayClock;
-      swayShaders[i].uniforms.uSwAmt.value = amt;
+    if (!SWAY_ON() || !swayShaders.length || swayBroken) { return; }
+    try {
+      swayClock += dt;
+      var amt = SWAY_AMT(), i;
+      for (i = 0; i < swayShaders.length; i++) {
+        swayShaders[i].uniforms.uSwTime.value = swayClock;
+        swayShaders[i].uniforms.uSwAmt.value = amt;
+      }
+    } catch (err) {
+      swayBroken = true;
+      if (global.console) { console.error('[world3d] 잎·풀 흔들림에서 멎어 껐다', err); }
     }
   }
 
@@ -2147,37 +2155,50 @@
 
   var last = 0;
 
+  /* `game.js` 의 루프는 `world.draw()`(→ 여기)를 부른 **뒤에** requestAnimationFrame
+   * 을 다시 잡는다 — 그래서 이 함수 안에서 예외가 하나라도 새면 다음 프레임 자체가
+   * 안 잡혀 이동·그리기·전투 무대까지 전부 그 자리에서 멎는다(2026-08-31, 실기기
+   * 신고로 찾음). 안에 있는 개별 sync 들은 저마다 제 몫만 어긋나면 스스로 꺼지게
+   * 감쌌지만, **여기서 한 번 더 통째로 막는다** — three.js 자체(예: 셰이더 컴파일)
+   * 가 던지는 것까지는 개별 감싸기로 못 잡기 때문이다. 잡았을 땐 그린 그림이라도
+   * 있어야 검게 안 깜빡이니 `present()` 를 한 번 더 시도한다(그마저 던지면 조용히 넘어간다) */
   function render() {
     if (!active()) { return false; }
-    var W = global.DG.world;
-    var now = performance.now();
-    var dt = last ? Math.min(0.1, (now - last) / 1000) : 0.016;
-    last = now;
-    frame++;
+    try {
+      var W = global.DG.world;
+      var now = performance.now();
+      var dt = last ? Math.min(0.1, (now - last) / 1000) : 0.016;
+      last = now;
+      frame++;
 
-    /* hit-stop — 큰 것이 꽂힌 순간 화면이 아주 잠깐 멎는다(PLAN 23절).
-       **그린 것을 그대로 한 번 더 낸다** — 아무것도 안 그리면 검게 깜빡인다 */
-    if (now < holdUntil) { present(); return true; }
+      /* hit-stop — 큰 것이 꽂힌 순간 화면이 아주 잠깐 멎는다(PLAN 23절).
+         **그린 것을 그대로 한 번 더 낸다** — 아무것도 안 그리면 검게 깜빡인다 */
+      if (now < holdUntil) { present(); return true; }
 
-    syncLight(dt);
-    syncShadow(W.zoom3d || 1);
-    syncGround(W);
-    syncProps(W);
-    syncLamps();
-    syncSway(dt);
-    syncFlame(dt);
-    syncSmoke(dt);
-    syncActors(W, now);
-    sweepActors(dt);
-    if (global.DG.encounter3d) { global.DG.encounter3d.tick(dt); }
-    if (global.DG.battle3d) { global.DG.battle3d.tick(dt); }
-    if (global.DG.sky3d) { global.DG.sky3d.tick(dt, lightNow); }
-    if (global.DG.water3d) { global.DG.water3d.tick(dt, lightNow); }
-    syncBeams(dt);
-    syncCamera(W, dt);
+      syncLight(dt);
+      syncShadow(W.zoom3d || 1);
+      syncGround(W);
+      syncProps(W);
+      syncLamps();
+      syncSway(dt);
+      syncFlame(dt);
+      syncSmoke(dt);
+      syncActors(W, now);
+      sweepActors(dt);
+      if (global.DG.encounter3d) { global.DG.encounter3d.tick(dt); }
+      if (global.DG.battle3d) { global.DG.battle3d.tick(dt); }
+      if (global.DG.sky3d) { global.DG.sky3d.tick(dt, lightNow); }
+      if (global.DG.water3d) { global.DG.water3d.tick(dt, lightNow); }
+      syncBeams(dt);
+      syncCamera(W, dt);
 
-    present();
-    return true;
+      present();
+      return true;
+    } catch (err) {
+      if (global.console) { console.error('[world3d] render() 에서 멎을 뻔해 한 프레임 건너뛴다', err); }
+      try { present(); } catch (err2) { /* 그마저 안 되면 이번 프레임은 포기한다 */ }
+      return true;
+    }
   }
 
   /**
