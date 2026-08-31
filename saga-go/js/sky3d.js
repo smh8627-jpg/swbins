@@ -29,6 +29,7 @@
   var core = global.DG.core;
 
   function W3() { return global.DG.world3d; }
+  function S3() { return global.DG.season; }
   function three() { return W3() && W3().three ? W3().three() : null; }
   function live() {
     var w = W3();
@@ -57,15 +58,29 @@
     snow: { n: 110, fall: 2.6, drift: 1.1, sway: 1.5, len: 0.16, wide: 0.16,
             color: 0xeef4ff, opacity: 0.9, top: 14 },
     wind: { n: 34, fall: 0.7, drift: 15, sway: 0.5, len: 0.5, wide: 0.06,
-            color: 0xcfc6b0, opacity: 0.4, top: 7 }
+            color: 0xcfc6b0, opacity: 0.4, top: 7 },
+    leaf: { n: 46, fall: 1.1, drift: 1.6, sway: 1.1, len: 0.14, wide: 0.14,
+            color: 0xc98a3d, opacity: 0.92, top: 9 }
   };
 
-  /** 이 천후에 무엇이 내리나 — 순수 함수(자가진단이 이것만 따로 본다) */
+  /** 가을에 낙엽이 질까(PLAN 44절) — 손잡이로 끌 수 있다 */
+  function leavesOn() { return core.tuned('sky3d.leaves', 1) ? true : false; }
+  function autumnNow() {
+    var S = S3();
+    return !!(S && S.on() && S.now().key === 'autumn');
+  }
+
+  /** 이 천후에 무엇이 내리나 — 순수 함수(자가진단이 이것만 따로 본다).
+   * **가을의 낙엽만 계절도 함께 본다** — 비·눈·바람은 진짜 하늘에서
+   * 내리는 것이라 날씨만으로 정해지지만, 낙엽은 맑은 날에도 진다.
+   * 진단·데모는 `DG.season.force('autumn')` 로 붙들어야 한다(다른 축과 같은 손). */
   function fallOf(wkey) {
     if (wkey === 'rain') { return 'rain'; }
     if (wkey === 'snow') { return 'snow'; }
     if (wkey === 'wind') { return 'wind'; }
-    return null;                       // 맑음·흐림·안개는 아무것도 안 내린다
+    if ((wkey === 'clear' || wkey === 'cloud' || wkey === 'fog') &&
+        leavesOn() && autumnNow()) { return 'leaf'; }
+    return null;                       // 그 밖엔 아무것도 안 내린다
   }
 
   /** 이 천후에 알갱이가 몇이나 뜨나 — 순수 함수 */
@@ -187,6 +202,8 @@
       /* 비는 떨어지는 쪽으로 눕는다 — 세로 막대가 곧게 서 있으면 말뚝으로 보인다 */
       if (kind === 'rain') { p.node.rotation.set(0, 0, Math.atan2(p.vx, -p.vy)); }
       else if (kind === 'wind') { p.node.rotation.set(0, 0, 1.4); }
+      /* 낙엽은 떨어지며 팔랑팔랑 뒤집힌다 — 눕는 축을 계속 바꿔야 진다는 느낌이 산다 */
+      else if (kind === 'leaf') { p.node.rotation.set(p.ph, p.ph * 0.7, 0); }
       n++;
     }
     return n;
@@ -280,7 +297,8 @@
     return {
       on: on(), live: live(), weather: wkey, falls: fallOf(wkey),
       want: countOf(wkey), pool: pool.length, shown: vis, kind: curKind,
-      clouds: CLOUD_ON() ? clouds.length : 0, cloudsWant: CLOUD_ON() ? CLOUD_N() : 0
+      clouds: CLOUD_ON() ? clouds.length : 0, cloudsWant: CLOUD_ON() ? CLOUD_N() : 0,
+      leaves: leavesOn(), autumn: autumnNow()
     };
   }
 
@@ -290,6 +308,7 @@
     /* 값을 내는 함수 — 순수하다 */
     on: on, fallOf: fallOf, countOf: countOf,
     cloudOn: CLOUD_ON, cloudCount: CLOUD_N,
+    leavesOn: leavesOn, autumnNow: autumnNow,
     /* 화면이 쓰는 것 */
     tick: tick, reshape: reshape, stats: stats,
     reset: function () {

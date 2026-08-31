@@ -4251,6 +4251,43 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         'sky3d.clouds=0 이면 안 뜬다';
     });
 
+    /* ── 낙엽 (PLAN 44절) ─────────────────────────────────────
+     * 비·눈과 같은 알갱이 창고를 쓰지만 **날씨가 아니라 계절**이 여는 문이다 —
+     * 맑은 가을날에도 잎은 진다. 진단은 계절을 붙들어 두고 본다(SS.force).
+     */
+
+    t('낙엽 — 가을이고 맑으면 진다, 다른 계절엔 안 진다', function () {
+      var was = SS.stats().forced;
+      SS.force('autumn');
+      var inAutumn = SK.fallOf('clear');
+      SS.force('summer');
+      var inSummer = SK.fallOf('clear');
+      SS.force(was);
+      return inAutumn === 'leaf' && inSummer === null &&
+        '가을·맑음 → ' + inAutumn + ' · 여름·맑음 → ' + inSummer;
+    });
+
+    t('낙엽 — 비·눈·바람이 먼저다 (진짜 하늘이 내리는 것이 우선)', function () {
+      var was = SS.stats().forced;
+      SS.force('autumn');
+      var r = SK.fallOf('rain'), s = SK.fallOf('snow'), w = SK.fallOf('wind');
+      SS.force(was);
+      return r === 'rain' && s === 'snow' && w === 'wind' &&
+        '가을이어도 비/눈/바람이 낙엽을 덮지 않는다';
+    });
+
+    t('낙엽 — 손잡이로 끌 수 있다', function () {
+      var was = SS.stats().forced;
+      SS.force('autumn');
+      C.setTune('sky3d.leaves', 0);
+      var off = SK.fallOf('clear');
+      C.setTune('sky3d.leaves', null);
+      var on = SK.fallOf('clear');
+      SS.force(was);
+      return off === null && on === 'leaf' &&
+        'sky3d.leaves=0 이면 가을에도 안 진다';
+    });
+
     t('3D — 값을 내도 세이브는 그대로다', function () {
       /* 화면 층이 판정에 스미지 않는지 — 조명·계획·카메라를 굴려 보고 세이브를 비교한다 */
       var before = JSON.stringify(C.save);
