@@ -1,0 +1,27 @@
+; Engine configuration file.
+; 이 파일의 setting is generally identical to hand what a Godot editor's Project Settings dialog would write.
+;
+; format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="SAGA"
+config/features=PackedStringArray("4.3", "Mobile")
+run/main_scene=""
+
+[display]
+
+window/size/viewport_width=1080
+window/size/viewport_height=1920
+window/handheld/orientation="sensor"
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
