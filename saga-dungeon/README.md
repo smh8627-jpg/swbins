@@ -703,3 +703,9 @@ chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom   htt
 검증 — `_admin.html?selftest` 헤드리스 → **ADMIN 12/12**(프리셋 12개를 실제로 눌러
 예외가 안 나는지까지 포함). `_test.html` 은 손대지 않은 채로 **RESULT 228/228**,
 두 번 돌려 완전히 동일(회귀 없음). `sw.js` VERSION → `dungeon-v0.36.2`.
+
+**폰 폭(390×844)으로도 확인했다.** iframe 뷰포트를 실제 폰 크기로 고정해 두고
+탭 7개 전환·손잡이 반영·**QA 프리셋 12개 전부**를 자동으로 눌러 봤다 — 전부
+정상, 콘솔 에러 0. 성 소속·장비 표 같은 넓은 화면은 원래 없는 판이라 좁은
+폭에서도 카드가 그대로 세로로 쌓인다. GitHub Pages 배포본(`…/swbins/saga-dungeon/
+_admin.html?selftest`)에서도 **ADMIN 12/12** 그대로 확인했다.
