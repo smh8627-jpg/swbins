@@ -651,12 +651,23 @@
     var sw = walking ? Math.sin(ph) * 0.62 : Math.sin(t * 1.7) * 0.05;
     var i;
 
+    /* 교전 몸짓(`playAnim` → o.anim) — 도형 배우(GLB 못 받았거나 GLB_ON 꺼짐)는
+       뼈대 애니메이션이 없어 여태 팔은 걷기 흔들림뿐이었다. 공격·피격·회피만
+       팔·몸통에 확실히 다른 자세를 준다 — 다리(걸음)는 그대로 둔다(서서 싸운다) */
+    var anim = o.anim;
+    var armSw = sw * 0.72;
+    var lean = 0;
+    if (anim === 'attack') { armSw = Math.sin(t * 24) * 1.05; }
+    else if (anim === 'hit') { armSw = -0.42; lean = -0.16; }
+    else if (anim === 'dodge') { armSw = (Math.floor(t * 8) % 2 ? 1 : -1) * 0.55; lean = 0.14; }
+
     if (rig.legL) { rig.legL.rotation.x = sw; }
     if (rig.legR) { rig.legR.rotation.x = -sw; }
-    if (rig.armL) { rig.armL.rotation.x = -sw * 0.72; }
-    if (rig.armR) { rig.armR.rotation.x = sw * 0.72; }
+    if (rig.armL) { rig.armL.rotation.x = -armSw; }
+    if (rig.armR) { rig.armR.rotation.x = armSw; }
     if (rig.body) {
       rig.body.rotation.y = walking ? Math.sin(ph) * 0.08 : 0;
+      rig.body.rotation.x = lean;
       /* 몸통은 걸을 때 위아래로 튄다. 기준 높이는 세울 때 적어 둔 것을 쓴다 —
          프레임마다 지금 위치에서 더하면 조금씩 떠올라 결국 공중에 뜬다 */
       rig.body.position.y = rig.baseY +
@@ -669,7 +680,7 @@
       }
     }
     if (rig.arms) {
-      for (i = 0; i < rig.arms.length; i++) { rig.arms[i].rotation.x = (i ? sw : -sw) * 0.6; }
+      for (i = 0; i < rig.arms.length; i++) { rig.arms[i].rotation.x = (i ? armSw : -armSw) * 0.6; }
     }
     if (rig.wings) {
       /* 새는 걸을 때가 아니라 **늘** 날갯짓한다 — 지도 위에서 새가 굳어 있으면 죽어 보인다 */
