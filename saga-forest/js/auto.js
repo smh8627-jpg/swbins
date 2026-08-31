@@ -102,6 +102,7 @@
       var pr = raw.props[i];
       var def = VD.PROPS[pr.kind];
       if (!def || !def.gather) { continue; }
+      if (pr.deco) { continue; }    // 숲 고리 장식(PLAN 40절 PHASE 3) — 자동도 안 노린다
       if (V.spent(pr)) { continue; }
       /* 도구가 없어 손을 못 대는 것은 목표로 삼지 않는다.
          삽 없이 갈라진 자리로 걸어가 아무것도 못 하고 다시 그리로 가는

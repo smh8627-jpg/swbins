@@ -92,8 +92,12 @@
 
   /* ── 마을 만들기 ──────────────────────────────────────── */
 
+  /** 마을 밖 "숲 고리" 폭(타일) — PLAN 40절 PHASE 3 "넓은 Forest Map". 이 너머는
+   *  여전히 물(세상 끝)이라 걸어서 무한히 못 나간다. 실기기 성능 보면 admin 에서
+   *  줄일 수 있게 손잡이로 뒀다 */
+  function forestMargin() { return core.tuned('forest.margin', 20); }
+
   function tileAt(tx, ty) {
-    if (tx < 0 || ty < 0 || tx >= W || ty >= H) { return 'water'; }
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
        예전 그대로 해시로 풀린다 — 세이브가 늘지 않는 까닭이 이것이다 */
@@ -101,12 +105,18 @@
       var ov = s.terrain[tx + ',' + ty];
       if (ov) { return ov; }
     }
-    var h = core.hash2(tx + s.seed % 977, ty + (s.seed >> 7) % 883);
-    /* 가운데 가로로 흙길, 아래쪽에 못(물) */
-    if (ty === Math.floor(H * 0.5)) { return 'path'; }
-    if (tx === Math.floor(W * 0.5)) { return 'path'; }
-    if (ty >= H - 4 && tx > 3 && tx < 11) { return h > 0.22 ? 'water' : 'sand'; }
-    if (ty >= H - 5 && tx > 2 && tx < 13) { return 'sand'; }
+    if (tx >= 0 && ty >= 0 && tx < W && ty < H) {
+      var h = core.hash2(tx + s.seed % 977, ty + (s.seed >> 7) % 883);
+      /* 가운데 가로로 흙길, 아래쪽에 못(물) */
+      if (ty === Math.floor(H * 0.5)) { return 'path'; }
+      if (tx === Math.floor(W * 0.5)) { return 'path'; }
+      if (ty >= H - 4 && tx > 3 && tx < 11) { return h > 0.22 ? 'water' : 'sand'; }
+      if (ty >= H - 5 && tx > 2 && tx < 13) { return 'sand'; }
+      return 'grass';
+    }
+    /* 마을 밖 — 숲 고리(단색 잔디, 다음 단계에서 Biome/호수로 나뉜다) 아니면 세상 끝(물) */
+    var m = forestMargin();
+    if (tx < -m || ty < -m || tx >= W + m || ty >= H + m) { return 'water'; }
     return 'grass';
   }
 
@@ -215,6 +225,29 @@
     }
     /* 사고(史庫) — 전방 건너편. 기증은 이 앞에서만 받는다 */
     props.push({ id: 'museum', kind: 'museum', x: (cx - 6) * TILE + 20, y: (cy + 1) * TILE + 20 });
+
+    /* 숲 고리(PLAN 40절 PHASE 3 "넓은 Forest Map") — 마을 밖에 나무·바위·꽃을 흩뿌린다.
+       마을 안보다 문턱을 낮춰(더 잘 나오게) 숲이 더 우거져 보이게 했다. 새 kind 는
+       안 만든다(tree/pine/rock/flower 는 2D sprite.js·3D asset3d.js 둘 다 이미
+       그린다) — id 접두 'f' 로 마을 것('p'..)과 겹치지 않게 가른다.
+       **`deco:true`로 채집 대상에서는 뺀다** — 이번 단계는 "걸어 나갈 공간"만
+       여는 것이지 자원을 늘리는 게 아니다(PLAN 40절 PHASE 4 "Gathering" 몫).
+       실제로 뺀 것을 안 하면 `focus()`·`auto.js`가 새로 생긴 수천 그루를 진짜
+       채집 대상으로 삼아 하루 벌이가 몇 배로 뛴다 — 자가진단으로 잡았다 */
+    var m = forestMargin();
+    for (ty = -m; ty < H + m; ty++) {
+      for (tx = -m; tx < W + m; tx++) {
+        if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
+        if (tileAt(tx, ty) !== 'grass') { continue; }               // 공사로 딴 걸 깔았으면 스킵
+        var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
+        var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
+        var fid = 'f' + tx + '_' + ty;
+        if (fh > 0.80) { props.push({ id: fid, kind: 'tree', x: fx, y: fy, deco: true }); }
+        else if (fh > 0.68) { props.push({ id: fid, kind: 'pine', x: fx, y: fy, deco: true }); }
+        else if (fh > 0.60) { props.push({ id: fid, kind: 'rock', x: fx, y: fy, deco: true }); }
+        else if (fh > 0.50) { props.push({ id: fid, kind: 'flower', x: fx, y: fy, deco: true }); }
+      }
+    }
   }
 
   /* ── 심기 ─────────────────────────────────────────────────
@@ -486,6 +519,7 @@
 
     var best = null, bd = REACH;
     for (i = 0; i < props.length; i++) {
+      if (props[i].deco) { continue; }    // 숲 고리 장식(PLAN 40절 PHASE 3) — 손이 안 닿는다
       d = Math.hypot(props[i].x - player.x, props[i].y - player.y);
       if (d < bd) { bd = d; best = { type: 'prop', obj: props[i], dist: d }; }
     }
@@ -1048,7 +1082,7 @@
     weedCount: weedCount, pullWeed: pullWeed, growWeeds: growWeeds, WEED_MAX: WEED_MAX,
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
     giveGift: giveGift, giftLike: giftLike, giftedToday: giftedToday,
-    buildProps: buildProps,
+    buildProps: buildProps, forestMargin: forestMargin,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,

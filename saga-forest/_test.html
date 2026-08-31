@@ -273,6 +273,69 @@ window.DG_NO_TUNE = true;
       return a === b && c === d && ('(5,5)=' + a + ' · (7,9)=' + c);
     });
 
+    /* ── PLAN 40절 PHASE 3: 넓은 Forest Map ─────────────────── */
+
+    t('숲 고리 — 마을 안 지형(가로·세로 길)은 그대로다 (회귀 방지)', function () {
+      var cx = Math.floor(V.W * 0.5), cy = Math.floor(V.H * 0.5);
+      return V.tileAt(cx, 5) === 'path' && V.tileAt(5, cy) === 'path' &&
+        ('(' + cx + ',5)=path · (5,' + cy + ')=path 그대로');
+    });
+
+    t('숲 고리 — 옛 마을 경계 바로 밖은 이제 물이 아니라 잔디, 걸을 수 있다', function () {
+      var T = V.TILE, tx = V.W, ty = Math.floor(V.H * 0.5);
+      var kind = V.tileAt(tx, ty);
+      return kind === 'grass' && V.walkable(tx * T + 20, ty * T + 20) &&
+        ('(' + tx + ',' + ty + ')=' + kind + ' · 통행 가능');
+    });
+
+    t('숲 고리 — margin 너머는 여전히 세상 끝(물), 무한히는 못 나간다', function () {
+      var m = V.forestMargin();
+      var far = V.tileAt(V.W + m + 5, Math.floor(V.H * 0.5));
+      return far === 'water' && ('margin ' + m + ' 밖 = water');
+    });
+
+    t('숲 고리 — buildProps() 가 f 접두 사물을 흩뿌리고, 새 kind 는 안 새어나간다', function () {
+      V.buildProps();
+      var raw = V.raw();
+      var allow = { tree: 1, pine: 1, rock: 1, flower: 1 };
+      var forestCount = 0, bad = null;
+      for (var i = 0; i < raw.props.length; i++) {
+        var p = raw.props[i];
+        if (p.id.charAt(0) !== 'f') { continue; }
+        forestCount++;
+        if (!allow[p.kind]) { bad = p; break; }
+      }
+      return forestCount > 0 && !bad &&
+        ('숲 사물 ' + forestCount + '개, 전부 tree/pine/rock/flower');
+    });
+
+    t('숲 고리 — 나무·바위·꽃은 장식일 뿐 손이 안 닿는다 (채집 대상 아님)', function () {
+      V.buildProps();
+      var raw = V.raw();
+      var f = null, i;
+      for (i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].id.charAt(0) === 'f' && raw.props[i].kind === 'tree') { f = raw.props[i]; break; }
+      }
+      if (!f) { return false; }
+      raw.player.x = f.x; raw.player.y = f.y;
+      var focus = V.focus();
+      return (!focus || focus.obj !== f) && '숲 나무는 focus() 에 안 잡힌다';
+    });
+
+    t('숲 고리 — 마을 건물 자리는 안 바뀌었다 (중심·건물 위치 회귀 방지)', function () {
+      V.buildProps();
+      var raw = V.raw();
+      var byId = {};
+      for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
+      var cx = Math.floor(V.W * 0.5), cy = Math.floor(V.H * 0.5), T = V.TILE;
+      var shop = byId.shop, home = byId.home, museum = byId.museum;
+      return shop && home && museum &&
+        shop.x === (cx - 3) * T + 20 && shop.y === (cy - 1) * T + 20 &&
+        home.x === (cx + 3) * T + 20 && home.y === (cy - 1) * T + 20 &&
+        museum.x === (cx - 6) * T + 20 && museum.y === (cy + 1) * T + 20 &&
+        '건물 셋 자리 그대로';
+    });
+
     t('물 위로는 걸어갈 수 없다', function () {
       var T = V.TILE, tx, ty, water = null;
       for (ty = 0; ty < V.H && !water; ty++) {
