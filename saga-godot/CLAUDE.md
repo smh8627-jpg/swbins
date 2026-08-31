@@ -1,6 +1,6 @@
 # saga-godot
 
-작업 전에 루트 **`../master.md`** 를 읽는다 — 5개 게임을 Godot 4.x 3D로 재구축하는 최종 작업지시서, 정본이다.
+작업 전에 이 폴더의 **`PLAN.md`** 를 읽는다 — 5개 게임을 Godot 4.x 3D로 재구축하는 최종 작업지시서, 정본이다.
 
 이 폴더가 그 재구축 대상이다. `saga-go`·`saga-dungeon`·`saga-forest`·`saga-story`·`saga-realm`
 (기존 웹/JS 판)은 그대로 두고 건드리지 않는다 — 여기는 완전히 새 프로젝트다.
