@@ -77,12 +77,27 @@ func _scatter_trees() -> void:
 	canopy_mmi.name = "TreeCanopies"
 	add_child(canopy_mmi)
 
+	var trunks := StaticBody3D.new()
+	trunks.name = "TreeTrunkCollisions"
+	add_child(trunks)
+
 	for i in positions.size():
 		var s: float = scales[i]
 		var basis := Basis().scaled(Vector3(s, s, s))
 		var base_pos: Vector3 = positions[i]
 		trunk_mm.set_instance_transform(i, Transform3D(basis, base_pos + Vector3(0, 1.5 * s, 0)))
 		canopy_mm.set_instance_transform(i, Transform3D(basis, base_pos + Vector3(0, 3.6 * s, 0)))
+
+		## 잎(캐노피)까지 막지 않는다 — 줄기만 막아야 나무 사이를 지날 때
+		## 자연스럽다. 그림보다 살짝 얇게 잡아(반지름 0.5 → 충돌 0.45) 스치는
+		## 정도로는 안 걸리게 한다.
+		var cs := CollisionShape3D.new()
+		var shape := CylinderShape3D.new()
+		shape.radius = 0.45 * s
+		shape.height = 3.0 * s
+		cs.shape = shape
+		cs.position = base_pos + Vector3(0, 1.5 * s, 0)
+		trunks.add_child(cs)
 
 func _scatter_rocks() -> void:
 	var ground: float = TerrainBuilder.LEGEND["^"].height
