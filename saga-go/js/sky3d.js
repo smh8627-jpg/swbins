@@ -174,6 +174,8 @@
    */
   function tick(dt, light) {
     tickClouds(dt);
+    tickDust(dt);
+    tickBirds(dt, light);
     if (!live()) {
       if (curKind && group) { reshape(null); }
       return 0;
@@ -288,6 +290,152 @@
     return n;
   }
 
+  /* ── 먼지 (PLAN 44절) ─────────────────────────────────────
+   * 비·눈 알갱이 창고와 다시 안 섞는다 — 구름과 같은 사정이다. 먼지는
+   * 천후와 거의 무관하게(비·눈만 씻어 낸다) **코앞 낮은 자리**에 늘 조금
+   * 떠 있는다. 알갱이는 위아래로 아주 천천히 두둥실거리며 옆으로도 흐른다.
+   */
+  function DUST_ON() { return core.tuned('sky3d.dust', 1) ? true : false; }
+  function DUST_N() { return Math.max(0, Math.round(core.tuned('sky3d.dustN', 26) * DENS())); }
+  function DUST_R() { return core.tuned('sky3d.dustR', 12); }          // 사는 상자 반지름(m)
+  function DUST_H() { return core.tuned('sky3d.dustH', 2.4); }         // 뜨는 높이(m)
+  function DUST_SPD() { return core.tuned('sky3d.dustSpeed', 0.35); }  // 두둥실 빠르기(m/s)
+
+  /** 비·눈이 씻어 내지 않는 날인가 — 순수 함수 */
+  function dustWeatherOk(wkey) { return wkey !== 'rain' && wkey !== 'snow'; }
+
+  var dust = [], dustGroup = null;
+
+  function ensureDust() {
+    var T = three();
+    if (!T || dustGroup) { return !!dustGroup; }
+    dustGroup = new T.Group();
+    W3().addFx(dustGroup);
+    return true;
+  }
+
+  /** 먼지 한 알을 상자 안 아무 데나 놓는다 */
+  function seedDust(d) {
+    var R = DUST_R();
+    d.x = (Math.random() * 2 - 1) * R;
+    d.z = (Math.random() * 2 - 1) * R;
+    d.y = Math.random() * DUST_H();
+    d.ph = Math.random() * 6.28;
+    d.spd = 0.5 + Math.random() * 0.7;
+    var a = Math.random() * Math.PI * 2;
+    d.vx = Math.cos(a) * DUST_SPD() * 0.4;
+    d.vz = Math.sin(a) * DUST_SPD() * 0.4;
+  }
+
+  function reshapeDust() {
+    var T = three();
+    if (!T || !ensureDust()) { return 0; }
+    var W = global.DG.weather;
+    var wkey = W ? W.current().key : 'clear';
+    var want = (DUST_ON() && dustWeatherOk(wkey)) ? DUST_N() : 0;
+    while (dust.length < want) {
+      var d = { x: 0, y: 0, z: 0, vx: 0, vz: 0, ph: 0, spd: 1,
+                node: new T.Mesh(geo(T, 0.05, 0.05), mat(T, 0xd8c9a0, 0.3)) };
+      seedDust(d);
+      dustGroup.add(d.node);
+      dust.push(d);
+    }
+    var i;
+    for (i = 0; i < dust.length; i++) { dust[i].node.visible = i < want; }
+    return want;
+  }
+
+  /** 먼지 한 프레임 — `tick` 안에서 나란히 굴린다 */
+  function tickDust(dt) {
+    if (!live()) { return 0; }
+    reshapeDust();
+    if (!dust.length) { return 0; }
+    var pos = core.save.player.pos, R = DUST_R(), n = 0, i;
+    for (i = 0; i < dust.length; i++) {
+      var d = dust[i];
+      if (!d.node.visible) { continue; }
+      d.ph += dt * d.spd;
+      d.x += d.vx * dt;
+      d.z += d.vz * dt;
+      if (Math.abs(d.x) > R || Math.abs(d.z) > R) { seedDust(d); }
+      var bob = Math.sin(d.ph) * 0.5 + 0.5;               // 0~1 을 오간다
+      d.node.position.set(pos.x + d.x, bob * DUST_H(), pos.y + d.z);
+      n++;
+    }
+    return n;
+  }
+
+  /* ── 새 (PLAN 44절 "새가 날아감") ───────────────────────────
+   * 낮에만, 비·눈·안개가 없을 때만 뜬다 — 밤과 궂은 날엔 새도 깃든다.
+   * 한 무리가 플레이어 둘레를 크게 돌며, 날개는 세로 배율로 팔랑인다.
+   */
+  function BIRD_ON() { return core.tuned('sky3d.birds', 1) ? true : false; }
+  function BIRD_N() { return Math.max(0, Math.round(core.tuned('sky3d.birdN', 6) * DENS())); }
+  function BIRD_R() { return core.tuned('sky3d.birdR', 46); }          // 도는 반경(m)
+  function BIRD_H() { return core.tuned('sky3d.birdH', 20); }          // 나는 높이(m)
+  function BIRD_SPD() { return core.tuned('sky3d.birdSpeed', 0.5); }   // 도는 빠르기(rad/s)
+
+  /** 새가 뜰 만한 날인가 — 순수 함수 */
+  function birdSkyOk(wkey, isNight) {
+    return !isNight && wkey !== 'rain' && wkey !== 'snow' && wkey !== 'fog';
+  }
+
+  var birds = [], birdGroup = null;
+
+  function ensureBirds() {
+    var T = three();
+    if (!T || birdGroup) { return !!birdGroup; }
+    birdGroup = new T.Group();
+    W3().addFx(birdGroup);
+    return true;
+  }
+
+  function seedBird(b, i, n) {
+    b.ang = (Math.PI * 2 / Math.max(1, n)) * i + Math.random() * 0.6;
+    b.r = BIRD_R() * (0.7 + Math.random() * 0.5);
+    b.h = BIRD_H() + (Math.random() * 2 - 1) * 4;
+    b.flap = Math.random() * 6.28;
+  }
+
+  function reshapeBirds(want) {
+    var T = three();
+    if (!T || !ensureBirds()) { return 0; }
+    while (birds.length < want) {
+      var b = { ang: 0, r: 0, h: 0, flap: 0,
+                node: new T.Mesh(geo(T, 0.9, 0.26), mat(T, 0x2c2c2c, 0.85)) };
+      seedBird(b, birds.length, want);
+      birdGroup.add(b.node);
+      birds.push(b);
+    }
+    var i;
+    for (i = 0; i < birds.length; i++) { birds[i].node.visible = i < want; }
+    return want;
+  }
+
+  /** 새 한 프레임 — `tick` 안에서 나란히 굴린다 */
+  function tickBirds(dt, light) {
+    if (!live()) { return 0; }
+    var W = global.DG.weather;
+    var wkey = (light && light.weather) || (W ? W.current().key : 'clear');
+    var isNight = !!(light && light.lamp > 0.2);
+    var want = (BIRD_ON() && birdSkyOk(wkey, isNight)) ? BIRD_N() : 0;
+    reshapeBirds(want);
+    if (!birds.length) { return 0; }
+    var pos = core.save.player.pos, spd = BIRD_SPD(), n = 0, i;
+    for (i = 0; i < birds.length; i++) {
+      var b = birds[i];
+      if (!b.node.visible) { continue; }
+      b.ang += dt * spd * (0.6 + (i % 3) * 0.2);
+      b.flap += dt * 9;
+      b.node.position.set(pos.x + Math.cos(b.ang) * b.r, b.h, pos.y + Math.sin(b.ang) * b.r);
+      b.node.rotation.set(0, -b.ang, 0);
+      var flapY = 0.35 + Math.abs(Math.sin(b.flap)) * 0.65;
+      b.node.scale.set(1, flapY, 1);
+      n++;
+    }
+    return n;
+  }
+
   /** 눈으로 확인할 때 */
   function stats() {
     var W = global.DG.weather;
@@ -298,7 +446,8 @@
       on: on(), live: live(), weather: wkey, falls: fallOf(wkey),
       want: countOf(wkey), pool: pool.length, shown: vis, kind: curKind,
       clouds: CLOUD_ON() ? clouds.length : 0, cloudsWant: CLOUD_ON() ? CLOUD_N() : 0,
-      leaves: leavesOn(), autumn: autumnNow()
+      leaves: leavesOn(), autumn: autumnNow(),
+      dust: dust.length, birds: birds.length
     };
   }
 
@@ -309,13 +458,18 @@
     on: on, fallOf: fallOf, countOf: countOf,
     cloudOn: CLOUD_ON, cloudCount: CLOUD_N,
     leavesOn: leavesOn, autumnNow: autumnNow,
+    dustOn: DUST_ON, dustCount: DUST_N, dustWeatherOk: dustWeatherOk,
+    birdOn: BIRD_ON, birdCount: BIRD_N, birdSkyOk: birdSkyOk,
     /* 화면이 쓰는 것 */
     tick: tick, reshape: reshape, stats: stats,
     reset: function () {
       reshape(null);
       /* 구름은 반경 안에 있으면 눈에 보이므로, 진단이 뒤를 치울 때는
          숨겨 둔다 — 다음 tick 에서 다시 그만큼 켜진다 */
-      var i; for (i = 0; i < clouds.length; i++) { clouds[i].node.visible = false; }
+      var i;
+      for (i = 0; i < clouds.length; i++) { clouds[i].node.visible = false; }
+      for (i = 0; i < dust.length; i++) { dust[i].node.visible = false; }
+      for (i = 0; i < birds.length; i++) { birds[i].node.visible = false; }
       return pool.length;
     },
     get pool() { return pool; }

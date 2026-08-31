@@ -56,6 +56,12 @@
   function SWAY_ON() { return core.tuned('world3d.sway', 1) ? true : false; }
   /** 흔들리는 폭(정점 좌표 배율) — 크면 과장되게 흔든다 */
   function SWAY_AMT() { return core.tuned('world3d.swayAmt', 0.06); }
+  /** 등롱·사당 불이 일렁일까(PLAN 44절 "불꽃") — 0 이면 고정 밝기 */
+  function FLAME_ON() { return core.tuned('world3d.flame', 1) ? true : false; }
+  /** 일렁이는 폭(emissiveIntensity 배율) */
+  function FLAME_AMT() { return core.tuned('world3d.flameAmt', 0.18); }
+  /** 등롱·사당 위에 연기가 오를까(PLAN 44절) — 불과 같은 밤에만 보인다 */
+  function SMOKE_ON() { return core.tuned('world3d.smoke', 1) ? true : false; }
   function CAM_DIST() { return core.tuned('world3d.camDist', 40); }       // 카메라 거리(m)
   function CAM_HIGH() { return core.tuned('world3d.camHeight', 15); }     // 카메라 높이(m)
   /** 사람 키(m) — 원작처럼 지도 위에서는 실제보다 크게 세운다(1.8m 면 안 보인다) */
@@ -953,6 +959,11 @@
     }
     if (opt === 'glow') { m.emissive = new T.Color(hex); m.emissiveIntensity = 0.9; }
     if (opt === 'sway') { swayify(m); }
+    /* 연기는 **낱개가 저마다 다른 짙기로 사라졌다 다시 짙어진다** — 재질을
+       나눠 쓰면 한 알의 짙기가 바뀔 때 다른 알까지 같이 바뀐다. 그래서
+       여기서는 원판만 캐시해 두고, 부르는 쪽(`addLampSmoke`)이 매번 복제해
+       쓴다(연기 알갱이 수가 적어 복제 비용이 무시할 만하다) */
+    if (opt === 'smoke') { m.transparent = true; m.opacity = 0.32; m.depthWrite = false; }
     propMat[key] = m;
     return m;
   }
@@ -1151,6 +1162,23 @@
     return b;
   }
 
+  /** 등롱 위로 오르는 연기 두 알(PLAN 44절). 불과 같이 밤에만 보인다 —
+   * `syncLamps` 가 이 애도 `userData.lamp` 로 함께 여닫는다.
+   * **격자 키로 나눠 든다**(`smokeByKey`) — 그래야 그 격자가 부서질 때
+   * (`syncProps`·`refreshProps`) 함께 치워 창고가 걸을수록 늘어나지 않는다 */
+  var smokeByKey = {};
+  function addLampSmoke(g, key, x, y, z) {
+    var list = smokeByKey[key] || (smokeByKey[key] = []);
+    var i;
+    for (i = 0; i < 2; i++) {
+      var s = box(g, 'sph', pmat(0xb9b9b9, 'smoke').clone(), x, y, z, 0.4, 0.4, 0.4, false);
+      s.userData.lamp = true;
+      s.userData.smoke = { x: x, baseY: y, z: z, ph: Math.random() * 6.28 + i * Math.PI };
+      s.visible = !!(lightNow && lightNow.lamp > 0.2);
+      list.push(s);
+    }
+  }
+
   function buildProp(kind, gx, gy, mapped, key) {
     var g = new T.Group();
     var plan = propPlan(kind, gx, gy, mapped);
@@ -1165,10 +1193,14 @@
         /* **불만은 인스턴스가 못 맡는다.** 등롱과 사당의 등은 밤에만 켜지는데
            (`syncLamps` 가 `userData.lamp` 를 훑는다) 인스턴스 덩이는 낱개를
            켜고 끌 수가 없다. 몸은 모델이 세웠으니 **불만 여기서 얹는다** */
-        if (p.t === 'lamp') { addLampBulb(g, p.x, p.h + 0.25, p.z, 0.8); }
-        else if (p.t === 'shrine') {
+        if (p.t === 'lamp') {
+          addLampBulb(g, p.x, p.h + 0.25, p.z, 0.8);
+          addLampSmoke(g, key, p.x, p.h + 0.7, p.z);
+        } else if (p.t === 'shrine') {
           addLampBulb(g, -3.4, 2.8, 4.6, 0.7);
           addLampBulb(g, 3.4, 2.8, 4.6, 0.7);
+          addLampSmoke(g, key, -3.4, 3.3, 4.6);
+          addLampSmoke(g, key, 3.4, 3.3, 4.6);
         }
         continue;
       }
@@ -1387,6 +1419,7 @@
          하나를 버리면 남아 있는 다른 건물의 도형까지 같이 사라진다 */
       propGroup.remove(propMeshes[k]);
       delete propMeshes[k];
+      delete smokeByKey[k];           // 이 격자의 연기도 창고에서 함께 뺀다
       instDrop(k);                    // 빌려 준 인스턴스 자리도 돌려받는다
     }
   }
@@ -1409,6 +1442,40 @@
     for (i = 0; i < swayShaders.length; i++) {
       swayShaders[i].uniforms.uSwTime.value = swayClock;
       swayShaders[i].uniforms.uSwAmt.value = amt;
+    }
+  }
+
+  /** 등롱·사당 불이 일렁인다(PLAN 44절 "불꽃") — 재질을 **모두가 나눠 쓰므로**
+   * 한 번만 써도 뜬 등롱 전부가 같이 일렁인다(값싸다) */
+  var flameClock = 0, smokeClock = 0;
+  function syncFlame(dt) {
+    if (!FLAME_ON()) { return; }
+    flameClock += dt;
+    var m = pmat(0xffd489, 'glow');
+    m.emissiveIntensity = 0.9 + FLAME_AMT() *
+      (Math.sin(flameClock * 9.1) * 0.7 + Math.sin(flameClock * 23.7) * 0.3);
+  }
+
+  /** 연기 알갱이를 한 프레임 굴린다(PLAN 44절) — 위로 오르다 다 오르면
+   * 다시 밑에서 시작한다(비 알갱이가 상자를 벗어나면 되돌리는 것과 같은 손).
+   * **재질을 낱개로 복제해 뒀으니**(`addLampSmoke`) 알갱이마다 다른 짙기로
+   * 옅어질 수 있다. 창고가 안 뜬 낮에는 굳이 돌리지 않는다 */
+  function syncSmoke(dt) {
+    if (!SMOKE_ON() || !(lightNow && lightNow.lamp > 0.2)) { return; }
+    smokeClock += dt;
+    var RISE = 0.4, MAXH = 2.4, k;
+    for (k in smokeByKey) {
+      if (!Object.prototype.hasOwnProperty.call(smokeByKey, k)) { continue; }
+      var list = smokeByKey[k], i;
+      for (i = 0; i < list.length; i++) {
+        var s = list[i], d = s.userData.smoke;
+        var t = (smokeClock * RISE + d.ph) % MAXH;
+        var frac = t / MAXH;
+        s.position.set(d.x + Math.sin(smokeClock * 0.6 + d.ph) * 0.15, d.baseY + t, d.z);
+        var sc = 0.35 + frac * 0.55;
+        s.scale.set(sc, sc, sc);
+        s.material.opacity = 0.34 * (1 - frac);
+      }
     }
   }
 
@@ -2077,6 +2144,8 @@
     syncProps(W);
     syncLamps();
     syncSway(dt);
+    syncFlame(dt);
+    syncSmoke(dt);
     syncActors(W, now);
     sweepActors(dt);
     if (global.DG.encounter3d) { global.DG.encounter3d.tick(dt); }
@@ -2106,6 +2175,7 @@
       n++;
     }
     propMeshes = {};
+    smokeByKey = {};          // 통째로 다시 지으니 연기 창고도 같이 비운다
     propScan = null;          // 다음 프레임에 다시 훑는다
     return n;
   }
@@ -2159,6 +2229,8 @@
     lodNear: LOD_NEAR,
     /** 잎·풀 흔들림 켬/폭(PLAN 44절) — 손잡이로 잡는다 */
     swayOn: SWAY_ON, swayAmt: SWAY_AMT,
+    /** 등롱·사당 불꽃·연기 켬(PLAN 44절) — 손잡이로 잡는다 */
+    flameOn: FLAME_ON, flameAmt: FLAME_AMT, smokeOn: SMOKE_ON,
     houseRects: houseRects,
     /** 지금 쓰는 시야각(도) — 진단·데모가 세로 화면 보정을 값으로 본다 */
     fov: function () { return camera ? camera.fov : FOV(); },

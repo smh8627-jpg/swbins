@@ -4233,6 +4233,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         'world3d.sway=0 이면 정지 화면';
     });
 
+    /* ── 등롱·사당 불꽃·연기 (PLAN 44절) ─────────────────────
+     * 재질의 밝기를 흔들거나(불꽃) 알갱이를 올리는(연기) 일이라 화면이
+     * 있어야 보인다. 여기서는 켬/폭 손잡이만 값으로 본다.
+     */
+
+    t('불꽃 — 기본은 켜져 있고 폭이 있다', function () {
+      return R3.flameOn() === true && R3.flameAmt() > 0 &&
+        '기본 폭 ' + R3.flameAmt();
+    });
+
+    t('불꽃 — 손잡이로 끌 수 있다', function () {
+      C.setTune('world3d.flame', 0);
+      var off = R3.flameOn();
+      C.setTune('world3d.flame', null);
+      return off === false && R3.flameOn() === true &&
+        'world3d.flame=0 이면 고정 밝기';
+    });
+
+    t('연기 — 기본은 켜져 있고, 손잡이로 끌 수 있다', function () {
+      var on0 = R3.smokeOn();
+      C.setTune('world3d.smoke', 0);
+      var off = R3.smokeOn();
+      C.setTune('world3d.smoke', null);
+      return on0 === true && off === false && R3.smokeOn() === true &&
+        'world3d.smoke=0 이면 등롱 위가 비어 있다';
+    });
+
     /* ── 구름 이동 (PLAN 44절) ───────────────────────────────
      * 알갱이 창고와 같은 사정 — 그림은 화면이 있어야 보이고, 여기서는
      * 켬/장수 손잡이만 본다.
@@ -4286,6 +4313,49 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       SS.force(was);
       return off === null && on === 'leaf' &&
         'sky3d.leaves=0 이면 가을에도 안 진다';
+    });
+
+    /* ── 먼지 (PLAN 44절) ─────────────────────────────────────
+     * 알갱이는 화면이 있어야 보이므로 여기서는 **날씨를 가리는 순수 함수**와
+     * 켬 손잡이만 본다.
+     */
+
+    t('먼지 — 비·눈만 씻어 낸다', function () {
+      return SK.dustWeatherOk('clear') === true && SK.dustWeatherOk('cloud') === true &&
+        SK.dustWeatherOk('fog') === true && SK.dustWeatherOk('wind') === true &&
+        SK.dustWeatherOk('rain') === false && SK.dustWeatherOk('snow') === false &&
+        '비·눈만 먼지를 씻어 내고 나머지 날씨엔 그대로 뜬다';
+    });
+
+    t('먼지 — 기본은 켜져 있고, 손잡이로 끌 수 있다', function () {
+      var on0 = SK.dustOn(), n0 = SK.dustCount();
+      C.setTune('sky3d.dust', 0);
+      var off = SK.dustOn();
+      C.setTune('sky3d.dust', null);
+      return on0 === true && n0 > 0 && off === false && SK.dustOn() === true &&
+        '기본 ' + n0 + '알 · sky3d.dust=0 이면 안 뜬다';
+    });
+
+    /* ── 새 (PLAN 44절 "새가 날아감") ───────────────────────────
+     * 순수 함수(날씨·밤낮 판정)와 켬 손잡이만 본다.
+     */
+
+    t('새 — 낮이고 맑아야 뜬다', function () {
+      return SK.birdSkyOk('clear', false) === true &&
+        SK.birdSkyOk('clear', true) === false &&    // 밤엔 깃든다
+        SK.birdSkyOk('rain', false) === false &&
+        SK.birdSkyOk('snow', false) === false &&
+        SK.birdSkyOk('fog', false) === false &&
+        '낮·맑음만 뜨고 밤·비·눈·안개엔 깃든다';
+    });
+
+    t('새 — 기본은 켜져 있고, 손잡이로 끌 수 있다', function () {
+      var on0 = SK.birdOn(), n0 = SK.birdCount();
+      C.setTune('sky3d.birds', 0);
+      var off = SK.birdOn();
+      C.setTune('sky3d.birds', null);
+      return on0 === true && n0 > 0 && off === false && SK.birdOn() === true &&
+        '기본 ' + n0 + '마리 · sky3d.birds=0 이면 안 뜬다';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {
