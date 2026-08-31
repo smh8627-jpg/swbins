@@ -31,7 +31,7 @@
    * 위가 북(ty 가 작은 쪽)이다. 21×21 = 1008m 사방.
    *
    *   ^ 산    T 숲    ~ 강    = 길    H 마을    F 농지    . 들
-   *   C 동굴(산)      S 옛 사당(숲)   R 폐허(들)   B 다리(강)
+   *   C 동굴(산)      S 옛 사당(숲)   R 폐허(들)   B 다리(강)   W 폭포(산, PLAN 44절)
    *
    * 길이 하나로 이어져 있다 — 북쪽 산속 동굴에서 내려와 마을을 지나 남쪽 다리를
    * 건넌다. 걸어서 구역을 가로지르는 동안 아홉 가지 땅을 다 밟게 두었다.
@@ -47,7 +47,7 @@
     ox: -10, oy: -10,
     map: [
       '^^^^^^^^^^^^^^^^^^^^^',
-      '^^^^^^^^^^C^^^^^^^^^^',
+      '^^^^^^^^^^C^^W^^^^^^^',
       '^^^^^^^^^=^^^^^^^^^^^',
       '.^^^^^^^^=^^^^^^^^^^.',
       '..TTTT^^^=^^^^^TTTT..',
@@ -79,6 +79,7 @@
       'F': { kind: 'farm' },
       'B': { kind: 'water', mark: 'bridge' },
       'C': { kind: 'mount', mark: 'cave' },
+      'W': { kind: 'mount', mark: 'waterfall' },
       'S': { kind: 'forest', mark: 'shrine' },
       'R': { kind: 'grass', mark: 'ruin' }
     },
@@ -94,6 +95,7 @@
       { id: 'wood', name: '숲 어귀', tx: -6, ty: -4 },
       { id: 'ridge', name: '산등성이', tx: 0, ty: -7 },
       { id: 'cave', name: '이름 없는 굴', tx: 0, ty: -9, hidden: true },
+      { id: 'waterfall', name: '산속 폭포', tx: 3, ty: -9 },
       { id: 'shrine', name: '무너진 사당', tx: -3, ty: -5, hidden: true },
       { id: 'ruin', name: '강 건너 폐허', tx: -8, ty: 8, hidden: true }
     ]

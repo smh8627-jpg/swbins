@@ -858,6 +858,7 @@
     else if (mk === 'cave') { out.push({ t: 'cave', x: 0, z: 0, h: 7 }); }
     else if (mk === 'ruin') { out.push({ t: 'ruin', x: 0, z: 0, h: 4.5 }); }
     else if (mk === 'shrine') { out.push({ t: 'shrine', x: 0, z: 0, h: 5 }); }
+    else if (mk === 'waterfall') { out.push({ t: 'waterfall', x: 0, z: 0, h: 16 }); }   // PLAN 44절
 
     return out;
   }
@@ -964,6 +965,10 @@
        여기서는 원판만 캐시해 두고, 부르는 쪽(`addLampSmoke`)이 매번 복제해
        쓴다(연기 알갱이 수가 적어 복제 비용이 무시할 만하다) */
     if (opt === 'smoke') { m.transparent = true; m.opacity = 0.32; m.depthWrite = false; }
+    /* 폭포 물줄기 — 'water' 와 달리 **세워 놓는 판**이라 water3d 의 수평 수면
+       셰이더를 그대로 못 쓴다(그쪽은 위에서 내려다보는 잔물결이 전제다).
+       옅은 하늘색 반투명 판 하나로 그친다(PLAN 44절) */
+    if (opt === 'fall') { m.transparent = true; m.opacity = 0.5; m.depthWrite = false; }
     propMat[key] = m;
     return m;
   }
@@ -1115,7 +1120,7 @@
                 house: 'house', tower: 'tower',
                 peak: 'peak', lamp: 'lamp', shrine: 'shrine', cave: 'cave',
                 ruin: 'ruin', bridge: 'bridge', rice: 'rice',
-                well: 'well', market: 'market' };
+                well: 'well', market: 'market', waterfall: 'waterfall' };
     /* LOD(PLAN 36절) — 나무·바위·풀·갈대는 `LOD_NEAR` 안에 있을 때만 진짜
        모델을 받는다. 밖이면 곧장 아래의 싼 도형(원뿔·공)으로 간다. 집·탑·
        랜드마크는 칸당 수가 적어 거리를 안 가린다 */
@@ -1327,6 +1332,14 @@
           sb.userData.lamp = true;
           sb.visible = !!(lightNow && lightNow.lamp > 0.2);
         }
+      } else if (p.t === 'waterfall') {
+        /* 폭포(PLAN 44절) — 절벽에 물줄기 판 하나, 밑에 튄 물이 고인 못.
+           흐르는 결은 안 준다(정지 화면) — 세운 판에 물결 셰이더를 억지로
+           씌우느니 정지 화면이 낫다 */
+        box(g, 'box', pmat(0x5a5560, 'flat'), 0, p.h * 0.5, -2.4, 13, p.h, 6, true)
+          .receiveShadow = true;
+        box(g, 'box', pmat(0x9fd0e8, 'fall'), 0, p.h * 0.46, 0.3, 4.6, p.h * 0.86, 0.6, false);
+        box(g, 'box', pmat(0x6fa8c4, 'water'), 0, 0.15, 3.4, 8, 0.3, 6.5, false);
       } else if (p.t === 'reed') {
         box(g, 'cone', pmat(0x6d7f4a, 'sway'), p.x, p.h * 0.5, p.z, 0.5, p.h, 0.5, false);
       } else if (p.t === 'lamp') {
