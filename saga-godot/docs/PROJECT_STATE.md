@@ -121,17 +121,20 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 
 ## 다음 작업
 
+- **방침 확정(2026-08-31, 사용자 지시)**: "Godot도 하나만 먼저 완성하고
+  다른 세션에서 이어 한다." 즉 saga-godot은 **5개 게임을 동시에 벌리지
+  않는다** — GO의 Vertical Slice(VERTICAL_SLICE.md)를 끝까지 완성하는 게
+  먼저다. DUNGEON/FOREST/STORY/REALM은 GO가 끝난 뒤에나 손댄다
+  (master.md 39장 순서와도 맞음). 웹 다섯 판(saga-go 등)은 이 결정과
+  무관하게 각자 PLAN.md로 별도 진행 — 정본 분리는 커밋 5936c83 참고
+- 다음 세션이 이어갈 순서: **Phase 6(Combat)** — VERTICAL_SLICE.md 29·
+  34·35절의 "도적의 습격" 사건 + duel.js 재구현(속공·필살·회피, 강타
+  예고 AI). 그 다음이 완료 조건(VERTICAL_SLICE.md 하단 12단계 루프) 검증
 - **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
   기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
-- **실기 확인 필요**(다음 세션 에디터로 직접) — headless는 null 렌더러라
-  이동감·카메라 회전/줌·조이스틱 조작감을 눈으로/손으로 아직 못 봤다.
-  VERTICAL_SLICE.md 27~28절이 요구하는 "이동감 자체가 재미있는가"는
-  실기 없이는 판단 불가
 - Phase 4 나머지(41 GLB import 구조, 45·46 primitive→GLB 교체)는 실제
   3D 에셋을 고른 뒤로 미룸
-- Phase 6 — Combat: VERTICAL_SLICE.md 29·34·35절의 "도적의 습격" 사건 +
-  duel.js 재구현(속공·필살·회피, 강타 예고 AI)
 
 ## 알려진 오류
 
