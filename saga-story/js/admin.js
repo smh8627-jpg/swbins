@@ -1037,6 +1037,7 @@
   bind();
   fillProfiles();
   renderTune();
+  renderPresets();
 
   /* `_admin.html?selftest` 로 열면 스스로 점검하고 **제목에 결과를 적는다.**
      어드민은 눌러야 도는 화면이라 진단(`_test.html`)이 붙지 못한다 — 헤드리스로
