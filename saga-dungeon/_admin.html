@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사가블로 어드민 — QA 운영판</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b26; --panel2: #1c2331; --line: #2a3345;
+    --ink: #e7ecf5; --dim: #93a0b5; --gold: #e8c15a; --blue: #4aa3f0;
+    --good: #5ec26a; --bad: #e06565; --diablo: #a83a2a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 13px/1.6 "Malgun Gothic", system-ui, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; }
+  header .warn { font-size: 11px; color: var(--bad); }
+  .grow { flex: 1; }
+  select, input[type=text], input[type=number], textarea {
+    background: #0b0f16; color: var(--ink); border: 1px solid var(--line);
+    border-radius: 7px; padding: 5px 8px; font: inherit; font-size: 12px;
+  }
+  input[type=number] { width: 104px; }
+  textarea { width: 100%; min-height: 160px; font-family: Consolas, monospace; font-size: 11.5px; }
+  button {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 11px; cursor: pointer; font: inherit; font-size: 12px;
+  }
+  button:hover { border-color: #3d4a63; }
+  button.go { background: var(--gold); color: #1b1205; border-color: transparent; font-weight: 700; }
+  button.danger { background: #3a1e22; border-color: #6b2f36; color: #ffc9c9; }
+  button.on { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  nav { display: flex; gap: 6px; padding: 10px 14px 0; flex-wrap: wrap; }
+  nav button.sel { background: var(--blue); color: #04121f; border-color: transparent; font-weight: 700; }
+  main { padding: 14px; max-width: 1180px; }
+  section { display: none; }
+  section.show { display: block; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 12px;
+  }
+  .card h2 { font-size: 13px; margin: 0 0 4px; color: var(--gold); }
+  .card p.note { margin: 0 0 10px; font-size: 11.5px; color: var(--dim); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .row label { font-size: 11.5px; color: var(--dim); min-width: 96px; }
+  .row.tight label { min-width: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 8px 14px; }
+  .fld { display: flex; align-items: center; gap: 8px; }
+  .fld label { flex: 1; min-width: 84px; font-size: 11.5px; color: var(--dim); }
+  .fld .def { font-size: 10px; color: #6b7688; min-width: 58px; text-align: right; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+  .one {
+    display: flex; gap: 9px; align-items: center; flex-wrap: wrap;
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+  }
+  .one .fm { flex: 1 1 150px; min-width: 0; }
+  .one .fm b { font-size: 12.5px; }
+  .one .fm small { display: block; color: var(--dim); font-size: 10.5px; }
+  .one .fb { flex: 1 1 100%; display: flex; gap: 4px; flex-wrap: wrap; }
+  .one .fb button { padding: 3px 7px; font-size: 11px; }
+  .bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 4px 10px; }
+  .bag .fld label { min-width: 0; }
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 8px; }
+  .preset { text-align: left; padding: 10px 12px; line-height: 1.45; }
+  .preset b { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .preset small { color: var(--dim); font-size: 10.5px; }
+  #log {
+    position: fixed; right: 14px; bottom: 14px; z-index: 20; max-width: 380px;
+    background: #10151f; border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 12px; font-size: 11.5px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    display: none;
+  }
+  #log.show { display: block; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+  .pill.tuned { background: var(--gold); color: #1b1205; }
+  .pill.clean { background: #24303f; color: var(--dim); }
+  .chip { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
+          background: #24303f; color: var(--dim); margin-right: 4px; }
+  .chip.on { background: var(--diablo); color: #fbe8e0; font-weight: 700; }
+  a { color: var(--blue); }
+  code { background: #0b0f16; padding: 1px 5px; border-radius: 5px; font-size: 11.5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎛️ 사가블로 어드민</h1>
+  <label style="font-size:11.5px;color:var(--dim)">프로필</label>
+  <select id="prof"></select>
+  <span id="tunepill" class="pill clean">손잡이 없음</span>
+  <span class="grow"></span>
+  <span class="warn">게임 창이 열려 있으면 저장한 값이 곧바로 그 창에도 반영됩니다</span>
+  <a href="index.html" target="_blank">게임 열기 ↗</a>
+  <button class="go" id="save">💾 세이브 저장</button>
+  <button id="reload">↺ 다시 읽기</button>
+</header>
+
+<nav>
+  <button data-tab="save" class="sel">세이브</button>
+  <button data-tab="dungeon">던전 · 사명</button>
+  <button data-tab="gear">장비 · 벨트 · 연단</button>
+  <button data-tab="skill">직업 · 무예</button>
+  <button data-tab="tune">3D 손잡이</button>
+  <button data-tab="preset">QA 프리셋</button>
+  <button data-tab="tools">점검 · 백업</button>
+</nav>
+
+<main>
+
+<!-- ── 세이브 ─────────────────────────────────────────── -->
+<section id="tab-save" class="show">
+  <div class="card">
+    <h2>지금 이 프로필</h2>
+    <p class="note" id="sum">…</p>
+  </div>
+
+  <div class="card">
+    <h2>재화 · 성장</h2>
+    <p class="note">고친 뒤 위의 <b>세이브 저장</b>을 누릅니다. 게임 창이 열려 있으면 그 창도 바로 다시 읽습니다.</p>
+    <div class="grid" id="basics"></div>
+  </div>
+
+  <div class="card">
+    <h2>동행 — 부대(최대 5)</h2>
+    <p class="note">
+      <b>선두(첫 동행)가 던전에서 몸으로 뛰는 인물</b>입니다(<code>hero.partyPower()</code>) —
+      체력·공격력이 부대 전원의 합에서 나옵니다. 동행이 비어 있으면 던전에 못 들어갑니다.
+    </p>
+    <div class="row">
+      <label>추가할 인물</label><select id="lead"></select>
+      <button id="lead-apply">동행 맨 앞에 세운다</button>
+      <span id="leadinfo" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <div class="row">
+      <button id="party-fill">🧑‍🤝‍🧑 셋을 채운다 (도감에 없으면 새로 등용)</button>
+      <button id="party-rank">⭐ 선두를 승급시킨다</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>진행 비우기</h2>
+    <p class="note">쌓인 것을 지웁니다 — 같은 것을 처음부터 다시 확인할 때 씁니다.</p>
+    <div class="row">
+      <button data-clear="dungeon">🏆 던전 기록 0 (최고층·회차·역참)</button>
+      <button data-clear="fallen">☠️ 결사 스러짐 해제</button>
+      <button data-clear="quest">🚩 사명 진행 비우기</button>
+      <button data-clear="bag">🎒 가방 · 창고 비우기</button>
+      <button data-clear="belt">🧪 벨트 비우기</button>
+      <button data-clear="vendor">🧺 행상 재고 새로 오게</button>
+      <button data-clear="log">📜 기록 비우기</button>
+      <button data-clear="all" class="danger">🕳️ 세이브 통째로 비우기</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── 던전 · 사명 ────────────────────────────────────── -->
+<section id="tab-dungeon">
+  <div class="card">
+    <h2>던전 진행</h2>
+    <p class="note">
+      이 판은 <b>로그라이크</b>라 어드민 창에서 회차를 대신 굴리지 않습니다 — 최고 도달 층·
+      난도·역참 같은 <b>회차를 넘어 남는 값</b>만 다룹니다. 실제로 내려가는 것은 게임 창입니다.
+    </p>
+    <div class="grid" id="dgbasics"></div>
+    <div class="row" style="margin-top:8px" id="modes"></div>
+    <div class="row">
+      <button id="hardcore-on" class="danger">☠️ 결사(하드코어) 켜기 — 되돌릴 수 없습니다</button>
+      <span id="hcinfo" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>지금 회차(run)</h2>
+    <p class="note">게임 창에서 던전에 들어가 있을 때만 값이 있습니다. 어드민 창은 판을 굴리지 않습니다.</p>
+    <p class="note" id="runinfo">…</p>
+  </div>
+
+  <div class="card">
+    <h2>사명 — 메인 · 지역 · 이벤트 · 무작위</h2>
+    <p class="note">
+      실제 판정 함수(<code>quest._onFloor</code>·<code>_onKill</code>·<code>_onRoom</code>·<code>_onRescue</code>)를
+      그대로 불러 진행시킵니다 — 세이브 수치를 직접 조작하지 않습니다.
+    </p>
+    <div class="row">
+      <button id="q-main">🚩 지금 메인 목표를 채운다</button>
+      <button id="q-region">🗺️ 지금 지역 목표를 채운다</button>
+      <button id="q-event">🎗️ 이벤트(구출) 하나 채운다</button>
+      <button id="q-random">🎲 현상판 목표를 채운다</button>
+      <button id="q-reroll">🔄 현상판 다시 뽑기</button>
+    </div>
+    <div id="qstatus" style="font-size:11.5px;color:var(--dim);line-height:1.8"></div>
+  </div>
+</section>
+
+<!-- ── 장비 · 벨트 · 연단 ─────────────────────────────── -->
+<section id="tab-gear">
+  <div class="card">
+    <h2>선두에게 한 벌 갖추기</h2>
+    <p class="note">
+      부위 여덟(무기·갑주·투구·장갑·신발·반지·목걸이·부적)을 그 등급으로 채웁니다.
+      <b>요구 레벨에 못 미치면 그 인물의 레벨을 맞춰 올립니다.</b> 물건은 <b>확인된 채</b>로 나옵니다.
+    </p>
+    <div class="row" id="gearsets"></div>
+    <div class="row">
+      <button id="gear-strip" class="danger">🧍 선두를 다 벗긴다</button>
+      <button id="gear-repair">🔨 낀 것 다 수리 (금을 쓴다)</button>
+      <span id="gearinfo" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>감정 · 가방</h2>
+    <p class="note">
+      <b>양품 이상은 미확인으로 나옵니다</b> — 감정서를 태워야 옵션이 보입니다.
+      가방이 차면 못 줍습니다(그 답답함도 규칙입니다).
+    </p>
+    <div class="row">
+      <label>감정서</label><input type="number" id="scrolls">
+      <button id="scroll-apply">그만큼 둔다</button>
+      <button id="ident-all">🔎 되는 데까지 감정</button>
+    </div>
+    <div class="row">
+      <button id="bag-fill">🎒 가방을 무작위로 채운다</button>
+      <button id="bag-clean">🧹 아무에게도 안 맞는 것 자동 매각</button>
+    </div>
+    <p class="note" id="baginfo"></p>
+  </div>
+
+  <div class="card">
+    <h2>벨트 — 단약</h2>
+    <p class="note">원작의 1~4 자리(요대)입니다. 네 칸이 가득 차면 더 못 넣습니다.</p>
+    <div class="row">
+      <button id="belt-fill">🍶 회복·기력단으로 벨트를 가득 채운다</button>
+      <button id="belt-clear" class="danger">비운다</button>
+    </div>
+    <div id="beltinfo" style="font-size:11.5px;color:var(--dim)"></div>
+  </div>
+
+  <div class="card">
+    <h2>연단(鍊丹) 재료</h2>
+    <p class="note">보석·부문을 채워 두면 연단(호라드릭 큐브) 조합을 바로 확인할 수 있습니다.</p>
+    <div class="row">
+      <button id="mat-gem">💎 보석 다섯 종류 × 조(粗) 12개</button>
+      <button id="mat-gem-top">💎 보석 다섯 종류 × 완(完) 4개</button>
+      <button id="mat-rune">📜 부문 처음 셋 × 6개</button>
+      <button id="mat-clear" class="danger">재료 비우기</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── 직업 · 무예 ────────────────────────────────────── -->
+<section id="tab-skill">
+  <div class="card">
+    <h2>직업 — 손에 쥔 무기가 정한다</h2>
+    <p class="note">
+      원작처럼 직업을 따로 고르지 않습니다. <b>선두에게 그 직업의 대표 무기를 채워서</b> 손을 바꿉니다.
+      점수는 직업마다 따로 쌓이므로, 무기를 도로 쥐면 예전 나무가 그대로 살아납니다.
+    </p>
+    <div class="row" id="classes"></div>
+    <p class="note" id="classinfo">…</p>
+  </div>
+
+  <div class="card">
+    <h2>무예 — 지금 직업의 아홉</h2>
+    <p class="note">
+      점수는 <b>선두 레벨만큼</b> 생깁니다(레벨 1 = 1점). 세이브에 점수 칸은 따로 없습니다.
+    </p>
+    <div class="row">
+      <button id="skill-max">🎓 지금 직업의 무예를 끝까지 찍는다 (레벨을 맞춰 올린다)</button>
+      <button id="skill-clear" class="danger">환원 (지금 직업의 나무만 비운다)</button>
+    </div>
+    <div class="cards" id="skills"></div>
+  </div>
+
+  <div class="card">
+    <h2>네 칸 — Z X C V</h2>
+    <p class="note">게임의 <code>skill.equipped()</code> 를 그대로 부릅니다.</p>
+    <div class="row tight" id="barrow"></div>
+  </div>
+</section>
+
+<!-- ── 3D 손잡이 ──────────────────────────────────────── -->
+<section id="tab-tune">
+  <div class="card">
+    <h2>3D 무대 (<code>dg3d.*</code>)</h2>
+    <p class="note">
+      <b>이 판에는 원래 어드민이 없었고</b>, 이 손잡이들은 콘솔에서 <code>DG.dungeon3d.set(...)</code>
+      로만 두드릴 수 있었습니다. 여기서 잡으면 <b>새로고침 뒤에도 남고</b>, 게임 창이 다음에
+      3D 무대를 세울 때(방을 나가고 들어올 때) 반영됩니다.
+      비워 두면 <b>코드의 기본값</b>으로 돕니다.
+    </p>
+    <div id="tunefields"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="danger" id="tune-clear">전부 놓기 (기본값으로)</button>
+      <span id="tunesum" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ── QA 프리셋 ──────────────────────────────────────── -->
+<section id="tab-preset">
+  <div class="card">
+    <h2>시나리오 한 번에 만들기</h2>
+    <p class="note">
+      확인하려는 상황을 바로 만듭니다. 누르면 <b>곧바로 저장</b>되고 게임 창에도 반영됩니다.
+      되돌리려면 아래 스냅샷을 먼저 떠 두세요.
+    </p>
+    <div class="presets" id="presets"></div>
+  </div>
+
+  <div class="card">
+    <h2>스냅샷 — 확인 전에 떠 두고, 끝나면 되돌립니다</h2>
+    <p class="note">이 기기에만 남습니다(세이브와 별개 칸). 세 칸입니다.</p>
+    <div class="row" id="snaps"></div>
+  </div>
+</section>
+
+<!-- ── 점검 · 백업 ────────────────────────────────────── -->
+<section id="tab-tools">
+  <div class="card">
+    <h2>세이브 조각</h2>
+    <p class="note">그대로 복사해 두었다가 붙여 넣으면 그 판으로 돌아갑니다.</p>
+    <div class="row">
+      <button id="dump">📋 지금 세이브 꺼내기</button>
+      <button id="load" class="danger">붙여 넣은 것으로 덮기</button>
+      <span id="usage" style="font-size:11.5px;color:var(--dim)"></span>
+    </div>
+    <textarea id="json" placeholder="여기에 세이브 조각이 나옵니다"></textarea>
+  </div>
+
+  <div class="card">
+    <h2>어드민 자가점검</h2>
+    <p class="note">
+      어드민이 세이브와 손잡이를 제대로 읽고 쓰는지 스스로 확인합니다.
+      <b>지금 프로필을 건드리지 않습니다</b> — 따로 만든 칸에서 확인하고 지웁니다.
+    </p>
+    <div class="row"><button class="go" id="selftest">🔍 점검</button></div>
+    <div id="selfout" style="font-family:Consolas,monospace;font-size:11.5px;line-height:1.8"></div>
+  </div>
+</section>
+
+</main>
+
+<div id="log"></div>
+
+<script src="js/data.js"></script>
+<script src="js/data-enemy.js"></script>
+<script src="js/data-item.js"></script>
+<script src="js/data-gem.js"></script>
+<script src="js/data-elem.js"></script>
+<script src="js/data-skill.js"></script>
+<script src="js/data-set.js"></script>
+<script src="js/data-unique.js"></script>
+<script src="js/data-dungeon.js"></script>
+<script src="js/data-quest.js"></script>
+<script src="js/core.js"></script>
+<script src="js/account.js"></script>
+<script src="js/item.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/skill.js"></script>
+<script src="js/dungeon.js"></script>
+<script src="js/town.js"></script>
+<script src="js/potion.js"></script>
+<script src="js/vendor.js"></script>
+<script src="js/forge.js"></script>
+<script src="js/quest.js"></script>
+<script src="js/auto.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
