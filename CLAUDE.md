@@ -4,10 +4,13 @@
 (`C:\swbins`)와도 별개다. 업무 이야기가 나오면 "그건 `C:\link` 세션에서",
 대시보드·개인 도구 이야기가 나오면 "그건 `C:\swbins` 세션에서" 라고 되짚어 준다.
 
-**정본은 `master.md` 다. 게임 작업은 무조건 거기부터 읽는다.**
-(Godot 4.x 3D 신규 구축 최종 작업지시서 — 5개 게임 공통. `SAGA-HANDOFF.md`와 각 폴더의
-`PLAN*.md`는 더 이상 정본이 아니다. 과거 자료이며 폐기는 아니다 — master.md 4장 통합 규칙 참고.
-이 파일은 그 문서로 가는 길잡이일 뿐이다 — 규칙·수치를 여기 겹쳐 쓰지 않는다)
+**정본은 `master.md` 다 — 단, `saga-godot/`(신규 Godot 3D 재구축) 한정.**
+기존 다섯 웹 판(saga-go·saga-dungeon·saga-forest·saga-story·saga-realm)은
+`master.md`를 보지 않는다 — 각자 폴더의 `PLAN.md`가 그대로 정본이다.
+saga-godot은 그 다섯 판과 완전히 별개인 신규 프로젝트이고, master.md는
+그 프로젝트만의 작업지시서다(master.md 0장 참고).
+저장소 전체 규칙·이력은 `SAGA-HANDOFF.md`. 이 파일은 어디로 가야 하는지
+가리키는 길잡이일 뿐이다 — 규칙·수치를 여기 겹쳐 쓰지 않는다.
 
 ## 다섯 판 — 완전히 별개인 프로젝트다
 
