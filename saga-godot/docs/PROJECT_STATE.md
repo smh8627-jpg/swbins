@@ -32,9 +32,9 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 
 ## 다음 작업
 
-- **미결 사항(사용자 확인 필요)**: 다섯 게임이 인물 데이터(`data.js`)를
-  Godot에서도 공유할지, 지금처럼 각자 복사본을 가질지 — LEGACY_FEATURE_AUDIT.md
-  1·4장 참고
+- **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
+  기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
+  인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
 - Phase 3 — Vertical Slice 설계 (master.md 26~35단계)
 
 ## 알려진 오류
