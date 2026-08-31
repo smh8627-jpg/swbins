@@ -1,7 +1,8 @@
 ; Engine configuration file.
-; 이 파일의 setting is generally identical to hand what a Godot editor's Project Settings dialog would write.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
 ;
-; format:
+; Format:
 ;   [section] ; section goes between []
 ;   param=value ; assign values to parameters
 
@@ -10,16 +11,16 @@ config_version=5
 [application]
 
 config/name="SAGA"
-config/features=PackedStringArray("4.7", "Mobile")
 run/main_scene="res://games/saga_go/world/TestVillage.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
 
 [display]
 
 window/size/viewport_width=1080
 window/size/viewport_height=1920
-window/handheld/orientation="sensor"
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation="sensor"
 
 [input]
 
@@ -56,4 +57,3 @@ run={
 [rendering]
 
 renderer/rendering_method="mobile"
-renderer/rendering_method.mobile="mobile"

@@ -24,9 +24,17 @@ const LEGEND := {
 
 const WATER_HEIGHT_ABOVE_BED := 0.55
 
+## 다리 널판이 강바닥 위로 뜨는 높이. landmarks_builder.gd의 다리도
+## 이 상수를 그대로 가져다 쓴다 — 두 파일이 각자 값을 정하면 어긋난다.
+const BRIDGE_CLEARANCE := 2.0
+
+## 산·강을 막는 벽의 높이(둘 다 walkable=false — 다리로만 강을 건넌다).
+const BLOCK_HEIGHT := 6.0
+
 func _ready() -> void:
 	_build()
 	_build_water()
+	_build_collision()
 
 func _build() -> void:
 	var rows := TestMap.ROWS
@@ -109,3 +117,39 @@ func _build_water() -> void:
 
 	for i in positions.size():
 		mm.set_instance_transform(i, Transform3D(Basis(), positions[i]))
+
+## 타일마다 실제 충돌체를 놓는다 — 하나짜리 평평한 바닥 대신, 산·강은 막힌
+## 벽으로, 다리는 널판 높이에서, 나머지는 제 타일 높이에서 딛는다.
+## (전에는 완전 평면 바닥 하나뿐이라 산이 허공에 뜬 것처럼 보였다.)
+func _build_collision() -> void:
+	var rows := TestMap.ROWS
+	var body := StaticBody3D.new()
+	body.name = "TerrainCollision"
+	add_child(body)
+
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			var ch: String = row[x]
+			if not LEGEND.has(ch):
+				continue
+			var info: Dictionary = LEGEND[ch]
+			var pos := TestMap.world_pos(x, y)
+			var cs := CollisionShape3D.new()
+			var box := BoxShape3D.new()
+
+			if ch == "^" or ch == "~":
+				box.size = Vector3(TestMap.TILE_SIZE, BLOCK_HEIGHT, TestMap.TILE_SIZE)
+				cs.shape = box
+				cs.position = pos + Vector3(0, info.height, 0)
+			elif ch == "B":
+				var bridge_top: float = info.height + BRIDGE_CLEARANCE
+				box.size = Vector3(TestMap.TILE_SIZE, 0.6, TestMap.TILE_SIZE)
+				cs.shape = box
+				cs.position = pos + Vector3(0, bridge_top, 0)
+			else:
+				box.size = Vector3(TestMap.TILE_SIZE, 1.0, TestMap.TILE_SIZE)
+				cs.shape = box
+				cs.position = pos + Vector3(0, info.height - 0.5, 0)
+
+			body.add_child(cs)
