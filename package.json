@@ -8,5 +8,22 @@
     "type": "git",
     "url": "https://github.com/smh8627-jpg/swbins"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "directories": {
+    "saga-go": "포켓몬GO풍 위치 기반 탐험 — 포트 8791",
+    "saga-dungeon": "디아블로풍 핵앤슬래시 — 포트 8792",
+    "saga-forest": "동물의숲풍 생활 시뮬레이션 — 포트 8793",
+    "saga-story": "메이플스토리풍 횡스크롤 액션 — 포트 8794",
+    "saga-realm": "코에이 삼국지풍 경영 — 포트 8795",
+    "saga-godot": "Godot 4.x 3D 재구축 (다섯 판과 별개 신규 프로젝트)",
+    "saga-pc": "다섯 판을 파일 하나씩으로 묶는 빌드 도구"
+  },
+  "games": {
+    "saga-go": "saga-go/index.html",
+    "saga-dungeon": "saga-dungeon/index.html",
+    "saga-forest": "saga-forest/index.html",
+    "saga-story": "saga-story/index.html",
+    "saga-realm": "saga-realm/index.html",
+    "saga-godot": "saga-godot/Main.tscn"
+  }
 }
