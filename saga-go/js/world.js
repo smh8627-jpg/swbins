@@ -723,6 +723,13 @@
     gCanvas = groundEl; gCtx = gCanvas.getContext('2d');
     resize();
     global.addEventListener('resize', resize);
+    /* PLAN 30절 — resize 만으로도 대개 잡히지만, 회전 직후에는 일부 기기의
+       innerWidth/innerHeight 가 아직 예전 값일 수 있다고 알려져 있다.
+       orientationchange 도 같이 듣고, 한 번 더 늦춰 잰다 */
+    global.addEventListener('orientationchange', function () {
+      resize();
+      setTimeout(resize, 200);
+    });
     canvas.addEventListener('click', onClick);
     bindZoom(canvas);
     /* 3D 렌더러는 **있으면 쓴다.** WebGL 이 없거나 켜다 실패하면 그대로 2D 로 돈다.
