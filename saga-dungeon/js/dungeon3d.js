@@ -1124,7 +1124,7 @@
     /* 걸으면 위아래로 튄다 — 도형으로 남아 있을 때만 도드라진다(GLB 는 제 다리로 걷는다) */
     me.node.position.y = p.walking ? Math.abs(Math.sin(p.phase || 0)) * 2.2 : 0;
     if (AS3) {
-      AS3.step(me.node.userData.mixerNode, { t: nowT, walking: !!p.walking, anim: p.walking ? 'walk' : 'idle' });
+      AS3.step(me.node.userData.mixerNode, { t: nowT, walking: !!p.walking, anim: p.atkAnim > 0 ? 'attack' : (p.walking ? 'walk' : 'idle') });
       AS3.flashAllMat(ensureFlash(me.node), p.hurt, 0.28);
     }
 

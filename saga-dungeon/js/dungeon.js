@@ -553,6 +553,7 @@
       foeShots: [],                       // 궁수·조총병이 쏘는 것 (몬스터 다양화)
       roomIdx: 0, rooms: [], room: null,
       loot: { gold: 0, items: [] },
+      fieldSpawnCd: 4,                    // 들판 로머 보충 주기(초) — PLAN 10절 "필드 사냥"
       kills: 0, startedAt: Date.now(), dead: false
     };
     run.hpMax = hpMaxOf();
@@ -578,6 +579,7 @@
     run.room.doors = makeDoors(run.floor, 0, total);
     run.player = {
       x: WALL + 40, y: ROOM_H * 0.5, atkCd: 0, phase: 0, walking: false, facing: 1, hurt: 0,
+      atkAnim: 0,                         // 공격 자세 남은 시간(초) — 3D·2D 렌더가 읽는다
       cds: [0, 0, 0, 0],                  // 스킬 쿨다운 (남은 초)
       dash: null,                         // 돌진 중 { t, dx, dy, hit }
       invuln: 0,                          // 무적 남은 초 (돌진)
@@ -590,6 +592,8 @@
     /* 역참(驛站) — 원작의 웨이포인트. **다섯 층마다** 밟으면 다음부터 거기서 시작한다.
        "최고의 절반" 하나로 갈음하던 자리를, 원작처럼 **밟은 곳**으로 바꿨다 */
     if (run.floor % WAYPOINT_EVERY === 0) { markWaypoint(run.floor); }
+    run.fieldSpawnCd = 4;
+    spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
   }
 
   /** 다음 방으로 */
@@ -603,6 +607,8 @@
     run.player.x = WALL + 40;
     run.player.y = ROOM_H * 0.5;
     target = null;
+    run.fieldSpawnCd = 4;
+    spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
     core.emit('dungeon:room', run.room);
     return true;
   }
@@ -965,6 +971,50 @@
     p.y = (inRoomRect(p.x, ny) || !fieldBlockedAt(p.x, ny)) ? ny : py;
   }
 
+  var FIELD_ENEMY_CAP = 4;                // 들판에 동시에 사는 로머 상한
+
+  /**
+   * 필드 사냥(PLAN 10절) — 방을 다 안 치워도 방 밖 들판에서 바로 싸울 수 있게,
+   * 로밍 몬스터를 들판에 흩어 둔다. **`room.enemies` 배열에 그대로 얹는다** —
+   * 렌더링 · 기공파/돌진 충돌 · 미니맵 · 근접 자동 공격이 전부 이 배열을 이미
+   * 순회하므로 여기 한 곳만 채우면 나머지는 공짜로 따라온다. `.field` 표시로
+   * 방 몬스터와 가른다 — 방 정리(`alive`) 판정과 넉백 clamp가 이 표시를 본다.
+   *
+   * **자가진단(`DG_NO_DRAW`)에서는 켜지 않는다** — `_test.html`은 전체가 씨앗
+   * 하나로 고정된 **하나로 이어진** Math.random() 수열을 쓴다(파일 앞머리 주석 —
+   * "원소 피해 항목 하나가 그렇게 넘어갔다"). `spawnEnemy()`를 여기서 더 부르면
+   * 그 수열이 밀려 뒤따르는 다른 항목의 기대값이 어긋난다 — three.js 때 밟았던
+   * 것과 같은 함정이다. `game.js`가 이미 `minimap.tick()` 같은 비핵심 계는 이
+   * 플래그로 끄고 있어(같은 자리), 새로 생긴 이 계도 같은 자리에 둔다. 실제 플레이
+   * (`index.html`)에는 이 플래그가 없어 그대로 다 돈다.
+   */
+  function spawnFieldEncounters(count) {
+    if (!run || !fieldOn() || global.DG_NO_DRAW) { return; }
+    var R = fieldRadiusUnits(), tries, i, a, d, x, y, en;
+    for (i = 0; i < count; i++) {
+      tries = 8;
+      while (tries--) {
+        a = Math.random() * Math.PI * 2;
+        d = (WALL + 60) + Math.random() * Math.max(40, R - WALL - 60);
+        x = ROOM_W * 0.5 + Math.cos(a) * d;
+        y = ROOM_H * 0.5 + Math.sin(a) * d;
+        if (inRoomRect(x, y) || fieldBlockedAt(x, y)) { continue; }
+        en = spawnEnemy(run.floor, false, { x: x, y: y });
+        en.field = true;
+        run.room.enemies.push(en);
+        break;
+      }
+    }
+  }
+
+  /** 살아 있는 들판 로머 수 */
+  function fieldEnemyCount() {
+    if (!run) { return 0; }
+    var n = 0, es = run.room.enemies, i;
+    for (i = 0; i < es.length; i++) { if (es[i].field && es[i].hp > 0) { n++; } }
+    return n;
+  }
+
   /** 사기(士氣) 버프가 살아 있나 */
   function rallyOn() {
     return !!(run && run.player.rallyUntil > Date.now());
@@ -980,7 +1030,16 @@
     /* 명민·정신 같은 상시 무예가 기력 회복을 올린다 */
     run.mp = Math.min(run.mpMax, run.mp + (MP_REGEN + boonVal('mpRegen')) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
+    if (p.atkAnim > 0) { p.atkAnim -= dt; }
     var rally = rallyOn();
+
+    /* 필드 사냥 보충 — 들판을 걸어다니는 동안 로머가 상한 밑으로 떨어지면
+       주기적으로 하나씩 채운다(PLAN 10절 "랜덤 필드 구조") */
+    run.fieldSpawnCd -= dt;
+    if (run.fieldSpawnCd <= 0) {
+      run.fieldSpawnCd = 4;
+      if (fieldEnemyCount() < FIELD_ENEMY_CAP) { spawnFieldEncounters(1); }
+    }
 
     /* 돌진 — 조작을 무시하고 정해진 방향으로 밀고 나간다 */
     var px0 = p.x, py0 = p.y;
@@ -1086,6 +1145,7 @@
     }
     if (near && nd <= reach && p.atkCd <= 0) {
       p.atkCd = atkCdOf() / (rally ? 1.4 : 1);
+      p.atkAnim = 0.22;
       strike(near);
       if (!run) { return; }
       if (Math.random() * 100 < boonVal('echoPct')) { strike(near); }
@@ -1190,7 +1250,11 @@
     /* 방 정리 판정 */
     if (!room.cleared) {
       var alive = 0;
-      for (i = 0; i < room.enemies.length; i++) { if (room.enemies[i].hp > 0) { alive++; } }
+      /* 들판 로머(`.field`)는 문 열림 판정에서 뺀다 — 방 안 몬스터만 다 잡으면
+         된다. 안 그러면 계속 보충되는 필드 로머 때문에 방이 영영 안 열린다 */
+      for (i = 0; i < room.enemies.length; i++) {
+        if (room.enemies[i].hp > 0 && !room.enemies[i].field) { alive++; }
+      }
       if (!alive) {
         room.cleared = true;
         core.emit('dungeon:clear', room);
@@ -1398,8 +1462,15 @@
       var p = run.player;
       var dx = e.x - p.x, dy = e.y - p.y;
       var d = Math.sqrt(dx * dx + dy * dy) || 1;
-      e.x = core.clamp(e.x + dx / d * push, WALL + e.r, ROOM_W - WALL - e.r);
-      e.y = core.clamp(e.y + dy / d * push, WALL + e.r, ROOM_H - WALL - e.r);
+      /* 들판 로머(`.field`)는 방 벽 좌표로 clamp하지 않는다 — 안 그러면
+         맞을 때마다 방 안으로 순간이동해 버린다 */
+      if (e.field) {
+        e.x += dx / d * push;
+        e.y += dy / d * push;
+      } else {
+        e.x = core.clamp(e.x + dx / d * push, WALL + e.r, ROOM_W - WALL - e.r);
+        e.y = core.clamp(e.y + dy / d * push, WALL + e.r, ROOM_H - WALL - e.r);
+      }
       fx.push({ t: 'slash', x: e.x, y: e.y - e.r * 0.6,
         a: Math.atan2(dy, dx), life: 0.16, crit: crit,
         el: kind !== 'phys' ? kind : null, color: kind !== 'phys' ? elemColorOf(kind) : null });

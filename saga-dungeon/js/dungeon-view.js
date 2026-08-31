@@ -1392,7 +1392,7 @@
       global.DG.sprite.stamp(ctx, {
         kind: 'human', ref: lead,
         x: p.x, y: p.y, s: 0.88 * sf, facing: pl.facing,
-        phase: pl.phase, walking: pl.walking,
+        phase: pl.phase, walking: pl.walking || pl.atkAnim > 0,
         color: fac.color, look: global.DG.sprite.lookOf(lead), t: now
       });
     } else {
