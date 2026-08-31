@@ -37,13 +37,33 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
   던전·장비는 이번 슬라이스에서 의도적으로 제외(GO 정체성에 안 맞거나 다른
   게임 설계를 먼저 봐야 함).
 
+- Phase 4(36~50단계) 첫 조각 — **TestVillage.tscn 완성.** VERTICAL_SLICE.md 27절의
+  7×7 글자 지도(`games/saga_go/data/test_map.gd`)를 실제 씬으로 세웠다.
+  - `games/saga_go/world/terrain_builder.gd` — 글자 지도를 읽어 지형종류별
+    MultiMeshInstance3D 하나씩(11종)에 타일 색 평면을 채운다(칸마다 노드를
+    만들지 않는다 — draw call 절감, master.md 35장)
+  - `games/saga_go/world/landmarks_builder.gd` — 굴 입구·마을집 2채(본체+지붕)·
+    폐허 기둥 3개·다리를 primitive(Box/Prism/Cylinder)로 세운다.
+    **실제 GLB 에셋 아님 — master.md 8장의 "Primitive는 프로토타입에서만"**
+    원칙대로, 나중에 GLB로 교체할 자리만 파 둔 것이다
+  - `TestVillage.tscn` — WorldEnvironment(하늘·안개) · DirectionalLight3D(그림자) ·
+    Terrain · Landmarks · 검토용 탑다운 Camera3D · PlayerSpawn(Marker3D, 마을
+    중심) 조립. `project.godot`의 `run/main_scene`을 이걸로 바꿨다(Main.tscn은
+    Phase 1의 빈 스켈레톤이었을 뿐 — 이제 진짜 지역이 메인이다)
+  - 검증: `--headless --import` → `--headless --quit` 둘 다 **exit 0, 에러·경고
+    없음**. Godot headless는 실제 렌더링을 안 하므로(null 렌더러) 화면 확인은
+    아직 못 했다 — **다음 세션이 에디터로 직접 열어 시각 확인할 것**
+
 ## 다음 작업
 
 - **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
   기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
-- Phase 4 — 3D World Foundation (master.md 36~50단계): 실제 Godot 씬 제작 시작
-  — TestVillage.tscn, Terrain, Lighting, GLB import 구조 등
+- Phase 4 나머지: 41(GLB import 구조 — asset3d.js 패턴을 GDScript로) · 43~46
+  (Vegetation/Rock/Building/Landmark를 지금의 primitive에서 실제 배치 밀도로) ·
+  48(Water — 지금 강 타일은 색만 있고 표면 셰이더 없음) · 49(높낮이 지형 —
+  지금은 완전 평면)
+- Phase 5 — Player(실제 CharacterBody3D, PlayerSpawn 자리에 세우기)
 
 ## 알려진 오류
 
