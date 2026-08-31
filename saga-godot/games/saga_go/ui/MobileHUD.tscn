@@ -1,0 +1,36 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://games/saga_go/ui/virtual_joystick.gd" id="1"]
+
+[node name="MobileHUD" type="CanvasLayer"]
+
+[node name="Joystick" type="Control" parent="."]
+custom_minimum_size = Vector2(140, 140)
+offset_left = 40.0
+offset_top = -180.0
+offset_right = 180.0
+offset_bottom = -40.0
+grow_vertical = 0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+groups = ["virtual_joystick"]
+script = ExtResource("1")
+radius = 60.0
+
+[node name="Base" type="ColorRect" parent="Joystick"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0.18)
+mouse_filter = 2
+
+[node name="Knob" type="ColorRect" parent="Joystick"]
+custom_minimum_size = Vector2(56, 56)
+offset_left = 42.0
+offset_top = 42.0
+offset_right = 98.0
+offset_bottom = 98.0
+color = Color(1, 1, 1, 0.5)
+mouse_filter = 2

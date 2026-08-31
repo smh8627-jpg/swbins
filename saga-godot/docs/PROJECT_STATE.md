@@ -67,19 +67,45 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     위로 확실히 띄움(`bed + 2.0`)
   - 검증: `--headless --import`/`--quit` 둘 다 exit 0, 에러·경고 없음
 
+- Phase 5(51~60절) — **Player 완성.** `games/saga_go/player/`:
+  - `Player.tscn` — CharacterBody3D(캡슐 collision+visual, 실제 GLB 전까지
+    primitive) · CameraRig(SpringArm3D+Camera3D 3인칭)
+  - `player.gd` — 이동(조이스틱 우선, 없으면 WASD/화살표 폴백) · 걷기/달리기
+    속도 두 단(Shift) · 중력 · move_and_slide 충돌 · 이동 방향으로 몸통 회전
+  - `camera_rig.gd` — 플레이어를 자동으로 따라간다(부모 자식 관계) ·
+    드래그로 회전(10px 문턱으로 탭과 구분 — 웹판 사가고 README의 같은 조작
+    감각을 그대로 가져옴) · 휠/핀치로 줌(4~16m) · 피치 15~70도 제한
+  - `games/saga_go/ui/virtual_joystick.gd` + `MobileHUD.tscn` — 왼쪽 아래
+    가상 조이스틱. 터치·마우스 둘 다 지원, "virtual_joystick" 그룹으로
+    player.gd가 찾아 읽는다
+  - `TestVillage.tscn`에 Player·MobileHUD 인스턴스 추가, 마을 중심(-48, 0.1,
+    -24)에 스폰. **평평한 충돌 바닥(Ground/StaticBody3D)을 새로 추가** —
+    지형 시각 높낮이(산 +2.5·강 -1.0)와 정확히 안 맞는 알려진 한계(아래 참고)
+  - 검증 중 GDScript 엄격 타입 오류 하나 잡음 — `var x := clamp(...)`가
+    Variant로 추론돼 "경고를 오류로 취급"에 걸렸다. `var x: float = clamp(...)`로
+    명시해 고침
+  - 검증: `--headless --quit` **세 번 다 exit 0, 에러·경고 없음**
+
+## 알려진 한계 (추가)
+
+- Ground 충돌체가 완전 평면이다 — 산(+2.5)·강(-1.0) 같은 시각적 높낮이와
+  안 맞는다. 지금 걸을 수 있는 영역(마을·길·들, 높이 0~0.2)엔 문제가 안 되지만,
+  산기슭까지 걸어가면 시각과 충돌이 어긋나 보일 것이다. 다음에 지형별
+  충돌 셰이프로 교체할 것(터레인 전체를 HeightMapShape3D로 가는 게 정공법)
+
 ## 다음 작업
 
 - **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
   기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
-- Phase 4 나머지: 41(GLB import 구조 — asset3d.js 패턴을 GDScript로, 지금은
-  전부 primitive) · 45·46(Building/Landmark는 지금 primitive로 이미 있으나
-  GLB로 교체는 아직) · **50(첫 번째 플레이 가능 지역 완성 — 걸어 다닐
-  플레이어가 없어서 "플레이 가능"은 아직 아니다, Phase 5에서 채움)**
-- 헤드리스는 null 렌더러라 실제 화면을 못 봤다 — **다음 세션이 에디터로 열어
-  지형 높낮이·수면·나무 배치가 시각적으로 맞는지 확인할 것**(특히 다리가
-  물 위로 잘 뜨는지, 산이 두드러지는지)
-- Phase 5 — Player(실제 CharacterBody3D, PlayerSpawn 자리에 세우기)
+- **실기 확인 필요**(다음 세션 에디터로 직접) — headless는 null 렌더러라
+  이동감·카메라 회전/줌·조이스틱 조작감을 눈으로/손으로 아직 못 봤다.
+  VERTICAL_SLICE.md 27~28절이 요구하는 "이동감 자체가 재미있는가"는
+  실기 없이는 판단 불가
+- Phase 4 나머지(41 GLB import 구조, 45·46 primitive→GLB 교체)는 실제
+  3D 에셋을 고른 뒤로 미룸
+- Phase 6 — Combat: VERTICAL_SLICE.md 29·34·35절의 "도적의 습격" 사건 +
+  duel.js 재구현(속공·필살·회피, 강타 예고 AI)
 
 ## 알려진 오류
 

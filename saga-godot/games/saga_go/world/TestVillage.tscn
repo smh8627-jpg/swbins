@@ -1,8 +1,13 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/world/terrain_builder.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/world/landmarks_builder.gd" id="2"]
 [ext_resource type="Script" path="res://games/saga_go/world/vegetation_builder.gd" id="3"]
+[ext_resource type="PackedScene" path="res://games/saga_go/player/Player.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://games/saga_go/ui/MobileHUD.tscn" id="5"]
+
+[sub_resource type="BoxShape3D" id="GroundShape1"]
+size = Vector3(360, 4, 360)
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat1"]
 sky_top_color = Color(0.38, 0.55, 0.82, 1)
@@ -41,9 +46,20 @@ script = ExtResource("2")
 [node name="Vegetation" type="Node3D" parent="."]
 script = ExtResource("3")
 
+[node name="Ground" type="StaticBody3D" parent="."]
+## 평평한 충돌 바닥 한 장 — 시각적 높낮이(산 +2.5 · 강 -1.0)와 정확히 맞진
+## 않는다(알려진 한계, PROJECT_STATE.md 참고). 마을·길·들 정도의 미세한
+## 단차(0~0.2)만 있는 지역이라 지금은 이걸로 충분하다.
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.9, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("GroundShape1")
+
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
-current = true
+current = false
 
-[node name="PlayerSpawn" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 1, -24)
+[node name="Player" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48, 0.1, -24)
+
+[node name="MobileHUD" parent="." instance=ExtResource("5")]
