@@ -414,6 +414,31 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 #encounter.show { display: flex; animation: fade .18s ease-out; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
+/* ── 도적전(사가블로식 실시간) HUD ─────────────────────────
+ * `#encounter`와 달리 **화면을 안 막는다** — 지도를 계속 드래그·탭으로
+ * 움직일 수 있어야 사거리 안으로 걸어 들어갈 수 있다. 그래서 컨테이너는
+ * pointer-events:none 이고, 실제 버튼만 auto 로 되돌린다. */
+#rogue-hud { position: fixed; inset: 0; z-index: 35; display: none; pointer-events: none; }
+#rogue-hud.show { display: block; }
+#rogue-hud .ra-hud {
+  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  width: min(92vw, 380px); padding: 10px 14px; border-radius: var(--r-lg);
+  background: rgba(20,22,28,.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-br); pointer-events: none;
+}
+#rogue-hud .ra-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+#rogue-hud .ra-row small { width: 44px; flex: none; opacity: .8; }
+#rogue-hud .ra-foe small { color: #e08a8a; }
+#rogue-hud .ra-tell {
+  text-align: center; margin: 6px 0; padding: 4px 0; border-radius: 8px;
+  background: rgba(224,90,90,.18); color: #ff9d9d; font-weight: 700;
+  visibility: hidden; opacity: 0; transition: opacity .12s;
+}
+#rogue-hud .ra-tell.show { visibility: visible; opacity: 1; animation: fade .12s ease-out; }
+#rogue-hud .ra-pad { display: flex; gap: 8px; margin-top: 8px; }
+#rogue-hud .ra-pad .btn { flex: 1; pointer-events: auto; }
+
+
 /* 교전에 실제 3D 상대가 섰을 때(`duel.js` `open()` 이 `duel3d` 를 붙인다) —
    무대가 카드 뒤에 있으니 어둡게+흐리게 덮으면 아무 뜻이 없다. 아래로
    붙여 HUD 처럼 만들고, 배경은 거의 그대로 비친다(2026-08-30) */
@@ -436,6 +461,12 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   background: rgba(24,27,34,.94); border: 1px solid var(--glass-br);
   box-shadow: 0 24px 70px rgba(0,0,0,.6);
   animation: pop .22s cubic-bezier(.22,1,.36,1);
+  /* 가로 모드·자판이 뜬 좁은 화면에서 카드가 화면보다 길어지면(등용 카드는
+     초상·호감도 바·이력·호소 버튼 셋까지 쌓인다) #encounter가 안 막고 그대로
+     넘쳐 위아래가 화면 밖으로 밀려 **스크롤도 안 되고 안 보이게** 됐다
+     (2026-08-31, 짧은 뷰포트로 재현 — 인물 초상이 top:-38px로 화면 위에 있었다).
+     세로 스크롤을 열어 준다 */
+  max-height: calc(100vh - 36px); overflow-y: auto;
 }
 @keyframes pop { from { transform: translateY(14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
 
