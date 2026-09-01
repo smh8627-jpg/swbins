@@ -101,6 +101,7 @@
   var dyn = null;              // 매달(성이 바뀔 때) 다시 짓는 그룹 — 성·길·지형
   var hitMeshes = [];          // 탭 판정용 투명 원기둥들
   var pulseRings = [];         // 포위 표시 — 숨쉬듯 커졌다 작아진다
+  var floaters = [];           // 재해 그림문자 — 천천히 위아래로 떠다닌다
   var rebuildSeq = 0;          // 늦게 도착한 옛 build() 콜백을 거른다
 
   var yaw = 0, pitch = 0.85, dist = 260;
@@ -194,6 +195,25 @@
     dyn.clear();
     hitMeshes = [];
     pulseRings = [];
+    floaters = [];
+  }
+
+  /** 재해 그림문자 — 캔버스에 이모지를 한 번 찍어 텍스처로 굳힌다(문자마다 캐시) */
+  var emojiTexCache = {};
+  function emojiSprite(emoji, size) {
+    var t = three();
+    if (!emojiTexCache[emoji]) {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = 64;
+      var c = cv.getContext('2d');
+      c.font = '46px sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(emoji, 32, 36);
+      emojiTexCache[emoji] = new t.CanvasTexture(cv);
+    }
+    var spr = new t.Sprite(new t.SpriteMaterial({ map: emojiTexCache[emoji], transparent: true, depthTest: false }));
+    spr.scale.setScalar(size || 4);
+    return spr;
   }
 
   /** 발밑 그림자 — 실제 shadow map 대신 값싼 원 데칼을 깐다. 궤도 카메라로
@@ -419,6 +439,29 @@
         dyn.add(pr);
         pulseRings.push({ mesh: pr, base: footprint * 1.6 });
       }
+
+      /* 재해·풍년 — 고리(포위보다 바깥) + 떠다니는 그림문자. rtk.js 가 이미
+         `cst.disaster` 로 매기고 있는 것을 그대로 읽을 뿐이다 */
+      if (cst.disaster) {
+        var dInfo = R().disasterByKey(cst.disaster);
+        if (dInfo) {
+          var dr = new t.Mesh(
+            new t.RingGeometry(footprint * 1.9, footprint * 2.15, 24),
+            new t.MeshBasicMaterial({
+              color: dInfo.good ? 0xf3d24a : 0x8a5a2a, transparent: true, opacity: 0.55, side: t.DoubleSide
+            })
+          );
+          dr.rotation.x = -Math.PI / 2;
+          dr.position.set(worldX(city.x), 0.1, worldZ(city.y));
+          dyn.add(dr);
+
+          var spr = emojiSprite(dInfo.emoji, h * 0.9);
+          var baseY = h * 1.25;
+          spr.position.set(worldX(city.x), baseY, worldZ(city.y));
+          dyn.add(spr);
+          floaters.push({ mesh: spr, baseY: baseY, amp: h * 0.12, seed: hashOf(city.id) % 100 });
+        }
+      }
     });
   }
 
@@ -567,6 +610,10 @@
     for (var i = 0; i < pulseRings.length; i++) {
       var s = 1 + Math.sin(t / 400 + i) * 0.08;
       pulseRings[i].mesh.scale.setScalar(s);
+    }
+    for (var j = 0; j < floaters.length; j++) {
+      var fl = floaters[j];
+      fl.mesh.position.y = fl.baseY + Math.sin(t / 450 + fl.seed) * fl.amp;
     }
 
     renderer.render(scene, camera);
