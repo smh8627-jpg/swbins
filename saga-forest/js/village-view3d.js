@@ -69,6 +69,74 @@
   var canvas = null, renderer = null, scene = null, camera = null;
   var ready = false, failed = false;
 
+  /** 사람이 핀치·휠로 직접 조절하는 확대 — CAM_DIST()/CAM_HIGH() 손잡이와는 다른 값이다.
+   *  1 이 기본(손잡이 값 그대로), 커지면 당겨서(확대) 가까이, 작아지면 물러나 멀리 본다 */
+  var userZoom = 1;
+  var USERZOOM_MIN = 0.5, USERZOOM_MAX = 2.2;
+  var zoomPointers = {}, pinchDist0 = 0;
+
+  /** 사람이 드래그로 돌리는 시점 — 걷는 방향(facingYaw)에 얹는 **덧각**이다.
+   *  걸어도 안 지워진다(사가국지 국토지도의 자유회전과 같은 결). #map3d 는 3D 켜져
+   *  있을 때 걷기가 키보드 몫이라 손가락 한 개 드래그를 그냥 시점 회전에 써도 된다 */
+  var mouseYaw = 0;
+  var YAW_SENS = 0.012;
+  var dragId = null, dragLastX = 0;
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function zoomPointerCount() {
+    var n = 0, k;
+    for (k in zoomPointers) { if (Object.prototype.hasOwnProperty.call(zoomPointers, k)) { n++; } }
+    return n;
+  }
+  function twoZoomPointerDist() {
+    var ks = Object.keys(zoomPointers);
+    if (ks.length < 2) { return 0; }
+    var a = zoomPointers[ks[0]], b = zoomPointers[ks[1]];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+  function setUserZoom(z) { userZoom = clamp(z, USERZOOM_MIN, USERZOOM_MAX); }
+
+  /** 확대·시점회전은 걷기 입력(#map3d 는 3D 켜져 있을 때 키보드로만 걷는다)과 안
+   *  겹친다 — 휠(데스크톱)·두 손가락 핀치(폰)로 확대, 오른쪽 버튼 드래그(마우스)나
+   *  한 손가락 드래그(폰)로 시점을 돌린다 */
+  function bindCamControl(cv) {
+    cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    cv.addEventListener('wheel', function (e) {
+      setUserZoom(userZoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+      e.preventDefault();
+    }, { passive: false });
+    cv.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse') {
+        if (e.button !== 2) { return; }         // 왼쪽은 그대로 비워 둔다(다른 조작과 안 겹치게)
+        dragId = e.pointerId; dragLastX = e.clientX;
+        return;
+      }
+      if (zoomPointerCount() === 0) { dragId = e.pointerId; dragLastX = e.clientX; }
+      zoomPointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (zoomPointerCount() === 2) { pinchDist0 = twoZoomPointerDist(); dragId = null; }
+    });
+    cv.addEventListener('pointermove', function (e) {
+      if (e.pointerId === dragId) {
+        mouseYaw -= (e.clientX - dragLastX) * YAW_SENS;
+        dragLastX = e.clientX;
+      }
+      if (!zoomPointers[e.pointerId]) { return; }
+      zoomPointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      if (zoomPointerCount() === 2) {
+        var nd = twoZoomPointerDist();
+        if (pinchDist0 > 0 && nd > 0) { setUserZoom(userZoom * (nd / pinchDist0)); }
+        pinchDist0 = nd;
+      }
+    });
+    function endPointer(e) {
+      if (e.pointerId === dragId) { dragId = null; }
+      delete zoomPointers[e.pointerId];
+      if (zoomPointerCount() < 2) { pinchDist0 = 0; }
+    }
+    cv.addEventListener('pointerup', endPointer);
+    cv.addEventListener('pointercancel', endPointer);
+  }
+
   var player = { group: null, mixer: null, actions: null, clipMap: null, action: null };
   var lastPX = 0, lastPY = 0, haveLast = false, facingYaw = 0;
 
@@ -168,6 +236,7 @@
     initTerrain();
     resize();
     global.addEventListener('resize', resize);
+    bindCamControl(canvas);
     ready = true;
     syncVisibility();
     buildPlayer();
@@ -266,8 +335,10 @@
 
     if (player.group) { player.group.rotation.y = facingYaw; }
 
-    var behind = facingYaw + Math.PI;
-    camera.position.set(Math.sin(behind) * CAM_DIST(), CAM_HIGH(), Math.cos(behind) * CAM_DIST());
+    var behind = facingYaw + Math.PI + mouseYaw;
+    /* userZoom 이 커질수록(확대) 어깨너머 거리를 좁힌다 — 그래서 여기선 나눈다 */
+    var dist = CAM_DIST() / userZoom, high = CAM_HIGH() / userZoom;
+    camera.position.set(Math.sin(behind) * dist, high, Math.cos(behind) * dist);
     camera.lookAt(0, PLAYER_H() * 0.75, 0);
   }
 
@@ -390,6 +461,12 @@
       return im ? im.count : 0;
     },
     /** 진단 전용 — 지금 하늘·안개에 먹인 바이옴 색 표 */
-    fogColors: function () { return FOG_COLOR; }
+    fogColors: function () { return FOG_COLOR; },
+    /** 진단·QA 전용 — 사람이 핀치·휠로 조절한 확대 배율 */
+    userZoom: function () { return userZoom; },
+    setUserZoom: setUserZoom,
+    /** 진단·QA 전용 — 사람이 드래그로 돌린 시점 덧각(라디안) */
+    mouseYaw: function () { return mouseYaw; },
+    setMouseYaw: function (y) { mouseYaw = y; }
   };
 })(typeof window !== 'undefined' ? window : this);
