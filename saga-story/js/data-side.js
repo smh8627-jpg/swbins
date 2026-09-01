@@ -21,17 +21,46 @@
   'use strict';
 
   var STAGES = [
+    /* ── 오버월드 마을 (2026-09-02) ────────────────────────────
+       삼국지 실제 지명을 딴 안전지대. `town:true` 만 붙인 사냥터 항목이다 —
+       engine(옆으로 걷기·문·발판)은 그대로 쓰고 `spawn:0`·boss 없음으로 전투만 뺐다.
+       배치: 신야성(시작) → 허도 → 허창 들판 → 강릉진 → 오림 숲 →
+             남정성 → 한중 굴혈 → 기산채 → 호로곡.
+       각 마을의 `need` 는 그 마을이 지키는 사냥터와 같다 — 레벨 문턱이 그대로 이어진다. */
+    {
+      key: 'sinya', name: '신야성', need: 1, sky: ['#f2d9a0', '#f7ecc9'], mood: 'sky',
+      ground: '#8a6b3a', width: 1200, floor: 560, town: true,
+      plats: [[520, 430, 240]], ropes: [[540, 430, 560, 'ladder']],
+      portals: [[1130, 'heodo']],
+      enemyLv: 1, spawn: 0
+    },
+    {
+      key: 'heodo', name: '허도', need: 1, sky: ['#e8c15a', '#f5e2a0'], mood: 'sky',
+      ground: '#7a5a30', width: 1400, floor: 560, town: true,
+      plats: [[300, 430, 240], [900, 380, 260]],
+      ropes: [[320, 430, 560, 'ladder'], [920, 380, 560, 'rope']],
+      portals: [[70, 'sinya'], [1330, 'field']],
+      enemyLv: 1, spawn: 0
+    },
     {
       key: 'field', name: '허창 들판', need: 1, sky: ['#79c3e8', '#c6e6f2'], mood: 'sky',
       ground: '#6faf55', width: 2200, floor: 560,
       plats: [[320, 430, 260], [760, 350, 220], [1180, 440, 300], [1620, 340, 240], [1900, 450, 220]],
       ropes: [[340, 430, 560, 'rope'], [790, 350, 560, 'rope'], [1210, 440, 560, 'rope'],
               [1650, 340, 560, 'rope'], [1930, 450, 560, 'ladder']],
-      portals: [[2130, 'forest']],
+      portals: [[70, 'heodo'], [2130, 'gangneungjin']],
       enemyLv: 1, spawn: 7,
       /* 보스 — 사냥터 오른쪽 끝을 지킨다. cool 은 잡은 뒤 다시 나오기까지의 분(分).
          hpMul·dmgMul 은 그 사냥터 일반 적 기준의 배수다. */
       boss: { name: '황건 두목', cool: 15, hpMul: 12, dmgMul: 2.0 }
+    },
+    {
+      key: 'gangneungjin', name: '강릉진', need: 5, sky: ['#4f8fa8', '#a8d8e0'], mood: 'sky',
+      ground: '#33586a', width: 1300, floor: 560, town: true,
+      plats: [[400, 420, 240], [820, 360, 220]],
+      ropes: [[420, 420, 560, 'ladder'], [840, 360, 560, 'rope']],
+      portals: [[70, 'field'], [1230, 'forest']],
+      enemyLv: 5, spawn: 0
     },
     {
       key: 'forest', name: '오림 숲', need: 5, sky: ['#5fa06a', '#a8d49a'], mood: 'forest',
@@ -40,9 +69,17 @@
               [1720, 300, 200], [2060, 430, 260]],
       ropes: [[285, 450, 560, 'rope'], [650, 360, 560, 'rope'], [1010, 280, 560, 'rope'],
               [1370, 380, 560, 'ladder'], [1750, 300, 560, 'rope'], [2090, 430, 560, 'ladder']],
-      portals: [[70, 'field'], [2530, 'cave']],
+      portals: [[70, 'gangneungjin'], [2530, 'namjeongseong']],
       enemyLv: 6, spawn: 9,
       boss: { name: '오랑캐 족장', cool: 20, hpMul: 14, dmgMul: 2.2 }
+    },
+    {
+      key: 'namjeongseong', name: '남정성', need: 12, sky: ['#6b6b78', '#a9a9b8'], mood: 'sky',
+      ground: '#4a4a56', width: 1300, floor: 560, town: true,
+      plats: [[380, 420, 240], [860, 360, 220]],
+      ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
+      portals: [[70, 'forest'], [1230, 'cave']],
+      enemyLv: 12, spawn: 0
     },
     {
       key: 'cave', name: '한중 굴혈', need: 12, sky: ['#2b2436', '#4a3d58'], mood: 'cave',
@@ -51,9 +88,17 @@
               [1840, 320, 240], [2240, 440, 300]],
       ropes: [[325, 470, 560, 'ladder'], [730, 390, 560, 'ladder'], [1110, 300, 560, 'ladder'],
               [1490, 400, 560, 'rope'], [1870, 320, 560, 'ladder'], [2270, 440, 560, 'ladder']],
-      portals: [[70, 'forest'], [2930, 'gorge']],
+      portals: [[70, 'namjeongseong'], [2930, 'gisanchae']],
       enemyLv: 14, spawn: 11,
       boss: { name: '위군 도독', cool: 30, hpMul: 17, dmgMul: 2.5 }
+    },
+    {
+      key: 'gisanchae', name: '기산채', need: 25, sky: ['#5a2c1e', '#a85c3a'], mood: 'sky',
+      ground: '#3a2015', width: 1300, floor: 560, town: true,
+      plats: [[380, 420, 240], [860, 360, 220]],
+      ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
+      portals: [[70, 'cave'], [1230, 'gorge']],
+      enemyLv: 25, spawn: 0
     },
     {
       /* 넷째 — **가장 깊은 곳**(2026-08-26). 3차 전직(Lv.45)이 설 자리가 없어 넣었다:
@@ -71,7 +116,7 @@
       ropes: [[285, 480, 560, 'rope'], [630, 400, 560, 'ladder'], [970, 310, 560, 'rope'],
               [1330, 420, 560, 'rope'], [1670, 330, 560, 'ladder'], [2030, 250, 560, 'rope'],
               [2390, 400, 560, 'ladder'], [2770, 320, 560, 'rope']],
-      portals: [[70, 'cave']],
+      portals: [[70, 'gisanchae']],
       enemyLv: 26, spawn: 13,
       boss: { name: '적국 대장군', cool: 40, hpMul: 20, dmgMul: 2.8 }
     }

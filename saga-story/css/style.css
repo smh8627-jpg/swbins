@@ -630,6 +630,60 @@ button.pc-emoji { cursor: pointer; padding: 0; }
   .st-v { width: 56px; }
 }
 
+/* ── 오버월드 전체 지도 (2026-09-02, M키식 토글) ───────────────
+   #detail 과 같은 뼈대(꽉 찬 배경 + 가운데 카드) — 다른 점은 카드 안에
+   가로로 늘어선 마을·사냥터 사슬(.ow-chain)뿐이다. */
+#owmap {
+  position: fixed; inset: 0; z-index: 46; display: none;
+  align-items: center; justify-content: center; padding: 18px;
+  background: rgba(6,8,12,.74);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+#owmap.show { display: flex; animation: fade .18s ease-out; }
+
+.ow-card {
+  position: relative; width: 100%; max-width: 620px; margin: auto;
+  border-radius: var(--r-lg); padding: 20px 18px;
+  background: rgba(24,27,34,.96); border: 1px solid var(--glass-br);
+  box-shadow: 0 24px 70px rgba(0,0,0,.62);
+  animation: pop .22s cubic-bezier(.22,1,.36,1);
+}
+.ow-card h3 { margin: 0 0 12px; font-size: 16px; }
+.ow-x { position: absolute; top: 11px; right: 11px; z-index: 2; }
+
+.ow-chain {
+  display: flex; align-items: stretch; gap: 0; overflow-x: auto;
+  padding: 4px 2px 10px; -webkit-overflow-scrolling: touch;
+}
+.ow-node {
+  flex: 0 0 auto; width: 92px; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; padding: 10px 6px; border-radius: 12px;
+  background: rgba(255,255,255,.045); border: 1px solid transparent;
+  text-align: center;
+}
+.ow-node i { font-size: 20px; }
+.ow-node b { font-size: 11.5px; line-height: 1.3; }
+.ow-node small { font-size: 9.5px; color: var(--ink-dim); }
+.ow-node.locked { opacity: .45; }
+.ow-node.open.town b { color: #a8d8e0; }
+.ow-node.open.field b { color: #ffcf7a; }
+.ow-node.cur {
+  background: rgba(232,193,90,.16); border-color: var(--gold, #e8c15a);
+  box-shadow: 0 0 0 1px rgba(232,193,90,.35) inset;
+}
+.ow-node.cur b { color: var(--gold, #e8c15a); }
+.ow-link {
+  flex: 0 0 20px; align-self: center; height: 2px; margin: 0 -1px;
+  background: rgba(255,255,255,.12);
+}
+.ow-link.open { background: rgba(232,193,90,.4); }
+
+@media (max-width: 780px) {
+  .ow-card { padding: 16px 12px; }
+  .ow-node { width: 78px; padding: 8px 4px; }
+}
+
 /* ══ 로그라이크 던전 · 장비 · 방치형 (v0.8) ═════════════════════ */
 
 /* ── 던전 오버레이 ─────────────────────────────────────────── */

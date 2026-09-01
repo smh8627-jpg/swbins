@@ -76,6 +76,7 @@
       else if (k === 'arrowdown' || k === 's') { S.setInput('down', true); }
       else if (k === ' ') { S.setInput('jump', true); }
       else if (k === 'q') { S.drink(); }
+      else if (k === 'm') { ui.toggleOverworldMap(); }
       else if (k >= '1' && k <= '8') { S.castSkill(parseInt(k, 10) - 1); }
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) >= 0) {
         if (e.target === document.body) { e.preventDefault(); }
@@ -95,6 +96,11 @@
   }
 
   function bindTopbar() {
+    var mapBtn = document.getElementById('btn-map');
+    if (mapBtn) {
+      mapBtn.addEventListener('click', function () { ui.toggleOverworldMap(); });
+    }
+
     var autoBtn = document.getElementById('btn-auto');
     if (autoBtn) {
       var syncAutoBtn = function () { autoBtn.classList.toggle('on', global.DG.auto.active()); };
