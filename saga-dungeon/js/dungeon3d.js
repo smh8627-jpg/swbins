@@ -91,6 +91,18 @@
       return v < 0.4 ? 0.4 : (v > 2.5 ? 2.5 : v);
     } catch (e) { return 1; }
   }
+  /**
+   * 사람이 오른쪽 버튼 드래그(마우스)로 돌린 시점 — `dungeon-view.js` 가
+   * `core.save.settings.camYaw` 에 적어 둔다(같은 자리, USERZOOM 과 같은 결).
+   * **3인칭(camAim3rd)에서만 쓴다** — 아이소 구도는 회전을 막아 둔 자리라(8절)
+   * 이 값을 아예 안 읽는다.
+   */
+  function MOUSEYAW() {
+    try {
+      var v = core.save && core.save.settings ? core.save.settings.camYaw : 0;
+      return (v === undefined || v === null) ? 0 : v;
+    } catch (e) { return 0; }
+  }
   /** 카메라 기울기 — 0 은 완전 위, 1 은 낮게. 원작은 3/4 쯤이다 */
   function TILT() { return tuned('dg3d.tilt', 0.62); }
   /** 어둠의 깊이 — 1 이면 횃불 밖이 새까맣다 */
@@ -223,13 +235,20 @@
    * `dir`가 0벡터(막 서 있는 참)면 "위" 를 본다 — 세워 두자마자 방향 없이
    * 회전하면 어지럽다.
    */
-  function camAim3rd(px, py, dirX, dirY, zoom, tilt) {
+  function camAim3rd(px, py, dirX, dirY, zoom, tilt, yaw) {
     var z = (zoom === undefined || zoom <= 0) ? 1 : zoom;
     var tl = tilt === undefined ? 0.62 : tilt;
     var dx = dirX || 0, dy = dirY || 0;
     var dlen = Math.hypot(dx, dy);
     if (dlen < 0.01) { dx = 0; dy = -1; dlen = 1; }
     dx /= dlen; dy /= dlen;
+    /* 사람이 드래그로 돌린 덧각 — 걷는 방향(dirX·dirY) 위에 얹는다. 걸어도
+       안 지워진다(사가국지 자유회전과 같은 결) */
+    if (yaw) {
+      var yc = Math.cos(yaw), ys = Math.sin(yaw);
+      var rdx = dx * yc - dy * ys, rdy = dx * ys + dy * yc;
+      dx = rdx; dy = rdy;
+    }
     /* 2026-08-30 — 실기기(아이폰 사파리)로 보니 처음 값(100/50/65)이 너무
        바짝 붙어 답답했다. 값을 키워 인물이 몸통이 아니라 발밑까지 보이게
        물렀다 — 그래도 iso(방 대각선 기준 700 안팎)보단 훨씬 가깝다, 그게
@@ -1258,7 +1277,7 @@
       zNow *= (asp < 1 ? Math.min(1.2, 1 / Math.max(0.7, asp)) : 1);
     }
     var aim = CAMMODE() === 'third'
-      ? camAim3rd(p.x, p.y, p.dirX, p.dirY, zNow, TILT())
+      ? camAim3rd(p.x, p.y, p.dirX, p.dirY, zNow, TILT(), MOUSEYAW())
       : camAim(p.x, p.y, W, H, zNow, TILT());
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
@@ -1315,7 +1334,7 @@
     init: init, resize: resize, render: render,
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
-    camAim: camAim, camAim3rd: camAim3rd, camMode: CAMMODE, userZoom: USERZOOM, lightPlan: lightPlan,
+    camAim: camAim, camAim3rd: camAim3rd, camMode: CAMMODE, userZoom: USERZOOM, mouseYaw: MOUSEYAW, lightPlan: lightPlan,
     /** PLAN 19절 — 그래픽 품질 AUTO. ms 평균 → 등급의 순수 매핑(진단용) */
     autoLevelFor: autoLevelFor, quality: effectiveLevel,
     fieldR: FIELD_R, fieldDens: FIELD_D, shadow: SHADOW,

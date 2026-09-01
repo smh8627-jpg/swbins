@@ -65,6 +65,22 @@
     core.save.settings.camZoom = core.clamp(v, CAM_ZOOM_MIN, CAM_ZOOM_MAX);
     core.persist();
   }
+  /** 사람이 드래그로 돌리는 시점 — **3인칭 어깨너머(dg3d.camMode 'third')에서만
+   *  듣는다.** 원작 아이소메트릭 구도는 회전을 막아 둔 자리다(8절). `camZoom` 과
+   *  같은 결로 `core.save.settings.camYaw` 에 저장돼 프로필마다 남는다 */
+  function thirdPerson() {
+    var D3 = global.DG.dungeon3d;
+    return !!(D3 && D3.camMode && D3.camMode() === 'third');
+  }
+  function camYaw() {
+    var v = core.save && core.save.settings ? core.save.settings.camYaw : 0;
+    return (v === undefined || v === null) ? 0 : v;
+  }
+  function setCamYaw(v) {
+    if (!core.save || !core.save.settings) { return; }
+    core.save.settings.camYaw = v;
+    core.persist();
+  }
   /* 화면 아래 조작판이 가리는 높이 — 무대를 그 위로 밀어 올린다.
      이 값을 빼지 않으면 인물이 판 뒤에 숨는다. */
   var PAD_BOT = 92;
@@ -124,6 +140,12 @@
     var pointers = {};                      // pointerId → {x,y} (지금 닿아 있는 것)
     var pinchStart = null, pinchZoom0 = null;
 
+    /* 시점 회전(사가국지의 자유회전과 같은 결) — 왼쪽 버튼은 걷기(steer)가 이미
+       맡고 있어 오른쪽 버튼 드래그로 뺐다. camYaw·thirdPerson 은 파일 위쪽에 있다 */
+    var yawDragging = false, yawLastX = 0;
+    var YAW_SENS = 0.012;
+    cv.addEventListener('contextmenu', function (e) { if (thirdPerson()) { e.preventDefault(); } });
+
     function pointerCount() {
       var n = 0, k;
       for (k in pointers) { if (Object.prototype.hasOwnProperty.call(pointers, k)) { n++; } }
@@ -148,6 +170,13 @@
     }
 
     cv.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button === 2) {
+        if (!thirdPerson()) { return; }
+        yawDragging = true; yawLastX = e.clientX;
+        cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        return;
+      }
       pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       if (pointerCount() === 2) {
         /* 둘째 손가락이 닿는 순간 걷기는 멈춘다 — 걸으면서 동시에 확대하면
@@ -168,6 +197,11 @@
       e.preventDefault();
     });
     cv.addEventListener('pointermove', function (e) {
+      if (yawDragging) {
+        setCamYaw(camYaw() - (e.clientX - yawLastX) * YAW_SENS);
+        yawLastX = e.clientX;
+        return;
+      }
       if (pointers[e.pointerId]) { pointers[e.pointerId] = { x: e.clientX, y: e.clientY }; }
       if (pointerCount() === 2 && pinchStart) {
         var d2 = pinchDist();
@@ -179,6 +213,7 @@
       steer(e);
     });
     function release(e) {
+      if (yawDragging) { yawDragging = false; return; }
       delete pointers[e.pointerId];
       if (pointerCount() < 2) { pinchStart = null; }
       if (!steering) { return; }
@@ -194,11 +229,12 @@
     }
     cv.addEventListener('pointerup', release);
     cv.addEventListener('pointercancel', function (e) {
+      if (yawDragging) { yawDragging = false; return; }
       delete pointers[e.pointerId];
       if (pointerCount() < 2) { pinchStart = null; }
       steering = false; d().setInput(0, 0);
     });
-    cv.addEventListener('pointerleave', function (e) { if (steering) { release(e); } });
+    cv.addEventListener('pointerleave', function (e) { if (steering || yawDragging) { release(e); } });
     /* 마우스 휠(데스크톱) — 폰의 핀치와 같은 자리를 대신한다 */
     cv.addEventListener('wheel', function (e) {
       e.preventDefault();
@@ -1645,6 +1681,9 @@
     SKILL_KEYS: SKILL_KEYS,
     /** 자가진단용 — 투영이 정확히 역변환되는지 검증한다 */
     _proj: function (x, y) { return proj(metrics(), x, y); },
-    _unproj: toRoom
+    _unproj: toRoom,
+    /** 진단·QA 전용 — 사람이 오른쪽 드래그로 조절한 시점 덧각(라디안, 3인칭 전용) */
+    camYaw: camYaw,
+    setCamYaw: setCamYaw
   };
 })(window);
