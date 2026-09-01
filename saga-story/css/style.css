@@ -1083,8 +1083,11 @@ body.tilted3 #vignette {
 
 
 /* ── 본영(本營) — 던전 게임의 첫 화면 ───────────────────── */
+/* z-index 는 #stage3d(-1) 보다도 뒤(-2)다 — 앞에 두면 3D 가 그려질 때(#stage 가
+   ctx.clearRect 로 투명해지는 자리) 이 배경이 3D 세계를 덮어 버린다.
+   지금은 동행이 하나도 없을 때만(자가진단 밖에서는 극히 드묾) 쓰인다 */
 #camp-bg {
-  position: fixed; inset: 0; z-index: 0;
+  position: fixed; inset: 0; z-index: -2;
   background:
     radial-gradient(120% 80% at 50% 8%, rgba(201,162,74,.10), transparent 60%),
     radial-gradient(90% 70% at 50% 100%, rgba(0,0,0,.6), transparent 70%),
@@ -1196,6 +1199,31 @@ body.tilted3 #vignette {
 .hud-sk.potion small { color: #f0b7bf; }
 .hud-out { margin-left: auto; }
 
+/* ── 손가락 조작판 (2026-09-01) ─────────────────────────────
+ * **손가락뿐인 기기에서만** 보인다 — core.touchOnly() 와 같은 조건
+ * (hover:none · pointer:coarse) 을 css 로 그대로 건다. 화면을 숨은 넷으로
+ * 나눠 짚던 예전 방식은 손가락뿐인 기기에서 이 단추가 대신 맡는다
+ * (side-view.js 의 onDown 이 core.touchOnly() 일 때 존을 안 켠다 — 둘이
+ * 겹쳐 두 번 눌리지 않는다). #hud·#dock 위로, 화면 좌우 가장자리에 띄운다 —
+ * 가운데(체력·기력·스킬 띠)를 가리지 않으려는 자리다. */
+#touchpad { position: fixed; inset: 0; z-index: 11; pointer-events: none; display: none; }
+.pad-side { position: absolute; display: none; gap: 12px; pointer-events: auto; }
+.pad-l { left: 14px; bottom: calc(150px + var(--safe-b)); }
+.pad-r { right: 14px; bottom: calc(150px + var(--safe-b)); flex-direction: column; }
+.pad-btn {
+  width: 60px; height: 60px; border-radius: 50%; cursor: pointer;
+  background: var(--glass); border: 1px solid var(--glass-br);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  color: var(--ink); font-size: 22px; line-height: 1;
+  box-shadow: var(--shadow); transition: transform .1s, background .1s;
+  touch-action: none;
+}
+.pad-btn:active { transform: scale(.9); background: var(--glass-2); }
+@media (hover: none) and (pointer: coarse) {
+  #touchpad.show { display: block; }
+  #touchpad.show .pad-side { display: flex; }
+}
+
 /* ══ 폰 화면 (2026-08-26) ═════════════════════════════════════════
  * 이 아래는 **좁은 폭에서만** 걸린다. 780px 미디어쿼리가 이미 시트·독을
  * 하단으로 내려 주지만 상단과 조작 띠는 손대지 않아, 폰(390px)에서 무너졌다 —
@@ -1246,6 +1274,12 @@ body.tilted3 #vignette {
   #dock button { width: 47px; height: 47px; border-radius: 15px; flex: 0 0 auto; }
   #dock button span { font-size: 18px; }
   #dock button small { font-size: 9px; }
+
+  /* 손가락 조작판 — #hud 가 여기서 거의 전체 폭(calc(100vw-16px))으로 커지고
+     두 줄(3차 전직은 스킬 여덟 칸)이라 카드가 훨씬 높다. 옆으로 비킬 자리가
+     없으니 그 카드 위로 넉넉히 띄운다(실기기에서 카드 높이 보고 다시 잴 것) */
+  .pad-l, .pad-r { bottom: calc(260px + var(--safe-b)); }
+  .pad-btn { width: 52px; height: 52px; font-size: 19px; }
 
   /* 자동 상태 띠 — 상단이 두 줄이 되었으니 그만큼 내려온다 */
   #autobar { top: calc(122px + var(--safe-t)); }

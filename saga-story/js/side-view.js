@@ -55,7 +55,9 @@
     global.addEventListener('resize', resize);
     /* 화면 아래쪽 절반을 누르면 그 방향으로 달린다 (손가락 조작) — 손가락이 이미
        하나 걷기를 맡고 있으면 **둘째 손가락은 걷기 존을 건드리지 않는다**(onDown 의
-       zoomPointerCount 검사). 그 둘째 손가락으로 핀치하면 확대·축소다 */
+       zoomPointerCount 검사). 그 둘째 손가락으로 핀치하면 확대·축소다.
+       **손가락뿐인 기기에서는 이 존이 안 켜진다** — #touchpad(bindPad) 의 보이는
+       단추가 대신 맡는다(onDown 의 touchOnly 검사). 핀치 확대·축소는 그대로 산다 */
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);
     cv.addEventListener('pointerup', onUp);
@@ -64,6 +66,45 @@
       setZoom(viewZoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
       e.preventDefault();
     }, { passive: false });
+    bindPad();
+  }
+
+  /** 손가락 조작판(#touchpad) — 눈에 보이는 단추 넷. 왼쪽 좌우는 그대로 켜고 끄면
+   *  되지만, 위(▲)는 상황(줄·문 앞이면 오르기/들어가기, 아니면 점프)에 따라
+   *  갈린다 — side-view.js 의 옛 apply('up') 과 같은 판단을 그대로 쓴다. */
+  function bindPad() {
+    var pad = document.getElementById('touchpad');
+    if (!pad) { return; }
+    var btns = pad.querySelectorAll('.pad-btn');
+    for (var i = 0; i < btns.length; i++) {
+      (function (btn) {
+        var dir = btn.getAttribute('data-dir');
+        var held = false;
+        function press(e) {
+          e.preventDefault();
+          held = true;
+          if (dir === 'up') {
+            var s = S.status();
+            if (s.climbing || s.rope || s.gate) { S.setInput('up', true); }
+            else { S.setInput('jump', true); }
+          } else {
+            S.setInput(dir, true);
+          }
+          if (btn.setPointerCapture && e.pointerId !== undefined) {
+            try { btn.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+          }
+        }
+        function release() {
+          if (!held) { return; }
+          held = false;
+          S.setInput(dir, false);   // 'up' 이면 input.up 만 내린다 — jump() 는 누른 순간 이미 끝났다
+        }
+        btn.addEventListener('pointerdown', press);
+        btn.addEventListener('pointerup', release);
+        btn.addEventListener('pointercancel', release);
+        btn.addEventListener('pointerleave', release);
+      })(btns[i]);
+    }
   }
 
   function resize() {
@@ -123,6 +164,10 @@
     /* 손가락이 이미 하나 걷기를 맡고 있으면(둘째 손가락) 존은 안 건드린다 — 그 둘째
        손가락은 오직 핀치 확대 몫이다 */
     if (zoomPointerCount() > 1 || !S.active()) { return; }
+    /* 손가락뿐인 기기는 #touchpad 의 보이는 단추가 이동을 맡는다 — 숨은 존을 겹쳐
+       두면 단추 사이 빈 자리를 눌러도 걷어져 버린다(진단은 키보드 기기로 잡혀
+       여기 안 걸린다 — core.touchOnly() 는 늘 false 다) */
+    if (core.touchOnly()) { return; }
     primaryId = e.pointerId;
     zone = readZone(e);
     apply(zone);

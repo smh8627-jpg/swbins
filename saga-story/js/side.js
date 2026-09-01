@@ -172,6 +172,16 @@
     return got;
   }
 
+  /** 쉬는 화면(선택 메뉴) 없이 곧장 사냥터로 — 오픈월드처럼, 마지막 있던 자리부터
+   *  다시 걷는다. 게임 루프(game.js)가 **쉬는 순간마다**(나온다 · 쓰러짐 뒤) 매 프레임
+   *  이걸 불러 준다 — 그래서 side.js 자체의 leave()/die() 는 손대지 않는다:
+   *  자가진단이 'S.leave() 뒤 !S.active()' 를 그대로 기대하기 때문이다(게임 루프를
+   *  안 돌리는 자가진단에서는 이 함수가 안 불려 그 가정이 깨지지 않는다). */
+  function resume() {
+    if (run || !core.save.party.length) { return false; }
+    return enter(st().stage || 'field');
+  }
+
   function active() { return !!run; }
 
   /* ── 줄과 문 ──────────────────────────────────────────────
@@ -967,7 +977,7 @@
   global.DG = global.DG || {};
   global.DG.side = {
     GRAV: GRAV, SPEED: SPEED, P_W: P_W, P_H: P_H, REACH: REACH, CLIMB: CLIMB,
-    enter: enter, leave: leave, active: active, update: update,
+    enter: enter, leave: leave, resume: resume, active: active, update: update,
     setInput: setInput, jump: jump, castSkill: castSkill, drink: drink,
     travel: travel, useUp: useUp, useDown: useDown, dropThrough: dropThrough,
     grabRope: grabRope,

@@ -49,7 +49,7 @@
   }
 
   function init() {
-    ['profile', 'wallet', 'camp', 'hud', 'autobar', 'dock', 'sheet',
+    ['profile', 'wallet', 'camp', 'hud', 'touchpad', 'autobar', 'dock', 'sheet',
      'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
       els[id] = $(id);
     });
@@ -326,6 +326,7 @@
     var st = S.status();
     if (!st.active) {
       if (hudKey !== null) { els.hud.classList.remove('show'); els.hud.innerHTML = ''; hudKey = null; }
+      if (els.touchpad) { els.touchpad.classList.remove('show'); }
       return;
     }
     var i, sk;
@@ -380,6 +381,7 @@
       hint.classList.toggle('show', !!msg);
     }
     els.hud.classList.add('show');
+    if (els.touchpad) { els.touchpad.classList.add('show'); }
   }
 
   /* ── 사냥터 시트 ──────────────────────────────────────── */
@@ -424,16 +426,14 @@
     }
     html += '</div>';
 
+    html += sectionAuto();
     html += viewQuestSection();
 
     html += '<div class="sec"><h4>규칙</h4><div class="rulelist">' +
       (core.touchOnly()
-        ? ('<div><b>손가락으로</b> 화면 <b>아래 좌우</b>를 눌러 걷고, 누른 채 끌면 ' +
-             '그쪽으로 계속 걷습니다</div>' +
-           '<div><b>위쪽</b>을 누르면 점프 — 밧줄·사다리·문 앞에서는 <b>오르기·들어가기</b>가 ' +
-             '됩니다</div>' +
-           '<div><b>아래 가운데</b>가 ↓ 입니다 — 줄에서 내려가고, 가만히 있으면 앉아 쉬고, ' +
-             '발판을 빠져나갑니다</div>')
+        ? ('<div><b>이동</b> 화면 좌우 아래의 <b>◀ ▶</b> 단추를 누르고 있으면 걷습니다</div>' +
+           '<div><b>▲</b> 점프 — 밧줄·사다리·문 앞에서는 <b>오르기·들어가기</b>가 됩니다</div>' +
+           '<div><b>▼</b> 줄에서 내려가고, 가만히 있으면 앉아 쉬고, 발판을 빠져나갑니다</div>')
         : ('<div><b>이동</b> ← → · 점프 Space — 발판은 위에서만 밟힙니다</div>' +
            '<div><b>오르기</b> ↑ 밧줄·사다리 · ↓ 내려가기 · ↓+Space 발판 빠져나가기</div>' +
            '<div><b>문</b> 사냥터 끝의 빛 앞에서 ↑ — 옆 사냥터로 걸어 넘어갑니다 ' +
