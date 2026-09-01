@@ -908,7 +908,7 @@
   function fieldRadiusUnits() {
     var D3 = global.DG.dungeon3d;
     var F = global.DG.field3d;
-    var r = (D3 && D3.tuned) ? D3.tuned('dg3d.fieldR', 3) : 3;
+    var r = (D3 && D3.tuned) ? D3.tuned('dg3d.fieldR', 6) : 6;
     return r * (F ? F.CHUNK : 200);
   }
   /**

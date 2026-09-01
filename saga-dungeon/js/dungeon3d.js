@@ -110,9 +110,13 @@
    * 때문에 자동으로 그렇게 된다.
    */
   var QUALITY_PRESET = {
-    low: { fieldR: 1, fieldDens: 0.5, shadow: false },
-    medium: { fieldR: 2, fieldDens: 0.75, shadow: true },
-    high: { fieldR: 3, fieldDens: 1, shadow: true }
+    /* 2026-09-01 — "너무 오픈월드 같지 않다"(사용자). 반경을 배로 넉넉히 늘렸다 —
+       buildField()는 방에 들어올 때 한 번만 세우고(1090행) AS3.build()가 조각을
+       인스턴스로 재활용해(사가고에서 검증된 패턴) 반경을 키워도 프레임 비용은
+       거의 그대로다. low/medium/high 순서(자가진단이 보는 것)만 지켰다. */
+    low: { fieldR: 2, fieldDens: 0.5, shadow: false },
+    medium: { fieldR: 4, fieldDens: 0.75, shadow: true },
+    high: { fieldR: 6, fieldDens: 1, shadow: true }
   };
   function QUALITY() { return tuned('dg3d.quality', 'auto'); }
   var autoLevel = 'high';               // AUTO 가 지금 고른 등급
