@@ -22,6 +22,7 @@
   var els = {};
   var openTab = null;          // 열려 있는 시트 이름 (null 이면 닫힘)
   var openDetailRef = null;    // 열려 있는 상세 화면 { kind, id }
+  var mapRefreshTimer = null;  // 전체지도가 열려 있는 동안만 도는 위치 갱신 틈
 
   function hero() { return global.DG.hero; }
   function net() { return global.DG.net; }
@@ -63,9 +64,17 @@
     els['sheet-close'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
     global.addEventListener('keydown', function (e) {
-      if (e.key !== 'Escape') { return; }
-      if (openDetailRef) { closeDetail(); return; }
-      if (openTab) { closeSheet(); }
+      if (e.key === 'Escape') {
+        if (openDetailRef) { closeDetail(); return; }
+        if (openTab) { closeSheet(); }
+        return;
+      }
+      /* 전체지도 — 디아블로 M키식 토글 (PLAN 34-1절). 입력칸에 타자 중이면 무시 */
+      if (e.key.toLowerCase() === 'm') {
+        var tag = e.target && e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') { return; }
+        if (openTab === 'map') { closeSheet(); } else { openSheet('map'); }
+      }
     });
 
     /* 아래 가운데 카드의 버튼 — 시트와 같은 data-act 규칙을 쓴다 */
@@ -258,7 +267,7 @@
   var SHEET_TITLE = {
     bag: '🎒 가방', folks: '🏡 주민', dex: '📖 도감', log: '📜 기록',
     mail: '📮 편지', home: '🏠 집', museum: '🏛️ 사고(史庫)', town: '🏳️ 마을',
-    wear: '🧵 침선방', build: '🪧 공사'
+    wear: '🧵 침선방', build: '🪧 공사', map: '🗺️ 전체지도'
   };
 
   function openSheet(name) {
@@ -269,6 +278,14 @@
     if (global.innerWidth <= 780) { els.scrim.classList.add('show'); }
     syncDock();
     renderSheet();
+    /* 전체지도는 걷는 동안에도 내 위치가 흘러야 쓸모가 있다 — 'changed' 이벤트는
+       걷기만으로는 안 뜨므로, 열려 있는 동안만 따로 짧게 다시 그린다 */
+    if (mapRefreshTimer) { clearInterval(mapRefreshTimer); mapRefreshTimer = null; }
+    if (name === 'map') {
+      mapRefreshTimer = setInterval(function () {
+        if (openTab === 'map') { renderSheet(); }
+      }, 400);
+    }
   }
 
   function closeSheet() {
@@ -277,6 +294,7 @@
     document.body.classList.remove('sheet-open');
     els.scrim.classList.remove('show');
     syncDock();
+    if (mapRefreshTimer) { clearInterval(mapRefreshTimer); mapRefreshTimer = null; }
   }
 
   function syncDock() {
@@ -309,6 +327,7 @@
           : openTab === 'town' ? viewTown()
           : openTab === 'wear' ? viewWear()
           : openTab === 'build' ? viewBuild()
+          : openTab === 'map' ? viewMap()
           : openTab === 'dex' ? viewDex() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
@@ -974,6 +993,99 @@
    * 원작의 게시판 자리다. 마을 이름과 마을 기, 그리고 오늘·다음 행사가 여기 붙는다.
    * 게시판이 여태 주민 시트를 열고 있었는데, 이제 제 몫이 생겼다.
    */
+  /**
+   * 전체지도(PLAN 34-1절) — 디아블로 M키식 토글. 구면 투영 마을은 코앞만
+   * 보이므로, 여기서는 project()/unproject() 를 전혀 쓰지 않고 village.js 가
+   * 이미 들고 있는 **타일 좌표 그대로**(tileAt/props/lakeCenter 등)를 위에서
+   * 내려다본 평면으로 펼친다 — 화면에 보이는 굽은 땅과는 다른, "진짜 모양"이다.
+   */
+  var MAP_TILE_COLOR = {
+    grass: '#a7d488', grass_meadow: '#d8d689', grass_dark: '#5f7a5a',
+    grass_mush: '#b79bc9', grass_rocky: '#b3ab97',
+    sand: '#e8d9a0', water: '#7ab8e0', path: '#c9a86a'
+  };
+  var MAP_PROP_ICON = {
+    shop: '🏪', home: '🏠', mail: '📮', tailor: '🧵', board: '🪧',
+    museum: '🏛️', pole: '🚩'
+  };
+  function viewMap() {
+    var V = global.DG.village;
+    var raw = V.raw();
+    var TILE = V.TILE, W = V.W, H = V.H;
+    var m = V.forestMargin();
+    var minTx = -m, minTy = -m, maxTx = W + m, maxTy = H + m;
+    var minX = minTx * TILE, minY = minTy * TILE;
+    var vw = (maxTx - minTx) * TILE, vh = (maxTy - minTy) * TILE;
+
+    var SAMPLE = 4;
+    var svg = '<svg viewBox="' + minX + ' ' + minY + ' ' + vw + ' ' + vh + '" ' +
+      'preserveAspectRatio="xMidYMid meet" class="mapsvg">';
+    var tx, ty;
+    for (ty = minTy; ty < maxTy; ty += SAMPLE) {
+      for (tx = minTx; tx < maxTx; tx += SAMPLE) {
+        var t = V.tileAt(tx, ty);
+        var col = MAP_TILE_COLOR[t] || '#a7d488';
+        svg += '<rect x="' + (tx * TILE) + '" y="' + (ty * TILE) + '" ' +
+          'width="' + (SAMPLE * TILE) + '" height="' + (SAMPLE * TILE) + '" fill="' + col + '"/>';
+      }
+    }
+
+    /* 강 — 호수에서 폭포까지 굽이치는 물길 (riverCenterX 를 그대로 따라간다) */
+    var lake = V.lakeCenter(), wf = V.waterfallSpot();
+    if (lake && wf) {
+      var pts = '', ry;
+      for (ry = lake.ty - lake.r; ry <= wf.ty; ry += 2) {
+        var rx = V.riverCenterX(ry);
+        if (rx === null) { continue; }
+        pts += (rx * TILE) + ',' + (ry * TILE) + ' ';
+      }
+      if (pts) {
+        svg += '<polyline points="' + pts + '" fill="none" stroke="#7ab8e0" ' +
+          'stroke-width="' + (TILE * 1.4) + '" stroke-linecap="round"/>';
+      }
+    }
+
+    /* 이름 붙은 자리 — 마을 건물 + 호수/폭포/작은마을/동굴 */
+    var marks = [];
+    var props = raw.props || [];
+    for (var i = 0; i < props.length; i++) {
+      var ic = MAP_PROP_ICON[props[i].kind];
+      if (ic) { marks.push({ x: props[i].x, y: props[i].y, icon: ic }); }
+    }
+    if (lake) { marks.push({ x: lake.tx * TILE, y: lake.ty * TILE, icon: '🌊' }); }
+    if (wf) { marks.push({ x: wf.tx * TILE, y: wf.ty * TILE, icon: '💦' }); }
+    var hamlet = V.hamletSpot();
+    if (hamlet) { marks.push({ x: hamlet.tx * TILE, y: hamlet.ty * TILE, icon: '🏘️' }); }
+    var cave = V.caveSpot();
+    if (cave) { marks.push({ x: cave.tx * TILE, y: cave.ty * TILE, icon: '🕳️' }); }
+
+    var fontSize = TILE * 1.1;
+    for (i = 0; i < marks.length; i++) {
+      svg += '<text x="' + marks[i].x + '" y="' + marks[i].y + '" ' +
+        'font-size="' + fontSize + '" text-anchor="middle" dominant-baseline="central">' +
+        marks[i].icon + '</text>';
+    }
+
+    /* 나 — 늘 맨 위에, 눈에 띄는 고리로 */
+    if (raw.player) {
+      var pr = TILE * 0.9;
+      svg += '<circle cx="' + raw.player.x + '" cy="' + raw.player.y + '" r="' + pr +
+        '" fill="#e6472e" stroke="#fff" stroke-width="' + (TILE * 0.18) + '"/>';
+    }
+    svg += '</svg>';
+
+    var html = '<div class="sec"><div class="card" style="padding:8px">' + svg + '</div></div>';
+    html += '<div class="sec"><h4>보는 법</h4><div class="card">' +
+      '<small class="muted">' +
+      '🔴 지금 내 자리 · 🏠 집 · 📮 편지함 · 🏪 전방 · 🧵 침선방 · 🪧 게시판 · ' +
+      '🏛️ 사고(史庫) · 🚩 마을기 · 🌊 호수 · 💦 폭포 · 🏘️ 작은 마을 · 🕳️ 동굴' +
+      '</small><br><small class="muted">' +
+      '땅빛은 실제 걸어본 굽은 마을을 그대로 위에서 펼친 것입니다 — ' +
+      '풀빛·모래·물·바이옴(풀밭/그늘숲/버섯/돌밭)의 진짜 모양이 여기서만 한눈에 보입니다.' +
+      '</small></div></div>';
+    return html;
+  }
+
   function viewTown() {
     var T = global.DG.town, V = global.DG.village, VD = global.DG.villageData;
     var stt = T.status(), VV = global.DG.villageView;
