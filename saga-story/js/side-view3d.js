@@ -105,7 +105,12 @@
   function resize() {
     if (!ready) { return; }
     W = global.innerWidth; H = global.innerHeight;
-    renderer.setSize(W, H, false);
+    /* updateStyle 을 true 로 둔다(3번째 인자 기본값) — false 로 두면 캔버스에
+       CSS 폭/높이가 안 실려서, 렌더 해상도(W*pixelRatio)가 그대로 캔버스의
+       "고유 크기"가 된다. #stage3d 는 position:fixed 인 교체 요소(canvas)라
+       고유 크기가 있으면 inset:0 을 무시하고 그 크기로 뜬다 — 화면보다 커진
+       캔버스의 왼쪽 위 한 귀퉁이만 보이고 나머지는 새까맣게 보이던 원인이 이거였다 */
+    renderer.setSize(W, H, true);
     camera.aspect = W / H;
     camera.updateProjectionMatrix();
   }
