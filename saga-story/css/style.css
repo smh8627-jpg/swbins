@@ -95,6 +95,11 @@ body.tilted #vignette {
 .p-title { font-size: 13px; font-weight: 700; letter-spacing: -.2px; }
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
+.p-bars { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; width: 118px; }
+.p-bar { position: relative; height: 5px; border-radius: 3px; overflow: hidden; background: rgba(0,0,0,.35); }
+.p-bar > i { display: block; height: 100%; border-radius: 3px; }
+.p-bar.hp > i { background: linear-gradient(90deg, #b3423f, #e0705f); }
+.p-bar.mp > i { background: linear-gradient(90deg, #2f5f8a, #5aa0d0); }
 
 .tools { grid-area: tools; display: flex; gap: 7px; }
 .icon-btn {
@@ -1243,6 +1248,7 @@ body.tilted3 #vignette {
   .p-title { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* 사냥터·잡은 수·금·탕약이 다 들어가야 하니 여기만 두 줄을 허락한다 */
   .p-sub { font-size: 9.5px; white-space: normal; word-break: keep-all; }
+  .p-bars { width: 100%; max-width: 130px; }
 
   /* 도구 — 셋씩 두 줄로 접는다. 여섯을 한 줄에 두면 ❔·↺ 가 화면 밖이다 */
   /* 넷씩 두 줄. 셋씩 잡았더니 (가입 단추까지 일곱이라) 세 줄이 되어 화면을 깊이 먹었다 */

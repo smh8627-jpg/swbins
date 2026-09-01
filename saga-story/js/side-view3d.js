@@ -335,7 +335,15 @@
     lastDrawT = now;
     var S = global.DG.side, SV = global.DG.sideView;
     var run = S.raw();
-    if (!run) { return; }
+    if (!run) {
+      /* 사냥터 밖(쉬는 중)에는 그릴 세계가 없다. WebGL 은 alpha:false 라 한 번도
+         못 그린(혹은 마지막으로 그린) 캔버스가 **불투명한 검정**으로 남는다 —
+         뒤에 깔린 #camp-bg 를 완전히 가려 "쉬는 중" 화면이 새까맣게 보이던
+         원인이 이거였다. 캔버스 자체를 숨겨 뒤(#camp-bg)가 비치게 한다 */
+      renderer.domElement.style.display = 'none';
+      return;
+    }
+    if (renderer.domElement.style.display === 'none') { renderer.domElement.style.display = ''; }
     var Tc = three();
     var stg = run.stage, p = run.player;
 

@@ -254,6 +254,12 @@
           (st.active ? esc(st.stage.name) + ' · ' + st.kills + '마리 · 🪙 ' + core.fmt(st.gold)
                      : '🏕️ 쉬는 중 · 누적 ' + core.fmt(st.kills) + '마리') +
           ' · 🧪 ' + st.potions + '</div>' +
+        /* 체력·기력 — 예전엔 사냥 중에만 뜨는 #hud 안에만 있어, 쉬는 동안은
+           에너지(기력)를 어디서도 볼 수 없었다. 캐릭 정보 카드에 상시 붙여 둔다 */
+        '<div class="p-bars">' +
+          '<div class="p-bar hp"><i style="width:' + (st.hp / st.hpMax * 100) + '%"></i></div>' +
+          '<div class="p-bar mp"><i style="width:' + (st.mp / st.mpMax * 100) + '%"></i></div>' +
+        '</div>' +
       '</div>';
 
     els.wallet.innerHTML =

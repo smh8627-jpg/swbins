@@ -930,9 +930,14 @@
     if (!run) {
       base.active = false;
       base.stage = SD.stage(s.stage);
-      base.hp = 0; base.hpMax = 0; base.mp = 0; base.mpMax = power().mp;
+      /* 쉬는 중은 실제로 다음 판을 pw.hp/pw.mp(가득 참)로 시작한다(enter() 참조) —
+         그러니 여기서도 0/0 이 아니라 가득 찬 값을 준다. 캐릭 정보 카드가 이 값을
+         상시 띠로 보여 준다(예전에는 사냥 중에만 뜨는 #hud 안에만 있어 쉬는 동안
+         에너지(기력)를 볼 수가 없었다) */
+      var pw = power();
+      base.hp = pw.hp; base.hpMax = pw.hp; base.mp = pw.mp; base.mpMax = pw.mp;
       base.gold = 0; base.enemies = 0; base.brace = false;
-      base.atk = power().atk; base.def = power().def;
+      base.atk = pw.atk; base.def = pw.def;
       return base;
     }
     var skills = [], i, list = barSkills();
