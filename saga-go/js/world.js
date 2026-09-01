@@ -69,12 +69,15 @@
     facing: 1,       // 1 오른쪽 / -1 왼쪽
     phase: 0,        // 걸음 위상
     footAcc: 0,      // 발자국 간격 누적 거리
-    footSide: 1
+    footSide: 1,
+    trailAcc: 0      // 발자취(전체 지도용) 간격 누적 거리
   };
   var footprints = [];         // { x, y, at, side }
   var FOOT_LIFE = 7000;        // 발자국이 사라지기까지 (ms)
   var WANDER_R = 15;           // 야생 대상이 배회하는 반경 (m)
   var WANDER_SPEED = 2.6;      // 배회 속도 (m/s)
+  var TRAIL_STEP = 40;         // 발자취를 한 점 남기는 간격 (m) — PLAN 25-1절
+  var TRAIL_MAX = 400;         // 발자취 최대 점 수 (넘으면 오래된 것부터 지운다)
 
   /* ── 좌표 변환 ────────────────────────────────────────── */
 
@@ -327,6 +330,29 @@
     // 수명이 지난 발자국 정리
     var now = Date.now();
     while (footprints.length && now - footprints[0].at > FOOT_LIFE) { footprints.shift(); }
+
+    trackTrail(dist);
+  }
+
+  /**
+   * 전체 지도(overworld.js)가 보여줄 발자취 — 실제 GPS 든 키보드 이동이든
+   * "지금 위치"를 위경도로 환산해 일정 간격(`TRAIL_STEP`)마다 한 점씩 남긴다.
+   * 위경도(절대값)로 저장하므로, GPS 를 다시 켜서 원점(`origin`)이 바뀌어도
+   * 이미 남긴 점은 그대로 유효하다(x·y 상대좌표였다면 원점이 바뀔 때 어긋난다).
+   */
+  function trackTrail(dist) {
+    player.trailAcc += dist;
+    if (player.trailAcc < TRAIL_STEP) { return; }
+    player.trailAcc = 0;
+    var pos = core.save.player.pos;
+    var ll = worldToLatLng(pos.x, pos.y);
+    var trail = core.save.player.trail;
+    trail.push({
+      lat: ll.lat, lng: ll.lng,
+      kind: terrainAt(Math.floor(pos.x / 48), Math.floor(pos.y / 48)),
+      at: Date.now()
+    });
+    if (trail.length > TRAIL_MAX) { trail.shift(); }
   }
 
   /** 야생 인물·펫이 제자리 주변을 어슬렁거린다 */
@@ -1651,6 +1677,7 @@
     project: project, unproject: unproject,
     get footprints() { return footprints; },
     get motion() { return player; },
+    TRAIL_STEP: TRAIL_STEP, TRAIL_MAX: TRAIL_MAX,
     mapStyles: MAP_STYLES,
     get mapStyle() { return MAP_STYLES[styleIdx()]; },
     /** 지금 고른 지도 스타일의 자리 — world3d.js 가 3D 지면 타일에 그대로 쓴다 */

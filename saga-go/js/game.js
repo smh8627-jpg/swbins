@@ -96,6 +96,7 @@
     world.init(document.getElementById('map'), document.getElementById('map-ground'));
     ui.init();
     global.DG.minimap.init();          // 좌하단 미니맵 — 화면에만 쓰는 층이라 판정 뒤에 붙인다
+    global.DG.overworld.init();        // 전체 지도(M키) — 마찬가지로 화면 층
 
     if (fresh) {
       core.log('여정을 시작합니다. 걸으면 보급을 받고, 만나면 도감이 쌓입니다.', 'info');
@@ -346,6 +347,7 @@
     if (!global.DG_NO_DRAW) {
       world.draw();
       global.DG.minimap.tick(dt);      // 미니맵은 매 프레임이 아니라 제 박자로 다시 그린다
+      global.DG.overworld.tick(dt);    // 전체 지도는 열려 있을 때만 다시 그린다
     }
 
     uiAcc += dt;

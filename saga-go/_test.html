@@ -93,6 +93,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/minimap.js"></script>
+<script src="js/overworld.js"></script>
 <script src="js/portrait3d.js"></script>
 <script src="js/icon.js"></script>
 <script src="js/talk.js"></script>
@@ -3387,7 +3388,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          같은 화면이 아이폰·안드로이드·윈도우에서 셋으로 갈린다. UI 크롬만
          실제 아이콘(Lucide, ISC)으로 바꿨다 */
       var I = DG.icon;
-      var need = ['bot', 'satellite-dish', 'map', 'palette', 'circle-question-mark',
+      var need = ['bot', 'satellite-dish', 'map', 'compass', 'palette', 'circle-question-mark',
                   'rotate-ccw', 'ellipsis', 'clipboard-list', 'backpack', 'mail',
                   'book-open', 'sparkles', 'scroll-text', 'coins', 'medal', 'award',
                   'scroll', 'ham'];
@@ -3999,6 +4000,81 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     C.save.player.pos.x = mmPos.x; C.save.player.pos.y = mmPos.y;
+
+    /* ── 오버월드 전체 지도 (overworld) ─ M키로 펼쳐 보는 발자취 (PLAN 25-1절) ──
+     * `project` 는 미니맵의 `project`·`cells`·`blips` 처럼 값만 내는 순수
+     * 함수라 캔버스 없이 본다. 발자취 기록(`world.js` 의 `trackTrail`)은
+     * 세이브를 실제로 바꾸므로 끝나면 원래대로 되돌린다.
+     */
+    var OW = DG.overworld;
+    var owTrail0 = C.save.player.trail.slice();
+    var owAcc0 = W.motion.trailAcc;
+
+    t('오버월드 — 발자취가 없으면 지금 위치가 곧 화면 가운데', function () {
+      var pr = OW.project([], { lat: 37.5, lng: 127.1 });
+      return pr.cur.x === 0 && pr.cur.y === 0 && '점이 하나뿐이면 그 자리가 기준';
+    });
+
+    t('오버월드 — 위도가 큰 쪽(북쪽)을 화면 위(작은 y)에 놓는다', function () {
+      var pts = [
+        { lat: 37.501, lng: 127.1, kind: 'grass' },
+        { lat: 37.499, lng: 127.1, kind: 'grass' }
+      ];
+      var pr = OW.project(pts, { lat: 37.5, lng: 127.1 });
+      return pr.trail[0].y < pr.trail[1].y && '북쪽 점의 y 가 더 작다(화면 위)';
+    });
+
+    t('오버월드 — 제자리걸음(스팬 0)이어도 나눗셈이 안 터진다', function () {
+      var pts = [{ lat: 37.5, lng: 127.1, kind: 'grass' }];
+      var pr = OW.project(pts, { lat: 37.5, lng: 127.1 });
+      return isFinite(pr.trail[0].x) && isFinite(pr.trail[0].y) && '같은 자리뿐이어도 유한한 값';
+    });
+
+    t('오버월드 — project 는 판정에 한 줄도 닿지 않는다', function () {
+      var before = JSON.stringify(C.save);
+      OW.project([{ lat: 1, lng: 1, kind: 'grass' }], { lat: 0, lng: 0 });
+      var after = JSON.stringify(C.save);
+      return before === after && '세이브 그대로';
+    });
+
+    t('오버월드 — 40m 걸을 때마다 발자취가 한 점씩 남는다 (world.js trackTrail)', function () {
+      C.save.player.trail.length = 0;
+      W.motion.trailAcc = 0;
+      var pos = C.save.player.pos;
+      W.motion.prev = { x: pos.x, y: pos.y };   // 직전 위치를 지금 자리로 맞춘다(잔여 이동 방지)
+      pos.x += 41;                              // 40m 문턱을 살짝 넘겨 걷는다
+      W.update(0.016);
+      var one = C.save.player.trail.length === 1;
+      var p = C.save.player.trail[0];
+      pos.x += 20;                              // 아직 문턱(40m)에 못 미친다
+      W.update(0.016);
+      var stillOne = C.save.player.trail.length === 1;
+      pos.x -= 61;                              // 되돌린다
+      W.motion.prev = { x: pos.x, y: pos.y };    // 뒤이은 테스트가 잔여 이동을 안 물려받게
+      return one && stillOne && p && typeof p.lat === 'number' && typeof p.lng === 'number' &&
+        !!p.kind && ('41m → 1점 · +20m(문턱 미만) → 그대로 · kind=' + p.kind);
+    });
+
+    C.save.player.trail.length = 0;
+    Array.prototype.push.apply(C.save.player.trail, owTrail0);
+    W.motion.trailAcc = owAcc0;
+
+    t('오버월드 — open()/close() 가 화면 표시와 맞물린다', function () {
+      OW.close();
+      var closedShown = document.getElementById('overworld-map').classList.contains('show');
+      OW.open();
+      var openShown = document.getElementById('overworld-map').classList.contains('show');
+      OW.close();
+      return OW.opened === false && !closedShown && openShown === true &&
+        'close() → show 없음 · open() → show 붙는다';
+    });
+
+    t('오버월드 — 닫혀 있으면 tick 이 다시 그리지 않는다', function () {
+      OW.close();
+      return OW.tick(1) === false && '닫힘 → tick 이 아무 일도 안 한다';
+    });
+
+    OW.close();
 
     /* ── 말 걸기 (talk) — 주민·짐승을 눌러 본다 ─────────────
      * 이 축은 **조우 판정에 손을 댄다**. 그래서 여기서 가장 중요한 것은

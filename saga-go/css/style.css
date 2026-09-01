@@ -265,6 +265,26 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 #sheet-body::-webkit-scrollbar { width: 8px; }
 #sheet-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
 
+/* ── 오버월드 전체 지도 (M키) — PLAN 25-1절 ──────────────── */
+#overworld-map {
+  position: fixed; inset: 0; z-index: 40;
+  display: none; align-items: center; justify-content: center;
+}
+#overworld-map.show { display: flex; }
+#overworld-map .ow-scrim {
+  position: absolute; inset: 0; background: rgba(6,8,12,.6);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+#overworld-map .ow-panel {
+  position: relative; width: min(92vw, 640px); height: min(80vh, 640px);
+  border-radius: var(--r-lg); display: flex; flex-direction: column; padding: 14px;
+}
+#overworld-map .ow-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+#overworld-map .ow-head h3 { margin: 0; font-size: 15px; font-weight: 700; }
+#overworld-map .ow-head small { flex: 1; }
+#overworld-map .ow-close { margin-left: auto; }
+#overworld-map canvas { flex: 1 1 auto; width: 100%; height: 100%; border-radius: var(--r-md); }
+
 /* ── 시트 내부 공통 ───────────────────────────────────── */
 .sec { margin-bottom: 18px; }
 .sec:last-child { margin-bottom: 4px; }
