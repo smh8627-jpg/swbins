@@ -17,8 +17,11 @@
  * **판정에는 한 줄도 닿지 않는다** — `dungeon.raw()` 를 읽기만 한다(사가고
  * 미니맵과 같은 원칙). 값을 내는 함수(`blips`)는 캔버스 없이도 돈다.
  *
- * 마을(town.js)은 방 개념이 없는 자유 보행 공간이라 이 미니맵을 켜지 않는다
- * (`dungeon.active()` 일 때만) — 마을 지도는 이 판의 몫이 아니다.
+ * 마을(town.js)에서도 켠다(2026-09-02, PLAN 28-1절 오버월드 뒤 추가) — 마을
+ * 필드로 다른 마을을 향해 걸을 때 "들길"(exit_*, 초록색 점)이 방 밖에 있어
+ * 방향을 못 찾겠다는 피드백이 있었다. norm() 의 클램프(-0.06~1.06)가 방
+ * 밖 먼 점을 자연히 화면 가장자리에 붙여 주므로, 들길이 아직 안 보여도
+ * 어느 쪽 가장자리에 점이 있는지로 방향을 알 수 있다.
  */
 (function (global) {
   'use strict';
@@ -31,7 +34,8 @@
     boss:  { c: '#ff2d2d', r: 4.0 },
     npc:   { c: '#7fd0ff', r: 2.6 },
     poi:   { c: '#f5c451', r: 2.8 },
-    door:  { c: '#9a8f78', r: 2.2 }
+    door:  { c: '#9a8f78', r: 2.2 },
+    exit:  { c: '#3ddc84', r: 3.4 }        // 마을 들길 — dungeon3d.js 표식 팻말과 같은 초록
   };
 
   var node = null, canvas = null, ctx = null;
@@ -50,9 +54,16 @@
    * 방은 늘 화면 안에 다 들어가므로(사가고 세상과 달리 반경이 없다)
    * clamp·edge 처리가 필요 없다 — 그래서 사가고보다 훨씬 짧다.
    */
+  /** 지금 켜져 있는 쪽(던전 또는 마을) — 마을이 있고 마을이 활성이면 그쪽,
+   *  아니면(자가진단처럼 마을 스크립트가 없을 수도 있다) 늘 하던 대로 던전 */
+  function activeMod() {
+    var T = global.DG.town;
+    if (T && T.active && T.active()) { return T; }
+    return global.DG.dungeon;
+  }
   function norm(x, y) {
-    var D = global.DG.dungeon;
-    var W = D.ROOM_W, H = D.ROOM_H, WALL = D.WALL;
+    var M = activeMod();
+    var W = M.ROOM_W, H = M.ROOM_H, WALL = M.WALL;
     var iw = Math.max(1, W - WALL * 2), ih = Math.max(1, H - WALL * 2);
     return {
       nx: core.clamp((x - WALL) / iw, -0.06, 1.06),
@@ -102,6 +113,18 @@
       var D = global.DG.dungeon;
       for (i = 0; i < room.doors.length; i++) { put('door', D.ROOM_W - D.WALL, room.doors[i].y); }
     }
+    /* 마을(town.js) 전용 — 들길(exit_*)은 초록, 그 밖 표식(굴혈·역참·결사비)과
+       사람은 기존 poi·npc 색을 그대로 쓴다. 던전 방에는 marks·npcs 가 아예
+       없으니(위 room.doors 처럼 필드 자체가 undefined) 안전하게 건너뛴다. */
+    if (room.marks) {
+      for (i = 0; i < room.marks.length; i++) {
+        var mk = room.marks[i];
+        put(mk.key && mk.key.indexOf('exit_') === 0 ? 'exit' : 'poi', mk.x, mk.y);
+      }
+    }
+    if (room.npcs) {
+      for (i = 0; i < room.npcs.length; i++) { put('npc', room.npcs[i].x, room.npcs[i].y); }
+    }
     return out;
   }
 
@@ -150,9 +173,9 @@
   }
 
   function draw() {
-    var D = global.DG.dungeon;
-    if (!D || !D.active() || folded || !canvas) { return 0; }
-    var run = D.raw();
+    var M = activeMod();
+    if (!M || !M.active() || folded || !canvas) { return 0; }
+    var run = M.raw();
     if (!run || !run.room) { return 0; }
     var dpr = resize();
     if (!ctx) { return 0; }
@@ -202,8 +225,8 @@
   /** 게임 루프가 부른다 — 매 프레임 다시 그리지 않는다 */
   function tick(dt) {
     if (!node) { return false; }
-    var D = global.DG.dungeon;
-    var show = !!(D && D.active());
+    var M = activeMod();
+    var show = !!(M && M.active());
     /* `''` 는 인라인 스타일만 지운다 — CSS 시트의 `display: none;` 이 그대로
        이겨서 계속 안 보였다(실기기 검증 중 발견). 'block' 으로 확실히 덮는다 */
     node.style.display = show ? 'block' : 'none';

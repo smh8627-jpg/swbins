@@ -3222,6 +3222,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     var MM = DG.minimap;
 
     t('미니맵 — 방 안 좌표를 0~1 로 편다 (방 벽 네 모서리)', function () {
+      /* norm() 은 이제 마을이 켜져 있으면 마을 치수를 쓴다(PLAN 28-1절 뒤,
+         마을 전체 지도 확장) — 이 검사는 던전 치수를 보는 것이니 마을이
+         앞선 테스트에서 켜진 채로 남아 있으면 반드시 끈다. */
+      if (DG.town && DG.town.active()) { DG.town.leave(); }
       var W = DN.ROOM_W, H = DN.ROOM_H, WALL = DN.WALL;
       var topLeft = MM.norm(WALL, WALL);
       var botRight = MM.norm(W - WALL, H - WALL);
