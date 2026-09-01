@@ -41,10 +41,30 @@
 | `CommonTree_1.glb` · `CommonTree_2.glb` · `PineTree_1.glb` | 성 둘레 나무 |
 | `Rock_1.glb` · `Rock_2.glb` | 성 둘레 바위 |
 
+## Quaternius — 잔장식 (`models/nature/`, `models/props/`, `models/buildings/`)
+
+2026-09-01, PLAN 40절 PHASE 4(퀄리티 보강) — 폰 확인 후 "3D인데 퀄리티가 부족하다"는
+피드백을 받고, `saga-go`·`saga-forest`가 이미 확인해 둔 같은 CC0 를 옮겼다. 새로
+받은 파일은 하나도 없다.
+
+| 파일 | 옮긴 곳 | 쓰이는 곳 |
+|---|---|---|
+| `Bush_1.glb` · `Bush_2.glb` | `saga-go/assets/models/nature/` | 성 둘레 작은 덤불(잔풀 레이어) |
+| `Grass_2.glb` | `saga-go/assets/models/nature/` | 잔풀 레이어, 강가 갈대 |
+| `Flowers.glb` | `saga-forest/assets/models/nature/` | 잔풀 레이어의 꽃 |
+| `Wall.glb` | `saga-go/assets/models/props/` | 3등급 대성의 성벽 |
+| `Temple.glb` | `saga-go/assets/models/props/` | 3등급 대성의 사찰풍 구조물 |
+| `WoodenTorch.glb` | `saga-go/assets/models/props/` | 모든 성 성문 앞 횃불 두 개 |
+| `MarketStand_1.glb` | `saga-go/assets/models/buildings/` | 3등급 대성의 시장 |
+| `Well.glb` | `saga-go/assets/models/buildings/` | 모든 성의 우물 |
+
+만든 이·라이선스는 위 성채·지형과 같다(Quaternius, CC0 1.0 Universal, 저작자 표시
+불필요, 재배포 허용).
+
 ## 옮기지 않은 것 (앞으로)
 
-동양풍 건축(성문·군영·사찰풍 구조물)에 맞는 CC0 에셋은 아직 못 구했다 — 위 탑들은
-서양풍 판타지 성채라 이 판의 결(삼국지 동양 판타지)과는 다르다. **품질을 우선해
-"결이 안 맞아도 둘 다 얹는다"**(PLAN 40절 부록)를 따라 우선 그대로 쓴다. 나중에
-동양풍 CC0 성문·탑을 구하면 `js/asset3d.js`의 `DEFAULTS['city:t1'\|'t2'\|'t3']`만
-바꾸면 된다 — 부르는 쪽(`realm3d.js`)은 안 건드린다.
+동양풍 건축(성문·군영)에 맞는 CC0 에셋은 아직 못 구했다 — 탑·사찰은 서양풍 판타지라
+이 판의 결(삼국지 동양 판타지)과는 다르다. **품질을 우선해 "결이 안 맞아도 둘 다
+얹는다"**(PLAN 40절 부록)를 따라 우선 그대로 쓴다. 나중에 동양풍 CC0 성문·탑을
+구하면 `js/asset3d.js`의 `DEFAULTS['city:t1'\|'t2'\|'t3']`만 바꾸면 된다 —
+부르는 쪽(`realm3d.js`)은 안 건드린다.

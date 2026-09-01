@@ -26,6 +26,7 @@
 
   var BLD = 'assets/models/buildings/';
   var NAT = 'assets/models/nature/';
+  var PRP = 'assets/models/props/';
 
   /** 표 — 성채는 **등급마다 다른 탑**이 선다(wall 값이 클수록 높은 탑).
    *  좁은 키(`city:t3`)부터 찾으므로 등급이 안 실려 와도 `city` 로 떨어진다 */
@@ -37,7 +38,18 @@
 
     'mount': [NAT + 'Mountain_1.glb', NAT + 'Mountain_2.glb'],
     'tree': [NAT + 'CommonTree_1.glb', NAT + 'CommonTree_2.glb', NAT + 'PineTree_1.glb'],
-    'rock': [NAT + 'Rock_1.glb', NAT + 'Rock_2.glb']
+    'rock': [NAT + 'Rock_1.glb', NAT + 'Rock_2.glb'],
+
+    /* 40절 PHASE 4 — 퀄리티 보강. 다섯 판 공통 방침("코드로 그리지 말고
+     * 에셋으로")에 따라 saga-go/saga-forest 가 이미 확인해 둔 CC0 를 그대로 옮겼다 */
+    'bush': [NAT + 'Bush_1.glb', NAT + 'Bush_2.glb'],
+    'grass': NAT + 'Grass_2.glb',
+    'flower': NAT + 'Flowers.glb',
+    'wall': PRP + 'Wall.glb',
+    'temple': PRP + 'Temple.glb',
+    'torch': PRP + 'WoodenTorch.glb',
+    'market': BLD + 'MarketStand_1.glb',
+    'well': BLD + 'Well.glb'
   };
 
   var REG = {};

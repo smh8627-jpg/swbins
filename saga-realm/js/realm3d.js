@@ -55,6 +55,31 @@
     return h;
   }
 
+  /** 바닥 — 단색 한 장이 밋밋해서(퀄리티 피드백) 옅은 얼룩 무늬를 타일로 깐다.
+   *  실제 사진이 아니라 해시로 찍은 점묘라 매번 같다(진단 결정성과 같은 이유) */
+  function groundTexture() {
+    var t = three();
+    var size = 128;
+    var cv = document.createElement('canvas');
+    cv.width = size; cv.height = size;
+    var c = cv.getContext('2d');
+    c.fillStyle = '#cfe0a0';
+    c.fillRect(0, 0, size, size);
+    var i, n = 260;
+    for (i = 0; i < n; i++) {
+      var hh = hashOf('gtex:' + i);
+      var x = hh % size, y = (hh >> 8) % size, r = 2 + (hh % 4);
+      var tone = (hh >> 16) % 3;
+      c.fillStyle = tone === 0 ? 'rgba(120,150,70,0.14)' : (tone === 1 ? 'rgba(235,228,175,0.10)' : 'rgba(90,128,58,0.16)');
+      c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    }
+    var tex = new t.CanvasTexture(cv);
+    tex.wrapS = tex.wrapT = t.RepeatWrapping;
+    tex.repeat.set(48, 48);
+    if (t.SRGBColorSpace) { tex.colorSpace = t.SRGBColorSpace; }
+    return tex;
+  }
+
   /* ── 등급 · 배치 ──────────────────────────────────────── */
 
   /** 성벽(maxWall) 값으로 탑 등급을 가른다 — 30 성의 실제 분포(3400~6800) 기준 */
@@ -106,7 +131,7 @@
 
     var ground = new t.Mesh(
       new t.PlaneGeometry(2200, 2200),
-      new t.MeshLambertMaterial({ color: 0xcfe0a0 })
+      new t.MeshLambertMaterial({ color: 0xffffff, map: groundTexture() })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.05;
@@ -171,6 +196,90 @@
     pulseRings = [];
   }
 
+  /** 발밑 그림자 — 실제 shadow map 대신 값싼 원 데칼을 깐다. 궤도 카메라로
+   *  국토 전체를 내려다보는 화면이라(멀리서도 항상 선명해야 한다) 진짜
+   *  그림자맵보다 이 편이 싸고 확실하다(saga-go 배우 그림자와 같은 요령) */
+  var blobGeo = null, blobMat = null;
+  function addShadow(x, z, r) {
+    var t = three();
+    if (!t || !dyn) { return; }
+    if (!blobGeo) {
+      blobGeo = new t.CircleGeometry(1, 16);
+      blobMat = new t.MeshBasicMaterial({ color: 0x14140c, transparent: true, opacity: 0.3, depthWrite: false });
+    }
+    var m = new t.Mesh(blobGeo, blobMat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, 0.015, z);
+    m.scale.setScalar(Math.max(0.4, r));
+    dyn.add(m);
+  }
+
+  /** GLB 소품 하나를 세운다(비동기) — cityDressing·scatterSmall·riverPond 가 같이 쓴다.
+   *  `seq` 가 다시 지어진 뒤(늦게 온 콜백)면 조용히 버린다 */
+  function addProp(kind, id, x, z, scaleH, rotY, seq) {
+    asset3d().build(kind, { id: id }, function (g) {
+      if (seq !== rebuildSeq || !g || !dyn) { return; }
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY || 0;
+      g.scale.setScalar(scaleH);
+      dyn.add(g);
+      addShadow(x, z, scaleH * 0.4);
+    });
+  }
+
+  /** 성 둘레 잔장식 — 우물 · 횃불 두 개. 3등급 대성은 성벽 · 시장 · 사찰까지
+   *  더해 "이 나라의 큰 성" 임이 한눈에 보이도록 한다 */
+  function cityDressing(city, tier, h, footprint, seq) {
+    var cx = worldX(city.x), cz = worldZ(city.y);
+    addProp('well', city.id + ':well', cx - footprint * 1.3, cz + footprint * 0.4, h * 0.5, 0, seq);
+    addProp('torch', city.id + ':torchL', cx + footprint * 1.1, cz + footprint * 0.55, h * 0.45, 0, seq);
+    addProp('torch', city.id + ':torchR', cx + footprint * 1.1, cz - footprint * 0.55, h * 0.45, 0, seq);
+    if (tier === 't3') {
+      addProp('wall', city.id + ':wallA', cx, cz + footprint * 1.5, h * 0.6, 0, seq);
+      addProp('wall', city.id + ':wallB', cx, cz - footprint * 1.5, h * 0.6, Math.PI, seq);
+      addProp('market', city.id + ':market', cx + footprint * 1.8, cz + footprint * 0.9, h * 0.55, 0, seq);
+      addProp('temple', city.id + ':temple', cx + footprint * 1.8, cz - footprint * 0.9, h * 0.6, 0, seq);
+    }
+  }
+
+  /** 강가 성 — 물웅덩이 하나 + 갈대 삼아 풀 두 포기. `land: 'river'` 뿐 */
+  function riverPond(city, seq) {
+    if (city.land !== 'river') { return; }
+    var t = three();
+    var cx = worldX(city.x), cz = worldZ(city.y);
+    var hh = hashOf(city.id + ':pond');
+    var ang = ((hh % 360) / 360) * Math.PI * 2;
+    var r = 5 + (hh % 3);
+    var px = cx + Math.cos(ang) * 9, pz = cz + Math.sin(ang) * 9;
+    var pond = new t.Mesh(
+      new t.CircleGeometry(r, 20),
+      new t.MeshBasicMaterial({ color: 0x5aa9d8, transparent: true, opacity: 0.75 })
+    );
+    pond.rotation.x = -Math.PI / 2;
+    pond.position.set(px, 0.04, pz);
+    dyn.add(pond);
+    addProp('grass', city.id + ':reed1', px + r * 0.6, pz, 0.7, 0, seq);
+    addProp('grass', city.id + ':reed2', px - r * 0.5, pz + r * 0.3, 0.6, 0.8, seq);
+  }
+
+  /** 작은 덤불 · 풀 · 꽃 — 나무/바위 큰 레이어 위에 얹는 잔풀 레이어(PLAN 33절
+   *  "큰→중간→작은"). 산지는 암석 지대라 뺀다 */
+  function scatterSmall(city, seq) {
+    if (city.land === 'mount') { return; }
+    var cx = worldX(city.x), cz = worldZ(city.y);
+    var n = 4, i;
+    for (i = 0; i < n; i++) {
+      var hh = hashOf(city.id + ':sm:' + i);
+      var ang = ((hh % 360) / 360) * Math.PI * 2;
+      var r = 3 + (hh % 4);
+      var px = cx + Math.cos(ang) * r, pz = cz + Math.sin(ang) * r;
+      var pick = hh % 3;
+      var kind = pick === 0 ? 'bush' : (pick === 1 ? 'grass' : 'flower');
+      var scaleH = kind === 'bush' ? (0.8 + (hh % 6) / 10) : (0.5 + (hh % 5) / 10);
+      addProp(kind, city.id + ':' + kind + ':' + hh, px, pz, scaleH, (hh % 628) / 100, seq);
+    }
+  }
+
   function addRoad(a, b, opt) {
     var t = three();
     var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
@@ -186,8 +295,7 @@
 
   /** 지형지물 — 산은 봉우리, 구릉은 낮은 둔덕, 나머지는 나무·바위를 몇 개 흩는다.
    *  같은 성은 늘 같은 자리에 같은 것이 선다(해시 기반 — 매번 안 흔들린다) */
-  function scatterAround(city) {
-    var t = three();
+  function scatterAround(city, seq) {
     var cx = worldX(city.x), cz = worldZ(city.y);
     var n = city.land === 'mount' ? 2 : (city.land === 'hill' ? 2 : 3);
     var i;
@@ -198,15 +306,7 @@
       var px = cx + Math.cos(ang) * r, pz = cz + Math.sin(ang) * r;
       var kind = city.land === 'mount' ? 'mount' : (((hh >> 4) % 3) === 0 ? 'rock' : 'tree');
       var scaleH = kind === 'mount' ? (7 + (hh % 5)) : (kind === 'rock' ? 0.9 : (2.2 + (hh % 12) / 10));
-      (function (px, pz, kind, scaleH) {
-        asset3d().build(kind, { id: city.id + ':' + kind + ':' + i, seed: hh }, function (g) {
-          if (!g || !dyn) { return; }
-          g.position.set(px, 0, pz);
-          g.rotation.y = (hh % 628) / 100;
-          g.scale.setScalar(scaleH);
-          dyn.add(g);
-        });
-      })(px, pz, kind, scaleH);
+      addProp(kind, city.id + ':' + kind + ':' + i, px, pz, scaleH, (hh % 628) / 100, seq);
     }
   }
 
@@ -224,6 +324,8 @@
       dyn.add(g);
 
       var footprint = Math.max(3.2, h * 0.5);
+      addShadow(worldX(city.x), worldZ(city.y), footprint * 0.9);
+      cityDressing(city, tier, h, footprint, seq);
       var hitGeo = new t.CylinderGeometry(footprint, footprint, h, 10);
       var hit = new t.Mesh(hitGeo, new t.MeshBasicMaterial({ visible: false }));
       hit.position.set(worldX(city.x), h / 2, worldZ(city.y));
@@ -286,9 +388,12 @@
       }
     }
 
+    var seq = rebuildSeq;
     for (i = 0; i < cities.length; i++) {
       buildCity(cities[i], st.cities[cities[i].id], st.me);
-      scatterAround(cities[i]);
+      scatterAround(cities[i], seq);
+      scatterSmall(cities[i], seq);
+      riverPond(cities[i], seq);
     }
   }
 
