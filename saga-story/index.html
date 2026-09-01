@@ -119,6 +119,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
     var r = e.reason;
     show('promise reject: ' + (r && r.message ? r.message : r));
   });
+  window.DG_DIAG = show;   // side-view3d.js 등이 예외 아닌 사정(컨텍스트 끊김 등)도 여기 찍는다
 })();
 </script>
 <script src="js/data.js"></script>

@@ -72,6 +72,16 @@
     } catch (err) {
       ready = false; return false;               // 오래된 기기·file:// — 조용히 2D 로
     }
+    /* 컨텍스트가 끊기면(메모리 부족 등, 실기기에서 흔하다) JS 에러 없이 캔버스만
+       불투명 검정으로 굳는다 — alpha:false 라 지워진 드로잉 버퍼가 그렇게 합성된다.
+       듣지 않으면 화면이 새까만 채로 영영 안 돌아온다. ready 를 내려 2D 로 떨어뜨리고
+       캔버스도 바로 숨긴다(다음 draw() 를 기다리면 그 프레임 동안 검게 보인다) */
+    canvas.addEventListener('webglcontextlost', function (e) {
+      e.preventDefault();
+      ready = false;
+      canvas.style.display = 'none';
+      if (global.DG_DIAG) { global.DG_DIAG('webgl context lost — 2D로 대체'); }
+    });
     scene = new Tc.Scene();
     camera = new Tc.PerspectiveCamera(35, 1, 1, 6000);
 
