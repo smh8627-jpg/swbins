@@ -2235,6 +2235,26 @@
     return n;
   }
 
+  /**
+   * 세워 둔 배우(사람·짐승)를 통째로 지운다 — `actorOf` 가 한 번 지은 3D 배우는
+   * 그대로 붙들고 있으므로, 등신 비례가 바뀌어도 이미 선 배우는 옛 비례 그대로
+   * 남는다. 다음 프레임에 지금 비례로 다시 짓도록 비운다(게임.js 의 등신 버튼이
+   * 부른다). 2D 빌보드 텍스처는 캐시 키에 등신이 이미 들어 있어 그냥 둬도
+   * 저절로 새 비례로 바뀐다.
+   */
+  function resetActors() {
+    if (!actorGroup) { return 0; }
+    var n = 0, k;
+    for (k in actors) {
+      if (!Object.prototype.hasOwnProperty.call(actors, k)) { continue; }
+      actorGroup.remove(actors[k].node);
+      actorGroup.remove(actors[k].shadow);
+      n++;
+    }
+    actors = {};
+    return n;
+  }
+
   global.DG = global.DG || {};
   /**
    * 인스턴스 창고 속 — **어느 덩이에 몇이 서 있나.**
@@ -2273,6 +2293,7 @@
 
   global.DG.world3d = {
     init: init, resize: resize, render: render, refreshProps: refreshProps,
+    resetActors: resetActors,
     /** 인스턴스 창고 속을 들여다본다(진단·데모용). 이름 조각으로 걸러 볼 수 있다 */
     instReport: instReport,
     available: available, active: active, wanted: wanted,

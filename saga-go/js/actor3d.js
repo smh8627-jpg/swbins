@@ -66,20 +66,19 @@
   var TOR = function (r, t, s) { return geo('t' + r + '/' + t + '/' + s, function () { return new T.TorusGeometry(r, t, 6, s || 14); }); };
 
   /* ── 사람 ─────────────────────────────────────────────────
-   * 비례는 **3.5등신** 이다. 실사 비례(7~8등신)로 세우면 지도 위에서 머리가 점이 되어
-   * 누가 누군지 안 보인다. 원작 아바타도 지도에서는 머리를 키워 세운다.
+   * 비례는 도구줄의 **등신** 버튼(2/4/8등신, sprite.js 의 PROPS 와 같은 비율)을
+   * 그대로 따른다. 기본(4등신, 여기선 3.5등신에 가깝다)은 지도 위에서 머리가
+   * 점이 되지 않도록 원래부터 키워 둔 값이다 — chibi·tall 은 그 비율을 sprite.js
+   * 와 같은 배수로 늘리고 줄였다. `P` 는 `buildHero` 가 부를 때마다 그 시점의
+   * 등신 모드로 다시 잡는 모듈 전역이다 — `helmNode`·`weaponNode` 가 같은 값을
+   * 봐야 해서 지역 변수로 두지 않는다.
    */
-  var P = {
-    leg: 0.38,        // 발끝~골반
-    hip: 0.38,
-    torso: 0.30,      // 골반~어깨
-    sho: 0.68,
-    neck: 0.72,
-    headR: 0.145,
-    headY: 0.865,
-    arm: 0.27,
-    limb: 0.048
+  var PROPS3D = {
+    chibi:  { leg: 0.244, hip: 0.244, torso: 0.203, sho: 0.447, neck: 0.487, headR: 0.295, headY: 0.719, arm: 0.183, limb: 0.070 },
+    normal: { leg: 0.38,  hip: 0.38,  torso: 0.30,  sho: 0.68,  neck: 0.72,  headR: 0.145, headY: 0.865, arm: 0.27,  limb: 0.048 },
+    tall:   { leg: 0.421, hip: 0.421, torso: 0.317, sho: 0.738, neck: 0.778, headR: 0.081, headY: 0.909, arm: 0.306, limb: 0.041 }
   };
+  var P = PROPS3D.normal;
 
   function heroSpec(hero) {
     var look = sprite().lookOf(hero);
@@ -212,6 +211,7 @@
 
   function buildHero(hero) {
     if (!three()) { return null; }
+    P = PROPS3D[sprite().prop()] || PROPS3D.normal;
     var s = heroSpec(hero);
     var plan = heroPlan(hero);
     var g = new T.Group();

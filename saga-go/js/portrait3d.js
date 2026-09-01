@@ -33,17 +33,22 @@
 
   /* ── 값을 내는 함수 — three 없이도 돈다 (자가진단이 이것만 본다) ────── */
 
+  /** 등신 비례 — 굽는 모델이 달라지므로 이름표에 넣어 캐시를 가른다(actor3d.js 참조) */
+  function propMode() {
+    return (global.DG.sprite && global.DG.sprite.prop) ? global.DG.sprite.prop() : 'normal';
+  }
+
   /** 이 그림의 이름표. `<img data-p3="...">` 에 적히는 그 값이다 */
   function keyOf(kind, ref, w, h) {
     var id = (ref && (ref.id || ref.key || ref.name)) || 'x';
-    return kind + ':' + id + ':' + Math.round(w) + 'x' + Math.round(h);
+    return kind + ':' + id + ':' + Math.round(w) + 'x' + Math.round(h) + ':' + propMode();
   }
 
   /** 이름표를 되읽는다 — `sweep()` 이 <img> 에서 무엇을 구울지 알아내는 자리 */
   function parseKey(s) {
-    var m = /^([a-z]+):([^:]+):(\d+)x(\d+)$/.exec(String(s || ''));
+    var m = /^([a-z]+):([^:]+):(\d+)x(\d+):([a-z]+)$/.exec(String(s || ''));
     if (!m) { return null; }
-    return { kind: m[1], id: m[2], w: +m[3], h: +m[4] };
+    return { kind: m[1], id: m[2], w: +m[3], h: +m[4], prop: m[5] };
   }
 
   /**

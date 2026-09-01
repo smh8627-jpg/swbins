@@ -223,6 +223,7 @@
         propBtn.textContent = PROP_LABEL[next];
         ui.toast(PROP_MSG[next]);
         core.emit('changed');           // 초상 <img> 들을 새 비례로 다시 굽는다
+        if (global.DG.world3d) { global.DG.world3d.resetActors(); }  // 지도 위 3D 배우도 새 비례로 다시 짓는다
       });
     }
 
