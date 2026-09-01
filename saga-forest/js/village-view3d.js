@@ -45,13 +45,10 @@
 
   /** 손잡이 — 기본은 꺼져 있다(2D 가 그대로 간다). 🧊 버튼이 이걸 뒤집는다 */
   function ON() { return C().tuned('village3d.on', 0) ? true : false; }
-  /** 카메라 구도 — 'third'(어깨너머 3인칭, 기본) 또는 'iso'(3/4 부감, 사가블로 dg3d.camMode 와
-   *  같은 뜻). 🎥 버튼이 이걸 뒤집는다. iso 는 걷는 방향을 안 따라 돌지 않는다 — 원작 쿼터뷰처럼
-   *  늘 같은 각도로 내려다보고, mouseYaw(드래그)로만 방위를 돌린다 */
-  function CAMMODE() { return C().tuned('village3d.camMode', 'third') === 'iso' ? 'iso' : 'third'; }
   function CAM_DIST() { return C().tuned('village3d.camDist', 6); }
   function CAM_HIGH() { return C().tuned('village3d.camHeight', 3.2); }
-  /** iso 구도의 거리·기울기 — tilt 가 클수록 더 눕는다(수평에 가깝다), 낮을수록 더 부감(수직에 가깝다) */
+  /** 3/4 부감(쿼터뷰) 쪽 끝값 — 거리·기울기. tilt 가 클수록 카메라가 더 눕는다(수평 반지름이
+   *  커지고 높이가 낮아진다), 작을수록 더 위에서 내리찍는 부감이 된다 */
   function ISO_DIST() { return C().tuned('village3d.isoDist', 11); }
   function ISO_TILT() { return C().tuned('village3d.isoTilt', 0.62); }
   function PLAYER_H() { return C().tuned('village3d.playerH', 1.7); }
@@ -87,9 +84,15 @@
    *  있을 때 걷기가 키보드 몫이라 손가락 한 개 드래그를 그냥 시점 회전에 써도 된다 */
   var mouseYaw = 0;
   var YAW_SENS = 0.012;
-  var dragId = null, dragLastX = 0;
+  /** 세로 드래그로 잇는 시점 높이 — 0(어깨너머 3인칭)~1(3/4 부감/쿼터뷰) 연속값이다.
+   *  **따로 켜는 버튼이 없다** — 2026-09-02 사용자 요청. 위로 끌면 부감(1)쪽으로,
+   *  아래로 끌면 어깨너머(0)쪽으로 자연스럽게 넘어간다 */
+  var camTiltMix = 0;
+  var TILT_SENS = 0.0028;
+  var dragId = null, dragLastX = 0, dragLastY = 0;
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function setCamTiltMix(v) { camTiltMix = clamp(v, 0, 1); }
   function zoomPointerCount() {
     var n = 0, k;
     for (k in zoomPointers) { if (Object.prototype.hasOwnProperty.call(zoomPointers, k)) { n++; } }
@@ -115,17 +118,19 @@
     cv.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse') {
         if (e.button !== 2) { return; }         // 왼쪽은 그대로 비워 둔다(다른 조작과 안 겹치게)
-        dragId = e.pointerId; dragLastX = e.clientX;
+        dragId = e.pointerId; dragLastX = e.clientX; dragLastY = e.clientY;
         return;
       }
-      if (zoomPointerCount() === 0) { dragId = e.pointerId; dragLastX = e.clientX; }
+      if (zoomPointerCount() === 0) { dragId = e.pointerId; dragLastX = e.clientX; dragLastY = e.clientY; }
       zoomPointers[e.pointerId] = { x: e.clientX, y: e.clientY };
       if (zoomPointerCount() === 2) { pinchDist0 = twoZoomPointerDist(); dragId = null; }
     });
     cv.addEventListener('pointermove', function (e) {
       if (e.pointerId === dragId) {
         mouseYaw -= (e.clientX - dragLastX) * YAW_SENS;
-        dragLastX = e.clientX;
+        /* 위로 끌면(clientY 가 줄어듦) 부감(1)쪽으로 — 그래서 부호를 뒤집는다 */
+        setCamTiltMix(camTiltMix - (e.clientY - dragLastY) * TILT_SENS);
+        dragLastX = e.clientX; dragLastY = e.clientY;
       }
       if (!zoomPointers[e.pointerId]) { return; }
       zoomPointers[e.pointerId] = { x: e.clientX, y: e.clientY };
@@ -324,19 +329,18 @@
   }
 
   /**
-   * 카메라 자리 — **순수 함수다**(사가블로 dungeon3d.js 의 camAim/camAim3rd 와 같은 결).
-   * third: 걷는 방향(facingYaw) 뒤·어깨 위를 따라 돈다. iso: facingYaw 를 안 보고
-   * mouseYaw 로만 방위를 돌린다 — 걸어도 화면이 안 돌아가는 원작 쿼터뷰의 뜻.
+   * 카메라 자리 — **순수 함수다**(사가블로 dungeon3d.js 의 camAim/camAim3rd 와 같은 결이되,
+   * 여기는 둘을 딱 자르지 않고 `t`(camTiltMix, 0~1)로 이어 붙인다 — **따로 켜는 버튼이
+   * 없다**(2026-09-02 사용자 요청). t=0(어깨너머 3인칭)은 걷는 방향(facingYaw) 뒤를
+   * 그대로 따라 돈다. t=1(3/4 부감/쿼터뷰)은 facingYaw 기여가 0 이 되어 걸어도 화면이
+   * 안 돌아가는 원작 쿼터뷰가 된다 — 그 사이는 반지름·높이·방위 모두 선형으로 섞는다.
    * 인물은 늘 원점(0,0,0)이라 lookAt 은 호출부에서 고정값 하나로 처리한다.
    */
-  function camPose(mode, facingYaw, mouseYaw, dist, high, isoTilt) {
-    if (mode === 'iso') {
-      var az = mouseYaw;
-      var back = dist * isoTilt;
-      return { x: Math.sin(az) * back, y: dist * (1 - isoTilt * 0.55), z: Math.cos(az) * back };
-    }
-    var behind = facingYaw + Math.PI + mouseYaw;
-    return { x: Math.sin(behind) * dist, y: high, z: Math.cos(behind) * dist };
+  function camPose(t, facingYaw, mouseYaw, radius0, height0, radius1, height1) {
+    var radius = radius0 + (radius1 - radius0) * t;
+    var height = height0 + (height1 - height0) * t;
+    var az = mouseYaw + (1 - t) * (facingYaw + Math.PI);
+    return { x: Math.sin(az) * radius, y: height, z: Math.cos(az) * radius };
   }
 
   /** 걸음 방향 → 카메라가 뒤에서 도는 각. 마을 좌표(x,y) → 3D(x,-z 앞) */
@@ -358,20 +362,15 @@
 
     if (player.group) { player.group.rotation.y = facingYaw; }
 
-    var mode = CAMMODE();
-    /* userZoom 이 커질수록(확대) 거리를 좁힌다 — 그래서 여기선 나눈다 */
-    var dist = (mode === 'iso' ? ISO_DIST() : CAM_DIST()) / userZoom;
-    var high = CAM_HIGH() / userZoom;
-    var pos = camPose(mode, facingYaw, mouseYaw, dist, high, ISO_TILT());
+    /* userZoom 이 커질수록(확대) 거리를 좁힌다 — 그래서 여기선 나눈다.
+       iso 쪽 끝값은 ISO_DIST()·ISO_TILT() 를 camPose 가 쓰던 (수평 반지름, 높이) 짝으로
+       미리 풀어 둔다 — camPose 자체는 그 둘의 뜻(거리·기울기)을 몰라도 된다 */
+    var radius0 = CAM_DIST() / userZoom, height0 = CAM_HIGH() / userZoom;
+    var isoDist = ISO_DIST(), isoTilt = ISO_TILT();
+    var radius1 = (isoDist * isoTilt) / userZoom, height1 = (isoDist * (1 - isoTilt * 0.55)) / userZoom;
+    var pos = camPose(camTiltMix, facingYaw, mouseYaw, radius0, height0, radius1, height1);
     camera.position.set(pos.x, pos.y, pos.z);
     camera.lookAt(0, PLAYER_H() * 0.75, 0);
-  }
-
-  /** 🎥 버튼 — third ↔ iso 를 뒤집고 지금 값을 돌려준다 */
-  function toggleCamMode() {
-    var next = CAMMODE() === 'iso' ? 'third' : 'iso';
-    C().setTune('village3d.camMode', next);
-    return next;
   }
 
   /**
@@ -484,8 +483,10 @@
   global.DG.villageView3d = {
     init: init, resize: resize, step: step, toggle: toggle,
     active: active, available: available, on: ON,
-    /** 카메라 구도 — 'third'/'iso' 조회·🎥 버튼용 뒤집기, 진단용 순수 함수 */
-    camMode: CAMMODE, toggleCamMode: toggleCamMode, camPose: camPose,
+    /** 진단·QA 전용 — 세로 드래그로 잇는 시점 높이(0 어깨너머~1 부감), 진단용 순수 함수 */
+    camTiltMix: function () { return camTiltMix; },
+    setCamTiltMix: setCamTiltMix,
+    camPose: camPose,
     /** 진단 전용 — 표(순수 함수)와 지금 세운 개수 */
     scatterKind: function () { return SCATTER_KIND; },
     scatterCount: function () { return Object.keys(scatter).length; },
