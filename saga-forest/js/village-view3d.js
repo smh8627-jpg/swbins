@@ -82,13 +82,17 @@
     deadTree: 'tree:dead', mossyRock: 'rock:moss', mushroom: 'mushroom',
     bush: 'bush', stump: 'stump', log: 'log', plant: 'plant',
     tent: 'tent', campfire: 'campfire', bench: 'bench', well: 'well', lantern: 'lantern',
-    mountain: 'mountain'
+    mountain: 'mountain',
+    /* 짐승(PLAN 40절 PHASE 4 첫 칸) — village.js 의 raw().animals 도 이 표를
+       그대로 타고 선다(아래 syncScatter() 가 props 배열에 이어 붙인다) */
+    deer: 'animal:an_deer', fox: 'animal:an_fox', wolf: 'animal:an_wolf'
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
     tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4,
     deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, bush: 0.8, stump: 0.6, log: 0.5, plant: 0.6,
-    tent: 1.8, campfire: 0.5, bench: 0.5, well: 1.0, lantern: 1.6, mountain: 8.0
+    tent: 1.8, campfire: 0.5, bench: 0.5, well: 1.0, lantern: 1.6, mountain: 8.0,
+    deer: 1.1, fox: 0.55, wolf: 0.95
   };
 
   var scatter = {};   // propId → { group, kind, building }
@@ -276,7 +280,7 @@
   function syncScatter() {
     var V = global.DG.village;
     if (!V || !scene) { return; }
-    var raw = V.raw(), props = raw.props, px = raw.player.x, py = raw.player.y;
+    var raw = V.raw(), props = raw.props.concat(raw.animals || []), px = raw.player.x, py = raw.player.y;
     var scale = WORLD_SCALE(), renderU = RENDER_R() / scale, cullU = CULL_R() / scale;
     var within = {}, budget = MAX_BUILD_PER_STEP();
     var i, p, key, ent, d;

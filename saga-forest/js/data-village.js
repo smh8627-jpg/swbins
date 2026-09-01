@@ -737,9 +737,21 @@
   /** 주민 부탁 — 채집물을 몇 개 가져다 주면 금과 친밀도를 준다 */
   var REQUEST_N = [2, 3, 4];
 
+  /** 짐승(PLAN 40절 PHASE 4 첫 칸) — `asset3d.js`에 이미 모델이 있는 사슴·여우·
+   *  늑대만 낸다. 토끼·다람쥐·오리·새는 CC0 모델을 아직 못 찾아 뺐다
+   *  (asset3d.js DEFAULTS 머리말 "아직 못 채운 자리" 참고).
+   *  biomes 는 이 짐승이 사는 바이옴(village.js 의 biomeAt() 키) 목록,
+   *  wander/flee 단위는 그림 좌표(TILE=40)다 */
+  var ANIMALS = {
+    deer: { name: '사슴', emoji: '🦌', speed: 22, wander: 90, flee: 220, fleeSpeed: 70, biomes: ['green', 'meadow'] },
+    fox:  { name: '여우', emoji: '🦊', speed: 26, wander: 80, flee: 190, fleeSpeed: 78, biomes: ['mushroom', 'rocky'] },
+    wolf: { name: '늑대', emoji: '🐺', speed: 24, wander: 100, flee: 200, fleeSpeed: 74, biomes: ['dark', 'rocky'] }
+  };
+
   global.DG = global.DG || {};
   global.DG.villageData = {
     TILES: TILES, PROPS: PROPS, ITEMS: ITEMS, PHASES: PHASES, REQUEST_N: REQUEST_N,
+    ANIMALS: ANIMALS,
     SEASONS: SEASONS, TOOLS: TOOLS,
     FURNITURE: FURNITURE, FURN_SETS: FURN_SETS, furn: furn,
     WALLS: WALLS, FLOORS: FLOORS, wall: wall, floor: floor,

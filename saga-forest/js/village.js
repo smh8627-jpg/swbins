@@ -33,6 +33,7 @@
   var keys = {};
   var props = [];                // 마을에 놓인 사물 (마을 생성 때 정해진다)
   var residents = [];            // 주민 (세이브에 id 만 남고 자리는 여기서)
+  var animals = [];              // 짐승 — 세이브에 안 남는다. 거동은 animal.js 가 맡는다
 
   /* ── 세이브 자리 ──────────────────────────────────────── */
 
@@ -567,10 +568,48 @@
     }
   }
 
+  /** 짐승 자리 잡기(PLAN 40절 PHASE 4 첫 칸) — BIOME_CELL 한 칸에 한 마리
+   *  꼴로, 그 칸 바이옴에 사는 짐승 중 하나를 (좌표+seed 해시로) 고른다.
+   *  절반이 넘는 칸은 비워 둔다 — 다 채우면 숲이 동물원이 된다. 마을·
+   *  캠프·동굴 자리와 물 위에는 안 세운다. 거동(어슬렁·달아남)은
+   *  animal.js 가 매 프레임 맡는다 — 여기서는 **터(home)만** 정한다 */
+  function buildAnimals() {
+    var s = st();
+    animals = [];
+    var m = forestMargin();
+    var cxMin = Math.floor(-m / BIOME_CELL), cxMax = Math.ceil((W + m) / BIOME_CELL);
+    var cyMin = Math.floor(-m / BIOME_CELL), cyMax = Math.ceil((H + m) / BIOME_CELL);
+    var cx, cy;
+    for (cy = cyMin; cy <= cyMax; cy++) {
+      for (cx = cxMin; cx <= cxMax; cx++) {
+        var tx = cx * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+        var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+        if (tx >= -m && ty >= -m && tx < W + m && ty < H + m &&
+            !(tx >= 0 && ty >= 0 && tx < W && ty < H) &&
+            !inHamlet(tx, ty) && !inCave(tx, ty) && GRASS_FAMILY[tileAt(tx, ty)]) {
+          var hgate = core.hash2(cx * 211 + s.seed % 701, cy * 179 + (s.seed >> 4) % 659);
+          if (hgate > 0.55) { continue; }              // 칸의 절반 넘게는 비워 둔다
+          var biome = biomeAt(tx, ty);
+          var pool = [], k;
+          for (k in VD.ANIMALS) {
+            if (VD.ANIMALS.hasOwnProperty(k) && VD.ANIMALS[k].biomes.indexOf(biome) >= 0) { pool.push(k); }
+          }
+          if (!pool.length) { continue; }
+          var hpick = core.hash2(cx * 97 + 3, cy * 131 + 5);
+          var kind = pool[Math.floor(hpick * pool.length) % pool.length];
+          var wx = tx * TILE + TILE * 0.5, wy = ty * TILE + TILE * 0.5;
+          animals.push({ id: 'a' + cx + '_' + cy, kind: kind, x: wx, y: wy,
+                         home: { x: wx, y: wy }, facing: 1, state: 'idle', aim: null, pause: 0 });
+        }
+      }
+    }
+  }
+
   function init() {
     st();
     buildProps();
     buildResidents();
+    buildAnimals();
     if (global.DG.mail) { global.DG.mail.ensureMoveIn(); }
     rollDay();
     syncPlanted();
@@ -673,6 +712,8 @@
        **멀리 걷지는 않는다** — 제 자리 둘레만 돈다. 멀리 가면 부탁을 들어주려고
        사람을 찾아 헤매게 된다 */
     if (global.DG.folk) { global.DG.folk.update(dt); }
+    /* 짐승의 어슬렁·달아남은 animal.js 가 맡는다 — 마을 밖에서도 계속 돈다 */
+    if (global.DG.animal) { global.DG.animal.update(dt); }
 
     /* 낚시터에서 멀어지면 줄이 끊긴다 (걷는 중인지와 무관하게 거리로만 본다) */
     if (fishing) {
@@ -1287,7 +1328,7 @@
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
-    caveSpot: caveSpot, inCave: inCave,
+    caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
@@ -1299,7 +1340,7 @@
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () {
       return { player: player, props: props, residents: residents,
-               fishing: fishing };
+               animals: animals, fishing: fishing };
     }
   };
 })(window);

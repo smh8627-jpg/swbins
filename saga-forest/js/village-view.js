@@ -190,6 +190,8 @@
     for (i = 0; i < raw.residents.length; i++) { draws.push({ y: raw.residents[i].y, t: 'res', o: raw.residents[i] }); }
     var bl = global.DG.bug ? global.DG.bug.list() : [];
     for (i = 0; i < bl.length; i++) { draws.push({ y: bl[i].y, t: 'bug', o: bl[i] }); }
+    var al = raw.animals || [];
+    for (i = 0; i < al.length; i++) { draws.push({ y: al[i].y, t: 'animal', o: al[i] }); }
     draws.push({ y: p.y, t: 'me', o: p });
     draws.sort(function (a, b) { return a.y - b.y; });
 
@@ -199,6 +201,7 @@
       if (d.t === 'prop') { drawProp(d.o, f, se, now); }
       else if (d.t === 'res') { drawResident(d.o, f, now); }
       else if (d.t === 'bug') { drawBug(d.o, f, ph, now); }
+      else if (d.t === 'animal') { drawAnimal(d.o, now); }
       else { drawMe(d.o, now); }
     }
 
@@ -1363,6 +1366,29 @@
     ctx.restore();
   }
 
+
+  /* ── 짐승(PLAN 40절 PHASE 4 첫 칸) ────────────────────────────
+   * 아직은 emoji 로만 뜬다 — 3D 는 asset3d.js 에 등록된 실제 모델(사슴·여우·
+   * 늑대)이 선다. 2D 쪽 전용 그림은 다음 손질 몫으로 남겨 둔다.
+   */
+  function drawAnimal(a, now) {
+    var def = VD.ANIMALS[a.kind];
+    if (!def) { return; }
+    var p = project(a.x, a.y);
+    if (p.a < -A_MAX) { return; }
+    if (p.x < -100 || p.x > W + 100 || p.y < -140 || p.y > H + 140) { return; }
+    var k = ZOOM * p.s;
+    shadow(p.x, p.y + 4 * k, 11 * k, 4 * k);
+    ctx.save();
+    if (a.state === 'flee') { ctx.globalAlpha = 0.85; }
+    ctx.font = Math.round(27 * k) + 'px "Segoe UI Emoji", system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.translate(p.x, 0);
+    ctx.scale(a.facing < 0 ? -1 : 1, 1);
+    ctx.fillText(def.emoji, 0, p.y + 7 * k);
+    ctx.restore();
+  }
 
   /* ── 곤충 ─────────────────────────────────────────────────
    * 사물과 달리 살아 움직인다. 나는 것은 땅에서 떠 있고 그림자가 옅다.
