@@ -97,6 +97,42 @@
    *  줄일 수 있게 손잡이로 뒀다 */
   function forestMargin() { return core.tuned('forest.margin', 20); }
 
+  /* ── 숲 고리 바이옴(PLAN 11절) ────────────────────────────
+   * 마을 밖을 한 가지 잔디로 두지 않고 큼직한 구역(BIOME_CELL 타일 정사각형)으로
+   * 갈라 다섯 가지 분위기를 준다. 칸 좌표를 seed 와 함께 해시하므로 같은 세이브는
+   * 늘 같은 바이옴 지도를 갖는다 — tileAt() 처럼 저장할 필요가 없다.
+   *
+   * 색감·사물 종류만 다룬다. ambient sound·몬스터·아이템(PLAN 11절이 함께 적은
+   * 항목)은 이 게임에 아직 그런 체계 자체가 없어 이번 단계에는 안 넣는다.
+   */
+  var BIOMES = ['green', 'meadow', 'dark', 'mushroom', 'rocky'];
+  var BIOME_CELL = 22;
+  /** 바이옴별 땅 색 — data-village.js 의 TILES 키. green 은 기존 그대로 'grass' */
+  var BIOME_TILE = {
+    green: 'grass', meadow: 'grass_meadow', dark: 'grass_dark',
+    mushroom: 'grass_mush', rocky: 'grass_rocky'
+  };
+  /** 숲 고리 자연 바닥인지 — 공사(terrain.js)로 딴 걸 깐 자리는 걸러야 하므로
+   *  buildProps() 가 tileAt() 결과를 이 표로 되짚어 본다 */
+  var GRASS_FAMILY = { grass: 1, grass_meadow: 1, grass_dark: 1, grass_mush: 1, grass_rocky: 1 };
+
+  function biomeAt(tx, ty) {
+    var s = st();
+    var cx = Math.floor(tx / BIOME_CELL), cy = Math.floor(ty / BIOME_CELL);
+    var h = core.hash2(cx * 733 + s.seed % 991, cy * 617 + (s.seed >> 3) % 857);
+    return BIOMES[Math.floor(h * BIOMES.length) % BIOMES.length];
+  }
+
+  /** 바이옴별 사물 문턱표 — 원래(기존 green) 문턱과 밀도를 그대로 두고, 나머지
+   *  넷은 같은 방식(fh 하나로 내림차순 문턱을 훑는다)으로 그 바이옴다운 사물만 낸다 */
+  var BIOME_SCATTER = {
+    green:    [[0.80, 'tree'], [0.68, 'pine'], [0.60, 'rock'], [0.50, 'flower']],
+    meadow:   [[0.78, 'flower'], [0.55, 'flower'], [0.45, 'bush'], [0.38, 'tree']],
+    dark:     [[0.78, 'deadTree'], [0.62, 'deadTree'], [0.50, 'mossyRock'], [0.42, 'pine']],
+    mushroom: [[0.80, 'mushroom'], [0.64, 'mushroom'], [0.52, 'stump'], [0.44, 'log']],
+    rocky:    [[0.78, 'rock'], [0.62, 'mossyRock'], [0.50, 'rock'], [0.40, 'pine']]
+  };
+
   function tileAt(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
@@ -114,10 +150,10 @@
       if (ty >= H - 5 && tx > 2 && tx < 13) { return 'sand'; }
       return 'grass';
     }
-    /* 마을 밖 — 숲 고리(단색 잔디, 다음 단계에서 Biome/호수로 나뉜다) 아니면 세상 끝(물) */
+    /* 마을 밖 — 숲 고리(PLAN 11절 Biome 로 갈린 잔디) 아니면 세상 끝(물) */
     var m = forestMargin();
     if (tx < -m || ty < -m || tx >= W + m || ty >= H + m) { return 'water'; }
-    return 'grass';
+    return BIOME_TILE[biomeAt(tx, ty)];
   }
 
   /* ── 집 안 / 살금살금 ─────────────────────────────────────
@@ -226,10 +262,9 @@
     /* 사고(史庫) — 전방 건너편. 기증은 이 앞에서만 받는다 */
     props.push({ id: 'museum', kind: 'museum', x: (cx - 6) * TILE + 20, y: (cy + 1) * TILE + 20 });
 
-    /* 숲 고리(PLAN 40절 PHASE 3 "넓은 Forest Map") — 마을 밖에 나무·바위·꽃을 흩뿌린다.
-       마을 안보다 문턱을 낮춰(더 잘 나오게) 숲이 더 우거져 보이게 했다. 새 kind 는
-       안 만든다(tree/pine/rock/flower 는 2D sprite.js·3D asset3d.js 둘 다 이미
-       그린다) — id 접두 'f' 로 마을 것('p'..)과 겹치지 않게 가른다.
+    /* 숲 고리(PLAN 40절 PHASE 3 "넓은 Forest Map" + PLAN 11절 Biome) — 마을 밖에
+       바이옴을 따라 사물을 흩뿌린다. id 접두 'f' 로 마을 것('p'..)과 겹치지 않게
+       가른다.
        **`deco:true`로 채집 대상에서는 뺀다** — 이번 단계는 "걸어 나갈 공간"만
        여는 것이지 자원을 늘리는 게 아니다(PLAN 40절 PHASE 4 "Gathering" 몫).
        실제로 뺀 것을 안 하면 `focus()`·`auto.js`가 새로 생긴 수천 그루를 진짜
@@ -238,14 +273,14 @@
     for (ty = -m; ty < H + m; ty++) {
       for (tx = -m; tx < W + m; tx++) {
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
-        if (tileAt(tx, ty) !== 'grass') { continue; }               // 공사로 딴 걸 깔았으면 스킵
+        if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
         var fid = 'f' + tx + '_' + ty;
-        if (fh > 0.80) { props.push({ id: fid, kind: 'tree', x: fx, y: fy, deco: true }); }
-        else if (fh > 0.68) { props.push({ id: fid, kind: 'pine', x: fx, y: fy, deco: true }); }
-        else if (fh > 0.60) { props.push({ id: fid, kind: 'rock', x: fx, y: fy, deco: true }); }
-        else if (fh > 0.50) { props.push({ id: fid, kind: 'flower', x: fx, y: fy, deco: true }); }
+        var table = BIOME_SCATTER[biomeAt(tx, ty)] || BIOME_SCATTER.green;
+        for (var bi = 0; bi < table.length; bi++) {
+          if (fh > table[bi][0]) { props.push({ id: fid, kind: table[bi][1], x: fx, y: fy, deco: true }); break; }
+        }
       }
     }
   }
@@ -1082,7 +1117,7 @@
     weedCount: weedCount, pullWeed: pullWeed, growWeeds: growWeeds, WEED_MAX: WEED_MAX,
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
     giveGift: giveGift, giftLike: giftLike, giftedToday: giftedToday,
-    buildProps: buildProps, forestMargin: forestMargin,
+    buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,

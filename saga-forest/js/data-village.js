@@ -15,7 +15,13 @@
     water: { name: '물', walk: false, color: '#4fbcda', color2: '#5cc7e2' },
     /* 돌길 — 공사(terrain.js)로만 생긴다. 마을 생성 해시는 이 타일을 내지 않는다 */
     stone: { name: '돌길', walk: true, color: '#a9a7a2', color2: '#b5b3ae' },
-    floor: { name: '마루', walk: true, color: '#c2925c', color2: '#cc9d67' }
+    floor: { name: '마루', walk: true, color: '#c2925c', color2: '#cc9d67' },
+    /* 숲 고리 바이옴(PLAN 11절) — walk 는 grass 와 같다. 마을 안에는 안 나온다,
+       village.js 의 biomeAt() 만 고른다 */
+    grass_meadow: { name: '꽃밭',     walk: true, color: '#a8c860', color2: '#b2d16c' },
+    grass_dark:   { name: '어둑숲',   walk: true, color: '#3c5f3e', color2: '#466b49' },
+    grass_mush:   { name: '버섯숲',   walk: true, color: '#547a5c', color2: '#5f8567' },
+    grass_rocky:  { name: '바위 지대', walk: true, color: '#8f9280', color2: '#999c89' }
   };
 
   /**
@@ -40,7 +46,15 @@
     museum: { name: '사고(史庫)', emoji: '🏛️', gather: null, reset: 0, hint: '들어간다' },
     pole:   { name: '깃대',   emoji: '🚩', gather: null,     reset: 0, hint: '올려다본다' },
     weed:   { name: '잡초',   emoji: '🌿', gather: null,     reset: 0, hint: '뽑는다' },
-    tailor: { name: '침선방(針線房)', emoji: '🧵', gather: null, reset: 0, hint: '옷을 고른다' }
+    tailor: { name: '침선방(針線房)', emoji: '🧵', gather: null, reset: 0, hint: '옷을 고른다' },
+    /* 숲 고리 바이옴 전용 사물(PLAN 11절) — 마을 안 사물과 달리 전부 deco:true 로만
+       놓인다(village.js buildProps() 참고), 그래서 gather 는 의미가 없어 null 이다 */
+    deadTree:  { name: '고목',      emoji: '🥀', gather: null, reset: 0, hint: '살펴본다' },
+    mossyRock: { name: '이끼 바위', emoji: '🪨', gather: null, reset: 0, hint: '살펴본다' },
+    mushroom:  { name: '버섯',      emoji: '🍄', gather: null, reset: 0, hint: '살펴본다' },
+    bush:      { name: '덤불',      emoji: '🌿', gather: null, reset: 0, hint: '살펴본다' },
+    stump:     { name: '그루터기',  emoji: '🪵', gather: null, reset: 0, hint: '살펴본다' },
+    log:       { name: '통나무',    emoji: '🪵', gather: null, reset: 0, hint: '살펴본다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────

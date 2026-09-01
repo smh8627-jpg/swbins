@@ -73,10 +73,20 @@
   var lastPX = 0, lastPY = 0, haveLast = false, facingYaw = 0;
 
   /** village.js 사물 kind → asset3d 표의 kind. 여기 없는 kind(전방·집·게시판…)는
-   *  3D 로 안 선다 — 마을 3D 는 다음 몫이다 */
-  var SCATTER_KIND = { tree: 'tree:common', pine: 'tree:pine', rock: 'rock', flower: 'flower', weed: 'grass' };
+   *  3D 로 안 선다 — 마을 3D 는 다음 몫이다.
+   *  deadTree·mossyRock·mushroom·bush·stump·log 는 PLAN 11절 Biome — 숲 고리에만
+   *  나오고(village.js 의 BIOME_SCATTER), asset3d.js 에 이미 등록돼 있던 표라
+   *  여기 줄만 보태면 그대로 선다 */
+  var SCATTER_KIND = {
+    tree: 'tree:common', pine: 'tree:pine', rock: 'rock', flower: 'flower', weed: 'grass',
+    deadTree: 'tree:dead', mossyRock: 'rock:moss', mushroom: 'mushroom',
+    bush: 'bush', stump: 'stump', log: 'log'
+  };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
-  var SCATTER_H = { tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4 };
+  var SCATTER_H = {
+    tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4,
+    deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, bush: 0.8, stump: 0.6, log: 0.5
+  };
 
   var scatter = {};   // propId → { group, kind, building }
 
@@ -98,6 +108,22 @@
   }
   var terrainMesh = {};     // kind → InstancedMesh
   var terrainCap = 0;       // 인스턴스 하나가 담을 수 있는 최대 칸 수
+
+  /** 바이옴별 하늘·안개 색(PLAN 11절 "색감"). green 은 예전부터 쓰던 하늘색 그대로 */
+  var FOG_COLOR = { green: 0x8fc7e8, meadow: 0xbfe0a8, dark: 0x445a48, mushroom: 0x5f7a68, rocky: 0x9a988a };
+  var curBiome = null;
+  /** 인물이 선 칸의 바이옴이 바뀔 때만 하늘·안개 색을 새로 칠한다 */
+  function syncFog() {
+    var V = global.DG.village;
+    if (!V || !V.biomeAt || !scene) { return; }
+    var raw = V.raw(), TILE = V.TILE;
+    var b = V.biomeAt(Math.floor(raw.player.x / TILE), Math.floor(raw.player.y / TILE));
+    if (b === curBiome) { return; }
+    curBiome = b;
+    var c = FOG_COLOR[b] || FOG_COLOR.green;
+    scene.background.setHex(c);
+    scene.fog.color.setHex(c);
+  }
 
   /** three 자체가 없거나(파일 못 받음) WebGL 컨텍스트를 못 만들면 false */
   function available() { return !!three() && !failed; }
@@ -340,6 +366,7 @@
     syncCamera();
     syncTerrain();
     syncScatter();
+    syncFog();
     renderer.render(scene, camera);
   }
 
@@ -354,6 +381,8 @@
     terrainCount: function (kind) {
       var im = terrainMesh[kind];
       return im ? im.count : 0;
-    }
+    },
+    /** 진단 전용 — 지금 하늘·안개에 먹인 바이옴 색 표 */
+    fogColors: function () { return FOG_COLOR; }
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -281,10 +281,11 @@ window.DG_NO_TUNE = true;
         ('(' + cx + ',5)=path · (5,' + cy + ')=path 그대로');
     });
 
-    t('숲 고리 — 옛 마을 경계 바로 밖은 이제 물이 아니라 잔디, 걸을 수 있다', function () {
+    t('숲 고리 — 옛 마을 경계 바로 밖은 이제 물이 아니라 잔디(바이옴 중 하나), 걸을 수 있다', function () {
       var T = V.TILE, tx = V.W, ty = Math.floor(V.H * 0.5);
       var kind = V.tileAt(tx, ty);
-      return kind === 'grass' && V.walkable(tx * T + 20, ty * T + 20) &&
+      var grassFamily = { grass: 1, grass_meadow: 1, grass_dark: 1, grass_mush: 1, grass_rocky: 1 };
+      return !!grassFamily[kind] && V.walkable(tx * T + 20, ty * T + 20) &&
         ('(' + tx + ',' + ty + ')=' + kind + ' · 통행 가능');
     });
 
@@ -294,10 +295,11 @@ window.DG_NO_TUNE = true;
       return far === 'water' && ('margin ' + m + ' 밖 = water');
     });
 
-    t('숲 고리 — buildProps() 가 f 접두 사물을 흩뿌리고, 새 kind 는 안 새어나간다', function () {
+    t('숲 고리 — buildProps() 가 f 접두 사물을 흩뿌리고, 바이옴 표 밖 kind 는 안 새어나간다', function () {
       V.buildProps();
       var raw = V.raw();
-      var allow = { tree: 1, pine: 1, rock: 1, flower: 1 };
+      var allow = { tree: 1, pine: 1, rock: 1, flower: 1,
+        deadTree: 1, mossyRock: 1, mushroom: 1, bush: 1, stump: 1, log: 1 };
       var forestCount = 0, bad = null;
       for (var i = 0; i < raw.props.length; i++) {
         var p = raw.props[i];
@@ -306,7 +308,17 @@ window.DG_NO_TUNE = true;
         if (!allow[p.kind]) { bad = p; break; }
       }
       return forestCount > 0 && !bad &&
-        ('숲 사물 ' + forestCount + '개, 전부 tree/pine/rock/flower');
+        ('숲 사물 ' + forestCount + '개, 전부 바이옴 표 안의 kind');
+    });
+
+    t('숲 고리 — 바이옴은 다섯 가지 다 나오고, 좌표가 같으면 늘 같은 바이옴이다', function () {
+      var seen = {}, tx, ty, n = 0;
+      for (ty = -60; ty < 60; ty += 3) {
+        for (tx = -60; tx < 60; tx += 3) { seen[V.biomeAt(tx, ty)] = 1; n++; }
+      }
+      var a = V.biomeAt(37, -19), b = V.biomeAt(37, -19);
+      return Object.keys(seen).length === V.BIOMES.length && a === b &&
+        (n + '칸 훑어 바이옴 ' + Object.keys(seen).length + '종 · (37,-19) 재현');
     });
 
     t('숲 고리 — 나무·바위·꽃은 장식일 뿐 손이 안 닿는다 (채집 대상 아님)', function () {
