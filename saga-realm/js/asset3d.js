@@ -51,7 +51,8 @@
     'market': BLD + 'MarketStand_1.glb',
     'well': BLD + 'Well.glb',
     'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
-    'log': NAT + 'WoodLog.glb'
+    'log': NAT + 'WoodLog.glb',
+    'tent': PRP + 'Tent.glb'
   };
 
   var REG = {};

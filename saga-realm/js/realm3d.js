@@ -280,6 +280,70 @@
     }
   }
 
+  /** 병력 한 무리를 어림잡아 세우는 깃발 — `battle3d.js`와 같은 요령(막대+천을
+   *  직접 짓는다, GLB 가 아니다). 진(陣)의 크기를 숫자 그대로가 아니라 다발로 본다 */
+  function banner(color) {
+    var t = three();
+    var g = new t.Group();
+    var pole = new t.Mesh(
+      new t.CylinderGeometry(0.07, 0.07, 2.3, 5),
+      new t.MeshLambertMaterial({ color: 0x6b5533 })
+    );
+    pole.position.y = 1.15;
+    g.add(pole);
+    var cloth = new t.Mesh(
+      new t.BoxGeometry(0.85, 1.1, 0.05),
+      new t.MeshLambertMaterial({ color: new t.Color(color) })
+    );
+    cloth.position.set(0.48, 2.0, 0);
+    g.add(cloth);
+    return g;
+  }
+
+  function bannerCluster(n, cx, cz, color) {
+    var i, cols = Math.min(4, Math.max(1, n));
+    for (i = 0; i < n; i++) {
+      var row = Math.floor(i / cols), col = i % cols;
+      var x = cx + (col - (cols - 1) / 2) * 1.4;
+      var z = cz - row * 1.4;
+      var b = banner(color);
+      b.position.set(x, 0, z);
+      dyn.add(b);
+      addShadow(x, z, 0.4);
+    }
+  }
+
+  /** 진(陣) — 성 밖에 진 친 부대. 성문 쪽(from→to 사이, to 에 가깝게)에 천막과
+   *  세력 색 깃발 다발을 세운다. 내 진영이면 탭해서 진영 탭을 연다 */
+  function buildCamp(cp, seq) {
+    var t = three();
+    var from = cityData().find(cp.from), to = cityData().find(cp.to);
+    if (!from || !to) { return; }
+    var fx = worldX(from.x), fz = worldZ(from.y);
+    var tx = worldX(to.x), tz = worldZ(to.y);
+    var frac = 0.82;
+    var px = fx + (tx - fx) * frac, pz = fz + (tz - fz) * frac;
+    var dx = tx - fx, dz = tz - fz, len = Math.hypot(dx, dz) || 1;
+    var side = 5;
+    px += (-dz / len) * side; pz += (dx / len) * side;
+    var col = forceColor(cp.force);
+
+    addProp('tent', cp.id + ':tent', px, pz, 5, Math.atan2(dx, dz) + Math.PI, seq);
+    var n = clamp(Math.round((cp.troops || 0) / 1200), 2, 10);
+    bannerCluster(n, px + 4, pz, col);
+
+    if (cp.force === R().me()) {
+      var hit = new t.Mesh(
+        new t.CylinderGeometry(4.5, 4.5, 5, 10),
+        new t.MeshBasicMaterial({ visible: false })
+      );
+      hit.position.set(px, 2.5, pz);
+      hit.userData.campId = cp.id;
+      dyn.add(hit);
+      hitMeshes.push(hit);
+    }
+  }
+
   function addRoad(a, b, opt) {
     var t = three();
     var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
@@ -395,6 +459,11 @@
       scatterSmall(cities[i], seq);
       riverPond(cities[i], seq);
     }
+
+    /* 진(陣) — 물러나지 않고 성 밖에 진 친 부대. 내 것·남의 것 다 세운다
+       (이 판은 애초에 안 가린 정보라 — enemyCity() 도 적 성 살림을 그대로 보여준다) */
+    var camps = W() ? W().camps() : [];
+    for (i = 0; i < camps.length; i++) { buildCamp(camps[i], seq); }
   }
 
   /* ── 카메라 조작 (드래그 회전 · 휠/핀치 확대) ─────────── */
@@ -411,7 +480,8 @@
     return n;
   }
 
-  function pickCity(clientX, clientY) {
+  /** 탄 것의 표(userData) 그대로 넘긴다 — `.cityId` 아니면 `.campId` */
+  function pickHit(clientX, clientY) {
     var t = three();
     if (!t || !camera || !hitMeshes.length) { return null; }
     var rect = canvas.getBoundingClientRect();
@@ -422,7 +492,7 @@
     var ray = new t.Raycaster();
     ray.setFromCamera(ndc, camera);
     var hits = ray.intersectObjects(hitMeshes);
-    return hits.length ? hits[0].object.userData.cityId : null;
+    return hits.length ? hits[0].object.userData : null;
   }
 
   function bindPointer() {
@@ -452,8 +522,9 @@
       var p = pointers[e.pointerId];
       delete pointers[e.pointerId];
       if (p && !dragMoved && pointerCount() === 0) {
-        var id = pickCity(e.clientX, e.clientY);
-        if (id && global.DG.ui) { global.DG.ui.openCity(id); }
+        var hit = pickHit(e.clientX, e.clientY);
+        if (hit && hit.campId && global.DG.ui) { global.DG.ui.openSheet('camp'); }
+        else if (hit && hit.cityId && global.DG.ui) { global.DG.ui.openCity(hit.cityId); }
       }
     }
     canvas.addEventListener('pointerup', endPointer);
