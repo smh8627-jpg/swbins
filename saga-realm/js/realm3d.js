@@ -1,0 +1,412 @@
+/**
+ * 국토 지도 — 3D (PLAN 40절 PHASE 1~3: 엔진 연결 · 카메라 · 월드)
+ * ---------------------------------------------------------------
+ * `ui-rtk.js` 의 `renderMap()`(svg 평면 지도)는 이 파일이 있는지도 모른다 —
+ * **한 줄도 안 건드렸다.** 대신 `#realm3d` 캔버스에 별개의 WebGL 화면을 올리고,
+ * 손잡이(`realm3d.on`)가 켜져 있을 때만 `#realm`(svg)을 숨기고 이쪽을 보여 준다.
+ * 꺼지면(기본값) 예전 그대로다 — saga-forest 의 `village-view3d.js` 와 같은 요령.
+ *
+ * 이 판은 **턴제 지도 화면**이다(인물이 걸어 다니지 않는다) — 그래서 카메라는
+ * 플레이어를 따라가는 대신, 성 서른 곳이 놓인 국토 전체를 내려다보는
+ * **궤도 카메라**(드래그로 돌리고 · 휠/핀치로 당긴다)로 잡는다.
+ *
+ * **판정은 한 줄도 여기 없다.** 성의 주인·병력·포위 여부는 전부
+ * `rtk.state()` · `war.besieged()` 를 그대로 읽기만 한다. 성을 탭하면
+ * `ui.openCity()` — 2D 지도가 부르는 그 함수를 그대로 부른다. 그래서 시트가
+ * 열고 닫는 방식, 명령을 고르는 방식은 2D 와 완전히 같다.
+ *
+ * 좌표는 `data-city.js` 의 x·y(0~100, 지도 비율)를 그대로 쓴다 — 새 좌표계를
+ * 만들지 않는다. `WORLD_SCALE()` 배만큼 늘려 3D 세계 단위(대략 미터)로 삼는다.
+ */
+(function (global) {
+  'use strict';
+
+  var core = null;
+  function C() { if (!core) { core = global.DG.core; } return core; }
+  var A3 = null;
+  function asset3d() { if (!A3) { A3 = global.DG.asset3d; } return A3; }
+  var CD = null;
+  function cityData() { if (!CD) { CD = global.DG.cityData; } return CD; }
+  var FD = null;
+  function forceData() { if (!FD) { FD = global.DG.forceData; } return FD; }
+  var T = null;
+  function three() { if (!T) { T = global.THREE || null; } return T; }
+  function R() { return global.DG.rtk; }
+  function W() { return global.DG.war; }
+
+  /** 손잡이 — 기본은 꺼져 있다(svg 지도가 그대로 간다). 🧊 버튼이 이걸 뒤집는다 */
+  function ON() { return C().tuned('realm3d.on', 0) ? true : false; }
+  function WORLD_SCALE() { return C().tuned('realm3d.worldScale', 4.5); }
+  function FOV() { return C().tuned('realm3d.fov', 50); }
+  function PITCH_MIN() { return C().tuned('realm3d.pitchMin', 0.35); }
+  function PITCH_MAX() { return C().tuned('realm3d.pitchMax', 1.3); }
+  function DIST_MIN() { return C().tuned('realm3d.distMin', 90); }
+  function DIST_MAX() { return C().tuned('realm3d.distMax', 900); }
+
+  function forceColor(id) {
+    var f = forceData().force(id);
+    return f ? f.color : '#5b6572';
+  }
+
+  function hashOf(s) {
+    s = String(s || '');
+    var h = 0, i;
+    for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    return h;
+  }
+
+  /* ── 등급 · 배치 ──────────────────────────────────────── */
+
+  /** 성벽(maxWall) 값으로 탑 등급을 가른다 — 30 성의 실제 분포(3400~6800) 기준 */
+  function cityTier(city) {
+    var w = city.maxWall || city.wall || 0;
+    if (w >= 5600) { return 't3'; }
+    if (w >= 4600) { return 't2'; }
+    return 't1';
+  }
+  var TIER_H = { t1: 7, t2: 10, t3: 14 };
+
+  function worldX(x) { return (x - 50) * WORLD_SCALE(); }
+  function worldZ(y) { return (y - 50) * WORLD_SCALE(); }
+
+  /* ── 장면 ─────────────────────────────────────────────── */
+
+  var canvas = null, renderer = null, scene = null, camera = null;
+  var ready = false, failed = false, loopRunning = false;
+  var dyn = null;              // 매달(성이 바뀔 때) 다시 짓는 그룹 — 성·길·지형
+  var hitMeshes = [];          // 탭 판정용 투명 원기둥들
+  var pulseRings = [];         // 포위 표시 — 숨쉬듯 커졌다 작아진다
+  var rebuildSeq = 0;          // 늦게 도착한 옛 build() 콜백을 거른다
+
+  var yaw = 0, pitch = 0.85, dist = 260;
+  var targetYaw = 0, targetPitch = 0.85, targetDist = 260;
+
+  function available() { return !!three() && !failed; }
+  function active() { return ON() && ready; }
+
+  function init(cv) {
+    var t = three();
+    canvas = cv;
+    if (!t || !canvas) { failed = true; return; }
+    try {
+      renderer = new t.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+    } catch (e) { failed = true; return; }
+    renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+
+    scene = new t.Scene();
+    scene.background = new t.Color(0x9fd0e8);
+    scene.fog = new t.Fog(0x9fd0e8, 260, 900);
+
+    camera = new t.PerspectiveCamera(FOV(), 1, 0.5, 2400);
+
+    scene.add(new t.HemisphereLight(0xffffff, 0x4a5a3a, 0.95));
+    var sun = new t.DirectionalLight(0xfff4e0, 1.0);
+    sun.position.set(-120, 200, 90);
+    scene.add(sun);
+
+    var ground = new t.Mesh(
+      new t.PlaneGeometry(2200, 2200),
+      new t.MeshLambertMaterial({ color: 0xcfe0a0 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.05;
+    scene.add(ground);
+
+    dyn = new t.Group();
+    scene.add(dyn);
+
+    fitCameraToMap();
+    yaw = targetYaw; pitch = targetPitch; dist = targetDist;
+
+    bindPointer();
+    resize();
+    global.addEventListener('resize', resize);
+    ready = true;
+    syncVisibility();
+    rebuild();
+  }
+
+  /** 30 성 전체가 화면에 들어오도록 초기 거리를 잡는다 */
+  function fitCameraToMap() {
+    var cities = cityData().CITIES, i, r, maxR = 60;
+    for (i = 0; i < cities.length; i++) {
+      r = Math.hypot(worldX(cities[i].x), worldZ(cities[i].y));
+      if (r > maxR) { maxR = r; }
+    }
+    targetDist = Math.max(DIST_MIN(), Math.min(DIST_MAX(), maxR * 1.7));
+  }
+
+  function resize() {
+    if (!renderer || !camera) { return; }
+    var w = canvas.clientWidth || global.innerWidth;
+    var h = canvas.clientHeight || global.innerHeight;
+    if (!w || !h) { return; }
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  function syncVisibility() {
+    var map2d = document.getElementById('realm');
+    if (!canvas) { return; }
+    var on = active();
+    canvas.style.display = on ? 'block' : 'none';
+    if (map2d) { map2d.style.display = on ? 'none' : ''; }
+    if (on) { resize(); startLoop(); rebuild(); }
+  }
+
+  function toggle() {
+    if (!available()) { return false; }
+    C().setTune('realm3d.on', ON() ? 0 : 1);
+    syncVisibility();
+    return ON();
+  }
+
+  /* ── 성·길·지형 세우기 ────────────────────────────────── */
+
+  function clearDyn() {
+    var t = three();
+    dyn.clear();
+    hitMeshes = [];
+    pulseRings = [];
+  }
+
+  function addRoad(a, b, opt) {
+    var t = three();
+    var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
+    var dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz) || 1;
+    var mat = new t.MeshBasicMaterial({
+      color: new t.Color(opt.color), transparent: true, opacity: opt.opacity
+    });
+    var mesh = new t.Mesh(new t.BoxGeometry(opt.width, 0.06, len), mat);
+    mesh.position.set((ax + bx) / 2, opt.y, (az + bz) / 2);
+    mesh.rotation.y = Math.atan2(dx, dz);
+    dyn.add(mesh);
+  }
+
+  /** 지형지물 — 산은 봉우리, 구릉은 낮은 둔덕, 나머지는 나무·바위를 몇 개 흩는다.
+   *  같은 성은 늘 같은 자리에 같은 것이 선다(해시 기반 — 매번 안 흔들린다) */
+  function scatterAround(city) {
+    var t = three();
+    var cx = worldX(city.x), cz = worldZ(city.y);
+    var n = city.land === 'mount' ? 2 : (city.land === 'hill' ? 2 : 3);
+    var i;
+    for (i = 0; i < n; i++) {
+      var hh = hashOf(city.id + ':' + i);
+      var ang = ((hh % 360) / 360) * Math.PI * 2;
+      var r = 6 + (hh % 5);
+      var px = cx + Math.cos(ang) * r, pz = cz + Math.sin(ang) * r;
+      var kind = city.land === 'mount' ? 'mount' : (((hh >> 4) % 3) === 0 ? 'rock' : 'tree');
+      var scaleH = kind === 'mount' ? (7 + (hh % 5)) : (kind === 'rock' ? 0.9 : (2.2 + (hh % 12) / 10));
+      (function (px, pz, kind, scaleH) {
+        asset3d().build(kind, { id: city.id + ':' + kind + ':' + i, seed: hh }, function (g) {
+          if (!g || !dyn) { return; }
+          g.position.set(px, 0, pz);
+          g.rotation.y = (hh % 628) / 100;
+          g.scale.setScalar(scaleH);
+          dyn.add(g);
+        });
+      })(px, pz, kind, scaleH);
+    }
+  }
+
+  function buildCity(city, cst, me) {
+    var t = three();
+    var mine = cst.force === me;
+    var tier = cityTier(city);
+    var h = TIER_H[tier];
+    var col = forceColor(cst.force);
+    var seq = rebuildSeq;
+    asset3d().build('city:' + tier, { id: city.id, tint: col, flag: col }, function (g) {
+      if (seq !== rebuildSeq || !g || !dyn) { return; }
+      g.position.set(worldX(city.x), 0, worldZ(city.y));
+      g.scale.setScalar(h);
+      dyn.add(g);
+
+      var footprint = Math.max(3.2, h * 0.5);
+      var hitGeo = new t.CylinderGeometry(footprint, footprint, h, 10);
+      var hit = new t.Mesh(hitGeo, new t.MeshBasicMaterial({ visible: false }));
+      hit.position.set(worldX(city.x), h / 2, worldZ(city.y));
+      hit.userData.cityId = city.id;
+      dyn.add(hit);
+      hitMeshes.push(hit);
+
+      /* 내 성은 밑동에 밝은 고리를 둘러 눈에 띄게 한다 */
+      if (mine) {
+        var ring = new t.Mesh(
+          new t.RingGeometry(footprint * 1.05, footprint * 1.35, 24),
+          new t.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, side: t.DoubleSide })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(worldX(city.x), 0.08, worldZ(city.y));
+        dyn.add(ring);
+      }
+
+      /* 포위 — 숨쉬는 다홍 고리 */
+      if (W() && W().besieged(city.id)) {
+        var pr = new t.Mesh(
+          new t.RingGeometry(footprint * 1.5, footprint * 1.75, 24),
+          new t.MeshBasicMaterial({ color: 0xe0663f, transparent: true, opacity: 0.7, side: t.DoubleSide })
+        );
+        pr.rotation.x = -Math.PI / 2;
+        pr.position.set(worldX(city.x), 0.09, worldZ(city.y));
+        dyn.add(pr);
+        pulseRings.push({ mesh: pr, base: footprint * 1.6 });
+      }
+    });
+  }
+
+  /** 성·길·지형을 통째로 다시 짓는다 — 세력이 바뀌거나(정벌) 달이 넘어갈 때 */
+  function rebuild() {
+    if (!ready) { return; }
+    rebuildSeq++;
+    clearDyn();
+    var st = R().state();
+    if (!st || !st.started) { return; }
+    var cities = cityData().CITIES, i, j, drawn = {};
+
+    for (i = 0; i < cities.length; i++) {
+      var a = cities[i];
+      for (j = 0; j < a.adj.length; j++) {
+        var b = cityData().find(a.adj[j]);
+        if (!b) { continue; }
+        var key = a.id < b.id ? a.id + b.id : b.id + a.id;
+        if (drawn[key]) { continue; }
+        drawn[key] = true;
+        var fa = st.cities[a.id].force, fb = st.cities[b.id].force;
+        var same = fa && fa === fb;
+        var water = cityData().isWater(a.id, b.id);
+        if (water) {
+          addRoad(a, b, { color: '#5aa9d8', opacity: 0.75, width: 3.2, y: 0.03 });
+        } else if (same) {
+          addRoad(a, b, { color: forceColor(fa), opacity: 0.6, width: 1.6, y: 0.05 });
+        } else {
+          addRoad(a, b, { color: '#9aa3ad', opacity: 0.22, width: 1.2, y: 0.05 });
+        }
+      }
+    }
+
+    for (i = 0; i < cities.length; i++) {
+      buildCity(cities[i], st.cities[cities[i].id], st.me);
+      scatterAround(cities[i]);
+    }
+  }
+
+  /* ── 카메라 조작 (드래그 회전 · 휠/핀치 확대) ─────────── */
+
+  var pointers = {};
+  var dragMoved = false, pinchDist = 0;
+  var ROT_SPEED = 0.006, ZOOM_SPEED = 0.6, WHEEL_SPEED = 0.15;
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function pointerCount() {
+    var n = 0, k;
+    for (k in pointers) { if (pointers.hasOwnProperty(k)) { n++; } }
+    return n;
+  }
+
+  function pickCity(clientX, clientY) {
+    var t = three();
+    if (!t || !camera || !hitMeshes.length) { return null; }
+    var rect = canvas.getBoundingClientRect();
+    var ndc = new t.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    var ray = new t.Raycaster();
+    ray.setFromCamera(ndc, camera);
+    var hits = ray.intersectObjects(hitMeshes);
+    return hits.length ? hits[0].object.userData.cityId : null;
+  }
+
+  function bindPointer() {
+    canvas.addEventListener('pointerdown', function (e) {
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      try { canvas.setPointerCapture(e.pointerId); } catch (ex) { /* noop */ }
+      if (pointerCount() === 1) { dragMoved = false; }
+      if (pointerCount() === 2) { pinchDist = twoPointerDist(); }
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      var p = pointers[e.pointerId];
+      if (!p) { return; }
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (pointerCount() === 1) {
+        targetYaw -= dx * ROT_SPEED;
+        targetPitch = clamp(targetPitch + dy * ROT_SPEED, PITCH_MIN(), PITCH_MAX());
+        if (Math.abs(dx) + Math.abs(dy) > 2) { dragMoved = true; }
+      } else if (pointerCount() === 2) {
+        var nd = twoPointerDist();
+        targetDist = clamp(targetDist - (nd - pinchDist) * ZOOM_SPEED, DIST_MIN(), DIST_MAX());
+        pinchDist = nd;
+        dragMoved = true;
+      }
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    });
+    function endPointer(e) {
+      var p = pointers[e.pointerId];
+      delete pointers[e.pointerId];
+      if (p && !dragMoved && pointerCount() === 0) {
+        var id = pickCity(e.clientX, e.clientY);
+        if (id && global.DG.ui) { global.DG.ui.openCity(id); }
+      }
+    }
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+    canvas.addEventListener('wheel', function (e) {
+      targetDist = clamp(targetDist + e.deltaY * WHEEL_SPEED, DIST_MIN(), DIST_MAX());
+      e.preventDefault();
+    }, { passive: false });
+  }
+
+  function twoPointerDist() {
+    var ks = Object.keys(pointers);
+    if (ks.length < 2) { return 0; }
+    var a = pointers[ks[0]], b = pointers[ks[1]];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  /* ── 루프 ─────────────────────────────────────────────── */
+
+  function startLoop() {
+    if (loopRunning) { return; }
+    loopRunning = true;
+    requestAnimationFrame(tick);
+  }
+
+  function tick(now) {
+    if (!active()) { loopRunning = false; return; }
+    yaw += (targetYaw - yaw) * 0.15;
+    pitch += (targetPitch - pitch) * 0.15;
+    dist += (targetDist - dist) * 0.15;
+
+    camera.position.set(
+      Math.cos(pitch) * Math.sin(yaw) * dist,
+      Math.sin(pitch) * dist + 6,
+      Math.cos(pitch) * Math.cos(yaw) * dist
+    );
+    camera.lookAt(0, 6, 0);
+
+    var t = now || 0;
+    for (var i = 0; i < pulseRings.length; i++) {
+      var s = 1 + Math.sin(t / 400 + i) * 0.08;
+      pulseRings[i].mesh.scale.setScalar(s);
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  global.DG = global.DG || {};
+  global.DG.realm3d = {
+    available: available,
+    active: active,
+    init: init,
+    toggle: toggle,
+    rebuild: rebuild
+  };
+
+  /* 세력이 바뀌거나(정벌·외교) 달이 넘어가면 다시 짓는다 — 켜져 있을 때만.
+   * core.js 는 이 스크립트보다 앞서 실려 있다(index.html 순서) */
+  global.DG.core.on('changed', function () { if (active()) { rebuild(); } });
+})(window);

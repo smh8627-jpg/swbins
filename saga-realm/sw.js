@@ -11,13 +11,16 @@
  *       사내 http 주소로 폰에서 열면 홈 화면 추가는 되지만 이 캐시는 동작하지 않는다.
  */
 
-var VERSION = 'realm-v1.6.1-phone';
+var VERSION = 'realm-v1.7.0-3dmap';
 var APP_CACHE = 'sr-app-' + VERSION;
 var TILE_CACHE = 'sr-tiles-v1';
 var TILE_MAX = 500;
 
 /* index.html 이 부르는 스크립트가 여기 다 있어야 오프라인에서 게임이 돈다.
-   파일을 늘렸으면 **VERSION 도 같이 올릴 것** — 안 올리면 옛 캐시가 계속 나온다. */
+   파일을 늘렸으면 **VERSION 도 같이 올릴 것** — 안 올리면 옛 캐시가 계속 나온다.
+
+   **`assets/models/*.glb` 는 일부러 안 넣는다.** 못 받아도 지도는 도형(원뿔·상자)
+   으로 그대로 선다(`asset3d.js` 의 되돌림 길) — 판정은 한 칸도 안 달라진다. */
 var SHELL = [
   './',
   './index.html',
@@ -29,6 +32,8 @@ var SHELL = [
   './js/data-quiz.js',
   './js/sprite.js',
   './js/core.js',
+  './js/vendor/three.iife.js',
+  './js/asset3d.js',
   './js/account.js',
   './js/hero.js',
   './js/officer.js',
@@ -39,6 +44,7 @@ var SHELL = [
   './js/quiz.js',
   './js/net.js',
   './js/ai.js',
+  './js/realm3d.js',
   './js/ui-rtk.js',
   './js/game.js',
   './icons/icon-192.png',

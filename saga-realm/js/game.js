@@ -26,6 +26,10 @@
     if (core.save.settings.prop) { global.DG.sprite.setProp(core.save.settings.prop); }
     if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
 
+    if (global.DG.realm3d && !global.DG_NO_DRAW) {
+      global.DG.realm3d.init(document.getElementById('realm3d'));
+    }
+
     ui.init();
     bindTopbar();
 
@@ -64,6 +68,18 @@
         core.persist();
         syncStyleBtn();
         core.emit('changed');
+      });
+    }
+
+    var btn3d = document.getElementById('btn-3d');
+    if (btn3d && global.DG.realm3d) {
+      var R3 = global.DG.realm3d;
+      if (!R3.available()) { btn3d.style.display = 'none'; }
+      btn3d.classList.toggle('on', R3.active());
+      btn3d.addEventListener('click', function () {
+        var on = R3.toggle();
+        btn3d.classList.toggle('on', on);
+        core.persist();
       });
     }
 

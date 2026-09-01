@@ -1191,6 +1191,14 @@ body.tilted3 #vignette {
 body.sheet-open #realm { right: calc(min(420px, 92vw) + 20px); }
 @media (max-width: 780px) { body.sheet-open #realm { right: 12px; } }
 
+#realm3d {
+  position: fixed; inset: 76px 12px 84px; z-index: 6; display: none;
+  width: calc(100% - 24px); height: calc(100% - 160px);
+  touch-action: none; border-radius: 12px;
+}
+body.sheet-open #realm3d { right: calc(min(420px, 92vw) + 20px); }
+@media (max-width: 780px) { body.sheet-open #realm3d { right: 12px; } }
+
 .rmap { width: 100%; height: 100%; max-width: 900px; }
 .rlink {
   stroke: rgba(190, 205, 230, .13); stroke-width: .35; stroke-linecap: round;
