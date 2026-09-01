@@ -684,13 +684,30 @@
       }
     }
 
-    /* 문 — 다음 방으로 가는 자리. 원작처럼 벽에 난 밝은 틈이다 */
+    /* 문 — 다음 방으로 가는 자리. **늘 동쪽(오른쪽) 벽에 선다** — 2D
+       (`dungeon-view.js`의 `ROOM_W - 10`)·미니맵(`minimap.js`)이 이미 그 자리만
+       그린다(`makeDoors`가 y만 정하고 x는 안 정하는 것도 그래서다 — 방향이
+       여럿이라 값이 빠진 게 아니라 애초에 방향이 하나뿐이라 값이 필요 없었다).
+       그래서 여기 회전은 문마다 다른 값이 아니라 **고정값**이다 — 새 값을
+       판정에 보태지 않고 렌더링 쪽에서만 안다(dungeon.js 는 한 줄도 안 건드린다) */
     if (r && r.doors) {
+      var AS3d = AS();
       for (var i = 0; i < r.doors.length; i++) {
         var dr = r.doors[i];
-        if (dr.x === undefined) { continue; }
-        box(wallGroup, dr.x, 14, dr.y, 24, 28, 8,
-          r.cleared ? 0xffd489 : 0x4a4f5a, r.cleared ? 'glow' : 'flat', false);
+        var doorTint = r.cleared ? 0xffd489 : 0x4a4f5a;
+        var doorShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, 14, 0, 24, 28, 8, doorTint, r.cleared ? 'glow' : 'flat', false);
+          return sg;
+        };
+        var drnode = AS3d ? AS3d.build('dg:door', 'room:door:' + i, 30, doorTint, doorShape)
+          : doorShape();
+        drnode.position.set(W, 0, dr.y);
+        drnode.rotation.y = Math.PI / 2;
+        wallGroup.add(drnode);
+        /* 열림 신호는 색(tint)만으론 부족하다(모델은 emissive 로 안 빛난다) —
+           2D 가 오래 쓰던 "풀리면 금빛" 신호를 작은 발광 표식으로 보탠다 */
+        if (r.cleared) { box(wallGroup, W - 6, 16, dr.y, 6, 20, 6, 0xffd489, 'glow', false); }
       }
     }
   }
