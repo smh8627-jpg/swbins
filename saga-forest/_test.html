@@ -348,18 +348,49 @@ window.DG_NO_TUNE = true;
         ('margin 200 → 반지름 ' + big.r + '(고리 안) · margin 5 → 호수 없음');
     });
 
-    t('호수 — 테두리에 물가 식생(plant)이 나고, 호수 안에는 안 난다', function () {
+    t('호수 — 테두리에 물가 식생(plant)이 나고, 물 안(호수·강)에는 안 난다', function () {
       V.buildProps();
-      var raw = V.raw(), c = V.lakeCenter(), i, shore = 0, insideLake = 0;
+      var raw = V.raw(), i, shore = 0, inWater = 0;
       for (i = 0; i < raw.props.length; i++) {
         var p = raw.props[i];
         if (p.id.charAt(0) !== 'f') { continue; }
         var tx = Math.floor(p.x / V.TILE), ty = Math.floor(p.y / V.TILE);
-        if (V.inLake(tx, ty)) { insideLake++; }
+        if (V.inLake(tx, ty) || V.inRiver(tx, ty)) { inWater++; }
         if (p.kind === 'plant') { shore++; }
       }
-      return shore > 0 && insideLake === 0 &&
-        ('물가 식생 ' + shore + '개 · 호수 안 사물 0개');
+      return shore > 0 && inWater === 0 &&
+        ('물가 식생 ' + shore + '개 · 물 안 사물 0개');
+    });
+
+    /* ── PLAN 40절 PHASE 3 네 번째 칸: 강 ────────────────────── */
+
+    t('강 — 호수를 기준으로 정해지는 고정 물줄기, 재현된다', function () {
+      var a1 = V.riverCenterX(17), a2 = V.riverCenterX(17);
+      return a1 !== null && a1 === a2 && ('ty=17 중심선 x=' + a1.toFixed(2) + ' 재현');
+    });
+
+    t('강 — 중심선 위는 물, 걸을 수 없다', function () {
+      var ty = 17, cx = Math.round(V.riverCenterX(ty));
+      var kind = V.tileAt(cx, ty);
+      return kind === 'water' && !V.walkable(cx * V.TILE + 20, ty * V.TILE + 20) &&
+        ('(' + cx + ',' + ty + ')=' + kind + ' · 통행 불가');
+    });
+
+    t('강 — 호수가 사라지면(margin 부족) 강도 같이 사라진다', function () {
+      C.setTune('forest.margin', 5);
+      var gone = V.riverCenterX(17);
+      C.setTune('forest.margin', null);
+      return gone === null && 'margin 5 → 강도 없음';
+    });
+
+    t('강 — 마을 안(0..W, 0..H)까지 물이 새어 들어가지는 않는다', function () {
+      var tx, ty, leaked = 0;
+      for (ty = 0; ty < V.H; ty++) {
+        for (tx = 0; tx < V.W; tx++) {
+          if (V.tileAt(tx, ty) === 'water' && V.inRiver(tx, ty)) { leaked++; }
+        }
+      }
+      return leaked === 0 && '마을 칸 안 강물 침범 0개';
     });
 
     t('숲 고리 — 나무·바위·꽃은 장식일 뿐 손이 안 닿는다 (채집 대상 아님)', function () {

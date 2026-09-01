@@ -165,6 +165,31 @@
     return d2 > c.r * c.r && d2 <= rr * rr;
   }
 
+  /* ── 강(PLAN 40절 PHASE 3 네 번째 칸) ────────────────────────
+   * 호수 동쪽 기슭에서 남북으로 흐른다 — **호수를 기준점으로 삼는다**(새 좌표
+   * 해시를 안 만든다). 그래서 margin 이 좁아 호수가 사라지면(`lakeCenter()` 가
+   * null) 강도 같이 사라진다 — PLAN 10절 "고정 배치"를 호수 하나로 지키면
+   * 강도 저절로 지켜지는 셈이다. 살짝 구불거리게 sin 으로 흔든다.
+   */
+  var RIVER_HALF_W = 1.4;
+  function riverCenterX(ty) {
+    var c = lakeCenter();
+    if (!c) { return null; }
+    return c.tx + c.r * 1.3 + Math.sin(ty * 0.30) * 2.5;
+  }
+  function inRiver(tx, ty) {
+    var cx = riverCenterX(ty);
+    if (cx === null) { return false; }
+    return Math.abs(tx - cx) <= RIVER_HALF_W;
+  }
+  /** 강둑 한 겹 — 호수 테두리와 같은 방식으로 물가 식생을 흘려 넣는다 */
+  function nearRiverBank(tx, ty) {
+    var cx = riverCenterX(ty);
+    if (cx === null) { return false; }
+    var d = Math.abs(tx - cx);
+    return d > RIVER_HALF_W && d <= RIVER_HALF_W * 2;
+  }
+
   function tileAt(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
@@ -182,11 +207,11 @@
       if (ty >= H - 5 && tx > 2 && tx < 13) { return 'sand'; }
       return 'grass';
     }
-    /* 마을 밖 — 숲 고리(PLAN 11절 Biome 로 갈린 잔디, PLAN 12절 고정 호수) 아니면
-       세상 끝(물) */
+    /* 마을 밖 — 숲 고리(PLAN 11절 Biome 로 갈린 잔디, PLAN 12절 고정 호수·강)
+       아니면 세상 끝(물) */
     var m = forestMargin();
     if (tx < -m || ty < -m || tx >= W + m || ty >= H + m) { return 'water'; }
-    if (inLake(tx, ty)) { return 'water'; }
+    if (inLake(tx, ty) || inRiver(tx, ty)) { return 'water'; }
     return BIOME_TILE[biomeAt(tx, ty)];
   }
 
@@ -311,7 +336,7 @@
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
         var fid = 'f' + tx + '_' + ty;
-        if (nearLakeShore(tx, ty) && fh > 0.55) {
+        if ((nearLakeShore(tx, ty) || nearRiverBank(tx, ty)) && fh > 0.55) {
           props.push({ id: fid, kind: 'plant', x: fx, y: fy, deco: true });
           continue;
         }
@@ -1156,7 +1181,7 @@
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
     giveGift: giveGift, giftLike: giftLike, giftedToday: giftedToday,
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
-    lakeCenter: lakeCenter, inLake: inLake,
+    lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
