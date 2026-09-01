@@ -137,6 +137,17 @@
       });
     }
 
+    var btn3d = document.getElementById('btn-3d');
+    if (btn3d && global.DG.sideView3d) {
+      var SV3 = global.DG.sideView3d;
+      if (!SV3.available()) { btn3d.style.display = 'none'; }
+      btn3d.classList.toggle('on', SV3.active());
+      btn3d.addEventListener('click', function () {
+        var on = SV3.toggle();
+        btn3d.classList.toggle('on', on);
+      });
+    }
+
     /* 소리 — 첫 눌림에서 깨어난다(브라우저 규칙). 그 규칙은 sfx.js 가 스스로 걸어 두므로
        여기서는 켜고 끄기만 한다. 끈 상태는 세이브(settings.sound)에 남는다 */
     var soundBtn = document.getElementById('btn-sound');

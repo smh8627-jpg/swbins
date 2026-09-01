@@ -22,15 +22,40 @@
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
   var playerMesh = null, enemyPool = [];
+  var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
+
+  /** 도형(원뿔·구)을 먼저 세워 두고, GLB 가 도착하면(같은 세대일 때만) 갈아 끼운다.
+   *  `holder` 는 이미 화면에 있는 자리(위치)이고, 안에 든 도형만 바뀐다 */
+  function swapIn(holder, kind, seed, heightPx, gen) {
+    var A = global.DG.asset3d;
+    if (!A) { return; }
+    A.build(kind, seed, heightPx, function (model) {
+      if (!model || gen !== stageGen) { return; }   // 실패했거나, 그새 사냥터가 또 바뀌었다
+      while (holder.children.length) { holder.remove(holder.children[0]); }
+      holder.add(model);
+    });
+  }
 
   function ON() {
     if (!global.DG || !global.DG.core) { return true; }
     return !!global.DG.core.tuned('sideView3d.on', 1);
   }
 
+  /** three 자체가 없거나 WebGL 컨텍스트를 못 만들면 false — 손잡이(ON)와는 별개다 */
+  function available() { return ready; }
+  /** 지금 화면에 이게 그려지고 있나 — 손잡이 + 초기화 성공 둘 다 참이어야 한다 */
+  function active() { return ready && ON(); }
+
+  /** 상단 🧊 단추 — 손잡이만 뒤집는다. WebGL 자체가 안 되면(available() false) 못 켠다 */
+  function toggle() {
+    if (!available() || !global.DG.core) { return ON(); }
+    global.DG.core.setTune('sideView3d.on', ON() ? 0 : 1);
+    return ON();
+  }
+
   function init(canvas) {
     var Tc = three();
-    if (!Tc || !canvas || !ON()) { ready = false; return false; }
+    if (!Tc || !canvas) { ready = false; return false; }
     try {
       renderer = new Tc.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
       renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 1.75));
@@ -67,7 +92,8 @@
     return true;
   }
 
-  function ready_() { return ready; }
+  /** side-view.js 가 묻는 것은 "지금 3D 로 그려지고 있나" — 손잡이를 끄면 여기서도 꺼진다 */
+  function ready_() { return active(); }
 
   function resize() {
     if (!ready) { return; }
@@ -99,27 +125,43 @@
     var nearMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x3a6b3a
       : mood === 'cave' ? 0x352a3f : mood === 'fire' ? 0x3a1c14 : 0x6fae6f });
 
-    function trunk(x, z, h, mat) {
+    var gen = stageGen;
+    /* 나무(GLB 로 갈리면 tree:near/tree:far, 다는 자리는 지금 세운 원뿔 높이와 맞춘다) */
+    function trunk(x, z, h, mat, far) {
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
       var trunkMat = new Tc.MeshLambertMaterial({ color: 0x4a3524 });
       var tG = new Tc.Mesh(new Tc.CylinderGeometry(3, 4, h * 0.32, 6), trunkMat);
-      tG.position.set(x, h * 0.16, z);
-      worldGroup.add(tG);
+      tG.position.set(0, h * 0.16, 0);
+      holder.add(tG);
       var leaf = new Tc.Mesh(new Tc.ConeGeometry(h * 0.34, h * 0.8, 7), mat);
-      leaf.position.set(x, h * 0.32 + h * 0.4, z);
+      leaf.position.set(0, h * 0.32 + h * 0.4, 0);
       leaf.castShadow = true;
-      worldGroup.add(leaf);
+      holder.add(leaf);
+      worldGroup.add(holder);
+      swapIn(holder, far ? 'tree:far' : 'tree:near', x + ':' + z, h * 1.1, gen);
     }
+    /* 종유석 — 바닥에 선 것만 GLB 바위로 갈린다(천장에 매달린 것은 뒤집힌 바위로는
+       안 보이니 도형 그대로 둔다) */
     function stalactite(x, z, h, up) {
       var mat = new Tc.MeshLambertMaterial({ color: 0x453a52 });
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
       var c = new Tc.Mesh(new Tc.ConeGeometry(h * 0.22, h, 6), mat);
-      c.position.set(x, up ? 560 - h / 2 : h / 2, z);
+      c.position.set(0, up ? 560 - h / 2 : h / 2, 0);
       if (up) { c.rotation.x = Math.PI; }
-      worldGroup.add(c);
+      holder.add(c);
+      worldGroup.add(holder);
+      if (!up) { swapIn(holder, 'rock', x + ':' + z, h * 0.9, gen); }
     }
     function hill(x, z, r, mat) {
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
       var g = new Tc.Mesh(new Tc.SphereGeometry(r, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat);
-      g.position.set(x, -r * 0.35, z);
-      worldGroup.add(g);
+      g.position.set(0, -r * 0.35, 0);
+      holder.add(g);
+      worldGroup.add(holder);
+      swapIn(holder, 'hill', x + ':' + z, r * 0.7, gen);
     }
     function flame(x, z, h) {
       var mat = new Tc.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: 0.55 });
@@ -130,8 +172,8 @@
 
     var span = stg.width + 800;
     if (mood === 'forest') {
-      for (i = 0, m = -200; m < span; i++, m += 260) { trunk(m, -260, 170 + (i % 3) * 40, farMat); }
-      for (i = 0, m = -140; m < span; i++, m += 190) { trunk(m, -90, 120 + (i % 3) * 26, nearMat); }
+      for (i = 0, m = -200; m < span; i++, m += 260) { trunk(m, -260, 170 + (i % 3) * 40, farMat, true); }
+      for (i = 0, m = -140; m < span; i++, m += 190) { trunk(m, -90, 120 + (i % 3) * 26, nearMat, false); }
     } else if (mood === 'cave') {
       for (i = 0, m = -100; m < span; i++, m += 220) {
         stalactite(m, -140 - (i % 2) * 60, 90 + (i % 4) * 40, true);
@@ -149,6 +191,7 @@
 
   function rebuildStage(stg) {
     var Tc = three();
+    stageGen++;   // 늦게 도착한 GLB 응답이 지난 세대의 지형에 잘못 꽂히지 않게 한다
     while (worldGroup.children.length) { worldGroup.remove(worldGroup.children[0]); }
 
     var L = moodLight(stg.mood);
@@ -210,7 +253,7 @@
   }
 
   function draw() {
-    if (!ready) { return; }
+    if (!active()) { return; }
     var S = global.DG.side, SV = global.DG.sideView;
     var run = S.raw();
     if (!run) { return; }
@@ -266,5 +309,8 @@
   }
 
   global.DG = global.DG || {};
-  global.DG.sideView3d = { init: init, draw: draw, resize: resize, ready: ready_ };
+  global.DG.sideView3d = {
+    init: init, draw: draw, resize: resize, ready: ready_,
+    available: available, active: active, toggle: toggle
+  };
 })(window);
