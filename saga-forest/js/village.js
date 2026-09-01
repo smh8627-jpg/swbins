@@ -133,6 +133,38 @@
     rocky:    [[0.78, 'rock'], [0.62, 'mossyRock'], [0.50, 'rock'], [0.40, 'pine']]
   };
 
+  /* ── 호수(PLAN 40절 PHASE 3 세 번째 칸) ──────────────────────
+   * PLAN 10절 "중요한 장소는 랜덤 배치하지 않는다"에 호수가 들어 있다 — 그래서
+   * 좌표 해시가 아니라 **margin(forestMargin) 에 비례한 고정 자리**에 판다.
+   * 마을 서쪽, 세로 가운데. margin 을 admin 에서 낮춰도 고리 밖으로 안 튀어
+   * 나가게 반지름을 그 안에서만 잡고, 고리가 아예 좁으면(< LAKE_MIN_MARGIN)
+   * 호수 자체를 포기한다(작은 웅덩이보다 없는 편이 낫다고 봤다).
+   */
+  var LAKE_MIN_MARGIN = 10;
+  function lakeCenter() {
+    var m = forestMargin();
+    if (m < LAKE_MIN_MARGIN) { return null; }
+    var tx = -Math.round(m * 0.5);
+    var r = Math.min(5, Math.max(2, Math.floor((m - Math.abs(tx) - 1) / 1.6)));
+    return { tx: tx, ty: Math.floor(H * 0.5), r: r };
+  }
+  /** 타원(가로로 1.6배 길다)로 판다 — 실제 호수처럼 둥글기만 하면 심심하다 */
+  function inLake(tx, ty) {
+    var c = lakeCenter();
+    if (!c) { return false; }
+    var dx = (tx - c.tx) / 1.6, dy = ty - c.ty;
+    return dx * dx + dy * dy <= c.r * c.r;
+  }
+  /** 호수 테두리 바로 바깥 한 겹 — 여기에만 물가 식생(plant)을 흘려 넣는다 */
+  function nearLakeShore(tx, ty) {
+    var c = lakeCenter();
+    if (!c) { return false; }
+    var dx = (tx - c.tx) / 1.6, dy = ty - c.ty;
+    var d2 = dx * dx + dy * dy;
+    var rr = c.r + 1.6;
+    return d2 > c.r * c.r && d2 <= rr * rr;
+  }
+
   function tileAt(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
@@ -150,9 +182,11 @@
       if (ty >= H - 5 && tx > 2 && tx < 13) { return 'sand'; }
       return 'grass';
     }
-    /* 마을 밖 — 숲 고리(PLAN 11절 Biome 로 갈린 잔디) 아니면 세상 끝(물) */
+    /* 마을 밖 — 숲 고리(PLAN 11절 Biome 로 갈린 잔디, PLAN 12절 고정 호수) 아니면
+       세상 끝(물) */
     var m = forestMargin();
     if (tx < -m || ty < -m || tx >= W + m || ty >= H + m) { return 'water'; }
+    if (inLake(tx, ty)) { return 'water'; }
     return BIOME_TILE[biomeAt(tx, ty)];
   }
 
@@ -277,6 +311,10 @@
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
         var fid = 'f' + tx + '_' + ty;
+        if (nearLakeShore(tx, ty) && fh > 0.55) {
+          props.push({ id: fid, kind: 'plant', x: fx, y: fy, deco: true });
+          continue;
+        }
         var table = BIOME_SCATTER[biomeAt(tx, ty)] || BIOME_SCATTER.green;
         for (var bi = 0; bi < table.length; bi++) {
           if (fh > table[bi][0]) { props.push({ id: fid, kind: table[bi][1], x: fx, y: fy, deco: true }); break; }
@@ -1118,6 +1156,7 @@
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
     giveGift: giveGift, giftLike: giftLike, giftedToday: giftedToday,
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
+    lakeCenter: lakeCenter, inLake: inLake,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,

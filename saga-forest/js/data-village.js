@@ -54,7 +54,10 @@
     mushroom:  { name: '버섯',      emoji: '🍄', gather: null, reset: 0, hint: '살펴본다' },
     bush:      { name: '덤불',      emoji: '🌿', gather: null, reset: 0, hint: '살펴본다' },
     stump:     { name: '그루터기',  emoji: '🪵', gather: null, reset: 0, hint: '살펴본다' },
-    log:       { name: '통나무',    emoji: '🪵', gather: null, reset: 0, hint: '살펴본다' }
+    log:       { name: '통나무',    emoji: '🪵', gather: null, reset: 0, hint: '살펴본다' },
+    /* 호수 테두리 물가 식생(PLAN 12절 "shoreline") — 갈대·부들 CC0 모델을 아직
+       못 구해 asset3d.js 에 이미 있는 범용 'plant' 모델로 대신한다 */
+    plant:     { name: '수초',      emoji: '🌾', gather: null, reset: 0, hint: '살펴본다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────

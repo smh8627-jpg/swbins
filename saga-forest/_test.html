@@ -299,7 +299,7 @@ window.DG_NO_TUNE = true;
       V.buildProps();
       var raw = V.raw();
       var allow = { tree: 1, pine: 1, rock: 1, flower: 1,
-        deadTree: 1, mossyRock: 1, mushroom: 1, bush: 1, stump: 1, log: 1 };
+        deadTree: 1, mossyRock: 1, mushroom: 1, bush: 1, stump: 1, log: 1, plant: 1 };
       var forestCount = 0, bad = null;
       for (var i = 0; i < raw.props.length; i++) {
         var p = raw.props[i];
@@ -319,6 +319,47 @@ window.DG_NO_TUNE = true;
       var a = V.biomeAt(37, -19), b = V.biomeAt(37, -19);
       return Object.keys(seen).length === V.BIOMES.length && a === b &&
         (n + '칸 훑어 바이옴 ' + Object.keys(seen).length + '종 · (37,-19) 재현');
+    });
+
+    /* ── PLAN 40절 PHASE 3 세 번째 칸: 호수 ──────────────────── */
+
+    t('호수 — 랜덤이 아니라 고정 자리, 재현된다', function () {
+      var c1 = V.lakeCenter(), c2 = V.lakeCenter();
+      return !!c1 && JSON.stringify(c1) === JSON.stringify(c2) &&
+        ('중심(' + c1.tx + ',' + c1.ty + ') 반지름 ' + c1.r + ' 재현');
+    });
+
+    t('호수 — 중심은 물, 걸을 수 없다', function () {
+      var c = V.lakeCenter();
+      var kind = V.tileAt(c.tx, c.ty);
+      return kind === 'water' && !V.walkable(c.tx * V.TILE + 20, c.ty * V.TILE + 20) &&
+        ('중심(' + c.tx + ',' + c.ty + ')=' + kind + ' · 통행 불가');
+    });
+
+    t('호수 — margin 을 줄이면 고리 밖으로 튀지 않고, 너무 좁으면 아예 없어진다', function () {
+      C.setTune('forest.margin', 200);
+      var big = V.lakeCenter();
+      var m = V.forestMargin();
+      var fits = big.tx - big.r * 1.6 > -m && big.tx + big.r * 1.6 < m;
+      C.setTune('forest.margin', 5);
+      var gone = V.lakeCenter();
+      C.setTune('forest.margin', null);
+      return fits && gone === null &&
+        ('margin 200 → 반지름 ' + big.r + '(고리 안) · margin 5 → 호수 없음');
+    });
+
+    t('호수 — 테두리에 물가 식생(plant)이 나고, 호수 안에는 안 난다', function () {
+      V.buildProps();
+      var raw = V.raw(), c = V.lakeCenter(), i, shore = 0, insideLake = 0;
+      for (i = 0; i < raw.props.length; i++) {
+        var p = raw.props[i];
+        if (p.id.charAt(0) !== 'f') { continue; }
+        var tx = Math.floor(p.x / V.TILE), ty = Math.floor(p.y / V.TILE);
+        if (V.inLake(tx, ty)) { insideLake++; }
+        if (p.kind === 'plant') { shore++; }
+      }
+      return shore > 0 && insideLake === 0 &&
+        ('물가 식생 ' + shore + '개 · 호수 안 사물 0개');
     });
 
     t('숲 고리 — 나무·바위·꽃은 장식일 뿐 손이 안 닿는다 (채집 대상 아님)', function () {

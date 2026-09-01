@@ -465,7 +465,7 @@
 
         /* 잔디 술 · 물빛 — 가까운 칸에만 (멀면 지저분해진다) */
         if (midA > -0.75 && step === 1) {
-          if (kind === 'grass' && core.hash2(tx * 7 + 1, ty * 13 + 5) > 0.74) {
+          if (kind.indexOf('grass') === 0 && core.hash2(tx * 7 + 1, ty * 13 + 5) > 0.74) {
             tufts.push(project(tx * T + T * 0.5, ty * T + T * 0.62));
           } else if (kind === 'water' && core.hash2(tx * 3, ty * 11) > 0.55) {
             glints.push({ p: project(tx * T + T * 0.5, ty * T + T * 0.5), k: tx + ty });
