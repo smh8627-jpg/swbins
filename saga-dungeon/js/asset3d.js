@@ -41,6 +41,7 @@
   var ANIMALS = 'assets/models/animals/';
   var PROPS = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
+  var DUN = 'assets/models/dungeon/';
 
   var HERO_RECIPES = [
     { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
@@ -88,7 +89,21 @@
     /* 마을(모루골) 건물 — 집 넷은 자리마다 씨앗으로 섞어 세운다(나무·바위와 같은 요령) */
     'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
     'well': BLD + 'Well.glb',
-    'blacksmith': BLD + 'Blacksmith.glb'
+    'blacksmith': BLD + 'Blacksmith.glb',
+    /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
+       흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
+       'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은
+       Arch.glb·Wall.glb 를 그대로 쓰므로 여기서 안 건드린다.
+       출처는 `assets/ASSET_LICENSES.md` 참고 */
+    'dg:chest': DUN + 'chest.glb',
+    'dg:torch': DUN + 'torch_mounted.gltf.glb',
+    'dg:pillar': DUN + 'pillar.gltf.glb',
+    /* 갇힌 우리(POI: 이벤트방) — 실제 감옥 창살 기둥. 자리마다 넷을 둘러 세운다 */
+    'dg:cage': DUN + 'barrier_column.gltf.glb',
+    /* 다음 방 문 — 열린 아치 하나만 받았다. 잠금·해금은 모델을 안 바꾸고
+       색(tint)만 바꾼다 — 2D 가 오래 쓰던 신호(잠기면 어둡게, 풀리면 금빛)를
+       그대로 지킨다 */
+    'dg:door': DUN + 'wall_doorway.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }

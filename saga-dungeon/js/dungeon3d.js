@@ -445,8 +445,19 @@
     /* 방마다 다른 소품 — 상자·우물·사당은 판정이 자리를 정해 준다 */
     var r = run.room;
     if (r && r.chest && !r.chest.taken) {
-      box(wallGroup, r.chest.x, 9, r.chest.y, 26, 18, 20, 0x8a6a34, 'flat', true);
-      box(wallGroup, r.chest.x, 19, r.chest.y, 28, 4, 22, 0xd9b45a, 'glow', false);
+      /* KayKit Dungeon Remastered(CC0) 상자 — 출처는 assets/ASSET_LICENSES.md.
+         GLB 를 못 받으면(오프라인·실패) 여태 쓰던 상자 도형이 그대로 남는다 */
+      var AS3c = AS();
+      var chestShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 9, 0, 26, 18, 20, 0x8a6a34, 'flat', true);
+        box(sg, 0, 19, 0, 28, 4, 22, 0xd9b45a, 'glow', false);
+        return sg;
+      };
+      var chnode = AS3c ? AS3c.build('dg:chest', 'poi:' + r.chest.x + ':' + r.chest.y,
+        20, null, chestShape) : chestShape();
+      chnode.position.set(r.chest.x, 0, r.chest.y);
+      wallGroup.add(chnode);
     }
     if (r && r.well && !r.well.used) {
       box(wallGroup, r.well.x, 11, r.well.y, 30, 22, 30, 0x555b66, 'flat', true);
@@ -494,8 +505,22 @@
       var cp = r.captive;
       if (!cp.freed) {
         box(wallGroup, cp.x, 20, cp.y, 34, 40, 34, 0x2a2a30, 'flat', true);
-        box(wallGroup, cp.x, 20, cp.y - 15, 30, 36, 3, 0x8a8a92, 'flat', false);
-        box(wallGroup, cp.x, 20, cp.y + 15, 30, 36, 3, 0x8a8a92, 'flat', false);
+        /* 창살 — KayKit 의 barrier_column(감옥 기둥, CC0)을 네 귀퉁이에 둘러
+           세운다. 평평한 판 둘로 흉내 내던 자리보다 실제 우리처럼 보인다 */
+        var AS3g = AS();
+        var cageShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, 18, 0, 4, 36, 4, 0x8a8a92, 'flat', false);
+          return sg;
+        };
+        var cageCorners = [[-15, -15], [15, -15], [-15, 15], [15, 15]];
+        for (var ccI = 0; ccI < cageCorners.length; ccI++) {
+          var ccnode = AS3g ? AS3g.build('dg:cage',
+            'room:' + Math.round(cp.x) + ':' + Math.round(cp.y) + ':' + ccI,
+            38, null, cageShape) : cageShape();
+          ccnode.position.set(cp.x + cageCorners[ccI][0], 0, cp.y + cageCorners[ccI][1]);
+          wallGroup.add(ccnode);
+        }
       } else {
         box(wallGroup, cp.x, 6, cp.y, 26, 3, 26, 0xffd489, 'glow', false);
       }
@@ -524,11 +549,38 @@
     for (dj = 0; dj < dec.length; dj++) {
       o = dec[dj];
       if (o.t === 'pillar') {
-        box(wallGroup, o.x, 34, o.y, 22, 68, 22, mix(stone, 0xffffff, 0.08), 'flat', true);
-        box(wallGroup, o.x, 70, o.y, 28, 6, 28, mix(stone, 0x000000, 0.2), 'flat', true);
+        /* KayKit 기둥(CC0) — 들판(field, piece()의 'pillar')이 쓰는 Arch.glb 와는
+           다른 자리(dg:pillar)다. 저건 폐허 조각, 이건 방 안 건축 기둥이라
+           딴 GLB 를 쓴다 */
+        var AS3rp = AS();
+        var roomPillarShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, 34, 0, 22, 68, 22, mix(stone, 0xffffff, 0.08), 'flat', true);
+          box(sg, 0, 70, 0, 28, 6, 28, mix(stone, 0x000000, 0.2), 'flat', true);
+          return sg;
+        };
+        var rpnode = AS3rp ? AS3rp.build('dg:pillar',
+          'room:' + Math.round(o.x) + ':' + Math.round(o.y), 76, null, roomPillarShape)
+          : roomPillarShape();
+        rpnode.position.set(o.x, 0, o.y);
+        wallGroup.add(rpnode);
       } else if (o.t === 'torch') {
-        box(wallGroup, o.x, 20, o.y, 6, 40, 6, 0x4a3a2a, 'flat', false);
-        box(wallGroup, o.x, 44, o.y, 11, 11, 11, 0xffb45a, 'glow', false);
+        /* KayKit 횃불(CC0) — 실물 모델 위에 기존 발광 표식은 그대로 얹는다.
+           어둠 손잡이가 만드는 실제 빛(`torch` PointLight)은 플레이어를 따라
+           도는 딴 값이라 이 표식은 어디까지나 "여기 횃불이 있다"는 신호다 */
+        var AS3to = AS();
+        var torchShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, 20, 0, 6, 40, 6, 0x4a3a2a, 'flat', false);
+          box(sg, 0, 44, 0, 11, 11, 11, 0xffb45a, 'glow', false);
+          return sg;
+        };
+        var tonode = AS3to ? AS3to.build('dg:torch',
+          'room:' + Math.round(o.x) + ':' + Math.round(o.y), 46, null, torchShape)
+          : torchShape();
+        tonode.position.set(o.x, 0, o.y);
+        wallGroup.add(tonode);
+        box(wallGroup, o.x, 42, o.y, 9, 9, 9, 0xffb45a, 'glow', false);
       } else if (o.t === 'crack') {
         var cl = o.len || 30;
         var cm = box(wallGroup, o.x, 0.6, o.y, cl, 1.2, 4, mix(stone, 0x000000, 0.7), 'flat', false);

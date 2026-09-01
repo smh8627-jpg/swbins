@@ -77,6 +77,43 @@
 | `models/buildings/Well.glb` | **우물**(`well`) — 마을 한복판 |
 | `models/buildings/Blacksmith.glb` | **대장간**(`blacksmith`) — 야장(冶匠) NPC 뒤에 |
 
+## KayKit — Dungeon Remastered 소품 (`models/dungeon/`)
+
+**2026-09-01, 방 안 소품 실험적으로 갈아 낌.** 여태 상자를 쌓아 흉내 내던
+상자·횃불·기둥·감옥 창살을 실제 던전 소품 팩으로 바꿨다. Quaternius 와는
+다른 작가·다른 라이선스 확인 경로다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kay Lousberg (<https://www.kaylousberg.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 저장소 `LICENSE.txt` 에 명시 |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다(예의) |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0>
+  (Kay Lousberg 본인 GitHub 조직 — itch.io `kaylousberg.itch.io/kaykit-dungeon-remastered`
+  페이지가 이 저장소를 그대로 가리킨다) `addons/kaykit_dungeon_remastered/Assets/gltf/` |
+
+`models/dungeon/LICENSE.txt` 에 원문을 그대로 받아 옮겨 뒀다.
+
+### 넣은 파일 — `js/asset3d.js` 의 `dg:` 로 묶은 표에 적혀 있다
+
+| 파일 | 쓰이는 곳 |
+|---|---|
+| `chest.glb` | **상자**(`dg:chest`, POI: 상자) |
+| `torch_mounted.gltf.glb` | **횃불**(`dg:torch`, 방 장식 `decor` 의 `torch`) |
+| `pillar.gltf.glb` | **방 안 기둥**(`dg:pillar`, 방 장식 `decor` 의 `pillar`) —
+  들판(field)의 `pillar`(Arch.glb, 폐허 조각)와는 **다른 자리**다. 헷갈리지 말 것 |
+| `barrier_column.gltf.glb` | **갇힌 우리 창살**(`dg:cage`, POI: 이벤트방 captive) — 넷을 귀퉁이에 둘러 세운다 |
+
+**문(`dg:door`)은 받아만 두고 아직 안 걸었다.** `wall_doorway.glb` 를
+`js/asset3d.js` 표에는 올렸지만, 문마다 어느 벽(동서남북)에 붙는지 자리
+값에 방향이 없어 — 방향 없이 걸면 아치가 엉뚱한 쪽을 보고 설 수 있다.
+방향 값을 판정에 보태거나 방향 무관한 모델을 새로 구하면 다음에 잇는다.
+
+**아직 안 옮긴 것도 있다** — 이 팩에 있는 술통(`barrel_*`)·상·의자·계단
+따위는 이번엔 손 안 댔다. 상자·횃불·기둥·창살 넷만 우선 바꿔 눈으로 먼저
+확인해 보고, 마음에 들면 나머지도 잇는다.
+
 ---
 
 ## 아직 안 옮긴 것
