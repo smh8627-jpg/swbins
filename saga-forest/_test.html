@@ -424,6 +424,44 @@ window.DG_NO_TUNE = true;
         '표지 1개 + 바위 2개';
     });
 
+    /* ── PLAN 40절 PHASE 3 여섯 번째 칸: 작은 마을 ────────────── */
+
+    t('작은 마을 — 마을·호수·강과 안 겹치는 고정 자리, 재현된다', function () {
+      var a = V.hamletSpot(), b = V.hamletSpot();
+      return !!a && JSON.stringify(a) === JSON.stringify(b) && a.tx >= V.W &&
+        ('(' + a.tx + ',' + a.ty + ') 재현 · 마을 동쪽');
+    });
+
+    t('작은 마을 — margin 이 너무 좁으면 아예 없어진다', function () {
+      C.setTune('forest.margin', 5);
+      var gone = V.hamletSpot();
+      C.setTune('forest.margin', null);
+      return gone === null && 'margin 5 → 캠프 없음';
+    });
+
+    t('작은 마을 — buildProps() 가 천막·모닥불·평상·우물·등롱을 세운다', function () {
+      V.buildProps();
+      var raw = V.raw(), byId = {};
+      for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
+      var want = ['hamletTentA', 'hamletTentB', 'hamletFire', 'hamletBenchA',
+        'hamletBenchB', 'hamletWell', 'hamletLanternA', 'hamletLanternB'];
+      var n = 0, i2;
+      for (i2 = 0; i2 < want.length; i2++) { if (byId[want[i2]] && byId[want[i2]].deco) { n++; } }
+      return n === want.length && ('캠프 사물 ' + n + '/' + want.length + '개');
+    });
+
+    t('작은 마을 — 캠프 둘레엔 바이옴 장식(f 접두)이 안 겹쳐 심긴다', function () {
+      V.buildProps();
+      var raw = V.raw(), i, bad = 0;
+      for (i = 0; i < raw.props.length; i++) {
+        var p = raw.props[i];
+        if (p.id.charAt(0) !== 'f') { continue; }
+        var tx = Math.floor(p.x / V.TILE), ty = Math.floor(p.y / V.TILE);
+        if (V.inHamlet(tx, ty)) { bad++; }
+      }
+      return bad === 0 && '캠프 둘레 겹침 0개';
+    });
+
     t('숲 고리 — 나무·바위·꽃은 장식일 뿐 손이 안 닿는다 (채집 대상 아님)', function () {
       V.buildProps();
       var raw = V.raw();

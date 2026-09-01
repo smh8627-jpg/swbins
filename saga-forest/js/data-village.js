@@ -60,7 +60,14 @@
     plant:     { name: '수초',      emoji: '🌾', gather: null, reset: 0, hint: '살펴본다' },
     /* 폭포 표지(PLAN 40절 PHASE 3) — 이 판 땅에는 높이 축이 없어(terrain.js
        머리말 참고) 진짜 낙수는 못 만든다. 이 자리를 표시만 해 둔다 */
-    waterfall: { name: '폭포',      emoji: '💦', gather: null, reset: 0, hint: '바라본다' }
+    waterfall: { name: '폭포',      emoji: '💦', gather: null, reset: 0, hint: '바라본다' },
+    /* 작은 마을(숲 속 빈 캠프, PLAN 40절 PHASE 3) — asset3d.js 에 이미 등록된
+       천막·모닥불·평상·우물·등롱을 모았다. 사람은 PHASE 4(NPC)에서 채운다 */
+    tent:      { name: '천막',   emoji: '⛺', gather: null, reset: 0, hint: '들여다본다' },
+    campfire:  { name: '모닥불', emoji: '🔥', gather: null, reset: 0, hint: '쬔다' },
+    bench:     { name: '평상',   emoji: '🪑', gather: null, reset: 0, hint: '앉는다' },
+    well:      { name: '우물',   emoji: '⛲', gather: null, reset: 0, hint: '들여다본다' },
+    lantern:   { name: '등롱',   emoji: '🏮', gather: null, reset: 0, hint: '바라본다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────

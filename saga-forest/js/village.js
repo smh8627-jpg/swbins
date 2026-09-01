@@ -211,6 +211,26 @@
     return { tx: Math.round(cx), ty: ty };
   }
 
+  /* ── 작은 마을(PLAN 40절 PHASE 3 여섯 번째 칸) ─────────────────
+   * 호수·강과 겹치지 않게 반대쪽(동쪽)에 고정 캠프를 하나 세운다 — PLAN 10절
+   * "고정 배치" 그대로. 한옥(전방·내 집처럼)을 새로 그리는 대신, `asset3d.js`에
+   * 이미 등록돼 있던 천막·모닥불·평상·우물·등롱을 모아 놓는다 — 여기 사는
+   * 사람은 아직 없다(NPC·대화는 PLAN 17절, PHASE 4 몫). 지금은 "지나가다
+   * 발견하는 빈 캠프" 하나만 세운다.
+   */
+  var HAMLET_MIN_MARGIN = 10;
+  function hamletSpot() {
+    var m = forestMargin();
+    if (m < HAMLET_MIN_MARGIN) { return null; }
+    return { tx: W + Math.round(m * 0.55), ty: Math.floor(H * 0.35) };
+  }
+  /** 캠프 둘레 7×5 칸 — 이 안에는 바이옴 장식(나무·바위 등)을 안 심는다 */
+  function inHamlet(tx, ty) {
+    var h = hamletSpot();
+    if (!h) { return false; }
+    return tx >= h.tx - 3 && tx <= h.tx + 3 && ty >= h.ty - 2 && ty <= h.ty + 2;
+  }
+
   function tileAt(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
@@ -353,6 +373,7 @@
     for (ty = -m; ty < H + m; ty++) {
       for (tx = -m; tx < W + m; tx++) {
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
+        if (inHamlet(tx, ty)) { continue; }                         // 작은 마을 자리는 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
@@ -377,6 +398,21 @@
       props.push({ id: 'waterfall', kind: 'waterfall', x: wx, y: wy, deco: true });
       props.push({ id: 'waterfallRockL', kind: 'rock', x: wx - TILE * 0.9, y: wy - TILE * 0.25, deco: true });
       props.push({ id: 'waterfallRockR', kind: 'rock', x: wx + TILE * 0.9, y: wy + TILE * 0.2, deco: true });
+    }
+
+    /* 작은 마을(PLAN 40절 PHASE 3 여섯 번째 칸) — 빈 캠프 하나. 사람은 아직
+       없다(PHASE 4 몫) */
+    var hs = hamletSpot();
+    if (hs) {
+      var hx = hs.tx * TILE + TILE * 0.5, hy = hs.ty * TILE + TILE * 0.5;
+      props.push({ id: 'hamletTentA', kind: 'tent', x: hx - TILE * 1.4, y: hy - TILE * 0.6, deco: true });
+      props.push({ id: 'hamletTentB', kind: 'tent', x: hx + TILE * 1.2, y: hy - TILE * 0.8, deco: true });
+      props.push({ id: 'hamletFire', kind: 'campfire', x: hx, y: hy, deco: true });
+      props.push({ id: 'hamletBenchA', kind: 'bench', x: hx - TILE * 0.6, y: hy + TILE * 0.7, deco: true });
+      props.push({ id: 'hamletBenchB', kind: 'bench', x: hx + TILE * 0.6, y: hy + TILE * 0.7, deco: true });
+      props.push({ id: 'hamletWell', kind: 'well', x: hx + TILE * 1.6, y: hy + TILE * 0.4, deco: true });
+      props.push({ id: 'hamletLanternA', kind: 'lantern', x: hx - TILE * 1.8, y: hy + TILE * 0.2, deco: true });
+      props.push({ id: 'hamletLanternB', kind: 'lantern', x: hx + TILE * 1.8, y: hy - TILE * 0.2, deco: true });
     }
   }
 
@@ -1214,7 +1250,7 @@
     giveGift: giveGift, giftLike: giftLike, giftedToday: giftedToday,
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
-    waterfallSpot: waterfallSpot,
+    waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
