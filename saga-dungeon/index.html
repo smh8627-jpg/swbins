@@ -45,17 +45,20 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <!-- 가운데: 본영 — 던전에 들어가기 전 화면 -->
 <div id="camp"></div>
 
-<!-- 우하단: 액션 독 -->
+<!-- 우하단: 액션 독 — 자주 쓰는 셋만 붙박이로 두고, 나머지는 "더보기" 뒤로 접는다 -->
 <nav id="dock">
+  <div id="dock-more">
+    <button data-sheet="skill"><span>📜</span><small>무예</small></button>
+    <button data-sheet="craft"><span>🔨</span><small>세공</small></button>
+    <button data-sheet="vendor"><span>🧺</span><small>행상</small></button>
+    <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+    <button data-sheet="quest"><span>🚩</span><small>퀘스트</small></button>
+    <button data-sheet="log"><span>📜</span><small>기록</small></button>
+  </div>
   <button data-sheet="party"><span>⚔️</span><small>부대</small></button>
   <button data-sheet="gear"><span>🎒</span><small>장비</small></button>
-  <button data-sheet="skill"><span>📜</span><small>무예</small></button>
-  <button data-sheet="craft"><span>🔨</span><small>세공</small></button>
-  <button data-sheet="vendor"><span>🧺</span><small>행상</small></button>
-  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
   <button data-sheet="world"><span>🗺️</span><small>지도</small></button>
-  <button data-sheet="quest"><span>🚩</span><small>퀘스트</small></button>
-  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+  <button id="dock-more-btn"><span>⋯</span><small>더보기</small></button>
 </nav>
 
 <!-- 슬라이드 시트 -->
@@ -92,6 +95,8 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <script src="js/dungeon.js"></script>
 <script src="js/town.js"></script>
 <script src="js/vendor/three.iife.js"></script>
+<script src="js/ssao3d.js"></script>
+<script src="js/post3d.js"></script>
 <script src="js/field3d.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/dungeon3d.js"></script>

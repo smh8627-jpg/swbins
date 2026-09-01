@@ -179,10 +179,22 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 .sockcell.rune { color: #f0a53a; font-family: serif; }
 
 /* ── 액션 독 ──────────────────────────────────────────── */
+/* 2026-09-01 — 9개를 다 붙박이로 늘어놓으니 "화면에 너무 차지하네"(사용자).
+   자주 쓰는 셋(부대·장비·지도)만 붙박이로 두고 나머지 여섯은 "더보기" 뒤에
+   접는다. #dock-more 는 #dock(position:fixed 라 포함 블록이 된다) 기준으로
+   절대배치해 독 바로 위에 뜨는 팝오버 — 데스크톱 세로열·폰 3열 그리드
+   어느 배치에서도 독 자체 크기와 무관하게 붙는다. */
 #dock {
   position: fixed; right: calc(12px + var(--safe-r)); bottom: calc(14px + var(--safe-b)); z-index: 12;
   display: flex; flex-direction: column; gap: 8px;
 }
+#dock-more {
+  position: absolute; right: 0; bottom: calc(100% + 8px);
+  display: grid; grid-template-columns: repeat(3, 58px); gap: 8px;
+  opacity: 0; pointer-events: none; transform: translateY(6px);
+  transition: opacity .16s, transform .16s;
+}
+#dock-more.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 #dock button {
   width: 58px; height: 58px; border-radius: 19px; cursor: pointer;
   display: grid; place-items: center; gap: 1px;
@@ -514,6 +526,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
      오른쪽 구석 172px 폭이면 충분하다. */
   #dock { display: grid; grid-template-columns: repeat(3, 52px); gap: 8px; }
   #dock button { width: 52px; height: 52px; border-radius: 17px; }
+  #dock-more { grid-template-columns: repeat(3, 52px); }
 
   /* 상단이 폰 폭을 넘어가던 자리 — 마지막 도구(↺ 처음부터)가 화면 밖이었다.
      까닭은 `auto 1fr auto` 였다. 프로필도 도구줄도 auto 라 **둘 다 제 콘텐츠
