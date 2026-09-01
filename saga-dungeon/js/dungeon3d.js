@@ -409,8 +409,11 @@
     floorMesh.scale.set(W, H, 1);
     floorMesh.material = mat(mix(stone, 0x1a1a20, 0.25), 'flat');
 
-    /* 벽 넷 — 뒤쪽 둘은 높고 앞쪽 둘은 낮다. 안 낮추면 방 안이 안 보인다 */
-    var hi = 70, lo = 16;
+    /* 벽 넷 — 뒤쪽 둘은 높고 앞쪽 둘은 낮다. 안 낮추면 방 안이 안 보인다.
+       마을(run.town)은 사방으로 필드에 걸어 나갈 수 있는데(town.js 의
+       fieldBoundPlayer), 북·서쪽만 높은 벽 그대로 두면 걸어나갈 수 있는데도
+       막힌 벽처럼 보인다 — 마을만 그 둘도 낮춘다. */
+    var lo = 16, hi = run.town ? lo : 70;
     box(wallGroup, W / 2, hi / 2, -WALL / 2, W + WALL * 2, hi, WALL, stone, 'flat', true);
     box(wallGroup, -WALL / 2, hi / 2, H / 2, WALL, hi, H, stone, 'flat', true);
     box(wallGroup, W / 2, lo / 2, H + WALL / 2, W + WALL * 2, lo, WALL, mix(stone, 0x000000, 0.3), 'flat', false);

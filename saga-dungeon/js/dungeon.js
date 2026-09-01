@@ -911,10 +911,16 @@
     var r = (D3 && D3.tuned) ? D3.tuned('dg3d.fieldR', 3) : 3;
     return r * (F ? F.CHUNK : 200);
   }
-  function inRoomRect(x, y) {
-    var lo = WALL + P_R;
-    return x >= lo - 0.01 && x <= ROOM_W - WALL - P_R + 0.01 &&
-           y >= lo - 0.01 && y <= ROOM_H - WALL - P_R + 0.01;
+  /**
+   * @param ctx 방 치수가 던전과 다른 곳(마을 등)이 빌려 쓸 때만 넘긴다 —
+   *            {roomW, roomH, wall, pr}. 없으면 이 방(던전)의 치수 그대로다.
+   */
+  function inRoomRect(x, y, ctx) {
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var wl = (ctx && ctx.wall) || WALL, pr = (ctx && ctx.pr) || P_R;
+    var lo = wl + pr;
+    return x >= lo - 0.01 && x <= rw - wl - pr + 0.01 &&
+           y >= lo - 0.01 && y <= rh - wl - pr + 0.01;
   }
   /* 들판 소품 중 **막는 것만** 고른다 — 길·이정표·연못가 갈대 같은 장식은
      지나갈 수 있어야 걷는 맛이 안 답답하다. */
@@ -929,24 +935,32 @@
     if (pc.t === 'cavemouth') { return pc.h * 0.6; }
     return 0;
   }
-  /** (x,y) 언저리 아홉 조각의 소품과 부딪히는지 — three 없이도 돈다 */
-  function fieldBlockedAt(x, y) {
+  /**
+   * (x,y) 언저리 아홉 조각의 소품과 부딪히는지 — three 없이도 돈다.
+   * @param ctx 마을처럼 방 치수·층·씨앗이 던전과 다른 곳이 빌려 쓸 때만 넘긴다 —
+   *            {roomW, roomH, pr, floor, roomIdx, theme}.
+   */
+  function fieldBlockedAt(x, y, ctx) {
     var F = global.DG.field3d;
-    if (!F || !run) { return false; }
+    var floor = ctx ? ctx.floor : (run && run.floor);
+    if (!F || floor === undefined || floor === null) { return false; }
+    var roomIdx = ctx ? ctx.roomIdx : (run && run.roomIdx);
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var pr = (ctx && ctx.pr) || P_R;
     var DDf = global.DG.dataDungeon;
-    var th = run.theme || (DDf ? DDf.themeOf(run.floor) : null);
-    var seed = F.seedOf(run.floor, run.roomIdx, th && th.name);
+    var th = (ctx && ctx.theme) || (run && run.theme) || (DDf ? DDf.themeOf(floor) : null);
+    var seed = F.seedOf(floor, roomIdx, th && th.name);
     var ccx = Math.floor(x / F.CHUNK), ccz = Math.floor(y / F.CHUNK), cx, cz, i, pc, r;
     for (cz = ccz - 1; cz <= ccz + 1; cz++) {
       for (cx = ccx - 1; cx <= ccx + 1; cx++) {
-        var ring = F.ringOf(cx, cz, ROOM_W, ROOM_H);
+        var ring = F.ringOf(cx, cz, rw, rh);
         if (ring === 0) { continue; }              // 방이 걸친 조각엔 소품이 없다
         var list = F.chunkAt(cx, cz, seed, ring, 1);
         for (i = 0; i < list.length; i++) {
           pc = list[i];
           if (!FIELD_BLOCK[pc.t]) { continue; }
           r = pieceRadius(pc);
-          if (r > 0 && Math.hypot(x - pc.x, y - pc.z) < r + P_R) { return true; }
+          if (r > 0 && Math.hypot(x - pc.x, y - pc.z) < r + pr) { return true; }
         }
       }
     }
@@ -957,8 +971,14 @@
    * 축을 나눠 시도해 **한쪽이 막혀도 다른 쪽은 미끄러진다**(대각선으로 나무에
    * 부딪혀도 그대로 안 멎는다 — 사가고 벽 충돌이 밟아 둔 요령과 같다).
    */
-  function boundPlayer(p, px, py) {
-    var lo = WALL + P_R, hiX = ROOM_W - WALL - P_R, hiY = ROOM_H - WALL - P_R;
+  /**
+   * @param ctx 마을처럼 방 치수·씨앗이 던전과 다른 곳이 빌려 쓸 때만 넘긴다
+   *            (inRoomRect·fieldBlockedAt 에 그대로 물려 준다).
+   */
+  function boundPlayer(p, px, py, ctx) {
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var wl = (ctx && ctx.wall) || WALL, pr = (ctx && ctx.pr) || P_R;
+    var lo = wl + pr, hiX = rw - wl - pr, hiY = rh - wl - pr;
     if (!fieldOn()) {
       p.x = core.clamp(p.x, lo, hiX);
       p.y = core.clamp(p.y, lo, hiY);
@@ -966,9 +986,9 @@
     }
     var R = fieldRadiusUnits();
     var nx = core.clamp(p.x, lo - R, hiX + R);
-    p.x = (inRoomRect(nx, py) || !fieldBlockedAt(nx, py)) ? nx : px;
+    p.x = (inRoomRect(nx, py, ctx) || !fieldBlockedAt(nx, py, ctx)) ? nx : px;
     var ny = core.clamp(p.y, lo - R, hiY + R);
-    p.y = (inRoomRect(p.x, ny) || !fieldBlockedAt(p.x, ny)) ? ny : py;
+    p.y = (inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
   }
 
   var FIELD_ENEMY_CAP = 4;                // 들판에 동시에 사는 로머 상한
@@ -988,31 +1008,221 @@
    * 플래그로 끄고 있어(같은 자리), 새로 생긴 이 계도 같은 자리에 둔다. 실제 플레이
    * (`index.html`)에는 이 플래그가 없어 그대로 다 돈다.
    */
-  function spawnFieldEncounters(count) {
-    if (!run || !fieldOn() || global.DG_NO_DRAW) { return; }
+  /**
+   * @param ctx 마을처럼 던전과 다른 방이 빌려 쓸 때만 넘긴다 —
+   *            {roomW, roomH, wall, floor, room}. 없으면 이 방(던전)의 run 그대로다.
+   */
+  function spawnFieldEncounters(count, ctx) {
+    if (!fieldOn() || global.DG_NO_DRAW) { return; }
+    if (!ctx && !run) { return; }
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var wl = (ctx && ctx.wall) || WALL;
+    var floor = ctx ? ctx.floor : run.floor;
+    var enemies = ctx ? ctx.room.enemies : run.room.enemies;
     var R = fieldRadiusUnits(), tries, i, a, d, x, y, en;
     for (i = 0; i < count; i++) {
       tries = 8;
       while (tries--) {
         a = Math.random() * Math.PI * 2;
-        d = (WALL + 60) + Math.random() * Math.max(40, R - WALL - 60);
-        x = ROOM_W * 0.5 + Math.cos(a) * d;
-        y = ROOM_H * 0.5 + Math.sin(a) * d;
-        if (inRoomRect(x, y) || fieldBlockedAt(x, y)) { continue; }
-        en = spawnEnemy(run.floor, false, { x: x, y: y });
+        d = (wl + 60) + Math.random() * Math.max(40, R - wl - 60);
+        x = rw * 0.5 + Math.cos(a) * d;
+        y = rh * 0.5 + Math.sin(a) * d;
+        if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
+        en = spawnEnemy(floor, false, { x: x, y: y });
         en.field = true;
-        run.room.enemies.push(en);
+        enemies.push(en);
         break;
       }
     }
   }
 
-  /** 살아 있는 들판 로머 수 */
-  function fieldEnemyCount() {
-    if (!run) { return 0; }
-    var n = 0, es = run.room.enemies, i;
+  /**
+   * 살아 있는 들판 로머 수
+   * @param ctx spawnFieldEncounters 와 같은 뜻
+   */
+  function fieldEnemyCount(ctx) {
+    var es = ctx ? ctx.room.enemies : (run && run.room.enemies);
+    if (!es) { return 0; }
+    var n = 0, i;
     for (i = 0; i < es.length; i++) { if (es[i].field && es[i].hp > 0) { n++; } }
     return n;
+  }
+
+  /**
+   * `run`·`fx`(둘 다 이 모듈의 클로저 변수)를 잠깐 다른 판(마을)의 것으로
+   * 바꿔 끼우고 fn 을 부른 뒤 되돌린다. `strike`·`hurtPlayer`·`kill` 은
+   * 자가진단(`_strike`·`_hurt`·`_spawnEnemy`)이 지금 시그니처 그대로 직접
+   * 부르므로 인자를 늘릴 수 없다 — 대신 이 스왑으로 "잠깐 빌려 쓴다".
+   * 마을·던전은 동시에 active 하지 않으니 재진입 걱정은 없다.
+   */
+  function withRun(ctxRun, ctxFx, fn) {
+    var savedRun = run, savedFx = fx;
+    run = ctxRun;
+    if (ctxFx) { fx = ctxFx; }
+    try { fn(); } finally { run = savedRun; fx = savedFx; }
+  }
+
+  /**
+   * 들판 로머 전투 한 틱 — `update()` 안의 적 AI·자동공격·투사체
+   * 블록(이동·문 전환·방 정리 판정은 뺐다)을 그대로 옮겨 온 것이다.
+   * **로직은 한 글자도 안 바꿨다** — `update()` 자체는 이 함수를 안 부른다
+   * (58KB 판정의 심장을 건드리지 않는다는 원칙). 마을(`town.js`)이 자기
+   * 이동을 다 계산한 뒤 이것만 불러 "그 자리에서 싸우는" 부분만 빌린다.
+   * @param ctx {roomW, roomH, wall, pr, floor, roomIdx, theme, room, player,
+   *             shots, foeShots} — `withRun`으로 run 을 이걸로 바꿔 끼운다.
+   * @param fxArr 이 틱에서 난 연출(hit·slash·pop·burst 등)을 받을 배열
+   *              (마을 자신의 `fx()` 배열을 넘긴다).
+   */
+  function stepFieldCombat(dt, ctx, fxArr) {
+    withRun(ctx, fxArr, function () {
+      var p = run.player, room = run.room, i;
+      var rally = rallyOn();
+      var rw = ctx.roomW || ROOM_W, rh = ctx.roomH || ROOM_H, wl = ctx.wall || WALL;
+
+      if (p.atkAnim > 0) { p.atkAnim -= dt; }
+      if (p.hurt > 0) { p.hurt -= dt; }
+
+      /* 기공파 투사체 */
+      for (i = run.shots.length - 1; i >= 0; i--) {
+        var sh = run.shots[i];
+        sh.x += sh.dx * sh.spd * dt;
+        sh.y += sh.dy * sh.spd * dt;
+        sh.life -= dt;
+        for (var si = 0; si < room.enemies.length; si++) {
+          var se = room.enemies[si];
+          if (se.hp <= 0 || sh.hit[si]) { continue; }
+          if (dist(sh, se) < se.r + 10) {
+            sh.hit[si] = true;
+            strike(se, sh.mul || 2.2, 14, sh.el || 'chi');
+            if (!run) { return; }
+          }
+        }
+        if (sh.life <= 0 || sh.x < wl || sh.x > rw - wl ||
+            sh.y < wl || sh.y > rh - wl) {
+          run.shots.splice(i, 1);
+        }
+      }
+
+      /* 궁수·조총병이 쏜 것 */
+      for (i = run.foeShots.length - 1; i >= 0; i--) {
+        var fsh = run.foeShots[i];
+        fsh.x += fsh.dx * fsh.spd * dt;
+        fsh.y += fsh.dy * fsh.spd * dt;
+        fsh.life -= dt;
+        if (dist(fsh, p) < P_R + 8) {
+          hurtPlayer(fsh.dmg, fsh.el);
+          if (!run) { return; }
+          run.foeShots.splice(i, 1);
+          continue;
+        }
+        if (fsh.life <= 0 || fsh.x < wl || fsh.x > rw - wl ||
+            fsh.y < wl || fsh.y > rh - wl) {
+          run.foeShots.splice(i, 1);
+        }
+      }
+
+      /* 내 공격 — 사거리 안에서 가장 가까운 적 */
+      p.atkCd -= dt;
+      var reach = reachOf();
+      var near = null, nd = 1e9;
+      for (i = 0; i < room.enemies.length; i++) {
+        var e = room.enemies[i];
+        if (e.hp <= 0) { continue; }
+        var d = dist(p, e) - e.r;
+        if (d < nd) { nd = d; near = e; }
+      }
+      if (near && nd <= reach && p.atkCd <= 0) {
+        p.atkCd = atkCdOf() / (rally ? 1.4 : 1);
+        p.atkAnim = 0.22;
+        strike(near);
+        if (!run) { return; }
+        if (Math.random() * 100 < boonVal('echoPct')) { strike(near); }
+        if (!run) { return; }
+      }
+
+      /* 적 */
+      for (i = 0; i < room.enemies.length; i++) {
+        var en = room.enemies[i];
+        if (en.hp <= 0) { continue; }
+        en.phase += dt * 7;
+        if (en.hurt > 0) { en.hurt -= dt; }
+        var ed = dist(en, p);
+        var el = en.elite ? eliteOf(en.elite) : null;
+        if (el && el.regen && en.hp < en.hpMax) {
+          en.hp = Math.min(en.hpMax, en.hp + en.hpMax * el.regen * dt);
+        }
+        if (en.dots && en.dots.length) {
+          for (var di2 = en.dots.length - 1; di2 >= 0; di2--) {
+            var dt2 = en.dots[di2];
+            en.hp -= dt2.dps * dt;
+            dt2.t -= dt;
+            if (dt2.t <= 0) { en.dots.splice(di2, 1); }
+          }
+          if (en.hp <= 0) { kill(en); if (!run) { return; } continue; }
+        }
+        var chill = 1;
+        if (en.slow > 0) {
+          en.slow -= dt;
+          chill = 1 - (en.slowMul || 0.45);
+        }
+        var espd = (62 + Math.min(40, (ctx.floor || 0) * 1.5)) *
+                   (el && el.spd ? el.spd : 1) * chill;
+        var lookW = en.ref && en.ref.look && en.ref.look.weapon;
+        var ranged = lookW === 'bow' || lookW === 'staff';
+        var stopAt = ranged ? RANGED_STOP : (en.r + P_R - 2);
+        var wob = (!ranged && lookW === 'axe') ? Math.sin(en.phase * 0.6) * 0.5 : 0;
+        var lunge = (!ranged && lookW === 'club') ? 1 + Math.max(0, Math.sin(en.phase * 0.9)) * 0.7 : 1;
+        if (ed > stopAt) {
+          var mvx = (p.x - en.x) / ed, mvy = (p.y - en.y) / ed;
+          if (wob) {
+            var perpx = -mvy, perpy = mvx;
+            mvx += perpx * wob; mvy += perpy * wob;
+            var mvl = Math.sqrt(mvx * mvx + mvy * mvy) || 1;
+            mvx /= mvl; mvy /= mvl;
+          }
+          en.x += mvx * espd * lunge * dt;
+          en.y += mvy * espd * lunge * dt;
+        }
+        var reachBonus = (lookW === 'spear' || lookW === 'halberd') ? 14 : 0;
+        en.cd -= dt;
+        if (ed <= en.r + P_R + 6 + reachBonus && en.cd <= 0) {
+          en.cd = ENEMY_CD * (el && el.cd ? el.cd : 1) / chill;
+          hurtPlayer(en.dmg, en.ref && en.ref.atkEl);
+          if (!run) { return; }
+        } else if (ranged && ed > en.r + P_R + 6 && ed <= RANGED_MAX && en.cd <= 0) {
+          en.cd = ENEMY_CD * 1.4 * (el && el.cd ? el.cd : 1) / chill;
+          var frdx = p.x - en.x, frdy = p.y - en.y;
+          var frd = Math.sqrt(frdx * frdx + frdy * frdy) || 1;
+          var frEl = (en.ref && en.ref.atkEl) || 'phys';
+          run.foeShots.push({
+            x: en.x, y: en.y - 8, dx: frdx / frd, dy: frdy / frd, spd: 260, life: 1.8,
+            dmg: en.dmg, el: frEl, color: elemColorOf(frEl)
+          });
+        }
+        /* 들판 로머는 늘 boss:false 로 태어나므로(spawnFieldEncounters) 강타
+           패턴은 안 타지만, 나중에 예외가 생겨도 안전하도록 그대로 둔다 */
+        if (en.boss) {
+          if (en.slamWarn > 0) {
+            en.slamWarn -= dt;
+            if (en.slamWarn <= 0) {
+              if (dist(en, p) < SLAM_RANGE) {
+                hurtPlayer(en.dmg * SLAM_MUL, en.ref && en.ref.atkEl);
+                if (!run) { return; }
+              }
+              fx.push({ t: 'pop', x: en.x, y: en.y, life: 0.5, boss: true });
+              en.slamCd = 6 + Math.random() * 2;
+            }
+          } else {
+            en.slamCd = (en.slamCd === undefined ? 4 : en.slamCd) - dt;
+            if (en.slamCd <= 0) {
+              en.slamWarn = SLAM_WARN;
+              fx.push({ t: 'whirl', x: en.x, y: en.y, r: SLAM_RANGE, life: SLAM_WARN,
+                el: 'fire', color: '#ff6a3a' });
+            }
+          }
+        }
+      }
+    });
   }
 
   /** 사기(士氣) 버프가 살아 있나 */
@@ -1936,6 +2146,14 @@
     _dropMat: dropMat,
     ROOM_W: ROOM_W, ROOM_H: ROOM_H, WALL: WALL, P_R: P_R,
     SKILL_SLOTS: SKILL_SLOTS,
+    /** 던전 밖(마을 등)이 같은 필드 메커니즘을 빌려 쓸 때 쓰는 자리 —
+     *  각 함수의 ctx 인자는 그 함수 정의 옆 주석을 볼 것 (사가블로 마을 필드전투). */
+    FIELD_ENEMY_CAP: FIELD_ENEMY_CAP,
+    fieldOn: fieldOn, fieldRadiusUnits: fieldRadiusUnits,
+    fieldBoundPlayer: boundPlayer,
+    spawnFieldRoamers: spawnFieldEncounters,
+    fieldRoamerCount: fieldEnemyCount,
+    stepFieldCombat: stepFieldCombat,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo,
     pickBoon: pickBoon, goRoom: goRoom,

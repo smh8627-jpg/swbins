@@ -155,6 +155,14 @@
   var fx = [];
   var armed = {};                       // 닿아서 이미 발동한 것 — 벗어나야 풀린다
 
+  /* 마을 둘레 필드 전투 — 던전이 이미 검증해 둔 메커니즘(dungeon.js 의
+     fieldBoundPlayer·spawnFieldRoamers·stepFieldCombat)을 그대로 빌려 쓴다.
+     체력·투사체는 마을 자신의 것이라 여기 module 레벨에 붙들고 있는다 —
+     raw() 는 매 틱 새 객체를 만들지만 이 배열·수는 그 안에서 참조만 한다. */
+  var fhp = 1, fhpMax = 1, fmp = 100, fmpMax = 100;
+  var fshots = [], ffoeShots = [];
+  var fieldSpawnCd = 4;                 // 던전과 같은 4초 주기(dungeon.js FIELD 보충과 동일)
+
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
   function D() { return global.DG.dungeon; }
@@ -187,8 +195,13 @@
          입구 코앞에 세우면 둘러보기 전에 아래로 한 번 끌자마자 내려가 버린다. */
       x: p.x, y: p.y, phase: 0, walking: false, facing: 1, hurt: 0,
       cds: [0, 0, 0, 0], dash: null, invuln: 0, rallyUntil: 0,
-      dirX: 0, dirY: -1
+      dirX: 0, dirY: -1,
+      atkCd: 0, atkAnim: 0            // 필드 로머 자동공격용 — dungeon.js stepFieldCombat 이 쓴다
     };
+    /* 체력도 던전과 같은 산식으로 — 부대 방어력이 오르면 마을 필드에서도 더 버틴다 */
+    fhpMax = fhp = global.DG.hero ? Math.max(1, Math.round(global.DG.hero.partyPower().def * 3 + 60)) : 100;
+    fshots.length = 0; ffoeShots.length = 0;
+    fieldSpawnCd = 4;
   }
 
   /* ── 드나들기 ─────────────────────────────────────────── */
@@ -285,6 +298,7 @@
   function update(dt) {
     if (!on || !player) { return; }
     dt = Math.min(dt, 0.05);
+    var px0 = player.x, py0 = player.y;
 
     var dx = input.dx, dy = input.dy;
     if (!dx && !dy && target) {
@@ -305,8 +319,24 @@
     } else {
       player.walking = false;
     }
-    player.x = core.clamp(player.x, WALL + P_R, ROOM_W - WALL - P_R);
-    player.y = core.clamp(player.y, WALL + P_R, ROOM_H - WALL - P_R);
+    /* 던전이 이미 검증해 둔 필드 확장(방 밖 들판까지 넓히고, 눈에 보이는
+       소품과는 부딪힌다)을 마을도 그대로 쓴다 — 방 치수가 다르므로 ctx 로
+       넘긴다(위 raw() 참고). */
+    var ctx = raw();
+    D().fieldBoundPlayer(player, px0, py0, ctx);
+
+    /* 들판 로머 — 던전과 같은 주기·상한(PLAN 10절 "필드 사냥"과 동일 규칙) */
+    fieldSpawnCd -= dt;
+    if (fieldSpawnCd <= 0) {
+      fieldSpawnCd = 4;
+      if (D().fieldRoamerCount(ctx) < D().FIELD_ENEMY_CAP) { D().spawnFieldRoamers(1, ctx); }
+    }
+    D().stepFieldCombat(dt, ctx, fx);
+    /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
+       dungeon:end 가 곧바로 town.enter({fromDungeon:true})를 다시 불러 굴혈 앞으로
+       돌려보낸다. 마을은 안전지대 예외를 안 둔다(사용자 확정) — 대신 돌아온
+       자리에서는 다시 온전하다. */
+    fhp = ctx.hp <= 0 ? fhpMax : ctx.hp;
 
     /* 마을 사람은 제자리에서 숨만 쉰다 — 돌아다니게 하면 볼일 보러 쫓아다녀야 한다 */
     for (var i = 0; i < room.npcs.length; i++) { room.npcs[i].phase += dt * 1.2; }
@@ -327,15 +357,22 @@
 
   /* ── 화면이 읽어 가는 것 — dungeon.js 와 같은 모양 ────── */
 
+  /**
+   * dungeon.js 의 run 과 같은 모양이다 — 이 객체를 그대로 dungeon.js 의
+   * fieldBoundPlayer·spawnFieldRoamers·stepFieldCombat 에 ctx 로 넘긴다.
+   * roomW·roomH·wall·pr 은 이 방 치수가 던전과 달라서(마을은 데스크톱에서
+   * 1.4배로 커진다) 그 함수들이 씨앗·경계를 마을 크기에 맞게 계산하게 한다.
+   */
   function raw() {
     if (!on) { return null; }
     return {
       town: true, theme: THEME,
-      floor: 0, startFloor: 0,
-      room: room, player: player, shots: [],
+      floor: 0, startFloor: 0, roomIdx: undefined,
+      roomW: ROOM_W, roomH: ROOM_H, wall: WALL, pr: P_R,
+      room: room, player: player, shots: fshots, foeShots: ffoeShots,
       boons: {}, choice: null,
       loot: { gold: 0, items: [] },
-      hp: 1, hpMax: 1, mp: 1, mpMax: 1,
+      hp: fhp, hpMax: fhpMax, mp: fmp, mpMax: fmpMax,
       kills: 0, dead: false
     };
   }
@@ -361,10 +398,9 @@
         rank: got[i].rank, cost: sk.cost, cd: 0, cdMax: sk.cd, ready: false
       });
     }
-    var hpMax = global.DG.hero ? Math.max(1, Math.round(global.DG.hero.partyPower().def * 3 + 60)) : 100;
     return {
       active: true, town: true, floor: 0, theme: THEME,
-      hp: hpMax, hpMax: hpMax, mp: 100, mpMax: 100,
+      hp: Math.max(0, Math.round(fhp)), hpMax: fhpMax, mp: Math.round(fmp), mpMax: fmpMax,
       skills: skills, rally: false,
       room: 1, roomTotal: 1, cleared: true, kind: 'town',
       loot: { gold: 0, items: 0 },
