@@ -2454,6 +2454,45 @@ window.DG_NO_TUNE = true;
       return Array.isArray(list) && ('margin 5 → ' + list.length + '명');
     });
 
+    /* ── PLAN 40절 PHASE 4 Interaction 칸 ─────────────────────
+     * PLAN 35절 "오브젝트마다 딴 이벤트 코드를 안 만든다" — 기존 focus()/
+     * interact() 표에 npc 한 줄만 보탰다(새 InteractionManager를 안 만들었다).
+     */
+
+    t('상호작용 — 숲 NPC 곁에 서면 focus() 가 그 NPC를 잡는다', function () {
+      V.buildNpcs();
+      var n = V.raw().npcs[0];
+      var savedX = V.raw().player.x, savedY = V.raw().player.y;
+      V.raw().player.x = n.x; V.raw().player.y = n.y;
+      var f = V.focus();
+      V.raw().player.x = savedX; V.raw().player.y = savedY;
+      return !!f && f.type === 'npc' && f.obj.id === n.id &&
+        ('(' + n.kind + ') 잡힘');
+    });
+
+    t('상호작용 — 숲 NPC에게 말을 걸면 인사말이 그대로 돌아온다', function () {
+      V.buildNpcs();
+      var n = V.raw().npcs[0], def = VD.NPCS[n.kind];
+      var savedX = V.raw().player.x, savedY = V.raw().player.y;
+      V.raw().player.x = n.x; V.raw().player.y = n.y;
+      var r = V.interact();
+      V.raw().player.x = savedX; V.raw().player.y = savedY;
+      return r && r.kind === 'talk' && r.name === def.name && r.text === def.line &&
+        ('「' + r.text + '」');
+    });
+
+    t('상호작용 — 캠프·동굴의 장식(deco)은 여전히 focus() 에 안 잡힌다', function () {
+      V.buildProps(); V.syncPlanted();   // 심은 것도 되살려 이후 테스트(공사)의 tileBusy 판정을 안 흔든다
+      var raw = V.raw(), fire = null, i;
+      for (i = 0; i < raw.props.length; i++) { if (raw.props[i].id === 'hamletFire') { fire = raw.props[i]; break; } }
+      if (!fire) { return false; }
+      var savedX = raw.player.x, savedY = raw.player.y;
+      raw.player.x = fire.x; raw.player.y = fire.y;
+      var f = V.focus();
+      raw.player.x = savedX; raw.player.y = savedY;
+      return (!f || f.obj.id !== 'hamletFire') && '모닥불은 여전히 장식일 뿐';
+    });
+
     t('주민 — 두 사람이 번갈아 말한다', function () {
       DG.folk._reset();
       var res = V.raw().residents;

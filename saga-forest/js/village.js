@@ -662,6 +662,14 @@
     }
   }
 
+  /** 숲 NPC에게 말을 건다 — 지금은 인사말 한 줄뿐이다. 부탁·물건·발견정보
+   *  (PLAN 17절 나머지 역할)는 Interaction 다음 칸(Quest)에서 채운다 */
+  function talkNpc(npc) {
+    var def = VD.NPCS[npc.kind];
+    if (!def) { return null; }
+    return { kind: 'talk', name: def.name, text: def.line };
+  }
+
   function init() {
     st();
     buildProps();
@@ -828,6 +836,14 @@
       d = Math.hypot(residents[i].x - player.x, residents[i].y - player.y);
       if (d < bd) { bd = d; best = { type: 'resident', obj: residents[i], dist: d }; }
     }
+    /* 숲 NPC(PLAN 40절 PHASE 4 Interaction 칸) — 마을 주민과 같은 REACH,
+       같은 focus() 한 자리를 쓴다. InteractionManager 를 새로 만들지 않고
+       이 표에 한 줄만 보탠 것이 PLAN 35절이 말하는 "오브젝트마다 딴 이벤트
+       코드를 안 만든다" 그 자체다 */
+    for (i = 0; i < npcs.length; i++) {
+      d = Math.hypot(npcs[i].x - player.x, npcs[i].y - player.y);
+      if (d < bd) { bd = d; best = { type: 'npc', obj: npcs[i], dist: d }; }
+    }
     return best;
   }
 
@@ -954,6 +970,7 @@
 
     if (f.type === 'bug') { return global.DG.bug.swing(f.obj); }
     if (f.type === 'resident') { return talk(f.obj); }
+    if (f.type === 'npc') { return talkNpc(f.obj); }
 
     var prop = f.obj, def = VD.PROPS[prop.kind];
     if (!def) { return null; }

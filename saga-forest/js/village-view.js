@@ -204,7 +204,7 @@
       else if (d.t === 'res') { drawResident(d.o, f, now); }
       else if (d.t === 'bug') { drawBug(d.o, f, ph, now); }
       else if (d.t === 'animal') { drawAnimal(d.o, now); }
-      else if (d.t === 'npc') { drawNpc(d.o, now); }
+      else if (d.t === 'npc') { drawNpc(d.o, f, now); }
       else { drawMe(d.o, now); }
     }
 
@@ -1398,7 +1398,7 @@
    * 한 줄이 뜬다. residents 처럼 이름표는 늘 띄운다.
    */
   var NPC_TALK_DIST = 130;
-  function drawNpc(n, now) {
+  function drawNpc(n, f, now) {
     var def = VD.NPCS[n.kind];
     if (!def) { return; }
     var p = project(n.x, n.y);
@@ -1417,7 +1417,12 @@
 
     var raw = V.raw();
     var near = Math.hypot(raw.player.x - n.x, raw.player.y - n.y) < NPC_TALK_DIST;
-    if (near) {
+    var focused = f && f.type === 'npc' && f.obj.id === n.id;
+    if (focused) {
+      ring(p.x, p.y + 3 * k, k, 'rgba(120,205,255,.95)');
+      bubble('말을 건다 [' + core.actHint() + ']', p.x, p.y - 82 * k, '#0d5b86', '#e6f5ff');
+      bubble(def.name, p.x, p.y - 60 * k, '#5a6472', '#f2f4f8');
+    } else if (near) {
       bubble(def.line, p.x, p.y - 82 * k, '#2f3a46', '#fffdf4');
       bubble(def.name, p.x, p.y - 60 * k, '#5a6472', '#f2f4f8');
     } else {

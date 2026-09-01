@@ -439,6 +439,18 @@
       els.focusbar.classList.add('show');
       return;
     }
+    if (f.type === 'npc') {
+      var ndef = VD.NPCS[f.obj.kind];
+      key = 'n|' + f.obj.id;
+      html = '<div class="focus-card">' +
+        '<span class="fc-ico">' + ndef.emoji + '</span>' +
+        '<span class="fc-meta"><b>' + esc(ndef.name) + '</b>' +
+          '<small class="muted">말을 건다 — ' + core.actHint() + '</small></span>' +
+        '<button class="btn primary" data-act="v-do">말 건다</button></div>';
+      if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
+      els.focusbar.classList.add('show');
+      return;
+    }
     if (f.type === 'prop') {
       var def = VD.PROPS[f.obj.kind];
       var spent = V.spent(f.obj);
