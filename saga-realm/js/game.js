@@ -41,6 +41,23 @@
   }
 
   function bindTopbar() {
+    var moreBtn = document.getElementById('btn-more');
+    var more = document.getElementById('top-more');
+    if (moreBtn && more) {
+      moreBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        more.classList.toggle('show');
+      });
+      document.addEventListener('click', function (e) {
+        if (more.classList.contains('show') && !more.contains(e.target) && e.target !== moreBtn) {
+          more.classList.remove('show');
+        }
+      });
+      global.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { more.classList.remove('show'); }
+      });
+    }
+
     var reset = document.getElementById('btn-reset');
     if (reset) {
       reset.addEventListener('click', function () {
