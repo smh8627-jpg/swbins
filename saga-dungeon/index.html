@@ -6,7 +6,7 @@
 try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))history.replaceState(null,'',location.pathname.replace(/index\.html$/,'')+location.search+location.hash);}catch(e){}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#12141a">
-<title>사가블로 — 내려간다</title>
+<title>사가블로 — 필드를 돈다</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/diablo.css">
 <link rel="manifest" href="manifest.json">
@@ -42,7 +42,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <!-- 자동 순회 상태 -->
 <div id="autobar"></div>
 
-<!-- 가운데: 본영 — 던전에 들어가기 전 화면 -->
+<!-- 가운데: 본영/마을 — 기본은 필드를 도는 화면이고, 던전(굴혈)은 걸어 들어가야 하는 이벤트 던전이다 -->
 <div id="camp"></div>
 
 <!-- 우하단: 액션 독 — 자주 쓰는 셋만 붙박이로 두고, 나머지는 "더보기" 뒤로 접는다 -->
