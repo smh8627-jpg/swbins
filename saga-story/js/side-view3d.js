@@ -23,6 +23,13 @@
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
   var playerMesh = null, enemyPool = [];
   var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
+  var lastDrawT = 0, frameDt = 0;   // 사람 GLB 의 몸짓(뼈대 애니메이션)을 굴리는 델타타임
+
+  function hexOf(css) {
+    if (!css) { return 0; }
+    var n = parseInt(String(css).replace('#', ''), 16);
+    return isNaN(n) ? 0 : n;
+  }
 
   /** 도형(원뿔·구)을 먼저 세워 두고, GLB 가 도착하면(같은 세대일 때만) 갈아 끼운다.
    *  `holder` 는 이미 화면에 있는 자리(위치)이고, 안에 든 도형만 바뀐다 */
@@ -223,6 +230,8 @@
     lastMood = stg.mood + '|' + stg.width;
   }
 
+  /** 도형(원뿔·구가 아니라 캡슐+구) 사람 — GLB 가 오기 전까지, 혹은 GLB 가 실패하면
+   *  끝까지 이 모습이다 */
   function humanoid(Tc, color, boss) {
     var g = new Tc.Group();
     var scale = boss ? 1.9 : 1;
@@ -239,14 +248,76 @@
     return g;
   }
 
+  /**
+   * 배우 하나 — 도형(캡슐)을 먼저 세워 두고, GLB 가 도착하면 갈아 끼운다
+   * (지형지물의 `swapIn` 과 같은 요령). `kind` 가 'beast' 면 홑 GLB(늑대·소)로,
+   * 아니면 사람 조합(`asset3d.buildHero`)으로 간다.
+   *
+   * @param color  이 배우의 원래 빛깔 — 도형 표면·사람 GLB 옷의 물들임에 쓴다.
+   *               짐승은 제 털빛이 맞으므로 안 물들인다
+   */
+  function actorShell(Tc, kind, color, boss, seed, big) {
+    var shell = new Tc.Group();
+    var prim = humanoid(Tc, color, boss);
+    shell.add(prim);
+    shell.userData.body = prim.userData.body;
+    shell.userData.head = prim.userData.head;
+    shell.userData.baseColor = prim.userData.baseColor;
+
+    var heightPx = (boss ? 1.9 : 1) * 58;   // 도형 사람의 정수리 높이(50*scale)와 얼추 맞춘다
+    function swapActorIn(model) {
+      if (!model) { return; }   // GLB 를 못 받았다 — 도형 그대로 남는다
+      while (shell.children.length) { shell.remove(shell.children[0]); }
+      shell.add(model);
+      shell.userData.body = null; shell.userData.head = null;   // 이제 도형 물들임은 안 쓴다
+      shell.userData.mixer = model.userData.mixer || null;
+      shell.userData.actions = model.userData.actions || null;
+      shell.userData.clipMap = model.userData.clipMap || null;
+      shell.userData.anim = null;
+      var A = global.DG.asset3d;
+      shell.userData.flashMats = A && A.ownAllMat ? A.ownAllMat(model) : null;
+    }
+    var A = global.DG.asset3d;
+    if (A) {
+      if (kind === 'beast') { A.build(big ? 'beast_big' : 'beast', seed, heightPx, swapActorIn); }
+      else { A.buildHero(seed, heightPx, hexOf(color), swapActorIn); }
+    }
+    return shell;
+  }
+
   function place(mesh, x, yFloorOffset, facing) {
     mesh.position.x = x;
     mesh.position.y = yFloorOffset;
     mesh.rotation.y = facing >= 0 ? Math.PI / 2 : -Math.PI / 2;
   }
 
+  /** 몸짓 하나 고르기 — GLB 사람이면 뼈대 애니메이션을 굴리고(걷기/맞음/가만있기),
+   *  아직 도형이면 흰빛으로 번쩍이는 예전 방식 그대로다 */
+  function stepActor(shell, animName) {
+    if (shell.userData.flashMats) {
+      var k = (shell.userData.hurtNow || 0) > 0 ? Math.min(1, shell.userData.hurtNow * 3) : 0;
+      var fm = shell.userData.flashMats, j;
+      for (j = 0; j < fm.length; j++) { fm[j].emissive.setRGB(k * 0.9, k * 0.15, k * 0.1); }
+    }
+    var u = shell.userData;
+    if (!u.mixer) { return; }
+    if (u.anim !== animName) {
+      var clipName = u.clipMap && u.clipMap[animName];
+      var next = clipName && u.actions[clipName];
+      if (next) {
+        var prevClip = u.anim && u.clipMap[u.anim];
+        var prev = prevClip && u.actions[prevClip];
+        next.reset().play();
+        if (prev && prev !== next) { prev.crossFadeTo(next, 0.2, false); }
+        u.anim = animName;
+      }
+    }
+    u.mixer.update(frameDt);
+  }
+
   function tintHurt(g, hurt) {
-    if (!g.userData.body) { return; }
+    g.userData.hurtNow = hurt;
+    if (!g.userData.body) { return; }   // GLB 로 갈렸으면 stepActor 의 flashMats 몫이다
     var k = hurt > 0 ? Math.min(1, hurt * 3) : 0;
     g.userData.body.material.color.copy(g.userData.baseColor).lerp(new (three()).Color(0xffffff), k);
     g.userData.head.material.color.copy(g.userData.baseColor).lerp(new (three()).Color(0xffffff), k);
@@ -254,6 +325,9 @@
 
   function draw() {
     if (!active()) { return; }
+    var now = Date.now() / 1000;
+    frameDt = lastDrawT ? Math.max(0, Math.min(0.25, now - lastDrawT)) : 0;
+    lastDrawT = now;
     var S = global.DG.side, SV = global.DG.sideView;
     var run = S.raw();
     if (!run) { return; }
@@ -274,32 +348,42 @@
     dirLight.target.position.set(focusX, 0, 0);
 
     if (!playerMesh) {
-      playerMesh = humanoid(Tc, (global.DG.data.faction(S.meRef().faction) || {}).color, false);
+      var meRef = S.meRef();
+      playerMesh = actorShell(Tc, 'human',
+        (global.DG.data.faction(meRef.faction) || {}).color, false, meRef.id, false);
       actorGroup.add(playerMesh);
     }
     place(playerMesh, p.x + S.P_W / 2, stg.floor - (p.y + S.P_H), p.facing);
     tintHurt(playerMesh, p.hurt || 0);
-    var bob = (p.vx && p.onGround) ? Math.abs(Math.sin(Date.now() / 90)) * 3 : 0;
+    var walking = !!p.vx && p.onGround;
+    stepActor(playerMesh, (p.hurt || 0) > 0 ? 'hit' : (walking ? 'walk' : 'idle'));
+    var bob = (!playerMesh.userData.mixer && walking) ? Math.abs(Math.sin(Date.now() / 90)) * 3 : 0;
     playerMesh.position.y += bob;
 
     var i;
     for (i = 0; i < run.enemies.length; i++) {
       var e = run.enemies[i];
       var em = enemyPool[i];
+      var big = /코끼리/.test((e.ref && e.ref.name) || '');
       if (!em) {
-        em = humanoid(Tc, e.ref.color, e.boss);
+        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, big);
         em.userData.boss = !!e.boss;
         actorGroup.add(em); enemyPool[i] = em;
       }
       if (em.userData.boss !== !!e.boss) {
         actorGroup.remove(em);
-        em = humanoid(Tc, e.ref.color, e.boss);
+        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, big);
         em.userData.boss = !!e.boss;
         actorGroup.add(em); enemyPool[i] = em;
       }
       em.visible = true;
       place(em, e.x + e.w / 2, stg.floor - (e.y + e.h), e.dir);
       tintHurt(em, e.hurt || 0);
+      stepActor(em, (e.hurt || 0) > 0 ? 'hit' : 'walk');
+      if (!em.userData.mixer) {
+        var eb = Math.abs(Math.sin((Date.now() + i * 130) / 110)) * 2.4;
+        em.position.y += eb;
+      }
     }
     for (i = run.enemies.length; i < enemyPool.length; i++) {
       if (enemyPool[i]) { enemyPool[i].visible = false; }

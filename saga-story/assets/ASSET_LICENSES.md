@@ -35,5 +35,26 @@
 
 **아직 안 채운 것** — 불타는 골짜기(fire)의 불길·불티는 그대로 절차적 이펙트다
 (모델이 아니라 색·투명도로 흔들리는 연출이라 애초에 "지형지물"이 아니다).
-사람(주인공·적)은 아직 도형 캡슐이다 — 사람 모델은 뼈대 애니메이션이 걸린 더 큰
-작업이라 다음 단계로 미룬다.
+
+### 넣은 파일 — PLAN 36절 Phase 2 (사람·짐승)
+
+`models/people/regular/` — 주인공·사람 형 적이 이 GLB 로 선다(몸+옷+머리를 한
+뼈대에 묶는 조합형, `js/asset3d.js` 의 `HERO_RECIPES`). saga-forest·saga-dungeon
+이 이미 쓰는 그 창고에서 **실제로 쓰는 조합 넉 줄(남/여 × 평민/사냥꾼)이 필요로
+하는 파일만** 추려 복사했다(전체 people/regular 폴더의 27MB가 아니라 필요한
+낱장만) — 몸(Superhero_Male/Female_FullBody) · 옷(Male/Female_Peasant,
+Male/Female_Ranger) · 머리(Hair_Buzzed·Long·Buns·SimpleParted)와 그 텍스처.
+`models/anim/UAL1_Standard.glb` — 몸짓(걷기·맞음·가만있기) 클립, 넷이 전부 같은
+뼈대라 옮겨 입히기 없이 그대로 물린다. `models/animals/` — 짐승 형 적(들개·
+코끼리병)의 대역으로 saga-dungeon 의 Wolf.glb·Cow.glb 를 그대로 복사했다
+(코끼리는 CC0 로 못 찾아 몸집 큰 소로 대신한다).
+
+**무게 참고** — 사람 쪽(gltf+bin+텍스처+UAL1 애니메이션)만 약 34MB다. 사냥터에
+처음 들어설 때 한 번 받고 캐시되며, saga-forest·saga-dungeon 이 이미 같은 무게를
+지고 있다(이 판만의 새 결정이 아니다). GLB 를 못 받으면(느린 회선·file:// 단독판)
+조용히 도형 캡슐로 남는다 — 판정은 안 바뀐다.
+
+사람(주인공·적)의 피격 번쩍임은 GLB 로 갈리면 도형 시절의 색-보간 대신
+**emissive(자체발광) 물들임**으로 바꿨다 — 옷 텍스처의 원래 색을 곱셈으로
+지우지 않기 위해서다(`js/asset3d.js` 의 `ownAllMat`/`applyTint`, saga-dungeon과
+같은 요령).
