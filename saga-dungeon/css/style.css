@@ -506,7 +506,13 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   }
   .sheet-head { padding-top: 18px; }
   #widgets { width: calc(100% - 96px); max-width: 236px; }
-  #dock { flex-direction: row; }
+  /* 2026-09-01 — "아래 메뉴가 다 안 나와 · 옆으로 짤려"(사용자). 독이 9개로
+     늘었는데 flex-direction:row 한 줄로 두고 overflow-x:auto(스크롤바는 숨김)로
+     흘려보내고 있었다 — 화면 오른쪽 끝에 붙어 있으니 뒤쪽 몇 개는 안 보이는데
+     스크롤 표시조차 없어 사용자는 "안 나온다"로 겪었다. 3열 그리드로 접어
+     스크롤 자체를 없앤다 — 좌하단 #widgets(236px)·가운데 #near 와 안 겹치는
+     오른쪽 구석 172px 폭이면 충분하다. */
+  #dock { display: grid; grid-template-columns: repeat(3, 52px); gap: 8px; }
   #dock button { width: 52px; height: 52px; border-radius: 17px; }
 
   /* 상단이 폰 폭을 넘어가던 자리 — 마지막 도구(↺ 처음부터)가 화면 밖이었다.
@@ -895,7 +901,6 @@ body.dg3d #dg-canvas { background: transparent !important; border-color: transpa
   .dg-card { width: 100%; max-width: 320px; padding: 11px; flex-direction: row; text-align: left; }
   .dg-card b { flex: 0 0 auto; }
   .dg-cards { flex-direction: column; align-items: center; }
-  #dock { overflow-x: auto; }
   .sp-cards { flex-direction: column; }
   .sp-card { flex-direction: row; justify-content: flex-start; gap: 7px; }
 }
@@ -946,10 +951,7 @@ body.dg3d #dg-canvas { background: transparent !important; border-color: transpa
 
 .on-dot { color: var(--purple); }
 
-/* 좁은 화면 — 독이 7개라 가로 스크롤을 허용한다 */
 @media (max-width: 780px) {
-  #dock { overflow-x: auto; scrollbar-width: none; }
-  #dock::-webkit-scrollbar { display: none; }
   .modeswitch { flex-direction: column; }
 }
 
