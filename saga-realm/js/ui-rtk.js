@@ -1004,12 +1004,14 @@
   }
 
   function showBattle(rep) {
-    var html = '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황</h3><div class="warlog">';
+    var html = (global.DG.battle3d ? '<canvas id="battle3d"></canvas>' : '') +
+      '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황</h3><div class="warlog">';
     for (var i = 0; i < rep.log.length; i++) {
       html += '<div>' + esc(rep.log[i]) + '</div>';
     }
     html += '</div><button class="btn primary wide" data-act="close-enc">확인</button>';
     showEnc(html);
+    if (global.DG.battle3d) { global.DG.battle3d.render(rep); }
   }
 
   function showEnd(kind) {

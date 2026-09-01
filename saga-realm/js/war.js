@@ -263,7 +263,7 @@
 
     var report = fight(atk, def, to, toId, land, false);
     report.from = fromId; report.to = toId; report.relief = relief;
-    report.force = from.force;
+    report.force = from.force; report.defForce = def.force;
     if (relief > 0) { report.log.splice(1, 0, '🚩 이웃 성에서 구원군 ' + core.fmt(relief) + ' 이 들어왔다'); }
 
     /* 들고 나간 군량에서 이 달 먹은 것을 뺀 나머지가 **치중(輜重)** 이다 */
@@ -438,6 +438,7 @@
     return {
       ok: true, won: won, routed: routed, duel: du, log: log,
       lossA: atk.start - atk.troops, lossD: def.start - def.troops,
+      atkStart: atk.start, defStart: def.start,
       wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water
     };
   }
@@ -797,7 +798,7 @@
 
     var report = fight(atk, def, to, cp.to, land, false);
     report.from = cp.from; report.to = cp.to; report.relief = relief;
-    report.force = cp.force;
+    report.force = cp.force; report.defForce = def.force;
     report.campId = cp.id; report.siege = true; report.months = cp.months;
     report.log.splice(1, 0, '🏕️ ' + cp.months + '달째 에워싸고 있다 — 사기 ' +
       Math.round(cp.morale * 100) + ' · 치중 ' + core.fmt(cp.food) +
