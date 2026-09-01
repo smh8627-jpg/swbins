@@ -1119,7 +1119,11 @@
     /* 나 */
     var me = actorOf('me', 'me', null);
     me.node.position.set(p.x, 0, p.y);
-    if (p.walking) { me.ang = Math.atan2(p.facing || 1, 0.001); }
+    /* 걷는 방향을 그대로 돌린다 — 예전엔 `p.facing`(좌우 ±1)만 봐서 위·아래로
+       걸어도 몸은 늘 옆(왼쪽/오른쪽)만 보고 있었다. `p.dirX`·`p.dirY`(마지막
+       이동 방향, 스킬 방향과 같은 값)를 쓰면 적·NPC 가 나를 볼 때 쓰는
+       `atan2(dx, dy)`와 같은 결로 앞·뒤·대각선까지 다 돈다. */
+    if (p.walking) { me.ang = Math.atan2(p.dirX || (p.facing || 1), p.dirY || 0.001); }
     me.node.rotation.y = me.ang;
     /* 걸으면 위아래로 튄다 — 도형으로 남아 있을 때만 도드라진다(GLB 는 제 다리로 걷는다) */
     me.node.position.y = p.walking ? Math.abs(Math.sin(p.phase || 0)) * 2.2 : 0;
@@ -1235,14 +1239,16 @@
     sweep();
 
     /* 카메라 — 회전은 막는다(8절). 부드럽게 따라온다 */
-    /* 마을에서는 조금 더 물러난다. 마당(560×380)에 사람이 3×3 으로 앉아 있어
-       **한눈에 들어와야** 누구에게 갈지 정할 수 있다(town.js 가 크기를 그렇게 잡았다).
-       세로로 긴 화면에서는 가로가 먼저 잘리므로 화면비까지 셈에 넣는다 —
-       던전 쪽 거리는 건드리지 않는다(연출·조작 감각이 거기 맞춰져 있다). */
+    /* 마을은 세로 폰 화면에서 너무 멀리·작게 보인다는 실기기 지적(2026-09-01)에
+       맞춰 물러나는 폭을 줄였다 — 예전엔 기본 1.15배 + 세로 화면에서 최대 1.5배
+       까지 더 물러났는데(1.15×1.5=1.725배), 마당(560×380) 전체를 한눈에 담으려던
+       뜻이 지나쳐 사람이 개미만 해졌다. 지금은 기본은 던전과 같게 두고 세로
+       화면에서만 최대 1.2배로 줄여 잡는다 — 여전히 화면비 보정은 하되 덜 물러난다.
+       던전 쪽 거리는 그대로다(연출·조작 감각이 거기 맞춰져 있다). */
     var zNow = ZOOM() / USERZOOM();
     if (run.town) {
       var asp = camera.aspect || 1;
-      zNow *= 1.15 * (asp < 1 ? Math.min(1.5, 1 / Math.max(0.5, asp)) : 1);
+      zNow *= (asp < 1 ? Math.min(1.2, 1 / Math.max(0.7, asp)) : 1);
     }
     var aim = CAMMODE() === 'third'
       ? camAim3rd(p.x, p.y, p.dirX, p.dirY, zNow, TILT())
