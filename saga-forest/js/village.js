@@ -190,6 +190,27 @@
     return d > RIVER_HALF_W && d <= RIVER_HALF_W * 2;
   }
 
+  /* ── 폭포(PLAN 40절 PHASE 3 다섯 번째 칸) ─────────────────────
+   * 강줄기를 따라 호수에서 남쪽으로 내려간 고정 한 자리다(margin 을 벗어나지
+   * 않게 자른다) — 강이 없으면(호수가 없으면) 폭포도 없다.
+   *
+   * **진짜 낙차는 못 만든다** — `terrain.js` 머리말대로 이 판 땅에는 애초에
+   * 높이 축이 없다(절벽을 안 넣은 것과 같은 이유). 그래서 이번 칸은 "여기가
+   * 폭포다"라는 **고정 표지**만 세운다 — 판정(tileAt)은 그 칸도 여전히 강물
+   * (water)이고, 화면에는 기존 rock 렌더를 좌우에 세워 여울처럼 보이게만
+   * 한다. 물줄기·물보라 같은 실제 낙수 효과(PLAN 12절)는 호수·강 때부터
+   * 미뤄 온 "물 표현" 손질 몫으로 그대로 남긴다.
+   */
+  function waterfallSpot() {
+    var c = lakeCenter();
+    if (!c) { return null; }
+    var m = forestMargin();
+    var ty = Math.min(H + m - 3, c.ty + 26);
+    var cx = riverCenterX(ty);
+    if (cx === null) { return null; }
+    return { tx: Math.round(cx), ty: ty };
+  }
+
   function tileAt(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
@@ -345,6 +366,17 @@
           if (fh > table[bi][0]) { props.push({ id: fid, kind: table[bi][1], x: fx, y: fy, deco: true }); break; }
         }
       }
+    }
+
+    /* 폭포 표지(PLAN 40절 PHASE 3 다섯 번째 칸) — 강이 있을 때만, 늘 같은 자리.
+       좌우에 기존 rock 렌더(3D 모델도 이미 등록돼 있다)를 세워 여울처럼 보이게
+       한다 — 새 3D 코드 없이 마크만 남긴다 */
+    var wf = waterfallSpot();
+    if (wf) {
+      var wx = wf.tx * TILE + TILE * 0.5, wy = wf.ty * TILE + TILE * 0.5;
+      props.push({ id: 'waterfall', kind: 'waterfall', x: wx, y: wy, deco: true });
+      props.push({ id: 'waterfallRockL', kind: 'rock', x: wx - TILE * 0.9, y: wy - TILE * 0.25, deco: true });
+      props.push({ id: 'waterfallRockR', kind: 'rock', x: wx + TILE * 0.9, y: wy + TILE * 0.2, deco: true });
     }
   }
 
@@ -1182,6 +1214,7 @@
     giveGift: giveGift, giftLike: giftLike, giftedToday: giftedToday,
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
+    waterfallSpot: waterfallSpot,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,

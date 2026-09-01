@@ -393,6 +393,37 @@ window.DG_NO_TUNE = true;
       return leaked === 0 && '마을 칸 안 강물 침범 0개';
     });
 
+    /* ── PLAN 40절 PHASE 3 다섯 번째 칸: 폭포 ─────────────────── */
+
+    t('폭포 — 강 위 고정 한 자리, 재현된다', function () {
+      var a = V.waterfallSpot(), b = V.waterfallSpot();
+      return !!a && JSON.stringify(a) === JSON.stringify(b) &&
+        ('(' + a.tx + ',' + a.ty + ') 재현');
+    });
+
+    t('폭포 — 그 자리는 강물 위다', function () {
+      var wf = V.waterfallSpot();
+      return V.inRiver(wf.tx, wf.ty) && V.tileAt(wf.tx, wf.ty) === 'water' &&
+        ('(' + wf.tx + ',' + wf.ty + ')는 강물');
+    });
+
+    t('폭포 — 호수가 사라지면(margin 부족) 폭포도 같이 사라진다', function () {
+      C.setTune('forest.margin', 5);
+      var gone = V.waterfallSpot();
+      C.setTune('forest.margin', null);
+      return gone === null && 'margin 5 → 폭포 없음';
+    });
+
+    t('폭포 — buildProps() 가 표지와 여울 바위 둘을 세운다', function () {
+      V.buildProps();
+      var raw = V.raw(), byId = {};
+      for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
+      return byId.waterfall && byId.waterfall.kind === 'waterfall' && byId.waterfall.deco &&
+        byId.waterfallRockL && byId.waterfallRockL.kind === 'rock' &&
+        byId.waterfallRockR && byId.waterfallRockR.kind === 'rock' &&
+        '표지 1개 + 바위 2개';
+    });
+
     t('숲 고리 — 나무·바위·꽃은 장식일 뿐 손이 안 닿는다 (채집 대상 아님)', function () {
       V.buildProps();
       var raw = V.raw();
