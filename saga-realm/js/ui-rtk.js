@@ -49,7 +49,7 @@
 
   function init() {
     ['profile', 'wallet', 'realm', 'dock', 'sheet', 'sheet-title', 'sheet-body',
-     'sheet-close', 'scrim', 'encounter', 'toast'].forEach(function (id) { els[id] = $(id); });
+     'sheet-close', 'sheet-map', 'scrim', 'encounter', 'toast'].forEach(function (id) { els[id] = $(id); });
 
     els.dock.addEventListener('click', function (e) {
       var b = e.target.closest('[data-sheet]');
@@ -58,9 +58,17 @@
       if (openTab === name) { closeSheet(); } else { openSheet(name); }
     });
     els['sheet-close'].addEventListener('click', closeSheet);
+    els['sheet-map'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
     global.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
+        if (els.encounter.classList.contains('show')) { return; }
+        if (openTab) { closeSheet(); }
+      }
+      /* M — 디아블로식 "지도로" 단축키. 이 판은 국토 지도가 늘 화면 밑에 깔려 있고
+         성안·기록 등은 그 위 시트라, M 은 열린 시트를 닫아 국토 지도를 드러낸다.
+         encounter(전투 결과·시나리오 선택 등 응답 대기 중인 카드)는 Escape 처럼 건드리지 않는다 */
+      if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey && !e.altKey) {
         if (els.encounter.classList.contains('show')) { return; }
         if (openTab) { closeSheet(); }
       }
