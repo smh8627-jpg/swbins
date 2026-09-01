@@ -38,7 +38,8 @@
         distance: 0,        // 누적 이동 거리 (m 환산)
         supplyMark: 0,      // 걷기 보급을 마지막으로 받은 거리
         supplyCount: 0,     // 보급 횟수 (짝수 번째마다 등용서)
-        stationVisits: 0    // 역참에 들른 누적 횟수 (기록용)
+        stationVisits: 0,   // 역참에 들른 누적 횟수 (기록용)
+        trail: []           // 밟은 실제 위치 발자취 { lat, lng, kind, at } — 전체 지도(overworld.js, PLAN 25-1절)가 읽는다
       },
       items: { scroll: 3, feed: 5, treat: 2, incense: 1, prayer: 1 },
       boosts: {},                         // 쓴 물건의 효과가 언제까지인지 (bag.js)
