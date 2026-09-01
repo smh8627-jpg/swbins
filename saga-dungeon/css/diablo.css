@@ -713,3 +713,18 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   .dg-sk-cd { line-height: 35px; font-size: 11px; }
   .d2-belt .d2-cell { width: 25px; height: 25px; font-size: 13px; }
 }
+
+/* 오버월드 지도(PLAN 28-1절) — M키/🧭 로 여는 #encounter 창 안의 3×3 배치도.
+   모루골이 늘 가운데(ow-cell 5칸째)고, 위성 마을은 고정 방향에 뜬다. */
+.ow-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0;
+}
+.ow-cell {
+  min-height: 62px; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 6px; font-size: 12px; text-align: center;
+}
+.ow-cell b { font-size: 13px; }
+.ow-cell .ow-ic { font-size: 20px; }
+.ow-cell.here { border-color: var(--gold); background: var(--gold-soft); }
+.ow-cell.here small { color: var(--gold); font-weight: 700; }

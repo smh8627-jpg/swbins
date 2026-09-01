@@ -60,6 +60,9 @@
       if (!b) { return; }
       closeMore();
       var name = b.getAttribute('data-sheet');
+      /* 오버월드 지도(🧭)는 옆으로 미는 시트가 아니라 M키와 같은 펼친 지도다 —
+         encOpen()으로 여는 별개 창이라 openTab 상태를 건드리지 않는다. */
+      if (name === 'overworld') { openOverworldMap(); return; }
       if (openTab === name) { closeSheet(); } else { openSheet(name); }
     });
 
@@ -72,6 +75,13 @@
     els['sheet-close'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
     global.addEventListener('keydown', function (e) {
+      if (e.key === 'm' || e.key === 'M') {
+        /* 입력칸에 타이핑하는 중이면 지도를 가로채지 않는다 */
+        var t = e.target, tag = t && t.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') { return; }
+        toggleOverworldMap();
+        return;
+      }
       if (e.key !== 'Escape') { return; }
       if (els['dock-more'] && els['dock-more'].classList.contains('show')) { closeMore(); return; }
       if (openDetailRef) { closeDetail(); return; }
@@ -484,6 +494,7 @@
     core.on('town:mark', function (o) {
       if (o.key === 'gate') { enterGate(); }
       else if (o.key === 'waypoint') { openWaypoint(); }
+      else if (o.key.indexOf('exit_') === 0) { global.DG.town.travel(o.key); }
       else { openVow(); }
     });
     /* 장면이 바뀌는 순간 곧바로 다시 그린다. tickRefresh(0.3초)를 기다리면
@@ -652,6 +663,53 @@
     return '<div class="sec"><h4>🗺️ 월드맵</h4>' +
       '<div class="hint">층을 내려가며 지나온 지역이 열립니다 — 최고 <b>제' + best + '층</b>까지 밟았습니다.</div>' +
       '<div class="wm-list">' + rows + '</div></div>';
+  }
+
+  /* ── 오버월드 지도 (PLAN 28-1절, M키식 토글) ──────────────
+   * 위 월드맵(viewWorldMap)과는 완전히 다른 개념이다 — 그건 "던전을 얼마나
+   * 내려갔나"(층 진행표)고, 이건 "마을이 몇 개고 지금 어디에 있나"(오버월드
+   * 배치도)다. 디아블로 M키처럼 **펼쳐서 보기만 하는** 창이라 옆으로 미는
+   * 시트(sheet)가 아니라 encOpen()이 쓰는 #encounter 창을 그대로 빌린다 —
+   * 도움말·역참 창과 같은 자리, 같은 닫기(enc-close) 규칙이다.
+   * 배치는 늘 고정이다(모루골이 항상 가운데) — 지금 서 있는 마을만 강조한다.
+   */
+  function openOverworldMap() {
+    var T = global.DG.town;
+    if (!T || !T.overworld) { return; }
+    var cur = T.overworld.current();
+    var list = T.overworld.list();
+    var byDir = { hub: null, N: null, E: null, S: null, W: null };
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i];
+      if (!t.dirFromHub) { byDir.hub = t; } else { byDir[t.dirFromHub] = t; }
+    }
+    function cell(t) {
+      if (!t) { return '<div class="ow-cell"></div>'; }
+      var here = t.id === cur;
+      return '<div class="ow-cell' + (here ? ' here' : '') + '">' +
+        '<span class="ow-ic">🏘️</span><b>' + esc(t.name) + '</b>' +
+        (here ? '<small>현재</small>' : '') + '</div>';
+    }
+    var html = '<div class="enc-card">' +
+      '<h3 style="margin:0 0 4px;font-size:18px">🧭 오버월드</h3>' +
+      '<small class="muted">마을마다 들길(들판 출구)이 있어 걸어서 오갑니다. ' +
+      'M 키로 여닫습니다.</small>' +
+      '<div class="ow-grid">' +
+        '<div class="ow-cell"></div>' + cell(byDir.N) + '<div class="ow-cell"></div>' +
+        cell(byDir.W) + cell(byDir.hub) + cell(byDir.E) +
+        '<div class="ow-cell"></div>' + cell(byDir.S) + '<div class="ow-cell"></div>' +
+      '</div>' +
+      '<button class="btn primary wide" data-act="enc-close">닫는다</button></div>';
+    encOpen(html);
+  }
+  function closeOverworldMap() { encClose(); }
+  function toggleOverworldMap() {
+    var el = $('encounter');
+    if (el && el.classList.contains('show') && el.innerHTML.indexOf('오버월드') >= 0) {
+      closeOverworldMap();
+    } else {
+      openOverworldMap();
+    }
   }
 
   /* ── 퀘스트 (PLAN 36절) ───────────────────────────────────

@@ -12,6 +12,14 @@
  * moveTo · update). 화면은 자기가 마을을 그리는지 던전을 그리는지 몰라도 된다.
  *
  * 여기에 판정은 없다. 적도 피해도 없다 — 마을에서 하는 일은 걷는 것과 닿는 것뿐이다.
+ *
+ * ── 오버월드(PLAN 28-1절, 2026-09-02 구현) ──────────────────────────
+ * 마을은 이제 **넷**이다 — 모루골(중심) · 갈대나루(동, 나루터) · 자작재(북, 산길) ·
+ * 소금벌(남, 염전). 던전 굴혈은 모루골에만 있다(원작에서도 야영지가 하나다).
+ * 마을 사이는 "들길" 표식(들판 출구, `exit_<대상마을id>`)으로 잇는다 — 이미
+ * 검증된 마을 필드전투 확장(`dungeon.js`의 fieldBoundPlayer 등)을 그대로 써서
+ * 방 밖 들판을 충분히 걸어야 닿는 자리에 둔다. 별(★)형 연결이다 — 위성 마을
+ * 셋은 서로 안 이어지고 모루골로만 통한다.
  */
 (function (global) {
   'use strict';
@@ -49,43 +57,38 @@
   var TALK_R = 40 * RSCALE;             // 이만큼 다가서면 말이 걸린다
   var LEAVE_R = 58 * RSCALE;            // 이만큼 떨어져야 다시 걸린다 (문턱 — 아래 armed 설명)
 
-  /* 마을 테마 — 던전과 달리 **불을 피워 둔 자리**라 바닥이 따뜻하다.
-     data-dungeon.js 의 THEMES 에 넣지 않았다. 거기 것은 층(floor)으로 고르는데
-     마을은 층이 아니다 — 0층을 만들면 그 배열의 뜻이 흐려진다. */
-  var THEME = {
-    name: '모루골', floor: '#3b322a', wall: '#5c4e3d',
-    tint: 'rgba(210,170,100,0.10)', town: true
-  };
-
   /**
-   * 마을 사람 여섯 — 원작 야영지의 그 사람들 자리에 이 판의 직군을 놓았다.
+   * 마을 사람 정의 — 이름·그림·닿았을 때 여는 시트는 **직군 하나마다 하나뿐**이다
+   * (여러 마을이 같은 직군을 나눠 들 수 있게). 어느 마을에 서 있는지는 아래
+   * TOWNS[id].npcs 가 좌표로 정한다.
    *   sheet   닿으면 열리는 시트 (ui.js 의 그것과 같은 이름)
    *   trait   생김새를 정한다 (sprite.js 의 ruleLook 이 읽는다)
    *   color   옷 빛깔 — 진영색을 쓰지 않는다. 마을 사람은 어느 진영도 아니다
    */
-  var NPCS = [
-    { key: 'captain', name: '군교(軍校)', emoji: '⚔️', sheet: 'party',
-      x: 110, y: 90,  color: '#8a6f4e', trait: 'might',  rarity: 3,
+  var NPC_DEFS = {
+    captain: { name: '군교(軍校)', emoji: '⚔️', sheet: 'party',
+      color: '#8a6f4e', trait: 'might',  rarity: 3,
       line: '부대를 세우십시오. 앞에 설 자를 고르는 일이 먼저입니다.' },
-    { key: 'quarter', name: '치중(輜重)', emoji: '🎒', sheet: 'gear',
-      x: 280, y: 70,  color: '#6b7383', trait: 'virtue', rarity: 2,
+    quarter: { name: '치중(輜重)', emoji: '🎒', sheet: 'gear',
+      color: '#6b7383', trait: 'virtue', rarity: 2,
       line: '주워 오신 것을 봐 드리지요. 걸치실 것과 파실 것을 가릅니다.' },
-    { key: 'master',  name: '교두(敎頭)', emoji: '📜', sheet: 'skill',
-      x: 450, y: 95,  color: '#5c6b8a', trait: 'wisdom', rarity: 4,
+    master:  { name: '교두(敎頭)', emoji: '📜', sheet: 'skill',
+      color: '#5c6b8a', trait: 'wisdom', rarity: 4,
       line: '손에 든 것이 무예를 정합니다. 각궁을 들면 궁장의 길입니다.' },
-    { key: 'smith',   name: '야장(冶匠)', emoji: '🔨', sheet: 'craft',
-      x: 450, y: 200, color: '#7a4a32', trait: 'might',  rarity: 3,
+    smith:   { name: '야장(冶匠)', emoji: '🔨', sheet: 'craft',
+      color: '#7a4a32', trait: 'might',  rarity: 3,
       line: '구멍 뚫린 물건을 가져오시오. 박아 드리리다.' },
-    { key: 'pedlar',  name: '행상(行商)', emoji: '🧺', sheet: 'vendor',
-      x: 450, y: 305, color: '#6f5a8a', trait: 'virtue', rarity: 2,
+    pedlar:  { name: '행상(行商)', emoji: '🧺', sheet: 'vendor',
+      color: '#6f5a8a', trait: 'virtue', rarity: 2,
       line: '한 회차마다 물건이 바뀝니다. 오늘 것을 보시겠소?' },
-    { key: 'scribe',  name: '사관(史官)', emoji: '📖', sheet: 'dex',
-      x: 110, y: 200, color: '#4e6b5a', trait: 'wisdom', rarity: 3,
+    scribe:  { name: '사관(史官)', emoji: '📖', sheet: 'dex',
+      color: '#4e6b5a', trait: 'wisdom', rarity: 3,
       line: '이 판에서 만난 인물을 적어 두었습니다.' }
-  ];
+  };
 
   /**
-   * 표식 셋 — 사람이 아니라 **밟는 것**이다.
+   * 표식 셋 — 사람이 아니라 **밟는 것**이다. 모루골에만 있다(원작에도 야영지가
+   * 하나뿐이라 굴혈·역참·결사비도 하나씩이다).
    *   gate      굴혈 입구. 밟으면 제1층부터 (원작의 던전 입구 — 고르는 창이 없다)
    *   waypoint  역참 돌. 밟으면 밟아 둔 층 목록이 뜬다 (원작의 웨이포인트가 정확히 이것)
    *   vow       결사비. 되돌릴 수 없는 것이라 확인을 한 번 받는다
@@ -101,9 +104,9 @@
     { key: 'vow',      name: '결사비(決死碑)', emoji: '☠️', x: 110, y: 310 }
   ];
 
-  /* 마을 장식 — 매번 같아야 한다. 집이 매번 옮겨 다니면 그건 마을이 아니다.
+  /* 모루골 장식 — 매번 같아야 한다. 집이 매번 옮겨 다니면 그건 마을이 아니다.
      그래서 던전처럼 굴리지 않고 **박아 둔다**. */
-  var DECOR = [
+  var DECOR_MORU = [
     { t: 'torch',  x: 120, y: WALL - 4, seed: 0.4 },
     { t: 'torch',  x: 290, y: WALL - 4, seed: 2.1 },
     { t: 'torch',  x: 460, y: WALL - 4, seed: 4.3 },
@@ -120,11 +123,7 @@
     { t: 'crack',  x: 330, y: 210, a: 0.6, len: 36 },
     { t: 'crack',  x: 230, y: 150, a: 2.2, len: 26 },
     /* 집 셋 · 우물 · 대장간 — 3D로 세울 때(`dungeon3d.js` `TOWN3D`) 빈 돌방이
-       아니라 진짜 마을로 보이게 한다. 사람·표식과 안 겹치는 구석·한복판에 놓았다
-       (닿아서 발동하는 자리가 아니라 순수 배경이라 겹쳐도 판정엔 안 걸리지만,
-       그림이 서로 파고들면 보기 흉해 자리를 갈랐다). 2D 화면에서는 아직 도형
-       그대로다(`dungeon-view.js`가 `house`·`well`·`blacksmith`를 못 그리면
-       조용히 건너뛴다 — 3D 전용 소품). */
+       아니라 진짜 마을로 보이게 한다. */
     { t: 'house', x: 60, y: 60, h: 130, seed: 11 },
     { t: 'house', x: 500, y: 60, h: 130, seed: 23 },
     { t: 'house', x: 55, y: 235, h: 120, seed: 37 },
@@ -132,22 +131,92 @@
     { t: 'blacksmith', x: 520, y: 235, h: 140 }
   ];
 
+  /**
+   * 마을 넷 — id·이름·색감(테마)·거기 사는 직군·장식·들길(exits) 을 정의한다.
+   * 좌표는 전부 BASE_W·BASE_H 기준(scalePt 로 실제 방 크기에 맞춘다).
+   *   exits[].dir   그 마을 안에서 이 들길이 나가는 방향(N/E/S/W) — exitPoint 가 읽는다
+   *   exits[].to    들길 끝에 닿는 마을 id
+   * 위성 마을(갈대나루·자작재·소금벌)은 모루골로만 통한다(별형 연결) —
+   * 서로 안 잇는다. 상점 배치는 모루골의 여섯 직군 중 셋만 간추렸다.
+   */
+  var TOWNS = {
+    moru: {
+      id: 'moru', name: '모루골', dirFromHub: null,
+      theme: { name: '모루골', floor: '#3b322a', wall: '#5c4e3d',
+        tint: 'rgba(210,170,100,0.10)', town: true },
+      hasGate: true,
+      npcs: [
+        { key: 'captain', x: 110, y: 90 },  { key: 'quarter', x: 280, y: 70 },
+        { key: 'master',  x: 450, y: 95 },  { key: 'smith',   x: 450, y: 200 },
+        { key: 'pedlar',  x: 450, y: 305 }, { key: 'scribe',  x: 110, y: 200 }
+      ],
+      decor: DECOR_MORU,
+      exits: [ { dir: 'N', to: 'jajak' }, { dir: 'E', to: 'galdae' }, { dir: 'S', to: 'sogeum' } ]
+    },
+    galdae: {
+      id: 'galdae', name: '갈대나루', dirFromHub: 'E',
+      theme: { name: '갈대나루', floor: '#28383c', wall: '#3d5458',
+        tint: 'rgba(120,190,205,0.12)', town: true },
+      hasGate: false,
+      npcs: [ { key: 'quarter', x: 170, y: 150 }, { key: 'pedlar', x: 390, y: 150 },
+              { key: 'scribe',  x: 280, y: 280 } ],
+      decor: [
+        { t: 'torch', x: 120, y: WALL - 4, seed: 0.7 }, { t: 'torch', x: 440, y: WALL - 4, seed: 3.2 },
+        { t: 'pillar', x: 280, y: 90 }, { t: 'crack', x: 200, y: 230, a: 1.1, len: 30 }
+      ],
+      exits: [ { dir: 'W', to: 'moru' } ]
+    },
+    jajak: {
+      id: 'jajak', name: '자작재', dirFromHub: 'N',
+      theme: { name: '자작재', floor: '#333c2c', wall: '#4a5940',
+        tint: 'rgba(150,185,110,0.10)', town: true },
+      hasGate: false,
+      npcs: [ { key: 'captain', x: 170, y: 150 }, { key: 'smith', x: 390, y: 150 },
+              { key: 'master',  x: 280, y: 280 } ],
+      decor: [
+        { t: 'torch', x: 120, y: WALL - 4, seed: 1.4 }, { t: 'torch', x: 440, y: WALL - 4, seed: 4.6 },
+        { t: 'pillar', x: 200, y: 210 }, { t: 'pillar', x: 360, y: 210 }
+      ],
+      exits: [ { dir: 'S', to: 'moru' } ]
+    },
+    sogeum: {
+      id: 'sogeum', name: '소금벌', dirFromHub: 'S',
+      theme: { name: '소금벌', floor: '#4a4636', wall: '#6b6550',
+        tint: 'rgba(230,220,180,0.12)', town: true },
+      hasGate: false,
+      npcs: [ { key: 'pedlar', x: 170, y: 150 }, { key: 'quarter', x: 390, y: 150 },
+              { key: 'captain', x: 280, y: 280 } ],
+      decor: [
+        { t: 'torch', x: 120, y: WALL - 4, seed: 2.3 }, { t: 'torch', x: 440, y: WALL - 4, seed: 5.8 },
+        { t: 'crack', x: 220, y: 120, a: 0.4, len: 40 }, { t: 'pillar', x: 340, y: 230 }
+      ],
+      exits: [ { dir: 'N', to: 'moru' } ]
+    }
+  };
+  var TOWN_ORDER = ['moru', 'galdae', 'jajak', 'sogeum'];
+
+  function dirEmoji(dir) {
+    return dir === 'N' ? '⬆️' : dir === 'S' ? '⬇️' : dir === 'E' ? '➡️' : '⬅️';
+  }
+
   /* DECOR 는 그대로 두고(BASE_W·BASE_H 기준 좌표), 실제 방 크기에 맞춘 사본을
-     한 번만 만들어 캔다 — 순수 배경이라 정확히 맞을 필요는 없지만(위 주석),
+     마을마다 한 번씩만 만들어 캔다 — 순수 배경이라 정확히 맞을 필요는 없지만,
      방마다 다시 계산할 것도 아니다. h·seed·a·len 은 좌표가 아니라 그대로 둔다. */
-  var _scaledDecor = null;
-  function scaledDecor() {
-    if (_scaledDecor) { return _scaledDecor; }
-    _scaledDecor = DECOR.map(function (d) {
+  var _decorCache = {};
+  function scaledDecorFor(cfg) {
+    if (_decorCache[cfg.id]) { return _decorCache[cfg.id]; }
+    var arr = cfg.decor.map(function (d) {
       var p = scalePt(d.x, d.y), o = {};
       for (var k in d) { if (Object.prototype.hasOwnProperty.call(d, k)) { o[k] = d[k]; } }
       o.x = p.x; o.y = p.y;
       return o;
     });
-    return _scaledDecor;
+    _decorCache[cfg.id] = arr;
+    return arr;
   }
 
-  var room = null;                      // 마을 방 (한 번 만들고 계속 쓴다)
+  var CURRENT_TOWN = null;              // 첫 enter() 에서 세이브(core.save.town.current)로 정한다
+  var room = null;                      // 마을 방 (마을을 옮길 때마다 다시 짓는다)
   var player = null;
   var on = false;
   var input = { dx: 0, dy: 0 };
@@ -166,33 +235,97 @@
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
   function D() { return global.DG.dungeon; }
+  function cfgOf(id) { return TOWNS[id] || TOWNS.moru; }
+  function currentCfg() { return cfgOf(CURRENT_TOWN); }
+  function currentTheme() { return currentCfg().theme; }
+
+  /**
+   * 들길이 나가는 자리 — 방 밖 들판, 필드 반경(D().fieldRadiusUnits())의
+   * 70% 지점. 정확히 그 반경 끝에 두면 걸어서 닿기도 전에 값이 흔들릴 수
+   * 있어(창 크기·손잡이에 따라 반경 자체가 바뀐다) 안쪽으로 여유를 둔다.
+   */
+  var FIELD_EXIT_FRAC = 0.7;
+  function exitPointRaw(dir) {
+    var R = D().fieldRadiusUnits();
+    var lo = WALL + P_R, hiX = ROOM_W - WALL - P_R, hiY = ROOM_H - WALL - P_R;
+    var cx = ROOM_W / 2, cy = ROOM_H / 2, off = R * FIELD_EXIT_FRAC;
+    if (dir === 'N') { return { x: cx, y: lo - off }; }
+    if (dir === 'S') { return { x: cx, y: hiY + off }; }
+    if (dir === 'E') { return { x: hiX + off, y: cy }; }
+    return { x: lo - off, y: cy };                      // 'W'
+  }
+  /**
+   * 들판 소품(나무·바위 따위)이 하필 그 자리에 있으면 옆으로 밀어 비켜 준다 —
+   * 절차 생성 씨앗이 마을 이름마다 다르므로 우연히 막힌 자리가 나올 수 있다.
+   */
+  function safePoint(x, y, theme) {
+    if (!D().fieldBlockedAt) { return { x: x, y: y }; }
+    var ctx = { roomW: ROOM_W, roomH: ROOM_H, pr: P_R, floor: 0, roomIdx: undefined, theme: theme };
+    if (!D().fieldBlockedAt(x, y, ctx)) { return { x: x, y: y }; }
+    var tries = 10, i;
+    for (i = 1; i <= tries; i++) {
+      var step = i * 26, sign = (i % 2 === 0) ? 1 : -1;
+      var tx = x + sign * step, ty = y + sign * step * 0.4;
+      if (!D().fieldBlockedAt(tx, ty, ctx)) { return { x: tx, y: ty }; }
+    }
+    return { x: x, y: y };                              // 못 찾으면 원래 자리(드묾)
+  }
+  function exitPoint(dir, theme) {
+    var p = exitPointRaw(dir);
+    return safePoint(p.x, p.y, theme);
+  }
+  /** 건너온 마을에서 들어서는 자리 — 들길 표식보다 살짝 안쪽(곧바로 다시 안 나가게) */
+  function entryPoint(dir, theme) {
+    var e = exitPoint(dir, theme);
+    var cx = ROOM_W / 2, cy = ROOM_H / 2;
+    var vx = cx - e.x, vy = cy - e.y, d = Math.hypot(vx, vy) || 1;
+    return safePoint(e.x + vx / d * 60, e.y + vy / d * 60, theme);
+  }
 
   function build() {
+    var cfg = currentCfg();
     var i, n, p;
+    armed = {};
     room = {
       kind: 'town', index: 0, cleared: true, last: true,
       enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null,
-      decor: scaledDecor(), npcs: [], marks: []
+      decor: scaledDecorFor(cfg), npcs: [], marks: []
     };
-    /* 원본(NPCS·MARKS)은 건드리지 않는다 — 진단이 마을을 두 번 세울 수 있다.
-       좌표는 BASE_W·BASE_H 기준으로 적혀 있어 실제 방 크기에 맞춰 늘린다. */
-    for (i = 0; i < NPCS.length; i++) {
-      n = NPCS[i]; p = scalePt(n.x, n.y);
+    /* 원본(NPC_DEFS·MARKS·TOWNS)은 건드리지 않는다 — 진단이 마을을 여러 번
+       세우고 오갈 수 있다. 좌표는 BASE_W·BASE_H 기준으로 적혀 있어 실제
+       방 크기에 맞춰 늘린다. */
+    for (i = 0; i < cfg.npcs.length; i++) {
+      var spot = cfg.npcs[i], def = NPC_DEFS[spot.key];
+      p = scalePt(spot.x, spot.y);
       room.npcs.push({
-        key: n.key, name: n.name, emoji: n.emoji, sheet: n.sheet, line: n.line,
-        x: p.x, y: p.y, color: n.color,
-        ref: { id: 'town_' + n.key, name: n.name, trait: n.trait, rarity: n.rarity },
-        phase: core.hash2(i + 1, 7) * 6.28, facing: n.x > 380 ? -1 : 1
+        key: spot.key, name: def.name, emoji: def.emoji, sheet: def.sheet, line: def.line,
+        x: p.x, y: p.y, color: def.color,
+        ref: { id: 'town_' + spot.key, name: def.name, trait: def.trait, rarity: def.rarity },
+        phase: core.hash2(i + 1, 7) * 6.28, facing: spot.x > 380 ? -1 : 1
       });
     }
-    for (i = 0; i < MARKS.length; i++) {
-      n = MARKS[i]; p = scalePt(n.x, n.y);
-      room.marks.push({ key: n.key, name: n.name, emoji: n.emoji, x: p.x, y: p.y });
+    if (cfg.hasGate) {
+      for (i = 0; i < MARKS.length; i++) {
+        n = MARKS[i]; p = scalePt(n.x, n.y);
+        room.marks.push({ key: n.key, name: n.name, emoji: n.emoji, x: p.x, y: p.y });
+      }
+    }
+    /* 들길 — 마을에서 마을로 걸어 나가는 자리. 방 판정 안이 아니라 방 밖
+       들판 쪽에 놓인다(exitPoint 가 fieldRadiusUnits 기준으로 계산한다). */
+    for (i = 0; i < cfg.exits.length; i++) {
+      var ex = cfg.exits[i], to = cfgOf(ex.to);
+      var ep = exitPoint(ex.dir, cfg.theme);
+      room.marks.push({
+        key: 'exit_' + ex.to, name: '들길 — ' + to.name + ' 방면',
+        emoji: dirEmoji(ex.dir), x: ep.x, y: ep.y
+      });
     }
     p = scalePt(195, 240);
     player = {
       /* 역참과 굴혈 사이, 어느 쪽에도 닿지 않는 자리(둘 다 100 남짓 떨어진다).
-         입구 코앞에 세우면 둘러보기 전에 아래로 한 번 끌자마자 내려가 버린다. */
+         입구 코앞에 세우면 둘러보기 전에 아래로 한 번 끌자마자 내려가 버린다.
+         위성 마을은 굴혈이 없어 이 자리에 특별한 뜻은 없지만, 사람 셋과도
+         충분히 떨어져 있어 그대로 써도 된다. */
       x: p.x, y: p.y, phase: 0, walking: false, facing: 1, hurt: 0,
       cds: [0, 0, 0, 0], dash: null, invuln: 0, rallyUntil: 0,
       dirX: 0, dirY: -1,
@@ -204,11 +337,22 @@
     fieldSpawnCd = 4;
   }
 
+  /** 세이브에 지금 마을을 적어 둔다 — 불러오면 그 마을로 돌아온다 */
+  function saveTownId() {
+    if (!core.save.town) { core.save.town = { current: CURRENT_TOWN }; }
+    else { core.save.town.current = CURRENT_TOWN; }
+  }
+
   /* ── 드나들기 ─────────────────────────────────────────── */
 
   function enter(opts) {
-    if (!room) { build(); }
     opts = opts || {};
+    if (!CURRENT_TOWN) {
+      /* 첫 진입 — 세이브에 적힌 마을로 돌아온다. 던전에서 막 나온 참이면
+         (굴혈은 모루골에만 있으므로) 반드시 모루골이다. */
+      CURRENT_TOWN = opts.fromDungeon ? 'moru' : ((core.save.town && core.save.town.current) || 'moru');
+    }
+    if (!room) { build(); }
     /* 던전에서 막 나온 참이면 굴혈 앞에 세운다 — 나온 자리에 서 있어야
        "다시 들어간다" 가 한 걸음이다. 다만 입구에 **닿은 채로** 세우면
        그 자리에서 곧바로 다시 빨려 들어간다. 그래서 한 발 물려 세우고
@@ -222,6 +366,7 @@
     input.dx = 0; input.dy = 0;
     target = null;
     fx.length = 0;
+    saveTownId();
     core.emit('town:enter', null);
     core.emit('changed');
     return true;
@@ -235,6 +380,48 @@
   }
 
   function active() { return on; }
+
+  /**
+   * 들길을 밟아 다른 마을로 건너간다 — ui.js 의 town:mark 처리가
+   * `exit_<대상마을id>` 키를 그대로 넘긴다.
+   */
+  function travel(markKey) {
+    if (!markKey || markKey.indexOf('exit_') !== 0) { return false; }
+    var toId = markKey.slice(5);
+    var toCfg = TOWNS[toId];
+    if (!toCfg || toId === CURRENT_TOWN) { return false; }
+    var fromId = CURRENT_TOWN;
+    CURRENT_TOWN = toId;
+    build();
+    /* 건너온 쪽(fromId)으로 돌아가는 들길 바로 앞에 세운다 — 위성 마을은
+       늘 모루골로만 통하므로 그 들길이 정확히 하나 있다. */
+    var i, backDir = null;
+    for (i = 0; i < toCfg.exits.length; i++) {
+      if (toCfg.exits[i].to === fromId) { backDir = toCfg.exits[i].dir; break; }
+    }
+    if (backDir) {
+      var ep = entryPoint(backDir, toCfg.theme);
+      player.x = ep.x; player.y = ep.y;
+      armed['exit_' + fromId] = true;
+    }
+    saveTownId();
+    core.persist();
+    core.emit('town:enter', null);
+    core.emit('changed');
+    core.emit('toast', '🚶 ' + toCfg.name + '에 닿았습니다');
+    return true;
+  }
+
+  /** 오버월드 지도(ui.js 의 M키 전체지도)가 읽는 자리 — 고정 배치 + 지금 위치 */
+  var overworld = {
+    current: function () { return CURRENT_TOWN; },
+    list: function () {
+      return TOWN_ORDER.map(function (id) {
+        var c = TOWNS[id];
+        return { id: c.id, name: c.name, dirFromHub: c.dirFromHub };
+      });
+    }
+  };
 
   /* ── 조작 ─────────────────────────────────────────────── */
 
@@ -363,11 +550,13 @@
    * fieldBoundPlayer·spawnFieldRoamers·stepFieldCombat 에 ctx 로 넘긴다.
    * roomW·roomH·wall·pr 은 이 방 치수가 던전과 달라서(마을은 데스크톱에서
    * 1.4배로 커진다) 그 함수들이 씨앗·경계를 마을 크기에 맞게 계산하게 한다.
+   * theme 는 지금 서 있는 마을의 것 — 마을마다 달라 필드 씨앗(field3d.seedOf)도
+   * 마을마다 다른 들판을 그린다.
    */
   function raw() {
     if (!on) { return null; }
     return {
-      town: true, theme: THEME,
+      town: true, theme: currentTheme(),
       floor: 0, startFloor: 0, roomIdx: undefined,
       roomW: ROOM_W, roomH: ROOM_H, wall: WALL, pr: P_R,
       room: room, player: player, shots: fshots, foeShots: ffoeShots,
@@ -400,7 +589,7 @@
       });
     }
     return {
-      active: true, town: true, floor: 0, theme: THEME,
+      active: true, town: true, floor: 0, theme: currentTheme(),
       hp: Math.max(0, Math.round(fhp)), hpMax: fhpMax, mp: Math.round(fmp), mpMax: fmpMax,
       skills: skills, rally: false,
       room: 1, roomTotal: 1, cleared: true, kind: 'town',
@@ -414,17 +603,21 @@
   global.DG = global.DG || {};
   global.DG.town = {
     ROOM_W: ROOM_W, ROOM_H: ROOM_H, WALL: WALL, P_R: P_R,
-    TALK_R: TALK_R, THEME: THEME,
-    NPCS: NPCS, MARKS: MARKS,
+    TALK_R: TALK_R, MARKS: MARKS,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
     nearest: nearest, note: note,
+    travel: travel, overworld: overworld,
     status: status,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: raw,
     fx: function () { return fx; },
-    /** 자가진단용 — 마을을 처음 상태로 되돌린다 */
-    _reset: function () { room = null; armed = {}; build(); },
+    /** 자가진단용 — 마을을 처음 상태로 되돌린다. townId 를 주면 그 마을로(기본 모루골) */
+    _reset: function (townId) {
+      CURRENT_TOWN = townId && TOWNS[townId] ? townId : 'moru';
+      room = null; armed = {};
+      build();
+    },
     /** 자가진단용 — 그 자리로 순간 옮긴다 (걸어가지 않고) */
     _put: function (x, y) { if (player) { player.x = x; player.y = y; } }
   };
