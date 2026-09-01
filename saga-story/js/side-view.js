@@ -11,9 +11,40 @@
   var core = global.DG.core;
   var S = null, SD = null;
 
-  var cv = null, ctx = null;
+  var cv = null, ctx = null, cv3d = null;
   var W = 0, H = 0, dpr = 1;
   var camX = 0;
+
+  /** 화면 확대 — #stage(2D 조작·오버레이) 와 #stage3d(세계) 를 **똑같이** CSS
+   *  transform 으로 키우고 줄인다. 두 캔버스는 같은 픽셀 좌표(camX)로 그려지므로
+   *  카메라 수식은 한 자도 안 건드리고 이 둘을 나란히 스케일만 해도 그대로 맞는다 —
+   *  side-view3d.js 머리말의 "좌표계를 두 벌 관리하지 않는다"를 깨지 않는 길이다 */
+  var viewZoom = 1;
+  var ZOOM_MIN = 0.65, ZOOM_MAX = 1.9;
+  var zoomPointers = {}, pinchDist0 = 0;
+
+  function clamp01(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function zoomPointerCount() {
+    var n = 0, k;
+    for (k in zoomPointers) { if (Object.prototype.hasOwnProperty.call(zoomPointers, k)) { n++; } }
+    return n;
+  }
+  function twoZoomPointerDist() {
+    var ks = Object.keys(zoomPointers);
+    if (ks.length < 2) { return 0; }
+    var a = zoomPointers[ks[0]], b = zoomPointers[ks[1]];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+  function applyZoomTransform() {
+    var t = 'scale(' + viewZoom.toFixed(3) + ')';
+    if (cv) { cv.style.transform = t; }
+    if (!cv3d) { cv3d = document.getElementById('stage3d'); }
+    if (cv3d) { cv3d.style.transform = t; }
+  }
+  function setZoom(z) {
+    viewZoom = clamp01(z, ZOOM_MIN, ZOOM_MAX);
+    applyZoomTransform();
+  }
 
   function init(canvas) {
     S = global.DG.side;
@@ -22,11 +53,17 @@
     ctx = cv.getContext('2d');
     resize();
     global.addEventListener('resize', resize);
-    /* 화면 아래쪽 절반을 누르면 그 방향으로 달린다 (손가락 조작) */
+    /* 화면 아래쪽 절반을 누르면 그 방향으로 달린다 (손가락 조작) — 손가락이 이미
+       하나 걷기를 맡고 있으면 **둘째 손가락은 걷기 존을 건드리지 않는다**(onDown 의
+       zoomPointerCount 검사). 그 둘째 손가락으로 핀치하면 확대·축소다 */
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);
     cv.addEventListener('pointerup', onUp);
     cv.addEventListener('pointercancel', onUp);
+    cv.addEventListener('wheel', function (e) {
+      setZoom(viewZoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
+      e.preventDefault();
+    }, { passive: false });
   }
 
   function resize() {
@@ -55,13 +92,15 @@
    */
   function readZone(e) {
     var r = cv.getBoundingClientRect();
+    /* r.width/height 를 쓴다(W/H 가 아니라) — 확대(viewZoom) 로 캔버스가 화면에서
+       실제로 차지하는 상자가 커지거나 작아져도 존 경계가 그대로 4:5:1... 비율을 지킨다 */
     var x = e.clientX - r.left, y = e.clientY - r.top;
-    if (y < H * 0.45) { return 'up'; }
-    if (x > W * 0.39 && x < W * 0.61) { return 'down'; }
-    return x < W * 0.5 ? 'left' : 'right';
+    if (y < r.height * 0.45) { return 'up'; }
+    if (x > r.width * 0.39 && x < r.width * 0.61) { return 'down'; }
+    return x < r.width * 0.5 ? 'left' : 'right';
   }
 
-  var zone = null;
+  var zone = null, primaryId = null;
 
   function apply(z) {
     /* 누르고 있는 자리 하나만 켜 둔다 — 끌어서 옮기면 앞의 것이 꺼진다 */
@@ -79,7 +118,12 @@
   }
 
   function onDown(e) {
-    if (!S.active()) { return; }
+    zoomPointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    if (zoomPointerCount() === 2) { pinchDist0 = twoZoomPointerDist(); }
+    /* 손가락이 이미 하나 걷기를 맡고 있으면(둘째 손가락) 존은 안 건드린다 — 그 둘째
+       손가락은 오직 핀치 확대 몫이다 */
+    if (zoomPointerCount() > 1 || !S.active()) { return; }
+    primaryId = e.pointerId;
     zone = readZone(e);
     apply(zone);
     /* 손가락이 HUD 위를 지나도 안 끊긴다 (사가의숲에서 같은 자리를 밟았다) */
@@ -90,7 +134,14 @@
 
   /** 누른 채 끌면 그쪽으로 — 손가락을 떼지 않고 방향을 바꾼다 */
   function onMove(e) {
-    if (!S.active() || zone === null) { return; }
+    if (zoomPointers[e.pointerId]) { zoomPointers[e.pointerId] = { x: e.clientX, y: e.clientY }; }
+    if (zoomPointerCount() === 2) {
+      var nd = twoZoomPointerDist();
+      if (pinchDist0 > 0 && nd > 0) { setZoom(viewZoom * (nd / pinchDist0)); }
+      pinchDist0 = nd;
+      return;
+    }
+    if (!S.active() || zone === null || e.pointerId !== primaryId) { return; }
     var z = readZone(e);
     if (z === zone) { return; }
     /* 끌어서 위로 올라가는 것은 점프로 읽지 않는다 — 걷다가 뛰어 버린다 */
@@ -102,7 +153,11 @@
     apply(zone);
   }
 
-  function onUp() {
+  function onUp(e) {
+    if (e && e.pointerId !== undefined) { delete zoomPointers[e.pointerId]; }
+    if (zoomPointerCount() < 2) { pinchDist0 = 0; }
+    if (e && e.pointerId !== undefined && e.pointerId !== primaryId) { return; }
+    primaryId = null;
     zone = null;
     S.setInput('left', false);
     S.setInput('right', false);
@@ -759,6 +814,9 @@
     /** 진단용 — **흔들림의 세기는 화면 층이 정한다**(side.js 는 'shake' 한 줄만 남긴다) */
     _shake: shakeOf,
     /** 진단용 — 화면의 그 자리가 어느 조작인가 (폰에는 방향키가 없다) */
-    _zone: function (x, y) { return readZone({ clientX: x, clientY: y }); }
+    _zone: function (x, y) { return readZone({ clientX: x, clientY: y }); },
+    /** 진단·QA 전용 — 사람이 핀치·휠로 조절한 화면 확대 배율 */
+    viewZoom: function () { return viewZoom; },
+    setViewZoom: setZoom
   };
 })(window);
