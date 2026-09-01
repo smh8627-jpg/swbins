@@ -73,7 +73,7 @@
         spent: 0, calls: 0, log: [], buff: null
       },
       settings: {
-        mapStyle: 0, tilt: 1,
+        mapStyle: 1, tilt: 1,              // 1=밝은 지도(voyager) — 3D 지면 기본값과 맞춘다
         zoom3d: 4,                        // 3D 카메라 배율 (화면 값 · world.js)
         camZoom2d: 1,                     // 2D·2.5D 카메라 배율 (화면 값 · world.js)
         wide3in: false,                   // 3인치 모드 — 켜면 화면을 멀리서 본다

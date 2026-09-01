@@ -66,8 +66,15 @@
   function CAM_HIGH() { return core.tuned('world3d.camHeight', 15); }     // 카메라 높이(m)
   /** 사람 키(m) — 원작처럼 지도 위에서는 실제보다 크게 세운다(1.8m 면 안 보인다) */
   function ACTOR_H() { return core.tuned('world3d.actorH', 3.4); }
-  /** 지도 스타일 — 1 은 밝은 지도(voyager). 원작의 파스텔 지도에 가깝다 */
-  function MAP_STYLE() { return core.tuned('world3d.mapStyle', 1); }
+  /** 지도 스타일 — 도구줄의 🗺️ 버튼(world.js 의 mapStyle)이 고른 자리를 그대로 쓴다.
+   * 예전에는 여기서 독립된 손잡이로 늘 1(밝은 지도)을 강제해, 버튼을 눌러도 3D 지면은
+   * 안 바뀌었다(2D 캔버스 배경만 바뀌었다). 어드민의 `world3d.mapStyle` 손잡이는
+   * 그대로 남겨 QA 가 특정 스타일을 강제로 볼 수 있게 한다. */
+  function MAP_STYLE() {
+    var Wd = global.DG.world;
+    var idx = (Wd && Wd.mapStyleIdx) ? Wd.mapStyleIdx() : 1;
+    return core.tuned('world3d.mapStyle', idx);
+  }
   /** 배우를 도형으로 세울까 — 0 이면 1단계의 빌보드로 돌아간다 */
   function MESH_ON() {
     var P = global.DG.perf;

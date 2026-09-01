@@ -1653,6 +1653,8 @@
     get motion() { return player; },
     mapStyles: MAP_STYLES,
     get mapStyle() { return MAP_STYLES[styleIdx()]; },
+    /** 지금 고른 지도 스타일의 자리 — world3d.js 가 3D 지면 타일에 그대로 쓴다 */
+    mapStyleIdx: styleIdx,
     cycleMapStyle: function () {
       core.save.settings.mapStyle = (styleIdx() + 1) % MAP_STYLES.length;
       tiles = {};

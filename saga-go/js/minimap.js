@@ -9,12 +9,13 @@
  *   왼쪽 아래 둥근 판   가운데가 나, 위가 북쪽
  *   바탕                48m 격자의 지형 (`world.terrainAt` — 손으로 그린 땅이 먼저)
  *   점                  조우 대상 · 역참 · 성채 · 주민 · 이름난 자리
- *   탭                  가까이 ↔ 멀리 (180m ↔ 360m)
+ *   가운데(나) 탭        가까이 ↔ 멀리 (180m ↔ 360m)
+ *   그 밖의 자리 탭      그 자리로 걷는다 (본 지도의 "빈 땅 탭"과 같다 — `world.walkTo`)
  *   두 번 탭            접는다 (다시 두 번 탭하면 펴진다)
  *
- * **판정에는 한 줄도 닿지 않는다.** 좌표·상태를 읽기만 하고 아무것도 바꾸지 않는다.
- * 값을 내는 함수(`project`·`cells`·`blips`)는 **캔버스 없이도 돈다** — 자가진단이
- * 그것만 따로 본다. 그리는 함수만 2D 컨텍스트를 쓴다.
+ * **`project`·`cells`·`blips`(값을 내는 함수)는 판정에 한 줄도 닿지 않는다** — 좌표·
+ * 상태를 읽기만 하고 **캔버스 없이도 돈다**(자가진단이 그것만 따로 본다). `tap`
+ * 은 화면 쪽 함수라 얘기가 다르다 — 본 지도의 탭 이동처럼 `world.walkTo` 를 부른다.
  *
  * 숨은 자리(굴 · 사당 · 폐허)는 **가 본 뒤에만** 찍힌다(`codex.has('place', …)`).
  * 미니맵이 탐험을 대신 해 버리면 숨겨 둔 뜻이 없다.
@@ -201,7 +202,7 @@
     node = global.document.createElement('div');
     node.id = 'minimap';
     node.className = 'glass';
-    node.setAttribute('title', '미니맵 — 탭하면 멀리, 두 번 탭하면 접힙니다');
+    node.setAttribute('title', '미니맵 — 가운데를 탭하면 배율, 다른 자리를 탭하면 그쪽으로 걷습니다. 두 번 탭하면 접힙니다');
     canvas = global.document.createElement('canvas');
     node.appendChild(canvas);
     var tag = global.document.createElement('b');
@@ -212,14 +213,43 @@
     return node;
   }
 
-  /** 탭 — 한 번은 배율, 빠르게 두 번은 접기 */
+  /** 가운데(나)에서 이 안쪽은 "나"를 짚은 것으로 본다 — 탭하면 배율이 바뀐다.
+   * 그 밖은 지면 위 한 자리를 짚은 것이라 그쪽으로 걷는다. */
+  var HUB_PX = 14;
+
+  /** 탭한 자리를 판의 중심 기준 픽셀로 낸다. 캔버스가 없으면 null */
+  function hitAt(e) {
+    if (!canvas) { return null; }
+    var r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) { return null; }
+    var s = sizePx(), c = s / 2, rad = c - 3;
+    var px = (e.clientX - r.left) * (s / r.width) - c;
+    var py = (e.clientY - r.top) * (s / r.height) - c;
+    return { px: px, py: py, pd: Math.hypot(px, py), rad: rad };
+  }
+
+  /** 가운데 밖을 탭한 자리로 걷는다 — 본 지도의 "빈 땅 탭"과 같은 문(`world.walkTo`).
+   * 실제 위치(GPS) 모드에서는 본 지도도 탭 이동을 안 듣는다 — 여기도 맞춘다. */
+  function walkToHit(hit) {
+    var W = global.DG.world;
+    if (!W || !W.walkTo || W.mode !== 'keyboard' || !core.save) { return; }
+    var pos = core.save.player.pos, r = range();
+    var clamp = hit.pd > hit.rad ? hit.rad / hit.pd : 1;   // 판 밖을 짚어도 반지름 안으로 들인다
+    var mul = clamp * (r / hit.rad);                        // 픽셀 → 미터
+    W.walkTo(pos.x + hit.px * mul, pos.y + hit.py * mul);
+  }
+
+  /** 탭 — 가운데는 배율, 그 밖은 이동, 빠르게 두 번은 접기 */
   function tap(e) {
     if (e && e.preventDefault) { e.preventDefault(); }
     var now = Date.now();
-    if (now - lastTap < 320) { folded = !folded; step = 0; }
-    else if (folded) { folded = false; }
-    else { step = (step + 1) % RANGES.length; }
+    var dbl = now - lastTap < 320;
     lastTap = now;
+    if (dbl) { folded = !folded; step = 0; remember(); apply(); draw(); return; }
+    if (folded) { folded = false; remember(); apply(); draw(); return; }
+    var hit = hitAt(e);
+    if (hit && hit.pd > HUB_PX) { walkToHit(hit); return; }
+    step = (step + 1) % RANGES.length;
     remember();
     apply();
     draw();
