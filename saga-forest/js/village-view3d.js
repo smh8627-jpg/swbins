@@ -48,8 +48,12 @@
   function CAM_DIST() { return C().tuned('village3d.camDist', 6); }
   function CAM_HIGH() { return C().tuned('village3d.camHeight', 3.2); }
   /** 3/4 부감(쿼터뷰) 쪽 끝값 — 거리·기울기. tilt 가 클수록 카메라가 더 눕는다(수평 반지름이
-   *  커지고 높이가 낮아진다), 작을수록 더 위에서 내리찍는 부감이 된다 */
-  function ISO_DIST() { return C().tuned('village3d.isoDist', 11); }
+   *  커지고 높이가 낮아진다), 작을수록 더 위에서 내리찍는 부감이 된다.
+   *  **2026-09-02, 실기기 확인 후 사용자 요청으로 11 → 24.** 처음 값(11)은 어깨너머(6)와
+   *  큰 차이가 안 나 끝까지 끌어도 답답했다 — 2D 화면(구면 투영, village-view.js)만큼
+   *  넓고 편하게 보이도록 거리(따라서 높이도 비례해) 두 배 넘게 물렸다. tilt 는 그대로라
+   *  각도(구도)는 안 바뀌고 순전히 더 멀리서 본다 */
+  function ISO_DIST() { return C().tuned('village3d.isoDist', 24); }
   function ISO_TILT() { return C().tuned('village3d.isoTilt', 0.62); }
   function PLAYER_H() { return C().tuned('village3d.playerH', 1.7); }
   function GROUND_SIZE() { return C().tuned('village3d.groundSize', 400); }
