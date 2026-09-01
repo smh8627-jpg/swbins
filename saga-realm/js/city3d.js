@@ -1,0 +1,256 @@
+/**
+ * 성 안 — 3D 도시 화면 (PLAN README "Phase 6 성·도시")
+ * ---------------------------------------------------------------
+ * `ui-rtk.js`의 성 시트(`#sheet-body`)는 숫자만 늘어놓는다 — 이 파일은 그 시트
+ * 위에 얹힌 `#city3d` 캔버스에 **그 숫자를 그대로 세운 작은 디오라마**를 띄운다.
+ * 장식이 아니라 **읽는 화면**이다: 성벽 조각 수는 `wall/maxWall`(파손 비율),
+ * 집 수는 인구, 시장 수는 상업, 밭떼기는 농업, 곳간 통나무는 군량을 그대로 딴다.
+ *
+ * `#city3d`는 `index.html`에서 `#sheet-body`의 형제로 한 번만 박혀 있다 —
+ * `renderSheet()`가 `#sheet-body.innerHTML`을 갈아 끼워도 이 캔버스는 안 죽는다.
+ * 그래서 렌더러를 매번 새로 만들지 않고, **성이 바뀌거나 그 성의 숫자가
+ * 실제로 바뀌었을 때만** 다시 짓는다(`sig()` 로 스냅샷을 비교).
+ *
+ * 판정은 한 줄도 없다 — `rtk.city()`·`cityData.find()` 를 읽기만 한다.
+ */
+(function (global) {
+  'use strict';
+
+  var A3 = null;
+  function asset3d() { if (!A3) { A3 = global.DG.asset3d; } return A3; }
+  var CD = null;
+  function cityData() { if (!CD) { CD = global.DG.cityData; } return CD; }
+  var FD = null;
+  function forceData() { if (!FD) { FD = global.DG.forceData; } return FD; }
+  var T = null;
+  function three() { if (!T) { T = global.THREE || null; } return T; }
+  function R() { return global.DG.rtk; }
+
+  var TIER_H = { t1: 6, t2: 8, t3: 11 };
+  function tierOf(maxWall) {
+    var w = maxWall || 0;
+    if (w >= 5600) { return 't3'; }
+    if (w >= 4600) { return 't2'; }
+    return 't1';
+  }
+
+  function forceColor(id) {
+    var f = forceData().force(id);
+    return f ? f.color : '#5b6572';
+  }
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function ring(n, r, startAng) {
+    var pts = [], i;
+    for (i = 0; i < n; i++) {
+      var a = startAng + (i / n) * Math.PI * 2;
+      pts.push([Math.cos(a) * r, Math.sin(a) * r]);
+    }
+    return pts;
+  }
+
+  var canvas = null, renderer = null, scene = null, camera = null, dyn = null;
+  var ready = false, failed = false, loopRunning = false;
+  var rebuildSeq = 0;
+  var curCityId = null, curSig = '';
+  var spin = 0;
+
+  function available() { return !!three() && !failed; }
+
+  function active() {
+    var sh = document.getElementById('sheet');
+    return !!(ready && sh && sh.classList.contains('show') && sh.getAttribute('data-tab') === 'city');
+  }
+
+  function ensureInit() {
+    if (ready || failed) { return ready; }
+    var t = three();
+    canvas = document.getElementById('city3d');
+    if (!t || !canvas) { failed = true; return false; }
+    try {
+      renderer = new t.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+    } catch (e) { failed = true; return false; }
+    renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+
+    scene = new t.Scene();
+    scene.background = new t.Color(0xb9dcef);
+    scene.fog = new t.Fog(0xb9dcef, 34, 130);
+
+    camera = new t.PerspectiveCamera(42, 1, 0.5, 400);
+
+    scene.add(new t.HemisphereLight(0xffffff, 0x4a5a3a, 1.0));
+    var sun = new t.DirectionalLight(0xfff4e0, 1.05);
+    sun.position.set(-14, 22, 10);
+    scene.add(sun);
+
+    var ground = new t.Mesh(
+      new t.CircleGeometry(19, 28),
+      new t.MeshLambertMaterial({ color: 0xcfe0a0 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+
+    dyn = new t.Group();
+    scene.add(dyn);
+
+    ready = true;
+    resize();
+    global.addEventListener('resize', resize);
+    return true;
+  }
+
+  function resize() {
+    if (!renderer || !camera || !canvas) { return; }
+    var w = canvas.clientWidth || 300, h = canvas.clientHeight || 170;
+    if (!w || !h) { return; }
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  /** 발밑 그림자 — 값싼 원 데칼(`realm3d.js`의 `addShadow`와 같은 요령) */
+  var blobGeo = null, blobMat = null;
+  function addShadow(x, z, r) {
+    var t = three();
+    if (!t || !dyn) { return; }
+    if (!blobGeo) {
+      blobGeo = new t.CircleGeometry(1, 16);
+      blobMat = new t.MeshBasicMaterial({ color: 0x14140c, transparent: true, opacity: 0.28, depthWrite: false });
+    }
+    var m = new t.Mesh(blobGeo, blobMat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, 0.015, z);
+    m.scale.setScalar(Math.max(0.4, r));
+    dyn.add(m);
+  }
+
+  function addProp(kind, id, x, z, scaleH, rotY, seq) {
+    asset3d().build(kind, { id: id }, function (g) {
+      if (seq !== rebuildSeq || !g || !dyn) { return; }
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY || 0;
+      g.scale.setScalar(scaleH);
+      dyn.add(g);
+      addShadow(x, z, scaleH * 0.4);
+    });
+  }
+
+  /** 성 하나를 통째로 다시 짓는다 — 숫자를 그대로 세운다 */
+  function build(cityId) {
+    var t = three();
+    dyn.clear();
+    rebuildSeq++;
+    var seq = rebuildSeq;
+    var d = cityData().find(cityId), c = R().city(cityId);
+    if (!d || !c) { return; }
+    var tier = tierOf(d.maxWall || d.wall || c.maxWall);
+    var h = TIER_H[tier];
+    var col = forceColor(c.force);
+    var mine = c.force === R().me();
+
+    asset3d().build('city:' + tier, { id: cityId + ':diorama', tint: col, flag: col }, function (g) {
+      if (seq !== rebuildSeq || !g || !dyn) { return; }
+      g.position.set(0, 0, 0);
+      g.scale.setScalar(h);
+      dyn.add(g);
+      addShadow(0, 0, h * 0.45);
+      if (mine) {
+        var mring = new t.Mesh(
+          new t.RingGeometry(h * 0.5, h * 0.62, 24),
+          new t.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, side: t.DoubleSide })
+        );
+        mring.rotation.x = -Math.PI / 2;
+        mring.position.set(0, 0.06, 0);
+        dyn.add(mring);
+      }
+    });
+
+    /* 성벽 — 파손 비율(wall/maxWall)만큼만 둘러선다. 포위로 깎이면 성벽이 준다 */
+    var wallRatio = clamp((c.wall || 0) / (c.maxWall || 1), 0, 1);
+    var wallN = Math.round(wallRatio * 6);
+    ring(6, h * 0.95, 0).slice(0, wallN).forEach(function (p, i) {
+      addProp('wall', cityId + ':wall:' + i, p[0], p[1], h * 0.55, Math.atan2(p[0], p[1]) + Math.PI / 2, seq);
+    });
+
+    /* 집 — 인구 */
+    var houseN = clamp(Math.round((c.pop || 0) / 40000), 3, 9);
+    ring(houseN, h * 1.5, 0.4).forEach(function (p, i) {
+      addProp('house', cityId + ':house:' + i, p[0], p[1], h * 0.5 + ((i % 3) * 0.08), ((i * 47) % 628) / 100, seq);
+    });
+
+    /* 시장 — 상업 */
+    var marketN = clamp(Math.round((c.comm || 0) / 80), 1, 5);
+    var mi;
+    for (mi = 0; mi < marketN; mi++) {
+      var ma = 1.1 + mi * 0.5;
+      addProp('market', cityId + ':market:' + mi, Math.cos(ma) * h * 1.05, Math.sin(ma) * h * 1.05, h * 0.45, ma, seq);
+    }
+
+    /* 밭 — 농업(꽃·덤불을 섞어 밭떼기처럼) */
+    var farmN = clamp(Math.round((c.agri || 0) / 90), 2, 6);
+    var fi;
+    for (fi = 0; fi < farmN; fi++) {
+      var fa = -1.4 + fi * 0.5;
+      var kind = fi % 3 === 0 ? 'flower' : 'bush';
+      addProp(kind, cityId + ':farm:' + fi, Math.cos(fa) * h * 1.4, Math.sin(fa) * h * 1.4, 0.9, fi, seq);
+    }
+
+    /* 곳간 — 군량 */
+    var foodN = clamp(Math.round((c.food || 0) / 400) + 1, 1, 4);
+    var gi;
+    for (gi = 0; gi < foodN; gi++) {
+      addProp('log', cityId + ':food:' + gi, -h * 0.9 - gi * 0.5, h * 0.6, 0.5, gi, seq);
+    }
+
+    /* 우물 · 횃불 — 늘 있는 살림. 치안이 높으면 횃불 하나가 더 선다 */
+    addProp('well', cityId + ':well', h * 0.9, -h * 0.5, h * 0.4, 0, seq);
+    addProp('torch', cityId + ':torchA', h * 0.55, h * 0.85, h * 0.35, 0, seq);
+    addProp('torch', cityId + ':torchB', -h * 0.55, h * 0.85, h * 0.35, 0, seq);
+    if ((c.sec || 0) >= 80) {
+      addProp('torch', cityId + ':torchC', h * 1.0, h * 0.2, h * 0.32, 0, seq);
+    }
+  }
+
+  function sig(cityId) {
+    var c = R().city(cityId);
+    if (!c) { return ''; }
+    return [cityId, c.force, c.wall, c.maxWall, c.pop, c.comm, c.agri, c.food, c.sec].join(':');
+  }
+
+  /** 밖에서 부르는 단 하나의 입구 — 성이 다르거나 숫자가 바뀌었을 때만 다시 짓는다 */
+  function render(cityId) {
+    if (!cityId || !ensureInit()) { return; }
+    var s = sig(cityId);
+    if (!(cityId === curCityId && s === curSig)) {
+      curCityId = cityId; curSig = s;
+      build(cityId);
+    }
+    resize();
+    startLoop();
+  }
+
+  function startLoop() {
+    if (loopRunning) { return; }
+    loopRunning = true;
+    requestAnimationFrame(tick);
+  }
+
+  /** 궤도 카메라를 손대지 않고 천천히 저절로 돈다 — 손잡이를 하나 더 두지 않는다 */
+  function tick() {
+    if (!active()) { loopRunning = false; return; }
+    spin += 0.0035;
+    var dist = TIER_H.t3 * 2.6;
+    camera.position.set(Math.sin(spin) * dist, TIER_H.t3 * 1.5, Math.cos(spin) * dist);
+    camera.lookAt(0, TIER_H.t2 * 0.4, 0);
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  }
+
+  global.DG = global.DG || {};
+  global.DG.city3d = { available: available, render: render };
+
+  /* 성 시트가 열린 채로 명령을 실행하면(달이 넘어가는 등) 숫자가 바뀐 만큼 다시 짓는다 */
+  global.DG.core.on('changed', function () {
+    if (curCityId && active()) { curSig = ''; render(curCityId); }
+  });
+})(window);

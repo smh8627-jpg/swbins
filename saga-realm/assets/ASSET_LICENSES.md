@@ -57,6 +57,8 @@
 | `WoodenTorch.glb` | `saga-go/assets/models/props/` | 모든 성 성문 앞 횃불 두 개 |
 | `MarketStand_1.glb` | `saga-go/assets/models/buildings/` | 3등급 대성의 시장 |
 | `Well.glb` | `saga-go/assets/models/buildings/` | 모든 성의 우물 |
+| `House_1~4.glb` | `saga-go/assets/models/buildings/` | 성 안 3D 도시 화면(`city3d.js`) — 인구만큼 세는 집 |
+| `WoodLog.glb` | `saga-forest/assets/models/nature/` | 성 안 3D 도시 화면 — 군량만큼 쌓는 곳간 통나무 |
 
 만든 이·라이선스는 위 성채·지형과 같다(Quaternius, CC0 1.0 Universal, 저작자 표시
 불필요, 재배포 허용).

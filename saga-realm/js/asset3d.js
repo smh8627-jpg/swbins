@@ -49,7 +49,9 @@
     'temple': PRP + 'Temple.glb',
     'torch': PRP + 'WoodenTorch.glb',
     'market': BLD + 'MarketStand_1.glb',
-    'well': BLD + 'Well.glb'
+    'well': BLD + 'Well.glb',
+    'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
+    'log': NAT + 'WoodLog.glb'
   };
 
   var REG = {};

@@ -217,6 +217,11 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 #sheet-body::-webkit-scrollbar { width: 8px; }
 #sheet-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 4px; }
 
+/* 성 안 3D 디오라마 — #sheet-body 의 형제라 innerHTML 교체에도 안 죽는다.
+   성(city) 탭이 열렸을 때만 보인다(그 밖엔 항상 display:none) */
+#city3d { display: none; width: 100%; height: 168px; flex: 0 0 auto; }
+#sheet.show[data-tab="city"] #city3d { display: block; }
+
 /* ── 시트 내부 공통 ───────────────────────────────────── */
 .sec { margin-bottom: 18px; }
 .sec:last-child { margin-bottom: 4px; }

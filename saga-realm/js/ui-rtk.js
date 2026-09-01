@@ -376,6 +376,7 @@
   function openSheet(name) {
     openTab = name;
     els['sheet-title'].textContent = SHEET_TITLE[name] || name;
+    els.sheet.setAttribute('data-tab', name);
     els.sheet.classList.add('show');
     document.body.classList.add('sheet-open');
     if (global.innerWidth <= 780) { els.scrim.classList.add('show'); }
@@ -421,6 +422,9 @@
           : openTab === 'diplo' ? viewDiplo()
           : openTab === 'school' ? viewSchool() : viewLog();
     els['sheet-body'].innerHTML = v;
+    if (openTab === 'city' && openCityId && global.DG.city3d) {
+      global.DG.city3d.render(openCityId);
+    }
   }
 
   /* ── 성 ───────────────────────────────────────────────── */
