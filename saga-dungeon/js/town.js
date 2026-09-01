@@ -332,6 +332,7 @@
       if (D().fieldRoamerCount(ctx) < D().FIELD_ENEMY_CAP) { D().spawnFieldRoamers(1, ctx); }
     }
     D().stepFieldCombat(dt, ctx, fx);
+    D().pickupField(ctx, fx);
     /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
        dungeon:end 가 곧바로 town.enter({fromDungeon:true})를 다시 불러 굴혈 앞으로
        돌려보낸다. 마을은 안전지대 예외를 안 둔다(사용자 확정) — 대신 돌아온

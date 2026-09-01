@@ -1225,6 +1225,29 @@
     });
   }
 
+  /**
+   * 들판에서 잡은 것 줍기 — `update()` 안의 "바닥에 떨어진 것 줍기"(1474행
+   * 부근)와 판정은 완전히 같다(플레이어 반경 안이면 `take()`). **마을에는
+   * 여태 이게 없어** 필드 로머를 잡아도 `room.drops`에 쌓이기만 하고
+   * 회수가 안 됐다(2026-09-01 이전, 알려진 한계로 적어 뒀던 것).
+   * `stepFieldCombat`과 분리해 둔 것은 그 함수의 문서화된 범위(전투만,
+   * 이동·문 전환·방 정리는 뺐다)를 그대로 지키기 위해서다 — 마을은 자기
+   * 이동을 다 계산한 뒤 이 함수를 따로 부른다.
+   * @param ctx stepFieldCombat 과 같은 뜻(withRun으로 run 을 이걸로 바꿔 끼운다).
+   * @param fxArr 이 틱의 연출을 받을 배열.
+   */
+  function pickupField(ctx, fxArr) {
+    withRun(ctx, fxArr, function () {
+      var p = run.player, room = run.room, i;
+      for (i = room.drops.length - 1; i >= 0; i--) {
+        var dp = room.drops[i];
+        if (dist(p, dp) < P_R + 14) {
+          if (take(dp) !== false) { room.drops.splice(i, 1); }
+        }
+      }
+    });
+  }
+
   /** 사기(士氣) 버프가 살아 있나 */
   function rallyOn() {
     return !!(run && run.player.rallyUntil > Date.now());
@@ -1850,7 +1873,10 @@
 
   function take(dp) {
     if (dp.kind === 'gold') {
-      run.loot.gold += dp.gold;
+      /* 마을(`run.town`)은 탈출해야 정산되는 노획물 개념이 없다 — 이미 안전지대에
+         있으므로 주운 즉시 지갑으로 넣는다(재료·물약·감정서와 같은 대접) */
+      if (run.town) { core.save.player.gold += dp.gold; }
+      else { run.loot.gold += dp.gold; }
       fx.push({ t: 'get', x: dp.x, y: dp.y, text: '+' + core.fmt(dp.gold), life: 0.8 });
       sfx('gold');
     } else if (dp.kind === 'scroll') {
@@ -2154,6 +2180,7 @@
     spawnFieldRoamers: spawnFieldEncounters,
     fieldRoamerCount: fieldEnemyCount,
     stepFieldCombat: stepFieldCombat,
+    pickupField: pickupField,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo,
     pickBoon: pickBoon, goRoom: goRoom,
