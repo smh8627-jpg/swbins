@@ -23,6 +23,7 @@
     if (core.save.settings.prop) { global.DG.sprite.setProp(core.save.settings.prop); }
     if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
 
+    if (global.DG.sideView3d) { global.DG.sideView3d.init(document.getElementById('stage3d')); }
     global.DG.sideView.init(document.getElementById('stage'));
     if (global.DG.quest) { global.DG.quest.init(); }   // 사명이 'side:kill' 을 듣기 시작한다
     ui.init();
@@ -231,7 +232,12 @@
 
     global.DG.auto.update(dt);
     S.update(dt);
-    if (!global.DG_NO_DRAW) { global.DG.sideView.draw(); }
+    if (!global.DG_NO_DRAW) {
+      /* camX 는 sideView.draw() 가 매 프레임 새로 잰다 — 3D 는 그 값을 그대로 받아
+         쓰므로(_cam()) 반드시 뒤에 부른다. 그려지는 순서는(캔버스가 둘이라) 상관없다 */
+      global.DG.sideView.draw();
+      if (global.DG.sideView3d) { global.DG.sideView3d.draw(); }
+    }
 
     uiAcc += dt;
     if (uiAcc >= 0.15) { uiAcc = 0; ui.tickRefresh(); }   // 체력 바는 자주 갱신해야 한다

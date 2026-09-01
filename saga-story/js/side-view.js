@@ -37,6 +37,7 @@
     cv.style.width = W + 'px';
     cv.style.height = H + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (global.DG.sideView3d) { global.DG.sideView3d.resize(); }
   }
 
   /**
@@ -118,6 +119,10 @@
     var stg = run.stage, p = run.player;
 
     camX = core.clamp(p.x + S.P_W / 2 - W / 2, 0, Math.max(0, stg.width - W));
+    /* 3D 바탕(side-view3d.js)이 살아 있으면 세계는 거기서 그린다 — 여기서는
+       하늘·뒷배경·바닥·발판·사람·몹을 건너뛰고 오버레이(미니맵·보스체력·데미지숫자)만 남긴다.
+       못 켜지면(WebGL 없음) use3d 가 false 라 옛 2D 가 그대로 돈다 */
+    var use3d = !!(global.DG.sideView3d && global.DG.sideView3d.ready());
 
     /* 화면 흔들림 — **화면 층에만 있다.** side.js 는 'shake' 한 줄을 남길 뿐이고
        세기도 위상도 여기서 정한다. 그래서 흔들림을 꺼도 판정은 한 자도 안 바뀐다.
@@ -131,38 +136,42 @@
     ctx.save();
     ctx.translate(Math.round(sx), Math.round(sy));
 
-    /* 하늘 */
-    var g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, stg.sky[0]);
-    g.addColorStop(1, stg.sky[1]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    if (use3d) {
+      ctx.clearRect(0, 0, W, H);
+    } else {
+      /* 하늘 */
+      var g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, stg.sky[0]);
+      g.addColorStop(1, stg.sky[1]);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
 
-    drawBackdrop(stg);
+      drawBackdrop(stg);
 
-    /* 바닥 */
-    ctx.fillStyle = stg.ground;
-    ctx.fillRect(0, stg.floor, W, H - stg.floor);
-    ctx.fillStyle = 'rgba(255,255,255,0.30)';
-    ctx.fillRect(0, stg.floor, W, 5);
-    ctx.fillStyle = 'rgba(40,32,24,0.35)';
-    ctx.fillRect(0, stg.floor + 5, W, 2);
-
-    /* 발판 */
-    for (var i = 0; i < stg.plats.length; i++) {
-      var pl = stg.plats[i];
-      var x = pl[0] - camX;
-      if (x + pl[2] < -40 || x > W + 40) { continue; }
-      /* 원작의 발판 — 위에 잔디(밝은 띠) · 아래에 흙, 그리고 진한 테 한 줄 */
+      /* 바닥 */
       ctx.fillStyle = stg.ground;
-      ctx.fillRect(x, pl[1], pl[2], 16);
-      ctx.fillStyle = 'rgba(255,255,255,0.34)';
-      ctx.fillRect(x, pl[1], pl[2], 4);
-      ctx.fillStyle = 'rgba(0,0,0,0.30)';
-      ctx.fillRect(x, pl[1] + 16, pl[2], 6);
-      ctx.strokeStyle = 'rgba(40,32,24,0.55)';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x + 0.5, pl[1] + 0.5, pl[2] - 1, 16);
+      ctx.fillRect(0, stg.floor, W, H - stg.floor);
+      ctx.fillStyle = 'rgba(255,255,255,0.30)';
+      ctx.fillRect(0, stg.floor, W, 5);
+      ctx.fillStyle = 'rgba(40,32,24,0.35)';
+      ctx.fillRect(0, stg.floor + 5, W, 2);
+
+      /* 발판 */
+      for (var i = 0; i < stg.plats.length; i++) {
+        var pl = stg.plats[i];
+        var x = pl[0] - camX;
+        if (x + pl[2] < -40 || x > W + 40) { continue; }
+        /* 원작의 발판 — 위에 잔디(밝은 띠) · 아래에 흙, 그리고 진한 테 한 줄 */
+        ctx.fillStyle = stg.ground;
+        ctx.fillRect(x, pl[1], pl[2], 16);
+        ctx.fillStyle = 'rgba(255,255,255,0.34)';
+        ctx.fillRect(x, pl[1], pl[2], 4);
+        ctx.fillStyle = 'rgba(0,0,0,0.30)';
+        ctx.fillRect(x, pl[1] + 16, pl[2], 6);
+        ctx.strokeStyle = 'rgba(40,32,24,0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x + 0.5, pl[1] + 0.5, pl[2] - 1, 16);
+      }
     }
 
     drawRopes(stg);
@@ -558,12 +567,14 @@
     var x = e.x + e.w / 2 - camX, y = e.y + e.h;
     if (x < -60 || x > W + 60) { return; }
     var human = e.ref.kind === 'human';
-    global.DG.sprite.stamp(ctx, {
-      kind: human ? 'human' : 'beast', ref: e.ref, x: x, y: y, s: e.boss ? 1.9 : 0.8,
-      facing: e.dir, phase: e.phase, walking: true,
-      color: e.ref.color, look: e.ref.look || {},
-      form: e.ref.form, rarity: e.boss ? 5 : 2, t: Date.now()
-    });
+    if (!(global.DG.sideView3d && global.DG.sideView3d.ready())) {
+      global.DG.sprite.stamp(ctx, {
+        kind: human ? 'human' : 'beast', ref: e.ref, x: x, y: y, s: e.boss ? 1.9 : 0.8,
+        facing: e.dir, phase: e.phase, walking: true,
+        color: e.ref.color, look: e.ref.look || {},
+        form: e.ref.form, rarity: e.boss ? 5 : 2, t: Date.now()
+      });
+    }
     if (e.boss) {
       /* 발밑 고리 — 몸집만으로는 잡졸과 잘 안 갈린다. 달려드는 동안은 붉게 탄다 */
       var charging = e.charge > 0;
@@ -592,13 +603,15 @@
   function drawMe(p) {
     var ref = S.meRef();
     var x = p.x + S.P_W / 2 - camX, y = p.y + S.P_H;
-    global.DG.sprite.stamp(ctx, {
-      kind: 'human', ref: ref, x: x, y: y, s: 1.05,
-      facing: p.facing, phase: p.phase, walking: !!p.vx && p.onGround,
-      color: global.DG.data.faction(ref.faction).color,
-      look: global.DG.sprite.lookOf(ref),
-      rarity: ref.rarity, t: Date.now()
-    });
+    if (!(global.DG.sideView3d && global.DG.sideView3d.ready())) {
+      global.DG.sprite.stamp(ctx, {
+        kind: 'human', ref: ref, x: x, y: y, s: 1.05,
+        facing: p.facing, phase: p.phase, walking: !!p.vx && p.onGround,
+        color: global.DG.data.faction(ref.faction).color,
+        look: global.DG.sprite.lookOf(ref),
+        rarity: ref.rarity, t: Date.now()
+      });
+    }
     if (p.hurt > 0) {
       ctx.globalAlpha = 0.3;
       ctx.fillStyle = '#e06565';

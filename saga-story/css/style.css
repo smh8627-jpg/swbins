@@ -1137,6 +1137,9 @@ body.tilted3 #vignette {
 
 /* ── 사냥터 게임 ──────────────────────────────────────────── */
 #stage { position: fixed; inset: 0; z-index: 0; display: block; touch-action: none; }
+/* 3D 바탕 — #stage(2D, 조작·오버레이) 바로 뒤에 깔린다. WebGL 이 없으면 그냥 비어 있고
+   #stage 가 옛 2D 그림을 그대로 채운다(side-view.js 의 use3d 판정) */
+#stage3d { position: fixed; inset: 0; z-index: -1; display: block; pointer-events: none; }
 
 #hud {
   position: fixed; left: 50%; transform: translateX(-50%);
