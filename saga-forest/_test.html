@@ -256,6 +256,27 @@ window.DG_NO_TUNE = true;
         '아직 아무것도 안 지음';
     });
 
+    t('village-view3d — 3D 시점 기본은 third(어깨너머), toggleCamMode 가 iso 와 오간다', function () {
+      var VV3 = DG.villageView3d;
+      var before = VV3.camMode();
+      var after1 = VV3.toggleCamMode();
+      var after2 = VV3.toggleCamMode();       // 되돌린다 — 다른 항목에 안 번지게
+      return before === 'third' && after1 === 'iso' && after2 === 'third' &&
+        VV3.camMode() === 'third' && '기본 third → iso → third';
+    });
+
+    t('village-view3d — camPose(third) 는 걷는 방향 뒤를 보고, camPose(iso) 는 걸어도 안 돈다', function () {
+      var VV3 = DG.villageView3d;
+      var thirdA = VV3.camPose('third', 0, 0, 10, 4, 0.62);
+      var thirdB = VV3.camPose('third', Math.PI / 2, 0, 10, 4, 0.62);
+      var isoA = VV3.camPose('iso', 0, 0, 10, 4, 0.62);
+      var isoB = VV3.camPose('iso', Math.PI / 2, 0, 10, 4, 0.62);
+      var thirdMoved = Math.abs(thirdA.x - thirdB.x) > 0.01 || Math.abs(thirdA.z - thirdB.z) > 0.01;
+      var isoStill = Math.abs(isoA.x - isoB.x) < 1e-9 && Math.abs(isoA.z - isoB.z) < 1e-9;
+      return thirdMoved && isoStill && isoA.y > 0 &&
+        'third 는 facingYaw 를 따라 돌고 · iso 는 facingYaw 와 무관';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {

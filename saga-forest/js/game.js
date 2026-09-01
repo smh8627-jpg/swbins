@@ -141,6 +141,29 @@
       });
     }
 
+    /* 3D 시점 — third(어깨너머 3인칭, 기본) ↔ iso(3/4 부감, 사가블로 dg3d.camMode 와 같은 뜻).
+       3D 가 꺼져 있어도 버튼은 두되(다음에 3D 를 켰을 때 바로 적용되게), 눌렀을 때 3D 가 안
+       켜져 있으면 조용히 알린다 */
+    var camBtn = document.getElementById('btn-camview');
+    if (camBtn && global.DG.villageView3d) {
+      var VV3b = global.DG.villageView3d;
+      if (!VV3b.available()) { camBtn.style.display = 'none'; }
+      var syncCamBtn = function () {
+        var iso = VV3b.camMode() === 'iso';
+        camBtn.classList.toggle('on', iso);
+        camBtn.title = iso ? '3D 시점 (3/4 부감 — 눌러서 3인칭 어깨너머로)'
+                            : '3D 시점 (3인칭 어깨너머 — 눌러서 3/4 부감으로)';
+      };
+      syncCamBtn();
+      camBtn.addEventListener('click', function () {
+        if (!VV3b.active()) { ui.toast('먼저 🧊 로 3D 를 켜야 시점을 바꿀 수 있습니다'); return; }
+        VV3b.toggleCamMode();
+        syncCamBtn();
+        ui.toast(VV3b.camMode() === 'iso' ? '🎥 3/4 부감' : '🎥 3인칭 어깨너머');
+        core.persist();
+      });
+    }
+
     document.getElementById('btn-help').addEventListener('click', showHelp);
   }
 

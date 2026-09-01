@@ -45,8 +45,15 @@
 
   /** 손잡이 — 기본은 꺼져 있다(2D 가 그대로 간다). 🧊 버튼이 이걸 뒤집는다 */
   function ON() { return C().tuned('village3d.on', 0) ? true : false; }
+  /** 카메라 구도 — 'third'(어깨너머 3인칭, 기본) 또는 'iso'(3/4 부감, 사가블로 dg3d.camMode 와
+   *  같은 뜻). 🎥 버튼이 이걸 뒤집는다. iso 는 걷는 방향을 안 따라 돌지 않는다 — 원작 쿼터뷰처럼
+   *  늘 같은 각도로 내려다보고, mouseYaw(드래그)로만 방위를 돌린다 */
+  function CAMMODE() { return C().tuned('village3d.camMode', 'third') === 'iso' ? 'iso' : 'third'; }
   function CAM_DIST() { return C().tuned('village3d.camDist', 6); }
   function CAM_HIGH() { return C().tuned('village3d.camHeight', 3.2); }
+  /** iso 구도의 거리·기울기 — tilt 가 클수록 더 눕는다(수평에 가깝다), 낮을수록 더 부감(수직에 가깝다) */
+  function ISO_DIST() { return C().tuned('village3d.isoDist', 11); }
+  function ISO_TILT() { return C().tuned('village3d.isoTilt', 0.62); }
   function PLAYER_H() { return C().tuned('village3d.playerH', 1.7); }
   function GROUND_SIZE() { return C().tuned('village3d.groundSize', 400); }
   function FOV() { return C().tuned('village3d.fov', 55); }
@@ -316,6 +323,22 @@
     player.action = act;
   }
 
+  /**
+   * 카메라 자리 — **순수 함수다**(사가블로 dungeon3d.js 의 camAim/camAim3rd 와 같은 결).
+   * third: 걷는 방향(facingYaw) 뒤·어깨 위를 따라 돈다. iso: facingYaw 를 안 보고
+   * mouseYaw 로만 방위를 돌린다 — 걸어도 화면이 안 돌아가는 원작 쿼터뷰의 뜻.
+   * 인물은 늘 원점(0,0,0)이라 lookAt 은 호출부에서 고정값 하나로 처리한다.
+   */
+  function camPose(mode, facingYaw, mouseYaw, dist, high, isoTilt) {
+    if (mode === 'iso') {
+      var az = mouseYaw;
+      var back = dist * isoTilt;
+      return { x: Math.sin(az) * back, y: dist * (1 - isoTilt * 0.55), z: Math.cos(az) * back };
+    }
+    var behind = facingYaw + Math.PI + mouseYaw;
+    return { x: Math.sin(behind) * dist, y: high, z: Math.cos(behind) * dist };
+  }
+
   /** 걸음 방향 → 카메라가 뒤에서 도는 각. 마을 좌표(x,y) → 3D(x,-z 앞) */
   function syncCamera() {
     var V = global.DG.village;
@@ -335,11 +358,20 @@
 
     if (player.group) { player.group.rotation.y = facingYaw; }
 
-    var behind = facingYaw + Math.PI + mouseYaw;
-    /* userZoom 이 커질수록(확대) 어깨너머 거리를 좁힌다 — 그래서 여기선 나눈다 */
-    var dist = CAM_DIST() / userZoom, high = CAM_HIGH() / userZoom;
-    camera.position.set(Math.sin(behind) * dist, high, Math.cos(behind) * dist);
+    var mode = CAMMODE();
+    /* userZoom 이 커질수록(확대) 거리를 좁힌다 — 그래서 여기선 나눈다 */
+    var dist = (mode === 'iso' ? ISO_DIST() : CAM_DIST()) / userZoom;
+    var high = CAM_HIGH() / userZoom;
+    var pos = camPose(mode, facingYaw, mouseYaw, dist, high, ISO_TILT());
+    camera.position.set(pos.x, pos.y, pos.z);
     camera.lookAt(0, PLAYER_H() * 0.75, 0);
+  }
+
+  /** 🎥 버튼 — third ↔ iso 를 뒤집고 지금 값을 돌려준다 */
+  function toggleCamMode() {
+    var next = CAMMODE() === 'iso' ? 'third' : 'iso';
+    C().setTune('village3d.camMode', next);
+    return next;
   }
 
   /**
@@ -452,6 +484,8 @@
   global.DG.villageView3d = {
     init: init, resize: resize, step: step, toggle: toggle,
     active: active, available: available, on: ON,
+    /** 카메라 구도 — 'third'/'iso' 조회·🎥 버튼용 뒤집기, 진단용 순수 함수 */
+    camMode: CAMMODE, toggleCamMode: toggleCamMode, camPose: camPose,
     /** 진단 전용 — 표(순수 함수)와 지금 세운 개수 */
     scatterKind: function () { return SCATTER_KIND; },
     scatterCount: function () { return Object.keys(scatter).length; },
