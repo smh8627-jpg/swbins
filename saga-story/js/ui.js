@@ -65,6 +65,7 @@
     global.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') { return; }
       if (openDetailRef) { closeDetail(); return; }
+      if (owmapHost().classList.contains('show')) { closeOverworldMap(); return; }
       if (openTab) { closeSheet(); }
     });
 
@@ -99,6 +100,8 @@
         openDetail(b.getAttribute('data-kind') || 'hero', id);
         return;
       }
+      if (act === 'ow-open') { openOverworldMap(); return; }
+      if (act === 'ow-close') { closeOverworldMap(); return; }
       if (act === 's-enter') {
         global.DG.side.enter(b.getAttribute('data-stage'));
       } else if (act === 's-leave') {
@@ -185,6 +188,14 @@
         if (e.target.closest('[data-act="auto-stop"]')) { global.DG.auto.setOn(false); }
       });
     }
+
+    /* 오버월드 지도 — 별도 오버레이라 이벤트도 따로 받는다 */
+    var owHost = owmapHost();
+    owHost.addEventListener('click', function (e) {
+      if (e.target === owHost) { closeOverworldMap(); return; }
+      var b = e.target.closest('[data-act]');
+      if (b && b.getAttribute('data-act') === 'ow-close') { closeOverworldMap(); }
+    });
 
     core.on('toast', toast);
     core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); });
@@ -409,7 +420,8 @@
       '<small class="muted">앞에 세운 인물의 능력치가 그대로 몸이 됩니다. ' +
       '도감에서 다른 인물을 앞에 세우거나 승급하면 세집니다.</small></div></div>';
 
-    html += '<div class="sec"><h4>사냥터</h4>';
+    html += '<div class="sec"><h4>사냥터 <button class="btn tiny ghost" data-act="ow-open" ' +
+      'style="float:right;margin-top:-2px">🗺️ 전체 지도 (M)</button></h4>';
     var list = st.stages;
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
@@ -422,8 +434,9 @@
           (ready ? '지키고 있음' : bossLeftLabel(left) + ' 뒤 다시 나옴') + '</span></div>';
       }
       html += '<div class="card">' +
-        '<div class="stat-row"><span><b>' + esc(e.ref.name) + '</b></span>' +
-          '<span class="muted">적 Lv.' + e.ref.enemyLv + ' · ' + e.ref.spawn + '마리</span></div>' +
+        '<div class="stat-row"><span><b>' + (e.ref.town ? '🏘️ ' : '') + esc(e.ref.name) + '</b></span>' +
+          '<span class="muted">' + (e.ref.town ? '안전지대 · 쉼터'
+            : '적 Lv.' + e.ref.enemyLv + ' · ' + e.ref.spawn + '마리') + '</span></div>' +
         bossLine +
         (e.open
           ? '<button class="btn primary wide" data-act="s-enter" data-stage="' + e.ref.key + '">들어간다</button>'
@@ -841,6 +854,60 @@
     el.innerHTML = '';
   }
 
+  /* ── 오버월드 전체 지도 (2026-09-02, M키식 토글) ─────────────
+   * 지금 어디 있는지 + 마을(🏘️)·사냥터(⚔️)가 어떤 순서로 이어지는지 한눈에.
+   * 걸어서 문을 통해 실제로 오가는 것과는 별개로, 상태만 보여 주는 읽기 전용 판이다. */
+  var OW_CHAIN = ['sinya', 'heodo', 'field', 'gangneungjin', 'forest',
+                  'namjeongseong', 'cave', 'gisanchae', 'gorge'];
+
+  function owmapHost() {
+    var el = $('owmap');
+    if (!el) {                       // 자가진단 페이지처럼 뼈대가 없는 곳에서도 동작하게
+      el = document.createElement('div');
+      el.id = 'owmap';
+      document.body.appendChild(el);
+      els.owmap = el;
+    }
+    return el;
+  }
+
+  function renderOverworldMap() {
+    var SD = global.DG.sideData, S = global.DG.side;
+    var here = S.status().stage.key;
+    var html = '<div class="ow-card">' +
+      '<button class="icon-btn sm ow-x" data-act="ow-close">✕</button>' +
+      '<h3>🗺️ 오버월드</h3><div class="ow-chain">';
+    for (var i = 0; i < OW_CHAIN.length; i++) {
+      var stg = SD.stage(OW_CHAIN[i]);
+      var open = S.unlocked(stg.key);
+      var cls = (stg.key === here ? ' cur' : '') + (open ? ' open' : ' locked') +
+        (stg.town ? ' town' : ' field');
+      html += '<div class="ow-node' + cls + '">' +
+        '<i>' + (stg.town ? '🏘️' : '⚔️') + '</i><b>' + esc(stg.name) + '</b>' +
+        (open ? (stg.town ? '<small>안전지대</small>' : '<small>적 Lv.' + stg.enemyLv + '</small>')
+              : '<small>🔒 Lv.' + stg.need + '</small>') +
+        '</div>';
+      if (i < OW_CHAIN.length - 1) { html += '<div class="ow-link' + (open ? ' open' : '') + '"></div>'; }
+    }
+    html += '</div><small class="muted">지금 있는 곳이 금빛으로 빛납니다. ' +
+      '마을(🏘️)은 안전지대, 사냥터(⚔️)는 몬스터가 있는 곳입니다.</small></div>';
+    owmapHost().innerHTML = html;
+  }
+
+  function openOverworldMap() {
+    renderOverworldMap();
+    owmapHost().classList.add('show');
+  }
+
+  function closeOverworldMap() {
+    owmapHost().classList.remove('show');
+  }
+
+  function toggleOverworldMap() {
+    if (owmapHost().classList.contains('show')) { closeOverworldMap(); }
+    else { openOverworldMap(); }
+  }
+
   function rankStars(rank) {
     if (!rank) { return ''; }
     var out = ' ';
@@ -1063,6 +1130,8 @@
     openSheet: openSheet, closeSheet: closeSheet,
     openDetail: openDetail, closeDetail: closeDetail,
     renderPanel: renderSheet, renderHud: renderTop,
-    renderCamp: renderCamp, renderHudBar: renderHudBar
+    renderCamp: renderCamp, renderHudBar: renderHudBar,
+    openOverworldMap: openOverworldMap, closeOverworldMap: closeOverworldMap,
+    toggleOverworldMap: toggleOverworldMap
   };
 })(window);

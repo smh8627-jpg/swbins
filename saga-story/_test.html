@@ -290,25 +290,30 @@ window.DG_NO_TUNE = true;
     });
 
     t('문 — ↑ 로 옆 사냥터로 넘어가고 몸과 벌이는 이어진다', function () {
+      /* 오버월드(2026-09-02) 삽입으로 들판 오른쪽 문의 바로 다음은 마을
+         강릉진이다(들판→강릉진→오림 숲) — 사슬 전체 연결은 별도 항목이 본다. */
       var run = S.raw(), p = run.player;
       var lv0 = C.save.player.level;
       C.save.player.level = 6;                  // 숲이 열린다
       calm(run);
       run.gold = 777; run.kills = 5; run.hp = Math.round(run.hpMax * 0.6);
       var hp0 = run.hp, from = run.stage.key;
-      var gate = run.stage.portals[0];
+      var gate = null, i;
+      for (i = 0; i < run.stage.portals.length; i++) {
+        if (run.stage.portals[i][1] === 'gangneungjin') { gate = run.stage.portals[i]; }
+      }
       p.climb = null; p.x = gate[0] - S.P_W / 2; p.y = run.stage.floor - S.P_H;
       p.vy = 0; p.onGround = true;
       S.setInput('up', true);
       restInput();
-      var moved = S.raw().stage.key === 'forest';
+      var moved = S.raw().stage.key === 'gangneungjin';
       var kept = S.raw().gold === 777 && S.raw().kills === 5 && S.raw().hp === hp0;
       var placed = S.raw().player.x < 300;      // 오른쪽 문으로 나갔으니 왼쪽에서 나온다
-      S.travel('field');                        // 되돌린다 (숲에도 들판으로 가는 문이 있다)
+      S.travel('field');                        // 되돌린다
       C.save.player.level = lv0;
       S.raw().player.invuln = 0;
-      return moved && kept && placed &&
-        (from + ' → 오림 숲 · 금 777·5마리·체력 ' + hp0 + ' 그대로');
+      return !!gate && moved && kept && placed &&
+        (from + ' → 강릉진 · 금 777·5마리·체력 ' + hp0 + ' 그대로');
     });
 
     t('못 열린 사냥터의 문은 거절한다', function () {
@@ -1364,13 +1369,16 @@ window.DG_NO_TUNE = true;
     t('사냥터 넷이 레벨 순으로 계단을 이룬다', function () {
       /* 넷째(호로곡)를 넣은 까닭이 이 계단이다 — 3차 전직이 Lv.45 인데 마지막
          사냥터가 Lv.12 에 열려 있어, 무예를 스물 얹어 놓고 쓸 데가 없었다. */
-      var need = SD.STAGES.map(function (x) { return x.need; });
-      var lvs = SD.STAGES.map(function (x) { return x.enemyLv; });
+      /* 오버월드 마을(town:true)은 사냥터가 아니라 문턱 계단에서 뺀다 —
+         마을의 need 는 그 마을이 지키는 사냥터와 같아 계단이 아니라 평평하다 */
+      var combat = SD.STAGES.filter(function (x) { return !x.town; });
+      var need = combat.map(function (x) { return x.need; });
+      var lvs = combat.map(function (x) { return x.enemyLv; });
       var up = true, i;
       for (i = 1; i < need.length; i++) {
         if (need[i] <= need[i - 1] || lvs[i] <= lvs[i - 1]) { up = false; }
       }
-      return SD.STAGES.length === 4 && up &&
+      return combat.length === 4 && up &&
         ('문턱 ' + need.join('→') + ' · 적 Lv.' + lvs.join('→'));
     });
 
@@ -1389,33 +1397,40 @@ window.DG_NO_TUNE = true;
         ('굴혈 tier ' + t3 + ' → 호로곡 tier ' + t4 + ' · 적 ' + pool.length + '종 · 보스 ' + boss.name);
     });
 
-    t('굴혈 오른쪽 문으로 호로곡에 걸어 넘어간다', function () {
-      /* 문 사슬이 한 군데라도 끊기면 그 사냥터는 영영 못 간다 — 지도에는 있는데
-         걸어갈 길이 없는 꼴이다. 넷을 오가며 사슬이 이어졌는지 본다. */
+    t('마을·사냥터 사슬이 신야성부터 호로곡까지 끊기지 않는다', function () {
+      /* 문 사슬이 한 군데라도 끊기면 그 뒤는 영영 못 간다 — 지도에는 있는데
+         걸어갈 길이 없는 꼴이다. 오버월드(2026-09-02)로 마을 다섯이 사냥터
+         사이에 끼어들었으니, 처음부터 끝까지 한 칸씩 걸어 사슬 전체를 본다. */
+      var CHAIN = ['sinya', 'heodo', 'field', 'gangneungjin', 'forest',
+                   'namjeongseong', 'cave', 'gisanchae', 'gorge'];
       if (S.active()) { S.leave(); }
       unlearn();
       C.save.player.level = 46;
-      S.state().stage = 'cave';
-      S.enter('cave');
-      var run = S.raw(), p = run.player;
-      calm(run);
-      var gate = null, i;
-      for (i = 0; i < run.stage.portals.length; i++) {
-        if (run.stage.portals[i][1] === 'gorge') { gate = run.stage.portals[i]; }
+      var ok = true, log = [], i;
+      for (i = 0; i < CHAIN.length - 1; i++) {
+        S.state().stage = CHAIN[i];
+        S.enter(CHAIN[i]);
+        var run = S.raw(), p = run.player;
+        calm(run);
+        var gate = null, j;
+        for (j = 0; j < run.stage.portals.length; j++) {
+          if (run.stage.portals[j][1] === CHAIN[i + 1]) { gate = run.stage.portals[j]; }
+        }
+        var went = false, where = '';
+        if (gate) {
+          p.x = gate[0] - S.P_W / 2;
+          p.y = run.stage.floor - S.P_H;
+          p.onGround = true;
+          went = S.useUp();
+          where = S.raw() ? S.raw().stage.key : '(나감)';
+        }
+        /* 되돌아오는 길도 있어야 한다 — 한쪽만 나면 갇힌다 */
+        var back = SD.stage(CHAIN[i + 1]).portals.some(function (q) { return q[1] === CHAIN[i]; });
+        if (!gate || !went || where !== CHAIN[i + 1] || !back) { ok = false; }
+        log.push(CHAIN[i] + '→' + (where || '✗'));
+        S.leave();
       }
-      var went = false, where = '';
-      if (gate) {
-        p.x = gate[0] - S.P_W / 2;
-        p.y = run.stage.floor - S.P_H;
-        p.onGround = true;
-        went = S.useUp();
-        where = S.raw() ? S.raw().stage.key : '(나감)';
-      }
-      /* 되돌아오는 길도 있어야 한다 — 한쪽만 나면 갇힌다 */
-      var back = SD.stage('gorge').portals.some(function (q) { return q[1] === 'cave'; });
-      S.leave();
-      return !!gate && went && where === 'gorge' && back &&
-        ('굴혈 x' + gate[0] + ' → ' + where + ' · 돌아오는 문 있음');
+      return ok && log.join(' · ');
     });
 
     t('모든 사냥터의 mood 는 화면이 아는 이름이다', function () {
@@ -1434,7 +1449,7 @@ window.DG_NO_TUNE = true;
       });
       if (S.active()) { S.leave(); }
       return bad.length === 0 && drew === SD.STAGES.length &&
-        (SD.STAGES.map(function (x) { return x.mood; }).join('·') + ' · 넷 다 그려짐');
+        (SD.STAGES.map(function (x) { return x.mood; }).join('·') + ' · 전부 그려짐');
     });
 
     t('3차 무예라야 호로곡의 정예를 감당한다', function () {
@@ -1741,7 +1756,11 @@ window.DG_NO_TUNE = true;
       S.castSkill(0);
       var tail = X._tail(8).join(',');
       S.leave();
-      return tail.indexOf('hit') >= 0 && tail.indexOf('kill') >= 0 && tail;
+      /* 급소(크리티컬)면 'hit' 대신 'crit' 이 난다 — 둘 다 "닿았다" 는 소리다.
+         씨앗 난수는 앞선 항목이 몇 번 굴렸는지에 따라 밀리므로, 어느 쪽이 나도
+         맞는 것으로 본다(실제로 여기서 앞선 항목 수가 늘면 크리가 뒤집힐 수 있다). */
+      return (tail.indexOf('hit') >= 0 || tail.indexOf('crit') >= 0) &&
+        tail.indexOf('kill') >= 0 && tail;
     });
 
     t('무예는 스물여덟이지만 소리는 넷으로 묶인다', function () {

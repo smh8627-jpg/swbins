@@ -63,7 +63,7 @@
   function st() {
     var s = core.save;
     if (!s.side) {
-      s.side = { stage: 'field', potions: 3, kills: 0, deaths: 0, best: 'field', bosses: 0 };
+      s.side = { stage: 'sinya', potions: 3, kills: 0, deaths: 0, best: 'field', bosses: 0 };
     }
     /* 빠진 칸을 채운다 — 보스가 없던 시절의 세이브에는 이 칸이 없다 */
     if (!s.side.bossAt) { s.side.bossAt = {}; }
@@ -179,7 +179,7 @@
    *  안 돌리는 자가진단에서는 이 함수가 안 불려 그 가정이 깨지지 않는다). */
   function resume() {
     if (run || !core.save.party.length) { return false; }
-    return enter(st().stage || 'field');
+    return enter(st().stage || 'sinya');
   }
 
   function active() { return !!run; }
