@@ -462,6 +462,46 @@ window.DG_NO_TUNE = true;
       return bad === 0 && '캠프 둘레 겹침 0개';
     });
 
+    /* ── PLAN 40절 PHASE 3 마지막 칸: 숨겨진 동굴 ─────────────── */
+
+    t('동굴 — 호수·캠프와 안 겹치는 북쪽 고정 자리, 재현된다', function () {
+      var a = V.caveSpot(), b = V.caveSpot();
+      var h = V.hamletSpot();
+      return !!a && JSON.stringify(a) === JSON.stringify(b) && a.ty < 0 &&
+        (!h || a.tx !== h.tx || a.ty !== h.ty) &&
+        ('(' + a.tx + ',' + a.ty + ') 재현 · 마을 북쪽');
+    });
+
+    t('동굴 — margin 이 너무 좁으면 아예 없어진다', function () {
+      C.setTune('forest.margin', 5);
+      var gone = V.caveSpot();
+      C.setTune('forest.margin', null);
+      return gone === null && 'margin 5 → 동굴 없음';
+    });
+
+    t('동굴 — buildProps() 가 바위산·이끼바위 둘·입구를 세운다', function () {
+      V.buildProps();
+      var raw = V.raw(), byId = {};
+      for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
+      return byId.caveMount && byId.caveMount.kind === 'mountain' &&
+        byId.caveRockL && byId.caveRockL.kind === 'mossyRock' &&
+        byId.caveRockR && byId.caveRockR.kind === 'mossyRock' &&
+        byId.caveMouth && byId.caveMouth.kind === 'cave' &&
+        '바위산 1 · 이끼바위 2 · 입구 1';
+    });
+
+    t('동굴 — 둘레엔 바이옴 장식(f 접두)이 안 겹쳐 심긴다', function () {
+      V.buildProps();
+      var raw = V.raw(), i, bad = 0;
+      for (i = 0; i < raw.props.length; i++) {
+        var p = raw.props[i];
+        if (p.id.charAt(0) !== 'f') { continue; }
+        var tx = Math.floor(p.x / V.TILE), ty = Math.floor(p.y / V.TILE);
+        if (V.inCave(tx, ty)) { bad++; }
+      }
+      return bad === 0 && '동굴 둘레 겹침 0개';
+    });
+
     t('숲 고리 — 나무·바위·꽃은 장식일 뿐 손이 안 닿는다 (채집 대상 아님)', function () {
       V.buildProps();
       var raw = V.raw();

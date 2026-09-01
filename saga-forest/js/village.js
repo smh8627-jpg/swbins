@@ -231,6 +231,30 @@
     return tx >= h.tx - 3 && tx <= h.tx + 3 && ty >= h.ty - 2 && ty <= h.ty + 2;
   }
 
+  /* ── 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸) ────────────────────
+   * 호수(서)·캠프(동)·폭포(강 남쪽)와 안 겹치는 마지막 방향 — **북쪽**에
+   * 고정한다. PLAN 10절이 "던전 입구"도 고정 배치로 못 박아 둔 것과 같은
+   * 이유다. `mountain`(바위산) 모델 하나를 뒤에 세우고 `mossyRock` 둘로
+   * 입구를 좁힌 다음, `cave`(동굴 입구) 표지를 그 앞에 둔다.
+   *
+   * **안까지는 못 들어간다.** 폭포와 같은 사정으로, 안에 들어갈 방(집처럼
+   * 딴 좌표계로 옮겨 가는 실내)과 그 안의 보물(PLAN 18절 탐험 콘텐츠·PLAN 40절
+   * PHASE 4 "Treasure")을 만드는 건 이번 칸이 아니라 다음 몫이다. 지금은
+   * "숲을 걷다 찾아내는 동굴 입구" 표지 하나만 세운다.
+   */
+  var CAVE_MIN_MARGIN = 10;
+  function caveSpot() {
+    var m = forestMargin();
+    if (m < CAVE_MIN_MARGIN) { return null; }
+    return { tx: Math.floor(W * 0.75), ty: -Math.round(m * 0.55) };
+  }
+  /** 동굴 둘레 5×5 칸 — 바이옴 장식을 비운다 */
+  function inCave(tx, ty) {
+    var c = caveSpot();
+    if (!c) { return false; }
+    return tx >= c.tx - 2 && tx <= c.tx + 2 && ty >= c.ty - 2 && ty <= c.ty + 2;
+  }
+
   function tileAt(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
@@ -374,6 +398,7 @@
       for (tx = -m; tx < W + m; tx++) {
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
         if (inHamlet(tx, ty)) { continue; }                         // 작은 마을 자리는 비워 둔다
+        if (inCave(tx, ty)) { continue; }                           // 동굴 자리도 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
@@ -413,6 +438,17 @@
       props.push({ id: 'hamletWell', kind: 'well', x: hx + TILE * 1.6, y: hy + TILE * 0.4, deco: true });
       props.push({ id: 'hamletLanternA', kind: 'lantern', x: hx - TILE * 1.8, y: hy + TILE * 0.2, deco: true });
       props.push({ id: 'hamletLanternB', kind: 'lantern', x: hx + TILE * 1.8, y: hy - TILE * 0.2, deco: true });
+    }
+
+    /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸) — 입구 표지만. 안까지는
+       PHASE 4(Treasure)에서 만든다 */
+    var cs = caveSpot();
+    if (cs) {
+      var cvx = cs.tx * TILE + TILE * 0.5, cvy = cs.ty * TILE + TILE * 0.5;
+      props.push({ id: 'caveMount', kind: 'mountain', x: cvx, y: cvy - TILE * 0.4, deco: true });
+      props.push({ id: 'caveRockL', kind: 'mossyRock', x: cvx - TILE * 0.7, y: cvy + TILE * 0.5, deco: true });
+      props.push({ id: 'caveRockR', kind: 'mossyRock', x: cvx + TILE * 0.7, y: cvy + TILE * 0.5, deco: true });
+      props.push({ id: 'caveMouth', kind: 'cave', x: cvx, y: cvy + TILE * 0.8, deco: true });
     }
   }
 
@@ -1251,6 +1287,7 @@
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
+    caveSpot: caveSpot, inCave: inCave,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,

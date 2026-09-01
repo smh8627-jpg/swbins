@@ -67,7 +67,11 @@
     campfire:  { name: '모닥불', emoji: '🔥', gather: null, reset: 0, hint: '쬔다' },
     bench:     { name: '평상',   emoji: '🪑', gather: null, reset: 0, hint: '앉는다' },
     well:      { name: '우물',   emoji: '⛲', gather: null, reset: 0, hint: '들여다본다' },
-    lantern:   { name: '등롱',   emoji: '🏮', gather: null, reset: 0, hint: '바라본다' }
+    lantern:   { name: '등롱',   emoji: '🏮', gather: null, reset: 0, hint: '바라본다' },
+    /* 숨겨진 동굴(PLAN 40절 PHASE 3) — 입구 표지만. 안까지 들어가는 실내·
+       보물(PLAN 40절 PHASE 4 "Treasure")은 다음 몫이다 */
+    mountain:  { name: '바위산', emoji: '🗻', gather: null, reset: 0, hint: '올려다본다' },
+    cave:      { name: '동굴 입구', emoji: '🕳️', gather: null, reset: 0, hint: '들여다본다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────
