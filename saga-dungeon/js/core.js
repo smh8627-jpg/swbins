@@ -44,6 +44,7 @@
       heroes: {},                         // { heroId: {lv, exp, rank} } 인물 개별 성장
       party: [],                          // 동행 heroId 최대 5 — 선두가 지도 위 아바타
       petEquip: {},                       // { heroId: petId }
+      town: { current: 'moru' },          // 오버월드(PLAN 28-1절) — 지금 서 있는 마을 id
       /* 확장(js/_expansion) 필드는 각 모듈이 스스로 만들고,
          옛 세이브의 값(gear·battle·dungeon 등)은 mergeDeep 이 보존한다.
          경영(territory·build)은 게임에서 뺐다 — 옛 세이브에 남아 있어도 아무도 읽지 않는다. */

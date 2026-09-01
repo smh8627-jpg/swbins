@@ -2183,14 +2183,17 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
      * 화면이 예외 하나 없이 조용히 빈 판을 그린다. 그래서 약속 자체를 검사한다.
      */
 
-    t('마을이 켜지고 사람 여섯 · 표식 셋이 선다', function () {
+    t('마을이 켜지고 사람 여섯 · 표식 여섯이 선다', function () {
+      /* 표식 여섯 = 굴혈·역참·결사비(모루골 전용) 셋 + 들길(오버월드, PLAN
+         28-1절) 셋(자작재·갈대나루·소금벌 방면) — 2026-09-02 오버월드가
+         붙으며 3 → 6 으로 늘었다. */
       if (DN.active()) { DN.leave(); }
       var T = DG.town;
       T._reset();
       T.enter();
       var raw = T.raw();
       if (!raw) { return false; }
-      return T.active() && raw.room.npcs.length === 6 && raw.room.marks.length === 3 &&
+      return T.active() && raw.room.npcs.length === 6 && raw.room.marks.length === 6 &&
         ('사람 ' + raw.room.npcs.length + ' · 표식 ' + raw.room.marks.length);
     });
 
@@ -2209,14 +2212,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return miss.length === 0 && ('빠진 것 없음 · 무예 칸 4 · 적 0');
     });
 
-    t('마을 사람과 표식이 모두 통행 영역 안에 있다', function () {
+    t('마을 사람과 표식(굴혈·역참·결사비)이 모두 통행 영역 안에 있다', function () {
+      /* 들길(exit_*)은 **일부러** 방 밖 들판에 둔다(PLAN 28-1절 — 걸어서 나가야
+         닿는 자리라야 한다) — 이 검사에서는 뺀다. 대신 바로 아래에서
+         "필드 반경 안"이라는 다른 잣대로 확인한다. */
       var T = DG.town, raw = T.raw(), outs = [];
       var lo = T.WALL + T.P_R;
       var hiX = T.ROOM_W - T.WALL - T.P_R, hiY = T.ROOM_H - T.WALL - T.P_R;
-      raw.room.npcs.concat(raw.room.marks).forEach(function (o) {
+      var indoor = raw.room.npcs.concat(raw.room.marks.filter(function (o) {
+        return o.key.indexOf('exit_') !== 0;
+      }));
+      indoor.forEach(function (o) {
         if (o.x < lo || o.x > hiX || o.y < lo || o.y > hiY) { outs.push(o.key); }
       });
       return outs.length === 0 && ('아홉 자리 모두 벽 안쪽');
+    });
+
+    t('들길(오버월드 출구)은 방 밖 필드 반경 안에 있다', function () {
+      var T = DG.town, raw = T.raw();
+      var DN2 = DG.dungeon, R = DN2.fieldRadiusUnits();
+      var lo = T.WALL + T.P_R - R, hiX = T.ROOM_W - T.WALL - T.P_R + R;
+      var loY = T.WALL + T.P_R - R, hiY = T.ROOM_H - T.WALL - T.P_R + R;
+      var exits = raw.room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; });
+      var outs = exits.filter(function (o) {
+        return o.x < lo || o.x > hiX || o.y < loY || o.y > hiY;
+      });
+      return exits.length === 3 && outs.length === 0 &&
+        ('들길 ' + exits.length + '개 모두 필드 반경 안');
     });
 
     t('한 자리에서 둘이 동시에 걸리지 않는다', function () {
@@ -2299,6 +2321,58 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var ok = DN.active() && !T.active();
       DN.leave();
       return ok && ('enter 한 번으로 마을이 꺼진다');
+    });
+
+    /* ── 오버월드 — 마을에서 마을로 (PLAN 28-1절, 2026-09-02) ────────── */
+
+    t('들길을 밟으면 다른 마을로 건너간다', function () {
+      var T = DG.town;
+      T._reset('moru');                 // 모루골에서 시작
+      var exitToGaldae = null;
+      T.raw().room.marks.forEach(function (o) { if (o.key === 'exit_galdae') { exitToGaldae = o; } });
+      if (!exitToGaldae) { return false; }
+      T._put(exitToGaldae.x, exitToGaldae.y);
+      T.update(0.05);
+      var raw = T.raw();
+      return T.overworld.current() === 'galdae' && raw.room.npcs.length === 3 &&
+        raw.theme.name === '갈대나루' &&
+        ('모루골 → 갈대나루 · 사람 ' + raw.room.npcs.length + '명');
+    });
+
+    t('위성 마을에서는 모루골로 돌아가는 들길 하나만 있다', function () {
+      var T = DG.town, exits;
+      T._reset('galdae');
+      exits = T.raw().room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; });
+      return exits.length === 1 && exits[0].key === 'exit_moru' &&
+        ('갈대나루의 들길 ' + exits.length + '개 · ' + exits[0].name);
+    });
+
+    t('건너간 마을이 세이브에 남아 불러오면 그대로다', function () {
+      /* _reset() 은 진단용 순간이동이라 세이브를 안 건드린다 — 실제로 세이브에
+         남는지는 travel()이 도는 정식 경로(들길을 밟는다)로 확인해야 뜻이 있다. */
+      var T = DG.town;
+      T._reset('moru');
+      var exitToJajak = null;
+      T.raw().room.marks.forEach(function (o) { if (o.key === 'exit_jajak') { exitToJajak = o; } });
+      if (!exitToJajak) { return false; }
+      T._put(exitToJajak.x, exitToJajak.y);
+      T.update(0.05);
+      var savedId = C.save.town && C.save.town.current;
+      T._reset('moru');                 // 뒤따르는 진단에 영향 없게 되돌린다
+      return savedId === 'jajak' && ('core.save.town.current = ' + savedId);
+    });
+
+    t('오버월드 지도는 넷을 고정 배치로 내놓고, 지금 있는 마을만 가리킨다', function () {
+      var T = DG.town;
+      T._reset('sogeum');
+      var list = T.overworld.list();
+      var ids = list.map(function (t) { return t.id; }).sort().join(',');
+      var hub = list.filter(function (t) { return !t.dirFromHub; });
+      var cur = T.overworld.current();
+      T._reset('moru');                 // 뒤따르는 다른 진단에 영향 없게 모루골로 되돌린다
+      return ids === 'galdae,jajak,moru,sogeum'.split(',').sort().join(',') &&
+        hub.length === 1 && hub[0].id === 'moru' && cur === 'sogeum' &&
+        ('마을 4개 · 중심 ' + hub[0].name + ' · 그때 위치 ' + cur);
     });
 
     /* ── 화면 ─────────────────────────────────────────── */

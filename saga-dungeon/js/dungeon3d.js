@@ -1137,7 +1137,9 @@
     if (kind === 'mark') {
       /* 표식 — 사람이 아니라 **밟는 것**이다. 셋의 성격이 달라 빛깔로 가른다 */
       var mkey = (ref && ref.key) || '';
-      var glow = mkey === 'waypoint' ? 0x3aa9c9 : (mkey === 'vow' ? 0xe06565 : 0xffb45a);
+      var isExit = mkey.indexOf('exit_') === 0;
+      var glow = mkey === 'waypoint' ? 0x3aa9c9 : (mkey === 'vow' ? 0xe06565 :
+        (isExit ? 0x7fd858 : 0xffb45a));
       var base = mkey === 'gate' ? 0x14161c : 0x4a4f5a;
       box(g, 0, 2.5, 0, 46, 5, 46, base, 'flat', false);         // 밟는 자리
       if (mkey === 'gate') {
@@ -1147,6 +1149,11 @@
       } else if (mkey === 'waypoint') {
         box(g, 0, 12, 0, 20, 20, 20, 0x2a3a4a, 'flat', true);
         box(g, 0, 25, 0, 26, 4, 26, glow, 'glow', false);
+      } else if (isExit) {
+        /* 들길(오버월드, PLAN 28-1절) — 비석이 아니라 **팻말**이다.
+           장대 하나에 판을 얹어 "여기서 다른 마을로" 라는 느낌을 준다. */
+        box(g, 0, 20, 0, 6, 40, 6, 0x5c4632, 'flat', true);
+        box(g, 0, 34, 0, 26, 8, 3, glow, 'glow', false);
       } else {
         box(g, 0, 17, 0, 16, 34, 8, 0x6a6a75, 'flat', true);     // 비석
         box(g, 0, 36, 0, 12, 4, 10, glow, 'glow', false);
