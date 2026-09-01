@@ -103,7 +103,18 @@
     /* 다음 방 문 — 열린 아치 하나만 받았다. 잠금·해금은 모델을 안 바꾸고
        색(tint)만 바꾼다 — 2D 가 오래 쓰던 신호(잠기면 어둡게, 풀리면 금빛)를
        그대로 지킨다 */
-    'dg:door': DUN + 'wall_doorway.glb'
+    'dg:door': DUN + 'wall_doorway.glb',
+    /* 방 구석 잡동사니(순수 장식, PLAN 6절 보강) — 술통·상자 더미. 판정 신호가
+       아니라서 GLB 를 못 받으면 그냥 안 세운다(다른 dg: 항목과 달리 fallback
+       도형을 안 둔다) */
+    'dg:barrel': DUN + 'barrel_large.gltf.glb',
+    'dg:crate': DUN + 'box_small.gltf.glb',
+    'dg:crates': DUN + 'crates_stacked.gltf.glb',
+    /* 보스방 벽 현수막 — 색은 세력이 아니라 "여기가 보스방" 신호라 하나로 고정 */
+    'dg:banner': DUN + 'banner_thin_red.gltf.glb',
+    /* 행상 좌판 — MarketStand(=`tent`) 위에 놓일 긴 상. 딱 맞는 "행상 수레"는
+       못 찾아 대신한다 */
+    'dg:table': DUN + 'table_long.gltf.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }

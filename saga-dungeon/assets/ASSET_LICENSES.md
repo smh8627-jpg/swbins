@@ -104,15 +104,27 @@
 | `pillar.gltf.glb` | **방 안 기둥**(`dg:pillar`, 방 장식 `decor` 의 `pillar`) —
   들판(field)의 `pillar`(Arch.glb, 폐허 조각)와는 **다른 자리**다. 헷갈리지 말 것 |
 | `barrier_column.gltf.glb` | **갇힌 우리 창살**(`dg:cage`, POI: 이벤트방 captive) — 넷을 귀퉁이에 둘러 세운다 |
+| `barrel_large.gltf.glb` | **술통**(`dg:barrel`, 방 구석 잡동사니) |
+| `box_small.gltf.glb` | **상자**(`dg:crate`, 방 구석 잡동사니) — `dg:chest`(POI 보물상자)와는 다른 자리 |
+| `crates_stacked.gltf.glb` | **상자 더미**(`dg:crates`, 방 구석 잡동사니) |
+| `banner_thin_red.gltf.glb` | **보스방 현수막**(`dg:banner`) — 뒷벽에 둘 건다 |
+| `table_long.gltf.glb` | **행상 곁상**(`dg:table`) — 좌판(MarketStand) 옆에 곁들인다 |
+
+**2026-09-01 이어서** — 방 구석 잡동사니(술통·상자·상자 더미)를
+`buildClutter()`(`dungeon3d.js`)가 방마다 귀퉁이 넷 중 씨앗으로 고른
+둘(다섯 중 셋은 비워 둔다)에 세운다. `field3d.seedOf(floor, roomIdx, 'clutter')`
+를 그대로 빌려 써서 같은 방은 늘 같은 자리에 같은 것이 선다. 판정과 무관한
+순수 장식이라 **fallback 도형이 없다** — GLB 를 못 받으면 그 귀퉁이는 그냥
+빈다(다른 `dg:` 항목과 다른 점).
 
 **문(`dg:door`)은 받아만 두고 아직 안 걸었다.** `wall_doorway.glb` 를
 `js/asset3d.js` 표에는 올렸지만, 문마다 어느 벽(동서남북)에 붙는지 자리
 값에 방향이 없어 — 방향 없이 걸면 아치가 엉뚱한 쪽을 보고 설 수 있다.
 방향 값을 판정에 보태거나 방향 무관한 모델을 새로 구하면 다음에 잇는다.
 
-**아직 안 옮긴 것도 있다** — 이 팩에 있는 술통(`barrel_*`)·상·의자·계단
-따위는 이번엔 손 안 댔다. 상자·횃불·기둥·창살 넷만 우선 바꿔 눈으로 먼저
-확인해 보고, 마음에 들면 나머지도 잇는다.
+**아직 안 옮긴 것도 있다** — 이 팩에 있는 침대·병·초·계단·의자·열쇠·접시
+따위는 이번에도 손 안 댔다. 방 하나에 다 몰아넣기보다 눈에 잘 띄는 것부터
+순서대로 늘리는 중이다.
 
 ---
 

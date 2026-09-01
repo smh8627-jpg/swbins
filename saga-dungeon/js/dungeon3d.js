@@ -414,6 +414,34 @@
     return parseInt(String(c).replace('#', ''), 16);
   }
 
+  /**
+   * 방 구석 잡동사니(PLAN 6절 방 안 장식 보강) — 술통·상자 더미. 판정과
+   * 무관한 순수 장식이라 GLB 를 못 받으면 그냥 안 세운다(fallback 없음).
+   * 네 귀퉁이에서 50 만큼 들어온 자리만 쓴다 — 문은 늘 오른쪽 벽 가운데
+   * 쪽에 서므로(`makeDoors`) 이 자리와 안 겹친다. 씨앗은 `field3d.seedOf`
+   * 를 그대로 빌려 쓴다(다섯이 이미 같은 씨앗으로 들판을 흩뿌리고 있다) —
+   * 같은 방은 늘 같은 귀퉁이에 같은 것이 선다.
+   */
+  var CLUTTER_KIND = ['dg:barrel', 'dg:crate', 'dg:crates'];
+  function buildClutter(run, W, H) {
+    var F = global.DG.field3d;
+    var AS3 = AS();
+    if (!F || !AS3) { return; }
+    var seed = F.seedOf(run.floor, run.roomIdx, 'clutter');
+    var corners = [[50, 50], [W - 50, 50], [50, H - 50], [W - 50, H - 50]];
+    for (var i = 0; i < corners.length; i++) {
+      var h = (seed + i * 2654435761) >>> 0;
+      if (h % 5 < 3) { continue; }      // 다섯 중 셋은 비워 둔다 — 안 그러면 붐빈다
+      var kind = CLUTTER_KIND[h % CLUTTER_KIND.length];
+      var mul = kind === 'dg:crates' ? 52 : (kind === 'dg:barrel' ? 42 : 28);
+      var cnode = AS3.build(kind, seed + ':' + i, mul, null, null);
+      if (!cnode) { continue; }
+      cnode.position.set(corners[i][0], 0, corners[i][1]);
+      cnode.rotation.y = (h % 360) * Math.PI / 180;
+      wallGroup.add(cnode);
+    }
+  }
+
   function buildRoom(run) {
     var W = d().ROOM_W, H = d().ROOM_H, WALL = d().WALL;
     while (wallGroup.children.length) { wallGroup.remove(wallGroup.children[0]); }
@@ -487,6 +515,15 @@
         68, null, standShape) : standShape();
       stnode.position.set(r.merchant.x, 0, r.merchant.y);
       wallGroup.add(stnode);
+      /* 곁상 — KayKit 긴 상(CC0). 좌판만 덜렁 서 있던 자리에 곁들인다.
+         순수 장식이라 fallback 없이, GLB 를 못 받으면 안 세운다 */
+      if (AS3m) {
+        var mtnode = AS3m.build('dg:table', 'poi:' + r.merchant.x + ':' + r.merchant.y + ':t',
+          30, null, null);
+        mtnode.position.set(r.merchant.x + 40, 0, r.merchant.y + 10);
+        mtnode.rotation.y = Math.PI / 2;
+        wallGroup.add(mtnode);
+      }
     }
     if (r && r.puzzle) {
       /* 퍼즐방(POI: Puzzle) — 제단 셋. 맞게 밟은 자리는 금빛으로 켜진다 —
@@ -626,6 +663,24 @@
           o.h * 1.2, null, smithShape) : smithShape();
         smnode.position.set(o.x, 0, o.y);
         wallGroup.add(smnode);
+      }
+    }
+
+    /* 방 구석 잡동사니 — POI·장식이 다 선 다음에 얹는다(먼저 세운 것들과
+       자리가 겹치지 않게 귀퉁이만 쓴다) */
+    buildClutter(run, W, H);
+
+    /* 보스방 — 뒷벽에 현수막을 걸어 무게감을 준다(PLAN 37절 "강한 명암·
+       선명한 실루엣"). 세력색이 아니라 "여기 보스"라는 신호라 색 하나로 고정 */
+    if (r && r.kind === 'boss') {
+      var AS3bn = AS();
+      if (AS3bn) {
+        var bannerOffsets = [-90, 90], bnI;
+        for (bnI = 0; bnI < bannerOffsets.length; bnI++) {
+          var bnnode = AS3bn.build('dg:banner', 'room:boss:' + bnI, 70, null, null);
+          bnnode.position.set(W / 2 + bannerOffsets[bnI], 20, -WALL / 2 + 3);
+          wallGroup.add(bnnode);
+        }
       }
     }
 
