@@ -29,8 +29,13 @@
     ui.init();
     bindKeys();
 
-    if (fresh) {
-      /* 싸울 몸이 필요하다 — 무인 기질 인물 하나를 앞에 세운다 */
+    /* 싸울 몸이 필요하다 — 무인 기질 인물 하나를 앞에 세운다.
+       **`fresh`(세이브 자체가 없음) 뿐 아니라 동행이 빈 경우도 잡는다** —
+       `↺ 처음부터`는 core.reset() 으로 '있는' 빈 세이브를 새로 쓰고 reload 하므로
+       다음 부팅에서 core.load() 가 true 를 돌려줘 fresh 가 거짓이 된다. 그러면
+       도감·동행이 영영 빈 채로 남아 다시는 아무도 못 고르는 채로 갇힌다
+       (2026-09-01 실기기에서 실제로 밟힌 자리) */
+    if (fresh || !core.save.party.length) {
       var pool = global.DG.data.heroes.filter(function (h) {
         return h.trait === 'might' && h.rarity <= 3;
       });
