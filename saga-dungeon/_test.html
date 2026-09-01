@@ -2977,6 +2977,48 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
     });
 
+    /* ── 판정을 방에서 필드로 잇는다 (4a67af2, PLAN 4·5·6절 나머지 절반) ──
+     * 위 들판 테스트들은 field3d 가 값을 잘 내는지만 본다 — 그 값을 실제로
+     * `boundPlayer` 가 읽어서 방 밖으로 걸어 나가게 해 주는지는 아무도
+     * 안 붙들고 있었다(회귀진단 0건). field on/off 대비로 여기서 고정한다.
+     */
+
+    t('필드 on — 던전 방 안에서 옛 벽 경계를 넘어 걸어 나간다', function () {
+      D3.set('dg3d.field', 1);
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      var oldHiX = DN.ROOM_W - DN.WALL - DN.P_R;   // 옛(필드 없던 시절) 오른쪽 클램프
+      run.player.x = oldHiX - 5; run.player.y = DN.ROOM_H / 2;
+      run.player.dash = null;
+      DN.setInput(1, 0);
+      var i, x;
+      for (i = 0; i < 80; i++) { DN.update(0.05); }   // 4초 — 방 오른쪽 끝까지 충분
+      x = DN.raw().player.x;
+      DN.setInput(0, 0);
+      DN.leave();
+      D3.set('dg3d.field', null);
+      return x > oldHiX + 10 &&
+        ('옛 경계 ' + oldHiX + ' → 걸어서 ' + Math.round(x) + ' 까지');
+    });
+
+    t('필드 off — 옛 클램프 그대로 방 안에 갇힌다', function () {
+      D3.set('dg3d.field', 0);
+      DN.enter({ floor: 1, mode: 'easy' });
+      var run = DN.raw();
+      var oldHiX = DN.ROOM_W - DN.WALL - DN.P_R;
+      run.player.x = oldHiX - 5; run.player.y = DN.ROOM_H / 2;
+      run.player.dash = null;
+      DN.setInput(1, 0);
+      var i, x;
+      for (i = 0; i < 80; i++) { DN.update(0.05); }
+      x = DN.raw().player.x;
+      DN.setInput(0, 0);
+      DN.leave();
+      D3.set('dg3d.field', null);
+      return Math.abs(x - oldHiX) < 0.5 &&
+        ('필드 꺼져 있으면 여전히 ' + oldHiX + ' 에 갇힌다 (실측 ' + x.toFixed(1) + ')');
+    });
+
     /* ── 전투 연출 (fx3d) — 3D 전환 3단계 ────────────────────
      * PLAN 51·52·53절. 판정이 흘려 주는 fx 를 입체로 세우는 층이다.
      * 그림은 three 가 있어야 서지만 **처방은 값이라** 여기서 다 본다.
