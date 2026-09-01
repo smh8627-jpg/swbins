@@ -163,6 +163,18 @@
     lastFrameT = now;
   }
 
+  /**
+   * `post3d.js`·`ssao3d.js`(사가고에서 그대로 옮겨 옴, 그래픽 보강)는
+   * `global.DG.perf.tier().key` 를 읽어 등급을 고른다. 이 판은 프레임을
+   * 스스로 재는 손잡이(`updatePerf`·`effectiveLevel`)가 이미 따로 있어
+   * `perf.js` 파일 자체는 안 옮기고, 그 결과를 같은 모양으로만 내주는
+   * 얇은 다리를 놓는다. **진짜 `perf.js` 가 나중에 생기면 안 덮는다.**
+   */
+  global.DG = global.DG || {};
+  if (!global.DG.perf) {
+    global.DG.perf = { tier: function () { return { key: effectiveLevel().toUpperCase() }; } };
+  }
+
   /** 들판을 몇 조각까지 세울까 (PLAN 6절 — 멀면 안 세운다) */
   function FIELD_R() { return tuned('dg3d.fieldR', QUALITY_PRESET[effectiveLevel()].fieldR); }
   /** 들판 밀도 배수 — 버거우면 여기를 내린다 */
@@ -305,6 +317,21 @@
     };
   }
 
+  /**
+   * `post3d.js`(사가고에서 옮겨 옴)의 색보정·블룸은 **해 고도**(alt, -1~1)로
+   * 결을 잡는다 — 이 판(지하)에는 해가 없으니 `lightPlan()`이 이미 낸 깊이·
+   * 마을 여부로 흉내 낸 값을 준다. **순수 함수다.**
+   *   마을(횃불 켜 둔 밝은 자리) → 노을에 가까운 값(따뜻하게, 블룸은 약하게)
+   *   던전 → 늘 밤에 가까운 값(블룸이 세져 횃불·발광 소품이 어둠 속에서 도드라진다),
+   *          층이 깊을수록 더 어둡고, 보스방은 한 번 더 어둡다
+   */
+  function postAlt(L) {
+    if (!L) { return -0.5; }
+    if (L.town) { return 0.4; }
+    var a = 0.5 - (L.deep || 0) * 1.3 - (L.boss ? 0.3 : 0);
+    return Math.max(-1, Math.min(1, a));
+  }
+
   /* ── 켜기 ───────────────────────────────────────────── */
 
   function init(el) {
@@ -367,6 +394,10 @@
     /* 전투 연출 (3단계) — 글리프판과 풀을 세운다 */
     if (global.DG.fx3d) { global.DG.fx3d.init(T, fxGroup); }
 
+    /* 후처리 — 톤매핑·블룸·색보정·SSAO(사가고에서 그대로 옮겨 옴). ssao3d 는
+       post3d 가 제 렌더러로 알아서 켠다(post3d.js 의 init() 끝자락 참고) */
+    if (global.DG.post3d) { global.DG.post3d.init(T, renderer); }
+
     ready = true;
     resize();
     return true;
@@ -378,6 +409,7 @@
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    if (global.DG.post3d) { global.DG.post3d.resize(); }
   }
 
   /* ── 방 ─────────────────────────────────────────────
@@ -1422,6 +1454,16 @@
       FX.step(run, d().fx(), camera);
     }
 
+    /* 후처리를 거치거나(있고 켜져 있을 때) 곧바로 그린다 — 사가고 `world3d.js`
+       의 `present()` 와 같은 꼴이다. **두 길 다 톤매핑은 한 번 걸린다**
+       (`post3d.js` 머리 참고) */
+    var P3 = global.DG.post3d;
+    if (P3) {
+      if (P3.draw(renderer, scene, camera, { alt: postAlt(L), weather: 'clear' })) { return true; }
+      /* 후처리가 켜졌다 꺼졌을 수 있다(등급이 LOW 로 내려간 순간) — 마지막으로
+         쓰던 렌더 타깃이 물려 있으면 캔버스가 검게 남는다 */
+      renderer.setRenderTarget(null);
+    }
     renderer.render(scene, camera);
     return true;
   }
