@@ -34,6 +34,7 @@
   var props = [];                // 마을에 놓인 사물 (마을 생성 때 정해진다)
   var residents = [];            // 주민 (세이브에 id 만 남고 자리는 여기서)
   var animals = [];              // 짐승 — 세이브에 안 남는다. 거동은 animal.js 가 맡는다
+  var npcs = [];                 // 숲 NPC — 고정 자리, 세이브에 안 남는다
 
   /* ── 세이브 자리 ──────────────────────────────────────── */
 
@@ -605,11 +606,68 @@
     }
   }
 
+  /** 링(숲 고리) 안에서 어느 바이옴이 처음 나오는 칸을 준다 — 좌표 순서로
+   *  훑으므로(위→아래, 왼→오른) 늘 같은 칸이다. herbalist 를 버섯 숲 어딘가에
+   *  붙일 때 쓴다 */
+  function firstBiomeSpot(biome) {
+    var m = forestMargin();
+    var cxMin = Math.floor(-m / BIOME_CELL), cxMax = Math.ceil((W + m) / BIOME_CELL);
+    var cyMin = Math.floor(-m / BIOME_CELL), cyMax = Math.ceil((H + m) / BIOME_CELL);
+    var cx, cy;
+    for (cy = cyMin; cy <= cyMax; cy++) {
+      for (cx = cxMin; cx <= cxMax; cx++) {
+        var tx = cx * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+        var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+        if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }
+        if (inHamlet(tx, ty) || inCave(tx, ty)) { continue; }
+        if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }
+        if (biomeAt(tx, ty) === biome) { return { tx: tx, ty: ty }; }
+      }
+    }
+    return null;
+  }
+
+  /* ── 숲 NPC(PLAN 40절 PHASE 4 NPC 칸) ─────────────────────────
+   * 이미 세운 지형지물마다 한 명씩 고정으로 세운다(PLAN 10절). 움직이지
+   * 않으므로 animal.js 같은 매 프레임 갱신이 필요 없다 — 여기서 자리만
+   * 한 번 정한다.
+   */
+  function npcAt(kind, x, y) { return { id: 'npc_' + kind, kind: kind, x: x, y: y, facing: 1 }; }
+
+  function buildNpcs() {
+    npcs = [];
+    var cs = caveSpot();
+    if (cs) {
+      npcs.push(npcAt('keeper', cs.tx * TILE + TILE * 0.5, (cs.ty + 3) * TILE + TILE * 0.5));
+    }
+    var lc = lakeCenter();
+    if (lc) {
+      npcs.push(npcAt('angler', lc.tx * TILE + TILE * 0.5, (lc.ty - lc.r - 2) * TILE + TILE * 0.5));
+    }
+    var hs = hamletSpot();
+    if (hs) {
+      npcs.push(npcAt('merchant', hs.tx * TILE + TILE * 0.5 - TILE * 0.2, hs.ty * TILE + TILE * 0.5 - TILE * 1.3));
+    }
+    var wf = waterfallSpot();
+    if (wf) {
+      var ety = wf.ty - 4;
+      var ecx = riverCenterX(ety);
+      if (ecx !== null) {
+        npcs.push(npcAt('explorer', (ecx + RIVER_HALF_W + 2.2) * TILE + TILE * 0.5, ety * TILE + TILE * 0.5));
+      }
+    }
+    var hb = firstBiomeSpot('mushroom');
+    if (hb) {
+      npcs.push(npcAt('herbalist', hb.tx * TILE + TILE * 0.5, hb.ty * TILE + TILE * 0.5));
+    }
+  }
+
   function init() {
     st();
     buildProps();
     buildResidents();
     buildAnimals();
+    buildNpcs();
     if (global.DG.mail) { global.DG.mail.ensureMoveIn(); }
     rollDay();
     syncPlanted();
@@ -1329,6 +1387,7 @@
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
     caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
+    buildNpcs: buildNpcs, firstBiomeSpot: firstBiomeSpot,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
@@ -1340,7 +1399,7 @@
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () {
       return { player: player, props: props, residents: residents,
-               animals: animals, fishing: fishing };
+               animals: animals, npcs: npcs, fishing: fishing };
     }
   };
 })(window);

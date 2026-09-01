@@ -2424,6 +2424,36 @@ window.DG_NO_TUNE = true;
         ('거리 ' + d0.toFixed(0) + ' → ' + d1.toFixed(0));
     });
 
+    /* ── PLAN 40절 PHASE 4 NPC 칸 ───────────────────────────── */
+
+    t('숲 NPC — 지형지물마다 고정으로 붙고, 재현된다', function () {
+      V.buildNpcs();
+      var n1 = V.raw().npcs.map(function (n) { return n.id + ':' + n.x + ',' + n.y; });
+      V.buildNpcs();
+      var n2 = V.raw().npcs.map(function (n) { return n.id + ':' + n.x + ',' + n.y; });
+      return n1.length === 5 && JSON.stringify(n1) === JSON.stringify(n2) &&
+        (n1.length + '명 재현: ' + n1.map(function (s) { return s.split(':')[0]; }).join(', '));
+    });
+
+    t('숲 NPC — 다섯 다 등록된 종류고, 걸을 수 있는 자리에 선다', function () {
+      V.buildNpcs();
+      var list = V.raw().npcs, i, bad = null;
+      for (i = 0; i < list.length; i++) {
+        var n = list[i];
+        if (!VD.NPCS[n.kind] || !V.walkable(n.x, n.y)) { bad = n; break; }
+      }
+      return !bad && list.length === 5 && '5명 다 통행 가능한 자리';
+    });
+
+    t('숲 NPC — margin 이 좁아 지형지물이 사라져도 죽지 않고 배열을 준다', function () {
+      C.setTune('forest.margin', 5);
+      V.buildNpcs();
+      var list = V.raw().npcs;
+      C.setTune('forest.margin', null);
+      V.buildNpcs();
+      return Array.isArray(list) && ('margin 5 → ' + list.length + '명');
+    });
+
     t('주민 — 두 사람이 번갈아 말한다', function () {
       DG.folk._reset();
       var res = V.raw().residents;

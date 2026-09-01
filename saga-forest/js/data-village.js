@@ -748,10 +748,25 @@
     wolf: { name: '늑대', emoji: '🐺', speed: 24, wander: 100, flee: 200, fleeSpeed: 74, biomes: ['dark', 'rocky'] }
   };
 
+  /** 숲 NPC(PLAN 40절 PHASE 4 NPC 칸) — PLAN 10절 "고정 배치" 그대로,
+   *  이미 세운 지형지물(동굴·호수·캠프·폭포·버섯숲)마다 한 명씩 붙인다.
+   *  대화·퀘스트·아이템·발견정보(PLAN 17절 역할 넷)는 다음 칸(Interaction·
+   *  Quest)에서 채운다 — 지금은 이름과 인사말 하나만 가진 "만날 수 있는
+   *  사람"으로 세운다. 사람 그림(hero 3D 모델·2D 스탬프)은 실제 인물
+   *  로스터에 물려 있어 여기 재사용하면 사연 없는 다른 인물이 튀어나온다
+   *  — 그래서 2D는 짐승과 같은 emoji, 3D는 이번엔 안 세운다(다음 몫) */
+  var NPCS = {
+    keeper:    { name: '숲지기', emoji: '🧙', line: '이 숲은 내가 돌본다 — 짐승을 함부로 놀라게 하지 마시게' },
+    angler:    { name: '낚시꾼', emoji: '🎣', line: '이 물엔 씨알 좋은 놈들이 산다네' },
+    merchant:  { name: '상인',   emoji: '🧺', line: '먼 길 다니며 이것저것 모았지 — 나중에 풀어놓겠네' },
+    explorer:  { name: '탐험가', emoji: '🧭', line: '이 폭포 너머에 뭐가 있는지 아직 아무도 몰라' },
+    herbalist: { name: '약초꾼', emoji: '🌿', line: '버섯 숲엔 좋은 약초가 지천이야' }
+  };
+
   global.DG = global.DG || {};
   global.DG.villageData = {
     TILES: TILES, PROPS: PROPS, ITEMS: ITEMS, PHASES: PHASES, REQUEST_N: REQUEST_N,
-    ANIMALS: ANIMALS,
+    ANIMALS: ANIMALS, NPCS: NPCS,
     SEASONS: SEASONS, TOOLS: TOOLS,
     FURNITURE: FURNITURE, FURN_SETS: FURN_SETS, furn: furn,
     WALLS: WALLS, FLOORS: FLOORS, wall: wall, floor: floor,

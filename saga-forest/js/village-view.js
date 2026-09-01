@@ -192,6 +192,8 @@
     for (i = 0; i < bl.length; i++) { draws.push({ y: bl[i].y, t: 'bug', o: bl[i] }); }
     var al = raw.animals || [];
     for (i = 0; i < al.length; i++) { draws.push({ y: al[i].y, t: 'animal', o: al[i] }); }
+    var nl = raw.npcs || [];
+    for (i = 0; i < nl.length; i++) { draws.push({ y: nl[i].y, t: 'npc', o: nl[i] }); }
     draws.push({ y: p.y, t: 'me', o: p });
     draws.sort(function (a, b) { return a.y - b.y; });
 
@@ -202,6 +204,7 @@
       else if (d.t === 'res') { drawResident(d.o, f, now); }
       else if (d.t === 'bug') { drawBug(d.o, f, ph, now); }
       else if (d.t === 'animal') { drawAnimal(d.o, now); }
+      else if (d.t === 'npc') { drawNpc(d.o, now); }
       else { drawMe(d.o, now); }
     }
 
@@ -1388,6 +1391,38 @@
     ctx.scale(a.facing < 0 ? -1 : 1, 1);
     ctx.fillText(def.emoji, 0, p.y + 7 * k);
     ctx.restore();
+  }
+
+  /* ── 숲 NPC(PLAN 40절 PHASE 4 NPC 칸) ────────────────────────
+   * 아직 말을 걸 수는 없다(Interaction·Quest 몫) — 가까이 가면 인사말
+   * 한 줄이 뜬다. residents 처럼 이름표는 늘 띄운다.
+   */
+  var NPC_TALK_DIST = 130;
+  function drawNpc(n, now) {
+    var def = VD.NPCS[n.kind];
+    if (!def) { return; }
+    var p = project(n.x, n.y);
+    if (p.a < -A_MAX) { return; }
+    if (p.x < -120 || p.x > W + 120 || p.y < -140 || p.y > H + 140) { return; }
+    var k = ZOOM * p.s;
+    shadow(p.x, p.y + 3 * k, 12 * k, 4.4 * k);
+    ctx.save();
+    ctx.font = Math.round(28 * k) + 'px "Segoe UI Emoji", system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.translate(p.x, 0);
+    ctx.scale(n.facing < 0 ? -1 : 1, 1);
+    ctx.fillText(def.emoji, 0, p.y + 7 * k);
+    ctx.restore();
+
+    var raw = V.raw();
+    var near = Math.hypot(raw.player.x - n.x, raw.player.y - n.y) < NPC_TALK_DIST;
+    if (near) {
+      bubble(def.line, p.x, p.y - 82 * k, '#2f3a46', '#fffdf4');
+      bubble(def.name, p.x, p.y - 60 * k, '#5a6472', '#f2f4f8');
+    } else {
+      bubble(def.name, p.x, p.y - 62 * k, '#3c4450', '#ffffff');
+    }
   }
 
   /* ── 곤충 ─────────────────────────────────────────────────
