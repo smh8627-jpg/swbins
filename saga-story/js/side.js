@@ -579,6 +579,16 @@
     return J ? J.bar() : SD.SKILLS;
   }
 
+  /** "공격" 자리 — 쿨이 가장 짧은(=가장 자주 휘두르는) 무예를 손이 쥔다.
+      나머지는 auto.js 가 조건대로 알아서 쓴다("스킬은 자동, 공격만 손으로") */
+  function attackIndexOf(list) {
+    var idx = 0, best = 1e9;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].cd < best) { best = list[i].cd; idx = i; }
+    }
+    return list.length ? idx : -1;
+  }
+
   /** 그 무예의 지금 힘 — 찍은 레벨이 실려 있다 */
   function mulOf(sk) {
     var J = global.DG.job;
@@ -950,6 +960,7 @@
         ready: (run.player.cds[i] || 0) <= 0 && run.mp >= sk.cost
       });
     }
+    base.attackIdx = attackIndexOf(list);
     base.active = true;
     base.stage = run.stage;
     base.hp = Math.max(0, Math.round(run.hp));

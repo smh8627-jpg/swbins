@@ -214,14 +214,41 @@
     acc.jump += dt;
     if (dy < -30 && p.onGround && acc.jump > 0.5) { acc.jump = 0; S.jump(); }
 
-    /* 때린다 — **띠에 놓인 것을 종류대로** 쓴다.
-       전에는 자리 번호(0~3)로 골랐는데, 전직하면 그 자리에 무엇이 놓일지가
-       직업마다 달라 근접 무예를 멀리서 휘두르는 일이 생긴다.
-       쿨·기력은 castSkill 이 알아서 거르므로 여기서는 '쓸 때'만 고른다. */
-    var bar = S.barSkills ? S.barSkills() : [];
+    /* 때린다 — **띠에 놓인 것을 종류대로** 쓴다. skipIdx 는 안 건드린다
+       (완전 자동일 땐 -1 이라 다 쓰고, 수동 조작 중엔 "공격" 자리라 사람이 쥔다) */
     var near = Math.abs(dx) < S.REACH && Math.abs(dy) < 50;
     var mid = Math.abs(dx) < 420 && Math.abs(dy) < 40;
+    castSkillsByRule(st2, near, mid, dx, -1);
+    doing = '⚔️ ' + st2.stage.name + ' · ' + st2.kills + '마리 · 남은 적 ' + run.enemies.length;
+  }
+
+  /**
+   * 스킬만 자동으로 — 이동·공격은 사람 손(터치패드·"공격" 단추)이 그대로 쥐고,
+   * 쿨 찬 나머지 무예(횡소·기탄·기합 같은)만 알아서 나간다.
+   * "스킬은 자동으로 써주면 공격 버튼만 보여도 되지 않나?"(사용자, 2026-09-02) —
+   * tickHunt 와 같은 조건식을 쓰되, **"공격" 자리(status().attackIdx)는 건너뛴다.**
+   * 전체 자동 사냥(🤖)이 켜져 있으면 tickHunt 가 이미 다 쓰므로 이쪽은 부르지 않는다.
+   */
+  function tickSkillsOnly(dt) {
+    var S = global.DG.side;
+    var run = S.raw();
+    if (!run) { return; }
+    var st2 = S.status();
+    var p = run.player, e = nearestEnemy(run);
+    if (!e) { return; }
+    var dx = (e.x + e.w / 2) - (p.x + S.P_W / 2);
+    var dy = (e.y + e.h) - (p.y + S.P_H);
+    var near = Math.abs(dx) < S.REACH && Math.abs(dy) < 50;
+    var mid = Math.abs(dx) < 420 && Math.abs(dy) < 40;
+    castSkillsByRule(st2, near, mid, dx, st2.attackIdx);
+  }
+
+  /** 띠의 무예를 종류대로 조건 맞춰 쓴다. skipIdx 번째는 건너뛴다(-1 이면 다 쓴다) */
+  function castSkillsByRule(st2, near, mid, dx, skipIdx) {
+    var S = global.DG.side;
+    var bar = S.barSkills ? S.barSkills() : [];
     for (var k = 0; k < bar.length; k++) {
+      if (k === skipIdx) { continue; }
       var eff = bar[k].effect;
       if (eff === 'buff') { S.castSkill(k); }
       else if (eff === 'heal') {
@@ -234,7 +261,6 @@
         S.castSkill(k);
       }
     }
-    doing = '⚔️ ' + st2.stage.name + ' · ' + st2.kills + '마리 · 남은 적 ' + run.enemies.length;
   }
 
   /** 쉬는 중 — 갈 수 있는 가장 깊은 사냥터로 들어간다 */
@@ -251,7 +277,11 @@
   }
 
   function update(dt) {
-    if (!active()) { return; }
+    if (!active()) {
+      /* 완전 자동(🤖)은 꺼져 있어도 — 사냥 중이면 스킬만은 계속 알아서 나간다 */
+      if (global.DG.side.active()) { tickSkillsOnly(dt); }
+      return;
+    }
     if (global.DG.side.active()) { tickHunt(dt); }
     else { tickRest(dt); }
   }
@@ -267,7 +297,7 @@
     setOn: setOn, toggle: toggle, toggleFlag: toggleFlag,
     update: update, status: status,
     /** 자가진단용 */
-    _tickHunt: tickHunt, _tickRest: tickRest,
+    _tickHunt: tickHunt, _tickRest: tickRest, _tickSkillsOnly: tickSkillsOnly,
     _nearestEnemy: nearestEnemy, _tickClimb: tickClimb
   };
 })(window);

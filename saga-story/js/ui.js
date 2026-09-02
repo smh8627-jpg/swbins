@@ -389,32 +389,32 @@
       return;
     }
     var i, sk;
-    /* 값만 바뀔 때는 DOM 을 다시 만들지 않는다 (스킬 칸 수가 같으면 갱신만) */
-    if (hudKey === null) {
-      /* 체력·기력은 상단 프로필 카드에 상시 떠 있다(renderTop 의 p-bars) — 여기서
-         또 띠를 그리면 같은 값이 두 번 뜨면서 조작 띠가 세로로 길어져, 딱 캐릭터
-         발밑 자리(가운데 아래)를 가려 전투 중 화면을 못 보게 만든다. 그래서 뺐다 */
+    /* "스킬은 자동으로 써주면 공격 버튼만 보여도 되지 않나?"(사용자, 2026-09-02) —
+       나머지 무예는 auto.js 의 tickSkillsOnly 가 조건 맞춰 알아서 쓰므로,
+       조작 띠에는 손이 쥐는 "공격"(쿨 가장 짧은 자리) 한 칸만 남긴다. */
+    var atkI = st.attackIdx;
+    var key = st.skills.length + ':' + atkI;
+    if (hudKey === null || hudKey !== key) {
       var html = '<div class="hud-card">' +
         '<div class="hud-hint" id="hud-hint"></div>' +
         '<div class="hud-skills">';
-      for (i = 0; i < st.skills.length; i++) {
-        sk = st.skills[i];
-        html += '<button class="hud-sk" data-act="s-skill" data-i="' + i + '" title="' +
-          esc(sk.name + ' — ' + sk.desc) + '"><b>' + sk.emoji + '</b>' +
-          '<small>' + (i + 1) + '</small><u></u></button>';
+      if (atkI >= 0 && st.skills[atkI]) {
+        sk = st.skills[atkI];
+        html += '<button class="hud-sk" data-act="s-skill" data-i="' + atkI + '" title="' +
+          esc(sk.name + ' — ' + sk.desc) + '"><b>' + sk.emoji + '</b><u></u></button>';
       }
       html += '<button class="hud-sk potion" data-act="s-drink" title="탕약을 마신다 (Q)">' +
         '<b>🧪</b><small class="pn"></small></button>' +
         '<button class="btn tiny ghost hud-out" data-act="s-leave">🚪 나온다</button>' +
         '</div></div>';
       els.hud.innerHTML = html;
-      hudKey = st.skills.length;
+      hudKey = key;
     }
-    var btns = els.hud.querySelectorAll('.hud-sk');
-    for (i = 0; i < st.skills.length; i++) {
-      sk = st.skills[i];
-      btns[i].classList.toggle('ready', sk.ready);
-      btns[i].querySelector('u').style.height = (sk.cdMax ? (sk.cd / sk.cdMax * 100) : 0) + '%';
+    var atkBtn = els.hud.querySelector('.hud-sk[data-i="' + atkI + '"]');
+    if (atkBtn && atkI >= 0 && st.skills[atkI]) {
+      sk = st.skills[atkI];
+      atkBtn.classList.toggle('ready', sk.ready);
+      atkBtn.querySelector('u').style.height = (sk.cdMax ? (sk.cd / sk.cdMax * 100) : 0) + '%';
     }
     var pn = els.hud.querySelector('.pn');
     if (pn) { pn.textContent = st.potions; }

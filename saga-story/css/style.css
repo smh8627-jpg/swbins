@@ -1344,13 +1344,13 @@ body.tilted3 #vignette {
     padding: 4px; border-radius: 12px; box-shadow: none;
     background: transparent; border-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
   }
-  /* 가로로 늘어놓던 줄을 3칸짜리 세로 더미(grid)로 접는다 — 2칸이면 세로가
-     길어져 우측 조작판(점프·앉기, bottom 210~254px)과 겹친다 */
-  .hud-skills { display: grid; grid-template-columns: repeat(3, 28px); gap: 2px; }
+  /* 나머지 무예는 auto.js(tickSkillsOnly) 가 자동으로 쓰므로 조작 띠엔
+     "공격"(쿨 가장 짧은 자리) 한 칸 + 탕약, 둘뿐이다 — 2칸이면 충분하다 */
+  .hud-skills { display: grid; grid-template-columns: repeat(2, 28px); gap: 2px; }
   .hud-sk { width: 28px; height: 28px; border-radius: 9px; }
   .hud-sk b { font-size: 12px; }
   .hud-sk small { font-size: 7px; right: 2px; }
-  /* '나온다' 는 세 칸을 다 차지하는 맨 아랫줄로 */
+  /* '나온다' 는 두 칸을 다 차지하는 맨 아랫줄로 */
   .hud-out { grid-column: 1 / -1; margin-left: 0; padding: 3px 8px; font-size: 10px; text-align: center; }
 
   /* 독 — 가로로 깔린다(780px 규칙). 사냥터·가방·더보기 셋뿐이라 오른쪽에
