@@ -11,7 +11,7 @@
  *       사내 http 주소로 폰에서 열면 홈 화면 추가는 되지만 이 캐시는 동작하지 않는다.
  */
 
-var VERSION = 'village-v0.18.0';
+var VERSION = 'village-v0.19.0';
 var APP_CACHE = 'yv-app-' + VERSION;
 var TILE_CACHE = 'yv-tiles-v1';
 var TILE_MAX = 500;
@@ -41,6 +41,9 @@ var SHELL = [
   './js/wear.js',
   './js/terrain.js',
   './js/village-view.js',
+  './js/village-view3d.js',
+  './js/asset3d.js',
+  './js/vendor/three.iife.js',
   './js/net.js',
   './js/ai.js',
   './js/auto.js',
@@ -120,11 +123,17 @@ self.addEventListener('fetch', function (e) {
    * 사고를 냈다: 캐시에 있던 옛 core.js 와, 캐시에 없어 새로 받은 auto.js 가 섞여
    * "C.save.auto 가 undefined" 로 죽었다. VERSION 을 안 올린 게 원인이었지만,
    * 코드가 한 판에서 서로 다른 세대로 섞이는 건 애초에 막는 게 맞다.
-   * 오프라인에서는 fetch 가 즉시 실패하므로 캐시로 떨어져 그대로 돌아간다. */
+   * 오프라인에서는 fetch 가 즉시 실패하므로 캐시로 떨어져 그대로 돌아간다.
+   *
+   * **2026-09-02 — `{ cache: 'no-store' }` 를 더했다.** "네트워크 먼저" 라고 적어
+   * 놓고도 평범한 fetch() 는 브라우저 자체의 HTTP 캐시(Pages 의 Cache-Control:
+   * max-age)를 그대로 타 넘긴다 — 그래서 몇 분 안에 잇달아 손보고 배포해도 폰이
+   * 옛 파일을 계속 물고 있었다(사가의숲 3D 쿼터뷰 조정 때 실제로 여러 판을
+   * 헛돌았다). no-store 로 그 층까지 확실히 건너뛴다 */
   if (url.origin === location.origin) {
     e.respondWith(
       caches.open(APP_CACHE).then(function (c) {
-        return fetch(req).then(function (res) {
+        return fetch(req, { cache: 'no-store' }).then(function (res) {
           if (res && res.ok) { c.put(req, res.clone()); }
           return res;
         })['catch'](function () {
