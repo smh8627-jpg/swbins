@@ -35,9 +35,28 @@
     });
   }
 
+  /**
+   * 초상 <img> 에 붙일 이름표. `portrait3d` 가 실제 모델로 그림을 다 구우면
+   * 이 표를 보고 `src` 를 갈아 끼운다. 못 쓸 자리(three 없음 · 손잡이 내림 ·
+   * pet)에서는 빈 문자열이라 **여태 그림이 그대로 남는다**.
+   */
+  function p3tag(kind, ref, w, h) {
+    var P3 = global.DG.portrait3d;
+    if (!P3 || !P3.ready() || kind !== 'hero') { return ''; }
+    if (!p3tag.timer) {
+      p3tag.timer = global.setTimeout(function () {
+        p3tag.timer = null;
+        P3.sweep();
+      }, 40);
+    }
+    return ' data-p3="' + P3.keyOf(kind, ref, w, h) + '"';
+  }
+
   /** 스프라이트 초상 <img> (캐시되므로 목록에 여러 번 써도 가볍다) */
   function pt(kind, ref, size) {
-    return '<img class="pt" alt="" src="' + global.DG.sprite.portrait(kind, ref, size || 48) + '">';
+    var sz = size || 48;
+    return '<img class="pt" alt=""' + p3tag(kind, ref, sz, sz) + ' src="' +
+      global.DG.sprite.portrait(kind, ref, sz) + '">';
   }
 
   var TITLES = [
@@ -1481,7 +1500,7 @@
     var out = '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
-        '<img class="dt-portrait" alt="" src="' +
+        '<img class="dt-portrait" alt=""' + p3tag('hero', h, 150, 172) + ' src="' +
           global.DG.sprite.portraitCard('hero', h, 150, 172) + '">' +
         '<div class="dt-head">' +
           '<div class="dt-name"><b>' + esc(h.name) + '</b>' +
