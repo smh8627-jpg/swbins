@@ -66,7 +66,6 @@
     try {
       renderer = new Tc.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
       renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 1.75));
-      renderer.outputColorSpace = Tc.SRGBColorSpace;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = Tc.PCFSoftShadowMap;
     } catch (err) {
