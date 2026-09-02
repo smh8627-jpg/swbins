@@ -218,15 +218,20 @@
    * 방 가운데를 기준으로 플레이어 쪽으로 조금 끌린다(8절 "플레이어를 정확히
    * 따라가되 너무 흔들리지 않게"). 방을 벗어나 흐르지 않게 **가둔다**.
    */
-  function camAim(px, py, W, H, zoom, tilt) {
+  function camAim(px, py, W, H, zoom, tilt, close) {
     var z = (zoom === undefined || zoom <= 0) ? 1 : zoom;
     var tl = tilt === undefined ? 0.62 : tilt;
     /* 방 대각선을 화면에 담을 거리 — 방이 커지면 저절로 물러난다.
        **계수를 눈으로 맞췄다**: 화면에 담기는 세로는 대략 2·dist·tan(fov/2) 인데
        fov 46° 면 0.85·dist 다. 방 대각선(666)을 담으려면 dist 는 그만큼 커야 한다 —
-       0.62 로 두었더니 방이 화면 밖으로 나가 어둠만 찍혔다 */
+       0.62 로 두었더니 방이 화면 밖으로 나가 어둠만 찍혔다.
+       **`close`(마을 전용, 2026-09-02) — 사가의숲 쿼터뷰만큼 가깝게 해 달라는
+       요청.** 던전 방은 벽 밖이 어둠뿐이라 위 0.62 실패가 그대로 재현되지만,
+       마을·필드는 담이 없는 열린 땅이라 화면 밖으로 나가도 그냥 덜 보일 뿐이다
+       — 그래서 마을에서만 훨씬 당겨 본다. 던전 쪽 1.05 는 그대로 둔다(연출·조작
+       감각이 거기 맞춰져 있다, 2026-09-01 마을 세로화면 건과 같은 원칙) */
     var span = Math.sqrt(W * W + H * H);
-    var dist = span * 1.05 * z;
+    var dist = span * (close ? 0.4 : 1.05) * z;
     /* 플레이어를 따라가되 방 가운데로 **절반만** 당긴다. 온전히 따라가면
        벽에 붙었을 때 방 밖 검은 여백이 화면 절반을 차지한다 */
     var cx = W / 2 + (px - W / 2) * 0.55;
@@ -1441,7 +1446,7 @@
     }
     var aim = CAMMODE() === 'third'
       ? camAim3rd(p.x, p.y, p.dirX, p.dirY, zNow, TILT(), MOUSEYAW())
-      : camAim(p.x, p.y, W, H, zNow, TILT());
+      : camAim(p.x, p.y, W, H, zNow, TILT(), !!run.town);
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
