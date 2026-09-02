@@ -1142,11 +1142,15 @@ body.tilted3 #vignette {
 
 
 /* ── 본영(本營) — 던전 게임의 첫 화면 ───────────────────── */
-/* z-index 는 #stage3d(-1) 보다도 뒤(-2)다 — 앞에 두면 3D 가 그려질 때(#stage 가
+/* z-index 는 #stage3d(1) 보다도 뒤(0)다 — 앞에 두면 3D 가 그려질 때(#stage 가
    ctx.clearRect 로 투명해지는 자리) 이 배경이 3D 세계를 덮어 버린다.
-   지금은 동행이 하나도 없을 때만(자가진단 밖에서는 극히 드묾) 쓰인다 */
+   지금은 동행이 하나도 없을 때만(자가진단 밖에서는 극히 드묾) 쓰인다.
+   **음수를 쓰지 않는다** — 실기기(하이브리드 GPU 노트북)에서 음수 z-index +
+   전체화면 fixed 캔버스 조합이 크롬 컴포지터에 안 올라가(SharedImage mailbox
+   에러) 캔버스가 화면에 아예 합성되지 않는 버그를 실제로 밟았다. 순서만
+   지키면서 0 이상으로 다 밀어 올렸다(camp-bg 0 < stage3d 1 < stage 2) */
 #camp-bg {
-  position: fixed; inset: 0; z-index: -2;
+  position: fixed; inset: 0; z-index: 0;
   background:
     radial-gradient(120% 80% at 50% 8%, rgba(201,162,74,.10), transparent 60%),
     radial-gradient(90% 70% at 50% 100%, rgba(0,0,0,.6), transparent 70%),
@@ -1198,14 +1202,14 @@ body.tilted3 #vignette {
 
 
 /* ── 사냥터 게임 ──────────────────────────────────────────── */
-#stage { position: fixed; inset: 0; z-index: 0; display: block; touch-action: none; }
+#stage { position: fixed; inset: 0; z-index: 2; display: block; touch-action: none; }
 /* 3D 바탕 — #stage(2D, 조작·오버레이) 바로 뒤에 깔린다. WebGL 이 없으면 그냥 비어 있고
    #stage 가 옛 2D 그림을 그대로 채운다(side-view.js 의 use3d 판정) */
 /* width/height 100% 을 빼먹으면(다른 네 판은 다 갖고 있다) inset:0 을 무시하고
    캔버스 고유 크기(렌더 해상도, 뷰포트보다 큼) 그대로 떠서 왼쪽 위 한 귀퉁이만
    보이고 나머지는 새까맣게 보인다 — side-view3d.js 의 setSize 세 번째 인자를
    고친 것과 같은 문제를 CSS 쪽에서도 막아 둔다(다섯 판 공통 안전장치) */
-#stage3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; pointer-events: none; }
+#stage3d { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1; display: block; pointer-events: none; }
 
 #hud {
   position: fixed; left: 50%; transform: translateX(-50%);
