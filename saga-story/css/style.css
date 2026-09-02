@@ -1337,12 +1337,12 @@ body.tilted3 #vignette {
      화면 가운데(캐릭터 발밑)는 완전히 비운다. 독은 right:6px·bottom:14px·
      42px 버튼이라 top 이 56px(+safe) — 그 위 8px 틈에 올려 앉힌다 */
   #hud { left: auto; right: 6px; transform: none; width: auto; bottom: calc(64px + var(--safe-b)); }
-  /* "스킬·공격 창이 너무 커 투명으로" 요청 — 배경을 거의 없애고(블러도 낮춰)
-     뒤 전투 화면이 비쳐 보이게 한다. 칸 테두리는 남겨 눌리는 자리는 여전히 보인다 */
+  /* "스킬 버튼은 투명으로, 모바일 전투 방식처럼" 요청 — 카드 배경을 아예
+     없앤다. 칸(.hud-sk) 자체의 옅은 유리 배경만 남아 버튼은 여전히 보이고
+     눌린다 — 그 뒤를 감싸던 판만 사라져 전투 화면이 그대로 비친다 */
   .hud-card {
     padding: 4px; border-radius: 12px; box-shadow: none;
-    background: rgba(20, 23, 30, .16); border-color: rgba(255,255,255,.08);
-    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    background: transparent; border-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none;
   }
   /* 가로로 늘어놓던 줄을 3칸짜리 세로 더미(grid)로 접는다 — 2칸이면 세로가
      길어져 우측 조작판(점프·앉기, bottom 210~254px)과 겹친다 */
