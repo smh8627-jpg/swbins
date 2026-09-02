@@ -94,34 +94,6 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 
 <div id="encounter"></div><div id="detail"></div><div id="owmap"></div>
 <div id="toast"></div>
-
-<!-- 임시 진단 배너 — 실기기 전용 검은 화면 원인을 헤드리스로 못 잡아 넣었다.
-     에러가 나면 화면 하단에 빨간 글씨로 보여준다. 원인 잡히면 지울 것 -->
-<script>
-(function () {
-  var box = null, msgs = [];
-  function show(msg) {
-    msgs.push(msg);
-    if (msgs.length > 6) { msgs.shift(); }
-    if (!box) {
-      box = document.createElement('div');
-      box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:999999;' +
-        'background:rgba(120,0,0,.94);color:#fff;font:11px/1.4 monospace;' +
-        'padding:8px;max-height:40vh;overflow:auto;white-space:pre-wrap';
-      document.body.appendChild(box);
-    }
-    box.textContent = msgs.join('\n---\n');
-  }
-  window.addEventListener('error', function (e) {
-    show((e.message || 'error') + ' @ ' + (e.filename || '') + ':' + (e.lineno || '') + ':' + (e.colno || ''));
-  });
-  window.addEventListener('unhandledrejection', function (e) {
-    var r = e.reason;
-    show('promise reject: ' + (r && r.message ? r.message : r));
-  });
-  window.DG_DIAG = show;   // side-view3d.js 등이 예외 아닌 사정(컨텍스트 끊김 등)도 여기 찍는다
-})();
-</script>
 <script src="js/data.js"></script>
 <script src="js/data-enemy.js"></script>
 <script src="js/data-side.js"></script>

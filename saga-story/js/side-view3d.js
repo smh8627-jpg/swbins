@@ -79,7 +79,6 @@
       e.preventDefault();
       ready = false;
       canvas.style.display = 'none';
-      if (global.DG_DIAG) { global.DG_DIAG('webgl context lost — 2D로 대체'); }
     });
     scene = new Tc.Scene();
     camera = new Tc.PerspectiveCamera(35, 1, 1, 6000);
