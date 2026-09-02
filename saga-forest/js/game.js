@@ -141,6 +141,29 @@
       });
     }
 
+    /* 3D 시점 — 어깨너머(0) ↔ 3/4 부감/쿼터뷰(1) 을 한 번에 뒤집는다. 세로 드래그로도
+       그 사이를 이을 수 있지만(camTiltMix 연속값), 실기기에서 드래그 감이 잡히기 전에
+       확실하게 끝까지 갈 수 있는 손잡이를 따로 달라는 요청 — 2026-09-02. 버튼은 지금
+       값이 반(0.5) 미만이면 부감으로, 아니면 어깨너머로 딱 잘라 보낸다 */
+    var camBtn = document.getElementById('btn-camview');
+    if (camBtn && global.DG.villageView3d) {
+      var VV3b = global.DG.villageView3d;
+      if (!VV3b.available()) { camBtn.style.display = 'none'; }
+      var syncCamBtn = function () {
+        var iso = VV3b.camTiltMix() >= 0.5;
+        camBtn.classList.toggle('on', iso);
+        camBtn.title = iso ? '3D 시점 (3/4 부감 — 눌러서 어깨너머로)'
+                            : '3D 시점 (어깨너머 — 눌러서 3/4 부감으로)';
+      };
+      syncCamBtn();
+      camBtn.addEventListener('click', function () {
+        if (!VV3b.active()) { ui.toast('먼저 🧊 로 3D 를 켜야 시점을 바꿀 수 있습니다'); return; }
+        VV3b.setCamTiltMix(VV3b.camTiltMix() >= 0.5 ? 0 : 1);
+        syncCamBtn();
+        ui.toast(VV3b.camTiltMix() >= 0.5 ? '🎥 3/4 부감' : '🎥 어깨너머');
+      });
+    }
+
     document.getElementById('btn-help').addEventListener('click', showHelp);
   }
 
