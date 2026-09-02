@@ -189,24 +189,49 @@
     return cache[keyOf(kind, ref, w, h)] || null;
   }
 
-  /** 굽기 시작한다 — `asset3d.build` 콜백이 한 번 오면 그 자리에서 곧바로 굽는다 */
+  /**
+   * 굽는 줄 — **한 번에 하나씩만** 굽는다. 여러 인물을 한꺼번에 부르면
+   * (도감·부대 목록) WebGL 렌더 여러 개가 겹쳐 **마을 3D 화면과 GPU 를
+   * 다툰다** — 2026-09-02, 마을·필드를 걷거나 전투할 때 끊긴다는 신고를
+   * 받고 줄을 세웠다. 실패도 `cache[key] = false` 로 **한 번만** 적어 두고
+   * 다시 시도하지 않는다 — 안 그러면 실패하는 인물 하나가 화면이 떠 있는
+   * 내내 계속 다시 구우려 든다(같은 신고의 진짜 원인이었다).
+   */
+  var queue = [];
+  var busy = false;
+
+  function has(key) { return Object.prototype.hasOwnProperty.call(cache, key); }
+
+  function pump() {
+    if (busy || !queue.length) { return; }
+    var job = queue.shift();
+    busy = true;
+    var A3 = global.DG.asset3d;
+    if (!A3 || !A3.build) { delete pending[job.key]; cache[job.key] = false; busy = false; pump(); return; }
+
+    try {
+      A3.build('hero', job.ref, function (model) {
+        delete pending[job.key];
+        busy = false;
+        if (!model) { cache[job.key] = false; gaveUp++; pump(); return; }
+        var url = null;
+        try { url = bake(job.kind, job.ref, job.w, job.h, model); } catch (e) { url = null; }
+        if (url) { cache[job.key] = url; sweep(); } else { cache[job.key] = false; gaveUp++; }
+        pump();
+      });
+    } catch (e) { delete pending[job.key]; cache[job.key] = false; gaveUp++; busy = false; pump(); }
+  }
+
+  /** 줄에 올린다 — `asset3d.build` 콜백이 한 번 오면 그 자리에서 곧바로 굽는다 */
   function warm(kind, ref, w, h) {
     if (!ready() || !ref || kind !== 'hero') { return false; }
     var key = keyOf(kind, ref, w, h);
-    if (cache[key] || pending[key]) { return false; }
+    if (has(key) || pending[key]) { return false; }
     var A3 = global.DG.asset3d;
     if (!A3 || !A3.build) { return false; }
     pending[key] = true;
-
-    try {
-      A3.build('hero', ref, function (model) {
-        delete pending[key];
-        if (!model) { gaveUp++; return; }
-        var url = null;
-        try { url = bake(kind, ref, w, h, model); } catch (e) { url = null; }
-        if (url) { cache[key] = url; sweep(); } else { gaveUp++; }
-      });
-    } catch (e) { delete pending[key]; gaveUp++; return false; }
+    queue.push({ kind: kind, ref: ref, w: w, h: h, key: key });
+    pump();
     return true;
   }
 

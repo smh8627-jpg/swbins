@@ -225,40 +225,68 @@
   }
 
   /**
-   * 굽기 시작한다. 모델을 받는 데 시간이 걸리므로 **여러 번 두드린다** —
-   * `asset3d.build` 가 준 껍데기는 GLB 가 오는 순간 안이 갈리는데, 그 순간을
-   * 알려 주지 않으므로 잠깐씩 다시 본다(최대 여남은 번, 그 뒤엔 포기한다).
+   * 굽는 줄 — **한 번에 하나씩만** 굽는다. 여러 인물을 한꺼번에 부르면
+   * (도감 목록) WebGL 렌더 여러 개가 겹쳐 **지도 위 실제 3D 화면과 GPU 를
+   * 다툰다** — 2026-09-02, 이 요령을 옮겨 간 다른 판(사가블로·사가의숲)에서
+   * 필드를 걷거나 전투할 때 끊긴다는 신고를 받고서야 알아챈 결함이라
+   * 여기도 같이 고친다. 실패도 `cache[key] = false` 로 **한 번만** 적어
+   * 두고 다시 시도하지 않는다 — 안 그러면 실패하는 인물 하나가 화면이
+   * 떠 있는 내내 5초 굽기를 영원히 되풀이한다.
    */
-  function warm(kind, ref, w, h) {
-    if (!ready() || !ref) { return false; }
-    var key = keyOf(kind, ref, w, h);
-    if (cache[key] || pending[key]) { return false; }
-    var A3 = global.DG.actor3d;
-    if (!A3 || !A3.build) { return false; }
-    pending[key] = true;
+  var queue = [];
+  var busy = false;
 
+  function has(key) { return Object.prototype.hasOwnProperty.call(cache, key); }
+
+  function pump() {
+    if (busy || !queue.length) { return; }
+    var job = queue.shift();
+    busy = true;
+
+    var A3 = global.DG.actor3d;
     var node = null;
-    try { node = A3.build(kind, ref); } catch (e) { node = null; }
-    if (!node) { delete pending[key]; gaveUp++; return false; }
+    try { node = A3.build(job.kind, job.ref); } catch (e) { node = null; }
+    if (!node) {
+      cache[job.key] = false; gaveUp++; delete pending[job.key]; busy = false; pump();
+      return;
+    }
 
     var tries = 0;
     function tick() {
       var url = null;
-      try { url = bake(kind, ref, w, h, node); } catch (e) { url = null; }
+      try { url = bake(job.kind, job.ref, job.w, job.h, node); } catch (e) { url = null; }
       if (url) {
-        cache[key] = url;
-        delete pending[key];
+        cache[job.key] = url;
+        delete pending[job.key];
+        busy = false;
         sweep();
+        pump();
         return;
       }
-      if (++tries > 24) {                       // 여남은 번 뒤엔 포기 — 도형 그림으로 남는다
-        delete pending[key];
+      if (++tries > 24) {                       // 여남은 번 뒤엔 포기 — 도형 그림으로 남는다, 다시 안 본다
+        cache[job.key] = false;
+        delete pending[job.key];
         gaveUp++;
+        busy = false;
+        pump();
         return;
       }
       global.setTimeout(tick, 220);
     }
     tick();
+  }
+
+  /** 줄에 올린다. `asset3d.build` 가 준 껍데기는 GLB 가 오는 순간 안이 갈리는데,
+   *  그 순간을 알려 주지 않으므로 잠깐씩 다시 본다(최대 여남은 번, 그 뒤엔 포기한다). */
+  function warm(kind, ref, w, h) {
+    if (!ready() || !ref) { return false; }
+    var key = keyOf(kind, ref, w, h);
+    if (has(key) || pending[key]) { return false; }
+    var A3 = global.DG.actor3d;
+    if (!A3 || !A3.build) { return false; }
+    pending[key] = true;
+    queue.push({ kind: kind, ref: ref, w: w, h: h, key: key });
+    pump();
     return true;
   }
 
