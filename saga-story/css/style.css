@@ -1346,12 +1346,13 @@ body.tilted3 #vignette {
   .hud-out { margin-left: 0; flex: 1 1 100%; text-align: center; }
 
   /* 독 — 가로로 깔린다(780px 규칙). 사냥터·가방·더보기 셋뿐이라 오른쪽에
-     붙여도 화면을 넓게 안 먹는다(예전엔 여섯이라 화면 폭을 다 썼다) */
-  #dock { right: 8px; gap: 6px; }
-  #dock button { width: 47px; height: 47px; border-radius: 15px; flex: 0 0 auto; }
-  #dock button span { font-size: 18px; }
-  #dock button small { font-size: 9px; }
-  #dock-more { grid-template-columns: repeat(2, 47px); }
+     붙여도 화면을 넓게 안 먹는다(예전엔 여섯이라 화면 폭을 다 썼다).
+     상단 도구줄(icon-btn 34px)만큼 더 줄인다 — "하단 독도 더 접어 달라"(사용자) */
+  #dock { right: 6px; gap: 5px; }
+  #dock button { width: 42px; height: 42px; border-radius: 13px; flex: 0 0 auto; }
+  #dock button span { font-size: 16px; }
+  #dock button small { font-size: 8px; }
+  #dock-more { grid-template-columns: repeat(2, 42px); }
 
   /* 손가락 조작판 — #hud 가 여기서 거의 전체 폭(calc(100vw-16px))으로 커지고
      두 줄(3차 전직은 스킬 여덟 칸)이라 카드가 높다. 체력·기력 띠를 뺀 뒤로
