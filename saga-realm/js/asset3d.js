@@ -27,10 +27,34 @@
   var BLD = 'assets/models/buildings/';
   var NAT = 'assets/models/nature/';
   var PRP = 'assets/models/props/';
+  var PEOPLE = 'assets/models/people/regular/';
+  var ANIM_DIR = 'assets/models/anim/';
+
+  /**
+   * 사람 창고 — 2026-09-02, 도감 초상을 굽으려고 처음 들였다(`js/portrait3d.js`).
+   * 이 판은 인물이 걸어 다니지 않아 여태 없었다 — `saga-dungeon`과 같은
+   * 여섯 조합(몸+옷+머리)을 그대로 옮겼다(`assets/ASSET_LICENSES.md` 참고).
+   */
+  var HERO_RECIPES = [
+    { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
+      outfit: PEOPLE + 'Male_Peasant.gltf', hair: PEOPLE + 'Hair_Buzzed.gltf' },
+    { key: 'male_ranger_long', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
+      outfit: PEOPLE + 'Male_Ranger.gltf', hair: PEOPLE + 'Hair_Long.gltf' },
+    { key: 'male_peasant_beard', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
+      outfit: PEOPLE + 'Male_Peasant.gltf', hair: PEOPLE + 'Hair_Beard.gltf' },
+    { key: 'female_peasant_buns', body: PEOPLE + 'Superhero_Female_FullBody.gltf',
+      outfit: PEOPLE + 'Female_Peasant.gltf', hair: PEOPLE + 'Hair_Buns.gltf' },
+    { key: 'female_ranger_simple', body: PEOPLE + 'Superhero_Female_FullBody.gltf',
+      outfit: PEOPLE + 'Female_Ranger.gltf', hair: PEOPLE + 'Hair_SimpleParted.gltf' },
+    { key: 'female_peasant_buzzed', body: PEOPLE + 'Superhero_Female_FullBody.gltf',
+      outfit: PEOPLE + 'Female_Peasant.gltf', hair: PEOPLE + 'Hair_BuzzedFemale.gltf' }
+  ];
+  var ANIM_SRC = ANIM_DIR + 'UAL1_Standard.glb';
 
   /** 표 — 성채는 **등급마다 다른 탑**이 선다(wall 값이 클수록 높은 탑).
    *  좁은 키(`city:t3`)부터 찾으므로 등급이 안 실려 와도 `city` 로 떨어진다 */
   var DEFAULTS = {
+    'hero': HERO_RECIPES,
     'city:t1': BLD + 'Watchtower.glb',
     'city:t2': [BLD + 'Tower.glb', BLD + 'PointyTower.glb'],
     'city:t3': [BLD + 'LargeTower.glb', BLD + 'LargeSquareTowerBricks.glb'],
@@ -260,6 +284,74 @@
     return wrap;
   }
 
+  /** 이 인물의 몸·옷·머리 조합 — 표에 조합 객체가 있을 때만 준다 */
+  function heroRecipe(ref) {
+    var h = lookup('hero', ref);
+    if (!h) { return null; }
+    var v = oneOf(h.url, ref);
+    return (v && typeof v === 'object' && v.body) ? v : null;
+  }
+
+  /**
+   * 몸+옷+머리 셋을 한 뼈대로 묶는다 — 넷(anim 포함)이 같은 뼈대(65뼈, 이름까지
+   * 동일)라 옮겨 입히기(retarget)가 필요 없다(다른 네 판과 같은 규칙).
+   */
+  function assembleHero(parts) {
+    var bodyScene = cloneScene(parts.body.gltf);
+    var master = null;
+    bodyScene.traverse(function (o) { if (!master && o.isSkinnedMesh) { master = o; } });
+    if (!master || !master.skeleton) { throw new Error('몸에 스켈레톤이 없다'); }
+    var skeleton = master.skeleton;
+
+    [parts.outfit, parts.hair].forEach(function (p) {
+      if (!p || !p.gltf) { return; }
+      var scene = cloneScene(p.gltf);
+      var meshes = [];
+      scene.traverse(function (o) { if (o.isSkinnedMesh) { meshes.push(o); } });
+      meshes.forEach(function (m) { m.bind(skeleton, m.bindMatrix); bodyScene.add(m); });
+    });
+
+    return normalize(bodyScene);
+  }
+
+  /**
+   * 사람 하나를 조합형으로 세운다(비동기, 콜백 방식) — 이 판은 인물이 걸어
+   * 다니지 않아 여태 없었던 자리다. **지금은 `portrait3d.js`(도감 초상 굽기)
+   * 만 이걸 부른다** — 언젠가 3D로 걷는 화면이 생기면 몸짓(mixer)도 그대로 쓴다.
+   */
+  function buildHero(ref, tintHex, cb) {
+    var t = three();
+    var rec = heroRecipe(ref);
+    if (!rec || !t) { cb(null); return; }
+
+    var parts = {}, pending = 4;
+    function onOne() { pending--; if (pending === 0) { assemble(); } }
+    acquire(rec.body, function (c) { parts.body = c; onOne(); });
+    acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); });
+    acquire(rec.hair, function (c) { parts.hair = c; onOne(); });
+    acquire(ANIM_SRC, function (c) { parts.anim = c; onOne(); });
+
+    function assemble() {
+      if (!parts.body) { cb(null); return; }
+      var model;
+      try {
+        model = assembleHero(parts);
+        if (tintHex) { applyTint(model, tintHex); }
+      } catch (e) {
+        broke = (e && e.message) ? e.message : 'hero assemble 실패';
+        cb(null);
+        return;
+      }
+      built++;
+      var animC = parts.anim;
+      if (animC && animC.clips && animC.clips.length) {
+        model.userData.mixer = new t.AnimationMixer(model.children[0]);
+        model.userData.clips = animC.clips;
+      }
+      cb(model);
+    }
+  }
+
   /**
    * GLB 를 불러 세운다(비동기). 실패하거나 three/GLTFLoader 가 없으면
    * **조용히 도형으로 떨어진다** — 부르는 쪽은 항상 그룹 하나를 받는다.
@@ -293,6 +385,9 @@
     keysFor: keysFor,
     oneOf: oneOf,
     build: build,
+    heroRecipe: heroRecipe,
+    buildHero: buildHero,
+    ANIM_SRC: ANIM_SRC,
     primitive: primitive,
     three: three,
     REG: function () { return REG; },

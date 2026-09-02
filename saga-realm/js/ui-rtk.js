@@ -36,8 +36,27 @@
   function R() { return global.DG.rtk; }
   function off() { return global.DG.off; }
 
+  /**
+   * 초상 <img> 에 붙일 이름표. `portrait3d` 가 실제 모델로 그림을 다 구우면
+   * 이 표를 보고 `src` 를 갈아 끼운다. 못 쓸 자리(three 없음 · 손잡이 내림)
+   * 에서는 빈 문자열이라 **여태 그림이 그대로 남는다**.
+   */
+  function p3tag(ref, w, h) {
+    var P3 = global.DG.portrait3d;
+    if (!P3 || !P3.ready()) { return ''; }
+    if (!p3tag.timer) {
+      p3tag.timer = global.setTimeout(function () {
+        p3tag.timer = null;
+        P3.sweep();
+      }, 40);
+    }
+    return ' data-p3="' + P3.keyOf('hero', ref, w, h) + '"';
+  }
+
   function pt(ref, size) {
-    return '<img class="pt" alt="" src="' + global.DG.sprite.portrait('hero', ref, size || 40) + '">';
+    var sz = size || 40;
+    return '<img class="pt" alt=""' + p3tag(ref, sz, sz) + ' src="' +
+      global.DG.sprite.portrait('hero', ref, sz) + '">';
   }
 
   function forceColor(id) {

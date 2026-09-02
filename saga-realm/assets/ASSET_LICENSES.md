@@ -63,6 +63,29 @@
 만든 이·라이선스는 위 성채·지형과 같다(Quaternius, CC0 1.0 Universal, 저작자 표시
 불필요, 재배포 허용).
 
+## Quaternius — 사람 창고 셋 (`models/people/regular/` · `models/anim/`)
+
+2026-09-02, 도감 초상을 캔버스 도형 대신 **실제 3D 모델을 오프스크린으로 구운 그림**
+으로 바꾸면서(`js/portrait3d.js` 신설) 처음 옮겼다. 이 판은 인물이 걸어 다니지
+않아(턴제 지도) 여태 사람 창고가 없었는데, 초상을 구우려면 몸이 있어야 한다.
+`saga-dungeon/assets/models/people/regular/`·`models/anim/UAL1_Standard.glb`
+에서 그대로 옮겼다 — 몸(Universal Base Characters)·옷(Modular Character
+Outfits - Fantasy)·몸짓(Universal Animation Library)이 뼈 이름·순서까지
+같아 리타기팅이 필요 없다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | **CC0 1.0 Universal** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-dungeon/assets/models/people/regular/`·`models/anim/UAL1_Standard.glb` 에서 그대로 복사 |
+
+넣은 파일 — 몸 둘(남·여)·옷 넷(평민·순찰대 각 남녀)·머리 여섯·텍스처
+(BaseColor만), `models/anim/UAL1_Standard.glb`(몸짓 마흔한 벌). `js/asset3d.js`의
+`HERO_RECIPES`가 여섯 조합 중 인물 id 해시로 하나를 고르고, `delam()`이 PBR을
+벗겨 Lambert로 물들인다 — 다른 네 판과 같은 요령이다.
+
 ## 옮기지 않은 것 (앞으로)
 
 동양풍 건축(성문·군영)에 맞는 CC0 에셋은 아직 못 구했다 — 탑·사찰은 서양풍 판타지라
