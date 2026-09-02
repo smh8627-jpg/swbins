@@ -1333,16 +1333,18 @@ body.tilted3 #vignette {
    * 비친다. 안 그러면 공격·스킬 단추 판이 전투 화면을 통째로 가려 버린다.
    */
   /* 독이 47px→42px로 줄어 위쪽 여유가 생긴 만큼 조작 띠도 같이 내린다 —
-     "여전히 캐릭터 발밑이 가려진다"(사용자). 카드 자체도 한 단 더 줄인다 */
+     "여전히 캐릭터 발밑이 가려진다"(사용자). 독 위 여백이 이미 좁아(4px) 더
+     내리지 않고, 대신 카드 자체를 한 단 더 줄인다(2차) */
   #hud { width: calc(100vw - 16px); bottom: calc(60px + var(--safe-b)); }
   .hud-card {
-    padding: 5px 6px; border-radius: 13px;
+    padding: 4px 5px; border-radius: 12px;
     background: rgba(20, 23, 30, .4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
-  .hud-skills { flex-wrap: wrap; gap: 3px; justify-content: center; }
-  .hud-sk { width: 32px; height: 32px; border-radius: 10px; }
-  .hud-sk b { font-size: 13px; }
-  .hud-sk small { font-size: 7.5px; right: 2px; }
+  .hud-skills { flex-wrap: wrap; gap: 2px; justify-content: center; }
+  .hud-sk { width: 28px; height: 28px; border-radius: 9px; }
+  .hud-sk b { font-size: 12px; }
+  .hud-sk small { font-size: 7px; right: 2px; }
+  .hud-out { padding: 3px 8px; font-size: 10px; }
   /* '나온다' 는 마지막 줄 오른쪽 끝에 붙인다 — margin-left:auto 가 접힌 줄에서
      제 몫을 못 해 단추 사이가 벌어졌다 */
   .hud-out { margin-left: 0; flex: 1 1 100%; text-align: center; }
