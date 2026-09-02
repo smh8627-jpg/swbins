@@ -169,10 +169,21 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 .near-meta small { display: block; font-size: 10.5px; color: var(--ink-dim); }
 
 /* ── 액션 독 ──────────────────────────────────────────── */
+/* 사냥터·가방만 붙박이, 나머지 넷(무예·저자·도감·기록)은 "더보기" 뒤로 접는다 —
+   측면 조작판 사이 폭이 좁은 세로 화면에서 독 자체가 전투 화면을 크게 차지하던
+   것을 줄인다(사가블로·사가국지와 같은 결). #dock-more 는 #dock(position:fixed
+   라 포함 블록이 된다) 기준 절대배치로 독 바로 위에 뜨는 팝오버다. */
 #dock {
   position: fixed; right: 12px; bottom: calc(14px + var(--safe-b)); z-index: 12;
   display: flex; flex-direction: column; gap: 8px;
 }
+#dock-more {
+  position: absolute; right: 0; bottom: calc(100% + 8px);
+  display: grid; grid-template-columns: repeat(2, 58px); gap: 8px;
+  opacity: 0; pointer-events: none; transform: translateY(6px);
+  transition: opacity .16s, transform .16s;
+}
+#dock-more.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 #dock button {
   width: 58px; height: 58px; border-radius: 19px; cursor: pointer;
   display: grid; place-items: center; gap: 1px;
@@ -468,6 +479,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   #widgets { width: calc(100% - 96px); max-width: 236px; }
   #dock { flex-direction: row; }
   #dock button { width: 52px; height: 52px; border-radius: 17px; }
+  #dock-more { grid-template-columns: repeat(2, 52px); }
   #near { bottom: calc(84px + var(--safe-b)); }
   .wallet { flex-wrap: wrap; }
 }
@@ -864,7 +876,6 @@ body.dungeon-open { overflow: hidden; }
   .dg-card { width: 100%; max-width: 320px; padding: 11px; flex-direction: row; text-align: left; }
   .dg-card b { flex: 0 0 auto; }
   .dg-cards { flex-direction: column; align-items: center; }
-  #dock { overflow-x: auto; }
   .sp-cards { flex-direction: column; }
   .sp-card { flex-direction: row; justify-content: flex-start; gap: 7px; }
 }
@@ -915,10 +926,7 @@ body.dungeon-open { overflow: hidden; }
 
 .on-dot { color: var(--purple); }
 
-/* 좁은 화면 — 독이 7개라 가로 스크롤을 허용한다 */
 @media (max-width: 780px) {
-  #dock { overflow-x: auto; scrollbar-width: none; }
-  #dock::-webkit-scrollbar { display: none; }
   .modeswitch { flex-direction: column; }
 }
 
@@ -1326,11 +1334,13 @@ body.tilted3 #vignette {
      제 몫을 못 해 단추 사이가 벌어졌다 */
   .hud-out { margin-left: 0; flex: 1 1 100%; text-align: center; }
 
-  /* 독 — 가로로 깔린다(780px 규칙). 폰에서는 한 칸 더 줄여 여섯이 들어가게 */
-  #dock { left: 8px; right: 8px; justify-content: space-between; gap: 4px; }
+  /* 독 — 가로로 깔린다(780px 규칙). 사냥터·가방·더보기 셋뿐이라 오른쪽에
+     붙여도 화면을 넓게 안 먹는다(예전엔 여섯이라 화면 폭을 다 썼다) */
+  #dock { right: 8px; gap: 6px; }
   #dock button { width: 47px; height: 47px; border-radius: 15px; flex: 0 0 auto; }
   #dock button span { font-size: 18px; }
   #dock button small { font-size: 9px; }
+  #dock-more { grid-template-columns: repeat(2, 47px); }
 
   /* 손가락 조작판 — #hud 가 여기서 거의 전체 폭(calc(100vw-16px))으로 커지고
      두 줄(3차 전직은 스킬 여덟 칸)이라 카드가 높다. 체력·기력 띠를 뺀 뒤로

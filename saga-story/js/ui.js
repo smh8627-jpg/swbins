@@ -68,21 +68,30 @@
   }
 
   function init() {
-    ['profile', 'wallet', 'camp', 'hud', 'touchpad', 'autobar', 'dock', 'sheet',
+    ['profile', 'wallet', 'camp', 'hud', 'touchpad', 'autobar', 'dock', 'dock-more', 'sheet',
      'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
       els[id] = $(id);
     });
 
     els.dock.addEventListener('click', function (e) {
+      if (e.target.closest('#dock-more-btn')) { toggleMore(); return; }
       var b = e.target.closest('[data-sheet]');
       if (!b) { return; }
+      closeMore();
       var name = b.getAttribute('data-sheet');
       if (openTab === name) { closeSheet(); } else { openSheet(name); }
+    });
+    /* "더보기" 팝오버 바깥을 누르면 닫는다 (독 안쪽 클릭은 위 리스너가 이미 처리) */
+    document.addEventListener('click', function (e) {
+      if (els['dock-more'] && els['dock-more'].classList.contains('show') && !els.dock.contains(e.target)) {
+        closeMore();
+      }
     });
     els['sheet-close'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
     global.addEventListener('keydown', function (e) {
       if (e.key !== 'Escape') { return; }
+      if (els['dock-more'] && els['dock-more'].classList.contains('show')) { closeMore(); return; }
       if (openDetailRef) { closeDetail(); return; }
       if (owmapHost().classList.contains('show')) { closeOverworldMap(); return; }
       if (openTab) { closeSheet(); }
@@ -253,9 +262,23 @@
 
   function syncDock() {
     var bs = els.dock.querySelectorAll('[data-sheet]');
+    var inMore = false;
     for (var i = 0; i < bs.length; i++) {
-      bs[i].classList.toggle('on', bs[i].getAttribute('data-sheet') === openTab);
+      var on = bs[i].getAttribute('data-sheet') === openTab;
+      bs[i].classList.toggle('on', on);
+      if (on && els['dock-more'] && els['dock-more'].contains(bs[i])) { inMore = true; }
     }
+    var moreBtn = $('dock-more-btn');
+    if (moreBtn) { moreBtn.classList.toggle('on', inMore); }
+  }
+
+  /** 독의 "더보기" 팝오버 — 자주 안 쓰는 시트를 접어 전투 화면 차지를 줄인다 */
+  function toggleMore() {
+    if (!els['dock-more']) { return; }
+    els['dock-more'].classList.toggle('show');
+  }
+  function closeMore() {
+    if (els['dock-more']) { els['dock-more'].classList.remove('show'); }
   }
 
   function renderSheet() {

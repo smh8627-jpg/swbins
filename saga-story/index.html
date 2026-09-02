@@ -71,14 +71,18 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
   </div>
 </div>
 
-<!-- 우하단: 액션 독 -->
+<!-- 우하단: 액션 독 — 사냥터·가방만 붙박이, 나머지는 "더보기" 뒤로 접는다
+     (전투 중 화면을 덜 가리려는 자리다. 사가블로·사가국지와 같은 결) -->
 <nav id="dock">
+  <div id="dock-more">
+    <button data-sheet="job"><span>🥋</span><small>무예</small></button>
+    <button data-sheet="shop"><span>🏪</span><small>저자</small></button>
+    <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+    <button data-sheet="log"><span>📜</span><small>기록</small></button>
+  </div>
   <button data-sheet="field"><span>🏃</span><small>사냥터</small></button>
   <button data-sheet="bag"><span>🎒</span><small>가방</small></button>
-  <button data-sheet="job"><span>🥋</span><small>무예</small></button>
-  <button data-sheet="shop"><span>🏪</span><small>저자</small></button>
-  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
-  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+  <button id="dock-more-btn"><span>⋯</span><small>더보기</small></button>
 </nav>
 
 <!-- 슬라이드 시트 -->
