@@ -368,12 +368,11 @@
     var i, sk;
     /* 값만 바뀔 때는 DOM 을 다시 만들지 않는다 (스킬 칸 수가 같으면 갱신만) */
     if (hudKey === null) {
+      /* 체력·기력은 상단 프로필 카드에 상시 떠 있다(renderTop 의 p-bars) — 여기서
+         또 띠를 그리면 같은 값이 두 번 뜨면서 조작 띠가 세로로 길어져, 딱 캐릭터
+         발밑 자리(가운데 아래)를 가려 전투 중 화면을 못 보게 만든다. 그래서 뺐다 */
       var html = '<div class="hud-card">' +
         '<div class="hud-hint" id="hud-hint"></div>' +
-        '<div class="hud-bars">' +
-          '<div class="hud-bar hp"><i></i><span></span></div>' +
-          '<div class="hud-bar mp"><i></i><span></span></div>' +
-        '</div>' +
         '<div class="hud-skills">';
       for (i = 0; i < st.skills.length; i++) {
         sk = st.skills[i];
@@ -388,12 +387,6 @@
       els.hud.innerHTML = html;
       hudKey = st.skills.length;
     }
-    var hp = els.hud.querySelector('.hud-bar.hp');
-    var mp = els.hud.querySelector('.hud-bar.mp');
-    hp.querySelector('i').style.width = (st.hp / st.hpMax * 100) + '%';
-    hp.querySelector('span').textContent = st.hp + ' / ' + st.hpMax;
-    mp.querySelector('i').style.width = (st.mp / st.mpMax * 100) + '%';
-    mp.querySelector('span').textContent = '기력 ' + st.mp;
     var btns = els.hud.querySelectorAll('.hud-sk');
     for (i = 0; i < st.skills.length; i++) {
       sk = st.skills[i];
