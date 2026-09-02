@@ -1276,14 +1276,14 @@ body.tilted3 #vignette {
  * 겹쳐 두 번 눌리지 않는다). #hud·#dock 위로, 화면 좌우 가장자리에 띄운다 —
  * 가운데(체력·기력·스킬 띠)를 가리지 않으려는 자리다. */
 #touchpad { position: fixed; inset: 0; z-index: 11; pointer-events: none; display: none; }
-.pad-side { position: absolute; display: none; gap: 12px; pointer-events: auto; }
+.pad-side { position: absolute; display: none; gap: 10px; pointer-events: auto; }
 .pad-l { left: 14px; bottom: calc(150px + var(--safe-b)); }
 .pad-r { right: 14px; bottom: calc(150px + var(--safe-b)); flex-direction: column; }
 .pad-btn {
-  width: 60px; height: 60px; border-radius: 50%; cursor: pointer;
+  width: 52px; height: 52px; border-radius: 50%; cursor: pointer;
   background: var(--glass); border: 1px solid var(--glass-br);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  color: var(--ink); font-size: 22px; line-height: 1;
+  color: var(--ink); font-size: 19px; line-height: 1;
   box-shadow: var(--shadow); transition: transform .1s, background .1s;
   touch-action: none;
 }
@@ -1357,8 +1357,8 @@ body.tilted3 #vignette {
   /* 손가락 조작판 — #hud 가 여기서 거의 전체 폭(calc(100vw-16px))으로 커지고
      두 줄(3차 전직은 스킬 여덟 칸)이라 카드가 높다. 체력·기력 띠를 뺀 뒤로
      260px 만큼은 안 필요해 줄였다(실기기에서 카드 높이 보고 다시 잴 것) */
-  .pad-l, .pad-r { bottom: calc(210px + var(--safe-b)); }
-  .pad-btn { width: 52px; height: 52px; font-size: 19px; }
+  .pad-l, .pad-r { bottom: calc(210px + var(--safe-b)); gap: 9px; }
+  .pad-btn { width: 44px; height: 44px; font-size: 16px; }
 
   /* 자동 상태 띠 — 상단이 두 줄인 건 그대로지만 프로필 카드를 낮춰서
      그만큼 올라온다(실기기에서 다시 잴 것) */
