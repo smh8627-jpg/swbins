@@ -96,6 +96,25 @@
   }
 
   function bindTopbar() {
+    /* "더보기" — 등신·양식·3D·소리·도움말·어드민·리셋은 자주 안 쓰니 접어 둔다
+       (사가국지와 같은 결). 지도·자동만 붙박이로 남는다 */
+    var moreBtn = document.getElementById('btn-more');
+    var more = document.getElementById('top-more');
+    if (moreBtn && more) {
+      moreBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        more.classList.toggle('show');
+      });
+      document.addEventListener('click', function (e) {
+        if (more.classList.contains('show') && !more.contains(e.target) && e.target !== moreBtn) {
+          more.classList.remove('show');
+        }
+      });
+      global.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { more.classList.remove('show'); }
+      });
+    }
+
     var mapBtn = document.getElementById('btn-map');
     if (mapBtn) {
       mapBtn.addEventListener('click', function () { ui.toggleOverworldMap(); });

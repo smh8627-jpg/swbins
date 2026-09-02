@@ -101,7 +101,16 @@ body.tilted #vignette {
 .p-bar.hp > i { background: linear-gradient(90deg, #b3423f, #e0705f); }
 .p-bar.mp > i { background: linear-gradient(90deg, #2f5f8a, #5aa0d0); }
 
-.tools { grid-area: tools; display: flex; gap: 7px; }
+/* 지도·자동만 붙박이, 나머지(등신·양식·3D·소리·도움말·어드민·리셋)는
+   "더보기" 뒤로 접는다 — #dock-more 와 같은 결(사가국지에서 먼저 밟았다) */
+.tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
+#top-more {
+  position: absolute; right: 0; top: calc(100% + 8px);
+  display: grid; grid-template-columns: repeat(2, 40px); gap: 7px;
+  opacity: 0; pointer-events: none; transform: translateY(-6px);
+  transition: opacity .16s, transform .16s;
+}
+#top-more.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   background: var(--glass); border: 1px solid var(--glass-br);
@@ -1293,23 +1302,25 @@ body.tilted3 #vignette {
  */
 @media (max-width: 560px) {
   /* ── 상단 ─────────────────────────────────────────────────── */
-  #top { gap: 7px; padding: calc(8px + var(--safe-t)) 10px 0; }
+  #top { gap: 6px; padding: calc(6px + var(--safe-t)) 8px 0; }
 
-  /* 프로필 — 도구가 먹고 남은 폭만 쓴다. 이름은 한 줄로 자른다 */
-  .profile { min-width: 0; max-width: calc(100vw - 196px); padding: 6px 12px 6px 7px; gap: 8px; }
-  .avatar { width: 36px; height: 36px; }
-  .avatar i { font-size: 16px; }
+  /* 프로필 — 지도·자동만 붙박이라 도구가 먹는 폭이 줄었지만, "그래도 위쪽을
+     가린다"(사용자)는 지적에 카드 자체를 낮춘다. 두 줄이던 상태 줄을 한 줄로
+     자르고, 아바타·글자·막대를 다 한 단계씩 내려 세로 높이를 확 줄인다. */
+  .profile { min-width: 0; max-width: calc(100vw - 130px); padding: 4px 9px 4px 5px; gap: 6px; }
+  .avatar { width: 28px; height: 28px; }
+  .avatar i { font-size: 12px; }
   .p-meta { min-width: 0; }
-  .p-title { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* 사냥터·잡은 수·금·탕약이 다 들어가야 하니 여기만 두 줄을 허락한다 */
-  .p-sub { font-size: 9.5px; white-space: normal; word-break: keep-all; }
-  .p-bars { width: 100%; max-width: 130px; }
+  .p-title { font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .p-sub { font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-bars { width: 100%; max-width: 100px; margin-top: 2px; gap: 1px; }
+  .p-bar { height: 3.5px; }
 
-  /* 도구 — 셋씩 두 줄로 접는다. 여섯을 한 줄에 두면 ❔·↺ 가 화면 밖이다 */
-  /* 넷씩 두 줄. 셋씩 잡았더니 (가입 단추까지 일곱이라) 세 줄이 되어 화면을 깊이 먹었다 */
-  .tools { flex-wrap: wrap; justify-content: flex-end; max-width: 174px; gap: 6px; }
-  .icon-btn { width: 38px; height: 38px; font-size: 15px; }
-  .icon-btn.txt { font-size: 10.5px; }
+  /* 도구 — 지도·자동·더보기 셋뿐이라 한 줄로 끝난다(예전엔 아홉이라 두세 줄이었다) */
+  .tools { gap: 5px; }
+  .icon-btn { width: 34px; height: 34px; font-size: 13px; }
+  .icon-btn.txt { font-size: 9.5px; }
+  #top-more { grid-template-columns: repeat(2, 34px); }
 
   .wallet { flex-wrap: wrap; padding: 4px 6px; }
   .coin { padding: 3px 7px; font-size: 11px; }
@@ -1348,8 +1359,9 @@ body.tilted3 #vignette {
   .pad-l, .pad-r { bottom: calc(210px + var(--safe-b)); }
   .pad-btn { width: 52px; height: 52px; font-size: 19px; }
 
-  /* 자동 상태 띠 — 상단이 두 줄이 되었으니 그만큼 내려온다 */
-  #autobar { top: calc(122px + var(--safe-t)); }
+  /* 자동 상태 띠 — 상단이 두 줄인 건 그대로지만 프로필 카드를 낮춰서
+     그만큼 올라온다(실기기에서 다시 잴 것) */
+  #autobar { top: calc(98px + var(--safe-t)); }
 }
 
 /* 손가락에는 :hover 가 없다 — 뜬 채로 굳는 것을 막는다 */
