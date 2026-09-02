@@ -1332,25 +1332,26 @@ body.tilted3 #vignette {
    * 딱 캐릭터 발밑(화면 가운데 아래)이라, 칸을 더 줄이고 배경도 옅게 해 뒤로
    * 비친다. 안 그러면 공격·스킬 단추 판이 전투 화면을 통째로 가려 버린다.
    */
-  /* 독이 47px→42px로 줄어 위쪽 여유가 생긴 만큼 조작 띠도 같이 내린다 —
-     "여전히 캐릭터 발밑이 가려진다"(사용자). 독 위 여백이 이미 좁아(4px) 더
-     내리지 않고, 대신 카드 자체를 한 단 더 줄인다(2차) */
-  #hud { width: calc(100vw - 16px); bottom: calc(60px + var(--safe-b)); }
+  /* "밑에 창(스킬·공격)을 메뉴(독) 옆으로 내려줘" 요청 — 화면 가운데 아래를
+     가로로 덮던 띠를 접어, 독 바로 위에 붙는 좁은 세로 더미로 옮긴다.
+     화면 가운데(캐릭터 발밑)는 완전히 비운다. 독은 right:6px·bottom:14px·
+     42px 버튼이라 top 이 56px(+safe) — 그 위 8px 틈에 올려 앉힌다 */
+  #hud { left: auto; right: 6px; transform: none; width: auto; bottom: calc(64px + var(--safe-b)); }
   /* "스킬·공격 창이 너무 커 투명으로" 요청 — 배경을 거의 없애고(블러도 낮춰)
      뒤 전투 화면이 비쳐 보이게 한다. 칸 테두리는 남겨 눌리는 자리는 여전히 보인다 */
   .hud-card {
-    padding: 4px 5px; border-radius: 12px; box-shadow: none;
+    padding: 4px; border-radius: 12px; box-shadow: none;
     background: rgba(20, 23, 30, .16); border-color: rgba(255,255,255,.08);
     backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
   }
-  .hud-skills { flex-wrap: wrap; gap: 2px; justify-content: center; }
+  /* 가로로 늘어놓던 줄을 3칸짜리 세로 더미(grid)로 접는다 — 2칸이면 세로가
+     길어져 우측 조작판(점프·앉기, bottom 210~254px)과 겹친다 */
+  .hud-skills { display: grid; grid-template-columns: repeat(3, 28px); gap: 2px; }
   .hud-sk { width: 28px; height: 28px; border-radius: 9px; }
   .hud-sk b { font-size: 12px; }
   .hud-sk small { font-size: 7px; right: 2px; }
-  .hud-out { padding: 3px 8px; font-size: 10px; }
-  /* '나온다' 는 마지막 줄 오른쪽 끝에 붙인다 — margin-left:auto 가 접힌 줄에서
-     제 몫을 못 해 단추 사이가 벌어졌다 */
-  .hud-out { margin-left: 0; flex: 1 1 100%; text-align: center; }
+  /* '나온다' 는 세 칸을 다 차지하는 맨 아랫줄로 */
+  .hud-out { grid-column: 1 / -1; margin-left: 0; padding: 3px 8px; font-size: 10px; text-align: center; }
 
   /* 독 — 가로로 깔린다(780px 규칙). 사냥터·가방·더보기 셋뿐이라 오른쪽에
      붙여도 화면을 넓게 안 먹는다(예전엔 여섯이라 화면 폭을 다 썼다).
