@@ -76,6 +76,33 @@
 | `models/people/regular/*` (몸 둘·옷 넷·머리 여섯, gltf+bin+png) | `saga-go/assets/models/people/regular/` — Player 3D(PHASE 4) 에 쓸 인물 뼈대. 조합 규칙도 그대로: `saga-go/js/asset3d.js` 의 `HERO_RECIPES` 주석 참고 |
 | `models/anim/UAL1_Standard.glb` (Quaternius Universal Animation Library, 몸짓 마흔한 벌) | `saga-go/assets/models/anim/UAL1_Standard.glb` — 위 인물 뼈대와 이름까지 같은 뼈라 옮겨 입히기 없이 그대로 물린다 |
 
+---
+
+## Kenney — Roguelike/RPG Pack (`assets/sprites2d/`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kenney (<https://kenney.nl>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://opengameart.org/content/roguelikerpg-pack-1700-tiles> (Kenney 본인 업로드,
+  `Roguelike pack.zip` 안 `Spritesheet/roguelikeSheet_transparent.png`) |
+
+2D 마을 화면(`village-view.js`)의 **나무**(`drawTree`, PLAN "코드로 그리지 말고
+에셋으로" 방침)가 여태 겹친 원으로 수관을 그리던 것을 이 시트에서 오려 낸
+그림으로 바꿨다(2026-09-02). 시트에서 16x15px 셋을 그대로 잘라 파일로 저장했다 —
+계절마다 다른 그림, 흔들림은 회전으로, 벚꽃·눈·열매 배지는 여전히 코드가 얹는다
+(상태 표시라서 그림이 아니라 코드 몫으로 남긴다).
+
+| 파일 | 원본 시트 좌표(px) | 쓰이는 곳 |
+|---|---|---|
+| `tree_spring.png` | (221,154)-(236,168) 초록 둥근 나무 | 봄·여름 |
+| `tree_autumn.png` | (238,154)-(253,168) 주황 둥근 나무 | 가을 |
+| `tree_winter.png` | (255,154)-(270,168) 청록 둥근 나무 | 겨울(눈 배지는 코드가 그 위에 얹는다) |
+| `pine_green.png` | (272,154)-(286,168) 초록 침엽수 | 봄·여름·가을 소나무(`drawPine`) — 줄기는 여전히 코드가 긋는다 |
+| `pine_winter.png` | (306,154)-(320,168) 청록 침엽수 | 겨울 소나무 — 눈덩이 배지는 코드가 얹는다 |
+
 ### 아직 못 채운 자리 (PLAN 16절 동물 콘텐츠)
 
 **토끼·다람쥐·오리·새**는 이 미러에 없다. `animals_pack` 에는 Alpaca·Bull·Cow·Deer·

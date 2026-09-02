@@ -606,72 +606,57 @@
   }
 
   /**
-   * 나무 — 원작의 그 둥근 수관.
-   * 겹친 원 다섯으로 가장자리를 물결지게 만들고, 왼쪽 위에 밝은 빛을 얹는다.
-   * 수관 색은 계절을 탄다 (봄 벚빛 · 여름 초록 · 가을 주황 · 겨울 눈).
+   * 나무 — Kenney "Roguelike/RPG Pack"(CC0, `assets/sprites2d/`)의 나무
+   * 그림을 그대로 그린다. 계절별로 다른 그림을 고르고, 흔들림은 회전으로
+   * 낸다 — 벚꽃·눈·열매는 여전히 코드가 얹는다(그림이 아니라 그때그때
+   * 바뀌는 상태 표시라서, `saga-assets-over-script` 방침에서도 이런
+   * 배지류는 코드 몫으로 남겨 둔다).
    */
   var CANOPY = {
-    spring: { a: '#79c257', bloom: '#f6b4d0' },
-    summer: { a: '#4f9e3c', bloom: null },
-    autumn: { a: '#d98b3a', bloom: null },
-    winter: { a: '#5f8a6d', bloom: null }
+    spring: { bloom: '#f6b4d0' },
+    summer: { bloom: null },
+    autumn: { bloom: null },
+    winter: { bloom: null }
   };
+  var TREE_SRC = {
+    spring: 'assets/sprites2d/tree_spring.png',
+    summer: 'assets/sprites2d/tree_spring.png',
+    autumn: 'assets/sprites2d/tree_autumn.png',
+    winter: 'assets/sprites2d/tree_winter.png'
+  };
+  var treeImgCache = {};
+  function treeImg(key) {
+    var src = TREE_SRC[key] || TREE_SRC.summer;
+    var im = treeImgCache[src];
+    if (!im) { im = new Image(); im.src = src; treeImgCache[src] = im; }
+    return im;
+  }
 
   function drawTree(x, y, k, sway, se, ripe) {
     /* 삼짇날 — 계절과 무관하게 나무마다 벚빛이 돈다 (꽃놀이 가는 날이다) */
-    var cp = evTag() === 'blossom' ? CANOPY.spring : (CANOPY[se.key] || CANOPY.summer);
+    var seKey = evTag() === 'blossom' ? 'spring' : (se.key || 'summer');
+    var cp = CANOPY[seKey] || CANOPY.summer;
     shadow(x, y + 3 * k, 26 * k, 9 * k);
 
-    /* 줄기 — 짧고 굵다. 수관이 주인공이라 줄기는 받침일 뿐이다 */
-    var th = 22 * k, tw = 8 * k;
-    ctx.beginPath();
-    ctx.moveTo(x - tw, y + 2 * k);
-    ctx.quadraticCurveTo(x - tw * 0.6, y - th * 0.6, x - tw * 0.5 + sway * 40 * k, y - th);
-    ctx.lineTo(x + tw * 0.5 + sway * 40 * k, y - th);
-    ctx.quadraticCurveTo(x + tw * 0.6, y - th * 0.6, x + tw, y + 2 * k);
-    ctx.closePath();
-    ctx.fillStyle = '#8b6239';
-    ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,0.16)';
-    ctx.beginPath();
-    ctx.moveTo(x + tw * 0.15, y + 2 * k);
-    ctx.lineTo(x + tw, y + 2 * k);
-    ctx.quadraticCurveTo(x + tw * 0.6, y - th * 0.6, x + tw * 0.5 + sway * 40 * k, y - th);
-    ctx.lineTo(x + sway * 40 * k, y - th);
-    ctx.closePath();
-    ctx.fill();
-
-    /* 수관 — 겹친 원 여섯으로 가장자리를 물결지게 만든다.
-       줄기 끝을 살짝 물고 앉아야 떠 보이지 않는다 */
-    var rr = 31 * k;
-    var cy = y - th - rr * 0.52 + sway * 22 * k;
-    var cx = x + sway * 46 * k;
-    ctx.fillStyle = cp.a;
-    ctx.beginPath();
-    ctx.arc(cx - rr * 0.74, cy + rr * 0.34, rr * 0.60, 0, Math.PI * 2);
-    ctx.arc(cx + rr * 0.74, cy + rr * 0.34, rr * 0.60, 0, Math.PI * 2);
-    ctx.arc(cx - rr * 0.52, cy - rr * 0.40, rr * 0.62, 0, Math.PI * 2);
-    ctx.arc(cx + rr * 0.52, cy - rr * 0.40, rr * 0.62, 0, Math.PI * 2);
-    ctx.arc(cx, cy - rr * 0.58, rr * 0.52, 0, Math.PI * 2);
-    ctx.arc(cx, cy + rr * 0.10, rr * 0.94, 0, Math.PI * 2);
-    ctx.fill();
-
-    /* 아래쪽 그늘 · 왼쪽 위 빛 — 같은 색을 어둡게·밝게만 쓴다.
-       다른 색을 덮으면 수관이 탁해진다 (그렇게 만들었다가 되돌렸다) */
+    /* 그림 — 16x15 픽셀아트를 확대해 그린다. 흔들림은 밑동을 축으로 살짝
+       돌리는 것으로 낸다(원본이 트임·줄기까지 한 그림이라 따로 휘지 않는다) */
+    var img = treeImg(seKey);
+    var sc = 3.5 * k;
+    var iw = img.naturalWidth || 16, ih = img.naturalHeight || 15;
+    var dw = iw * sc, dh = ih * sc;
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy + rr * 0.10, rr * 0.94, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.fillStyle = dark(cp.a, 0.16);
-    ctx.beginPath();
-    ctx.arc(cx + rr * 0.30, cy + rr * 0.72, rr * 0.86, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(x, y + 2 * k);
+    ctx.rotate(sway * 0.6);
+    if (img.complete && img.naturalWidth) {
+      ctx.drawImage(img, -dw / 2, -dh, dw, dh);
+    }
     ctx.restore();
-    ctx.fillStyle = light(cp.a, 0.20);
-    ctx.beginPath();
-    ctx.arc(cx - rr * 0.50, cy - rr * 0.44, rr * 0.44, 0, Math.PI * 2);
-    ctx.arc(cx - rr * 0.86, cy + rr * 0.06, rr * 0.32, 0, Math.PI * 2);
-    ctx.fill();
+
+    /* 열매·눈·벚꽃 배지 자리 — 그림 수관 한복판께를 어림한다 */
+    var rr = dw * 0.42;
+    var cx = x + sway * 46 * k;
+    var cy = y - dh * 0.56;
 
     /* 봄이면 벚빛 꽃송이가 수관에 얹힌다 */
     if (cp.bloom) {
@@ -713,7 +698,19 @@
     }
   }
 
-  /** 소나무 — 삼단 원뿔. 겨울엔 눈이 앉는다 */
+  /** 소나무 — Kenney Roguelike/RPG Pack(CC0)의 침엽수 그림. 줄기는 그대로
+   *  코드가 긋고(간단한 사각형이라 굳이 에셋을 안 쓴다), 잎은 그림 한 장이다.
+   *  겨울엔 청록 그림으로 갈아 끼우고 눈덩이를 얹는다. */
+  var PINE_SRC = { winter: 'assets/sprites2d/pine_winter.png' };
+  var PINE_DEFAULT_SRC = 'assets/sprites2d/pine_green.png';
+  var pineImgCache = {};
+  function pineImg(key) {
+    var src = PINE_SRC[key] || PINE_DEFAULT_SRC;
+    var im = pineImgCache[src];
+    if (!im) { im = new Image(); im.src = src; pineImgCache[src] = im; }
+    return im;
+  }
+
   function drawPine(x, y, k, sway, se) {
     shadow(x, y + 3 * k, 20 * k, 7 * k);
     /* 줄기는 잎보다 **먼저·길게** 그린다. 짧게 그렸다가 잎과 밑동이
@@ -721,32 +718,30 @@
     ctx.fillStyle = '#7a5636';
     ctx.fillRect(x - 4.5 * k, y - 34 * k, 9 * k, 36 * k);
 
-    var green = se.key === 'winter' ? '#3f6b52' : '#3f7f4a';
-    var tiers = [[0, 26, 25], [9, 40, 20], [18, 52, 14]];
-    for (var i = 0; i < tiers.length; i++) {
-      var t = tiers[i];
-      var yy = y - t[1] * k;
-      var wd = t[2] * k;
-      var sw = sway * (i + 1) * 16 * k;
+    var img = pineImg(se.key);
+    var sc = 4.6 * k;
+    var iw = img.naturalWidth || 15, ih = img.naturalHeight || 15;
+    var dw = iw * sc, dh = ih * sc;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(x, y - 30 * k);
+    ctx.rotate(sway * 0.7);
+    if (img.complete && img.naturalWidth) {
+      ctx.drawImage(img, -dw / 2, -dh, dw, dh);
+    }
+    ctx.restore();
+
+    if (se.key === 'winter') {                      // 눈덩이를 끝자락에 얹는다
+      var rr = dw * 0.42;
+      var cx = x, cy = y - 30 * k - dh * 0.5;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#eef6f9';
       ctx.beginPath();
-      ctx.moveTo(x - wd, yy);
-      ctx.quadraticCurveTo(x + sw * 0.5, yy - 6 * k, x + wd, yy);
-      ctx.lineTo(x + sw, yy - 24 * k);
-      ctx.closePath();
-      ctx.fillStyle = i === 2 ? light(green, 0.10) : i === 1 ? light(green, 0.05) : green;
+      ctx.arc(cx - rr * 0.30, cy - rr * 0.60, rr * 0.30, 0, Math.PI * 2);
+      ctx.arc(cx + rr * 0.34, cy - rr * 0.10, rr * 0.26, 0, Math.PI * 2);
       ctx.fill();
-      if (se.key === 'winter') {
-        ctx.save();
-        ctx.globalAlpha = 0.85;
-        ctx.fillStyle = '#eef6f9';
-        ctx.beginPath();
-        ctx.moveTo(x - wd * 0.5, yy - 8 * k);
-        ctx.quadraticCurveTo(x + sw * 0.6, yy - 14 * k, x + wd * 0.45, yy - 7 * k);
-        ctx.lineTo(x + sw * 0.8, yy - 20 * k);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-      }
+      ctx.restore();
     }
   }
 

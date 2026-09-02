@@ -249,6 +249,46 @@ id 해시로 나눠 준다. 그 위에 `asset3d.tintOf` 가 세력 빛깔을 입
 
 ---
 
+## EverFace — 초상 "진지한" 얼굴 (`assets/sprites2d/portrait/serious/`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Efilheim |
+| **라이선스** | **CC0** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://opengameart.org/content/everface> (`everface1.0.png`, 432×24, 24×24 초상 18장) |
+
+`portrait3d.js` 가 인물 id 해시로 열여덟 장 중 하나를 고른다(`recipe().serious`).
+아래 "귀여운" 조합형과 달리 **한 장을 그대로 쓴다** — 층층이 쌓지 않는다.
+파일 이름은 `face_00.png` ~ `face_17.png`(시트를 24px 씩 그대로 자른 것).
+
+## nonemo's Character Pack — 초상 "귀여운" 얼굴 (`assets/sprites2d/portrait/cute/`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | nonemo (<https://nonemo.itch.io>) |
+| **라이선스** | **CC0** |
+| **저작자 표시** | 필요 없다(있으면 반갑다고 적혀 있다) |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://nonemo.itch.io/character-creation-asset-pack> — itch.io 가 이 망에서
+  막혀 있어 **사용자가 직접 받아 전달**했다 |
+
+원본 팩은 머리·피부·표정·옷·바지까지 다 갖춘 훨씬 큰 팩이다. 초상은 가슴 위만
+담으므로(도감 카드 규격) **옷·바지·안경·수염은 빼고** 다음만 옮겼다 —
+수염을 얹어 보니 아기 얼굴에 털만 붙은 꼴이라 뺐다(2026-09-02):
+
+| 폴더 | 옮긴 것 |
+|---|---|
+| `skin/tint_1·2·3/head.png` | 피부색 셋 |
+| `hairs/front/{chupchik,curly,elegant}.{아홉 빛깔}.png` | 앞머리 세 모양 × 아홉 빛깔 |
+| `hairs/back/{curly,long}.{아홉 빛깔}.png` | 뒷머리 두 모양 × 아홉 빛깔 |
+| `faces/{smile,willing,cute,laughs,gloating}.png` | 표정 다섯 |
+
+`portrait3d.js` 가 인물 id 해시로 이 넷(피부·뒷머리·표정·앞머리 순으로 겹친다)을
+골라 합친다. 손잡이 `portrait3d.cute` 를 1 로 올려야 이 조합이 나온다(기본은
+EverFace).
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로
