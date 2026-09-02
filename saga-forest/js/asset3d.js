@@ -393,6 +393,7 @@
 
   /** 실사 레시피의 몸이 안 실리면(파일이 이 기기에 없음) 옛 조합형으로 한 번만 다시 탄다 */
   function loadHeroRecipe(rec, ref, cb, isFallback) {
+    var t = three(); // assemble() 아래서 AnimationMixer 를 만들 때 쓴다 — buildHero() 의 t 는 안 물려받는다
     built++;
 
     var parts = {}, pending = 4;
