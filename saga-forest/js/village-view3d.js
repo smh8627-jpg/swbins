@@ -208,6 +208,36 @@
   var terrainMesh = {};     // kind → InstancedMesh
   var terrainCap = 0;       // 인스턴스 하나가 담을 수 있는 최대 칸 수
 
+  /** 타일 그림 — 2D 화면(village-view.js)과 **같은 파일**을 쓴다(Kenney
+   *  Roguelike/RPG Pack, CC0). "3D 타일이 디테일하지 않다"(사용자, 2026-09-02)
+   *  는 지적에 색 한 장이던 것을 그림으로 바꾼다. 숲 고리 네 변종은 2D 와
+   *  같이 같은 잔디 그림을 재질 색(`color`)으로 물들여 쓴다 */
+  var TILE_TEX_SRC = {
+    grass: 'assets/sprites2d/tile_grass.png',
+    grass_meadow: 'assets/sprites2d/tile_grass.png',
+    grass_dark: 'assets/sprites2d/tile_grass.png',
+    grass_mush: 'assets/sprites2d/tile_grass.png',
+    grass_rocky: 'assets/sprites2d/tile_grass.png',
+    path: 'assets/sprites2d/tile_dirt.png',
+    sand: 'assets/sprites2d/tile_sand.png',
+    water: 'assets/sprites2d/tile_water.png',
+    stone: 'assets/sprites2d/tile_stone.png'
+  };
+  var tileTexCache = {};
+  function tileTexture(kind) {
+    var t = three();
+    var src = TILE_TEX_SRC[kind];
+    if (!src || !t) { return null; }
+    if (tileTexCache[src]) { return tileTexCache[src]; }
+    var tex = new t.TextureLoader().load(src);
+    /* 도트그림이라 흐려지면 안 된다 — 가까이서 봐도 또렷한 픽셀아트 그대로 */
+    tex.magFilter = t.NearestFilter;
+    tex.minFilter = t.NearestFilter;
+    if (t.SRGBColorSpace) { tex.colorSpace = t.SRGBColorSpace; }
+    tileTexCache[src] = tex;
+    return tex;
+  }
+
   /** 바이옴별 하늘·안개 색(PLAN 11절 "색감"). green 은 예전부터 쓰던 하늘색 그대로 */
   var FOG_COLOR = { green: 0x8fc7e8, meadow: 0xbfe0a8, dark: 0x445a48, mushroom: 0x5f7a68, rocky: 0x9a988a };
   var curBiome = null;
@@ -276,7 +306,7 @@
     terrainCap = (2 * r + 1) * (2 * r + 1);
     for (k in colors) {
       if (!Object.prototype.hasOwnProperty.call(colors, k)) { continue; }
-      var mat = new t.MeshLambertMaterial({ color: new t.Color(colors[k]) });
+      var mat = new t.MeshLambertMaterial({ color: new t.Color(colors[k]), map: tileTexture(k) });
       var im = new t.InstancedMesh(geo, mat, terrainCap);
       im.count = 0;
       scene.add(im);

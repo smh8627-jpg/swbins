@@ -123,6 +123,12 @@
 | `tile_stone.png` | (102,34)-(118,50) 돌바닥 | `stone`(돌길) |
 | `tile_floor.png` | (136,34)-(152,50) 나무 바닥 | `floor`(마루) |
 
+**3D 마을 화면**(`village-view3d.js` 의 `initTerrain`, 2026-09-02)의 땅 타일도
+**같은 파일**을 그대로 쓴다 — 색 한 장(`MeshLambertMaterial({color})`)이던
+것에 `map` 으로 얹었다("3D 타일이 디테일하지 않다", 사용자). `NearestFilter`
+로 도트그림이 흐려지지 않게 했다. 숲 고리 네 변종은 2D 와 같이 잔디 그림을
+재질 색으로 물들여 쓴다. `floor`(방 안 마루)는 3D 마을 바닥에 안 나와 빠졌다.
+
 ---
 
 ## Kenney — Roguelike Characters Pack (`assets/sprites2d/human_*.png`)
