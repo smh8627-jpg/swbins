@@ -49,20 +49,20 @@
   function CAM_HIGH() { return C().tuned('village3d.camHeight', 3.2); }
   /** 3/4 부감(쿼터뷰) 쪽 끝값 — 거리·기울기. tilt 가 클수록 카메라가 더 눕는다(수평 반지름이
    *  커지고 높이가 낮아진다), 작을수록 더 위에서 내리찍는 부감이 된다.
-   *  **2026-09-02, 실기기 확인 후 사용자 요청으로 11 → 24 → 46.** "디아블로 같은 쿼터뷰가
-   *  아니다"는 피드백 — 거리만 물려서는 안 됐다. 원작(디아블로류)이 이 각도에서도 평평해
-   *  보이는 건 좁은 화각(거의 정사영에 가깝게) 덕이다. FOV 도 `ISO_FOV()`로 좁혀 원근
-   *  왜곡(가까운 게 훨씬 크게 보이는 것)을 죽이고, 화각이 좁아진 만큼 같은 폭을 담으려면
-   *  더 멀어져야 해서 거리도 다시 두 배 가까이 물렸다(camPose 는 이 둘의 조합은 몰라도
-   *  된다 — syncCamera 가 fov 도 함께 섞는다) */
-  function ISO_DIST() { return C().tuned('village3d.isoDist', 46); }
+   *  **2026-09-02, 11 → 24 → 46 으로 올렸다가 도로 11 로.** 사용자가 원래 원한 건
+   *  "버튼으로 클릭해서 바꿨던 그 쿼터뷰"(첫 커밋 db12fe6, 실기기로 이미 확인됨)와
+   *  같은 그림이었다 — 거리·화각을 더 키운 건 세로 드래그가 t=1 까지 실제로 안 닿아서
+   *  (TILT_SENS 가 낮아 짧게 쓸어 올려선 중간에서 멎었다) "덜 부감으로" 보인 걸 잘못
+   *  짚고 화면 자체를 바꾼 것이었다. 진짜 원인(민감도)은 고쳤으니 값은 원래 확인됐던
+   *  그대로 되돌린다. FOV 도 third 와 다르게 좁히지 않는다(camFov 는 남겨 두되 기본은
+   *  안 바뀌게) — 정사영 흉내는 검증 없이 얹은 추측이었다 */
+  function ISO_DIST() { return C().tuned('village3d.isoDist', 11); }
   function ISO_TILT() { return C().tuned('village3d.isoTilt', 0.62); }
   function PLAYER_H() { return C().tuned('village3d.playerH', 1.7); }
   function GROUND_SIZE() { return C().tuned('village3d.groundSize', 400); }
   function FOV() { return C().tuned('village3d.fov', 55); }
-  /** 쿼터뷰 쪽 좁은 화각 — 정사영(orthographic)에 가깝게 눌러 평평해 보이게 한다.
-   *  디아블로류가 흔히 쓰는 값(20~30도) 대에서 골랐다 */
-  function ISO_FOV() { return C().tuned('village3d.isoFov', 28); }
+  /** 쿼터뷰 쪽 화각 — 기본은 FOV() 와 같다(안 좁힌다). 정사영 흉내를 원하면 손잡이로 */
+  function ISO_FOV() { return C().tuned('village3d.isoFov', FOV()); }
   /** 걸음이라고 볼 최소 속도(마을 좌표/초) — 이보다 느리면 멈춘 것으로 본다 */
   function MOVE_EPS() { return C().tuned('village3d.moveEps', 4); }
 
