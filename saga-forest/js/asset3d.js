@@ -58,6 +58,21 @@
     { key: 'mixamo_maria', body: PEOPLE_REAL + 'maria_body.glb', anim: ANIM_SRC_REAL }
   ];
 
+  /* 되돌림 자리 — 실사(Mixamo) 파생물은 재배포 금지라 .gitignore 돼 있어 이 파일이
+     없는 기기(다른 clone·다른 세션)에서는 몸이 하나도 안 실린다. 그때 이 옛
+     Quaternius 조합형(2026-09-02 이전 기본값)으로 자동으로 갈아탄다 — 캐릭터가
+     통째로 안 보이는 것보다는 스타일이 다르더라도 서 있는 쪽이 낫다. 2026-09-03 고침 */
+  var HERO_RECIPES_FALLBACK = [
+    { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
+      outfit: PEOPLE + 'Male_Peasant.gltf', hair: PEOPLE + 'Hair_Buzzed.gltf' },
+    { key: 'male_ranger_long', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
+      outfit: PEOPLE + 'Male_Ranger.gltf', hair: PEOPLE + 'Hair_Long.gltf' },
+    { key: 'female_peasant_buns', body: PEOPLE + 'Superhero_Female_FullBody.gltf',
+      outfit: PEOPLE + 'Female_Peasant.gltf', hair: PEOPLE + 'Hair_Buns.gltf' },
+    { key: 'female_ranger_simple', body: PEOPLE + 'Superhero_Female_FullBody.gltf',
+      outfit: PEOPLE + 'Female_Ranger.gltf', hair: PEOPLE + 'Hair_SimpleParted.gltf' }
+  ];
+
   /** 표 — 키는 좁은 것부터. PLAN 8절(숲 오브젝트)·16절(동물) 어휘를 그대로 썼다.
    *   asset3d.register('tree:pine', 'assets/models/nature/Pine.glb');
    *   asset3d.register('animal:an_deer', 'assets/models/animals/Deer.glb');
@@ -373,6 +388,11 @@
     var t = three();
     var rec = heroRecipe(ref);
     if (!rec || !t) { cb(null); return; }
+    loadHeroRecipe(rec, ref, cb, false);
+  }
+
+  /** 실사 레시피의 몸이 안 실리면(파일이 이 기기에 없음) 옛 조합형으로 한 번만 다시 탄다 */
+  function loadHeroRecipe(rec, ref, cb, isFallback) {
     built++;
 
     var parts = {}, pending = 4;
@@ -385,7 +405,14 @@
     acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); });
 
     function assemble() {
-      if (!parts.body) { cb(null); return; }
+      if (!parts.body) {
+        if (!isFallback) {
+          var fb = oneOf(HERO_RECIPES_FALLBACK, ref);
+          if (fb) { loadHeroRecipe(fb, ref, cb, true); return; }
+        }
+        cb(null);
+        return;
+      }
       var model;
       try {
         model = assembleHero(parts);
