@@ -1332,15 +1332,17 @@ body.tilted3 #vignette {
    * 딱 캐릭터 발밑(화면 가운데 아래)이라, 칸을 더 줄이고 배경도 옅게 해 뒤로
    * 비친다. 안 그러면 공격·스킬 단추 판이 전투 화면을 통째로 가려 버린다.
    */
-  #hud { width: calc(100vw - 16px); bottom: calc(76px + var(--safe-b)); }
+  /* 독이 47px→42px로 줄어 위쪽 여유가 생긴 만큼 조작 띠도 같이 내린다 —
+     "여전히 캐릭터 발밑이 가려진다"(사용자). 카드 자체도 한 단 더 줄인다 */
+  #hud { width: calc(100vw - 16px); bottom: calc(60px + var(--safe-b)); }
   .hud-card {
-    padding: 6px 7px; border-radius: 14px;
-    background: rgba(20, 23, 30, .46); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    padding: 5px 6px; border-radius: 13px;
+    background: rgba(20, 23, 30, .4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   }
-  .hud-skills { flex-wrap: wrap; gap: 4px; justify-content: center; }
-  .hud-sk { width: 36px; height: 36px; border-radius: 11px; }
-  .hud-sk b { font-size: 15px; }
-  .hud-sk small { font-size: 8px; right: 3px; }
+  .hud-skills { flex-wrap: wrap; gap: 3px; justify-content: center; }
+  .hud-sk { width: 32px; height: 32px; border-radius: 10px; }
+  .hud-sk b { font-size: 13px; }
+  .hud-sk small { font-size: 7.5px; right: 2px; }
   /* '나온다' 는 마지막 줄 오른쪽 끝에 붙인다 — margin-left:auto 가 접힌 줄에서
      제 몫을 못 해 단추 사이가 벌어졌다 */
   .hud-out { margin-left: 0; flex: 1 1 100%; text-align: center; }
