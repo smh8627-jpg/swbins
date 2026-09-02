@@ -2065,6 +2065,27 @@
     return Math.floor(t / (TAU / PHASES)) % PHASES;
   }
 
+  /** 지도 위 사람 그림 — Kenney Roguelike Characters(CC0)에서 오려 낸 열넷 중
+   *  인물 id 로 하나를 정해 고른다(같은 인물은 늘 같은 얼굴). 등신·양식·개인별
+   *  색상·걷기 다리 애니메이션은 이 그림 하나로는 못 낸다(고정 그림이라) —
+   *  그 대신 걸음 통통거림(stamp() 의 bounce)과 좌우 뒤집기는 그대로 산다.
+   *  PLAN 부록("코드로 그리지 말고 에셋으로") 방침, 2026-09-02 사용자 승인 */
+  var HUMAN_SPRITE_N = 14;
+  var humanImgCache = {};
+  function humanImg(i) {
+    var n = ((i - 1) % HUMAN_SPRITE_N + HUMAN_SPRITE_N) % HUMAN_SPRITE_N + 1;
+    var src = 'assets/sprites2d/human_' + (n < 10 ? '0' + n : n) + '.png';
+    var im = humanImgCache[src];
+    if (!im) { im = new Image(); im.src = src; humanImgCache[src] = im; }
+    return im;
+  }
+  function humanIndexOf(ref) {
+    var id = String((ref && (ref.id || ref.key || ref.name)) || 'anon');
+    var h = 0;
+    for (var i = 0; i < id.length; i++) { h = (h * 31 + id.charCodeAt(i)) >>> 0; }
+    return (h % HUMAN_SPRITE_N) + 1;
+  }
+
   /** 캐시에 한 컷을 굽는다 */
   function bake(kind, ref, sc, pb, o) {
     var base = kind === 'human' ? 40 : 30;
@@ -2087,9 +2108,18 @@
       walking: walking, noBounce: true, t: 0
     };
     if (kind === 'human') {
-      common.color = o.color; common.look = o.look; common.skin = o.skin;
-      common.rarity = o.rarity || (o.ref && o.ref.rarity) || 0;
-      human(c, common);
+      var himg = humanImg(humanIndexOf(o.ref));
+      if (himg.complete && himg.naturalWidth) {
+        var hdw = H * 1.2, hdh = H * 1.2;
+        c.imageSmoothingEnabled = false;
+        c.drawImage(himg, footX - hdw / 2, footY - hdh, hdw, hdh);
+      } else {
+        /* 그림이 아직 안 실렸으면(첫 프레임) 옛 절차적 그림으로 우선 채운다 —
+           그러지 않으면 빈 캔버스가 그대로 캐시에 박제된다 */
+        common.color = o.color; common.look = o.look; common.skin = o.skin;
+        common.rarity = o.rarity || (o.ref && o.ref.rarity) || 0;
+        human(c, common);
+      }
     } else {
       common.form = o.form; common.color = o.color; common.divine = o.divine;
       common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다

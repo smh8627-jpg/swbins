@@ -434,8 +434,49 @@
    * 색이 몇 가지 안 되니 **색별로 한 번에 칠한다** — 칸마다 fill 하면
    * 한 화면에 이천 번이 넘어 프레임이 무너진다.
    */
+  /* 바닥 타일 그림 — Kenney Roguelike/RPG Pack(CC0, 나무와 같은 시트).
+     숲 고리 네 변종(grass_meadow·dark·mush·rocky)은 그림을 따로 안 구하고
+     같은 잔디 그림을 각자 색으로 물들여 쓴다(아래 drawGround 의 색 얹기 참고) */
+  var TILE_IMG_SRC = {
+    grass: 'assets/sprites2d/tile_grass.png',
+    grass_meadow: 'assets/sprites2d/tile_grass.png',
+    grass_dark: 'assets/sprites2d/tile_grass.png',
+    grass_mush: 'assets/sprites2d/tile_grass.png',
+    grass_rocky: 'assets/sprites2d/tile_grass.png',
+    path: 'assets/sprites2d/tile_dirt.png',
+    sand: 'assets/sprites2d/tile_sand.png',
+    water: 'assets/sprites2d/tile_water.png',
+    stone: 'assets/sprites2d/tile_stone.png',
+    floor: 'assets/sprites2d/tile_floor.png'
+  };
+  var tileImgCache = {};
+  function tileImg(kind) {
+    var src = TILE_IMG_SRC[kind] || TILE_IMG_SRC.grass;
+    var im = tileImgCache[src];
+    if (!im) { im = new Image(); im.src = src; tileImgCache[src] = im; }
+    return im;
+  }
+
+  /** 타일 그림을 좌상·우상·좌하 세 꼭짓점만 맞춰 아핀 변환으로 그린다.
+      구면 투영이라 넷째 꼭짓점(우하)은 근사다 — 타일이 작아 안 띈다.
+      `ctx.transform`(누적)을 쓴다 — `setTransform`은 draw() 가 걸어 둔 DPR
+      배율을 지워 버린다 */
+  function drawTileTexture(img, a0, a1, a3) {
+    if (!img.complete || !img.naturalWidth) { return; }
+    var iw = img.naturalWidth, ih = img.naturalHeight;
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = 0.6;
+    ctx.imageSmoothingEnabled = false;
+    ctx.transform((a1.x - a0.x) / iw, (a1.y - a0.y) / iw,
+                  (a3.x - a0.x) / ih, (a3.y - a0.y) / ih,
+                  a0.x, a0.y);
+    ctx.drawImage(img, 0, 0, iw, ih);
+    ctx.restore();
+  }
+
   function drawGround(T, se, now) {
-    var rows = [], batch = {}, key;
+    var rows = [], batch = {}, key, texList = [];
     var ty0 = Math.floor((cam.y - R * A_MAX) / T) - 1;
     var ty1 = Math.floor((cam.y + R * 0.95) / T) + 1;
     var tufts = [], glints = [];
@@ -468,6 +509,9 @@
         key = col;
         if (!batch[key]) { batch[key] = []; rows.push(key); }
         batch[key].push(a0, a1, a2, a3);
+        /* 그림은 가까운 칸에만 얹는다(step===1) — 먼 줄은 색만으로 충분하고
+           칸이 작아 그림을 얹어도 안 보인다. 아핀 근사도 먼 칸일수록 어긋난다 */
+        if (step === 1) { texList.push({ img: tileImg(kind), a0: a0, a1: a1, a3: a3 }); }
 
         /* 잔디 술 · 물빛 — 가까운 칸에만 (멀면 지저분해진다) */
         if (midA > -0.75 && step === 1) {
@@ -494,6 +538,12 @@
       }
       ctx.fillStyle = rows[i];
       ctx.fill();
+    }
+
+    /* 그림은 색칠 위에 얹는다 — 밑색이 늘 먼저 채워져 있으니 그림이 아직
+       안 실려도(첫 프레임) 빈 칸이 되지 않는다 */
+    for (var ti = 0; ti < texList.length; ti++) {
+      drawTileTexture(texList[ti].img, texList[ti].a0, texList[ti].a1, texList[ti].a3);
     }
 
     /* 잔디 술 — 세 갈래 짧은 선 */
