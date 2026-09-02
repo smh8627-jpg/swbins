@@ -40,18 +40,22 @@
   var ANI = 'assets/models/animals/';
   var PEOPLE = 'assets/models/people/regular/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
+  /* 2026-09-02 — 사용자가 "사람도 실사로" 요청, Mixamo(mixamo.com) 에서 직접 받아 온
+     것을 fbx2gltf 로 변환해 넣었다. Quaternius 조합형(몸+옷+머리 따로)과 달리 이
+     캐릭터는 통짜 스킨 메시 하나다 — outfit·hair 없이 body 하나로 선다.
+     자세한 사정은 `assets/ASSET_LICENSES.md` 참고 */
+  var PEOPLE_REAL = 'assets/models/people/realistic/';
+  var ANIM_SRC_REAL = 'assets/models/anim/mixamo_realistic.glb';
 
   /* 사람 몸(body)·옷(outfit)·머리(hair) — saga-go 와 완전히 같은 뼈대·표.
-     자세한 사정은 `assets/ASSET_LICENSES.md` 와 saga-go 의 `asset3d.js` 참고 */
+     자세한 사정은 `assets/ASSET_LICENSES.md` 와 saga-go 의 `asset3d.js` 참고.
+     **2026-09-02부터 기본은 실사(Mixamo) 하나뿐이다** — outfit·hair 가 없는
+     레시피는 몸 하나로 그대로 선다(`buildHero()` 참고). 옛 Quaternius 조합형
+     넷은 REG 표엔 안 남기고 여기 주석으로만 남긴다(되돌릴 때 참고용):
+       Superhero_Male/Female_FullBody.gltf + Male/Female_Peasant·Ranger.gltf +
+       Hair_Buzzed·Long·Buns·SimpleParted.gltf, 넷 다 `PEOPLE` 경로 */
   var HERO_RECIPES = [
-    { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
-      outfit: PEOPLE + 'Male_Peasant.gltf', hair: PEOPLE + 'Hair_Buzzed.gltf' },
-    { key: 'male_ranger_long', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
-      outfit: PEOPLE + 'Male_Ranger.gltf', hair: PEOPLE + 'Hair_Long.gltf' },
-    { key: 'female_peasant_buns', body: PEOPLE + 'Superhero_Female_FullBody.gltf',
-      outfit: PEOPLE + 'Female_Peasant.gltf', hair: PEOPLE + 'Hair_Buns.gltf' },
-    { key: 'female_ranger_simple', body: PEOPLE + 'Superhero_Female_FullBody.gltf',
-      outfit: PEOPLE + 'Female_Ranger.gltf', hair: PEOPLE + 'Hair_SimpleParted.gltf' }
+    { key: 'mixamo_maria', body: PEOPLE_REAL + 'maria_body.glb', anim: ANIM_SRC_REAL }
   ];
 
   /** 표 — 키는 좁은 것부터. PLAN 8절(숲 오브젝트)·16절(동물) 어휘를 그대로 썼다.
@@ -244,6 +248,13 @@
    * 지고 오는데 이 판에 환경맵(IBL)이 없으면 배우가 거의 새까맣게 선다.
    * 빛깔만 남기고 Lambert 로 바꾼다(saga-go 에서 실제로 겪은 문제, 같은 고침).
    */
+  /** 2026-09-02 — 이 경로(`/realistic/`) 밑은 PBR 재질을 안 벗긴다. 이제
+   *  `village-view3d.js` 가 HDRI 환경광(`scene.environment`)을 물려서 PBR 이
+   *  까맣게 뜨던 옛 문제(주석 위 설명)가 풀렸다 — 오히려 Lambert 로 벗기면
+   *  실사 텍스처의 반사·거칠기가 다 죽는다. 옛 Quaternius 계열은 그대로 벗긴다
+   *  (그쪽은 애초에 환경맵을 받게 만든 텍스처가 아니라 벗기는 쪽이 더 낫다) */
+  function looksRealistic(url) { return typeof url === 'string' && url.indexOf('/realistic/') >= 0; }
+
   function delam(root) {
     var t = three();
     root.traverse(function (o) {
@@ -282,7 +293,7 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
-      delam(gltf.scene);
+      if (!looksRealistic(url)) { delam(gltf.scene); }
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));
       flush(c, c);
@@ -298,6 +309,9 @@
    */
   function normalize(obj, mul) {
     var t = three();
+    /* 그림자 — HDRI·톤매핑과 같이 2026-09-02 에 얹었다. 세워지는 모든 사물에
+       공통으로 건다(플레이어·나무·바위 다 포함) — 개별 kind 마다 따로 안 챙긴다 */
+    obj.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     obj.updateMatrixWorld(true);
     var b = new t.Box3().setFromObject(obj);
     var f = fit({ minX: b.min.x, maxX: b.max.x, minY: b.min.y, maxY: b.max.y, minZ: b.min.z, maxZ: b.max.z });
@@ -364,9 +378,11 @@
     var parts = {}, pending = 4;
     function onOne() { pending--; if (pending === 0) { assemble(); } }
     acquire(rec.body, function (c) { parts.body = c; onOne(); });
-    acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); });
-    acquire(rec.hair, function (c) { parts.hair = c; onOne(); });
-    acquire(ANIM_SRC, function (c) { parts.anim = c; onOne(); });
+    /* outfit·hair 는 조합형(Quaternius) 레시피에만 있다 — 통짜 스킨(Mixamo)은
+       둘 다 없으니 헛수고로 받으러 가지 않고 바로 다음 칸으로 넘어간다 */
+    if (rec.outfit) { acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); }); } else { onOne(); }
+    if (rec.hair) { acquire(rec.hair, function (c) { parts.hair = c; onOne(); }); } else { onOne(); }
+    acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); });
 
     function assemble() {
       if (!parts.body) { cb(null); return; }

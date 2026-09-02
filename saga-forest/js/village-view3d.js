@@ -259,6 +259,27 @@
   /** 지금 화면에 이게 그려지고 있나 — 손잡이 + 초기화 성공 둘 다 참이어야 한다 */
   function active() { return ON() && ready; }
 
+  /** HDRI 환경광(IBL) — Poly Haven CC0 "Alps Field"(사철 무료, 로그인 없이 받음).
+   *  2026-09-02 사용자가 "사실처럼" 을 요청해 얹었다. **하늘 색은 안 바꾼다** —
+   *  `scene.background` 는 그대로 바이옴별 단색(`syncFog`)에 맡기고, `scene.environment`
+   *  에만 물려 반사·PBR 조명만 사실적으로 만든다. 실패해도(HDR 못 받음 등) 그냥
+   *  옛 HemisphereLight+DirectionalLight 만으로 돈다 — 여기서도 "안 되면 조용히
+   *  넘어간다" 원칙을 지킨다 */
+  var HDRI_SRC = 'assets/hdri/alps_field_1k.hdr';
+  function loadEnvironment(t) {
+    if (!t.RGBELoader || !renderer) { return; }
+    var pmrem = new t.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    new t.RGBELoader().load(HDRI_SRC, function (hdr) {
+      var envMap = pmrem.fromEquirectangular(hdr).texture;
+      if (scene) { scene.environment = envMap; }
+      hdr.dispose();
+      pmrem.dispose();
+    }, undefined, function () {
+      pmrem.dispose();   // 못 받아도 조용히 — 옛 조명만으로 그대로 돈다
+    });
+  }
+
   function init(cv) {
     var t = three();
     canvas = cv;
@@ -267,6 +288,13 @@
       renderer = new t.WebGLRenderer({ canvas: canvas, antialias: true });
     } catch (e) { failed = true; return; }
     renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+    /* 실사 텍스처(사람 Mixamo·나무껍질 등)가 톤매핑 없이 밋밋하게 뜨는 것을 막는다.
+       색공간도 sRGB 로 맞춘다 — 안 맞으면 텍스처가 흐리게(감마 안 먹은 채로) 뜬다 */
+    if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
+    renderer.toneMappingExposure = 1.0;
+    if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
+    renderer.shadowMap.enabled = true;
+    if (t.PCFSoftShadowMap) { renderer.shadowMap.type = t.PCFSoftShadowMap; }
 
     scene = new t.Scene();
     scene.background = new t.Color(0x8fc7e8);
@@ -277,7 +305,15 @@
     scene.add(new t.HemisphereLight(0xffffff, 0x4a5a3a, 0.9));
     var sun = new t.DirectionalLight(0xfff4e0, 1.0);
     sun.position.set(-30, 40, 20);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 100;
+    sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
+    sun.shadow.camera.top = 40; sun.shadow.camera.bottom = -40;
+    sun.shadow.bias = -0.0015;
     scene.add(sun);
+    scene.add(sun.target);   // 인물은 늘 원점 — 해가 늘 원점을 비추게 고정
 
     var ground = new t.Mesh(
       new t.PlaneGeometry(GROUND_SIZE(), GROUND_SIZE()),
@@ -285,8 +321,10 @@
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.02;     // 색칠한 타일(y=0)보다 살짝 아래 — 이음매가 안 보인다
+    ground.receiveShadow = true;
     scene.add(ground);
 
+    loadEnvironment(t);
     initTerrain();
     resize();
     global.addEventListener('resize', resize);

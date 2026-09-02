@@ -170,3 +170,68 @@
 **토끼·다람쥐·오리·새**는 이 미러에 없다. `animals_pack` 에는 Alpaca·Bull·Cow·Deer·
 Donkey·Fox·Horse·Husky·ShibaInu·Stag·Wolf 뿐이다. 다른 CC0 출처를 더 찾아야
 한다 — 다음 세션 몫으로 남긴다(까치를 Poly by Google 에서 따로 구한 것처럼).
+
+---
+
+## Poly Haven — HDRI 환경광 (`assets/hdri/alps_field_1k.hdr`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://polyhaven.com/a/alps_field> — 1k `.hdr` (api.polyhaven.com 으로 직접 받음) |
+
+2026-09-02, 사용자가 "사실처럼 보이는" 을 요청해 `village-view3d.js` 의 3D 마을에
+IBL(환경광)을 얹었다. **하늘 색은 안 바꾼다** — `scene.background` 는 그대로
+바이옴별 단색(`syncFog`)에 맡기고, `scene.environment` 에만 물려 PBR 재질의
+반사·거칠기만 사실적으로 만든다(자세한 사정은 `village-view3d.js` 의
+`loadEnvironment()` 주석 참고). 못 받아도 조용히 넘어가고 옛 조명만으로 돈다.
+
+파싱에 필요한 `RGBELoader` 는 번들(`js/vendor/three.iife.js`, 사가고·사가블로와
+md5 까지 같은 그 파일)엔 없어서, three.js r169 예제 소스를 esbuild 로 따로
+번들해 `js/vendor/RGBELoader.js` 로 얹었다(전역 `THREE.RGBELoader`) — three
+본체 파일은 안 건드렸다.
+
+---
+
+## Mixamo (Adobe) — 실사풍 사람 (2026-09-02, 사용자가 직접 받음)
+
+**⚠️ 이 절만 예외다 — 실제 파일은 이 저장소에 없다.** Mixamo 약관은
+"캐릭터·애니메이션 원본 파일을 독립 에셋으로 재배포"하는 것을 금지한다
+(<https://community.adobe.com> 여러 글에서 일관되게 확인). 이 저장소는
+공개(GitHub Pages 로 그대로 서빙됨)라, 위 "재배포가 허용되지 않는 에셋은
+애초에 받지 않는다" 원칙에 따라 **변환한 glb 를 커밋하지 않는다** —
+`saga-forest/.gitignore` 가 `assets/models/people/realistic/` 와
+`assets/models/anim/mixamo_realistic.glb` 를 막고 있다.
+
+사용자 기기 로컬엔 그대로 있어서 게임은 정상 동작한다. 다른 기기·세션에서
+다시 만들려면:
+
+1. <https://www.mixamo.com> (무료 Adobe 계정)에서 사실적인 캐릭터 하나를
+   고른다(이번엔 **Maria**) → Download, Format **FBX Binary**, Pose T-pose로
+   몸체 한 번
+2. 같은 캐릭터로 아래 여덟 애니메이션을 각각 받는다(Format FBX Binary,
+   가능하면 Skin: Without Skin — 훨씬 가볍다):
+   `Action Idle To Fight Idle`(→idle) · `Walking`(→walk, In Place) ·
+   `Running`(→run, In Place) · `Sword And Shield Slash`(→attack) ·
+   `Hit Reaction`(→hit) · `Stand To Roll`(→dodge) · `Death`(→death) ·
+   `Picking Up`(→interaction)
+3. `npm install fbx2gltf @gltf-transform/core` (아무 스크래치 폴더에서)
+4. 몸: `FBX2glTF --binary --pbr-metallic-roughness -i "Maria....fbx" -o body`,
+   그다음 `gltf-transform resize body.glb body_r.glb --width 1024 --height 1024`,
+   `gltf-transform jpeg body_r.glb maria_body.glb --quality 88 --formats png`
+   (baseColorTexture·normalTexture 를 jpeg 로 눌러 10.6MB → 1.35MB)
+5. 애니메이션 여덟 개는 각각 `FBX2glTF --binary --anim-framerate bake30`,
+   그다음 이 폴더의 `tools/mixamo/slim_anim.js`(메시·스킨 떼고 이름 바꿈) →
+   `tools/mixamo/merge_anims.js`(여덟 파일을 클립 여덟 개짜리 하나로) →
+   `tools/mixamo/detrend_root.js`(구르기·죽음처럼 제자리가 아닌 클립의
+   Hips 수평 이동을 되돌림) 순서로 돌린다
+6. `maria_body.glb` → `assets/models/people/realistic/maria_body.glb`,
+   합친 애니메이션 → `assets/models/anim/mixamo_realistic.glb`
+
+`js/asset3d.js` 의 `HERO_RECIPES`·`ANIM_SRC_REAL` 이 이 두 파일을 가리킨다.
+옛 Quaternius 조합형(몸+옷+머리 넷)은 표에서는 뺐고 주석으로만 남겨 뒀다
+(되돌릴 때 참고용, 그 쪽 파일들은 `models/people/regular/` 에 그대로 있고
+CC0 라 재배포 문제는 없다).
