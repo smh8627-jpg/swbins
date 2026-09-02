@@ -23,20 +23,24 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <canvas id="map3d"></canvas>
 <div id="vignette"></div>
 
-<!-- 상단: 프로필 · 재화 · 도구 -->
+<!-- 상단: 프로필 · 재화 · 도구 — 자동·손쓰기만 붙박이, 나머지는 더보기 뒤로
+     (사가스토리·사가국지와 같은 결) -->
 <div id="top">
   <div class="glass profile" id="profile"></div>
   <div class="tools">
     <button class="icon-btn" id="btn-auto" title="자동 마을살이 (대신 모으고 나눠 준다)">🤖</button>
     <button class="icon-btn" id="btn-do" title="손을 쓴다 (Space)">✋</button>
-    <button class="icon-btn" id="btn-sneak" title="살금살금 (Shift) — 벌레가 달아나지 않습니다">🐾</button>
-    <button class="icon-btn txt" id="btn-prop" title="캐릭터 등신 (4등신/2등신/8등신)">4등</button>
-    <button class="icon-btn" id="btn-style" title="그림 양식 (전통 / 그림책 / 만화)">📗</button>
-    <button class="icon-btn" id="btn-3d" title="3D 로 걷기 (실험, 세로로 드래그하면 부감⇄어깨너머)">🧊</button>
-    <button class="icon-btn" id="btn-camview" title="3D 시점 (어깨너머 ↔ 3/4 부감 쿼터뷰)">🎥</button>
-    <button class="icon-btn" id="btn-help" title="도움말">❔</button>
-    <a class="icon-btn" id="btn-admin" href="_admin.html" target="_blank" rel="noopener" title="어드민 (QA · 손잡이)">🛠️</a>
-    <button class="icon-btn" id="btn-reset" title="처음부터">↺</button>
+    <button class="icon-btn" id="btn-more" title="더보기">⋯</button>
+    <div id="top-more">
+      <button class="icon-btn" id="btn-sneak" title="살금살금 (Shift) — 벌레가 달아나지 않습니다">🐾</button>
+      <button class="icon-btn txt" id="btn-prop" title="캐릭터 등신 (4등신/2등신/8등신)">4등</button>
+      <button class="icon-btn" id="btn-style" title="그림 양식 (전통 / 그림책 / 만화)">📗</button>
+      <button class="icon-btn" id="btn-3d" title="3D 로 걷기 (실험, 세로로 드래그하면 부감⇄어깨너머)">🧊</button>
+      <button class="icon-btn" id="btn-camview" title="3D 시점 (어깨너머 ↔ 3/4 부감 쿼터뷰)">🎥</button>
+      <button class="icon-btn" id="btn-help" title="도움말">❔</button>
+      <a class="icon-btn" id="btn-admin" href="_admin.html" target="_blank" rel="noopener" title="어드민 (QA · 손잡이)">🛠️</a>
+      <button class="icon-btn" id="btn-reset" title="처음부터">↺</button>
+    </div>
   </div>
   <div class="glass wallet" id="wallet"></div>
 </div>
@@ -47,18 +51,22 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <!-- 하단 중앙: 손이 닿는 것 -->
 <div id="focusbar"></div>
 
-<!-- 우하단: 액션 독 -->
+<!-- 우하단: 액션 독 — 가방·지도만 붙박이, 나머지는 "더보기" 뒤로
+     (사가스토리·사가국지와 같은 결) -->
 <nav id="dock">
+  <div id="dock-more">
+    <button data-sheet="folks"><span>🏡</span><small>주민</small></button>
+    <button data-sheet="home"><span>🏠</span><small>집</small></button>
+    <button data-sheet="mail"><span>📮</span><small>편지</small></button>
+    <!-- 공사 — 개토패를 사기 전에는 숨어 있다 (ui.js 의 syncDock) -->
+    <button data-sheet="build" style="display:none"><span>🪧</span><small>공사</small></button>
+    <button data-sheet="dex"><span>📖</span><small>도감</small></button>
+    <button data-sheet="log"><span>📜</span><small>기록</small></button>
+  </div>
   <button data-sheet="bag"><span>🎒</span><small>가방</small></button>
-  <button data-sheet="folks"><span>🏡</span><small>주민</small></button>
-  <button data-sheet="home"><span>🏠</span><small>집</small></button>
-  <button data-sheet="mail"><span>📮</span><small>편지</small></button>
-  <!-- 공사 — 개토패를 사기 전에는 숨어 있다 (ui.js 의 syncDock) -->
-  <button data-sheet="build" style="display:none"><span>🪧</span><small>공사</small></button>
   <!-- 전체지도 — 구면 마을을 펼쳐서 보는 M키식 토글 (PLAN 34-1절) -->
   <button data-sheet="map"><span>🗺️</span><small>지도</small></button>
-  <button data-sheet="dex"><span>📖</span><small>도감</small></button>
-  <button data-sheet="log"><span>📜</span><small>기록</small></button>
+  <button id="dock-more-btn"><span>⋯</span><small>더보기</small></button>
 </nav>
 
 <!-- 슬라이드 시트 -->

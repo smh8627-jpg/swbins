@@ -61,6 +61,25 @@
   }
 
   function bindTopbar() {
+    /* "더보기" — 살금살금·등신·양식·3D·시점·도움말·어드민·리셋은 자주 안 쓰니
+       접어 둔다(사가스토리·사가국지와 같은 결). 자동·손쓰기만 붙박이로 남는다 */
+    var moreBtn = document.getElementById('btn-more');
+    var more = document.getElementById('top-more');
+    if (moreBtn && more) {
+      moreBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        more.classList.toggle('show');
+      });
+      document.addEventListener('click', function (e) {
+        if (more.classList.contains('show') && !more.contains(e.target) && e.target !== moreBtn) {
+          more.classList.remove('show');
+        }
+      });
+      global.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { more.classList.remove('show'); }
+      });
+    }
+
     var autoBtn = document.getElementById('btn-auto');
     if (autoBtn) {
       var syncAutoBtn = function () { autoBtn.classList.toggle('on', global.DG.auto.active()); };

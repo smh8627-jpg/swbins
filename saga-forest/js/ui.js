@@ -69,21 +69,30 @@
   }
 
   function init() {
-    ['profile', 'wallet', 'focusbar', 'autobar', 'dock', 'sheet',
+    ['profile', 'wallet', 'focusbar', 'autobar', 'dock', 'dock-more', 'sheet',
      'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
       els[id] = $(id);
     });
 
     els.dock.addEventListener('click', function (e) {
+      if (e.target.closest('#dock-more-btn')) { toggleMore(); return; }
       var b = e.target.closest('[data-sheet]');
       if (!b) { return; }
+      closeMore();
       var name = b.getAttribute('data-sheet');
       if (openTab === name) { closeSheet(); } else { openSheet(name); }
+    });
+    /* "더보기" 팝오버 바깥을 누르면 닫는다 (독 안쪽 클릭은 위 리스너가 이미 처리) */
+    document.addEventListener('click', function (e) {
+      if (els['dock-more'] && els['dock-more'].classList.contains('show') && !els.dock.contains(e.target)) {
+        closeMore();
+      }
     });
     els['sheet-close'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
     global.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
+        if (els['dock-more'] && els['dock-more'].classList.contains('show')) { closeMore(); return; }
         if (openDetailRef) { closeDetail(); return; }
         if (openTab) { closeSheet(); }
         return;
@@ -318,9 +327,11 @@
 
   function syncDock() {
     var bs = els.dock.querySelectorAll('[data-sheet]');
+    var inMore = false, mailN = 0;
     for (var i = 0; i < bs.length; i++) {
       var name = bs[i].getAttribute('data-sheet');
       bs[i].classList.toggle('on', name === openTab);
+      if (name === openTab && els['dock-more'] && els['dock-more'].contains(bs[i])) { inMore = true; }
       /* 공사 단추는 **개토패를 산 뒤에** 선다 — 못 하는 일을 독에 세워 두지 않는다.
          `hidden` 속성은 #dock button 의 display:grid 에 진다. 그래서 인라인으로 끈다 */
       if (name === 'build') {
@@ -329,11 +340,28 @@
       }
       /* 안 읽은 편지는 독에서 바로 보여야 한다 — 우편함까지 걸어가 봐야 아는 건 불친절하다 */
       if (name === 'mail') {
-        var n = global.DG.mail ? global.DG.mail.unread() : 0;
-        bs[i].classList.toggle('badge', n > 0);
-        bs[i].setAttribute('data-badge', n > 9 ? '9+' : String(n));
+        mailN = global.DG.mail ? global.DG.mail.unread() : 0;
+        bs[i].classList.toggle('badge', mailN > 0);
+        bs[i].setAttribute('data-badge', mailN > 9 ? '9+' : String(mailN));
       }
     }
+    /* 편지가 더보기 뒤에 접혀 있어도 뱃지는 "더보기" 단추로 올라와야 한다 —
+       접었다고 안 읽은 편지가 안 보이면 우편함까지 걸어가 봐야 아는 것과 같아진다 */
+    var moreBtn = $('dock-more-btn');
+    if (moreBtn) {
+      moreBtn.classList.toggle('on', inMore);
+      moreBtn.classList.toggle('badge', mailN > 0);
+      if (mailN > 0) { moreBtn.setAttribute('data-badge', mailN > 9 ? '9+' : String(mailN)); }
+    }
+  }
+
+  /** 독의 "더보기" 팝오버 — 자주 안 쓰는 시트를 접어 화면 차지를 줄인다 */
+  function toggleMore() {
+    if (!els['dock-more']) { return; }
+    els['dock-more'].classList.toggle('show');
+  }
+  function closeMore() {
+    if (els['dock-more']) { els['dock-more'].classList.remove('show'); }
   }
 
   function renderSheet() {
