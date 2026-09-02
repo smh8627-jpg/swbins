@@ -97,7 +97,10 @@
    *  **따로 켜는 버튼이 없다** — 2026-09-02 사용자 요청. 위로 끌면 부감(1)쪽으로,
    *  아래로 끌면 어깨너머(0)쪽으로 자연스럽게 넘어간다 */
   var camTiltMix = 0;
-  var TILT_SENS = 0.0028;
+  /** 2026-09-02 — 처음 값(0.0028, 끝까지 357px)은 실기기에서 짧게 몇 번 쓸어 올려서는
+   *  1까지 안 닿았다("각도가 다르게 보인다"던 게 실은 t 가 중간에서 멎은 것이었다).
+   *  손가락으로 한 번 쭉 그으면 끝까지 닿게 8 배 가까이 올렸다(125px 로 끝까지) */
+  var TILT_SENS = 0.008;
   var dragId = null, dragLastX = 0, dragLastY = 0;
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
