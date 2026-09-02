@@ -291,6 +291,15 @@ window.DG_NO_TUNE = true;
         '중간값 y=4.1(3.2·5 평균) · 반지름도 그 사이';
     });
 
+    t('village-view3d — camFov 는 t=0 에서 원래 화각, t=1 에서 쿼터뷰 쪽 좁은 화각(정사영에 가깝게)', function () {
+      var VV3 = DG.villageView3d;
+      var f0 = VV3.camFov(0, 55, 28);
+      var fMid = VV3.camFov(0.5, 55, 28);
+      var f1 = VV3.camFov(1, 55, 28);
+      return f0 === 55 && f1 === 28 && fMid > f1 && fMid < f0 &&
+        'zoom(어깨너머 55°) → 쿼터뷰(28°) 로 좁아짐 · 중간값 그 사이';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {

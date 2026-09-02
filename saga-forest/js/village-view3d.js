@@ -49,15 +49,20 @@
   function CAM_HIGH() { return C().tuned('village3d.camHeight', 3.2); }
   /** 3/4 부감(쿼터뷰) 쪽 끝값 — 거리·기울기. tilt 가 클수록 카메라가 더 눕는다(수평 반지름이
    *  커지고 높이가 낮아진다), 작을수록 더 위에서 내리찍는 부감이 된다.
-   *  **2026-09-02, 실기기 확인 후 사용자 요청으로 11 → 24.** 처음 값(11)은 어깨너머(6)와
-   *  큰 차이가 안 나 끝까지 끌어도 답답했다 — 2D 화면(구면 투영, village-view.js)만큼
-   *  넓고 편하게 보이도록 거리(따라서 높이도 비례해) 두 배 넘게 물렸다. tilt 는 그대로라
-   *  각도(구도)는 안 바뀌고 순전히 더 멀리서 본다 */
-  function ISO_DIST() { return C().tuned('village3d.isoDist', 24); }
+   *  **2026-09-02, 실기기 확인 후 사용자 요청으로 11 → 24 → 46.** "디아블로 같은 쿼터뷰가
+   *  아니다"는 피드백 — 거리만 물려서는 안 됐다. 원작(디아블로류)이 이 각도에서도 평평해
+   *  보이는 건 좁은 화각(거의 정사영에 가깝게) 덕이다. FOV 도 `ISO_FOV()`로 좁혀 원근
+   *  왜곡(가까운 게 훨씬 크게 보이는 것)을 죽이고, 화각이 좁아진 만큼 같은 폭을 담으려면
+   *  더 멀어져야 해서 거리도 다시 두 배 가까이 물렸다(camPose 는 이 둘의 조합은 몰라도
+   *  된다 — syncCamera 가 fov 도 함께 섞는다) */
+  function ISO_DIST() { return C().tuned('village3d.isoDist', 46); }
   function ISO_TILT() { return C().tuned('village3d.isoTilt', 0.62); }
   function PLAYER_H() { return C().tuned('village3d.playerH', 1.7); }
   function GROUND_SIZE() { return C().tuned('village3d.groundSize', 400); }
   function FOV() { return C().tuned('village3d.fov', 55); }
+  /** 쿼터뷰 쪽 좁은 화각 — 정사영(orthographic)에 가깝게 눌러 평평해 보이게 한다.
+   *  디아블로류가 흔히 쓰는 값(20~30도) 대에서 골랐다 */
+  function ISO_FOV() { return C().tuned('village3d.isoFov', 28); }
   /** 걸음이라고 볼 최소 속도(마을 좌표/초) — 이보다 느리면 멈춘 것으로 본다 */
   function MOVE_EPS() { return C().tuned('village3d.moveEps', 4); }
 
@@ -347,6 +352,9 @@
     return { x: Math.sin(az) * radius, y: height, z: Math.cos(az) * radius };
   }
 
+  /** 화각도 t 로 섞는다 — 순수 함수. 좁아질수록(정사영에 가까워질수록) 원근 왜곡이 준다 */
+  function camFov(t, fov0, fov1) { return fov0 + (fov1 - fov0) * t; }
+
   /** 걸음 방향 → 카메라가 뒤에서 도는 각. 마을 좌표(x,y) → 3D(x,-z 앞) */
   function syncCamera() {
     var V = global.DG.village;
@@ -375,6 +383,15 @@
     var pos = camPose(camTiltMix, facingYaw, mouseYaw, radius0, height0, radius1, height1);
     camera.position.set(pos.x, pos.y, pos.z);
     camera.lookAt(0, PLAYER_H() * 0.75, 0);
+
+    /* 화각도 거리·높이와 함께 섞는다 — 좁아질수록(정사영에 가까워질수록) 디아블로류
+       특유의 평평한 쿼터뷰가 된다. fov 가 안 바뀐 프레임엔 updateProjectionMatrix
+       를 또 부르지 않는다(third 에 머물 때 매 프레임 헛일하지 않게) */
+    var fov = camFov(camTiltMix, FOV(), ISO_FOV());
+    if (Math.abs(camera.fov - fov) > 1e-6) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
   }
 
   /**
@@ -490,7 +507,7 @@
     /** 진단·QA 전용 — 세로 드래그로 잇는 시점 높이(0 어깨너머~1 부감), 진단용 순수 함수 */
     camTiltMix: function () { return camTiltMix; },
     setCamTiltMix: setCamTiltMix,
-    camPose: camPose,
+    camPose: camPose, camFov: camFov,
     /** 진단 전용 — 표(순수 함수)와 지금 세운 개수 */
     scatterKind: function () { return SCATTER_KIND; },
     scatterCount: function () { return Object.keys(scatter).length; },
