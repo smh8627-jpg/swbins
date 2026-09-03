@@ -24,9 +24,20 @@
   var ANIMALS = 'assets/models/animals/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
 
-  /* 사람 몸(body)·옷(outfit)·머리(hair) — saga-forest·saga-dungeon 과 완전히 같은
-     뼈대·표. 자세한 사정은 `assets/ASSET_LICENSES.md` 참고 */
-  var HERO_RECIPES = [
+  /* 2026-09-03 — 사가의숲·사가고와 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
+     "RPG Character Pack"(CC0, 전사·궁수·도적·성직자·마법사·수도승 6종)은 몸 파일
+     하나에 걷기·공격·사망 클립이 다 들어 있어 옷·머리·ANIM_SRC 몸짓이 필요 없다 —
+     `anim` 을 `body` 와 같은 파일로 준다. 자세한 사정은
+     `saga-forest/assets/ASSET_LICENSES.md` 참고 */
+  var PEOPLE_QRPG = 'assets/models/people/quaternius_rpg/';
+  var HERO_RECIPES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'].map(function (n) {
+    var f = PEOPLE_QRPG + n + '.gltf';
+    return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
+  });
+
+  /* 옛 조합형(몸+옷+머리) — 표 기본에서는 빠졌다. 지우지 않고 남겨 둔다(되돌림
+     자리). `register('hero', HERO_RECIPES_FALLBACK)` 로 되돌릴 수 있다 */
+  var HERO_RECIPES_FALLBACK = [
     { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
       outfit: PEOPLE + 'Male_Peasant.gltf', hair: PEOPLE + 'Hair_Buzzed.gltf' },
     { key: 'male_ranger_long', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
@@ -305,9 +316,11 @@
     var parts = {}, pending = 4;
     function onOne() { pending--; if (pending === 0) { assemble(); } }
     acquire(rec.body, function (c) { parts.body = c; onOne(); });
-    acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); });
-    acquire(rec.hair, function (c) { parts.hair = c; onOne(); });
-    acquire(ANIM_SRC, function (c) { parts.anim = c; onOne(); });
+    /* outfit·hair 는 조합형(옛 Quaternius) 레시피에만 있다 — QRPG 통짜 스킨은
+       둘 다 없으니 헛수고로 받으러 가지 않고 바로 다음 칸으로 넘어간다 */
+    if (rec.outfit) { acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); }); } else { onOne(); }
+    if (rec.hair) { acquire(rec.hair, function (c) { parts.hair = c; onOne(); }); } else { onOne(); }
+    acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); });
 
     function assemble() {
       if (!parts.body) { cb(null); return; }

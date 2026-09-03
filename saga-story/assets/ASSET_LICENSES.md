@@ -36,9 +36,24 @@
 **아직 안 채운 것** — 불타는 골짜기(fire)의 불길·불티는 그대로 절차적 이펙트다
 (모델이 아니라 색·투명도로 흔들리는 연출이라 애초에 "지형지물"이 아니다).
 
-### 넣은 파일 — PLAN 36절 Phase 2 (사람·짐승)
+### 넣은 파일 — 사람 기본, Quaternius RPG Character Pack (2026-09-03)
 
-`models/people/regular/` — 주인공·사람 형 적이 이 GLB 로 선다(몸+옷+머리를 한
+| | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com/packs/rpgcharacters.html>) |
+| **라이선스** | CC0 1.0 (재배포 자유, 표시 의무 없음) |
+| **받은 곳** | `saga-forest/assets/models/people/quaternius_rpg/` 에 이미 받아 둔 것을
+  그대로 복사(같은 CC0) — 자세한 사정은 그쪽 `ASSET_LICENSES.md` 참고 |
+| **파일** | `models/people/quaternius_rpg/{Warrior,Ranger,Rogue,Cleric,Wizard,Monk}.gltf` |
+
+주인공·사람 형 적이 이제 이 여섯 벌로 선다(`js/asset3d.js` 의 `HERO_RECIPES`,
+공개 기본값). 파일 하나에 몸·텍스처·리깅·걷기·공격·사망 클립이 다 들어 있어
+옷·머리·UAL1 몸짓이 필요 없다. 아래 옛 조합형은 `HERO_RECIPES_FALLBACK` 으로
+남겨 뒀다(되돌림 자리).
+
+### 넣은 파일 — 옛 조합형, PLAN 36절 Phase 2 (사람·짐승)
+
+`models/people/regular/` — 지금은 표 기본이 아니다(위 QRPG 참고). 몸+옷+머리를 한
 뼈대에 묶는 조합형, `js/asset3d.js` 의 `HERO_RECIPES`). saga-forest·saga-dungeon
 이 이미 쓰는 그 창고에서 **실제로 쓰는 조합 넉 줄(남/여 × 평민/사냥꾼)이 필요로
 하는 파일만** 추려 복사했다(전체 people/regular 폴더의 27MB가 아니라 필요한
