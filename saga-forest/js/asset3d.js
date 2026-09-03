@@ -34,6 +34,7 @@
 
   var T = null;
   function three() { if (!T) { T = global.THREE || null; } return T; }
+  function core() { return global.DG.core; }
 
   var NAT = 'assets/models/nature/';
   var PROP = 'assets/models/props/';
@@ -47,21 +48,29 @@
   var PEOPLE_REAL = 'assets/models/people/realistic/';
   var ANIM_SRC_REAL = 'assets/models/anim/mixamo_realistic.glb';
 
-  /* 사람 몸(body)·옷(outfit)·머리(hair) — saga-go 와 완전히 같은 뼈대·표.
-     자세한 사정은 `assets/ASSET_LICENSES.md` 와 saga-go 의 `asset3d.js` 참고.
-     **2026-09-02부터 기본은 실사(Mixamo) 하나뿐이다** — outfit·hair 가 없는
-     레시피는 몸 하나로 그대로 선다(`buildHero()` 참고). 옛 Quaternius 조합형
-     넷은 REG 표엔 안 남기고 여기 주석으로만 남긴다(되돌릴 때 참고용):
-       Superhero_Male/Female_FullBody.gltf + Male/Female_Peasant·Ranger.gltf +
-       Hair_Buzzed·Long·Buns·SimpleParted.gltf, 넷 다 `PEOPLE` 경로 */
-  var HERO_RECIPES = [
+  /* 2026-09-03 — Mixamo 실사(위 PEOPLE_REAL)는 재배포 금지라 .gitignore 돼 있어
+     이 파일이 없는 기기(다른 clone·다른 세션, 즉 공개 저장소를 받은 모두)에서는
+     캐릭터가 통째로 안 보였다. **공개판에서 그냥 볼 수 있는 것**으로 바꾸려고
+     Quaternius "RPG Character Pack"(CC0, 리깅·애니메이션·텍스처 완비 6종,
+     `assets/ASSET_LICENSES.md` 참고)으로 기본을 갈아 끼운다. 몸 파일 자체에
+     걷기·공격·사망 등 클립이 다 들어 있어 outfit·hair 도, 별도 ANIM_SRC 도
+     필요 없다 — `anim` 을 `body` 와 같은 파일로 주면 그 안의 클립을 그대로 쓴다. */
+  var PEOPLE_QRPG = 'assets/models/people/quaternius_rpg/';
+  var HERO_RECIPES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'].map(function (n) {
+    var f = PEOPLE_QRPG + n + '.gltf';
+    return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
+  });
+
+  /* Mixamo 실사 — 재배포 금지라 기본에서는 뺐다. **로컬에 그 파일이 있고
+     `world3d.mixamoReal` 손잡이를 켜면**(기본 0) 위 QRPG 대신 이걸 먼저
+     써 본다(`buildHero()` 참고) — 지워서 되돌릴 길을 없애지 않는다. */
+  var HERO_RECIPES_MIXAMO = [
     { key: 'mixamo_maria', body: PEOPLE_REAL + 'maria_body.glb', anim: ANIM_SRC_REAL }
   ];
+  function wantsMixamoReal() { return core().tuned('world3d.mixamoReal', 0) ? true : false; }
 
-  /* 되돌림 자리 — 실사(Mixamo) 파생물은 재배포 금지라 .gitignore 돼 있어 이 파일이
-     없는 기기(다른 clone·다른 세션)에서는 몸이 하나도 안 실린다. 그때 이 옛
-     Quaternius 조합형(2026-09-02 이전 기본값)으로 자동으로 갈아탄다 — 캐릭터가
-     통째로 안 보이는 것보다는 스타일이 다르더라도 서 있는 쪽이 낫다. 2026-09-03 고침 */
+  /* 되돌림 자리 — 위 QRPG 조차 못 실리면(파일 손상 등) 이 옛 조합형으로 한 번 더
+     갈아탄다. 2026-08-29 이전 기본값, 사람 비례는 QRPG보다 단순하지만 훨씬 가볍다 */
   var HERO_RECIPES_FALLBACK = [
     { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
       outfit: PEOPLE + 'Male_Peasant.gltf', hair: PEOPLE + 'Hair_Buzzed.gltf' },
@@ -386,34 +395,47 @@
    */
   function buildHero(ref, cb) {
     var t = three();
-    var rec = heroRecipe(ref);
-    if (!rec || !t) { cb(null); return; }
-    loadHeroRecipe(rec, ref, cb, false);
+    if (!t) { cb(null); return; }
+    if (wantsMixamoReal()) {
+      var mrec = oneOf(HERO_RECIPES_MIXAMO, ref);
+      if (mrec) {
+        loadHeroRecipe(mrec, function (model) {
+          if (model) { cb(model); return; }
+          buildHeroDefault(ref, cb);
+        });
+        return;
+      }
+    }
+    buildHeroDefault(ref, cb);
   }
 
-  /** 실사 레시피의 몸이 안 실리면(파일이 이 기기에 없음) 옛 조합형으로 한 번만 다시 탄다 */
-  function loadHeroRecipe(rec, ref, cb, isFallback) {
+  /** 기본 경로 — QRPG(공개 기본), 그마저 못 실리면 옛 조합형으로 한 번 더 */
+  function buildHeroDefault(ref, cb) {
+    var rec = heroRecipe(ref);
+    if (!rec) { cb(null); return; }
+    loadHeroRecipe(rec, function (model) {
+      if (model) { cb(model); return; }
+      var fb = oneOf(HERO_RECIPES_FALLBACK, ref);
+      if (fb) { loadHeroRecipe(fb, cb); return; }
+      cb(null);
+    });
+  }
+
+  function loadHeroRecipe(rec, cb) {
     var t = three(); // assemble() 아래서 AnimationMixer 를 만들 때 쓴다 — buildHero() 의 t 는 안 물려받는다
     built++;
 
     var parts = {}, pending = 4;
     function onOne() { pending--; if (pending === 0) { assemble(); } }
     acquire(rec.body, function (c) { parts.body = c; onOne(); });
-    /* outfit·hair 는 조합형(Quaternius) 레시피에만 있다 — 통짜 스킨(Mixamo)은
+    /* outfit·hair 는 조합형(Quaternius) 레시피에만 있다 — 통짜 스킨(Mixamo·QRPG)은
        둘 다 없으니 헛수고로 받으러 가지 않고 바로 다음 칸으로 넘어간다 */
     if (rec.outfit) { acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); }); } else { onOne(); }
     if (rec.hair) { acquire(rec.hair, function (c) { parts.hair = c; onOne(); }); } else { onOne(); }
     acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); });
 
     function assemble() {
-      if (!parts.body) {
-        if (!isFallback) {
-          var fb = oneOf(HERO_RECIPES_FALLBACK, ref);
-          if (fb) { loadHeroRecipe(fb, ref, cb, true); return; }
-        }
-        cb(null);
-        return;
-      }
+      if (!parts.body) { cb(null); return; }
       var model;
       try {
         model = assembleHero(parts);

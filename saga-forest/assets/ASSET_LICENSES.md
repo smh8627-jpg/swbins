@@ -196,9 +196,33 @@ md5 까지 같은 그 파일)엔 없어서, three.js r169 예제 소스를 esbui
 
 ---
 
-## Mixamo (Adobe) — 실사풍 사람 (2026-09-02, 사용자가 직접 받음)
+## Quaternius — RPG Character Pack (2026-09-03, 공개 기본 사람)
 
-**⚠️ 이 절만 예외다 — 실제 파일은 이 저장소에 없다.** Mixamo 약관은
+| | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com/packs/rpgcharacters.html>) |
+| **라이선스** | CC0 1.0 (<https://creativecommons.org/publicdomain/zero/1.0/>) — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | quaternius.com 팩 페이지의 구글드라이브 링크(zip 직링크 없음, 사용자가 직접 받음) |
+| **파일** | `assets/models/people/quaternius_rpg/{Warrior,Ranger,Rogue,Cleric,Wizard,Monk}.gltf` |
+
+Mixamo 실사(아래 절)가 재배포 금지라 공개 저장소에서 캐릭터가 통째로 안 보이던
+문제(`.gitignore`된 파일이 없는 기기는 몸이 안 실림)를 고치려고 새로 들였다.
+**이제 `js/asset3d.js` 의 `HERO_RECIPES`(공개 기본값)가 이 여섯 벌이다.** 파일
+하나에 몸·텍스처·리깅에 더해 걷기·달리기·공격·피격·구르기·사망 등 클립 열세 개가
+전부 들어 있어 saga-go 식 몸+옷+머리 조합이나 별도 UAL 몸짓이 필요 없다 —
+`anim` 을 `body` 와 같은 파일로 주면 그 안의 클립을 그대로 쓴다(`buildHeroDefault()`
+참고). 카툰풍 음영이 있는 스타일이라 기존 평범한 조합형(`HERO_RECIPES_FALLBACK`,
+그대로 남아 있음)보다 그림체가 낫다.
+
+---
+
+## Mixamo (Adobe) — 실사풍 사람, 로컬 전용 보너스 (2026-09-02, 사용자가 직접 받음)
+
+**⚠️ 이 절만 예외다 — 실제 파일은 이 저장소에 없다.** 2026-09-03부터 **공개
+기본값이 아니다** — 위 Quaternius RPG Character Pack 이 기본이고, 이 실사
+캐릭터는 로컬에 파일이 있고 `_admin.html` 등에서 `world3d.mixamoReal` 손잡이를
+켰을 때만(기본 0) 우선 시도된다(`js/asset3d.js` 의 `HERO_RECIPES_MIXAMO`·
+`wantsMixamoReal()`). Mixamo 약관은
 "캐릭터·애니메이션 원본 파일을 독립 에셋으로 재배포"하는 것을 금지한다
 (<https://community.adobe.com> 여러 글에서 일관되게 확인). 이 저장소는
 공개(GitHub Pages 로 그대로 서빙됨)라, 위 "재배포가 허용되지 않는 에셋은
@@ -231,7 +255,8 @@ md5 까지 같은 그 파일)엔 없어서, three.js r169 예제 소스를 esbui
 6. `maria_body.glb` → `assets/models/people/realistic/maria_body.glb`,
    합친 애니메이션 → `assets/models/anim/mixamo_realistic.glb`
 
-`js/asset3d.js` 의 `HERO_RECIPES`·`ANIM_SRC_REAL` 이 이 두 파일을 가리킨다.
-옛 Quaternius 조합형(몸+옷+머리 넷)은 표에서는 뺐고 주석으로만 남겨 뒀다
-(되돌릴 때 참고용, 그 쪽 파일들은 `models/people/regular/` 에 그대로 있고
-CC0 라 재배포 문제는 없다).
+`js/asset3d.js` 의 `HERO_RECIPES_MIXAMO`·`ANIM_SRC_REAL` 이 이 두 파일을 가리킨다
+(`world3d.mixamoReal` 손잡이를 켰을 때만 쓰인다). 옛 Quaternius 조합형(몸+옷+머리
+넷)은 `HERO_RECIPES_FALLBACK` 으로 여전히 살아 있다 — 위 RPG Character Pack마저
+못 실릴 때 마지막으로 한 번 더 시도하는 안전망이다(그 쪽 파일들은
+`models/people/regular/` 에 그대로 있고 CC0 라 재배포 문제는 없다).
