@@ -531,14 +531,19 @@
     }
     if (!best || bestD > 260) { foeEl.className = ''; foeKey = ''; return; }
 
-    var el = best.elite ? d().eliteOf(best.elite) : null;
+    /* 저항표(resistOf·eliteOf)는 마을·던전 공용 개념(적 자체의 값)이라 늘
+       dungeon.js 것을 직접 쓴다 — d()가 마을일 때 town.js 에는 이 둘이 없어
+       'd().resistOf is not a function' 으로 걷다가 멈추던 원인이었다
+       (2026-09-04, 마을 필드전투 중 조우 HUD 를 그릴 때 터짐) */
+    var DGN = global.DG.dungeon;
+    var el = best.elite ? DGN.eliteOf(best.elite) : null;
     var k = best.ref.key + '|' + Math.round(best.hp) + '|' + (best.elite || '') + '|' + (best.boss ? 1 : 0);
     if (k === foeKey) { return; }
     foeKey = k;
     foeEl.className = 'show' + (best.boss ? ' boss' : el ? ' elite' : '');
     /* 저항 — 원작에서 "이놈은 불이 안 통한다" 를 알려 주는 그 줄이다.
        모르면 왜 안 깎이는지 알 길이 없다 */
-    var rp = d().resistOf(best, 'phys'), rc = d().resistOf(best, 'chi');
+    var rp = DGN.resistOf(best, 'phys'), rc = DGN.resistOf(best, 'chi');
     var res = [];
     if (rp >= 10) { res.push('칼 −' + Math.round(rp) + '%'); }
     if (rc >= 10) { res.push('기 −' + Math.round(rc) + '%'); }
@@ -1325,7 +1330,8 @@
     var s = (e.boss ? 1.12 : 0.76) * sf;
     var isHuman = ref.kind !== 'beast';
     var bodyH = (isHuman ? 40 : 30) * s;
-    var el = e.elite ? d().eliteOf(e.elite) : null;
+    /* eliteOf 는 dungeon.js 것을 직접 쓴다 — 위 renderFoe 의 사정과 같다 */
+    var el = e.elite ? global.DG.dungeon.eliteOf(e.elite) : null;
 
     /* 발밑 그림자 — 이게 없으면 인물이 바닥에 안 붙고 떠 보인다.
        원작의 인물에는 늘 발밑 그늘이 있다. */
