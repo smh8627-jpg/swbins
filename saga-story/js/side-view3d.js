@@ -31,6 +31,34 @@
     return isNaN(n) ? 0 : n;
   }
 
+  /** 바닥·발판 그림 — 사가의숲 `village-view3d.js` 와 같은 요령(Kenney
+   *  Roguelike/RPG Pack, CC0)이다. 색 한 장(`MeshLambertMaterial({color})`)이던
+   *  것에 도트그림을 얹는다 — mood 별로 잔디·흙·돌을 고르고, `stg.ground` 색으로
+   *  그대로 물들여 사냥터마다 색은 갈리게 둔다(부록 "코드로 그리지 말고
+   *  에셋으로", 2026-09-04) */
+  var GROUND_TEX_SRC = {
+    forest: 'assets/sprites2d/tile_dirt.png',
+    cave: 'assets/sprites2d/tile_stone.png',
+    fire: 'assets/sprites2d/tile_stone.png',
+    sky: 'assets/sprites2d/tile_grass.png'
+  };
+  var TILE_WORLD = 64;   // 타일 그림 한 장이 덮는 세계 좌표 폭(px) — 사람 키(≈60)와 비슷하게
+  /** 바닥과 발판마다 반복 횟수가 다르므로 **매번 새 텍스처**를 받는다(16px
+   *  그림이라 값싸고, 사냥터를 바꿀 때만 부른다 — 매 프레임이 아니다).
+   *  같은 파일은 브라우저가 다시 내려받지 않는다 */
+  function groundTexture(mood, repeatX, repeatY) {
+    var t = three();
+    var src = GROUND_TEX_SRC[mood] || GROUND_TEX_SRC.sky;
+    if (!t) { return null; }
+    var tex = new t.TextureLoader().load(src);
+    tex.magFilter = t.NearestFilter;
+    tex.minFilter = t.NearestFilter;
+    tex.wrapS = tex.wrapT = t.RepeatWrapping;
+    if (t.SRGBColorSpace) { tex.colorSpace = t.SRGBColorSpace; }
+    tex.repeat.set(repeatX, repeatY);
+    return tex;
+  }
+
   /** 도형(원뿔·구)을 먼저 세워 두고, GLB 가 도착하면(같은 세대일 때만) 갈아 끼운다.
    *  `holder` 는 이미 화면에 있는 자리(위치)이고, 안에 든 도형만 바뀐다 */
   function swapIn(holder, kind, seed, heightPx, gen) {
@@ -221,18 +249,25 @@
     dirLight.intensity = L.dir;
     dirLight.color.setHex(L.dirCol);
 
-    var groundMat = new Tc.MeshLambertMaterial({ color: stg.ground });
-    var ground = new Tc.Mesh(new Tc.PlaneGeometry(stg.width + 1600, 900), groundMat);
+    var groundSpanX = stg.width + 1600, groundSpanZ = 900;
+    var groundMat = new Tc.MeshLambertMaterial({
+      color: stg.ground,
+      map: groundTexture(stg.mood, groundSpanX / TILE_WORLD, groundSpanZ / TILE_WORLD)
+    });
+    var ground = new Tc.Mesh(new Tc.PlaneGeometry(groundSpanX, groundSpanZ), groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.set(stg.width / 2, 0, -80);
     ground.receiveShadow = true;
     worldGroup.add(ground);
 
-    var platMat = new Tc.MeshLambertMaterial({ color: stg.ground });
     var i, pl;
     for (i = 0; i < stg.plats.length; i++) {
       pl = stg.plats[i];
       var pw = pl[2], py = stg.floor - pl[1];
+      var platMat = new Tc.MeshLambertMaterial({
+        color: stg.ground,
+        map: groundTexture(stg.mood, Math.max(1, pw / TILE_WORLD), 46 / TILE_WORLD)
+      });
       var box = new Tc.Mesh(new Tc.BoxGeometry(pw, 16, 46), platMat);
       box.position.set(pl[0] + pw / 2, py - 8, 0);
       box.receiveShadow = true; box.castShadow = false;

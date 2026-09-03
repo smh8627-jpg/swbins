@@ -73,3 +73,34 @@ Male/Female_Ranger) · 머리(Hair_Buzzed·Long·Buns·SimpleParted)와 그 텍�
 **emissive(자체발광) 물들임**으로 바꿨다 — 옷 텍스처의 원래 색을 곱셈으로
 지우지 않기 위해서다(`js/asset3d.js` 의 `ownAllMat`/`applyTint`, saga-dungeon과
 같은 요령).
+
+---
+
+## Kenney — Roguelike/RPG Pack (`assets/sprites2d/tile_*.png`, 2026-09-04)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kenney (<https://kenney.nl>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-forest/assets/sprites2d/` 에 이미 받아 둔 것을 그대로 복사했다
+  (같은 CC0 라이선스이므로 재배포에 문제 없다 — 그쪽 `ASSET_LICENSES.md` 와
+  원본 확인 기록 참고: <https://opengameart.org/content/roguelikerpg-pack-1700-tiles>) |
+
+**3D 사냥터 바닥·발판**(`js/side-view3d.js` 의 `rebuildStage`, PLAN 부록
+"코드로 그리지 말고 에셋으로")이 여태 색 한 장(`MeshLambertMaterial({color})`)
+이던 것에 이 도트그림을 얹었다. `stg.ground` 색은 그대로 재질 색으로 남아
+사냥터마다(마을/들판/숲/굴혈/골짜기) 색은 갈리고, 그 위에 그림만 mood 별로
+바뀐다.
+
+| 파일 | mood | 쓰이는 곳 |
+|---|---|---|
+| `tile_grass.png` | `sky`(마을·들판, 기본값) | 잔디 바닥 |
+| `tile_dirt.png` | `forest`(오림 숲) | 흙 바닥 |
+| `tile_stone.png` | `cave`(한중 굴혈) · `fire`(호로곡) | 돌 바닥 — 골짜기는 `stg.ground`(적갈색)로 물들여 구분한다 |
+
+`RepeatWrapping` 으로 64px 마다 한 장씩 반복한다(사람 키와 비슷한 크기).
+`NearestFilter` 로 도트그림이 흐려지지 않게 했다. GLB 지형지물(나무·바위·
+언덕)과 달리 이 텍스처는 순수 이미지라 `file://` 단독판에서도 그대로 뜬다
+(GLB 처럼 브라우저가 막는 요청이 아니다).
