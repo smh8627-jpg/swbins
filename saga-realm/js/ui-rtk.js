@@ -220,6 +220,9 @@
     } else if (a === 'march') {
       doMarch(g('data-from'), g('data-to'));
       return;
+    } else if (a === 'journey') {
+      doJourney(g('data-from'), g('data-to'));
+      return;
     } else if (a === 'bat-cmd') {
       var cmd = g('data-cmd');
       if (!cmd || cmd === 'none') { cmd = null; }
@@ -280,6 +283,37 @@
     if (!(t > 0)) { return; }
     for (var i = 0; i < lead.length; i++) { off().rec(lead[i]).done = true; }
     showBattleLive(fromId, toId, lead, t);
+  }
+
+  /** 원정 — 인접하지 않은 먼 성으로 병력을 보낸다. `doMarch()` 와 같은 꼴이지만
+   *  그 자리에서 붙지 않는다 — 몇 달 뒤 국경에 닿아야 `war.js` 가 알아서 붙인다 */
+  function doJourney(fromId, toId) {
+    var c = R().city(fromId);
+    var ready = R().readyAt(fromId);
+    if (!ready.length) { toast('보낼 장수가 없습니다'); return; }
+    if (c.troops < 500) { toast('오백은 넘겨야 군대라 하지요'); return; }
+    var path = CD.path(fromId, toId, function (cid) {
+      var pc = R().city(cid); return !!pc && (pc.force === c.force || pc.force === null);
+    });
+    if (!path) { toast('갈 수 있는 길이 없습니다 (남의 땅에 막혔습니다)'); return; }
+    var lead = off().sortByPower(ready).slice(0, 3).map(function (h) { return h.id; });
+    askNumber({
+      title: '🚩 ' + CD.find(fromId).name + ' → ' + CD.find(toId).name + ' (원정)',
+      hint: '몇 명을 보낼까요? 성에 🪖 ' + core.fmt(c.troops) +
+        '<br>거리 — 약 <b>' + CD.pathMonths(path) + '달</b> 예상' +
+        '<br>장수 — ' + lead.map(function (id) { return esc(off().find(id).name); }).join(' · '),
+      max: c.troops, value: Math.floor(c.troops * 0.8), ok: '🚩 원정을 보낸다',
+      done: function (t) { runJourney(fromId, toId, lead, t); }
+    });
+  }
+
+  function runJourney(fromId, toId, lead, t) {
+    if (!(t > 0)) { return; }
+    var res = global.DG.war.startJourney(fromId, toId, lead, t);
+    if (!res.ok) { toast(res.why); return; }
+    for (var i = 0; i < lead.length; i++) { off().rec(lead[i]).done = true; }
+    toast('🚩 원정을 떠났습니다 (' + res.months + '달 예상)');
+    renderTop(); renderMap(); renderSheet(); syncDock();
   }
 
   /** 개입형 실시간 전투 — 합마다 끊어 명령(돌격·수비·정공법·퇴각)을 받는다.
@@ -420,6 +454,37 @@
 
   /* ── 지도 ─────────────────────────────────────────────── */
 
+  /** 원정 하나가 경로 위 지금 어디쯤 있는가(화면 x·y, 0~100대) — 구간별 실제
+   *  거리로 나눠 잡는다(칸 수 균등이 아니라 `CD.pathMonths()`와 같은 잣대) */
+  function journeyPos(j) {
+    var path = j.path, i;
+    if (!path || path.length < 2) {
+      var only = path && CD.find(path[0]);
+      return only ? { x: only.x, y: only.y } : null;
+    }
+    var frac = core.clamp((j.monthsElapsed || 0) / (j.monthsTotal || 1), 0, 0.999);
+    var segs = [], total = 0;
+    for (i = 0; i < path.length - 1; i++) {
+      var a = CD.find(path[i]), b = CD.find(path[i + 1]);
+      if (!a || !b) { continue; }
+      var len = Math.hypot(a.x - b.x, a.y - b.y);
+      segs.push({ a: a, b: b, len: len });
+      total += len;
+    }
+    if (!segs.length) { return null; }
+    if (!total) { return { x: segs[0].a.x, y: segs[0].a.y }; }
+    var target = frac * total, acc = 0;
+    for (i = 0; i < segs.length; i++) {
+      if (acc + segs[i].len >= target || i === segs.length - 1) {
+        var segFrac = segs[i].len > 0 ? core.clamp((target - acc) / segs[i].len, 0, 1) : 0;
+        return { x: segs[i].a.x + (segs[i].b.x - segs[i].a.x) * segFrac,
+                 y: segs[i].a.y + (segs[i].b.y - segs[i].a.y) * segFrac };
+      }
+      acc += segs[i].len;
+    }
+    return { x: segs[segs.length - 1].b.x, y: segs[segs.length - 1].b.y };
+  }
+
   function renderMap() {
     var st = R().state();
     if (!st.started) { els.realm.innerHTML = ''; return; }
@@ -469,6 +534,15 @@
         '<text class="rlab" x="' + d.x + '" y="' + (d.y + rad + 2.6) + '">' + esc(d.name) + '</text>' +
         '</g>';
     }
+
+    /* 가고 있는 원정 — 경로 위 지금 자리에 깃발 하나(2026-09-04) */
+    var jn = global.DG.war.journeys();
+    for (i = 0; i < jn.length; i++) {
+      var pos = journeyPos(jn[i]);
+      if (!pos) { continue; }
+      s += '<text class="rjourney" x="' + pos.x + '" y="' + pos.y +
+        '" fill="' + forceColor(jn[i].force) + '">🚩</text>';
+    }
     s += '</svg>';
 
     /* 범례 — 살아 있는 세력 */
@@ -486,7 +560,7 @@
 
   /* ── 시트 ─────────────────────────────────────────────── */
 
-  var SHEET_TITLE = { city: '🏯 성', officers: '👤 무장', camp: '🏕️ 진영',
+  var SHEET_TITLE = { city: '🏯 성', officers: '👤 무장', camp: '🏕️ 진·원정',
                       diplo: '🤝 외교', school: '📚 학당', log: '📜 기록' };
 
   function openSheet(name) {
@@ -519,10 +593,11 @@
     for (var i = 0; i < bs.length; i++) {
       bs[i].classList.toggle('on', bs[i].getAttribute('data-sheet') === openTab);
     }
-    /* 나가 있는 원정 수 — 진영은 눌러 보지 않으면 잊기 쉬운 칸이다 */
+    /* 나가 있는 진·원정 수 — 눌러 보지 않으면 잊기 쉬운 칸이다 */
     var cb = els.dock.querySelector('[data-sheet="camp"]');
     if (!cb) { return; }
-    var n = R().state().started ? global.DG.war.campsOf(R().me()).length : 0;
+    var n = R().state().started ?
+      global.DG.war.campsOf(R().me()).length + global.DG.war.journeysOf(R().me()).length : 0;
     var badge = cb.querySelector('i.badge');
     if (n > 0) {
       if (!badge) { badge = document.createElement('i'); badge.className = 'badge'; cb.appendChild(badge); }
@@ -703,7 +778,35 @@
             '" data-to="' + nid + '">⚔️ 출진</button>') +
         '</div>';
     }
-    return html + '</div>';
+    html += '</div>';
+
+    /* 원정 — 인접하지 않은 먼 성. 내 땅·주인 없는 땅만 거쳐 가는 실제 경로가
+       있는 곳만 고른다(2026-09-04, 출진의 "그 자리에서 인접" 한계를 벗어나는
+       새 상위 명령) */
+    var passable = function (cid) {
+      var pc = R().city(cid);
+      return !!pc && (pc.force === c.force || pc.force === null);
+    };
+    var farHtml = '';
+    for (var f = 0; f < CD.CITIES.length; f++) {
+      var fd = CD.CITIES[f];
+      if (fd.id === openCityId || d.adj.indexOf(fd.id) >= 0) { continue; }
+      var fc = R().city(fd.id);
+      if (fc.force === c.force) { continue; }
+      var p = CD.path(openCityId, fd.id, passable);
+      if (!p) { continue; }
+      farHtml += '<div class="card"><div class="stat-row">' +
+        '<span><b class="lnk" data-act="open-city" data-city="' + fd.id + '">' + esc(fd.name) +
+        '</b> <span class="muted">' + esc(R().forceName(fc.force)) + ' · ' + CD.pathMonths(p) + '달</span></span>' +
+        '<span class="muted">🪖 ' + core.fmt(fc.troops) + '</span></div>' +
+        '<button class="btn tiny wide" data-act="journey" data-from="' + openCityId +
+        '" data-to="' + fd.id + '">🚩 원정</button></div>';
+    }
+    if (farHtml) {
+      html += '<div class="sec"><h4>원정 <span class="muted">내 땅·빈 땅만 거쳐 여러 달에 걸쳐 옮깁니다</span></h4>' +
+        farHtml + '</div>';
+    }
+    return html;
   }
 
   function enemyCity(c, d) {
@@ -768,19 +871,46 @@
 
   function viewCamp() {
     var W = global.DG.war;
-    var list = W.campsOf(R().me());
-    if (!list.length) {
-      return '<div class="hint">나가 있는 원정이 없습니다.<br><br>' +
+    var camps = W.campsOf(R().me());
+    var jn = W.journeysOf(R().me());
+    var html = '';
+
+    if (!camps.length) {
+      html += '<div class="hint">나가 있는 진(陣)이 없습니다.<br><br>' +
         '남의 성을 눌러 <b>친다</b> 를 고르면, 그 달에 못 떨어뜨린 군대는 ' +
-        '물러나지 않고 성 밖에 <b>진(陣)</b> 을 칩니다. 진영은 달마다 한 번씩 더 치고, ' +
+        '물러나지 않고 성 밖에 <b>진(陣)</b> 을 칩니다. 진은 달마다 한 번씩 더 치고, ' +
         '<b>치중이 바닥나거나 사기가 꺾이면 스스로 물러납니다</b>.</div>';
+    } else {
+      html += '<div class="sec"><h4>나가 있는 진(陣) <span class="muted">' + camps.length + '</span></h4>' +
+        '<small class="muted">출진할 때 들고 나가는 군량은 <b>두 달치</b>입니다. ' +
+        '그보다 길게 에워싸려면 맞닿은 우리 성에서 <b>보급</b>해야 합니다. ' +
+        '에워싸인 성은 그동안 <b>수확을 거두지 못합니다</b>.</small></div>';
+      for (var i = 0; i < camps.length; i++) { html += campCard(camps[i]); }
     }
-    var html = '<div class="sec"><h4>나가 있는 원정 <span class="muted">' + list.length + '</span></h4>' +
-      '<small class="muted">출진할 때 들고 나가는 군량은 <b>두 달치</b>입니다. ' +
-      '그보다 길게 에워싸려면 맞닿은 우리 성에서 <b>보급</b>해야 합니다. ' +
-      '에워싸인 성은 그동안 <b>수확을 거두지 못합니다</b>.</small></div>';
-    for (var i = 0; i < list.length; i++) { html += campCard(list[i]); }
+
+    if (jn.length) {
+      html += '<div class="sec"><h4>가고 있는 원정 <span class="muted">' + jn.length + '</span></h4>' +
+        '<small class="muted">내 땅·주인 없는 땅만 거쳐 먼 성까지 실시간으로 옮겨 가는 중입니다. ' +
+        '국경(경로의 마지막 성)에 닿으면 그 자리에서 자동으로 붙습니다.</small></div>';
+      for (var j = 0; j < jn.length; j++) { html += journeyCard(jn[j]); }
+    }
     return html;
+  }
+
+  /** 가고 있는 원정 한 줄 — 진행률만 보여준다(v1엔 회군 명령이 없다) */
+  function journeyCard(j) {
+    var d = CD.find(j.to);
+    var pct = Math.round(core.clamp(j.monthsElapsed / j.monthsTotal, 0, 1) * 100);
+    var names = j.officers.map(function (id) {
+      var h = off().find(id);
+      return h ? esc(h.name) : id;
+    }).join(' · ');
+    return '<div class="card">' +
+      '<div class="stat-row"><span>🚩 <b>' + esc(d.name) + '</b> 을(를) 향해</span>' +
+      '<span class="muted">' + j.monthsElapsed + ' / ' + j.monthsTotal + '달</span></div>' +
+      '<div class="bar sm"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="stat-row"><span class="muted">병력</span><b>🪖 ' + core.fmt(j.troops) + '</b></div>' +
+      '<small class="muted">장수 — ' + names + '</small></div>';
   }
 
   function campCard(cp) {
@@ -866,7 +996,8 @@
           (c && c.gov === h.id ? ' <span class="tag">태수</span>' : '') +
           (r.hurt ? ' <span class="tag warnt">부상 ' + r.hurt + '개월</span>' : '') +
           (r.done ? ' <span class="muted">· 이 달 명령 씀</span>' : '') +
-          (r.camp ? ' <span class="tag">원정 중</span>' : '') +
+          (r.camp ? ' <span class="tag">진 치는 중</span>' : '') +
+          (r.journey ? ' <span class="tag">원정 중</span>' : '') +
         '<div class="dt-stats"><span>무 <b>' + s.might + '</b></span>' +
           '<span>지 <b>' + s.wisdom + '</b></span>' +
           '<span>통 <b>' + s.command + '</b></span>' +

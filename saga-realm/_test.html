@@ -766,6 +766,86 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('돌아갈 성이 없어져 장수 ' + ids.length + '명이 낙양 앞에서 사로잡혔다');
     });
 
+    /* ── 원정 (여러 달에 걸친 실시간 이동, 2026-09-04) ──────────
+     * 194년 시나리오의 '공손찬'(zan)은 계·북평(beiping)을 쥔다 — 북평이
+     * 한국 지역(전부 force:null 인 채로 시작)의 관문이라, 이 세력으로
+     * `CD.path`/원정을 시험하기 딱 좋다.
+     */
+
+    t('CD.path — 한국 지역처럼 실제 여러 홉을 지나는 경로를 정확히 찾는다', function () {
+      fresh('zan');
+      var passable = function (cid) {
+        var c = R.city(cid);
+        return !!c && (c.force === 'zan' || c.force === null);
+      };
+      var p = CD.path('beiping', 'wirye', passable);
+      var months = p ? CD.pathMonths(p) : -1;
+      /* 장안까지는 원소(nanpi)의 땅에 막혀 못 간다 — 남의 땅은 안 거친다 */
+      var blocked = CD.path('beiping', 'changan', passable);
+      return !!p && p[0] === 'beiping' && p[p.length - 1] === 'wirye' && p.length >= 5 &&
+        months > 0 && blocked === null &&
+        ('경로 ' + p.join('→') + ' (' + months + '달) · 막힌 길 null 확인');
+    });
+
+    t('startJourney — 병력·군량을 깎고 장수를 원정 중으로 표시한다', function () {
+      fresh('zan');
+      var from = R.city('beiping');
+      from.troops = 20000; from.food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var beforeTroops = from.troops, beforeFood = from.food;
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      var marked = lead.every(function (id) { return off.rec(id).journey === res.id; });
+      var stillHome = off.atCity('beiping', 'zan').some(function (h) { return lead.indexOf(h.id) >= 0; });
+      return !!res.ok && from.troops === beforeTroops - 8000 && from.food < beforeFood &&
+        marked && !stillHome && W.journeys().length === 1 &&
+        ('원정 시작 — 병력 ' + C.fmt(beforeTroops) + '→' + C.fmt(from.troops) +
+         ' · ' + res.months + '달 예상 · 장수 ' + lead.length + '명 표시');
+    });
+
+    t('off.atCity — 원정 가는 중인 장수는 성에 없는 사람으로 뺀다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var before = off.atCity('beiping', 'zan').map(function (h) { return h.id; });
+      var lead = before.slice(0, 2);
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      var after = off.atCity('beiping', 'zan').map(function (h) { return h.id; });
+      var excluded = lead.every(function (id) { return after.indexOf(id) < 0; });
+      return !!res.ok && excluded && after.length === before.length - lead.length &&
+        ('원정 보낸 장수 ' + lead.length + '명이 atCity 목록에서 빠졌다');
+    });
+
+    t('resolveJourneys — 다 가면 march() 로 이어지고 목록에서 빠진다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      for (var i = 0; i < res.months; i++) { W.resolveJourneys(); }
+      var gone = W.journeyById(res.id) === null;
+      var freedOfficers = lead.every(function (id) { return !off.rec(id).journey; });
+      /* 승패 어느 쪽이든(정복·진 침·패퇴 다 있을 수 있다) — 목록에서 빠지고
+         장수 표시가 걷혔는지만 결정적으로 본다 */
+      return gone && freedOfficers &&
+        ('원정 ' + res.months + '달 뒤 도착 — ' + CD.find('wirye').name +
+         ' 지금 세력 ' + R.forceName(R.city('wirye').force) +
+         (W.campAt('wirye') ? ' · 진 치는 중' : ' · 결판남'));
+    });
+
+    t('resolveJourneys — 중간 성이 함락되면 원정이 그 자리에서 되돌아간다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      /* 경로 가운데 한 성(국내성)을 남의 손에 넘긴다 — 다음 정산에서 끊긴다 */
+      R.city('guknae').force = 'shao';
+      W.resolveJourneys();
+      var back = off.rec(lead[0]).journey === null && R.city('beiping').troops >= 8000;
+      return W.journeyById(res.id) === null && back &&
+        ('길이 끊겨 ' + CD.find('beiping').name + ' 로 되돌아갔다 (병력 ' +
+         C.fmt(R.city('beiping').troops) + ')');
+    });
+
     /* ── 수군 (물길 · 배 · 수전) ─────────────────────── */
 
     t('물길은 양쪽이 다 강일 때만 난다', function () {
@@ -1111,6 +1191,42 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       DG.ui.closeSheet();
       return body.indexOf('낙양') >= 0 && acts === 3 && !!badge && badge.textContent === '1' &&
         ('낙양 포위가 뜨고 손잡이 ' + acts + '개 · 독 배지 ' + badge.textContent);
+    });
+
+    t('성 칸에 먼 성으로 가는 원정 손잡이가 뜬다', function () {
+      fresh('zan');
+      freeUp('beiping');
+      DG.ui.openCity('beiping');
+      var body = document.getElementById('sheet-body').innerHTML;
+      var acts = document.querySelectorAll('#sheet-body [data-act="journey"]').length;
+      DG.ui.closeSheet();
+      return acts > 0 && body.indexOf('원정') >= 0 && ('원정 목적지 ' + acts + '곳');
+    });
+
+    t('진·원정 칸이 가고 있는 원정을 보여 준다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      DG.ui.openSheet('camp');
+      var body = document.getElementById('sheet-body').innerHTML;
+      var badge = document.querySelector('#dock [data-sheet="camp"] i.badge');
+      DG.ui.closeSheet();
+      return body.indexOf('가고 있는 원정') >= 0 && body.indexOf(CD.find('wirye').name) >= 0 &&
+        !!badge && badge.textContent === '1' &&
+        ('원정 카드가 뜨고 독 배지 ' + badge.textContent);
+    });
+
+    t('지도에 가고 있는 원정 깃발이 뜬다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      DG.ui.renderMap();
+      var flags = document.querySelectorAll('#realm .rjourney').length;
+      return flags === 1 && ('지도 위 원정 깃발 ' + flags + '개');
     });
 
     t('세력 고르기 화면에 열세 깃발이 뜬다', function () {

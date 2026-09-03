@@ -1022,6 +1022,223 @@
     return out.length ? out : null;
   }
 
+  /* ── 원정 (여러 달에 걸친 실시간 이동, 2026-09-04) ───────────────────
+   * 위 "진영(camp, 陣)"은 **친 뒤 못 떨어뜨려 눌러앉은 상태**다. 여기 원정은
+   * **치기 전, 국경까지 오가는 중인 상태** — 서로 다른 것이다(화면 문구도
+   * 갈랐다, `ui-rtk.js` 참고. 내부 변수·주석에 남은 옛 "원정"(camp 쪽)은
+   * 그대로 둔다 — 뜻은 늘 문맥으로 갈렸었고, 굳이 다 갈아엎지 않는다).
+   *
+   * 출진(march)은 "인접한 성 하나로 그 자리에서" 만 붙는 구조를 그대로 둔다
+   * (개입형 전투가 설 자리를 지키려고). 원정은 그 앞에 얹는 상위 명령이다 —
+   * **내 땅·주인 없는 빈 땅만 거쳐**(`CD.path`, 물길은 뺀다) 먼 성 앞까지
+   * 병력을 여러 달에 걸쳐 옮기고, 국경(경로의 마지막 통과 칸)에 닿으면 그
+   * 마지막 한 걸음은 지금의 `march()` 를 그대로 쓴다 — **새 판정을 만들지
+   * 않는다.**
+   */
+
+  function journeys() {
+    var st = global.DG.rtk.state();
+    if (!st.journeys) { st.journeys = []; }
+    return st.journeys;
+  }
+
+  function journeysOf(forceId) {
+    var list = journeys(), out = [], i;
+    for (i = 0; i < list.length; i++) { if (list[i].force === forceId) { out.push(list[i]); } }
+    return out;
+  }
+
+  function journeyById(id) {
+    var list = journeys(), i;
+    for (i = 0; i < list.length; i++) { if (list[i].id === id) { return list[i]; } }
+    return null;
+  }
+
+  /** 그 성이 지금 원정의 통행로로 쓸 수 있는가 — 내 성이거나 주인 없음 */
+  function journeyPassable(cityId, forceId) {
+    var c = global.DG.rtk.city(cityId);
+    return !!c && (c.force === forceId || c.force === null);
+  }
+
+  /** 원정을 시작할 수 있는가 — `canMarch` 와 달리 **인접일 필요가 없다**,
+   *  대신 통과할 수 있는 땅만으로 이어지는 `CD.path` 가 있어야 한다. */
+  function canJourney(fromId, toId, troops) {
+    var R = global.DG.rtk;
+    var from = R.city(fromId), to = R.city(toId);
+    if (!from || !to) { return { ok: false, why: '없는 성' }; }
+    if (from.force === to.force) { return { ok: false, why: '우리 성입니다' }; }
+    if (troops > from.troops) { return { ok: false, why: '병력이 모자랍니다' }; }
+    if (troops < 500) { return { ok: false, why: '오백은 넘겨야 군대라 하지요' }; }
+    /* 원정 군량 — march 와 같은 공식(두 달치)을 그대로 쓴다. 남은 여러 달은
+       실려 가는 도중 소모하지 않고 국경에 닿아서야 성에 그대로 부린다(v1
+       단순화 — 도중 보급·아사는 범위 밖, camp 쪽만 그 사정을 진다) */
+    var need = Math.round(troops / 1000 * R.FOOD_PER_1000 * 2);
+    if (from.food < need) { return { ok: false, why: '군량이 모자랍니다 (' + core.fmt(need) + ' 필요)' }; }
+    if (global.DG.diplo && global.DG.diplo.blocked(from.force, to.force)) {
+      return { ok: false, why: '맹약이 있어 칠 수 없습니다' };
+    }
+    var myForce = from.force;
+    var p = CD.path(fromId, toId, function (cid) { return journeyPassable(cid, myForce); });
+    if (!p) { return { ok: false, why: '갈 수 있는 길이 없습니다 (남의 땅에 막혔습니다)' }; }
+    return { ok: true, food: need, path: p, months: CD.pathMonths(p) };
+  }
+
+  /**
+   * 원정을 보낸다. `march()` 처럼 그 자리에서 붙지 않는다 — `chk.months` 달
+   * 뒤에야 국경에 닿고, 그때 가서 `resolveJourneys()` 가 `march()` 를 부른다.
+   */
+  function startJourney(fromId, toId, officerIds, troops) {
+    var R = global.DG.rtk, off = global.DG.off;
+    var chk = canJourney(fromId, toId, troops);
+    if (!chk.ok) { return chk; }
+
+    var from = R.city(fromId), i, valid = [];
+    for (i = 0; i < officerIds.length; i++) {
+      var r = off.rec(officerIds[i]);
+      if (r.city === fromId && r.force === from.force && !r.hurt && !r.camp && !r.journey) {
+        valid.push(officerIds[i]);
+      }
+    }
+    if (!valid.length) { return { ok: false, why: '데려갈 장수가 없습니다' }; }
+
+    from.troops -= troops;
+    from.food -= chk.food;
+
+    var st = R.state();
+    st.journeySeq = (st.journeySeq || 0) + 1;
+    var j = {
+      id: 'journey' + st.journeySeq, force: from.force, from: fromId, to: toId,
+      path: chk.path, troops: troops, officers: valid.slice(),
+      train: from.train, tech: from.tech, morale: 1, food: chk.food,
+      monthsTotal: chk.months, monthsElapsed: 0
+    };
+    journeys().push(j);
+    for (i = 0; i < valid.length; i++) { off.rec(valid[i]).journey = j.id; }
+    off.gainExpAll(valid, off.EXP.march);
+
+    core.log('🚩 ' + R.forceName(j.force) + ' 이(가) ' + CD.find(toId).name +
+      ' 을(를) 향해 원정을 떠났다 (' + j.monthsTotal + '달 예상)', 'info');
+    core.emit('rtk:journey', { kind: 'start', id: j.id, force: j.force, from: fromId, to: toId, months: j.monthsTotal });
+    core.emit('changed');
+    core.persist();
+    return { ok: true, id: j.id, months: j.monthsTotal };
+  }
+
+  /** 원정을 목록에서 뺀다 — 장수에 붙은 표시도 함께 뗀다 */
+  function dropJourney(j) {
+    var off = global.DG.off, list = journeys(), i = list.indexOf(j);
+    if (i >= 0) { list.splice(i, 1); }
+    for (i = 0; i < j.officers.length; i++) { off.rec(j.officers[i]).journey = null; }
+  }
+
+  /** 물러날 곳 — 떠난 성이 아직 우리 것이면 그리로, 아니면 가장 가까운 우리 성
+   *  (camp 의 `homeFor()` 와 같은 요령) */
+  function homeForJourney(j) {
+    var R = global.DG.rtk;
+    var from = R.city(j.from);
+    if (from && from.force === j.force) { return j.from; }
+    var mine = R.citiesOf(j.force), best = null, bd = 1e9, i, d;
+    for (i = 0; i < mine.length; i++) {
+      d = CD.hops(j.from, mine[i]);
+      if (d >= 0 && d < bd) { bd = d; best = mine[i]; }
+    }
+    return best;
+  }
+
+  /** 경로가 도중에 끊겼다(중간 성이 남의 손에 넘어갔다) — 되돌아간다.
+   *  돌아갈 나라마저 없으면 camp 의 `disband()` 와 같은 꼴로 그 자리에서
+   *  흩어진다(장수는 사로잡힌 것으로 둔다 — 조용히 지우지 않는다). */
+  function retreatJourney(j, why) {
+    var R = global.DG.rtk, off = global.DG.off;
+    var home = homeForJourney(j);
+    var i;
+    if (!home) {
+      for (i = 0; i < j.officers.length; i++) {
+        off.placeAt(j.officers[i], j.from, null);
+        off.rec(j.officers[i]).found = true;
+        off.rec(j.officers[i]).loyal = 0;
+        R.state().captives[j.officers[i]] = j.from;
+      }
+      dropJourney(j);
+      core.log('🏳️ 돌아갈 곳을 잃은 원정군이 ' + CD.find(j.from).name + ' 앞에서 흩어졌다', 'warn');
+      core.emit('rtk:journey', { kind: 'disband', id: j.id, force: j.force, to: j.from });
+      return;
+    }
+    var h = R.city(home);
+    h.troops += j.troops; h.food += j.food;
+    for (i = 0; i < j.officers.length; i++) {
+      off.placeAt(j.officers[i], home, j.force);
+      off.addLoyal(j.officers[i], -2);
+    }
+    dropJourney(j);
+    core.log('🔙 ' + R.forceName(j.force) + ' 의 원정이 ' + why + ' — ' +
+      CD.find(home).name + ' 으로 물러났다', 'warn');
+    core.emit('rtk:journey', { kind: 'retreat', id: j.id, force: j.force, home: home });
+  }
+
+  /** 국경에 닿았다 — 경로의 마지막 통과 칸(목적지 바로 앞 성)에 병력을 부리고
+   *  그 자리에서 `march()` 를 그대로 부른다. 그 성이 그사이 이미 내 것이 됐으면
+   *  (동맹이 먼저 먹었거나) 싸움 없이 그냥 합류한다. */
+  function arriveJourney(j) {
+    var R = global.DG.rtk, off = global.DG.off;
+    var beachId = j.path.length >= 2 ? j.path[j.path.length - 2] : j.from;
+    var beach = R.city(beachId);
+    var i;
+
+    if (!beach || beach.force !== j.force) {
+      /* 도착하는 그 한 달 사이에 거점을 뺏겼을 드문 경우 — 대비만 해 둔다 */
+      retreatJourney(j, '거점(' + (CD.find(beachId) ? CD.find(beachId).name : beachId) + ')을 잃어');
+      return;
+    }
+
+    beach.troops += j.troops;
+    beach.food += j.food;
+    for (i = 0; i < j.officers.length; i++) { off.placeAt(j.officers[i], beachId, j.force); }
+
+    var to = R.city(j.to);
+    if (to && to.force === j.force) {
+      core.log('🚩 ' + CD.find(j.to).name + ' 에 이미 우리 깃발이 있어 원정군이 그대로 합류했다', 'good');
+      dropJourney(j);
+      core.emit('rtk:journey', { kind: 'join', id: j.id, force: j.force, to: j.to });
+      return;
+    }
+
+    var leaders = off.sortByPower(j.officers.map(function (id) { return off.find(id); }).filter(function (h) { return !!h; }));
+    var leadIds = leaders.map(function (h) { return h.id; });
+    dropJourney(j);
+    core.emit('rtk:journey', { kind: 'arrive', id: j.id, force: j.force, to: j.to, from: beachId });
+    march(beachId, j.to, leadIds, j.troops);
+  }
+
+  /**
+   * endMonth 가 부른다(`resolveAll()` 다음) — 가고 있는 원정이 저마다 한 달을
+   * 더 간다. 목록을 **베껴 두고** 돈다 — 도착·철군으로 목록이 줄기 때문이다.
+   */
+  function resolveJourneys() {
+    var list = journeys().slice(), out = [], i, j, k, broke;
+    for (i = 0; i < list.length; i++) {
+      j = list[i];
+      broke = false;
+      /* 경로 무결성 — 마지막 칸(목적지)은 애초에 통과 검사 대상이 아니었으니
+         뺀다. 시작 칸(j.from)도 여기선 안 본다 — 거긴 arriveJourney() 가
+         도착 순간에 다시 본다(짧은 원정은 중간 칸이 아예 없어서다) */
+      for (k = 1; k < j.path.length - 1; k++) {
+        if (!journeyPassable(j.path[k], j.force)) { broke = true; break; }
+      }
+      if (broke) {
+        retreatJourney(j, '길이 끊겨');
+        out.push(j);
+        continue;
+      }
+      j.monthsElapsed += 1;
+      if (j.monthsElapsed < j.monthsTotal) { continue; }
+      arriveJourney(j);
+      out.push(j);
+    }
+    if (out.length) { core.emit('changed'); core.persist(); }
+    return out.length ? out : null;
+  }
+
   global.DG = global.DG || {};
   global.DG.war = {
     ROUNDS: ROUNDS, ROUT: ROUT, DUEL_GAP: DUEL_GAP, SHIP_CREW: SHIP_CREW,
@@ -1033,6 +1250,9 @@
     camps: camps, campsOf: campsOf, campById: campById, campAt: campAt,
     besieged: besieged, monthsLeft: monthsLeft,
     supply: supply, withdraw: withdraw,
-    resolveCamp: resolveCamp, resolveAll: resolveAll
+    resolveCamp: resolveCamp, resolveAll: resolveAll,
+    journeys: journeys, journeysOf: journeysOf, journeyById: journeyById,
+    canJourney: canJourney, startJourney: startJourney,
+    homeForJourney: homeForJourney, resolveJourneys: resolveJourneys
   };
 })(window);

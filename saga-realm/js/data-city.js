@@ -259,12 +259,64 @@
     return -1;
   }
 
+  /**
+   * a 에서 b 까지 **실제로 지나는 성 목록**(원정 전용, 2026-09-04) — 부모
+   * 포인터로 경로를 되짚는 너비 우선. 중간 성(a·b 제외)은 `passableFn(cityId)`
+   * 를 통과해야 지나갈 수 있다 — **b 자신은 이 검사를 안 받는다**(적의 성이라도
+   * "도착지"는 될 수 있다, 거기서 싸우는 게 원정의 목적이다). **물길 간선은
+   * 건너뛴다**(원정은 육로만 — 배 로지스틱스는 범위 밖). 못 가면 `null`,
+   * 가면 `[a, ..., b]`(a===b 면 `[a]`).
+   */
+  function path(a, b, passableFn) {
+    if (a === b) { return [a]; }
+    var seen = {}, q = [a], parent = {}, cur, j;
+    seen[a] = true;
+    while (q.length) {
+      cur = q.shift();
+      var adj = find(cur) ? find(cur).adj : [];
+      for (j = 0; j < adj.length; j++) {
+        var nx = adj[j];
+        if (seen[nx]) { continue; }
+        if (isWater(cur, nx)) { continue; }
+        if (nx !== b && !passableFn(nx)) { continue; }
+        seen[nx] = true;
+        parent[nx] = cur;
+        if (nx === b) {
+          var out = [b], p = cur;
+          while (p !== undefined) { out.unshift(p); p = parent[p]; }
+          return out;
+        }
+        q.push(nx);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * `path()`가 준 경로를 실제로 도는 데 걸리는 개월 수(원정 전용).
+   * 구간마다 화면 좌표(x·y, 0~100대) 거리를 더하되, 그 구간의 두 성 중
+   * 하나라도 산(mount)이면 그 구간 길이에 ×1.5 — 험한 길은 더 걸린다.
+   * 12로 나눠 올림, 최소 1달.
+   */
+  function pathMonths(p) {
+    if (!p || p.length < 2) { return 1; }
+    var total = 0, i;
+    for (i = 0; i < p.length - 1; i++) {
+      var ca = find(p[i]), cb = find(p[i + 1]);
+      if (!ca || !cb) { continue; }
+      var d = Math.hypot(ca.x - cb.x, ca.y - cb.y);
+      if (ca.land === 'mount' || cb.land === 'mount') { d *= 1.5; }
+      total += d;
+    }
+    return Math.max(1, Math.ceil(total / 12));
+  }
+
   global.DG = global.DG || {};
   global.DG.cityData = {
     CITIES: CITIES, LINKS: LINKS, LANDS: LANDS, PROVINCES: PROVINCES,
     WATERWAYS: WATERWAYS,
     find: find, landOf: landOf, provName: provName, hops: hops,
-    isWater: isWater, waterAdj: waterAdj,
+    isWater: isWater, waterAdj: waterAdj, path: path, pathMonths: pathMonths,
     /** 자가진단용 — 없는 도시를 가리켜 버려진 링크 */
     _dropped: dropped
   };

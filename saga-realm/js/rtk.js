@@ -93,6 +93,7 @@
         started: false, year: START_YEAR, month: 1, me: null, scen: '194',
         cities: {}, forces: {}, officers: {}, captives: {},
         camps: [], campSeq: 0,
+        journeys: [], journeySeq: 0,
         result: null, turn: 0
       };
     }
@@ -190,6 +191,7 @@
     st.me = meId; st.result = null;
     st.cities = {}; st.forces = {}; st.officers = {}; st.captives = {};
     st.camps = []; st.campSeq = 0;
+    st.journeys = []; st.journeySeq = 0;
 
     var i, j;
 
@@ -746,6 +748,7 @@
 
     global.DG.rtkAI.runAll();
     if (global.DG.war) { global.DG.war.resolveAll(); }
+    if (global.DG.war) { global.DG.war.resolveJourneys(); }
     if (global.DG.diplo) { global.DG.diplo.monthly(); }
     settleMonth();
 

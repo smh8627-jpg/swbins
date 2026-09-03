@@ -390,6 +390,50 @@
     }
   }
 
+  /** 원정 하나가 경로 위 지금 어디쯤 있는가(화면 x·y) — `ui-rtk.js` 의
+   *  `journeyPos()` 와 같은 구간별 실거리 보간이다(두 파일이 같은 값을
+   *  따로 계산한다 — 2D·3D 가 별 모듈이라 공유할 자리가 마땅치 않다) */
+  function journeyPos(j) {
+    var CDx = cityData();
+    var path = j.path, i;
+    if (!path || path.length < 2) {
+      var only = path && CDx.find(path[0]);
+      return only ? { x: only.x, y: only.y } : null;
+    }
+    var frac = clamp((j.monthsElapsed || 0) / (j.monthsTotal || 1), 0, 0.999);
+    var segs = [], total = 0;
+    for (i = 0; i < path.length - 1; i++) {
+      var a = CDx.find(path[i]), b = CDx.find(path[i + 1]);
+      if (!a || !b) { continue; }
+      var len = Math.hypot(a.x - b.x, a.y - b.y);
+      segs.push({ a: a, b: b, len: len });
+      total += len;
+    }
+    if (!segs.length) { return null; }
+    if (!total) { return { x: segs[0].a.x, y: segs[0].a.y }; }
+    var target = frac * total, acc = 0;
+    for (i = 0; i < segs.length; i++) {
+      if (acc + segs[i].len >= target || i === segs.length - 1) {
+        var sf = segs[i].len > 0 ? clamp((target - acc) / segs[i].len, 0, 1) : 0;
+        return { x: segs[i].a.x + (segs[i].b.x - segs[i].a.x) * sf,
+                 y: segs[i].a.y + (segs[i].b.y - segs[i].a.y) * sf };
+      }
+      acc += segs[i].len;
+    }
+    return { x: segs[segs.length - 1].b.x, y: segs[segs.length - 1].b.y };
+  }
+
+  /** 가고 있는 원정 — 경로 위 지금 자리에 깃발 하나(2D 지도의 🚩 마커와 같은
+   *  자리, 2026-09-04). GLB 소품 없이 이모지 스프라이트로 충분하다(재해
+   *  그림문자와 같은 요령) */
+  function buildJourney(j, seq) {
+    var pos = journeyPos(j);
+    if (!pos || seq !== rebuildSeq) { return; }
+    var flag = emojiSprite('🚩', 9);
+    flag.position.set(worldX(pos.x), 9, worldZ(pos.y));
+    dyn.add(flag);
+  }
+
   function addRoad(a, b, opt) {
     var t = three();
     var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
@@ -586,6 +630,11 @@
        (이 판은 애초에 안 가린 정보라 — enemyCity() 도 적 성 살림을 그대로 보여준다) */
     var camps = W() ? W().camps() : [];
     for (i = 0; i < camps.length; i++) { buildCamp(camps[i], seq); }
+
+    /* 원정 — 가고 있는 중인 부대(2026-09-04). camp 와 달리 아직 어느 성도
+       에워싸지 않은, 오가는 중인 상태다 */
+    var journeys = W() ? W().journeys() : [];
+    for (i = 0; i < journeys.length; i++) { buildJourney(journeys[i], seq); }
   }
 
   /* ── 카메라 조작 (드래그 회전 · 휠/핀치 확대) ─────────── */

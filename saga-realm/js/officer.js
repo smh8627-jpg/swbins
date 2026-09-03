@@ -66,12 +66,17 @@
    *   done   이 달에 명령을 이미 썼는가
    *   hurt   부상 — 남은 달 수 (0 이면 성하다)
    *   feats  세운 공 (승진·상 판단에 쓴다)
-   *   camp   원정 나가 있는 진영 id (null 이면 성에 있다)
+   *   camp   **진(陣)을 치고 있는가** — 포위가 안 떨어져 성 밖에 머무는 진영 id
+   *          (null 이면 성에 있다. UI 문구는 "진 치는 중")
+   *   journey  **원정 가는 중인가** — 여러 달에 걸쳐 먼 성으로 실시간 이동하는
+   *          중인 원정 id (null 이면 성에 있다. 2026-09-04, UI 문구는 "원정 중"
+   *          — camp 와 이름이 헷갈리지 않게 필드부터 갈랐다)
    */
   function rec(id) {
     var m = global.DG.rtk.state().officers;
     if (!m[id]) {
-      m[id] = { force: null, city: null, loyal: 50, done: false, hurt: 0, feats: 0, camp: null };
+      m[id] = { force: null, city: null, loyal: 50, done: false, hurt: 0, feats: 0,
+        camp: null, journey: null };
     }
     return m[id];
   }
@@ -92,15 +97,17 @@
 
   /**
    * 그 도시에 있는, 그 세력 소속 무장.
-   * **원정 나간 사람(`camp`)은 빠진다** — 성에 없는 사람이 내정을 하거나
-   * 수비에 서면, 군대를 내보내고도 아무것도 잃지 않은 셈이 된다.
-   * (봉급은 그대로 나간다 — `ofForce` 는 진중에 있는 사람도 센다)
+   * **진을 치고 있거나(`camp`) 원정 가는 중인(`journey`) 사람은 빠진다** —
+   * 성에 없는 사람이 내정을 하거나 수비에 서면, 군대를 내보내고도 아무것도
+   * 잃지 않은 셈이 된다. (봉급은 그대로 나간다 — `ofForce` 는 진중·원정 중인
+   * 사람도 센다)
    */
   function atCity(cityId, forceId) {
     var m = global.DG.rtk.state().officers, out = [], k;
     for (k in m) {
       if (!Object.prototype.hasOwnProperty.call(m, k)) { continue; }
       if (m[k].camp) { continue; }
+      if (m[k].journey) { continue; }
       if (m[k].city !== cityId) { continue; }
       if (forceId === undefined ? false : (m[k].force !== forceId)) { continue; }
       /* forceId 로 null 을 준다는 건 "주인 없는 성의 수비대"를 찾는 것이다

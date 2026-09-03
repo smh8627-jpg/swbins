@@ -1234,6 +1234,7 @@ body.sheet-open #realm3d { right: calc(min(420px, 92vw) + 20px); }
   pointer-events: none; font-weight: 600;
 }
 .rdis { font-size: 3px; pointer-events: none; }
+.rjourney { font-size: 3.4px; text-anchor: middle; pointer-events: none; }
 
 .rlegend {
   display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center;
