@@ -68,6 +68,10 @@ window.DG_NO_ACCOUNT = true;
 <script src="js/hero.js"></script>
 <script src="js/side.js"></script>
 <script src="js/side-view.js"></script>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/asset3d.js"></script>
+<script src="js/portrait3d.js"></script>
+<script src="js/side-view3d.js"></script>
 <script src="js/gear.js"></script>
 <script src="js/job.js"></script>
 <script src="js/quest.js"></script>
@@ -184,6 +188,10 @@ setTimeout(function () {
       S.update(0.016);
     }
     C.setTune('crit.rate', null);
+  }
+  else if (tab === 'herodetail') {
+    /* 초상 렌더 검증용 — 임의 인물 하나를 강제로 상세 화면에 띄운다 */
+    DG.ui.openDetail('hero', 'sg_guanyu');
   }
   else if (['field', 'dex', 'log'].indexOf(tab) >= 0) { DG.ui.openSheet(tab); }
 }, 350);

@@ -320,6 +320,11 @@ setTimeout(function () {
       document.title = 'STAT ' + out.join(' ');
     }, 400);
   }
+  /* 인물 상세(초상 3D 굽기를 눈으로 볼 유일한 자리) — `#herodetail` */
+  if (hash.indexOf('herodetail') >= 0 && DG.ui) {
+    DG.ui.openSheet('dex');
+    DG.ui.openDetail('hero', 'kr_yisunsin');
+  }
   /* 손으로 그린 땅의 이름난 자리로 걸어가 본다 — `#land=bridge` 처럼 쓴다.
      이 땅은 눈으로 볼 수밖에 없는 것이라(다리가 강을 가로지르는가, 폐허가 폐허로
      보이는가) 데모에 자리를 옮기는 손잡이를 둔다. `#land` 만 쓰면 마을 한가운데다 */

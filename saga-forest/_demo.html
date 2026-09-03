@@ -59,6 +59,10 @@ window.DG_NO_TUNE = true;
 <script src="js/data-village.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/vendor/RGBELoader.js"></script>
+<script src="js/asset3d.js"></script>
+<script src="js/portrait3d.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/village.js"></script>
@@ -73,6 +77,7 @@ window.DG_NO_TUNE = true;
 <script src="js/wear.js"></script>
 <script src="js/terrain.js"></script>
 <script src="js/village-view.js"></script>
+<script src="js/village-view3d.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/auto.js"></script>
@@ -337,6 +342,7 @@ setTimeout(function () {
         .indexOf(tab) >= 0) {
     DG.ui.openSheet(tab);
   }
+  if (tab === 'dex') { DG.ui.openDetail('hero', DG.data.heroes[0].id); }
 }, 350);
 </script>
 </body></html>

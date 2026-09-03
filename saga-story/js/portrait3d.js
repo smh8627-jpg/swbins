@@ -79,15 +79,26 @@
       renderer = new t.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
       renderer.setClearColor(0x000000, 0);
       renderer.setPixelRatio(1);
+      if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
+      renderer.toneMappingExposure = 1.3;
+      if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
       scene = new t.Scene();
       camera = new t.PerspectiveCamera(26, 1, 0.01, 40);
-      scene.add(new t.HemisphereLight(0xdCE8FF, 0x6a6055, 1.25));
-      var sun = new t.DirectionalLight(0xFFF3DC, 1.55);
-      sun.position.set(1.4, 2.2, 1.8);
+      /* delam() 이 PBR 을 Lambert 로 물들여 환경맵 반사가 안 먹는다 — 대신
+         **얼굴이 어느 쪽을 보든 카메라 쪽에서 늘 빛을 받게** key·fill·bounce
+         를 카메라와 같은 +Z 쪽에 둔다(고전 인물사진 조명). 예전엔 fill 이
+         반대쪽(-Z, 인물 뒤)에 있어 사실상 역광이었다 — saga-realm 에서 먼저
+         잡은 원인을 그대로 옮긴다(2026-09-03) */
+      scene.add(new t.HemisphereLight(0xdCE8FF, 0x746a5c, 2.3));
+      var sun = new t.DirectionalLight(0xFFF3DC, 1.9);
+      sun.position.set(0.9, 1.7, 2.0);
       scene.add(sun);
-      var fill = new t.DirectionalLight(0x9fb4d8, 0.5);
-      fill.position.set(-1.6, 0.8, -1.2);
+      var fill = new t.DirectionalLight(0xbdd2ee, 1.1);
+      fill.position.set(-1.1, 1.1, 1.6);
       scene.add(fill);
+      var bounce = new t.DirectionalLight(0xffe9c8, 0.55);
+      bounce.position.set(0, -1.0, 1.3);
+      scene.add(bounce);
       rig = new t.Group();
       scene.add(rig);
     } catch (e) { failed = true; renderer = null; }
@@ -165,7 +176,7 @@
     rig.add(node);
     node.position.set(0, 0, 0);
     node.scale.setScalar(1);
-    node.rotation.set(0, Math.PI + plan.yaw, 0);
+    node.rotation.set(0, plan.yaw, 0);
 
     settle(node);
 

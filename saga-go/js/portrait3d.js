@@ -1,123 +1,104 @@
 /**
- * 초상 — 도감 카드의 그림을 **실제 그림 조각으로 합친다**
+ * 초상 — 도감 카드의 그림을 **실제 모델로 굽는다**
  * ---------------------------------------------------------------
- * 여태(2026-09-02 까지) 이 자리는 인물 GLB 를 오프스크린 3D 로 구워 썼다.
- * 인물 일흔의 초상 일러스트는 CC0 로 존재하지 않고("관우"·"이순신"의 그림을
- * 받아 올 곳이 없다), 3D 를 구우면 지도 위의 그 사람과 그림이 같아지는
- * 이점은 있었지만 — **막상 구운 그림 자체의 품질이 낮다**는 지적을 받았다.
+ * 2026-09-02 한 번 이 자리를 EverFace(CC0 그림 조각) 합성으로 바꿨었다 —
+ * 그때의 3D 굽기가 "그림 자체 품질이 낮다"는 지적을 받아서였다. 이번에
+ * saga-realm 에서 그 저품질의 진짜 원인 셋을 찾아 고쳤다(2026-09-03):
+ *   1. 카메라가 얼굴이 아니라 **뒤통수**를 보고 있었다(회전에 `+Math.PI`가
+ *      더 붙어 있었다)
+ *   2. 표시 크기(150×172)보다 훨씬 작게(52px 등) 구워서 CSS 가 늘려 썼다 —
+ *      3D 인데도 흐릿하고 각져 보인 진짜 이유
+ *   3. 조명이 인물 **뒤**(-Z)에서 비춰 사실상 역광이었다
+ * saga-go 는 `.dt-portrait`(`ui.js`)가 이미 150×172 로 알맞게 구워 달라고
+ * 하고 있어 2번은 원래 없던 문제다. 1·3 번만 고쳐 다시 3D 로 돌아간다.
+ * EverFace/nonemo 그림 조각(`assets/sprites2d/portrait/`)은 지우지 않았다 —
+ * `icon.js` 등 다른 자리가 쓸 수도 있고, three 가 없는 자리의 되돌아가는
+ * 길은 여전히 `sprite.portrait`/`sprite.portraitCard`(캔버스 도형)다.
  *
- * 그래서 다시 옮긴다. 이번엔 **실제 CC0 얼굴 그림 조각**을 인물 id 해시로
- * 골라 합성한다(3D 인물의 HERO_RECIPES 가 몸·옷·머리를 id 해시로 고르는
- * 것과 같은 요령). 이름값이 있는 대체재가 아니라 **그림 자체가 좋은
- * 대체재**를 노린다. 자세한 출처는 `assets/ASSET_LICENSES.md` 참고:
- *
- *   - **진지한(기본) 얼굴** — EverFace(CC0, OpenGameArt) 18 종. 사가국지 같은
- *     장수·군주 도감에 어울리는 그림체
- *   - **귀여운 얼굴(손잡이로 켠다)** — nonemo's Character Pack(CC0, itch.io)
- *     머리·피부·표정을 층층이 쌓는 조합형. "등신"(필드 몸 비례)과는
- *     별개 개념이라 독립 손잡이(`portrait3d.cute`)를 둔다
- *
- *   of(kind, ref, w, h)    다 만들었으면 dataURL, 아니면 null (동기)
- *   warm(kind, ref, w, h)  만들기 시작한다. 되면 `sweep()` 이 화면을 갈아 끼운다
+ *   of(kind, ref, w, h)    다 구웠으면 dataURL, 아니면 null (동기)
+ *   warm(kind, ref, w, h)  굽기 시작한다. 되면 `sweep()` 이 화면을 갈아 끼운다
  *   sweep()                `[data-p3]` 가 붙은 <img> 를 훑어 src 를 바꾼다
  *
- * **되돌아가는 길이 그대로다.** 손잡이(`portrait3d.on`)를 내리면 `null` 을
- * 주고, 부르는 쪽은 여태 쓰던 `sprite.portraitCard` 그림을 그대로 쓴다.
+ * **되돌아가는 길이 그대로다.** three 가 없거나 GLB 를 못 받거나(`file://`
+ * 단독판) 손잡이(`portrait3d.on`)를 내리면 `null` 을 주고, 부르는 쪽은
+ * 여태 쓰던 `sprite.portrait`/`sprite.portraitCard` 그림을 그대로 쓴다.
  * 화면은 안 빈다. **한 줄도 판정에 닿지 않는다.** 여기서 만드는 것은 그림뿐이다.
  */
 (function (global) {
   'use strict';
 
   function core() { return global.DG.core; }
+  var T = null;
+  function three() { if (!T) { T = global.THREE || null; } return T; }
 
-  /** 초상을 그림 조각으로 합칠까 — 0 이면 여태 쓰던 캔버스 그림 그대로(되돌림용) */
+  /** 초상을 모델로 구울까 — 0 이면 여태 쓰던 캔버스 그림 그대로 (되돌림용) */
   function ON() { return core().tuned('portrait3d.on', 1) ? true : false; }
-  /** 귀여운(nonemo) 얼굴로 — "등신"(필드 몸 비례)과는 무관한 별개 손잡이다 */
-  function CUTE() { return core().tuned('portrait3d.cute', 0) ? true : false; }
 
-  function ready() { return !!(ON() && global.DG.data); }
+  /* ── 값을 내는 함수 — three 없이도 돈다 (자가진단이 이것만 본다) ────── */
 
-  /** 이 그림의 이름표. `<img data-p3="...">` 에 적히는 그 값이다 */
   function keyOf(kind, ref, w, h) {
     var id = (ref && (ref.id || ref.key || ref.name)) || 'x';
-    return kind + ':' + id + ':' + Math.round(w) + 'x' + Math.round(h) + ':' + (CUTE() ? 'cute' : 'serious');
+    return kind + ':' + id + ':' + Math.round(w) + 'x' + Math.round(h);
   }
 
-  /** 이름표를 되읽는다 — `sweep()` 이 <img> 에서 무엇을 만들지 알아내는 자리 */
   function parseKey(s) {
-    var m = /^([a-z]+):([^:]+):(\d+)x(\d+):(cute|serious)$/.exec(String(s || ''));
+    var m = /^([a-z]+):([^:]+):(\d+)x(\d+)$/.exec(String(s || ''));
     if (!m) { return null; }
-    return { kind: m[1], id: m[2], w: +m[3], h: +m[4], style: m[5] };
+    return { kind: m[1], id: m[2], w: +m[3], h: +m[4] };
   }
 
-  /** 문자열 해시 — 인물마다 늘 같은 조합이 나오게(세션이 바뀌어도) */
-  function hash(s) {
-    var h = 0;
-    s = String(s);
-    for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; }
-    return h >>> 0;
+  /** 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다 */
+  function camPlan(w, h) {
+    var aspect = w / Math.max(1, h);
+    var span = 0.62;
+    var fov = 26;
+    var dist = (span / 2) / Math.tan(fov * Math.PI / 360);
+    if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
+    var look = 0.78;
+    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: 0.42, pitch: 0.06 };
   }
 
-  /* ── 그림 조각 캐시 — <img> 는 한 번만 만든다, 나머지는 재사용 ────── */
-  var imgCache = {};
-  function img(src) {
-    var im = imgCache[src];
-    if (!im) { im = new Image(); im.src = src; imgCache[src] = im; }
-    return im;
-  }
-  function loaded(im) { return !!(im && im.complete && im.naturalWidth); }
+  /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
 
-  var SERIOUS_N = 18;
-  var HAIR_COL = ['black', 'blond', 'blue', 'brown', 'green', 'orange', 'red', 'violet', 'white'];
-  var FRONT_STYLE = ['chupchik', 'curly', 'elegant'];
-  var BACK_STYLE = ['curly', 'long'];
-  var CUTE_FACE = ['smile', 'willing', 'cute', 'laughs', 'gloating'];
+  var renderer = null, scene = null, camera = null, rig = null, failed = false;
+  var cache = {};           // { key: dataURL }
+  var pending = {};         // { key: true }  굽는 중
+  var made = 0, gaveUp = 0;
 
-  /** 인물 id 하나에 늘 같은 조합을 준다(3D HERO_RECIPES 와 같은 요령) */
-  function recipe(id) {
-    var h = hash(id);
-    return {
-      serious: h % SERIOUS_N,
-      tint: 1 + (h >>> 4) % 3,
-      hairCol: HAIR_COL[(h >>> 6) % HAIR_COL.length],
-      front: FRONT_STYLE[(h >>> 10) % FRONT_STYLE.length],
-      back: BACK_STYLE[(h >>> 12) % BACK_STYLE.length],
-      face: CUTE_FACE[(h >>> 14) % CUTE_FACE.length]
-    };
-  }
+  function ready() { return !!(three() && ON() && !failed); }
 
-  function pad2(n) { return n < 10 ? '0' + n : String(n); }
-
-  function drawSerious(c, w, h, rec) {
-    var im = img('assets/sprites2d/portrait/serious/face_' + pad2(rec.serious) + '.png');
-    if (!loaded(im)) { return false; }
-    var sc = Math.min(w / im.naturalWidth, h / im.naturalHeight) * 0.92;
-    var dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
-    c.imageSmoothingEnabled = false;
-    c.drawImage(im, (w - dw) / 2, (h - dh) * 0.42, dw, dh);
-    return true;
-  }
-
-  function drawCute(c, w, h, rec) {
-    var parts = [
-      'skin/tint_' + rec.tint + '/head.png',
-      'hairs/back/' + rec.back + '.' + rec.hairCol + '.png',
-      'faces/' + rec.face + '.png',
-      'hairs/front/' + rec.front + '.' + rec.hairCol + '.png'
-    ];
-    var imgs = [], i;
-    for (i = 0; i < parts.length; i++) {
-      var im = img('assets/sprites2d/portrait/cute/' + parts[i]);
-      if (!loaded(im)) { return false; }
-      imgs.push(im);
-    }
-    var iw = imgs[0].naturalWidth, ih = imgs[0].naturalHeight;
-    var sc = Math.min(w / iw, h / ih) * 0.86;
-    var dw = iw * sc, dh = ih * sc;
-    var dx = (w - dw) / 2, dy = (h - dh) * 0.46;
-    c.imageSmoothingEnabled = false;
-    for (i = 0; i < imgs.length; i++) { c.drawImage(imgs[i], dx, dy, dw, dh); }
-    return true;
+  /** 오프스크린 렌더러 — **한 번만** 만든다. 초상마다 만들면 컨텍스트가 넘친다 */
+  function boot() {
+    if (renderer || failed) { return !!renderer; }
+    var t = three();
+    if (!t) { failed = true; return false; }
+    try {
+      var cv = document.createElement('canvas');
+      renderer = new t.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+      renderer.setClearColor(0x000000, 0);
+      renderer.setPixelRatio(1);
+      if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
+      renderer.toneMappingExposure = 1.3;
+      if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
+      scene = new t.Scene();
+      camera = new t.PerspectiveCamera(26, 1, 0.01, 40);
+      /* asset3d.delam() 이 PBR 을 Lambert 로 물들여 환경맵 반사가 안 먹는다 —
+         대신 **얼굴이 어느 쪽을 보든 카메라 쪽에서 늘 빛을 받게** key·fill·
+         bounce 를 전부 카메라와 같은 +Z 쪽에 둔다(고전 인물사진 조명) */
+      scene.add(new t.HemisphereLight(0xdCE8FF, 0x746a5c, 2.3));
+      var sun = new t.DirectionalLight(0xFFF3DC, 1.9);
+      sun.position.set(0.9, 1.7, 2.0);
+      scene.add(sun);
+      var fill = new t.DirectionalLight(0xbdd2ee, 1.1);
+      fill.position.set(-1.1, 1.1, 1.6);
+      scene.add(fill);
+      var bounce = new t.DirectionalLight(0xffe9c8, 0.55);
+      bounce.position.set(0, -1.0, 1.3);
+      scene.add(bounce);
+      rig = new t.Group();
+      scene.add(rig);
+    } catch (e) { failed = true; renderer = null; }
+    return !!renderer;
   }
 
   /** 세력·등급 빛깔 — 카드 배경을 여기서 곧바로 정한다(`sprite` 와 같은 규칙) */
@@ -139,7 +120,7 @@
 
   /**
    * 카드 배경 — 세력색 그라디언트에 큼직한 문양, 테두리는 등급색.
-   * 3D 굽기 때와 같은 결을 잇는다(그림 만드는 방식만 바뀐 것이다).
+   * 캔버스 되돌림 그림(`sprite.portraitCard`)과 같은 결을 잇는다.
    */
   function paintBack(c, w, h, kind, ref) {
     var col = colorsOf(kind, ref);
@@ -148,7 +129,6 @@
     g.addColorStop(1, shade(col.fac.color, -0.52));
     c.fillStyle = g;
     c.fillRect(0, 0, w, h);
-    /* 세력 문양 — 종이에 찍은 도장처럼 옅게 */
     c.save();
     c.globalAlpha = 0.16;
     c.fillStyle = '#ffffff';
@@ -160,81 +140,132 @@
     return col;
   }
 
-  /** 테두리는 **그림 위에** 얹는다 — 밑에 깔면 그림 가장자리가 테두리를 덮는다 */
+  /** 테두리는 **인물 위에** 얹는다 — 밑에 깔면 어깨가 테두리를 덮는다 */
   function paintFrame(c, w, h, col) {
     c.strokeStyle = col.rar && col.rar.color ? col.rar.color : '#8a94a6';
     c.lineWidth = 2;
     c.strokeRect(1, 1, w - 2, h - 2);
   }
 
-  var cache = {};           // { key: dataURL | false }
-  var pending = {};         // { key: true }  만드는 중
-  var made = 0, gaveUp = 0;
+  /**
+   * 한 사람을 굽는다. 모델이 아직 도형(placeholder)이면 **아무것도 안 하고
+   * null** — GLB 가 다 오면(`assetState==='glb'`) `warm` 이 다시 부른다.
+   */
+  function bake(kind, ref, w, h, node) {
+    if (!boot()) { return null; }
+    if (!node || !node.userData || node.userData.assetState !== 'glb') { return null; }
 
-  function has(key) { return Object.prototype.hasOwnProperty.call(cache, key); }
+    var plan = camPlan(w, h);
+    var dpr = Math.min(global.devicePixelRatio || 1, 2);
+    var pw = Math.max(16, Math.round(w * dpr)), ph = Math.max(16, Math.round(h * dpr));
 
-  /** 한 사람을 그림으로 만든다. 그림 조각이 아직 안 왔으면 null */
-  function bake(kind, ref, w, h) {
-    var id = (ref && (ref.id || ref.key || ref.name)) || 'x';
-    var rec = recipe(id);
+    while (rig.children.length) { rig.remove(rig.children[0]); }
+    rig.add(node);
+    node.position.set(0, 0, 0);
+    node.scale.setScalar(1);
+    node.rotation.set(0, plan.yaw, 0);
+
+    /* 쉬는 자세를 한 번 굴려 준다 — 안 그러면 T 자로 굳은 채 찍힌다 */
+    var A = global.DG.asset3d;
+    try {
+      if (A && A.step) { A.step(node, { t: 0, walking: false }); A.step(node, { t: 0.45, walking: false }); }
+    } catch (e) { /* 자세를 못 잡아도 그림은 나온다 */ }
+
+    camera.fov = plan.fov;
+    camera.aspect = plan.aspect;
+    camera.position.set(0, plan.look + plan.dist * Math.sin(plan.pitch), plan.dist);
+    camera.lookAt(0, plan.look, 0);
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(pw, ph, false);
+    renderer.render(scene, camera);
+
     var cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
+    cv.width = pw; cv.height = ph;
     var c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
     var col = paintBack(c, w, h, kind, ref);
-    var ok = CUTE() ? drawCute(c, w, h, rec) : drawSerious(c, w, h, rec);
-    if (!ok) { return null; }
+    c.drawImage(renderer.domElement, 0, 0, w, h);
     paintFrame(c, w, h, col);
+
+    rig.remove(node);
     made++;
     try { return cv.toDataURL('image/png'); } catch (e) { return null; }
   }
 
-  /** 다 만들어 뒀으면 그림, 아니면 null */
+  /** 다 구워 뒀으면 그림, 아니면 null */
   function of(kind, ref, w, h) {
     if (!ready()) { return null; }
     return cache[keyOf(kind, ref, w, h)] || null;
   }
 
   /**
-   * 만들기 시작한다. 그림 조각(<img>)이 처음이면 로드가 끝나기 전이라
-   * 바로는 못 만든다 — 잠깐씩 다시 본다(최대 스무 번, 그 뒤엔 포기해
-   * `cache[key] = false` 로 한 번만 적어 두고 다시 시도하지 않는다).
-   * 3D 굽기와 달리 GPU 컨텍스트를 안 쓰므로 **여러 인물을 한꺼번에
-   * 만들어도 화면이 안 끊긴다** — 줄(queue)이 필요 없다.
+   * 굽는 줄 — **한 번에 하나씩만** 굽는다. 여러 인물을 한꺼번에 부르면
+   * 지도 위 실제 3D 화면과 GPU 를 다툰다 — 다른 판(사가블로 등)에서 필드를
+   * 걷거나 전투할 때 끊긴다는 신고를 받고 줄을 세운 적이 있다. 실패도
+   * `cache[key] = false` 로 **한 번만** 적어 두고 다시 시도하지 않는다.
    */
-  function warm(kind, ref, w, h) {
-    if (!ready() || !ref) { return false; }
-    var key = keyOf(kind, ref, w, h);
-    if (has(key) || pending[key]) { return false; }
-    pending[key] = true;
+  var queue = [];
+  var busy = false;
+
+  function has(key) { return Object.prototype.hasOwnProperty.call(cache, key); }
+
+  function pump() {
+    if (busy || !queue.length) { return; }
+    var job = queue.shift();
+    busy = true;
+
+    var A3 = global.DG.asset3d;
+    var node = null;
+    try { node = A3.build('hero', job.ref, null); } catch (e) { node = null; }
+    if (!node) {
+      cache[job.key] = false; gaveUp++; delete pending[job.key]; busy = false; pump();
+      return;
+    }
 
     var tries = 0;
     function tick() {
       var url = null;
-      try { url = bake(kind, ref, w, h); } catch (e) { url = null; }
+      try { url = bake(job.kind, job.ref, job.w, job.h, node); } catch (e) { url = null; }
       if (url) {
-        cache[key] = url;
-        delete pending[key];
+        cache[job.key] = url;
+        delete pending[job.key];
+        busy = false;
         sweep();
+        pump();
         return;
       }
-      if (++tries > 20) {
-        cache[key] = false;
-        delete pending[key];
+      if (++tries > 24) {                       // 여남은 번 뒤엔 포기 — 캔버스 그림으로 남는다, 다시 안 본다
+        cache[job.key] = false;
+        delete pending[job.key];
         gaveUp++;
+        busy = false;
+        pump();
         return;
       }
-      global.setTimeout(tick, 120);
+      global.setTimeout(tick, 220);
     }
     tick();
+  }
+
+  /** 줄에 올린다. `asset3d.build` 가 준 껍데기는 GLB 가 오는 순간 안이
+   *  갈리는데, 그 순간을 알려 주지 않으므로 잠깐씩 다시 본다(최대 여남은 번) */
+  function warm(kind, ref, w, h) {
+    if (!ready() || !ref || kind !== 'hero') { return false; }
+    var key = keyOf(kind, ref, w, h);
+    if (has(key) || pending[key]) { return false; }
+    var A3 = global.DG.asset3d;
+    if (!A3 || !A3.build) { return false; }
+    pending[key] = true;
+    queue.push({ kind: kind, ref: ref, w: w, h: h, key: key });
+    pump();
     return true;
   }
 
   /**
    * 화면에 이미 붙은 그림을 갈아 끼운다.
-   *
    * 부르는 쪽(`ui.js`)은 여태처럼 `sprite` 그림으로 `<img>` 를 만들고,
-   * 거기에 이름표(`data-p3`)만 붙여 둔다. 다 만들어지면 여기서 `src` 만
-   * 바꾼다 — **화면이 한 번도 비지 않는다.**
+   * 거기에 이름표(`data-p3`)만 붙여 둔다. 다 구워지면 여기서 `src` 만 바꾼다.
    */
   function sweep() {
     if (!ready() || !global.document) { return 0; }
@@ -263,7 +294,7 @@
 
   function stats() {
     return {
-      on: ON(), ready: ready(), failed: false,
+      on: ON(), ready: ready(), failed: failed,
       made: made, gaveUp: gaveUp,
       cached: Object.keys(cache).length,
       baking: Object.keys(pending).length

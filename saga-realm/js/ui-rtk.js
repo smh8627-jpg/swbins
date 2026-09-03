@@ -59,6 +59,19 @@
       global.DG.sprite.portrait('hero', ref, sz) + '">';
   }
 
+  /**
+   * 무장 카드 큰 초상 — `pt()` 와 달리 정사각이 아니라 액자 비율이다.
+   * CSS(`.pt{width:100%;height:100%}`)가 카드 폭만큼 늘려 보여주는데, 여태
+   * `pt(h,52)` 로 52px 짜리를 그 자리에 늘여 써서 흐릿하게 뭉갰다(2026-09-03) —
+   * 구울 해상도 자체를 표시 크기에 맞춘다. 되돌아가는 그림도 목록용 작은
+   * `sprite.portrait()` 대신 액자·배경이 있는 `sprite.portraitCard()` 로 맞춘다.
+   */
+  function ptBig(ref, w, h) {
+    w = w || 200; h = h || 224;
+    return '<img class="pt" alt=""' + p3tag(ref, w, h) + ' src="' +
+      global.DG.sprite.portraitCard('hero', ref, w, h) + '">';
+  }
+
   function forceColor(id) {
     var f = FD.force(id);
     return f ? f.color : '#5b6572';
@@ -770,7 +783,7 @@
     var bio = global.DG.data.bio ? global.DG.data.bio(h.id) : '';
     var c = R().city(cityId);
     return '<div class="card offcard">' +
-      '<div class="dt-top">' + pt(h, 52) +
+      '<div class="dt-top">' + ptBig(h) +
         '<div class="dt-name"><b>' + esc(h.name) + '</b> <span class="muted">' +
           esc(h.hanja || '') + '</span>' +
           (isLord ? ' <span class="tag">군주</span>' : '') +
