@@ -58,6 +58,49 @@
   var GROUND_SPAN = 2200;         // buildGround() 의 PlaneGeometry 한 변과 같아야 한다
   var BIOME_COLOR = { plain: '#cfe0a0', hill: '#d3c88f', river: '#a9d6bd', mount: '#b3aca3' };
 
+  /* ── 높낮이 지형 (heightmap) ──────────────────────────────
+   * 평면 좌표계(worldX/worldZ)는 그대로 두고, **y 값만** 여기서 얹는다 —
+   * 새 좌표계를 만들지 않는다는 원래 원칙과 같은 결이다. 두 층을 더한다:
+   *  1) 결이 낮은 값잡음(baseNoise) — 격자 모서리를 해시로 찍고 bilinear로
+   *     매끄럽게 잇는다. 지도 전역에 은은한 굴곡을 준다(평야도 완전히 평평하진 않다)
+   *  2) 성마다의 land 로 정한 봉우리(cityBump) — 산은 높게, 구릉은 낮게,
+   *     강은 살짝 파이게, 평야는 얹지 않는다. 성 반경 안에서만 값하고
+   *     smoothstep 으로 부드럽게 꺼진다
+   * 둘 다 해시 기반이라 항상 같은 그림이 선다(진단 결정성과 같은 이유).
+   * 이 값은 성 좌표(x·y·land)에만 물려 있어 달이 넘어가도(rebuild) 안 변한다
+   * — 그래서 바닥 지오메트리는 init() 때 딱 한 번만 굳힌다. */
+  var NOISE_GRID = 44, NOISE_AMP = 4;
+  var LAND_PEAK = { mount: 34, hill: 13, river: -3, plain: 0 };
+  var BUMP_RADIUS = 42;
+
+  function noiseCorner(gx, gz) {
+    var hh = hashOf('terr:' + gx + ':' + gz);
+    return ((hh % 1000) / 1000) * 2 - 1;
+  }
+  function smoothstep(x) { return x * x * (3 - 2 * x); }
+  function baseNoise(wx, wz) {
+    var gx = Math.floor(wx / NOISE_GRID), gz = Math.floor(wz / NOISE_GRID);
+    var fx = smoothstep(wx / NOISE_GRID - gx), fz = smoothstep(wz / NOISE_GRID - gz);
+    var v00 = noiseCorner(gx, gz), v10 = noiseCorner(gx + 1, gz);
+    var v01 = noiseCorner(gx, gz + 1), v11 = noiseCorner(gx + 1, gz + 1);
+    var a = v00 + (v10 - v00) * fx, b = v01 + (v11 - v01) * fx;
+    return a + (b - a) * fz;
+  }
+  function cityBump(wx, wz) {
+    var cities = cityData().CITIES, i, sum = 0;
+    for (i = 0; i < cities.length; i++) {
+      var c = cities[i], peak = LAND_PEAK[c.land] || 0;
+      if (!peak) { continue; }
+      var d = Math.hypot(wx - worldX(c.x), wz - worldZ(c.y));
+      if (d > BUMP_RADIUS) { continue; }
+      sum += peak * smoothstep(1 - d / BUMP_RADIUS);
+    }
+    return sum;
+  }
+  /** 지형 높이 — 이 함수 하나가 바닥 · 성 · 소품 · 길 · 카메라가 다 같이 읽는
+   *  단일 진실 값이다(따로 잰 높이를 쓰면 소품이 바닥에 파묻히거나 뜬다) */
+  function elevAt(wx, wz) { return baseNoise(wx, wz) * NOISE_AMP + cityBump(wx, wz); }
+
   /** 바닥 — 단색 한 장이 밋밋해서(퀄리티 피드백) **성 지형(land)마다 다른 색을
    *  그 둘레로 은은하게 물들이고**(들판=풀빛·구릉=흙빛·강가=옅은 청록·산=잿빛),
    *  그 위에 옅은 얼룩 점묘를 얹는다. 실제 사진이 아니라 해시로 찍은 점묘·원이라
@@ -132,6 +175,7 @@
 
   var yaw = 0, pitch = 0.85, dist = 260;
   var targetYaw = 0, targetPitch = 0.85, targetDist = 260;
+  var pivotY = 0;                 // 카메라가 도는 중심의 지형 높이(elevAt(0,0)) — init()에서 한 번 잰다
 
   function available() { return !!three() && !failed; }
   function active() { return ON() && ready; }
@@ -156,13 +200,24 @@
     sun.position.set(-120, 200, 90);
     scene.add(sun);
 
+    /* PlaneGeometry는 XY 평면에 눕고, rotation.x=-90°로 눕히면 로컬 (x,y,z)가
+     * 세계 (x, z, -y)로 간다 — 로컬 y ↔ 세계 z 가 **부호가 뒤집힌다.** elevAt()은
+     * 세계 좌표(worldX/worldZ)로 부르는 함수라 그대로 넣으면 산이 지도의 반대쪽에
+     * 선다(성은 안 움직이고 땅만 어긋난다) — 그래서 -gp.getY(gi)로 뒤집어 넣는다 */
+    var groundGeo = new t.PlaneGeometry(GROUND_SPAN, GROUND_SPAN, 128, 128);
+    var gp = groundGeo.attributes.position, gi;
+    for (gi = 0; gi < gp.count; gi++) {
+      gp.setZ(gi, elevAt(gp.getX(gi), -gp.getY(gi)));
+    }
+    groundGeo.computeVertexNormals();
     var ground = new t.Mesh(
-      new t.PlaneGeometry(GROUND_SPAN, GROUND_SPAN),
+      groundGeo,
       new t.MeshLambertMaterial({ color: 0xffffff, map: groundTexture() })
     );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.05;
     scene.add(ground);
+
+    pivotY = elevAt(0, 0);
 
     dyn = new t.Group();
     scene.add(dyn);
@@ -255,7 +310,7 @@
     }
     var m = new t.Mesh(blobGeo, blobMat);
     m.rotation.x = -Math.PI / 2;
-    m.position.set(x, 0.015, z);
+    m.position.set(x, elevAt(x, z) + 0.015, z);
     m.scale.setScalar(Math.max(0.4, r));
     dyn.add(m);
   }
@@ -265,7 +320,7 @@
   function addProp(kind, id, x, z, scaleH, rotY, seq) {
     asset3d().build(kind, { id: id }, function (g) {
       if (seq !== rebuildSeq || !g || !dyn) { return; }
-      g.position.set(x, 0, z);
+      g.position.set(x, elevAt(x, z), z);
       g.rotation.y = rotY || 0;
       g.scale.setScalar(scaleH);
       dyn.add(g);
@@ -302,7 +357,7 @@
       new t.MeshBasicMaterial({ color: 0x5aa9d8, transparent: true, opacity: 0.75 })
     );
     pond.rotation.x = -Math.PI / 2;
-    pond.position.set(px, 0.04, pz);
+    pond.position.set(px, elevAt(px, pz) + 0.04, pz);
     dyn.add(pond);
     addProp('grass', city.id + ':reed1', px + r * 0.6, pz, 0.7, 0, seq);
     addProp('grass', city.id + ':reed2', px - r * 0.5, pz + r * 0.3, 0.6, 0.8, seq);
@@ -353,7 +408,7 @@
       var x = cx + (col - (cols - 1) / 2) * 1.4;
       var z = cz - row * 1.4;
       var b = banner(color);
-      b.position.set(x, 0, z);
+      b.position.set(x, elevAt(x, z), z);
       dyn.add(b);
       addShadow(x, z, 0.4);
     }
@@ -383,7 +438,7 @@
         new t.CylinderGeometry(4.5, 4.5, 5, 10),
         new t.MeshBasicMaterial({ visible: false })
       );
-      hit.position.set(px, 2.5, pz);
+      hit.position.set(px, elevAt(px, pz) + 2.5, pz);
       hit.userData.campId = cp.id;
       dyn.add(hit);
       hitMeshes.push(hit);
@@ -429,22 +484,43 @@
   function buildJourney(j, seq) {
     var pos = journeyPos(j);
     if (!pos || seq !== rebuildSeq) { return; }
+    var wx = worldX(pos.x), wz = worldZ(pos.y);
     var flag = emojiSprite('🚩', 9);
-    flag.position.set(worldX(pos.x), 9, worldZ(pos.y));
+    flag.position.set(wx, elevAt(wx, wz) + 9, wz);
     dyn.add(flag);
   }
 
-  function addRoad(a, b, opt) {
+  /** 성과 성 사이 길 — 평지 구간은 예전처럼 한 토막, 언덕·산을 지나는 긴
+   *  구간은 몇 토막으로 나눠 지형을 따라 오르내리게 한다(2026-09-04, 높낮이
+   *  지형을 얹으며 — 안 나누면 길이 산허리를 그대로 뚫고 지나간다). 토막마다
+   *  3D 로 기울여야 해서 Y 축(방향) 뿐 아니라 X 축(오르내림 경사)도 돌린다 */
+  function addRoadSegment(p1, p2, opt) {
     var t = three();
-    var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
-    var dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz) || 1;
+    var dx = p2.x - p1.x, dy = p2.y - p1.y, dz = p2.z - p1.z;
+    var flat = Math.hypot(dx, dz), len = Math.hypot(flat, dy) || 0.001;
     var mat = new t.MeshBasicMaterial({
       color: new t.Color(opt.color), transparent: true, opacity: opt.opacity
     });
     var mesh = new t.Mesh(new t.BoxGeometry(opt.width, 0.06, len), mat);
-    mesh.position.set((ax + bx) / 2, opt.y, (az + bz) / 2);
+    mesh.position.set((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + opt.y, (p1.z + p2.z) / 2);
+    mesh.rotation.order = 'YXZ';
     mesh.rotation.y = Math.atan2(dx, dz);
+    mesh.rotation.x = -Math.atan2(dy, flat || 0.001);
     dyn.add(mesh);
+  }
+
+  function addRoad(a, b, opt) {
+    var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
+    var flatLen = Math.hypot(bx - ax, bz - az);
+    var n = clamp(Math.round(flatLen / 40), 2, 8), i;
+    var prev = { x: ax, y: elevAt(ax, az), z: az };
+    for (i = 1; i <= n; i++) {
+      var f = i / n;
+      var px = ax + (bx - ax) * f, pz = az + (bz - az) * f;
+      var cur = { x: px, y: elevAt(px, pz), z: pz };
+      addRoadSegment(prev, cur, opt);
+      prev = cur;
+    }
   }
 
   /** 지형지물 — 산은 봉우리, 구릉은 낮은 둔덕, 나머지는 나무·바위를 몇 개 흩는다.
@@ -525,16 +601,17 @@
     var seq = rebuildSeq;
     asset3d().build('city:' + tier, { id: city.id, tint: col, flag: col }, function (g) {
       if (seq !== rebuildSeq || !g || !dyn) { return; }
-      g.position.set(worldX(city.x), 0, worldZ(city.y));
+      var cx = worldX(city.x), cz = worldZ(city.y), gy = elevAt(cx, cz);
+      g.position.set(cx, gy, cz);
       g.scale.setScalar(h);
       dyn.add(g);
 
       var footprint = Math.max(3.2, h * 0.5);
-      addShadow(worldX(city.x), worldZ(city.y), footprint * 0.9);
+      addShadow(cx, cz, footprint * 0.9);
       cityDressing(city, tier, h, footprint, seq);
       var hitGeo = new t.CylinderGeometry(footprint, footprint, h, 10);
       var hit = new t.Mesh(hitGeo, new t.MeshBasicMaterial({ visible: false }));
-      hit.position.set(worldX(city.x), h / 2, worldZ(city.y));
+      hit.position.set(cx, gy + h / 2, cz);
       hit.userData.cityId = city.id;
       dyn.add(hit);
       hitMeshes.push(hit);
@@ -546,7 +623,7 @@
           new t.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, side: t.DoubleSide })
         );
         ring.rotation.x = -Math.PI / 2;
-        ring.position.set(worldX(city.x), 0.08, worldZ(city.y));
+        ring.position.set(cx, gy + 0.08, cz);
         dyn.add(ring);
       }
 
@@ -557,7 +634,7 @@
           new t.MeshBasicMaterial({ color: 0xe0663f, transparent: true, opacity: 0.7, side: t.DoubleSide })
         );
         pr.rotation.x = -Math.PI / 2;
-        pr.position.set(worldX(city.x), 0.09, worldZ(city.y));
+        pr.position.set(cx, gy + 0.09, cz);
         dyn.add(pr);
         pulseRings.push({ mesh: pr, base: footprint * 1.6 });
       }
@@ -574,12 +651,12 @@
             })
           );
           dr.rotation.x = -Math.PI / 2;
-          dr.position.set(worldX(city.x), 0.1, worldZ(city.y));
+          dr.position.set(cx, gy + 0.1, cz);
           dyn.add(dr);
 
           var spr = emojiSprite(dInfo.emoji, h * 0.9);
-          var baseY = h * 1.25;
-          spr.position.set(worldX(city.x), baseY, worldZ(city.y));
+          var baseY = gy + h * 1.25;
+          spr.position.set(cx, baseY, cz);
           dyn.add(spr);
           floaters.push({ mesh: spr, baseY: baseY, amp: h * 0.12, seed: hashOf(city.id) % 100 });
         }
@@ -729,10 +806,10 @@
 
     camera.position.set(
       Math.cos(pitch) * Math.sin(yaw) * dist,
-      Math.sin(pitch) * dist + 6,
+      Math.sin(pitch) * dist + pivotY + 6,
       Math.cos(pitch) * Math.cos(yaw) * dist
     );
-    camera.lookAt(0, 6, 0);
+    camera.lookAt(0, pivotY + 6, 0);
 
     var t = now || 0;
     for (var i = 0; i < pulseRings.length; i++) {
