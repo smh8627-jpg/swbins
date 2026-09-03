@@ -26,6 +26,12 @@
   var lastBattle = null;
   var pickScen = '194';        // 세력을 고르기 **전에** 고른 시나리오
 
+  /* 개입형 실시간 전투(showBattleLive) — 지금 명령을 기다리는 중이면 여기 담긴다.
+     act() 의 'bat-cmd' 손잡이가 이걸 불러 다음 합으로 잇는다 */
+  var liveStep = null;
+  var liveRepStub = null;
+  var liveBase = null;
+
   function $(id) { return document.getElementById(id); }
 
   function esc(s) {
@@ -214,6 +220,13 @@
     } else if (a === 'march') {
       doMarch(g('data-from'), g('data-to'));
       return;
+    } else if (a === 'bat-cmd') {
+      var cmd = g('data-cmd');
+      if (!cmd || cmd === 'none') { cmd = null; }
+      var step = liveStep; liveStep = null;
+      renderLiveCmd(false);
+      if (step) { step(cmd); }
+      return;
     } else if (a === 'camp-food' || a === 'camp-men') {
       doSupply(g('data-id'), a === 'camp-men');
       return;
@@ -266,14 +279,74 @@
   function runMarch(fromId, toId, lead, t) {
     if (!(t > 0)) { return; }
     for (var i = 0; i < lead.length; i++) { off().rec(lead[i]).done = true; }
-    var rep = global.DG.war.march(fromId, toId, lead, t);
-    if (!rep.ok) {
-      for (var j = 0; j < lead.length; j++) { off().rec(lead[j]).done = false; }
-      toast(rep.why);
-      return;
+    showBattleLive(fromId, toId, lead, t);
+  }
+
+  /** 개입형 실시간 전투 — 합마다 끊어 명령(돌격·수비·정공법·퇴각)을 받는다.
+   *  끝나면 war.js 가 'rtk:battle' 을 쏘고, 그 리스너(위 init())가 showBattle()
+   *  로 이 화면을 표준 요약(전체 재생 포함)으로 갈아 끼운다 — 여기선 진행
+   *  중일 때만 그린다 */
+  function renderLiveCmd(show) {
+    var el = $('livecmd');
+    if (!el) { return; }
+    el.innerHTML = !show ? '' :
+      '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' +
+      '<button class="btn tiny" data-act="bat-cmd" data-cmd="press">⚔️ 돌격</button>' +
+      '<button class="btn tiny" data-act="bat-cmd" data-cmd="hold">🛡️ 수비</button>' +
+      '<button class="btn tiny ghost" data-act="bat-cmd" data-cmd="none">➡️ 정공법</button>' +
+      '<button class="btn tiny ghost" data-act="bat-cmd" data-cmd="retreat">↩️ 퇴각</button>' +
+      '</div>';
+  }
+
+  function liveAppendLog(s) {
+    var el = $('livelog');
+    if (!el) { return; }
+    var d = document.createElement('div');
+    d.textContent = s;
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function liveShowState(state) {
+    if (liveBase && liveRepStub && global.DG.battle3d) {
+      global.DG.battle3d.showState(liveRepStub, liveBase, state);
     }
-    showBattle(rep);
-    renderTop(); renderMap(); renderSheet(); syncDock();
+  }
+
+  function showBattleLive(fromId, toId, lead, t) {
+    liveStep = null; liveRepStub = null; liveBase = null;
+    var res = global.DG.war.marchInteractive(fromId, toId, lead, t, {
+      onIntro: function (lines, repStub) {
+        var html = (global.DG.battle3d ? '<canvas id="battle3d"></canvas>' : '') +
+          '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황 (진행 중)</h3>' +
+          '<div class="warlog" id="livelog"></div><div id="livecmd"></div>';
+        showEnc(html);
+        liveRepStub = repStub;
+        for (var i = 0; i < lines.length; i++) { liveAppendLog(lines[i]); }
+        if (global.DG.battle3d) {
+          liveBase = global.DG.battle3d.beginLive(repStub);
+          liveShowState({ atk: repStub.atkStart, def: repStub.defStart, wall: repStub.wallFrom,
+            duelPhase: repStub.duel ? 'done' : null });
+        }
+      },
+      onLog: liveAppendLog,
+      onRound: function (frame) {
+        liveShowState({ atk: frame.atk, def: frame.def, wall: frame.wall,
+          duelPhase: liveRepStub && liveRepStub.duel ? 'done' : null });
+      },
+      onPrompt: function (state, step) {
+        liveStep = step;
+        renderLiveCmd(true);
+      },
+      onDone: function () {
+        liveStep = null;
+        renderLiveCmd(false);
+      }
+    });
+    if (res && res.ok === false) {
+      for (var j = 0; j < lead.length; j++) { off().rec(lead[j]).done = false; }
+      toast(res.why);
+    }
   }
 
   /** 진영에 군량이나 병력을 보낸다 */

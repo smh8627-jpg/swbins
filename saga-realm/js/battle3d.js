@@ -350,6 +350,29 @@
     startLoop();
   }
 
+  /**
+   * **개입형 실시간 전투** 용 — `war.marchInteractive()` 가 합마다 끊어 부르므로
+   * 여기서도 미리 정해진 재생(`playback`)이 아니라 그때그때 `showState()` 로
+   * 한 걸음씩 그린다. 땅·성은 한 번만 짓고(`buildBase`), 그 뒤로는 `showState()`
+   * 만 호출한다 — `render()`(예전 요약 재생)와는 다른 입구다.
+   * @param repStub {to,water,force,defForce,atkStart,defStart,duel,wallFrom}
+   * @returns base — showState() 에 그대로 넘긴다. 실패하면 null
+   */
+  function beginLive(repStub) {
+    if (!repStub || !ensureInit()) { return null; }
+    clearTimers();
+    var base = buildBase(repStub);
+    resize();
+    startLoop();
+    return base;
+  }
+
+  /** beginLive() 로 세운 자리에 한 순간(state)을 그린다 — 새 판정은 안 한다 */
+  function showState(repStub, base, state) {
+    if (!base) { return; }
+    renderLive(repStub, base, state);
+  }
+
   function startLoop() {
     if (loopRunning) { return; }
     loopRunning = true;
@@ -368,5 +391,5 @@
   }
 
   global.DG = global.DG || {};
-  global.DG.battle3d = { available: available, render: render };
+  global.DG.battle3d = { available: available, render: render, beginLive: beginLive, showState: showState };
 })(window);

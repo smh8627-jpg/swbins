@@ -221,11 +221,11 @@
   }
 
   /**
-   * 친다.
-   * @param officerIds 데려갈 무장 (이 성에 있고, 성한 사람만)
-   * @returns 전황 보고 { won, log[], lossA, lossD, taken, duel }
+   * 출진 사전 준비 — 확인·차출·구원군·부대 구성까지, `fight()`/`marchInteractive()`
+   * 어느 쪽으로 붙든 **똑같이** 거쳐야 하는 부분이다.
+   * @returns {ok:false,why} 이거나 {ok:true, atk, def, land, chk, valid, ...}
    */
-  function march(fromId, toId, officerIds, troops) {
+  function setupMarch(fromId, toId, officerIds, troops) {
     var R = global.DG.rtk;
     var off = global.DG.off;
     var chk = canMarch(fromId, toId, troops);
@@ -264,7 +264,23 @@
     /* 따라나선 것만으로도 는다 — 이기고 지고는 그다음이다 */
     off.gainExpAll(valid, off.EXP.march);
 
-    var report = fight(atk, def, to, toId, land, false);
+    return {
+      ok: true, fromId: fromId, toId: toId, from: from, to: to,
+      atk: atk, def: def, land: land, chk: chk, valid: valid, troops: troops, relief: relief
+    };
+  }
+
+  /**
+   * 싸움이 끝난 뒤 — 성을 뺏거나 물러나거나 진을 친다. `fight()` 로 한 번에
+   * 붙었든 `marchInteractive()` 로 합마다 끊어 붙었든 결과 모양(report)만
+   * 같으면 이 뒤처리는 똑같다.
+   */
+  function finishMarch(setup, report) {
+    var R = global.DG.rtk, off = global.DG.off;
+    var fromId = setup.fromId, toId = setup.toId, from = setup.from, to = setup.to;
+    var atk = setup.atk, def = setup.def, chk = setup.chk, valid = setup.valid;
+    var troops = setup.troops, relief = setup.relief, i;
+
     report.from = fromId; report.to = toId; report.relief = relief;
     report.force = from.force; report.defForce = def.force;
     if (relief > 0) { report.log.splice(1, 0, '🚩 이웃 성에서 구원군 ' + core.fmt(relief) + ' 이 들어왔다'); }
@@ -296,6 +312,118 @@
     core.emit('changed');
     core.persist();
     return report;
+  }
+
+  /**
+   * 친다.
+   * @param officerIds 데려갈 무장 (이 성에 있고, 성한 사람만)
+   * @returns 전황 보고 { won, log[], lossA, lossD, taken, duel }
+   */
+  function march(fromId, toId, officerIds, troops) {
+    var setup = setupMarch(fromId, toId, officerIds, troops);
+    if (!setup.ok) { return setup; }
+    var report = fight(setup.atk, setup.def, setup.to, setup.toId, setup.land, false);
+    return finishMarch(setup, report);
+  }
+
+  /**
+   * 친다 — **개입형**. `march()` 와 사전 준비는 완전히 같지만, 판정을 합마다
+   * 끊어 그 사이에 플레이어의 명령(돌격·수비·퇴각)을 받는다.
+   *
+   * 개입이 없으면(매번 `step(null)`) `stepRound()` 를 그대로 같이 쓰므로
+   * `fight()` 를 한 번에 돌린 것과 자릿수까지 같은 값이 나온다 — **판정 수식은
+   * 한 줄도 안 바뀌었다**, 명령이 곱하는 배율(`stepRound` 참고)만 새로 얹은
+   * 자리다. AI 가 치는 싸움·가늠(forecast)·진영의 달마다 재개(`resolveCamp`)는
+   * 여전히 `fight()` 를 그대로 쓴다 — 여기 손 안 댄다("AI 전용 판정 안 만든다"
+   * 원칙, `CLAUDE.md` 참고). 실제 개입은 **플레이어가 손수 출진을 누른 그
+   * 싸움에서만** 일어난다.
+   *
+   * @param hooks {
+   *   onIntro(lines, repStub) — 붙기 전 형세(머리글+일기토)가 다 나온 뒤 한 번.
+   *     repStub 은 battle3d 를 그 자리에서 세우는 데 필요한 최소한(atkStart 등)
+   *   onLog(line) — 그 뒤로 새로 찍히는 로그 한 줄씩(화공 등)
+   *   onRound(frame, r) — 매 합 끝
+   *   onPrompt(state, step) — 다음 합 전에 명령을 물을 차례.
+   *     step(cmd) 를 불러 잇는다 — cmd: null|'press'|'hold'|'retreat'
+   *   onDone(report) — march() 가 돌려주던 것과 같은 모양의 최종 보고
+   * }
+   * @returns setup 이 실패했으면 {ok:false,why} 를 그 자리에서, 아니면
+   *   {ok:true, pending:true}(끝은 hooks.onDone 으로 온다)
+   */
+  function marchInteractive(fromId, toId, officerIds, troops, hooks) {
+    hooks = hooks || {};
+    var setup = setupMarch(fromId, toId, officerIds, troops);
+    if (!setup.ok) { return setup; }
+
+    var atk = setup.atk, def = setup.def, wallRef = setup.to, land = setup.land;
+    var toId2 = setup.toId;
+    var log = [];
+    var lines = function (s) {
+      log.push(s);
+      if (hooks.onLog) { hooks.onLog(s); }
+    };
+    var intro = fightIntro(atk, def, wallRef, toId2, land, false, lines);
+    var water = intro.water, sortie = intro.sortie, du = intro.du;
+    var startWall = wallRef.wall;
+    var frames = [], r = 0;
+
+    if (hooks.onIntro) {
+      hooks.onIntro(log.slice(), {
+        to: toId2, water: water, force: atk.force, defForce: def.force,
+        atkStart: atk.start, defStart: def.start, duel: du, wallFrom: startWall
+      });
+    }
+
+    function finish(kind) {
+      /* fight() 의 꼬리(잃은 병력·성벽 변화·남은 배)와 같은 줄을 남긴다 —
+         퇴각(retreat) 명령이면 이번 합은 안 치렀으니 건너뛴다 */
+      if (kind !== 'routed' || r > 0) {
+        lines('📉 잃은 병력 — 공 ' + core.fmt(atk.start - atk.troops) +
+          ' · 수 ' + core.fmt(def.start - def.troops));
+        if (startWall !== wallRef.wall) {
+          lines('🧱 성벽 ' + core.fmt(startWall) + ' → ' + core.fmt(wallRef.wall));
+        }
+        if (water) {
+          lines('🛶 남은 배 — 공 ' + (atk.ships || 0) + '척 · 수 ' + (def.ships || 0) + '척');
+        }
+      }
+      var report = {
+        ok: true, won: kind === 'won', routed: kind === 'routed', duel: du, log: log,
+        lossA: atk.start - atk.troops, lossD: def.start - def.troops,
+        atkStart: atk.start, defStart: def.start,
+        wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
+        frames: frames
+      };
+      var full = finishMarch(setup, report);
+      if (hooks.onDone) { hooks.onDone(full); }
+      return full;
+    }
+
+    function step(cmd) {
+      if (cmd === 'retreat') {
+        lines('↩️ 명령대로 즉시 군을 물렸다');
+        finish('routed');
+        return;
+      }
+      r++;
+      var res = stepRound(atk, def, wallRef, toId2, land, sortie, water, lines, cmd);
+      frames.push(res.frame);
+      if (hooks.onRound) { hooks.onRound(res.frame, r); }
+      if (res.outcome === 'won') { finish('won'); return; }
+      if (res.outcome === 'routed') { finish('routed'); return; }
+      if (r >= ROUNDS) {
+        lines('🌒 날이 저물었다 — 이 달 안에는 못 떨어뜨렸다');
+        finish('dusk');
+        return;
+      }
+      if (hooks.onPrompt) { hooks.onPrompt({ r: r, atk: atk.troops, def: def.troops, wall: wallRef.wall }, step); }
+      else { step(null); }
+    }
+
+    if (hooks.onPrompt) { hooks.onPrompt({ r: 0, atk: atk.troops, def: def.troops, wall: wallRef.wall }, step); }
+    else { step(null); }
+
+    return { ok: true, pending: true };
   }
 
   /**
@@ -332,14 +460,13 @@
   }
 
   /**
-   * 한 달치 싸움.
-   * @param wallRef {wall,maxWall} 를 가진 것 — 진짜 도시이거나, 가늠할 때는 그 사본
-   * @param dry     가늠(forecast)이면 true — 일기토를 굴리지 않는다(장수가 진짜로 다친다)
+   * 붙기 전 형세 — 머리글 로그 + 일기토 + 야전/공성/수전 갈림을 정한다.
+   * `fight()` 와 `marchInteractive()` 가 **같이 쓴다** — 개입형 전투도 붙기
+   * 전 형세는 정공법과 똑같아야 하기 때문이다.
+   * @param dry 가늠(forecast)이면 true — 일기토를 굴리지 않는다(장수가 진짜로 다친다)
    */
-  function fight(atk, def, wallRef, toId, land, dry) {
+  function fightIntro(atk, def, wallRef, toId, land, dry, lines) {
     var off = global.DG.off;
-    var log = [];
-    var lines = function (s) { log.push(s); };
     var water = !!atk.water;
     if (water) { def.water = true; }
 
@@ -378,60 +505,102 @@
     else if (sortie) { lines('🏇 성문이 열리고 수비군이 마주 나왔다 (야전)'); }
     else { lines('🧱 수비군은 성을 닫고 지킨다 (공성)'); }
 
+    return { water: water, sortie: sortie, du: du };
+  }
+
+  /**
+   * 합(合) 하나 — `fight()` 의 라운드 루프 몸통을 그대로 뽑아낸 것이다.
+   * `cmd` 가 없으면(undefined) 수식이 곱하는 배율이 전부 1이라 예전 `fight()`
+   * 한 벌과 자릿수까지 같은 값이 나온다 — **판정 자체는 그대로**, `cmd` 는
+   * `marchInteractive()` 가 라운드 사이에 개입할 때만 쓰는 자리다.
+   *   cmd: null|undefined(정공법) · 'press'(돌격 — 더 베고 더 맞는다) ·
+   *        'hold'(수비 — 덜 베고 덜 맞는다)
+   * @returns { frame, outcome: null|'won'|'routed' }
+   */
+  function stepRound(atk, def, wallRef, toId, land, sortie, water, lines, cmd) {
+    /* 성벽이 온전할수록 수비가 세다. 야전·수전이면 성벽을 못 쓴다 */
+    var wallF = (sortie || water) ? land.def
+      : land.def * (1 + (wallRef.wall / Math.max(1, wallRef.maxWall)) * 0.9);
+
+    var ap = armyPower(atk);
+    var dp = armyPower(def) * wallF;
+
+    /* 명령 개입 — 공격 쪽이 내는 피해·받는 피해에 배율을 얹는다.
+       'press'(돌격)는 더 베고 더 맞고, 'hold'(수비)는 둘 다 줄인다.
+       cmd 가 없으면 둘 다 1 — 원래 fight() 계산과 완전히 같다 */
+    var giveMul = 1, takeMul = 1;
+    if (cmd === 'press') { giveMul = 1.2; takeMul = 1.1; }
+    else if (cmd === 'hold') { giveMul = 0.85; takeMul = 0.75; }
+
+    /* 병력 손실은 **상대의 힘**에 비례한다.
+       계수는 "힘이 엇비슷하면 열 합에 절반쯤 녹는다" 를 맞춘 값이다.
+       (부대의 힘은 병력 × 0.85 남짓이므로 0.055 면 한 합에 6% 안팎이 된다) */
+    var lossA = Math.round(dp * 0.055 * (0.85 + Math.random() * 0.3) * takeMul);
+    var lossD = Math.round(ap * giveMul * 0.055 * (0.85 + Math.random() * 0.3));
+    atk.troops = Math.max(0, atk.troops - lossA);
+    def.troops = Math.max(0, def.troops - lossD);
+
+    /* 공성추 — 성벽을 깎는다 (배로는 성벽을 못 깎는다) */
+    if (!sortie && !water) {
+      wallRef.wall = Math.max(0, Math.round(wallRef.wall - atk.troops * 0.045 * land.siege));
+    }
+
+    var frame = { atk: atk.troops, def: def.troops, wall: wallRef.wall,
+      atkShips: atk.ships, defShips: def.ships };
+
+    if (water) {
+      /* 배도 함께 가라앉는다 — 잃은 병력 비율만큼 */
+      atk.ships = sinkShips(atk.ships, lossA, atk.troops);
+      def.ships = sinkShips(def.ships, lossD, def.troops);
+      var fa = fireRoll(atk, def);
+      if (fa) { lines('🔥 ' + fa); }
+      var fd = fireRoll(def, atk);
+      if (fd) { lines('🔥 ' + fd); }
+      if (def.troops <= 0) { lines('🏳️ 수비 수군이 흩어졌다'); return { frame: frame, outcome: 'won' }; }
+      if (atk.troops <= atk.start * ROUT) {
+        lines('↩️ 공격군이 뱃머리를 돌렸다'); return { frame: frame, outcome: 'routed' };
+      }
+    }
+
+    if (def.troops <= 0) { lines('🏳️ 수비군이 무너졌다'); return { frame: frame, outcome: 'won' }; }
+    if (atk.troops <= atk.start * ROUT) {
+      lines('↩️ 공격군이 물러났다'); return { frame: frame, outcome: 'routed' };
+    }
+    if (!sortie && wallRef.wall <= 0 && def.troops < atk.troops * 0.5) {
+      lines('🧨 성문이 부서졌다 — 성이 떨어졌다'); return { frame: frame, outcome: 'won' };
+    }
+    /* 성벽이 남아도 지킬 사람이 없으면 성문은 열린다.
+       이 줄이 없으면 수백 명이 남은 성이 온전한 성벽 뒤에서 몇 달을 버틴다 */
+    if (!sortie && def.troops <= atk.troops * 0.08) {
+      lines('🚪 지킬 군사가 남지 않아 성문이 열렸다'); return { frame: frame, outcome: 'won' };
+    }
+    if (sortie && def.troops < atk.troops * 0.25) {
+      lines('🏳️ 수비군이 흩어졌다'); return { frame: frame, outcome: 'won' };
+    }
+    return { frame: frame, outcome: null };
+  }
+
+  /**
+   * 한 달치 싸움.
+   * @param wallRef {wall,maxWall} 를 가진 것 — 진짜 도시이거나, 가늠할 때는 그 사본
+   * @param dry     가늠(forecast)이면 true — 일기토를 굴리지 않는다(장수가 진짜로 다친다)
+   */
+  function fight(atk, def, wallRef, toId, land, dry) {
+    var log = [];
+    var lines = function (s) { log.push(s); };
+    var intro = fightIntro(atk, def, wallRef, toId, land, dry, lines);
+    var water = intro.water, sortie = intro.sortie, du = intro.du;
+
     var startWall = wallRef.wall;
     var r, won = false, routed = false;
     /* 실시간 재생용 — 매 합 끝의 병력·성벽을 남긴다. 판정에는 안 쓴다
        (battle3d.js 가 이 배열을 순서대로 재생할 뿐이다, 아래 return 참고) */
     var frames = [];
     for (r = 0; r < ROUNDS; r++) {
-      /* 성벽이 온전할수록 수비가 세다. 야전·수전이면 성벽을 못 쓴다 */
-      var wallF = (sortie || water) ? land.def
-        : land.def * (1 + (wallRef.wall / Math.max(1, wallRef.maxWall)) * 0.9);
-
-      var ap = armyPower(atk);
-      var dp = armyPower(def) * wallF;
-
-      /* 병력 손실은 **상대의 힘**에 비례한다.
-         계수는 "힘이 엇비슷하면 열 합에 절반쯤 녹는다" 를 맞춘 값이다.
-         (부대의 힘은 병력 × 0.85 남짓이므로 0.055 면 한 합에 6% 안팎이 된다) */
-      var lossA = Math.round(dp * 0.055 * (0.85 + Math.random() * 0.3));
-      var lossD = Math.round(ap * 0.055 * (0.85 + Math.random() * 0.3));
-      atk.troops = Math.max(0, atk.troops - lossA);
-      def.troops = Math.max(0, def.troops - lossD);
-
-      /* 공성추 — 성벽을 깎는다 (배로는 성벽을 못 깎는다) */
-      if (!sortie && !water) {
-        wallRef.wall = Math.max(0, Math.round(wallRef.wall - atk.troops * 0.045 * land.siege));
-      }
-
-      frames.push({ atk: atk.troops, def: def.troops, wall: wallRef.wall,
-        atkShips: atk.ships, defShips: def.ships });
-
-      if (water) {
-        /* 배도 함께 가라앉는다 — 잃은 병력 비율만큼 */
-        atk.ships = sinkShips(atk.ships, lossA, atk.troops);
-        def.ships = sinkShips(def.ships, lossD, def.troops);
-        var fa = fireRoll(atk, def);
-        if (fa) { lines('🔥 ' + fa); }
-        var fd = fireRoll(def, atk);
-        if (fd) { lines('🔥 ' + fd); }
-        if (def.troops <= 0) { won = true; lines('🏳️ 수비 수군이 흩어졌다'); break; }
-        if (atk.troops <= atk.start * ROUT) { routed = true; lines('↩️ 공격군이 뱃머리를 돌렸다'); break; }
-      }
-
-      if (def.troops <= 0) { won = true; lines('🏳️ 수비군이 무너졌다'); break; }
-      if (atk.troops <= atk.start * ROUT) { routed = true; lines('↩️ 공격군이 물러났다'); break; }
-      if (!sortie && wallRef.wall <= 0 && def.troops < atk.troops * 0.5) {
-        won = true; lines('🧨 성문이 부서졌다 — 성이 떨어졌다'); break;
-      }
-      /* 성벽이 남아도 지킬 사람이 없으면 성문은 열린다.
-         이 줄이 없으면 수백 명이 남은 성이 온전한 성벽 뒤에서 몇 달을 버틴다 */
-      if (!sortie && def.troops <= atk.troops * 0.08) {
-        won = true; lines('🚪 지킬 군사가 남지 않아 성문이 열렸다'); break;
-      }
-      if (sortie && def.troops < atk.troops * 0.25) {
-        won = true; lines('🏳️ 수비군이 흩어졌다'); break;
-      }
+      var res = stepRound(atk, def, wallRef, toId, land, sortie, water, lines);
+      frames.push(res.frame);
+      if (res.outcome === 'won') { won = true; break; }
+      if (res.outcome === 'routed') { routed = true; break; }
     }
     if (!won && !routed) { lines('🌒 날이 저물었다 — 이 달 안에는 못 떨어뜨렸다'); }
 
@@ -858,7 +1027,7 @@
     CAMP_DECAY: CAMP_DECAY, CAMP_QUIT: CAMP_QUIT, CAMP_MIN: CAMP_MIN,
     armyPower: armyPower, topBy: topBy, duel: duel, fireRoll: fireRoll,
     reinforce: reinforce, reliefOf: reliefOf, forecast: forecast,
-    canMarch: canMarch, march: march, capture: capture,
+    canMarch: canMarch, march: march, marchInteractive: marchInteractive, capture: capture,
     transfer: transfer, moveOfficer: moveOfficer,
     camps: camps, campsOf: campsOf, campById: campById, campAt: campAt,
     besieged: besieged, monthsLeft: monthsLeft,
