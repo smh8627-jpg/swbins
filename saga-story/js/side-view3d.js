@@ -229,6 +229,44 @@
       worldGroup.add(holder);
       swapIn(holder, kind, x + ':' + z, h, gen);
     }
+    /** 마을 정취(PLAN 3절, 2026-09-04) — town:true 인 사냥터만 부른다. 집은
+     *  나무·언덕과 같은 배경 깊이(z -180~-260)에, 우물·울타리는 사람이 걷는
+     *  깊이 가까이(z -20~-70) 선다 */
+    function house(x, z, h, seed) {
+      var wallMat = new Tc.MeshLambertMaterial({ color: 0x8a6a4a });
+      var roofMat = new Tc.MeshLambertMaterial({ color: 0x4a3020 });
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
+      var box = new Tc.Mesh(new Tc.BoxGeometry(h * 0.62, h * 0.68, h * 0.5), wallMat);
+      box.position.set(0, h * 0.34, 0);
+      holder.add(box);
+      var roof = new Tc.Mesh(new Tc.ConeGeometry(h * 0.48, h * 0.42, 4), roofMat);
+      roof.position.set(0, h * 0.68 + h * 0.21, 0);
+      roof.rotation.y = Math.PI / 4;
+      holder.add(roof);
+      worldGroup.add(holder);
+      swapIn(holder, 'house', x + ':' + z + ':' + seed, h, gen);
+    }
+    function well(x, z, h) {
+      var mat = new Tc.MeshLambertMaterial({ color: 0x8a8a8a });
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
+      var c = new Tc.Mesh(new Tc.CylinderGeometry(h * 0.42, h * 0.42, h, 8), mat);
+      c.position.set(0, h / 2, 0);
+      holder.add(c);
+      worldGroup.add(holder);
+      swapIn(holder, 'well', x + ':' + z, h, gen);
+    }
+    function fence(x, z, h) {
+      var mat = new Tc.MeshLambertMaterial({ color: 0x6a4a30 });
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
+      var b = new Tc.Mesh(new Tc.BoxGeometry(h * 1.7, h, 5), mat);
+      b.position.set(0, h / 2, 0);
+      holder.add(b);
+      worldGroup.add(holder);
+      swapIn(holder, 'fence', x + ':' + z, h, gen);
+    }
 
     var span = stg.width + 800;
     if (mood === 'forest') {
@@ -242,6 +280,12 @@
     } else if (mood === 'fire') {
       for (i = 0, m = -260; m < span; i++, m += 340) { hill(m, -420, 220 + (i % 3) * 40, farMat); }
       for (i = 0, m = -160; m < span; i++, m += 210) { flame(m, -80, 90 + (i % 3) * 30); }
+    } else if (stg.town) {
+      for (i = 0, m = -300; m < span; i++, m += 420) { hill(m, -520, 260 + (i % 3) * 50, farMat); }
+      for (i = 0, m = -140; m < span; i++, m += 360) { house(m, -200 - (i % 2) * 50, 170 + (i % 3) * 30, i); }
+      for (i = 0, m = -180; m < span; i++, m += 420) { trunk(m, -90, 90 + (i % 3) * 16, nearMat); }
+      well(Math.round(span / 2) - 400, -55, 36);
+      for (i = 0, m = 60; m < span - 60; i++, m += 150) { fence(m, -22, 24); }
     } else {
       for (i = 0, m = -300; m < span; i++, m += 420) { hill(m, -520, 260 + (i % 3) * 50, farMat); }
       for (i = 0, m = -180; m < span; i++, m += 280) { hill(m, -220, 150 + (i % 3) * 30, nearMat); }

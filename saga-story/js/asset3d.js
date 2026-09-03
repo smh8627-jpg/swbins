@@ -22,6 +22,8 @@
   var NAT = 'assets/models/nature/';
   var PEOPLE = 'assets/models/people/regular/';
   var ANIMALS = 'assets/models/animals/';
+  var BUILDINGS = 'assets/models/buildings/';
+  var PROPS = 'assets/models/props/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
 
   /* 2026-09-03 — 사가의숲·사가고와 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
@@ -61,6 +63,13 @@
     'flower': [NAT + 'Flowers.glb'],
     'grass': [NAT + 'Grass_2.glb', NAT + 'Grass_Short.glb'],
     'moss_rock': [NAT + 'Rock_Moss_1.glb'],
+    /* 마을 정취(PLAN 3절 "시작 마을", 2026-09-04) — town:true 인 사냥터(신야성·
+       허도·강릉진·남정성·기산채)의 배경. saga-dungeon·saga-realm 의 집·우물,
+       saga-forest 의 울타리를 그대로 복사했다(같은 CC0) */
+    'house': [BUILDINGS + 'House_1.glb', BUILDINGS + 'House_2.glb',
+              BUILDINGS + 'House_3.glb', BUILDINGS + 'House_4.glb'],
+    'well': BUILDINGS + 'Well.glb',
+    'fence': PROPS + 'Fence.glb',
     'hero': HERO_RECIPES,
     /* 몬스터 다양화 — 코끼리병처럼 몸집 큰 짐승형 적은 소 GLB 로 대신한다
        (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
