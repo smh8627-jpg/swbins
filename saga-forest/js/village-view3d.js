@@ -188,6 +188,7 @@
   };
 
   var scatter = {};   // propId → { group, kind, building }
+  var npc3d = {};      // npc.id → { group, mixer, actions, clipMap, action, building }
 
   /** 타일 색 — villageData.TILES 에서 그대로 가져온다(2D 와 같은 색). floor(방 안)는
    *  마을 바닥에 안 나오니 뺀다. 색을 못 구하면(villageData 가 아직 안 실렸으면)
@@ -393,19 +394,20 @@
       player.clipMap = g.userData.clipMap || null;
       g.scale.setScalar(PLAYER_H());
       scene.add(g);
-      playAction('idle');
+      playAction(player, 'idle');
     });
   }
 
-  function playAction(slot) {
-    if (!player.actions || !player.clipMap) { return; }
-    var name = player.clipMap[slot];
-    if (!name || !player.actions[name]) { return; }
-    var act = player.actions[name];
-    if (player.action === act) { return; }
-    if (player.action) { player.action.fadeOut(0.15); }
+  /** entity(player 또는 npc3d 한 칸)의 몸짓을 slot(idle/walk 등)으로 바꾼다 */
+  function playAction(entity, slot) {
+    if (!entity.actions || !entity.clipMap) { return; }
+    var name = entity.clipMap[slot];
+    if (!name || !entity.actions[name]) { return; }
+    var act = entity.actions[name];
+    if (entity.action === act) { return; }
+    if (entity.action) { entity.action.fadeOut(0.15); }
     act.reset().fadeIn(0.15).play();
-    player.action = act;
+    entity.action = act;
   }
 
   /**
@@ -437,9 +439,9 @@
     var moved = Math.hypot(dx, dy);
     if (moved > MOVE_EPS() * (1 / 60)) {
       facingYaw = Math.atan2(dx, dy);
-      playAction('walk');
+      playAction(player, 'walk');
     } else {
-      playAction('idle');
+      playAction(player, 'idle');
     }
     lastPX = px; lastPY = py;
 
@@ -519,6 +521,44 @@
     }
   }
 
+  /**
+   * 숲 NPC 다섯(PLAN 40절 PHASE 4)을 플레이어와 같은 GLB(`asset3d` 의 'hero'
+   * 표, Quaternius RPG Character Pack)로 세운다. 자리가 고정이고 수가 다섯뿐이라
+   * 스캐터처럼 컬링·예산을 두지 않는다 — 없으면 한 번만 짓고, 있으면 자리만 갱신.
+   */
+  function syncNpcs(dt) {
+    var V = global.DG.village;
+    if (!V || !scene) { return; }
+    var raw = V.raw(), px = raw.player.x, py = raw.player.y, scale = WORLD_SCALE();
+    var npcs = raw.npcs || [], i, npc, slot;
+    for (i = 0; i < npcs.length; i++) {
+      npc = npcs[i];
+      slot = npc3d[npc.id];
+      if (!slot) {
+        slot = npc3d[npc.id] = { group: null, mixer: null, actions: null, clipMap: null, action: null, building: true };
+        (function (id) {
+          asset3d().build('hero', { id: id }, function (g) {
+            var cur = npc3d[id];
+            if (!cur) { return; }
+            cur.building = false;
+            if (!g || !scene) { return; }
+            cur.group = g;
+            cur.mixer = g.userData.mixer || null;
+            cur.actions = g.userData.actions || null;
+            cur.clipMap = g.userData.clipMap || null;
+            g.scale.setScalar(PLAYER_H());
+            scene.add(g);
+            playAction(cur, 'idle');
+          });
+        })(npc.id);
+        continue;
+      }
+      if (!slot.group) { continue; }   // 아직 짓는 중
+      slot.group.position.set((npc.x - px) * scale, 0, (npc.y - py) * scale);
+      if (slot.mixer) { slot.mixer.update(dt); }
+    }
+  }
+
   var dummy = null;
 
   /**
@@ -567,6 +607,7 @@
     syncCamera();
     syncTerrain();
     syncScatter();
+    syncNpcs(dt);
     syncFog();
     renderer.render(scene, camera);
   }
