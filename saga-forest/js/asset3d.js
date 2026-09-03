@@ -37,6 +37,7 @@
   function core() { return global.DG.core; }
 
   var NAT = 'assets/models/nature/';
+  var NAT_REAL = 'assets/models/nature/realistic/';
   var PROP = 'assets/models/props/';
   var ANI = 'assets/models/animals/';
   var PEOPLE = 'assets/models/people/regular/';
@@ -82,6 +83,15 @@
       outfit: PEOPLE + 'Female_Ranger.gltf', hair: PEOPLE + 'Hair_SimpleParted.gltf' }
   ];
 
+  /** 되돌림 자리 — 실사 바위가 안 맞으면 이 값으로 register() 두 줄이면 돌아간다:
+   *    asset3d.register('rock', ROCK_STYLIZED.rock);
+   *    asset3d.register('rock:moss', ROCK_STYLIZED['rock:moss']);
+   */
+  var ROCK_STYLIZED = {
+    'rock': [NAT + 'Rock_1.glb', NAT + 'Rock_2.glb', NAT + 'Rock_3.glb'],
+    'rock:moss': NAT + 'Rock_Moss_1.glb'
+  };
+
   /** 표 — 키는 좁은 것부터. PLAN 8절(숲 오브젝트)·16절(동물) 어휘를 그대로 썼다.
    *   asset3d.register('tree:pine', 'assets/models/nature/Pine.glb');
    *   asset3d.register('animal:an_deer', 'assets/models/animals/Deer.glb');
@@ -99,8 +109,24 @@
 
     /* 식물·자연물 */
     'bush': [NAT + 'Bush_1.glb', NAT + 'Bush_2.glb', NAT + 'BushBerries_1.glb'],
-    'rock': [NAT + 'Rock_1.glb', NAT + 'Rock_2.glb', NAT + 'Rock_3.glb'],
-    'rock:moss': NAT + 'Rock_Moss_1.glb',
+    /* 바위 — 2026-09-03, "자연물도 실사로" 첫 항목. Poly Haven CC0 사진측량 스캔.
+       나무(780만 폴리곤·478MB)와 달리 바위는 지오메트리가 가벼워(.bin 0.5~1.5MB)
+       그대로 썼다 — 줄일 필요가 없었다. 텍스처만 `gltf-transform resize`(768px)
+       + `jpeg`(품질 85)로 줄였다.
+       **함정 — `--virtual-time-budget` 헤드리스로 확인하면 이 GLB 들이 몇 분째
+       안 뜬 것처럼 보인다.** GLTFLoader 파싱 자체는 실제 브라우저에서 30~40ms면
+       끝나는데(puppeteer 로 실측), 헤드리스의 가상 시간이 진짜 텍스처 디코드
+       같은 CPU 작업을 제대로 못 앞당겨서 생기는 착시였다 — **`EXT_texture_webp`
+       확장은 진짜 문제였다**(이 판 three.js 번들엔 이름표만 있고 실제 파서가
+       없어 `extensionsRequired`로 박히면 영영 안 뜬다, glTF 규격상 정상 동작).
+       그래서 압축은 jpeg 까지만 하고 webp 는 안 쓴다. 나중에 또 GLB 를
+       헤드리스로 확인할 때 안 뜬다고 코드를 의심하기 전에 **실제 브라우저(또는
+       puppeteer)로 한 번 더 확인**할 것 — `--virtual-time-budget` 은 이미지가
+       든 GLB 여럿을 한꺼번에 구울 때 특히 misleading 하다.
+       옛 Quaternius 저다각형 셋은 지우지 않고 `ROCK_STYLIZED` 에 남겨 둔다
+       (되돌림 자리) */
+    'rock': [NAT_REAL + 'Rock_07.glb', NAT_REAL + 'Stone_01.glb'],
+    'rock:moss': [NAT_REAL + 'MossRock_a.glb', NAT_REAL + 'MossRock_b.glb', NAT_REAL + 'MossRock_c.glb'],
     'grass': [NAT + 'Grass_2.glb', NAT + 'Grass_Short.glb'],
     'flower': NAT + 'Flowers.glb',
     'plant': [NAT + 'Plant_1.glb', NAT + 'Plant_2.glb'],
@@ -508,6 +534,7 @@
     build: build,
     three: three,
     REG: function () { return REG; },
+    ROCK_STYLIZED: ROCK_STYLIZED,
     stats: function () { return { built: built, swapped: swapped, broke: broke }; }
   };
 })(typeof window !== 'undefined' ? window : this);

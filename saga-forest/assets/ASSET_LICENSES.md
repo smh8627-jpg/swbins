@@ -260,3 +260,34 @@ Mixamo 실사(아래 절)가 재배포 금지라 공개 저장소에서 캐릭�
 넷)은 `HERO_RECIPES_FALLBACK` 으로 여전히 살아 있다 — 위 RPG Character Pack마저
 못 실릴 때 마지막으로 한 번 더 시도하는 안전망이다(그 쪽 파일들은
 `models/people/regular/` 에 그대로 있고 CC0 라 재배포 문제는 없다).
+
+---
+
+## Poly Haven — 바위 사진측량 스캔 (`models/nature/realistic/`, 2026-09-03)
+
+"자연물도 실사로" 첫 항목 — 바위류부터(나무는 폴리곤이 너무 무거워 다음 몫으로
+남겼다, PLAN 40절 부록 참고).
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kless Gyzen(`rock_moss_set_01`) · Jenelle van Heerden(`rock_07`) · Dario Barresi·Rico Cilliers(`stone_01`) — 전부 Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | <https://polyhaven.com/a/rock_07> · <https://polyhaven.com/a/stone_01> · <https://polyhaven.com/a/rock_moss_set_01> — 1k glTF(api.polyhaven.com 으로 직접 받음) |
+
+| 파일 | 원본 | 처리 |
+|---|---|---|
+| `Rock_07.glb` | `rock_07` | `gltf-transform copy` → `resize`(768px) → `jpeg`(품질 85) |
+| `Stone_01.glb` | `stone_01` | 위와 동일 |
+| `MossRock_a·b·c.glb` | `rock_moss_set_01`(여섯 바위가 한 장면에 격자로 놓인 세트) 중 세 개를 `@gltf-transform/core` 스크립트로 각각 떼어냄(`prune()`으로 나머지 다섯 지운다) → `resize` → `jpeg` | |
+
+**함정 — 이 GLB 들을 `--virtual-time-budget` 헤드리스로 확인하면 몇 분째 안 뜬
+것처럼 보인다.** 실제 브라우저(puppeteer 로 실측)에서는 GLTFLoader 파싱이
+30~40ms 면 끝난다 — 헤드리스 가상 시간이 텍스처 디코드 같은 진짜 CPU 작업을
+제대로 못 앞당겨서 생긴 착시다. 반면 `EXT_texture_webp` 압축은 **진짜 문제였다**
+— 이 판 three.js 번들엔 그 확장 이름표만 있고 실제 파서가 없어서
+`extensionsRequired` 로 박히면 glTF 규격상 영영 안 뜬다(정상 동작이다, 로더
+버그가 아니다). 그래서 압축은 jpeg 까지만 쓴다. 자세한 사정과 재현 방법은
+`js/asset3d.js` 의 `rock`/`rock:moss` 항목 주석 참고.
+
+옛 Quaternius 저다각형 셋(`Rock_1·2·3.glb`·`Rock_Moss_1.glb`)은 지우지 않았다
+— `js/asset3d.js` 의 `ROCK_STYLIZED` 가 되돌림 자리로 들고 있다.
