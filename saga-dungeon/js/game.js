@@ -291,25 +291,33 @@
     });
   }
 
+  /* 한 프레임이 예외로 죽어도 다음 프레임을 계속 건다 — 안 그러면 여기서
+     requestAnimationFrame 이 다시 안 걸려 화면이 그 자리에 통째로 멈춘다
+     (걷는 도중 조우·방 전환처럼 상태 의존적으로만 터지는 예외라 자가진단·
+     로딩 확인으로는 못 잡았다, 2026-09-04 "사가블로가 멈춘다" 제보로 확인) */
   function loop(now) {
-    var dt = Math.min((now - lastFrame) / 1000, 0.1);
-    lastFrame = now;
+    try {
+      var dt = Math.min((now - lastFrame) / 1000, 0.1);
+      lastFrame = now;
 
-    global.DG.auto.update(dt);
-    global.DG.dungeonView.update(dt);
-    /* 마을도 같은 화면에 그린다 — 마을과 던전은 한 무대를 나눠 쓴다 */
-    if (!global.DG_NO_DRAW &&
-        (global.DG.dungeon.active() || global.DG.town.active())) {
-      global.DG.dungeonView.draw();
+      global.DG.auto.update(dt);
+      global.DG.dungeonView.update(dt);
+      /* 마을도 같은 화면에 그린다 — 마을과 던전은 한 무대를 나눠 쓴다 */
+      if (!global.DG_NO_DRAW &&
+          (global.DG.dungeon.active() || global.DG.town.active())) {
+        global.DG.dungeonView.draw();
+      }
+      if (!global.DG_NO_DRAW && global.DG.minimap) { global.DG.minimap.tick(dt); }
+
+      uiAcc += dt;
+      if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
+
+      saveAcc += dt;
+      if (saveAcc >= 10) { saveAcc = 0; core.persist(); }
+    } catch (e) {
+      lastFrame = now;
+      if (global.console) { global.console.error('[loop] 프레임 실패, 다음 프레임으로 넘어감', e); }
     }
-    if (!global.DG_NO_DRAW && global.DG.minimap) { global.DG.minimap.tick(dt); }
-
-    uiAcc += dt;
-    if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
-
-    saveAcc += dt;
-    if (saveAcc >= 10) { saveAcc = 0; core.persist(); }
-
     requestAnimationFrame(loop);
   }
 
