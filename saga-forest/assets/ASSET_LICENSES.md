@@ -291,3 +291,45 @@ Mixamo 실사(아래 절)가 재배포 금지라 공개 저장소에서 캐릭�
 
 옛 Quaternius 저다각형 셋(`Rock_1·2·3.glb`·`Rock_Moss_1.glb`)은 지우지 않았다
 — `js/asset3d.js` 의 `ROCK_STYLIZED` 가 되돌림 자리로 들고 있다.
+
+---
+
+## Poly Haven — 나무·수풀 사진측량 스캔 (`models/nature/realistic/`, 2026-09-03)
+
+"자연물도 실사로" 둘째 항목 — 나무는 원본이 780만 폴리곤·478MB 급이라(위 바위 절
+참고) 이번엔 `@gltf-transform/cli` 의 `simplify`(meshopt 기반 감량)를 새로 거쳤다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Rob Tuytel·Rico Cilliers(`island_tree_02`) · Rico Cilliers(`shrub_04`) — 전부 Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | <https://polyhaven.com/a/island_tree_02> · <https://polyhaven.com/a/shrub_04> — 1k glTF(api.polyhaven.com 으로 직접 받음) |
+
+| 파일 | 원본 | 처리 |
+|---|---|---|
+| `IslandTree_02.glb` | `island_tree_02`(874,494 정점·40.7MB bin) | `gltf-transform copy`(텍스처 번들) → `weld` → `simplify --ratio 0.05 --error 0.02`(102,208 정점, 88% 감량) → `resize`(768px) → `jpeg`(품질 85) — 46.2MB → **4.86MB** |
+| `Shrub_04.glb` | `shrub_04`(47,813 폴리곤·0.7MB bin) | 지오메트리는 가벼워 그대로, `resize`(768px) → `jpeg`(품질 85) — 1.91MB → **0.96MB** |
+
+**나무 후보로 살펴본 것과 왜 뺐는지** — Poly Haven 의 나무는 폴리곤 수와 무관하게
+실제 내보낸 지오메트리(.bin) 가 훨씬 크다(잎이 카드가 아니라 개별 지오메트리로
+펼쳐져 나온다): `jacaranda_tree` 312K 폴리곤인데도 .bin 208MB, `tree_small_02`
+95MB, `island_tree_01/03` 60~80MB. 그중 가장 가벼운 `island_tree_02`(40.7MB)를
+골라 `simplify` 로 깎았다. **meshopt 심플리파이는 정점을 줄이되 잎이 통째로
+사라지지 않고 성글어지는 쪽으로 깎여서**(실제 스크린샷으로 확인, 구멍·깨짐 없음)
+88% 감량에도 실루엣이 살아 있었다.
+
+**수풀 후보로 살펴본 것과 왜 뺐는지** — `shrub_02`·`shrub_03`·`fern_02`·
+`shrub_sorrel_01`·`wild_rooibos_bush` 도 받아 처리해 봤지만 전부 **원본이 옆으로
+퍼지는 바닥형**(세로 폭이 좁다)이었다. 이 판의 `asset3d.js` `normalize()`는
+사물을 세로 키 1 로 맞추고 그 비율 그대로 다시 키우므로, 세로로 낮고 옆으로
+넓은 원본은 정규화하면 옆으로 몇 배씩 부풀어 화면을 뚫고 나간다(실제로
+스크린샷에서 확인 — `_treecheck.html` 스크래치 페이지로 세로 정규화까지
+재현해 걸러냈다, 페이지 자체는 커밋 안 함). **`shrub_04`(작은 나뭇가지 넷이
+위로 선 다발) 만 세로 비율이 맞아 썼다** — 나머지는 다음에 '나무·수풀'이 아니라
+'꽃·풀숲 바닥 장식'(PLAN 8절의 `flower`/`plant`) 축으로 다시 볼 만하다
+(`shrub_sorrel_01`은 특히 예쁜 토끼풀꽃이라 아깝다).
+
+옛 Quaternius `Bush_1·2.glb`·`BushBerries_1.glb`, `CommonTree_1·2·3.glb`는
+지우지 않았다 — `js/asset3d.js` 의 `TREE_STYLIZED`·`BUSH_STYLIZED` 가 되돌림
+자리로 들고 있다. 가을·눈·고목·소나무·자작나무는 이번 항목에 안 들어가
+아직 저다각형이다.

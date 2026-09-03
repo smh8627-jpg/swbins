@@ -92,6 +92,17 @@
     'rock:moss': NAT + 'Rock_Moss_1.glb'
   };
 
+  /** 되돌림 자리 — 2026-09-03 자연물 실사화 둘째 항목(나무·수풀). 안 맞으면:
+   *    asset3d.register('tree:common', TREE_STYLIZED['tree:common']);
+   *    asset3d.register('bush', BUSH_STYLIZED.bush);
+   */
+  var TREE_STYLIZED = {
+    'tree:common': [NAT + 'CommonTree_1.glb', NAT + 'CommonTree_2.glb', NAT + 'CommonTree_3.glb']
+  };
+  var BUSH_STYLIZED = {
+    'bush': [NAT + 'Bush_1.glb', NAT + 'Bush_2.glb', NAT + 'BushBerries_1.glb']
+  };
+
   /** 표 — 키는 좁은 것부터. PLAN 8절(숲 오브젝트)·16절(동물) 어휘를 그대로 썼다.
    *   asset3d.register('tree:pine', 'assets/models/nature/Pine.glb');
    *   asset3d.register('animal:an_deer', 'assets/models/animals/Deer.glb');
@@ -99,8 +110,15 @@
   var DEFAULTS = {
     'hero': HERO_RECIPES,
 
-    /* 나무 — 계절은 season.js 가 정한 값을 ref.season 으로 넘기는 쪽(부르는 쪽)이 맡는다 */
-    'tree:common': [NAT + 'CommonTree_1.glb', NAT + 'CommonTree_2.glb', NAT + 'CommonTree_3.glb'],
+    /* 나무 — 계절은 season.js 가 정한 값을 ref.season 으로 넘기는 쪽(부르는 쪽)이 맡는다.
+       봄·여름(tree:common) 만 2026-09-03 에 실사로 갈아 끼웠다 — 가을·눈·고목·소나무·
+       자작은 아직 저다각형이다(나무는 한 종 바꾸는 데도 46MB 원본 + 심플리파이가 드는
+       무거운 작업이라 이번 항목은 하나만 하고 나머지는 다음 몫으로 남긴다).
+       Poly Haven `island_tree_02`(사진측량, 874,494 정점) 를 `gltf-transform weld` →
+       `simplify --ratio 0.05 --error 0.02`(102,208 정점, 88% 감량, meshopt 기반이라
+       나뭇잎 카드가 사라지지 않고 결만 성글어진다) → `resize`(768px) → `jpeg`(품질 85)
+       로 4.86MB 까지 줄였다. 옛 Quaternius 셋은 `TREE_STYLIZED` 에 되돌림 자리로 남긴다 */
+    'tree:common': NAT_REAL + 'IslandTree_02.glb',
     'tree:common:autumn': [NAT + 'CommonTree_Autumn_1.glb', NAT + 'CommonTree_Autumn_2.glb'],
     'tree:common:snow': [NAT + 'CommonTree_Snow_1.glb', NAT + 'CommonTree_Snow_2.glb'],
     'tree:dead': NAT + 'CommonTree_Dead_1.glb',
@@ -108,7 +126,14 @@
     'tree:birch': [NAT + 'BirchTree_1.glb', NAT + 'BirchTree_2.glb'],
 
     /* 식물·자연물 */
-    'bush': [NAT + 'Bush_1.glb', NAT + 'Bush_2.glb', NAT + 'BushBerries_1.glb'],
+    /* 수풀 — 2026-09-03 실사화. Poly Haven `shrub_02`·`shrub_03`·`fern_02`·
+       `shrub_sorrel_01`·`wild_rooibos_bush` 도 받아 봤지만 전부 옆으로 퍼지는
+       바닥형(정점 y-폭이 작다) 이라 `normalize()` 가 키 1 로 맞추면 옆으로
+       몇 배 늘어나 화면을 뚫고 나갔다 — **이 판의 정규화는 세로로 선 모양만
+       받는다.** `shrub_04`(작은 나뭇가지 넷이 위로 선 다발) 만 세로 비율이 맞아
+       썼다. 텍스처만 768px+jpeg85(지오메트리는 47,813 폴리곤으로 가벼워 심플리파이
+       없이 그대로). 옛 Quaternius 둘 + 열매수풀은 `BUSH_STYLIZED` 에 남긴다 */
+    'bush': NAT_REAL + 'Shrub_04.glb',
     /* 바위 — 2026-09-03, "자연물도 실사로" 첫 항목. Poly Haven CC0 사진측량 스캔.
        나무(780만 폴리곤·478MB)와 달리 바위는 지오메트리가 가벼워(.bin 0.5~1.5MB)
        그대로 썼다 — 줄일 필요가 없었다. 텍스처만 `gltf-transform resize`(768px)
@@ -535,6 +560,8 @@
     three: three,
     REG: function () { return REG; },
     ROCK_STYLIZED: ROCK_STYLIZED,
+    TREE_STYLIZED: TREE_STYLIZED,
+    BUSH_STYLIZED: BUSH_STYLIZED,
     stats: function () { return { built: built, swapped: swapped, broke: broke }; }
   };
 })(typeof window !== 'undefined' ? window : this);

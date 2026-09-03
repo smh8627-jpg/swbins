@@ -157,23 +157,39 @@ setTimeout(function () {
     VD.phaseOf = function () { return fixedPh; };
   }
 
-  /* 실사 바위(2026-09-03) 눈으로 볼 자리 — rocky 바이옴 한가운데로 걸어가
-     3D 화면을 켠다. `#rocktest` */
-  if (hash.indexOf('rocktest') >= 0 && DG.villageView3d) {
+  /* 실사 자연물(2026-09-03 바위, +나무·수풀) 눈으로 볼 자리 — 해당 kind 가 있는
+     사물 곁으로 걸어가 3D 화면을 켠다. `#rocktest`(rock·mossyRock) ·
+     `#treetest`(tree) · `#bushtest`(bush). 되돌림 자리 — 다음에 다른 자연물을
+     실사화할 때도 NATURE_TEST_KINDS 한 줄만 보태면 그대로 쓴다 */
+  var NATURE_TEST_KINDS = {
+    rocktest: { kinds: ['rock', 'mossyRock'], biome: 'rocky' },
+    treetest: { kinds: ['tree'], biome: 'green' },
+    bushtest: { kinds: ['bush'], biome: 'meadow' }
+  };
+  var natureTestKey = Object.keys(NATURE_TEST_KINDS).filter(function (k) { return hash.indexOf(k) >= 0; })[0];
+  if (natureTestKey && DG.villageView3d) {
+    var wantKinds = NATURE_TEST_KINDS[natureTestKey].kinds;
     C.setTune('village3d.renderR', 10);   // 헤드리스 진단 전용 — 동시에 굽는 사물 수를 줄인다
-    var rockyTile = V.firstBiomeSpot('rocky') || V.firstBiomeSpot('green');
+    var natTile = V.firstBiomeSpot(NATURE_TEST_KINDS[natureTestKey].biome) || V.firstBiomeSpot('green');
     var raw0 = V.raw();
-    var rockNear = null, nd = Infinity;
-    if (rockyTile) {
-      var cx0 = rockyTile.tx * V.TILE + V.TILE * 0.5, cy0 = rockyTile.ty * V.TILE + V.TILE * 0.5;
+    var natNear = null, nd = Infinity;
+    var cx0 = natTile ? natTile.tx * V.TILE + V.TILE * 0.5 : 0, cy0 = natTile ? natTile.ty * V.TILE + V.TILE * 0.5 : 0;
+    raw0.props.forEach(function (p) {
+      if (wantKinds.indexOf(p.kind) < 0) { return; }
+      var dd = Math.hypot(p.x - cx0, p.y - cy0);
+      if (dd < nd) { nd = dd; natNear = p; }
+    });
+    /* 그 바이옴 반경 안에 없으면(희귀 kind) 맵 전체에서 가장 가까운 것으로 넓혀 찾는다.
+       그래도 없으면(이 세이브 맵에 그 kind 가 아직 안 났다) natNear 는 null 로 남고
+       player 는 바이옴 중심에 선다 — `#..-stat` 표시로 dist=Infinity 를 보면 안 난 것이다 */
+    if (!natNear) {
       raw0.props.forEach(function (p) {
-        if (p.kind !== 'rock' && p.kind !== 'mossyRock') { return; }
-        var dd = Math.hypot(p.x - cx0, p.y - cy0);
-        if (dd < nd) { nd = dd; rockNear = p; }
+        if (wantKinds.indexOf(p.kind) < 0) { return; }
+        natNear = p; nd = 0;
       });
-      raw0.player.x = rockNear ? rockNear.x + 60 : cx0;
-      raw0.player.y = rockNear ? rockNear.y + 60 : cy0;
     }
+    raw0.player.x = natNear ? natNear.x + 60 : cx0;
+    raw0.player.y = natNear ? natNear.y + 60 : cy0;
     if (!DG.villageView3d.on()) { DG.villageView3d.toggle(); }
     if (hash.indexOf('stat') >= 0) {
       setTimeout(function () {
@@ -181,8 +197,8 @@ setTimeout(function () {
         box.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:9999;padding:6px 8px;' +
           'background:rgba(0,0,0,.85);color:#9fe8b0;font:11px monospace;white-space:pre';
         var V3 = DG.villageView3d;
-        box.textContent = 'tile=' + JSON.stringify(rockyTile) + '\n' +
-          'nearestRock=' + JSON.stringify(rockNear) + ' dist=' + nd.toFixed(0) + '\n' +
+        box.textContent = 'tile=' + JSON.stringify(natTile) + '\n' +
+          'nearest=' + JSON.stringify(natNear) + ' dist=' + nd.toFixed(0) + '\n' +
           'player=' + JSON.stringify(V.raw().player) + '\n' +
           'scatterCount=' + V3.scatterCount() + '\n' +
           'active=' + V3.active() + ' avail=' + V3.available();
