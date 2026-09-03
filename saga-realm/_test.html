@@ -814,21 +814,49 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('원정 보낸 장수 ' + lead.length + '명이 atCity 목록에서 빠졌다');
     });
 
-    t('resolveJourneys — 다 가면 march() 로 이어지고 목록에서 빠진다', function () {
+    t('resolveJourneys — 다 가면 목적지에서 실제로 붙고 목록에서 빠진다', function () {
       fresh('zan');
       R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
       var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var defBefore = R.city('wirye').troops;
       var res = W.startJourney('beiping', 'wirye', lead, 8000);
       if (!res.ok) { return false; }
       for (var i = 0; i < res.months; i++) { W.resolveJourneys(); }
       var gone = W.journeyById(res.id) === null;
       var freedOfficers = lead.every(function (id) { return !off.rec(id).journey; });
-      /* 승패 어느 쪽이든(정복·진 침·패퇴 다 있을 수 있다) — 목록에서 빠지고
-         장수 표시가 걷혔는지만 결정적으로 본다 */
-      return gone && freedOfficers &&
-        ('원정 ' + res.months + '달 뒤 도착 — ' + CD.find('wirye').name +
-         ' 지금 세력 ' + R.forceName(R.city('wirye').force) +
-         (W.campAt('wirye') ? ' · 진 치는 중' : ' · 결판남'));
+      var wirye = R.city('wirye');
+      /* **경로의 마지막 통과 칸(거점)이 주인 없는 땅이어도 실제로 붙어야
+         한다** — 한 번 그렇게 짜서(march() 를 거점에서 부르려다 거점이 내
+         성이 아니면 그냥 조용히 되돌아가 버리는) 싸움 한 번 없이 원정이
+         사라지는 결함을 냈다(2026-09-04, 실제 브라우저로 켜 보다 발견).
+         승패 어느 쪽이든 — **수비 병력이 원래 수(defBefore)에서 실제로
+         움직였는지**로 "진짜 붙었는지"를 잰다 */
+      var reallyFought = wirye.troops !== defBefore || wirye.force === 'zan' || !!W.campAt('wirye');
+      return gone && freedOfficers && reallyFought &&
+        ('원정 ' + res.months + '달 뒤 도착 — ' + CD.find('wirye').name + ' 수비 ' +
+         C.fmt(defBefore) + '→' + C.fmt(wirye.troops) + ' · 지금 세력 ' +
+         R.forceName(wirye.force) + (W.campAt('wirye') ? ' · 진 치는 중' : ''));
+    });
+
+    t('resolveJourneys — 국경 거점이 주인 없는 땅이어도 march() 없이 곧바로 붙는다', function () {
+      /* 위 항목의 재발 방지용 — 굳이 목적지를 짧은 원정(경로가 beiping→
+         yangping→guknae, 거점 yangping 이 늘 주인 없는 땅)으로 좁혀 정확히
+         그 경로를 짚는다 */
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'guknae', lead, 8000);
+      if (!res.ok) { return false; }
+      var path = W.journeyById(res.id).path;
+      var beachId = path[path.length - 2];
+      var beachIsFree = R.city(beachId).force === null;
+      var defBefore = R.city('guknae').troops;
+      for (var i = 0; i < res.months; i++) { W.resolveJourneys(); }
+      var guknae = R.city('guknae');
+      var reallyFought = guknae.troops !== defBefore || guknae.force === 'zan' || !!W.campAt('guknae');
+      return beachIsFree && reallyFought &&
+        ('거점(' + CD.find(beachId).name + ')은 주인 없는 땅인데도 실제로 붙었다 — 수비 ' +
+         C.fmt(defBefore) + '→' + C.fmt(guknae.troops));
     });
 
     t('resolveJourneys — 중간 성이 함락되면 원정이 그 자리에서 되돌아간다', function () {

@@ -1176,38 +1176,79 @@
     core.emit('rtk:journey', { kind: 'retreat', id: j.id, force: j.force, home: home });
   }
 
-  /** 국경에 닿았다 — 경로의 마지막 통과 칸(목적지 바로 앞 성)에 병력을 부리고
-   *  그 자리에서 `march()` 를 그대로 부른다. 그 성이 그사이 이미 내 것이 됐으면
-   *  (동맹이 먼저 먹었거나) 싸움 없이 그냥 합류한다. */
+  /**
+   * 국경에 닿았다 — 목적지를 곧바로 친다.
+   *
+   * **`march()` 를 부르지 않는다.** `march()`는 "내가 가진 성에서" 병력을
+   * 차출하는 구조라 국경 마지막 칸(경로의 두 번째 끝, "거점")이 있어야
+   * 하는데, 원정의 흔한 그림 — 주인 없는 빈 땅만 거쳐 목적지까지 가는 것
+   * — 에서는 그 거점이 애초에 내 성이 아니다(주인 없는 땅). 대신 `camp`
+   * (진영)의 `resolveCamp()` 와 **같은 요령**을 쓴다 — 원정군 스스로의
+   * 병력·장수(어느 성에도 안 속한다)로 `fight()` 에 직접 붙고, 결과에 따라
+   * `capture()`(함락) · 물러남(`retreatJourney`) · `encamp()`(못 떨어뜨려
+   * 그 자리에 진을 침 — 이러면 다음 달부터는 평범한 진영으로 이어진다)
+   * 셋 중 하나로 갈린다. **판정은 fight() 한 곳뿐이다.**
+   */
   function arriveJourney(j) {
-    var R = global.DG.rtk, off = global.DG.off;
-    var beachId = j.path.length >= 2 ? j.path[j.path.length - 2] : j.from;
-    var beach = R.city(beachId);
-    var i;
-
-    if (!beach || beach.force !== j.force) {
-      /* 도착하는 그 한 달 사이에 거점을 뺏겼을 드문 경우 — 대비만 해 둔다 */
-      retreatJourney(j, '거점(' + (CD.find(beachId) ? CD.find(beachId).name : beachId) + ')을 잃어');
-      return;
-    }
-
-    beach.troops += j.troops;
-    beach.food += j.food;
-    for (i = 0; i < j.officers.length; i++) { off.placeAt(j.officers[i], beachId, j.force); }
-
+    var R = global.DG.rtk, off = global.DG.off, i;
     var to = R.city(j.to);
-    if (to && to.force === j.force) {
+    if (!to) { dropJourney(j); return; }
+
+    if (to.force === j.force) {
+      /* 이미 우리 성이 됐다(동맹이 먼저 먹었거나 자기 성이 됐거나) — 싸움
+         없이 그대로 합류한다 */
+      to.troops += j.troops;
+      to.food += j.food;
+      for (i = 0; i < j.officers.length; i++) { off.placeAt(j.officers[i], j.to, j.force); }
       core.log('🚩 ' + CD.find(j.to).name + ' 에 이미 우리 깃발이 있어 원정군이 그대로 합류했다', 'good');
       dropJourney(j);
       core.emit('rtk:journey', { kind: 'join', id: j.id, force: j.force, to: j.to });
       return;
     }
 
-    var leaders = off.sortByPower(j.officers.map(function (id) { return off.find(id); }).filter(function (h) { return !!h; }));
-    var leadIds = leaders.map(function (h) { return h.id; });
-    dropJourney(j);
-    core.emit('rtk:journey', { kind: 'arrive', id: j.id, force: j.force, to: j.to, from: beachId });
-    march(beachId, j.to, leadIds, j.troops);
+    if (global.DG.diplo && global.DG.diplo.blocked(j.force, to.force)) {
+      retreatJourney(j, '맹약이 맺어져 칠 수 없어');
+      return;
+    }
+
+    var relief = reinforce(j.to);
+    var land = CD.landOf(j.to);
+    var atk = {
+      side: 'atk', force: j.force, troops: j.troops, start: j.troops,
+      train: j.train, tech: j.tech, officers: j.officers.slice(), morale: j.morale,
+      water: false, ships: 0
+    };
+    var def = {
+      side: 'def', force: to.force, troops: to.troops, start: to.troops,
+      train: to.train, tech: to.tech,
+      officers: off.atCity(j.to, to.force).map(function (h) { return h.id; }), morale: 1,
+      water: false, ships: 0
+    };
+    off.gainExpAll(j.officers, off.EXP.march);
+
+    var report = fight(atk, def, to, j.to, land, false);
+    report.from = j.from; report.to = j.to; report.relief = relief;
+    report.force = j.force; report.defForce = def.force; report.journeyId = j.id;
+    if (relief > 0) { report.log.splice(1, 0, '🚩 이웃 성에서 구원군 ' + core.fmt(relief) + ' 이 들어왔다'); }
+
+    if (report.won) {
+      dropJourney(j);
+      to.food += j.food;
+      capture(j.to, j.force, atk, def, report);
+    } else if (report.routed) {
+      to.troops = def.troops;
+      j.troops = atk.troops;
+      retreatJourney(j, '공격이 무너져');
+    } else {
+      to.troops = def.troops;
+      j.troops = atk.troops;
+      dropJourney(j);
+      var cp = encamp(j.from, j.to, atk, j.food, report);
+      report.campId = cp.id;
+    }
+
+    core.emit('rtk:battle', report);
+    core.emit('rtk:journey', { kind: 'arrive', id: j.id, force: j.force, to: j.to, won: !!report.won });
   }
 
   /**
