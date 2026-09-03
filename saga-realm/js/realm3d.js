@@ -55,27 +55,53 @@
     return h;
   }
 
-  /** 바닥 — 단색 한 장이 밋밋해서(퀄리티 피드백) 옅은 얼룩 무늬를 타일로 깐다.
-   *  실제 사진이 아니라 해시로 찍은 점묘라 매번 같다(진단 결정성과 같은 이유) */
+  var GROUND_SPAN = 2200;         // buildGround() 의 PlaneGeometry 한 변과 같아야 한다
+  var BIOME_COLOR = { plain: '#cfe0a0', hill: '#d3c88f', river: '#a9d6bd', mount: '#b3aca3' };
+
+  /** 바닥 — 단색 한 장이 밋밋해서(퀄리티 피드백) **성 지형(land)마다 다른 색을
+   *  그 둘레로 은은하게 물들이고**(들판=풀빛·구릉=흙빛·강가=옅은 청록·산=잿빛),
+   *  그 위에 옅은 얼룩 점묘를 얹는다. 실제 사진이 아니라 해시로 찍은 점묘·원이라
+   *  매번 같다(진단 결정성과 같은 이유) — `cityData()` 가 성마다의 x·y·land 를
+   *  훑을 뿐 새 데이터를 만들지 않는다("코드가 아니라 값을 재사용" 원칙). */
   function groundTexture() {
     var t = three();
-    var size = 128;
+    var size = 512;
     var cv = document.createElement('canvas');
     cv.width = size; cv.height = size;
     var c = cv.getContext('2d');
-    c.fillStyle = '#cfe0a0';
+    c.fillStyle = BIOME_COLOR.plain;
     c.fillRect(0, 0, size, size);
-    var i, n = 260;
+
+    function toPx(wx, wz) {
+      return { x: (wx + GROUND_SPAN / 2) / GROUND_SPAN * size, y: (wz + GROUND_SPAN / 2) / GROUND_SPAN * size };
+    }
+
+    var cities = cityData().CITIES, i;
+    for (i = 0; i < cities.length; i++) {
+      var city = cities[i];
+      var land = city.land || 'plain';
+      if (land === 'plain') { continue; }        // 바탕색과 같아 그릴 것이 없다
+      var col = BIOME_COLOR[land] || BIOME_COLOR.plain;
+      var p = toPx(worldX(city.x), worldZ(city.y));
+      var rad = size * 0.085;
+      var g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad);
+      g.addColorStop(0, col);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g;
+      c.beginPath(); c.arc(p.x, p.y, rad, 0, Math.PI * 2); c.fill();
+    }
+
+    var n = 3200;
     for (i = 0; i < n; i++) {
       var hh = hashOf('gtex:' + i);
-      var x = hh % size, y = (hh >> 8) % size, r = 2 + (hh % 4);
-      var tone = (hh >> 16) % 3;
-      c.fillStyle = tone === 0 ? 'rgba(120,150,70,0.14)' : (tone === 1 ? 'rgba(235,228,175,0.10)' : 'rgba(90,128,58,0.16)');
+      var x = hh % size, y = (hh >> 9) % size, r = 1.4 + (hh % 3);
+      var tone = (hh >> 18) % 3;
+      c.fillStyle = tone === 0 ? 'rgba(120,150,70,0.10)' : (tone === 1 ? 'rgba(235,228,175,0.08)' : 'rgba(90,128,58,0.12)');
       c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
     }
+
     var tex = new t.CanvasTexture(cv);
-    tex.wrapS = tex.wrapT = t.RepeatWrapping;
-    tex.repeat.set(48, 48);
+    tex.wrapS = tex.wrapT = t.ClampToEdgeWrapping;
     if (t.SRGBColorSpace) { tex.colorSpace = t.SRGBColorSpace; }
     return tex;
   }
@@ -131,7 +157,7 @@
     scene.add(sun);
 
     var ground = new t.Mesh(
-      new t.PlaneGeometry(2200, 2200),
+      new t.PlaneGeometry(GROUND_SPAN, GROUND_SPAN),
       new t.MeshLambertMaterial({ color: 0xffffff, map: groundTexture() })
     );
     ground.rotation.x = -Math.PI / 2;
@@ -394,6 +420,58 @@
     }
   }
 
+  /** 성 사이 빈 들 — 성마다 두르는 `scatterAround`/`scatterSmall` 는 성 둘레
+   *  6~13 유닛에만 꽂혀서, 그 사이 넓은 빈칸은 늘 판판했다(퀄리티 피드백,
+   *  2026-09-04). 성 좌표를 담는 사각형을 격자로 훑으며 **가장 가까운 성의
+   *  land** 를 물려받아 그 결에 맞는 소품을 성기게(칸마다 18% 확률) 흩는다.
+   *  성 발밑(반경 16유닛)은 건너뛴다 — `cityDressing`이 이미 그 자리를 쓴다.
+   *  칸 좌표 하나로 심을지·무엇을·어디에를 다 정해 늘 같은 그림이 선다. */
+  function scatterField(seq) {
+    var cities = cityData().CITIES, i, k;
+    var minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (i = 0; i < cities.length; i++) {
+      var wx = worldX(cities[i].x), wz = worldZ(cities[i].y);
+      if (wx < minX) { minX = wx; } if (wx > maxX) { maxX = wx; }
+      if (wz < minZ) { minZ = wz; } if (wz > maxZ) { maxZ = wz; }
+    }
+    var pad = 30, cell = 18;
+    minX -= pad; maxX += pad; minZ -= pad; maxZ += pad;
+
+    for (var gx = minX; gx < maxX; gx += cell) {
+      for (var gz = minZ; gz < maxZ; gz += cell) {
+        var hh = hashOf('field:' + Math.round(gx) + ':' + Math.round(gz));
+        if (hh % 100 >= 18) { continue; }
+        var jx = gx + ((hh >> 6) % cell) - cell / 2;
+        var jz = gz + ((hh >> 12) % cell) - cell / 2;
+
+        var near = null, nd = Infinity;
+        for (k = 0; k < cities.length; k++) {
+          var d = Math.hypot(jx - worldX(cities[k].x), jz - worldZ(cities[k].y));
+          if (d < nd) { nd = d; near = cities[k]; }
+        }
+        if (!near || nd < 16) { continue; }
+
+        var land = near.land || 'plain';
+        var pick = (hh >> 18) % 10;
+        var kind, scaleH;
+        if (land === 'mount') {
+          kind = pick < 6 ? 'rock' : 'mount';
+          scaleH = kind === 'mount' ? (5 + (hh % 4)) : 0.8;
+        } else if (land === 'hill') {
+          kind = pick < 5 ? 'rock' : (pick < 8 ? 'bush' : 'tree');
+          scaleH = kind === 'tree' ? (1.8 + (hh % 8) / 10) : 0.8;
+        } else if (land === 'river') {
+          kind = pick < 6 ? 'grass' : (pick < 9 ? 'bush' : 'tree');
+          scaleH = kind === 'tree' ? (2 + (hh % 8) / 10) : 0.7;
+        } else {
+          kind = pick < 7 ? 'tree' : (pick < 9 ? 'bush' : 'flower');
+          scaleH = kind === 'tree' ? (2 + (hh % 14) / 10) : 0.7;
+        }
+        addProp(kind, 'field:' + Math.round(jx) + ':' + Math.round(jz), jx, jz, scaleH, (hh % 628) / 100, seq);
+      }
+    }
+  }
+
   function buildCity(city, cst, me) {
     var t = three();
     var mine = cst.force === me;
@@ -502,6 +580,7 @@
       scatterSmall(cities[i], seq);
       riverPond(cities[i], seq);
     }
+    scatterField(seq);
 
     /* 진(陣) — 물러나지 않고 성 밖에 진 친 부대. 내 것·남의 것 다 세운다
        (이 판은 애초에 안 가린 정보라 — enemyCity() 도 적 성 살림을 그대로 보여준다) */
