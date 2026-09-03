@@ -85,6 +85,7 @@ window.DG_NO_ACCOUNT = true;
  *   #war    전황 보고          #camp  진영 (달을 넘긴 원정)
  *   #ask    출진 물음 카드 (폰에서 prompt 를 걷어낸 자리)
  *   #officers 무장   #diplo 외교   #school 학당
+ *   #korea  한국 지역(2026-09-03 확장) 지도 + 첫 성(양평) 시트
  */
 (function () {
   var C = DG.core, R = DG.rtk, off = DG.off, W = DG.war;
@@ -149,6 +150,9 @@ window.DG_NO_ACCOUNT = true;
     DG.ui.openSheet('diplo');
   } else if (scene === 'school') {
     DG.ui.openSheet('school');
+  } else if (scene === 'korea') {
+    DG.ui.renderTop(); DG.ui.renderMap();
+    DG.ui.openCity('yangping');
   } else {
     DG.ui.renderTop(); DG.ui.renderMap();
   }

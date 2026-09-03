@@ -188,8 +188,15 @@
       }
     }
 
-    /* 어느 표에도 안 적힌 사람은 재야가 된다 — 200·208년의 여포·이각이 그렇다 */
+    /* 어느 표에도 안 적힌 사람은 재야가 된다 — 200·208년의 여포·이각이 그렇다.
+       한국 지역 수비 무장도 이 시점엔 force:null 이라 이 해시를 함께 타고
+       아무 성에나 흩어진다 — 아래 seedNeutral() 이 곧바로 제자리로 되돌린다 */
     scatterFree();
+
+    /* 세력 없는 성(한국 지역, 2026-09-03 확장) — 수비병·수비 무장을 채운다.
+       scatterFree() **뒤에** 불러야 한다 — 위에서 흩어 놓은 한국 수비 무장의
+       자리를 지정한 성으로 되돌려 놓는다(scatterFree()는 안 건드린다) */
+    seedNeutral();
 
     /* 시나리오가 정한 맹약 — 적벽의 손·유 동맹이 여기서 선다 */
     var pacts = sc.pacts || [];
@@ -230,7 +237,37 @@
     return placedCount;
   }
 
+  /**
+   * 세력 없는 성(한국 지역, `data-city.js`의 `garrison` 필드가 있는 성)을 채운다.
+   * `setup()`이 처음 도시를 세울 때는 `FD.FORCES`에 실린 성만 병력을 받는다
+   * (조사로 확인 — 세력 없는 성은 그냥 0으로 남는다). 그 성이 빈 채면 아무나
+   * 걸어 들어가는 셈이라 "정복" 이라 할 게 없다 — 수비병·수비 무장을 준다.
+   * 이 성의 수비 무장은 **수색 없이 바로 보인다**(`found:true`) — 성벽 뒤에
+   * 있는 사람이 안 보이는 재야일 리 없다. `off.atCity()`는 found 여부를
+   * 안 가리므로 전투(war.js)에서는 이미 문제없이 defOff 로 잡힌다.
+   */
+  function seedNeutral() {
+    var st = state();
+    var off = global.DG.off;
+    for (var i = 0; i < CD.CITIES.length; i++) {
+      var d = CD.CITIES[i];
+      if (!d.garrison) { continue; }
+      var c = st.cities[d.id];
+      c.troops = d.garrison;
+      c.food = d.garrison * 2;
+      var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) || [];
+      var gov = null;
+      for (var j = 0; j < ids.length; j++) {
+        var r = off.placeAt(ids[j], d.id, null);
+        r.found = true;
+        if (!gov) { gov = ids[j]; }
+      }
+      c.gov = gov;
+    }
+  }
+
   function forceName(id) {
+    if (!id) { return '주인 없음'; }     // 한국 지역 등 force:null 인 성 (2026-09-03)
     var f = FD.force(id);
     return f ? f.name : id;
   }

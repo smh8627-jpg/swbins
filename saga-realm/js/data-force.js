@@ -111,6 +111,58 @@
     O('rf_wuyi',       '오의',   '吳懿',   3, 'command',80, 66, 82, '🪧', '익주의 병사는 아직 쓸 만합니다.')
   ];
 
+  /**
+   * 한국 지역(2026-09-03 확장, `data-city.js` 참고) 수비 무장 9인.
+   * **`OFFICERS`/`roster()`와 분리한다** — `roster(forceId)`는 `FORCES`에 실린
+   * 사람만 돌려주므로 여기 있는 이름은 어느 중국 세력에도 자동 배분되지 않는다.
+   * 세력 없이 `force:null`로 해당 성에 바로 서는 수비대다(재야처럼 수색해야
+   * 보이는 게 아니라 처음부터 보인다 — `rtk.js`의 `seedNeutral()` 참고).
+   *
+   * 루트 `CLAUDE.md` 이름 정책(확장 지역 실존/역사 인물은 가명으로 임의
+   * 정한다)에 따라 **실제 역사 인물이 아닌 지어낸 이름**을 쓴다 — 성 이름
+   * (양평·국내성 등)은 실제 지명이라 정책 대상이 아니다.
+   */
+  var KOREA_OFFICERS = [
+    { id: 'kr2_pasodan',   name: '파소단', hanja: '波蘇丹', era: '한국(가상)', faction: '양평',
+      rarity: 4, trait: 'might', emoji: '⚔️', quote: '여기가 뚫리면 그다음은 없다.',
+      stats: { might: 80, wisdom: 50, command: 75 } },
+    { id: 'kr2_dokgaru',   name: '독가루', hanja: '禿加婁', era: '한국(가상)', faction: '국내성',
+      rarity: 4, trait: 'might', emoji: '🛡️', quote: '산성은 무너지지 않는다. 오르는 자가 지칠 뿐이다.',
+      stats: { might: 88, wisdom: 55, command: 82 } },
+    { id: 'kr2_sogaram',   name: '소가람', hanja: '蘇加藍', era: '한국(가상)', faction: '국내성',
+      rarity: 3, trait: 'wisdom', emoji: '📿', quote: '성 안에서는 곳간이 곧 무기다.',
+      stats: { might: 40, wisdom: 90, command: 70 } },
+    { id: 'kr2_mokrihae',  name: '목리해', hanja: '木利海', era: '한국(가상)', faction: '낙랑',
+      rarity: 4, trait: 'command', emoji: '🏺', quote: '저자를 지키는 것도 싸움이다.',
+      stats: { might: 60, wisdom: 65, command: 84 } },
+    { id: 'kr2_ajinsa',    name: '아진사', hanja: '阿珍思', era: '한국(가상)', faction: '대방',
+      rarity: 3, trait: 'wisdom', emoji: '🗺️', quote: '경계란 두려워할 것이 아니라 살필 것이다.',
+      stats: { might: 45, wisdom: 85, command: 68 } },
+    { id: 'kr2_yeonuru',   name: '연우루', hanja: '延于婁', era: '한국(가상)', faction: '위례성',
+      rarity: 4, trait: 'wisdom', emoji: '📜', quote: '한강은 누구의 편도 아니다 — 다스리는 자의 편일 뿐.',
+      stats: { might: 60, wisdom: 90, command: 78 } },
+    { id: 'kr2_jimasol',   name: '지마솔', hanja: '支麻率', era: '한국(가상)', faction: '위례성',
+      rarity: 4, trait: 'might', emoji: '🏹', quote: '강을 낀 성은 활로 지킨다.',
+      stats: { might: 86, wisdom: 48, command: 80 } },
+    { id: 'kr2_umorin',    name: '우모린', hanja: '于牟隣', era: '한국(가상)', faction: '금성',
+      rarity: 4, trait: 'command', emoji: '🗻', quote: '산이 세 겹이면 군사는 반으로 줄어도 된다.',
+      stats: { might: 82, wisdom: 58, command: 88 } },
+    { id: 'kr2_seolharan', name: '설하란', hanja: '薛河蘭', era: '한국(가상)', faction: '김해',
+      rarity: 3, trait: 'command', emoji: '⛵', quote: '바다는 넓어서 누구든 받아준다 — 지키는 자만 있다면.',
+      stats: { might: 65, wisdom: 60, command: 80 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var KOREA_GARRISON = {
+    yangping: ['kr2_pasodan'],
+    guknae: ['kr2_dokgaru', 'kr2_sogaram'],
+    nakrang: ['kr2_mokrihae'],
+    daebang: ['kr2_ajinsa'],
+    wirye: ['kr2_yeonuru', 'kr2_jimasol'],
+    geumseong: ['kr2_umorin'],
+    gimhae: ['kr2_seolharan']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -329,6 +381,7 @@
   global.DG = global.DG || {};
   global.DG.forceData = {
     OFFICERS: OFFICERS, FORCES: FORCES, NAVY: NAVY, navyOf: navyOf,
+    KOREA_OFFICERS: KOREA_OFFICERS, KOREA_GARRISON: KOREA_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

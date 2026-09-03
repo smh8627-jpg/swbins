@@ -689,8 +689,9 @@
     }
     core.log('🚩 ' + CD.find(toId).name + ' 함락 — ' + R.forceName(newForce), 'good');
 
-    /* 세력이 통째로 지워졌는가 */
-    if (!R.citiesOf(oldForce).length) {
+    /* 세력이 통째로 지워졌는가 — 주인 없던 성(한국 지역 등, oldForce===null)을
+       처음 뺏는 것은 "멸망"이 아니다. 그 성은 애초에 세력이 아니었다 */
+    if (oldForce && !R.citiesOf(oldForce).length) {
       core.log('🏳️ ' + R.forceName(oldForce) + ' 이(가) 멸망했다', 'warn');
       core.emit('rtk:fallen', oldForce);
     }

@@ -1,5 +1,5 @@
 /**
- * 삼국지 — 도시(城) 서른 곳
+ * 삼국지 — 도시(城) 서른 곳 + 한국 지역 일곱 (2026-09-03 확장, 주인 없음)
  * ---------------------------------------------------------------
  * 코에이 삼국지의 골격은 "도시가 점이고, 인접한 점끼리만 군대가 오간다" 이다.
  * 그래서 이 파일이 정하는 것은 딱 둘이다 — **어디에 그릴지(x·y)** 와 **누구와 붙어 있는지(adj)**.
@@ -24,7 +24,12 @@
   var PROVINCES = {
     you: '유주', ji: '기주', bing: '병주', qing: '청주', yan: '연주',
     xu: '서주', yu: '예주', si: '사예', yong: '옹주', liang: '양주(涼)',
-    jing: '형주', yi: '익주', yang: '양주(揚)'
+    jing: '형주', yi: '익주', yang: '양주(揚)',
+    /* 2026-09-03 확장 — 한국 지역. 성 이름은 실제 역사 지명(저작권 대상이
+       아니다), 그 성을 지키는 사람은 data-force.js KOREA_OFFICERS 에서
+       가명으로 짓는다(루트 CLAUDE.md 이름 정책 — place명이 아니라 인물명만
+       가린다) */
+    kr: '한국'
   };
 
   var CITIES = [
@@ -96,7 +101,34 @@
     { id: 'jianye',   name: '건업', hanja: '建業', prov: 'yang', x: 77, y: 62, land: 'river',
       agri: 320, comm: 380, wall: 5200, pop: 250000, desc: '종산이 웅크린 자리. 왕기(王氣)가 있다 한다.' },
     { id: 'kuaiji',   name: '회계', hanja: '會稽', prov: 'yang', x: 84, y: 76, land: 'plain',
-      agri: 300, comm: 340, wall: 4400, pop: 210000, desc: '강동의 끝. 소금과 배로 먹고산다.' }
+      agri: 300, comm: 340, wall: 4400, pop: 210000, desc: '강동의 끝. 소금과 배로 먹고산다.' },
+
+    /* ── 한국 (2026-09-03 확장, 주인 없음 — force:null 로 시작해 정복 대상이다) ──
+       x·y 는 기존 30성보다 동쪽(x:97~118)에 둔다 — 2D SVG viewBox 를
+       0 0 100 100 → 0 0 125 100 로 넓혀야 잘린 채 안 뜬다(ui-rtk.js 한 곳).
+       `garrison` 은 이 판에만 있는 새 필드 — rtk.js setup() 의 seedNeutral() 이
+       이 값으로 troops/food 를 채운다(기존 30성에는 이 필드가 없다). */
+    { id: 'yangping',  name: '양평',   hanja: '襄平',   prov: 'kr', x: 97,  y: 6,  land: 'plain',
+      agri: 220, comm: 180, wall: 3800, pop: 90000, garrison: 12000,
+      desc: '요동의 관문. 중원과 반도 사이, 누구의 땅도 아니다.' },
+    { id: 'guknae',    name: '국내성', hanja: '國內城', prov: 'kr', x: 104, y: 14, land: 'mount',
+      agri: 200, comm: 160, wall: 4600, pop: 100000, garrison: 15000,
+      desc: '산이 성벽을 대신하는 곳. 오르는 자가 지친다.' },
+    { id: 'nakrang',   name: '낙랑',   hanja: '樂浪',   prov: 'kr', x: 103, y: 24, land: 'plain',
+      agri: 260, comm: 220, wall: 4200, pop: 130000, garrison: 16000,
+      desc: '옛 군현의 저자. 배와 수레가 다 모인다.' },
+    { id: 'daebang',   name: '대방',   hanja: '帶方',   prov: 'kr', x: 100, y: 33, land: 'plain',
+      agri: 240, comm: 200, wall: 4000, pop: 110000, garrison: 14000,
+      desc: '낙랑과 반도 남쪽을 잇는 목.' },
+    { id: 'wirye',     name: '위례성', hanja: '慰禮城', prov: 'kr', x: 104, y: 42, land: 'river',
+      agri: 300, comm: 260, wall: 4600, pop: 150000, garrison: 18000,
+      desc: '큰 강을 낀 터. 다스리는 자마다 도읍으로 삼고 싶어한다.' },
+    { id: 'geumseong', name: '금성',   hanja: '金城',   prov: 'kr', x: 118, y: 52, land: 'hill',
+      agri: 280, comm: 240, wall: 5000, pop: 160000, garrison: 20000,
+      desc: '반도 동남단의 큰 성. 산으로 둘러싸여 지키기 좋다.' },
+    { id: 'gimhae',    name: '김해',   hanja: '金海',   prov: 'kr', x: 112, y: 58, land: 'river',
+      agri: 260, comm: 300, wall: 3800, pop: 100000, garrison: 13000,
+      desc: '남쪽 바닷가 나루. 배가 성벽만큼 값지다.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -129,7 +161,16 @@
     ['jiangxia', 'chaisang'],
     ['changsha', 'chaisang'], ['changsha', 'kuaiji'],
     ['chaisang', 'jianye'],
-    ['jianye', 'kuaiji']
+    ['jianye', 'kuaiji'],
+
+    /* ── 한국 ─────────────────────────────────────────── */
+    ['beiping', 'yangping'],
+    ['yangping', 'guknae'],
+    ['guknae', 'nakrang'],
+    ['nakrang', 'daebang'],
+    ['daebang', 'wirye'],
+    ['wirye', 'geumseong'], ['wirye', 'gimhae'],
+    ['geumseong', 'gimhae']
   ];
 
   var byId = {};

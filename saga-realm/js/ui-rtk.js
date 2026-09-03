@@ -425,7 +425,10 @@
     if (!st.started) { els.realm.innerHTML = ''; return; }
     var i, j, s = '';
 
-    s += '<svg class="rmap" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">';
+    /* viewBox 를 100→125 로 넓혔다(2026-09-03, 한국 지역 확장) — 그 동쪽에
+       둔 새 성 7개(x:97~118)가 안 잘리게. x/y 값 자체는 CD.CITIES 데이터가
+       그대로 쥐고 있어 여기 말고 고칠 곳이 없다 */
+    s += '<svg class="rmap" viewBox="0 0 125 100" preserveAspectRatio="xMidYMid meet">';
 
     /* 길 — 인접한 성끼리. 같은 편이면 밝게 */
     var drawn = {};
@@ -1132,7 +1135,7 @@
     showEnc('<h3 style="margin:0 0 6px;font-size:20px">' +
       (kind === 'win' ? '👑 천하통일' : '🏳️ 멸망') + '</h3>' +
       '<small class="muted">' + st.year + '년 ' + st.month + '월. ' +
-      (kind === 'win' ? '서른 성이 모두 한 깃발 아래 들었습니다.'
+      (kind === 'win' ? '온 땅의 성이 모두 한 깃발 아래 들었습니다.'
                       : '성을 모두 잃었습니다. 처음부터(↺) 다시 시작할 수 있습니다.') +
       '</small><button class="btn primary wide" data-act="close-enc">확인</button>');
   }

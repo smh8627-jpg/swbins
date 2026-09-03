@@ -31,6 +31,12 @@
       var o = FD.OFFICERS[i];
       if (!data.find(o.id)) { data.heroes.push(o); }
     }
+    /* 한국 지역 수비 무장(2026-09-03) — 같은 방식으로 얹는다.
+       FD.roster()는 안 훑으므로 어느 세력에도 자동 배분되지 않는다 */
+    var kr = FD.KOREA_OFFICERS || [];
+    for (var k = 0; k < kr.length; k++) {
+      if (!data.find(kr[k].id)) { data.heroes.push(kr[k]); }
+    }
     merged = true;
     return data.heroes.length;
   }
@@ -97,6 +103,12 @@
       if (m[k].camp) { continue; }
       if (m[k].city !== cityId) { continue; }
       if (forceId === undefined ? false : (m[k].force !== forceId)) { continue; }
+      /* forceId 로 null 을 준다는 건 "주인 없는 성의 수비대"를 찾는 것이다
+         (한국 지역, 2026-09-03). 그 성에 우연히 흩어져 있을 뿐인 숨은 재야
+         (`found:false`)까지 수비군으로 끌려 들어오면 안 된다 — 숨은 사람은
+         나서지 않는다. 기존 30성은 force:null 인 적이 없어 이 줄이 지금까지의
+         어떤 호출도 안 바꾼다 */
+      if (forceId === null && !m[k].found) { continue; }
       var h = find(k);
       if (h) { out.push(h); }
     }
