@@ -74,6 +74,8 @@
   };
   var footprints = [];         // { x, y, at, side }
   var FOOT_LIFE = 7000;        // 발자국이 사라지기까지 (ms)
+  var clickMarks = [];         // { x, y, at } — 클릭(탭)한 자리 표시
+  var CLICK_MARK_LIFE = 850;   // 클릭 표시가 사라지기까지 (ms)
   var WANDER_R = 15;           // 야생 대상이 배회하는 반경 (m)
   var WANDER_SPEED = 2.6;      // 배회 속도 (m/s)
   var TRAIL_STEP = 40;         // 발자취를 한 점 남기는 간격 (m) — PLAN 25-1절
@@ -330,6 +332,7 @@
     // 수명이 지난 발자국 정리
     var now = Date.now();
     while (footprints.length && now - footprints[0].at > FOOT_LIFE) { footprints.shift(); }
+    while (clickMarks.length && now - clickMarks[0].at > CLICK_MARK_LIFE) { clickMarks.shift(); }
 
     trackTrail(dist);
   }
@@ -952,6 +955,8 @@
     var sc = scale(), pos = core.save.player.pos;
     var loc = unproject(e.clientX - r.left, e.clientY - r.top);
     var wx = pos.x + loc.u / sc, wy = pos.y + loc.v / sc;
+    clickMarks.push({ x: wx, y: wy, at: Date.now() });
+    if (clickMarks.length > 6) { clickMarks.shift(); }
     var hitR = 30 / sc;
     var best = null, bestD = Infinity;
     for (var i = 0; i < spawns.length; i++) {
@@ -1007,6 +1012,7 @@
       }
       // 빈 땅을 눌렀다 — 그쪽으로 걸어간다 (손가락으로 하는 이동)
       if (mode === 'keyboard') { walkTo(wx, wy); }
+      core.emit('toast', '📍 (' + Math.round(wx) + ', ' + Math.round(wy) + ')');
       return;
     }
     var dist = Math.hypot(best.x - pos.x, best.y - pos.y);
@@ -1090,6 +1096,24 @@
       gCtx.strokeStyle = 'rgba(40,60,80,' + (life * 0.35) + ')';
       gCtx.lineWidth = 1;
       gCtx.stroke();
+    }
+
+    /* 클릭(탭)한 자리 — 커지며 옅어지는 고리 + 중심 점 */
+    for (var m = 0; m < clickMarks.length; m++) {
+      var cm = clickMarks[m];
+      var clife = 1 - (fnow - cm.at) / CLICK_MARK_LIFE;
+      if (clife <= 0) { continue; }
+      var mx = (cm.x - camX) * sc, my = (cm.y - camY) * sc;
+      var rad = (4 + (1 - clife) * 16) * sc;
+      gCtx.beginPath();
+      gCtx.arc(mx, my, rad, 0, Math.PI * 2);
+      gCtx.strokeStyle = 'rgba(255,214,80,' + (clife * 0.9) + ')';
+      gCtx.lineWidth = 2;
+      gCtx.stroke();
+      gCtx.beginPath();
+      gCtx.arc(mx, my, 2.5 * sc, 0, Math.PI * 2);
+      gCtx.fillStyle = 'rgba(255,214,80,' + clife + ')';
+      gCtx.fill();
     }
 
     /* 조우 반경 — 눕은 지면 위에 있으므로 자연스럽게 타원으로 보인다 */
