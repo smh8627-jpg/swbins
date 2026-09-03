@@ -164,7 +164,10 @@ setTimeout(function () {
   var NATURE_TEST_KINDS = {
     rocktest: { kinds: ['rock', 'mossyRock'], biome: 'rocky' },
     treetest: { kinds: ['tree'], biome: 'green' },
-    bushtest: { kinds: ['bush'], biome: 'meadow' }
+    bushtest: { kinds: ['bush'], biome: 'meadow' },
+    pinetest: { kinds: ['pine'], biome: 'green' },
+    deadtest: { kinds: ['deadTree'], biome: 'dark' },
+    logtest: { kinds: ['log'], biome: 'mushroom' }
   };
   var natureTestKey = Object.keys(NATURE_TEST_KINDS).filter(function (k) { return hash.indexOf(k) >= 0; })[0];
   if (natureTestKey && DG.villageView3d) {

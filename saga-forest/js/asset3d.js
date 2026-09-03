@@ -97,10 +97,15 @@
    *    asset3d.register('bush', BUSH_STYLIZED.bush);
    */
   var TREE_STYLIZED = {
-    'tree:common': [NAT + 'CommonTree_1.glb', NAT + 'CommonTree_2.glb', NAT + 'CommonTree_3.glb']
+    'tree:common': [NAT + 'CommonTree_1.glb', NAT + 'CommonTree_2.glb', NAT + 'CommonTree_3.glb'],
+    'tree:pine': [NAT + 'PineTree_1.glb', NAT + 'PineTree_2.glb'],
+    'tree:dead': NAT + 'CommonTree_Dead_1.glb'
   };
   var BUSH_STYLIZED = {
     'bush': [NAT + 'Bush_1.glb', NAT + 'Bush_2.glb', NAT + 'BushBerries_1.glb']
+  };
+  var LOG_STYLIZED = {
+    'log': [NAT + 'WoodLog.glb', NAT + 'WoodLog_Moss.glb']
   };
 
   /** 표 — 키는 좁은 것부터. PLAN 8절(숲 오브젝트)·16절(동물) 어휘를 그대로 썼다.
@@ -111,9 +116,12 @@
     'hero': HERO_RECIPES,
 
     /* 나무 — 계절은 season.js 가 정한 값을 ref.season 으로 넘기는 쪽(부르는 쪽)이 맡는다.
-       봄·여름(tree:common) 만 2026-09-03 에 실사로 갈아 끼웠다 — 가을·눈·고목·소나무·
-       자작은 아직 저다각형이다(나무는 한 종 바꾸는 데도 46MB 원본 + 심플리파이가 드는
-       무거운 작업이라 이번 항목은 하나만 하고 나머지는 다음 몫으로 남긴다).
+       2026-09-03 에 tree:common(봄·여름) 을 먼저 실사로 갈아 끼웠고, **이어서**
+       tree:pine·tree:dead 도 실사로 바꿨다. **가을·눈·자작은 여전히 저다각형이다
+       — Poly Haven 전체를 뒤져도 가을 단풍·흰 자작나무·눈 덮인 나무 태그를 가진
+       CC0 나무 모델이 없었다**(가문비·소나무·야자 계열 photogrammetry 뿐이다).
+       조건이 아니라 소재 자체가 없는 경우라 이번엔 "안 되는 이유"만 적어 두고
+       다음에 다른 CC0 출처가 나오면 그때 본다.
        Poly Haven `island_tree_02`(사진측량, 874,494 정점) 를 `gltf-transform weld` →
        `simplify --ratio 0.05 --error 0.02`(102,208 정점, 88% 감량, meshopt 기반이라
        나뭇잎 카드가 사라지지 않고 결만 성글어진다) → `resize`(768px) → `jpeg`(품질 85)
@@ -121,8 +129,17 @@
     'tree:common': NAT_REAL + 'IslandTree_02.glb',
     'tree:common:autumn': [NAT + 'CommonTree_Autumn_1.glb', NAT + 'CommonTree_Autumn_2.glb'],
     'tree:common:snow': [NAT + 'CommonTree_Snow_1.glb', NAT + 'CommonTree_Snow_2.glb'],
-    'tree:dead': NAT + 'CommonTree_Dead_1.glb',
-    'tree:pine': [NAT + 'PineTree_1.glb', NAT + 'PineTree_2.glb'],
+    /* 고목 — Poly Haven `dead_quiver_trunk`(가지 없이 선 마른 줄기, 33,706 폴리곤).
+       "dead_tree_trunk"·"dead_tree_trunk_02" 이름의 모델은 둘 다 실제로는 **쓰러진
+       통나무**라(원본 렌더로 직접 확인) tree:dead 자리엔 안 맞고, 대신 `log` 표에
+       썼다(아래). 지오메트리가 가벼워 심플리파이 없이 resize+jpeg 만 했다 */
+    'tree:dead': NAT_REAL + 'TreeDead.glb',
+    /* 소나무 — Poly Haven `pine_sapling_small`. 어린 소나무라 원작 저다각형(굵고
+       빽빽한 원뿔)보다 가늘고 성긴 모양이다 — 사실적인 대신 실루엣이 달라진다.
+       원본 정점 406,356(폴리곤 수 398,144 와 안 맞는다 — 바늘잎이 낱장 지오메트리로
+       펼쳐져 나온 탓, 나무 실사가 다 이렇다) 를 weld→simplify(ratio 0.08, 정점
+       56,364 로 86% 감량)→resize→jpeg 로 21.9MB → 2.71MB */
+    'tree:pine': NAT_REAL + 'PineSapling.glb',
     'tree:birch': [NAT + 'BirchTree_1.glb', NAT + 'BirchTree_2.glb'],
 
     /* 식물·자연물 */
@@ -157,7 +174,11 @@
     'plant': [NAT + 'Plant_1.glb', NAT + 'Plant_2.glb'],
     'mushroom': [PROP + 'Mushroom_1.glb', PROP + 'Mushroom_2.glb'],
     'stump': [NAT + 'TreeStump.glb', NAT + 'TreeStump_Moss.glb'],
-    'log': [NAT + 'WoodLog.glb', NAT + 'WoodLog_Moss.glb'],
+    /* 통나무 — tree:dead 를 찾다가 나온 부산물. Poly Haven `dead_tree_trunk`·
+       `dead_tree_trunk_02` 는 이름과 달리 둘 다 쓰러진 통나무라(위 tree:dead
+       주석 참고) 여기 자리가 원래 뜻에 더 맞는다. 지오메트리가 가벼워
+       심플리파이 없이 resize+jpeg 만 했다. 옛 Quaternius 둘은 `LOG_STYLIZED` */
+    'log': [NAT_REAL + 'Log_a.glb', NAT_REAL + 'Log_b.glb'],
     'mountain': [NAT + 'Mountain_1.glb', NAT + 'Mountain_2.glb'],
 
     /* 장식 (PLAN 8절) */
@@ -562,6 +583,7 @@
     ROCK_STYLIZED: ROCK_STYLIZED,
     TREE_STYLIZED: TREE_STYLIZED,
     BUSH_STYLIZED: BUSH_STYLIZED,
+    LOG_STYLIZED: LOG_STYLIZED,
     stats: function () { return { built: built, swapped: swapped, broke: broke }; }
   };
 })(typeof window !== 'undefined' ? window : this);

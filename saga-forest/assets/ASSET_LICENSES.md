@@ -333,3 +333,50 @@ Mixamo 실사(아래 절)가 재배포 금지라 공개 저장소에서 캐릭�
 지우지 않았다 — `js/asset3d.js` 의 `TREE_STYLIZED`·`BUSH_STYLIZED` 가 되돌림
 자리로 들고 있다. 가을·눈·고목·소나무·자작나무는 이번 항목에 안 들어가
 아직 저다각형이다.
+
+---
+
+## Poly Haven — 고목·소나무·통나무 사진측량 스캔 (`models/nature/realistic/`, 2026-09-03 이어서)
+
+"자연물도 실사로" 나무·수풀 항목의 나머지 — `tree:dead`·`tree:pine`, 그리고
+그 과정에서 나온 부산물로 `log`까지 갈아 끼웠다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Rob Tuytel·Rico Cilliers(`pine_sapling_small`) · James Ray Cock·Dario Barresi·Rico Cilliers(`dead_quiver_trunk`) · Rob Tuytel(`dead_tree_trunk`) · Jenelle van Heerden·Rico Cilliers(`dead_tree_trunk_02`) — 전부 Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | <https://polyhaven.com/a/pine_sapling_small> · <https://polyhaven.com/a/dead_quiver_trunk> · <https://polyhaven.com/a/dead_tree_trunk> · <https://polyhaven.com/a/dead_tree_trunk_02> — 1k glTF(api.polyhaven.com 으로 직접 받음) |
+
+| 파일 | 원본 | 처리 |
+|---|---|---|
+| `TreeDead.glb` | `dead_quiver_trunk`(33,706 폴리곤·2.3MB 원본) | 지오메트리가 가벼워 그대로, `resize`(768px) → `jpeg`(품질 85) — 2.27MB → **0.70MB** |
+| `PineSapling.glb` | `pine_sapling_small`(정점 406,356·bin 17.8MB) | `weld` → `simplify --ratio 0.08 --error 0.02`(정점 56,364, 86% 감량) → `resize`(768px) → `jpeg`(품질 85) — 21.9MB → **2.71MB** |
+| `Log_a.glb` | `dead_tree_trunk`(101,802 폴리곤·2.3MB bin) | 지오메트리가 가벼워 그대로, `resize`(768px) → `jpeg`(품질 85) — 4.79MB → **2.72MB** |
+| `Log_b.glb` | `dead_tree_trunk_02`(155,864 폴리곤·2.0MB bin) | 위와 동일 — 4.91MB → **2.48MB** |
+
+**`tree:dead`에 `dead_tree_trunk`를 안 쓴 까닭** — 이름과 태그(`nature`,
+`trees`)만 보면 고목처럼 보이지만, 실제로 받아 렌더해 보니 `dead_tree_trunk`·
+`dead_tree_trunk_02` 둘 다 **가지 없이 옆으로 누운 통나무**였다(스크린샷으로
+확인). `tree:dead`는 이 판에서 **선 채로 마른 나무** 자리라 안 맞는다 — 대신
+누운 모양 그대로 쓸 수 있는 `log` 표로 돌렸다. `tree:dead`는 별도로
+`dead_quiver_trunk`(퀴버 나무, 아프리카 알로에 계통이 죽으면 남기는 가지
+없는 마른 줄기)를 찾아 썼다 — 세로로 곧게 서 있어 이 판의 정규화(세로 키 1)와도
+잘 맞는다.
+
+**`tree:pine`에 성긴 어린 나무를 쓴 까닭** — Poly Haven 의 성숙한 소나무·전나무는
+전부 무거웠다(`pine_tree_01` 1740만 폴리곤, `fir_tree_01` 785만, `pine_sapling_medium`
+978만). 가장 가벼운 `pine_sapling_small`도 폴리곤 수(398,144)와 실제 정점 수
+(406,356)가 거의 같은데 반해 `.bin`은 17.8MB — 바늘잎 하나하나가 낱장
+지오메트리로 펼쳐져 나오기 때문이다(나무 실사 전반의 공통 사정, `tree:common`
+절 참고). `simplify`로 86% 줄여 썼다 — 원작 저다각형(굵고 빽빽한 원뿔)보다
+가늘고 성긴 어린 나무 모양이 됐지만, 실제 게임 화면(puppeteer, `#pinetest`)에서
+확인한 결과 다른 실사 나무·바위와 어울렸다.
+
+옛 Quaternius `PineTree_1·2.glb`·`CommonTree_Dead_1.glb`는 지우지 않았다 —
+`js/asset3d.js`의 `TREE_STYLIZED`가 되돌림 자리로 들고 있고, `WoodLog.glb`·
+`WoodLog_Moss.glb`는 `LOG_STYLIZED`가 들고 있다.
+
+**여전히 못 채운 자리** — Poly Haven 전체(`t=models`)를 뒤져도 **가을 단풍·흰
+줄기 자작나무·눈 덮인 나무** 태그를 가진 CC0 모델이 없었다(가문비·소나무·야자
+계열 사진측량뿐이다). `tree:common:autumn`·`tree:common:snow`·`tree:birch`는
+이번 항목에서 못 채웠다 — 다른 CC0 출처(OpenGameArt 등)가 나오면 다음에 다시 볼 것.
