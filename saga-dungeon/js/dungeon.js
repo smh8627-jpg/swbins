@@ -1180,8 +1180,17 @@
             var mvl = Math.sqrt(mvx * mvx + mvy * mvy) || 1;
             mvx /= mvl; mvy /= mvl;
           }
-          en.x += mvx * espd * lunge * dt;
-          en.y += mvy * espd * lunge * dt;
+          var nex = en.x + mvx * espd * lunge * dt;
+          var ney = en.y + mvy * espd * lunge * dt;
+          if (en.field) {
+            /* 들판 로머는 방(마을 벽) 안으로는 못 들어온다 — 플레이어를
+               쫓다가도 벽 자리에서 멈춘다. 축을 나눠 막아 대각선으로
+               다가와도 한쪽 축은 계속 미끄러진다(boundPlayer와 같은 요령). */
+            if (!inRoomRect(nex, en.y, ctx)) { en.x = nex; }
+            if (!inRoomRect(en.x, ney, ctx)) { en.y = ney; }
+          } else {
+            en.x = nex; en.y = ney;
+          }
         }
         var reachBonus = (lookW === 'spear' || lookW === 'halberd') ? 14 : 0;
         en.cd -= dt;
