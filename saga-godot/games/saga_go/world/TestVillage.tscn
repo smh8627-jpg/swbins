@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://games/saga_go/player/Player.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://games/saga_go/ui/MobileHUD.tscn" id="5"]
 [ext_resource type="Script" path="res://games/saga_go/world/npc_builder.gd" id="6"]
+[ext_resource type="Script" path="res://games/saga_go/world/bandit_encounter.gd" id="7"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat1"]
 sky_top_color = Color(0.38, 0.55, 0.82, 1)
@@ -46,6 +47,9 @@ script = ExtResource("3")
 
 [node name="Villagers" type="Node3D" parent="."]
 script = ExtResource("6")
+
+[node name="BanditEncounter" type="Node3D" parent="."]
+script = ExtResource("7")
 
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
