@@ -63,7 +63,21 @@
 만든 이·라이선스는 위 성채·지형과 같다(Quaternius, CC0 1.0 Universal, 저작자 표시
 불필요, 재배포 허용).
 
-## Quaternius — 사람 창고 셋 (`models/people/regular/` · `models/anim/`)
+## Quaternius — RPG Character Pack (2026-09-03, 사람 기본, `models/people/quaternius_rpg/`)
+
+| | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com/packs/rpgcharacters.html>) |
+| **라이선스** | CC0 1.0 (재배포 자유, 표시 의무 없음) |
+| **받은 곳** | `saga-dungeon/assets/models/people/quaternius_rpg/` 에서 그대로 복사(같은 CC0) |
+| **파일** | `Warrior.gltf`·`Ranger.gltf`·`Rogue.gltf`·`Cleric.gltf`·`Wizard.gltf`·`Monk.gltf` |
+
+`js/asset3d.js` 의 `HERO_RECIPES`(공개 기본값)가 이 여섯 벌을 가리킨다. 파일
+하나에 몸·텍스처·리깅·걷기·공격·사망 클립이 다 들어 있어 아래 조합형의 옷·머리·
+UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로 남겨 뒀다
+(되돌림 자리).
+
+## Quaternius — 사람 창고 셋, 옛 조합형 (`models/people/regular/` · `models/anim/`)
 
 2026-09-02, 도감 초상을 캔버스 도형 대신 **실제 3D 모델을 오프스크린으로 구운 그림**
 으로 바꾸면서(`js/portrait3d.js` 신설) 처음 옮겼다. 이 판은 인물이 걸어 다니지
@@ -82,9 +96,9 @@ Outfits - Fantasy)·몸짓(Universal Animation Library)이 뼈 이름·순서까
 | **받은 곳** | `saga-dungeon/assets/models/people/regular/`·`models/anim/UAL1_Standard.glb` 에서 그대로 복사 |
 
 넣은 파일 — 몸 둘(남·여)·옷 넷(평민·순찰대 각 남녀)·머리 여섯·텍스처
-(BaseColor만), `models/anim/UAL1_Standard.glb`(몸짓 마흔한 벌). `js/asset3d.js`의
-`HERO_RECIPES`가 여섯 조합 중 인물 id 해시로 하나를 고르고, `delam()`이 PBR을
-벗겨 Lambert로 물들인다 — 다른 네 판과 같은 요령이다.
+(BaseColor만), `models/anim/UAL1_Standard.glb`(몸짓 마흔한 벌). `HERO_RECIPES_FALLBACK`
+이 여섯 조합 중 인물 id 해시로 하나를 고르고, `delam()`이 PBR을 벗겨 Lambert로
+물들인다 — 표 기본에서는 빠졌다(되돌림 자리로만 남음).
 
 ## 옮기지 않은 것 (앞으로)
 
