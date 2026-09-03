@@ -217,6 +217,18 @@
       c.position.set(x, h / 2, z);
       worldGroup.add(c);
     }
+    /** 발밑 밀도(PLAN 6·7절, 2026-09-04) — 배경 지형지물(z -80~-520)과 달리
+     *  사람이 걷는 깊이(z=0) 바로 뒤(z -30~-70)에 놓는 작은 식생. 판정에 닿지
+     *  않고, GLB 가 오기 전엔 작은 도형(원뿔)으로 서 있는다 */
+    function deco(x, z, h, kind, mat) {
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
+      var g = new Tc.Mesh(new Tc.ConeGeometry(h * 0.32, h, 5), mat);
+      g.position.set(0, h / 2, 0);
+      holder.add(g);
+      worldGroup.add(holder);
+      swapIn(holder, kind, x + ':' + z, h, gen);
+    }
 
     var span = stg.width + 800;
     if (mood === 'forest') {
@@ -234,6 +246,18 @@
       for (i = 0, m = -300; m < span; i++, m += 420) { hill(m, -520, 260 + (i % 3) * 50, farMat); }
       for (i = 0, m = -180; m < span; i++, m += 280) { hill(m, -220, 150 + (i % 3) * 30, nearMat); }
       for (i = 0, m = -220; m < span; i++, m += 300) { trunk(m, -60, 90 + (i % 3) * 20, nearMat); }
+    }
+
+    /* 지역별 다른 식생(PLAN 6절) — 숲·초원·마을은 풀·꽃·덤불, 굴혈은 이끼 바위,
+       불타는 골짜기는 그대로 민둥(식생 없음, 기존 규칙과 같다) */
+    if (mood !== 'cave' && mood !== 'fire') {
+      var grassMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x3d7a3a : 0x6fae4a });
+      var bushMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x2f5c30 : 0x4f8f45 });
+      for (i = 0, m = -60; m < span; i++, m += 95) { deco(m, -30 - (i % 3) * 15, 18 + (i % 3) * 6, 'grass', grassMat); }
+      for (i = 0, m = -120; m < span; i++, m += 260) { deco(m, -50, 24 + (i % 2) * 8, 'flower', grassMat); }
+      for (i = 0, m = -180; m < span; i++, m += 340) { deco(m, -70, 40 + (i % 2) * 12, 'bush', bushMat); }
+    } else if (mood === 'cave') {
+      for (i = 0, m = -140; m < span; i++, m += 300) { deco(m, -40, 22 + (i % 3) * 8, 'moss_rock', new Tc.MeshLambertMaterial({ color: 0x453a52 })); }
     }
   }
 

@@ -54,6 +54,13 @@
     'tree:far': [NAT + 'PineTree_1.glb', NAT + 'PineTree_2.glb'],
     'rock': [NAT + 'Rock_1.glb', NAT + 'Rock_2.glb', NAT + 'Rock_3.glb'],
     'hill': [NAT + 'Mountain_1.glb', NAT + 'Mountain_2.glb'],
+    /* 발밑 밀도(PLAN 6·7절 "맵을 볼 때 매번 똑같은 나무만" 없애기, 2026-09-04) —
+       배경 지형지물과 달리 z=0(사람이 걷는 그 깊이) 가까이 놓는 작은 것들.
+       cave·fire 는 식생이 없는 곳이라 뺐다(이끼 바위만 cave 에) */
+    'bush': [NAT + 'Bush_1.glb', NAT + 'Bush_2.glb'],
+    'flower': [NAT + 'Flowers.glb'],
+    'grass': [NAT + 'Grass_2.glb', NAT + 'Grass_Short.glb'],
+    'moss_rock': [NAT + 'Rock_Moss_1.glb'],
     'hero': HERO_RECIPES,
     /* 몬스터 다양화 — 코끼리병처럼 몸집 큰 짐승형 적은 소 GLB 로 대신한다
        (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
