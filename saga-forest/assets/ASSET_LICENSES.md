@@ -203,7 +203,7 @@ md5 까지 같은 그 파일)엔 없어서, three.js r169 예제 소스를 esbui
 | **만든 이** | Quaternius (<https://quaternius.com/packs/rpgcharacters.html>) |
 | **라이선스** | CC0 1.0 (<https://creativecommons.org/publicdomain/zero/1.0/>) — 재배포 자유, 표시 의무 없음 |
 | **받은 곳** | quaternius.com 팩 페이지의 구글드라이브 링크(zip 직링크 없음, 사용자가 직접 받음) |
-| **파일** | `assets/models/people/quaternius_rpg/{Warrior,Ranger,Rogue,Cleric,Wizard,Monk}.gltf` |
+| **파일** | `assets/models/people/quaternius_rpg/{Warrior,Ranger,Rogue,Cleric,Wizard,Monk}.glb(원래 배포된 .gltf 임베드 base64를 바이너리 .glb로 변환 — 파싱 속도·용량 개선, 2026-09-03)` |
 
 Mixamo 실사(아래 절)가 재배포 금지라 공개 저장소에서 캐릭터가 통째로 안 보이던
 문제(`.gitignore`된 파일이 없는 기기는 몸이 안 실림)를 고치려고 새로 들였다.

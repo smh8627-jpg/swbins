@@ -35,7 +35,7 @@
      하나에 걷기·공격·사망 클립이 다 들어 있어 옷·머리·ANIM_SRC 몸짓이 필요 없다 */
   var PEOPLE_QRPG = 'assets/models/people/quaternius_rpg/';
   var HERO_RECIPES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'].map(function (n) {
-    var f = PEOPLE_QRPG + n + '.gltf';
+    var f = PEOPLE_QRPG + n + '.glb';
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
 

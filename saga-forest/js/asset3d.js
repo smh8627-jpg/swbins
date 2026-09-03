@@ -57,7 +57,7 @@
      필요 없다 — `anim` 을 `body` 와 같은 파일로 주면 그 안의 클립을 그대로 쓴다. */
   var PEOPLE_QRPG = 'assets/models/people/quaternius_rpg/';
   var HERO_RECIPES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'].map(function (n) {
-    var f = PEOPLE_QRPG + n + '.gltf';
+    var f = PEOPLE_QRPG + n + '.glb';
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
 

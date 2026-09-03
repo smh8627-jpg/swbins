@@ -19,7 +19,7 @@
 | **만든 이** | Quaternius (<https://quaternius.com/packs/rpgcharacters.html>) |
 | **라이선스** | CC0 1.0 (재배포 자유, 표시 의무 없음) |
 | **받은 곳** | `saga-forest/assets/models/people/quaternius_rpg/` 에서 그대로 복사(같은 CC0) |
-| **파일** | `Warrior.gltf`·`Ranger.gltf`·`Rogue.gltf`·`Cleric.gltf`·`Wizard.gltf`·`Monk.gltf` |
+| **파일** | `Warrior.glb`·`Ranger.glb`·`Rogue.glb`·`Cleric.glb`·`Wizard.glb`·`Monk.glb`(원래 배포된 .gltf 임베드 base64를 바이너리 .glb로 변환 — 파싱 속도·용량 개선, 2026-09-03) |
 
 `js/asset3d.js` 의 `HERO_RECIPES`(공개 기본값)가 이 여섯 벌을 가리킨다. 파일
 하나에 몸·텍스처·리깅·걷기·공격·사망 클립이 다 들어 있어 아래 조합형의 옷·머리·

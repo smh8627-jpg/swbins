@@ -64,7 +64,7 @@
      `assets/ASSET_LICENSES.md` 참고. */
   var PEOPLE_QRPG = PEOPLE + 'quaternius_rpg/';
   var HERO_RECIPES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'].map(function (n) {
-    var f = PEOPLE_QRPG + n + '.gltf';
+    var f = PEOPLE_QRPG + n + '.glb';
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
 

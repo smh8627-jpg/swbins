@@ -44,7 +44,7 @@
 | **라이선스** | CC0 1.0 (재배포 자유, 표시 의무 없음) |
 | **받은 곳** | `saga-forest/assets/models/people/quaternius_rpg/` 에 이미 받아 둔 것을
   그대로 복사(같은 CC0) — 자세한 사정은 그쪽 `ASSET_LICENSES.md` 참고 |
-| **파일** | `models/people/quaternius_rpg/{Warrior,Ranger,Rogue,Cleric,Wizard,Monk}.gltf` |
+| **파일** | `models/people/quaternius_rpg/{Warrior,Ranger,Rogue,Cleric,Wizard,Monk}.glb(원래 배포된 .gltf 임베드 base64를 바이너리 .glb로 변환 — 파싱 속도·용량 개선, 2026-09-03)` |
 
 주인공·사람 형 적이 이제 이 여섯 벌로 선다(`js/asset3d.js` 의 `HERO_RECIPES`,
 공개 기본값). 파일 하나에 몸·텍스처·리깅·걷기·공격·사망 클립이 다 들어 있어
