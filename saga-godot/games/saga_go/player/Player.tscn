@@ -13,6 +13,7 @@ height = 3.4
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1")
+groups = ["player"]
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape1")
