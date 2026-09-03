@@ -113,7 +113,27 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 
 ---
 
-## Quaternius — 사람 창고 셋 (`models/people/regular/` · `models/anim/`)
+## Quaternius — RPG Character Pack (2026-09-03, 사람 기본, `models/people/quaternius_rpg/`)
+
+| | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com/packs/rpgcharacters.html>) |
+| **라이선스** | CC0 1.0 (재배포 자유, 표시 의무 없음) |
+| **받은 곳** | 팩 페이지의 구글드라이브 링크(zip 직링크 없음, 사용자가 직접 받음) — 자세한
+  사정은 `saga-forest/assets/ASSET_LICENSES.md` 와 [[saga-forest-hero-fallback-fix]] 참고,
+  같은 여섯 파일을 그대로 복사해 왔다 |
+| **파일** | `Warrior.gltf`·`Ranger.gltf`·`Rogue.gltf`·`Cleric.gltf`·`Wizard.gltf`·`Monk.gltf` |
+
+아래 조합형(몸+옷+머리)이 그림체가 밋밋하다는 지적에 사람 기본을 이걸로 바꿨다.
+`js/asset3d.js` 의 `HERO_RECIPES`(공개 기본값, 인물 여섯 벌)가 이 파일들을 가리킨다.
+파일 하나에 몸·텍스처·리깅에 더해 걷기·달리기·공격·피격·구르기·사망 클립까지
+전부 들어 있어 옷·머리·UAL 몸짓이 필요 없다. 아래 조합형은 지우지 않고
+`HERO_RECIPES_FALLBACK` 으로 남겨 뒀다(되돌림 자리, `register('hero', ...)` 로
+되돌릴 수 있다).
+
+---
+
+## Quaternius — 사람 창고 셋, 옛 조합형 (`models/people/regular/` · `models/anim/`)
 
 **2026-08-29, 몸이 갈라지던 문제를 근본에서 없애려고 갈아 끼웠다.** 옛 `modular_men`/
 `modular_women` 팩은 부위(몸통·머리·다리)마다 뼈대가 **따로** 붙어 있어, 몸짓을
@@ -167,8 +187,9 @@ sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본�
 루트 모션이 있으면 애니메이션 자체가 캐릭터를 밀어서 이 판이 좌표로 옮기는 것과
 겹친다. 이미지가 없어(도형 확인용 메시 하나뿐) 그대로 통째로 받았다.
 
-`js/asset3d.js` 의 `HERO_RECIPES` 가 몸·옷·머리 조합 여섯 벌(남 셋·여 셋)을 인물
-id 해시로 나눠 준다. 그 위에 `asset3d.tintOf` 가 세력 빛깔을 입힌다.
+`js/asset3d.js` 의 `HERO_RECIPES_FALLBACK` 이 몸·옷·머리 조합 여섯 벌(남 셋·여 셋)을
+인물 id 해시로 나눠 준다(지금은 표 기본이 아니다 — 위 RPG Character Pack 참고).
+그 위에 `asset3d.tintOf` 가 세력 빛깔을 입힌다(QRPG 몸에도 같이 걸린다).
 
 ---
 

@@ -56,17 +56,28 @@
   var REGULAR = PEOPLE + 'regular/';
   var ANIM_DIR = 'assets/models/anim/';
 
+  /* 2026-09-03 — 사가의숲과 같은 이유로 사람 기본을 갈아 끼운다: 위 조합형(몸+옷+머리)
+     은 그림체가 밋밋하다는 지적("2D도 허접해서" 조사 끝에 그림체 우선으로 결정, 사가의숲
+     참고)에 Quaternius "RPG Character Pack"(CC0, 전사·궁수·도적·성직자·마법사·수도승
+     6종)으로 바꾼다. 몸 파일 하나에 걷기·공격·사망 등 클립이 다 들어 있어 옷·머리도,
+     ANIM_DIR 몸짓도 필요 없다 — `anim` 을 `body` 와 같은 파일로 주면 그 클립을 그대로 쓴다.
+     `assets/ASSET_LICENSES.md` 참고. */
+  var PEOPLE_QRPG = PEOPLE + 'quaternius_rpg/';
+  var HERO_RECIPES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'].map(function (n) {
+    var f = PEOPLE_QRPG + n + '.gltf';
+    return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
+  });
+
   /**
-   * 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
+   * 옛 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
    * 이름·순서가 파일 열둘(몸 둘·옷 넷·머리 여섯) 전부 한 글자도 안 다르다(직접
    * 대조했다) — 그래서 옷·머리를 몸의 뼈대에 그대로 `bind()` 해 얹으면 되고,
    * `Knight.glb` 를 빌려 옮겨 입히던 옛 리타기팅이 통째로 필요 없다.
    *
-   * **옛 표(Farmer·Worker·Lady·King·Casual)는 뺐다** — 부위마다 뼈대가 따로 놀아
-   * 걷는 동안 몸이 갈라지던 그 근본 원인(2026-08-29, `db59219` 까지 세 겹으로
-   * 팠지만 못 고쳤다)이 새 표에는 아예 없다.
+   * 지금은 표(`DEFAULTS.hero`)에서는 빠졌다 — 위 QRPG로 교체됐다. 지우지 않고
+   * 남겨 둔다(되돌림 자리); `register('hero', HERO_RECIPES_FALLBACK)` 로 되돌릴 수 있다.
    */
-  var HERO_RECIPES = [
+  var HERO_RECIPES_FALLBACK = [
     { key: 'male_peasant_buzzed', body: REGULAR + 'Superhero_Male_FullBody.gltf',
       outfit: REGULAR + 'Male_Peasant.gltf', hair: REGULAR + 'Hair_Buzzed.gltf' },
     { key: 'male_ranger_long', body: REGULAR + 'Superhero_Male_FullBody.gltf',
@@ -83,10 +94,13 @@
 
   /* 위 열둘(몸·옷·머리)은 이미 한 뼈대라 `dressUp`(Knight 몸짓 옮겨 입히기)을
      탈 필요가 없다 — 타면 파일마다 몸짓 마흔한 개를 헛되이 다시 굽는다. `acquire()`
-     가 이 표에 있는 url 이면 자동 리타기팅을 건너뛴다 */
+     가 이 표에 있는 url 이면 자동 리타기팅을 건너뛴다. QRPG는 제 클립이 있어
+     `needsRetarget()` 이 애초에 false 지만, 표에 같이 올려 뜻을 분명히 해 둔다 */
   var SKIP_AUTORETARGET = {};
-  HERO_RECIPES.forEach(function (r) {
-    SKIP_AUTORETARGET[r.body] = SKIP_AUTORETARGET[r.outfit] = SKIP_AUTORETARGET[r.hair] = true;
+  HERO_RECIPES.concat(HERO_RECIPES_FALLBACK).forEach(function (r) {
+    SKIP_AUTORETARGET[r.body] = true;
+    if (r.outfit) { SKIP_AUTORETARGET[r.outfit] = true; }
+    if (r.hair) { SKIP_AUTORETARGET[r.hair] = true; }
   });
 
   var DEFAULTS = {
@@ -880,9 +894,14 @@
     var parts = {}, pending = 4;
     function onOne() { pending--; if (pending === 0) { assemble(); } }
     acquire(rec.body, function (c) { parts.body = c; onOne(); });
-    acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); });
-    acquire(rec.hair, function (c) { parts.hair = c; onOne(); });
-    acquire(ANIM_SRC, function (c) { parts.anim = c; onOne(); });
+    /* outfit·hair 는 조합형(옛 Quaternius) 레시피에만 있다 — QRPG 몸(통짜 스킨)은
+       둘 다 없으니 헛수고로 받으러 가지 않고 바로 다음 칸으로 넘어간다 */
+    if (rec.outfit) { acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); }); } else { onOne(); }
+    if (rec.hair) { acquire(rec.hair, function (c) { parts.hair = c; onOne(); }); } else { onOne(); }
+    /* QRPG는 몸 파일 자체에 클립이 있다 — `rec.anim` 이 `rec.body` 와 같은 파일이면
+       같은 캐시를 다시 받아 그 클립을 그대로 쓴다. 옛 조합형은 `rec.anim` 이 없어
+       공용 ANIM_SRC(UAL) 로 몸짓을 옮겨 입는다 */
+    acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); });
 
     function assemble() {
       if (!parts.body) { shell.userData.assetState = 'fail'; return; }
