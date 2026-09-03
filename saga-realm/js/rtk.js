@@ -98,7 +98,49 @@
     }
     var want = s.rtk.scen || '194';
     if (scenApplied !== want) { FD.use(want); scenApplied = want; }
+    if (s.rtk.started) { migrateNewCities(s.rtk); }
     return s.rtk;
+  }
+
+  /**
+   * **옛 세이브 이사** — `setup()` 을 다시 부르지 않는 이어하기 세이브는
+   * `data-city.js` 에 성을 늘려도(2026-09-03 한국 지역 확장) `st.cities` 가
+   * 그 키를 못 얻는다. `realm3d.js`/`ui-rtk.js` 는 `CD.CITIES` 를 그때그때
+   * 훑으므로 `st.cities[새성id]` 가 `undefined` 인 채 `.force` 를 읽다 그
+   * 자리에서 터진다(실제로 배포판에서 겪었다 — TypeError, 화면이 통째로 안 뜸).
+   * `state()` 가 부를 때마다 **없는 성만** 채운다(`setup()` 의 도시 초기화 +
+   * `seedNeutral()` 과 같은 값) — 한 번 채우면 다음부터는 전부 있어 조용히 넘어간다.
+   */
+  function migrateNewCities(st) {
+    var off = global.DG.off;
+    var changed = false;
+    for (var i = 0; i < CD.CITIES.length; i++) {
+      var d = CD.CITIES[i];
+      if (st.cities[d.id]) { continue; }
+      changed = true;
+      var c = st.cities[d.id] = {
+        force: null,
+        agri: d.agri, comm: d.comm, tech: 100, sec: 60,
+        pop: d.pop, troops: 0, food: 0, train: 40,
+        wall: d.wall, maxWall: d.wall,
+        ships: d.land === 'river' ? 60 : 0,
+        gov: null, disaster: null, dLeft: 0
+      };
+      if (d.garrison) {
+        c.troops = d.garrison;
+        c.food = d.garrison * 2;
+        var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) || [];
+        var gov = null;
+        for (var j = 0; j < ids.length; j++) {
+          var r = off.placeAt(ids[j], d.id, null);
+          r.found = true;
+          if (!gov) { gov = ids[j]; }
+        }
+        c.gov = gov;
+      }
+    }
+    if (changed) { core.persist(); }
+    return changed;
   }
 
   function city(id) { return state().cities[id] || null; }
