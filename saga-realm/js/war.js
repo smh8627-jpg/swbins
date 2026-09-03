@@ -160,12 +160,15 @@
     if (Math.abs(am - dm) > DUEL_GAP) { return null; }
     if (Math.random() > 0.35) { return null; }
 
-    var rounds = [], ah = 100, dh = 100, n = 0;
+    var rounds = [], hits = [], ah = 100, dh = 100, n = 0;
     while (ah > 0 && dh > 0 && n < 12) {
       n++;
       var hit = am / (am + dm);
       if (Math.random() < hit) { dh -= 8 + Math.round(am / 12); rounds.push('a'); }
       else { ah -= 8 + Math.round(dm / 12); rounds.push('d'); }
+      /* 실시간 재생용 — 판정과 무관한 기록일 뿐이다(battle3d.js 참고).
+         매 합 끝의 체력을 남겨 두면 화면이 순간이동 없이 깎이는 걸 보여줄 수 있다 */
+      hits.push({ who: rounds[rounds.length - 1], ah: Math.max(0, ah), dh: Math.max(0, dh) });
     }
     var winner = dh <= 0 ? aId : (ah <= 0 ? dId : (ah >= dh ? aId : dId));
     var loser = winner === aId ? dId : aId;
@@ -174,7 +177,7 @@
     var hurt = decisive && Math.random() < 0.5;
     if (hurt) { off.rec(loser).hurt = 1 + Math.floor(Math.random() * 2); }
     return {
-      winner: winner, loser: loser, rounds: n, decisive: decisive, hurt: hurt,
+      winner: winner, loser: loser, rounds: n, decisive: decisive, hurt: hurt, hits: hits,
       text: off.find(winner).name + ' 이(가) ' + off.find(loser).name + ' 을(를) ' +
         n + '합 만에 ' + (decisive ? '꺾었다' : '밀어냈다')
     };
@@ -377,6 +380,9 @@
 
     var startWall = wallRef.wall;
     var r, won = false, routed = false;
+    /* 실시간 재생용 — 매 합 끝의 병력·성벽을 남긴다. 판정에는 안 쓴다
+       (battle3d.js 가 이 배열을 순서대로 재생할 뿐이다, 아래 return 참고) */
+    var frames = [];
     for (r = 0; r < ROUNDS; r++) {
       /* 성벽이 온전할수록 수비가 세다. 야전·수전이면 성벽을 못 쓴다 */
       var wallF = (sortie || water) ? land.def
@@ -397,6 +403,9 @@
       if (!sortie && !water) {
         wallRef.wall = Math.max(0, Math.round(wallRef.wall - atk.troops * 0.045 * land.siege));
       }
+
+      frames.push({ atk: atk.troops, def: def.troops, wall: wallRef.wall,
+        atkShips: atk.ships, defShips: def.ships });
 
       if (water) {
         /* 배도 함께 가라앉는다 — 잃은 병력 비율만큼 */
@@ -439,7 +448,9 @@
       ok: true, won: won, routed: routed, duel: du, log: log,
       lossA: atk.start - atk.troops, lossD: def.start - def.troops,
       atkStart: atk.start, defStart: def.start,
-      wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water
+      wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
+      /* 실시간 재생용(battle3d.js) — 판정과 무관, dry(가늠)면 안 쓰이니 그대로 둬도 된다 */
+      frames: frames
     };
   }
 
