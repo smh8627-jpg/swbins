@@ -50,6 +50,23 @@ window.onerror = function (m, f, l) {
 };
 /* 화면은 안 그린다 — 헤드리스에서 3D 캔버스를 굴리면 죽는다(_test.html 과 같은 이유) */
 window.DG_NO_DRAW = true;
+
+/* 적도(賊徒) 균형을 재려면 &rogue=1 로 살려 둔다(기본은 그대로 force(false)).
+   rogue.js 의 손잡이는 스크립트가 물릴 때 딱 한 번만 읽으므로(모듈 맨 위 var),
+   여기서 rogue.js 가 물리기 **전에** 손잡이를 localStorage 에 미리 얹는다 —
+   &rrate=·&rstay=·&rslot=·&rcool= 로 각 손잡이를 이 판 실행 한 번에만 바꿔 본다 */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var map = { rrate: 'rogue.rate', rstay: 'rogue.stayMin', rslot: 'rogue.slotMin', rcool: 'rogue.coolMin' };
+  var t = {}, n = 0, k;
+  for (k in map) {
+    var v = q.get(k);
+    if (v === null) { continue; }
+    t[map[k]] = Number(v);
+    n++;
+  }
+  if (n) { localStorage.setItem('deungyong-go/tune', JSON.stringify(t)); }
+})();
 </script>
 <script src="js/data.js"></script>
 <script src="js/sprite.js"></script>
@@ -109,6 +126,9 @@ window.DG_NO_DRAW = true;
  *                 600초 분량을 돌린 뒤 전/후 상태와 로그를 보고서로 찍는다.
  *   &party=3      시작 동행 수 (등용 없이 바로 인물을 붙여 순행이 무엇을 하는지 본다)
  *   &step=0.1     한 틱의 dt
+ *   &rogue=1      적도(賊徒)를 붙들어 두지 않는다 — 균형(점거 빈도·승패)을 실측할 때만.
+ *                 &rrate=·&rstay=·&rslot=·&rcool= 로 손잡이도 이 실행 한 번에 바꿔 본다
+ *                 (위쪽 스크립트가 rogue.js 물리기 전에 localStorage 에 얹어 둔다)
  *
  * game.js 의 loop() 과 **같은 순서**로 모듈을 굴린다 — 순서가 다르면 이 판만의
  * 결과가 나와 실제로 켰을 때와 어긋난다.
@@ -119,14 +139,37 @@ setTimeout(function () {
   var sim = parseInt(q.get('sim') || '0', 10);
   var step = parseFloat(q.get('step') || '0.1');
   var partyN = parseInt(q.get('party') || '0', 10);
+  var rogueLive = q.get('rogue') === '1';
 
   function say(s) { out.push(s); document.getElementById('out').textContent = out.join('\n'); }
   function fmtN(n) { return C.fmt(Math.round(n)); }
   function dexCount(k) { return Object.keys(C.save.dex[k]).length; }
 
-  /* 천후·적도는 시각에 끌려다닌다 — _test.html 과 같은 이유로 붙들어 둔다 */
+  /* 천후는 늘 붙든다(_test.html 과 같은 이유). 적도는 &rogue=1 일 때만 살려서
+     실제로 얼마나 자주 막히고, 얼마나 이기는지를 잰다 */
   DG.weather.force('clear');
-  DG.rogue.force(false);
+  DG.rogue.force(rogueLive ? null : false);
+
+  /* skip 은 "너무 약해서/식히는 중이라 못 붙었다" 를 매 틱(1.3초)마다 다시
+     세므로 그대로는 부풀려 보인다 — distinct 로 실제 몇 자리(역참@칸)를 만났는지도 잰다 */
+  var rogueStat = { autoTries: 0, win: 0, loss: 0, skip: 0, firstWinAt: null, distinct: 0 };
+  var rogueSeen = {};
+  if (rogueLive) {
+    var origAutoFight = DG.rogue.autoFight;
+    DG.rogue.autoFight = function (rg) {
+      if (rg && !rogueSeen[rg.key]) { rogueSeen[rg.key] = true; rogueStat.distinct++; }
+      var res = origAutoFight(rg);
+      if (!res) { rogueStat.skip++; }
+      else {
+        rogueStat.autoTries++;
+        if (res.win) {
+          rogueStat.win++;
+          if (rogueStat.firstWinAt === null) { rogueStat.firstWinAt = C.save.player.distance; }
+        } else { rogueStat.loss++; }
+      }
+      return res;
+    };
+  }
 
   if (!sim) {
     /* 살아 있는 루프 관찰 모드 */
@@ -191,7 +234,16 @@ setTimeout(function () {
 
   /* game.js 의 loop() 과 같은 순서로 굴린다 (js/game.js 참고) */
   var ticks = Math.round(sim / step), i;
+
+  /* rogue.js 는 점거 판정에 늘 **실제** Date.now() 를 본다(호출부가 ms 를 안
+     건넨다) — 이 루프는 동기로 눈 깜짝할 새 다 도니, 안 속이면 시뮬레이션
+     내내 "시작한 그 실제 순간" 딱 하나로 얼어붙는다(칸이 한 번도 안 바뀐다).
+     &rogue=1 일 때만 Date.now 를 시뮬레이션 시각에 맞춰 같이 흘려 보낸다 */
+  var origDateNow = Date.now, simMs = origDateNow();
+  if (rogueLive) { Date.now = function () { return simMs; }; }
+
   for (i = 0; i < ticks; i++) {
+    if (rogueLive) { simMs += step * 1000; }
     DG.auto.update(step);
     DG.world.update(step);
     DG.game.tickSupply();
@@ -203,6 +255,7 @@ setTimeout(function () {
     DG.event.tick();
     DG.codex.tick();
   }
+  Date.now = origDateNow;
 
   var after = snapshot();
 
@@ -212,6 +265,21 @@ setTimeout(function () {
         (fmtN(a) + '        ').slice(0, 8) + ' → ' +
         (fmtN(b) + '        ').slice(0, 8) +
         (d ? '  (' + (d > 0 ? '+' : '') + fmtN(d) + (unit || '') + ')' : ''));
+  }
+
+  if (rogueLive) {
+    var R = DG.rogue;
+    var hrs = sim / 3600;
+    say('■ 적도(賊徒) 균형 — RATE ' + R.RATE + ' · 머무는 시간 ' +
+      (R.STAY_MS / 60000) + '분 · 칸 ' + (R.SLOT_MS / 60000) + '분 · 식히는 시간 ' +
+      (R.COOL_MS / 60000) + '분');
+    say('  만난 자리(역참@칸) ' + rogueStat.distinct + ' · 그중 붙어 본 것 ' +
+      rogueStat.autoTries + ' · 너무 세거나 식히는 중이라 지나친 판정 ' + rogueStat.skip);
+    say('  승 ' + rogueStat.win + ' · 패 ' + rogueStat.loss +
+      (rogueStat.autoTries ? ' (승률 ' + Math.round(100 * rogueStat.win / rogueStat.autoTries) + '%)' : ''));
+    say('  시간당 붙어 본 횟수 ' + (hrs ? (rogueStat.autoTries / hrs).toFixed(1) : '?') +
+      '회/h · 첫 승리까지 ' + (rogueStat.firstWinAt === null ? '못 이김' : Math.round(rogueStat.firstWinAt) + 'm'));
+    say('');
   }
 
   say('■ 결과');
