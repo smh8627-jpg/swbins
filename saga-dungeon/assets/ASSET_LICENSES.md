@@ -12,7 +12,21 @@
 
 ---
 
-## Quaternius — 사람 창고 셋 (`models/people/regular/` · `models/anim/`)
+## Quaternius — RPG Character Pack (2026-09-03, 사람 기본, `models/people/quaternius_rpg/`)
+
+| | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com/packs/rpgcharacters.html>) |
+| **라이선스** | CC0 1.0 (재배포 자유, 표시 의무 없음) |
+| **받은 곳** | `saga-forest/assets/models/people/quaternius_rpg/` 에서 그대로 복사(같은 CC0) |
+| **파일** | `Warrior.gltf`·`Ranger.gltf`·`Rogue.gltf`·`Cleric.gltf`·`Wizard.gltf`·`Monk.gltf` |
+
+`js/asset3d.js` 의 `HERO_RECIPES`(공개 기본값)가 이 여섯 벌을 가리킨다. 파일
+하나에 몸·텍스처·리깅·걷기·공격·사망 클립이 다 들어 있어 아래 조합형의 옷·머리·
+UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로 남겨 뒀다
+(되돌림 자리).
+
+## Quaternius — 사람 창고 셋, 옛 조합형 (`models/people/regular/` · `models/anim/`)
 
 `saga-go`가 2026-08-29에 몸이 갈라지는 문제를 근본에서 없애려고 갈아 낀 그 셋이다
 — 몸(Universal Base Characters) · 옷(Modular Character Outfits - Fantasy) ·

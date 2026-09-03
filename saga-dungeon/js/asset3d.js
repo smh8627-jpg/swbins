@@ -43,7 +43,17 @@
   var BLD = 'assets/models/buildings/';
   var DUN = 'assets/models/dungeon/';
 
-  var HERO_RECIPES = [
+  /* 2026-09-03 — 다른 네 판과 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
+     "RPG Character Pack"(CC0, 전사·궁수·도적·성직자·마법사·수도승 6종)은 몸 파일
+     하나에 걷기·공격·사망 클립이 다 들어 있어 옷·머리·ANIM_SRC 몸짓이 필요 없다 */
+  var PEOPLE_QRPG = 'assets/models/people/quaternius_rpg/';
+  var HERO_RECIPES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'].map(function (n) {
+    var f = PEOPLE_QRPG + n + '.gltf';
+    return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
+  });
+
+  /* 옛 조합형 — 표 기본에서는 빠졌다. 지우지 않고 남겨 둔다(되돌림 자리) */
+  var HERO_RECIPES_FALLBACK = [
     { key: 'male_peasant_buzzed', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
       outfit: PEOPLE + 'Male_Peasant.gltf', hair: PEOPLE + 'Hair_Buzzed.gltf' },
     { key: 'male_ranger_long', body: PEOPLE + 'Superhero_Male_FullBody.gltf',
@@ -58,8 +68,10 @@
       outfit: PEOPLE + 'Female_Peasant.gltf', hair: PEOPLE + 'Hair_BuzzedFemale.gltf' }
   ];
   var SKIP_AUTORETARGET = {};
-  HERO_RECIPES.forEach(function (r) {
-    SKIP_AUTORETARGET[r.body] = SKIP_AUTORETARGET[r.outfit] = SKIP_AUTORETARGET[r.hair] = true;
+  HERO_RECIPES.concat(HERO_RECIPES_FALLBACK).forEach(function (r) {
+    SKIP_AUTORETARGET[r.body] = true;
+    if (r.outfit) { SKIP_AUTORETARGET[r.outfit] = true; }
+    if (r.hair) { SKIP_AUTORETARGET[r.hair] = true; }
   });
   var ANIM_SRC = ANIM_DIR + 'UAL1_Standard.glb';
 
@@ -340,9 +352,11 @@
     var parts = {}, pending = 4;
     function onOne() { pending--; if (pending === 0) { assemble(); } }
     acquire(rec.body, function (c) { parts.body = c; onOne(); });
-    acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); });
-    acquire(rec.hair, function (c) { parts.hair = c; onOne(); });
-    acquire(ANIM_SRC, function (c) { parts.anim = c; onOne(); });
+    /* outfit·hair 는 조합형(옛 Quaternius) 레시피에만 있다 — QRPG 통짜 스킨은
+       둘 다 없으니 헛수고로 받으러 가지 않고 바로 다음 칸으로 넘어간다 */
+    if (rec.outfit) { acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); }); } else { onOne(); }
+    if (rec.hair) { acquire(rec.hair, function (c) { parts.hair = c; onOne(); }); } else { onOne(); }
+    acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); });
 
     function assemble() {
       if (!parts.body) { shell.userData.assetState = 'fail'; return; }
