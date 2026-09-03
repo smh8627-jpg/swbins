@@ -127,9 +127,20 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
   먼저다. DUNGEON/FOREST/STORY/REALM은 GO가 끝난 뒤에나 손댄다
   (master.md 39장 순서와도 맞음). 웹 다섯 판(saga-go 등)은 이 결정과
   무관하게 각자 PLAN.md로 별도 진행 — 정본 분리는 커밋 5936c83 참고
-- 다음 세션이 이어갈 순서: **Phase 6(Combat)** — VERTICAL_SLICE.md 29·
-  34·35절의 "도적의 습격" 사건 + duel.js 재구현(속공·필살·회피, 강타
-  예고 AI). 그 다음이 완료 조건(VERTICAL_SLICE.md 하단 12단계 루프) 검증
+- **순서 재검토(2026-09-04)**: "다음은 Phase 6(Combat)"이 PLAN.md의 범용
+  100단계 번호(master.md 원문, 몬스터형 RPG 템플릿)만 따른 것이었고,
+  VERTICAL_SLICE.md 자신의 완료 조건(156~159줄 "걷는다 → 주민과 대화한다
+  → 사건 조우 → 전투 …")과 순서가 어긋나 있었다 — 대화가 전투보다 먼저
+  와야 하는데 거꾸로 잡혀 있었음. 아래로 정정한다:
+  1. **NPC 최소 구현 먼저** — VERTICAL_SLICE.md 26절 범위 그대로(주민
+     1~2명, 대화만, 등용 대상 아님). PLAN.md Phase 8의 86·87단계(NPC
+     시스템·Dialogue 시스템)를 끌어와 지금 하되, 88~95(퀘스트·월드
+     이벤트 등 나머지 Phase 8)는 손대지 않는다
+  2. 그 다음 **Phase 6(Combat) 61~71단계만**(Core~Dodge) — VERTICAL_SLICE.md
+     29·34절의 "도적의 습격" 사건 + duel.js 재구현(속공·필살·회피, 강타
+     예고 AI). **72~74(엘리트 몬스터·보스·보스 패턴)는 스킵** — VERTICAL_SLICE.md
+     30절이 이번 슬라이스에서 보스를 만들지 않기로 이미 결정함
+  3. 완료 조건(VERTICAL_SLICE.md 하단 12단계 루프) 전체 검증
 - **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
   기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
