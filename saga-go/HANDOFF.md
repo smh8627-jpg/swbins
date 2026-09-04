@@ -4,6 +4,97 @@
 > 절대 바꾸면 안 되는 것·밟아 본 함정·다음 할 일이 거기 있다. **새 세션은 그 파일부터.**
 > 이 파일은 **사가고 한 판**에 대한 것만 남긴다.
 
+## 2026-09-05 — 캐릭터 실사화, 처음으로 뚫렸다 (MPFB2). 마무리는 다음 세션
+
+**다섯 판 어디서도 막힌 벽**(`ASSET_LICENSES.md`: "Mixamo 재배포 금지, 대안 CC0
+팩은 애니메이션 0개")이었던 사람 캐릭터 지오메트리 실사화를, 이번엔 CC0 완제품이
+아니라 **CC0 도구로 직접 뽑아서** 처음 뚫었다. 커밋은 아직 없다 — 버그 두 개를
+안고 있어 다음 세션이 마무리할 것.
+
+**증명된 것 (스크린샷으로 확인, 실제 게임 리타겟 코드 `asset3d.js`
+`retargetInto`로 검증):**
+
+1. 이 PC에 **Blender 5.2가 이미 깔려 있다**(`C:\Program Files\Blender
+   Foundation\Blender 5.2\blender.exe`) — 헤드리스로 파이썬 스크립트를 돌릴 수 있다
+   (`blender --background --python <script>.py`).
+2. **MPFB2**(makehumancommunity.org, 코드 GPLv3·번들 에셋 CC0)를 Blender 확장으로
+   설치했다:
+   ```
+   git clone https://github.com/makehumancommunity/mpfb2  (src/mpfb 가 확장 루트)
+   blender --command extension build --source-dir src/mpfb --output-dir <out>
+   blender --command extension install-file -r user_default -e <out>/mpfb-*.zip
+   ```
+   설치는 이 PC의 Blender 프로필(`%APPDATA%\Blender Foundation\Blender\5.2\`)에
+   남는다 — **다음 세션은 이 설치 과정을 다시 할 필요가 없다**, 이미 돼 있다.
+3. **뼈 이름이 우리 게임과 거의 완전히 같다.** `js/asset3d.js`가 걷기 등
+   애니메이션의 원본으로 쓰는 `assets/models/anim/UAL1_Standard.glb`(Quaternius
+   CC0)는 UE 마네킹 식 이름(`pelvis`·`spine_01~03`·`clavicle_l/r`·
+   `upperarm_l/r`·`calf_l/r`…, 65개, 손가락 낱마디까지)을 쓴다. MPFB2가 제공하는
+   리그 프리셋 중 `game_engine`(`src/mpfb/data/rigs/standard/rig.game_engine.json`)
+   이 **정확히 같은 명명 규칙**(53개)이다 — `Root`→`root`, `head`→`Head`
+   **두 개만 대소문자를 고치면 53/53 전부 일치**한다(직접 스크립트로 세어
+   확인). 이건 우연이 아니라 둘 다 업계 표준 UE 마네킹 규칙을 따라서다.
+4. **`makehuman_system_assets_cc0.zip`(267MB, CC0, `files2.makehumancommunity.org`
+   에서 직접 받아짐 — 이 세션은 GitHub 아닌 임의 도메인도 `curl`로 바로
+   받혔다, 예전 "GitHub만 열린다"던 제약은 이 세션엔 해당 안 됨)를 MPFB
+   유저 데이터 폴더(`%APPDATA%\...\extensions\.user\user_default\mpfb\data\`)에
+   풀어 넣으면 피부(동아시아 포함 다양한 인종·나이)·머리·옷·눈썹·눈썹속눈썹·
+   이·혀까지 다 붙는다.
+5. **끝까지 구워 본 스크립트**(`HumanService.create_human()` →
+   `set_character_skin(..., skin_type="GAMEENGINE")` → `add_mhclo_asset()`로
+   눈·눈썹·속눈썹·혀·이·머리·옷·신발 부착 → `add_builtin_rig(basemesh,
+   "game_engine")` → 뼈 이름 두 개 고치기 → **`ExportService.create_character_copy`
+   는 쓰지 말 것**(아래 함정 참고) → `bpy.data.objects`에서 타입 MESH 전부 +
+   아마추어를 직접 선택해 `bpy.ops.export_scene.gltf(..., export_apply=True)`)로
+   `young_asian_male`·`young_asian_female` 두 벌을 옷·피부까지 입혀 뽑았다.
+   **실제 게임 리타겟 코드로 `Walk_Loop`를 입혀 렌더까지 확인** — 다리는
+   정상적으로 걷는 자세가 나온다.
+
+**밟은 함정:**
+
+- **`ExportService.create_character_copy(basemesh, ...)`를 쓰지 말 것.** MPFB는
+  옷·머리·눈 등을 전부 **basemesh의 자식**으로 붙이고, `add_builtin_rig`가
+  **basemesh를 다시 아마추어의 자식**으로 만든다(아마추어→basemesh→옷,
+  2단 부모). 그런데 `create_character_copy`는 `basemesh.parent`(=아마추어)를
+  "루트"로 잡고 그 **바로 아래 자식만**(`get_list_of_children`, 재귀 없음)
+  복제한다 — 옷·머리·눈은 그 아래 한 단 더 있어서 통째로 빠진다(직접 겪음 —
+  몸통만 있고 재질도 `Human.body` 하나뿐인 GLB가 나왔다). **대신** 그냥
+  `bpy.data.objects`에서 MESH 타입 전부 + 아마추어를 직접 선택해서
+  `export_scene.gltf(use_selection=True, export_apply=True)`로 내보내면 다
+  딸려 나온다(원본을 그대로 쓰므로 "원본 보존" 이점은 포기하지만, 이 스크립트는
+  매번 `read_factory_settings`로 새로 시작하니 상관없다).
+- **파일이 크면(20MB대) 헤드리스 크롬 `--virtual-time-budget`을 넉넉히
+  줄 것.** swiftshader 소프트웨어 렌더가 20MB GLB(텍스처가 안 줄어든 상태)를
+  파싱하는 데 45초로는 부족했다 — 120초를 줘서야 로드·리타겟·렌더가 다
+  끝나는 걸 확인했다. 진짜 걸린 게 아니라 **느린 것뿐**이었다(콘솔에
+  `onError`도 `onProgress`도 하나도 안 찍혀서 처음엔 완전히 막힌 줄
+  알았다 — `window.onerror`·`unhandledrejection`까지 걸어도 아무것도
+  안 잡혔다. 원인은 단지 메인 스레드가 파싱으로 오래 막혀 있었던 것).
+
+**남은 버그 둘 (다음 세션이 이어갈 것):**
+
+1. **머리카락·얼굴이 깨진다** — 스크린샷에서 대머리로 보이고 입 주변에
+   붉은 텍스처가 얹혀 보인다. MPFB 머리카락 재질의 알파(투명) 처리가
+   Blender→glTF 내보내기에서 안 넘어간 것으로 추정(정확한 원인 미확인).
+   `10_complete_character_export_fbx.py`(MPFB 공식 예제)의 주석도 "쉐이더
+   노드의 FBX/glTF 내보내기는 best-effort라 재질을 손봐야 할 수 있다"고
+   미리 경고해 둔 자리다.
+2. **팔이 T자로 안 움직인다** — 다리는 `Walk_Loop`로 정상 애니메이션되는데
+   팔(clavicle·upperarm·lowerarm·hand 체인)은 리타겟이 먹지 않는다. 다리
+   체인은 되는데 팔만 안 되는 걸 보면 전역적인 설정 문제(예: `hip: 'Hips'`
+   — 우리 뼈대엔 그 이름이 없어 늘 무시돼 왔다, 다리에도 똑같이 영향을
+   줬어야 하니 이건 원인이 아닐 가능성이 높다)보다는 팔 체인 자체의 무언가
+   (원본·대상의 팔 휴식 자세 차이가 다리보다 훨씬 커서 `retargetClip`이
+   그 체인에서만 깨지는 것 아닌가 의심 — 미확인, 다음 세션이 파볼 것).
+
+**아직 안 한 것:** 남녀 각 한 벌만 뽑아 봤다(전사·궁수 등 QRPG의 6종 다양성에는
+못 미친다) · 파일 최적화(`gltf-transform optimize`, 지금 20MB대 — 다른 실사
+에셋들처럼 1MB 안팎으로 줄여야 함) · `asset3d.js`의 `DEFAULTS.hero`에 실제로
+등록 · `ASSET_LICENSES.md`에 MPFB2·makehuman_system_assets 출처·라이선스 기록 ·
+`sw.js` VERSION 올리기 · 자가진단 재확인. **테스트로 만든 파일
+(`_mpfb_test.html`, `assets/models/_mpfb_test/`)은 커밋 전에 지웠다** — 저장소엔
+아무 흔적도 없다, 스크립트만 이 메모에 남겼다.
+
 ## 2026-09-04 (더더더더더더더더더더더더더 이어서) — "바둑판 같다" 격자무늬 길, 마을 근처로 한정
 
 열두 곳 실사화를 다 마친 뒤 사용자가 실기기에서 "탑 크기 괜찮아 보여" ·
