@@ -104,6 +104,15 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 | `models/buildings/House_1·2·3·4.glb` | **집**(`house`) — 넷을 자리 씨앗으로 섞어 세운다 |
 | `models/buildings/Well.glb` | **우물**(`well`) — 마을 한복판 |
 | `models/buildings/Blacksmith.glb` | **대장간**(`blacksmith`) — 야장(冶匠) NPC 뒤에 |
+| `models/buildings/Inn.glb` | **여관**(`inn`) — 갈대나루(나루터). `saga-go`가 이미 받아 둔 것을 옮겼다 |
+| `models/buildings/Stable.glb` | **마방**(`stable`) — 자작재(산길). 2026-09-04, 같은 `medieval_village_pack`에서 새로 받았다 |
+| `models/buildings/Mill.glb` | **방앗간**(`mill`) — 소금벌(염전). 2026-09-04, 같은 팩. 염전 전용 CC0 에셋은 못 찾아 대신한다 |
+
+**위성 마을 셋이 왜 서로 다른 건물을 받았나.** 처음엔(2026-09-04 앞선 커밋)
+셋 다 집+우물뿐이라 "빈 방"은 면했어도 테마(나루터·산길·염전)가 안 살았다.
+`medieval_village_pack`을 다시 훑어 보니 이미 여관·마방·방앗간이 있었다 —
+갈대나루엔 나그네가 쉬는 여관, 자작재엔 산길 마방, 소금벌엔(염전 전용은
+없어) 방앗간을 대신 앉혔다.
 
 ## KayKit — Dungeon Remastered 소품 (`models/dungeon/`)
 

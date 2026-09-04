@@ -115,6 +115,12 @@
     'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
     'well': BLD + 'Well.glb',
     'blacksmith': BLD + 'Blacksmith.glb',
+    /* 2026-09-04 — 위성 마을 셋(나루터·산길·염전)이 다 같은 집+우물이라 테마가
+       안 살던 것을 갈랐다. 같은 medieval_village_pack(CC0)에서 하나씩 새로
+       받았다 — 여관은 saga-go가 이미 받아 둔 것을 그대로 옮겼다 */
+    'inn': BLD + 'Inn.glb',           // 갈대나루(나루터) — 나그네 쉼터
+    'stable': BLD + 'Stable.glb',     // 자작재(산길) — 마방
+    'mill': BLD + 'Mill.glb',         // 소금벌(염전) — 방앗간(염전 전용 에셋은 못 찾았다)
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
        'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은

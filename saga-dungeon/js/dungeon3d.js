@@ -703,6 +703,20 @@
           o.h * 1.2, null, smithShape) : smithShape();
         smnode.position.set(o.x, 0, o.y);
         wallGroup.add(smnode);
+      } else if (o.t === 'inn' || o.t === 'stable' || o.t === 'mill') {
+        /* 2026-09-04 — 위성 마을 하나씩만의 건물(여관·마방·방앗간). `house`와
+           같은 요령(집 모양 상자)을 fallback 으로 쓴다 */
+        var AS3v = AS();
+        var villageShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, o.h / 2, 0, 96, o.h, 84, mix(stone, 0xffffff, 0.08), 'flat', true);
+          box(sg, 0, o.h + 12, 0, 106, 24, 96, mix(stone, 0x000000, 0.3), 'flat', true);
+          return sg;
+        };
+        var vnode = AS3v ? AS3v.build(o.t, 'town:' + o.x + ':' + o.y,
+          o.h * 1.25, null, villageShape) : villageShape();
+        vnode.position.set(o.x, 0, o.y);
+        wallGroup.add(vnode);
       }
     }
 

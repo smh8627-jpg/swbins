@@ -166,7 +166,10 @@
         /* 2026-09-04 — SAGA WEB.md 감사(PLAN 11절 "맵의 밀도"). NPC 셋만 서 있는
            빈 돌방이던 위성 마을 셋에 집·우물을 더한다(모루골과 같은 GLB, 씨앗은
            자리 좌표로 저절로 갈린다 — `dungeon3d.js` house/well 렌더 참고) */
-        { t: 'house', x: 60, y: 60, h: 130 }, { t: 'house', x: 500, y: 60, h: 130 },
+        { t: 'house', x: 60, y: 60, h: 130 },
+        /* 이어서(2026-09-04) — 셋 다 집+우물뿐이라 테마가 안 살아서, 나루터답게
+           나그네 쉼터(여관)를 하나씩 다르게 얹었다(자작재=마방, 소금벌=방앗간) */
+        { t: 'inn', x: 500, y: 60, h: 130 },
         { t: 'well', x: 280, y: 330, h: 34 }
       ],
       exits: [ { dir: 'W', to: 'moru' } ]
@@ -181,7 +184,7 @@
       decor: [
         { t: 'torch', x: 120, y: WALL - 4, seed: 1.4 }, { t: 'torch', x: 440, y: WALL - 4, seed: 4.6 },
         { t: 'pillar', x: 200, y: 210 }, { t: 'pillar', x: 360, y: 210 },
-        { t: 'house', x: 60, y: 60, h: 130 }, { t: 'house', x: 500, y: 60, h: 130 },
+        { t: 'house', x: 60, y: 60, h: 130 }, { t: 'stable', x: 500, y: 60, h: 130 },
         { t: 'well', x: 280, y: 330, h: 34 }
       ],
       exits: [ { dir: 'S', to: 'moru' } ]
@@ -196,7 +199,7 @@
       decor: [
         { t: 'torch', x: 120, y: WALL - 4, seed: 2.3 }, { t: 'torch', x: 440, y: WALL - 4, seed: 5.8 },
         { t: 'crack', x: 220, y: 120, a: 0.4, len: 40 }, { t: 'pillar', x: 340, y: 230 },
-        { t: 'house', x: 60, y: 60, h: 130 }, { t: 'house', x: 500, y: 60, h: 130 },
+        { t: 'house', x: 60, y: 60, h: 130 }, { t: 'mill', x: 500, y: 60, h: 130 },
         { t: 'well', x: 280, y: 330, h: 34 }
       ],
       exits: [ { dir: 'N', to: 'moru' } ]
