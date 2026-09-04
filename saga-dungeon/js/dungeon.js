@@ -411,6 +411,24 @@
         seed: Math.random() * 6.28
       });
     }
+    /* 함정(dg:spikes) — `dungeon3d.js`의 `buildClutter`가 방 네 귀퉁이에
+       세우는 잡동사니 중 하나다(순수 장식으로 시작했다). 그림과 어긋나지
+       않도록 **같은 계산을 그대로 되풀이**해 자리를 맞춘다(seed·귀퉁이
+       좌표·해시 다 동일) — 여기서만 그중 '가시'를 판정으로 집어낸다.
+       2026-09-04: 밟으면 실제로 아프게(사용자 결정) — 새 공식을 만들지
+       않고 독(毒) dot 그대로(`applyElem`과 같은 패턴, update() 참고). */
+    var F3 = global.DG.field3d;
+    if (F3) {
+      var clSeed = F3.seedOf(floor, index, 'clutter');
+      var CLUTTER_KIND = ['dg:barrel', 'dg:crate', 'dg:crates', 'dg:chair', 'dg:shield', 'dg:spikes'];
+      var corners = [[50, 50], [ROOM_W - 50, 50], [50, ROOM_H - 50], [ROOM_W - 50, ROOM_H - 50]];
+      for (i = 0; i < corners.length; i++) {
+        var ch = (clSeed + i * 2654435761) >>> 0;
+        if (ch % 5 < 3) { continue; }               // 다섯 중 셋은 비워 둔다 — buildClutter와 동일
+        if (CLUTTER_KIND[ch % CLUTTER_KIND.length] !== 'dg:spikes') { continue; }
+        out.push({ t: 'spike', x: corners[i][0], y: corners[i][1], r: 30, cd: 0 });
+      }
+    }
     var cracks = 2 + Math.floor(Math.random() * 3);
     var crackList = [];
     for (i = 0; i < cracks; i++) {
@@ -1273,6 +1291,18 @@
     run.mp = Math.min(run.mpMax, run.mp + (MP_REGEN + boonVal('mpRegen')) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
     if (p.atkAnim > 0) { p.atkAnim -= dt; }
+    /* 독(毒) dot — 함정(spike)에 물렸을 때. 적에게 쓰는 `e.dots`와 같은
+       패턴(dps·t)을 그대로 사람에게도 돌린다 */
+    if (p.dots && p.dots.length) {
+      for (var pdi = p.dots.length - 1; pdi >= 0; pdi--) {
+        var pdt = p.dots[pdi];
+        run.hp -= pdt.dps * dt;
+        pdt.t -= dt;
+        if (pdt.t <= 0) { p.dots.splice(pdi, 1); }
+      }
+      if (run.hp <= 0) { die(); }
+      if (!run) { return; }
+    }
     var rally = rallyOn();
 
     /* 필드 사냥 보충 — 들판을 걸어다니는 동안 로머가 상한 밑으로 떨어지면
@@ -1527,6 +1557,31 @@
       else if (roll < 0.62) { dropPotion(room, jr.x, jr.y); }
       else if (roll < 0.70) { dropMat(room, jr.x, jr.y, -10); }
       else if (roll < 0.74) { dropItem(room, jr.x, jr.y, -8); }
+    }
+
+    /* 함정(spike) — 항아리처럼 한 번 깨지고 끝이 아니라, 벗어날 때까지
+       주기적으로(1.2초 간격) 문다. 독(毒) 원소 공식을 그대로 빌려 쓴다 —
+       `applyElem`이 적에게 `e.dots`를 얹는 것과 같은 자리(`update()` 위쪽의
+       `p.dots` 틱)에 dps·t 를 얹기만 한다. 새 피해 공식은 안 만든다 —
+       크기는 `enemyDmg`(이 층 몬스터 한 대 값)의 절반을 저항 뺀 뒤 3초에
+       걸쳐 나눠 문다. */
+    for (i = 0; i < dec2.length; i++) {
+      var sp = dec2[i];
+      if (sp.t !== 'spike') { continue; }
+      if (sp.cd > 0) { sp.cd -= dt; continue; }
+      if (dist(p, sp) > P_R + sp.r) { continue; }
+      sp.cd = 1.2;
+      var ED2 = global.DG.elemData;
+      var poisDef = ED2 && ED2.elemByKey('pois');
+      if (poisDef && run.player.invuln <= 0) {
+        var spV = Math.max(1, Math.round(enemyDmg(run.floor, false) * 0.5 *
+          (1 - elemResOf('pois') / 100)));
+        if (!p.dots) { p.dots = []; }
+        p.dots.push({ dps: spV / poisDef.dot, t: poisDef.dot });
+        fx.push({ t: 'elem', x: p.x, y: p.y - P_R - 6, v: spV, el: 'pois',
+                  color: poisDef.color, life: 0.6, dot: true });
+        sfx('hurt');
+      }
     }
 
     /* 상자 · 우물 · 사당 */

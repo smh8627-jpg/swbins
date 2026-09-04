@@ -1003,6 +1003,32 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          run.room.drops.length + ')');
     });
 
+    t('함정(dg:spikes) — 밟으면 독(毒) dot 이 붙어 체력이 깎인다', function () {
+      /* 자리는 dungeon3d.js의 buildClutter와 같은 계산(seed·귀퉁이)이라
+         모든 방에 있지는 않다 — 나올 때까지 층을 늘려 가며 찾는다 */
+      var found = null, floor, run;
+      for (floor = 1; floor <= 400; floor++) {
+        DN.enter({ floor: floor, mode: 'easy' });
+        run = DN.raw();
+        found = (run.room.decor || []).filter(function (o) { return o.t === 'spike'; })[0];
+        if (found) { break; }
+        DN.leave();
+      }
+      if (!found) { return false; }
+      run.room.enemies.length = 0;
+      run.player.x = found.x; run.player.y = found.y;
+      run.player.invuln = 0;
+      DN.update(0.05);                        // 밟는다 — dot 이 붙는다
+      var gotDot = !!(run.player.dots && run.player.dots.length);
+      var hp0 = run.hp;
+      DN.update(0.05);                        // 다음 틱에 실제로 깎인다
+      var hp1 = run.hp;
+      var cdHeld = found.cd > 0;              // 곧바로 다시 물지는 않는다
+      DN.leave();
+      return gotDot && hp1 < hp0 && cdHeld &&
+        ('제' + floor + '층 함정 · dot 붙음 · 체력 ' + hp0.toFixed(2) + '→' + hp1.toFixed(2));
+    });
+
     t('역참 — 다섯 층마다 밟으면 다음부터 거기서 시작한다', function () {
       var keep = C.save.dungeon.waypoint;
       C.save.dungeon.waypoint = 0;
