@@ -90,20 +90,39 @@
   var BASE = 'assets/models/nature/';
   var BLD = 'assets/models/buildings/';
   var PRP = 'assets/models/props/';
+  var NAT_REAL = BASE + 'realistic/';
+
+  /* 2026-09-04 — 사가의숲이 검증해 두고 사가블로가 그대로 옮겨 쓴 Poly Haven CC0
+     사진측량 자연물을 이 판에도 옮긴다("사가블로는 했는데" — 사용자가 형평을
+     요청). md5 동일로 확인한 원본 그대로 복사했다(새 코드 없이 이 표만 갈아
+     끼운다). 옛 Quaternius 저다각형 셋은 지우지 않고 아래 *_STYLIZED 에
+     되돌림 자리로 남긴다 — 라이선스·출처는 `assets/ASSET_LICENSES.md` 참고.
+     **가을·눈은 그대로 저다각형이다** — 사가의숲도 "Poly Haven 전체를 뒤져도
+     가을 단풍·눈 덮인 나무 CC0 모델이 없다"고 결론 낸 자리라 다시 찾지 않는다.
+     사가의숲엔 있는 log·tree:dead 는 이 판엔 그 자리(REG 키)가 아예 없어서
+     뺐다 — 안 쓰는 파일을 공개 저장소에 얹을 까닭이 없다. */
+  var TREE_STYLIZED = [BASE + 'CommonTree_1.glb', BASE + 'CommonTree_2.glb', BASE + 'CommonTree_3.glb'];
+  var PINE_STYLIZED = [BASE + 'PineTree_1.glb', BASE + 'PineTree_2.glb'];
+  var ROCK_STYLIZED = [BASE + 'Rock_1.glb', BASE + 'Rock_2.glb', BASE + 'Rock_3.glb'];
+  var BUSH_STYLIZED = [BASE + 'Bush_1.glb', BASE + 'Bush_2.glb'];
+
   var REG = {
     tree: {
-      all:    [BASE + 'CommonTree_1.glb', BASE + 'CommonTree_2.glb', BASE + 'CommonTree_3.glb'],
+      all:    [NAT_REAL + 'IslandTree_02.glb'],
       autumn: [BASE + 'CommonTree_Autumn_1.glb', BASE + 'CommonTree_Autumn_2.glb'],
       winter: [BASE + 'CommonTree_Snow_1.glb', BASE + 'CommonTree_Snow_2.glb']
     },
     pine: {
-      all: [BASE + 'PineTree_1.glb', BASE + 'PineTree_2.glb']
+      all: [NAT_REAL + 'PineSapling.glb']
     },
     rock: {
-      all: [BASE + 'Rock_1.glb', BASE + 'Rock_2.glb', BASE + 'Rock_3.glb']
+      all: [NAT_REAL + 'Rock_07.glb', NAT_REAL + 'Stone_01.glb',
+            NAT_REAL + 'MossRock_a.glb', NAT_REAL + 'MossRock_b.glb', NAT_REAL + 'MossRock_c.glb']
     },
     grass: {
-      all: [BASE + 'Grass_2.glb', BASE + 'Bush_1.glb', BASE + 'Bush_2.glb']
+      /* 수풀만 실사로 바꾼다(사가의숲과 같은 이유 — 풀잎 카드형은 세로로
+         정규화하면 옆으로 부풀어 나가는 실사 후보뿐이었다). 풀은 그대로 둔다 */
+      all: [BASE + 'Grass_2.glb', NAT_REAL + 'Shrub_04.glb']
     },
     /* 마을 — 유럽 중세풍이다. 이 판은 삼국지·한국사인데도 얹은 까닭은
        사용자가 **품질을 먼저** 골랐기 때문이다(2026-08-28). 되돌리려면

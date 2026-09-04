@@ -389,6 +389,37 @@ NPC·몬스터 울음(`NPC/`) 등이 더 있다 — 다음 단계(일반 버튼 
 그대로 재사용했다 — three.js 코어 빌드엔 없는 애드온이라 두 판이 같은 파일을
 쓴다(다섯 판 공용 벤더 파일이지 이 판만의 새 의존성이 아니다).
 
+## Poly Haven — 나무·바위·수풀 사진측량 스캔 (`models/nature/realistic/`)
+
+2026-09-04, 사용자가 "사가블로는 했는데"(사가블로가 같은 것을 먼저 넣었다)로
+형평을 요청 — 사가의숲이 검증해 둔 것을 사가블로가 그대로 옮겼던 것과 같은
+길로, 이 판에도 옮긴다. 사람 캐릭터 실사화는 다섯 판 어디서도 막힌 벽이었지만
+(Mixamo 재배포 금지, 대안 CC0 팩은 애니메이션 0개 — 이 문서 위 절과
+`HANDOFF.md` 참고) 자연물은 다르다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Rob Tuytel·Rico Cilliers(`island_tree_02`) · Rico Cilliers(`shrub_04`) · Rob Tuytel·Rico Cilliers(`pine_sapling_small`) · Jenelle van Heerden(`rock_07`) · Dario Barresi·Rico Cilliers(`stone_01`) · Kless Gyzen(`rock_moss_set_01`) — 전부 Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | `saga-forest/assets/models/nature/realistic/` 를 그대로 재사용(같은 CC0 파일, md5 동일 확인). 처리 과정(weld·simplify·resize·jpeg 압축)의 자세한 수치는 `saga-forest/assets/ASSET_LICENSES.md` 의 같은 절 참고 — 다섯 판 공용 소재라 그쪽에 한 번만 자세히 적어 뒀다 |
+
+| 이 판 소품 이름 | 파일 |
+|---|---|
+| `tree`(봄·여름) | `IslandTree_02.glb` |
+| `pine` | `PineSapling.glb` |
+| `rock` | `Rock_07.glb` · `Stone_01.glb` · `MossRock_a·b·c.glb`(다섯 벌 섞어 쓴다) |
+| `grass`(수풀만, 풀잎은 그대로) | `Shrub_04.glb` |
+
+**가을·눈은 그대로 저다각형이다** — Poly Haven 전체를 뒤져도 가을 단풍·눈 덮인
+나무 CC0 모델이 없다는 것은 사가의숲이 이미 확인한 자리라 다시 찾지 않는다.
+사가의숲엔 있는 `log`(통나무)·`tree:dead`(고목)는 이 판의 소품 표(`prop3d.js`
+`REG`)에 애초에 그 자리가 없어 옮기지 않았다 — 안 쓰는 파일을 공개 저장소에
+얹을 까닭이 없다.
+
+옛 Quaternius 저다각형 셋은 지우지 않았다 — `js/prop3d.js` 의
+`TREE_STYLIZED`·`PINE_STYLIZED`·`ROCK_STYLIZED`·`BUSH_STYLIZED` 가 되돌림
+자리로 들고 있다.
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로

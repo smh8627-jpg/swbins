@@ -3272,11 +3272,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     t('에셋 — 같은 자리에는 늘 같은 모양이 선다 (좌표 해시)', function () {
       var a = PR.pick('tree', 3, 5, 'all'), b2 = PR.pick('tree', 3, 5, 'all');
       var c2 = PR.pick('tree', 4, 5, 'all');
-      /* 자리가 다르면 대개 다른 모양이다 — 몇 자리를 훑어 실제로 갈리는지 본다 */
+      /* 자리가 다르면 대개 다른 모양이다 — 몇 자리를 훑어 실제로 갈리는지 본다.
+         `tree` 는 2026-09-04 실사화(Poly Haven CC0)로 한 벌만 남아(가벼운
+         후보가 그것뿐이었다, `assets/ASSET_LICENSES.md` 참고) 여기서는 갈리지
+         않는다 — 여러 벌 그대로 남은 `rock` 으로 "갈린다" 쪽을 본다 */
       var seen = {}, i;
-      for (i = 0; i < 30; i++) { seen[PR.pick('tree', i, 0, 'all')] = 1; }
+      for (i = 0; i < 30; i++) { seen[PR.pick('rock', i, 0, 'all')] = 1; }
       return a === b2 && Object.keys(seen).length > 1 &&
-        ('같은 자리 두 번 물어 같다 · 서른 자리에 ' +
+        ('같은 자리 두 번 물어 같다 · 바위 서른 자리에 ' +
          Object.keys(seen).length + '가지가 섞인다');
     });
 
