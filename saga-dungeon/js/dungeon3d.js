@@ -492,24 +492,52 @@
     return list[h % list.length];
   }
   var TILE = 70;               // 세계 단위 하나당 텍스처 한 칸 (바닥·벽 공통)
-  var rawTexCache = {};
+  var rawTexCache = {}, texWaiters = {};
+  /** url 하나당 텍스처를 하나만 실어 두고, 실린 뒤에 할 일은 `onTexReady`로 받는다.
+   *  **실기기 제보로 걸린 버그(2026-09-04)** — 예전엔 `texMat()`이 이 텍스처를
+   *  `.clone()`해 재질에 바로 물렸는데, `TextureLoader.load()`는 그림을 비동기로
+   *  받아오는 데다 `.clone()`은 그 순간의 `image`(아직 비어 있다)만 그대로 베낀다.
+   *  그래서 복제본은 원본이 나중에 그림을 받아도 **영영 그 그림을 못 받고**
+   *  까맣게(재질 색 × 빈 텍스처 = 검정) 남았다 — three.js 콘솔의
+   *  "Texture marked for update but no image data found" 경고가 그 증거다.
+   *  방·벽마다 반복 값(`repU`·`repV`)이 달라 clone 자체는 필요하니, **로드가
+   *  끝난 뒤에만** clone 하도록 미룬다. */
   function rawTex(url) {
     if (rawTexCache[url]) { return rawTexCache[url]; }
-    var tx = new T.TextureLoader().load(url);
+    var tx = new T.TextureLoader().load(url, function () {
+      var ws = texWaiters[url] || [];
+      delete texWaiters[url];
+      for (var i = 0; i < ws.length; i++) { ws[i](); }
+    });
     tx.wrapS = tx.wrapT = T.RepeatWrapping;
     if (T.SRGBColorSpace) { tx.colorSpace = T.SRGBColorSpace; }
     rawTexCache[url] = tx;
     return tx;
   }
+  function onTexReady(url, fn) {
+    var tx = rawTexCache[url];
+    if (tx && tx.image) { fn(); return; }
+    (texWaiters[url] = texWaiters[url] || []).push(fn);
+  }
   var texMatCache = {};
   function texMat(hex, url, repU, repV) {
     var k = hex + '|' + url + '|' + repU.toFixed(2) + '|' + repV.toFixed(2);
     if (texMatCache[k]) { return texMatCache[k]; }
-    var tx = rawTex(url).clone();
-    tx.needsUpdate = true;
-    tx.wrapS = tx.wrapT = T.RepeatWrapping;
-    tx.repeat.set(repU, repV);
-    var m = new T.MeshLambertMaterial({ color: new T.Color(hex), map: tx, flatShading: true });
+    var base = rawTex(url);
+    /* 로드가 끝나기 전에는 **맵 없이 층 색만**으로 그린다 — 예전의 단색
+       바닥으로 잠깐 보이는 것뿐, 다시는 안 까매진다(맵을 아예 안 물리면
+       Lambert 재질은 그냥 `color`로 칠한다). 로드가 끝나면 그제서야
+       clone 해서 물린다. */
+    var m = new T.MeshLambertMaterial({ color: new T.Color(hex), flatShading: true });
+    onTexReady(url, function () {
+      var tx = base.clone();
+      tx.wrapS = tx.wrapT = T.RepeatWrapping;
+      if (T.SRGBColorSpace) { tx.colorSpace = T.SRGBColorSpace; }
+      tx.repeat.set(repU, repV);
+      tx.needsUpdate = true;
+      m.map = tx;
+      m.needsUpdate = true;
+    });
     texMatCache[k] = m;
     return m;
   }
