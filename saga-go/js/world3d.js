@@ -881,9 +881,11 @@
          않게, 옛 마을 골목처럼 살짝 어긋나되 "지어진" 티가 나게 한다.
          집 자체의 위치·판정(houseRects)은 이 함수를 그대로 다시 부르므로
          따로 손댈 것이 없다 — 순수 함수라 자리가 바뀌면 판정도 저절로 따라온다 */
-      var rxm = ((gx % 7) + 7) % 7, rym = ((gy % 9) + 9) % 9;
-      var roadIsNS = Math.min(rxm, 7 - rxm) <= Math.min(rym, 9 - rym);
-      var baseRot = roadIsNS ? 0 : Math.PI / 2;
+      /* 2026-09-04 — 동네마다 길 축을 하나로 가른 뒤(`W.roadIsVertical`,
+         "바둑판" 고침) 부터는 "더 가까운 축"이 아니라 **이 동네에서 실제로
+         길이 되는 축**에 맞춰야 한다 — 안 그러면 이 동네엔 없는 축(가상의
+         길)을 보고 집이 돈다 */
+      var baseRot = global.DG.world.roadIsVertical(gx, gy) ? 0 : Math.PI / 2;
       var lotArea = GRID * 0.82;
       var cols = Math.max(1, Math.ceil(Math.sqrt(n)));
       var rows = Math.max(1, Math.ceil(n / Math.max(1, cols)));

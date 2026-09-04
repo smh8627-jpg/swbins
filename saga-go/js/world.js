@@ -492,6 +492,19 @@
     return false;
   }
 
+  /** 2026-09-04 — 마을 근처 길을 tx%7 과 ty%9 **둘 다** 세우니 십자로 겹쳐
+   *  "바둑판 같다"는 지적이 반경을 좁힌 뒤에도(마을 안은 여전히 그대로라)
+   *  남았다. town 판정 자체는 칸마다 독립인 해시라(퍼진 소금·후추 무늬)
+   *  실제 마을 하나를 묶어 줄 값이 없다 — 대신 `ROAD_REGION` 칸짜리 성긴
+   *  구역으로 세상을 나눠 구역마다 축(세로만 또는 가로만)을 하나씩 고정한다.
+   *  `core.hash2` 는 실측상 0~0.5 만 돌려주므로(다른 자리의 h1 참고) 문턱은
+   *  그 절반인 0.25. 이 값도 그리는 데만 쓴다. */
+  var ROAD_REGION = 16;
+  function roadIsVertical(tx, ty) {
+    var rx = Math.floor(tx / ROAD_REGION), ry = Math.floor(ty / ROAD_REGION);
+    return core.hash2(rx * 8321 + 17, ry * 5023 + 41) < 0.25;
+  }
+
   /**
    * 이 격자가 무슨 땅이냐. **그리는 데만 쓴다** — 스폰·거리·조우는 이 값을 안 본다.
    *
@@ -508,6 +521,11 @@
    * (숲·산·물·들로 자연스럽게 갈린다). `nearTown()` 참고. 이 값은 그리는
    * 데만 쓰여 스폰·거리·조우·`land.js` 시험판(그쪽은 손으로 그린 별도
    * 지도라 안 건드림)에는 안 닿는다 — 회귀 위험이 낮다.
+   *
+   * 그런데도 마을 **안**에서는 여전히 두 축이 겹쳐 바둑판으로 보였다(같은
+   * 지적, 반경을 좁힌 뒤 재확인). `roadIsVertical()` 로 동네(`ROAD_REGION`
+   * 구역)마다 한 축만 서게 갈라 십자 교차를 없앤다 — 동네마다 세로길
+   * 동네만 또는 가로길 동네만 되어 "마을마다 방향이 다르게" 보인다.
    */
   function terrainAt(tx, ty) {
     var R = global.DG.land;
@@ -516,7 +534,8 @@
       if (authored) { return authored; }
     }
     var h = core.hash2(tx, ty);
-    if ((tx % 7 === 0 || ty % 9 === 0) && nearTown(tx, ty)) { return 'road'; }
+    var road = roadIsVertical(tx, ty) ? (tx % 7 === 0) : (ty % 9 === 0);
+    if (road && nearTown(tx, ty)) { return 'road'; }
     if (h < 0.07) { return 'water'; }
     if (h < 0.16) { return 'mount'; }
     if (h < 0.34) { return 'forest'; }
@@ -1685,6 +1704,7 @@
     stationsIn: stationsIn, stationsNear: stationsNear, nearestStation: nearestStation,
     fortAt: fortAt, fortsNear: fortsNear, nearestFort: nearestFort,
     terrainAt: terrainAt,
+    roadIsVertical: roadIsVertical,
     /* 3D 렌더러(world3d.js)가 지면을 스스로 깔 수 있게 내보낸다 */
     ZOOM: ZOOM, TILE_PX: TILE_PX, TERRAIN: TERRAIN,
     metersPerPixel: metersPerPixel, scale: scale,
