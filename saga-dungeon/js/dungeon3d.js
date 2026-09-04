@@ -1046,9 +1046,25 @@
       box(g, p.x, y + p.h / 2, p.z, 6, p.h, 6, 0x5a4a34, 'flat', true);
       box(g, p.x, y + p.h, p.z, 30, 8, 4, 0x6b5a3f, 'flat', false);
     } else if (p.t === 'pond') {
-      var pd = box(g, p.x, y + 2, p.z, F.CHUNK * 0.8 * s, 3, F.CHUNK * 0.7 * s,
-        0x1f4a63, 'flat', false);
-      pd.material = mat(0x1f4a63, 'water');
+      /* 2026-09-05 — 단색 반투명 상자를 실제 에셋(바위 고리+연잎+물결 데칼,
+         'pond' 키, `asset3d.js` 참고)으로 갈아 끼웠다. `normalize()`는
+         세로(Y) 기준으로만 배율을 잡는데 이 에셋은 **가로로 넓은** 지형물이라,
+         원본의 가로:세로 비(약 2.35:1)를 거꾸로 풀어 원하는 가로 폭에 맞는
+         mul(세로)을 역산한다 — 그래야 결과 가로 폭이 옛 상자와 같은 자리에
+         맞아떨어진다. 못 받으면(단독판 등) 옛 상자 그대로 돌아간다(fallback) */
+      var pondW = F.CHUNK * 0.8 * s;
+      var pondMul = pondW * 0.4247;
+      var pondShape = function () {
+        var sg = new T.Group();
+        var pd = box(sg, 0, 2, 0, pondW, 3, F.CHUNK * 0.7 * s, 0x1f4a63, 'flat', false);
+        pd.material = mat(0x1f4a63, 'water');
+        return sg;
+      };
+      var pdnode = AS3 ? AS3.build('pond', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        pondMul, null, pondShape) : pondShape();
+      pdnode.position.set(p.x, y, p.z);
+      pdnode.rotation.y = ((Math.round(p.x) + Math.round(p.z)) % 360) * Math.PI / 180;
+      g.add(pdnode);
     } else if (p.t === 'reed') {
       box(g, p.x, y + p.h / 2, p.z, 3, p.h, 3, 0x3f5a34, 'flat', false);
     } else if (p.t === 'cavemouth') {

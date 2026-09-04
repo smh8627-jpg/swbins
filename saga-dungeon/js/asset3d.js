@@ -152,6 +152,18 @@
        Bonfire_Lit(CC0)로 갈아 끼웠다. 예전엔 "CC0로 딱 맞는 걸 못 찾았다"고
        적어 뒀던 자리다(도형 그대로 남겨 뒀었다) */
     'campfire': PROPS + 'Bonfire_Lit.glb',
+    /* 물(못) — 2026-09-05, 사용자 요청("물 텍스처 실사화")으로 찾아봤지만
+       **타일링되는 물 표면 텍스처 자체가 CC0에 없었다**(Poly Haven·ambientCG
+       둘 다 뒤졌다 — 물은 사진 텍스처로 잘 안 만드는 소재라 원천적으로
+       드물다. ambientCG의 'Ice00x'는 얼어붙은 호수라 못과 안 맞아 걸렀다).
+       대신 poly.pizza의 Poly by Google 'Pond'(CC-BY 3.0, saga-dungeon이
+       Tiger·Bear 등에서 이미 쓰는 그 출처)를 통째로 썼다 — 바위 고리·
+       연잎·물결 데칼까지 다 갖춘 완성 모델이라 여태 코드가 그리던 단색
+       반투명 상자(그리고 field3d.js 가 따로 놓던 갈대)를 한 번에 대신한다.
+       실사 텍스처는 아니지만(저다각형 팔레트 색이다, 다른 실사화와 결이
+       다르다는 뜻) **코드가 그리던 도형을 실제 완성 에셋으로 바꿨다**는
+       원칙은 그대로 지킨다. 출처는 `ASSET_LICENSES.md` 참고 */
+    'pond': NATURE + 'pond.glb',
     /* 땅바닥 잡초 — PLAN 7·11절 "풀·꽃·덤불·버섯·통나무", 이 판에만 여태
        하나도 없었다(다른 네 판은 다 갖고 있다). 판정에는 안 닿는 순수 장식
        (field3d.js `clutterAt()`) */
@@ -412,7 +424,15 @@
           color: m.color ? m.color.clone() : new t.Color(0xffffff),
           map: m.map || null, vertexColors: !!m.vertexColors,
           transparent: !!m.transparent, opacity: m.opacity,
-          alphaTest: m.alphaTest || 0, side: m.side
+          alphaTest: m.alphaTest || 0,
+          /* **뒤집힌 면(winding)도 있는 채로 받는다** — 2026-09-05, poly.pizza
+             'Pond'(CC-BY)에서 물 표면 사각형 하나가 통째로 반대로 감겨 있어
+             `side: m.side`(기본 FrontSide) 그대로 두면 이 각도에서 컬링돼
+             안 보였다(지오메트리는 와이어프레임으로 확인하면 분명히 있다 —
+             단면 컬링만의 문제). 실사 스캔·저다각형 팩 가릴 것 없이 이런
+             면이 또 나올 수 있어 **항상 DoubleSide로 받는다** — 그리기 비용은
+             미미하고, 맞는 면이면 결과가 똑같다 */
+          side: t.DoubleSide
         });
       });
       o.material = Array.isArray(o.material) ? out : out[0];

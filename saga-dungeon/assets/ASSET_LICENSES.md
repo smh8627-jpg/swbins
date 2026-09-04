@@ -702,6 +702,61 @@ GLB가 많아 이 작업 환경의 헤드리스 SwiftShader로는 안정적으�
 안 맞는 자리(대장간·여관·마방)는 위에 그 이유를 남겨 뒀으니, 나중에
 진짜 맞는 모양을 찾으면 `asset3d.js`의 그 한 줄만 바꾸면 된다.
 
+## 물(못) — 진짜 텍스처는 없었다, 완성 에셋 + 뒤집힌 면 버그 하나 (2026-09-05)
+
+**사용자 요청 "물 텍스처 실사화"로 시작 — 결론은 "텍스처는 없다"였다.**
+Poly Haven·ambientCG 전체 텍스처 카탈로그를 `water`·`pond`·`lake`·`river`
+등으로 훑었지만 **타일링되는 물 표면 텍스처가 원천적으로 없다**(물은
+사진 텍스처로 잘 안 만드는 소재 — Poly Haven은 아예 없고, ambientCG의
+`Ice00x`는 얼어붙은 호수라 못과 안 맞아 걸렀다). KayKit Medieval Hexagon
+Pack에 `hex_water` 타일이 있어 받아 봤지만 **단색 팔레트 하나일 뿐**이라
+지금 있는 반투명 파란 상자와 실질적으로 다르지 않았다(코드 추가할 값이
+없어 안 썼다).
+
+- **poly.pizza에서 완성 diorama를 찾았다.** 'Pond'(Poly by Google,
+  CC-BY 3.0 — Tiger·Bear 등에서 이미 쓰는 그 출처)는 바위 고리·연잎·
+  기하학적 물결 데칼·물빛까지 다 갖춘 통짜 모델이다. `models/nature/pond.glb`
+  로 그대로 옮겼다(재질이 이미 하나뿐이라 재질 분리·텍스처 리사이즈가
+  필요 없었다 — 원본 diffuse가 이미 512px).
+- **진짜 버그 하나 잡음 — 물 표면이 안 보였다.** `AS3.build('pond', ...)`로
+  불러 봤더니 바위·연잎은 다 보이는데 **물 자체가 완전히 안 보였다**
+  (배경이 그대로 비쳤다). 검은 재질도 아니고 완전히 투명한 것도 아닌
+  "아예 없는 것처럼" 보이는 게 이상해 와이어프레임을 씌워 확인 —
+  **지오메트리는 분명히 있었다.** `alphaMode: OPAQUE`,
+  `baseColorFactor: [1,1,1,1]`이라 투명도 문제도 아니었다. 남은 설명은
+  하나 — **물 사각형 하나만 면이 거꾸로 감겨(winding) 있어 단면 컬링
+  (backface culling)에 걸린 것**. `material.side = THREE.DoubleSide`로
+  강제하니 바로 보였다.
+- **`delam()`(asset3d.js)에 이 처리를 항목으로 넣었다** — `side: m.side`
+  (기존 재질의 값, 대개 기본 FrontSide)를 **항상 `THREE.DoubleSide`**로
+  바꿨다. 이 판이 받는 CC0/CC-BY 에셋은 출처가 제각각이라 이런 뒤집힌
+  면이 또 나올 수 있고, DoubleSide는 맞게 감긴 면에는 아무 영향이
+  없다 — 못 하나만의 땜질이 아니라 **`delam()`을 거치는 모든 GLB에
+  적용되는 방어적 기본값**으로 넣었다(그리기 비용 증가는 미미하다).
+- **`js/dungeon3d.js`의 `pond` 가지를 고쳤다.** `normalize()`는 세로(Y)
+  기준으로만 배율을 잡는데 이 에셋은 가로로 넓은 지형물이라, 원본의
+  가로:세로 비(약 2.35:1)를 거꾸로 풀어 원하는 가로 폭에서 필요한
+  세로 배율(`mul`)을 역산했다(`pondW * 0.4247`). 못 받으면 옛 반투명
+  상자로 그대로 되돌아간다(fallback 그대로 유지). `js/asset3d.js`에
+  `'pond': NATURE + 'pond.glb'`로 등록.
+- 격리 렌더(`_inspect_pond3_tmp.html`, 커밋 안 함)로 상자(`dg:chest`)
+  옆에 세워 크기를 눈으로 비교 확인. 자가진단 **241/241** 3회 동일
+  (물은 순수 장식이라 진단이 값으로 안 본다), `_admin.html?selftest`
+  **ADMIN 12/12**(delam() 변경이 다른 자산도 다 지나가므로 전체 재확인
+  차원). `sw.js` VERSION → `dungeon-v0.39.4`.
+- **늪(swamp) biome도 같이 좋아진다** — `field3d.js`가 늪의 웅덩이를
+  물 쪽 'pond'를 그대로 재사용하므로 이 절 하나로 둘 다 해결된다.
+
+| | |
+|---|---|
+| **만든 이** | Poly by Google |
+| **라이선스** | **CC-BY 3.0** — 저작자 표시 필요 |
+| **받은 곳** | `poly.pizza/m/5rf3YuZfJAW`(검색 `poly.pizza/search/pond`) → `static.poly.pizza/7a5a8cfd-9c13-4754-b944-24a8b1ea6fa6.glb` |
+| **파일** | `models/nature/pond.glb`(366KB) |
+
+> **Pond** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> `poly.pizza`를 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
