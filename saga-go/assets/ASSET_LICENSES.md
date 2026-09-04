@@ -420,6 +420,33 @@ NPC·몬스터 울음(`NPC/`) 등이 더 있다 — 다음 단계(일반 버튼 
 `TREE_STYLIZED`·`PINE_STYLIZED`·`ROCK_STYLIZED`·`BUSH_STYLIZED` 가 되돌림
 자리로 들고 있다.
 
+## 집·탑 — PolyScan · Poly Haven (`models/buildings/realistic/`)
+
+2026-09-04, **사가블로가 같은 날 먼저 찾아 검증해 둔 것을 그대로 옮겼다**
+(md5 동일 확인) — 아래 "안 가져온 것" 절의 옛 결론("동양풍만 없을 뿐 건물
+자체는 CC0 로 있다")과 달리, 그때까지는 **집·탑도 사진측량/PBR 급 CC0 를
+못 찾은 상태**였다. 사가블로가 rar 해제·OBJ 재질 분리·trimesh 로 새로
+구해 냈다 — 자세한 변환 과정은 `saga-dungeon/assets/ASSET_LICENSES.md`
+의 같은 절 참고(다섯 판 공용 소재라 그쪽에 한 번만 적혀 있다).
+
+| 항목 | |
+|---|---|
+| **만든 이** | PolyScan(<https://polyscann.com>, 돌집·통나무집) · Rico Cilliers — Poly Haven(<https://polyhaven.com>, 탑) |
+| **라이선스** | CC0 1.0 — 재배포·상업적 이용 자유, 표시 의무 없음 |
+| **받은 곳** | `saga-dungeon/assets/models/buildings/realistic/` 를 그대로 재사용 |
+| **파일** | `house_stone.glb`(285KB) · `house_wooden.glb`(246KB) · `tower_round.glb`(516KB, Poly Haven `modular_fort_01` 성채 모듈 키트에서 원형 탑 하나만 추림) |
+
+| 이 판 소품 이름 | 파일 |
+|---|---|
+| `house`(마을 집) | `house_stone.glb` · `house_wooden.glb` |
+| `tower`(들판의 홀로 선 탑) | `tower_round.glb` |
+
+**`asset3d.js`의 역참(`station`)·성채(`fort:t1~t3`)는 손 안 댔다** — 그쪽은
+등급마다 서로 다른 탑 모양이어야 하는데(자가진단이 그걸 본다) 실사 탑은
+한 종류뿐이라 옮기면 세 등급이 다 같아진다. 옛 Kenney류 집 다섯·탑 다섯은
+지우지 않았다 — `js/prop3d.js` 의 `HOUSE_STYLIZED`·`TOWER_STYLIZED` 가
+되돌림 자리로 들고 있다.
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로

@@ -4,6 +4,37 @@
 > 절대 바꾸면 안 되는 것·밟아 본 함정·다음 할 일이 거기 있다. **새 세션은 그 파일부터.**
 > 이 파일은 **사가고 한 판**에 대한 것만 남긴다.
 
+## 2026-09-04 (더더더더더더더더 이어서) — 마을 집·탑도 실사로 (사가블로가 오늘 찾은 것 이식)
+
+사용자가 "실사화" → "안한부분 찾기" → "실사화 작업 진행"으로 요청. `HANDOFF.md`의
+"캐릭터 실사화는 천장, 다시 찾지 말 것" 절은 그대로 두고, 아직 안 건드린 자리를
+찾아보니 **건물(집·탑)** 이 여태 옛 Kenney 류 저다각형 그대로였다(`js/prop3d.js`
+`REG.house`/`REG.tower`, `assets/models/buildings/` 밑, `/realistic/` 아님).
+
+사가블로(`saga-dungeon`)가 **같은 날 먼저** PolyScan(집 둘: `house_stone`·
+`house_wooden`)·Poly Haven `modular_fort_01`(탑 하나: `tower_round`)에서 CC0
+사진측량/PBR 모델을 새로 구해 `assets/models/buildings/realistic/`에 넣어 둔 걸
+발견 — 나무·바위 때와 같은 길로 그대로 옮겼다(md5 동일 확인, 변환 과정은
+새로 안 밟음). `js/prop3d.js`:
+- `BLD_REAL` 상수 신설, `REG.house.all`→`house_stone`·`house_wooden`,
+  `REG.tower.all`→`tower_round`(한 벌뿐)
+- 옛 다섯 채·다섯 탑은 `HOUSE_STYLIZED`·`TOWER_STYLIZED` 로 이름만 바꿔 되돌림
+  자리로 남김(지우지 않음)
+- 재질 안 벗겨지는 것(`looksRealistic()`)은 경로에 `/realistic/`만 있으면 되므로
+  **코드 추가 없이 자동으로 적용됨**(나무 때 고친 그 검사를 그대로 탄다)
+
+**`asset3d.js`의 역참(`station`)·성채(`fort:t1~t3`)는 일부러 손 안 댔다** — 그쪽은
+등급마다 다른 탑이 서야 하는데(자가진단 `/Watchtower/.test(a)` 등이 그걸 본다)
+실사 탑 파일이 한 종류뿐이라 옮기면 세 등급이 다 같아진다. `assets/ASSET_LICENSES.md`
+에 새 절 추가. 자가진단 421/423, 3회 동일 — 회귀 없음(집·탑 파일 이름만 바뀌었을 뿐
+REG 표를 읽는 로직은 그대로라 원래도 안전할 자리였다). `sw.js` VERSION →
+`go-v5.19.6`.
+
+**실기기로 눈으로 보진 못했다** — claude-in-chrome 확장이 이번 세션엔 연결 안 됨.
+집이 마을 안에서 잘 서는지(새 GLB의 원본 축·바닥 정렬이 나무·바위와 다를 수
+있다), 탑이 예전보다 너무 작거나 커 보이지 않는지(`houseScale` 1.8이 새 모델
+비례에도 맞는지) **다음에 보면서 확인할 것**.
+
 ## 2026-09-04 (더더더더더더더 이어서) — 겨울 물색 실기기 확인 → 가을과 안 갈려서 진하게 다시
 
 바로 앞 절에서 넣은 겨울 물색(`season.js` 의 `SEASONS.winter.leaf` 값 그대로,

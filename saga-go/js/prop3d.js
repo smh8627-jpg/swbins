@@ -91,6 +91,7 @@
   var BLD = 'assets/models/buildings/';
   var PRP = 'assets/models/props/';
   var NAT_REAL = BASE + 'realistic/';
+  var BLD_REAL = BLD + 'realistic/';
 
   /* 2026-09-04 — 사가의숲이 검증해 두고 사가블로가 그대로 옮겨 쓴 Poly Haven CC0
      사진측량 자연물을 이 판에도 옮긴다("사가블로는 했는데" — 사용자가 형평을
@@ -111,6 +112,18 @@
    *  대신 아래 `tintedOf()` 로 **같은 실사 나무를 색만 계절에 맞게 덧입힌다** */
   var TREE_AUTUMN_STYLIZED = [BASE + 'CommonTree_Autumn_1.glb', BASE + 'CommonTree_Autumn_2.glb'];
   var TREE_WINTER_STYLIZED = [BASE + 'CommonTree_Snow_1.glb', BASE + 'CommonTree_Snow_2.glb'];
+  /** 2026-09-04 — 마을 집·탑도 실사로. 사가블로가 오늘 PolyScan(집 둘)·Poly Haven
+   *  `modular_fort_01`(탑 하나)에서 CC0 사진측량/PBR 모델을 새로 구해 검증해
+   *  뒀길래(사람 팩과 달리 이번엔 **막힌 길이 아니었다** — `assets/ASSET_LICENSES.md`
+   *  참고) 그대로 옮겼다(md5 동일 확인). 옛 Kenney류 다섯 채·다섯 탑은 지우지
+   *  않고 아래 *_STYLIZED 에 되돌림 자리로 남긴다. `asset3d.js`의 역참(`station`,
+   *  Inn.glb 한 벌)·성채(`fort:t1~t3`, 등급마다 다른 탑)는 **손 안 댐** — 그쪽은
+   *  등급별로 서로 다른 모양이어야 하는데(자가진단이 그걸 본다) 실사 탑은 한
+   *  종류뿐이라 옮기면 세 등급이 다 같은 모양이 된다 */
+  var HOUSE_STYLIZED = [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb',
+                         BLD + 'House_4.glb', BLD + 'Blacksmith.glb'];
+  var TOWER_STYLIZED = [BLD + 'Tower.glb', BLD + 'PointyTower.glb', BLD + 'LargeTower.glb',
+                         BLD + 'Watchtower.glb', BLD + 'LargeSquareTowerBricks.glb'];
 
   var REG = {
     tree: {
@@ -136,8 +149,7 @@
        사용자가 **품질을 먼저** 골랐기 때문이다(2026-08-28). 되돌리려면
        손잡이 `prop3d.house` 를 0 으로 내리면 기와지붕 코드로 돌아간다 */
     house: {
-      all: [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb',
-            BLD + 'House_4.glb', BLD + 'Blacksmith.glb']
+      all: [BLD_REAL + 'house_stone.glb', BLD_REAL + 'house_wooden.glb']
     },
     /* 마을의 높은 집. **`Inn.glb` 를 여기서 뺐다** — 그 여관이 이제
        `asset3d` 의 **역참**이다(2026-08-28). 마을에도 같은 여관이 서면
@@ -145,8 +157,7 @@
        역참은 들판에 홀로 서고 깃발이 있다 — 그 규칙을 깨끗하게 두려고 뺐다.
        대신 남은 탑 하나(`LargeSquareTowerBricks`)를 넣어 가짓수를 지켰다 */
     tower: {
-      all: [BLD + 'Tower.glb', BLD + 'PointyTower.glb', BLD + 'LargeTower.glb',
-            BLD + 'Watchtower.glb', BLD + 'LargeSquareTowerBricks.glb']
+      all: [BLD_REAL + 'tower_round.glb']
     },
 
     /* ── 여기부터는 **손으로 그린 땅**(`land.js`)이 세우는 것들 ──────────
