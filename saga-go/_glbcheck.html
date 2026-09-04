@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GLB 점검</title>
+<style>
+  html, body { margin: 0; background: #101418; color: #e8e8e8; font: 14px/1.5 -apple-system, sans-serif; }
+  #log { white-space: pre-wrap; padding: 10px 12px; word-break: break-all; }
+  .ok   { color: #6ee08a; }
+  .bad  { color: #ff6b6b; }
+  .warn { color: #ffcf5c; }
+  h1 { font-size: 16px; margin: 10px 12px 4px; }
+  canvas { display: block; width: 100%; height: 46vh; background: #333; }
+  #picker { padding: 6px 12px; }
+  #picker button { margin-right: 6px; padding: 6px 10px; }
+</style>
+</head>
+<body>
+<h1>사가고 — 인물 GLB 실기기 점검</h1>
+<div id="picker"></div>
+<canvas id="c"></canvas>
+<div id="log"></div>
+
+<script src="js/vendor/three.iife.js"></script>
+<script>
+(function () {
+  'use strict';
+  var T = window.THREE;
+  var logEl = document.getElementById('log');
+  function line(msg, cls) {
+    var d = document.createElement('div');
+    if (cls) { d.className = cls; }
+    d.textContent = msg;
+    logEl.appendChild(d);
+    console.log(msg);
+  }
+  window.onerror = function (msg, src, ln, col, err) {
+    line('window.onerror: ' + msg + ' @' + ln + ':' + col + (err && err.stack ? '\n' + err.stack : ''), 'bad');
+  };
+  window.addEventListener('unhandledrejection', function (e) {
+    line('unhandledrejection: ' + (e.reason && (e.reason.message || e.reason)) , 'bad');
+  });
+
+  line('UA: ' + navigator.userAgent);
+  line('THREE 로드: ' + (T ? 'OK' : '실패'), T ? 'ok' : 'bad');
+  if (!T) { return; }
+  line('THREE.REVISION: ' + T.REVISION);
+  line('GLTFLoader: ' + (T.GLTFLoader ? 'OK' : '없음'), T.GLTFLoader ? 'ok' : 'bad');
+  line('SkeletonUtils: ' + (T.SkeletonUtils ? 'OK' : '없음'), T.SkeletonUtils ? 'ok' : 'bad');
+
+  var renderer;
+  try {
+    renderer = new T.WebGLRenderer({ antialias: true });
+    var gl = renderer.getContext();
+    line('WebGL: OK (context ' + (gl instanceof WebGL2RenderingContext ? 'WebGL2' : 'WebGL1') + ')', 'ok');
+    var dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    if (dbg) {
+      line('GPU: ' + gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL));
+      line('Vendor: ' + gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL));
+    }
+    line('MAX_TEXTURE_SIZE: ' + gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    line('devicePixelRatio: ' + window.devicePixelRatio);
+  } catch (e) {
+    line('WebGL 렌더러 생성 실패: ' + e.message, 'bad');
+    return;
+  }
+
+  var canvas = document.getElementById('c');
+  var w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  renderer.outputColorSpace = T.SRGBColorSpace;
+  canvas.replaceWith(renderer.domElement);
+  renderer.domElement.id = 'c';
+
+  var scene = new T.Scene();
+  scene.background = new T.Color(0x222833);
+  var camera = new T.PerspectiveCamera(45, w / h, 0.05, 50);
+  camera.position.set(0, 1.1, 2.4);
+  camera.lookAt(0, 0.9, 0);
+
+  var hemi = new T.HemisphereLight(0x6e8ab5, 0x565f70, 1.6);
+  scene.add(hemi);
+  var sun = new T.DirectionalLight(0xd0dcf5, 1.9);
+  sun.position.set(-2, 3, 1);
+  scene.add(sun);
+
+  var current = null;
+  function clearCurrent() { if (current) { scene.remove(current); current = null; } }
+
+  function animate() {
+    requestAnimationFrame(animate);
+    if (current) { current.rotation.y += 0.01; }
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  var FILES = ['Warrior', 'Ranger', 'Rogue', 'Cleric', 'Wizard', 'Monk'];
+  var picker = document.getElementById('picker');
+  FILES.forEach(function (n) {
+    var b = document.createElement('button');
+    b.textContent = n;
+    b.onclick = function () { test(n); };
+    picker.appendChild(b);
+  });
+
+  /** 실제 게임(asset3d.js `delam`)과 같은 규칙 — 재질을 Lambert 로 벗긴다.
+   *  여기서 실기기가 map(텍스처)까지 살아 있는지 색으로 바로 드러난다:
+   *  맵이 없으면 물들인 단색으로, 있으면 무늬가 보인다. */
+  function delam(root) {
+    root.traverse(function (o) {
+      if (!o.isMesh || !o.material) { return; }
+      var one = Array.isArray(o.material) ? o.material : [o.material];
+      var out = one.map(function (m) {
+        if (!m) { return m; }
+        return new T.MeshLambertMaterial({
+          color: m.color ? m.color.clone() : new T.Color(0xffffff),
+          map: m.map || null, vertexColors: !!m.vertexColors,
+          transparent: !!m.transparent, opacity: m.opacity,
+          alphaTest: m.alphaTest || 0, side: m.side
+        });
+      });
+      o.material = Array.isArray(o.material) ? out : out[0];
+    });
+  }
+
+  function reportMesh(scene3) {
+    var meshes = 0, withMap = 0, withoutMap = 0, skinned = 0, matTypes = {};
+    scene3.traverse(function (o) {
+      if (!o.isMesh) { return; }
+      meshes++;
+      if (o.isSkinnedMesh) { skinned++; }
+      var mats = Array.isArray(o.material) ? o.material : [o.material];
+      mats.forEach(function (m) {
+        if (!m) { return; }
+        matTypes[m.type] = (matTypes[m.type] || 0) + 1;
+        if (m.map) {
+          withMap++;
+          line('  · 텍스처: ' + (m.map.image ? (m.map.image.width + 'x' + m.map.image.height) : '(image 없음)') +
+            (m.map.image && m.map.image.complete === false ? ' [미완성?]' : ''));
+        } else {
+          withoutMap++;
+        }
+      });
+    });
+    line('메시 ' + meshes + '개 · 스킨메시 ' + skinned + '개 · 재질형 ' + JSON.stringify(matTypes));
+    line('map 있는 재질 ' + withMap + ' / map 없는 재질 ' + withoutMap, withoutMap > 0 ? 'warn' : 'ok');
+  }
+
+  function test(name) {
+    clearCurrent();
+    var url = 'assets/models/people/quaternius_rpg/' + name + '.glb';
+    line('──── ' + name + ' ────');
+    var t0 = performance.now();
+
+    fetch(url).then(function (res) {
+      line('fetch 상태: ' + res.status + ' ' + res.statusText + ' · Content-Length: ' + res.headers.get('content-length'),
+        res.ok ? 'ok' : 'bad');
+    }).catch(function (e) {
+      line('fetch 실패(네트워크): ' + e.message, 'bad');
+    });
+
+    var loader = new T.GLTFLoader();
+    loader.load(url, function (gltf) {
+      var dt = (performance.now() - t0).toFixed(0);
+      line('GLTFLoader 성공 (' + dt + 'ms)', 'ok');
+      line('애니메이션 클립: ' + gltf.animations.length + '개 — ' + gltf.animations.map(function (a) { return a.name; }).join(', '));
+      reportMesh(gltf.scene);
+
+      delam(gltf.scene);
+      line('delam(Lambert 변환) 후:');
+      reportMesh(gltf.scene);
+
+      /* 실제 게임과 같은 초록 계열 물들이기(촉 세력 #2f7d5c) 로 비교해 본다 */
+      var tc = new T.Color('#2f7d5c');
+      gltf.scene.traverse(function (o) {
+        if (!o.isMesh || !o.material) { return; }
+        var mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(function (m) { m.color.multiply(tc); });
+      });
+
+      var box = new T.Box3().setFromObject(gltf.scene);
+      var size = box.getSize(new T.Vector3());
+      var scale = 1.6 / (size.y || 1);
+      gltf.scene.scale.setScalar(scale);
+      var box2 = new T.Box3().setFromObject(gltf.scene);
+      gltf.scene.position.y -= box2.min.y;
+      gltf.scene.position.x -= (box2.min.x + box2.max.x) / 2 * 0; // 중앙은 스케일 후 이미 근접
+
+      scene.add(gltf.scene);
+      current = gltf.scene;
+      line('화면에 세웠다 — 위 캔버스가 실제로 회전하며 보이면 그대로 스크린샷 보내주세요.', 'ok');
+    }, function (prog) {
+      if (prog.total) { line('받는 중 ' + Math.round(prog.loaded / prog.total * 100) + '%'); }
+    }, function (err) {
+      line('GLTFLoader 실패: ' + (err && (err.message || err.type || String(err))), 'bad');
+    });
+  }
+
+  test('Warrior');
+})();
+</script>
+</body>
+</html>
