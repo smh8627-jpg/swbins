@@ -54,7 +54,9 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 적 중 몸집 작은 쪽 — 들개)와 `Cow.glb`(몸집 큰 쪽 — 남만 코끼리병. 딱 맞는
 코끼리는 CC0 로 못 찾아 큰 네발짐승으로 대신한다, 몬스터 다양화)와
 `models/nature/CommonTree_1·2·3.glb`·`Rock_1·2·3.glb`(들판 소품 — 나무·바위)를
-그대로 복사했다.
+그대로 복사했다. 2026-09-04, **늪(swamp) Biome**을 새로 얹으며
+`models/nature/CommonTree_Dead_1.glb`(고목 — `saga-forest`에서 옮김)도
+같은 자리에 더했다.
 
 ## Quaternius — 폐허·절벽·제단 소품 (`models/props/`, `models/nature/Mountain_*.glb`)
 

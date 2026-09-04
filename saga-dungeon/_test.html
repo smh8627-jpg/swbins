@@ -3003,7 +3003,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('조각 ' + sv.chunks + '개 · ' + sv.span + ' 사방 (방은 ' + W + '×' + H + ')');
     });
 
-    t('들판 — 아홉 가지가 다 난다', function () {
+    t('들판 — 열 가지가 다 난다', function () {
       var s = F3.seedOf(7, 0, 'w'), seen = {}, cx, cz;
       for (cz = -6; cz <= 6; cz++) {
         for (cx = -6; cx <= 6; cx++) { seen[F3.kindOf(cx, cz, s, 3)] = 1; }

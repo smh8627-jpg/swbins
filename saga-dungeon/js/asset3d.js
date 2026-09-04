@@ -82,6 +82,9 @@
        (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
     'beast_big': ANIMALS + 'Cow.glb',
     'tree': [NATURE + 'CommonTree_1.glb', NATURE + 'CommonTree_2.glb', NATURE + 'CommonTree_3.glb'],
+    /* 2026-09-04 — 늪(swamp) Biome 전용. 같은 결의 저다각형(다른 나무와
+       스타일이 갈리지 않게, Poly Haven 사실적 스캔이 아니라 이 팩의 것을 썼다) */
+    'tree_dead': NATURE + 'CommonTree_Dead_1.glb',
     'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb'],
     /* 폐허의 기둥·무너진 벽 — 딱 맞는 "부러진 돌기둥" 낱개는 못 찾아
        `Arch.glb`(무너진 아치)로 대신한다. 사가고가 이미 같은 후보를 적어 뒀다

@@ -81,7 +81,7 @@
    * 5절 "완전 랜덤이 아니라 플레이 가능한 결과만" — 그래서 성격은 **거리로도** 갈린다:
    * 방 가까이는 길과 캠프, 멀리는 숲과 절벽.
    */
-  var KINDS = ['forest', 'rock', 'ruin', 'cliff', 'road', 'water', 'cave', 'altar', 'camp'];
+  var KINDS = ['forest', 'rock', 'ruin', 'cliff', 'road', 'water', 'cave', 'altar', 'camp', 'swamp'];
 
   function kindOf(cx, cz, seed, ring) {
     var h = mix(cx * 31 + seed, cz * 57 - seed);
@@ -101,14 +101,18 @@
       if (h < 0.85) { return 'road'; }
       return 'water';
     }
-    /* ring 3 이상 — 저 멀리. 여기서만 절벽·동굴 입구·제단처럼 큰 것이 난다 */
+    /* ring 3 이상 — 저 멀리. 여기서만 절벽·동굴 입구·제단·**늪**처럼 큰(또는
+       분위기가 센) 것이 난다. 늪(PLAN 9절 Biome — Forest·Ruins·Swamp·
+       Mountain·Ancient Shrine 다섯 중 여태 이것만 없었다)도 물처럼 ring 2
+       에는 안 둔다 — 썩은 나무가 방 코앞을 막으면 안 된다 */
     if (h < 0.30) { return 'forest'; }
     if (h < 0.46) { return 'rock'; }
     if (h < 0.58) { return 'ruin'; }
     if (h < 0.70) { return 'cliff'; }
-    if (h < 0.80) { return 'water'; }
-    if (h < 0.87) { return 'road'; }
-    if (h < 0.93) { return 'cave'; }
+    if (h < 0.78) { return 'water'; }
+    if (h < 0.84) { return 'swamp'; }
+    if (h < 0.90) { return 'road'; }
+    if (h < 0.94) { return 'cave'; }
     if (h < 0.97) { return 'altar'; }
     return 'camp';
   }
@@ -192,6 +196,22 @@
       for (i = 0; i < 2; i++) {
         out.push({ t: 'tent', x: cp.x + (i ? 46 : -46), z: cp.z + (i ? 22 : -18),
                    s: 1, rot: rnd(i + 13) * 6.28, h: 34 });
+      }
+    } else if (kind === 'swamp') {
+      /* 늪(PLAN 9절 Biome) — 웅덩이 하나 + 썩은 나무 여럿 + 갈대. `water`
+         쪽의 pond·reed 를 그대로 재사용한다(같은 물건이라 새 도형이 필요 없다) */
+      out.push({ t: 'pond', x: ox + CHUNK / 2, z: oz + CHUNK / 2,
+                 s: 0.5 + rnd(6) * 0.4, rot: 0, h: 2 });
+      n = Math.round((2 + rnd(0) * 3) * d);
+      for (i = 0; i < n; i++) {
+        var dt = spot(i + 50);
+        out.push({ t: 'tree_dead', x: dt.x, z: dt.z, s: 0.7 + rnd(i + 55) * 0.6,
+                   rot: rnd(i + 58) * 6.28, h: 40 + rnd(i + 59) * 40 });
+      }
+      n = Math.round(2 * d);
+      for (i = 0; i < n; i++) {
+        var rd = spot(i + 65);
+        out.push({ t: 'reed', x: rd.x, z: rd.z, s: 1, rot: 0, h: 14 + rnd(i + 66) * 12 });
       }
     }
     out.kind = kind;

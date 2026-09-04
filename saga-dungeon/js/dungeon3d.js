@@ -828,6 +828,18 @@
       tnode.position.set(p.x, y, p.z);
       tnode.rotation.y = p.rot || 0;
       g.add(tnode);
+    } else if (p.t === 'tree_dead') {
+      /* 늪(swamp) 전용 — 잎이 없는 마른 줄기 하나만 남긴다(뭉치 없이) */
+      var deadShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h * 0.5, 0, 7 * s, p.h, 7 * s, 0x2a2016, 'flat', true);
+        return sg;
+      };
+      var dtnode = AS3 ? AS3.build('tree_dead', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.2 * s, null, deadShape) : deadShape();
+      dtnode.position.set(p.x, y, p.z);
+      dtnode.rotation.y = p.rot || 0;
+      g.add(dtnode);
     } else if (p.t === 'rock') {
       var rockShape = function () {
         var sg = new T.Group();
