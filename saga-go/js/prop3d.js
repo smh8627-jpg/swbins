@@ -202,13 +202,16 @@
     try { return S.now().key || 'all'; } catch (e) { return 'all'; }
   }
 
-  /** 가을·겨울에만 색을 곱할 16진 — `season.js` `SEASONS.autumn/winter.leaf`
-   *  값을 그대로 옮겨 적었다(다른 화면의 나무·풀도 같은 색으로 물드니 맞춰
-   *  둬야 따로 안 어긋난다 — `season.js` 가 그 값을 바꾸면 여기도 손으로 맞출
-   *  것). 봄·여름은 null — 사진측량 텍스처를 그대로 둔다(곱하면 오히려
-   *  탁해진다). `S.now()` 대신 `sk` 를 직접 봐서 다른 철을 미리 받을 때도
-   *  맞는 색을 낸다 */
-  var SEASON_TINT_HEX = { autumn: 0xa87a2e, winter: 0x5f6a5c };
+  /** 가을·겨울에만 색을 곱할 16진. 가을은 `season.js` `SEASONS.autumn.leaf`
+   *  값을 그대로 옮겨 적었다(따뜻한 황갈색이라 곱해도 또렷이 갈린다).
+   *  **겨울은 그 규칙을 깼다** — `SEASONS.winter.leaf`(0x5f6a5c, 흐린 회녹색)를
+   *  그대로 곱하니 가을과 실기기에서 거의 안 갈렸다(사용자 확인, 2026-09-04).
+   *  `season.js` 의 그 값은 **손그린 단색 땅**을 물들이려고 고른 값이라 사진
+   *  텍스처 위 곱색에는 안 맞았다 — 여기만 따로 **더 차갑고 진한 청회색**을
+   *  쓴다(나무 전용, `season.js` 와 갈라짐을 감수한다). 봄·여름은 null —
+   *  사진측량 텍스처를 그대로 둔다(곱하면 오히려 탁해진다). `S.now()` 대신
+   *  `sk` 를 직접 봐서 다른 철을 미리 받을 때도 맞는 색을 낸다 */
+  var SEASON_TINT_HEX = { autumn: 0xa87a2e, winter: 0x4d5b66 };
   function seasonTintHex(sk) {
     var key = sk || seasonKey();
     return SEASON_TINT_HEX[key] || null;
