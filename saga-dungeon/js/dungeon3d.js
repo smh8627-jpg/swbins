@@ -1487,6 +1487,19 @@
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());
     amb.intensity = L.ambient;
     amb.color.setHex(L.ambientHex);
+    /* **다섯 번째 재조사(2026-09-04)의 진짜 원인** — `HemisphereLight`는
+       하늘쪽(`.color`)·땅쪽(`.groundColor`) 색을 따로 갖는데, 바로 위 줄은
+       하늘쪽만 매 프레임 방 밝기에 맞춰 갈아 끼우고 **땅쪽은 init()의
+       `0x0a0a0c`(거의 검정)에 그대로 박혀 있었다.** 위를 보는 면(바닥)은
+       하늘쪽 색을 거의 그대로 받아 밝지만, 옆·아래를 보는 면(벽·비탈진
+       소품)은 그 짙게 박힌 땅쪽 색과 섞여 방향광이 안 닿는 쪽에서 거의
+       새까매진다 — 카메라 거리·그림자맵·SSAO 어느 것과도 무관해서(순수
+       반구광 계산 문제) 줌·그림자 끄기·SSAO 끄기 전부 안 먹혔던 것이다.
+       마을처럼 하늘쪽이 밝은 방일수록 이 어긋남이 도드라진다(땅쪽만
+       계속 어두우니까). 땅쪽도 하늘쪽 절반 밝기로 같이 따라가게 한다 —
+       완전히 맞추면(둘 다 동일) 벽의 입체감(면마다 다른 밝기)이 사라져
+       밋밋해지므로, 여전히 하늘보다는 어둡게 두어 방향성은 살린다. */
+    amb.groundColor.setHex(mix(L.ambientHex, 0x000000, 0.5));
     key.intensity = L.keyIntensity;
     key.color.setHex(L.keyHex);
     var p0 = run.player;

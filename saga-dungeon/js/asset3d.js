@@ -322,6 +322,13 @@
     var t = three();
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
+      /* **법선이 아예 없는 GLB**(2026-09-04, "House"·"Wood" 새까만 자리로
+         잡힌 함정) — PolyScan 실사 스캔 일부는 좌표·UV만 있고 법선을 안
+         담아 낸다. 법선이 없으면 Lambert 재질은 빛과 내적할 방향이 없어
+         **조명 세기와 무관하게 통째로 새까맣게** 뜬다(재질·텍스처·그림자·
+         SSAO 어느 것도 무관 — 줌을 당겨도 안 바뀌는 것이 이 함정의
+         특징이다). 지오메트리에서 바로 계산해 채운다 */
+      if (!o.geometry.attributes.normal) { o.geometry.computeVertexNormals(); }
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
