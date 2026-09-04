@@ -460,8 +460,17 @@
   /**
    * 이 타일이 이 땅과 겹치나 — 겹치면 덧칠한 텍스처를, 아니면 null.
    * `x0·y0` 는 타일 왼쪽 위 모서리의 월드 좌표(m), `span` 은 한 변(m).
+   *
+   * **`img`(실제 지도 타일)는 더 이상 바탕에 안 그린다** (2026-09-04, "지형이
+   * 어색하다" 감사) — 지도 서비스(CartoCDN)가 이제 API 키를 요구해 "API KEY
+   * REQUIRED" 라고 적힌 초록 바탕 그림을 돌려주는데, `onload` 는 그래도 불러서
+   * `img.ready`가 그대로 true 가 된다. 그걸 12%(1-`PAINT_A`)라도 바탕에 깔면
+   * 그 글자가 마을 한복판에 그대로 비쳤다(실제로 찍어서 봤다). 이 판의 세계는
+   * 애초에 지도가 모르는 절차적 세계라(제 위치가 실제 그 좌표에 무엇이 있는지와
+   * 무관하게 해시로 정해진다) 지도 사진에 기댈 까닭이 없었다 — `terrainTexture`
+   * 와 같은 방식(제 색·무늬로 불투명하게)으로 통일한다.
    */
-  function landTexture(key, x0, y0, span, img) {
+  function landTexture(key, x0, y0, span) {
     var L = global.DG.land;
     if (!LAND_PAINT() || !L || !L.on()) { return null; }
     var g0x = Math.floor(x0 / GRID), g1x = Math.floor((x0 + span) / GRID);
@@ -476,16 +485,15 @@
        텍스처가 늦게 도착할 수도 있으니 **어느 것이 왔는지도 키에 넣는다** —
        안 넣으면 도착 후에도 옛(색만 칠한) 캔버스가 캐시에 계속 나온다 */
     var SSk = global.DG.season;
-    var ck = key + '|' + (img && img.ready ? 'i' : 'n') + '|' + landTexReadyKey() +
-      '|' + Math.round(PAINT_A() * 100) + '|' + (SSk ? SSk.now().key : '-');
+    var ck = key + '|' + landTexReadyKey() +
+      '|' + (SSk ? SSk.now().key : '-');
     if (landTex[ck]) { return landTex[ck]; }
 
     var S = 256;
     var cv = document.createElement('canvas');
     cv.width = S; cv.height = S;
     var c = cv.getContext('2d');
-    if (img && img.ready) { c.drawImage(img, 0, 0, S, S); }
-    else { c.fillStyle = '#d7dbe0'; c.fillRect(0, 0, S, S); }
+    c.fillStyle = '#3a352e'; c.fillRect(0, 0, S, S);
 
     var k = S / span;                    // 미터 → 캔버스 픽셀
     var a0 = PAINT_A();
@@ -545,6 +553,86 @@
     tex.anisotropy = 4;
     landTex[ck] = tex;
     return tex;
+  }
+
+  /**
+   * 손으로 그린 땅이 없는 **대부분의 자리**(무한한 절차적 세계)도 이제 같은
+   * 실사 소재로 깐다 — 여태는 `landTexture`가 손 안 댄 자리에서 실제 지도
+   * 이미지(길·건물이 찍힌 항공사진 풍 타일)를 그대로 바닥에 깔았는데, 그 위에
+   * 서는 것은 격자 해시가 낸 판타지 마을·숲이라 **실제로 존재하지 않는 자리에
+   * 실제 지도가 깔리는 어긋남**이 있었다(2026-09-04, 사용자가 "지형·배치가
+   * 어색하다"고 짚어 발견). `terrainAt` 이 이미 이 격자가 무슨 땅인지 알고
+   * 있으니, 그 종류에 맞는 실사 소재(land.js 와 같은 ambientCG CC0 텍스처)를
+   * 대신 깐다 — 세우는 사물과 밟는 바닥이 드디어 같은 이야기를 한다.
+   *
+   * `landTexture`와 짝이지만 **소유 검사가 없고**(모든 칸이 대상) **실제 지도
+   * 이미지에 안 기댄다** — 여기 깔리는 것은 지도가 모르는 절차적 세계라
+   * 지도 사진을 밑에 깔 까닭이 없다(그게 바로 어긋남의 원인이었다). 늘
+   * 제 색·제 무늬로 **불투명하게** 채운다. 나머지 흐림·계절·캐시 규칙은
+   * `landTexture`와 그대로 같다. 물은 여기서 안 칠한다 — 실제 물결은
+   * `water3d.js`가 따로 그리므로 `LAND_COLOR.water`만 옅게 깐다(무늬 없음,
+   * `LAND_TEX_URL`에 water가 없어 자동으로 그리된다).
+   */
+  function terrainTexture(W, x0, y0, span) {
+    if (!LAND_PAINT()) { return null; }
+    var g0x = Math.floor(x0 / GRID), g1x = Math.floor((x0 + span) / GRID);
+    var g0y = Math.floor(y0 / GRID), g1y = Math.floor((y0 + span) / GRID);
+    var gx, gy;
+
+    var SSk = global.DG.season;
+    var ck = 'w|' + g0x + ',' + g0y + '|' + landTexReadyKey() +
+      '|' + (SSk ? SSk.now().key : '-');
+    if (landTex[ck]) { return landTex[ck]; }
+
+    var S = 256;
+    var cv = document.createElement('canvas');
+    cv.width = S; cv.height = S;
+    var c = cv.getContext('2d');
+    c.fillStyle = '#3a352e'; c.fillRect(0, 0, S, S);
+
+    var k = S / span;
+    for (gy = g0y; gy <= g1y; gy++) {
+      for (gx = g0x; gx <= g1x; gx++) {
+        var kind = W.terrainAt(gx, gy);
+        /* 가장자리 흐리기 — `landTexture`와 같은 규칙(이웃 넷 중 같은 종류인
+           몫만큼 진하게). 종류가 자주 바뀌는 절차적 세계라 여기서 훨씬 자주
+           걸린다 — 바로 이 흐림이 "칸마다 뚝뚝 끊기던" 그 경계를 없앤다 */
+        var near = 0;
+        if (W.terrainAt(gx + 1, gy) === kind) { near++; }
+        if (W.terrainAt(gx - 1, gy) === kind) { near++; }
+        if (W.terrainAt(gx, gy + 1) === kind) { near++; }
+        if (W.terrainAt(gx, gy - 1) === kind) { near++; }
+        c.globalAlpha = near === 4 ? 1 : (0.7 + 0.075 * near);
+        var baseCol = LAND_COLOR[kind] || LAND_COLOR.grass;
+        if (SSk) { baseCol = SSk.landColor(kind, baseCol); }
+        var rx = Math.round((gx * GRID - x0) * k);
+        var ry = Math.round((gy * GRID - y0) * k);
+        var rw = Math.round((gx * GRID + GRID - x0) * k) - rx;
+        var rh = Math.round((gy * GRID + GRID - y0) * k) - ry;
+        var pat = landPattern(c, kind, gx * GRID, gy * GRID, k);
+        if (pat) {
+          c.fillStyle = pat;
+          c.fillRect(rx, ry, rw, rh);
+          var seasonAlpha = c.globalAlpha;
+          c.globalAlpha = seasonAlpha * 0.30;
+          c.globalCompositeOperation = 'multiply';
+          c.fillStyle = baseCol;
+          c.fillRect(rx, ry, rw, rh);
+          c.globalCompositeOperation = 'source-over';
+          c.globalAlpha = seasonAlpha;
+        } else {
+          c.fillStyle = shadeHex(baseCol, (h1(gx * 17 + 5, gy * 23 + 9) - 0.5) * 0.06);
+          c.fillRect(rx, ry, rw, rh);
+        }
+      }
+    }
+    c.globalAlpha = 1;
+
+    var tex2 = new T.CanvasTexture(cv);
+    tex2.colorSpace = T.SRGBColorSpace;
+    tex2.anisotropy = 4;
+    landTex[ck] = tex2;
+    return tex2;
   }
 
   /* ── 땅의 높낮이 (PLAN 14절) ─────────────────────────
@@ -632,8 +720,13 @@
         liftTile(mesh, corner.x, corner.y, span);
 
         var img = W.getTile(tx, ty, W.ZOOM, MAP_STYLE());
-        /* 이 땅과 겹치는 타일은 **제 색으로 덧칠한 것**을 쓴다 */
-        var tex = landTexture(key, corner.x, corner.y, span, img) || tileTexture(img);
+        /* 이 땅과 겹치는 자리(손으로 그린 땅)는 여전히 실제 지도와 섞어 칠한다.
+           그 밖의 **거의 모든 자리**(절차적 세계)는 `terrainTexture` 가 실제
+           지도 대신 이 칸이 무슨 땅인지(`terrainAt`)로 실사 소재를 깐다
+           (2026-09-04, "지형·배치가 어색하다" 감사). `img` 는 그래도 받아
+           둔다 — `tilesUsable()`(= `mapped`)가 물 렌더링 갈림길에 여전히 쓴다 */
+        var tex = landTexture(key, corner.x, corner.y, span, img) ||
+          terrainTexture(W, corner.x, corner.y, span) || tileTexture(img);
         if (tex) {
           if (mesh.material.map !== tex) {
             mesh.material.map = tex;
