@@ -155,6 +155,7 @@
   var WELL_STYLIZED = [BLD + 'Well.glb'];
   var MARKET_STYLIZED = [BLD + 'MarketStand_1.glb'];
   var RICE_STYLIZED = [PRP + 'Rice_4.glb'];
+  var BRIDGE_STYLIZED = [PRP + 'Bridge.glb'];
 
   var REG = {
     tree: {
@@ -215,8 +216,14 @@
      *  2026-09-04 실사(`roman_arch.glb`, 스페인 로마 시대 아치 유적)로 갈아
      *  끼움. 옛 값은 `RUIN_STYLIZED` */
     ruin: { all: [PRP_REAL + 'roman_arch.glb'] },
-    /** 다리 — 짧은 한 칸을 **여러 개 이어** 강을 건넌다(`propPlan` 이 나눠 놓는다) */
-    bridge: { all: [PRP + 'Bridge.glb'] },
+    /** 다리 — 짧은 한 칸을 **여러 개 이어** 강을 건넌다(`propPlan` 이 나눠 놓는다).
+     *  2026-09-04 — 실사 CC0 다리는 끝내 못 찾았다(조사 이력은
+     *  `assets/ASSET_LICENSES.md`). 사용자 승인("비슷한 거나 다른 걸로
+     *  채워도 됨 · 콘셉트가 모두 허용")으로 **다리 대신 디딤돌**로 건넌다 —
+     *  이미 받아 둔 실사 바위(`rock`과 같은 파일, `MossRock_a.glb`)를
+     *  여러 개 이으면 "돌다리"처럼 자연스럽게 반복된다(건물과 달리 바위는
+     *  여러 개 늘어서도 안 어색하다). 옛 값은 `BRIDGE_STYLIZED` */
+    bridge: { all: [NAT_REAL + 'MossRock_a.glb'] },
     /** 벼 — 논바닥과 두렁은 코드가 그대로 깔고(물 댄 낯이라 모델보다 낫다),
      *  **그 위에 자란 것만** 모델로 얹는다.
      *
