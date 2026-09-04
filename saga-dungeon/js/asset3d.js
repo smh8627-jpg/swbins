@@ -126,6 +126,9 @@
     'inn': BLD + 'Inn.glb',           // 갈대나루(나루터) — 나그네 쉼터
     'stable': BLD + 'Stable.glb',     // 자작재(산길) — 마방
     'mill': BLD + 'Mill.glb',         // 소금벌(염전) — 방앗간(염전 전용 에셋은 못 찾았다)
+    /* SAGA WEB.md "E. 건물" 목록의 "탑" — 모루골(중심 마을)의 표지 건물로
+       하나만 세운다. 같은 팩에서 받았다 */
+    'belltower': BLD + 'Bell_Tower.glb',
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
        'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은

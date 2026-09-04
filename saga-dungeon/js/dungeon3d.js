@@ -717,6 +717,20 @@
           o.h * 1.25, null, villageShape) : villageShape();
         vnode.position.set(o.x, 0, o.y);
         wallGroup.add(vnode);
+      } else if (o.t === 'belltower') {
+        /* SAGA WEB.md "E. 건물"의 "탑" — 모루골 표지 건물 하나. 집보다
+           가늘고 훨씬 높게(fallback 도 그렇게) */
+        var AS3t2 = AS();
+        var towerShape = function () {
+          var sg = new T.Group();
+          box(sg, 0, o.h * 0.5, 0, 46, o.h, 46, mix(stone, 0xffffff, 0.08), 'flat', true);
+          box(sg, 0, o.h + 16, 0, 54, 32, 54, mix(stone, 0x000000, 0.3), 'flat', true);
+          return sg;
+        };
+        var t2node = AS3t2 ? AS3t2.build('belltower', 'town:' + o.x + ':' + o.y,
+          o.h * 1.9, null, towerShape) : towerShape();
+        t2node.position.set(o.x, 0, o.y);
+        wallGroup.add(t2node);
       }
     }
 

@@ -231,6 +231,19 @@ Remastered 저장소(이미 CC0 확인됨, `assets/models/dungeon/LICENSE.txt`)�
   콘솔 에러 0. `sw.js` VERSION → `dungeon-v0.38.0`(새 Biome이라 마이너
   올림).
 
+**감사 이어서 — 이끼 낀 돌 + 탑(2026-09-04, 이어서 둘 더).**
+
+- `rock` 표에 `Rock_Moss_1.glb`(saga-forest·saga-story에서 옮김)를 넷째
+  변형으로 넣었다(PLAN 7절 "이끼") — 새 코드 없이 표만 늘었다.
+- SAGA WEB.md "E. 건물" 목록의 **탑**을 모루골에 하나 세웠다 —
+  `medieval_village_pack`의 `Bell_Tower.glb`, `inn`/`stable`/`mill`과 같은
+  건물 렌더 패턴(집 모양 상자 fallback, 다만 더 가늘고 높게)을 그대로 썼다.
+  `town.js`의 `DECOR_MORU`에 한 줄만 늘었다.
+- 자가진단 **240/240**·**ADMIN 12/12** 3회 동일, 콘솔 에러 0. `sw.js`
+  VERSION → `dungeon-v0.38.2`. (탑을 실제 화면으로 찍어 보려다 로컬 서버를
+  스크린샷 도중 꺼서 헤드리스가 멈췄다 — 다음에 확인하거나 실기기에서
+  같이 봐 줄 것.)
+
 ## 네 게임 중 하나
 
 사가 시리즈는 2026-08-24 부터 **완전히 별개인 다섯 프로젝트**다.
