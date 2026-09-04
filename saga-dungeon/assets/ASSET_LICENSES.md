@@ -56,7 +56,8 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 `models/nature/CommonTree_1·2·3.glb`·`Rock_1·2·3.glb`(들판 소품 — 나무·바위)를
 그대로 복사했다. 2026-09-04, **늪(swamp) Biome**을 새로 얹으며
 `models/nature/CommonTree_Dead_1.glb`(고목 — `saga-forest`에서 옮김)도
-같은 자리에 더했다.
+같은 자리에 더했다. 같은 날 `Rock_Moss_1.glb`(이끼 낀 돌, `saga-forest`·
+`saga-story`에서 옮김)도 `rock` 표에 넷째 변형으로 넣었다(PLAN 7절 "이끼").
 
 ## Quaternius — 폐허·절벽·제단 소품 (`models/props/`, `models/nature/Mountain_*.glb`)
 

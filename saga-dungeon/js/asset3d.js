@@ -85,7 +85,9 @@
     /* 2026-09-04 — 늪(swamp) Biome 전용. 같은 결의 저다각형(다른 나무와
        스타일이 갈리지 않게, Poly Haven 사실적 스캔이 아니라 이 팩의 것을 썼다) */
     'tree_dead': NATURE + 'CommonTree_Dead_1.glb',
-    'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb'],
+    /* 2026-09-04 — PLAN 7절 "이끼"를 마저 채웠다. 넷 중 하나로 섞여 든다
+       (다른 셋과 같은 결·씨앗 요령, 새 코드 없이 표만 늘렸다) */
+    'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb', NATURE + 'Rock_Moss_1.glb'],
     /* 폐허의 기둥·무너진 벽 — 딱 맞는 "부러진 돌기둥" 낱개는 못 찾아
        `Arch.glb`(무너진 아치)로 대신한다. 사가고가 이미 같은 후보를 적어 뒀다
        (`saga-go/assets/ASSET_LICENSES.md` "사당·폐허의 다른 후보") */
