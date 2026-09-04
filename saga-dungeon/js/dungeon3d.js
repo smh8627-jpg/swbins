@@ -571,7 +571,7 @@
    * 같은 방은 늘 같은 귀퉁이에 같은 것이 선다.
    */
   var CLUTTER_KIND = ['dg:barrel', 'dg:crate', 'dg:crates', 'dg:chair', 'dg:shield', 'dg:spikes',
-    'dg:candle', 'dg:bottle'];
+    'dg:candle', 'dg:bottle', 'dg:bed', 'dg:desk'];
   function buildClutter(run, W, H) {
     var F = global.DG.field3d;
     var AS3 = AS();
@@ -585,7 +585,8 @@
       var mul = kind === 'dg:crates' ? 52 : (kind === 'dg:barrel' ? 42 :
         (kind === 'dg:chair' ? 34 : (kind === 'dg:shield' ? 30 :
         (kind === 'dg:spikes' ? 48 : (kind === 'dg:candle' ? 22 :
-        (kind === 'dg:bottle' ? 20 : 28))))));
+        (kind === 'dg:bottle' ? 20 : (kind === 'dg:bed' ? 34 :
+        (kind === 'dg:desk' ? 26 : 28))))))));
       var cnode = AS3.build(kind, seed + ':' + i, mul, null, null);
       if (!cnode) { continue; }
       cnode.position.set(corners[i][0], 0, corners[i][1]);

@@ -230,10 +230,20 @@
     /* 2026-09-04(이어서) — SAGA WEB.md "F. 소품" 목록의 "초"·"병". 같은
        KayKit 팩에서 받았다 — 키(key)·접시 더미는 세로가 짧고 가로가 길어
        (`normalize()`가 세로 기준으로 키를 맞추면 가로가 배로 부푼다) 이번엔
-       건너뛰었다(침대·접시·열쇠는 세로가 주된 치수가 아니라 이 파이프라인과
-       안 맞는다 — 부록 "안 되면 안 된다고 보고한다") */
+       건너뛰었다(부록 "안 되면 안 된다고 보고한다") */
     'dg:candle': DUN + 'candle_lit.gltf.glb',
-    'dg:bottle': DUN + 'bottle_a_green.gltf.glb'
+    'dg:bottle': DUN + 'bottle_a_green.gltf.glb',
+    /* 2026-09-05 — 바로 위 주석이 "침대도 세로가 짧아 안 맞는다"고 적어
+       뒀었는데, 실제 GLB 치수를 재 보니 틀렸다(키·접시와 달리 침대는
+       세로가 40~55% — 이미 쓰고 있는 `dg:chest`(50%)와 같은 급이다).
+       PolyScan "로그인 필요" 오판과 같은 종류의 실수 — 확인 없이 넘겨짚은
+       것. `bed_decorated`(이불·베개 있는 완성형, KayKit 팩 — 맨 프레임보다
+       한눈에 침대로 읽힌다)로 SAGA WEB.md "F. 소품"의 "침대"를 채운다 */
+    'dg:bed': DUN + 'bed_decorated.gltf.glb',
+    /* 2026-09-05 — 같은 목록의 "책상". `dg:table`(긴 상, 행상 전용)과 갈라
+       정사각 발판의 `table_small`을 쓴다 — 세로:가로 비율이 1:1:1이라
+       `normalize()`와 가장 잘 맞는 모양이다 */
+    'dg:desk': DUN + 'table_small.gltf.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }
