@@ -915,6 +915,18 @@
     var R = FIELD_R(), dens = FIELD_D();
     var stone = themeHex(run);
     var cx, cz, i;
+    /* 땅 밑색 — 원래 0.62 로 무조건 `0x141018`(거의 검정) 쪽에 바짝 붙여
+       **실기기 "들판에 새까만 사각형"** 으로 이어졌다(2026-09-04, 세 번째
+       재조사). 마을(town)의 조명(`lightPlan`의 ambient 0.86·key 1.15)은
+       던전보다 훨씬 밝은데, 바탕색 자체가 이미 짙으면 Lambert 재질은
+       빛을 아무리 받아도 그 짙기를 못 넘는다 — 길(0x4a3f30, 밝은 갈색)
+       조각만 점점이 놓인 옆에서 나머지 땅이 통째로 새까맣게 도드라져
+       보인 것이 이 값이었다(고립 시험 `_inspect_black_tmp.html`로 실측:
+       0.62일 때 화면 RGB 20,12,7 — 사실상 검정, 0.15로는 35,24,13으로
+       뚜렷이 갈색이 남는다). 마을만 옅게 — 던전 안(지하) 특유의 어두운
+       분위기는 그대로 둔다(그쪽은 제보가 없었다, `lightPlan`도 원래 어둡게
+       짠 자리라 손 안 댐). */
+    var groundK = run.town ? 0.15 : 0.62;
 
     /* 바깥 땅 — 조각마다 한 판씩 깔고 **네 귀퉁이의 높이**로 기울인다.
        한 판을 크게 깔면 높낮이가 안 나온다(4절이 바라는 것이 그 높낮이다) */
@@ -925,7 +937,7 @@
         var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
         var hh = F.heightAt(gx + F.CHUNK / 2, gz + F.CHUNK / 2, seed, W, H);
         var tile = box(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
-          F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, 0.62), 'flat', false);
+          F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), 'flat', false);
         tile.receiveShadow = true;
 
         var list = F.chunkAt(cx, cz, seed, ring, dens);
