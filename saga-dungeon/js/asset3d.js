@@ -42,6 +42,7 @@
   var ANIMALS = 'assets/models/animals/';
   var PROPS = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
+  var BLD_REAL = 'assets/models/buildings/realistic/';
   var DUN = 'assets/models/dungeon/';
 
   /* 2026-09-03 — 다른 네 판과 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
@@ -154,8 +155,16 @@
     'stable': BLD + 'Stable.glb',     // 자작재(산길) — 마방
     'mill': BLD + 'Mill.glb',         // 소금벌(염전) — 방앗간(염전 전용 에셋은 못 찾았다)
     /* SAGA WEB.md "E. 건물" 목록의 "탑" — 모루골(중심 마을)의 표지 건물로
-       하나만 세운다. 같은 팩에서 받았다 */
-    'belltower': BLD + 'Bell_Tower.glb',
+       하나만 세운다. 2026-09-04(이어서) — 다른 건물(집·우물·대장간 등)은
+       실사 대체가 없지만(Poly Haven 모델 521개 전수 확인, 완결된 시골
+       건물 자체가 없다), **탑만은 됐다** — Poly Haven `modular_fort_01`
+       (성채 모듈 키트, CC0)에서 원형 탑 조각(`tower_round`) 하나만
+       추려 옮겼다. 이 판엔 Blender·gltf-transform이 없어(다른 실사화는
+       전부 이미 만들어진 파일을 복사했다) **처음으로 직접 변환**했다 —
+       `trimesh`(Python)로 gltf+bin+diffuse 세 장만 받아(법선·거칠기 맵은
+       이 판 재질(Lambert)에 안 쓰여 안 받음, `delam` 과 같은 이유) 768px
+       재압축 후 단일 glb로 구웠다. 출처는 `ASSET_LICENSES.md` 참고 */
+    'belltower': BLD_REAL + 'tower_round.glb',
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
        'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은

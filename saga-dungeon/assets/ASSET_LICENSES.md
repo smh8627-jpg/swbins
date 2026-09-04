@@ -155,13 +155,53 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 | `models/buildings/Inn.glb` | **여관**(`inn`) — 갈대나루(나루터). `saga-go`가 이미 받아 둔 것을 옮겼다 |
 | `models/buildings/Stable.glb` | **마방**(`stable`) — 자작재(산길). 2026-09-04, 같은 `medieval_village_pack`에서 새로 받았다 |
 | `models/buildings/Mill.glb` | **방앗간**(`mill`) — 소금벌(염전). 2026-09-04, 같은 팩. 염전 전용 CC0 에셋은 못 찾아 대신한다 |
-| `models/buildings/Bell_Tower.glb` | **탑**(`belltower`) — SAGA WEB.md "E. 건물" 목록. 모루골에만 하나 세운다 |
+| ~~`models/buildings/Bell_Tower.glb`~~ | **탑**(`belltower`) — 2026-09-04(이어서) `models/buildings/realistic/tower_round.glb`로 교체됨. 아래 새 절 참고. 옛 파일은 지우지 않았다(되돌림 자리) |
 
 **위성 마을 셋이 왜 서로 다른 건물을 받았나.** 처음엔(2026-09-04 앞선 커밋)
 셋 다 집+우물뿐이라 "빈 방"은 면했어도 테마(나루터·산길·염전)가 안 살았다.
 `medieval_village_pack`을 다시 훑어 보니 이미 여관·마방·방앗간이 있었다 —
 갈대나루엔 나그네가 쉬는 여관, 자작재엔 산길 마방, 소금벌엔(염전 전용은
 없어) 방앗간을 대신 앉혔다.
+
+## Poly Haven — 탑 (`modular_fort_01`에서 조각 하나만 추림, 2026-09-04, `models/buildings/realistic/`)
+
+| | |
+|---|---|
+| **만든 이** | Rico Cilliers — Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | CC0 1.0 — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | `api.polyhaven.com` 의 `modular_fort_01`(성채 모듈 키트, 8K, 28,218 폴리곤, 22개 조각) 중 원형 탑 노드(`tower_round`) 하나만 추림 |
+| **파일** | `models/buildings/realistic/tower_round.glb`(516KB) |
+
+**다른 건물(집·우물·대장간·여관·마방·방앗간)은 못 찾았다.** Poly Haven
+모델 카탈로그(521개) 전수 확인 — `buildings`·`structures` 카테고리엔
+현대 공장 파사드·롤러셔터 문·펜스 같은 도시 산업물뿐, 완결된 시골
+건물이 없다(성문·철문 조각 정도). OpenGameArt CC0 집 모델도 몇 찾았지만
+전부 손으로 그린 텍스처라 지금 실사화한 자연물·바닥·벽 옆에서 여전히
+안 어울린다 — 껍데기만 CC0인 저다각형이지 사진측량이 아니다. **탑만은
+됐다** — `modular_fort_01`이 성곽 모듈(벽·탑·성문 22조각)이라 그중
+`tower_round`(원형 성탑) 하나가 "모루골 표지 건물" 자리에 그대로 맞았다.
+
+**이 판엔 Blender·gltf-transform이 없어 처음으로 직접 변환했다**(다른
+실사화는 전부 `saga-forest`가 이미 만들어 둔 파일을 복사만 했다). 순서:
+
+1. `api.polyhaven.com/files/modular_fort_01`로 2k glTF(별도 `.bin`+텍스처
+   9장 — wall·trim·plaster 재질별 diffuse·법선·거칠기)를 확인
+2. **diffuse 세 장만** 받았다(법선·거칠기는 이 판 재질(`MeshLambertMaterial`)에
+   안 쓰인다 — `delam`과 같은 이유, 위 `SAGA-HANDOFF.md` 2026-08-29절 참고).
+   md5를 API 응답과 대조해 확인
+3. `.gltf`의 각 재질에서 `normalTexture`·`metallicRoughnessTexture`를
+   지웠다(Python으로 JSON 직접 편집) — 없는 텍스처를 참조하면 로더가
+   깨진다. diffuse만 남은 자리엔 없는 법선·거칠기 파일 자리에 4×4 자리표
+   이미지를 채워 넣어(어차피 참조 안 됨) 로더가 파일을 못 찾는 일이 없게 함
+4. diffuse 세 장을 768px로 줄이고 jpeg 품질 85로 재압축
+5. `trimesh`(Python, `pip install trimesh`)로 `.gltf`를 읽어 `tower_round`
+   노드 둘(재질 두 개짜리라 지오메트리가 둘로 갈린다)만 새 Scene으로
+   추려 단일 `.glb`로 구웠다 — 나머지 21개 조각(벽·성문 등)은 버렸다
+6. 헤드리스 스크린샷(SwiftShader)으로 단독 렌더 확인 → 실제 마을 장면에
+   놓고 확인 → 헤드리스 진단 241/241(3회 동일) 회귀 없음
+
+성곽 모듈의 나머지 조각(벽·성문 등)도 CC0로 남아 있다 — 마을 담장·성문
+꾸미기 등으로 나중에 더 쓸 수 있다(다음에 필요하면 이어서 추릴 것).
 
 ## KayKit — Dungeon Remastered 소품 (`models/dungeon/`)
 
