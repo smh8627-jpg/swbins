@@ -261,9 +261,18 @@
    *     곱하면 되게. `asset3d.fit` 이 배우에게 하는 것과 같은 규칙이다
    *   3 재질은 GLB 것을 그대로 쓴다. 다만 **그림자를 지게** 켠다
    */
-  function partsOf(gltf) {
+  /** 2026-09-04 — 사가의숲과 같은 고침: `/realistic/` 경로 밑은 Lambert 로 안 벗긴다.
+   *  `lambertOf` 는 빛깔 하나만 남기고 텍스처·거칠기 맵을 통째로 버리는데, 옛
+   *  Quaternius 계열은 애초에 면마다 한 색이라 잃을 게 없었지만(아래 `lambertOf`
+   *  주석) Poly Haven 사진측량 모델은 **그 텍스처가 실사화의 전부**라 벗기면
+   *  나무가 밋밋한 회색 덩어리로 보인다 — "실사화 안 됐다"던 제보가 이거였다.
+   *  IBL(`world3d.js`)이 이미 있어 PBR이 까맣게 뜨는 옛 문제도 없다 */
+  function looksRealistic(url) { return typeof url === 'string' && url.indexOf('/realistic/') >= 0; }
+
+  function partsOf(gltf, url) {
     var t = three();
     var raw = [];
+    var real = looksRealistic(url);
     gltf.scene.updateMatrixWorld(true);
     gltf.scene.traverse(function (o) {
       if (o.isMesh && o.geometry) { raw.push(o); }
@@ -286,7 +295,8 @@
       m4.makeScale(s, s, s);
       g.applyMatrix4(m4);
       g.computeBoundingSphere();
-      out.push({ geometry: g, material: lambertOf(raw[i].material) });
+      var srcMat = Array.isArray(raw[i].material) ? raw[i].material[0] : raw[i].material;
+      out.push({ geometry: g, material: real ? srcMat : lambertOf(srcMat) });
     }
     return out;
   }
@@ -337,7 +347,7 @@
     ld.load(url, function (gltf) {
       pending--;
       try {
-        var ps = partsOf(gltf);
+        var ps = partsOf(gltf, url);
         if (!ps) { c.state = 'fail'; return; }
         c.state = 'ok'; c.parts = ps; arrived++;
         scheduleRefresh();
