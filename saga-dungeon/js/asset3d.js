@@ -201,7 +201,12 @@
     'dg:banner': DUN + 'banner_thin_red.gltf.glb',
     /* 행상 좌판 — MarketStand(=`tent`) 위에 놓일 긴 상. 딱 맞는 "행상 수레"는
        못 찾아 대신한다 */
-    'dg:table': DUN + 'table_long.gltf.glb'
+    'dg:table': DUN + 'table_long.gltf.glb',
+    /* 2026-09-04 — PLAN §G "던전" 목록의 "계단". 마지막 방의 문(`kind==='stair'`,
+       dungeon.js의 makeDoors)은 다음 층으로 내려가는 자리인데, 3D는 여태
+       다른 문과 똑같은 아치(dg:door)로만 그려 2D의 🪜 표시와 결이 안 맞았다.
+       같은 KayKit 팩에서 실물 계단을 받아 이 문 하나만 갈아 끼운다 */
+    'dg:stairs': DUN + 'stairs_wide.gltf.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }

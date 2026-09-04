@@ -881,13 +881,17 @@
       for (var i = 0; i < r.doors.length; i++) {
         var dr = r.doors[i];
         var doorTint = r.cleared ? 0xffd489 : 0x4a4f5a;
+        var isStair = dr.kind === 'stair';
         var doorShape = function () {
           var sg = new T.Group();
           box(sg, 0, 14, 0, 24, 28, 8, doorTint, r.cleared ? 'glow' : 'flat', false);
           return sg;
         };
-        var drnode = AS3d ? AS3d.build('dg:door', 'room:door:' + i, 30, doorTint, doorShape)
-          : doorShape();
+        /* 마지막 방의 문(다음 층으로 내려가는 자리)만 실물 계단으로 갈아
+           끼운다 — 2D 의 🪜 표시와 같은 신호를 3D 도 갖게 하려는 것이다.
+           GLB 를 못 받으면 다른 문과 같은 아치 도형으로 조용히 돌아간다 */
+        var drnode = AS3d ? AS3d.build(isStair ? 'dg:stairs' : 'dg:door',
+          'room:door:' + i, isStair ? 42 : 30, doorTint, doorShape) : doorShape();
         drnode.position.set(W, 0, dr.y);
         drnode.rotation.y = Math.PI / 2;
         wallGroup.add(drnode);
