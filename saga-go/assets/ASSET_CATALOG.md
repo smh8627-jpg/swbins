@@ -22,18 +22,18 @@
 | 3D 모델 (`models/props`) | 8 | 0.85 MB |
 | 3D 모델 (`models/animals`) | 5종(파일 7개, 까치는 `.gltf`+`.bin`+`.webp`) | 2.07 MB |
 | 3D 모델 (`models/people/quaternius_rpg`, 사람 기본) | 6 | 10.8 MB |
-| 3D 모델 (`models/people/regular`, 되돌림 자리) | 33(`.gltf`12·`.bin`12·`.png`9) | **26.7 MB** |
+| 3D 모델 (`models/people/regular`, 되돌림 자리) | 33(`.gltf`12·`.bin`12·`.webp`8·`.png`1) | 7.7 MB |
 | 3D 모델 (`models/anim`, 몸짓 창고) | 1 | 7.27 MB |
 | 땅 텍스처 (`textures/land`, WebP) | 6 | 1.30 MB |
 | 초상 스프라이트 (`sprites2d/portrait`) | 71 | 0.24 MB |
 | 효과음 (`audio/sfx`, mp3) | 5 | 0.05 MB |
 
-**`models/people/regular/`(되돌림 전용, 지금은 표 기본이 아니다) 한 폴더가
-전체 에셋의 절반 가까이(26.7MB / 총 ~53MB)를 차지한다** — 대부분
+**`models/people/regular/`(되돌림 전용, 지금은 표 기본이 아니다)는 2026-09-04
+이전엔 26.7MB — 전체 에셋의 절반 가까이였다.** 대부분
 `T_Peasant_BaseColor.png`(4.8MB)·`T_Ranger_BaseColor.png`(6.3MB) 같은
-**4096×4096 PNG 텍스처** 때문이다(아래 표). 실제로 화면엔 안 나오는 자리라
-당장 문제는 아니지만, `HERO_RECIPES_FALLBACK`을 표 기본으로 되돌리기 전에
-반드시 손볼 자리로 남겨 둔다.
+**4096×4096 PNG 텍스처** 때문이었다. 이 카탈로그를 쓰다가 실측으로 드러난
+값이라, 그 자리에서 여덟 장을 다운스케일 + WebP로 바꿔 **7.7MB로 줄였다**
+(아래 표) — SAGA WEB.md 19절 "4K 텍스처 금지"에도 이제 안 걸린다.
 
 **받아서 실제로 쓰는 것 중 가장 무거운 낱개 파일은
 `models/anim/UAL1_Standard.glb`(7.27MB)** — 몸짓 마흔한 벌을 다 담은
@@ -131,26 +131,27 @@
 | Hair_Long | 194 KB | 2,906 |
 | Hair_Buns | 218 KB | 3,284 |
 
-**텍스처(9장, 여러 모델이 나눠 쓴다) — 이 폴더 무게의 대부분(19.5MB/26.7MB)이 여기 있다:**
+**텍스처(9장, 여러 모델이 나눠 쓴다)**
 
-| 파일 | 용량 | 실측 크기 | 최적화 |
-|---|---:|---|---|
-| `T_Ranger_BaseColor.png` | **6.32 MB** | 4096² 대 | ⚠️ **SAGA WEB.md 19절 "4K 텍스처 금지"에 정면으로 걸린다** — 이 폴더에서 가장 무거운 낱장 |
-| `T_Peasant_BaseColor.png` | **4.82 MB** | 4096² 대 | ⚠️ 위와 동일 |
-| `T_Hair_2_BaseColor.png` | 1.65 MB | 2048² | 머리 하나에 2K는 과함 — 512~1024 권장 |
-| `T_Hair_1_BaseColor.png` | 1.50 MB | 2048² | 위와 동일 |
-| `T_Superhero_Male_Dark.png` | 1.32 MB | 2048² | 몸 살빛 — 1024 정도면 충분 |
-| `T_Superhero_Female_Dark_BaseColor.png` | 1.26 MB | 2048² | 위와 동일 |
-| `T_Regular_Female_Dark_BaseColor.png` | 1.29 MB | 2048² | 옷 밖 손·팔 살빛 |
-| `T_Regular_Male_Dark_BaseColor.png` | 1.26 MB | 2048² | 위와 동일 |
-| `T_Eye_Brown.png` | 35 KB | 작음 | 양호 |
+| 파일 | 이전(PNG) | 지금(WebP q82) | 실측 크기 | 최적화 |
+|---|---:|---:|---|---|
+| `T_Ranger_BaseColor` | 6.32 MB | **141 KB** | 4096²→**2048²** | 2026-09-04: 옷감, 다운스케일+WebP |
+| `T_Peasant_BaseColor` | 4.82 MB | **96 KB** | 4096²→**2048²** | 위와 동일 |
+| `T_Hair_2_BaseColor` | 1.65 MB | 39 KB | 2048²→**1024²** | 머리 텍스처 |
+| `T_Hair_1_BaseColor` | 1.50 MB | 31 KB | 2048²→**1024²** | 위와 동일 |
+| `T_Superhero_Male_Dark` | 1.32 MB | 20 KB | 2048²→**1024²** | 몸 살빛 |
+| `T_Superhero_Female_Dark_BaseColor` | 1.26 MB | 20 KB | 2048²→**1024²** | 위와 동일 |
+| `T_Regular_Female_Dark_BaseColor` | 1.29 MB | 21 KB | 2048²→**1024²** | 옷 밖 손·팔 살빛 |
+| `T_Regular_Male_Dark_BaseColor` | 1.26 MB | 19 KB | 2048²→**1024²** | 위와 동일 |
+| `T_Eye_Brown.png` | 35 KB | (안 바꿈) | 256² | 이미 작아 그대로 뒀다 |
 
-**받을 때 이미 Normal·Roughness·ORM 맵은 뺐다**(`ASSET_LICENSES.md` 160행) —
-그래도 남은 BaseColor PNG 자체가 대부분 4K·2K다. 지금은 화면에 안 나오는
-되돌림 전용 자리라 당장 손대지 않았지만, `js/asset3d.js`의
-`HERO_RECIPES_FALLBACK`을 표 기본으로 되돌리기 전에 **PNG→WebP 전환 +
-2048 이하로 다운스케일**부터 하는 게 순서다 — 이 아홉 장만 바꿔도 이
-폴더가 26.7MB에서 수 MB대로 줄 것이다.
+**받을 때 이미 Normal·Roughness·ORM 맵은 뺐다**(`ASSET_LICENSES.md` 160행).
+남은 BaseColor 여덟 장은 **2026-09-04에 옷감 2048·나머지 1024로
+다운스케일 + WebP(q82) 재인코딩**했다 — 합계 **19.4MB → 0.38MB(98%
+감소)**. 옷감 둘(`Peasant`·`Ranger`)이 **4096×4096 PNG** 였던 것이
+SAGA WEB.md 19절 "4K 텍스처 금지"에 정면으로 걸리던 자리였고, 지금은
+전부 2048 이하다. 이 폴더 전체(`.gltf`+`.bin`+텍스처)는 **26.7MB →
+7.7MB**로 줄었다. 여전히 화면 기본은 아니다(`HERO_RECIPES_FALLBACK`).
 
 ## Quaternius — 몸짓 창고 (`models/anim/UAL1_Standard.glb`)
 

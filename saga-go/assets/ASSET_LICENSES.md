@@ -179,11 +179,20 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Male_Peasant.gltf`·`.bin` · `Female_Peasant.gltf`·`.bin` | 평민 옷(팔·몸통·다리·발) — Modular Character Outfits - Fantasy |
 | `Male_Ranger.gltf`·`.bin` · `Female_Ranger.gltf`·`.bin` | 순찰대 옷 |
 | `Hair_Buzzed`·`Hair_Beard`·`Hair_Long`·`Hair_Buns`·`Hair_SimpleParted`·`Hair_BuzzedFemale` (각 `.gltf`+`.bin`) | 머리 — "Rigged to Head Bone" 판(머리뼈에 물려 애니메이션을 따라간다) |
-| `T_Superhero_Male_Dark.png`·`T_Superhero_Female_Dark_BaseColor.png` | 몸 살빛 |
-| `T_Peasant_BaseColor.png`·`T_Ranger_BaseColor.png` | 옷감 |
-| `T_Regular_Male_Dark_BaseColor.png`·`T_Regular_Female_Dark_BaseColor.png` | 옷 밖으로 나온 손·팔 살빛(옷 쪽 재질이 이걸 쓴다 — 몸 쪽 살빛과 톤만 맞추면 되므로 옷이 몸을 그대로 덮는다) |
-| `T_Hair_1_BaseColor.png`·`T_Hair_2_BaseColor.png` | 머리카락·눈썹(몸 파일의 눈썹도 이 둘을 같이 쓴다) |
-| `T_Eye_Brown.png` | 눈동자 |
+| `T_Superhero_Male_Dark.webp`·`T_Superhero_Female_Dark_BaseColor.webp` | 몸 살빛 |
+| `T_Peasant_BaseColor.webp`·`T_Ranger_BaseColor.webp` | 옷감 |
+| `T_Regular_Male_Dark_BaseColor.webp`·`T_Regular_Female_Dark_BaseColor.webp` | 옷 밖으로 나온 손·팔 살빛(옷 쪽 재질이 이걸 쓴다 — 몸 쪽 살빛과 톤만 맞추면 되므로 옷이 몸을 그대로 덮는다) |
+| `T_Hair_1_BaseColor.webp`·`T_Hair_2_BaseColor.webp` | 머리카락·눈썹(몸 파일의 눈썹도 이 둘을 같이 쓴다) |
+| `T_Eye_Brown.png` | 눈동자(256² — 그대로 뒀다) |
+
+**2026-09-04: 이 여덟 장을 WebP로 다운스케일했다.** `ASSET_CATALOG.md`를
+쓰다가 실측해 보니 옷감 둘(`Peasant`·`Ranger`)이 **4096×4096 PNG**였다 —
+`SAGA WEB.md` 19절이 못박은 "4K 텍스처 금지"에 정면으로 걸린다. 옷감은
+2048로, 나머지(몸 살빛·손팔 살빛·머리)는 2048 원본을 1024로 낮추고
+WebP(q82)로 다시 구웠다 — 8장 합계 **19.4MB → 0.38MB(98% 감소)**.
+지금은 화면에 안 나오는 되돌림 전용 자리지만, 다음에 표 기본으로
+되돌아갈 때 이미 규격 안이 되도록 미리 손봤다. `.gltf` 12개의
+`images[].uri`·`mimeType`만 고쳤다(정점 데이터는 그대로).
 
 `models/anim/UAL1_Standard.glb` — **몸짓 마흔한 벌**(idle·walk·jog·sprint·roll·
 sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본판**을 받았다 —
