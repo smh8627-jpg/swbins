@@ -76,13 +76,23 @@ saga-godot은 그 다섯 판과 완전히 별개인 신규 프로젝트이고, m
 게임 서버   각 폴더 run.bat / start_server.bat
 진단        chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom \
               http://127.0.0.1:<포트>/_test.html   → RESULT n/n
-데모        _demo.html#<장면>  (정지 화면 — 눈으로 볼 유일한 수단)
+데모        _demo.html#<장면>  (정지 화면)
 어드민      _admin.html  (세이브·균형 손잡이·QA 프리셋)
 PC 묶음     saga-pc/build-all.bat
 ```
 
 - 진단의 무작위는 씨앗(mulberry32, 20260824)으로 고정돼 있다. **세 번 돌려 출력이 한 줄도
   다르지 않은지**로 확인한다. 수치가 바뀌었으면 균형이 실제로 바뀐 것이다.
+- **2026-09-04에 뒤집힌 통념 — 헤드리스로 3D를 볼 수 있다.** 여러 세션이 "헤드리스
+  크롬은 실제 3D 장면에서 죽는다"고 적어 왔는데(`--virtual-time-budget`만 쓴 기본
+  플래그 기준), `--use-angle=swiftshader --enable-unsafe-swiftshader
+  --disable-gpu-sandbox`를 더하면 이 환경에서 진짜 WebGL2(소프트웨어 렌더)가 뜬다.
+  `chrome ... --window-size=900,700 --virtual-time-budget=6000
+  --screenshot=<경로>.png _demo.html#<장면>` 으로 실제 3D 스크린샷을 찍어 Read
+  툴로 바로 확인할 수 있다(사가블로에서 바닥·벽 텍스처 확인에 처음 씀). 사용자
+  실기기 확인을 대체하진 않지만(입력 지연·실제 GPU 결과와는 다를 수 있다), 코드
+  고친 직후 스스로 눈으로 보는 데는 이제 쓸 수 있다 — 다음에 "3D라 헤드리스로
+  확인 못 한다"고 적기 전에 먼저 이 플래그로 시도해 볼 것.
 - **시각에 기대는 축**(사가고의 토벌·적도, 사가의숲의 하루)은 진단에서 붙들어 둔다 —
   `weather.force('clear')` · `rogue.force(false)`. 안 그러면 **돌린 시각**에 따라 깨진다.
 - 큰 파일은 bash heredoc 말고 **Write 툴**로 쓴다. python 으로 치환할 때는 **반드시
