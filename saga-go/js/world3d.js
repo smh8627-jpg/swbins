@@ -839,17 +839,36 @@
 
     if (kind === 'town') {
       n = Math.round((1 + u * 7) * dens);
+      /* 마을 배치 — 여태는 칸 안에서 자리·각도 다 완전히 독립된 해시라 "아무렇게나
+         흩어 놓은" 것처럼 보였다(2026-09-04, "지형·배치가 어색하다" 지적).
+         이제 ① 각도는 **가장 가까운 길**(terrainAt 의 tx%7·ty%9 격자길)에 맞춰
+         정렬하고 살짝만 흔들고, ② 자리는 칸을 작은 대지(lot)로 나눠 한 대지에
+         한 채씩 앉힌다(대지 안에서만 살짝 흔든다) — 완전히 격자로 딱딱하지
+         않게, 옛 마을 골목처럼 살짝 어긋나되 "지어진" 티가 나게 한다.
+         집 자체의 위치·판정(houseRects)은 이 함수를 그대로 다시 부르므로
+         따로 손댈 것이 없다 — 순수 함수라 자리가 바뀌면 판정도 저절로 따라온다 */
+      var rxm = ((gx % 7) + 7) % 7, rym = ((gy % 9) + 9) % 9;
+      var roadIsNS = Math.min(rxm, 7 - rxm) <= Math.min(rym, 9 - rym);
+      var baseRot = roadIsNS ? 0 : Math.PI / 2;
+      var lotArea = GRID * 0.82;
+      var cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+      var rows = Math.max(1, Math.ceil(n / Math.max(1, cols)));
+      var lotW = lotArea / cols, lotD = lotArea / rows;
       for (i = 0; i < n; i++) {
-        var s = spot(i);
+        var col = i % cols, row = Math.floor(i / cols);
+        var lotX = (col + 0.5) / cols * lotArea - lotArea / 2;
+        var lotZ = (row + 0.5) / rows * lotArea - lotArea / 2;
+        var jx = (h1(gx * 3 + i * 13, gy * 7 + i * 5) - 0.5) * lotW * 0.5;
+        var jz = (h1(gx * 11 + i * 3, gy * 17 + i * 29) - 0.5) * lotD * 0.5;
         var hh = h1(gx * 13 + i, gy * 19 + i * 3);
         var tall = u > 0.62 && hh > 0.55;
         var w = 5 + hh * (tall ? 5 : 7);
         out.push({
           t: tall ? 'tower' : 'house',
-          x: s.x, z: s.z,
+          x: lotX + jx, z: lotZ + jz,
           w: w, d: w * (0.8 + hh * 0.5),
           h: tall ? (12 + hh * 22) * (0.6 + u * 0.8) : 4 + hh * 4,
-          rot: h1(gx + i * 7, gy - i * 5) * Math.PI,
+          rot: baseRot + (h1(gx + i * 7, gy - i * 5) - 0.5) * 0.5,
           shade: 0.30 + hh * 0.46,
           roof: !tall
         });
@@ -908,10 +927,29 @@
                    h: (1.2 + h1(gx + i, gy) * 1.0) * (wet ? 0.7 : 1) });
       }
     } else if (kind === 'road') {
-      /* 길 — 여태 아무것도 없었다. 길가에 등롱과 나무가 서야 길로 보인다 */
-      out.push({ t: 'lamp', x: -half * 0.8, z: (h1(gx, gy) * 2 - 1) * half, h: 3.4 });
-      if (h1(gx * 3 + 2, gy * 5 + 1) > 0.45) {
-        out.push({ t: 'lamp', x: half * 0.8, z: (h1(gy, gx) * 2 - 1) * half, h: 3.4 });
+      /* 길 — 여태 아무것도 없었다. 길가에 등롱과 나무가 서야 길로 보인다.
+         `terrainAt` 은 tx%7===0(세로길, 남북) 이거나 ty%9===0(가로길, 동서)
+         이면 이 칸을 길로 낸다 — 여태는 **늘 세로길인 것처럼** 등롱을 고정된
+         x 자리에만 세웠다(가로길에서는 등롱이 길과 나란히가 아니라 어긋난
+         자리에 섰다는 뜻). 2026-09-04 "배치가 어색하다" 감사로 발견 — 어느
+         쪽 조건으로 길이 됐는지 갈라 각각 제 방향으로 세운다(교차로는 둘 다) */
+      var roadV = (gx % 7 + 7) % 7 === 0, roadH = (gy % 9 + 9) % 9 === 0;
+      /* 이 칸이 실제로 길 격자(위 조건)에 안 걸려도 'road'로 불릴 수 있다 —
+         이 함수는 좌표만 보고 짓는 순수 함수라, 부르는 쪽이 임의의 좌표에
+         강제로 'road'를 물어도(자가진단이 그렇게 한다) 등롱은 늘 서야 한다.
+         그때는 옛 기본값(세로길 모양)으로 물러난다 */
+      if (!roadV && !roadH) { roadV = true; }
+      if (roadV) {
+        out.push({ t: 'lamp', x: -half * 0.8, z: (h1(gx, gy) * 2 - 1) * half, h: 3.4 });
+        if (h1(gx * 3 + 2, gy * 5 + 1) > 0.45) {
+          out.push({ t: 'lamp', x: half * 0.8, z: (h1(gy, gx) * 2 - 1) * half, h: 3.4 });
+        }
+      }
+      if (roadH) {
+        out.push({ t: 'lamp', x: (h1(gx + 1, gy + 1) * 2 - 1) * half, z: -half * 0.8, h: 3.4 });
+        if (h1(gx * 5 + 1, gy * 3 + 2) > 0.45) {
+          out.push({ t: 'lamp', x: (h1(gy + 2, gx + 2) * 2 - 1) * half, z: half * 0.8, h: 3.4 });
+        }
       }
       if (h1(gx * 21, gy * 11) > 0.62) {
         var rs = spot(60);
