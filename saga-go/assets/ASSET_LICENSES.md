@@ -320,6 +320,42 @@ MIME을 다시 가늠하는 헬퍼(`.webp($|\?)` 정규식)를 이미 갖고 있
 골라 합친다. 손잡이 `portrait3d.cute` 를 1 로 올려야 이 조합이 나온다(기본은
 EverFace).
 
+## OpenGameArt "RPG Sound Pack" — 효과음 (`assets/audio/sfx/`)
+
+**2026-09-04, 오디오 시스템을 처음 들였다.** `SAGA WEB.md` 감사에서 드러난 격차 —
+이 판은 소리가 하나도 없었다. artisticdude 가 만든 유명한 CC0 RPG 효과음 묶음(95개
+.wav)에서 짧은 다섯 조각만 골라 mp3(모노 44.1kHz, 96kbps)로 옮겼다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | artisticdude |
+| **라이선스** | **CC0** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://opengameart.org/content/rpg-sound-pack> — `rpg_sound_pack.zip` |
+
+| 파일 | 원본 | 쓰이는 곳(`js/audio.js`) |
+|---|---|---|
+| `discover.mp3` | `inventory/bubble2.wav` | `codex` 이벤트 — 새 지역·사람·짐승·사건·역사를 처음 봤을 때 |
+| `catch.mp3`(파일명 `encounter_win.mp3`) | `battle/magic1.wav` | `dex:new` — 등용·포획 성공 |
+| `hit.mp3` | `battle/swing.wav` | `duel:fx` — 교전 중 타격 |
+| `reward.mp3` | `inventory/coin.wav` | `feat` — 공적 획득 |
+| `panel_open.mp3` | `world/door.wav` | `duel:open`·`station:request`·`encounter:request`·`fort:request` — 카드/무대가 열릴 때 |
+
+**한 팩에서만 골랐다**(10절 "에셋 스타일 통일"). 원본 팩에는 이 다섯 말고도
+UI 클릭음(`interface/interface1~6.wav`) · 갑옷·금속·병 소리(`inventory/`) ·
+NPC·몬스터 울음(`NPC/`) 등이 더 있다 — 다음 단계(일반 버튼 탭, 사건 보상 세분화,
+전투 시작 신호음 등)에서 더 고를 수 있다. **아직 안 걸었으면 여기 안 넣는다**는
+이 문서 맨 위 규칙대로, 이번에 실제로 안 쓰는 조각(`interface2`·`interface4` 등으로
+떠 봤던 UI 탭음)은 커밋하지 않았다.
+
+`js/audio.js` 는 새 판정을 만들지 않았다 — 이미 도는 이벤트버스(`core.on`/`emit`)를
+엿듣기만 한다. 손잡이 `audio.on`(0이면 무음) · `audio.vol`(0~1, 기본 0.6). 클립은
+`preload="none"`으로 처음 낼 때만 받고(7절), 셋씩 풀로 돌려 써서 짧게 겹쳐도
+안 끊긴다.
+
+---
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로
