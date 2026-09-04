@@ -435,6 +435,122 @@ SAGA WEB.md "F. 소품" 목록의 "초"·"병". 계단과 같은 KayKit 팩에�
 
 ---
 
+## 도감(펫) 초상 실사화 — 동물 14종 (2026-09-04, `models/animals/`)
+
+`portrait3d.js`는 인물(부대원) 도감 카드는 이미 실제 3D 모델로 굽고 있었는데,
+**펫(짐승)은 처음부터 빠져 있었다**(`kind !== 'hero'`면 곧바로 되돌아가게
+짜여 있었다). 사용자가 "도감 일러스트 실사화 확인해줘"로 감사를 시작 —
+펫 41종을 나눠 보니 신수(神獸) 11종(삼족오·해태·청룡·백호…)과 포켓몬
+오마주 16종(번개볼·불꼬리…)은 창작물이라 CC0 모델이 있을 리 없어 손 안
+대고, **실제 동물 14종만** 채웠다(사용자가 이 범위로 골랐다).
+
+### 새로 받은 것 — Poly Pizza (poly.pizza)
+
+이 판 첫 세션들이 "GitHub만 열린다"고 적어 둔 망 제약은 **이제 유효하지
+않다** — `quaternius.com`·`poly.pizza`·`api.polyhaven.com`·`opengameart.org`
+모두 직접 열린다(2026-09-04 확인). Poly Pizza는 Poly by Google(구글이
+접었던 Poly 아카이브)과 Quaternius 등 여러 창작자의 CC0/CC-BY 모델을
+`https://static.poly.pizza/<uuid>.glb`로 로그인 없이 바로 받을 수 있는
+곳이라 이번에 처음 썼다.
+
+| 파일 | 원본 | 만든 이 | 라이선스 |
+|---|---|---|---|
+| `ShibaInu.glb` | poly.pizza `/m/y4wdQpg767` | Quaternius | **CC0** |
+| `Husky.glb` | poly.pizza `/m/wcWiuEqwzq` | Quaternius | **CC0** |
+| `Cat.glb` | poly.pizza `/m/2f54vbV0In` | Quaternius | **CC0** |
+| `Tiger.glb` | poly.pizza `/m/5A3w06FXUup` | **Poly by Google** | **CC-BY 3.0** |
+| `Bear.glb`("Black bear") | poly.pizza `/m/56ym_pyVnel` | **Poly by Google** | **CC-BY 3.0** |
+| `Panda.glb` | poly.pizza `/m/2T6A0o4Kq2h` | **Poly by Google** | **CC-BY 3.0** |
+| `Monkey.glb` | poly.pizza `/m/0yRz2AkLuuo` | **Poly by Google** | **CC-BY 3.0** |
+| `Boar.glb` | poly.pizza `/m/57fSWum6F1P` | **Poly by Google** | **CC-BY 3.0** |
+| `Owl.glb` | poly.pizza `/m/eoAo21aoZHJ` | **Poly by Google** | **CC-BY 3.0** |
+| `Crane.glb`("Sandhill crane") | poly.pizza `/m/dazPSSmELaQ` | **Poly by Google** | **CC-BY 3.0** |
+
+> **Tiger · Black bear · Panda · Monkey · Boar · Owl · Sandhill crane** —
+> © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> `poly.pizza`를 거쳐 받았다. 크기·자리만 맞추었고 형상은 그대로다.
+
+**저작자 표시가 필요한 CC-BY 일곱 개다 — `saga-go`의 까치(Crow)와 같은
+자리(위 "이 저장소에서 CC-BY는 이것 하나뿐이다" 문구는 이제 이 판에서는
+유효하지 않다, 일곱이 더 늘었다). 지우거나 옮길 때 위 문구를 같이 옮길 것.**
+
+**용량 손질** — `poly.pizza`에서 받은 그대로 두면 `Monkey.glb`가 5.6MB
+(2048×2048 PNG 텍스처 하나가 대부분)였다. `trimesh`(Python)로 각 재질의
+`baseColorTexture`를 512px 넘는 변은 줄이고 재압축해 다시 구웠다 —
+Monkey 5.6MB→382KB, Owl 2.7MB→399KB, Crane 1.07MB→239KB, Bear 720KB→160KB.
+지오메트리는 손 안 댔다(치수·형상 그대로).
+
+### 이미 있던 것 — 다른 판에서 그대로 옮김
+
+| 파일 | 원본 자리 | 만든 이 | 라이선스 |
+|---|---|---|---|
+| `Deer.glb` | `saga-go/assets/models/animals/Deer.glb` | Quaternius | CC0 |
+| `Koi.glb` | `saga-go/assets/models/animals/Koi.glb` | `cute_fish_pack`(saga-go가 이미 씀) | saga-go 문서에 별도 라이선스 절이 없다 — 재확인이 필요하면 `saga-go/HANDOFF.md` 참고. 이미 공개 저장소에 떠 있는 파일을 그대로 옮긴 것이다 |
+| `Mesh_Crow.gltf`+`.bin`, `Tex_Crow.webp` | `saga-go/assets/models/animals/` | **Poly by Google** | **CC-BY 3.0** — `saga-go/assets/ASSET_LICENSES.md` "Poly by Google — 까치" 절의 그 문구를 그대로 적용한다 |
+| `Frog.glb` | GitHub `trebeljahr/quaternius-showcase` `public/glb/easy_enemies_pack/Frog.glb`(이 판의 Wolf·Cow·Deer와 같은 미러) | Quaternius | CC0 |
+
+### 펫 → 모델 대응표 (`js/asset3d.js`의 `pet:*`, `js/portrait3d.js`의 `PET_ASSET`)
+
+| 펫 id | 이름 | 모델 |
+|---|---|---|
+| `pt_jindo` | 진돗개 | ShibaInu |
+| `pt_sapsal` | 삽살개 | Husky(북슬북슬한 털이 가장 가까웠다) |
+| `pt_tiger` | 백두산호랑이 | Tiger |
+| `pt_bear` | 반달가슴곰 | Bear |
+| `pt_magpie` | 까치 | Mesh_Crow(까마귀 — 딱 맞는 까치 CC0가 없어 같은 까마귀과로 대신한다, `saga-go`가 이미 같은 선택을 했다) |
+| `pt_crane` | 학 | Crane |
+| `pt_toad` | 두꺼비 | Frog |
+| `pt_carp` | 잉어 | Koi |
+| `pt_panda` | 판다 | Panda |
+| `pt_monkey` | 원숭이 | Monkey |
+| `pt_deer` | 사슴 | Deer |
+| `pt_boar` | 멧돼지 | Boar |
+| `pt_owl` | 올빼미 | Owl |
+| `pt_cat` | 고양이 | Cat |
+
+### 진짜 버그 하나 잡음 — 초상 카메라가 모델 몸통 한복판에 있었다
+
+펫을 얹으려고 `portrait3d.js`의 `camPlan()`(초상 카메라 자리를 정하는
+순수 함수)을 보니 주석이 "키 1로 눕힌 모델 기준"이라 적혀 있었는데,
+실제로 `bake()`를 부르는 `pump()`는 인물이든 펫이든 **항상 `mul=42`**로
+모델을 세운다 — 키가 1이 아니라 42다. 격리 렌더로 직접 확인해 보니
+모델 바운딩박스가 `y: 0~42`인데 카메라는 `z=3.7`에 서 있었다 — **카메라가
+동물 몸통 한복판(또는 사람 다리 사이)에 파묻힌 채 텅 빈 배경만 찍고
+있었다.** 인물 초상도 같은 함수를 쓰므로 이 버그를 처음부터 물려받고
+있었다(이번에 펫을 얹으며 픽셀 단위로 직접 확인해 보기 전까지 아무도
+몰랐던 자리로 보인다).
+
+**고침**(`js/portrait3d.js`) — `camPlan()`의 `span`·`look`에 `UNIT`(=42,
+`pump()`가 주는 그 값과 같다) 상수를 곱해 실제 키 기준으로 맞췄다. 카메라
+원거리 클리핑(`far`)도 예전 값(40)이 새 카메라 거리(최대 약 160)보다
+작아 물체가 아예 안 잘려 나가던 것을 400으로 올렸다. 격리 렌더로 고치기
+전(빈 배경만)·고친 뒤(고양이·호랑이 등 또렷하게 보임)를 직접 대조해
+확인했다 — `_inspect_petportrait_tmp.html`·`_inspect_heroportrait_tmp.html`
+(둘 다 커밋 안 함).
+
+**펫은 카메라 결도 다르게 얹었다** — 사람은 두 발로 서 있어 "가슴 위"
+구도가 맞지만, 짐승은 네 발이라 몸통이 키의 1.5~2배까지 옆으로 길다
+(`normalize()`가 키 기준으로만 배율을 매기기 때문). 몸 전체가 잘리지
+않도록 펫일 때만 더 물러나고(`span` 키움) 낮은 곳을 보고(`look` 낮춤)
+옆모습에 가깝게(`yaw` 키움) 잡는다.
+
+**격리 렌더로 14종 다 확인** — 진돗개·삽살개·까치·두꺼비·판다·사슴·
+멧돼지·고양이·호랑이·잉어는 또렷하게 보였다(순서대로, 한 번에 하나씩
+구운 것과 여럿을 한꺼번에 부른 것 둘 다 시도). 곰·원숭이·올빼미·학은
+**여럿을 한꺼번에 굽게 하면** 이 환경(헤드리스 SwiftShader)이 느려
+`portrait3d.js`의 재시도 상한(24회×220ms≈5.3초, 실패를 한 번만 적어 두고
+다시 안 시도하는 안전장치, 2026-09-02에 이미 있던 규칙)에 걸려 조용히
+포기했지만, **하나씩 격리해 굽게 하면 넷 다 정상적으로 보였다** — 진짜
+결함이 아니라 이 헤드리스 환경이 여러 WebGL 컨텍스트를 동시에 못
+버티는 익히 알려진 사정이다(실제 사용자 브라우저는 도감을 스크롤하며
+하나씩 굽게 되어 있어 이 경합이 거의 안 생긴다).
+
+자가진단 **241/241** 3회 동일, 회귀 없음(펫 초상은 `_test.html`이 값으로
+보지 않는 순수 화면 층이라 카운트 자체는 안 바뀐다). `sw.js` VERSION을
+올렸다(수치는 `README.md` 참고).
+
+---
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

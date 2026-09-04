@@ -43,17 +43,38 @@
   }
 
   /**
-   * 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다.
-   * 도감 카드는 세로가 길므로(150×172) **가슴 위**를 담는다.
+   * 카메라를 어디에 두나 — **`bake()`가 세우는 실제 키**(`pump()`가 늘 42로
+   * 부른다, `UNIT`) 기준의 순수 계산이다. 도감 카드는 세로가 길므로
+   * (150×172) **가슴 위**를 담는다.
+   *
+   * **2026-09-04, 펫 초상을 얹다가 진짜 버그를 하나 잡았다** — 이 함수의
+   * `span`·`look`은 원래 "키 1로 눕힌 모델" 기준으로 적힌 값(0.62·0.78)
+   * 이었는데, 실제로 `bake()`가 세우는 모델은 키 1이 아니라 **`UNIT`(=42,
+   * `pump()`가 `A3.buildHero`/`A3.build`에 늘 이 값을 준다)**이다. 격리
+   * 렌더로 직접 재 보니 모델 바운딩박스가 y: 0~42인데 카메라는 겨우
+   * z=3.7에 서 있었다 — **카메라가 모델 몸통 한복판에 파묻힌 것**이다.
+   * 인물 초상도 같은 함수를 쓰므로 이 버그를 그대로 물려받고 있었다
+   * (사람 모양은 원래도 화면에 안 잡혔을 것 — 지금까지 아무도 픽셀
+   * 단위로 확인한 적이 없었던 자리로 보인다). `span`·`look`에 `UNIT`을
+   * 곱해 실제 키 기준으로 맞췄다.
+   *
+   * **펫은 결이 다르다** — 사람(hero)은 두 발로 서 있어 "가슴 위"가
+   * 자연스럽지만, 짐승은 대개 네 발 달린 몸이 옆으로 길다(늘어난 배율만큼
+   * 몸통이 키의 1.5~2배까지 길어진다 — `normalize()`가 키 기준으로 배율을
+   * 매기기 때문). 몸통 전체가 잘려 나가지 않도록 **더 물러나서(span 키움)
+   * 낮은 곳을 보고(look 낮춤) 옆모습에 가깝게(yaw 키움)** 잡는다.
    */
-  function camPlan(w, h) {
+  var UNIT = 42;               // pump() 가 buildHero·build 에 주는 키(mul) 값과 같다
+  function camPlan(w, h, kind) {
+    var isPet = kind === 'pet';
     var aspect = w / Math.max(1, h);
-    var span = 0.62;
+    var span = (isPet ? 1.5 : 0.62) * UNIT;
     var fov = 26;
     var dist = (span / 2) / Math.tan(fov * Math.PI / 360);
     if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
-    var look = 0.78;
-    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: 0.42, pitch: 0.06 };
+    var look = (isPet ? 0.28 : 0.78) * UNIT;
+    var yaw = isPet ? 0.95 : 0.42;
+    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: yaw, pitch: 0.06 };
   }
 
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
@@ -79,7 +100,11 @@
       renderer.toneMappingExposure = 1.3;
       if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
       scene = new t.Scene();
-      camera = new t.PerspectiveCamera(26, 1, 0.01, 40);
+      /* far 는 `camPlan()`이 낼 수 있는 가장 먼 거리(펫의 넓은 span 기준
+         약 160)보다 넉넉히 커야 한다 — 예전 값(40)은 "키 1" 시절 그대로
+         남아 있던 것으로, `UNIT` 보정 전에는 카메라가 늘 far 안쪽(모델
+         몸통 한복판)에 있어 안 드러났을 뿐이다 */
+      camera = new t.PerspectiveCamera(26, 1, 0.01, 400);
       /* delam() 이 Quaternius PBR 을 Lambert 로 물들여 환경맵 반사가 안 먹는다
          — 대신 **얼굴이 어느 쪽을 보든 카메라 쪽에서 늘 빛을 받게** key·fill·
          바운스를 전부 카메라와 같은 +Z 쪽에 둔다(고전 인물사진 조명). 예전엔
@@ -160,7 +185,7 @@
     /* 모델이 아직 도형이면 굽지 않는다 — 도형을 구우면 여태 그림과 다를 게 없다 */
     if (!node || !node.userData || node.userData.assetState !== 'glb') { return null; }
 
-    var plan = camPlan(w, h);
+    var plan = camPlan(w, h, kind);
     var dpr = Math.min(global.devicePixelRatio || 1, 2);
     var pw = Math.max(16, Math.round(w * dpr)), ph = Math.max(16, Math.round(h * dpr));
 
@@ -213,6 +238,16 @@
    * 내내(부대·전투 표시 등) 5초 굽기를 영원히 되풀이한다(같은 신고의 진짜
    * 원인이었다).
    */
+  /** 펫 id → `asset3d.js` 표의 키. 2026-09-04, 도감 초상 실사화 —
+   *  실제 동물 14종만 채운다(신수·포켓몬 오마주는 CC0 모델이 없어 뺀다) */
+  var PET_ASSET = {
+    pt_jindo: 'pet:jindo', pt_sapsal: 'pet:sapsal', pt_tiger: 'pet:tiger',
+    pt_bear: 'pet:bear', pt_magpie: 'pet:magpie', pt_crane: 'pet:crane',
+    pt_toad: 'pet:toad', pt_carp: 'pet:carp', pt_panda: 'pet:panda',
+    pt_monkey: 'pet:monkey', pt_deer: 'pet:deer', pt_boar: 'pet:boar',
+    pt_owl: 'pet:owl', pt_cat: 'pet:cat'
+  };
+
   var queue = [];
   var busy = false;
 
@@ -224,11 +259,19 @@
     busy = true;
 
     var A3 = global.DG.asset3d;
-    var fac = global.DG.data.faction(job.ref.faction);
     var node = null;
     try {
-      node = A3.buildHero('hero:' + (job.ref.id || job.ref.name), 42, fac.color,
-        function () { return three() ? new (three()).Group() : null; });
+      if (job.kind === 'pet') {
+        var petKey = PET_ASSET[job.ref.id];
+        /* 짐승 제 털빛이 맞다 — 세력색처럼 물들이지 않는다(dungeon3d.js 의
+           들판 짐승 렌더와 같은 규칙) */
+        node = petKey ? A3.build(petKey, job.ref.id, 42, null,
+          function () { return three() ? new (three()).Group() : null; }) : null;
+      } else {
+        var fac = global.DG.data.faction(job.ref.faction);
+        node = A3.buildHero('hero:' + (job.ref.id || job.ref.name), 42, fac.color,
+          function () { return three() ? new (three()).Group() : null; });
+      }
     } catch (e) { node = null; }
     if (!node) {
       cache[job.key] = false; gaveUp++; delete pending[job.key]; busy = false; pump();
@@ -260,14 +303,17 @@
     tick();
   }
 
-  /** 줄에 올린다. `asset3d.buildHero` 가 준 껍데기는 GLB 가 오는 순간 안이
-   *  갈리는데, 그 순간을 알려 주지 않으므로 잠깐씩 다시 본다(최대 여남은 번). */
+  /** 줄에 올린다. `asset3d.buildHero`(인물)·`asset3d.build`(펫)가 준 껍데기는
+   *  GLB 가 오는 순간 안이 갈리는데, 그 순간을 알려 주지 않으므로 잠깐씩
+   *  다시 본다(최대 여남은 번). 2026-09-04 — 펫(`kind==='pet'`)도 받는다,
+   *  단 CC0 모델이 있는 실제 동물 14종(`PET_ASSET`)뿐이다 — 신수·포켓몬
+   *  오마주는 표에 없어 `pump()`가 곧바로 포기하고 도형 그림으로 남는다 */
   function warm(kind, ref, w, h) {
-    if (!ready() || !ref || kind !== 'hero') { return false; }
+    if (!ready() || !ref || (kind !== 'hero' && kind !== 'pet')) { return false; }
     var key = keyOf(kind, ref, w, h);
     if (has(key) || pending[key]) { return false; }
     var A3 = global.DG.asset3d;
-    if (!A3 || !A3.buildHero) { return false; }
+    if (!A3 || (kind === 'hero' && !A3.buildHero) || (kind === 'pet' && !A3.build)) { return false; }
     pending[key] = true;
     queue.push({ kind: kind, ref: ref, w: w, h: h, key: key });
     pump();

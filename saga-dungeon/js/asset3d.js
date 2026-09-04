@@ -96,6 +96,26 @@
     /* 몬스터 다양화 — 코끼리병처럼 몸집 큰 짐승 형 적은 소 GLB 로 대신한다
        (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
     'beast_big': ANIMALS + 'Cow.glb',
+    /* 2026-09-04 — 도감(펫) 초상 실사화. "코드로 그리지 말고 에셋으로"가
+       인물 초상은 이미 되는데(`portrait3d.js`) 펫(짐승)은 여태 빠져 있었다.
+       펫 41종 중 신수(神獸) 11종·포켓몬 오마주 16종은 CC0로 존재할 리 없는
+       창작물이라 손 안 대고, **실제 동물 14종만** 이번에 채운다. `pet:` 로
+       묶어 들판 소품(`beast`=늑대, `beast_big`=소)과는 다른 자리임을 표시한다.
+       출처는 `assets/ASSET_LICENSES.md` "도감(펫) 초상" 절 참고 */
+    'pet:jindo': ANIMALS + 'ShibaInu.glb',
+    'pet:sapsal': ANIMALS + 'Husky.glb',
+    'pet:tiger': ANIMALS + 'Tiger.glb',
+    'pet:bear': ANIMALS + 'Bear.glb',
+    'pet:magpie': ANIMALS + 'Mesh_Crow.gltf',
+    'pet:crane': ANIMALS + 'Crane.glb',
+    'pet:toad': ANIMALS + 'Frog.glb',
+    'pet:carp': ANIMALS + 'Koi.glb',
+    'pet:panda': ANIMALS + 'Panda.glb',
+    'pet:monkey': ANIMALS + 'Monkey.glb',
+    'pet:deer': ANIMALS + 'Deer.glb',
+    'pet:boar': ANIMALS + 'Boar.glb',
+    'pet:owl': ANIMALS + 'Owl.glb',
+    'pet:cat': ANIMALS + 'Cat.glb',
     /* 2026-09-04(이어서) — 사용자가 "사가고처럼 실사화"를 요청 → 사람은
        막다른 길(Mixamo 재배포 금지, 위 delam 주석 참고)이라 자연물만
        Poly Haven CC0 사진측량 스캔으로 갈아 끼웠다(`island_tree_02`,
