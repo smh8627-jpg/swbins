@@ -303,6 +303,30 @@ Remastered 저장소(이미 CC0 확인됨, `assets/models/dungeon/LICENSE.txt`)�
 (이 세션에서 새로 늘어난 자연물 클러터가 마을 필드에도 적용되는 게
 주된 원인 후보다).
 
+## 남은 건물 여섯(집·우물·대장간·여관·마방·방앗간) 재탐색 결과 — 2026-09-04(이어서)
+
+탑을 실사화한 뒤 사용자가 "남은 건물 6종 계속 찾기"를 골라, Poly Haven·
+OpenGameArt·Sketchfab 말고 **새 출처 넷**(Poly Haven 키워드 검색·ambientCG·
+itch.io·PolyScan·BlendSwap)을 더 훑었지만 **이번에도 못 찾았다** — 자세한
+근거는 `assets/ASSET_LICENSES.md`의 "남은 건물 여섯 재탐색" 절. 요약:
+
+- Poly Haven·ambientCG는 이 여섯 이름으로 **검색 API 전수 조회를 해도 0건**
+  (카탈로그에 이 종류의 시골 건물이 원천적으로 없다).
+- itch.io의 CC0 후보(KayKit·Quaternius 팩)는 여전히 저다각형 스타일이라
+  실사화한 나무·바위·바닥·벽·탑 옆에서 안 어울린다.
+- 새로 찾은 **PolyScan**(`polyscann.com`)은 집·오두막 셋을 갖고 있지만
+  전부 Patreon 로그인 뒤에 있는 "Early Access" 상태라 지금은 못 받는다
+  (Sketchfab과 같은 이유로 보류. 나중에 공개로 풀리면 다시 볼 가치 있음).
+- BlendSwap 후보는 다운로드에 로그인이 필요한 데다, **이 작업 환경에
+  Blender가 없어** 프로시저럴 재질을 구울 방법이 없다 — 원천 봉쇄.
+
+**코드는 한 줄도 안 건드렸다** — 바꿔 끼울 자산이 없었다. 여섯 다 여전히
+`medieval_village_pack`(저다각형) 그대로다. `js/asset3d.js`의 `DEFAULTS`와
+`js/dungeon3d.js`의 렌더 분기는 이미 `BLD_REAL` 자리로 갈아 끼울 준비가
+돼 있으니, 다음에 후보가 생기면(특히 PolyScan이 공개로 풀리면) 탑과 같은
+방식으로 한 줄만 바꾸면 된다. 자가진단·헤드리스 확인은 필요 없었다(변경이
+없어 회귀 대상 자체가 없다).
+
 ## 네 게임 중 하나
 
 사가 시리즈는 2026-08-24 부터 **완전히 별개인 다섯 프로젝트**다.

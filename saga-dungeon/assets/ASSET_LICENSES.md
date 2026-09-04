@@ -203,6 +203,61 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 성곽 모듈의 나머지 조각(벽·성문 등)도 CC0로 남아 있다 — 마을 담장·성문
 꾸미기 등으로 나중에 더 쓸 수 있다(다음에 필요하면 이어서 추릴 것).
 
+### 남은 건물 여섯(집·우물·대장간·여관·마방·방앗간) 재탐색 — 2026-09-04(이어서), 결론: 여전히 없음
+
+탑에 이어 나머지 여섯도 실사화하려고 **위 셋(Poly Haven 카탈로그·OpenGameArt·
+Sketchfab) 말고 다른 출처**를 새로 훑었다. 코드는 한 줄도 안 건드렸다 —
+바꿔 끼울 게 없었기 때문이다.
+
+- **Poly Haven — 카탈로그 훑기 대신 검색 API로 재검증.** `api.polyhaven.com/assets?t=models`
+  전량(모델 하나하나의 이름·카테고리·태그)을 `well`·`blacksmith`·`smith`·
+  `windmill`·`mill`·`inn`·`tavern`·`barn`·`stable`·`cottage`·`farmhouse`·
+  `hut`·`village`·`house`·`cabin`·`shed` 로 훑어도 **0건**(`the_shed`라는
+  이름의 소품 컬렉션이 하나 걸렸지만 공구 상자류였지 건물이 아니었다).
+  앞선 "카탈로그 521개 훑음"이 카테고리 브라우징이었다면 이번엔 전수
+  키워드 검색이라 훑는 방법이 달랐는데도 결론은 같았다 — **Poly Haven엔
+  이 여섯이 원천적으로 없다.**
+- **ambientCG — 이번에 처음 확인.** 텍스처·HDRI 위주 사이트인 줄 알았는데
+  "3D Models" 카테고리가 있어 API(`api/v2/full_json`, `type=3DModel`)로
+  같은 키워드 조합을 검색 — **0건**. 전체 3D 모델 수 자체가 적고
+  (음식·소품류가 대부분) 건물이 아예 없다.
+  ambientCG의 텍스처(바닥·벽)는 이미 다른 절에서 쓰고 있으니 헷갈리지 말 것.
+- **itch.io — CC0 태그로 찾은 건 다 이미 걸러진 패턴 그대로였다.**
+  `KayKit - Medieval Hexagon Pack`(마방·풍차·대장간·여관 다 있다!)과
+  `Quaternius Medieval Village MegaKit` 둘 다 CC0에 건물 종류도 맞지만,
+  **둘 다 저다각형 스타일(그라디언트 아틀라스 텍스처, 사진측량 아님)** —
+  지금 실사화한 나무·바위·바닥·벽·탑 옆에서 다시 안 어울리는 그 문제로
+  돌아간다(자연물 스타일 문제와 완전히 같은 이유). `saga-dungeon`이 지금
+  집·우물·대장간에 쓰고 있는 `medieval_village_pack`도 사실 이 계열이다.
+- **PolyScan(`polyscann.com`) — 이번에 처음 찾은 새 출처, CC0지만 로그인
+  장벽에 막혔다.** "8K PBR 텍스처·CC0·로그인 불필요"를 내세우는 사이트라
+  기대했지만, 실제 3D 모델 32개 전체가 **"Early Access" 상태로 Patreon
+  로그인 뒤에 있다**(집 셋 — `medieval-stone-house`·`medieval-wooden-house`·
+  `medieval-stone-and-wood-cottage` — 을 찾았지만 셋 다 이 상태다. 대장간은
+  건물이 아니라 모루 소품(`medieval-blacksmith-anvil`) 하나뿐이고 우물·
+  마방·방앗간·여관은 카탈로그에 아예 없다). 페이지에 "0일 뒤 공개"라는
+  카운트다운이 있었지만 실제 다운로드 버튼은 여전히 Patreon 로그인을
+  요구했다(정적 HTML에 직접 다운로드 링크도 없음 — JS+인증으로만 열린다).
+  Sketchfab을 보류시킨 것과 같은 원칙("로그인 없이 받는다")으로 지금은
+  보류. **나중에 이 사이트의 Early Access 딱지가 실제로 풀리면 다시 볼
+  가치가 있다** — 집·오두막 셋은 스타일만 맞으면 후보가 된다.
+- **BlendSwap — 새로 걸린 두 가지 장벽으로 기각.** 검색하면 대장간·건물
+  모델이 여럿 나오지만(`Medieval House 005/007 - Blacksmith` 등),
+  ① **다운로드에 로그인이 필요하다**(계정 없이 정적 페이지만 열면 로그인
+  버튼만 보인다), ② 더 근본적으로 **이 자리(saga-dungeon 작업 환경)엔
+  Blender가 설치돼 있지 않다** — 탑을 옮길 때 처음 겪은 "Blender 없음"
+  제약이 여기서 결정타가 됐다. BlendSwap 모델은 대개 `.blend` 안에
+  프로시저럴(노드 기반) 재질이라 **구운 텍스처 파일이 따로 없고**, glTF로
+  내보내려면 Blender로 한 번 구워야 한다 — Python `trimesh`만으로는
+  프로시저럴 셰이더를 읽을 수 없다. Blender가 없는 한 이 출처는 원천 봉쇄다.
+
+**결론 — 이번 세션도 여섯 다 못 찾았다, 억지로 안 바꿨다.** `house`·`well`·
+`blacksmith`·`inn`·`stable`·`mill` 여섯은 여전히 `medieval_village_pack`
+(저다각형)을 그대로 쓴다 — 부록 "코드로 그리지 말고 에셋으로"의 원칙대로
+"안 되면 안 된다"고 적어 둔다. `js/asset3d.js`의 `DEFAULTS`·`js/dungeon3d.js`의
+렌더 분기는 손 안 댔다(둘 다 이미 `BLD_REAL` 자리로 갈아 끼울 준비가 돼
+있으니, 다음에 후보가 생기면 탑과 같은 방식으로 한 줄만 바꾸면 된다).
+
 ## KayKit — Dungeon Remastered 소품 (`models/dungeon/`)
 
 **2026-09-01, 방 안 소품 실험적으로 갈아 낌.** 여태 상자를 쌓아 흉내 내던
