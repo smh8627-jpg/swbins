@@ -1449,12 +1449,20 @@
     amb.color.setHex(L.ambientHex);
     key.intensity = L.keyIntensity;
     key.color.setHex(L.keyHex);
-    key.position.set(W * 0.3, 260, H * 0.1);
-    key.target.position.set(W / 2, 0, H / 2);
+    var p0 = run.player;
+    /* 그림자 카메라(±520, 위 init 참고)는 방 크기에 맞춘 상자라 방 밖
+       들판까지는 안 덮는다 — 그 상자 밖에 있는 조각은 그림자맵 텍스처를
+       가장자리로 clamp해 읽어 "그림자 진 것"으로 잘못 판정된다(three.js의
+       방향광 그림자 흔한 함정). 그 결과가 필드에서 본 "각진 새까만 사각형"
+       버그였다(2026-09-04, 사용자 제보로 발견) — 방 중심에 고정해 두던
+       빛의 위치·과녁을 **플레이어를 따라가게** 바꿔 상자 자체를 늘 플레이어
+       둘레에 두면, 들판 어디를 걷든 그 자리는 늘 상자 안이라 이 문제가
+       안 생긴다. 빛과 과녁 사이의 상대 위치(각도)는 그대로 유지한다. */
+    key.target.position.set(p0.x, 0, p0.y);
+    key.position.set(p0.x + (W * 0.3 - W / 2), 260, p0.y + (H * 0.1 - H / 2));
     key.target.updateMatrixWorld();
     /* 맞으면 · 위태로우면 바탕과 안개가 붉어진다 (3단계) */
     var FX = global.DG.fx3d;
-    var p0 = run.player;
     var lowHp = run.hpMax ? core.clamp((0.34 - run.hp / run.hpMax) / 0.34, 0, 1) : 0;
     var bgHex = FX ? FX.hurtTint(L.bgHex, p0.hurt, lowHp) : L.bgHex;
     if (FX) { amb.color.setHex(FX.hurtTint(L.ambientHex, p0.hurt, lowHp * 0.6)); }
