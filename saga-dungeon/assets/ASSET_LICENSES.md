@@ -12,6 +12,23 @@
 
 ---
 
+## Poly Haven — 바닥·벽 돌 텍스처 (2026-09-04, `textures/dungeon/`)
+
+| | |
+|---|---|
+| **만든 이** | Poly Haven (<https://polyhaven.com>) — `monastery_stone_floor`·`castle_wall_slates` |
+| **라이선스** | CC0 1.0 — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | `api.polyhaven.com/files/<slug>`로 1k jpg 원본을 받아(md5를 API 응답과 대조해 확인) 768px로 줄이고 WebP(품질 85)로 재인코딩 — `monastery_stone_floor_diff_1k.jpg`(766KB) → `floor_stone.webp`(92KB), `castle_wall_slates_diff_1k.jpg`(611KB) → `wall_stone.webp`(174KB) |
+| **파일** | `textures/dungeon/floor_stone.webp`(방 바닥) · `textures/dungeon/wall_stone.webp`(방 경계 벽 넷) |
+
+사용자가 "바닥·벽 텍스처부터 받아와서 적용해 달라"고 요청 — 다섯 판 어디에도
+재사용할 만한 돌바닥/돌벽 텍스처가 없어서(사가고 텍스처는 야외 지형용,
+사가의숲·사가스토리의 `tile_stone.png`는 16×16 픽셀아트) 새로 받았다.
+`js/dungeon3d.js`의 `texMat()`이 `THREE.RepeatWrapping`으로 타일링한다 —
+diffuse 한 장만 쓰고(노멀·러프니스 맵 없음), 재질은 여전히
+`MeshLambertMaterial`이라 다른 소품과 재질 종류가 갈리지 않는다. 색은
+층 테마(`stone`)가 텍스처 위에 그대로 곱해져 "층마다 다른 색"이 산다.
+
 ## Quaternius — RPG Character Pack (2026-09-03, 사람 기본, `models/people/quaternius_rpg/`)
 
 | | |

@@ -469,6 +469,51 @@
     return m;
   }
 
+  /** 바닥·벽 돌 텍스처(2026-09-04, 사용자 요청 "실사화") — Poly Haven CC0
+   *  사진측량 텍스처(`assets/ASSET_LICENSES.md` 참고). 방 안 다른 소품
+   *  (상자·우물·사당·기둥 등)은 그대로 `mat()`의 단색을 쓴다 — 여기 둘
+   *  (바닥 한 판, 방 경계 벽 넷)만 입힌다. `texMat`이 만드는 재질도
+   *  `MeshLambertMaterial`이라 원소(환경맵) 처리는 그대로 간다 — 재질
+   *  종류 자체는 안 바꿨다. 색은 여전히 층 테마(`stone`)가 물들인다
+   *  (텍스처 × material.color, three 기본 동작) — 사용자가 IBL 이후에도
+   *  요구한 "층마다 다른 색"은 그대로 산다. */
+  var FLOOR_TEX = 'assets/textures/dungeon/floor_stone.webp';
+  var WALL_TEX = 'assets/textures/dungeon/wall_stone.webp';
+  var TILE = 70;               // 세계 단위 하나당 텍스처 한 칸 (바닥·벽 공통)
+  var rawTexCache = {};
+  function rawTex(url) {
+    if (rawTexCache[url]) { return rawTexCache[url]; }
+    var tx = new T.TextureLoader().load(url);
+    tx.wrapS = tx.wrapT = T.RepeatWrapping;
+    if (T.SRGBColorSpace) { tx.colorSpace = T.SRGBColorSpace; }
+    rawTexCache[url] = tx;
+    return tx;
+  }
+  var texMatCache = {};
+  function texMat(hex, url, repU, repV) {
+    var k = hex + '|' + url + '|' + repU.toFixed(2) + '|' + repV.toFixed(2);
+    if (texMatCache[k]) { return texMatCache[k]; }
+    var tx = rawTex(url).clone();
+    tx.needsUpdate = true;
+    tx.wrapS = tx.wrapT = T.RepeatWrapping;
+    tx.repeat.set(repU, repV);
+    var m = new T.MeshLambertMaterial({ color: new T.Color(hex), map: tx, flatShading: true });
+    texMatCache[k] = m;
+    return m;
+  }
+  /** 텍스처 입힌 상자 — 방 경계 벽 전용(`box()`와 달리 단색이 아니라
+   *  `texMat`을 쓴다). 반복 횟수는 넓은 면(가로×세로) 기준으로만 잡는다
+   *  — 두께(안 보이는 옆면)는 신경 안 쓴다, 이 판의 다른 상자들도 그렇다 */
+  function texBox(g, x, y, z, sx, sy, sz, hex, url, cast) {
+    var m = new T.Mesh(geo('box', function () { return new T.BoxGeometry(1, 1, 1); }),
+      texMat(hex, url, sx / TILE, sy / TILE));
+    m.position.set(x, y, z);
+    m.scale.set(sx, sy, sz);
+    if (cast) { m.castShadow = true; }
+    g.add(m);
+    return m;
+  }
+
   /** 층 테마 색 — `data-dungeon.js` 의 테마를 읽어 돌 색을 정한다 */
   function themeHex(run) {
     var DD = global.DG.dataDungeon;
@@ -512,8 +557,10 @@
     while (wallGroup.children.length) { wallGroup.remove(wallGroup.children[0]); }
     var stone = themeHex(run);
 
-    /* 바닥 — 한 판으로 깐다. 격자 무늬는 텍스처 대신 **얇은 홈**으로 낸다
-       (37절 "과도한 텍스처 사용 금지") */
+    /* 바닥 — 한 판으로 깐다. 2026-09-04 이전엔 단색이었다("격자 무늬는
+       텍스처 대신 얇은 홈으로" 라 적혀 있었지만 그 홈 자체가 구현된 적은
+       없었다 — 실제로는 그냥 민무늬 색이었다). 사용자가 "실사화"를 요청해
+       Poly Haven CC0 돌바닥 사진측량 텍스처로 갈아 끼웠다 */
     if (!floorMesh) {
       floorMesh = new T.Mesh(geo('floor', function () { return new T.PlaneGeometry(1, 1); }),
         mat(0x2a2a30, 'flat'));
@@ -523,17 +570,19 @@
     }
     floorMesh.position.set(W / 2, 0, H / 2);
     floorMesh.scale.set(W, H, 1);
-    floorMesh.material = mat(mix(stone, 0x1a1a20, 0.25), 'flat');
+    floorMesh.material = texMat(mix(stone, 0x1a1a20, 0.25), FLOOR_TEX, W / TILE, H / TILE);
 
     /* 벽 넷 — 뒤쪽 둘은 높고 앞쪽 둘은 낮다. 안 낮추면 방 안이 안 보인다.
        마을(run.town)은 사방으로 필드에 걸어 나갈 수 있는데(town.js 의
        fieldBoundPlayer), 북·서쪽만 높은 벽 그대로 두면 걸어나갈 수 있는데도
-       막힌 벽처럼 보인다 — 마을만 그 둘도 낮춘다. */
+       막힌 벽처럼 보인다 — 마을만 그 둘도 낮춘다.
+       2026-09-04 — 바닥과 같은 이유로 돌벽 텍스처(Poly Haven CC0)를 입혔다.
+       색은 여전히 층 테마(`stone`)가 물들인다(텍스처 × material.color) */
     var lo = 16, hi = run.town ? lo : 70;
-    box(wallGroup, W / 2, hi / 2, -WALL / 2, W + WALL * 2, hi, WALL, stone, 'flat', true);
-    box(wallGroup, -WALL / 2, hi / 2, H / 2, WALL, hi, H, stone, 'flat', true);
-    box(wallGroup, W / 2, lo / 2, H + WALL / 2, W + WALL * 2, lo, WALL, mix(stone, 0x000000, 0.3), 'flat', false);
-    box(wallGroup, W + WALL / 2, lo / 2, H / 2, WALL, lo, H, mix(stone, 0x000000, 0.3), 'flat', false);
+    texBox(wallGroup, W / 2, hi / 2, -WALL / 2, W + WALL * 2, hi, WALL, stone, WALL_TEX, true);
+    texBox(wallGroup, -WALL / 2, hi / 2, H / 2, WALL, hi, H, stone, WALL_TEX, true);
+    texBox(wallGroup, W / 2, lo / 2, H + WALL / 2, W + WALL * 2, lo, WALL, mix(stone, 0x000000, 0.3), WALL_TEX, false);
+    texBox(wallGroup, W + WALL / 2, lo / 2, H / 2, WALL, lo, H, mix(stone, 0x000000, 0.3), WALL_TEX, false);
 
     /* 방마다 다른 소품 — 상자·우물·사당은 판정이 자리를 정해 준다 */
     var r = run.room;
