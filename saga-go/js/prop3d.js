@@ -154,6 +154,7 @@
   var RUIN_STYLIZED = [PRP + 'Arch.glb'];
   var WELL_STYLIZED = [BLD + 'Well.glb'];
   var MARKET_STYLIZED = [BLD + 'MarketStand_1.glb'];
+  var RICE_STYLIZED = [PRP + 'Rice_4.glb'];
 
   var REG = {
     tree: {
@@ -224,8 +225,15 @@
      *  범인은 `world3d.buildProp` 의 두렁이 `var ox` 로 **격자 원점을 덮어쓴 것**
      *  이었다(`var` 는 함수 범위다). 논 다음에 오는 벼가 전부 원점 근처로
      *  끌려가 땅 밑에 깔려 있었다. 2026-08-29 에 잡았다.
-     *  · `Rice_Crop` 은 벼가 아니라 키 5cm 짜리 밭 바닥이다 — 다 자란 `Rice_4` 를 쓴다 */
-    rice: { all: [PRP + 'Rice_4.glb'] },
+     *  · `Rice_Crop` 은 벼가 아니라 키 5cm 짜리 밭 바닥이다 — 다 자란 `Rice_4` 를 쓴다.
+     *  2026-09-04 — 벼 자체는 CC0 실사(사진측량이든 저다각형이든)가 무료
+     *  생태계 어디에도 없다(Poly Haven·PolyScan·Sketchfab·OpenGameArt·
+     *  Poly Pizza 다 확인 — 조리된 쌀 소품만 있고 작물로서의 벼는 없다).
+     *  사용자 승인("벼가 없으면 다른 거 해도 돼")으로, 이미 받아 둔 실사
+     *  수풀(`grass`와 같은 파일, `Shrub_04.glb`)을 그대로 돌려 쓴다 — 새로
+     *  받은 파일은 없다. 정확히 벼는 아니지만 "논에 자란 초록"이라는 뜻은
+     *  살아 있다. 옛 값은 `RICE_STYLIZED` */
+    rice: { all: [NAT_REAL + 'Shrub_04.glb'] },
     /** 우물 — 마을의 제 자리(landmark). **`house` 표에 못 끼운다** — 집은
      *  키(`p.h`) 4~20m 짜리 상자로 정규화되는데, 우물은 원본 키가 그 셋에
      *  하나(1.25m)라 같은 줄에서 골라 쓰면 우물이 집만큼 부풀거나 집이

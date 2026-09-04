@@ -547,15 +547,27 @@ Sketchfab CC0 필터로 찾았다(역참 때 쓴 그 API 토큰·같은 파이�
 쓴 `KHR_materials_unlit` 하나만 있었고 이건 three.js가 기본 지원한다)
 Montroi 때 겪은 위험이 없다. 다듬은 뒤엔 전부 `EXT_texture_webp` 하나뿐.
 
-같은 검색에서 **다리·벼는 끝내 못 찾았다** — "clapper bridge"·
-"packhorse bridge"·"stone footbridge"·"medieval bridge"·"ancient bridge"
-등 10여 개 검색어를 다 돌려도 다리 유적 사진측량은 하나도 없었다(이
-CC0 풀은 아일랜드·스페인 문화유산 디지털화 프로젝트가 대부분이라 다리
-같은 토목 구조물보다는 기념물·석상·건물 쪽에 쏠려 있다). 벼는 애초에
-검색해 보지 않았다 — 이 풀의 성격(유럽 문화유산)상 논이 나올 리 없다.
-`js/prop3d.js`의 `SHRINE_STYLIZED`·`CAVE_STYLIZED`·`RUIN_STYLIZED`·
-`WELL_STYLIZED`·`MARKET_STYLIZED`가 되돌림 자리다. 자가진단 421/423
-3회 동일. **실기기 확인 전이다.**
+같은 검색에서 **다리는 끝내 못 찾았다** — "clapper bridge"·"packhorse
+bridge"·"stone footbridge"·"medieval bridge"·"ancient bridge"·"hump
+bridge"·"river crossing" 등 15개 넘는 검색어를 다 돌려도 다리 유적
+사진측량은 하나도 없었다(이 CC0 풀은 아일랜드·스페인 문화유산 디지털화
+프로젝트가 대부분이라 다리 같은 토목 구조물보다는 기념물·석상·건물 쪽에
+쏠려 있다). CC0 필터 없이 봐도 "Bridge" 자체는 여럿 있었지만 전부
+CC-BY/CC-BY-NC라 뺐다(Poly Pizza·OpenGameArt에도 다리는 있으나 CC0라도
+전부 저다각형이라 실사화 취지에 안 맞는다). `js/prop3d.js`의
+`SHRINE_STYLIZED`·`CAVE_STYLIZED`·`RUIN_STYLIZED`·`WELL_STYLIZED`·
+`MARKET_STYLIZED`가 되돌림 자리다. 자가진단 421/423 3회 동일.
+
+**벼는 무료 생태계 어디에도 작물로서는 없다** — Poly Haven·PolyScan·
+Sketchfab CC0·OpenGameArt·Poly Pizza를 전부 확인했지만 "벼"로 걸리는
+것은 조리된 쌀(밥그릇·주먹밥·초밥) 소품뿐, 논에서 자라는 식물 모델은
+저다각형으로도 존재하지 않는다. 사용자 승인("벼가 없으면 다른 거 해도
+돼" → "있는 걸로 채워 줄순 없어?")으로 **새로 안 받고** 이미 받아 둔
+`grass`와 같은 파일(`Shrub_04.glb`, Poly Haven CC0, 위 "나무·바위·수풀"
+절 참고)을 `rice`에도 그대로 돌려 쓴다. 정확히 벼는 아니지만 "논에 자란
+초록"이라는 뜻은 산다. `js/prop3d.js`의 `RICE_STYLIZED`(옛 `Rice_4.glb`)
+가 되돌림 자리다. `sw.js` VERSION → `go-v5.19.11`. **실기기 확인 전이다**
+— 특히 `Shrub_04`가 논 위에서 어색하게 크거나 작게 서지 않는지 볼 것.
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
