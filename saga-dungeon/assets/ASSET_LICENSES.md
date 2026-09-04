@@ -70,15 +70,29 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 | `models/props/Temple.glb` | **제단**(`altar`) — `saga-go`가 "사당" 후보로 적어 둔 그것 |
 | `models/nature/Mountain_1·2.glb` | **절벽**(`cliff`) |
 | `models/props/Mine.glb` | **동굴 입구**(`cavemouth`) — `saga-go`가 "광산 어귀"로 적어 둔 그것 |
-| `models/buildings/MarketStand_1.glb` | **천막**(`tent`) — **완전한 대역은 아니다**, 아래 참고 |
+| `models/buildings/MarketStand_1.glb` | **행상 좌판**(`stall`) |
 
-**천막은 딱 맞는 CC0 텐트를 못 찾았다.** 기둥+지붕 얼개가 비슷한 장터
-좌판(MarketStand)을 대신 세운다 — `js/asset3d.js` 의 `DEFAULTS.tent` 한 줄만
-바꾸면 나중에 진짜 텐트로 교체할 수 있다.
+## Quaternius — 잡초·모닥불·진짜 텐트 (2026-09-04, `saga-forest`에서 옮김)
 
-**모닥불(`fire`)은 에셋으로 못 옮겼다.** `saga-go` 창고에도 캠프파이어에
-맞는 CC0 모델이 없다 — 억지로 안 어울리는 것을 끼우느니 도형(잿더미+빛나는
-불씨) 그대로 두었다. 맞는 것을 구하면 여기 표에 줄을 늘린다.
+같은 만든 이·라이선스(CC0). SAGA WEB.md 지시("풀·꽃·덤불·버섯·통나무" 등
+자연물 밀도)를 따라 이 판에 감사(audit)를 돌려 보니 **다른 네 판은 다 갖고
+있는데 이 판에만 하나도 없던 자리**였다 — 이미 `saga-forest`가 CC0 라이선스를
+확인해 받아 둔 것을 그대로 옮겨 왔다(원 출처는 위 두 절과 같은 GLB 미러:
+`nature_pack`·`crops_pack`·`medieval_village_pack`·`survival_pack`).
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `models/nature/Grass_2.glb` · `Grass_Short.glb` | **풀**(`grass`) — 들판 잡초 층(`field3d.js` `clutterAt()`) |
+| `models/nature/Flowers.glb` | **꽃**(`flower`) |
+| `models/nature/Bush_1·2.glb` | **덤불**(`bush`) — 숲 성격에서만 |
+| `models/props/Mushroom_1·2.glb` | **버섯**(`mushroom`) — 숲 성격에서만 |
+| `models/nature/WoodLog.glb` | **통나무**(`log`) — 숲 성격에서만 |
+| `models/props/Tent.glb` | **야영 천막**(`tent`, `survival_pack`) — 들판 캠프(camp)에서 세운다. 예전엔 장터 좌판을 대역으로 썼는데(아래 옛 기록), 그 좌판은 `stall` 키로 옮겨 행상 POI 전용이 됐다 |
+| `models/props/Bonfire_Lit.glb` | **모닥불**(`campfire`, `medieval_village_pack`) — 들판 캠프의 불씨. 예전엔 "CC0로 못 찾았다"고 적어 뒀던 자리인데, `saga-forest`가 이미 찾아 둔 것을 몰랐을 뿐이었다 |
+
+옛 기록(참고용, 지금은 위로 대체됨): 천막은 한동안 장터 좌판(MarketStand)을
+대역으로 썼고, 모닥불은 도형(잿더미+빛나는 불씨) 그대로였다. 둘 다 GLB 를
+못 받으면 여전히 그 도형으로 조용히 돌아간다(fallback).
 
 ## Quaternius — 마을(모루골) 건물 (`models/buildings/`)
 

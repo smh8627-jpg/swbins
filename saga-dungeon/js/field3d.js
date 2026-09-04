@@ -198,6 +198,62 @@
     return out;
   }
 
+  /**
+   * 땅바닥 잡초 — PLAN 7·11절 "풀·꽃·덤불·버섯·통나무". 2026-09-04, 다른 네 판은
+   * 다 갖고 있는데 이 판에만 하나도 없던 것을 채운다.
+   *
+   * `chunkAt()` 과 일부러 갈라 둔 함수다 — `chunkAt()` 의 목록은 `dungeon.js` 의
+   * `boundPlayer()` 가 **충돌로도** 읽고(나무·바위·기둥·절벽에 막힌다), 자가진단이
+   * 그 목록의 길이·성격을 값으로 붙들고 있다. 순수 장식(잡초)까지 거기 섞으면
+   * 걸음이 스치는 것마다 막히거나 기존 회귀를 건드릴 위험이 있다. 그래서 **읽기만
+   * 하고**(`kindOf()`) 따로 돌려주는, 판정에 안 닿는 층 하나를 더 얹었다.
+   *
+   * 여전히 **순수 함수**다 — 같은 자리·같은 씨앗이면 늘 같다.
+   */
+  function clutterAt(cx, cz, seed, ring, dens) {
+    var out = [], i, n;
+    var kind = kindOf(cx, cz, seed, ring);
+    if (kind === 'water' || kind === 'cave') { return out; }   // 안 어울리는 자리엔 안 심는다
+    var ox = cx * CHUNK, oz = cz * CHUNK;
+    var d = dens === undefined ? 1 : dens;
+
+    /* chunkAt() 의 spot()/rnd() 와 씨앗 자리가 겹치면 잡초가 나무·바위와
+       같은 자리에 서서 서로 뚫고 지나간다(z-fighting) — 오프셋을 달리해 가른다 */
+    function spot(k) {
+      return {
+        x: ox + mix(cx * 17 + k * 9 + seed + 500, cz * 23 + k * 5) * CHUNK,
+        z: oz + mix(cz * 19 + k * 21 - seed - 500, cx * 37 + k * 3) * CHUNK
+      };
+    }
+    function rnd(k) { return mix(cx * 131 + k + seed + 500, cz * 271 - k); }
+
+    n = Math.round((3 + rnd(0) * 5) * d);
+    for (i = 0; i < n; i++) {
+      var f = spot(i);
+      out.push({ t: rnd(i + 40) < 0.62 ? 'grass' : 'flower', x: f.x, z: f.z,
+                 s: 0.7 + rnd(i + 60) * 0.7, rot: rnd(i + 80) * 6.28, h: 6 });
+    }
+    if (kind === 'forest') {
+      /* 숲에만 덤불·버섯·통나무 — 그 밖의 성격(길·캠프·폐허…)엔 안 어울린다 */
+      n = Math.round((1 + rnd(1) * 2) * d);
+      for (i = 0; i < n; i++) {
+        var b = spot(i + 100);
+        out.push({ t: 'bush', x: b.x, z: b.z, s: 0.8 + rnd(i + 110) * 0.6,
+                   rot: rnd(i + 120) * 6.28, h: 18 });
+      }
+      if (rnd(2) < 0.5) {
+        var m = spot(130);
+        out.push({ t: 'mushroom', x: m.x, z: m.z, s: 1, rot: 0, h: 8 });
+      }
+      if (rnd(3) < 0.35) {
+        var l = spot(140);
+        out.push({ t: 'log', x: l.x, z: l.z, s: 1, rot: rnd(141) * 6.28, h: 12 });
+      }
+    }
+    out.kind = kind;
+    return out;
+  }
+
   /** 어느 조각들을 세울까 — 반경 안의 것만(6절 "플레이어 주변 Chunk 만 활성화") */
   function ringOf(cx, cz, W, H) {
     /* 방이 걸친 조각을 0 으로 보고, 거기서 몇 칸 떨어졌는지 */
@@ -224,6 +280,6 @@
     CHUNK: CHUNK, KINDS: KINDS,
     /* 전부 순수 함수다 — 자가진단이 값으로 본다 */
     mix: mix, seedOf: seedOf, heightAt: heightAt,
-    kindOf: kindOf, chunkAt: chunkAt, ringOf: ringOf, survey: survey
+    kindOf: kindOf, chunkAt: chunkAt, clutterAt: clutterAt, ringOf: ringOf, survey: survey
   };
 })(window);

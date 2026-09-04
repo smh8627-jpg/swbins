@@ -3065,6 +3065,59 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
     });
 
+    /* ── 잡초 층 (2026-09-04, clutterAt) — SAGA WEB.md 감사로 채운 자리 ──
+     * chunkAt() 과 갈라 둔 순수 함수라 여기서도 값으로만 본다. */
+
+    t('잡초 — 같은 씨앗이면 같은 잡초다', function () {
+      var s = F3.seedOf(5, 1, '숲');
+      var l1 = F3.clutterAt(1, 0, s, 2, 1).map(function (p) { return p.t; }).join('/');
+      var l2 = F3.clutterAt(1, 0, s, 2, 1).map(function (p) { return p.t; }).join('/');
+      return l1 === l2 && ('한 조각 = ' + (l1 || '(없음)'));
+    });
+
+    t('잡초 — 물·동굴에는 안 심는다', function () {
+      var s = F3.seedOf(14, 0, 'w'), cx, cz, bad = 0, n = 0;
+      for (cz = -8; cz <= 8; cz++) {
+        for (cx = -8; cx <= 8; cx++) {
+          var ring = F3.ringOf(cx, cz, 560, 360);
+          var kind = F3.kindOf(cx, cz, s, ring);
+          if (kind !== 'water' && kind !== 'cave') { continue; }
+          n++;
+          if (F3.clutterAt(cx, cz, s, ring, 1).length) { bad++; }
+        }
+      }
+      return n > 0 && bad === 0 && ('물·동굴 조각 ' + n + '개 모두 잡초 0개');
+    });
+
+    t('잡초 — 덤불·버섯·통나무는 숲에서만 난다', function () {
+      var s = F3.seedOf(6, 0, 'f'), cx, cz, offForest = 0;
+      var WOOD = { bush: 1, mushroom: 1, log: 1 };
+      for (cz = -8; cz <= 8; cz++) {
+        for (cx = -8; cx <= 8; cx++) {
+          var ring = F3.ringOf(cx, cz, 560, 360);
+          var kind = F3.kindOf(cx, cz, s, ring);
+          if (kind === 'forest') { continue; }
+          F3.clutterAt(cx, cz, s, ring, 1).forEach(function (p) {
+            if (WOOD[p.t]) { offForest++; }
+          });
+        }
+      }
+      return offForest === 0 && '숲이 아닌 조각에서 덤불·버섯·통나무 0개';
+    });
+
+    t('잡초 — 밀도를 내리면 잡초도 준다', function () {
+      var s = F3.seedOf(8, 1, 'd'), full = 0, half = 0, cx, cz;
+      for (cz = -3; cz <= 3; cz++) {
+        for (cx = -3; cx <= 3; cx++) {
+          var ring = F3.ringOf(cx, cz, 560, 360);
+          full += F3.clutterAt(cx, cz, s, ring, 1).length;
+          half += F3.clutterAt(cx, cz, s, ring, 0.4).length;
+        }
+      }
+      return half <= full && full > 0 &&
+        ('배수 1 → ' + full + '개 · 0.4 → ' + half + '개');
+    });
+
     /* ── 판정을 방에서 필드로 잇는다 (4a67af2, PLAN 4·5·6절 나머지 절반) ──
      * 위 들판 테스트들은 field3d 가 값을 잘 내는지만 본다 — 그 값을 실제로
      * `boundPlayer` 가 읽어서 방 밖으로 걸어 나가게 해 주는지는 아무도

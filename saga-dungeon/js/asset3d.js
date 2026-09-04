@@ -94,10 +94,23 @@
     'altar': PROPS + 'Temple.glb',
     /* 동굴 입구 — 사가고가 이미 "광산 어귀"로 적어 둔 그 Mine 을 그대로 쓴다 */
     'cavemouth': PROPS + 'Mine.glb',
-    /* 천막 — 딱 맞는 "야영 텐트" 는 CC0 로 못 찾았다. 기둥+지붕 얼개가 비슷한
-       장터 좌판(MarketStand)을 대신 세운다 — 완벽한 대역은 아니다(주석에 적어
-       둔다, 나중에 진짜 텐트를 구하면 이 한 줄만 바꾸면 된다) */
-    'tent': BLD + 'MarketStand_1.glb',
+    /* 천막 — 2026-09-04, saga-forest 가 이미 받아 둔 진짜 텐트(survival_pack,
+       CC0)를 그대로 옮겨 왔다. 여태 대역으로 쓰던 장터 좌판(MarketStand)은
+       'stall'로 이름만 남겨 둔다(행상 좌판이 여전히 그 자리를 쓴다) */
+    'tent': PROPS + 'Tent.glb',
+    'stall': BLD + 'MarketStand_1.glb',
+    /* 모닥불 — 2026-09-04, saga-forest 가 받아 둔 medieval_village_pack 의
+       Bonfire_Lit(CC0)로 갈아 끼웠다. 예전엔 "CC0로 딱 맞는 걸 못 찾았다"고
+       적어 뒀던 자리다(도형 그대로 남겨 뒀었다) */
+    'campfire': PROPS + 'Bonfire_Lit.glb',
+    /* 땅바닥 잡초 — PLAN 7·11절 "풀·꽃·덤불·버섯·통나무", 이 판에만 여태
+       하나도 없었다(다른 네 판은 다 갖고 있다). 판정에는 안 닿는 순수 장식
+       (field3d.js `clutterAt()`) */
+    'grass': [NATURE + 'Grass_2.glb', NATURE + 'Grass_Short.glb'],
+    'flower': NATURE + 'Flowers.glb',
+    'bush': [NATURE + 'Bush_1.glb', NATURE + 'Bush_2.glb'],
+    'mushroom': [PROPS + 'Mushroom_1.glb', PROPS + 'Mushroom_2.glb'],
+    'log': NATURE + 'WoodLog.glb',
     /* 마을(모루골) 건물 — 집 넷은 자리마다 씨앗으로 섞어 세운다(나무·바위와 같은 요령) */
     'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
     'well': BLD + 'Well.glb',

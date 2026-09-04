@@ -540,15 +540,17 @@
       box(wallGroup, r.vein.x + 7, 12, r.vein.y - 3, 7, 7, 7, 0xe8c15a, 'glow', false);
     }
     if (r && r.merchant && !r.merchant.used) {
-      /* 행상(POI: Merchant) — 마을 장터의 그 좌판(`tent`/MarketStand GLB)을
-         똑같이 세운다. 다 팔았으면(=used) 좌판을 걷은 것으로 보고 안 세운다 */
+      /* 행상(POI: Merchant) — 마을 장터의 그 좌판(`stall`/MarketStand GLB)을
+         똑같이 세운다. 다 팔았으면(=used) 좌판을 걷은 것으로 보고 안 세운다.
+         2026-09-04 — 들판의 야영 천막(`tent`)이 진짜 텐트로 갈아 끼워지면서
+         좌판 몫으로 `stall` 키를 따로 갈랐다(장터 좌판과 야영 텐트는 다른 물건이다) */
       var AS3m = AS();
       var standShape = function () {
         var sg = new T.Group();
         box(sg, 0, 34, 0, 46, 68, 40, 0x5a4a3a, 'flat', true);
         return sg;
       };
-      var stnode = AS3m ? AS3m.build('tent', 'poi:' + r.merchant.x + ':' + r.merchant.y,
+      var stnode = AS3m ? AS3m.build('stall', 'poi:' + r.merchant.x + ':' + r.merchant.y,
         68, null, standShape) : standShape();
       stnode.position.set(r.merchant.x, 0, r.merchant.y);
       wallGroup.add(stnode);
@@ -781,6 +783,11 @@
 
         var list = F.chunkAt(cx, cz, seed, ring, dens);
         for (i = 0; i < list.length; i++) { piece(list[i], seed, W, H, stone); }
+        /* 잡초 층 — 순수 장식(판정 안 닿음), field3d.js clutterAt() 참고 */
+        if (F.clutterAt) {
+          var deco = F.clutterAt(cx, cz, seed, ring, dens);
+          for (i = 0; i < deco.length; i++) { piece(deco[i], seed, W, H, stone); }
+        }
       }
     }
     fieldKey = seed + ':' + R + ':' + Math.round(dens * 100);
@@ -896,8 +903,9 @@
       g.add(alnode);
       box(g, p.x, y + p.h + 6, p.z, 14, 14, 14, 0xc9a3ff, 'glow', false);
     } else if (p.t === 'tent') {
-      /* 천막 — 꼭 맞는 텐트 에셋은 못 구했다. 기둥+지붕 얼개가 비슷한
-         장터 좌판(MarketStand)을 대신 세운다(`asset3d.js` 주석 참고) */
+      /* 천막 — 2026-09-04, saga-forest 가 받아 둔 진짜 텐트(survival_pack,
+         CC0)로 갈아 끼웠다. 옛 대역(MarketStand)은 행상 좌판만의 `stall`
+         키로 옮겨 갔다(위 buildActor() 의 POI: Merchant 참고) */
       var tentShape = function () {
         var sg = new T.Group();
         box(sg, 0, p.h / 2, 0, 44, p.h, 40, 0x5a4a3a, 'flat', true);
@@ -909,11 +917,35 @@
       tenode.rotation.y = p.rot || 0;
       g.add(tenode);
     } else if (p.t === 'fire') {
-      /* 모닥불 — CC0 로 딱 맞는 캠프파이어를 못 구했다(saga-go 창고에도 없다).
-         억지로 안 어울리는 것을 끼우느니 **도형 그대로** 둔다 — 잿더미(어두운
-         상자)+타오르는 불씨(빛나는 상자)는 그 자체로 충분히 읽힌다. */
-      box(g, p.x, y + 4, p.z, 26, 8, 26, 0x2f2a24, 'flat', false);
-      box(g, p.x, y + p.h, p.z, 14, 16, 14, 0xff7a2a, 'glow', false);
+      /* 모닥불 — 2026-09-04, saga-forest 가 받아 둔 medieval_village_pack 의
+         Bonfire_Lit(CC0)로 갈아 끼웠다. 잿더미+불씨 도형은 fallback 으로 남긴다 */
+      var fireShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 4, 0, 26, 8, 26, 0x2f2a24, 'flat', false);
+        box(sg, 0, p.h, 0, 14, 16, 14, 0xff7a2a, 'glow', false);
+        return sg;
+      };
+      var finode = AS3 ? AS3.build('campfire', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.6, null, fireShape) : fireShape();
+      finode.position.set(p.x, y, p.z);
+      g.add(finode);
+    } else if (p.t === 'grass' || p.t === 'flower' || p.t === 'bush' ||
+               p.t === 'mushroom' || p.t === 'log') {
+      /* 잡초 층(field3d.js clutterAt()) — 순수 장식. 종류마다 도형 fallback 을
+         다르게 둬서 GLB 가 못 오는 자리(file:// 단독판 등)에서도 그 성격이 읽힌다 */
+      var clutterCol = p.t === 'flower' ? 0xd88fc0 : (p.t === 'log' ? 0x4a3826 :
+        (p.t === 'mushroom' ? 0xc94f4f : 0x3f5a34));
+      var clutterShape = function () {
+        var sg = new T.Group();
+        if (p.t === 'log') { box(sg, 0, p.h / 2, 0, p.h * 2.2, p.h, p.h * 0.9, clutterCol, 'flat', false); }
+        else { box(sg, 0, p.h / 2, 0, p.h * 0.7, p.h, p.h * 0.7, clutterCol, 'flat', false); }
+        return sg;
+      };
+      var clnode2 = AS3 ? AS3.build(p.t, seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * (p.t === 'log' ? 1 : 1.6) * s, null, clutterShape) : clutterShape();
+      clnode2.position.set(p.x, y, p.z);
+      clnode2.rotation.y = p.rot || 0;
+      g.add(clnode2);
     }
   }
 
