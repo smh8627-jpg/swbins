@@ -96,9 +96,9 @@
    ],
    "images" : [
       {
-         "mimeType" : "image/png",
+         "mimeType" : "image/webp",
          "name" : "lambert2SG-image",
-         "uri" : "Tex_Crow.png"
+         "uri" : "Tex_Crow.webp"
       }
    ],
    "materials" : [

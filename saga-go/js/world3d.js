@@ -398,12 +398,12 @@
    * 아직 못 받았으면(로딩 중·파일 없음) 늘 하던 `shadeHex` 채색으로 물러난다 —
    * 화면이 한 번도 안 빈다(이 저장소의 다른 에셋들과 같은 원칙). */
   var LAND_TEX_URL = {
-    grass: 'assets/textures/land/grass.jpg',
-    forest: 'assets/textures/land/forest.jpg',
-    mount: 'assets/textures/land/mount.jpg',
-    road: 'assets/textures/land/road.jpg',
-    town: 'assets/textures/land/town.jpg',
-    farm: 'assets/textures/land/farm.jpg'
+    grass: 'assets/textures/land/grass.webp',
+    forest: 'assets/textures/land/forest.webp',
+    mount: 'assets/textures/land/mount.webp',
+    road: 'assets/textures/land/road.webp',
+    town: 'assets/textures/land/town.webp',
+    farm: 'assets/textures/land/farm.webp'
   };
   var LAND_TEX_IMG = {};
   function landTexImg(kind) {

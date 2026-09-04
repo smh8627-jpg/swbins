@@ -54,7 +54,7 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Wolf.glb` | 늑대 (`wolf`) |
 | `Cow.glb` | 소 (`ox`) |
 | `Koi.glb` | 잉어 (`carp`) — `cute_fish_pack` 에서. 헤엄·튀어오름 여섯 클립 |
-| `Mesh_Crow.gltf` + `.bin` + `Tex_Crow.png` | **까치** (`magpie`) — **Quaternius 것이 아니다. 아래 따로 적었다** |
+| `Mesh_Crow.gltf` + `.bin` + `Tex_Crow.webp` | **까치** (`magpie`) — **Quaternius 것이 아니다. 아래 따로 적었다** |
 
 셋 다 뼈대 애니메이션을 열두어 개씩 들고 있다(Idle · Walk · Gallop · Eating …).
 `asset3d.js` 의 `mapClips` 가 이름을 씻어 자리에 맞춘다.
@@ -210,8 +210,13 @@ sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본�
 규칙이 여기서만 다르다 — 지우거나 옮길 때 위 문구를 같이 옮길 것.
 
 `.glb` 한 덩이가 아니라 **파일 셋**(`Mesh_Crow.gltf` + `Mesh_Crow.bin` +
-`Tex_Crow.png`)이다. `.gltf` 가 나머지 둘을 **이름으로** 부르므로 셋이 같은 폴더에
+`Tex_Crow.webp`)이다. `.gltf` 가 나머지 둘을 **이름으로** 부르므로 셋이 같은 폴더에
 그대로 있어야 한다 — 하나만 빠져도 조용히 도형으로 돌아간다.
+
+**2026-09-04: `Tex_Crow.png` → `Tex_Crow.webp`(무손실)로 바꿨다.** 32×32짜리라
+용량은 그대로나(114B → 76B) `SAGA WEB.md` 5절 규칙에 맞췄다. `.gltf`의
+`images[0].uri`·`mimeType`을 같이 고쳤다 — three.js `GLTFLoader`는 URI 확장자로
+MIME을 다시 가늠하는 헬퍼(`.webp($|\?)` 정규식)를 이미 갖고 있어 별 위험이 없다.
 
 원본은 50 단위 키로 만들어져 있는데 `asset3d` 가 키 1 로 눕히므로,
 까치 키(`animal.js` 의 `h: 0.42`)로 세우면 **42cm** 가 된다 — 실제 까치와 같다.
@@ -255,18 +260,23 @@ sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본�
 
 | 파일 | 원본 자산 |
 |---|---|
-| `grass.jpg` | Grass005 |
-| `forest.jpg` | Ground106 |
-| `mount.jpg` | Rocks011 |
-| `road.jpg` | Ground081 |
-| `town.jpg` | Ground103 |
-| `farm.jpg` | Ground109 |
+| `grass.webp` | Grass005 |
+| `forest.webp` | Ground106 |
+| `mount.webp` | Rocks011 |
+| `road.webp` | Ground081 |
+| `town.webp` | Ground103 |
+| `farm.webp` | Ground109 |
 
 `js/world3d.js` 의 `landTexture()` 가 `LAND_COLOR` 표로 색만 칠하던 자리를
 이 텍스처로 갈아 끼웠다(2026-08-30). **`water` 는 안 받았다** — 실제 물결은
 `water3d.js` 가 따로 그려서 이 칠은 거의 안 보인다. 이 판 재질(`delam`)과 같은
 원칙으로 **Color(BaseColor) 한 장만** 받았다 — Normal·Roughness·AO·Displacement
 는 원본 zip 에 있지만 옮기지 않았다.
+
+**2026-09-04: 원본 1K-JPG(합계 8.45MB) → WebP(quality 82, 합계 1.35MB, 평균 84%
+감소)로 재인코딩했다.** `SAGA WEB.md` 5절의 "텍스처는 WebP 우선" 규칙을 따른
+것 — `landTexImg()`(`js/world3d.js`)는 `new Image()`로 그냥 디코드하므로 포맷
+전환에 코드 변경이 필요 없었다. 원본 `.jpg`는 지웠다(Git 이력에는 남아 있다).
 
 ---
 
