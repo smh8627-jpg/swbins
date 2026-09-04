@@ -105,12 +105,20 @@
   var PINE_STYLIZED = [BASE + 'PineTree_1.glb', BASE + 'PineTree_2.glb'];
   var ROCK_STYLIZED = [BASE + 'Rock_1.glb', BASE + 'Rock_2.glb', BASE + 'Rock_3.glb'];
   var BUSH_STYLIZED = [BASE + 'Bush_1.glb', BASE + 'Bush_2.glb'];
+  /** 2026-09-04 — 가을·겨울 되돌림 자리. CC0 실사 가을·겨울 나무는 재차 찾아봐도
+   *  없다(Poly Haven 전체·PolyScan·OpenGameArt·Sketchfab·itch.io·ambientCG·
+   *  Poly Pizza·ToxSam 레지스트리 — 전부 저다각형이거나 라이선스가 안 맞음).
+   *  대신 아래 `tintedOf()` 로 **같은 실사 나무를 색만 계절에 맞게 덧입힌다** */
+  var TREE_AUTUMN_STYLIZED = [BASE + 'CommonTree_Autumn_1.glb', BASE + 'CommonTree_Autumn_2.glb'];
+  var TREE_WINTER_STYLIZED = [BASE + 'CommonTree_Snow_1.glb', BASE + 'CommonTree_Snow_2.glb'];
 
   var REG = {
     tree: {
+      /* 가을·겨울도 **같은 실사 GLB**를 쓴다 — 다른 실사 모델이 없어서다.
+         재질에 계절 색을 곱하는 건 `tintedOf()`(`season.js` 의 `leaf` 색과 맞춘다) */
       all:    [NAT_REAL + 'IslandTree_02.glb'],
-      autumn: [BASE + 'CommonTree_Autumn_1.glb', BASE + 'CommonTree_Autumn_2.glb'],
-      winter: [BASE + 'CommonTree_Snow_1.glb', BASE + 'CommonTree_Snow_2.glb']
+      autumn: [NAT_REAL + 'IslandTree_02.glb'],
+      winter: [NAT_REAL + 'IslandTree_02.glb']
     },
     pine: {
       all: [NAT_REAL + 'PineSapling.glb']
@@ -192,6 +200,18 @@
     var S = global.DG.season;
     if (!S || !S.now) { return 'all'; }
     try { return S.now().key || 'all'; } catch (e) { return 'all'; }
+  }
+
+  /** 가을·겨울에만 색을 곱할 16진 — `season.js` `SEASONS.autumn/winter.leaf`
+   *  값을 그대로 옮겨 적었다(다른 화면의 나무·풀도 같은 색으로 물드니 맞춰
+   *  둬야 따로 안 어긋난다 — `season.js` 가 그 값을 바꾸면 여기도 손으로 맞출
+   *  것). 봄·여름은 null — 사진측량 텍스처를 그대로 둔다(곱하면 오히려
+   *  탁해진다). `S.now()` 대신 `sk` 를 직접 봐서 다른 철을 미리 받을 때도
+   *  맞는 색을 낸다 */
+  var SEASON_TINT_HEX = { autumn: 0xa87a2e, winter: 0x5f6a5c };
+  function seasonTintHex(sk) {
+    var key = sk || seasonKey();
+    return SEASON_TINT_HEX[key] || null;
   }
 
   /**
@@ -328,6 +348,21 @@
     return matCache[key];
   }
 
+  var tintCache = {};
+
+  /** 실사 재질에 계절 색을 곱한 **복제본**을 준다(원본은 그대로 둔다 — 여러
+   *  철·여러 자리가 같은 원본 재질을 나눠 쓰므로 손대면 전부 물든다).
+   *  텍스처(`map`)는 그대로 물려받고 `color` 만 곱해 GPU 는 같은 그림을 쓰되
+   *  픽셀셰이더 단계에서 색만 걸러진다 — 새 텍스처를 안 만드니 가볍다 */
+  function tintedOf(mat, url, hex) {
+    var key = url + ':' + hex;
+    if (tintCache[key]) { return tintCache[key]; }
+    var m = mat.clone();
+    m.color = (mat.color ? mat.color.clone() : new (three()).Color(0xffffff)).multiply(new (three()).Color(hex));
+    tintCache[key] = m;
+    return m;
+  }
+
   /** 다 받으면 세워 둔 소품을 한 번 갈아 준다 — 여러 개가 몰려 오므로 뭉쳐서 */
   function scheduleRefresh() {
     if (refreshTimer) { return; }
@@ -369,7 +404,17 @@
     var url = pick(name, gx, gy, sk);
     if (!url) { return null; }
     var c = acquire(url);
-    return c.state === 'ok' ? { url: url, parts: c.parts } : null;
+    if (c.state !== 'ok') { return null; }
+    /* 나무만 — 가을·겨울에 같은 실사 GLB를 색만 물들여 낸다(REG.tree.autumn/
+       winter 가 이제 `all` 과 같은 파일이다). 물들 텍스처가 없는 조각
+       (lambertOf 를 거친 옛 저다각형·되돌림용)은 이미 그 재질 자체가 계절별
+       파일에서 왔으므로 더 안 물들인다 — `material.map` 이 있는 것만 대상 */
+    var hex = name === 'tree' ? seasonTintHex(sk) : null;
+    if (!hex) { return { url: url, parts: c.parts }; }
+    var tinted = c.parts.map(function (p) {
+      return p.material.map ? { geometry: p.geometry, material: tintedOf(p.material, url, hex) } : p;
+    });
+    return { url: url, parts: tinted };
   }
 
   /* 시작 자리(0,0)는 마을 한복판이라(`land.js`) 이 안은 늘 눈에 든다 — 그래서
@@ -424,7 +469,8 @@
   global.DG.prop3d = {
     REG: REG, register: register,
     /* 값을 내는 함수 — three 없이도 돈다 (자가진단이 이것만 따로 본다) */
-    pick: pick, urls: urls, eagerUrls: eagerUrls, seasonKey: seasonKey, ready: ready, casts: casts,
+    pick: pick, urls: urls, eagerUrls: eagerUrls, seasonKey: seasonKey, seasonTintHex: seasonTintHex,
+    ready: ready, casts: casts,
     houseOn: houseOn, heightMul: heightMul,
     /* 그림 층 */
     parts: parts, preload: preload, stats: stats,
