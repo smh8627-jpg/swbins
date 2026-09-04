@@ -258,6 +258,68 @@ Sketchfab) 말고 다른 출처**를 새로 훑었다. 코드는 한 줄도 안 
 렌더 분기는 손 안 댔다(둘 다 이미 `BLD_REAL` 자리로 갈아 끼울 준비가 돼
 있으니, 다음에 후보가 생기면 탑과 같은 방식으로 한 줄만 바꾸면 된다).
 
+## PolyScan — 집 둘 (2026-09-04, 바로 이어서 — 위 "로그인 장벽" 판단을 뒤집음)
+
+위 절에서 "PolyScan 32개 모델 전부 Patreon Early Access 로그인 뒤"라고
+적은 것은 **틀렸다.** 사용자가 "로그인해서 받아봐"라고 지시해 다시
+확인해 보니, 자산 상세 페이지의 정적 마크업(WebFetch가 처음 읽은 것)엔
+"Early Access" 문구가 남아 있었지만 **실제 다운로드 버튼은 로그인 없이
+바로 뜬다** — 헤드리스로 실제 페이지를 렌더링(SwiftShader)해 스크린샷을
+찍어 보니 잠금 표시가 없었고, DOM에서 뽑은 CDN 링크(`cdn.polyscann.com`)를
+직접 `curl`로 쳐 보니 인증 없이 **200 OK**로 그대로 받아졌다. 페이지 텍스트만
+보고 판단한 앞 절의 결론이 실제 동작과 달랐던 사례 — 다음에 비슷한 "로그인
+필요" 표시를 만나면 텍스트만 믿지 말고 실제 다운로드 링크를 직접 쳐서
+확인할 것.
+
+| | |
+|---|---|
+| **만든 이** | PolyScan (<https://polyscann.com>) |
+| **라이선스** | CC0 1.0 — 사이트가 "재배포·상업적 이용 모두 자유, 표시 의무 없음"으로 명시 |
+| **받은 곳** | `https://polyscann.com/asset/medieval-stone-house-5d87ba` · `https://polyscann.com/asset/medieval-wooden-house-9b1b7b` — 로그인·가입 없이 CDN에서 직접 다운로드(`cdn.polyscann.com/PBR+TEXTURE/…`) |
+| **파일** | `models/buildings/realistic/house_stone.glb`(285KB) · `house_wooden.glb`(246KB) |
+| **원본 형식** | OBJ+MTL+FBX, 4K PBR 텍스처(Albedo/AO/Normal/Roughness/Metallic) 3벌(House·Bucket·Carriage), `.rar`로 묶여 있다(이 작업 환경엔 rar 해제 도구가 전혀 없어 `winget install 7zip.7zip`로 새로 설치해 풀었다) |
+
+**골라낸 것 vs 버린 것.** 원본은 집+양동이+수레가 한 장면에 같이 들어
+있다(PolyScan 갤러리 사진에 다 나온다). OBJ를 재질별로 갈라(`House`·
+`Wood`·`Bucket`/`Carriage`) **건물 몸체(House)와 지붕·트림(Wood) 둘만**
+추리고 양동이·수레는 버렸다 — 탑과 같은 이유로 이 판의 렌더 함수는
+건물 하나만 기대한다.
+
+**변환 순서** (탑과 같은 `trimesh` 파이프라인, 이번엔 원본이 이미
+glTF/gLB가 아니라 OBJ라 한 단계가 더 늘었다):
+
+1. `.rar` 다운로드 후 7-Zip으로 해제
+2. `trimesh.load(..., split_object=True, group_material=True)`로 OBJ를
+   재질별로 분리 — **wooden_cabin 쪽은 처음에 재질 이름이 다 뒤섞여
+   나왔다**(`material_0`만 잡혔다): obj 안의 `mtllib` 줄이 `House M_F.mtl`을
+   가리키는데 실제로 든 파일 이름은 `MEDIEVAL BUILDING.mtl`이라 참조가
+   깨져 있었다 — mtl 파일을 참조된 이름으로 복사해 두니 정상적으로
+   `House`/`Wood`/`Bucket`/`Carriage` 넷으로 갈렸다. **OBJ를 재질별로 가를
+   때 그룹 이름이 이상하게 나오면 먼저 mtllib 참조가 실제 파일명과
+   맞는지부터 볼 것**(트림메시가 조용히 fallback해서 겉으로는 에러가
+   안 난다)
+3. `House_BaseColor.jpg`(집 몸체) · `Wood_BaseColor.jpg`(지붕·트림) diffuse만
+   받아 4096→768px로 줄이고 jpeg 품질 85로 재압축(법선·거칠기·금속성 맵은
+   `MeshLambertMaterial`엔 안 쓰인다 — 탑과 같은 이유)
+4. `House`·`Wood` 지오메트리 둘만 새 Scene에 넣어 단일 `.glb`로 구웠다
+5. 격리 렌더(`_inspect_house.html`, 커밋에는 안 들어간다)로 단독 스크린샷
+   확인 — 방향(Y-up)·텍스처가 다 정상. **실제 마을 장면(`_demo.html#camp`)
+   스크린샷은 이번엔 포기했다** — 옛 stylized 집으로 되돌려도 똑같이
+   렌더러가 죽는(`Abnormal renderer termination`, GPU 프로세스
+   `exit_code=-1073741819`) **이 환경 고유의 기존 불안정성**(36개 GLB를
+   SwiftShader로 한 장면에 올릴 때 생김, 이 세션의 변경과 무관함을 베이스라인
+   비교로 확인)이라, 단독 렌더 확인 + 헤드리스 진단(`_test.html` 241/241
+   3회 동일, `_admin.html?selftest` ADMIN 12/12)으로 대신했다
+
+**여전히 못 찾은 것** — 우물·대장간·여관·마방·방앗간. PolyScan 카탈로그
+32개 중 건물은 이 집 둘뿐이고(대장간은 건물이 아니라 모루 소품 하나),
+나머지 넷은 이 사이트에도 아예 없다. 위 "재탐색" 절의 이 부분 결론은
+그대로 유효하다.
+
+**실기기 확인 전** — 단독 렌더로만 확인했다. 다음 세션은 마을 화면에서
+집 둘이 실제로 걸리는지(자리 씨앗으로 넷 중 둘만 남았으니 등장 빈도가
+반으로 줄었다) 실기기로 봐 줄 것.
+
 ## KayKit — Dungeon Remastered 소품 (`models/dungeon/`)
 
 **2026-09-01, 방 안 소품 실험적으로 갈아 낌.** 여태 상자를 쌓아 흉내 내던
