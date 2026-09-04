@@ -368,6 +368,27 @@ NPC·몬스터 울음(`NPC/`) 등이 더 있다 — 다음 단계(일반 버튼 
 
 ---
 
+## Poly Haven — HDRI 환경광 (`assets/hdri/alps_field_1k.hdr`)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-forest/assets/hdri/alps_field_1k.hdr` 를 그대로 재사용(같은 CC0 파일, 다섯 판 공용 자산 — 원본은 <https://polyhaven.com/a/alps_field>, 1k `.hdr`) |
+
+2026-09-04, 사용자가 "재질을 실사처럼" 요청해 `world3d.js` 에 IBL(환경광)을 얹었다.
+**하늘 색은 안 바꾼다** — `scene.background` 는 그대로 `lightingAt()` 의 시각별
+색에 맡기고, `scene.environment` 에만 물려 PBR 재질(GLB 인물·건물)의 반사·
+거칠기만 사실적으로 만든다. 세기는 `hemi.intensity`(이미 낮·밤·날씨별로 맞춰
+둔 곡선)에 비례해 `syncLight()` 가 매 프레임 같이 낮춘다/올린다 — 예전에 ACES
+톤매핑을 걸었다가 밤 화면이 망가진 사고(`post3d.js` 머리말)를 되풀이하지
+않으려는 안전장치다. 못 받아도 조용히 넘어가고 옛 조명만으로 돈다.
+`RGBELoader.js`(`js/vendor/`)도 같은 이유로 `saga-forest/js/vendor/`에서
+그대로 재사용했다 — three.js 코어 빌드엔 없는 애드온이라 두 판이 같은 파일을
+쓴다(다섯 판 공용 벤더 파일이지 이 판만의 새 의존성이 아니다).
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로

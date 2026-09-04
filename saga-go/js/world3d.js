@@ -261,6 +261,39 @@
     return W ? W.current().key : 'clear';
   }
 
+  /**
+   * HDRI 환경광(IBL) — Poly Haven CC0 "Alps Field"(사가의숲이 이미 쓰는 파일을
+   * 그대로 재사용, `assets/ASSET_LICENSES.md` 참고). 2026-09-04, 사용자가
+   * "재질을 실사처럼" 요청해 얹는다. **하늘 색은 안 바꾼다** — `scene.background`
+   * 는 그대로 `lightingAt()` 의 시각별 색에 맡기고, `scene.environment` 에만
+   * 물려 PBR 재질(GLB 인물·건물)의 반사·거칠기만 사실적으로 만든다.
+   *
+   * **밤에 대낮 하늘이 그대로 비치면 안 된다** — 이 판은 예전에 ACES
+   * 톤매핑을 걸었다가 밤 화면이 통째로 날아간 사고를 겪었다(`post3d.js`
+   * 머리말 "ACES 로 갔다가 물러섰다" 참고). 같은 사고를 되풀이하지 않으려고
+   * 톤매핑 곡선은 손 안 대고, 대신 환경광 **세기 자체**를 `syncLight()` 에서
+   * `hemi.intensity`(이미 낮·밤·날씨별로 손으로 맞춰 둔 그 곡선)에 비례해
+   * 매 프레임 같이 낮춘다/올린다 — 이 판의 밤은 원래도 그리 어둡지 않게
+   * 맞춰져 있어(`lightingAt` 의 밤 최저치 주석 참고) 낮과 크게 다투지 않는다.
+   * 못 받아도(느린 회선·file:// 단독판 등) 조용히 넘어가고 옛 조명만으로 돈다.
+   */
+  var IBL_SRC = 'assets/hdri/alps_field_1k.hdr';
+  function IBL_ON() { return core.tuned('world3d.ibl', 1) ? true : false; }
+  /** 얼마나 세게 섞나 — hemi.intensity(대략 1.4~1.7) 에 곱하는 비율.
+   *  너무 세면 반사가 재질 색을 삼킨다(눈으로 보고 0.30으로 정함) */
+  function IBL_SCALE() { return core.tuned('world3d.iblScale', 0.30); }
+  function loadEnvironment() {
+    if (!IBL_ON() || !T.RGBELoader || !T.PMREMGenerator || !renderer) { return; }
+    var pmrem = new T.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    new T.RGBELoader().load(IBL_SRC, function (hdr) {
+      var envMap = pmrem.fromEquirectangular(hdr).texture;
+      if (scene) { scene.environment = envMap; }
+      hdr.dispose();
+      pmrem.dispose();
+    }, undefined, function () { pmrem.dispose(); });
+  }
+
   /* ── 켜기 ─────────────────────────────────────────────── */
 
   function init(cv) {
@@ -328,6 +361,7 @@
        뒤에 만드는 재질이 모두 그 상태로 컴파일된다. 늦게 켜면 씬 전체가
        한 번 다시 컴파일되며 화면이 멎는다 */
     if (global.DG.post3d) { global.DG.post3d.init(T, renderer); }
+    loadEnvironment();
 
     groundGroup = new T.Group(); scene.add(groundGroup);
     propGroup = new T.Group(); scene.add(propGroup);
@@ -2293,6 +2327,10 @@
     sky.color.setHex(L.hemi.sky);
     sky.groundColor.setHex(L.hemi.ground);
     sky.intensity = L.hemi.intensity;
+    /* IBL 세기도 같은 낮·밤·날씨 곡선을 탄다 — 위 loadEnvironment() 머리말 참고 */
+    if (scene.environmentIntensity !== undefined) {
+      scene.environmentIntensity = L.hemi.intensity * IBL_SCALE();
+    }
     if (scene.background && scene.background.setHex) { scene.background.setHex(L.bg); }
     renderer.setClearColor(L.bg, 1);
     if (scene.fog) {
@@ -2577,7 +2615,8 @@
         size: canvas ? (canvas.width + 'x' + canvas.height) : '-',
         cam: camera ? ([camera.position.x, camera.position.y, camera.position.z]
           .map(function (v) { return Math.round(v); }).join(',')) : '-',
-        failed: failed, ready: ready, wanted: wanted()
+        failed: failed, ready: ready, wanted: wanted(),
+        ibl: scene ? ((scene.environment ? 'on×' + (scene.environmentIntensity || 0).toFixed(2) : 'off')) : '-'
       };
     }
   };
