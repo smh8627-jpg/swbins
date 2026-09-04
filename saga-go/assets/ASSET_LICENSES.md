@@ -6,6 +6,9 @@
 이 저장소는 공개다(<https://github.com/smh8627-jpg/swbins>). 그래서 재배포가
 허용되지 않는 에셋은 애초에 받지 않는다.
 
+**폴리곤 수·텍스처 실측 크기·용량 같은 기술 값은 여기 안 적는다** — `SAGA WEB.md`
+16절 형식 그대로 `ASSET_CATALOG.md`가 따로 갖고 있다. 여기는 출처·라이선스만.
+
 ---
 
 ## Quaternius — 저지대 다각형(low-poly) 묶음
