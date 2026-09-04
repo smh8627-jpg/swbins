@@ -343,10 +343,35 @@
     return c.state === 'ok' ? { url: url, parts: c.parts } : null;
   }
 
-  /** 표에 적힌 것을 미리 받아 둔다 — 첫 화면에서 도형이 나무로 바뀌는 티를 줄인다 */
+  /* 시작 자리(0,0)는 마을 한복판이라(`land.js`) 이 안은 늘 눈에 든다 — 그래서
+     미리 받는다. **`peak`·`cave`·`ruin`·`shrine`·`bridge` 는 뺐다** — 굴·폐허·
+     사당은 46절이 못박은 "숨은 곳"이고, 산봉우리·다리는 손그림 땅 가장자리다.
+     처음 화면에 안 잡히므로 다가갈 때 `parts()` 가 그 자리에서 받는다
+     (SAGA WEB.md 7절 "현재 지역 것만 로딩" — 새 창고를 만들지 않고 이미 있던
+     지연 로딩 길을 그냥 막지 않기만 하면 됐다). */
+  var EAGER_KIND = ['tree', 'pine', 'rock', 'grass', 'house', 'tower', 'lamp', 'rice', 'well', 'market'];
+
+  /** 미리 받을 것만 — 지금 철이 아닌 나무 변종(가을·겨울)도 뺀다 */
+  function eagerUrls() {
+    var out = [], sk = seasonKey(), i, k, s, e, list, j;
+    for (i = 0; i < EAGER_KIND.length; i++) {
+      k = EAGER_KIND[i];
+      e = REG[k];
+      if (!e) { continue; }
+      for (s in e) {
+        if (!e.hasOwnProperty(s)) { continue; }
+        if (s !== 'all' && s !== sk) { continue; }   // 다른 철은 다가갈 때 받는다
+        list = e[s];
+        for (j = 0; j < list.length; j++) { if (out.indexOf(list[j]) < 0) { out.push(list[j]); } }
+      }
+    }
+    return out;
+  }
+
+  /** 첫 화면(마을 둘레)에 잡히는 것만 미리 받는다 — 나머지는 다가갈 때 */
   function preload() {
     if (!three() || !ON()) { return 0; }
-    var list = urls(), i, n = 0;
+    var list = eagerUrls(), i, n = 0;
     for (i = 0; i < list.length; i++) { acquire(list[i]); n++; }
     return n;
   }
@@ -360,7 +385,7 @@
       else { load++; }
     }
     return {
-      on: ON(), season: seasonKey(), listed: urls().length,
+      on: ON(), season: seasonKey(), listed: urls().length, eager: eagerUrls().length,
       ok: ok, fail: fail, loading: load, arrived: arrived,
       mats: Object.keys(matCache).length
     };
@@ -370,7 +395,7 @@
   global.DG.prop3d = {
     REG: REG, register: register,
     /* 값을 내는 함수 — three 없이도 돈다 (자가진단이 이것만 따로 본다) */
-    pick: pick, urls: urls, seasonKey: seasonKey, ready: ready, casts: casts,
+    pick: pick, urls: urls, eagerUrls: eagerUrls, seasonKey: seasonKey, ready: ready, casts: casts,
     houseOn: houseOn, heightMul: heightMul,
     /* 그림 층 */
     parts: parts, preload: preload, stats: stats,
