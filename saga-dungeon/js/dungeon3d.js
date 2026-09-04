@@ -476,9 +476,21 @@
    *  `MeshLambertMaterial`이라 원소(환경맵) 처리는 그대로 간다 — 재질
    *  종류 자체는 안 바꿨다. 색은 여전히 층 테마(`stone`)가 물들인다
    *  (텍스처 × material.color, three 기본 동작) — 사용자가 IBL 이후에도
-   *  요구한 "층마다 다른 색"은 그대로 산다. */
-  var FLOOR_TEX = 'assets/textures/dungeon/floor_stone.webp';
-  var WALL_TEX = 'assets/textures/dungeon/wall_stone.webp';
+   *  요구한 "층마다 다른 색"은 그대로 산다.
+   *  2026-09-04(이어서) — 사용자가 "단조로운 텍스처"라고 짚었다: 방마다
+   *  같은 그림 하나만 반복되면 층 테마 색만 다를 뿐 다 같은 방으로 보인다.
+   *  나무·바위처럼 **여러 장 중 방 씨앗으로 하나씩** 고르게 늘렸다(새 판정
+   *  없음 — `buildClutter`가 귀퉁이 소품을 고르는 것과 같은 요령). */
+  var FLOOR_TEX = ['assets/textures/dungeon/floor_stone.webp',
+    'assets/textures/dungeon/floor_stone_2.webp', 'assets/textures/dungeon/floor_stone_3.webp'];
+  var WALL_TEX = ['assets/textures/dungeon/wall_stone.webp',
+    'assets/textures/dungeon/wall_stone_2.webp', 'assets/textures/dungeon/wall_stone_3.webp'];
+  function pickTex(list, run, salt) {
+    var F = global.DG.field3d;
+    if (!F) { return list[0]; }
+    var h = F.seedOf(run.floor, run.roomIdx, salt);
+    return list[h % list.length];
+  }
   var TILE = 70;               // 세계 단위 하나당 텍스처 한 칸 (바닥·벽 공통)
   var rawTexCache = {};
   function rawTex(url) {
@@ -568,9 +580,11 @@
       floorMesh.receiveShadow = true;
       scene.add(floorMesh);
     }
+    var floorTex = pickTex(FLOOR_TEX, run, 'floortex');
+    var wallTex = pickTex(WALL_TEX, run, 'walltex');
     floorMesh.position.set(W / 2, 0, H / 2);
     floorMesh.scale.set(W, H, 1);
-    floorMesh.material = texMat(mix(stone, 0x1a1a20, 0.25), FLOOR_TEX, W / TILE, H / TILE);
+    floorMesh.material = texMat(mix(stone, 0x1a1a20, 0.25), floorTex, W / TILE, H / TILE);
 
     /* 벽 넷 — 뒤쪽 둘은 높고 앞쪽 둘은 낮다. 안 낮추면 방 안이 안 보인다.
        마을(run.town)은 사방으로 필드에 걸어 나갈 수 있는데(town.js 의
@@ -579,10 +593,10 @@
        2026-09-04 — 바닥과 같은 이유로 돌벽 텍스처(Poly Haven CC0)를 입혔다.
        색은 여전히 층 테마(`stone`)가 물들인다(텍스처 × material.color) */
     var lo = 16, hi = run.town ? lo : 70;
-    texBox(wallGroup, W / 2, hi / 2, -WALL / 2, W + WALL * 2, hi, WALL, stone, WALL_TEX, true);
-    texBox(wallGroup, -WALL / 2, hi / 2, H / 2, WALL, hi, H, stone, WALL_TEX, true);
-    texBox(wallGroup, W / 2, lo / 2, H + WALL / 2, W + WALL * 2, lo, WALL, mix(stone, 0x000000, 0.3), WALL_TEX, false);
-    texBox(wallGroup, W + WALL / 2, lo / 2, H / 2, WALL, lo, H, mix(stone, 0x000000, 0.3), WALL_TEX, false);
+    texBox(wallGroup, W / 2, hi / 2, -WALL / 2, W + WALL * 2, hi, WALL, stone, wallTex, true);
+    texBox(wallGroup, -WALL / 2, hi / 2, H / 2, WALL, hi, H, stone, wallTex, true);
+    texBox(wallGroup, W / 2, lo / 2, H + WALL / 2, W + WALL * 2, lo, WALL, mix(stone, 0x000000, 0.3), wallTex, false);
+    texBox(wallGroup, W + WALL / 2, lo / 2, H / 2, WALL, lo, H, mix(stone, 0x000000, 0.3), wallTex, false);
 
     /* 방마다 다른 소품 — 상자·우물·사당은 판정이 자리를 정해 준다 */
     var r = run.room;

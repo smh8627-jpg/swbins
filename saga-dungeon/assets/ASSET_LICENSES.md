@@ -16,10 +16,10 @@
 
 | | |
 |---|---|
-| **만든 이** | Poly Haven (<https://polyhaven.com>) — `monastery_stone_floor`·`castle_wall_slates` |
+| **만든 이** | Poly Haven (<https://polyhaven.com>) — `monastery_stone_floor`·`stone_tiles_02`·`mixed_rock_tiles`(바닥) · `castle_wall_slates`·`stone_wall_04`·`medieval_blocks_05`(벽) |
 | **라이선스** | CC0 1.0 — 재배포 자유, 표시 의무 없음 |
-| **받은 곳** | `api.polyhaven.com/files/<slug>`로 1k jpg 원본을 받아(md5를 API 응답과 대조해 확인) 768px로 줄이고 WebP(품질 85)로 재인코딩 — `monastery_stone_floor_diff_1k.jpg`(766KB) → `floor_stone.webp`(92KB), `castle_wall_slates_diff_1k.jpg`(611KB) → `wall_stone.webp`(174KB) |
-| **파일** | `textures/dungeon/floor_stone.webp`(방 바닥) · `textures/dungeon/wall_stone.webp`(방 경계 벽 넷) |
+| **받은 곳** | `api.polyhaven.com/files/<slug>`로 1k jpg 원본을 받아(md5를 API 응답과 대조해 확인) 768px로 줄이고 WebP(품질 85)로 재인코딩 |
+| **파일** | `textures/dungeon/floor_stone.webp`(92KB)·`floor_stone_2.webp`(114KB, `stone_tiles_02`)·`floor_stone_3.webp`(95KB, `mixed_rock_tiles`) — 방 바닥. `wall_stone.webp`(174KB)·`wall_stone_2.webp`(152KB, `stone_wall_04`)·`wall_stone_3.webp`(150KB, `medieval_blocks_05`) — 방 경계 벽 넷 |
 
 사용자가 "바닥·벽 텍스처부터 받아와서 적용해 달라"고 요청 — 다섯 판 어디에도
 재사용할 만한 돌바닥/돌벽 텍스처가 없어서(사가고 텍스처는 야외 지형용,
@@ -28,6 +28,11 @@
 diffuse 한 장만 쓰고(노멀·러프니스 맵 없음), 재질은 여전히
 `MeshLambertMaterial`이라 다른 소품과 재질 종류가 갈리지 않는다. 색은
 층 테마(`stone`)가 텍스처 위에 그대로 곱해져 "층마다 다른 색"이 산다.
+
+**2026-09-04(이어서)** — 처음엔 바닥·벽 각 한 장뿐이라 사용자가 "단조로운
+텍스처"라고 짚었다. 나무·바위처럼 방 씨앗(`field3d.seedOf`)으로 셋 중
+하나씩 고르게 늘렸다(`pickTex()`) — 판정 없는 순수 장식 선택이라
+`buildClutter`와 같은 요령을 그대로 빌렸다.
 
 ## Quaternius — RPG Character Pack (2026-09-03, 사람 기본, `models/people/quaternius_rpg/`)
 
