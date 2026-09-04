@@ -337,6 +337,30 @@
     return Math.max(-1, Math.min(1, a));
   }
 
+  /** HDRI 환경광(IBL) — 사가고·사가의숲이 쓰는 것과 **같은 파일**(Poly Haven
+   *  CC0 "Alps Field", md5 까지 같다)을 재사용한다. 사용자가 "사가고처럼
+   *  실사화" 를 요청해 얹었다(2026-09-04) — 사가고도 사람 리그 자체는
+   *  막다른 길이라 포기하고 **재질 반사만** 이걸로 개선했다, 여기도 같은
+   *  선택. `scene.background`·톤매핑(`post3d.js`, `NeutralToneMapping`으로
+   *  이미 손으로 맞춘 값)은 **안 건드린다** — `scene.environment` 에만
+   *  물려 PBR·Lambert 재질의 반사 성분만 사실적으로 만든다. HDR 을 못 받아도
+   *  (오프라인 등) 그냥 옛 HemisphereLight+DirectionalLight+횃불만으로
+   *  조용히 돈다. */
+  var HDRI_SRC = 'assets/hdri/alps_field_1k.hdr';
+  function loadEnvironment() {
+    if (!T.RGBELoader || !renderer) { return; }
+    var pmrem = new T.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    new T.RGBELoader().load(HDRI_SRC, function (hdr) {
+      var envMap = pmrem.fromEquirectangular(hdr).texture;
+      if (scene) { scene.environment = envMap; }
+      hdr.dispose();
+      pmrem.dispose();
+    }, undefined, function () {
+      pmrem.dispose();   // 못 받아도 조용히 — 옛 조명만으로 그대로 돈다
+    });
+  }
+
   /* ── 켜기 ───────────────────────────────────────────── */
 
   function init(el) {
@@ -402,6 +426,8 @@
     /* 후처리 — 톤매핑·블룸·색보정·SSAO(사가고에서 그대로 옮겨 옴). ssao3d 는
        post3d 가 제 렌더러로 알아서 켠다(post3d.js 의 init() 끝자락 참고) */
     if (global.DG.post3d) { global.DG.post3d.init(T, renderer); }
+
+    loadEnvironment();
 
     ready = true;
     resize();
