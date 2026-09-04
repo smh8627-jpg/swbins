@@ -97,6 +97,29 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 대역으로 썼고, 모닥불은 도형(잿더미+빛나는 불씨) 그대로였다. 둘 다 GLB 를
 못 받으면 여전히 그 도형으로 조용히 돌아간다(fallback).
 
+## Poly Haven — 나무·바위·수풀·통나무 사진측량 스캔 (2026-09-04, `saga-forest`에서 옮김, `models/nature/realistic/`)
+
+| | |
+|---|---|
+| **만든 이** | Rob Tuytel·Rico Cilliers(`island_tree_02`) · James Ray Cock·Dario Barresi·Rico Cilliers(`dead_quiver_trunk`) · Jenelle van Heerden(`rock_07`) · Dario Barresi·Rico Cilliers(`stone_01`) · Kless Gyzen(`rock_moss_set_01`) · Rico Cilliers(`shrub_04`) · Rob Tuytel(`dead_tree_trunk`) · Jenelle van Heerden·Rico Cilliers(`dead_tree_trunk_02`) — 전부 Poly Haven (<https://polyhaven.com>) |
+| **라이선스** | CC0 1.0 — 재배포 자유, 표시 의무 없음 |
+| **받은 곳** | `saga-forest`가 2026-09-03에 이미 받아 심플리파이·리사이즈·jpeg 압축까지 끝내 둔 파일을 그대로 복사(md5 동일로 확인). 변환 경위(정점 수·감량률 등 실측)는 `../saga-forest/assets/ASSET_LICENSES.md`의 같은 제목 절 참고 |
+
+사용자가 "사가고처럼 실사화" 요청 → 조사해 보니 **사람은 막다른 길**이었다
+(Mixamo 재배포 금지, 대안 CC0 팩은 애니메이션 0개 — `saga-go/HANDOFF.md`
+2026-09-04 절 참고). 대신 사가의숲이 이미 검증한 자연물 실사화만 옮겼다.
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `models/nature/realistic/IslandTree_02.glb` | **나무**(`tree`) |
+| `models/nature/realistic/TreeDead.glb` | **고목**(`tree_dead`) — 늪(swamp) Biome 에도 쓰인다 |
+| `models/nature/realistic/Rock_07.glb`·`Stone_01.glb`·`MossRock_a·b·c.glb` | **바위**(`rock`, 다섯 다 한 표) |
+| `models/nature/realistic/Shrub_04.glb` | **덤불**(`bush`) |
+| `models/nature/realistic/Log_a.glb`·`Log_b.glb` | **통나무**(`log`) |
+
+옛 저다각형 Quaternius 셋(`CommonTree_*`·`Rock_*`·`Bush_*`·`WoodLog.glb`)은
+지우지 않았다 — `js/asset3d.js`의 `NATURE_STYLIZED`가 되돌림 자리다.
+
 ## Quaternius — 마을(모루골) 건물 (`models/buildings/`)
 
 같은 만든 이·라이선스(CC0). 마을을 3D로 세우며(`town.js`의 `DECOR`) 추가로

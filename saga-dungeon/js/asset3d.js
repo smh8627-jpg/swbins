@@ -38,6 +38,7 @@
   var PEOPLE = 'assets/models/people/regular/';
   var ANIM_DIR = 'assets/models/anim/';
   var NATURE = 'assets/models/nature/';
+  var NATURE_REAL = 'assets/models/nature/realistic/';
   var ANIMALS = 'assets/models/animals/';
   var PROPS = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
@@ -51,6 +52,19 @@
     var f = PEOPLE_QRPG + n + '.glb';
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
+
+  /* 2026-09-04 — 나무·바위·덤불·통나무 실사화(사람은 Mixamo 재배포 금지로
+     막다른 길, 자연물만 간다 — `saga-forest`가 이미 검증한 Poly Haven CC0
+     사진측량 스캔을 그대로 복사해 옮겼다, `ASSET_LICENSES.md` 참고). 저다각형
+     Quaternius 셋은 지우지 않고 여기 남겨 둔다 — 안 맞으면 DEFAULTS 의 해당
+     줄을 이 값으로 되돌리면 그만이다. */
+  var NATURE_STYLIZED = {
+    'tree': [NATURE + 'CommonTree_1.glb', NATURE + 'CommonTree_2.glb', NATURE + 'CommonTree_3.glb'],
+    'tree_dead': NATURE + 'CommonTree_Dead_1.glb',
+    'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb', NATURE + 'Rock_Moss_1.glb'],
+    'bush': [NATURE + 'Bush_1.glb', NATURE + 'Bush_2.glb'],
+    'log': NATURE + 'WoodLog.glb'
+  };
 
   /* 옛 조합형 — 표 기본에서는 빠졌다. 지우지 않고 남겨 둔다(되돌림 자리) */
   var HERO_RECIPES_FALLBACK = [
@@ -81,13 +95,21 @@
     /* 몬스터 다양화 — 코끼리병처럼 몸집 큰 짐승 형 적은 소 GLB 로 대신한다
        (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
     'beast_big': ANIMALS + 'Cow.glb',
-    'tree': [NATURE + 'CommonTree_1.glb', NATURE + 'CommonTree_2.glb', NATURE + 'CommonTree_3.glb'],
-    /* 2026-09-04 — 늪(swamp) Biome 전용. 같은 결의 저다각형(다른 나무와
-       스타일이 갈리지 않게, Poly Haven 사실적 스캔이 아니라 이 팩의 것을 썼다) */
-    'tree_dead': NATURE + 'CommonTree_Dead_1.glb',
-    /* 2026-09-04 — PLAN 7절 "이끼"를 마저 채웠다. 넷 중 하나로 섞여 든다
-       (다른 셋과 같은 결·씨앗 요령, 새 코드 없이 표만 늘렸다) */
-    'rock': [NATURE + 'Rock_1.glb', NATURE + 'Rock_2.glb', NATURE + 'Rock_3.glb', NATURE + 'Rock_Moss_1.glb'],
+    /* 2026-09-04(이어서) — 사용자가 "사가고처럼 실사화"를 요청 → 사람은
+       막다른 길(Mixamo 재배포 금지, 위 delam 주석 참고)이라 자연물만
+       Poly Haven CC0 사진측량 스캔으로 갈아 끼웠다(`island_tree_02`,
+       `saga-forest`가 이미 88% 심플리파이해 둔 4.86MB 짜리를 그대로 복사).
+       옛 셋은 `NATURE_STYLIZED.tree`에 되돌림 자리로 남음 */
+    'tree': NATURE_REAL + 'IslandTree_02.glb',
+    /* 2026-09-04(이어서) — 같은 실사화, Poly Haven `dead_quiver_trunk`(선 채
+       마른 줄기). 늪(swamp) Biome 에도 이 값이 그대로 쓰인다 */
+    'tree_dead': NATURE_REAL + 'TreeDead.glb',
+    /* 2026-09-04(이어서) — 같은 실사화. `saga-forest`가 처음 갈아 끼웠던 5종
+       그대로(맑은 바위 Rock_07·Stone_01 + 이끼 바위 MossRock_a·b·c) — 이 판은
+       바위를 결 하나(`rock`)로만 두므로 다섯을 한 표에 섞는다(`rock:moss`로
+       가르지 않는다, PLAN 7절 "이끼"는 이 다섯 중 셋이 그대로 맡는다) */
+    'rock': [NATURE_REAL + 'Rock_07.glb', NATURE_REAL + 'Stone_01.glb',
+      NATURE_REAL + 'MossRock_a.glb', NATURE_REAL + 'MossRock_b.glb', NATURE_REAL + 'MossRock_c.glb'],
     /* 폐허의 기둥·무너진 벽 — 딱 맞는 "부러진 돌기둥" 낱개는 못 찾아
        `Arch.glb`(무너진 아치)로 대신한다. 사가고가 이미 같은 후보를 적어 뒀다
        (`saga-go/assets/ASSET_LICENSES.md` "사당·폐허의 다른 후보") */
@@ -113,9 +135,14 @@
        (field3d.js `clutterAt()`) */
     'grass': [NATURE + 'Grass_2.glb', NATURE + 'Grass_Short.glb'],
     'flower': NATURE + 'Flowers.glb',
-    'bush': [NATURE + 'Bush_1.glb', NATURE + 'Bush_2.glb'],
+    /* 2026-09-04(이어서) — 같은 실사화. Poly Haven `shrub_04`(세로로 선 다발이라
+       이 판의 normalize()가 옆으로 안 늘린다, `saga-forest` 주석 참고) */
+    'bush': NATURE_REAL + 'Shrub_04.glb',
     'mushroom': [PROPS + 'Mushroom_1.glb', PROPS + 'Mushroom_2.glb'],
-    'log': NATURE + 'WoodLog.glb',
+    /* 2026-09-04(이어서) — 같은 실사화. Poly Haven `dead_tree_trunk`·
+       `dead_tree_trunk_02`(이름과 달리 쓰러진 통나무 — tree_dead가 아니라
+       여기 자리가 원래 뜻에 맞는다, `saga-forest` 주석 참고) */
+    'log': [NATURE_REAL + 'Log_a.glb', NATURE_REAL + 'Log_b.glb'],
     /* 마을(모루골) 건물 — 집 넷은 자리마다 씨앗으로 섞어 세운다(나무·바위와 같은 요령) */
     'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
     'well': BLD + 'Well.glb',
