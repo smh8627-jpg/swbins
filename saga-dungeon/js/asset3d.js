@@ -206,7 +206,14 @@
        dungeon.js의 makeDoors)은 다음 층으로 내려가는 자리인데, 3D는 여태
        다른 문과 똑같은 아치(dg:door)로만 그려 2D의 🪜 표시와 결이 안 맞았다.
        같은 KayKit 팩에서 실물 계단을 받아 이 문 하나만 갈아 끼운다 */
-    'dg:stairs': DUN + 'stairs_wide.gltf.glb'
+    'dg:stairs': DUN + 'stairs_wide.gltf.glb',
+    /* 2026-09-04(이어서) — SAGA WEB.md "F. 소품" 목록의 "초"·"병". 같은
+       KayKit 팩에서 받았다 — 키(key)·접시 더미는 세로가 짧고 가로가 길어
+       (`normalize()`가 세로 기준으로 키를 맞추면 가로가 배로 부푼다) 이번엔
+       건너뛰었다(침대·접시·열쇠는 세로가 주된 치수가 아니라 이 파이프라인과
+       안 맞는다 — 부록 "안 되면 안 된다고 보고한다") */
+    'dg:candle': DUN + 'candle_lit.gltf.glb',
+    'dg:bottle': DUN + 'bottle_a_green.gltf.glb'
   };
   var REG = {};
   function restore() { var k; for (k in DEFAULTS) { if (DEFAULTS.hasOwnProperty(k)) { REG[k] = DEFAULTS[k]; } } return REG; }
