@@ -1507,9 +1507,28 @@
     var bgHex = FX ? FX.hurtTint(L.bgHex, p0.hurt, lowHp) : L.bgHex;
     if (FX) { amb.color.setHex(FX.hurtTint(L.ambientHex, p0.hurt, lowHp * 0.6)); }
 
-    if (!scene.fog) { scene.fog = new T.Fog(bgHex, L.fog.near, L.fog.far); }
+    /* 안개 거리를 **실제로 세운 들판 반경**(`FIELD_R()`, 등급마다 다르다)을
+       넘지 않게 누른다. `lightPlan()`이 못박은 안개값(마을 far 2100 등)이
+       세운 땅의 가장자리보다 훨씬 멀면, 안개가 다 가리기도 전에 땅이 먼저
+       끊겨 그 자리가 배경색 그대로 드러난다 — **네 번째 재조사(2026-09-04)
+       진짜 원인**. 마을은 조명이 밝아(`lightPlan`의 town 가지) 안 가려진
+       가장자리 땅이 거의 원래 밝기 그대로 보이다가 뚝 끊기니 "각진 새까만
+       사각형"으로 도드라졌다 — LOW 등급(`FIELD_R()`=2, 가장자리 500)은
+       안개 시작(near 620)보다도 세운 땅이 짧아 아예 안개를 한 번도 못
+       거치고 끊겼다. 세운 가장자리에서 **정확히** 안개가 다 덮이게 맞춘다. */
+    var fogNear = L.fog.near, fogFar = L.fog.far;
+    if (FIELD()) {
+      var F2 = global.DG.field3d;
+      if (F2) {
+        var builtEdge = (FIELD_R() + 0.5) * F2.CHUNK;
+        fogFar = Math.min(fogFar, builtEdge);
+        fogNear = Math.min(fogNear, builtEdge * 0.4);
+        if (fogNear >= fogFar) { fogNear = fogFar * 0.4; }
+      }
+    }
+    if (!scene.fog) { scene.fog = new T.Fog(bgHex, fogNear, fogFar); }
     scene.fog.color.setHex(bgHex);
-    scene.fog.near = L.fog.near; scene.fog.far = L.fog.far;
+    scene.fog.near = fogNear; scene.fog.far = fogFar;
     scene.background = new T.Color(bgHex);
 
     var p = run.player;
