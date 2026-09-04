@@ -591,42 +591,59 @@
     c.fillStyle = '#3a352e'; c.fillRect(0, 0, S, S);
 
     var k = S / span;
+    /* 경계를 **들쭉날쭉하게** 흐린다 — 칸 하나를 통째로 한 종류로 칠하고
+       가장자리 알파만 낮추면(옛 방식) 여전히 자로 그은 듯한 줄이 남는다
+       (2026-09-04, 스크린샷으로 실제로 확인). 칸을 잘게 나눠(`SUB`) 조각마다
+       "이 종류로 칠할까, 다른 종류가 새어 들어올까"를 해시로 굴린다 —
+       경계에 가까운 조각일수록 이웃 종류가 섞여 들어올 확률이 높다.
+       실제 생태 경계가 직선이 아니라 서로 스미는 것과 같은 이치다 */
+    var SUB = 4, subSpan = GRID / SUB, sx, sy;
     for (gy = g0y; gy <= g1y; gy++) {
       for (gx = g0x; gx <= g1x; gx++) {
         var kind = W.terrainAt(gx, gy);
-        /* 가장자리 흐리기 — `landTexture`와 같은 규칙(이웃 넷 중 같은 종류인
-           몫만큼 진하게). 종류가 자주 바뀌는 절차적 세계라 여기서 훨씬 자주
-           걸린다 — 바로 이 흐림이 "칸마다 뚝뚝 끊기던" 그 경계를 없앤다 */
-        var near = 0;
-        if (W.terrainAt(gx + 1, gy) === kind) { near++; }
-        if (W.terrainAt(gx - 1, gy) === kind) { near++; }
-        if (W.terrainAt(gx, gy + 1) === kind) { near++; }
-        if (W.terrainAt(gx, gy - 1) === kind) { near++; }
-        c.globalAlpha = near === 4 ? 1 : (0.7 + 0.075 * near);
-        var baseCol = LAND_COLOR[kind] || LAND_COLOR.grass;
-        if (SSk) { baseCol = SSk.landColor(kind, baseCol); }
-        var rx = Math.round((gx * GRID - x0) * k);
-        var ry = Math.round((gy * GRID - y0) * k);
-        var rw = Math.round((gx * GRID + GRID - x0) * k) - rx;
-        var rh = Math.round((gy * GRID + GRID - y0) * k) - ry;
-        var pat = landPattern(c, kind, gx * GRID, gy * GRID, k);
-        if (pat) {
-          c.fillStyle = pat;
-          c.fillRect(rx, ry, rw, rh);
-          var seasonAlpha = c.globalAlpha;
-          c.globalAlpha = seasonAlpha * 0.30;
-          c.globalCompositeOperation = 'multiply';
-          c.fillStyle = baseCol;
-          c.fillRect(rx, ry, rw, rh);
-          c.globalCompositeOperation = 'source-over';
-          c.globalAlpha = seasonAlpha;
-        } else {
-          c.fillStyle = shadeHex(baseCol, (h1(gx * 17 + 5, gy * 23 + 9) - 0.5) * 0.06);
-          c.fillRect(rx, ry, rw, rh);
+        var kL = W.terrainAt(gx - 1, gy), kR = W.terrainAt(gx + 1, gy);
+        var kT = W.terrainAt(gx, gy - 1), kB = W.terrainAt(gx, gy + 1);
+        for (sy = 0; sy < SUB; sy++) {
+          for (sx = 0; sx < SUB; sx++) {
+            var u = (sx + 0.5) / SUB, v = (sy + 0.5) / SUB;
+            var useKind = kind, bestD = 1, bestK = null;
+            if (kL !== kind && u < bestD) { bestD = u; bestK = kL; }
+            if (kR !== kind && (1 - u) < bestD) { bestD = 1 - u; bestK = kR; }
+            if (kT !== kind && v < bestD) { bestD = v; bestK = kT; }
+            if (kB !== kind && (1 - v) < bestD) { bestD = 1 - v; bestK = kB; }
+            if (bestK) {
+              var zone = 0.34;
+              if (bestD < zone) {
+                var seep = 1 - bestD / zone;
+                var jitter = h1(gx * 97 + sx * 13 + 3, gy * 131 + sy * 17 + gx * 11);
+                if (jitter < seep * 0.85) { useKind = bestK; }
+              }
+            }
+            var wx = gx * GRID + sx * subSpan, wy = gy * GRID + sy * subSpan;
+            var rx = Math.round((wx - x0) * k);
+            var ry = Math.round((wy - y0) * k);
+            var rw = Math.round((wx + subSpan - x0) * k) - rx;
+            var rh = Math.round((wy + subSpan - y0) * k) - ry;
+            var baseCol = LAND_COLOR[useKind] || LAND_COLOR.grass;
+            if (SSk) { baseCol = SSk.landColor(useKind, baseCol); }
+            var pat = landPattern(c, useKind, gx * GRID, gy * GRID, k);
+            if (pat) {
+              c.fillStyle = pat;
+              c.fillRect(rx, ry, rw, rh);
+              c.globalAlpha = 0.30;
+              c.globalCompositeOperation = 'multiply';
+              c.fillStyle = baseCol;
+              c.fillRect(rx, ry, rw, rh);
+              c.globalCompositeOperation = 'source-over';
+              c.globalAlpha = 1;
+            } else {
+              c.fillStyle = shadeHex(baseCol, (h1(gx * 17 + 5 + sx, gy * 23 + 9 + sy) - 0.5) * 0.06);
+              c.fillRect(rx, ry, rw, rh);
+            }
+          }
         }
       }
     }
-    c.globalAlpha = 1;
 
     var tex2 = new T.CanvasTexture(cv);
     tex2.colorSpace = T.SRGBColorSpace;
