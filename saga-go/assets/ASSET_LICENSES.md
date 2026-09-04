@@ -517,12 +517,45 @@ Spanish Arch는 확장자는 깨끗했지만 simplify 오차 허용치를 5%까�
 | `peak`(산봉우리) | `mountainside.glb`(절벽·산비탈 사진측량 스캔) |
 | `lamp`(등롱) | `wooden_lantern.glb`(`wooden_lantern_01`, 집·탑을 준 `smugglers_cove` 컬렉션과 같은 계열) |
 
-**우물·장터·사당·굴·폐허·다리·벼는 이번에도 못 찾았다** — Poly Haven
-전체 카탈로그에 그 모양 자체가 없다(우물·장터·사당 같은 작은 랜드마크
-건물류는 `buildings` 카테고리 13개 중에도, 이름 검색에도 없었다. 다리는
-`modular_wooden_pier`가 있었지만 강을 건너는 다리가 아니라 부두라 어울리지
-않아 뺐다). `js/prop3d.js`의 `PEAK_STYLIZED`·`LAMP_STYLIZED`가 되돌림
-자리다. 자가진단 421/423 3회 동일 — 회귀 없음. **실기기 확인 전이다.**
+**우물·장터·사당·굴·폐허·다리·벼는 Poly Haven엔 그 모양 자체가 없다**
+(우물·장터·사당 같은 작은 랜드마크 건물류는 `buildings` 카테고리 13개
+중에도, 이름 검색에도 없었다. 다리는 `modular_wooden_pier`가 있었지만
+강을 건너는 다리가 아니라 부두라 어울리지 않아 뺐다). `js/prop3d.js`의
+`PEAK_STYLIZED`·`LAMP_STYLIZED`가 되돌림 자리다. 자가진단 421/423 3회
+동일 — 회귀 없음. **다섯(우물·장터·사당·굴·폐허) 은 Sketchfab에서 뒤이어
+찾았다 — 바로 아래 절.** 다리·벼는 끝내 못 찾았다(이 절 아래에서 계속).
+
+## Sketchfab — 우물·장터·사당·굴·폐허 (다섯 벌 더)
+
+2026-09-04(같은 날, "마저 찾아봐줘"), Poly Haven에 없던 나머지 다섯을
+Sketchfab CC0 필터로 찾았다(역참 때 쓴 그 API 토큰·같은 파이프라인 —
+`optimize` 명령 하나로 다듬음). **전부 그 물건 자체는 아니다** — 사용자가
+"성채가 아니여도 됨"·"역참도 [아니여도 됨]"으로 이미 승인한 범위를 그대로
+이어 받았다. 원본 크기는 raw GLB(Sketchfab 다운로드), 결과는 `optimize` 뒤.
+
+| 이 판 소품 | 원본 이름 | 만든 이 / 출처 | 원본→결과 | 파일 |
+|---|---|---|---|---|
+| `well`(우물) | Ballinsloe Well Low | 아일랜드 문화유산 사진측량(2020년 발굴된 원형 우물) | 16.88MB→917KB | `models/buildings/realistic/well.glb` |
+| `market`(장터 좌판) | Athenry - Market Cross | 아일랜드 애슬렌리 중세 시장 십자가 — 좌판은 아니지만 "장터의 랜드마크"라는 뜻은 같다 | 23MB→859KB | `models/buildings/realistic/market_cross.glb` |
+| `shrine`(사당) | Wayside shrine "Pensive Christ" | 폴란드 크라쿠프 Seweryn Udziela 민족학박물관 디지털화 프로젝트 | 2.67MB→253KB | `models/props/realistic/wayside_shrine.glb` |
+| `cave`(굴 입구) | Toorelectra - Sweathouse | 아일랜드 돌무덤형 한증막(낮은 입구 있는 작은 돌집) — 진짜 광산은 아니지만 굴 입구 자리에 맞는 실루엣 | 4.49MB→1.26MB | `models/props/realistic/sweathouse.glb` |
+| `ruin`(폐허) | Arco Romano De Cabanes | 스페인 카스테욘 로마 시대 아치 유적 — 원작 설명 그대로 "무너진 아치" | 33.29MB→1.27MB | `models/props/realistic/roman_arch.glb` |
+
+라이선스는 다섯 다 Sketchfab API로 `license.slug === 'cc0'` 확인. 다운로드는
+같은 이유로 API 토큰이 필요했다(사용자가 만든 계정, 역참 때와 같은 토큰
+재사용). 확장자는 다섯 다 `extensionsRequired` 가 비어 있어(선택적으로
+쓴 `KHR_materials_unlit` 하나만 있었고 이건 three.js가 기본 지원한다)
+Montroi 때 겪은 위험이 없다. 다듬은 뒤엔 전부 `EXT_texture_webp` 하나뿐.
+
+같은 검색에서 **다리·벼는 끝내 못 찾았다** — "clapper bridge"·
+"packhorse bridge"·"stone footbridge"·"medieval bridge"·"ancient bridge"
+등 10여 개 검색어를 다 돌려도 다리 유적 사진측량은 하나도 없었다(이
+CC0 풀은 아일랜드·스페인 문화유산 디지털화 프로젝트가 대부분이라 다리
+같은 토목 구조물보다는 기념물·석상·건물 쪽에 쏠려 있다). 벼는 애초에
+검색해 보지 않았다 — 이 풀의 성격(유럽 문화유산)상 논이 나올 리 없다.
+`js/prop3d.js`의 `SHRINE_STYLIZED`·`CAVE_STYLIZED`·`RUIN_STYLIZED`·
+`WELL_STYLIZED`·`MARKET_STYLIZED`가 되돌림 자리다. 자가진단 421/423
+3회 동일. **실기기 확인 전이다.**
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 

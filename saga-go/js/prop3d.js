@@ -141,6 +141,19 @@
    *  모양 자체가 없다) — 저다각형 그대로 둔다 */
   var PEAK_STYLIZED = [BASE + 'Mountain_1.glb', BASE + 'Mountain_2.glb'];
   var LAMP_STYLIZED = [PRP + 'WoodenTorch.glb'];
+  /** 2026-09-04(이어서) — "마저 찾아봐줘"로 나머지 다섯도. Poly Haven엔 없어
+   *  Sketchfab CC0 필터로 옮겨 갔다(역참 때 처음 쓴 길). 전부 아일랜드
+   *  문화유산 사진측량이거나(우물·아치·한증막) 그 밖의 유럽 박물관 디지털화
+   *  프로젝트다(길가 성상·시장 십자가). 진짜 그 물건은 아니지만(사당은
+   *  가제보가 아니라 폴란드 길가 성상, 장터는 좌판이 아니라 아일랜드
+   *  시장 십자가) 사용자가 "그거 아니여도 됨"으로 이미 승인한 범위다.
+   *  다리·벼는 이번에도 못 찾았다 — 자세한 조사 이력은
+   *  `assets/ASSET_LICENSES.md` 참고 */
+  var SHRINE_STYLIZED = [PRP + 'Gazebo.glb'];
+  var CAVE_STYLIZED = [PRP + 'Mine.glb'];
+  var RUIN_STYLIZED = [PRP + 'Arch.glb'];
+  var WELL_STYLIZED = [BLD + 'Well.glb'];
+  var MARKET_STYLIZED = [BLD + 'MarketStand_1.glb'];
 
   var REG = {
     tree: {
@@ -188,12 +201,19 @@
     /** 등롱 — 기둥에 빛나는 공 하나였다. **불은 코드가 그대로 얹는다**(밤에만 켠다).
      *  2026-09-04 실사(`wooden_lantern.glb`)로 갈아 끼움. 옛 값은 `LAMP_STYLIZED` */
     lamp: { all: [PRP_REAL + 'wooden_lantern.glb'] },
-    /** 옛 사당 — 정자(Gazebo). 숲 속에서 이것만 사람 손인 자리다 */
-    shrine: { all: [PRP + 'Gazebo.glb'] },
-    /** 굴 입구 — 광산 어귀(Mine). 바위 더미에 검은 반원을 박던 자리 */
-    cave: { all: [PRP + 'Mine.glb'] },
-    /** 폐허 — 무너진 아치. 부러진 기둥 넷을 세우던 자리 */
-    ruin: { all: [PRP + 'Arch.glb'] },
+    /** 옛 사당 — 정자(Gazebo). 숲 속에서 이것만 사람 손인 자리다.
+     *  2026-09-04 실사(`wayside_shrine.glb`, 폴란드 박물관 소장 길가 성상
+     *  디지털화)로 갈아 끼움. 옛 값은 `SHRINE_STYLIZED` */
+    shrine: { all: [PRP_REAL + 'wayside_shrine.glb'] },
+    /** 굴 입구 — 광산 어귀(Mine). 바위 더미에 검은 반원을 박던 자리.
+     *  2026-09-04 실사(`sweathouse.glb`, 아일랜드 돌무덤형 한증막 사진측량 —
+     *  낮은 입구가 있는 작은 돌집이라 굴 입구 자리에 그럭저럭 맞는다)로 갈아
+     *  끼움. 옛 값은 `CAVE_STYLIZED` */
+    cave: { all: [PRP_REAL + 'sweathouse.glb'] },
+    /** 폐허 — 무너진 아치. 부러진 기둥 넷을 세우던 자리.
+     *  2026-09-04 실사(`roman_arch.glb`, 스페인 로마 시대 아치 유적)로 갈아
+     *  끼움. 옛 값은 `RUIN_STYLIZED` */
+    ruin: { all: [PRP_REAL + 'roman_arch.glb'] },
     /** 다리 — 짧은 한 칸을 **여러 개 이어** 강을 건넌다(`propPlan` 이 나눠 놓는다) */
     bridge: { all: [PRP + 'Bridge.glb'] },
     /** 벼 — 논바닥과 두렁은 코드가 그대로 깔고(물 댄 낯이라 모델보다 낫다),
@@ -209,10 +229,15 @@
     /** 우물 — 마을의 제 자리(landmark). **`house` 표에 못 끼운다** — 집은
      *  키(`p.h`) 4~20m 짜리 상자로 정규화되는데, 우물은 원본 키가 그 셋에
      *  하나(1.25m)라 같은 줄에서 골라 쓰면 우물이 집만큼 부풀거나 집이
-     *  우물만큼 쪼그라든다. **제 이름 · 제 작은 `h`** 로 따로 세운다 */
-    well: { all: [BLD + 'Well.glb'] },
-    /** 장터 좌판 — 우물과 같은 까닭으로 따로 뗀다(원본 키 1.05m) */
-    market: { all: [BLD + 'MarketStand_1.glb'] },
+     *  우물만큼 쪼그라든다. **제 이름 · 제 작은 `h`** 로 따로 세운다.
+     *  2026-09-04 실사(`well.glb`, 아일랜드 문화유산 사진측량 "Ballinsloe
+     *  Well Low")로 갈아 끼움. 옛 값은 `WELL_STYLIZED` */
+    well: { all: [BLD_REAL + 'well.glb'] },
+    /** 장터 좌판 — 우물과 같은 까닭으로 따로 뗀다(원본 키 1.05m).
+     *  2026-09-04 실사(`market_cross.glb`, 아일랜드 애슬렌리 시장 십자가
+     *  — 좌판은 아니지만 "장터의 랜드마크"라는 뜻은 같다)로 갈아 끼움.
+     *  옛 값은 `MARKET_STYLIZED` */
+    market: { all: [BLD_REAL + 'market_cross.glb'] },
   };
 
   function register(name, season, urls) {
