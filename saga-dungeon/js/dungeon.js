@@ -926,7 +926,20 @@
   function fieldRadiusUnits() {
     var D3 = global.DG.dungeon3d;
     var F = global.DG.field3d;
-    var r = (D3 && D3.tuned) ? D3.tuned('dg3d.fieldR', 6) : 6;
+    /* 2026-09-04 — 예전엔 `D3.tuned('dg3d.fieldR', 6)`로 읽어 손잡이가
+       비어 있으면(AUTO, 보통 이 경우다) **하드코딩된 6(HIGH 등급)**으로
+       떨어졌다. 그런데 실제로 세워지는 들판 반경(`dungeon3d.fieldR()`)은
+       AUTO 등급표(`QUALITY_PRESET`)를 따라 low=2·medium=4·high=6 로 오간다
+       — 이 둘이 갈라지면, 여기(마을 출구 팻말 같은 결정 지점 배치)가 늘
+       "반경 6"으로 셈하는 사이 실제 땅은 실기기 성능에 따라 그보다 훨씬
+       좁게 깔린다. 그 결과가 실기기 제보 "들판에 각진 새까만 사각형" —
+       팻말은 (하드코딩된) 6 기준 자리에 섰는데 땅은 AUTO가 낮춘 반경까지만
+       깔려, 팻말 둘레만 등등 떠 보이고 나머지는 배경(검정)이 그대로
+       비친 것이었다. `D3.fieldR()`(공개 함수, `QUALITY_PRESET`을 그대로
+       따른다)를 직접 불러 **실제로 깔리는 반경과 항상 같은 값**을 쓰게
+       고쳤다 — 방향광 그림자를 플레이어에 따라가게 한 앞선 시도는 원인이
+       아니었다(고립 렌더로 직접 검증, 지우지 않고 남겨 둔다 — 해는 없다). */
+    var r = (D3 && D3.fieldR) ? D3.fieldR() : 6;
     return r * (F ? F.CHUNK : 200);
   }
   /**
