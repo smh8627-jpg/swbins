@@ -69,6 +69,21 @@
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
 
+  /* 2026-09-05 — MPFB2(makehumancommunity.org, CC0 도구로 직접 뽑음)로 만든 실사
+     인물 두 벌을 QRPG 여섯 종에 **추가 변형으로** 얹는다(대체 아님 — QRPG의 직업별
+     시각 다양성은 그대로 둔다). `anim` 필드가 없으니 `buildHero()`가 공용
+     `ANIM_SRC`(UAL1)를 빌려 `retargetInto()`로 다시 굽는다 — 몸 뼈 길이가 UAL1과
+     달라도 맞는 이유·이번에 고친 리타깃 버그 둘은 `retargetInto()`(위, 476행)의
+     주석과 `assets/ASSET_LICENSES.md` 참고. 옷(`male_casualsuit01`/
+     `female_casualsuit01`)이 걷는 동안 손·발에서 떨어지던 버그(MPFB가 옷에 뼈
+     가중치를 아예 안 만들어 둔 것 — Blender `parent_set(ARMATURE_AUTO)`로 고침)도
+     이 파일들부터는 잡혀 있다 */
+  var PEOPLE_MPFB = PEOPLE + 'mpfb_real/';
+  HERO_RECIPES = HERO_RECIPES.concat([
+    { key: 'mpfb_male', body: PEOPLE_MPFB + 'male.glb' },
+    { key: 'mpfb_female', body: PEOPLE_MPFB + 'female.glb' }
+  ]);
+
   /**
    * 옛 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
    * 이름·순서가 파일 열둘(몸 둘·옷 넷·머리 여섯) 전부 한 글자도 안 다르다(직접

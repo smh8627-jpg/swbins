@@ -583,21 +583,25 @@ Sketchfab CC0·OpenGameArt·Poly Pizza를 전부 확인했지만 "벼"로 걸리
 
 ---
 
-## MPFB2 + makehuman_system_assets — 사람 캐릭터 실사화 (2026-09-05, 미통합)
+## MPFB2 + makehuman_system_assets — 사람 캐릭터 실사화 (2026-09-05, QRPG에 추가 변형으로 통합됨)
 
 다섯 판 어디서도 못 뚫었던 "사람 지오메트리 실사화"(Mixamo 재배포 금지·CC0
 대안은 애니메이션 0개, 위 HANDOFF 참고)를 **CC0 완제품이 아니라 CC0 도구로
-직접 뽑아서** 처음 뚫었다. 남녀 각 한 벌(`char_male.glb`·`char_female.glb`,
-`assets/models/_mpfb_test/`)까지 마무리했지만 **아직 `js/asset3d.js` 의
-`DEFAULTS.hero`에는 안 올렸다** — QRPG(전사·궁수·도적·성직자·마법사·수도승
-6종, 각자 클립 보유)를 완전히 대체할지 추가 변형으로 넣을지는 사용자
-판단이 필요해 다음 세션(또는 이 세션 뒤이어)이 정한다.
+직접 뽑아서** 처음 뚫었다. 남녀 각 한 벌(`assets/models/people/mpfb_real/
+male.glb`·`female.glb`, 512px 텍스처로 최적화, 각 3.9~4.1MB)을
+`js/asset3d.js`의 `DEFAULTS.hero`(`HERO_RECIPES`)에 **QRPG 여섯 종에 더한
+추가 변형으로** 올렸다 — QRPG(전사·궁수·도적·성직자·마법사·수도승, 각자
+클립 보유)를 대체하지 않고 그대로 둔 채 여덟 벌 중 두 벌이 됐다. 완전
+대체는 QRPG의 직업별 시각 다양성을 잃는 트레이드오프라 사용자 판단이
+필요했는데, 몸이 옷·머리 없이 두 벌뿐이라 **완전 대체보다 추가가 더 안전한
+선택**이었다.
 
 **`assets/models/_mpfb_test/`(빌드 스크립트·`.blend`·`.glb`·스크린샷)는
-이 저장소에 커밋하지 않았다** — 로컬에만 있다. 통합하기로 정해지면 그때
-필요한 파일만 골라 정식 경로(`PEOPLE`/`REGULAR` 상수가 가리키는 자리)로
-옮기고 최적화해서 커밋할 것. 아래 표·버그 기록은 재현 가능하도록 과정을
-남겨 둔 것이다.
+이 저장소에 커밋하지 않았다** — 작업 뒤 지웠다, 로컬에도 없다. 최종 GLB
+둘만 `assets/models/people/mpfb_real/`에 커밋돼 있다. 아래 "재현 스크립트"
+절이 처음부터 다시 뽑을 때 필요한 전체 파이썬 코드를 그대로 들고 있다 —
+재현하려면 그 코드를 파일로 저장해 `blender --background --python
+build_character.py -- male`(또는 `female`)로 돌리면 된다.
 
 | | |
 |---|---|
@@ -652,23 +656,150 @@ Sketchfab CC0·OpenGameArt·Poly Pizza를 전부 확인했지만 "벼"로 걸리
    고쳤다(피부의 눈·입 구멍도 원래 이 방식의 알파컷이라 스킨도 예외가
    아니다).
 
-### 남은 것 — 다음 세션(또는 통합 결정 뒤)이 볼 것
+### 버그 4 (같은 날 이어서 고침) — 옷을 입히면 걷는 동안 손·발이 소매·바지 끝에서 떨어진다
 
-- **옷을 입히면 걷는 동안 손·발이 몸통에서 떨어져 보인다.** 맨몸(옷 없이
-  피부+머리만)으로는 걷기 자세가 완전히 정상이다(양팔 비대칭 스윙,
-  손발이 팔다리 끝에 잘 붙음) — 옷(`male_casualsuit01`)을 입힌 순간만
-  소매·바지 끝과 손발 사이에 간격이 생긴다. MPFB의 `interpolate_weights`
-  로 옷 가중치를 몸에서 보간해 오는 과정에서 손목·발목 근처 가중치가
-  덜 정확하게 옮겨졌을 가능성이 높다(원인 미확인, 옷 없는 쪽은 멀쩡하니
-  리타깃 버그는 아니다) — 다음 세션이 옷의 버텍스 그룹을 직접 대조해
-  볼 것
-- 남녀 각 한 벌만 뽑았다(QRPG의 6종 다양성엔 못 미친다)
-- 텍스처가 커서(원본 2048×2048, 약 18~20MB) `gltf-transform resize`로
-  512×512까지 줄여 `char_*.resized512.glb`(약 3.7~3.8MB)를 만들어 뒀다 —
-  더 못 줄인 이유는 **여덟 재질 전부가 diffuse 텍스처의 알파 채널을 그대로
-  마스크로 쓰기 때문**(위 버그 3)에, JPEG(알파 없음)로 못 바꾼다. 실기
-  화면에서 512가 흐려 보이면 그때 늘리면 된다
-- `DEFAULTS.hero` 등록·`sw.js` VERSION 올리기·자가진단 재확인은 아직
+버그 1~3을 고친 뒤 실기(headless) 렌더로 다시 보니, 맨몸(피부+머리만)은
+걷기 자세가 완전히 정상인데 옷(`male_casualsuit01`)을 입힌 순간만 소매·
+바지 끝과 손·발 사이에 눈에 띄는 간격이 생겼다. **원인**: MPFB의
+`HumanService.add_mhclo_asset()`는 옷·머리·눈·이·혀를 basemesh에 그냥
+OBJECT 부모로만 붙이고 **뼈 가중치를 아예 안 만든다** — 직접 확인
+(`Human.male_casualsuit01`의 `vertex_groups`가 0개, `Human`은 205개).
+`Armature` 모디파이어도 없이 `Subdivision`만 있으니, 걷는 동안 몸은
+스키닝으로 변형되지만 옷은 바인드 포즈에 그대로 얼어붙어 손발이 소매
+끝을 앞질러 나간 것처럼 보였다(휴식 자세에선 우연히 안 보였을 뿐).
+
+**시도 1(실패)**: 몸의 가중치를 옷으로 최근접 표면 보간(`Object > Data
+Transfer`, `vert_mapping='POLYINTERP_NEAREST'`)으로 옮겼더니 사타구니·
+겨드랑이처럼 몸의 서로 다른 부위가 가까이 붙는 자리에서 **최근접 탐색이
+반대쪽으로 건너뛰어** 엉뚱한 뼈에 가중치가 잡히고, 다리·팔을 벌리면
+거대한 삼각형 "날개"로 늘어났다. `'POLYINTERP_VNORPROJ'`(법선 투영)로
+바꿔도 자리만 바뀌어(겨드랑이→엉덩이 쪽으로 스파이크) 근본 문제는
+그대로였다 — 둘 다 **몸 표면에서 최근접점을 찾는 방식이라 옷과 무관한
+몸의 다른 부위를 건너뛸 수 있다**는 게 공통 결함이었다.
+
+**시도 2(성공)**: Blender 자체의 "Automatic Weights"(뼈 열확산,
+`bpy.ops.object.parent_set(type='ARMATURE_AUTO')`, GUI로는 `Object >
+Parent > With Automatic Weights`)로 바꿨다 — 이건 **옷 메시 자신의
+연결된 표면 안에서만** 열확산 방정식을 풀어 뼈마다 가중치를 매기므로,
+소매·바지단처럼 닫힌(연결된) 통 모양이면 몸의 다른 부위로 새어 나갈
+수가 없다. 걷기 사이클 네 지점(t=0.15/0.45/0.75/1.05)을 실제 게임
+리타깃 코드로 렌더해 날개·간격 둘 다 없는 걸 확인했다.
+
+**곁가지 문제**: 자동 가중치는 머리카락(`short01`)에서 "Bone Heat
+Weighting: failed to find solution for one or more bones" 경고와 함께
+완전히 실패했다(열확산이 안 붙는 얇고 동떨어진 캡 모양이라 그런 듯 —
+정확한 원인 미확인) — glTF 익스포터가 "has no skin, skipping"으로
+넘겨서 스킨 자체가 안 실렸다(버그 4의 첫 증상과 같은 종류: 가중치가
+아예 없어 뻣뻣하게 얼어붙는 것). 머리카락·눈썹·속눈썹·눈·이·혀는 애초에
+변형될 필요가 없는(머리와 함께 강체로만 움직이면 되는) 부위라, 이런
+것들은 열확산 대신 **`Head` 버텍스 그룹 하나에 가중치 1.0을 직접
+줘서** 고쳤다(옷처럼 다중 뼈 변형이 필요한 것만 자동 가중치를 쓴다).
+
+### 재현 스크립트 (`assets/models/_mpfb_test/build_character.py`, 커밋 안 함 — 여기 전문을 남긴다)
+
+```python
+import bpy, os, sys
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+from bl_ext.user_default.mpfb.services.humanservice import HumanService
+
+GENDER = sys.argv[sys.argv.index('--') + 1] if '--' in sys.argv else 'male'
+D = r"C:\Users\Windows\AppData\Roaming\Blender Foundation\Blender\5.2\extensions\.user\user_default\mpfb\data"
+
+if GENDER == 'female':
+    skin = D + r"\skins\young_asian_female\young_asian_female.mhmat"
+    hair = D + r"\hair\long01\long01.mhclo"
+    clothes = D + r"\clothes\female_casualsuit01\female_casualsuit01.mhclo"
+else:
+    skin = D + r"\skins\young_asian_male\young_asian_male.mhmat"
+    hair = D + r"\hair\short01\short01.mhclo"
+    clothes = D + r"\clothes\male_casualsuit01\male_casualsuit01.mhclo"
+
+eyebrow = D + r"\eyebrows\eyebrow001\eyebrow001.mhclo"
+eyelash = D + r"\eyelashes\eyelashes01\eyelashes01.mhclo"
+eyes = D + r"\eyes\low-poly\low-poly.mhclo"
+teeth = D + r"\teeth\teeth_shape01\teeth_shape01.mhclo"
+tongue = D + r"\tongue\tongue01\tongue01.mhclo"
+
+basemesh = HumanService.create_human(scale=0.1)
+HumanService.set_character_skin(skin, basemesh, skin_type="GAMEENGINE")
+
+for mhclo, atype in [
+    (eyes, "Eyes"), (eyebrow, "Eyebrows"), (eyelash, "Eyelashes"),
+    (teeth, "Teeth"), (tongue, "Tongue"),
+    (hair, "Hair"), (clothes, "Clothes"),
+]:
+    HumanService.add_mhclo_asset(mhclo, basemesh, asset_type=atype)
+
+armature = HumanService.add_builtin_rig(basemesh, "game_engine")
+
+bpy.context.view_layer.objects.active = armature
+bpy.ops.object.mode_set(mode='EDIT')
+for b in armature.data.edit_bones:
+    if b.name == 'Root':
+        b.name = 'root'
+    elif b.name == 'head':
+        b.name = 'Head'
+bpy.ops.object.mode_set(mode='OBJECT')
+
+# 버그 3(머리카락·얼굴 깨짐) 고치기 — Blender 5.x 익스포터는 알파모드를
+# 셰이더 노드로 판정한다. 텍스처 알파를 그대로 잇기만 한 배선은 다
+# alphaMode:BLEND로 떨어져 정렬이 어긋난다 — 알파클립 노드를 끼워 MASK로.
+for mat in bpy.data.materials:
+    if not mat.use_nodes:
+        continue
+    nt = mat.node_tree
+    bsdf = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+    if not bsdf:
+        continue
+    alpha_in = bsdf.inputs.get('Alpha')
+    if not alpha_in or not alpha_in.is_linked:
+        continue
+    src_socket = alpha_in.links[0].from_socket
+    clip = nt.nodes.new('ShaderNodeMath')
+    clip.name = clip.label = 'AlphaClip'
+    clip.operation = 'GREATER_THAN'
+    clip.inputs[1].default_value = 0.5
+    nt.links.new(src_socket, clip.inputs[0])
+    nt.links.new(clip.outputs[0], alpha_in)
+
+# 버그 4(옷이 몸을 안 따라감) 고치기 — 옷은 자동(뼈 열확산) 가중치,
+# 변형이 필요 없는 부위(머리카락·눈썹·속눈썹·눈·이·혀)는 Head에 강체 고정.
+rigid_to_head = set()
+for p in (eyes, eyebrow, eyelash, teeth, tongue, hair):
+    rigid_to_head.add('Human.' + os.path.splitext(os.path.basename(p))[0])
+
+for o in list(bpy.data.objects):
+    if o.type != 'MESH' or o is basemesh:
+        continue
+    if any(m.type == 'ARMATURE' for m in o.modifiers):
+        continue
+    if o.name in rigid_to_head:
+        vg = o.vertex_groups.new(name='Head')
+        vg.add(range(len(o.data.vertices)), 1.0, 'REPLACE')
+        mod = o.modifiers.new('Armature', 'ARMATURE')
+        mod.object = armature
+        mod.use_vertex_groups = True
+        continue
+    bpy.ops.object.select_all(action='DESELECT')
+    o.select_set(True)
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+
+bpy.ops.wm.save_as_mainfile(filepath=r"...\char_{0}.blend".format(GENDER))
+out = r"...\char_{0}.glb".format(GENDER)
+bpy.ops.object.select_all(action='DESELECT')
+for o in bpy.data.objects:
+    if o.type in ('MESH', 'ARMATURE'):
+        o.select_set(True)
+bpy.ops.export_scene.gltf(filepath=out, use_selection=True, export_apply=True)
+```
+
+내보낸 뒤 `npx @gltf-transform/cli resize char_male.glb char_male.512.glb
+--width 512 --height 512`(원본 2048×2048·18~20MB → 512×512·약
+3.9~4.1MB)로 줄이고, `assets/models/people/mpfb_real/male.glb`(또는
+`female.glb`)로 옮기면 끝이다.
 
 ### 밟은 함정 (다시 겪지 않도록)
 
@@ -687,6 +818,30 @@ Sketchfab CC0·OpenGameArt·Poly Pizza를 전부 확인했지만 "벼"로 걸리
   겹쳐 띄우면(이전 인스턴스가 안 끝난 채 새로 띄우면) 소프트웨어 렌더
   경합으로 같은 페이지가 어떤 때는 4초, 어떤 때는 몇 분씩 걸리는 것도
   겪었다 — 스크린샷이 안 나오면 먼저 겹쳐 뜬 헤드리스가 없는지 볼 것
+- **`--virtual-time-budget`가 붙은 헤드리스 크롬에서 `requestAnimationFrame`
+  기반 폴링 루프는 딱 한 번만 돈다.** `setTimeout`은 가상 시간을 정확히
+  따라가는데(직접 재 봄 — 5초짜리 `setTimeout`이 가상 시간 8초 예산
+  안에서 정확히 발동했다) `requestAnimationFrame`은 실제 페인트에
+  묶여 있어 가상 시간이 흘러도 두 번째 프레임이 안 온다 — 로딩 중
+  스크린샷을 확인하는 테스트 페이지는 rAF 재귀 폴링이 아니라 `setTimeout`
+  폴링을 써야 한다(안 그러면 "로딩 중" 그대로 찍힌 스크린샷만 계속
+  나오는데, 정작 `--dump-dom`으로 보면 페이지 자체는 멀쩡히 다 실행된
+  뒤라 원인을 오인하기 쉽다)
+- **`DG.asset3d.register(key, recipe)`에 조합 객체(`{key,body,...}`)를
+  줄 때 배열로 감싸지 않으면 `oneOf()`가 `list.length`가 `undefined`인
+  일반 객체를 "빈 배열"로 오인해 조용히 `null`을 돌려준다** — 문자열
+  URL이나 배열만 받는 함수라 `register('hero:x', {...})`가 아니라
+  `register('hero:x', [{...}])`로 감싸야 한다(둘 다 에러 없이 그냥
+  아무것도 안 뜬다 — 헤드리스로 원인 찾을 때 `window.onerror` 하나만
+  걸어 두면 이런 조용한 실패는 안 잡히니, HUD 텍스트에 `assetState`를
+  직접 찍어서 확인하는 편이 낫다)
+- **`_test.html`의 "인물 N 벌이 갖춰져 있다" 자가진단이 `DEFAULTS.hero`
+  개수(옛 6)와 각 레시피의 모양(`(outfit&&hair)||anim` 필수)을 하드
+  코딩하고 있었다** — 새 레시피를 추가하면 이 테스트가 반드시 깨진다
+  (직접 겪음: 421/423 → 420/423). 몸만 있고 outfit·hair·anim이 다 없는
+  레시피(ANIM_SRC를 빌리는 새 MPFB 조합)도 유효하다는 걸 테스트 조건에
+  추가해 8벌 기준으로 갱신했다 — **`HERO_RECIPES`를 늘릴 때마다 이
+  테스트도 같이 봐야 한다**는 걸 여기 적어 둔다
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
