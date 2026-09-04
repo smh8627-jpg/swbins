@@ -153,6 +153,9 @@
        두 가지 더 받았다. 술통·상자와 같은 순수 장식 자리(방 구석)에 섞인다 */
     'dg:chair': DUN + 'chair.gltf.glb',
     'dg:shield': DUN + 'sword_shield.gltf.glb',
+    /* 2026-09-04 — PLAN §G "던전" 목록의 "함정". 판정(피해)은 손대지 않는다
+       (밸런스는 사람이 정할 자리) — 방에 위험하다는 인상만 준다 */
+    'dg:spikes': DUN + 'floor_tile_big_spikes.glb',
     /* 보스방 벽 현수막 — 색은 세력이 아니라 "여기가 보스방" 신호라 하나로 고정 */
     'dg:banner': DUN + 'banner_thin_red.gltf.glb',
     /* 행상 좌판 — MarketStand(=`tent`) 위에 놓일 긴 상. 딱 맞는 "행상 수레"는

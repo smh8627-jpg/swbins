@@ -152,6 +152,7 @@ UAL1 몸짓이 필요 없다. 아래 조합형은 `HERO_RECIPES_FALLBACK` 으로
 | `table_long.gltf.glb` | **행상 곁상**(`dg:table`) — 좌판(MarketStand) 옆에 곁들인다 |
 | `chair.gltf.glb` | **의자**(`dg:chair`, 방 구석 잡동사니) — 2026-09-04, SAGA WEB.md 소품 감사로 추가 |
 | `sword_shield.gltf.glb` | **무기·방패**(`dg:shield`, 방 구석 잡동사니) — 2026-09-04, 같은 감사로 추가 |
+| `floor_tile_big_spikes.glb` | **함정**(`dg:spikes`, 방 구석 잡동사니) — PLAN §G "던전" 목록. **판정(피해)은 없다** — 방에 위험한 인상만 주는 순수 장식이다. 실제 피해를 주는 함정 기믹은 밸런스 문제라 사람이 볼 자리로 남겨 뒀다 |
 
 **2026-09-01 이어서** — 방 구석 잡동사니(술통·상자·상자 더미)를
 `buildClutter()`(`dungeon3d.js`)가 방마다 귀퉁이 넷 중 씨앗으로 고른

@@ -459,7 +459,7 @@
    * 를 그대로 빌려 쓴다(다섯이 이미 같은 씨앗으로 들판을 흩뿌리고 있다) —
    * 같은 방은 늘 같은 귀퉁이에 같은 것이 선다.
    */
-  var CLUTTER_KIND = ['dg:barrel', 'dg:crate', 'dg:crates', 'dg:chair', 'dg:shield'];
+  var CLUTTER_KIND = ['dg:barrel', 'dg:crate', 'dg:crates', 'dg:chair', 'dg:shield', 'dg:spikes'];
   function buildClutter(run, W, H) {
     var F = global.DG.field3d;
     var AS3 = AS();
@@ -471,7 +471,8 @@
       if (h % 5 < 3) { continue; }      // 다섯 중 셋은 비워 둔다 — 안 그러면 붐빈다
       var kind = CLUTTER_KIND[h % CLUTTER_KIND.length];
       var mul = kind === 'dg:crates' ? 52 : (kind === 'dg:barrel' ? 42 :
-        (kind === 'dg:chair' ? 34 : (kind === 'dg:shield' ? 30 : 28)));
+        (kind === 'dg:chair' ? 34 : (kind === 'dg:shield' ? 30 :
+        (kind === 'dg:spikes' ? 48 : 28))));
       var cnode = AS3.build(kind, seed + ':' + i, mul, null, null);
       if (!cnode) { continue; }
       cnode.position.set(corners[i][0], 0, corners[i][1]);
