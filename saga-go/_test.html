@@ -3451,14 +3451,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('격자 ' + at.join(',') + ' 에 폭포 한 자리 · 키 ' + falls[0].h);
     });
 
-    t('에셋 — 역참 여관은 마을에 안 선다 (헛걸음 막기)', function () {
-      /* 같은 `Inn.glb` 가 마을의 높은 집으로도 서면, 들판에서 여관 모양을 보고
-         역참인 줄 알고 걸어갔다가 그냥 남의 집이 된다 — 마을 목록에서 뺐다 */
+    t('에셋 — 역참 건물은 마을에 안 선다 (헛걸음 막기)', function () {
+      /* 역참 건물이 마을의 높은 집으로도 서면, 들판에서 그 모양을 보고
+         역참인 줄 알고 걸어갔다가 그냥 남의 집이 된다 — 마을 목록에서 뺐다.
+         2026-09-04 — 옛 Inn.glb(저다각형)에서 실사 스캔(tower_ruin.glb)으로
+         바뀌었다. 어느 쪽이든 마을 소품 표에 없어야 한다는 뜻은 그대로다 */
       var A = DG.asset3d;
       A.restore();
       var inn = A.urlOf('station', {});
       var town = PR.urls();
-      return town.indexOf(inn) < 0 && /Inn\.glb$/.test(inn) &&
+      return town.indexOf(inn) < 0 && /tower_ruin\.glb$/.test(inn) &&
         ('마을 소품 ' + town.length + '개에 ' + inn.split('/').pop() + ' 는 없다');
     });
 
@@ -3662,13 +3664,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
      * 값을 내는 함수만 본다(three 없이 돈다) — 표 · 등급 · 키 · 표식 깃발.
      */
 
-    t('에셋 — 역참은 여관 한 벌로 선다', function () {
+    t('에셋 — 역참은 한 벌로 선다', function () {
       var A = DG.asset3d;
       A.restore();
       var u = A.urlOf('station', { id: 'st_0,0#1' });
       /* 우물·좌판을 섞지 않은 것이 요점이다 — 이 창고는 무엇이든 키 1 로 눕히므로
-         원본 키가 절반인 것을 섞으면 우물이 여관만 해진다 */
-      return /Inn\.glb$/.test(u) && A.chain('station', {}) === 'glb' &&
+         원본 키가 절반인 것을 섞으면 우물이 건물만 해진다.
+         2026-09-04 — Inn.glb(저다각형)에서 tower_ruin.glb(실사 스캔)로 바뀜 */
+      return /tower_ruin\.glb$/.test(u) && A.chain('station', {}) === 'glb' &&
         ('역참 ' + u.split('/').pop());
     });
 

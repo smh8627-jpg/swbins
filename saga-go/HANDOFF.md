@@ -4,6 +4,39 @@
 > 절대 바꾸면 안 되는 것·밟아 본 함정·다음 할 일이 거기 있다. **새 세션은 그 파일부터.**
 > 이 파일은 **사가고 한 판**에 대한 것만 남긴다.
 
+## 2026-09-04 (더더더더더더더더더 이어서) — 역참·성채도 부분 실사로 (Sketchfab CC0 문화유산 스캔)
+
+집·탑을 실사로 바꾼 뒤 사용자가 역참·성채까지 요청. Poly Haven 전체(521개)·
+PolyScan(20개, 새로 나온 4개는 Patreon 가입 필요라 제외)을 다시 훑어도 못
+찾았는데, 사용자가 "건물은 현대·미래·과거 상관없어" · "성채가 아니여도 됨"
+으로 범위를 넓혀 줘서 Sketchfab에서 CC0 문화유산 사진측량 스캔(아일랜드·
+스페인 고성·탑 폐허)을 찾았다. 다운로드는 API 토큰이 있어야 해서 사용자가
+직접 무료 Sketchfab 계정을 만들고 토큰을 줬다(계정 생성 자체는 이 세션이
+대신 하지 않았다 — 계정 만들기는 대신 못 하는 일이라 안내만 했다).
+
+`Renvylle Castle`(13~14세기 탑성 폐허) 하나를 받아 `@gltf-transform/cli`로
+다듬었다(Blender 없이 npm 패키지만으로 됨) — 13.4MB → 584.5KB. 같은 검색에서
+나온 두 개는 뺐다: `Castillo de Montroi`는 이 판 로더가 모르는 필수 확장자
+(`KHR_materials_pbrSpecularGlossiness`)를 요구해서, `Galway City - Spanish
+Arch`는 아무리 다듬어도 15.6MB 밑으로 안 줄어서. 자세한 건
+`assets/ASSET_LICENSES.md`의 "Sketchfab" 절.
+
+`js/asset3d.js`: `station`(역참) → `tower_ruin.glb`(옛 `Inn.glb`는
+`STATION_STYLIZED`로 되돌림 자리), `fort:t3`(웅진) → `tower_round.glb`(집·탑
+때 쓴 그 파일 재사용, 옛 값은 `FORT_T3_STYLIZED`). 보·진 등급은 저다각형
+그대로(실사 탑이 한 종류뿐이라 세 등급을 다 못 채운다). `delam()`(사람·짐승
+재질 벗기는 함수)에 `/realistic/` 검사를 새로 넣었다 — `prop3d.js`엔 이미
+있던 고침인데 `asset3d.js`가 실사 자산을 처음 받아서 이번에 옮겨야 했다.
+`_test.html`의 역참·성채 파일명 검사도 새 파일명에 맞춰 고침. 자가진단
+421/423, 3회 동일. `sw.js` VERSION → `go-v5.19.8`.
+
+**실기기 확인 전이다.** 특히 `asset3d.stationScale`(1.73)·`fort:t3`의 배율
+(`asset3d.fortScale`×1.24≈3.27)은 옛 저다각형 기준으로 잡힌 값인데,
+`tower_ruin.glb`·`tower_round.glb` 둘 다 정규화 키 1당 폭도 거의 1인
+"뚱뚱한" 모델이다 — 바로 앞 절에서 `prop3d.towerScale`이 똑같은 이유로
+너무 커 보였던 것과 같은 함정을 밟을 공산이 크다. **다음에 역참·성채를
+직접 보고, 크면 `asset3d.stationScale`·`asset3d.fortScale`을 낮출 것.**
+
 ## 2026-09-04 (더더더더더더더더 이어서) — 마을 집·탑도 실사로 (사가블로가 오늘 찾은 것 이식)
 
 사용자가 "실사화" → "안한부분 찾기" → "실사화 작업 진행"으로 요청. `HANDOFF.md`의

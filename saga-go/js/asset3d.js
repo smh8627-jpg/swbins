@@ -50,6 +50,7 @@
    */
   var PEOPLE = 'assets/models/people/';
   var BLD = 'assets/models/buildings/';
+  var BLD_REAL = BLD + 'realistic/';
   /* 사람 몸(body)·옷(outfit)·머리(hair) 셋이 **뼈 이름까지 완전히 같은 한 뼈대**를
      쓰는 새 인물 창고(Quaternius `Universal Base Characters` + `Modular Character
      Outfits - Fantasy`, 2026-08-29 갈아 끼움). `assets/ASSET_LICENSES.md` 참고 */
@@ -119,18 +120,32 @@
        여관이 그 자체다. 여러 벌로 섞고 싶었지만 `Well`(우물 1.25m)·
        `MarketStand`(좌판 1.05m)는 **원본 키가 절반도 안 된다** — 이 창고는
        무엇이든 키 1 로 눕히므로(`normalize`) 섞으면 우물이 여관만 해진다.
-       키가 비슷한 것끼리만 한 줄에 묶는다 */
-    'station': BLD + 'Inn.glb',
+       키가 비슷한 것끼리만 한 줄에 묶는다.
+       2026-09-04 — 옛 Inn.glb(저다각형)를 실사 사진측량 스캔으로 갈아 끼웠다.
+       사용자가 "여관처럼 안 생겨도 됨"으로 확정 — Sketchfab CC0 아일랜드 문화유산
+       스캔(`Renvylle Castle`, 13~14세기 탑성 폐허)을 gltf-transform으로 다듬어
+       옮겼다(1.68M버텍스→가벼운 한 덩이, 자세한 내용은 ASSET_LICENSES.md).
+       옛 파일은 지우지 않았다 — `STATION_STYLIZED` 가 되돌림 자리로 들고 있다 */
+    'station': BLD_REAL + 'tower_ruin.glb',
 
     /* 성채 — **등급마다 다른 탑이 선다.** `fort.js` 의 세 등급(보·진·웅진)은
        수비대의 세기가 다른데 여태 화면에서는 다 같은 성채였다. 멀리서 보고
        "저건 웅진이다" 를 알면 걸어갈지 말지가 눈으로 정해진다.
-       좁은 키(`fort:t3`)부터 찾으므로 등급이 안 실려 와도 `fort` 로 떨어진다 */
+       좁은 키(`fort:t3`)부터 찾으므로 등급이 안 실려 와도 `fort` 로 떨어진다.
+       2026-09-04 — 최고 등급(웅진)만 실사로. `tower_round.glb`(Poly Haven CC0
+       성채 모듈, `prop3d.js`의 들판 장식 탑과 같은 파일)를 그대로 재사용한다 —
+       진짜 실사 CC0 성곽 탑이 이거 하나뿐이라 세 등급을 다 못 채운다. 보·진은
+       옛 저다각형 그대로 둔다(등급 간 크기 차이가 여전히 눈에 보이면 충분하다) */
     'fort:t1': BLD + 'Watchtower.glb',
     'fort:t2': [BLD + 'Tower.glb', BLD + 'PointyTower.glb'],
-    'fort:t3': [BLD + 'LargeTower.glb', BLD + 'LargeSquareTowerBricks.glb'],
+    'fort:t3': BLD_REAL + 'tower_round.glb',
     'fort': BLD + 'Tower.glb'
   };
+
+  /** 되돌림 자리 — 실사로 갈아 끼우기 전 값. `register('station', STATION_STYLIZED)` ·
+   *  `register('fort:t3', FORT_T3_STYLIZED)` 로 되돌릴 수 있다 */
+  var STATION_STYLIZED = BLD + 'Inn.glb';
+  var FORT_T3_STYLIZED = [BLD + 'LargeTower.glb', BLD + 'LargeSquareTowerBricks.glb'];
 
   var REG = {};
   /** 기본 표를 옮겨 담는다 — `clear()` 로 비운 뒤 되돌릴 때도 이 함수를 쓴다 */
@@ -527,7 +542,12 @@
    * 종류는 스키닝과 무관하다). 사본이 아니라 **원본을 바로 고친다** — 이
    * 모델을 처음 받은 그 순간(캐시에 한 번) 뿐이라 다른 배우와 부딪히지 않는다.
    */
-  function delam(root) {
+  /** 2026-09-04 — `prop3d.js`와 같은 고침: `/realistic/` 밑은 벗기지 않는다.
+   *  이 판(`fort:t3`·`station`)에 실사 사진측량 건물을 처음 얹으며 같이 옮겼다 */
+  function looksRealistic(url) { return typeof url === 'string' && url.indexOf('/realistic/') >= 0; }
+
+  function delam(root, url) {
+    if (looksRealistic(url)) { return; }
     var t = three();
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
@@ -560,7 +580,7 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
-      delam(gltf.scene);
+      delam(gltf.scene, url);
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));
       /* 제 몸짓이 없으면 원본에서 옮겨 입힌다 (원본 자신은 빼고 — 무한 재귀,

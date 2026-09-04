@@ -441,11 +441,62 @@ NPC·몬스터 울음(`NPC/`) 등이 더 있다 — 다음 단계(일반 버튼 
 | `house`(마을 집) | `house_stone.glb` · `house_wooden.glb` |
 | `tower`(들판의 홀로 선 탑) | `tower_round.glb` |
 
-**`asset3d.js`의 역참(`station`)·성채(`fort:t1~t3`)는 손 안 댔다** — 그쪽은
-등급마다 서로 다른 탑 모양이어야 하는데(자가진단이 그걸 본다) 실사 탑은
-한 종류뿐이라 옮기면 세 등급이 다 같아진다. 옛 Kenney류 집 다섯·탑 다섯은
+**`asset3d.js`의 역참(`station`)·성채(`fort:t3`)는 뒤이어 실사로 바뀌었다** —
+아래 새 절 참고. 성채 등급(보·진) 둘은 그대로 저다각형이다(실사 탑이 한
+종류뿐이라 세 등급을 다 못 채운다). 옛 Kenney류 집 다섯·탑 다섯은
 지우지 않았다 — `js/prop3d.js` 의 `HOUSE_STYLIZED`·`TOWER_STYLIZED` 가
 되돌림 자리로 들고 있다.
+
+## Sketchfab — 아일랜드 문화유산 사진측량 스캔 (`tower_ruin.glb`)
+
+2026-09-04, 사용자가 "역참·성채도 실사로 되는지 찾아봐" → "건물은 현대·미래·
+과거 상관없어" → "성채가 아니여도 됨" · "역참도 [아니여도 됨]"으로 범위를
+넓혀 요청 — 여관·성채처럼 안 생겨도 된다는 뜻이라 후보가 크게 늘었다.
+
+Poly Haven 전체 521개 모델·PolyScan 중세 카테고리 20개를 다시 훑었지만 새로
+쓸 만한 게 없었다(자세한 건 위 두 절과 이 세션 대화 참고 — PolyScan의 나머지
+넷은 Patreon 가입이 있어야 받아지는 Early Access라 제외). **Sketchfab에서
+찾았다** — Sketchfab REST API(`api.sketchfab.com/v3/search`)를 CC0 라이선스
+필터로 돌려 아일랜드·스페인 문화유산 사진측량 스캔 여러 개를 확인했고, 그중
+파일 무결성·확장자 호환성까지 검증된 하나만 실제로 옮겼다.
+
+| 항목 | |
+|---|---|
+| **원본 이름** | Renvylle Castle |
+| **만든 이** | Galway3D_DH_Age (Sketchfab) |
+| **라이선스** | CC0 Public Domain — Sketchfab API로 확인(`license.slug === 'cc0'`) |
+| **받은 곳** | Sketchfab 모델 `f08747faa13348d99a7f5bd2a824f2c2`. **다운로드에 무료 Sketchfab 계정(API 토큰)이 필요했다** — CC0라도 뷰어는 로그인 없이 열리지만 실제 파일 전송은 인증된 API 호출(`GET /v3/models/{uid}/download`)뿐이다. 사용자가 직접 무료 계정을 만들고 토큰을 줬다(계정 생성은 이 세션이 대신 안 한다) |
+| **원본 설명** | "13~14세기 탑성(tower house) 폐허, 코네마라 북서쪽 끝" — 4층 중 한쪽 모서리가 무너져 있다 |
+| **원본 크기** | GLB 13.4MB, 1,088,019 렌더 버텍스, 확장 없음(`extensionsUsed: none`) |
+| **다듬기** | `@gltf-transform/cli`(npm, `optimize` 명령 — simplify ratio 0.03·error 0.01, join+palette, texture-compress webp·1024px) — Blender 없이 Node만으로 다 됐다. 13.4MB → 584.5KB, 단일 메시·단일 재질·단일 webp 이미지로 줄었다 |
+| **파일** | `models/buildings/realistic/tower_ruin.glb`(584.5KB) |
+
+같은 검색에서 `Castillo de Montroi`(12세기 아랍 탑)·`Galway City - Spanish
+Arch`(1584년 성문)도 CC0로 확인됐지만 **뺐다** — Montroi는
+`KHR_materials_pbrSpecularGlossiness`를 **필수 확장자**로 요구하는데 이
+판의 `GLTFLoader`엔 그 확장자 플러그인이 없다(glTF 규격상 필수 확장자를
+모르는 로더는 파일 전체를 못 읽어야 정상이다 — 위험을 감수할 이유가 없다).
+Spanish Arch는 확장자는 깨끗했지만 simplify 오차 허용치를 5%까지 풀어도
+23만 삼각형 밑으로 안 줄어(15.6MB) 다른 실사 자산(250~580KB대)과 너무
+동떨어졌다 — 둘 다 원본 GLB는 안 남겼다(정제 실패작이라 커밋할 이유가 없다).
+
+`js/asset3d.js`:
+- `BLD_REAL` 상수 신설
+- `'station'`(역참): `Inn.glb` → `tower_ruin.glb`. 옛 값은 `STATION_STYLIZED`
+- `'fort:t3'`(웅진, 최고 등급): `[LargeTower.glb, LargeSquareTowerBricks.glb]`
+  → `tower_round.glb`(위 집·탑 절의 그 파일, 재사용) 하나로. 옛 값은
+  `FORT_T3_STYLIZED`. 보(`fort:t1`)·진(`fort:t2`)은 그대로 저다각형
+- `delam()`(PBR→Lambert로 벗기는 함수, 사람·짐승 재질용)에 `/realistic/`
+  경로 검사를 넣어 이 둘은 안 벗긴다 — `prop3d.js`가 나무·집·탑에 이미
+  적용해 둔 것과 같은 고침. 이 판에서 `asset3d.js`가 실사 자산을 처음
+  받았으므로 이 검사 자체가 새로 필요했다
+
+자가진단 421/423, 3회 동일 — `_test.html`의 역참·성채 필名 검사(`/Inn\.glb$/`
+등)도 새 파일명에 맞춰 고쳐 반영했다. **실기기 확인 전이다** — `station`·
+`fort:t3`의 크기 손잡이(`asset3d.stationScale` 1.73·`asset3d.fortScale`×tier3
+배율 3.27)는 옛 저다각형 기준으로 잡힌 값이라, 방금 탑(`prop3d.towerScale`)
+에서 겪은 것과 같은 함정(정규화 키 1당 폭이 넓은 모델은 같은 배율에서 더
+커 보인다)을 또 밟을 수 있다 — 다음에 보면서 확인할 것.
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
