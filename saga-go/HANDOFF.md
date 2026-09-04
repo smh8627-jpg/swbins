@@ -4,6 +4,19 @@
 > 절대 바꾸면 안 되는 것·밟아 본 함정·다음 할 일이 거기 있다. **새 세션은 그 파일부터.**
 > 이 파일은 **사가고 한 판**에 대한 것만 남긴다.
 
+## 2026-09-04 (더더더더더더더더더더 이어서) — 산봉우리·등롱도 실사로
+
+역참·성채 다음으로 "다른 것도 진행해줘" 요청. Poly Haven 전체 521개 모델을
+`category`로 다시 훑어 `mountainside`(절벽·산비탈 스캔)·`wooden_lantern_01`
+(집·탑을 준 `smugglers_cove` 컬렉션)을 찾았다. `@gltf-transform/cli`로 여러
+파일(gltf+bin+텍스처)을 단일 glb로 구웠다(mountainside 15.4MB→1.26MB,
+lantern 14MB→233KB). `js/prop3d.js`: `REG.peak.all`→`mountainside.glb`,
+`REG.lamp.all`→`wooden_lantern.glb`. 옛 값은 `PEAK_STYLIZED`·`LAMP_STYLIZED`.
+우물·장터·사당·굴·폐허·다리·벼는 Poly Haven에 그 모양 자체가 없어서 그대로
+저다각형이다(다리 후보였던 `modular_wooden_pier`는 강다리가 아니라 부두라
+안 어울려 뺐다). 자가진단 421/423 3회 동일. `sw.js` VERSION → `go-v5.19.9`.
+자세한 출처는 `assets/ASSET_LICENSES.md`. **실기기 확인 전이다.**
+
 ## 2026-09-04 (더더더더더더더더더 이어서) — 역참·성채도 부분 실사로 (Sketchfab CC0 문화유산 스캔)
 
 집·탑을 실사로 바꾼 뒤 사용자가 역참·성채까지 요청. Poly Haven 전체(521개)·

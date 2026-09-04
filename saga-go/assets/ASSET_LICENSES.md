@@ -498,6 +498,32 @@ Spanish Arch는 확장자는 깨끗했지만 simplify 오차 허용치를 5%까�
 에서 겪은 것과 같은 함정(정규화 키 1당 폭이 넓은 모델은 같은 배율에서 더
 커 보인다)을 또 밟을 수 있다 — 다음에 보면서 확인할 것.
 
+## Poly Haven — 산봉우리·등롱 (`mountainside.glb` · `wooden_lantern.glb`)
+
+2026-09-04(역참·성채 바로 뒤이어), 사용자가 "다른 것도 진행해줘"로 계속
+요청 — Poly Haven 전체 521개 모델 카탈로그를 `category`·이름으로 다시
+훑어 두 개를 더 찾았다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Poly Haven(둘 다 CC0, `collection: verdant_trail`·`collection: smugglers_cove`) |
+| **라이선스** | CC0 1.0 |
+| **받은 곳** | `api.polyhaven.com/files/mountainside` · `.../wooden_lantern_01` — 여러 파일(gltf+bin+텍스처)로 오는 걸 `@gltf-transform/cli optimize`(webp 압축·단일 glb로 묶기)로 한 파일로 구웠다 |
+| **원본 크기 → 결과** | mountainside 15.37MB → 1.26MB · wooden_lantern_01 13.99MB → 233KB |
+| **파일** | `models/nature/realistic/mountainside.glb` · `models/props/realistic/wooden_lantern.glb` |
+
+| 이 판 소품 이름 | 파일 |
+|---|---|
+| `peak`(산봉우리) | `mountainside.glb`(절벽·산비탈 사진측량 스캔) |
+| `lamp`(등롱) | `wooden_lantern.glb`(`wooden_lantern_01`, 집·탑을 준 `smugglers_cove` 컬렉션과 같은 계열) |
+
+**우물·장터·사당·굴·폐허·다리·벼는 이번에도 못 찾았다** — Poly Haven
+전체 카탈로그에 그 모양 자체가 없다(우물·장터·사당 같은 작은 랜드마크
+건물류는 `buildings` 카테고리 13개 중에도, 이름 검색에도 없었다. 다리는
+`modular_wooden_pier`가 있었지만 강을 건너는 다리가 아니라 부두라 어울리지
+않아 뺐다). `js/prop3d.js`의 `PEAK_STYLIZED`·`LAMP_STYLIZED`가 되돌림
+자리다. 자가진단 421/423 3회 동일 — 회귀 없음. **실기기 확인 전이다.**
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로

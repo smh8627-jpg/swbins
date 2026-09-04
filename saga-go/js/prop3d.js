@@ -99,6 +99,7 @@
   var PRP = 'assets/models/props/';
   var NAT_REAL = BASE + 'realistic/';
   var BLD_REAL = BLD + 'realistic/';
+  var PRP_REAL = PRP + 'realistic/';
 
   /* 2026-09-04 — 사가의숲이 검증해 두고 사가블로가 그대로 옮겨 쓴 Poly Haven CC0
      사진측량 자연물을 이 판에도 옮긴다("사가블로는 했는데" — 사용자가 형평을
@@ -131,6 +132,15 @@
                          BLD + 'House_4.glb', BLD + 'Blacksmith.glb'];
   var TOWER_STYLIZED = [BLD + 'Tower.glb', BLD + 'PointyTower.glb', BLD + 'LargeTower.glb',
                          BLD + 'Watchtower.glb', BLD + 'LargeSquareTowerBricks.glb'];
+  /** 2026-09-04 — 산봉우리·등롱도 실사로. Poly Haven 전체 카탈로그(521개)를
+   *  category='structures'/이름으로 다시 훑어 찾았다(역참·성채 때 쓴 것과
+   *  같은 조사). `mountainside`(실사 절벽·산비탈 스캔) · `wooden_lantern_01`
+   *  (smugglers_cove 컬렉션, 집·탑을 준 그 계열)를 gltf-transform으로 단일
+   *  glb로 구웠다(Blender 없이 npm만으로 — 역참 때 처음 익힌 길을 그대로 씀).
+   *  우물·장터·사당·굴·폐허·다리·벼는 이번에도 못 찾았다(Poly Haven에 그
+   *  모양 자체가 없다) — 저다각형 그대로 둔다 */
+  var PEAK_STYLIZED = [BASE + 'Mountain_1.glb', BASE + 'Mountain_2.glb'];
+  var LAMP_STYLIZED = [PRP + 'WoodenTorch.glb'];
 
   var REG = {
     tree: {
@@ -172,10 +182,12 @@
      * ("스크립트로 그리는 것은 다 에셋으로")에 따라 실제 모델로 갈아 끼운다.
      * **되돌림 길은 그대로다** — 못 받으면 조용히 옛 도형으로 남는다.
      */
-    /** 산봉우리 — 여태 원뿔 하나였다 */
-    peak: { all: [BASE + 'Mountain_1.glb', BASE + 'Mountain_2.glb'] },
-    /** 등롱 — 기둥에 빛나는 공 하나였다. **불은 코드가 그대로 얹는다**(밤에만 켠다) */
-    lamp: { all: [PRP + 'WoodenTorch.glb'] },
+    /** 산봉우리 — 여태 원뿔 하나였다. 2026-09-04 실사(`mountainside.glb`, 절벽·
+     *  산비탈 사진측량 스캔)로 갈아 끼움. 옛 값은 `PEAK_STYLIZED` */
+    peak: { all: [NAT_REAL + 'mountainside.glb'] },
+    /** 등롱 — 기둥에 빛나는 공 하나였다. **불은 코드가 그대로 얹는다**(밤에만 켠다).
+     *  2026-09-04 실사(`wooden_lantern.glb`)로 갈아 끼움. 옛 값은 `LAMP_STYLIZED` */
+    lamp: { all: [PRP_REAL + 'wooden_lantern.glb'] },
     /** 옛 사당 — 정자(Gazebo). 숲 속에서 이것만 사람 손인 자리다 */
     shrine: { all: [PRP + 'Gazebo.glb'] },
     /** 굴 입구 — 광산 어귀(Mine). 바위 더미에 검은 반원을 박던 자리 */
