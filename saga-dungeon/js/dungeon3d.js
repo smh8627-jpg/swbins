@@ -1043,8 +1043,19 @@
       pt.rotation.y = p.rot;
       pt.receiveShadow = true;
     } else if (p.t === 'post') {
-      box(g, p.x, y + p.h / 2, p.z, 6, p.h, 6, 0x5a4a34, 'flat', true);
-      box(g, p.x, y + p.h, p.z, 30, 8, 4, 0x6b5a3f, 'flat', false);
+      /* 2026-09-05 — 표지판을 실사화(Kenney CC0 'signpost', asset3d.js 참고).
+         못 받으면 옛 도형(기둥+판)으로 그대로 돌아간다 */
+      var postShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, p.h / 2, 0, 6, p.h, 6, 0x5a4a34, 'flat', true);
+        box(sg, 0, p.h, 0, 30, 8, 4, 0x6b5a3f, 'flat', false);
+        return sg;
+      };
+      var pnode = AS3 ? AS3.build('post', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.15, null, postShape) : postShape();
+      pnode.position.set(p.x, y, p.z);
+      pnode.rotation.y = p.rot || 0;
+      g.add(pnode);
     } else if (p.t === 'pond') {
       /* 2026-09-05 — 단색 반투명 상자를 실제 에셋(바위 고리+연잎+물결 데칼,
          'pond' 키, `asset3d.js` 참고)으로 갈아 끼웠다. `normalize()`는

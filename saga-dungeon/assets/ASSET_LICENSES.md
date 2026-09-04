@@ -757,6 +757,35 @@ Pack에 `hex_water` 타일이 있어 받아 봤지만 **단색 팔레트 하나�
 > **Pond** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 > `poly.pizza`를 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
 
+## 표지판(들판의 'post') — 이제 CC0로 찼다 (2026-09-05)
+
+**여러 세션이 "이 팩·다른 네 판 어디에도 CC0로 맞는 게 없다"고 적어 두고
+도형(장대+판)으로 남겨 뒀던 자리.** SAGA WEB.md 11절 "표지판"의 마지막
+남은 장식 항목이었다.
+
+- poly.pizza에서 `signpost`로 검색해 **Kenney의 'Signpost'**(CC0, Kenney
+  에셋은 항상 CC0 — poly.pizza 페이지에도 "Public Domain (CC0)"로 표시)를
+  찾았다 — pond와 같은 경로(`static.poly.pizza` 직접 다운로드, 로그인 불필요).
+- 원본 비율이 세로(0.46) 대 가로(0.21)로 이미 세로가 최대 치수라, pond처럼
+  가로세로를 뒤집어 풀 필요 없이 다른 대다수 소품과 같은 방식으로
+  `normalize()`에 그대로 맡겼다(`mul = p.h * 1.15`, `js/dungeon3d.js`
+  `post` 가지).
+- 재질 하나(`wood`)뿐이라 `delam()`이 그대로 벗겨 쓴다. 못 받으면 옛
+  도형(기둥+판)으로 그대로 돌아간다(fallback 유지). `js/asset3d.js`에
+  `'post': PROPS + 'signpost.glb'`로 등록.
+- 자가진단 **241/241**(표지판은 순수 장식이라 진단이 값으로 안 본다) —
+  변경 없음 확인. `sw.js` VERSION → `dungeon-v0.39.5`.
+
+| | |
+|---|---|
+| **만든 이** | Kenney |
+| **라이선스** | **CC0** (Public Domain) |
+| **받은 곳** | `poly.pizza/m/3U2lj1gpeH`(검색 `poly.pizza/search/signpost`) → `static.poly.pizza/e9da3a7a-a1c1-4f58-84f5-67e4277a0d01.glb` |
+| **파일** | `models/props/signpost.glb`(6.4KB) |
+
+> **Signpost** — © **Kenney**, CC0 (Public Domain). 저작자 표시 불필요.
+> `poly.pizza`를 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

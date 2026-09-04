@@ -164,6 +164,15 @@
        다르다는 뜻) **코드가 그리던 도형을 실제 완성 에셋으로 바꿨다**는
        원칙은 그대로 지킨다. 출처는 `ASSET_LICENSES.md` 참고 */
     'pond': NATURE + 'pond.glb',
+    /* 표지판(들판의 'post') — SAGA WEB.md 11절 "표지판", 지난 여러 세션이
+       "이 팩·다른 네 판 어디에도 CC0로 맞는 게 없다"고 적어 두고 도형으로
+       남겨 뒀던 자리. 2026-09-05 — poly.pizza에서 Kenney의 'Signpost'
+       (CC0, 로그인 없이 `static.poly.pizza` 직접 다운로드 확인)를 찾아
+       채웠다. 원본 비율이 이미 세로가 최대 치수(0.46 대 가로 0.21)라
+       'pond'처럼 가로세로를 뒤집어 풀 필요가 없다 — 다른 대다수 소품과
+       같은 방식으로 그대로 `normalize()`에 맡긴다. 출처는
+       `assets/ASSET_LICENSES.md` 참고 */
+    'post': PROPS + 'signpost.glb',
     /* 땅바닥 잡초 — PLAN 7·11절 "풀·꽃·덤불·버섯·통나무", 이 판에만 여태
        하나도 없었다(다른 네 판은 다 갖고 있다). 판정에는 안 닿는 순수 장식
        (field3d.js `clutterAt()`) */
