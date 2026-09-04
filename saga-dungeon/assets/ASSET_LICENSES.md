@@ -590,9 +590,126 @@ GLB 치수를 재 보니 **키(key, 세로 0.40 : 가로 0.90 = 44%)·접시(pla
   것 셋을 한 번에 건너뛰며 하나만 실측하고 나머지는 짐작으로 묶었을
   수 있다.
 
+## 대장간 — 집 계열 세 번째로 (2026-09-05, 침대·책상 다음)
+
+**사용자 지시** — "다른 건물로 변경해도 되니 있는걸로 위주로 해줘." 위
+"남은 건물 여섯 재탐색" 절이 적어 둔 뒤로 PolyScan 카탈로그가 늘었는지,
+`sitemap.xml`(전체 자산 URL 목록, 로그인 없이 그대로 열린다)을 다시
+훑어 보니 그때 없던 항목 몇이 새로 걸려 있었다.
+
+- **새로 걸린 것 확인** — `abandoned-brick-house`·`abandoned-two-story-
+  brick-house`·`distressed-concrete-building`·`two-story-urban-brick-house`
+  넷은 제목만 보면 건물이지만 실제 미리보기가 "Abandoned Industrial"·
+  "Graffiti Tagged Urban Building"(현대 도시 폐건물, 콘크리트·낙서) —
+  이 판의 중세 판타지 결과 아예 안 맞아 버렸다(저다각형이라 버렸던 것과
+  같은 종류의 결 불일치, 이유만 다르다).
+- **`medieval-stone-and-wood-cottage`(Rustic Stone and Wood Cabin)** —
+  이건 다르다. 이미 쓰고 있는 `house_stone`·`house_wooden`과 **같은
+  집 계열의 세 번째 모델**(돌벽+나무 지붕널, PBR, 로그인 없이 CDN
+  직접 다운로드 확인)인데, 지난 재탐색 때는 "Early Access 로그인 필요"로
+  오판했던 셋 중 하나였다가(위 "재탐색" 절 참고, 그 판단 자체는 뒤에
+  "PolyScan 집 둘" 절에서 이미 뒤집혔다) 실제 변환까지는 이번에 처음 했다.
+- **대장간 자리에 앉혔다.** PolyScan에 '대장간 건물'은 여전히 없다(모루
+  소품 하나뿐) — 그래서 모양이 안 맞더라도 화기에 강한 석조 건물을
+  대장간으로 쓰기로 했다(사용자 지시 그대로). `js/asset3d.js`의
+  `'blacksmith'` 키를 `BLD`(medieval_village_pack 저다각형)에서
+  `BLD_REAL + 'house_cottage.glb'`로 바꿨다 — `dungeon3d.js`·`town.js`는
+  안 건드렸다(이 자리를 부르는 쪽은 이미 문자열 하나만 보므로).
+
+| | |
+|---|---|
+| **만든 이** | PolyScan (<https://polyscann.com>) |
+| **라이선스** | CC0 1.0 |
+| **받은 곳** | `https://polyscann.com/asset/medieval-stone-and-wood-cottage-93ddf5` → `cdn.polyscann.com/…/Rustic_Stone_and_Wood_Cabin_3D_Model_01_4k.rar`(로그인 없이 직접 다운로드) |
+| **파일** | `models/buildings/realistic/house_cottage.glb`(265KB) |
+
+**변환 — 집 둘과 같은 파이프라인, 이번엔 한 단계 짧았다.** OBJ가
+`House`·`Wood` 재질 둘로 이미 깔끔히 나뉘어 있었고(`mtllib` 참조도 실제
+파일명과 맞아 있어 지난번 겪은 참조 깨짐이 없었다), 수레·양동이 같은
+덤 오브젝트도 없어 **거를 것 자체가 없었다**. `trimesh.load(...,
+split_object=True, group_material=True)`로 둘을 갈라 diffuse만
+(`House_BaseColor`·`Wood_BaseColor`, 4096→768px jpeg85) 새 PBRMaterial에
+얹고 단일 glb로 구웠다. 합친 바운딩박스 세로:가로 = 51~64%(축마다
+다름) — 방 소품 정규화가 요구하는 범위(50% 안팎)에 잘 맞는다.
+
+격리 렌더(`_inspect_cottage_tmp.html`, 커밋 안 함)로 단독 확인 — 돌벽·
+나무 지붕이 정상 방향(Y-up)으로 텍스처까지 그대로 보였다. 자가진단
+**241/241** 3회 동일, `_admin.html?selftest` **ADMIN 12/12**. `sw.js`
+VERSION → `dungeon-v0.39.2`.
+
+**남은 것** — 우물·여관·마방·방앗간 넷은 여전히 PolyScan에 그 종류
+자체가 없다(집 계열만 있다). **실기기 확인 전** — 다음 세션·실기기에서
+모루골 마을의 대장간이 실제로 이 돌집으로 걸리는지 볼 것(마을 화면은
+GLB가 많아 이 작업 환경의 헤드리스 SwiftShader로는 안정적으로 못
+찍는다 — 위 "PolyScan 집 둘" 절의 같은 한계, 그래서 이번에도 단독
+렌더로 대신했다).
+
+## 우물·여관·마방·방앗간 — KayKit 다른 팩에서 (2026-09-05, 대장간 다음)
+
+**사용자 지시가 두 번 더 풀렸다.** 먼저 "다른 건물로 변경해도 되니 있는
+걸로 위주로 해줘"(위 대장간 절), 그다음 "꼭 디아블로인 건 아니야 시대가
+퓨전이야 여러 가지를 합쳐도 상관없어 완전 모방은 아니야" · "현대적이거나
+미래적이거나 고전적이거나 아무거나 상관없어 무조건 맞추지는 마". 즉
+**이 판의 실사·저다각형 스타일 통일도, 시대 통일도 더 이상 필수 조건이
+아니다.** 이 조건으로 위 "재탐색" 절에서 "CC0에 종류도 맞지만 스타일이
+안 맞아 버렸다"고 접어 뒀던 후보가 다시 열렸다.
+
+- **KayKit — Medieval Hexagon Pack.** itch.io 페이지(`kaylousberg.itch.io/
+  kaykit-medieval-hexagon`, "Name your own price")는 다운로드가 로그인
+  뒤에 있다(`download_url` 엔드포인트가 미인증 요청을 `itch.io/g//`로
+  돌려보낸다 — Sketchfab과 같은 부류의 진짜 장벽, PolyScan의 "가짜
+  Early Access"와는 다르다). 그런데 **KayKit 던전 소품을 받아 온 바로 그
+  경로**(Kay Lousberg 본인이 itch.io 각 팩을 자기 GitHub 조직에 그대로
+  미러해 둔다)에 이 팩도 있었다 — `github.com/KayKit-Game-Assets/
+  KayKit-Medieval-Hexagon-Pack-1.0`, `api.github.com`으로 조직의 저장소
+  열 개를 검색해 이름으로 찾았다(`api.github.com/search/repositories?
+  q=org:KayKit-Game-Assets`).
+- **라이선스** — CC0 1.0 Universal(저장소 `LICENSE.txt`, itch.io 페이지의
+  "Asset license" 항목과 동일).
+- **받은 파일** — `addons/kaykit_medieval_hexagon_pack/Assets/gltf/
+  buildings/blue/` 안의 `building_well_blue`·`building_tavern_blue`·
+  `building_windmill_blue`·`building_barracks_blue`(각 `.gltf`+`.bin`,
+  팩 전체가 공유하는 아틀라스 텍스처 `hexagons_medieval.png` 15KB 하나만
+  같이 받으면 된다). 진영별 폴더가 blue·red·green·yellow·neutral 다섯인데
+  이 판엔 진영 구분이 없어 **blue 하나만** 골랐다.
+- **변환이 필요 없었다** — PolyScan 사진측량과 달리 이 팩은 원본 자체가
+  이미 `.gltf`+`.bin`+작은 아틀라스로 가벼워, 재질 분리나 텍스처 리사이즈
+  단계 없이 `trimesh.load(...).export(...)`로 단일 `.glb`만 다시 구웠다
+  (`models/buildings/hexagon/well.glb`·`tavern.glb`·`windmill.glb`·
+  `barracks.glb`, 각 60~270KB).
+- **역할 배정 — 모양은 안 맞춰도 된다는 지시를 그대로 따랐다.**
+  - `well` → `well.glb` — 이건 실제로 우물 모양이다(지붕 덮인 돌우물,
+    두레박까지).
+  - `inn`(여관) → `tavern.glb` — 이 팩에서 'tavern'은 큰 맥주통이 간판을
+    겸하는 모양이다. 정통 여관 도상은 아니지만 이 팩 자체의 표현이고,
+    사용자 지시로 정확도를 안 따진다.
+  - `mill`(방앗간) → `windmill.glb` — 날개 달린 실제 풍차라 오히려 가장
+    잘 맞아떨어졌다.
+  - `stable`(마방) → `barracks.glb` — 이 팩엔 '마방'이라는 이름의 건물이
+    아예 없다. 성벽 딸린 작은 요새 건물(병영)을 대역으로 앉혔다 —
+    사용자 지시("아무거나 상관없어")를 가장 많이 쓴 자리다.
+- `js/asset3d.js`에 `BLD_HEX = 'assets/models/buildings/hexagon/'`을
+  새로 두고 `well`·`inn`·`stable`·`mill` 네 키를 여기로 옮겼다.
+  `dungeon3d.js`·`town.js`는 안 건드렸다(문자열 하나만 보는 자리라서).
+- 격리 렌더(`_inspect_hexbuild_tmp.html`, 커밋 안 함)로 넷을 한 화면에
+  세워 확인 — 텍스처·형태 다 정상, 검정·깨짐 없음. 자가진단 **241/241**
+  3회 동일, `_admin.html?selftest` **ADMIN 12/12**. `sw.js` VERSION →
+  `dungeon-v0.39.3`.
+
+**이걸로 SAGA WEB.md "E. 건물" 여섯(집·우물·대장간·여관·마방·방앗간)이
+전부 실사 또는 CC0 완성 에셋으로 찼다** — 정확한 모양 일치가 아니라
+"코드로 그리지 말고 에셋으로"라는 부록의 원칙만 지킨 결과다. 모양이
+안 맞는 자리(대장간·여관·마방)는 위에 그 이유를 남겨 뒀으니, 나중에
+진짜 맞는 모양을 찾으면 `asset3d.js`의 그 한 줄만 바꾸면 된다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
 PLAN 4절의 우선순위를 따라 나무·바위·폐허(기둥·벽)·절벽·제단·동굴 입구·마을
-건물까지 다 옮겼고, 천막은 근사치로 대신했다. **모닥불만 여전히 도형이다**
-(위 참고).
+건물까지 다 옮겼다. 천막·모닥불도 위 "잡초·모닥불·진짜 텐트" 절에서
+실제 GLB(Tent·Bonfire_Lit)로 갈아 끼웠다 — 이 줄이 한동안 그 사실이 반영되기
+전 상태로 남아 있었다(2026-09-05 바로잡음). SAGA WEB.md F 소품은 침대·책상까지
+채워 다 찼고, E 건물도 대장간·우물·여관·마방·방앗간까지 다 채워(위 두 절
+참고, 모양 일치보다 "코드로 그리지 말고 에셋으로"를 우선한 결과) A~G 전
+카테고리가 실사 또는 CC0 완성 에셋으로 찼다. 남는 것은 saga-go의 탑·성벽
+종류처럼 이 판이 아직 안 쓰기로 한 것뿐이다.

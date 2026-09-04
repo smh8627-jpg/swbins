@@ -43,6 +43,7 @@
   var PROPS = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
   var BLD_REAL = 'assets/models/buildings/realistic/';
+  var BLD_HEX = 'assets/models/buildings/hexagon/';
   var DUN = 'assets/models/dungeon/';
 
   /* 2026-09-03 — 다른 네 판과 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
@@ -171,14 +172,43 @@
        재질(집 몸체·지붕널) 노드만 추려 냈다(수레·양동이는 버렸다) — 탑과 같은
        trimesh 파이프라인, 텍스처는 4096→768px jpeg85. 출처는 `ASSET_LICENSES.md` */
     'house': [BLD_REAL + 'house_stone.glb', BLD_REAL + 'house_wooden.glb'],
-    'well': BLD + 'Well.glb',
-    'blacksmith': BLD + 'Blacksmith.glb',
-    /* 2026-09-04 — 위성 마을 셋(나루터·산길·염전)이 다 같은 집+우물이라 테마가
-       안 살던 것을 갈랐다. 같은 medieval_village_pack(CC0)에서 하나씩 새로
-       받았다 — 여관은 saga-go가 이미 받아 둔 것을 그대로 옮겼다 */
-    'inn': BLD + 'Inn.glb',           // 갈대나루(나루터) — 나그네 쉼터
-    'stable': BLD + 'Stable.glb',     // 자작재(산길) — 마방
-    'mill': BLD + 'Mill.glb',         // 소금벌(염전) — 방앗간(염전 전용 에셋은 못 찾았다)
+    /* 2026-09-05 — 우물을 실사화. PolyScan에는 우물 자체가 없었지만
+       KayKit(같은 작가, 이미 던전 소품에서 쓰는 그 CC0)의 다른 팩
+       "Medieval Hexagon Pack"엔 있다 — 지난 재탐색 때 "CC0인데 저다각형
+       스타일이 안 어울린다"고 접었던 그 팩이다. 사용자 지시("아무거나
+       대체하면 됨 … 시대가 퓨전이야 여러가지를 합쳐도 상관없어")로 스타일
+       통일 조건이 풀려 다시 꺼냈다. 이 팩은 itch.io 페이지 자체는 로그인
+       뒤에 있지만(Sketchfab과 같은 부류), Kay Lousberg가 이 팩도 자기
+       GitHub 조직에 그대로 미러해 뒀다(던전 소품과 같은 경로) —
+       `KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0`, 로그인 없이
+       그대로 받았다. 색상별(blue·red·green·yellow·neutral) 진영 세트 중
+       'blue'만 골랐다 — 이 판엔 진영 구분이 없어 하나면 된다. 원본은 이미
+       .gltf+.bin+공용 텍스처 하나(작은 아틀라스, 팩 전체가 공유)로 완결돼
+       있어 trimesh로 그대로 읽어 단일 glb로만 다시 구웠다(재질 분리·텍스처
+       리사이즈 단계 자체가 필요 없었다 — PolyScan 사진측량과 달리 이
+       팩은 원래도 저장이 가볍다). 출처는 `ASSET_LICENSES.md` 참고 */
+    'well': BLD_HEX + 'well.glb',
+    /* 2026-09-05 — 대장간을 실사화. PolyScan 카탈로그에 '대장간 건물'은
+       원래도 없다(모루 소품 하나뿐, 위 재탐색 기록 참고) — 그런데 그 뒤
+       카탈로그가 늘어 집 계열 세 번째(medieval-stone-and-wood-cottage)가
+       새로 걸렸다. 사용자 지시("다른 건물로 변경해도 되니 있는 걸로
+       위주로 해줘")를 따라 **모양은 집이지만 대장간 자리에** 앉혔다 —
+       "대장간 모양"을 못 찾은 채 저다각형으로 5년 남느니, 돌집(화기에
+       강한 석조)을 대장간으로 쓰는 편이 이 판의 다른 실사 건물과 결이
+       맞는다. house_stone·house_wooden과 같은 trimesh 파이프라인
+       (House·Wood 재질 노드만 추림, 4096→768px jpeg85) — 이번엔 원본에
+       수레·양동이 같은 덤 오브젝트가 없어 그 단계가 필요 없었다.
+       출처는 `ASSET_LICENSES.md` 참고 */
+    'blacksmith': BLD_REAL + 'house_cottage.glb',
+    /* 2026-09-05 — 여관·마방·방앗간도 같은 Medieval Hexagon Pack(위 우물
+       주석 참고)에서 채웠다. 마방은 이 팩에 그 이름 그대로는 없다 — 병영
+       (barracks)을 대신 앉혔다(사용자 지시로 역할·모양 일치를 요구하지
+       않는다). 여관은 이 팩의 'tavern'(큰 맥주통이 통째로 간판을 겸하는
+       모양 — 흔한 여관 도상은 아니지만 이 팩 자체의 방식이다), 방앗간은
+      'windmill'(날개 달린 실제 풍차, 가장 자연스럽게 맞아떨어졌다) */
+    'inn': BLD_HEX + 'tavern.glb',       // 갈대나루(나루터) — 나그네 쉼터
+    'stable': BLD_HEX + 'barracks.glb',  // 자작재(산길) — 마방(대역)
+    'mill': BLD_HEX + 'windmill.glb',    // 소금벌(염전) — 방앗간
     /* SAGA WEB.md "E. 건물" 목록의 "탑" — 모루골(중심 마을)의 표지 건물로
        하나만 세운다. 2026-09-04 — Poly Haven `modular_fort_01`
        (성채 모듈 키트, CC0)에서 원형 탑 조각(`tower_round`) 하나만
@@ -187,8 +217,9 @@
        `trimesh`(Python)로 gltf+bin+diffuse 세 장만 받아(법선·거칠기 맵은
        이 판 재질(Lambert)에 안 쓰여 안 받음, `delam` 과 같은 이유) 768px
        재압축 후 단일 glb로 구웠다. 출처는 `ASSET_LICENSES.md` 참고.
-       우물·대장간·여관·마방·방앗간은 여전히 stylized 그대로다 — PolyScan
-       카탈로그에 그 다섯 종류 자체가 없다(집 계열만 있었다) */
+       2026-09-05 — E 건물 목록(집·우물·대장간·여관·마방·방앗간) 여섯이
+       이제 다 실사·CC0 에셋으로 찼다(모양이 정확히 원작 그대로는 아니다,
+       사용자가 그래도 된다고 정했다) */
     'belltower': BLD_REAL + 'tower_round.glb',
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
