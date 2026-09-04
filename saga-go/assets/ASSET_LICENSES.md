@@ -581,6 +581,113 @@ Sketchfab CC0·OpenGameArt·Poly Pizza를 전부 확인했지만 "벼"로 걸리
 특히 `Shrub_04`가 논 위에서 어색하게 크거나 작게 서지 않는지, 디딤돌이
 강폭에 맞게 자연스럽게 늘어서는지 볼 것.
 
+---
+
+## MPFB2 + makehuman_system_assets — 사람 캐릭터 실사화 (2026-09-05, 미통합)
+
+다섯 판 어디서도 못 뚫었던 "사람 지오메트리 실사화"(Mixamo 재배포 금지·CC0
+대안은 애니메이션 0개, 위 HANDOFF 참고)를 **CC0 완제품이 아니라 CC0 도구로
+직접 뽑아서** 처음 뚫었다. 남녀 각 한 벌(`char_male.glb`·`char_female.glb`,
+`assets/models/_mpfb_test/`)까지 마무리했지만 **아직 `js/asset3d.js` 의
+`DEFAULTS.hero`에는 안 올렸다** — QRPG(전사·궁수·도적·성직자·마법사·수도승
+6종, 각자 클립 보유)를 완전히 대체할지 추가 변형으로 넣을지는 사용자
+판단이 필요해 다음 세션(또는 이 세션 뒤이어)이 정한다.
+
+**`assets/models/_mpfb_test/`(빌드 스크립트·`.blend`·`.glb`·스크린샷)는
+이 저장소에 커밋하지 않았다** — 로컬에만 있다. 통합하기로 정해지면 그때
+필요한 파일만 골라 정식 경로(`PEOPLE`/`REGULAR` 상수가 가리키는 자리)로
+옮기고 최적화해서 커밋할 것. 아래 표·버그 기록은 재현 가능하도록 과정을
+남겨 둔 것이다.
+
+| | |
+|---|---|
+| **도구** | MPFB2(makehumancommunity.org) — 코드 GPLv3, Blender 확장. 이 PC에
+  이미 깐 채로 다음 세션이 재사용할 수 있다(`%APPDATA%\Blender Foundation\Blender\5.2\extensions\`) |
+| **번들 에셋** | `makehuman_system_assets_cc0.zip`(267MB) — **CC0**. `files2.makehumancommunity.org`
+  에서 받았다(피부·머리·눈썹·눈썹속눈썹·눈·이·혀·옷) |
+| **뼈대** | MPFB의 `game_engine` 리그 프리셋 — `Root`→`root`, `head`→`Head`
+  두 곳만 대소문자를 고치면 게임의 `assets/models/anim/UAL1_Standard.glb`
+  (Quaternius, UE 마네킹 명명)와 53/53 뼈 이름이 그대로 겹친다 |
+| **뽑은 조합** | 남 = `young_asian_male` 피부 + `short01` 머리 + `male_casualsuit01` 옷,
+  여 = `young_asian_female` 피부 + `long01` 머리 + `female_casualsuit01` 옷
+  (둘 다 `eyebrow001`·`eyelashes01`·`low-poly` 눈·`teeth_shape01`·`tongue01`) |
+
+### 2026-09-05 세션이 마저 잡은 버그 둘
+
+지난 세션이 남긴 "머리카락·얼굴 깨짐"·"팔이 안 움직인다" 둘 다 **리깅
+자체가 아니라 코드 두 곳**이 원인이었다(직접 재현해 찾았다):
+
+1. **`js/asset3d.js` `buildHero()`가 조합형 몸(제 클립이 없어 `ANIM_SRC`를
+   빌리는 몸)에 UAL1의 원본 클립을 리타깃 없이 그대로 물리고 있었다.**
+   `ANIM_SRC`(UAL1) 클립은 뼈마다 **position까지** 매 프레임 굽는데, 이걸
+   raw로 물리면 이 몸의 뼈 길이가 UAL1의 것으로 매 프레임 덮어써진다 —
+   뼈 이름·비례가 UAL1과 완전히 같은 옛 Quaternius 조합형에서만 우연히
+   맞았을 뿐, 실제 인체 비례로 뽑은 MPFB 몸에서는 팔다리가 뒤틀렸다.
+   `retargetInto()`(이미 있던 리타깃 함수, 476행)로 다시 굽도록 고쳤다 —
+   위치는 이 몸의 것을 그대로 지키고 회전만 세계 좌표로 옮겨 입으므로
+   뼈 길이가 달라도 맞는다. 몸마다 한 번만 굽도록 `parts.body.heroClips`
+   에 캐싱한다.
+2. **`retargetInto()`가 만드는 애니메이션 클립의 트랙 이름이
+   `.bones[뼈이름].quaternion` 식(스켈레톤 상대 주소)인데, three의
+   `AnimationMixer`는 이 형식을 뿌리가 SkinnedMesh 자신일 때만 푼다** —
+   이 창고는 어디서든 `new AnimationMixer(model)`의 `model`이 SkinnedMesh를
+   감싼 Group이라 뼈까지 못 내려가 **에러도 없이 조용히 얼어붙는다**. 이게
+   "팔이 T자로 안 움직인다"의 진짜 원인이었다(다리도 같은 매커니즘으로
+   깨져 있었어야 정상인데, 지난 세션은 옛 raw 클립 경로로 다리만 우연히
+   맞았던 걸 "다리는 된다"로 오인했다). 뼈 이름은 장면 전체에서 유일하므로
+   `뼈이름.quaternion`평범한 이름으로 바꿔 주면 Group 뿌리에서도 먹힌다 —
+   이 수정은 `retargetInto()` 자체에 있어 마을 사람 등 다른 배우의
+   리타깃에도 함께 적용된다(전에는 그쪽도 조용히 안 움직이고 있었을
+   가능성이 있다 — 확인 못 함, 다음 세션이 마을 사람도 볼 것).
+3. **머리카락·눈썹·피부의 "얼굴이 깨진다"는 Blender 5.x glTF 익스포터가
+   더 이상 `Material.blend_method`를 안 본다**("Alpha mode is determined
+   by the nodes too" — 익스포터 소스 주석). MPFB가 물려 주는 Alpha 입력은
+   텍스처 알파를 그대로 잇기만 해서 익스포터가 못 알아보고 전부
+   `alphaMode:BLEND`로 떨어졌다(직접 확인) — three는 투명 오브젝트를
+   **오브젝트 단위로만 정렬**해서, 머리카락·눈썹처럼 겹친 BLEND 메시가
+   그리는 순서가 어긋나 "대머리로 보이고 입 주변에 붉은 텍스처"로 보였다.
+   내보내기 직전 파이썬으로 Alpha 입력 앞에 `Math: Greater Than`(문턱
+   0.5) 노드를 끼워 넣으면 익스포터가 그 패턴을 **알파 클립**(정렬이
+   필요 없는 `alphaMode:MASK`)으로 알아본다 — 여덟 재질 전부 이렇게
+   고쳤다(피부의 눈·입 구멍도 원래 이 방식의 알파컷이라 스킨도 예외가
+   아니다).
+
+### 남은 것 — 다음 세션(또는 통합 결정 뒤)이 볼 것
+
+- **옷을 입히면 걷는 동안 손·발이 몸통에서 떨어져 보인다.** 맨몸(옷 없이
+  피부+머리만)으로는 걷기 자세가 완전히 정상이다(양팔 비대칭 스윙,
+  손발이 팔다리 끝에 잘 붙음) — 옷(`male_casualsuit01`)을 입힌 순간만
+  소매·바지 끝과 손발 사이에 간격이 생긴다. MPFB의 `interpolate_weights`
+  로 옷 가중치를 몸에서 보간해 오는 과정에서 손목·발목 근처 가중치가
+  덜 정확하게 옮겨졌을 가능성이 높다(원인 미확인, 옷 없는 쪽은 멀쩡하니
+  리타깃 버그는 아니다) — 다음 세션이 옷의 버텍스 그룹을 직접 대조해
+  볼 것
+- 남녀 각 한 벌만 뽑았다(QRPG의 6종 다양성엔 못 미친다)
+- 텍스처가 커서(원본 2048×2048, 약 18~20MB) `gltf-transform resize`로
+  512×512까지 줄여 `char_*.resized512.glb`(약 3.7~3.8MB)를 만들어 뒀다 —
+  더 못 줄인 이유는 **여덟 재질 전부가 diffuse 텍스처의 알파 채널을 그대로
+  마스크로 쓰기 때문**(위 버그 3)에, JPEG(알파 없음)로 못 바꾼다. 실기
+  화면에서 512가 흐려 보이면 그때 늘리면 된다
+- `DEFAULTS.hero` 등록·`sw.js` VERSION 올리기·자가진단 재확인은 아직
+
+### 밟은 함정 (다시 겪지 않도록)
+
+- **`ExportService.create_character_copy(basemesh, ...)`를 쓰지 말 것.**
+  MPFB는 옷·머리·눈을 basemesh의 자식으로 붙이고 `add_builtin_rig`가
+  basemesh를 다시 아마추어의 자식으로 만드는데(2단 부모),
+  `create_character_copy`는 바로 아래 자식만(재귀 없이) 복제해 옷·머리가
+  통째로 빠진다. 대신 `bpy.data.objects`에서 MESH 전부 + 아마추어를
+  직접 선택해 `export_scene.gltf(use_selection=True, export_apply=True)`
+- **Blender 4.4+의 새 Action(레이어) API에서 `action.fcurves`가 없어졌다**
+  (`AttributeError`) — 클립이 애니메이션을 실제로 갖고 있는지 확인하려면
+  `bpy.data.actions`를 파고들지 말고 **glTF 파일 자체를 gltf-transform 등
+  으로 까 보는 쪽**이 버전에 안 흔들린다
+- **파일이 크면(20MB대) 헤드리스 크롬이 진짜 느리다** — 위 HANDOFF의
+  120초 조언은 여전히 유효하다. 이번엔 그 위에 헤드리스 인스턴스를 여럿
+  겹쳐 띄우면(이전 인스턴스가 안 끝난 채 새로 띄우면) 소프트웨어 렌더
+  경합으로 같은 페이지가 어떤 때는 4초, 어떤 때는 몇 분씩 걸리는 것도
+  겪었다 — 스크린샷이 안 나오면 먼저 겹쳐 뜬 헤드리스가 없는지 볼 것
+
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 
 - **허수아비.** Quaternius 미러 1545 개를 다 훑어도 없다. 그 자리는 코드가 그대로

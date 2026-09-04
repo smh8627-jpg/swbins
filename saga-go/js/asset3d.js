@@ -503,12 +503,29 @@
     var names = boneNameMap(tm, sm);
     if (!names.count) { return []; }
 
-    var out = [], i, clip;
+    var out = [], i, j, clip;
     for (i = 0; i < src.clips.length; i++) {
       try {
         clip = t.SkeletonUtils.retargetClip(tm, sm, src.clips[i],
           { hip: 'Hips', scale: mul, names: names.map });
-        if (clip) { clip.name = src.clips[i].name; out.push(clip); }
+        if (clip) {
+          clip.name = src.clips[i].name;
+          /* `retargetClip` 이 굽는 트랙 이름은 `.bones[뼈이름].quaternion` 식
+             (스켈레톤 상대 주소)이다 — three 의 `PropertyBinding` 은 이 형식을
+             `AnimationMixer` 의 **뿌리가 SkinnedMesh 자신일 때만** 푼다
+             (`root.skeleton.getBoneByName()` 로 찾는다). 그런데 이 창고는
+             어디서든 `new AnimationMixer(model)` 의 `model` 이 SkinnedMesh를
+             감싼 Group(`normalize()`가 돌려주는 것)이라 뼈까지 못 내려가
+             **조용히 아무것도 안 움직인다**(에러도 안 난다) — 2026-09-05
+             "팔이 T자로 안 움직인다" 버그를 직접 재현해 찾았다. 뼈 이름은
+             장면 전체에서 유일하므로 `뼈이름.quaternion` 평범한 이름으로
+             바꾸면 `findNode` 가 Group 에서부터 재귀로 찾아 그대로 먹힌다 —
+             가리키는 값(위치·회전)은 그대로고 **주소 형식만** 바꾼다 */
+          for (j = 0; j < clip.tracks.length; j++) {
+            clip.tracks[j].name = clip.tracks[j].name.replace(/^\.bones\[([^\]]+)\]/, '$1');
+          }
+          out.push(clip);
+        }
       } catch (e) { /* 이 클립 하나만 건너뛴다 */ }
     }
     c.retargetScale = mul;
@@ -945,12 +962,30 @@
 
       var animC = parts.anim;
       if (animC && animC.clips && animC.clips.length) {
+        var clips = animC.clips;
+        /* 몸이 제 클립이 없어(QRPG 는 있다, `rec.anim===rec.body`) ANIM_SRC(UAL1)
+           를 빌려 왔다면(옛 조합형·MPFB 실사 몸 등) **그대로 물리면 안 된다** —
+           ANIM_SRC 클립은 뼈마다 position·quaternion·scale 을 다 굽고 있어서
+           (위치까지 매 프레임 덮어쓴다), 이 몸의 뼈 길이가 ANIM_SRC 와 한 치도
+           안 다를 때만 우연히 맞는다. 뼈 이름은 같아도 실제 인체 비례로 뽑은
+           몸(MPFB)은 뼈 길이가 다르므로 raw 로 물리면 팔다리가 ANIM_SRC 치수로
+           튀거나(위치 덮어쓰기) 붙어 있던 부모 축과 안 맞아 뒤틀린다 — 2026-09-05
+           "팔이 T자로 안 움직인다" 버그의 원인. `retargetInto`(위, 476행)로
+           다시 구우면 위치는 이 몸의 것을 그대로 지키고(preserveBonePositions)
+           회전만 세계 좌표로 옮겨 입으므로 뼈 길이가 달라도 맞는다. 몸마다
+           한 번만 굽도록 `parts.body`(URL 로 캐싱되는 원본 캐시 칸)에 매달아 둔다 */
+        if (rec.anim !== rec.body) {
+          if (!parts.body.heroClips) {
+            parts.body.heroClips = retargetInto({ gltf: { scene: model } }, animC) || [];
+          }
+          if (parts.body.heroClips.length) { clips = parts.body.heroClips; }
+        }
         var mx = new t.AnimationMixer(model);
         var acts = {}, i;
-        for (i = 0; i < animC.clips.length; i++) { acts[animC.clips[i].name] = mx.clipAction(animC.clips[i]); }
+        for (i = 0; i < clips.length; i++) { acts[clips[i].name] = mx.clipAction(clips[i]); }
         shell.userData.mixer = mx;
         shell.userData.actions = acts;
-        shell.userData.clipMap = mapClips(animC.clips.map(function (a) { return a.name; }));
+        shell.userData.clipMap = mapClips(clips.map(function (a) { return a.name; }));
         shell.userData.anim = null;
       }
     }
