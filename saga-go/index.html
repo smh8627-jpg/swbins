@@ -132,6 +132,35 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
 <script>
+/* `?debug=1` 로 열면 화면 구석에 GLB/3D 상태를 글자로 띄운다 — "인물이 도형인지
+   실제 모델인지" 를 실기기에서 콘솔 없이 바로 읽으려는 것이다(2026-09-04,
+   실기기에서 캐릭터가 무늬 없는 단색으로 보인다는 제보를 좁히던 자리).
+   평소에는 아무 영향이 없다 — 켜야만 만들어진다. */
+(function () {
+  if (!/[?&]debug=1\b/.test(location.search)) { return; }
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:0;bottom:0;z-index:99999;max-width:100vw;' +
+    'font:10px/1.4 monospace;color:#0f0;background:rgba(0,0,0,.72);padding:4px 6px;' +
+    'white-space:pre-wrap;pointer-events:none;';
+  document.body.appendChild(box);
+  setInterval(function () {
+    try {
+      var W = window.DG && window.DG.world3d, A = window.DG && window.DG.asset3d, P = window.DG && window.DG.perf;
+      var ws = W && W.stats ? W.stats() : null;
+      var as = A && A.stats ? A.stats() : null;
+      var ps = P && P.stats ? P.stats() : null;
+      var lines = [];
+      lines.push('actors=' + (ws ? ws.actors : '-') + ' meshActors=' + (ws ? ws.meshActors : '-'));
+      lines.push('asset3d built=' + (as ? as.built : '-') + ' swapped=' + (as ? as.swapped : '-') +
+        ' loaded=' + (as ? as.loaded : '-') + ' failed=' + (as ? as.failed : '-'));
+      if (as && as.broke) { lines.push('broke: ' + as.broke); }
+      lines.push('perf: ' + (ps ? JSON.stringify(ps) : '-'));
+      box.textContent = lines.join('\n');
+    } catch (e) { box.textContent = 'debug overlay error: ' + e.message; }
+  }, 1000);
+})();
+</script>
+<script>
 /* 서비스 워커 — 오프라인 모드의 캐시.
    https 나 localhost 에서만 등록된다(브라우저 규칙). 사내 http 주소로 열면
    홈 화면 추가는 되지만 이 캐시는 붙지 않는다 — 그때도 게임 자체는 그대로 돈다. */
