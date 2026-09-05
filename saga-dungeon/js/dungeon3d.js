@@ -1313,6 +1313,32 @@
     for (var i = 0; i < ns.length; i++) { touch('npc:' + (ns[i].key || '')); }
   }
 
+  /** 지역 진입 전 미리 로드(PLAN 39절 나머지 절반) — 들길(exit_*) 표식에
+   *  다가서면(도착보다 한참 전, `PREFETCH_EXIT_R`) 그 목적지 마을의 건물
+   *  종류(house·well·inn 등, `town.js`의 decor)를 `prefetchActors()`와
+   *  같은 요령(`rawScene()`, 세우지 않고 캐시에만 굽는다)으로 미리 당긴다.
+   *  마을마다 딱 한 번만(`prefetchedTowns`) — 다시 다가서도 헛수고 안 한다.
+   *  이미 방문한 마을의 건물 종류(house·well 등)는 어차피 URL 캐시에
+   *  남아 있어 이 함수가 새로 할 일이 없다 — **처음 가 보는 위성 마을의
+   *  전용 건물**(inn·stable·mill 등 아직 한 번도 안 부른 것)에만 실제 효과가 있다. */
+  var prefetchedTowns = {};
+  var PREFETCH_EXIT_R = 240;
+  function prefetchTownDest(toId) {
+    if (prefetchedTowns[toId]) { return; }
+    var AS3 = AS(), TW = global.DG.town;
+    if (!AS3 || !AS3.REG || !AS3.rawScene || !TW || !TW.decorTypesOf) { return; }
+    prefetchedTowns[toId] = true;
+    var types = TW.decorTypesOf(toId), noop = function () {};
+    for (var i = 0; i < types.length; i++) {
+      var reg = AS3.REG[types[i]];
+      if (!reg) { continue; }
+      var list = Array.isArray(reg) ? reg : [reg];
+      for (var j = 0; j < list.length; j++) {
+        if (typeof list[j] === 'string') { AS3.rawScene(list[j], noop); }
+      }
+    }
+  }
+
   function meShape() {
     var sg = new T.Group();
     box(sg, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
@@ -1874,7 +1900,11 @@
       var mo = mks[i];
       var ma = actorOf('m' + mo.key, 'mark', mo);
       ma.node.position.set(mo.x, 0, mo.y);
-      townMark(ma.node, Math.hypot(mo.x - p.x, mo.y - p.y), talkR);
+      var mDist = Math.hypot(mo.x - p.x, mo.y - p.y);
+      townMark(ma.node, mDist, talkR);
+      if (mo.key.indexOf('exit_') === 0 && mDist < PREFETCH_EXIT_R) {
+        prefetchTownDest(mo.key.slice(5));
+      }
     }
 
     /* 바닥의 전리품 — 등급색으로 빛나는 낮은 조각 */

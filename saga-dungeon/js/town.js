@@ -629,6 +629,19 @@
     nearest: nearest, note: note,
     travel: travel, overworld: overworld,
     status: status,
+    /** 지역 진입 전 미리 로드(PLAN 39절, `dungeon3d.js`의 `prefetchTownDest()`가
+     *  읽는다) — 그 마을 decor 에 쓰이는 건물 종류(house·well·inn 등)를
+     *  중복 없이 돌려준다. 순수 함수, three 필요 없다. */
+    decorTypesOf: function (id) {
+      var cfg = cfgOf(id), seen = {}, out = [], i, t;
+      for (i = 0; i < cfg.decor.length; i++) {
+        t = cfg.decor[i].t;
+        if (seen[t]) { continue; }
+        seen[t] = true;
+        out.push(t);
+      }
+      return out;
+    },
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: raw,
     fx: function () { return fx; },
