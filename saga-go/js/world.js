@@ -1043,6 +1043,9 @@
     var wx = pos.x + (ru * cs - rv * sn), wy = pos.y + (ru * sn + rv * cs);
     clickMarks.push({ x: wx, y: wy, at: Date.now() });
     if (clickMarks.length > 6) { clickMarks.shift(); }
+    /* 2D 표시(`clickMarks`)는 3D가 켜지면 숨는 캔버스에만 그려져 안 보인다 —
+       2026-09-06, "클릭 자리 표시가 없다"로 발견. 3D 바닥에도 같은 표시를 얹는다 */
+    if (W3 && W3.active && W3.active() && W3.clickMark) { W3.clickMark(wx, wy); }
     var hitR = 30 / sc;
     var best = null, bestD = Infinity;
     for (var i = 0; i < spawns.length; i++) {
