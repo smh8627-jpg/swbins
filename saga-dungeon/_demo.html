@@ -12,6 +12,7 @@
     #craft 세공(보석·부문)      #word  부문어가 이루어진 장비
     #loot  바닥에 떨어진 것(등급색 이름표)
     #fx    전투 연출 아홉 가지(3D · 정지 화면)
+    #gear3d 몬스터 장구(투구·왕관·망토) 여덟 결(3D · 정지 화면, 밝게·넓게)
     #vendor 행상(사다)   #gamble 투전   #buyback 되사기   #forge 연단   #skill 무예
     #gear  장비                 #party 부대   #dex 도감   #log 기록
     #world 월드맵                #quest 퀘스트
@@ -63,6 +64,14 @@
 <script>
 /* 가입 화면을 건너뛴다 — 데모는 진단과 같은 고정 키(…/save/test)로 켠다 */
 window.DG_NO_ACCOUNT = true;
+/* 2026-09-05 — CDP(devtools 프로토콜) 스크린샷이 던전 3D 화면만 새까맣게
+   찍히던 자리. `dungeon3d.js`가 이미 `DG_3D_PRESERVE`로 이 스위치를 마련해
+   뒀었다(WebGL의 preserveDrawingBuffer) — 켜지 않으면 렌더러가 매 프레임
+   그린 뒤 버퍼를 비우는데, 헤드리스 컴포지터가 rAF에 안 맞춰 드물게만
+   프레임을 굳혀서 CDP가 그 사이 빈 버퍼를 찍었다(실제 플레이·PC 스크린샷은
+   영향 없다 — 정상 프레임 속도에서 컴포지터가 항상 최신 그림을 든다).
+   데모(진단용)에서만 켠다 — 실제 게임은 약간의 GPU 비용을 아낄 이유가 있다. */
+window.DG_3D_PRESERVE = true;
 </script>
 <script src="js/data.js"></script>
 <script src="js/data-enemy.js"></script>
@@ -309,6 +318,73 @@ setTimeout(function () {
 
     setInterval(fxStage, 60);
     fxStage();
+  }
+  else if (tab === 'gear3d') {
+    /* 몬스터 장구(투구·왕관·망토) 한눈에 — 헤드리스 스크린샷 확인용으로 새로 만든
+       자리(2026-09-05). #dg(실전투)는 어두운 데다 자동전투가 카메라를 끌고 다녀
+       장구가 눈에 들어올 즈음엔 이미 암흑이고, #fx는 "방금 맞은 직후"를 일부러
+       만드는 자리라 피격 번쩍임(흰색)이 갑옷·투구 색을 덮어 버린다 — 둘 다
+       장구 확인용으로는 못 쓴다는 게 실제로 겪어 확인한 것이다.
+       그래서 밝게·넓게 당겨 잡은 화면 하나에 장구 결 여덟 가지를 나란히 세운다
+       (`_styles.html`이 그림 양식을 나란히 굽는 것과 같은 생각). DN.update()는
+       부르지 않는다 — 적 AI가 움직이거나 플레이어를 때리면 다음 틱에 흐트러진다
+       (#fx가 이미 쓰던 요령). */
+    DN.enter({ floor: 14, mode: 'hard' });
+    var rung = DN.raw();
+    DG.dungeon3d.set('dg3d.dark', 0.12);   // 실전 어둡기와는 별개 손잡이 — 뜯어보기 좋게 밝힌다
+    /* zoom 을 세게 키우면 카메라가 안개(fog.far ≈ 1400 안팎)를 넘어서 버려
+       화면이 통째로 새까매진다(실제로 겪었다 — 2.0에서 그랬다). 살짝만 물러난다 */
+    DG.dungeon3d.set('dg3d.zoom', 1.25);
+
+    var baseRef = (rung.room.enemies[0] && rung.room.enemies[0].ref) || { name: '적', color: '#8a6a4a', kind: 'human' };
+    var GEAR_GALLERY = [
+      { label: '투구 없음', look: { weapon: 'sword', helm: 'none', armor: 'plate' } },
+      { label: '투구(helmet)', look: { weapon: 'spear', helm: 'helmet', armor: 'plate' } },
+      { label: '원뿔(gapju→바이킹)', look: { weapon: 'sword', helm: 'gapju', armor: 'plate' } },
+      { label: '왕관(crown)', look: { weapon: 'sword', helm: 'crown', armor: 'plate' } },
+      { label: '깃털(plume)', look: { weapon: 'halberd', helm: 'plume', armor: 'plate' } },
+      { label: '망토(cape)', look: { weapon: 'spear', helm: 'helmet', armor: 'plate', cape: true } },
+      { label: '왕관+망토', look: { weapon: 'sword', helm: 'crown', armor: 'plate', cape: true } },
+      { label: '수염(beard, 도형)', look: { weapon: 'axe', helm: 'none', armor: 'leather', beard: true } }
+    ];
+    rung.room.enemies = GEAR_GALLERY.map(function (g, i) {
+      var ref = {};
+      for (var k in baseRef) { if (baseRef.hasOwnProperty(k)) { ref[k] = baseRef[k]; } }
+      ref.name = 'QA ' + g.label;
+      ref.look = g.look;
+      return {
+        x: 153 + i * 42, y: 190, r: 14, hp: 999, hpMax: 999, boss: false,
+        elite: null, shade: false, dmg: 0, cd: 999, phase: 0, hurt: 0, ref: ref
+      };
+    });
+    rung.player.x = 300; rung.player.y = 300;
+    rung.player.invuln = 999;
+    rung.hp = rung.hpMax;
+
+    setInterval(function () {
+      /* 매 틱 되돌린다 — dungeonView.update() 가 건드릴 수 있는 카메라·연출
+         상태 말고는 아무것도 못 바꾸게 한다(#fx와 같은 요령) */
+      rung.player.x = 300; rung.player.y = 300; rung.player.invuln = 999;
+      rung.hp = rung.hpMax;
+      rung.room.enemies.forEach(function (e, i) {
+        e.hurt = 0; e.hp = e.hpMax; e.x = 153 + i * 42; e.y = 190;
+      });
+      DG.dungeonView.update(0.05);
+      DG.dungeonView.draw();
+
+      var sb = document.getElementById('fx-stat');
+      if (!sb) {
+        sb = document.createElement('div');
+        sb.id = 'fx-stat';
+        sb.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:9999;max-width:90vw;' +
+          'padding:4px 7px;background:#000b;color:#cfe;border-radius:6px;' +
+          'font:600 10px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+        document.body.appendChild(sb);
+      }
+      var s3 = DG.dungeon3d.stats();
+      sb.textContent = '3D ' + (s3.none ? 'off(failed=' + s3.failed + ')' : 'on mesh=' + s3.drawn) +
+        ' · gear3d 여덟 자리(왼쪽부터: ' + GEAR_GALLERY.map(function (g) { return g.label; }).join(' · ') + ')';
+    }, 40);
   }
   else if (tab === 'forge') {
     /* 연단 — 넷이 다 뜨게 재료를 깔아 둔다 (보석 셋 · 부문 셋 · 장비 셋 · 완 보석 둘) */
