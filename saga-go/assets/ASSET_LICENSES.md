@@ -935,6 +935,73 @@ git엔 안 잡힌다.** 다음 세션이 같은 스킨으로 다시 뽑을 일�
 자가진단 423/423 3회 동일(회귀 없음, near 패널 좌표 지터만 다름).
 실기기 확인은 여전히 못 했다.
 
+### 2026-09-05(또 이어서) — 남은 MPFB 스킨 열두 종을 예방적 마스킹으로 마저 뽑음
+
+"이건 사실 모든 스킨에 다 있는 현상"이라는 결론에 따라, 빨간기가 실제로
+보이든 안 보이든 아직 안 쓴 스킨 열두 종 전부에 같은 눈 마스킹을 선적용하고
+export했다 — `middleage_african_female`·`middleage_asian_female`·
+`middleage_asian_male`·`middleage_caucasian_female`·`middleage_caucasian_male`·
+`old_african_female`·`old_asian_female`·`old_caucasian_female`·
+`old_caucasian_male`·`young_african_male`·`young_caucasian_male`·
+`young_caucasian_male2`. `toon01`(비실사)과 `_special_suit` 계열 둘
+(캐릭시안 남/녀 각 1, 의상 특화 변형이라 다양성 목적에 안 맞음)은 뺐다.
+
+**좌표 재검증**: 열두 개를 무작정 같은 좌표로 밀어붙이기 전에 인종·연령이
+갈리는 셋(`middleage_asian_male`·`old_african_female`·
+`young_caucasian_male2`)을 먼저 크롭해 눈 위치를 직접 봤다 — 지난번
+셋과 완전히 같은 UV 레이아웃, 같은 좌표 `(1690,970)`·`(1690,1132)`가
+그대로 맞았다. 나머지 아홉도 같은 좌표로 일괄 마스킹했다(원본은 전부
+스크래치패드에 `.orig`로 백업 후 AppData 설치 데이터를 직접 덮어씀 —
+저장소 밖이라 git엔 안 잡힌다, 세션 끝나면 백업도 사라진다).
+
+**머리·옷 조합**(모두 `build_character2.py`로 export, `gltf-transform
+resize` 512×512 → 3.6~4.3MB, 기존 v3~v11과 같은 크기대):
+
+| 스킨 | 머리 | 옷 | 파일 |
+|---|---|---|---|
+| middleage_african_female | bob02 | female_casualsuit01 | v12.glb |
+| middleage_asian_female | short04 | female_casualsuit02 | v13.glb |
+| middleage_asian_male | short01 | male_casualsuit02 | v14.glb |
+| middleage_caucasian_female | long01 | female_elegantsuit01 | v15.glb |
+| middleage_caucasian_male | short02 | male_casualsuit05 | v16.glb |
+| old_african_female | braid01 | female_sportsuit01 | v17.glb |
+| old_asian_female | bob01 | female_casualsuit01 | v18.glb |
+| old_caucasian_female | ponytail01 | female_casualsuit02 | v19.glb |
+| old_caucasian_male | short03 | male_casualsuit06 | v20.glb |
+| young_african_male | afro01 | male_worksuit01 | v21.glb |
+| young_caucasian_male | short04 | male_elegantsuit01 | v22.glb |
+| young_caucasian_male2 | long01 | male_casualsuit01 | v23.glb |
+
+머리·옷 라이브러리가 한정적이라(머리 10종·여성용 옷 4종·남성용 옷
+6종) 몇몇 조합은 기존 여덟 벌과 같은 부품을 재사용했다 — 스킨 자체가
+다 다르므로 캐릭터는 여전히 다 갈린다. `young_caucasian_male2`에
+`long01`(원래 여성형 실루엣에 가까운 긴 머리)을 썼더니 렌더에서 남성
+캐릭터가 다소 여성스러워 보이는데, 이건 머리 라이브러리 자체의 한계다
+(다양성 목적엔 문제없다고 판단해 그대로 뒀다).
+
+**검증**: 열두 개 다 export·리사이즈까지 마쳤고, 그중 일곱 개
+(`v12`·`v14`·`v16`·`v17`·`v19`·`v20`·`v23` — 인종·연령·성별을 고루
+커버)를 Blender EEVEE로 렌더해 직접 확인 — 전부 빨간 눈가 없이
+자연스러웠다. `js/asset3d.js`의 `HERO_RECIPES`에 열두 개를 더 얹어
+(QRPG 6 + MPFB 실사 20) **총 스물여섯 벌**이 됐다.
+
+**부가로 잡은 진단 버그**: `_test.html`의 "인물이 여섯 벌의 몸을 나눠
+입는다" 테스트가 `Object.keys(seen).length === A.DEFAULTS.hero.length`로
+70명 전원이 고른 몸이 **풀 전체를 하나도 안 빠뜨리고 다 커버해야** 통과였다
+— 풀이 작을 때(6~14벌)는 70명이면 거의 항상 다 걸렸지만, 스물여섯 벌로
+늘리고 나니 확률상(70명/26벌, 기대 미사용 개수 ≈1.8개) 하나가 실제로 안
+걸려 422/423으로 깨졌다. **코드 버그가 아니라 테스트의 암묵적 가정이 깨진
+것** — id 해시 자체는 여전히 결정적이고 골고루 퍼진다. 완전 커버리지
+대신 "풀 크기 − 5 이상 걸림"(직접 측정 25/26, 여유 있게 통과하되 해시가
+고장나 하나로 뭉치는 실제 회귀는 여전히 잡는다)으로 완화하고 제목도
+"여섯 벌"(이미 8·11·14벌이 되고도 안 고쳐졌던 옛 이름)에서 일반화했다.
+
+`sw.js` → `go-v5.21.0`. 자가진단 423/423 3회 동일(회귀 없음, near 패널
+좌표 지터만 다름). 실기기 확인은 여전히 못 했고, 열두 개 중 다섯 개
+(`v13`·`v15`·`v18`·`v21`·`v22`)는 렌더 확인을 안 했다(export·리사이즈는
+다 됐다 — 눈으로 보고 싶으면 위 표로 스킨·머리·옷을 알 수 있으니 필요할
+때 렌더하면 된다).
+
 ### 밟은 함정 (다시 겪지 않도록)
 
 - **`ExportService.create_character_copy(basemesh, ...)`를 쓰지 말 것.**

@@ -121,6 +121,28 @@
     { key: 'mpfb_v11', body: PEOPLE_MPFB + 'v11.glb' }   // young_caucasian_female2 + bob01 + female_sportsuit01
   ]);
 
+  /* 2026-09-05(또 이어서) — 눈 마스킹이 검증됐으니("이 현상은 사실 모든 스킨에
+     다 있다") 남은 MPFB 스킨 열두 종을 마저 뽑는다. 이번엔 빨간기가 실제로
+     보이든 안 보이든 열두 개 전부에 같은 마스킹(좌표 (1690,970)·(1690,1132),
+     2048 기준)을 선적용했다 — 크롭으로 셋을 대표 확인해 UV 레이아웃이 스킨마다
+     완전히 같다는 걸 재확인했다. `toon01`·`_special_suit` 두 벌은 뺐다
+     (비실사·의상 특화라 다양성 목적에 안 맞음). 자세한 내용은
+     `assets/ASSET_LICENSES.md` 참고 */
+  HERO_RECIPES = HERO_RECIPES.concat([
+    { key: 'mpfb_v12', body: PEOPLE_MPFB + 'v12.glb' },  // middleage_african_female + bob02 + female_casualsuit01
+    { key: 'mpfb_v13', body: PEOPLE_MPFB + 'v13.glb' },  // middleage_asian_female + short04 + female_casualsuit02
+    { key: 'mpfb_v14', body: PEOPLE_MPFB + 'v14.glb' },  // middleage_asian_male + short01 + male_casualsuit02
+    { key: 'mpfb_v15', body: PEOPLE_MPFB + 'v15.glb' },  // middleage_caucasian_female + long01 + female_elegantsuit01
+    { key: 'mpfb_v16', body: PEOPLE_MPFB + 'v16.glb' },  // middleage_caucasian_male + short02 + male_casualsuit05
+    { key: 'mpfb_v17', body: PEOPLE_MPFB + 'v17.glb' },  // old_african_female + braid01 + female_sportsuit01
+    { key: 'mpfb_v18', body: PEOPLE_MPFB + 'v18.glb' },  // old_asian_female + bob01 + female_casualsuit01
+    { key: 'mpfb_v19', body: PEOPLE_MPFB + 'v19.glb' },  // old_caucasian_female + ponytail01 + female_casualsuit02
+    { key: 'mpfb_v20', body: PEOPLE_MPFB + 'v20.glb' },  // old_caucasian_male + short03 + male_casualsuit06
+    { key: 'mpfb_v21', body: PEOPLE_MPFB + 'v21.glb' },  // young_african_male + afro01 + male_worksuit01
+    { key: 'mpfb_v22', body: PEOPLE_MPFB + 'v22.glb' },  // young_caucasian_male + short04 + male_elegantsuit01
+    { key: 'mpfb_v23', body: PEOPLE_MPFB + 'v23.glb' }   // young_caucasian_male2 + long01 + male_casualsuit01
+  ]);
+
   /**
    * 옛 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
    * 이름·순서가 파일 열둘(몸 둘·옷 넷·머리 여섯) 전부 한 글자도 안 다르다(직접

@@ -3511,16 +3511,23 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (got.map(function (u) { return u.split('/').pop(); }).join(' · '));
     });
 
-    t('에셋 — 인물이 여섯 벌의 몸을 나눠 입는다', function () {
+    t('에셋 — 인물이 서로 다른 몸을 나눠 입는다 (id 해시로 대부분의 몸이 실제로 쓰인다)', function () {
       var A = DG.asset3d;
       A.restore();
       var seen = {}, i;
       for (i = 0; i < D.heroes.length; i++) {
         seen[A.urlOf('hero', D.heroes[i]).split('/').pop()] = 1;
       }
-      return Object.keys(seen).length === A.DEFAULTS.hero.length &&
+      /* 원래 이름이 "여섯 벌"이던 옛 테스트(풀이 작을 때는 70명이 골고루 퍼져
+         전부 다 걸렸다) — 2026-09-05 실사 인물을 스물여섯 벌까지 늘리고 나니
+         70명/26벌 확률상 한둘은 안 걸려도(기대 미사용 개수 ≈ 1.8개) 정상이다
+         (직접 측정: 25/26 걸림). 그래서 **완전 커버리지**가 아니라 "대부분
+         걸린다"(풀 크기 - 5 이상, 우연이 아니라 실제로 골고루 퍼진다는 뜻 —
+         해시가 고장나 하나로 뭉치면 이 문턱에 걸린다)로 완화했다 */
+      return Object.keys(seen).length >= A.DEFAULTS.hero.length - 5 &&
         A.chain('hero', D.heroes[0]) === 'glb' &&
-        (Object.keys(seen).sort().join(' · '));
+        (Object.keys(seen).length + '/' + A.DEFAULTS.hero.length + '벌 걸림 — ' +
+         Object.keys(seen).sort().join(' · '));
     });
 
     t('에셋 — 같은 사람은 늘 같은 몸을 입는다 (id 해시)', function () {
@@ -3605,7 +3612,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('일흔 명 × 네 무리 = ' + (D.heroes.length * 4) + '자리 모두 정확히 하나');
     });
 
-    t('에셋 — 인물 열네 벌이 갖춰져 있다 (통짜형은 제 몸짓, 조합형·MPFB실사는 UAL 옮겨입기)', function () {
+    t('에셋 — 인물 스물여섯 벌이 갖춰져 있다 (통짜형은 제 몸짓, 조합형·MPFB실사는 UAL 옮겨입기)', function () {
       var A = DG.asset3d;
       /* 2026-09-03 — 기본이 QRPG(통짜 스킨, 제 파일에 클립이 있어 body·anim 만
          있으면 된다)로 바뀌었다. 옛 조합형(몸+옷+머리, UAL 몸짓을 옮겨 입음)은
@@ -3621,11 +3628,14 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          2026-09-05(더 이어서) — "눈가 빨갛게" 원인이 코드 버그가 아니라 스킨
          텍스처 자체(눈이 이미 사진으로 그려져 있어 3D 눈알과 겹쳐 보임)로
          확정돼, 그 텍스처의 눈 UV 영역만 피부색으로 지우고 나머지 셋
-         (`mpfb_v9`·`mpfb_v10`·`mpfb_v11`)을 마저 뽑아 열네 벌이 됐다. 그래서
+         (`mpfb_v9`·`mpfb_v10`·`mpfb_v11`)을 마저 뽑아 열네 벌이 됐다.
+         2026-09-05(또 이어서) — 마스킹이 검증됐으니 남은 MPFB 스킨 열두 종
+         (`mpfb_v12`~`mpfb_v23`)을 예방적 마스킹까지 적용해 마저 뽑아 QRPG 6 +
+         MPFB 실사 20 = 스물여섯 벌이 됐다. 그래서
          **몸만 있는 형태**도 받아 준다(그 경우 몸짓은 어차피 ANIM_SRC를
          빌리므로 검증할 게 없다) */
       return A.ANIM_SRC.indexOf('UAL') >= 0 &&
-        A.DEFAULTS.hero.length === 14 &&
+        A.DEFAULTS.hero.length === 26 &&
         A.DEFAULTS.hero.every(function (r) {
           return r && r.body && r.key &&
             ((r.outfit && r.hair) || r.anim || (!r.outfit && !r.hair && !r.anim));
