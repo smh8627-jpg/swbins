@@ -108,6 +108,19 @@
     { key: 'mpfb_v8', body: PEOPLE_MPFB + 'v8.glb' }    // old_african_male + short03 + male_casualsuit04
   ]);
 
+  /* 2026-09-05(더 이어서) — 위에서 뺐던 캐릭시안·노년 아시아 스킨 셋을 마저 뽑는다.
+     "눈가 빨갛게" 원인이 HANDOFF.md에서 확정됐다(코드 버그 아님 — MakeHuman
+     스킨 사진 자체에 눈이 이미 그려져 있어 3D 눈알과 겹쳐 보이는 것) — 그
+     스킨들의 diffuse 텍스처에서 눈 UV 영역만(눈썹 라인은 남기고) 주변 피부색으로
+     페더링해 지우고 다시 export했다. 나머지 파이프라인(옷 Automatic Weights,
+     머리·눈·이 Head 강체 고정, 알파클립 노드)은 위와 완전히 동일 — 원래
+     처음 넷을 뽑을 때 정했던 조합 그대로다 */
+  HERO_RECIPES = HERO_RECIPES.concat([
+    { key: 'mpfb_v9', body: PEOPLE_MPFB + 'v9.glb' },    // young_caucasian_female + ponytail01 + female_elegantsuit01
+    { key: 'mpfb_v10', body: PEOPLE_MPFB + 'v10.glb' },  // old_asian_male + short02 + male_casualsuit03
+    { key: 'mpfb_v11', body: PEOPLE_MPFB + 'v11.glb' }   // young_caucasian_female2 + bob01 + female_sportsuit01
+  ]);
+
   /**
    * 옛 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
    * 이름·순서가 파일 열둘(몸 둘·옷 넷·머리 여섯) 전부 한 글자도 안 다르다(직접

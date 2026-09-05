@@ -3605,7 +3605,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('일흔 명 × 네 무리 = ' + (D.heroes.length * 4) + '자리 모두 정확히 하나');
     });
 
-    t('에셋 — 인물 열한 벌이 갖춰져 있다 (통짜형은 제 몸짓, 조합형·MPFB실사는 UAL 옮겨입기)', function () {
+    t('에셋 — 인물 열네 벌이 갖춰져 있다 (통짜형은 제 몸짓, 조합형·MPFB실사는 UAL 옮겨입기)', function () {
       var A = DG.asset3d;
       /* 2026-09-03 — 기본이 QRPG(통짜 스킨, 제 파일에 클립이 있어 body·anim 만
          있으면 된다)로 바뀌었다. 옛 조합형(몸+옷+머리, UAL 몸짓을 옮겨 입음)은
@@ -3617,10 +3617,15 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          2026-09-05(이어서) — "마을 사람 다양성 늘리기"로 셋을 더 얹어 열한
          벌이 됐다(`mpfb_v3`·`mpfb_v7`·`mpfb_v8`, 아프리카계 피부 — 캐릭시안·
          노년 아시아 피부 셋은 눈가가 깨지는 버그가 나와 뺐다, `asset3d.js`
-         81행 근처 주석 참고). 그래서 **몸만 있는 형태**도 받아 준다(그 경우
-         몸짓은 어차피 ANIM_SRC를 빌리므로 검증할 게 없다) */
+         81행 근처 주석 참고).
+         2026-09-05(더 이어서) — "눈가 빨갛게" 원인이 코드 버그가 아니라 스킨
+         텍스처 자체(눈이 이미 사진으로 그려져 있어 3D 눈알과 겹쳐 보임)로
+         확정돼, 그 텍스처의 눈 UV 영역만 피부색으로 지우고 나머지 셋
+         (`mpfb_v9`·`mpfb_v10`·`mpfb_v11`)을 마저 뽑아 열네 벌이 됐다. 그래서
+         **몸만 있는 형태**도 받아 준다(그 경우 몸짓은 어차피 ANIM_SRC를
+         빌리므로 검증할 게 없다) */
       return A.ANIM_SRC.indexOf('UAL') >= 0 &&
-        A.DEFAULTS.hero.length === 11 &&
+        A.DEFAULTS.hero.length === 14 &&
         A.DEFAULTS.hero.every(function (r) {
           return r && r.body && r.key &&
             ((r.outfit && r.hair) || r.anim || (!r.outfit && !r.hair && !r.anim));

@@ -885,6 +885,56 @@ bpy.ops.export_scene.gltf(filepath=out, use_selection=True, export_apply=True)
 "인물 N 벌이 갖춰져 있다" 자가진단도 11로 갱신(421/423 3회 동일,
 남은 둘은 무관한 기존 하늘 테스트). 실기기 확인은 못 했다.
 
+### 2026-09-05(더 이어서) — 뺐던 캐릭시안·노년 아시아 스킨 셋을 눈 마스킹으로 마저 뽑음
+
+`HANDOFF.md`가 확정한 원인(코드 버그 아님 — MakeHuman 스킨 사진에 눈이
+이미 그려져 있어 3D 눈알과 겹쳐 보이는 것) 그대로, **문제 스킨 셋의
+diffuse 텍스처에서 눈 UV 영역만 이미지 편집으로 지웠다.**
+
+**방법**: `python`/`python3`는 이 PC에서 Windows Store 스텁이라 못 쓴다
+(`py` 런처도 없음) — 대신 **Blender 5.2 자체 Python**을 썼다
+(`blender --background --python script.py`, `bpy.data.images.load()` →
+`image.pixels` 직접 조작). 세 스킨(`young_caucasian_female`·
+`young_caucasian_female2`·`old_asian_male`) 다 **같은 베이스 메시·같은
+UV 레이아웃**을 쓰므로(직접 크롭해 확인 — 세 텍스처 다 2048×2048, 눈이
+정확히 같은 픽셀 자리에 있었다) 좌표 하나를 셋에 그대로 재사용할 수
+있었다. 얼굴 UV 아일랜드는 "귀-눈-코입-눈-귀-턱"이 세로로 이어진
+한 조각이라(머리 가죽을 정수리부터 뒤로 갈라 펼친 모양) 눈이 정확히
+두 자리(위쪽 눈, 아래쪽 눈)뿐이었다 — 처음엔 얼굴 사진이 "3"자 모양으로
+세 번 겹친 걸로 착각했으나(전체 텍스처 맵에서 얼굴이 차지하는 조각이
+크고 좌우 대칭이라 그렇게 보인다), 실제로 눈이 있는 곳은 두 곳뿐이었다.
+
+원본 2048×2048 픽셀 좌표(위쪽 눈 중심 `(1690, 970)`, 아래쪽 눈 중심
+`(1690, 1132)`, 각각 rx=65·ry=40 타원)에 **테두리 바깥쪽 픽셀 색을
+평균해** 채움색으로 삼고, 타원 경계에서 1.5배 반경까지 `smoothstep`
+으로 알파를 0까지 페더링해 칠했다 — 하드 엣지·패치 자국이 안 보이게.
+눈썹 라인은 타원 반경을 눈두덩이만 딱 덮게 잡아 최대한 보존했다(일부
+스킨은 원래 눈썹이 연해서 약간 옅어지긴 했으나 눈에 띄지 않는다).
+
+원본 파일(MPFB 확장 데이터, `%APPDATA%\Blender Foundation\Blender\5.2\
+extensions\.user\user_default\mpfb\data\skins\<스킨>\`)을 스크래치패드에
+`.orig`로 백업한 뒤 마스킹된 PNG로 덮어썼다 — **이 저장소 밖의 파일이라
+git엔 안 잡힌다.** 다음 세션이 같은 스킨으로 다시 뽑을 일이 있으면
+이미 마스킹된 텍스처를 쓰게 된다(원본 미가공 사진이 필요하면 지금은
+백업이 없으니 makehuman_system_assets_cc0.zip을 다시 받아야 한다).
+
+**export**: 위 재현 스크립트(`build_character.py`)를 스킨·머리·옷을
+인자로 받게 일반화해(`build_character2.py`, 로직은 완전히 같음)
+원래 처음 뽑았던 조합 그대로 셋을 다시 만들었다: `young_caucasian_female`
++`ponytail01`+`female_elegantsuit01`(`mpfb_v9`), `old_asian_male`+
+`short02`+`male_casualsuit03`(`mpfb_v10`), `young_caucasian_female2`+
+`bob01`+`female_sportsuit01`(`mpfb_v11`). `gltf-transform resize`로
+512×512까지 줄여 3.8~4.1MB — 기존 v3/v7/v8과 같은 크기대다.
+
+**검증**: Blender EEVEE로 각 캐릭터를 직접 렌더(카메라를 머리 높이에
+맞춰 자동 배치)해 눈으로 확인 — 셋 다 빨간 눈가 없이 자연스럽게
+나왔다(스크린샷은 이 세션 스크래치패드에만 남기고 커밋 안 함). 마스킹
+경계도 렌더에서 안 보였다. `js/asset3d.js`의 `HERO_RECIPES`에 셋을
+더 얹어(QRPG 6 + MPFB 실사 8) **총 열네 벌**이 됐고, `_test.html`의
+"인물 N 벌이 갖춰져 있다" 진단도 14로 갱신, `sw.js` → `go-v5.20.1`.
+자가진단 423/423 3회 동일(회귀 없음, near 패널 좌표 지터만 다름).
+실기기 확인은 여전히 못 했다.
+
 ### 밟은 함정 (다시 겪지 않도록)
 
 - **`ExportService.create_character_copy(basemesh, ...)`를 쓰지 말 것.**
