@@ -72,7 +72,7 @@
    * 그대로 남겨 QA 가 특정 스타일을 강제로 볼 수 있게 한다. */
   function MAP_STYLE() {
     var Wd = global.DG.world;
-    var idx = (Wd && Wd.mapStyleIdx) ? Wd.mapStyleIdx() : 1;
+    var idx = (Wd && Wd.mapStyleIdx) ? Wd.mapStyleIdx() : 0;
     return core.tuned('world3d.mapStyle', idx);
   }
   /** 배우를 도형으로 세울까 — 0 이면 1단계의 빌보드로 돌아간다 */

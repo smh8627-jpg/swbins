@@ -403,12 +403,13 @@
 
   var tiles = {};              // "z/x/y" → Image
   var tileFail = 0, tileOk = 0;
-  /* CARTO 는 스타일마다 경로가 다르다 — dark_all·light_all 은 루트에 있는데
+  /* CARTO 는 스타일마다 경로가 다르다 — light_all 은 루트에 있는데
      **voyager 만 `rastertiles/` 아래**다. 루트로 부르면 404 가 오고, 그림이 없는
      자리는 종이색으로 남는다. 3D 는 밝은 지도를 쓰므로 이걸 놓치면
-     **3D 지면에 지도가 통째로 안 깔린다**(2026-08-26 에 그 상태였다). */
+     **3D 지면에 지도가 통째로 안 깔린다**(2026-08-26 에 그 상태였다).
+     2026-09-06: 어두운 지도(dark_all)는 2D 배경으로만 쓰던 것을 사용자
+     요청으로 뺐다 — 이제 밝은 지도가 기본(0번)이다. */
   var MAP_STYLES = [
-    { key: 'dark_all',    name: '어두운 지도' },
     { key: 'voyager',     path: 'rastertiles/voyager', name: '밝은 지도' },
     { key: 'light_all',   name: '흰 지도' }
   ];
@@ -433,9 +434,7 @@
 
   /**
    * @param si 지도 스타일 자리 — 3D 렌더러는 **밝은 지도**를 따로 부른다.
-   *   2D 화면은 어두운 지도(dark_all)를 기본으로 쓰는데, 그건 UI 뒤에 깔리는
-   *   배경이라 어두워도 됐다. 3D 는 그 지도가 지면 전체가 되므로 그대로 쓰면
-   *   화면이 온통 검다(실제로 그렇게 나왔다).
+   *   2D 화면도 이제 밝은 지도가 기본이다(어두운 지도는 뺐다).
    */
   function getTile(x, y, z, si) {
     si = (typeof si === 'number') ? core.clamp(si, 0, MAP_STYLES.length - 1) : styleIdx();
