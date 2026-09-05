@@ -1125,7 +1125,13 @@
       for (cx = ccx - 1; cx <= ccx + 1; cx++) {
         var ring = F.ringOf(cx, cz, rw, rh);
         if (ring === 0) { continue; }              // 방이 걸친 조각엔 소품이 없다
-        var list = F.chunkAt(cx, cz, seed, ring, 1);
+        /* th.name 을 그대로 넘긴다 — dungeon3d.js 가 그리는 것과 같은 편향
+           표를 써야 한다(2026-09-05, PLAN 9절 Biome). 안 넘기면 seed 는
+           같아도 `kindOf()`가 다른 문턱으로 풀어 **그림과 부딪힘이 어긋난다**
+           (보이는 건 나무인데 그 자리는 벽처럼 막힌, 또는 그 반대인 자리가
+           생긴다는 뜻 — 실제로 걸어 보지 않으면 안 드러나는 종류의 버그라
+           여기 적어 둔다) */
+        var list = F.chunkAt(cx, cz, seed, ring, 1, th && th.name);
         for (i = 0; i < list.length; i++) {
           pc = list[i];
           if (!FIELD_BLOCK[pc.t]) { continue; }

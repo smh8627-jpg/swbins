@@ -978,14 +978,16 @@
           F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), 'flat', false);
         tile.receiveShadow = true;
 
-        var list = F.chunkAt(cx, cz, seed, ring, dens);
+        var list = F.chunkAt(cx, cz, seed, ring, dens, th && th.name);
         for (i = 0; i < list.length; i++) {
           if (FI && NATURAL_KIND[list[i].t]) { natItems.push(natItem(F, list[i], seed, W, H)); }
           else { piece(list[i], seed, W, H, stone); }
         }
-        /* 잡초 층 — 순수 장식(판정 안 닿음), field3d.js clutterAt() 참고 */
+        /* 잡초 층 — 순수 장식(판정 안 닿음), field3d.js clutterAt() 참고.
+           `th`(층 테마)를 같이 넘긴다 — PLAN 9절 Biome, 2026-09-05 field3d.js
+           kindOf() 감사 참고: 색깔만 다르고 오브젝트 비율은 안 갈리던 것을 고쳤다 */
         if (F.clutterAt) {
-          var deco = F.clutterAt(cx, cz, seed, ring, dens);
+          var deco = F.clutterAt(cx, cz, seed, ring, dens, th && th.name);
           for (i = 0; i < deco.length; i++) {
             if (FI && NATURAL_KIND[deco[i].t]) { natItems.push(natItem(F, deco[i], seed, W, H)); }
             else { piece(deco[i], seed, W, H, stone); }

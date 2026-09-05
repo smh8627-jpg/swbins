@@ -83,9 +83,48 @@
    */
   var KINDS = ['forest', 'rock', 'ruin', 'cliff', 'road', 'water', 'cave', 'altar', 'camp', 'swamp'];
 
-  function kindOf(cx, cz, seed, ring) {
+  /* 2026-09-05 — PLAN 9절 "지역별 Biome... 색감·조명·오브젝트·적 종류가
+     달라야 한다" 감사 결과: `data-dungeon.js`의 여섯 층 테마(고분·폐성·
+     산채·수궁·지옥문·천계)는 **색감**(바닥·벽·색조)만 다르고 **오브젝트**는
+     여태 전부 같은 확률로 섞여 나왔다 — 지옥문 밖에도 숲이 고분만큼
+     흔했다. 원래 문턱(threshold) 표를 **가중치**로 바꿔 쓰면(기본 가중치가
+     원래 문턱 폭과 정확히 같은 값이라 `theme` 을 안 주면 결과가 한 글자도
+     안 바뀐다 — 자가진단이 이 함수를 늘 테마 없이 부른다) 테마마다 표를
+     한 줄 더하는 것만으로 결이 갈린다. 새 kind 는 안 늘렸다(있는 것만
+     섞는 비율을 바꿨다) — PLAN 44절 "필요 없는 것 추가 금지". */
+  var FAR_BASE_W = { forest: 30, rock: 16, ruin: 12, cliff: 12, water: 8, swamp: 6, road: 6, cave: 4, altar: 3, camp: 3 };
+  var MID_BASE_W = { forest: 34, rock: 21, ruin: 15, road: 15, water: 15 };
+  var THEME_BIAS = {
+    '고분(古墳)': { ruin: 2.2, altar: 2.4, rock: 1.3, forest: 0.5, swamp: 0.5 },
+    '폐성(廢城)': { ruin: 2.4, cliff: 1.4, road: 1.5, rock: 1.2, forest: 0.5 },
+    '산채(山寨)': { forest: 1.8, cliff: 1.3, camp: 1.5, water: 0.5, ruin: 0.6 },
+    '수궁(水宮)': { water: 3, swamp: 2.6, forest: 0.5, cliff: 0.5, rock: 0.6 },
+    '지옥문(地獄門)': { cliff: 2, rock: 1.6, ruin: 1.6, forest: 0.3, water: 0.3 },
+    '천계(天界)': { altar: 3, road: 1.6, forest: 1.3, swamp: 0.15, ruin: 0.4 }
+  };
+  /** 가중치 표(order·baseW)에서 h(0~1) 하나로 kind 하나를 고른다 —
+   *  theme 이 없으면(자가진단 등) 원래 고정 문턱과 정확히 같은 결과를 낸다 */
+  function weightedKind(order, baseW, h, theme) {
+    var bias = THEME_BIAS[theme], i, w, total = 0, acc = 0, roll;
+    var ws = [];
+    for (i = 0; i < order.length; i++) {
+      w = baseW[order[i]] * ((bias && bias[order[i]]) || 1);
+      ws.push(w); total += w;
+    }
+    roll = h * total;
+    for (i = 0; i < order.length; i++) {
+      acc += ws[i];
+      if (roll < acc) { return order[i]; }
+    }
+    return order[order.length - 1];
+  }
+
+  /** @param theme 층 테마 이름(`data-dungeon.js`의 `themeOf(floor).name`) —
+   *  없으면(자가진단·옛 호출) 테마 편향 없이 예전과 완전히 같은 문턱을 쓴다 */
+  function kindOf(cx, cz, seed, ring, theme) {
     var h = mix(cx * 31 + seed, cz * 57 - seed);
-    /* 방 바로 곁(ring 1)은 사람이 지나간 자리 — 길·캠프·폐허 */
+    /* 방 바로 곁(ring 1)은 사람이 지나간 자리 — 길·캠프·폐허(테마 편향 안 줌,
+       방 코앞은 어느 층이든 "지나다닌 자리"로 남아야 읽기 쉽다) */
     if (ring <= 1) { return h < 0.42 ? 'road' : (h < 0.62 ? 'camp' : (h < 0.82 ? 'ruin' : 'rock')); }
     /* 2026-08-30 — 실기기(PC)에서 "제1층 시작하자마자 캐릭터를 가린다" 로
        잡힌 것: 절벽(cliff, h 120~270 · s 1.4~2.8 짜리 거대한 상자)이 ring 2
@@ -93,28 +132,15 @@
        카메라는 **회전이 없어 늘 같은 쪽을 본다**(17행) — 그 각도에 절벽이
        걸리면 매번 그 방을 볼 때마다 막힌다. ring 2는 숲·바위·폐허·길·물처럼
        상대적으로 작은 것까지만 두고, 절벽·동굴 입구·제단처럼 큰 것은
-       ring 3(그 다음 고리, 저 멀리)부터만 나오게 물렸다. */
-    if (ring === 2) {
-      if (h < 0.34) { return 'forest'; }
-      if (h < 0.55) { return 'rock'; }
-      if (h < 0.70) { return 'ruin'; }
-      if (h < 0.85) { return 'road'; }
-      return 'water';
-    }
-    /* ring 3 이상 — 저 멀리. 여기서만 절벽·동굴 입구·제단·**늪**처럼 큰(또는
-       분위기가 센) 것이 난다. 늪(PLAN 9절 Biome — Forest·Ruins·Swamp·
-       Mountain·Ancient Shrine 다섯 중 여태 이것만 없었다)도 물처럼 ring 2
-       에는 안 둔다 — 썩은 나무가 방 코앞을 막으면 안 된다 */
-    if (h < 0.30) { return 'forest'; }
-    if (h < 0.46) { return 'rock'; }
-    if (h < 0.58) { return 'ruin'; }
-    if (h < 0.70) { return 'cliff'; }
-    if (h < 0.78) { return 'water'; }
-    if (h < 0.84) { return 'swamp'; }
-    if (h < 0.90) { return 'road'; }
-    if (h < 0.94) { return 'cave'; }
-    if (h < 0.97) { return 'altar'; }
-    return 'camp';
+       ring 3(그 다음 고리, 저 멀리)부터만 나오게 물렸다 — 이 다섯 안에서만
+       테마가 비율을 바꾼다, cliff·cave·altar 는 여기 못 들어온다 */
+    if (ring === 2) { return weightedKind(['forest', 'rock', 'ruin', 'road', 'water'], MID_BASE_W, h, theme); }
+    /* ring 3 이상 — 저 멀리. 여기서만 절벽·동굴 입구·제단·늪처럼 큰(또는
+       분위기가 센) 것이 난다(PLAN 9절 Biome 색). 늪도 물처럼 ring 2 에는
+       안 둔다 — 썩은 나무가 방 코앞을 막으면 안 된다 */
+    return weightedKind(
+      ['forest', 'rock', 'ruin', 'cliff', 'water', 'swamp', 'road', 'cave', 'altar', 'camp'],
+      FAR_BASE_W, h, theme);
   }
 
   /**
@@ -123,10 +149,11 @@
    *
    *   t   tree · rock · pillar · cliff · path · pond · cavemouth · altar · tent · fire
    *   s   크기   rot 회전   h 높이(땅 높이는 부르는 쪽이 더한다)
+   * @param theme 층 테마 이름 — `kindOf()`로 그대로 넘긴다(없으면 예전과 같다)
    */
-  function chunkAt(cx, cz, seed, ring, dens) {
+  function chunkAt(cx, cz, seed, ring, dens, theme) {
     var out = [], i, n;
-    var kind = kindOf(cx, cz, seed, ring);
+    var kind = kindOf(cx, cz, seed, ring, theme);
     var ox = cx * CHUNK, oz = cz * CHUNK;
     var d = dens === undefined ? 1 : dens;
 
@@ -229,10 +256,11 @@
    * 하고**(`kindOf()`) 따로 돌려주는, 판정에 안 닿는 층 하나를 더 얹었다.
    *
    * 여전히 **순수 함수**다 — 같은 자리·같은 씨앗이면 늘 같다.
+   * @param theme 층 테마 이름 — `kindOf()`로 그대로 넘긴다(없으면 예전과 같다)
    */
-  function clutterAt(cx, cz, seed, ring, dens) {
+  function clutterAt(cx, cz, seed, ring, dens, theme) {
     var out = [], i, n;
-    var kind = kindOf(cx, cz, seed, ring);
+    var kind = kindOf(cx, cz, seed, ring, theme);
     if (kind === 'water' || kind === 'cave') { return out; }   // 안 어울리는 자리엔 안 심는다
     var ox = cx * CHUNK, oz = cz * CHUNK;
     var d = dens === undefined ? 1 : dens;
