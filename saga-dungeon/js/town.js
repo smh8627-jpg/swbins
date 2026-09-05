@@ -147,6 +147,9 @@
    *  이 폭 이내에서만 통로 방향의 필드 반경을 늘려 준다. TALK_R(들길
    *  표식 발동 반경)보다 넉넉히 커야 표식에 실제로 닿을 수 있다. */
   var CORRIDOR_LANE = 90;
+  /** `safePoint()`가 표식을 옆으로 비킬 때 최대로 밀 수 있는 거리(10회×26 폭)
+   *  보다 넉넉히 — 클램프가 그 흔들림까지 늘 덮게 하는 여유. */
+  var CORRIDOR_SAFETY = 300;
 
   /**
    * 마을 넷 — id·이름·색감(테마)·거기 사는 직군·장식·들길(exits) 을 정의한다.
@@ -257,6 +260,17 @@
   var target = null;                    // 걸어가는 목표 {x, y}
   var fx = [];
   var armed = {};                       // 닿아서 이미 발동한 것 — 벗어나야 풀린다
+  /** AUTO 품질 클램프 함정(2026-09-06) — 통로 표식은 `build()` 시점의
+   *  필드 반경(`fieldRadiusUnits()`)으로 딱 한 번 좌표가 정해지는데
+   *  (`corridorPointRaw`), `boundPlayer`의 클램프는 매 프레임 **그때
+   *  그때의** 반경을 다시 읽는다. AUTO가 나중에 등급을 낮추면(실측
+   *  프레임이 느려지면) 클램프 상한이 줄어들어 이미 세워 둔 표식이
+   *  그 밖으로 밀려날 수 있다 — `build()` 순간의 반경을 여기 붙들어
+   *  두고 `corridorsFor()`가 그 값 그대로 쓰게 한다(등급이 나중에
+   *  얼마로 바뀌든 통로 결의 도달 가능 거리는 표식이 실제로 선
+   *  자리에서 안 줄어든다). 통로가 없는 일반 필드는 그대로 매 프레임
+   *  값을 쓴다 — 이 값은 오직 통로 결에서만 참조된다. */
+  var builtFieldR = null;
 
   /* 마을 둘레 필드 전투 — 던전이 이미 검증해 둔 메커니즘(dungeon.js 의
      fieldBoundPlayer·spawnFieldRoamers·stepFieldCombat)을 그대로 빌려 쓴다.
@@ -352,10 +366,19 @@
    *  다른 테마(나루터·산길·염전)를 고르는 데 그대로 쓴다. */
   function corridorsFor(cfg) {
     var F = global.DG.field3d, CHUNK = F ? F.CHUNK : 200;
-    var out = [], i, ex;
+    /* builtFieldR(위 주석) — build() 가 표식을 세운 그 순간의 반경.
+       아직 한 번도 안 지어졌으면(이론상 안 생기지만) 지금 값으로 대신한다. */
+    var R = (builtFieldR != null) ? builtFieldR : D().fieldRadiusUnits();
+    var out = [], i, ex, extra;
     for (i = 0; i < cfg.exits.length; i++) {
       ex = cfg.exits[i];
-      out.push({ dir: ex.dir, extra: (ex.len || CORRIDOR_LEN) * CHUNK, lane: CORRIDOR_LANE * RSCALE, to: ex.to });
+      /* extra는 이제 "hiX/hiY로부터 표식까지의 절대 거리"다(전에는
+         CHUNK 길이만 담아 매 프레임의 R에 얹었는데, 그러면 R이
+         나중에 줄어들 때 표식이 클램프 밖으로 밀렸다 — 위 주석).
+         exitPointRaw/corridorPointRaw가 표식을 두는 산식(R*FRAC +
+         len*CHUNK)과 정확히 같은 값에 안전 여유만 더한다. */
+      extra = R * FIELD_EXIT_FRAC + (ex.len || CORRIDOR_LEN) * CHUNK + CORRIDOR_SAFETY;
+      out.push({ dir: ex.dir, extra: extra, lane: CORRIDOR_LANE * RSCALE, to: ex.to });
     }
     return out;
   }
@@ -364,6 +387,11 @@
     var cfg = currentCfg();
     var i, n, p;
     armed = {};
+    /* AUTO 클램프 함정 대비(위 builtFieldR 주석 참고) — 이 마을을 짓는
+       이 순간의 반경을 붙들어 둔다. exitPointRaw/corridorPointRaw가
+       바로 아래에서 이 값을 쓰는 fieldRadiusUnits()를 부르는 것과
+       같은 순간이라 항상 서로 맞는다. */
+    builtFieldR = D().fieldRadiusUnits();
     room = {
       kind: 'town', index: 0, cleared: true, last: true,
       enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null,

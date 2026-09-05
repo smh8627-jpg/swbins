@@ -609,6 +609,7 @@
     run.room = makeRoom(firstKind, run.floor, 0, total);
     run.roomTotal = total;
     run.room.doors = makeDoors(run.floor, 0, total);
+    run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
     run.player = {
       x: WALL + 40, y: ROOM_H * 0.5, atkCd: 0, phase: 0, walking: false, facing: 1, hurt: 0,
       atkAnim: 0,                         // 공격 자세 남은 시간(초) — 3D·2D 렌더가 읽는다
@@ -636,6 +637,7 @@
     var isBoss = DD.isBossFloor(run.floor) && run.roomIdx >= run.roomTotal - 1;
     run.room = makeRoom(isBoss ? 'boss' : kind, run.floor, run.roomIdx, run.roomTotal);
     run.room.doors = makeDoors(run.floor, run.roomIdx, run.roomTotal);
+    run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
     run.player.x = WALL + 40;
     run.player.y = ROOM_H * 0.5;
     target = null;
@@ -1155,17 +1157,58 @@
    * 부딪혀도 그대로 안 멎는다 — 사가고 벽 충돌이 밟아 둔 요령과 같다).
    */
   /**
-   * 통로(PLAN §28-2 Phase 2) — `ctx.corridors`에 `{dir,extra,lane}`가 있으면,
-   * 그 방향의 **좁은 결(lane 반폭 이내)에서만** 필드 반경을 `extra`만큼 늘려
-   * 준다. `ctx.corridors`가 없으면(던전 층·마을이 corridors를 안 넘기면)
-   * 예전과 완전히 같은 값을 돌려준다 — 회귀 없음.
+   * 통로(PLAN §28-2 Phase 2) — `ctx.corridors`의 `{dir,extra,lane,laneAt}` 항목
+   * 중 방향이 맞는 것을 **전부** 돌려준다(배열). 마을은 방향(N/E/S/W)당 통로가
+   * 하나뿐이라 옛날엔 첫 매치 하나면 됐지만, 던전 방은 **한 방향(E)에 문이
+   * 여러 개**(PLAN §28-4 Phase 2) 있어 문마다 다른 결(lane)을 가진 통로가
+   * 동시에 여러 개 존재한다 — 그래서 배열로 바꿨다. `ctx.corridors`가 없으면
+   * (던전 층·마을이 corridors를 안 넘기면) `null` — 예전과 완전히 같다.
    */
   function corridorReach(ctx, dir) {
     if (!ctx || !ctx.corridors) { return null; }
-    for (var i = 0; i < ctx.corridors.length; i++) {
-      if (ctx.corridors[i].dir === dir) { return ctx.corridors[i]; }
+    var out = null, i;
+    for (i = 0; i < ctx.corridors.length; i++) {
+      if (ctx.corridors[i].dir === dir) { (out = out || []).push(ctx.corridors[i]); }
     }
-    return null;
+    return out;
+  }
+  /**
+   * 방향 dir 로 뻗은 통로들 중 좌표(coord)가 그 결 안에 있는 것들의 `extra`
+   * 최댓값(없으면 0) — `boundPlayer`가 그대로 클램프 확장분으로 쓴다.
+   * `laneAt`이 없으면(마을 통로처럼 방향당 하나뿐이면) `dflt`(방 중심)와
+   * 비교한다 — 옛 동작과 완전히 같다. `laneAt`이 있으면(던전 문마다 다른
+   * y) 그 값과 비교해 **문별로 결을 가른다**.
+   */
+  function corridorExtra(ctx, dir, coord, dflt) {
+    var list = corridorReach(ctx, dir), best = 0, i, co, laneAt;
+    if (!list) { return 0; }
+    for (i = 0; i < list.length; i++) {
+      co = list[i];
+      laneAt = (co.laneAt != null) ? co.laneAt : dflt;
+      if (Math.abs(coord - laneAt) < (co.lane || 0)) { best = Math.max(best, co.extra || 0); }
+    }
+    return best;
+  }
+  /**
+   * 문마다 통로 하나(PLAN §28-4 Phase 2) — 방향은 늘 'E'(문은 항상 동쪽
+   * 벽에 있다), 결 중심(`laneAt`)은 그 문의 y. 마을 통로(4칸)보다 짧다
+   * (방 하나 분량이면 충분하다). **방 치수(ROOM_W 등)는 그래픽 등급과
+   * 무관한 상수라, 마을 통로가 겪은 AUTO 품질 클램프 함정(2026-09-06,
+   * `town.js`의 `builtFieldR`)이 여기엔 없다** — `extra`는 처음부터
+   * 고정값이고 매 프레임 다시 계산되는 값에 안 얹는다.
+   */
+  var DOOR_CORRIDOR_LEN = 1;              // CHUNK 칸 수
+  var DOOR_LANE = 34;                     // 옛 문 터치 판정과 같은 반폭
+  function doorCorridorUnits() {
+    var F = global.DG.field3d;
+    return DOOR_CORRIDOR_LEN * (F ? F.CHUNK : 200);
+  }
+  function doorCorridors(doors) {
+    var len = doorCorridorUnits(), out = [], i;
+    for (i = 0; i < doors.length; i++) {
+      out.push({ dir: 'E', lane: DOOR_LANE, laneAt: doors[i].y, extra: len, kind: doors[i].kind });
+    }
+    return out;
   }
   /**
    * @param ctx 마을처럼 방 치수·씨앗이 던전과 다른 곳이 빌려 쓸 때만 넘긴다
@@ -1181,19 +1224,28 @@
       p.y = core.clamp(p.y, lo, hiY);
       return;
     }
-    var R = fieldRadiusUnits(), cx = rw / 2, cy = rh / 2, co;
+    var R = fieldRadiusUnits(), cx = rw / 2, cy = rh / 2, ext;
     var loX = lo - R, hiXe = hiX + R;
-    co = corridorReach(ctx, 'E');
-    if (co && Math.abs(py - cy) < (co.lane || 0)) { hiXe = hiX + R + (co.extra || 0); }
-    co = corridorReach(ctx, 'W');
-    if (co && Math.abs(py - cy) < (co.lane || 0)) { loX = lo - R - (co.extra || 0); }
+    /* 2026-09-06 — 여기 아래 넷은 R(그때그때의 AUTO 등급 반경)에 더하지
+       않고 **최댓값(최솟값)**으로 견준다. `corridorExtra()`가 주는 값은
+       town.js의 corridorsFor()에서는 "표식까지의 절대 거리"(그 통로가
+       세워질 때의 반경 기준, 등급이 나중에 바뀌어도 안 변한다), dungeon.js
+       의 `doorCorridors()`에서는 애초에 등급과 무관한 고정 상수라 — 어느
+       쪽이든 R이 나중에 줄어들어도 통로 결의 도달 가능 거리는 안 줄어든다
+       (R이 더 크면 그냥 그 값을 쓴다 — 정상적인 AUTO 동작). PLAN §28-4
+       Phase 2 — `laneAt`이 있으면(던전 문마다 다른 y) 그 문의 결만 넓힌다,
+       없으면(마을) 방 중심(cx/cy)과 비교해 예전과 완전히 같다. */
+    ext = corridorExtra(ctx, 'E', py, cy);
+    if (ext) { hiXe = Math.max(hiXe, hiX + ext); }
+    ext = corridorExtra(ctx, 'W', py, cy);
+    if (ext) { loX = Math.min(loX, lo - ext); }
     var nx = core.clamp(p.x, loX, hiXe);
     p.x = (inRoomRect(nx, py, ctx) || !fieldBlockedAt(nx, py, ctx)) ? nx : px;
     var loY = lo - R, hiYe = hiY + R;
-    co = corridorReach(ctx, 'S');
-    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { hiYe = hiY + R + (co.extra || 0); }
-    co = corridorReach(ctx, 'N');
-    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { loY = lo - R - (co.extra || 0); }
+    ext = corridorExtra(ctx, 'S', p.x, cx);
+    if (ext) { hiYe = Math.max(hiYe, hiY + ext); }
+    ext = corridorExtra(ctx, 'N', p.x, cx);
+    if (ext) { loY = Math.min(loY, lo - ext); }
     var ny = core.clamp(p.y, loY, hiYe);
     p.y = (inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
   }
@@ -1509,7 +1561,12 @@
       }
       dsh.t -= dt;
       if (dsh.t <= 0) { p.dash = null; }
-      boundPlayer(p, px0, py0);
+      /* fieldBlockedAt() 은 `ctx ? ctx.floor : run.floor` 처럼 **ctx가 있으면
+         그 안의 값만** 본다(부분 ctx라고 run으로 안 떨어진다) — floor·
+         roomIdx를 안 실어 보내면 항상 undefined가 되어 매 프레임 "막힌
+         것 없음"으로 새 버렸을 뻔했다(자가진단이 이 층을 안 보는 값이라
+         하마터면 조용히 회귀할 뻔한 자리, PLAN §28-4 Phase 2). */
+      boundPlayer(p, px0, py0, { corridors: run.corridors, floor: run.floor, roomIdx: run.roomIdx });
     } else {
       /* 이동 */
       var dx = input.dx, dy = input.dy;
@@ -1532,7 +1589,12 @@
       } else {
         p.walking = false;
       }
-      boundPlayer(p, px0, py0);
+      /* fieldBlockedAt() 은 `ctx ? ctx.floor : run.floor` 처럼 **ctx가 있으면
+         그 안의 값만** 본다(부분 ctx라고 run으로 안 떨어진다) — floor·
+         roomIdx를 안 실어 보내면 항상 undefined가 되어 매 프레임 "막힌
+         것 없음"으로 새 버렸을 뻔했다(자가진단이 이 층을 안 보는 값이라
+         하마터면 조용히 회귀할 뻔한 자리, PLAN §28-4 Phase 2). */
+      boundPlayer(p, px0, py0, { corridors: run.corridors, floor: run.floor, roomIdx: run.roomIdx });
     }
     if (p.hurt > 0) { p.hurt -= dt; }
 
@@ -1848,11 +1910,18 @@
       dc.near = dcNear;
     }
 
-    /* 문 */
+    /* 문 — 통로 반대쪽 끝에 닿아야 실제로 넘어간다(PLAN §28-4 Phase 2).
+       동쪽 벽을 스치자마자 즉시 goRoom() 하던 것을, boundPlayer()가 이제
+       그 문의 결(lane)에서 열어 주는 짧은 통로(doorCorridorUnits())를
+       끝까지 걸어야 걸리게 미뤘다 — travel()이 마을 통로 끝에서 걸리는
+       것과 같은 요령이다. **중복 발동 걱정이 없다** — goRoom()이 방을
+       통째로 새로 지어 `room.doors` 자체가(그리고 이 문의 `dr.y`도)
+       사라지므로, 다음 프레임엔 이 조건이 다른(새) 문 목록을 본다. */
     if (room.cleared) {
+      var doorFarX = ROOM_W - WALL - P_R + doorCorridorUnits();
       for (i = 0; i < room.doors.length; i++) {
         var dr = room.doors[i];
-        if (p.x > ROOM_W - WALL - P_R - 4 && Math.abs(p.y - dr.y) < 34) {
+        if (p.x > doorFarX - 4 && Math.abs(p.y - dr.y) < 34) {
           sfx('door');
           goRoom(dr.kind);
           break;
@@ -2456,6 +2525,7 @@
     FIELD_ENEMY_CAP: FIELD_ENEMY_CAP,
     fieldOn: fieldOn, fieldRadiusUnits: fieldRadiusUnits,
     fieldBoundPlayer: boundPlayer, _corridorReach: corridorReach,
+    _corridorExtra: corridorExtra, _doorCorridorUnits: doorCorridorUnits,
     spawnFieldRoamers: spawnFieldEncounters,
     fieldRoamerCount: fieldEnemyCount,
     stepFieldCombat: stepFieldCombat,

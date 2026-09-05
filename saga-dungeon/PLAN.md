@@ -1304,19 +1304,44 @@ Phase 1. 던전 입구를 마을방에서 필드로 이전 — 완료(2026-09-05
     살아 움직여 통로 표식이 build 시점 R로 자리 잡고 클램프는 매 프레임
     R을 다시 읽는 어긋남이 기존 마을↔마을 들길에도 이미 있었다(이번
     Phase가 새로 만든 문제가 아니다) — 별도 항목으로 남겨 뒀다, 이번엔
-    안 고침.
+    안 고침. **→ 2026-09-06 고쳤다.** README.md의 같은 날짜 절 참고
+    (`town.js`의 `builtFieldR`·`corridorsFor()`, `dungeon.js`의
+    `boundPlayer()` 통로 분기를 `Math.max`/`Math.min` 절대값 비교로).
 
-Phase 2. 방-방 전환에 문별 통로 예외 등록
+Phase 2. 방-방 전환에 문별 통로 예외 등록 — 완료(2026-09-06,
+  sw.js → dungeon-v0.56.0)
   - dungeon.js: corridorReach()가 "방 중심 lane" 대신 "문 y 좌표
     lane"도 볼 수 있게 확장(방향은 항상 'E' 고정이라 town보다 단순할
-    수 있다 — 실제로 코드를 보고 가장 작은 변경을 찾을 것).
+    수 있다 — 실제로 코드를 보고 가장 작은 변경을 찾을 것). →
+    **`corridorReach()`를 첫 매치 하나가 아니라 방향이 맞는 것 전부
+    (배열)를 돌려주게 바꾸고, 새 `corridorExtra(ctx,dir,coord,dflt)`가
+    그 배열을 훑어 `laneAt`(없으면 마을처럼 방 중심 `dflt`)과 좌표를
+    견줘 최댓값 `extra`를 낸다.** 문마다 `{dir:'E', lane:34,
+    laneAt:door.y, extra:doorCorridorUnits()}`(신설 `doorCorridors()`)
+    를 `buildFloor()`·`goRoom()`이 `run.corridors`에 채운다 — 방 치수는
+    등급과 무관한 상수라 마을이 겪은 AUTO 클램프 함정이 여기엔 없다
+    (`extra`는 처음부터 고정값).
   - goRoom() 직접 호출을 "동쪽 벽 터치 → 통로 진입" → "통로 끝 도달
     → goRoom() 실제 호출"로 트리거 위치만 옮긴다(28-2절 Phase 2와
-    같은 패턴). auto.js의 직접 호출 경로는 안 건드린다.
+    같은 패턴). auto.js의 직접 호출 경로는 안 건드린다. → **문 터치
+    판정(`ROOM_W-WALL-P_R-4`)을 `doorFarX = ROOM_W-WALL-P_R+
+    doorCorridorUnits()`로 옮겼다.** 클램프의 `extra`와 트리거의
+    `doorCorridorUnits()`가 **같은 함수 하나**를 공유해 두 자리가
+    따로 계산되며 어긋나는 걸(마을 AUTO 버그와 같은 함정) 원천 차단.
+  - **밟은 함정** — `boundPlayer()`가 내부에서 부르는 `fieldBlockedAt()`
+    은 `ctx ? ctx.floor : run.floor`처럼 **ctx가 있으면 그 안의 값만**
+    본다(부분 ctx라고 run으로 안 떨어진다). `{corridors:...}`만 담은
+    ctx를 넘겼다가 `floor`·`roomIdx`가 매번 undefined가 되어 필드
+    충돌 판정이 통째로 무력화될 뻔했다 — `floor`·`roomIdx`도 같이
+    실어 보내 고쳤다(CDP로 old-ctx/new-ctx 결과가 완전히 같은지,
+    실제로 막히는 지점 하나를 직접 찾아 대조까지 했다).
   - 검증: CDP로 통로 진입~끝까지 걸어 goRoom()이 정확히 한 번만
-    불리는지(28-2절 Phase 2가 겪은 중복 호출 함정 그대로 조심).
-    자가진단 회귀(방 전환 관련 기존 테스트가 깨지지 않는지 — 특히
-    "방을 나서면 즉시 새 방"을 가정한 낡은 테스트가 있을 수 있다).
+    불리는지(28-2절 Phase 2가 겪은 중복 호출 함정 그대로 조심) —
+    door.kind별로 정확한 방(forage 등)에 닿는 것까지 확인. 자가진단에
+    항목 하나 추가(249→**250**), 3회 완전 동일. ADMIN 12/12. **프로필
+    재사용 함정 재확인** — 검증 도중 이미 썼던 `--user-data-dir`를
+    재사용했다가 246/250(서비스워커 캐시 오염)으로 잠깐 흔들렸다,
+    새 프로필로 다시 재니 250/250 그대로 — 새로 만든 회귀가 아니었다.
 
 Phase 3. 통로에 던전 테마 소품 입히기
   - field3d.js: 28-2절 Phase 3와 같은 "테마 가중치 표" 패턴을 던전
