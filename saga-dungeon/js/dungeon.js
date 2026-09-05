@@ -595,6 +595,7 @@
       md.name, 'info');
     /* 손이 비어 있으면 첫 무예 하나를 얹어 준다 — 배운 게 없으면 평타밖에 없다 */
     if (global.DG.skill) { global.DG.skill.ensureStarter(leadId()); }
+    registerRegion(floor);
     core.emit('dungeon:enter', run);
     core.emit('changed');
     return true;
@@ -662,6 +663,7 @@
        한 대 맞을 때마다 깎으면 판정 층 한복판을 건드려야 해서,
        **층을 내려가는 이 자리 하나**로 모았다 */
     if (global.DG.item.wearAll) { global.DG.item.wearAll(1); }
+    registerRegion(run.floor);
     core.emit('dungeon:floor', run.floor);
     core.emit('changed');
     return true;
@@ -2037,6 +2039,22 @@
       core.emit('dex:new', { cat: 'pets', id: p.id });
     }
     core.emit('changed');
+  }
+
+  /**
+   * 지역(地域) 도감 — PLAN 34절 "수집: ... 지역". 층 테마 여섯 가지(고분·폐성·
+   * 산채·수궁·지옥문·천계, `data-dungeon.js` THEMES)에 처음 닿으면 등록한다.
+   * 펫 포획과 달리 **굴리는 값이 없다** — 그 층에 들어섰다는 사실 하나로
+   * 정해지는 순수 부기(附記)라 `Math.random()`도 `core.hash2`도 필요 없다.
+   * 자가진단 시드에 영향이 전혀 없다.
+   */
+  function registerRegion(floor) {
+    var name = DD.themeOf(floor).name;
+    if (core.save.dex.regions[name]) { return; }
+    core.save.dex.regions[name] = true;
+    core.log('🗺️ 지역 발견 · ' + name, 'good');
+    core.emit('toast', '🗺️ 지역 발견 · ' + name);
+    core.emit('dex:new', { cat: 'regions', id: name });
   }
 
   function dropGold(room, x, y, mul) {

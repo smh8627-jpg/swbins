@@ -336,15 +336,22 @@
    *  풀에 남는 후보가 없어 그 쪽 `dex:new` 자체가 다시 안 나지만, 혹시라도
    *  같은 이벤트가 두 번 들어와도 이 깃발이 중복 지급을 막는다. */
   var DEX_COMPLETE = {
-    heroes: { gold: 3000, feat: 100, label: '인물' },
-    pets:   { gold: 1500, feat: 60,  label: '펫' }
+    heroes:  { gold: 3000, feat: 100, label: '인물' },
+    pets:    { gold: 1500, feat: 60,  label: '펫' },
+    regions: { gold: 800,  feat: 30,  label: '지역' }
   };
+  function dexTotal(cat) {
+    if (cat === 'heroes') { return data.heroes.length; }
+    if (cat === 'pets') { return data.pets.length; }
+    if (cat === 'regions') { return (global.DG.dungeonData && global.DG.dungeonData.THEMES.length) || 0; }
+    return 0;
+  }
   function checkDexComplete(cat) {
     var cfg = DEX_COMPLETE[cat];
     if (!cfg) { return; }
-    var total = (cat === 'heroes' ? data.heroes : data.pets).length;
+    var total = dexTotal(cat);
     var owned = Object.keys(core.save.dex[cat] || {}).length;
-    if (owned < total || core.save.dex[cat + 'Full']) { return; }
+    if (!total || owned < total || core.save.dex[cat + 'Full']) { return; }
     core.save.dex[cat + 'Full'] = true;
     core.save.player.gold += cfg.gold;
     core.gainFeat(cfg.feat, '도감 완성');
@@ -819,12 +826,30 @@
   function viewDex() {
     var hC = Object.keys(core.save.dex.heroes).length;
     var pC = Object.keys(core.save.dex.pets).length;
+    var themes = (global.DG.dungeonData && global.DG.dungeonData.THEMES) || [];
+    var rC = Object.keys(core.save.dex.regions || {}).length;
     return '<div class="sec"><h4>인물</h4>' + dexBar(hC, data.heroes.length) +
              dexGrid(data.heroes, core.save.dex.heroes) + '</div>' +
            '<div class="sec"><h4>펫</h4>' + dexBar(pC, data.pets.length) +
              dexGrid(data.pets, core.save.dex.pets) + '</div>' +
+           '<div class="sec"><h4>지역</h4>' + dexBar(rC, themes.length || 1) +
+             regionGrid(themes, core.save.dex.regions || {}) + '</div>' +
            '<div class="hint">카드를 누르면 열전·승급·펫 장착 화면이 열립니다. ' +
-           '같은 인물을 또 등용하면 <b>중복(+n)</b>이 쌓여 승급 재료가 됩니다.</div>';
+           '같은 인물을 또 등용하면 <b>중복(+n)</b>이 쌓여 승급 재료가 됩니다. ' +
+           '지역은 그 층 테마에 처음 들어서면 밝혀집니다.</div>';
+  }
+
+  /** 지역 도감 — 인물·펫과 달리 등급색·중복 개념이 없는 단순 목록이다.
+   *  같은 `dcell`/`locked`/`de`/`small` 스타일을 그대로 빌려 쓴다(새 CSS 없음). */
+  function regionGrid(themes, owned) {
+    var out = '<div class="dexgrid">';
+    for (var i = 0; i < themes.length; i++) {
+      var t = themes[i], have = !!owned[t.name];
+      out += '<div class="dcell' + (have ? '' : ' locked') + '" title="' + esc(have ? t.name : '미발견') + '">' +
+        (have ? '<span class="de">🗺️</span>' : '<span class="de locked-mark">❔</span>') +
+        '<small>' + (have ? esc(t.name) : '???') + '</small></div>';
+    }
+    return out + '</div>';
   }
 
   function dexBar(n, total) {

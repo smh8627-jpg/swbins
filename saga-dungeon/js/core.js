@@ -40,7 +40,7 @@
         supplyCount: 0      // 보급 횟수 (짝수 번째마다 등용서)
       },
       items: { scroll: 3, feed: 5 },
-      dex: { heroes: {}, pets: {} },     // { id: {count, firstAt} }
+      dex: { heroes: {}, pets: {}, regions: {} },   // heroes/pets: { id: {count, firstAt} } · regions: { themeName: true }
       heroes: {},                         // { heroId: {lv, exp, rank} } 인물 개별 성장
       party: [],                          // 동행 heroId 최대 5 — 선두가 지도 위 아바타
       petEquip: {},                       // { heroId: petId }
