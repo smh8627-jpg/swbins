@@ -1122,6 +1122,7 @@
     var DDf = global.DG.dataDungeon;
     var th = (ctx && ctx.theme) || (run && run.theme) || (DDf ? DDf.themeOf(floor) : null);
     var seed = F.seedOf(floor, roomIdx, th && th.name);
+    var corridors = ctx && ctx.corridors;
     var ccx = Math.floor(x / F.CHUNK), ccz = Math.floor(y / F.CHUNK), cx, cz, i, pc, r;
     for (cz = ccz - 1; cz <= ccz + 1; cz++) {
       for (cx = ccx - 1; cx <= ccx + 1; cx++) {
@@ -1132,8 +1133,12 @@
            같아도 `kindOf()`가 다른 문턱으로 풀어 **그림과 부딪힘이 어긋난다**
            (보이는 건 나무인데 그 자리는 벽처럼 막힌, 또는 그 반대인 자리가
            생긴다는 뜻 — 실제로 걸어 보지 않으면 안 드러나는 종류의 버그라
-           여기 적어 둔다) */
-        var list = F.chunkAt(cx, cz, seed, ring, 1, th && th.name);
+           여기 적어 둔다). **통로(PLAN §28-2 Phase 3)도 같은 이유로 같은
+           결 판정을 쓴다** — `corridorNameAt()`가 재는 자리가 dungeon3d.js
+           의 그림 쪽과 정확히 같아야, 통로 안에서 "보이는 건 나루터 물길인데
+           자리는 산길 바위로 막힌" 어긋남이 안 생긴다. */
+        var cTheme = (corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, rw, rh, corridors) : null;
+        var list = F.chunkAt(cx, cz, seed, ring, 1, cTheme || (th && th.name));
         for (i = 0; i < list.length; i++) {
           pc = list[i];
           if (!FIELD_BLOCK[pc.t]) { continue; }

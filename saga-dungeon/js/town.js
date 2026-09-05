@@ -341,15 +341,17 @@
     return CORRIDOR_LEN;
   }
   /** `dungeon.js`의 `boundPlayer`(`ctx.corridors`)가 읽는 통로 예외 표 —
-   *  이 마을의 exits 각각을 {dir,extra,lane}로 바꾼다(PLAN §28-2 Phase 2).
+   *  이 마을의 exits 각각을 {dir,extra,lane,to}로 바꾼다(PLAN §28-2 Phase 2).
    *  CHUNK 단위 길이(`ex.len`)를 실제 units(`extra`)로 바꾸고, 결 반폭은
-   *  RSCALE로 방 크기에 맞춘다(TALK_R과 같은 요령). */
+   *  RSCALE로 방 크기에 맞춘다(TALK_R과 같은 요령). `to`(목적지 마을 id)는
+   *  Phase 2에선 안 쓰였지만 Phase 3(field3d.js `corridorNameAt`)가 통로마다
+   *  다른 테마(나루터·산길·염전)를 고르는 데 그대로 쓴다. */
   function corridorsFor(cfg) {
     var F = global.DG.field3d, CHUNK = F ? F.CHUNK : 200;
     var out = [], i, ex;
     for (i = 0; i < cfg.exits.length; i++) {
       ex = cfg.exits[i];
-      out.push({ dir: ex.dir, extra: (ex.len || CORRIDOR_LEN) * CHUNK, lane: CORRIDOR_LANE * RSCALE });
+      out.push({ dir: ex.dir, extra: (ex.len || CORRIDOR_LEN) * CHUNK, lane: CORRIDOR_LANE * RSCALE, to: ex.to });
     }
     return out;
   }

@@ -100,7 +100,14 @@
     '산채(山寨)': { forest: 1.8, cliff: 1.3, camp: 1.5, water: 0.5, ruin: 0.6 },
     '수궁(水宮)': { water: 3, swamp: 2.6, forest: 0.5, cliff: 0.5, rock: 0.6 },
     '지옥문(地獄門)': { cliff: 2, rock: 1.6, ruin: 1.6, forest: 0.3, water: 0.3 },
-    '천계(天界)': { altar: 3, road: 1.6, forest: 1.3, swamp: 0.15, ruin: 0.4 }
+    '천계(天界)': { altar: 3, road: 1.6, forest: 1.3, swamp: 0.15, ruin: 0.4 },
+    /* 2026-09-05 — PLAN §28-2 Phase 3(오픈월드 통로). 마을 사이 통로도
+       "층 테마" 와 똑같은 자리(THEME_BIAS)를 빌려 쓴다 — 새 표를 안 만든다.
+       이름은 목적지 마을 id(`통로:<id>`)로 갈라, 목적지의 성격(나루터·
+       산길·염전)에 맞춰 자연스럽게 고른다. */
+    '통로:galdae': { water: 2.8, road: 1.6, swamp: 0.6, forest: 0.5, cliff: 0.3 },  // 나루터 — 물길
+    '통로:jajak':  { cliff: 2.2, rock: 1.7, forest: 1.1, road: 0.8, water: 0.3 },   // 산길 — 벼랑길
+    '통로:sogeum': { road: 1.7, swamp: 1.5, water: 1.3, forest: 0.4, cliff: 0.4 }   // 염전 — 개펄길
   };
   /** 가중치 표(order·baseW)에서 h(0~1) 하나로 kind 하나를 고른다 —
    *  theme 이 없으면(자가진단 등) 원래 고정 문턱과 정확히 같은 결과를 낸다 */
@@ -141,6 +148,36 @@
     return weightedKind(
       ['forest', 'rock', 'ruin', 'cliff', 'water', 'swamp', 'road', 'cave', 'altar', 'camp'],
       FAR_BASE_W, h, theme);
+  }
+
+  /**
+   * 통로(PLAN §28-2 Phase 3) — 이 조각이 마을 사이 통로의 좁은 결 안에 있으면
+   * 그 통로의 결 이름(`통로:<목적지 마을id>`)을, 아니면 `null`을 준다.
+   * **순수 함수다** — 좌표·방 치수·`corridors`(town.js `corridorsFor()`가 주는
+   * `{dir,extra,lane,to}` 배열)만 보고 정한다. 새 판정 개념이 아니다 — 이미
+   * `dungeon.js`의 `corridorReach()`가 클램프에 쓰는 것과 **같은 결(lane)
+   * 판정**을 그림·충돌 양쪽에서 그대로 재사용한다(어긋나면 "보이는 건
+   * 나무인데 자리는 뚫린" 자리가 생긴다 — 층 테마 감사 때 이미 겪은 함정).
+   * `corridors`가 없으면(던전 층 전부, 통로 없는 자리) 늘 `null`이다.
+   */
+  function corridorNameAt(cx, cz, W, H, corridors) {
+    if (!corridors || !corridors.length) { return null; }
+    /* 결 폭(lane)은 월드 단위(`corridorReach()`의 `Math.abs(py-cy)<lane`과 같은
+       단위)다 — 칸 좌표(cx,cz)를 그대로 나누면 단위가 어긋난다(칸 하나가
+       CHUNK=200인데 lane은 90 안팎이라, 인덱스째로 비교하면 어느 줄도 안
+       걸린다). 이 칸의 **월드 중심** 좌표로 바꿔서 비교한다. */
+    var spanX = Math.floor(W / CHUNK), spanZ = Math.floor(H / CHUNK);
+    var gx = cx * CHUNK + CHUNK / 2, gz = cz * CHUNK + CHUNK / 2;
+    var cxW = W / 2, cyW = H / 2, i, co;
+    for (i = 0; i < corridors.length; i++) {
+      co = corridors[i];
+      if (!co.to) { continue; }
+      if (co.dir === 'E' && cx > spanX && Math.abs(gz - cyW) < (co.lane || 0)) { return '통로:' + co.to; }
+      if (co.dir === 'W' && cx < 0 && Math.abs(gz - cyW) < (co.lane || 0)) { return '통로:' + co.to; }
+      if (co.dir === 'S' && cz > spanZ && Math.abs(gx - cxW) < (co.lane || 0)) { return '통로:' + co.to; }
+      if (co.dir === 'N' && cz < 0 && Math.abs(gx - cxW) < (co.lane || 0)) { return '통로:' + co.to; }
+    }
+    return null;
   }
 
   /**
@@ -328,6 +365,7 @@
     CHUNK: CHUNK, KINDS: KINDS,
     /* 전부 순수 함수다 — 자가진단이 값으로 본다 */
     mix: mix, seedOf: seedOf, heightAt: heightAt,
-    kindOf: kindOf, chunkAt: chunkAt, clutterAt: clutterAt, ringOf: ringOf, survey: survey
+    kindOf: kindOf, chunkAt: chunkAt, clutterAt: clutterAt, ringOf: ringOf, survey: survey,
+    corridorNameAt: corridorNameAt
   };
 })(window);

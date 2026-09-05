@@ -179,6 +179,17 @@
   function FIELD_R() { return tuned('dg3d.fieldR', QUALITY_PRESET[effectiveLevel()].fieldR); }
   /** 들판 밀도 배수 — 버거우면 여기를 내린다 */
   function FIELD_D() { return tuned('dg3d.fieldDens', QUALITY_PRESET[effectiveLevel()].fieldDens); }
+  /** 통로가 있는 마을만 시야를 살짝 넓힌다(PLAN §28-2 Phase 3) — CHUNK 몇 개 정도.
+   *  **`FIELD_R()` 자체는 안 건드린다** — POI 배치·필드 몬스터 반경(`fieldRadiusUnits()`)
+   *  같은 다른 소비자에 번지면 안 되는 값이라, 그림(`buildField()`)과 안개
+   *  (`render()`)가 쓰는 "얼마나 세울까"에만 국한한 별도 값이다. 던전 층은
+   *  `run.corridors`가 없어 늘 `FIELD_R()`과 완전히 같다 — 회귀 없음.
+   *  마을은 늘 통로가 있으므로(exits가 최소 하나), 시야가 사방으로 조금
+   *  더 넓어진다 — 통로 결 안쪽 몇 조각은 그 목적지 테마로 실제로 보이고,
+   *  그 뒤로는 지금처럼 안개가 덮는다(통로 전체 길이를 다 보여주진 않는다 —
+   *  안개가 방향별로 다르게 걸리지 않는 three.js 기본 Fog의 한계다). */
+  var CORRIDOR_VIS_MARGIN = 2;
+  function fieldVisR(run) { return FIELD_R() + ((run && run.corridors && run.corridors.length) ? CORRIDOR_VIS_MARGIN : 0); }
   /** 그림자를 켤까 — LOW 에서는 렌더러의 가장 비싼 항목부터 끈다 */
   function SHADOW() { return tuned('dg3d.shadow', QUALITY_PRESET[effectiveLevel()].shadow) ? true : false; }
   /**
@@ -947,7 +958,7 @@
     var DD = global.DG.dataDungeon;
     var th = run.theme || (DD ? DD.themeOf(run.floor) : null);
     var seed = F.seedOf(run.floor, run.roomIdx, th && th.name);
-    var R = FIELD_R(), dens = FIELD_D();
+    var R = fieldVisR(run), dens = FIELD_D();
     var stone = themeHex(run);
     var cx, cz, i;
     /* 땅 밑색 — 원래 0.62 로 무조건 `0x141018`(거의 검정) 쪽에 바짝 붙여
@@ -978,7 +989,11 @@
           F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), 'flat', false);
         tile.receiveShadow = true;
 
-        var list = F.chunkAt(cx, cz, seed, ring, dens, th && th.name);
+        /* 통로(PLAN §28-2 Phase 3) — 이 조각이 마을 사이 통로의 결 안이면
+           목적지 테마(`통로:<id>`)로, 아니면 지금 층/마을 테마로. `run.corridors`가
+           없으면(던전 층) 늘 null — fieldBlockedAt()과 정확히 같은 판정을 쓴다. */
+        var cTheme = (run.corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, W, H, run.corridors) : null;
+        var list = F.chunkAt(cx, cz, seed, ring, dens, cTheme || (th && th.name));
         for (i = 0; i < list.length; i++) {
           if (FI && NATURAL_KIND[list[i].t]) { natItems.push(natItem(F, list[i], seed, W, H)); }
           else { piece(list[i], seed, W, H, stone); }
@@ -987,7 +1002,7 @@
            `th`(층 테마)를 같이 넘긴다 — PLAN 9절 Biome, 2026-09-05 field3d.js
            kindOf() 감사 참고: 색깔만 다르고 오브젝트 비율은 안 갈리던 것을 고쳤다 */
         if (F.clutterAt) {
-          var deco = F.clutterAt(cx, cz, seed, ring, dens, th && th.name);
+          var deco = F.clutterAt(cx, cz, seed, ring, dens, cTheme || (th && th.name));
           for (i = 0; i < deco.length; i++) {
             if (FI && NATURAL_KIND[deco[i].t]) { natItems.push(natItem(F, deco[i], seed, W, H)); }
             else { piece(deco[i], seed, W, H, stone); }
@@ -1828,7 +1843,11 @@
     if (FIELD()) {
       var F2 = global.DG.field3d;
       if (F2) {
-        var builtEdge = (FIELD_R() + 0.5) * F2.CHUNK;
+        /* fieldVisR(run) 을 쓴다 — 통로 있는 마을은 buildField()가 이미 그만큼
+           더 세우므로(PLAN §28-2 Phase 3), 안개도 같이 물려야 "세운 가장자리 =
+           안개가 다 덮는 자리" 라는 위 대전제가 안 깨진다. 던전 층은 corridors가
+           없어 fieldVisR(run) === FIELD_R() — 이 줄만으로는 회귀가 없다. */
+        var builtEdge = (fieldVisR(run) + 0.5) * F2.CHUNK;
         fogFar = Math.min(fogFar, builtEdge);
         fogNear = Math.min(fogNear, builtEdge * 0.4);
         if (fogNear >= fogFar) { fogNear = fogFar * 0.4; }
