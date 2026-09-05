@@ -455,11 +455,32 @@
    *  ≈ 244m 인데, 캔버스는 옛값 256px 그대로였다 — ambientCG 1K 사진을
    *  `LAND_TEX_METERS`(12m)마다 반복해 깔아도 반복 한 칸이 캔버스에서 겨우
    *  12.6px 로 뭉개져(1024px 원본의 디테일이 사실상 다 사라짐) 사진이 아니라
-   *  흐린 단색처럼 보였다. 굽기는 타일이 새로 생길 때만(플레이어가 이동해
-   *  캐시 밖으로 나갈 때) 한 번 돌아 매 프레임 비용은 아니지만, 그 순간의
-   *  CPU 비용은 늘어난다(256→768 이면 캔버스 픽셀 9배) — `#perf` 로 실측해
-   *  볼 것. 너무 무거우면 `core.setTune('world3d.landTexRes', 256)` 로
-   *  되돌린다 */
+   *  흐린 단색처럼 보였다.
+   *
+   *  **"타일이 대개 한 종류라 GPU 반복 타일링으로 캔버스를 아예 건너뛸 수
+   *  있지 않냐"는 제안을 실측하고 접었다** — `terrainAt()`이 격자(48m)마다
+   *  `core.hash2(tx,ty)` 를 **독립적으로** 굴린다(이웃 칸과 상관 없는 소금·
+   *  후추 노이즈, 값 노이즈처럼 이어지지 않는다). 타일 한 장이 격자 7x7(49칸,
+   *  `Math.ceil(span/GRID)+1`)을 덮는데, 5000곳을 무작위로 뽑아 "49칸이
+   *  전부 같은 종류인 타일"을 세어 보니 **0/5000(0.000%)** — 수학적으로도
+   *  당연하다(제일 흔한 grass 60% 라도 0.6^49 는 사실상 0). 그러니 "균일한
+   *  타일만 GPU로 직접 타일링" 최적화는 이 지형에서 거의 절대 안 걸린다 —
+   *  구현하면 죽은 코드(seam·계절/밤낮 틴트 이중곱 등 버그 자리만 늘리는)가
+   *  된다. **그래서 굽기는 그대로 두고 해상도만 올렸다.**
+   *
+   *  굽기는 타일이 새로 생길 때만(플레이어가 이동해 캐시 밖으로 나갈 때)
+   *  한 번 돌아 매 프레임 비용은 아니다 — 256 vs 768 vs 1024 를 굽기
+   *  루프만 떼어 벤치마크해 보니(20회 평균) 1024 까지는 타일당 ~5.5ms 로
+   *  거의 차이가 없었고(진짜 비용은 해상도가 아니라 서브셀마다 새로
+   *  만드는 `createPattern` 호출 쪽이었다), 1536(7.6ms)부터 눈에 띄게
+   *  늘고 4096(28.1ms, 텍스처 67MB)에서는 확실히 무거워진다. 너무 무거우면
+   *  `core.setTune('world3d.landTexRes', 256)` 로 되돌린다.
+   *
+   *  **캐시 자체의 누수는 따로 있었다(같은 날 발견, 고침)** — 이 값을
+   *  올리면서 `landTex` 캐시(구운 텍스처를 담아 두는 곳)에 지우는 코드가
+   *  전혀 없다는 게 드러났다(256px 때는 한 장 0.3MB라 안 느껴졌겠지만
+   *  768px 는 2.4MB). `syncGround()`의 세대 카운터(`syncGen`)로 고쳤다 —
+   *  아래 `landTex` 선언부 주석 참고 */
   function LAND_TEX_RES() { return Math.max(64, Math.round(core.tuned('world3d.landTexRes', 768))); }
   /**
    * 이 소재의 반복 무늬 — 세계 좌표(`x0·y0`, m)에 맞춰 위상을 맞춘다.
@@ -493,6 +514,16 @@
   }
 
   var landTex = {};
+  /** `landTex`를 지우는 세대 카운터(2026-09-05, "바닥 캐시가 안 지워진다" 로
+   *  발견) — `syncGround()`가 돌 때마다 하나씩 올리고, 그 안에서
+   *  `landTexture()`/`terrainTexture()`가 캐시를 건드릴 때마다(새로 굽든
+   *  캐시에서 꺼내 쓰든) 그 텍스처에 `userData.gen = syncGen`을 찍는다.
+   *  한 세대가 끝난 뒤(`syncGround()` 맨 끝) `gen`이 이번 세대가 아닌
+   *  항목은 **이번에 어느 살아있는 타일도 안 찾은 것**이므로 안전하게
+   *  버리고 GPU 텍스처를 `dispose()`한다. 계절이 바뀌거나(키가 달라져
+   *  옛 계절 캔버스가 고아가 된다) 플레이어가 멀리 걸어도(타일 자체가
+   *  안 그려져 아무도 안 건드린다) 저절로 청소된다 — 별도 LRU가 필요 없다 */
+  var syncGen = 0;
 
   /** '#rrggbb' 를 조금 밝게·어둡게 (k 는 -1~1) */
   function shadeHex(hex, k) {
@@ -532,7 +563,7 @@
     var SSk = global.DG.season;
     var ck = key + '|' + landTexReadyKey() +
       '|' + (SSk ? SSk.now().key : '-');
-    if (landTex[ck]) { return landTex[ck]; }
+    if (landTex[ck]) { landTex[ck].userData.gen = syncGen; return landTex[ck]; }
 
     var S = LAND_TEX_RES();
     var cv = document.createElement('canvas');
@@ -596,6 +627,7 @@
     var tex = new T.CanvasTexture(cv);
     tex.colorSpace = T.SRGBColorSpace;
     tex.anisotropy = 4;
+    tex.userData.gen = syncGen;
     landTex[ck] = tex;
     return tex;
   }
@@ -627,7 +659,7 @@
     var SSk = global.DG.season;
     var ck = 'w|' + g0x + ',' + g0y + '|' + landTexReadyKey() +
       '|' + (SSk ? SSk.now().key : '-');
-    if (landTex[ck]) { return landTex[ck]; }
+    if (landTex[ck]) { landTex[ck].userData.gen = syncGen; return landTex[ck]; }
 
     var S = LAND_TEX_RES();
     var cv = document.createElement('canvas');
@@ -693,6 +725,7 @@
     var tex2 = new T.CanvasTexture(cv);
     tex2.colorSpace = T.SRGBColorSpace;
     tex2.anisotropy = 4;
+    tex2.userData.gen = syncGen;
     landTex[ck] = tex2;
     return tex2;
   }
@@ -745,6 +778,7 @@
 
   /** 지도 타일을 카메라 둘레에만 깐다 (멀어진 것은 지운다) */
   function syncGround(W) {
+    syncGen++;
     var mpp = W.metersPerPixel();
     var span = W.TILE_PX * mpp;                     // 타일 한 장이 덮는 미터
     var pos = core.save.player.pos;
@@ -808,7 +842,20 @@
       var m = tileMeshes[k];
       groundGroup.remove(m);
       m.geometry.dispose();
+      m.material.dispose();
       delete tileMeshes[k];
+    }
+    /* `landTex` 청소(2026-09-05, "바닥 텍스처가 안 지워진다" 로 발견) — 위
+       루프가 화면 밖 **메시**는 지우지만, 그 메시가 물려 쓰던 구운
+       `CanvasTexture`는 `landTex` 캐시에 그대로 남아 GPU 메모리를 붙들고
+       있었다(플레이어가 걸을수록 무한정 쌓임). 이번 세대(`syncGen`)에
+       위에서 아무 살아있는 타일도 다시 찾지 않은 항목은 이제 어느 메시도
+       참조하지 않는다는 뜻이므로 안전하게 버린다 */
+    for (var ck in landTex) {
+      if (!Object.prototype.hasOwnProperty.call(landTex, ck)) { continue; }
+      if (landTex[ck].userData.gen === syncGen) { continue; }
+      landTex[ck].dispose();
+      delete landTex[ck];
     }
   }
 
