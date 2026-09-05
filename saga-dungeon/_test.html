@@ -3779,6 +3779,61 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('계단문=' + stairTheme + ' · 그 외 문=층 테마(null) · 결 밖·방 안=null');
     });
 
+    t('통로 결 안에서만 다음 방 텍스처를 미리 당길 대상으로 잡는다(PLAN §28-4 Phase 4, 결 밖·마을 통로는 안 걸린다)', function () {
+      /* 순수 함수 시험 — T(three) 없이도 돈다. rawTex()(실제 텍스처 요청)는
+         3D init() 뒤에만 의미가 있어 여기선 안 건드리고, "어느 (floor,roomIdx)를
+         당길지" 예측만 본다(§28-4 Phase 4). */
+      var run = { floor: 3, roomIdx: 2, corridors: [
+        { dir: 'E', lane: 34, laneAt: 100, extra: 200, kind: 'forage' },
+        { dir: 'E', lane: 34, laneAt: 300, extra: 200, kind: 'stair' },
+        { dir: 'E', lane: 90, to: 'galdae', extra: 800 }              // 마을 통로 흉내(laneAt 없음)
+      ] };
+      var edgeX = DN.ROOM_W - DN.WALL;
+      var near1 = D3._doorPrefetchTargets(run, { x: edgeX, y: 100 });    // 일반 문 결 안
+      var near2 = D3._doorPrefetchTargets(run, { x: edgeX, y: 300 });    // 계단문 결 안
+      var far = D3._doorPrefetchTargets(run, { x: edgeX, y: 700 });      // 둘 다에서 한참 밖
+      var townRun = { floor: 3, roomIdx: 2, corridors: [run.corridors[2]] };
+      var townLike = D3._doorPrefetchTargets(townRun, { x: edgeX, y: 0 });
+      var ok1 = near1.length === 1 && near1[0].floor === 3 && near1[0].roomIdx === 3;
+      var ok2 = near2.length === 1 && near2[0].floor === 4 && near2[0].roomIdx === 0;
+      return ok1 && ok2 && far.length === 0 && townLike.length === 0 &&
+        ('일반 문→' + near1[0].floor + ':' + near1[0].roomIdx + ' · 계단문→' + near2[0].floor + ':' + near2[0].roomIdx +
+         ' · 결 밖=' + far.length + ' · 마을 통로(laneAt 없음)=' + townLike.length);
+    });
+
+    t('던전 문을 지나면 도착할 (floor,roomIdx)를 RNG 없이 미리 안다(PLAN §28-4 Phase 4)', function () {
+      /* 이 자리(맨 끝 쪽)에 두는 이유는 위 §28-4 Phase 2 항목과 같다 —
+         DN.enter()·descend()가 공유 RNG 수열을 소비하고, 뒤엔 씨앗 고정·
+         런타임 에러 항목뿐이라 정확한 수열 값을 안 따진다. */
+      var keepParty = C.save.party.slice();
+      if (!C.save.party.length) { C.save.party = [D.heroes[0].id]; }
+
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1 });
+      var run = DN.raw();
+      run.room.cleared = true;
+      var normalDoor = run.room.doors.filter(function (dr) { return dr.kind !== 'stair'; })[0];
+      var predNormal = D3._nextRoomFor(run, normalDoor);
+      DN.goRoom(normalDoor.kind);
+      var afterNormal = DN.raw();
+      var normalOk = predNormal.floor === afterNormal.floor && predNormal.roomIdx === afterNormal.roomIdx;
+
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1 });
+      var run2 = DN.raw();
+      run2.room.cleared = true;
+      var predStair = D3._nextRoomFor(run2, { kind: 'stair' });
+      DN.goRoom('stair');
+      var afterStair = DN.raw();
+      var stairOk = predStair.floor === afterStair.floor && predStair.roomIdx === afterStair.roomIdx;
+
+      if (DN.active()) { DN.leave(); }
+      C.save.party = keepParty;
+      return normalOk && stairOk &&
+        ('보통 문 예측 ' + predNormal.floor + ':' + predNormal.roomIdx + '=실제 · 계단 예측 ' +
+         predStair.floor + ':' + predStair.roomIdx + '=실제(' + afterStair.floor + ':' + afterStair.roomIdx + ')');
+    });
+
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
       return window.DG_SEED === 20260824 &&
