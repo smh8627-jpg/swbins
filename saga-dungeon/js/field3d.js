@@ -107,7 +107,12 @@
        산길·염전)에 맞춰 자연스럽게 고른다. */
     '통로:galdae': { water: 2.8, road: 1.6, swamp: 0.6, forest: 0.5, cliff: 0.3 },  // 나루터 — 물길
     '통로:jajak':  { cliff: 2.2, rock: 1.7, forest: 1.1, road: 0.8, water: 0.3 },   // 산길 — 벼랑길
-    '통로:sogeum': { road: 1.7, swamp: 1.5, water: 1.3, forest: 0.4, cliff: 0.4 }   // 염전 — 개펄길
+    '통로:sogeum': { road: 1.7, swamp: 1.5, water: 1.3, forest: 0.4, cliff: 0.4 },  // 염전 — 개펄길
+    /* 2026-09-05 — PLAN §28-4 Phase 1(던전도 "걸어서 이어지게"). 던전 입구
+       통로(`통로:dungeon`)는 목적지가 마을이 아니라 굴혈이니 cave(동굴 입구,
+       chunkAt의 kind==='cave' → cavemouth 소품)를 확 밀어 준다 — 새 소품
+       없이 이미 있는 cavemouth를 재활용한다(위 주석과 같은 이유). */
+    '통로:dungeon': { cave: 5, rock: 0.8, cliff: 0.7, forest: 0.2, water: 0.15 }
   };
   /** 가중치 표(order·baseW)에서 h(0~1) 하나로 kind 하나를 고른다 —
    *  theme 이 없으면(자가진단 등) 원래 고정 문턱과 정확히 같은 결과를 낸다 */

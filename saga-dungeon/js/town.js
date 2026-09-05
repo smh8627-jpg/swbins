@@ -168,8 +168,12 @@
         { key: 'pedlar',  x: 450, y: 305 }, { key: 'scribe',  x: 110, y: 200 }
       ],
       decor: DECOR_MORU,
+      /* 'W' 방면 — PLAN §28-4 Phase 1(던전도 "걸어서 이어지게"). 굴혈(gate)
+         입구를 마을방 안 고정 표식에서 이 들길로 옮긴다. to:'dungeon'은
+         다른 마을 id가 아니라 던전 입구라는 신호 — build()의 exits 루프와
+         ui.js의 town:mark 라우팅이 이 값을 특별히 다룬다. */
       exits: [ { dir: 'N', to: 'jajak', len: CORRIDOR_LEN }, { dir: 'E', to: 'galdae', len: CORRIDOR_LEN },
-               { dir: 'S', to: 'sogeum', len: CORRIDOR_LEN } ]
+               { dir: 'S', to: 'sogeum', len: CORRIDOR_LEN }, { dir: 'W', to: 'dungeon', len: CORRIDOR_LEN } ]
     },
     galdae: {
       id: 'galdae', name: '갈대나루', dirFromHub: 'E',
@@ -380,21 +384,30 @@
     }
     if (cfg.hasGate) {
       for (i = 0; i < MARKS.length; i++) {
-        n = MARKS[i]; p = scalePt(n.x, n.y);
+        n = MARKS[i];
+        /* 굴혈(gate)은 더 안 세운다(PLAN §28-4 Phase 1) — 아래 exits 루프가
+           'W' 들길(exit_dungeon)로 옮겨 세운다. 하나만 남아야 한다(입구가
+           둘이면 혼란). MARKS 표 자체는 손 안 댐(역참·결사비가 그대로 읽는다). */
+        if (n.key === 'gate') { continue; }
+        p = scalePt(n.x, n.y);
         room.marks.push({ key: n.key, name: n.name, emoji: n.emoji, x: p.x, y: p.y });
       }
     }
-    /* 들길 — 마을에서 마을로 걸어 나가는 자리. 방 판정 안이 아니라 방 밖
-       들판 쪽에 놓인다. PLAN §28-2 Phase 2부터 표식 자체를 통로 끝
-       (corridorPoint)에 세운다 — travel() 트리거가 실제로 거기서
+    /* 들길 — 마을에서 마을로(또는 던전으로) 걸어 나가는 자리. 방 판정 안이
+       아니라 방 밖 들판 쪽에 놓인다. PLAN §28-2 Phase 2부터 표식 자체를
+       통로 끝(corridorPoint)에 세운다 — travel() 트리거가 실제로 거기서
        걸린다(boundPlayer의 ctx.corridors 예외로 거기까지 걸어갈 수
-       있다, 아래 raw() 참고). */
+       있다, 아래 raw() 참고). to:'dungeon'은 TOWNS에 없는 id라 cfgOf가
+       모루골로 잘못 대체하니(fallback) 이름·라우팅을 따로 다룬다
+       (PLAN §28-4 Phase 1 — ui.js의 town:mark가 이 키를 enterGate()로 보낸다). */
     for (i = 0; i < cfg.exits.length; i++) {
-      var ex = cfg.exits[i], to = cfgOf(ex.to);
+      var ex = cfg.exits[i];
+      var isDungeon = ex.to === 'dungeon';
+      var toName = isDungeon ? '굴혈(窟穴)' : cfgOf(ex.to).name;
       var ep = corridorPoint(ex.dir, cfg.theme, ex.len);
       room.marks.push({
-        key: 'exit_' + ex.to, name: '들길 — ' + to.name + ' 방면',
-        emoji: dirEmoji(ex.dir), x: ep.x, y: ep.y
+        key: 'exit_' + ex.to, name: isDungeon ? toName : ('들길 — ' + toName + ' 방면'),
+        emoji: isDungeon ? '🕳️' : dirEmoji(ex.dir), x: ep.x, y: ep.y
       });
     }
     p = scalePt(195, 240);
@@ -435,9 +448,13 @@
        그 자리에서 곧바로 다시 빨려 들어간다. 그래서 한 발 물려 세우고
        그 표식은 발동을 잠가 둔다(armed). */
     if (opts.fromDungeon) {
-      var gp = scalePt(200, 300);
+      /* PLAN §28-4 Phase 1 — 굴혈이 이제 'W' 들길(통로 끝)에 있으므로,
+         돌아올 때도 그 들목 코앞(entryPoint, travel()이 마을↔마을에 쓰는
+         것과 같은 함수)에 세운다. 표식만 잠가 두면(armed) 곧바로 다시
+         안 빨려든다 — 옛 고정 좌표(scalePt(200,300))는 이제 안 쓴다. */
+      var gp = entryPoint('W', currentCfg().theme);
       player.x = gp.x; player.y = gp.y;
-      armed.gate = true;
+      armed.exit_dungeon = true;
     }
     on = true;
     input.dx = 0; input.dy = 0;

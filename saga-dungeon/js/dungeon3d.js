@@ -1669,12 +1669,16 @@
     if (kind === 'mark') {
       /* 표식 — 사람이 아니라 **밟는 것**이다. 셋의 성격이 달라 빛깔로 가른다 */
       var mkey = (ref && ref.key) || '';
-      var isExit = mkey.indexOf('exit_') === 0;
+      /* PLAN §28-4 Phase 1 — 굴혈이 마을방 고정 표식(gate)에서 들길
+         (exit_dungeon)로 옮겨졌지만, 초록 팻말(isExit)이 아니라 여전히
+         굴혈다운 검은 구멍으로 보여야 한다 — isGate로 함께 묶는다. */
+      var isGate = mkey === 'gate' || mkey === 'exit_dungeon';
+      var isExit = mkey.indexOf('exit_') === 0 && !isGate;
       var glow = mkey === 'waypoint' ? 0x3aa9c9 : (mkey === 'vow' ? 0xe06565 :
         (isExit ? 0x7fd858 : 0xffb45a));
-      var base = mkey === 'gate' ? 0x14161c : 0x4a4f5a;
+      var base = isGate ? 0x14161c : 0x4a4f5a;
       box(g, 0, 2.5, 0, 46, 5, 46, base, 'flat', false);         // 밟는 자리
-      if (mkey === 'gate') {
+      if (isGate) {
         /* 굴혈 — 내려가는 구멍이다. 기둥을 세우지 않고 **바닥을 뚫어** 보이게 한다 */
         box(g, 0, 4, 0, 30, 3, 30, 0x000000, 'flat', false);
         box(g, 0, 6, 0, 22, 1.5, 22, glow, 'glow', false);

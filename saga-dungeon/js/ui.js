@@ -544,7 +544,11 @@
       openSheet(o.sheet);
     });
     core.on('town:mark', function (o) {
-      if (o.key === 'gate') { enterGate(); }
+      /* 굴혈은 이제 마을방 안 고정 표식이 아니라 들길 하나(exit_dungeon,
+         PLAN §28-4 Phase 1)다 — 다른 마을로 건너가는 travel()이 아니라
+         이 마을 자체의 enterGate()로 보낸다. 'gate' 키는 옛 마크(이제 안
+         세워짐)를 위해 그대로 남겨 둔다(해 될 것 없다). */
+      if (o.key === 'gate' || o.key === 'exit_dungeon') { enterGate(); }
       else if (o.key === 'waypoint') { openWaypoint(); }
       else if (o.key.indexOf('exit_') === 0) { global.DG.town.travel(o.key); }
       else { openVow(); }
