@@ -1287,6 +1287,32 @@
   /** asset3d — 사가고와 같은 것을 쓴다(사가블로 4단계, `assets/ASSET_LICENSES.md`) */
   function AS() { return global.DG.asset3d; }
 
+  /** 로딩 우선순위(PLAN 39절) — 마을 한 곳이 GLB 36개를 부른다(집·나무·바위…,
+   *  buildRoom()·buildField() 가 곧 부른다). 그런데 정작 화면에서 가장 먼저
+   *  눈에 들어와야 할 **나(플레이어)·마을 사람**은 그 뒤 actorOf() 루프에서
+   *  제일 나중에 요청돼 늘 꼴찌로 밀렸다(CDP로 실측 — v20.glb 가 39개 중 31번째).
+   *  버림받는 GLB 는 없다 — 그냥 **네트워크 큐에 올리는 순서**만 사람이 먼저다.
+   *  `rawScene()` 은 아무것도 세우지 않고 캐시에 굽기만 하므로(부작용 없음),
+   *  잠시 뒤 buildRoom()/buildField() 가 배경 소품을 부르고 나서 actorOf() 가
+   *  같은 url 을 또 부르면 이미 도착해 있거나 대기열 앞자리에 있다. */
+  function prefetchActors(run) {
+    var AS3 = AS();
+    if (!AS3 || !AS3.heroRecipe || !AS3.rawScene) { return; }
+    function touch(seed) {
+      if (!AS3.wants('hero', seed)) { return; }
+      var rec = AS3.heroRecipe(seed);
+      if (!rec) { return; }
+      var noop = function () {};
+      AS3.rawScene(rec.body, noop);
+      if (rec.outfit) { AS3.rawScene(rec.outfit, noop); }
+      if (rec.hair) { AS3.rawScene(rec.hair, noop); }
+      AS3.rawScene(rec.anim || AS3.ANIM_SRC, noop);
+    }
+    touch('me');
+    var ns = (run.room && run.room.npcs) || [];
+    for (var i = 0; i < ns.length; i++) { touch('npc:' + (ns[i].key || '')); }
+  }
+
   function meShape() {
     var sg = new T.Group();
     box(sg, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
@@ -1724,7 +1750,7 @@
     }
     var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
              (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg;
-    if (rk !== roomKey) { roomKey = rk; buildRoom(run); buildField(run); }
+    if (rk !== roomKey) { roomKey = rk; prefetchActors(run); buildRoom(run); buildField(run); }
 
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());
