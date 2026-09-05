@@ -28,12 +28,25 @@
   var BASE_REACH = 34;                  // 공격 사거리
   var ENEMY_CD = 1.15;                  // 적 공격 간격
   /* 몬스터 다양화(PLAN 14절) — 궁수·조총병(`look.weapon` bow·staff)은 붙지
-     않고 거리를 두고 쏜다. 보스는 따로 텔레그래프가 있는 지진 강타를 쓴다 */
+     않고 거리를 두고 쏜다. 보스는 따로 텔레그래프가 있는 특수 공격을 쓴다 —
+     2026-09-05까지는 무기와 무관하게 전부 같은 강타 하나였다(PLAN 15절
+     "보스 패턴" 미달). `look.weapon`으로 넷을 가른다(`bossPattern()` 참고) */
   var RANGED_STOP = 150;                // 이 거리에서 더 안 다가온다
   var RANGED_MAX = 260;                 // 이보다 멀면 아예 안 쏜다
-  var SLAM_WARN = 0.7;                  // 강타 예고 시간(초) — 이 사이에 벗어나면 안 맞는다
-  var SLAM_RANGE = 110;                 // 강타 반경
-  var SLAM_MUL = 1.8;                   // 강타 배율(평타 대비)
+  var SLAM_WARN = 0.7;                  // club — 강타 예고 시간(초)
+  var SLAM_RANGE = 110;                 // club — 강타 반경
+  var SLAM_MUL = 1.8;                   // club — 강타 배율(평타 대비)
+  var CHARGE_WARN = 0.55;               // axe — 돌진 예고 시간(초)
+  var CHARGE_STEP = 90;                 // axe — 예고가 끝나면 이만큼 순간 다가선다
+  var CHARGE_MUL = 1.6;                 // axe — 돌진 적중 배율
+  var THRUST_WARN = 0.5;                // spear·halberd — 관통 예고 시간(초)
+  var THRUST_RANGE = 170;               // spear·halberd — 정면으로 닿는 사거리(평타보다 훨씬 길다)
+  var THRUST_HALF = 0.5;                // spear·halberd — 부채꼴 반각(라디안, 약 29도)
+  var THRUST_MUL = 1.5;                 // spear·halberd — 관통 배율
+  var FLURRY_WARN = 0.4;                // sword — 연환격 예고 시간(초)
+  var FLURRY_HITS = 3;                  // sword — 예고 뒤 잇달아 베는 횟수
+  var FLURRY_GAP = 0.22;                // sword — 매 베기 사이 간격(초)
+  var FLURRY_MUL = 0.7;                 // sword — 베기 한 번당 배율(셋 합쳐 강타 급)
   var MP_MAX = 100;                     // 기력 최대치
   var MP_REGEN = 7;                     // 기력 자연 회복 (초당)
   var MP_ON_KILL = 9;                   // 적을 잡으면 기력 회복
@@ -901,6 +914,132 @@
     if (run.hp <= 0) { die(); }
   }
 
+  /**
+   * 보스 패턴(PLAN 15절) — 2026-09-05까지는 보스 열 종 전부가 스탯만 다른
+   * 같은 "강타" 하나였다(무기·색·이름만 다르고 공격은 하나). `data-enemy.js`
+   * `BOSSES`가 이미 갖고 있던 `look.weapon`(club·axe·sword·spear·halberd)으로
+   * 넷을 가른다 — 새 필드 없이 기존 표만 읽는다. 예고(telegraph) 뒤 터지는
+   * 공통 리듬은 그대로 두고, 무기마다 판정 모양·박자만 바꿨다. `en.slamWarn`·
+   * `en.slamCd`는 이제 "강타 전용"이 아니라 **이 보스가 쓰는 패턴 하나의
+   * 공용 타이머**다(보스 하나는 평생 무기 하나만 쓰므로 겹칠 일이 없다).
+   */
+  function bossPattern(en, p, ed, dt) {
+    var lookW = en.ref && en.ref.look && en.ref.look.weapon;
+    if (lookW === 'axe') { return bossCharge(en, p, dt); }
+    if (lookW === 'spear' || lookW === 'halberd') { return bossThrust(en, p, dt); }
+    if (lookW === 'sword') { return bossFlurry(en, p, dt); }
+    return bossSlam(en, p, dt);   // club·그 외 — 기존 강타(원래 유일했던 패턴)
+  }
+
+  /** club — 강타: 제자리 원형 AOE, 큰 배율 한 방(기존 그대로, 이름만 함수로 뺐다) */
+  function bossSlam(en, p, dt) {
+    if (en.slamWarn > 0) {
+      en.slamWarn -= dt;
+      if (en.slamWarn <= 0) {
+        if (dist(en, p) < SLAM_RANGE) {
+          hurtPlayer(en.dmg * SLAM_MUL, en.ref && en.ref.atkEl);
+          if (!run) { return; }
+        }
+        fx.push({ t: 'pop', x: en.x, y: en.y, life: 0.5, boss: true });
+        en.slamCd = 6 + Math.random() * 2;
+      }
+    } else {
+      en.slamCd = (en.slamCd === undefined ? 4 : en.slamCd) - dt;
+      if (en.slamCd <= 0) {
+        en.slamWarn = SLAM_WARN;
+        fx.push({ t: 'whirl', x: en.x, y: en.y, r: SLAM_RANGE, life: SLAM_WARN,
+          el: 'fire', color: '#ff6a3a' });
+      }
+    }
+  }
+
+  /** axe — 돌진: 예고가 끝나는 순간 플레이어 쪽으로 순간 다가선다(간격을
+   *  확 좁힌다) — 제자리에서 터지는 강타와 달리 물러서도 한 번은 따라붙는다,
+   *  대신 반경은 강타보다 훨씬 좁다(붙어야만 맞는다) */
+  function bossCharge(en, p, dt) {
+    if (en.slamWarn > 0) {
+      en.slamWarn -= dt;
+      if (en.slamWarn <= 0) {
+        var cd = dist(en, p) || 1;
+        var step = Math.min(CHARGE_STEP, Math.max(0, cd - en.r - P_R));
+        en.x += (p.x - en.x) / cd * step;
+        en.y += (p.y - en.y) / cd * step;
+        if (dist(en, p) < en.r + P_R + 14) {
+          hurtPlayer(en.dmg * CHARGE_MUL, en.ref && en.ref.atkEl);
+          if (!run) { return; }
+        }
+        fx.push({ t: 'burst', x: en.x, y: en.y, life: 0.4, color: '#ffb43a' });
+        en.slamCd = 5 + Math.random() * 2;
+      }
+    } else {
+      en.slamCd = (en.slamCd === undefined ? 3.5 : en.slamCd) - dt;
+      if (en.slamCd <= 0) {
+        en.slamWarn = CHARGE_WARN;
+        fx.push({ t: 'ring', x: en.x, y: en.y, r: 26, life: CHARGE_WARN, color: '#ffb43a' });
+      }
+    }
+  }
+
+  /** spear·halberd — 관통: 예고가 뜨는 순간 방향을 고정해 두고(플레이어가
+   *  그 사이 옆으로 피할 수 있게), 끝나면 그 방향 정면 부채꼴로 사거리가
+   *  훨씬 긴 한 방을 찌른다 — 제자리 AOE가 아니라 **방향이 있는** 공격 */
+  function bossThrust(en, p, dt) {
+    if (en.slamWarn > 0) {
+      en.slamWarn -= dt;
+      if (en.slamWarn <= 0) {
+        var fdx = en.faceX || 1, fdy = en.faceY || 0;
+        var tdx = p.x - en.x, tdy = p.y - en.y;
+        var td = Math.sqrt(tdx * tdx + tdy * tdy) || 1;
+        if (td <= THRUST_RANGE && (tdx * fdx + tdy * fdy) / td >= Math.cos(THRUST_HALF)) {
+          hurtPlayer(en.dmg * THRUST_MUL, en.ref && en.ref.atkEl);
+          if (!run) { return; }
+        }
+        fx.push({ t: 'slash', x: en.x + fdx * THRUST_RANGE * 0.5,
+          y: en.y + fdy * THRUST_RANGE * 0.5, life: 0.35, color: '#8ad0ff' });
+        en.slamCd = 5 + Math.random() * 2;
+      }
+    } else {
+      en.slamCd = (en.slamCd === undefined ? 4 : en.slamCd) - dt;
+      if (en.slamCd <= 0) {
+        var fl0 = dist(en, p) || 1;
+        en.faceX = (p.x - en.x) / fl0; en.faceY = (p.y - en.y) / fl0;
+        en.slamWarn = THRUST_WARN;
+        fx.push({ t: 'ring', x: en.x + en.faceX * THRUST_RANGE * 0.5,
+          y: en.y + en.faceY * THRUST_RANGE * 0.5, r: 46, life: THRUST_WARN, color: '#8ad0ff' });
+      }
+    }
+  }
+
+  /** sword — 연환격: 예고 뒤 짧은 간격으로 세 번 벤다(누적 배율은 강타 급이지만
+   *  박자가 다르다 — 회피 타이밍을 한 번이 아니라 여러 번 요구한다) */
+  function bossFlurry(en, p, dt) {
+    if (en.flurryLeft > 0) {
+      en.flurryT -= dt;
+      if (en.flurryT <= 0) {
+        if (dist(en, p) < en.r + P_R + 10) {
+          hurtPlayer(en.dmg * FLURRY_MUL, en.ref && en.ref.atkEl);
+          if (!run) { return; }
+        }
+        fx.push({ t: 'slash', x: p.x, y: p.y, life: 0.3, color: '#ff7a7a' });
+        en.flurryLeft--;
+        en.flurryT = FLURRY_GAP;
+      }
+    } else if (en.slamWarn > 0) {
+      en.slamWarn -= dt;
+      if (en.slamWarn <= 0) {
+        en.flurryLeft = FLURRY_HITS;
+        en.flurryT = 0;
+        en.slamCd = 6 + Math.random() * 2;
+      }
+    } else {
+      en.slamCd = (en.slamCd === undefined ? 4 : en.slamCd) - dt;
+      if (en.slamCd <= 0) {
+        en.slamWarn = FLURRY_WARN;
+        fx.push({ t: 'whirl', x: en.x, y: en.y, r: en.r + P_R + 20, life: FLURRY_WARN, color: '#ff7a7a' });
+      }
+    }
+  }
+
   /* ── 진행 ─────────────────────────────────────────────── */
 
   function setInput(dx, dy) { input.dx = dx; input.dy = dy; if (dx || dy) { target = null; } }
@@ -1239,27 +1378,11 @@
             dmg: en.dmg, el: frEl, color: elemColorOf(frEl)
           });
         }
-        /* 들판 로머는 늘 boss:false 로 태어나므로(spawnFieldEncounters) 강타
+        /* 들판 로머는 늘 boss:false 로 태어나므로(spawnFieldEncounters) 보스
            패턴은 안 타지만, 나중에 예외가 생겨도 안전하도록 그대로 둔다 */
         if (en.boss) {
-          if (en.slamWarn > 0) {
-            en.slamWarn -= dt;
-            if (en.slamWarn <= 0) {
-              if (dist(en, p) < SLAM_RANGE) {
-                hurtPlayer(en.dmg * SLAM_MUL, en.ref && en.ref.atkEl);
-                if (!run) { return; }
-              }
-              fx.push({ t: 'pop', x: en.x, y: en.y, life: 0.5, boss: true });
-              en.slamCd = 6 + Math.random() * 2;
-            }
-          } else {
-            en.slamCd = (en.slamCd === undefined ? 4 : en.slamCd) - dt;
-            if (en.slamCd <= 0) {
-              en.slamWarn = SLAM_WARN;
-              fx.push({ t: 'whirl', x: en.x, y: en.y, r: SLAM_RANGE, life: SLAM_WARN,
-                el: 'fire', color: '#ff6a3a' });
-            }
-          }
+          bossPattern(en, p, ed, dt);
+          if (!run) { return; }
         }
       }
     });
@@ -1509,26 +1632,11 @@
         });
       }
 
-      /* 보스 강타 — 예고(붉은 파문) 뒤 터진다(PLAN 15절 "보스 패턴") */
+      /* 보스 패턴 — 예고 뒤 터진다(PLAN 15절, `bossPattern()` 참고 —
+         무기마다 다르다, 2026-09-05까지는 전부 같은 강타 하나였다) */
       if (en.boss) {
-        if (en.slamWarn > 0) {
-          en.slamWarn -= dt;
-          if (en.slamWarn <= 0) {
-            if (dist(en, p) < SLAM_RANGE) {
-              hurtPlayer(en.dmg * SLAM_MUL, en.ref && en.ref.atkEl);
-              if (!run) { return; }
-            }
-            fx.push({ t: 'pop', x: en.x, y: en.y, life: 0.5, boss: true });
-            en.slamCd = 6 + Math.random() * 2;
-          }
-        } else {
-          en.slamCd = (en.slamCd === undefined ? 4 : en.slamCd) - dt;
-          if (en.slamCd <= 0) {
-            en.slamWarn = SLAM_WARN;
-            fx.push({ t: 'whirl', x: en.x, y: en.y, r: SLAM_RANGE, life: SLAM_WARN,
-              el: 'fire', color: '#ff6a3a' });
-          }
-        }
+        bossPattern(en, p, ed, dt);
+        if (!run) { return; }
       }
     }
 
