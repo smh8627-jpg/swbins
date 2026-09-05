@@ -1183,17 +1183,23 @@
     }
     var R = fieldRadiusUnits(), cx = rw / 2, cy = rh / 2, co;
     var loX = lo - R, hiXe = hiX + R;
+    /* 2026-09-06 — 여기 아래 넷은 R(그때그때의 AUTO 등급 반경)에 더하지
+       않고 **최댓값(최솟값)**으로 견준다. `co.extra`가 이제 town.js의
+       corridorsFor()에서 "표식까지의 절대 거리"(그 통로가 세워질 때의
+       반경 기준, 등급이 나중에 바뀌어도 안 변한다)로 나오므로, R이
+       나중에 줄어들어도 통로 결의 도달 가능 거리는 표식 아래로 안
+       줄어든다 — R이 더 크면 그냥 그 값을 쓴다(정상적인 AUTO 동작). */
     co = corridorReach(ctx, 'E');
-    if (co && Math.abs(py - cy) < (co.lane || 0)) { hiXe = hiX + R + (co.extra || 0); }
+    if (co && Math.abs(py - cy) < (co.lane || 0)) { hiXe = Math.max(hiXe, hiX + (co.extra || 0)); }
     co = corridorReach(ctx, 'W');
-    if (co && Math.abs(py - cy) < (co.lane || 0)) { loX = lo - R - (co.extra || 0); }
+    if (co && Math.abs(py - cy) < (co.lane || 0)) { loX = Math.min(loX, lo - (co.extra || 0)); }
     var nx = core.clamp(p.x, loX, hiXe);
     p.x = (inRoomRect(nx, py, ctx) || !fieldBlockedAt(nx, py, ctx)) ? nx : px;
     var loY = lo - R, hiYe = hiY + R;
     co = corridorReach(ctx, 'S');
-    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { hiYe = hiY + R + (co.extra || 0); }
+    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { hiYe = Math.max(hiYe, hiY + (co.extra || 0)); }
     co = corridorReach(ctx, 'N');
-    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { loY = lo - R - (co.extra || 0); }
+    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { loY = Math.min(loY, lo - (co.extra || 0)); }
     var ny = core.clamp(p.y, loY, hiYe);
     p.y = (inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
   }

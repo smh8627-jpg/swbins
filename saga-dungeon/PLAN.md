@@ -1304,7 +1304,9 @@ Phase 1. 던전 입구를 마을방에서 필드로 이전 — 완료(2026-09-05
     살아 움직여 통로 표식이 build 시점 R로 자리 잡고 클램프는 매 프레임
     R을 다시 읽는 어긋남이 기존 마을↔마을 들길에도 이미 있었다(이번
     Phase가 새로 만든 문제가 아니다) — 별도 항목으로 남겨 뒀다, 이번엔
-    안 고침.
+    안 고침. **→ 2026-09-06 고쳤다.** README.md의 같은 날짜 절 참고
+    (`town.js`의 `builtFieldR`·`corridorsFor()`, `dungeon.js`의
+    `boundPlayer()` 통로 분기를 `Math.max`/`Math.min` 절대값 비교로).
 
 Phase 2. 방-방 전환에 문별 통로 예외 등록
   - dungeon.js: corridorReach()가 "방 중심 lane" 대신 "문 y 좌표
