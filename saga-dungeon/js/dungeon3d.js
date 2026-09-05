@@ -513,8 +513,12 @@
    *  "Texture marked for update but no image data found" 경고가 그 증거다.
    *  방·벽마다 반복 값(`repU`·`repV`)이 달라 clone 자체는 필요하니, **로드가
    *  끝난 뒤에만** clone 하도록 미룬다. */
+  /** 실제로 새로 요청한 횟수(같은 url 재요청은 0) — PLAN §28-4 Phase 4 실측용.
+   *  게임 동작에는 안 쓴다, `_texLoadCount()`로만 내준다. */
+  var texLoadCount = 0;
   function rawTex(url) {
     if (rawTexCache[url]) { return rawTexCache[url]; }
+    texLoadCount++;
     var tx = new T.TextureLoader().load(url, function () {
       var ws = texWaiters[url] || [];
       delete texWaiters[url];
@@ -1379,6 +1383,60 @@
     if (Math.hypot(mo.x - p.x, mo.y - p.y) < PREFETCH_EXIT_R) { prefetchTownDest(toId); }
   }
 
+  /** 던전 로딩 이음매(PLAN §28-4 Phase 4) — "먼저 재본다"고 적어 둔 대로
+   *  코드부터 확인했다: 방 소품(`dg:pillar`·`dg:torch`·`dg:door`·`dg:stairs`
+   *  등)은 `asset3d.js`의 `REG` 표가 전부 **단일 문자열**이라 방마다 똑같은
+   *  URL 하나뿐이다 — 첫 방에서 한 번 받으면 그 뒤로는 어느 방이든 캐시
+   *  그대로 쓴다(마을처럼 방마다 다른 GLB 가 없다, 그래서 §28-2 Phase 4와
+   *  달리 소품 프리페치는 필요 없다). 그런데 **바닥·벽 텍스처(`pickTex()`)는
+   *  다르다** — `FLOOR_TEX`/`WALL_TEX` 각각 석 장 중`seedOf(floor,roomIdx,salt)`
+   *  로 방마다 새로 고른다(2026-09-04, 나무·바위처럼 방 씨앗으로 고르게 늘린
+   *  자리 — 위 주석 참고). 그래서 같은 층 안에서도 방을 넘어갈 때마다 다른
+   *  석 장 중 하나가 걸릴 수 있고, 그 URL 이 처음 걸리는 자리면 `buildRoom()`
+   *  이 부르는 순간에야 `TextureLoader`가 비동기로 받아 **도착 전까지 민무늬
+   *  색으로 잠깐 보인다** — 이것이 진짜 이음매다. `goRoom()`은 RNG 없이
+   *  `roomIdx += 1`(고정), `descend()`도 `floor += 1`·`roomIdx = 0`(고정)이라
+   *  다음 방의 (floor,roomIdx)를 미리 안다 — §28-2 Phase 4와 같은 요령으로
+   *  통로 초입(문 근처, `PREFETCH_DOOR_R`)에서 그 텍스처만 미리 당긴다. */
+  var prefetchedRoomTex = {};
+  var PREFETCH_DOOR_R = 160;      // 문 통로(1 CHUNK=200)보다 짧게 — 도착 전에 반드시 걸린다
+  /** 이 문을 넘으면 도착할 (floor,roomIdx) — 순수 함수, RNG 없음.
+   *  `goRoom()`(dungeon.js)의 `roomIdx += 1`, `descend()`의 `floor += 1`·
+   *  `roomIdx = 0`과 **정확히 같은 산수**를 미리 계산한다(자가진단이 이 둘을
+   *  나란히 대조한다). */
+  function nextRoomFor(run, co) {
+    return co.kind === 'stair' ? { floor: run.floor + 1, roomIdx: 0 }
+                               : { floor: run.floor, roomIdx: run.roomIdx + 1 };
+  }
+  /** `run.corridors`의 문별 통로(PLAN §28-4 Phase 2, `{dir,lane,laneAt,extra,kind}`)
+   *  중 플레이어가 지금 결 안에 든 것들의 다음 방을 돌려준다 — **순수 함수다**
+   *  (T·rawTex 등 3D 부작용 없음, 자가진단이 T 없이도 이 함수만 직접 본다).
+   *  마을 통로(`corridorsFor()`)는 `laneAt`이 없어 여기서 자연히 걸러진다
+   *  (`corridorNameAt()`/`corridorExtra()`와 같은 구분법). */
+  function doorPrefetchTargets(run, p) {
+    var list = run && run.corridors, out = [], edgeX, i, co;
+    if (!list) { return out; }
+    edgeX = d().ROOM_W - d().WALL;
+    for (i = 0; i < list.length; i++) {
+      co = list[i];
+      if (co.dir !== 'E' || co.laneAt == null) { continue; }
+      if (Math.hypot(p.x - edgeX, p.y - co.laneAt) < PREFETCH_DOOR_R) { out.push(nextRoomFor(run, co)); }
+    }
+    return out;
+  }
+  function prefetchRoomTex(floor, roomIdx) {
+    var key = floor + ':' + roomIdx;
+    if (prefetchedRoomTex[key]) { return; }
+    prefetchedRoomTex[key] = true;
+    var fake = { floor: floor, roomIdx: roomIdx };
+    rawTex(pickTex(FLOOR_TEX, fake, 'floortex'));
+    rawTex(pickTex(WALL_TEX, fake, 'walltex'));
+  }
+  function maybePrefetchDoorTex(run, p) {
+    var targets = doorPrefetchTargets(run, p), i;
+    for (i = 0; i < targets.length; i++) { prefetchRoomTex(targets[i].floor, targets[i].roomIdx); }
+  }
+
   function meShape() {
     var sg = new T.Group();
     box(sg, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
@@ -1954,6 +2012,7 @@
         maybePrefetchCorridor(run, mo, p);
       }
     }
+    maybePrefetchDoorTex(run, p);   // PLAN §28-4 Phase 4 — 마을엔 run.corridors에 laneAt이 없어 그대로 넘어간다
 
     /* 바닥의 전리품 — 등급색으로 빛나는 낮은 조각 */
     var ds = (run.room && run.room.drops) || [];
@@ -2115,6 +2174,12 @@
     camNode: function () { return camera; },
     /** 손잡이 — 이 판에는 어드민이 없어 콘솔·데모가 두드린다 */
     set: set, tuned: tuned,
-    stats: stats
+    stats: stats,
+    /** PLAN §28-4 Phase 4 — 순수 함수만 자가진단에 내준다(T 없이도 돈다) */
+    _doorPrefetchTargets: doorPrefetchTargets, _nextRoomFor: nextRoomFor,
+    _pickTex: pickTex, _FLOOR_TEX: FLOOR_TEX, _WALL_TEX: WALL_TEX,
+    /** 실측용(init() 뒤에만 의미 있다) — 실제 텍스처 요청 횟수·캐시 존재 여부 */
+    _texLoadCount: function () { return texLoadCount; },
+    _texCached: function (url) { return !!rawTexCache[url]; }
   };
 })(window);
