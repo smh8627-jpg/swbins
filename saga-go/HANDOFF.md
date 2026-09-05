@@ -4,6 +4,48 @@
 > 절대 바꾸면 안 되는 것·밟아 본 함정·다음 할 일이 거기 있다. **새 세션은 그 파일부터.**
 > 이 파일은 **사가고 한 판**에 대한 것만 남긴다.
 
+## 2026-09-05 (또또또또또또 이어서) — "무료로 더 찾아봐" → Mesh2Motion 발견, 실제로 한 벌 뽑아 검증(아직 게임에 안 물림)
+
+`HANDOFF.md`(719~737행, 2026-09-04)가 "무료 실사 애니메이션 인간 팩은
+없다 — 이 조사 그만해라"라고 못박아 뒀었는데, 사용자가 "무료로 더
+찾아봐줘"로 다시 열었다. 실제로 웹 검색해 보니 **"완성된 팩을 찾는다"는
+예전 전제 자체가 좁았다** — Mesh2Motion(mesh2motion.org, 코드 MIT +
+리그·애니메이션 CC0, 오픈소스)이라는 **CC0 정적 스캔 메시에 직접 리깅·
+애니메이션을 입히는 웹 도구**를 찾았다. Mixamo를 아예 안 거치므로 이
+판이 계속 걸려 넘어지던 재배포 라이선스 문제를 피해 간다.
+
+**실제로 파이프라인을 끝까지 밟아 한 벌 뽑았다** (claude-in-chrome으로
+진짜 크롬을 조작 — 헤드리스 아님):
+
+1. Vitruvian Project(CC0, itch.io `withinamnesia/vitruvian-project-cc0`)
+   `VitruvianProject142.blend`(162MB, 실사 사진측량 인체) + 4K 텍스처
+   zip(826MB, BaseColor 포함 — **8K zip 은 Roughness/Height 뿐이고
+   BaseColor 가 아예 없다**, 헷갈리지 말 것)을 itch.io 에서 받았다
+   (itch.io 다운로드는 JS 서명 절차라 curl 로 못 뚫는다 — 반드시
+   claude-in-chrome 으로 버튼을 눌러야 한다)
+2. Blender(헤드리스, 이미 5.2 설치돼 있고 MPFB 애드온도 이미 얹혀 있다)로
+   재질을 다시 짰다 — 원본 재질은 Substance Painter 절차형 셰이더 그룹이라
+   glTF 로 그대로 안 나간다(빈 흰 몸으로 나갔던 첫 시도가 그거였다).
+   **각 재질을 Image Texture → Base Color → Principled BSDF 로 통짜
+   갈아 끼워야** 한다 — Face/Torso/Arms 는 African 변종, Legs 는 African
+   변종이 없어서 범용 Utility 로 대신했다(그래서 다리 톤이 뜬다, 알려진 흠)
+3. 데시메이트 9%(원본 3.7만 정점) + 텍스처 1024px 로 낮춰 8.6MB —
+   **file_upload 툴 자체가 10MB 상한**이라 이 이하로 맞춰야 Mesh2Motion에
+   올라간다(Draco 압축은 시도했지만 Mesh2Motion 의 로더가 DracoLoader를
+   안 붙여서 못 읽는다 — 압축 대신 데시메이트로 줄일 것)
+4. Mesh2Motion 에 업로드 → Human 스켈레톤(Hand Options: **Single Hand
+   Bone** 로 낮추면 손가락 15개를 안 맞춰도 된다) → 어깨·팔꿈치·손·
+   엉덩이·무릎·발을 손으로 드래그해 메시에 맞췄다(자동 정렬 아님 —
+   진짜 사람이 하는 손작업이다) → Fighting_Idle·Walk·Run_Female·
+   Sword_Attack·Hit_Chest·Death_A 6종을 골라 다운로드
+5. 자가진단(헤드리스 Blender 로 재수입)으로 28본·6액션·7장 1024px
+   텍스처가 실제로 다 들었는지 확인 — **거저 나온 게 아니라 진짜 검증했다**
+
+산출물은 `assets/_wip/vitruvian-test/vitruvian_v1.glb`(자세한 건 그
+폴더의 `README.md`) — **아직 `HERO_RECIPES`에 안 넣었다.** 다음 세션이
+쓸지 말지 정할 것. 원본 대용량 파일(1.2GB)은 `C:\Users\Windows\Downloads\`
+에 남아 있어 재작업 시 다시 안 받아도 된다.
+
 ## 2026-09-05 (또또또또또 이어서) — 실사 인물 전체가 초록·파랑으로 물들던 진짜 버그: 세력색 틴트가 MPFB 살결에도 곱혀지고 있었다
 
 사용자가 "실기기에서 확인해줘"라고 요청 — claude-in-chrome 확장으로 **진짜
@@ -912,4 +954,22 @@ _gallery.html · _probe.html   스프라이트를 눈으로 판정하는 판
    두목 기세(`hpMul`)를 올려 보는 쪽이 다음 손볼 자리일 수 있다.
    **다만 이건 auto.js 의 즉시판정(열 합)만 잰 것**이고, 실제 사람이 하는 실시간
    교전(`rogue-action.js`) — 속공·필살·회피 손맛 — 은 여전히 손으로 안 겪어 봤다.
-   자동 승률이 100%라고 사람이 하는 교전까지 쉽다는 뜻은 아니다
+   자동 승률이 100%라고 사람이 하는 교전까지 쉽다는 뜻은 아니다.
+   **2026-09-05 에 절반만 진행** — claude-in-chrome 으로 실제 3D 무대를 열어 보니
+   강타 예고(⚠️)가 화면 아래 작은 HUD 문구에만 뜨고 3D 화면(적 쪽)엔 아무 신호가
+   없어서 놓치기 쉬운 구조였다 → `battle3d.js`에 붉은 경고 파티클(`warn` 종류)을
+   추가해 고쳤다(커밋 `4f1e440`). **회피 난도 자체**(예고 1.1초 안에 5.5m 벗어나야
+   하는데 기본 이동속도가 8m/s라 사실상 거저 피해진다)는 코드로 확인만 하고 손 안
+   댔다 — 이 환경(claude-in-chrome 자동화 탭)은 `document.visibilityState`가
+   계속 `hidden`이라 rAF 기반 실시간 조작 자체가 안 된다(포커스는 잡혀도 안 풀림).
+   **사람이 직접 걸으며 회피해 보는 손맛 검증은 여전히 못했다.**
+
+7. **Mesh2Motion 실사 캐릭터 파이프라인 검증 완료, 실제 게임 반영은 미착수** —
+   2026-09-05, "무료로 더 찾아봐" 요청으로 Mesh2Motion(mesh2motion.org)이라는
+   CC0 리깅·애니메이션 도구를 찾아 Vitruvian Project(CC0 사진측량 인체) 한 벌을
+   실제로 끝까지 뽑았다(`assets/_wip/vitruvian-test/vitruvian_v1.glb`, 자세한
+   것은 그 폴더의 `README.md` — 알려진 흠·원본 파일 위치 다 적어 뒀다).
+   **다음 세션이 할 일**: ① 다리 피부색 불일치를 고칠지 결정 ② 이 GLB의 뼈대가
+   `js/asset3d.js`의 실사 인물 리타깃(`assembleHero()`)과 맞물리는지 확인 ③
+   맞물리면 `HERO_RECIPES`에 넣고 `ASSET_LICENSES.md`에 출처 기록 ④ 이 파이프라인
+   자체를 계속 쓸지(인물 하나당 관절 맞추기 수작업이 든다) 판단
