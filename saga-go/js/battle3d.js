@@ -56,7 +56,9 @@
     /* 흙먼지 — 낮게 퍼진다. 맞았을 때. **빛이 아니라 흙이라 더하지 않는다** */
     dust: { color: 0x7d7264, n: 8, life: 0.5, speed: 5, size: 0.9, flat: false, rise: 0.9, add: false },
     /* 바람 — 피했을 때 옆으로 스친다 */
-    wind: { color: 0x9fd8f5, n: 6, life: 0.3, speed: 11, size: 1.2, flat: true, rise: 0.6, add: true }
+    wind: { color: 0x9fd8f5, n: 6, life: 0.3, speed: 11, size: 1.2, flat: true, rise: 0.6, add: true },
+    /* 경고 — 강타 예고. 상대 위로 천천히 떠오르는 붉은 빛(다른 넷과 안 겹치는 색) */
+    warn: { color: 0xff3b3b, n: 3, life: 0.9, speed: 1.4, size: 2.1, flat: true, rise: 2.0, add: true }
   };
 
   function geo(T, flat) {
@@ -225,6 +227,10 @@
         } else if (o.kind === 'hit') {
           w.shake(amp * 0.8); burst(s.x, s.z, 'dust', 1.2);
           anim(w, 'foe', 'attack', 300); anim(w, 'me', 'hit', 300);
+        } else if (o.kind === 'tell') {
+          /* 도적전(rogue-action.js) 전용 — 강타 예고를 상대 위 붉은 빛으로도 알린다.
+             카메라·hit-stop 은 안 건드린다(경고이지 타격이 아니다) */
+          burst(s.x, s.z, 'warn', 2.4);
         }
       }
     });
