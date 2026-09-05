@@ -989,9 +989,11 @@
           F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), 'flat', false);
         tile.receiveShadow = true;
 
-        /* 통로(PLAN §28-2 Phase 3) — 이 조각이 마을 사이 통로의 결 안이면
-           목적지 테마(`통로:<id>`)로, 아니면 지금 층/마을 테마로. `run.corridors`가
-           없으면(던전 층) 늘 null — fieldBlockedAt()과 정확히 같은 판정을 쓴다. */
+        /* 통로(PLAN §28-2 Phase 3, §28-4 Phase 2·3) — 이 조각이 마을 사이
+           통로의 결 안이면 목적지 테마(`통로:<id>`)로, 던전 계단문 통로의
+           결 안이면 `통로:계단`으로, 그 밖(방-방 통로 포함)은 지금 층/마을
+           테마로. `run.corridors`가 없으면 늘 null — fieldBlockedAt()과
+           정확히 같은 판정을 쓴다. */
         var cTheme = (run.corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, W, H, run.corridors) : null;
         var list = F.chunkAt(cx, cz, seed, ring, dens, cTheme || (th && th.name));
         for (i = 0; i < list.length; i++) {

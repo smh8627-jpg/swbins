@@ -3763,6 +3763,22 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('문 ' + doors.length + '개 · laneAt=문y·extra=' + unit + ' · 옛 벽 안 걸림 · 통로 끝(+' + unit + ')에서 걸림');
     });
 
+    t('던전 계단문 통로만 필드 소품이 테마를 갈아입는다(PLAN §28-4 Phase 3, 통로:계단)', function () {
+      /* 순수 함수 시험이라 자리가 어디든 상관없다(RNG 안 씀) — 위 항목들
+         바로 다음에 둔 것은 §28-4 절 안에서 이어 보기 좋아서일 뿐이다. */
+      var F = DG.field3d, W = DN.ROOM_W, H = DN.ROOM_H;
+      var spanX = Math.floor(W / F.CHUNK), farCx = spanX + 1;
+      var laneCz = 0;                              // gz = CHUNK/2 = 100
+      var stairCo = { dir: 'E', lane: 34, laneAt: F.CHUNK / 2, extra: 200, kind: 'stair' };
+      var forageCo = { dir: 'E', lane: 34, laneAt: F.CHUNK / 2, extra: 200, kind: 'forage' };
+      var stairTheme = F.corridorNameAt(farCx, laneCz, W, H, [stairCo]);
+      var forageTheme = F.corridorNameAt(farCx, laneCz, W, H, [forageCo]);
+      var outside = F.corridorNameAt(farCx, laneCz + 3, W, H, [stairCo]);   // 결 밖 — null
+      var inside = F.corridorNameAt(spanX, laneCz, W, H, [stairCo]);       // 통로 밖(방 안 칸) — null
+      return stairTheme === '통로:계단' && forageTheme === null && outside === null && inside === null &&
+        ('계단문=' + stairTheme + ' · 그 외 문=층 테마(null) · 결 밖·방 안=null');
+    });
+
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
       return window.DG_SEED === 20260824 &&
