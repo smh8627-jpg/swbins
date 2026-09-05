@@ -450,6 +450,17 @@
   }
   /** 텍스처 한 변이 세계에서 몇 m 를 덮나 — 작을수록 촘촘히(확대돼) 반복된다 */
   var LAND_TEX_METERS = 12;
+  /** 바닥을 굽는 캔버스 한 변(px) — 손잡이(2026-09-05, "바닥은 퀄리티가 없는데"
+   *  로 발견). 타일 한 장(`span`)이 실제로는 `TILE_PX(256) * metersPerPixel`
+   *  ≈ 244m 인데, 캔버스는 옛값 256px 그대로였다 — ambientCG 1K 사진을
+   *  `LAND_TEX_METERS`(12m)마다 반복해 깔아도 반복 한 칸이 캔버스에서 겨우
+   *  12.6px 로 뭉개져(1024px 원본의 디테일이 사실상 다 사라짐) 사진이 아니라
+   *  흐린 단색처럼 보였다. 굽기는 타일이 새로 생길 때만(플레이어가 이동해
+   *  캐시 밖으로 나갈 때) 한 번 돌아 매 프레임 비용은 아니지만, 그 순간의
+   *  CPU 비용은 늘어난다(256→768 이면 캔버스 픽셀 9배) — `#perf` 로 실측해
+   *  볼 것. 너무 무거우면 `core.setTune('world3d.landTexRes', 256)` 로
+   *  되돌린다 */
+  function LAND_TEX_RES() { return Math.max(64, Math.round(core.tuned('world3d.landTexRes', 768))); }
   /**
    * 이 소재의 반복 무늬 — 세계 좌표(`x0·y0`, m)에 맞춰 위상을 맞춘다.
    * **타일마다 캔버스가 새로 생기므로**, 반복 시작점을 캔버스 원점이 아니라
@@ -523,7 +534,7 @@
       '|' + (SSk ? SSk.now().key : '-');
     if (landTex[ck]) { return landTex[ck]; }
 
-    var S = 256;
+    var S = LAND_TEX_RES();
     var cv = document.createElement('canvas');
     cv.width = S; cv.height = S;
     var c = cv.getContext('2d');
@@ -618,7 +629,7 @@
       '|' + (SSk ? SSk.now().key : '-');
     if (landTex[ck]) { return landTex[ck]; }
 
-    var S = 256;
+    var S = LAND_TEX_RES();
     var cv = document.createElement('canvas');
     cv.width = S; cv.height = S;
     var c = cv.getContext('2d');
