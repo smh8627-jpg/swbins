@@ -46,7 +46,8 @@
    *
    * 오래 비어 있었다. **이제 다 찼다** — 인물 여섯 벌 · 짐승 다섯 종 ·
    * 역참 · 성채 셋이다(Quaternius CC0, 까치만 Poly by Google CC-BY.
-   * 출처는 `assets/ASSET_LICENSES.md`).
+   * 출처는 `assets/ASSET_LICENSES.md`). 2026-09-05 — 도감 펫(`pt_*`·`pk_*`)도
+   * 이 다섯 종을 `pet:form:*`·`pet`(마지막 줄)로 돌려 쓴다(아래 주석 참고).
    */
   var PEOPLE = 'assets/models/people/';
   var BLD = 'assets/models/buildings/';
@@ -153,6 +154,25 @@
        `.glb` 한 덩이가 아니라 `.gltf` + `.bin` + `.png` 세 파일이라
        **셋이 같은 폴더에 이름 그대로** 있어야 한다 */
     'pet:an_magpie': 'assets/models/animals/Mesh_Crow.gltf',
+
+    /* 2026-09-05 — 도감(잡는) 펫은 여태 위 다섯 줄(들짐승 `an_*`, `animal.js`의
+       배경 생물 전용)에 하나도 안 걸렸다 — `pet:pt_*`도 `pet:form:*`도 표에
+       없어 도감 초상은 계속 캔버스로 남아 있었다(portrait3d.js 는 이제 pet도
+       굽지만, 구울 진짜 모델이 없으면 그대로 포기하고 캔버스로 되돌아간다).
+       사용자 지시 — "초상화를 더 가져올 수 있나, 맞출 필요 없이 있으면
+       교체" — 새로 받지 않고 **이미 있는 다섯 종을 형태(form)별로 돌려 쓴다**.
+       한 마리가 다른 종 모델을 입어도(해태가 사슴 모습 등) 그림이 사람 손이
+       아니라 실제 모델이라는 점이 우선이다(대장간=집 모델과 같은 판단).
+       `quad`(네 발) 형태가 가장 많아 셋을 섞어 조금이라도 갈린다(같은 인물은
+       `oneOf()`가 id 해시로 늘 같은 것을 고른다). `turtle`·`dragon`·`horse`·
+       `toad`·`ogre` 형태는 대응 CC0 가 없어 마지막 `pet` 한 줄(같은 셋)로
+       떨어진다 — 거북·용이 사슴 모습이어도 도형보다는 낫다는 판단. */
+    'pet:form:quad': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
+      'assets/models/animals/Cow.glb'],
+    'pet:form:bird': 'assets/models/animals/Mesh_Crow.gltf',
+    'pet:form:fish': 'assets/models/animals/Koi.glb',
+    'pet': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
+      'assets/models/animals/Cow.glb'],
 
     /* 역참 — **여관 한 벌**이다. 역참은 들러서 쉬고 보급받는 자리이니
        여관이 그 자체다. 여러 벌로 섞고 싶었지만 `Well`(우물 1.25m)·

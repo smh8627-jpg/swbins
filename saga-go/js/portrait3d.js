@@ -47,15 +47,24 @@
     return { kind: m[1], id: m[2], w: +m[3], h: +m[4] };
   }
 
-  /** 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다 */
-  function camPlan(w, h) {
+  /**
+   * 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다.
+   *
+   * **펫은 결이 다르다** — 사람(hero)은 두 발로 서 있어 "가슴 위"가 자연스럽지만,
+   * 짐승은 대개 네 발 달린 몸이 옆으로 길다. 몸통 전체가 잘려 나가지 않게
+   * **더 물러나서(span 키움) 낮은 곳을 보고(look 낮춤) 옆모습에 가깝게(yaw 키움)**
+   * 잡는다(사가블로 `portrait3d.js` camPlan 과 같은 판단, 2026-09-05 이식).
+   */
+  function camPlan(w, h, kind) {
+    var isPet = kind === 'pet';
     var aspect = w / Math.max(1, h);
-    var span = 0.62;
+    var span = isPet ? 1.5 : 0.62;
     var fov = 26;
     var dist = (span / 2) / Math.tan(fov * Math.PI / 360);
     if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
-    var look = 0.78;
-    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: 0.42, pitch: 0.06 };
+    var look = isPet ? 0.28 : 0.78;
+    var yaw = isPet ? 0.95 : 0.42;
+    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: yaw, pitch: 0.06 };
   }
 
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
@@ -155,7 +164,7 @@
     if (!boot()) { return null; }
     if (!node || !node.userData || node.userData.assetState !== 'glb') { return null; }
 
-    var plan = camPlan(w, h);
+    var plan = camPlan(w, h, kind);
     var dpr = Math.min(global.devicePixelRatio || 1, 2);
     var pw = Math.max(16, Math.round(w * dpr)), ph = Math.max(16, Math.round(h * dpr));
 
@@ -217,7 +226,11 @@
 
     var A3 = global.DG.asset3d;
     var node = null;
-    try { node = A3.build('hero', job.ref, null); } catch (e) { node = null; }
+    /* 2026-09-05 — 펫(동물)도 굽는다. `A3.build()`는 kind 로 hero·pet 을 이미
+       가른다(pet 은 keysFor()가 'pet:'+id → 'pet:form:'+form → 'pet' 순으로
+       찾는다) — CC0 모델이 없는 종은 urlOf()가 null 을 줘 도형인 채로 남고
+       bake()의 assetState==='glb' 문턱에 걸려 조용히 그 자리에서 멈춘다 */
+    try { node = A3.build(job.kind, job.ref, null); } catch (e) { node = null; }
     if (!node) {
       cache[job.key] = false; gaveUp++; delete pending[job.key]; busy = false; pump();
       return;
@@ -251,7 +264,7 @@
   /** 줄에 올린다. `asset3d.build` 가 준 껍데기는 GLB 가 오는 순간 안이
    *  갈리는데, 그 순간을 알려 주지 않으므로 잠깐씩 다시 본다(최대 여남은 번) */
   function warm(kind, ref, w, h) {
-    if (!ready() || !ref || kind !== 'hero') { return false; }
+    if (!ready() || !ref || (kind !== 'hero' && kind !== 'pet')) { return false; }
     var key = keyOf(kind, ref, w, h);
     if (has(key) || pending[key]) { return false; }
     var A3 = global.DG.asset3d;
