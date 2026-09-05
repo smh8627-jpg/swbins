@@ -1996,6 +1996,47 @@
     }
     core.gainExp(Math.round((1 + Math.floor(run.floor / 3)) * mode().exp));
     global.DG.hero.awardParty(1 + Math.floor(run.floor / 4));
+    tryCatchPet(e);
+  }
+
+  /**
+   * 포획(捕獲) — PLAN 34절 "도감을 콘텐츠 수집 시스템으로". `data.js` 의
+   * PETS 표에는 진작부터 `catchBase`(잡힐 확률) 가 붙어 있었는데, 이걸 읽어
+   * `core.save.dex.pets` 에 채워 넣는 자리가 어디에도 없었다 — 그래서 펫
+   * 도감은 늘 비어 있었고 `ui.js` `petOptions()` 의 펫 장착 드롭다운도
+   * "펫 없음" 만 나오는, 있는데 닿을 수 없는 기능이었다. 짐승형 몬스터를
+   * 잡으면 동물(beast) 펫이, **보스**를 잡으면 신수(divine) 펫이 잡힌다
+   * (신수는 "3층마다" 인물이 합류하는 것과 같은 리듬 — `DD.isBossFloor`).
+   *
+   * **`Math.random()` 을 안 쓴다.** `kill()` 은 자가진단의 씨앗 기반 시나리오
+   * 대부분이 지나는 아주 흔한 길목이라, 여기서 한 번이라도 더 뽑으면 그
+   * 뒤에 오는 무관한 항목들의 수열이 통째로 밀린다 — `core.hash2` 자체가
+   * 바로 이 함정(무기 원소 피해 항목이 넘어졌다)을 밟고 만들어진 함수다
+   * (이 파일 위쪽 주석 참고). 그래서 여기도 `run.floor`·`run.kills`(이미
+   * 세고 있는 누적치)로만 정해지는 순수 해시를 쓴다 — 실제 플레이에서는
+   * 여전히 매 킬마다 다르게 보이지만, 진단의 Math.random 수열은 안 건드린다.
+   */
+  function tryCatchPet(e) {
+    var PD = global.DG.data;
+    if (!PD || !PD.pets || !e.ref) { return; }
+    var wantKind = e.boss ? 'divine' : (e.ref.kind === 'beast' ? 'beast' : null);
+    if (!wantKind) { return; }
+    var pool = PD.pets.filter(function (p) { return p.kind === wantKind; });
+    if (!pool.length) { return; }
+    var seedBase = (run.floor || 0) * 9973 + run.kills;
+    var p = pool[Math.floor(core.hash2(seedBase, 4001) * pool.length)];
+    if (core.hash2(seedBase, 4002) >= (p.catchBase || 0.3)) { return; }
+    var dex = core.save.dex.pets;
+    if (dex[p.id]) {
+      dex[p.id].count += 1;
+    } else {
+      dex[p.id] = { count: 1, firstAt: Date.now() };
+      core.gainFeat(p.rarity * 6, '포획');
+      core.log('🐾 ' + p.name + ' 을(를) 길들였다', 'good');
+      core.emit('toast', '🐾 ' + p.name + ' 포획!');
+      core.emit('dex:new', { cat: 'pets', id: p.id });
+    }
+    core.emit('changed');
   }
 
   function dropGold(room, x, y, mul) {
