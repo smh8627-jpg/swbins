@@ -1632,11 +1632,12 @@
     var isBeast = !!(enemyDef && enemyDef.kind === 'beast');
     var foeBody;
     if (AS3 && isBeast) {
-      /* 짐승 형 적(들개·코끼리병…) — 큰 놈은 소, 작은 놈은 늑대 GLB 로 선다
-         (몬스터 다양화 — 딱 맞는 코끼리는 없어 몸집 큰 네발짐승으로 대신한다).
+      /* 짐승 형 적 — data-enemy.js 의 `body` 필드로 실제 GLB 를 고른다(없으면
+         기본 'beast'=늑대). 2026-09-05 — 몬스터 다양화 하면서 이름 정규식
+         (`/코끼리/`으로 큰 놈만 가르던 것)을 표 필드로 뺐다 — 종류가 더 늘어도
+         여기는 안 건드리고 data-enemy.js·asset3d.js REG 만 고치면 된다.
          세력색은 안 물들인다(짐승 제 털빛이 맞다) */
-      var bigBeast = !!(enemyDef && /코끼리/.test(enemyDef.name || ''));
-      foeBody = AS3.build(bigBeast ? 'beast_big' : 'beast',
+      foeBody = AS3.build((enemyDef && enemyDef.body) || 'beast',
         (ref && ref.ref && ref.ref.name) || 'beast',
         hh + r * 0.95, null, function () { return foeShape(r, hh, col); });
     } else if (AS3) {

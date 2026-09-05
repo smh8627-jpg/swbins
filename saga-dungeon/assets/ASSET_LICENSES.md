@@ -959,6 +959,69 @@ Pack에 `hex_water` 타일이 있어 받아 봤지만 **단색 팔레트 하나�
 > **Paint Brush** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 > `poly.pizza`를 거쳐 받았다. 크기만 맞추었고(scroll은 회전도) 형상은 그대로다.
 
+## 짐승 형 몬스터 다양화 (2026-09-05, 사용자 요청 — "캐릭터도 더 다양하게")
+
+들판(필드/던전) 짐승 형 적이 들개·코끼리병 둘뿐이라 늘 늑대(Wolf) 아니면
+소(Cow) 하나로만 갈렸다. 코끼리 대역을 실제 코끼리로 갈아 끼우고, 이미
+도감 초상용으로 받아 둔 Boar·Tiger(위 "도감(펫) 초상 실사화" 절, 둘 다
+CC-BY — 새로 받을 것 없이 그대로 재사용)를 새 짐승 두 종(멧돼지·산군,
+`data-enemy.js`)에 얹었다.
+
+| 파일 | 원본 | 만든 이 | 라이선스 | 씀 |
+|---|---|---|---|---|
+| `Elephant.glb` | poly.pizza `/m/a27MA0rXyyj`(검색 `poly.pizza/search/elephant`) → `static.poly.pizza/b8ca84f2-02b2-4c84-92c0-b5f8b0eee90e.glb` | **Poly by Google** | **CC-BY 3.0** | `beast_big`(남만 코끼리병) — 이전엔 Cow.glb 대역 |
+| `Boar.glb` | (이미 있음, 위 "도감(펫) 초상" 절) | Poly by Google | CC-BY 3.0 | `beast_boar`(신설 — 멧돼지) |
+| `Tiger.glb` | (이미 있음, 위 "도감(펫) 초상" 절) | Poly by Google | CC-BY 3.0 | `beast_tiger`(신설 — 산군) |
+
+> **Elephant** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> `poly.pizza`를 거쳐 받았다. 크기·자리만 맞추었고 형상은 그대로다.
+
+`dungeon3d.js`가 이름 정규식(`/코끼리/`으로 큰 놈만 가르던 것) 대신
+`data-enemy.js`의 `body` 필드를 직접 읽는다 — 더 늘어도 이 표와
+`data-enemy.js`만 고치면 된다. `_test.html` 241/241 3회 동일, CDP로
+네 종(`beast`·`beast_big`·`beast_boar`·`beast_tiger`) 전부 로드 성공·
+콘솔 에러 0 확인.
+
+## 플레이어측 인물 몸 다양화 — MPFB 실사 스킨 20벌 이식 (2026-09-05, 이어서)
+
+같은 요청("캐릭터도 더 다양하게")의 둘째 갈래 — 사람 몸이 QRPG 여섯 벌뿐이라
+부대원(역사 인물 수십 명)·마을 NPC·인간형 몬스터가 전부 그 여섯 중 하나로만
+갈렸다. `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구)
+실사 인물 스무 벌(`male`·`female`·`v3`·`v7`~`v23`)을 **파일 그대로
+복사**했다(`saga-go/assets/models/people/mpfb_real/`, 74MB — 눈가 빨갛게
+깨지던 버그를 이미 다 고친 최종본이라 이 판에서 다시 겪을 함정이 없다,
+경위는 `saga-go/assets/ASSET_LICENSES.md` 참고).
+
+**그런데 파일만 옮겨서는 안 됐다** — 이 판의 `asset3d.js`는 QRPG(몸 파일에
+제 클립이 다 든 통짜 스킨)만 겨냥해 짜여 있어서, `retargetInto()`(몸짓을
+다른 뼈대 크기에 맞게 다시 굽는 함수)가 아예 없었다. MPFB 몸은 제 클립이
+없어 공용 `ANIM_SRC`(UAL1)를 그대로 물리면 뼈 길이가 달라 팔다리가
+틀어진다(saga-go가 "팔이 T자로 안 움직인다"로 먼저 밟은 버그) — 그
+함수(`sceneHeight`·`boneNameMap`·`retargetInto`)를 saga-go에서 그대로
+옮겨 왔다. 세력색 물들이기도 QRPG 전용으로 좁혔다(MPFB 실사 얼굴에 그대로
+곱히면 초록·파랑으로 물드는, saga-go가 실기기로 먼저 밟은 그 버그를
+`assembleHero()`에 `isQrpg` 문턱 하나로 막았다 — saga-go의 최종 고침을
+처음부터 반영한 것이라 이 판은 그 버그 자체를 겪지 않는다).
+
+**CDP로 직접 확인** — `DG.asset3d.register('hero', [...])`로 인물 표를
+한 벌짜리로 좁혀 강제로 그 몸이 뽑히게 한 뒤:
+- MPFB(`v9.glb`) — `assetState:'glb'`, `mixer` 생성됨, `clipMap`에 idle·
+  walk·run·sprint·attack·hit·dodge·death·interaction 아홉 자리 다 채워짐
+  (retarget이 UAL1 마흔한 클립 전부를 성공적으로 다시 구웠다는 뜻), 몸
+  재질 색은 `ffffff`(세력색 안 물듦 — 의도대로).
+- QRPG(`Warrior.glb`, 대조군) — 재질 색이 넘긴 tintHex(`3355ff`)와 정확히
+  일치(회귀 없음 — QRPG는 여전히 물든다).
+- 둘 다 콘솔 에러 0. `_test.html` 241/241 3회 동일.
+
+**실기기 확인 전** — 던전에 들어가 부대원·마을 NPC·인간형 몬스터 중
+실사 얼굴이 실제로 섞여 나오는지, 걷는 동안 팔다리가 안 뒤틀리는지
+볼 것(이번 항목의 핵심 체감 포인트 — retarget 결과는 헤드리스로는
+"에러 없이 클립이 붙었다"까지만 확인되고, 눈으로 본 모양까지는 아직
+아니다).
+
+`sw.js` VERSION → `dungeon-v0.43.0`(스크립트 목록은 안 바뀌었지만
+게임 데이터·에셋·렌더 로직이 여럿 바뀌었으니 캐시를 새로 태운다).
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

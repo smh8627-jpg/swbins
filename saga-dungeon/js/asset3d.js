@@ -57,6 +57,38 @@
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
 
+  /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
+     `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
+     인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/
+     people/mpfb_real/) — 눈가 빨갛게 깨지던 버그를 이미 다 고친 뒤의 최종
+     본이라 이 판에서 다시 겪을 함정이 없다(자세한 경위는 saga-go의
+     asset3d.js·ASSET_LICENSES.md 참고, 여기서는 목록만 옮긴다).
+     `anim` 필드가 없다 — QRPG 와 달리 몸에 제 클립이 없어 `buildHero()`가
+     공용 `ANIM_SRC`(UAL1)를 빌려 `retargetInto()`로 다시 굽는다(아래) */
+  var PEOPLE_MPFB = 'assets/models/people/mpfb_real/';
+  HERO_RECIPES = HERO_RECIPES.concat([
+    { key: 'mpfb_male', body: PEOPLE_MPFB + 'male.glb' },
+    { key: 'mpfb_female', body: PEOPLE_MPFB + 'female.glb' },
+    { key: 'mpfb_v3', body: PEOPLE_MPFB + 'v3.glb' },
+    { key: 'mpfb_v7', body: PEOPLE_MPFB + 'v7.glb' },
+    { key: 'mpfb_v8', body: PEOPLE_MPFB + 'v8.glb' },
+    { key: 'mpfb_v9', body: PEOPLE_MPFB + 'v9.glb' },
+    { key: 'mpfb_v10', body: PEOPLE_MPFB + 'v10.glb' },
+    { key: 'mpfb_v11', body: PEOPLE_MPFB + 'v11.glb' },
+    { key: 'mpfb_v12', body: PEOPLE_MPFB + 'v12.glb' },
+    { key: 'mpfb_v13', body: PEOPLE_MPFB + 'v13.glb' },
+    { key: 'mpfb_v14', body: PEOPLE_MPFB + 'v14.glb' },
+    { key: 'mpfb_v15', body: PEOPLE_MPFB + 'v15.glb' },
+    { key: 'mpfb_v16', body: PEOPLE_MPFB + 'v16.glb' },
+    { key: 'mpfb_v17', body: PEOPLE_MPFB + 'v17.glb' },
+    { key: 'mpfb_v18', body: PEOPLE_MPFB + 'v18.glb' },
+    { key: 'mpfb_v19', body: PEOPLE_MPFB + 'v19.glb' },
+    { key: 'mpfb_v20', body: PEOPLE_MPFB + 'v20.glb' },
+    { key: 'mpfb_v21', body: PEOPLE_MPFB + 'v21.glb' },
+    { key: 'mpfb_v22', body: PEOPLE_MPFB + 'v22.glb' },
+    { key: 'mpfb_v23', body: PEOPLE_MPFB + 'v23.glb' }
+  ]);
+
   /* 2026-09-04 — 나무·바위·덤불·통나무 실사화(사람은 Mixamo 재배포 금지로
      막다른 길, 자연물만 간다 — `saga-forest`가 이미 검증한 Poly Haven CC0
      사진측량 스캔을 그대로 복사해 옮겼다, `ASSET_LICENSES.md` 참고). 저다각형
@@ -96,9 +128,19 @@
   var DEFAULTS = {
     'hero': HERO_RECIPES,
     'beast': ANIMALS + 'Wolf.glb',
-    /* 몬스터 다양화 — 코끼리병처럼 몸집 큰 짐승 형 적은 소 GLB 로 대신한다
-       (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
-    'beast_big': ANIMALS + 'Cow.glb',
+    /* 2026-09-05 — 여태 "딱 맞는 코끼리는 CC0 로 못 찾았다"고 적어 뒀던 대역(소)을
+       진짜 코끼리로 갈아 끼운다. poly.pizza 가 이 판에서 완전히 열린 지(위 "도감
+       초상" 절) 한참 지나서도 안 찾아봤던 것뿐 — 검색해 보니 Poly by Google 이
+       CC-BY 로 바로 있었다(`assets/ASSET_LICENSES.md` 참고) */
+    'beast_big': ANIMALS + 'Elephant.glb',
+    /* 몬스터 다양화(사용자 요청, "캐릭터도 더 다양하게") — 짐승 형 적이 들개·
+       코끼리병 둘뿐이라 늘 늑대 아니면 소(이젠 코끼리) 하나로만 갈렸다. 이미
+       도감 초상용으로 받아 둔 Boar·Tiger(둘 다 CC-BY, 위 "도감 초상" 절 —
+       새로 받을 것 없이 그대로 재사용)를 새 짐승 두 종(멧돼지·산군, `data-
+       enemy.js`)에 얹는다. `dungeon3d.js`가 이제 이름 정규식(`/코끼리/`)
+       대신 이 표의 키를 `body` 필드로 직접 받는다 — 더 늘어도 표만 고치면 된다 */
+    'beast_boar': ANIMALS + 'Boar.glb',
+    'beast_tiger': ANIMALS + 'Tiger.glb',
     /* 2026-09-04 — 도감(펫) 초상 실사화. "코드로 그리지 말고 에셋으로"가
        인물 초상은 이미 되는데(`portrait3d.js`) 펫(짐승)은 여태 빠져 있었다.
        펫 41종 중 신수(神獸) 11종·포켓몬 오마주 16종은 CC0로 존재할 리 없는
@@ -563,9 +605,71 @@
     return model;
   }
 
+  /* ── 몸짓 옮겨 입히기(retarget) — 2026-09-05, MPFB 실사 몸을 들이며 saga-go
+   * 에서 그대로 옮겨 온다(saga-go asset3d.js 참고, 뼈대 크기·뼈 이름표까지
+   * 겪은 함정이 다 이 안에 있다). QRPG(제 클립 있음)는 이 길을 안 탄다 —
+   * `buildHero()`가 `rec.anim !== rec.body`일 때만 부른다. */
+  function sceneHeight(obj) {
+    var t = three();
+    var b = new t.Box3().setFromObject(obj);
+    return Math.max(1e-4, b.max.y - b.min.y);
+  }
+  function boneNameMap(tm, sm) {
+    var map = {}, n = 0, i;
+    if (!tm.skeleton || !sm.skeleton) { return { map: map, count: 0 }; }
+    var have = {}, sb = sm.skeleton.bones, tb = tm.skeleton.bones;
+    for (i = 0; i < sb.length; i++) { have[sb[i].name] = 1; }
+    for (i = 0; i < tb.length; i++) {
+      if (have[tb[i].name]) { map[tb[i].name] = tb[i].name; n++; }
+    }
+    return { map: map, count: n };
+  }
+  /** 원본(src)의 클립들을 이 몸(c)에 맞게 다시 굽는다. 못 하면 빈 배열 —
+   *  그러면 이 몸은 가만히 선다(뒤틀리는 것보다 낫다) */
+  function retargetInto(c, src) {
+    var t = three();
+    if (!t || !t.SkeletonUtils || !t.SkeletonUtils.retargetClip) { return []; }
+    var tgt = firstSkinned(c.gltf.scene), s = firstSkinned(src.gltf.scene);
+    if (!tgt || !s) { return []; }
+    /* 옮기는 동안 뼈가 실제로 움직이므로 사본으로 굴린다 — 원본을 굴리면
+       그 모델을 쓰는 다른 배우가 같이 뒤틀린다 */
+    var tc = cloneScene(c.gltf), sc = cloneScene(src.gltf);
+    var tm = firstSkinned(tc), sm = firstSkinned(sc);
+    if (!tm || !sm) { return []; }
+    tc.updateMatrixWorld(true); sc.updateMatrixWorld(true);
+    /* 뼈대 크기를 맞춘다 — retargetClip은 엉덩이(hip) 위치는 원본 값을
+       그대로 옮기므로(preserveBonePositions), 두 뼈대 키 비율만큼 스케일을
+       같이 넘겨야 발이 땅에서 뜨지 않는다 */
+    var mul = sceneHeight(tc) / sceneHeight(sc);
+    /* 뼈 이름표 — 이것이 없으면 옮겨지지 않는다(번들 SkeletonUtils가
+       이름이 같은 뼈끼리만 잇는다) */
+    var names = boneNameMap(tm, sm);
+    if (!names.count) { return []; }
+    var out = [], i, j, clip;
+    for (i = 0; i < src.clips.length; i++) {
+      try {
+        clip = t.SkeletonUtils.retargetClip(tm, sm, src.clips[i],
+          { hip: 'Hips', scale: mul, names: names.map });
+        if (clip) {
+          clip.name = src.clips[i].name;
+          /* retargetClip이 굽는 트랙 이름(`.bones[뼈이름].quaternion`)은
+             AnimationMixer가 루트=SkinnedMesh일 때만 푼다. 여기 루트는
+             normalize()가 감싼 Group이라 못 내려가 조용히 안 움직인다 —
+             뼈이름만 남긴 평범한 트랙 이름으로 바꾸면 Group에서부터
+             재귀로 찾아 그대로 먹힌다(saga-go가 "팔이 T자" 버그로 먼저 잡음) */
+          for (j = 0; j < clip.tracks.length; j++) {
+            clip.tracks[j].name = clip.tracks[j].name.replace(/^\.bones\[([^\]]+)\]/, '$1');
+          }
+          out.push(clip);
+        }
+      } catch (e) { /* 이 클립 하나만 건너뛴다 */ }
+    }
+    return out;
+  }
+
   /** 몸 하나 — 몸 위에 옷·머리를 얹어 한 뼈대에 묶는다(사가고와 같은 요령,
    *  세 파일이 뼈 이름·순서까지 완전히 같아 그냥 bind() 하면 된다) */
-  function assembleHero(parts, mul, tintHex) {
+  function assembleHero(parts, mul, tintHex, rec) {
     var bodyScene = cloneScene(parts.body.gltf);
     var master = firstSkinned(bodyScene);
     if (!master || !master.skeleton) { throw new Error('몸에 스켈레톤이 없다'); }
@@ -577,7 +681,12 @@
       meshes.forEach(function (m) { m.bind(skeleton, m.bindMatrix); bodyScene.add(m); });
     });
     var model = normalize(bodyScene, mul);
-    applyTint(model, tintHex);
+    /* 2026-09-05 — 세력색 물들이기는 QRPG **흰 옷**(1,1,1)에 곱해 다양화하려고
+       만든 장치인데, MPFB 실사 몸(사진 그대로의 살결·옷)에 그대로 곱히면
+       얼굴이 초록·파랑으로 물든다(saga-go가 실기기로 먼저 밟은 버그, 같은
+       파이프라인이라 그대로 옮아온다). 3D 에 **실제로 곱히는 것만** QRPG로 좁힌다 */
+    var isQrpg = !!(rec && rec.key && rec.key.indexOf('qrpg_') === 0);
+    applyTint(model, isQrpg ? tintHex : null);
     return model;
   }
 
@@ -609,18 +718,33 @@
     function assemble() {
       if (!parts.body) { shell.userData.assetState = 'fail'; return; }
       var model;
-      try { model = assembleHero(parts, mul, tintHex); }
+      try { model = assembleHero(parts, mul, tintHex, rec); }
       catch (e) { shell.userData.assetState = 'fail'; return; }
       while (shell.children.length) { shell.remove(shell.children[0]); }
       shell.add(model);
       shell.userData.assetState = 'glb';
       var animC = parts.anim;
       if (animC && animC.clips && animC.clips.length) {
+        var clips = animC.clips;
+        /* 2026-09-05 — 몸이 제 클립이 없어(QRPG는 있다, rec.anim===rec.body)
+           ANIM_SRC(UAL1)를 빌려 왔다면 **그대로 물리면 안 된다** — UAL1 클립은
+           뼈마다 위치까지 굽고 있어, 뼈 길이가 UAL1과 한 치도 안 다를 때만
+           우연히 맞는다. 실제 인체 비례로 뽑은 몸(MPFB)은 뼈 길이가 달라
+           raw로 물리면 팔다리가 틀어진다(saga-go가 먼저 밟은 "팔이 T자로 안
+           움직인다" 버그). `retargetInto()`로 다시 구우면 위치는 이 몸의 것을
+           지키고 회전만 옮겨 입으므로 뼈 길이가 달라도 맞는다. 몸마다 한 번만
+           굽도록 parts.body(url 캐시 칸)에 매달아 둔다 */
+        if (rec.anim !== rec.body) {
+          if (!parts.body.heroClips) {
+            parts.body.heroClips = retargetInto({ gltf: { scene: model } }, animC) || [];
+          }
+          if (parts.body.heroClips.length) { clips = parts.body.heroClips; }
+        }
         var mx = new t.AnimationMixer(model);
         var acts = {}, i;
-        for (i = 0; i < animC.clips.length; i++) { acts[animC.clips[i].name] = mx.clipAction(animC.clips[i]); }
+        for (i = 0; i < clips.length; i++) { acts[clips[i].name] = mx.clipAction(clips[i]); }
         shell.userData.mixer = mx; shell.userData.actions = acts;
-        shell.userData.clipMap = mapClips(animC.clips.map(function (a) { return a.name; }));
+        shell.userData.clipMap = mapClips(clips.map(function (a) { return a.name; }));
       }
     }
     return shell;

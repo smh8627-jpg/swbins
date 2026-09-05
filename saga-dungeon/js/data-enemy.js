@@ -30,13 +30,17 @@
     { name: '도적떼', emoji: '🗡️', kind: 'human', color: '#5a4a58', look: { weapon: 'sword', helm: 'none', armor: 'leather' }, tier: 1 },
     { name: '들개', emoji: '🐕', kind: 'beast', color: '#8a7358', form: 'quad', tier: 1, resist: { chi: 25 } },
     { name: '떠돌이 병졸', emoji: '🥷', kind: 'human', color: '#6a6a74', look: { weapon: 'spear', helm: 'helmet', armor: 'leather' }, tier: 1 },
+    /* 2026-09-05 — 짐승 형이 들개·코끼리병 둘뿐이라 다양화(사용자 요청).
+       `body`는 asset3d.js REG 의 키 — 없으면 dungeon3d.js 가 기본 'beast'(늑대)로
+       그린다. 멧돼지는 두꺼운 가죽이라 물리에 약간 강하고 기(氣)는 그대로 받는다 */
+    { name: '멧돼지', emoji: '🐗', kind: 'beast', color: '#4a3a2a', form: 'quad', body: 'beast_boar', tier: 1, resist: { phys: 15 } },
 
     // tier 2 — 변방
     { name: '왜구', emoji: '⛵', kind: 'human', color: '#8a4a4a', look: { weapon: 'sword', helm: 'none', armor: 'leather' }, tier: 2 },
     { name: '마적', emoji: '🐎', kind: 'human', color: '#7a5a3a', look: { weapon: 'sword', helm: 'none', armor: 'leather' }, tier: 2 },
     { name: '오랑캐 궁수', emoji: '🏹', kind: 'human', color: '#7a6a4a', look: { weapon: 'bow', helm: 'none', armor: 'leather' }, tier: 2, atkEl: 'pois' },
     { name: '거란 기병', emoji: '🐴', kind: 'human', color: '#5a6a8a', look: { weapon: 'spear', helm: 'helmet', armor: 'plate' }, tier: 2, resist: { phys: 20 } },
-    { name: '남만 코끼리병', emoji: '🐘', kind: 'beast', color: '#8a8a92', form: 'quad', tier: 2, resist: { chi: 35, phys: 15 } },
+    { name: '남만 코끼리병', emoji: '🐘', kind: 'beast', color: '#8a8a92', form: 'quad', body: 'beast_big', tier: 2, resist: { chi: 35, phys: 15 } },
 
     // tier 3 — 정규군
     { name: '여진 궁수', emoji: '🎯', kind: 'human', color: '#6a7a5a', look: { weapon: 'bow', helm: 'none', armor: 'leather' }, tier: 3 },
@@ -44,6 +48,9 @@
     { name: '왜군 조총병', emoji: '🔫', kind: 'human', color: '#7a4a4a', look: { weapon: 'staff', helm: 'none', armor: 'leather' }, tier: 3, atkEl: 'fire' },
     { name: '위군 창병', emoji: '⚔️', kind: 'human', color: '#31609f', look: { weapon: 'spear', helm: 'helmet', armor: 'plate' }, tier: 3, resist: { phys: 20 } },
     { name: '수군 척후선', emoji: '🚤', kind: 'human', color: '#3a6a8a', look: { weapon: 'bow', helm: 'helmet', armor: 'leather' }, tier: 3, resist: { chi: 30 } },
+    /* 산군(山君) — 호랑이의 옛 존칭(민담 표현, 실제 인물·시리즈 이름이 아니다).
+       빠르고 사나운 맹수라 기·물리 둘 다 어느 정도 버틴다 */
+    { name: '산군', emoji: '🐅', kind: 'beast', color: '#c9772f', form: 'quad', body: 'beast_tiger', tier: 3, resist: { chi: 25, phys: 15 } },
 
     // tier 4 — 정예
     { name: '철갑 중장병', emoji: '🛡️', kind: 'human', color: '#6a6a7a', look: { weapon: 'halberd', helm: 'helmet', armor: 'plate' }, tier: 4, resist: { phys: 40 } },
