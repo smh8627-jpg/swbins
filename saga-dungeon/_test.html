@@ -3732,6 +3732,37 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('gate 0개(제거됨) · exit_dungeon 1개(대체) · 이름 ' + exitDungeon[0].name);
     });
 
+    t('던전 문마다 통로 하나(PLAN §28-4 Phase 2) — 옛 벽에선 안 넘어가고 통로 끝에서만 넘어간다', function () {
+      /* 이 자리(맨 끝)에 오는 이유는 위 지역 도감 항목과 같다 — DN.enter()가
+         공유 RNG 수열을 꽤 소비하고, 그 뒤엔 씨앗 고정·런타임 에러 항목 둘뿐이라
+         정확한 수열 값을 안 따진다. */
+      var keepParty = C.save.party.slice();
+      if (!C.save.party.length) { C.save.party = [D.heroes[0].id]; }
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1 });
+      var run = DN.raw();
+      run.room.cleared = true;                  // 통로 자체(door-touch)만 골라 보려 정리 여부는 배제
+      var doors = run.room.doors, corridors = run.corridors;
+      var unit = DN._doorCorridorUnits();
+      var mapOk = doors.length > 0 && doors.length === corridors.length &&
+        corridors.every(function (co, i) {
+          return co.dir === 'E' && co.laneAt === doors[i].y && co.extra === unit;
+        });
+      var oldWallX = DN.ROOM_W - DN.WALL - DN.P_R, farX = oldWallX + unit;
+      var dr = doors[0];
+      DN.setInput(0, 0);
+      run.player.x = oldWallX + 4; run.player.y = dr.y;
+      DN.update(0.016);
+      var firedAtWall = DN.raw().roomIdx !== 0;
+      run.player.x = farX + 2; run.player.y = dr.y;
+      DN.update(0.016);
+      var firedAtFar = DN.raw().roomIdx === 1;
+      if (DN.active()) { DN.leave(); }
+      C.save.party = keepParty;
+      return mapOk && !firedAtWall && firedAtFar &&
+        ('문 ' + doors.length + '개 · laneAt=문y·extra=' + unit + ' · 옛 벽 안 걸림 · 통로 끝(+' + unit + ')에서 걸림');
+    });
+
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
       return window.DG_SEED === 20260824 &&
