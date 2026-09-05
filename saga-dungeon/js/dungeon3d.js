@@ -1354,6 +1354,29 @@
     }
   }
 
+  /** 로딩 이음매 없애기(PLAN §28-2 Phase 4) — Phase 2가 `exit_*` 표식 자체를
+   *  통로 끝(목적지 코앞)으로 옮겼으므로, 표식 거리로만 프리페치를 걸면
+   *  통로(최대 800유닛)를 70% 넘게 걸어야 발동해 사실상 늦다. `run.corridors`
+   *  (town.js의 `corridorsFor()`, {dir,extra,lane,to})로 이 출구의 방향을 찾아
+   *  **통로 초입**(`exitPointRaw(dir)` — 옛 들길 자리, Phase 2 이전엔 여기서
+   *  travel()이 걸렸다)에서 미리 건다. `prefetchTownDest()` 자체(무엇을
+   *  당기는지)는 손 안 댔다 — "언제 부르는가"만 옮겼다. 통로 정보가 없으면
+   *  (마을 exit인데 corridors 목록에 없는 방어적인 경우) 예전처럼 표식 자체
+   *  거리로 되돌아간다 — 회귀 없음. */
+  function maybePrefetchCorridor(run, mo, p) {
+    var toId = mo.key.slice(5), TW = global.DG.town;
+    var list = run && run.corridors, cor = null, i;
+    if (list) {
+      for (i = 0; i < list.length; i++) { if (list[i].to === toId) { cor = list[i]; break; } }
+    }
+    if (cor && TW && TW.exitPointRaw) {
+      var ep = TW.exitPointRaw(cor.dir);
+      if (Math.hypot(ep.x - p.x, ep.y - p.y) < PREFETCH_EXIT_R) { prefetchTownDest(toId); }
+      return;
+    }
+    if (Math.hypot(mo.x - p.x, mo.y - p.y) < PREFETCH_EXIT_R) { prefetchTownDest(toId); }
+  }
+
   function meShape() {
     var sg = new T.Group();
     box(sg, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
@@ -1921,8 +1944,8 @@
       ma.node.position.set(mo.x, 0, mo.y);
       var mDist = Math.hypot(mo.x - p.x, mo.y - p.y);
       townMark(ma.node, mDist, talkR);
-      if (mo.key.indexOf('exit_') === 0 && mDist < PREFETCH_EXIT_R) {
-        prefetchTownDest(mo.key.slice(5));
+      if (mo.key.indexOf('exit_') === 0) {
+        maybePrefetchCorridor(run, mo, p);
       }
     }
 
