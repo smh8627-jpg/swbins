@@ -982,7 +982,7 @@
    * 그대로 덮는다 — Quaternius 가 옷 쪽에도 노출 피부(손·팔) 재질을 따로
    * 태워 보내는 것이 그 뜻이다.
    */
-  function assembleHero(parts, ref) {
+  function assembleHero(parts, ref, rec) {
     var bodyScene = cloneScene(parts.body.gltf);
     var master = firstSkinned(bodyScene);
     if (!master || !master.skeleton) { throw new Error('몸에 스켈레톤이 없다'); }
@@ -1000,7 +1000,15 @@
     });
 
     var model = normalize(bodyScene, heightMul('hero', ref));
-    applyTint(model, tintOf('hero', ref));
+    /* 2026-09-05 — 세력색 물들이기는 QRPG **흰 옷**(1,1,1)에 곱해 다양화하려고
+       만든 장치인데(위 tintOf 주석), MPFB 실사 몸(사진 그대로의 살결·옷)에도
+       똑같이 곱혀지고 있었다 — 실제 크롬(헤드리스 아님)으로 초상을 직접 구워
+       보고서야 얼굴이 초록·파랑으로 물드는 게 눈에 띄었다(Blender 렌더·기존
+       진단은 이 경로를 안 타서 못 잡았다). `tintOf()` 자체는 안 건드린다 —
+       그 색은 UI 쪽에서도 "이 인물의 빛깔"로 따로 쓰이는 순수 값이다(관련
+       진단 참고). 3D 모델에 **실제로 곱히는 것만** QRPG로 좁힌다 */
+    var isQrpg = rec && rec.key && rec.key.indexOf('qrpg_') === 0;
+    applyTint(model, isQrpg ? tintOf('hero', ref) : null);
     return model;
   }
 
@@ -1041,7 +1049,7 @@
       if (!parts.body) { shell.userData.assetState = 'fail'; return; }
       var model;
       try {
-        model = assembleHero(parts, ref);
+        model = assembleHero(parts, ref, rec);
       } catch (e) {
         shell.userData.assetState = 'fail';
         broke = (e && e.message) ? e.message : 'hero assemble 실패';
