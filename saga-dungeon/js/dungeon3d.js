@@ -1344,24 +1344,39 @@
       bnode.position.set(handX, shoulderY - bmul * 0.5, handZ);
       g.add(bnode);
     }
-    if (look.cape) {
-      var cape = box(g, 0, hh * 0.42, -r * 0.85, r * 1.25, hh * 0.7, r * 0.13,
-        mix(tint, 0x000000, 0.25), 'flat', true);
-      cape.rotation.x = -0.1;
-    }
-    var headY = hh + r * 0.5;
-    /* 2026-09-05 — 투구(`helmet`)·왕관(`crown`)을 실사화(poly.pizza). 모자류는
-       칼·창과 달리 머리를 **가운데** 두고 씌우는 물건이라(활과 같은 사정),
-       `normalize()`가 바닥을 y=0 에 두는 규약과 어긋난다 — fallback 도형도
-       그 규약(바닥이 0)에 맞춰 다시 그려서, 도형이든 GLB든 이 한 줄
-       (`centerY - mul/2`)로 자리를 맞춘다. `gapju`(원뿔형 투구)·`plume`의
-       깃털·망토·수염은 CC0/CC-BY로 맞는 후보를 못 찾아 이번에도 도형으로
-       남긴다(표지판이 한동안 그랬듯, 안 맞으면 안 맞는다고 적어 둔다) */
-    function wornGear(kind, mul, centerY, fallbackFn) {
-      var node = AS3 ? AS3.build(kind, 'foe', mul, null, fallbackFn) : fallbackFn();
-      node.position.set(0, centerY - mul * 0.5, 0);
+    /* 2026-09-05 — 투구(`helmet`)·왕관(`crown`)을 실사화(poly.pizza). 모자·
+       망토류는 칼·창과 달리 몸을 **가운데(또는 제자리)** 두고 걸치는
+       물건이라(활과 같은 사정), `normalize()`가 바닥을 y=0 에 두는 규약과
+       어긋난다 — fallback 도형도 그 규약(바닥이 0)에 맞춰 다시 그려서,
+       도형이든 GLB든 이 한 줄(`bottomY, mul` 또는 `centerY - mul/2`)로
+       늘 같은 자리를 잡는다. */
+    function wornGear(kind, mul, bottomY, fallbackFn, tintHex) {
+      var node = AS3 ? AS3.build(kind, 'foe', mul, tintHex || null, fallbackFn) : fallbackFn();
+      node.position.y += bottomY;
       g.add(node);
     }
+    function wornGearCentered(kind, mul, centerY, fallbackFn, tintHex) {
+      wornGear(kind, mul, centerY - mul * 0.5, fallbackFn, tintHex);
+    }
+    if (look.cape) {
+      /* 2026-09-05(이어서) — 사용자 지시로 CC-BY 완성 망토 모델로 갈아 끼웠다.
+         이미 붉·금으로 칠해진 모델이라 tint 를 주면(곱연산) 세력색에 따라
+         탁해진다 — 그래서 **GLB 는 tint 없이 제 색 그대로**, fallback 만
+         옛 방식대로 세력색을 쓴다(둘의 표현이 달라도 "망토가 있다/없다"
+         라는 실루엣 신호는 같다) */
+      var capeMul = hh * 0.7, capeBottomY = hh * 0.07;
+      var capeFallback = function () {
+        var sg = new T.Group();
+        box(sg, 0, capeMul * 0.5, 0, r * 1.25, capeMul, r * 0.13,
+          mix(tint, 0x000000, 0.25), 'flat', true);
+        return sg;
+      };
+      var capeNode = AS3 ? AS3.build('gear:cape', 'foe', capeMul, null, capeFallback) : capeFallback();
+      capeNode.position.set(0, capeBottomY, -r * 0.85);
+      capeNode.rotation.x = -0.1;
+      g.add(capeNode);
+    }
+    var headY = hh + r * 0.5;
     if (look.helm === 'helmet' || look.helm === 'plume') {
       var helmMul = r * 0.7;
       var helmFallback = function () {
@@ -1369,17 +1384,27 @@
         box(sg, 0, helmMul * 0.5, 0, r * 1.0, helmMul, r * 1.0, 0x5a5a62, 'flat', true);
         return sg;
       };
-      wornGear('gear:helmet', helmMul, headY + r * 0.35, helmFallback);
+      wornGearCentered('gear:helmet', helmMul, headY + r * 0.35, helmFallback);
       if (look.helm === 'plume') {
         box(g, 0, headY + r * 0.85, 0, r * 0.2, r * 0.85, r * 0.2, mix(tint, 0xff5a3a, 0.5), 'glow', false);
       }
     } else if (look.helm === 'gapju') {
-      var cone = new T.Mesh(geo('helmCone', function () { return new T.ConeGeometry(1, 1.3, 8); }),
-        mat(woodcol, 'flat'));
-      cone.scale.setScalar(r * 0.65);
-      cone.position.set(0, headY + r * 0.55, 0);
-      cone.castShadow = true;
-      g.add(cone);
+      /* 2026-09-05(이어서) — "gapju"(원뿔형 동아시아 투구)란 이름의 CC0/CC-BY는
+         끝까지 못 찾았다 — 대신 바이킹 투구(뿔 달림, CC-BY 3.0)를 쓴다.
+         대장간=집 모델과 같은 판단: 모양이 정확히 안 맞아도 "이 적은 다른
+         투구를 썼다"는 다양성 신호는 충분히 준다 */
+      var gapjuMul = r * 0.8;
+      var gapjuFallback = function () {
+        var sg = new T.Group();
+        var cone = new T.Mesh(geo('helmCone', function () { return new T.ConeGeometry(1, 1.3, 8); }),
+          mat(woodcol, 'flat'));
+        cone.scale.setScalar(r * 0.65);
+        cone.position.y = gapjuMul * 0.5;
+        cone.castShadow = true;
+        sg.add(cone);
+        return sg;
+      };
+      wornGearCentered('gear:gapju', gapjuMul, headY + r * 0.55, gapjuFallback);
     } else if (look.helm === 'crown') {
       var crownMul = r * 0.86;
       var crownFallback = function () {
@@ -1392,11 +1417,12 @@
         sg.add(ring);
         return sg;
       };
-      wornGear('gear:crown', crownMul, headY + r * 0.5, crownFallback);
+      wornGearCentered('gear:crown', crownMul, headY + r * 0.5, crownFallback);
     }
-    if (look.beard) {
-      box(g, 0, headY - r * 0.35, r * 0.45, r * 0.4, r * 0.35, r * 0.22, 0x3a3226, 'flat', false);
-    }
+    /* look.beard — 2026-09-05, 끝까지 찾아도 진짜 CC0 턱수염 낱개 모델이
+       없었다(마스카·콧수염뿐). 실사화 원칙(사용자 지시: 개조·대체가 안
+       되면 도형 대신 없는 채로 둔다)에 따라 이 분기를 지웠다 — 수염 있는
+       적도 이제 수염 없이 나온다 */
   }
 
   /** 지금 보이는 것(도형이든 GLB 든) 위 모든 메시의 재질 사본 — 맞으면 이걸 번쩍인다.

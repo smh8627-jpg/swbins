@@ -260,13 +260,25 @@
     'wpn:halberd': WPN + 'spear.glb',
     'wpn:staff': WPN + 'staff.glb',
     'wpn:bow': WPN + 'bow.glb',
-    /* 몬스터 다양화 이어서 — 투구·왕관(`foeGear()`의 `look.helm`). "gapju"(원뿔형
-       동아시아 투구)·망토·수염은 CC0/저작자표시로 맞는 후보를 못 찾아
-       이번에도 도형으로 남긴다(표지판이 한동안 그랬듯, 안 맞으면 안 맞는다고
-       적어 둔다). 'helmet'(일반 투구, **CC-BY 3.0** — 저작자 표시 필요)·
-       'crown'(왕관, CC0)만 채웠다. 출처는 `assets/ASSET_LICENSES.md` 참고 */
+    /* 몬스터 다양화 이어서 — 투구·왕관(`foeGear()`의 `look.helm`). 'helmet'(일반
+       투구, **CC-BY 3.0**)·'crown'(왕관, CC0)만 채웠다. 출처는
+       `assets/ASSET_LICENSES.md` 참고 */
     'gear:helmet': GEAR + 'helmet.glb',
     'gear:crown': GEAR + 'crown.glb',
+    /* 2026-09-05(이어서) — 사용자 지시("모양이 완전히 안 맞아도 실사화가
+       우선이다 · 못 찾으면 삭제하고 있는 걸로 대체")로 나머지 둘도 채웠다.
+       `gapju`(원뿔형 동아시아 투구)는 CC0/CC-BY 어디에도 없어 **바이킹
+       투구**(뿔 달린 서양 투구, **CC-BY 3.0**)로 대신한다 — 대장간=집
+       모델과 같은 판단, 뿔이 있어도 "다른 투구를 쓴 정예"로는 충분히
+       읽힌다. `cape`(망토)도 CC0 표준형은 없어 유일하게 찾은 완성
+       망토 모델(**CC-BY 3.0**, 색이 이미 붉·금이라 세력색으로 덧물들이면
+       탁해져 **tint 는 안 준다** — 항상 같은 붉·금 망토로, 지휘관급이라는
+       인상은 여전히 준다)을 쓴다. `beard`(수염)는 마스카·콧수염 말고는
+       진짜 CC0 턱수염 낱개가 없어 — **끝까지 찾아도 없어서 도형(각목)
+       자체를 지웠다**(`foeGear()`의 `look.beard` 분기 삭제, 없으면 없는
+       대로 둔다는 판단) */
+    'gear:gapju': GEAR + 'viking_helmet.glb',
+    'gear:cape': GEAR + 'cape.glb',
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
        'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은
