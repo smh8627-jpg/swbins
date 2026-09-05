@@ -40,18 +40,12 @@
     return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
   }
 
-  /* ── 등신 비례 ────────────────────────────────────────────
-   * 사람 스프라이트의 비례 프리셋. 값은 키(H)에 대한 비율이다.
+  /* ── 몸 비례 ────────────────────────────────────────────
+   * 사람 스프라이트의 비례. 값은 키(H)에 대한 비율이다.
    *   headR 머리 반지름 · headY 머리 중심 · shoY 어깨 · hipY 골반
    *   leg 다리 길이 · arm 팔 길이 · thick 팔다리 굵기 배율
-   * 모드를 바꾸면 스탬프·초상 캐시를 전부 버려야 한다 (setProp 참조).
    */
-  var PROPS = {
-    chibi:  { headR: 0.240, headY: 0.735, shoY: 0.500, hipY: 0.300, leg: 0.270, arm: 0.230, thick: 1.45 },
-    normal: { headR: 0.118, headY: 0.885, shoY: 0.760, hipY: 0.420, leg: 0.420, arm: 0.340, thick: 1.00 },
-    tall:   { headR: 0.066, headY: 0.930, shoY: 0.825, hipY: 0.465, leg: 0.465, arm: 0.385, thick: 0.85 }
-  };
-  var propMode = 'normal';
+  var PROPS_NORMAL = { headR: 0.118, headY: 0.885, shoY: 0.760, hipY: 0.420, leg: 0.420, arm: 0.340, thick: 1.00 };
 
   /* ── 그림 양식 ────────────────────────────────────────────
    * 'classic' 전통 삽화풍 — 사실적 비례, 부드러운 그라디언트 명암
@@ -69,14 +63,6 @@
      다른 네 판의 sprite.js 에 이 양식을 옮겨 심지 말 것 — 갈라 둔 것이 뜻이다. */
   var styleMode = 'diablo';
   var STYLES = ['classic', 'story', 'anime', 'diablo'];
-
-  /** 등신 모드 변경 — 캐시를 전부 비워 다음 프레임부터 새 비례로 굽는다 */
-  function setProp(mode) {
-    if (!PROPS[mode] || mode === propMode) { return propMode; }
-    propMode = mode;
-    clearCaches();
-    return propMode;
-  }
 
   /** 그림 양식 변경 — 마찬가지로 캐시를 비운다 */
   function setStyle(mode) {
@@ -227,7 +213,7 @@
     var swingB = walking ? Math.sin(ph + Math.PI) * 0.42 : 0;
     /* 정지 자세에서 다리를 살짝 벌린다 — 겹치면 다리가 한 개로 보인다 */
     var stance = walking ? 0 : 0.15;
-    var P = PROPS[propMode] || PROPS.normal;      // 등신 비례 (2등신/기본/8등신)
+    var P = PROPS_NORMAL;
     var legLen = H * P.leg;
     var armLen = H * P.arm;
     var bounce = o.noBounce ? 0
@@ -238,13 +224,11 @@
     var lw = H * 0.085 * P.thick;
     var anime = styleMode === 'anime';            // 그림 양식 (얼굴·머리·명암만 다르다)
     var seed = anime ? animeSeed(o) : 0;
-    /* 만화풍은 머리를 키운다 — 애니메 그림의 인상은 큰 머리·큰 눈에서 나온다.
-       2등신은 이미 머리가 크므로 덜 키운다(넘치면 목이 사라진다). */
+    /* 만화풍은 머리를 키운다 — 애니메 그림의 인상은 큰 머리·큰 눈에서 나온다. */
     if (anime) {
-      headR *= propMode === 'chibi' ? 1.10 : 1.42;
+      headR *= 1.42;
       /* 턱이 어깨를 파고들면 목이 사라지고 어깨 갑옷이 턱에 달라붙는다.
-         달걀형 턱 끝(headY + headR*1.16)이 어깨보다 조금 위에 오도록 머리를 올린다.
-         등신마다 머리·어깨 위치가 달라서 고정 배수 대신 어깨에서 거꾸로 잡는다. */
+         달걀형 턱 끝(headY + headR*1.16)이 어깨보다 조금 위에 오도록 머리를 올린다. */
       headY = shoY - H * 0.025 - headR * 1.16;
     }
     var robe = look.armor === 'robe' || look.armor === 'coat';
@@ -2569,9 +2553,6 @@
     lookOf: lookOf, beastFormOf: beastFormOf, beastColorOf: beastColorOf,
     beastPatternOf: beastPatternOf,
     portrait: portrait, shade: shade,
-    setProp: setProp,
-    prop: function () { return propMode; },
-    PROPS: PROPS,
     setStyle: setStyle,
     style: function () { return styleMode; }
   };

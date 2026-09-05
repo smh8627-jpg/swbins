@@ -83,7 +83,6 @@
       fresh = true;
     }
 
-    if (core.save.settings.prop) { global.DG.sprite.setProp(core.save.settings.prop); }
     if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
     /* 행상 — 회차가 끝날 때마다 새 물건이 온다(vendor.js 가 dungeon:end 를 듣는다) */
     if (global.DG.vendor) { global.DG.vendor.init(); }
@@ -159,27 +158,6 @@
       location.reload();
     });
 
-    /* 등신 비례 */
-    var PROP_ORDER = ['normal', 'chibi', 'tall'];
-    var PROP_LABEL = { normal: '4등', chibi: '2등', tall: '8등' };
-    var PROP_MSG = {
-      normal: '🧍 기본 비례 (4등신)', chibi: '🧒 2등신 — 귀엽게', tall: '🕴️ 8등신 — 늘씬하게'
-    };
-    var propBtn = document.getElementById('btn-prop');
-    if (propBtn) {
-      propBtn.textContent = PROP_LABEL[global.DG.sprite.prop()];
-      propBtn.addEventListener('click', function () {
-        var cur = PROP_ORDER.indexOf(global.DG.sprite.prop());
-        var next = PROP_ORDER[(cur + 1) % PROP_ORDER.length];
-        global.DG.sprite.setProp(next);
-        core.save.settings.prop = next;
-        core.persist();
-        propBtn.textContent = PROP_LABEL[next];
-        ui.toast(PROP_MSG[next]);
-        core.emit('changed');
-      });
-    }
-
     /* 그림 양식 — 디아블로 → 전통 → 그림책 → 만화.
        이 판의 기본은 **디아블로풍**이다(sprite.js styleMode). 나머지 셋은
        시리즈 공통 양식이라 남겨 둔다 — 취향껏 갈아 볼 수 있게. */
@@ -227,28 +205,6 @@
         S.setEnabled(!S.enabled());
         syncSoundBtn();
         ui.toast(S.enabled() ? '🔊 소리를 켰습니다' : '🔇 소리를 껐습니다');
-      });
-    }
-
-    /* 시점 — iso(원작의 3/4 부감, 기본) ↔ third(어깨너머 3인칭).
-       빌드 시점엔 dungeon3d 가 아직 WebGL 을 켜기 전일 수 있어(dungeon-view.js
-       가 던전 화면을 처음 세울 때 init 한다) **available() 는 누를 때 본다** —
-       그때도 안 켜져 있으면(WebGL 없음 등) 2D 뿐이라는 뜻이니 조용히 알린다. */
-    var camBtn = document.getElementById('btn-camera');
-    if (camBtn && global.DG.dungeon3d) {
-      var D3 = global.DG.dungeon3d;
-      var syncCamBtn = function () {
-        var third = D3.camMode() === 'third';
-        camBtn.classList.toggle('on', third);
-        camBtn.title = third ? '시점 (3인칭 어깨너머 — 눌러서 3/4 부감으로)'
-                              : '시점 (3/4 부감 — 눌러서 3인칭 어깨너머로)';
-      };
-      syncCamBtn();
-      camBtn.addEventListener('click', function () {
-        if (!D3.available()) { ui.toast('이 화면은 3D 가 꺼져 있어 시점을 못 바꿉니다'); return; }
-        D3.set('dg3d.camMode', D3.camMode() === 'third' ? 'iso' : 'third');
-        syncCamBtn();
-        ui.toast(D3.camMode() === 'third' ? '🎥 3인칭 어깨너머' : '🎥 3/4 부감');
       });
     }
 
