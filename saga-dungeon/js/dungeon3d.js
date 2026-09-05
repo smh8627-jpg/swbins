@@ -905,9 +905,37 @@
     }
   }
 
+  /** 2026-09-06 — 인스턴싱 대상 여덟 가지(뼈대 애니메이션 없는 순수 자연물).
+   *  `js/field-instance.js` 참고. mul 공식은 옛 piece() 가 AS3.build() 에 넘기던
+   *  값을 그대로 옮긴 것 — 여기서 바꾸면 GLB 크기가 달라진다. */
+  var NATURAL_KIND = { tree: 1, tree_dead: 1, rock: 1, bush: 1, grass: 1, flower: 1, mushroom: 1, log: 1 };
+  var NATURAL_MUL = {
+    tree: function (p, s) { return p.h * 1.35 * s; },
+    tree_dead: function (p, s) { return p.h * 1.2 * s; },
+    rock: function (p, s) { return p.h * 0.9 * s; },
+    bush: function (p, s) { return p.h * 1.6 * s; },
+    grass: function (p, s) { return p.h * 1.6 * s; },
+    flower: function (p, s) { return p.h * 1.6 * s; },
+    mushroom: function (p, s) { return p.h * 1.6 * s; },
+    log: function (p, s) { return p.h * 1.0 * s; }
+  };
+  function natItem(F, p, seed, W, H) {
+    var s = p.s || 1;
+    return {
+      kind: p.t, seed: seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+      x: p.x, y: F.heightAt(p.x, p.z, seed, W, H), z: p.z, rot: p.rot || 0,
+      h: p.h, s: s, mul: NATURAL_MUL[p.t](p, s)
+    };
+  }
+
   /* ── 들판 (2단계) ────────────────────────────────────
    * `field3d.js` 가 **무엇이 어디 서는지**를 값으로 낸다. 여기서는 그 목록을 받아
    * 도형으로 세우기만 한다 — 판단과 그림을 갈라 둔 것이다(진단이 값만 본다).
+   *
+   * 나무·바위·덤불·풀·꽃·버섯·통나무·죽은나무(정적 자연물 여덟 가지)는 개별
+   * `piece()` 대신 한꺼번에 모아 `field-instance.js`(InstancedMesh)로 세운다 —
+   * 조각마다 개별 draw call 이 붙던 자리를 kind·GLB 파일당 몇 개로 줄인다.
+   * 모듈이 없으면(방어적 기본값) 옛 방식(개별 piece())으로 그대로 돌아간다.
    */
   function buildField(run) {
     var F = global.DG.field3d;
@@ -935,6 +963,9 @@
        짠 자리라 손 안 댐). */
     var groundK = run.town ? 0.15 : 0.62;
 
+    var FI = global.DG.fieldInstance;
+    var natItems = FI ? [] : null;
+
     /* 바깥 땅 — 조각마다 한 판씩 깔고 **네 귀퉁이의 높이**로 기울인다.
        한 판을 크게 깔면 높낮이가 안 나온다(4절이 바라는 것이 그 높낮이다) */
     for (cz = -R; cz <= R; cz++) {
@@ -948,11 +979,33 @@
         tile.receiveShadow = true;
 
         var list = F.chunkAt(cx, cz, seed, ring, dens);
-        for (i = 0; i < list.length; i++) { piece(list[i], seed, W, H, stone); }
+        for (i = 0; i < list.length; i++) {
+          if (FI && NATURAL_KIND[list[i].t]) { natItems.push(natItem(F, list[i], seed, W, H)); }
+          else { piece(list[i], seed, W, H, stone); }
+        }
         /* 잡초 층 — 순수 장식(판정 안 닿음), field3d.js clutterAt() 참고 */
         if (F.clutterAt) {
           var deco = F.clutterAt(cx, cz, seed, ring, dens);
-          for (i = 0; i < deco.length; i++) { piece(deco[i], seed, W, H, stone); }
+          for (i = 0; i < deco.length; i++) {
+            if (FI && NATURAL_KIND[deco[i].t]) { natItems.push(natItem(F, deco[i], seed, W, H)); }
+            else { piece(deco[i], seed, W, H, stone); }
+          }
+        }
+      }
+    }
+    if (FI && natItems.length) {
+      var built = FI.build(natItems);
+      if (built && built.children && built.children.length) { fieldGroup.add(built); }
+      else {
+        /* 방어적 — 인스턴싱이 뭔가 잘못돼(폴백조차 못 세웠으면) 아무것도
+           안 보이는 것보다는 옛 개별 piece() 방식으로 되돌아간다. 폴백
+           상자는 buildKind() 안에서 항상 동기로 먼저 세우므로, 정상이라면
+           이 시점에 children 이 최소 kind 수만큼은 있어야 한다 — 0 이면
+           뭔가 실패했다는 뜻이다(2026-09-06, 실기기 검증을 못 마친 채
+           들여서 남긴 안전망). */
+        for (i = 0; i < natItems.length; i++) {
+          var ni = natItems[i];
+          piece({ t: ni.kind, x: ni.x, z: ni.z, s: ni.s, rot: ni.rot, h: ni.h }, seed, W, H, stone);
         }
       }
     }

@@ -536,6 +536,13 @@
   }
   function flush(c, arg) { var w = c.waiting; c.waiting = []; for (var i = 0; i < w.length; i++) { w[i](arg); } }
 
+  /** 원본(캐시된, delam() 끝난) 씬을 클론 없이 그대로 넘긴다 — 2026-09-06,
+   *  `field-instance.js` 가 인스턴싱을 하려면 지오메트리·재질을 직접 읽어야
+   *  하는데, `build()`/`buildHero()` 처럼 매번 `cloneScene()` 하면 인스턴싱의
+   *  의미가 없어진다(공유해야 할 지오메트리를 오히려 늘리는 꼴). **받는 쪽은
+   *  이 씬을 절대 변형하면 안 된다** — 다른 모든 소비자가 같은 참조를 쓴다 */
+  function rawScene(url, done) { acquire(url, function (c) { done(c ? c.gltf.scene : null); }); }
+
   /** 이 재질을 hex 로 물들인다(흰 옷에 곱하는 값이라 너무 어두우면 안 된다) — 없으면 안 물들인다 */
   var tintCache = {};
   function applyTint(model, hex) {
@@ -711,7 +718,7 @@
     normName: normName, score: score, mapClips: mapClips, SLOTS: SLOTS, fit: fit,
     ready: function () { return !!three(); }, hasLoader: function () { return !!loader(); },
     DEFAULTS: DEFAULTS, restore: restore, heroRecipe: heroRecipe, ANIM_SRC: ANIM_SRC,
-    build: build, buildHero: buildHero, step: step, play: play,
+    build: build, buildHero: buildHero, step: step, play: play, rawScene: rawScene,
     ownAllMat: ownAllMat, flashAllMat: flashAllMat,
     tuned: tuned, set: set, stats: stats,
     clear: function () { var k; for (k in REG) { if (Object.prototype.hasOwnProperty.call(REG, k)) { delete REG[k]; } } cache = {}; return REG; }
