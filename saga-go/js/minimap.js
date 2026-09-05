@@ -171,7 +171,8 @@
       }
     }
 
-    /* 이름난 자리 — 숨은 것은 도감에 도장이 찍힌 뒤에만 */
+    /* 이름난 자리 — 숨은 것은 도감에 도장이 찍힌 뒤에만.
+       손으로 그린 땅(land) 뿐 아니라 실제 지형(geo.js, 실제 지명)도 합친다 */
     if (L && L.places) {
       var ps = L.places();
       for (i = 0; i < ps.length; i++) {
@@ -180,6 +181,11 @@
         if (p.hidden && !(X && X.has && X.has('place', p.id))) { continue; }
         put('place', p.x, p.y, p.name, true);
       }
+    }
+    var G = global.DG.geo;
+    if (G && G.places) {
+      var gs = G.places();
+      for (i = 0; i < gs.length; i++) { put('place', gs[i].x, gs[i].y, gs[i].name, true); }
     }
 
     return out;
