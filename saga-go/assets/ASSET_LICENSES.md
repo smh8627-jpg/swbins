@@ -840,6 +840,44 @@ bpy.ops.export_scene.gltf(filepath=out, use_selection=True, export_apply=True)
 3.9~4.1MB)로 줄이고, `assets/models/people/mpfb_real/male.glb`(또는
 `female.glb`)로 옮기면 끝이다.
 
+### 2026-09-05(이어서) — 마을 사람 다양성 늘리기(3벌 추가, 4벌 중 하나는 새 버그로 뺌)
+
+사용자가 "다양성부터 늘리기"를 확정해 위 남녀 두 벌에 더 얹었다. 옷
+라이브러리엔 판타지 갑옷·로브가 없어(현대 정장류뿐, `clothes/` 폴더
+확인 — 캐주얼/엘레강트/스포츠 정장과 페도라뿐이다) QRPG 직업 교체용은
+아니고, 그냥 실사 인물 표본을 넓히는 것이다.
+
+처음 넷을 뽑았다: `middleage_african_male`+`afro01`+`male_worksuit01`,
+`young_caucasian_female`+`ponytail01`+`female_elegantsuit01`,
+`old_asian_male`+`short02`+`male_casualsuit03`,
+`young_caucasian_female2`+`bob01`+`female_sportsuit01`. 실제 게임
+리타깃 코드(간이 확인 페이지로 UAL1 클립을 `retargetInto()`와 같은
+방식으로 입혀 헤드리스 크롬 스크린샷)로 넷 다 확인했더니 **셋에서
+눈가가 빨갛게 깨지는 새 버그**가 나왔다 — `young_caucasian_female`·
+`young_caucasian_female2`·`old_asian_male` 피부 전부. `middleage_african_male`
+(넷 중 하나, 이번에 처음 써 본 피부)만 멀쩡했다. 원인은 못 밝혔다 —
+버그 1~3과 달리 이건 **알파클립 노드가 이미 잘 꽂혀 있는 상태**에서
+일어나는 문제라(알파모드 자체는 MASK로 정상 판정된다) 눈 소켓 UV·안구
+메시 위치 정합, 또는 이 세 피부 특유의 알파맵 인코딩(문턱 0.5가 이
+피부들에서만 안 맞는지) 쪽을 의심할 만하다 — 다음에 파볼 것.
+
+버그를 피해 안전이 확인된 계열(`young_asian_*`, `middleage_african_male`)
+쪽으로 둘을 더 뽑아 최종 셋을 실었다:
+
+| key | 피부 | 머리 | 옷 |
+|---|---|---|---|
+| `mpfb_v3` | `middleage_african_male` | `afro01` | `male_worksuit01` |
+| `mpfb_v7` | `young_african_female` | `braid01` | `female_casualsuit02` |
+| `mpfb_v8` | `old_african_male` | `short03` | `male_casualsuit04` |
+
+셋 다 헤드리스 크롬으로 확인(휴식·걷기 자세 모두 정상, 옷 가중치·
+머리 강체 고정·알파클립 다 문제없었다). **아시아·아프리카 피부 계열만
+안전이 확인된 상태다 — 캐릭시안·노년 아시아 계열은 위 눈 버그를 고치기
+전엔 더 안 뽑는다.** `js/asset3d.js`의 `HERO_RECIPES`에 추가 변형으로
+등록해(QRPG 여섯 종은 그대로) 총 열한 벌이 됐다. `_test.html`의
+"인물 N 벌이 갖춰져 있다" 자가진단도 11로 갱신(421/423 3회 동일,
+남은 둘은 무관한 기존 하늘 테스트). 실기기 확인은 못 했다.
+
 ### 밟은 함정 (다시 겪지 않도록)
 
 - **`ExportService.create_character_copy(basemesh, ...)`를 쓰지 말 것.**

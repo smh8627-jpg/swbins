@@ -84,6 +84,29 @@
     { key: 'mpfb_female', body: PEOPLE_MPFB + 'female.glb' }
   ]);
 
+  /* 2026-09-05(이어서) — "마을 사람 다양성 늘리기"로 위 남/여 두 벌에 셋을
+     더 얹는다. MPFB 옷 라이브러리엔 판타지 갑옷·로브가 없어(현대 정장류뿐)
+     QRPG 직업 교체용은 아니다 — 그냥 실사 인물 표본을 넓히는 것. 같은
+     파이프라인(피부→눈·눈썹·속눈썹·이·혀→머리(Head 뼈에 강체 고정, 열 확산이
+     이 머리 에셋에서 늘 실패해서)→옷(Automatic Weights)→game_engine 리그→
+     알파클립 노드)으로 뽑았다.
+
+     **원래 넷을 뽑았는데 하나는 뺐다** — `young_caucasian_female`·
+     `young_caucasian_female2`·`old_asian_male` 피부 셋 다(넷 중 셋) 눈가가
+     빨갛게 깨지는 새 버그가 나왔다(얼굴이 아니라 안구 소켓 알파 자리 —
+     기존 `young_asian_*`·`middleage_african_male` 피부에선 안 나던 문제,
+     원인 미확인 — 아마 그 피부들의 눈 소켓 알파맵이 이번 알파클립 문턱
+     0.5와 안 맞물리는 것으로 추정). **`old_african_male`·`young_african_female`
+     피부는 멀쩡했다** — 이미 검증된 `young_asian_*`(male.glb·female.glb)
+     까지 합쳐 **아시아·아프리카 피부 계열만 안전이 확인됐다**. 캐릭시안·
+     `old_asian` 계열은 이 버그를 고치기 전엔 더 안 뽑는다. 자세한 내용은
+     `assets/ASSET_LICENSES.md` 참고 */
+  HERO_RECIPES = HERO_RECIPES.concat([
+    { key: 'mpfb_v3', body: PEOPLE_MPFB + 'v3.glb' },   // middleage_african_male + afro01 + male_worksuit01
+    { key: 'mpfb_v7', body: PEOPLE_MPFB + 'v7.glb' },   // young_african_female + braid01 + female_casualsuit02
+    { key: 'mpfb_v8', body: PEOPLE_MPFB + 'v8.glb' }    // old_african_male + short03 + male_casualsuit04
+  ]);
+
   /**
    * 옛 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
    * 이름·순서가 파일 열둘(몸 둘·옷 넷·머리 여섯) 전부 한 글자도 안 다르다(직접
