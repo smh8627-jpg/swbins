@@ -1237,8 +1237,24 @@
     box(sg, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
     box(sg, 0, 32, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);       // 머리
     box(sg, 0, 40, 0, 15, 4, 15, 0x3a3f4a, 'flat', false);       // 갓
-    box(sg, 9, 18, 0, 3, 26, 3, 0xb9c2cf, 'flat', true);         // 칼
+    box(sg, 9, 18, 0, 3, 26, 3, 0xb9c2cf, 'flat', true);         // 칼(placeholder)
     return sg;
+  }
+  /* 2026-09-05 — 플레이어가 실제로 장착한 무기의 `look`(sword·club·spear·
+     bow·axe·staff·guandao·staff·scroll·fan·brush, `data-item.js` 참고).
+     `js/skill.js`의 `classOf()`가 같은 자리를 읽지만 그 함수는 비공개
+     (heroId 를 밖에서 이미 안다고 가정)라, 여기서는 `leadId()`가 하던 것
+     (`core.save.party[0]`)을 그대로 다시 읽는다 — 새 export 를 안 늘리려는
+     선택이다 */
+  function meWeaponLook() {
+    var core = global.DG.core, IT = global.DG.item;
+    if (!core || !IT || !core.save || !core.save.party) { return 'sword'; }
+    var id = core.save.party[0];
+    if (!id) { return 'sword'; }
+    var w = IT.equipped(id).weapon;
+    if (!w || IT.isBroken(w)) { return 'sword'; }
+    var base = IT.baseOf(w);
+    return (base && base.look) || 'sword';
   }
   function npcShape(nc) {
     var sg = new T.Group();
@@ -1265,13 +1281,20 @@
      창고)인데 무기만 도형(각목)이던 자리를 poly.pizza Quaternius CC0 무기로
      갈아 끼운다. 옛 도형은 fallback 으로 그대로 남긴다(`AS3.build`가 GLB
      실패 시 이 함수를 그대로 부른다) — 위치·자리는 옛 값과 같다.
-     mul 은 옛 도형의 길이(r 배수)를 그대로 옮긴 값이다 */
-  var WPN_MUL = { club: 1.3, axe: 1.7, sword: 1.8, spear: 2.6, halberd: 2.8, staff: 2.3, bow: 1.7 };
-  function foeGear(g, look, hh, r, tint) {
-    var handX = r * 1.05, handZ = r * 0.25, shoulderY = hh * 0.68;
+     mul 은 옛 도형의 길이(r 배수)를 그대로 옮긴 값이다.
+     2026-09-05(이어서) — `data-item.js`의 무기 `look` 열 가지를 다 받도록
+     `guandao`(월도, spear 재사용)·`scroll`(병서)·`fan`·`brush`(선채·필묵,
+     둘 다 붓 모델 하나 공유)를 더했다. 몬스터(`foeGear`)·플레이어 본인
+     (`buildActor`의 `kind==='me'`) 둘 다 이 표 하나를 같이 쓴다 —
+     `attachWeapon()`으로 뽑아냈다(전엔 `foeGear()` 안에만 있었다) */
+  var WPN_MUL = {
+    club: 1.3, axe: 1.7, sword: 1.8, spear: 2.6, halberd: 2.8, guandao: 2.8,
+    staff: 2.3, bow: 1.7, scroll: 1.0, fan: 1.5, brush: 1.5
+  };
+  function attachWeapon(g, weapon, handX, handZ, shoulderY, r) {
     var wcol = 0xb9c2cf, woodcol = 0x5a4a34;
     var AS3 = AS();
-    if (look.weapon === 'club') {
+    if (weapon === 'club') {
       var clubShape = function () {
         var sg = new T.Group();
         box(sg, 0, r * 0.55, 0, r * 0.5, r * 1.1, r * 0.5, woodcol, 'flat', true);
@@ -1280,7 +1303,7 @@
       var wnode = AS3 ? AS3.build('wpn:club', 'foe', r * WPN_MUL.club, null, clubShape) : clubShape();
       wnode.position.set(handX, shoulderY, handZ);
       g.add(wnode);
-    } else if (look.weapon === 'axe') {
+    } else if (weapon === 'axe') {
       var axeShape = function () {
         var sg = new T.Group();
         box(sg, 0, 0, 0, r * 0.2, r * 1.6, r * 0.2, woodcol, 'flat', true);
@@ -1290,7 +1313,7 @@
       var anode = AS3 ? AS3.build('wpn:axe', 'foe', r * WPN_MUL.axe, null, axeShape) : axeShape();
       anode.position.set(handX, shoulderY, handZ);
       g.add(anode);
-    } else if (look.weapon === 'sword') {
+    } else if (weapon === 'sword') {
       var swordShape = function () {
         var sg = new T.Group();
         box(sg, 0, 0, 0, r * 0.15, r * 1.7, r * 0.15, wcol, 'flat', true);
@@ -1299,8 +1322,8 @@
       var snode = AS3 ? AS3.build('wpn:sword', 'foe', r * WPN_MUL.sword, null, swordShape) : swordShape();
       snode.position.set(handX, shoulderY, handZ);
       g.add(snode);
-    } else if (look.weapon === 'spear' || look.weapon === 'halberd') {
-      var isHalberd = look.weapon === 'halberd';
+    } else if (weapon === 'spear' || weapon === 'halberd' || weapon === 'guandao') {
+      var isHalberd = weapon === 'halberd' || weapon === 'guandao';
       var poleShape = function () {
         var sg = new T.Group();
         box(sg, 0, 0, 0, r * 0.12, r * (isHalberd ? 2.8 : 2.6), r * 0.12, woodcol, 'flat', true);
@@ -1308,11 +1331,10 @@
         else { box(sg, 0, r * 1.2, 0, r * 0.13, r * 0.5, r * 0.13, wcol, 'flat', true); }
         return sg;
       };
-      var pnode2 = AS3 ? AS3.build(isHalberd ? 'wpn:halberd' : 'wpn:spear', 'foe',
-        r * WPN_MUL[look.weapon], null, poleShape) : poleShape();
+      var pnode2 = AS3 ? AS3.build('wpn:' + weapon, 'foe', r * WPN_MUL[weapon], null, poleShape) : poleShape();
       pnode2.position.set(handX, shoulderY, handZ);
       g.add(pnode2);
-    } else if (look.weapon === 'staff') {
+    } else if (weapon === 'staff') {
       var staffShape = function () {
         var sg = new T.Group();
         box(sg, 0, 0, 0, r * 0.12, r * 2.2, r * 0.12, woodcol, 'flat', true);
@@ -1322,7 +1344,7 @@
       var stnode = AS3 ? AS3.build('wpn:staff', 'foe', r * WPN_MUL.staff, null, staffShape) : staffShape();
       stnode.position.set(handX, shoulderY, handZ);
       g.add(stnode);
-    } else if (look.weapon === 'bow') {
+    } else if (weapon === 'bow') {
       /* 활은 칼·창과 달리 손 높이를 **가운데** 두고 위아래로 뻗는다. GLB 는
          `normalize()`가 바닥을 y=0 에 놓으므로(다른 무기와 같은 규약),
          도형(fallback)도 활을 그 규약에 맞춰 `bmul/2` 만큼 들어 그려 둔다 —
@@ -1343,7 +1365,25 @@
       var bnode = AS3 ? AS3.build('wpn:bow', 'foe', bmul, null, bowShape) : bowShape();
       bnode.position.set(handX, shoulderY - bmul * 0.5, handZ);
       g.add(bnode);
+    } else if (weapon === 'scroll' || weapon === 'fan' || weapon === 'brush') {
+      /* 병서(scroll)·선채(fan)·필묵(brush) — 다 가는 막대를 쥔 실루엣이라
+         하나의 얇은 막대 fallback 을 같이 쓴다(fan·brush 는 실제 GLB 도
+         하나를 공유한다, `asset3d.js` 참고) */
+      var thinShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 0, 0, r * 0.1, r * WPN_MUL[weapon], r * 0.1, woodcol, 'flat', true);
+        return sg;
+      };
+      var tnode = AS3 ? AS3.build('wpn:' + weapon, 'foe', r * WPN_MUL[weapon], null, thinShape) : thinShape();
+      tnode.position.set(handX, shoulderY, handZ);
+      g.add(tnode);
     }
+  }
+  function foeGear(g, look, hh, r, tint) {
+    var handX = r * 1.05, handZ = r * 0.25, shoulderY = hh * 0.68;
+    var woodcol = 0x5a4a34;
+    var AS3 = AS();
+    attachWeapon(g, look.weapon, handX, handZ, shoulderY, r);
     /* 2026-09-05 — 투구(`helmet`)·왕관(`crown`)을 실사화(poly.pizza). 모자·
        망토류는 칼·창과 달리 몸을 **가운데(또는 제자리)** 두고 걸치는
        물건이라(활과 같은 사정), `normalize()`가 바닥을 y=0 에 두는 규약과
@@ -1516,6 +1556,14 @@
       var meBody = AS3 ? AS3.buildHero('me', 42, null, meShape) : meShape();
       g.add(meBody);
       g.userData.mixerNode = meBody;
+      /* 2026-09-05 — 플레이어 본인도 실제 장착 무기를 손에 든다. `meShape()`의
+         칼은 GLB 로딩 중에만 보이는 placeholder라(`buildHero`가 다 실리면
+         그 도형째로 지워 버린다), 몸이 실제로 갈아 끼워진 뒤에도 무기가
+         남으려면 `foeGear()`처럼 `g`(바깥 껍데기)에 **따로** 얹어야 한다 —
+         몬스터와 같은 `attachWeapon()`을 쓴다. r·hh 는 보스급 적과 같은 값
+         (12·31.2)을 썼다 — 플레이어 몸 높이(mul=42)가 `foeBody`의 계산식
+         (`hh+r*0.95`)을 거꾸로 풀면 그 근방이다 */
+      attachWeapon(g, meWeaponLook(), 12 * 1.05, 12 * 0.25, 31.2 * 0.68, 12);
       return g;
     }
     var r = (ref && ref.r) || 12;

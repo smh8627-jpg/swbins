@@ -260,6 +260,22 @@
     'wpn:halberd': WPN + 'spear.glb',
     'wpn:staff': WPN + 'staff.glb',
     'wpn:bow': WPN + 'bow.glb',
+    /* 2026-09-05(이어서) — 플레이어 본인의 손에도 실제 무기가 들리게
+       하면서, `data-item.js`의 무기 `look` 열 가지(sword·club·spear·bow·
+       axe·staff 는 몬스터와 같이 이미 있음) 중 나머지 넷도 채웠다.
+       `guandao`(월도, 언월도류)는 CC0로 못 찾았지만 `halberd`와 마찬가지로
+       **spear.glb 재사용**(장대+날, 실루엣이 거의 같다). `scroll`(병서)은
+       Quaternius CC0 — 원본이 가로로 누워 있어(긴 축이 X) 이 판의 다른
+       무기처럼 세로로 들 수 없었기에, `py -c "import trimesh..."`로 직접
+       90도 돌려 세로로 세운 뒤 다시 구웠다(Blender 없이 파이썬만으로
+       가능했던 드문 경우). `fan`(선채)·`brush`(필묵)는 둘 다 CC0/CC-BY
+       "부채" 단품을 못 찾아 — 같은 CC-BY 3.0 붓(brush) 모델 하나를
+       **공유**한다(대장간=집 모델과 같은 판단, 붓·부채 다 "가는 막대를
+       쥔" 실루엣이라 크게 안 어긋난다) */
+    'wpn:guandao': WPN + 'spear.glb',
+    'wpn:scroll': WPN + 'scroll.glb',
+    'wpn:fan': WPN + 'brush.glb',
+    'wpn:brush': WPN + 'brush.glb',
     /* 몬스터 다양화 이어서 — 투구·왕관(`foeGear()`의 `look.helm`). 'helmet'(일반
        투구, **CC-BY 3.0**)·'crown'(왕관, CC0)만 채웠다. 출처는
        `assets/ASSET_LICENSES.md` 참고 */

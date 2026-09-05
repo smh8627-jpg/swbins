@@ -912,6 +912,53 @@ Pack에 `hex_water` 타일이 있어 받아 봤지만 **단색 팔레트 하나�
 > 붙어 있으나 지오메트리는 업로더 본인의 창작물, CC-BY 3.0). 크기만
 > 맞추었고 형상은 그대로다. 저작자 표시 필요.
 
+## 플레이어 본인의 무기, 그리고 무기 결 넷 더 (2026-09-05, 몬스터 장구 다음)
+
+**실제로 밟은 격차 — 플레이어 자신은 3D 화면에서 무기가 전혀 안 보였다.**
+`meShape()`의 칼 도형은 `AS3.buildHero()`가 진짜 QRPG 몸을 다 실은 순간
+그 자리를 통째로 갈아 끼워 **함께 사라진다**(placeholder였을 뿐) — 몬스터는
+`foeGear()`가 몸과 **별도로** 무기를 `g`에 얹어 이 문제가 없는데, 플레이어
+쪽엔 그 짝이 아예 없었다. `foeGear()` 안에 있던 무기 그리기를
+`attachWeapon()`으로 뽑아내(`js/dungeon3d.js`) 몬스터·플레이어(`kind==='me'`)
+둘 다 같은 함수를 쓰게 했다. 플레이어의 실제 장착 무기는
+`meWeaponLook()`이 `core.save.party[0]`(선두)의 장착 무기 →
+`IT.baseOf(w).look`으로 읽는다(`js/skill.js`의 `classOf()`가 직업을 정하는
+것과 같은 자리, 다만 heroId를 새로 export하지 않고 그 함수가 읽던 저장값을
+직접 다시 읽었다).
+
+- **무기 결 넷을 더 받았다** — `data-item.js`의 무기 `look` 열 가지 중
+  기존 일곱(club·axe·sword·spear·halberd·staff·bow)에 이어:
+  - `guandao`(월도) — CC0 없어 **`wpn:spear`를 그대로 재사용**(halberd와
+    같은 판단).
+  - `scroll`(병서) — Quaternius, **CC0**. 원본이 가로로 누워 있어(긴 축이
+    X) 이 판의 세로로 드는 관례와 안 맞았는데, **Blender 없이 `py -c
+    "import trimesh..."`로 직접 90도 돌려 다시 구웠다** — 흔치 않게
+    개조만으로 해결된 경우.
+  - `fan`(선채)·`brush`(필묵) — 표준 "부채" CC0/CC-BY 단품은 끝까지
+    없었다("war fan"·"hand fan"·"japanese fan" 다 검색). 대신 같은 붓
+    (paint brush) 모델(**CC-BY 3.0**) 하나를 **둘이 공유**한다 — 붓·부채
+    다 "가는 막대를 쥔" 실루엣이라 크게 안 어긋난다는 판단.
+- r·hh는 플레이어(mul=42 고정)를 보스급 적(r=12·hh=31.2)과 같은 값으로
+  근사했다 — `foeBody`의 mul 계산식(`hh+r*0.95`)을 거꾸로 풀면 그 근방이다.
+- 격리 렌더(`_inspect_wpn2_tmp.html`, 커밋 안 함)로 넷 다 실제 GLB로
+  걸리고 자리(바닥 기준점)가 맞는지 확인. 자가진단 **241/241** 3회 동일,
+  `_admin.html?selftest` **ADMIN 12/12**, 콘솔 에러 0. `sw.js` VERSION →
+  `dungeon-v0.40.0`(구조 변경 — `attachWeapon()` 추출 — 이라 마이너 올림).
+- **실기기 확인 전** — 다음 세션·실기기에서 던전에 들어가 **플레이어 본인**의
+  손에 장착한 무기 종류가 실제로 걸리는지 볼 것(이번 항목의 핵심 체감
+  포인트다 — 몬스터 무기와 달리 여태 한 번도 화면에 없던 것이 처음
+  나타나는 자리라 꼭 확인이 필요하다).
+
+| 무기 | 만든 이 | 라이선스 | 받은 곳 | 파일 |
+|---|---|---|---|---|
+| guandao(재사용) | Quaternius | CC0 | (spear.glb 재사용, 위 절 참고) | `models/weapons/spear.glb` |
+| scroll | Quaternius | CC0 | `poly.pizza/m/MWGB9nxMIc` | `models/weapons/scroll.glb`(53KB, 직접 90도 회전) |
+| fan · brush(공유) | Poly by Google | **CC-BY 3.0** | `poly.pizza/m/bGqEF62Pjze` | `models/weapons/brush.glb`(107KB) |
+
+> **Scroll** — © Quaternius, CC0 (Public Domain). 저작자 표시 불필요.
+> **Paint Brush** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> `poly.pizza`를 거쳐 받았다. 크기만 맞추었고(scroll은 회전도) 형상은 그대로다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
