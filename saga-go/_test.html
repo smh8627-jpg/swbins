@@ -2780,22 +2780,32 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('하늘 — 비·눈·바람만 내린다', function () {
+      /* 가을엔 맑아도 낙엽이 진다(아래 PLAN 44절 테스트) — 여기선 그 겹침을
+         빼고 순수 날씨만 보려고 계절을 여름으로 붙든다(달력이 9~11월이면
+         진짜 가을이 돼 fog/clear/cloud가 'leaf'를 내 실패했었다) */
+      var was = DG.season.stats().forced;
+      DG.season.force('summer');
       var f = ['clear', 'cloud', 'rain', 'snow', 'fog', 'wind'].map(function (w) {
         return w + ':' + (SK.fallOf(w) || '-');
       });
       /* 안개는 알갱이를 안 만든다 — 이미 `fog` 로 시야를 좁히고 있어 두 겹이 된다 */
-      return SK.fallOf('rain') === 'rain' && SK.fallOf('snow') === 'snow' &&
+      var ok = SK.fallOf('rain') === 'rain' && SK.fallOf('snow') === 'snow' &&
         SK.fallOf('wind') === 'wind' && SK.fallOf('fog') === null &&
-        SK.fallOf('clear') === null && SK.fallOf('cloud') === null &&
-        (f.join(' · '));
+        SK.fallOf('clear') === null && SK.fallOf('cloud') === null;
+      DG.season.force(was);
+      return ok && (f.join(' · '));
     });
 
     t('하늘 — 비가 눈보다 많고 빠르다', function () {
+      var was = DG.season.stats().forced;
+      DG.season.force('summer');       // 위 테스트와 같은 이유로 가을 낙엽을 뺀다
       var r = SK.KINDS.rain, s = SK.KINDS.snow;
-      return SK.countOf('rain') > SK.countOf('snow') && r.fall > s.fall * 5 &&
-        s.sway > 0 && r.sway === 0 && SK.countOf('clear') === 0 &&
-        ('비 ' + SK.countOf('rain') + '개 · ' + r.fall + 'm/s · 눈 ' +
-         SK.countOf('snow') + '개 · ' + s.fall + 'm/s(좌우로 흔들린다)');
+      var ok = SK.countOf('rain') > SK.countOf('snow') && r.fall > s.fall * 5 &&
+        s.sway > 0 && r.sway === 0 && SK.countOf('clear') === 0;
+      var msg = '비 ' + SK.countOf('rain') + '개 · ' + r.fall + 'm/s · 눈 ' +
+         SK.countOf('snow') + '개 · ' + s.fall + 'm/s(좌우로 흔들린다)';
+      DG.season.force(was);
+      return ok && msg;
     });
 
     t('하늘 — 손잡이가 알갱이 수를 줄인다', function () {
