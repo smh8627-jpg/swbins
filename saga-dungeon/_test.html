@@ -197,6 +197,27 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return low <= 2 && high >= low && ('얕은 층 최대 ★' + low + ' · 깊은 층 최대 ★' + high);
     });
 
+    t('도감 완성 — 인물 전원을 채우면 한 번만 큰 보상', function () {
+      var keepDex = C.save.dex.heroes, keepGold = C.save.player.gold, keepFeat = C.save.player.feat;
+      C.save.dex.heroes = {};
+      delete C.save.dex.heroesFull;
+      D.heroes.forEach(function (h, i) {
+        if (i < D.heroes.length - 1) { C.save.dex.heroes[h.id] = { count: 1, firstAt: 0 }; }
+      });
+      var last = D.heroes[D.heroes.length - 1];
+      var goldBefore = C.save.player.gold, featBefore = C.save.player.feat;
+      C.emit('dex:new', { cat: 'heroes', id: last.id });   // 마지막 한 명 — 아직 도감엔 없다
+      C.save.dex.heroes[last.id] = { count: 1, firstAt: 0 };
+      C.emit('dex:new', { cat: 'heroes', id: last.id });    // 등록된 뒤 다시 알림 — 이제 완성
+      var gained1 = C.save.player.gold - goldBefore, featGained1 = C.save.player.feat - featBefore;
+      C.emit('dex:new', { cat: 'heroes', id: last.id });    // 또 와도 두 번은 안 준다
+      var gained2 = C.save.player.gold - goldBefore;
+      var ok = gained1 === 3000 && featGained1 === 100 && gained2 === 3000 && C.save.dex.heroesFull === true;
+      C.save.dex.heroes = keepDex; C.save.player.gold = keepGold; C.save.player.feat = keepFeat;
+      delete C.save.dex.heroesFull;
+      return ok && ('완성 보상 금 +' + gained1 + ' · 공적 +' + featGained1 + ', 재지급 없음');
+    });
+
     /* ── 던전 ─────────────────────────────────────────── */
 
     t('부대가 없으면 못 들어간다', function () {

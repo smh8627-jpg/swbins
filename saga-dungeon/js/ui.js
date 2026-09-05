@@ -330,6 +330,29 @@
     }
   }
 
+  /** 도감 완성 — PLAN 34절 "도감 완성 보상도 추가한다". 인물·펫 전원을
+   *  등록하면(마지막 한 명이 `dex:new` 를 낼 때) 딱 한 번만 큰 보상을 준다.
+   *  `core.save.dex.<cat>Full` 로 지급 여부를 기억한다 — 다 채운 뒤로는
+   *  풀에 남는 후보가 없어 그 쪽 `dex:new` 자체가 다시 안 나지만, 혹시라도
+   *  같은 이벤트가 두 번 들어와도 이 깃발이 중복 지급을 막는다. */
+  var DEX_COMPLETE = {
+    heroes: { gold: 3000, feat: 100, label: '인물' },
+    pets:   { gold: 1500, feat: 60,  label: '펫' }
+  };
+  function checkDexComplete(cat) {
+    var cfg = DEX_COMPLETE[cat];
+    if (!cfg) { return; }
+    var total = (cat === 'heroes' ? data.heroes : data.pets).length;
+    var owned = Object.keys(core.save.dex[cat] || {}).length;
+    if (owned < total || core.save.dex[cat + 'Full']) { return; }
+    core.save.dex[cat + 'Full'] = true;
+    core.save.player.gold += cfg.gold;
+    core.gainFeat(cfg.feat, '도감 완성');
+    core.log('📖 도감 완성 · ' + cfg.label + ' 전원 등록! 공적 +' + cfg.feat + ' · 금 +' + cfg.gold, 'good');
+    core.emit('toast', '🏆 도감 완성(' + cfg.label + ')! 공적 +' + cfg.feat + ' · 금 +' + cfg.gold);
+    core.emit('changed');
+  }
+
   /** 상세 화면·자동 상태줄 배선 + 이벤트 구독 + 첫 렌더.
    *  init() 이 마지막에 한 번 부른다. */
   function bindRest() {
@@ -380,6 +403,7 @@
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
+      checkDexComplete(p.cat);
     });
 
     renderTop(); renderCamp();
