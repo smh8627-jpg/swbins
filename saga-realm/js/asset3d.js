@@ -83,7 +83,31 @@
     'well': BLD + 'Well.glb',
     'house': [BLD + 'House_1.glb', BLD + 'House_2.glb', BLD + 'House_3.glb', BLD + 'House_4.glb'],
     'log': NAT + 'WoodLog.glb',
-    'tent': PRP + 'Tent.glb'
+    'tent': PRP + 'Tent.glb',
+
+    /* 2026-09-05 — 장수 3D 초상(`portrait3d.js`)에 무기·투구를 얹는다. 여태는
+       QRPG 몸(전사·궁수·도적·성직자·마법사·수도승 6종 중 하나) 맨몸뿐이라,
+       손으로 그린 캔버스 초상(`sprite.js`의 `LOOK`·`ruleLook()`—장수마다
+       무기·투구·수염을 갖춘 표)보다 오히려 밋밋했다. **새로 받지 않고
+       사가블로가 이미 갖춘 CC0/CC-BY 무기·장구를 그대로 복사해 왔다**
+       (`saga-dungeon/assets/models/{weapons,gear}/`, 출처는 그쪽
+       `ASSET_LICENSES.md`). `sprite.lookOf()`가 매기는 무기 열 가지 중
+       실물이 있는 여덟만 걸고(halberd→spear, fan→brush 재사용은 사가블로와
+       같은 판단), 투구는 helmet·crown·gapju(→바이킹 투구 대역, 역시 같은
+       판단) 셋만 건다 — scholar·gat·hairpin·monk·braid 는 대응 CC0가 없어
+       맨머리로 남는다(도형보다는 실제 무기를 든 실제 몸이 우선이라는 사용자
+       지시, 아래 `attachAccessories()` 참고). */
+    'wpn:sword': 'assets/models/weapons/sword.glb',
+    'wpn:spear': 'assets/models/weapons/spear.glb',
+    'wpn:axe': 'assets/models/weapons/axe.glb',
+    'wpn:bow': 'assets/models/weapons/bow.glb',
+    'wpn:club': 'assets/models/weapons/club.glb',
+    'wpn:staff': 'assets/models/weapons/staff.glb',
+    'wpn:scroll': 'assets/models/weapons/scroll.glb',
+    'wpn:brush': 'assets/models/weapons/brush.glb',
+    'gear:helmet': 'assets/models/gear/helmet.glb',
+    'gear:crown': 'assets/models/gear/crown.glb',
+    'gear:gapju': 'assets/models/gear/viking_helmet.glb'
   };
 
   var REG = {};
@@ -325,6 +349,76 @@
     return normalize(bodyScene);
   }
 
+  /** 무기 look → REG 키. 실물이 없는 것은 가까운 것으로 재사용한다
+   *  (사가블로 `dungeon3d.js` `attachWeapon()`과 같은 판단: halberd·guandao
+   *  는 spear, fan 은 brush) */
+  var WPN_ALIAS = { halberd: 'spear', guandao: 'spear', fan: 'brush' };
+  /** 무기 길이 — 몸 키 1 기준 배율(사가블로 `WPN_MUL`을 이 판 단위계로 옮김) */
+  var WPN_MUL = { club: 0.35, axe: 0.42, sword: 0.46, spear: 0.85, halberd: 0.85,
+    guandao: 0.85, staff: 0.62, bow: 0.42, scroll: 0.28, fan: 0.28, brush: 0.28 };
+  /** 투구 look → REG 키. plume(장식 깃)은 대응 CC0가 없어 helmet으로 대신한다 */
+  var HELM_ALIAS = { plume: 'helmet' };
+  var HELM_MUL = { helmet: 0.24, crown: 0.22, gapju: 0.26 };
+
+  /**
+   * 장수 3D 초상(`portrait3d.js`)에 무기·투구를 얹는다 — `sprite.lookOf()`가
+   * 매기는 것과 같은 표를 쓴다. 2026-09-05, 사용자 지시("초상화를 더 가져올
+   * 수 있나, 맞출 필요 없이 있으면 교체")에 따라 새로 받지 않고 사가블로가
+   * 이미 갖춘 CC0/CC-BY 무기·장구(`assets/models/{weapons,gear}/`, 복사해
+   * 왔다 — 출처는 `assets/ASSET_LICENSES.md`)를 그대로 붙인다.
+   *
+   * `body`는 이미 `normalize()`를 거친 wrap(키 1, 바닥 y=0, `userData.span`)
+   * 이다 — 무기·투구도 각자 `normalize()`로 키 1로 맞춘 뒤 배율만 줄여
+   * **바닥이 0** 규약(dungeon3d.js `wornGear`와 같다)으로 그 위에 얹는다.
+   * scholar·gat·hairpin·monk·braid 등 대응 CC0가 없는 투구는 조용히
+   * 건너뛴다 — 맨몸도 이미 실제 3D 모델이라 화면이 비지는 않는다.
+   */
+  function attachAccessories(body, ref, done) {
+    var t = three();
+    var S = global.DG.sprite;
+    var look = (S && S.lookOf) ? S.lookOf(ref) : null;
+    if (!t || !look) { done(); return; }
+    var span = (body.userData && body.userData.span) || { w: 0.5, h: 1 };
+    var jobs = 0, finished = false;
+    function one() { jobs--; if (jobs <= 0 && !finished) { finished = true; done(); } }
+
+    var wKey = WPN_ALIAS[look.weapon] || look.weapon;
+    if (wKey && wKey !== 'none' && REG['wpn:' + wKey]) {
+      jobs++;
+      acquire(REG['wpn:' + wKey], function (c) {
+        if (c && c.gltf) {
+          try {
+            var mul = WPN_MUL[look.weapon] || 0.5;
+            var m = normalize(cloneScene(c.gltf));
+            m.scale.setScalar(mul);
+            m.position.set(span.w * 0.5 + 0.06, 0.5, 0.08);
+            body.add(m);
+          } catch (e) { /* 무기 하나 실패해도 몸은 그대로 나온다 */ }
+        }
+        one();
+      });
+    }
+
+    var hKey = HELM_ALIAS[look.helm] || look.helm;
+    if (hKey && hKey !== 'none' && REG['gear:' + hKey]) {
+      jobs++;
+      acquire(REG['gear:' + hKey], function (c) {
+        if (c && c.gltf) {
+          try {
+            var hmul = HELM_MUL[hKey] || 0.22;
+            var hm = normalize(cloneScene(c.gltf));
+            hm.scale.setScalar(hmul);
+            hm.position.set(0, 0.86, 0);
+            body.add(hm);
+          } catch (e) { /* 투구 하나 실패해도 몸은 그대로 나온다 */ }
+        }
+        one();
+      });
+    }
+
+    if (jobs === 0) { done(); }
+  }
+
   /**
    * 사람 하나를 조합형으로 세운다(비동기, 콜백 방식) — 이 판은 인물이 걸어
    * 다니지 않아 여태 없었던 자리다. **지금은 `portrait3d.js`(도감 초상 굽기)
@@ -361,7 +455,8 @@
         model.userData.mixer = new t.AnimationMixer(model.children[0]);
         model.userData.clips = animC.clips;
       }
-      cb(model);
+      /* 무기·투구는 세력색을 입지 않는다(제 빛깔이 맞다) — tint 뒤에 붙인다 */
+      attachAccessories(model, ref, function () { cb(model); });
     }
   }
 

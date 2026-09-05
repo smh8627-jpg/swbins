@@ -100,6 +100,33 @@ Outfits - Fantasy)·몸짓(Universal Animation Library)이 뼈 이름·순서까
 이 여섯 조합 중 인물 id 해시로 하나를 고르고, `delam()`이 PBR을 벗겨 Lambert로
 물들인다 — 표 기본에서는 빠졌다(되돌림 자리로만 남음).
 
+## saga-dungeon — 무기·투구 (2026-09-05, `models/weapons/` · `models/gear/`)
+
+장수 3D 초상(`js/portrait3d.js`)은 QRPG 맨몸(전사·궁수·도적·성직자·마법사·수도승
+6종)뿐이었다 — 캔버스 초상(`js/sprite.js`의 `LOOK`·`ruleLook()`)은 장수마다
+무기·투구를 갖춰 그리는데 3D 는 오히려 밋밋했다. **새로 받지 않고 사가블로가
+이미 갖춘 CC0/CC-BY 무기·장구를 그대로 복사해 왔다** — 출처·라이선스는
+`saga-dungeon/assets/ASSET_LICENSES.md`(무기·"몬스터 장구를 실사화" 절)가
+원본이고, 여기는 파일만 옮겼다.
+
+| 파일 | 라이선스 | saga-dungeon 원본 경로 |
+|---|---|---|
+| `models/weapons/sword.glb`·`spear.glb`·`axe.glb`·`bow.glb`·`club.glb`·`staff.glb`·`scroll.glb` | CC0 (Quaternius) | `assets/models/weapons/` |
+| `models/weapons/brush.glb` | **CC-BY 3.0**(Poly by Google) | `assets/models/weapons/brush.glb` |
+| `models/gear/helmet.glb`·`crown.glb` | CC0 (Quaternius) | `assets/models/gear/` |
+| `models/gear/viking_helmet.glb`(`gapju` 대역) | **CC-BY 3.0**(Michael Fuchs) | `assets/models/gear/viking_helmet.glb` |
+
+> **Paint Brush** — © Poly by Google, CC-BY 3.0. **Viking Helmet** — © Michael
+> Fuchs, CC-BY 3.0. 둘 다 `poly.pizza`를 거쳐 saga-dungeon 이 먼저 받았고,
+> 크기만 다시 맞추었다(형상은 그대로).
+
+`js/asset3d.js`의 `attachAccessories()`가 `sprite.lookOf()`의 무기·투구 값을
+그대로 읽어 붙인다 — halberd·guandao 는 spear, fan 은 brush, plume 투구는
+helmet 을 대신 쓴다(사가블로 `dungeon3d.js`의 재사용 판단을 그대로 옮김).
+scholar·gat·hairpin·monk·braid 투구는 대응 CC0가 없어 맨머리로 남는다 —
+"안 맞아도 실제 모델이 도형(빈 자리)보다 낫다"는 사용자 지시에 따라, 무기
+여덟 종은 걸고 나머지 다섯 투구 종만 열린 자리로 둔다.
+
 ## 옮기지 않은 것 (앞으로)
 
 동양풍 건축(성문·군영)에 맞는 CC0 에셋은 아직 못 구했다 — 탑·사찰은 서양풍 판타지라
