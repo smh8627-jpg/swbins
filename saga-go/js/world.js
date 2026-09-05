@@ -239,6 +239,7 @@
    */
   function moveByKeys(dt) {
     if (mode !== 'keyboard') { return; }
+    if (inputBlocked()) { return; }
     var dx = 0, dy = 0, run = !!keys.shift;
     if (keys.w || keys.arrowup) { dy -= 1; }
     if (keys.s || keys.arrowdown) { dy += 1; }
@@ -1007,14 +1008,36 @@
     document.body.classList.toggle('tilted3', geom.mode === 2);
   }
 
+  /** 전투성 대화창이 열려 있으면 참 — 그동안은 클릭·키로 세상을 움직이지 않는다.
+   *  2026-09-06, "도적이랑 싸울 때 클릭한 데로 이동해서 싸우는 것 같지 않다"로
+   *  발견 — `fort.js`·`station.js`·`rogue.js`·`letter.js`는 이미 다들
+   *  `encounter.active`를 보고 스스로 멈추는데, `world.js` 자신의 이동만
+   *  이 문을 안 보고 있었다(도적 습격은 `rogue.js`의 별도 모달이라
+   *  `encounter.active`만 봐서는 안 걸린다 — `rogue.active`도 같이 본다) */
+  function inputBlocked() {
+    var D = global.DG;
+    return !!((D.encounter && D.encounter.active) ||
+      (D.rogue && D.rogue.active) || (D.duel && D.duel.active));
+  }
+
   function onClick(e) {
     /* 끌어서 돌린 뒤에 오는 클릭은 **탭이 아니다** — 안 걸러내면 시점을 돌릴
        때마다 그쪽으로 걸어간다(터치에서 특히 티가 난다) */
     if (dragged) { dragged = false; return; }
+    if (inputBlocked()) { return; }
     var r = canvas.getBoundingClientRect();
     var sc = scale(), pos = core.save.player.pos;
     var loc = unproject(e.clientX - r.left, e.clientY - r.top);
-    var wx = pos.x + loc.u / sc, wy = pos.y + loc.v / sc;
+    var ru = loc.u / sc, rv = loc.v / sc;
+    /* 3D에서 마우스로 돌려 본(yaw) 뒤에는 화면의 "위"가 더는 세계의 -y가
+       아니다 — 2026-09-06, "마우스 돌린 뒤 클릭 이동이 반대로/엉뚱한 데로
+       간다"로 발견. `world3d.js`의 `camAim()`이 카메라를 이 yaw만큼 돌리는
+       것과 같은 회전을 여기서도 걸어야 화면에서 누른 자리와 실제로 걸어가는
+       자리가 맞는다(안 돌린 2D·2.5D에서는 yaw가 늘 0이라 그대로다) */
+    var W3 = global.DG.world3d;
+    var yw = (W3 && W3.yaw && tiltMode() === 2) ? W3.yaw() : 0;
+    var cs = Math.cos(yw), sn = Math.sin(yw);
+    var wx = pos.x + (ru * cs - rv * sn), wy = pos.y + (ru * sn + rv * cs);
     clickMarks.push({ x: wx, y: wy, at: Date.now() });
     if (clickMarks.length > 6) { clickMarks.shift(); }
     var hitR = 30 / sc;
