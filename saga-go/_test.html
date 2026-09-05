@@ -2718,7 +2718,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var kinds = Object.keys(B3.KINDS);
       var cap = C.tuned('battle3d.pool', 48);
       var most = kinds.reduce(function (m, k) { return Math.max(m, B3.KINDS[k].n); }, 0);
-      return kinds.length === 4 && cap >= most * 2 && B3.pool.length === 0 &&
+      return kinds.length === 5 && cap >= most * 2 && B3.pool.length === 0 &&
         ('연출 ' + kinds.join('/') + ' · 한 번에 최대 ' + most + '개 · 창고 ' + cap +
          ' — 창고가 한 번 터뜨리는 양의 두 배는 된다');
     });

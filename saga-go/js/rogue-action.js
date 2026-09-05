@@ -285,8 +285,12 @@
       else if (e.t === 'hit') { core.emit('duel:fx', { kind: 'hit', dmg: e.dmg, mine: false }); }
       else if (e.t === 'heavy') {
         core.emit('duel:fx', { kind: 'heavy', dmg: e.dmg, dodged: !!e.dodged, mine: false });
+      } else if (e.t === 'tell') {
+        /* 강타 예고 — 화면 아래 HUD 문구만으로는 3D 화면을 보던 눈에 안 들어온다.
+           상대 위에 뜨는 경고 알갱이로 같이 알린다(2026-09-05, "실시간 교전 손맛" 점검) */
+        core.emit('duel:fx', { kind: 'tell', mine: false });
       }
-      /* 'tell'·'miss'·'rout'·'time' 은 카메라·알갱이로 옮길 것이 없다 — HUD 표시뿐 */
+      /* 'miss'·'rout'·'time' 은 카메라·알갱이로 옮길 것이 없다 — HUD 표시뿐 */
     }
   }
 
