@@ -1350,8 +1350,29 @@
       cape.rotation.x = -0.1;
     }
     var headY = hh + r * 0.5;
-    if (look.helm === 'helmet') {
-      box(g, 0, headY + r * 0.35, 0, r * 1.0, r * 0.55, r * 1.0, 0x5a5a62, 'flat', true);
+    /* 2026-09-05 — 투구(`helmet`)·왕관(`crown`)을 실사화(poly.pizza). 모자류는
+       칼·창과 달리 머리를 **가운데** 두고 씌우는 물건이라(활과 같은 사정),
+       `normalize()`가 바닥을 y=0 에 두는 규약과 어긋난다 — fallback 도형도
+       그 규약(바닥이 0)에 맞춰 다시 그려서, 도형이든 GLB든 이 한 줄
+       (`centerY - mul/2`)로 자리를 맞춘다. `gapju`(원뿔형 투구)·`plume`의
+       깃털·망토·수염은 CC0/CC-BY로 맞는 후보를 못 찾아 이번에도 도형으로
+       남긴다(표지판이 한동안 그랬듯, 안 맞으면 안 맞는다고 적어 둔다) */
+    function wornGear(kind, mul, centerY, fallbackFn) {
+      var node = AS3 ? AS3.build(kind, 'foe', mul, null, fallbackFn) : fallbackFn();
+      node.position.set(0, centerY - mul * 0.5, 0);
+      g.add(node);
+    }
+    if (look.helm === 'helmet' || look.helm === 'plume') {
+      var helmMul = r * 0.7;
+      var helmFallback = function () {
+        var sg = new T.Group();
+        box(sg, 0, helmMul * 0.5, 0, r * 1.0, helmMul, r * 1.0, 0x5a5a62, 'flat', true);
+        return sg;
+      };
+      wornGear('gear:helmet', helmMul, headY + r * 0.35, helmFallback);
+      if (look.helm === 'plume') {
+        box(g, 0, headY + r * 0.85, 0, r * 0.2, r * 0.85, r * 0.2, mix(tint, 0xff5a3a, 0.5), 'glow', false);
+      }
     } else if (look.helm === 'gapju') {
       var cone = new T.Mesh(geo('helmCone', function () { return new T.ConeGeometry(1, 1.3, 8); }),
         mat(woodcol, 'flat'));
@@ -1360,15 +1381,18 @@
       cone.castShadow = true;
       g.add(cone);
     } else if (look.helm === 'crown') {
-      var ring = new T.Mesh(geo('crownRing', function () { return new T.TorusGeometry(1, 0.18, 6, 12); }),
-        mat(0xe8c15a, 'glow'));
-      ring.scale.setScalar(r * 0.55);
-      ring.rotation.x = Math.PI / 2;
-      ring.position.set(0, headY + r * 0.5, 0);
-      g.add(ring);
-    } else if (look.helm === 'plume') {
-      box(g, 0, headY + r * 0.35, 0, r * 1.0, r * 0.55, r * 1.0, 0x5a5a62, 'flat', true);
-      box(g, 0, headY + r * 0.85, 0, r * 0.2, r * 0.85, r * 0.2, mix(tint, 0xff5a3a, 0.5), 'glow', false);
+      var crownMul = r * 0.86;
+      var crownFallback = function () {
+        var sg = new T.Group();
+        var ring = new T.Mesh(geo('crownRing', function () { return new T.TorusGeometry(1, 0.18, 6, 12); }),
+          mat(0xe8c15a, 'glow'));
+        ring.scale.setScalar(r * 0.55);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = crownMul * 0.5;
+        sg.add(ring);
+        return sg;
+      };
+      wornGear('gear:crown', crownMul, headY + r * 0.5, crownFallback);
     }
     if (look.beard) {
       box(g, 0, headY - r * 0.35, r * 0.45, r * 0.4, r * 0.35, r * 0.22, 0x3a3226, 'flat', false);

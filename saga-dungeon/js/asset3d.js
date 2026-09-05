@@ -46,6 +46,7 @@
   var BLD_HEX = 'assets/models/buildings/hexagon/';
   var DUN = 'assets/models/dungeon/';
   var WPN = 'assets/models/weapons/';
+  var GEAR = 'assets/models/gear/';
 
   /* 2026-09-03 — 다른 네 판과 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
      "RPG Character Pack"(CC0, 전사·궁수·도적·성직자·마법사·수도승 6종)은 몸 파일
@@ -259,6 +260,13 @@
     'wpn:halberd': WPN + 'spear.glb',
     'wpn:staff': WPN + 'staff.glb',
     'wpn:bow': WPN + 'bow.glb',
+    /* 몬스터 다양화 이어서 — 투구·왕관(`foeGear()`의 `look.helm`). "gapju"(원뿔형
+       동아시아 투구)·망토·수염은 CC0/저작자표시로 맞는 후보를 못 찾아
+       이번에도 도형으로 남긴다(표지판이 한동안 그랬듯, 안 맞으면 안 맞는다고
+       적어 둔다). 'helmet'(일반 투구, **CC-BY 3.0** — 저작자 표시 필요)·
+       'crown'(왕관, CC0)만 채웠다. 출처는 `assets/ASSET_LICENSES.md` 참고 */
+    'gear:helmet': GEAR + 'helmet.glb',
+    'gear:crown': GEAR + 'crown.glb',
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
        'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은

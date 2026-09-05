@@ -833,6 +833,42 @@ Pack에 `hex_water` 타일이 있어 받아 봤지만 **단색 팔레트 하나�
 > **일곱 무기 모델** — © **Quaternius**, CC0 (Public Domain). 저작자 표시
 > 불필요. `poly.pizza`를 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
 
+## 투구·왕관 — 실사화, 그 옆 셋(원뿔 투구·망토·수염)은 여전히 못 찾음 (2026-09-05)
+
+**SAGA WEB.md 감사 이어서 — 무기 다음은 몬스터의 나머지 장구.**
+`foeGear()`의 `look.helm`(투구)·`look.cape`(망토)·`look.beard`(수염)를
+훑어, CC0/CC-BY로 맞는 후보가 있는 것만 골라 채웠다.
+
+- **투구(`helmet`)** — poly.pizza에서 CreativeTechLab의 "Helmet"을 받았다.
+  꾸밈없는 일반 병사 투구라 황건적·마적 같은 잡졸에 두루 맞는다.
+  **CC-BY 3.0**(저작자 표시 필요, 아래 인용 참고).
+- **왕관(`crown`)** — poly.pizza에서 Quaternius의 "Crown"을 받았다. **CC0**.
+  금관+붉은 안감이 뚜렷해 "위군 도독" 같은 왕가·최고위 보스에 잘 맞는다.
+- 모자류는 칼·창과 달리 **머리를 가운데 두고 씌우는 물건**이라(활과 같은
+  사정), `js/dungeon3d.js`의 `wornGear()` 헬퍼를 새로 두어 도형·GLB 두
+  경로가 "중심 좌표 − 길이/2"로 항상 같은 자리를 잡게 했다.
+- **찾아봤지만 못 찾은 셋** — `gapju`(원뿔형 동아시아 투구, "kabuto"·
+  "conical helmet" 다 검색했지만 CC0 계열에 없었다 — 있는 후보는 바이킹
+  뿔투구·삿갓뿐이라 어울리지 않는다고 판단해 걸렀다), 망토(대부분 특정
+  게임 코스튬 이름을 단 파생물이거나 옷장·행어류 오검색이었다), 수염
+  (콧수염 둘뿐, 턱수염 단품은 없었다). 셋 다 옛 도형 그대로 남는다 —
+  표지판이 한동안 그랬듯, 안 맞으면 안 맞는다고 여기 적어 둔다.
+- 격리 렌더(`_inspect_gear_tmp.html`, 커밋 안 함)로 둘 다 GLB로 실제
+  로딩되고 중심 좌표에 자연스럽게 걸리는지 확인. 자가진단 **241/241**
+  3회 동일(장구는 순수 장식이라 진단이 값으로 안 본다), `_admin.html?selftest`
+  **ADMIN 12/12**. `sw.js` VERSION → `dungeon-v0.39.7`.
+- **실기기 확인 전** — 다음 세션·실기기에서 투구 쓴 적·왕관 쓴 보스가
+  실제로 보이는지 볼 것.
+
+| 장구 | 만든 이 | 라이선스 | 받은 곳 | 파일 |
+|---|---|---|---|---|
+| helmet | CreativeTechLab | **CC-BY 3.0** | `poly.pizza/m/uSCGe4LD2v` | `models/gear/helmet.glb`(25KB) |
+| crown | Quaternius | CC0 | `poly.pizza/m/i0PZVuVlYv` | `models/gear/crown.glb`(47KB) |
+
+> **Helmet** — © **CreativeTechLab**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> `poly.pizza`를 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
+> **Crown** — © **Quaternius**, CC0 (Public Domain). 저작자 표시 불필요.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
