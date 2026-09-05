@@ -2103,6 +2103,7 @@
   var focusAt = null;      // {x, y} 조우 중인 대상
   var stageAt = null;      // {x, y, uid} 조우 무대 — 대상 앞에 카메라를 세운다
   var beams = [];          // 빛기둥
+  var clickRings = [];     // 클릭(탭)한 자리 표시 — 2026-09-06, 3D에선 안 보이던 것을 채움
 
   /* ── 교전 상대를 실제로 세운다 (PLAN 23절 다음, 2026-08-30) ──────────
    * `duel.js` 는 여태 카드 안의 이모지로만 싸웠다 — 3D 지도에는 아무도 안 섰다.
@@ -2228,6 +2229,40 @@
         fxGroup.remove(b.mesh);
         b.mesh.material.dispose();      // 이 재질은 이 기둥만 쓴다
         beams.splice(i, 1);
+      }
+    }
+  }
+
+  /** 클릭(탭)한 자리 — `world.js`의 2D 고리(커지며 옅어짐)와 같은 그림을
+   *  3D 바닥에도 놓는다. 2026-09-06, "클릭 자리 표시가 없다"로 발견 —
+   *  2D `clickMarks`는 3D가 켜지면 숨는 캔버스(`gCtx`)에만 그려져서
+   *  3D에서는 눌러도 아무 반응이 안 보였다. `beam()`과 같은 자기 관리
+   *  fx 패턴(`fxGroup`에 직접 얹고 `syncClickMark`가 나이 먹여 지운다) */
+  function clickMark(x, y) {
+    if (!available()) { return; }
+    var m = new T.Mesh(
+      new T.TorusGeometry(0.6, 0.12, 8, 28),
+      new T.MeshBasicMaterial({ color: 0xffd650, transparent: true, opacity: 0.9, depthWrite: false })
+    );
+    m.rotation.x = -Math.PI / 2;         // 눕혀서 바닥에 깐다
+    m.position.set(x, groundY(x, y) + 0.05, y);
+    fxGroup.add(m);
+    clickRings.push({ mesh: m, t: 0 });
+  }
+
+  function syncClickMark(dt) {
+    var i;
+    for (i = clickRings.length - 1; i >= 0; i--) {
+      var c = clickRings[i];
+      c.t += dt;
+      var k = c.t / 0.6;
+      var s = 1 + k * 1.8;
+      c.mesh.scale.set(s, 1, s);
+      c.mesh.material.opacity = Math.max(0, 0.9 * (1 - k));
+      if (k >= 1) {
+        fxGroup.remove(c.mesh);
+        c.mesh.material.dispose();
+        clickRings.splice(i, 1);
       }
     }
   }
@@ -2479,6 +2514,7 @@
       if (global.DG.sky3d) { global.DG.sky3d.tick(dt, lightNow); }
       if (global.DG.water3d) { global.DG.water3d.tick(dt, lightNow); }
       syncBeams(dt);
+      syncClickMark(dt);
       syncCamera(W, dt);
 
       present();
@@ -2597,6 +2633,8 @@
     three: function () { return T; },
     addFx: function (n) { if (fxGroup && n) { fxGroup.add(n); } return n; },
     removeFx: function (n) { if (fxGroup && n) { fxGroup.remove(n); } },
+    /** 클릭(탭)한 자리를 3D 바닥에도 표시 — `world.js`의 `onClick()`이 부른다 */
+    clickMark: clickMark,
     camNode: function () { return camera; },
     /** 돌려 보기 — 드래그가 두드린다(`world.js`). 라디안을 더한다 */
     turn: function (d) {

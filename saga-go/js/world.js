@@ -891,8 +891,11 @@
     function turnBy(px) {
       var W3 = global.DG.world3d;
       if (!W3 || !W3.turn || tiltMode() !== 2) { return; }
-      /* 화면 폭의 절반을 끌면 반 바퀴 — 폰에서도 손이 안 아프게 */
-      W3.turn(-px / Math.max(180, geom ? geom.W : 360) * Math.PI);
+      /* 화면 폭의 절반을 끌면 반 바퀴 — 폰에서도 손이 안 아프게.
+         2026-09-06, "마우스가 반대다"로 발견 — 오른쪽으로 끌면 여태
+         화면 왼쪽에 있던 쪽을 보도록 돌았다(다른 3인칭 게임은 오른쪽으로
+         끌면 오른쪽을 본다). 부호를 반대로 뒤집었다 */
+      W3.turn(px / Math.max(180, geom ? geom.W : 360) * Math.PI);
     }
     function down(x, y) { dx0 = x; dy0 = y; moved = 0; turning = false; }
     function move(x, y) {
@@ -1040,6 +1043,9 @@
     var wx = pos.x + (ru * cs - rv * sn), wy = pos.y + (ru * sn + rv * cs);
     clickMarks.push({ x: wx, y: wy, at: Date.now() });
     if (clickMarks.length > 6) { clickMarks.shift(); }
+    /* 2D 표시(`clickMarks`)는 3D가 켜지면 숨는 캔버스에만 그려져 안 보인다 —
+       2026-09-06, "클릭 자리 표시가 없다"로 발견. 3D 바닥에도 같은 표시를 얹는다 */
+    if (W3 && W3.active && W3.active() && W3.clickMark) { W3.clickMark(wx, wy); }
     var hitR = 30 / sc;
     var best = null, bestD = Infinity;
     for (var i = 0; i < spawns.length; i++) {
