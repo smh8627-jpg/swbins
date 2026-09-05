@@ -1138,7 +1138,9 @@
            여기 적어 둔다). **통로(PLAN §28-2 Phase 3)도 같은 이유로 같은
            결 판정을 쓴다** — `corridorNameAt()`가 재는 자리가 dungeon3d.js
            의 그림 쪽과 정확히 같아야, 통로 안에서 "보이는 건 나루터 물길인데
-           자리는 산길 바위로 막힌" 어긋남이 안 생긴다. */
+           자리는 산길 바위로 막힌" 어긋남이 안 생긴다. 던전 방-방 통로
+           (PLAN §28-4 Phase 3)도 같은 이유로 같다 — 계단문 통로만
+           `통로:계단`으로 갈리고, 그 밖의 문은 층 테마를 그대로 쓴다. */
         var cTheme = (corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, rw, rh, corridors) : null;
         var list = F.chunkAt(cx, cz, seed, ring, 1, cTheme || (th && th.name));
         for (i = 0; i < list.length; i++) {

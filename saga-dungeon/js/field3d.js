@@ -112,7 +112,16 @@
        통로(`통로:dungeon`)는 목적지가 마을이 아니라 굴혈이니 cave(동굴 입구,
        chunkAt의 kind==='cave' → cavemouth 소품)를 확 밀어 준다 — 새 소품
        없이 이미 있는 cavemouth를 재활용한다(위 주석과 같은 이유). */
-    '통로:dungeon': { cave: 5, rock: 0.8, cliff: 0.7, forest: 0.2, water: 0.15 }
+    '통로:dungeon': { cave: 5, rock: 0.8, cliff: 0.7, forest: 0.2, water: 0.15 },
+    /* 2026-09-06 — PLAN §28-4 Phase 3(방-방 통로에 던전 테마 소품). 문마다
+       통로(`doorCorridors()`, PLAN §28-4 Phase 2)엔 목적지 마을이 없어
+       `co.to`가 없다 — 그래서 대부분은 지금 층 테마를 그대로 쓴다(문 종류별
+       분위기까지는 안 늘린다, PLAN §44). 다만 **계단문(`stair`)만은** 층을
+       내려가는 자리라 "동굴 입구"(cavemouth, dg:stairs와 같은 자리에 이미
+       세워지는 그림)를 확 밀어 자연스러운 "내려가는 통로"로 잇는다 —
+       `통로:dungeon`(Phase 1, 던전 입구)과 같은 이유·같은 가중치를 그대로
+       재사용한다(새 표 아님). */
+    '통로:계단': { cave: 5, rock: 0.8, cliff: 0.7, forest: 0.2, water: 0.15 }
   };
   /** 가중치 표(order·baseW)에서 h(0~1) 하나로 kind 하나를 고른다 —
    *  theme 이 없으면(자가진단 등) 원래 고정 문턱과 정확히 같은 결과를 낸다 */
@@ -164,6 +173,13 @@
    * 판정**을 그림·충돌 양쪽에서 그대로 재사용한다(어긋나면 "보이는 건
    * 나무인데 자리는 뚫린" 자리가 생긴다 — 층 테마 감사 때 이미 겪은 함정).
    * `corridors`가 없으면(던전 층 전부, 통로 없는 자리) 늘 `null`이다.
+   *
+   * 2026-09-06 — PLAN §28-4 Phase 3. 문별 통로(`doorCorridors()`)는 `to`
+   * 대신 `laneAt`(그 문의 y)로 결 중심을 잡는다 — 마을 통로는 늘 방 중심이
+   * 결 중심이라 `laneAt`이 없다(undefined면 옛날처럼 중심을 쓴다, 회귀 없음).
+   * `corridorExtra()`(dungeon.js)가 클램프에 쓰는 것과 **정확히 같은 결
+   * 중심**을 여기서도 써야 한다 — 안 그러면 방 중심에서 먼 문(예: 위쪽 문)의
+   * 통로가 "보이는 건 층 테마인데 자리는 계단 통로" 식으로 어긋난다.
    */
   function corridorNameAt(cx, cz, W, H, corridors) {
     if (!corridors || !corridors.length) { return null; }
@@ -173,14 +189,23 @@
        걸린다). 이 칸의 **월드 중심** 좌표로 바꿔서 비교한다. */
     var spanX = Math.floor(W / CHUNK), spanZ = Math.floor(H / CHUNK);
     var gx = cx * CHUNK + CHUNK / 2, gz = cz * CHUNK + CHUNK / 2;
-    var cxW = W / 2, cyW = H / 2, i, co;
+    var cxW = W / 2, cyW = H / 2, i, co, laneAt, label;
     for (i = 0; i < corridors.length; i++) {
       co = corridors[i];
-      if (!co.to) { continue; }
-      if (co.dir === 'E' && cx > spanX && Math.abs(gz - cyW) < (co.lane || 0)) { return '통로:' + co.to; }
-      if (co.dir === 'W' && cx < 0 && Math.abs(gz - cyW) < (co.lane || 0)) { return '통로:' + co.to; }
-      if (co.dir === 'S' && cz > spanZ && Math.abs(gx - cxW) < (co.lane || 0)) { return '통로:' + co.to; }
-      if (co.dir === 'N' && cz < 0 && Math.abs(gx - cxW) < (co.lane || 0)) { return '통로:' + co.to; }
+      label = co.to ? ('통로:' + co.to) : (co.kind === 'stair' ? '통로:계단' : null);
+      if (co.dir === 'E' && cx > spanX) {
+        laneAt = (co.laneAt != null) ? co.laneAt : cyW;
+        if (Math.abs(gz - laneAt) < (co.lane || 0)) { return label; }
+      } else if (co.dir === 'W' && cx < 0) {
+        laneAt = (co.laneAt != null) ? co.laneAt : cyW;
+        if (Math.abs(gz - laneAt) < (co.lane || 0)) { return label; }
+      } else if (co.dir === 'S' && cz > spanZ) {
+        laneAt = (co.laneAt != null) ? co.laneAt : cxW;
+        if (Math.abs(gx - laneAt) < (co.lane || 0)) { return label; }
+      } else if (co.dir === 'N' && cz < 0) {
+        laneAt = (co.laneAt != null) ? co.laneAt : cxW;
+        if (Math.abs(gx - laneAt) < (co.lane || 0)) { return label; }
+      }
     }
     return null;
   }
