@@ -431,22 +431,38 @@
    * `water3d.js` 가 따로 그리므로 이 칠은 거의 안 보인다).
    * 아직 못 받았으면(로딩 중·파일 없음) 늘 하던 `shadeHex` 채색으로 물러난다 —
    * 화면이 한 번도 안 빈다(이 저장소의 다른 에셋들과 같은 원칙). */
-  var LAND_TEX_URL = {
-    grass: 'assets/textures/land/grass.webp',
-    forest: 'assets/textures/land/forest.webp',
-    mount: 'assets/textures/land/mount.webp',
-    road: 'assets/textures/land/road.webp',
-    town: 'assets/textures/land/town.webp',
-    farm: 'assets/textures/land/farm.webp'
+  /* 2026-09-05, "바닥이 네모만 있는게 아니라 다양하게" — 종류마다 사진을
+   * **한 장만** 반복해 깔면 넓은 들판에서 같은 무늬가 계속 되풀이돼(12m마다
+   * 정확히 같은 사진) 눈에 "네모"로 보인다. 종류마다 ambientCG(CC0) 사진을
+   * 셋씩 받아(출처는 `assets/ASSET_LICENSES.md`), 48m 칸(gx,gy)마다
+   * `variantFor()`가 해시로 그중 하나를 고른다 — 같은 칸은 늘 같은 변형을
+   * 쓰므로(다시 구워도 안 바뀐다) 반복은 여전히 있지만 그 주기가 훨씬
+   * 길고 불규칙해져 덜 눈에 띈다. */
+  var LAND_TEX_VARIANTS = {
+    grass: ['assets/textures/land/grass1.webp', 'assets/textures/land/grass2.webp', 'assets/textures/land/grass3.webp'],
+    forest: ['assets/textures/land/forest1.webp', 'assets/textures/land/forest2.webp', 'assets/textures/land/forest3.webp'],
+    mount: ['assets/textures/land/mount1.webp', 'assets/textures/land/mount2.webp', 'assets/textures/land/mount3.webp'],
+    road: ['assets/textures/land/road1.webp', 'assets/textures/land/road2.webp', 'assets/textures/land/road3.webp'],
+    town: ['assets/textures/land/town1.webp', 'assets/textures/land/town2.webp', 'assets/textures/land/town3.webp'],
+    farm: ['assets/textures/land/farm1.webp', 'assets/textures/land/farm2.webp', 'assets/textures/land/farm3.webp']
   };
   var LAND_TEX_IMG = {};
-  function landTexImg(kind) {
-    if (LAND_TEX_IMG[kind]) { return LAND_TEX_IMG[kind]; }
+  function landTexImg(kind, variant) {
+    var key = kind + '#' + variant;
+    if (LAND_TEX_IMG[key]) { return LAND_TEX_IMG[key]; }
     var img = new Image();
-    var url = LAND_TEX_URL[kind];
+    var urls = LAND_TEX_VARIANTS[kind];
+    var url = urls && urls[variant];
     if (url) { img.onload = function () { img.ready = true; }; img.src = url; }
-    LAND_TEX_IMG[kind] = img;
+    LAND_TEX_IMG[key] = img;
     return img;
+  }
+  /** 48m 격자 하나가 어느 변형(사진)을 쓸지 — 칸마다 고정(해시), 옆 칸과는
+   *  보통 다르다(3종 중 하나라 1/3 확률로 우연히 같을 수 있다) */
+  function variantFor(kind, gx, gy) {
+    var n = (LAND_TEX_VARIANTS[kind] || [null]).length;
+    if (n <= 1) { return 0; }
+    return Math.floor(h1(gx * 53 + 7, gy * 61 + 13) * n);
   }
   /** 텍스처 한 변이 세계에서 몇 m 를 덮나 — 작을수록 촘촘히(확대돼) 반복된다 */
   var LAND_TEX_METERS = 12;
@@ -488,7 +504,8 @@
    * 세계 좌표의 나머지로 잡아야 옆 타일과 이어 붙었을 때 이음매가 안 보인다.
    */
   function landPattern(c, kind, x0, y0, k) {
-    var img = landTexImg(kind);
+    var gx = Math.round(x0 / GRID), gy = Math.round(y0 / GRID);
+    var img = landTexImg(kind, variantFor(kind, gx, gy));
     if (!img.ready || !img.naturalWidth || !c.createPattern) { return null; }
     var pat = c.createPattern(img, 'repeat');
     if (!pat || !pat.setTransform || typeof DOMMatrix === 'undefined') { return pat; }
@@ -501,16 +518,22 @@
 
   /** 어느 소재가 왔는지 — 지형 텍스처 캐시 키에 넣어, 늦게 온 것도 다음에 반영되게 한다 */
   function landTexReadyKey() {
-    var s = '', k;
-    for (k in LAND_TEX_URL) {
-      if (LAND_TEX_URL.hasOwnProperty(k)) { s += (LAND_TEX_IMG[k] && LAND_TEX_IMG[k].ready) ? '1' : '0'; }
+    var s = '', k, i, urls;
+    for (k in LAND_TEX_VARIANTS) {
+      if (!LAND_TEX_VARIANTS.hasOwnProperty(k)) { continue; }
+      urls = LAND_TEX_VARIANTS[k];
+      for (i = 0; i < urls.length; i++) { s += (LAND_TEX_IMG[k + '#' + i] && LAND_TEX_IMG[k + '#' + i].ready) ? '1' : '0'; }
     }
     return s;
   }
   /** 받아 두기만 한다 — 처음 걸을 때 한 박자씩 바뀌지 않게(`prop3d.preload` 와 같은 자리) */
   function preloadLandTex() {
-    var k;
-    for (k in LAND_TEX_URL) { if (LAND_TEX_URL.hasOwnProperty(k)) { landTexImg(k); } }
+    var k, i, urls;
+    for (k in LAND_TEX_VARIANTS) {
+      if (!LAND_TEX_VARIANTS.hasOwnProperty(k)) { continue; }
+      urls = LAND_TEX_VARIANTS[k];
+      for (i = 0; i < urls.length; i++) { landTexImg(k, i); }
+    }
   }
 
   var landTex = {};
@@ -648,7 +671,7 @@
    * 제 색·제 무늬로 **불투명하게** 채운다. 나머지 흐림·계절·캐시 규칙은
    * `landTexture`와 그대로 같다. 물은 여기서 안 칠한다 — 실제 물결은
    * `water3d.js`가 따로 그리므로 `LAND_COLOR.water`만 옅게 깐다(무늬 없음,
-   * `LAND_TEX_URL`에 water가 없어 자동으로 그리된다).
+   * `LAND_TEX_VARIANTS`에 water가 없어 자동으로 그리된다).
    */
   function terrainTexture(W, x0, y0, span) {
     if (!LAND_PAINT()) { return null; }

@@ -178,6 +178,12 @@ SAGA WEB.md 19절 "4K 텍스처 금지"에 정면으로 걸리던 자리였고, 
 맞춰 재인코딩(합계 1.30MB). `new Image()`로 디코드해 GLTFLoader를 거치지 않으므로
 포맷 전환에 코드 변경이 없었다.
 
+**2026-09-05: 종류마다 변형을 둘씩 더 받아(`grass2/3.webp` 등, 총 18장) 다양성을
+늘렸다** — 사진 한 장을 그대로 반복하면 넓은 들판에서 같은 무늬가 계속
+되풀이돼 보였다. `js/world3d.js`의 `LAND_TEX_VARIANTS`·`variantFor()`가
+48m 칸마다 해시로 셋 중 하나를 고정으로 고른다(자세한 원본 자산·출처는
+`ASSET_LICENSES.md` 참고). 추가 12장 합계 3.1MB.
+
 ---
 
 ## EverFace · nonemo — 초상 스프라이트 (`sprites2d/portrait/`)

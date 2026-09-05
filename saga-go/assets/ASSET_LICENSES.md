@@ -272,12 +272,34 @@ MIME을 다시 가늠하는 헬퍼(`.webp($|\?)` 정규식)를 이미 갖고 있
 
 | 파일 | 원본 자산 |
 |---|---|
-| `grass.webp` | Grass005 |
-| `forest.webp` | Ground106 |
-| `mount.webp` | Rocks011 |
-| `road.webp` | Ground081 |
-| `town.webp` | Ground103 |
-| `farm.webp` | Ground109 |
+| `grass1.webp` | Grass005 |
+| `forest1.webp` | Ground106 |
+| `mount1.webp` | Rocks011 |
+| `road1.webp` | Ground081 |
+| `town1.webp` | Ground103 |
+| `farm1.webp` | Ground109 |
+
+**2026-09-05: 종류마다 변형을 둘씩 더 받았다**(사용자가 "바닥이 네모만 있는게
+아니라 다양하게 현실감 있게" 요청 — 한 장을 12m마다 그대로 반복하면 넓은
+들판에서 같은 무늬가 계속 되풀이돼 보였다). 마찬가지로 1K-JPG `Color` 맵만
+골라 WebP(q82, 1024px)로 재인코딩했다.
+
+| 파일 | 원본 자산 |
+|---|---|
+| `grass2.webp` / `grass3.webp` | Grass002 / Grass003 |
+| `forest2.webp` / `forest3.webp` | Ground084 / Ground037 |
+| `mount2.webp` / `mount3.webp` | Rocks012 / Rocks013 |
+| `road2.webp` / `road3.webp` | Ground069 / Ground032 |
+| `town2.webp` / `town3.webp` | Ground104 / Ground105 |
+| `farm2.webp` / `farm3.webp` | Ground048 / Ground110 |
+
+`js/world3d.js`의 `LAND_TEX_VARIANTS`가 종류마다 이 셋을 배열로 들고,
+`variantFor(kind, gx, gy)`가 48m 칸 좌표를 해시해 그중 하나를 고정으로
+고른다(`landPattern()`에서 씀) — 같은 칸은 다시 구워도 같은 변형을 쓰고,
+옆 칸은 보통(2/3 확률로) 다른 변형이라 반복 주기가 훨씬 길어진다. 변환
+도구는 이 세션에 `cwebp`가 없어 npm `sharp`(prebuilt binary, 네이티브
+컴파일 불필요)로 대신했다 — 다음 세션이 텍스처를 더 늘릴 때도 같은 방법을
+쓰면 된다(`sharp('...jpg').resize(1024,1024).webp({quality:82}).toFile(...)`).
 
 `js/world3d.js` 의 `landTexture()` 가 `LAND_COLOR` 표로 색만 칠하던 자리를
 이 텍스처로 갈아 끼웠다(2026-08-30). **`water` 는 안 받았다** — 실제 물결은
