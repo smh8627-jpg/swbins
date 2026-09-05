@@ -140,10 +140,13 @@
   ];
 
   /** 통로 길이(PLAN §28-2 Phase 1, "오픈월드 — 위장된 전환") — 들길
-   *  표식보다 이만큼(CHUNK 단위) 더 바깥에 "통로 진입점"을 둔다. 아직
-   *  아무 판정에도 안 쓰인다(Phase 2가 travel() 트리거를 이 자리로
-   *  옮긴다) — 지금은 exits 마다 자리만 잡아 둔다. */
+   *  표식보다 이만큼(CHUNK 단위) 더 바깥에 "통로 진입점"을 둔다.
+   *  Phase 2(2026-09-05)부터 `travel()` 트리거가 실제로 이 자리에 선다. */
   var CORRIDOR_LEN = 4;
+  /** 통로의 결 반폭(PLAN §28-2 Phase 2) — `dungeon.js`의 `boundPlayer`가
+   *  이 폭 이내에서만 통로 방향의 필드 반경을 늘려 준다. TALK_R(들길
+   *  표식 발동 반경)보다 넉넉히 커야 표식에 실제로 닿을 수 있다. */
+  var CORRIDOR_LANE = 90;
 
   /**
    * 마을 넷 — id·이름·색감(테마)·거기 사는 직군·장식·들길(exits) 을 정의한다.
@@ -337,6 +340,19 @@
     }
     return CORRIDOR_LEN;
   }
+  /** `dungeon.js`의 `boundPlayer`(`ctx.corridors`)가 읽는 통로 예외 표 —
+   *  이 마을의 exits 각각을 {dir,extra,lane}로 바꾼다(PLAN §28-2 Phase 2).
+   *  CHUNK 단위 길이(`ex.len`)를 실제 units(`extra`)로 바꾸고, 결 반폭은
+   *  RSCALE로 방 크기에 맞춘다(TALK_R과 같은 요령). */
+  function corridorsFor(cfg) {
+    var F = global.DG.field3d, CHUNK = F ? F.CHUNK : 200;
+    var out = [], i, ex;
+    for (i = 0; i < cfg.exits.length; i++) {
+      ex = cfg.exits[i];
+      out.push({ dir: ex.dir, extra: (ex.len || CORRIDOR_LEN) * CHUNK, lane: CORRIDOR_LANE * RSCALE });
+    }
+    return out;
+  }
 
   function build() {
     var cfg = currentCfg();
@@ -367,10 +383,13 @@
       }
     }
     /* 들길 — 마을에서 마을로 걸어 나가는 자리. 방 판정 안이 아니라 방 밖
-       들판 쪽에 놓인다(exitPoint 가 fieldRadiusUnits 기준으로 계산한다). */
+       들판 쪽에 놓인다. PLAN §28-2 Phase 2부터 표식 자체를 통로 끝
+       (corridorPoint)에 세운다 — travel() 트리거가 실제로 거기서
+       걸린다(boundPlayer의 ctx.corridors 예외로 거기까지 걸어갈 수
+       있다, 아래 raw() 참고). */
     for (i = 0; i < cfg.exits.length; i++) {
       var ex = cfg.exits[i], to = cfgOf(ex.to);
-      var ep = exitPoint(ex.dir, cfg.theme);
+      var ep = corridorPoint(ex.dir, cfg.theme, ex.len);
       room.marks.push({
         key: 'exit_' + ex.to, name: '들길 — ' + to.name + ' 방면',
         emoji: dirEmoji(ex.dir), x: ep.x, y: ep.y
@@ -615,6 +634,7 @@
       town: true, theme: currentTheme(),
       floor: 0, startFloor: 0, roomIdx: undefined,
       roomW: ROOM_W, roomH: ROOM_H, wall: WALL, pr: P_R,
+      corridors: corridorsFor(currentCfg()),
       room: room, player: player, shots: fshots, foeShots: ffoeShots,
       boons: {}, choice: null,
       loot: { gold: 0, items: [] },
@@ -667,6 +687,7 @@
     status: status,
     /** PLAN §28-2 Phase 1 — 통로 자리 잡기(아직 판정에 안 쓰인다, 좌표 계산뿐) */
     corridorPointRaw: corridorPointRaw, corridorPoint: corridorPoint, corridorLenOf: corridorLenOf,
+    corridorsFor: corridorsFor, CORRIDOR_LANE: CORRIDOR_LANE, exitPointRaw: exitPointRaw,
     /** 지역 진입 전 미리 로드(PLAN 39절, `dungeon3d.js`의 `prefetchTownDest()`가
      *  읽는다) — 그 마을 decor 에 쓰이는 건물 종류(house·well·inn 등)를
      *  중복 없이 돌려준다. 순수 함수, three 필요 없다. */
@@ -680,6 +701,8 @@
       }
       return out;
     },
+    /** 자가진단용 — 그 마을의 exits 원본(dir·to·len)을 그대로 돌려준다(읽기 전용). */
+    exitsOf: function (id) { return cfgOf(id).exits.slice(); },
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: raw,
     fx: function () { return fx; },

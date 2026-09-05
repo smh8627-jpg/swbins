@@ -1150,8 +1150,22 @@
    * 부딪혀도 그대로 안 멎는다 — 사가고 벽 충돌이 밟아 둔 요령과 같다).
    */
   /**
+   * 통로(PLAN §28-2 Phase 2) — `ctx.corridors`에 `{dir,extra,lane}`가 있으면,
+   * 그 방향의 **좁은 결(lane 반폭 이내)에서만** 필드 반경을 `extra`만큼 늘려
+   * 준다. `ctx.corridors`가 없으면(던전 층·마을이 corridors를 안 넘기면)
+   * 예전과 완전히 같은 값을 돌려준다 — 회귀 없음.
+   */
+  function corridorReach(ctx, dir) {
+    if (!ctx || !ctx.corridors) { return null; }
+    for (var i = 0; i < ctx.corridors.length; i++) {
+      if (ctx.corridors[i].dir === dir) { return ctx.corridors[i]; }
+    }
+    return null;
+  }
+  /**
    * @param ctx 마을처럼 방 치수·씨앗이 던전과 다른 곳이 빌려 쓸 때만 넘긴다
    *            (inRoomRect·fieldBlockedAt 에 그대로 물려 준다).
+   *            `ctx.corridors` — 마을의 들길 통로 예외(위 corridorReach 참고).
    */
   function boundPlayer(p, px, py, ctx) {
     var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
@@ -1162,10 +1176,20 @@
       p.y = core.clamp(p.y, lo, hiY);
       return;
     }
-    var R = fieldRadiusUnits();
-    var nx = core.clamp(p.x, lo - R, hiX + R);
+    var R = fieldRadiusUnits(), cx = rw / 2, cy = rh / 2, co;
+    var loX = lo - R, hiXe = hiX + R;
+    co = corridorReach(ctx, 'E');
+    if (co && Math.abs(py - cy) < (co.lane || 0)) { hiXe = hiX + R + (co.extra || 0); }
+    co = corridorReach(ctx, 'W');
+    if (co && Math.abs(py - cy) < (co.lane || 0)) { loX = lo - R - (co.extra || 0); }
+    var nx = core.clamp(p.x, loX, hiXe);
     p.x = (inRoomRect(nx, py, ctx) || !fieldBlockedAt(nx, py, ctx)) ? nx : px;
-    var ny = core.clamp(p.y, lo - R, hiY + R);
+    var loY = lo - R, hiYe = hiY + R;
+    co = corridorReach(ctx, 'S');
+    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { hiYe = hiY + R + (co.extra || 0); }
+    co = corridorReach(ctx, 'N');
+    if (co && Math.abs(p.x - cx) < (co.lane || 0)) { loY = lo - R - (co.extra || 0); }
+    var ny = core.clamp(p.y, loY, hiYe);
     p.y = (inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
   }
 
@@ -2426,7 +2450,7 @@
      *  각 함수의 ctx 인자는 그 함수 정의 옆 주석을 볼 것 (사가블로 마을 필드전투). */
     FIELD_ENEMY_CAP: FIELD_ENEMY_CAP,
     fieldOn: fieldOn, fieldRadiusUnits: fieldRadiusUnits,
-    fieldBoundPlayer: boundPlayer,
+    fieldBoundPlayer: boundPlayer, _corridorReach: corridorReach,
     spawnFieldRoamers: spawnFieldEncounters,
     fieldRoamerCount: fieldEnemyCount,
     stepFieldCombat: stepFieldCombat,

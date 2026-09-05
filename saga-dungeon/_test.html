@@ -2278,17 +2278,28 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return outs.length === 0 && ('아홉 자리 모두 벽 안쪽');
     });
 
-    t('들길(오버월드 출구)은 방 밖 필드 반경 안에 있다', function () {
+    t('들길(오버월드 출구)은 통로 끝(필드 반경 + 통로 길이) 안에 있다', function () {
+      /* PLAN §28-2 Phase 2 — 표식이 이제 exitPoint(0.7R)가 아니라
+         corridorPoint(통로 끝)에 선다. 방향마다 그 축만 R+extra 로
+         늘어난 예외(dungeon.js 의 ctx.corridors)로 걸어서 닿을 수 있다 —
+         그러니 이 진단도 방향별로 늘어난 경계로 확인해야 한다. */
       var T = DG.town, raw = T.raw();
       var DN2 = DG.dungeon, R = DN2.fieldRadiusUnits();
-      var lo = T.WALL + T.P_R - R, hiX = T.ROOM_W - T.WALL - T.P_R + R;
-      var loY = T.WALL + T.P_R - R, hiY = T.ROOM_H - T.WALL - T.P_R + R;
+      var lo = T.WALL + T.P_R, hiX = T.ROOM_W - T.WALL - T.P_R;
+      var loY = T.WALL + T.P_R, hiY = T.ROOM_H - T.WALL - T.P_R;
+      var exitsCfg = T.exitsOf(T.overworld.current());
       var exits = raw.room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; });
       var outs = exits.filter(function (o) {
-        return o.x < lo || o.x > hiX || o.y < loY || o.y > hiY;
+        var toId = o.key.slice(5), ec = null, i;
+        for (i = 0; i < exitsCfg.length; i++) { if (exitsCfg[i].to === toId) { ec = exitsCfg[i]; } }
+        if (!ec) { return true; }
+        var extra = T.corridorLenOf(T.overworld.current(), toId) * 200;   // field3d.CHUNK
+        var xLo = lo - R - (ec.dir === 'W' ? extra : 0), xHi = hiX + R + (ec.dir === 'E' ? extra : 0);
+        var yLo = loY - R - (ec.dir === 'N' ? extra : 0), yHi = hiY + R + (ec.dir === 'S' ? extra : 0);
+        return o.x < xLo || o.x > xHi || o.y < yLo || o.y > yHi;
       });
       return exits.length === 3 && outs.length === 0 &&
-        ('들길 ' + exits.length + '개 모두 필드 반경 안');
+        ('들길 ' + exits.length + '개 모두 통로 끝까지의 경계 안');
     });
 
     t('한 자리에서 둘이 동시에 걸리지 않는다', function () {
@@ -3666,30 +3677,27 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     /* ── 오픈월드 설계안 Phase 1 — 통로 자리 잡기 (PLAN §28-2, 2026-09-05) ──
-     * 아직 아무 판정에도 안 쓰인다(travel() 트리거는 그대로 exit_* 표식에
-     * 있다) — 좌표 계산만 exitPoint 와 같은 축으로 어긋나지 않는지 본다.
-     * 새 RNG 소비가 없는 순수 좌표 계산이라 자리는 아무 데나 둬도 되지만,
-     * 관례대로 맨 끝 쪽에 붙인다. */
-    t('통로 진입점(오픈월드 §28-2 Phase 1)이 들길 표식과 같은 축으로 어긋나지 않는다', function () {
+     * 순수 좌표 계산(corridorPointRaw)이 exitPointRaw 와 같은 축으로
+     * 어긋나지 않는지 본다. Phase 2(2026-09-05, 이어서)부터 실제 들길
+     * 표식 자체가 이 통로 끝으로 옮겨졌으므로, "표식이 예전 자리(exitPoint)
+     * 에 그대로 있다"는 가정에 기대지 않고 두 순수 함수를 직접 견준다 —
+     * 표식이 나중에 또 옮겨져도 이 진단은 안 흔들린다. */
+    t('통로 진입점(오픈월드 §28-2)이 들길 원점(exitPointRaw)과 같은 축으로 어긋나지 않는다', function () {
       var T = DG.town;
-      T._reset('moru');
-      var raw = T.raw(), exitToGaldae = null;
-      raw.room.marks.forEach(function (o) { if (o.key === 'exit_galdae') { exitToGaldae = o; } });
-      if (!exitToGaldae) { return false; }
       var len = T.corridorLenOf('moru', 'galdae');
       var F = DG.field3d, CHUNK = F ? F.CHUNK : 200;
-      /* safePoint 이전(Raw) 값으로 축을 정확히 잰다 — 장애물 회피가 축을
-         조금 틀 수 있어 그 값으로는 등호 비교를 못 한다(exitPoint/
-         exitPointRaw 를 가른 것과 같은 이유). */
+      var exitRaw = T.exitPointRaw('E');
       var rawPt = T.corridorPointRaw('E', len);
-      var axisOk = rawPt.y === exitToGaldae.y &&
-        Math.abs((rawPt.x - exitToGaldae.x) - len * CHUNK) < 0.01;
-      /* 실제로 쓰일 값(safePoint 적용)도 회피 최대 이동량(약 280) 안에서
-         같은 자리 근방인지 — 완전히 딴 데로 안 튀는지만 본다. */
-      var safePt = T.corridorPoint('E', raw.theme, len);
+      var axisOk = rawPt.y === exitRaw.y &&
+        Math.abs((rawPt.x - exitRaw.x) - len * CHUNK) < 0.01;
+      /* safePoint 적용값(실제로 쓰이는 값)도 회피 최대 이동량(약 280) 안에서
+         같은 자리 근방인지만 본다. theme 은 안 줘도 된다(safePoint 는
+         fieldBlockedAt 이 못 받으면 층 테마로 스스로 채운다) — town 이
+         active 상태가 아니어도(raw() 가 null이어도) 이 진단이 안 죽게 한다. */
+      var safePt = T.corridorPoint('E', undefined, len);
       var closeOk = Math.hypot(safePt.x - rawPt.x, safePt.y - rawPt.y) < 300;
       return axisOk && closeOk &&
-        ('통로 ' + len + '칸(' + (len * CHUNK) + ') · 들길에서 축 그대로 더 바깥');
+        ('통로 ' + len + '칸(' + (len * CHUNK) + ') · 들길 원점에서 축 그대로 더 바깥');
     });
 
     t('진단의 무작위는 씨앗으로 고정된다', function () {
