@@ -133,6 +133,12 @@
   function TONE() { return core.tuned('post3d.tone', 'neutral'); }
   /** 색보정 세기 0~1. 0 이면 톤매핑만 걸고 색은 안 만진다 */
   function GRADE() { return core.tuned('post3d.grade', 1); }
+  /** 카툰(셀셰이딩) 밝기 단수 — 0 이면 끔(기본). 3~6 정도면 만화풍으로 계단진다.
+   *  2026-09-06, 사용자 요청("카툰렌더링으로 변경도 되나?") — 재질을 다 바꾸는
+   *  대신 이미 있는 합성 셰이더(FRAG_OUT) 맨 끝, 색보정 다음(화면색)에 밝기를
+   *  N단으로 양자화하는 한 줄을 얹었다. 손잡이 하나로 켜고 끌 수 있어 기존
+   *  사실적인 그림을 그대로 두고 고를 수 있다(그림자·물·후처리는 안 바꿨다). */
+  function TOON() { return core.tuned('post3d.toon', 0); }
   /** 렌더 타깃 배율 — 등급이 정한 값에 곱한다(29절의 resolution scale) */
   function SCALE() { return core.tuned('post3d.scale', 1); }
 
@@ -273,6 +279,7 @@
         amount: clamp01(GRADE()),
         sat: look.sat, temp: look.temp, lift: look.lift
       },
+      toon: Math.max(0, TOON()),
       msaa: live ? tp.msaa : 0,
       /* 맞닿은 자리의 그늘 — `ssao3d.js` 가 잰다. 여기서는 **켤지 말지**만 안다
          (씬을 그린 타깃에 깊이를 붙여 둬야 하므로 처방에 들어와야 한다) */
@@ -399,6 +406,7 @@
     'uniform float temp;',
     'uniform float lift;',
     'uniform float hasBloom;',
+    'uniform float toon;',
     'varying vec2 vUv;',
     LUM,
     'void main() {',
@@ -417,7 +425,16 @@
     /* 색온도 — 따뜻하면 붉은 쪽을 올리고 푸른 쪽을 내린다 */
     '  done += vec3(temp, temp * 0.10, -temp) * 0.055;',
     '  done = done * (1.0 - lift) + lift;',
-    '  gl_FragColor.rgb = clamp(mix(g, done, gradeAmt), 0.0, 1.0);',
+    '  vec3 graded = clamp(mix(g, done, gradeAmt), 0.0, 1.0);',
+    /* 카툰 — 밝기를 N단으로 계단지게 양자화한다(색상비는 그대로 두어 색은
+       안 바뀌고 명암만 판판해진다). toon<=0.5 면 그대로(끔) */
+    '  if (toon > 0.5) {',
+    '    float gl = max(lum(graded), 0.0001);',
+    '    float steps = toon;',
+    '    float qgl = floor(gl * steps + 0.5) / steps;',
+    '    graded *= qgl / gl;',
+    '  }',
+    '  gl_FragColor.rgb = clamp(graded, 0.0, 1.0);',
     '}'
   ].join('\n');
 
@@ -500,7 +517,7 @@
         tAO: { value: null }, hasAO: { value: 0 },
         strength: { value: 0.26 }, gradeAmt: { value: 1 },
         sat: { value: 1 }, temp: { value: 0 }, lift: { value: 0 },
-        hasBloom: { value: 1 }
+        hasBloom: { value: 1 }, toon: { value: 0 }
       });
     } catch (e) {
       failed = true;
@@ -629,6 +646,7 @@
     matOut.uniforms.sat.value = p.grade.sat;
     matOut.uniforms.temp.value = p.grade.temp;
     matOut.uniforms.lift.value = p.grade.lift;
+    matOut.uniforms.toon.value = p.toon;
     blit(matOut, null);
 
     drawn++;
