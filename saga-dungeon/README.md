@@ -1014,6 +1014,45 @@ fan·brush는 붓 모델 하나를 공유한다.
 콘솔 에러 0. `sw.js` → `dungeon-v0.40.0`. **실기기 확인 전** — 이번엔
 특히 플레이어 본인 무기가 실제로 보이는지가 핵심이니 꼭 확인할 것.
 
+**헤드리스로 눈으로 확인** — 위 항목을 실제로 헤드리스 크롬 스크린샷으로
+확인하면서 겪은 함정. 루트 `CLAUDE.md`가 알려 주는 swiftshader 플래그 조합
+(`--use-angle=swiftshader --enable-unsafe-swiftshader --disable-gpu-sandbox`)
+자체는 이 판에서도 그대로 통한다. 문제는 그 다음이었다.
+
+- `chrome --screenshot`은 `load` 이벤트 직후 바로 찍는다. 이 판의 인물
+  (`asset3d.js`의 `buildHero`)은 몸·옷·머리·애니메이션 GLB 넷을 `load` **뒤에**
+  비동기로 받아 조립하므로, 이 방식으로는 매번 조립 전 placeholder 상자만
+  찍힌다 — 무기가 실제로 붙었는지는 보이지만 몸이 실사인지는 못 본다
+- `--virtual-time-budget`을 더해 기다리게 하면, 빈 페이지에서는 잘 되는데
+  **이 게임 페이지에서는 재현성 있게 멈춘다**(추정 — 주기적 네트워크 요청
+  때문에 크롬이 "네트워크 유휴"를 못 잡는 듯). 몇 분을 기다려도 안 끝나서
+  강제 종료해야 했다
+- **고친 법** — CDP(devtools 프로토콜)에 원격 디버깅 포트로 직접 붙어
+  `Page.navigate` → `load` 이벤트 대기 → **진짜 벽시계 시간으로 몇 초 그냥
+  잔다(`time.sleep`)** → `Page.captureScreenshot` 순서로 찍으면 GLB 조립이
+  끝난 뒤의 화면을 잡는다. `_cdp_shot.py`로 새로 넣었다 — WebSocket 핸드셰이크를
+  표준 라이브러리(`socket`·`base64`·`struct`)만으로 손으로 뜬 것이라 pip 설치가
+  전혀 필요 없다.
+
+```
+크롬을 스크린샷 플래그 없이, 원격 디버깅 포트로 먼저 띄운다:
+chrome --headless=new --disable-gpu --use-angle=swiftshader \
+  --enable-unsafe-swiftshader --disable-gpu-sandbox \
+  --remote-debugging-port=9333 --remote-allow-origins=* \
+  --window-size=900,700 --user-data-dir=<임시폴더> about:blank
+
+http://127.0.0.1:9333/json/version 이 응답하면 준비된 것. 그다음:
+python _cdp_shot.py "http://127.0.0.1:8792/_demo.html#camp" out.png 8
+```
+
+마지막 인자는 `load` 뒤 기다릴 초(기본 5) — 인물 GLB 조립은 8초면 충분했다.
+이렇게 찍은 뒤 실제로 몸이 실사 GLB(머리카락·갑옷까지)로 바뀌어 있고 칼도
+손에 들려 있는 걸 확인했다(플레이어 본인 무기 건 자체는 이걸로 확정).
+화면 한구석에 작게 나오는 인물은 PIL로 잘라 확대해 보면 더 잘 보인다.
+**여전히 헤드리스·소프트웨어 렌더 기준이라 실기기 확인을 대체하진 않는다** —
+다만 코드 고친 직후 스스로 먼저 눈으로 보는 확인 절차 자체는 이제 이 판에서도
+막히지 않고 돈다.
+
 ## 네 게임 중 하나
 
 사가 시리즈는 2026-08-24 부터 **완전히 별개인 다섯 프로젝트**다.
