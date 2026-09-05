@@ -139,6 +139,12 @@
     { t: 'belltower', x: 373, y: 53, h: 110 }
   ];
 
+  /** 통로 길이(PLAN §28-2 Phase 1, "오픈월드 — 위장된 전환") — 들길
+   *  표식보다 이만큼(CHUNK 단위) 더 바깥에 "통로 진입점"을 둔다. 아직
+   *  아무 판정에도 안 쓰인다(Phase 2가 travel() 트리거를 이 자리로
+   *  옮긴다) — 지금은 exits 마다 자리만 잡아 둔다. */
+  var CORRIDOR_LEN = 4;
+
   /**
    * 마을 넷 — id·이름·색감(테마)·거기 사는 직군·장식·들길(exits) 을 정의한다.
    * 좌표는 전부 BASE_W·BASE_H 기준(scalePt 로 실제 방 크기에 맞춘다).
@@ -159,7 +165,8 @@
         { key: 'pedlar',  x: 450, y: 305 }, { key: 'scribe',  x: 110, y: 200 }
       ],
       decor: DECOR_MORU,
-      exits: [ { dir: 'N', to: 'jajak' }, { dir: 'E', to: 'galdae' }, { dir: 'S', to: 'sogeum' } ]
+      exits: [ { dir: 'N', to: 'jajak', len: CORRIDOR_LEN }, { dir: 'E', to: 'galdae', len: CORRIDOR_LEN },
+               { dir: 'S', to: 'sogeum', len: CORRIDOR_LEN } ]
     },
     galdae: {
       id: 'galdae', name: '갈대나루', dirFromHub: 'E',
@@ -180,7 +187,7 @@
         { t: 'inn', x: 500, y: 60, h: 130 },
         { t: 'well', x: 280, y: 330, h: 34 }
       ],
-      exits: [ { dir: 'W', to: 'moru' } ]
+      exits: [ { dir: 'W', to: 'moru', len: CORRIDOR_LEN } ]
     },
     jajak: {
       id: 'jajak', name: '자작재', dirFromHub: 'N',
@@ -195,7 +202,7 @@
         { t: 'house', x: 60, y: 60, h: 130 }, { t: 'stable', x: 500, y: 60, h: 130 },
         { t: 'well', x: 280, y: 330, h: 34 }
       ],
-      exits: [ { dir: 'S', to: 'moru' } ]
+      exits: [ { dir: 'S', to: 'moru', len: CORRIDOR_LEN } ]
     },
     sogeum: {
       id: 'sogeum', name: '소금벌', dirFromHub: 'S',
@@ -210,7 +217,7 @@
         { t: 'house', x: 60, y: 60, h: 130 }, { t: 'mill', x: 500, y: 60, h: 130 },
         { t: 'well', x: 280, y: 330, h: 34 }
       ],
-      exits: [ { dir: 'N', to: 'moru' } ]
+      exits: [ { dir: 'N', to: 'moru', len: CORRIDOR_LEN } ]
     }
   };
   var TOWN_ORDER = ['moru', 'galdae', 'jajak', 'sogeum'];
@@ -300,6 +307,35 @@
     var cx = ROOM_W / 2, cy = ROOM_H / 2;
     var vx = cx - e.x, vy = cy - e.y, d = Math.hypot(vx, vy) || 1;
     return safePoint(e.x + vx / d * 60, e.y + vy / d * 60, theme);
+  }
+
+  /**
+   * 통로 진입점(PLAN §28-2 Phase 1) — 들길 표식(exitPoint)과 **같은 축**으로
+   * `len`×CHUNK 만큼 더 바깥. `exitPointRaw`와 축이 어긋나지 않아야 하므로
+   * 안전 회피(safePoint) 이전 값(Raw)과 이후 값을 갈라 둔다 — exitPoint/
+   * exitPointRaw 를 가르던 것과 같은 이유다. **아직 아무 판정에도 안
+   * 쓰인다**(통로 자체는 fieldBlockedAt 이 이미 허용하는 빈 들판이다) —
+   * Phase 2가 이 자리로 travel() 트리거를 옮겨 심는다.
+   */
+  function corridorPointRaw(dir, len) {
+    var F = global.DG.field3d, CHUNK = F ? F.CHUNK : 200;
+    var base = exitPointRaw(dir), extra = (len || 0) * CHUNK;
+    if (dir === 'N') { return { x: base.x, y: base.y - extra }; }
+    if (dir === 'S') { return { x: base.x, y: base.y + extra }; }
+    if (dir === 'E') { return { x: base.x + extra, y: base.y }; }
+    return { x: base.x - extra, y: base.y };                  // 'W'
+  }
+  function corridorPoint(dir, theme, len) {
+    var p = corridorPointRaw(dir, len);
+    return safePoint(p.x, p.y, theme);
+  }
+  /** 통로 길이 — 두 마을 사이(fromId→toId)에 정해 둔 CHUNK 칸 수 */
+  function corridorLenOf(fromId, toId) {
+    var cfg = cfgOf(fromId), i;
+    for (i = 0; i < cfg.exits.length; i++) {
+      if (cfg.exits[i].to === toId) { return cfg.exits[i].len || CORRIDOR_LEN; }
+    }
+    return CORRIDOR_LEN;
   }
 
   function build() {
@@ -629,6 +665,8 @@
     nearest: nearest, note: note,
     travel: travel, overworld: overworld,
     status: status,
+    /** PLAN §28-2 Phase 1 — 통로 자리 잡기(아직 판정에 안 쓰인다, 좌표 계산뿐) */
+    corridorPointRaw: corridorPointRaw, corridorPoint: corridorPoint, corridorLenOf: corridorLenOf,
     /** 지역 진입 전 미리 로드(PLAN 39절, `dungeon3d.js`의 `prefetchTownDest()`가
      *  읽는다) — 그 마을 decor 에 쓰이는 건물 종류(house·well·inn 등)를
      *  중복 없이 돌려준다. 순수 함수, three 필요 없다. */

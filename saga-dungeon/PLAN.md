@@ -884,7 +884,7 @@ README가 명시하는 장기 목표("마을↔마을이 끊기지 않고 전부
 **추천 — B안. Phase 분해:**
 
 ```
-Phase 1. 통로 자리 잡기
+Phase 1. 통로 자리 잡기 — **완료(2026-09-05)**, 커밋은 README 참고
   - town.js: exits 배열에 통로 길이(예: 3~5칸의 CHUNK)만 추가.
     exitPoint()가 지금처럼 "들길 표식 하나"를 놓는 대신, 그 방향으로
     CHUNK 몇 개만큼 늘어선 "통로 진입점"을 놓는다.
@@ -893,6 +893,17 @@ Phase 1. 통로 자리 잡기
   - 검증: _test.html에 "통로 진입점이 exitPoint 계산과 어긋나지
     않는다" 회귀 하나. 헤드리스 스크린샷으로 통로 초입이 실제로
     보이는지.
+  - **실제로 한 것**: `CORRIDOR_LEN=4`를 exits마다 `len`으로 추가,
+    `corridorPointRaw(dir,len)`(축 계산만, safePoint 이전)·
+    `corridorPoint(dir,theme,len)`(장애물 회피 적용)·`corridorLenOf
+    (fromId,toId)`를 새로 두고 `DG.town`에 공개했다. **travel() 트리거는
+    안 옮겼다** — exit_* 표식은 그대로 원래 자리에서 발동한다(Phase 2가
+    할 일). 즉 지금은 좌표만 계산해 둔 상태라 실제 플레이에는 아무
+    변화가 없다(시각적으로도 아직 안 보인다 — Phase 3이 장식을 입힌다).
+  - CDP로 실측: `moru`→`galdae`(E방향) 통로 진입점이 들길 표식보다
+    정확히 `len×CHUNK`(800) 더 바깥, 같은 y축(어긋남 0)임을 확인.
+    `_test.html` 247/247(신규 항목 1개 추가) 3회 동일, `_admin.html?
+    selftest` ADMIN 12/12, 콘솔 에러 0. `sw.js`→`dungeon-v0.51.0`.
 
 Phase 2. 통로 끝에서 travel() 트리거
   - dungeon.js 또는 town.js에 "통로 반대쪽 끝 도달" 판정을 하나 추가
