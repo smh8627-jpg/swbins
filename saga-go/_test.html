@@ -2309,6 +2309,21 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('geo 구역 안 · 땅 밖 칸 → ' + geoCell + ' · 원점(손그림 땅) → ' + landStillWins);
     });
 
+    t('지형(geo) — world.latLngToWorld 가 실제로 내보내져 있고 worldToLatLng 과 서로 되돌아온다', function () {
+      /* 2026-09-05, 실제로 밟은 버그: geo.js 의 fetchRegion() 이
+         W.latLngToWorld 를 부르는데 world.js 내보내기 표에 그게 없어서
+         실제 게임에서는 HTTP 200 을 받고도 classify() 안에서
+         "toWorld is not a function" 으로 매번 조용히 fail 이었다. 여태
+         geo 테스트가 죄다 자체 fakeToWorld 를 넘겨서(순수 함수 검증) 이
+         연결 자체는 아무도 안 보고 있었다 — 그 연결만 짚어 본다 */
+      if (typeof W.latLngToWorld !== 'function') { return false; }
+      var x = 1234, y = -567;
+      var ll = W.worldToLatLng(x, y);
+      var back = W.latLngToWorld(ll.lat, ll.lng);
+      var ok = Math.abs(back.x - x) < 1 && Math.abs(back.y - y) < 1;
+      return ok && ('(' + x + ',' + y + ') → 위경도 → (' + back.x.toFixed(1) + ',' + back.y.toFixed(1) + ')');
+    });
+
     t('지형(geo) — 아직 안 받아 온 구역은 null 이라 해시가 채운다', function () {
       GEO.reset();
       C.setTune('land.on', 0);                        // 이 칸이 손그림 땅에도 안 걸리게

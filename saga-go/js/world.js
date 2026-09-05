@@ -1719,6 +1719,10 @@
     metersPerPixel: metersPerPixel, scale: scale,
     getTile: getTile, tilesUsable: tilesUsable,
     latLngToPixel: latLngToPixel, worldToLatLng: worldToLatLng,
+    /* `geo.js`(실제 지형)가 Overpass 응답을 세계 좌표로 바꿀 때 쓴다 —
+       2026-09-05, 여태 여기 빠져 있어 실제 fetch가 매번 "toWorld is not a
+       function"으로 조용히 실패하고 있었다(HTTP는 200이었는데도) */
+    latLngToWorld: latLngToWorld,
     useKeyboard: useKeyboard, useGeo: useGeo,
     setStick: setStick, walkTo: walkTo, walkingTo: walkingTo,
     get mode() { return mode; },
