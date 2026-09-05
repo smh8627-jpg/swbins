@@ -43,15 +43,21 @@
     return { kind: m[1], id: m[2], w: +m[3], h: +m[4] };
   }
 
-  /** 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다 */
-  function camPlan(w, h) {
+  /**
+   * 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다.
+   * 펫(네발짐승)은 몸통이 옆으로 길어 더 물러나 낮은 곳을 옆모습에 가깝게
+   * 본다(사가블로·사가고 `portrait3d.js` camPlan 과 같은 판단, 2026-09-05 이식).
+   */
+  function camPlan(w, h, kind) {
+    var isPet = kind === 'pet';
     var aspect = w / Math.max(1, h);
-    var span = 0.62;
+    var span = isPet ? 1.5 : 0.62;
     var fov = 26;
     var dist = (span / 2) / Math.tan(fov * Math.PI / 360);
     if (aspect < 1) { dist = dist / Math.max(0.55, aspect); }
-    var look = 0.78;
-    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: 0.42, pitch: 0.06 };
+    var look = isPet ? 0.28 : 0.78;
+    var yaw = isPet ? 0.95 : 0.42;
+    return { fov: fov, dist: dist, look: look, aspect: aspect, yaw: yaw, pitch: 0.06 };
   }
 
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
@@ -160,7 +166,7 @@
   function bake(kind, ref, w, h, node) {
     if (!boot() || !node) { return null; }
 
-    var plan = camPlan(w, h);
+    var plan = camPlan(w, h, kind);
     var dpr = Math.min(global.devicePixelRatio || 1, 2);
     var pw = Math.max(16, Math.round(w * dpr)), ph = Math.max(16, Math.round(h * dpr));
 
@@ -220,7 +226,11 @@
     if (!A3 || !A3.build) { delete pending[job.key]; cache[job.key] = false; busy = false; pump(); return; }
 
     try {
-      A3.build('hero', job.ref, function (model) {
+      /* 2026-09-05 — 펫(동물)도 굽는다. kind 를 그대로 넘기면 `A3.build()`가
+         hero·pet 을 이미 가른다(pet 은 keysFor()가 'pet:'+id → 'pet:form:'+form
+         → 'pet' 순으로 찾는다) — 대응 GLB 가 없으면 buildGeneric()이 조용히
+         cb(null) 을 불러 캔버스로 되돌아간다 */
+      A3.build(job.kind, job.ref, function (model) {
         delete pending[job.key];
         busy = false;
         if (!model) { cache[job.key] = false; gaveUp++; pump(); return; }
@@ -234,7 +244,7 @@
 
   /** 줄에 올린다 — `asset3d.build` 콜백이 한 번 오면 그 자리에서 곧바로 굽는다 */
   function warm(kind, ref, w, h) {
-    if (!ready() || !ref || kind !== 'hero') { return false; }
+    if (!ready() || !ref || (kind !== 'hero' && kind !== 'pet')) { return false; }
     var key = keyOf(kind, ref, w, h);
     if (has(key) || pending[key]) { return false; }
     var A3 = global.DG.asset3d;

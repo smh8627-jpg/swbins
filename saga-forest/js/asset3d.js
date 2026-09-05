@@ -196,7 +196,17 @@
        `assets/ASSET_LICENSES.md` 의 "아직 못 채운 자리" 참고 */
     'animal:an_deer': ANI + 'Deer.glb',
     'animal:an_wolf': ANI + 'Wolf.glb',
-    'animal:an_fox': ANI + 'Fox.glb'
+    'animal:an_fox': ANI + 'Fox.glb',
+
+    /* 2026-09-05 — 도감 펫(`pt_*`·`pk_*`) 초상을 굽는 자리(`portrait3d.js`).
+       위 `animal:an_*` 셋은 숲의 **배경 짐승** 전용이라 도감 펫과 id 가 안
+       겹친다. 사용자 지시("초상화를 더 가져올 수 있나, 맞출 필요 없이 있으면
+       교체")에 따라 새로 받지 않고 **같은 세 모델을 형태(form)별로 돌려 쓴다**
+       (`keysFor()`의 `pet:form:*` 참고). 이 판은 사족(quad) 셋(사슴·늑대·여우)
+       뿐이라 bird·fish·turtle 등은 대응 CC0 가 아예 없다 — 그 형태들은 마지막
+       `pet` 한 줄(같은 셋)로 떨어진다. `assets/ASSET_LICENSES.md` 참고 */
+    'pet:form:quad': [ANI + 'Deer.glb', ANI + 'Wolf.glb', ANI + 'Fox.glb'],
+    'pet': [ANI + 'Deer.glb', ANI + 'Wolf.glb', ANI + 'Fox.glb']
   };
 
   var REG = {};
@@ -216,10 +226,21 @@
 
   function clear() { REG = {}; return REG; }
 
-  /** 이 사물을 어떤 키들로 찾아볼까 — 좁은 것부터 넓은 것 순. 순수 함수 */
+  /** 이 사물을 어떤 키들로 찾아볼까 — 좁은 것부터 넓은 것 순. 순수 함수
+   *
+   * `pet`(도감 펫, `pt_*`·`pk_*`)만 **형태(form)** 한 단계를 더 본다 —
+   * saga-go 의 `asset3d.js` 에서 옮겼다(2026-09-05). 종 하나하나에 CC0 모델을
+   * 못 대므로, `sprite.beastFormOf()` 가 매기는 quad·bird·fish·turtle·dragon·
+   * horse·toad·ogre 여덟 형태 중 실제로 있는 것만 걸어 두고 나머지는 `pet`
+   * 한 줄(마지막)로 다 받는다. 다른 kind(tree·rock 등)는 원래대로다. */
   function keysFor(kind, ref) {
     var r = ref || {};
     if (!kind) { return []; }
+    if (kind === 'pet') {
+      var form = r.form || (global.DG.sprite && global.DG.sprite.beastFormOf ?
+        global.DG.sprite.beastFormOf(r) : null);
+      return [r.id ? 'pet:' + r.id : null, form ? 'pet:form:' + form : null, 'pet'].filter(Boolean);
+    }
     return [r.id ? kind + ':' + r.id : null, kind].filter(Boolean);
   }
 
