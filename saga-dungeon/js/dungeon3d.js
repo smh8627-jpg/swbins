@@ -1261,33 +1261,88 @@
    * 색만 다른 채로 섰다. GLB 갈아 끼우기와 별개로 **`g`(바깥 껍데기)에 얹는다** —
    * `foeBody` 안쪽은 GLB 가 늦게 와서 통째로 갈릴 수 있지만 이 장식은 그대로다.
    */
+  /* 2026-09-05 — SAGA WEB.md "F. 소품" 목록의 "무기". 몸은 실사 GLB(QRPG
+     창고)인데 무기만 도형(각목)이던 자리를 poly.pizza Quaternius CC0 무기로
+     갈아 끼운다. 옛 도형은 fallback 으로 그대로 남긴다(`AS3.build`가 GLB
+     실패 시 이 함수를 그대로 부른다) — 위치·자리는 옛 값과 같다.
+     mul 은 옛 도형의 길이(r 배수)를 그대로 옮긴 값이다 */
+  var WPN_MUL = { club: 1.3, axe: 1.7, sword: 1.8, spear: 2.6, halberd: 2.8, staff: 2.3, bow: 1.7 };
   function foeGear(g, look, hh, r, tint) {
     var handX = r * 1.05, handZ = r * 0.25, shoulderY = hh * 0.68;
     var wcol = 0xb9c2cf, woodcol = 0x5a4a34;
+    var AS3 = AS();
     if (look.weapon === 'club') {
-      box(g, handX, shoulderY, handZ, r * 0.5, r * 1.1, r * 0.5, woodcol, 'flat', true);
+      var clubShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, r * 0.55, 0, r * 0.5, r * 1.1, r * 0.5, woodcol, 'flat', true);
+        return sg;
+      };
+      var wnode = AS3 ? AS3.build('wpn:club', 'foe', r * WPN_MUL.club, null, clubShape) : clubShape();
+      wnode.position.set(handX, shoulderY, handZ);
+      g.add(wnode);
     } else if (look.weapon === 'axe') {
-      box(g, handX, shoulderY, handZ, r * 0.2, r * 1.6, r * 0.2, woodcol, 'flat', true);
-      box(g, handX, shoulderY + r * 0.7, handZ, r * 0.85, r * 0.5, r * 0.14, wcol, 'flat', true);
+      var axeShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 0, 0, r * 0.2, r * 1.6, r * 0.2, woodcol, 'flat', true);
+        box(sg, 0, r * 0.7, 0, r * 0.85, r * 0.5, r * 0.14, wcol, 'flat', true);
+        return sg;
+      };
+      var anode = AS3 ? AS3.build('wpn:axe', 'foe', r * WPN_MUL.axe, null, axeShape) : axeShape();
+      anode.position.set(handX, shoulderY, handZ);
+      g.add(anode);
     } else if (look.weapon === 'sword') {
-      box(g, handX, shoulderY, handZ, r * 0.15, r * 1.7, r * 0.15, wcol, 'flat', true);
-    } else if (look.weapon === 'spear') {
-      box(g, handX, shoulderY, handZ, r * 0.12, r * 2.6, r * 0.12, woodcol, 'flat', true);
-      box(g, handX, shoulderY + r * 1.2, handZ, r * 0.13, r * 0.5, r * 0.13, wcol, 'flat', true);
-    } else if (look.weapon === 'halberd') {
-      box(g, handX, shoulderY, handZ, r * 0.13, r * 2.8, r * 0.13, woodcol, 'flat', true);
-      box(g, handX, shoulderY + r * 1.3, handZ, r * 0.85, r * 0.6, r * 0.15, wcol, 'flat', true);
+      var swordShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 0, 0, r * 0.15, r * 1.7, r * 0.15, wcol, 'flat', true);
+        return sg;
+      };
+      var snode = AS3 ? AS3.build('wpn:sword', 'foe', r * WPN_MUL.sword, null, swordShape) : swordShape();
+      snode.position.set(handX, shoulderY, handZ);
+      g.add(snode);
+    } else if (look.weapon === 'spear' || look.weapon === 'halberd') {
+      var isHalberd = look.weapon === 'halberd';
+      var poleShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 0, 0, r * 0.12, r * (isHalberd ? 2.8 : 2.6), r * 0.12, woodcol, 'flat', true);
+        if (isHalberd) { box(sg, 0, r * 1.3, 0, r * 0.85, r * 0.6, r * 0.15, wcol, 'flat', true); }
+        else { box(sg, 0, r * 1.2, 0, r * 0.13, r * 0.5, r * 0.13, wcol, 'flat', true); }
+        return sg;
+      };
+      var pnode2 = AS3 ? AS3.build(isHalberd ? 'wpn:halberd' : 'wpn:spear', 'foe',
+        r * WPN_MUL[look.weapon], null, poleShape) : poleShape();
+      pnode2.position.set(handX, shoulderY, handZ);
+      g.add(pnode2);
     } else if (look.weapon === 'staff') {
-      box(g, handX, shoulderY, handZ, r * 0.12, r * 2.2, r * 0.12, woodcol, 'flat', true);
-      box(g, handX, shoulderY + r * 1.1, handZ, r * 0.4, r * 0.4, r * 0.4, 0x9fe8ff, 'glow', false);
+      var staffShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 0, 0, r * 0.12, r * 2.2, r * 0.12, woodcol, 'flat', true);
+        box(sg, 0, r * 1.1, 0, r * 0.4, r * 0.4, r * 0.4, 0x9fe8ff, 'glow', false);
+        return sg;
+      };
+      var stnode = AS3 ? AS3.build('wpn:staff', 'foe', r * WPN_MUL.staff, null, staffShape) : staffShape();
+      stnode.position.set(handX, shoulderY, handZ);
+      g.add(stnode);
     } else if (look.weapon === 'bow') {
-      var bow = new T.Mesh(geo('bowArc', function () { return new T.TorusGeometry(1, 0.09, 5, 10, Math.PI * 1.4); }),
-        mat(woodcol, 'flat'));
-      bow.scale.setScalar(r * 0.85);
-      bow.position.set(handX, shoulderY, handZ);
-      bow.rotation.z = Math.PI / 2;
-      bow.castShadow = true;
-      g.add(bow);
+      /* 활은 칼·창과 달리 손 높이를 **가운데** 두고 위아래로 뻗는다. GLB 는
+         `normalize()`가 바닥을 y=0 에 놓으므로(다른 무기와 같은 규약),
+         도형(fallback)도 활을 그 규약에 맞춰 `bmul/2` 만큼 들어 그려 둔다 —
+         그래야 GLB 든 도형이든 바깥 위치는 늘 같은 한 줄(`shoulderY - bmul/2`)로
+         가운데를 맞춘다(비동기로 GLB 가 늦게 와도 위치가 안 흔들린다) */
+      var bmul = r * WPN_MUL.bow;
+      var bowShape = function () {
+        var sg = new T.Group();
+        var bow = new T.Mesh(geo('bowArc', function () { return new T.TorusGeometry(1, 0.09, 5, 10, Math.PI * 1.4); }),
+          mat(woodcol, 'flat'));
+        bow.scale.setScalar(r * 0.85);
+        bow.position.y = bmul * 0.5;
+        bow.rotation.z = Math.PI / 2;
+        bow.castShadow = true;
+        sg.add(bow);
+        return sg;
+      };
+      var bnode = AS3 ? AS3.build('wpn:bow', 'foe', bmul, null, bowShape) : bowShape();
+      bnode.position.set(handX, shoulderY - bmul * 0.5, handZ);
+      g.add(bnode);
     }
     if (look.cape) {
       var cape = box(g, 0, hh * 0.42, -r * 0.85, r * 1.25, hh * 0.7, r * 0.13,

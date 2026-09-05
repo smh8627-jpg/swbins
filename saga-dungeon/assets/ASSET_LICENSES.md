@@ -786,6 +786,53 @@ Pack에 `hex_water` 타일이 있어 받아 봤지만 **단색 팔레트 하나�
 > **Signpost** — © **Kenney**, CC0 (Public Domain). 저작자 표시 불필요.
 > `poly.pizza`를 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
 
+## 몬스터 무기 일곱 — 실사화 (2026-09-05)
+
+**SAGA WEB.md "F. 소품" 목록의 "무기"**. `dungeon3d.js`의 `foeGear()`가
+사람 형 적(황건적·왜구·몽골 기병…)에게 `data-enemy.js`의 `look.weapon`대로
+무기를 쥐여 주는데, 몸은 이미 실사 GLB(Quaternius QRPG 창고)인데 **무기만
+도형(각목·상자)**이었다 — 실사 몸에 각목을 든 채 서 있는 자리.
+
+- poly.pizza에서 **Quaternius**(이 판이 사람 몸·짐승에서 이미 쓰는 그
+  출처, CC0)의 무기 낱개들을 찾아 일곱 다 채웠다 — club(뭉툭한 무기)은
+  "Doublesided Hammer"로 대신했다(정확히 "club"이라는 이름의 CC0는
+  없었다 — 대장간=집 모델과 같은 판단, 역할·모양이 정확히 안 맞아도
+  된다).
+- **`wpn:halberd`는 `wpn:spear`와 같은 파일을 재사용한다.** "halberd"·
+  "poleaxe"란 이름의 CC0 모델 자체가 안 보였고(빙 둘러 찾은 후보는 전부
+  Pike·Trident·Pitchfork처럼 결이 다른 무기였다), 이 판의 옛 도형도 이미
+  스피어와 할버드가 "장대+날붙이"로 거의 같은 실루엣이었다 — 재사용이
+  자연스러운 자리다. `mul`(길이)만 살짝 다르게 줘서(2.6 대 2.8) 완전히
+  똑같아 보이진 않게 했다.
+- `js/dungeon3d.js`의 `foeGear()`를 고쳐 각 무기 분기가 `AS3.build('wpn:…', ...)`
+  를 부르게 했다 — **옛 도형은 지우지 않고 fallback 함수로 그대로 넘긴다**
+  (GLB 실패·오프라인이면 각목 그대로 돌아간다). 활만 별도 처리가 필요했다 —
+  칼·창은 손 위치에서 **위로만** 자라는 물건인데 활은 손을 **가운데** 두고
+  위아래로 뻗는 물건이라, fallback 도형도 GLB와 같은 "바닥이 y=0" 규약에
+  맞춰 다시 그려 두 경로(도형/GLB, 비동기라 어느 쪽이 먼저 뜰지 모른다)가
+  같은 한 줄로 위치를 맞추게 했다.
+- **투구·망토·수염은 이번에 손 안 댔다** — 무기가 실루엣에서 가장 크고
+  눈에 띄는 자리라 먼저 골랐다. 남은 자리는 다음 세션 숙제로 남긴다.
+- 격리 렌더(`_inspect_wpn_tmp.html`·`_inspect_sword_tmp.html`, 커밋 안 함)로
+  일곱 다 GLB로 실제 로딩됨을 확인 — 활은 손 높이를 가운데 두고 위아래로
+  걸리는지까지 별도로 확인했다. 자가진단 **241/241** 3회 동일(무기는 순수
+  장식이라 진단이 값으로 안 본다), `_admin.html?selftest` **ADMIN 12/12**.
+  `sw.js` VERSION → `dungeon-v0.39.6`.
+- **실기기 확인 전** — 다음 세션·실기기에서 던전에 들어가 적들이 실제
+  무기를 쥔 채 보이는지 볼 것.
+
+| 무기 | 만든 이 | 받은 곳 | 파일 |
+|---|---|---|---|
+| club(대역: Doublesided Hammer) | Quaternius | `poly.pizza/m/UIXvQ73DS1` | `models/weapons/club.glb`(103KB) |
+| axe | Quaternius | `poly.pizza/m/FkzZ6I1zjT` | `models/weapons/axe.glb`(58KB) |
+| sword | Quaternius | `poly.pizza/m/cDsobPucFA` | `models/weapons/sword.glb`(26KB) |
+| spear · halberd(재사용) | Quaternius | `poly.pizza/m/fH1zmvjPNx` | `models/weapons/spear.glb`(68KB) |
+| staff | Quaternius | `poly.pizza/m/PnGRvO4Lwd` | `models/weapons/staff.glb`(13KB) |
+| bow | Quaternius | `poly.pizza/m/QnpqjLSKFU` | `models/weapons/bow.glb`(38KB) |
+
+> **일곱 무기 모델** — © **Quaternius**, CC0 (Public Domain). 저작자 표시
+> 불필요. `poly.pizza`를 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

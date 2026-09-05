@@ -951,6 +951,25 @@ PowerShell의 `System.Drawing`으로 그 창 영역만 화면 캡처했다(`Copy
 - **늪(swamp) biome도 같이 좋아진다** — 웅덩이가 'pond'를 그대로
   재사용한다. 자세한 것은 `assets/ASSET_LICENSES.md` "물(못)" 절.
 
+## 표지판, 그리고 몬스터 무기 일곱 — 실사화 이어서 (2026-09-05, 물(못) 다음)
+
+**표지판(들판의 `post`)** — 여러 세션이 "CC0로 맞는 게 없다"고 도형으로
+남겨 뒀던 마지막 장식 항목. poly.pizza에서 Kenney의 CC0 'Signpost'를
+찾아 갈아 끼웠다(`js/asset3d.js`·`js/dungeon3d.js`). 못 받으면 옛 도형
+그대로 돌아간다. `sw.js` → `dungeon-v0.39.5`.
+
+**몬스터 무기 일곱** — `dungeon3d.js`의 `foeGear()`가 사람 형 적에게
+쥐여 주던 무기가 실사 GLB 몸 위에 각목·상자 도형으로 남아 있던 자리.
+Quaternius(CC0, 이 판이 사람·짐승에서 이미 쓰는 출처)의 club(대역:
+Doublesided Hammer)·axe·sword·spear·staff·bow와, spear를 재사용하는
+halberd까지 일곱 다 채웠다. 활은 손을 가운데 두고 위아래로 뻗는 물건이라
+도형·GLB 두 경로가 같은 자리로 맞물리게 좌표 규약을 손봤다. 투구·망토·
+수염은 이번엔 손 안 댔다(다음 숙제). `sw.js` → `dungeon-v0.39.6`.
+
+둘 다 자가진단 **241/241** 3회 동일, `_admin.html?selftest` **ADMIN 12/12**.
+자세한 출처·경위는 `assets/ASSET_LICENSES.md` 해당 절 참고. **실기기 확인
+전** — 다음 세션이 던전에서 적 무기·들판 표지판이 실제로 보이는지 물을 것.
+
 ## 네 게임 중 하나
 
 사가 시리즈는 2026-08-24 부터 **완전히 별개인 다섯 프로젝트**다.

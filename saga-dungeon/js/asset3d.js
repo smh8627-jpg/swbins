@@ -45,6 +45,7 @@
   var BLD_REAL = 'assets/models/buildings/realistic/';
   var BLD_HEX = 'assets/models/buildings/hexagon/';
   var DUN = 'assets/models/dungeon/';
+  var WPN = 'assets/models/weapons/';
 
   /* 2026-09-03 — 다른 네 판과 같은 이유로 사람 기본을 갈아 끼운다. Quaternius
      "RPG Character Pack"(CC0, 전사·궁수·도적·성직자·마법사·수도승 6종)은 몸 파일
@@ -242,6 +243,22 @@
        이제 다 실사·CC0 에셋으로 찼다(모양이 정확히 원작 그대로는 아니다,
        사용자가 그래도 된다고 정했다) */
     'belltower': BLD_REAL + 'tower_round.glb',
+    /* SAGA WEB.md "F. 소품" 목록의 "무기" — `dungeon3d.js`의 `foeGear()`가
+       사람 형 적(황건적·왜구…)에게 `data-enemy.js`의 `look.weapon`대로
+       쥐여 주던 자리인데, 몸은 실사 GLB(QRPG 창고)인데 무기만 도형(각목)
+       이었다. 2026-09-05 — poly.pizza에서 Quaternius CC0 무기를 찾아
+       일곱 다 채웠다. `wpn:halberd`는 딱 맞는 CC0 도끼창을 못 찾아
+       `wpn:spear`와 **같은 파일을 재사용**한다(대장간=집 모델 재사용과
+       같은 판단 — "역할·모양이 정확히 안 맞아도 된다"). 못 받으면 옛
+       도형(foeGear의 그 각목·활 그대로)으로 돌아간다. 출처는
+       `assets/ASSET_LICENSES.md` 참고 */
+    'wpn:club': WPN + 'club.glb',
+    'wpn:axe': WPN + 'axe.glb',
+    'wpn:sword': WPN + 'sword.glb',
+    'wpn:spear': WPN + 'spear.glb',
+    'wpn:halberd': WPN + 'spear.glb',
+    'wpn:staff': WPN + 'staff.glb',
+    'wpn:bow': WPN + 'bow.glb',
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
        'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은
