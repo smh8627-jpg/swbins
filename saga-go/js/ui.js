@@ -65,7 +65,7 @@
 
   function init() {
     ['profile', 'wallet', 'near', 'autobar', 'dock', 'sheet',
-     'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
+     'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast', 'levelup'].forEach(function (id) {
       els[id] = $(id);
     });
 
@@ -193,6 +193,7 @@
       renderTop();
     });
     core.on('toast', toast);
+    core.on('levelup', showLevelUp);
     core.on('changed', function () { renderTop(); renderSheet(); });
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
@@ -1140,6 +1141,23 @@
     els.toast.classList.add('show');
     if (toastTimer) { clearTimeout(toastTimer); }
     toastTimer = setTimeout(function () { els.toast.classList.remove('show'); }, 2600);
+  }
+
+  /**
+   * 레벨 업 — 여태 `core.log`(기록 시트에나 남는 글자 한 줄)뿐이었다(축3,
+   * "레벨업도 숫자 말고는 연출이 약하다"). `core.emit('levelup', lv)`는
+   * 이미 있었는데 듣는 곳이 없었다 — 화면 가운데 잠깐 뜨는 띠 하나만 붙인다.
+   * 조작을 막지 않는다(pointer-events:none) — 걷거나 싸우는 중에도 그냥 지나간다.
+   */
+  var levelupTimer = null;
+  function showLevelUp(lv) {
+    if (!els.levelup) { return; }
+    els.levelup.innerHTML = '<div class="lv-banner"><b>LEVEL UP</b><span>Lv.' + lv + '</span></div>';
+    els.levelup.classList.remove('show');
+    void els.levelup.offsetWidth;               // 리플로우를 강제해 연타 레벨업도 매번 다시 재생한다
+    els.levelup.classList.add('show');
+    if (levelupTimer) { clearTimeout(levelupTimer); }
+    levelupTimer = setTimeout(function () { els.levelup.classList.remove('show'); }, 1800);
   }
 
   /** 매 프레임이 아니라 주기적으로만 갱신한다 */
