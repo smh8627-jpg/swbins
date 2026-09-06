@@ -190,21 +190,33 @@
     var spanX = Math.floor(W / CHUNK), spanZ = Math.floor(H / CHUNK);
     var gx = cx * CHUNK + CHUNK / 2, gz = cz * CHUNK + CHUNK / 2;
     var cxW = W / 2, cyW = H / 2, i, co, laneAt, label;
+    /* 2026-09-06 실기기 검증(다른 세션)에서 발견 — 칸 **중심 점**이 결 폭
+       안에 드는지만 보면, 칸 중심이 늘 CHUNK/2 의 홀수배(100, 300, ...)로
+       고정돼 있어 방 치수·문 좌표가 우연히 그 격자와 어긋나는 값이면
+       (예: 결 중심이 칸 중심에서 정확히 90~110 떨어진 경우, `lane`이 그
+       사이 어딘가면) **어느 칸도 안 걸리는 기하학적 실패**가 난다(마을
+       동서 통로·던전 계단문 통로가 실제로 그랬다 — floor·seed와 무관하게
+       100% 재현됐다). 칸은 CHUNK 폭을 가진 **구간**이지 점이 아니므로,
+       "칸 구간이 결 구간과 조금이라도 겹치는가"로 바꾼다 — 겹침 조건은
+       두 구간 중심 거리가 `(칸 반폭 + 결 반폭)`보다 작은가다. 예전
+       조건(`< lane`)을 항상 포함하는 상위집합이라(칸 반폭만큼 관대해질
+       뿐) 이미 걸리던 칸이 안 걸리게 되는 회귀는 없다. */
+    var half = CHUNK / 2;
     for (i = 0; i < corridors.length; i++) {
       co = corridors[i];
       label = co.to ? ('통로:' + co.to) : (co.kind === 'stair' ? '통로:계단' : null);
       if (co.dir === 'E' && cx > spanX) {
         laneAt = (co.laneAt != null) ? co.laneAt : cyW;
-        if (Math.abs(gz - laneAt) < (co.lane || 0)) { return label; }
+        if (Math.abs(gz - laneAt) < half + (co.lane || 0)) { return label; }
       } else if (co.dir === 'W' && cx < 0) {
         laneAt = (co.laneAt != null) ? co.laneAt : cyW;
-        if (Math.abs(gz - laneAt) < (co.lane || 0)) { return label; }
+        if (Math.abs(gz - laneAt) < half + (co.lane || 0)) { return label; }
       } else if (co.dir === 'S' && cz > spanZ) {
         laneAt = (co.laneAt != null) ? co.laneAt : cxW;
-        if (Math.abs(gx - laneAt) < (co.lane || 0)) { return label; }
+        if (Math.abs(gx - laneAt) < half + (co.lane || 0)) { return label; }
       } else if (co.dir === 'N' && cz < 0) {
         laneAt = (co.laneAt != null) ? co.laneAt : cxW;
-        if (Math.abs(gx - laneAt) < (co.lane || 0)) { return label; }
+        if (Math.abs(gx - laneAt) < half + (co.lane || 0)) { return label; }
       }
     }
     return null;
