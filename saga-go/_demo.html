@@ -16,6 +16,7 @@
     #quest   사명(인장)             #bag 행낭(쓰는 물건)      #raid 적장 토벌
     #duel    교전 한복판(탭 전투)    #dueltell 강타 예고 — 피해야 하는 순간
     #petgrow 연성·승화 (잉어 → 청룡)
+    #pethorse 적토마 (말 형태 확인용)     #pettoad 두꺼비 (두꺼비 형태 확인용)
     #rogue   점거된 역참(적도)     #roguewin 탈환 — 암영이 남은 참
     #dark    도감의 암영 칸(정화 대기)
     #perf    프레임 측정
@@ -739,6 +740,9 @@ setTimeout(function () {
   else if (tab === 'detail2') { DG.ui.openSheet('dex'); DG.ui.openDetail('hero', 'sg_zhugeliang'); }
   else if (tab === 'pet') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_cheongryong'); }
   else if (tab === 'petgrow') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_carp'); }
+  /* 2026-09-07 — 새로 채운 형태(말·두꺼비) 확인용. `#pet`(용)·`#petgrow`(물고기)와 같은 자리 */
+  else if (tab === 'pethorse') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_jeoktoma'); }
+  else if (tab === 'pettoad') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_toad'); }
   /* 반려 — 아직 곁에 세우지 않은 종(진돗개)의 화면. 세워 둔 쪽은 #pet(청룡)에서 본다 */
   else if (tab === 'buddy') { DG.ui.openSheet('dex'); DG.ui.openDetail('pet', 'pt_jindo'); }
   else if (tab === 'rogue' || tab === 'roguewin') {

@@ -216,11 +216,28 @@
        `quad`(네 발) 형태가 가장 많아 셋을 섞어 조금이라도 갈린다(같은 인물은
        `oneOf()`가 id 해시로 늘 같은 것을 고른다). `turtle`·`dragon`·`horse`·
        `toad`·`ogre` 형태는 대응 CC0 가 없어 마지막 `pet` 한 줄(같은 셋)로
-       떨어진다 — 거북·용이 사슴 모습이어도 도형보다는 낫다는 판단. */
+       떨어진다 — 거북·용이 사슴 모습이어도 도형보다는 낫다는 판단.
+
+       2026-09-07 — `github.com/trebeljahr/quaternius-showcase`(CC0, 위와 같은
+       미러)에서 열여섯 종을 더 받아 `quad`·`horse`·`toad`·`dragon`·`fish` 다섯
+       형태에 채웠다. `turtle`·`ogre` 만 대응 CC0 를 못 찾아 여전히 `pet`(quad)
+       로 떨어진다 — 다음에 찾으면 이 자리에 추가할 것. */
     'pet:form:quad': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
-      'assets/models/animals/Cow.glb'],
+      'assets/models/animals/Cow.glb', 'assets/models/animals/Alpaca.glb',
+      'assets/models/animals/Bull.glb', 'assets/models/animals/Donkey.glb',
+      'assets/models/animals/Fox.glb', 'assets/models/animals/Husky.glb',
+      'assets/models/animals/ShibaInu.glb', 'assets/models/animals/Stag.glb'],
     'pet:form:bird': 'assets/models/animals/Mesh_Crow.gltf',
-    'pet:form:fish': 'assets/models/animals/Koi.glb',
+    'pet:form:fish': ['assets/models/animals/Koi.glb', 'assets/models/animals/Shark.glb',
+      'assets/models/animals/Dolphin.glb', 'assets/models/animals/Manta_ray.glb'],
+    /* 말 형태(적토마·절영) — animals_pack 의 백마 한 종을 더해 둘이 갈린다 */
+    'pet:form:horse': ['assets/models/animals/Horse.glb', 'assets/models/animals/Horse_White.glb'],
+    /* 두꺼비 — easy_enemies_pack 의 Frog */
+    'pet:form:toad': 'assets/models/animals/Frog.glb',
+    /* 용 형태(청룡·순룡·화룡·이무기) — CC0 용 모델이 없어 파충류로 가장 가까운
+       공룡 넷으로 돌려 쓴다(사슴보다 훨씬 낫다는 판단, 오우거의 도깨비 판단과 같은 결) */
+    'pet:form:dragon': ['assets/models/animals/Trex.glb', 'assets/models/animals/Triceratops.glb',
+      'assets/models/animals/Stegosaurus.glb', 'assets/models/animals/Velociraptor.glb'],
     'pet': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
       'assets/models/animals/Cow.glb'],
 
@@ -362,7 +379,7 @@
 
   var WORDS = {
     idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop'],
-    walk: ['walk', 'walking', 'locomotion', 'move'],
+    walk: ['walk', 'walking', 'locomotion', 'move', 'swim'],  // 'swim' — 물고기 클립(`Swim`)이 걷기 자리를 채운다
     run: ['run', 'running', 'jog'],
     sprint: ['sprint', 'runfast', 'fastrun', 'dash'],
     attack: ['attack', 'atk', 'slash', 'swing', 'strike', 'punch', 'shoot', 'cast'],

@@ -62,6 +62,23 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 셋 다 뼈대 애니메이션을 열두어 개씩 들고 있다(Idle · Walk · Gallop · Eating …).
 `asset3d.js` 의 `mapClips` 가 이름을 씻어 자리에 맞춘다.
 
+**2026-09-07 — 도감 펫(`js/data.js` 의 `PETS`, 41종) 3D 확장.** 여태 도감 펫은
+들짐승 다섯 종(사슴·늑대·소·잉어·까치) 모델을 형태(`form`)별로 돌려 썼다 —
+말·두꺼비·용 형태는 대응 모델이 없어 전부 사슴 모습이었다. 같은 미러
+(`trebeljahr/quaternius-showcase`, CC0)에서 열여섯 종을 더 받아 채웠다:
+
+| 파일 | 형태(`pet:form:*`) | 어느 묶음에서 |
+|---|---|---|
+| `Alpaca.glb`·`Bull.glb`·`Donkey.glb`·`Fox.glb`·`Husky.glb`·`ShibaInu.glb`·`Stag.glb` | `quad` (네발 짐승, 기존 사슴·늑대·소와 섞어 쓴다) | `animals_pack` |
+| `Horse.glb`·`Horse_White.glb` | `horse` (적토마·절영) | `animals_pack` |
+| `Frog.glb` | `toad` (두꺼비) | `easy_enemies_pack` |
+| `Trex.glb`·`Triceratops.glb`·`Stegosaurus.glb`·`Velociraptor.glb` | `dragon` (청룡·순룡·화룡·이무기) — CC0 용 모델이 없어 파충류로 가장 가까운 공룡으로 대신했다 | `dinosaurs_pack` |
+| `Shark.glb`·`Dolphin.glb`·`Manta_ray.glb` | `fish` (잉어와 섞어 쓴다) | `fish_pack` |
+
+**`turtle`·`ogre` 형태는 여전히 대응 CC0 를 못 찾았다** — 현무·해태 등은 아직
+`quad`(사슴 모습)로 떨어진다. 다음에 찾으면 `js/asset3d.js` 의 `pet:form:turtle`·
+`pet:form:ogre` 자리에 채울 것.
+
 `models/buildings/` — 마을은 `js/prop3d.js` 가 `InstancedMesh` 로,
 **역참·성채는 `js/asset3d.js` 가 배우로** 세운다. 같은 파일이 양쪽에 걸려 있다
 
