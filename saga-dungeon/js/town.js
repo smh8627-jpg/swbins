@@ -46,7 +46,14 @@
     try { return global.innerWidth >= 900 && global.innerWidth > global.innerHeight; }
     catch (e) { return false; }
   }
-  var DESK_SCALE = 1.4;
+  /* 2026-09-06 — 사용자가 "마을이 너무 작다"고 지적. `BASE_W`/`BASE_H` 자체를
+     키우면 바로 위 주석의 폰 병목(아이소 마름모 1.83:1, 세로 화면에서 가로가
+     늘 병목)이 그대로 재현돼 사람이 개미만 해진다 — 그건 안 건드린다. 대신
+     이 상수(데스크톱 전용 배율)만 1.4→1.7로 올려 데스크톱에서만 더 넓게
+     쓴다. 폰은 예전과 완전히 같다(회귀 없음). 건물 밀도는 DECOR_MORU와
+     위성 마을 decor에 집을 하나씩 더 얹는 쪽으로 늘렸다(아래) — 좌표
+     자체는 그대로 두고 배율만 커지므로 밀도 문제와는 서로 안 얽힌다. */
+  var DESK_SCALE = 1.7;
   var wide = wideDesktop();
   var ROOM_W = wide ? Math.round(BASE_W * DESK_SCALE) : BASE_W;
   var ROOM_H = wide ? Math.round(BASE_H * DESK_SCALE) : BASE_H;
@@ -127,6 +134,11 @@
     { t: 'house', x: 60, y: 60, h: 130, seed: 11 },
     { t: 'house', x: 500, y: 60, h: 130, seed: 23 },
     { t: 'house', x: 55, y: 235, h: 120, seed: 37 },
+    /* 2026-09-06 — "마을이 너무 작다"(사용자) 콘텐츠 밀도 보강. 기존 소품·
+       NPC·스폰(195,240)에서 전부 100 이상 떨어진 자리를 좌표로 확인하고
+       얹었다(벨타워가 스폰에 너무 가까웠던 함정, 위 주석 참고 — 같은
+       실수를 안 반복하려 거리부터 쟀다). */
+    { t: 'house', x: 430, y: 150, h: 130, seed: 41 },
     { t: 'well', x: 280, y: 250, h: 34 },
     { t: 'blacksmith', x: 520, y: 235, h: 140 },
     /* 2026-09-04 — SAGA WEB.md "E. 건물"의 "탑". 모루골(중심 마을)에만
@@ -195,7 +207,10 @@
         /* 이어서(2026-09-04) — 셋 다 집+우물뿐이라 테마가 안 살아서, 나루터답게
            나그네 쉼터(여관)를 하나씩 다르게 얹었다(자작재=마방, 소금벌=방앗간) */
         { t: 'inn', x: 500, y: 60, h: 130 },
-        { t: 'well', x: 280, y: 330, h: 34 }
+        { t: 'well', x: 280, y: 330, h: 34 },
+        /* 2026-09-06 — "마을이 너무 작다"(사용자). 위성 마을도 집 하나씩
+           더 — NPC·기존 소품과 100 이상 떨어진 자리로 골랐다. */
+        { t: 'house', x: 420, y: 250, h: 120, seed: 51 }
       ],
       exits: [ { dir: 'W', to: 'moru', len: CORRIDOR_LEN } ]
     },
@@ -210,7 +225,8 @@
         { t: 'torch', x: 120, y: WALL - 4, seed: 1.4 }, { t: 'torch', x: 440, y: WALL - 4, seed: 4.6 },
         { t: 'pillar', x: 200, y: 210 }, { t: 'pillar', x: 360, y: 210 },
         { t: 'house', x: 60, y: 60, h: 130 }, { t: 'stable', x: 500, y: 60, h: 130 },
-        { t: 'well', x: 280, y: 330, h: 34 }
+        { t: 'well', x: 280, y: 330, h: 34 },
+        { t: 'house', x: 450, y: 300, h: 120, seed: 52 }
       ],
       exits: [ { dir: 'S', to: 'moru', len: CORRIDOR_LEN } ]
     },
@@ -225,7 +241,8 @@
         { t: 'torch', x: 120, y: WALL - 4, seed: 2.3 }, { t: 'torch', x: 440, y: WALL - 4, seed: 5.8 },
         { t: 'crack', x: 220, y: 120, a: 0.4, len: 40 }, { t: 'pillar', x: 340, y: 230 },
         { t: 'house', x: 60, y: 60, h: 130 }, { t: 'mill', x: 500, y: 60, h: 130 },
-        { t: 'well', x: 280, y: 330, h: 34 }
+        { t: 'well', x: 280, y: 330, h: 34 },
+        { t: 'house', x: 420, y: 300, h: 120, seed: 53 }
       ],
       exits: [ { dir: 'N', to: 'moru', len: CORRIDOR_LEN } ]
     }
