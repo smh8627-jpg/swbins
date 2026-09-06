@@ -262,6 +262,52 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('금 +' + r.gold);
     });
 
+    /* ── 동행(同行) — 부대 2번째 인물이 용병처럼 곁에서 싸운다 ──────
+     * PLAN §51(2026-09-06, 사용자 요청 "동료도 따라다니면서 같이 싸우던지
+     * 용병처럼"). atkOf()(부대 합산)는 안 건드리고 hero.power(id)로 제
+     * 몫을 따로 매겨 덤으로 때린다 — 분신(summon)과 같은 결.
+     */
+
+    t('동행 — 부대 2번째 인물이 있으면 층에 들어가자마자 곁에 선다', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      var ok = !!run.companion && run.companion.id === C.save.party[1];
+      DN.leave();
+      return ok && ('동행 · ' + run.companion.id);
+    });
+
+    t('동행 — 부대가 하나뿐이면 안 선다', function () {
+      var wasParty = C.save.party.slice();
+      C.save.party.length = 1;
+      DN.enter({ floor: 5, mode: 'easy' });
+      var none = DN.raw().companion === null;
+      DN.leave();
+      C.save.party = wasParty;
+      return none && '동행 없음';
+    });
+
+    t('동행 — 때림 배율이 0을 넘고 상한(1.5×0.55) 안에 있다', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var m = DN._companionMul();
+      DN.leave();
+      return m > 0 && m <= 1.5 * 0.55 + 1e-9 && ('배율 ' + m.toFixed(3));
+    });
+
+    t('동행 — 근처 적을 실제로 쫓아가 때린다(선두는 멀리 떨어뜨려 둔다)', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      run.player.x = -999; run.player.y = -999;      // 선두는 못 때리게 멀리
+      var cx = run.companion.x, cy = run.companion.y;
+      var e = DN._spawnEnemy(5, false, { spawned: true, x: cx + 10, y: cy });
+      e.hp = 1e6; e.hpMax = 1e6;
+      run.room.enemies.push(e);
+      DN.update(0.05);
+      var hurt = e.hp < 1e6;
+      DN.leave();
+      return hurt && ('동행 공격 · 남은 체력 ' + Math.round(e.hp) + '/1000000');
+    });
+
     /* ── 장비 ─────────────────────────────────────────── */
 
     t('장비 — 뽑고 담고 장착하면 능력치가 오른다', function () {

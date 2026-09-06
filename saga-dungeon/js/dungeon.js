@@ -620,6 +620,11 @@
     };
     run.shots = [];
     run.foeShots = [];
+    /* 동행(同行) — 부대 2번째 인물이 있으면 용병처럼 곁에서 같이 싸운다
+       (PLAN §51, 2026-09-06 사용자 요청 "동료도 따라다니면서 같이
+       싸우던지 용병처럼"). 층이 바뀔 때만 다시 잡는다 — `run.player`와
+       같은 주기다. */
+    run.companion = spawnCompanion();
     var heal = boonVal('healOnFloor');
     if (heal) { healBy(run.hpMax * heal / 100); }
     /* 역참(驛站) — 원작의 웨이포인트. **다섯 층마다** 밟으면 다음부터 거기서 시작한다.
@@ -640,6 +645,7 @@
     run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
     run.player.x = WALL + 40;
     run.player.y = ROOM_H * 0.5;
+    if (run.companion) { run.companion.x = WALL + 70; run.companion.y = ROOM_H * 0.5 + 34; }
     target = null;
     run.fieldSpawnCd = 4;
     spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
@@ -1950,6 +1956,9 @@
     /* 분신이 대신 싸운다 */
     updateMinions(dt);
     if (!run) { return; }
+    /* 동행(2번째 인물)이 곁에서 같이 싸운다 (PLAN §51) */
+    updateCompanion(dt);
+    if (!run) { return; }
 
     /* 연출 수명 */
     for (i = fx.length - 1; i >= 0; i--) {
@@ -2426,6 +2435,86 @@
     fx.push({ t: 'ring', x: run.player.x, y: run.player.y, life: 0.5 });
   }
 
+  /* ── 동행(同行) — 부대 2번째 인물이 곁에서 같이 싸운다 ──────────
+   * PLAN §51(2026-09-06, 사용자 요청 "동료도 따라다니면서 같이 싸우던지
+   * 용병처럼"). `atkOf()`(부대 전원의 합산 공격력, hero.js `partyPower()`)는
+   * 이미 2번째 인물의 몫까지 안에 들어 있다 — 그래서 이 동행은 **그 값을
+   * 다시 쓰지 않고** `hero.power(id)`(개인 전투력, 부대 합산과 별도 식)로
+   * 자기 몫을 새로 매겨 **덤으로** 때린다. 위 `summon()`의 분신(나무)과
+   * 같은 결이다 — 적이 동행을 때리지 않는다(체력·죽음·부활을 새로
+   * 만들지 않는 선택, 분신과 같은 이유).
+   */
+  function companionHeroId() {
+    var p = core.save.party;
+    return (p && p.length > 1) ? p[1] : null;
+  }
+
+  function spawnCompanion() {
+    var id = companionHeroId();
+    if (!id) { return null; }
+    return {
+      id: id, x: WALL + 70, y: ROOM_H * 0.5 + 34,
+      phase: 0, walking: false, facing: 1,
+      atkCd: 0, atkAnim: 0, dirX: 0, dirY: 1
+    };
+  }
+
+  /** 동행의 때림 배율 — 선두 개인 전투력 대비 제 몫(0.2~1.5배)에
+   *  "덤"이라는 뜻으로 0.55를 곱한다. 선두보다 약해도 최소한의 몫은,
+   *  세게 키워도 선두를 넘어서지는(1.5배 상한) 못하게 눌렀다. */
+  function companionMul() {
+    var HR = global.DG.hero;
+    var id = run.companion && run.companion.id;
+    if (!id || !HR) { return 0; }
+    var cp = HR.power(id), lp = HR.power(leadId()) || 1;
+    return core.clamp(cp / lp, 0.2, 1.5) * 0.55;
+  }
+
+  function updateCompanion(dt) {
+    if (!run || !run.companion) { return; }
+    var c = run.companion, room = run.room, p = run.player, i;
+    c.phase += dt * 7;
+    if (c.atkAnim > 0) { c.atkAnim -= dt; }
+    c.atkCd -= dt;
+
+    var best = null, bd = 1e9;
+    for (i = 0; i < room.enemies.length; i++) {
+      var en = room.enemies[i];
+      if (en.hp <= 0) { continue; }
+      var dd = dist(c, en);
+      if (dd < bd) { bd = dd; best = en; }
+    }
+    var reach = 34;
+    if (best && bd - best.r <= reach) {
+      var d0 = bd || 1;
+      c.dirX = (best.x - c.x) / d0; c.dirY = (best.y - c.y) / d0;
+      c.facing = c.dirX >= 0 ? 1 : -1;
+      c.walking = false;
+      if (c.atkCd <= 0) {
+        c.atkCd = atkCdOf() * 1.25;             // 동행은 선두보다 살짝 느리다(덤이라)
+        c.atkAnim = 0.22;
+        strike(best, companionMul(), 5, 'phys');
+        if (!run) { return; }
+      }
+      return;
+    }
+
+    /* 적이 없거나 사거리 밖 — 그 적에게(있으면), 없으면 선두 곁으로 붙는다 */
+    var goal = best || p;
+    var followR = best ? Math.max(20, best.r + reach - 6) : 46;
+    var gd = dist(c, goal);
+    if (gd > followR) {
+      var d1 = gd || 1, spd = 150;
+      c.dirX = (goal.x - c.x) / d1; c.dirY = (goal.y - c.y) / d1;
+      c.facing = c.dirX >= 0 ? 1 : -1;
+      c.walking = true;
+      c.x = core.clamp(c.x + c.dirX * spd * dt, WALL + P_R, ROOM_W - WALL - P_R);
+      c.y = core.clamp(c.y + c.dirY * spd * dt, WALL + P_R, ROOM_H - WALL - P_R);
+    } else {
+      c.walking = false;
+    }
+  }
+
   function updateMinions(dt) {
     if (!run || !run.minions || !run.minions.length) { return; }
     var room = run.room, i, j;
@@ -2520,6 +2609,8 @@
     _spawnEnemy: spawnEnemy,
     /** 자가진단용 — 재료를 한 번 굴려 본다 (주옥이 얼마나 드문지는 굴려 봐야 안다) */
     _dropMat: dropMat,
+    /** 자가진단용 — 동행(부대 2번째 인물)의 때림 배율을 그대로 읽는다 */
+    _companionMul: companionMul,
     ROOM_W: ROOM_W, ROOM_H: ROOM_H, WALL: WALL, P_R: P_R,
     SKILL_SLOTS: SKILL_SLOTS,
     /** 던전 밖(마을 등)이 같은 필드 메커니즘을 빌려 쓸 때 쓰는 자리 —

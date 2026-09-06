@@ -1416,16 +1416,19 @@
      (heroId 를 밖에서 이미 안다고 가정)라, 여기서는 `leadId()`가 하던 것
      (`core.save.party[0]`)을 그대로 다시 읽는다 — 새 export 를 안 늘리려는
      선택이다 */
-  function meWeaponLook() {
+  /** 그 인물이 실제로 장착한 무기의 look. id를 안 주면 선두(party[0]) —
+   *  2026-09-06 동행(§51) 추가 전엔 늘 선두만 봤어서 id 인자가 없었다. */
+  function weaponLookOf(id) {
     var core = global.DG.core, IT = global.DG.item;
     if (!core || !IT || !core.save || !core.save.party) { return 'sword'; }
-    var id = core.save.party[0];
+    id = id || core.save.party[0];
     if (!id) { return 'sword'; }
     var w = IT.equipped(id).weapon;
     if (!w || IT.isBroken(w)) { return 'sword'; }
     var base = IT.baseOf(w);
     return (base && base.look) || 'sword';
   }
+  function meWeaponLook() { return weaponLookOf(); }
   function npcShape(nc) {
     var sg = new T.Group();
     box(sg, 0, 15, 0, 13, 20, 10, nc, 'flat', true);
@@ -1740,6 +1743,17 @@
       attachWeapon(g, meWeaponLook(), 12 * 1.05, 12 * 0.25, 31.2 * 0.68, 12);
       return g;
     }
+    if (kind === 'ally') {
+      /* 동행(同行, PLAN §51) — 부대 2번째 인물. 'me'와 같은 몸(buildHero) ·
+         무기(attachWeapon) 조립이지만, seed를 그 인물 id로 박아 선두와
+         다른 조합(생김새)이 나오게 한다 — `npc:'+key`와 같은 요령이다. */
+      var allyId = (ref && ref.id) || 'ally';
+      var allyBody = AS3 ? AS3.buildHero('ally:' + allyId, 42, null, meShape) : meShape();
+      g.add(allyBody);
+      g.userData.mixerNode = allyBody;
+      attachWeapon(g, weaponLookOf(allyId), 12 * 1.05, 12 * 0.25, 31.2 * 0.68, 12);
+      return g;
+    }
     var r = (ref && ref.r) || 12;
     var enemyDef = ref && ref.ref;                    // data-enemy.js 의 그 줄(kind·color·look)
     /* 정예는 여덟 갈래(날쌘·완강한·사나운·되살아나는·가시 돋친·그림자·철갑·호신)
@@ -1949,6 +1963,27 @@
       AS3.step(me.node.userData.mixerNode, { t: nowT, walking: !!p.walking, anim: p.atkAnim > 0 ? 'attack' : (p.walking ? 'walk' : 'idle') });
       AS3.flashAllMat(ensureFlash(me.node), p.hurt, 0.28);
     }
+
+    /* 동행(同行, PLAN §51) — 부대 2번째 인물. 'me'와 같은 요령(걷는 방향
+       회전·걸음 튐·GLB 애니메이션)을 그대로 따라간다. dungeon.js의
+       updateCompanion()이 매 틱 c.x·c.y·c.dirX·c.dirY·c.walking·c.atkAnim을
+       이미 판정 층에서 굴려 두므로, 여기(화면 층)는 그 값을 그대로 읽기만
+       한다 — 새 판정을 만들지 않는다. */
+    var c = run.companion;
+    if (c) {
+      var allyGroundY = groundYAt(c.x, c.y);
+      var ally = actorOf('ally', 'ally', c);
+      ally.node.position.set(c.x, allyGroundY, c.y);
+      if (c.walking) { ally.ang = Math.atan2(c.dirX || (c.facing || 1), c.dirY || 0.001); }
+      ally.node.rotation.y = ally.ang;
+      ally.node.position.y = allyGroundY + (c.walking ? Math.abs(Math.sin(c.phase || 0)) * 2.2 : 0);
+      if (AS3) {
+        AS3.step(ally.node.userData.mixerNode, { t: nowT, walking: !!c.walking, anim: c.atkAnim > 0 ? 'attack' : (c.walking ? 'walk' : 'idle') });
+      }
+    }
+    /* c가 없으면(부대 2번째 인물이 없는 회차) 그냥 actorOf('ally',...)를 이번
+       프레임에 안 부른다 — sweep()가 "이번 프레임에 안 쓰인 배우"를 알아서
+       치운다(아래), 여기서 따로 지울 함수를 안 만들어도 된다. */
 
     /* 적 */
     var es = (run.room && run.room.enemies) || [], i;
