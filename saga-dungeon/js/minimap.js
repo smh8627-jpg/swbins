@@ -402,6 +402,19 @@
     return true;
   }
 
+  /** 안내문("탭하면 닫힙니다") 뒤에 옅은 배경을 깔아, 마을에 따라 들길
+   *  라벨이 화면 아래쪽에 몰릴 때도(§52 "남은 것") 안내문이 늘 읽히게 한다.
+   *  라벨 쪽 배치는 그대로 두고(정보를 숨기지 않는다) 안내문만 위에 뜬다. */
+  function fillFooter(ctx, text, x, y) {
+    var w = ctx.measureText(text).width;
+    ctx.save();
+    ctx.fillStyle = 'rgba(6, 8, 14, .72)';
+    ctx.fillRect(x - w / 2 - 10, y - 12, w + 20, 24);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(232,226,210,.8)';
+    ctx.fillText(text, x, y);
+  }
+
   function drawBig() {
     var M = activeMod();
     if (!M || !M.active() || !bigOn || !bigCanvas) { return false; }
@@ -422,9 +435,8 @@
     if (M === global.DG.town) {
       var ok = drawBigWorld(M, W, H);
       bigCtx.font = '600 14px system-ui, sans-serif';
-      bigCtx.fillStyle = 'rgba(232,226,210,.8)';
       bigCtx.textAlign = 'center';
-      bigCtx.fillText('탭하면 닫힙니다', W / 2, H - 20);
+      fillFooter(bigCtx, '탭하면 닫힙니다', W / 2, H - 20);
       return ok;
     }
 
@@ -470,9 +482,8 @@
     bigCtx.stroke();
 
     bigCtx.font = '600 14px system-ui, sans-serif';
-    bigCtx.fillStyle = 'rgba(232,226,210,.8)';
     bigCtx.textAlign = 'center';
-    bigCtx.fillText('탭하면 닫힙니다', W / 2, L.oy + L.h + 24);
+    fillFooter(bigCtx, '탭하면 닫힙니다', W / 2, L.oy + L.h + 24);
     return true;
   }
 
