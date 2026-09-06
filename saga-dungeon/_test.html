@@ -2523,6 +2523,48 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return cur === 'jajak' && ('마이그레이션 후 활성 마을 = ' + cur);
     });
 
+    /* ── 자동지도 Phase 2 — 진짜 지형 기반(포그오브워) (PLAN §28-8, 2026-09-06) ── */
+
+    t('자동지도 — 걸은 칸만 밝혀진다(포그오브워), 안 걸은 칸은 그대로 안개다', function () {
+      var T = DG.town;
+      T._reset('moru');
+      var farCx = 777, farCz = 777;               // 아무도 안 걸어 봤을 먼 칸(다른 항목과 안 겹치게 골랐다)
+      var beforeSeen = T.isSeen(farCx, farCz);
+      T._put(farCx * 200 + 100, farCz * 200 + 100);   // field3d.CHUNK=200, 그 칸 한복판으로
+      T.update(0);
+      var afterSeen = T.isSeen(farCx, farCz);
+      var stillFogged = T.isSeen(farCx + 50, farCz + 50);   // 안 가 본 다른 먼 칸은 그대로
+      T._reset('moru');
+      return !beforeSeen && afterSeen && !stillFogged &&
+        ('걷기 전 안개 · 걸은 뒤 밝혀짐 · 안 걸은 칸(' + (farCx + 50) + ',' + (farCz + 50) + ')은 그대로 안개');
+    });
+
+    t('자동지도 — 칸 지형(worldKindAt)은 결정적이고, 마을 발판 자체는 "town"이다', function () {
+      var T = DG.town, ma = T.anchorOf('moru');
+      var townCx = Math.floor((ma.x + T.ROOM_W / 2) / 200), townCz = Math.floor((ma.y + T.ROOM_H / 2) / 200);
+      var k1 = T.worldKindAt(townCx, townCz);
+      var farCx = 900, farCz = 900;
+      var k2a = T.worldKindAt(farCx, farCz), k2b = T.worldKindAt(farCx, farCz);   // 같은 칸을 두 번 — 결정적이어야
+      return k1 === 'town' && k2a === k2b && !!k2a &&
+        ('모루골 발판 칸 = town · 먼 칸(' + farCx + ',' + farCz + ') = ' + k2a + '(재현됨)');
+    });
+
+    t('미니맵 — 마을이 갈려도(모루골이 아닌 마을도) NPC 점이 방 안(0~1)에 그대로 잡힌다', function () {
+      /* PLAN §28-8 회귀 — norm()이 마을 좌표를 세계 좌표(앵커 포함)로 받게
+         되면서, 앵커를 안 빼면(모루골=원점이라 안 드러나던 버그) 위성
+         마을에서는 점이 전부 화면 밖(0~1 훌쩍 벗어남)으로 몰렸었다. */
+      var T = DG.town, MM = DG.minimap;
+      T._reset('galdae');
+      var raw = T.raw();
+      var npc = raw.room.npcs[0];
+      var n = MM.norm(npc.x, npc.y);
+      var inRange = n.nx >= -0.06 && n.nx <= 1.06 && n.ny >= -0.06 && n.ny <= 1.06;
+      var notAtEdgeClamp = n.nx > 0.05 && n.nx < 0.95;   // 실제로 방 안쪽이지 클램프 끝에 눌린 게 아니다
+      T._reset('moru');
+      return inRange && notAtEdgeClamp &&
+        ('갈대나루 NPC 하나 — norm (' + n.nx.toFixed(2) + ',' + n.ny.toFixed(2) + ')');
+    });
+
     t('오버월드 지도는 넷을 고정 배치로 내놓고, 지금 있는 마을만 가리킨다', function () {
       var T = DG.town;
       T._reset('sogeum');

@@ -61,13 +61,22 @@
     if (T && T.active && T.active()) { return T; }
     return global.DG.dungeon;
   }
+  /** PLAN §28-8(오픈월드 A안) — 마을(town.js) 좌표는 이제 방마다 로컬
+   *  (0..ROOM_W)이 아니라 세계 좌표(앵커 오프셋 포함)다. 마을이 활성일
+   *  때만 그 앵커를 빼서 예전과 같은 "방 안 0~1" 뜻으로 되돌린다 — 던전은
+   *  앵커가 늘 없으므로(0,0) 완전히 예전과 같다. */
   function norm(x, y) {
     var M = activeMod();
     var W = M.ROOM_W, H = M.ROOM_H, WALL = M.WALL;
+    var ax = 0, ay = 0;
+    if (M === global.DG.town && M.currentAnchor) {
+      var a = M.currentAnchor();
+      ax = a.x; ay = a.y;
+    }
     var iw = Math.max(1, W - WALL * 2), ih = Math.max(1, H - WALL * 2);
     return {
-      nx: core.clamp((x - WALL) / iw, -0.06, 1.06),
-      ny: core.clamp((y - WALL) / ih, -0.06, 1.06)
+      nx: core.clamp((x - ax - WALL) / iw, -0.06, 1.06),
+      ny: core.clamp((y - ay - WALL) / ih, -0.06, 1.06)
     };
   }
 
@@ -262,6 +271,91 @@
     return { ox: (winW - mapW) / 2, oy: (winH - mapH) / 2, w: mapW, h: mapH };
   }
 
+  /** 지형 종류별 색(PLAN §28-8 Phase 2) — field3d.kindOf()가 내는 이름
+   *  그대로 키를 쓴다. dungeon3d.js가 실제로 입히는 색과 완전히 같을
+   *  필요는 없다(자동지도는 요약이지 그림 그대로가 아니다) — 성격(숲=
+   *  초록·물=파랑·바위=회색 등)만 한눈에 갈리면 된다. */
+  var KIND_COLOR = {
+    forest: '#3a5f3a', rock: '#6b6b64', ruin: '#7a6f5a', cliff: '#54504a',
+    road: '#8a7a5a', water: '#2f5a78', cave: '#201d1a', altar: '#5a4a78',
+    camp: '#7a5030', swamp: '#4a5a3a'
+  };
+  var WORLD_VIEW_HALF = 3200;   // 화면 중심(플레이어) 기준 세계 좌표로 이만큼(±) 보여준다
+
+  /** 마을(town.js) 전용 — 진짜 지형 기반 자동지도(PLAN §28-8 Phase 2).
+   *  "점만 보인다"던 지적을 구조적으로 푼다: 방 하나가 아니라 **밝힌
+   *  들판 칸(포그오브워)의 실제 지형**을 세계 좌표 그대로 그린다. 던전은
+   *  안 건드린다(아래 drawBig()이 따로 가른다) — 던전은 여전히 방 하나뿐인
+   *  옛 방식 그대로.
+   */
+  function drawBigWorld(T, W, H) {
+    var F = global.DG.field3d;
+    var run = T.raw();
+    if (!run || !run.player || !F) { return false; }
+    var p = run.player;
+    /* WORLD_VIEW_HALF 은 "짧은 쪽 화면 절반"이 세계 좌표로 얼마인지만
+       정한다 — scale 은 그 짧은 쪽 기준으로 잡되, 칸을 훑는 범위(cx0..cx1
+       등)는 **실제 화면 W·H 전체**로 다시 재야 한다. 안 그러면 화면이
+       정사각형이 아닐 때(대개 그렇다) 긴 쪽 여백이 그냥 안 그려진 채로
+       남는다 — 실제로 그렇게 비어 보였다(CDP 스크린샷으로 확인). */
+    var half = WORLD_VIEW_HALF;
+    var scale = Math.min(W, H) * 0.92 / (half * 2);
+    var ox = W / 2, oy = H / 2;
+    function toScreen(wx, wy) { return { x: ox + (wx - p.x) * scale, y: oy + (wy - p.y) * scale }; }
+
+    var CHUNK = F.CHUNK;
+    var halfX = (W / 2) / scale, halfY = (H / 2) / scale;
+    var cx0 = Math.floor((p.x - halfX) / CHUNK) - 1, cx1 = Math.floor((p.x + halfX) / CHUNK) + 1;
+    var cz0 = Math.floor((p.y - halfY) / CHUNK) - 1, cz1 = Math.floor((p.y + halfY) / CHUNK) + 1;
+    var tilePx = Math.max(1, CHUNK * scale) + 1;   // +1 — 인접 칸 사이 이음매(반올림 틈)가 안 뜨게
+    var cx, cz;
+    for (cz = cz0; cz <= cz1; cz++) {
+      for (cx = cx0; cx <= cx1; cx++) {
+        if (!T.isSeen(cx, cz)) { continue; }        // 안 밝힌 칸은 안개 그대로
+        var kind = T.worldKindAt(cx, cz);
+        var col = kind === 'town' ? '#5a4a30' : (KIND_COLOR[kind] || '#3a3a3a');
+        var s = toScreen(cx * CHUNK, cz * CHUNK);
+        bigCtx.fillStyle = col;
+        bigCtx.fillRect(s.x, s.y, tilePx, tilePx);
+      }
+    }
+
+    /* 마을 위치는 늘 보인다(존재 자체는 이미 아는 정보 — 옛 오버월드 창이
+       고정 배치를 늘 보여 주던 것과 같은 생각) — 화면 밖이면 건너뛴다. */
+    var towns = T.overworld.list(), i;
+    bigCtx.font = '600 13px system-ui, sans-serif';
+    bigCtx.textBaseline = 'middle';
+    for (i = 0; i < towns.length; i++) {
+      var tw = towns[i], a = tw.anchor || T.anchorOf(tw.id);
+      var cxw = a.x + T.ROOM_W / 2, cyw = a.y + T.ROOM_H / 2;
+      var s2 = toScreen(cxw, cyw);
+      if (s2.x < -30 || s2.x > W + 30 || s2.y < -30 || s2.y > H + 30) { continue; }
+      bigCtx.fillStyle = STYLE.exit.c;
+      bigCtx.beginPath(); bigCtx.arc(s2.x, s2.y, 5, 0, Math.PI * 2); bigCtx.fill();
+      bigCtx.textAlign = s2.x <= W / 2 ? 'left' : 'right';
+      bigCtx.fillText(tw.name, s2.x + (s2.x <= W / 2 ? 10 : -10), s2.y);
+    }
+
+    /* 지금 방(마을 안이면 NPC·표식, 들판이면 빈 배열) 점 — 예전과 같은 blips() */
+    var bs = blips(run), st;
+    for (i = 0; i < bs.length; i++) {
+      st = STYLE[bs[i].t] || STYLE.enemy;
+      var eo = run.anchor || { x: 0, y: 0 };
+      /* blips() 는 norm()(0~1, 방 기준)을 낸다 — 세계 좌표로 되돌리려면
+         그 방(anchor~anchor+ROOM)의 실제 폭으로 다시 편다. */
+      var ewx = eo.x + bs[i].nx * T.ROOM_W, ewy = eo.y + bs[i].ny * T.ROOM_H;
+      var es = toScreen(ewx, ewy);
+      bigCtx.fillStyle = st.c;
+      bigCtx.beginPath(); bigCtx.arc(es.x, es.y, st.r * 2.3, 0, Math.PI * 2); bigCtx.fill();
+    }
+
+    /* 나 — 화면 중심에 고정 */
+    bigCtx.fillStyle = '#f5b445';
+    bigCtx.beginPath(); bigCtx.arc(ox, oy, 7, 0, Math.PI * 2); bigCtx.fill();
+    bigCtx.strokeStyle = 'rgba(0,0,0,.7)'; bigCtx.lineWidth = 2; bigCtx.stroke();
+    return true;
+  }
+
   function drawBig() {
     var M = activeMod();
     if (!M || !M.active() || !bigOn || !bigCanvas) { return false; }
@@ -276,6 +370,17 @@
     /* 반투명 — 게임 화면을 완전히 안 가린다("투명으로 보여 줄 수도 있고") */
     bigCtx.fillStyle = 'rgba(6, 8, 14, .62)';
     bigCtx.fillRect(0, 0, W, H);
+
+    /* 마을(town.js) — 진짜 지형 기반 세계 지도(PLAN §28-8 Phase 2). 던전은
+       옛 "방 하나짜리 판" 그대로 아래로 내려간다(회귀 없음). */
+    if (M === global.DG.town) {
+      var ok = drawBigWorld(M, W, H);
+      bigCtx.font = '600 14px system-ui, sans-serif';
+      bigCtx.fillStyle = 'rgba(232,226,210,.8)';
+      bigCtx.textAlign = 'center';
+      bigCtx.fillText('탭하면 닫힙니다', W / 2, H - 20);
+      return ok;
+    }
 
     var L = bigLayout(W, H, M.ROOM_W, M.ROOM_H, M.WALL);
     bigCtx.strokeStyle = 'rgba(212, 178, 110, .75)';

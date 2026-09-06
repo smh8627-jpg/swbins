@@ -407,6 +407,52 @@
   }
 
   /**
+   * 칸 하나(cx,cz)의 지형 종류(PLAN §28-8 Phase 2, 자동지도용) — 그 칸에서
+   * 가장 가까운 마을을 기준으로 ring·씨앗·테마를 재서 field3d.kindOf()를
+   * 그대로 부른다. **dungeon.js의 fieldBlockedAt·dungeon3d.js의 buildField가
+   * 쓰는 것과 정확히 같은 산식**이어야 한다 — 안 그러면 "자동지도엔 숲인데
+   * 실제로 걸으면 바위에 막힌" 어긋남이 생긴다(§28-2 Phase 3가 이미 겪은
+   * 함정과 같은 종류). 순수 함수, three 필요 없다.
+   */
+  function worldKindAt(cx, cz) {
+    var F = global.DG.field3d;
+    if (!F) { return null; }
+    var wx = cx * F.CHUNK + F.CHUNK / 2, wy = cz * F.CHUNK + F.CHUNK / 2;
+    var id = nearestTownId(wx, wy), a = anchorOf(id), cfg = cfgOf(id);
+    var acx = Math.floor(a.x / F.CHUNK), acz = Math.floor(a.y / F.CHUNK);
+    var ring = F.ringOf(cx - acx, cz - acz, ROOM_W, ROOM_H);
+    if (ring === 0) { return 'town'; }        // 마을 발판 자체 — 지형이 아니다
+    var seed = F.seedOf(0, undefined, cfg.theme.name);
+    return F.kindOf(cx, cz, seed, ring, cfg.theme.name);
+  }
+
+  /**
+   * 밝힌 칸(포그오브워, PLAN §28-8 Phase 2) — 자동지도가 "지나온 곳을
+   * 기억"하게 세이브(core.save.town.seen)에 "cx,cz" 키로 쌓는다. 마을
+   * 발판(ring 0)은 따로 안 밝힌다 — 마을 자체는 시작부터 다 아는 곳이라
+   * 자동지도가 늘 보여준다(아래 minimap.js), 들판만 실제로 걸어야 밝혀진다.
+   */
+  var VISION_CHUNKS = 2;
+  var lastSeenCx = null, lastSeenCz = null;
+  function markSeen(x, y) {
+    var F = global.DG.field3d;
+    if (!F || !core.save.town) { return; }
+    var ccx = Math.floor(x / F.CHUNK), ccz = Math.floor(y / F.CHUNK);
+    if (ccx === lastSeenCx && ccz === lastSeenCz) { return; }   // 같은 칸이면 다시 안 돈다
+    lastSeenCx = ccx; lastSeenCz = ccz;
+    if (!core.save.town.seen) { core.save.town.seen = {}; }
+    var seen = core.save.town.seen, dx, dz;
+    for (dz = -VISION_CHUNKS; dz <= VISION_CHUNKS; dz++) {
+      for (dx = -VISION_CHUNKS; dx <= VISION_CHUNKS; dx++) {
+        seen[(ccx + dx) + ',' + (ccz + dz)] = 1;
+      }
+    }
+  }
+  function isSeen(cx, cz) {
+    return !!(core.save.town && core.save.town.seen && core.save.town.seen[cx + ',' + cz]);
+  }
+
+  /**
    * 마을 하나를 세계 좌표에 짓는다(PLAN §28-8) — CURRENT_TOWN 이 가리키는
    * 마을을 anchorOf(CURRENT_TOWN) 자리에 앉힌다. **플레이어 위치는 안
    * 건드린다** — 이제 위치는 이 마을에 매인 것이 아니라 세계 전체에 걸친
@@ -542,6 +588,7 @@
     input.dx = 0; input.dy = 0;
     target = null;
     fx.length = 0;
+    markSeen(player.x, player.y);           // 포그오브워 — 처음 서는 자리 둘레는 바로 밝힌다
     saveWorldPos();
     core.emit('town:enter', null);
     core.emit('changed');
@@ -677,6 +724,7 @@
        넘긴다(위 raw() 참고). */
     var ctx = raw();
     D().fieldBoundPlayer(player, px0, py0, ctx);
+    markSeen(player.x, player.y);           // 포그오브워(PLAN §28-8 Phase 2) — 실제로 선 자리 기준
 
     /* 들판 로머 — 던전과 같은 주기·상한(PLAN 10절 "필드 사냥"과 동일 규칙) */
     fieldSpawnCd -= dt;
@@ -794,6 +842,11 @@
       return out;
     },
     pickActiveTown: pickActiveTown, nearestTownId: nearestTownId, footprintDist: footprintDist,
+    /** PLAN §28-8 Phase 2(자동지도) — minimap.js가 읽는다. worldKindAt·
+     *  isSeen 은 순수(three 필요 없음), currentAnchor 는 raw()와 같은 값을
+     *  raw() 없이(town 이 꺼져 있어도) 셀 수 있게 한다. */
+    worldKindAt: worldKindAt, isSeen: isSeen,
+    currentAnchor: function () { return anchorOf(CURRENT_TOWN ? CURRENT_TOWN : nearestTownId(player ? player.x : 0, player ? player.y : 0)); },
     /** 지역 진입 전 미리 로드(PLAN 39절, `dungeon3d.js`의 `prefetchTownDest()`가
      *  읽는다) — 그 마을 decor 에 쓰이는 건물 종류(house·well·inn 등)를
      *  중복 없이 돌려준다. 순수 함수, three 필요 없다. */
