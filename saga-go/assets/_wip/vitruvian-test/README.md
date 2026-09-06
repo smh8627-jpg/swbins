@@ -1,7 +1,9 @@
-# Vitruvian × Mesh2Motion 실사 캐릭터 시험판 (2026-09-05)
+# Vitruvian × Mesh2Motion 실사 캐릭터 시험판 (2026-09-05, 2026-09-06 게임에 물림)
 
-**아직 게임에 안 물렸다.** HERO_RECIPES(`js/asset3d.js`)에도 안 넣었고, `ASSET_LICENSES.md`에도
-아직 안 적었다 — 검증용 산출물이다. 다음 세션이 실제로 쓸지 결정한다.
+**2026-09-06에 실제로 물렸다.** `js/asset3d.js`의 `HERO_RECIPES`에 `vitruvian_v1`
+키로 들어갔고, `assets/ASSET_LICENSES.md`에도 출처·흠을 적었다. 이 파일은 그
+과정에서 밟은 시행착오(수작업 관절 맞추기·다리 피부색 문제)를 남긴 실무 기록으로
+남긴다 — 재작업하거나 더 뽑을 때 다시 볼 것.
 
 ## 이게 뭔가
 

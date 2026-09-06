@@ -1066,6 +1066,37 @@ resize` 512×512 → 3.6~4.3MB, 기존 v3~v11과 같은 크기대):
   추가해 8벌 기준으로 갱신했다 — **`HERO_RECIPES`를 늘릴 때마다 이
   테스트도 같이 봐야 한다**는 걸 여기 적어 둔다
 
+## Vitruvian Project + Mesh2Motion — 사진측량 실사 인물 첫 벌 (2026-09-06, `models/people/vitruvian/`)
+
+| 항목 | |
+|---|---|
+| **몸(스캔 메시·텍스처)** | Vitruvian Project — CC0 1.0 Universal (itch.io `withinamnesia/vitruvian-project-cc0`) |
+| **리그·애니메이션** | Mesh2Motion (mesh2motion.org) — MIT(도구) + CC0(제공 스켈레톤·애니메이션 라이브러리) |
+| **저작자 표시** | 필요 없다(둘 다 CC0/MIT). 그래도 출처를 적어 둔다 |
+| **재배포** | 허용된다 |
+| **넣은 파일** | `vitruvian_v1.glb` — 몸 African 스킨(얼굴·몸통·팔) + Mesh2Motion Human 스켈레톤(28본) + 자체 애니메이션 6종(Fighting_Idle·Walk·Run_Female·Sword_Attack·Hit_Chest·Death_A) |
+
+**만든 방법**: `VitruvianProject142.blend`(3.7만 정점 원본을 약 9%로 데시메이트) +
+4K 텍스처 zip에서 뽑은 BaseColor를 Mesh2Motion에 올려 자동 리깅한 뒤, 어깨·팔꿈치·
+손·엉덩이·무릎·발 관절을 손으로 맞추고 CC0 애니메이션 라이브러리(162종 중 6개,
+Mixamo 안 거침)를 얹어 export했다.
+
+**알려진 흠 — 다리 피부색 불일치**: Vitruvian 4K/8K 텍스처 zip 어디에도 African
+Legs BaseColor가 없어서(Face·Torso·Arms만 있다) 다리만 범용 Utility 텍스처를
+썼다 — 몸통보다 밝게 튄다. 원본 자료(`.blend`·텍스처 zip)는
+`assets/_wip/vitruvian-test/README.md`에 실제 디스크 경로가 남아 있다 — 다시 받을
+필요 없이 재작업할 수 있다.
+
+**게임 코드에 문 자리**: `js/asset3d.js`의 `HERO_RECIPES` — `key: 'vitruvian_v1'`,
+QRPG와 같은 결로 `anim`을 `body`와 같은 파일로 줘(제 클립을 그대로 쓴다) 리타깃이
+필요 없다. 클립 이름이 `mapClips()`의 idle·walk·run·attack·hit·death 키워드에
+그대로 걸리는 것을 헤드리스로 확인했다(`glb-inspect` 임시 스크립트로 애니메이션·
+스켈레톤 28본을 직접 읽음 — three.js 없이 GLB 바이너리 JSON 청크만 파싱).
+
+**이 파이프라인을 더 쓸지**: 인물 한 벌당 관절 맞추기가 수작업(5~10분)이라
+대량 생산엔 안 맞는다. "이 캐릭터만은 꼭 실사로" 싶은 한둘에 쓰는 게 현실적 —
+다음에 더 뽑을지는 그때 다시 판단한다.
+
 ## 도감 펫 초상 — 이미 있는 들짐승 다섯 종을 형태별로 재사용 (2026-09-05)
 
 새 파일은 하나도 안 받았다 — **표(`asset3d.js` `DEFAULTS`) 등록만 늘렸다.**

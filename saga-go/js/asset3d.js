@@ -128,6 +128,21 @@
      완전히 같다는 걸 재확인했다. `toon01`·`_special_suit` 두 벌은 뺐다
      (비실사·의상 특화라 다양성 목적에 안 맞음). 자세한 내용은
      `assets/ASSET_LICENSES.md` 참고 */
+  /* 2026-09-06 — Mesh2Motion(mesh2motion.org, MIT+CC0) 으로 직접 리깅한 사진측량
+     실사 인체(Vitruvian Project, CC0) 첫 벌을 넣는다. QRPG 와 같은 결(뼈대·클립이
+     제 파일 안에 다 있다)이라 `anim` 을 `body` 와 같은 파일로 준다 — 클립 이름
+     (Fighting_Idle·Walk·Run_Female·Sword_Attack·Hit_Chest·Death_A)이 `mapClips()`
+     의 키워드(idle·walk·run·attack·hit·death)에 그대로 걸려 리타깃이 필요 없다.
+     **알려진 흠**: 다리 피부(`Vitruvian_Legs_BaseColor_Utility`)가 얼굴·몸통·팔의
+     African 피부보다 밝은 범용 텍스처다 — 원본 4K/8K 텍스처 zip 어디에도 African
+     Legs BaseColor 가 없었다(자세한 내용·재현 방법은
+     `assets/_wip/vitruvian-test/README.md`). 이 도구로 인물을 더 뽑으려면 관절
+     맞추기(어깨·팔꿈치·손·엉덩이·무릎·발)를 매번 손으로 해야 한다 — 대량 생산용은
+     아니다. 자세한 내용은 `assets/ASSET_LICENSES.md` 참고 */
+  HERO_RECIPES = HERO_RECIPES.concat([
+    { key: 'vitruvian_v1', body: PEOPLE + 'vitruvian/vitruvian_v1.glb', anim: PEOPLE + 'vitruvian/vitruvian_v1.glb' }
+  ]);
+
   HERO_RECIPES = HERO_RECIPES.concat([
     { key: 'mpfb_v12', body: PEOPLE_MPFB + 'v12.glb' },  // middleage_african_female + bob02 + female_casualsuit01
     { key: 'mpfb_v13', body: PEOPLE_MPFB + 'v13.glb' },  // middleage_asian_female + short04 + female_casualsuit02

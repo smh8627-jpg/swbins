@@ -4053,7 +4053,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('일흔 명 × 네 무리 = ' + (D.heroes.length * 4) + '자리 모두 정확히 하나');
     });
 
-    t('에셋 — 인물 스물여섯 벌이 갖춰져 있다 (통짜형은 제 몸짓, 조합형·MPFB실사는 UAL 옮겨입기)', function () {
+    t('에셋 — 인물 스물일곱 벌이 갖춰져 있다 (통짜형은 제 몸짓, 조합형·MPFB실사는 UAL 옮겨입기)', function () {
       var A = DG.asset3d;
       /* 2026-09-03 — 기본이 QRPG(통짜 스킨, 제 파일에 클립이 있어 body·anim 만
          있으면 된다)로 바뀌었다. 옛 조합형(몸+옷+머리, UAL 몸짓을 옮겨 입음)은
@@ -4074,9 +4074,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          (`mpfb_v12`~`mpfb_v23`)을 예방적 마스킹까지 적용해 마저 뽑아 QRPG 6 +
          MPFB 실사 20 = 스물여섯 벌이 됐다. 그래서
          **몸만 있는 형태**도 받아 준다(그 경우 몸짓은 어차피 ANIM_SRC를
-         빌리므로 검증할 게 없다) */
+         빌리므로 검증할 게 없다).
+         2026-09-06 — Mesh2Motion 실사 인물(`vitruvian_v1`, 제 클립이 있어
+         QRPG와 같은 결)이 하나 더 붙어 스물일곱 벌이 됐다 */
       return A.ANIM_SRC.indexOf('UAL') >= 0 &&
-        A.DEFAULTS.hero.length === 26 &&
+        A.DEFAULTS.hero.length === 27 &&
         A.DEFAULTS.hero.every(function (r) {
           return r && r.body && r.key &&
             ((r.outfit && r.hair) || r.anim || (!r.outfit && !r.hair && !r.anim));
