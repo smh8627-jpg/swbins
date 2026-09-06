@@ -58,7 +58,10 @@
     /* 바람 — 피했을 때 옆으로 스친다 */
     wind: { color: 0x9fd8f5, n: 6, life: 0.3, speed: 11, size: 1.2, flat: true, rise: 0.6, add: true },
     /* 경고 — 강타 예고. 상대 위로 천천히 떠오르는 붉은 빛(다른 넷과 안 겹치는 색) */
-    warn: { color: 0xff3b3b, n: 3, life: 0.9, speed: 1.4, size: 2.1, flat: true, rise: 2.0, add: true }
+    warn: { color: 0xff3b3b, n: 3, life: 0.9, speed: 1.4, size: 2.1, flat: true, rise: 2.0, add: true },
+    /* 금빛 — 스태거(적 기절)·회심의 일격. 다른 다섯과 안 겹치는 밝은 노랑,
+       MH류의 "빈틈이 열렸다" 손맛은 색부터 달라야 눈에 확 든다 */
+    gold: { color: 0xffe066, n: 10, life: 0.5, speed: 8, size: 1.4, flat: false, rise: 2.4, add: true }
   };
 
   function geo(T, flat) {
@@ -207,6 +210,21 @@
         if (o.kind === 'quick') {
           w.shake(amp * 0.45); burst(s.x, s.z, 'slash', 1.7);
           anim(w, 'me', 'attack', 240); anim(w, 'foe', 'hit', 240);
+        } else if (o.kind === 'combo') {
+          /* 연타 회심 — 속공보다 굵게, 필살보다는 얕게(2026-09-06, "전투를 더 잼나게") */
+          w.shake(amp * 0.9); burst(s.x, s.z, 'slash', 2.1); burst(s.x, s.z, 'gold', 1.0);
+          anim(w, 'me', 'attack', 300); anim(w, 'foe', 'hit', 300);
+        } else if (o.kind === 'charge') {
+          if (o.whiffed) {
+            w.shake(amp * 0.3); burst(s.x, s.z, 'wind', 1.0);
+            anim(w, 'me', 'attack', 260);
+          } else {
+            w.hold(90); w.shake(amp * 1.6); burst(s.x, s.z, 'flame', 1.2);
+            anim(w, 'me', 'attack', 420); anim(w, 'foe', 'hit', 420);
+          }
+        } else if (o.kind === 'stagger') {
+          /* 적이 기절했다 — 타격이 아니라 상태 변화라 hold(hit-stop)는 안 준다 */
+          w.shake(amp * 0.6); burst(s.x, s.z, 'gold', 1.8);
         } else if (o.kind === 'ult') {
           /* 필살에만 hit-stop 을 준다 — 아무 데나 넣으면 화면이 계속 걸린다 */
           w.hold(110); w.shake(amp * 1.9); burst(s.x, s.z, 'flame', 1.4);
@@ -217,11 +235,14 @@
         }
       } else {
         if (o.kind === 'heavy') {
+          /* 강타류 패턴마다 세기가 다르다(2026-09-06) — 돌진은 더 세게, 휩쓸기는
+             더 약하게(대신 반경이 넓다). `move` 가 없으면(옛 신호) 그대로 1배 */
+          var moveAmp = o.move === 'charge' ? 1.3 : (o.move === 'sweep' ? 0.85 : 1);
           if (o.dodged) {
-            w.shake(amp * 0.5); burst(s.x, s.z, 'wind', 1.3);
+            w.shake(amp * 0.5 * moveAmp); burst(s.x, s.z, 'wind', 1.3);
             anim(w, 'foe', 'attack', 420); anim(w, 'me', 'dodge', 380);
           } else {
-            w.hold(70); w.shake(amp * 2.4); burst(s.x, s.z, 'dust', 1.0);
+            w.hold(70); w.shake(amp * 2.4 * moveAmp); burst(s.x, s.z, 'dust', moveAmp);
             anim(w, 'foe', 'attack', 420); anim(w, 'me', 'hit', 420);
           }
         } else if (o.kind === 'hit') {
