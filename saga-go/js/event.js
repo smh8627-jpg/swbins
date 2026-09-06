@@ -542,7 +542,7 @@
    * 무대가 끝나면 그 승패를 들고 원래 자리로 돌아와 `resolve` → `apply` 로 흐른다.
    */
   function openDuel(ev, cid, ctx, after) {
-    var D = global.DG.duel;
+    var D = global.DG.rogueAction || global.DG.duel;
     var foe = FOES[ev.foe];
     var pw = global.DG.hero.partyPower();
     /* 적의 기세 — 힘에 비례한다. 싸움 하나가 대략 20~40초에 끝나게 잡았다 */

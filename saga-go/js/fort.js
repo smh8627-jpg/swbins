@@ -364,6 +364,7 @@
   function renderResult(res, p) {
     var el = host();
     if (!el) { return; }
+    el.classList.add('show');
     var lines = '';
     for (var i = 0; i < res.rounds.length; i++) {
       var r = res.rounds[i];
@@ -387,6 +388,7 @@
   function renderRaidResult(res, p) {
     var el = host();
     if (!el) { return; }
+    el.classList.add('show');
     var r = res.raid;
     var lines = '';
     for (var i = 0; i < res.rounds.length; i++) {
@@ -423,9 +425,15 @@
     var R = global.DG.raid;
     var raid = R ? R.current(cur) : null;
     if (!raid) { render(); return; }
-    var D = global.DG.duel;
+    var D = global.DG.rogueAction || global.DG.duel;
     if (!D) { finishRaid(R.fight(raid)); return; }
     var pw = global.DG.hero.partyPower();
+    /* rogueAction(도적전과 같은 몬스터헌터 나우식 실시간 전투)은 duel.js와
+       달리 별도 화면(#rogue-hud)을 쓴다 — 이 카드(#encounter)는 스스로
+       숨지 않으므로 직접 숨기고, 결과 화면(renderRaidResult)이 다시 켠다
+       (`rogue.js`의 `startDuel()`과 같은 손). */
+    var el = host();
+    if (el) { el.classList.remove('show'); }
     D.open({
       title: '⚔️ 토벌 — ' + raid.tier.name,
       foeName: raid.hero.name,
@@ -434,7 +442,12 @@
       foeHp: raid.hp, myAtk: pw.atk, myDef: pw.def,
       onDone: function (p) {
         /* 한 대도 못 때리고 물러났으면 격문을 쓰지 않는다 */
-        if (p.fled && p.dealt <= 0) { render(); return; }
+        if (p.fled && p.dealt <= 0) {
+          var el2 = host();
+          if (el2) { el2.classList.add('show'); }
+          render();
+          return;
+        }
         finishRaid(R.fight(raid, { live: true, dealt: p.dealt, folded: p.folded }), p);
       }
     });
@@ -447,11 +460,15 @@
 
   function startFortDuel() {
     var info = infoOf(cur);
-    var D = global.DG.duel;
+    var D = global.DG.rogueAction || global.DG.duel;
     if (!D) { finishFort(challenge(cur)); return; }
     var pw = global.DG.hero.partyPower();
     var gsum = 0, i;
     for (i = 0; i < info.guards.length; i++) { gsum += guardPower(info.guards[i], info.tier); }
+    /* rogueAction은 duel.js와 달리 별도 화면(#rogue-hud)을 쓴다 — 이 카드는
+       스스로 숨지 않으므로 직접 숨기고, 결과 화면(renderResult)이 다시 켠다. */
+    var el0 = host();
+    if (el0) { el0.classList.remove('show'); }
     D.open({
       title: '🏯 성채 공략 — ' + cur.name,
       foeName: info.factionName + ' 수비대 ' + info.guards.length + '명',
@@ -462,7 +479,12 @@
       stage3d: info.guards[0] ? { kind: 'hero', ref: info.guards[0] } : null,
       foeHp: Math.max(1, gsum * 8), myAtk: pw.atk, myDef: pw.def,
       onDone: function (p) {
-        if (p.fled && p.dealt <= 0) { render(); return; }
+        if (p.fled && p.dealt <= 0) {
+          var el1 = host();
+          if (el1) { el1.classList.add('show'); }
+          render();
+          return;
+        }
         finishFort(challenge(cur, { live: true, score: p.score }), p);
       }
     });
