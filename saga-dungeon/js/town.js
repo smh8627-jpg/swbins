@@ -212,10 +212,13 @@
            더 — NPC·기존 소품과 100 이상 떨어진 자리로 골랐다. */
         { t: 'house', x: 420, y: 250, h: 120, seed: 51 }
       ],
-      /* 2026-09-06 — PLAN §28-3 Phase 1. 위성↔위성 지름길(모루골을 안 거치고
-         옆 사분면으로 바로 감) 첫 쌍 — 갈대나루↔자작재만, 대칭 왕복. */
+      /* 2026-09-06 — PLAN §28-3 Phase 1(갈대나루↔자작재) + 후속(갈대나루↔소금벌).
+         위성↔위성 지름길(모루골을 안 거치고 옆 사분면으로 바로 감), 대칭 왕복.
+         자작재-소금벌(N-S)은 설계안이 "모루골을 그대로 관통해 새 통로 의미가
+         없다"고 뺀 조합이라 여전히 안 잇는다. */
       exits: [ { dir: 'W', to: 'moru', len: CORRIDOR_LEN },
-               { dir: 'N', to: 'jajak', len: CORRIDOR_LEN } ]
+               { dir: 'N', to: 'jajak', len: CORRIDOR_LEN },
+               { dir: 'S', to: 'sogeum', len: CORRIDOR_LEN } ]
     },
     jajak: {
       id: 'jajak', name: '자작재', dirFromHub: 'N',
@@ -248,7 +251,9 @@
         { t: 'well', x: 280, y: 330, h: 34 },
         { t: 'house', x: 420, y: 300, h: 120, seed: 53 }
       ],
-      exits: [ { dir: 'N', to: 'moru', len: CORRIDOR_LEN } ]
+      /* 2026-09-06 — PLAN §28-3 후속(갈대나루↔소금벌, galdae 쪽과 대칭 왕복). */
+      exits: [ { dir: 'N', to: 'moru', len: CORRIDOR_LEN },
+               { dir: 'E', to: 'galdae', len: CORRIDOR_LEN } ]
     }
   };
   var TOWN_ORDER = ['moru', 'galdae', 'jajak', 'sogeum'];
