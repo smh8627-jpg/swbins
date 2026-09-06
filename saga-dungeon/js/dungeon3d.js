@@ -1840,6 +1840,22 @@
        같으면 그냥 넘어가니 "등급이 바뀔 때만" 을 따로 가리지 않았다. */
     if (renderer) { renderer.shadowMap.enabled = SHADOW(); }
 
+    /* PLAN §28-8(오픈월드 A안, 2026-09-06 Phase 4에서 찾음) — 마을은 이제
+       `run.player`·`room.npcs`·`room.marks`·`shots`·`foeShots`가 전부
+       **세계 좌표**(앵커 포함)다. 그런데 이 3D 장면(바닥·벽·들판 땅)은
+       처음부터 **방 하나 로컬 좌표**(0..ROOM_W, 0..ROOM_H 안팎)로 지어
+       왔고 바꾸지 않았다 — 그게 맞다, `buildRoom()`/`buildField()`를 24개
+       마을마다 다른 좌표로 다시 짓는 것보다 훨씬 싸다(방 자체는 마을마다
+       똑같이 생겼으니). 대신 **화면(이 파일)이 세계 좌표를 읽는 자리마다
+       앵커를 빼 로컬로 되돌린다** — 카메라·빛·플레이어·NPC·표식·투사체
+       전부. 앵커가 (0,0)인 모루골만 우연히 맞았고(로컬==세계), 나머지
+       23개 마을은 카메라가 세계 좌표(예: 갈대나루 스폰 근방 5190,480)를
+       그대로 보라고 지시받는데 바닥·벽은 로컬(560,380) 언저리에 그대로
+       있어 화면 전체가 새까맣게 나오는 회귀였다(CDP로 실측 — 넓은 창에서
+       갈대나루·절차 생성 마을 전부 재현, 모루골만 정상). 던전은 `run.anchor`
+       가 없어(항상 undefined) `{0,0}`으로 떨어지므로 회귀 없음. */
+    var anc = run.anchor || { x: 0, y: 0 };
+
     var W = d().ROOM_W, H = d().ROOM_H;
     /* 지형 높낮이(2026-09-06 실기기 제보 — "바닥 높낮이 때문에 캐릭터가
        다 가려짐") — 나·적·마을 사람은 지금까지 늘 y=0 에 그려졌는데,
@@ -1906,8 +1922,9 @@
        빛의 위치·과녁을 **플레이어를 따라가게** 바꿔 상자 자체를 늘 플레이어
        둘레에 두면, 들판 어디를 걷든 그 자리는 늘 상자 안이라 이 문제가
        안 생긴다. 빛과 과녁 사이의 상대 위치(각도)는 그대로 유지한다. */
-    key.target.position.set(p0.x, 0, p0.y);
-    key.position.set(p0.x + (W * 0.3 - W / 2), 260, p0.y + (H * 0.1 - H / 2));
+    var p0x = p0.x - anc.x, p0y = p0.y - anc.y;   // 세계 → 로컬(위 anc 주석)
+    key.target.position.set(p0x, 0, p0y);
+    key.position.set(p0x + (W * 0.3 - W / 2), 260, p0y + (H * 0.1 - H / 2));
     key.target.updateMatrixWorld();
     /* 맞으면 · 위태로우면 바탕과 안개가 붉어진다 (3단계) */
     var FX = global.DG.fx3d;
@@ -1944,18 +1961,19 @@
     scene.background = new T.Color(bgHex);
 
     var p = run.player;
-    var meGroundY = groundYAt(p.x, p.y);
+    var plx = p.x - anc.x, ply = p.y - anc.y;   // 세계 → 로컬(위 anc 주석)
+    var meGroundY = groundYAt(plx, ply);
     torch.intensity = L.torchIntensity;
     torch.color.setHex(L.torchHex);
     torch.distance = L.torchRange;
-    torch.position.set(p.x, meGroundY + 46, p.y);
+    torch.position.set(plx, meGroundY + 46, ply);
 
     var AS3 = AS();
     var nowT = Date.now() / 1000;
 
     /* 나 */
     var me = actorOf('me', 'me', null);
-    me.node.position.set(p.x, meGroundY, p.y);
+    me.node.position.set(plx, meGroundY, ply);
     /* 걷는 방향을 그대로 돌린다 — 예전엔 `p.facing`(좌우 ±1)만 봐서 위·아래로
        걸어도 몸은 늘 옆(왼쪽/오른쪽)만 보고 있었다. `p.dirX`·`p.dirY`(마지막
        이동 방향, 스킬 방향과 같은 값)를 쓰면 적·NPC 가 나를 볼 때 쓰는
@@ -2017,8 +2035,8 @@
     for (i = 0; i < ns.length; i++) {
       var np = ns[i];
       var na = actorOf('n' + np.key, 'npc', np);
-      na.node.position.set(np.x, 0, np.y);
-      na.node.rotation.y = Math.atan2(p.x - np.x, p.y - np.y);   // 다가서면 나를 본다
+      na.node.position.set(np.x - anc.x, 0, np.y - anc.y);
+      na.node.rotation.y = Math.atan2(p.x - np.x, p.y - np.y);   // 다가서면 나를 본다(둘 다 세계 좌표라 차는 그대로)
       townMark(na.node, Math.hypot(np.x - p.x, np.y - p.y), talkR);
       if (AS3) { AS3.step(na.node.userData.mixerNode, { t: nowT, walking: false, anim: 'idle' }); }
     }
@@ -2026,7 +2044,7 @@
     for (i = 0; i < mks.length; i++) {
       var mo = mks[i];
       var ma = actorOf('m' + mo.key, 'mark', mo);
-      ma.node.position.set(mo.x, 0, mo.y);
+      ma.node.position.set(mo.x - anc.x, 0, mo.y - anc.y);
       var mDist = Math.hypot(mo.x - p.x, mo.y - p.y);
       townMark(ma.node, mDist, talkR);
       if (mo.key.indexOf('exit_') === 0) {
@@ -2071,7 +2089,7 @@
         sm[sj].color.setHex(shex);
         if (sm[sj].emissive) { sm[sj].emissive.setHex(shex); }
       }
-      sa.node.position.set(sh.x, 22, sh.y);
+      sa.node.position.set(sh.x - anc.x, 22, sh.y - anc.y);
       sa.node.rotation.y = Math.atan2(sh.dx || 0, sh.dy || 0);
     }
 
@@ -2096,7 +2114,7 @@
         fm[fj].color.setHex(fhex);
         if (fm[fj].emissive) { fm[fj].emissive.setHex(fhex); }
       }
-      fa.node.position.set(fsh.x, 20, fsh.y);
+      fa.node.position.set(fsh.x - anc.x, 20, fsh.y - anc.y);
       fa.node.rotation.y = Math.atan2(fsh.dx || 0, fsh.dy || 0);
     }
 
@@ -2114,7 +2132,7 @@
       var asp = camera.aspect || 1;
       zNow *= (asp < 1 ? Math.min(1.2, 1 / Math.max(0.7, asp)) : 1);
     }
-    var aim = camAim(p.x, p.y, W, H, zNow, TILT(), !!run.town, meGroundY);
+    var aim = camAim(plx, ply, W, H, zNow, TILT(), !!run.town, meGroundY);
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }

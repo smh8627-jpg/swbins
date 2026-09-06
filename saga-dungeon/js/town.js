@@ -52,8 +52,17 @@
      이 상수(데스크톱 전용 배율)만 1.4→1.7로 올려 데스크톱에서만 더 넓게
      쓴다. 폰은 예전과 완전히 같다(회귀 없음). 건물 밀도는 DECOR_MORU와
      위성 마을 decor에 집을 하나씩 더 얹는 쪽으로 늘렸다(아래) — 좌표
-     자체는 그대로 두고 배율만 커지므로 밀도 문제와는 서로 안 얽힌다. */
-  var DESK_SCALE = 1.7;
+     자체는 그대로 두고 배율만 커지므로 밀도 문제와는 서로 안 얽힌다.
+
+     **PLAN §28-8 Phase 4(2026-09-06, 이어지는 세션) — 한 단계 더 올린다.**
+     1.7→2.0. 세계 앵커 간격(`ANCHOR_DIST=4800`)과 안 겹치는지부터 다시
+     쟀다 — 마을 발판 최대치(`ROOM_W`=BASE_W×2.0=1120)에 필드 반경 최대치
+     (`fieldRadiusUnits()`, HIGH 등급 6×CHUNK(200)=1200)를 양쪽으로 다
+     더해도 1120+1200×2=3520으로, 4800에서 1280 여유가 남는다(§28-8 Phase 1이
+     1.7 기준으로 재 둔 "넉넉잡아 3400" 여유가 아직 더 있었다). 밀도는
+     `placePoints()`를 재사용해 아래(hand 마을 supplemental decor, 절차
+     생성 마을 decor 4종)에서 같이 올렸다 — 이 상수는 물리적 치수만 맡는다. */
+  var DESK_SCALE = 2.0;
   var wide = wideDesktop();
   var ROOM_W = wide ? Math.round(BASE_W * DESK_SCALE) : BASE_W;
   var ROOM_H = wide ? Math.round(BASE_H * DESK_SCALE) : BASE_H;
@@ -359,9 +368,17 @@
   }
   /** 최소 간격(minDist)만 지키며 좌표 count개를 결정적으로 뽑는다 —
    *  safePoint()의 "겹치면 옆으로 민다"를 일반화한 것. avoid에 미리 피할
-   *  점(스폰 자리 등)을 넣어 두면 그것과도 간격을 지킨다. */
+   *  점(스폰 자리 등)을 넣어 두면 그것과도 간격을 지킨다.
+   *  **반환 좌표는 늘 BASE_W·BASE_H 기준**이다 — cfg.decor/cfg.npcs가 전부
+   *  그 기준으로 적혀 있고 build()가 scalePt()로 한 번만 늘린다. Phase 4
+   *  (2026-09-06)에서 여기가 ROOM_W·ROOM_H(데스크톱에서 이미 DESK_SCALE이
+   *  한 번 곱해진 값)를 썼던 것을 잡았다 — 폰·좁은 창(SX=SY=1)에서는
+   *  ROOM_W===BASE_W라 안 드러났지만, 넓은 데스크톱 창에서 절차 생성
+   *  마을(gen*)의 NPC·decor가 scalePt()에서 **두 번째로** DESK_SCALE만큼
+   *  더 늘어나 방 밖으로 튀어나갔다(실측: 1200×900 창에서 herald가 방
+   *  953×646 인데 local (1300, 638)에 섬 — CDP 프로브로 확인). */
   function placePoints(count, minDist, avoid, salt) {
-    var lo = WALL + P_R + 20, hiX = ROOM_W - WALL - P_R - 20, hiY = ROOM_H - WALL - P_R - 20;
+    var lo = WALL + P_R + 20, hiX = BASE_W - WALL - P_R - 20, hiY = BASE_H - WALL - P_R - 20;
     var pts = avoid.slice(), out = [], i, tries, x, y, ok, j;
     for (i = 0; i < count; i++) {
       tries = 0;
@@ -379,6 +396,32 @@
     }
     return out;
   }
+
+  /** PLAN §28-8 Phase 4(2026-09-06) — 손으로 지은 넷(모루골·갈대나루·자작재·
+   *  소금벌)도 밀도를 한 단계 올린다. Phase 3가 만든 placePoints()를 그대로
+   *  재사용해, 이미 있는 소품·NPC·스폰(195,240)에서 100 이상 떨어진 자리에
+   *  집 하나·기둥 하나를 결정적으로 더 앉힌다 — 좌표를 손으로 다시 재지
+   *  않는다. TOWN_ORDER가 아직 이 넷뿐일 때(절차 생성 마을은 아래
+   *  generateTowns()가 나중에 덧붙인다) 돈다. */
+  var HAND_TOWN_DENSITY_SALT = { moru: 40001, galdae: 40002, jajak: 40003, sogeum: 40004 };
+  (function addHandTownDensity() {
+    var i, id, cfg, avoid, k, salt, extra, houseSeed;
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      id = TOWN_ORDER[i];
+      salt = HAND_TOWN_DENSITY_SALT[id];
+      if (!salt) { continue; }
+      cfg = TOWNS[id];
+      avoid = [{ x: 195, y: 240 }];
+      for (k = 0; k < cfg.decor.length; k++) { avoid.push({ x: cfg.decor[k].x, y: cfg.decor[k].y }); }
+      for (k = 0; k < cfg.npcs.length; k++) { avoid.push({ x: cfg.npcs[k].x, y: cfg.npcs[k].y }); }
+      extra = placePoints(2, 100, avoid, salt);
+      houseSeed = Math.floor(core.hash2(salt + 7, salt + 13) * 1000);
+      cfg.decor = cfg.decor.concat([
+        { t: 'house', x: Math.round(extra[0].x), y: Math.round(extra[0].y), h: 130, seed: houseSeed },
+        { t: 'pillar', x: Math.round(extra[1].x), y: Math.round(extra[1].y) }
+      ]);
+    }
+  })();
 
   (function generateTowns() {
     var usedNames = {}, i;
@@ -410,13 +453,22 @@
         return { key: key, x: Math.round(npcPts[k].x), y: Math.round(npcPts[k].y) };
       });
       var decorAvoid = [{ x: 195, y: 240 }].concat(npcPts);
-      var decorPts = placePoints(2, 100, decorAvoid, salt + 23);   // 집·우물
+      /* PLAN §28-8 Phase 4(2026-09-06) — 집·우물뿐이던 밀도를 기둥·균열
+         둘을 더 얹어 손으로 지은 넷(모루골 등, pillar·crack이 이미 있다)에
+         가깝게 맞춘다. 자리만 placePoints()로 늘리고, 씨앗은 기존 것과
+         안 겹치는 salt 오프셋(+53·+61·+67 — 위 house/well이 쓰는 +31·+37과
+         겹치지 않는 자리)로 결정적으로 뽑는다. */
+      var decorPts = placePoints(4, 100, decorAvoid, salt + 23);   // 집·우물·기둥·균열
       var houseSeed = Math.floor(core.hash2(salt + 31, salt + 37) * 1000);
+      var crackAngle = core.hash2(salt + 53, salt + 59) * Math.PI * 2;
+      var crackLen = 24 + core.hash2(salt + 61, salt + 67) * 20;
       var decor = [
         { t: 'torch', x: 120, y: WALL - 4, seed: core.hash2(salt + 41, 1) * 6 },
         { t: 'torch', x: 440, y: WALL - 4, seed: core.hash2(salt + 43, 2) * 6 },
         { t: 'house', x: Math.round(decorPts[0].x), y: Math.round(decorPts[0].y), h: 130, seed: houseSeed },
-        { t: 'well', x: Math.round(decorPts[1].x), y: Math.round(decorPts[1].y), h: 34 }
+        { t: 'well', x: Math.round(decorPts[1].x), y: Math.round(decorPts[1].y), h: 34 },
+        { t: 'pillar', x: Math.round(decorPts[2].x), y: Math.round(decorPts[2].y) },
+        { t: 'crack', x: Math.round(decorPts[3].x), y: Math.round(decorPts[3].y), a: crackAngle, len: crackLen }
       ];
       var rc = BIOME_ROOM_COLOR[biome];
       TOWNS[id] = {
