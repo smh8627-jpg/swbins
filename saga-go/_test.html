@@ -2053,7 +2053,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var node = A3.build('hero', D.find('sg_guanyu'));
       var pet = A3.build('pet', D.find('pt_cheongryong'));
       var n = A3.partCount(node), pn = A3.partCount(pet);
-      return n > 15 && pn > 8 && node.userData.rig.legL && node.userData.rig.head &&
+      /* 부품 수를 너무 빡빡하게 재지 않는다 — GLB 가 있는 인물·펫은 다른 자리
+         (`portrait3d.js` 초상 굽기 등)가 먼저 구워 캐시를 데워 놓으면 `build()`가
+         돌아오기도 전에 도형(placeholder, 부품 여럿)에서 실제 GLB(대개 통짜에
+         가까워 부품이 적다)로 갈아 끼워질 수 있다 — 둘 다 "실제로 섰다"는
+         같은 뜻이라 문턱을 낮춰 둘 다 통과하게 한다(2026-09-06, 초상마다
+         `portrait3d.img()`를 쓰게 바꾸며 실제로 겪었다). 관절도 마찬가지로
+         도형이면 `rig`, GLB 면 `mixer` 쪽에 있다 */
+      var stood = (node.userData.rig && node.userData.rig.legL && node.userData.rig.head) ||
+        !!node.userData.mixer;
+      return n > 3 && pn > 3 && stood &&
         ('관우 ' + n + '부품 · 청룡 ' + pn + '부품');
     });
 

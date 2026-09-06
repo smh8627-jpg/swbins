@@ -100,7 +100,6 @@
   function openNpc(n) {
     var N = global.DG.npc, L = global.DG.land;
     var p = n.p;
-    var img = global.DG.sprite.portrait('hero', p, 96);
     var spot = L ? L.place(n.at) : null;
     var line = N.say(p) || '…';
     var where = spot
@@ -110,7 +109,7 @@
     var CX = global.DG.codex;
     if (CX) { CX.discover('people', p.id, { name: p.name }); }
     return card(
-      '<div class="enc-big"><img class="pt" alt="" src="' + img + '"></div>' +
+      '<div class="enc-big">' + global.DG.portrait3d.img('hero', p, 96) + '</div>' +
       '<h3>' + esc(p.name) + '</h3>' +
       '<p class="quote">"' + esc(line) + '"</p>' +
       '<div class="enc-reward">' + esc(p.personality) +
@@ -124,7 +123,6 @@
     var A = global.DG.animal;
     var K = b.kind;
     var ref = A.refOf(K);
-    var img = global.DG.sprite.portrait('pet', ref, 96);
     var act = K.act === 'flee' ? '다가가면 물러납니다'
       : K.act === 'chase' ? '알아채면 다가옵니다'
       : K.act === 'fly' ? '인기척에 날아오릅니다'
@@ -134,7 +132,7 @@
     var CX = global.DG.codex;
     if (CX) { CX.discover('beast', K.id, { name: K.name }); }
     return card(
-      '<div class="enc-big"><img class="pt" alt="" src="' + img + '"></div>' +
+      '<div class="enc-big">' + global.DG.portrait3d.img('pet', ref, 96) + '</div>' +
       '<h3>' + esc(K.name) + '</h3>' +
       '<p class="quote">' + esc(K.note) + '</p>' +
       '<div class="enc-reward">' + esc(act) + ' · ' + esc(mood) +

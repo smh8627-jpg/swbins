@@ -188,8 +188,7 @@
     var h = res.hero, g = res.grade;
     el.innerHTML =
       '<div class="enc-card result good">' +
-        '<div class="enc-big"><img class="pt" alt="" src="' +
-          global.DG.sprite.portrait('hero', h, 96) + '"></div>' +
+        '<div class="enc-big">' + global.DG.portrait3d.img('hero', h, 96) + '</div>' +
         '<h3>' + g.emoji + ' ' + h.name + ' 이(가) 찾아왔다!</h3>' +
         '<p class="quote">"' + h.quote + '"</p>' +
         '<div class="enc-reward">' + g.name + ' · 공적 +' + res.reward.feat +

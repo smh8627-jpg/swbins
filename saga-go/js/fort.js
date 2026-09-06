@@ -307,8 +307,7 @@
       var tried = R.triedOf(raid);
       var pass = R.passCount();
       el.innerHTML = '<div class="enc-card">' +
-        '<div class="enc-big"><img class="pt" alt="" src="' +
-          global.DG.sprite.portrait('hero', raid.hero, 96) + '"></div>' +
+        '<div class="enc-big">' + global.DG.portrait3d.img('hero', raid.hero, 96) + '</div>' +
         '<h3>⚔️ ' + raid.tier.name + ' — ' + raid.hero.name + '</h3>' +
         '<p class="quote">"' + raid.hero.quote + '"</p>' +
         '<div class="enc-reward">기세 ' + core.fmt(raid.hp) + ' · 내 부대 ' + pw.atk +
@@ -437,7 +436,6 @@
     D.open({
       title: '⚔️ 토벌 — ' + raid.tier.name,
       foeName: raid.hero.name,
-      portrait: global.DG.sprite.portrait('hero', raid.hero, 96),
       stage3d: { kind: 'hero', ref: raid.hero },
       foeHp: raid.hp, myAtk: pw.atk, myDef: pw.def,
       onDone: function (p) {

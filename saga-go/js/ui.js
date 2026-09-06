@@ -25,33 +25,14 @@
     });
   }
 
-  /**
-   * 초상 <img> 에 붙일 이름표. `portrait3d` 가 실제 모델로 그림을 다 구우면
-   * 이 표를 보고 `src` 를 갈아 끼운다. 못 쓸 자리(three 없음 · 손잡이 내림 ·
-   * 짐승)에서는 빈 문자열이라 **여태 그림이 그대로 남는다**.
-   */
-  function p3tag(kind, ref, w, h) {
-    var P3 = global.DG.portrait3d;
-    if (!P3 || !P3.ready() || kind !== 'hero') { return ''; }
-    /* **붙인 직후 한 번 훑게 예약한다.** `<img>` 가 DOM 에 들어간 뒤라야 잡히므로
-       지금 부르면 헛돈다. 한 화면에 그림이 여럿이니 뭉쳐서 한 번만 */
-    if (!p3tag.timer) {
-      p3tag.timer = global.setTimeout(function () {
-        p3tag.timer = null;
-        P3.sweep();
-      }, 40);
-    }
-    return ' data-p3="' + P3.keyOf(kind, ref, w, h) + '"';
+  /** 초상 <img> — 실제 빌드는 `portrait3d.img()` 하나로 모았다(다른 화면들과 같은 자리) */
+  function pt(kind, ref, size) {
+    return global.DG.portrait3d.img(kind, ref, size || 48);
   }
 
-  /** 스프라이트 초상 <img> (캐시되므로 목록에 여러 번 써도 가볍다) */
-  function pt(kind, ref, size) {
-    /* **이름표(`data-p3`)만 붙여 둔다.** 그림은 여태처럼 `sprite` 것으로 시작하고,
-       `portrait3d` 가 실제 모델로 다 구우면 그때 `src` 만 갈아 끼운다 —
-       화면이 한 번도 비지 않는다. 못 구우면 이 그림이 그대로 남는다 */
-    var sz = size || 48;
-    return '<img class="pt" alt=""' + p3tag(kind, ref, sz, sz) + ' src="' +
-      global.DG.sprite.portrait(kind, ref, sz) + '">';
+  /** 정사각이 아닌 자리(도감 상세의 150×172)가 제 마크업을 직접 짤 때 쓰는 이름표만 */
+  function p3tag(kind, ref, w, h) {
+    return global.DG.portrait3d.tag(kind, ref, w, h);
   }
 
   var TITLES = [

@@ -269,17 +269,23 @@
   function myFighter() {
     var id = core.save.party && core.save.party[0];
     var h = id ? global.DG.data.find(id) : null;
-    if (!h) { return { name: '나', img: '' }; }
-    return { name: h.name, img: global.DG.sprite.portrait('hero', h, 96) };
+    return { name: h ? h.name : '나', ref: h };
   }
 
   function paint() {
-    var face = meta.portrait
-      ? '<img class="pt" alt="" src="' + meta.portrait + '">'
-      : '<span class="duel-emoji">' + (meta.emoji || '⚔️') + '</span>';
+    /* `stage3d`가 있으면(사실상 늘 있다 — 상대가 있는 교전은 `foeVisual()`이
+       hero/pet 중 하나를 낸다) 그쪽을 우선한다 — 이 자리도 `portrait3d.img()`를
+       거치므로 모델이 다 구워지면 그림이 실제 3D 초상으로 갈아 끼워진다.
+       `meta.portrait`는 옛 호출(스테이지 없이 구운 src만 건네는 자리)을 위한
+       되돌아가는 길일 뿐이다 */
+    var face = meta.stage3d
+      ? global.DG.portrait3d.img(meta.stage3d.kind, meta.stage3d.ref, 96)
+      : (meta.portrait
+          ? '<img class="pt" alt="" src="' + meta.portrait + '">'
+          : '<span class="duel-emoji">' + (meta.emoji || '⚔️') + '</span>');
     var me = myFighter();
-    var meFace = me.img
-      ? '<img class="pt" alt="" src="' + me.img + '">'
+    var meFace = me.ref
+      ? global.DG.portrait3d.img('hero', me.ref, 96)
       : '<span class="duel-emoji">🧭</span>';
     el.innerHTML = '' +
       '<div class="duel" id="duel">' +
