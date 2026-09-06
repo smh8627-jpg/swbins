@@ -238,7 +238,7 @@
     core.log(h.name + ' 등용 성공!', 'good');
 
     el.innerHTML = '' +
-      '<div class="enc-card result good">' +
+      '<div class="enc-card result good catchpop">' +
         '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('hero', h, 96) + '"></div>' +
         '<h3>' + h.name + ' 등용!</h3>' +
         '<p class="quote">"' + h.quote + '"</p>' +
@@ -258,8 +258,8 @@
     global.DG.world.removeSpawn(cur.spawn.uid);
     core.log(h.name + ' 등용 실패…', 'bad');
     el.innerHTML = '' +
-      '<div class="enc-card result bad">' +
-        '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('hero', h, 96) + '"></div>' +
+      '<div class="enc-card result bad jolt">' +
+        '<div class="enc-big"><img class="pt dark" alt="" src="' + global.DG.sprite.portrait('hero', h, 96) + '"></div>' +
         '<h3>' + h.name + '은(는) 떠났다</h3>' +
         '<p class="quote">"인연이 아닌 듯하오."</p>' +
         '<div class="enc-reward">등용서 1 소모 · 명성 절반 반환</div>' +
@@ -369,7 +369,7 @@
       global.DG.world.removeSpawn(cur.spawn.uid);
       core.log(p.name + ' 포획 성공!', 'good');
       html = '' +
-        '<div class="enc-card result good">' +
+        '<div class="enc-card result good catchpop">' +
           '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
           '<h3>' + p.name + ' 포획!</h3>' +
           '<p class="quote">' + (inZone ? '완벽한 타이밍이었다 (정확도 ' + Math.round(accuracy * 100) + '%)' : '운이 좋았다') + '</p>' +
@@ -382,8 +382,8 @@
       global.DG.world.removeSpawn(cur.spawn.uid);
       core.log(p.name + ' 놓쳤다…', 'bad');
       html = '' +
-        '<div class="enc-card result bad">' +
-          '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
+        '<div class="enc-card result bad jolt">' +
+          '<div class="enc-big"><img class="pt dark" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
           '<h3>' + p.name + '은(는) 달아났다</h3>' +
           '<p class="quote">' + (inZone ? '아깝다! (포획률 ' + Math.round(chance * 100) + '%)' : '타이밍이 빗나갔다') + '</p>' +
           '<div class="enc-reward">사료 1 소모</div>' +

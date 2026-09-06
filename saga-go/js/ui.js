@@ -75,6 +75,10 @@
       var name = b.getAttribute('data-sheet');
       if (openTab === name) { closeSheet(); } else { openSheet(name); }
     });
+    els.profile.addEventListener('click', function (e) {
+      if (!e.target.closest('[data-act="open-quest"]')) { return; }
+      openSheet('quest');
+    });
     els['sheet-close'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
     global.addEventListener('keydown', function (e) {
@@ -242,6 +246,26 @@
 
   /* ── 상단 ─────────────────────────────────────────────── */
 
+  /**
+   * 상단에 상시 노출하는 "지금 할 일" 한 줄. 사명 목록의 첫 미완료 항목을 보여
+   * 준다 — 축4(목표가 안 보인다) 대응. 사명 탭을 열지 않아도 화면에 늘 있다.
+   */
+  function goalLine() {
+    var Q = global.DG.quest;
+    if (!Q) { return ''; }
+    var list = Q.list();
+    if (!list.length) {
+      return '<div class="p-goal" data-act="open-quest">🎯 역참(🏮)에 들르면 사명을 받습니다</div>';
+    }
+    var q = null;
+    for (var i = 0; i < list.length; i++) { if (!list[i].done) { q = list[i]; break; } }
+    if (!q) {
+      return '<div class="p-goal ready" data-act="open-quest">🎯 사명이 다 찼습니다 — 거두러 가기</div>';
+    }
+    return '<div class="p-goal" data-act="open-quest">🎯 ' + esc(q.def.name) +
+      ' <b>' + core.fmt(Math.min(q.got, q.need)) + '/' + core.fmt(q.need) + '</b></div>';
+  }
+
   function renderTop() {
     var p = core.save.player;
     var need = core.expNeed(p.level);
@@ -261,6 +285,7 @@
           ' · 📍 ' + esc(w.regionName(rkey)) +
           ' · <b>' + core.fmt(p.distance) + 'm</b> 이동' +
           (net().online() ? ' · <span class="on-dot">🔮</span>' : '') + '</div>' +
+        goalLine() +
       '</div>';
 
     els.wallet.innerHTML =
