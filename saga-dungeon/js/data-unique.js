@@ -15,9 +15,17 @@
  *   · 이름은 **한자 이름 하나**로 부른다. 밑감 이름은 작게 뒤에 붙는다
  *   · 나올 때 **알린다** — 원작에서 유니크가 떨어지면 소리가 다르다
  *
- * 열둘을 두었다. 늘릴 때는 UNIQUES 에 한 줄 (밑감 하나에 하나씩).
+ * 늘릴 때는 UNIQUES 에 한 줄 (밑감 하나에 하나씩).
  * 효과 모양은 접사(data-item.js AFFIXES)와 같다 — flat · pct · world.
  * 원소 피해·저항은 보석의 것과 같은 모양(eldmg·elres)을 쓴다.
+ *
+ * 2026-09-06 — 사용자 요청("콘텐츠가 많아야 함")으로 그때까지 고유가
+ * 없던 밑감을 마저 채웠다(투구 둘·부적 둘·장갑·신발·목걸이·반지 각
+ * 둘씩, 갑주 하나). 효과 어휘(flat·pct·world·eldmg·elres)는 그대로,
+ * 새 종류는 안 만들었다. **a_jichap(지갑) 하나만 일부러 남겼다** —
+ * _test.html의 "고유가 없는 밑감은 전설이어도 안 된다" 진단이 통제군으로
+ * 그 키를 하드코딩해 쓰고 있어서다(data-set.js가 w_pyeongon을 남긴
+ * 것과 같은 까닭 — 다 채우면 통제군이 없어진다).
  */
 (function (global) {
   'use strict';
@@ -85,6 +93,11 @@
 
     /* ── 갑주 ────────────────────────────────────────────── */
     { key: 'u_geumsoe', base: 'w_dummy_none', name: '(자리 비움)', hidden: true, eff: [] },
+    { key: 'u_danryeong', base: 'a_pigap', name: '단령피갑(丹領皮甲)',
+      desc: '붉은 깃을 댄 피갑. 갖춰 입으면 위엄이 선다.',
+      eff: [{ kind: 'flat', stat: 'command', v: 20 },
+            { kind: 'elres', el: 'pois', v: 18, scale: false },
+            { kind: 'world', eff: 'atkPct', v: 10, scale: false }] },
     { key: 'u_dujeong', base: 'a_dujeong', name: '흑린두정(黑鱗頭釘)',
       desc: '검은 비늘을 박은 두정갑. 화살이 튕긴다.',
       eff: [{ kind: 'flat', stat: 'command', v: 26 },
@@ -106,6 +119,53 @@
       eff: [{ kind: 'flat', stat: 'might', v: 18 },
             { kind: 'elres', el: 'lit', v: 25, scale: false },
             { kind: 'world', eff: 'findPct', v: 16, scale: false }] },
+    { key: 'u_okro', base: 'a_myeongap', name: '옥로관(玉鷺冠)',
+      desc: '백로 깃을 꽂은 관. 먼 곳이 눈에 들어온다.',
+      eff: [{ kind: 'flat', stat: 'wisdom', v: 20 },
+            { kind: 'pct', stat: 'wisdom', v: 10, scale: false },
+            { kind: 'world', eff: 'findPct', v: 18, scale: false }] },
+    { key: 'u_eunwol', base: 'h_tumo', name: '은월투구(銀月兜)',
+      desc: '달빛을 두른 투구. 부딪는 소리가 맑다.',
+      eff: [{ kind: 'flat', stat: 'command', v: 20 },
+            { kind: 'elres', el: 'lit', v: 22, scale: false },
+            { kind: 'world', eff: 'atkPct', v: 10, scale: false }] },
+
+    /* ── 장갑 ────────────────────────────────────────────── */
+    { key: 'u_cheongeun', base: 'g_wangap', name: '천근완갑(千斤腕甲)',
+      desc: '천 근을 든다는 팔찌. 손끝이 저릿하다.',
+      eff: [{ kind: 'flat', stat: 'might', v: 18 },
+            { kind: 'world', eff: 'atkPct', v: 12, scale: false }] },
+    { key: 'u_yusu', base: 'g_wandae', name: '유수완대(流水腕帶)',
+      desc: '흐르는 물처럼 부드러운 완대. 손이 빨라진다.',
+      eff: [{ kind: 'flat', stat: 'wisdom', v: 18 },
+            { kind: 'world', eff: 'critPct', v: 10, scale: false }] },
+
+    /* ── 신발 ────────────────────────────────────────────── */
+    { key: 'u_cheolli', base: 'b_hwaje', name: '천리화(千里靴)',
+      desc: '천 리를 간다는 신. 걸음이 가벼워진다.',
+      eff: [{ kind: 'flat', stat: 'might', v: 14 },
+            { kind: 'world', eff: 'findPct', v: 14, scale: false }] },
+    { key: 'u_unmun', base: 'b_jipsin', name: '운문리(雲紋履)',
+      desc: '구름 무늬를 놓은 짚신. 딛는 곳마다 인연이 닿는다.',
+      eff: [{ kind: 'flat', stat: 'wisdom', v: 12 },
+            { kind: 'world', eff: 'expPct', v: 16, scale: false }] },
+
+    /* ── 목걸이 ──────────────────────────────────────────── */
+    { key: 'u_taeeul', base: 'n_okpae', name: '태을옥패(太乙玉佩)',
+      desc: '태을성의 기운을 담은 옥패.',
+      eff: [{ kind: 'flat', stat: 'wisdom', v: 20 },
+            { kind: 'elres', el: 'cold', v: 20, scale: false },
+            { kind: 'world', eff: 'findPct', v: 15, scale: false }] },
+    { key: 'u_geumin', base: 'n_geumpae', name: '금인패(金印牌)',
+      desc: '금인이 새겨진 패. 지니면 사람이 따른다.',
+      eff: [{ kind: 'flat', stat: 'command', v: 20 },
+            { kind: 'pct', stat: 'all', v: 6, scale: false }] },
+
+    /* ── 반지 ────────────────────────────────────────────── */
+    { key: 'u_yongmun', base: 'r_geumji', name: '용문지환(龍紋指環)',
+      desc: '용무늬를 새긴 가락지. 낀 손이 든든하다.',
+      eff: [{ kind: 'flat', stat: 'command', v: 16 },
+            { kind: 'world', eff: 'hpPct', v: 12, scale: false }] },
 
     /* ── 부적 ────────────────────────────────────────────── */
     { key: 'u_hopae', base: 'c_hopae', name: '어사호패(御史號牌)',
@@ -125,7 +185,17 @@
       desc: '요괴를 비추는 청동경. 비친 것은 숨지 못한다.',
       eff: [{ kind: 'flat', stat: 'command', v: 18 },
             { kind: 'elres', el: 'pois', v: 25, scale: false },
-            { kind: 'world', eff: 'critPct', v: 8, scale: false }] }
+            { kind: 'world', eff: 'critPct', v: 8, scale: false }] },
+    { key: 'u_mandara', base: 'c_yeombul', name: '만다라주(曼陀羅珠)',
+      desc: '천 번을 굴렸다는 염주. 마음이 가라앉는다.',
+      eff: [{ kind: 'flat', stat: 'wisdom', v: 22 },
+            { kind: 'elres', el: 'pois', v: 20, scale: false },
+            { kind: 'world', eff: 'expPct', v: 20, scale: false }] },
+    { key: 'u_byeoksa', base: 'c_hobu', name: '벽사호부(辟邪護符)',
+      desc: '삿된 것을 물린다는 부적. 태우면 재가 남지 않는다.',
+      eff: [{ kind: 'flat', stat: 'might', v: 20 },
+            { kind: 'elres', el: 'chi', v: 20, scale: false },
+            { kind: 'world', eff: 'hpPct', v: 12, scale: false }] }
   ].filter(function (u) { return !u.hidden; });
 
   function uniqueByKey(k) {

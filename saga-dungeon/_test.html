@@ -770,9 +770,13 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('원소 — 무기에 박으면 그 결의 피해가 걷힌다', function () {
+      /* 2026-09-06 — uniq:false를 명시한다. 이 무기 밑감 열 개는 전부 이미
+         고유가 있고(그중 여럿이 원소 피해를 자체로 낀다), 그걸 막지 않으면
+         "박기 전엔 원소 피해가 0" 이라는 전제가 어쩌다 뽑힌 고유 하나 때문에
+         깨진다 — 이 항목이 보려는 것은 순수하게 보석이 붙이는 원소다. */
       var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
       var id = bareLead();
-      var w = IT.roll(20, { slot: 'weapon', tier: 4, sock: 2, unid: false });
+      var w = IT.roll(20, { slot: 'weapon', tier: 4, sock: 2, unid: false, uniq: false });
       C.save.gear.bag.push(w);
       IT.equip(id, w.uid);
       var none = Object.keys(IT.elemDamage(id)).length;
@@ -787,7 +791,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     t('원소 — 갑주에 박으면 그 결의 저항이 걷힌다', function () {
       var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
       var id = bareLead();
-      var a = IT.roll(20, { slot: 'armor', tier: 4, sock: 2, unid: false });
+      var a = IT.roll(20, { slot: 'armor', tier: 4, sock: 2, unid: false, uniq: false });
       C.save.gear.bag.push(a);
       IT.equip(id, a.uid);
       IT.addMat('gem', 'agate', 2, 1);
@@ -801,7 +805,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       /* **원작에서 갑옷에 젬을 박는 이유가 이것이다.** */
       var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
       var id = bareLead();
-      var a = IT.roll(20, { slot: 'armor', tier: 4, sock: 3, unid: false });
+      var a = IT.roll(20, { slot: 'armor', tier: 4, sock: 3, unid: false, uniq: false });
       C.save.gear.bag.push(a);
       IT.equip(id, a.uid);
       IT.addMat('gem', 'agate', 4, 3);
@@ -2042,10 +2046,17 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     var FG = DG.forge;
 
     t('연단 — 보석 셋이 한 등급 위 한 알이 된다', function () {
+      /* 2026-09-06 — 시작 전 조(粗) 수를 따로 재 둔다. 이 앞의 여러 항목이
+         실제 던전 런(DN.enter)을 굴리는데, 그 안에서 무작위로 뜨는 보석
+         드랍이 이 세이브에 이미 옥(玉) 조(粗)를 몇 알 얹어 뒀을 수 있다
+         (밑감·고유·투장 표가 늘면서 그 앞 던전 런들의 Math.random() 소비가
+         달라져 실제로 이 항목이 걸린 적이 있다 — data-set.js·data-unique.js
+         주석 참고). "정확히 0" 이 아니라 "시작 전 수만큼 빠졌는지" 로 본다. */
+      var base0 = IT.matCount('gem', 'jade', 0);
       IT.addMat('gem', 'jade', 0, 3);
       var up0 = IT.matCount('gem', 'jade', 1);
       var r = FG.make('gem:jade:0');
-      return r.ok && IT.matCount('gem', 'jade', 0) === 0 &&
+      return r.ok && IT.matCount('gem', 'jade', 0) === base0 &&
         IT.matCount('gem', 'jade', 1) === up0 + 1 && '조(粗)×3 → 양(良)×1';
     });
 
