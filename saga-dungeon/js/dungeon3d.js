@@ -220,9 +220,10 @@
    * 방 가운데를 기준으로 플레이어 쪽으로 조금 끌린다(8절 "플레이어를 정확히
    * 따라가되 너무 흔들리지 않게"). 방을 벗어나 흐르지 않게 **가둔다**.
    */
-  function camAim(px, py, W, H, zoom, tilt, close) {
+  function camAim(px, py, W, H, zoom, tilt, close, groundY) {
     var z = (zoom === undefined || zoom <= 0) ? 1 : zoom;
     var tl = tilt === undefined ? 0.62 : tilt;
+    var gy = groundY || 0;
     /* 방 대각선을 화면에 담을 거리 — 방이 커지면 저절로 물러난다.
        **계수를 눈으로 맞췄다**: 화면에 담기는 세로는 대략 2·dist·tan(fov/2) 인데
        fov 46° 면 0.85·dist 다. 방 대각선(666)을 담으려면 dist 는 그만큼 커야 한다 —
@@ -240,9 +241,17 @@
     var cy = H / 2 + (py - H / 2) * 0.55;
     var high = dist * (1 - tl * 0.55);
     var back = dist * tl;
+    /* **2026-09-06 실기기 제보** — "바닥 높낮이 때문에 캐릭터가 다 가려지고
+       화면이 못 따라간다." 방 밖 들판은 `field3d.js`의 `heightAt()`로 기복이
+       진다(언덕·비탈)인데, 카메라는 늘 y=0 바닥을 본다고 가정하고 있었다 —
+       플레이어가 언덕에 올라서도 카메라의 `pos`·`look`은 그대로라 캐릭터가
+       땅(언덕) 밑에 파묻힌 것처럼 가려졌다. `groundY`(플레이어가 선 자리의
+       `heightAt()` 값, 호출부가 넘긴다)를 두 자리에 함께 얹어 카메라 전체가
+       그 높이만큼 같이 오르내리게 한다 — 방 안(늘 0)에서는 이 값이 0이라
+       회귀가 없다. */
     return {
-      pos: { x: cx, y: high, z: cy + back },
-      look: { x: cx, y: 0, z: cy },
+      pos: { x: cx, y: high + gy, z: cy + back },
+      look: { x: cx, y: gy, z: cy },
       dist: dist
     };
   }
@@ -1812,6 +1821,19 @@
     if (renderer) { renderer.shadowMap.enabled = SHADOW(); }
 
     var W = d().ROOM_W, H = d().ROOM_H;
+    /* 지형 높낮이(2026-09-06 실기기 제보 — "바닥 높낮이 때문에 캐릭터가
+       다 가려짐") — 나·적·마을 사람은 지금까지 늘 y=0 에 그려졌는데,
+       `buildField()`가 세우는 방 밖 들판 땅은 `heightAt()`로 기복이 진다
+       (언덕에 올라서면 땅이 캐릭터보다 위로 솟아 캐릭터가 파묻힌 것처럼
+       가려졌다). **`buildField()`가 쓰는 것과 정확히 같은 seed 산식**이어야
+       그림(땅)과 액터가 같은 높이를 본다 — 다르면 "보이는 땅과 선 높이가
+       어긋나는" 새 버그가 생긴다. 방 안(늘 0)에서는 이 값이 늘 0이라
+       회귀가 없다. */
+    var terrF = global.DG.field3d;
+    var terrDD = global.DG.dataDungeon;
+    var terrTh = run.theme || (terrDD ? terrDD.themeOf(run.floor) : null);
+    var terrSeed = terrF ? terrF.seedOf(run.floor, run.roomIdx, terrTh && terrTh.name) : 0;
+    function groundYAt(gx, gz) { return terrF ? terrF.heightAt(gx, gz, terrSeed, W, H) : 0; }
     /* 퍼즐방은 제단이 켜질 때마다(맞게 밟을 때마다) 그림도 다시 세워야 한다 —
        `rk` 에 진행도를 안 넣으면 데이터는 바뀌어도 화면은 그대로 남는다 */
     var pzProg = (run.room && run.room.puzzle) ? ':pz' + run.room.puzzle.progress : '';
@@ -1902,25 +1924,27 @@
     scene.background = new T.Color(bgHex);
 
     var p = run.player;
+    var meGroundY = groundYAt(p.x, p.y);
     torch.intensity = L.torchIntensity;
     torch.color.setHex(L.torchHex);
     torch.distance = L.torchRange;
-    torch.position.set(p.x, 46, p.y);
+    torch.position.set(p.x, meGroundY + 46, p.y);
 
     var AS3 = AS();
     var nowT = Date.now() / 1000;
 
     /* 나 */
     var me = actorOf('me', 'me', null);
-    me.node.position.set(p.x, 0, p.y);
+    me.node.position.set(p.x, meGroundY, p.y);
     /* 걷는 방향을 그대로 돌린다 — 예전엔 `p.facing`(좌우 ±1)만 봐서 위·아래로
        걸어도 몸은 늘 옆(왼쪽/오른쪽)만 보고 있었다. `p.dirX`·`p.dirY`(마지막
        이동 방향, 스킬 방향과 같은 값)를 쓰면 적·NPC 가 나를 볼 때 쓰는
        `atan2(dx, dy)`와 같은 결로 앞·뒤·대각선까지 다 돈다. */
     if (p.walking) { me.ang = Math.atan2(p.dirX || (p.facing || 1), p.dirY || 0.001); }
     me.node.rotation.y = me.ang;
-    /* 걸으면 위아래로 튄다 — 도형으로 남아 있을 때만 도드라진다(GLB 는 제 다리로 걷는다) */
-    me.node.position.y = p.walking ? Math.abs(Math.sin(p.phase || 0)) * 2.2 : 0;
+    /* 걸으면 위아래로 튄다 — 도형으로 남아 있을 때만 도드라진다(GLB 는 제 다리로 걷는다).
+       땅 높이(meGroundY) 위에 얹는다 — 안 그러면 언덕에서 튈 때마다 땅 밑으로 파고든다 */
+    me.node.position.y = meGroundY + (p.walking ? Math.abs(Math.sin(p.phase || 0)) * 2.2 : 0);
     if (AS3) {
       AS3.step(me.node.userData.mixerNode, { t: nowT, walking: !!p.walking, anim: p.atkAnim > 0 ? 'attack' : (p.walking ? 'walk' : 'idle') });
       AS3.flashAllMat(ensureFlash(me.node), p.hurt, 0.28);
@@ -1932,7 +1956,7 @@
       var e = es[i];
       if (e.hp <= 0) { continue; }
       var a = actorOf('e' + i + ':' + (e.ref && e.ref.id), 'foe', e);
-      a.node.position.set(e.x, 0, e.y);
+      a.node.position.set(e.x, groundYAt(e.x, e.y), e.y);
       a.node.rotation.y = Math.atan2(p.x - e.x, p.y - e.y);
       /* 맞은 직후에는 흔들린다 */
       if (e.hurt > 0) { a.node.position.x += (Math.random() - 0.5) * 3; }
@@ -2049,7 +2073,7 @@
       var asp = camera.aspect || 1;
       zNow *= (asp < 1 ? Math.min(1.2, 1 / Math.max(0.7, asp)) : 1);
     }
-    var aim = camAim(p.x, p.y, W, H, zNow, TILT(), !!run.town);
+    var aim = camAim(p.x, p.y, W, H, zNow, TILT(), !!run.town, meGroundY);
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
