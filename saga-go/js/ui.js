@@ -434,6 +434,27 @@
       '<div class="stat-row"><span>거둔 사명</span><b>' + (st.done || 0) + '</b></div>' +
       '<div class="stat-row"><span>명사가 찾아온 횟수</span><b>' + (st.breaks || 0) + '</b></div>' +
       '</div></div>';
+    html += milestoneSection();
+    return html;
+  }
+
+  /** 주간 걷기 이정표 — 이번 주 누적 거리 사다리 (축1 다음 후보) */
+  function milestoneSection() {
+    var M = global.DG.milestone;
+    if (!M) { return ''; }
+    var walked = M.weekWalked(), rungs = M.rungs();
+    var html = '<div class="sec"><h4>이번 주 걸음 <small class="muted">' +
+      core.fmt(Math.round(walked)) + 'm</small></h4>';
+    for (var i = 0; i < rungs.length; i++) {
+      var r = rungs[i];
+      html += '<div class="card">' +
+        '<div class="stat-row"><span>🚩 ' + core.fmt(r.m) + 'm</span>' +
+        '<b>' + (r.got ? '받음' : (r.reach ? '달성!' : r.pct + '%')) + '</b></div>' +
+        '<div class="bar sm"><i style="width:' + r.pct + '%"></i></div>' +
+        (r.got ? '' : '<small class="muted">' + rewardLine(r.reward) + '</small>') +
+        '</div>';
+    }
+    html += '</div>';
     return html;
   }
 
