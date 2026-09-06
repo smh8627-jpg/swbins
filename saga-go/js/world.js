@@ -237,9 +237,21 @@
    * 손가락으로 하는 조작을 여기 한 곳에 모아 둔 이유는, 걸음 애니메이션이
    * "위치 변화만 보고" 만들어지기 때문이다 — 입력이 늘어도 그쪽은 안 고친다.
    */
+  /** 실시간 위치전투(`rogue-action.js`)가 도는 중인가 — 이때만 아래에서
+   *  `inputBlocked()`를 건너뛴다. 강타를 원 밖으로 벗어나 피하는 그 설계가
+   *  실제로 되려면 몸(WASD·스틱)은 움직일 수 있어야 한다(2026-09-06,
+   *  "포획을 몬스터헌터 나우식 실시간 전투로" 작업 중 발견 — `rogue.active`가
+   *  전투 내내 켜져 있어 `moveByKeys` 전체가 막혀 있었다. 탭-이동만은 계속
+   *  막는다 — 그걸 막으려고 넣은 바로 위 `inputBlocked()` 자체는 그대로 둔다). */
+  function liveDuel() {
+    var ra = global.DG.rogueAction;
+    return !!(ra && ra.active);
+  }
+
   function moveByKeys(dt) {
     if (mode !== 'keyboard') { return; }
-    if (inputBlocked()) { return; }
+    var live = liveDuel();
+    if (inputBlocked() && !live) { return; }
     var dx = 0, dy = 0, run = !!keys.shift;
     if (keys.w || keys.arrowup) { dy -= 1; }
     if (keys.s || keys.arrowdown) { dy += 1; }
@@ -251,7 +263,7 @@
     }
 
     var pos = core.save.player.pos;
-    if (!dx && !dy && walkTarget) {               // 탭한 지점으로 걸어간다
+    if (!dx && !dy && walkTarget && !live) {      // 탭한 지점으로 걸어간다 (전투 중엔 안 됨)
       var tx = walkTarget.x - pos.x, ty = walkTarget.y - pos.y;
       var td = Math.hypot(tx, ty);
       if (td < 2) { walkTarget = null; }

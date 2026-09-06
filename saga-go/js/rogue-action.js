@@ -251,7 +251,21 @@
     if (hp) { hp.style.width = Math.max(0, cur.hp / cur.foeHp * 100) + '%'; }
     if (mor) { mor.style.width = Math.max(0, cur.morale / cur.moraleMax * 100) + '%'; }
     if (ki) { ki.style.width = Math.min(100, cur.ki / D().KI_MAX * 100) + '%'; }
-    if (tell) { tell.classList.toggle('show', cur.tell > 0); }
+    if (tell) {
+      /* 예고가 없을 땐 같은 자리를 "다가가라" 안내로 쓴다 — 무대가 세우는
+         거리(약 8m)가 내 사거리(3m)보다 멀어, 걸어 들어가지 않으면 자동
+         공격도 상대 공격도 영영 안 난다(2026-09-06, 실전 포획 첫 시험에서
+         3초를 가만 서 있어도 아무 일이 안 일어나 발견). */
+      if (cur.tell > 0) {
+        tell.textContent = '⚠️ 강타! 원 밖으로 물러서라';
+        tell.classList.add('show');
+      } else if (cur.lastDist > MY_REACH()) {
+        tell.textContent = '🚶 다가가세요 — 사거리 안이면 저절로 공격합니다';
+        tell.classList.add('show');
+      } else {
+        tell.classList.remove('show');
+      }
+    }
     if (ub) { ub.disabled = cur.ki < D().KI_MAX; }
   }
 
@@ -301,6 +315,7 @@
     lastT = now;
     var pos = core.save.player.pos, fp = foePos();
     var dist = Math.hypot(pos.x - fp.x, pos.y - fp.y);
+    cur.lastDist = dist;
     var ev = tick(cur, dt, dist);
     emitEvents(ev);
     refresh();

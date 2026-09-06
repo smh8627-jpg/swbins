@@ -272,7 +272,108 @@
 
   /* ── 펫 포획 ──────────────────────────────────────────── */
 
+  /**
+   * 포획 진입점. **실전(`rogue-action.js`)이 있고 사료가 있으면 그쪽으로 간다**
+   * — 몬스터헌터 나우식으로, 접근·자동공격·강타 회피 뒤에 잡는다(2026-09-06,
+   * 사용자 요청 "그런 전투신을 원해" · 범위 "풀 실시간 전투"). 사료가 없으면
+   * 실전을 이겨도 던질 게 없어 막막해지니, 그때만 옛 타이밍 막대(부족 안내가
+   * 있는)로 돌아간다. `rogue-action.js`가 안 실려도(스크립트 하나 빠졌다고
+   * 포획이 막히면 안 된다) 옛 길로 간다.
+   */
   function startPet(spawn) {
+    /* 자가진단(DG_NO_DRAW)은 늘 옛길로 — `rogue.js`의 적도 진단도 화면 대신
+       순수 함수(`fight()`)를 직접 부르는 것과 같은 관례다. 여기서는 화면
+       자체(`[data-act="throw"]`)를 진단이 클릭하므로 옛 카드가 있어야 한다. */
+    if (!global.DG_NO_DRAW && global.DG.rogueAction && core.save.items.feed >= 1) {
+      startPetLive(spawn); return;
+    }
+    startPetTimer(spawn);
+  }
+
+  /** 실전 뒤 포획 — 판정(승패)은 `rogue-action.js`가, 포획 성공/실패 확률은 여기서 낸다 */
+  function startPetLive(spawn) {
+    var p = spawn.ref;
+    var pw = global.DG.hero.partyPower();
+    /* 적 기세 — `catchBase`(낮을수록 귀하다)를 그대로 난도로 뒤집는다. 새
+       필드를 안 만든 이유: `data.js`는 다섯 판이 나눠 든 사본이라(루트
+       CLAUDE.md) 새 필드는 다섯 벌을 같이 고쳐야 하는데, 이미 있는
+       `catchBase`만으로 충분하다 */
+    var hpK = core.tuned('petAction.hpK', 0.14);
+    var foeHp = Math.max(6, Math.round(pw.atk * hpK / Math.max(0.05, p.catchBase || 0.3)));
+    cur = { spawn: spawn, pet: p, done: false, live: true };
+    global.DG.rogueAction.open({
+      title: '🐾 포획 — ' + p.name,
+      foeName: p.name,
+      portrait: global.DG.sprite.portrait('pet', p, 96),
+      stage3d: { kind: 'pet', ref: p },
+      foeHp: foeHp, myAtk: pw.atk, myDef: pw.def,
+      onDone: function (perf) { finishPetLive(spawn, p, perf); }
+    });
+  }
+
+  /** 실전 결과 → 포획 시도. 한 대도 못 때리고 물러났으면 없던 일로 한다
+   *  (`rogue.js`의 같은 판단을 그대로 따른다 — 512행대 참고) */
+  function finishPetLive(spawn, p, perf) {
+    if (perf.fled && perf.dealt <= 0) {
+      cur = null;
+      core.log(p.name + ' 앞에서 물러났다.', 'info');
+      return;
+    }
+    if (cur) { cur.done = true; }
+    core.save.items.feed = Math.max(0, core.save.items.feed - 1);
+
+    /* 확률 뼈대는 옛 던지기와 같다 — 기본 포획률 + 잘 싸운 만큼의 보너스.
+       "정확도"였던 자리를 "가한 피해 비율"이 대신한다. 완파(cleared)면
+       옛 시스템의 최고 보너스(정확히 맞춘 완벽한 타이밍)와 같은 대접 */
+    var bonus = perf.cleared ? 0.45 : perf.ratio * 0.40;
+    var chance = core.clamp(p.catchBase + core.effect('catchPct') / 100 + bonus, 0.02, 0.97);
+    var ok = Math.random() < chance;
+    var perfLine = '가한 피해 ' + Math.round(core.clamp(perf.ratio, 0, 1) * 100) + '%' +
+      (perf.ults ? ' · 필살 ' + perf.ults + '회' : '') +
+      (perf.taken ? ' · 받은 피해 ' + core.fmt(perf.taken) : '');
+    var html = '';
+
+    if (ok) {
+      var g = gainPet(p);
+      var got = { herb: g.herb, dust: g.dust };
+      global.DG.world.removeSpawn(spawn.uid);
+      core.log(p.name + ' 포획 성공! (실전)', 'good');
+      html = '' +
+        '<div class="enc-card result good catchpop">' +
+          '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
+          '<h3>' + p.name + ' 포획!</h3>' +
+          '<p class="quote">' + (perf.cleared ? '완파하고 붙잡았다' : '거세게 몰아붙여 붙잡았다') +
+            ' (' + perfLine + ')</p>' +
+          '<div class="enc-reward">공적 +' + g.feat + ' · 명성 +' + g.fame + ' · 경험치 +' + g.exp +
+            ' · 금 +' + g.gold + ' · 보정 ' + bonusLabel(p) + '</div>' +
+          (got.herb ? '<div class="enc-reward">🌿 ' + p.name + ' 영초 +' + got.herb +
+            ' · ✨ 단사 +' + got.dust + '</div>' : '') +
+          '<button class="btn primary wide" data-act="ok">확인</button>' +
+        '</div>';
+    } else {
+      global.DG.world.removeSpawn(spawn.uid);
+      core.log(p.name + ' 놓쳤다… (실전)', 'bad');
+      html = '' +
+        '<div class="enc-card result bad jolt">' +
+          '<div class="enc-big"><img class="pt dark" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
+          '<h3>' + p.name + '은(는) 달아났다</h3>' +
+          '<p class="quote">' + perfLine + ' — 아깝게 놓쳤다</p>' +
+          '<div class="enc-reward">사료 1 소모</div>' +
+          '<button class="btn ghost wide" data-act="ok">확인</button>' +
+        '</div>';
+    }
+
+    mount();
+    el.innerHTML = html;
+    el.classList.add('show');
+    var okBtn = $('[data-act="ok"]', el);
+    if (okBtn) { okBtn.addEventListener('click', close); }
+    core.emit('changed');
+    core.persist();
+  }
+
+  /** 옛 타이밍 막대 — 사료가 없을 때만, 또는 실전 엔진이 안 실렸을 때만 온다 */
+  function startPetTimer(spawn) {
     var p = spawn.ref;
     cur = {
       spawn: spawn, pet: p, done: false,
@@ -490,10 +591,10 @@
 
   // 영지 편입(addRegionDeed)은 경영을 게임에서 빼면서 함께 제거했다
 
-  // 스페이스로 포획
+  // 스페이스로 포획 — 실전(`cur.live`) 중엔 던지기 미니게임이 없으니 건너뛴다
   global.addEventListener('keydown', function (e) {
-    if (e.key === ' ' && cur && cur.pet && !cur.done) { e.preventDefault(); throwFeed(); }
-    if (e.key === 'Escape' && cur) { close(); }
+    if (e.key === ' ' && cur && cur.pet && !cur.done && !cur.live) { e.preventDefault(); throwFeed(); }
+    if (e.key === 'Escape' && cur && !cur.live) { close(); }
   });
 
   core.on('encounter:request', function (spawn) { open(spawn); });
