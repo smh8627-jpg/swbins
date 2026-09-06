@@ -80,6 +80,26 @@
     return { kind: 'hero', ref: H[seed % H.length] };
   }
 
+  /**
+   * 이 사건이 3D 무대에 무엇을 세우나 — **순수 함수**(화면 없이 값만 낸다,
+   * 자가진단이 이걸 직접 물을 수 있다).
+   *
+   * `ev.mood === 'discover'`(비문·지도 조각·약초)·`'water'`(여울)는
+   * **사람이 아니라 자리·물건을 발견하는 사건**이다 — 지금까지는 다른
+   * 사건과 똑같이 `npcVisual()`이 아무 인물이나 하나 세웠는데, "묻힌 지도
+   * 조각을 캐는데 웬 사람이 옆에 서 있나" 처럼 뜻이 안 맞았다(2026-09-06,
+   * "비전투 이벤트 3D 무대 연출" 착수). 이 둘은 `stage3d`를 아예 안 낸다 —
+   * `duel:open`을 들어도 몸을 안 세우는 "카드만 뜨는 조우"는 이미 있던
+   * 갈래라(`battle3d.js` 머리말) 새로 만들 게 없다. 대신 `mood`를 실어
+   * 보내 `battle3d.js`가 알갱이(먼지·금빛·바람)를 사건 성격에 맞게 고른다.
+   */
+  function stageOf(ev) {
+    var foe = ev.foe ? FOES[ev.foe] : null;
+    if (foe) { return foeVisual(foe); }
+    if (ev.mood) { return null; }
+    return npcVisual(ev);
+  }
+
   /* ── 열 가지 사건 ─────────────────────────────────────
    * `PLAN.md` 11절이 늘어놓은 예시에서 **이 땅에 걸 수 있는 것**으로 골랐다.
    *
@@ -201,7 +221,7 @@
       ]
     },
     {
-      id: 'stone_text', name: '고대 비문', emoji: '🪨', w: 11,
+      id: 'stone_text', name: '고대 비문', emoji: '🪨', w: 11, mood: 'discover',
       when: 'any', where: [], marks: ['shrine'],
       quote: '이끼 아래로 글자가 반쯤 남아 있다.',
       record: '무너진 사당의 비문',
@@ -216,7 +236,7 @@
       ]
     },
     {
-      id: 'map_scrap', name: '보물 지도 조각', emoji: '🗺️', w: 11,
+      id: 'map_scrap', name: '보물 지도 조각', emoji: '🗺️', w: 11, mood: 'discover',
       when: 'any', where: [], marks: ['ruin'],
       quote: '무너진 기둥 틈에 기름 먹인 종이가 끼여 있다.',
       record: '강 건너 폐허의 지도 조각',
@@ -233,7 +253,7 @@
       ]
     },
     {
-      id: 'rare_herb', name: '희귀 약초', emoji: '🌿', w: 8,
+      id: 'rare_herb', name: '희귀 약초', emoji: '🌿', w: 8, mood: 'discover',
       when: 'day', where: ['forest', 'mount'],
       quote: '바위 그늘에 보기 드문 잎이 돋아 있다.',
       choices: [
@@ -249,7 +269,7 @@
     {
       /* **비에만 나는 사건**(PLAN 21절 "특정 이벤트 발생"). 물이 불면 여울이 잠긴다 —
          PHASE 10 에서 강물이 실제로 불어나는 것과 같은 자리를 가리킨다 */
-      id: 'flood_ford', name: '불어난 여울', emoji: '🌊', w: 14,
+      id: 'flood_ford', name: '불어난 여울', emoji: '🌊', w: 14, mood: 'water',
       when: 'any', where: ['water', 'road', 'farm'], marks: ['bridge'], wet: true,
       quote: '물이 부어 건널목이 잠겼다. 물살 소리가 크다.',
       choices: [
@@ -523,8 +543,8 @@
        잼없지"). `duel.js`/`rogue-action.js`가 나중에 진짜 전투를 열 때
        또 한 번 같은 신호를 쏘지만(`openDuel()`), `duelStage()`는 그저
        다시 세우는 것뿐이라 문제없다 */
-    var stage3d = foe ? foeVisual(foe) : npcVisual(ev);
-    core.emit('duel:open', { title: ev.name, foeName: foe ? foe.name : ev.name, stage3d: stage3d });
+    var stage3d = stageOf(ev);
+    core.emit('duel:open', { title: ev.name, foeName: foe ? foe.name : ev.name, stage3d: stage3d, mood: ev.mood });
     var portraitImg = (stage3d && stage3d.kind === 'hero' && global.DG.sprite)
       ? global.DG.sprite.portrait('hero', stage3d.ref, 96) : null;
     var html =
@@ -709,6 +729,7 @@
     /* 값을 내는 함수 — 순수하다. 세이브를 읽기만 한다 */
     contextAt: contextAt, candidates: candidates, pick: pick, resolve: resolve,
     myPower: myPower, winChance: winChance, fightRoll: fightRoll, foeVisual: foeVisual, npcVisual: npcVisual,
+    stageOf: stageOf,
     /* 세이브가 바뀌는 곳은 여기 하나 */
     apply: apply,
     /* 화면과 때 */

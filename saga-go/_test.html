@@ -2915,6 +2915,20 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          (v1.ref.id !== v3.ref.id ? ' (서로 다른 사람)' : ''));
     });
 
+    t('사건 — 발견물(비문·지도 조각·약초·여울)은 사람을 안 세운다 (2026-09-06, "비전투 이벤트 3D 무대 연출")', function () {
+      var discoverIds = ['stone_text', 'map_scrap', 'rare_herb'];
+      var allNull = discoverIds.every(function (id) { return EV.stageOf(EV.find(id)) === null; });
+      var waterNull = EV.stageOf(EV.find('flood_ford')) === null;
+      /* 사람을 만나는 사건은 그대로 인물이 선다 — 이번 변경이 그쪽까지
+         건드리지 않았는지 같이 본다 */
+      var personStill = EV.stageOf(EV.find('road_merchant'));
+      var foeStill = EV.stageOf(EV.find('bandit_ambush'));
+      return allNull && waterNull &&
+        personStill && personStill.kind === 'hero' &&
+        foeStill && foeStill.kind === 'hero' &&
+        ('발견물 셋 · 여울 모두 stage3d 없음 · 상인·도적은 그대로 섬');
+    });
+
     /* ── 걷기 흥 (ambient) — 사건 사이를 메운다 (축1, 2026-09-06) ─────
      * `event.js` 처럼 값을 내는 함수는 순수해서 roll 을 주면 결정된다.
      */

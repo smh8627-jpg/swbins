@@ -188,9 +188,17 @@
       if (!live()) { return; }
       W3().battle(true);
       var s = spot();
-      burst(s.x, s.z, 'dust', 0.5);
+      /* 무대 알갱이도 사건 성격을 따라간다(2026-09-06, "비전투 이벤트 3D
+         무대 연출") — `discover`(비문·지도 조각·약초)는 사람 대신 금빛
+         반짝임으로 "발견했다"를 알리고, `water`(여울)는 물보라에 가까운
+         바람 알갱이를 쓴다. 그 외(사람을 만나는 사건·전투)는 옛 흙먼지 그대로 */
+      var mood = o && o.mood;
+      var moodKind = mood === 'discover' ? 'gold' : (mood === 'water' ? 'wind' : 'dust');
+      burst(s.x, s.z, moodKind, mood === 'discover' ? 1.4 : 0.5);
       /* 상대를 실제로 세운다(2026-08-30) — `event.js`·`fort.js` 가 미리 정해
-         건네준 몸(`stage3d`)이 있을 때만. 카드만 뜨는 조우도 여전히 있다 */
+         건네준 몸(`stage3d`)이 있을 때만. 카드만 뜨는 조우도 여전히 있다 —
+         `discover`·`water`는 이제 일부러 아무도 안 세운다(사람이 아니라
+         자리·물건을 발견하는 사건이라 사람이 서 있으면 뜻이 안 맞았다) */
       if (o && o.stage3d && W3().duelStage) { W3().duelStage(o.stage3d.kind, o.stage3d.ref); }
     });
 
