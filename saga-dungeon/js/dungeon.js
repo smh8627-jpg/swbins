@@ -1095,12 +1095,18 @@
    * @param ctx 방 치수가 던전과 다른 곳(마을 등)이 빌려 쓸 때만 넘긴다 —
    *            {roomW, roomH, wall, pr}. 없으면 이 방(던전)의 치수 그대로다.
    */
+  /**
+   * @param ctx.anchor {x,y} — 이 방의 로컬 원점(0,0)이 실제로 서 있는 세계
+   *        좌표(PLAN §28-8, 사가블로 오픈월드). 없으면(0,0) — 예전과 완전히
+   *        같다(던전 방은 늘 이 필드가 없다, 회귀 없음).
+   */
   function inRoomRect(x, y, ctx) {
     var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
     var wl = (ctx && ctx.wall) || WALL, pr = (ctx && ctx.pr) || P_R;
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
     var lo = wl + pr;
-    return x >= lo - 0.01 && x <= rw - wl - pr + 0.01 &&
-           y >= lo - 0.01 && y <= rh - wl - pr + 0.01;
+    return x >= ax + lo - 0.01 && x <= ax + rw - wl - pr + 0.01 &&
+           y >= ay + lo - 0.01 && y <= ay + rh - wl - pr + 0.01;
   }
   /* 들판 소품 중 **막는 것만** 고른다 — 길·이정표·연못가 갈대 같은 장식은
      지나갈 수 있어야 걷는 맛이 안 답답하다. */
@@ -1131,10 +1137,16 @@
     var th = (ctx && ctx.theme) || (run && run.theme) || (DDf ? DDf.themeOf(floor) : null);
     var seed = F.seedOf(floor, roomIdx, th && th.name);
     var corridors = ctx && ctx.corridors;
+    /* 앵커(PLAN §28-8) — 이 방의 로컬 원점이 서 있는 세계 좌표. ring(방으로부터
+       몇 칸 떨어졌나)은 로컬 기준으로 재야 하므로 칸 좌표에서 빼 준다. 다만
+       chunkAt() 자체엔 절대 좌표(cx,cz)를 그대로 넘긴다 — 그래야 마을이든 들판
+       이든 같은 칸이 늘 같은 지형을 낸다(이어진 세계의 핵심 불변식). */
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
+    var acx = Math.floor(ax / F.CHUNK), acz = Math.floor(ay / F.CHUNK);
     var ccx = Math.floor(x / F.CHUNK), ccz = Math.floor(y / F.CHUNK), cx, cz, i, pc, r;
     for (cz = ccz - 1; cz <= ccz + 1; cz++) {
       for (cx = ccx - 1; cx <= ccx + 1; cx++) {
-        var ring = F.ringOf(cx, cz, rw, rh);
+        var ring = F.ringOf(cx - acx, cz - acz, rw, rh);
         if (ring === 0) { continue; }              // 방이 걸친 조각엔 소품이 없다
         /* th.name 을 그대로 넘긴다 — dungeon3d.js 가 그리는 것과 같은 편향
            표를 써야 한다(2026-09-05, PLAN 9절 Biome). 안 넘기면 seed 는
@@ -1223,17 +1235,38 @@
    *            (inRoomRect·fieldBlockedAt 에 그대로 물려 준다).
    *            `ctx.corridors` — 마을의 들길 통로 예외(위 corridorReach 참고).
    */
+  /** 세계 한계(PLAN §28-8) — noRoom(들판, 어느 마을 발판도 아닌 곳)에서
+   *  좌표가 한없이 안 커지게만 잡아 두는 바깥 테두리. 지금 세워 둔 앵커
+   *  (moru 원점, 위성 4800 안팎)보다 훨씬 넉넉해 실제로는 안 걸린다. */
+  var WORLD_LIMIT = 60000;
+  /**
+   * @param ctx 방 치수·씨앗이 던전과 다른 곳(마을 등)이 빌려 쓸 때만 넘긴다 —
+   *            {roomW, roomH, wall, pr}. 없으면 이 방(던전)의 치수 그대로다.
+   *            `ctx.anchor` {x,y} — 이 방의 로컬 원점이 서 있는 세계 좌표
+   *            (PLAN §28-8). 없으면(0,0) — 던전 방은 늘 없다, 회귀 없음.
+   *            `ctx.noRoom` — 방 사각형 자체가 없는 열린 들판(마을 발판
+   *            사이). 세계 한계만 두고 소품 충돌만 축분리로 본다.
+   */
   function boundPlayer(p, px, py, ctx) {
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
+    if (ctx && ctx.noRoom) {
+      var lim = WORLD_LIMIT;
+      var wnx = core.clamp(p.x, -lim, lim);
+      p.x = !fieldBlockedAt(wnx, py, ctx) ? wnx : px;
+      var wny = core.clamp(p.y, -lim, lim);
+      p.y = !fieldBlockedAt(p.x, wny, ctx) ? wny : py;
+      return;
+    }
     var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
     var wl = (ctx && ctx.wall) || WALL, pr = (ctx && ctx.pr) || P_R;
     var lo = wl + pr, hiX = rw - wl - pr, hiY = rh - wl - pr;
     if (!fieldOn()) {
-      p.x = core.clamp(p.x, lo, hiX);
-      p.y = core.clamp(p.y, lo, hiY);
+      p.x = core.clamp(p.x, ax + lo, ax + hiX);
+      p.y = core.clamp(p.y, ay + lo, ay + hiY);
       return;
     }
-    var R = fieldRadiusUnits(), cx = rw / 2, cy = rh / 2, ext;
-    var loX = lo - R, hiXe = hiX + R;
+    var R = fieldRadiusUnits(), cx = ax + rw / 2, cy = ay + rh / 2, ext;
+    var loX = ax + lo - R, hiXe = ax + hiX + R;
     /* 2026-09-06 — 여기 아래 넷은 R(그때그때의 AUTO 등급 반경)에 더하지
        않고 **최댓값(최솟값)**으로 견준다. `corridorExtra()`가 주는 값은
        town.js의 corridorsFor()에서는 "표식까지의 절대 거리"(그 통로가
@@ -1244,16 +1277,16 @@
        Phase 2 — `laneAt`이 있으면(던전 문마다 다른 y) 그 문의 결만 넓힌다,
        없으면(마을) 방 중심(cx/cy)과 비교해 예전과 완전히 같다. */
     ext = corridorExtra(ctx, 'E', py, cy);
-    if (ext) { hiXe = Math.max(hiXe, hiX + ext); }
+    if (ext) { hiXe = Math.max(hiXe, ax + hiX + ext); }
     ext = corridorExtra(ctx, 'W', py, cy);
-    if (ext) { loX = Math.min(loX, lo - ext); }
+    if (ext) { loX = Math.min(loX, ax + lo - ext); }
     var nx = core.clamp(p.x, loX, hiXe);
     p.x = (inRoomRect(nx, py, ctx) || !fieldBlockedAt(nx, py, ctx)) ? nx : px;
-    var loY = lo - R, hiYe = hiY + R;
+    var loY = ay + lo - R, hiYe = ay + hiY + R;
     ext = corridorExtra(ctx, 'S', p.x, cx);
-    if (ext) { hiYe = Math.max(hiYe, hiY + ext); }
+    if (ext) { hiYe = Math.max(hiYe, ay + hiY + ext); }
     ext = corridorExtra(ctx, 'N', p.x, cx);
-    if (ext) { loY = Math.min(loY, lo - ext); }
+    if (ext) { loY = Math.min(loY, ay + lo - ext); }
     var ny = core.clamp(p.y, loY, hiYe);
     p.y = (inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
   }
