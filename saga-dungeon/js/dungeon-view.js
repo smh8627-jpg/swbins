@@ -903,6 +903,9 @@
         near: Math.hypot(marks[i].x - run.player.x, marks[i].y - run.player.y) < NEAR });
     }
     items.push({ z: run.player.x + run.player.y, kind: 'player', o: run.player });
+    if (run.companion) {
+      items.push({ z: run.companion.x + run.companion.y, kind: 'companion', o: run.companion });
+    }
 
     items.sort(function (a, b) { return a.z - b.z; });
 
@@ -994,6 +997,7 @@
       else if (it.kind === 'foe') { drawFoe(m, it.o, now, bars); }
       else if (it.kind === 'npc') { drawNpc(m, it.o, now, plates, it.near); }
       else if (it.kind === 'mark') { drawMark(m, it.o, now, plates, it.near); }
+      else if (it.kind === 'companion') { drawCompanion(m, it.o, now); }
       else { drawPlayer(m, run, now); }
     }
 
@@ -1407,6 +1411,32 @@
       ctx.fillStyle = '#f5b445'; ctx.fill();
     }
     ctx.restore();
+  }
+
+  /** 동행(§51) — 부대 2번째 인물. drawPlayer 와 같은 결이나 마을 전용
+   *  장식(사기 고리·황금 고리)은 뺐다(동행은 던전에서만 산다,
+   *  buildFloor 참고 — 마을엔 run.companion 이 없다). */
+  function drawCompanion(m, c, now) {
+    var ref = global.DG.data.find(c.id);
+    if (!ref) { return; }
+    var p = proj(m, c.x, c.y);
+    var sf = m.s * 1.12;
+
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.beginPath();
+    isoEllipse(ctx, m, c.x, c.y, 12);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.restore();
+
+    var fac = global.DG.data.faction(ref.faction);
+    global.DG.sprite.stamp(ctx, {
+      kind: 'human', ref: ref,
+      x: p.x, y: p.y, s: 0.84 * sf, facing: c.facing,
+      phase: c.phase, walking: c.walking || c.atkAnim > 0,
+      color: fac.color, look: global.DG.sprite.lookOf(ref), t: now
+    });
   }
 
   /* ── 조명 레이어 ─────────────────────────────────────── */

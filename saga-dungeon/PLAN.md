@@ -2806,6 +2806,33 @@ selftest` `ADMIN 12/12`. `_demo.html#dg`를 CDP로 띄워 던전 방·마을
 
 ---
 
+# 53. 동행 2D 화면 반영 — §51 "남은 것" 마저 (2026-09-06)
+
+§51에서 동행(부대 2번째 인물)을 3D(`dungeon3d.js`)에만 그리고 2D
+(`dungeon-view.js`)는 비워 뒀던 것을 채웠다. 판정은 이미 3D 유무와
+무관하게 돌고 있었으니(§51 참고 — `updateCompanion()`이 화면과 갈라져
+있다), 이번엔 그리는 쪽만 손댔다.
+
+- `drawCompanion(m, c, now)` 신규 — `drawPlayer`와 같은 결(발밑 그림자 +
+  `sprite.stamp`)이나 마을 전용 장식(사기 고리·황금 고리)은 뺐다 — 동행은
+  던전에서만 산다(`run.companion`은 `buildFloor()`에서만 잡히고 마을엔
+  없다).
+- `data.find(c.id)`로 그 인물의 실제 참조를 찾고 `sprite.lookOf(ref)`로
+  장착 무기·기질에 따른 생김새를 반영한다 — 3D의 `meLookOf()`와 같은
+  의도(선두와 다른 생김새), 다만 2D의 `lookOf()`는 애초에 seed가 아니라
+  `hero.id` 기준이라(§ `LOOKS` 표) 3D처럼 시드를 따로 박을 필요가 없었다.
+- 그리는 순서는 `items` 배열에 `kind:'companion'`으로 얹어 기존 z-정렬
+  (아이소 깊이)을 그대로 탄다 — 새 정렬 축을 만들지 않았다.
+
+**검증** — `_test.html` 헤드리스 3회 `RESULT 275/275` 완전 동일(문항 수
+그대로 — 그리기 전용 변경이라 새 자가진단 항목은 안 늘렸다). `_admin.html?
+selftest` `ADMIN 12/12`. WebGL을 꺼서(`--disable-webgl --disable-webgl2`)
+2D 폴백 경로를 강제한 뒤 `_demo.html#dg`(4인 부대)를 CDP로 스크린샷 —
+선두(황금 고리) 옆에 고리 없는 다른 인물이 붙어 같은 적 무리를 상대하는
+것을 실측했다.
+
+---
+
 # Claude Code 실행 지침
 
 지금 바로 코드를 수정하기 전에 먼저 프로젝트 구조를 분석한다.
