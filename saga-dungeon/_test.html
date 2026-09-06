@@ -2650,6 +2650,38 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return bad.length === 0 && (gens.length + '개 마을 전부 최소 간격(95) 만족');
     });
 
+    t('밀도 보강 소품(손으로 지은 넷 포함, PLAN §28-8 후속·실기기 제보) — 집이 스폰 자리와 안 겹친다', function () {
+      /* 실기기 제보로 잡은 회귀 — placePoints()가 간격을 못 지키면 그냥
+         쓰던 시절, 모루골(이미 소품·NPC 20개가 빽빽한 방)에서 밀도 보강용
+         집이 스폰 자리에서 겨우 60(스케일 후) 떨어진 곳에 놓여 시작하자
+         마자 카메라가 그 집 벽에 거의 박힌 것으로 보였다(카메라는 **나**를
+         따라간다 — 2026-09-04 벨타워 건도 정확히 이 자리, 스폰 문제였다).
+         바로 위 항목은 절차 생성 마을만 훑고(gens 필터) **손으로 지은
+         넷은 안 봤다** — 그 사각지대에 이 버그가 숨어 있었다.
+         **집이 다른 NPC와 가까운 건 재지 않는다** — 처음엔 NPC까지 재다가
+         DECOR_MORU의 원래(2026-09-04 이전부터 있던, 이 세션과 무관한)
+         집 넷이 각자 옆 NPC와 60 안팎으로 서 있는 걸 오탐으로 잡아냈다
+         (예: house(60,60) vs captain — 원래 설계가 그렇게 붙여 놓은
+         것이고 실제로 문제된 적이 없다). 카메라가 문제되는 건 **스폰
+         자리와의 거리**뿐이다 — 그래서 스폰만 잰다. 스폰 좌표는 그 마을의
+         실제 앵커·배율(월드 좌표)로 맞춰 비교한다(앵커를 안 더하면 늘
+         큰 값이 나와 항상 통과로 잘못 나온다). */
+      var T = DG.town, list = T.overworld.list(), bad = [];
+      list.forEach(function (tw) {
+        T._reset(tw.id);
+        var raw = T.raw(), anc = T.anchorOf(tw.id);
+        var SX = raw.roomW / 560, SY = raw.roomH / 380;
+        var spawn = { x: anc.x + 195 * SX, y: anc.y + 240 * SY };
+        var houses = raw.room.decor.filter(function (d) { return d.t === 'house'; });
+        houses.forEach(function (h) {
+          if (Math.hypot(h.x - spawn.x, h.y - spawn.y) < 95) { bad.push(tw.id); }
+        });
+      });
+      T._reset('moru');
+      return bad.length === 0 &&
+        ('마을 ' + list.length + '개(손으로 지은 넷 포함) 전부 집이 스폰 자리와 최소 간격(95) 이상');
+    });
+
     t('절차 생성 마을 — biome마다 지형 성향이 실제로 갈린다(forest는 숲, mountain은 절벽·바위)', function () {
       /* 기존 "수궁은 물·늪이 는다" 식 통계 검사와 같은 방법 — 표본을 넉넉히
          떠서 편향이 실제로 반영됐는지 본다(THEME_BIAS 표를 직접 읽는 게

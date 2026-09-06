@@ -373,9 +373,9 @@
     usedNames[name] = true;
     return name;
   }
-  /** 최소 간격(minDist)만 지키며 좌표 count개를 결정적으로 뽑는다 —
-   *  safePoint()의 "겹치면 옆으로 민다"를 일반화한 것. avoid에 미리 피할
-   *  점(스폰 자리 등)을 넣어 두면 그것과도 간격을 지킨다.
+  /** 최소 간격(minDist)만 지키며 좌표를 결정적으로 뽑는다 — safePoint()의
+   *  "겹치면 옆으로 민다"를 일반화한 것. avoid에 미리 피할 점(스폰 자리
+   *  등)을 넣어 두면 그것과도 간격을 지킨다.
    *  **반환 좌표는 늘 BASE_W·BASE_H 기준**이다 — cfg.decor/cfg.npcs가 전부
    *  그 기준으로 적혀 있고 build()가 scalePt()로 한 번만 늘린다. Phase 4
    *  (2026-09-06)에서 여기가 ROOM_W·ROOM_H(데스크톱에서 이미 DESK_SCALE이
@@ -383,7 +383,24 @@
    *  ROOM_W===BASE_W라 안 드러났지만, 넓은 데스크톱 창에서 절차 생성
    *  마을(gen*)의 NPC·decor가 scalePt()에서 **두 번째로** DESK_SCALE만큼
    *  더 늘어나 방 밖으로 튀어나갔다(실측: 1200×900 창에서 herald가 방
-   *  953×646 인데 local (1300, 638)에 섬 — CDP 프로브로 확인). */
+   *  953×646 인데 local (1300, 638)에 섬 — CDP 프로브로 확인).
+   *
+   *  **반환 길이가 count보다 짧을 수 있다** — Phase 4 후속(2026-09-06,
+   *  실기기 제보)에서 잡은 두 번째 버그: 시도가 다 떨어지면(기존엔 40번)
+   *  **간격을 못 지킨 좌표를 그냥 그대로 써 왔다.** 모루골처럼 이미 소품·
+   *  NPC 20개가 빽빽이 들어찬 방에서 이게 실제로 터졌다 — 추가된 집
+   *  (h=130)이 스폰 자리에서 겨우 60(BASE 30) 떨어진 곳에 놓여, 시작하자
+   *  마자 카메라가 그 집 벽에 거의 박힌 것으로 보였다(2026-09-04 벨타워
+   *  건과 같은 종류 — 그때도 못 지킨 자리를 그냥 썼다면 똑같이 터졌을
+   *  것). 이제 시도를 40→200으로 늘리고(더 빽빽해도 어지간하면 찾는다),
+   *  그래도 못 찾으면 **그 자리는 건너뛴다**(내놓는 개수가 count보다
+   *  적어질 수 있다) — 억지로 겹치는 것보다 하나 덜 놓는 쪽이 안전하다.
+   *  호출부(생성 마을 decor·손으로 지은 넷의 밀도 보강) 둘 다 배열
+   *  길이가 짧아질 수 있다고 보고 방어적으로 읽는다 — 각 항목에 원래
+   *  요청한 순번(`i`)을 같이 내주므로, 중간 순번 하나가 빠져도(건너뛴
+   *  자리) 나머지가 밀려서 엉뚱한 종류로 짝지어지는 일이 없다(예: 3번째
+   *  요청이 빠지면 배열은 [0,1,3]으로 나오지 결코 [0,1,2]로 밀리지 않는다
+   *  — 호출부가 `i`로 어느 종류인지 되짚는다). */
   function placePoints(count, minDist, avoid, salt) {
     var lo = WALL + P_R + 20, hiX = BASE_W - WALL - P_R - 20, hiY = BASE_H - WALL - P_R - 20;
     var pts = avoid.slice(), out = [], i, tries, x, y, ok, j;
@@ -397,9 +414,10 @@
           if (Math.hypot(x - pts[j].x, y - pts[j].y) < minDist) { ok = false; break; }
         }
         tries++;
-      } while (!ok && tries < 40);
+      } while (!ok && tries < 200);
+      if (!ok) { continue; }   // 200번 다 실패 — 억지로 겹치게 놓지 않고 건너뛴다
       pts.push({ x: x, y: y });
-      out.push({ x: x, y: y });
+      out.push({ x: x, y: y, i: i });
     }
     return out;
   }
@@ -409,10 +427,21 @@
    *  재사용해, 이미 있는 소품·NPC·스폰(195,240)에서 100 이상 떨어진 자리에
    *  집 하나·기둥 하나를 결정적으로 더 앉힌다 — 좌표를 손으로 다시 재지
    *  않는다. TOWN_ORDER가 아직 이 넷뿐일 때(절차 생성 마을은 아래
-   *  generateTowns()가 나중에 덧붙인다) 돈다. */
+   *  generateTowns()가 나중에 덧붙인다) 돈다.
+   *
+   *  **실기기 제보로 잡은 버그(같은 날 후속)** — `placePoints()`가 간격을
+   *  못 지키면 그냥 무시하고 쓰던 시절, 모루골(이미 소품·NPC 20개가 빽빽한
+   *  방)에서 새 집이 스폰 자리에서 겨우 60(스케일 적용 전 BASE 30) 떨어진
+   *  곳에 놓여 시작하자마자 카메라가 그 집 벽에 거의 박힌 것으로 보였다.
+   *  `placePoints()`를 "못 찾으면 건너뛴다"로 고친 지금은 `extra`의 길이가
+   *  2보다 짧을 수 있어(마을이 이미 너무 빽빽하면 하나만 놓이거나 아예
+   *  안 놓일 수 있다) 인덱스로 바로 안 읽고 있는 만큼만 방어적으로 쓴다 —
+   *  집을 못 놓으면 그 마을은 그냥 밀도를 덜 얻고 넘어간다(억지로 겹치는
+   *  것보다 훨씬 낫다). */
   var HAND_TOWN_DENSITY_SALT = { moru: 40001, galdae: 40002, jajak: 40003, sogeum: 40004 };
+  var HAND_TOWN_DENSITY_TYPE = ['house', 'pillar'];
   (function addHandTownDensity() {
-    var i, id, cfg, avoid, k, salt, extra, houseSeed;
+    var i, id, cfg, avoid, k, salt, extra, houseSeed, add, ti;
     for (i = 0; i < TOWN_ORDER.length; i++) {
       id = TOWN_ORDER[i];
       salt = HAND_TOWN_DENSITY_SALT[id];
@@ -421,12 +450,18 @@
       avoid = [{ x: 195, y: 240 }];
       for (k = 0; k < cfg.decor.length; k++) { avoid.push({ x: cfg.decor[k].x, y: cfg.decor[k].y }); }
       for (k = 0; k < cfg.npcs.length; k++) { avoid.push({ x: cfg.npcs[k].x, y: cfg.npcs[k].y }); }
-      extra = placePoints(2, 100, avoid, salt);
+      extra = placePoints(HAND_TOWN_DENSITY_TYPE.length, 100, avoid, salt);
       houseSeed = Math.floor(core.hash2(salt + 7, salt + 13) * 1000);
-      cfg.decor = cfg.decor.concat([
-        { t: 'house', x: Math.round(extra[0].x), y: Math.round(extra[0].y), h: 130, seed: houseSeed },
-        { t: 'pillar', x: Math.round(extra[1].x), y: Math.round(extra[1].y) }
-      ]);
+      add = [];
+      for (ti = 0; ti < extra.length; ti++) {
+        var etype = HAND_TOWN_DENSITY_TYPE[extra[ti].i];   // 원래 요청한 순번으로 종류를 되짚는다(건너뛴 자리가 있어도 안 밀린다)
+        if (etype === 'house') {
+          add.push({ t: 'house', x: Math.round(extra[ti].x), y: Math.round(extra[ti].y), h: 130, seed: houseSeed });
+        } else if (etype === 'pillar') {
+          add.push({ t: 'pillar', x: Math.round(extra[ti].x), y: Math.round(extra[ti].y) });
+        }
+      }
+      cfg.decor = cfg.decor.concat(add);
     }
   })();
 
@@ -456,8 +491,14 @@
       var anchor = { x: cell.gx * ANCHOR_DIST, y: cell.gz * ANCHOR_DIST };
       var npcKeys = seededShuffle(GEN_NPC_POOL, salt + 3).slice(0, 3);
       var npcPts = placePoints(npcKeys.length, 100, [{ x: 195, y: 240 }], salt + 11);
-      var npcs = npcKeys.map(function (key, k) {
-        return { key: key, x: Math.round(npcPts[k].x), y: Math.round(npcPts[k].y) };
+      /* placePoints()가 간격을 못 지키면 이제 그 자리를 건너뛴다(위 함수
+         주석 참고, 2026-09-06 후속 — 실기기 제보로 잡음: 억지로 겹치게
+         놓았다가 스폰 바로 옆에 집이 서는 사고가 났었다) — 그래서 npcPts가
+         npcKeys보다 짧을 수 있다. 인덱스로 바로 안 읽고 실제로 나온 점
+         개수만큼만 NPC를 세운다(마을이 너무 빽빽하면 NPC가 하나 덜 설
+         수 있다 — 겹치는 것보다 훨씬 낫다). */
+      var npcs = npcPts.map(function (pt) {
+        return { key: npcKeys[pt.i], x: Math.round(pt.x), y: Math.round(pt.y) };
       });
       var decorAvoid = [{ x: 195, y: 240 }].concat(npcPts);
       /* PLAN §28-8 Phase 4(2026-09-06) — 집·우물뿐이던 밀도를 기둥·균열
@@ -465,18 +506,22 @@
          가깝게 맞춘다. 자리만 placePoints()로 늘리고, 씨앗은 기존 것과
          안 겹치는 salt 오프셋(+53·+61·+67 — 위 house/well이 쓰는 +31·+37과
          겹치지 않는 자리)로 결정적으로 뽑는다. */
-      var decorPts = placePoints(4, 100, decorAvoid, salt + 23);   // 집·우물·기둥·균열
+      var decorPts = placePoints(4, 100, decorAvoid, salt + 23);   // 집·우물·기둥·균열(모자랄 수 있음)
       var houseSeed = Math.floor(core.hash2(salt + 31, salt + 37) * 1000);
       var crackAngle = core.hash2(salt + 53, salt + 59) * Math.PI * 2;
       var crackLen = 24 + core.hash2(salt + 61, salt + 67) * 20;
+      var GEN_DECOR_TYPE = ['house', 'well', 'pillar', 'crack'];
       var decor = [
         { t: 'torch', x: 120, y: WALL - 4, seed: core.hash2(salt + 41, 1) * 6 },
-        { t: 'torch', x: 440, y: WALL - 4, seed: core.hash2(salt + 43, 2) * 6 },
-        { t: 'house', x: Math.round(decorPts[0].x), y: Math.round(decorPts[0].y), h: 130, seed: houseSeed },
-        { t: 'well', x: Math.round(decorPts[1].x), y: Math.round(decorPts[1].y), h: 34 },
-        { t: 'pillar', x: Math.round(decorPts[2].x), y: Math.round(decorPts[2].y) },
-        { t: 'crack', x: Math.round(decorPts[3].x), y: Math.round(decorPts[3].y), a: crackAngle, len: crackLen }
+        { t: 'torch', x: 440, y: WALL - 4, seed: core.hash2(salt + 43, 2) * 6 }
       ];
+      for (var di = 0; di < decorPts.length; di++) {
+        var dp = decorPts[di], dx = Math.round(dp.x), dy = Math.round(dp.y), dtype = GEN_DECOR_TYPE[dp.i];
+        if (dtype === 'house') { decor.push({ t: 'house', x: dx, y: dy, h: 130, seed: houseSeed }); }
+        else if (dtype === 'well') { decor.push({ t: 'well', x: dx, y: dy, h: 34 }); }
+        else if (dtype === 'pillar') { decor.push({ t: 'pillar', x: dx, y: dy }); }
+        else if (dtype === 'crack') { decor.push({ t: 'crack', x: dx, y: dy, a: crackAngle, len: crackLen }); }
+      }
       var rc = BIOME_ROOM_COLOR[biome];
       TOWNS[id] = {
         id: id, name: name, dirFromHub: null,
