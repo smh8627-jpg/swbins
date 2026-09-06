@@ -1269,13 +1269,15 @@
     var loX = ax + lo - R, hiXe = ax + hiX + R;
     /* 2026-09-06 — 여기 아래 넷은 R(그때그때의 AUTO 등급 반경)에 더하지
        않고 **최댓값(최솟값)**으로 견준다. `corridorExtra()`가 주는 값은
-       town.js의 corridorsFor()에서는 "표식까지의 절대 거리"(그 통로가
-       세워질 때의 반경 기준, 등급이 나중에 바뀌어도 안 변한다), dungeon.js
-       의 `doorCorridors()`에서는 애초에 등급과 무관한 고정 상수라 — 어느
-       쪽이든 R이 나중에 줄어들어도 통로 결의 도달 가능 거리는 안 줄어든다
-       (R이 더 크면 그냥 그 값을 쓴다 — 정상적인 AUTO 동작). PLAN §28-4
-       Phase 2 — `laneAt`이 있으면(던전 문마다 다른 y) 그 문의 결만 넓힌다,
-       없으면(마을) 방 중심(cx/cy)과 비교해 예전과 완전히 같다. */
+       dungeon.js의 `doorCorridors()`(PLAN §28-4, 던전 방-방 문별 통로)에서
+       애초에 등급과 무관한 고정 상수라, R이 나중에 줄어들어도 통로 결의
+       도달 가능 거리는 안 줄어든다(R이 더 크면 그냥 그 값을 쓴다 — 정상적인
+       AUTO 동작). `laneAt`이 있으면(던전 문마다 다른 y) 그 문의 결만
+       넓힌다. **마을(town.js)은 §28-8(오픈월드 A안)부터 이 corridors
+       메커니즘 자체를 안 쓴다** — 마을은 이제 늘 `ctx.corridors` 없이
+       불리므로(마을 자체가 앵커+noRoom 으로 옮겨감) 여기선 늘 `laneAt`
+       없는 옛 방식(방 중심 cx/cy)과 비교하는 자리가 없다, 오직 던전
+       문 통로만 이 경로를 탄다. */
     ext = corridorExtra(ctx, 'E', py, cy);
     if (ext) { hiXe = Math.max(hiXe, ax + hiX + ext); }
     ext = corridorExtra(ctx, 'W', py, cy);
@@ -1317,6 +1319,7 @@
     if (!ctx && !run) { return; }
     var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
     var wl = (ctx && ctx.wall) || WALL;
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
     var floor = ctx ? ctx.floor : run.floor;
     var enemies = ctx ? ctx.room.enemies : run.room.enemies;
     var R = fieldRadiusUnits(), tries, i, a, d, x, y, en;
@@ -1325,8 +1328,8 @@
       while (tries--) {
         a = Math.random() * Math.PI * 2;
         d = (wl + 60) + Math.random() * Math.max(40, R - wl - 60);
-        x = rw * 0.5 + Math.cos(a) * d;
-        y = rh * 0.5 + Math.sin(a) * d;
+        x = ax + rw * 0.5 + Math.cos(a) * d;
+        y = ay + rh * 0.5 + Math.sin(a) * d;
         if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
         en = spawnEnemy(floor, false, { x: x, y: y });
         en.field = true;

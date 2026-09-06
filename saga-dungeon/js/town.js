@@ -158,17 +158,22 @@
     { t: 'belltower', x: 373, y: 53, h: 110 }
   ];
 
-  /** 통로 길이(PLAN §28-2 Phase 1, "오픈월드 — 위장된 전환") — 들길
-   *  표식보다 이만큼(CHUNK 단위) 더 바깥에 "통로 진입점"을 둔다.
-   *  Phase 2(2026-09-05)부터 `travel()` 트리거가 실제로 이 자리에 선다. */
-  var CORRIDOR_LEN = 4;
-  /** 통로의 결 반폭(PLAN §28-2 Phase 2) — `dungeon.js`의 `boundPlayer`가
-   *  이 폭 이내에서만 통로 방향의 필드 반경을 늘려 준다. TALK_R(들길
-   *  표식 발동 반경)보다 넉넉히 커야 표식에 실제로 닿을 수 있다. */
-  var CORRIDOR_LANE = 90;
-  /** `safePoint()`가 표식을 옆으로 비킬 때 최대로 밀 수 있는 거리(10회×26 폭)
-   *  보다 넉넉히 — 클램프가 그 흔들림까지 늘 덮게 하는 여유. */
-  var CORRIDOR_SAFETY = 300;
+  /** 세계 앵커(PLAN §28-8, 2026-09-06 — 오픈월드 A안) — 마을 4개가 이제
+   *  "위장 전환"(§28-2~§28-4의 corridor 시스템, 은퇴)이 아니라 **하나의
+   *  연속된 좌표계**에 실제로 앉는다. 각 마을의 로컬 원점(0,0)이 서 있는
+   *  세계 좌표가 여기 값이다 — field3d.CHUNK(200) 배수로 잡아 칸 경계와
+   *  안 어긋나게 한다. 간격(4800=24칸)은 어느 마을의 발판+필드 반경을
+   *  다 합쳐도(넉넉잡아 3400 안팎, ROOM_W/H 최대치 + R*2) 겹치지 않을
+   *  만큼 넉넉하다 — 겹치면 두 마을이 동시에 "활성"으로 판정될 수 있다.
+   *  moru 를 원점으로 두고 나머지는 exits 의 방향 그대로 배치한다. */
+  var ANCHOR_DIST = 4800;
+  var WORLD_ANCHOR = {
+    moru: { x: 0, y: 0 },
+    jajak: { x: 0, y: -ANCHOR_DIST },
+    galdae: { x: ANCHOR_DIST, y: 0 },
+    sogeum: { x: 0, y: ANCHOR_DIST }
+  };
+  function anchorOf(id) { return WORLD_ANCHOR[id] || WORLD_ANCHOR.moru; }
 
   /**
    * 마을 넷 — id·이름·색감(테마)·거기 사는 직군·장식·들길(exits) 을 정의한다.
@@ -199,8 +204,8 @@
          입구를 마을방 안 고정 표식에서 이 들길로 옮긴다. to:'dungeon'은
          다른 마을 id가 아니라 던전 입구라는 신호 — build()의 exits 루프와
          ui.js의 town:mark 라우팅이 이 값을 특별히 다룬다. */
-      exits: [ { dir: 'N', to: 'jajak', len: CORRIDOR_LEN }, { dir: 'E', to: 'galdae', len: CORRIDOR_LEN },
-               { dir: 'S', to: 'sogeum', len: CORRIDOR_LEN }, { dir: 'W', to: 'dungeon', len: CORRIDOR_LEN } ]
+      exits: [ { dir: 'N', to: 'jajak' }, { dir: 'E', to: 'galdae' },
+               { dir: 'S', to: 'sogeum' }, { dir: 'W', to: 'dungeon' } ]
     },
     galdae: {
       id: 'galdae', name: '갈대나루', dirFromHub: 'E',
@@ -231,9 +236,9 @@
          위성↔위성 지름길(모루골을 안 거치고 옆 사분면으로 바로 감), 대칭 왕복.
          자작재-소금벌(N-S)은 설계안이 "모루골을 그대로 관통해 새 통로 의미가
          없다"고 뺀 조합이라 여전히 안 잇는다. */
-      exits: [ { dir: 'W', to: 'moru', len: CORRIDOR_LEN },
-               { dir: 'N', to: 'jajak', len: CORRIDOR_LEN },
-               { dir: 'S', to: 'sogeum', len: CORRIDOR_LEN } ]
+      exits: [ { dir: 'W', to: 'moru' },
+               { dir: 'N', to: 'jajak' },
+               { dir: 'S', to: 'sogeum' } ]
     },
     jajak: {
       id: 'jajak', name: '자작재', dirFromHub: 'N',
@@ -250,8 +255,8 @@
         { t: 'well', x: 280, y: 330, h: 34 },
         { t: 'house', x: 450, y: 300, h: 120, seed: 52 }
       ],
-      exits: [ { dir: 'S', to: 'moru', len: CORRIDOR_LEN },
-               { dir: 'E', to: 'galdae', len: CORRIDOR_LEN } ]
+      exits: [ { dir: 'S', to: 'moru' },
+               { dir: 'E', to: 'galdae' } ]
     },
     sogeum: {
       id: 'sogeum', name: '소금벌', dirFromHub: 'S',
@@ -269,8 +274,8 @@
         { t: 'house', x: 420, y: 300, h: 120, seed: 53 }
       ],
       /* 2026-09-06 — PLAN §28-3 후속(갈대나루↔소금벌, galdae 쪽과 대칭 왕복). */
-      exits: [ { dir: 'N', to: 'moru', len: CORRIDOR_LEN },
-               { dir: 'E', to: 'galdae', len: CORRIDOR_LEN } ]
+      exits: [ { dir: 'N', to: 'moru' },
+               { dir: 'E', to: 'galdae' } ]
     }
   };
   var TOWN_ORDER = ['moru', 'galdae', 'jajak', 'sogeum'];
@@ -303,17 +308,6 @@
   var target = null;                    // 걸어가는 목표 {x, y}
   var fx = [];
   var armed = {};                       // 닿아서 이미 발동한 것 — 벗어나야 풀린다
-  /** AUTO 품질 클램프 함정(2026-09-06) — 통로 표식은 `build()` 시점의
-   *  필드 반경(`fieldRadiusUnits()`)으로 딱 한 번 좌표가 정해지는데
-   *  (`corridorPointRaw`), `boundPlayer`의 클램프는 매 프레임 **그때
-   *  그때의** 반경을 다시 읽는다. AUTO가 나중에 등급을 낮추면(실측
-   *  프레임이 느려지면) 클램프 상한이 줄어들어 이미 세워 둔 표식이
-   *  그 밖으로 밀려날 수 있다 — `build()` 순간의 반경을 여기 붙들어
-   *  두고 `corridorsFor()`가 그 값 그대로 쓰게 한다(등급이 나중에
-   *  얼마로 바뀌든 통로 결의 도달 가능 거리는 표식이 실제로 선
-   *  자리에서 안 줄어든다). 통로가 없는 일반 필드는 그대로 매 프레임
-   *  값을 쓴다 — 이 값은 오직 통로 결에서만 참조된다. */
-  var builtFieldR = null;
 
   /* 마을 둘레 필드 전투 — 던전이 이미 검증해 둔 메커니즘(dungeon.js 의
      fieldBoundPlayer·spawnFieldRoamers·stepFieldCombat)을 그대로 빌려 쓴다.
@@ -328,7 +322,14 @@
   function D() { return global.DG.dungeon; }
   function cfgOf(id) { return TOWNS[id] || TOWNS.moru; }
   function currentCfg() { return cfgOf(CURRENT_TOWN); }
-  function currentTheme() { return currentCfg().theme; }
+  /** 활성 마을이 있으면 그 테마, 들판(활성 마을 없음)이면 가장 가까운
+   *  마을의 테마로 지형·색감을 잇는다(PLAN §28-8) — 마을에 다가설수록
+   *  자연스럽게 그 마을 결로 이어지는 효과도 겸한다. */
+  function currentTheme() {
+    if (CURRENT_TOWN) { return currentCfg().theme; }
+    if (!player) { return TOWNS.moru.theme; }
+    return cfgOf(nearestTownId(player.x, player.y)).theme;
+  }
 
   /**
    * 들길이 나가는 자리 — 방 밖 들판, 필드 반경(D().fieldRadiusUnits())의
@@ -374,81 +375,83 @@
   }
 
   /**
-   * 통로 진입점(PLAN §28-2 Phase 1) — 들길 표식(exitPoint)과 **같은 축**으로
-   * `len`×CHUNK 만큼 더 바깥. `exitPointRaw`와 축이 어긋나지 않아야 하므로
-   * 안전 회피(safePoint) 이전 값(Raw)과 이후 값을 갈라 둔다 — exitPoint/
-   * exitPointRaw 를 가르던 것과 같은 이유다. **아직 아무 판정에도 안
-   * 쓰인다**(통로 자체는 fieldBlockedAt 이 이미 허용하는 빈 들판이다) —
-   * Phase 2가 이 자리로 travel() 트리거를 옮겨 심는다.
+   * 이 세계 좌표(x,y)가 어느 마을의 "활성 구역"(발판 + 필드 반경 R) 안인가 —
+   * PLAN §28-8. 앵커 간격(4800)이 발판+R 최대치보다 넉넉히 커서 둘 이상이
+   * 동시에 걸리는 일은 설계상 없다(각주마다 첫 매치를 그냥 돌려준다).
+   * 아무 데도 안 걸리면 null(들판 — 어느 마을 발판도 아니다).
    */
-  function corridorPointRaw(dir, len) {
-    var F = global.DG.field3d, CHUNK = F ? F.CHUNK : 200;
-    var base = exitPointRaw(dir), extra = (len || 0) * CHUNK;
-    if (dir === 'N') { return { x: base.x, y: base.y - extra }; }
-    if (dir === 'S') { return { x: base.x, y: base.y + extra }; }
-    if (dir === 'E') { return { x: base.x + extra, y: base.y }; }
-    return { x: base.x - extra, y: base.y };                  // 'W'
+  function footprintDist(id, x, y) {
+    var a = anchorOf(id);
+    var lo = WALL + P_R;
+    var x0 = a.x + lo, x1 = a.x + ROOM_W - lo, y0 = a.y + lo, y1 = a.y + ROOM_H - lo;
+    var dx = x < x0 ? x0 - x : (x > x1 ? x - x1 : 0);
+    var dy = y < y0 ? y0 - y : (y > y1 ? y - y1 : 0);
+    return Math.hypot(dx, dy);
   }
-  function corridorPoint(dir, theme, len) {
-    var p = corridorPointRaw(dir, len);
-    return safePoint(p.x, p.y, theme);
-  }
-  /** 통로 길이 — 두 마을 사이(fromId→toId)에 정해 둔 CHUNK 칸 수 */
-  function corridorLenOf(fromId, toId) {
-    var cfg = cfgOf(fromId), i;
-    for (i = 0; i < cfg.exits.length; i++) {
-      if (cfg.exits[i].to === toId) { return cfg.exits[i].len || CORRIDOR_LEN; }
+  function pickActiveTown(x, y) {
+    var R = D().fieldRadiusUnits(), i, id;
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      id = TOWN_ORDER[i];
+      if (footprintDist(id, x, y) <= R) { return id; }
     }
-    return CORRIDOR_LEN;
+    return null;
   }
-  /** `dungeon.js`의 `boundPlayer`(`ctx.corridors`)가 읽는 통로 예외 표 —
-   *  이 마을의 exits 각각을 {dir,extra,lane,to}로 바꾼다(PLAN §28-2 Phase 2).
-   *  CHUNK 단위 길이(`ex.len`)를 실제 units(`extra`)로 바꾸고, 결 반폭은
-   *  RSCALE로 방 크기에 맞춘다(TALK_R과 같은 요령). `to`(목적지 마을 id)는
-   *  Phase 2에선 안 쓰였지만 Phase 3(field3d.js `corridorNameAt`)가 통로마다
-   *  다른 테마(나루터·산길·염전)를 고르는 데 그대로 쓴다. */
-  function corridorsFor(cfg) {
-    var F = global.DG.field3d, CHUNK = F ? F.CHUNK : 200;
-    /* builtFieldR(위 주석) — build() 가 표식을 세운 그 순간의 반경.
-       아직 한 번도 안 지어졌으면(이론상 안 생기지만) 지금 값으로 대신한다. */
-    var R = (builtFieldR != null) ? builtFieldR : D().fieldRadiusUnits();
-    var out = [], i, ex, extra;
-    for (i = 0; i < cfg.exits.length; i++) {
-      ex = cfg.exits[i];
-      /* extra는 이제 "hiX/hiY로부터 표식까지의 절대 거리"다(전에는
-         CHUNK 길이만 담아 매 프레임의 R에 얹었는데, 그러면 R이
-         나중에 줄어들 때 표식이 클램프 밖으로 밀렸다 — 위 주석).
-         exitPointRaw/corridorPointRaw가 표식을 두는 산식(R*FRAC +
-         len*CHUNK)과 정확히 같은 값에 안전 여유만 더한다. */
-      extra = R * FIELD_EXIT_FRAC + (ex.len || CORRIDOR_LEN) * CHUNK + CORRIDOR_SAFETY;
-      out.push({ dir: ex.dir, extra: extra, lane: CORRIDOR_LANE * RSCALE, to: ex.to });
+  /** 들판(활성 마을이 없을 때)에서 지형·테마를 고를 기준 — 가장 가까운 마을 */
+  function nearestTownId(x, y) {
+    var best = TOWN_ORDER[0], bd = Infinity, i, d;
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      d = footprintDist(TOWN_ORDER[i], x, y);
+      if (d < bd) { bd = d; best = TOWN_ORDER[i]; }
     }
-    return out;
+    return best;
   }
 
+  /**
+   * 마을 하나를 세계 좌표에 짓는다(PLAN §28-8) — CURRENT_TOWN 이 가리키는
+   * 마을을 anchorOf(CURRENT_TOWN) 자리에 앉힌다. **플레이어 위치는 안
+   * 건드린다** — 이제 위치는 이 마을에 매인 것이 아니라 세계 전체에 걸친
+   * 하나의 연속값이라, 마을이 바뀌어도(활성 마을이 갈릴 때마다 다시 불림)
+   * 그대로 이어진다.
+   */
   function build() {
-    var cfg = currentCfg();
-    var i, n, p;
     armed = {};
-    /* AUTO 클램프 함정 대비(위 builtFieldR 주석 참고) — 이 마을을 짓는
-       이 순간의 반경을 붙들어 둔다. exitPointRaw/corridorPointRaw가
-       바로 아래에서 이 값을 쓰는 fieldRadiusUnits()를 부르는 것과
-       같은 순간이라 항상 서로 맞는다. */
-    builtFieldR = D().fieldRadiusUnits();
+    if (!CURRENT_TOWN) {
+      /* 들판 한복판(PLAN §28-8) — 활성 마을이 없다. 장식·NPC·표식 없는 빈
+         방을 두고, 지형은 noRoom 모드(raw() 참고)의 chunkAt/fieldBlockedAt
+         이 세계 좌표 그대로 그린다 — 어느 마을 발판도 아니다. */
+      room = {
+        kind: 'town', index: 0, cleared: true, last: true,
+        enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null,
+        decor: [], npcs: [], marks: []
+      };
+      fhpMax = fhp = global.DG.hero ? Math.max(1, Math.round(global.DG.hero.partyPower().def * 3 + 60)) : 100;
+      fshots.length = 0; ffoeShots.length = 0;
+      fieldSpawnCd = 4;
+      return;
+    }
+    var cfg = currentCfg();
+    var anchor = anchorOf(CURRENT_TOWN);
+    var i, n, p;
     room = {
       kind: 'town', index: 0, cleared: true, last: true,
       enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null,
-      decor: scaledDecorFor(cfg), npcs: [], marks: []
+      decor: scaledDecorFor(cfg).map(function (d) {
+        var o = {}, k;
+        for (k in d) { if (Object.prototype.hasOwnProperty.call(d, k)) { o[k] = d[k]; } }
+        o.x = d.x + anchor.x; o.y = d.y + anchor.y;
+        return o;
+      }),
+      npcs: [], marks: []
     };
     /* 원본(NPC_DEFS·MARKS·TOWNS)은 건드리지 않는다 — 진단이 마을을 여러 번
        세우고 오갈 수 있다. 좌표는 BASE_W·BASE_H 기준으로 적혀 있어 실제
-       방 크기에 맞춰 늘린다. */
+       방 크기에 맞춘 뒤 세계 앵커를 더한다. */
     for (i = 0; i < cfg.npcs.length; i++) {
       var spot = cfg.npcs[i], def = NPC_DEFS[spot.key];
       p = scalePt(spot.x, spot.y);
       room.npcs.push({
         key: spot.key, name: def.name, emoji: def.emoji, sheet: def.sheet, line: def.line,
-        x: p.x, y: p.y, color: def.color,
+        x: anchor.x + p.x, y: anchor.y + p.y, color: def.color,
         ref: { id: 'town_' + spot.key, name: def.name, trait: def.trait, rarity: def.rarity },
         phase: core.hash2(i + 1, 7) * 6.28, facing: spot.x > 380 ? -1 : 1
       });
@@ -456,82 +459,90 @@
     if (cfg.hasGate) {
       for (i = 0; i < MARKS.length; i++) {
         n = MARKS[i];
-        /* 굴혈(gate)은 더 안 세운다(PLAN §28-4 Phase 1) — 아래 exits 루프가
-           'W' 들길(exit_dungeon)로 옮겨 세운다. 하나만 남아야 한다(입구가
-           둘이면 혼란). MARKS 표 자체는 손 안 댐(역참·결사비가 그대로 읽는다). */
+        /* 굴혈(gate)은 더 안 세운다 — 아래 exits 루프가 'W' 들길(exit_dungeon)
+           로 옮겨 세운다. 하나만 남아야 한다(입구가 둘이면 혼란). MARKS 표
+           자체는 손 안 댐(역참·결사비가 그대로 읽는다). */
         if (n.key === 'gate') { continue; }
         p = scalePt(n.x, n.y);
-        room.marks.push({ key: n.key, name: n.name, emoji: n.emoji, x: p.x, y: p.y });
+        room.marks.push({ key: n.key, name: n.name, emoji: n.emoji, x: anchor.x + p.x, y: anchor.y + p.y });
       }
     }
-    /* 들길 — 마을에서 마을로(또는 던전으로) 걸어 나가는 자리. 방 판정 안이
-       아니라 방 밖 들판 쪽에 놓인다. PLAN §28-2 Phase 2부터 표식 자체를
-       통로 끝(corridorPoint)에 세운다 — travel() 트리거가 실제로 거기서
-       걸린다(boundPlayer의 ctx.corridors 예외로 거기까지 걸어갈 수
-       있다, 아래 raw() 참고). to:'dungeon'은 TOWNS에 없는 id라 cfgOf가
-       모루골로 잘못 대체하니(fallback) 이름·라우팅을 따로 다룬다
-       (PLAN §28-4 Phase 1 — ui.js의 town:mark가 이 키를 enterGate()로 보낸다). */
+    /* 굴혈(던전 입구) — cfg.exits 중 목적지가 'dungeon'인 것만 실제 발동
+       표식으로 세운다. **다른 마을로의 exits는 더는 표식을 안 세운다** —
+       §28-8부터 마을 사이는 걸어서 자연히 건너간다(활성 마을이 세계
+       좌표로 저절로 갈린다, pickActiveTown 참고) — 옛 "들길을 밟으면
+       travel()" 트리거는 필요가 없어져 은퇴했다(Phase 2 자동지도가 이웃
+       마을 방향을 대신 그릴 것이다). */
     for (i = 0; i < cfg.exits.length; i++) {
       var ex = cfg.exits[i];
-      var isDungeon = ex.to === 'dungeon';
-      var toName = isDungeon ? '굴혈(窟穴)' : cfgOf(ex.to).name;
-      var ep = corridorPoint(ex.dir, cfg.theme, ex.len);
+      if (ex.to !== 'dungeon') { continue; }
+      var ep = exitPoint(ex.dir, cfg.theme);
       room.marks.push({
-        key: 'exit_' + ex.to, name: isDungeon ? toName : ('들길 — ' + toName + ' 방면'),
-        emoji: isDungeon ? '🕳️' : dirEmoji(ex.dir), x: ep.x, y: ep.y
+        key: 'exit_dungeon', name: '굴혈(窟穴)', emoji: '🕳️',
+        x: anchor.x + ep.x, y: anchor.y + ep.y
       });
     }
-    p = scalePt(195, 240);
-    player = {
-      /* 역참과 굴혈 사이, 어느 쪽에도 닿지 않는 자리(둘 다 100 남짓 떨어진다).
-         입구 코앞에 세우면 둘러보기 전에 아래로 한 번 끌자마자 내려가 버린다.
-         위성 마을은 굴혈이 없어 이 자리에 특별한 뜻은 없지만, 사람 셋과도
-         충분히 떨어져 있어 그대로 써도 된다. */
-      x: p.x, y: p.y, phase: 0, walking: false, facing: 1, hurt: 0,
-      cds: [0, 0, 0, 0], dash: null, invuln: 0, rallyUntil: 0,
-      dirX: 0, dirY: -1,
-      atkCd: 0, atkAnim: 0            // 필드 로머 자동공격용 — dungeon.js stepFieldCombat 이 쓴다
-    };
-    /* 체력도 던전과 같은 산식으로 — 부대 방어력이 오르면 마을 필드에서도 더 버틴다 */
+    /* 체력도 던전과 같은 산식으로 — 부대 방어력이 오르면 마을 필드에서도 더 버틴다.
+       마을에 들어설 때마다(활성 마을이 갈릴 때) 채운다 — "마을은 안전지대"라는
+       옛 취지 그대로다. */
     fhpMax = fhp = global.DG.hero ? Math.max(1, Math.round(global.DG.hero.partyPower().def * 3 + 60)) : 100;
     fshots.length = 0; ffoeShots.length = 0;
     fieldSpawnCd = 4;
   }
 
-  /** 세이브에 지금 마을을 적어 둔다 — 불러오면 그 마을로 돌아온다 */
-  function saveTownId() {
-    if (!core.save.town) { core.save.town = { current: CURRENT_TOWN }; }
-    else { core.save.town.current = CURRENT_TOWN; }
+  /** 처음 세계에 놓일 때 쓰는 자리 — moru의 로컬 (195,240)과 같은 뜻(역참·
+   *  굴혈 어느 쪽에도 안 닿는 자리)을 그 마을의 세계 좌표로 낸다. */
+  function defaultSpawn(townId) {
+    var a = anchorOf(townId), p = scalePt(195, 240);
+    return { x: a.x + p.x, y: a.y + p.y };
+  }
+
+  /** 세이브에 세계 좌표를 적어 둔다 — 불러오면 그 자리로 돌아온다(PLAN §28-8) */
+  function saveWorldPos() {
+    if (!player) { return; }
+    if (!core.save.town) { core.save.town = { pos: { x: player.x, y: player.y } }; }
+    else { core.save.town.pos = { x: player.x, y: player.y }; }
   }
 
   /* ── 드나들기 ─────────────────────────────────────────── */
 
   function enter(opts) {
     opts = opts || {};
-    if (!CURRENT_TOWN) {
-      /* 첫 진입 — 세이브에 적힌 마을로 돌아온다. 던전에서 막 나온 참이면
-         (굴혈은 모루골에만 있으므로) 반드시 모루골이다. */
-      CURRENT_TOWN = opts.fromDungeon ? 'moru' : ((core.save.town && core.save.town.current) || 'moru');
+    if (!player) {
+      /* 첫 진입 — 세이브에 세계 좌표(pos)가 있으면 그 자리, 없으면(옛
+         세이브 — §28-1~§28-7 시절, 마을 id 하나만 있었다) 그 마을의 앵커
+         스폰으로 한 번 마이그레이션, 그것도 없으면 모루골 스폰. */
+      var saved = core.save.town, sp;
+      if (saved && saved.pos) { sp = { x: saved.pos.x, y: saved.pos.y }; }
+      else { sp = defaultSpawn((saved && saved.current) || 'moru'); }
+      player = {
+        x: sp.x, y: sp.y, phase: 0, walking: false, facing: 1, hurt: 0,
+        cds: [0, 0, 0, 0], dash: null, invuln: 0, rallyUntil: 0,
+        dirX: 0, dirY: -1,
+        atkCd: 0, atkAnim: 0          // 필드 로머 자동공격용 — dungeon.js stepFieldCombat 이 쓴다
+      };
     }
-    if (!room) { build(); }
+    /* 던전에서 막 나온 참이면 반드시 모루골(굴혈은 거기에만 있다) —
+       그 밖엔 지금 세계 좌표가 어느 마을 발판 안인지로 갈린다(§28-8,
+       마을 사이는 걸어서 자연히 건너가므로 "지금 있던 마을"이라는 개념이
+       CURRENT_TOWN 에 저장돼 있지 않고 매번 좌표로 다시 구해진다). */
+    CURRENT_TOWN = opts.fromDungeon ? 'moru' : pickActiveTown(player.x, player.y);
+    build();
     /* 던전에서 막 나온 참이면 굴혈 앞에 세운다 — 나온 자리에 서 있어야
        "다시 들어간다" 가 한 걸음이다. 다만 입구에 **닿은 채로** 세우면
        그 자리에서 곧바로 다시 빨려 들어간다. 그래서 한 발 물려 세우고
        그 표식은 발동을 잠가 둔다(armed). */
     if (opts.fromDungeon) {
-      /* PLAN §28-4 Phase 1 — 굴혈이 이제 'W' 들길(통로 끝)에 있으므로,
-         돌아올 때도 그 들목 코앞(entryPoint, travel()이 마을↔마을에 쓰는
-         것과 같은 함수)에 세운다. 표식만 잠가 두면(armed) 곧바로 다시
-         안 빨려든다 — 옛 고정 좌표(scalePt(200,300))는 이제 안 쓴다. */
+      var anchor = anchorOf('moru');
       var gp = entryPoint('W', currentCfg().theme);
-      player.x = gp.x; player.y = gp.y;
+      player.x = anchor.x + gp.x; player.y = anchor.y + gp.y;
       armed.exit_dungeon = true;
     }
     on = true;
     input.dx = 0; input.dy = 0;
     target = null;
     fx.length = 0;
-    saveTownId();
+    saveWorldPos();
     core.emit('town:enter', null);
     core.emit('changed');
     return true;
@@ -546,44 +557,16 @@
 
   function active() { return on; }
 
-  /**
-   * 들길을 밟아 다른 마을로 건너간다 — ui.js 의 town:mark 처리가
-   * `exit_<대상마을id>` 키를 그대로 넘긴다.
-   */
-  function travel(markKey) {
-    if (!markKey || markKey.indexOf('exit_') !== 0) { return false; }
-    var toId = markKey.slice(5);
-    var toCfg = TOWNS[toId];
-    if (!toCfg || toId === CURRENT_TOWN) { return false; }
-    var fromId = CURRENT_TOWN;
-    CURRENT_TOWN = toId;
-    build();
-    /* 건너온 쪽(fromId)으로 돌아가는 들길 바로 앞에 세운다 — 위성 마을은
-       늘 모루골로만 통하므로 그 들길이 정확히 하나 있다. */
-    var i, backDir = null;
-    for (i = 0; i < toCfg.exits.length; i++) {
-      if (toCfg.exits[i].to === fromId) { backDir = toCfg.exits[i].dir; break; }
-    }
-    if (backDir) {
-      var ep = entryPoint(backDir, toCfg.theme);
-      player.x = ep.x; player.y = ep.y;
-      armed['exit_' + fromId] = true;
-    }
-    saveTownId();
-    core.persist();
-    core.emit('town:enter', null);
-    core.emit('changed');
-    core.emit('toast', '🚶 ' + toCfg.name + '에 닿았습니다');
-    return true;
-  }
-
-  /** 오버월드 지도(ui.js 의 M키 전체지도)가 읽는 자리 — 고정 배치 + 지금 위치 */
+  /** 오버월드 지도(ui.js 의 M키 전체지도)가 읽는 자리 — 고정 배치 + 지금 위치.
+   *  §28-8부터 마을 사이는 걸어서 자연히 건너간다(travel() 은퇴) — current()
+   *  는 활성 마을이 없으면(들판 한복판) null 일 수 있다, Phase 2가 이 경우를
+   *  마저 다룬다. anchor 는 Phase 2 자동지도가 실제 지형을 그리는 데 쓴다. */
   var overworld = {
     current: function () { return CURRENT_TOWN; },
     list: function () {
       return TOWN_ORDER.map(function (id) {
         var c = TOWNS[id];
-        return { id: c.id, name: c.name, dirFromHub: c.dirFromHub };
+        return { id: c.id, name: c.name, dirFromHub: c.dirFromHub, anchor: anchorOf(id) };
       });
     }
   };
@@ -671,6 +654,24 @@
     } else {
       player.walking = false;
     }
+    /* 활성 마을이 걸으면서 갈릴 수 있다(PLAN §28-8) — 마을 발판을 벗어나
+       거나 다른 마을 발판에 들어서면 그 자리에서 장식·NPC·표식을 다시
+       짓는다. 안 바뀌었으면(같은 마을, 또는 들판→들판) 아무 것도 안
+       한다 — 매 틱 다시 짓지 않는다. **반드시 raw()/ctx 를 만들기 전에**
+       해야 한다 — 그래야 이 틱의 클램프(boundPlayer)가 이미 갈린 마을
+       기준으로 걸린다(안 그러면 경계에서 한 틱 늦게 반응해 순간적으로
+       옛 방 사각형에 도로 갇힐 수 있다). */
+    var nextTown = pickActiveTown(player.x, player.y);
+    if (nextTown !== CURRENT_TOWN) {
+      CURRENT_TOWN = nextTown; build();
+      /* 세이브 갈무리 — 옛 travel()이 마을을 건널 때마다 세이브했던 것과
+         같은 자리(활성 마을이 갈리는 순간)에 건다. 매 틱 저장하면 너무
+         잦다 — 이 정도 빈도면 충분하고, 앱이 죽어도 최근 지난 마을/들판
+         전환 지점까지는 복구된다. */
+      saveWorldPos();
+      core.persist();
+    }
+
     /* 던전이 이미 검증해 둔 필드 확장(방 밖 들판까지 넓히고, 눈에 보이는
        소품과는 부딪힌다)을 마을도 그대로 쓴다 — 방 치수가 다르므로 ctx 로
        넘긴다(위 raw() 참고). */
@@ -720,11 +721,18 @@
    */
   function raw() {
     if (!on) { return null; }
+    /* PLAN §28-8 — 활성 마을이 있으면 그 앵커에 방 사각형(발판)을 두고,
+       없으면(들판 한복판) noRoom 모드다: 방 사각형 없이 세계 경계만 두고
+       소품 충돌만 축분리로 본다(dungeon.js boundPlayer 참고). anchor 는
+       들판에서도 필요하다 — 가장 가까운 마을 기준으로 ring(멀고 가까움)
+       을 재야 지형이 마을에 다가설수록 자연스럽게 옅어진다. */
+    var wild = !CURRENT_TOWN;
+    var anchor = anchorOf(wild ? nearestTownId(player.x, player.y) : CURRENT_TOWN);
     return {
-      town: true, theme: currentTheme(),
+      town: true, wild: wild, theme: currentTheme(),
       floor: 0, startFloor: 0, roomIdx: undefined,
       roomW: ROOM_W, roomH: ROOM_H, wall: WALL, pr: P_R,
-      corridors: corridorsFor(currentCfg()),
+      anchor: anchor, noRoom: wild,
       room: room, player: player, shots: fshots, foeShots: ffoeShots,
       boons: {}, choice: null,
       loot: { gold: 0, items: [] },
@@ -773,11 +781,19 @@
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
     nearest: nearest, note: note,
-    travel: travel, overworld: overworld,
+    overworld: overworld,
     status: status,
-    /** PLAN §28-2 Phase 1 — 통로 자리 잡기(아직 판정에 안 쓰인다, 좌표 계산뿐) */
-    corridorPointRaw: corridorPointRaw, corridorPoint: corridorPoint, corridorLenOf: corridorLenOf,
-    corridorsFor: corridorsFor, CORRIDOR_LANE: CORRIDOR_LANE, exitPointRaw: exitPointRaw,
+    exitPointRaw: exitPointRaw,
+    /** PLAN §28-8(2026-09-06, 오픈월드 A안) — 세계 앵커·활성 마을 판정.
+     *  자가진단·Phase 2(자동지도) 가 읽는다. anchorOf 는 참조 그대로 주지
+     *  않는다(호출자가 실수로 고치면 앵커가 전부 흔들린다) — 얕은 복사. */
+    anchorOf: function (id) { var a = anchorOf(id); return { x: a.x, y: a.y }; },
+    worldAnchors: function () {
+      var out = {}, i, id;
+      for (i = 0; i < TOWN_ORDER.length; i++) { id = TOWN_ORDER[i]; out[id] = { x: WORLD_ANCHOR[id].x, y: WORLD_ANCHOR[id].y }; }
+      return out;
+    },
+    pickActiveTown: pickActiveTown, nearestTownId: nearestTownId, footprintDist: footprintDist,
     /** 지역 진입 전 미리 로드(PLAN 39절, `dungeon3d.js`의 `prefetchTownDest()`가
      *  읽는다) — 그 마을 decor 에 쓰이는 건물 종류(house·well·inn 등)를
      *  중복 없이 돌려준다. 순수 함수, three 필요 없다. */
@@ -796,13 +812,28 @@
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: raw,
     fx: function () { return fx; },
-    /** 자가진단용 — 마을을 처음 상태로 되돌린다. townId 를 주면 그 마을로(기본 모루골) */
+    /** 자가진단용 — 마을을 처음 상태로 되돌린다. townId 를 주면 그 마을로
+     *  (기본 모루골) — 그 마을의 기본 스폰 세계 좌표에 플레이어도 같이
+     *  둔다(§28-8부터 위치가 CURRENT_TOWN 을 결정하므로, 옮겨만 놓고
+     *  좌표를 안 맞추면 다음 update()에서 도로 튕겨 나간다). */
     _reset: function (townId) {
-      CURRENT_TOWN = townId && TOWNS[townId] ? townId : 'moru';
+      var id = townId && TOWNS[townId] ? townId : 'moru';
+      var sp = defaultSpawn(id);
+      if (!player) {
+        player = { x: sp.x, y: sp.y, phase: 0, walking: false, facing: 1, hurt: 0,
+          cds: [0, 0, 0, 0], dash: null, invuln: 0, rallyUntil: 0, dirX: 0, dirY: -1,
+          atkCd: 0, atkAnim: 0 };
+      } else { player.x = sp.x; player.y = sp.y; }
+      CURRENT_TOWN = id;
       room = null; armed = {};
+      on = true;
       build();
     },
     /** 자가진단용 — 그 자리로 순간 옮긴다 (걸어가지 않고) */
-    _put: function (x, y) { if (player) { player.x = x; player.y = y; } }
+    _put: function (x, y) { if (player) { player.x = x; player.y = y; } },
+    /** 자가진단용(PLAN §28-8) — 앱을 처음부터 다시 켠 것처럼 player 를
+     *  잊는다. 다음 enter() 가 세이브(pos, 없으면 옛 current 마이그레이션)
+     *  로 다시 서는 실제 첫 진입 경로를 타는지 확인할 때 쓴다. */
+    _forgetPlayer: function () { player = null; on = false; }
   };
 })(window);

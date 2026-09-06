@@ -2292,11 +2292,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
      * 화면이 예외 하나 없이 조용히 빈 판을 그린다. 그래서 약속 자체를 검사한다.
      */
 
-    t('마을이 켜지고 사람 일곱 · 표식 여섯이 선다', function () {
-      /* 표식 여섯 = 역참·결사비(모루골 전용) 둘 + 들길(오버월드, PLAN 28-1절)
-         넷(자작재·갈대나루·소금벌·굴혈 방면) — 2026-09-05(PLAN §28-4 Phase 1)
-         부터 굴혈(gate)도 마을방 고정 표식이 아니라 'W' 들길이 됐다. 셋+셋이던
-         구성이 둘+넷으로 바뀌었을 뿐 합은 그대로 6이다.
+    t('마을이 켜지고 사람 일곱 · 표식 셋이 선다', function () {
+      /* 표식 셋 = 역참·결사비·굴혈(exit_dungeon) — 전부 모루골 전용
+         (hasGate). PLAN §28-8(2026-09-06, 오픈월드 A안)부터 다른 마을로
+         건너가는 들길 표식(예전엔 넷 중 셋)은 아예 안 선다 — 걸어서 발판에
+         들어서면 활성 마을이 좌표로 저절로 갈리므로 발동 표식이 필요 없다.
          사람 일곱 = 기존 여섯 + 2026-09-06 현상판 직군(herald) 하나. */
       if (DN.active()) { DN.leave(); }
       var T = DG.town;
@@ -2304,7 +2304,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       T.enter();
       var raw = T.raw();
       if (!raw) { return false; }
-      return T.active() && raw.room.npcs.length === 7 && raw.room.marks.length === 6 &&
+      return T.active() && raw.room.npcs.length === 7 && raw.room.marks.length === 3 &&
         ('사람 ' + raw.room.npcs.length + ' · 표식 ' + raw.room.marks.length);
     });
 
@@ -2339,31 +2339,23 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return outs.length === 0 && ('아홉 자리 모두 벽 안쪽');
     });
 
-    t('들길(오버월드 출구)은 통로 끝(필드 반경 + 통로 길이) 안에 있다', function () {
-      /* PLAN §28-2 Phase 2 — 표식이 이제 exitPoint(0.7R)가 아니라
-         corridorPoint(통로 끝)에 선다. 방향마다 그 축만 R+extra 로
-         늘어난 예외(dungeon.js 의 ctx.corridors)로 걸어서 닿을 수 있다 —
-         그러니 이 진단도 방향별로 늘어난 경계로 확인해야 한다.
-         2026-09-05(PLAN §28-4 Phase 1)부터 모루골의 exits에 굴혈(dungeon)
-         방면(W)도 끼어 셋 → 넷으로 늘었다 — 같은 corridorPoint 메커니즘을
-         그대로 타므로 이 진단도 그대로 넷을 확인하면 된다. */
-      var T = DG.town, raw = T.raw();
-      var DN2 = DG.dungeon, R = DN2.fieldRadiusUnits();
-      var lo = T.WALL + T.P_R, hiX = T.ROOM_W - T.WALL - T.P_R;
-      var loY = T.WALL + T.P_R, hiY = T.ROOM_H - T.WALL - T.P_R;
-      var exitsCfg = T.exitsOf(T.overworld.current());
-      var exits = raw.room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; });
-      var outs = exits.filter(function (o) {
-        var toId = o.key.slice(5), ec = null, i;
-        for (i = 0; i < exitsCfg.length; i++) { if (exitsCfg[i].to === toId) { ec = exitsCfg[i]; } }
-        if (!ec) { return true; }
-        var extra = T.corridorLenOf(T.overworld.current(), toId) * 200;   // field3d.CHUNK
-        var xLo = lo - R - (ec.dir === 'W' ? extra : 0), xHi = hiX + R + (ec.dir === 'E' ? extra : 0);
-        var yLo = loY - R - (ec.dir === 'N' ? extra : 0), yHi = hiY + R + (ec.dir === 'S' ? extra : 0);
-        return o.x < xLo || o.x > xHi || o.y < yLo || o.y > yHi;
-      });
-      return exits.length === 4 && outs.length === 0 &&
-        ('들길 ' + exits.length + '개 모두 통로 끝까지의 경계 안');
+    t('세계 앵커(PLAN §28-8) — 마을 넷의 발판이 서로 안 겹친다', function () {
+      /* §28-8(오픈월드 A안)부터 마을은 세계 좌표 위의 실제 지점(앵커)에
+         앉는다 — 앵커 간격이 발판(ROOM_W/H)+필드 반경(R)을 다 더한 것보다
+         넉넉히 커야 두 마을이 동시에 "활성"으로 판정되는 일이 없다. */
+      var T = DG.town, DN2 = DG.dungeon, R = DN2.fieldRadiusUnits();
+      var anchors = T.worldAnchors(), ids = Object.keys(anchors), i, j, minGap = Infinity;
+      var halfSpan = Math.max(T.ROOM_W, T.ROOM_H) + R;   // 넉넉한 반경 추정(대각선 아님, 상한)
+      for (i = 0; i < ids.length; i++) {
+        for (j = i + 1; j < ids.length; j++) {
+          var a = anchors[ids[i]], b = anchors[ids[j]];
+          var d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d < minGap) { minGap = d; }
+        }
+      }
+      return minGap > halfSpan * 2 &&
+        ('마을 ' + ids.length + '개 · 가장 가까운 두 앵커 간격 ' + Math.round(minGap) +
+         ' > 발판+반경*2(' + Math.round(halfSpan * 2) + ')');
     });
 
     t('한 자리에서 둘이 동시에 걸리지 않는다', function () {
@@ -2453,62 +2445,82 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return ok && ('enter 한 번으로 마을이 꺼진다');
     });
 
-    /* ── 오버월드 — 마을에서 마을로 (PLAN 28-1절, 2026-09-02) ────────── */
+    /* ── 오픈월드 A안 — 마을에서 마을로, 걸어서 (PLAN §28-8, 2026-09-06) ── */
 
-    t('들길을 밟으면 다른 마을로 건너간다', function () {
-      var T = DG.town;
-      T._reset('moru');                 // 모루골에서 시작
-      var exitToGaldae = null;
-      T.raw().room.marks.forEach(function (o) { if (o.key === 'exit_galdae') { exitToGaldae = o; } });
-      if (!exitToGaldae) { return false; }
-      T._put(exitToGaldae.x, exitToGaldae.y);
-      T.update(0.05);
-      var raw = T.raw();
-      return T.overworld.current() === 'galdae' && raw.room.npcs.length === 4 &&
-        raw.theme.name === '갈대나루' &&
-        ('모루골 → 갈대나루 · 사람 ' + raw.room.npcs.length + '명');
-    });
-
-    t('갈대나루는 이제 들길이 셋(모루골+자작재+소금벌), 자작재·소금벌은 둘 — PLAN §28-3', function () {
-      /* 2026-09-06 PLAN §28-3 — 갈대나루↔자작재(Phase 1)에 이어 갈대나루↔
-         소금벌도 텄다. 자작재-소금벌(N-S)은 설계에서 뺀 조합이라 여전히
-         서로 안 잇는다 — 옛 "위성 마을은 다 들길 하나뿐" 문장이 이제
-         셋 다에 안 맞아 이 항목 하나로 셋 다 함께 본다. */
-      /* 갈대나루가 두 지름길의 공통 축이다(자작재↔소금벌 직결은 설계에서
-         뺐다 — 모루골을 그대로 관통해 새 통로 의미가 없어서, PLAN §28-3
-         서두 참고) — 그래서 갈대나루만 셋, 나머지 둘은 각 둘씩이다. */
-      var T = DG.town, gExits, jExits, sExits;
-      T._reset('galdae');
-      gExits = T.raw().room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; })
-        .map(function (o) { return o.key; });
-      T._reset('jajak');
-      jExits = T.raw().room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; })
-        .map(function (o) { return o.key; });
-      T._reset('sogeum');
-      sExits = T.raw().room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; })
-        .map(function (o) { return o.key; });
-      var gOk = gExits.length === 3 && gExits.indexOf('exit_moru') >= 0 &&
-        gExits.indexOf('exit_jajak') >= 0 && gExits.indexOf('exit_sogeum') >= 0;
-      var jOk = jExits.length === 2 && jExits.indexOf('exit_moru') >= 0 && jExits.indexOf('exit_galdae') >= 0;
-      var sOk = sExits.length === 2 && sExits.indexOf('exit_moru') >= 0 && sExits.indexOf('exit_galdae') >= 0;
-      return gOk && jOk && sOk &&
-        ('갈대나루 들길 ' + gExits.join('/') + ' · 자작재 들길 ' + jExits.join('/') +
-         ' · 소금벌 들길 ' + sExits.join('/'));
-    });
-
-    t('건너간 마을이 세이브에 남아 불러오면 그대로다', function () {
-      /* _reset() 은 진단용 순간이동이라 세이브를 안 건드린다 — 실제로 세이브에
-         남는지는 travel()이 도는 정식 경로(들길을 밟는다)로 확인해야 뜻이 있다. */
-      var T = DG.town;
+    t('마을 발판 경계를 걸어서 넘으면 순간이동 없이 활성 마을이 자연히 갈린다', function () {
+      /* §28-8 — 옛 travel()(들길을 밟으면 즉시 순간이동+재구성)은 은퇴했다.
+         이제 활성 마을은 세계 좌표로만 정해진다(pickActiveTown). 모루골과
+         갈대나루 사이 들판을 가로질러 좌표를 조금씩 옮기며 (a) 들판(활성
+         마을 없음)을 지나 (b) 갈대나루로 자연히 갈리는지, (c) 그때마다
+         `_put()`으로 정확히 지정한 자리에 그대로 있는지(travel()류의 "다른
+         자리로 다시 세운다"가 없는지 = 순간이동 없음)를 본다. dt=0으로
+         update()를 불러 판정만 다시 계산하고 실제 걸음(충돌·시야에 따라
+         절차 생성 지형에 막힐 수 있다, 이 항목의 관심사가 아니다)은
+         건드리지 않는다. */
+      var T = DG.town, DN2 = DG.dungeon;
       T._reset('moru');
-      var exitToJajak = null;
-      T.raw().room.marks.forEach(function (o) { if (o.key === 'exit_jajak') { exitToJajak = o; } });
-      if (!exitToJajak) { return false; }
-      T._put(exitToJajak.x, exitToJajak.y);
-      T.update(0.05);
-      var savedId = C.save.town && C.save.town.current;
-      T._reset('moru');                 // 뒤따르는 진단에 영향 없게 되돌린다
-      return savedId === 'jajak' && ('core.save.town.current = ' + savedId);
+      var ga = T.anchorOf('galdae'), R = DN2.fieldRadiusUnits();
+      var cy = ga.y + T.ROOM_H / 2;
+      var x = ga.x - R - 200, endX = ga.x + T.ROOM_W / 2, step = 40;
+      var sawWild = false, sawGaldae = false, teleported = false;
+      for (; x <= endX; x += step) {
+        T._put(x, cy);
+        T.update(0);
+        var p = T.raw().player;
+        if (Math.abs(p.x - x) > 0.01) { teleported = true; }
+        var cur = T.overworld.current();
+        if (cur === null) { sawWild = true; }
+        if (cur === 'galdae') { sawGaldae = true; }
+      }
+      T._reset('moru');
+      var ok = sawWild && sawGaldae && !teleported;
+      return ok && ('들판 통과 · 갈대나루 도착 · 위치는 지정한 그대로(순간이동 없음)');
+    });
+
+    t('위성 마을의 exits 데이터는 그대로다 — 갈대나루 셋(모루골+자작재+소금벌), 자작재·소금벌은 둘 (PLAN §28-3)', function () {
+      /* §28-8이 마을 간 이동 방식(걸어서)만 바꿨다 — "어느 마을이 어느
+         마을과 이웃인가"라는 exits 데이터(오버월드 지도·앵커 배치 근거)는
+         그대로 남아 있어야 한다. 마크가 아니라 exitsOf()로 데이터 자체를 본다. */
+      var T = DG.town;
+      var gTo = T.exitsOf('galdae').map(function (e) { return e.to; }).sort();
+      var jTo = T.exitsOf('jajak').map(function (e) { return e.to; }).sort();
+      var sTo = T.exitsOf('sogeum').map(function (e) { return e.to; }).sort();
+      var gOk = gTo.join(',') === ['moru', 'jajak', 'sogeum'].sort().join(',');
+      var jOk = jTo.join(',') === ['moru', 'galdae'].sort().join(',');
+      var sOk = sTo.join(',') === ['moru', 'galdae'].sort().join(',');
+      return gOk && jOk && sOk &&
+        ('갈대나루→' + gTo.join('/') + ' · 자작재→' + jTo.join('/') + ' · 소금벌→' + sTo.join('/'));
+    });
+
+    t('걸어서 건너간 마을이 세계 좌표로 세이브에 남아 불러오면 그대로다', function () {
+      var T = DG.town, ja = T.anchorOf('jajak');
+      T._reset('moru');
+      T._put(ja.x, ja.y + T.ROOM_H / 2);   // 자작재 발판 한복판으로 걸어 들어간 것처럼
+      T.update(0);                          // dt=0 — 판정만 다시 계산(절차 지형 충돌은 이 항목의 관심사가 아니다)
+      var savedPos = C.save.town && C.save.town.pos;
+      var curAfterWalk = T.overworld.current();
+      T._forgetPlayer();
+      T.enter();                            // player=null → 세이브(pos)로 다시 서는지
+      var curAfterReload = T.overworld.current();
+      T._reset('moru');                     // 뒤따르는 진단에 영향 없게 되돌린다
+      return curAfterWalk === 'jajak' && !!savedPos && curAfterReload === 'jajak' &&
+        ('건넌 직후 ' + curAfterWalk + ' · 세이브 pos(' + Math.round(savedPos.x) + ',' + Math.round(savedPos.y) +
+         ') · 다시 불러온 뒤 ' + curAfterReload);
+    });
+
+    t('옛 세이브(town.current만 있음, pos 없음)를 불러오면 그 마을 스폰 자리로 마이그레이션한다', function () {
+      /* PLAN §28-8 — §28-1~§28-7 시절 세이브는 마을 id 하나(current)만
+         있었다. pos 가 없을 때 그 마을의 기본 스폰 세계 좌표로 한 번
+         옮겨 서는지 확인한다. */
+      var T = DG.town;
+      var savedBefore = JSON.stringify(C.save.town);
+      C.save.town = { current: 'jajak' };    // 옛 스키마 흉내(pos 없음)
+      T._forgetPlayer();
+      T.enter();
+      var cur = T.overworld.current();
+      C.save.town = JSON.parse(savedBefore);
+      T._reset('moru');
+      return cur === 'jajak' && ('마이그레이션 후 활성 마을 = ' + cur);
     });
 
     t('오버월드 지도는 넷을 고정 배치로 내놓고, 지금 있는 마을만 가리킨다', function () {
@@ -3751,30 +3763,6 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       C.save.dex.regions = keepDex; C.save.player.gold = keepGold; C.save.player.feat = keepFeat;
       delete C.save.dex.regionsFull;
       return ok && ('완성 보상 금 +' + gained1 + ' · 공적 +' + featGained1 + ', 재지급 없음');
-    });
-
-    /* ── 오픈월드 설계안 Phase 1 — 통로 자리 잡기 (PLAN §28-2, 2026-09-05) ──
-     * 순수 좌표 계산(corridorPointRaw)이 exitPointRaw 와 같은 축으로
-     * 어긋나지 않는지 본다. Phase 2(2026-09-05, 이어서)부터 실제 들길
-     * 표식 자체가 이 통로 끝으로 옮겨졌으므로, "표식이 예전 자리(exitPoint)
-     * 에 그대로 있다"는 가정에 기대지 않고 두 순수 함수를 직접 견준다 —
-     * 표식이 나중에 또 옮겨져도 이 진단은 안 흔들린다. */
-    t('통로 진입점(오픈월드 §28-2)이 들길 원점(exitPointRaw)과 같은 축으로 어긋나지 않는다', function () {
-      var T = DG.town;
-      var len = T.corridorLenOf('moru', 'galdae');
-      var F = DG.field3d, CHUNK = F ? F.CHUNK : 200;
-      var exitRaw = T.exitPointRaw('E');
-      var rawPt = T.corridorPointRaw('E', len);
-      var axisOk = rawPt.y === exitRaw.y &&
-        Math.abs((rawPt.x - exitRaw.x) - len * CHUNK) < 0.01;
-      /* safePoint 적용값(실제로 쓰이는 값)도 회피 최대 이동량(약 280) 안에서
-         같은 자리 근방인지만 본다. theme 은 안 줘도 된다(safePoint 는
-         fieldBlockedAt 이 못 받으면 층 테마로 스스로 채운다) — town 이
-         active 상태가 아니어도(raw() 가 null이어도) 이 진단이 안 죽게 한다. */
-      var safePt = T.corridorPoint('E', undefined, len);
-      var closeOk = Math.hypot(safePt.x - rawPt.x, safePt.y - rawPt.y) < 300;
-      return axisOk && closeOk &&
-        ('통로 ' + len + '칸(' + (len * CHUNK) + ') · 들길 원점에서 축 그대로 더 바깥');
     });
 
     /* ── 던전도 "걸어서 이어지게" — Phase 1 (PLAN §28-4, 2026-09-05) ──

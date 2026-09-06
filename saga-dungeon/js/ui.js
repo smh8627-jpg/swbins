@@ -544,13 +544,13 @@
       openSheet(o.sheet);
     });
     core.on('town:mark', function (o) {
-      /* 굴혈은 이제 마을방 안 고정 표식이 아니라 들길 하나(exit_dungeon,
-         PLAN §28-4 Phase 1)다 — 다른 마을로 건너가는 travel()이 아니라
+      /* 굴혈은 마을방 안 고정 표식이 아니라 들길 하나(exit_dungeon)다 —
          이 마을 자체의 enterGate()로 보낸다. 'gate' 키는 옛 마크(이제 안
-         세워짐)를 위해 그대로 남겨 둔다(해 될 것 없다). */
+         세워짐)를 위해 그대로 남겨 둔다(해 될 것 없다). 다른 마을로 건너
+         가는 표식은 PLAN §28-8(오픈월드 A안)부터 아예 없다 — 걸어서
+         발판에 들어서면 활성 마을이 저절로 갈린다(travel() 은퇴). */
       if (o.key === 'gate' || o.key === 'exit_dungeon') { enterGate(); }
       else if (o.key === 'waypoint') { openWaypoint(); }
-      else if (o.key.indexOf('exit_') === 0) { global.DG.town.travel(o.key); }
       else { openVow(); }
     });
     /* 장면이 바뀌는 순간 곧바로 다시 그린다. tickRefresh(0.3초)를 기다리면

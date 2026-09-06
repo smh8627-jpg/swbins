@@ -1325,15 +1325,17 @@
     }
   }
 
-  /** 로딩 이음매 없애기(PLAN §28-2 Phase 4) — Phase 2가 `exit_*` 표식 자체를
-   *  통로 끝(목적지 코앞)으로 옮겼으므로, 표식 거리로만 프리페치를 걸면
-   *  통로(최대 800유닛)를 70% 넘게 걸어야 발동해 사실상 늦다. `run.corridors`
-   *  (town.js의 `corridorsFor()`, {dir,extra,lane,to})로 이 출구의 방향을 찾아
-   *  **통로 초입**(`exitPointRaw(dir)` — 옛 들길 자리, Phase 2 이전엔 여기서
-   *  travel()이 걸렸다)에서 미리 건다. `prefetchTownDest()` 자체(무엇을
-   *  당기는지)는 손 안 댔다 — "언제 부르는가"만 옮겼다. 통로 정보가 없으면
-   *  (마을 exit인데 corridors 목록에 없는 방어적인 경우) 예전처럼 표식 자체
-   *  거리로 되돌아간다 — 회귀 없음. */
+  /** 로딩 이음매 없애기(PLAN §28-2 Phase 4, 던전 굴혈 입구 전용으로 남음) —
+   *  §28-8(2026-09-06, 오픈월드 A안)부터 town.js는 마을↔마을 exit_* 표식을
+   *  더는 안 세운다(걸어서 자연히 건너간다) — `run.corridors`도 늘 비어
+   *  있다. 그래서 여기 아래 `run.corridors` 분기는 이제 **아무 마을
+   *  exit_* 에도 안 걸린다**(그런 마크 자체가 없다) — 실제로 남는 건
+   *  `exit_dungeon`(굴혈) 하나뿐이고, 그건 늘 표식 자체 거리 fallback으로
+   *  간다. 다시 말해 §28-2 Phase 4가 원래 풀려던 "이웃 마을 자산을 미리
+   *  당긴다"는 지금 아무도 안 부른다 — 마을 4개 정도면 앱 시작 때 넷 다
+   *  미리 당겨 두는 쪽이 더 간단하고 확실하다(20~100개로 늘면 다시 볼
+   *  것 — PLAN §28-8 Phase 3 몫). 코드는 안 지웠다(굴혈 fallback 경로는
+   *  여전히 쓰이고, corridors 분기도 언젠가 되살릴 수 있어 남겨 둔다). */
   function maybePrefetchCorridor(run, mo, p) {
     var toId = mo.key.slice(5), TW = global.DG.town;
     var list = run && run.corridors, cor = null, i;

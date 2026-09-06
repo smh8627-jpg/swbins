@@ -44,7 +44,13 @@
       heroes: {},                         // { heroId: {lv, exp, rank} } 인물 개별 성장
       party: [],                          // 동행 heroId 최대 5 — 선두가 지도 위 아바타
       petEquip: {},                       // { heroId: petId }
-      town: { current: 'moru' },          // 오버월드(PLAN 28-1절) — 지금 서 있는 마을 id
+      /* 오버월드(PLAN 28-1절)에서 시작해, §28-8(2026-09-06)부터 연속 좌표계로
+         바뀌었다. `pos` 가 진짜 상태(플레이어의 세계 좌표) — null 이면
+         town.js 가 `current`(옛 세이브의 마을 id 하나) 를 보고 그 마을의
+         앵커 자리로 한 번만 마이그레이션한다. `current` 는 그 마이그레이션
+         출처로만 남겨 둔다(안 지운다 — mergeDeep 이 옛 세이브 값을 보존하는
+         것과 같은 이유, 새 세이브는 그냥 기본값). */
+      town: { current: 'moru', pos: null },
       /* 확장(js/_expansion) 필드는 각 모듈이 스스로 만들고,
          옛 세이브의 값(gear·battle·dungeon 등)은 mergeDeep 이 보존한다.
          경영(territory·build)은 게임에서 뺐다 — 옛 세이브에 남아 있어도 아무도 읽지 않는다. */
