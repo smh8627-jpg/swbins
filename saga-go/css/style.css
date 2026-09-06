@@ -476,6 +476,17 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 #encounter.duel3d .d-unit, #encounter.duel3d .d-name { display: none; }
 #encounter.duel3d .duel-arena { height: 46px; background: none; margin: 0 0 2px; }
 
+/* 등용·포획도 3D 무대(encounter3d.js)가 있으면 같은 문제 — 화면 전체를
+   짙게 가리면 뒤에 세운 상대가 안 보인다(2026-09-06, "등용 하려는 인물이
+   안 보임" 지적). duel3d 와 같은 처방: 배경을 거의 비치게 하고 카드를
+   아래로 붙여 얼굴 자리를 비운다. */
+#encounter.enc3d {
+  align-items: flex-end;
+  background: rgba(6,8,12,.16);
+  backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px);
+}
+#encounter.enc3d .enc-card { margin-bottom: 4px; }
+
 .enc-card {
   width: 100%; max-width: 420px; border-radius: var(--r-lg); padding: 20px;
   background: rgba(24,27,34,.94); border: 1px solid var(--glass-br);

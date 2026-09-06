@@ -27,7 +27,12 @@
   }
   function openFx(kind, spawn) {
     var f = global.DG.encounter3d;
-    if (f && f.on()) { f.open(kind, spawn); }
+    var on = !!(f && f.on());
+    /* 3D 무대가 있으면 `duel.js`의 `duel3d`와 같은 자리 — 화면 전체를 짙게
+       가리면 뒤에 세운 등용·포획 대상이 안 보인다(2026-09-06, "등용 하려는
+       인물이 안 보임"으로 지적받음). 카드도 아래로 붙여 얼굴을 비워 준다. */
+    el.classList.toggle('enc3d', on);
+    if (on) { f.open(kind, spawn); }
   }
   function closeFx() {
     var f = global.DG.encounter3d;
@@ -47,7 +52,7 @@
     }
     cur = null;
     closeFx();
-    el.classList.remove('show');
+    el.classList.remove('show', 'enc3d');
     el.innerHTML = '';
   }
 
