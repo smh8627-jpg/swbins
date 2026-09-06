@@ -494,6 +494,14 @@
     var D = global.DG.rogueAction || global.DG.duel;
     if (!D) { finish(fight(rg)); return; }
     var pw = global.DG.hero.partyPower();
+    /* "길을 연다"를 눌러도 이 카드(기세·물러가기까지 남은 시간)는 스스로
+       숨지 않는다 — `D.open()`은 제 화면(`#rogue-hud`)만 관리할 뿐 이 카드는
+       모른다. 실제로 붙여 보고서야 드러났다(2026-09-06, "적도 실전에서 강타
+       회피가 되는지" 확인하다 발견) — 카드가 실시간 HUD·3D 교전을 통째로
+       덮어 사실상 아무것도 안 보였다. 여기서 직접 숨기고, `finish()`가
+       결과창을 다시 켤 때 · 아래 "없던 일" 갈래가 카드를 되살릴 때 다시 켠다. */
+    var el = host();
+    if (el) { el.classList.remove('show'); }
     D.open({
       title: '🏴 적도 — ' + rg.station.name,
       foeName: rg.rank.name + ' ' + rg.boss.name,
@@ -504,7 +512,12 @@
       foeHp: rg.hp, myAtk: pw.atk, myDef: pw.def,
       onDone: function (p) {
         /* 한 대도 못 때리고 물러났으면 없던 일로 한다 (쿨다운도 안 붙는다) */
-        if (p.fled && p.dealt <= 0) { render(); return; }
+        if (p.fled && p.dealt <= 0) {
+          var el2 = host();
+          if (el2) { el2.classList.add('show'); }
+          render();
+          return;
+        }
         finish(fight(rg, { live: true, dealt: p.dealt, folded: p.folded }), p);
       }
     });
