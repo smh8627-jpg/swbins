@@ -62,21 +62,39 @@
     return global.DG.dungeon;
   }
   /** PLAN §28-8(오픈월드 A안) — 마을(town.js) 좌표는 이제 방마다 로컬
-   *  (0..ROOM_W)이 아니라 세계 좌표(앵커 오프셋 포함)다. 마을이 활성일
-   *  때만 그 앵커를 빼서 예전과 같은 "방 안 0~1" 뜻으로 되돌린다 — 던전은
-   *  앵커가 늘 없으므로(0,0) 완전히 예전과 같다. */
+   *  (0..ROOM_W)이 아니라 세계 좌표다. 던전은 늘 (0,0)(방 하나뿐이라
+   *  회귀 없음) — 마을만 창의 왼쪽위 기준점을 정해야 한다.
+   *
+   *  §28-8 후속(2026-09-06) — 예전엔 그 기준점이 `currentAnchor()`(그
+   *  마을의 고정 앵커)였다. 마을 발판 **안**에서는 플레이어가 그 앵커
+   *  근처에 있어 문제가 안 됐지만, 들판 한복판을 걸으면 "가장 가까운
+   *  마을"의 고정 앵커가 그대로 창을 잡아 플레이어가 창 가장자리로
+   *  밀리다 결국 클램프에 눌렸다(README "코너 판이 플레이어 중심이
+   *  아니다" 항목). `drawBigWorld()`(M키 큰 지도)는 처음부터 플레이어를
+   *  화면 중심에 고정하고 그 둘레를 그렸는데 — 코너 판·blips()는 아직
+   *  그 방식이 아니었다. 창 크기(iw×ih)는 그대로 두고, **기준점만
+   *  플레이어가 늘 창 한가운데(0.5, 0.5)에 오게** 다시 잡았다 — 새
+   *  좌표계가 아니라 원점 계산 하나만 바꾼 것이다. */
+  function windowOrigin(M) {
+    if (M === global.DG.town) {
+      var W = M.ROOM_W, H = M.ROOM_H, WALL = M.WALL;
+      var iw = Math.max(1, W - WALL * 2), ih = Math.max(1, H - WALL * 2);
+      var run = M.raw();
+      if (run && run.player) {
+        return { x: run.player.x - WALL - iw / 2, y: run.player.y - WALL - ih / 2 };
+      }
+      if (M.currentAnchor) { return M.currentAnchor(); }
+    }
+    return { x: 0, y: 0 };
+  }
   function norm(x, y) {
     var M = activeMod();
     var W = M.ROOM_W, H = M.ROOM_H, WALL = M.WALL;
-    var ax = 0, ay = 0;
-    if (M === global.DG.town && M.currentAnchor) {
-      var a = M.currentAnchor();
-      ax = a.x; ay = a.y;
-    }
+    var o = windowOrigin(M);
     var iw = Math.max(1, W - WALL * 2), ih = Math.max(1, H - WALL * 2);
     return {
-      nx: core.clamp((x - ax - WALL) / iw, -0.06, 1.06),
-      ny: core.clamp((y - ay - WALL) / ih, -0.06, 1.06)
+      nx: core.clamp((x - o.x - WALL) / iw, -0.06, 1.06),
+      ny: core.clamp((y - o.y - WALL) / ih, -0.06, 1.06)
     };
   }
 
@@ -303,9 +321,9 @@
    *  한다(M키 큰 지도의 포그오브워와 같은 규칙, PLAN §28-8 Phase 2). */
   function smallWorldTiles(T, s, h) {
     var F = global.DG.field3d;
-    if (!F || !T.worldKindAt || !T.isSeen || !T.currentAnchor) { return []; }
+    if (!F || !T.worldKindAt || !T.isSeen) { return []; }
     var W = T.ROOM_W, H = T.ROOM_H, WALL = T.WALL;
-    var a = T.currentAnchor(), ax = a.x, ay = a.y;
+    var o = windowOrigin(T), ax = o.x, ay = o.y;
     var iw = Math.max(1, W - WALL * 2), ih = Math.max(1, H - WALL * 2);
     var MARGIN = 0.06;
     var scaleX = s / iw, scaleY = h / ih;
