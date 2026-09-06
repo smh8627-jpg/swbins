@@ -319,8 +319,15 @@
    * 마을과 같은 패턴), decor는 집 하나·우물 하나·횃불 둘(§28-7 밀도 보강
    * 이전 위성 마을과 같은 기본 구성 — 밀도는 Phase 4 몫, PLAN §44).
    */
-  var GENERATED_TOWN_COUNT = 20;
-  var GEN_GRID_RADIUS = 5;      // (2r+1)^2-4 후보 — 100개 규모까지 이 반경 안에서 커버
+  /* PLAN §28-8 "다음에 이어받을 것" — 20→100. 후보(GEN_GRID_RADIUS)를 5→6으로
+     같이 올렸다 — 5는 (2*5+1)^2-4=117개뿐이라 100개를 뽑으면 남는 여유가
+     17개뿐이었다(격자 후보가 부족하면 seededShuffle 뒤 앞에서부터 자르는
+     로직이 그냥 못 채우고 조용히 100개 미만으로 멈춘다 — 에러가 안 나서
+     알아채기 어렵다). 6이면 (2*6+1)^2-4=165개라 100개를 뽑아도 65개가
+     남는다. 앵커 최대 거리(6*ANCHOR_DIST=28800)도 WORLD_LIMIT(60000)
+     안이라 안전하다. */
+  var GENERATED_TOWN_COUNT = 100;
+  var GEN_GRID_RADIUS = 6;      // (2r+1)^2-4 후보
   var BIOME_KEYS = ['forest', 'ruins', 'swamp', 'mountain', 'shrine'];
   var NAME_DESC = [
     '달빛', '별빛', '청록', '백로', '흑요', '황금', '적송', '녹수', '심연', '유수',

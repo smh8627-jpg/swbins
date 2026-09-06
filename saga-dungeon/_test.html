@@ -2528,7 +2528,18 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     t('자동지도 — 걸은 칸만 밝혀진다(포그오브워), 안 걸은 칸은 그대로 안개다', function () {
       var T = DG.town;
       T._reset('moru');
-      var farCx = 777, farCz = 777;               // 아무도 안 걸어 봤을 먼 칸(다른 항목과 안 겹치게 골랐다)
+      /* PLAN §28-8 Phase 4(2026-09-06, 마을 100개 확장) — 예전엔 777이었다.
+         WORLD_LIMIT(60000)을 넘는 좌표라 boundPlayer()의 noRoom 클램프가
+         걸렸는데, 클램프 뒤에도 그 자리가 fieldBlockedAt()에 막혀 있으면
+         제자리(원래의, 한계 밖 값)에 그대로 있는 "막히면 안 미룸" 예외로
+         우연히 값을 유지해 왔다 — 그 판정은 nearestTownId()가 고르는
+         마을(따라서 지형 씨앗)에 따라 갈리는데, 마을이 20→100개로 늘며
+         이 한 칸의 판정이 뒤집혀 실제로 60000에 클램프돼 버렸다(테스트가
+         기대한 칸에 실제로는 안 선 것 — 절차 생성 마을 수가 늘 때마다
+         다시 흔들릴 수 있는 자리였다). 이제 WORLD_LIMIT 안쪽(280*200+100=
+         56100 < 60000)이라 클램프 자체가 안 걸린다 — 마을을 더 늘려도
+         다시 안 흔들린다. */
+      var farCx = 280, farCz = -280;               // 아무도 안 걸어 봤을 먼 칸(다른 항목과 안 겹치게 골랐다)
       var beforeSeen = T.isSeen(farCx, farCz);
       T._put(farCx * 200 + 100, farCz * 200 + 100);   // field3d.CHUNK=200, 그 칸 한복판으로
       T.update(0);
