@@ -1160,7 +1160,12 @@
            (PLAN §28-4 Phase 3)도 같은 이유로 같다 — 계단문 통로만
            `통로:계단`으로 갈리고, 그 밖의 문은 층 테마를 그대로 쓴다. */
         var cTheme = (corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, rw, rh, corridors) : null;
-        var list = F.chunkAt(cx, cz, seed, ring, 1, cTheme || (th && th.name));
+        /* th.biome(PLAN §28-8 Phase 3, 절차 생성 마을) — THEME_BIAS 표를
+           찾는 이름만 th.biome로 바꾼다(없으면 th.name, 예전과 100% 같다).
+           seed(위)는 여전히 th.name(마을마다 고유)로 재 — 같은 biome을
+           공유하는 마을 여럿이 똑같은 지형 패턴을 복붙한 듯 반복하지
+           않는다, 성격(가중치)만 같고 실제 배치는 마을마다 다르다. */
+        var list = F.chunkAt(cx, cz, seed, ring, 1, cTheme || (th && (th.biome || th.name)));
         for (i = 0; i < list.length; i++) {
           pc = list[i];
           if (!FIELD_BLOCK[pc.t]) { continue; }
