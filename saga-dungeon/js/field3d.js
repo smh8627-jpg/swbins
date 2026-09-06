@@ -121,7 +121,18 @@
        세워지는 그림)를 확 밀어 자연스러운 "내려가는 통로"로 잇는다 —
        `통로:dungeon`(Phase 1, 던전 입구)과 같은 이유·같은 가중치를 그대로
        재사용한다(새 표 아님). */
-    '통로:계단': { cave: 5, rock: 0.8, cliff: 0.7, forest: 0.2, water: 0.15 }
+    '통로:계단': { cave: 5, rock: 0.8, cliff: 0.7, forest: 0.2, water: 0.15 },
+    /* 2026-09-06 — PLAN §28-8 Phase 3(절차 생성 마을). 손으로 지은 넷은
+       theme.name이 곧 표시 이름(모루골 등)이라 이 표에 안 걸려(테마 없이
+       고른 것과 같다) — 절차 생성 마을은 대신 `theme.biome`("town:"+biome)
+       를 따로 둬서 이 표를 참조한다("통로:*"·던전 여섯 층과 이름이 안
+       겹치게 접두를 달았다). 다섯 성격(숲·폐허·늪·산·사당)마다 그 결에
+       맞는 소품이 늘게만 갈랐다 — 새 kind는 안 늘렸다(PLAN §44). */
+    'town:forest':   { forest: 2.2, camp: 1.4, road: 1.2, rock: 0.8, water: 0.6 },
+    'town:ruins':    { ruin: 2.4, rock: 1.4, road: 1.3, cliff: 0.8, forest: 0.5 },
+    'town:swamp':    { swamp: 2.6, water: 2.0, road: 1.0, forest: 0.5, rock: 0.4 },
+    'town:mountain': { cliff: 2.2, rock: 1.8, forest: 0.8, road: 0.7, water: 0.3 },
+    'town:shrine':   { altar: 2.6, road: 1.6, forest: 1.1, ruin: 0.6, swamp: 0.2 }
   };
   /** 가중치 표(order·baseW)에서 h(0~1) 하나로 kind 하나를 고른다 —
    *  theme 이 없으면(자가진단 등) 원래 고정 문턱과 정확히 같은 결과를 낸다 */

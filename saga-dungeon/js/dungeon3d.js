@@ -964,7 +964,11 @@
            테마로. `run.corridors`가 없으면 늘 null — fieldBlockedAt()과
            정확히 같은 판정을 쓴다. */
         var cTheme = (run.corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, W, H, run.corridors) : null;
-        var list = F.chunkAt(cx, cz, seed, ring, dens, cTheme || (th && th.name));
+        /* th.biome(PLAN §28-8 Phase 3) — dungeon.js의 fieldBlockedAt과
+           같은 이유로 같은 자리에 같은 순서로 얹었다(그림 대 판정이
+           어긋나면 안 된다). seed(위)는 그대로 th.name — 마을마다 고유한
+           지형 패턴은 유지하고, 가중치 표만 biome으로 묶는다. */
+        var list = F.chunkAt(cx, cz, seed, ring, dens, cTheme || (th && (th.biome || th.name)));
         for (i = 0; i < list.length; i++) {
           if (FI && NATURAL_KIND[list[i].t]) { natItems.push(natItem(F, list[i], seed, W, H)); }
           else { piece(list[i], seed, W, H, stone); }
@@ -973,7 +977,7 @@
            `th`(층 테마)를 같이 넘긴다 — PLAN 9절 Biome, 2026-09-05 field3d.js
            kindOf() 감사 참고: 색깔만 다르고 오브젝트 비율은 안 갈리던 것을 고쳤다 */
         if (F.clutterAt) {
-          var deco = F.clutterAt(cx, cz, seed, ring, dens, cTheme || (th && th.name));
+          var deco = F.clutterAt(cx, cz, seed, ring, dens, cTheme || (th && (th.biome || th.name)));
           for (i = 0; i < deco.length; i++) {
             if (FI && NATURAL_KIND[deco[i].t]) { natItems.push(natItem(F, deco[i], seed, W, H)); }
             else { piece(deco[i], seed, W, H, stone); }

@@ -2565,17 +2565,86 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('갈대나루 NPC 하나 — norm (' + n.nx.toFixed(2) + ',' + n.ny.toFixed(2) + ')');
     });
 
-    t('오버월드 지도는 넷을 고정 배치로 내놓고, 지금 있는 마을만 가리킨다', function () {
+    t('오버월드 지도 — 손으로 지은 넷(모루골 중심)이 절차 생성 마을들과 함께 나오고, 지금 있는 마을만 가리킨다', function () {
+      /* PLAN §28-8 Phase 3부터 목록이 넷이 아니다(절차 생성 마을이 늘어난
+         만큼) — 손으로 지은 넷이 여전히 올바로 들어있는지(부분집합)만
+         본다. dirFromHub는 손으로 지은 넷만 의미가 있다(모루골=중심, 나머지
+         셋=위성) — 절차 생성 마을은 그 개념 밖이라 다들 null이다(위성
+         토폴로지가 아니라 격자 배치라서, PLAN §28-8 Phase 3 참고). */
       var T = DG.town;
       T._reset('sogeum');
       var list = T.overworld.list();
-      var ids = list.map(function (t) { return t.id; }).sort().join(',');
-      var hub = list.filter(function (t) { return !t.dirFromHub; });
+      var byId = {}; list.forEach(function (t) { byId[t.id] = t; });
+      var handBuilt = ['moru', 'galdae', 'jajak', 'sogeum'].every(function (id) { return !!byId[id]; });
+      var hubOk = byId.moru && !byId.moru.dirFromHub;
+      var satOk = ['galdae', 'jajak', 'sogeum'].every(function (id) { return byId[id].dirFromHub; });
       var cur = T.overworld.current();
       T._reset('moru');                 // 뒤따르는 다른 진단에 영향 없게 모루골로 되돌린다
-      return ids === 'galdae,jajak,moru,sogeum'.split(',').sort().join(',') &&
-        hub.length === 1 && hub[0].id === 'moru' && cur === 'sogeum' &&
-        ('마을 4개 · 중심 ' + hub[0].name + ' · 그때 위치 ' + cur);
+      return handBuilt && hubOk && satOk && cur === 'sogeum' && list.length > 4 &&
+        ('마을 ' + list.length + '개(손으로 지은 넷 포함) · 중심 모루골 · 그때 위치 ' + cur);
+    });
+
+    /* ── 절차 생성 마을 — Phase 3 (PLAN §28-8, 2026-09-06) ── */
+
+    t('절차 생성 마을 — 이름이 서로 안 겹치고(손으로 지은 넷 포함), 20개 이상이다', function () {
+      var T = DG.town, list = T.overworld.list();
+      var gens = list.filter(function (t) { return t.id.indexOf('gen') === 0; });
+      var names = list.map(function (t) { return t.name; });
+      var uniq = names.filter(function (n, i) { return names.indexOf(n) === i; });
+      return gens.length >= 20 && uniq.length === names.length &&
+        ('절차 생성 ' + gens.length + '개 · 전체 ' + list.length + '개 중 이름 중복 0');
+    });
+
+    t('절차 생성 마을 — 전부 NPC·decor 최소 간격을 지키고, 스폰 자리와도 안 겹친다', function () {
+      var T = DG.town, list = T.overworld.list();
+      var gens = list.filter(function (t) { return t.id.indexOf('gen') === 0; });
+      var bad = [];
+      gens.forEach(function (t) {
+        T._reset(t.id);
+        var raw = T.raw();
+        var all = [{ x: 195, y: 240 }].concat(raw.room.npcs).concat(raw.room.decor.filter(function (d) {
+          return d.t === 'house' || d.t === 'well';
+        }));
+        for (var i = 0; i < all.length; i++) {
+          for (var j = i + 1; j < all.length; j++) {
+            if (Math.hypot(all[i].x - all[j].x, all[i].y - all[j].y) < 95) { bad.push(t.id); }
+          }
+        }
+      });
+      T._reset('moru');
+      return bad.length === 0 && (gens.length + '개 마을 전부 최소 간격(95) 만족');
+    });
+
+    t('절차 생성 마을 — biome마다 지형 성향이 실제로 갈린다(forest는 숲, mountain은 절벽·바위)', function () {
+      /* 기존 "수궁은 물·늪이 는다" 식 통계 검사와 같은 방법 — 표본을 넉넉히
+         떠서 편향이 실제로 반영됐는지 본다(THEME_BIAS 표를 직접 읽는 게
+         아니라 worldKindAt()이 실제로 내는 값으로 확인해야 뜻이 있다). */
+      var T = DG.town, list = T.overworld.list();
+      function firstOfBiome(biomeSuffixes) {
+        for (var i = 0; i < list.length; i++) {
+          if (list[i].id.indexOf('gen') !== 0) { continue; }
+          var last = list[i].name.slice(-1);
+          if (biomeSuffixes.indexOf(last) >= 0) { return list[i]; }
+        }
+        return null;
+      }
+      var fTown = firstOfBiome(['골', '촌', '림']);       // forest 접미사
+      var mTown = firstOfBiome(['재', '령', '봉']);       // mountain 접미사
+      if (!fTown || !mTown) { return '표본 부족(생성 수를 늘리면 다시 볼 것) — 통과로 간주'; }
+      var fa = T.anchorOf(fTown.id), ma = T.anchorOf(mTown.id);
+      var fcx = Math.floor(fa.x / 200), fcz = Math.floor(fa.y / 200);
+      var mcx = Math.floor(ma.x / 200), mcz = Math.floor(ma.y / 200);
+      var fCount = { forest: 0, cliff: 0 }, mCount = { forest: 0, cliff: 0 }, n = 400, i, dx, dz;
+      for (i = 0; i < n; i++) {
+        dx = (i % 20) - 10; dz = Math.floor(i / 20) - 10;
+        var fk = T.worldKindAt(fcx + dx, fcz + dz);
+        var mk = T.worldKindAt(mcx + dx, mcz + dz);
+        if (fk === 'forest') { fCount.forest++; } if (fk === 'cliff') { fCount.cliff++; }
+        if (mk === 'forest') { mCount.forest++; } if (mk === 'cliff') { mCount.cliff++; }
+      }
+      var ok = fCount.forest > mCount.forest && mCount.cliff > fCount.cliff;
+      return ok && (fTown.name + '(forest) 숲 ' + fCount.forest + ' vs ' + mTown.name + '(mountain) 숲 ' + mCount.forest +
+        ' · ' + mTown.name + ' 절벽 ' + mCount.cliff + ' vs ' + fTown.name + ' 절벽 ' + fCount.cliff);
     });
 
     /* ── 화면 ─────────────────────────────────────────── */
