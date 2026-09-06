@@ -67,6 +67,65 @@
         2: [{ kind: 'world', eff: 'lootPct', v: 12 }],
         3: [{ kind: 'world', eff: 'goldPct', v: 30 }, { kind: 'world', eff: 'findPct', v: 25 }]
       }
+    },
+    /* 2026-09-06 — 사용자 요청("콘텐츠가 많아야 함")으로 여섯 벌을 더 얹었다.
+       그때까지 어느 세트에도 안 든 밑감(BASES 31개 중 12개만 위 네 벌이
+       썼다)으로만 골랐다 — _test.html "한 밑감이 두 벌에 들어가도 안
+       된다" 자가진단이 그대로 지킨다. w_pyeongon(편곤) 하나만 여전히
+       어느 세트에도 없다(31개 중 30개를 쓰면 나머지 하나는 남는다). */
+    {
+      key: 'cheolong', name: '철옹(鐵甕)',
+      pieces: ['a_jichap', 'h_tumo', 'n_geumpae'],
+      desc: '무너지지 않는 성벽의 채비.',
+      bonus: {
+        2: [{ kind: 'flat', stat: 'command', v: 14 }],
+        3: [{ kind: 'pct', stat: 'command', v: 10 }, { kind: 'world', eff: 'hpPct', v: 20 }]
+      }
+    },
+    {
+      key: 'eunha', name: '은하(銀河)',
+      pieces: ['w_jukjang', 'n_okpae', 'c_okgae'],
+      desc: '밤하늘의 지혜를 두른 채비.',
+      bonus: {
+        2: [{ kind: 'flat', stat: 'wisdom', v: 14 }],
+        3: [{ kind: 'pct', stat: 'wisdom', v: 10 }, { kind: 'world', eff: 'findPct', v: 20 }]
+      }
+    },
+    {
+      key: 'maenghon', name: '맹혼(猛魂)',
+      pieces: ['w_bugae', 'a_cheollip', 'g_wangap'],
+      desc: '사나운 범의 발톱을 한 채비.',
+      bonus: {
+        2: [{ kind: 'flat', stat: 'might', v: 14 }],
+        3: [{ kind: 'pct', stat: 'might', v: 10 }, { kind: 'world', eff: 'atkPct', v: 15 }]
+      }
+    },
+    {
+      key: 'biyeong', name: '비영(飛影)',
+      pieces: ['w_gakgung', 'b_hwaje', 'r_geumji'],
+      desc: '그림자처럼 빠른 이의 채비.',
+      bonus: {
+        2: [{ kind: 'flat', stat: 'might', v: 10 }],
+        3: [{ kind: 'pct', stat: 'might', v: 8 }, { kind: 'world', eff: 'critPct', v: 18 }]
+      }
+    },
+    {
+      key: 'paewang', name: '패왕(霸王)',
+      pieces: ['w_wolto', 'a_pigap', 'c_dokkaebi'],
+      desc: '천하를 노리는 자의 채비.',
+      bonus: {
+        2: [{ kind: 'flat', stat: 'might', v: 16 }],
+        3: [{ kind: 'pct', stat: 'might', v: 14 }, { kind: 'world', eff: 'atkPct', v: 18 }]
+      }
+    },
+    {
+      key: 'hyeonhak', name: '현학(玄鶴)',
+      pieces: ['w_byeongseo', 'g_wandae', 'b_jipsin'],
+      desc: '학처럼 초연한 이의 채비.',
+      bonus: {
+        2: [{ kind: 'flat', stat: 'wisdom', v: 12 }],
+        3: [{ kind: 'pct', stat: 'wisdom', v: 8 }, { kind: 'world', eff: 'expPct', v: 18 }]
+      }
     }
   ];
 
