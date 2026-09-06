@@ -2085,10 +2085,34 @@ Phase 1~4 완료, 이어지는 세션)
   이라는 이번 판단 자체가 틀렸다는 뜻이니 원점에서 다시 볼 것.
   (2) 그 확인이 끝나기 전엔 실기기(폰·PC)에서도 외모 커스텀의 스타일
   버튼 여섯 개를 한 번씩 실제로 눌러 볼 것 — 헤드리스 결론과 무관하게
-  최종 확인은 늘 실기기다. (3) 갑주 실물 GLB를 구하면
-  `gear:armor:leather`/`gear:armor:plate` 키로 등록만 하면 된다.
+  최종 확인은 늘 실기기다.
 
-`sw.js` → `dungeon-v0.73.0`.
+**후속(같은 세션 이어서, 2026-09-06) — 갑주 실물 GLB 자산 구하기. 완료
+(단, 헤드리스 검증은 여전히 못 함).**
+
+- poly.pizza에서 Quaternius "Ultimate RPG Items Bundle"(CC0)의 낱개
+  조각 "Armor Leather"(`poly.pizza/m/na9KfWiKN8`)·"Armor Metal"
+  (`poly.pizza/m/TMUoxILh9w`)을 찾아 `static.poly.pizza/<uuid>.glb`로
+  직접 받았다(로그인 불필요, pond·signpost 때와 같은 경로) —
+  `models/gear/armor_leather.glb`(17KB)·`armor_metal.glb`(39KB).
+  `js/asset3d.js`의 `DEFAULTS`에 `'gear:armor:leather'`·
+  `'gear:armor:plate'`로 등록만 했다 — `foeGear()`는 이미 이 키로
+  `AS3.build()`를 부르고 있어(위 §에서 상자 fallback과 함께 미리 둔
+  자리) **코드는 안 건드렸다**, 등록만으로 자동 교체된다. 출처·라이선스는
+  `assets/ASSET_LICENSES.md`의 "갑주(tier) — 실사화" 절 참고.
+- `_test.html` **275/275** 3회 동일(순수 데이터 등록이라 이 항목은
+  진단이 값으로 못 본다), `_admin.html?selftest` **ADMIN 12/12**.
+  **CDP 3D 스크린샷으로는 확인 못 했다** — 이 세션의 헤드리스 3D 검증
+  자체가 막힌 채(위 §들 참고) 여러 번 다시 시도해도 안 풀렸다. GLB
+  파일 자체는 `glTF binary model, version 2`로 정상 파싱됨을
+  확인했다(파일 유효성만 확인, 실제 3D 렌더는 미확인).
+- **다음에 이어받을 것** — 헤드리스 환경이 회복되거나 실기기에서,
+  갑주(가죽/판금)를 실제로 착용해 이 GLB 둘이 제대로 걸쳐 보이는지
+  (크기·자리가 몸에 맞는지, 상자 fallback과 안 겹치는지) 확인할 것.
+  안 맞으면 `dungeon3d.js`의 `foeGear()`에서 `gear:armor:*`에 넘기는
+  `armMul`/`hh*0.12` 오프셋을 조정할 자리다.
+
+`sw.js` → `dungeon-v0.74.0`.
 
 ---
 

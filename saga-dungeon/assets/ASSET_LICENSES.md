@@ -1022,6 +1022,31 @@ CC-BY — 새로 받을 것 없이 그대로 재사용)를 새 짐승 두 종(�
 `sw.js` VERSION → `dungeon-v0.43.0`(스크립트 목록은 안 바뀌었지만
 게임 데이터·에셋·렌더 로직이 여럿 바뀌었으니 캐시를 새로 태운다).
 
+## 갑주(tier) — 실사화 (2026-09-06, PLAN §28-8 후속 다음)
+
+`foeGear()`의 `look.armor`(가죽·판금)는 데이터에만 있고 지금까지 아무도
+안 그리던 자리였다(적도 플레이어도) — 상자 오버레이로 먼저 두고, 실물
+GLB를 이어서 구했다. poly.pizza에서 Quaternius의 "Ultimate RPG Items
+Bundle"(CC0) 낱개 조각 둘을 받았다 — 위 무기·투구·왕관과 같은 출처.
+
+| 갑주 | 만든 이 | 받은 곳 | 파일 |
+|---|---|---|---|
+| leather(가죽) | Quaternius | `poly.pizza/m/na9KfWiKN8`("Armor Leather") | `models/gear/armor_leather.glb`(17KB) |
+| plate(판금) | Quaternius | `poly.pizza/m/TMUoxILh9w`("Armor Metal") | `models/gear/armor_metal.glb`(39KB) |
+
+> **갑주 둘** — © **Quaternius**, CC0 (Public Domain). 저작자 표시 불필요.
+> `poly.pizza`를 거쳐 받았다(`static.poly.pizza/<uuid>.glb` 직접 다운로드,
+> 로그인 불필요 — 위 pond·signpost 때와 같은 경로). 크기·자리만 맞추었고
+> 형상은 그대로다.
+
+`js/asset3d.js`의 `DEFAULTS`에 `'gear:armor:leather'`·`'gear:armor:plate'`
+로 등록 — `js/dungeon3d.js`의 `foeGear()`가 이미 이 키로 `AS3.build()`를
+부르고 있어(2026-09-06, 상자 fallback과 함께 미리 둔 자리) 등록만으로
+자동 교체된다. **실기기 확인 전** — 이 세션은 헤드리스 3D 검증 자체가
+막혀(같은 세션의 다른 절 참고) CDP 스크린샷으로 확인 못 했다. 다음
+세션이 실제로 갑주를 걸친 모습(가죽 vs 판금)을 실기기 또는 헤드리스가
+회복된 뒤 확인할 것.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

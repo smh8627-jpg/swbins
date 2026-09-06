@@ -337,6 +337,11 @@
        대로 둔다는 판단) */
     'gear:gapju': GEAR + 'viking_helmet.glb',
     'gear:cape': GEAR + 'cape.glb',
+    /* 2026-09-06 — 갑주(tier, `foeGear()`의 `look.armor`). Quaternius
+       "Ultimate RPG Items Bundle"(CC0)의 낱개 조각 — 위 무기·투구와 같은
+       출처(poly.pizza). 출처는 `assets/ASSET_LICENSES.md` 참고 */
+    'gear:armor:leather': GEAR + 'armor_leather.glb',
+    'gear:armor:plate': GEAR + 'armor_metal.glb',
     /* 방 안 장식(PLAN 6절) — KayKit Dungeon Remastered(CC0). 여태 상자를 쌓아
        흉내 내던 자리를 실물로 갈아 끼운다. `dg:` 로 묶은 것은 **들판(field)의
        'pillar'·'wall' 과는 다른 자리**라는 뜻이다 — 저 둘은 사가고에서 물려받은
