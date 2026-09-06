@@ -94,6 +94,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/station.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
+<script src="js/ambient.js"></script>
 <script src="js/minimap.js"></script>
 <script src="js/overworld.js"></script>
 <script src="js/portrait3d.js"></script>
@@ -2790,6 +2791,71 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var off = EV.on();
       C.setTune('event.on', null);
       return off === false && EV.on() === true && 'event.on=0 이면 잠든다';
+    });
+
+    /* ── 걷기 흥 (ambient) — 사건 사이를 메운다 (축1, 2026-09-06) ─────
+     * `event.js` 처럼 값을 내는 함수는 순수해서 roll 을 주면 결정된다.
+     */
+    var AM = DG.ambient;
+    var COD = DG.codex;
+
+    t('걷기 흥 — 풍경 한 줄은 땅 갈래·낮밤에 따라 갈린다', function () {
+      var day = AM.pickFlavor('forest', false, 'clear', 0.9, 0);
+      var night = AM.pickFlavor('forest', true, 'clear', 0.9, 0);
+      var unknown = AM.pickFlavor('nosuchkind', false, 'clear', 0.9, 0);
+      return AM.FLAVOR.forest.day.indexOf(day) >= 0 &&
+        AM.FLAVOR.forest.night.indexOf(night) >= 0 && day !== night &&
+        AM.FLAVOR._default.day.indexOf(unknown) >= 0 &&
+        ('모르는 갈래는 _default 로 — "' + unknown + '"');
+    });
+
+    t('걷기 흥 — 궂은 날엔 날씨 줄이 섞여 나온다', function () {
+      var rainy = AM.pickFlavor('grass', false, 'rain', 0.1, 0);
+      var clear = AM.pickFlavor('grass', false, 'clear', 0.1, 0);
+      return AM.WEATHER_FLAVOR.rain.indexOf(rainy) >= 0 &&
+        AM.FLAVOR.grass.day.indexOf(clear) >= 0 &&
+        ('비 오는 날 → "' + rainy + '" · 갠 날엔 날씨 줄이 없다');
+    });
+
+    t('걷기 흥 — 소액 보상은 확률 문턱 아래서만, 금/경험치 중 하나만', function () {
+      var none = AM.microReward(0.99, 0.2);
+      var gold = AM.microReward(0.01, 0.2);
+      var exp = AM.microReward(0.01, 0.8);
+      return none === null && gold.gold > 0 && gold.exp === 0 &&
+        exp.exp > 0 && exp.gold === 0 &&
+        ('문턱 위 → 없음 · 문턱 아래 → 🪙+' + gold.gold + ' 또는 경험치+' + exp.exp);
+    });
+
+    t('걷기 흥 — 8방위가 실제 방향과 맞는다', function () {
+      return AM.compass(1, 0) === '동' && AM.compass(0, -1) === '북' &&
+        AM.compass(-1, 0) === '서' && AM.compass(0, 1) === '남' &&
+        ('동·북·서·남 확인 (dx,dy 는 +동 +남)');
+    });
+
+    t('걷기 흥 — 발자국은 숨은 자리를 반경 안에서만, 방향과 함께 알린다', function () {
+      var shrine = DG.land.place('shrine');
+      var near = AM.radarCandidates({ x: shrine.x + 50, y: shrine.y });
+      var far = AM.radarCandidates({ x: shrine.x + 9999, y: shrine.y });
+      var hit = near.filter(function (c) { return c.id === 'shrine'; })[0];
+      return !!hit && hit.dir && far.filter(function (c) { return c.id === 'shrine'; }).length === 0 &&
+        ('사당 50m 앞 → ' + hit.dir + '쪽 · 9999m 밖 → 안 잡힘');
+    });
+
+    t('걷기 흥 — codex 가 이미 찍은 자리는 발자국이 조용하다', function () {
+      var shrine = DG.land.place('shrine');
+      var pos = { x: shrine.x + 50, y: shrine.y };
+      var before = AM.radarCandidates(pos).some(function (c) { return c.id === 'shrine'; });
+      COD.discover('place', 'shrine');
+      var after = AM.radarCandidates(pos).some(function (c) { return c.id === 'shrine'; });
+      COD.clear();
+      return before === true && after === false && '발견 전엔 잡히고, 발견 후엔 스스로 빠진다';
+    });
+
+    t('걷기 흥 — 손잡이를 내리면 발자국도 조용하다', function () {
+      C.setTune('ambient.on', 0);
+      var off = AM.on();
+      C.setTune('ambient.on', null);
+      return off === false && AM.on() === true && 'ambient.on=0 이면 잠든다';
     });
 
     /* ── 전투 (PHASE 9) — 사건의 싸움을 교전 무대로 ───────────

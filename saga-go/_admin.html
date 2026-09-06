@@ -652,10 +652,17 @@ window.DG_NO_ACCOUNT = true;
     ]],
     ['사건 (event)', [
       ['event.on', '걷다가 사건을 만난다 1/0', 1],
-      ['event.stepM', '몇 m 마다 주사위를 굴리나', 420],
-      ['event.chance', '그 주사위에서 날 확률 0~1', 0.55],
+      ['event.stepM', '몇 m 마다 주사위를 굴리나', 300],
+      ['event.chance', '그 주사위에서 날 확률 0~1', 0.62],
       ['event.duel', '싸움을 교전 무대로 연다 1/0', 1],
       ['event.foeHpMul', '적 기세 = 힘 × 이 값', 7]
+    ]],
+    ['걷기 흥 (ambient)', [
+      ['ambient.on', '풍경 토스트·발자국(레이더) 1/0', 1],
+      ['ambient.stepM', '풍경 토스트를 몇 m 마다 굴리나', 110],
+      ['ambient.chance', '그 주사위에서 날 확률 0~1', 0.8],
+      ['ambient.rewardChance', '그중 소액 보상(금·경험치)이 붙을 확률', 0.15],
+      ['ambient.radarM', '숨은 자리를 미리 눈치채는 반경 m (실제 발견은 34m)', 220]
     ]],
     ['성능 (perf)', [
       ['perf.auto', '버거우면 스스로 품질을 낮춘다 1/0', 1],

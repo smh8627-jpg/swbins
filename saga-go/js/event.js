@@ -31,10 +31,12 @@
 
   /** 사건을 들일까 — 0 이면 걸어도 아무 일도 안 생긴다 */
   function on() { return core.tuned('event.on', 1) ? true : false; }
-  /** 몇 미터마다 한 번 주사위를 굴리나 */
-  function STEP() { return core.tuned('event.stepM', 420); }
+  /** 몇 미터마다 한 번 주사위를 굴리나
+   * (2026-09-06, 축1 "사건 빈도가 낮다" — 420 → 300, 아래 chance 도 같이 올려
+   * 실제 평균 간격이 420÷0.55≈764m 에서 300÷0.62≈484m 로 준다) */
+  function STEP() { return core.tuned('event.stepM', 300); }
   /** 그 주사위에서 사건이 날 확률 */
-  function CHANCE() { return core.tuned('event.chance', 0.55); }
+  function CHANCE() { return core.tuned('event.chance', 0.62); }
 
   /* ── 적 셋 (PLAN 46절 "적 3종") ────────────────────────
    * 따로 세우지 않고 **사건 안에서** 만난다. 힘은 내 부대(`hero.partyPower`)와
@@ -487,7 +489,7 @@
     var foe = ev.foe ? FOES[ev.foe] : null;
     var odds = foe ? Math.round(winChance(ev.foe) * 100) : 0;
     var html =
-      '<div class="enc-card">' +
+      '<div class="enc-card pingnew">' +
         '<div class="enc-big"><span style="font-size:56px">' + ev.emoji + '</span></div>' +
         '<h3>' + ev.name + '</h3>' +
         '<p class="quote">' + ev.quote + '</p>' +
@@ -503,6 +505,11 @@
     html += '</div></div>';
     el.innerHTML = html;
     el.classList.add('show');
+    /* 걸으며 스치는 다른 창들과 달리 **찾아낸 것**이라는 티를 낸다
+       (축1, 2026-09-06 "알림이 약하다" — 테두리 섬광은 CSS, 진동은 손끝) */
+    if (global.navigator && navigator.vibrate) {
+      try { navigator.vibrate(foe ? [40, 40, 40] : 35); } catch (e) { /* 지원 안 하면 조용히 넘어간다 */ }
+    }
 
     var btns = el.querySelectorAll('[data-pick]');
     for (var j = 0; j < btns.length; j++) {
