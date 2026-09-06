@@ -164,13 +164,18 @@
     p.ambientMark += step;
     if (Math.random() >= CHANCE()) { return; }
 
-    var L = global.DG.land, W = global.DG.weather;
+    var L = global.DG.land, W = global.DG.weather, WD = global.DG.world;
     var tx = Math.floor(p.pos.x / 48), ty = Math.floor(p.pos.y / 48);
     var a = L ? L.at(tx, ty) : null;
     var h = new Date().getHours();
     var night = h >= 21 || h < 4;
     var weather = W ? W.current().key : 'clear';
-    var line = pickFlavor(a ? a.kind : null, night, weather);
+    /* event.js 의 contextAt() 과 같은 함정을 안 밟는다(2026-09-06, 축1 재확인 중
+       발견) — 하북 마을 밖에서 그냥 null 로 떨어지면 늘 _default 줄만 나와
+       실제 땅(숲·산·물)과 안 맞는 밋밋한 문구가 반복된다. world.terrainAt() 으로
+       떨어져 실제 땅 갈래를 쓴다 */
+    var kind = a ? a.kind : (WD && WD.terrainAt ? WD.terrainAt(tx, ty) : null);
+    var line = pickFlavor(kind, night, weather);
     var rw = microReward(Math.random(), Math.random());
 
     if (rw) {
