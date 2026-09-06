@@ -31,10 +31,12 @@
 
   /** 사건을 들일까 — 0 이면 걸어도 아무 일도 안 생긴다 */
   function on() { return core.tuned('event.on', 1) ? true : false; }
-  /** 몇 미터마다 한 번 주사위를 굴리나 */
-  function STEP() { return core.tuned('event.stepM', 420); }
+  /** 몇 미터마다 한 번 주사위를 굴리나
+   * (2026-09-06, 축1 "사건 빈도가 낮다" — 420 → 300, 아래 chance 도 같이 올려
+   * 실제 평균 간격이 420÷0.55≈764m 에서 300÷0.62≈484m 로 준다) */
+  function STEP() { return core.tuned('event.stepM', 300); }
   /** 그 주사위에서 사건이 날 확률 */
-  function CHANCE() { return core.tuned('event.chance', 0.55); }
+  function CHANCE() { return core.tuned('event.chance', 0.62); }
 
   /* ── 적 셋 (PLAN 46절 "적 3종") ────────────────────────
    * 따로 세우지 않고 **사건 안에서** 만난다. 힘은 내 부대(`hero.partyPower`)와
@@ -311,10 +313,21 @@
     var tx = Math.floor(pos.x / 48), ty = Math.floor(pos.y / 48);
     var a = L ? L.at(tx, ty) : null;
     var W = global.DG.weather;
+    var WD = global.DG.world;
     var h = new Date(t === undefined ? Date.now() : t).getHours();
     return {
       tx: tx, ty: ty,
-      kind: a ? a.kind : null,          // 이 땅 밖이면 null — 그래도 사건은 난다
+      /* **2026-09-06, 축1 재확인 중 발견한 진짜 버그**: 여기가 늘 `land.js` 만
+         물어 하북 마을(원점 둘레 ~500m) 밖에서는 `kind` 가 그냥 null 로 떨어졌다.
+         `EVENTS` 는 하나만 빼고 다 `where`(땅 갈래)나 `marks`(하북 전용 표식)를
+         요구하니, kind 가 null 이면 **후보가 통째로 0개** — 마을 밖에서는 사건이
+         한 건도 안 났다는 뜻이다("이 땅 밖이면 null — 그래도 사건은 난다"던 옛
+         주석은 틀렸다, 실측: `EV.stats({x:5000,y:5000}).here === 0`). `world.js`
+         의 `terrainAt()` 은 이미 land→geo(실제 OSM 지형)→해시 순으로 답을
+         내고 있어(3D·미니맵이 그걸로 돈다) 마을 밖도 늘 땅 갈래가 있다 — 그걸
+         그대로 물어 온다. `mark`(사당·폐허 등 손으로 심은 표식)는 하북 전용이
+         맞으므로 그대로 `land.js` 만 본다 */
+      kind: a ? a.kind : (WD && WD.terrainAt ? WD.terrainAt(tx, ty) : null),
       mark: a ? a.mark : null,
       night: h >= 21 || h < 4,
       weather: wx || (W ? W.current().key : 'clear'),
@@ -487,7 +500,7 @@
     var foe = ev.foe ? FOES[ev.foe] : null;
     var odds = foe ? Math.round(winChance(ev.foe) * 100) : 0;
     var html =
-      '<div class="enc-card">' +
+      '<div class="enc-card pingnew">' +
         '<div class="enc-big"><span style="font-size:56px">' + ev.emoji + '</span></div>' +
         '<h3>' + ev.name + '</h3>' +
         '<p class="quote">' + ev.quote + '</p>' +
@@ -503,6 +516,11 @@
     html += '</div></div>';
     el.innerHTML = html;
     el.classList.add('show');
+    /* 걸으며 스치는 다른 창들과 달리 **찾아낸 것**이라는 티를 낸다
+       (축1, 2026-09-06 "알림이 약하다" — 테두리 섬광은 CSS, 진동은 손끝) */
+    if (global.navigator && navigator.vibrate) {
+      try { navigator.vibrate(foe ? [40, 40, 40] : 35); } catch (e) { /* 지원 안 하면 조용히 넘어간다 */ }
+    }
 
     var btns = el.querySelectorAll('[data-pick]');
     for (var j = 0; j < btns.length; j++) {

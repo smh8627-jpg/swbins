@@ -507,6 +507,15 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 }
 @keyframes pop { from { transform: translateY(14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
 
+/* 걷다가 사건을 만난 순간 — 테두리가 한 번 크게 번졌다 잦아든다(축1, 2026-09-06).
+   역참·성채 같은 여느 창과 달리 "찾아낸 것"이라는 티를 눈으로도 낸다 */
+.enc-card.pingnew { animation: pop .22s cubic-bezier(.22,1,.36,1), pingring 1.1s ease-out; }
+@keyframes pingring {
+  0%   { box-shadow: 0 0 0 0 rgba(245,180,69,.55), 0 24px 70px rgba(0,0,0,.6); }
+  60%  { box-shadow: 0 0 0 14px rgba(245,180,69,0), 0 24px 70px rgba(0,0,0,.6); }
+  100% { box-shadow: 0 0 0 0 rgba(245,180,69,0), 0 24px 70px rgba(0,0,0,.6); }
+}
+
 .enc-head { display: flex; gap: 13px; align-items: center; margin-bottom: 15px; }
 .enc-icon {
   width: 62px; height: 62px; flex: 0 0 auto; display: grid; place-items: center;
@@ -594,6 +603,12 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
 }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* 갈래별 색(축1, 2026-09-06 "알림이 약하다") — 늘 같은 금테였던 것을 갈래로 나눈다.
+   find(발견·나침반) 는 더 오래·더 밝게, bad 는 가라앉은 색, good 은 초록기 */
+#toast.t-find { border-color: rgba(245,180,69,.85); box-shadow: var(--shadow), 0 0 18px rgba(245,180,69,.35); animation: toastpop .3s cubic-bezier(.22,1,.36,1); }
+#toast.t-good { border-color: rgba(120,200,120,.6); }
+#toast.t-bad { border-color: rgba(160,160,170,.4); color: var(--ink-dim); }
+@keyframes toastpop { 0% { transform: translateX(-50%) translateY(-14px) scale(.9); } 60% { transform: translateX(-50%) translateY(3px) scale(1.03); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
 
 /* ── 레벨 업 ───────────────────────────────────────────── */
 #levelup {

@@ -1135,12 +1135,39 @@
 
   /* ── 토스트 ───────────────────────────────────────────── */
 
+  /**
+   * 갈래 있는 토스트 + 짧은 큐(축1, 2026-09-06 "알림이 약하다").
+   * 여태는 문자열 하나뿐이라 늘 같은 금테로 떴다 — `type`('good'|'bad'|'find')을
+   * 얹으면 색이 갈리고, `find`(걷다가 무언가 찾은 것)는 더 밝고 오래 뜬다.
+   * 옛 호출(`toast(문자열)`, `core.emit('toast', 문자열)`)은 그대로 `info`로 온다.
+   * 짧은 사이에 여럿이 몰리면(걷기 흥 토스트가 실제로 그렇다) 그냥 덮어쓰던 것을
+   * 큐에 쌓아 하나씩 보여준다 — 안 그러면 스치는 알림이 서로를 지운다.
+   */
   var toastTimer = null;
-  function toast(msg) {
-    els.toast.textContent = msg;
-    els.toast.classList.add('show');
+  var toastQueue = [];
+  var toastBusy = false;
+
+  function pumpToast() {
+    if (toastBusy || !toastQueue.length) { return; }
+    var t = toastQueue.shift();
+    toastBusy = true;
+    els.toast.textContent = t.msg;
+    els.toast.className = 'show' + (t.type !== 'info' ? ' t-' + t.type : '');
     if (toastTimer) { clearTimeout(toastTimer); }
-    toastTimer = setTimeout(function () { els.toast.classList.remove('show'); }, 2600);
+    var dur = t.type === 'find' ? 3400 : 2600;
+    toastTimer = setTimeout(function () {
+      els.toast.classList.remove('show');
+      toastBusy = false;
+      setTimeout(pumpToast, 140);
+    }, dur);
+  }
+
+  function toast(msg, type) {
+    if (msg && typeof msg === 'object') { type = msg.type; msg = msg.msg; }
+    if (!msg) { return; }
+    toastQueue.push({ msg: msg, type: type || 'info' });
+    while (toastQueue.length > 4) { toastQueue.shift(); }   // 너무 밀리면 오래된 것부터 버린다
+    pumpToast();
   }
 
   /**
