@@ -212,7 +212,10 @@
            더 — NPC·기존 소품과 100 이상 떨어진 자리로 골랐다. */
         { t: 'house', x: 420, y: 250, h: 120, seed: 51 }
       ],
-      exits: [ { dir: 'W', to: 'moru', len: CORRIDOR_LEN } ]
+      /* 2026-09-06 — PLAN §28-3 Phase 1. 위성↔위성 지름길(모루골을 안 거치고
+         옆 사분면으로 바로 감) 첫 쌍 — 갈대나루↔자작재만, 대칭 왕복. */
+      exits: [ { dir: 'W', to: 'moru', len: CORRIDOR_LEN },
+               { dir: 'N', to: 'jajak', len: CORRIDOR_LEN } ]
     },
     jajak: {
       id: 'jajak', name: '자작재', dirFromHub: 'N',
@@ -228,7 +231,8 @@
         { t: 'well', x: 280, y: 330, h: 34 },
         { t: 'house', x: 450, y: 300, h: 120, seed: 52 }
       ],
-      exits: [ { dir: 'S', to: 'moru', len: CORRIDOR_LEN } ]
+      exits: [ { dir: 'S', to: 'moru', len: CORRIDOR_LEN },
+               { dir: 'E', to: 'galdae', len: CORRIDOR_LEN } ]
     },
     sogeum: {
       id: 'sogeum', name: '소금벌', dirFromHub: 'S',

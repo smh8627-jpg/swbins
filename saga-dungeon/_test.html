@@ -2408,12 +2408,30 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('모루골 → 갈대나루 · 사람 ' + raw.room.npcs.length + '명');
     });
 
-    t('위성 마을에서는 모루골로 돌아가는 들길 하나만 있다', function () {
+    t('소금벌은 아직 모루골로 돌아가는 들길 하나뿐이다(위성↔위성 미연결)', function () {
+      /* 2026-09-06 PLAN §28-3 Phase 1 — 갈대나루↔자작재만 지름길을 텄다.
+         소금벌은 그대로다. 예전엔 "위성 마을은 다 이 조건"으로 적었는데,
+         이제 그 문장이 갈대나루·자작재엔 더 안 맞아 소금벌로 좁혔다
+         (아래 새 항목이 갈대나루·자작재 쪽을 대신 본다). */
       var T = DG.town, exits;
-      T._reset('galdae');
+      T._reset('sogeum');
       exits = T.raw().room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; });
       return exits.length === 1 && exits[0].key === 'exit_moru' &&
-        ('갈대나루의 들길 ' + exits.length + '개 · ' + exits[0].name);
+        ('소금벌의 들길 ' + exits.length + '개 · ' + exits[0].name);
+    });
+
+    t('갈대나루·자작재는 이제 들길이 둘(모루골 + 서로) — PLAN §28-3', function () {
+      var T = DG.town, gExits, jExits;
+      T._reset('galdae');
+      gExits = T.raw().room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; })
+        .map(function (o) { return o.key; });
+      T._reset('jajak');
+      jExits = T.raw().room.marks.filter(function (o) { return o.key.indexOf('exit_') === 0; })
+        .map(function (o) { return o.key; });
+      var gOk = gExits.length === 2 && gExits.indexOf('exit_moru') >= 0 && gExits.indexOf('exit_jajak') >= 0;
+      var jOk = jExits.length === 2 && jExits.indexOf('exit_moru') >= 0 && jExits.indexOf('exit_galdae') >= 0;
+      return gOk && jOk &&
+        ('갈대나루 들길 ' + gExits.join('/') + ' · 자작재 들길 ' + jExits.join('/'));
     });
 
     t('건너간 마을이 세이브에 남아 불러오면 그대로다', function () {
@@ -3782,6 +3800,45 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return normalOk && stairOk &&
         ('보통 문 예측 ' + predNormal.floor + ':' + predNormal.roomIdx + '=실제 · 계단 예측 ' +
          predStair.floor + ':' + predStair.roomIdx + '=실제(' + afterStair.floor + ':' + afterStair.roomIdx + ')');
+    });
+
+    /* ── 위성↔위성 통로 — 갈대나루↔자작재 (PLAN §28-3 Phase 1, 2026-09-06) ──
+     * 모루골을 안 거치고 옆 사분면(갈대나루 東 ↔ 자작재 北)으로 바로 가는
+     * 첫 지름길. 설계안이 예상한 대로 `exits` 데이터만 추가해서 끝났는지
+     * (corridorsFor·corridorNameAt·prefetch를 코드 한 줄도 안 고쳤는지)를
+     * 이 두 항목으로 본다. */
+    t('위성↔위성 통로(PLAN §28-3) — 갈대나루↔자작재 왕복 대칭, 방향 겹침 없음', function () {
+      var T = DG.town;
+      var gExits = T.exitsOf('galdae'), jExits = T.exitsOf('jajak');
+      var gToJ = gExits.filter(function (e) { return e.to === 'jajak'; })[0];
+      var jToG = jExits.filter(function (e) { return e.to === 'galdae'; })[0];
+      var gDirs = gExits.map(function (e) { return e.dir; });
+      var jDirs = jExits.map(function (e) { return e.dir; });
+      var gUniq = gDirs.filter(function (d, i) { return gDirs.indexOf(d) === i; });
+      var jUniq = jDirs.filter(function (d, i) { return jDirs.indexOf(d) === i; });
+      var dirOk = !!gToJ && !!jToG && gToJ.dir === 'N' && jToG.dir === 'E';
+      var lenOk = !!gToJ && !!jToG && gToJ.len === jToG.len;
+      var noCollide = gDirs.length === gUniq.length && jDirs.length === jUniq.length;
+      return dirOk && lenOk && noCollide &&
+        ('갈대나루→자작재(' + gToJ.dir + ') · 자작재→갈대나루(' + jToG.dir + ') · 길이 ' +
+         gToJ.len + '칸 대칭 · 갈대나루 방향 ' + gDirs.join('/') + ' · 자작재 방향 ' + jDirs.join('/'));
+    });
+
+    t('위성↔위성 통로도 새 테마 항목 없이 기존 표를 그대로 쓴다 — 통로:jajak / 통로:galdae', function () {
+      /* corridorsFor()가 실제로 내는 모양({dir,extra,lane,to}, laneAt 없음 —
+       * 마을 통로는 늘 방 중심이 결 중심이다)을 그대로 흉내낸다. */
+      var F = DG.field3d, T = DG.town, W = T.ROOM_W, H = T.ROOM_H, CHUNK = F.CHUNK;
+      var spanX = Math.floor(W / CHUNK), spanZ = Math.floor(H / CHUNK);
+      var cxCenter = Math.floor((W / 2) / CHUNK), czCenter = Math.floor((H / 2) / CHUNK);
+      var toJajak = [{ dir: 'N', lane: 34, to: 'jajak' }];
+      var toGaldae = [{ dir: 'E', lane: 34, to: 'galdae' }];
+      var nTheme = F.corridorNameAt(cxCenter, -1, W, H, toJajak);          // 갈대나루 北 통로 결 안
+      var eTheme = F.corridorNameAt(spanX + 1, czCenter, W, H, toGaldae);  // 자작재 東 통로 결 안
+      var nOutside = F.corridorNameAt(cxCenter + 4, -1, W, H, toJajak);    // 결 밖(가로로 멀리)
+      var nInside = F.corridorNameAt(cxCenter, 0, W, H, toJajak);          // 통로 밖(방 안 칸)
+      return nTheme === '통로:jajak' && eTheme === '통로:galdae' &&
+        nOutside === null && nInside === null &&
+        ('갈대나루 北=' + nTheme + ' · 자작재 東=' + eTheme + ' · 결 밖·방 안=null');
     });
 
     t('진단의 무작위는 씨앗으로 고정된다', function () {
