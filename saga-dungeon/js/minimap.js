@@ -196,6 +196,18 @@
     ctx.fillStyle = 'rgba(10,8,5,.72)';
     ctx.fillRect(0, 0, s, h);
 
+    /* 코너 미니맵 지형(PLAN §28-8 후속, 2026-09-06) — 마을일 때만, 밝힌
+       칸 위에 실제 지형색을 덧칠한다(안 밝힌 칸은 위 민무늬 배경이 그대로
+       "안개" 노릇을 한다). 던전은 세계 좌표·포그오브워 개념이 없어(방
+       하나뿐) 그대로 옛 민무늬 배경이다 — 회귀 없음. */
+    if (M === global.DG.town) {
+      var tiles = smallWorldTiles(M, s, h), ti;
+      for (ti = 0; ti < tiles.length; ti++) {
+        ctx.fillStyle = tiles[ti].color;
+        ctx.fillRect(tiles[ti].x, tiles[ti].y, tiles[ti].w, tiles[ti].h);
+      }
+    }
+
     var bs = blips(run), i, st;
     drawn = bs.length;
     for (i = 0; i < bs.length; i++) {
@@ -281,6 +293,40 @@
     camp: '#7a5030', swamp: '#4a5a3a'
   };
   var WORLD_VIEW_HALF = 3200;   // 화면 중심(플레이어) 기준 세계 좌표로 이만큼(±) 보여준다
+
+  /** 코너(상시) 미니맵 지형 — 순수 계산(캔버스 없이, 자가진단이 값으로
+   *  본다). norm()과 **똑같은 좌표틀**(ax,ay·iw,ih·클램프 여유 0.06)을
+   *  거꾸로 써서, 그 방(과 클램프 여유만큼의 방 밖)에 걸치는 지형 칸을
+   *  화면 좌표 사각형으로 낸다. blips()가 이미 이 틀로 점을 찍고 있어서
+   *  (norm() 참고) 지형과 점이 서로 안 어긋난다. 안 밝힌 칸(`T.isSeen`
+   *  거짓)은 아예 안 낸다 — draw()의 민무늬 배경이 그대로 안개 노릇을
+   *  한다(M키 큰 지도의 포그오브워와 같은 규칙, PLAN §28-8 Phase 2). */
+  function smallWorldTiles(T, s, h) {
+    var F = global.DG.field3d;
+    if (!F || !T.worldKindAt || !T.isSeen || !T.currentAnchor) { return []; }
+    var W = T.ROOM_W, H = T.ROOM_H, WALL = T.WALL;
+    var a = T.currentAnchor(), ax = a.x, ay = a.y;
+    var iw = Math.max(1, W - WALL * 2), ih = Math.max(1, H - WALL * 2);
+    var MARGIN = 0.06;
+    var scaleX = s / iw, scaleY = h / ih;
+    var offX = -(ax + WALL) * scaleX, offY = -(ay + WALL) * scaleY;
+    var CHUNK = F.CHUNK;
+    var x0 = ax + WALL - iw * MARGIN, x1 = ax + WALL + iw * (1 + MARGIN);
+    var y0 = ay + WALL - ih * MARGIN, y1 = ay + WALL + ih * (1 + MARGIN);
+    var cx0 = Math.floor(x0 / CHUNK) - 1, cx1 = Math.floor(x1 / CHUNK) + 1;
+    var cz0 = Math.floor(y0 / CHUNK) - 1, cz1 = Math.floor(y1 / CHUNK) + 1;
+    var tw = CHUNK * scaleX + 1, th = CHUNK * scaleY + 1;   // +1 — 이음매(반올림 틈) 안 뜨게
+    var out = [], cx, cz;
+    for (cz = cz0; cz <= cz1; cz++) {
+      for (cx = cx0; cx <= cx1; cx++) {
+        if (!T.isSeen(cx, cz)) { continue; }
+        var kind = T.worldKindAt(cx, cz);
+        var col = kind === 'town' ? '#5a4a30' : (KIND_COLOR[kind] || '#3a3a3a');
+        out.push({ x: cx * CHUNK * scaleX + offX, y: cz * CHUNK * scaleY + offY, w: tw, h: th, color: col });
+      }
+    }
+    return out;
+  }
 
   /** 마을(town.js) 전용 — 진짜 지형 기반 자동지도(PLAN §28-8 Phase 2).
    *  "점만 보인다"던 지적을 구조적으로 푼다: 방 하나가 아니라 **밝힌
@@ -490,6 +536,7 @@
     openBig: openBig, closeBig: closeBig, toggleBig: toggleBig,
     /** 자가진단용 — 순수 계산만(캔버스 없이) */
     _bigLayout: bigLayout,
+    _smallWorldTiles: smallWorldTiles,
     get bigOn() { return bigOn; }
   };
 })(window);

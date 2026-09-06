@@ -3651,6 +3651,41 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('지도 비율 ' + mapRatio.toFixed(2) + ' = 방 비율 ' + roomRatio.toFixed(2));
     });
 
+    t('코너 미니맵 지형(PLAN §28-8 후속, 2026-09-06) — 마을 발판 칸은 town 색, 밝힌 칸만 낸다', function () {
+      var T = DG.town;
+      T._reset('moru');
+      T.update(0);                      // 스폰 자리를 밝힌다(markSeen)
+      var s = 128, h = Math.round(s * 0.64);
+      var tiles = MM._smallWorldTiles(T, s, h);
+      var hasTown = tiles.some(function (tl) { return tl.color === '#5a4a30'; });
+      var inBounds = tiles.every(function (tl) {
+        return tl.x > -tl.w * 2 && tl.x < s + tl.w * 2 && tl.y > -tl.h * 2 && tl.y < h + tl.h * 2;
+      });
+      T._reset('moru');
+      return tiles.length > 0 && hasTown && inBounds &&
+        ('타일 ' + tiles.length + '개 · town 색(#5a4a30) 포함 · 전부 화면 범위 안');
+    });
+
+    t('코너 미니맵 지형 — 안 밝힌 칸은 색을 안 낸다(포그오브워, 큰 지도와 같은 규칙)', function () {
+      var T = DG.town, F = DG.field3d;
+      T._reset('moru');
+      T.update(0);
+      var s = 128, h = Math.round(s * 0.64);
+      var before = MM._smallWorldTiles(T, s, h);
+      /* 마을 발판 한복판 칸의 "밝힘" 기록만 지워서 안개로 되돌린다 */
+      var anc = T.anchorOf('moru');
+      var ccx = Math.floor((anc.x + T.ROOM_W / 2) / F.CHUNK);
+      var ccz = Math.floor((anc.y + T.ROOM_H / 2) / F.CHUNK);
+      var key = ccx + ',' + ccz;
+      var had = DG.core.save.town.seen[key];
+      delete DG.core.save.town.seen[key];
+      var after = MM._smallWorldTiles(T, s, h);
+      if (had) { DG.core.save.town.seen[key] = had; }   // 다른 항목에 안 번지게 복구
+      T._reset('moru');
+      return after.length < before.length &&
+        ('밝힘 기록을 지운 칸 하나만큼 줄어듦 — ' + before.length + ' → ' + after.length);
+    });
+
     t('전체 지도 — 던전이 켜져 있어야 열리고, 닫으면 꺼진다', function () {
       if (DN.active()) { DN.leave(); }
       if (DG.town && DG.town.active()) { DG.town.leave(); }
