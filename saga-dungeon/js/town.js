@@ -605,6 +605,26 @@
     }
     return null;
   }
+  /** 이웃 마을 자산 프리페치 몫(PLAN §28-8 후속, 2026-09-06) — §28-8 Phase 1이
+   *  마을 사이 exit_* 표식을 없애면서(걸어서 자연히 건너간다) 옛
+   *  "표식에 다가서면 당긴다" 프리페치 트리거가 마을 간 이동에는 더는
+   *  안 걸리게 됐다(§28-2 Phase 4가 만든 것, dungeon3d.js의
+   *  prefetchTownDest 참고). 마을이 104개인 지금 "앱 시작 때 다 당긴다"도
+   *  답이 아니라, 대신 **아직 활성은 아니지만 곧 활성이 될 만큼 가까운**
+   *  이웃을 매 틱 저렴하게(footprintDist, TOWN_ORDER 전부라 해 봤자 O(수백))
+   *  걸러 낸다 — dungeon3d.js가 이 목록으로 그 마을의 decor 자산만 미리
+   *  굽는다(prefetchTownDest 자체는 마을당 한 번만 실제로 일하는 기억이
+   *  있어 매 틱 불러도 두 번째부터는 헛수고 없다). */
+  var PREFETCH_TOWN_MARGIN = 900;   // R(최대 1200)에 더해 총 반경 최대 2100 안팎 — 다음 마을에 들어서기 한참 전
+  function nearbyTownIds(x, y) {
+    var R = D().fieldRadiusUnits(), lim = R + PREFETCH_TOWN_MARGIN, out = [], i, id;
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      id = TOWN_ORDER[i];
+      if (id === CURRENT_TOWN) { continue; }        // 이미 활성 — 프리페치할 것 없음
+      if (footprintDist(id, x, y) <= lim) { out.push(id); }
+    }
+    return out;
+  }
   /** 들판(활성 마을이 없을 때)에서 지형·테마를 고를 기준 — 가장 가까운 마을 */
   function nearestTownId(x, y) {
     var best = TOWN_ORDER[0], bd = Infinity, i, d;
@@ -1055,6 +1075,7 @@
       return out;
     },
     pickActiveTown: pickActiveTown, nearestTownId: nearestTownId, footprintDist: footprintDist,
+    nearbyTownIds: nearbyTownIds,
     /** PLAN §28-8 Phase 2(자동지도) — minimap.js가 읽는다. worldKindAt·
      *  isSeen 은 순수(three 필요 없음), currentAnchor 는 raw()와 같은 값을
      *  raw() 없이(town 이 꺼져 있어도) 셀 수 있게 한다. */

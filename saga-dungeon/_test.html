@@ -2358,6 +2358,30 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          ' > 발판+반경*2(' + Math.round(halfSpan * 2) + ')');
     });
 
+    t('이웃 마을 자산 프리페치(PLAN §28-8 후속) — 스폰 자리에서는 진짜 이웃까지 너무 멀어 아무도 안 걸린다', function () {
+      var T = DG.town;
+      T._reset('moru');
+      var ids = T.nearbyTownIds(195, 240);   // moru 스폰 자리(세계 좌표 그대로, anchor가 0,0)
+      T._reset('moru');
+      return ids.length === 0 &&
+        ('스폰 자리 — 프리페치 목록 0개(가장 가까운 이웃도 앵커 간격 4800만큼 멀다)');
+    });
+
+    t('이웃 마을 자산 프리페치 — 다음 마을 발판에 가까워지면(아직 활성은 아닌 채) 그 마을이 걸린다', function () {
+      var T = DG.town, DN2 = DG.dungeon;
+      T._reset('moru');
+      var R = DN2.fieldRadiusUnits(), dist = R + 400;   // 활성 반경(R)보다는 멀고, 프리페치 여유(R+900)보다는 가깝게
+      var ga = T.anchorOf('galdae');
+      var px = ga.x + T.WALL + T.P_R - dist, py = ga.y + T.ROOM_H / 2;
+      T._put(px, py);
+      T.update(0);                     // 아직 활성일 만큼 가깝지는 않다 — CURRENT_TOWN은 galdae가 안 된다
+      var ids = T.nearbyTownIds(px, py);
+      var active = T.pickActiveTown ? T.pickActiveTown(px, py) : null;
+      T._reset('moru');
+      return ids.indexOf('galdae') >= 0 && active !== 'galdae' &&
+        ('galdae 발판 앞 ' + dist + ' 지점 — 아직 비활성(' + active + ')인데도 프리페치 목록에 galdae 포함');
+    });
+
     t('한 자리에서 둘이 동시에 걸리지 않는다', function () {
       var T = DG.town, raw = T.raw();
       var all = raw.room.npcs.concat(raw.room.marks), i, j, close = [], min = 1e9;

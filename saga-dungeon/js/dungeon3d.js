@@ -1335,11 +1335,11 @@
    *  있다. 그래서 여기 아래 `run.corridors` 분기는 이제 **아무 마을
    *  exit_* 에도 안 걸린다**(그런 마크 자체가 없다) — 실제로 남는 건
    *  `exit_dungeon`(굴혈) 하나뿐이고, 그건 늘 표식 자체 거리 fallback으로
-   *  간다. 다시 말해 §28-2 Phase 4가 원래 풀려던 "이웃 마을 자산을 미리
-   *  당긴다"는 지금 아무도 안 부른다 — 마을 4개 정도면 앱 시작 때 넷 다
-   *  미리 당겨 두는 쪽이 더 간단하고 확실하다(20~100개로 늘면 다시 볼
-   *  것 — PLAN §28-8 Phase 3 몫). 코드는 안 지웠다(굴혈 fallback 경로는
-   *  여전히 쓰이고, corridors 분기도 언젠가 되살릴 수 있어 남겨 둔다). */
+   *  간다. **"이웃 마을 자산을 미리 당긴다"는 몫은 아래 새 함수
+   *  `maybePrefetchNearbyTowns()`가 이어받았다** — 표식이 아니라 마을
+   *  발판 자체와의 거리(`town.js`의 `nearbyTownIds`)로 건다. 이 함수와
+   *  `run.corridors` 분기는 안 지웠다(굴혈 fallback 경로는 여전히 쓰이고,
+   *  corridors 분기도 언젠가 되살릴 수 있어 남겨 둔다). */
   function maybePrefetchCorridor(run, mo, p) {
     var toId = mo.key.slice(5), TW = global.DG.town;
     var list = run && run.corridors, cor = null, i;
@@ -1352,6 +1352,20 @@
       return;
     }
     if (Math.hypot(mo.x - p.x, mo.y - p.y) < PREFETCH_EXIT_R) { prefetchTownDest(toId); }
+  }
+
+  /** 이웃 마을 자산 프리페치(PLAN §28-8 후속, 2026-09-06) — 위 주석이
+   *  적어 둔 "지금 아무도 안 부른다"를 실제로 고친다. 마을 발판 자체와의
+   *  거리(`town.js`의 `nearbyTownIds` — 활성 반경보다 넉넉히(900) 여유를
+   *  둬 도착보다 한참 전에 걸린다)로 아직 활성은 아니지만 곧 활성이 될
+   *  이웃을 매 프레임 값싸게(마을 104개라 해 봤자 O(수백)) 걸러, 그
+   *  마을들의 decor 자산만 `prefetchTownDest()`(마을당 한 번만 실제로
+   *  일한다)로 미리 굽는다. 마을일 때만 뜻이 있다(`run.town`). */
+  function maybePrefetchNearbyTowns(run, p) {
+    var TW = global.DG.town, i;
+    if (!run.town || !TW || !TW.nearbyTownIds) { return; }
+    var ids = TW.nearbyTownIds(p.x, p.y);
+    for (i = 0; i < ids.length; i++) { prefetchTownDest(ids[i]); }
   }
 
   /** 던전 로딩 이음매(PLAN §28-4 Phase 4) — "먼저 재본다"고 적어 둔 대로
@@ -2052,6 +2066,7 @@
       }
     }
     maybePrefetchDoorTex(run, p);   // PLAN §28-4 Phase 4 — 마을엔 run.corridors에 laneAt이 없어 그대로 넘어간다
+    maybePrefetchNearbyTowns(run, p);   // PLAN §28-8 후속 — 표식이 아니라 마을 발판과의 거리로, 던전은 !run.town이라 안 걸림
 
     /* 바닥의 전리품 — 등급색으로 빛나는 낮은 조각 */
     var ds = (run.room && run.room.drops) || [];
@@ -2217,6 +2232,9 @@
     _pickTex: pickTex, _FLOOR_TEX: FLOOR_TEX, _WALL_TEX: WALL_TEX,
     /** 실측용(init() 뒤에만 의미 있다) — 실제 텍스처 요청 횟수·캐시 존재 여부 */
     _texLoadCount: function () { return texLoadCount; },
+    /** PLAN §28-8 후속 — render()가 실제로 프리페치를 걸었는지(단순 순수
+     *  함수 계산이 아니라 render() 안에서 진짜 불렀는지) 자가진단이 본다 */
+    _prefetchedTownIds: function () { return Object.keys(prefetchedTowns); },
     _texCached: function (url) { return !!rawTexCache[url]; }
   };
 })(window);
