@@ -38,6 +38,15 @@
   var frame = 0;
   var camPos = null, camLook = null;
   var roomKey = null;              // 지금 세워 둔 방 (바뀌면 벽을 다시 세운다)
+  /** 가림 페이드(§56, 2026-09-06 실기기 제보 "큰 물체 때문에 안 보여") —
+   *  카메라~플레이어 사이에 낀 것을 옅게 만든다. `raycaster`는 지연 생성.
+   *  `occFade`는 일반 Mesh(건물·벽·`piece()` 소품)를 uuid로, `occInst`는
+   *  나무·바위 같은 자연물(field-instance.js가 InstancedMesh로 묶는다 —
+   *  인스턴스 하나만 투명하게는 못 만들어 그 인스턴스만 숨긴다)를
+   *  "meshUuid:instanceId"로 추적한다. 둘 다 매 프레임 갱신 뒤 이번에
+   *  안 걸린 것만 원래대로 되돌린다. */
+  var raycaster = null;
+  var occFade = {}, occInst = {};
 
   /**
    * 지금 그리는 장면 — 마을이거나 던전이다.
@@ -1916,6 +1925,74 @@
     }
   }
 
+  /** 가림 페이드(§56, 실기기 제보 "큰 물체 때문에 캐릭터가 안 보여") —
+   *  카메라에서 플레이어(대략 가슴 높이)로 광선을 쏴, 그 사이(끝은 살짝
+   *  물려 플레이어 자신·발밑 땅은 빼고)에 낀 `wallGroup`·`fieldGroup`
+   *  물체만 옅게 만든다. 일반 Mesh(건물·담장·`piece()` 소품)는 재질을
+   *  복제해 투명(`opacity` 0.2)으로 — 다른 물체와 재질을 캐시로 나눠
+   *  쓰므로(`mat()`) 복제 없이 opacity 를 바로 건드리면 같은 색 전부가
+   *  같이 흐려진다. 나무·바위 같은 자연물은 `field-instance.js`가
+   *  `InstancedMesh` 하나로 묶어(성능) 인스턴스 하나만 투명하게 못
+   *  만드므로, 그 인스턴스만 행렬을 아주 작게 눌러 숨긴다(진짜 페이드는
+   *  아니지만 "캐릭터가 안 보인다"는 문제는 그대로 없앤다) — 안 걸리게
+   *  되면 원래 행렬로 되돌린다. 매 프레임 새로 걸린 것만 걸고, 이번에
+   *  안 걸린 것은 전부 원상복구한다. */
+  function updateOcclusion(fromPos, toX, toY, toZ) {
+    if (!T || !wallGroup || !fieldGroup) { return; }
+    var dx = toX - fromPos.x, dy = toY - fromPos.y, dz = toZ - fromPos.z;
+    var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    var k, key;
+    if (dist < 30) {
+      /* 너무 가까우면(방금 층 진입 등) 광선을 안 쏜다 — 남은 가림만 되돌린다 */
+      for (k in occFade) { occFade[k].mesh.material = occFade[k].orig; delete occFade[k]; }
+      for (key in occInst) { occInst[key].mesh.setMatrixAt(occInst[key].id, occInst[key].orig); occInst[key].mesh.instanceMatrix.needsUpdate = true; delete occInst[key]; }
+      return;
+    }
+    if (!raycaster) { raycaster = new T.Raycaster(); }
+    raycaster.set(fromPos, new T.Vector3(dx / dist, dy / dist, dz / dist));
+    raycaster.near = Math.max(0, dist * 0.06);   // 카메라 렌즈 바로 앞은 뺀다
+    raycaster.far = Math.max(0, dist - 26);       // 플레이어 자신·발밑은 뺀다
+    var hits = raycaster.far > raycaster.near ? raycaster.intersectObjects([wallGroup, fieldGroup], true) : [];
+    var hitMesh = {}, hitInst = {}, i, h;
+    for (i = 0; i < hits.length; i++) {
+      h = hits[i];
+      if (h.object.isInstancedMesh) {
+        key = h.object.uuid + ':' + h.instanceId;
+        hitInst[key] = true;
+        if (!occInst[key]) {
+          var m4 = new T.Matrix4();
+          h.object.getMatrixAt(h.instanceId, m4);
+          var hidden = m4.clone().scale(new T.Vector3(0.001, 0.001, 0.001));
+          h.object.setMatrixAt(h.instanceId, hidden);
+          h.object.instanceMatrix.needsUpdate = true;
+          occInst[key] = { mesh: h.object, id: h.instanceId, orig: m4 };
+        }
+      } else if (h.object.isMesh && h.object.material) {
+        var mesh = h.object;
+        hitMesh[mesh.uuid] = true;
+        if (!occFade[mesh.uuid]) {
+          if (!mesh.userData.__fadeMat) {
+            var fm = mesh.material.clone();
+            fm.transparent = true; fm.depthWrite = false; fm.opacity = 0.2;
+            mesh.userData.__fadeMat = fm;
+          }
+          occFade[mesh.uuid] = { mesh: mesh, orig: mesh.material };
+          mesh.material = mesh.userData.__fadeMat;
+        }
+      }
+    }
+    for (k in occFade) {
+      if (!hitMesh[k]) { occFade[k].mesh.material = occFade[k].orig; delete occFade[k]; }
+    }
+    for (key in occInst) {
+      if (!hitInst[key]) {
+        occInst[key].mesh.setMatrixAt(occInst[key].id, occInst[key].orig);
+        occInst[key].mesh.instanceMatrix.needsUpdate = true;
+        delete occInst[key];
+      }
+    }
+  }
+
   /* ── 한 프레임 ───────────────────────────────────────── */
 
   function render() {
@@ -2230,6 +2307,7 @@
     camLook.lerp(look, 0.14);
     camera.position.copy(camPos);
     camera.lookAt(camLook);
+    updateOcclusion(camera.position, plx, meGroundY + 44, ply);
     if (FX) {
       /* 화면 흔들림 — 상한은 fx3d 가 진다 (51절) */
       var sk = FX.shakeAmt();
@@ -2317,6 +2395,8 @@
     /** 외모 커스텀 화면 전용 — 'me' 배우는 매 프레임 "이번에도 보였나"만
      *  체크하고(sweep()) 다시 안 지어지므로(장비 갈아입어도 같다, 알려진
      *  한계), 스타일/색을 고른 직후에만 이걸로 명시적으로 다시 짓는다. */
-    refreshMe: function () { delete actors['me']; }
+    refreshMe: function () { delete actors['me']; },
+    /** §56 가림 페이드 — 실측용(init() 뒤에만 의미 있다) */
+    _occCounts: function () { return { fade: Object.keys(occFade).length, inst: Object.keys(occInst).length }; }
   };
 })(window);
