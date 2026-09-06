@@ -33,7 +33,22 @@
     { key: 'm7', name: '정예 다섯', desc: '정예 몬스터 5마리를 처치하라',
       req: { t: 'kill', tag: 'elite', n: 5 }, reward: { gold: 1500, exp: 180, feat: 20 } },
     { key: 'm8', name: '스무 층 답파', desc: '제20층까지 내려가라',
-      req: { t: 'floor', n: 20 }, reward: { gold: 3000, exp: 400, feat: 40 } }
+      req: { t: 'floor', n: 20 }, reward: { gold: 3000, exp: 400, feat: 40 } },
+    /* 2026-09-06 — 사용자 요청("콘텐츠가 많아야 함")으로 메인 줄기를 지옥문·
+       천계(THEMES 다섯째·여섯째)까지 늘렸다. 요구 종류(kill·discover·floor)는
+       그대로, 수치만 키운다 — 새 req.t 는 안 만든다. */
+    { key: 'm9', name: '지옥문 답파', desc: '제25층까지 내려가라',
+      req: { t: 'floor', n: 25 }, reward: { gold: 4500, exp: 550, feat: 55 } },
+    { key: 'm10', name: '정예 여덟', desc: '정예 몬스터 8마리를 처치하라',
+      req: { t: 'kill', tag: 'elite', n: 8 }, reward: { gold: 5000, exp: 600, feat: 60 } },
+    { key: 'm11', name: '기관진식 답사', desc: '기관진식(퍼즐방)을 찾아라',
+      req: { t: 'discover', room: 'puzzle', n: 1 }, reward: { gold: 1200, exp: 120 } },
+    { key: 'm12', name: '천계 답파', desc: '제30층까지 내려가라',
+      req: { t: 'floor', n: 30 }, reward: { gold: 8000, exp: 1000, feat: 100 } },
+    { key: 'm13', name: '두목 사냥', desc: '보스급 몬스터 2마리를 처치하라',
+      req: { t: 'kill', tag: 'boss', n: 2 }, reward: { gold: 10000, exp: 1300, feat: 130 } },
+    { key: 'm14', name: '전인미답', desc: '제40층까지 내려가라',
+      req: { t: 'floor', n: 40 }, reward: { gold: 16000, exp: 2000, feat: 200 } }
   ];
 
   /** 지역 — 월드맵(PLAN 28절)의 여섯 지역과 같은 순서(THEMES 인덱스)로 하나씩.
@@ -63,7 +78,14 @@
     { key: 'e2', name: '거듭된 구출', desc: '이벤트방에서 사람을 3명 구하라',
       req: { t: 'rescue', n: 3 }, reward: { gold: 500, exp: 50 } },
     { key: 'e3', name: '은인(恩人)', desc: '이벤트방에서 사람을 6명 구하라',
-      req: { t: 'rescue', n: 6 }, reward: { gold: 1000, exp: 100, feat: 15 } }
+      req: { t: 'rescue', n: 6 }, reward: { gold: 1000, exp: 100, feat: 15 } },
+    /* 2026-09-06 — 이벤트 줄기도 늘렸다(사용자 "콘텐츠가 많아야 함"). */
+    { key: 'e4', name: '거듭된 은혜', desc: '이벤트방에서 사람을 10명 구하라',
+      req: { t: 'rescue', n: 10 }, reward: { gold: 2200, exp: 220, feat: 25 } },
+    { key: 'e5', name: '자비의 손길', desc: '이벤트방에서 사람을 15명 구하라',
+      req: { t: 'rescue', n: 15 }, reward: { gold: 3800, exp: 380, feat: 40 } },
+    { key: 'e6', name: '만인의 은인', desc: '이벤트방에서 사람을 25명 구하라',
+      req: { t: 'rescue', n: 25 }, reward: { gold: 6500, exp: 650, feat: 70 } }
   ];
 
   /**
@@ -84,7 +106,16 @@
     { name: '기관진식', descOf: function () { return '기관진식(퍼즐방)을 찾아라'; },
       req: { t: 'discover', room: 'puzzle', lo: 1, hi: 1 } },
     { name: '수호자의 흔적', descOf: function () { return '사당을 찾아라'; },
-      req: { t: 'discover', room: 'shrine', lo: 1, hi: 1 } }
+      req: { t: 'discover', room: 'shrine', lo: 1, hi: 1 } },
+    /* 2026-09-06 — 무작위 현상판도 늘렸다(사용자 "콘텐츠가 많아야 함"). ROOMS의
+       kind 중 아직 안 쓴 셋(well·miniboss·forage)만 새로 discover 로 얹었다 —
+       새 req.t 는 안 만든다(kill·discover 그대로). */
+    { name: '샘터를 찾아라', descOf: function () { return '샘터(우물방)를 찾아라'; },
+      req: { t: 'discover', room: 'well', lo: 1, hi: 1 } },
+    { name: '두목의 소굴', descOf: function () { return '숨은 두목의 소굴을 찾아라'; },
+      req: { t: 'discover', room: 'miniboss', lo: 1, hi: 1 } },
+    { name: '약초와 못', descOf: function () { return '채집처를 찾아라'; },
+      req: { t: 'discover', room: 'forage', lo: 1, hi: 1 } }
   ];
 
   global.DG = global.DG || {};

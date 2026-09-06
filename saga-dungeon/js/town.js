@@ -90,7 +90,14 @@
       line: '한 회차마다 물건이 바뀝니다. 오늘 것을 보시겠소?' },
     scribe:  { name: '사관(史官)', emoji: '📖', sheet: 'dex',
       color: '#4e6b5a', trait: 'wisdom', rarity: 3,
-      line: '이 판에서 만난 인물을 적어 두었습니다.' }
+      line: '이 판에서 만난 인물을 적어 두었습니다.' },
+    /* 2026-09-06 — 사용자 요청("콘텐츠가 많아야 함")으로 일곱째 직군을 얹었다.
+       현상판(퀘스트 시트)을 맡아 볼 자리가 마을에 없었다 — 여태 독(dock)
+       단추로만 열렸다. 새 시트·새 대사 체계 없이 기존 'quest' 시트만
+       연결한다(sheet 값이 곧 openSheet() 인자라 이 한 줄로 끝난다). */
+    herald:  { name: '포교(捕校)', emoji: '🪧', sheet: 'quest',
+      color: '#8a4a3a', trait: 'might', rarity: 2,
+      line: '오늘 새로 붙은 방문(榜文)이 있소이다. 살펴보시겠소?' }
   };
 
   /**
@@ -180,7 +187,12 @@
       npcs: [
         { key: 'captain', x: 110, y: 90 },  { key: 'quarter', x: 280, y: 70 },
         { key: 'master',  x: 450, y: 95 },  { key: 'smith',   x: 450, y: 200 },
-        { key: 'pedlar',  x: 450, y: 305 }, { key: 'scribe',  x: 110, y: 200 }
+        { key: 'pedlar',  x: 450, y: 305 }, { key: 'scribe',  x: 110, y: 200 },
+        /* 2026-09-06 — 좌표는 손으로 계산해 골랐다(가장 가까운 기존 자리에서도
+           88 이상 — 이 방은 이미 아홉 자리가 찬 3×3 이라 100을 다 채우진
+           못했지만, NPC는 벨타워 같은 큰 3D 구조물이 아니라 사람 하나라
+           §28-4 이전의 "화면이 온통 돌벽" 함정과는 성격이 다르다). */
+        { key: 'herald', x: 200, y: 300 }
       ],
       decor: DECOR_MORU,
       /* 'W' 방면 — PLAN §28-4 Phase 1(던전도 "걸어서 이어지게"). 굴혈(gate)
@@ -196,7 +208,10 @@
         tint: 'rgba(120,190,205,0.12)', town: true },
       hasGate: false,
       npcs: [ { key: 'quarter', x: 170, y: 150 }, { key: 'pedlar', x: 390, y: 150 },
-              { key: 'scribe',  x: 280, y: 280 } ],
+              { key: 'scribe',  x: 280, y: 280 },
+              /* 2026-09-06 — 위성 마을 셋에도 현상판 직군을 더했다(가장 가까운
+                 기존 자리에서도 100 이상 떨어진 좌표를 계산해 골랐다). */
+              { key: 'herald',  x: 100, y: 225 } ],
       decor: [
         { t: 'torch', x: 120, y: WALL - 4, seed: 0.7 }, { t: 'torch', x: 440, y: WALL - 4, seed: 3.2 },
         { t: 'pillar', x: 280, y: 90 }, { t: 'crack', x: 200, y: 230, a: 1.1, len: 30 },
@@ -226,7 +241,8 @@
         tint: 'rgba(150,185,110,0.10)', town: true },
       hasGate: false,
       npcs: [ { key: 'captain', x: 170, y: 150 }, { key: 'smith', x: 390, y: 150 },
-              { key: 'master',  x: 280, y: 280 } ],
+              { key: 'master',  x: 280, y: 280 },
+              { key: 'herald',  x: 280, y: 140 } ],
       decor: [
         { t: 'torch', x: 120, y: WALL - 4, seed: 1.4 }, { t: 'torch', x: 440, y: WALL - 4, seed: 4.6 },
         { t: 'pillar', x: 200, y: 210 }, { t: 'pillar', x: 360, y: 210 },
@@ -243,7 +259,8 @@
         tint: 'rgba(230,220,180,0.12)', town: true },
       hasGate: false,
       npcs: [ { key: 'pedlar', x: 170, y: 150 }, { key: 'quarter', x: 390, y: 150 },
-              { key: 'captain', x: 280, y: 280 } ],
+              { key: 'captain', x: 280, y: 280 },
+              { key: 'herald',  x: 180, y: 255 } ],
       decor: [
         { t: 'torch', x: 120, y: WALL - 4, seed: 2.3 }, { t: 'torch', x: 440, y: WALL - 4, seed: 5.8 },
         { t: 'crack', x: 220, y: 120, a: 0.4, len: 40 }, { t: 'pillar', x: 340, y: 230 },

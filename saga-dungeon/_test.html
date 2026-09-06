@@ -2232,18 +2232,19 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
      * 화면이 예외 하나 없이 조용히 빈 판을 그린다. 그래서 약속 자체를 검사한다.
      */
 
-    t('마을이 켜지고 사람 여섯 · 표식 여섯이 선다', function () {
+    t('마을이 켜지고 사람 일곱 · 표식 여섯이 선다', function () {
       /* 표식 여섯 = 역참·결사비(모루골 전용) 둘 + 들길(오버월드, PLAN 28-1절)
          넷(자작재·갈대나루·소금벌·굴혈 방면) — 2026-09-05(PLAN §28-4 Phase 1)
          부터 굴혈(gate)도 마을방 고정 표식이 아니라 'W' 들길이 됐다. 셋+셋이던
-         구성이 둘+넷으로 바뀌었을 뿐 합은 그대로 6이다. */
+         구성이 둘+넷으로 바뀌었을 뿐 합은 그대로 6이다.
+         사람 일곱 = 기존 여섯 + 2026-09-06 현상판 직군(herald) 하나. */
       if (DN.active()) { DN.leave(); }
       var T = DG.town;
       T._reset();
       T.enter();
       var raw = T.raw();
       if (!raw) { return false; }
-      return T.active() && raw.room.npcs.length === 6 && raw.room.marks.length === 6 &&
+      return T.active() && raw.room.npcs.length === 7 && raw.room.marks.length === 6 &&
         ('사람 ' + raw.room.npcs.length + ' · 표식 ' + raw.room.marks.length);
     });
 
@@ -2403,7 +2404,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       T._put(exitToGaldae.x, exitToGaldae.y);
       T.update(0.05);
       var raw = T.raw();
-      return T.overworld.current() === 'galdae' && raw.room.npcs.length === 3 &&
+      return T.overworld.current() === 'galdae' && raw.room.npcs.length === 4 &&
         raw.theme.name === '갈대나루' &&
         ('모루골 → 갈대나루 · 사람 ' + raw.room.npcs.length + '명');
     });
@@ -3495,14 +3496,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return okHelm && okRing && ('투구 ' + (eff1[0] && eff1[0].kind) + ' · 반지 ' + (eff2[0] && eff2[0].kind));
     });
 
-    t('퀘스트(PLAN 36절) — 표 — 메인 8 · 지역은 THEMES 수와 같다 · 이벤트 3', function () {
+    t('퀘스트(PLAN 36절) — 표 — 메인 14 · 지역은 THEMES 수와 같다 · 이벤트 6', function () {
+      /* 2026-09-06 — 사용자 "콘텐츠가 많아야 함" 요청으로 메인 8→14,
+         이벤트 3→6, 무작위 풀 7→10으로 늘렸다(data-quest.js 주석 참고). */
       var QD = DG.questData, DD = DG.dungeonData;
-      var mainOk = QD.MAIN.length === 8 && QD.MAIN.every(function (m) {
+      var mainOk = QD.MAIN.length === 14 && QD.MAIN.every(function (m) {
         return m.req && m.req.t && m.reward && (m.reward.gold || m.reward.exp);
       });
       var regionOk = QD.REGION.length === DD.THEMES.length;
-      var eventOk = QD.EVENT.length === 3;
-      var poolOk = QD.RANDOM_POOL.every(function (p) { return typeof p.descOf === 'function'; });
+      var eventOk = QD.EVENT.length === 6;
+      var poolOk = QD.RANDOM_POOL.length === 10 && QD.RANDOM_POOL.every(function (p) { return typeof p.descOf === 'function'; });
       return mainOk && regionOk && eventOk && poolOk &&
         ('메인 ' + QD.MAIN.length + ' · 지역 ' + QD.REGION.length + ' · 이벤트 ' + QD.EVENT.length);
     });
