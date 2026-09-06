@@ -454,6 +454,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 }
 #rogue-hud .ra-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
 #rogue-hud .ra-row small { width: 44px; flex: none; opacity: .8; }
+#rogue-hud .ra-row .bar { flex: 1; }
 #rogue-hud .ra-foe small { color: #e08a8a; }
 #rogue-hud .ra-tell {
   text-align: center; margin: 6px 0; padding: 4px 0; border-radius: 8px;

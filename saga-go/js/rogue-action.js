@@ -60,6 +60,14 @@
   function CHARGE_MAX() { return core.tuned('rogueAction.chargeSec', 5); }         // 이만큼 있으면 다 찬다
   function CHARGE_MUL() { return core.tuned('rogueAction.chargeAtkMul', 0.35); }   // 차지 피해 = 공격력 × 이 값
 
+  /* ── 원거리 견제기 (2026-09-06, "실시간 전투는 조금 멀리서 스킬도 쓰고
+   * 해야 멋지지") ────────────────────────────────────────────
+   * 속공·차지는 사거리 안이어야 닿는다 — 다가가기 전에는 그냥 서서 예고만
+   * 기다리는 시간이 있었다. 이건 **거리를 안 본다**(필살과 같은 결이지만
+   * 쿨다운으로 반복 쓴다) — 멀리서 견제하다 다가가는 그림을 만든다. */
+  function RANGED_CD() { return core.tuned('rogueAction.rangedCd', 3.5); }
+  function RANGED_MUL() { return core.tuned('rogueAction.rangedAtkMul', 0.16); }
+
   /** 적의 큰 공격 사다리 — 예고가 풀리는 순간의 반경·배수가 저마다 다르다.
    *  **순서가 뜻이다**: `foeN`이 `FOE_HEAVY`의 배수가 될 때마다 다음 것으로
    *  넘어간다(무작위가 아니다 — 자가진단이 값으로 재현할 수 있어야 한다). */
@@ -108,6 +116,8 @@
       comboT: 0,            // 마지막 명중 이후 지난 시간
       charge: 0,            // 0..CHARGE_MAX, 다 차면 차지 일격을 쓸 수 있다
       chargeUsed: 0,
+      rangedCd: 0,          // 0이면 원거리 견제기를 쓸 수 있다(사거리 안 봄)
+      rangedUsed: 0,
       dealt: 0,
       hits: 0,
       ults: 0,
@@ -154,6 +164,7 @@
     var d = (dist === undefined || dist === null) ? 1e9 : dist;
 
     if (s.cd > 0) { s.cd = Math.max(0, s.cd - dt); }
+    if (s.rangedCd > 0) { s.rangedCd = Math.max(0, s.rangedCd - dt); }
     s.left -= dt;
     s.comboT = (s.comboT || 0) + dt;
     s.charge = Math.min(CHARGE_MAX(), (s.charge || 0) + dt);   // 가만있어도 찬다(필살과 다르다)
@@ -261,6 +272,25 @@
     return { ok: true, kind: 'charge', dmg: dmg, staggerEv: ev };
   }
 
+  /** 원거리 견제기 — 쿨다운만 보고 **거리는 안 본다**(필살과 같은 결).
+   *  속공보다 한 방은 약하지만 사거리 밖에서도, 예고를 기다리며 미리 쓸 수 있다 */
+  function ranged(s) {
+    if (!s || s.over) { return { ok: false, reason: 'over' }; }
+    if (s.rangedCd > 0) { return { ok: false, kind: 'ranged', reason: 'cd' }; }
+    s.rangedCd = RANGED_CD();
+    s.rangedUsed = (s.rangedUsed || 0) + 1;
+    var dmg = Math.round(s.myAtk * RANGED_MUL() * (0.9 + Math.random() * 0.2) *
+      (s.staggered > 0 ? STAGGER_BONUS() : 1));
+    s.hp -= dmg;
+    s.dealt += dmg;
+    s.hits++;
+    note(s, 'ranged', dmg);
+    var ev = [];
+    addPoise(s, dmg, ev);
+    finishIfDone(s);
+    return { ok: true, kind: 'ranged', dmg: dmg, staggerEv: ev };
+  }
+
   /** 물러난다 — 성과는 그때까지 낸 만큼만 인정된다 */
   function flee(s) { s.over = true; s.fled = true; s.cleared = false; }
 
@@ -282,7 +312,8 @@
       acts: s.acts,
       staggerCount: s.staggerCount || 0,
       comboMax: s.comboMax || 0,
-      chargeUsed: s.chargeUsed || 0
+      chargeUsed: s.chargeUsed || 0,
+      rangedUsed: s.rangedUsed || 0
     };
   }
 
@@ -350,6 +381,7 @@
         '<div class="ra-pad">' +
           '<button class="btn primary" id="ra-ult" data-ra="ult" disabled>필살</button>' +
           '<button class="btn primary" id="ra-charge" data-ra="charge" disabled>차지 일격</button>' +
+          '<button class="btn primary" id="ra-ranged" data-ra="ranged">원거리</button>' +
           '<button class="btn ghost" id="ra-flee" data-ra="flee">물러나기</button>' +
         '</div>' +
       '</div>';
@@ -358,7 +390,7 @@
   function refresh() {
     if (!el || !cur) { return; }
     var hp = $('#ra-hp'), mor = $('#ra-mor'), ki = $('#ra-ki'), poise = $('#ra-poise'), chg = $('#ra-chg'),
-      tell = $('#ra-tell'), combo = $('#ra-combo'), ub = $('#ra-ult'), cb = $('#ra-charge');
+      tell = $('#ra-tell'), combo = $('#ra-combo'), ub = $('#ra-ult'), cb = $('#ra-charge'), rb = $('#ra-ranged');
     if (hp) { hp.style.width = Math.max(0, cur.hp / cur.foeHp * 100) + '%'; }
     if (mor) { mor.style.width = Math.max(0, cur.morale / cur.moraleMax * 100) + '%'; }
     if (ki) { ki.style.width = Math.min(100, cur.ki / D().KI_MAX * 100) + '%'; }
@@ -378,7 +410,7 @@
         tell.textContent = moveByKey(cur.tellMove).label;
         tell.classList.remove('stagger'); tell.classList.add('show');
       } else if (cur.lastDist > MY_REACH()) {
-        tell.textContent = '🚶 다가가세요 — 사거리 안이면 저절로 공격합니다';
+        tell.textContent = '🚶 다가가세요 — 사거리 안이면 저절로 공격합니다 (원거리는 지금도 씁니다)';
         tell.classList.remove('stagger'); tell.classList.add('show');
       } else {
         tell.classList.remove('show', 'stagger');
@@ -386,6 +418,11 @@
     }
     if (ub) { ub.disabled = cur.ki < D().KI_MAX; }
     if (cb) { cb.disabled = cur.charge < CHARGE_MAX(); }
+    if (rb) {
+      /* 사거리를 안 보는 스킬이라 다가가기 전에도 눌러도 된다 — 쿨다운만 막는다 */
+      rb.disabled = cur.rangedCd > 0;
+      rb.textContent = cur.rangedCd > 0 ? '원거리 (' + cur.rangedCd.toFixed(1) + ')' : '원거리';
+    }
   }
 
   function bind() {
@@ -408,6 +445,19 @@
         var r = chargeAttack(cur, cur.lastDist);
         if (r.ok) {
           core.emit('duel:fx', { kind: 'charge', dmg: r.dmg, mine: true, whiffed: !!r.whiffed });
+          if (r.staggerEv && r.staggerEv.length) { emitEvents(r.staggerEv); }
+          refresh();
+          if (cur.over) { finish(); }
+        }
+      });
+    }
+    var r2 = $('[data-ra="ranged"]');
+    if (r2) {
+      r2.addEventListener('click', function () {
+        if (!cur) { return; }
+        var r = ranged(cur);
+        if (r.ok) {
+          core.emit('duel:fx', { kind: 'ranged', dmg: r.dmg, mine: true });
           if (r.staggerEv && r.staggerEv.length) { emitEvents(r.staggerEv); }
           refresh();
           if (cur.over) { finish(); }
@@ -493,11 +543,11 @@
   global.DG = global.DG || {};
   global.DG.rogueAction = {
     MY_REACH: MY_REACH, FOE_REACH: FOE_REACH, HEAVY_RANGE: HEAVY_RANGE,
-    CHARGE_MAX: CHARGE_MAX, COMBO_N: COMBO_N,
+    CHARGE_MAX: CHARGE_MAX, COMBO_N: COMBO_N, RANGED_CD: RANGED_CD,
     foeMoves: foeMoves, moveByKey: moveByKey,
     /* 판정 층 — 화면 없이 굴린다 (자가진단이 쓰는 문) */
     create: create, tick: tick, ult: ult, flee: flee, perf: perf, fold: fold,
-    chargeAttack: chargeAttack,
+    chargeAttack: chargeAttack, ranged: ranged,
     /* 화면 층 */
     open: open,
     get active() { return !!cur; }

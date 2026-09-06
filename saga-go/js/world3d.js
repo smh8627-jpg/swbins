@@ -1903,6 +1903,77 @@
     a.shadow.scale.setScalar(h * 0.30);
   }
 
+  /** 목표점을 향해 매 프레임 조금씩 다가간다 — 배우 객체(`a`)에 `fx`/`fy` 로
+   *  마지막 자리를 적어 둬 다음 프레임도 이어 쓴다. 순간이동이 아니라
+   *  **뒤에서 따라오는** 느낌을 내는 전부다(레이스 게임의 카메라 lerp와 같다) */
+  function followPos(a, tx, ty, rate) {
+    if (a.fx === undefined) { a.fx = tx; a.fy = ty; }
+    a.fx += (tx - a.fx) * rate;
+    a.fy += (ty - a.fy) * rate;
+    return { x: a.fx, y: a.fy };
+  }
+
+  /**
+   * 동행(부대 2번째 인물)·펫(선두가 장착한 것) — **실제로 곁에서 따라다닌다**
+   * (2026-09-06, "펫도 따라다니고 등용한 인물도 따라 다니고" 요청). 전투력은
+   * 이미 `hero.partyPower()`(hero.js)가 부대 전체를 합산해 판정에 넣고 있으니
+   * 여기서 새로 더할 것이 없다 — 이 함수는 순전히 화면 층이다.
+   *
+   *   탐험 중  플레이어 뒤쪽으로 처져서 트레일링(동행·펫이 서로 다른 자리)
+   *   교전 중  플레이어 옆에 나란히 서서 같이 상대를 본다(`duelFoe` 기준
+   *            좌우로 갈라선다 — 축을 `meAng` 대신 "나→적" 벡터로 잡아야
+   *            내가 예고를 피하려고 옆으로 물러나도 대형이 안 흐트러진다)
+   */
+  function syncBuddies(pos, meAng, h, now) {
+    var party = core.save.party || [];
+    var allyId = party[1];
+    var petEquip = core.save.petEquip || {};
+    var petId = party[0] ? petEquip[party[0]] : null;
+    if (!allyId && !petId) { return; }
+
+    var backX = -Math.sin(meAng), backY = -Math.cos(meAng);
+    var sideX = Math.cos(meAng), sideY = -Math.sin(meAng);
+    if (duelFoe) {
+      var fdx = duelFoe.x - pos.x, fdy = duelFoe.y - pos.y;
+      var flen = Math.hypot(fdx, fdy) || 1;
+      sideX = -fdy / flen; sideY = fdx / flen;   // 나→적 축에 수직
+    }
+
+    if (allyId) {
+      var allyRef = global.DG.data.find(allyId);
+      if (allyRef) {
+        var aa = actorOf('ally', 'hero', allyRef, 96);
+        var atx = duelFoe ? pos.x + sideX * 1.5 : pos.x + backX * 2.2 + sideX * 0.9;
+        var aty = duelFoe ? pos.y + sideY * 1.5 : pos.y + backY * 2.2 + sideY * 0.9;
+        var af = followPos(aa, atx, aty, duelFoe ? 0.12 : 0.06);
+        var amoved = aa.lx === null || Math.hypot(af.x - aa.lx, af.y - aa.ly) > 0.01;
+        placeActor(aa, af.x, af.y, h * farBoost(af.x, af.y), 0, amoved, now / 480, now);
+        if (duelFoe && aa.mesh) {
+          var aax = duelFoe.x - af.x, aaz = duelFoe.y - af.y;
+          aa.node.rotation.y = Math.atan2(aax, aaz);
+          aa.ang = aa.node.rotation.y;
+        }
+      }
+    }
+
+    if (petId) {
+      var petRef = global.DG.data.find(petId);
+      if (petRef) {
+        var pa = actorOf('petbuddy', 'pet', petRef, 96);
+        var ptx = duelFoe ? pos.x - sideX * 1.5 : pos.x + backX * 1.4 - sideX * 0.8;
+        var pty = duelFoe ? pos.y - sideY * 1.5 : pos.y + backY * 1.4 - sideY * 0.8;
+        var pf = followPos(pa, ptx, pty, duelFoe ? 0.12 : 0.08);
+        var pmoved = pa.lx === null || Math.hypot(pf.x - pa.lx, pf.y - pa.ly) > 0.01;
+        placeActor(pa, pf.x, pf.y, h * 0.6 * farBoost(pf.x, pf.y), 0, pmoved, now / 380, now);
+        if (duelFoe && pa.mesh) {
+          var ppx = duelFoe.x - pf.x, ppz = duelFoe.y - pf.y;
+          pa.node.rotation.y = Math.atan2(ppx, ppz);
+          pa.ang = pa.node.rotation.y;
+        }
+      }
+    }
+  }
+
   /** 사라지는 배우 — 잡혔거나 달아났다. 빛으로 흩어지며 지워진다 */
   function sweepActors(dt) {
     for (var k in actors) {
@@ -1959,7 +2030,22 @@
         dfa.node.rotation.y = Math.atan2(fax, faz);
         dfa.ang = dfa.node.rotation.y;
       }
+      /* **나도 상대를 본다.** `placeActor(meA,...)` 는 이동 방향으로만 도는데,
+         실시간 교전(rogue-action.js) 은 사거리 안에 서서 자동으로 때리는 게
+         기본이라 — 가만히 선 채 마지막으로 걸어온 방향을 계속 보고 있으면
+         적을 등지거나 옆으로 보고 때리는 것처럼 보인다(2026-09-06, 실기기
+         확인 중 "어딜 보고 때림?" 로 지적됨). 위 `placeActor` 가 정한 회전을
+         여기서 덮어써 늘 상대 쪽을 보게 한다 */
+      if (meA.mesh) {
+        var max = duelFoe.x - pos.x, maz = duelFoe.y - pos.y;
+        if (max * max + maz * maz > 0.01) {
+          meA.node.rotation.y = Math.atan2(max, maz);
+          meA.ang = meA.node.rotation.y;
+        }
+      }
     }
+
+    syncBuddies(pos, meA.ang, h, now);
 
     /* 야생 대상 */
     var sp = W.spawns, i;
@@ -2168,7 +2254,7 @@
   /** 나 또는 상대에게 몸짓을 하나 재생한다(공격·피격·회피) — `who` 는 'me'·'foe'.
    *  클립이 없는 몸(도형 배우, 아직 안 받은 GLB)이면 조용히 아무 일도 안 한다. */
   function playAnim(who, name, ms) {
-    var key = who === 'foe' ? 'duelfoe' : 'me';
+    var key = who === 'foe' ? 'duelfoe' : (who === 'ally' ? 'ally' : 'me');
     var a = actors[key];
     if (!a) { return false; }
     a.animName = name;
@@ -2608,6 +2694,17 @@
     resetActors: resetActors,
     /** 인스턴스 창고 속을 들여다본다(진단·데모용). 이름 조각으로 걸러 볼 수 있다 */
     instReport: instReport,
+    /** 배우 한 명의 실제 위치·상태를 들여다본다(진단용) — `actors['me']`·
+     *  `'ally'`·`'petbuddy'`·`'duelfoe'` 등 */
+    actorPos: function (key) {
+      var a = actors[key];
+      if (!a) { return null; }
+      return {
+        x: a.node.position.x, y: a.node.position.y, z: a.node.position.z,
+        scale: a.node.scale.x, mesh: a.mesh, visible: a.node.visible
+      };
+    },
+    actorKeys: function () { return Object.keys(actors); },
     available: available, active: active, wanted: wanted,
     /* 값을 내는 함수 — three 없이도 돈다(자가진단이 이것만 따로 본다) */
     lightingAt: lightingAt, propPlan: propPlan, urbanity: urbanity, camAim: camAim,

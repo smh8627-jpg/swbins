@@ -848,6 +848,20 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('안 찼을 때 거부 · 멀면 헛침(그래도 소모) · 다 차고 붙으면 ' + hit.dmg + ' 피해');
     });
 
+    t('전투 손맛 — 원거리 견제기는 사거리를 안 보지만 쿨다운은 본다', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 100000, myAtk: 1000, myDef: 1e9 });
+      var far = RA.HEAVY_RANGE() * 8;
+      var first = RA.ranged(s);
+      var immediate = RA.ranged(s);        // 쿨다운 안 지났다 — 거부
+      var guard = 0;
+      while (s.rangedCd > 0 && guard++ < 2000) { RA.tick(s, 0.05, far); }  // 멀리 서서 기다린다
+      var second = RA.ranged(s);           // 쿨다운 끝 + 여전히 멀다 — 그래도 맞는다
+      return first.ok && first.dmg > 0 && !immediate.ok && immediate.reason === 'cd' &&
+        second.ok && second.dmg > 0 &&
+        ('첫 발 ' + first.dmg + ' · 쿨다운 중 거부 · 식은 뒤 ' + far.toFixed(0) + 'm 밖에서도 ' + second.dmg);
+    });
+
     t('교전 성과를 넘기면 토벌은 그 피해를 그대로 쓴다', function () {
       var R = DG.raid;
       var f = DG.world.fortsNear()[0];
@@ -2889,6 +2903,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var far = { x: 20000, y: -14000 };
       var ctx = EV.contextAt(far, atT(13));
       return ctx.mark === null && '땅 갈래는 채워져도 표식은 그대로 null';
+    });
+
+    t('사건 — 싸움이 안 걸리는 사건도 늘 같은 사람을 세운다 (2026-09-06, "글로만 보이면 잼없지")', function () {
+      var v1 = EV.npcVisual(EV.find('road_merchant'));
+      var v2 = EV.npcVisual(EV.find('road_merchant'));
+      var v3 = EV.npcVisual(EV.find('hurt_soldier'));
+      return v1 && v2 && v1.kind === 'hero' && v1.ref.id === v2.ref.id &&
+        v3 && v3.kind === 'hero' &&
+        ('상인은 늘 ' + v1.ref.name + ' · 부상병은 ' + v3.ref.name +
+         (v1.ref.id !== v3.ref.id ? ' (서로 다른 사람)' : ''));
     });
 
     /* ── 걷기 흥 (ambient) — 사건 사이를 메운다 (축1, 2026-09-06) ─────
@@ -5127,6 +5151,35 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     /* ── 스프라이트 ────────────────────────────────────── */
+
+    t('겉모습 — 표에 없는 인물도 같은 기질끼리 무기·투구가 흩어진다 (2026-09-06, "주변 캐릭터들도 다양하지 않네")', function () {
+      /* LOOKS 표에 없는(즉 ruleLook 을 타는) 같은 trait 인물을 여럿 모아
+         무기 종류가 실제로 갈리는지 본다 — 전엔 셋(might·wisdom·그 외)뿐이라
+         같은 기질이면 완전히 같았다. 표에 있는 유명 인물은 걸러야 이 시험이
+         뜻이 있다(그쪽은 원래도 저마다 달랐다) */
+      var LOOKS_KEYS = { eu_harald: 1, eu_frederick: 1, eu_peter: 1, eu_elizabeth: 1, eu_nelson: 1,
+        eu_machiavelli: 1, eu_newton: 1, eu_michelangelo: 1, eu_eleanor: 1 };
+      var byTrait = {};
+      for (var i = 0; i < D.heroes.length; i++) {
+        var h = D.heroes[i];
+        if (LOOKS_KEYS[h.id]) { continue; }
+        (byTrait[h.trait] = byTrait[h.trait] || []).push(h);
+      }
+      var traits = Object.keys(byTrait), variedTraits = 0, sample = null;
+      for (var t2 = 0; t2 < traits.length; t2++) {
+        var list = byTrait[traits[t2]];
+        if (list.length < 3) { continue; }
+        var weapons = {};
+        for (var k = 0; k < list.length; k++) { weapons[DG.sprite.lookOf(list[k]).weapon] = 1; }
+        var kinds = Object.keys(weapons).length;
+        if (kinds > 1) { variedTraits++; sample = traits[t2] + '(' + kinds + '종)'; }
+      }
+      /* 결정론성 — 같은 인물은 몇 번을 물어도 같은 차림이어야 한다 */
+      var hx = D.heroes[Math.floor(D.heroes.length / 3)];
+      var l1 = DG.sprite.lookOf(hx), l2 = DG.sprite.lookOf(hx);
+      return variedTraits > 0 && l1.weapon === l2.weapon && l1.helm === l2.helm &&
+        (traits.length + '개 기질 중 ' + variedTraits + '개에서 무기 갈림(예: ' + sample + ') · 재조회해도 동일');
+    });
 
     t('스프라이트 스탬프 캐시 재사용', function () {
       var cv = document.createElement('canvas'); cv.width = 240; cv.height = 240;

@@ -84,6 +84,12 @@
     var look = sprite().lookOf(hero);
     var fac = global.DG.data.faction(hero && hero.faction);
     var armor = look.armor || 'leather';
+    /* 세력 색은 그대로 두되(성채를 "저 세력이 지킨다"로 알아보는 실마리라
+       완전히 흩어 버리면 안 된다) 인물마다 명도만 살짝 흔든다 — 같은 세력
+       수십 명이 완전히 같은 색으로 겹쳐 보이던 것을 덜어낸다(2026-09-06,
+       "색깔별로라도 넣어주고"). ±9% 안에서 인물 id로 고정된다 */
+    var seed = hero ? sprite().idSeed(hero.id) : 0;
+    var tone = ((seed % 19) - 9) / 100;
     return {
       helm: look.helm || 'none',
       armor: armor,
@@ -92,7 +98,7 @@
       skirt: !!look.skirt,
       beard: !!look.beard,
       glasses: !!look.glasses,
-      color: fac.color,
+      color: sprite().shade(fac.color, tone),
       rarity: (hero && hero.rarity) || 3,
       skin: '#e8c9a4',
       /* 갑주는 어깨가 넓고 치마·도포는 아래가 퍼진다 */

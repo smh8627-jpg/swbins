@@ -64,6 +64,22 @@
     return { kind: 'hero', ref: { id: 'foe_' + foe.id, name: foe.name, faction: '도적', rarity: 2 } };
   }
 
+  /**
+   * 싸움이 안 걸리는 사건(상인·부상병·아이 등)도 **누군가를 세운다**
+   * (2026-09-06, "만나는 이벤트도 글로만 보이면 잼없지"). 지금까지는
+   * 카드에 이모지 한 글자뿐이었다 — 실제 인물(`data.heroes`)을 하나 붙여
+   * 3D 화면에도 세우고 카드에도 초상을 넣는다. **사건 id로 늘 같은 사람이
+   * 나오게 고정한다**(무작위가 아니다 — 같은 사건은 늘 같은 얼굴이어야
+   * "그 상인"·"그 노인"으로 기억에 남는다, 순수 함수라 자가진단도 값으로 본다).
+   */
+  function npcVisual(ev) {
+    var H = global.DG.data && global.DG.data.heroes;
+    if (!H || !H.length) { return null; }
+    var seed = 0, s = ev.id;
+    for (var i = 0; i < s.length; i++) { seed = (seed * 31 + s.charCodeAt(i)) >>> 0; }
+    return { kind: 'hero', ref: H[seed % H.length] };
+  }
+
   /* ── 열 가지 사건 ─────────────────────────────────────
    * `PLAN.md` 11절이 늘어놓은 예시에서 **이 땅에 걸 수 있는 것**으로 골랐다.
    *
@@ -486,6 +502,10 @@
     live = null;
     var el = host();
     if (el) { el.classList.remove('show'); el.innerHTML = ''; }
+    /* 카드가 세운 3D 인물도 같이 내린다 — `duel.js`/`rogue-action.js`가
+       전투 쪽에서 이미 내렸어도(`finish()`가 `duel:close`를 먼저 쏜다)
+       `duelUnstage()`는 없는 액터를 지우려 해도 안전하다 */
+    core.emit('duel:close', {});
     core.emit('changed');
   }
 
@@ -499,9 +519,21 @@
 
     var foe = ev.foe ? FOES[ev.foe] : null;
     var odds = foe ? Math.round(winChance(ev.foe) * 100) : 0;
+    /* 만나자마자 실제로 세운다 — 전투든 아니든(2026-09-06, "글로만 보이면
+       잼없지"). `duel.js`/`rogue-action.js`가 나중에 진짜 전투를 열 때
+       또 한 번 같은 신호를 쏘지만(`openDuel()`), `duelStage()`는 그저
+       다시 세우는 것뿐이라 문제없다 */
+    var stage3d = foe ? foeVisual(foe) : npcVisual(ev);
+    core.emit('duel:open', { title: ev.name, foeName: foe ? foe.name : ev.name, stage3d: stage3d });
+    var portraitImg = (stage3d && stage3d.kind === 'hero' && global.DG.sprite)
+      ? global.DG.sprite.portrait('hero', stage3d.ref, 96) : null;
     var html =
       '<div class="enc-card pingnew">' +
-        '<div class="enc-big"><span style="font-size:56px">' + ev.emoji + '</span></div>' +
+        '<div class="enc-big">' +
+          (portraitImg
+            ? '<img class="pt" alt="" src="' + portraitImg + '">'
+            : '<span style="font-size:56px">' + ev.emoji + '</span>') +
+        '</div>' +
         '<h3>' + ev.name + '</h3>' +
         '<p class="quote">' + ev.quote + '</p>' +
         (foe
@@ -676,7 +708,7 @@
     on: on, find: find, choiceOf: choiceOf,
     /* 값을 내는 함수 — 순수하다. 세이브를 읽기만 한다 */
     contextAt: contextAt, candidates: candidates, pick: pick, resolve: resolve,
-    myPower: myPower, winChance: winChance, fightRoll: fightRoll, foeVisual: foeVisual,
+    myPower: myPower, winChance: winChance, fightRoll: fightRoll, foeVisual: foeVisual, npcVisual: npcVisual,
     /* 세이브가 바뀌는 곳은 여기 하나 */
     apply: apply,
     /* 화면과 때 */

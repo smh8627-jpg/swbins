@@ -210,10 +210,14 @@
         if (o.kind === 'quick') {
           w.shake(amp * 0.45); burst(s.x, s.z, 'slash', 1.7);
           anim(w, 'me', 'attack', 240); anim(w, 'foe', 'hit', 240);
+          /* 동행도 같이 친다 — 실제 피해는 이미 partyPower() 합산에 들어 있으니
+             (hero.js) 몸짓만 얹는다(2026-09-06, "등용한 인물은 같이 싸우는 거지") */
+          anim(w, 'ally', 'attack', 240);
         } else if (o.kind === 'combo') {
           /* 연타 회심 — 속공보다 굵게, 필살보다는 얕게(2026-09-06, "전투를 더 잼나게") */
           w.shake(amp * 0.9); burst(s.x, s.z, 'slash', 2.1); burst(s.x, s.z, 'gold', 1.0);
           anim(w, 'me', 'attack', 300); anim(w, 'foe', 'hit', 300);
+          anim(w, 'ally', 'attack', 300);
         } else if (o.kind === 'charge') {
           if (o.whiffed) {
             w.shake(amp * 0.3); burst(s.x, s.z, 'wind', 1.0);
@@ -222,6 +226,11 @@
             w.hold(90); w.shake(amp * 1.6); burst(s.x, s.z, 'flame', 1.2);
             anim(w, 'me', 'attack', 420); anim(w, 'foe', 'hit', 420);
           }
+        } else if (o.kind === 'ranged') {
+          /* 원거리 견제기(2026-09-06) — 사거리를 안 보므로 멀리서도 나간다.
+             속공보다 가볍게(hit-stop 없음), 화살처럼 바람 알갱이로 표현 */
+          w.shake(amp * 0.35); burst(s.x, s.z, 'wind', 1.4);
+          anim(w, 'me', 'attack', 260); anim(w, 'foe', 'hit', 260);
         } else if (o.kind === 'stagger') {
           /* 적이 기절했다 — 타격이 아니라 상태 변화라 hold(hit-stop)는 안 준다 */
           w.shake(amp * 0.6); burst(s.x, s.z, 'gold', 1.8);

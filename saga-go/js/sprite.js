@@ -168,15 +168,54 @@
     eu_eleanor:       { weapon: 'none', helm: 'crown', armor: 'dress', skirt: true }
   };
 
-  /** 표에 없는 인물은 기질·등급에서 규칙으로 만든다 */
+  /** id 로 고정되는 정수 — 표에 없는 인물의 무기·투구를 다양하게 흩는 데 쓴다
+   *  (`animeSeed`와 같은 계산이지만 여긴 그림 양식과 무관하게 늘 켜져 있어야
+   *  해서 따로 둔다 — 2026-09-06, "주변 캐릭터들이 다양하지 않다" 개선) */
+  function idSeed(id) {
+    var h = 0, s = id || 'x';
+    for (var i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) & 0x7fffffff; }
+    return h;
+  }
+
+  /** 표에 없는 인물은 기질·등급에서 규칙으로 만든다.
+   *
+   * **2026-09-06 전까지는 기질 셋(might·wisdom·그 외)이 곧 옷 한 벌이었다** —
+   * `LOOKS` 표에 없는 다수(수백 명)가 셋 중 하나로 완전히 똑같이 보였다
+   * ("주변 캐릭터들도 다양하지 않네·색깔별로라도 넣어주고 옷은 더 없어?").
+   * 이제 같은 기질 안에서도 `idSeed(hero.id)`로 무기·투구·망토·수염 유무를
+   * 흩는다 — **무작위가 아니라 id 고정**이라 같은 인물은 오늘도 내일도
+   * 같은 차림이다(그림책 캐릭터 디자인이 매번 바뀌면 안 된다). */
   function ruleLook(hero) {
+    var seed = idSeed(hero.id);
     if (hero.trait === 'might') {
-      return { weapon: 'spear', helm: 'helmet', armor: 'plate', cape: hero.rarity >= 5 };
+      var mWeapons = ['spear', 'halberd', 'guandao', 'axe', 'club'];
+      return {
+        weapon: mWeapons[seed % mWeapons.length],
+        helm: (seed >> 3) % 5 === 0 ? 'gapju' : 'helmet',
+        armor: 'plate',
+        cape: hero.rarity >= 5 || (seed >> 5) % 4 === 0,
+        beard: (seed >> 2) % 3 === 0
+      };
     }
     if (hero.trait === 'wisdom') {
-      return { weapon: 'scroll', helm: 'scholar', armor: 'robe' };
+      var wWeapons = ['scroll', 'fan', 'staff', 'brush'];
+      return {
+        weapon: wWeapons[seed % wWeapons.length],
+        helm: 'scholar',
+        armor: (seed >> 3) % 3 === 0 ? 'coat' : 'robe',
+        glasses: (seed >> 4) % 3 === 0,
+        beard: (seed >> 2) % 4 === 0
+      };
     }
-    return { weapon: 'sword', helm: hero.rarity >= 5 ? 'crown' : 'gat', armor: 'robe', cape: hero.rarity >= 4 };
+    var vWeapons = ['sword', 'spear', 'axe', 'club'];
+    return {
+      weapon: vWeapons[seed % vWeapons.length],
+      helm: hero.rarity >= 5 ? 'crown' : ((seed >> 3) % 3 === 0 ? 'none' : 'gat'),
+      armor: (seed >> 4) % 4 === 0 ? 'dress' : ((seed >> 4) % 4 === 1 ? 'coat' : 'robe'),
+      cape: hero.rarity >= 4 || (seed >> 5) % 5 === 0,
+      skirt: (seed >> 6) % 4 === 0,
+      beard: (seed >> 2) % 4 === 1
+    };
   }
 
   var lookCache = {};
@@ -2454,7 +2493,7 @@
     human: human, beast: beast, building: building,
     portraitCard: portraitCard,
     stamp: stamp, stampStats: stampStats,
-    lookOf: lookOf, beastFormOf: beastFormOf, beastColorOf: beastColorOf,
+    lookOf: lookOf, idSeed: idSeed, beastFormOf: beastFormOf, beastColorOf: beastColorOf,
     beastPatternOf: beastPatternOf,
     portrait: portrait, shade: shade,
     setProp: setProp,
