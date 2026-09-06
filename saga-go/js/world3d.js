@@ -2198,6 +2198,15 @@
    * 상대는 `spawns` 목록에 없는 임시 배우라 `syncActors()` 가 따로 먹여야 한다. */
   var duelFoe = null;      // {kind, ref, x, y} — 없으면 교전 중이 아니거나 3D 상대가 없다
 
+  /** 사건이 조명을 잠깐 죽인다(2026-09-06, "비전투 이벤트 3D 무대 연출" —
+   *  밤 사건의 긴장). 0(평소)~1. `battle3d.js`가 `duel:open`(늑대 무리·
+   *  적군 정찰병처럼 `eerie` 딱지가 붙은 사건)·`duel:close`에서 두드린다.
+   *  **`lightingAt()`이 내는 값 자체는 안 건드린다**(캐시일 수도 있고,
+   *  미니맵 등 다른 곳도 같은 값을 본다) — `syncLight()`가 적용하는
+   *  자리에서만 깎는다, 사건이 끝나면 다음 프레임에 저절로 원래 밝기로
+   *  돌아간다(`setEventMood(0)`이 지운다) */
+  var eventDark = 0;
+
   /** 이 자리가 집 몸통 안인가 — `world.js` 의 `hitsHouse` 와 같은 계산이지만
       독립된 사본이다(world3d 가 world.js 를 되받아 부르지 않게 한다).
       `margin` 은 여유(m) — 상대가 설 자리는 발이 벽에 안 묻힐 만큼(기본 1),
@@ -2530,17 +2539,21 @@
     sun.intensity = L.sun.intensity;
     sky.color.setHex(L.hemi.sky);
     sky.groundColor.setHex(L.hemi.ground);
-    sky.intensity = L.hemi.intensity;
+    /* 사건이 조명을 죽인다 — 태양·하늘빛만 낮추고(색은 그대로 두어 "밤인데
+       더 어두워짐"으로 보이게 한다) 안개는 좁혀 "가까이만 보인다"를 낸다 */
+    var dk = eventDark;
+    sun.intensity = L.sun.intensity * (1 - dk * 0.55);
+    sky.intensity = L.hemi.intensity * (1 - dk * 0.45);
     /* IBL 세기도 같은 낮·밤·날씨 곡선을 탄다 — 위 loadEnvironment() 머리말 참고 */
     if (scene.environmentIntensity !== undefined) {
-      scene.environmentIntensity = L.hemi.intensity * IBL_SCALE();
+      scene.environmentIntensity = sky.intensity * IBL_SCALE();
     }
     if (scene.background && scene.background.setHex) { scene.background.setHex(L.bg); }
     renderer.setClearColor(L.bg, 1);
     if (scene.fog) {
       scene.fog.color.setHex(L.bg);
-      scene.fog.near = L.fog.near;
-      scene.fog.far = L.fog.far;
+      scene.fog.near = L.fog.near * (1 - dk * 0.5);
+      scene.fog.far = L.fog.far * (1 - dk * 0.4);
     }
   }
 
@@ -2747,6 +2760,9 @@
     /* 교전 상대를 실제로 세운다 — `battle3d.js` 가 duel:open/close 때 두드린다 */
     duelStage: duelStage, duelUnstage: duelUnstage, playAnim: playAnim,
     duelFoe: function () { return duelFoe; },
+    /** 사건이 조명을 얼마나 죽이나(0~1) — `battle3d.js`가 `duel:open`·
+     *  `duel:close`에서 두드린다. 인자 없이 부르면 지금 값만 읽는다 */
+    eventMood: function (v) { if (v !== undefined) { eventDark = Math.max(0, Math.min(1, v)); } return eventDark; },
     /** 카메라를 흔든다. 세기는 m — 여러 번 부르면 센 쪽이 남는다 */
     shake: function (amp) { shakeAmp = Math.max(shakeAmp, amp || 0); return shakeAmp; },
     shakeAmp: function () { return shakeAmp; },

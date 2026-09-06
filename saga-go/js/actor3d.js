@@ -641,6 +641,91 @@
     return g;
   }
 
+  /* ── 소품 (비전투 사건 무대, 2026-09-06) ────────────────────
+   * "자리·물건을 발견하는 사건"(비문·지도 조각·약초·여울)은 사람을 세우면
+   * 뜻이 안 맞는다(`event.js` 참고) — 그렇다고 아무것도 안 세우는 것보다는
+   * 발견한 그것 자체를 세우는 게 더 "무대"답다. 사람·짐승·건물과 달리
+   * **뼈대(rig)가 없다** — `step()`이 `node.userData.rig`가 없으면 조용히
+   * 넘어가므로 저절로 가만히 서 있는다(그게 맞다, 비석이 걷지 않는다).
+   */
+  var PROP_COLOR = { stone: '#9a958c', dark: '#6f6a62', ruin: '#8d8880', moss: '#6d7a5a',
+    soil: '#5a4a36', leaf1: '#4f9a4c', leaf2: '#6bbf5e', water: '#6fa8c8', spray: '#bfe6f5' };
+
+  function propPlan(ref) {
+    var t = ref && ref.propType;
+    if (t === 'shrine') { return ['base', 'stele', 'carving']; }
+    if (t === 'ruin') { return ['drum1', 'drum2', 'fallen', 'moss']; }
+    if (t === 'herb') { return ['mound', 'leaf1', 'leaf2', 'leaf3', 'leaf4', 'leaf5']; }
+    if (t === 'flood') { return ['pool', 'splash1', 'splash2', 'splash3', 'splash4']; }
+    return [];
+  }
+
+  /** 비석 — `stone_text`(고대 비문). 밑돌 위에 세운 판돌, 앞면에 새김 자국 */
+  function buildShrineProp() {
+    var g = new T.Group();
+    var stone = mat(PROP_COLOR.stone), dark = mat(PROP_COLOR.dark);
+    g.add(part(BOX(0.5, 0.08, 0.5), stone, 0, 0.04, 0));
+    g.add(solid(part(BOX(0.34, 0.72, 0.12), stone, 0, 0.44, 0)));
+    g.add(part(BOX(0.24, 0.32, 0.01), dark, 0, 0.56, 0.063));
+    return g;
+  }
+
+  /** 폐허 — `map_scrap`(지도 조각). 무너진 기둥 밑동 둘 + 옆으로 쓰러진 조각 */
+  function buildRuinProp() {
+    var g = new T.Group();
+    var wall = mat(PROP_COLOR.ruin, 'flat'), moss = mat(PROP_COLOR.moss);
+    g.add(solid(part(CYL(0.22, 0.24, 0.18, 10), wall, -0.08, 0.09, 0)));
+    g.add(solid(part(CYL(0.19, 0.21, 0.15, 10), wall, 0.10, 0.075, -0.08)));
+    var fallen = part(CYL(0.16, 0.16, 0.46, 10), wall, 0.32, 0.16, 0.14);
+    fallen.rotation.z = Math.PI / 2.1;
+    g.add(solid(fallen));
+    g.add(part(SPH(0.05, 6), moss, -0.14, 0.19, 0.06));
+    return g;
+  }
+
+  /** 약초 — `rare_herb`. 흙무더기 위에 잎 다섯이 부채꼴로 돋는다 */
+  function buildHerbProp() {
+    var g = new T.Group();
+    var soil = mat(PROP_COLOR.soil), leaf1 = mat(PROP_COLOR.leaf1), leaf2 = mat(PROP_COLOR.leaf2);
+    g.add(solid(part(CYL(0.24, 0.28, 0.09, 10), soil, 0, 0.045, 0)));
+    var n = 5, i;
+    for (i = 0; i < n; i++) {
+      var a = (i / n) * Math.PI * 2;
+      var lf = part(CONE(0.045, 0.24, 6), i % 2 ? leaf1 : leaf2,
+        Math.cos(a) * 0.09, 0.09 + 0.12, Math.sin(a) * 0.09);
+      lf.rotation.z = Math.cos(a) * 0.5;
+      lf.rotation.x = -Math.sin(a) * 0.5;
+      g.add(lf);
+    }
+    return g;
+  }
+
+  /** 여울 — `flood_ford`. 낮은 물웅덩이 + 튀는 물보라 넷 */
+  function buildFloodProp() {
+    var g = new T.Group();
+    var water = mat(PROP_COLOR.water, 'glow'), spray = mat(PROP_COLOR.spray);
+    g.add(part(CYL(0.55, 0.55, 0.03, 16), water, 0, 0.015, 0));
+    var n = 4, j;
+    for (j = 0; j < n; j++) {
+      var a = (j / n) * Math.PI * 2 + 0.4;
+      g.add(part(CONE(0.035, 0.22, 5), spray, Math.cos(a) * 0.30, 0.11, Math.sin(a) * 0.30));
+    }
+    return g;
+  }
+
+  function buildProp(ref) {
+    if (!three()) { return null; }
+    var t = ref && ref.propType;
+    var g;
+    if (t === 'shrine') { g = buildShrineProp(); }
+    else if (t === 'ruin') { g = buildRuinProp(); }
+    else if (t === 'herb') { g = buildHerbProp(); }
+    else if (t === 'flood') { g = buildFloodProp(); }
+    else { return null; }
+    g.userData = { kind: 'prop' };
+    return g;
+  }
+
   /* ── 움직임 ───────────────────────────────────────────────
    * 뼈대의 **회전만** 건드린다. 위치·크기는 부르는 쪽(world3d)이 정한다 —
    * 걸음 배속이나 카메라가 바뀌어도 이 함수는 그대로다.
@@ -666,6 +751,11 @@
     if (anim === 'attack') { armSw = Math.sin(t * 24) * 1.05; }
     else if (anim === 'hit') { armSw = -0.42; lean = -0.16; }
     else if (anim === 'dodge') { armSw = (Math.floor(t * 8) % 2 ? 1 : -1) * 0.55; lean = 0.14; }
+    /* 비전투 사건의 서 있는 몸짓(2026-09-06) — 걷지 않을 때만 뜻이 있어서
+       `sw`(걸음 흔들림)는 그대로 두고 팔·기울기만 얹는다. `attack`류처럼
+       짧고 강한 동작이 아니라 **카드가 떠 있는 동안 반복**되게 느린 파형을 쓴다 */
+    else if (anim === 'greet') { armSw = Math.sin(t * 3) * 0.55; }              // 손짓 — 느리게 반긴다
+    else if (anim === 'hurt') { armSw = -0.30 + Math.sin(t * 1.6) * 0.08; lean = 0.22; }  // 웅크림
 
     if (rig.legL) { rig.legL.rotation.x = sw; }
     if (rig.legR) { rig.legR.rotation.x = -sw; }
@@ -721,6 +811,7 @@
     if (kind === 'pet') { return buildPet(ref); }
     if (kind === 'station') { return buildStation(ref && ref.color); }
     if (kind === 'fort') { return buildFort(ref && ref.color); }
+    if (kind === 'prop') { return buildProp(ref); }
     return null;
   }
 
@@ -746,12 +837,14 @@
     if (kind === 'pet') { return petPlan(ref); }
     if (kind === 'station') { return ['base', 'posts', 'roof', 'flag']; }
     if (kind === 'fort') { return ['walls', 'gate', 'tower', 'roof', 'banner']; }
+    if (kind === 'prop') { return propPlan(ref); }
     return [];
   }
 
   function spec(kind, ref) {
     if (kind === 'hero') { return heroSpec(ref); }
     if (kind === 'pet') { return petSpec(ref); }
+    if (kind === 'prop') { return { propType: ref && ref.propType }; }
     return null;
   }
 

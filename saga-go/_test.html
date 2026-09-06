@@ -2915,18 +2915,51 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          (v1.ref.id !== v3.ref.id ? ' (서로 다른 사람)' : ''));
     });
 
-    t('사건 — 발견물(비문·지도 조각·약초·여울)은 사람을 안 세운다 (2026-09-06, "비전투 이벤트 3D 무대 연출")', function () {
-      var discoverIds = ['stone_text', 'map_scrap', 'rare_herb'];
-      var allNull = discoverIds.every(function (id) { return EV.stageOf(EV.find(id)) === null; });
-      var waterNull = EV.stageOf(EV.find('flood_ford')) === null;
+    t('사건 — 발견물(비문·지도 조각·약초·여울)은 사람 대신 그 물건 자체를 세운다 (2026-09-06, "비전투 이벤트 3D 무대 연출")', function () {
+      var propOf = { stone_text: 'shrine', map_scrap: 'ruin', rare_herb: 'herb', flood_ford: 'flood' };
+      var ids = Object.keys(propOf);
+      var allProp = ids.every(function (id) {
+        var s = EV.stageOf(EV.find(id));
+        return s && s.kind === 'prop' && s.ref.propType === propOf[id];
+      });
       /* 사람을 만나는 사건은 그대로 인물이 선다 — 이번 변경이 그쪽까지
          건드리지 않았는지 같이 본다 */
       var personStill = EV.stageOf(EV.find('road_merchant'));
       var foeStill = EV.stageOf(EV.find('bandit_ambush'));
-      return allNull && waterNull &&
+      return allProp &&
         personStill && personStill.kind === 'hero' &&
         foeStill && foeStill.kind === 'hero' &&
-        ('발견물 셋 · 여울 모두 stage3d 없음 · 상인·도적은 그대로 섬');
+        ('발견물 넷 모두 kind:prop(제 propType) · 상인·도적은 그대로 사람이 섬');
+    });
+
+    t('사건 — 발견물 소품은 three 없이도 부품 이름을 낸다, 사람 사건엔 몸짓·밤 사건엔 eerie 딱지가 있다', function () {
+      var A = DG.actor3d;
+      var shrine = A.plan('prop', { propType: 'shrine' });
+      var ruin = A.plan('prop', { propType: 'ruin' });
+      var herb = A.plan('prop', { propType: 'herb' });
+      var flood = A.plan('prop', { propType: 'flood' });
+      var unknown = A.plan('prop', { propType: 'nope' });
+      return shrine.length === 3 && ruin.length === 4 && herb.length === 6 && flood.length === 5 &&
+        unknown.length === 0 &&
+        EV.find('hurt_soldier').pose === 'hurt' &&
+        EV.find('road_merchant').pose === 'greet' &&
+        !!EV.find('wolf_ring').eerie && !!EV.find('enemy_scout').eerie &&
+        !EV.find('bandit_ambush').eerie &&
+        ('비석 ' + shrine.length + '부품 · 폐허 ' + ruin.length + ' · 약초 ' + herb.length +
+         ' · 여울 ' + flood.length + ' · 모르는 종류는 빈 배열');
+    });
+
+    t('world3d.eventMood() — 밤 사건이 죽이는 조명 세기를 저장·되읽는다', function () {
+      var W3 = DG.world3d;
+      var before = W3.eventMood();
+      W3.eventMood(0.6);
+      var mid = W3.eventMood();
+      W3.eventMood(0);
+      var after = W3.eventMood();
+      var clamped = W3.eventMood(3);   // 1을 넘겨도 눌러 담는다
+      W3.eventMood(0);
+      return before === 0 && mid === 0.6 && after === 0 && clamped === 1 &&
+        ('기본 0 · 설정 0.6 · 되돌리면 0 · 3을 줘도 1로 눌림');
     });
 
     /* ── 걷기 흥 (ambient) — 사건 사이를 메운다 (축1, 2026-09-06) ─────

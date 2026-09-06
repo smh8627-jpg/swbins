@@ -195,17 +195,29 @@
       var mood = o && o.mood;
       var moodKind = mood === 'discover' ? 'gold' : (mood === 'water' ? 'wind' : 'dust');
       burst(s.x, s.z, moodKind, mood === 'discover' ? 1.4 : 0.5);
+      /* 밤 사건은 조명도 같이 죽인다(`eerie` 딱지, 늑대 무리·적군 정찰병) —
+         `duel:close`가 늘 원래대로 되돌린다(아래) */
+      if (W3().eventMood) { W3().eventMood(o && o.eerie ? 0.6 : 0); }
       /* 상대를 실제로 세운다(2026-08-30) — `event.js`·`fort.js` 가 미리 정해
          건네준 몸(`stage3d`)이 있을 때만. 카드만 뜨는 조우도 여전히 있다 —
-         `discover`·`water`는 이제 일부러 아무도 안 세운다(사람이 아니라
-         자리·물건을 발견하는 사건이라 사람이 서 있으면 뜻이 안 맞았다) */
-      if (o && o.stage3d && W3().duelStage) { W3().duelStage(o.stage3d.kind, o.stage3d.ref); }
+         `discover`·`water`는 이제 사람 대신 발견한 것 자체(`kind:'prop'`)를
+         세운다(`actor3d.js`) */
+      if (o && o.stage3d && W3().duelStage) {
+        W3().duelStage(o.stage3d.kind, o.stage3d.ref);
+        /* 사람을 만나는 사건은 서 있는 동안 사건다운 몸짓을 한다(2026-09-06,
+           "비전투 이벤트 3D 무대 연출") — 부상병은 웅크리고, 상인·부탁·
+           아이 찾기는 반기는 손짓. 카드가 열려 있는 동안은 충분히 긴
+           시간(20초)을 주고, 카드가 그보다 먼저 닫히면 `duel:close`가
+           배우 자체를 지워 버리니 따로 끊어 줄 필요가 없다 */
+        if (o.pose && o.stage3d.kind === 'hero') { anim(W3(), 'foe', o.pose, 20000); }
+      }
     });
 
     core.on('duel:close', function () {
       var w = W3();
       if (w && w.battle) { w.battle(false); }
       if (w && w.duelUnstage) { w.duelUnstage(); }
+      if (w && w.eventMood) { w.eventMood(0); }
     });
 
     core.on('duel:fx', function (o) {

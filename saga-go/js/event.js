@@ -84,19 +84,20 @@
    * 이 사건이 3D 무대에 무엇을 세우나 — **순수 함수**(화면 없이 값만 낸다,
    * 자가진단이 이걸 직접 물을 수 있다).
    *
-   * `ev.mood === 'discover'`(비문·지도 조각·약초)·`'water'`(여울)는
-   * **사람이 아니라 자리·물건을 발견하는 사건**이다 — 지금까지는 다른
-   * 사건과 똑같이 `npcVisual()`이 아무 인물이나 하나 세웠는데, "묻힌 지도
-   * 조각을 캐는데 웬 사람이 옆에 서 있나" 처럼 뜻이 안 맞았다(2026-09-06,
-   * "비전투 이벤트 3D 무대 연출" 착수). 이 둘은 `stage3d`를 아예 안 낸다 —
-   * `duel:open`을 들어도 몸을 안 세우는 "카드만 뜨는 조우"는 이미 있던
-   * 갈래라(`battle3d.js` 머리말) 새로 만들 게 없다. 대신 `mood`를 실어
-   * 보내 `battle3d.js`가 알갱이(먼지·금빛·바람)를 사건 성격에 맞게 고른다.
+   * `ev.prop`(비문·지도 조각·약초·여울)이 있으면 **사람이 아니라 그 자리·
+   * 물건 자체**를 세운다 — 지금까지는 다른 사건과 똑같이 `npcVisual()`이
+   * 아무 인물이나 하나 세웠는데, "묻힌 지도 조각을 캐는데 웬 사람이 옆에
+   * 서 있나" 처럼 뜻이 안 맞았다(2026-09-06, "비전투 이벤트 3D 무대 연출").
+   * `actor3d.js`의 `kind:'prop'`(비석·폐허·약초·여울 넷, 뼈대 없이 가만히
+   * 선다)이 실제로 세운다. `mood`는 따로 남아 `battle3d.js`가 알갱이(먼지·
+   * 금빛·바람)를 사건 성격에 맞게 고르는 데 쓴다 — 두 값이 지금은 늘 같이
+   * 다니지만(발견물은 `prop`도 있고 `mood`도 있다) 뜻은 다르다: `prop`은
+   * "무엇을 세울까", `mood`는 "무슨 알갱이를 터뜨릴까".
    */
   function stageOf(ev) {
     var foe = ev.foe ? FOES[ev.foe] : null;
     if (foe) { return foeVisual(foe); }
-    if (ev.mood) { return null; }
+    if (ev.prop) { return { kind: 'prop', ref: { propType: ev.prop, id: ev.id } }; }
     return npcVisual(ev);
   }
 
@@ -114,7 +115,7 @@
    */
   var EVENTS = [
     {
-      id: 'road_merchant', name: '길 위의 상인', emoji: '🧺', w: 12,
+      id: 'road_merchant', name: '길 위의 상인', emoji: '🧺', w: 12, pose: 'greet',
       when: 'day', where: ['road', 'town'],
       quote: '"수레가 무거워 못 가겠소. 값은 후하게 쳐 드리리다."',
       choices: [
@@ -153,7 +154,7 @@
       ]
     },
     {
-      id: 'wolf_ring', name: '늑대 무리에 둘러싸이다', emoji: '🐺', w: 9,
+      id: 'wolf_ring', name: '늑대 무리에 둘러싸이다', emoji: '🐺', w: 9, eerie: true,
       when: 'night', where: ['forest', 'mount', 'grass'],
       foe: 'wolfpack',
       quote: '풀숲에서 눈이 여럿 빛난다.',
@@ -180,7 +181,7 @@
       ]
     },
     {
-      id: 'hurt_soldier', name: '부상당한 병사', emoji: '🩹', w: 9,
+      id: 'hurt_soldier', name: '부상당한 병사', emoji: '🩹', w: 9, pose: 'hurt',
       when: 'any', where: ['road', 'mount', 'grass'],
       quote: '"물… 물 좀 주시오."',
       choices: [
@@ -194,7 +195,7 @@
       ]
     },
     {
-      id: 'village_ask', name: '마을의 부탁', emoji: '🙏', w: 8,
+      id: 'village_ask', name: '마을의 부탁', emoji: '🙏', w: 8, pose: 'greet',
       when: 'day', where: ['town'],
       quote: '"보아하니 멀리서 오신 분 같은데, 청이 하나 있소."',
       choices: [
@@ -205,7 +206,7 @@
       ]
     },
     {
-      id: 'lost_child', name: '사라진 아이', emoji: '🧒', w: 7,
+      id: 'lost_child', name: '사라진 아이', emoji: '🧒', w: 7, pose: 'greet',
       when: 'day', where: ['town', 'forest', 'farm'],
       quote: '"우리 아이를 못 보셨소? 아침부터 안 보이오."',
       choices: [
@@ -221,7 +222,7 @@
       ]
     },
     {
-      id: 'stone_text', name: '고대 비문', emoji: '🪨', w: 11, mood: 'discover',
+      id: 'stone_text', name: '고대 비문', emoji: '🪨', w: 11, mood: 'discover', prop: 'shrine',
       when: 'any', where: [], marks: ['shrine'],
       quote: '이끼 아래로 글자가 반쯤 남아 있다.',
       record: '무너진 사당의 비문',
@@ -236,7 +237,7 @@
       ]
     },
     {
-      id: 'map_scrap', name: '보물 지도 조각', emoji: '🗺️', w: 11, mood: 'discover',
+      id: 'map_scrap', name: '보물 지도 조각', emoji: '🗺️', w: 11, mood: 'discover', prop: 'ruin',
       when: 'any', where: [], marks: ['ruin'],
       quote: '무너진 기둥 틈에 기름 먹인 종이가 끼여 있다.',
       record: '강 건너 폐허의 지도 조각',
@@ -253,7 +254,7 @@
       ]
     },
     {
-      id: 'rare_herb', name: '희귀 약초', emoji: '🌿', w: 8, mood: 'discover',
+      id: 'rare_herb', name: '희귀 약초', emoji: '🌿', w: 8, mood: 'discover', prop: 'herb',
       when: 'day', where: ['forest', 'mount'],
       quote: '바위 그늘에 보기 드문 잎이 돋아 있다.',
       choices: [
@@ -269,7 +270,7 @@
     {
       /* **비에만 나는 사건**(PLAN 21절 "특정 이벤트 발생"). 물이 불면 여울이 잠긴다 —
          PHASE 10 에서 강물이 실제로 불어나는 것과 같은 자리를 가리킨다 */
-      id: 'flood_ford', name: '불어난 여울', emoji: '🌊', w: 14, mood: 'water',
+      id: 'flood_ford', name: '불어난 여울', emoji: '🌊', w: 14, mood: 'water', prop: 'flood',
       when: 'any', where: ['water', 'road', 'farm'], marks: ['bridge'], wet: true,
       quote: '물이 부어 건널목이 잠겼다. 물살 소리가 크다.',
       choices: [
@@ -287,7 +288,7 @@
       ]
     },
     {
-      id: 'enemy_scout', name: '적군 정찰병', emoji: '🏹', w: 8,
+      id: 'enemy_scout', name: '적군 정찰병', emoji: '🏹', w: 8, eerie: true,
       when: 'night', where: ['mount', 'road', 'grass'],
       foe: 'scout',
       quote: '능선 위로 사람 그림자 하나가 지나간다.',
@@ -544,7 +545,8 @@
        또 한 번 같은 신호를 쏘지만(`openDuel()`), `duelStage()`는 그저
        다시 세우는 것뿐이라 문제없다 */
     var stage3d = stageOf(ev);
-    core.emit('duel:open', { title: ev.name, foeName: foe ? foe.name : ev.name, stage3d: stage3d, mood: ev.mood });
+    core.emit('duel:open', { title: ev.name, foeName: foe ? foe.name : ev.name, stage3d: stage3d,
+      mood: ev.mood, pose: ev.pose, eerie: ev.eerie });
     var portraitImg = (stage3d && stage3d.kind === 'hero' && global.DG.sprite)
       ? global.DG.sprite.portrait('hero', stage3d.ref, 96) : null;
     var html =
