@@ -544,16 +544,37 @@
     return { ok: true, kind: 'hero', name: h.name };
   }
 
+  /**
+   * 자동 포획 — 손으로 할 때(실전)와 같은 규칙을 **간이 시뮬레이션**으로 굴린다.
+   * 실전이 화면·시간을 쓰는 것과 달리, 여기는 `rogueAction`의 순수 함수만
+   * 빌려 dt를 크게 먹여 한 번에 끝까지 돌린다 — 사거리는 늘 붙어 싸운다고
+   * 본다(자동은 조준·다가서기를 할 수 없으니 "최선을 다해 맞붙는다"로 가정).
+   * `rogueAction`이 없으면(스크립트 누락) 옛 정확도-무작위 방식으로 돌아간다.
+   */
   function autoPet(spawn) {
     var p = spawn.ref;
     if (core.save.items.feed < 1) { return null; }
     core.save.items.feed -= 1;
-    // 자동은 조준을 못 하므로 정확도를 무작위로 본다
-    var accuracy = Math.random();
-    var inZone = accuracy > 0.45;
-    var chance = p.catchBase + core.effect('catchPct') / 100;
-    if (inZone) { chance += 0.18 + (accuracy - 0.45) / 0.55 * 0.35; }
-    else { chance *= 0.35; }
+    var chance;
+    var RA = global.DG.rogueAction;
+    if (RA) {
+      var pw = global.DG.hero.partyPower();
+      var hpK = core.tuned('petAction.hpK', 0.14);
+      var foeHp = Math.max(6, Math.round(pw.atk * hpK / Math.max(0.05, p.catchBase || 0.3)));
+      var s = RA.create({ foeHp: foeHp, myAtk: pw.atk, myDef: pw.def });
+      var guard = 0;
+      while (!s.over && guard < 400) { RA.tick(s, 0.1, 2.0); guard++; }
+      var perf = RA.perf(s);
+      var bonus = perf.cleared ? 0.45 : core.clamp(perf.ratio, 0, 1) * 0.40;
+      chance = p.catchBase + core.effect('catchPct') / 100 + bonus;
+    } else {
+      // 옛 방식 — 조준을 못 하므로 정확도를 무작위로 본다
+      var accuracy = Math.random();
+      var inZone = accuracy > 0.45;
+      chance = p.catchBase + core.effect('catchPct') / 100;
+      if (inZone) { chance += 0.18 + (accuracy - 0.45) / 0.55 * 0.35; }
+      else { chance *= 0.35; }
+    }
     chance = core.clamp(chance, 0.02, 0.97);
     global.DG.world.removeSpawn(spawn.uid);
     if (Math.random() >= chance) {
