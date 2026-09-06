@@ -1081,11 +1081,17 @@ resize` 512×512 → 3.6~4.3MB, 기존 v3~v11과 같은 크기대):
 손·엉덩이·무릎·발 관절을 손으로 맞추고 CC0 애니메이션 라이브러리(162종 중 6개,
 Mixamo 안 거침)를 얹어 export했다.
 
-**알려진 흠 — 다리 피부색 불일치**: Vitruvian 4K/8K 텍스처 zip 어디에도 African
-Legs BaseColor가 없어서(Face·Torso·Arms만 있다) 다리만 범용 Utility 텍스처를
-썼다 — 몸통보다 밝게 튄다. 원본 자료(`.blend`·텍스처 zip)는
-`assets/_wip/vitruvian-test/README.md`에 실제 디스크 경로가 남아 있다 — 다시 받을
-필요 없이 재작업할 수 있다.
+**다리 피부색 불일치 — 2026-09-06에 고침**: Vitruvian 4K/8K 텍스처 zip 어디에도
+African Legs BaseColor가 없어서(Face·Torso·Arms만 있다) 다리만 범용 Utility
+텍스처를 썼던 것이 몸통보다 밝게 튀었다. 코드가 아니라 **텍스처 자체를
+고쳤다** — 다리 JPEG의 평균 RGB를 Torso·Arms African 텍스처 평균에 맞춰
+채널별로 스케일(곱)했다(`r×0.41 · g×0.33 · b×0.30`, 어둡거나(<12) 밝은(>248)
+이상치 픽셀은 평균 계산에서 뺐다 — 세부 음영·주름 텍스처는 그대로 두고
+전체 톤만 옮기는 색 전이). glTF BIN 청크에서 이 이미지가 **맨 끝**이라 다른
+bufferView 오프셋을 하나도 안 건드리고 그 뒤 바이트만 갈아 끼웠다. 실제
+화면(`_demo.html#people`)으로 앞뒤를 비교해 다리·몸통이 이제 같은 톤으로
+보이는 것을 확인했다. 원본 자료(`.blend`·텍스처 zip)는
+`assets/_wip/vitruvian-test/README.md`에 실제 디스크 경로가 남아 있다.
 
 **게임 코드에 문 자리**: `js/asset3d.js`의 `HERO_RECIPES` — `key: 'vitruvian_v1'`,
 QRPG와 같은 결로 `anim`을 `body`와 같은 파일로 줘(제 클립을 그대로 쓴다) 리타깃이
