@@ -106,6 +106,12 @@ body.r3d.tilted #vignette {
 .p-title { font-size: 13px; font-weight: 700; letter-spacing: -.2px; }
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
+.p-goal {
+  margin-top: 2px; font-size: 11px; font-weight: 600; cursor: pointer;
+  color: #ffd76a; font-variant-numeric: tabular-nums;
+}
+.p-goal b { color: #fff; }
+.p-goal.ready { color: #7ee787; }
 
 .tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
 /* 도구 서랍 — 넓은 화면에서는 **없는 셈** 치고(display:contents) 안의 단추가
@@ -535,6 +541,20 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 .enc-card.result h3 { margin: 6px 0; font-size: 20px; font-weight: 700; }
 .enc-card.result.good h3 { color: var(--gold); }
 .enc-card.result.bad h3 { color: var(--ink-dim); }
+
+/* 포획 성공/실패 — 결과 창이 뜨는 순간 한 번 더 갈린다(축2: 손맛) */
+.catchpop { animation: catchpop .45s cubic-bezier(.2,1.4,.4,1); }
+.catchpop .enc-big { animation: catchglow 1.1s ease-out .1s; }
+@keyframes catchpop {
+  0%   { transform: scale(.82); opacity: 0; }
+  60%  { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes catchglow {
+  0%   { filter: brightness(1) drop-shadow(0 0 0 rgba(255,215,100,0)); }
+  30%  { filter: brightness(1.6) drop-shadow(0 0 18px rgba(255,215,100,.85)); }
+  100% { filter: brightness(1) drop-shadow(0 0 0 rgba(255,215,100,0)); }
+}
 .quote { font-size: 12.5px; color: var(--ink-dim); font-style: italic; margin: 10px 0; line-height: 1.7; }
 .enc-reward { font-size: 12.5px; color: var(--good); margin: 12px 0; line-height: 1.8; }
 
