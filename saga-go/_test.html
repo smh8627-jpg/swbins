@@ -706,7 +706,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var hits = 0, guard = 0;
       while (!s.over && guard++ < 200) {
         var ev = RA.tick(s, 0.05, RA.MY_REACH() * 0.5);   // 늘 사거리 안
-        for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'quick') { hits++; } }
+        for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'quick' || ev[i].t === 'combo') { hits++; } }
       }
       return hits > 0 && s.dealt > 0 && s.hits === hits &&
         ('사거리 안 0.5×MY_REACH · 자동 공격 ' + hits + '회 · 낸 피해 ' + s.dealt);
@@ -778,6 +778,74 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return p.live && p.dealt > 0 && Math.abs(p.ratio - p.dealt / 1000000) < 1e-9 &&
         f.length > 0 && f.length <= 10 && sum === s.dealt &&
         ('rogue.js가 그대로 먹는 모양 · dealt=' + p.dealt + ' · fold ' + f.length + '덩이');
+    });
+
+    /* ── 전투를 더 잼나게 (2026-09-06, "몬스터헌터 나우처럼") ─────────
+     * 스태거(기절)·적 공격 패턴 다양화·연타 회심·차지 일격 넷을 도적전에 얹었다.
+     * 넷 다 `rogue-action.js`의 판정 층에만 있고 화면 없이 값으로 굴려 본다.
+     */
+    t('전투 손맛 — 스태거: 맞을수록 게이지가 차고, 다 차면 적 공격이 잠깐 멎는다', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 2000, myAtk: 500, myDef: 100000 });   // 사기가 커서 안 죽는다
+      var staggeredAt = -1, gotFoeActWhileStaggered = false, guard = 0;
+      while (!s.over && guard++ < 2000) {
+        var ev = RA.tick(s, 0.05, 0);          // 늘 붙어 있다
+        for (var i = 0; i < ev.length; i++) {
+          if (ev[i].t === 'stagger' && staggeredAt < 0) { staggeredAt = guard; }
+          if (staggeredAt >= 0 && s.staggered > 0 && (ev[i].t === 'hit' || ev[i].t === 'tell')) {
+            gotFoeActWhileStaggered = true;
+          }
+        }
+        if (staggeredAt >= 0 && s.staggered <= 0) { break; }
+      }
+      return staggeredAt >= 0 && s.staggerCount >= 1 && !gotFoeActWhileStaggered &&
+        ('틱 ' + staggeredAt + '에 기절 시작 · 기절 중 적 공격 0회');
+    });
+
+    t('전투 손맛 — 적 큰 공격은 두 번째부터 다른 패턴(반경·예고시간)으로 바뀐다', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 1e9, myAtk: 1, myDef: 1e9 });         // 내 피해 0 · 사기 무한급
+      var moves = [], guard = 0;
+      while (moves.length < 3 && guard++ < 20000) {
+        var ev = RA.tick(s, 0.05, RA.HEAVY_RANGE() * 5);               // 늘 멀리 — 전부 회피, tell만 본다
+        for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'tell') { moves.push(ev[i].move); } }
+      }
+      var m0 = RA.moveByKey(moves[0]), m1 = RA.moveByKey(moves[1]), m2 = RA.moveByKey(moves[2]);
+      return moves[0] === 'heavy' && moves[1] === 'charge' && moves[2] === 'sweep' &&
+        m1.range > m0.range && m2.tellSec > m0.tellSec &&
+        ('강타→돌진→휩쓸기 순 · 돌진 반경 ' + m1.range.toFixed(1) + 'm > 강타 ' + m0.range.toFixed(1) + 'm');
+    });
+
+    t('전투 손맛 — 다섯 번째 연타마다 회심이 터지고, 사거리 밖으로 물러나면 연타가 끊긴다', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 100000, myAtk: 1000, myDef: 1e9 });
+      var quickEvs = [], i;
+      for (i = 0; i < 5; i++) {
+        var ev = RA.tick(s, 0.35, 0);          // 쿨(0.35s)마다 딱 한 대씩, 계속 붙어 있다
+        for (var j = 0; j < ev.length; j++) { if (ev[j].t === 'quick' || ev[j].t === 'combo') { quickEvs.push(ev[j]); } }
+      }
+      var first = quickEvs[0], fifth = quickEvs[4];
+      for (i = 0; i < 5; i++) { RA.tick(s, 0.4, RA.MY_REACH() * 3); }   // 2초 동안 사거리 밖으로 물러난다
+      var ev2 = RA.tick(s, 0.35, 0);           // 다시 붙어 한 대
+      var afterGap = ev2.filter(function (e) { return e.t === 'quick' || e.t === 'combo'; })[0];
+      return quickEvs.length === 5 && fifth.t === 'combo' && fifth.combo === 5 &&
+        fifth.dmg > first.dmg * 1.3 && !!afterGap && afterGap.combo === 1 &&
+        ('5번째 회심 ' + fifth.dmg + ' (1번째 ' + first.dmg + ') · 물러난 뒤 연타 리셋 → ' + afterGap.combo);
+    });
+
+    t('전투 손맛 — 차지 일격은 시간이 지나야 나가고, 너무 멀면 소모만 되고 헛친다', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 100000, myAtk: 1000, myDef: 1e9 });
+      var notReady = RA.chargeAttack(s, 0);
+      var far = RA.HEAVY_RANGE() * 5, guard = 0;
+      while (s.charge < RA.CHARGE_MAX() && guard++ < 500) { RA.tick(s, 0.05, far); }
+      var whiff = RA.chargeAttack(s, far);
+      while (s.charge < RA.CHARGE_MAX() && guard++ < 1000) { RA.tick(s, 0.05, far); }
+      var hit = RA.chargeAttack(s, 0);
+      return !notReady.ok && notReady.reason === 'notready' &&
+        whiff.ok && whiff.whiffed === true && whiff.dmg === 0 &&
+        hit.ok && hit.dmg > 0 && !hit.whiffed &&
+        ('안 찼을 때 거부 · 멀면 헛침(그래도 소모) · 다 차고 붙으면 ' + hit.dmg + ' 피해');
     });
 
     t('교전 성과를 넘기면 토벌은 그 피해를 그대로 쓴다', function () {
@@ -3020,7 +3088,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var kinds = Object.keys(B3.KINDS);
       var cap = C.tuned('battle3d.pool', 48);
       var most = kinds.reduce(function (m, k) { return Math.max(m, B3.KINDS[k].n); }, 0);
-      return kinds.length === 5 && cap >= most * 2 && B3.pool.length === 0 &&
+      return kinds.length === 6 && cap >= most * 2 && B3.pool.length === 0 &&
         ('연출 ' + kinds.join('/') + ' · 한 번에 최대 ' + most + '개 · 창고 ' + cap +
          ' — 창고가 한 번 터뜨리는 양의 두 배는 된다');
     });

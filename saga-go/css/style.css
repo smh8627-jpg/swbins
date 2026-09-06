@@ -461,6 +461,8 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   visibility: hidden; opacity: 0; transition: opacity .12s;
 }
 #rogue-hud .ra-tell.show { visibility: visible; opacity: 1; animation: fade .12s ease-out; }
+#rogue-hud .ra-tell.stagger { background: rgba(255,224,102,.22); color: #ffe066; }
+#rogue-hud .ra-combo { text-align: center; min-height: 16px; font-weight: 700; color: #ffb454; }
 #rogue-hud .ra-pad { display: flex; gap: 8px; margin-top: 8px; }
 #rogue-hud .ra-pad .btn { flex: 1; pointer-events: auto; }
 
