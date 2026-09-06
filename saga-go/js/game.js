@@ -344,6 +344,7 @@
     global.DG.animal.tick();            // 들·강의 짐승 — 늑대가 붙으면 알린다
     global.DG.event.tick();             // 걷다가 만나는 사건 — 거리로 잰다
     global.DG.ambient.tick();           // 그 사이를 메우는 풍경·발자국(축1)
+    global.DG.milestone.tick();         // 이번 주 누적 거리 사다리(축1 다음 후보)
     global.DG.codex.tick();             // 지나가며 본 것에 도장을 찍는다
     if (!global.DG_NO_DRAW) {
       world.draw();

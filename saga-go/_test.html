@@ -95,6 +95,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/ambient.js"></script>
+<script src="js/milestone.js"></script>
 <script src="js/minimap.js"></script>
 <script src="js/overworld.js"></script>
 <script src="js/portrait3d.js"></script>
@@ -2885,6 +2886,61 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var off = AM.on();
       C.setTune('ambient.on', null);
       return off === false && AM.on() === true && 'ambient.on=0 이면 잠든다';
+    });
+
+    /* ── 주간 걷기 이정표 (milestone) — 축1 다음 후보, 2026-09-06 ─────
+     * `weekKey`·`rungs`·`weekWalked` 는 순수 함수(값을 읽기만 한다).
+     * `apply`(보상 지급)만 세이브를 바꾸므로 그것만 저장·복원한다.
+     */
+    var MS = DG.milestone;
+
+    t('이정표 — weekKey 는 월요일부터 일요일까지 같고, 다음 월요일은 다르다', function () {
+      var wed = MS.weekKey(new Date(2020, 0, 1));    // 2020-01-01 수요일
+      var sun = MS.weekKey(new Date(2020, 0, 5));    // 같은 주 일요일
+      var mon = MS.weekKey(new Date(2020, 0, 6));    // 다음 주 월요일
+      return wed === sun && wed !== mon && ('같은 주 "' + wed + '" · 다음 주 "' + mon + '"');
+    });
+
+    t('이정표 — 사다리는 이번 주 걸은 거리로만 채워진다 (순수)', function () {
+      var save0 = { week: MS.weekKey(), mark: 1000, got: [] };
+      var keep = C.save.milestone, d0 = C.save.player.distance;
+      C.save.milestone = save0; C.save.player.distance = 1000 + 3500;   // 이번 주 3500m
+      var rs = MS.rungs();
+      C.save.milestone = keep; C.save.player.distance = d0;
+      return rs[0].reach === true && rs[0].got === false && rs[1].reach === true &&
+        rs[2].reach === false && rs[2].pct === Math.round(3500 / 7000 * 100) &&
+        ('3500m → 1000m·3000m 단은 도달, 7000m 단은 ' + rs[2].pct + '%');
+    });
+
+    t('이정표 — 손잡이를 내리면 잠든다', function () {
+      C.setTune('milestone.on', 0);
+      var off = MS.on();
+      C.setTune('milestone.on', null);
+      return off === false && MS.on() === true && 'milestone.on=0 이면 잠든다';
+    });
+
+    t('이정표 — apply() 는 금·경험치·아이템을 그대로 준다', function () {
+      var g0 = C.save.player.gold, s0 = C.save.items.scroll;
+      var got = MS.apply({ gold: 50, exp: 80, scroll: 2 });
+      var ok = C.save.player.gold === g0 + 50 && C.save.items.scroll === s0 + 2 &&
+        got.gold === 50 && got.exp > 0 && got.items.length === 1;
+      C.save.player.gold = g0; C.save.items.scroll = s0;
+      return ok && ('🪙 +50 · 📜 +2 · 경험치 +' + got.exp);
+    });
+
+    t('이정표 — tick() 은 이번 주 거리가 문턱을 넘은 단만 한 번씩 준다', function () {
+      var keep = C.save.milestone, d0 = C.save.player.distance, g0 = C.save.player.gold;
+      C.save.milestone = { week: MS.weekKey(), mark: 0, got: [] };
+      C.save.player.distance = 1500;                 // 1000m 단만 넘는다
+      window.DG_NO_DRAW = false;
+      MS.tick();
+      var gold1 = C.save.player.gold, got1 = C.save.milestone.got.length;
+      MS.tick();                                      // 다시 불러도 또 안 준다
+      var gold2 = C.save.player.gold, got2 = C.save.milestone.got.length;
+      window.DG_NO_DRAW = true;
+      C.save.milestone = keep; C.save.player.distance = d0; C.save.player.gold = g0;
+      return gold1 === g0 + 50 && got1 === 1 && gold2 === gold1 && got2 === 1 &&
+        ('1000m 단 1회 지급(🪙 +' + (gold1 - g0) + '), 재호출은 그대로');
     });
 
     /* ── 전투 (PHASE 9) — 사건의 싸움을 교전 무대로 ───────────
