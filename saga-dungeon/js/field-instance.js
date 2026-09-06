@@ -93,6 +93,14 @@
     _axisY = new t.Vector3(0, 1, 0); _m1 = new t.Matrix4(); _m2 = new t.Matrix4();
   }
   function trs(t, out, x, y, z, rotY, sx, sy, sz) {
+    /* 2026-09-06 — `out`은 대개 호출부가 `_m1`/`_m2`를 인자로 넘긴 것인데,
+       그 값은 이 함수에 들어오기 **전에** 평가된다 — 세션에서 이 함수가
+       한 번도 안 불렸을 때(첫 인스턴싱)는 `_m1`/`_m2`가 아직 null이라
+       `out`도 null로 넘어와, 아래서 `scratch(t)`가 모듈 변수를 채워도 이미
+       넘어온 `out`은 그대로 null이라 `out.compose()`가 터졌다("인스턴싱
+       실패" 콘솔 에러). 호출부가 `_m1`/`_m2`를 인자로 평가하기 **전에**
+       미리 채워 둬야 한다 — buildFallback()/buildGlbGroup() 진입 시점에도
+       한 번 부른다(아래). 여기 이 줄은 그 안전망일 뿐이다(회귀 없음). */
     scratch(t);
     _pos.set(x, y, z);
     _quat.setFromAxisAngle(_axisY, rotY || 0);
@@ -140,6 +148,7 @@
   /** 폴백 상자를 인스턴싱한다 — 파트가 여럿(나무: 줄기·수관)이면 파트마다 하나씩 */
   function buildFallback(t, group, kind, list) {
     if (!list.length) { return; }
+    scratch(t);           // _m1/_m2를 미리 채운다 — 아래서 trs(t, _m1, ...)로 넘기기 전에
     var sample = fallbackParts(kind, list[0].h, list[0].s);
     var pi, i;
     for (pi = 0; pi < sample.length; pi++) {
@@ -160,6 +169,7 @@
 
   /** GLB 부위를 인스턴싱한다 — 파트(서브메시)마다 InstancedMesh 하나 */
   function buildGlbGroup(t, root, c, items) {
+    scratch(t);           // _m1/_m2를 미리 채운다 — 아래서 trs(t, _m1, ...)로 넘기기 전에
     var pi, i;
     for (pi = 0; pi < c.parts.length; pi++) {
       var part = c.parts[pi];

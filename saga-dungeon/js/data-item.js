@@ -51,17 +51,21 @@
     { key: 'w_byeongseo',slot: 'weapon', name: '병서',       main: 'command', base: 8,  look: 'scroll' },
 
     // ── 갑주 ──────────────────────────────────────────────
-    { key: 'a_jichap',   slot: 'armor',  name: '지갑',       main: 'command', base: 8 },
-    { key: 'a_pigap',    slot: 'armor',  name: '피갑',       main: 'command', base: 9 },
-    { key: 'a_chalgap',  slot: 'armor',  name: '찰갑',       main: 'command', base: 11 },
-    { key: 'a_dujeong',  slot: 'armor',  name: '두정갑',     main: 'command', base: 12 },
-    { key: 'a_dopo',     slot: 'armor',  name: '도포',       main: 'wisdom',  base: 9 },
+    // look(2026-09-06 추가) — 3D 화면(dungeon3d.js의 foeGear)이 갑주 tier를
+    // 상자 실루엣(가죽=갈색/판금=은회색)으로 구분해 그린다. stat/이름은 안 건드림.
+    { key: 'a_jichap',   slot: 'armor',  name: '지갑',       main: 'command', base: 8,  look: 'leather' },
+    { key: 'a_pigap',    slot: 'armor',  name: '피갑',       main: 'command', base: 9,  look: 'leather' },
+    { key: 'a_chalgap',  slot: 'armor',  name: '찰갑',       main: 'command', base: 11, look: 'plate' },
+    { key: 'a_dujeong',  slot: 'armor',  name: '두정갑',     main: 'command', base: 12, look: 'plate' },
+    { key: 'a_dopo',     slot: 'armor',  name: '도포',       main: 'wisdom',  base: 9,  look: 'leather' },
 
     // ── 투구(PLAN 30절, 2026-08-30 추가) ─────────────────────
     // 면갑·철립은 원래 갑주 칸에 있었다 — 이름부터 머리에 쓰는 것이라 옮겼다
-    { key: 'a_myeongap', slot: 'helm',   name: '면갑',       main: 'wisdom',  base: 8 },
-    { key: 'a_cheollip', slot: 'helm',   name: '철립',       main: 'might',   base: 7 },
-    { key: 'h_tumo',     slot: 'helm',   name: '투구',       main: 'command', base: 7 },
+    // look(2026-09-06 추가) — foeGear가 이미 그리는 'helmet' 표현(GLB+상자
+    // fallback)을 그대로 재사용한다.
+    { key: 'a_myeongap', slot: 'helm',   name: '면갑',       main: 'wisdom',  base: 8,  look: 'helmet' },
+    { key: 'a_cheollip', slot: 'helm',   name: '철립',       main: 'might',   base: 7,  look: 'helmet' },
+    { key: 'h_tumo',     slot: 'helm',   name: '투구',       main: 'command', base: 7,  look: 'helmet' },
 
     // ── 장갑(PLAN 30절) ───────────────────────────────────
     { key: 'g_wangap',   slot: 'glove',  name: '완갑',       main: 'might',   base: 5 },

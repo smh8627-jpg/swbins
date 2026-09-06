@@ -3238,6 +3238,77 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
     });
 
+    /* ── 장비 → 3D 겉모습 / 외모 커스텀(PLAN §28-8 후속, 2026-09-06) ── */
+
+    t('장비 — 갑주·투구 BASES에 look 필드가 있다', function () {
+      var BS = DG.itemData.BASES;
+      var byKey = {}; BS.forEach(function (b) { byKey[b.key] = b; });
+      return byKey.a_jichap.look === 'leather' && byKey.a_pigap.look === 'leather' &&
+        byKey.a_dopo.look === 'leather' && byKey.a_chalgap.look === 'plate' &&
+        byKey.a_dujeong.look === 'plate' &&
+        byKey.a_myeongap.look === 'helmet' && byKey.a_cheollip.look === 'helmet' &&
+        byKey.h_tumo.look === 'helmet' &&
+        '가죽 3·판금 2·투구 3';
+    });
+
+    t('장비 — meLookOf가 실제 장착한 무기·투구·갑주를 읽는다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+
+      var bare = D3._meLookOf(id);      // 맨몸 — 무기는 기본 sword, 투구·갑주는 none
+
+      var w = IT.roll(10, { base: 'w_wolto', tier: 0, unid: false });     // 월도 → guandao
+      var h = IT.roll(10, { base: 'h_tumo', tier: 0, unid: false });      // 투구 → helmet
+      var a = IT.roll(10, { base: 'a_chalgap', tier: 0, unid: false });   // 찰갑 → plate
+      C.save.gear.bag.push(w, h, a);
+      IT.equip(id, w.uid); IT.equip(id, h.uid); IT.equip(id, a.uid);
+      var geared = D3._meLookOf(id);
+
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return bare.weapon === 'sword' && bare.helm === 'none' && bare.armor === 'none' &&
+        geared.weapon === 'guandao' && geared.helm === 'helmet' && geared.armor === 'plate' &&
+        ('맨몸 ' + JSON.stringify(bare) + ' → 장착 후 ' + JSON.stringify(geared));
+    });
+
+    t('외모 — freshSave에 appearance가 있고 styleSeed:0은 옛 모습과 100% 같다', function () {
+      var ap = C.save.appearance;
+      var before = C.save.appearance;
+      C.save.appearance = { styleSeed: 0, tint: null };
+      var p0 = D3._meRenderParams();
+      C.save.appearance = { styleSeed: 3, tint: '#4f8fc9' };
+      var p3 = D3._meRenderParams();
+      C.save.appearance = before;
+      return !!ap && ap.styleSeed === 0 && ap.tint === null &&
+        p0.seed === 'me' && p0.tint === null &&        // 0이면 리터럴 'me' — 회귀 없음
+        p3.seed === 'me:15' && p3.tint === 0x4f8fc9 &&  // QRPG_SEEDS[2] — 안전한 표에서만 고른다
+        ('styleSeed 0 → 시드 ' + p0.seed + ' · 3 → ' + p3.seed + '/#' + p3.tint.toString(16));
+    });
+
+    t('외모 — styleSeed는 QRPG(안전) 여섯 자리만 고른다(MPFB 실사 쪽은 안 감)', function () {
+      /* 2026-09-06 — styleSeed:3('me:3')가 실제로 asset3d.js의 MPFB
+         레시피(mpfb_female)를 골라 헤드리스 3D 렌더러가 죽는 게 CDP로
+         재현됐다 — QRPG_SEEDS 표로 갈아 끼운 뒤 다시 확인한다. */
+      var before = C.save.appearance;
+      var seen = {}, i, ok = true;
+      for (i = 1; i <= 6; i++) {
+        C.save.appearance = { styleSeed: i, tint: null };
+        var p = D3._meRenderParams();
+        if (p.seed === 'me' || seen[p.seed]) { ok = false; }
+        seen[p.seed] = true;
+      }
+      C.save.appearance = before;
+      return ok && Object.keys(seen).length === 6 &&
+        ('여섯 자리 전부 서로 다르고 기본과도 다르다 · ' + Object.keys(seen).join(','));
+    });
+
+    t('외모 — 값을 내도 세이브는 그대로다', function () {
+      var before = JSON.stringify(C.save);
+      D3._meLookOf(C.save.party[0]);
+      D3._meRenderParams();
+      return JSON.stringify(C.save) === before && '세이브 한 칸도 안 바뀐다';
+    });
+
     /* ── 들판 (field3d) — 3D 전환 2단계 ─────────────────────
      * PLAN 4·5·6절. **전부 순수 함수**라 화면 없이 값으로 다 본다 —
      * 씨앗이 같으면 같은 세상인가 · 조각이 몇이나 되는가 · 방 안은 평평한가.

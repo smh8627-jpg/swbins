@@ -325,6 +325,16 @@
         global.DG.auto.toggle();
       } else if (act === 'auto-flag') {
         global.DG.auto.toggleFlag(b.getAttribute('data-flag'));
+      } else if (act === 'look-style') {
+        core.save.appearance.styleSeed = parseInt(b.getAttribute('data-n'), 10) || 0;
+        if (global.DG.dungeon3d) { global.DG.dungeon3d.refreshMe(); }
+      } else if (act === 'look-tint') {
+        core.save.appearance.tint = b.getAttribute('data-hex');
+        if (global.DG.dungeon3d) { global.DG.dungeon3d.refreshMe(); }
+      } else if (act === 'look-reset') {
+        core.save.appearance.styleSeed = 0;
+        core.save.appearance.tint = null;
+        if (global.DG.dungeon3d) { global.DG.dungeon3d.refreshMe(); }
       } else { return; }
       core.persist(); renderSheet(); renderTop(); renderCamp();
     }
@@ -420,7 +430,7 @@
 
   var SHEET_TITLE = {
     party: '⚔️ 부대', gear: '🎒 장비', craft: '🔨 세공', skill: '📜 무예', vendor: '\uD83E\uDDFA 행상', dex: '📖 도감', log: '📜 기록', world: '🗺️ 월드맵',
-    quest: '🚩 퀘스트'
+    quest: '🚩 퀘스트', look: '🧑 외모'
   };
 
   /* 세공에서 지금 고른 재료 (화면 상태라 세이브에 남기지 않는다) */
@@ -476,7 +486,8 @@
           : openTab === 'skill' ? viewSkill()
           : openTab === 'dex' ? viewDex()
           : openTab === 'world' ? viewWorldMap()
-          : openTab === 'quest' ? viewQuest() : viewLog();
+          : openTab === 'quest' ? viewQuest()
+          : openTab === 'look' ? viewLook() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 
@@ -1170,6 +1181,40 @@
                    : '<div class="hint">칸을 하나 누르면 그 물건의 쪽지가 뜹니다.</div>';
 
     return html + '</div>';
+  }
+
+  /* ── 외모(2026-09-06) — 플레이어 본인 3D 아바타 커스텀 ─────
+   * `core.save.appearance = {styleSeed, tint}` 를 고르면
+   * `dungeon3d.js`의 `'me'` 배우가 그 시드/색으로 다시 지어진다.
+   * styleSeed 0(기본)은 지금까지의 고정 모습 그대로다.
+   * 1~6 은 `dungeon3d.js`의 `QRPG_SEEDS` 여섯 자리(전사·순찰자·도적·
+   * 사제·마법사·수도승 몸)만 내준다 — 실사풍(MPFB) 쪽은 색도 안 먹고
+   * (dungeon3d.js 주석 참고) 실기기 확인 중 렌더러가 죽는 조합이 있어
+   * 뺐다. 그래서 "색이 안 먹을 수 있다"는 캐벗도 필요 없어졌다. */
+  var LOOK_STYLE_NAMES = ['기본', '전사', '순찰자', '도적', '사제', '마법사', '수도승'];
+  var LOOK_TINTS = ['#c94f4f', '#4f8fc9', '#4fc98f', '#c9a04f', '#8f4fc9', '#5a5a62'];
+
+  function viewLook() {
+    var ap = core.save.appearance || { styleSeed: 0, tint: null };
+    var i, html = '<div class="sec"><h4>🧑 외모</h4>' +
+      '<div class="hint">내 3D 모습(몸·옷 조합)을 고른다. 장비 겉모습과는 별개다.</div>';
+
+    html += '<div class="bagtools">';
+    for (i = 0; i < LOOK_STYLE_NAMES.length; i++) {
+      html += '<button class="btn tiny' + ((ap.styleSeed || 0) === i ? ' primary' : ' ghost') +
+        '" data-act="look-style" data-n="' + i + '">' + LOOK_STYLE_NAMES[i] + '</button>';
+    }
+    html += '</div>';
+
+    html += '<div class="bagtools">';
+    for (i = 0; i < LOOK_TINTS.length; i++) {
+      var hex = LOOK_TINTS[i];
+      html += '<button class="btn tiny' + (ap.tint === hex ? ' primary' : ' ghost') +
+        '" style="background:' + hex + '" data-act="look-tint" data-hex="' + hex + '">&nbsp;</button>';
+    }
+    html += '<button class="btn tiny ghost" data-act="look-reset">↺ 초기화</button>' +
+      '</div></div>';
+    return html;
   }
 
   /* ── 무예(武藝) — 원작의 직업과 스킬 트리 ─────────────────

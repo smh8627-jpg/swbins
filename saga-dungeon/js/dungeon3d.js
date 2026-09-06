@@ -1448,7 +1448,55 @@
     var base = IT.baseOf(w);
     return (base && base.look) || 'sword';
   }
-  function meWeaponLook() { return weaponLookOf(); }
+  /* 2026-09-06 — 투구·갑주도 weaponLookOf와 같은 요령으로 읽는다. 없거나
+     부서졌으면 'none'(foeGear는 'none'이면 아무 것도 안 그린다). */
+  function helmLookOf(id) {
+    var core = global.DG.core, IT = global.DG.item;
+    if (!core || !IT || !core.save || !core.save.party) { return 'none'; }
+    id = id || core.save.party[0];
+    if (!id) { return 'none'; }
+    var h = IT.equipped(id).helm;
+    if (!h || IT.isBroken(h)) { return 'none'; }
+    var base = IT.baseOf(h);
+    return (base && base.look) || 'none';
+  }
+  function armorLookOf(id) {
+    var core = global.DG.core, IT = global.DG.item;
+    if (!core || !IT || !core.save || !core.save.party) { return 'none'; }
+    id = id || core.save.party[0];
+    if (!id) { return 'none'; }
+    var a = IT.equipped(id).armor;
+    if (!a || IT.isBroken(a)) { return 'none'; }
+    var base = IT.baseOf(a);
+    return (base && base.look) || 'none';
+  }
+  /** 무기+투구+갑주를 한 번에 — foeGear(look) 한 번으로 셋 다 그리게 넘긴다 */
+  function meLookOf(id) {
+    return { weapon: weaponLookOf(id), helm: helmLookOf(id), armor: armorLookOf(id) };
+  }
+  /* 2026-09-06 — 외모 커스텀(`core.save.appearance = {styleSeed, tint}`).
+     styleSeed:0(기본값·옛 세이브)은 시드를 지금까지처럼 리터럴 'me'로 둬
+     회귀 없음. 1 이상은 `'me:'+styleSeed`를 그대로 해시하지 않고 **미리
+     검증한 시드 표(QRPG_SEEDS)만 고른다** — `asset3d.js`의 `oneOf()`가
+     26종 레시피(QRPG 6·MPFB 실사 20종) 중 하나를 해시로 고르는데, 여기서
+     MPFB 쪽(`mpfb_female` 등)이 걸리면 실기기 확인 중 CDP 헤드리스에서
+     렌더러가 그대로 죽는 게 실제로 재현됐다(GPU 프로세스 강제 종료,
+     `retargetInto()` 골격 재배치 쪽 문제로 보이나 원인까지는 못 좁혔다).
+     QRPG 6종은 이미 매 프레임 안전하게 도는 몸(무기·투구·갑주 다 이 위에
+     얹는다)이고 tint 도 이쪽에만 먹으므로("일부 스타일엔 색이 안 먹을 수
+     있음" 캐벗을 아예 없앤다), 커스텀 화면은 이 여섯만 내준다.
+     QRPG_SEEDS[i] 문자열은 `'me:'+i`가 아니라, `oneOf()`의 해시가 실제로
+     QRPG 인덱스(0~5)에 떨어지는 걸 미리 찾아 둔 값이다(PowerShell로
+     `h=(h*31+charCode)&0xFFFFFFFF; h%26`을 손으로 굴려 확인) — 문자열이
+     안 예뻐 보여도 바꾸면 다른 레시피로 튄다, 손대지 말 것. */
+  var QRPG_SEEDS = ['me:0', 'me:1', 'me:15', 'me:16', 'me:17', 'me:18'];
+  function meRenderParams() {
+    var core = global.DG.core;
+    var ap = (core && core.save && core.save.appearance) || {};
+    var n = ap.styleSeed || 0;
+    var seed = (n >= 1 && n <= QRPG_SEEDS.length) ? QRPG_SEEDS[n - 1] : 'me';
+    return { seed: seed, tint: hexOf(ap.tint, null) };
+  }
   function npcShape(nc) {
     var sg = new T.Group();
     box(sg, 0, 15, 0, 13, 20, 10, nc, 'flat', true);
@@ -1577,6 +1625,21 @@
     var woodcol = 0x5a4a34;
     var AS3 = AS();
     attachWeapon(g, look.weapon, handX, handZ, shoulderY, r);
+    /* 2026-09-06 — 갑주(tier). data-item.js/data-enemy.js에 `look.armor`
+       필드는 있었지만 여태 아무도 안 그렸다(적도 플레이어도) — 실제 갑주
+       GLB가 없으니 몸통을 감싸는 색 다른 상자로 "가죽/판금" 실루엣 신호만
+       준다. 나중에 진짜 갑주 GLB를 구하면 이 키(`gear:armor:*`)로 등록만
+       하면 AS3.build가 자동으로 갈아 끼운다. */
+    if (look.armor === 'leather' || look.armor === 'plate') {
+      var armMul = hh * 0.62;
+      var armFallback = function () {
+        var sg = new T.Group();
+        var acol = look.armor === 'plate' ? 0x8a8f9a : 0x5a4632;
+        box(sg, 0, armMul * 0.5, 0, r * 1.3, armMul, r * 1.15, acol, 'flat', true);
+        return sg;
+      };
+      wornGear('gear:armor:' + look.armor, armMul, hh * 0.12, armFallback);
+    }
     /* 2026-09-05 — 투구(`helmet`)·왕관(`crown`)을 실사화(poly.pizza). 모자·
        망토류는 칼·창과 달리 몸을 **가운데(또는 제자리)** 두고 걸치는
        물건이라(활과 같은 사정), `normalize()`가 바닥을 y=0 에 두는 규약과
@@ -1750,28 +1813,31 @@
       return g;
     }
     if (kind === 'me') {
-      var meBody = AS3 ? AS3.buildHero('me', 42, null, meShape) : meShape();
+      var meParams = meRenderParams();
+      var meBody = AS3 ? AS3.buildHero(meParams.seed, 42, meParams.tint, meShape) : meShape();
       g.add(meBody);
       g.userData.mixerNode = meBody;
       /* 2026-09-05 — 플레이어 본인도 실제 장착 무기를 손에 든다. `meShape()`의
          칼은 GLB 로딩 중에만 보이는 placeholder라(`buildHero`가 다 실리면
          그 도형째로 지워 버린다), 몸이 실제로 갈아 끼워진 뒤에도 무기가
-         남으려면 `foeGear()`처럼 `g`(바깥 껍데기)에 **따로** 얹어야 한다 —
-         몬스터와 같은 `attachWeapon()`을 쓴다. r·hh 는 보스급 적과 같은 값
-         (12·31.2)을 썼다 — 플레이어 몸 높이(mul=42)가 `foeBody`의 계산식
-         (`hh+r*0.95`)을 거꾸로 풀면 그 근방이다 */
-      attachWeapon(g, meWeaponLook(), 12 * 1.05, 12 * 0.25, 31.2 * 0.68, 12);
+         남으려면 `foeGear()`처럼 `g`(바깥 껍데기)에 **따로** 얹어야 한다.
+         r·hh 는 보스급 적과 같은 값(12·31.2)을 썼다 — 플레이어 몸 높이
+         (mul=42)가 `foeBody`의 계산식(`hh+r*0.95`)을 거꾸로 풀면 그 근방이다.
+         2026-09-06 — 무기만 걸치던 `attachWeapon()` 단독 호출을 `foeGear()`
+         로 바꿔 투구·갑주(`meLookOf()`, `js/item.js`의 실제 장착 상태 기준)
+         도 같이 두른다(`foeGear`가 내부에서 `attachWeapon`을 이미 부른다). */
+      foeGear(g, meLookOf(), 31.2, 12, null);
       return g;
     }
     if (kind === 'ally') {
       /* 동행(同行, PLAN §51) — 부대 2번째 인물. 'me'와 같은 몸(buildHero) ·
-         무기(attachWeapon) 조립이지만, seed를 그 인물 id로 박아 선두와
+         장비(foeGear) 조립이지만, seed를 그 인물 id로 박아 선두와
          다른 조합(생김새)이 나오게 한다 — `npc:'+key`와 같은 요령이다. */
       var allyId = (ref && ref.id) || 'ally';
       var allyBody = AS3 ? AS3.buildHero('ally:' + allyId, 42, null, meShape) : meShape();
       g.add(allyBody);
       g.userData.mixerNode = allyBody;
-      attachWeapon(g, weaponLookOf(allyId), 12 * 1.05, 12 * 0.25, 31.2 * 0.68, 12);
+      foeGear(g, meLookOf(allyId), 31.2, 12, null);
       return g;
     }
     var r = (ref && ref.r) || 12;
@@ -2235,6 +2301,13 @@
     /** PLAN §28-8 후속 — render()가 실제로 프리페치를 걸었는지(단순 순수
      *  함수 계산이 아니라 render() 안에서 진짜 불렀는지) 자가진단이 본다 */
     _prefetchedTownIds: function () { return Object.keys(prefetchedTowns); },
-    _texCached: function (url) { return !!rawTexCache[url]; }
+    _texCached: function (url) { return !!rawTexCache[url]; },
+    /** 자가진단용 — 장비→겉모습(look) 순수 함수 (PLAN §28-8 후속) */
+    _weaponLookOf: weaponLookOf, _helmLookOf: helmLookOf, _armorLookOf: armorLookOf,
+    _meLookOf: meLookOf, _meRenderParams: meRenderParams,
+    /** 외모 커스텀 화면 전용 — 'me' 배우는 매 프레임 "이번에도 보였나"만
+     *  체크하고(sweep()) 다시 안 지어지므로(장비 갈아입어도 같다, 알려진
+     *  한계), 스타일/색을 고른 직후에만 이걸로 명시적으로 다시 짓는다. */
+    refreshMe: function () { delete actors['me']; }
   };
 })(window);

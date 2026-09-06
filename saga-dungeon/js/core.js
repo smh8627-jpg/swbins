@@ -52,6 +52,10 @@
          것과 같은 이유, 새 세이브는 그냥 기본값). `seen` 은 Phase 2(자동
          지도 포그오브워) — 밝힌 들판 칸을 "cx,cz" 키로 쌓는다. */
       town: { current: 'moru', pos: null, seen: {} },
+      /* 외모 커스텀(2026-09-06) — styleSeed:0 은 지금까지의 고정 모습과
+         100% 같다(`dungeon3d.js`가 0이면 시드를 'me' 그대로 쓴다, 회귀
+         없음). tint:null 은 GLB 제 색 그대로(칠 안 함). */
+      appearance: { styleSeed: 0, tint: null },
       /* 확장(js/_expansion) 필드는 각 모듈이 스스로 만들고,
          옛 세이브의 값(gear·battle·dungeon 등)은 mergeDeep 이 보존한다.
          경영(territory·build)은 게임에서 뺐다 — 옛 세이브에 남아 있어도 아무도 읽지 않는다. */

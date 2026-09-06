@@ -2001,6 +2001,80 @@ Phase 1~4 완료, 이어지는 세션)
 
 `sw.js` → `dungeon-v0.72.0`.
 
+**후속(새 세션, 2026-09-06) — 백로그 "장비 착용 시 겉모습 변화(디아블로식)"·
+"캐릭터 커스텀 확장"을 함께 처리. 완료.**
+
+사용자가 §28-8 다음 세션에서 확인하기로 미뤄 둔 백로그 중 이 둘을 골랐다.
+조사해 보니 이 판엔 **둘 다 전혀 없었다** — 플레이어 3D 모델은 장착 무기만
+반영했고(`weaponLookOf`), 투구·갑주·외모(스타일·색)는 손대는 자리가 아예
+없었다. 렌더링 어휘(`foeGear()`의 `look:{weapon,helm,cape}`)는 몬스터
+쪽에 이미 있어 재사용했다.
+
+- **장비 → 겉모습.** `data-item.js`의 갑주 BASES에 `look:'leather'|'plate'`
+  (지갑·피갑·도포=가죽, 찰갑·두정갑=판금), 투구 BASES에 `look:'helmet'`
+  을 필드만 추가(id·name 안 건드림). `dungeon3d.js`에 `helmLookOf`·
+  `armorLookOf`·`meLookOf`(무기+투구+갑주를 한 번에)를 `weaponLookOf`
+  옆에 더하고, `buildActor()`의 `'me'`·`'ally'` 분기가 `attachWeapon()`
+  단독 호출 대신 `foeGear(g, meLookOf(id), 31.2, 12, null)` 하나로 셋을
+  같이 두르게 바꿨다. `foeGear()`엔 `look.armor`용 새 갈래를 추가했다
+  — 지금까지 이 필드는 데이터에만 있고 적도 플레이어도 아무도 안
+  그리던 사각지대였다. 실제 갑주 GLB가 없어 몸통을 감싸는 색 다른
+  상자(가죽=갈색·판금=은회색)로 시작한다(`gear:armor:*` 키로 등록만
+  하면 나중에 `AS3.build`가 자동으로 GLB로 갈아 낀다).
+- **외모 커스텀.** `core.js`의 `freshSave()`에 `appearance:{styleSeed:0,
+  tint:null}` 추가(`mergeDeep`이 옛 세이브를 자동 이관, `town.pos`
+  때와 같은 안전망). `dungeon3d.js`의 `'me'` 시드가 리터럴 `'me'`
+  고정이던 것을 `meRenderParams()`로 뽑아 `appearance`를 읽게 했다.
+  **밟은 함정** — 처음엔 `styleSeed` 정수를 그대로 `'me:'+N`으로 이어
+  `asset3d.js`의 `oneOf(REG['hero'], seed)`(26종 레시피: QRPG 6·MPFB
+  실사 20)에 해시로 맡겼는데, `'me:3'`이 고른 `mpfb_female`에서 CDP
+  헤드리스 3D 렌더러가 실제로 죽었다(GPU 프로세스 강제 종료, 원인은
+  `retargetInto()` 골격 재배치 쪽으로 보이나 끝까지 못 좁혔다 — 실기기
+  에서도 그런지는 미확인). tint(색)도 MPFB 실사 몸엔 애초에 안 먹는다
+  (`assembleHero()`가 건너뛴다) — 위험을 감수할 이유가 없어, PowerShell
+  로 해시(`h=(h*31+charCode)&0xFFFFFFFF; h%26`)를 손으로 굴려 QRPG
+  인덱스(0~5)에 떨어지는 시드 여섯 개(`'me:0'·'me:1'·'me:15'·'me:16'·
+  'me:17'·'me:18'`)를 미리 찾아 `QRPG_SEEDS` 표로 못박았다. 커스텀
+  화면은 이제 이 여섯(전사·순찰자·도적·사제·마법사·수도승)만 내준다
+  — 전부 색도 제대로 먹어 "일부 스타일엔 색이 안 먹을 수 있다"던
+  캐벗도 필요 없어졌다. `styleSeed:0`(기본·옛 세이브)은 리터럴 `'me'`
+  그대로라 회귀 없음. `ui.js`에 새 시트 탭 "🧑 외모"(스타일 7개·색
+  6개·초기화)를 더했다(`SHEET_TITLE`·`renderSheet()`·`handleAct()`·
+  `index.html`의 dock-more 버튼). `dungeon3d.js`에 `refreshMe()`를
+  내보내 커스텀 화면에서 고르면(액터 캐시 삭제) 바로 반영된다 — 장비는
+  이 우회가 없어 무기 때와 같은 "장면 재진입 전엔 안 바뀜" 한계가
+  그대로 남는다(새로 생긴 문제 아님).
+- **덤으로 잡은 회귀 — `field-instance.js`의 "인스턴싱 실패" 콘솔
+  에러.** 이 세션과 무관한(안 건드린 파일) 기존 버그였는데, 사용자가
+  실제 플레이 중 콘솔에서 마주쳐 같이 고쳤다. `trs(t, out, ...)`가
+  `out`(보통 `_m1`/`_m2`)을 채우는 `scratch(t)`를 **자기 안에서** 불렀는
+  데, 호출부의 `trs(t, _m1, ...)`는 `_m1`을 **함수에 들어오기 전에**
+  이미 평가한다 — 세션 최초의 나무·바위 인스턴싱(그 `_m1`이 아직 null)
+  에서 딱 한 번 `out.compose()`가 터지는 함정이었다(그 뒤로는 `_m1`이
+  채워져 안 터진다). `buildFallback()`/`buildGlbGroup()` 진입 시점에
+  `scratch(t)`를 미리 부르게 고쳐 근본적으로 막았다.
+- **검증** — `_test.html`에 항목 다섯 추가(갑주·투구 look 필드·
+  `meLookOf`가 실제 장착 상태를 읽는지·`appearance` 기본값과
+  styleSeed:0 회귀 없음·styleSeed가 QRPG 표만 고르는지·값을 내도
+  세이브는 그대로인지) — **275/275** 3회 동일, `_admin.html?selftest`
+  **ADMIN 12/12**, 콘솔 에러 0. CDP 3D 스크린샷(`_demo.html#me3d`·
+  `#me3d-plate`)으로 가죽/판금 갑주가 실제로 다른 색으로 걸쳐 보이는
+  것까지 확인했다 — `#me3d-style`(QRPG 표 고친 뒤)은 헤드리스 환경
+  자체가 그 시점부터 반복 실행으로 불안정해져(진짜 크롬 강제 종료를
+  두 번 했다 — 사용자의 실제 플레이 창까지 같이 닫혔을 위험이 있다,
+  다음엔 `taskkill /F /IM chrome.exe` 대신 이번에 띄운 PID만 골라
+  죽일 것) 재확인은 못 했다 — 로직(해시 계산)은 검증했지만 실제 3D
+  스크린샷으로는 다음 세션이 이어서 볼 것.
+- `_demo.html`에 `#me3d`(플레이어 본인 장비→겉모습·외모 확인 전용
+  QA 장면, `#gear3d`와 같은 결) 새로 추가 — 접미사 `-plate`·`-style`.
+- **다음에 이어받을 것** — (1) `#me3d-style` CDP 스크린샷 재확인,
+  (2) MPFB 실사 몸 20종을 언젠가 커스텀에 넣고 싶다면 먼저 왜
+  `mpfb_female`(+어쩌면 다른 몇 종)에서 렌더러가 죽었는지 원인을
+  좁힐 것(`retargetInto()` 의심), (3) 갑주 실물 GLB를 구하면
+  `gear:armor:leather`/`gear:armor:plate` 키로 등록만 하면 된다.
+
+`sw.js` → `dungeon-v0.73.0`.
+
 ---
 
 # 29. 콘텐츠 루프

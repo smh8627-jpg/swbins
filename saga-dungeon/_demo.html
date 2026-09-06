@@ -14,6 +14,8 @@
     #loot  바닥에 떨어진 것(등급색 이름표)
     #fx    전투 연출 아홉 가지(3D · 정지 화면)
     #gear3d 몬스터 장구(투구·왕관·망토) 여덟 결(3D · 정지 화면, 밝게·넓게)
+    #me3d  플레이어 본인 장비→겉모습(갑주 tier)·외모 커스텀(스타일·색) 확인
+           (3D · 정지 화면) — 접미사: -plate(판금+투구+월도) · -style(스타일3+청색)
     #vendor 행상(사다)   #gamble 투전   #buyback 되사기   #forge 연단   #skill 무예
     #gear  장비                 #party 부대   #dex 도감   #log 기록
     #world 월드맵                #quest 퀘스트
@@ -386,6 +388,53 @@ setTimeout(function () {
       var s3 = DG.dungeon3d.stats();
       sb.textContent = '3D ' + (s3.none ? 'off(failed=' + s3.failed + ')' : 'on mesh=' + s3.drawn) +
         ' · gear3d 여덟 자리(왼쪽부터: ' + GEAR_GALLERY.map(function (g) { return g.label; }).join(' · ') + ')';
+    }, 40);
+  }
+  else if (tab === 'me3d') {
+    /* 플레이어 본인 장비→겉모습·외모 커스텀 확인(2026-09-06, PLAN §28-8 후속).
+       #gear3d 는 몬스터 ref.look 을 직접 조작해 흉내 낸 것이지만, 여기서는
+       **진짜 IT.equip() 경로**로 party[0]에게 실제 장비를 입혀
+       dungeon3d.js의 meLookOf()/foeGear()가 실전과 똑같이 그리는지 본다.
+       -plate: 판금 갑주+투구+월도(guandao) · -style: 외모 스타일3+청색 tint
+       (기본 #me3d 는 가죽 갑주+투구+환도, 스타일0=옛 모습 그대로) */
+    var variant = hash.split('-')[1] || '';
+    var leadId = C.save.party[0];
+    var wKey = variant === 'plate' ? 'w_wolto' : 'w_hwando';
+    var aKey = variant === 'plate' ? 'a_chalgap' : 'a_pigap';
+    var mw = IT.roll(20, { base: wKey, tier: 2, unid: false });
+    var ma = IT.roll(20, { base: aKey, tier: 2, unid: false });
+    var mh = IT.roll(20, { base: 'h_tumo', tier: 2, unid: false });
+    IT.add(mw); IT.add(ma); IT.add(mh);
+    IT.equip(leadId, mw.uid); IT.equip(leadId, ma.uid); IT.equip(leadId, mh.uid);
+    if (variant === 'style') { C.save.appearance = { styleSeed: 3, tint: '#4f8fc9' }; }
+
+    DN.enter({ floor: 14, mode: 'hard' });
+    var rung3 = DN.raw();
+    rung3.room.enemies.length = 0;
+    rung3.player.x = 300; rung3.player.y = 300; rung3.player.invuln = 999;
+    rung3.hp = rung3.hpMax;
+    DG.dungeon3d.set('dg3d.dark', 0.02);
+    DG.dungeon3d.set('dg3d.zoom', 0.75);   // 가까이 당겨 몸에 걸친 것을 크게 본다
+
+    setInterval(function () {
+      rung3.player.x = 300; rung3.player.y = 300; rung3.player.invuln = 999;
+      rung3.hp = rung3.hpMax;
+      DG.dungeonView.update(0.05);
+      DG.dungeonView.draw();
+
+      var sb2 = document.getElementById('fx-stat');
+      if (!sb2) {
+        sb2 = document.createElement('div');
+        sb2.id = 'fx-stat';
+        sb2.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:9999;max-width:90vw;' +
+          'padding:4px 7px;background:#000b;color:#cfe;border-radius:6px;' +
+          'font:600 10px ui-monospace,Consolas,monospace;white-space:pre-wrap';
+        document.body.appendChild(sb2);
+      }
+      var s4 = DG.dungeon3d.stats();
+      sb2.textContent = '3D ' + (s4.none ? 'off(failed=' + s4.failed + ')' : 'on mesh=' + s4.drawn) +
+        ' · me3d[' + (variant || 'default') + '] look=' + JSON.stringify(DG.dungeon3d._meLookOf(leadId)) +
+        ' appearance=' + JSON.stringify(C.save.appearance);
     }, 40);
   }
   else if (tab === 'forge') {
