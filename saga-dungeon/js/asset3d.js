@@ -56,6 +56,14 @@
     var f = PEOPLE_QRPG + n + '.glb';
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
+  /* 2026-09-07 — 마을 하나에 사람(NPC·동행)이 여럿 서는데, 아래에서 HERO_RECIPES
+     에 MPFB 실사 스무 벌(파일당 3.5~4.3MB, 제 클립이 없어 7.6MB ANIM_SRC 리타깃까지
+     끼얹는다)이 얹히면 사람마다 서로 다른 그 무거운 파일을 하나씩 새로 받으러
+     간다 — 모바일 LTE에서 "느리다" 신고의 실제 몸통. 이 여섯 벌(QRPG, 파일당
+     1.6~2.1MB·제 클립 내장)만 따로 쥐어 두고, NPC·동행은 여기서만 고른다(아래
+     heroRecipe 참고). 플레이어(me)·초상(portrait3d)·단독 몬스터는 그대로 스무여섯
+     벌 전부에서 고른다 — 한 장면에 하나뿐이라 무거워도 감당된다. */
+  var HERO_RECIPES_LIGHT = HERO_RECIPES.slice();
 
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
@@ -127,6 +135,7 @@
 
   var DEFAULTS = {
     'hero': HERO_RECIPES,
+    'hero_light': HERO_RECIPES_LIGHT,
     'beast': ANIMALS + 'Wolf.glb',
     /* 2026-09-05 — 여태 "딱 맞는 코끼리는 CC0 로 못 찾았다"고 적어 뒀던 대역(소)을
        진짜 코끼리로 갈아 끼운다. poly.pizza 가 이 판에서 완전히 열린 지(위 "도감
@@ -420,13 +429,22 @@
     if (v && typeof v === 'object') { return v.key || null; }
     return v;
   }
+  /* NPC·동행은 가벼운 표(hero_light)에서만 고른다 — 위 HERO_RECIPES_LIGHT 주석 참고.
+     플레이어(me)·초상·foe 등 그 밖 씨앗은 그대로 전체 표(hero)를 쓴다. */
+  function heroKindFor(seed) {
+    var s = String(seed || '');
+    return (s.indexOf('npc:') === 0 || s.indexOf('ally:') === 0) ? 'hero_light' : 'hero';
+  }
   function heroRecipe(seed) {
-    var h = lookup('hero');
+    var h = lookup(heroKindFor(seed));
     if (!h) { return null; }
     var v = oneOf(h.url, seed);
     return (v && typeof v === 'object' && v.body) ? v : null;
   }
-  function wants(kind, seed) { return GLB_ON() && !!urlOf(kind, seed); }
+  function wants(kind, seed) {
+    var k = (kind === 'hero') ? heroKindFor(seed) : kind;
+    return GLB_ON() && !!urlOf(k, seed);
+  }
 
   /* ── 애니메이션 이름 맞추기 — 사가고와 같은 요령 ─────── */
   var SLOTS = ['idle', 'walk', 'run', 'sprint', 'attack', 'hit', 'dodge', 'death', 'interaction'];
@@ -838,6 +856,11 @@
       if (cache[urls[i]].state === 'fail') { o.failed++; }
     }
     o.loader = !!loader();
+    /* 로딩 표시(ui.js)가 쓴다 — cache 에 실제로 오른 URL 개수(GLB 파일 수) 대비
+       도착(ok·fail 합)한 개수. `registered` 는 REG 의 종류 수(가구·나무… 이름표
+       개수)라 파일 진행률과는 다른 값이다. */
+    o.total = urls.length;
+    o.pending = urls.length - o.loaded - o.failed;
     return o;
   }
 

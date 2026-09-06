@@ -40,6 +40,10 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <!-- 자동 순회 상태 -->
 <div id="autobar"></div>
 
+<!-- 마을 3D 자산(GLB) 로딩 표시 — 모바일 LTE 에서 집·사람 모델이 다 실리기 전엔
+     플레이스홀더 도형만 서 있어 "화면이 깨졌다"로 보였다(실기기 신고) -->
+<div id="loadbar"></div>
+
 <!-- 가운데: 본영/마을 — 기본은 필드를 도는 화면이고, 던전(굴혈)은 걸어 들어가야 하는 이벤트 던전이다 -->
 <div id="camp"></div>
 

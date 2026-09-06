@@ -1162,6 +1162,21 @@ body.tilted3 #vignette {
   display: none; max-width: min(560px, calc(100vw - 24px));
 }
 #autobar.show { display: block; }
+
+/* ── GLB 로딩 표시(ui.js, asset3d.stats()) ─────────────────
+   화면 맨 위 가장자리에 얇은 띠 하나만 긋는다 — 다른 UI(지갑·미니맵 등)와
+   자리를 다툴 일이 없다(2026-09-07, "모바일에서 화면이 까맣게 보인다" 대응). */
+#loadbar {
+  position: fixed; left: 0; top: 0; right: 0; height: 3px; z-index: 70;
+  background: transparent; pointer-events: none;
+  opacity: 0; transition: opacity .25s;
+}
+#loadbar.show { opacity: 1; }
+#loadbar > i {
+  display: block; height: 100%; width: 0%;
+  background: var(--gold, #c9a24a); box-shadow: 0 0 8px rgba(201,162,74,.6);
+  transition: width .2s;
+}
 .auto-card {
   display: flex; align-items: center; gap: 9px;
   padding: 7px 11px; border-radius: 14px;

@@ -317,6 +317,10 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   box-shadow: 0 3px 10px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
   transition: width .16s, height .16s, padding .16s;
 }
+/* 마을에서는 #dg-hud 대신 #top(프로필·도구 줄 + 지갑 줄, 두 줄이라 더 크다)이
+   떠 있다 — 64px 로 고정하면 지갑 줄과 겹친다(실기기 신고). ui.js 의
+   syncHeaderStack() 이 매 갱신마다 실측해 넘기는 --below-header 를 쓴다. */
+body.town-open #dg-minimap { top: calc(var(--below-header, 116px) + 8px); }
 #dg-minimap canvas { display: block; border-radius: 4px; }
 #dg-minimap.folded { padding: 0; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; }
 #dg-minimap.folded canvas { display: none; }

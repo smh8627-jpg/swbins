@@ -286,12 +286,15 @@
        사람 여섯이 어둠에 잠겨 누가 누구인지 안 보인다. 2D 마을이 어둠을
        0.74 → 0.30 으로 옅게 깔던 그 뜻을 3D 에서도 지킨다. */
     if (roomKind === 'town') {
+      /* 2026-09-07 — 실기기(모바일) 신고 "화면이 까맣게 보인다" — 횃불 감도
+         자체는 살리되(D2 컨셉), 배경·주변광을 한 단만 올려 GLB 가 아직 안
+         실린 순간에도(플레이스홀더 도형만 선 상태) 완전히 안 보이진 않게 한다. */
       return {
-        ambient: 0.86, ambientHex: 0x4a4038,
-        keyIntensity: 1.15, keyHex: 0xffd9a8,
+        ambient: 1.05, ambientHex: 0x584c40,
+        keyIntensity: 1.35, keyHex: 0xffd9a8,
         torchIntensity: 2600, torchHex: 0xffc070, torchRange: 420,
         fog: { near: 620, far: 2100 },
-        bgHex: 0x14100c, boss: false, deep: 0, town: true
+        bgHex: 0x241d15, boss: false, deep: 0, town: true
       };
     }
     return {

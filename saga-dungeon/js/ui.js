@@ -70,10 +70,11 @@
   }
 
   function init() {
-    ['profile', 'wallet', 'camp', 'autobar', 'dock', 'dock-more', 'sheet',
+    ['profile', 'wallet', 'camp', 'autobar', 'loadbar', 'dock', 'dock-more', 'sheet',
      'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
       els[id] = $(id);
     });
+    if (els.loadbar && !els.loadbar.firstChild) { els.loadbar.innerHTML = '<i></i>'; }
 
     els.dock.addEventListener('click', function (e) {
       if (e.target.closest('#dock-more-btn')) { toggleMore(); return; }
@@ -519,6 +520,39 @@
 
   function coin(icon, val, label, hi) {
     return '<div class="coin' + (hi ? ' hi' : '') + '" title="' + label + '"><span>' + icon + '</span>' + val + '</div>';
+  }
+
+  /**
+   * 마을 상단 띠(#top)의 실제 높이는 고정이 아니다 — 두 줄(프로필·도구 / 지갑)인데
+   * 지갑 칸 수·폭에 따라 늘어난다. `#dg-minimap`(diablo.css, town-open 전용 규칙)이
+   * 그걸 모른 채 매직넘버로 박혀 있으면 지갑 줄과 겹친다(실기기 신고로 잡았다,
+   * 사가고 `ui.js`의 `syncHeaderStack`과 같은 요령) — 매 갱신마다 실제로 재서
+   * CSS 변수로 넘긴다.
+   */
+  function syncHeaderStack() {
+    if (!els.wallet) { return; }
+    var bottom = Math.ceil(els.wallet.getBoundingClientRect().bottom);
+    if (bottom > 0) { document.documentElement.style.setProperty('--below-header', bottom + 'px'); }
+  }
+
+  /**
+   * 마을 GLB 로딩 표시(2026-09-07, "화면이 까맣게 보인다" 대응) — 집·사람 모델이
+   * 다 실리기 전엔 플레이스홀더 도형만 서 있어 실기기에서 "깨졌다"로 보였다.
+   * `asset3d.stats()`(도착한 URL 수 / 요청한 URL 수)를 얇은 띠로만 보여준다 —
+   * 마을이 아닐 때(던전 안)는 안 띄운다, 자산 자체를 안 켰으면(GLB_ON 꺼짐 등)
+   * total 이 0 이라 곧바로 사라진다.
+   */
+  function renderLoadbar() {
+    var bar = els.loadbar;
+    if (!bar) { return; }
+    var AS3 = global.DG.asset3d;
+    var inTown = document.body.classList.contains('town-open');
+    if (!inTown || !AS3) { bar.classList.remove('show'); return; }
+    var s = AS3.stats();
+    if (!s.total || s.pending <= 0) { bar.classList.remove('show'); return; }
+    var pct = Math.max(4, Math.round((s.loaded + s.failed) / s.total * 100));
+    bar.firstChild.style.width = pct + '%';
+    bar.classList.add('show');
   }
 
   /* ── 마을 ────────────────────────────────────────────
@@ -1967,6 +2001,8 @@
     renderTop();
     renderCamp();
     renderAutoBar();
+    syncHeaderStack();
+    renderLoadbar();
     var a = document.activeElement;
     if (a && (a.tagName === 'SELECT' || a.tagName === 'INPUT') && els['sheet-body'].contains(a)) { return; }
     if (openTab === 'party' || openTab === 'gear') { renderSheet(); }
