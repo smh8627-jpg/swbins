@@ -215,6 +215,134 @@
     return drawn;
   }
 
+  /* ── 전체 지도(자동지도) — 디아블로 M키식 ────────────────────
+   * 사용자가 "마을 M키 지도가 점만 보인다"고 지적한 뒤 "디아블로처럼·
+   * 투명으로 보여 줄 수도 있고"라고 요청했다(2026-09-06). 그전엔 M키가
+   * 마을 넷의 고정 배치(상자 그림)만 보여 줬는데, 그 대신 **위 미니맵과
+   * 같은 계산(blips·norm)을 그대로 재사용해 화면 전체를 반투명하게
+   * 덮는 큰 판**으로 바꿨다 — 새 좌표계를 만들지 않는다. 마을·던전
+   * 어디서나 같은 함수(activeMod())로 켜진다.
+   */
+  var bigNode = null, bigCanvas = null, bigCtx = null, bigOn = false;
+
+  function mountBig() {
+    if (bigNode || !global.document) { return null; }
+    bigNode = global.document.createElement('div');
+    bigNode.id = 'dg-automap';
+    bigNode.setAttribute('title', '전체 지도 — 탭하면 닫힙니다');
+    bigCanvas = global.document.createElement('canvas');
+    bigNode.appendChild(bigCanvas);
+    global.document.body.appendChild(bigNode);
+    bigNode.addEventListener('click', closeBig);
+    return bigNode;
+  }
+
+  function resizeBig() {
+    if (!bigCanvas) { return 0; }
+    var w = global.innerWidth, h = global.innerHeight;
+    var dpr = Math.min(global.devicePixelRatio || 1, 2);
+    if (bigCanvas.width !== Math.round(w * dpr) || bigCanvas.height !== Math.round(h * dpr)) {
+      bigCanvas.width = Math.round(w * dpr);
+      bigCanvas.height = Math.round(h * dpr);
+      bigCtx = null;
+    }
+    if (!bigCtx) { bigCtx = bigCanvas.getContext('2d'); }
+    return dpr;
+  }
+
+  /** 자가진단용 순수 계산 — 방 비율에 맞춰 화면 안쪽에 지도 사각형을 잡는다.
+   *  canvas 없이도 돈다(진단이 이 값만 따로 확인할 수 있게). */
+  function bigLayout(winW, winH, roomW, roomH, wall) {
+    var pad = Math.min(winW, winH) * 0.08;
+    var boxW = Math.max(1, winW - pad * 2), boxH = Math.max(1, winH - pad * 2);
+    var ratio = Math.max(0.1, (roomW - wall * 2) / (roomH - wall * 2));
+    var mapW, mapH;
+    if (boxW / boxH > ratio) { mapH = boxH; mapW = boxH * ratio; }
+    else { mapW = boxW; mapH = boxW / ratio; }
+    return { ox: (winW - mapW) / 2, oy: (winH - mapH) / 2, w: mapW, h: mapH };
+  }
+
+  function drawBig() {
+    var M = activeMod();
+    if (!M || !M.active() || !bigOn || !bigCanvas) { return false; }
+    var run = M.raw();
+    if (!run || !run.room) { return false; }
+    var dpr = resizeBig();
+    if (!bigCtx) { return false; }
+    var W = global.innerWidth, H = global.innerHeight;
+    bigCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    bigCtx.clearRect(0, 0, W, H);
+
+    /* 반투명 — 게임 화면을 완전히 안 가린다("투명으로 보여 줄 수도 있고") */
+    bigCtx.fillStyle = 'rgba(6, 8, 14, .62)';
+    bigCtx.fillRect(0, 0, W, H);
+
+    var L = bigLayout(W, H, M.ROOM_W, M.ROOM_H, M.WALL);
+    bigCtx.strokeStyle = 'rgba(212, 178, 110, .75)';
+    bigCtx.lineWidth = 2;
+    bigCtx.strokeRect(L.ox, L.oy, L.w, L.h);
+
+    var bs = blips(run), i, st;
+    for (i = 0; i < bs.length; i++) {
+      st = STYLE[bs[i].t] || STYLE.enemy;
+      bigCtx.fillStyle = st.c;
+      bigCtx.beginPath();
+      bigCtx.arc(L.ox + bs[i].nx * L.w, L.oy + bs[i].ny * L.h, st.r * 2.3, 0, Math.PI * 2);
+      bigCtx.fill();
+    }
+
+    /* 마을 들길은 어디로 가는지 이름을 옆에 적는다 — 예전 오버월드 창이
+       하던 일(마을 이름 보여 주기)을 이 판 하나로 합쳤다. */
+    if (run.room.marks) {
+      bigCtx.font = '600 13px system-ui, sans-serif';
+      bigCtx.textBaseline = 'middle';
+      for (i = 0; i < run.room.marks.length; i++) {
+        var mk = run.room.marks[i];
+        if (!mk.key || mk.key.indexOf('exit_') !== 0) { continue; }
+        var n = norm(mk.x, mk.y);
+        var lx = L.ox + n.nx * L.w, ly = L.oy + n.ny * L.h;
+        var right = n.nx <= 0.5;
+        bigCtx.textAlign = right ? 'left' : 'right';
+        bigCtx.fillStyle = STYLE.exit.c;
+        bigCtx.fillText((mk.emoji || '') + ' ' + (mk.name || ''), lx + (right ? 12 : -12), ly);
+      }
+    }
+
+    /* 나 */
+    var pn = norm(run.player.x, run.player.y);
+    bigCtx.fillStyle = '#f5b445';
+    bigCtx.beginPath();
+    bigCtx.arc(L.ox + pn.nx * L.w, L.oy + pn.ny * L.h, 7, 0, Math.PI * 2);
+    bigCtx.fill();
+    bigCtx.strokeStyle = 'rgba(0,0,0,.7)';
+    bigCtx.lineWidth = 2;
+    bigCtx.stroke();
+
+    bigCtx.font = '600 14px system-ui, sans-serif';
+    bigCtx.fillStyle = 'rgba(232,226,210,.8)';
+    bigCtx.textAlign = 'center';
+    bigCtx.fillText('탭하면 닫힙니다', W / 2, L.oy + L.h + 24);
+    return true;
+  }
+
+  function openBig() {
+    var M = activeMod();
+    if (!M || !M.active()) { return false; }
+    mountBig();
+    bigOn = true;
+    if (bigNode) { bigNode.style.display = 'block'; }
+    drawBig();
+    return true;
+  }
+  function closeBig() {
+    bigOn = false;
+    if (bigNode) { bigNode.style.display = 'none'; }
+  }
+  function toggleBig() {
+    if (bigOn) { closeBig(); return false; }
+    return openBig();
+  }
+
   function init() {
     mount();
     apply();
@@ -252,6 +380,11 @@
     init: init, tick: tick, draw: draw, resize: resize, stats: stats,
     get folded() { return folded; },
     set: function (o) { if (o && typeof o.folded === 'boolean') { folded = o.folded; } apply(); draw(); },
-    reset: function () { folded = false; }
+    reset: function () { folded = false; },
+    /* 전체 지도(자동지도) — M키/🧭가 부른다 */
+    openBig: openBig, closeBig: closeBig, toggleBig: toggleBig,
+    /** 자가진단용 — 순수 계산만(캔버스 없이) */
+    _bigLayout: bigLayout,
+    get bigOn() { return bigOn; }
   };
 })(window);

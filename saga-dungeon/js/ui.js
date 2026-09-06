@@ -721,51 +721,27 @@
       '<div class="wm-list">' + rows + '</div></div>';
   }
 
-  /* ── 오버월드 지도 (PLAN 28-1절, M키식 토글) ──────────────
-   * 위 월드맵(viewWorldMap)과는 완전히 다른 개념이다 — 그건 "던전을 얼마나
-   * 내려갔나"(층 진행표)고, 이건 "마을이 몇 개고 지금 어디에 있나"(오버월드
-   * 배치도)다. 디아블로 M키처럼 **펼쳐서 보기만 하는** 창이라 옆으로 미는
-   * 시트(sheet)가 아니라 encOpen()이 쓰는 #encounter 창을 그대로 빌린다 —
-   * 도움말·역참 창과 같은 자리, 같은 닫기(enc-close) 규칙이다.
-   * 배치는 늘 고정이다(모루골이 항상 가운데) — 지금 서 있는 마을만 강조한다.
-   */
+  /* ── 전체 지도(자동지도, M키식 토글) ────────────────────────
+   * 2026-09-06 — 사용자가 "M키 지도가 점만 보인다"고 지적하고 "디아블로
+   * 처럼·투명으로 보여 줄 수도 있고"라고 요청했다. 예전엔 마을 넷의 고정
+   * 배치(상자 그림, 이름만)를 #encounter 카드로 띄웠는데, 그 대신
+   * minimap.js 의 큰 판(blips·norm 을 그대로 재사용해 화면 전체를 반투명
+   * 하게 덮는다)으로 갈아 끼웠다 — 그쪽이 실제 방·들길 배치를 그대로
+   * 보여 줘서 "점만 보인다"는 지적을 정면으로 푼다. #encounter 도, 마을
+   * 전용 T.overworld 도 이제 이 화면에서는 안 쓴다(town.js 는 안 건드림 —
+   * 다른 자가진단이 그 표를 직접 본다). 마을뿐 아니라 던전 방에서도
+   * 켜진다 — 디아블로의 자동지도도 마을 전용이 아니다. */
   function openOverworldMap() {
-    var T = global.DG.town;
-    if (!T || !T.overworld) { return; }
-    var cur = T.overworld.current();
-    var list = T.overworld.list();
-    var byDir = { hub: null, N: null, E: null, S: null, W: null };
-    for (var i = 0; i < list.length; i++) {
-      var t = list[i];
-      if (!t.dirFromHub) { byDir.hub = t; } else { byDir[t.dirFromHub] = t; }
-    }
-    function cell(t) {
-      if (!t) { return '<div class="ow-cell"></div>'; }
-      var here = t.id === cur;
-      return '<div class="ow-cell' + (here ? ' here' : '') + '">' +
-        '<span class="ow-ic">🏘️</span><b>' + esc(t.name) + '</b>' +
-        (here ? '<small>현재</small>' : '') + '</div>';
-    }
-    var html = '<div class="enc-card">' +
-      '<h3 style="margin:0 0 4px;font-size:18px">🧭 오버월드</h3>' +
-      '<small class="muted">마을마다 들길(들판 출구)이 있어 걸어서 오갑니다. ' +
-      'M 키로 여닫습니다.</small>' +
-      '<div class="ow-grid">' +
-        '<div class="ow-cell"></div>' + cell(byDir.N) + '<div class="ow-cell"></div>' +
-        cell(byDir.W) + cell(byDir.hub) + cell(byDir.E) +
-        '<div class="ow-cell"></div>' + cell(byDir.S) + '<div class="ow-cell"></div>' +
-      '</div>' +
-      '<button class="btn primary wide" data-act="enc-close">닫는다</button></div>';
-    encOpen(html);
+    var MM = global.DG.minimap;
+    return !!(MM && MM.openBig());
   }
-  function closeOverworldMap() { encClose(); }
+  function closeOverworldMap() {
+    var MM = global.DG.minimap;
+    if (MM) { MM.closeBig(); }
+  }
   function toggleOverworldMap() {
-    var el = $('encounter');
-    if (el && el.classList.contains('show') && el.innerHTML.indexOf('오버월드') >= 0) {
-      closeOverworldMap();
-    } else {
-      openOverworldMap();
-    }
+    var MM = global.DG.minimap;
+    return !!(MM && MM.toggleBig());
   }
 
   /* ── 퀘스트 (PLAN 36절) ───────────────────────────────────

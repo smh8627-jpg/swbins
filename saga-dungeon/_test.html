@@ -3503,6 +3503,42 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return ok && (bs.length + '개 문, 전부 오른쪽 벽 자리');
     });
 
+    /* ── 전체 지도(자동지도) — M키식, 디아블로처럼(PLAN, 2026-09-06) ──
+     * "M키 지도가 점만 보인다"는 지적으로 예전 오버월드 상자 그림을
+     * minimap.js의 blips·norm 재사용 큰 판으로 갈아 끼웠다. 그리기(canvas)는
+     * 안 보고, 순수 계산(bigLayout)과 켜짐 상태만 여기서 본다.
+     */
+    t('전체 지도 — 비율 계산이 방 비율을 그대로 지킨다', function () {
+      var L = MM._bigLayout(900, 700, 560, 380, 30);
+      var roomRatio = (560 - 60) / (380 - 60);
+      var mapRatio = L.w / L.h;
+      var fits = L.ox >= 0 && L.oy >= 0 && L.ox + L.w <= 900 + 0.5 && L.oy + L.h <= 700 + 0.5;
+      return Math.abs(mapRatio - roomRatio) < 0.01 && fits &&
+        ('지도 비율 ' + mapRatio.toFixed(2) + ' = 방 비율 ' + roomRatio.toFixed(2));
+    });
+
+    t('전체 지도 — 던전이 켜져 있어야 열리고, 닫으면 꺼진다', function () {
+      if (DN.active()) { DN.leave(); }
+      if (DG.town && DG.town.active()) { DG.town.leave(); }
+      var refusedWhenOff = MM.openBig() === false && MM.bigOn === false;
+      DN.enter({ floor: 1, mode: 'easy' });
+      var openedWhenOn = MM.openBig() === true && MM.bigOn === true;
+      MM.closeBig();
+      var closedAfter = MM.bigOn === false;
+      DN.leave();
+      return refusedWhenOff && openedWhenOn && closedAfter &&
+        '꺼진 채 거절 · 켜진 뒤 열림 · 닫으면 꺼짐';
+    });
+
+    t('전체 지도 — toggleBig이 여닫기를 뒤집는다', function () {
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1, mode: 'easy' });
+      var t1 = MM.toggleBig() === true && MM.bigOn === true;
+      var t2 = MM.toggleBig() === false && MM.bigOn === false;
+      DN.leave();
+      return t1 && t2 && '토글 켬→끔';
+    });
+
     t('장비 슬롯 — PLAN 30절로 8개(무기·갑주·투구·장갑·신발·반지·목걸이·부적)', function () {
       var D = DG.itemData;
       var need = ['weapon', 'armor', 'helm', 'glove', 'boot', 'ring', 'neck', 'charm'];

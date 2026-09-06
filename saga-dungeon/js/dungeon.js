@@ -1997,11 +1997,22 @@
       var p = run.player;
       var dx = e.x - p.x, dy = e.y - p.y;
       var d = Math.sqrt(dx * dx + dy * dy) || 1;
-      /* 들판 로머(`.field`)는 방 벽 좌표로 clamp하지 않는다 — 안 그러면
-         맞을 때마다 방 안으로 순간이동해 버린다 */
+      /* 들판 로머(`.field`)는 `core.clamp(..., WALL+e.r, ROOM_W-WALL-e.r)`로
+         **못 미는다** — 그 범위가 "방 안쪽"이라, 방 밖 로머에 그대로 쓰면
+         맞을 때마다 방 안으로 순간이동해 버린다(예전에 밟은 함정, 아래
+         주석이 그 기억이다).
+         2026-09-06 — 그런데 그 대신 **아예 안 막았더니**, 플레이어가 로머보다
+         마을 바깥쪽에 서서 때리면 넉백 방향(플레이어 반대쪽)이 마을 쪽을
+         가리켜 로머가 벽을 그대로 뚫고 들어갔다("마을에 몹이 들어온다",
+         사용자 제보). `stepFieldCombat`의 이동 clamp(위 "축을 나눠 막아…")와
+         **같은 요령**으로 고쳤다 — 방 안쪽으로 넣는 축만 한쪽씩 막는다.
+         `run`이 마을이면(`town.js`의 raw()) roomW 등이 실려 있어 그 치수로,
+         던전이면(그 필드 없음) inRoomRect가 이 모듈의 ROOM_W 등으로
+         저절로 넘어간다 — ctx를 새로 안 만들어도 된다. */
       if (e.field) {
-        e.x += dx / d * push;
-        e.y += dy / d * push;
+        var kx = e.x + dx / d * push, ky = e.y + dy / d * push;
+        if (!inRoomRect(kx, e.y, run)) { e.x = kx; }
+        if (!inRoomRect(e.x, ky, run)) { e.y = ky; }
       } else {
         e.x = core.clamp(e.x + dx / d * push, WALL + e.r, ROOM_W - WALL - e.r);
         e.y = core.clamp(e.y + dy / d * push, WALL + e.r, ROOM_H - WALL - e.r);

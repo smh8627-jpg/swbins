@@ -321,6 +321,14 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 #dg-minimap.folded { padding: 0; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; }
 #dg-minimap.folded canvas { display: none; }
 
+/* ── 전체 지도(자동지도) — 디아블로 M키처럼, 화면을 반투명하게 덮는다.
+   미니맵과 같은 blips()·norm()을 그대로 재사용해 크게 그린 것뿐이다
+   (2026-09-06, PLAN §51 인접 — 사용자가 "디아블로처럼·투명으로" 요청). */
+#dg-automap {
+  position: fixed; inset: 0; z-index: 90; display: none; cursor: pointer;
+}
+#dg-automap canvas { display: block; width: 100%; height: 100%; }
+
 /* 구슬 ---------------------------------------------------- */
 
 .d2-globe {
@@ -713,18 +721,3 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   .dg-sk-cd { line-height: 35px; font-size: 11px; }
   .d2-belt .d2-cell { width: 25px; height: 25px; font-size: 13px; }
 }
-
-/* 오버월드 지도(PLAN 28-1절) — M키/🧭 로 여는 #encounter 창 안의 3×3 배치도.
-   모루골이 늘 가운데(ow-cell 5칸째)고, 위성 마을은 고정 방향에 뜬다. */
-.ow-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0;
-}
-.ow-cell {
-  min-height: 62px; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; padding: 6px; font-size: 12px; text-align: center;
-}
-.ow-cell b { font-size: 13px; }
-.ow-cell .ow-ic { font-size: 20px; }
-.ow-cell.here { border-color: var(--gold); background: var(--gold-soft); }
-.ow-cell.here small { color: var(--gold); font-weight: 700; }
