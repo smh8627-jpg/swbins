@@ -435,9 +435,7 @@
     var hopeless = pw.atk * 7 < rg.hp;
     el.innerHTML =
       '<div class="enc-card rogue">' +
-        '<div class="enc-big">' +
-          '<img class="pt" alt="" src="' + global.DG.sprite.portrait('hero', rg.boss, 96) + '">' +
-        '</div>' +
+        '<div class="enc-big">' + global.DG.portrait3d.img('hero', rg.boss, 96) + '</div>' +
         '<h3>🏴 ' + rg.station.name + ' — ' + rg.rank.name + ' ' + rg.boss.name + '</h3>' +
         '<p class="quote">' + rg.rank.quote + '</p>' +
         '<div class="enc-reward">기세 ' + core.fmt(rg.hp) +
@@ -505,7 +503,6 @@
     D.open({
       title: '🏴 적도 — ' + rg.station.name,
       foeName: rg.rank.name + ' ' + rg.boss.name,
-      portrait: global.DG.sprite.portrait('hero', rg.boss, 96),
       /* 3D 무대(`world3d.duelStage`) — `event.js` 만 이 값을 건네고 있었다.
          적도의 두목은 `data.heroes` 의 진짜 인물이라 그대로 넘기면 된다 */
       stage3d: { kind: 'hero', ref: rg.boss },
@@ -546,9 +543,7 @@
     var have = global.DG.growth ? global.DG.growth.dust() : (core.save.dust || 0);
     el.innerHTML =
       '<div class="enc-card result good">' +
-        '<div class="enc-big">' +
-          '<img class="pt dark" alt="" src="' + global.DG.sprite.portrait('pet', pet, 96) + '">' +
-        '</div>' +
+        '<div class="enc-big">' + global.DG.portrait3d.img('pet', pet, 96, 'dark') + '</div>' +
         '<h3>🏴 ' + res.rogue.station.name + ' 탈환!</h3>' +
         '<p class="quote">적도가 물러가며 <b>' + pet.name + '</b> 을(를) 두고 갔다 — 검게 물들어 있다.</p>' +
         '<div class="enc-reward">공적 +' + res.reward.feat + ' · 금 +' + res.reward.gold +
@@ -572,9 +567,7 @@
     if (!el) { return; }
     el.innerHTML =
       '<div class="enc-card result good">' +
-        '<div class="enc-big">' +
-          '<img class="pt" alt="" src="' + global.DG.sprite.portrait('pet', res.pet, 96) + '">' +
-        '</div>' +
+        '<div class="enc-big">' + global.DG.portrait3d.img('pet', res.pet, 96) + '</div>' +
         '<h3>🌕 ' + res.pet.name + ' 정화</h3>' +
         '<p class="quote">검은 기운이 걷히고, 도감에 이름이 올랐다.</p>' +
         '<div class="enc-reward">✨ 단사 −' + res.cost.dust +

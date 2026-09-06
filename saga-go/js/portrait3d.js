@@ -314,12 +314,44 @@
     };
   }
 
+  /* ── 부르는 쪽이 다 같이 쓰는 <img> 빌더 ────────────────────
+   * 카드 화면마다(등용·포획·성채·천거장·도적·대화…) 저마다 `sprite.portrait`로
+   * 초상을 그려 붙이고 있었다 — `ui.js`의 `pt()`만 이 자리(`data-p3`)를 붙여
+   * 실제 3D 모델로 갈아 끼웠고, 나머지는 여태 캔버스 그림에 갇혀 있었다
+   * (2026-09-06, 실제 세이브를 이어 플레이하다 발견). 이제 이 함수 하나로
+   * 모으면 그 화면들도 같은 자리에서 자동으로 3D 초상을 받는다.
+   */
+  var sweepTimer = null;
+  function scheduleSweep() {
+    if (sweepTimer) { return; }
+    sweepTimer = global.setTimeout(function () { sweepTimer = null; sweep(); }, 40);
+  }
+
+  /** 이름표(`data-p3="..."`)만 낸다 — 정사각이 아닌 자리(도감 상세의 150×172 등)가
+   *  제 마크업을 직접 짜면서 이 조각만 끼워 넣을 때 쓴다. 못 쓸 자리(three 없음 ·
+   *  손잡이 내림 · hero/pet 이외)에서는 빈 문자열이라 여태 그림이 그대로 남는다. */
+  function tag(kind, ref, w, h) {
+    if (!ready() || !ref || (kind !== 'hero' && kind !== 'pet')) { return ''; }
+    scheduleSweep();
+    return ' data-p3="' + keyOf(kind, ref, w, h) + '"';
+  }
+
+  /** 초상 `<img>` 태그를 통째로 만든다(정사각形 자리용). 그림은 여태처럼 `sprite`
+   *  것으로 시작하고, 다 구워지면 `sweep()`이 `src`만 갈아 끼운다(화면은 한 번도
+   *  비지 않는다). `cls`는 `pt` 뒤에 덧붙는 꾸밈 클래스(예: 실패 카드의 `dark`) */
+  function img(kind, ref, size, cls) {
+    var S = global.DG.sprite;
+    var src = S ? S.portrait(kind, ref, size) : '';
+    return '<img class="pt' + (cls ? ' ' + cls : '') + '" alt=""' +
+      tag(kind, ref, size, size) + ' src="' + src + '">';
+  }
+
   global.DG = global.DG || {};
   global.DG.portrait3d = {
     /* 값을 내는 함수 */
     keyOf: keyOf, parseKey: parseKey,
     /* 만들기 */
-    ready: ready, of: of, warm: warm, sweep: sweep, stats: stats,
+    ready: ready, of: of, warm: warm, sweep: sweep, tag: tag, img: img, stats: stats,
     /** 진단이 제 뒤를 치울 때 */
     reset: function () { cache = {}; pending = {}; made = 0; gaveUp = 0; }
   };

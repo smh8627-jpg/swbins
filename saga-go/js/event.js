@@ -547,13 +547,13 @@
     var stage3d = stageOf(ev);
     core.emit('duel:open', { title: ev.name, foeName: foe ? foe.name : ev.name, stage3d: stage3d,
       mood: ev.mood, pose: ev.pose, eerie: ev.eerie });
-    var portraitImg = (stage3d && stage3d.kind === 'hero' && global.DG.sprite)
-      ? global.DG.sprite.portrait('hero', stage3d.ref, 96) : null;
+    var portraitImg = (stage3d && stage3d.kind === 'hero' && global.DG.portrait3d)
+      ? global.DG.portrait3d.img('hero', stage3d.ref, 96) : null;
     var html =
       '<div class="enc-card pingnew">' +
         '<div class="enc-big">' +
           (portraitImg
-            ? '<img class="pt" alt="" src="' + portraitImg + '">'
+            ? portraitImg
             : '<span style="font-size:56px">' + ev.emoji + '</span>') +
         '</div>' +
         '<h3>' + ev.name + '</h3>' +

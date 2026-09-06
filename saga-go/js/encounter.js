@@ -87,7 +87,7 @@
       '<div class="enc-card">' +
         '<div class="enc-head">' +
           '<div class="enc-icon" style="border-color:' + rar.color + '">' +
-            '<img class="pt" alt="" src="' + global.DG.sprite.portrait('hero', h, 74) + '"></div>' +
+            global.DG.portrait3d.img('hero', h, 74) + '</div>' +
           '<div>' +
             '<div class="enc-name">' + h.name + ' <span class="rar" style="color:' + rar.color + '">' + rar.label + '</span></div>' +
             '<div class="enc-sub">' + h.era + ' · ' + h.faction + ' · ' +
@@ -239,7 +239,7 @@
 
     el.innerHTML = '' +
       '<div class="enc-card result good catchpop">' +
-        '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('hero', h, 96) + '"></div>' +
+        '<div class="enc-big">' + global.DG.portrait3d.img('hero', h, 96) + '</div>' +
         '<h3>' + h.name + ' 등용!</h3>' +
         '<p class="quote">"' + h.quote + '"</p>' +
         '<div class="enc-reward">공적 +' + feat + ' · 경험치 +' + exp + ' · 금 +' + gold + '</div>' +
@@ -259,7 +259,7 @@
     core.log(h.name + ' 등용 실패…', 'bad');
     el.innerHTML = '' +
       '<div class="enc-card result bad jolt">' +
-        '<div class="enc-big"><img class="pt dark" alt="" src="' + global.DG.sprite.portrait('hero', h, 96) + '"></div>' +
+        '<div class="enc-big">' + global.DG.portrait3d.img('hero', h, 96, 'dark') + '</div>' +
         '<h3>' + h.name + '은(는) 떠났다</h3>' +
         '<p class="quote">"인연이 아닌 듯하오."</p>' +
         '<div class="enc-reward">등용서 1 소모 · 명성 절반 반환</div>' +
@@ -304,7 +304,6 @@
     global.DG.rogueAction.open({
       title: '🐾 포획 — ' + p.name,
       foeName: p.name,
-      portrait: global.DG.sprite.portrait('pet', p, 96),
       stage3d: { kind: 'pet', ref: p },
       foeHp: foeHp, myAtk: pw.atk, myDef: pw.def,
       onDone: function (perf) { finishPetLive(spawn, p, perf); }
@@ -340,7 +339,7 @@
       core.log(p.name + ' 포획 성공! (실전)', 'good');
       html = '' +
         '<div class="enc-card result good catchpop">' +
-          '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
+          '<div class="enc-big">' + global.DG.portrait3d.img('pet', p, 96) + '</div>' +
           '<h3>' + p.name + ' 포획!</h3>' +
           '<p class="quote">' + (perf.cleared ? '완파하고 붙잡았다' : '거세게 몰아붙여 붙잡았다') +
             ' (' + perfLine + ')</p>' +
@@ -355,7 +354,7 @@
       core.log(p.name + ' 놓쳤다… (실전)', 'bad');
       html = '' +
         '<div class="enc-card result bad jolt">' +
-          '<div class="enc-big"><img class="pt dark" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
+          '<div class="enc-big">' + global.DG.portrait3d.img('pet', p, 96, 'dark') + '</div>' +
           '<h3>' + p.name + '은(는) 달아났다</h3>' +
           '<p class="quote">' + perfLine + ' — 아깝게 놓쳤다</p>' +
           '<div class="enc-reward">사료 1 소모</div>' +
@@ -399,7 +398,7 @@
       '<div class="enc-card">' +
         '<div class="enc-head">' +
           '<div class="enc-icon" style="border-color:' + rar.color + '">' +
-            '<img class="pt" alt="" src="' + global.DG.sprite.portrait('pet', p, 74) + '"></div>' +
+            global.DG.portrait3d.img('pet', p, 74) + '</div>' +
           '<div>' +
             '<div class="enc-name">' + p.name + ' <span class="rar" style="color:' + rar.color + '">' + rar.label + '</span></div>' +
             '<div class="enc-sub">' + (p.kind === 'divine' ? '신수(神獸)' : '동물') + ' · 기본 포획률 ' + rate + '%</div>' +
@@ -471,7 +470,7 @@
       core.log(p.name + ' 포획 성공!', 'good');
       html = '' +
         '<div class="enc-card result good catchpop">' +
-          '<div class="enc-big"><img class="pt" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
+          '<div class="enc-big">' + global.DG.portrait3d.img('pet', p, 96) + '</div>' +
           '<h3>' + p.name + ' 포획!</h3>' +
           '<p class="quote">' + (inZone ? '완벽한 타이밍이었다 (정확도 ' + Math.round(accuracy * 100) + '%)' : '운이 좋았다') + '</p>' +
           '<div class="enc-reward">공적 +' + feat + ' · 명성 +' + fameGain + ' · 경험치 +' + exp + ' · 금 +' + gold + ' · 보정 ' + bonusLabel(p) + '</div>' +
@@ -484,7 +483,7 @@
       core.log(p.name + ' 놓쳤다…', 'bad');
       html = '' +
         '<div class="enc-card result bad jolt">' +
-          '<div class="enc-big"><img class="pt dark" alt="" src="' + global.DG.sprite.portrait('pet', p, 96) + '"></div>' +
+          '<div class="enc-big">' + global.DG.portrait3d.img('pet', p, 96, 'dark') + '</div>' +
           '<h3>' + p.name + '은(는) 달아났다</h3>' +
           '<p class="quote">' + (inZone ? '아깝다! (포획률 ' + Math.round(chance * 100) + '%)' : '타이밍이 빗나갔다') + '</p>' +
           '<div class="enc-reward">사료 1 소모</div>' +
