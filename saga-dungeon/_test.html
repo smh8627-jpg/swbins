@@ -2840,9 +2840,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var W = DN.ROOM_W, H = DN.ROOM_H;
       var a = D3.camAim(W / 2, H / 2, W, H, 1, 0.62);
       var span = Math.sqrt(W * W + H * H);
-      /* 화면에 담기는 세로는 대략 dist·tan(fov/2)·2 다 — §28-5(FOV 34°)에서도
-         dist 배수가 그만큼 커져 방 대각선보다 큰 값을 낸다. 임계값(0.9)은
-         정확한 계수가 아니라 넉넉한 하한이라 FOV 를 바꿔도 그대로 둔다 */
+      /* 화면에 담기는 세로는 대략 0.85·dist 다(fov 46°) — 방 대각선보다 커야 한다 */
       return a.dist > span * 0.9 && a.pos.y > 0 && a.pos.z > a.look.z &&
         ('방 대각선 ' + Math.round(span) + ' · 카메라 거리 ' + Math.round(a.dist));
     });
