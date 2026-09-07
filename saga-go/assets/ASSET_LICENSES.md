@@ -75,10 +75,6 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Trex.glb`·`Triceratops.glb`·`Stegosaurus.glb`·`Velociraptor.glb` | `dragon` (청룡·순룡·화룡·이무기) — CC0 용 모델이 없어 파충류로 가장 가까운 공룡으로 대신했다 | `dinosaurs_pack` |
 | `Shark.glb`·`Dolphin.glb`·`Manta_ray.glb` | `fish` (잉어와 섞어 쓴다) | `fish_pack` |
 
-**`turtle` 형태는 여전히 대응 CC0 를 못 찾았다** — 현무·해태 등은 아직
-`quad`(사슴 모습)로 떨어진다. 다음에 찾으면 `js/asset3d.js` 의 `pet:form:turtle`
-자리에 채울 것.
-
 **같은 날 조금 뒤 — 오우거 형태(`pet:form:ogre`) 채움.**
 
 | 항목 | |
@@ -90,6 +86,26 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 
 이 환경엔 Blender 가 없어 원본(FBX)을 직접 구울 수 없었다 — 이미 glTF 로
 구워 올려 둔 미러를 썼다(사가고 8절 "Photoshop/Blender 없이" 원칙과 같은 결).
+
+**같은 날 조금 더 뒤 — 사용자가 poly.pizza 에서 직접 받아 준 `Turtle.glb`로
+마지막 형태(`pet:form:turtle`)까지 채움.** 아래에서 열일곱 형태 전부(위
+사슴·늑대·소·잉어·까치 다섯 + 이번에 채운 열여섯 + 이 거북)가 실제 모델을
+쓴다 — 도감 펫 41종이 형태 일곱 가지(quad·bird·fish·horse·toad·dragon·ogre)
+어디에도 사슴 대타가 안 남았다.
+
+| 항목 | |
+|---|---|
+| **원본** | Poly by Google (원 Google Poly 자산, ID `2LCcq8vhqJ3`) |
+| **라이선스** | **CC-BY 3.0** — poly.pizza 모델 페이지에 명시. **이 저장소의 두 번째 CC-BY**(첫 번째는 아래 까치) — 나머지는 전부 CC0 |
+| **저작자 표시** | **필수다.** 아래 문구를 지운 채 재배포하면 라이선스 위반이다 |
+| **받은 곳** | <https://poly.pizza/m/2LCcq8vhqJ3> — 사용자가 직접 받아 전달 |
+
+> **Turtle** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+> <https://poly.pizza/m/2LCcq8vhqJ3> 에서 가져왔다. 크기·자리만 맞추었고 형상은 그대로다.
+
+**까치와 같은 사정 — 클립이 없다(정지 모델).** `obj2gltf`로 구운 원본
+OBJ라 뼈대 자체가 없다(`skins: 0`). 현무·물뿜이·나룻고래가 안 움직이는
+거북으로 서는 대신 실제 모델을 얻는 맞바꿈이다.
 
 `models/buildings/` — 마을은 `js/prop3d.js` 가 `InstancedMesh` 로,
 **역참·성채는 `js/asset3d.js` 가 배우로** 세운다. 같은 파일이 양쪽에 걸려 있다
@@ -247,8 +263,9 @@ sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본�
 > Google Poly 아카이브(<https://polygone.art>)의 `1MIvWQ5Q3R9` 에서 가져왔다.
 > 크기·자리만 맞추었고 형상은 그대로다.
 
-**이 저장소에서 CC-BY 는 이것 하나뿐이다.** 나머지는 전부 CC0(표시 불필요)라
-규칙이 여기서만 다르다 — 지우거나 옮길 때 위 문구를 같이 옮길 것.
+**2026-09-07: CC-BY 가 하나 더 늘었다** — 거북(`Turtle.glb`, 위 도감 펫 절에
+따로 적었다). 나머지는 전부 CC0(표시 불필요)라 규칙이 이 둘만 다르다 —
+지우거나 옮길 때 위 문구를 같이 옮길 것.
 
 `.glb` 한 덩이가 아니라 **파일 셋**(`Mesh_Crow.gltf` + `Mesh_Crow.bin` +
 `Tex_Crow.webp`)이다. `.gltf` 가 나머지 둘을 **이름으로** 부르므로 셋이 같은 폴더에

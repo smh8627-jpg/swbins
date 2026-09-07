@@ -220,8 +220,9 @@
 
        2026-09-07 — `github.com/trebeljahr/quaternius-showcase`(CC0, 위와 같은
        미러)에서 열여섯 종을 더 받아 `quad`·`horse`·`toad`·`dragon`·`fish` 다섯
-       형태에 채웠다. 같은 날 조금 뒤 `ogre` 도 채웠다(아래 표) — **`turtle`
-       만 남았다**, 대응 CC0 를 못 찾아 여전히 `pet`(quad)로 떨어진다. */
+       형태에 채웠다. 같은 날 조금 뒤 `ogre` 도 채웠고(아래 표), 사용자가
+       poly.pizza 에서 직접 받아 준 `turtle` 까지 마지막으로 채워 **일곱
+       형태 전부** 실제 모델이 섰다. */
     'pet:form:quad': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
       'assets/models/animals/Cow.glb', 'assets/models/animals/Alpaca.glb',
       'assets/models/animals/Bull.glb', 'assets/models/animals/Donkey.glb',
@@ -243,6 +244,10 @@
        악마·오크라 오우거·도깨비의 결에 사슴보다 훨씬 가깝다 */
     'pet:form:ogre': ['assets/models/animals/Orc.gltf', 'assets/models/animals/Demon.gltf',
       'assets/models/animals/BlueDemon.gltf'],
+    /* 거북 형태(현무·물뿜이·나룻고래) — Poly by Google, **CC-BY**(까치와 같은
+       조건, ASSET_LICENSES.md 에 저작자 표시 문구 있음). 정지 모델(클립 없음)
+       — 까치와 같은 맞바꿈이다 */
+    'pet:form:turtle': 'assets/models/animals/Turtle.glb',
     'pet': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
       'assets/models/animals/Cow.glb'],
 
