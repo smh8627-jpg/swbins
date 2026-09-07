@@ -30,7 +30,8 @@ Page.captureScreenshot 순서로 찍는다. GLB 조립이 끝날 시간을 벌�
 """
 import socket, base64, struct, json, time, sys, urllib.request
 
-PORT = 9333
+import os
+PORT = int(os.environ.get('CDP_PORT', '9333'))
 URL = sys.argv[1]
 OUT = sys.argv[2]
 WAIT_S = float(sys.argv[3]) if len(sys.argv) > 3 else 5.0

@@ -136,7 +136,8 @@ def main():
     ws.call('Runtime.enable')
     ws.call('Log.enable')
     ws.call('Page.navigate', {'url': URL})
-    events = ws.poll_events(3.0)
+    PRE_WAIT = float(sys.argv[5]) if len(sys.argv) > 5 else 3.0
+    events = ws.poll_events(PRE_WAIT)
     JS = sys.argv[4] if len(sys.argv) > 4 else None
     if JS:
         r = ws.call('Runtime.evaluate', {'expression': JS}, timeout=20)
