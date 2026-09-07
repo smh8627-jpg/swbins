@@ -75,9 +75,21 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Trex.glb`·`Triceratops.glb`·`Stegosaurus.glb`·`Velociraptor.glb` | `dragon` (청룡·순룡·화룡·이무기) — CC0 용 모델이 없어 파충류로 가장 가까운 공룡으로 대신했다 | `dinosaurs_pack` |
 | `Shark.glb`·`Dolphin.glb`·`Manta_ray.glb` | `fish` (잉어와 섞어 쓴다) | `fish_pack` |
 
-**`turtle`·`ogre` 형태는 여전히 대응 CC0 를 못 찾았다** — 현무·해태 등은 아직
-`quad`(사슴 모습)로 떨어진다. 다음에 찾으면 `js/asset3d.js` 의 `pet:form:turtle`·
-`pet:form:ogre` 자리에 채울 것.
+**`turtle` 형태는 여전히 대응 CC0 를 못 찾았다** — 현무·해태 등은 아직
+`quad`(사슴 모습)로 떨어진다. 다음에 찾으면 `js/asset3d.js` 의 `pet:form:turtle`
+자리에 채울 것.
+
+**같은 날 조금 뒤 — 오우거 형태(`pet:form:ogre`) 채움.**
+
+| 항목 | |
+|---|---|
+| **원본** | Quaternius `Ultimate Monsters` 팩 (<https://quaternius.com/packs/ultimatemonsters.html>) |
+| **라이선스** | **CC0** — 원본 페이지·독립된 배포 소개(itch.io·gamedev 블로그)에서 "50 fully animated monsters, free for personal and commercial use, CC0"로 확인 |
+| **받은 곳** | <https://github.com/511action/descent-3d-assets> `models/` — 원본은 FBX/OBJ/Blend 인데, 이 저장소가 이미 glTF 로 구워 올려 뒀다(저장소 설명 자체가 "CC0 monster models (Quaternius Ultimate Monsters pack, public domain)") |
+| **넣은 파일** | `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf` — 셋 다 같은 뼈대(Idle·Walk·Run·Punch·Death·HitReact 등 14클립), 사람 모양이라 도깨비·그늘귀 같은 오우거 형태 펫에 사슴보다 훨씬 잘 맞는다 |
+
+이 환경엔 Blender 가 없어 원본(FBX)을 직접 구울 수 없었다 — 이미 glTF 로
+구워 올려 둔 미러를 썼다(사가고 8절 "Photoshop/Blender 없이" 원칙과 같은 결).
 
 `models/buildings/` — 마을은 `js/prop3d.js` 가 `InstancedMesh` 로,
 **역참·성채는 `js/asset3d.js` 가 배우로** 세운다. 같은 파일이 양쪽에 걸려 있다

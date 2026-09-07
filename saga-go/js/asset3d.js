@@ -220,8 +220,8 @@
 
        2026-09-07 — `github.com/trebeljahr/quaternius-showcase`(CC0, 위와 같은
        미러)에서 열여섯 종을 더 받아 `quad`·`horse`·`toad`·`dragon`·`fish` 다섯
-       형태에 채웠다. `turtle`·`ogre` 만 대응 CC0 를 못 찾아 여전히 `pet`(quad)
-       로 떨어진다 — 다음에 찾으면 이 자리에 추가할 것. */
+       형태에 채웠다. 같은 날 조금 뒤 `ogre` 도 채웠다(아래 표) — **`turtle`
+       만 남았다**, 대응 CC0 를 못 찾아 여전히 `pet`(quad)로 떨어진다. */
     'pet:form:quad': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
       'assets/models/animals/Cow.glb', 'assets/models/animals/Alpaca.glb',
       'assets/models/animals/Bull.glb', 'assets/models/animals/Donkey.glb',
@@ -235,9 +235,14 @@
     /* 두꺼비 — easy_enemies_pack 의 Frog */
     'pet:form:toad': 'assets/models/animals/Frog.glb',
     /* 용 형태(청룡·순룡·화룡·이무기) — CC0 용 모델이 없어 파충류로 가장 가까운
-       공룡 넷으로 돌려 쓴다(사슴보다 훨씬 낫다는 판단, 오우거의 도깨비 판단과 같은 결) */
+       공룡 넷으로 돌려 쓴다(사슴보다 훨씬 낫다는 판단) */
     'pet:form:dragon': ['assets/models/animals/Trex.glb', 'assets/models/animals/Triceratops.glb',
       'assets/models/animals/Stegosaurus.glb', 'assets/models/animals/Velociraptor.glb'],
+    /* 오우거 형태(도깨비·그늘귀·만권·의조) — Quaternius `Ultimate Monsters`
+       팩(CC0, `github.com/511action/descent-3d-assets` 미러). 사람 모양
+       악마·오크라 오우거·도깨비의 결에 사슴보다 훨씬 가깝다 */
+    'pet:form:ogre': ['assets/models/animals/Orc.gltf', 'assets/models/animals/Demon.gltf',
+      'assets/models/animals/BlueDemon.gltf'],
     'pet': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
       'assets/models/animals/Cow.glb'],
 
