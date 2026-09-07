@@ -2190,6 +2190,23 @@
       }
     }
 
+    /* 2026-09-08 — 두 차례 고침(예외 토스트·화질↔재구성 되먹임 차단)에도
+       "이동해도 갈색 그대로"가 재현돼, 예외 없이 조용히 실패하는 다른
+       무언가로 좁혀야 한다. 실제로 장면 안에 뭐가 세워져 있는지 눈에 안
+       보이면 추측만 반복하게 되니, 부팅 후 첫 60프레임(약 1초, 카메라·
+       빌드가 안정된 시점) 지점에서 그룹별 물체 수·카메라 위치를 딱 한 번
+       토스트로 찍는다 — "지형은 세워졌는데 안 보이는지" vs "애초에 안
+       세워졌는지"를 실기기에서 직접 가른다. */
+    if (frame === 60 && core && core.emit) {
+      try {
+        core.emit('toast', '🔎 field=' + (fieldGroup ? fieldGroup.children.length : '?') +
+          ' wall=' + (wallGroup ? wallGroup.children.length : '?') +
+          ' actor=' + (actorGroup ? actorGroup.children.length : '?') +
+          ' scene=' + (scene ? scene.children.length : '?') +
+          ' cam=' + (camera ? camera.position.x.toFixed(0) + ',' + camera.position.y.toFixed(0) + ',' + camera.position.z.toFixed(0) : '?'));
+      } catch (e4) { /* 진단 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
+    }
+
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());
     amb.intensity = L.ambient;
