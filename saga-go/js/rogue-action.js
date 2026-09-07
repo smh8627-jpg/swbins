@@ -82,18 +82,39 @@
   /** 적의 큰 공격 사다리 — 예고가 풀리는 순간의 반경·배수가 저마다 다르다.
    *  **순서가 뜻이다**: `foeN`이 `FOE_HEAVY`의 배수가 될 때마다 다음 것으로
    *  넘어간다(무작위가 아니다 — 자가진단이 값으로 재현할 수 있어야 한다).
-   *  2026-09-07: heavy·sweep 의 반경 배수를 1(암묵)·1.15 → 1.35·1.55 로 올렸다 —
-   *  걷기 속도(8m/s)와 예고시간을 곱하면 옛 값은 가만히 안 움직여도 벗어날 수
-   *  있는 거리였다(회피에 실제 반응이 필요 없었다). charge(1.6배)는 이미
-   *  타이트해(거의 다 뛰어야 겨우 벗어난다) 그대로 뒀다 — 셋의 회피 난이도를
-   *  얼추 맞추는 계산일 뿐이니, 실제로 걸으며 느껴 보고 `_admin.html`의
-   *  `rogueAction.heavyRange`로 더 조정할 것. */
+   *
+   *  **회피 난이도 수식** (2026-09-06 세션이 처음 굴리고 2026-09-07이 값으로
+   *  확정): 예고가 풀리는 순간 맞는지는 `d > range`(거리)뿐으로 갈린다.
+   *  가장 어려운 경우(예고가 시작될 때 내 사거리 `MY_REACH()`=3.0m 안에
+   *  붙어 있던 경우)를 기준으로, 걷기 속도(world.js `speed`=8m/s)로
+   *  `tellSec` 동안 벌 수 있는 거리를 필요 거리(`range - 3.0`)로 나눈 값을
+   *  "회피 난이도 비율"로 쓴다 — 1.0이면 예고가 풀리는 찰나까지 한 순간도
+   *  안 쉬고 정확한 방향으로 뛰어야 겨우 벗어나는 값(반응 지연을 조금도
+   *  못 버틴다), 클수록 여유가 늘어난다.
+   *  2026-09-06: charge(1.6배 → 비율 1.14)만 이 수식대로 이미 타이트하게
+   *  맞춰져 있었고 heavy·sweep(당시 1배·1.15배)은 비율 ≈3.5 — 가만히 서
+   *  있다가 아무 방향으로나 한 걸음만 떼도 항상 피해지는 값이었다.
+   *  2026-09-07 1차: heavy·sweep을 1.35·1.55(비율 ≈2.0·2.15)로 올려 "완전히
+   *  공짜"인 상태만 없앴다(charge보다는 일부러 쉽게 남겨 둠).
+   *  2026-09-07 2차(이번): charge와 같은 비율(≈1.14)까지 맞추려 했더니
+   *  `_test.html`의 "적 큰 공격은 두 번째부터 다른 패턴으로 바뀐다"가
+   *  걸렸다 — **"돌진(charge) 반경이 강타(heavy) 반경보다 커야 한다"**
+   *  (`m1.range > m0.range`)는 자가진단이 직접 확인하는 의도된 순서였다
+   *  (`tellSec`가 charge(0.825초)보다 훨씬 긴 heavy(1.1초)를 charge와
+   *  똑같이 타이트하게 만들려면 range를 charge보다 더 올려야 하는데,
+   *  그러면 이 순서가 뒤집힌다 — 반경만으로는 둘을 동시에 만족 못 한다).
+   *  그래서 heavy는 **charge 반경(8.8m) 밑에서 갈 수 있는 만큼만**
+   *  올렸다 — 1.35→**1.55**(비율 2.0→1.59, charge 8.8m보다 여전히 좁은
+   *  8.525m). sweep은 이 제약이 없어(다른 자가진단이 순서를 안 본다)
+   *  1.55→**2.45**(비율 2.15→1.13)까지 그대로 밀었다. 세 값 다 여전히
+   *  사람이 걸으며 판단할 몫이다 — 너무 타이트하면 `_admin.html`의
+   *  `rogueAction.heavyRange`(공통 배율)로 전체를 한 번에 낮출 수 있다. */
   function foeMoves() {
     var Dl = D();
     return [
-      { key: 'heavy', label: '⚠️ 강타! 원 밖으로 물러서라', tellSec: Dl.TELL_SEC, range: HEAVY_RANGE() * 1.35, dmgMul: Dl.HEAVY_MUL },
+      { key: 'heavy', label: '⚠️ 강타! 원 밖으로 물러서라', tellSec: Dl.TELL_SEC, range: HEAVY_RANGE() * 1.55, dmgMul: Dl.HEAVY_MUL },
       { key: 'charge', label: '⚠️ 돌진! 훨씬 멀리 물러서라', tellSec: Dl.TELL_SEC * 0.75, range: HEAVY_RANGE() * 1.6, dmgMul: Dl.HEAVY_MUL * 1.25 },
-      { key: 'sweep', label: '⚠️ 휩쓸기! 넉넉히 물러서라', tellSec: Dl.TELL_SEC * 1.35, range: HEAVY_RANGE() * 1.55, dmgMul: Dl.HEAVY_MUL * 0.7 }
+      { key: 'sweep', label: '⚠️ 휩쓸기! 넉넉히 물러서라', tellSec: Dl.TELL_SEC * 1.35, range: HEAVY_RANGE() * 2.45, dmgMul: Dl.HEAVY_MUL * 0.7 }
     ];
   }
   function moveByKey(key) {
