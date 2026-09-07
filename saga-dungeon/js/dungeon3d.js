@@ -2262,11 +2262,11 @@
        안개 far 거리(`builtEdge`, 바로 위)를 같이 줄여 시야가 점점 좁아져
        카메라 앞까지 안개가 밀려올 수 있다 — 살아있는 동안 2초마다 등급·
        안개거리·프레임시간을 찍어 그 추세를 실기기에서 직접 본다. */
-    if (frame % 120 === 0 && core && core.emit) {
-      try {
-        core.emit('toast', '📊 tier=' + effectiveLevel() + ' ema=' + perfEma.toFixed(1) +
-          'ms fogFar=' + fogFar.toFixed(0) + ' fieldR=' + fldR);
-      } catch (e4) { /* 진단 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
+    if (frame % 120 === 0) {
+      var diagMsg = '📊 tier=' + effectiveLevel() + ' ema=' + perfEma.toFixed(1) +
+        'ms fogFar=' + fogFar.toFixed(0) + ' fieldR=' + fldR;
+      if (global.console) { console.log('[던전 3D 진단]', diagMsg); }
+      try { if (core && core.emit) { core.emit('toast', diagMsg); } } catch (e4) { /* 토스트 실패해도 콘솔 로그는 이미 남았다 */ }
     }
 
     var p = run.player;
