@@ -70,13 +70,19 @@
 
   /** 적의 큰 공격 사다리 — 예고가 풀리는 순간의 반경·배수가 저마다 다르다.
    *  **순서가 뜻이다**: `foeN`이 `FOE_HEAVY`의 배수가 될 때마다 다음 것으로
-   *  넘어간다(무작위가 아니다 — 자가진단이 값으로 재현할 수 있어야 한다). */
+   *  넘어간다(무작위가 아니다 — 자가진단이 값으로 재현할 수 있어야 한다).
+   *  2026-09-07: heavy·sweep 의 반경 배수를 1(암묵)·1.15 → 1.35·1.55 로 올렸다 —
+   *  걷기 속도(8m/s)와 예고시간을 곱하면 옛 값은 가만히 안 움직여도 벗어날 수
+   *  있는 거리였다(회피에 실제 반응이 필요 없었다). charge(1.6배)는 이미
+   *  타이트해(거의 다 뛰어야 겨우 벗어난다) 그대로 뒀다 — 셋의 회피 난이도를
+   *  얼추 맞추는 계산일 뿐이니, 실제로 걸으며 느껴 보고 `_admin.html`의
+   *  `rogueAction.heavyRange`로 더 조정할 것. */
   function foeMoves() {
     var Dl = D();
     return [
-      { key: 'heavy', label: '⚠️ 강타! 원 밖으로 물러서라', tellSec: Dl.TELL_SEC, range: HEAVY_RANGE(), dmgMul: Dl.HEAVY_MUL },
+      { key: 'heavy', label: '⚠️ 강타! 원 밖으로 물러서라', tellSec: Dl.TELL_SEC, range: HEAVY_RANGE() * 1.35, dmgMul: Dl.HEAVY_MUL },
       { key: 'charge', label: '⚠️ 돌진! 훨씬 멀리 물러서라', tellSec: Dl.TELL_SEC * 0.75, range: HEAVY_RANGE() * 1.6, dmgMul: Dl.HEAVY_MUL * 1.25 },
-      { key: 'sweep', label: '⚠️ 휩쓸기! 넉넉히 물러서라', tellSec: Dl.TELL_SEC * 1.35, range: HEAVY_RANGE() * 1.15, dmgMul: Dl.HEAVY_MUL * 0.7 }
+      { key: 'sweep', label: '⚠️ 휩쓸기! 넉넉히 물러서라', tellSec: Dl.TELL_SEC * 1.35, range: HEAVY_RANGE() * 1.55, dmgMul: Dl.HEAVY_MUL * 0.7 }
     ];
   }
   function moveByKey(key) {
