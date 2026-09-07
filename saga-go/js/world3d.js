@@ -1044,7 +1044,23 @@
          `_demo.html`로는 늘 `LAND_PAINT()` 기본값(켜짐)에서 보므로 이
          구멍이 회귀 시험에 안 걸렸다. */
       if (!mapped || authored || LAND_PAINT()) {
-        out.push({ t: 'water', x: 0, z: 0, h: 0, sq: authored, rise: wet ? 1 : 0 });
+        /* 2026-09-07: 이어진 강(`sq`, 손으로 그린 물)은 칸을 꽉 채우는 네모라
+           물가가 격자에 딱 맞춰 각져 보였다 — 원반(고립된 웅덩이)은 이미
+           둥글어 괜찮으니 네모 쪽만 다듬는다. **어느 변이 물가(뭍과 닿음)고
+           어느 변이 강물끼리 이어지는지**를 미리 재 둔다(`buildProp`이
+           `shoreGeo(mask)`로 그 변만 들쭉날쭉 깎는다) — 물끼리 이어지는 변은
+           안 깎아야 두 칸이 빈틈없이 맞물린다(비트: 1=동·2=서·4=북·8=남,
+           `gx±1`→동서·`gy±1`→남북과 실제로 맞는지는 `world3d.js`의
+           `rotation.x=-90°` 변환식을 손으로 풀어 확인했다). */
+        var shoreMask = 0;
+        if (authored) {
+          var W3t = global.DG.world;
+          if (!W3t || W3t.terrainAt(gx + 1, gy) !== 'water') { shoreMask |= 1; }
+          if (!W3t || W3t.terrainAt(gx - 1, gy) !== 'water') { shoreMask |= 2; }
+          if (!W3t || W3t.terrainAt(gx, gy - 1) !== 'water') { shoreMask |= 4; }
+          if (!W3t || W3t.terrainAt(gx, gy + 1) !== 'water') { shoreMask |= 8; }
+        }
+        out.push({ t: 'water', x: 0, z: 0, h: 0, sq: authored, rise: wet ? 1 : 0, shore: shoreMask });
       }
       /* 물이 불면 갈대가 잠긴다 — 물만 올리고 갈대를 그대로 두면 물 위에 떠 있다 */
       n = h1(gx * 9, gy * 13) > 0.5 ? 3 : 1;
@@ -1192,7 +1208,42 @@
     else if (name === 'sph') { g = new T.SphereGeometry(0.5, 8, 6); }
     else if (name === 'plane') { g = new T.PlaneGeometry(1, 1); }
     else if (name === 'disc') { g = new T.CircleGeometry(1, 20); }
+    else if (name.indexOf('shoreW') === 0) { g = shoreGeo(+name.slice(6)); }
     unit[name] = g;
+    return g;
+  }
+  /** 물가 전용 평면(PLAN 부록, "물가 경계도 자연스럽게", 2026-09-07) — 단위
+   *  사각형(-0.5~0.5)을 잘게 나누고, `mask`(1=동·2=서·4=북·8=남, `rotation.x=
+   *  -90°` 뒤집기를 손으로 풀어 확인한 값)에 켜진 변의 바깥 테두리 정점만
+   *  안쪽으로 들쭉날쭉 밀어 넣는다. **꺼진 변(강물끼리 이어지는 자리)은 손
+   *  안 댄다** — 옆 칸의 같은 변도 똑같이 안 밀리므로 두 칸이 자로 잰 듯
+   *  맞물린다(따로 자리를 맞출 필요가 없다). 마스크당 하나씩만 지어 `unit`에
+   *  얹으므로(최대 16장) `box()`의 배율·자리로 그대로 쓸 수 있고, 다른 도형과
+   *  같은 값이라 뒤에서 따로 dispose 할 것이 없다(1226행 "도형·재질은 모두가
+   *  나눠 쓰는 것" 원칙 그대로). */
+  function shoreGeo(mask) {
+    var SEG = 10, EAST = 1, WEST = 2, NORTH = 4, SOUTH = 8;
+    var g = new T.PlaneGeometry(1, 1, SEG, SEG);
+    var pos = g.getAttribute('position');
+    var AMP_MIN = 0.07, AMP_RANGE = 0.10;
+    for (var i = 0; i < pos.count; i++) {
+      var lx = pos.getX(i), ly = pos.getY(i), nx = lx, ny = ly;
+      if ((mask & EAST) && Math.abs(lx - 0.5) < 1e-6) {
+        nx = 0.5 - (AMP_MIN + h1(i * 7 + 3, mask * 11 + 1) * AMP_RANGE);
+      }
+      if ((mask & WEST) && Math.abs(lx + 0.5) < 1e-6) {
+        nx = -0.5 + (AMP_MIN + h1(i * 5 + 9, mask * 13 + 2) * AMP_RANGE);
+      }
+      if ((mask & NORTH) && Math.abs(ly - 0.5) < 1e-6) {
+        ny = 0.5 - (AMP_MIN + h1(i * 3 + 17, mask * 17 + 3) * AMP_RANGE);
+      }
+      if ((mask & SOUTH) && Math.abs(ly + 0.5) < 1e-6) {
+        ny = -0.5 + (AMP_MIN + h1(i * 11 + 23, mask * 19 + 4) * AMP_RANGE);
+      }
+      if (nx !== lx || ny !== ly) { pos.setXY(i, nx, ny); }
+    }
+    pos.needsUpdate = true;
+    g.computeVertexNormals();
     return g;
   }
   /* 바람 흔들림(PLAN 44절) — 잎·풀·갈대에만 쓰는 재질에 정점 셰이더를 조금
@@ -1540,9 +1591,13 @@
         var wy = 0.12 + (p.rise ? 0.55 : 0);          // 불면 수면이 올라온다
         var wg = p.rise ? 1.06 : 1;
         var whex = p.rise ? 0x2a5f88 : 0x2f6f9e;       // 흙탕물은 더 어둡다
-        var w = p.sq
-          ? box(g, 'plane', pmat(whex, 'water'), 0, wy, 0, (GRID + 0.5) * wg, (GRID + 0.5) * wg, 1, false)
-          : box(g, 'disc', pmat(whex, 'water'), 0, wy, 0, GRID * 0.62 * wg, GRID * 0.62 * wg, 1, false);
+        /* 물가 쪽(마스크가 켜진 변)만 들쭉날쭉한 `shoreW<mask>`를 쓴다 — 강물끼리
+           이어지는 변(꺼진 비트)은 안 깎여 있어 옆 칸과 자로 잰 듯 맞물린다.
+           마스크가 통째로 0(사방이 물)이면 굳이 새 도형을 안 쓰고 옛 'plane'
+           그대로 간다(캐시 낭비 없음, 화면도 똑같다) */
+        var wGeo = p.sq ? ((p.shore | 0) ? ('shoreW' + (p.shore | 0)) : 'plane') : 'disc';
+        var w = box(g, wGeo, pmat(whex, 'water'), 0, wy, 0, (p.sq ? (GRID + 0.5) : GRID * 0.62) * wg,
+          (p.sq ? (GRID + 0.5) : GRID * 0.62) * wg, 1, false);
         w.rotation.x = -Math.PI / 2;
       } else if (p.t === 'field') {
         /* 논 한 뙈기 — 물 댄 낯을 얇게 깔고 두렁을 두른다. 지면보다 조금만 띄운다
