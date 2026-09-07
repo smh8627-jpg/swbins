@@ -60,6 +60,13 @@
       morale: Math.max(200, Math.round((o.myDef || 0) * MORALE_MUL)),
       moraleMax: Math.max(200, Math.round((o.myDef || 0) * MORALE_MUL)),
       left: o.timeSec || TIME_SEC,
+      /* perf() 의 timeUsed 가 이 값을 쓴다 — 예전엔 여기서 안 채우고 open()
+       * 이 나중에 cur.timeSec 를 덧붙여서, create() 를 timeSec 를 다르게
+       * 줘서 직접 부르면(화면 없이) timeUsed 가 기본값(60)으로 잘못
+       * 계산됐다(rogue-action.js 의 create() 는 처음부터 같이 채운다 —
+       * 그쪽과 맞춤). 지금은 어디서도 다른 timeSec 를 안 줘서 겉으로 안
+       * 드러났을 뿐이다. */
+      timeSec: o.timeSec || TIME_SEC,
       ki: 0,
       cd: 0,
       /* 적 차례 */
@@ -81,8 +88,14 @@
   }
 
   function note(s, kind, dmg) {
+    /* 예전엔 60개를 넘으면 앞을 잘랐다(`shift`) — 그런데 `fold()`가 이 배열
+     * 하나로 결과 화면의 "합" 목록을 접는 유일한 곳이라, 잘라내면 초반
+     * 타격이 통째로 사라지고 접은 목록의 "남은 기세"가 실제 전투 흐름과
+     * 어긋났다(2026-09-07 발견 — 속공 쿨(0.35초)만으로도 60초 교전에서
+     * 170타 가까이 나온다). `fold()`가 어차피 몇 덩이로만 접어 화면에
+     * 내므로 여기서 자를 이유가 없다 — 한 교전(최대 수백 개)은 잘라내지
+     * 않아도 메모리에 부담이 없다. */
     s.acts.push({ kind: kind, dmg: dmg, left: Math.max(0, s.hp) });
-    if (s.acts.length > 60) { s.acts.shift(); }
   }
 
   /**
@@ -240,8 +253,7 @@
   function open(o) {
     el = host();
     if (!el) { return null; }
-    cur = create(o);
-    cur.timeSec = o.timeSec || TIME_SEC;
+    cur = create(o);            // create() 가 이미 timeSec 를 채운다
     meta = o;
     doneCb = o.onDone || null;
     el.classList.add('show');

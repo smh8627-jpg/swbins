@@ -170,8 +170,10 @@
   }
 
   function note(s, kind, dmg) {
+    /* duel.js와 같은 이유로 60개 자르기(shift)를 없앴다 — fold()가 결과
+     * 화면의 "합" 목록을 이 배열 하나로 접는데, 자르면 초반 타격이 사라져
+     * 목록이 실제 전투와 어긋났다. */
     s.acts.push({ kind: kind, dmg: dmg, left: Math.max(0, s.hp) });
-    if (s.acts.length > 60) { s.acts.shift(); }
   }
 
   function finishIfDone(s) {

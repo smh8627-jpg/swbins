@@ -714,6 +714,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (s.hits + '회 → ' + f.length + '덩이 · 합 ' + sum);
     });
 
+    t('60타를 넘는 긴 교전도 접은 합이 낸 피해와 같다 (기록 자르기 회귀)', function () {
+      /* 예전엔 `note()`가 기록(acts)을 60개 넘으면 앞을 잘랐다(shift) —
+         fold()가 그 잘린 배열만 보고 접어서, 초반 타격이 결과 화면의
+         "합" 목록에서 통째로 빠지고 sum !== dealt 가 됐다(2026-09-07
+         발견·고침). 속공 쿨(0.35초)만으로 60초 교전에서 170타 가까이
+         나오므로 실전에서 쉽게 밟히는 자리였다. */
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 100000, myAtk: 100, myDef: 100000 });
+      for (var i = 0; i < 90; i++) { Dl.act(s, 'quick'); Dl.step(s, Dl.QUICK_CD); }
+      var f = Dl.fold(s), sum = 0;
+      for (var j = 0; j < f.length; j++) { sum += f[j].dmg; }
+      return s.hits === 90 && s.acts.length === 90 && sum === s.dealt &&
+        ('90타 기록 유지 · 접은 합 ' + sum + ' = 낸 피해 ' + s.dealt);
+    });
+
+    t('교전을 다른 제한시간으로 세워도(open 없이) timeUsed 가 그 값을 쓴다', function () {
+      /* create()가 timeSec 를 안 채우던 시절엔 open()이 나중에 덧붙여야만
+         맞았다 — 화면 없이(자가진단·다른 판정) 60초가 아닌 값으로 세우면
+         perf().timeUsed 가 기본값 60을 기준으로 잘못 계산됐다. */
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 1000000, myAtk: 1, myDef: 100000, timeSec: 20 });
+      for (var i = 0; i < 50 && !s.over; i++) { Dl.step(s, 0.5); }
+      var p = Dl.perf(s);
+      return s.left === 0 && p.timeUsed === 20 &&
+        ('제한 20초 소진 · timeUsed ' + p.timeUsed);
+    });
+
     /* ── 도적전(賊徒戰) — 사가블로식 실시간 위치 전투 (`rogue-action.js`) ──
      * 화면 층(rAF·거리 계산)은 헤드리스에서 돌지 않는다. 판정 층(`tick`)에
      * 거리를 직접 먹여 굴려 본다 — `duel.js`의 판정 테스트와 같은 요령이다. */
