@@ -619,14 +619,40 @@
 
   function lookup(kind) { return REG[kind] ? { key: kind, url: REG[kind] } : null; }
 
-  /** 표 한 줄이 여럿이면 씨앗 문자열 해시로 하나를 고른다 — 같은 자리는 늘 같은 것 */
+  function strHash(s) {
+    var h = 0, i;
+    for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    return h;
+  }
+  /** 목록 한 줄이 오브젝트면 `key`(레시피), 아니면 URL 문자열 자체가 그 항목의
+   *  변치 않는 정체다 — 목록에서 몇 번째냐와 무관하다. */
+  function itemId(item) { return (item && typeof item === 'object') ? (item.key || '') : String(item); }
+  /**
+   * 표 한 줄이 여럿이면 씨앗 문자열로 하나를 고른다 — 같은 자리는 늘 같은 것.
+   *
+   * 2026-09-07 — 예전엔 `h % list.length`(위치 기반 나머지)였다. "캐릭터
+   * 100개" 목표로 `HERO_RECIPES_LIGHT`가 이 세션에서만 6→24→26→41 로 세 번
+   * 늘었는데, **나머지 연산은 길이가 바뀌면 거의 모든 씨앗의 나머지 값이
+   * 함께 바뀐다**(분산 캐싱에서 널리 알려진 함정) — 새 종을 추가할 때마다
+   * 마을의 NPC·동행 **전원**이 이미 받아 둔 모델을 버리고 새 모델을 다시
+   * 받는 꼴이었다. 폰 실기기 "여전히 느리다" 제보의 실제 몸통.
+   *
+   * Rendezvous(HRW) 해싱으로 바꾼다 — 항목마다 (씨앗+그 항목의 정체)를 따로
+   * 해시해 가장 큰 값을 고른다. 표에 새 항목이 늘어도 **그 항목이 새로
+   * 뽑히는 확률(1/새 길이)만큼만** 기존 씨앗이 바뀐다 — 전원이 흔들리던
+   * 것과 달리 극소수만, 그것도 새로 추가된 항목으로만 옮겨간다.
+   */
   function oneOf(list, seed) {
     if (!list) { return null; }
     if (typeof list === 'string') { return list; }
     if (!list.length) { return null; }
-    var s = String(seed || ''), i, h = 0;
-    for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
-    return list[h % list.length];
+    var s = String(seed || '');
+    var best = null, bestH = -1, i, h;
+    for (i = 0; i < list.length; i++) {
+      h = strHash(s + '|' + itemId(list[i]));
+      if (h > bestH) { bestH = h; best = list[i]; }
+    }
+    return best;
   }
   function urlOf(kind, seed) {
     var h = lookup(kind);
