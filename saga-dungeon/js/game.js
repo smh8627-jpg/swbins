@@ -73,7 +73,36 @@
 
   /* ── 부트 ─────────────────────────────────────────────── */
 
+  /* 2026-09-07 — "화면이 갈색(배경색)만 채워지고 아무것도 안 그려진다"는
+     제보가 실기기에서 반복됐는데, loop()의 프레임별 catch(§ 위)는 매 프레임
+     예외만 잡을 뿐 **부팅 자체가 던지는 예외는 못 잡는다** — start() 안에서
+     (특정 세이브 상태에서만) 뭔가 던지면 requestAnimationFrame 이 걸리기도
+     전에 조용히 멈춰, 배경만 칠해진 채 토스트도 안 뜨는 이 증상과 정확히
+     들어맞는다. 기존 프로필은 account.gate() 가 start() 를 동기로 부르고
+     새 프로필은 가입 화면 버튼 클릭 뒤 부르므로, start() 자신을 감싸면 두
+     경로 다 잡힌다. */
   function start() {
+    try {
+      startInner();
+    } catch (e) {
+      reportBootError(e);
+    }
+  }
+
+  function reportBootError(e) {
+    if (global.console) { global.console.error('[boot] 시작 실패', e); }
+    try {
+      var msg = String((e && e.stack) || (e && e.message) || e);
+      var box = document.createElement('div');
+      box.style.cssText = 'position:fixed;inset:12px;z-index:99999;background:#2a0f0f;' +
+        'color:#ffdada;font:12px/1.5 monospace;padding:14px;border-radius:10px;overflow:auto;' +
+        'white-space:pre-wrap;border:1px solid #a33;box-shadow:0 8px 30px rgba(0,0,0,.6)';
+      box.textContent = '⚠️ 시작 실패 — 이 화면을 스크린샷으로 남겨 주세요\n\n' + msg;
+      document.body.appendChild(box);
+    } catch (e2) { /* 이것마저 실패하면 콘솔 로그가 마지막 수단 */ }
+  }
+
+  function startInner() {
     var fresh = !core.load();
     /* 옛 `core.reset()` 은 빈 세이브를 그대로 저장해 v:1 이 박혀 있었다 —
        그런 세이브는 load() 가 "있다"고 읽어 fresh 가 false 가 되고, 출사표가
