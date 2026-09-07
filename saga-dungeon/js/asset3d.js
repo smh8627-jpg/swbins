@@ -117,6 +117,21 @@
     })
   );
 
+  /* 2026-09-07(이어서) — poly.pizza "Ultimate Modular Women Pack"(10종,
+     CharacterArmature|* 클립 — 위 남성 팩과 같은 낱말표라 mapClips() 그대로
+     받는다). 전부 Quaternius 저작, CC0 5종·CC-BY 5종 혼합(`assets/
+     ASSET_LICENSES.md`에 저작자 표시 기록). "Animated Woman"이 두 벌이라
+     키가 겹치지 않게 순번을 붙였다. `assets/models/people/polypizza_women/`
+     에 둠. */
+  var PEOPLE_PP_WOMEN = 'assets/models/people/polypizza_women/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['SciFiCharacter', 'Witch', 'Worker', 'Suit', 'Soldier',
+      'AnimatedWoman1', 'Punk', 'Adventurer', 'HoodedAdventurer', 'AnimatedWoman2'].map(function (n) {
+      var f = PEOPLE_PP_WOMEN + n + '.glb';
+      return { key: 'ppwomen_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

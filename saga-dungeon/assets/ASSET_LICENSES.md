@@ -1184,6 +1184,24 @@ Dragon·Skeleton·Slime류는 이미 Ultimate Monsters·KayKit Skeletons로 확�
 있어, 새로 얻는 건 Bat 하나뿐 — FBX 변환 도구(fbx2gltf 등) 셋업 비용 대비
 가치가 낮아 보류. 변환 파이프라인이 생기면 재검토.
 
+## 캐릭터 3차분 — poly.pizza 여성 번들 (2026-09-07)
+
+이전 세션에서 "quaternius.com 페이지는 있는데 poly.pizza 미러를 못 찾았다"고
+남겨 뒀던 Ultimate Modular Women Pack — 검색어를 바꿔 다시 찾으니 있었다.
+
+| 번들 | 받은 곳 | 캐릭터 |
+|---|---|---|
+| Ultimate Modular Women Pack | `poly.pizza/bundle/Ultimate-Modular-Women-Pack-aCBDXDdTNN` | 10종(사이파이·마녀·노동자·정장·군인·평상복 여성 2종·펑크·모험가·후드모험가) |
+
+> © **Quaternius**. **한 번들 안에 CC0 5종·CC-BY 5종이 섞여 있다**(페이지에서
+> 모델별로 각각 확인) — CC-BY: Sci Fi Character·Witch·Worker·Suit·Soldier.
+> CC0: Animated Woman(2종, 이름이 겹쳐 `AnimatedWoman1`/`2`로 구분)·Punk·
+> Adventurer·Hooded Adventurer. 제 클립 내장(`CharacterArmature|*` — 위
+> Animated Men Pack과 같은 낱말표라 `mapClips()` 그대로 받는다, 리타깃
+> 불필요). `assets/models/people/polypizza_women/`에 둠. `tools/
+> glb-compress`로 재압축(10개, 15.0MB→4.3MB). `HERO_RECIPES_LIGHT`에
+> `ppwomen_*`로 등록.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
