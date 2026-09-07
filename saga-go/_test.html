@@ -181,6 +181,24 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('세이브·집계·건설효과 없음 · 구역 이름 "' + name + '" 유지');
     });
 
+    t('구역 이름 30개가 다 나온다 (hash2 반쪽 범위 보정)', function () {
+      /* core.hash2 는 0~0.5 만 돌려준다 — regionName 이 그걸 그냥 쓰면
+         REGION_NAMES 뒤 절반(한양·경주·전주 등 15개)이 영영 안 뽑힌다
+         (2026-09-07 발견·고침, h01 로 두 배로 편다). 넓게 표본을 뽑아
+         뒤 절반에서만 나오는 이름이 실제로 뜨는지로 확인한다. */
+      var seen = {}, rx, ry;
+      for (rx = -30; rx <= 30; rx++) {
+        for (ry = -30; ry <= 30; ry++) {
+          seen[W.regionName(rx + ',' + ry)] = true;
+        }
+      }
+      var backHalf = ['한양', '경주', '전주', '충주'];
+      var found = backHalf.filter(function (n) { return seen[n]; });
+      var total = Object.keys(seen).length;
+      return found.length === backHalf.length && total >= 25 &&
+        ('표본 ' + total + '종 · 뒤 절반 이름 확인: ' + found.join('·'));
+    });
+
     t('스폰 생성', function () {
       W.update(0.016);
       return W.spawns.length > 0 && W.spawns.length + '개 배치';
