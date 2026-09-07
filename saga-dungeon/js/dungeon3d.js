@@ -165,6 +165,16 @@
   var autoLevel = startLevelFor(deviceScore(probeDevice())); // AUTO 가 지금 고른 등급(시작은 기기 보기)
   var perfEma = 16.7;                   // 프레임 시간 이동평균(ms) — 처음엔 60fps 로 가정
   var lastFrameT = null;
+  /* 2026-09-07 — "로딩하자마자부터 화면 전체가 계속 깜빡인다"(실기기·PC 둘 다,
+     콘솔은 조용함) 제보. perfEma 가 문턱(20ms·33ms) 바로 옆에서 맴돌면
+     `autoLevel`이 매 프레임 뒤집힐 수 있는데, `post3d.js`의 렌더 타깃은
+     등급이 바뀔 때마다(scale·msaa가 등급마다 달라서) 그 자리에서 버리고
+     새로 만든다(`syncTargets` 주석 — "프레임마다 타깃을 다시 만들면 그것만으로
+     화면이 멎는다") — 그걸 초당 수십 번 하면 프레임 예외 하나 없이도 화면이
+     깜빡인다. 문턱을 오간 뒤 일정 시간(쿨다운)이 지나기 전에는 등급을 또
+     안 바꾸게 막아 진동을 끊는다. */
+  var lastLevelChangeT = 0;
+  var LEVEL_COOLDOWN_MS = 1500;
 
   /** ms 평균 → 등급. **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
   function autoLevelFor(emaMs) {
@@ -188,7 +198,11 @@
       var dtMs = now - lastFrameT;
       if (dtMs > 0 && dtMs < 500) {
         perfEma = perfEma * 0.9 + dtMs * 0.1;
-        autoLevel = autoLevelFor(perfEma);
+        var next = autoLevelFor(perfEma);
+        if (next !== autoLevel && now - lastLevelChangeT >= LEVEL_COOLDOWN_MS) {
+          autoLevel = next;
+          lastLevelChangeT = now;
+        }
       }
     }
     lastFrameT = now;
