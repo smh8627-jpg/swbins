@@ -1324,7 +1324,25 @@
      뺀다 — 마을 자체(560×360 발판)보다 넉넉히 크고, 마을 사이 거리
      (ANCHOR_DIST=4800, town.js)의 절반보다는 한참 작아 "마을 바로 근처는
      안전, 그 밖 길은 위험"이 살아난다. */
-  var TOWN_SAFE_R = 900;
+  var TOWN_SAFE_R = 1300;
+
+  /** 마을 anchor(발판 중심) 좌표 — spawnFieldEncounters·stepFieldCombat이 같이 쓴다. */
+  function townSafeCenter(ctx) {
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
+    return { x: ax + rw * 0.5, y: ay + rh * 0.5 };
+  }
+  /* 2026-09-07 — "몹들이 마을로 침범한다"(사용자). 담장 안(`inRoomRect`)은
+     이미 못 들어왔지만, 그건 "방 사각형" 판정이라 **담장 바로 밖**까지는
+     플레이어를 쫓아 붙어 설 수 있었다 — 마을 코앞에 몹이 우글대는 것으로
+     읽혔다. 스폰만 막던 안전지대(TOWN_SAFE_R)를 **로머의 추격 이동에도**
+     그대로 적용한다 — 플레이어가 안전지대 안으로 들어가면 쫓던 로머는
+     그 경계에서 멈춘다(원작 야영지가 안전한 것과 같은 규칙). */
+  function inTownSafe(x, y, ctx) {
+    if (!ctx || !ctx.town) { return false; }
+    var c = townSafeCenter(ctx);
+    return Math.hypot(x - c.x, y - c.y) < TOWN_SAFE_R;
+  }
 
   /**
    * @param ctx 마을처럼 던전과 다른 방이 빌려 쓸 때만 넘긴다 —
@@ -1513,9 +1531,12 @@
           if (en.field) {
             /* 들판 로머는 방(마을 벽) 안으로는 못 들어온다 — 플레이어를
                쫓다가도 벽 자리에서 멈춘다. 축을 나눠 막아 대각선으로
-               다가와도 한쪽 축은 계속 미끄러진다(boundPlayer와 같은 요령). */
-            if (!inRoomRect(nex, en.y, ctx)) { en.x = nex; }
-            if (!inRoomRect(en.x, ney, ctx)) { en.y = ney; }
+               다가와도 한쪽 축은 계속 미끄러진다(boundPlayer와 같은 요령).
+               마을에서는 안전지대(TOWN_SAFE_R) 경계도 같은 방식으로 막아 —
+               플레이어가 안전지대로 피하면 쫓던 로머가 담장 코앞까지
+               따라붙지 못한다. */
+            if (!inRoomRect(nex, en.y, ctx) && !inTownSafe(nex, en.y, ctx)) { en.x = nex; }
+            if (!inRoomRect(en.x, ney, ctx) && !inTownSafe(en.x, ney, ctx)) { en.y = ney; }
           } else {
             en.x = nex; en.y = ney;
           }

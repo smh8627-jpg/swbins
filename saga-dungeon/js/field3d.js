@@ -158,6 +158,46 @@
     return order[order.length - 1];
   }
 
+  /* 2026-09-07 — "다른 마을로 가는 길을 연결해줘"(사용자, town.js
+     connectAndRoadTowns() 참고). town.js가 마을 쌍마다 잇는 선분을 여기서
+     지연 조회한다(town.js는 field3d.js보다 먼저 실리므로, 로드 시점엔
+     `global.DG.field3d`가 아직 없어 town.js 쪽에서 먼저 등록을 못 건다 —
+     그래서 반대로 이쪽이 부를 때마다 `global.DG.town`을 찾는다). town.js가
+     아직 안 실렸으면(순서가 안 맞거나 다른 판이 이 파일만 빌려 쓰면)
+     조용히 없는 셈 친다 — 새 예외 자리를 만들지 않는다. */
+  var TOWN_ROAD_BAND = 70;   // 선분에서 이 안쪽은 무조건 길 — CHUNK(200)의 1/3 남짓, 한 사람 폭
+  function distToSeg(px, pz, ax, az, bx, bz) {
+    var dx = bx - ax, dz = bz - az;
+    var len2 = dx * dx + dz * dz;
+    var t = len2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / len2)) : 0;
+    return Math.hypot(px - (ax + dx * t), pz - (az + dz * t));
+  }
+  /* `fieldBlockedAt`(dungeon.js)이 이동 판정으로 매 프레임 아홉 조각씩
+     다시 묻는다 — 길 선분(최대 수백 개)을 매번 다 훑으면 이동 중 프레임
+     비용이 늘어난다("이동할 때마다"류 문제를 하나 고치며 새로 하나
+     만들면 안 된다). 길 판정은 세계가 고정된 뒤로는 절대 안 바뀌므로
+     (town.js가 로드 시 한 번만 ROAD_SEGMENTS를 정한다) 칸 좌표로 그냥
+     캐싱한다 — 같은 칸을 다시 물으면 공짜다. */
+  var townRoadCache = {};
+  function onTownRoad(cx, cz) {
+    var key = cx + '_' + cz;
+    var cached = townRoadCache[key];
+    if (cached !== undefined) { return cached; }
+    var T = global.DG && global.DG.town, result = false, segs, i, s, wx, wz;
+    if (T && T.roadSegments) {
+      segs = T.roadSegments();
+      if (segs && segs.length) {
+        wx = cx * CHUNK + CHUNK / 2; wz = cz * CHUNK + CHUNK / 2;
+        for (i = 0; i < segs.length; i++) {
+          s = segs[i];
+          if (distToSeg(wx, wz, s.ax, s.az, s.bx, s.bz) < TOWN_ROAD_BAND) { result = true; break; }
+        }
+      }
+    }
+    townRoadCache[key] = result;
+    return result;
+  }
+
   /** @param theme 층 테마 이름(`data-dungeon.js`의 `themeOf(floor).name`) —
    *  없으면(자가진단·옛 호출) 테마 편향 없이 예전과 완전히 같은 문턱을 쓴다 */
   function kindOf(cx, cz, seed, ring, theme) {
@@ -165,6 +205,10 @@
     /* 방 바로 곁(ring 1)은 사람이 지나간 자리 — 길·캠프·폐허(테마 편향 안 줌,
        방 코앞은 어느 층이든 "지나다닌 자리"로 남아야 읽기 쉽다) */
     if (ring <= 1) { return h < 0.42 ? 'road' : (h < 0.62 ? 'camp' : (h < 0.82 ? 'ruin' : 'rock')); }
+    /* 마을 사이 길(위 onTownRoad) — ring 2 이상에서만 본다(ring 0·1은 이미
+       위에서 갈렸다). 테마 편향보다 우선한다 — 길은 지나는 지역이 숲이든
+       늪이든 그 자리만은 늘 길이어야 "이어진 길"로 읽힌다. */
+    if (ring >= 2 && onTownRoad(cx, cz)) { return 'road'; }
     /* 2026-08-30 — 실기기(PC)에서 "제1층 시작하자마자 캐릭터를 가린다" 로
        잡힌 것: 절벽(cliff, h 120~270 · s 1.4~2.8 짜리 거대한 상자)이 ring 2
        (방에서 chunk 하나 남짓, 카메라 거리 700 안쪽)에서도 날 수 있었다.

@@ -2151,7 +2151,23 @@
     var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
              (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg +
              ':fw' + fldCx0 + '_' + fldCz0;
-    if (rk !== roomKey) { roomKey = rk; prefetchActors(run); buildRoom(run); buildField(run, fldCx0, fldCz0); }
+    /* 2026-09-07 — "이동할 때마다 화면이 갈색(배경)이 된다"(PC·모바일 둘 다)
+       제보. `fw`(들판 창 위치)가 `rk`에 실려 있어 걸을 때마다(칸 경계를
+       넘을 때마다) 이 블록이 다시 도는데, 여기가 던지면 **`roomKey`는 이미
+       바뀐 뒤라 재시도도 안 되고, 이 아래(카메라·조명·실제 렌더 호출)가
+       통째로 안 돈다** — 그 프레임은 `renderer.render()`까지 못 가 화면이
+       멈추거나 빈다. 한 걸음마다 같은 실패가 반복되면 "이동할 때마다"와
+       정확히 들어맞는다. 원인을 아직 못 잡았으니(다음 재현 때 이 경고가
+       콘솔에 실제 스택을 남긴다) 우선 이 자리만 감싸 — 실패해도 이번 칸은
+       옛 그림 그대로 두고 카메라·렌더는 그대로 이어간다. */
+    if (rk !== roomKey) {
+      roomKey = rk;
+      try {
+        prefetchActors(run); buildRoom(run); buildField(run, fldCx0, fldCz0);
+      } catch (e) {
+        if (global.console) { console.warn('[던전 3D] 방/들판을 다시 짓다가 실패 — 이번 칸은 옛 그림 그대로 둔다', e); }
+      }
+    }
 
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());

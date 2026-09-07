@@ -229,6 +229,12 @@
     sogeum: { x: 0, y: ANCHOR_DIST }
   };
   function anchorOf(id) { return WORLD_ANCHOR[id] || WORLD_ANCHOR.moru; }
+  /** 마을 발판 한복판의 세계 좌표 — 안전지대·길(road) 양쪽이 "마을의 대표 점"으로 쓴다. */
+  function townCenter(id) {
+    var a = anchorOf(id);
+    return { x: a.x + ROOM_W * 0.5, y: a.y + ROOM_H * 0.5 };
+  }
+  var ROAD_SEGMENTS = [];   // connectAndRoadTowns()가 채운다 — field3d.kindOf()가 읽는다(길 강제)
 
   /**
    * 마을 넷 — id·이름·색감(테마)·거기 사는 직군·장식·들길(exits) 을 정의한다.
@@ -246,8 +252,14 @@
       hasGate: true,
       npcs: [
         { key: 'captain', x: 110, y: 90 },  { key: 'quarter', x: 280, y: 70 },
-        { key: 'master',  x: 450, y: 95 },  { key: 'smith',   x: 450, y: 200 },
-        { key: 'pedlar',  x: 450, y: 305 }, { key: 'scribe',  x: 110, y: 200 },
+        { key: 'master',  x: 450, y: 95 },
+        /* 2026-09-07 — "NPC 위치도 디아블로 스타일로"(사용자). 야장(대장장이)은
+           대장간(blacksmith, 520,235) 옆에, 행상은 우물(280,250) 옆(원작
+           트리스트럼의 행상·짐마차가 광장 우물가에 서는 것과 같은 자리)에
+           서게 옮겼다 — 소품과 55 이상, 다른 NPC·표식과도 거리를 손으로
+           재서 골랐다(handTownNpcObstacles의 최소 간격 그대로 지킨다). */
+        { key: 'smith',   x: 470, y: 210 },
+        { key: 'pedlar',  x: 340, y: 250 }, { key: 'scribe',  x: 110, y: 200 },
         /* 2026-09-06 — 좌표는 손으로 계산해 골랐다(가장 가까운 기존 자리에서도
            88 이상 — 이 방은 이미 아홉 자리가 찬 3×3 이라 100을 다 채우진
            못했지만, NPC는 벨타워 같은 큰 3D 구조물이 아니라 사람 하나라
@@ -583,6 +595,67 @@
     }
   })();
 
+  /* 2026-09-07 — "다른 마을로 가는 길을 연결해줘"(사용자). 손으로 지은 넷
+     사이의 exits(§28-2~4 시절 corridor 시스템)는 §28-8에서 이미 "은퇴"했고
+     (24행 부근 주석), 지금 exits는 굴혈(exit_dungeon) 표식 말고는 화면에
+     아무것도 안 남긴다 — 다른 마을로의 exits는 순전히 데이터일 뿐, 실제로
+     밟히는 길은 없었다. 절차 생성 마을(gen*, 100개)은 exits가 아예 빈
+     배열이라 연결 개념 자체가 없었다.
+     **exits 배열은 안 건드린다** — 자가진단이 "위성 마을의 exits 데이터는
+     그대로다(PLAN §28-3)"를 명시적으로 지킨다(갈대나루 3·자작재 2·소금벌 2
+     로 못박아 둠). 대신 실제로 밟히는 길은 exits와 완전히 별개인 좌표
+     선분(ROAD_SEGMENTS)으로 둔다 — ① 격자에서 실제로 이웃(간격이 정확히
+     ANCHOR_DIST)인 마을 쌍을 전부 잇고, ② 손으로 지은 넷의 기존 exits
+     (갈대나루↔자작재처럼 격자 이웃이 아닌 대각 쌍도 있다)도 데이터는 안
+     바꾼 채 읽기만 해서 같이 잇는다. `field3d.js`의 `kindOf()`가 이 선분
+     근처 조각을 'road'(9절에 이미 있는 kind, 새로 안 늘림)로 강제해 실제
+     흙길이 생긴다. 마을이 최대 사방 격자로 이어지므로 먼 마을로 가는 길이
+     이웃을 갈아타는 여러 갈래로 자연히 갈린다("길이 다양하게", 사용자
+     후속 요청). */
+  (function buildTownRoads() {
+    var cellOf = {}, i, id, ax, az;
+    function keyOf(x, z) { return x + ',' + z; }
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      id = TOWN_ORDER[i];
+      ax = Math.round(WORLD_ANCHOR[id].x / ANCHOR_DIST);
+      az = Math.round(WORLD_ANCHOR[id].y / ANCHOR_DIST);
+      cellOf[keyOf(ax, az)] = id;
+    }
+    var segs = [];
+    /* E·N 두 방향만 봐도 격자 인접 쌍을 빠짐없이 한 번씩만 줍는다 —
+       대칭인 W·S는 그 이웃 쪽에서 자기 E·N을 볼 때 이미 걸린다. */
+    var NBRS = [{ dx: 1, dz: 0 }, { dx: 0, dz: -1 }];
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      id = TOWN_ORDER[i];
+      ax = Math.round(WORLD_ANCHOR[id].x / ANCHOR_DIST);
+      az = Math.round(WORLD_ANCHOR[id].y / ANCHOR_DIST);
+      var c1 = townCenter(id);
+      for (var d = 0; d < NBRS.length; d++) {
+        var nbId = cellOf[keyOf(ax + NBRS[d].dx, az + NBRS[d].dz)];
+        if (!nbId) { continue; }
+        var c2 = townCenter(nbId);
+        segs.push({ ax: c1.x, az: c1.y, bx: c2.x, bz: c2.y });
+      }
+    }
+    /* 손으로 지은 넷의 기존 exits(격자 인접이 아닌 대각 쌍 포함, 예:
+       갈대나루↔자작재) — 데이터는 읽기만 한다, 안 바꾼다. */
+    var seenPair = {};
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      id = TOWN_ORDER[i];
+      var cfg = TOWNS[id], c3 = townCenter(id);
+      for (var e = 0; e < cfg.exits.length; e++) {
+        var to = cfg.exits[e].to;
+        if (to === 'dungeon' || !TOWNS[to]) { continue; }
+        var pairKey = id < to ? (id + '|' + to) : (to + '|' + id);
+        if (seenPair[pairKey]) { continue; }
+        seenPair[pairKey] = true;
+        var c4 = townCenter(to);
+        segs.push({ ax: c3.x, az: c3.y, bx: c4.x, bz: c4.y });
+      }
+    }
+    ROAD_SEGMENTS = segs;
+  })();
+
   function dirEmoji(dir) {
     return dir === 'N' ? '⬆️' : dir === 'S' ? '⬇️' : dir === 'E' ? '➡️' : '⬅️';
   }
@@ -786,7 +859,26 @@
    * 하나의 연속값이라, 마을이 바뀌어도(활성 마을이 갈릴 때마다 다시 불림)
    * 그대로 이어진다.
    */
+  /* 2026-09-07 — "이동할 때마다 화면이 갈색(빈 화면)"(PC·모바일 둘 다) 제보.
+     `update()`가 마을 경계를 넘을 때마다(§28-8, pickActiveTown) `CURRENT_TOWN`을
+     먼저 새 값으로 바꾼 **다음** build()를 부른다(위 update() 참고) — 그런데
+     buildInner()가 도중에 던지면 `CURRENT_TOWN`은 이미 새 마을인데 `room`은
+     옛 마을 것 그대로 남는다. 다음 틱엔 `nextTown === CURRENT_TOWN`이라
+     재시도도 안 걸려, 그 어긋난 상태가 그대로 굳는다 — dungeon3d.js가 그
+     어긋난 room을 그리려다 계속 실패하면 "이동할 때마다"(걸을 때마다 칸이
+     바뀌어 다시 그리려 들 때마다) 딱 들어맞는다. 실패하면 CURRENT_TOWN도
+     같이 안전한 값(들판)으로 되돌려 어긋남 자체를 없앤다 — game.js
+     start()/startInner()와 같은 요령이다. */
   function build() {
+    try {
+      buildInner();
+    } catch (e) {
+      if (global.console) { console.warn('[마을] build() 실패 — 들판(빈 방)으로 되돌린다', e); }
+      CURRENT_TOWN = null;
+      buildInner();
+    }
+  }
+  function buildInner() {
     armed = {};
     if (!CURRENT_TOWN) {
       /* 들판 한복판(PLAN §28-8) — 활성 마을이 없다. 장식·NPC·표식 없는 빈
@@ -1198,6 +1290,11 @@
     },
     /** 자가진단용 — 그 마을의 exits 원본(dir·to·len)을 그대로 돌려준다(읽기 전용). */
     exitsOf: function (id) { return cfgOf(id).exits.slice(); },
+    /** 마을 간 길(도로) 선분 목록 — `field3d.js`의 `kindOf()`가 지연 조회로
+     *  읽는다(로드 순서상 field3d가 town.js보다 늦게 실려 이쪽에서 먼저
+     *  못 넘긴다 — 그래서 콜백이 아니라 함수를 얹어 두고 나중에 부르게
+     *  한다). 읽기 전용 — 얕은 복사로 내준다. */
+    roadSegments: function () { return ROAD_SEGMENTS.slice(); },
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: raw,
     fx: function () { return fx; },
