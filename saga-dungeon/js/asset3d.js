@@ -40,6 +40,7 @@
   var NATURE = 'assets/models/nature/';
   var NATURE_REAL = 'assets/models/nature/realistic/';
   var ANIMALS = 'assets/models/animals/';
+  var ANIMALS_EXTRA = 'assets/models/animals_extra/';
   var PROPS = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
   var BLD_REAL = 'assets/models/buildings/realistic/';
@@ -271,6 +272,35 @@
     'pet:boar': ANIMALS + 'Boar.glb',
     'pet:owl': ANIMALS + 'Owl.glb',
     'pet:cat': ANIMALS + 'Cat.glb',
+    /* 2026-09-07 — "펫 100개" 목표 1차분. poly.pizza 세 번들(전부 CC0,
+       Quaternius 계열) — Farm Animal Pack(라마·돼지·퍼그·양·말·소·얼룩말),
+       Animated Animal Pack(당나귀·알파카·황소·여우·수사슴·흰말·소·말 —
+       사슴·시바견·허스키·늑대는 이미 위에 있어 뺐다), Animated Fish
+       Bundle(물고기 3종·돌고래·상어·고래·쥐가오리). 종마다 걷기·달리기·
+       공격·죽음 등 애니메이션 내장. `assets/models/animals_extra/`에
+       따로 뒀다(기존 `animals/`와 출처가 달라 섞지 않음). */
+    'pet:llama': ANIMALS_EXTRA + 'Llama.glb',
+    'pet:pig': ANIMALS_EXTRA + 'Pig.glb',
+    'pet:pug': ANIMALS_EXTRA + 'Pug.glb',
+    'pet:sheep': ANIMALS_EXTRA + 'Sheep.glb',
+    'pet:horse_farm': ANIMALS_EXTRA + 'Horse_Farm.glb',
+    'pet:cow_farm': ANIMALS_EXTRA + 'Cow_Farm.glb',
+    'pet:zebra': ANIMALS_EXTRA + 'Zebra.glb',
+    'pet:cow': ANIMALS_EXTRA + 'Cow.glb',
+    'pet:donkey': ANIMALS_EXTRA + 'Donkey.glb',
+    'pet:alpaca': ANIMALS_EXTRA + 'Alpaca.glb',
+    'pet:bull': ANIMALS_EXTRA + 'Bull.glb',
+    'pet:fox': ANIMALS_EXTRA + 'Fox.glb',
+    'pet:stag': ANIMALS_EXTRA + 'Stag.glb',
+    'pet:white_horse': ANIMALS_EXTRA + 'White_Horse.glb',
+    'pet:horse': ANIMALS_EXTRA + 'Horse.glb',
+    'pet:fish_1': ANIMALS_EXTRA + 'Fish1.glb',
+    'pet:fish_2': ANIMALS_EXTRA + 'Fish2.glb',
+    'pet:fish_3': ANIMALS_EXTRA + 'Fish3.glb',
+    'pet:dolphin': ANIMALS_EXTRA + 'Dolphin.glb',
+    'pet:shark': ANIMALS_EXTRA + 'Shark.glb',
+    'pet:whale': ANIMALS_EXTRA + 'Whale.glb',
+    'pet:manta_ray': ANIMALS_EXTRA + 'MantaRay.glb',
     /* 2026-09-04(이어서) — 사용자가 "사가고처럼 실사화"를 요청 → 사람은
        막다른 길(Mixamo 재배포 금지, 위 delam 주석 참고)이라 자연물만
        Poly Haven CC0 사진측량 스캔으로 갈아 끼웠다(`island_tree_02`,

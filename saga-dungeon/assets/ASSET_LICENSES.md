@@ -1138,6 +1138,21 @@ UAL2(43개 — Sword_*·Shield_*·Zombie_*·TreeChopping 등 리치 콤보)로
 idle·jump·run 세 개뿐이라 이미 있는 QRPG·Kenney Blocky·Universal Base
 Characters보다 가치가 낮았다. 압축·통합 없이 그대로 둠.
 
+## 펫 — poly.pizza 동물 번들 셋 (2026-09-07, "펫 100개" 목표 1차분)
+
+poly.pizza 미러 세 번들(전부 Quaternius, CC0). 기존 `animals/`(늑대·사슴·
+시바견·허스키 등)와 겹치는 종은 뺐다.
+
+| 번들 | 받은 곳 | 신규 종 |
+|---|---|---|
+| Farm Animal Pack | `poly.pizza/bundle/Farm-Animal-Pack-1kUvRTPLzT` | 라마·돼지·퍼그·양·말·소·얼룩말 |
+| Animated Animal Pack | `poly.pizza/bundle/Animated-Animal-Pack-ILAPXeUYiS` | 당나귀·알파카·황소·여우·수사슴·흰말·소·말 |
+| Animated Fish Bundle | `poly.pizza/bundle/Animated-Fish-Bundle-ZkGbjS8m8g` | 물고기 3종·돌고래·상어·고래·쥐가오리 |
+
+> © **Quaternius**, CC0 (Public Domain). 저작자 표시 불필요. `tools/glb-compress`로
+> 재압축(22개, 10.1MB→3.2MB). `js/asset3d.js`의 `DEFAULTS`에 `pet:*`로 등록,
+> `assets/models/animals_extra/`에 따로 둠(기존 `animals/`와 출처 구분).
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
