@@ -1164,6 +1164,26 @@ poly.pizza 미러 세 번들(전부 Quaternius, CC0). 기존 `animals/`(늑대·
 > Fish Bundle과 별개 번들이라 상어(Shark) 종이 겹쳐 `pet:shark_2`로 구분).
 > `tools/glb-compress`로 재압축(42개, 7.5MB→2.5MB).
 
+## 캐릭터 2차분 — poly.pizza 남성 번들 둘 (2026-09-07)
+
+Kenney Character Assets(4모델·75스킨)는 확인해 보니 **데모만 무료, 전체는
+유료**라 최종 제외 — 대신 poly.pizza에서 완전 무료 CC0 대체를 찾았다.
+
+| 번들 | 받은 곳 | 캐릭터 |
+|---|---|---|
+| Animated Men Pack | `poly.pizza/bundle/Animated-Men-Pack-DAC9SDgMQT` | 4종(정장·평상복 남성 등) |
+| Ultimate Modular Men Pack | `poly.pizza/bundle/Ultimate-Modular-Men-Pack-ZiH8muWqwQ` | 11종(모험가·왕·농부·후드티·해변·캐주얼·노동자·펑크·SWAT·비즈니스맨·우주비행사) |
+
+> © **Quaternius**, CC0. 둘 다 제 클립 내장(리타깃 불필요). `assets/models/
+> people/polypizza_men/`에 둠. `tools/glb-compress`로 재압축(15개,
+> 18.6MB→5.4MB). `HERO_RECIPES_LIGHT`에 `ppmen_*`로 등록.
+
+**itch.io "Monster Pack Animated by Quaternius"(사용자가 같이 받아 전달)는
+안 씀** — Bat·Dragon·Skeleton·Slime 4종인데 FBX/OBJ/Blend뿐(GLTF 없음)이고
+Dragon·Skeleton·Slime류는 이미 Ultimate Monsters·KayKit Skeletons로 확보돼
+있어, 새로 얻는 건 Bat 하나뿐 — FBX 변환 도구(fbx2gltf 등) 셋업 비용 대비
+가치가 낮아 보류. 변환 파이프라인이 생기면 재검토.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

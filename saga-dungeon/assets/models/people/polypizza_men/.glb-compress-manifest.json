@@ -1,0 +1,77 @@
+{
+  "Adventurer.glb": {
+    "size": 513652,
+    "result": "ok",
+    "at": "2026-09-07T05:26:04.241Z"
+  },
+  "Astronaut.glb": {
+    "size": 508624,
+    "result": "ok",
+    "at": "2026-09-07T05:26:05.177Z"
+  },
+  "BeachCharacter.glb": {
+    "size": 445268,
+    "result": "ok",
+    "at": "2026-09-07T05:26:06.063Z"
+  },
+  "BusinessMan.glb": {
+    "size": 445760,
+    "result": "ok",
+    "at": "2026-09-07T05:26:07.029Z"
+  },
+  "CasualCharacter.glb": {
+    "size": 431404,
+    "result": "ok",
+    "at": "2026-09-07T05:26:08.963Z"
+  },
+  "Farmer.glb": {
+    "size": 433764,
+    "result": "ok",
+    "at": "2026-09-07T05:26:10.381Z"
+  },
+  "HoodieCharacter.glb": {
+    "size": 440380,
+    "result": "ok",
+    "at": "2026-09-07T05:26:11.454Z"
+  },
+  "King.glb": {
+    "size": 513420,
+    "result": "ok",
+    "at": "2026-09-07T05:26:12.495Z"
+  },
+  "Man1.glb": {
+    "size": 151320,
+    "result": "ok",
+    "at": "2026-09-07T05:26:13.278Z"
+  },
+  "Man2.glb": {
+    "size": 156968,
+    "result": "ok",
+    "at": "2026-09-07T05:26:14.059Z"
+  },
+  "ManInSuit.glb": {
+    "size": 164028,
+    "result": "ok",
+    "at": "2026-09-07T05:26:14.861Z"
+  },
+  "ManLongSleeves.glb": {
+    "size": 152412,
+    "result": "ok",
+    "at": "2026-09-07T05:26:15.673Z"
+  },
+  "Punk.glb": {
+    "size": 432140,
+    "result": "ok",
+    "at": "2026-09-07T05:26:16.671Z"
+  },
+  "SWAT.glb": {
+    "size": 454020,
+    "result": "ok",
+    "at": "2026-09-07T05:26:17.754Z"
+  },
+  "Worker.glb": {
+    "size": 429092,
+    "result": "ok",
+    "at": "2026-09-07T05:26:18.742Z"
+  }
+}

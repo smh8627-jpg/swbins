@@ -103,6 +103,20 @@
     { key: 'universal_female', body: 'assets/models/people/universal_base/Superhero_Female.glb', anim: UAL2_SRC }
   ]);
 
+  /* 2026-09-07(이어서) — poly.pizza "Animated Men Pack"(4종, CharacterArmature|*
+     클립)·"Ultimate Modular Men Pack"(11종, HumanArmature|Man_* 클립). 전부
+     CC0, 제 클립 내장이라 QRPG·Kenney Blocky와 같은 갈래(리타깃 불필요).
+     `assets/models/people/polypizza_men/`에 둠. */
+  var PEOPLE_PP_MEN = 'assets/models/people/polypizza_men/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['ManInSuit', 'Man1', 'Man2', 'ManLongSleeves', 'Adventurer', 'King', 'Farmer',
+      'HoodieCharacter', 'BeachCharacter', 'CasualCharacter', 'Worker', 'Punk', 'SWAT',
+      'BusinessMan', 'Astronaut'].map(function (n) {
+      var f = PEOPLE_PP_MEN + n + '.glb';
+      return { key: 'ppmen_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/
