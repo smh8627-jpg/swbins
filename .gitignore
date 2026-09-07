@@ -19,7 +19,9 @@ saga-go/mobile/ios/App/Pods/
 *.aab
 *.keystore
 
-# 찌꺼기
+# 찌꺼기 — 헤드리스/CDP 3D 확인용 크롬 프로파일(안 지우면 프로세스가 살아
+# 남아 CPU 를 계속 먹을 수 있다, 확인 끝나면 taskkill 로도 반드시 같이 정리)
+_cdp_prof*/
 *.log
 logs/
 *.stackdump
