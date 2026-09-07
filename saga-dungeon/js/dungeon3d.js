@@ -1308,11 +1308,17 @@
   /** 로딩 우선순위(PLAN 39절) — 마을 한 곳이 GLB 36개를 부른다(집·나무·바위…,
    *  buildRoom()·buildField() 가 곧 부른다). 그런데 정작 화면에서 가장 먼저
    *  눈에 들어와야 할 **나(플레이어)·마을 사람**은 그 뒤 actorOf() 루프에서
-   *  제일 나중에 요청돼 늘 꼴찌로 밀렸다(CDP로 실측 — v20.glb 가 39개 중 31번째).
-   *  버림받는 GLB 는 없다 — 그냥 **네트워크 큐에 올리는 순서**만 사람이 먼저다.
+   *  제일 나중에 요청돼 늘 꼴찌로 밀렸다(CDP로 실측 — 당시 기본 시드가 여전히
+   *  리터럴 'me'라 골랐던 v20.glb 가 39개 중 31번째였다). 버림받는 GLB 는
+   *  없다 — 그냥 **네트워크 큐에 올리는 순서**만 사람이 먼저다.
    *  `rawScene()` 은 아무것도 세우지 않고 캐시에 굽기만 하므로(부작용 없음),
    *  잠시 뒤 buildRoom()/buildField() 가 배경 소품을 부르고 나서 actorOf() 가
-   *  같은 url 을 또 부르면 이미 도착해 있거나 대기열 앞자리에 있다. */
+   *  같은 url 을 또 부르면 이미 도착해 있거나 대기열 앞자리에 있다.
+   *  **2026-09-07** — `touch('me')` 리터럴을 `meRenderParams().seed`로 바꿨다.
+   *  실제로 몸을 지을 때(`actorOf('me', ...)`→`meRenderParams()`)는 이미
+   *  QRPG_SEEDS 로 묶여 있는데, 여기 프리페치만 옛 리터럴 'me'를 그대로 써서
+   *  실제로 안 쓸 무거운 MPFB 몸(+7.6MB 리타깃 원본)을 헛되이 큐에 올리고
+   *  있었다 — 우선순위를 아무리 앞으로 당겨도 그 자체가 헛수고였다. */
   function prefetchActors(run) {
     var AS3 = AS();
     if (!AS3 || !AS3.heroRecipe || !AS3.rawScene) { return; }
@@ -1326,7 +1332,7 @@
       if (rec.hair) { AS3.rawScene(rec.hair, noop); }
       AS3.rawScene(rec.anim || AS3.ANIM_SRC, noop);
     }
-    touch('me');
+    touch(meRenderParams().seed);
     var ns = (run.room && run.room.npcs) || [];
     for (var i = 0; i < ns.length; i++) { touch('npc:' + (ns[i].key || '')); }
   }
@@ -1503,26 +1509,33 @@
     return { weapon: weaponLookOf(id), helm: helmLookOf(id), armor: armorLookOf(id) };
   }
   /* 2026-09-06 — 외모 커스텀(`core.save.appearance = {styleSeed, tint}`).
-     styleSeed:0(기본값·옛 세이브)은 시드를 지금까지처럼 리터럴 'me'로 둬
-     회귀 없음. 1 이상은 `'me:'+styleSeed`를 그대로 해시하지 않고 **미리
-     검증한 시드 표(QRPG_SEEDS)만 고른다** — `asset3d.js`의 `oneOf()`가
-     26종 레시피(QRPG 6·MPFB 실사 20종) 중 하나를 해시로 고르는데, 여기서
-     MPFB 쪽(`mpfb_female` 등)이 걸리면 실기기 확인 중 CDP 헤드리스에서
-     렌더러가 그대로 죽는 게 실제로 재현됐다(GPU 프로세스 강제 종료,
-     `retargetInto()` 골격 재배치 쪽 문제로 보이나 원인까지는 못 좁혔다).
-     QRPG 6종은 이미 매 프레임 안전하게 도는 몸(무기·투구·갑주 다 이 위에
-     얹는다)이고 tint 도 이쪽에만 먹으므로("일부 스타일엔 색이 안 먹을 수
-     있음" 캐벗을 아예 없앤다), 커스텀 화면은 이 여섯만 내준다.
+     1 이상은 `'me:'+styleSeed`를 그대로 해시하지 않고 **미리 검증한 시드 표
+     (QRPG_SEEDS)만 고른다** — `asset3d.js`의 `oneOf()`가 26종 레시피(QRPG 6·
+     MPFB 실사 20종) 중 하나를 해시로 고르는데, 여기서 MPFB 쪽(`mpfb_female`
+     등)이 걸리면 실기기 확인 중 CDP 헤드리스에서 렌더러가 그대로 죽는 게
+     실제로 재현됐다(GPU 프로세스 강제 종료, `retargetInto()` 골격 재배치
+     쪽 문제로 보이나 원인까지는 못 좁혔다). QRPG 6종은 이미 매 프레임
+     안전하게 도는 몸(무기·투구·갑주 다 이 위에 얹는다)이고 tint 도 이쪽에만
+     먹으므로("일부 스타일엔 색이 안 먹을 수 있음" 캐벗을 아예 없앤다),
+     커스텀 화면은 이 여섯만 내준다.
      QRPG_SEEDS[i] 문자열은 `'me:'+i`가 아니라, `oneOf()`의 해시가 실제로
      QRPG 인덱스(0~5)에 떨어지는 걸 미리 찾아 둔 값이다(PowerShell로
      `h=(h*31+charCode)&0xFFFFFFFF; h%26`을 손으로 굴려 확인) — 문자열이
-     안 예뻐 보여도 바꾸면 다른 레시피로 튄다, 손대지 말 것. */
+     안 예뻐 보여도 바꾸면 다른 레시피로 튄다, 손대지 말 것.
+     **2026-09-07 되돌림 — styleSeed:0(기본값·옛 세이브)도 QRPG_SEEDS[0]으로
+     묶는다.** 원래는 "리터럴 'me' 그대로 둬 회귀 없음"이었는데, 'me' 자체가
+     해시로 `mpfb_v20`(3.5~4.3MB 몸 + 제 클립이 없어 7.6MB `ANIM_SRC` 리타깃
+     까지 추가로 받는다)에 떨어진다 — 커스텀 화면에서 막 잡아낸 바로 그
+     MPFB 위험군과 같은 갈래다. 모바일 LTE에서 "너무 느리다"(2026-09-07
+     재신고) 원인이 이것으로 보인다 — 위 렌더러 크래시 위험까지 겹쳐 "회귀
+     없음"보다 안전이 우선이라 판단했다. 대부분의 플레이어는 커스텀 화면을
+     안 열어 봤을 default(styleSeed:0)가 곧 이 갈래라 영향이 가장 크다. */
   var QRPG_SEEDS = ['me:0', 'me:1', 'me:15', 'me:16', 'me:17', 'me:18'];
   function meRenderParams() {
     var core = global.DG.core;
     var ap = (core && core.save && core.save.appearance) || {};
     var n = ap.styleSeed || 0;
-    var seed = (n >= 1 && n <= QRPG_SEEDS.length) ? QRPG_SEEDS[n - 1] : 'me';
+    var seed = (n >= 1 && n <= QRPG_SEEDS.length) ? QRPG_SEEDS[n - 1] : QRPG_SEEDS[0];
     return { seed: seed, tint: hexOf(ap.tint, null) };
   }
   function npcShape(nc) {

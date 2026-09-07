@@ -3271,7 +3271,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('맨몸 ' + JSON.stringify(bare) + ' → 장착 후 ' + JSON.stringify(geared));
     });
 
-    t('외모 — freshSave에 appearance가 있고 styleSeed:0은 옛 모습과 100% 같다', function () {
+    t('외모 — freshSave에 appearance가 있고 styleSeed:0도 QRPG(안전) 쪽으로 묶인다', function () {
+      /* 2026-09-07 — 예전엔 styleSeed:0이 리터럴 'me'(해시로 mpfb_v20 —
+         MPFB 실사 20종 중 하나, 7.6MB 리타깃까지 얹는다)를 그대로 썼다.
+         "회귀 없음"보다 안전(렌더러 크래시 위험)·속도(모바일 LTE)가
+         우선이라 QRPG_SEEDS[0]으로 묶었다 — 아래 참고. */
       var ap = C.save.appearance;
       var before = C.save.appearance;
       C.save.appearance = { styleSeed: 0, tint: null };
@@ -3280,7 +3284,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var p3 = D3._meRenderParams();
       C.save.appearance = before;
       return !!ap && ap.styleSeed === 0 && ap.tint === null &&
-        p0.seed === 'me' && p0.tint === null &&        // 0이면 리터럴 'me' — 회귀 없음
+        p0.seed === 'me:0' && p0.tint === null &&       // 0 → QRPG_SEEDS[0](안전)
         p3.seed === 'me:15' && p3.tint === 0x4f8fc9 &&  // QRPG_SEEDS[2] — 안전한 표에서만 고른다
         ('styleSeed 0 → 시드 ' + p0.seed + ' · 3 → ' + p3.seed + '/#' + p3.tint.toString(16));
     });
