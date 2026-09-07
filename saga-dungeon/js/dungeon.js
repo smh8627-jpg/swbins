@@ -1315,6 +1315,17 @@
    * 플래그로 끄고 있어(같은 자리), 새로 생긴 이 계도 같은 자리에 둔다. 실제 플레이
    * (`index.html`)에는 이 플래그가 없어 그대로 다 돈다.
    */
+  /* 2026-09-07 — "마을은 디아블로 마을처럼, 몹은 마을 안이 아니라 다른
+     마을 가는 길에"(사용자 요청). 마을 사각형(room rect) 안으로는 이미
+     `inRoomRect` 판정이 로머를 못 들어오게 막아 왔지만, **스폰 자리**는
+     그 담장 바로 밖까지도 허용돼 있어(§57 지형 창-추적으로 그 담장 밖
+     원경까지 실제로 다니게 되면서) "작은 마을 바로 곁에 몹이 잔뜩"으로
+     느껴졌다. 마을 anchor(중심)에서 이 반경 안쪽은 아예 스폰 후보에서
+     뺀다 — 마을 자체(560×360 발판)보다 넉넉히 크고, 마을 사이 거리
+     (ANCHOR_DIST=4800, town.js)의 절반보다는 한참 작아 "마을 바로 근처는
+     안전, 그 밖 길은 위험"이 살아난다. */
+  var TOWN_SAFE_R = 900;
+
   /**
    * @param ctx 마을처럼 던전과 다른 방이 빌려 쓸 때만 넘긴다 —
    *            {roomW, roomH, wall, floor, room}. 없으면 이 방(던전)의 run 그대로다.
@@ -1327,14 +1338,23 @@
     var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
     var floor = ctx ? ctx.floor : run.floor;
     var enemies = ctx ? ctx.room.enemies : run.room.enemies;
+    var isTown = !!(ctx && ctx.town);
+    var cx0 = ax + rw * 0.5, cy0 = ay + rh * 0.5;
+    /* 마을은 지금 플레이어가 있는 자리 둘레에 스폰한다(옛 코드는 늘
+       anchor 둘레였다 — 플레이어가 anchor에서 멀리 나가 있으면 거기 있는
+       몹이 아니라 엉뚱하게 마을 코앞에 계속 몹이 쌓였다). 던전 방은 옛
+       그대로 anchor(=방 중심) 둘레를 쓴다. */
+    var px0 = (isTown && ctx.player) ? ctx.player.x : cx0;
+    var py0 = (isTown && ctx.player) ? ctx.player.y : cy0;
     var R = fieldRadiusUnits(), tries, i, a, d, x, y, en;
     for (i = 0; i < count; i++) {
       tries = 8;
       while (tries--) {
         a = Math.random() * Math.PI * 2;
         d = (wl + 60) + Math.random() * Math.max(40, R - wl - 60);
-        x = ax + rw * 0.5 + Math.cos(a) * d;
-        y = ay + rh * 0.5 + Math.sin(a) * d;
+        x = px0 + Math.cos(a) * d;
+        y = py0 + Math.sin(a) * d;
+        if (isTown && Math.hypot(x - cx0, y - cy0) < TOWN_SAFE_R) { continue; }
         if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
         en = spawnEnemy(floor, false, { x: x, y: y });
         en.field = true;

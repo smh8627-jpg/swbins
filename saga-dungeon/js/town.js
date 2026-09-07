@@ -68,6 +68,52 @@
   var ROOM_H = wide ? Math.round(BASE_H * DESK_SCALE) : BASE_H;
   var SX = ROOM_W / BASE_W, SY = ROOM_H / BASE_H;
   function scalePt(x, y) { return { x: x * SX, y: y * SY }; }
+  /* 2026-09-07 — 사용자 실기기 제보("NPC들이 너무 붙어있다"). 손으로 지은
+     넷(모루골 등)의 NPC 좌표는 BASE_W×BASE_H(560×380) 기준으로 손수 골라
+     둔 값이라, 폰(`wide`가 거짓 — scalePt가 1배)에서는 예전 그대로의
+     간격(100~170)으로 좁게 남는다(데스크톱은 최대 2배로 벌어져 있어
+     문제가 덜 드러났다). 좌표를 다시 손으로 재지 않고, 방 중심에서
+     바깥쪽으로 배율만큼 밀어내 간격을 넓힌다 — 상대 배치(누가 왼쪽·
+     오른쪽인지)는 그대로 유지되고, 벽 여유(`WALL+P_R+20`, `placePoints()`
+     와 같은 여백)를 넘지 않게 잘라 담·소품과 새로 겹치지 않게 한다. */
+  var HAND_NPC_SPREAD = 1.28;
+  var HAND_NPC_DECOR_CLEAR = 55;   // 소품과 이만큼은 떨어져야 한다(집 문간에 서지 않게)
+  /* `_test.html`의 "한 자리에서 둘이 동시에 걸리지 않는다"가 NPC·표식 전부를
+     TALK_R*2(=80, BASE 단위 — SX=SY라 배율에 안 흔들린다) 문턱으로 잰다.
+     그 문턱과 같은 값(여유를 살짝 얹어 82)으로 표식도 같이 피한다 — 안
+     그러면 중심에서 밀어낸 NPC가 마침 그 방향에 있던 표식(예: 결사비) 쪽으로
+     더 다가서 버린다(2026-09-07, 자가진단으로 실제로 걸림). */
+  var HAND_NPC_MARK_CLEAR = 82;
+  /** @param obstacles [{x,y,clear}] — 배율을 최대까지 올렸을 때 그중 하나와도
+   *  너무 가까워지면, 부딪히지 않는 선까지 배율을 도로 낮춘다. 원래 좌표
+   *  (배율 1)는 손으로 이미 거리를 재 둔 값이라(위 NPC_DEFS 자리 주석들)
+   *  항상 안전한 하한이다. */
+  function handTownNpcSpread(x, y, obstacles) {
+    var cx = BASE_W / 2, cy = BASE_H / 2;
+    var lo = WALL + P_R + 20, hiX = BASE_W - lo, hiY = BASE_H - lo;
+    var f, nx, ny, i, ok;
+    for (f = HAND_NPC_SPREAD; f > 1.0; f -= 0.04) {
+      nx = Math.max(lo, Math.min(hiX, cx + (x - cx) * f));
+      ny = Math.max(lo, Math.min(hiY, cy + (y - cy) * f));
+      ok = true;
+      for (i = 0; obstacles && i < obstacles.length; i++) {
+        if (Math.hypot(nx - obstacles[i].x, ny - obstacles[i].y) < obstacles[i].clear) { ok = false; break; }
+      }
+      if (ok) { return { x: nx, y: ny }; }
+    }
+    return { x: x, y: y };
+  }
+  function handTownNpcObstacles(cfg) {
+    var out = [], i;
+    for (i = 0; i < cfg.decor.length; i++) { out.push({ x: cfg.decor[i].x, y: cfg.decor[i].y, clear: HAND_NPC_DECOR_CLEAR }); }
+    if (cfg.hasGate) {
+      for (i = 0; i < MARKS.length; i++) {
+        if (MARKS[i].key === 'gate') { continue; }   // 굴혈은 이 방에 안 선다(위 exits 주석)
+        out.push({ x: MARKS[i].x, y: MARKS[i].y, clear: HAND_NPC_MARK_CLEAR });
+      }
+    }
+    return out;
+  }
   var SPD = 158;                        // 마을 걸음 (던전보다 조금 빠르다 — 볼일만 보는 곳이라)
   var RSCALE = (SX + SY) / 2;           // 닿는 판정 반경도 방 크기를 따라간다
   var TALK_R = 40 * RSCALE;             // 이만큼 다가서면 말이 걸린다
@@ -490,7 +536,10 @@
       var name = genName(biome, usedNames, salt);
       var anchor = { x: cell.gx * ANCHOR_DIST, y: cell.gz * ANCHOR_DIST };
       var npcKeys = seededShuffle(GEN_NPC_POOL, salt + 3).slice(0, 3);
-      var npcPts = placePoints(npcKeys.length, 100, [{ x: 195, y: 240 }], salt + 11);
+      /* 2026-09-07 — 사용자 실기기 제보("NPC들이 너무 붙어있다")로 100→150.
+         NPC는 셋뿐이라(위 slice(0,3)) 이 방(BASE_W×BASE_H=560×380) 안에서
+         150 간격은 여전히 넉넉히 자리를 찾는다. */
+      var npcPts = placePoints(npcKeys.length, 150, [{ x: 195, y: 240 }], salt + 11);
       /* placePoints()가 간격을 못 지키면 이제 그 자리를 건너뛴다(위 함수
          주석 참고, 2026-09-06 후속 — 실기기 제보로 잡음: 억지로 겹치게
          놓았다가 스폰 바로 옆에 집이 서는 사고가 났었다) — 그래서 npcPts가
@@ -770,9 +819,17 @@
     /* 원본(NPC_DEFS·MARKS·TOWNS)은 건드리지 않는다 — 진단이 마을을 여러 번
        세우고 오갈 수 있다. 좌표는 BASE_W·BASE_H 기준으로 적혀 있어 실제
        방 크기에 맞춘 뒤 세계 앵커를 더한다. */
+    /* 스프레드는 **손으로 지은 넷**(모루골 등)만 받는다 — 절차 생성 마을의
+       NPC 좌표는 이미 placePoints()가 소품과의 최소 간격을 보장해 뽑은
+       값이라(위 generateTowns), 여기서 다시 밀어내면 오히려 그 보장이
+       깨진다(2026-09-07, 자가진단으로 실제로 걸림 — gen 마을에서 NPC가
+       기존 집·우물 쪽으로 밀려났었다). */
+    var isHandTown = !!HAND_TOWN_DENSITY_SALT[cfg.id];
+    var handObstacles = isHandTown ? handTownNpcObstacles(cfg) : null;
     for (i = 0; i < cfg.npcs.length; i++) {
       var spot = cfg.npcs[i], def = NPC_DEFS[spot.key];
-      p = scalePt(spot.x, spot.y);
+      var spread = isHandTown ? handTownNpcSpread(spot.x, spot.y, handObstacles) : spot;
+      p = scalePt(spread.x, spread.y);
       room.npcs.push({
         key: spot.key, name: def.name, emoji: def.emoji, sheet: def.sheet, line: def.line,
         x: anchor.x + p.x, y: anchor.y + p.y, color: def.color,
