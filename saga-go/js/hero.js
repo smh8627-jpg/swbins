@@ -118,6 +118,13 @@
    * 원래 방치 전투(js/_expansion/battle.js)에 있던 계산인데, 던전을 본편으로
    * 되살리면서 **인물의 힘을 다루는 유일한 곳**인 여기로 옮겼다 — 던전이
    * 방치 전투 모듈에 매달려 있을 이유가 없다.
+   *
+   * (2026-09-07 정리) 옮겨 올 때 `core.effect().atkPct`·`.hpPct` 곱셈도
+   * 그대로 따라왔었다 — `js/_expansion/battle.js`(그 안의 idle.js·
+   * prestige.js) 에서만 그 두 키를 만드는데, 본편은 안 부르는 파일들이라
+   * (`index.html` 등 어디서도 안 싣는다) 늘 `×1`인 죽은 코드였다. 되살릴
+   * 땐 그 세 파일을 `94850f8` 기준으로 통째로 되살리는 것이지 이 함수를
+   * 손보는 게 아니므로 지워도 안전하다.
    */
   function partyPower() {
     var p = core.save.party, atk = 0, def = 0, i, h, s;
@@ -128,9 +135,6 @@
       atk += s.might * 0.7 + s.wisdom * 0.3;
       def += s.command * 0.6 + s.wisdom * 0.2;
     }
-    var e = core.effect();
-    atk *= 1 + (e.atkPct || 0) / 100;
-    def *= 1 + (e.hpPct || 0) / 100;
     return { atk: Math.round(atk), def: Math.round(def), total: Math.round(atk + def) };
   }
 
