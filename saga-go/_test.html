@@ -181,6 +181,24 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('세이브·집계·건설효과 없음 · 구역 이름 "' + name + '" 유지');
     });
 
+    t('구역 이름 30개가 다 나온다 (hash2 반쪽 범위 보정)', function () {
+      /* core.hash2 는 0~0.5 만 돌려준다 — regionName 이 그걸 그냥 쓰면
+         REGION_NAMES 뒤 절반(한양·경주·전주 등 15개)이 영영 안 뽑힌다
+         (2026-09-07 발견·고침, h01 로 두 배로 편다). 넓게 표본을 뽑아
+         뒤 절반에서만 나오는 이름이 실제로 뜨는지로 확인한다. */
+      var seen = {}, rx, ry;
+      for (rx = -30; rx <= 30; rx++) {
+        for (ry = -30; ry <= 30; ry++) {
+          seen[W.regionName(rx + ',' + ry)] = true;
+        }
+      }
+      var backHalf = ['한양', '경주', '전주', '충주'];
+      var found = backHalf.filter(function (n) { return seen[n]; });
+      var total = Object.keys(seen).length;
+      return found.length === backHalf.length && total >= 25 &&
+        ('표본 ' + total + '종 · 뒤 절반 이름 확인: ' + found.join('·'));
+    });
+
     t('스폰 생성', function () {
       W.update(0.016);
       return W.spawns.length > 0 && W.spawns.length + '개 배치';
@@ -694,6 +712,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       for (var j = 0; j < f.length; j++) { sum += f[j].dmg; }
       return f.length > 0 && f.length <= 10 && sum === s.dealt &&
         (s.hits + '회 → ' + f.length + '덩이 · 합 ' + sum);
+    });
+
+    t('60타를 넘는 긴 교전도 접은 합이 낸 피해와 같다 (기록 자르기 회귀)', function () {
+      /* 예전엔 `note()`가 기록(acts)을 60개 넘으면 앞을 잘랐다(shift) —
+         fold()가 그 잘린 배열만 보고 접어서, 초반 타격이 결과 화면의
+         "합" 목록에서 통째로 빠지고 sum !== dealt 가 됐다(2026-09-07
+         발견·고침). 속공 쿨(0.35초)만으로 60초 교전에서 170타 가까이
+         나오므로 실전에서 쉽게 밟히는 자리였다. */
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 100000, myAtk: 100, myDef: 100000 });
+      for (var i = 0; i < 90; i++) { Dl.act(s, 'quick'); Dl.step(s, Dl.QUICK_CD); }
+      var f = Dl.fold(s), sum = 0;
+      for (var j = 0; j < f.length; j++) { sum += f[j].dmg; }
+      return s.hits === 90 && s.acts.length === 90 && sum === s.dealt &&
+        ('90타 기록 유지 · 접은 합 ' + sum + ' = 낸 피해 ' + s.dealt);
+    });
+
+    t('교전을 다른 제한시간으로 세워도(open 없이) timeUsed 가 그 값을 쓴다', function () {
+      /* create()가 timeSec 를 안 채우던 시절엔 open()이 나중에 덧붙여야만
+         맞았다 — 화면 없이(자가진단·다른 판정) 60초가 아닌 값으로 세우면
+         perf().timeUsed 가 기본값 60을 기준으로 잘못 계산됐다. */
+      var Dl = DG.duel;
+      var s = Dl.create({ foeHp: 1000000, myAtk: 1, myDef: 100000, timeSec: 20 });
+      for (var i = 0; i < 50 && !s.over; i++) { Dl.step(s, 0.5); }
+      var p = Dl.perf(s);
+      return s.left === 0 && p.timeUsed === 20 &&
+        ('제한 20초 소진 · timeUsed ' + p.timeUsed);
     });
 
     /* ── 도적전(賊徒戰) — 사가블로식 실시간 위치 전투 (`rogue-action.js`) ──

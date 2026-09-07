@@ -711,9 +711,12 @@
     var pos = core.save.player.pos;
     return regionKeyOf(pos.x, pos.y);
   }
+  /* core.hash2 는 0~0.5 만 돌려준다(h01 머리말 참고) — 그냥 쓰면 역참과 같은
+   * 사고로 REGION_NAMES 뒤 절반(한양·경주·전주 등 15개)이 영영 안 뽑힌다.
+   * h01 로 두 배로 펴서 30개 전부가 나오게 한다. */
   function regionName(key) {
     var p = key.split(',');
-    var idx = Math.floor(core.hash2(parseInt(p[0], 10) * 31 + 7, parseInt(p[1], 10) * 17 + 3) * REGION_NAMES.length);
+    var idx = Math.floor(h01(parseInt(p[0], 10) * 31 + 7, parseInt(p[1], 10) * 17 + 3) * REGION_NAMES.length);
     return REGION_NAMES[core.clamp(idx, 0, REGION_NAMES.length - 1)];
   }
 
