@@ -1,0 +1,22 @@
+{
+  "Skeleton_Mage.glb": {
+    "size": 2599584,
+    "result": "ok",
+    "at": "2026-09-07T04:29:24.954Z"
+  },
+  "Skeleton_Minion.glb": {
+    "size": 2612936,
+    "result": "ok",
+    "at": "2026-09-07T04:29:27.879Z"
+  },
+  "Skeleton_Rogue.glb": {
+    "size": 2618044,
+    "result": "ok",
+    "at": "2026-09-07T04:29:30.485Z"
+  },
+  "Skeleton_Warrior.glb": {
+    "size": 2629920,
+    "result": "ok",
+    "at": "2026-09-07T04:29:33.051Z"
+  }
+}

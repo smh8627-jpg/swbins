@@ -152,6 +152,8 @@
   });
   var ANIM_SRC = ANIM_DIR + 'UAL1_Standard.glb';
 
+  var PEOPLE_MONSTERS_Q = 'assets/models/monsters/quaternius/';
+
   var DEFAULTS = {
     'hero': HERO_RECIPES,
     'hero_light': HERO_RECIPES_LIGHT,
@@ -169,6 +171,69 @@
        대신 이 표의 키를 `body` 필드로 직접 받는다 — 더 늘어도 표만 고치면 된다 */
     'beast_boar': ANIMALS + 'Boar.glb',
     'beast_tiger': ANIMALS + 'Tiger.glb',
+    /* 2026-09-07 — "몬스터 100개" 목표 첫 벌. KayKit Character Pack: Skeletons
+       (CC0, 작가 GitHub 조직에서 직접 받음 — itch.io 아님, `assets/
+       ASSET_LICENSES.md` 참고). 짐승이 아니라 사람 형 크리처라 `pet:`이 아닌
+       `monster:`로 따로 묶는다 — 몸마다 근접·원거리·2인용 무기 조합 애니메이션
+       90여 개가 이미 다 들어 있다(1H_Melee_*·2H_Melee_*·1H_Ranged_* 등, 클립
+       이름이 QRPG와 달라도 `mapClips()` 낱말표가 이미 다 받는다). data-enemy.js
+       배치·밸런스는 아직 안 건드렸다 — 자산만 갖춰 둔다. */
+    'monster:skeleton_warrior': 'assets/models/monsters/kaykit_skeletons/Skeleton_Warrior.glb',
+    'monster:skeleton_mage': 'assets/models/monsters/kaykit_skeletons/Skeleton_Mage.glb',
+    'monster:skeleton_rogue': 'assets/models/monsters/kaykit_skeletons/Skeleton_Rogue.glb',
+    'monster:skeleton_minion': 'assets/models/monsters/kaykit_skeletons/Skeleton_Minion.glb',
+    /* 2026-09-07(이어서) — Quaternius "Ultimate Monsters Bundle"(CC0, poly.pizza
+       미러로 받음 — 개별 몬스터 45종, 클립 이름이 `CharacterArmature|Idle`처럼
+       `|` 로 묶여 있는데 `mapClips()`의 `normName()`이 이미 그 구분자를
+       걷어내게 돼 있어(사가고에서부터 있던 처리) 그대로 받는다). 표시 이름은
+       원작 포켓몬류를 연상시키는 것(Alpaking·Armabee 등)이 섞여 있으니
+       실제 게임에 노출할 때 이름 정책(CLAUDE.md, 가명)을 지킨다 — 여기 키는
+       내부 식별자일 뿐 화면에 그대로 안 띄운다. */
+    'monster:alien': PEOPLE_MONSTERS_Q + 'Alien_0bb74be9.glb',
+    'monster:alien_2': PEOPLE_MONSTERS_Q + 'Alien_b048d82a.glb',
+    'monster:alpaking_evolved': PEOPLE_MONSTERS_Q + 'Alpaking_Evolved_c50fd18d.glb',
+    'monster:alpaking': PEOPLE_MONSTERS_Q + 'Alpaking_acb0f155.glb',
+    'monster:armabee_evolved': PEOPLE_MONSTERS_Q + 'Armabee_Evolved_fb7d7a9e.glb',
+    'monster:armabee': PEOPLE_MONSTERS_Q + 'Armabee_de63aaf6.glb',
+    'monster:birb': PEOPLE_MONSTERS_Q + 'Birb_05dac745.glb',
+    'monster:blue_demon': PEOPLE_MONSTERS_Q + 'Blue_Demon_6fbb8914.glb',
+    'monster:bunny': PEOPLE_MONSTERS_Q + 'Bunny_084b5ebe.glb',
+    'monster:cactoro': PEOPLE_MONSTERS_Q + 'Cactoro_625862f9.glb',
+    'monster:cactoro_2': PEOPLE_MONSTERS_Q + 'Cactoro_e88090e2.glb',
+    'monster:cat': PEOPLE_MONSTERS_Q + 'Cat_7ccb71fe.glb',
+    'monster:chicken': PEOPLE_MONSTERS_Q + 'Chicken_a0001762.glb',
+    'monster:demon': PEOPLE_MONSTERS_Q + 'Demon_46b52ba4.glb',
+    'monster:demon_2': PEOPLE_MONSTERS_Q + 'Demon_c2e39eb4.glb',
+    'monster:dino': PEOPLE_MONSTERS_Q + 'Dino_1c1ae302.glb',
+    'monster:dragon_evolved': PEOPLE_MONSTERS_Q + 'Dragon_Evolved_90ed3740.glb',
+    'monster:dragon': PEOPLE_MONSTERS_Q + 'Dragon_ae5b8510.glb',
+    'monster:fish': PEOPLE_MONSTERS_Q + 'Fish_6c98561f.glb',
+    'monster:fish_2': PEOPLE_MONSTERS_Q + 'Fish_f7d91eb6.glb',
+    'monster:frog': PEOPLE_MONSTERS_Q + 'Frog_9018566d.glb',
+    'monster:ghost': PEOPLE_MONSTERS_Q + 'Ghost_810f60a2.glb',
+    'monster:ghost_skull': PEOPLE_MONSTERS_Q + 'Ghost_Skull_0716bf8e.glb',
+    'monster:glub_evolved': PEOPLE_MONSTERS_Q + 'Glub_Evolved_27590c4e.glb',
+    'monster:glub': PEOPLE_MONSTERS_Q + 'Glub_f64d32a9.glb',
+    'monster:goleling': PEOPLE_MONSTERS_Q + 'Goleling_51bf31d7.glb',
+    'monster:goleling_evolved': PEOPLE_MONSTERS_Q + 'Goleling_Evolved_d6308fbf.glb',
+    'monster:green_blob': PEOPLE_MONSTERS_Q + 'Green_Blob_64ab590e.glb',
+    'monster:green_spiky_blob': PEOPLE_MONSTERS_Q + 'Green_Spiky_Blob_cd25a048.glb',
+    'monster:hywirl': PEOPLE_MONSTERS_Q + 'Hywirl_6500a805.glb',
+    'monster:monkroose': PEOPLE_MONSTERS_Q + 'Monkroose_54ca5c4d.glb',
+    'monster:mushnub': PEOPLE_MONSTERS_Q + 'Mushnub_55c64684.glb',
+    'monster:mushnub_evolved': PEOPLE_MONSTERS_Q + 'Mushnub_Evolved_84bc88a5.glb',
+    'monster:mushroom_king': PEOPLE_MONSTERS_Q + 'Mushroom_King_798301fb.glb',
+    'monster:ninja': PEOPLE_MONSTERS_Q + 'Ninja_2ed11876.glb',
+    'monster:ninja_2': PEOPLE_MONSTERS_Q + 'Ninja_42162a27.glb',
+    'monster:orc': PEOPLE_MONSTERS_Q + 'Orc_52a479b3.glb',
+    'monster:orc_enemy': PEOPLE_MONSTERS_Q + 'Orc_Enemy_3076c5f7.glb',
+    'monster:pigeon': PEOPLE_MONSTERS_Q + 'Pigeon_2ad33f9e.glb',
+    'monster:pink_slime': PEOPLE_MONSTERS_Q + 'Pink_Slime_3ddbff73.glb',
+    'monster:squidle': PEOPLE_MONSTERS_Q + 'Squidle_cbe8419d.glb',
+    'monster:tribal': PEOPLE_MONSTERS_Q + 'Tribal_1b4759ca.glb',
+    'monster:wizard': PEOPLE_MONSTERS_Q + 'Wizard_d206c071.glb',
+    'monster:yeti': PEOPLE_MONSTERS_Q + 'Yeti_085b078d.glb',
+    'monster:yeti_2': PEOPLE_MONSTERS_Q + 'Yeti_40a831b3.glb',
     /* 2026-09-04 — 도감(펫) 초상 실사화. "코드로 그리지 말고 에셋으로"가
        인물 초상은 이미 되는데(`portrait3d.js`) 펫(짐승)은 여태 빠져 있었다.
        펫 41종 중 신수(神獸) 11종·포켓몬 오마주 16종은 CC0로 존재할 리 없는

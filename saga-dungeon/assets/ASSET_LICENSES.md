@@ -1078,6 +1078,35 @@ NPC·동행·사람 형 적·초상(`heroKindFor`가 `hero_light`로 보내는 �
 임의 GLB를 애니메이션 재생 상태로 스크린샷 찍는 도구, 무거운 전체 장면을
 헤드리스가 못 견디는 문제를 우회한다)로 압축 전/후 렌더 동일함을 확인했다.
 
+## 몬스터 — KayKit Skeletons + Quaternius Ultimate Monsters (2026-09-07, "몬스터 100개" 목표 1차분)
+
+**KayKit Character Pack: Skeletons** — `github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0`
+(작가 GitHub 조직에서 직접 받음, itch.io 아님 — 던전 소품 받을 때와 같은 경로,
+[[saga-dungeon-kaykit-assets]]). 4종(Mage·Minion·Rogue·Warrior), 몸마다
+근접·원거리·2인용 무기 애니메이션 90여 개 내장.
+
+**Quaternius "Ultimate Monsters Bundle"** — `poly.pizza/bundle/Ultimate-Monsters-Bundle-5oyGWAmOB6`
+(poly.pizza 미러, pond·signpost 받을 때와 같은 경로). 45종, 클립 이름이
+`CharacterArmature|Idle`처럼 `|`로 묶여 있는데 `mapClips()`의 `normName()`이
+이미 그 구분자를 걷어내게 돼 있어 그대로 받는다.
+
+| 자산 | 만든 이 | 받은 곳 | 파일 |
+|---|---|---|---|
+| Skeletons 4종 | Kay Lousberg(KayKit) | `github.com/KayKit-Game-Assets` | `models/monsters/kaykit_skeletons/Skeleton_*.glb` |
+| Ultimate Monsters 45종 | Quaternius | `poly.pizza` 미러 | `models/monsters/quaternius/*.glb` |
+
+> **Skeletons** — © **Kay Lousberg**(kaylousberg.com), CC0. 저작자 표시 불필요(권장).
+> **Ultimate Monsters** — © **Quaternius**, CC0. 저작자 표시 불필요.
+> 둘 다 `tools/glb-compress`로 재압축(Skeletons 18.4MB→10.0MB, Ultimate
+> Monsters 11.2MB→3.9MB) — 애니메이션이 워낙 많아(특히 Skeletons) 압축률은
+> 사람 모델만큼 크지 않다. 격리 렌더(`_glbcheck.html`)로 확인.
+
+`js/asset3d.js`의 `DEFAULTS`에 `monster:skeleton_*`·`monster:<이름>`으로
+등록만 해 뒀다 — `data-enemy.js` 배치·밸런스 연결은 아직 안 함(자산만
+갖춤). Quaternius 쪽 일부 이름(Alpaking·Armabee·Glub 등)이 포켓몬류를
+연상시키는데, 실제 게임에 노출되는 표시 이름은 다섯 판 이름 정책(가명)을
+그대로 따른다 — 여기 등록 키는 내부 식별자일 뿐이다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
