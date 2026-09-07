@@ -97,7 +97,9 @@
     try {
       var v = core.save && core.save.settings ? core.save.settings.camZoom : 1;
       v = (v === undefined || v === null) ? 1 : v;
-      return v < 0.4 ? 0.4 : (v > 2.5 ? 2.5 : v);
+      /* 아래 한계 0.4 는 dungeon-view.js 의 CAM_ZOOM_MIN(0.32)보다 높으면 안 된다
+         — 더 높으면 거기서 낮춰 둔 값이 여기서 도로 잘린다(2026-09-07). */
+      return v < 0.3 ? 0.3 : (v > 2.5 ? 2.5 : v);
     } catch (e) { return 1; }
   }
   /** 카메라 기울기 — 0 은 완전 위, 1 은 낮게. 원작은 3/4 쯤이다.
@@ -286,15 +288,20 @@
        사람 여섯이 어둠에 잠겨 누가 누구인지 안 보인다. 2D 마을이 어둠을
        0.74 → 0.30 으로 옅게 깔던 그 뜻을 3D 에서도 지킨다. */
     if (roomKind === 'town') {
-      /* 2026-09-07 — 실기기(모바일) 신고 "화면이 까맣게 보인다" — 횃불 감도
-         자체는 살리되(D2 컨셉), 배경·주변광을 한 단만 올려 GLB 가 아직 안
-         실린 순간에도(플레이스홀더 도형만 선 상태) 완전히 안 보이진 않게 한다. */
+      /* 2026-09-07 — 실기기(모바일) 재신고: 한 단 올린 것으로도 여전히
+         "새까맣게 보인다·너무 느리다" — 사용자가 아예 마을의 "횃불만 켜 둔
+         어둠" 컨셉 자체를 없애 달라고 요청(D2 감성보다 눈에 보이는 게 우선).
+         배경(`bgHex`, scene.background·fog 색으로 그대로 쓰인다 — 아래
+         2130행)이 여전히 어두우면 GLB 가 늦게 실리는 동안(모바일 LTE, 사람
+         GLB 여럿) 화면 대부분이 그 어두운 배경 그대로 보이는 시간이 길어져
+         "안 보인다" 로 읽힌다. 낮처럼 밝게 — 배경·주변광·직사광 모두 확 올리고
+         어두운 색상 자체를 버린다. */
       return {
-        ambient: 1.05, ambientHex: 0x584c40,
-        keyIntensity: 1.35, keyHex: 0xffd9a8,
-        torchIntensity: 2600, torchHex: 0xffc070, torchRange: 420,
-        fog: { near: 620, far: 2100 },
-        bgHex: 0x241d15, boss: false, deep: 0, town: true
+        ambient: 2.0, ambientHex: 0xd8cdb0,
+        keyIntensity: 1.9, keyHex: 0xfff1d6,
+        torchIntensity: 1400, torchHex: 0xffc070, torchRange: 420,
+        fog: { near: 1400, far: 3200 },
+        bgHex: 0xb9ab82, boss: false, deep: 0, town: true
       };
     }
     return {
@@ -2079,7 +2086,9 @@
        계속 어두우니까). 땅쪽도 하늘쪽 절반 밝기로 같이 따라가게 한다 —
        완전히 맞추면(둘 다 동일) 벽의 입체감(면마다 다른 밝기)이 사라져
        밋밋해지므로, 여전히 하늘보다는 어둡게 두어 방향성은 살린다. */
-    amb.groundColor.setHex(mix(L.ambientHex, 0x000000, 0.5));
+    /* 마을은 어둠 자체를 없앴으니(위 lightPlan town 가지) 땅쪽도 하늘쪽만큼
+       그대로 밝게 — 여기서 절반을 검게 섞으면 그 결정이 도로 무효가 된다. */
+    amb.groundColor.setHex(L.town ? L.ambientHex : mix(L.ambientHex, 0x000000, 0.5));
     key.intensity = L.keyIntensity;
     key.color.setHex(L.keyHex);
     var p0 = run.player;

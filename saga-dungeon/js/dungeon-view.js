@@ -54,7 +54,12 @@
    * `dungeon3d.js`(3D)는 같은 값을 읽되 **거리에는 나눠서** 먹인다(그쪽 주석
    * 참고) — 두 화면에서 손가락을 벌리는 동작이 똑같이 느껴져야 하기 때문이다.
    */
-  var CAM_ZOOM_MIN = 0.55, CAM_ZOOM_MAX = 2.0;
+  /* 2026-09-07 — 마을이 3D 에서 "너무 가깝게(크게) 잡혀 화면을 못 쓴다"는
+     실기기 신고. 마을은 `dungeon3d.js`의 camAim이 `close`(사가의숲 쿼터뷰
+     당김, 2026-09-02)를 얹어 거리에 0.4 를 곱하는데, 이 손잡이(camZoom)의
+     아래 한계가 0.55 라 아무리 오므려도 마을에서는 충분히 물러나지 못했다.
+     0.32 로 낮춰 최대로 오므리면 마을도 던전만큼(또는 그 이상) 물러나게 한다. */
+  var CAM_ZOOM_MIN = 0.32, CAM_ZOOM_MAX = 2.0;
   function userZoom() {
     var v = core.save && core.save.settings ? core.save.settings.camZoom : 1;
     if (v === undefined || v === null) { v = 1; }
