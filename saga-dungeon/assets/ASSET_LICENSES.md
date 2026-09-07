@@ -1153,6 +1153,17 @@ poly.pizza 미러 세 번들(전부 Quaternius, CC0). 기존 `animals/`(늑대·
 > 재압축(22개, 10.1MB→3.2MB). `js/asset3d.js`의 `DEFAULTS`에 `pet:*`로 등록,
 > `assets/models/animals_extra/`에 따로 둠(기존 `animals/`와 출처 구분).
 
+## 펫 2차분 — 물고기 대형 번들 + 공룡 (2026-09-07)
+
+| 번들 | 받은 곳 | 신규 종 |
+|---|---|---|
+| Animated Fish Bundle(대형) | `poly.pizza/bundle/Animated-Fish-Bundle-44zhHN1UbT` | 36종(제브라클라운피시·아머드캣피시·패럿피시·블루탱·베타 등, 소품(낚싯대·부두)은 제외) |
+| Animated Dinosaur Bundle | `poly.pizza/bundle/Animated-Dinosaur-Bundle-SmoLdBLO2K` | 파라사우롤로푸스·티렉스·벨로키랍토르·트리케라톱스·스테고사우루스·아파토사우루스 |
+
+> © **Quaternius**, CC0. `assets/models/animals_extra2/`에 따로 둠(이전
+> Fish Bundle과 별개 번들이라 상어(Shark) 종이 겹쳐 `pet:shark_2`로 구분).
+> `tools/glb-compress`로 재압축(42개, 7.5MB→2.5MB).
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

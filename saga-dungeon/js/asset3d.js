@@ -41,6 +41,7 @@
   var NATURE_REAL = 'assets/models/nature/realistic/';
   var ANIMALS = 'assets/models/animals/';
   var ANIMALS_EXTRA = 'assets/models/animals_extra/';
+  var ANIMALS_EXTRA2 = 'assets/models/animals_extra2/';
   var PROPS = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
   var BLD_REAL = 'assets/models/buildings/realistic/';
@@ -301,6 +302,51 @@
     'pet:shark': ANIMALS_EXTRA + 'Shark.glb',
     'pet:whale': ANIMALS_EXTRA + 'Whale.glb',
     'pet:manta_ray': ANIMALS_EXTRA + 'MantaRay.glb',
+    /* 2026-09-07(이어서) — poly.pizza 물고기 대형 번들(44zhHN1UbT, 위 fish
+       번들 ZkGbjS8m8g와는 별개) 36종 + 공룡 번들(SmoLdBLO2K) 6종, 전부
+       Quaternius CC0. `assets/models/animals_extra2/`에 따로 둠. */
+    'pet:anglerfish': ANIMALS_EXTRA2 + 'Anglerfish.glb',
+    'pet:apatosaurus': ANIMALS_EXTRA2 + 'Apatosaurus.glb',
+    'pet:armored_catfish': ANIMALS_EXTRA2 + 'Armored_Catfish.glb',
+    'pet:betta': ANIMALS_EXTRA2 + 'Betta.glb',
+    'pet:black_lion_fish': ANIMALS_EXTRA2 + 'Black_Lion_Fish.glb',
+    'pet:blobfish': ANIMALS_EXTRA2 + 'Blobfish.glb',
+    'pet:blue_goldfish': ANIMALS_EXTRA2 + 'Blue_Goldfish.glb',
+    'pet:blue_tang': ANIMALS_EXTRA2 + 'Blue_Tang.glb',
+    'pet:butterfly_fish': ANIMALS_EXTRA2 + 'Butterfly_Fish.glb',
+    'pet:cardinal_fish': ANIMALS_EXTRA2 + 'Cardinal_Fish.glb',
+    'pet:clownfish': ANIMALS_EXTRA2 + 'Clownfish.glb',
+    'pet:coral_grouper': ANIMALS_EXTRA2 + 'Coral_Grouper.glb',
+    'pet:cowfish': ANIMALS_EXTRA2 + 'Cowfish.glb',
+    'pet:flatfish': ANIMALS_EXTRA2 + 'Flatfish.glb',
+    'pet:flower_horn': ANIMALS_EXTRA2 + 'Flower_Horn.glb',
+    'pet:goblin_shark': ANIMALS_EXTRA2 + 'Goblin_Shark.glb',
+    'pet:goldfish': ANIMALS_EXTRA2 + 'Goldfish.glb',
+    'pet:humphead': ANIMALS_EXTRA2 + 'Humphead.glb',
+    'pet:koi_2': ANIMALS_EXTRA2 + 'Koi.glb',
+    'pet:lionfish': ANIMALS_EXTRA2 + 'Lionfish.glb',
+    'pet:mandarin_fish': ANIMALS_EXTRA2 + 'Mandarin_Fish.glb',
+    'pet:moorish_idol': ANIMALS_EXTRA2 + 'Moorish_Idol.glb',
+    'pet:parasaurolophus': ANIMALS_EXTRA2 + 'Parasaurolophus.glb',
+    'pet:parrot_fish': ANIMALS_EXTRA2 + 'Parrot_Fish.glb',
+    'pet:piranha': ANIMALS_EXTRA2 + 'Piranha.glb',
+    'pet:puffer': ANIMALS_EXTRA2 + 'Puffer.glb',
+    'pet:red_snapper': ANIMALS_EXTRA2 + 'Red_Snapper.glb',
+    'pet:royal_gramma': ANIMALS_EXTRA2 + 'Royal_Gramma.glb',
+    'pet:shark_2': ANIMALS_EXTRA2 + 'Shark.glb',
+    'pet:stegosaurus': ANIMALS_EXTRA2 + 'Stegosaurus.glb',
+    'pet:sunfish': ANIMALS_EXTRA2 + 'Sunfish.glb',
+    'pet:swordfish': ANIMALS_EXTRA2 + 'Swordfish.glb',
+    'pet:t_rex': ANIMALS_EXTRA2 + 'T_Rex.glb',
+    'pet:tang': ANIMALS_EXTRA2 + 'Tang.glb',
+    'pet:tetra': ANIMALS_EXTRA2 + 'Tetra.glb',
+    'pet:triceratops': ANIMALS_EXTRA2 + 'Triceratops.glb',
+    'pet:tuna': ANIMALS_EXTRA2 + 'Tuna.glb',
+    'pet:turbot': ANIMALS_EXTRA2 + 'Turbot.glb',
+    'pet:velociraptor': ANIMALS_EXTRA2 + 'Velociraptor.glb',
+    'pet:worm': ANIMALS_EXTRA2 + 'Worm.glb',
+    'pet:yellow_tang': ANIMALS_EXTRA2 + 'Yellow_Tang.glb',
+    'pet:zebra_clown_fish': ANIMALS_EXTRA2 + 'Zebra_Clown_Fish.glb',
     /* 2026-09-04(이어서) — 사용자가 "사가고처럼 실사화"를 요청 → 사람은
        막다른 길(Mixamo 재배포 금지, 위 delam 주석 참고)이라 자연물만
        Poly Haven CC0 사진측량 스캔으로 갈아 끼웠다(`island_tree_02`,
