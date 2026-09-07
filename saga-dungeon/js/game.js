@@ -23,6 +23,7 @@
   var lastFrame = 0;
   var uiAcc = 0;
   var saveAcc = 0;
+  var loopErrShown = {};
 
   /* ── 인물 합류 ────────────────────────────────────────── */
 
@@ -273,6 +274,18 @@
     } catch (e) {
       lastFrame = now;
       if (global.console) { global.console.error('[loop] 프레임 실패, 다음 프레임으로 넘어감', e); }
+      /* 2026-09-07 — 폰 실기기에서 화면이 통째로 비는데(콘솔 볼 도구가 없어)
+         원인을 특정 못 하는 제보가 반복됐다. 매 프레임 같은 예외가 반복되면
+         화면이 정지 없이 매 틱 비어 보이는 것과 똑같이 보인다 — 이 캐치가
+         잡아내는 첫 예외 메시지를 딱 한 번 토스트로 띄워 스크린샷에 실제
+         오류문이 찍히게 한다(메시지별 1회만, 도배 방지). */
+      try {
+        var emsg = String((e && e.message) || e);
+        if (ui && ui.toast && !loopErrShown[emsg]) {
+          loopErrShown[emsg] = true;
+          ui.toast('⚠️ ' + emsg.slice(0, 140));
+        }
+      } catch (e2) { /* 토스트 자체가 죽어도 루프는 계속 돈다 */ }
     }
     requestAnimationFrame(loop);
   }
