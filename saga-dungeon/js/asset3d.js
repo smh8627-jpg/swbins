@@ -575,10 +575,18 @@
   }
 
   var cache = {};
+  /* 2026-09-07 — 압축 파이프라인 도입(마을 GLB 총량이 너무 무거워 폰이
+     먹통 되던 것). `THREE.MeshoptDecoder`(entry.js에 새로 얹음, wasm이
+     파일 안에 박혀 있어 file:// 단독판에서도 그대로 돈다)를 GLTFLoader에
+     한 번만 물려 둔다 — 압축 안 된 옛 GLB는 이 디코더가 있어도 그냥
+     무시되니(EXT_meshopt_compression 확장이 없으면 안 탄다) 회귀 걱정 없다. */
   function loader() {
     var t = three();
     if (!t || !t.GLTFLoader) { return null; }
-    if (!loader.it) { loader.it = new t.GLTFLoader(); }
+    if (!loader.it) {
+      loader.it = new t.GLTFLoader();
+      if (t.MeshoptDecoder) { loader.it.setMeshoptDecoder(t.MeshoptDecoder); }
+    }
     return loader.it;
   }
   function firstSkinned(obj) {

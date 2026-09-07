@@ -1,0 +1,652 @@
+{
+  "anim\\UAL1_Standard.glb": {
+    "size": 1942336,
+    "result": "ok",
+    "at": "2026-09-07T03:12:47.593Z"
+  },
+  "animals\\Bear.glb": {
+    "size": 22932,
+    "result": "ok",
+    "at": "2026-09-07T03:12:48.337Z"
+  },
+  "animals\\Boar.glb": {
+    "size": 18800,
+    "result": "ok",
+    "at": "2026-09-07T03:12:48.970Z"
+  },
+  "animals\\Cat.glb": {
+    "size": 38656,
+    "result": "ok",
+    "at": "2026-09-07T03:12:49.646Z"
+  },
+  "animals\\Cow.glb": {
+    "size": 243512,
+    "result": "ok",
+    "at": "2026-09-07T03:12:50.366Z"
+  },
+  "animals\\Crane.glb": {
+    "size": 34432,
+    "result": "ok",
+    "at": "2026-09-07T03:12:51.015Z"
+  },
+  "animals\\Deer.glb": {
+    "size": 236584,
+    "result": "ok",
+    "at": "2026-09-07T03:12:51.789Z"
+  },
+  "animals\\Elephant.glb": {
+    "size": 42752,
+    "result": "ok",
+    "at": "2026-09-07T03:12:52.502Z"
+  },
+  "animals\\Frog.glb": {
+    "size": 140172,
+    "result": "ok",
+    "at": "2026-09-07T03:12:53.249Z"
+  },
+  "animals\\Husky.glb": {
+    "size": 330880,
+    "result": "ok",
+    "at": "2026-09-07T03:12:54.087Z"
+  },
+  "animals\\Koi.glb": {
+    "size": 53048,
+    "result": "ok",
+    "at": "2026-09-07T03:12:54.736Z"
+  },
+  "animals\\Monkey.glb": {
+    "size": 46852,
+    "result": "ok",
+    "at": "2026-09-07T03:12:55.403Z"
+  },
+  "animals\\Owl.glb": {
+    "size": 56568,
+    "result": "ok",
+    "at": "2026-09-07T03:12:56.145Z"
+  },
+  "animals\\Panda.glb": {
+    "size": 19224,
+    "result": "ok",
+    "at": "2026-09-07T03:12:56.763Z"
+  },
+  "animals\\ShibaInu.glb": {
+    "size": 291524,
+    "result": "ok",
+    "at": "2026-09-07T03:12:57.584Z"
+  },
+  "animals\\Tiger.glb": {
+    "size": 53332,
+    "result": "ok",
+    "at": "2026-09-07T03:12:58.277Z"
+  },
+  "animals\\Wolf.glb": {
+    "size": 241324,
+    "result": "ok",
+    "at": "2026-09-07T03:12:59.028Z"
+  },
+  "buildings\\Bell_Tower.glb": {
+    "size": 135736,
+    "result": "ok",
+    "at": "2026-09-07T03:12:59.706Z"
+  },
+  "buildings\\Blacksmith.glb": {
+    "size": 97444,
+    "result": "ok",
+    "at": "2026-09-07T03:13:00.423Z"
+  },
+  "buildings\\hexagon\\barracks.glb": {
+    "size": 63972,
+    "result": "ok",
+    "at": "2026-09-07T03:13:02.133Z"
+  },
+  "buildings\\hexagon\\tavern.glb": {
+    "size": 55468,
+    "result": "ok",
+    "at": "2026-09-07T03:13:03.402Z"
+  },
+  "buildings\\hexagon\\well.glb": {
+    "size": 20776,
+    "result": "ok",
+    "at": "2026-09-07T03:13:04.137Z"
+  },
+  "buildings\\hexagon\\windmill.glb": {
+    "size": 51144,
+    "result": "ok",
+    "at": "2026-09-07T03:13:04.890Z"
+  },
+  "buildings\\House_1.glb": {
+    "size": 84484,
+    "result": "ok",
+    "at": "2026-09-07T03:13:05.548Z"
+  },
+  "buildings\\House_2.glb": {
+    "size": 103180,
+    "result": "ok",
+    "at": "2026-09-07T03:13:06.198Z"
+  },
+  "buildings\\House_3.glb": {
+    "size": 69132,
+    "result": "ok",
+    "at": "2026-09-07T03:13:06.856Z"
+  },
+  "buildings\\House_4.glb": {
+    "size": 43696,
+    "result": "ok",
+    "at": "2026-09-07T03:13:07.499Z"
+  },
+  "buildings\\Inn.glb": {
+    "size": 92748,
+    "result": "ok",
+    "at": "2026-09-07T03:13:08.176Z"
+  },
+  "buildings\\MarketStand_1.glb": {
+    "size": 25184,
+    "result": "ok",
+    "at": "2026-09-07T03:13:08.838Z"
+  },
+  "buildings\\Mill.glb": {
+    "size": 116484,
+    "result": "ok",
+    "at": "2026-09-07T03:13:09.518Z"
+  },
+  "buildings\\realistic\\house_cottage.glb": {
+    "size": 162216,
+    "result": "ok",
+    "at": "2026-09-07T03:13:10.290Z"
+  },
+  "buildings\\realistic\\house_stone.glb": {
+    "size": 197812,
+    "result": "ok",
+    "at": "2026-09-07T03:13:11.052Z"
+  },
+  "buildings\\realistic\\house_wooden.glb": {
+    "size": 162256,
+    "result": "ok",
+    "at": "2026-09-07T03:13:11.877Z"
+  },
+  "buildings\\realistic\\tower_round.glb": {
+    "size": 416396,
+    "result": "ok",
+    "at": "2026-09-07T03:13:12.653Z"
+  },
+  "buildings\\Stable.glb": {
+    "size": 88696,
+    "result": "ok",
+    "at": "2026-09-07T03:13:13.346Z"
+  },
+  "buildings\\Well.glb": {
+    "size": 27788,
+    "result": "ok",
+    "at": "2026-09-07T03:13:14.033Z"
+  },
+  "dungeon\\banner_thin_red.gltf.glb": {
+    "size": 11620,
+    "result": "ok",
+    "at": "2026-09-07T03:13:14.762Z"
+  },
+  "dungeon\\barrel_large.gltf.glb": {
+    "size": 17596,
+    "result": "ok",
+    "at": "2026-09-07T03:13:15.510Z"
+  },
+  "dungeon\\barrier_column.gltf.glb": {
+    "size": 11996,
+    "result": "ok",
+    "at": "2026-09-07T03:13:16.347Z"
+  },
+  "dungeon\\bed_decorated.gltf.glb": {
+    "size": 30844,
+    "result": "ok",
+    "at": "2026-09-07T03:13:17.135Z"
+  },
+  "dungeon\\bottle_a_green.gltf.glb": {
+    "size": 12760,
+    "result": "ok",
+    "at": "2026-09-07T03:13:17.841Z"
+  },
+  "dungeon\\box_small.gltf.glb": {
+    "size": 13324,
+    "result": "ok",
+    "at": "2026-09-07T03:13:18.565Z"
+  },
+  "dungeon\\candle_lit.gltf.glb": {
+    "size": 11372,
+    "result": "ok",
+    "at": "2026-09-07T03:13:19.241Z"
+  },
+  "dungeon\\chair.gltf.glb": {
+    "size": 15344,
+    "result": "ok",
+    "at": "2026-09-07T03:13:19.953Z"
+  },
+  "dungeon\\chest.glb": {
+    "size": 24800,
+    "result": "ok",
+    "at": "2026-09-07T03:13:20.645Z"
+  },
+  "dungeon\\crates_stacked.gltf.glb": {
+    "size": 34756,
+    "result": "ok",
+    "at": "2026-09-07T03:13:21.373Z"
+  },
+  "dungeon\\floor_tile_big_spikes.glb": {
+    "size": 24552,
+    "result": "ok",
+    "at": "2026-09-07T03:13:22.134Z"
+  },
+  "dungeon\\pillar.gltf.glb": {
+    "size": 12336,
+    "result": "ok",
+    "at": "2026-09-07T03:13:22.847Z"
+  },
+  "dungeon\\stairs_wide.gltf.glb": {
+    "size": 17732,
+    "result": "ok",
+    "at": "2026-09-07T03:13:23.557Z"
+  },
+  "dungeon\\sword_shield.gltf.glb": {
+    "size": 19484,
+    "result": "ok",
+    "at": "2026-09-07T03:13:24.279Z"
+  },
+  "dungeon\\table_long.gltf.glb": {
+    "size": 14824,
+    "result": "ok",
+    "at": "2026-09-07T03:13:24.971Z"
+  },
+  "dungeon\\table_small.gltf.glb": {
+    "size": 13608,
+    "result": "ok",
+    "at": "2026-09-07T03:13:25.690Z"
+  },
+  "dungeon\\torch_mounted.gltf.glb": {
+    "size": 14512,
+    "result": "ok",
+    "at": "2026-09-07T03:13:26.408Z"
+  },
+  "dungeon\\wall_doorway.glb": {
+    "size": 29120,
+    "result": "ok",
+    "at": "2026-09-07T03:13:27.088Z"
+  },
+  "gear\\armor_leather.glb": {
+    "size": 6660,
+    "result": "ok",
+    "at": "2026-09-07T03:13:27.712Z"
+  },
+  "gear\\armor_metal.glb": {
+    "size": 12888,
+    "result": "ok",
+    "at": "2026-09-07T03:13:28.354Z"
+  },
+  "gear\\cape.glb": {
+    "size": 17832,
+    "result": "ok",
+    "at": "2026-09-07T03:13:28.977Z"
+  },
+  "gear\\crown.glb": {
+    "size": 15732,
+    "result": "ok",
+    "at": "2026-09-07T03:13:29.661Z"
+  },
+  "gear\\helmet.glb": {
+    "size": 8332,
+    "result": "ok",
+    "at": "2026-09-07T03:13:30.269Z"
+  },
+  "gear\\viking_helmet.glb": {
+    "size": 30436,
+    "result": "ok",
+    "at": "2026-09-07T03:13:31.026Z"
+  },
+  "nature\\Bush_1.glb": {
+    "size": 7676,
+    "result": "ok",
+    "at": "2026-09-07T03:13:31.720Z"
+  },
+  "nature\\Bush_2.glb": {
+    "size": 6224,
+    "result": "ok",
+    "at": "2026-09-07T03:13:32.369Z"
+  },
+  "nature\\CommonTree_1.glb": {
+    "size": 41568,
+    "result": "ok",
+    "at": "2026-09-07T03:13:33.084Z"
+  },
+  "nature\\CommonTree_2.glb": {
+    "size": 42780,
+    "result": "ok",
+    "at": "2026-09-07T03:13:33.794Z"
+  },
+  "nature\\CommonTree_3.glb": {
+    "size": 25980,
+    "result": "ok",
+    "at": "2026-09-07T03:13:34.536Z"
+  },
+  "nature\\CommonTree_Dead_1.glb": {
+    "size": 33016,
+    "result": "ok",
+    "at": "2026-09-07T03:13:35.218Z"
+  },
+  "nature\\Flowers.glb": {
+    "size": 10892,
+    "result": "ok",
+    "at": "2026-09-07T03:13:35.921Z"
+  },
+  "nature\\Grass_2.glb": {
+    "size": 5016,
+    "result": "ok",
+    "at": "2026-09-07T03:13:36.552Z"
+  },
+  "nature\\Grass_Short.glb": {
+    "size": 5028,
+    "result": "ok",
+    "at": "2026-09-07T03:13:37.222Z"
+  },
+  "nature\\Mountain_1.glb": {
+    "size": 7720,
+    "result": "ok",
+    "at": "2026-09-07T03:13:37.920Z"
+  },
+  "nature\\Mountain_2.glb": {
+    "size": 16848,
+    "result": "ok",
+    "at": "2026-09-07T03:13:38.593Z"
+  },
+  "nature\\pond.glb": {
+    "size": 63256,
+    "result": "ok",
+    "at": "2026-09-07T03:13:39.341Z"
+  },
+  "nature\\realistic\\IslandTree_02.glb": {
+    "size": 1742056,
+    "result": "ok",
+    "at": "2026-09-07T03:13:40.303Z"
+  },
+  "nature\\realistic\\Log_a.glb": {
+    "size": 816756,
+    "result": "ok",
+    "at": "2026-09-07T03:13:41.170Z"
+  },
+  "nature\\realistic\\Log_b.glb": {
+    "size": 844388,
+    "result": "ok",
+    "at": "2026-09-07T03:13:42.048Z"
+  },
+  "nature\\realistic\\MossRock_a.glb": {
+    "size": 218956,
+    "result": "ok",
+    "at": "2026-09-07T03:13:42.831Z"
+  },
+  "nature\\realistic\\MossRock_b.glb": {
+    "size": 188928,
+    "result": "ok",
+    "at": "2026-09-07T03:13:43.648Z"
+  },
+  "nature\\realistic\\MossRock_c.glb": {
+    "size": 245636,
+    "result": "ok",
+    "at": "2026-09-07T03:13:44.475Z"
+  },
+  "nature\\realistic\\Rock_07.glb": {
+    "size": 280804,
+    "result": "ok",
+    "at": "2026-09-07T03:13:45.263Z"
+  },
+  "nature\\realistic\\Shrub_04.glb": {
+    "size": 302988,
+    "result": "ok",
+    "at": "2026-09-07T03:13:47.773Z"
+  },
+  "nature\\realistic\\Stone_01.glb": {
+    "size": 595556,
+    "result": "ok",
+    "at": "2026-09-07T03:13:48.975Z"
+  },
+  "nature\\realistic\\TreeDead.glb": {
+    "size": 284072,
+    "result": "ok",
+    "at": "2026-09-07T03:13:49.784Z"
+  },
+  "nature\\Rock_1.glb": {
+    "size": 3272,
+    "result": "ok",
+    "at": "2026-09-07T03:13:50.450Z"
+  },
+  "nature\\Rock_2.glb": {
+    "size": 3460,
+    "result": "ok",
+    "at": "2026-09-07T03:13:51.064Z"
+  },
+  "nature\\Rock_3.glb": {
+    "size": 3376,
+    "result": "ok",
+    "at": "2026-09-07T03:13:51.710Z"
+  },
+  "nature\\Rock_Moss_1.glb": {
+    "size": 4500,
+    "result": "ok",
+    "at": "2026-09-07T03:13:52.356Z"
+  },
+  "nature\\WoodLog.glb": {
+    "size": 11192,
+    "result": "ok",
+    "at": "2026-09-07T03:13:53.027Z"
+  },
+  "people\\mpfb_real\\female.glb": {
+    "size": 565568,
+    "result": "ok",
+    "at": "2026-09-07T03:13:53.957Z"
+  },
+  "people\\mpfb_real\\male.glb": {
+    "size": 726476,
+    "result": "ok",
+    "at": "2026-09-07T03:13:54.878Z"
+  },
+  "people\\mpfb_real\\v10.glb": {
+    "size": 614436,
+    "result": "ok",
+    "at": "2026-09-07T03:13:55.861Z"
+  },
+  "people\\mpfb_real\\v11.glb": {
+    "size": 602228,
+    "result": "ok",
+    "at": "2026-09-07T03:13:56.881Z"
+  },
+  "people\\mpfb_real\\v12.glb": {
+    "size": 575500,
+    "result": "ok",
+    "at": "2026-09-07T03:13:57.856Z"
+  },
+  "people\\mpfb_real\\v13.glb": {
+    "size": 604324,
+    "result": "ok",
+    "at": "2026-09-07T03:13:58.778Z"
+  },
+  "people\\mpfb_real\\v14.glb": {
+    "size": 632560,
+    "result": "ok",
+    "at": "2026-09-07T03:13:59.701Z"
+  },
+  "people\\mpfb_real\\v15.glb": {
+    "size": 571916,
+    "result": "ok",
+    "at": "2026-09-07T03:14:00.611Z"
+  },
+  "people\\mpfb_real\\v16.glb": {
+    "size": 561240,
+    "result": "ok",
+    "at": "2026-09-07T03:14:01.638Z"
+  },
+  "people\\mpfb_real\\v17.glb": {
+    "size": 551400,
+    "result": "ok",
+    "at": "2026-09-07T03:14:02.627Z"
+  },
+  "people\\mpfb_real\\v18.glb": {
+    "size": 610792,
+    "result": "ok",
+    "at": "2026-09-07T03:14:03.642Z"
+  },
+  "people\\mpfb_real\\v19.glb": {
+    "size": 666040,
+    "result": "ok",
+    "at": "2026-09-07T03:14:04.567Z"
+  },
+  "people\\mpfb_real\\v20.glb": {
+    "size": 569496,
+    "result": "ok",
+    "at": "2026-09-07T03:14:05.479Z"
+  },
+  "people\\mpfb_real\\v21.glb": {
+    "size": 670564,
+    "result": "ok",
+    "at": "2026-09-07T03:14:06.445Z"
+  },
+  "people\\mpfb_real\\v22.glb": {
+    "size": 622924,
+    "result": "ok",
+    "at": "2026-09-07T03:14:07.475Z"
+  },
+  "people\\mpfb_real\\v23.glb": {
+    "size": 645904,
+    "result": "ok",
+    "at": "2026-09-07T03:14:08.437Z"
+  },
+  "people\\mpfb_real\\v3.glb": {
+    "size": 653308,
+    "result": "ok",
+    "at": "2026-09-07T03:14:09.420Z"
+  },
+  "people\\mpfb_real\\v7.glb": {
+    "size": 571448,
+    "result": "ok",
+    "at": "2026-09-07T03:14:10.332Z"
+  },
+  "people\\mpfb_real\\v8.glb": {
+    "size": 512160,
+    "result": "ok",
+    "at": "2026-09-07T03:14:11.279Z"
+  },
+  "people\\mpfb_real\\v9.glb": {
+    "size": 641068,
+    "result": "ok",
+    "at": "2026-09-07T03:14:12.210Z"
+  },
+  "people\\quaternius_rpg\\Cleric.glb": {
+    "size": 353524,
+    "result": "ok",
+    "at": "2026-09-07T03:14:13.217Z"
+  },
+  "people\\quaternius_rpg\\Monk.glb": {
+    "size": 342752,
+    "result": "ok",
+    "at": "2026-09-07T03:14:14.187Z"
+  },
+  "people\\quaternius_rpg\\Ranger.glb": {
+    "size": 390768,
+    "result": "ok",
+    "at": "2026-09-07T03:14:15.240Z"
+  },
+  "people\\quaternius_rpg\\Rogue.glb": {
+    "size": 324592,
+    "result": "ok",
+    "at": "2026-09-07T03:14:17.437Z"
+  },
+  "people\\quaternius_rpg\\Warrior.glb": {
+    "size": 370916,
+    "result": "ok",
+    "at": "2026-09-07T03:14:19.080Z"
+  },
+  "people\\quaternius_rpg\\Wizard.glb": {
+    "size": 428216,
+    "result": "ok",
+    "at": "2026-09-07T03:14:20.230Z"
+  },
+  "props\\Arch.glb": {
+    "size": 61352,
+    "result": "ok",
+    "at": "2026-09-07T03:14:20.903Z"
+  },
+  "props\\Bonfire_Lit.glb": {
+    "size": 19704,
+    "result": "ok",
+    "at": "2026-09-07T03:14:21.562Z"
+  },
+  "props\\Mine.glb": {
+    "size": 33224,
+    "result": "ok",
+    "at": "2026-09-07T03:14:22.172Z"
+  },
+  "props\\Mushroom_1.glb": {
+    "size": 5756,
+    "result": "ok",
+    "at": "2026-09-07T03:14:22.802Z"
+  },
+  "props\\Mushroom_2.glb": {
+    "size": 12104,
+    "result": "ok",
+    "at": "2026-09-07T03:14:23.444Z"
+  },
+  "props\\signpost.glb": {
+    "size": 2964,
+    "result": "ok",
+    "at": "2026-09-07T03:14:24.088Z"
+  },
+  "props\\Temple.glb": {
+    "size": 57840,
+    "result": "ok",
+    "at": "2026-09-07T03:14:24.722Z"
+  },
+  "props\\Tent.glb": {
+    "size": 15112,
+    "result": "ok",
+    "at": "2026-09-07T03:14:25.346Z"
+  },
+  "props\\Wall.glb": {
+    "size": 6996,
+    "result": "ok",
+    "at": "2026-09-07T03:14:25.979Z"
+  },
+  "weapons\\axe.glb": {
+    "size": 17184,
+    "result": "ok",
+    "at": "2026-09-07T03:14:26.706Z"
+  },
+  "weapons\\bow.glb": {
+    "size": 13076,
+    "result": "ok",
+    "at": "2026-09-07T03:14:27.351Z"
+  },
+  "weapons\\brush.glb": {
+    "size": 34108,
+    "result": "ok",
+    "at": "2026-09-07T03:14:27.991Z"
+  },
+  "weapons\\club.glb": {
+    "size": 29400,
+    "result": "ok",
+    "at": "2026-09-07T03:14:28.648Z"
+  },
+  "weapons\\scroll.glb": {
+    "size": 17200,
+    "result": "ok",
+    "at": "2026-09-07T03:14:29.303Z"
+  },
+  "weapons\\spear.glb": {
+    "size": 20508,
+    "result": "ok",
+    "at": "2026-09-07T03:14:29.924Z"
+  },
+  "weapons\\staff.glb": {
+    "size": 5004,
+    "result": "ok",
+    "at": "2026-09-07T03:14:30.568Z"
+  },
+  "weapons\\sword.glb": {
+    "size": 9228,
+    "result": "ok",
+    "at": "2026-09-07T03:14:32.586Z"
+  }
+}

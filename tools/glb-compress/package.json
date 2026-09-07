@@ -1,0 +1,15 @@
+{
+  "name": "saga-glb-compress",
+  "private": true,
+  "version": "1.0.0",
+  "description": "GLB 압축 파이프라인 — 다섯 판(saga-go·dungeon·forest·story·realm) 이 공통으로 쓴다. 각 판은 이 폴더만 따로 설치해도 된다(node_modules 는 여기 하나뿐, 게임 쪽엔 안 남는다).",
+  "scripts": {
+    "compress": "node compress.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/cli": "^4.5.0",
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "meshoptimizer": "^0.24.0"
+  }
+}

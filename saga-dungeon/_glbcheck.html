@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>glb check</title>
+<style>html,body{margin:0;background:#335}</style></head>
+<body>
+<script src="js/vendor/three.iife.js"></script>
+<script>
+(function () {
+  var url = new URLSearchParams(location.search).get('f') || 'assets/models/people/quaternius_rpg/Warrior.glb';
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(700, 700);
+  document.body.appendChild(renderer.domElement);
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x335577);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.set(0, 1.6, 3.2);
+  camera.lookAt(0, 1, 0);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
+  var dir = new THREE.DirectionalLight(0xffffff, 2);
+  dir.position.set(2, 4, 3);
+  scene.add(dir);
+
+  var loader = new THREE.GLTFLoader();
+  if (THREE.MeshoptDecoder) { loader.setMeshoptDecoder(THREE.MeshoptDecoder); }
+  var mixer = null;
+  loader.load(url, function (gltf) {
+    scene.add(gltf.scene);
+    var box = new THREE.Box3().setFromObject(gltf.scene);
+    var size = box.getSize(new THREE.Vector3());
+    var center = box.getCenter(new THREE.Vector3());
+    var maxDim = Math.max(size.x, size.y, size.z) || 1;
+    camera.position.set(center.x, center.y + size.y * 0.15, center.z + maxDim * 1.6);
+    camera.lookAt(center);
+    document.title = 'ok ' + (gltf.animations || []).length + 'clips';
+    if (gltf.animations && gltf.animations.length) {
+      mixer = new THREE.AnimationMixer(gltf.scene);
+      mixer.clipAction(gltf.animations[0]).play();
+    }
+    var clock = new THREE.Clock();
+    (function tick() {
+      var dt = clock.getDelta();
+      if (mixer) { mixer.update(dt); }
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    })();
+  }, undefined, function (err) {
+    document.title = 'FAIL ' + err;
+    document.body.style.background = '#a33';
+  });
+})();
+</script>
+</body></html>
