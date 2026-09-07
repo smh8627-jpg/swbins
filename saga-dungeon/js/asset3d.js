@@ -66,6 +66,24 @@
      틀렸다, heroKindFor에서 이쪽도 이 표로 묶었다(아래 참고).** */
   var HERO_RECIPES_LIGHT = HERO_RECIPES.slice();
 
+  /* 2026-09-07 — "캐릭터 100개" 목표의 첫 벌. Kenney "Blocky Characters"(CC0,
+     kenney.nl 직접 배포, itch.io 아님)는 몸 열여덟 벌이 **제 애니메이션
+     클립을 스물일곱 개씩 내장**(idle·walk·sprint·attack-melee-*·die·
+     pick-up·emote-*·interact-* 등 — 이름이 QRPG와 달라도 `mapClips()`의
+     낱말표(WORDS)가 이미 다 받는 이름들이다, 새로 안 건드림)한 QRPG와 같은
+     갈래라 리타깃이 필요 없다. **`HERO_RECIPES`(전체 표) 말고 여기
+     `HERO_RECIPES_LIGHT`에만 얹는다** — `HERO_RECIPES`에 얹으면 배열 길이가
+     늘어 `dungeon3d.js`의 `QRPG_SEEDS`(손으로 확인해 둔 특정 해시값)가 다른
+     자리로 튄다. hero_light는 그런 손으로 확인한 자리가 없어(NPC·동행·사람 형
+     적·초상이 그냥 제 이름으로 해시할 뿐) 여기 보태는 건 안전하다. */
+  var PEOPLE_KENNEY = 'assets/models/people/kenney_blocky/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r'].map(function (letter) {
+      var f = PEOPLE_KENNEY + 'character-' + letter + '.glb';
+      return { key: 'kenney_' + letter, body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

@@ -1,0 +1,92 @@
+{
+  "character-a.glb": {
+    "size": 50632,
+    "result": "ok",
+    "at": "2026-09-07T04:12:55.163Z"
+  },
+  "character-b.glb": {
+    "size": 47476,
+    "result": "ok",
+    "at": "2026-09-07T04:12:55.909Z"
+  },
+  "character-c.glb": {
+    "size": 47616,
+    "result": "ok",
+    "at": "2026-09-07T04:12:56.645Z"
+  },
+  "character-d.glb": {
+    "size": 50056,
+    "result": "ok",
+    "at": "2026-09-07T04:12:57.409Z"
+  },
+  "character-e.glb": {
+    "size": 48044,
+    "result": "ok",
+    "at": "2026-09-07T04:12:58.262Z"
+  },
+  "character-f.glb": {
+    "size": 47484,
+    "result": "ok",
+    "at": "2026-09-07T04:12:59.044Z"
+  },
+  "character-g.glb": {
+    "size": 50760,
+    "result": "ok",
+    "at": "2026-09-07T04:12:59.792Z"
+  },
+  "character-h.glb": {
+    "size": 49608,
+    "result": "ok",
+    "at": "2026-09-07T04:13:00.542Z"
+  },
+  "character-i.glb": {
+    "size": 50460,
+    "result": "ok",
+    "at": "2026-09-07T04:13:01.310Z"
+  },
+  "character-j.glb": {
+    "size": 49700,
+    "result": "ok",
+    "at": "2026-09-07T04:13:02.149Z"
+  },
+  "character-k.glb": {
+    "size": 48616,
+    "result": "ok",
+    "at": "2026-09-07T04:13:03.198Z"
+  },
+  "character-l.glb": {
+    "size": 50904,
+    "result": "ok",
+    "at": "2026-09-07T04:13:04.026Z"
+  },
+  "character-m.glb": {
+    "size": 50136,
+    "result": "ok",
+    "at": "2026-09-07T04:13:04.915Z"
+  },
+  "character-n.glb": {
+    "size": 49744,
+    "result": "ok",
+    "at": "2026-09-07T04:13:05.704Z"
+  },
+  "character-o.glb": {
+    "size": 51864,
+    "result": "ok",
+    "at": "2026-09-07T04:13:06.516Z"
+  },
+  "character-p.glb": {
+    "size": 49488,
+    "result": "ok",
+    "at": "2026-09-07T04:13:07.419Z"
+  },
+  "character-q.glb": {
+    "size": 46944,
+    "result": "ok",
+    "at": "2026-09-07T04:13:08.270Z"
+  },
+  "character-r.glb": {
+    "size": 46520,
+    "result": "ok",
+    "at": "2026-09-07T04:13:09.081Z"
+  }
+}

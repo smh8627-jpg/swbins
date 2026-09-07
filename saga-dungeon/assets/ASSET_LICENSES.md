@@ -1047,6 +1047,37 @@ Bundle"(CC0) 낱개 조각 둘을 받았다 — 위 무기·투구·왕관과 �
 세션이 실제로 갑주를 걸친 모습(가죽 vs 판금)을 실기기 또는 헤드리스가
 회복된 뒤 확인할 것.
 
+## 사람 — Kenney "Blocky Characters" 열여덟 벌 (2026-09-07, "캐릭터 100개" 목표 첫 벌)
+
+`kenney.nl/assets/blocky-characters`에서 직접 받았다(itch.io 경유 아님,
+로그인 불필요). 몸 열여덟 벌(character-a~r.glb) 각각에 애니메이션 클립이
+스물일곱 개씩 이미 들어 있다(idle·walk·sprint·attack-melee-left/right·
+attack-kick-left/right·die·pick-up·emote-yes/no·interact-left/right·
+wheelchair-* 등) — QRPG처럼 리타깃이 필요 없는 자체 애니 몸이다.
+
+| 자산 | 만든 이 | 받은 곳 | 파일 |
+|---|---|---|---|
+| Blocky Characters 18종 | Kenney(원작 Kay Lousberg) | `kenney.nl/assets/blocky-characters` | `models/people/kenney_blocky/character-a.glb` ~ `character-r.glb` |
+
+> **Blocky Characters** — © **Kenney**(kenney.nl), CC0 (Public Domain).
+> 저작자 표시 불필요(권장만). 원본은 GLB 안에 텍스처를 상대경로
+> (`Textures/texture-*.png`)로 참조하는 형태라, `tools/glb-compress`로
+> 압축하면서 텍스처를 GLB 안에 그대로 박아 파일 하나로 묶었다(용량도
+> 111KB→평균 48KB로 줄었다). 원작 캐릭터 표정·수염 등 외형은 그대로 두되
+> 게임 안에서 부르는 표시 이름은 다섯 판 공통 이름 정책(`CLAUDE.md`)에 따라
+> 가명으로만 노출한다.
+
+`js/asset3d.js`의 `HERO_RECIPES_LIGHT`에 `kenney_a`~`kenney_r`로 등록—
+`HERO_RECIPES`(전체 표, `me:` 시드 전용)에는 안 얹었다. `dungeon3d.js`의
+`QRPG_SEEDS`가 그 배열 길이를 손으로 확인해 둔 해시값이라, 길이를 바꾸면
+그 자리가 틀어진다(위험 회피, 자세한 사정은 asset3d.js 그 자리 주석 참고).
+NPC·동행·사람 형 적·초상(`heroKindFor`가 `hero_light`로 보내는 모든 자리)
+에서 QRPG 6종과 함께 스물네 벌 중 하나로 고른다.
+
+격리 렌더(`_glbcheck.html`, 신규 — `?f=<glb경로>&anim=<클립이름>&t=<초>`로
+임의 GLB를 애니메이션 재생 상태로 스크린샷 찍는 도구, 무거운 전체 장면을
+헤드리스가 못 견디는 문제를 우회한다)로 압축 전/후 렌더 동일함을 확인했다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

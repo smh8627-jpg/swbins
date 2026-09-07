@@ -5,7 +5,10 @@
 <script src="js/vendor/three.iife.js"></script>
 <script>
 (function () {
-  var url = new URLSearchParams(location.search).get('f') || 'assets/models/people/quaternius_rpg/Warrior.glb';
+  var qs = new URLSearchParams(location.search);
+  var url = qs.get('f') || 'assets/models/people/quaternius_rpg/Warrior.glb';
+  var animName = qs.get('anim') || '';
+  var animT = parseFloat(qs.get('t') || '0.4');
   var renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(700, 700);
   document.body.appendChild(renderer.domElement);
@@ -32,9 +35,12 @@
     camera.lookAt(center);
     document.title = 'ok ' + (gltf.animations || []).length + 'clips';
     if (gltf.animations && gltf.animations.length) {
+      var clip = gltf.animations.find(function (c) { return c.name === animName; }) || gltf.animations[0];
       mixer = new THREE.AnimationMixer(gltf.scene);
-      mixer.clipAction(gltf.animations[0]).play();
+      mixer.clipAction(clip).play();
+      mixer.update(animT);
     }
+    renderer.render(scene, camera);
     var clock = new THREE.Clock();
     (function tick() {
       var dt = clock.getDelta();
