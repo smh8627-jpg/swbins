@@ -288,6 +288,47 @@
       ]
     },
     {
+      /* land.js 의 표식 다섯(다리·굴·폭포·사당·폐허) 중 굴·폭포만 오래
+         전용 사건이 없었다 — 도착하면 codex.tick() 이 "발견" 점수는 이미
+         줬지만(순찰형 발견 시스템), 사당·폐허처럼 고른 것에 따라 결과가
+         갈리는 순간은 없었다(2026-09-07, "완성도"). 이 둘을 채운다. */
+      id: 'cave_secret', name: '이름 없는 굴', emoji: '🕳️', w: 11, mood: 'discover', prop: 'cave',
+      when: 'any', where: [], marks: ['cave'],
+      quote: '어둠 속에서 찬 바람이 새어 나온다. 안쪽은 보이지 않는다.',
+      record: '이름 없는 굴 안쪽',
+      choices: [
+        { id: 'enter', label: '안으로 들어가 본다',
+          out: function (ctx, roll) {
+            return roll < 0.5
+              ? { gold: 140, feat: 20, record: true,
+                  text: '박쥐 떼를 피해 들어가니 오래된 항아리가 있었다.' }
+              : { exp: 22, record: true,
+                  text: '안쪽은 막다른 굴이었다. 그래도 시원한 바람을 쐬었다.' };
+          } },
+        { id: 'leave', label: '그냥 지나친다',
+          out: function () { return { text: '섬뜩한 기운에 발길을 돌렸다.' }; } }
+      ]
+    },
+    {
+      id: 'waterfall_falls', name: '산속 폭포', emoji: '💦', w: 11, mood: 'water', prop: 'falls',
+      when: 'any', where: [], marks: ['waterfall'],
+      quote: '물줄기가 바위를 타고 쏟아진다. 무지개가 잠깐 걸렸다 사라진다.',
+      record: '산속 폭포',
+      choices: [
+        { id: 'rest', label: '물가에서 쉬어 간다',
+          out: function () {
+            return { fame: 5, feat: 8, record: true, text: '물소리를 들으며 잠시 숨을 돌렸다.' };
+          } },
+        { id: 'behind', label: '폭포 뒤를 살펴본다',
+          out: function (ctx, roll) {
+            return roll < 0.4
+              ? { items: [{ key: 'scroll', n: 1 }], gold: 50, record: true,
+                  text: '물이 가려 둔 바위틈에서 젖지 않은 두루마리를 찾았다.' }
+              : { exp: 15, text: '물보라만 흠뻑 맞았다.' };
+          } }
+      ]
+    },
+    {
       id: 'enemy_scout', name: '적군 정찰병', emoji: '🏹', w: 8, eerie: true,
       when: 'night', where: ['mount', 'road', 'grass'],
       foe: 'scout',

@@ -649,7 +649,8 @@
    * 넘어가므로 저절로 가만히 서 있는다(그게 맞다, 비석이 걷지 않는다).
    */
   var PROP_COLOR = { stone: '#9a958c', dark: '#6f6a62', ruin: '#8d8880', moss: '#6d7a5a',
-    soil: '#5a4a36', leaf1: '#4f9a4c', leaf2: '#6bbf5e', water: '#6fa8c8', spray: '#bfe6f5' };
+    soil: '#5a4a36', leaf1: '#4f9a4c', leaf2: '#6bbf5e', water: '#6fa8c8', spray: '#bfe6f5',
+    cave: '#847e73', maw: '#221f1c', pebble: '#6f6a62' };
 
   function propPlan(ref) {
     var t = ref && ref.propType;
@@ -657,6 +658,8 @@
     if (t === 'ruin') { return ['drum1', 'drum2', 'fallen', 'moss']; }
     if (t === 'herb') { return ['mound', 'leaf1', 'leaf2', 'leaf3', 'leaf4', 'leaf5']; }
     if (t === 'flood') { return ['pool', 'splash1', 'splash2', 'splash3', 'splash4']; }
+    if (t === 'cave') { return ['rock1', 'rock2', 'maw', 'pebble1', 'pebble2']; }
+    if (t === 'falls') { return ['ledge', 'sheet1', 'sheet2', 'sheet3', 'pool', 'mist1', 'mist2', 'mist3']; }
     return [];
   }
 
@@ -713,6 +716,40 @@
     return g;
   }
 
+  /** 굴 — `cave_secret`(이름 없는 굴). 바위 둘이 기대선 사이로 어두운 아가리 */
+  function buildCaveProp() {
+    var g = new T.Group();
+    var rock = mat(PROP_COLOR.cave, 'flat'), maw = mat(PROP_COLOR.maw), pebble = mat(PROP_COLOR.pebble);
+    var r1 = part(SPH(0.34, 8), rock, -0.26, 0.28, 0);
+    r1.scale.set(1, 1.15, 0.9);
+    g.add(solid(r1));
+    var r2 = part(SPH(0.30, 8), rock, 0.27, 0.24, -0.05);
+    r2.scale.set(1, 1.05, 0.85);
+    g.add(solid(r2));
+    g.add(part(CYL(0.15, 0.19, 0.4, 8), maw, 0, 0.2, 0.08));
+    g.add(part(SPH(0.05, 6), pebble, 0.38, 0.05, 0.22));
+    g.add(part(SPH(0.04, 6), pebble, -0.4, 0.04, 0.2));
+    return g;
+  }
+
+  /** 폭포 — `waterfall_falls`(산속 폭포). 위 바위턱에서 물줄기 셋이 떨어져
+   *  아래 물웅덩이로, 물보라는 여울(`flood`)보다 더 높게 튄다 */
+  function buildFallsProp() {
+    var g = new T.Group();
+    var stone = mat(PROP_COLOR.stone, 'flat'), water = mat(PROP_COLOR.water, 'glow'), spray = mat(PROP_COLOR.spray);
+    g.add(solid(part(BOX(0.7, 0.16, 0.3), stone, 0, 0.78, -0.16)));
+    var i;
+    for (i = 0; i < 3; i++) {
+      g.add(part(BOX(0.14, 0.7, 0.03), water, -0.2 + i * 0.2, 0.42, -0.08));
+    }
+    g.add(part(CYL(0.42, 0.46, 0.03, 16), water, 0, 0.03, 0.1));
+    for (i = 0; i < 3; i++) {
+      var a = (i / 3) * Math.PI * 2 + 0.6;
+      g.add(part(CONE(0.05, 0.3, 5), spray, Math.cos(a) * 0.32, 0.16, 0.1 + Math.sin(a) * 0.32));
+    }
+    return g;
+  }
+
   function buildProp(ref) {
     if (!three()) { return null; }
     var t = ref && ref.propType;
@@ -721,6 +758,8 @@
     else if (t === 'ruin') { g = buildRuinProp(); }
     else if (t === 'herb') { g = buildHerbProp(); }
     else if (t === 'flood') { g = buildFloodProp(); }
+    else if (t === 'cave') { g = buildCaveProp(); }
+    else if (t === 'falls') { g = buildFallsProp(); }
     else { return null; }
     g.userData = { kind: 'prop' };
     return g;

@@ -2779,6 +2779,16 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('사당 → 비문 · 폐허 → 지도 조각 · 그냥 숲에서는 둘 다 안 난다');
     });
 
+    t('사건 — 굴·폭포도 그 표식 위에서만 난다 (2026-09-07, 다섯 표식 중 마지막 둘)', function () {
+      function ids(c) { return EV.candidates(c).map(function (x) { return x.ev.id; }); }
+      var atCave = ids(ctxOf({ kind: 'mount', mark: 'cave' }));
+      var atFalls = ids(ctxOf({ kind: 'mount', mark: 'waterfall' }));
+      var plain = ids(ctxOf({ kind: 'mount' }));
+      return atCave.indexOf('cave_secret') >= 0 && plain.indexOf('cave_secret') < 0 &&
+        atFalls.indexOf('waterfall_falls') >= 0 && plain.indexOf('waterfall_falls') < 0 &&
+        ('굴 → 이름 없는 굴 · 폭포 → 산속 폭포 · 그냥 산에서는 둘 다 안 난다');
+    });
+
     t('사건 — 밤낮이 갈린다', function () {
       function ids(c) { return EV.candidates(c).map(function (x) { return x.ev.id; }); }
       var day = ids(ctxOf({ kind: 'mount', h: 13 }));
@@ -2924,8 +2934,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          (v1.ref.id !== v3.ref.id ? ' (서로 다른 사람)' : ''));
     });
 
-    t('사건 — 발견물(비문·지도 조각·약초·여울)은 사람 대신 그 물건 자체를 세운다 (2026-09-06, "비전투 이벤트 3D 무대 연출")', function () {
-      var propOf = { stone_text: 'shrine', map_scrap: 'ruin', rare_herb: 'herb', flood_ford: 'flood' };
+    t('사건 — 발견물(비문·지도 조각·약초·여울·굴·폭포)은 사람 대신 그 물건 자체를 세운다 (2026-09-06, "비전투 이벤트 3D 무대 연출")', function () {
+      var propOf = { stone_text: 'shrine', map_scrap: 'ruin', rare_herb: 'herb', flood_ford: 'flood',
+        cave_secret: 'cave', waterfall_falls: 'falls' };
       var ids = Object.keys(propOf);
       var allProp = ids.every(function (id) {
         var s = EV.stageOf(EV.find(id));
@@ -2938,7 +2949,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       return allProp &&
         personStill && personStill.kind === 'hero' &&
         foeStill && foeStill.kind === 'hero' &&
-        ('발견물 넷 모두 kind:prop(제 propType) · 상인·도적은 그대로 사람이 섬');
+        ('발견물 여섯 모두 kind:prop(제 propType) · 상인·도적은 그대로 사람이 섬');
     });
 
     t('사건 — 발견물 소품은 three 없이도 부품 이름을 낸다, 사람 사건엔 몸짓·밤 사건엔 eerie 딱지가 있다', function () {
@@ -2947,9 +2958,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var ruin = A.plan('prop', { propType: 'ruin' });
       var herb = A.plan('prop', { propType: 'herb' });
       var flood = A.plan('prop', { propType: 'flood' });
+      var cave = A.plan('prop', { propType: 'cave' });
+      var falls = A.plan('prop', { propType: 'falls' });
       var unknown = A.plan('prop', { propType: 'nope' });
       return shrine.length === 3 && ruin.length === 4 && herb.length === 6 && flood.length === 5 &&
-        unknown.length === 0 &&
+        cave.length === 5 && falls.length === 8 && unknown.length === 0 &&
         EV.find('hurt_soldier').pose === 'hurt' &&
         EV.find('road_merchant').pose === 'greet' &&
         !!EV.find('wolf_ring').eerie && !!EV.find('enemy_scout').eerie &&
