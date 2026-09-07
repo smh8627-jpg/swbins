@@ -1,0 +1,42 @@
+{
+  "FrogEnemy.glb": {
+    "size": 140172,
+    "result": "ok",
+    "at": "2026-09-07T05:57:58.084Z"
+  },
+  "Giant.glb": {
+    "size": 52336,
+    "result": "ok",
+    "at": "2026-09-07T05:57:59.317Z"
+  },
+  "Rat.glb": {
+    "size": 163776,
+    "result": "ok",
+    "at": "2026-09-07T05:58:00.868Z"
+  },
+  "SkeletonSolo.glb": {
+    "size": 77476,
+    "result": "ok",
+    "at": "2026-09-07T05:58:03.001Z"
+  },
+  "Snake.glb": {
+    "size": 65416,
+    "result": "ok",
+    "at": "2026-09-07T05:58:04.599Z"
+  },
+  "Spider.glb": {
+    "size": 130512,
+    "result": "ok",
+    "at": "2026-09-07T05:58:06.033Z"
+  },
+  "Wasp.glb": {
+    "size": 102788,
+    "result": "ok",
+    "at": "2026-09-07T05:58:07.205Z"
+  },
+  "Zombie.glb": {
+    "size": 277444,
+    "result": "ok",
+    "at": "2026-09-07T05:58:08.575Z"
+  }
+}

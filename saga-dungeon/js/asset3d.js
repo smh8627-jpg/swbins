@@ -282,6 +282,24 @@
     'monster:wizard': PEOPLE_MONSTERS_Q + 'Wizard_d206c071.glb',
     'monster:yeti': PEOPLE_MONSTERS_Q + 'Yeti_085b078d.glb',
     'monster:yeti_2': PEOPLE_MONSTERS_Q + 'Yeti_40a831b3.glb',
+    /* 2026-09-07 — "몬스터 100개" 목표 2차분. poly.pizza "Animated Enemies"
+       (Quaternius, CC0) 5종 전부 + 개별 몬스터 검색에서 건진 Quaternius CC0
+       단품 4종(Zombie·Skeleton·Giant, 전부 `EnemyArmature|...` 계열이라
+       Ultimate Monsters와 같은 낱말표로 받는다) + 커뮤니티 제작자 Charlie의
+       Slime Enemy(CC-BY, 클립 6개 내장 — `assets/ASSET_LICENSES.md`에 저작자
+       표시). Mimic(Quaternius)은 받아 봤지만 클립이 하나도 없어(정지 메시)
+       "동작이 형태보다 우선" 원칙에 따라 뺐다. `monster:frog_enemy`는 기존
+       `monster:frog`(Ultimate Monsters)와 다른 개체(UUID가 다름) — 이름이
+       겹쳐 접미사로 구분. */
+    'monster:snake': 'assets/models/monsters/quaternius2/Snake.glb',
+    'monster:wasp': 'assets/models/monsters/quaternius2/Wasp.glb',
+    'monster:rat': 'assets/models/monsters/quaternius2/Rat.glb',
+    'monster:spider': 'assets/models/monsters/quaternius2/Spider.glb',
+    'monster:frog_enemy': 'assets/models/monsters/quaternius2/FrogEnemy.glb',
+    'monster:zombie': 'assets/models/monsters/quaternius2/Zombie.glb',
+    'monster:skeleton_solo': 'assets/models/monsters/quaternius2/SkeletonSolo.glb',
+    'monster:giant': 'assets/models/monsters/quaternius2/Giant.glb',
+    'monster:slime_enemy': 'assets/models/monsters/community/SlimeEnemy.glb',
     /* 2026-09-04 — 도감(펫) 초상 실사화. "코드로 그리지 말고 에셋으로"가
        인물 초상은 이미 되는데(`portrait3d.js`) 펫(짐승)은 여태 빠져 있었다.
        펫 41종 중 신수(神獸) 11종·포켓몬 오마주 16종은 CC0로 존재할 리 없는
@@ -687,8 +705,10 @@
 
   /* ── 애니메이션 이름 맞추기 — 사가고와 같은 요령 ─────── */
   var SLOTS = ['idle', 'walk', 'run', 'sprint', 'attack', 'hit', 'dodge', 'death', 'interaction'];
+  /* 2026-09-07 — Wasp(poly.pizza Animated Enemies)는 걷기 없이 Attack·Death·
+     Flying 셋뿐이라 idle 에 'fly' 낱말을 더해야 가만있을 때도 날갯짓이 돈다 */
   var WORDS = {
-    idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop'],
+    idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop', 'fly', 'flying', 'hover'],
     walk: ['walk', 'walking', 'locomotion', 'move'],
     run: ['run', 'running', 'jog'],
     sprint: ['sprint', 'runfast', 'fastrun', 'dash'],

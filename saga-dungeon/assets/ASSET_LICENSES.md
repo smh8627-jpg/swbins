@@ -1202,6 +1202,33 @@ Dragon·Skeleton·Slime류는 이미 Ultimate Monsters·KayKit Skeletons로 확�
 > glb-compress`로 재압축(10개, 15.0MB→4.3MB). `HERO_RECIPES_LIGHT`에
 > `ppwomen_*`로 등록.
 
+## 몬스터 2차분 — poly.pizza 개별 몬스터 (2026-09-07)
+
+"몬스터 100개" 1차분(KayKit Skeletons + Ultimate Monsters 49종)에서 정체돼
+있던 것을 poly.pizza `/search/monster` 개별 검색으로 이어감. 번들(꾸러미)이
+아니라 낱개 모델 검색이라 라이선스를 모델 페이지별로 하나하나 확인했다.
+
+| 모델 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Snake·Wasp·Rat·Spider·Frog(신규 개체) | `poly.pizza/bundle/Animated-Enemies-a53OJwHrhh` | Quaternius | CC0 |
+| Zombie | `poly.pizza/m/VlXjG0N8Eg` | Quaternius | CC0 |
+| Skeleton(단품) | `poly.pizza/m/DM4QScSmbS` | Quaternius | CC0 |
+| Giant | `poly.pizza/m/BldaiPtyJa` | Quaternius | CC0 |
+| Slime Enemy | `poly.pizza/m/6O6XUMssAW` | **Charlie** | **CC-BY** — 저작자 표시 필요 |
+
+> Zombie·Skeleton·Giant는 `EnemyArmature|...` 접두어를 셋 다 똑같이 써서(같은
+> Quaternius 몬스터 킷 계열) `mapClips()`가 Ultimate Monsters와 같은 낱말표로
+> 그대로 받는다. Wasp는 걷기 클립이 없이 Attack·Death·Flying 뿐이라
+> `asset3d.js`의 `WORDS.idle`에 'fly'를 보태 가만있을 때도 날갯짓이 돌게
+> 했다. **Mimic(Quaternius, CC0)은 받아만 보고 뺐다** — 클립이 하나도 없는
+> 정지 메시라 "동작이 형태보다 우선"(모양보다 애니메이션) 원칙에 안 맞음.
+> Frog(신규 개체)는 기존 `monster:frog`(Ultimate Monsters 소속, UUID가 다름)
+> 와는 다른 별개 모델이라 `monster:frog_enemy`로 구분해 등록.
+> `assets/models/monsters/quaternius2/`(Quaternius 8종)·`assets/models/
+> monsters/community/`(Charlie 1종)에 나눠 둠. `tools/glb-compress`로 재압축
+> (9개, 4.9MB→1.3MB). `data-enemy.js` 배치·밸런스는 아직 안 건드렸다 — 1차분과
+> 같은 이유로 자산만 갖춰 둔다.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —
