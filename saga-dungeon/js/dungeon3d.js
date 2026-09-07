@@ -974,11 +974,16 @@
    * 조각마다 개별 draw call 이 붙던 자리를 kind·GLB 파일당 몇 개로 줄인다.
    * 모듈이 없으면(방어적 기본값) 옛 방식(개별 piece())으로 그대로 돌아간다.
    */
-  function buildField(run) {
+  function buildField(run, cx0, cz0) {
     var F = global.DG.field3d;
     if (!fieldGroup) { return; }
     while (fieldGroup.children.length) { fieldGroup.remove(fieldGroup.children[0]); }
     if (!F || !FIELD()) { fieldKey = null; return; }
+    /* PLAN §57 — cx0,cz0(호출부가 플레이어 쪽으로 맞춰 준 창 중심, 없으면
+       0=방 중심)만큼 통째로 밀어 짓는다. anc는 그대로라 seed 산식(cx,cz를
+       그대로 먹는 heightAt/chunkAt/clutterAt)은 안 바뀐다 — 창이 옮겨가도
+       "같은 자리는 늘 같은 지형"이 유지된다. */
+    cx0 = cx0 | 0; cz0 = cz0 | 0;
 
     var W = d().ROOM_W, H = d().ROOM_H;
     var DD = global.DG.dataDungeon;
@@ -1005,8 +1010,8 @@
 
     /* 바깥 땅 — 조각마다 한 판씩 깔고 **네 귀퉁이의 높이**로 기울인다.
        한 판을 크게 깔면 높낮이가 안 나온다(4절이 바라는 것이 그 높낮이다) */
-    for (cz = -R; cz <= R; cz++) {
-      for (cx = -R; cx <= R; cx++) {
+    for (cz = cz0 - R; cz <= cz0 + R; cz++) {
+      for (cx = cx0 - R; cx <= cx0 + R; cx++) {
         var ring = F.ringOf(cx, cz, W, H);
         if (ring === 0) { continue; }             // 방이 걸친 조각은 방 바닥이 맡는다
         var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
@@ -2073,6 +2078,8 @@
        갈대나루·절차 생성 마을 전부 재현, 모루골만 정상). 던전은 `run.anchor`
        가 없어(항상 undefined) `{0,0}`으로 떨어지므로 회귀 없음. */
     var anc = run.anchor || { x: 0, y: 0 };
+    var p0 = run.player;
+    var p0x = p0.x - anc.x, p0y = p0.y - anc.y;   // 세계 → 로컬(위 anc 주석)
 
     var W = d().ROOM_W, H = d().ROOM_H;
     /* 지형 높낮이(2026-09-06 실기기 제보 — "바닥 높낮이 때문에 캐릭터가
@@ -2108,9 +2115,29 @@
       for (var fgpi = 0; fgpi < fgp.herbs.length; fgpi++) { if (fgp.herbs[fgpi].picked) { fgPicked++; } }
       forageProg = ':fg' + fgPicked + (fgp.pond && fgp.pond.used ? 'p1' : 'p0');
     }
+    /* PLAN §57 — 마을은 rk가 (town/roomIdx/cleared 등) 절대 안 바뀌는 값들
+       뿐이라, buildField()가 스폰 근방(cx,cz -R..R, 늘 anc=0 중심)에 딱
+       한 번만 세워졌다. 스폰에서 그 반경(R) 밖으로 걸어 나가면 애초에
+       세운 적 없는 자리라 바닥이 통째로 빈다(실기기 재현: PLAN.md 참고).
+       anc(마을 앵커)는 그대로 두고(바꾸면 heightAt/chunkAt의 seed 산식이
+       전부 anc-상대 로컬 좌표를 먹어 "고쳐 지을 때마다 언덕이 들썩이는"
+       새 버그가 난다 — PLAN §57이 이미 이 함정을 적어 뒀다) 대신 **buildField가
+       짓는 창(-R..R)의 중심을 플레이어 쪽으로 옮겨 다시 짓는다.** 창 중심을
+       fldStep(=R-2, 최소 1) 단위로 반올림해 rk에 실어 두면, 플레이어가 그
+       버킷 절반(fldStep/2 ≤ R-2) 이상 벗어날 때만(=아직 이전 창 안에
+       있을 때 미리) 다시 짓는다 — 매 프레임 다시 짓는 낭비도, 창 가장자리에
+       닿고 나서야 뒤늦게 짓는 틈도 없다. */
+    var fldR = (terrF && FIELD()) ? fieldVisR(run) : 0;
+    var fldStep = Math.max(1, fldR - 2);
+    var fldCx0 = 0, fldCz0 = 0;
+    if (terrF && FIELD()) {
+      fldCx0 = Math.round(Math.round(p0x / terrF.CHUNK) / fldStep) * fldStep;
+      fldCz0 = Math.round(Math.round(p0y / terrF.CHUNK) / fldStep) * fldStep;
+    }
     var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
-             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg;
-    if (rk !== roomKey) { roomKey = rk; prefetchActors(run); buildRoom(run); buildField(run); }
+             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg +
+             ':fw' + fldCx0 + '_' + fldCz0;
+    if (rk !== roomKey) { roomKey = rk; prefetchActors(run); buildRoom(run); buildField(run, fldCx0, fldCz0); }
 
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());
@@ -2133,7 +2160,6 @@
     amb.groundColor.setHex(L.town ? L.ambientHex : mix(L.ambientHex, 0x000000, 0.5));
     key.intensity = L.keyIntensity;
     key.color.setHex(L.keyHex);
-    var p0 = run.player;
     /* 그림자 카메라(±520, 위 init 참고)는 방 크기에 맞춘 상자라 방 밖
        들판까지는 안 덮는다 — 그 상자 밖에 있는 조각은 그림자맵 텍스처를
        가장자리로 clamp해 읽어 "그림자 진 것"으로 잘못 판정된다(three.js의
@@ -2142,7 +2168,6 @@
        빛의 위치·과녁을 **플레이어를 따라가게** 바꿔 상자 자체를 늘 플레이어
        둘레에 두면, 들판 어디를 걷든 그 자리는 늘 상자 안이라 이 문제가
        안 생긴다. 빛과 과녁 사이의 상대 위치(각도)는 그대로 유지한다. */
-    var p0x = p0.x - anc.x, p0y = p0.y - anc.y;   // 세계 → 로컬(위 anc 주석)
     key.target.position.set(p0x, 0, p0y);
     key.position.set(p0x + (W * 0.3 - W / 2), 260, p0y + (H * 0.1 - H / 2));
     key.target.updateMatrixWorld();
