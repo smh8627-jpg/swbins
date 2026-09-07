@@ -33,6 +33,7 @@
   var fieldKey = null;             // 지금 세워 둔 들판의 씨앗+반경
   var amb = null, key = null, torch = null;
   var canvas = null;
+  var fieldBuildErrShown = {};   // buildRoom/buildField 실패 토스트 — 메시지별 1회만(§57 후속)
   var ready = false, failed = false;
   var actors = {};                 // 배우 { key: {node, seen} }
   var frame = 0;
@@ -2166,6 +2167,16 @@
         prefetchActors(run); buildRoom(run); buildField(run, fldCx0, fldCz0);
       } catch (e) {
         if (global.console) { console.warn('[던전 3D] 방/들판을 다시 짓다가 실패 — 이번 칸은 옛 그림 그대로 둔다', e); }
+        /* 여기서 삼키면 loop()의 바깥쪽 catch(game.js)까지 예외가 안 올라가
+           토스트가 안 뜬다 — "화면이 갈색인데 토스트도 안 뜬다" 제보(2026-09-08)의
+           원인이 바로 이 자리였다. 메시지별 1회만 띄워 도배를 막는다. */
+        try {
+          var emsg2 = String((e && e.message) || e);
+          if (core && core.emit && !fieldBuildErrShown[emsg2]) {
+            fieldBuildErrShown[emsg2] = true;
+            core.emit('toast', '⚠️ 지형 재구성 실패: ' + emsg2.slice(0, 140));
+          }
+        } catch (e3) { /* 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
       }
     }
 
