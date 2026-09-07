@@ -1107,6 +1107,37 @@ NPC·동행·사람 형 적·초상(`heroKindFor`가 `hero_light`로 보내는 �
 연상시키는데, 실제 게임에 노출되는 표시 이름은 다섯 판 이름 정책(가명)을
 그대로 따른다 — 여기 등록 키는 내부 식별자일 뿐이다.
 
+## 사람 — Quaternius Universal Base Characters + Animation Library 2 (2026-09-07)
+
+itch.io 전용 팩이라 사용자가 직접 받아 전달(`quaternius.itch.io/universal-base-characters`,
+`quaternius.itch.io/universal-animation-library-2`). "Standard" 등급 압축본에는
+남녀 각 하나("Superhero" 체형)만 들어 있었다. MPFB처럼 제 클립이 없어
+UAL2(43개 — Sword_*·Shield_*·Zombie_*·TreeChopping 등 리치 콤보)로
+리타깃한다. 원본 텍스처가 유난히 커서(각 15~16MB) 압축이 특히 잘 먹었다
+(380·409KB — 텍스처 리사이즈+WebP 효과, 지오메트리 자체는 가벼웠다).
+
+| 자산 | 만든 이 | 받은 곳 | 파일 |
+|---|---|---|---|
+| Superhero Male/Female 몸 | Quaternius | `quaternius.itch.io/universal-base-characters`(사용자 직접 받음) | `models/people/universal_base/Superhero_{Male,Female}.glb` |
+| UAL2 애니메이션 라이브러리 | Quaternius | `quaternius.itch.io/universal-animation-library-2`(사용자 직접 받음) | `models/anim/UAL2_Standard.glb` |
+
+> 둘 다 © **Quaternius**, CC0 (Public Domain). 저작자 표시 불필요.
+> 원본 `.gltf`(외부 텍스처 참조)를 압축하며 GLB 하나로 묶었다. 원본 에셋
+> 자체에 오탈자가 있었다 — 일부 노멀맵 참조가 `_Normal_png.png`(끝에 확장자가
+> 겹친 이름)로 돼 있는데 실제 파일은 `_Normal.png`뿐이라, 압축 전에 그
+> 파일을 같은 이름으로 복사해 채워 넣었다(같은 픽셀, 참조만 고침).
+> `js/asset3d.js`의 `HERO_RECIPES_LIGHT`에 `universal_male`·`universal_female`
+> 로 등록, `anim` 필드로 전역 `ANIM_SRC`(UAL1, MPFB 전용) 대신 UAL2를
+> 레시피별로 지정했다 — MPFB·UAL1 쪽은 안 건드림.
+> `_retargettest.html`(신규, `?body=<글TF경로>&anim=<글TF경로>&clip=<클립이름>`)로
+> `buildHero()`→`retargetInto()` 실전 경로를 그대로 돌려 `Sword_Regular_A`
+> 재생 상태를 스크린샷으로 확인 — 팔다리 뒤틀림 없이 정상 리타깃됨.
+
+**itch.io "Animated Characters 1"(사용자가 같이 받아 전달)은 안 씀** —
+받아서 열어 보니 FBX뿐(GLB 없음, 변환 도구 필요)이고 애니메이션도
+idle·jump·run 세 개뿐이라 이미 있는 QRPG·Kenney Blocky·Universal Base
+Characters보다 가치가 낮았다. 압축·통합 없이 그대로 둠.
+
 ## 아직 안 옮긴 것
 
 `saga-go`가 든 다른 에셋(탑·성벽 종류·기타 자연물)은 이 판에서 아직 안 쓴다 —

@@ -84,6 +84,23 @@
     })
   );
 
+  /* 2026-09-07(이어서) — 사용자가 itch.io 팩 둘을 직접 받아 전달: Quaternius
+     "Universal Base Characters"(몸, 제 클립 없음) + "Universal Animation
+     Library 2"(UAL2, 클립 43개 — Sword_*·Shield_*·Zombie_*·TreeChopping 등
+     리치 콤보). MPFB와 같은 "몸만 있고 리타깃으로 움직인다" 갈래지만,
+     압축이 유난히 잘 먹어(원본 15~16MB 각각 → 380·409KB, 텍스처가 컸을 뿐
+     지오메트리는 가벼운 덕) MPFB(3.5~4.3MB)보다 훨씬 가볍다 — 격리 렌더
+     (`_retargettest.html`, 신규)로 `buildHero()`→`retargetInto()` 실제
+     경로까지 통째로 돌려 Sword_Regular_A 클립 재생 상태를 스크린샷으로
+     확인, 팔다리 뒤틀림 없이 정상 리타깃됨을 봤다. `anim` 필드로 전역
+     `ANIM_SRC`(UAL1, MPFB 전용) 대신 UAL2를 **레시피별로** 지정한다 —
+     기존 MPFB 쪽은 한 글자도 안 건드린다. */
+  var UAL2_SRC = 'assets/models/anim/UAL2_Standard.glb';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    { key: 'universal_male', body: 'assets/models/people/universal_base/Superhero_Male.glb', anim: UAL2_SRC },
+    { key: 'universal_female', body: 'assets/models/people/universal_base/Superhero_Female.glb', anim: UAL2_SRC }
+  ]);
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

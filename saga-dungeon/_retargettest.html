@@ -1,0 +1,77 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>retarget test</title>
+<style>html,body{margin:0;background:#335}</style></head>
+<body>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/asset3d.js"></script>
+<script>
+window.DG = window.DG || {};
+(function () {
+  var qs = new URLSearchParams(location.search);
+  var body = qs.get('body') || 'assets/models/people/universal_base/Superhero_Male.glb';
+  var anim = qs.get('anim') || 'assets/models/anim/UAL2_Standard.glb';
+  var clip = qs.get('clip') || '';
+  var t = parseFloat(qs.get('t') || '0.4');
+
+  var AS3 = DG.asset3d;
+  AS3.register('_rt_test', { body: body, anim: anim });
+  // heroRecipe() looks up via REG['hero'] normally; patch DEFAULTS-independent path:
+  var origLookup = AS3.lookup;
+  DG.core = DG.core || {};
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(700, 700);
+  document.body.appendChild(renderer.domElement);
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x335577);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
+  var dir = new THREE.DirectionalLight(0xffffff, 2);
+  dir.position.set(2, 4, 3);
+  scene.add(dir);
+
+  // Directly exercise buildHero's internals via a synthetic 'hero' kind seed.
+  // asset3d's heroRecipe(seed) looks at REG[heroKindFor(seed)] list; simplest path:
+  // monkey-patch REG.hero to a one-item list pointing at our test recipe.
+  var rec = { key: '_rt_test', body: body, anim: anim };
+  AS3.REG.hero = [rec];
+  AS3.REG.hero_light = [rec];
+
+  var node = AS3.buildHero('me:0', 42, null, function () { return new THREE.Group(); });
+  scene.add(node);
+
+  function frameCamera() {
+    var box = new THREE.Box3().setFromObject(node);
+    if (box.isEmpty()) { return false; }
+    var size = box.getSize(new THREE.Vector3());
+    var center = box.getCenter(new THREE.Vector3());
+    var maxDim = Math.max(size.x, size.y, size.z) || 1;
+    camera.position.set(center.x, center.y + size.y * 0.1, center.z + maxDim * 1.8);
+    camera.lookAt(center);
+    return true;
+  }
+
+  var started = false;
+  var clock = new THREE.Clock();
+  (function tick() {
+    var dt = clock.getDelta();
+    frameCamera();
+    if (!started && node.userData.actions) {
+      var acts = node.userData.actions;
+      var names = Object.keys(acts);
+      var pick = (clip && acts[clip]) ? clip : names[0];
+      document.title = 'clips=' + names.length + ' playing=' + pick;
+      if (pick) { acts[pick].play(); node.userData.mixer.update(t); }
+      started = true;
+    } else if (node.userData.mixer && started) {
+      node.userData.mixer.update(dt);
+    }
+    if (!node.userData.actions && node.userData.assetState === 'fail') {
+      document.title = 'FAIL assetState=fail';
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(tick);
+  })();
+})();
+</script>
+</body></html>
