@@ -184,6 +184,15 @@
      되먹임 고리였다. 재구성이 있었던 다음 프레임의 측정치는 평균에서 뺀다
      (탭 전환 때 500ms 넘는 값을 이미 빼는 것과 같은 취지). */
   var lastFrameHadBuild = false;
+  /* 2026-09-08 — 실기기 로그로 실측 확인: "tier=high ema=92.2ms" (등급이 막
+     바뀐 바로 그 프레임). `post3d.js`의 `syncTargets`가 등급이 바뀔 때마다
+     GPU 렌더 타깃(프레임버퍼)을 새로 만드는 비용 자체가 그 프레임을 90ms대로
+     만들었다 — buildRoom/buildField 재구성과는 별개의 무거움이다. 그 비용이
+     다음 프레임 dtMs로 그대로 측정돼 등급을 또 떨어뜨리고, 떨어지면 또
+     타깃을 새로 만들어 되먹임이 계속됐다(fieldR 6→4→2로 계속 밀리던 로그가
+     그 증거). 등급이 바뀐 바로 다음 프레임의 측정치도 build 와 같은 요령으로
+     평균에서 뺀다. */
+  var skipNextEma = false;
 
   /** ms 평균 → 등급. **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
   function autoLevelFor(emaMs) {
@@ -203,14 +212,17 @@
    */
   function updatePerf() {
     var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    var skipThis = skipNextEma;
+    skipNextEma = false;
     if (lastFrameT !== null) {
       var dtMs = now - lastFrameT;
-      if (dtMs > 0 && dtMs < 500 && !lastFrameHadBuild) {
+      if (dtMs > 0 && dtMs < 500 && !lastFrameHadBuild && !skipThis) {
         perfEma = perfEma * 0.9 + dtMs * 0.1;
         var next = autoLevelFor(perfEma);
         if (next !== autoLevel && now - lastLevelChangeT >= LEVEL_COOLDOWN_MS) {
           autoLevel = next;
           lastLevelChangeT = now;
+          skipNextEma = true;
         }
       }
     }
