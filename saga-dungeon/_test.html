@@ -3154,7 +3154,25 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         '10ms(≈100fps)→high · 25ms(≈40fps)→medium · 40ms(≈25fps)→low';
     });
 
+    t('3D — 시작 등급은 기기 점수로 고른다(코어·메모리·픽셀·터치)', function () {
+      /* 2026-09-07 — 폰에서 "마을 진입 직후 먹통" 신고 — 시작을 늘 'high'로
+         찍어 두면 실측이 따라잡기 전 첫 프레임(들)이 그대로 무겁다. 켤 때
+         기기를 한 번 보고 시작 등급을 낮추는 순수 매핑만 여기서 잰다(실제
+         navigator/screen 값은 기기마다 달라 자가진단이 그 자체를 보진 않는다) */
+      var strong = { cores: 8, mem: 8, w: 1920, h: 1080, dpr: 1, touch: false };
+      var weak = { cores: 4, mem: 2, w: 390, h: 844, dpr: 3, touch: true };
+      var unknown = { cores: 0, mem: 0, w: 0, h: 0, dpr: 1, touch: false };
+      /* saga-go js/perf.js의 score()와 같은 셈이라 "다 모름"(0)도 코어·메모리·
+         픽셀 세 갈래 각각 "낮지 않다"쪽 점수(1점씩)를 받아 high가 된다 —
+         모르는 값을 깎지 않는 낙관 쪽으로 이미 그렇게 설계돼 있다(터치만 감점) */
+      return D3._startLevelFor(D3._deviceScore(strong)) === 'high' &&
+        D3._startLevelFor(D3._deviceScore(weak)) === 'low' &&
+        D3._startLevelFor(D3._deviceScore(unknown)) === 'high' &&
+        '강한 기기→high · 폰(코어 적음·메모리 적음·고밀도 화면·터치)→low · 다 모름→high(낙관)';
+    });
+
     t('3D — AUTO 품질이 들판 반경·밀도·그림자를 함께 낮춘다', function () {
+      D3._setPerfEma(16.7);                 // 기기 점수로 고른 시작값과 무관하게 이 테스트는 여기서부터 잰다
       var before = D3.quality();
       D3._setPerfEma(45);                   // 아주 느린 프레임을 흉내
       var lowQ = D3.quality(), lowR = D3.fieldR(), lowD = D3.fieldDens(), lowS = D3.shadow();

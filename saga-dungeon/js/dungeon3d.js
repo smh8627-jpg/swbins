@@ -133,7 +133,36 @@
     high: { fieldR: 6, fieldDens: 1, shadow: true }
   };
   function QUALITY() { return tuned('dg3d.quality', 'auto'); }
-  var autoLevel = 'high';               // AUTO 가 지금 고른 등급
+  /* 2026-09-07 — 폰 실기기 재신고("마을 진입 직후 먹통이 될 정도로 느림").
+     `autoLevel`을 늘 'high'로 켜 두고 프레임을 실측해야만 내려가는데, 마을
+     첫 진입은 GLB 36개+`fieldR`(HIGH=6) 몫 인스턴스를 그 등급 그대로 한꺼번에
+     세운다 — 첫 프레임이 끝나기 전엔 `updatePerf()`가 한 번도 안 돌아 실측
+     자체가 없다("몇 프레임 버거우면 내린다"가 통하려면 그 몇 프레임을 버틸
+     여유가 있어야 하는데, 폰에서는 그 첫 프레임 자체가 수 초~수십 초짜리라
+     "먹통"으로 읽힌다). `saga-go`의 `js/perf.js`가 이미 켤 때 기기를 한 번
+     보고 시작 등급을 고르는 손잡이(`probe`·`score`·`start`)를 두고 있어 —
+     같은 요령을 옮긴다. 코어 수·메모리·화면 픽셀·터치 여부로 점수를 매겨
+     시작 등급만 낮춘다(그 뒤로는 여느 때처럼 실측이 올리고 내린다). */
+  function deviceScore(o) {
+    var s = 0;
+    var cores = o.cores || 0, mem = o.mem || 0;
+    var px = (o.w || 0) * (o.h || 0) * (o.dpr || 1) * (o.dpr || 1);
+    s += cores >= 8 ? 2 : (cores >= 4 ? 1 : (cores > 0 ? 0 : 1));
+    s += mem >= 8 ? 2 : (mem >= 4 ? 1 : (mem > 0 ? 0 : 1));
+    s += px > 4000000 ? -1 : (px > 1600000 ? 0 : 1);
+    if (o.touch) { s -= 1; }
+    return s;
+  }
+  function startLevelFor(s) { return s >= 3 ? 'high' : (s >= 1 ? 'medium' : 'low'); }
+  function probeDevice() {
+    var n = global.navigator || {}, sc = global.screen || {};
+    return {
+      cores: n.hardwareConcurrency || 0, mem: n.deviceMemory || 0,
+      w: sc.width || 0, h: sc.height || 0, dpr: global.devicePixelRatio || 1,
+      touch: !!(('ontouchstart' in global) || (n.maxTouchPoints > 0))
+    };
+  }
+  var autoLevel = startLevelFor(deviceScore(probeDevice())); // AUTO 가 지금 고른 등급(시작은 기기 보기)
   var perfEma = 16.7;                   // 프레임 시간 이동평균(ms) — 처음엔 60fps 로 가정
   var lastFrameT = null;
 
@@ -2394,6 +2423,8 @@
     camAim: camAim, userZoom: USERZOOM, lightPlan: lightPlan,
     /** PLAN 19절 — 그래픽 품질 AUTO. ms 평균 → 등급의 순수 매핑(진단용) */
     autoLevelFor: autoLevelFor, quality: effectiveLevel,
+    /** 2026-09-07 — 켤 때 시작 등급을 고르는 기기 점수 매김(진단용, 순수 함수) */
+    _deviceScore: deviceScore, _startLevelFor: startLevelFor,
     fieldR: FIELD_R, fieldDens: FIELD_D, shadow: SHADOW,
     /** 자가진단용 — 실제 프레임 없이 이동평균을 강제로 넣어 등급이 바뀌는지 본다 */
     _setPerfEma: function (ms) { perfEma = ms; autoLevel = autoLevelFor(ms); },

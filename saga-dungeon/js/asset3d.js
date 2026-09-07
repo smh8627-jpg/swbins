@@ -61,8 +61,9 @@
      끼얹는다)이 얹히면 사람마다 서로 다른 그 무거운 파일을 하나씩 새로 받으러
      간다 — 모바일 LTE에서 "느리다" 신고의 실제 몸통. 이 여섯 벌(QRPG, 파일당
      1.6~2.1MB·제 클립 내장)만 따로 쥐어 두고, NPC·동행은 여기서만 고른다(아래
-     heroRecipe 참고). 플레이어(me)·초상(portrait3d)·단독 몬스터는 그대로 스무여섯
-     벌 전부에서 고른다 — 한 장면에 하나뿐이라 무거워도 감당된다. */
+     heroRecipe 참고). **같은 날 뒤늦게 발견 — foe·초상도 방마다 사람 형 적이
+     여럿(`dungeon.js` spawnEnemy 루프) 서는 흔한 경우라 "하나뿐" 가정이
+     틀렸다, heroKindFor에서 이쪽도 이 표로 묶었다(아래 참고).** */
   var HERO_RECIPES_LIGHT = HERO_RECIPES.slice();
 
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
@@ -429,11 +430,18 @@
     if (v && typeof v === 'object') { return v.key || null; }
     return v;
   }
-  /* NPC·동행은 가벼운 표(hero_light)에서만 고른다 — 위 HERO_RECIPES_LIGHT 주석 참고.
-     플레이어(me)·초상·foe 등 그 밖 씨앗은 그대로 전체 표(hero)를 쓴다. */
+  /* 2026-09-07 — "한 장면에 하나뿐이라 무거워도 감당된다"던 foe·초상 가정이
+     틀렸다: `dungeon.js`의 방 구성(`spawnEnemy` 루프)이 사람 형 적을 방 하나에
+     여럿(2~5) 세우는 경우가 흔하다. 사람 형 적 이름마다 `oneOf()` 해시가
+     제각각이라, 방에 들어서는 순간 서로 다른 MPFB 실사 몸(파일당 3.5~7.6MB,
+     `retargetInto()` 골격 재배치까지) 여러 개를 동시에 새로 받는 꼴이었다 —
+     NPC·동행을 hero_light로 묶었던 것과 똑같은 함정을 foe만 비켜 갔던 것.
+     `me:`로 시작하는 리터럴(`meRenderParams()`의 `QRPG_SEEDS`, 이미 해시로
+     QRPG 자리에만 떨어지게 손으로 확인해 둔 값)만 전체 표를 그대로 쓰고,
+     그 밖(npc·ally·foe·초상 `hero:`)은 전부 가벼운 표만 고른다. */
   function heroKindFor(seed) {
     var s = String(seed || '');
-    return (s.indexOf('npc:') === 0 || s.indexOf('ally:') === 0) ? 'hero_light' : 'hero';
+    return (s.indexOf('me:') === 0) ? 'hero' : 'hero_light';
   }
   function heroRecipe(seed) {
     var h = lookup(heroKindFor(seed));
@@ -583,21 +591,50 @@
     if (t.SkeletonUtils && t.SkeletonUtils.clone) { return t.SkeletonUtils.clone(gltf.scene); }
     return gltf.scene.clone(true);
   }
+  /* 2026-09-07 — 폰 실기기 "마을 진입 직후 먹통" 신고. 마을 하나가 GLB 서른
+     예닐곱 개를 부르는데, 이 함수가 여태 제한 없이 `ld.load()`를 그 자리에서
+     다 불렀다 — 응답이 비슷한 시각에 몰려 돌아오면 `GLTFLoader.parse()`(메인
+     스레드, 디코드+지오메트리 조립)가 한 프레임도 못 그리고 줄줄이 이어져
+     그 구간 전체가 먹통으로 보인다. **한 번에 도는 개수만 줄인다**(내려받는
+     총량·최종 화면은 그대로) — 나머지는 줄을 서 있다가 하나 끝나는 대로 다음
+     것이 시작돼, 파싱 사이사이 화면이 그려질 틈이 생긴다. */
+  var MAX_INFLIGHT = 3;
+  var inflight = 0;
+  var startQ = [];
+  function pump() {
+    while (inflight < MAX_INFLIGHT && startQ.length) {
+      var url = startQ.shift();
+      var c = cache[url];
+      if (!c || c.state !== 'queued') { continue; }
+      var ld = loader();
+      if (!ld) { c.state = 'fail'; flush(c, null); continue; }
+      c.state = 'load';
+      inflight++;
+      (function (url, c) {
+        ld.load(url, function (gltf) {
+          inflight--;
+          c.state = 'ok'; c.gltf = gltf;
+          delam(gltf.scene);
+          c.clips = gltf.animations || [];
+          c.map = mapClips(c.clips.map(function (a) { return a.name; }));
+          flush(c, c);
+          pump();
+        }, null, function () {
+          inflight--;
+          c.state = 'fail'; flush(c, null);
+          pump();
+        });
+      })(url, c);
+    }
+  }
   function acquire(url, done) {
     var c = cache[url];
     if (c && c.state === 'ok') { done(c); return; }
     if (c && c.state === 'fail') { done(null); return; }
     if (c) { c.waiting.push(done); return; }
-    var ld = loader();
-    if (!ld) { cache[url] = { state: 'fail', waiting: [] }; done(null); return; }
-    c = cache[url] = { state: 'load', waiting: [done] };
-    ld.load(url, function (gltf) {
-      c.state = 'ok'; c.gltf = gltf;
-      delam(gltf.scene);
-      c.clips = gltf.animations || [];
-      c.map = mapClips(c.clips.map(function (a) { return a.name; }));
-      flush(c, c);
-    }, null, function () { c.state = 'fail'; flush(c, null); });
+    c = cache[url] = { state: 'queued', waiting: [done] };
+    startQ.push(url);
+    pump();
   }
   function flush(c, arg) { var w = c.waiting; c.waiting = []; for (var i = 0; i < w.length; i++) { w[i](arg); } }
 
