@@ -2263,24 +2263,6 @@
         if (fogNear >= fogFar) { fogNear = fogFar * 0.4; }
       }
     }
-    if (!scene.fog) { scene.fog = new T.Fog(bgHex, fogNear, fogFar); }
-    scene.fog.color.setHex(bgHex);
-    scene.fog.near = fogNear; scene.fog.far = fogFar;
-    scene.background = new T.Color(bgHex);
-
-    /* 2026-09-08 — 스크린샷으로 보니 "갑자기 실패"가 아니라 **시간이 지나며
-       점점 화면이 배경색으로 씻겨나가는** 현상이었다(부팅 1회성 진단은 이
-       변화 추세를 못 봤다). 화질 등급이 떨어지면 FIELD_R()이 줄고, 그게
-       안개 far 거리(`builtEdge`, 바로 위)를 같이 줄여 시야가 점점 좁아져
-       카메라 앞까지 안개가 밀려올 수 있다 — 살아있는 동안 2초마다 등급·
-       안개거리·프레임시간을 찍어 그 추세를 실기기에서 직접 본다. */
-    if (frame % 120 === 0) {
-      var diagMsg = '📊 tier=' + effectiveLevel() + ' ema=' + perfEma.toFixed(1) +
-        'ms fogFar=' + fogFar.toFixed(0) + ' fieldR=' + fldR;
-      if (global.console) { console.log('[던전 3D 진단]', diagMsg); }
-      try { if (core && core.emit) { core.emit('toast', diagMsg); } } catch (e4) { /* 토스트 실패해도 콘솔 로그는 이미 남았다 */ }
-    }
-
     var p = run.player;
     var plx = p.x - anc.x, ply = p.y - anc.y;   // 세계 → 로컬(위 anc 주석)
     var meGroundY = groundYAt(plx, ply);
@@ -2455,6 +2437,24 @@
       zNow *= (asp < 1 ? Math.min(1.2, 1 / Math.max(0.7, asp)) : 1);
     }
     var aim = camAim(plx, ply, W, H, zNow, TILT(), !!run.town, meGroundY);
+    /* 2026-09-08 — 실기기 로그로 실측: 화질이 진짜로 low 로 떨어질 때(가끔
+       실제로 무거운 프레임이 있어 정당하게 떨어진다) low 의 안개 거리(500)가
+       사용자가 확대·축소로 물러난 실제 카메라 거리(`aim.dist`, 줌에 따라
+       500 을 훌쩍 넘을 수 있다)보다 짧으면, 카메라 자신이 이미 안개 너머에
+       있는 꼴이라 화면 대부분이 배경색으로 덮인다 — "갈색이 화면을 가린다"
+       제보의 실제 원인. 등급과 무관하게 **카메라가 서 있는 자리까지는 항상
+       안개 밖**이게 최소 거리를 보장한다. */
+    if (aim.dist + 260 > fogFar) { fogFar = aim.dist + 260; }
+    if (!scene.fog) { scene.fog = new T.Fog(bgHex, fogNear, fogFar); }
+    scene.fog.color.setHex(bgHex);
+    scene.fog.near = fogNear; scene.fog.far = fogFar;
+    scene.background = new T.Color(bgHex);
+    if (frame % 120 === 0) {
+      var diagMsg = '📊 tier=' + effectiveLevel() + ' ema=' + perfEma.toFixed(1) +
+        'ms fogFar=' + fogFar.toFixed(0) + ' fieldR=' + fldR + ' camDist=' + aim.dist.toFixed(0);
+      if (global.console) { console.log('[던전 3D 진단]', diagMsg); }
+      try { if (core && core.emit) { core.emit('toast', diagMsg); } } catch (e4) { /* 토스트 실패해도 콘솔 로그는 이미 남았다 */ }
+    }
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
     if (!camPos) { camPos = want.clone(); camLook = look.clone(); }
