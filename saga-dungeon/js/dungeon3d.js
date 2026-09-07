@@ -2190,23 +2190,6 @@
       }
     }
 
-    /* 2026-09-08 — 두 차례 고침(예외 토스트·화질↔재구성 되먹임 차단)에도
-       "이동해도 갈색 그대로"가 재현돼, 예외 없이 조용히 실패하는 다른
-       무언가로 좁혀야 한다. 실제로 장면 안에 뭐가 세워져 있는지 눈에 안
-       보이면 추측만 반복하게 되니, 부팅 후 첫 60프레임(약 1초, 카메라·
-       빌드가 안정된 시점) 지점에서 그룹별 물체 수·카메라 위치를 딱 한 번
-       토스트로 찍는다 — "지형은 세워졌는데 안 보이는지" vs "애초에 안
-       세워졌는지"를 실기기에서 직접 가른다. */
-    if (frame === 60 && core && core.emit) {
-      try {
-        core.emit('toast', '🔎 field=' + (fieldGroup ? fieldGroup.children.length : '?') +
-          ' wall=' + (wallGroup ? wallGroup.children.length : '?') +
-          ' actor=' + (actorGroup ? actorGroup.children.length : '?') +
-          ' scene=' + (scene ? scene.children.length : '?') +
-          ' cam=' + (camera ? camera.position.x.toFixed(0) + ',' + camera.position.y.toFixed(0) + ',' + camera.position.z.toFixed(0) : '?'));
-      } catch (e4) { /* 진단 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
-    }
-
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());
     amb.intensity = L.ambient;
@@ -2272,6 +2255,19 @@
     scene.fog.color.setHex(bgHex);
     scene.fog.near = fogNear; scene.fog.far = fogFar;
     scene.background = new T.Color(bgHex);
+
+    /* 2026-09-08 — 스크린샷으로 보니 "갑자기 실패"가 아니라 **시간이 지나며
+       점점 화면이 배경색으로 씻겨나가는** 현상이었다(부팅 1회성 진단은 이
+       변화 추세를 못 봤다). 화질 등급이 떨어지면 FIELD_R()이 줄고, 그게
+       안개 far 거리(`builtEdge`, 바로 위)를 같이 줄여 시야가 점점 좁아져
+       카메라 앞까지 안개가 밀려올 수 있다 — 살아있는 동안 2초마다 등급·
+       안개거리·프레임시간을 찍어 그 추세를 실기기에서 직접 본다. */
+    if (frame % 120 === 0 && core && core.emit) {
+      try {
+        core.emit('toast', '📊 tier=' + effectiveLevel() + ' ema=' + perfEma.toFixed(1) +
+          'ms fogFar=' + fogFar.toFixed(0) + ' fieldR=' + fldR);
+      } catch (e4) { /* 진단 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
+    }
 
     var p = run.player;
     var plx = p.x - anc.x, ply = p.y - anc.y;   // 세계 → 로컬(위 anc 주석)
