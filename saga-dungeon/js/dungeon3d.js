@@ -176,6 +176,14 @@
      안 바꾸게 막아 진동을 끊는다. */
   var lastLevelChangeT = 0;
   var LEVEL_COOLDOWN_MS = 1500;
+  /* 2026-09-08 — "이동하면 계속 끊기고 화면이 갈색에 갇힌다" 제보(콘솔 예외
+     없음). buildRoom/buildField(무거운 동기 작업)가 걸린 프레임은 dtMs가
+     확 튀는데, 그 값이 perfEma 에 그대로 섞이면 등급이 떨어지고, 등급은
+     FIELD_R()(=rk 에 실리는 들판 반경)도 정하므로 등급이 바뀌는 것 자체가
+     또 재구성을 부른다 — 재구성→측정치 오염→등급 변경→재구성… 으로 이어지는
+     되먹임 고리였다. 재구성이 있었던 다음 프레임의 측정치는 평균에서 뺀다
+     (탭 전환 때 500ms 넘는 값을 이미 빼는 것과 같은 취지). */
+  var lastFrameHadBuild = false;
 
   /** ms 평균 → 등급. **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
   function autoLevelFor(emaMs) {
@@ -197,7 +205,7 @@
     var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     if (lastFrameT !== null) {
       var dtMs = now - lastFrameT;
-      if (dtMs > 0 && dtMs < 500) {
+      if (dtMs > 0 && dtMs < 500 && !lastFrameHadBuild) {
         perfEma = perfEma * 0.9 + dtMs * 0.1;
         var next = autoLevelFor(perfEma);
         if (next !== autoLevel && now - lastLevelChangeT >= LEVEL_COOLDOWN_MS) {
@@ -207,6 +215,7 @@
       }
     }
     lastFrameT = now;
+    lastFrameHadBuild = false;
   }
 
   /**
@@ -2163,6 +2172,7 @@
        옛 그림 그대로 두고 카메라·렌더는 그대로 이어간다. */
     if (rk !== roomKey) {
       roomKey = rk;
+      lastFrameHadBuild = true;
       try {
         prefetchActors(run); buildRoom(run); buildField(run, fldCx0, fldCz0);
       } catch (e) {
