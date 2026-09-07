@@ -57,7 +57,7 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 | `Wolf.glb` | 늑대 (`wolf`) |
 | `Cow.glb` | 소 (`ox`) |
 | `Koi.glb` | 잉어 (`carp`) — `cute_fish_pack` 에서. 헤엄·튀어오름 여섯 클립 |
-| `Mesh_Crow.gltf` + `.bin` + `Tex_Crow.webp` | **까치** (`magpie`) — **Quaternius 것이 아니다. 아래 따로 적었다** |
+| `Pigeon.glb` · `Birb.glb` | **까치** (`magpie`) — 아래 "같은 날 조금 더 뒤" 절 참고, 2026-09-07에 바뀌었다 |
 
 셋 다 뼈대 애니메이션을 열두어 개씩 들고 있다(Idle · Walk · Gallop · Eating …).
 `asset3d.js` 의 `mapClips` 가 이름을 씻어 자리에 맞춘다.
@@ -87,25 +87,34 @@ Quaternius 원 사이트(`quaternius.com`)는 이 망에서 안 열린다. 그�
 이 환경엔 Blender 가 없어 원본(FBX)을 직접 구울 수 없었다 — 이미 glTF 로
 구워 올려 둔 미러를 썼다(사가고 8절 "Photoshop/Blender 없이" 원칙과 같은 결).
 
-**같은 날 조금 더 뒤 — 사용자가 poly.pizza 에서 직접 받아 준 `Turtle.glb`로
-마지막 형태(`pet:form:turtle`)까지 채움.** 아래에서 열일곱 형태 전부(위
-사슴·늑대·소·잉어·까치 다섯 + 이번에 채운 열여섯 + 이 거북)가 실제 모델을
-쓴다 — 도감 펫 41종이 형태 일곱 가지(quad·bird·fish·horse·toad·dragon·ogre)
-어디에도 사슴 대타가 안 남았다.
+**같은 날 조금 더 뒤 — 거북 형태(`pet:form:turtle`)까지 채워 일곱 형태
+전부(quad·bird·fish·horse·toad·dragon·ogre) 실제 모델이 섰다.** 처음엔
+사용자가 poly.pizza 에서 받아 준 정지 모델(Poly by Google → Polygonal
+Mind, 둘 다 CC0/CC-BY 이지만 클립이 없었다)을 썼는데, **poly.pizza·
+Quaternius·OpenGameArt·Kenney 를 다 뒤져도 리깅된 거북을 못 찾았다**
+(등딱지가 표준 리그 틀에 안 맞아서인 듯). 사용자가 "꼭 거북 모양일 필요
+없다, 움직이는 게 낫다"고 정해 **뱀으로 바꿨다** — 현무가 애초에 신화에서
+"거북과 뱀"을 합친 신수라 결이 어긋나지 않는다.
 
 | 항목 | |
 |---|---|
-| **원본** | Poly by Google (원 Google Poly 자산, ID `2LCcq8vhqJ3`) |
-| **라이선스** | **CC-BY 3.0** — poly.pizza 모델 페이지에 명시. **이 저장소의 두 번째 CC-BY**(첫 번째는 아래 까치) — 나머지는 전부 CC0 |
-| **저작자 표시** | **필수다.** 아래 문구를 지운 채 재배포하면 라이선스 위반이다 |
-| **받은 곳** | <https://poly.pizza/m/2LCcq8vhqJ3> — 사용자가 직접 받아 전달 |
+| **파일** | `Snake.glb` · `Snake_angry.glb` (색만 다른 두 벌 — 섞어서 조금 갈린다) |
+| **원본** | Quaternius `easy_enemies_pack` — 위 "Quaternius — 저지대 다각형 묶음" 절과 같은 CC0 |
+| **클립** | `Idle`·`Walk`·`Attack`·`Jump` 넷 — 실제로 움직인다 |
 
-> **Turtle** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
-> <https://poly.pizza/m/2LCcq8vhqJ3> 에서 가져왔다. 크기·자리만 맞추었고 형상은 그대로다.
+**같은 날 조금 더 뒤 — 까치(`pet:an_magpie`·`pet:form:bird`)도 정지에서
+애니메이션 있는 것으로 바꿨다.** 배경 짐승 넷(사슴·늑대·소·잉어)은 전부
+애니메이션이 있는데 까치만 정지 모델(Poly by Google `Crow`, CC-BY)이었던
+불균형이기도 했다. Quaternius 가 만든 작은 새 두 벌(poly.pizza CC0)로 갈았다.
 
-**까치와 같은 사정 — 클립이 없다(정지 모델).** `obj2gltf`로 구운 원본
-OBJ라 뼈대 자체가 없다(`skins: 0`). 현무·물뿜이·나룻고래가 안 움직이는
-거북으로 서는 대신 실제 모델을 얻는 맞바꿈이다.
+| 항목 | |
+|---|---|
+| **파일** | `Pigeon.glb` · `Birb.glb` |
+| **원본** | Quaternius, poly.pizza 경유 — `<https://poly.pizza/m/9NGlBTpDEr>` · `<https://poly.pizza/m/gZ2ExU9OAB>`, **CC0**(Public Domain) |
+| **클립** | `Idle`·`Walk`·`Jump`·`Death`·`HitRecieve`·`Bite_Front`·`Dance`·`Yes`·`No` 아홉 — 원래 까치보다 훨씬 잘 움직인다 |
+
+**이걸로 `Crow`(까치)·`Turtle`(거북) 두 CC-BY/정지 모델은 이 폴더에서 빠졌다
+— 이 저장소에 CC-BY 자산이 더 이상 없다.**
 
 `models/buildings/` — 마을은 `js/prop3d.js` 가 `InstancedMesh` 로,
 **역참·성채는 `js/asset3d.js` 가 배우로** 세운다. 같은 파일이 양쪽에 걸려 있다
@@ -250,38 +259,13 @@ sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본�
 
 ---
 
-## Poly by Google — 까치(`Crow`)
+## Poly by Google — 까치(`Crow`) · 거북(`Turtle`) — 2026-09-07 자로 폐기됨
 
-| 항목 | |
-|---|---|
-| **만든 이** | **Poly by Google** |
-| **라이선스** | **CC-BY 3.0** — `data.json` 에 `"license": "CREATIVE_COMMONS_BY"` 로 명시돼 있다 |
-| **저작자 표시** | **필수다.** 아래 문구를 지운 채 재배포하면 라이선스 위반이다 |
-| **받은 곳** | Google Poly 아카이브 <https://polygone.art> · `guid=1MIvWQ5Q3R9` |
-
-> **Crow** — © **Poly by Google**, [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/).
-> Google Poly 아카이브(<https://polygone.art>)의 `1MIvWQ5Q3R9` 에서 가져왔다.
-> 크기·자리만 맞추었고 형상은 그대로다.
-
-**2026-09-07: CC-BY 가 하나 더 늘었다** — 거북(`Turtle.glb`, 위 도감 펫 절에
-따로 적었다). 나머지는 전부 CC0(표시 불필요)라 규칙이 이 둘만 다르다 —
-지우거나 옮길 때 위 문구를 같이 옮길 것.
-
-`.glb` 한 덩이가 아니라 **파일 셋**(`Mesh_Crow.gltf` + `Mesh_Crow.bin` +
-`Tex_Crow.webp`)이다. `.gltf` 가 나머지 둘을 **이름으로** 부르므로 셋이 같은 폴더에
-그대로 있어야 한다 — 하나만 빠져도 조용히 도형으로 돌아간다.
-
-**2026-09-04: `Tex_Crow.png` → `Tex_Crow.webp`(무손실)로 바꿨다.** 32×32짜리라
-용량은 그대로나(114B → 76B) `SAGA WEB.md` 5절 규칙에 맞췄다. `.gltf`의
-`images[0].uri`·`mimeType`을 같이 고쳤다 — three.js `GLTFLoader`는 URI 확장자로
-MIME을 다시 가늠하는 헬퍼(`.webp($|\?)` 정규식)를 이미 갖고 있어 별 위험이 없다.
-
-원본은 50 단위 키로 만들어져 있는데 `asset3d` 가 키 1 로 눕히므로,
-까치 키(`animal.js` 의 `h: 0.42`)로 세우면 **42cm** 가 된다 — 실제 까치와 같다.
-
-**날갯짓은 안 한다.** 이 모델에는 클립이 없다(정지 모델이다). 도형 까치는 코드가
-날갯짓을 넣어 주었으니 **모양을 얻고 움직임을 내준 맞바꿈**이다.
-되돌리려면 표에서 `pet:an_magpie` 줄을 지우면 도형으로 돌아간다.
+이 폴더에 한동안 CC-BY 3.0 인 Poly by Google `Crow`(까치, 정지 모델)와
+`Turtle`(거북, 정지 모델)이 있었다 — 위 도감 펫 절의 "같은 날 조금 더 뒤"에
+적었듯, 움직이는 CC0 대체(까치→Quaternius `Pigeon`/`Birb`, 거북→Quaternius
+`Snake`/`Snake_angry`)를 찾아 둘 다 빼냈다. **이 저장소에 지금은 CC-BY
+자산이 없다.** 되돌릴 일이 있으면 이 절의 과거 버전(git 이력)을 참고할 것.
 
 ---
 
@@ -1166,17 +1150,24 @@ QRPG와 같은 결로 `anim`을 `body`와 같은 파일로 줘(제 클립을 그
 매기는 quad·bird·fish·turtle·dragon·horse·toad·ogre 여덟 형태 중 실제로
 있는 셋만 맞춰 걸고, 나머지 다섯 형태는 마지막 `pet` 한 줄로 다 같이 받는다):
 
-| 형태(form) | 실제 모델 | 비고 |
+**(2026-09-05 당시 기록 — 이제 낡았다.** 그때는 `quad`·`bird`·`fish` 셋만
+채워지고 나머지 다섯 형태는 사슴류로 떨어졌다. **2026-09-07에 나머지 다섯
+(`horse`·`toad`·`dragon`·`ogre`·`turtle`)까지 전부 채워 여덟 형태 중 실제
+있는 일곱 — `turtle`은 뱀으로 대신했으므로 정확히는 `beastFormOf()`가
+매기는 형태 그대로가 아니라 결이 통하는 대타다 — 어디에도 사슴 대타가
+안 남았다.** 지금 표는 위 "도감 펫 3D 확장" 절 참고, 여기 아래 표는
+지우지 않고 역사로 남긴다.)**
+
+| 형태(form) | 실제 모델(2026-09-05 당시) | 비고 |
 |---|---|---|
 | `quad`(제일 많다) | Deer·Wolf·Cow 셋을 섞어 씀(`oneOf()`가 id 해시로 고정 배정) | 해태·백호·구미호·호랑이·곰·판다 등 |
-| `bird` | Mesh_Crow(까치) | 삼족오·주작·학·까치·올빼미 |
+| `bird` | Mesh_Crow(까치, 지금은 Pigeon·Birb로 바뀜) | 삼족오·주작·학·까치·올빼미 |
 | `fish` | Koi(잉어) | 잉어·뜀잉어 |
-| 그 외(`turtle`·`dragon`·`horse`·`toad`·`ogre`) | 마지막 `pet` 한 줄(Deer·Wolf·Cow) | 대응 CC0 없음 — 현무·청룡·적토마·두꺼비·도깨비 등이 사슴류 모습을 빌려 쓴다 |
+| 그 외(`turtle`·`dragon`·`horse`·`toad`·`ogre`) | 마지막 `pet` 한 줄(Deer·Wolf·Cow) | 당시엔 대응 CC0 없음 — 지금은 다 채워짐(위 절 참고) |
 
-모양이 원래 뜻과 안 맞는 자리가 많다(거북 도감에 사슴이 뜨는 식) — 갓·투구를
+모양이 원래 뜻과 안 맞는 자리가 많았다(거북 도감에 사슴이 뜨는 식) — 갓·투구를
 대역으로 쓴 다른 판들과 같은 판단이다: **사람이 그린 그림보다 실제 모델이
-우선**이라는 게 사용자 지시다. 나중에 형태별 CC0가 생기면 `pet:form:turtle`
-처럼 한 줄만 더 등록하면 그 형태만 갈린다.
+우선**이라는 게 사용자 지시다.
 
 ## 아직 안 가져온 것 — 왜 안 가져왔나
 

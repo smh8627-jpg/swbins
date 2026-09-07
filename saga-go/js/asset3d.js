@@ -199,11 +199,11 @@
     'pet:an_wolf': 'assets/models/animals/Wolf.glb',
     'pet:an_ox':   'assets/models/animals/Cow.glb',
     'pet:an_carp': 'assets/models/animals/Koi.glb',
-    /* 까치 — Poly by Google 의 `Crow`. **여기만 CC-BY 다**(나머지는 CC0) —
-       저작자 표시가 **필수**이고 `assets/ASSET_LICENSES.md` 에 적어 두었다.
-       `.glb` 한 덩이가 아니라 `.gltf` + `.bin` + `.png` 세 파일이라
-       **셋이 같은 폴더에 이름 그대로** 있어야 한다 */
-    'pet:an_magpie': 'assets/models/animals/Mesh_Crow.gltf',
+    /* 까치 — 2026-09-07 까지는 Poly by Google `Crow`(CC-BY, 정지 모델)를 썼다.
+       사용자가 "움직이는 걸로, 꼭 까치 모양일 필요 없다"고 정해 Quaternius
+       `Pigeon`·`Birb`(CC0, poly.pizza)로 바꿨다 — 다른 배경 짐승(사슴·늑대·
+       소·잉어)이 전부 애니메이션 있는데 까치만 정지였던 것도 이걸로 맞춰졌다 */
+    'pet:an_magpie': ['assets/models/animals/Pigeon.glb', 'assets/models/animals/Birb.glb'],
 
     /* 2026-09-05 — 도감(잡는) 펫은 여태 위 다섯 줄(들짐승 `an_*`, `animal.js`의
        배경 생물 전용)에 하나도 안 걸렸다 — `pet:pt_*`도 `pet:form:*`도 표에
@@ -220,15 +220,16 @@
 
        2026-09-07 — `github.com/trebeljahr/quaternius-showcase`(CC0, 위와 같은
        미러)에서 열여섯 종을 더 받아 `quad`·`horse`·`toad`·`dragon`·`fish` 다섯
-       형태에 채웠다. 같은 날 조금 뒤 `ogre` 도 채웠고(아래 표), 사용자가
-       poly.pizza 에서 직접 받아 준 `turtle` 까지 마지막으로 채워 **일곱
-       형태 전부** 실제 모델이 섰다. */
+       형태에 채웠다. 같은 날 조금 뒤 `ogre`(아래 표) · `turtle`(뱀으로 대신 —
+       움직이는 CC0 거북을 못 찾았다) 까지 채워 **일곱 형태 전부** 실제
+       모델이 서고, 정지 모델이던 까치(`pet:an_magpie`)도 움직이는 것으로
+       바꿔 이 파일에 정지 모델이 하나도 안 남았다. */
     'pet:form:quad': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
       'assets/models/animals/Cow.glb', 'assets/models/animals/Alpaca.glb',
       'assets/models/animals/Bull.glb', 'assets/models/animals/Donkey.glb',
       'assets/models/animals/Fox.glb', 'assets/models/animals/Husky.glb',
       'assets/models/animals/ShibaInu.glb', 'assets/models/animals/Stag.glb'],
-    'pet:form:bird': 'assets/models/animals/Mesh_Crow.gltf',
+    'pet:form:bird': ['assets/models/animals/Pigeon.glb', 'assets/models/animals/Birb.glb'],
     'pet:form:fish': ['assets/models/animals/Koi.glb', 'assets/models/animals/Shark.glb',
       'assets/models/animals/Dolphin.glb', 'assets/models/animals/Manta_ray.glb'],
     /* 말 형태(적토마·절영) — animals_pack 의 백마 한 종을 더해 둘이 갈린다 */
@@ -244,10 +245,12 @@
        악마·오크라 오우거·도깨비의 결에 사슴보다 훨씬 가깝다 */
     'pet:form:ogre': ['assets/models/animals/Orc.gltf', 'assets/models/animals/Demon.gltf',
       'assets/models/animals/BlueDemon.gltf'],
-    /* 거북 형태(현무·물뿜이·나룻고래) — Poly by Google, **CC-BY**(까치와 같은
-       조건, ASSET_LICENSES.md 에 저작자 표시 문구 있음). 정지 모델(클립 없음)
-       — 까치와 같은 맞바꿈이다 */
-    'pet:form:turtle': 'assets/models/animals/Turtle.glb',
+    /* 거북 형태(현무·물뿜이·나룻고래) — 2026-09-07, 리깅된 CC0 거북을 못 찾아
+       한동안 정지 모델(Poly by Google → Polygonal Mind)을 거쳐 왔다. 사용자가
+       "꼭 거북 모양일 필요 없다, 움직이는 걸로"로 정해 뱀(easy_enemies_pack,
+       CC0)으로 바꿨다 — 현무가 애초에 "거북과 뱀"을 합친 신수(PLAN 원문)라
+       뱀도 결이 안 어긋난다 */
+    'pet:form:turtle': ['assets/models/animals/Snake.glb', 'assets/models/animals/Snake_angry.glb'],
     'pet': ['assets/models/animals/Deer.glb', 'assets/models/animals/Wolf.glb',
       'assets/models/animals/Cow.glb'],
 
