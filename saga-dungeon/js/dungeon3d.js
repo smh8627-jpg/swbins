@@ -2533,7 +2533,6 @@
         ' room=' + lastRoomBuildMs.toFixed(1) + 'ms field=' + lastFieldSetupMs.toFixed(1) +
         'ms finalize=' + lastFieldFinalizeMs.toFixed(1) + 'ms';
       if (global.console) { console.log('[던전 3D 진단]', diagMsg); }
-      try { if (core && core.emit) { core.emit('toast', diagMsg); } } catch (e4) { /* 토스트 실패해도 콘솔 로그는 이미 남았다 */ }
     }
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
