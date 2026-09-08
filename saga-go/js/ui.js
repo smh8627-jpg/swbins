@@ -49,6 +49,7 @@
      'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast', 'levelup'].forEach(function (id) {
       els[id] = $(id);
     });
+    initStick();
 
     els.dock.addEventListener('click', function (e) {
       var b = e.target.closest('[data-sheet]');
@@ -91,6 +92,11 @@
       var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
       if (act === 'detail') {
         openDetail(b.getAttribute('data-kind') || 'hero', id);
+        return;
+      }
+      if (act === 'key-remap') {
+        var W0 = global.DG.world;
+        if (W0 && W0.beginRemap) { W0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
         return;
       }
       if (act === 'auto-on') {
@@ -175,7 +181,8 @@
     });
     core.on('toast', toast);
     core.on('levelup', showLevelUp);
-    core.on('changed', function () { renderTop(); renderSheet(); });
+    core.on('changed', function () { renderTop(); renderSheet(); stickSync(); });
+    core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
@@ -188,8 +195,27 @@
 
   var SHEET_TITLE = {
     quest: '📋 사명', bag: '🎒 행낭', letters: '✉️ 천거장',
-    dex: '📖 도감', oracle: '🔮 사관', log: '📜 기록'
+    dex: '📖 도감', oracle: '🔮 사관', log: '📜 기록', keys: '⌨️ 키설정'
   };
+
+  /** 2026-09-09 — 이동 키 다시 지정(키보드 모의 이동 모드용). WASD·방향키는
+   *  코드에 그대로 박혀 있고(실수로 못 쓰게 되지 않게), 여기서는 그 옆에
+   *  하나 더 쓸 키만 고른다. */
+  function viewKeys() {
+    var W = global.DG.world;
+    if (!W || !W.keymap) { return '<div class="hint">지금 화면에서는 키를 지정할 수 없습니다</div>'; }
+    var km = W.keymap(), rm = W.remapping();
+    var rows = [{ a: 'up', t: '위' }, { a: 'down', t: '아래' }, { a: 'left', t: '왼쪽' }, { a: 'right', t: '오른쪽' }];
+    var h = '<div class="hint">WASD·방향키는 항상 그대로 됩니다 — 여기서는 그 옆에 더 쓸 키 하나만 고릅니다. ' +
+      '(키보드 모의 이동 모드에서만 씁니다 — 실제 GPS로 걸을 땐 안 씁니다)</div>';
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      h += '<div class="key-row"><b>' + r.t + '</b><span class="key-cur">' + esc((km[r.a] || '').toUpperCase()) + '</span>' +
+        '<button data-act="key-remap" data-action="' + r.a + '">' +
+        (rm === r.a ? '키를 누르세요…' : '다시 지정') + '</button></div>';
+    }
+    return h;
+  }
 
   function openSheet(name) {
     openTab = name;
@@ -222,7 +248,8 @@
           : openTab === 'bag' ? viewBag()
           : openTab === 'letters' ? viewLetters()
           : openTab === 'dex' ? viewDex()
-          : openTab === 'oracle' ? viewOracle() : viewLog();
+          : openTab === 'oracle' ? viewOracle()
+          : openTab === 'keys' ? viewKeys() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 
@@ -1240,10 +1267,83 @@
   }
 
   global.DG = global.DG || {};
+  /* 2026-09-09 — "움직이는 게 너무 힘들다"(사가블로 등과 같은 재신고).
+     이 판은 실제 GPS 로 걷는 게 원작 컨셉이라 오버월드 이동에 조이스틱은
+     안 맞지만, PC 프로토타입용 "키보드(모의 이동)" 모드(world.js
+     mode==='keyboard')에는 그대로 맞는다 — world.js 에 이미 있던
+     setStick(dx,dy) 채널(그때까지 아무 화면도 안 부르고 있었다)에 연결한다.
+     GPS 로 전환하면(#btn-geo) 숨긴다 — 실제로 걷는 동안 손가락 조작이
+     끼어들면 안 된다. */
+  function stickSync() {
+    var joyEl = $('gjoy'), padEl = $('gpad');
+    if (!joyEl || !padEl) { return; }
+    var W = global.DG.world;
+    var on = !!(W && W.mode === 'keyboard');
+    var isTouch = !!(('ontouchstart' in global) || (navigator.maxTouchPoints > 0));
+    joyEl.classList.toggle('show', on && isTouch);
+    padEl.classList.toggle('show', on && !isTouch);
+  }
+  function initStick() {
+    var joyEl = $('gjoy'), joyKnob = $('gjoy-knob'), padEl = $('gpad');
+    if (!joyEl || !joyKnob || !padEl) { return; }
+    stickSync();
+    var W = global.DG.world;
+    var joyId = null, joyCX = 0, joyCY = 0;
+    var JOY_R = 46, JOY_DEAD = 8;
+    function knobAt(dx, dy) { joyKnob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; }
+    function reset() { joyId = null; knobAt(0, 0); W.setStick(0, 0, false); }
+    joyEl.addEventListener('pointerdown', function (e) {
+      if (joyId !== null) { return; }
+      var r = joyEl.getBoundingClientRect();
+      joyCX = r.left + r.width / 2; joyCY = r.top + r.height / 2;
+      joyId = e.pointerId;
+      joyEl.setPointerCapture && joyEl.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    joyEl.addEventListener('pointermove', function (e) {
+      if (e.pointerId !== joyId) { return; }
+      var dx = e.clientX - joyCX, dy = e.clientY - joyCY;
+      var len = Math.hypot(dx, dy);
+      var kx = len > JOY_R ? dx / len * JOY_R : dx, ky = len > JOY_R ? dy / len * JOY_R : dy;
+      knobAt(kx, ky);
+      if (len < JOY_DEAD) { W.setStick(0, 0, false); return; }
+      W.setStick(dx / len, dy / len, false);
+      e.preventDefault();
+    });
+    function release(e) { if (e.pointerId === joyId) { reset(); } }
+    joyEl.addEventListener('pointerup', release);
+    joyEl.addEventListener('pointercancel', release);
+    joyEl.addEventListener('pointerleave', release);
+
+    var held = { up: false, down: false, left: false, right: false };
+    function apply() {
+      var dx = (held.left ? -1 : 0) + (held.right ? 1 : 0);
+      var dy = (held.up ? -1 : 0) + (held.down ? 1 : 0);
+      var len = Math.hypot(dx, dy);
+      W.setStick(len ? dx / len : 0, len ? dy / len : 0, false);
+    }
+    var btns = padEl.querySelectorAll('button[data-dir]');
+    for (var pi = 0; pi < btns.length; pi++) {
+      (function (btn) {
+        var dir = btn.getAttribute('data-dir');
+        btn.addEventListener('pointerdown', function (e) {
+          held[dir] = true; apply();
+          btn.setPointerCapture && btn.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        });
+        function rel() { held[dir] = false; apply(); }
+        btn.addEventListener('pointerup', rel);
+        btn.addEventListener('pointercancel', rel);
+        btn.addEventListener('pointerleave', rel);
+      })(btns[pi]);
+    }
+  }
+
   global.DG.ui = {
     init: init, toast: toast, tickRefresh: tickRefresh,
     openSheet: openSheet, closeSheet: closeSheet,
     openDetail: openDetail, closeDetail: closeDetail,
-    renderPanel: renderSheet, renderHud: renderTop
+    renderPanel: renderSheet, renderHud: renderTop,
+    syncStick: stickSync
   };
 })(window);

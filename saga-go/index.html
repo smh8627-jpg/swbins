@@ -24,6 +24,15 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <canvas id="map3d"></canvas>
 <canvas id="map"></canvas>
 <div id="vignette"></div>
+<!-- 가상 조이스틱 — 키보드(모의 이동) 모드 + 터치 기기에서만 보인다(ui.js) -->
+<div id="gjoy"><div id="gjoy-knob"></div></div>
+<!-- PC 마우스 클릭 방향버튼 — 키보드(모의 이동) 모드 + 터치가 아닐 때만 보인다(ui.js) -->
+<div id="gpad">
+  <button data-dir="up">▲</button>
+  <button data-dir="left">◀</button>
+  <button data-dir="down">▼</button>
+  <button data-dir="right">▶</button>
+</div>
 
 <!-- 상단: 프로필 · 재화 · 도구 -->
 <div id="top">
@@ -64,6 +73,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
   <button data-sheet="dex"><span data-icon="book-open">📖</span><small>도감</small></button>
   <button data-sheet="oracle"><span data-icon="sparkles">🔮</span><small>사관</small></button>
   <button data-sheet="log"><span data-icon="scroll-text">📜</span><small>기록</small></button>
+  <button data-sheet="keys"><span data-icon="keyboard">⌨️</span><small>키설정</small></button>
 </nav>
 
 <!-- 슬라이드 시트 -->

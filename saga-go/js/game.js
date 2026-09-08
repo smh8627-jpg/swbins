@@ -124,6 +124,7 @@
         world.useKeyboard();
         geoBtn.classList.remove('on');
         ui.toast('키보드 이동으로 돌아갑니다');
+        if (ui.syncStick) { ui.syncStick(); }
         return;
       }
       ui.toast('위치 권한을 허용하면 지금 있는 곳의 지도로 이동합니다');

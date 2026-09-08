@@ -161,8 +161,37 @@
     }, { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 });
   }
 
+  /* 2026-09-09 — "키세팅이 있어야겠지"(사가블로·사가의숲·사가스토리와 같은
+     요청). WASD·방향키는 하드코딩 그대로 두고(실수로 못 쓰게 되면 안
+     된다), 방향별로 하나 더 쓸 키만 고르게 한다. 키보드(모의 이동) 모드
+     에서만 의미가 있다 — 실제 GPS 모드는 이 입력 자체를 안 본다. */
+  var KEYMAP_DEFAULT = { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright' };
+  var remapping = null;
+  function keymap() {
+    var s = core.save && core.save.settings;
+    var km = s && s.keymap;
+    if (!km) { return KEYMAP_DEFAULT; }
+    var out = {}, k;
+    for (k in KEYMAP_DEFAULT) { out[k] = km[k] || KEYMAP_DEFAULT[k]; }
+    return out;
+  }
+  function setKeymapKey(action, key) {
+    if (!core.save || !core.save.settings) { return; }
+    core.save.settings.keymap = keymap();
+    core.save.settings.keymap[action] = key;
+    core.persist();
+  }
+  function beginRemap(action) { remapping = action; }
+
   function bindKeys() {
     global.addEventListener('keydown', function (e) {
+      if (remapping) {
+        if (e.key !== 'Escape') { setKeymapKey(remapping, e.key.toLowerCase()); }
+        remapping = null;
+        core.emit('dg:keyremap');
+        e.preventDefault();
+        return;
+      }
       keys[e.key.toLowerCase()] = true;
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) >= 0) {
         if (e.target === document.body) { e.preventDefault(); }
@@ -252,11 +281,12 @@
     if (mode !== 'keyboard') { return; }
     var live = liveDuel();
     if (inputBlocked() && !live) { return; }
+    var km = keymap();
     var dx = 0, dy = 0, run = !!keys.shift;
-    if (keys.w || keys.arrowup) { dy -= 1; }
-    if (keys.s || keys.arrowdown) { dy += 1; }
-    if (keys.a || keys.arrowleft) { dx -= 1; }
-    if (keys.d || keys.arrowright) { dx += 1; }
+    if (keys.w || keys.arrowup || keys[km.up]) { dy -= 1; }
+    if (keys.s || keys.arrowdown || keys[km.down]) { dy += 1; }
+    if (keys.a || keys.arrowleft || keys[km.left]) { dx -= 1; }
+    if (keys.d || keys.arrowright || keys[km.right]) { dx += 1; }
 
     if (!dx && !dy && (stick.dx || stick.dy)) {   // 화면 스틱
       dx = stick.dx; dy = stick.dy; run = stick.run;
@@ -1797,6 +1827,7 @@
     latLngToWorld: latLngToWorld,
     useKeyboard: useKeyboard, useGeo: useGeo,
     setStick: setStick, walkTo: walkTo, walkingTo: walkingTo,
+    keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; },
     get mode() { return mode; },
     get accuracy() { return geoAccuracy; },
     get origin() { return origin; },
