@@ -871,6 +871,17 @@
       inflight++;
       (function (url, c) {
         ld.load(url, function (gltf) {
+          /* 2026-09-08 — "사가블로 끊김" 추적. dungeon3d.js의 render()·
+             game.js의 loop() 다섯 구간을 다 재도 여전히 dt=150~450ms대
+             튐이 그 안 어디에도 안 잡혔다(합쳐도 몇~수십 ms) — GLTFLoader의
+             `onLoad` 콜백(디코드 뒤 지오메트리 조립+여기 delam/flush)은
+             rAF 프레임 밖(네트워크 응답이 도착한 그 순간)에서 실행되니
+             render()/loop() 어느 쪽 실측에도 안 걸린다. flush()가 이
+             URL을 기다리던 소비자(actorOf 등)를 전부 그 자리에서 동기로
+             깨우므로, 대기자가 여럿이면 그 수만큼 cloneScene(SkeletonUtils
+             .clone, 스킨드메시 깊은 복제) 비용이 한 번에 몰린다 — 유력 용의자. */
+          var t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+          var waitN = c.waiting.length;
           inflight--;
           c.state = 'ok'; c.gltf = gltf;
           delam(gltf.scene);
@@ -878,6 +889,10 @@
           c.map = mapClips(c.clips.map(function (a) { return a.name; }));
           flush(c, c);
           pump();
+          var ms = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - t0;
+          if (ms > 15 && typeof console !== 'undefined') {
+            console.log('[던전 GLB 도착후처리]', 'ms=' + ms.toFixed(1) + ' waiting=' + waitN + ' url=' + url);
+          }
         }, null, function () {
           inflight--;
           c.state = 'fail'; flush(c, null);
