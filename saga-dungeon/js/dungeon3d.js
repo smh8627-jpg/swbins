@@ -200,11 +200,29 @@
      예산 없이 한 프레임에 몰아 짓는 자리) 각각의 실측 ms를 따로 잰다. */
   var lastRoomBuildMs = 0, lastFieldSetupMs = 0, lastFieldFinalizeMs = 0;
 
-  /** ms 평균 → 등급. **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
+  /** ms 평균 → "이상적인" 등급(지금 등급과 무관하게, 이 프레임 시간만 보면
+   *  어디가 맞는지). **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
   function autoLevelFor(emaMs) {
     if (emaMs > 33) { return 'low'; }     // 30fps 아래
     if (emaMs > 20) { return 'medium'; }  // ~50fps 아래
     return 'high';
+  }
+  var LEVEL_ORDER = ['low', 'medium', 'high'];
+  function levelIdx(l) { var i = LEVEL_ORDER.indexOf(l); return i < 0 ? 2 : i; }
+  /* 2026-09-08 — 실기기 로그로 실측: "low(ema=16.8, fieldR=2)" 다음 줄이 바로
+     "high(ema=94.5, fieldR=6)" 였다. LOW 는 물체가 적어(fieldR=2) ema 가
+     가볍게 나오는 게 당연한데, autoLevelFor 는 그 가벼운 값만 보고 곧장
+     HIGH(물체 9배 가까이 늘어남, fieldR=6)로 판정했다 — MEDIUM 을 건너뛴
+     것이다. 이 기기는 HIGH 를 못 견뎌(ema=94.5ms≈10fps) 다음 순간 도로
+     LOW 로 떨어지고, 다시 가벼워 보이니 또 HIGH 로 뛰는 되풀이였다("여전히
+     느려" 제보의 실제 정체 — 주기적으로 몇 초씩 정지하듯 버벅였을 것).
+     이상적인 등급이 아무리 멀어도(low→high) **한 단계씩만** 옮긴다 — MEDIUM
+     을 먼저 겪어 그 등급의 진짜 무게를 재고 나서야 HIGH 를 시도하게 된다. */
+  function stepTowards(curLevel, idealLevel) {
+    var ci = levelIdx(curLevel), ii = levelIdx(idealLevel);
+    if (ii > ci) { return LEVEL_ORDER[ci + 1]; }
+    if (ii < ci) { return LEVEL_ORDER[ci - 1]; }
+    return curLevel;
   }
   /** QUALITY() 가 low/medium/high 로 고정돼 있으면 그걸, 'auto' 면 방금 잰 등급을 쓴다 */
   function effectiveLevel() {
@@ -224,7 +242,7 @@
       var dtMs = now - lastFrameT;
       if (dtMs > 0 && dtMs < 500 && !lastFrameHadBuild && !skipThis) {
         perfEma = perfEma * 0.9 + dtMs * 0.1;
-        var next = autoLevelFor(perfEma);
+        var next = stepTowards(autoLevel, autoLevelFor(perfEma));
         if (next !== autoLevel && now - lastLevelChangeT >= LEVEL_COOLDOWN_MS) {
           autoLevel = next;
           lastLevelChangeT = now;
@@ -2533,6 +2551,12 @@
         ' room=' + lastRoomBuildMs.toFixed(1) + 'ms field=' + lastFieldSetupMs.toFixed(1) +
         'ms finalize=' + lastFieldFinalizeMs.toFixed(1) + 'ms';
       if (global.console) { console.log('[던전 3D 진단]', diagMsg); }
+      /* 2026-09-08 — 이 셋을 안 지우면 "몇 초 전에 딱 한 번 있었던 값"이
+         다음 줄에도 그대로 찍혀 "매번 다시 짓는다"는 착시를 준다(실기기
+         로그에서 room=3.2ms가 7줄 내내 똑같이 찍힌 게 그 증거 — 이번 로그
+         구간엔 방을 한 번도 안 나갔다는 뜻이었다). 찍고 나면 0으로 되돌려,
+         다음 2초 구간에 실제로 안 일어나면 0으로 보이게 한다. */
+      lastRoomBuildMs = 0; lastFieldSetupMs = 0; lastFieldFinalizeMs = 0;
     }
     var want = new T.Vector3(aim.pos.x, aim.pos.y, aim.pos.z);
     var look = new T.Vector3(aim.look.x, aim.look.y, aim.look.z);
