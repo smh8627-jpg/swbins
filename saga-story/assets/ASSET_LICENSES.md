@@ -165,3 +165,11 @@ PLAN 3절("시작 마을 — NPC·상점·집·우물·나무·꽃·울타리·�
 한 번 받고 캐시되며, GLB 를 못 받으면 조용히 상자·원기둥 도형으로 남는다.
 **퀘스트 NPC·상점 NPC 는 아직 없다** — 이번은 배경(그림)만이고, PLAN Phase 3
 나머지(NPC 대화·상점·표지판)는 다음 차례다.
+
+## Lucide — UI 아이콘 (2026-09-08, `js/icon.js`)
+
+`saga-go`의 `js/icon.js`를 그대로 옮겨 도구줄·독·지갑 이모지를 실제 아이콘으로
+갈아 끼웠다("사가스토리 UI가 사가고랑 완전히 같지 않다" 제보). SVG 자체가
+파일이 아니라 `icon.js` 안에 문자열로 박혀 있다 — 출처·라이선스는
+`../saga-go/assets/ASSET_LICENSES.md`의 Lucide 항목을 그대로 따른다
+(Lucide, <https://lucide.dev>, **ISC**).
