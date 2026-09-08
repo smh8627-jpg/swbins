@@ -130,9 +130,11 @@
        buildField()는 방에 들어올 때 한 번만 세우고(1090행) AS3.build()가 조각을
        인스턴스로 재활용해(사가고에서 검증된 패턴) 반경을 키워도 프레임 비용은
        거의 그대로다. low/medium/high 순서(자가진단이 보는 것)만 지켰다. */
-    low: { fieldR: 2, fieldDens: 0.5, shadow: false },
-    medium: { fieldR: 4, fieldDens: 0.75, shadow: true },
-    high: { fieldR: 6, fieldDens: 1, shadow: true }
+    /* 2026-09-08 — "장애물이 너무 많다"(사용자). 세 등급 다 밀도를 절반으로
+       낮췄다(순서 자체는 그대로 low<medium<high — 자가진단이 그 순서만 본다) */
+    low: { fieldR: 2, fieldDens: 0.25, shadow: false },
+    medium: { fieldR: 4, fieldDens: 0.375, shadow: true },
+    high: { fieldR: 6, fieldDens: 0.5, shadow: true }
   };
   function QUALITY() { return tuned('dg3d.quality', 'auto'); }
   /* 2026-09-07 — 폰 실기기 재신고("마을 진입 직후 먹통이 될 정도로 느림").

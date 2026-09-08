@@ -229,7 +229,10 @@
 
   function spawnEnemy(floor, boss, opts) {
     opts = opts || {};
-    var ref = pickEnemyRef(floor, boss);
+    /* 2026-09-08 — 무리(팩) 스폰(spawnFieldEncounters)이 팩 전체에 같은
+       종류를 쓰려고 한 번 고른 ref를 그대로 물려준다 — 안 주면(옛 호출
+       전부) 예전처럼 이 자리에서 새로 고른다, 회귀 없음. */
+    var ref = opts.ref || pickEnemyRef(floor, boss);
     var hp = enemyHp(floor, boss);
     var dmg = enemyDmg(floor, boss);
     var r = boss ? 22 : 13;
@@ -1298,7 +1301,11 @@
     p.y = (inRoomRect(p.x, ny, ctx) || !fieldBlockedAt(p.x, ny, ctx)) ? ny : py;
   }
 
-  var FIELD_ENEMY_CAP = 4;                // 들판에 동시에 사는 로머 상한
+  /* 2026-09-08 — "몬스터가 단조로워 디아블로처럼 몰이 사냥이 안 된다"(사용자
+     제보). 무리(팩) 단위 스폰을 얹으며(아래 spawnFieldEncounters) 상한도
+     같이 올린다 — 팩 하나(2~3마리)가 뜨자마자 예전 상한(4)에 거의 다 차면
+     보충 트리클이 사실상 못 돌아 팩이 늘 하나뿐으로 보인다. */
+  var FIELD_ENEMY_CAP = 6;                // 들판에 동시에 사는 로머 상한
 
   /**
    * 필드 사냥(PLAN 10절) — 방을 다 안 치워도 방 밖 들판에서 바로 싸울 수 있게,
@@ -1348,6 +1355,13 @@
    * @param ctx 마을처럼 던전과 다른 방이 빌려 쓸 때만 넘긴다 —
    *            {roomW, roomH, wall, floor, room}. 없으면 이 방(던전)의 run 그대로다.
    */
+  /* 2026-09-08 — "디아블로처럼 몰이 사냥이 안 된다"(사용자 제보) — 하나씩
+     따로 흩뿌리면 자리도 종류도 매번 남남이라 "무리를 건드리면 떼로
+     달려든다"는 손맛이 안 났다. 자리 하나·종류 하나를 무리(팩) 단위로
+     고정하고 그 둘레(PACK_SPREAD)에 2~3마리를 심는다 — count가 1이면
+     팩 크기도 1이 돼(아래 min) 기존 트리클 보충(spawnFieldEncounters(1))은
+     그대로 단발이다, 회귀 없음. */
+  var PACK_SPREAD = 70;
   function spawnFieldEncounters(count, ctx) {
     if (!fieldOn() || global.DG_NO_DRAW) { return; }
     if (!ctx && !run) { return; }
@@ -1364,21 +1378,36 @@
        그대로 anchor(=방 중심) 둘레를 쓴다. */
     var px0 = (isTown && ctx.player) ? ctx.player.x : cx0;
     var py0 = (isTown && ctx.player) ? ctx.player.y : cy0;
-    var R = fieldRadiusUnits(), tries, i, a, d, x, y, en;
-    for (i = 0; i < count; i++) {
-      tries = 8;
-      while (tries--) {
-        a = Math.random() * Math.PI * 2;
-        d = (wl + 60) + Math.random() * Math.max(40, R - wl - 60);
-        x = px0 + Math.cos(a) * d;
-        y = py0 + Math.sin(a) * d;
-        if (isTown && Math.hypot(x - cx0, y - cy0) < TOWN_SAFE_R) { continue; }
-        if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
-        en = spawnEnemy(floor, false, { x: x, y: y });
-        en.field = true;
-        enemies.push(en);
-        break;
+    var R = fieldRadiusUnits(), remain = count;
+    while (remain > 0) {
+      var packSize = Math.min(remain, 2 + (Math.random() < 0.5 ? 0 : 1));   // 2~3(남으면)
+      /* 팩 중심 하나를 고른다 — 예전과 같은 각도·거리 뽑기 */
+      var tries = 8, a0, d0, ax2 = 0, ay2 = 0, ok = false;
+      while (tries-- && !ok) {
+        a0 = Math.random() * Math.PI * 2;
+        d0 = (wl + 60) + Math.random() * Math.max(40, R - wl - 60);
+        ax2 = px0 + Math.cos(a0) * d0;
+        ay2 = py0 + Math.sin(a0) * d0;
+        if (isTown && Math.hypot(ax2 - cx0, ay2 - cy0) < TOWN_SAFE_R) { continue; }
+        if (inRoomRect(ax2, ay2, ctx) || fieldBlockedAt(ax2, ay2, ctx)) { continue; }
+        ok = true;
       }
+      if (!ok) { remain -= packSize; continue; }   // 이번 팩은 자리를 못 찾았다 — 개수만 줄이고 다음 팩으로
+      var ref = pickEnemyRef(floor, false), k, tries2, x, y, en;
+      for (k = 0; k < packSize; k++) {
+        tries2 = 6;
+        while (tries2--) {
+          x = ax2 + (Math.random() - 0.5) * 2 * PACK_SPREAD;
+          y = ay2 + (Math.random() - 0.5) * 2 * PACK_SPREAD;
+          if (isTown && Math.hypot(x - cx0, y - cy0) < TOWN_SAFE_R) { continue; }
+          if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
+          en = spawnEnemy(floor, false, { x: x, y: y, ref: ref });
+          en.field = true;
+          enemies.push(en);
+          break;
+        }
+      }
+      remain -= packSize;
     }
   }
 

@@ -3365,9 +3365,9 @@ window.requestAnimationFrame = function () { return 0; };
         ('14층 2방 씨앗이 늘 같다 · 조각 하나 = ' + l1);
     });
 
-    t('들판 — 방 안은 평평하고 밖은 기복이 진다 (PLAN 4절)', function () {
-      /* 방 안까지 지형이 들어오면 **보이는 것과 걷는 것이 어긋난다** —
-         판정은 평면에서 돌기 때문이다 */
+    t('들판 — 방 안팎 다 평평하다 (2026-09-08, 사용자 요청으로 기복 제거)', function () {
+      /* 옛 기대(방 밖은 기복)를 사용자가 "평평하게 해달라"로 뒤집었다 —
+         heightAt()은 이제 인자와 무관하게 늘 0이다 */
       var W = DN.ROOM_W, H = DN.ROOM_H;
       var s = F3.seedOf(14, 0, 'x');
       var inside = [[10, 10], [W / 2, H / 2], [W - 10, H - 10]]
@@ -3375,10 +3375,8 @@ window.requestAnimationFrame = function () { return 0; };
       var far = [];
       for (var i = 1; i <= 6; i++) { far.push(F3.heightAt(-i * 120, -i * 120, s, W, H)); }
       var flat = inside.every(function (v) { return v === 0; });
-      var bumpy = far.some(function (v) { return Math.abs(v) > 20; });
-      return flat && bumpy &&
-        ('방 안 셋 다 높이 0 · 밖 여섯 중 가장 센 것 ' +
-         Math.round(Math.max.apply(null, far.map(Math.abs))));
+      var farFlat = far.every(function (v) { return v === 0; });
+      return flat && farFlat && '방 안팎 아홉 자리 전부 높이 0';
     });
 
     t('들판 — 방 가까이는 사람이 지난 자리다 (PLAN 5절 "플레이 가능한 결과만")', function () {
