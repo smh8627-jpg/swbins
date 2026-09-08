@@ -1092,6 +1092,17 @@
     var groundK = run.town ? 0.15 : 0.62;
     var FI = global.DG.fieldInstance;
 
+    /* 2026-09-08 — "맵이 없는 데는 낭떨어지 같다" 제보. 세운 반경(R칸) 밖은
+       지금까지 아무 것도 없어, 안개가 다 덮기 전까지는 배경색 허공이 그대로
+       드러났다(LOW처럼 R이 작을수록 두드러진다 — 카메라 거리가 세운
+       가장자리보다 멀 수 있어 아래 안개 클램프와 다투는 자리이기도 하다).
+       세운 칸보다 한참 낮은 자리에 아주 큰 민무늬 판 하나(그림자 없음,
+       draw call 1개뿐)를 깔아 "끊긴 낭떨어지" 대신 "저 멀리 낮은 벌판"으로
+       보이게 한다 — 칸별 비용은 그대로다(buildField 한 번에 하나뿐). */
+    var skirt = box(fieldGroup, cx0 * F.CHUNK, -260, cz0 * F.CHUNK, 6000, 40, 6000,
+      mix(stone, 0x141018, groundK), 'flat', false);
+    skirt.receiveShadow = false;
+
     var coords = [];
     for (var cz = cz0 - R; cz <= cz0 + R; cz++) {
       for (var cx = cx0 - R; cx <= cx0 + R; cx++) { coords.push(cx, cz); }
