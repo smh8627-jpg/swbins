@@ -146,6 +146,11 @@
         return;
       }
       if (act === 'enc-close') { encClose(); return; }
+      if (act === 'key-remap') {
+        var DV0 = global.DG.dungeonView;
+        if (DV0 && DV0.beginRemap) { DV0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
+        return;
+      }
       if (act === 'quest-reroll') { global.DG.quest.reroll(); return; }
       if (act === 'town-wp') {
         var wf = parseInt(b.getAttribute('data-floor'), 10) || 1;
@@ -427,6 +432,7 @@
 
     core.on('toast', toast);
     core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); });
+    core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
@@ -440,8 +446,25 @@
 
   var SHEET_TITLE = {
     party: '⚔️ 부대', gear: '🎒 장비', craft: '🔨 세공', skill: '📜 무예', vendor: '\uD83E\uDDFA 행상', dex: '📖 도감', log: '📜 기록', world: '🗺️ 월드맵',
-    quest: '🚩 퀘스트', look: '🧑 외모'
+    quest: '🚩 퀘스트', look: '🧑 외모', keys: '⌨️ 키설정'
   };
+
+  /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
+   *  (실수로 못 쓰게 되지 않게), 여기서는 그 옆에 하나 더 쓸 키만 고른다. */
+  function viewKeys() {
+    var DV = global.DG.dungeonView;
+    if (!DV || !DV.keymap) { return '<div class="hint">지금 화면에서는 키를 지정할 수 없습니다</div>'; }
+    var km = DV.keymap(), rm = DV.remapping();
+    var rows = [{ a: 'up', t: '위' }, { a: 'down', t: '아래' }, { a: 'left', t: '왼쪽' }, { a: 'right', t: '오른쪽' }];
+    var h = '<div class="hint">WASD·방향키는 항상 그대로 됩니다 — 여기서는 그 옆에 더 쓸 키 하나만 고릅니다.</div>';
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      h += '<div class="key-row"><b>' + r.t + '</b><span class="key-cur">' + esc((km[r.a] || '').toUpperCase()) + '</span>' +
+        '<button data-act="key-remap" data-action="' + r.a + '">' +
+        (rm === r.a ? '키를 누르세요…' : '다시 지정') + '</button></div>';
+    }
+    return h;
+  }
 
   /* 세공에서 지금 고른 재료 (화면 상태라 세이브에 남기지 않는다) */
   var craftMat = null;
@@ -497,7 +520,8 @@
           : openTab === 'dex' ? viewDex()
           : openTab === 'world' ? viewWorldMap()
           : openTab === 'quest' ? viewQuest()
-          : openTab === 'look' ? viewLook() : viewLog();
+          : openTab === 'look' ? viewLook()
+          : openTab === 'keys' ? viewKeys() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 

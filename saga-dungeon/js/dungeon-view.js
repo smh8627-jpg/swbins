@@ -29,6 +29,26 @@
   var lightCv = null, lightCtx = null;         // 어둠 레이어 (오프스크린)
   var shown = false;
   var keys = {};
+  /* 2026-09-09 — "키세팅이 있어야겠지"(사용자 요청). WASD·방향키는 **항상
+     그대로 산다**(하드코딩 폴백) — 여기 이 맵은 그 위에 얹는 "추가 키"만
+     고른다. 그래서 잘못 지정해도 이동 자체가 막히지 않는다. */
+  var KEYMAP_DEFAULT = { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright' };
+  var remapping = null;   // 지금 다시 지정 받는 중인 방향('up'/'down'/'left'/'right') 또는 null
+  function keymap() {
+    var s = core.save && core.save.settings;
+    var km = s && s.keymap;
+    if (!km) { return KEYMAP_DEFAULT; }
+    var out = {}, k;
+    for (k in KEYMAP_DEFAULT) { out[k] = km[k] || KEYMAP_DEFAULT[k]; }
+    return out;
+  }
+  function setKeymapKey(action, key) {
+    if (!core.save || !core.save.settings) { return; }
+    core.save.settings.keymap = keymap();
+    core.save.settings.keymap[action] = key;
+    core.persist();
+  }
+  function beginRemap(action) { remapping = action; }
   var shake = 0;
   var lastHp = 0;
   /* 바닥에 남는 핏자국 — 원작에서 방을 치우고 나면 남는 그 자국이다.
@@ -101,6 +121,12 @@
           '<div id="d2-foe"></div>' +
           '<div id="dg-choice"></div>' +
           '<div id="dg-joy"><div id="dg-joy-knob"></div></div>' +
+          '<div id="dg-pad">' +
+            '<button data-dir="up">▲</button>' +
+            '<button data-dir="left">◀</button>' +
+            '<button data-dir="down">▼</button>' +
+            '<button data-dir="right">▶</button>' +
+          '</div>' +
         '</div>' +
         '<div id="dg-bottom"></div>' +
         '<div class="dg-tip">이동 <b>WASD</b> · 물약 <b>1 2 3 4</b> · 스킬 <b>Z X C V</b> · ' +
@@ -224,6 +250,7 @@
     var joyKnob = document.getElementById('dg-joy-knob');
     var isTouch = !!(('ontouchstart' in global) || (navigator.maxTouchPoints > 0));
     if (isTouch) { joyEl.classList.add('show'); }
+    initPad(isTouch);
     var joyId = null, joyCX = 0, joyCY = 0;
     var JOY_R = 46;         // 원(118px) 반지름보다 살짝 작게 — 손잡이가 테두리 밖으로 안 나가게
     var JOY_DEAD = 8;
@@ -260,6 +287,32 @@
     joyEl.addEventListener('pointerup', joyRelease);
     joyEl.addEventListener('pointercancel', joyRelease);
     joyEl.addEventListener('pointerleave', function (e) { if (e.pointerId === joyId) { joyRelease(e); } });
+
+    /* 2026-09-09 — "피시에서는 마우스 클릭 버튼으로"(사용자 요청). 조이스틱과
+       같은 자리를 쓰되 터치가 아닐 때만 보인다(#dg-pad) — 네 방향 버튼을
+       누르고 있는 동안 keys.w/a/s/d 를 그대로 세워 pushInput() 을 부른다,
+       WASD 와 완전히 같은 자리라 걷기 로직은 하나도 안 늘어난다. */
+    function initPad(isTouchDev) {
+      var padEl = document.getElementById('dg-pad');
+      if (!padEl) { return; }
+      if (!isTouchDev) { padEl.classList.add('show'); }
+      var DIR_KEY = { up: 'w', down: 's', left: 'a', right: 'd' };
+      var btns = padEl.querySelectorAll('button[data-dir]');
+      for (var pi = 0; pi < btns.length; pi++) {
+        (function (btn) {
+          var k = DIR_KEY[btn.getAttribute('data-dir')];
+          btn.addEventListener('pointerdown', function (e) {
+            keys[k] = true; pushInput();
+            btn.setPointerCapture && btn.setPointerCapture(e.pointerId);
+            e.preventDefault();
+          });
+          function release() { keys[k] = false; pushInput(); }
+          btn.addEventListener('pointerup', release);
+          btn.addEventListener('pointercancel', release);
+          btn.addEventListener('pointerleave', release);
+        })(btns[pi]);
+      }
+    }
 
     hud.addEventListener('click', function (e) {
       var b = e.target.closest('[data-act]');
@@ -359,6 +412,13 @@
 
   function onKey(e) {
     if (!shown) { return; }
+    if (remapping) {
+      if (e.key !== 'Escape') { setKeymapKey(remapping, e.key.toLowerCase()); }
+      remapping = null;
+      core.emit('dg:keyremap');
+      e.preventDefault();
+      return;
+    }
     if (e.key === 'Escape') { return; }              // 탈출은 버튼으로만 (실수 방지)
     var k = e.key.toLowerCase();
     /* 1 2 3 4 는 **벨트**다 (원작 그대로). 스킬은 Z X C V 로 내렸다. */
@@ -375,7 +435,8 @@
     }
     keys[k] = true;
     pushInput();
-    if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].indexOf(k) >= 0) {
+    var km = keymap();
+    if (['w', 'a', 's', 'd', km.up, km.down, km.left, km.right].indexOf(k) >= 0) {
       e.preventDefault();
     }
   }
@@ -395,11 +456,12 @@
 
   function pushInput() {
     if (!shown) { return; }
+    var km = keymap();
     var dx = 0, dy = 0;
-    if (keys.a || keys.arrowleft) { dx -= 1; }
-    if (keys.d || keys.arrowright) { dx += 1; }
-    if (keys.w || keys.arrowup) { dy -= 1; }
-    if (keys.s || keys.arrowdown) { dy += 1; }
+    if (keys.a || keys.arrowleft || keys[km.left]) { dx -= 1; }
+    if (keys.d || keys.arrowright || keys[km.right]) { dx += 1; }
+    if (keys.w || keys.arrowup || keys[km.up]) { dy -= 1; }
+    if (keys.s || keys.arrowdown || keys[km.down]) { dy += 1; }
     d().setInput(dx, dy);
   }
 
@@ -1737,6 +1799,9 @@
     SKILL_KEYS: SKILL_KEYS,
     /** 자가진단용 — 투영이 정확히 역변환되는지 검증한다 */
     _proj: function (x, y) { return proj(metrics(), x, y); },
-    _unproj: toRoom
+    _unproj: toRoom,
+    /** 키 세팅(ui.js 의 '⌨️ 키설정' 시트가 읽고 쓴다) */
+    keymap: keymap, beginRemap: beginRemap,
+    remapping: function () { return remapping; }
   };
 })(window);

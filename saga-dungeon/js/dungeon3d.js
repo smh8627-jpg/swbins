@@ -31,7 +31,7 @@
   var floorMesh = null, wallGroup = null, actorGroup = null, fxGroup = null;
   var fieldGroup = null;           // 방 밖 들판 (2단계)
   var fieldKey = null;             // 지금 세워 둔 들판의 씨앗+반경
-  var amb = null, key = null, torch = null;
+  var amb = null, key = null, torch = null, moveMark = null;
   var canvas = null;
   var fieldBuildErrShown = {};   // buildRoom/buildField 실패 토스트 — 메시지별 1회만(§57 후속)
   var ready = false, failed = false;
@@ -553,6 +553,22 @@
     /* 횃불 — 플레이어를 따라다닌다. 원작의 그 도려낸 빛이다 */
     torch = new T.PointLight(0xffb45a, 2200, 300, 1.4);
     scene.add(torch);
+
+    /* 2026-09-09 — "클릭한 곳이 안 보인다" 재신고. moveTo() 로 찍은 걷기
+       목표를 바닥에 원으로 표시한다 — d().moveTarget()이 있는 동안만
+       보이고, 도착하거나 다른 입력(조이스틱 등, setInput 이 target 을
+       지운다)이 오면 그 다음 프레임에 저절로 사라진다. */
+    moveMark = new T.Mesh(
+      new T.RingGeometry(14, 22, 28),
+      new T.MeshBasicMaterial({
+        color: 0xd8bd7c, transparent: true, opacity: 0.85,
+        depthWrite: false, side: T.DoubleSide
+      })
+    );
+    moveMark.rotation.x = -Math.PI / 2;
+    moveMark.visible = false;
+    moveMark.renderOrder = 5;
+    scene.add(moveMark);
 
     wallGroup = new T.Group(); scene.add(wallGroup);
     actorGroup = new T.Group(); scene.add(actorGroup);
@@ -2427,6 +2443,17 @@
     torch.color.setHex(L.torchHex);
     torch.distance = L.torchRange;
     torch.position.set(plx, meGroundY + 46, ply);
+
+    var moveTgt = d().moveTarget ? d().moveTarget() : null;
+    if (moveTgt) {
+      var mtx = moveTgt.x - anc.x, mty = moveTgt.y - anc.y;
+      moveMark.position.set(mtx, groundYAt(mtx, mty) + 2, mty);
+      moveMark.visible = true;
+      var pulse = 1 + Math.sin(nowMs() / 140) * 0.14;
+      moveMark.scale.set(pulse, pulse, pulse);
+    } else {
+      moveMark.visible = false;
+    }
 
     var AS3 = AS();
     var nowT = Date.now() / 1000;

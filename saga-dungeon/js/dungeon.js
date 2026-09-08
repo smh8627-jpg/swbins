@@ -2753,6 +2753,7 @@
     status: status, state: dstate,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () { return run; },
-    fx: function () { return fx; }
+    fx: function () { return fx; },
+    moveTarget: function () { return target; }
   };
 })(window);

@@ -1372,6 +1372,7 @@
     roadSegments: function () { return ROAD_SEGMENTS.slice(); },
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: raw,
+    moveTarget: function () { return target; },
     fx: function () { return fx; },
     /** 자가진단용 — 마을을 처음 상태로 되돌린다. townId 를 주면 그 마을로
      *  (기본 모루골) — 그 마을의 기본 스폰 세계 좌표에 플레이어도 같이

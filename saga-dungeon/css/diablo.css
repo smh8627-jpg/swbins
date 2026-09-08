@@ -356,6 +356,27 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .5);
 }
 
+/* ── PC 마우스 클릭 방향버튼(#dg-pad) — 2026-09-09, 터치가 아닐 때만
+ * 조이스틱과 같은 자리에 보인다("피시에서는 마우스 클릭 버튼으로" 요청). */
+#dg-pad {
+  display: none;
+  position: fixed; z-index: 20;
+  left: calc(20px + var(--safe-l)); bottom: calc(150px + var(--safe-b));
+  width: 118px; height: 118px;
+}
+#dg-pad.show { display: block; }
+#dg-pad button {
+  position: absolute; width: 38px; height: 38px; border-radius: 8px;
+  background: rgba(10, 8, 5, .5); border: 1px solid rgba(201, 162, 74, .4);
+  color: #e8d9a8; font-size: 16px; line-height: 1; cursor: pointer;
+  -webkit-user-select: none; user-select: none; touch-action: none;
+}
+#dg-pad button:active { background: rgba(216, 189, 124, .35); }
+#dg-pad button[data-dir="up"] { left: 50%; top: 2px; transform: translateX(-50%); }
+#dg-pad button[data-dir="down"] { left: 50%; bottom: 2px; transform: translateX(-50%); }
+#dg-pad button[data-dir="left"] { left: 2px; top: 50%; transform: translateY(-50%); }
+#dg-pad button[data-dir="right"] { right: 2px; top: 50%; transform: translateY(-50%); }
+
 /* ── 전체 지도(자동지도) — 디아블로 M키처럼, 화면을 반투명하게 덮는다.
    미니맵과 같은 blips()·norm()을 그대로 재사용해 크게 그린 것뿐이다
    (2026-09-06, PLAN §51 인접 — 사용자가 "디아블로처럼·투명으로" 요청). */
