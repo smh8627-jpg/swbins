@@ -1092,7 +1092,15 @@
   function buildField(run, cx0, cz0) {
     var F = global.DG.field3d;
     if (!fieldGroup) { return; }
-    while (fieldGroup.children.length) { fieldGroup.remove(fieldGroup.children[0]); }
+    /* 걸어서 들판 창이 옮겨갈 때마다(fwRk 변경) 여기가 **동기로** 도는데,
+       세운 반경이 넓을수록(natItems 인스턴싱 전이면 조각 하나하나가 개별
+       Mesh라) fieldGroup 자식이 수백 개까지도 간다. 앞에서부터 지우면
+       Object3D.remove() 의 indexOf+splice 가 매번 배열을 통째로 당겨
+       O(n²)가 돼, 이 한 줄이 "걸으면 멈췄다가 다시 움직인다"는 제보의
+       바로 그 순간(들판 창 재구성 프레임)에 정확히 걸린다 — buildRoom()
+       에서 먼저 찾은 것과 같은 패턴(감사, 2026-09-08). 뒤에서부터
+       지우면 O(n). */
+    for (var fgi = fieldGroup.children.length - 1; fgi >= 0; fgi--) { fieldGroup.remove(fieldGroup.children[fgi]); }
     fieldJob = null;
     if (!F || !FIELD()) { fieldKey = null; return; }
     /* PLAN §57 — cx0,cz0(호출부가 플레이어 쪽으로 맞춰 준 창 중심, 없으면
