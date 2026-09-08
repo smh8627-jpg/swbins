@@ -2344,6 +2344,10 @@
        나눠 진행한다(위 fieldJobStep 주석) — 위 if가 안 돈 프레임에도 진행 중인
        공사가 있으면 계속 이어야 하므로 if 블록 밖, 매 프레임 부른다. */
     fieldJobStep();
+    /* GLB 도착(네트워크 콜백, rAF 밖)이 몰아 놓은 buildHero() 조립(retarget
+       포함, asset3d.js 참고)을 프레임당 하나씩만 흘려보낸다 — fieldJobStep과
+       같은 예산제 요령. */
+    if (AS()) { AS().tick(); }
 
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());

@@ -1031,6 +1031,25 @@
    * @param tintHex   물들일 색(없으면 원래 옷 빛깔 그대로)
    * @param makeShape 도형을 만드는 함수 — GLB 오기 전까지, 실패하면 계속 이것
    */
+  /* 2026-09-08 — "사가블로 끊김" 추적 최종 확정: 실기기 로그 `[던전 GLB
+     도착후처리] ms=465.1 waiting=2 url=.../UAL2_Standard.glb` 직후 프레임이
+     그대로 `dt=507ms`로 튀었다(그 프레임의 render()/loop() 실측은 다
+     몇 ms뿐). `retargetInto()`(cloneScene 두 번 + 클립마다 retargetClip,
+     아래)가 무겁다는 건 알고 있었는데(2026-09-05 주석), **몸마다 한 번만
+     굽어 캐시하는 것과 별개로 — 같은 순간 도착한 이 anim GLB를 기다리던
+     서로 다른 몸 여럿(waiting=2)이 있으면 그 몸 수만큼의 retarget이
+     `flush()` 한 자리에서 동기로 몰린다.** 각 `assemble()`을 이 대기줄에
+     미뤄 **프레임당 최대 하나만** 돌게 한다 — 총 비용은 그대로지만(캐시는
+     그대로 살아 있어 몸마다 한 번뿐), 여럿이 한 프레임에 몰리던 것만
+     한 프레임에 하나씩 흩어 놓는다. */
+  var heavyQ = [];
+  function scheduleHeavy(fn) { heavyQ.push(fn); }
+  function tick() {
+    if (!heavyQ.length) { return; }
+    var fn = heavyQ.shift();
+    try { fn(); } catch (e) { if (typeof console !== 'undefined') { console.warn('[던전 GLB 조립 실패]', e); } }
+  }
+
   function buildHero(seed, mul, tintHex, makeShape) {
     var t = three();
     var rec = heroRecipe(seed);
@@ -1041,7 +1060,7 @@
     if (!GLB_ON() || !rec) { return shell; }
 
     var parts = {}, pending = 4;
-    function onOne() { pending--; if (pending === 0) { assemble(); } }
+    function onOne() { pending--; if (pending === 0) { scheduleHeavy(assemble); } }
     acquire(rec.body, function (c) { parts.body = c; onOne(); });
     /* outfit·hair 는 조합형(옛 Quaternius) 레시피에만 있다 — QRPG 통짜 스킨은
        둘 다 없으니 헛수고로 받으러 가지 않고 바로 다음 칸으로 넘어간다 */
@@ -1181,7 +1200,7 @@
     normName: normName, score: score, mapClips: mapClips, SLOTS: SLOTS, fit: fit,
     ready: function () { return !!three(); }, hasLoader: function () { return !!loader(); },
     DEFAULTS: DEFAULTS, restore: restore, heroRecipe: heroRecipe, ANIM_SRC: ANIM_SRC,
-    build: build, buildHero: buildHero, step: step, play: play, rawScene: rawScene,
+    build: build, buildHero: buildHero, step: step, play: play, rawScene: rawScene, tick: tick,
     ownAllMat: ownAllMat, flashAllMat: flashAllMat,
     tuned: tuned, set: set, stats: stats,
     clear: function () { var k; for (k in REG) { if (Object.prototype.hasOwnProperty.call(REG, k)) { delete REG[k]; } } cache = {}; return REG; }
