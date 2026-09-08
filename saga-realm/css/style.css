@@ -1219,7 +1219,7 @@ body.sheet-open #realm { right: calc(min(420px, 92vw) + 20px); }
 body.sheet-open #realm3d { right: calc(min(420px, 92vw) + 20px); }
 @media (max-width: 780px) { body.sheet-open #realm3d { right: 12px; } }
 
-.rmap { width: 100%; height: 100%; max-width: 900px; }
+.rmap { width: 100%; height: 100%; }
 .rlink {
   stroke: rgba(190, 205, 230, .13); stroke-width: .35; stroke-linecap: round;
 }
