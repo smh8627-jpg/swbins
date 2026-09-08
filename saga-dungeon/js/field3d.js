@@ -74,7 +74,14 @@
    * 5절 "완전 랜덤이 아니라 플레이 가능한 결과만" — 그래서 성격은 **거리로도** 갈린다:
    * 방 가까이는 길과 캠프, 멀리는 숲과 절벽.
    */
-  var KINDS = ['forest', 'rock', 'ruin', 'cliff', 'road', 'water', 'cave', 'altar', 'camp', 'swamp'];
+  /* 2026-09-08 — 사용자가 "절벽도 없애줘"로 명시 요청, cliff kind 자체를
+     제거(평평화 요청의 연장 — 평평한 땅 위에 큰 산 덩어리 장식만 남아
+     있던 것도 "안 평평해 보인다"는 지적). 선택 표(KINDS·FAR_BASE_W·
+     ring≥3 order)에서 다 뺐다 — THEME_BIAS 의 cliff 항목은 안 쓰이는
+     채로 남아 있어도 무해하지만(참조하는 order 배열에 없으면 그냥
+     안 뽑힌다), 소품을 실제로 세우는 chunkAt()·piece() 의 cliff 분기는
+     죽은 코드라 같이 지웠다(아래). */
+  var KINDS = ['forest', 'rock', 'ruin', 'road', 'water', 'cave', 'altar', 'camp', 'swamp'];
 
   /* 2026-09-05 — PLAN 9절 "지역별 Biome... 색감·조명·오브젝트·적 종류가
      달라야 한다" 감사 결과: `data-dungeon.js`의 여섯 층 테마(고분·폐성·
@@ -85,27 +92,27 @@
      안 바뀐다 — 자가진단이 이 함수를 늘 테마 없이 부른다) 테마마다 표를
      한 줄 더하는 것만으로 결이 갈린다. 새 kind 는 안 늘렸다(있는 것만
      섞는 비율을 바꿨다) — PLAN 44절 "필요 없는 것 추가 금지". */
-  var FAR_BASE_W = { forest: 30, rock: 16, ruin: 12, cliff: 12, water: 8, swamp: 6, road: 6, cave: 4, altar: 3, camp: 3 };
+  var FAR_BASE_W = { forest: 30, rock: 16, ruin: 12, water: 8, swamp: 6, road: 6, cave: 4, altar: 3, camp: 3 };
   var MID_BASE_W = { forest: 34, rock: 21, ruin: 15, road: 15, water: 15 };
   var THEME_BIAS = {
     '고분(古墳)': { ruin: 2.2, altar: 2.4, rock: 1.3, forest: 0.5, swamp: 0.5 },
-    '폐성(廢城)': { ruin: 2.4, cliff: 1.4, road: 1.5, rock: 1.2, forest: 0.5 },
-    '산채(山寨)': { forest: 1.8, cliff: 1.3, camp: 1.5, water: 0.5, ruin: 0.6 },
-    '수궁(水宮)': { water: 3, swamp: 2.6, forest: 0.5, cliff: 0.5, rock: 0.6 },
-    '지옥문(地獄門)': { cliff: 2, rock: 1.6, ruin: 1.6, forest: 0.3, water: 0.3 },
+    '폐성(廢城)': { ruin: 2.4, road: 1.5, rock: 1.2, forest: 0.5 },
+    '산채(山寨)': { forest: 1.8, camp: 1.5, water: 0.5, ruin: 0.6 },
+    '수궁(水宮)': { water: 3, swamp: 2.6, forest: 0.5, rock: 0.6 },
+    '지옥문(地獄門)': { rock: 1.6, ruin: 1.6, forest: 0.3, water: 0.3 },
     '천계(天界)': { altar: 3, road: 1.6, forest: 1.3, swamp: 0.15, ruin: 0.4 },
     /* 2026-09-05 — PLAN §28-2 Phase 3(오픈월드 통로). 마을 사이 통로도
        "층 테마" 와 똑같은 자리(THEME_BIAS)를 빌려 쓴다 — 새 표를 안 만든다.
        이름은 목적지 마을 id(`통로:<id>`)로 갈라, 목적지의 성격(나루터·
        산길·염전)에 맞춰 자연스럽게 고른다. */
-    '통로:galdae': { water: 2.8, road: 1.6, swamp: 0.6, forest: 0.5, cliff: 0.3 },  // 나루터 — 물길
-    '통로:jajak':  { cliff: 2.2, rock: 1.7, forest: 1.1, road: 0.8, water: 0.3 },   // 산길 — 벼랑길
-    '통로:sogeum': { road: 1.7, swamp: 1.5, water: 1.3, forest: 0.4, cliff: 0.4 },  // 염전 — 개펄길
+    '통로:galdae': { water: 2.8, road: 1.6, swamp: 0.6, forest: 0.5 },  // 나루터 — 물길
+    '통로:jajak':  { rock: 1.7, forest: 1.1, road: 0.8, water: 0.3 },   // 산길 — 벼랑길
+    '통로:sogeum': { road: 1.7, swamp: 1.5, water: 1.3, forest: 0.4 },  // 염전 — 개펄길
     /* 2026-09-05 — PLAN §28-4 Phase 1(던전도 "걸어서 이어지게"). 던전 입구
        통로(`통로:dungeon`)는 목적지가 마을이 아니라 굴혈이니 cave(동굴 입구,
        chunkAt의 kind==='cave' → cavemouth 소품)를 확 밀어 준다 — 새 소품
        없이 이미 있는 cavemouth를 재활용한다(위 주석과 같은 이유). */
-    '통로:dungeon': { cave: 5, rock: 0.8, cliff: 0.7, forest: 0.2, water: 0.15 },
+    '통로:dungeon': { cave: 5, rock: 0.8, forest: 0.2, water: 0.15 },
     /* 2026-09-06 — PLAN §28-4 Phase 3(방-방 통로에 던전 테마 소품). 문마다
        통로(`doorCorridors()`, PLAN §28-4 Phase 2)엔 목적지 마을이 없어
        `co.to`가 없다 — 그래서 대부분은 지금 층 테마를 그대로 쓴다(문 종류별
@@ -122,9 +129,9 @@
        겹치게 접두를 달았다). 다섯 성격(숲·폐허·늪·산·사당)마다 그 결에
        맞는 소품이 늘게만 갈랐다 — 새 kind는 안 늘렸다(PLAN §44). */
     'town:forest':   { forest: 2.2, camp: 1.4, road: 1.2, rock: 0.8, water: 0.6 },
-    'town:ruins':    { ruin: 2.4, rock: 1.4, road: 1.3, cliff: 0.8, forest: 0.5 },
+    'town:ruins':    { ruin: 2.4, rock: 1.4, road: 1.3, forest: 0.5 },
     'town:swamp':    { swamp: 2.6, water: 2.0, road: 1.0, forest: 0.5, rock: 0.4 },
-    'town:mountain': { cliff: 2.2, rock: 1.8, forest: 0.8, road: 0.7, water: 0.3 },
+    'town:mountain': { rock: 1.8, forest: 0.8, road: 0.7, water: 0.3 },
     'town:shrine':   { altar: 2.6, road: 1.6, forest: 1.1, ruin: 0.6, swamp: 0.2 }
   };
   /** 가중치 표(order·baseW)에서 h(0~1) 하나로 kind 하나를 고른다 —
@@ -196,19 +203,20 @@
        늪이든 그 자리만은 늘 길이어야 "이어진 길"로 읽힌다. */
     if (ring >= 2 && onTownRoad(cx, cz)) { return 'road'; }
     /* 2026-08-30 — 실기기(PC)에서 "제1층 시작하자마자 캐릭터를 가린다" 로
-       잡힌 것: 절벽(cliff, h 120~270 · s 1.4~2.8 짜리 거대한 상자)이 ring 2
+       잡힌 것: 큰 소품(동굴 입구·제단처럼 화면을 막을 만한 것)이 ring 2
        (방에서 chunk 하나 남짓, 카메라 거리 700 안쪽)에서도 날 수 있었다.
-       카메라는 **회전이 없어 늘 같은 쪽을 본다**(17행) — 그 각도에 절벽이
-       걸리면 매번 그 방을 볼 때마다 막힌다. ring 2는 숲·바위·폐허·길·물처럼
-       상대적으로 작은 것까지만 두고, 절벽·동굴 입구·제단처럼 큰 것은
+       카메라는 **회전이 없어 늘 같은 쪽을 본다**(17행) — 그 각도에 큰
+       소품이 걸리면 매번 그 방을 볼 때마다 막힌다. ring 2는 숲·바위·폐허·
+       길·물처럼 상대적으로 작은 것까지만 두고, 동굴 입구·제단처럼 큰 것은
        ring 3(그 다음 고리, 저 멀리)부터만 나오게 물렸다 — 이 다섯 안에서만
-       테마가 비율을 바꾼다, cliff·cave·altar 는 여기 못 들어온다 */
+       테마가 비율을 바꾼다, cave·altar 는 여기 못 들어온다.
+       (2026-09-08 — cliff 는 사용자 요청으로 아예 없앴다, 위 KINDS 주석 참고) */
     if (ring === 2) { return weightedKind(['forest', 'rock', 'ruin', 'road', 'water'], MID_BASE_W, h, theme); }
-    /* ring 3 이상 — 저 멀리. 여기서만 절벽·동굴 입구·제단·늪처럼 큰(또는
+    /* ring 3 이상 — 저 멀리. 여기서만 동굴 입구·제단·늪처럼 큰(또는
        분위기가 센) 것이 난다(PLAN 9절 Biome 색). 늪도 물처럼 ring 2 에는
        안 둔다 — 썩은 나무가 방 코앞을 막으면 안 된다 */
     return weightedKind(
-      ['forest', 'rock', 'ruin', 'cliff', 'water', 'swamp', 'road', 'cave', 'altar', 'camp'],
+      ['forest', 'rock', 'ruin', 'water', 'swamp', 'road', 'cave', 'altar', 'camp'],
       FAR_BASE_W, h, theme);
   }
 
@@ -318,19 +326,6 @@
                    s: 1, rot: 0, h: 30 + rnd(i + 50) * 66 });
       }
       out.push({ t: 'wall', x: b.x, z: b.z + 52, s: 1, rot: rnd(9) * 0.6 - 0.3, h: 26 });
-    } else if (kind === 'cliff') {
-      n = Math.round(2 + rnd(2) * 2);
-      for (i = 0; i < n; i++) {
-        var c = spot(i + 20);
-        /* 2026-09-07 — 이 kind는 애초에 "거대한 상자"로 주석에 적혀 있었고
-           (162행 근처) ring<3 에만 안 나오게 막아 뒀는데, §57 창-추적 뒤로는
-           플레이어가 실제로 ring 3+까지 걸어가면서 카메라가 이 크기 그대로
-           맞닥뜨렸다("큰 돌로 화면이 안 보인다" 실기기 제보). s 상한
-           2.8→1.7, h 상한 270→120으로 낮춰 화면을 통째로 막는 크기는
-           피한다. */
-        out.push({ t: 'cliff', x: c.x, z: c.z, s: 0.9 + rnd(i + 70) * 0.8,
-                   rot: rnd(i + 11) * 6.28, h: 60 + rnd(i + 12) * 60 });
-      }
     } else if (kind === 'road') {
       /* 길 — 조각을 가로지르는 흙바닥 띠. 옆에 이정표 하나 */
       out.push({ t: 'path', x: ox + CHUNK / 2, z: oz + CHUNK / 2, s: 1,

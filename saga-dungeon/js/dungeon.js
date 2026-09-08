@@ -1113,14 +1113,13 @@
   }
   /* 들판 소품 중 **막는 것만** 고른다 — 길·이정표·연못가 갈대 같은 장식은
      지나갈 수 있어야 걷는 맛이 안 답답하다. */
-  var FIELD_BLOCK = { tree: 1, rock: 1, pillar: 1, wall: 1, cliff: 1, cavemouth: 1 };
+  var FIELD_BLOCK = { tree: 1, rock: 1, pillar: 1, wall: 1, cavemouth: 1 };
   function pieceRadius(pc) {
     var s = pc.s || 1;
     if (pc.t === 'tree') { return 5 * s + 6; }
     if (pc.t === 'rock') { return pc.h * 0.55 * s; }
     if (pc.t === 'pillar') { return 12; }
     if (pc.t === 'wall') { return 46; }             // 길쭉해 원으로 뭉뚱그린다(넉넉하게)
-    if (pc.t === 'cliff') { return 45 * s; }
     if (pc.t === 'cavemouth') { return pc.h * 0.6; }
     return 0;
   }

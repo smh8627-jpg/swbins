@@ -344,7 +344,7 @@
    *  필요는 없다(자동지도는 요약이지 그림 그대로가 아니다) — 성격(숲=
    *  초록·물=파랑·바위=회색 등)만 한눈에 갈리면 된다. */
   var KIND_COLOR = {
-    forest: '#3a5f3a', rock: '#6b6b64', ruin: '#7a6f5a', cliff: '#54504a',
+    forest: '#3a5f3a', rock: '#6b6b64', ruin: '#7a6f5a',
     road: '#8a7a5a', water: '#2f5a78', cave: '#201d1a', altar: '#5a4a78',
     camp: '#7a5030', swamp: '#4a5a3a'
   };

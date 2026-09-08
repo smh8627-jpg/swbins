@@ -1293,19 +1293,6 @@
       wnode.position.set(p.x, y, p.z);
       wnode.rotation.y = p.rot || 0;
       g.add(wnode);
-    } else if (p.t === 'cliff') {
-      /* 절벽 — 산 덩이(Mountain) 에셋을 세운다. 4절의 "높낮이" 를 눈에 보이게 하는 것 */
-      var cliffShape = function () {
-        var sg = new T.Group();
-        var cl = box(sg, 0, p.h * 0.4, 0, 120 * s, p.h, 90 * s, mix(stone, 0x000000, 0.45), 'flat', true);
-        cl.rotation.set(0.08, 0, 0.06);
-        return sg;
-      };
-      var clnode = AS3 ? AS3.build('cliff', seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
-        p.h * 1.8 * s, null, cliffShape) : cliffShape();
-      clnode.position.set(p.x, y, p.z);
-      clnode.rotation.y = p.rot || 0;
-      g.add(clnode);
     } else if (p.t === 'path') {
       var pt = box(g, p.x, y + 1, p.z, F.CHUNK + 2, 3, 46, 0x4a3f30, 'flat', false);
       pt.rotation.y = p.rot;

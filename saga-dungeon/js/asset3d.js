@@ -414,8 +414,6 @@
        (`saga-go/assets/ASSET_LICENSES.md` "사당·폐허의 다른 후보") */
     'pillar': PROPS + 'Arch.glb',
     'wall': PROPS + 'Wall.glb',
-    /* 절벽 — 나무나 헤드보다 큰 산 덩이(Mountain)를 대신 세운다 */
-    'cliff': [NATURE + 'Mountain_1.glb', NATURE + 'Mountain_2.glb'],
     /* 제단 — 사가고가 "사당" 후보로 적어 둔 그 Temple 을 그대로 쓴다 */
     'altar': PROPS + 'Temple.glb',
     /* 동굴 입구 — 사가고가 이미 "광산 어귀"로 적어 둔 그 Mine 을 그대로 쓴다 */
