@@ -494,14 +494,21 @@
    *  구간은 몇 토막으로 나눠 지형을 따라 오르내리게 한다(2026-09-04, 높낮이
    *  지형을 얹으며 — 안 나누면 길이 산허리를 그대로 뚫고 지나간다). 토막마다
    *  3D 로 기울여야 해서 Y 축(방향) 뿐 아니라 X 축(오르내림 경사)도 돌린다 */
+  /* 성이 바뀔 때마다(core.on('changed')) 지도 전체를 다시 지어서, 길
+     토막마다(30여 개 성의 인접 관계 × 최대 8토막) 매번 지오메트리·머티리얼을
+     새로 만들었다 — 단위 박스 하나를 스케일만 바꿔 재사용하고, 머티리얼은
+     (색·투명도) 조합별로 캐시한다(감사, 2026-09-08) */
+  var roadBoxGeo = null, roadMats = {};
   function addRoadSegment(p1, p2, opt) {
     var t = three();
+    if (!roadBoxGeo) { roadBoxGeo = new t.BoxGeometry(1, 1, 1); }
     var dx = p2.x - p1.x, dy = p2.y - p1.y, dz = p2.z - p1.z;
     var flat = Math.hypot(dx, dz), len = Math.hypot(flat, dy) || 0.001;
-    var mat = new t.MeshBasicMaterial({
-      color: new t.Color(opt.color), transparent: true, opacity: opt.opacity
-    });
-    var mesh = new t.Mesh(new t.BoxGeometry(opt.width, 0.06, len), mat);
+    var mkey = opt.color + ':' + opt.opacity;
+    var mat = roadMats[mkey];
+    if (!mat) { mat = roadMats[mkey] = new t.MeshBasicMaterial({ color: new t.Color(opt.color), transparent: true, opacity: opt.opacity }); }
+    var mesh = new t.Mesh(roadBoxGeo, mat);
+    mesh.scale.set(opt.width, 0.06, len);
     mesh.position.set((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 + opt.y, (p1.z + p2.z) / 2);
     mesh.rotation.order = 'YXZ';
     mesh.rotation.y = Math.atan2(dx, dz);

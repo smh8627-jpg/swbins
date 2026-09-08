@@ -146,20 +146,29 @@
   }
 
   /** 병력 한 무리를 어림잡아 세우는 깃발 — 실제 소품 GLB 대신 막대+천으로 직접 짓는다
-   *  (이 무리는 "성 안"의 살림살이가 아니라 숫자를 어림잡는 표식일 뿐이다) */
+   *  (이 무리는 "성 안"의 살림살이가 아니라 숫자를 어림잡는 표식일 뿐이다).
+   *  전투 재생 한 판에 `renderLive()`가 수십 번(합마다) 이 함수를 무리당 최대
+   *  14번 부르는데, 예전엔 매번 지오메트리·머티리얼을 새로 만들고
+   *  `liveDyn.clear()`(dispose 안 함)로 버려서 GPU 자원이 계속 쌓였다.
+   *  지오메트리는 딱 하나(깃발 모양은 다 같다), 천 머티리얼은 색상별로
+   *  캐시해 재사용한다 — 그러면 `.clear()`가 참조만 끊어도 GPU 에는
+   *  아무것도 안 남는다(감사, 2026-09-08) */
+  var bannerPoleGeo = null, bannerPoleMat = null, bannerClothGeo = null, bannerClothMats = {};
   function banner(color, tipped) {
     var t = three();
+    if (!bannerPoleGeo) {
+      bannerPoleGeo = new t.CylinderGeometry(0.035, 0.035, 1.5, 5);
+      bannerPoleMat = new t.MeshLambertMaterial({ color: 0x6b5533 });
+      bannerClothGeo = new t.BoxGeometry(0.46, 0.62, 0.03);
+    }
     var g = new t.Group();
-    var pole = new t.Mesh(
-      new t.CylinderGeometry(0.035, 0.035, 1.5, 5),
-      new t.MeshLambertMaterial({ color: 0x6b5533 })
-    );
+    var pole = new t.Mesh(bannerPoleGeo, bannerPoleMat);
     pole.position.y = 0.75;
     g.add(pole);
-    var cloth = new t.Mesh(
-      new t.BoxGeometry(0.46, 0.62, 0.03),
-      new t.MeshLambertMaterial({ color: new t.Color(color) })
-    );
+    var hex = new t.Color(color).getHex();
+    var clothMat = bannerClothMats[hex];
+    if (!clothMat) { clothMat = bannerClothMats[hex] = new t.MeshLambertMaterial({ color: hex }); }
+    var cloth = new t.Mesh(bannerClothGeo, clothMat);
     cloth.position.set(0.26, 1.16, 0);
     g.add(cloth);
     if (tipped) { g.rotation.z = 1.15; g.position.y = 0.05; }

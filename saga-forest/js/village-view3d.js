@@ -560,6 +560,7 @@
   }
 
   var dummy = null;
+  var lastTermPx = null, lastTermPy = null, lastTermR = null, lastTermScale = null;
 
   /**
    * 인물 둘레 타일에 색을 입힌다 (PLAN 7절 지형 다양화 · PLAN 40절 Terrain).
@@ -576,6 +577,12 @@
     var raw = V.raw(), px = raw.player.x, py = raw.player.y, TILE = V.TILE;
     var scale = WORLD_SCALE();
     var r = GROUND_TILE_R();
+    /* 인물이 조금도 안 움직였으면(제자리 idle) 841칸(반경14 기준)을 다시
+       돌며 InstancedMesh 버퍼 9개를 통째로 GPU 로 재전송할 필요가 없다 —
+       타일 색은 인물 위치만으로 정해지므로 자리가 그대로면 결과도 그대로다
+       (감사로 찾은 최우선 낭비, 2026-09-08) */
+    if (px === lastTermPx && py === lastTermPy && r === lastTermR && scale === lastTermScale) { return; }
+    lastTermPx = px; lastTermPy = py; lastTermR = r; lastTermScale = scale;
     var ptx = Math.floor(px / TILE), pty = Math.floor(py / TILE);
 
     var idx = {}, kind, tx, ty, wx, wy, im, y;

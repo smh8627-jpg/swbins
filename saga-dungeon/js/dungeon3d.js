@@ -49,6 +49,7 @@
    *  안 걸린 것만 원래대로 되돌린다. */
   var raycaster = null;
   var occFade = {}, occInst = {};
+  var occDirScratch = null, occScaleScratch = null; // updateOcclusion() 프레임당 재사용
 
   /**
    * 지금 그리는 장면 — 마을이거나 던전이다.
@@ -732,7 +733,9 @@
 
   function buildRoom(run) {
     var W = d().ROOM_W, H = d().ROOM_H, WALL = d().WALL;
-    while (wallGroup.children.length) { wallGroup.remove(wallGroup.children[0]); }
+    /* 앞에서부터 지우면 Object3D.remove() 의 indexOf+splice 가 매번 배열을
+       통째로 당겨 O(n²)가 된다 — 뒤에서부터 지워 O(n)으로(감사, 2026-09-08) */
+    for (var wgi = wallGroup.children.length - 1; wgi >= 0; wgi--) { wallGroup.remove(wallGroup.children[wgi]); }
     var stone = themeHex(run);
 
     /* 바닥 — 한 판으로 깐다. 2026-09-04 이전엔 단색이었다("격자 무늬는
@@ -2156,7 +2159,9 @@
       return;
     }
     if (!raycaster) { raycaster = new T.Raycaster(); }
-    raycaster.set(fromPos, new T.Vector3(dx / dist, dy / dist, dz / dist));
+    if (!occDirScratch) { occDirScratch = new T.Vector3(); }
+    occDirScratch.set(dx / dist, dy / dist, dz / dist);
+    raycaster.set(fromPos, occDirScratch);
     raycaster.near = Math.max(0, dist * 0.06);   // 카메라 렌즈 바로 앞은 뺀다
     raycaster.far = Math.max(0, dist - 26);       // 플레이어 자신·발밑은 뺀다
     var hits = raycaster.far > raycaster.near ? raycaster.intersectObjects([wallGroup, fieldGroup], true) : [];
@@ -2169,7 +2174,8 @@
         if (!occInst[key]) {
           var m4 = new T.Matrix4();
           h.object.getMatrixAt(h.instanceId, m4);
-          var hidden = m4.clone().scale(new T.Vector3(0.001, 0.001, 0.001));
+          if (!occScaleScratch) { occScaleScratch = new T.Vector3(0.001, 0.001, 0.001); }
+          var hidden = m4.clone().scale(occScaleScratch);
           h.object.setMatrixAt(h.instanceId, hidden);
           h.object.instanceMatrix.needsUpdate = true;
           occInst[key] = { mesh: h.object, id: h.instanceId, orig: m4 };
@@ -2621,7 +2627,10 @@
     camera.position.copy(camPos);
     camera.lookAt(camLook);
     var occT0 = nowMs();
-    updateOcclusion(camera.position, plx, meGroundY + 44, ply);
+    /* 카메라-캐릭터 사이 가림은 시각 보정용이라 60fps 로 다시 쏠 필요가
+       없다 — 격프레임(30fps)으로도 안 티 난다(감사로 찾은 raycast 비용
+       절감, 2026-09-08). 건너뛴 프레임은 지난 결과를 그대로 둔다. */
+    if (frame % 2 === 0) { updateOcclusion(camera.position, plx, meGroundY + 44, ply); }
     lastOcclusionMs = nowMs() - occT0;
     var fxT0 = nowMs();
     if (FX) {

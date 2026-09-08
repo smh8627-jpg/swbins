@@ -59,6 +59,24 @@
     return tex;
   }
 
+  /** 지오메트리·머티리얼·텍스처를 되돌린다 — `Object3D.remove()`는 참조만
+   *  끊을 뿐 GPU 자원은 안 놓는다(Three.js 표준 동작). 이 파일이 지우는
+   *  자리는 전부 **이 파일이 직접 만든 도형**(GLB 를 못 받았을 때의
+   *  캡슐·원뿔 placeholder, 혹은 지형 프리미티브)뿐이라 안전하다 — GLB
+   *  자체(모델이 도착한 뒤)는 다시 안 지운다(감사, 2026-09-08) */
+  function disposeDeep(obj) {
+    obj.traverse(function (n) {
+      if (n.geometry) { n.geometry.dispose(); }
+      if (n.material) {
+        var mats = Array.isArray(n.material) ? n.material : [n.material];
+        for (var i = 0; i < mats.length; i++) {
+          if (mats[i].map) { mats[i].map.dispose(); }
+          mats[i].dispose();
+        }
+      }
+    });
+  }
+
   /** 도형(원뿔·구)을 먼저 세워 두고, GLB 가 도착하면(같은 세대일 때만) 갈아 끼운다.
    *  `holder` 는 이미 화면에 있는 자리(위치)이고, 안에 든 도형만 바뀐다 */
   function swapIn(holder, kind, seed, heightPx, gen) {
@@ -66,7 +84,7 @@
     if (!A) { return; }
     A.build(kind, seed, heightPx, function (model) {
       if (!model || gen !== stageGen) { return; }   // 실패했거나, 그새 사냥터가 또 바뀌었다
-      while (holder.children.length) { holder.remove(holder.children[0]); }
+      while (holder.children.length) { var c = holder.children[0]; disposeDeep(c); holder.remove(c); }
       holder.add(model);
     });
   }
@@ -308,7 +326,7 @@
   function rebuildStage(stg) {
     var Tc = three();
     stageGen++;   // 늦게 도착한 GLB 응답이 지난 세대의 지형에 잘못 꽂히지 않게 한다
-    while (worldGroup.children.length) { worldGroup.remove(worldGroup.children[0]); }
+    while (worldGroup.children.length) { var wc = worldGroup.children[0]; disposeDeep(wc); worldGroup.remove(wc); }
 
     var L = moodLight(stg.mood);
     scene.background = new Tc.Color(L.sky);
@@ -383,7 +401,7 @@
     var heightPx = (boss ? 1.9 : 1) * 58;   // 도형 사람의 정수리 높이(50*scale)와 얼추 맞춘다
     function swapActorIn(model) {
       if (!model) { return; }   // GLB 를 못 받았다 — 도형 그대로 남는다
-      while (shell.children.length) { shell.remove(shell.children[0]); }
+      while (shell.children.length) { var sc = shell.children[0]; disposeDeep(sc); shell.remove(sc); }
       shell.add(model);
       shell.userData.body = null; shell.userData.head = null;   // 이제 도형 물들임은 안 쓴다
       shell.userData.mixer = model.userData.mixer || null;
@@ -431,12 +449,14 @@
     u.mixer.update(frameDt);
   }
 
+  var TINT_WHITE = null;   // tintHurt() 프레임당(배우 수만큼) new Color 하지 않게 재사용
   function tintHurt(g, hurt) {
     g.userData.hurtNow = hurt;
     if (!g.userData.body) { return; }   // GLB 로 갈렸으면 stepActor 의 flashMats 몫이다
+    if (!TINT_WHITE) { TINT_WHITE = new (three()).Color(0xffffff); }
     var k = hurt > 0 ? Math.min(1, hurt * 3) : 0;
-    g.userData.body.material.color.copy(g.userData.baseColor).lerp(new (three()).Color(0xffffff), k);
-    g.userData.head.material.color.copy(g.userData.baseColor).lerp(new (three()).Color(0xffffff), k);
+    g.userData.body.material.color.copy(g.userData.baseColor).lerp(TINT_WHITE, k);
+    g.userData.head.material.color.copy(g.userData.baseColor).lerp(TINT_WHITE, k);
   }
 
   function draw() {
@@ -488,15 +508,16 @@
     for (i = 0; i < run.enemies.length; i++) {
       var e = run.enemies[i];
       var em = enemyPool[i];
-      var big = /코끼리/.test((e.ref && e.ref.name) || '');
+      /* "코끼리인지" 정규식은 배우를 새로 만들 때만 필요한데 예전엔 적
+         수만큼 매 프레임 돌았다 — 두 생성 분기 안으로 옮김(감사, 2026-09-08) */
       if (!em) {
-        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, big);
+        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
         em.userData.boss = !!e.boss;
         actorGroup.add(em); enemyPool[i] = em;
       }
       if (em.userData.boss !== !!e.boss) {
         actorGroup.remove(em);
-        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, big);
+        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
         em.userData.boss = !!e.boss;
         actorGroup.add(em); enemyPool[i] = em;
       }

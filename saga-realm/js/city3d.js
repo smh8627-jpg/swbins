@@ -54,12 +54,13 @@
   var rebuildSeq = 0;
   var curCityId = null, curSig = '';
   var spin = 0;
+  var sheetEl = null;   // active() 가 매 프레임 부르므로 요소 자체는 캐시(감사, 2026-09-08)
 
   function available() { return !!three() && !failed; }
 
   function active() {
-    var sh = document.getElementById('sheet');
-    return !!(ready && sh && sh.classList.contains('show') && sh.getAttribute('data-tab') === 'city');
+    if (!sheetEl || !sheetEl.isConnected) { sheetEl = document.getElementById('sheet'); }
+    return !!(ready && sheetEl && sheetEl.classList.contains('show') && sheetEl.getAttribute('data-tab') === 'city');
   }
 
   function ensureInit() {
