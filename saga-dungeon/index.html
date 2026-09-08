@@ -27,12 +27,15 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <div id="top">
   <div class="glass profile" id="profile"></div>
   <div class="tools">
-    <button class="icon-btn" id="btn-auto" title="자동 순회 (AI가 대신 던전을 돈다)">🤖</button>
-    <button class="icon-btn" id="btn-style" title="그림 양식 (전통 / 그림책 / 만화)">📗</button>
-    <button class="icon-btn" id="btn-sound" title="소리 (끄기/켜기)">🔊</button>
-    <button class="icon-btn" id="btn-help" title="도움말">❔</button>
-    <a class="icon-btn" id="btn-admin" href="_admin.html" target="_blank" rel="noopener" title="어드민 (QA · 손잡이)">🛠️</a>
-    <button class="icon-btn" id="btn-reset" title="처음부터">↺</button>
+    <button class="icon-btn" id="btn-auto" title="자동 순회 (AI가 대신 던전을 돈다)"><span data-icon="bot">🤖</span></button>
+    <button class="icon-btn" id="btn-more" title="도구 더 보기" aria-expanded="false"><span data-icon="ellipsis">⋯</span></button>
+    <div id="top-more">
+      <button class="icon-btn" id="btn-style" title="그림 양식 (전통 / 그림책 / 만화)">📗</button>
+      <button class="icon-btn" id="btn-sound" title="소리 (끄기/켜기)">🔊</button>
+      <button class="icon-btn" id="btn-help" title="도움말"><span data-icon="circle-question-mark">❔</span></button>
+      <a class="icon-btn" id="btn-admin" href="_admin.html" target="_blank" rel="noopener" title="어드민 (QA · 손잡이)"><span data-icon="wrench">🛠️</span></a>
+      <button class="icon-btn" id="btn-reset" title="처음부터"><span data-icon="rotate-ccw">↺</span></button>
+    </div>
   </div>
   <div class="glass wallet" id="wallet"></div>
 </div>
@@ -50,19 +53,19 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <!-- 우하단: 액션 독 — 자주 쓰는 셋만 붙박이로 두고, 나머지는 "더보기" 뒤로 접는다 -->
 <nav id="dock">
   <div id="dock-more">
-    <button data-sheet="skill"><span>📜</span><small>무예</small></button>
-    <button data-sheet="craft"><span>🔨</span><small>세공</small></button>
-    <button data-sheet="vendor"><span>🧺</span><small>행상</small></button>
-    <button data-sheet="dex"><span>📖</span><small>도감</small></button>
-    <button data-sheet="quest"><span>🚩</span><small>퀘스트</small></button>
-    <button data-sheet="look"><span>🧑</span><small>외모</small></button>
-    <button data-sheet="log"><span>📜</span><small>기록</small></button>
-    <button data-sheet="overworld"><span>🧭</span><small>오버월드</small></button>
+    <button data-sheet="skill"><span data-icon="scroll-text">📜</span><small>무예</small></button>
+    <button data-sheet="craft"><span data-icon="hammer">🔨</span><small>세공</small></button>
+    <button data-sheet="vendor"><span data-icon="store">🧺</span><small>행상</small></button>
+    <button data-sheet="dex"><span data-icon="book-open">📖</span><small>도감</small></button>
+    <button data-sheet="quest"><span data-icon="flag">🚩</span><small>퀘스트</small></button>
+    <button data-sheet="look"><span data-icon="user">🧑</span><small>외모</small></button>
+    <button data-sheet="log"><span data-icon="scroll-text">📜</span><small>기록</small></button>
+    <button data-sheet="overworld"><span data-icon="compass">🧭</span><small>오버월드</small></button>
   </div>
-  <button data-sheet="party"><span>⚔️</span><small>부대</small></button>
-  <button data-sheet="gear"><span>🎒</span><small>장비</small></button>
-  <button data-sheet="world"><span>🗺️</span><small>지도</small></button>
-  <button id="dock-more-btn"><span>⋯</span><small>더보기</small></button>
+  <button data-sheet="party"><span data-icon="swords">⚔️</span><small>부대</small></button>
+  <button data-sheet="gear"><span data-icon="backpack">🎒</span><small>장비</small></button>
+  <button data-sheet="world"><span data-icon="map">🗺️</span><small>지도</small></button>
+  <button id="dock-more-btn"><span data-icon="ellipsis">⋯</span><small>더보기</small></button>
 </nav>
 
 <!-- 슬라이드 시트 -->
@@ -71,7 +74,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
   <div class="sheet-head">
     <div class="grip"></div>
     <h3 id="sheet-title">부대</h3>
-    <button class="icon-btn sm" id="sheet-close">✕</button>
+    <button class="icon-btn sm" id="sheet-close"><span data-icon="x">✕</span></button>
   </div>
   <div id="sheet-body"></div>
 </aside>
@@ -117,6 +120,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <script src="js/forge.js"></script>
 <script src="js/quest.js"></script>
 <script src="js/auto.js"></script>
+<script src="js/icon.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
 <script>

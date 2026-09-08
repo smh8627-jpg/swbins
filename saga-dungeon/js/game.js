@@ -169,6 +169,25 @@
   }
 
   function bindTopbar() {
+    /* "더보기" — 양식·소리·도움말·어드민·리셋은 자주 안 쓰니 접어 둔다
+       (사가국지·사가스토리와 같은 결). 자동 순회만 붙박이로 남는다 */
+    var moreBtn = document.getElementById('btn-more');
+    var more = document.getElementById('top-more');
+    if (moreBtn && more) {
+      moreBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        more.classList.toggle('show');
+      });
+      document.addEventListener('click', function (e) {
+        if (more.classList.contains('show') && !more.contains(e.target) && e.target !== moreBtn) {
+          more.classList.remove('show');
+        }
+      });
+      global.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { more.classList.remove('show'); }
+      });
+    }
+
     var autoBtn = document.getElementById('btn-auto');
     if (autoBtn) {
       var syncAutoBtn = function () {

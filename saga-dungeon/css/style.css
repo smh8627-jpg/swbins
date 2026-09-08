@@ -101,7 +101,17 @@ body.tilted #vignette {
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
 
-.tools { grid-area: tools; display: flex; gap: 7px; }
+/* 2026-09-08 — 자동 순회만 붙박이로 두고 나머지(양식·소리·도움말·어드민·
+   리셋)는 "더보기" 뒤로 접는다 — #dock-more 와 같은 결(사가국지·사가스토리에서
+   먼저 밟았다, "사가고랑 UI가 완전히 같지 않다" 제보로 여기도 맞췄다) */
+.tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
+#top-more {
+  position: absolute; right: 0; top: calc(100% + 8px);
+  display: grid; grid-template-columns: repeat(2, 40px); gap: 7px;
+  opacity: 0; pointer-events: none; transform: translateY(-6px);
+  transition: opacity .16s, transform .16s;
+}
+#top-more.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   background: var(--glass); border: 1px solid var(--glass-br);
