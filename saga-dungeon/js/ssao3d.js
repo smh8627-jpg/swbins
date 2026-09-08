@@ -38,10 +38,16 @@
   var core = global.DG.core;
 
   /* 등급마다 — 표본 수와 재는 해상도 배율.
-     절반 해상도로 재고 흐린다: 그늘은 원래 부드러운 것이라 눈에 안 띈다 */
+     절반 해상도로 재고 흐린다: 그늘은 원래 부드러운 것이라 눈에 안 띈다.
+     2026-09-08 — 실기기 로그: LOW(post 통째로 꺼짐, ema~17ms 안정)에서
+     MEDIUM(post 켜짐)으로 한 단계만 올라가도 끊겼다("뿌옇게 되면
+     느려져" 제보). SSAO는 깊이 텍스처를 읽어 표본마다 가려짐을 재고
+     흐리는 화면 전체 패스라 이 셋 중 가장 무겁다 — MEDIUM은 꺼서
+     LOW→MEDIUM 문턱의 비용을 줄인다. HIGH만 킨다(이 기기가 애초에
+     HIGH까지 갈 일은 드물다 — LEVEL_COOLDOWN_UP_MS 참고). */
   var TIER_AO = {
     HIGH:   { on: true,  samples: 12, scale: 0.5 },
-    MEDIUM: { on: true,  samples: 8,  scale: 0.5 },
+    MEDIUM: { on: false, samples: 0,  scale: 0 },
     LOW:    { on: false, samples: 0,  scale: 0 }
   };
 
