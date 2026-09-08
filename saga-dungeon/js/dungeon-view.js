@@ -100,6 +100,7 @@
         '<div class="dg-stage"><canvas id="dg3d"></canvas><canvas id="dg-canvas"></canvas>' +
           '<div id="d2-foe"></div>' +
           '<div id="dg-choice"></div>' +
+          '<div id="dg-joy"><div id="dg-joy-knob"></div></div>' +
         '</div>' +
         '<div id="dg-bottom"></div>' +
         '<div class="dg-tip">이동 <b>WASD</b> · 물약 <b>1 2 3 4</b> · 스킬 <b>Z X C V</b> · ' +
@@ -210,6 +211,55 @@
       e.preventDefault();
       setUserZoom(userZoom() * (e.deltaY < 0 ? 1.08 : 1 / 1.08));
     }, { passive: false });
+
+    /* 2026-09-09 — "움직이는 게 너무 힘들다"(모바일 재신고). 지금까지는
+       화면 아무 데나 눌러 그 쪽으로 계속 걷는 방식(steer, 위)뿐이었는데,
+       손가락이 캔버스 위 아무 데나 닿아야 해 카메라가 따라오며 그 지점이
+       계속 바뀌면 방향을 가늠하기 어려웠다. PLAN §21·24가 원래 요구하던
+       고정 조이스틱을 얹는다 — 이 원(#dg-joy) 안에서 시작한 손가락만 받고,
+       원 중심에서 잰 방향을 d().setInput()에 그대로 먹인다(steer()와 같은
+       API라 그 아래 걷기 로직은 손 안 댄다). 터치 기기에서만 보인다 —
+       마우스는 기존 드래그 조작 그대로 쓴다. */
+    var joyEl = document.getElementById('dg-joy');
+    var joyKnob = document.getElementById('dg-joy-knob');
+    var isTouch = !!(('ontouchstart' in global) || (navigator.maxTouchPoints > 0));
+    if (isTouch) { joyEl.classList.add('show'); }
+    var joyId = null, joyCX = 0, joyCY = 0;
+    var JOY_R = 46;         // 원(118px) 반지름보다 살짝 작게 — 손잡이가 테두리 밖으로 안 나가게
+    var JOY_DEAD = 8;
+    function joyKnobAt(dx, dy) {
+      joyKnob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    }
+    function joyReset() {
+      joyId = null;
+      joyKnobAt(0, 0);
+      d().setInput(0, 0);
+    }
+    joyEl.addEventListener('pointerdown', function (e) {
+      if (joyId !== null) { return; }        // 이미 다른 손가락이 잡고 있다
+      var r = joyEl.getBoundingClientRect();
+      joyCX = r.left + r.width / 2; joyCY = r.top + r.height / 2;
+      joyId = e.pointerId;
+      joyEl.setPointerCapture && joyEl.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    joyEl.addEventListener('pointermove', function (e) {
+      if (e.pointerId !== joyId) { return; }
+      var dx = e.clientX - joyCX, dy = e.clientY - joyCY;
+      var len = Math.hypot(dx, dy);
+      var kx = len > JOY_R ? dx / len * JOY_R : dx, ky = len > JOY_R ? dy / len * JOY_R : dy;
+      joyKnobAt(kx, ky);
+      if (len < JOY_DEAD) { d().setInput(0, 0); return; }
+      d().setInput(dx / len, dy / len);
+      e.preventDefault();
+    });
+    function joyRelease(e) {
+      if (e.pointerId !== joyId) { return; }
+      joyReset();
+    }
+    joyEl.addEventListener('pointerup', joyRelease);
+    joyEl.addEventListener('pointercancel', joyRelease);
+    joyEl.addEventListener('pointerleave', function (e) { if (e.pointerId === joyId) { joyRelease(e); } });
 
     hud.addEventListener('click', function (e) {
       var b = e.target.closest('[data-act]');

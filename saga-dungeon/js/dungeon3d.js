@@ -423,13 +423,20 @@
          2130행)이 여전히 어두우면 GLB 가 늦게 실리는 동안(모바일 LTE, 사람
          GLB 여럿) 화면 대부분이 그 어두운 배경 그대로 보이는 시간이 길어져
          "안 보인다" 로 읽힌다. 낮처럼 밝게 — 배경·주변광·직사광 모두 확 올리고
-         어두운 색상 자체를 버린다. */
+         어두운 색상 자체를 버린다.
+         2026-09-09 — 그런데 이번엔 그 밝은 배경 자체가 황갈색(0xb9ab82)이라,
+         모바일에서 GLB가 뜨기 전까지 화면 전체가 "갈색"으로 오래 노출되는
+         재신고("전체 갈색임·잘안보여"). 사용자가 횃불 톤(조명) 자체가 필요
+         없다고 재정정 — torchIntensity를 0으로 내리고, 배경·주변광·직사광의
+         색을 호박색(amber) 계열에서 중립(뉴트럴)한 밝은 회백색으로 바꿔
+         "갈색"으로 읽히는 색 자체를 없앤다. 밝기(ambient 2.0 등)는 그대로 둔다
+         — 어둡다는 재신고를 다시 부르면 안 된다. */
       return {
-        ambient: 2.0, ambientHex: 0xd8cdb0,
-        keyIntensity: 1.9, keyHex: 0xfff1d6,
-        torchIntensity: 1400, torchHex: 0xffc070, torchRange: 420,
+        ambient: 2.0, ambientHex: 0xeef1f4,
+        keyIntensity: 1.9, keyHex: 0xf4f7fb,
+        torchIntensity: 0, torchHex: 0xffc070, torchRange: 420,
         fog: { near: 1400, far: 3200 },
-        bgHex: 0xb9ab82, boss: false, deep: 0, town: true
+        bgHex: 0xd7dde2, boss: false, deep: 0, town: true
       };
     }
     return {
