@@ -1269,12 +1269,15 @@ body.tilted3 #vignette {
 .hud-out { margin-left: auto; }
 
 /* ── 손가락 조작판 (2026-09-01) ─────────────────────────────
- * **손가락뿐인 기기에서만** 보인다 — core.touchOnly() 와 같은 조건
- * (hover:none · pointer:coarse) 을 css 로 그대로 건다. 화면을 숨은 넷으로
- * 나눠 짚던 예전 방식은 손가락뿐인 기기에서 이 단추가 대신 맡는다
- * (side-view.js 의 onDown 이 core.touchOnly() 일 때 존을 안 켠다 — 둘이
+ * 화면을 숨은 넷으로 나눠 짚던 예전 방식은 손가락뿐인 기기에서 이 단추가
+ * 대신 맡는다(side-view.js 의 onDown 이 core.touchOnly() 일 때 존을 안 켜
  * 겹쳐 두 번 눌리지 않는다). #hud·#dock 위로, 화면 좌우 가장자리에 띄운다 —
- * 가운데(체력·기력·스킬 띠)를 가리지 않으려는 자리다. */
+ * 가운데(체력·기력·스킬 띠)를 가리지 않으려는 자리다.
+ * 2026-09-09 — "피시에서는 마우스 클릭 버튼으로"(사용자 요청). 원래는
+ * 손가락뿐인 기기에서만(hover:none · pointer:coarse) 보이게 미디어쿼리로
+ * 막아 뒀는데, 그 담을 뗀다 — PC 마우스로도 그대로 눌러 걸을 수 있다
+ * (숨은 존 탭 이동은 그대로 살아 있어 둘 다 쓸 수 있다, 사가블로 #dg-pad와
+ * 같은 결). */
 #touchpad { position: fixed; inset: 0; z-index: 11; pointer-events: none; display: none; }
 .pad-side { position: absolute; display: none; gap: 10px; pointer-events: auto; }
 .pad-l { left: 14px; bottom: calc(150px + var(--safe-b)); }
@@ -1288,9 +1291,21 @@ body.tilted3 #vignette {
   touch-action: none;
 }
 .pad-btn:active { transform: scale(.9); background: var(--glass-2); }
-@media (hover: none) and (pointer: coarse) {
-  #touchpad.show { display: block; }
-  #touchpad.show .pad-side { display: flex; }
+#touchpad.show { display: block; }
+#touchpad.show .pad-side { display: flex; }
+
+/* ── 키 세팅(⌨️, 2026-09-09) ──────────────────────────── */
+.key-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; margin-top: 6px;
+  background: rgba(255,255,255,.04); border-radius: var(--r-sm);
+}
+.key-row b { flex: 0 0 48px; }
+.key-cur { flex: 1; font-weight: 700; color: var(--gold); letter-spacing: .5px; }
+.key-row button {
+  padding: 6px 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--glass-br); background: rgba(255,255,255,.06);
+  color: var(--ink); font-size: 11.5px; cursor: pointer;
 }
 
 /* ══ 폰 화면 (2026-08-26) ═════════════════════════════════════════

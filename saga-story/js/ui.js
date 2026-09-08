@@ -130,6 +130,11 @@
       }
       if (act === 'ow-open') { openOverworldMap(); return; }
       if (act === 'ow-close') { closeOverworldMap(); return; }
+      if (act === 'key-remap') {
+        var G0 = global.DG.game;
+        if (G0 && G0.beginRemap) { G0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
+        return;
+      }
       if (act === 's-enter') {
         global.DG.side.enter(b.getAttribute('data-stage'));
       } else if (act === 's-leave') {
@@ -227,6 +232,7 @@
 
     core.on('toast', toast);
     core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); });
+    core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
@@ -239,8 +245,25 @@
 
   var SHEET_TITLE = {
     field: '🏃 사냥터', bag: '🎒 가방', job: '🥋 무예', shop: '🏪 저자',
-    dex: '📖 도감', log: '📜 기록'
+    dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정'
   };
+
+  /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
+   *  (실수로 못 쓰게 되지 않게), 여기서는 그 옆에 하나 더 쓸 키만 고른다. */
+  function viewKeys() {
+    var G = global.DG.game;
+    if (!G || !G.keymap) { return '<div class="hint">지금 화면에서는 키를 지정할 수 없습니다</div>'; }
+    var km = G.keymap(), rm = G.remapping();
+    var rows = [{ a: 'up', t: '위' }, { a: 'down', t: '아래' }, { a: 'left', t: '왼쪽' }, { a: 'right', t: '오른쪽' }];
+    var h = '<div class="hint">WASD·방향키는 항상 그대로 됩니다 — 여기서는 그 옆에 더 쓸 키 하나만 고릅니다.</div>';
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      h += '<div class="key-row"><b>' + r.t + '</b><span class="key-cur">' + esc((km[r.a] || '').toUpperCase()) + '</span>' +
+        '<button data-act="key-remap" data-action="' + r.a + '">' +
+        (rm === r.a ? '키를 누르세요…' : '다시 지정') + '</button></div>';
+    }
+    return h;
+  }
 
   function openSheet(name) {
     openTab = name;
@@ -287,7 +310,8 @@
           : openTab === 'bag' ? viewBag()
           : openTab === 'job' ? viewJob()
           : openTab === 'shop' ? viewShop()
-          : openTab === 'dex' ? viewDex() : viewLog();
+          : openTab === 'dex' ? viewDex()
+          : openTab === 'keys' ? viewKeys() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 

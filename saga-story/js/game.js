@@ -65,16 +65,45 @@
     global.addEventListener('blur', function () { core.persist(); }); // 포커스만 잃어도 저장
   }
 
+  /* 2026-09-09 — "키세팅이 있어야겠지"(사가블로·사가의숲과 같은 요청).
+     WASD·방향키는 하드코딩 그대로 두고(실수로 못 쓰게 되면 안 된다),
+     방향별로 하나 더 쓸 키만 고르게 한다. */
+  var KEYMAP_DEFAULT = { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright' };
+  var remapping = null;
+  function keymap() {
+    var s = core.save && core.save.settings;
+    var km = s && s.keymap;
+    if (!km) { return KEYMAP_DEFAULT; }
+    var out = {}, k;
+    for (k in KEYMAP_DEFAULT) { out[k] = km[k] || KEYMAP_DEFAULT[k]; }
+    return out;
+  }
+  function setKeymapKey(action, key) {
+    if (!core.save || !core.save.settings) { return; }
+    core.save.settings.keymap = keymap();
+    core.save.settings.keymap[action] = key;
+    core.persist();
+  }
+  function beginRemap(action) { remapping = action; }
+
   /* 키보드 — **원작 배치**다.
      ← → 달리기 · ↑ 오르기/문 · ↓ 내려가기 · Space 점프(↓ 와 함께면 발판 빠져나가기) ·
      1~4 스킬 · Q 탕약. ↑ 를 점프로 두면 사다리와 부딪친다. */
   function bindKeys() {
     global.addEventListener('keydown', function (e) {
+      if (remapping) {
+        if (e.key !== 'Escape') { setKeymapKey(remapping, e.key.toLowerCase()); }
+        remapping = null;
+        core.emit('dg:keyremap');
+        e.preventDefault();
+        return;
+      }
+      var km = keymap();
       var k = e.key.toLowerCase();
-      if (k === 'arrowleft' || k === 'a') { S.setInput('left', true); }
-      else if (k === 'arrowright' || k === 'd') { S.setInput('right', true); }
-      else if (k === 'arrowup' || k === 'w') { S.setInput('up', true); }
-      else if (k === 'arrowdown' || k === 's') { S.setInput('down', true); }
+      if (k === 'arrowleft' || k === 'a' || k === km.left) { S.setInput('left', true); }
+      else if (k === 'arrowright' || k === 'd' || k === km.right) { S.setInput('right', true); }
+      else if (k === 'arrowup' || k === 'w' || k === km.up) { S.setInput('up', true); }
+      else if (k === 'arrowdown' || k === 's' || k === km.down) { S.setInput('down', true); }
       else if (k === ' ') { S.setInput('jump', true); }
       else if (k === 'q') { S.drink(); }
       else if (k === 'm') { ui.toggleOverworldMap(); }
@@ -84,11 +113,12 @@
       }
     });
     global.addEventListener('keyup', function (e) {
+      var km = keymap();
       var k = e.key.toLowerCase();
-      if (k === 'arrowleft' || k === 'a') { S.setInput('left', false); }
-      else if (k === 'arrowright' || k === 'd') { S.setInput('right', false); }
-      else if (k === 'arrowup' || k === 'w') { S.setInput('up', false); }
-      else if (k === 'arrowdown' || k === 's') { S.setInput('down', false); }
+      if (k === 'arrowleft' || k === 'a' || k === km.left) { S.setInput('left', false); }
+      else if (k === 'arrowright' || k === 'd' || k === km.right) { S.setInput('right', false); }
+      else if (k === 'arrowup' || k === 'w' || k === km.up) { S.setInput('up', false); }
+      else if (k === 'arrowdown' || k === 's' || k === km.down) { S.setInput('down', false); }
     });
     global.addEventListener('blur', function () {
       S.setInput('left', false); S.setInput('right', false);
@@ -314,7 +344,10 @@
   }
 
   global.DG = global.DG || {};
-  global.DG.game = { boot: boot, start: start };
+  global.DG.game = {
+    boot: boot, start: start,
+    keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; }
+  };
 
   /** 진입 — **가입(프로필)이 정해진 뒤에** 게임을 켠다.
    *  account.gate() 가 세이브 키를 정하고 start() 를 돌린다. */
