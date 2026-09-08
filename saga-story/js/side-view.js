@@ -505,44 +505,50 @@
     }
   }
 
-  /** 미니맵의 자리·축척 — **그리기와 떼어 둔다.** 값을 내는 층이라 진단이 붙는다 */
+  /** 미니맵의 자리·축척 — **그리기와 떼어 둔다.** 값을 내는 층이라 진단이 붙는다.
+   * 2026-09-08 — 원작(메이플스토리) 오마주였던 좌상단 사각 창을 사가고 스타일
+   * (좌하단 원형)로 통일(사용자 요청, 오마주보다 통일 우선으로 명시적 선택).
+   * 사냥터는 던전 방처럼 **늘 화면보다 작지 않다**(가로로 넓다) — 원에 내접하는
+   * 사각형 크기로 줄여 전체(문·보스 위치까지)가 정보 손실 없이 다 들어오게
+   * 한다(사가블로 미니맵과 같은 수법). 좌하단은 조작판(.pad-l, bottom 150px)
+   * 보다 아래(0~142px)라 안 겹친다. */
   function miniBox(stg) {
-    var w = Math.min(210, W - 24), h = 58;
+    var s = Math.min(W <= 560 ? 104 : 128, H - 40);
     var top = 240, bot = stg.floor + 30;          // 세로로 담을 구간
-    /* 상단 띠(프로필·지갑) 아래로 내려 앉힌다 — 겹치면 둘 다 못 읽는다.
-       프로필 카드를 확 줄인 뒤로(2026-09-02) 폰에서도 그 아래 여백이 줄어,
-       196 은 너무 낮았다("맵을 더 올려줘") — 100 까지 다시 올린다.
-       실제 프로필 카드 높이(아바타 28px+패딩)가 이보다 훨씬 낮아 안 겹친다 */
-    var y = W <= 560 ? 100 : Math.min(148, H * 0.26);
-    return { x: 12, y: y, w: w, h: h,
-             sx: w / stg.width, sy: h / (bot - top), top: top };
+    var hw = Math.max(1, stg.width / 2), hh = Math.max(1, (bot - top) / 2);
+    var rad = s / 2 - 3;
+    /* 원에 내접하는 사각형 축척 — 네 귀퉁이(hw,hh)가 딱 반지름에 닿는 배수 */
+    var scale = rad / Math.sqrt(hw * hw + hh * hh);
+    return { cx: 12 + s / 2, cy: H - 14 - s / 2, s: s, rad: rad,
+             hw: hw, hh: hh, top: top, scale: scale };
   }
 
   /**
-   * 미니맵 — 원작에서 왼쪽 위에 늘 떠 있던 그 작은 지도다.
-   * 사냥터 전체를 한 칸에 줄여 담아 **어디로 가야 문·보스가 있는지**를 보여 준다.
+   * 미니맵 — 사냥터 전체를 한 칸에 줄여 담아 **어디로 가야 문·보스가
+   * 있는지**를 보여 준다(사가고와 같은 좌하단 원형 스타일).
    */
   function drawMiniMap(run) {
     var stg = run.stage;
     var b = miniBox(stg);
-    var w = b.w, h = b.h, x = b.x, y = b.y, sx = b.sx, sy = b.sy;
-    function mx(vx) { return x + vx * sx; }
-    function my(vy) { return y + (vy - b.top) * sy; }
+    var cx = b.cx, cy = b.cy, rad = b.rad, scale = b.scale;
+    function mx(vx) { return cx + (vx - b.hw) * scale; }
+    function my(vy) { return cy + (vy - b.top - b.hh) * scale; }
 
-    /* 원작의 미니맵 창 — 밝은 종이에 굵은 남색 테 */
-    ctx.fillStyle = 'rgba(253,251,244,0.92)';
-    ctx.fillRect(x - 6, y - 6, w + 12, h + 12);
-    ctx.strokeStyle = 'rgba(61,53,96,0.9)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x - 6, y - 6, w + 12, h + 12);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.clip();
+
+    ctx.fillStyle = 'rgba(20,23,30,0.82)';
+    ctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
 
     /* 바닥과 발판 */
-    ctx.fillStyle = 'rgba(61,53,96,0.45)';
-    ctx.fillRect(x, my(stg.floor), w, 1.5);
+    ctx.fillStyle = 'rgba(200,205,220,0.4)';
+    ctx.fillRect(cx - rad, my(stg.floor), rad * 2, 1.5);
     var i;
     for (i = 0; i < stg.plats.length; i++) {
       var pl = stg.plats[i];
-      ctx.fillRect(mx(pl[0]), my(pl[1]), pl[2] * sx, 1.5);
+      ctx.fillRect(mx(pl[0]), my(pl[1]), pl[2] * scale, 1.5);
     }
     /* 줄 */
     ctx.strokeStyle = 'rgba(150,110,60,0.55)';
@@ -568,14 +574,28 @@
     }
     ctx.fillStyle = '#f0a92b';
     ctx.fillRect(mx(run.player.x + S.P_W / 2) - 2.5, my(run.player.y + S.P_H) - 5, 5, 5);
-    ctx.strokeStyle = 'rgba(61,53,96,0.8)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
     ctx.lineWidth = 1;
     ctx.strokeRect(mx(run.player.x + S.P_W / 2) - 2.5, my(run.player.y + S.P_H) - 5, 5, 5);
 
+    ctx.restore();
+
+    /* 테두리와 방위(北) — 사가고 미니맵과 같은 관례(장식적 약속, 실제 나침반 아님) */
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke();
+    ctx.font = '700 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(0,0,0,.75)';
+    ctx.strokeText('北', cx, cy - rad + 12);
+    ctx.fillStyle = 'rgba(255,255,255,.82)';
+    ctx.fillText('北', cx, cy - rad + 12);
+
     ctx.font = '600 9.5px system-ui, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(43,36,64,0.85)';
-    ctx.fillText(stg.name, x, y - 10);
+    ctx.fillStyle = 'rgba(232,226,210,.85)';
+    ctx.fillText(stg.name, cx - rad, cy + rad + 13);
   }
 
   /** 밧줄·사다리 — 발판 뒤에 걸린다. 사다리는 가로대가 있고 밧줄은 한 가닥이다 */
