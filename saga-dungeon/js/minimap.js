@@ -164,6 +164,9 @@
     node.setAttribute('title', '미니맵 — 탭하면 접힙니다');
     canvas = global.document.createElement('canvas');
     node.appendChild(canvas);
+    var tag = global.document.createElement('b');
+    tag.className = 'mm-tag';
+    node.appendChild(tag);
     node.style.display = 'none';           // tick() 이 던전일 때만 'block' 으로 켠다
     global.document.body.appendChild(node);
     node.addEventListener('click', tap);
@@ -182,17 +185,26 @@
   function apply() {
     if (!node) { return; }
     node.classList.toggle('folded', folded);
+    var tag = node.querySelector('.mm-tag');
+    if (tag && folded) { tag.textContent = '🗺️'; }
   }
+
+  /* 2026-09-08 — 사가고처럼 좌하단 **원형**으로 통일(사용자 요청). 이 판은
+     방 하나가 늘 화면(사각) 안에 다 들어가던 옛 그림이라, 사각을 그대로
+     원에 욱여넣으면 네 귀퉁이가 잘린다. 대신 **원에 내접하는 사각형**
+     크기로 축소해 방 전체(네 귀퉁이까지)가 항상 원 안에 다 들어오게
+     맞춘다 — 정보 손실 없이 모양만 사가고와 같은 원이 된다. */
+  var INSCRIBE = Math.SQRT2;   // 원에 내접하는 정사각형의 반변 배수(0.5*√2 = 대각 반지름)
 
   function resize() {
     if (!canvas) { return 0; }
-    var s = sizePx(), h = Math.round(s * 0.64);   // 방 비(560:360)에 가깝게
+    var s = sizePx();             // 정사각 캔버스(사가고와 같은 원형 판)
     var dpr = Math.min(global.devicePixelRatio || 1, 2);
-    if (canvas.width !== Math.round(s * dpr) || canvas.height !== Math.round(h * dpr)) {
+    if (canvas.width !== Math.round(s * dpr) || canvas.height !== Math.round(s * dpr)) {
       canvas.width = Math.round(s * dpr);
-      canvas.height = Math.round(h * dpr);
+      canvas.height = Math.round(s * dpr);
       canvas.style.width = s + 'px';
-      canvas.style.height = h + 'px';
+      canvas.style.height = s + 'px';
       ctx = null;
     }
     if (!ctx) { ctx = canvas.getContext('2d'); }
@@ -207,22 +219,30 @@
     var dpr = resize();
     if (!ctx) { return 0; }
 
-    var s = sizePx(), h = Math.round(s * 0.64);
+    var s = sizePx(), c = s / 2, rad = c - 3;
+    var k = rad * INSCRIBE;   // norm() 0~1 좌표 → 원 중심 기준 픽셀 배수
+    function px(n) { return c + (n - 0.5) * k; }
+
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, s, h);
+    ctx.clearRect(0, 0, s, s);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(c, c, rad, 0, Math.PI * 2);
+    ctx.clip();
 
     ctx.fillStyle = 'rgba(10,8,5,.72)';
-    ctx.fillRect(0, 0, s, h);
+    ctx.fillRect(0, 0, s, s);
 
     /* 코너 미니맵 지형(PLAN §28-8 후속, 2026-09-06) — 마을일 때만, 밝힌
        칸 위에 실제 지형색을 덧칠한다(안 밝힌 칸은 위 민무늬 배경이 그대로
        "안개" 노릇을 한다). 던전은 세계 좌표·포그오브워 개념이 없어(방
        하나뿐) 그대로 옛 민무늬 배경이다 — 회귀 없음. */
     if (M === global.DG.town) {
-      var tiles = smallWorldTiles(M, s, h), ti;
+      var tiles = smallWorldTiles(M, k, k), ti;
       for (ti = 0; ti < tiles.length; ti++) {
         ctx.fillStyle = tiles[ti].color;
-        ctx.fillRect(tiles[ti].x, tiles[ti].y, tiles[ti].w, tiles[ti].h);
+        ctx.fillRect(c - k / 2 + tiles[ti].x, c - k / 2 + tiles[ti].y, tiles[ti].w, tiles[ti].h);
       }
     }
 
@@ -232,7 +252,7 @@
       st = STYLE[bs[i].t] || STYLE.enemy;
       ctx.fillStyle = st.c;
       ctx.beginPath();
-      ctx.arc(bs[i].nx * s, bs[i].ny * h, st.r, 0, Math.PI * 2);
+      ctx.arc(px(bs[i].nx), px(bs[i].ny), st.r, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -240,16 +260,34 @@
     var pn = norm(run.player.x, run.player.y);
     ctx.fillStyle = '#f5b445';
     ctx.beginPath();
-    ctx.arc(pn.nx * s, pn.ny * h, 3.2, 0, Math.PI * 2);
+    ctx.arc(px(pn.nx), px(pn.ny), 3.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = 'rgba(0,0,0,.6)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    /* 지역 경계 — 방 벽 */
+    /* 지역 경계 — 방 벽(내접 사각형 그대로) */
     ctx.strokeStyle = 'rgba(212,178,110,.55)';
     ctx.lineWidth = 1.2;
-    ctx.strokeRect(1, 1, s - 2, h - 2);
+    ctx.strokeRect(px(0), px(0), k, k);
+
+    ctx.restore();
+
+    /* 테두리와 방위(北) — 사가고 미니맵과 같은 관례(이 판은 위=북 고정,
+       실제 나침반 방위가 아니라 "위가 늘 북"이라는 장식적 약속이다) */
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(c, c, rad, 0, Math.PI * 2); ctx.stroke();
+    ctx.font = '700 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = 'rgba(0,0,0,.75)';
+    ctx.strokeText('北', c, 12);
+    ctx.fillStyle = 'rgba(255,255,255,.82)';
+    ctx.fillText('北', c, 12);
+
+    var tag = node.querySelector('.mm-tag');
+    if (tag) { tag.textContent = M === global.DG.town ? '마을' : ('B' + (run.floor || 1)); }
 
     return drawn;
   }

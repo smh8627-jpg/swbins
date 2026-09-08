@@ -306,24 +306,34 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 }
 .d2-plate { position: relative; min-height: 0; padding: 0; background: none; border: 0; }
 
-/* ── 미니맵 (minimap.js, PLAN 27절) — 지금 방을 위에서 본 판 ─── */
+/* ── 미니맵 (minimap.js, PLAN 27절) — 지금 방을 위에서 본 판 ───
+ * 2026-09-08 — 사가고처럼 좌하단 원형(방위·태그 포함)으로 통일(사용자 요청).
+ * 좌하단은 #widgets(사가고 전용, 이 판은 안 씀)뿐이라 자리가 비어 있다.
+ * 예전 우상단·각진 자리는 #dg-hud/#top(마을 헤더)와 겹치지 않으려던
+ * 방어였는데, 좌하단은 그 헤더들과 애초에 안 겹쳐 그 방어가 필요 없다. */
 #dg-minimap {
-  /* 위쪽은 #dg-hud(층·노획·탈출 단추)가 차지한다 — 그 아래로 내려 겹치지 않게 한다 */
-  position: fixed; right: calc(10px + var(--safe-r)); top: calc(64px + var(--safe-t));
-  z-index: 65; padding: 3px; border-radius: 7px; cursor: pointer; line-height: 0;
+  position: fixed; left: calc(10px + var(--safe-l)); bottom: calc(14px + var(--safe-b)); z-index: 65;
+  padding: 3px; border-radius: 50%; cursor: pointer; line-height: 0;
   display: none;
   border: 1px solid rgba(201, 162, 74, .4);
   background: rgba(10, 8, 5, .4);
   box-shadow: 0 3px 10px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .05);
   transition: width .16s, height .16s, padding .16s;
 }
-/* 마을에서는 #dg-hud 대신 #top(프로필·도구 줄 + 지갑 줄, 두 줄이라 더 크다)이
-   떠 있다 — 64px 로 고정하면 지갑 줄과 겹친다(실기기 신고). ui.js 의
-   syncHeaderStack() 이 매 갱신마다 실측해 넘기는 --below-header 를 쓴다. */
-body.town-open #dg-minimap { top: calc(var(--below-header, 116px) + 8px); }
-#dg-minimap canvas { display: block; border-radius: 4px; }
+#dg-minimap canvas { display: block; border-radius: 50%; }
+#dg-minimap .mm-tag {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: -8px; padding: 1px 7px; border-radius: 999px;
+  background: rgba(10, 8, 5, .75); border: 1px solid rgba(201, 162, 74, .4);
+  font-size: 9.5px; font-weight: 700; color: rgba(232, 226, 210, .85);
+  line-height: 1.5; letter-spacing: -.2px; pointer-events: none;
+}
 #dg-minimap.folded { padding: 0; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; }
 #dg-minimap.folded canvas { display: none; }
+#dg-minimap.folded .mm-tag {
+  position: static; transform: none; display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 50%; font-size: 14px; background: none; border: 0;
+}
 
 /* ── 전체 지도(자동지도) — 디아블로 M키처럼, 화면을 반투명하게 덮는다.
    미니맵과 같은 blips()·norm()을 그대로 재사용해 크게 그린 것뿐이다
