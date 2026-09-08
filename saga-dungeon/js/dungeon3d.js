@@ -39,6 +39,7 @@
   var frame = 0;
   var camPos = null, camLook = null;
   var roomKey = null;              // 지금 세워 둔 방 (바뀌면 벽을 다시 세운다)
+  var fieldWinKey = null;          // 지금 세워 둔 들판 창 위치 (roomKey와 분리 — 아래 buildRoom 주석 참고)
   /** 가림 페이드(§56, 2026-09-06 실기기 제보 "큰 물체 때문에 안 보여") —
    *  카메라~플레이어 사이에 낀 것을 옅게 만든다. `raycaster`는 지연 생성.
    *  `occFade`는 일반 Mesh(건물·벽·`piece()` 소품)를 uuid로, `occInst`는
@@ -77,7 +78,7 @@
   }
   function set(k, v) {
     if (v === null || v === undefined) { delete knobs[k]; } else { knobs[k] = v; }
-    roomKey = null;                       // 방을 다시 세워 값이 곧바로 듣게 한다
+    roomKey = null; fieldWinKey = null;    // 방·들판을 다시 세워 값이 곧바로 듣게 한다
     return knobs;
   }
 
@@ -193,6 +194,11 @@
      그 증거). 등급이 바뀐 바로 다음 프레임의 측정치도 build 와 같은 요령으로
      평균에서 뺀다. */
   var skipNextEma = false;
+  /* 2026-09-08 — ema는 build 프레임을 일부러 평균에서 빼므로(위 lastFrameHadBuild
+     주석) 정작 끊김의 크기를 안 보여준다. 실기기 재현 때 숫자로 바로 보게
+     buildRoom·buildField(창 설정)·fieldJobFinalize(인스턴싱 마무리, 유일하게
+     예산 없이 한 프레임에 몰아 짓는 자리) 각각의 실측 ms를 따로 잰다. */
+  var lastRoomBuildMs = 0, lastFieldSetupMs = 0, lastFieldFinalizeMs = 0;
 
   /** ms 평균 → 등급. **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
   function autoLevelFor(emaMs) {
@@ -1136,7 +1142,9 @@
       fieldJobChunk(J, cx, cz);
     }
     if (J.idx >= J.coords.length) {
+      var finT0 = nowMs();
       fieldJobFinalize(J);
+      lastFieldFinalizeMs = nowMs() - finT0;
       fieldJob = null;
     }
   }
@@ -2214,39 +2222,61 @@
       fldCx0 = Math.round(Math.round(p0x / terrF.CHUNK) / fldStep) * fldStep;
       fldCz0 = Math.round(Math.round(p0y / terrF.CHUNK) / fldStep) * fldStep;
     }
-    var rk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
-             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg +
-             ':fw' + fldCx0 + '_' + fldCz0;
-    /* 2026-09-07 — "이동할 때마다 화면이 갈색(배경)이 된다"(PC·모바일 둘 다)
-       제보. `fw`(들판 창 위치)가 `rk`에 실려 있어 걸을 때마다(칸 경계를
-       넘을 때마다) 이 블록이 다시 도는데, 여기가 던지면 **`roomKey`는 이미
-       바뀐 뒤라 재시도도 안 되고, 이 아래(카메라·조명·실제 렌더 호출)가
-       통째로 안 돈다** — 그 프레임은 `renderer.render()`까지 못 가 화면이
-       멈추거나 빈다. 한 걸음마다 같은 실패가 반복되면 "이동할 때마다"와
-       정확히 들어맞는다. 원인을 아직 못 잡았으니(다음 재현 때 이 경고가
-       콘솔에 실제 스택을 남긴다) 우선 이 자리만 감싸 — 실패해도 이번 칸은
-       옛 그림 그대로 두고 카메라·렌더는 그대로 이어간다. */
-    if (rk !== roomKey) {
-      roomKey = rk;
+    /* 2026-09-08 — buildField() 자체는 위 프레임 예산제 커밋으로 가벼워졌는데도
+       "이동하면 계속 끊긴다" 제보가 실기기(PC·폰 둘 다)에서 이어졌다. 범인은
+       옆에서 같이 걸리던 **buildRoom()** — 옛 `rk` 하나에 방 정체성과 들판 창
+       위치(`:fw...`)를 같이 실어 뒀던 탓에, **방을 나간 적도 없는데 걸어서
+       들판 창만 옮겨도 벽·바닥 텍스처를 다시 잡고 상자/우물/사당 GLB 를
+       다시 클론**했다(방마다 한 번이면 될 무거운 동기 작업이 한 칸 걸을
+       때마다 반복). 방 정체성(roomKey)과 들판 창(fieldWinKey)을 갈라
+       buildRoom()/prefetchActors() 는 **방이 실제로 바뀔 때만** 돈다. */
+    var roomRk = (run.town ? 'town' : run.floor) + ':' + run.roomIdx + ':' +
+             (run.room && run.room.cleared ? 'c' : 'o') + pzProg + capProg + ':sec' + secFound + forageProg;
+    var fwRk = fldCx0 + '_' + fldCz0;
+    var roomChanged = (roomRk !== roomKey);
+    if (roomChanged) {
+      roomKey = roomRk;
       lastFrameHadBuild = true;
+      var roomT0 = nowMs();
       try {
-        prefetchActors(run); buildRoom(run); buildField(run, fldCx0, fldCz0);
+        prefetchActors(run); buildRoom(run);
       } catch (e) {
-        if (global.console) { console.warn('[던전 3D] 방/들판을 다시 짓다가 실패 — 이번 칸은 옛 그림 그대로 둔다', e); }
-        /* 여기서 삼키면 loop()의 바깥쪽 catch(game.js)까지 예외가 안 올라가
-           토스트가 안 뜬다 — "화면이 갈색인데 토스트도 안 뜬다" 제보(2026-09-08)의
-           원인이 바로 이 자리였다. 메시지별 1회만 띄워 도배를 막는다. */
+        if (global.console) { console.warn('[던전 3D] 방을 다시 짓다가 실패 — 이번 칸은 옛 그림 그대로 둔다', e); }
         try {
           var emsg2 = String((e && e.message) || e);
           if (core && core.emit && !fieldBuildErrShown[emsg2]) {
             fieldBuildErrShown[emsg2] = true;
-            core.emit('toast', '⚠️ 지형 재구성 실패: ' + emsg2.slice(0, 140));
+            core.emit('toast', '⚠️ 방 재구성 실패: ' + emsg2.slice(0, 140));
           }
         } catch (e3) { /* 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
       }
+      lastRoomBuildMs = nowMs() - roomT0;
+    }
+    /* 2026-09-07 — "이동할 때마다 화면이 갈색(배경)이 된다"(PC·모바일 둘 다)
+       제보. 들판 창이 걸을 때마다(칸 경계를 넘을 때마다) 다시 걸리는데,
+       여기가 던지면 **이번 칸은 옛 그림 그대로 두고 카메라·렌더는 그대로
+       이어간다** — 그 프레임은 `renderer.render()`까지 항상 가게. 메시지별
+       1회만 띄워 도배를 막는다. */
+    if (roomChanged || fwRk !== fieldWinKey) {
+      fieldWinKey = fwRk;
+      lastFrameHadBuild = true;
+      var fieldT0 = nowMs();
+      try {
+        buildField(run, fldCx0, fldCz0);
+      } catch (e) {
+        if (global.console) { console.warn('[던전 3D] 들판을 다시 짓다가 실패 — 이번 칸은 옛 그림 그대로 둔다', e); }
+        try {
+          var emsg3 = String((e && e.message) || e);
+          if (core && core.emit && !fieldBuildErrShown[emsg3]) {
+            fieldBuildErrShown[emsg3] = true;
+            core.emit('toast', '⚠️ 지형 재구성 실패: ' + emsg3.slice(0, 140));
+          }
+        } catch (e4) { /* 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
+      }
+      lastFieldSetupMs = nowMs() - fieldT0;
     }
     /* buildField()는 이제 창만 정해 두고, 실제 짓기는 매 프레임 예산만큼만
-       나눠 진행한다(위 fieldJobStep 주석) — rk가 안 바뀐 프레임에도 진행 중인
+       나눠 진행한다(위 fieldJobStep 주석) — 위 if가 안 돈 프레임에도 진행 중인
        공사가 있으면 계속 이어야 하므로 if 블록 밖, 매 프레임 부른다. */
     fieldJobStep();
 
@@ -2499,7 +2529,9 @@
     scene.background = new T.Color(bgHex);
     if (frame % 120 === 0) {
       var diagMsg = '📊 tier=' + effectiveLevel() + ' ema=' + perfEma.toFixed(1) +
-        'ms fogFar=' + fogFar.toFixed(0) + ' fieldR=' + fldR + ' camDist=' + aim.dist.toFixed(0);
+        'ms fogFar=' + fogFar.toFixed(0) + ' fieldR=' + fldR + ' camDist=' + aim.dist.toFixed(0) +
+        ' room=' + lastRoomBuildMs.toFixed(1) + 'ms field=' + lastFieldSetupMs.toFixed(1) +
+        'ms finalize=' + lastFieldFinalizeMs.toFixed(1) + 'ms';
       if (global.console) { console.log('[던전 3D 진단]', diagMsg); }
       try { if (core && core.emit) { core.emit('toast', diagMsg); } } catch (e4) { /* 토스트 실패해도 콘솔 로그는 이미 남았다 */ }
     }
