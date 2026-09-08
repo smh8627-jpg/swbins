@@ -208,6 +208,13 @@
      buildRoom·buildField(창 설정)·fieldJobFinalize(인스턴싱 마무리, 유일하게
      예산 없이 한 프레임에 몰아 짓는 자리) 각각의 실측 ms를 따로 잰다. */
   var lastRoomBuildMs = 0, lastFieldSetupMs = 0, lastFieldFinalizeMs = 0;
+  /* 2026-09-08 — room/field/finalize가 다 0인데도(build=false) 튐이 계속
+     실측됐다("사가블로 끊김 추적" 2차) — 그렇다면 무게는 buildRoom/buildField
+     가 아니라 **매 프레임** 도는 다른 구간(배우 갱신·오클루전·후처리)에 있다는
+     뜻이다. 이 넷은 (build 여부와 무관하게) **매 프레임 새로 잰다** — build류와
+     달리 sticky(옛 값 그대로 echo)로 안 남게, 다음 튐 로그가 그 직전 프레임의
+     진짜 breakdown을 보여주게 한다. */
+  var lastActorsMs = 0, lastOcclusionMs = 0, lastFxMs = 0, lastPresentMs = 0;
 
   /** ms 평균 → "이상적인" 등급(지금 등급과 무관하게, 이 프레임 시간만 보면
    *  어디가 맞는지). **순수 함수다** — 자가진단이 실제 프레임 없이 이것만 본다. */
@@ -259,6 +266,8 @@
         lastSpikeLogT = now;
         var spikeMsg = 'dt=' + dtMs.toFixed(1) + 'ms build=' + lastFrameHadBuild +
           ' skipEma=' + skipThis + ' tier=' + effectiveLevel() +
+          ' actors=' + lastActorsMs.toFixed(1) + ' occ=' + lastOcclusionMs.toFixed(1) +
+          ' fx=' + lastFxMs.toFixed(1) + ' present=' + lastPresentMs.toFixed(1) +
           ' room=' + lastRoomBuildMs.toFixed(1) + ' field=' + lastFieldSetupMs.toFixed(1) +
           ' finalize=' + lastFieldFinalizeMs.toFixed(1);
         if (global.console) { console.log('[던전 3D 튐]', spikeMsg); }
@@ -2408,6 +2417,7 @@
     var AS3 = AS();
     var nowT = Date.now() / 1000;
 
+    var actorsT0 = nowMs();
     /* 나 */
     var me = actorOf('me', 'me', null);
     me.node.position.set(plx, meGroundY, ply);
@@ -2557,6 +2567,7 @@
     }
 
     sweep();
+    lastActorsMs = nowMs() - actorsT0;
 
     /* 카메라 — 회전은 막는다(8절). 부드럽게 따라온다 */
     /* 마을은 세로 폰 화면에서 너무 멀리·작게 보인다는 실기기 지적(2026-09-01)에
@@ -2603,7 +2614,10 @@
     camLook.lerp(look, 0.14);
     camera.position.copy(camPos);
     camera.lookAt(camLook);
+    var occT0 = nowMs();
     updateOcclusion(camera.position, plx, meGroundY + 44, ply);
+    lastOcclusionMs = nowMs() - occT0;
+    var fxT0 = nowMs();
     if (FX) {
       /* 화면 흔들림 — 상한은 fx3d 가 진다 (51절) */
       var sk = FX.shakeAmt();
@@ -2615,18 +2629,24 @@
       /* 연출은 카메라가 정해진 뒤에 앉힌다 */
       FX.step(run, d().fx(), camera);
     }
+    lastFxMs = nowMs() - fxT0;
 
     /* 후처리를 거치거나(있고 켜져 있을 때) 곧바로 그린다 — 사가고 `world3d.js`
        의 `present()` 와 같은 꼴이다. **두 길 다 톤매핑은 한 번 걸린다**
        (`post3d.js` 머리 참고) */
+    var presentT0 = nowMs();
     var P3 = global.DG.post3d;
     if (P3) {
-      if (P3.draw(renderer, scene, camera, { alt: postAlt(L), weather: 'clear' })) { return true; }
+      if (P3.draw(renderer, scene, camera, { alt: postAlt(L), weather: 'clear' })) {
+        lastPresentMs = nowMs() - presentT0;
+        return true;
+      }
       /* 후처리가 켜졌다 꺼졌을 수 있다(등급이 LOW 로 내려간 순간) — 마지막으로
          쓰던 렌더 타깃이 물려 있으면 캔버스가 검게 남는다 */
       renderer.setRenderTarget(null);
     }
     renderer.render(scene, camera);
+    lastPresentMs = nowMs() - presentT0;
     return true;
   }
 
