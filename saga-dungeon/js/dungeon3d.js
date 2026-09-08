@@ -1010,10 +1010,25 @@
    * 조각마다 개별 draw call 이 붙던 자리를 kind·GLB 파일당 몇 개로 줄인다.
    * 모듈이 없으면(방어적 기본값) 옛 방식(개별 piece())으로 그대로 돌아간다.
    */
+  /* 2026-09-08 — "움직이면 끊긴다" 실기기 로그 실측(LOW 등급인데도
+     ema=82ms). 범인은 이 함수 자신이었다 — 칸(최대 (2R+1)² 개)마다 땅 한
+     장·초목·바위를 전부 **한 프레임에** 동기로 짓는다. 재구성 빈도를
+     줄여도(위 fldStep) 재구성 자체의 무게는 그대로라 걸을 때마다 한 번씩
+     그 무게가 통째로 튄다. 통짜 함수를 "시작"(창 정하고 짤 칸 목록만 세움)과
+     "한 조각 짓기"로 쪼개, 매 프레임 예산(FIELD_BUILD_BUDGET_MS)만큼만
+     짓고 나머지는 다음 프레임으로 넘긴다 — 총 짓는 시간은 같아도 한 프레임에
+     몰리지 않아 히트(hitch)가 없다. */
+  var fieldJob = null;
+  var FIELD_BUILD_BUDGET_MS = 4;
+
+  function nowMs() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }
+
+  /** 창을 정하고 지을 칸 목록만 세운다 — 무거운 건 하나도 안 짓는다(순간). */
   function buildField(run, cx0, cz0) {
     var F = global.DG.field3d;
     if (!fieldGroup) { return; }
     while (fieldGroup.children.length) { fieldGroup.remove(fieldGroup.children[0]); }
+    fieldJob = null;
     if (!F || !FIELD()) { fieldKey = null; return; }
     /* PLAN §57 — cx0,cz0(호출부가 플레이어 쪽으로 맞춰 준 창 중심, 없으면
        0=방 중심)만큼 통째로 밀어 짓는다. anc는 그대로라 seed 산식(cx,cz를
@@ -1027,7 +1042,6 @@
     var seed = F.seedOf(run.floor, run.roomIdx, th && th.name);
     var R = fieldVisR(run), dens = FIELD_D();
     var stone = themeHex(run);
-    var cx, cz, i;
     /* 땅 밑색 — 원래 0.62 로 무조건 `0x141018`(거의 검정) 쪽에 바짝 붙여
        **실기기 "들판에 새까만 사각형"** 으로 이어졌다(2026-09-04, 세 번째
        재조사). 마을(town)의 조명(`lightPlan`의 ambient 0.86·key 1.15)은
@@ -1040,66 +1054,91 @@
        분위기는 그대로 둔다(그쪽은 제보가 없었다, `lightPlan`도 원래 어둡게
        짠 자리라 손 안 댐). */
     var groundK = run.town ? 0.15 : 0.62;
-
     var FI = global.DG.fieldInstance;
-    var natItems = FI ? [] : null;
 
-    /* 바깥 땅 — 조각마다 한 판씩 깔고 **네 귀퉁이의 높이**로 기울인다.
-       한 판을 크게 깔면 높낮이가 안 나온다(4절이 바라는 것이 그 높낮이다) */
-    for (cz = cz0 - R; cz <= cz0 + R; cz++) {
-      for (cx = cx0 - R; cx <= cx0 + R; cx++) {
-        var ring = F.ringOf(cx, cz, W, H);
-        if (ring === 0) { continue; }             // 방이 걸친 조각은 방 바닥이 맡는다
-        var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
-        var hh = F.heightAt(gx + F.CHUNK / 2, gz + F.CHUNK / 2, seed, W, H);
-        var tile = box(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
-          F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), 'flat', false);
-        tile.receiveShadow = true;
+    var coords = [];
+    for (var cz = cz0 - R; cz <= cz0 + R; cz++) {
+      for (var cx = cx0 - R; cx <= cx0 + R; cx++) { coords.push(cx, cz); }
+    }
+    fieldJob = {
+      F: F, coords: coords, idx: 0, W: W, H: H, seed: seed, R: R, dens: dens,
+      stone: stone, groundK: groundK, th: th, FI: FI, natItems: FI ? [] : null,
+      corridors: run.corridors
+    };
+  }
 
-        /* 통로(PLAN §28-2 Phase 3, §28-4 Phase 2·3) — 이 조각이 마을 사이
-           통로의 결 안이면 목적지 테마(`통로:<id>`)로, 던전 계단문 통로의
-           결 안이면 `통로:계단`으로, 그 밖(방-방 통로 포함)은 지금 층/마을
-           테마로. `run.corridors`가 없으면 늘 null — fieldBlockedAt()과
-           정확히 같은 판정을 쓴다. */
-        var cTheme = (run.corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, W, H, run.corridors) : null;
-        /* th.biome(PLAN §28-8 Phase 3) — dungeon.js의 fieldBlockedAt과
-           같은 이유로 같은 자리에 같은 순서로 얹었다(그림 대 판정이
-           어긋나면 안 된다). seed(위)는 그대로 th.name — 마을마다 고유한
-           지형 패턴은 유지하고, 가중치 표만 biome으로 묶는다. */
-        var list = F.chunkAt(cx, cz, seed, ring, dens, cTheme || (th && (th.biome || th.name)));
-        for (i = 0; i < list.length; i++) {
-          if (FI && NATURAL_KIND[list[i].t]) { natItems.push(natItem(F, list[i], seed, W, H)); }
-          else { piece(list[i], seed, W, H, stone); }
-        }
-        /* 잡초 층 — 순수 장식(판정 안 닿음), field3d.js clutterAt() 참고.
-           `th`(층 테마)를 같이 넘긴다 — PLAN 9절 Biome, 2026-09-05 field3d.js
-           kindOf() 감사 참고: 색깔만 다르고 오브젝트 비율은 안 갈리던 것을 고쳤다 */
-        if (F.clutterAt) {
-          var deco = F.clutterAt(cx, cz, seed, ring, dens, cTheme || (th && (th.biome || th.name)));
-          for (i = 0; i < deco.length; i++) {
-            if (FI && NATURAL_KIND[deco[i].t]) { natItems.push(natItem(F, deco[i], seed, W, H)); }
-            else { piece(deco[i], seed, W, H, stone); }
-          }
-        }
+  /** 칸 하나 — 옛 buildField() 이중 루프의 몸통 그대로(짓는 내용은 안 바뀜) */
+  function fieldJobChunk(J, cx, cz) {
+    var F = J.F, W = J.W, H = J.H, seed = J.seed, dens = J.dens, stone = J.stone,
+      groundK = J.groundK, th = J.th, FI = J.FI, natItems = J.natItems, i;
+    var ring = F.ringOf(cx, cz, W, H);
+    if (ring === 0) { return; }               // 방이 걸친 조각은 방 바닥이 맡는다
+    var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
+    var hh = F.heightAt(gx + F.CHUNK / 2, gz + F.CHUNK / 2, seed, W, H);
+    var tile = box(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
+      F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), 'flat', false);
+    tile.receiveShadow = true;
+
+    /* 통로(PLAN §28-2 Phase 3, §28-4 Phase 2·3) — 이 조각이 마을 사이
+       통로의 결 안이면 목적지 테마(`통로:<id>`)로, 던전 계단문 통로의
+       결 안이면 `통로:계단`으로, 그 밖(방-방 통로 포함)은 지금 층/마을
+       테마로. `run.corridors`가 없으면 늘 null — fieldBlockedAt()과
+       정확히 같은 판정을 쓴다. */
+    var cTheme = (J.corridors && F.corridorNameAt) ? F.corridorNameAt(cx, cz, W, H, J.corridors) : null;
+    /* th.biome(PLAN §28-8 Phase 3) — dungeon.js의 fieldBlockedAt과
+       같은 이유로 같은 자리에 같은 순서로 얹었다(그림 대 판정이
+       어긋나면 안 된다). seed(위)는 그대로 th.name — 마을마다 고유한
+       지형 패턴은 유지하고, 가중치 표만 biome으로 묶는다. */
+    var list = F.chunkAt(cx, cz, seed, ring, dens, cTheme || (th && (th.biome || th.name)));
+    for (i = 0; i < list.length; i++) {
+      if (FI && NATURAL_KIND[list[i].t]) { natItems.push(natItem(F, list[i], seed, W, H)); }
+      else { piece(list[i], seed, W, H, stone); }
+    }
+    /* 잡초 층 — 순수 장식(판정 안 닿음), field3d.js clutterAt() 참고.
+       `th`(층 테마)를 같이 넘긴다 — PLAN 9절 Biome, 2026-09-05 field3d.js
+       kindOf() 감사 참고: 색깔만 다르고 오브젝트 비율은 안 갈리던 것을 고쳤다 */
+    if (F.clutterAt) {
+      var deco = F.clutterAt(cx, cz, seed, ring, dens, cTheme || (th && (th.biome || th.name)));
+      for (i = 0; i < deco.length; i++) {
+        if (FI && NATURAL_KIND[deco[i].t]) { natItems.push(natItem(F, deco[i], seed, W, H)); }
+        else { piece(deco[i], seed, W, H, stone); }
       }
     }
-    if (FI && natItems.length) {
+  }
+
+  /** 목록을 다 돌면 인스턴싱 마무리 — 옛 buildField() 꼬리 그대로 */
+  function fieldJobFinalize(J) {
+    var natItems = J.natItems, FI = J.FI, i;
+    if (FI && natItems && natItems.length) {
       var built = FI.build(natItems);
       if (built && built.children && built.children.length) { fieldGroup.add(built); }
       else {
         /* 방어적 — 인스턴싱이 뭔가 잘못돼(폴백조차 못 세웠으면) 아무것도
-           안 보이는 것보다는 옛 개별 piece() 방식으로 되돌아간다. 폴백
-           상자는 buildKind() 안에서 항상 동기로 먼저 세우므로, 정상이라면
-           이 시점에 children 이 최소 kind 수만큼은 있어야 한다 — 0 이면
-           뭔가 실패했다는 뜻이다(2026-09-06, 실기기 검증을 못 마친 채
-           들여서 남긴 안전망). */
+           안 보이는 것보다는 옛 개별 piece() 방식으로 되돌아간다. */
         for (i = 0; i < natItems.length; i++) {
           var ni = natItems[i];
-          piece({ t: ni.kind, x: ni.x, z: ni.z, s: ni.s, rot: ni.rot, h: ni.h }, seed, W, H, stone);
+          piece({ t: ni.kind, x: ni.x, z: ni.z, s: ni.s, rot: ni.rot, h: ni.h }, J.seed, J.W, J.H, J.stone);
         }
       }
     }
-    fieldKey = seed + ':' + R + ':' + Math.round(dens * 100);
+    fieldKey = J.seed + ':' + J.R + ':' + Math.round(J.dens * 100);
+  }
+
+  /** 매 프레임 부른다 — 진행 중인 들판 공사가 있으면 예산만큼만 이어 짓는다. */
+  function fieldJobStep() {
+    if (!fieldJob) { return; }
+    lastFrameHadBuild = true;   // 조각 몇 개라도 지었으면 이 프레임 측정치도 평균에서 뺀다
+    var J = fieldJob;
+    var deadline = nowMs() + FIELD_BUILD_BUDGET_MS;
+    while (J.idx < J.coords.length && nowMs() < deadline) {
+      var cx = J.coords[J.idx], cz = J.coords[J.idx + 1];
+      J.idx += 2;
+      fieldJobChunk(J, cx, cz);
+    }
+    if (J.idx >= J.coords.length) {
+      fieldJobFinalize(J);
+      fieldJob = null;
+    }
   }
 
   /** 들판 조각 하나를 도형으로 세운다 — 나무·바위는 사가고와 같은 GLB, 나머지는
@@ -2206,6 +2245,10 @@
         } catch (e3) { /* 토스트 자체가 죽어도 렌더는 계속 이어간다 */ }
       }
     }
+    /* buildField()는 이제 창만 정해 두고, 실제 짓기는 매 프레임 예산만큼만
+       나눠 진행한다(위 fieldJobStep 주석) — rk가 안 바뀐 프레임에도 진행 중인
+       공사가 있으면 계속 이어야 하므로 if 블록 밖, 매 프레임 부른다. */
+    fieldJobStep();
 
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());
