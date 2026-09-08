@@ -800,6 +800,12 @@
 
   function tick(now) {
     if (!active()) { loopRunning = false; return; }
+    /* 화면에 보이는 채로 다른 창을 쓰는 중이면 렌더를 쉰다 — 안 그러면
+       천천히 도는 카메라만으로도 계속 GPU 를 잡아먹는다(2026-09-08) */
+    if (document.hidden || !document.hasFocus()) {
+      global.setTimeout(function () { requestAnimationFrame(tick); }, 500);
+      return;
+    }
     yaw += (targetYaw - yaw) * 0.15;
     pitch += (targetPitch - pitch) * 0.15;
     dist += (targetDist - dist) * 0.15;

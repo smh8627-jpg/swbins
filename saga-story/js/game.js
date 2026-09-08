@@ -62,6 +62,7 @@
       if (document.hidden) { core.persist(); }
       else { core.save.lastSeen = Date.now(); }
     });
+    global.addEventListener('blur', function () { core.persist(); }); // 포커스만 잃어도 저장
   }
 
   /* 키보드 — **원작 배치**다.
@@ -259,6 +260,15 @@
   var freeze = 0;
 
   function loop(now) {
+    /* 탭이 숨겨졌거나 창이 포커스를 잃으면 3D 를 완전히 멈춘다 — "화면엔
+       보이는데 다른 창을 쓰는 중"은 브라우저가 알아서 안 줄여 준다. 이 판이
+       그 상태로 계속 풀가동해 다른 작업 CPU 를 잡아먹는다는 제보로 추가
+       (2026-09-08) */
+    if (document.hidden || !document.hasFocus()) {
+      lastFrame = now;
+      global.setTimeout(function () { requestAnimationFrame(loop); }, 500);
+      return;
+    }
     var dt = Math.min((now - lastFrame) / 1000, 0.1);
     lastFrame = now;
 

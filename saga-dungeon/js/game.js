@@ -175,6 +175,7 @@
       if (document.hidden) { core.persist(); }
       else { core.save.lastSeen = Date.now(); }
     });
+    global.addEventListener('blur', function () { core.persist(); }); // 포커스만 잃어도 저장
   }
 
   function bindTopbar() {
@@ -310,6 +311,15 @@
      (걷는 도중 조우·방 전환처럼 상태 의존적으로만 터지는 예외라 자가진단·
      로딩 확인으로는 못 잡았다, 2026-09-04 "사가블로가 멈춘다" 제보로 확인) */
   function loop(now) {
+    /* 탭이 숨겨졌거나 창이 포커스를 잃으면 3D 를 완전히 멈춘다 — "화면엔
+       보이는데 다른 창을 쓰는 중"은 브라우저가 알아서 안 줄여 준다. 이 판이
+       그 상태로 계속 풀가동해 다른 작업 CPU 를 잡아먹는다는 제보로 추가
+       (2026-09-08) */
+    if (document.hidden || !document.hasFocus()) {
+      lastFrame = now;
+      global.setTimeout(function () { requestAnimationFrame(loop); }, 500);
+      return;
+    }
     try {
       var wallNow = performance.now();
       if (lastLoopWallT !== 0) {

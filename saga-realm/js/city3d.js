@@ -238,6 +238,12 @@
   /** 궤도 카메라를 손대지 않고 천천히 저절로 돈다 — 손잡이를 하나 더 두지 않는다 */
   function tick() {
     if (!active()) { loopRunning = false; return; }
+    /* 화면에 보이는 채로 다른 창을 쓰는 중이면 렌더를 쉰다 — 안 그러면
+       천천히 도는 카메라만으로도 계속 GPU 를 잡아먹는다(2026-09-08) */
+    if (document.hidden || !document.hasFocus()) {
+      global.setTimeout(function () { requestAnimationFrame(tick); }, 500);
+      return;
+    }
     spin += 0.0035;
     var dist = TIER_H.t3 * 2.6;
     camera.position.set(Math.sin(spin) * dist, TIER_H.t3 * 1.5, Math.cos(spin) * dist);
