@@ -2164,7 +2164,12 @@
        있을 때 미리) 다시 짓는다 — 매 프레임 다시 짓는 낭비도, 창 가장자리에
        닿고 나서야 뒤늦게 짓는 틈도 없다. */
     var fldR = (terrF && FIELD()) ? fieldVisR(run) : 0;
-    var fldStep = Math.max(1, fldR - 2);
+    /* 2026-09-08 — "움직이면 계속 끊긴다" 실기기 제보. LOW 등급(FIELD_R()=2)
+       에서는 이 값이 max(1, 2-2)=1 칸(200유닛)뿐이라, 절반(100유닛)만
+       걸어도 창을 벗어나 buildField()가 다시 걸린다 — 가벼우라고 낮춘 LOW가
+       오히려 재구성을 가장 자주 부르는 역설이었다. 최소 2칸으로 넉넉히
+       잡아 저사양일수록 더 자주 재구성하는 역전을 없앤다. */
+    var fldStep = Math.max(2, fldR - 1);
     var fldCx0 = 0, fldCz0 = 0;
     if (terrF && FIELD()) {
       fldCx0 = Math.round(Math.round(p0x / terrF.CHUNK) / fldStep) * fldStep;
