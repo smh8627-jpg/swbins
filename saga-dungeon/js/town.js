@@ -882,6 +882,47 @@
     return !!(core.save.town && core.save.town.seen && core.save.town.seen[cx + ',' + cz]);
   }
 
+  /* 2026-09-08 — "다른 마을 가기가 너무 불편해"(사용자). 마을 사이가
+     전부 걸어서만 이어지는 건(§28-8) 그대로 두고, **가 본 마을**로 한정한
+     역참(웨이포인트, 이미 있는 원작 개념 — 위 waypoint 표식이 이제껏
+     던전 층만 목록으로 냈다)을 마을에도 얹는다. `core.save.town.seen`은
+     칸(포그오브워) 단위라 "마을 자체를 가 봤다"를 못 가른다 — id별로
+     따로 쌓는다. */
+  function markTownVisited(id) {
+    if (!id || !core.save.town) { return; }
+    if (!core.save.town.visited) { core.save.town.visited = {}; }
+    core.save.town.visited[id] = 1;
+  }
+  /** 가 본 마을 id 목록(지금 있는 곳은 뺀다) — TOWN_ORDER 순서 그대로 */
+  function visitedTownIds() {
+    var v = (core.save.town && core.save.town.visited) || {}, out = [], i, id;
+    for (i = 0; i < TOWN_ORDER.length; i++) {
+      id = TOWN_ORDER[i];
+      if (v[id] && id !== CURRENT_TOWN) { out.push(id); }
+    }
+    return out;
+  }
+  /**
+   * 역참으로 가 본 마을로 곧장 옮긴다 — 걸어가지 않고 그 마을의 기본
+   * 스폰(defaultSpawn)에 세운다. 가 본 적 없는 마을은 거절한다(원작
+   * 웨이포인트가 밟은 곳만 여는 것과 같은 규칙). 전투 중 상태(fx·armed)는
+   * 굳이 안 지운다 — `_reset()`(자가진단 전용)과 달리 실제 진행을 건드리지
+   * 않는다, 방(room)만 새 마을 것으로 다시 짓는다.
+   */
+  function travelToTown(id) {
+    if (!player || !TOWNS[id]) { return false; }
+    if (!(core.save.town && core.save.town.visited && core.save.town.visited[id])) { return false; }
+    var sp = defaultSpawn(id);
+    player.x = sp.x; player.y = sp.y;
+    target = null;
+    CURRENT_TOWN = id;
+    room = null;
+    build();
+    saveWorldPos();
+    core.persist();
+    return true;
+  }
+
   /**
    * 마을 하나를 세계 좌표에 짓는다(PLAN §28-8) — CURRENT_TOWN 이 가리키는
    * 마을을 anchorOf(CURRENT_TOWN) 자리에 앉힌다. **플레이어 위치는 안
@@ -1030,6 +1071,7 @@
        마을 사이는 걸어서 자연히 건너가므로 "지금 있던 마을"이라는 개념이
        CURRENT_TOWN 에 저장돼 있지 않고 매번 좌표로 다시 구해진다). */
     CURRENT_TOWN = opts.fromDungeon ? 'moru' : pickActiveTown(player.x, player.y);
+    markTownVisited(CURRENT_TOWN);
     build();
     /* 던전에서 막 나온 참이면 굴혈 앞에 세운다 — 나온 자리에 서 있어야
        "다시 들어간다" 가 한 걸음이다. 다만 입구에 **닿은 채로** 세우면
@@ -1167,7 +1209,7 @@
        옛 방 사각형에 도로 갇힐 수 있다). */
     var nextTown = pickActiveTown(player.x, player.y);
     if (nextTown !== CURRENT_TOWN) {
-      CURRENT_TOWN = nextTown; build();
+      CURRENT_TOWN = nextTown; markTownVisited(CURRENT_TOWN); build();
       /* 세이브 갈무리 — 옛 travel()이 마을을 건널 때마다 세이브했던 것과
          같은 자리(활성 마을이 갈리는 순간)에 건다. 매 틱 저장하면 너무
          잦다 — 이 정도 빈도면 충분하고, 앱이 죽어도 최근 지난 마을/들판
@@ -1300,6 +1342,9 @@
     },
     pickActiveTown: pickActiveTown, nearestTownId: nearestTownId, footprintDist: footprintDist,
     nearbyTownIds: nearbyTownIds,
+    /** 역참(웨이포인트)의 "다른 마을로" 목록 — ui.js openWaypoint()가 읽는다 */
+    visitedTownIds: visitedTownIds, travelToTown: travelToTown,
+    nameOf: function (id) { return cfgOf(id).name; },
     /** PLAN §28-8 Phase 2(자동지도) — minimap.js가 읽는다. worldKindAt·
      *  isSeen 은 순수(three 필요 없음), currentAnchor 는 raw()와 같은 값을
      *  raw() 없이(town 이 꺼져 있어도) 셀 수 있게 한다. */

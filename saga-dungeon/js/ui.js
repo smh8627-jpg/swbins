@@ -155,6 +155,15 @@
         global.DG.dungeon.enter({ floor: wf });
         return;
       }
+      if (act === 'town-travel') {
+        var tid = b.getAttribute('data-town');
+        if (global.DG.town && global.DG.town.travelToTown(tid)) {
+          var tname = global.DG.town.nameOf(tid);
+          encClose();
+          toast('🗺️ ' + tname + '로 이동했습니다');
+        }
+        return;
+      }
       if (act === 'town-mode') {
         global.DG.dungeon.setMode(b.getAttribute('data-mode'));
         openWaypoint();
@@ -638,7 +647,7 @@
    * 난도도 여기서 고른다(예전에는 본영 카드에 있었다).
    */
   function openWaypoint() {
-    var D = global.DG.dungeon;
+    var D = global.DG.dungeon, T = global.DG.town;
     var wp = D.waypoint(), every = D.WAYPOINT_EVERY;
     var open = D.modesOpen(), cur = D.mode(), mi, f;
     var html = '<div class="enc-card">' +
@@ -666,7 +675,24 @@
       html += '<div class="hint">아직 밟은 역참이 없습니다 — <b>제' + every +
         '층</b>에 닿으면 여기 뜹니다. 굴혈 🕳️ 로 들어가서 밟으십시오.</div>';
     }
-    html += '</div><button class="btn primary wide" data-act="enc-close">닫는다</button></div>';
+    html += '</div>';
+    /* 2026-09-08 — "다른 마을 가기가 너무 불편해"(사용자). 마을 사이는
+       여전히 걸어서 이어지지만(§28-8), 이미 가 본 마을은 역참으로 곧장
+       갈 수 있게 한다 — 원작 웨이포인트가 "밟은 곳만" 여는 것과 같은 규칙. */
+    if (T && T.visitedTownIds) {
+      var vids = T.visitedTownIds();
+      html += '<div class="sec"><h4>🗺️ 다른 마을로</h4>';
+      if (vids.length) {
+        for (var vi = 0; vi < vids.length; vi++) {
+          html += '<button class="btn wide" data-act="town-travel" data-town="' + vids[vi] + '">' +
+            '🏘️ ' + esc(T.nameOf(vids[vi])) + '로</button>';
+        }
+      } else {
+        html += '<div class="hint">아직 가 본 다른 마을이 없습니다 — 걸어서 한 번 닿으면 여기 뜹니다.</div>';
+      }
+      html += '</div>';
+    }
+    html += '<button class="btn primary wide" data-act="enc-close">닫는다</button></div>';
     encOpen(html);
   }
 
