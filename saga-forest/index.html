@@ -22,6 +22,15 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <canvas id="map"></canvas>
 <canvas id="map3d"></canvas>
 <div id="vignette"></div>
+<!-- 가상 조이스틱 — 터치 기기에서만 보인다(village-view.js) -->
+<div id="vjoy"><div id="vjoy-knob"></div></div>
+<!-- PC 마우스 클릭 방향버튼 — 터치가 아닐 때만 보인다(village-view.js) -->
+<div id="vpad">
+  <button data-dir="up">▲</button>
+  <button data-dir="left">◀</button>
+  <button data-dir="down">▼</button>
+  <button data-dir="right">▶</button>
+</div>
 
 <!-- 상단: 프로필 · 재화 · 도구 — 자동·손쓰기만 붙박이, 나머지는 더보기 뒤로
      (사가스토리·사가국지와 같은 결) -->
@@ -62,6 +71,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
     <button data-sheet="build" style="display:none"><span>🪧</span><small>공사</small></button>
     <button data-sheet="dex"><span>📖</span><small>도감</small></button>
     <button data-sheet="log"><span>📜</span><small>기록</small></button>
+    <button data-sheet="keys"><span>⌨️</span><small>키설정</small></button>
   </div>
   <button data-sheet="bag"><span>🎒</span><small>가방</small></button>
   <!-- 전체지도 — 구면 마을을 펼쳐서 보는 M키식 토글 (PLAN 34-1절) -->

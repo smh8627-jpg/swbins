@@ -727,8 +727,36 @@
 
   /* ── 걷기 ─────────────────────────────────────────────── */
 
+  /* 2026-09-09 — "키세팅이 있어야겠지"(사가블로와 같은 요청). WASD·방향키는
+     그대로 두고(실수로 못 쓰게 되면 안 된다), 방향별로 하나 더 쓸 키만
+     고르게 한다. */
+  var KEYMAP_DEFAULT = { up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright' };
+  var remapping = null;
+  function keymap() {
+    var s = core.save && core.save.settings;
+    var km = s && s.keymap;
+    if (!km) { return KEYMAP_DEFAULT; }
+    var out = {}, k;
+    for (k in KEYMAP_DEFAULT) { out[k] = km[k] || KEYMAP_DEFAULT[k]; }
+    return out;
+  }
+  function setKeymapKey(action, key) {
+    if (!core.save || !core.save.settings) { return; }
+    core.save.settings.keymap = keymap();
+    core.save.settings.keymap[action] = key;
+    core.persist();
+  }
+  function beginRemap(action) { remapping = action; }
+
   function bindKeys() {
     global.addEventListener('keydown', function (e) {
+      if (remapping) {
+        if (e.key !== 'Escape') { setKeymapKey(remapping, e.key.toLowerCase()); }
+        remapping = null;
+        core.emit('dg:keyremap');
+        e.preventDefault();
+        return;
+      }
       keys[e.key.toLowerCase()] = true;
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) >= 0) {
         if (e.target === document.body) { e.preventDefault(); }
@@ -741,13 +769,23 @@
 
   function walkTo(x, y) { target = { x: x, y: y }; }
 
+  /* 2026-09-09 — 가상 조이스틱(village-view.js #vjoy). walkTo(절대 좌표)는
+     화면을 계속 눌러 끄는 예전 조작에 맞춰져 있어, 고정 조이스틱처럼
+     "이 방향으로 계속" 을 표현할 자리가 없었다. keys(WASD)와 같은 자리에
+     방향 벡터 하나만 더 둔다 — 손을 떼면 반드시 (0,0)으로 돌아와야 한다
+     (그렇지 않으면 마지막 방향으로 계속 걷는다). */
+  var joy = { x: 0, y: 0 };
+  function setJoy(dx, dy) { joy.x = dx; joy.y = dy; }
+
   function update(dt) {
+    var km = keymap();
     var dx = 0, dy = 0;
-    if (keys.w || keys.arrowup) { dy -= 1; }
-    if (keys.s || keys.arrowdown) { dy += 1; }
-    if (keys.a || keys.arrowleft) { dx -= 1; }
-    if (keys.d || keys.arrowright) { dx += 1; }
+    if (keys.w || keys.arrowup || keys[km.up]) { dy -= 1; }
+    if (keys.s || keys.arrowdown || keys[km.down]) { dy += 1; }
+    if (keys.a || keys.arrowleft || keys[km.left]) { dx -= 1; }
+    if (keys.d || keys.arrowright || keys[km.right]) { dx += 1; }
     if (dx || dy) { target = null; }
+    else if (joy.x || joy.y) { dx = joy.x; dy = joy.y; target = null; }
     else if (target) {
       var tx = target.x - player.x, ty = target.y - player.y;
       var td = Math.sqrt(tx * tx + ty * ty);
@@ -1391,7 +1429,8 @@
   global.DG = global.DG || {};
   global.DG.village = {
     W: W, H: H, TILE: TILE, REACH: REACH,
-    init: init, update: update, bindKeys: bindKeys, walkTo: walkTo,
+    init: init, update: update, bindKeys: bindKeys, walkTo: walkTo, setJoy: setJoy,
+    keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; },
     tileAt: tileAt, walkable: walkable,
     focus: focus, interact: interact, spent: spent,
     talk: talk, requestOf: requestOf, friendOf: friendOf,
@@ -1417,6 +1456,9 @@
     raw: function () {
       return { player: player, props: props, residents: residents,
                animals: animals, npcs: npcs, fishing: fishing };
-    }
+    },
+    /** 2026-09-09 — "클릭한 곳이 안 보인다"(사가블로와 같은 재신고). 화면이
+     *  target 을 그릴 수 있게 읽기 전용으로 내준다. */
+    moveTarget: function () { return target; }
   };
 })(window);

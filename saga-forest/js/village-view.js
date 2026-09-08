@@ -66,6 +66,81 @@
     } else {
       cv.addEventListener('click', onClick);
     }
+    initJoy();
+  }
+
+  /* 2026-09-09 — "움직이는 게 너무 힘들다"(모바일 재신고, 사가블로와 같은
+     제보). 화면 아무 데나 눌러 그 지점으로 걷는 위 onDown/onMove 방식은
+     카메라가 늘 사람을 한가운데 두는 이 판(구면 투영)에서는 특히,
+     계속 다시 짚어야 방향이 유지돼 손이 피곤했다. 고정 조이스틱(#vjoy)을
+     얹는다 — 이 원 안에서 시작한 손가락만 받고, 원 중심 기준 방향을
+     village.js의 setJoy(dx,dy)에 그대로 먹인다. PC 마우스는 기존 드래그
+     그대로 쓴다(터치 기기에서만 보이게 한다). */
+  function initJoy() {
+    var joyEl = document.getElementById('vjoy');
+    var joyKnob = document.getElementById('vjoy-knob');
+    if (!joyEl || !joyKnob) { return; }
+    var isTouch = !!(('ontouchstart' in global) || (navigator.maxTouchPoints > 0));
+    if (isTouch) { joyEl.classList.add('show'); }
+    initPad(isTouch);
+    var joyId = null, joyCX = 0, joyCY = 0;
+    var JOY_R = 46, JOY_DEAD = 8;
+    function knobAt(dx, dy) { joyKnob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; }
+    function reset() { joyId = null; knobAt(0, 0); V.setJoy(0, 0); }
+    joyEl.addEventListener('pointerdown', function (e) {
+      if (joyId !== null) { return; }
+      var r = joyEl.getBoundingClientRect();
+      joyCX = r.left + r.width / 2; joyCY = r.top + r.height / 2;
+      joyId = e.pointerId;
+      joyEl.setPointerCapture && joyEl.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    joyEl.addEventListener('pointermove', function (e) {
+      if (e.pointerId !== joyId) { return; }
+      var dx = e.clientX - joyCX, dy = e.clientY - joyCY;
+      var len = Math.hypot(dx, dy);
+      var kx = len > JOY_R ? dx / len * JOY_R : dx, ky = len > JOY_R ? dy / len * JOY_R : dy;
+      knobAt(kx, ky);
+      if (len < JOY_DEAD) { V.setJoy(0, 0); return; }
+      V.setJoy(dx / len, dy / len);
+      e.preventDefault();
+    });
+    function release(e) { if (e.pointerId === joyId) { reset(); } }
+    joyEl.addEventListener('pointerup', release);
+    joyEl.addEventListener('pointercancel', release);
+    joyEl.addEventListener('pointerleave', release);
+  }
+
+  /* 2026-09-09 — "피시에서는 마우스 클릭 버튼으로"(사용자 요청). 조이스틱과
+     같은 자리에 터치가 아닐 때만 보이는 네 방향 버튼(#vpad) — 누르고 있는
+     동안 그 방향으로 V.setJoy() 를 먹인다(대각선은 두 버튼을 함께 눌러
+     낸다, keys 의 결과 방식과 같다). */
+  function initPad(isTouchDev) {
+    var padEl = document.getElementById('vpad');
+    if (!padEl) { return; }
+    if (!isTouchDev) { padEl.classList.add('show'); }
+    var held = { up: false, down: false, left: false, right: false };
+    function apply() {
+      var dx = (held.left ? -1 : 0) + (held.right ? 1 : 0);
+      var dy = (held.up ? -1 : 0) + (held.down ? 1 : 0);
+      var len = Math.hypot(dx, dy);
+      V.setJoy(len ? dx / len : 0, len ? dy / len : 0);
+    }
+    var btns = padEl.querySelectorAll('button[data-dir]');
+    for (var pi = 0; pi < btns.length; pi++) {
+      (function (btn) {
+        var dir = btn.getAttribute('data-dir');
+        btn.addEventListener('pointerdown', function (e) {
+          held[dir] = true; apply();
+          btn.setPointerCapture && btn.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        });
+        function release2() { held[dir] = false; apply(); }
+        btn.addEventListener('pointerup', release2);
+        btn.addEventListener('pointercancel', release2);
+        btn.addEventListener('pointerleave', release2);
+      })(btns[pi]);
+    }
   }
 
   function resize() {
@@ -183,6 +258,20 @@
     drawSky(ph, se, now);
     drawFarShore(ph, se);
     drawGround(T, se, now);
+
+    /* 2026-09-09 — "클릭한 곳이 안 보인다"(사가블로와 같은 재신고). walkTo()
+       로 찍은 목표를 바닥에 원으로 표시한다 — 도착하거나(V.js의 target=null)
+       조이스틱 등 다른 입력이 오면 다음 프레임에 저절로 사라진다. */
+    var mtgt = V.moveTarget();
+    if (mtgt) {
+      var mp = project(mtgt.x, mtgt.y);
+      var mr = 13 * mp.s * (1 + Math.sin(now / 140) * 0.14);
+      ctx.beginPath();
+      ctx.ellipse(mp.x, mp.y, mr, mr * 0.42, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 226, 150, 0.88)';
+      ctx.lineWidth = 2.2 * mp.s;
+      ctx.stroke();
+    }
 
     /* 사물 · 주민 · 사람을 마을 y 순서로 그린다 (아래쪽이 앞) */
     var draws = [], i;

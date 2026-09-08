@@ -131,6 +131,11 @@
         openDetail(b.getAttribute('data-kind') || 'hero', id);
         return;
       }
+      if (act === 'key-remap') {
+        var V0 = global.DG.village;
+        if (V0 && V0.beginRemap) { V0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
+        return;
+      }
       if (act === 'v-do') {
         doInteract();
       } else if (act === 'v-sell') {
@@ -280,6 +285,7 @@
     }
 
     core.on('toast', toast);
+    core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
     /* syncDock 도 여기서 부른다 — 공사 단추는 개토패를 산 순간 서야 한다.
        시트를 여닫을 때만 돌리면, 전방에서 사고 나서 한 번 여닫기 전에는 안 뜬다 */
     core.on('changed', function () { syncDock(); renderTop(); renderSheet(); renderFocus(); });
@@ -297,8 +303,24 @@
   var SHEET_TITLE = {
     bag: '🎒 가방', folks: '🏡 주민', dex: '📖 도감', log: '📜 기록',
     mail: '📮 편지', home: '🏠 집', museum: '🏛️ 사고(史庫)', town: '🏳️ 마을',
-    wear: '🧵 침선방', build: '🪧 공사', map: '🗺️ 전체지도'
+    wear: '🧵 침선방', build: '🪧 공사', map: '🗺️ 전체지도', keys: '⌨️ 키설정'
   };
+
+  /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
+   *  (실수로 못 쓰게 되지 않게), 여기서는 그 옆에 하나 더 쓸 키만 고른다. */
+  function viewKeys() {
+    var V = global.DG.village;
+    var km = V.keymap(), rm = V.remapping();
+    var rows = [{ a: 'up', t: '위' }, { a: 'down', t: '아래' }, { a: 'left', t: '왼쪽' }, { a: 'right', t: '오른쪽' }];
+    var h = '<div class="hint">WASD·방향키는 항상 그대로 됩니다 — 여기서는 그 옆에 더 쓸 키 하나만 고릅니다.</div>';
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      h += '<div class="key-row"><b>' + r.t + '</b><span class="key-cur">' + esc((km[r.a] || '').toUpperCase()) + '</span>' +
+        '<button data-act="key-remap" data-action="' + r.a + '">' +
+        (rm === r.a ? '키를 누르세요…' : '다시 지정') + '</button></div>';
+    }
+    return h;
+  }
 
   function openSheet(name) {
     openTab = name;
@@ -377,7 +399,8 @@
           : openTab === 'wear' ? viewWear()
           : openTab === 'build' ? viewBuild()
           : openTab === 'map' ? viewMap()
-          : openTab === 'dex' ? viewDex() : viewLog();
+          : openTab === 'dex' ? viewDex()
+          : openTab === 'keys' ? viewKeys() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 
