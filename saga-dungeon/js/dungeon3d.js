@@ -193,6 +193,7 @@
      되먹임 고리였다. 재구성이 있었던 다음 프레임의 측정치는 평균에서 뺀다
      (탭 전환 때 500ms 넘는 값을 이미 빼는 것과 같은 취지). */
   var lastFrameHadBuild = false;
+  var lastSpikeLogT = 0;     // 즉시-튐 로거(아래 updatePerf) 스팸 방지 쿨다운 타이머
   /* 2026-09-08 — 실기기 로그로 실측 확인: "tier=high ema=92.2ms" (등급이 막
      바뀐 바로 그 프레임). `post3d.js`의 `syncTargets`가 등급이 바뀔 때마다
      GPU 렌더 타깃(프레임버퍼)을 새로 만드는 비용 자체가 그 프레임을 90ms대로
