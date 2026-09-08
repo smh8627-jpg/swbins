@@ -318,7 +318,18 @@
       if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
 
       saveAcc += dt;
-      if (saveAcc >= 10) { saveAcc = 0; core.persist(); }
+      if (saveAcc >= 10) {
+        saveAcc = 0;
+        /* 2026-09-08 — "여전히 끊겨" 재확인 로그에 room/field/finalize가 다
+           0인데 ema만 튀는 프레임이 반복됐다(지형·화질과 무관). 10초마다
+           도는 이 자동저장(JSON.stringify + localStorage 동기 쓰기)이
+           범인일 수 있어 실측 ms를 찍어 둔다 — 다음 재현에서 이 로그가
+           튐과 같은 순간에 찍히면 확정이다. */
+        var saveT0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        core.persist();
+        var saveMs = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - saveT0;
+        if (saveMs > 5 && global.console) { global.console.log('[던전 자동저장]', 'persist=' + saveMs.toFixed(1) + 'ms'); }
+      }
     } catch (e) {
       lastFrame = now;
       if (global.console) { global.console.error('[loop] 프레임 실패, 다음 프레임으로 넘어감', e); }

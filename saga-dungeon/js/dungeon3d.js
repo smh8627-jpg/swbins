@@ -248,6 +248,20 @@
     skipNextEma = false;
     if (lastFrameT !== null) {
       var dtMs = now - lastFrameT;
+      /* 2026-09-08 — "여전히 끊겨" 재확인 로그가 매번 깨끗했다(ema 16~20ms,
+         튄 프레임 하나 없이). 2초마다 한 번(120프레임)만 찍는 표본이 문제였다
+         — 짧은 튐 한 프레임은 이동평균(0.9 가중)이 다음 표본 찍기 전에
+         거의 다 지워버려 로그에 안 잡힌다. 튄 그 프레임을 **그 즉시**(표본
+         주기와 무관하게) 잡아 찍는다 — build 프레임이라 ema 평균엔 안
+         섞여도 이건 무조건 찍는다, 사용자가 "느껴지는" 바로 그 순간이니까. */
+      if (dtMs > 40 && dtMs < 2000 && now - lastSpikeLogT > 400) {
+        lastSpikeLogT = now;
+        var spikeMsg = 'dt=' + dtMs.toFixed(1) + 'ms build=' + lastFrameHadBuild +
+          ' skipEma=' + skipThis + ' tier=' + effectiveLevel() +
+          ' room=' + lastRoomBuildMs.toFixed(1) + ' field=' + lastFieldSetupMs.toFixed(1) +
+          ' finalize=' + lastFieldFinalizeMs.toFixed(1);
+        if (global.console) { console.log('[던전 3D 튐]', spikeMsg); }
+      }
       if (dtMs > 0 && dtMs < 500 && !lastFrameHadBuild && !skipThis) {
         perfEma = perfEma * 0.9 + dtMs * 0.1;
         var next = stepTowards(autoLevel, autoLevelFor(perfEma));
