@@ -21,7 +21,7 @@
   var renderer = null, scene = null, camera = null, ready = false;
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
-  var playerMesh = null, enemyPool = [];
+  var playerMesh = null, enemyPool = [], npcPool = [];
   var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
   var lastDrawT = 0, frameDt = 0;   // 사람 GLB 의 몸짓(뼈대 애니메이션)을 굴리는 델타타임
 
@@ -361,7 +361,30 @@
     }
 
     buildScenery(Tc, stg);
+    rebuildNpcs(Tc, stg);
     lastMood = stg.mood + '|' + stg.width;
+  }
+
+  /** 마을 사람(PLAN 3·8절) — town:true 인 사냥터에만 세운다. 판정에는 안 닿고
+   *  화면 층에만 있다(fx 로 치지도 않는다) — 그냥 서서 좌우로 조금 서성인다.
+   *  `actorShell` 을 그대로 빌려 쓰므로 사람 GLB(Quaternius) 가 이미 하듯
+   *  못 받으면 조용히 도형 사람으로 남는다 */
+  function rebuildNpcs(Tc, stg) {
+    for (var j = 0; j < npcPool.length; j++) { actorGroup.remove(npcPool[j]); disposeDeep(npcPool[j]); }
+    npcPool = [];
+    if (!stg.town) { return; }
+    var NPC_COLORS = ['#c8b090', '#b7c3d8', '#d8b7a0', '#a8c8a0'];
+    var n = Math.max(3, Math.floor(stg.width / 900));
+    for (var i = 0; i < n; i++) {
+      var anchorX = 220 + i * (stg.width / n);
+      var npc = actorShell(Tc, 'human', NPC_COLORS[i % NPC_COLORS.length], false, 'npc' + i, false);
+      npc.userData.npcAnchor = anchorX;
+      npc.userData.npcPhase = i * 1.7;
+      place(npc, anchorX, 0, 1);
+      npc.position.z = -20 - (i % 2) * 15;
+      actorGroup.add(npc);
+      npcPool.push(npc);
+    }
   }
 
   /** 도형(원뿔·구가 아니라 캡슐+구) 사람 — GLB 가 오기 전까지, 혹은 GLB 가 실패하면
@@ -532,6 +555,15 @@
     }
     for (i = run.enemies.length; i < enemyPool.length; i++) {
       if (enemyPool[i]) { enemyPool[i].visible = false; }
+    }
+
+    /* 마을 사람 서성임 — 판정에 안 닿는 화면 층뿐이다. 정지 앵커 둘레를 느리게
+       오가며, 방향이 바뀔 때만 몸짓도 walk/idle 로 바꾼다(PLAN 8절) */
+    for (i = 0; i < npcPool.length; i++) {
+      var npc = npcPool[i], u = npc.userData;
+      var speed = Math.cos(now * 0.35 + u.npcPhase) * 40;
+      place(npc, u.npcAnchor + Math.sin(now * 0.35 + u.npcPhase) * 55, 0, speed >= 0 ? 1 : -1);
+      stepActor(npc, Math.abs(speed) > 6 ? 'walk' : 'idle');
     }
 
     renderer.render(scene, camera);
