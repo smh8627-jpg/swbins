@@ -24,6 +24,15 @@
   var uiAcc = 0;
   var saveAcc = 0;
   var loopErrShown = {};
+  /* 2026-09-08 — "사가블로 끊김" 추적. dungeon3d.js의 render() 안(actors/
+     occ/fx/present/room/field/finalize)을 다 재도 dt=300~700ms대 튐이 그
+     안에서 안 잡혔다(합쳐도 몇 ms) — 무게가 render() 밖, 즉 이 loop() 자체
+     (auto.update/dungeonView.update/minimap.tick/ui.tickRefresh) 에 있다는
+     뜻이었다. persist()도 몸통에서 재게 고쳤는데 여전히 안 찍혀 용의선상
+     에서 더 밀렸다. 이 loop()의 각 구간도 매 프레임 새로 재 breakdown을
+     남긴다 — dungeon3d.js와 같은 요령(즉시-튐, 400ms 쿨다운). */
+  var lastLoopWallT = 0, lastSpikeLoopLogT = 0;
+  var lastAutoMs = 0, lastViewUpdateMs = 0, lastDrawMs = 0, lastMinimapMs = 0, lastUiMs = 0;
 
   /* ── 인물 합류 ────────────────────────────────────────── */
 
@@ -302,20 +311,48 @@
      로딩 확인으로는 못 잡았다, 2026-09-04 "사가블로가 멈춘다" 제보로 확인) */
   function loop(now) {
     try {
+      var wallNow = performance.now();
+      if (lastLoopWallT !== 0) {
+        var wallDt = wallNow - lastLoopWallT;
+        if (wallDt > 40 && wallDt < 2000 && wallNow - lastSpikeLoopLogT > 400) {
+          lastSpikeLoopLogT = wallNow;
+          if (global.console) {
+            global.console.log('[던전 loop 튐]', 'dt=' + wallDt.toFixed(1) + 'ms' +
+              ' auto=' + lastAutoMs.toFixed(1) + ' viewUpdate=' + lastViewUpdateMs.toFixed(1) +
+              ' draw=' + lastDrawMs.toFixed(1) + ' minimap=' + lastMinimapMs.toFixed(1) +
+              ' ui=' + lastUiMs.toFixed(1));
+          }
+        }
+      }
+      lastLoopWallT = wallNow;
+
       var dt = Math.min((now - lastFrame) / 1000, 0.1);
       lastFrame = now;
 
+      var segT0 = performance.now();
       global.DG.auto.update(dt);
+      lastAutoMs = performance.now() - segT0;
+
+      segT0 = performance.now();
       global.DG.dungeonView.update(dt);
+      lastViewUpdateMs = performance.now() - segT0;
+
       /* 마을도 같은 화면에 그린다 — 마을과 던전은 한 무대를 나눠 쓴다 */
+      segT0 = performance.now();
       if (!global.DG_NO_DRAW &&
           (global.DG.dungeon.active() || global.DG.town.active())) {
         global.DG.dungeonView.draw();
       }
+      lastDrawMs = performance.now() - segT0;
+
+      segT0 = performance.now();
       if (!global.DG_NO_DRAW && global.DG.minimap) { global.DG.minimap.tick(dt); }
+      lastMinimapMs = performance.now() - segT0;
 
       uiAcc += dt;
+      segT0 = performance.now();
       if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
+      lastUiMs = performance.now() - segT0;
 
       saveAcc += dt;
       if (saveAcc >= 10) {
