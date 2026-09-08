@@ -33,6 +33,7 @@
     if (global.DG.villageView3d && !global.DG_NO_DRAW) {
       global.DG.villageView3d.init(document.getElementById('map3d'));
     }
+    if (global.DG.minimap) { global.DG.minimap.init(); }
     ui.init();
 
     if (fresh) {
@@ -230,6 +231,7 @@
     if (!global.DG_NO_DRAW) {
       global.DG.villageView.draw();
       if (global.DG.villageView3d) { global.DG.villageView3d.step(dt); }
+      if (global.DG.minimap) { global.DG.minimap.tick(dt); }
     }
 
     /* 날이 바뀌는 순간을 놓치지 않게 30초마다 본다 */
