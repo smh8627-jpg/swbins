@@ -193,12 +193,24 @@
   }
 
   function persist() {
+    /* 2026-09-08 — "사가블로 끊김" 재현 로그에서 dt가 300~600ms 튀는데
+       dungeon3d.js의 render() 안(actors/occ/fx/present/room/field/finalize)은
+       죄다 몇 ms뿐이라 render() 밖(=game.js loop()의 auto.update/
+       dungeonView.update 쪽)에 무거운 게 있다는 뜻이었다. 자동저장은
+       game.js의 10초 주기 호출만 재고 있었는데, persist()는 사실 그 말고도
+       아이템 습득·전투 종료·레벨업 등 **게임 이벤트마다** 여기저기서(item.js·
+       hero.js·dungeon.js·town.js 등) 직접 불린다 — 그 호출들은 이 실측이
+       없어 안 보였다. 호출 자리를 다 찾아 감싸는 대신 **여기(진짜 몸통)
+       하나에서** 재면 어디서 불렀든 다 잡힌다. */
+    var t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     try {
       save.lastSeen = Date.now();
       localStorage.setItem(SAVE_KEY, JSON.stringify(save));
     } catch (e) {
       console.warn('저장 실패', e);
     }
+    var ms = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - t0;
+    if (ms > 5) { console.log('[던전 자동저장] persist=' + ms.toFixed(1) + 'ms'); }
   }
 
   /**
