@@ -481,11 +481,32 @@
     farm: '#2f3a26'
   };
 
+  /** 2026-09-08 — 지형 노이즈: `core.hash2`를 그대로 쓰면 칸마다 완전히
+   *  독립이라(소금·후추 노이즈) 숲 한 칸·산 한 칸이 뿔뿔이 흩어져 "바둑판
+   *  같다"는 지적을 받았다(사용자, `saga-go/HANDOFF.md` 2026-09-07 큐 —
+   *  세계 격자무늬 길·구역 이름과는 별개 원인이었다). `core.noise2()`로
+   *  이웃 칸과 이어 붙인다 — 굵은 결(9칸≈432m 폭)에 가는 결(3칸≈144m 폭)을
+   *  얹어(2옥타브 값 노이즈) 뭉치되 경계가 너무 매끈하지만은 않게 했다.
+   *  두 번째 옥타브는 좌표를 +500 밀어 첫 옥타브와 우연히 겹치지 않게 한다. */
+  function terrainNoise(tx, ty) {
+    return core.noise2(tx, ty, 9) * 0.65 + core.noise2(tx + 500, ty + 500, 3) * 0.35;
+  }
+  /** 문턱값 — 예전에 `core.hash2`를 직접 문턱 매길 때와 **같은 비율**(물14%·
+   *  산18%·숲36%·마을12%·들20%)이 나오도록 위 `terrainNoise`를 400만 표본
+   *  뽑아 분위수로 다시 잰 값이다(옥타브를 섞으면 평균 쪽으로 쏠려 옛 문턱을
+   *  그대로 쓰면 숲만 태반이고 물·들은 거의 안 나온다 — 실측 후 보정). 겉보기만
+   *  자연스러워지고 종류별 넓이 비율은 그대로다. */
+  var TERRAIN_BAND = {
+    water: [0, 0.1614], mount: [0.1614, 0.2106],
+    forest: [0.2106, 0.2905], town: [0.2905, 0.3211]
+  };
+
   /** 2026-09-04 — 이 칸(또는 바로 옆 네 칸)에 마을이 있나. `terrainAt`의
    *  격자무늬 길이 "마을 근처에서만" 서게 가르는 문턱이다. 마을 판정은
-   *  `terrainAt`이 쓰는 것과 **같은 h 띠(0.34~0.40)**를 그대로 재사용한다 —
-   *  다른 기준을 새로 만들면 집이 실제로 서는 자리(`propPlan('town', gx, gy,
-   *  ...)`가 `terrainAt(gx,gy)==='town'`인 칸에 얹힌다)와 길이 어긋난다.
+   *  `terrainAt`이 쓰는 것과 **같은 노이즈·같은 문턱**(`TERRAIN_BAND.town`)을
+   *  그대로 재사용한다 — 다른 기준을 새로 만들면 집이 실제로 서는 자리
+   *  (`propPlan('town', gx, gy, ...)`가 `terrainAt(gx,gy)==='town'`인 칸에
+   *  얹힌다)와 길이 어긋난다.
    *
    *  **넓이를 두 번 실측하고 골랐다** — 자가진단 없이는 안 보이는 자리라
    *  임시 헤드리스 표본 페이지로 -200..200 범위를 직접 세었다:
@@ -498,17 +519,20 @@
   function nearTown(tx, ty) {
     var pts = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]], i, h;
     for (i = 0; i < pts.length; i++) {
-      h = core.hash2(tx + pts[i][0], ty + pts[i][1]);
-      if (h >= 0.34 && h < 0.40) { return true; }
+      h = terrainNoise(tx + pts[i][0], ty + pts[i][1]);
+      if (h >= TERRAIN_BAND.town[0] && h < TERRAIN_BAND.town[1]) { return true; }
     }
     return false;
   }
 
   /** 2026-09-04 — 마을 근처 길을 tx%7 과 ty%9 **둘 다** 세우니 십자로 겹쳐
    *  "바둑판 같다"는 지적이 반경을 좁힌 뒤에도(마을 안은 여전히 그대로라)
-   *  남았다. town 판정 자체는 칸마다 독립인 해시라(퍼진 소금·후추 무늬)
-   *  실제 마을 하나를 묶어 줄 값이 없다 — 대신 `ROAD_REGION` 칸짜리 성긴
-   *  구역으로 세상을 나눠 구역마다 축(세로만 또는 가로만)을 하나씩 고정한다.
+   *  남았다. 당시엔 town 판정이 칸마다 독립인 해시라(퍼진 소금·후추 무늬)
+   *  실제 마을 하나를 묶어 줄 값이 없었다 — 대신 `ROAD_REGION` 칸짜리 성긴
+   *  구역으로 세상을 나눠 구역마다 축(세로만 또는 가로만)을 하나씩 고정했다.
+   *  (2026-09-08 갱신: `terrainAt`이 `terrainNoise`로 바뀌면서 town 판정도
+   *  이제 이웃과 뭉친다 — 그래도 동네 하나가 몇 칸씩 걸치면 축이 안 맞을 수
+   *  있어 이 구역별 고정은 그대로 둔다, 손해는 없다.)
    *  `core.hash2` 는 실측상 0~0.5 만 돌려주므로(다른 자리의 h1 참고) 문턱은
    *  그 절반인 0.25. 이 값도 그리는 데만 쓴다. */
   var ROAD_REGION = 16;
@@ -540,7 +564,12 @@
    * 지적, 반경을 좁힌 뒤 재확인). `roadIsVertical()` 로 동네(`ROAD_REGION`
    * 구역)마다 한 축만 서게 갈라 십자 교차를 없앤다 — 동네마다 세로길
    * 동네만 또는 가로길 동네만 되어 "마을마다 방향이 다르게" 보인다.
-   */
+   *
+   * 2026-09-08 — 그런데도 "바둑판 같다"는 지적이 다시 나왔다. 길이 아니라
+   * **지형 종류 자체**가 원인이었다 — `core.hash2(tx,ty)`를 곧바로 문턱
+   * 매기면 칸마다 완전히 독립이라 숲·산·물이 한 칸씩 흩어진다(위 `terrainNoise`
+   * 주석 참고). `terrainNoise()`(이웃과 이어지는 값 노이즈)로 바꿔 숲은
+   * 숲대로, 산은 산줄기로, 물은 호수·강으로 뭉치게 했다. */
   function terrainAt(tx, ty) {
     var R = global.DG.land;
     if (R) {
@@ -548,19 +577,19 @@
       if (authored) { return authored; }
     }
     /* 손으로 그린 땅 밖은 실제 지형(geo.js, OpenStreetMap)이 있으면 그쪽을
-       쓴다 — 아직 안 받아 왔으면(또는 꺼져 있으면) null 이라 밑의 해시가 그대로 답한다 */
+       쓴다 — 아직 안 받아 왔으면(또는 꺼져 있으면) null 이라 밑의 노이즈가 그대로 답한다 */
     var G = global.DG.geo;
     if (G) {
       var real = G.terrainAt(tx, ty);
       if (real) { return real; }
     }
-    var h = core.hash2(tx, ty);
+    var h = terrainNoise(tx, ty);
     var road = roadIsVertical(tx, ty) ? (tx % 7 === 0) : (ty % 9 === 0);
     if (road && nearTown(tx, ty)) { return 'road'; }
-    if (h < 0.07) { return 'water'; }
-    if (h < 0.16) { return 'mount'; }
-    if (h < 0.34) { return 'forest'; }
-    if (h < 0.40) { return 'town'; }
+    if (h < TERRAIN_BAND.water[1]) { return 'water'; }
+    if (h < TERRAIN_BAND.mount[1]) { return 'mount'; }
+    if (h < TERRAIN_BAND.forest[1]) { return 'forest'; }
+    if (h < TERRAIN_BAND.town[1]) { return 'town'; }
     return 'grass';
   }
 

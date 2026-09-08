@@ -340,6 +340,23 @@
     return (h >>> 0) / 4294967295;
   }
 
+  function smooth01(t) { return t * t * (3 - 2 * t); }
+  /** hash2 격자점을 부드럽게 이어 붙인 값 노이즈 — hash2 는 칸마다 완전히
+   *  독립이라(소금·후추 노이즈) 지형 종류를 그걸로 직접 가르면 숲·산·마을이
+   *  한 칸씩 흩어져 바둑판처럼 보인다(2026-09-08, 사용자 지적으로 발견).
+   *  `scale` 은 무늬 한 칸의 폭(좌표 단위 — 이 판에서는 48m 격자 번호가
+   *  그대로 들어온다) — 크면 넓게 뭉친다. `world.terrainAt` 이 쓴다. */
+  function noise2(x, y, scale) {
+    scale = scale || 8;
+    var gx = x / scale, gy = y / scale;
+    var x0 = Math.floor(gx), y0 = Math.floor(gy);
+    var fx = smooth01(gx - x0), fy = smooth01(gy - y0);
+    var n00 = hash2(x0, y0), n10 = hash2(x0 + 1, y0);
+    var n01 = hash2(x0, y0 + 1), n11 = hash2(x0 + 1, y0 + 1);
+    var nx0 = n00 + (n10 - n00) * fx, nx1 = n01 + (n11 - n01) * fx;
+    return nx0 + (nx1 - nx0) * fy;
+  }
+
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
   function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
@@ -374,6 +391,6 @@
     gainFeat: gainFeat, gainExp: gainExp, expNeed: expNeed,
     effect: effect,
     log: pushLog,
-    hash2: hash2, pick: pick, clamp: clamp, fmt: fmt, fmtTime: fmtTime
+    hash2: hash2, noise2: noise2, pick: pick, clamp: clamp, fmt: fmt, fmtTime: fmtTime
   };
 })(window);
