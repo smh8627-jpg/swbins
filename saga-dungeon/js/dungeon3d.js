@@ -177,6 +177,14 @@
      안 바꾸게 막아 진동을 끊는다. */
   var lastLevelChangeT = 0;
   var LEVEL_COOLDOWN_MS = 1500;
+  /* 2026-09-08 — 실기기 로그로 실측: MEDIUM(ema 38~41ms, 33 문턱을 넘겨
+     LOW 가 이상적인데도)에 몇 초씩 눌러앉는 걸 봤다 — LOW 자신도 순간순간
+     ema 가 튀어(로그에 tier=low인데 ema=52.8ms 인 줄이 있었다) 잠깐
+     가벼워 보이는 틈에 곧장 MEDIUM 으로 다시 올라섰다가 그 무게에 데는
+     되풀이로 보인다. **내려가는 건 그대로 빠르게, 올라가는 건 훨씬
+     오래 두고 봐야** 이 왕복을 줄인다 — "뿌옇게(안개·블룸이 진해지는
+     MEDIUM/HIGH) 되면 끊긴다"는 제보와 정확히 들어맞는 패턴. */
+  var LEVEL_COOLDOWN_UP_MS = 6000;
   /* 2026-09-08 — "이동하면 계속 끊기고 화면이 갈색에 갇힌다" 제보(콘솔 예외
      없음). buildRoom/buildField(무거운 동기 작업)가 걸린 프레임은 dtMs가
      확 튀는데, 그 값이 perfEma 에 그대로 섞이면 등급이 떨어지고, 등급은
@@ -243,10 +251,14 @@
       if (dtMs > 0 && dtMs < 500 && !lastFrameHadBuild && !skipThis) {
         perfEma = perfEma * 0.9 + dtMs * 0.1;
         var next = stepTowards(autoLevel, autoLevelFor(perfEma));
-        if (next !== autoLevel && now - lastLevelChangeT >= LEVEL_COOLDOWN_MS) {
-          autoLevel = next;
-          lastLevelChangeT = now;
-          skipNextEma = true;
+        if (next !== autoLevel) {
+          var isUp = levelIdx(next) > levelIdx(autoLevel);
+          var cooldown = isUp ? LEVEL_COOLDOWN_UP_MS : LEVEL_COOLDOWN_MS;
+          if (now - lastLevelChangeT >= cooldown) {
+            autoLevel = next;
+            lastLevelChangeT = now;
+            skipNextEma = true;
+          }
         }
       }
     }
