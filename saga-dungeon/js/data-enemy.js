@@ -28,8 +28,8 @@
      — 마을 들판 로머는 `ctx.floor`가 늘 0이라 `tierOf(0)===1`, 실제로
      **tier1만 마을에 나온다**(tier2 이상은 던전 전용이라 여기 태그가
      의미 없다). 없으면(`떠돌이 병졸`처럼) 어느 지역에나 나오는 필러다.
-     성소(shrine) 마을은 일부러 전용 몹을 안 두었다 — "제단이 있는
-     조용한 마을"이라는 결이 필러 하나만 도는 것으로도 이미 산다. */
+     (같은 날 후속 — 아래 "GLB 자산 확장 2차" 로 성소(shrine) 에도 원혼
+     하나를 얹어, 이제 다섯 마을 지역 전부 전용 몹이 하나 이상이다.) */
   var ENEMIES = [
     // tier 1 — 잡졸
     { name: '황건적', emoji: '🟡', kind: 'human', color: '#c9a83a', look: { weapon: 'club', helm: 'none', armor: 'leather' }, tier: 1, biome: 'ruins' },
@@ -41,6 +41,22 @@
        `body`는 asset3d.js REG 의 키 — 없으면 dungeon3d.js 가 기본 'beast'(늑대)로
        그린다. 멧돼지는 두꺼운 가죽이라 물리에 약간 강하고 기(氣)는 그대로 받는다 */
     { name: '멧돼지', emoji: '🐗', kind: 'beast', color: '#4a3a2a', form: 'quad', body: 'beast_boar', tier: 1, resist: { phys: 15 }, biome: 'swamp' },
+    /* 2026-09-09 — PLAN §60 "GLB 자산 확장 2차". 남은 monster REG 35종을
+       마저 배치한다(전부 새 다운로드 없음). 포켓몬류를 연상시키는 원래
+       이름(Alpaking·Armabee 등)과 순한 동물(토끼·고양이·닭·비둘기·물고기)·
+       SF풍(에일리언)은 이름 정책·결 둘 다에 안 맞아 제외했다 — 그 여덟
+       남짓은 이번에도 안 쓴다. */
+    { name: '해골졸개', emoji: '💀', kind: 'beast', color: '#b8b0a0', form: 'ogre', body: 'skeleton_minion', tier: 1, resist: { phys: 10 }, biome: 'ruins' },
+    { name: '원혼', emoji: '👻', kind: 'beast', color: '#d8d0e0', form: 'ogre', body: 'skeleton_solo', tier: 1, resist: { phys: 15 }, biome: 'shrine' },
+    { name: '독사', emoji: '🐍', kind: 'beast', color: '#4a6a3a', form: 'serpent', body: 'snake', tier: 1, atkEl: 'pois', biome: 'swamp' },
+    { name: '말벌떼', emoji: '🐝', kind: 'beast', color: '#d9c020', form: 'bird', body: 'wasp', tier: 1, atkEl: 'pois', biome: 'forest' },
+    { name: '들쥐떼', emoji: '🐀', kind: 'beast', color: '#8a7a6a', form: 'quad', body: 'rat', tier: 1, biome: 'ruins' },
+    { name: '청개구리', emoji: '🐸', kind: 'beast', color: '#5a9a5a', form: 'toad', body: 'frog', tier: 1, biome: 'swamp' },
+    { name: '홍슬라임', emoji: '🩷', kind: 'beast', color: '#d97a9a', form: 'quad', body: 'pink_slime', tier: 1, biome: 'mountain' },
+    { name: '늪슬라임', emoji: '🟢', kind: 'beast', color: '#4a8a6a', form: 'quad', body: 'glub', tier: 1, biome: 'swamp' },
+    { name: '애기버섯', emoji: '🍄', kind: 'beast', color: '#8a5aa0', form: 'ogre', body: 'mushnub', tier: 1, atkEl: 'pois', biome: 'forest' },
+    { name: '이끼괴물', emoji: '🟩', kind: 'beast', color: '#3a6a3a', form: 'quad', body: 'green_blob', tier: 1, biome: 'forest' },
+    { name: '동굴슬라임', emoji: '🟣', kind: 'beast', color: '#6a5a8a', form: 'quad', body: 'slime_enemy', tier: 1, biome: 'mountain' },
 
     // tier 2 — 변방
     { name: '왜구', emoji: '⛵', kind: 'human', color: '#8a4a4a', look: { weapon: 'sword', helm: 'none', armor: 'leather' }, tier: 2 },
@@ -60,6 +76,18 @@
     { name: '해골무사', emoji: '💀', kind: 'beast', color: '#c9c2a8', form: 'ogre', body: 'skeleton_warrior', tier: 2, resist: { phys: 15 } },
     { name: '원귀', emoji: '👻', kind: 'beast', color: '#bfe0f0', form: 'ogre', body: 'ghost', tier: 2, resist: { phys: 35 } },
     { name: '산도깨비', emoji: '👹', kind: 'beast', color: '#5a7a3a', form: 'ogre', body: 'orc', tier: 2, resist: { phys: 10 } },
+    { name: '해골도둑', emoji: '💀', kind: 'beast', color: '#a89ac9', form: 'ogre', body: 'skeleton_rogue', tier: 2, resist: { phys: 15 } },
+    { name: '아귀', emoji: '👺', kind: 'beast', color: '#6a3a4a', form: 'ogre', body: 'demon_2', tier: 2, resist: { chi: 15 } },
+    { name: '해골귀', emoji: '💀', kind: 'beast', color: '#d8d8e8', form: 'ogre', body: 'ghost_skull', tier: 2, resist: { phys: 30 } },
+    { name: '은신 첩자', emoji: '🥷', kind: 'beast', color: '#3a3a3a', form: 'ogre', body: 'ninja_2', tier: 2, resist: { phys: 10 } },
+    { name: '늪 왕슬라임', emoji: '🟢', kind: 'beast', color: '#2a6a4a', form: 'quad', body: 'glub_evolved', tier: 2, resist: { phys: 10 } },
+    { name: '왕버섯도깨비', emoji: '🍄', kind: 'beast', color: '#7a4a90', form: 'ogre', body: 'mushnub_evolved', tier: 2, resist: { chi: 10 }, atkEl: 'pois' },
+    { name: '회오리 정령', emoji: '🌀', kind: 'beast', color: '#8ac9d9', form: 'ogre', body: 'hywirl', tier: 2, resist: { phys: 15 } },
+    { name: '산짐승 요괴', emoji: '🐒', kind: 'beast', color: '#7a5a3a', form: 'quad', body: 'monkroose', tier: 2 },
+    { name: '가시귀', emoji: '🌵', kind: 'beast', color: '#4a8a3a', form: 'ogre', body: 'cactoro', tier: 2, resist: { phys: 10 } },
+    { name: '먹물 요괴', emoji: '🦑', kind: 'beast', color: '#3a3a6a', form: 'fish', body: 'squidle', tier: 2, resist: { chi: 15 } },
+    { name: '왕거미', emoji: '🕷️', kind: 'beast', color: '#2a2a2a', form: 'quad', body: 'spider', tier: 2, atkEl: 'pois' },
+    { name: '가시슬라임', emoji: '🟩', kind: 'beast', color: '#3a7a2a', form: 'quad', body: 'green_spiky_blob', tier: 2, resist: { phys: 15 } },
 
     // tier 3 — 정규군
     { name: '여진 궁수', emoji: '🎯', kind: 'human', color: '#6a7a5a', look: { weapon: 'bow', helm: 'none', armor: 'leather' }, tier: 3 },
@@ -74,6 +102,17 @@
     { name: '진흙귀신', emoji: '🪨', kind: 'beast', color: '#7a6a52', form: 'ogre', body: 'goleling', tier: 3, resist: { phys: 25 } },
     { name: '설인', emoji: '❄️', kind: 'beast', color: '#cfe6f0', form: 'ogre', body: 'yeti', tier: 3, resist: { phys: 20 }, atkEl: 'cold' },
     { name: '독버섯 요괴', emoji: '🍄', kind: 'beast', color: '#9a6ac0', form: 'ogre', body: 'mushroom_king', tier: 3, resist: { chi: 15 }, atkEl: 'pois' },
+    { name: '청귀', emoji: '😈', kind: 'beast', color: '#3a6a9a', form: 'ogre', body: 'blue_demon', tier: 3, resist: { chi: 25 }, atkEl: 'cold' },
+    { name: '그림자 자객', emoji: '🥷', kind: 'beast', color: '#1a1a2a', form: 'ogre', body: 'ninja', tier: 3, resist: { phys: 20 } },
+    { name: '요술사', emoji: '🧙', kind: 'beast', color: '#5a3a8a', form: 'ogre', body: 'wizard', tier: 3, resist: { chi: 25 }, atkEl: 'fire' },
+    /* 이무기 — 용이 되지 못하고 남은 이무기(민담 표현, 실제 시리즈 이름이
+       아니다). Dragon(기본형, dragon_evolved 는 이미 보스 '천룡'). */
+    { name: '이무기', emoji: '🐍', kind: 'beast', color: '#3a5a4a', form: 'dragon', body: 'dragon', tier: 3, resist: { phys: 20, chi: 20 } },
+    { name: '독개구리', emoji: '🐸', kind: 'beast', color: '#6a9a3a', form: 'toad', body: 'frog_enemy', tier: 3, resist: { chi: 15 }, atkEl: 'pois' },
+    { name: '산야인', emoji: '🪓', kind: 'beast', color: '#6a4a3a', form: 'ogre', body: 'tribal', tier: 3, resist: { phys: 15 } },
+    { name: '가시왕', emoji: '🌵', kind: 'beast', color: '#3a7a2a', form: 'ogre', body: 'cactoro_2', tier: 3, resist: { phys: 20 } },
+    { name: '왕도깨비', emoji: '👹', kind: 'beast', color: '#3a5a2a', form: 'ogre', body: 'orc_enemy', tier: 3, resist: { phys: 20 } },
+    { name: '뿔공룡', emoji: '🦖', kind: 'beast', color: '#7a6a3a', form: 'quad', body: 'dino', tier: 3, resist: { phys: 25 } },
 
     // tier 4 — 정예
     { name: '철갑 중장병', emoji: '🛡️', kind: 'human', color: '#6a6a7a', look: { weapon: 'halberd', helm: 'helmet', armor: 'plate' }, tier: 4, resist: { phys: 40 } },
@@ -82,7 +121,10 @@
     { name: '수군 함대', emoji: '🚢', kind: 'human', color: '#3a5a7a', look: { weapon: 'sword', helm: 'helmet', armor: 'plate' }, tier: 4, resist: { chi: 40, phys: 15 }, atkEl: 'cold' },
     { name: '흑기병', emoji: '🖤', kind: 'human', color: '#3a3a44', look: { weapon: 'halberd', helm: 'helmet', armor: 'plate', cape: true }, tier: 4, resist: { phys: 30, chi: 20 } },
     { name: '강시', emoji: '🧟', kind: 'beast', color: '#6a7a5a', form: 'ogre', body: 'zombie', tier: 4, resist: { phys: 20 } },
-    { name: '화염귀', emoji: '😈', kind: 'beast', color: '#8a2a2a', form: 'ogre', body: 'demon', tier: 4, resist: { chi: 30 }, atkEl: 'fire' }
+    { name: '화염귀', emoji: '😈', kind: 'beast', color: '#8a2a2a', form: 'ogre', body: 'demon', tier: 4, resist: { chi: 30 }, atkEl: 'fire' },
+    { name: '왕진흙귀신', emoji: '🪨', kind: 'beast', color: '#5a4a3a', form: 'ogre', body: 'goleling_evolved', tier: 4, resist: { phys: 35 } },
+    { name: '대설인', emoji: '❄️', kind: 'beast', color: '#b8d8e8', form: 'ogre', body: 'yeti_2', tier: 4, resist: { phys: 25 }, atkEl: 'cold' },
+    { name: '거인', emoji: '🗿', kind: 'beast', color: '#6a6a6a', form: 'ogre', body: 'giant', tier: 4, resist: { phys: 40 } }
   ];
 
   var BOSSES = [
