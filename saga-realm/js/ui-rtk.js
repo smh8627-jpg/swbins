@@ -959,6 +959,9 @@
       '<span class="muted">' + j.monthsElapsed + ' / ' + j.monthsTotal + '달</span></div>' +
       '<div class="bar sm"><i style="width:' + pct + '%"></i></div>' +
       '<div class="stat-row"><span class="muted">병력</span><b>🪖 ' + core.fmt(j.troops) + '</b></div>' +
+      (j.lastEvent
+        ? '<div class="warn">' + j.lastEvent.emoji + ' ' + esc(j.lastEvent.text) + '</div>'
+        : '') +
       '<small class="muted">장수 — ' + names + '</small></div>';
   }
 

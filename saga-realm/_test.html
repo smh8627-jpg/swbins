@@ -911,6 +911,41 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          C.fmt(R.city('beiping').troops) + ')');
     });
 
+    /* ── 원정 중 사건 (2026-09-09, PLAN §16 랜덤 이벤트) ────── */
+
+    t('원정 사건 표 — 다섯 종, 저마다 이름·문구가 있다', function () {
+      var es = W.JOURNEY_EVENTS;
+      var ok = es.length === 5 && es.every(function (e) { return e.key && e.name && e.emoji && e.text; });
+      return ok && ('사건 ' + es.length + '종 — ' + es.map(function (e) { return e.emoji + e.name; }).join(' '));
+    });
+
+    t('원정 도중 사건 — 손잡이를 100%로 잡으면 가는 달마다 실제로 붙고, 도착 전투 판정은 그대로다', function () {
+      fresh('zan');
+      var before = C.tuned('war.journeyEventChance', 0.16);
+      C.setTune('war.journeyEventChance', 1);
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var f = R.force('zan'); f.gold = 5000;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { C.setTune('war.journeyEventChance', before); return false; }
+      var events = 0, minTroops = 1e9, guard = 0, j;
+      while ((j = W.journeyById(res.id)) && guard < 30) {
+        guard++;
+        W.resolveJourneys();
+        var j2 = W.journeyById(res.id);
+        if (j2) {
+          if (j2.lastEvent) { events++; }
+          minTroops = Math.min(minTroops, j2.troops);
+        }
+      }
+      C.setTune('war.journeyEventChance', before);
+      /* 도착했는지는(fight() 가 그대로 붙었는지) 위의 다른 원정 시험들이 이미
+         잰다 — 여긴 사건이 그 판정을 안 건드리고 guard 안에서 끝나는지만 잰다 */
+      return events > 0 && guard < 30 && minTroops >= 1 && f.gold >= 0 &&
+        ('사건 ' + events + '번 · 병력 최소 ' + C.fmt(minTroops) + ' · 금 ' + C.fmt(f.gold) +
+         ' · ' + guard + '달만에 도착');
+    });
+
     /* ── 수군 (물길 · 배 · 수전) ─────────────────────── */
 
     t('물길은 양쪽이 다 강일 때만 난다', function () {

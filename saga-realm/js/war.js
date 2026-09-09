@@ -1036,6 +1036,41 @@
    * 않는다.**
    */
 
+  /**
+   * 원정 도중 사건(PLAN §16 "랜덤 이벤트", README 로드맵 Phase 9) — `rtk.js`의
+   * `DISASTERS`(성마다 달마다 굴리는 재해)와 같은 결의 표를 원정군에 얹는다.
+   * **새 판정을 만들지 않는다** — 국경 도착(`arriveJourney`)의 전투는 여전히
+   * `fight()` 한 곳뿐이고, 이 표는 그 전 "가는 길"에서만 원정 상태(`troops`·
+   * `morale`·`monthsTotal`)와 진영 금고(`gold`)를 살짝 흔든다.
+   */
+  var JOURNEY_EVENTS = [
+    { key: 'ambush',   name: '매복',      emoji: '⚔️', troopsMul: 0.92,
+      text: '숲 그늘에서 매복을 만나 병사를 잃었다.' },
+    { key: 'bandit',   name: '도적떼',    emoji: '🏴', goldDelta: -300,
+      text: '지나던 도적떼에게 노잣돈을 뜯겼다.' },
+    { key: 'treasure', name: '보물 발견', emoji: '💰', goldDelta: 400, good: true,
+      text: '길가 옛 무덤에서 부장품을 찾아냈다.' },
+    { key: 'village',  name: '마을의 환대', emoji: '🏘️', moraleDelta: 0.05, good: true,
+      text: '마을 사람들이 술과 밥을 내어 사기가 올랐다.' },
+    { key: 'lost',     name: '길 잃음',   emoji: '🌫️', delayMonths: 1,
+      text: '안개 속에서 길을 잃어 하루를 더 걷는다.' }
+  ];
+
+  /** 원정 하나가 이번 달 사건을 만나는가 — `rollDisasters()` 와 같은 확률 손잡이 결 */
+  function rollJourneyEvent(j) {
+    if (Math.random() > core.tuned('war.journeyEventChance', 0.16)) { return null; }
+    var e = JOURNEY_EVENTS[Math.floor(Math.random() * JOURNEY_EVENTS.length)];
+    var R = global.DG.rtk, f = R.force(j.force);
+    if (e.troopsMul) { j.troops = Math.max(1, Math.round(j.troops * e.troopsMul)); }
+    if (e.goldDelta && f) { f.gold = Math.max(0, f.gold + e.goldDelta); }
+    if (e.moraleDelta) { j.morale = Math.max(0.5, Math.min(1.5, (j.morale || 1) + e.moraleDelta)); }
+    if (e.delayMonths) { j.monthsTotal += e.delayMonths; }
+    j.lastEvent = { key: e.key, emoji: e.emoji, text: e.text, good: !!e.good };
+    core.log(e.emoji + ' ' + R.forceName(j.force) + ' 원정군 — ' + e.text, e.good ? 'good' : 'warn');
+    core.emit('rtk:journeyEvent', { id: j.id, force: j.force, key: e.key });
+    return e;
+  }
+
   function journeys() {
     var st = global.DG.rtk.state();
     if (!st.journeys) { st.journeys = []; }
@@ -1272,7 +1307,7 @@
         continue;
       }
       j.monthsElapsed += 1;
-      if (j.monthsElapsed < j.monthsTotal) { continue; }
+      if (j.monthsElapsed < j.monthsTotal) { rollJourneyEvent(j); continue; }
       arriveJourney(j);
       out.push(j);
     }
@@ -1294,6 +1329,7 @@
     resolveCamp: resolveCamp, resolveAll: resolveAll,
     journeys: journeys, journeysOf: journeysOf, journeyById: journeyById,
     canJourney: canJourney, startJourney: startJourney,
-    homeForJourney: homeForJourney, resolveJourneys: resolveJourneys
+    homeForJourney: homeForJourney, resolveJourneys: resolveJourneys,
+    JOURNEY_EVENTS: JOURNEY_EVENTS, rollJourneyEvent: rollJourneyEvent
   };
 })(window);
