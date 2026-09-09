@@ -47,6 +47,11 @@
     for (var zz = 0; zz < jz.length; zz++) {
       if (!data.find(jz[zz].id)) { data.heroes.push(jz[zz]); }
     }
+    /* 서역 지역 수비 무장(2026-09-09, 넷째 확장) — 같은 방식으로 얹는다 */
+    var xy = FD.XIYU_OFFICERS || [];
+    for (var xx = 0; xx < xy.length; xx++) {
+      if (!data.find(xy[xx].id)) { data.heroes.push(xy[xx]); }
+    }
     merged = true;
     return data.heroes.length;
   }

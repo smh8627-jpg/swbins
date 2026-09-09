@@ -191,9 +191,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       /* data.js 는 다섯 판이 바이트까지 같은 복사본이다. 얹기만 한다 */
       var n = off.all().length;
       var three = off.all().filter(function (h) { return h.era === '삼국지'; }).length;
-      return n === 151 && three === 76 &&
+      return n === 160 && three === 76 &&
         !!DG.data.find('rf_guojia') && !!DG.data.find('sg_caocao') &&
-        ('인물 70 + 무장 54 + 한국 9 + 일본 9 + 교주 9 = ' + n + ' · 삼국지 ' + three +
+        ('인물 70 + 무장 54 + 한국 9 + 일본 9 + 교주 9 + 서역 9 = ' + n + ' · 삼국지 ' + three +
          ' · 재야 후보 ' + (n - three));
     });
 
@@ -208,11 +208,12 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     /* ── 판 세우기 ───────────────────────────────────── */
 
-    t('194년 판이 선다 — 서른 성에 주인이 다 있다(한국·일본·교주 지역 스물하나는 주인 없이 시작)', function () {
+    t('194년 판이 선다 — 서른 성에 주인이 다 있다(한국·일본·교주·서역 지역 스물여덟은 주인 없이 시작)', function () {
       var st = fresh('cao');
       var keys = Object.keys(st.cities);
-      /* 한국·일본·교주 지역(garrison 필드가 있는 성)은 처음부터 일부러 주인이
-         없다 — 정복 대상이다. 그 스물하나를 빼고서 나머지가 다 주인 있는지만 잰다 */
+      /* 한국·일본·교주·서역 지역(garrison 필드가 있는 성)은 처음부터 일부러
+         주인이 없다 — 정복 대상이다. 그 스물여덟을 빼고서 나머지가 다 주인
+         있는지만 잰다 */
       var noOwner = keys.filter(function (k) {
         return !st.cities[k].force && !CD.find(k).garrison;
       });
@@ -226,10 +227,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       fresh('cao');
       var free = off.all().filter(function (h) { return h.stats && !off.rec(h.id).force; });
       var nonThree = free.filter(function (h) { return h.era !== '삼국지'; }).length;
-      /* 한국·일본·교주 지역 수비 무장 27인도 force:null 이라 이 정의로는 재야에
-         든다(48 한국사·유럽사 + 9 한국 + 9 일본 + 9 교주 = 75) */
-      return free.length === 81 && nonThree === 75 &&
-        ('재야 ' + free.length + ' (한국사·유럽사+한국·일본·교주 지역 ' + nonThree + ' + 삼국지 재야 ' +
+      /* 한국·일본·교주·서역 지역 수비 무장 36인도 force:null 이라 이 정의로는
+         재야에 든다(48 한국사·유럽사 + 9 한국 + 9 일본 + 9 교주 + 9 서역 = 84) */
+      return free.length === 90 && nonThree === 84 &&
+        ('재야 ' + free.length + ' (한국사·유럽사+한국·일본·교주·서역 지역 ' + nonThree + ' + 삼국지 재야 ' +
          (free.length - nonThree) + ')');
     });
 

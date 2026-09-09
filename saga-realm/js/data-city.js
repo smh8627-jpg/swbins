@@ -34,7 +34,9 @@
        그 성을 지키는 사람은 data-force.js JAPAN_OFFICERS 에서 가명으로 짓는다 */
     jp: '일본',
     /* 2026-09-09 확장(셋째) — 교주(交州, 영남·베트남 북부). 같은 원칙 */
-    jiao: '교주'
+    jiao: '교주',
+    /* 2026-09-09 확장(넷째) — 서역(西域, 하서주랑 너머 실크로드 오아시스). 같은 원칙 */
+    xi: '서역'
   };
 
   var CITIES = [
@@ -189,7 +191,36 @@
       desc: '벼가 두 번 여무는 들. 남쪽으로 갈수록 낯설어진다.' },
     { id: 'rinan',     name: '일남',     hanja: '日南',   prov: 'jiao', x: 42, y: 112, land: 'hill',
       agri: 160, comm: 120, wall: 2800, pop: 55000, garrison: 7000,
-      desc: '한(漢)의 땅이라 부르는 가장 남쪽 끝.' }
+      desc: '한(漢)의 땅이라 부르는 가장 남쪽 끝.' },
+
+    /* ── 서역 (2026-09-09 확장, 주인 없음 — 앞 셋과 같은 결) ──
+       한국·일본·교주는 지금까지 전부 기존 지도의 오른쪽·아래쪽(양수 좌표)
+       빈 자리에 얹었지만, 서쪽은 무위(x:15)·성도(x:14)가 이미 0에 바짝
+       붙어 있어 그 결로는 room이 없다. 그래서 이번만 **좌표 원점을
+       움직이지 않고 viewBox 자체를 음수 쪽으로 넓힌다**(0 0 165 120 →
+       -60 -30 225 150, ui-rtk.js 한 곳) — 기존 51성은 좌표를 단 하나도
+       안 건드린다. 무위 서쪽의 하서주랑 너머, 실크로드 오아시스 나라들. */
+    { id: 'dunhuang', name: '돈황', hanja: '敦煌', prov: 'xi', x: -8,  y: 22, land: 'hill',
+      agri: 160, comm: 200, wall: 3600, pop: 70000, garrison: 9000,
+      desc: '하서주랑의 끝. 사막으로 나서는 마지막 우물.' },
+    { id: 'loulan',   name: '누란', hanja: '樓蘭', prov: 'xi', x: -20, y: 30, land: 'hill',
+      agri: 100, comm: 160, wall: 2800, pop: 45000, garrison: 7000,
+      desc: '소금 호수 곁의 작은 나라. 대상(隊商)이 쉬어 간다.' },
+    { id: 'yanqi',    name: '언기', hanja: '焉耆', prov: 'xi', x: -22, y: 14, land: 'plain',
+      agri: 220, comm: 180, wall: 3400, pop: 80000, garrison: 10000,
+      desc: '북쪽 길의 첫 오아시스. 강이 눈 녹은 물을 실어 온다.' },
+    { id: 'kucha',    name: '구자', hanja: '龜茲', prov: 'xi', x: -34, y: 12, land: 'plain',
+      agri: 260, comm: 240, wall: 4000, pop: 120000, garrison: 13000,
+      desc: '서역 북도의 큰 나라. 악사와 상인이 함께 온다.' },
+    { id: 'khotan',   name: '우전', hanja: '于闐', prov: 'xi', x: -36, y: 34, land: 'river',
+      agri: 240, comm: 220, wall: 3800, pop: 100000, garrison: 12000,
+      desc: '옥이 강바닥에서 나는 나라. 남쪽 길의 요지.' },
+    { id: 'kashgar',  name: '소륵', hanja: '疏勒', prov: 'xi', x: -48, y: 20, land: 'plain',
+      agri: 240, comm: 260, wall: 4200, pop: 110000, garrison: 14000,
+      desc: '남·북 두 길이 다시 만나는 자리. 파미르로 드는 문.' },
+    { id: 'dayuan',   name: '대완', hanja: '大宛', prov: 'xi', x: -58, y: 16, land: 'hill',
+      agri: 180, comm: 200, wall: 3200, pop: 60000, garrison: 8000,
+      desc: '한혈마(汗血馬)가 난다는 서쪽 끝의 나라.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -249,7 +280,16 @@
     ['yulin', 'jiaozhi'],
     ['hepu', 'jiaozhi'],
     ['jiaozhi', 'jiuzhen'],
-    ['jiuzhen', 'rinan']
+    ['jiuzhen', 'rinan'],
+
+    /* ── 서역 ─────────────────────────────────────────── */
+    ['wuwei', 'dunhuang'],
+    ['dunhuang', 'loulan'], ['dunhuang', 'yanqi'],
+    ['loulan', 'khotan'],
+    ['yanqi', 'kucha'],
+    ['khotan', 'kashgar'],
+    ['kucha', 'kashgar'],
+    ['kashgar', 'dayuan']
   ];
 
   var byId = {};

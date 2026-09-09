@@ -264,6 +264,57 @@
     rinan: ['jiao_banrok']
   };
 
+  /**
+   * 서역(西域, 2026-09-09 확장 넷째, `data-city.js` 참고) 수비 무장 9인.
+   * KOREA_OFFICERS·JAPAN_OFFICERS·JIAOZHOU_OFFICERS 와 같은 결 —
+   * `FORCES`/`roster()` 에 안 실려 어느 세력에도 자동 배분되지 않고,
+   * `force:null` 로 해당 성에 바로 선다.
+   *
+   * 루트 `CLAUDE.md` 이름 정책에 따라 **실제 역사 인물이 아닌 지어낸 이름**을
+   * 쓴다(이 시대 오아시스 나라들을 실제로 다스린 왕들의 이름을 그대로/비슷하게
+   * 쓰지 않는다) — 성 이름(구자·소륵 등)은 실제 지명이라 정책 대상이 아니다.
+   */
+  var XIYU_OFFICERS = [
+    { id: 'xiyu_talban', name: '탈반', hanja: '脫槃', era: '서역(가상)', faction: '돈황',
+      rarity: 3, trait: 'might', emoji: '🏜️', quote: '사막을 아는 자만이 사막에서 이깁니다.',
+      stats: { might: 80, wisdom: 46, command: 72 } },
+    { id: 'xiyu_yeoje',  name: '여저', hanja: '黎且', era: '서역(가상)', faction: '돈황',
+      rarity: 3, trait: 'wisdom', emoji: '🐫', quote: '대상(隊商)의 길목을 쥔 자가 금을 쥡니다.',
+      stats: { might: 40, wisdom: 80, command: 64 } },
+    { id: 'xiyu_mokjil', name: '목질', hanja: '木質', era: '서역(가상)', faction: '누란',
+      rarity: 3, trait: 'might', emoji: '🧂', quote: '소금 호수 곁에서는 물러설 곳이 없습니다.',
+      stats: { might: 78, wisdom: 42, command: 68 } },
+    { id: 'xiyu_dansu',  name: '단수', hanja: '檀須', era: '서역(가상)', faction: '언기',
+      rarity: 3, trait: 'wisdom', emoji: '🎶', quote: '북쪽 길의 오아시스는 노래로 손님을 붙듭니다.',
+      stats: { might: 38, wisdom: 82, command: 62 } },
+    { id: 'xiyu_gumo',   name: '구모', hanja: '龜牟', era: '서역(가상)', faction: '구자',
+      rarity: 4, trait: 'command', emoji: '🏺', quote: '악사도 상인도 다 이 나라를 거칩니다.',
+      stats: { might: 74, wisdom: 60, command: 86 } },
+    { id: 'xiyu_ochi',   name: '오지', hanja: '烏支', era: '서역(가상)', faction: '우전',
+      rarity: 3, trait: 'wisdom', emoji: '💎', quote: '강바닥의 옥은 캐는 자가 임자입니다.',
+      stats: { might: 42, wisdom: 84, command: 66 } },
+    { id: 'xiyu_sarim',  name: '사림', hanja: '莎林', era: '서역(가상)', faction: '소륵',
+      rarity: 4, trait: 'command', emoji: '🗺️', quote: '두 길이 다시 만나는 곳을 지키는 것이 제 일입니다.',
+      stats: { might: 76, wisdom: 58, command: 88 } },
+    { id: 'xiyu_banwol', name: '반월', hanja: '半月', era: '서역(가상)', faction: '소륵',
+      rarity: 3, trait: 'wisdom', emoji: '🌙', quote: '파미르 너머 소식도 여기선 반나절이면 옵니다.',
+      stats: { might: 36, wisdom: 80, command: 60 } },
+    { id: 'xiyu_cheonma', name: '천마', hanja: '天馬', era: '서역(가상)', faction: '대완',
+      rarity: 4, trait: 'might', emoji: '🐎', quote: '한혈마는 하루에 천 리를 달립니다.',
+      stats: { might: 82, wisdom: 50, command: 70 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var XIYU_GARRISON = {
+    dunhuang: ['xiyu_talban', 'xiyu_yeoje'],
+    loulan: ['xiyu_mokjil'],
+    yanqi: ['xiyu_dansu'],
+    kucha: ['xiyu_gumo'],
+    khotan: ['xiyu_ochi'],
+    kashgar: ['xiyu_sarim', 'xiyu_banwol'],
+    dayuan: ['xiyu_cheonma']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -485,6 +536,7 @@
     KOREA_OFFICERS: KOREA_OFFICERS, KOREA_GARRISON: KOREA_GARRISON,
     JAPAN_OFFICERS: JAPAN_OFFICERS, JAPAN_GARRISON: JAPAN_GARRISON,
     JIAOZHOU_OFFICERS: JIAOZHOU_OFFICERS, JIAOZHOU_GARRISON: JIAOZHOU_GARRISON,
+    XIYU_OFFICERS: XIYU_OFFICERS, XIYU_GARRISON: XIYU_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },
