@@ -48,6 +48,18 @@
     { name: '오랑캐 궁수', emoji: '🏹', kind: 'human', color: '#7a6a4a', look: { weapon: 'bow', helm: 'none', armor: 'leather' }, tier: 2, atkEl: 'pois' },
     { name: '거란 기병', emoji: '🐴', kind: 'human', color: '#5a6a8a', look: { weapon: 'spear', helm: 'helmet', armor: 'plate' }, tier: 2, resist: { phys: 20 } },
     { name: '남만 코끼리병', emoji: '🐘', kind: 'beast', color: '#8a8a92', form: 'quad', body: 'beast_big', tier: 2, resist: { chi: 35, phys: 15 } },
+    /* 2026-09-09 — PLAN §60 "GLB 자산 확장" 후속. 이미 받아 asset3d.js REG에
+       등록만 돼 있던 몬스터 GLB(Quaternius Ultimate Monsters·KayKit
+       Skeletons)를 처음으로 실제 적 표에 건다 — "새로 받을 것"보다 "이미
+       있는데 안 불리던 것"이 훨씬 많았다(사가의숲 InstancedMesh 사례와
+       같은 갈래). `kind:'beast'`는 생물학적 분류가 아니라 렌더링 분기용
+       표시다(dungeon3d.js가 kind==='beast'일 때만 `body` 키의 홑짜리
+       GLB를 그린다, 그 밖은 사람 몸에 옷을 입힌다) — 코끼리병도 같은 이유로
+       'beast'다. 해골·원귀·도깨비는 동아시아 민담 어휘로 옮겼다(오크·고블린
+       같은 서양 판타지 낱말 대신). */
+    { name: '해골무사', emoji: '💀', kind: 'beast', color: '#c9c2a8', form: 'ogre', body: 'skeleton_warrior', tier: 2, resist: { phys: 15 } },
+    { name: '원귀', emoji: '👻', kind: 'beast', color: '#bfe0f0', form: 'ogre', body: 'ghost', tier: 2, resist: { phys: 35 } },
+    { name: '산도깨비', emoji: '👹', kind: 'beast', color: '#5a7a3a', form: 'ogre', body: 'orc', tier: 2, resist: { phys: 10 } },
 
     // tier 3 — 정규군
     { name: '여진 궁수', emoji: '🎯', kind: 'human', color: '#6a7a5a', look: { weapon: 'bow', helm: 'none', armor: 'leather' }, tier: 3 },
@@ -58,13 +70,19 @@
     /* 산군(山君) — 호랑이의 옛 존칭(민담 표현, 실제 인물·시리즈 이름이 아니다).
        빠르고 사나운 맹수라 기·물리 둘 다 어느 정도 버틴다 */
     { name: '산군', emoji: '🐅', kind: 'beast', color: '#c9772f', form: 'quad', body: 'beast_tiger', tier: 3, resist: { chi: 25, phys: 15 } },
+    { name: '해골법사', emoji: '🧙', kind: 'beast', color: '#8a6ac9', form: 'ogre', body: 'skeleton_mage', tier: 3, resist: { chi: 30 }, atkEl: 'lit' },
+    { name: '진흙귀신', emoji: '🪨', kind: 'beast', color: '#7a6a52', form: 'ogre', body: 'goleling', tier: 3, resist: { phys: 25 } },
+    { name: '설인', emoji: '❄️', kind: 'beast', color: '#cfe6f0', form: 'ogre', body: 'yeti', tier: 3, resist: { phys: 20 }, atkEl: 'cold' },
+    { name: '독버섯 요괴', emoji: '🍄', kind: 'beast', color: '#9a6ac0', form: 'ogre', body: 'mushroom_king', tier: 3, resist: { chi: 15 }, atkEl: 'pois' },
 
     // tier 4 — 정예
     { name: '철갑 중장병', emoji: '🛡️', kind: 'human', color: '#6a6a7a', look: { weapon: 'halberd', helm: 'helmet', armor: 'plate' }, tier: 4, resist: { phys: 40 } },
     { name: '근위 기병', emoji: '🐲', kind: 'human', color: '#8a3a4a', look: { weapon: 'spear', helm: 'helmet', armor: 'plate', cape: true }, tier: 4 },
     { name: '연노 사수', emoji: '🏹', kind: 'human', color: '#5a5a6a', look: { weapon: 'bow', helm: 'helmet', armor: 'plate' }, tier: 4, atkEl: 'lit' },
     { name: '수군 함대', emoji: '🚢', kind: 'human', color: '#3a5a7a', look: { weapon: 'sword', helm: 'helmet', armor: 'plate' }, tier: 4, resist: { chi: 40, phys: 15 }, atkEl: 'cold' },
-    { name: '흑기병', emoji: '🖤', kind: 'human', color: '#3a3a44', look: { weapon: 'halberd', helm: 'helmet', armor: 'plate', cape: true }, tier: 4, resist: { phys: 30, chi: 20 } }
+    { name: '흑기병', emoji: '🖤', kind: 'human', color: '#3a3a44', look: { weapon: 'halberd', helm: 'helmet', armor: 'plate', cape: true }, tier: 4, resist: { phys: 30, chi: 20 } },
+    { name: '강시', emoji: '🧟', kind: 'beast', color: '#6a7a5a', form: 'ogre', body: 'zombie', tier: 4, resist: { phys: 20 } },
+    { name: '화염귀', emoji: '😈', kind: 'beast', color: '#8a2a2a', form: 'ogre', body: 'demon', tier: 4, resist: { chi: 30 }, atkEl: 'fire' }
   ];
 
   var BOSSES = [
@@ -77,7 +95,10 @@
     { name: '왜장', emoji: '🗾', kind: 'human', color: '#7a3a3a', look: { weapon: 'sword', helm: 'gapju', armor: 'plate', cape: true }, tier: 3 },
     { name: '위군 도독', emoji: '🎖️', kind: 'human', color: '#31609f', look: { weapon: 'sword', helm: 'crown', armor: 'plate', cape: true }, tier: 3 },
     { name: '관문 수호장', emoji: '🏯', kind: 'human', color: '#5a5a6a', look: { weapon: 'halberd', helm: 'gapju', armor: 'plate', cape: true, beard: true }, tier: 4 },
-    { name: '적국 대장군', emoji: '🐉', kind: 'human', color: '#7a2a3a', look: { weapon: 'halberd', helm: 'plume', armor: 'plate', cape: true }, tier: 4 }
+    { name: '적국 대장군', emoji: '🐉', kind: 'human', color: '#7a2a3a', look: { weapon: 'halberd', helm: 'plume', armor: 'plate', cape: true }, tier: 4 },
+    /* 천룡(天龍) — 동아시아 설화의 하늘을 다스리는 용. 실존 인물이 아니라
+       신화 존재라 이름 정책(§ 하지 말 것)에 걸리지 않는다. */
+    { name: '천룡', emoji: '🐲', kind: 'beast', color: '#2a5a8a', form: 'dragon', body: 'dragon_evolved', tier: 4, resist: { phys: 25, chi: 25 }, atkEl: 'fire' }
   ];
 
   function tierOf(stage) {
