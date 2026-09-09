@@ -993,6 +993,7 @@
         var GD = SD.GATHERS[g.kind];
         sfx('coin');
         core.emit('toast', GD.emoji + ' ' + GD.name + ' +1');
+        core.emit('side:gather', { kind: g.kind, stage: run.stage.key });
       }
     }
 

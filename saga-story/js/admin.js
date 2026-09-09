@@ -993,7 +993,8 @@
       QD.QUESTS.forEach(function (q) {
         if (!Q.taken(q.key)) { return; }
         var r = Q.state()[q.key];
-        if (q.goal.type === 'kill' || q.goal.type === 'boss') { r.n = q.goal.n; }
+        if (q.goal.type === 'kill' || q.goal.type === 'boss' ||
+            q.goal.type === 'gather' || q.goal.type === 'visit') { r.n = q.goal.n; }
       });
       commit('셈을 채웠습니다');
     });

@@ -5,12 +5,14 @@
  * 사냥터에 들어갈 이유가 '경험치' 하나뿐이었다.
  *
  * 한 자리 = { key, name, need(레벨), goal, desc, reward }
- *   goal.type  'kill'  아무 적 n 마리          (stage 를 적으면 그 사냥터에서만)
- *              'boss'  보스 n 번
- *              'gear'  장비를 n 가지 갖추기 (낀 것 기준)
- *              'skill' 무예 레벨 합 n
- *              'gold'  금 n
- *              'level' 레벨 n
+ *   goal.type  'kill'    아무 적 n 마리          (stage 를 적으면 그 사냥터에서만)
+ *              'boss'    보스 n 번
+ *              'gather'  채집물 n 개            (kind 를 적으면 그 재료만, PLAN 15절 "아이템 수집")
+ *              'visit'   서로 다른 사냥터 n 곳을 밟기 (PLAN 15절 "특정 장소 방문·탐험")
+ *              'gear'    장비를 n 가지 갖추기 (낀 것 기준)
+ *              'skill'   무예 레벨 합 n
+ *              'gold'    금 n
+ *              'level'   레벨 n
  *   reward     { exp, gold, potion, scroll, gear }
  *
  * **되받는 사명 셋**(`repeat: true`)은 바친 뒤 다시 받을 수 있다 — 원작의 반복 퀘스트다.
@@ -43,6 +45,16 @@
       goal: { type: 'kill', n: 60, stage: 'forest' },
       desc: '오림 숲의 적 예순.',
       reward: { exp: 700, gold: 2000, potion: 8 } },
+
+    { key: 'q_gather1', name: '약초 캐기', need: 2, repeat: false,
+      goal: { type: 'gather', n: 15 },
+      desc: '들판을 다니며 캘 수 있는 것을 열다섯 개 모아라.',
+      reward: { exp: 140, gold: 400, potion: 4 } },
+
+    { key: 'q_explore1', name: '길을 넓힌다', need: 7, repeat: false,
+      goal: { type: 'visit', n: 4 },
+      desc: '서로 다른 사냥터 넷을 밟아 보라.',
+      reward: { exp: 320, gold: 900, scroll: 'hp60' } },
 
     { key: 'q_job', name: '길을 정한다', need: 10, repeat: false,
       goal: { type: 'skill', n: 1 },
@@ -83,7 +95,12 @@
     { key: 'r_purse', name: '군량 조달', need: 9, repeat: true,
       goal: { type: 'gold', n: 4000 },
       desc: '금 사천을 마련해 보여라. (바쳐도 금은 줄지 않는다)',
-      reward: { exp: 700, gold: 0, potion: 6 } }
+      reward: { exp: 700, gold: 0, potion: 6 } },
+
+    { key: 'r_forage', name: '약재 상납', need: 4, repeat: true,
+      goal: { type: 'gather', n: 20 },
+      desc: '어디서든 캔 것 스물을 바쳐라.',
+      reward: { exp: 240, gold: 500, potion: 4 } }
   ];
 
   function find(key) {

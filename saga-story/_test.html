@@ -1151,6 +1151,31 @@ window.DG_NO_TUNE = true;
         ('금 9000 → 채움 · 장비 ' + gear0 + ' → ' + gear3 + ' → 벗으니 ' + gear2);
     });
 
+    t('사명(채집) — 캘 때마다 세고, 다른 종류에 한정한 것은 안 센다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      Q.take('q_gather1');                     // 아무 재료나 15개
+      var before = Q.progress('q_gather1');
+      Q._onGather({ kind: 'herb', stage: 'field' });
+      Q._onGather({ kind: 'ore', stage: 'cave' });
+      var after = Q.progress('q_gather1');
+      clearQuests();
+      return before === 0 && after === 2 && ('받기 전 ' + before + ' → 두 번 캐고 ' + after);
+    });
+
+    t('사명(탐방) — 같은 사냥터를 두 번 밟아도 늘지 않는다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      Q.take('q_explore1');                    // 서로 다른 넷
+      Q._onStage({ stage: { key: 'field' } });
+      Q._onStage({ stage: { key: 'field' } });  // 같은 곳 — 안 늘어야 함
+      var two = Q.progress('q_explore1');
+      Q._onStage({ stage: { key: 'forest' } });
+      var three = Q.progress('q_explore1');
+      clearQuests();
+      return two === 1 && three === 2 && ('들판만 두 번 밟아 ' + two + ' · 숲 더해 ' + three);
+    });
+
     t('사명을 바치면 보상이 들어오고, 되받는 것만 다시 뜬다', function () {
       clearQuests();
       C.save.player.level = 12;

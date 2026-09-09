@@ -98,6 +98,7 @@
     var r = rec(key);
     r.taken = Date.now();
     r.n = 0;                                    // 받은 뒤부터 센다
+    r.visited = null;                           // 'visit' 전용 — 밟은 사냥터 집합도 새로 센다
     sfx('quest');
     core.log('📋 사명을 받았다 — ' + d.name, 'info');
     core.emit('changed');
@@ -157,11 +158,42 @@
     void q;
   }
 
+  /** 채집(PLAN 15절 "아이템 수집") — side.js 가 캘 때마다 알린다 */
+  function onGather(info) {
+    for (var i = 0; i < QD.QUESTS.length; i++) {
+      var d = QD.QUESTS[i];
+      if (!taken(d.key) || d.goal.type !== 'gather') { continue; }
+      if (d.goal.kind && d.goal.kind !== info.kind) { continue; }
+      rec(d.key).n += 1;
+    }
+  }
+
+  /** 사냥터 밟기(PLAN 15절 "특정 장소 방문·탐험") — 처음 밟는 곳만 센다.
+   *  세는 방법이 kill·gather 와 다르다: 같은 곳을 두 번 밟아도 늘지 않아야 해서
+   *  집합(record.visited)에 넣어 두고 그 크기를 잰다. */
+  function onStage(run) {
+    if (!run || !run.stage) { return; }
+    var key = run.stage.key;
+    for (var i = 0; i < QD.QUESTS.length; i++) {
+      var d = QD.QUESTS[i];
+      if (!taken(d.key) || d.goal.type !== 'visit') { continue; }
+      var r = rec(d.key);
+      if (!r.visited) { r.visited = {}; }
+      if (!r.visited[key]) {
+        r.visited[key] = true;
+        r.n = Object.keys(r.visited).length;
+      }
+    }
+  }
+
   var bound = false;
   function init() {
     if (bound) { return; }
     bound = true;
     core.on('side:kill', onKill);
+    core.on('side:gather', onGather);
+    core.on('side:enter', onStage);
+    core.on('side:travel', onStage);
   }
 
   global.DG = global.DG || {};
@@ -169,6 +201,6 @@
     state: st, init: init,
     list: list, take: take, turnIn: turnIn,
     taken: taken, progress: progress, full: full, doneCount: doneCount,
-    _onKill: onKill
+    _onKill: onKill, _onGather: onGather, _onStage: onStage
   };
 })(window);
