@@ -81,6 +81,10 @@
     hamletHut: { name: '움집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
     /* 또 이어서 — House_3 로 채 하나를 더(House_4만 남는다) */
     hamletShed: { name: '흙집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
+    /* 두 번째 캠프(2026-09-09) — 첫 캠프와 다른 자리(hamlet2Spot)에 House_4로
+       채 하나. 나그네가 하룻밤 묵어가는 외딴집이라 첫 캠프의 셋과 이름을
+       구분한다 */
+    hamlet2House: { name: '외딴집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
     /* 숨겨진 동굴(PLAN 40절 PHASE 3) — 입구 표지만. 안까지 들어가는 실내·
        보물(PLAN 40절 PHASE 4 "Treasure")은 다음 몫이다 */
     mountain:  { name: '바위산', emoji: '🗻', gather: null, reset: 0, hint: '올려다본다' },

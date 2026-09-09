@@ -260,7 +260,10 @@
        hamletHut(House_1)·hamletShed(House_3)는 같은 날 이어 얹은 두 번째·세
        번째 채 — kind 가 다르므로 역시 자리 하나뿐 규칙을 그대로 지킨다 */
     hamletHouse: 'building:hamletHouse', hamletHut: 'building:hamletHut',
-    hamletShed: 'building:hamletShed'
+    hamletShed: 'building:hamletShed',
+    /* 두 번째 캠프(2026-09-09) — village.js buildProps() 의 hamlet2House kind.
+       House_4, 첫 캠프의 세 채와 같은 결 */
+    hamlet2House: 'building:hamlet2House'
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
@@ -278,7 +281,10 @@
        셋 다 정규화로 키 1 에서 시작하므로(build() 가 늘 그렇게 눕힌다) 실제
        원본 비례는 모른다 — 나란히 서도 다 같은 키로 안 보이게 일부러 조금씩
        다르게 잡았을 뿐이다 */
-    hamletHouse: 2.4, hamletHut: 2.1, hamletShed: 2.3
+    hamletHouse: 2.4, hamletHut: 2.1, hamletShed: 2.3,
+    /* House_4(Quaternius) — 두 번째 캠프의 유일한 채. 첫 캠프 셋과 같은
+       눈대중 범위(2.1~2.4m) 안에서 살짝 다르게 잡았다 */
+    hamlet2House: 2.2
   };
 
   /**

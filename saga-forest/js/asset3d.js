@@ -243,10 +243,13 @@
        **같은 날 이어서** — House_1 도 하나 더 얹어 "상인 혼자 사는 오두막
        하나"였던 캠프를 "여럿이 지내는 움집 여럿"으로 늘렸다. **또 이어서** —
        사용자가 "이 캠프에 더 얹어, House_3도 마저 써"로 지시해 House_3까지
-       마저 태웠다(House_4만 남는다) */
+       마저 태웠다. **또 이어서** — "두 번째 캠프 새로 열어"로 새 자리
+       (hamlet2Spot)를 열며 마지막 House_4까지 썼다 — 이걸로 House_1~4 넷
+       다 실제로 쓰인다 */
     'building:hamletHouse': BLD + 'House_2.glb',
     'building:hamletHut': BLD + 'House_1.glb',
     'building:hamletShed': BLD + 'House_3.glb',
+    'building:hamlet2House': BLD + 'House_4.glb',
 
     /* 동물 (PLAN 16절) — 사슴·여우·늑대(Quaternius). 2026-09-09, 토끼·다람쥐·
        오리·새도 poly.pizza(Poly by Google, CC-BY 3.0)에서 찾아 채웠다 —

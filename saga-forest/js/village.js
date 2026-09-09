@@ -240,6 +240,27 @@
     return tx >= h.tx - 3 && tx <= h.tx + 3 && ty >= h.ty - 2 && ty <= h.ty + 2;
   }
 
+  /* ── 두 번째 캠프(2026-09-09, 사용자 지시 "두 번째 캠프 새로 열어") ──────
+   * 첫 캠프(동)·호수(서)·폭포/강(남서)·동굴(북)이 이미 찬 방향 사이 빈틈 —
+   * 남쪽으로 깊게, 동쪽으로는 얕게 잡아 첫 캠프(동, y=0.35H)와도 강·폭포
+   * (서쪽, x 음수대)와도 안 겹친다. 첫 캠프보다 작고 수수하게 — "나그네가
+   * 하룻밤 묵어가는 외딴집" 하나뿐이다(우물 없음, 천막·모닥불·평상·등롱
+   * 하나씩만). 사람은 아직 없다 — 첫 캠프의 상인도 PHASE 3가 아니라 PHASE 4
+   * (NPC)에서 나중에 채워진 것과 같은 순서다.
+   */
+  var HAMLET2_MIN_MARGIN = 14;
+  function hamlet2Spot() {
+    var m = forestMargin();
+    if (m < HAMLET2_MIN_MARGIN) { return null; }
+    return { tx: W + Math.round(m * 0.15), ty: H + Math.round(m * 0.6) };
+  }
+  /** 첫 캠프와 같은 7×5 칸 — 자리는 작아도 비우는 둘레는 맞춘다 */
+  function inHamlet2(tx, ty) {
+    var h = hamlet2Spot();
+    if (!h) { return false; }
+    return tx >= h.tx - 3 && tx <= h.tx + 3 && ty >= h.ty - 2 && ty <= h.ty + 2;
+  }
+
   /* ── 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸) ────────────────────
    * 호수(서)·캠프(동)·폭포(강 남쪽)와 안 겹치는 마지막 방향 — **북쪽**에
    * 고정한다. PLAN 10절이 "던전 입구"도 고정 배치로 못 박아 둔 것과 같은
@@ -473,6 +494,7 @@
       for (tx = -m; tx < W + m; tx++) {
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
         if (inHamlet(tx, ty)) { continue; }                         // 작은 마을 자리는 비워 둔다
+        if (inHamlet2(tx, ty)) { continue; }                        // 두 번째 캠프 자리도 비워 둔다
         if (inCave(tx, ty)) { continue; }                           // 동굴 자리도 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
@@ -525,6 +547,19 @@
       props.push({ id: 'hamletShed', kind: 'hamletShed', x: hx - TILE * 2.6, y: hy + TILE * 1.5, deco: true });
     }
 
+    /* 두 번째 캠프(PLAN 10절 "고정 배치", 2026-09-09) — 첫 캠프보다 작고
+       수수하다. House_4를 이번에 처음 쓴다 — 이걸로 House_1~4 넷을 다
+       썼다. 사람은 아직 없다(첫 캠프의 상인처럼 나중 몫) */
+    var hs2 = hamlet2Spot();
+    if (hs2) {
+      var h2x = hs2.tx * TILE + TILE * 0.5, h2y = hs2.ty * TILE + TILE * 0.5;
+      props.push({ id: 'hamlet2Tent', kind: 'tent', x: h2x - TILE * 1.1, y: h2y - TILE * 0.5, deco: true });
+      props.push({ id: 'hamlet2Fire', kind: 'campfire', x: h2x, y: h2y, deco: true });
+      props.push({ id: 'hamlet2Bench', kind: 'bench', x: h2x + TILE * 0.6, y: h2y + TILE * 0.6, deco: true });
+      props.push({ id: 'hamlet2Lantern', kind: 'lantern', x: h2x - TILE * 1.3, y: h2y + TILE * 0.3, deco: true });
+      props.push({ id: 'hamlet2House', kind: 'hamlet2House', x: h2x + TILE * 0.2, y: h2y - TILE * 1.6, deco: true });
+    }
+
     /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸 + PHASE 4 "Treasure") — 바위산·
        이끼바위 둘은 여전히 순수 장식(deco:true)이지만, **입구(caveMouth)는
        이제 손이 닿는다**(PHASE 3 때는 표지만이라 deco:true였다 — focus()가
@@ -554,7 +589,7 @@
         var gty = gcy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (!(gtx >= -m && gty >= -m && gtx < W + m && gty < H + m)) { continue; }
         if (gtx >= 0 && gty >= 0 && gtx < W && gty < H) { continue; }     // 마을 안은 기존 사물 몫
-        if (inHamlet(gtx, gty) || inCave(gtx, gty)) { continue; }
+        if (inHamlet(gtx, gty) || inHamlet2(gtx, gty) || inCave(gtx, gty)) { continue; }
         if (!GRASS_FAMILY[tileAt(gtx, gty)]) { continue; }
         var ggate = core.hash2(gcx * 271 + s.seed % 503, gcy * 337 + (s.seed >> 5) % 467);
         if (ggate > 0.55) { continue; }                                  // animal.js 와 같은 문턱 — 45%만
@@ -699,7 +734,7 @@
         var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (tx >= -m && ty >= -m && tx < W + m && ty < H + m &&
             !(tx >= 0 && ty >= 0 && tx < W && ty < H) &&
-            !inHamlet(tx, ty) && !inCave(tx, ty) && GRASS_FAMILY[tileAt(tx, ty)]) {
+            !inHamlet(tx, ty) && !inHamlet2(tx, ty) && !inCave(tx, ty) && GRASS_FAMILY[tileAt(tx, ty)]) {
           var hgate = core.hash2(cx * 211 + s.seed % 701, cy * 179 + (s.seed >> 4) % 659);
           if (hgate > 0.55) { continue; }              // 칸의 절반 넘게는 비워 둔다
           var biome = biomeAt(tx, ty);
@@ -731,7 +766,7 @@
         var tx = cx * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }
-        if (inHamlet(tx, ty) || inCave(tx, ty)) { continue; }
+        if (inHamlet(tx, ty) || inHamlet2(tx, ty) || inCave(tx, ty)) { continue; }
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }
         if (biomeAt(tx, ty) === biome) { return { tx: tx, ty: ty }; }
       }
@@ -1630,6 +1665,7 @@
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
+    hamlet2Spot: hamlet2Spot, inHamlet2: inHamlet2,
     caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
     buildNpcs: buildNpcs, firstBiomeSpot: firstBiomeSpot,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,

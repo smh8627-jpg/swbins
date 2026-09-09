@@ -706,6 +706,47 @@ window.DG_NO_TUNE = true;
       return bad === 0 && '캠프 둘레 겹침 0개';
     });
 
+    /* ── 두 번째 캠프(2026-09-09, 사용자 지시 "두 번째 캠프 새로 열어") ── */
+
+    t('두 번째 캠프 — 첫 캠프·호수·동굴과 안 겹치는 고정 자리, 재현된다', function () {
+      var a = V.hamlet2Spot(), b = V.hamlet2Spot();
+      var h1 = V.hamletSpot(), c = V.caveSpot();
+      var farFromH1 = !h1 || Math.abs(a.tx - h1.tx) > 6 || Math.abs(a.ty - h1.ty) > 6;
+      var farFromCave = !c || Math.abs(a.tx - c.tx) > 6 || Math.abs(a.ty - c.ty) > 6;
+      return !!a && JSON.stringify(a) === JSON.stringify(b) && a.ty >= V.H &&
+        farFromH1 && farFromCave &&
+        ('(' + a.tx + ',' + a.ty + ') 재현 · 첫 캠프·동굴과 안 겹침');
+    });
+
+    t('두 번째 캠프 — margin 이 너무 좁으면 아예 없어진다', function () {
+      C.setTune('forest.margin', 5);
+      var gone = V.hamlet2Spot();
+      C.setTune('forest.margin', null);
+      return gone === null && 'margin 5 → 두 번째 캠프 없음';
+    });
+
+    t('두 번째 캠프 — buildProps() 가 천막·모닥불·평상·등롱·외딴집을 세운다', function () {
+      V.buildProps();
+      var raw = V.raw(), byId = {};
+      for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
+      var want = ['hamlet2Tent', 'hamlet2Fire', 'hamlet2Bench', 'hamlet2Lantern', 'hamlet2House'];
+      var n = 0, i2;
+      for (i2 = 0; i2 < want.length; i2++) { if (byId[want[i2]] && byId[want[i2]].deco) { n++; } }
+      return n === want.length && ('두 번째 캠프 사물 ' + n + '/' + want.length + '개');
+    });
+
+    t('두 번째 캠프 — 둘레엔 바이옴 장식(f 접두)이 안 겹쳐 심긴다', function () {
+      V.buildProps();
+      var raw = V.raw(), i, bad = 0;
+      for (i = 0; i < raw.props.length; i++) {
+        var p = raw.props[i];
+        if (p.id.charAt(0) !== 'f') { continue; }
+        var tx = Math.floor(p.x / V.TILE), ty = Math.floor(p.y / V.TILE);
+        if (V.inHamlet2(tx, ty)) { bad++; }
+      }
+      return bad === 0 && '두 번째 캠프 둘레 겹침 0개';
+    });
+
     /* ── PLAN 40절 PHASE 3 마지막 칸: 숨겨진 동굴 ─────────────── */
 
     t('동굴 — 호수·캠프와 안 겹치는 북쪽 고정 자리, 재현된다', function () {
