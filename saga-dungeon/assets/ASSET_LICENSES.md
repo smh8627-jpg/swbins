@@ -1305,3 +1305,32 @@ Death 등) 내장, `mapClips()` word 표로 그대로 받는다(리타깃 불필
 `http://172.17.1.200:8081/repository/npm_group/`를
 `https://registry.npmjs.org/`로 되돌리고(사용자 승인 하에) `npm install`
 다시 받은 뒤, 이 폴더(및 압축 안 된 다른 자리)를 마저 압축할 것.
+
+> **처리됨(같은 세션, 뒤이어)** — 사용자 승인 받고 위 lockfile을
+> 고쳐 `tools/glb-compress`를 되살렸다. `polypizza_women2/`도 마저
+> 압축(2.0MB→0.6MB, 클립 11개 그대로 남음 확인). 아래부터는 그
+> 도구로 바로 압축해 등록한다.
+
+## 캐릭터 5차분 — Ultimate Space Kit 우주비행사 3벌 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/explore?anim=1&lic=1`(애니메이션·무료 라이선스 필터) 목록을
+훑다가 `Ultimate Space Kit` 소속 Astronaut 가 이미 쓴 `ppmen_astronaut`
+(Ultimate Modular Men Pack 소속, UUID 다름)와 별개로 3벌 있는 것을
+찾았다 — 각 번들의 `/m/` 링크를 서로 대조해 겹치는 UUID(Farmer·Punk·
+SWAT·King·BusinessMan·CasualCharacter·BeachCharacter·HoodieCharacter·
+Worker·Man 등, Ultimate Modular Men/Animated Men Pack과 이름이 같아
+보였던 것들)를 먼저 걸러내고 남은 것.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Astronaut(1) | `poly.pizza/m/0D54W8yfrA` → `static.poly.pizza/f06659f2-e505-43df-a3db-84faec811a57.glb` | Quaternius | CC0 |
+| Astronaut(2) | `poly.pizza/m/OgeSH89Nmx` → `static.poly.pizza/29010dcf-84c9-4eaf-a874-c44ef3166f55.glb` | Quaternius | CC0 |
+| Astronaut(3) | `poly.pizza/m/zbtPq4dOJL` → `static.poly.pizza/9cd2d5d8-953d-4aee-8e46-f72b12ff5855.glb` | Quaternius | CC0 |
+
+셋 다 같은 뼈대·`CharacterArmature|*` 클립 18개(색·소재 텍스처만 다른
+변형) — `mapClips()` 그대로 받는다. `assets/models/people/
+polypizza_space/`에 둠, `tools/glb-compress`로 압축(2.1MB→0.6MB),
+`HERO_RECIPES_LIGHT`에 `ppspace_*`로 등록 — **62→65종**.
+
+같은 번들의 Enemy Small/Large/Flying·Mech·Rover(로봇/외계생물)는 사람형이
+아니라 등록 안 함 — "몬스터 100개" 트랙 후보로 남겨 둠.

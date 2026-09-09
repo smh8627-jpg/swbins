@@ -171,6 +171,22 @@
     })
   );
 
+  /* 2026-09-09(이어서, 압축 도구 고친 뒤) — "캐릭터 100개" 계속.
+     `Ultimate Space Kit`(Quaternius, CC0, `bundle/Ultimate-Space-Kit-
+     YWh743lqGX`)의 Astronaut 는 이 번들 안에만 3벌(색·소재만 다른
+     텍스처 변형, 뼈대·클립은 동일) — 이미 쓴 `ppmen_astronaut`(Ultimate
+     Modular Men Pack 소속, UUID 다름)와는 별개 자산이다. 같은 번들의
+     Enemy Small/Large/Flying·Mech·Rover 는 로봇/외계생물이라 이 표
+     (사람형)가 아니라 몬스터 트랙 후보로 남겨 둔다(등록 안 함).
+     `CharacterArmature|*` 낱말표, `mapClips()` 그대로 받음. */
+  var PEOPLE_PP_SPACE = 'assets/models/people/polypizza_space/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Astronaut1', 'Astronaut2', 'Astronaut3'].map(function (n) {
+      var f = PEOPLE_PP_SPACE + n + '.glb';
+      return { key: 'ppspace_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/
