@@ -496,6 +496,56 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          ' · 부대 힘 ' + Math.round(p0) + ' → ' + Math.round(p1));
     });
 
+    /* ── 진형 (2026-09-09, PLAN §16 "여덟 축" 중 하나) ────── */
+
+    t('진형 표 — 세 종, 저마다 문턱·배율이 있다', function () {
+      var fs = W.FORMATIONS;
+      var ok = fs.length === 3 &&
+        fs.every(function (f) { return f.key && f.name && f.emoji && f.reqStat && f.req > 0 && f.mul > 1; });
+      return ok && ('진형 ' + fs.length + '종 — ' + fs.map(function (f) { return f.emoji + f.name; }).join(' '));
+    });
+
+    t('formationOf — 무력 75 이상인 장수를 데려가면 추행진이 자동으로 선다(고르는 화면 없음)', function () {
+      fresh('cao');
+      var strong = off.all().filter(function (h) { return h.stats && off.stats(h.id).might >= 75; })[0];
+      if (!strong) { return false; }
+      var f = W.formationOf([strong.id]);
+      return !!f && f.key === 'chukyi' &&
+        ('무력 ' + off.stats(strong.id).might + ' (' + strong.name + ') → ' + f.emoji + f.name +
+         ' ×' + f.mul);
+    });
+
+    t('formationOf — 세 능력치 다 문턱을 못 넘으면 진형이 안 선다', function () {
+      fresh('cao');
+      var weak = off.all().filter(function (h) { return h.stats; }).sort(function (a, b) {
+        var sa = off.stats(a.id), sb = off.stats(b.id);
+        return (sa.might + sa.wisdom + sa.command) - (sb.might + sb.wisdom + sb.command);
+      })[0];
+      if (!weak) { return false; }
+      var s = off.stats(weak.id);
+      if (s.might >= 75 || s.wisdom >= 75 || s.command >= 75) { return false; }
+      var f = W.formationOf([weak.id]);
+      return f === null &&
+        ('가장 약한 ' + weak.name + '(무' + s.might + '·지' + s.wisdom + '·통' + s.command + ')로는 안 선다');
+    });
+
+    t('armyPower — 진형 배율이 실제로 부대 전투력에 곱해진다', function () {
+      fresh('cao');
+      var strong = off.all().filter(function (h) { return h.stats && off.stats(h.id).might >= 75; })[0];
+      if (!strong) { return false; }
+      var f = W.formationOf([strong.id]);
+      if (!f) { return false; }
+      var army = { troops: 10000, train: 60, tech: 300, morale: 1, officers: [strong.id], water: false };
+      var withMul = W.armyPower(army);
+      var origMul = f.mul;
+      f.mul = 1;                     // 진형 배율만 잠깐 꺼서 비교(같은 장수·같은 lead)
+      var withoutMul = W.armyPower(army);
+      f.mul = origMul;               // 되돌린다
+      var ratio = withMul / withoutMul;
+      return Math.abs(ratio - origMul) < 0.001 &&
+        (f.emoji + f.name + ' ×' + origMul + ' 확인 — ' + Math.round(withoutMul) + ' → ' + Math.round(withMul));
+    });
+
     t('공이 쌓여야 승진한다 — 올리면 충성이 오른다', function () {
       fresh('cao');
       var id = 'sg_xiahoudun';

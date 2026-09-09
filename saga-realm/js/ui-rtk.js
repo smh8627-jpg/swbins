@@ -277,10 +277,18 @@
       title: (wet ? '🌊 ' : '⚔️ ') + CD.find(fromId).name + ' → ' + CD.find(toId).name,
       hint: '몇 명을 이끌고 갈까요? 성에 🪖 ' + core.fmt(c.troops) +
         (wet ? ' · <b>물길</b>이라 배로 ' + core.fmt(max) + '까지' : '') +
-        '<br>장수 — ' + lead.map(function (id) { return esc(off().find(id).name); }).join(' · '),
+        '<br>장수 — ' + lead.map(function (id) { return esc(off().find(id).name); }).join(' · ') +
+        formationHint(lead),
       max: max, value: Math.floor(max * 0.8), ok: (wet ? '🌊 물길로 친다' : '⚔️ 친다'),
       done: function (t) { runMarch(fromId, toId, lead, t); }
     });
+  }
+
+  /** 이 장수들로 나가면 진형이 서는가 — 서면 미리 알려 준다(war.js FORMATIONS) */
+  function formationHint(officerIds) {
+    var f = global.DG.war.formationOf(officerIds);
+    return f ? '<br><span class="tag">' + f.emoji + ' ' + esc(f.name) + ' 발동 (위력 ×' +
+      f.mul.toFixed(2) + ')</span>' : '';
   }
 
   function runMarch(fromId, toId, lead, t) {
@@ -305,7 +313,8 @@
       title: '🚩 ' + CD.find(fromId).name + ' → ' + CD.find(toId).name + ' (원정)',
       hint: '몇 명을 보낼까요? 성에 🪖 ' + core.fmt(c.troops) +
         '<br>거리 — 약 <b>' + CD.pathMonths(path) + '달</b> 예상' +
-        '<br>장수 — ' + lead.map(function (id) { return esc(off().find(id).name); }).join(' · '),
+        '<br>장수 — ' + lead.map(function (id) { return esc(off().find(id).name); }).join(' · ') +
+        formationHint(lead),
       max: c.troops, value: Math.floor(c.troops * 0.8), ok: '🚩 원정을 보낸다',
       done: function (t) { runJourney(fromId, toId, lead, t); }
     });

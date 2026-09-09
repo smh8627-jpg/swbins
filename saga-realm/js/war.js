@@ -86,8 +86,42 @@
   /* ── 부대의 힘 ────────────────────────────────────────── */
 
   /**
+   * 진형(陣形, PLAN §16 "붙일 여덟 축" 중 하나, 2026-09-09) — 원작 코에이
+   * 삼국지의 진형을 가볍게 옮겼다. **고르는 화면을 안 만든다** — 데려가는
+   * 장수의 능력치가 문턱을 넘으면 **자동으로** 그 진형이 붙는다(가장 센
+   * 진형 하나만, 요건 못 넘으면 무진형). 새 상태·새 UI 없이 `army.officers`
+   * (모든 army 객체가 이미 갖고 있다 — march·journey·camp·forecast 전부)만
+   * 보고 판정하므로, `armyPower()` **한 곳**만 고치면 화면(로그)과 판정이
+   * 저절로 같이 움직인다("계산이 두 곳으로 갈라지면 안 된다" — hero.js
+   * 머리말과 같은 원칙, `officer.js` `stats()` 참고).
+   */
+  var FORMATIONS = [
+    { key: 'chukyi',  name: '추행진', emoji: '🔺', reqStat: 'might',   req: 75, mul: 1.15,
+      desc: '앞을 송곳처럼 세워 정면을 뚫는다 — 데려가는 장수 중 무력 75 이상이 있어야 선다.' },
+    { key: 'hakik',   name: '학익진', emoji: '🦅', reqStat: 'wisdom',  req: 75, mul: 1.10,
+      desc: '학이 날개를 펴듯 둘러싸 허를 찌른다 — 데려가는 장수 중 지력 75 이상이 있어야 선다.' },
+    { key: 'bangwon', name: '방원진', emoji: '⭕', reqStat: 'command', req: 75, mul: 1.08,
+      desc: '둥글게 다져 무너지지 않고 민다 — 데려가는 장수 중 통솔 75 이상이 있어야 선다.' }
+  ];
+
+  /** 이 무장들로 지금 설 수 있는 진형 중 가장 센 것(없으면 null) */
+  function formationOf(officerIds) {
+    var off = global.DG.off, best = null, i, j, top;
+    for (i = 0; i < FORMATIONS.length; i++) {
+      var f = FORMATIONS[i];
+      top = 0;
+      for (j = 0; j < officerIds.length; j++) {
+        var v = off.stats(officerIds[j])[f.reqStat];
+        if (v > top) { top = v; }
+      }
+      if (top >= f.req && (!best || f.mul > best.mul)) { best = f; }
+    }
+    return best;
+  }
+
+  /**
    * 부대 전투력.
-   *   병력 × 훈련 × 기술 × 장수 보정
+   *   병력 × 훈련 × 기술 × 장수 보정 × 진형 배율
    * 장수 보정은 **가장 나은 한 사람**이 끌고, 나머지는 조금씩 보탠다.
    * 전원 평균으로 하면 약한 장수를 딸려 보낼수록 약해져서 "다 데려간다" 가 손해가 된다.
    */
@@ -107,7 +141,8 @@
     var lead = 1 + bestCmd / 100 * 0.5 + bestMight / 100 * 0.25 +
       Math.max(0, army.officers.length - 1) * 0.03;
     if (extra === 0) { lead = 0.6; }         // 장수 없는 군대는 오합지졸이다
-    return army.troops * trainF * techF * lead * navy * (army.morale || 1);
+    var form = formationOf(army.officers);
+    return army.troops * trainF * techF * lead * navy * (army.morale || 1) * (form ? form.mul : 1);
   }
 
   /**
@@ -474,6 +509,12 @@
     lines((water ? '🌊 ' : '⚔️ ') + CD.find(toId).name + ' — ' +
       global.DG.rtk.forceName(atk.force) + ' ' + core.fmt(atk.troops) +
       ' vs ' + global.DG.rtk.forceName(def.force) + ' ' + core.fmt(def.troops));
+
+    /* 진형 — 판정(armyPower)이 이미 반영했으니 여기선 알리기만 한다 */
+    var af = formationOf(atk.officers), df = formationOf(def.officers);
+    if (af) { lines(af.emoji + ' 공격군이 ' + af.name + ' 을 편다 (위력 ×' + af.mul.toFixed(2) + ')'); }
+    if (df) { lines(df.emoji + ' 수비군이 ' + df.name + ' 을 편다 (위력 ×' + df.mul.toFixed(2) + ')'); }
+
     if (water) {
       lines('🛶 물길로 건넜다 — 배 ' + (atk.ships || 0) + '척 대 ' + (def.ships || 0) +
         '척. 성벽은 소용이 없다');
@@ -1333,6 +1374,7 @@
     ROUNDS: ROUNDS, ROUT: ROUT, DUEL_GAP: DUEL_GAP, SHIP_CREW: SHIP_CREW,
     CAMP_DECAY: CAMP_DECAY, CAMP_QUIT: CAMP_QUIT, CAMP_MIN: CAMP_MIN,
     armyPower: armyPower, topBy: topBy, duel: duel, fireRoll: fireRoll,
+    FORMATIONS: FORMATIONS, formationOf: formationOf,
     reinforce: reinforce, reliefOf: reliefOf, forecast: forecast,
     canMarch: canMarch, march: march, marchInteractive: marchInteractive, capture: capture,
     transfer: transfer, moveOfficer: moveOfficer,
