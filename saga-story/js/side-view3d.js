@@ -495,7 +495,10 @@
     shell.userData.head = prim.userData.head;
     shell.userData.baseColor = prim.userData.baseColor;
 
-    var heightPx = (boss ? 1.9 : 1) * 58;   // 도형 사람의 정수리 높이(50*scale)와 얼추 맞춘다
+    /* big — 탱커형(PLAN 13절)·코끼리병을 잡졸보다 눈에 띄게 키운다.
+       도형(placeholder) 크기는 그대로 두고(humanoid() 는 boss 만 본다)
+       GLB 가 도착했을 때만 커진다 — 과한 손질은 아니다 */
+    var heightPx = (boss ? 1.9 : (big ? 1.3 : 1)) * 58;   // 도형 사람의 정수리 높이(50*scale)와 얼추 맞춘다
     function swapActorIn(model) {
       if (!model) { return; }   // GLB 를 못 받았다 — 도형 그대로 남는다
       while (shell.children.length) { var sc = shell.children[0]; disposeDeep(sc); shell.remove(sc); }
@@ -605,20 +608,19 @@
     for (i = 0; i < run.enemies.length; i++) {
       var e = run.enemies[i];
       var em = enemyPool[i];
-      /* "코끼리인지" 정규식은 배우를 새로 만들 때만 필요한데 예전엔 적
-         수만큼 매 프레임 돌았다 — 두 생성 분기 안으로 옮김(감사, 2026-09-08) */
-      /* 희귀형(PLAN 11·13절) — 금빛으로 물들여 잡졸과 구별한다. 새 배우 종류를
-         늘리지 않고 tint 색만 바꾼다 */
+      /* 배우를 새로 만들 때만 필요한 값들 — 두 생성 분기 안으로 옮김(감사, 2026-09-08).
+         희귀형(PLAN 11·13절)은 금빛으로 물들이고, 탱커형(코끼리병 포함)은 크게 세운다 */
       var tint = e.rare ? '#f0c040' : e.ref.color;
+      var big = e.role === 'tank';
       if (!em) {
-        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
-        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
+        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big);
+        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare; em.userData.role = e.role;
         actorGroup.add(em); enemyPool[i] = em;
       }
-      if (em.userData.boss !== !!e.boss || em.userData.rare !== !!e.rare) {
+      if (em.userData.boss !== !!e.boss || em.userData.rare !== !!e.rare || em.userData.role !== e.role) {
         actorGroup.remove(em);
-        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
-        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
+        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big);
+        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare; em.userData.role = e.role;
         actorGroup.add(em); enemyPool[i] = em;
       }
       em.visible = true;

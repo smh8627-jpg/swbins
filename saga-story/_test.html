@@ -1920,6 +1920,49 @@ window.DG_NO_TUNE = true;
         ('🪙 +' + Math.round(run.gold - gold0) + ' (' + tries + '판째)');
     });
 
+    t('돌진형(기병)은 뜸을 들이다 빠르게 달려든다', function () {
+      if (S.active()) { S.leave(); }
+      var found = null, tries = 0, run;
+      while (!found && tries < 200) {
+        S.enter('forest');
+        run = S.raw();
+        found = run.enemies.filter(function (e) { return e.role === 'dash'; })[0];
+        if (!found) { S.leave(); }
+        tries++;
+      }
+      if (!found) { return false; }
+      run.player.x = found.x - 200; run.player.y = run.stage.floor - S.P_H;
+      found.y = run.stage.floor - 22;   // 발판 위에 뜬 채면 높이가 안 맞아 near 판정이 안 걸린다
+      found.chargeCd = 0;
+      S.update(0.05);
+      var charging = found.charge > 0;
+      var x0 = found.x;
+      for (var k = 0; k < 15; k++) { S.update(0.05); }   // update() 는 dt 를 0.05 로 clamp 한다
+      var moved = Math.abs(found.x - x0);
+      return charging && moved > 30 &&
+        (found.ref.name + ' 돌진 이동 ' + Math.round(moved) + 'px (' + tries + '판째)');
+    });
+
+    t('탱커형(코끼리병 등)은 잡졸보다 체력이 높고 안 밀린다', function () {
+      if (S.active()) { S.leave(); }
+      var found = null, common = null, tries = 0, run;
+      while ((!found || !common) && tries < 200) {
+        S.enter('forest');
+        run = S.raw();
+        found = run.enemies.filter(function (e) { return e.role === 'tank'; })[0];
+        common = run.enemies.filter(function (e) { return e.role !== 'tank'; })[0];
+        if (!found || !common) { S.leave(); }
+        tries++;
+      }
+      if (!found || !common) { return false; }
+      run.player.x = found.x - 40; run.player.facing = 1;
+      run.player.y = run.stage.floor - S.P_H;
+      found.y = run.player.y - found.h + S.P_H;   // 때릴 수 있게 같은 높이에 세운다
+      S.castSkill(0);
+      return found.hpMax > common.hpMax && !found.kx &&
+        (found.ref.name + ' 체력 ' + found.hpMax + ' vs ' + common.ref.name + ' ' + common.hpMax);
+    });
+
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
       return window.DG_SEED === 20260824 &&

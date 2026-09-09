@@ -397,6 +397,22 @@
     return core.pick(pool);
   }
 
+  /**
+   * 몬스터 타입(PLAN 13절) — `data-enemy.js`는 던전 게임과 나눠 든 같은
+   * 파일이라 새 칸을 안 만든다(`SD.rangedOf()`와 같은 이유). 대신 이미 있는
+   * 이름·무기로 가른다: **원거리형**은 활·조총(`rangedOf`, 기존) ·
+   * **돌진형**은 이름에 "기병"(말을 탔다) · **탱커형**은 코끼리·미늘창(둔중한
+   * 무기) · 나머지는 **근접형**(기본).
+   */
+  function enemyRole(ref) {
+    if (SD.rangedOf(ref)) { return 'ranged'; }
+    if (/기병/.test(ref.name)) { return 'dash'; }
+    if (/코끼리/.test(ref.name) || (ref.look && ref.look.weapon === 'halberd')) { return 'tank'; }
+    return 'melee';
+  }
+
+  var TANK_HP_MUL = 2.2, TANK_SPD_MUL = 0.6, TANK_DMG_MUL = 0.85;
+
   function spawnEnemy(atX) {
     if (!run) { return; }
     var stg = run.stage;
@@ -412,18 +428,26 @@
     }
     var hp = Math.max(1, Math.round(18 * Math.pow(1.22, lv - 1) * E_HP));
     var rw = SD.rangedOf(ref);              // 활·조총을 들었으면 멀리서 쏜다
+    var role = enemyRole(ref);
+    var spd = 42 + Math.min(50, lv * 2);
+    var dmgMul = 1;
+    if (role === 'tank') { hp = Math.round(hp * TANK_HP_MUL); spd *= TANK_SPD_MUL; dmgMul = TANK_DMG_MUL; }
     /* 희귀형(PLAN 11·13절, 2026-09-09) — 낮은 확률로 세다·많이 준다. 새 종을
        만들지 않고 기존 적 하나를 통째로 불려서 만든다(데이터 늘리지 않기) */
     var rare = Math.random() < RARE_CHANCE;
-    if (rare) { hp = Math.round(hp * RARE_HP_MUL); }
-    run.enemies.push({
+    if (rare) { hp = Math.round(hp * RARE_HP_MUL); dmgMul *= RARE_DMG_MUL; }
+    var e = {
       ref: ref, x: x, y: y - 22, w: 34, h: 34,
-      hp: hp, hpMax: hp, dmg: Math.round((4 + lv * 1.6) * (rare ? RARE_DMG_MUL : 1) * E_DMG),
+      hp: hp, hpMax: hp, dmg: Math.round((4 + lv * 1.6) * dmgMul * E_DMG),
       dir: Math.random() < 0.5 ? -1 : 1, homeY: y,
-      spd: 42 + Math.min(50, lv * 2), phase: Math.random() * 6.28, hurt: 0, cd: 0,
+      spd: spd, phase: Math.random() * 6.28, hurt: 0, cd: 0,
       ranged: rw, shotCd: rw ? rw.cd * (0.4 + Math.random() * 0.8) : 0,
-      rare: rare
-    });
+      rare: rare, role: role
+    };
+    /* 돌진형(PLAN 13절) — 보스의 "뜸을 들이다 달려든다" 패턴을 그대로 빌린다
+       (update() 의 charge 분기가 `e.boss || e.role === 'dash'` 를 본다) */
+    if (role === 'dash') { e.chargeCd = 3 + Math.random() * 2; e.charge = 0; }
+    run.enemies.push(e);
     if (rare) { core.emit('toast', '✨ 희귀 ' + ref.name + ' 등장!'); }
   }
 
@@ -495,7 +519,8 @@
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     e.hurt = crit ? 0.3 : 0.22;
-    if (!e.boss) {
+    /* 탱커형(PLAN 13절)은 보스처럼 밀리지 않는다 — 맷집이 그 컨셉이다 */
+    if (!e.boss && e.role !== 'tank') {
       var away = (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1;
       e.kx = (e.kx || 0) + away * knockPow() * (crit ? 1.5 : 1) * (mul >= 2 ? 1.4 : 1);
     }
@@ -862,9 +887,10 @@
       var dx = (p.x + P_W / 2) - (e.x + e.w / 2);
       var near = Math.abs(dx) < (e.boss ? 420 : 260) && Math.abs((p.y + P_H) - (e.y + e.h)) < 70;
       if (near) { e.dir = dx > 0 ? 1 : -1; }
-      /* 보스의 한 가지 패턴 — 뜸을 들이다 달려든다. 서서 때리기만 하면 안 되게 */
+      /* 보스의 한 가지 패턴 — 뜸을 들이다 달려든다. 서서 때리기만 하면 안 되게.
+         돌진형 잡몹(PLAN 13절)도 같은 패턴을 쓴다 — `chargeCd` 가 있는지로 본다 */
       var chargeMul = 1;
-      if (e.boss) {
+      if (e.boss || e.role === 'dash') {
         if (e.charge > 0) {
           e.charge -= dt;
           chargeMul = 2.6;
