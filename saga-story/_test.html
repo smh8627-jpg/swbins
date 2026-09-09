@@ -2245,6 +2245,28 @@ window.DG_NO_TUNE = true;
         ('🪙 +' + Math.round(run.gold - gold0) + ' (' + tries + '판째)');
     });
 
+    t('채집 보너스 지역(PLAN 11절)이 뜬 자리에서 캐면 평소의 두 배가 나온다', function () {
+      var run = S.raw();
+      var found = run && run.forage, tries = 0;
+      while (!found && tries < 200) {
+        if (S.active()) { S.leave(); }
+        S.enter('field');
+        run = S.raw();
+        found = run.forage;
+        tries++;
+      }
+      if (!found) { return false; }
+      var g = run.gathers[0];
+      if (!g) { return false; }
+      g.x = (found.x1 + found.x2) / 2; g.alive = true; g.respawnAt = 0;   // 보너스 구간 한가운데로 옮겨 심는다
+      var before = S.state().mats[g.kind] || 0;
+      run.player.x = g.x - 10; run.player.y = run.stage.floor - S.P_H;
+      S.update(0.05);
+      var after = S.state().mats[g.kind] || 0;
+      return !g.alive && (after - before) === 2 &&
+        (SD.GATHERS[g.kind].name + ' ' + before + ' → ' + after + ' (' + tries + '판째)');
+    });
+
     t('돌진형(기병)은 뜸을 들이다 빠르게 달려든다', function () {
       if (S.active()) { S.leave(); }
       var found = null, tries = 0, run;

@@ -148,6 +148,7 @@
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
   var CHEST_R = 46;
+  var FORAGE_CHANCE = 0.18, FORAGE_HALF = 130, FORAGE_MUL = 2;   // 채집 보너스 지역(PLAN 11절)
 
   /** 사냥터의 채집 자리를 살아있는 상태로 되돌린다(문 넘을 때·재입장 시) */
   function buildGathers(stg) {
@@ -177,6 +178,17 @@
     return { x: 200 + Math.random() * (stg.width - 400), opened: false };
   }
 
+  /** 랜덤 이벤트(PLAN 11절) "채집 보너스 지역" — 사냥터에 걸어 들어갈 때마다
+   *  낮은 확률로 폭 `FORAGE_HALF*2`px 구간이 하나 생긴다. 새 오브젝트를 만들지
+   *  않는다 — 이미 있는 `run.gathers`(§10)가 그 구간 안에서만 평소보다
+   *  `FORAGE_MUL`배 더 나오게, 판정 하나만 덧붙인다(update() 참고).
+   *  마을엔 안 둔다(채집 자리 자체가 없다) */
+  function buildForageZone(stg) {
+    if (stg.town || Math.random() >= FORAGE_CHANCE) { return null; }
+    var cx = FORAGE_HALF + 40 + Math.random() * (stg.width - (FORAGE_HALF + 40) * 2);
+    return { x1: cx - FORAGE_HALF, x2: cx + FORAGE_HALF, notified: false };
+  }
+
   /** 사냥터에 들어간다 */
   function enter(key) {
     var stg = SD.stage(key);
@@ -196,7 +208,7 @@
                 cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
-      chest: buildChest(stg), npcs: buildNpcs(stg), talk: null,
+      chest: buildChest(stg), forage: buildForageZone(stg), npcs: buildNpcs(stg), talk: null,
       kills: 0, gold: 0, startedAt: Date.now()
     };
     st().stage = stg.key;
@@ -389,6 +401,7 @@
     run.enemies = []; run.drops = []; run.shots = []; run.eshots = []; run.boss = null;
     run.gathers = buildGathers(stg);
     run.chest = buildChest(stg);
+    run.forage = buildForageZone(stg);
     run.npcs = buildNpcs(stg); run.talk = null;
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
@@ -1068,6 +1081,16 @@
       }
     }
 
+    /* 채집 보너스 지역(PLAN 11절) — 이 구간 안에서만 아래 채집이 FORAGE_MUL배
+       나온다. 처음 들어선 순간에만 한 번 알린다(보물상자의 "opened"와 같은
+       한 번뿐 패턴) */
+    var px = p.x + P_W / 2;
+    var inForage = !!(run.forage && px >= run.forage.x1 && px <= run.forage.x2);
+    if (inForage && !run.forage.notified) {
+      run.forage.notified = true;
+      core.emit('toast', '🍀 채집이 넘치는 곳이다!');
+    }
+
     /* 필드 채집(PLAN 10절) — 정지 오브젝트라 밟는 판정만 있으면 된다.
        가방과 달리 칸이 안 차므로(카운터라서) 늘 다 줍는다 */
     for (i = 0; i < run.gathers.length; i++) {
@@ -1076,15 +1099,16 @@
         if (Date.now() >= g.respawnAt) { g.alive = true; }
         continue;
       }
-      if (Math.abs(g.x - (p.x + P_W / 2)) < GATHER_R) {
+      if (Math.abs(g.x - px) < GATHER_R) {
         g.alive = false;
         g.respawnAt = Date.now() + GATHER_RESPAWN * 1000;
         var s = st();
-        s.mats[g.kind] = (s.mats[g.kind] || 0) + 1;
+        var gain = inForage ? FORAGE_MUL : 1;
+        s.mats[g.kind] = (s.mats[g.kind] || 0) + gain;
         var GD = SD.GATHERS[g.kind];
         sfx('coin');
-        core.emit('toast', GD.emoji + ' ' + GD.name + ' +1');
-        core.emit('side:gather', { kind: g.kind, stage: run.stage.key });
+        core.emit('toast', GD.emoji + ' ' + GD.name + ' +' + gain + (inForage ? ' 🍀' : ''));
+        core.emit('side:gather', { kind: g.kind, stage: run.stage.key, bonus: inForage });
       }
     }
 

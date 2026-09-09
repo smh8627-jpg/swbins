@@ -531,6 +531,7 @@
     rebuildGathers(Tc, stg);
     rebuildCritters(Tc, stg);
     rebuildChest(Tc);
+    buildForagePatch(Tc);
     lastMood = stg.mood + '|' + stg.width;
   }
 
@@ -551,6 +552,21 @@
     actorGroup.add(holder);
     swapIn(holder, 'chest', 'chest:' + run.chest.x, h, stageGen);
     chestMesh = holder;
+  }
+
+  /** 채집 보너스 지역(PLAN 11절) — `run.forage` 구간 바닥에 옅은 초록 반투명
+   *  판을 깐다. `worldGroup`에 얹으므로(자체 dispose 없음) 이 함수를 부르는
+   *  `rebuildStage()`가 사냥터를 바꿀 때마다 통째로 지우고 다시 그린다 —
+   *  chest처럼 따로 지우지 않아도 된다. 판정에는 안 닿는 화면 층이다 */
+  function buildForagePatch(Tc) {
+    var run = global.DG.side.raw();
+    if (!run || !run.forage) { return; }
+    var w = run.forage.x2 - run.forage.x1;
+    var mat = new Tc.MeshBasicMaterial({ color: 0x8cf28c, transparent: true, opacity: 0.28, depthWrite: false });
+    var patch = new Tc.Mesh(new Tc.PlaneGeometry(w, 160), mat);
+    patch.rotation.x = -Math.PI / 2;
+    patch.position.set((run.forage.x1 + run.forage.x2) / 2, 0.3, -60);
+    worldGroup.add(patch);
   }
 
   var CRITTER_FLEE_R = 160, CRITTER_FLEE_SPD = 140, CRITTER_WANDER_SPD = 26;
