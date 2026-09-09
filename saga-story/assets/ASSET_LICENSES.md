@@ -166,6 +166,31 @@ PLAN 3절("시작 마을 — NPC·상점·집·우물·나무·꽃·울타리·�
 **퀘스트 NPC·상점 NPC 는 아직 없다** — 이번은 배경(그림)만이고, PLAN Phase 3
 나머지(NPC 대화·상점·표지판)는 다음 차례다.
 
+## 비전투 동물 (`models/animals/`, PLAN 9절, 2026-09-09)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | **CC0 1.0 Universal** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-forest/assets/models/animals/`에 이미 받아 둔 `Deer.glb`·
+  `Fox.glb`를 그대로 복사했다(위 63행의 Wolf.glb·Cow.glb와 같은 창고) |
+
+들판·숲(마을·굴혈·호로곡 제외)에 안 싸우는 사슴·여우를 세웠다. `side.js`는
+이 존재를 모른다 — `js/side-view3d.js`의 `critterPool`이 화면 층에서만
+플레이어가 다가오면 물러나고 아니면 어슬렁대게 한다.
+
+## 보물상자 (`models/props/Chest.glb`, PLAN 11절, 2026-09-09)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kay Lousberg — KayKit Dungeon Remastered |
+| **라이선스** | **CC0 1.0 Universal** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-dungeon/assets/models/dungeon/chest.glb`를 그대로 복사했다 |
+
 ## Lucide — UI 아이콘 (2026-09-08, `js/icon.js`)
 
 `saga-go`의 `js/icon.js`를 그대로 옮겨 도구줄·독·지갑 이모지를 실제 아이콘으로

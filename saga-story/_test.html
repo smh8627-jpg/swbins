@@ -1887,6 +1887,39 @@ window.DG_NO_TUNE = true;
       return g.alive && '다시 돋음';
     });
 
+    t('희귀 몬스터가 이따금 등장하고, 잡졸보다 훨씬 세다', function () {
+      if (S.active()) { S.leave(); }
+      var found = null, tries = 0, run;
+      while (!found && tries < 200) {
+        S.enter('field');
+        run = S.raw();
+        found = run.enemies.filter(function (e) { return e.rare; })[0];
+        var common = run.enemies.filter(function (e) { return !e.rare; })[0];
+        if (found && common && found.hpMax <= common.hpMax) { found = null; }
+        if (!found) { S.leave(); }
+        tries++;
+      }
+      return !!found && (found.ref.name + ' 체력 ' + found.hpMax + ' (' + tries + '판째)');
+    });
+
+    t('보물상자는 이따금 있고, 지나가면 열려 보상을 준다', function () {
+      var run = S.raw();
+      var found = run && run.chest, tries = 0;
+      while (!found && tries < 200) {
+        if (S.active()) { S.leave(); }
+        S.enter('field');
+        run = S.raw();
+        found = run.chest;
+        tries++;
+      }
+      if (!found) { return false; }
+      var gold0 = run.gold;
+      run.player.x = found.x - 10; run.player.y = run.stage.floor - S.P_H;
+      S.update(0.05);
+      return found.opened && run.gold > gold0 &&
+        ('🪙 +' + Math.round(run.gold - gold0) + ' (' + tries + '판째)');
+    });
+
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
       return window.DG_SEED === 20260824 &&

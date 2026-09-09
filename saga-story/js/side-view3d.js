@@ -21,7 +21,7 @@
   var renderer = null, scene = null, camera = null, ready = false;
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
-  var playerMesh = null, enemyPool = [], npcPool = [], gatherPool = [], critterPool = [];
+  var playerMesh = null, enemyPool = [], npcPool = [], gatherPool = [], critterPool = [], chestMesh = null;
   var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
   var lastDrawT = 0, frameDt = 0;   // 사람 GLB 의 몸짓(뼈대 애니메이션)을 굴리는 델타타임
 
@@ -364,7 +364,27 @@
     rebuildNpcs(Tc, stg);
     rebuildGathers(Tc, stg);
     rebuildCritters(Tc, stg);
+    rebuildChest(Tc);
     lastMood = stg.mood + '|' + stg.width;
+  }
+
+  /** 보물상자(PLAN 11절) — `run.chest` 가 있을 때만(사냥터마다 한 자리, 이미
+   *  열었으면 `run.gathers` 처럼 알아서 숨는다) 세운다. z 는 채집물과 같은
+   *  깊이 — 걷다 지나치면 자연히 눈에 든다 */
+  function rebuildChest(Tc) {
+    if (chestMesh) { actorGroup.remove(chestMesh); disposeDeep(chestMesh); chestMesh = null; }
+    var run = global.DG.side.raw();
+    if (!run || !run.chest) { return; }
+    var h = 30;
+    var holder = new Tc.Group();
+    holder.position.set(run.chest.x, 0, -30);
+    var prim = new Tc.Mesh(new Tc.BoxGeometry(h * 0.7, h * 0.5, h * 0.5),
+      new Tc.MeshLambertMaterial({ color: 0xc89a3c }));
+    prim.position.set(0, h * 0.25, 0);
+    holder.add(prim);
+    actorGroup.add(holder);
+    swapIn(holder, 'chest', 'chest:' + run.chest.x, h, stageGen);
+    chestMesh = holder;
   }
 
   var CRITTER_FLEE_R = 160, CRITTER_FLEE_SPD = 140, CRITTER_WANDER_SPD = 26;
@@ -587,15 +607,18 @@
       var em = enemyPool[i];
       /* "코끼리인지" 정규식은 배우를 새로 만들 때만 필요한데 예전엔 적
          수만큼 매 프레임 돌았다 — 두 생성 분기 안으로 옮김(감사, 2026-09-08) */
+      /* 희귀형(PLAN 11·13절) — 금빛으로 물들여 잡졸과 구별한다. 새 배우 종류를
+         늘리지 않고 tint 색만 바꾼다 */
+      var tint = e.rare ? '#f0c040' : e.ref.color;
       if (!em) {
-        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
-        em.userData.boss = !!e.boss;
+        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
+        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
         actorGroup.add(em); enemyPool[i] = em;
       }
-      if (em.userData.boss !== !!e.boss) {
+      if (em.userData.boss !== !!e.boss || em.userData.rare !== !!e.rare) {
         actorGroup.remove(em);
-        em = actorShell(Tc, e.ref.kind, e.ref.color, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
-        em.userData.boss = !!e.boss;
+        em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, /코끼리/.test((e.ref && e.ref.name) || ''));
+        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
         actorGroup.add(em); enemyPool[i] = em;
       }
       em.visible = true;
@@ -625,6 +648,7 @@
     for (i = 0; i < gatherPool.length && i < run.gathers.length; i++) {
       gatherPool[i].visible = run.gathers[i].alive;
     }
+    if (chestMesh) { chestMesh.visible = !run.chest || !run.chest.opened; }
 
     /* 비전투 동물 — 플레이어가 다가오면 달아나고, 아니면 제자리를 어슬렁댄다.
        anchor ±260 을 못 벗어나 화면 밖으로 영영 사라지지는 않는다 */

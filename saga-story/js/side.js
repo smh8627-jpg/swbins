@@ -131,6 +131,10 @@
   var GATHER_R = 50;          // 캐는 데 필요한 거리 — 자동으로, 지나가기만 하면 된다
   var GATHER_RESPAWN = 45;    // 다시 돋기까지(초)
 
+  var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
+  var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
+  var CHEST_R = 46;
+
   /** 사냥터의 채집 자리를 살아있는 상태로 되돌린다(문 넘을 때·재입장 시) */
   function buildGathers(stg) {
     var list = stg.gathers || [], out = [];
@@ -138,6 +142,13 @@
       out.push({ x: list[i][0], kind: list[i][1], alive: true, respawnAt: 0 });
     }
     return out;
+  }
+
+  /** 랜덤 이벤트(PLAN 11절) — 사냥터에 걸어 들어갈 때마다 낮은 확률로 상자가
+   *  하나 생긴다. 마을엔 안 둔다(싸울 일이 없는 곳이라 어울리지 않는다) */
+  function buildChest(stg) {
+    if (stg.town || Math.random() >= CHEST_CHANCE) { return null; }
+    return { x: 200 + Math.random() * (stg.width - 400), opened: false };
   }
 
   /** 사냥터에 들어간다 */
@@ -159,6 +170,7 @@
                 cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
                 climb: null, dropThru: 0, resting: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
+      chest: buildChest(stg),
       kills: 0, gold: 0, startedAt: Date.now()
     };
     st().stage = stg.key;
@@ -313,6 +325,7 @@
     run.stage = stg;
     run.enemies = []; run.drops = []; run.shots = []; run.eshots = []; run.boss = null;
     run.gathers = buildGathers(stg);
+    run.chest = buildChest(stg);
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
     run.player.vx = 0; run.player.vy = 0; run.player.climb = null;
@@ -399,13 +412,19 @@
     }
     var hp = Math.max(1, Math.round(18 * Math.pow(1.22, lv - 1) * E_HP));
     var rw = SD.rangedOf(ref);              // 활·조총을 들었으면 멀리서 쏜다
+    /* 희귀형(PLAN 11·13절, 2026-09-09) — 낮은 확률로 세다·많이 준다. 새 종을
+       만들지 않고 기존 적 하나를 통째로 불려서 만든다(데이터 늘리지 않기) */
+    var rare = Math.random() < RARE_CHANCE;
+    if (rare) { hp = Math.round(hp * RARE_HP_MUL); }
     run.enemies.push({
       ref: ref, x: x, y: y - 22, w: 34, h: 34,
-      hp: hp, hpMax: hp, dmg: Math.round((4 + lv * 1.6) * E_DMG),
+      hp: hp, hpMax: hp, dmg: Math.round((4 + lv * 1.6) * (rare ? RARE_DMG_MUL : 1) * E_DMG),
       dir: Math.random() < 0.5 ? -1 : 1, homeY: y,
       spd: 42 + Math.min(50, lv * 2), phase: Math.random() * 6.28, hurt: 0, cd: 0,
-      ranged: rw, shotCd: rw ? rw.cd * (0.4 + Math.random() * 0.8) : 0
+      ranged: rw, shotCd: rw ? rw.cd * (0.4 + Math.random() * 0.8) : 0,
+      rare: rare
     });
+    if (rare) { core.emit('toast', '✨ 희귀 ' + ref.name + ' 등장!'); }
   }
 
   /* ── 입력 ─────────────────────────────────────────────── */
@@ -492,7 +511,7 @@
     run.kills += 1;
     st().kills = (st().kills || 0) + 1;
     var lv = run.stage.enemyLv;
-    var mul = e.boss ? 12 : 1;
+    var mul = e.boss ? 12 : (e.rare ? RARE_GAIN_MUL : 1);
     var gold = Math.round((6 + lv * 3) * (0.8 + Math.random() * 0.6) * mul * GAIN_GOLD);
     run.gold += gold;
     run.drops.push({ kind: 'gold', x: e.x + e.w / 2, y: e.y, vy: -180, n: gold });
@@ -511,7 +530,7 @@
                          x: e.x + e.w / 2 - 12, y: e.y, vy: -240, n: 1 });
       }
     }
-    core.gainExp((6 + lv * 4) * (e.boss ? 15 : 1) * GAIN_EXP);
+    core.gainExp((6 + lv * 4) * (e.boss ? 15 : (e.rare ? RARE_GAIN_MUL : 1)) * GAIN_EXP);
     /* 사명(quest.js)이 이 소식을 듣는다 — 규칙이 서로를 부르지 않게 알림으로만 잇는다 */
     core.emit('side:kill', { ref: e.ref, boss: !!e.boss, lv: lv, stage: run.stage.key });
     if (global.DG.hero.awardParty) { global.DG.hero.awardParty((2 + lv) * (e.boss ? 8 : 1)); }
@@ -949,6 +968,21 @@
         sfx('coin');
         core.emit('toast', GD.emoji + ' ' + GD.name + ' +1');
       }
+    }
+
+    /* 보물상자(PLAN 11절) — 한 판에 하나뿐이라 열면 그걸로 끝, 다음 판에
+       다시 뽑는다(buildChest). 드랍처럼 튀지 않고 제자리에 서 있다 */
+    if (run.chest && !run.chest.opened && Math.abs(run.chest.x - (p.x + P_W / 2)) < CHEST_R) {
+      run.chest.opened = true;
+      var cgold = Math.round((40 + stg.enemyLv * 12) * (0.8 + Math.random() * 0.6) * GAIN_GOLD);
+      run.gold += cgold;
+      var GG2 = global.DG.gear, GD2 = global.DG.gearData, gotItem = null;
+      if (GG2 && GD2) {
+        var made = GG2.make(core.pick(GD2.poolFor(stg.enemyLv)).key);
+        if (GG2.put(made)) { gotItem = made; } else { sfx('bagfull'); }
+      }
+      sfx('gear');
+      core.emit('toast', '💰 보물상자! 🪙+' + cgold + (gotItem ? ' · 📦 ' + GG2.nameOf(gotItem) : ''));
     }
 
     /* 연출 수명 */
