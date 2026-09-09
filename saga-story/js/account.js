@@ -8,14 +8,19 @@
  *   저장    그 프로필의 키(`<게임>/save/<프로필id>`)로 세이브가 들어간다
  *   전환    프로필이 여럿이면 골라서 들어간다 (형제·가족이 같은 PC 를 쓸 때)
  *   이어받기 옛 세이브(`…/save/v1`)가 있으면 첫 가입 때 그 진행을 옮겨 준다
+ *   타이틀  이미 있는 프로필이라도 매번 한 번 덮는다(PLAN 29절 "메인 화면" —
+ *           로고·캐릭터·이어하기·설정, 온라인 게임의 로그인 화면처럼)
  *
  * 게임 코드는 이 파일을 **한 곳에서만** 부른다:
  *
  *   game.js  boot() → DG.account.gate(start)
  *
  * gate() 가 프로필을 정해 core.setSaveKey() 를 부른 뒤 start() 를 돌린다.
- * 프로필이 없으면 가입 화면을 띄우고, 다 되면 그때 start() 를 돌린다.
- * 그래서 게임 쪽은 "언제 세이브 키가 정해지는지" 를 신경 쓸 필요가 없다.
+ * 프로필이 없으면 가입 화면(그 자체가 타이틀 화면을 겸한다)을, 있으면
+ * start() 를 먼저 돌려 게임을 밑에서 켠 채로 타이틀 화면(showTitle)을
+ * 덮는다 — "이어하기"는 화면만 걷고, "설정"은 이미 켜진 ui.js 의 설정
+ * 시트를 곧장 연다. 그래서 게임 쪽은 "언제 세이브 키가 정해지는지" 를
+ * 신경 쓸 필요가 없다.
  *
  * 이 파일은 다섯 게임에 **복사본**으로 들어간다(완전 별개 프로젝트 원칙).
  * 게임 이름만 GAME_NAME 으로 다르다.
@@ -177,6 +182,10 @@
       use(acc.id);
       start();
       injectButton();
+      /* 이미 있는 이름이라도 매번 타이틀 화면을 한 번 덮는다(PLAN 29절,
+         "온라인 게임처럼" — 사용자 요청 2026-09-09) — 예전엔 여기서 곧장
+         게임으로 들어가 타이틀이랄 게 아예 없었다. 게임은 이미 밑에서 돈다 */
+      showTitle(acc);
       return acc;
     }
     /* 프로필이 없다 — 가입 화면부터 */
@@ -195,10 +204,25 @@
     var st = document.createElement('style');
     st.id = 'acc-style';
     st.textContent = [
+      /* PLAN 29절(메인 화면) — 예전엔 rgba 단색이었다. 로고·캐릭터를 얹을 자리라
+         은은한 그라디언트로 깊이를 준다(그림 에셋은 안 쓴다, CSS 한 겹뿐) */
       '#acc-host{position:fixed;inset:0;z-index:60;display:none;place-items:center;',
-      'background:rgba(8,10,14,.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}',
+      'background:radial-gradient(ellipse at 50% -10%,#2b3c58 0%,#141824 55%,#0a0b0f 100%);',
+      'backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);overflow:auto;padding:24px 0}',
       '#acc-host.show{display:grid}',
-      '.acc-card{width:min(400px,calc(100vw - 28px));padding:20px;border-radius:22px;',
+      '.title-wrap{display:flex;flex-direction:column;align-items:center;gap:14px}',
+      '.title-char{font-size:56px;filter:drop-shadow(0 10px 16px rgba(0,0,0,.5))}',
+      '.title-logo{font:800 28px "Malgun Gothic",system-ui;color:#f5b445;letter-spacing:1px;',
+      'text-shadow:0 2px 14px rgba(245,180,69,.35)}',
+      '.title-tag{font-size:12px;color:#aab2c2;margin-top:-8px}',
+      /* #acc-host 는 grid 라 자식이 둘(제목+카드)이면 나란히 놓인다 — 하나로 감싸
+         세로로 쌓는다. 폭 상한은 **여기, shell 에서만** 잰다(100vw 대신 100%) —
+         100vw 는 세로 스크롤바 몫까지 넣어 재는 값이라, 내용이 길어져 스크롤이
+         생기면 카드가 그만큼 오른쪽으로 밀려 잘린다. #acc-host 는 inset:0 라
+         실제 뷰포트 크기 그대로이므로 그 안에서는 100% 가 정확하다 */
+      '.acc-shell{display:flex;flex-direction:column;align-items:center;gap:18px;',
+      'width:min(400px,calc(100% - 28px))}',
+      '.acc-card{width:100%;padding:20px;border-radius:22px;',
       'background:#171a21;border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 50px rgba(0,0,0,.5);',
       'font:400 13px/1.7 "Malgun Gothic",system-ui;color:#eef1f6}',
       '.acc-card h3{margin:0 0 2px;font-size:17px;color:#f5b445}',
@@ -245,13 +269,21 @@
     if (host) { host.classList.remove('show'); host.innerHTML = ''; }
   }
 
-  /** 가입 화면 — 프로필이 하나도 없을 때 */
+  /** 로고·캐릭터 — 가입 화면과 타이틀 화면(showTitle)이 같이 쓴다(PLAN 29절) */
+  function titleHero() {
+    return '<div class="title-wrap"><div class="title-char">🏃</div>' +
+      '<div class="title-logo">' + esc(GAME_NAME) + '</div>' +
+      '<div class="title-tag">역사 인물로 노는 옆으로 걷는 액션</div></div>';
+  }
+
+  /** 가입 화면 — 프로필이 하나도 없을 때. 온라인 게임의 첫 회원가입처럼,
+   *  이 화면 자체가 타이틀 화면을 겸한다(로고·캐릭터 먼저, 그 아래 가입 카드) */
   function showSignup(done) {
     var h = mount();
     var legacy = hasLegacy();
-    h.innerHTML =
+    h.innerHTML = '<div class="acc-shell">' + titleHero() +
       '<div class="acc-card">' +
-        '<h3>' + esc(GAME_NAME) + '</h3>' +
+        '<h3>회원가입</h3>' +
         '<p class="sub">이름을 넣으면 그 이름으로 진행이 저장됩니다.<br>' +
         '이 브라우저 안에만 남습니다 — 비밀번호는 없습니다.</p>' +
         '<input type="text" id="acc-name" maxlength="12" placeholder="이름 (예: 민호)" value="">' +
@@ -262,7 +294,7 @@
           : '') +
         '<button class="acc-btn primary wide" id="acc-go">시작하기</button>' +
         '<div class="acc-foot">나중에 상단 👤 에서 이름을 바꾸거나 다른 이름으로 새 판을 만들 수 있습니다.</div>' +
-      '</div>';
+      '</div></div>';
     h.classList.add('show');
 
     var input = document.getElementById('acc-name');
@@ -280,6 +312,32 @@
     if (input) {
       input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { go(); } });
     }
+  }
+
+  /**
+   * 타이틀 화면(PLAN 29절) — 프로필이 이미 있을 때 게임 위에 한 번 덮는다.
+   * **게임은 이미 켜진 채로 밑에서 돈다**(gate() 가 start() 를 먼저 부른다) —
+   * 그래서 "설정"을 눌러도 곧바로 실제 설정 시트를 열 수 있다(ui.js 가 이미
+   * 준비돼 있으니까). "이어하기"는 그냥 이 화면만 걷어 낸다.
+   */
+  function showTitle(acc) {
+    var h = mount();
+    h.innerHTML = '<div class="acc-shell">' + titleHero() +
+      '<div class="acc-card">' +
+        '<h3>다시 오셨군요</h3>' +
+        '<p class="sub"><b>' + esc(acc.name) + '</b> 님 — ' + esc(summaryOf(acc.id)) + '</p>' +
+        '<button class="acc-btn primary wide" id="title-continue">이어하기</button>' +
+        '<button class="acc-btn wide" id="title-switch">👤 다른 이름으로</button>' +
+        '<button class="acc-btn wide" id="title-settings">⚙️ 설정</button>' +
+      '</div></div>';
+    h.classList.add('show');
+
+    document.getElementById('title-continue').addEventListener('click', close);
+    document.getElementById('title-switch').addEventListener('click', showSwitch);
+    document.getElementById('title-settings').addEventListener('click', function () {
+      close();
+      if (global.DG.ui) { global.DG.ui.openSheet('settings'); }
+    });
   }
 
   function summaryLegacy() {
@@ -312,7 +370,7 @@
         '</div></div>';
     }
     h.innerHTML =
-      '<div class="acc-card">' +
+      '<div class="acc-shell"><div class="acc-card">' +
         '<h3>👤 누구로 놀까요</h3>' +
         '<p class="sub">' + esc(GAME_NAME) + ' — 이름마다 진행이 따로 저장됩니다.</p>' +
         rows +
@@ -320,7 +378,7 @@
           ? '<button class="acc-btn wide" id="acc-new">+ 새 이름으로 시작</button>' : '') +
         '<button class="acc-btn wide" id="acc-close">닫기</button>' +
         '<div class="acc-foot">삭제하면 그 이름의 진행이 사라집니다 — 되돌릴 수 없습니다.</div>' +
-      '</div>';
+      '</div></div>';
     h.classList.add('show');
 
     h.addEventListener('click', function (e) {
@@ -379,7 +437,8 @@
     GAME_NAME: GAME_NAME, MAX: MAX,
     list: list, current: current, keyOf: keyOf, summaryOf: summaryOf,
     hasLegacy: hasLegacy, create: create, use: use, rename: rename, remove: remove,
-    gate: gate, showSignup: showSignup, showSwitch: showSwitch, injectButton: injectButton,
+    gate: gate, showSignup: showSignup, showSwitch: showSwitch, showTitle: showTitle,
+    injectButton: injectButton,
     /** 자가진단용 — 화면 없이 프로필만 다룬다 */
     _store: STORE, _legacy: LEGACY, _read: read, _write: write
   };

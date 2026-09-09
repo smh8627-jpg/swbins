@@ -1575,6 +1575,23 @@ window.DG_NO_TUNE = true;
         '진단 우회 동작';
     });
 
+    t('타이틀 화면(PLAN 29절) — 로고·이름이 보이고, 이어하기를 누르면 걷힌다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var acc = A.create('타이틀진단', false);
+      A.showTitle(acc);
+      var h = document.getElementById('acc-host');
+      var shown = !!h && h.classList.contains('show');
+      var html = h ? h.innerHTML : '';
+      var hasLogo = html.indexOf(A.GAME_NAME) >= 0;
+      var hasName = html.indexOf('타이틀진단') >= 0;
+      document.getElementById('title-continue').click();
+      var closedAfter = !h.classList.contains('show');
+      localStorage.removeItem(A._store);
+      return shown && hasLogo && hasName && closedAfter &&
+        '타이틀 뜸 · 이름 보임 · 이어하기로 닫힘';
+    });
+
     /* ── 폰 (2026-08-26) ────────────────────────────────── */
 
     t('화면을 넷으로 나눠 조작을 읽는다 (폰에는 방향키가 없다)', function () {
