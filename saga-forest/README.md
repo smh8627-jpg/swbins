@@ -274,10 +274,36 @@ type 은 셋뿐이다(`bagcat`=가방의 그 갈래 합계, `chest`=동굴 보�
 **실기기 확인 전** — 다음 세션은 Gathering·Treasure·Quest 셋 다 손맛부터
 물어볼 것(자가진단은 로직만 본다, 밀도·보상 크기 체감은 실기기 몫).
 
-PHASE 4가 다 끝났으니 다음은 **PHASE 5**(Weather·Day/Night·Particles·
-Ambient — 다만 날씨·밤은 이미 2D 쪽에 있다, PLAN 40절 참고) 아니면
-**PHASE 6**(Portrait·Landscape·Safe Area·Touch — 이쪽도 상당수 이미
-있다) 중 먼저 실기기로 뭐가 비었는지 확인한 뒤 고를 것.
+**2026-09-09 — PHASE 5 착수: Day/Night·Weather·Ambient(3D).** 2D 쪽은 날씨·
+시간대가 이미 있었지만(`data-village.js`의 `phaseOf`/`weather`) **3D 화면
+(`village-view3d.js`)은 하늘색만 바이옴별로 있었지 시간·날씨를 전혀 안
+탔다** — 대낮 조명이 한밤중에도 그대로였다. 새 시간 계산은 안 만들고
+2D 가 이미 쓰는 그 둘(`VD.phaseOf`·`VD.weather`)을 3D 조명에 그대로
+물렸다.
+
+- **Day/Night**: 시간대(dawn·day·even·night)마다 하늘·안개 색을 어둡히고
+  (`darken()`, 바이옴 색에 밝기만 곱한다 — PLAN 13절 "간단한 preset"),
+  방향광(해)·반구광의 색·세기도 같이 바꾼다. 인물이 선 칸의 **바이옴이나
+  시간대가 바뀔 때만** 다시 칠한다(예전 `syncFog`와 같은 절약 방식).
+- **Weather**: 비·눈은 `town.weather().key`를 그대로 읽어 원점 중심
+  Points 파티클을 켜고 끈다. **인물이 늘 원점(0,0,0)** 이므로 파티클도
+  원점에 흩뿌려 두면 걸어도 따로 위치를 옮길 필요가 없다 — 낙하(y)만
+  `wrapY()`(순수 함수, 새 난수 없이 modulo 로 감는다)로 매 프레임 갱신한다.
+- **Ambient**: 비·눈이 없는 밤엔 반딧불이(PLAN 22절, "매우 많은 Mesh 대신
+  particle")를 띄운다. 40개뿐이라 가볍다.
+- admin·`_demo.html`이 이미 쓰던 `time.phase`/`time.weather` 손잡이를
+  그대로 타므로(`#treetest-night-rain`처럼) 새 강제 수단을 안 만들었다.
+
+자가진단에 순수 함수 4개(`darken`·`weatherShows`·`fireflyVisible`·`wrapY`)
+추가, 211 → **215**(세 번 동일). `sw.js` → `village-v0.31.0`. **실기기(또는
+CDP) 확인 전** — 이번엔 CDP 스크린샷도 시도했으나 `_demo.html`의 게임
+루프가 `--virtual-time-budget`과 맞물려 그대로 멎었다(예전에 다른 판에서
+잡았던 것과 같은 함정, 여기선 아직 우회 스크립트를 안 만들어 뒀다). 다음
+세션은 밤 조명·비/눈/반딧불이 손맛부터 물어볼 것.
+
+다음은 PHASE 5 나머지(2D 는 대부분 있으니 3D 쪽만 남은 게 있는지 재확인)
+아니면 **PHASE 6**(Portrait·Landscape·Safe Area·Touch — 이쪽도 상당수
+이미 있다) 중 실기기로 뭐가 비었는지 확인한 뒤 고를 것.
 
 ## 네 게임 중 하나
 
