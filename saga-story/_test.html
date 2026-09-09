@@ -2092,6 +2092,45 @@ window.DG_NO_TUNE = true;
       return right && gone && ('배너 — ' + b.ref.name + ' · 다 지나면 사라짐');
     });
 
+    t('레벨업·사명완료 배너 + 아이템 획득 팝업(PLAN 35절)', function () {
+      /* 이것도 맨 끝에 둔다 — S.enter() 와 레벨을 크게 올리는 것이 씨앗 수열·이후
+         계산에 물린 값을 흔들 수 있다(보스 등장 배너 항목과 같은 이유) */
+      if (S.active()) { S.leave(); }
+      S.enter('field');
+      var run = S.raw(), p = run.player;
+      calm(run);
+
+      function lifeOf(type) {
+        var m = 0, list = S.fx(), i;
+        for (i = 0; i < list.length; i++) { if (list[i].t === type) { m = Math.max(m, list[i].life); } }
+        return m;
+      }
+
+      var lv0 = C.save.player.level;
+      C.gainExp(999999);
+      var lvUp = lifeOf('levelup') > 1.5 && C.save.player.level > lv0;
+
+      run.drops = [];
+      run.drops.push({ kind: 'gear', key: 'hat1', x: p.x + 10, y: p.y + S.P_H - 6, vy: 0, n: 1 });
+      S.update(0.03);
+      var itemPop = lifeOf('itempop') > 0.5;
+      run.drops = [];
+
+      clearQuests();
+      C.save.player.level = Math.max(C.save.player.level, 12);
+      Q.take('q_first');
+      for (var i = 0; i < 10; i++) { Q._onKill({ boss: false, stage: 'field' }); }
+      var turned = Q.turnIn('q_first');
+      var qDone = lifeOf('questdone') > 1.5;
+      clearQuests();
+
+      S.leave();
+      restInput();
+      bare();
+      return lvUp && itemPop && turned && qDone &&
+        '레벨업 O · 아이템 팝업 O · 사명완료 배너 O';
+    });
+
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       /* 같은 씨앗이면 같은 수열 — 이 항목이 깨지면 위 항목들의 수치도 흔들린다 */
       return window.DG_SEED === 20260824 &&

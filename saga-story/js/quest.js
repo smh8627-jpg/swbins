@@ -135,6 +135,7 @@
     sfx('questdone');
     core.log('📋 ' + d.name + ' 을(를) 마쳤다 — ' + bits.join(' · '), 'good');
     core.emit('toast', '📋 ' + d.name + ' 완수!');
+    core.emit('questdone', d.name);   // 화면 배너(PLAN 35절) — js/side.js 가 받는다
     core.emit('changed');
     core.persist();
     return true;

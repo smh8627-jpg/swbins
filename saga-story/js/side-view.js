@@ -333,6 +333,8 @@
     drawMiniMap(run);
     drawOuch();
     drawBossIntro();
+    drawLevelUp();
+    drawQuestDone();
     drawFadeOverlay();
   }
 
@@ -400,6 +402,63 @@
     ctx.fillText('👺 보스 등장', W / 2, y - 8);
     ctx.font = '800 22px system-ui, sans-serif';
     ctx.fillStyle = '#f0e2c8';
+    ctx.fillText(best.name, W / 2, y + 18);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+
+  /** 레벨업 배너(PLAN 35절) — core.gainExp() 가 'levelup' 을 쏘면 뜬다.
+   *  보스 배너와 같은 틀에 금빛만 다르다 */
+  function drawLevelUp() {
+    var list = S.fx(), best = null, i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].t === 'levelup' && (!best || list[i].life > best.life)) { best = list[i]; }
+    }
+    if (!best) { return; }
+    var dur = 2.0, edge = 0.3;
+    var a = Math.min(1, (dur - best.life) / edge, best.life / edge);
+    if (a <= 0.02) { return; }
+    var y = H * 0.34, bandH = 64;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(12,10,6,0.62)';
+    ctx.fillRect(0, y - bandH / 2, W, bandH);
+    ctx.fillStyle = 'rgba(245,196,69,0.9)';
+    ctx.fillRect(0, y - bandH / 2, W, 2);
+    ctx.fillRect(0, y + bandH / 2 - 2, W, 2);
+    ctx.textAlign = 'center';
+    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(240,226,200,0.95)';
+    ctx.fillText('🌟 레벨 업', W / 2, y - 8);
+    ctx.font = '800 22px system-ui, sans-serif';
+    ctx.fillStyle = '#fff3cf';
+    ctx.fillText('Lv.' + best.lv, W / 2, y + 18);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+
+  /** 사명 완료 배너(PLAN 35절) — quest.js 의 turnIn() 이 'questdone' 을 쏘면 뜬다 */
+  function drawQuestDone() {
+    var list = S.fx(), best = null, i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].t === 'questdone' && (!best || list[i].life > best.life)) { best = list[i]; }
+    }
+    if (!best) { return; }
+    var dur = 2.0, edge = 0.3;
+    var a = Math.min(1, (dur - best.life) / edge, best.life / edge);
+    if (a <= 0.02) { return; }
+    var y = H * 0.34, bandH = 64;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(8,12,10,0.62)';
+    ctx.fillRect(0, y - bandH / 2, W, bandH);
+    ctx.fillStyle = 'rgba(90,200,140,0.9)';
+    ctx.fillRect(0, y - bandH / 2, W, 2);
+    ctx.fillRect(0, y + bandH / 2 - 2, W, 2);
+    ctx.textAlign = 'center';
+    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(226,240,230,0.95)';
+    ctx.fillText('📋 사명 완수', W / 2, y - 8);
+    ctx.font = '800 22px system-ui, sans-serif';
+    ctx.fillStyle = '#e2f0e6';
     ctx.fillText(best.name, W / 2, y + 18);
     ctx.textAlign = 'left';
     ctx.globalAlpha = 1;
@@ -914,6 +973,22 @@
         ctx.font = '20px "Segoe UI Emoji", system-ui';
         ctx.textAlign = 'center';
         ctx.fillText('🧪', x, f.y - (0.5 - f.life) * 40);
+      } else if (f.t === 'itempop') {
+        /* 아이템 획득 팝업(PLAN 35절) — 주운 자리에서 이름표가 위로 뜨며 사라진다.
+           목숨은 side.js 의 ITEMPOP_DUR(0.9) 값을 그대로 옮겨 쓴다(bossintro 와 같은 관례) */
+        var pDur = 0.9, prise = (pDur - f.life) * 46;
+        var pa = Math.min(1, f.life * 3);
+        ctx.textAlign = 'center';
+        ctx.font = '16px "Segoe UI Emoji", system-ui';
+        ctx.globalAlpha = pa;
+        ctx.fillText(f.emoji, x, f.y - 30 - prise);
+        ctx.font = '700 12px "Malgun Gothic", system-ui';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(20,16,14,' + pa + ')';
+        ctx.strokeText(f.text, x, f.y - 12 - prise);
+        ctx.fillStyle = 'rgba(255,235,200,' + pa + ')';
+        ctx.fillText(f.text, x, f.y - 12 - prise);
+        ctx.globalAlpha = 1;
       }
     }
   }

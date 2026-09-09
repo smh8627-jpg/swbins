@@ -135,6 +135,9 @@
   var GATHER_RESPAWN = 45;    // 다시 돋기까지(초)
   var FADE_DUR = 0.4;         // 사냥터를 넘나들 때(PLAN 16절 "화면 전환") 검게 번쩍 잦아드는 시간
   var BOSS_INTRO_DUR = 1.8;   // 보스 등장 배너(PLAN 35절)가 뜬 채 머무는 시간
+  var LEVELUP_DUR = 2.0;      // 레벨업 배너(PLAN 35절)가 뜬 채 머무는 시간
+  var QUESTDONE_DUR = 2.0;    // 사명 완료 배너(PLAN 35절)가 뜬 채 머무는 시간
+  var ITEMPOP_DUR = 0.9;      // 아이템 획득 팝업(PLAN 35절)이 위로 뜨며 사라지는 시간
 
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
@@ -1025,10 +1028,13 @@
               if (!GG.put(made)) { sfx('bagfull'); continue; }
               sfx('gear');
               core.emit('toast', '📦 ' + GG.nameOf(made));
+              fx.push({ t: 'itempop', x: p.x + P_W / 2, y: p.y, emoji: '📦', text: GG.nameOf(made), life: ITEMPOP_DUR });
             } else {
               GG.addScroll(d.key, 1);
               sfx('scroll');
-              core.emit('toast', '📜 ' + global.DG.gearData.scroll(d.key).name);
+              var scrollName = global.DG.gearData.scroll(d.key).name;
+              core.emit('toast', '📜 ' + scrollName);
+              fx.push({ t: 'itempop', x: p.x + P_W / 2, y: p.y, emoji: '📜', text: scrollName, life: ITEMPOP_DUR });
             }
           }
         }
@@ -1070,6 +1076,9 @@
       }
       sfx('gear');
       core.emit('toast', '💰 보물상자! 🪙+' + cgold + (gotItem ? ' · 📦 ' + GG2.nameOf(gotItem) : ''));
+      if (gotItem) {
+        fx.push({ t: 'itempop', x: p.x + P_W / 2, y: p.y, emoji: '📦', text: GG2.nameOf(gotItem), life: ITEMPOP_DUR });
+      }
     }
 
     /* 연출 수명 */
@@ -1147,6 +1156,18 @@
     }
     return base;
   }
+
+  /* 레벨업·사명 완료 배너(PLAN 35절) — 둘 다 core 쪽(core.gainExp·quest.turnIn)에서
+     쏘는 이벤트라 여기서 core.on 으로 받는다. 화면이 안 떠 있을 때(run 없음) 밀어
+     넣으면 다음에 사냥터에 들어가서야 뒤늦게 뜨니, **지금 사냥 중일 때만** 받는다. */
+  core.on('levelup', function (lv) {
+    if (!run) { return; }
+    fx.push({ t: 'levelup', lv: lv, life: LEVELUP_DUR });
+  });
+  core.on('questdone', function (name) {
+    if (!run) { return; }
+    fx.push({ t: 'questdone', name: name, life: QUESTDONE_DUR });
+  });
 
   global.DG = global.DG || {};
   global.DG.side = {
