@@ -132,6 +132,21 @@
     })
   );
 
+  /* 2026-09-09 — PLAN §60 "캐릭터 100개" 목표 이어감(71→78). poly.pizza에서
+     제 클립을 내장한 것만 추가로 골랐다(검색에 나온 정지 메시·중복
+     UUID는 제외 — 예: "Knight"류는 클립이 하나뿐이라, "Ninja"류는 이미
+     `monster:ninja_2`로 등록된 것과 UUID가 같아 뺐다). `HERO_RECIPES`
+     (전체 표)가 아니라 여기 `HERO_RECIPES_LIGHT`에만 얹는 것도 위와
+     같은 이유(QRPG_SEEDS 해시 보호)다. */
+  var PEOPLE_PP_MORE = 'assets/models/people/polypizza_more/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['CharMatt', 'CharShaun', 'CharSam', 'Soldier2', 'Adventurer2',
+      'CharacterAnimated', 'AnimatedWizard'].map(function (n) {
+      var f = PEOPLE_PP_MORE + n + '.glb';
+      return { key: 'ppmore_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

@@ -1248,3 +1248,24 @@ PLAN 4절의 우선순위를 따라 나무·바위·폐허(기둥·벽)·절벽�
 파일이 아니라 `icon.js` 안에 문자열로 박혀 있다 — 출처·라이선스는
 `../saga-go/assets/ASSET_LICENSES.md`의 Lucide 항목을 그대로 따른다
 (Lucide, <https://lucide.dev>, **ISC**).
+
+## 캐릭터 3차분 — poly.pizza 개별 검색 (2026-09-09, "캐릭터 100개" 이어감)
+
+45종(2026-09-07)에서 정체돼 있던 것을 `/search/knight`·`/search/samurai`·
+`/search/mage` 등 개별 검색으로 이어감. 제 클립을 내장한(정지 메시가
+아닌) 것만 골랐다 — 검색에 걸린 다수(Knight·Old Guy·Grandpa 등)는
+클립이 없거나 하나뿐이라 스킵.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Characters Matt·Shaun·Sam | `poly.pizza/m/66kQ4dBBC7`·`eJFT9MxzOM`·`UcLErL2W37` | Quaternius | CC0 |
+| Adventurer(2번째 개체) | `poly.pizza/m/5EGWBMpuXq` | Quaternius | CC0 |
+| Character Animated | `poly.pizza/m/DgOCW9ZCRJ` | Quaternius | CC0 |
+| Soldier(2번째 개체) | `poly.pizza/m/oAArCNHjFB` | Quaternius | CC-BY 3.0 |
+| Animated Wizard | `poly.pizza/m/kttbFvCl2C` | Quaternius | CC-BY 3.0 |
+
+전부 `CharacterArmature|*` 낱말표(`mapClips()` 그대로 받음, 리타깃
+불필요). `assets/models/people/polypizza_more/`에 둠. `tools/
+glb-compress`로 압축(7.4MB→2.0MB). `HERO_RECIPES_LIGHT`에 `ppmore_*`로
+등록(71→78종). CC-BY 2종(Soldier·Animated Wizard)은 저작자 **Quaternius**
+표시.
