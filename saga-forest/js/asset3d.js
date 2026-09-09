@@ -484,6 +484,63 @@
     return wrap;
   }
 
+  /**
+   * 2026-09-09 — PLAN 40절 PHASE 7 "Scatter를 진짜 InstancedMesh로"를 좁혀서
+   * 되살렸다. 애니메이션·스켈레톤이 없는 작은 장식물(잔디·꽃·버섯·통나무 등)만
+   * 대상이다 — 이런 종은 GLB 하나(변종)당 프리미티브(재질 단위) 1~5개뿐이고
+   * 다들 `normalize()`가 매번 새로 계산하던 "키 1로 눕히는" 변환이 **url마다
+   * 완전히 같은 값**이라, 그 변환을 지오메트리에 한 번만 구워 두면 인스턴스마다
+   * clone·traverse·Box3 계산을 다시 할 필요가 없다 — `village-view3d.js`가 이
+   * 프리미티브들을 재질별 InstancedMesh 하나씩에 나눠 담는다(자리는 다 같은
+   * 행렬을 쓴다, 재질이 여러 개라도 자리는 하나뿐이니까).
+   * **한 url당 딱 한 번만 계산해 `cache[url].parts`에 얹어 둔다** — 원본
+   * `gltf.scene`은 절대 이동·확대하지 않는다(다른 코드가 `buildGeneric()`으로
+   * 이 url을 또 쓸 수 있어 원본은 그대로 둬야 한다).
+   */
+  function extractParts(root) {
+    var t = three();
+    root.updateMatrixWorld(true);
+    var b = new t.Box3().setFromObject(root);
+    var f = fit({ minX: b.min.x, maxX: b.max.x, minY: b.min.y, maxY: b.max.y, minZ: b.min.z, maxZ: b.max.z });
+    var bake = new t.Matrix4().compose(
+      new t.Vector3(f.dx, f.dy, f.dz), new t.Quaternion(), new t.Vector3(f.scale, f.scale, f.scale)
+    );
+    var list = [];
+    root.traverse(function (o) {
+      if (!o.isMesh) { return; }
+      var geo = o.geometry.clone();
+      geo.applyMatrix4(o.matrixWorld);   // 이 메시가 씬 안 어디 있었든 실제 자리부터 굽는다
+      geo.applyMatrix4(bake);            // 그 위에 "키 1로 눕히는" 정규화까지 굽는다
+      list.push({ geometry: geo, material: o.material });
+    });
+    return list;
+  }
+  var partsPending = {};   // url → true(이미 acquire() 걸어 둔 채 기다리는 중 — 중복 호출 방지)
+  /**
+   * kind+ref 에 맞는 변종(GLB) 하나를 **동기로** 캐시에서 찾아 프리미티브
+   * 목록을 준다. 아직 안 실렸으면 로딩만 걸어 두고 null 을 돌려준다 — 부르는
+   * 쪽(`village-view3d.js`)이 매 프레임 다시 물어보면 실린 다음 프레임부터는
+   * 값이 온다(`build()`처럼 콜백을 안 쓰는 건, 프레임마다 이미 다 지어 둔
+   * InstancedMesh 자리만 갱신하면 되는 구조라 콜백 예약이 필요 없어서다).
+   */
+  function partsFor(kind, ref) {
+    var hit = lookup(kind, ref);
+    if (!hit) { return null; }
+    var url = oneOf(hit.url, ref);
+    if (!url || typeof url !== 'string') { return null; }
+    var c = cache[url];
+    if (c && c.state === 'ok') {
+      if (!c.parts) { c.parts = extractParts(c.gltf.scene); }
+      return { url: url, parts: c.parts };
+    }
+    if (c && c.state === 'fail') { return null; }
+    if (!partsPending[url]) {
+      partsPending[url] = true;
+      acquire(url, function () { delete partsPending[url]; });
+    }
+    return null;
+  }
+
   /** 마지막 되돌림 자리 — GLB 가 안 되거나 아직 안 왔을 때 화면에 무언가는 선다 */
   function primitive(kind, ref) {
     var t = three();
@@ -636,6 +693,7 @@
     heroRecipe: heroRecipe,
     mapClips: mapClips,
     build: build,
+    partsFor: partsFor,
     three: three,
     REG: function () { return REG; },
     ROCK_STYLIZED: ROCK_STYLIZED,

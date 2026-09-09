@@ -242,6 +242,30 @@ window.DG_NO_TUNE = true;
       return VV3.scatterCount() === 0 && '아직 아무것도 안 지음';
     });
 
+    t('village-view3d — InstancedMesh 로 옮긴 여덟 종(PLAN 40절 PHASE 7)은 전부 scatterKind 표에도 있다', function () {
+      var VV3 = DG.villageView3d;
+      var inst = VV3.instKind(), scat = VV3.scatterKind(), k, missing = [];
+      for (k in inst) {
+        if (Object.prototype.hasOwnProperty.call(inst, k) && !scat[k]) { missing.push(k); }
+      }
+      var n = Object.keys(inst).length;
+      return missing.length === 0 && n === 8 && (n + '종 전부 대응됨(' + Object.keys(inst).join('·') + ')');
+    });
+
+    t('village-view3d — instKey/usedInstKey 는 "url|인덱스" 짝을 정확히 되짚는다', function () {
+      var VV3 = DG.villageView3d;
+      var key = VV3.instKey('assets/models/nature/Grass_2.glb', 1);
+      var ok1 = key === 'assets/models/nature/Grass_2.glb|1';
+      var ok2 = VV3.usedInstKey(key, { 'assets/models/nature/Grass_2.glb': true }) === true;
+      var ok3 = VV3.usedInstKey(key, { 'assets/models/nature/Grass_Short.glb': true }) === false;
+      return ok1 && ok2 && ok3 && '조립·역추출 다 맞음';
+    });
+
+    t('village-view3d — init 전에는 InstancedMesh 도 하나도 안 세워져 있다', function () {
+      var VV3 = DG.villageView3d;
+      return VV3.instMeshCount() === 0 && '아직 아무것도 안 지음';
+    });
+
     t('village-view3d — 땅 색은 villageData.TILES 와 완전히 같다 (2D 와 같은 색)', function () {
       var VV3 = DG.villageView3d, VD = DG.villageData;
       var colors = VV3.terrainColors();

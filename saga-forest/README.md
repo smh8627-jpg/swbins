@@ -384,10 +384,46 @@ PLAN 40절 PHASE 1~7이 모두 실질적으로 끝났다.
 | 남은 일 | 왜 미뤘나 |
 |---|---|
 | 가을·눈·자작나무는 저다각형 그대로(PLAN 3절 나무 실사화 셋째) | CC0 사진측량 나무 중 가을 단풍·자작·설경 태그를 가진 게 없었다 — 소재 자체가 없는 경우 |
-| Scatter를 진짜 InstancedMesh로 안 바꿈(PHASE 7에서 결정) | 비동기 GLB+변종(oneOf) 구조라 재작성 위험이 큼(README PHASE 7 절 참고) — Object Pool로 대신함 |
-| 3D 화면 CDP 헤드리스 스크린샷 도구 없음 | `ws` npm 패키지가 이 개발 환경에 없어 시도만 하고 못 갖췄다 |
+
+(2026-09-09 — "3D 화면 CDP 헤드리스 스크린샷 도구 없음" 항목은 표에서 뺐다.
+CLAUDE.md 정책 변경으로 개발 중 헤드리스 확인 자체를 안 하기로 해서 더 이상
+필요한 도구가 아니다.)
 
 (마을 3D 건물·토끼 등 동물 넷·물 표현 항목은 아래 2026-09-09 항목으로 채웠다 — 표에서 뺐다)
+
+**2026-09-09 이어서 — Scatter를 InstancedMesh로(PLAN 40절 PHASE 7, "위험하다"고
+미뤄 뒀던 항목을 좁혀서 되살림).** 표에서 사용자가 이 항목을 골랐다. 전부
+바꾸지 않고 **애니메이션·스켈레톤이 없는 여덟 종만**(잔디`weed`·꽃`flower`·
+버섯`mushroom`·약초`herb`·풀`plant`·그루터기`stump`·통나무`log`·덤불`bush`) 좁혔다
+— 나무·바위·건물·짐승은 그림자 개별 LOD(`applyShadowLOD`)·변종 다양성이 더
+중요해 기존 Object Pool 그대로 둔다. PHASE 7이 "위험하다"고 적었던 진짜 이유
+(비동기 GLB+변종(oneOf) 구조)는 실제로 GLB 구조를 까 보니(Node로 GLB의 JSON
+청크만 파싱, 브라우저 없이) **풀리는 문제였다** — 이 여덟 종은 다들 GLB
+하나(변종)당 프리미티브(재질 단위)가 1~5개뿐인 단일 메시·무스킨 저다각형이라,
+프리미티브마다 InstancedMesh 하나씩만 만들면 재질이 여러 개라도 자리(행렬)는
+하나만 쓰면 된다.
+
+- `js/asset3d.js`에 `extractParts()`·`partsFor()` 신설. `normalize()`가 인스턴스
+  (클론)마다 다시 계산하던 "키 1로 눕히는" Box3·traverse 변환을 **url당 딱 한
+  번만** 계산해 `cache[url].parts`에 얹어 둔다 — 이후로는 그 변환을 지오메트리에
+  구워서 돌려주기만 한다(원본 `gltf.scene`은 안 건드린다, 다른 코드가
+  `buildGeneric()`으로 같은 url을 또 쓸 수 있어서).
+- `js/village-view3d.js`에 `INST_KIND` 표 신설, `syncScatter()`는 이 여덟 종을
+  건너뛰고 새 `syncInstScatter()`가 대신 세운다. `terrainMesh`(PLAN 12절에서
+  이미 쓰던 칸별 InstancedMesh)와 같은 결 — `ensureInstMesh()`가 자리가
+  모자라면(need > 지금 칸 수) 두 배로 새로 짓는다.
+- **일부러 문 tradeoff** — InstancedMesh는 인스턴스별 그림자 on/off를 못 준다
+  (켜면 전부, 끄면 전부). 이 여덟 종은 0.2~0.8m로 작아 그림자가 잘 안 띄니
+  `castShadow = false`로 통째로 껐다(`receiveShadow`는 켜 둬 다른 사물 그림자는
+  그대로 받는다) — CLAUDE.md 최적화 순서 7번째 "shadow 조절"에 해당하는 선택.
+- 자가진단에 순수 함수 셋(INST_KIND⊆scatterKind, instKey/usedInstKey 왕복,
+  init 전 InstancedMesh 0개) 추가 — 224 → **227**(세 번 동일). **렌더러가
+  실제로 옳게 그리는지는 순수 함수 진단으로 못 본다** — CLAUDE.md 새 정책대로
+  헤드리스 스크린샷도 안 찍었다. `sw.js` → `village-v0.37.0`.
+- **실기기 확인 전** — 잔디·꽃·버섯 등이 실제로 화면에 보이는지(사라지지 않는지),
+  그림자 없어진 게 어색한지 다음 세션 손맛부터 물어볼 것. 잘못된 게 있으면
+  `INST_KIND`에서 그 kind만 지우면 옛 Object Pool 경로로 바로 되돌아간다
+  (되돌림 손잡이).
 
 이 표는 다음에 "뭐부터 할까" 고를 때 쓰는 메뉴다 — 다음 세션은 이 중
 어느 것부터 할지, 아니면 지금까지 쌓인 것 전체를 실기기로 한 번에

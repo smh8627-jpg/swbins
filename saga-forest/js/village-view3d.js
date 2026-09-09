@@ -259,6 +259,18 @@
     shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4
   };
 
+  /**
+   * 2026-09-09 — PLAN 40절 PHASE 7 "Scatter를 InstancedMesh로"를 좁혀서
+   * 되살렸다(README "남은 일 표"에서 위험하다고 미뤄 뒀던 항목). 애니메이션·
+   * 스켈레톤이 없는 이 여덟 종류만 대상이다 — 나무·바위·건물·짐승은 그림자
+   * 개별 LOD(`applyShadowLOD`)·변종 다양성이 더 중요해 기존 Object Pool
+   * 경로(아래 `scatter`/`scatterPool`)에 그대로 남긴다. 이 kind들은 `syncScatter()`
+   * 루프에서 걸러지고(`if (INST_KIND[p.kind])` 체크), `syncInstScatter()`가 따로
+   * 세운다 — `asset3d.partsFor()`가 프리미티브(재질 단위)를 주면 재질마다
+   * InstancedMesh 하나를 만들어 같은 자리 행렬을 쓴다.
+   */
+  var INST_KIND = { weed: 1, flower: 1, mushroom: 1, herb: 1, plant: 1, stump: 1, log: 1, bush: 1 };
+
   var scatter = {};   // propId → { group, kind, building, meshes, shadowOn }
   var npc3d = {};      // npc.id → { group, mixer, actions, clipMap, action, building }
 
@@ -845,6 +857,7 @@
 
     for (i = 0; i < props.length; i++) {
       p = props[i];
+      if (INST_KIND[p.kind]) { continue; }             // InstancedMesh 경로(syncInstScatter)가 대신 세운다
       key = SCATTER_KIND[p.kind];
       if (!key) { continue; }
       d = Math.hypot(p.x - px, p.y - py);
@@ -899,6 +912,96 @@
       if (ent.group) { poolGive(ent.kind, ent.group); }
       delete scatter[key];
     }
+  }
+
+  var instMesh = {};       // "url|primIdx" → InstancedMesh(재질 하나 몫)
+  var instDummy = null;    // 행렬 조립용 임시 Object3D — terrainMesh 의 dummy 와 같은 결
+  function instKey(url, i) { return url + '|' + i; }
+
+  /** InstancedMesh 하나를 확보한다 — 자리가 모자라면(need > 지금 칸 수) 두 배로 새로 짓는다.
+   *  순수하지 않다(scene·three 를 쓴다) — 자가진단은 instKey 처럼 순수한 조각만 검사한다. */
+  function ensureInstMesh(key, geo, mat, need) {
+    var im = instMesh[key];
+    if (im && im.instanceMatrix.count >= need) { return im; }
+    var t = three();
+    var cap = Math.max(need, 8, im ? im.instanceMatrix.count * 2 : 0);
+    var next = new t.InstancedMesh(geo, mat, cap);
+    next.count = 0;
+    /* 작은 장식물(잔디·꽃·버섯 등, 0.2~0.8m)이라 스스로 그림자를 드리우진
+       않는다(InstancedMesh는 개별 인스턴스 그림자 on/off를 못 준다 — 켜면
+       전부, 끄면 전부다. `applyShadowLOD`가 하던 거리별 개별 조절을 대신 못 하니
+       아예 끈다. CLAUDE.md 최적화 순서 7번째 "shadow 조절"에 해당하는 선택이다).
+       다른 사물의 그림자는 그대로 받는다(receiveShadow=true) — 바닥처럼 어색하지 않다 */
+    next.castShadow = false;
+    next.receiveShadow = true;
+    if (im) { scene.remove(im); im.dispose(); }
+    scene.add(next);
+    instMesh[key] = next;
+    return next;
+  }
+
+  /**
+   * 잔디·꽃·버섯 등 여덟 종(PLAN 40절 PHASE 7, 위 INST_KIND)을 InstancedMesh로
+   * 세운다. `syncScatter()`와 달리 Object Pool도, 예산(budget)도 없다 — 이미
+   * 다 구운 지오메트리 자리만 갱신하는 것이라 비동기 build() 비용 자체가 없다.
+   * `asset3d.partsFor()`가 아직 못 준 변종(로딩 중)은 이번 프레임엔 그냥
+   * 건너뛴다 — 다음 프레임에 다시 물어보면 실린 뒤엔 나온다.
+   */
+  function syncInstScatter() {
+    var V = global.DG.village, t = three();
+    if (!V || !scene || !t) { return; }
+    if (!instDummy) { instDummy = new t.Object3D(); }
+    var raw = V.raw(), px = raw.player.x, py = raw.player.y;
+    var scale = WORLD_SCALE(), renderU = RENDER_R() / scale;
+    var props = raw.props, i, p, key3d, d, rec;
+    var byUrl = {};   // url → { parts, items:[{x,z,h}] }
+
+    for (i = 0; i < props.length; i++) {
+      p = props[i];
+      if (!INST_KIND[p.kind]) { continue; }
+      key3d = SCATTER_KIND[p.kind];
+      if (!key3d) { continue; }
+      d = Math.hypot(p.x - px, p.y - py);
+      if (d > renderU) { continue; }
+      rec = asset3d().partsFor(key3d, { id: p.id });
+      if (!rec) { continue; }        // 아직 안 실렸다
+      var g = byUrl[rec.url] || (byUrl[rec.url] = { parts: rec.parts, items: [] });
+      g.items.push({ x: (p.x - px) * scale, z: (p.y - py) * scale, h: SCATTER_H[p.kind] || 1 });
+    }
+
+    var url, grp, parts, j, part, im, idx, item, key;
+    for (url in byUrl) {
+      if (!Object.prototype.hasOwnProperty.call(byUrl, url)) { continue; }
+      grp = byUrl[url];
+      parts = grp.parts;
+      for (j = 0; j < parts.length; j++) {
+        part = parts[j];
+        key = instKey(url, j);
+        im = ensureInstMesh(key, part.geometry, part.material, grp.items.length);
+        for (idx = 0; idx < grp.items.length; idx++) {
+          item = grp.items[idx];
+          instDummy.position.set(item.x, 0, item.z);
+          instDummy.scale.setScalar(item.h);
+          instDummy.rotation.set(0, 0, 0);
+          instDummy.updateMatrix();
+          im.setMatrixAt(idx, instDummy.matrix);
+        }
+        im.count = grp.items.length;
+        im.instanceMatrix.needsUpdate = true;
+      }
+    }
+    /* 이번 프레임에 하나도 안 쓰인 변종(플레이어가 아예 멀어진 경우)은
+       count 를 0 으로 낮춰야 유령처럼 남지 않는다 */
+    for (key in instMesh) {
+      if (!Object.prototype.hasOwnProperty.call(instMesh, key)) { continue; }
+      if (usedInstKey(key, byUrl)) { continue; }
+      instMesh[key].count = 0;
+    }
+  }
+  /** 순수 함수 — key("url|idx")의 url이 이번 프레임 byUrl에 있었는지 */
+  function usedInstKey(key, byUrl) {
+    var url = key.slice(0, key.lastIndexOf('|'));
+    return Object.prototype.hasOwnProperty.call(byUrl, url);
   }
 
   /**
@@ -1004,6 +1107,7 @@
     syncTerrain();
     syncWaterRipple(dt);
     syncScatter();
+    syncInstScatter();
     syncNpcs(dt);
     syncSky();
     syncWeatherFX(dt);
@@ -1021,6 +1125,11 @@
     /** 진단 전용 — 표(순수 함수)와 지금 세운 개수 */
     scatterKind: function () { return SCATTER_KIND; },
     scatterCount: function () { return Object.keys(scatter).length; },
+    /** 진단 전용 — PLAN 40절 PHASE 7: InstancedMesh 로 옮긴 장식물 표·개수 */
+    instKind: function () { return INST_KIND; },
+    instKey: instKey,
+    usedInstKey: usedInstKey,
+    instMeshCount: function () { return Object.keys(instMesh).length; },
     terrainColors: terrainColors,
     terrainCount: function (kind) {
       var im = terrainMesh[kind];
