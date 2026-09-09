@@ -237,6 +237,31 @@ window.DG_NO_TUNE = true;
         (n + '개 종류(' + Object.keys(map).join('·') + ') 모두 표에 있음');
     });
 
+    t('village-view3d — 계절이 tree:common 을 갈아 끼운다(가을·눈·자작나무, 2026-09-09)', function () {
+      var VV3 = DG.villageView3d, A3 = DG.asset3d, C = DG.core;
+      C.setTune({ 'time.season': 'spring' });
+      var spring = VV3.seasonalTreeKey('tree:common');
+      C.setTune({ 'time.season': 'autumn' });
+      var autumn = VV3.seasonalTreeKey('tree:common');
+      C.setTune({ 'time.season': 'winter' });
+      var winter = VV3.seasonalTreeKey('tree:common');
+      C.setTune({ 'time.season': 'summer' });
+      var summer = VV3.seasonalTreeKey('tree:common');
+      C.setTune({ 'time.season': null });   // 되돌린다 — 다른 항목에 안 번지게
+      C.setTune({ 'time.season': 'autumn' });
+      var pineAutumn = VV3.seasonalTreeKey('tree:pine');
+      C.setTune({ 'time.season': null });   // 되돌린다 — 다른 항목에 안 번지게
+      var reg = A3.REG();
+      var otherUnchanged = VV3.seasonalTreeKey('rock') === 'rock';
+      return spring === 'tree:common' && summer === 'tree:common' &&
+        autumn === 'tree:common:autumn' && winter === 'tree:common:snow' &&
+        pineAutumn === 'tree:pine:autumn' &&
+        !!reg['tree:common:autumn'] && !!reg['tree:common:snow'] && !!reg['tree:pine:autumn'] && !!reg['tree:pine:snow'] &&
+        Array.isArray(reg['tree:common:autumn']) && reg['tree:common:autumn'].length === 5 &&
+        otherUnchanged &&
+        '봄·여름 그대로 · 가을·겨울만 갈아 낌(소나무 포함) · 표에 5종씩';
+    });
+
     t('village-view3d — init 전에는 세운 것이 없다 (0개)', function () {
       var VV3 = DG.villageView3d;
       return VV3.scatterCount() === 0 && '아직 아무것도 안 지음';

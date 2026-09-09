@@ -129,8 +129,26 @@
        나뭇잎 카드가 사라지지 않고 결만 성글어진다) → `resize`(768px) → `jpeg`(품질 85)
        로 4.86MB 까지 줄였다. 옛 Quaternius 셋은 `TREE_STYLIZED` 에 되돌림 자리로 남긴다 */
     'tree:common': NAT_REAL + 'IslandTree_02.glb',
-    'tree:common:autumn': [NAT + 'CommonTree_Autumn_1.glb', NAT + 'CommonTree_Autumn_2.glb'],
-    'tree:common:snow': [NAT + 'CommonTree_Snow_1.glb', NAT + 'CommonTree_Snow_2.glb'],
+    /* 2026-09-09 — 이 두 키는 예전부터 있었다(파일 CommonTree_Autumn/Snow_1·2.glb
+       도 이미 저장소에 받아 둔 채였다 — "가을·눈 소재가 없다"던 README 는
+       **실사(Poly Haven photogrammetry) 검색** 얘기였지, 이 저다각형(Quaternius)
+       쪽엔 처음부터 있었다). 진짜 안 되고 있던 건 **부르는 쪽이 없던 것**이다 —
+       `SCATTER_KIND`가 늘 `'tree:common'`만 가리켜서 이 두 키는 아무 코드도
+       안 부르는 죽은 자리였다. 이제 `village-view3d.js`의 `seasonalTreeKey()`가
+       봄·여름은 위 실사 하나 그대로 쓰고, **가을·겨울만** 이 표로 갈아 끼운다
+       (원작처럼 계절이 나무 겉모습을 바꾼다). `_3` 파일과 자작나무 계절판
+       (`BirchTree_Autumn/Snow_1·2.glb`, 새로 받음)을 여기 같이 섞었다 — 순수
+       흰 자작보다 단풍·눈 옷 입은 쪽이 이 계절 팔레트와 더 붙는다. Quaternius
+       `nature_pack`(CC0, 위 TREE_STYLIZED 와 같은 미러) 저다각형 — 실사가
+       아니라 봄·여름과 결이 안 맞는 건 의도한 트레이드오프다 */
+    'tree:common:autumn': [
+      NAT + 'CommonTree_Autumn_1.glb', NAT + 'CommonTree_Autumn_2.glb', NAT + 'CommonTree_Autumn_3.glb',
+      NAT + 'BirchTree_Autumn_1.glb', NAT + 'BirchTree_Autumn_2.glb'
+    ],
+    'tree:common:snow': [
+      NAT + 'CommonTree_Snow_1.glb', NAT + 'CommonTree_Snow_2.glb', NAT + 'CommonTree_Snow_3.glb',
+      NAT + 'BirchTree_Snow_1.glb', NAT + 'BirchTree_Snow_2.glb'
+    ],
     /* 고목 — Poly Haven `dead_quiver_trunk`(가지 없이 선 마른 줄기, 33,706 폴리곤).
        "dead_tree_trunk"·"dead_tree_trunk_02" 이름의 모델은 둘 다 실제로는 **쓰러진
        통나무**라(원본 렌더로 직접 확인) tree:dead 자리엔 안 맞고, 대신 `log` 표에
@@ -142,6 +160,18 @@
        펼쳐져 나온 탓, 나무 실사가 다 이렇다) 를 weld→simplify(ratio 0.08, 정점
        56,364 로 86% 감량)→resize→jpeg 로 21.9MB → 2.71MB */
     'tree:pine': NAT_REAL + 'PineSapling.glb',
+    /* 침엽수는 계절이 지나도 잎이 안 지지만, 이 CC0 팩엔 가을 색·눈 쌓인
+       버전이 따로 있어(`tree:common`과 같은 미러) 겨울 숲 전체가 한쪽만
+       계절을 타면 오히려 어색해 보인다 — `tree:common` 과 같은 결로 맞췄다.
+       가을 소나무는 잎보다는 아래 마른 낙엽·색 바랜 나무껍질 쪽 변화다 */
+    'tree:pine:autumn': [NAT + 'PineTree_Autumn_1.glb', NAT + 'PineTree_Autumn_2.glb'],
+    'tree:pine:snow': [NAT + 'PineTree_Snow_1.glb', NAT + 'PineTree_Snow_2.glb'],
+    /* 봄·여름 흰 자작(초록잎) — 파일(`BirchTree_1/2.glb`)은 예전 32종 확보 때부터
+       있었지만 이 키 자체는 `tree:common:autumn`처럼 아무 SCATTER_KIND 도
+       안 부르는 죽은 자리였다. `ROCK_STYLIZED`·`TREE_STYLIZED`와 같은 결의
+       **되돌림/확장 자리**로 그대로 둔다 — 봄·여름에도 자작 변종을 섞고
+       싶어지면 `seasonalTreeKey()` 표에 'tree:common'(기본) 줄을 하나 늘리면
+       된다 */
     'tree:birch': [NAT + 'BirchTree_1.glb', NAT + 'BirchTree_2.glb'],
 
     /* 식물·자연물 */

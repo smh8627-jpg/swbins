@@ -27,12 +27,18 @@
 
 | 파일 | 쓰이는 곳 |
 |---|---|
-| `CommonTree_1·2·3.glb` | 큰 나무 (봄·여름) |
-| `CommonTree_Autumn_1·2.glb` | 큰 나무 (가을) |
-| `CommonTree_Snow_1·2.glb` | 큰 나무 (겨울) |
+| `CommonTree_1·2·3.glb` | 큰 나무 (봄·여름, `TREE_STYLIZED` 되돌림 자리 — 지금 봄·여름 기본은 실사 `IslandTree_02.glb`) |
+| `CommonTree_Autumn_1·2.glb` | 큰 나무 (가을 — `tree:common:autumn`. `_1·2`는 예전 32종 확보 때부터 있었지만 이 키를 부르는 코드가 없어 죽어 있었다) |
+| `CommonTree_Autumn_3.glb` | 큰 나무 (가을, 2026-09-09 새로 받음 — 위 죽은 키를 되살리며 변종을 하나 더 보탰다) |
+| `CommonTree_Snow_1·2.glb` | 큰 나무 (겨울 — `tree:common:snow`, `_1·2` 사정은 Autumn과 같다) |
+| `CommonTree_Snow_3.glb` | 큰 나무 (겨울, 2026-09-09 새로 받음) |
 | `CommonTree_Dead_1.glb` | 고목 |
-| `PineTree_1·2.glb` | 침엽수 |
-| `BirchTree_1·2.glb` | 작은 나무 |
+| `PineTree_1·2.glb` | 침엽수 (봄·여름, 되돌림 자리 — 지금 기본은 실사 `PineSapling.glb`) |
+| `PineTree_Autumn_1·2.glb` | 침엽수 (가을 — `tree:pine:autumn`, 2026-09-09 새로 받음) |
+| `PineTree_Snow_1·2.glb` | 침엽수 (겨울 — `tree:pine:snow`, 2026-09-09 새로 받음) |
+| `BirchTree_1·2.glb` | 자작나무 (`tree:birch` — 예전부터 있었지만 아직 어느 SCATTER_KIND 도 안 부르는 되돌림/확장 자리) |
+| `BirchTree_Autumn_1·2.glb` | 자작나무 (가을 — `tree:common:autumn` 풀에 섞임, 2026-09-09 새로 받음) |
+| `BirchTree_Snow_1·2.glb` | 자작나무 (겨울 — `tree:common:snow` 풀에 섞임, 2026-09-09 새로 받음) |
 | `Bush_1·2.glb` · `BushBerries_1.glb` | 덤불 |
 | `Rock_1·2·3.glb` | 돌·바위 |
 | `Rock_Moss_1.glb` | 이끼 낀 돌 |

@@ -271,6 +271,44 @@
    */
   var INST_KIND = { weed: 1, flower: 1, mushroom: 1, herb: 1, plant: 1, stump: 1, log: 1, bush: 1 };
 
+  /**
+   * 2026-09-09 — 원작(동물의숲)처럼 계절이 나무 겉모습을 바꾼다("남은 일 표"의
+   * 가을·눈·자작나무 항목). `tree:common`(2D 'tree' kind)·`tree:pine`(2D 'pine'
+   * kind) 둘만 대상이다 — 봄·여름은 기존 실사 나무 그대로(회귀 없음), 가을·겨울만
+   * `asset3d.js`에 준비된 저다각형 표(`:autumn`/`:snow`, 자작나무는 tree:common
+   * 쪽에 섞임)로 갈아 낀다. 고목 등은 계절 표가 따로 없어 그대로 둔다.
+   */
+  var SEASONAL_TREE_BASE = { 'tree:common': 1, 'tree:pine': 1 };
+  function seasonalTreeKey(baseKey) {
+    if (!SEASONAL_TREE_BASE[baseKey]) { return baseKey; }
+    var VD = global.DG.villageData;
+    if (!VD) { return baseKey; }
+    var sk = VD.season().key;
+    if (sk === 'autumn') { return baseKey + ':autumn'; }
+    if (sk === 'winter') { return baseKey + ':snow'; }
+    return baseKey;
+  }
+  var lastTreeSeason = null;
+  /** 계절이 바뀌면 이미 지어 둔 'tree'·'pine' 인스턴스를 지운다 — 그대로 두면
+   *  겨울에도 여름 나무가 계속 서 있는다(짓는 건 매번, 지우는 건 그룹이 실제로
+   *  멀어질 때뿐이라). Object Pool 도 같이 비운다 — 지난 계절 모습을 다시 꺼내
+   *  쓰면 안 된다 */
+  function syncTreeSeason() {
+    var VD = global.DG.villageData;
+    var sk = VD ? VD.season().key : null;
+    if (sk === lastTreeSeason) { return; }
+    lastTreeSeason = sk;
+    var id;
+    for (id in scatter) {
+      if (!Object.prototype.hasOwnProperty.call(scatter, id)) { continue; }
+      if (scatter[id].kind !== 'tree' && scatter[id].kind !== 'pine') { continue; }
+      if (scatter[id].group && scene) { scene.remove(scatter[id].group); }
+      delete scatter[id];
+    }
+    scatterPool.tree = [];
+    scatterPool.pine = [];
+  }
+
   var scatter = {};   // propId → { group, kind, building, meshes, shadowOn }
   var npc3d = {};      // npc.id → { group, mixer, actions, clipMap, action, building }
 
@@ -850,6 +888,7 @@
   function syncScatter() {
     var V = global.DG.village;
     if (!V || !scene) { return; }
+    syncTreeSeason();
     var raw = V.raw(), props = raw.props.concat(raw.animals || []), px = raw.player.x, py = raw.player.y;
     var scale = WORLD_SCALE(), renderU = RENDER_R() / scale, cullU = CULL_R() / scale;
     var within = {}, budget = MAX_BUILD_PER_STEP();
@@ -858,7 +897,7 @@
     for (i = 0; i < props.length; i++) {
       p = props[i];
       if (INST_KIND[p.kind]) { continue; }             // InstancedMesh 경로(syncInstScatter)가 대신 세운다
-      key = SCATTER_KIND[p.kind];
+      key = seasonalTreeKey(SCATTER_KIND[p.kind]);
       if (!key) { continue; }
       d = Math.hypot(p.x - px, p.y - py);
       if (d > cullU) { continue; }                    // 완전히 멀다 — 후보에서도 뺀다
@@ -1125,6 +1164,8 @@
     /** 진단 전용 — 표(순수 함수)와 지금 세운 개수 */
     scatterKind: function () { return SCATTER_KIND; },
     scatterCount: function () { return Object.keys(scatter).length; },
+    /** 진단 전용 — 계절이 'tree' 겉모습을 바꾸는 표(가을·눈·자작나무) */
+    seasonalTreeKey: seasonalTreeKey,
     /** 진단 전용 — PLAN 40절 PHASE 7: InstancedMesh 로 옮긴 장식물 표·개수 */
     instKind: function () { return INST_KIND; },
     instKey: instKey,
