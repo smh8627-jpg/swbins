@@ -113,7 +113,11 @@
       id: 'npc_stranger', name: '수수께끼의 여행자', role: 'stranger', trait: 'wisdom', rarity: 5,
       faction: '없음', personality: '어디서 왔는지 말하지 않는다', color: '#3f4a5f',
       home: 'cave', only: 'night',
-      spots: [{ from: 21, at: 'cave' }, { from: 1, at: 'shrine' }, { from: 3, at: 'cave' }]
+      /* segAt()은 spots가 from 오름차순이라고 가정한다(자정을 넘겨도 마지막
+         칸이 "어제부터 이어지는 구간"으로 대접받는다) — 21시부터 시작하는
+         구간을 배열 맨 뒤에 둬야 한다. 순서를 21→1→3으로 뒀다가 새벽 시간대
+         구간이 뒤집혀 골라지던 것을 고쳤다(2026-09-09) */
+      spots: [{ from: 1, at: 'shrine' }, { from: 3, at: 'cave' }, { from: 21, at: 'cave' }]
     }
   ];
 

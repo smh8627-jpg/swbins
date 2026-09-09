@@ -59,7 +59,11 @@
     },
     magpie: {
       id: 'magpie', name: '까치', form: 'bird', color: '#2f3340', h: 0.42,
-      act: 'fly', sense: 18, move: 26, lift: 7, only: 'day',
+      /* move 는 sense 보다 커지면 안 된다 — react()의 밀림 공식이 "알아챈 거리
+         밖으로는 안 나간다"는 불변식을 move<sense 에서만 지킨다(2026-09-09,
+         move:26>sense:18 이던 것을 고쳤다 — 코앞에서 놀라면 감지거리 밖까지
+         날아가고 있었다) */
+      act: 'fly', sense: 18, move: 13, lift: 7, only: 'day',
       note: '나무에 앉았다가 인기척에 날아오른다'
     },
     carp: {
