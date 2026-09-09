@@ -23,6 +23,12 @@
   var ZOOM_MIN = 0.65, ZOOM_MAX = 1.9;
   var zoomPointers = {}, pinchDist0 = 0;
 
+  /** 보스전 확대(PLAN 20절) — 사람이 잡은 viewZoom 위에 **덧셈이 아니라 곱셈**으로
+   *  얹는다(사람이 이미 줌아웃해 둔 상태라도 그 비율은 그대로 지키면서 살짝 더
+   *  당긴다). 위 `applyZoomTransform()`과 같은 원리라 카메라 수식은 안 건드린다 */
+  var bossZoomK = 0, lastBossZoomDrawT = 0, lastAppliedBossK = -1;
+  var BOSS_ZOOM_EXTRA = 0.10;   // 최대 10% 더 당긴다 — 과하면 체력바가 위로 밀려난다
+
   function clamp01(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function zoomPointerCount() {
     var n = 0, k;
@@ -36,7 +42,7 @@
     return Math.hypot(a.x - b.x, a.y - b.y);
   }
   function applyZoomTransform() {
-    var t = 'scale(' + viewZoom.toFixed(3) + ')';
+    var t = 'scale(' + (viewZoom * (1 + bossZoomK * BOSS_ZOOM_EXTRA)).toFixed(3) + ')';
     if (cv) { cv.style.transform = t; }
     if (!cv3d) { cv3d = document.getElementById('stage3d'); }
     if (cv3d) { cv3d.style.transform = t; }
@@ -44,6 +50,27 @@
   function setZoom(z) {
     viewZoom = clamp01(z, ZOOM_MIN, ZOOM_MAX);
     applyZoomTransform();
+  }
+  /** 지수 완화 한 걸음 — 순수 계산이라 자가진단이 실제 시간 없이 dt 를 손수
+   *  먹여 본다(side-view3d.js 의 updatePerf/_feedPerf 와 같은 요령) */
+  function stepBossZoom(hasBoss, dt) {
+    var target = hasBoss ? 1 : 0;
+    var speed = hasBoss ? 3.2 : 2.0;     // 들어갈 땐 조금 빠르게, 풀 땐 천천히
+    bossZoomK += (target - bossZoomK) * Math.min(1, speed * dt);
+    if (Math.abs(bossZoomK - target) < 0.002) { bossZoomK = target; }
+    return bossZoomK;
+  }
+  /** 매 draw() 마다 부른다 — 보스가 있으면 서서히 당기고, 없어지면 서서히 푼다.
+   *  프레임 간격을 손수 재서(이 파일에 dt 를 넘겨받는 자리가 없다) stepBossZoom 에 먹인다 */
+  function updateBossZoom(hasBoss) {
+    var now = Date.now();
+    var dt = lastBossZoomDrawT ? Math.min(0.25, (now - lastBossZoomDrawT) / 1000) : 0;
+    lastBossZoomDrawT = now;
+    stepBossZoom(hasBoss, dt);
+    if (Math.abs(bossZoomK - lastAppliedBossK) > 0.001) {
+      lastAppliedBossK = bossZoomK;
+      applyZoomTransform();
+    }
   }
 
   function init(canvas) {
@@ -218,6 +245,7 @@
     if (!run) { ctx.clearRect(0, 0, W, H); return; }
     var stg = run.stage, p = run.player;
 
+    updateBossZoom(!!run.boss);
     camX = core.clamp(p.x + S.P_W / 2 - W / 2, 0, Math.max(0, stg.width - W));
     /* 3D 바탕(side-view3d.js)이 살아 있으면 세계는 거기서 그린다 — 여기서는
        하늘·뒷배경·바닥·발판·사람·몹을 건너뛰고 오버레이(미니맵·보스체력·데미지숫자)만 남긴다.
@@ -1007,6 +1035,9 @@
     _zone: function (x, y) { return readZone({ clientX: x, clientY: y }); },
     /** 진단·QA 전용 — 사람이 핀치·휠로 조절한 화면 확대 배율 */
     viewZoom: function () { return viewZoom; },
-    setViewZoom: setZoom
+    setViewZoom: setZoom,
+    /** 진단 전용 — 보스전 확대(PLAN 20절). 순수 계산이라 실제 시간 없이 dt 를 먹인다 */
+    _bossZoomK: function () { return bossZoomK; },
+    _stepBossZoom: stepBossZoom
   };
 })(window);

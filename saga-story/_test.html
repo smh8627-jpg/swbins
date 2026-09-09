@@ -1436,6 +1436,22 @@ window.DG_NO_TUNE = true;
       return typeof DG.sideView._cam() === 'number' && '카메라 x=' + Math.round(DG.sideView._cam());
     });
 
+    t('보스전 확대(PLAN 20절) — 보스가 있으면 서서히 당기고, 없어지면 서서히 푼다', function () {
+      /* stepBossZoom 은 순수 계산이라 실제 시간 없이 dt 를 손수 먹인다
+         (side-view3d.js 의 오토튜닝 진단과 같은 요령) */
+      var SV = DG.sideView;
+      SV._stepBossZoom(false, 10);              // 확실히 0 에서 시작
+      var k0 = SV._bossZoomK();
+      var i;
+      for (i = 0; i < 20; i++) { SV._stepBossZoom(true, 0.05); }   // 보스 있음, 1초치
+      var kIn = SV._bossZoomK();
+      for (i = 0; i < 20; i++) { SV._stepBossZoom(false, 0.05); }  // 보스 없어짐, 1초치
+      var kOut = SV._bossZoomK();
+      SV._stepBossZoom(false, 10);              // 뒤에 오는 항목을 위해 0 으로 되돌린다
+      return k0 === 0 && kIn > 0.9 && kOut < 0.5 &&
+        ('0 → ' + kIn.toFixed(2) + '(보스 있음) → ' + kOut.toFixed(2) + '(풀리는 중)');
+    });
+
     /* ── 가입해서 저장 ─────────────────────────────────── */
 
     t('세이브는 프로필 아래로 들어간다', function () {
