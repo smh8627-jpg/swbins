@@ -77,7 +77,7 @@
     { name: '원귀', emoji: '👻', kind: 'beast', color: '#bfe0f0', form: 'ogre', body: 'ghost', tier: 2, resist: { phys: 35 } },
     { name: '산도깨비', emoji: '👹', kind: 'beast', color: '#5a7a3a', form: 'ogre', body: 'orc', tier: 2, resist: { phys: 10 } },
     { name: '해골도둑', emoji: '💀', kind: 'beast', color: '#a89ac9', form: 'ogre', body: 'skeleton_rogue', tier: 2, resist: { phys: 15 } },
-    { name: '아귀', emoji: '👺', kind: 'beast', color: '#6a3a4a', form: 'ogre', body: 'demon_2', tier: 2, resist: { chi: 15 } },
+    { name: '탐귀', emoji: '👺', kind: 'beast', color: '#6a3a4a', form: 'ogre', body: 'demon_2', tier: 2, resist: { chi: 15 } },
     { name: '해골귀', emoji: '💀', kind: 'beast', color: '#d8d8e8', form: 'ogre', body: 'ghost_skull', tier: 2, resist: { phys: 30 } },
     { name: '은신 첩자', emoji: '🥷', kind: 'beast', color: '#3a3a3a', form: 'ogre', body: 'ninja_2', tier: 2, resist: { phys: 10 } },
     { name: '늪 왕슬라임', emoji: '🟢', kind: 'beast', color: '#2a6a4a', form: 'quad', body: 'glub_evolved', tier: 2, resist: { phys: 10 } },

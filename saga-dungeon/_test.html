@@ -174,7 +174,9 @@ window.requestAnimationFrame = function () { return 0; };
     });
 
     t('데이터는 그대로 물려받았다', function () {
-      return D.heroes.length === 70 && D.pets.length === 41 &&
+      /* 2026-09-09 — 펫 도감 64종 추가(PLAN §60 "GLB 자산 확장", 사용자
+         확정)로 41→105. 인물(HEROES)은 그대로 70. */
+      return D.heroes.length === 70 && D.pets.length === 105 &&
         ('인물 ' + D.heroes.length + ' · 펫 ' + D.pets.length);
     });
 
