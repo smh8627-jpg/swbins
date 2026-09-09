@@ -75,6 +75,7 @@ window.DG_NO_TUNE = true;
 <script src="js/data-gear.js"></script>
 <script src="js/data-job.js"></script>
 <script src="js/data-quest.js"></script>
+<script src="js/data-achieve.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/account.js"></script>
@@ -84,6 +85,7 @@ window.DG_NO_TUNE = true;
 <script src="js/gear.js"></script>
 <script src="js/job.js"></script>
 <script src="js/quest.js"></script>
+<script src="js/achieve.js"></script>
 <script src="js/sfx.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
@@ -1327,6 +1329,31 @@ window.DG_NO_TUNE = true;
       return ok1 && turned && lockedNow && againBlocked && lockedInList &&
         unlockedNextDay && takeAgain &&
         '오늘 바침 → 잠김 → 날짜 바뀌니 다시 받음';
+    });
+
+    t('업적(PLAN 33절) — 문턱을 넘으면 한 번만 터진다', function () {
+      var A = DG.achieve;
+      delete C.save.achievements;             // 깨끗이 시작
+      C.save.player.level = 9;
+      A._check();
+      var before = A.done('a_lv10');
+      C.save.player.level = 10;
+      var feat0 = C.save.player.featTotal;
+      A._check();
+      var got = A.done('a_lv10');
+      var feat1 = C.save.player.featTotal;
+      A._check();                             // 두 번째는 다시 안 준다
+      var feat2 = C.save.player.featTotal;
+      delete C.save.achievements;
+      return !before && got && feat1 > feat0 && feat2 === feat1 &&
+        ('Lv.9 안 터짐 · Lv.10 터짐(공적 +' + (feat1 - feat0) + ') · 재확인엔 그대로');
+    });
+
+    t('업적 시트가 그려지고 이름이 보인다', function () {
+      DG.ui.openSheet('achieve');
+      var html = document.getElementById('sheet-body').innerHTML;
+      DG.ui.closeSheet();
+      return html.length > 50 && html.indexOf('한 사람 몫') >= 0 && (html.length + '자 · 업적 이름 보임');
     });
 
     t('앉아 쉬면 체력·기력이 찬다 (곁에 적이 있으면 못 앉는다)', function () {

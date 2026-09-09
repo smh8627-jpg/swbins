@@ -282,8 +282,27 @@
 
   var SHEET_TITLE = {
     field: '🏃 사냥터', bag: '🎒 가방', job: '🥋 무예', shop: '🏪 저자',
-    dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정', settings: '⚙️ 설정'
+    dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정', settings: '⚙️ 설정',
+    achieve: '🏅 업적'
   };
+
+  /** 업적(PLAN 33절) — 사명과 달리 한 번 이루면 다시 안 없어진다.
+   *  누르는 단추가 없다(스스로 'changed' 를 듣고 터진다) — 여기는 훑어보기만 */
+  function viewAchieve() {
+    var A = global.DG.achieve;
+    if (!A) { return '<div class="hint">업적 모듈을 찾을 수 없습니다</div>'; }
+    var list = A.list();
+    var html = '<div class="hint">한 번 이루면 다시 안 없어집니다.</div>';
+    for (var i = 0; i < list.length; i++) {
+      var a = list[i], d = a.ref;
+      html += '<div class="card' + (a.done ? ' on' : '') + '">' +
+        '<div class="stat-row"><span><b>' + d.emoji + ' ' + esc(d.name) + '</b></span>' +
+        '<span class="muted">' + a.value + ' / ' + d.need + '</span></div>' +
+        '<div class="stat-row"><span class="muted">' + esc(d.desc) + '</span>' +
+        '<span class="muted">' + (a.done ? '✅ 달성' : '') + '</span></div></div>';
+    }
+    return html;
+  }
 
   /** 2026-09-09(PLAN 30절) — 효과음·진동·그래픽 품질. BGM·조작 감도·화면 방향은
    *  아직 없다(실제 배경음악 곡과 아날로그 입력이 먼저 있어야 뜻이 있는 자리라
@@ -386,7 +405,8 @@
           : openTab === 'shop' ? viewShop()
           : openTab === 'dex' ? viewDex()
           : openTab === 'keys' ? viewKeys()
-          : openTab === 'settings' ? viewSettings() : viewLog();
+          : openTab === 'settings' ? viewSettings()
+          : openTab === 'achieve' ? viewAchieve() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 

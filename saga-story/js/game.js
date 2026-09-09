@@ -26,6 +26,7 @@
     if (global.DG.sideView3d) { global.DG.sideView3d.init(document.getElementById('stage3d')); }
     global.DG.sideView.init(document.getElementById('stage'));
     if (global.DG.quest) { global.DG.quest.init(); }   // 사명이 'side:kill' 을 듣기 시작한다
+    if (global.DG.achieve) { global.DG.achieve.init(); }   // 업적이 'changed' 를 듣기 시작한다(PLAN 33절)
     ui.init();
     bindKeys();
 
