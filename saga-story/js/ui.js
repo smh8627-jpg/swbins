@@ -176,6 +176,8 @@
         global.DG.side.castSkill(parseInt(b.getAttribute('data-i'), 10) || 0);
       } else if (act === 's-drink') {
         if (!global.DG.side.drink()) { toast('탕약이 없거나 체력이 가득합니다'); }
+      } else if (act === 's-dodge') {
+        global.DG.side.dodge();
       } else if (act === 'talk-close') {
         global.DG.side.closeTalk();
       } else if (act === 'auto-on') {
@@ -509,6 +511,8 @@
       }
       html += '<button class="hud-sk potion" data-act="s-drink" title="탕약을 마신다 (Q)">' +
         '<b>🧪</b><small class="pn"></small></button>' +
+        '<button class="hud-sk" data-act="s-dodge" title="회피 — 짧게 미끄러지며 잠깐 무적 (Shift)">' +
+        '<b>💨</b><u></u></button>' +
         '<button class="btn tiny ghost hud-out" data-act="s-leave">🚪 나온다</button>' +
         '</div></div>';
       els.hud.innerHTML = html;
@@ -519,6 +523,12 @@
       sk = st.skills[atkI];
       atkBtn.classList.toggle('ready', sk.ready);
       atkBtn.querySelector('u').style.height = (sk.cdMax ? (sk.cd / sk.cdMax * 100) : 0) + '%';
+    }
+    var dodgeBtn = els.hud.querySelector('[data-act="s-dodge"]');
+    if (dodgeBtn && st.dodge) {
+      dodgeBtn.classList.toggle('ready', st.dodge.ready);
+      dodgeBtn.querySelector('u').style.height =
+        (st.dodge.cdMax ? (st.dodge.cd / st.dodge.cdMax * 100) : 0) + '%';
     }
     var pn = els.hud.querySelector('.pn');
     if (pn) { pn.textContent = st.potions; }

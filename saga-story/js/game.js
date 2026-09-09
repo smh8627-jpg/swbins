@@ -88,7 +88,8 @@
 
   /* 키보드 — **원작 배치**다.
      ← → 달리기 · ↑ 오르기/문 · ↓ 내려가기 · Space 점프(↓ 와 함께면 발판 빠져나가기) ·
-     1~4 스킬 · Q 탕약. ↑ 를 점프로 두면 사다리와 부딪친다. */
+     1~4 스킬 · Q 탕약 · Shift 회피(PLAN 12절, 원작에는 없던 자리라 새로 골랐다).
+     ↑ 를 점프로 두면 사다리와 부딪친다. */
   function bindKeys() {
     global.addEventListener('keydown', function (e) {
       if (remapping) {
@@ -106,6 +107,7 @@
       else if (k === 'arrowdown' || k === 's' || k === km.down) { S.setInput('down', true); }
       else if (k === ' ') { S.setInput('jump', true); }
       else if (k === 'q') { S.drink(); }
+      else if (k === 'shift') { S.dodge(); }
       else if (k === 'm') { ui.toggleOverworldMap(); }
       else if (k >= '1' && k <= '8') { S.castSkill(parseInt(k, 10) - 1); }
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) >= 0) {

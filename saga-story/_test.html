@@ -442,6 +442,37 @@ window.DG_NO_TUNE = true;
       return hurt && run.hp === hp1 && ('체력 ' + hp0 + ' → ' + hp1 + ' (무적 유지)');
     });
 
+    t('회피(PLAN 12절) — 미끄러지며 잠깐 무적, 식는 동안은 다시 못 쓴다', function () {
+      var run = S.raw(), p = run.player;
+      p.climb = null;
+      p.invuln = 0;
+      p.dodgeCd = 0;
+      S.setInput('right', true);
+      p.facing = 1;
+      var x0 = p.x;
+      var ok = S.dodge();
+      var dist = p.x - x0;
+      var invulnOk = p.invuln > 0 && p.invuln <= 0.4;
+      var again = S.dodge();               // 식는 동안 — 실패해야 한다
+      restInput();
+      p.invuln = 0; p.dodgeCd = 0;         // 뒤에 오는 항목을 방해 안 하게 되돌린다
+      return ok && dist > 100 && invulnOk && again === false &&
+        ('오른쪽으로 ' + Math.round(dist) + 'px · 무적 O · 식는 동안 재사용 거절');
+    });
+
+    t('회피 단추 — 조작 띠에 있고, 누르면 실제로 회피한다', function () {
+      var run = S.raw(), p = run.player;
+      p.dodgeCd = 0;
+      DG.ui.renderHudBar();
+      var btn = document.querySelector('#hud [data-act="s-dodge"]');
+      if (!btn) { return false; }
+      var x0 = p.x;
+      btn.click();
+      var moved = p.x !== x0 && p.dodgeCd > 0;
+      p.dodgeCd = 0;
+      return moved && '단추로 실제 이동 O';
+    });
+
     /* ── 멀리서 쏘는 적 ─────────────────────────────────── */
 
     t('쏘는 적은 든 무기로 갈린다 (적 데이터에 칸을 만들지 않는다)', function () {

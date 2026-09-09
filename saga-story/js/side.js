@@ -138,6 +138,12 @@
   var LEVELUP_DUR = 2.0;      // 레벨업 배너(PLAN 35절)가 뜬 채 머무는 시간
   var QUESTDONE_DUR = 2.0;    // 사명 완료 배너(PLAN 35절)가 뜬 채 머무는 시간
   var ITEMPOP_DUR = 0.9;      // 아이템 획득 팝업(PLAN 35절)이 위로 뜨며 사라지는 시간
+  /* 회피(PLAN 12절) — 스킬(mp·띠 자리)과는 별개로 늘 쓸 수 있는 방어 동작이다.
+     기력을 안 쓰는 대신 저 혼자 식는 시간(DODGE_COOL)을 둔다 — 공짜인데
+     남발되면 무적 시간이 전투를 무의미하게 만든다 */
+  var DODGE_COOL = 3.0;
+  var DODGE_DIST = 140;
+  var DODGE_INVULN = 0.35;
 
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
@@ -188,7 +194,7 @@
       player: { x: 80, y: stg.floor - P_H, vx: 0, vy: 0, facing: 1,
                 onGround: true, phase: 0, atkCd: 0, hurt: 0, invuln: 0,
                 cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
-                climb: null, dropThru: 0, resting: 0 },
+                climb: null, dropThru: 0, resting: 0, dodgeCd: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), npcs: buildNpcs(stg), talk: null,
       kills: 0, gold: 0, startedAt: Date.now()
@@ -536,6 +542,24 @@
     return true;
   }
 
+  /** 회피(PLAN 12절) — 보고 있는 쪽(←→ 를 누르고 있으면 그쪽, 아니면 바라보는
+   *  쪽)으로 짧게 미끄러지며 잠깐 무적이 된다. 줄에 매달렸을 때는 안 나간다
+   *  (letGo() 몫과 겹친다 — 손을 뗀 채 미끄러지면 자리가 어긋난다). */
+  function dodge() {
+    if (!run) { return false; }
+    var p = run.player;
+    if (p.climb || p.dodgeCd > 0) { return false; }
+    p.dodgeCd = DODGE_COOL;
+    var from = p.x, dir = input.left ? -1 : (input.right ? 1 : p.facing);
+    p.x = core.clamp(p.x + DODGE_DIST * dir, 0, run.stage.width - P_W);
+    p.dropThru = 0;
+    p.invuln = Math.max(p.invuln, DODGE_INVULN);
+    var lo = Math.min(from, p.x) - 10, hi = Math.max(from, p.x) + P_W + 10;
+    fx.push({ t: 'dash', x: lo, y: p.y, w: hi - lo, h: P_H, life: 0.18 });
+    sfx('dodge');
+    return true;
+  }
+
   /* ── 판정 ─────────────────────────────────────────────── */
 
   /** 지금 걸려 있는 북돋움 (없으면 null) */
@@ -818,6 +842,7 @@
     if (run.talk && Math.abs((p.x + P_W / 2) - run.talk.x) > TALK_LEAVE_R) { closeTalk(); }
 
     for (i = 0; i < p.cds.length; i++) { if (p.cds[i] > 0) { p.cds[i] -= dt; } }
+    if (p.dodgeCd > 0) { p.dodgeCd -= dt; }
     var bf = buffOn();
     run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
@@ -1138,6 +1163,8 @@
     base.enemies = run.enemies.length;
     base.atk = Math.round(atkOf());
     base.def = power().def;
+    base.dodge = { cd: Math.max(0, run.player.dodgeCd), cdMax: DODGE_COOL,
+      ready: run.player.dodgeCd <= 0 };
     /* 줄·문·마을 사람 — 조작 띠가 '↑' 를 언제 띄울지 이 넷으로 정한다 */
     base.climbing = !!run.player.climb;
     base.resting = run.player.resting > 0.4;
@@ -1173,7 +1200,7 @@
   global.DG.side = {
     GRAV: GRAV, SPEED: SPEED, P_W: P_W, P_H: P_H, REACH: REACH, CLIMB: CLIMB,
     enter: enter, leave: leave, resume: resume, active: active, update: update,
-    setInput: setInput, jump: jump, castSkill: castSkill, drink: drink,
+    setInput: setInput, jump: jump, dodge: dodge, castSkill: castSkill, drink: drink,
     travel: travel, useUp: useUp, useDown: useDown, dropThrough: dropThrough,
     grabRope: grabRope,
     ropeAt: ropeAt, portalAt: portalAt, npcAt: npcAt, talk: talk, closeTalk: closeTalk, letGo: letGo,
