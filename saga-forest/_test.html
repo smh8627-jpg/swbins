@@ -390,6 +390,21 @@ window.DG_NO_TUNE = true;
         '비/눈 배타적 · 반딧불이는 밤+비/눈 아닐 때만';
     });
 
+    t('village-view3d — meteorPose(유성, PLAN 20절)는 st 없으면 null, 있으면 t=0.5(가운데)에서 가장 밝고 x 해시가 도는 방향을 정한다', function () {
+      var VV3 = DG.villageView3d;
+      var none = VV3.meteorPose(null);
+      var mid = VV3.meteorPose({ t: 0.5, x: 0.25, y: 0.3 });
+      var early = VV3.meteorPose({ t: 0.1, x: 0.25, y: 0.3 });
+      var late = VV3.meteorPose({ t: 0.9, x: 0.25, y: 0.3 });
+      var eastward = VV3.meteorPose({ t: 0.5, x: 0, y: 0.3 });     // x=0 → 각도 0 → +x축
+      var southward = VV3.meteorPose({ t: 0.5, x: 0.25, y: 0.3 }); // x=0.25 → 각도 90도 → +z축
+      return none === null && mid.alpha === 1 &&
+        early.alpha < mid.alpha && late.alpha < mid.alpha && Math.abs(early.alpha - late.alpha) < 1e-9 &&
+        Math.abs(eastward.dirZ) < 1e-9 && eastward.dirX > 0.9 &&
+        Math.abs(southward.dirX) < 1e-9 && southward.dirZ > 0.9 &&
+        '별 없으면 null · 가운데(t=0.5)서 가장 밝고 양끝은 대칭으로 덜 밝음 · x 해시가 진행 방향(각도)을 정함';
+    });
+
     t('village-view3d — wrapY 는 낙하를 height 로 감아 늘 [0,height) 안에 있고, 시간이 지날수록 줄어들다 다시 감긴다', function () {
       var VV3 = DG.villageView3d;
       var a = VV3.wrapY(5, 0, 2, 10);      // 시작

@@ -521,6 +521,28 @@
   function weatherShows(wk) { return { rain: wk === 'rain', snow: wk === 'snow' }; }
   function fireflyVisible(ph, wk) { return ph === 'night' && wk !== 'rain' && wk !== 'snow'; }
 
+  /** 유성(PLAN 20절 "랜덤 이벤트" 예시, 2D 는 `town.js`의 `starNow()`+
+   *  `village-view.js`의 `drawShootingStar()`로 이미 있다) — **같은 근원
+   *  (town.starNow)** 을 3D 궤적으로 바꾸는 순수 함수. 새 난수·새 판정을
+   *  만들지 않는다 — 2D 화면과 3D 화면이 늘 같은 순간에 같은 별을 본다.
+   *  st 가 null(별이 안 흐르는 시각)이면 null. 있으면 st.x/st.y(자리 해시)를
+   *  하늘 한 바퀴(각도)와 높이로, st.t(진행률 0~1)를 궤적 위의 위치와
+   *  밝기(2D 와 같은 식 — 가운데서 가장 밝고 양끝에서 사라진다)로 편다 */
+  var METEOR_R = 34, METEOR_H_MIN = 12, METEOR_H_SPREAD = 9, METEOR_DIST = 16;
+  function meteorPose(st) {
+    if (!st) { return null; }
+    var ang = st.x * Math.PI * 2;
+    var dirX = Math.cos(ang), dirZ = Math.sin(ang);
+    var travel = (st.t - 0.5) * METEOR_DIST;
+    return {
+      x: dirX * METEOR_R + dirX * travel,
+      y: METEOR_H_MIN + st.y * METEOR_H_SPREAD - st.t * 3.5,
+      z: dirZ * METEOR_R + dirZ * travel,
+      dirX: dirX, dirY: -0.55, dirZ: dirZ,
+      alpha: Math.max(0, 1 - Math.abs(st.t - 0.5) * 1.6)
+    };
+  }
+
   /** 물결(PLAN 12절) — 칸의 세계 좌표(wx,wz)와 시각(time)만으로 그 칸이 지금
    *  얼마나 솟았는지 준다. **물 셰이더(GLSL, `waterMaterial()`)와 같은 식**을
    *  써서 반짝임 점(`syncWaterRipple`)이 실제 파동과 같은 위상으로 움직인다 —
@@ -573,6 +595,50 @@
     WEATHER_FX.rain = makePoints(RAIN_N, area, RAIN_H, 0.06, 0x9fc3e8, 0.55);
     WEATHER_FX.snow = makePoints(SNOW_N, area, SNOW_H, 0.14, 0xffffff, 0.9);
     WEATHER_FX.firefly = makePoints(FIREFLY_N, FIREFLY_R, FIREFLY_H, 0.22, 0xf6ef8a, 0.85);
+  }
+
+  var meteorGroup, meteorHead, meteorTail, meteorUpVec, meteorDirVec, METEOR_TAIL_LEN = 2.6;
+
+  /** 유성(PLAN 20절) — 머리(작은 구, 자체발광) + 꼬리(뾰족한 원뿔, 진행
+   *  반대 방향으로 눕혀 광원 없이도 빛나 보이게 `MeshBasicMaterial`+가산
+   *  블렌딩) 한 벌만 미리 지어 두고 매 프레임 자리·밝기만 바꾼다(비/눈처럼
+   *  파티클 다시 만들지 않는다 — 늘 하나뿐이라 그럴 필요가 없다) */
+  function buildMeteor(t) {
+    meteorGroup = new t.Group();
+    meteorHead = new t.Mesh(
+      new t.SphereGeometry(0.16, 8, 8),
+      new t.MeshBasicMaterial({ color: 0xfff7d6, transparent: true, depthWrite: false })
+    );
+    meteorTail = new t.Mesh(
+      new t.ConeGeometry(0.13, METEOR_TAIL_LEN, 8, 1, true),
+      new t.MeshBasicMaterial({
+        color: 0xfff7d6, transparent: true, opacity: 0.55, depthWrite: false,
+        blending: t.AdditiveBlending
+      })
+    );
+    meteorTail.position.y = -METEOR_TAIL_LEN / 2;   // 원뿔 끝(반지름 0)이 머리에 붙고, 밑동이 뒤로 눕는다
+    meteorGroup.add(meteorHead);
+    meteorGroup.add(meteorTail);
+    meteorGroup.visible = false;
+    scene.add(meteorGroup);
+    meteorUpVec = new t.Vector3(0, 1, 0);
+    meteorDirVec = new t.Vector3();
+  }
+
+  /** 유성 — `town.starNow()`(2D 와 같은 근원)를 매 프레임 읽어 `meteorPose()`로
+   *  자리·방향·밝기만 바꾼다. 흐르지 않는 대부분의 시간엔 group 을 숨길 뿐
+   *  아무 계산도 안 한다 */
+  function syncMeteor() {
+    if (!meteorGroup) { return; }
+    var Town = global.DG.town;
+    var pose = meteorPose(Town && Town.starNow ? Town.starNow() : null);
+    if (!pose) { meteorGroup.visible = false; return; }
+    meteorGroup.visible = true;
+    meteorGroup.position.set(pose.x, pose.y, pose.z);
+    meteorDirVec.set(pose.dirX, pose.dirY, pose.dirZ).normalize();
+    meteorGroup.quaternion.setFromUnitVectors(meteorUpVec, meteorDirVec);
+    meteorHead.material.opacity = pose.alpha;
+    meteorTail.material.opacity = pose.alpha * 0.55;
   }
 
   function fallStep(pts, speed) {
@@ -732,6 +798,7 @@
     loadEnvironment(t);
     initTerrain();
     buildWeatherFX(t);
+    buildMeteor(t);
     resize();
     global.addEventListener('resize', resize);
     /* PLAN 40절 PHASE 6 · PLAN 25절 "orientationchange / resize 둘 다 처리한다" —
@@ -1184,6 +1251,7 @@
     syncNpcs(dt);
     syncSky();
     syncWeatherFX(dt);
+    syncMeteor();
     renderer.render(scene, camera);
   }
 
@@ -1249,6 +1317,9 @@
       return n;
     },
     /** 진단 전용 — camera 가 지금 원점(플레이어)에서 얼마나 떨어져 있나(world 단위) */
-    camDistNow: function () { return camera ? camera.position.length() : null; }
+    camDistNow: function () { return camera ? camera.position.length() : null; },
+    /** 진단 전용 — PLAN 20절 랜덤 이벤트(유성): town.starNow() → 3D 자리·방향·밝기 순수 함수 */
+    meteorPose: meteorPose,
+    meteorVisible: function () { return meteorGroup ? meteorGroup.visible : false; }
   };
 })(typeof window !== 'undefined' ? window : this);
