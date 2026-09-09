@@ -1,0 +1,22 @@
+{
+  "Woman.glb": {
+    "size": 162496,
+    "result": "ok",
+    "at": "2026-09-09T08:39:22.393Z"
+  },
+  "WomanCasual.glb": {
+    "size": 167492,
+    "result": "ok",
+    "at": "2026-09-09T08:39:23.105Z"
+  },
+  "WomanDress.glb": {
+    "size": 150392,
+    "result": "ok",
+    "at": "2026-09-09T08:39:23.793Z"
+  },
+  "WomanTankTop.glb": {
+    "size": 155472,
+    "result": "ok",
+    "at": "2026-09-09T08:39:24.502Z"
+  }
+}

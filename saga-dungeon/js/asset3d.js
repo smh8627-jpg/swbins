@@ -147,6 +147,136 @@
     })
   );
 
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. poly.pizza "Animated Women
+     Pack"(Quaternius, CC0, `bundle/Animated-Women-Pack-HHSKxnk1mY`) 4종 —
+     `Ultimate Modular Women Pack`(위 `ppwomen_*`)과는 별개 번들이라
+     UUID 겹침 없음(모델 페이지에서 static.poly.pizza uuid로 직접 확인).
+     `HumanArmature|Female_*` 낱말표, `mapClips()`가 기존 word 표(walk·
+     run·idle·death·jump 등 이름에 그 낱말이 그대로 들어 있다)로 그대로
+     받는다 — attack 은 Punch/SwordSlash 로 받고, hit·dodge 는 FALLBACK
+     (→idle, →run/walk)로 채워짐.
+     **압축 보류** — `tools/glb-compress`의 `package-lock.json`이 사내망
+     전용 사설 레지스트리(172.17.1.200:8081, `C:\link` 네트워크)의
+     `resolved` URL을 그대로 담고 있어 이 환경에서 npm install 이
+     ETIMEDOUT 으로 막힌다. 그 lockfile 을 고치는 것도 권한 분류기가
+     "의존성 변경"으로 막아 이번엔 원본 그대로 등록했다(4종 합쳐
+     2.0MB — 이미 비슷한 급의 압축된 세트와 큰 차이 없는 크기다). 다음에
+     `tools/glb-compress` 를 이 저장소 네트워크에서 쓸 수 있게 lockfile
+     을 공개 레지스트리로 되돌린 뒤, 이 폴더부터 마저 압축할 것. */
+  var PEOPLE_PP_WOMEN2 = 'assets/models/people/polypizza_women2/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Woman', 'WomanCasual', 'WomanTankTop', 'WomanDress'].map(function (n) {
+      var f = PEOPLE_PP_WOMEN2 + n + '.glb';
+      return { key: 'ppwomen2_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서, 압축 도구 고친 뒤) — "캐릭터 100개" 계속.
+     `Ultimate Space Kit`(Quaternius, CC0, `bundle/Ultimate-Space-Kit-
+     YWh743lqGX`)의 Astronaut 는 이 번들 안에만 3벌(색·소재만 다른
+     텍스처 변형, 뼈대·클립은 동일) — 이미 쓴 `ppmen_astronaut`(Ultimate
+     Modular Men Pack 소속, UUID 다름)와는 별개 자산이다. 같은 번들의
+     Enemy Small/Large/Flying·Mech·Rover 는 로봇/외계생물이라 이 표
+     (사람형)가 아니라 몬스터 트랙 후보로 남겨 둔다(등록 안 함).
+     `CharacterArmature|*` 낱말표, `mapClips()` 그대로 받음. */
+  var PEOPLE_PP_SPACE = 'assets/models/people/polypizza_space/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Astronaut1', 'Astronaut2', 'Astronaut3'].map(function (n) {
+      var f = PEOPLE_PP_SPACE + n + '.glb';
+      return { key: 'ppspace_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. KayKit "Adventurers Character
+     Pack"(Kay Lousberg, CC0, GitHub `KayKit-Game-Assets/KayKit-Character-
+     Pack-Adventures-1.0` 직접 받음 — itch.io 아님, 이미 몬스터 트랙에서 쓴
+     KayKit Skeletons와 같은 출처 요령) 5종 — Barbarian·Knight·Mage·Rogue·
+     Rogue_Hooded. 몸 하나에 제 클립을 **76개**(Idle·Walking_A/B/C·
+     Running_A/B·Dodge_*·Hit_A/B·Death_A/B·1H/2H_Melee_Attack_*·Interact·
+     Jump_* 등) 내장 — 다른 어떤 팩보다 촘촘하다. `mapClips()` word 표가
+     "Walking"·"Running"·"Attack"·"Dodge"·"Hit"·"Death"·"Interact" 낱말을
+     그대로 하위문자열로 잡아 리타깃 없이 바로 받는다.
+     **무게 확인** — 압축 후 1.95~1.97MB/벌(멀티메시 12~14개, 모듈형 갑주
+     조각). `HERO_RECIPES_LIGHT`의 기존 최중량 레시피 QRPG(1.6~2.1MB)와
+     같은 급 — `hero_light`에서 뺀 MPFB(3.5~4.3MB, 위 §참고)와는 다른
+     체급이라 이 표에 얹어도 그 때 걸렸던 "마을마다 무거운 파일 새로 받기"
+     함정을 다시 밟지 않는다. */
+  var PEOPLE_KAYKIT_ADV = 'assets/models/people/kaykit_adventurers/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Barbarian', 'Knight', 'Mage', 'Rogue', 'Rogue_Hooded'].map(function (n) {
+      var f = PEOPLE_KAYKIT_ADV + n + '.glb';
+      return { key: 'kaykitadv_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. `Pirate kit`(Quaternius, CC0,
+     `poly.pizza/bundle/Pirate-kit-0q5ulmIYqQ`)의 사람형 3종 — Pirate
+     Captain·Anne·Henry.
+     **원본 클립 이름이 깨져 있었다** — `CharacterArmature|CharacterArmature|
+     CharacterArmature|<Stem>|CharacterArmature|<Stem 다시, 81자 상한에서
+     잘림>` 꼴로 내보내져(이 번들 특유의 익스포트 문제로 보인다 — 같은
+     `CharacterArmature|*` 계열인 `ppmore_*`·`ppspace_*`는 안 그렇다,
+     확인해 봄) `Death`→`Dea`·`HitReact`→``(빈 문자열)·`Punch`→`Pun`처럼
+     꼬리가 잘렸다. `mapClips()`가 마지막 `|` 뒤 조각만 보므로 이 잘린
+     꼬리로는 death·attack·hit 슬롯이 전부 idle로 새 버렸다(직접
+     재현해 확인). **원본 데이터는 안 건드리고 이름만 고쳤다** — 3번째
+     `|` 조각(늘 안 잘리고 온전한 진짜 어간)을 읽어 `CharacterArmature|
+     <Stem>`으로 다시 쓰는 스크립트(세션 임시, 커밋 안 함)를 한 번
+     돌렸다. glTF JSON 청크만 재작성하고 BIN 청크(스켈레톤·키프레임)는
+     바이트 그대로 복사 — `gltf-transform inspect`로 파일이 여전히
+     유효한지, 압축 전/후 `mapClips()` 결과가 death·attack(Punch)·
+     hit(HitReact)까지 전부 실제 클립으로 잡히는지(전엔 셋 다 idle
+     대체였다) 확인 후 등록했다. */
+  var PEOPLE_PP_PIRATE = 'assets/models/people/polypizza_pirate/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['PirateCaptain', 'Anne', 'Henry'].map(function (n) {
+      var f = PEOPLE_PP_PIRATE + n + '.glb';
+      return { key: 'pppirate_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. `Post Apocalypse Pack`
+     (Quaternius, CC0)을 훑다가 사람형 하나(Lis, 나머지는 좀비·차 소품 등)를
+     더 찾았다 — 이 파일은 위 Pirate kit과 달리 클립 이름이 안 깨져 있다
+     (대조 확인). */
+  var PEOPLE_PP_APOC = 'assets/models/people/polypizza_apoc/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    { key: 'ppapoc_lis', body: PEOPLE_PP_APOC + 'Lis.glb', anim: PEOPLE_PP_APOC + 'Lis.glb' }
+  ]);
+
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. poly.pizza `/search/hazmat`
+     에서 같은 방호복 컨셉을 두 작가에게서 찾았다 — 서로 다른 몸(리그)이라
+     따로 등록. `Character Hazmat`(Quaternius, CC0)은 클립 17개
+     (CharacterArmature|* 계열, 안 깨짐) — 다른 Quaternius 팩과 같은
+     수준. `Hazmat Man`(Charlie, CC-BY 3.0)은 클립이 idle·
+     run_anydirection·death 셋뿐이라 얇지만(공격·피격은 FALLBACK으로
+     idle 대체) 실제로 존재하고 몸도 확연히 다르다(작가가 달라 스타일이
+     다름) — 등록. */
+  var PEOPLE_PP_HAZMAT = 'assets/models/people/polypizza_hazmat/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    { key: 'pphazmat_char', body: PEOPLE_PP_HAZMAT + 'CharHazmat.glb', anim: PEOPLE_PP_HAZMAT + 'CharHazmat.glb' },
+    { key: 'pphazmat_man', body: PEOPLE_PP_HAZMAT + 'HazmatMan.glb', anim: PEOPLE_PP_HAZMAT + 'HazmatMan.glb' }
+  ]);
+
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. 검색어를 훨씬 넓혀(queen·
+     sniper·medic·assassin·paladin·gladiator·boxer·orc·angel·demon·
+     superhero·teacher·swordsman·mercenary·sorcerer·barbarian·elf·dwarf·
+     사장 40여 개) 훑었다 — 대부분 poly.pizza가 "Animated" 태그를 달아
+     둔 것도 실제로 받아 보면 클립이 0개였다(Female Fighter·Supersup·
+     King(2번째 개체)·Voxel Character Male·OLDMAN·Student·Soldier
+     (madtrollstudio)·Tiny Mage 등 — 전부 스킵). 그물을 넓혀 실제로
+     쓸 수 있던 건 둘뿐: */
+  var PEOPLE_PP_WIDE = 'assets/models/people/polypizza_wide/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    /* "superhero" 검색 → Character Soldier(Quaternius, CC0). 클립 14개,
+       CharacterArmature|* 계열, 안 깨짐. */
+    { key: 'ppwide_soldier', body: PEOPLE_PP_WIDE + 'CharSoldier.glb', anim: PEOPLE_PP_WIDE + 'CharSoldier.glb' },
+    /* "druid" 검색(엉뚱한 검색어에 걸림) → Wizard(Quaternius, CC0). 클립
+       9개(Idle·Walk·Death·HitRecieve·Dance·Bite_Front 등) — attack 슬롯은
+       못 채워 FALLBACK(→interaction→idle)으로 간다. */
+    { key: 'ppwide_wizard', body: PEOPLE_PP_WIDE + 'Wizard.glb', anim: PEOPLE_PP_WIDE + 'Wizard.glb' }
+  ]);
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

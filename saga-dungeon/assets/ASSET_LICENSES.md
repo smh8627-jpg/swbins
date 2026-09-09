@@ -1269,3 +1269,223 @@ PLAN 4절의 우선순위를 따라 나무·바위·폐허(기둥·벽)·절벽�
 glb-compress`로 압축(7.4MB→2.0MB). `HERO_RECIPES_LIGHT`에 `ppmore_*`로
 등록(71→78종). CC-BY 2종(Soldier·Animated Wizard)은 저작자 **Quaternius**
 표시.
+
+> **바로잡음(2026-09-09, 같은 세션 이어서)** — 위 "71→78종"은 실측이
+> 아니었다. 코드로 `HERO_RECIPES_LIGHT.length`를 직접 세어 보니 이
+> 절 작업 **전** 51종·**후** 58종이었다(20종 차이 — `HERO_RECIPES`
+> 전체 표에만 들어가는 MPFB 실사 인물 20벌을 착각해 headcount에
+> 같이 셌던 것으로 보인다, MPFB는 NPC·동행이 고르는 `hero_light`가
+> 아니라 `me:`만 쓰는 `hero`에만 있다). 아래 절부터는 실측값을 쓴다.
+
+## 캐릭터 4차분 — poly.pizza "Animated Women Pack" (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/u/Quaternius/Lists`에서 지금까지 쓴 `Ultimate Modular Women
+Pack`과는 별개인 `Animated Women Pack`(4종)을 찾았다 — 번들 페이지의
+`/m/` 링크로 UUID를 직접 대조해 겹침이 없음을 확인했다.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Woman | `poly.pizza/m/AQsd9ngvKU` → `static.poly.pizza/906a0cbe-b0a4-4312-b898-0f974b6f6771.glb` | Quaternius | CC0 |
+| Woman Casual | `poly.pizza/m/jpKRgGDxhk` → `static.poly.pizza/51d5abdd-bb87-4b8d-9967-21738ffb8437.glb` | Quaternius | CC0 |
+| Woman in Tank Top | `poly.pizza/m/XqzeZGB7iU` → `static.poly.pizza/9a6a3e55-23ce-4d5c-89bc-7d3f30307ed0.glb` | Quaternius | CC0 |
+| Woman in Dress | `poly.pizza/m/zMyPlQXBzq` → `static.poly.pizza/a642af96-e239-4c5f-b50d-7661ff51deec.glb` | Quaternius | CC0 |
+
+`HumanArmature|Female_*` 클립 11개씩(Idle·Walk·Run·Jump·Punch·SwordSlash·
+Death 등) 내장, `mapClips()` word 표로 그대로 받는다(리타깃 불필요).
+`assets/models/people/polypizza_women2/`에 둠, `HERO_RECIPES_LIGHT`에
+`ppwomen2_*`로 등록 — **51→58→62종**.
+
+**압축 보류** — `tools/glb-compress`(`../../tools/glb-compress`)의
+`package-lock.json`이 사내망 사설 레지스트리(`172.17.1.200:8081`,
+`C:\link` 전용) `resolved` URL을 그대로 담고 있어 이 환경에서
+`npm install`이 ETIMEDOUT으로 실패했다. lockfile을 고치는 편집 자체도
+권한 분류기가 의존성 변경으로 막아, 이번엔 원본 그대로(4종 합쳐
+2.0MB — 다른 판에서 이미 압축된 비슷한 세트와 큰 차이 없는 크기) 커밋했다.
+**다음 세션이 할 일**: `tools/glb-compress/package-lock.json`의
+`http://172.17.1.200:8081/repository/npm_group/`를
+`https://registry.npmjs.org/`로 되돌리고(사용자 승인 하에) `npm install`
+다시 받은 뒤, 이 폴더(및 압축 안 된 다른 자리)를 마저 압축할 것.
+
+> **처리됨(같은 세션, 뒤이어)** — 사용자 승인 받고 위 lockfile을
+> 고쳐 `tools/glb-compress`를 되살렸다. `polypizza_women2/`도 마저
+> 압축(2.0MB→0.6MB, 클립 11개 그대로 남음 확인). 아래부터는 그
+> 도구로 바로 압축해 등록한다.
+
+## 캐릭터 5차분 — Ultimate Space Kit 우주비행사 3벌 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/explore?anim=1&lic=1`(애니메이션·무료 라이선스 필터) 목록을
+훑다가 `Ultimate Space Kit` 소속 Astronaut 가 이미 쓴 `ppmen_astronaut`
+(Ultimate Modular Men Pack 소속, UUID 다름)와 별개로 3벌 있는 것을
+찾았다 — 각 번들의 `/m/` 링크를 서로 대조해 겹치는 UUID(Farmer·Punk·
+SWAT·King·BusinessMan·CasualCharacter·BeachCharacter·HoodieCharacter·
+Worker·Man 등, Ultimate Modular Men/Animated Men Pack과 이름이 같아
+보였던 것들)를 먼저 걸러내고 남은 것.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Astronaut(1) | `poly.pizza/m/0D54W8yfrA` → `static.poly.pizza/f06659f2-e505-43df-a3db-84faec811a57.glb` | Quaternius | CC0 |
+| Astronaut(2) | `poly.pizza/m/OgeSH89Nmx` → `static.poly.pizza/29010dcf-84c9-4eaf-a874-c44ef3166f55.glb` | Quaternius | CC0 |
+| Astronaut(3) | `poly.pizza/m/zbtPq4dOJL` → `static.poly.pizza/9cd2d5d8-953d-4aee-8e46-f72b12ff5855.glb` | Quaternius | CC0 |
+
+셋 다 같은 뼈대·`CharacterArmature|*` 클립 18개(색·소재 텍스처만 다른
+변형) — `mapClips()` 그대로 받는다. `assets/models/people/
+polypizza_space/`에 둠, `tools/glb-compress`로 압축(2.1MB→0.6MB),
+`HERO_RECIPES_LIGHT`에 `ppspace_*`로 등록 — **62→65종**.
+
+## 캐릭터 6차분 — KayKit Adventurers Character Pack 5벌 (2026-09-09, 같은 세션 이어서)
+
+몬스터 트랙에서 이미 쓴 KayKit Skeletons와 같은 저작자(Kay Lousberg)의
+사람 캐릭터 팩. poly.pizza에는 유료로 올라와 있지만(검색으로 확인),
+같은 팩을 GitHub 조직(`KayKit-Game-Assets`)이 직접 CC0로 미러해 둔다 —
+Skeletons 때와 같은 요령으로 itch.io를 거치지 않고 거기서 받았다.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Barbarian·Knight·Mage·Rogue·Rogue_Hooded | `github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0`, `Characters/gltf/*.glb` | Kay Lousberg(KayKit) | CC0 |
+
+`LICENSE.txt`(저장소에 직접 포함) 확인 — "License: (Creative Commons
+Zero, CC0) … free to use in personal, educational and commercial
+projects". 저작자 표시 불필요(권장 사항일 뿐).
+
+몸 하나에 제 클립을 **76개**씩 내장 — 이 판이 지금까지 쓴 어떤 사람
+자산보다 촘촘하다(Idle·Walking_A/B/C·Running_A/B·Dodge_Forward/Backward/
+Left/Right·Hit_A/B·Death_A/B·1H/2H_Melee_Attack_*·Interact·Jump_* 등).
+`mapClips()` word 표가 "Walking"·"Running"·"Attack"·"Dodge"·"Hit"·
+"Death"·"Interact"를 그대로 하위문자열로 잡아 리타깃 없이 받는다.
+
+`assets/models/people/kaykit_adventurers/`에 둠, `tools/glb-compress`로
+압축(17.2MB→9.6MB, 44% 감소 — 클립이 워낙 많아 위 KayKit Skeletons와
+비슷한 압축률). 압축 후 1.95~1.97MB/벌 — `HERO_RECIPES_LIGHT`의 기존
+최중량 레시피 QRPG(1.6~2.1MB)와 같은 급이라, `hero_light`에서 뺀
+MPFB(3.5~4.3MB, 위 §"2026-09-07" 참고)의 무게 함정과는 다른 체급으로
+판단해 그대로 얹었다. `HERO_RECIPES_LIGHT`에 `kaykitadv_*`로 등록 —
+**65→70종**.
+
+같은 번들의 Enemy Small/Large/Flying·Mech·Rover(로봇/외계생물)는 사람형이
+아니라 등록 안 함 — "몬스터 100개" 트랙 후보로 남겨 둠.
+
+## 캐릭터 7차분 — Pirate kit 사람 3종, 클립 이름 깨짐 고쳐서 등록 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/bundle/Pirate-kit-0q5ulmIYqQ`(Quaternius, CC0)의 사람형 3종 —
+Pirate Captain(`m/sN18LyyHAU`)·Anne(`m/tZYaOQ4l94`)·Henry(`m/yEdSk8tRKc`).
+셋 다 CC0, Animated 태그 확인.
+
+> **받는 김에 발견 — 이 번들 특유의 클립 이름 깨짐.** 셋 다 애니메이션
+> 트랙 이름이 `CharacterArmature|CharacterArmature|CharacterArmature|
+> <어간>|CharacterArmature|<어간을 81자 상한에서 다시 자른 것>` 꼴로
+> 나갔다(예: `...Death|CharacterArmature|Dea`, `...HitReact|
+> CharacterArmature|`—뒤가 통째로 잘려 빈 문자열). `mapClips()`는 마지막
+> `|` 뒤 조각만 보는데 그 조각이 잘린 부스러기(`Dea`·빈 문자열·`Pun`)라
+> **death·attack·hit 세 슬롯이 전부 idle로 새 버렸다**(고치기 전 실제로
+> `mapClips()`를 직접 돌려 재현·확인). 같은 `CharacterArmature|*` 계열인
+> `ppmore_*`·`ppspace_*`는 이 문제가 없다(대조 확인) — 이 번들만의
+> 익스포트 문제로 보인다.
+>
+> **고침** — 3번째 `|` 조각(`...|CharacterArmature|CharacterArmature|
+> CharacterArmature|<여기>|...`)은 어느 클립에서도 안 잘리고 온전한
+> 진짜 어간이라, 그걸 읽어 `CharacterArmature|<어간>`으로 다시 쓰는
+> 세션 임시 스크립트를 한 번 돌렸다. **glTF의 JSON 청크만 다시 쓰고
+> BIN 청크(스켈레톤·정점·키프레임)는 바이트 그대로 복사** — 애니메이션
+> 실제 동작은 안 건드리고 이름표만 고쳤다. `gltf-transform inspect`로
+> 파일이 여전히 유효한지, 고친 뒤 `mapClips()`가 death·attack(Punch)·
+> hit(HitReact)까지 실제 클립으로 잡는지(전엔 셋 다 idle 대체) 확인.
+> 이 스크립트는 이번 3개에만 한 번 쓰고 커밋하지 않았다 — 같은 문제가
+> 또 나오면(이 번들의 다른 사람형을 더 받을 때 등) 이 절의 방법을
+> 다시 쓸 것.
+
+`assets/models/people/polypizza_pirate/`에 둠(이름을 고친 뒤 파일),
+`tools/glb-compress`로 압축(1.9MB→0.5MB, 72% 감소). `HERO_RECIPES_LIGHT`에
+`pppirate_*`로 등록 — **70→73종**.
+
+## 캐릭터 8차분 — Post Apocalypse Pack "Lis" 1종 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/bundle/Post-Apocolypse-Pack-jg0We8Clu0`(51종, 대부분 좀비·
+차량 소품·표지판)을 훑어 사람형 하나(Lis, `m/gjuwleUT1U` →
+`static.poly.pizza/5c3f2a86-c030-49aa-8a4c-86a7a1220801.glb`)를 더
+찾았다. Quaternius, CC0, Animated. 클립 20개(Death·Duck·HitReact·Idle·
+Idle_Gun·Jump·Jump_Idle·Jump_Land·Punch·Run·Run_Gun·Run_Slash·Run_Stab·
+Slash·Stab·Walk·Walk_Gun·Wave 등) — 위 Pirate kit과 달리 이름이 안
+깨져 있다(대조 확인, 그 번들만의 문제였음을 재확인).
+
+같은 번들의 "Characters Matt/Shaun/Sam"(이미 `ppmore_*`로 등록됨,
+UUID 대조로 확인)·Zombie 3종(몬스터 트랙 후보)·German Shepard·
+"Characters Pug"(둘 다 짐승, 펫 트랙 후보)는 스킵.
+
+`assets/models/people/polypizza_apoc/`에 둠, `tools/glb-compress`로 압축
+(0.7MB→0.2MB). `HERO_RECIPES_LIGHT`에 `ppapoc_lis`로 등록 — **73→74종**.
+
+**막힌 것** — Quaternius 공식 사이트(`quaternius.com`)에 더 있는 캐릭터
+류(Knight Character·Modular Character Outfits Fantasy·Animated Man/
+Woman 단품)는 poly.pizza 미러가 없고 전부 Google Drive 폴더로만
+배포된다. Drive 폴더를 직접 긁어 파일 ID까지는 뽑았지만(예:
+`drive.google.com/drive/folders/1XQ3UpQezkOFDdazv6KK16qp3mBXhO9uO`),
+개별 파일이 `.mp4` 미리보기·확인 페이지가 섞여 있어 어떤 게 실제
+`.glb`인지 신뢰성 있게 가려내려면 더 손이 간다 — 다음에 이어갈 때
+여기부터. `quaternius.itch.io`의 개별 팩(예: `lowpoly-animated-knight`,
+CC0 확인됨)도 "이름값 지불"식이라 페이지에 직접 다운로드 링크가 없고
+itch.io 결제/받기 흐름(세션·CSRF)을 거쳐야 해 스크립트로는 못 받았다
+— 사용자가 UAL2·Universal Base Characters 때처럼 직접 받아 전달해
+주면 바로 쓸 수 있다.
+
+## 캐릭터 9차분 — "Hazmat" 두 작가, 두 몸 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/search/hazmat`에서 같은 방호복 컨셉을 서로 다른 작가
+둘에게서 찾았다 — 몸(리그)이 서로 다르므로 둘 다 등록.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Character Hazmat | `poly.pizza/m/z3TSQYx1Kn` → `static.poly.pizza/484450a4-b76c-4e76-95d2-352337bb41e8.glb` | Quaternius | CC0 |
+| Hazmat Man | `poly.pizza/m/y2ygMH3VYx` → `static.poly.pizza/b18bedd3-8afe-45fa-b1f5-43288396cb5d.glb` | Charlie | CC-BY 3.0 |
+
+Character Hazmat은 클립 17개(`CharacterArmature|*`, 안 깨짐 — Pirate kit
+문제 대조 확인). Hazmat Man은 클립이 `idle`·`run_anydirection`·`death`
+셋뿐이라 얇지만(공격·피격은 FALLBACK으로 idle 대체) 실존하고 몸도
+확연히 다르다.
+
+같은 검색에서 걸린 "Blocks Humanoid"(3Donimus)·"Character Base"·
+"Low Poly human with tabard"는 poly.pizza가 "Animated" 태그를 달아
+뒀지만 실제 GLB엔 애니메이션 클립이 **0개**였다(직접 파싱해 확인) —
+스킵. 이 판단 근거를 남겨 둔다: **poly.pizza의 "Animated" 태그는
+신뢰할 수 없다** — 다운로드해서 GLB JSON 청크의 `animations` 배열을
+직접 세어 보기 전까진 등록하지 않는다(이번 세션 내내 지켜온 방식,
+공식화해 적어 둠).
+
+`assets/models/people/polypizza_hazmat/`에 둠, `tools/glb-compress`로
+압축(2.1MB→0.5MB, 78% 감소). `HERO_RECIPES_LIGHT`에 `pphazmat_*`로
+등록 — **74→76종**.
+
+## 캐릭터 10차분 — 검색어를 넓혀서 (2026-09-09, 같은 세션 이어서)
+
+사용자 요청("poly.pizza 검색 더 넓혀서 계속")으로 queen·sniper·medic·
+assassin·paladin·gladiator·boxer·wrestler·santa·orc·troll·giant·angel·
+demon·superhero·teacher·lawyer·artist·musician·swordsman·mercenary·
+bandit·thief·blacksmith·alchemist·sorcerer·barbarian·peasant·wizard·
+necromancer·guard·hunter·druid·elf·dwarf·mummy·sheriff·bride·groom·
+cook·librarian·pilot·captain·general·commander·villager·merchant 약
+48개 검색어를 훑었다.
+
+**핵심 발견 — poly.pizza의 "Animated" 태그는 못 믿는다.** 이 라운드에서
+"Animated" 태그가 달린 후보 10여 개를 실제로 받아 GLB JSON 청크의
+`animations` 배열을 직접 세어 봤는데 **대부분 0개**였다(Female
+Fighter·Supersup·King 2번째 개체·Voxel Character Male·OLDMAN·
+Student·Soldier by madtrollstudio·Tiny Mage — 전부 스킵). 태그만 보고
+등록하면 안 되고 반드시 다운로드해서 직접 세어야 한다는 걸 이 세션
+내내 지켜 온 방식이 맞았음을 재확인.
+
+실제로 클립이 있던 건 둘, 둘 다 Quaternius·CC0:
+
+| 자산 | 걸린 검색어 | 받은 곳 | 클립 |
+|---|---|---|---|
+| Character Soldier | superhero | `poly.pizza/m/PpLF4rt4ah` → `static.poly.pizza/1083c1d3-d1d4-4682-adf6-bc516d06ac84.glb` | 14개, `CharacterArmature|*`, 안 깨짐 |
+| Wizard | druid(엉뚱한 검색어) | `poly.pizza/m/o87Upt5uHX` → `static.poly.pizza/d206c071-7934-40eb-9091-35ebdf93c317.glb` | 9개(Idle·Walk·Death·HitRecieve·Dance·Bite_Front 등) — attack 슬롯 없어 FALLBACK |
+
+`assets/models/people/polypizza_wide/`에 둠, `tools/glb-compress`로
+압축(1.4MB→0.4MB). `HERO_RECIPES_LIGHT`에 `ppwide_*`로 등록 —
+**76→78종**.
+
+**남은 전략** — poly.pizza 개별 검색은 Quaternius 것 아니면 거의
+전멸(다른 작가는 애니메이션 없는 정지 메시가 압도적으로 많다)이라
+수율이 계속 떨어지고 있다. 다음에 이어갈 실질적인 방법은 앞 절에
+적어 둔 두 갈래(Quaternius 공식 사이트의 Google Drive 배포,
+quaternius.itch.io의 결제 흐름 뒤에 있는 팩들)를 사용자가 직접
+받아 전달해 주는 것 — 검색으로는 이 근처가 한계에 가깝다.
