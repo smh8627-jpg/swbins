@@ -1359,6 +1359,46 @@ window.DG_NO_TUNE = true;
         ('시트 ' + tabs.length + '개 · 쉬는 판 ' + camp.length + '자 · 띠 ' + hud.length + '자');
     });
 
+    t('설정 시트 — 효과음·진동 토글, 음량 슬라이더(PLAN 30절)', function () {
+      /* data-act 버튼을 누르면 renderSheet() 가 sheet-body 를 통째로 다시 그려
+         예전 버튼 노드는 떨어져 나간다(다음 클릭이 안 먹는다) — 그래서 **누를
+         때마다 body 에서 다시 찾는다**, 한 번 잡아 둔 참조를 두 번 안 쓴다 */
+      var SF = DG.sfx;
+      DG.ui.openSheet('settings');
+      var body = document.getElementById('sheet-body');
+      var hasSndBtn = !!body.querySelector('[data-act="snd-toggle"]');
+
+      /* 되돌릴 때는 버튼을 다시 누르지 않는다 — 켜는 쪽(setEnabled(true))은
+         unlock() 을 실제로 불러 오디오 컨텍스트를 깨우는데, 그러면 뒤에 오는
+         "소리는 요청을 다 적는다 — 꺼져 있어도 남는다" 항목이 기대하는
+         "진단 내내 안 깨어 있음" 이 깨진다. 세이브 칸을 직접 되돌려 그 부작용을 피한다. */
+      var on0 = SF.enabled();
+      body.querySelector('[data-act="snd-toggle"]').click();
+      var toggled = SF.enabled() !== on0;
+      C.save.settings.sound = on0;
+      var restored = SF.enabled() === on0;
+
+      var hasVibBtn = !!body.querySelector('[data-act="vib-toggle"]');
+      var vibOk = true;
+      if (hasVibBtn) {
+        var vib0 = SF.vibrateEnabled();
+        body.querySelector('[data-act="vib-toggle"]').click();
+        vibOk = SF.vibrateEnabled() !== vib0;
+        body.querySelector('[data-act="vib-toggle"]').click();
+        vibOk = vibOk && SF.vibrateEnabled() === vib0;
+      }
+
+      var volEl = body.querySelector('[data-act="snd-vol"]');
+      volEl.value = 30;
+      volEl.dispatchEvent(new Event('input', { bubbles: true }));
+      var volOk = Math.abs(SF.volume() - 0.3) < 0.01;
+      SF.setVolume(0.5);                       // 되돌린다 — 뒤 항목이 기본 음량을 가정할 수 있다
+
+      DG.ui.closeSheet();
+      return hasSndBtn && !!volEl && toggled && restored && vibOk && volOk &&
+        ('효과음 토글 O · 음량 O · 진동 ' + (hasVibBtn ? 'O' : '이 기기 미지원'));
+    });
+
     t('사냥터 화면이 예외 없이 그려진다', function () {
       DG.sideView.resize();
       DG.sideView.draw();

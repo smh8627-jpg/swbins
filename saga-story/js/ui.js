@@ -123,6 +123,17 @@
       if (!b) { return; }
       handleAct(b.getAttribute('data-act'), b);
     });
+    /* 음량 슬라이더 — 끌 때마다(input) 바로 듣고, 값칸은 다시 그리지 않고 직접 고쳐
+       슬라이더가 손 밑에서 튀지 않게 한다(전체 renderSheet() 는 change 에서만) */
+    els['sheet-body'].addEventListener('input', function (e) {
+      var el = e.target;
+      if (el.getAttribute('data-act') !== 'snd-vol') { return; }
+      var SF = global.DG.sfx;
+      if (!SF) { return; }
+      var v = SF.setVolume((parseInt(el.value, 10) || 0) / 100);
+      var lbl = el.nextElementSibling;
+      if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
+    });
 
     bindRest();
   }
@@ -140,6 +151,16 @@
       if (act === 'key-remap') {
         var G0 = global.DG.game;
         if (G0 && G0.beginRemap) { G0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
+        return;
+      }
+      if (act === 'snd-toggle') {
+        var SF0 = global.DG.sfx;
+        if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
+        return;
+      }
+      if (act === 'vib-toggle') {
+        var SF1 = global.DG.sfx;
+        if (SF1) { SF1.setVibrateEnabled(!SF1.vibrateEnabled()); renderSheet(); }
         return;
       }
       if (act === 's-enter') {
@@ -254,8 +275,31 @@
 
   var SHEET_TITLE = {
     field: '🏃 사냥터', bag: '🎒 가방', job: '🥋 무예', shop: '🏪 저자',
-    dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정'
+    dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정', settings: '⚙️ 설정'
   };
+
+  /** 2026-09-09(PLAN 30절) — 효과음·진동. BGM·그래픽 품질·조작 감도·화면 방향은
+   *  아직 없다(각각 실제 배경음악 곡·품질 손잡이·아날로그 입력이 먼저 있어야
+   *  뜻이 있는 자리라 뒤로 미뤘다 — 이 판의 조작은 방향키 넷뿐이라 "감도"가 걸릴
+   *  자리가 없다) */
+  function viewSettings() {
+    var SF = global.DG.sfx;
+    if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
+    var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
+    var vib = SF.vibrateEnabled();
+    var vibRow = (global.navigator && navigator.vibrate)
+      ? '<div class="key-row"><b>진동</b>' +
+        '<button data-act="vib-toggle">' + (vib ? '켜짐' : '꺼짐') + '</button></div>'
+      : '<div class="hint">이 기기는 진동을 지원하지 않습니다</div>';
+    return '<div class="hint">소리·진동만 여기서 바꿉니다. 이동 키는 ⌨️ 키설정에 있습니다.</div>' +
+      '<div class="key-row"><b>효과음</b>' +
+        '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row"><b>음량</b>' +
+        '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
+        (on ? '' : ' disabled') + '>' +
+        '<span class="key-cur">' + vol + '%</span></div>' +
+      vibRow;
+  }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
    *  (실수로 못 쓰게 되지 않게), 여기서는 그 옆에 하나 더 쓸 키만 고른다. */
@@ -320,7 +364,8 @@
           : openTab === 'job' ? viewJob()
           : openTab === 'shop' ? viewShop()
           : openTab === 'dex' ? viewDex()
-          : openTab === 'keys' ? viewKeys() : viewLog();
+          : openTab === 'keys' ? viewKeys()
+          : openTab === 'settings' ? viewSettings() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 

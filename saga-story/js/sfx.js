@@ -159,6 +159,7 @@
     var s = core.save.settings || (core.save.settings = {});
     if (typeof s.sound !== 'boolean') { s.sound = true; }
     if (typeof s.soundVol !== 'number') { s.soundVol = 0.5; }
+    if (typeof s.vibrate !== 'boolean') { s.vibrate = true; }
     return s;
   }
 
@@ -178,6 +179,30 @@
     if (master) { master.gain.value = settings().soundVol; }
     core.persist();
     return settings().soundVol;
+  }
+
+  /* 진동(PLAN 30절) — 늘 켜는 것이 아니라 **꼽힐 만한 순간에만** 짧게 운다.
+     기본 공격까지 울리면 성가시기만 해서(연타마다 부르르 떨림) 급소·보스·
+     레벨업·사명완료·피격처럼 화면 연출이 따로 붙는 순간만 골랐다 — PLAN 35절
+     배너와 짝이 맞는 목록이다. */
+  var VIBE_PATTERNS = {
+    crit: [12, 30, 14], boss: [20, 40, 20], bosskill: [16, 30, 16, 30, 26],
+    levelup: [10, 20, 10, 20, 30], questdone: [10, 20, 10, 20, 30], hurt: 16
+  };
+
+  function vibrateEnabled() { return settings().vibrate !== false; }
+
+  function setVibrateEnabled(v) {
+    settings().vibrate = !!v;
+    core.persist();
+    if (v) { vibrateFor('crit'); }
+    return settings().vibrate;
+  }
+
+  function vibrateFor(key) {
+    var pat = VIBE_PATTERNS[key];
+    if (!pat || !vibrateEnabled() || !global.navigator || !navigator.vibrate) { return; }
+    try { navigator.vibrate(pat); } catch (e) { /* 일부 브라우저는 권한 없이 부르면 던진다 */ }
   }
 
   /* ── 깨우기 ───────────────────────────────────────────────
@@ -281,6 +306,7 @@
 
     var cue = CUES[key];
     if (!cue) { return false; }
+    vibrateFor(key);                    // 소리를 꺼 두었어도 진동은 따로 돈다
     if (!enabled() || !unlocked || !ctx || !master) { return false; }
 
     var now = ctx.currentTime;
@@ -348,6 +374,7 @@
     unlock: unlock, ready: function () { return unlocked; },
     enabled: enabled, setEnabled: setEnabled,
     volume: volume, setVolume: setVolume,
+    vibrateEnabled: vibrateEnabled, setVibrateEnabled: setVibrateEnabled,
     /** 최근 요청 n 개 (진단용 — 소리가 꺼져 있어도 남는다) */
     _tail: function (n) { return recent.slice(-(n || 8)); },
     _clear: function () { recent.length = 0; lastAt = {}; }
