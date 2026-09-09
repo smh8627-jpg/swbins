@@ -208,19 +208,29 @@
     'building:mail': PROP + 'box_small.gltf.glb',
     'building:pole': PROP + 'banner_thin_red.gltf.glb',
 
-    /* 동물 (PLAN 16절) — 토끼·다람쥐·오리·새는 아직 못 찾았다.
-       `assets/ASSET_LICENSES.md` 의 "아직 못 채운 자리" 참고 */
+    /* 동물 (PLAN 16절) — 사슴·여우·늑대(Quaternius). 2026-09-09, 토끼·다람쥐·
+       오리·새도 poly.pizza(Poly by Google, CC-BY 3.0)에서 찾아 채웠다 —
+       `assets/ASSET_LICENSES.md` 참고. 새로 받은 넷은 텍스처만 resize+jpeg
+       로 줄였다(정지 모델, 애니메이션 없음 — deer·fox·wolf 와 같은 사정) */
     'animal:an_deer': ANI + 'Deer.glb',
     'animal:an_wolf': ANI + 'Wolf.glb',
     'animal:an_fox': ANI + 'Fox.glb',
+    'animal:an_rabbit': ANI + 'Rabbit.glb',
+    'animal:an_squirrel': ANI + 'Squirrel.glb',
+    'animal:an_duck': ANI + 'Duck.glb',
+    'animal:an_bird': ANI + 'Bird.glb',
 
     /* 2026-09-05 — 도감 펫(`pt_*`·`pk_*`) 초상을 굽는 자리(`portrait3d.js`).
-       위 `animal:an_*` 셋은 숲의 **배경 짐승** 전용이라 도감 펫과 id 가 안
+       위 `animal:an_*` 는 숲의 **배경 짐승** 전용이라 도감 펫과 id 가 안
        겹친다. 사용자 지시("초상화를 더 가져올 수 있나, 맞출 필요 없이 있으면
        교체")에 따라 새로 받지 않고 **같은 세 모델을 형태(form)별로 돌려 쓴다**
        (`keysFor()`의 `pet:form:*` 참고). 이 판은 사족(quad) 셋(사슴·늑대·여우)
        뿐이라 bird·fish·turtle 등은 대응 CC0 가 아예 없다 — 그 형태들은 마지막
-       `pet` 한 줄(같은 셋)로 떨어진다. `assets/ASSET_LICENSES.md` 참고 */
+       `pet` 한 줄(같은 셋)로 떨어진다. **2026-09-09에 받은 `an_bird`는 배경
+       짐승 전용이라 이 자리엔 안 얹었다** — 도감 펫 형태별 초상은 종별로
+       결이 맞는 모델이 필요한데, 새 한 종만으로 bird·fish·turtle 여러 형태를
+       다 대신하긴 안 맞다(사족 셋도 마찬가지 근사이긴 하나, 그때 이미 확정된
+       결정이라 이번엔 건드리지 않는다). `assets/ASSET_LICENSES.md` 참고 */
     'pet:form:quad': [ANI + 'Deer.glb', ANI + 'Wolf.glb', ANI + 'Fox.glb'],
     'pet': [ANI + 'Deer.glb', ANI + 'Wolf.glb', ANI + 'Fox.glb']
   };

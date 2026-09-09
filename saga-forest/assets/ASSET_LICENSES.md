@@ -69,6 +69,43 @@
 |---|---|---|
 | `Fox.glb` | `animals_pack` | 여우 |
 
+## Poly by Google — 토끼·다람쥐·오리·새 (poly.pizza 경유, 2026-09-09)
+
+PLAN 16절 "아직 못 찾은 CC0"였던 넷을 채웠다 — `data-village.js`의 `ANIMALS`
+에 새 kind로 등록(사슴·여우·늑대와 나란히, 숲 배경 짐승용). 위 Quaternius·
+saga-go 쪽과 달리 이 넷은 **저작자 표시가 필요한 CC-BY 3.0**이다(`saga-dungeon`이
+이미 Tiger·Bear 등 일곱 마리를 이 경로로 받아 둔 것과 같은 출처).
+
+| 항목 | |
+|---|---|
+| **만든 이** | Poly by Google |
+| **라이선스** | **CC-BY 3.0** — 저작자 표시 필요 |
+| **받은 곳** | `poly.pizza`(Google Poly 아카이브 미러), `static.poly.pizza/<uuid>.glb` 직접 다운로드, 로그인 불필요 |
+
+| 파일 | poly.pizza | 이 판에서 쓰는 곳 |
+|---|---|---|
+| `models/animals/Rabbit.glb`("Cottontail rabbit") | `/m/3vvONbRCuEF` | **토끼**(`rabbit`) |
+| `models/animals/Squirrel.glb` | `/m/2WqY_AFEn-M` | **다람쥐**(`squirrel`) |
+| `models/animals/Duck.glb` | `/m/6HpauUCfIAb` | **오리**(`duck`) |
+| `models/animals/Bird.glb`("Sparrow") | `/m/eVTHotZ9Bc_` | **새**(`bird`) |
+
+> **Cottontail rabbit · Squirrel · Duck · Sparrow** — © **Poly by Google**,
+> [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/). `poly.pizza`를
+> 거쳐 받았다. 크기만 맞추었고 형상은 그대로다.
+
+**용량 손질** — 받은 그대로는 텍스처가(Rabbit·Squirrel·Bird) 2048×2048 PNG라
+3.8MB/2.0MB/2.3MB였다. `gltf-transform`으로 `resize`(768px) →
+`jpeg --formats png`(품질 85, **`--formats png` 를 안 주면 조용히 아무것도
+안 바뀐다** — 기본값이 "이미 jpeg인 텍스처만 다시 압축"이라 원본 PNG를
+그냥 지나친다, 이번에 직접 겪었다)로 줄였다 — Rabbit 3.82MB→157KB,
+Squirrel 2.02MB→126KB, Bird 2.27MB→101KB. Duck 은 텍스처가 아예 없어(단색
+버텍스 컬러, 27KB) 그대로 뒀다. 지오메트리는 넷 다 가벼워(수천 정점)
+심플리파이 없이 텍스처만 줄였다. 넷 다 애니메이션 클립이 없다(원본
+자체에 없음) — 사실 `Deer.glb`(Quaternius)엔 걷기·공격 등 클립이 여럿
+있지만 `village-view3d.js`의 스캐터 렌더러가 애초에 짐승을 나무·바위와
+같은 정지 오브젝트로만 세운다(mixer 를 안 만든다, `hero`만 재생한다) —
+그래서 클립이 있든 없든 화면상 차이는 없다.
+
 ### 넣은 파일 — saga-go 에서 그대로 옮긴 것 (**md5 동일**, 새로 받지 않았다)
 
 이미 사가고에서 CC0 로 확인된 파일을 그대로 복사했다 — 세 벌째(사가블로) 복사와

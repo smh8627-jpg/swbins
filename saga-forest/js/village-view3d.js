@@ -225,8 +225,12 @@
     tent: 'tent', campfire: 'campfire', bench: 'bench', well: 'well', lantern: 'lantern',
     mountain: 'mountain',
     /* 짐승(PLAN 40절 PHASE 4 첫 칸) — village.js 의 raw().animals 도 이 표를
-       그대로 타고 선다(아래 syncScatter() 가 props 배열에 이어 붙인다) */
+       그대로 타고 선다(아래 syncScatter() 가 props 배열에 이어 붙인다).
+       토끼·다람쥐·오리·새(2026-09-09, PLAN 16절)는 data-village.js 의
+       ANIMALS 에 새로 보탠 kind 라 이 한 줄씩만 이으면 그대로 선다 */
     deer: 'animal:an_deer', fox: 'animal:an_fox', wolf: 'animal:an_wolf',
+    rabbit: 'animal:an_rabbit', squirrel: 'animal:an_squirrel',
+    duck: 'animal:an_duck', bird: 'animal:an_bird',
     /* 마을 3D 건물(PLAN 6절, 2026-09-09) — village.js `buildProps()`의 shop·
        board·home·mail·tailor·pole·museum kind 를 그대로 타고 선다. 마을당
        하나뿐인 고정 건물이라 나무처럼 변종을 섞지 않는다 */
@@ -240,6 +244,7 @@
     deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, herb: 0.5, bush: 0.8, stump: 0.6, log: 0.5, plant: 0.6,
     tent: 1.8, campfire: 0.5, bench: 0.5, well: 1.0, lantern: 1.6, mountain: 8.0,
     deer: 1.1, fox: 0.55, wolf: 0.95,
+    rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
     /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
        비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */

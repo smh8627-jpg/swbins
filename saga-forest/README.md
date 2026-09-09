@@ -383,13 +383,12 @@ PLAN 40절 PHASE 1~7이 모두 실질적으로 끝났다.
 
 | 남은 일 | 왜 미뤘나 |
 |---|---|
-| 토끼·다람쥐·오리·새 CC0 모델 못 찾음(PLAN 16절) | 이 미러(`animals_pack`)엔 없다 — 다른 CC0 출처 탐색 필요(`assets/ASSET_LICENSES.md`) |
 | 가을·눈·자작나무는 저다각형 그대로(PLAN 3절 나무 실사화 셋째) | CC0 사진측량 나무 중 가을 단풍·자작·설경 태그를 가진 게 없었다 — 소재 자체가 없는 경우 |
 | Scatter를 진짜 InstancedMesh로 안 바꿈(PHASE 7에서 결정) | 비동기 GLB+변종(oneOf) 구조라 재작성 위험이 큼(README PHASE 7 절 참고) — Object Pool로 대신함 |
 | 물 표현(PLAN 12절: 파동·반사·물결 파티클) 미착수 | 지금은 색 있는 타일을 12cm 낮춘 것뿐, 애니메이션 없음 |
 | 3D 화면 CDP 헤드리스 스크린샷 도구 없음 | `ws` npm 패키지가 이 개발 환경에 없어 시도만 하고 못 갖췄다 |
 
-(마을 3D 건물 항목은 아래 2026-09-09 항목으로 채웠다 — 표에서 뺐다)
+(마을 3D 건물·토끼 등 동물 넷 항목은 아래 2026-09-09 항목으로 채웠다 — 표에서 뺐다)
 
 이 표는 다음에 "뭐부터 할까" 고를 때 쓰는 메뉴다 — 다음 세션은 이 중
 어느 것부터 할지, 아니면 지금까지 쌓인 것 전체를 실기기로 한 번에
@@ -398,10 +397,10 @@ PLAN 40절 PHASE 1~7이 모두 실질적으로 끝났다.
 **2026-09-09 이어서 — 마을 3D 건물 착수(PLAN 6절 "작은 마을").** 위 표에서
 사용자가 이 항목을 골라 이어서 진행했다. 새 GLB 를 받지 않고 **다른 네
 판이 이미 CC0 확인을 끝내 둔 건물 모델을 하드링크로 옮겨** 채웠다
-([[saga-glb-asset-hardlink-dedup]]와 같은 요령 — `saga-dungeon`에서
-House_1~4·MarketStand_1(Quaternius)·house_wooden·house_stone·house_cottage
-(PolyScan)·signpost(Kenney)·box_small·banner_thin_red(KayKit) 를 md5 동일한
-채로 링크만 걸었다).
+(2026-09-08에 다섯 판 중복 GLB를 하드링크로 합친 것과 같은 요령 —
+`saga-dungeon`에서 House_1~4·MarketStand_1(Quaternius)·house_wooden·
+house_stone·house_cottage(PolyScan)·signpost(Kenney)·box_small·
+banner_thin_red(KayKit) 를 md5 동일한 채로 링크만 걸었다).
 
 - village.js 의 `buildProps()`가 처음부터 갖고 있던 건물 kind 일곱(`shop`
   전방·`home`집·`board`게시판·`mail`편지함·`tailor`침선방·`pole`마을기·
@@ -420,6 +419,40 @@ House_1~4·MarketStand_1(Quaternius)·house_wooden·house_stone·house_cottage
 - **실기기 확인 전** — 건물 일곱 개가 마을 3D 화면에서 실제로 제자리에
   서는지, 크기(특히 house_wooden 계열 셋의 3.0~3.4m)가 사람·나무 옆에서
   안 어색한지 다음 세션 손맛부터 물어볼 것.
+
+**2026-09-09 이어서 — 토끼·다람쥐·오리·새(PLAN 16절 "아직 못 찾은
+CC0").** 남은 일 표에서 이어서 진행했다. `animals_pack`(Quaternius) 미러엔
+없어 poly.pizza(Poly by Google)에서 새로 찾았다 — 이 넷은 **CC-BY 3.0**
+(저작자 표시 필요, `saga-dungeon`이 이미 Tiger·Bear 등 일곱 마리를 같은
+경로로 받아 둔 것과 같은 라이선스)이라 지금까지 이 판의 CC0 일색과는
+다르다.
+
+- `data-village.js`의 `ANIMALS`에 `rabbit`·`squirrel`·`duck`·`bird` 네
+  종 추가(이름·이모지·속도·어슬렁/달아남 반경) — `village.js`의
+  `buildAnimals()`는 이미 `VD.ANIMALS`를 순회해 바이옴에 맞는 종을
+  고르는 완전히 데이터 주도 구조라 스폰 로직은 한 줄도 안 건드렸다.
+  2D 렌더러(`village-view.js`)도 `VD.ANIMALS[kind].emoji`를 그대로 읽어
+  손 안 댔다.
+- 3D 는 `js/asset3d.js`에 `animal:an_rabbit`·`an_squirrel`·`an_duck`·
+  `an_bird` 등록, `village-view3d.js`의 `SCATTER_KIND`·`SCATTER_H`에
+  네 줄 추가 — 건물 때와 같은 패턴.
+- 도감 펫 초상(`pet:form:*`, `portrait3d.js`)은 **일부러 안 건드렸다** —
+  종별로 결이 맞는 모델이 따로 필요한 자리라 새 배경 짐승 하나로
+  bird·fish·turtle 여러 형태를 대신하긴 안 맞다(`js/asset3d.js` 주석 참고).
+- **용량 손질에서 함정 하나 겪음** — `gltf-transform jpeg`는 `--formats`
+  기본값이 `"jpeg"`라 원본 PNG 텍스처를 그냥 지나친다(문서만 보면 "PNG를
+  JPEG로 압축"처럼 읽히는데 실제로는 "이미 jpeg인 텍스처만 재압축"이다).
+  `--formats png`를 명시해야 실제로 줄어든다 — Rabbit 3.82MB→157KB,
+  Squirrel 2.02MB→126KB, Bird 2.27MB→101KB(768px+품질85). Duck 은 텍스처가
+  아예 없어(버텍스 컬러, 27KB) 그대로 뒀다.
+- 자가진단은 새 항목 없이 기존 "짐승 — 등록된 자산이 있는 종만 나고 제
+  바이옴에만 선다" 테스트가 그대로 네 종도 검증한다(데이터 주도라 이미
+  일반화돼 있었다) — 222/222 회귀 없음(세 번 동일), 이름만 갱신했다.
+  `sw.js` → `village-v0.35.0`.
+- **실기기 확인 전** — 숲 곳곳에 토끼·다람쥐·오리·새가 실제로 나오는지,
+  크기(0.2~0.35m)가 사슴·여우 옆에서 너무 작거나 안 보이진 않는지
+  다음 세션 손맛부터 물어볼 것. 그 다음은 표의 물 표현이나 CDP 스크린샷
+  도구 중에서 고를 것.
 
 ## 네 게임 중 하나
 
