@@ -93,6 +93,20 @@ https://smh8627-jpg.github.io/swbins/saga-realm/
 안 깨진다). 검증 — `_test.html` 104/104(3회 동일), `_admin.html?selftest`
 ADMIN 12/12.
 
+**셋째 확장 지역 — 교주(交州, 영남·베트남 북부)는 2026-09-09에 이어서
+끝났다.** 한국·일본과 완전히 같은 결 — 성 일곱(남해·창오·울림·합포·교지·
+구진·일남, 실제 한대 교주 칠군 이름)을 `force:null`·`garrison`으로 얹고,
+`data-force.js`의 새 `JIAOZHOU_OFFICERS`(9인, 가명)·`JIAOZHOU_GARRISON`으로
+수비 무장을 채웠다. `officer.js`·`rtk.js`가 `KOREA_*`·`JAPAN_*` 옆에
+`JIAOZHOU_*`도 나란히 읽도록 한 줄씩만 늘렸다. 진입로는 장사(長沙) 하나뿐
+(한국의 북평, 일본의 김해와 같은 자리). 합포↔교지 한 구간만 `land:'river'`
+둘이라 연안 항로로 잡히고, 나머지는 전부 육로 — 일본과 달리 대륙과 붙어
+있어 바다를 건널 필요가 없는 지역이라는 지리를 그대로 반영했다. 2D 지도
+`viewBox`를 높이 방향(100→120)으로도 넓혔다(폭은 165 그대로,
+`ui-rtk.js` 한 곳). 성 수 44→51로 다시 늘었지만 재야 결정적 산포 자가진단
+항목은 지난번에 런타임 탐색으로 고쳐 둔 덕에 이번엔 안 깨졌다. 검증 —
+`_test.html` 104/104(3회 동일), `_admin.html?selftest` ADMIN 12/12.
+
 ---
 
 # 1. 최우선 원칙 — Claude Code 토큰 절약

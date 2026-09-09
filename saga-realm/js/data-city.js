@@ -32,7 +32,9 @@
     kr: '한국',
     /* 2026-09-09 확장 — 일본열도. 한국과 같은 원칙 — 성 이름은 실제 지명,
        그 성을 지키는 사람은 data-force.js JAPAN_OFFICERS 에서 가명으로 짓는다 */
-    jp: '일본'
+    jp: '일본',
+    /* 2026-09-09 확장(셋째) — 교주(交州, 영남·베트남 북부). 같은 원칙 */
+    jiao: '교주'
   };
 
   var CITIES = [
@@ -159,7 +161,35 @@
       desc: '기름진 안쪽 바다 연안. 곡식이 남아돈다.' },
     { id: 'yamato',    name: '야마토',   hanja: '大和',   prov: 'jp', x: 158, y: 75, land: 'plain',
       agri: 340, comm: 300, wall: 5200, pop: 180000, garrison: 20000,
-      desc: '섬 안쪽의 너른 분지. 이곳을 쥔 자가 열도를 대표한다 여긴다.' }
+      desc: '섬 안쪽의 너른 분지. 이곳을 쥔 자가 열도를 대표한다 여긴다.' },
+
+    /* ── 교주 (2026-09-09 확장, 주인 없음 — 한국·일본과 같은 결) ──
+       x·y 는 장사(x:53,y:77) 남쪽(y:82~112)에 둔다 — 2D SVG viewBox 를
+       0 0 165 100 → 0 0 165 120 으로 다시 넓혀야 잘린 채 안 뜬다(ui-rtk.js
+       한 곳). 실제 한대(漢代) 교주 칠군(남해·창오·울림·합포·교지·구진·
+       일남) 이름을 그대로 쓴다(실제 지명, 정책 대상 아님). 합포→교지는
+       둘 다 land:'river' 라 물길(합포만 연안 항로)로도 이어진다. */
+    { id: 'nanhai',    name: '남해',     hanja: '南海',   prov: 'jiao', x: 70, y: 88, land: 'plain',
+      agri: 260, comm: 280, wall: 4400, pop: 140000, garrison: 15000,
+      desc: '영남으로 드는 첫 관문. 강남의 물건이 여기서 갈린다.' },
+    { id: 'cangwu',    name: '창오',     hanja: '蒼梧',   prov: 'jiao', x: 60, y: 92, land: 'hill',
+      agri: 200, comm: 180, wall: 3600, pop: 90000, garrison: 11000,
+      desc: '산과 강이 겹치는 안쪽 땅. 오가는 길이 하나뿐이다.' },
+    { id: 'yulin',     name: '울림',     hanja: '鬱林',   prov: 'jiao', x: 52, y: 95, land: 'hill',
+      agri: 190, comm: 160, wall: 3400, pop: 80000, garrison: 10000,
+      desc: '숲이 짙은 산골. 코끼리가 짐을 나른다.' },
+    { id: 'hepu',      name: '합포',     hanja: '合浦',   prov: 'jiao', x: 58, y: 99, land: 'river',
+      agri: 170, comm: 220, wall: 3200, pop: 85000, garrison: 10000,
+      desc: '진주가 나는 바닷가. 배가 곧 재물이다.' },
+    { id: 'jiaozhi',   name: '교지',     hanja: '交趾',   prov: 'jiao', x: 48, y: 102, land: 'river',
+      agri: 280, comm: 260, wall: 4600, pop: 150000, garrison: 16000,
+      desc: '붉은 강이 바다로 드는 삼각주. 교주에서 가장 큰 저자다.' },
+    { id: 'jiuzhen',   name: '구진',     hanja: '九眞',   prov: 'jiao', x: 44, y: 107, land: 'plain',
+      agri: 200, comm: 140, wall: 3000, pop: 70000, garrison: 9000,
+      desc: '벼가 두 번 여무는 들. 남쪽으로 갈수록 낯설어진다.' },
+    { id: 'rinan',     name: '일남',     hanja: '日南',   prov: 'jiao', x: 42, y: 112, land: 'hill',
+      agri: 160, comm: 120, wall: 2800, pop: 55000, garrison: 7000,
+      desc: '한(漢)의 땅이라 부르는 가장 남쪽 끝.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -210,7 +240,16 @@
     ['chikushi', 'hyuga'], ['chikushi', 'izumo'],
     ['hyuga', 'kibi'],
     ['izumo', 'kibi'],
-    ['kibi', 'yamato']
+    ['kibi', 'yamato'],
+
+    /* ── 교주 ─────────────────────────────────────────── */
+    ['changsha', 'nanhai'],
+    ['nanhai', 'cangwu'], ['nanhai', 'hepu'],
+    ['cangwu', 'yulin'],
+    ['yulin', 'jiaozhi'],
+    ['hepu', 'jiaozhi'],
+    ['jiaozhi', 'jiuzhen'],
+    ['jiuzhen', 'rinan']
   ];
 
   var byId = {};

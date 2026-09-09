@@ -131,7 +131,8 @@
         c.troops = d.garrison;
         c.food = d.garrison * 2;
         var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) ||
-          (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) || [];
+          (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) ||
+          (FD.JIAOZHOU_GARRISON && FD.JIAOZHOU_GARRISON[d.id]) || [];
         var gov = null;
         for (var j = 0; j < ids.length; j++) {
           var r = off.placeAt(ids[j], d.id, null);
@@ -301,7 +302,8 @@
       c.troops = d.garrison;
       c.food = d.garrison * 2;
       var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) ||
-        (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) || [];
+        (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) ||
+        (FD.JIAOZHOU_GARRISON && FD.JIAOZHOU_GARRISON[d.id]) || [];
       var gov = null;
       for (var j = 0; j < ids.length; j++) {
         var r = off.placeAt(ids[j], d.id, null);

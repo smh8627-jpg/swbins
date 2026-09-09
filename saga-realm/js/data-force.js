@@ -214,6 +214,56 @@
     yamato: ['jp_wakahiko', 'jp_tamakiri']
   };
 
+  /**
+   * 교주(交州, 2026-09-09 확장 셋째, `data-city.js` 참고) 수비 무장 9인.
+   * KOREA_OFFICERS·JAPAN_OFFICERS 와 같은 결 — `FORCES`/`roster()` 에 안 실려
+   * 어느 세력에도 자동 배분되지 않고, `force:null` 로 해당 성에 바로 선다.
+   *
+   * 루트 `CLAUDE.md` 이름 정책에 따라 **실제 역사 인물이 아닌 지어낸 이름**을
+   * 쓴다(이 시대 교주를 실제로 다스린 사군(士郡) 일가의 이름을 그대로/비슷하게
+   * 쓰지 않는다) — 성 이름(교지·일남 등)은 실제 지명이라 정책 대상이 아니다.
+   */
+  var JIAOZHOU_OFFICERS = [
+    { id: 'jiao_luyan',   name: '노언',   hanja: '盧彦', era: '교주(가상)', faction: '남해',
+      rarity: 4, trait: 'command', emoji: '⚓', quote: '강남에서 온 배는 다 이 나루를 거칩니다.',
+      stats: { might: 78, wisdom: 58, command: 86 } },
+    { id: 'jiao_hoangmi', name: '황미',   hanja: '黃眉', era: '교주(가상)', faction: '남해',
+      rarity: 3, trait: 'wisdom', emoji: '📜', quote: '영남의 물목은 제가 압니다.',
+      stats: { might: 38, wisdom: 82, command: 62 } },
+    { id: 'jiao_madang',  name: '마당',   hanja: '馬棠', era: '교주(가상)', faction: '창오',
+      rarity: 3, trait: 'might', emoji: '🐘', quote: '코끼리가 지나가면 길이 저절로 열립니다.',
+      stats: { might: 82, wisdom: 44, command: 72 } },
+    { id: 'jiao_dinggo',  name: '정고',   hanja: '丁高', era: '교주(가상)', faction: '울림',
+      rarity: 3, trait: 'might', emoji: '🏹', quote: '숲에서는 활을 쏘는 자가 임자입니다.',
+      stats: { might: 80, wisdom: 40, command: 68 } },
+    { id: 'jiao_botran',  name: '보진',   hanja: '寶陳', era: '교주(가상)', faction: '합포',
+      rarity: 3, trait: 'wisdom', emoji: '🦪', quote: '진주보다 귀한 건 그걸 지킬 배입니다.',
+      stats: { might: 42, wisdom: 80, command: 66 } },
+    { id: 'jiao_riquan',  name: '이권',   hanja: '李權', era: '교주(가상)', faction: '교지',
+      rarity: 4, trait: 'command', emoji: '🐉', quote: '삼각주를 쥔 자가 교주를 쥡니다.',
+      stats: { might: 76, wisdom: 62, command: 88 } },
+    { id: 'jiao_jinja',   name: '진자',   hanja: '陳梓', era: '교주(가상)', faction: '교지',
+      rarity: 3, trait: 'wisdom', emoji: '🌾', quote: '벼가 두 번 여무는 땅은 굶지 않습니다.',
+      stats: { might: 36, wisdom: 84, command: 64 } },
+    { id: 'jiao_muya',    name: '무아',   hanja: '武牙', era: '교주(가상)', faction: '구진',
+      rarity: 3, trait: 'might', emoji: '🗡️', quote: '남쪽 끝까지 밀려도 물러설 곳은 없습니다.',
+      stats: { might: 79, wisdom: 42, command: 70 } },
+    { id: 'jiao_banrok',  name: '반록',   hanja: '潘祿', era: '교주(가상)', faction: '일남',
+      rarity: 2, trait: 'command', emoji: '🚩', quote: '한(漢)의 이름이 여기서 끝나지 않게 하겠습니다.',
+      stats: { might: 62, wisdom: 50, command: 74 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var JIAOZHOU_GARRISON = {
+    nanhai: ['jiao_luyan', 'jiao_hoangmi'],
+    cangwu: ['jiao_madang'],
+    yulin: ['jiao_dinggo'],
+    hepu: ['jiao_botran'],
+    jiaozhi: ['jiao_riquan', 'jiao_jinja'],
+    jiuzhen: ['jiao_muya'],
+    rinan: ['jiao_banrok']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -434,6 +484,7 @@
     OFFICERS: OFFICERS, FORCES: FORCES, NAVY: NAVY, navyOf: navyOf,
     KOREA_OFFICERS: KOREA_OFFICERS, KOREA_GARRISON: KOREA_GARRISON,
     JAPAN_OFFICERS: JAPAN_OFFICERS, JAPAN_GARRISON: JAPAN_GARRISON,
+    JIAOZHOU_OFFICERS: JIAOZHOU_OFFICERS, JIAOZHOU_GARRISON: JIAOZHOU_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

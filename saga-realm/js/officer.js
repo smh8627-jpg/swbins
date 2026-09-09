@@ -42,6 +42,11 @@
     for (var jj = 0; jj < jp.length; jj++) {
       if (!data.find(jp[jj].id)) { data.heroes.push(jp[jj]); }
     }
+    /* 교주 지역 수비 무장(2026-09-09, 셋째 확장) — 같은 방식으로 얹는다 */
+    var jz = FD.JIAOZHOU_OFFICERS || [];
+    for (var zz = 0; zz < jz.length; zz++) {
+      if (!data.find(jz[zz].id)) { data.heroes.push(jz[zz]); }
+    }
     merged = true;
     return data.heroes.length;
   }
