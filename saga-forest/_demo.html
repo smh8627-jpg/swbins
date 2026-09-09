@@ -387,6 +387,23 @@ setTimeout(function () {
     raw.player.y = 3 * T + T * 0.5;
   }
 
+  /* 동굴 안 — 보물상자 셋(하나는 이미 연 상태) 곁에 선다 */
+  if (tab === 'cave') {
+    V.state().caveOpened = { chest0: true };
+    V.enterCave();
+    raw = V.raw();
+    raw.player.x = 4 * V.TILE + V.TILE * 0.5;
+    raw.player.y = 3.6 * V.TILE + V.TILE * 0.5;
+  }
+
+  /* 숲 NPC 곁 — 부탁이 아직 안 끝난 채로 선다(진행도가 보여야 한다) */
+  if (tab === 'npc') {
+    V.state().quests = {};
+    V.state().bag = {};
+    var npc0 = V.raw().npcs.filter(function (n) { return n.kind === 'merchant'; })[0];
+    if (npc0) { raw.player.x = npc0.x; raw.player.y = npc0.y + 14; }
+  }
+
   /* 편지 — 종류별로 한 통씩 */
   if (tab === 'mail' || tab === 'folks') {
     var M = DG.mail, ids = V.state().residents;

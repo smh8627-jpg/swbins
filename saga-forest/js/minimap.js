@@ -173,8 +173,9 @@
     if (!on() || folded || !canvas || !v) { return 0; }
     var run = v.raw();
     if (!run || !run.player) { return 0; }
-    /* 실내(indoors)에서는 마을 좌표가 없다 — 접어 둔 것처럼 그냥 안 그린다 */
+    /* 실내(indoors)·동굴 안에서는 마을 좌표가 없다 — 접어 둔 것처럼 그냥 안 그린다 */
     if (v.indoors && v.indoors()) { return 0; }
+    if (v.caveInside && v.caveInside()) { return 0; }
     var dpr = resize();
     if (!ctx) { return 0; }
 

@@ -171,7 +171,7 @@
    *  여기 줄만 보태면 그대로 선다 */
   var SCATTER_KIND = {
     tree: 'tree:common', pine: 'tree:pine', rock: 'rock', flower: 'flower', weed: 'grass',
-    deadTree: 'tree:dead', mossyRock: 'rock:moss', mushroom: 'mushroom',
+    deadTree: 'tree:dead', mossyRock: 'rock:moss', mushroom: 'mushroom', herb: 'mushroom',
     bush: 'bush', stump: 'stump', log: 'log', plant: 'plant',
     tent: 'tent', campfire: 'campfire', bench: 'bench', well: 'well', lantern: 'lantern',
     mountain: 'mountain',
@@ -182,7 +182,7 @@
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
     tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4,
-    deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, bush: 0.8, stump: 0.6, log: 0.5, plant: 0.6,
+    deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, herb: 0.5, bush: 0.8, stump: 0.6, log: 0.5, plant: 0.6,
     tent: 1.8, campfire: 0.5, bench: 0.5, well: 1.0, lantern: 1.6, mountain: 8.0,
     deer: 1.1, fox: 0.55, wolf: 0.95
   };

@@ -170,7 +170,7 @@
   var bagCat = 'fruit';
 
   function renderBag() {
-    var cats = [['fruit', '열매'], ['nut', '씨앗'], ['ore', '광물'], ['flower', '꽃'],
+    var cats = [['fruit', '열매'], ['nut', '씨앗'], ['ore', '광물'], ['flower', '꽃'], ['herb', '약초'],
                 ['fish', '물고기'], ['bug', '곤충'], ['fossil', '화석'], ['shell', '조개']];
     var host = $('bagcats');
     host.innerHTML = '';

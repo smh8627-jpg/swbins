@@ -34,6 +34,10 @@
     pine:   { name: '소나무', emoji: '🌲', gather: 'nut',    reset: 1, hint: '흔든다' },
     rock:   { name: '바위',   emoji: '🪨', gather: 'ore',    reset: 1, hint: '캔다' },
     flower: { name: '꽃',     emoji: '🌸', gather: 'flower', reset: 1, hint: '꺾는다' },
+    /* 버섯숲 바이옴에서만 나는 진짜 채집 자원(PLAN 18절 "약초", PLAN 40절
+       PHASE 4 "Gathering") — village.js buildProps() 의 성긴 격자에서만 심고,
+       장식용 mushroom(gather:null)과는 다른 kind 다 */
+    herb:   { name: '약초밭', emoji: '🍃', gather: 'herb',   reset: 1, hint: '뜯는다' },
     spot:   { name: '낚시터', emoji: '🎣', gather: 'fish',   reset: 0, hint: '낚는다' },
     sapling:{ name: '묘목',   emoji: '🌱', gather: null,     reset: 0, hint: '자라는 중' },
     board:  { name: '게시판', emoji: '📋', gather: null,     reset: 0, hint: '읽는다' },
@@ -71,7 +75,7 @@
     /* 숨겨진 동굴(PLAN 40절 PHASE 3) — 입구 표지만. 안까지 들어가는 실내·
        보물(PLAN 40절 PHASE 4 "Treasure")은 다음 몫이다 */
     mountain:  { name: '바위산', emoji: '🗻', gather: null, reset: 0, hint: '올려다본다' },
-    cave:      { name: '동굴 입구', emoji: '🕳️', gather: null, reset: 0, hint: '들여다본다' }
+    cave:      { name: '동굴 입구', emoji: '🕳️', gather: null, reset: 0, hint: '들어간다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────
@@ -517,6 +521,13 @@
       { key: 'jaran',    name: '자란',   emoji: '💜', price: 380, w: 0, hybrid: true },
       { key: 'hongmae',  name: '홍매',   emoji: '❤️', price: 460, w: 0, hybrid: true }
     ],
+    /* 숲 고리 버섯숲 바이옴 전용(PLAN 18절 "약초") — 산삼은 드물게만(w 낮음) */
+    herb: [
+      { key: 'mugwort',   name: '쑥',     emoji: '🌿', price: 45,  w: 55, season: ['spring'] },
+      { key: 'bellroot',  name: '도라지', emoji: '🌱', price: 75,  w: 35 },
+      { key: 'reishi',    name: '영지버섯', emoji: '🍄', price: 140, w: 20, season: ['autumn'] },
+      { key: 'ginseng',   name: '산삼',   emoji: '🫚', price: 520, w: 4 }
+    ],
     /**
      * 곤충 — 원작의 큰 축. 채집물과 달리 **시간대(phase)** 도 탄다.
      * 반딧불이는 여름 밤에만 날고, 겨울엔 거의 아무것도 없다(원작 그대로).
@@ -763,10 +774,34 @@
     herbalist: { name: '약초꾼', emoji: '🌿', line: '버섯 숲엔 좋은 약초가 지천이야' }
   };
 
+  /**
+   * 숲 NPC 다섯의 부탁 — 하나씩, 한 번만(PLAN 19절 "미니 퀘스트").
+   * **복잡한 시스템은 안 만든다** — PLAN 19절이 예로 든 넷(꽃 5개·잃어버린
+   * 상자·짐승 발견·숲 깊은 곳 NPC)을 그대로 다섯 NPC에 하나씩 얹었다.
+   * type 은 village.js 의 questProgress() 가 셋만 안다(bagcat·chest·meetnpc).
+   */
+  var QUESTS = {
+    herbalist: { title: '약초 다섯 뿌리',
+      description: '버섯 숲 약초를 다섯 뿌리만 캐다 주게',
+      type: 'bagcat', cat: 'herb', count: 5, reward: 400 },
+    angler: { title: '씨알 좋은 물고기',
+      description: '물고기 세 마리만 낚아다 주게',
+      type: 'bagcat', cat: 'fish', count: 3, reward: 350 },
+    merchant: { title: '꽃 다섯 송이',
+      description: '꽃 다섯 송이만 모아다 주게 — 팔 데가 있어',
+      type: 'bagcat', cat: 'flower', count: 5, reward: 300 },
+    explorer: { title: '숲의 나머지 사람들',
+      description: '이 숲 다른 사람들도 다 만나고 왔나?',
+      type: 'meetnpc', count: 4, reward: 500 },
+    keeper: { title: '동굴의 보물',
+      description: '북쪽 동굴에 보물이 숨어 있다던데, 찾았나?',
+      type: 'chest', count: 1, reward: 300 }
+  };
+
   global.DG = global.DG || {};
   global.DG.villageData = {
     TILES: TILES, PROPS: PROPS, ITEMS: ITEMS, PHASES: PHASES, REQUEST_N: REQUEST_N,
-    ANIMALS: ANIMALS, NPCS: NPCS,
+    ANIMALS: ANIMALS, NPCS: NPCS, QUESTS: QUESTS,
     SEASONS: SEASONS, TOOLS: TOOLS,
     FURNITURE: FURNITURE, FURN_SETS: FURN_SETS, furn: furn,
     WALLS: WALLS, FLOORS: FLOORS, wall: wall, floor: floor,

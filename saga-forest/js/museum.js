@@ -29,7 +29,7 @@
   /** 사고 곁에 서 있나 — 기증은 여기서만 받는다 */
   function near() {
     var raw = V().raw(), p = raw.player;
-    if (V().indoors()) { return false; }
+    if (V().indoors() || V().caveInside()) { return false; }
     for (var i = 0; i < raw.props.length; i++) {
       if (raw.props[i].kind !== 'museum') { continue; }
       return Math.hypot(raw.props[i].x - p.x, raw.props[i].y - p.y) < V().REACH * 1.8;

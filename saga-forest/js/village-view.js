@@ -192,8 +192,8 @@
   function pointAt(e) {
     var r = cv.getBoundingClientRect();
     var sx = e.clientX - r.left, sy = e.clientY - r.top;
-    /* 집 안은 투영이 다르다 — 마을 식으로 되짚으면 엉뚱한 자리를 짚는다 */
-    var p = V.indoors() ? unprojIn(sx, sy) : unproject(sx, sy);
+    /* 집 안·동굴 안은 투영이 다르다 — 마을 식으로 되짚으면 엉뚱한 자리를 짚는다 */
+    var p = (V.indoors() || V.caveInside()) ? unprojIn(sx, sy) : unproject(sx, sy);
     return p;
   }
 
@@ -249,6 +249,7 @@
 
     /* 집 안은 아주 다른 장면이다 — 하늘도 계절도 없고, 무엇보다 **휘지 않는다** */
     if (V.indoors()) { drawHomeScene(p, ph, now); return; }
+    if (V.caveInside()) { drawCaveScene(p, now); return; }
 
     /* 카메라 — 원작처럼 사람을 늘 한가운데 둔다.
        마을 밖은 tileAt 이 물을 돌려주므로 저절로 섬이 된다 */
@@ -2049,6 +2050,86 @@
         ctx.fill();
       }
     }
+  }
+
+  /**
+   * 동굴 안 — home 의 실내 투영(setupIn/projIn/unprojIn)을 그대로 빌려 쓴다
+   * (둘 다 "휘지 않는 평평한 방"이라 기계는 같다). 벽지·장판 갈아입히기가
+   * 없는 만큼 훨씬 단순하다 — 바위 벽·바닥 한 벌뿐이고, 상자 셋과 문만 있다.
+   */
+  function drawCaveScene(p, now) {
+    var rm = V.caveRoom();
+    setupIn(rm);
+    var u = inSc;
+    var fw = rm.w * u, fh = rm.h * IN_TILT * u, wh = IN_WALL * u;
+    var top = inOy - wh, T = V.TILE;
+
+    ctx.fillStyle = '#0c0a08';
+    ctx.fillRect(0, 0, W, H);
+
+    /* 바위 벽 */
+    ctx.fillStyle = '#3d372f';
+    ctx.fillRect(inOx, top, fw, wh);
+    var g = ctx.createLinearGradient(0, top, 0, top + wh);
+    g.addColorStop(0, 'rgba(0,0,0,0.32)');
+    g.addColorStop(0.6, 'rgba(0,0,0,0.06)');
+    g.addColorStop(1, 'rgba(0,0,0,0.42)');
+    ctx.fillStyle = g;
+    ctx.fillRect(inOx, top, fw, wh);
+
+    /* 문(입구) — 뒷벽 가운데 어두운 틈 */
+    var dr = V.caveDoor();
+    var dx = inOx + dr.x * u;
+    var dw = 66 * u, dh = wh * 0.72;
+    var dtop = inOy - dh - 5 * u;
+    ctx.fillStyle = '#050403';
+    ctx.fillRect(dx - dw * 0.5, dtop, dw, dh);
+
+    /* 바닥 — 거친 돌바닥, 칸 금만 살짝 */
+    ctx.fillStyle = '#4c463d';
+    ctx.fillRect(inOx, inOy, fw, fh);
+    var ty;
+    for (ty = 0; ty < rm.th; ty++) {
+      if (ty % 2) { continue; }
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fillRect(inOx, inOy + ty * T * IN_TILT * u, fw, T * IN_TILT * u);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillRect(inOx, inOy, fw, 5 * u);
+
+    /* 상자와 사람 — 방 좌표의 y 순서로 */
+    var chests = V.caveChests();
+    var order = [], i;
+    for (i = 0; i < chests.length; i++) { order.push({ y: chests[i].y, t: 'c', o: chests[i] }); }
+    order.push({ y: p.y, t: 'me', o: p });
+    order.sort(function (a, b) { return a.y - b.y; });
+
+    var f = V.focus();
+    for (i = 0; i < order.length; i++) {
+      if (order[i].t === 'c') { drawChest(order[i].o, u); }
+      else { drawMeIn(order[i].o, now); }
+    }
+
+    if (f && f.type === 'cavedoor') {
+      bubble('밖으로 나간다 [' + core.actHint() + ']', dx, dtop - 14 * u, '#2a2622', '#e8dfce');
+    }
+
+    /* 어둑함 — 방 전체가 늘 밤이다(등잔이 없다) */
+    ctx.fillStyle = 'rgba(8,6,4,0.38)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  /** 보물상자 하나 — 연 것은 빛바랜 표시(📭)로, 안 연 것은 그대로(📦) */
+  function drawChest(c, u) {
+    var q = projIn(c.x, c.y);
+    var opened = V.chestOpened(c.id);
+    shadow(q.x, q.y + 4 * u, 16 * u, 6 * u);
+    ctx.font = Math.round(34 * u) + 'px "Segoe UI Emoji", system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = opened ? 0.55 : 1;
+    ctx.fillText(opened ? '📭' : '📦', q.x, q.y + 8 * u);
+    ctx.globalAlpha = 1;
   }
 
   /** 창호 창 하나 */

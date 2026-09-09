@@ -455,13 +455,14 @@
     lastResult = r; resultAt = Date.now();
     if (r.kind === 'open') { openPlace(r.place || 'shop'); }
     else if (r.kind === 'home' || r.kind === 'pick' || r.kind === 'keep' ||
-             r.kind === 'weed' || r.kind === 'wish') { toast(r.text); }
+             r.kind === 'weed' || r.kind === 'wish' || r.kind === 'cave') { toast(r.text); }
     else if (r.kind === 'leaving') { toast('💭 ' + (r.name ? r.name + ' — ' : '') + r.text); }
     else if (r.kind === 'no') { toast(r.text); }
-    else if (r.kind === 'request' || r.kind === 'reward' || r.kind === 'talk') {
+    else if (r.kind === 'request' || r.kind === 'reward' || r.kind === 'talk' ||
+             r.kind === 'quest') {
       toast((r.name ? r.name + ' — ' : '') + r.text);
     } else if (r.kind === 'gather' || r.kind === 'furn' || r.kind === 'gold' ||
-               r.kind === 'bees') {
+               r.kind === 'bees' || r.kind === 'treasure') {
       toast(r.text);
     } else if (r.kind === 'empty') {
       toast(r.text);
@@ -518,6 +519,30 @@
       els.focusbar.classList.add('show');
       return;
     }
+    if (f.type === 'cavedoor') {
+      key = 'cavedoor';
+      html = '<div class="focus-card">' +
+        '<span class="fc-ico">🕳️</span>' +
+        '<span class="fc-meta"><b>동굴 입구</b><small class="muted">밖으로 나갑니다 — ' + core.actHint() + '</small></span>' +
+        '<button class="btn primary" data-act="v-do">나간다</button></div>';
+      if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
+      els.focusbar.classList.add('show');
+      return;
+    }
+    if (f.type === 'chest') {
+      var opened = V.chestOpened(f.obj.id);
+      key = 'ch|' + f.obj.id + '|' + opened;
+      html = '<div class="focus-card">' +
+        '<span class="fc-ico">' + (opened ? '📭' : '📦') + '</span>' +
+        '<span class="fc-meta"><b>보물상자</b>' +
+          '<small class="muted">' + (opened ? '이미 열어 보았습니다' : '열어 봅니다 — ' + core.actHint()) + '</small></span>' +
+        (opened ? '<button class="btn ghost" disabled>비었음</button>'
+                : '<button class="btn primary" data-act="v-do">연다</button>') +
+        '</div>';
+      if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
+      els.focusbar.classList.add('show');
+      return;
+    }
     if (f.type === 'furn') {
       var fd = VD.furn(f.obj.key);
       key = 'fu|' + f.obj.key + '|' + Math.round(f.obj.x) + '|' + Math.round(f.obj.y);
@@ -532,11 +557,16 @@
     }
     if (f.type === 'npc') {
       var ndef = VD.NPCS[f.obj.kind];
-      key = 'n|' + f.obj.id;
+      var q = VD.QUESTS[f.obj.kind];
+      var prog = q ? V.questProgress(f.obj.kind) : null;
+      key = 'n|' + f.obj.id + '|' + (prog ? prog.done + '|' + prog.have : '');
       html = '<div class="focus-card">' +
         '<span class="fc-ico">' + ndef.emoji + '</span>' +
         '<span class="fc-meta"><b>' + esc(ndef.name) + '</b>' +
-          '<small class="muted">말을 건다 — ' + core.actHint() + '</small></span>' +
+          '<small class="muted">' +
+            (prog && !prog.done ? '「' + esc(q.title) + '」 ' + prog.have + '/' + prog.need + ' — ' + core.actHint()
+                                 : '말을 건다 — ' + core.actHint()) +
+          '</small></span>' +
         '<button class="btn primary" data-act="v-do">말 건다</button></div>';
       if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
       els.focusbar.classList.add('show');
@@ -721,7 +751,7 @@
       return '<div class="hint">🪧 <b>개토패(開土牌)</b>가 없습니다 — ' +
         '🎒 가방 시트의 전방에서 살 수 있습니다.</div>';
     }
-    if (V.indoors()) {
+    if (V.indoors() || V.caveInside()) {
       return '<div class="hint">집 안에서는 땅을 고칠 수 없습니다 — 밖으로 나가세요.</div>';
     }
 
@@ -839,7 +869,7 @@
   /** 지금 곁에 있는 주민 (선물을 건넬 수 있는 사람) */
   function nearFolk() {
     var V = global.DG.village;
-    if (V.indoors()) { return null; }
+    if (V.indoors() || V.caveInside()) { return null; }
     var raw = V.raw(), best = null, bd = V.REACH;
     for (var i = 0; i < raw.residents.length; i++) {
       var d = Math.hypot(raw.residents[i].x - raw.player.x,
@@ -896,7 +926,7 @@
    * 원작의 우편함. 읽고, 선물을 받고, **답장을 쓴다**(정이 는다).
    * 안 읽은 것이 위에 오도록 굳이 다시 정렬하지 않는다 — 온 순서가 곧 이야기다.
    */
-  var CAT_NAME = { fruit: '열매', nut: '씨앗', ore: '광물', flower: '꽃',
+  var CAT_NAME = { fruit: '열매', nut: '씨앗', ore: '광물', flower: '꽃', herb: '약초',
                    fish: '물고기', bug: '곤충', shell: '조개', fossil: '화석' };
 
   var MAIL_ICON = { thanks: '🎁', hello: '🏡', bye: '🍂', notice: '💭',

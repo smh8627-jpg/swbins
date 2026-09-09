@@ -2528,13 +2528,19 @@ window.DG_NO_TUNE = true;
         ('(' + n.kind + ') 잡힘');
     });
 
-    t('상호작용 — 숲 NPC에게 말을 걸면 인사말이 그대로 돌아온다', function () {
+    t('상호작용 — 부탁을 마친 숲 NPC에게 말을 걸면 인사말이 그대로 돌아온다', function () {
+      /* Quest(PLAN 40절 PHASE 4 아래 칸)를 얹은 뒤로는 **부탁이 안 끝난 채**
+         말을 걸면 인사말 대신 부탁이 온다(그 항목은 아래 Quest 칸에서 확인한다)
+         — 그래서 여기서는 먼저 부탁을 끝낸 것으로 쳐 두고 인사말만 본다 */
       V.buildNpcs();
       var n = V.raw().npcs[0], def = VD.NPCS[n.kind];
+      var s = V.state(), savedQuests = s.quests;
+      s.quests = {}; s.quests[n.kind] = true;
       var savedX = V.raw().player.x, savedY = V.raw().player.y;
       V.raw().player.x = n.x; V.raw().player.y = n.y;
       var r = V.interact();
       V.raw().player.x = savedX; V.raw().player.y = savedY;
+      s.quests = savedQuests;
       return r && r.kind === 'talk' && r.name === def.name && r.text === def.line &&
         ('「' + r.text + '」');
     });
@@ -2549,6 +2555,211 @@ window.DG_NO_TUNE = true;
       var f = V.focus();
       raw.player.x = savedX; raw.player.y = savedY;
       return (!f || f.obj.id !== 'hamletFire') && '모닥불은 여전히 장식일 뿐';
+    });
+
+    /* ── PLAN 40절 PHASE 4 Gathering 칸 ────────────────────────
+     * 숲 고리는 여태 전부 deco:true(장식)였다 — 여기서부터 진짜 채집 자원을
+     * 심는다. animal.js 와 같은 성긴 격자라 마을 사물보다 수가 훨씬 적어야
+     * 한다(안 그러면 2026-08-31에 잡혔던 하루벌이 폭증이 되풀이된다).
+     */
+
+    t('Gathering — 숲 고리에 진짜 채집 자원(gn 접두)이 생기고 focus() 로 잡힌다', function () {
+      V.buildProps(); V.syncPlanted();
+      var raw = V.raw(), gn = null, i;
+      for (i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].id.indexOf('gn') === 0) { gn = raw.props[i]; break; }
+      }
+      if (!gn) { return false; }
+      var savedX = raw.player.x, savedY = raw.player.y;
+      raw.player.x = gn.x; raw.player.y = gn.y;
+      var f = V.focus();
+      var def = VD.PROPS[gn.kind];
+      raw.player.x = savedX; raw.player.y = savedY;
+      return !!f && f.obj.id === gn.id && !!def.gather &&
+        ('(' + gn.kind + ') gather=' + def.gather);
+    });
+
+    t('Gathering — gn 채집 자원은 장식(deco)이 아니라 실제로 채집된다', function () {
+      V.buildProps(); V.syncPlanted();
+      var raw = V.raw(), gn = null, i;
+      for (i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].id.indexOf('gn') === 0) { gn = raw.props[i]; break; }
+      }
+      if (!gn) { return false; }
+      var savedX = raw.player.x, savedY = raw.player.y;
+      raw.player.x = gn.x; raw.player.y = gn.y;
+      /* interact() 의 채집은 Math.random() 을 먹는다 — 씨앗 고정 공용 난수를
+         건드리면 뒤에 오는 다른 항목이 흔들린다(위 "프레임마다 도는 것은 공용
+         난수를 먹지 않는다"와 같은 이유). shakeWith() 와 같은 요령으로 잠깐만
+         고정값으로 갈아 끼운다 */
+      var real = Math.random;
+      Math.random = function () { return 0.9; };
+      var r = V.interact();
+      Math.random = real;
+      raw.player.x = savedX; raw.player.y = savedY;
+      return r && r.kind === 'gather' && !gn.deco && V.spent(gn) &&
+        (r.text + ' · 오늘 몫 다함');
+    });
+
+    t('Gathering — 버섯숲(mushroom) 바이옴의 gn 자원은 새 "약초" 갈래다', function () {
+      V.buildProps(); V.syncPlanted();
+      var raw = V.raw(), got = false, i;
+      for (i = 0; i < raw.props.length; i++) {
+        var p = raw.props[i];
+        if (p.id.indexOf('gn') === 0 && V.biomeAt(Math.floor(p.x / V.TILE), Math.floor(p.y / V.TILE)) === 'mushroom') {
+          if (p.kind === 'herb') { got = true; break; }
+        }
+      }
+      return got && '버섯숲 자원 kind=herb 확인';
+    });
+
+    t('Gathering — 숲 자원(gn) 수가 마을 사물보다 훨씬 적다 (경제 폭주 방지)', function () {
+      V.buildProps(); V.syncPlanted();
+      var raw = V.raw(), gnCount = 0, villageCount = 0, i;
+      for (i = 0; i < raw.props.length; i++) {
+        if (raw.props[i].id.indexOf('gn') === 0) { gnCount++; }
+        else if (raw.props[i].id.charAt(0) === 'p') { villageCount++; }
+      }
+      return gnCount > 0 && gnCount < 60 && gnCount < villageCount &&
+        ('숲 자원 ' + gnCount + '개 · 마을 사물 ' + villageCount + '개');
+    });
+
+    /* ── PLAN 40절 PHASE 4 Treasure 칸 ──────────────────────────
+     * 동굴 입구(caveMouth)에서 들어가면 딴 좌표계의 방 — 집(home.js)과 같은
+     * 요령(setupIn/projIn 을 그대로 빌린다). 상자 셋은 **한 번뿐인 발견**이라
+     * Gathering 의 gn 과 달리 reset 이 없다(날마다 다시 안 찬다).
+     */
+
+    t('Treasure — 동굴 입구에서 손을 쓰면 안으로 들어가고, 문에서 나오면 밖의 자리로 돌아온다', function () {
+      V.buildProps(); V.syncPlanted();
+      var raw = V.raw(), mouth = null, i;
+      for (i = 0; i < raw.props.length; i++) { if (raw.props[i].kind === 'cave') { mouth = raw.props[i]; break; } }
+      if (!mouth) { return false; }
+      var savedX = raw.player.x, savedY = raw.player.y;
+      raw.player.x = mouth.x; raw.player.y = mouth.y;
+      var inR = V.interact();                      // 입구 → enterCave()
+      var wasIn = V.caveInside();
+      var outR = V.interact();                     // 들어온 자리는 문 곁이라 그대로 나가진다
+      var ok = inR && inR.kind === 'cave' && wasIn && outR && outR.kind === 'cave' && !V.caveInside() &&
+        Math.round(raw.player.x) === Math.round(mouth.x) && Math.round(raw.player.y) === Math.round(mouth.y);
+      raw.player.x = savedX; raw.player.y = savedY;
+      return ok && '입구 → 안(문 앞) → 다시 문 앞 자리로';
+    });
+
+    t('Treasure — 상자를 열면 금이 늘고, 두 번째는 이미 열었다고 한다', function () {
+      var s = V.state();
+      if (!s.caveOpened) { s.caveOpened = {}; }
+      var savedOpened = s.caveOpened.chest0;
+      delete s.caveOpened.chest0;
+      var g0 = C.save.player.gold;
+      V.enterCave();
+      var raw = V.raw();
+      var chest = V.caveChests()[0];
+      raw.player.x = chest.x; raw.player.y = chest.y;
+      var r1 = V.interact();
+      var g1 = C.save.player.gold;
+      var r2 = V.interact();                        // 같은 자리 — 이미 열었다
+      V.leaveCave();
+      C.save.player.gold = g0;                       // 되돌린다(뒤 항목을 안 흔들리게)
+      if (savedOpened === undefined) { delete s.caveOpened.chest0; } else { s.caveOpened.chest0 = savedOpened; }
+      return r1 && r1.kind === 'treasure' && g1 === g0 + chest.reward &&
+        r2 && r2.kind === 'empty' &&
+        ('🪙 +' + chest.reward + ' · 두 번째는 ' + r2.kind);
+    });
+
+    t('Treasure — 집과 동굴은 동시에 못 들어간다 (상호 배제)', function () {
+      V.enterHome();
+      var blockedCave = V.enterCave();
+      V.leaveHome();
+      V.enterCave();
+      var blockedHome = V.enterHome();
+      V.leaveCave();
+      return blockedCave === null && blockedHome === null && !V.indoors() && !V.caveInside() &&
+        '집 안에서 동굴 진입 막힘 · 동굴 안에서 집 진입 막힘';
+    });
+
+    t('Treasure — 동굴 안에서는 땅 공사를 못한다', function () {
+      V.state().tools.deed = true;
+      V.enterCave();
+      var no = DG.terrain.can(1, 1, 'path');
+      V.leaveCave();
+      return !no.ok && no.why.indexOf('집 안') >= 0 && ('동굴 안 막힘: ' + no.why);
+    });
+
+    /* ── PLAN 40절 PHASE 4 Quest 칸 (PLAN 19절 "미니 퀘스트") ────────
+     * 숲 NPC 다섯에게 하나씩 얹은 부탁 — 데이터(VD.QUESTS)로만 정해지고
+     * 새 상태 기계를 만들지 않는다(s.quests·s.metNpcs 둘 뿐, PLAN 19절이
+     * 말한 "복잡한 시스템은 필요 없다"를 그대로 따른다).
+     */
+
+    t('Quest — 숲 NPC 다섯이 전부 부탁을 하나씩 갖는다', function () {
+      var npcKinds = Object.keys(VD.NPCS);
+      var missing = npcKinds.filter(function (k) { return !VD.QUESTS[k]; });
+      return npcKinds.length === 5 && missing.length === 0 && (npcKinds.length + '명 전부 부탁 있음');
+    });
+
+    t('Quest — bagcat 부탁(상인)은 채우기 전엔 설명·진행도만, 채우면 그 자리에서 완료되고 보상을 받는다', function () {
+      var s = V.state();
+      var savedQuests = s.quests;
+      s.quests = {};
+      var keys = VD.ITEMS.flower.map(function (it) { return it.key; }), i;
+      var bag0 = {};
+      for (i = 0; i < keys.length; i++) { bag0[keys[i]] = s.bag[keys[i]]; delete s.bag[keys[i]]; }
+      var merchant = V.raw().npcs.filter(function (n) { return n.kind === 'merchant'; })[0];
+      if (!merchant) { s.quests = savedQuests; return false; }
+      var before = V.talkNpc(merchant);               // 아직 못 채웠다 — 설명만
+      s.bag[keys[0]] = 5;                             // 다섯 송이를 채운다
+      var g0 = C.save.player.gold;
+      var after = V.talkNpc(merchant);                // 이번엔 완료
+      var g1 = C.save.player.gold;
+      var again = V.talkNpc(merchant);                // 다음엔 원래 인사말
+      for (i = 0; i < keys.length; i++) {
+        if (bag0[keys[i]] === undefined) { delete s.bag[keys[i]]; } else { s.bag[keys[i]] = bag0[keys[i]]; }
+      }
+      C.save.player.gold = g0;
+      s.quests = savedQuests;
+      return before.kind === 'quest' && before.text.indexOf('0/5') >= 0 &&
+        after.kind === 'quest' && g1 === g0 + VD.QUESTS.merchant.reward &&
+        again.kind === 'talk' &&
+        ('진행중(0/5) → 완료(+' + VD.QUESTS.merchant.reward + ') → 인사말');
+    });
+
+    t('Quest — meetnpc 부탁(탐험가)은 나머지 넷을 만나야 채워진다', function () {
+      var s = V.state();
+      var savedMet = s.metNpcs, savedQuests = s.quests;
+      s.metNpcs = {}; s.quests = {};
+      var npcs = V.raw().npcs;
+      var explorer = npcs.filter(function (n) { return n.kind === 'explorer'; })[0];
+      var others = npcs.filter(function (n) { return n.kind !== 'explorer'; });
+      if (!explorer || others.length < 4) { s.metNpcs = savedMet; s.quests = savedQuests; return false; }
+      var before = V.talkNpc(explorer);               // 자신은 안 세므로 0/4
+      for (var i = 0; i < others.length; i++) { V.talkNpc(others[i]); }
+      var g0 = C.save.player.gold;
+      var after = V.talkNpc(explorer);
+      var g1 = C.save.player.gold;
+      C.save.player.gold = g0;
+      s.metNpcs = savedMet; s.quests = savedQuests;
+      return before.kind === 'quest' && before.text.indexOf('0/4') >= 0 &&
+        after.kind === 'quest' && g1 === g0 + VD.QUESTS.explorer.reward &&
+        ('만나기 전 0/4 → 넷 다 만나니 완료(+' + VD.QUESTS.explorer.reward + ')');
+    });
+
+    t('Quest — chest 부탁(숲지기)은 동굴 보물을 열어야 채워진다', function () {
+      var s = V.state();
+      var savedOpened = s.caveOpened, savedQuests = s.quests;
+      s.caveOpened = {}; s.quests = {};
+      var keeper = V.raw().npcs.filter(function (n) { return n.kind === 'keeper'; })[0];
+      if (!keeper) { s.caveOpened = savedOpened; s.quests = savedQuests; return false; }
+      var before = V.talkNpc(keeper);
+      s.caveOpened.chest0 = true;                     // 상자 하나 연 걸로 친다
+      var g0 = C.save.player.gold;
+      var after = V.talkNpc(keeper);
+      var g1 = C.save.player.gold;
+      C.save.player.gold = g0;
+      s.caveOpened = savedOpened; s.quests = savedQuests;
+      return before.kind === 'quest' && before.text.indexOf('0/1') >= 0 &&
+        after.kind === 'quest' && g1 === g0 + VD.QUESTS.keeper.reward &&
+        ('보물 열기 전 0/1 → 여니 완료(+' + VD.QUESTS.keeper.reward + ')');
     });
 
     t('주민 — 두 사람이 번갈아 말한다', function () {

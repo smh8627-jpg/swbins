@@ -139,7 +139,7 @@
     if (!has()) {
       return { ok: false, cost: cost, why: '🪧 개토패가 없습니다 — 전방에서 삽니다' };
     }
-    if (V().indoors()) { return { ok: false, cost: cost, why: '집 안에서는 못 합니다' }; }
+    if (V().indoors() || V().caveInside()) { return { ok: false, cost: cost, why: '집 안에서는 못 합니다' }; }
     if (tx < 0 || ty < 0 || tx >= V().W || ty >= V().H) {
       return { ok: false, cost: cost, why: '마을 밖은 바다입니다' };
     }

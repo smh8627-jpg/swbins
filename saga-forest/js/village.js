@@ -257,6 +257,67 @@
     return tx >= c.tx - 2 && tx <= c.tx + 2 && ty >= c.ty - 2 && ty <= c.ty + 2;
   }
 
+  /* ── 동굴 안(PLAN 18절 "보물상자" · PLAN 40절 PHASE 4 "Treasure") ─────
+   * 집(home.js)과 같은 요령이다 — 딴 좌표계로 옮겨 가는 평평한 실내, 문은
+   * 뒷벽 가운데, 나갈 땐 문에서 손을 쓴다. **집과 안을 공유하지 않는다**
+   * (indoors 는 집 전용, caveIn 은 동굴 전용 — 둘 다 켜지는 일은 없게
+   * enterHome()/enterCave() 양쪽에서 서로를 막는다). 방 크기는 안 늘어난다
+   * (집의 HOME_TIERS 같은 증축이 없다) — 보물상자 셋을 넣을 만큼만.
+   */
+  var CAVE_ROOM = { tw: 8, th: 6 };
+  function caveRoom() { return { tw: CAVE_ROOM.tw, th: CAVE_ROOM.th, w: CAVE_ROOM.tw * TILE, h: CAVE_ROOM.th * TILE }; }
+  /** 문은 집과 같은 자리(뒷벽 가운데) */
+  function caveDoor() { return { x: Math.floor(CAVE_ROOM.tw / 2) * TILE + TILE * 0.5, y: TILE * 0.8 }; }
+  /** 상자 셋 — 고정 자리(PLAN 10절), 값은 안쪽일수록 커진다 */
+  var CAVE_CHESTS = [
+    { id: 'chest0', x: TILE * 2 + TILE * 0.5, y: TILE * 3 + TILE * 0.5, reward: 600 },
+    { id: 'chest1', x: TILE * 6 + TILE * 0.5, y: TILE * 2.2 + TILE * 0.5, reward: 1000 },
+    { id: 'chest2', x: TILE * 4 + TILE * 0.5, y: TILE * 4.6 + TILE * 0.5, reward: 1800 }
+  ];
+  function caveChests() { return CAVE_CHESTS; }
+  function chestOpened(id) { return !!(st().caveOpened || {})[id]; }
+  function caveInside() { return caveIn; }
+
+  function enterCave() {
+    if (indoors || caveIn) { return null; }
+    outPos = { x: player.x, y: player.y };
+    caveIn = true;
+    target = null;
+    var d = caveDoor();
+    player.x = d.x; player.y = d.y - TILE * 0.6;
+    core.emit('village:cave', { inside: true });
+    core.emit('changed');
+    return { kind: 'cave', text: '🕳️ 동굴 안으로 들어섰다' };
+  }
+
+  function leaveCave() {
+    if (!caveIn) { return null; }
+    caveIn = false;
+    target = null;
+    if (outPos) { player.x = outPos.x; player.y = outPos.y; }
+    outPos = null;
+    core.emit('village:cave', { inside: false });
+    core.emit('changed');
+    core.persist();
+    return { kind: 'cave', text: '🕳️ 동굴 밖으로 나왔다' };
+  }
+
+  /** 상자 하나를 연다 — 사물처럼 날마다 다시 차지 않는다(장식·채집물과 달리
+   *  **한 번뿐인 발견**이다), 프로필당 한 번만 */
+  function openChest(c) {
+    var s = st();
+    if (!s.caveOpened) { s.caveOpened = {}; }
+    if (s.caveOpened[c.id]) { return { kind: 'empty', text: '이미 열어 본 상자입니다' }; }
+    s.caveOpened[c.id] = true;
+    core.save.player.gold += c.reward;
+    core.gainFeat(1, '보물');
+    core.gainExp(10);
+    core.log('📦 보물상자에서 🪙 ' + core.fmt(c.reward) + ' 을 찾았다', 'good');
+    core.emit('changed');
+    core.persist();
+    return { kind: 'treasure', text: '📦 🪙 ' + core.fmt(c.reward) };
+  }
+
   function tileAt(tx, ty) {
     var s = st();
     /* 사람이 고친 칸이 먼저다 (`terrain.js` 의 공사). 안 고친 마을은 이 표가 비어 있어
@@ -287,6 +348,7 @@
    * 그대로 물려받으려면 이 편이 낫다 — 밖의 자리는 outPos 에 넣어 두었다가 되돌린다.
    */
   var indoors = false;
+  var caveIn = false;          // 동굴 안 — indoors 와 같은 자리(outPos)를 쓰되 서로 안 겹친다
   var outPos = null;
   var sneakOn = false;         // 🐾 단추. Shift 를 누르고 있어도 같다
   var autoSneak = false;       // 자동이 벌레에 다가갈 때만 켠다 (사용자 설정을 건드리지 않는다)
@@ -305,7 +367,7 @@
   }
 
   function enterHome() {
-    if (indoors) { return null; }
+    if (indoors || caveIn) { return null; }
     var d = global.DG.home.door();
     outPos = { x: player.x, y: player.y };
     indoors = true;
@@ -329,6 +391,10 @@
   }
 
   function walkable(x, y) {
+    if (caveIn) {
+      var cr = caveRoom();
+      return x > 8 && y > 30 && x < cr.w - 8 && y < cr.h - 6;
+    }
     if (indoors) {
       /* 방 안 — 벽에 붙지 않게 안쪽으로 조금 물린다. 위쪽은 뒷벽이 서 있다 */
       var r = global.DG.home.room();
@@ -442,15 +508,44 @@
       props.push({ id: 'hamletLanternB', kind: 'lantern', x: hx + TILE * 1.8, y: hy - TILE * 0.2, deco: true });
     }
 
-    /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸) — 입구 표지만. 안까지는
-       PHASE 4(Treasure)에서 만든다 */
+    /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸 + PHASE 4 "Treasure") — 바위산·
+       이끼바위 둘은 여전히 순수 장식(deco:true)이지만, **입구(caveMouth)는
+       이제 손이 닿는다**(PHASE 3 때는 표지만이라 deco:true였다 — focus()가
+       deco 사물은 거르므로, 안까지 여는 지금은 이 한 줄만 빼면 된다) */
     var cs = caveSpot();
     if (cs) {
       var cvx = cs.tx * TILE + TILE * 0.5, cvy = cs.ty * TILE + TILE * 0.5;
       props.push({ id: 'caveMount', kind: 'mountain', x: cvx, y: cvy - TILE * 0.4, deco: true });
       props.push({ id: 'caveRockL', kind: 'mossyRock', x: cvx - TILE * 0.7, y: cvy + TILE * 0.5, deco: true });
       props.push({ id: 'caveRockR', kind: 'mossyRock', x: cvx + TILE * 0.7, y: cvy + TILE * 0.5, deco: true });
-      props.push({ id: 'caveMouth', kind: 'cave', x: cvx, y: cvy + TILE * 0.8, deco: true });
+      props.push({ id: 'caveMouth', kind: 'cave', x: cvx, y: cvy + TILE * 0.8 });
+    }
+
+    /* 숲 고리 real 채집 자원(PLAN 18절 "채집" · PLAN 40절 PHASE 4 "Gathering") —
+       위 숲 고리 사물은 전부 deco:true(장식)라 채집이 안 된다(PHASE 3 몫은
+       "걸어 나갈 공간"만 여는 것이었다). 여기서부터가 그 다음 몫이다.
+       **animal.js 와 같은 성긴 격자**(BIOME_CELL 칸마다 많아야 하나)에만
+       심는다 — 조밀한 장식 격자(위 for 문)와 같은 밀도로 늘리면 2026-08-31에
+       잡혔던 하루벌이 폭증(수천 그루 × 채집)이 되풀이된다. id 접두 'gn'
+       (gather node)으로 장식('f')·마을('p') 어느 쪽과도 안 겹친다. */
+    var FOREST_GATHER_KIND = { green: 'tree', meadow: 'flower', dark: 'pine', mushroom: 'herb', rocky: 'rock' };
+    var gcxMin = Math.floor(-m / BIOME_CELL), gcxMax = Math.ceil((W + m) / BIOME_CELL);
+    var gcyMin = Math.floor(-m / BIOME_CELL), gcyMax = Math.ceil((H + m) / BIOME_CELL);
+    for (var gcy = gcyMin; gcy <= gcyMax; gcy++) {
+      for (var gcx = gcxMin; gcx <= gcxMax; gcx++) {
+        var gtx = gcx * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+        var gty = gcy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
+        if (!(gtx >= -m && gty >= -m && gtx < W + m && gty < H + m)) { continue; }
+        if (gtx >= 0 && gty >= 0 && gtx < W && gty < H) { continue; }     // 마을 안은 기존 사물 몫
+        if (inHamlet(gtx, gty) || inCave(gtx, gty)) { continue; }
+        if (!GRASS_FAMILY[tileAt(gtx, gty)]) { continue; }
+        var ggate = core.hash2(gcx * 271 + s.seed % 503, gcy * 337 + (s.seed >> 5) % 467);
+        if (ggate > 0.55) { continue; }                                  // animal.js 와 같은 문턱 — 45%만
+        var gkind = FOREST_GATHER_KIND[biomeAt(gtx, gty)];
+        if (!gkind) { continue; }
+        props.push({ id: 'gn' + gcx + '_' + gcy, kind: gkind,
+                     x: gtx * TILE + TILE * 0.5, y: gty * TILE + TILE * 0.5 });
+      }
     }
   }
 
@@ -662,12 +757,61 @@
     }
   }
 
-  /** 숲 NPC에게 말을 건다 — 지금은 인사말 한 줄뿐이다. 부탁·물건·발견정보
-   *  (PLAN 17절 나머지 역할)는 Interaction 다음 칸(Quest)에서 채운다 */
+  /**
+   * 부탁 하나가 끝났는지(PLAN 19절 "미니 퀘스트") — 데이터의 type 셋만
+   * 안다. 새 사물·자원을 위한 새 type 을 늘리지 않는다(PLAN 19절 "복잡한
+   * 시스템은 필요 없다").
+   *   bagcat  가방의 그 갈래 합계가 count 이상
+   *   meetnpc 나(자신 뺀) 숲 NPC를 count 명 이상 만나 봤나
+   *   chest   동굴 보물을 count 개 이상 열어 봤나
+   */
+  function questProgress(kind) {
+    var q = VD.QUESTS[kind];
+    if (!q) { return null; }
+    var s = st();
+    var have = 0;
+    if (q.type === 'bagcat') { have = bagCatCount(q.cat); }
+    else if (q.type === 'chest') { have = Object.keys(s.caveOpened || {}).length; }
+    else if (q.type === 'meetnpc') {
+      have = 0;
+      for (var k in (s.metNpcs || {})) {
+        if (Object.prototype.hasOwnProperty.call(s.metNpcs, k) && k !== kind && s.metNpcs[k]) { have++; }
+      }
+    }
+    return { have: have, need: q.count, done: !!(s.quests || {})[kind] };
+  }
+
+  /** 숲 NPC에게 말을 건다(PLAN 17절·40절 PHASE 4 "Quest"). 다섯 다 데이터
+   *  하나(VD.QUESTS)로 정해 둔 부탁이 하나씩 있다 — 아직 안 끝났으면 그
+   *  부탁을, 끝났으면 원래 인사말을 돌려준다. 만나 본 적을 남겨야
+   *  explorer(탐험가)의 "다 만나 봤나" 부탁을 셀 수 있다. */
   function talkNpc(npc) {
     var def = VD.NPCS[npc.kind];
     if (!def) { return null; }
-    return { kind: 'talk', name: def.name, text: def.line };
+    var s = st();
+    if (!s.metNpcs) { s.metNpcs = {}; }
+    if (!s.metNpcs[npc.kind]) {
+      s.metNpcs[npc.kind] = true;
+      core.persist();
+    }
+    var q = VD.QUESTS[npc.kind];
+    if (!q) { return { kind: 'talk', name: def.name, text: def.line }; }
+    if (!s.quests) { s.quests = {}; }
+    if (s.quests[npc.kind]) { return { kind: 'talk', name: def.name, text: def.line }; }
+    var prog = questProgress(npc.kind);
+    if (prog.have < prog.need) {
+      return { kind: 'quest', name: def.name,
+        text: q.description + ' (' + prog.have + '/' + prog.need + ')' };
+    }
+    s.quests[npc.kind] = true;
+    core.save.player.gold += q.reward;
+    core.gainFeat(1, '부탁');
+    core.gainExp(12);
+    core.log('🧭 ' + def.name + '의 부탁 「' + q.title + '」을 마쳤다 — 🪙 ' + core.fmt(q.reward), 'good');
+    core.emit('changed');
+    core.persist();
+    return { kind: 'quest', name: def.name,
+      text: '「' + q.title + '」을 마쳤다! 🪙 ' + core.fmt(q.reward) };
   }
 
   function init() {
@@ -842,6 +986,19 @@
   function focus() {
     var i, d;
 
+    if (caveIn) {
+      var dr3 = caveDoor();
+      var best3 = null, bd3 = REACH;
+      var chests = caveChests();
+      for (i = 0; i < chests.length; i++) {
+        d = Math.hypot(chests[i].x - player.x, chests[i].y - player.y);
+        if (d < bd3) { bd3 = d; best3 = { type: 'chest', obj: chests[i], dist: d }; }
+      }
+      d = Math.hypot(dr3.x - player.x, dr3.y - player.y);
+      if (d < bd3) { best3 = { type: 'cavedoor', obj: dr3, dist: d }; }
+      return best3;
+    }
+
     if (indoors) {
       var H = global.DG.home;
       var dr = H.door();
@@ -906,6 +1063,14 @@
   function caughtCount(key) { return (st().caught || {})[key] || 0; }
 
   function bagCount(key) { return st().bag[key] || 0; }
+
+  /** 가방 안 한 갈래(cat)의 합계 — 낱개 종류를 안 가리고 센다(퀘스트 "꽃 5개" 같은 데 쓴다) */
+  function bagCatCount(cat) {
+    var list = VD.ITEMS[cat], n = 0, i;
+    if (!list) { return 0; }
+    for (i = 0; i < list.length; i++) { n += bagCount(list[i].key); }
+    return n;
+  }
 
   function bagList() {
     var s = st(), out = [], k;
@@ -1006,6 +1171,10 @@
     if (f.type === 'door') { return leaveHome(); }
     if (f.type === 'furn') { return global.DG.home.pickUp(f.obj); }
 
+    /* 동굴 안 — 문이면 나가고, 상자면 연다 */
+    if (f.type === 'cavedoor') { return leaveCave(); }
+    if (f.type === 'chest') { return openChest(f.obj); }
+
     if (f.type === 'bug') { return global.DG.bug.swing(f.obj); }
     if (f.type === 'resident') { return talk(f.obj); }
     if (f.type === 'npc') { return talkNpc(f.obj); }
@@ -1023,6 +1192,7 @@
     }
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }
+    if (prop.kind === 'cave') { return enterCave(); }
     if (!def.gather) {
       if (prop.kind === 'museum') {
         core.emit('village:open', 'museum');
@@ -1433,8 +1603,9 @@
     keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; },
     tileAt: tileAt, walkable: walkable,
     focus: focus, interact: interact, spent: spent,
-    talk: talk, requestOf: requestOf, friendOf: friendOf,
-    bagList: bagList, bagCount: bagCount, bagAdd: bagAdd, sell: sell, sellAll: sellAll,
+    talk: talk, requestOf: requestOf, friendOf: friendOf, talkNpc: talkNpc,
+    bagList: bagList, bagCount: bagCount, bagCatCount: bagCatCount, bagAdd: bagAdd,
+    sell: sell, sellAll: sellAll, questProgress: questProgress,
     caughtCount: caughtCount, shake: shake, speedMul: speedMul,
     weedCount: weedCount, pullWeed: pullWeed, growWeeds: growWeeds, WEED_MAX: WEED_MAX,
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
@@ -1445,6 +1616,8 @@
     caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
     buildNpcs: buildNpcs, firstBiomeSpot: firstBiomeSpot,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
+    caveInside: caveInside, enterCave: enterCave, leaveCave: leaveCave,
+    caveRoom: caveRoom, caveDoor: caveDoor, caveChests: caveChests, chestOpened: chestOpened,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
     rollDay: rollDay, today: today, status: status, state: st,

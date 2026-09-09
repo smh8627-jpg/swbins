@@ -13,7 +13,7 @@ start_server.bat →  같은 것, 브라우저를 열지 않는다 (허브 워�
 _test.html       →  자가진단 163항목
 _admin.html      →  어드민(QA 운영판). http://127.0.0.1:8793/_admin.html
                     `#tools!` 로 열면 자가점검을 바로 돌린다
-_demo.html       →  스크린샷용 데모 상태 (#fish · #plant · #map · #bug · #dig · #room ·
+_demo.html       →  스크린샷용 데모 상태 (#fish · #plant · #map · #bug · #dig · #room · #cave · #npc ·
                     #mail · #museum · #flag · #chat · #turnip · #tmarket ·
                     #bag · #folks · #home · #town · #dex · #log,
                     계절은 -spring · -summer · -autumn · -winter,
@@ -223,6 +223,61 @@ CDP)로 마을 밖으로 실제로 걸어 나가 숲이 자연스럽게 이어�
 40절 PHASE 3 화살표의 다음 칸 — Biome → Lake/River/Waterfall → Village →
 Cave** 순서로 이어간다(지금 숲 고리는 단색 잔디뿐이라 Biome 분화가 다음
 차례다).
+
+**그 뒤(이 항목을 업데이트하지 않은 채) PHASE 3 나머지(Biome 다섯 가지·호수·
+강·폭포·작은 마을(캠프)·동굴 입구)와 PHASE 4 앞 두 칸(Animals·NPC)이
+전부 끝났다** — `js/village.js`의 `biomeAt/lakeCenter/riverCenterX/
+waterfallSpot/hamletSpot/caveSpot/buildAnimals/buildNpcs` 참고. 이 README가
+그동안 안 따라온 것뿐이니, 코드 주석(각 함수 머리말의 "PLAN 40절 PHASE …")이
+더 정확하다.
+
+**2026-09-09 — PHASE 4 세 번째 칸 "Gathering" 완료.** PHASE 3에서 숲 고리
+사물을 전부 `deco:true`(장식, 손 안 닿음)로 열어 뒀던 것에 이번에 진짜
+채집 자원을 얹었다. **조밀한 장식 격자와 같은 밀도로 늘리면 2026-08-31에
+잡혔던 하루벌이 폭증이 되풀이된다** — 그래서 `animal.js`와 같은 성긴
+격자(`BIOME_CELL`칸마다 45%)에만, id 접두 `gn`(gather node)으로 심었다.
+바이옴별로 다른 자원(green→나무·meadow→꽃·dark→소나무·rocky→바위)을 주고,
+버섯숲(mushroom)에는 새 갈래 **약초**(`herb`, PLAN 18절이 요구하던 것)를
+새로 만들어 얹었다 — 쑥·도라지·영지버섯·산삼 네 가지, 3D는 기존 mushroom
+모델을 그대로 빌린다. 기존 `focus()`/`auto.js`/`ITEMS`/`pick()` 인프라를
+그대로 타므로 새 인터랙션 코드는 없다. 자가진단 199 → 203(신규 4개, 세 번 불변),
+`sw.js` → `village-v0.28.0`.
+
+**같은 날 이어서 — PHASE 4 네 번째 칸 "Treasure" 완료.** 동굴 입구(`caveMouth`)가
+PHASE 3에서는 표지만이었던 것(`deco:true`라 손이 안 닿았다)을, 이번에 실제로
+들어가는 실내로 열었다. **집(home.js)과 같은 요령**이다 — 딴 좌표계로 옮겨 가는
+평평한 방(`village-view.js`의 `setupIn/projIn/unprojIn`을 그대로 빌린다), 문은
+뒷벽 가운데, 나갈 땐 문에서 손을 쓴다. `indoors`(집)와 `caveIn`(동굴)은 서로
+안 겹치게 양쪽 진입 함수가 서로를 막는다. 안에는 고정 자리 보물상자 셋
+(600·1,000·1,800골드) — Gathering의 `gn`과 달리 **한 번뿐인 발견**이라 날마다
+다시 안 찬다(`s.caveOpened`로 프로필마다 한 번). 공사(`terrain.js`)·사고 기증·
+미니맵도 "집 안" 취급과 나란히 "동굴 안"을 추가로 막았다(안 그러면 방 좌표를
+마을 좌표로 착각해 엉뚱한 칸을 고치는 사고가 난다). `_demo.html#cave`로
+CDP 스크린샷 확인 — 상자 밝기(안 연 것/연 것)와 초점 카드가 그림대로 나왔다.
+자가진단 203 → 207(신규 4개, 세 번 불변), `sw.js` → `village-v0.29.0`.
+
+**같은 날 이어서 — PHASE 4 마지막 칸 "Quest" 완료. PLAN 40절 PHASE 4가
+여기서 다 끝났다.** 숲 NPC 다섯이 인사말만 하던 것에, PLAN 19절이 예로 든
+넷(꽃 5개·잃어버린 상자·짐승 발견·숲 깊은 곳 NPC)을 그대로 다섯에 하나씩
+얹었다 — 새 데이터표 `VD.QUESTS` 하나뿐, **새 상태 기계는 안 만들었다**
+(`s.quests`로 끝났는지만, `s.metNpcs`로 누굴 만났는지만 남긴다).
+`talkNpc()`가 부탁이 안 끝났으면 설명+진행도("꽃 다섯 송이 0/5")를,
+채웠으면 그 자리에서 보상을 주고, 이미 끝났으면 원래 인사말로 돌아간다.
+type 은 셋뿐이다(`bagcat`=가방의 그 갈래 합계, `chest`=동굴 보물 연 개수,
+`meetnpc`=자신 뺀 나머지를 만난 수) — 이미 있던 Gathering·Treasure·NPC
+인프라를 그대로 셀 뿐이라 새 재료가 필요 없었다. 기존 "숲 NPC 인사말"
+자가진단은 이 변화로 깨질 뻔한 것을 발견해 **부탁을 먼저 끝낸 것으로
+치는 전제**를 넣어 고쳤다(회귀가 아니라 의미가 바뀐 것 — "말을 걸면
+늘 인사말"이 "부탁부터 갚아야 인사말"로). `_demo.html#npc`로 CDP
+스크린샷 확인 — 초점 카드에 "「꽃 다섯 송이」0/5"가 그대로 나왔다.
+자가진단 207 → **211**(신규 4개, 세 번 불변), `sw.js` → `village-v0.30.0`.
+**실기기 확인 전** — 다음 세션은 Gathering·Treasure·Quest 셋 다 손맛부터
+물어볼 것(자가진단은 로직만 본다, 밀도·보상 크기 체감은 실기기 몫).
+
+PHASE 4가 다 끝났으니 다음은 **PHASE 5**(Weather·Day/Night·Particles·
+Ambient — 다만 날씨·밤은 이미 2D 쪽에 있다, PLAN 40절 참고) 아니면
+**PHASE 6**(Portrait·Landscape·Safe Area·Touch — 이쪽도 상당수 이미
+있다) 중 먼저 실기기로 뭐가 비었는지 확인한 뒤 고를 것.
 
 ## 네 게임 중 하나
 

@@ -138,7 +138,7 @@
     if (!active()) { return; }
     var V = global.DG.village;
     /* 집 안에서는 아무것도 하지 않는다 — 꾸미기는 손으로 하는 놀이다 */
-    if (V.indoors()) { doing = '🏠 집 안에서는 쉽니다'; V.setAutoSneak(false); return; }
+    if (V.indoors() || V.caveInside()) { doing = '🏠 집(동굴) 안에서는 쉽니다'; V.setAutoSneak(false); return; }
     var raw = V.raw();
 
     /* 낚시 중이면 그것부터 — 입질을 기다렸다 당긴다.
