@@ -1,8 +1,12 @@
 # saga — 역사 인물로 노는 웹 게임 다섯 판
 
 여기는 **개인 취미 저장소**다. 회사 저장소(`C:\link`, 사방넷)와도, 개인 도구 저장소
-(`C:\swbins`)와도 별개다. 업무 이야기가 나오면 "그건 `C:\link` 세션에서",
-대시보드·개인 도구 이야기가 나오면 "그건 `C:\swbins` 세션에서" 라고 되짚어 준다.
+(`C:\swbins2`)와도 별개다. 업무 이야기가 나오면 "그건 `C:\link` 세션에서",
+대시보드·개인 도구 이야기가 나오면 "그건 `C:\swbins2` 세션에서" 라고 되짚어 준다.
+**2026-09-10, 이 저장소 자체의 폴더명을 `C:\saga`에서 `C:\swbins`로 바꿨다**
+(git 리모트 이름 `swbins`와 로컬 폴더명을 맞추려는 목적). 예전에 개인 도구
+저장소가 쓰던 `C:\swbins` 경로는 그 전에 이미 `C:\swbins2`로 옮겨져 있었어서
+겹치지 않는다.
 
 **정본은 `master.md` 다 — 단, `saga-godot/`(신규 Godot 3D 재구축) 한정.**
 기존 다섯 웹 판(saga-go·saga-dungeon·saga-forest·saga-story·saga-realm)은
@@ -32,7 +36,7 @@ saga-godot은 그 다섯 판과 완전히 별개인 신규 프로젝트이고, m
 ## 어디서 도는가
 
 - 로컬: 각 폴더 `run.bat`(브라우저까지 열림) · `start_server.bat`(허브가 부르는 쪽)
-- 허브 카드: <http://이-PC이름/> — `C:\swbins\services.json` 이 이 폴더를 가리킨다.
+- 허브 카드: <http://이-PC이름/> — `C:\swbins2\services.json` 이 이 폴더를 가리킨다.
   **경로를 옮기면 그쪽도 같이 고쳐야 한다**(단, 그 파일은 커밋하지 않는다)
 - 공개: <https://smh8627-jpg.github.io/swbins/> — GitHub Pages.
   각 판은 `/swbins/saga-go/` 처럼 하위 경로로 열린다
