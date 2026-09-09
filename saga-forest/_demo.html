@@ -214,6 +214,33 @@ setTimeout(function () {
     }
   }
 
+  /* 물 표현(PLAN 12절, 2026-09-09) 눈으로 볼 자리 — 물은 사물(prop)이 아니라
+     타일(V.tileAt)이라 위 NATURE_TEST_KINDS 틀을 못 그대로 쓴다. `V.lakeCenter()`
+     (마을 서쪽, 고정 배치)로 곧장 걸어가 3D 를 켠다. `#watertest`, `#watertest-stat` */
+  if (hash.indexOf('watertest') >= 0 && DG.villageView3d) {
+    C.setTune('village3d.renderR', 10);
+    var lc = V.lakeCenter();
+    if (lc) {
+      raw.player.x = lc.tx * V.TILE + V.TILE * 0.5;
+      raw.player.y = (lc.ty - lc.r - 1) * V.TILE + V.TILE * 0.5;   // 호수 북쪽 물가
+    }
+    if (!DG.villageView3d.on()) { DG.villageView3d.toggle(); }
+    if (hash.indexOf('stat') >= 0) {
+      setTimeout(function () {
+        var box = document.createElement('div');
+        box.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:9999;padding:6px 8px;' +
+          'background:rgba(0,0,0,.85);color:#9fe8b0;font:11px monospace;white-space:pre';
+        var V3 = DG.villageView3d;
+        box.textContent = 'lakeCenter=' + JSON.stringify(lc) + '\n' +
+          'player=' + JSON.stringify(V.raw().player) + '\n' +
+          'terrainWater=' + V3.terrainCount('water') + '\n' +
+          'rippleCount=' + V3.waterRippleCount() + '\n' +
+          'active=' + V3.active() + ' avail=' + V3.available();
+        document.body.appendChild(box);
+      }, 3000);
+    }
+  }
+
   if (hash.indexOf('chibi') >= 0) { DG.sprite.setProp('chibi'); }
   if (hash.indexOf('tall') >= 0) { DG.sprite.setProp('tall'); }
   if (hash.indexOf('anime') >= 0) { DG.sprite.setStyle('anime'); }

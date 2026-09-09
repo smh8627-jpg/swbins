@@ -81,6 +81,14 @@
   function GROUND_TILE_R() { return C().tuned('village3d.groundTileR', QUALITY_PRESET[tier()].groundTileR); }
   /** 물은 이만큼 낮춘다(미터) — 웅덩이처럼 보이게 */
   function WATER_DEPTH() { return C().tuned('village3d.waterDepth', 0.12); }
+  /** 물 표현(PLAN 12절, 2026-09-09) — 파동 진폭(미터)·빈도·속도. 재질 컴파일 때
+   *  한 번만 읽는다(카메라 손잡이처럼 매 프레임 바뀌지 않는다 — 3D 를 껐다 켜야
+   *  반영된다, GROUND_SIZE()와 같은 성격) */
+  function WATER_WAVE_AMP() { return C().tuned('village3d.waterWaveAmp', 0.045); }
+  function WATER_WAVE_FREQ() { return C().tuned('village3d.waterWaveFreq', 1.4); }
+  function WATER_WAVE_SPEED() { return C().tuned('village3d.waterWaveSpeed', 1.8); }
+  /** 물결 반짝임(ripple) 점 — 물 칸 하나에 하나씩, 상한을 넘으면 먼저 찾은 것만 */
+  function WATER_RIPPLE_CAP() { return C().tuned('village3d.waterRippleCap', 24); }
 
   /**
    * 그래픽 품질(PLAN 38절 "모바일 품질 프리셋" · PLAN 30절 "거리 기반 활성화") —
@@ -329,6 +337,11 @@
   }
   var terrainMesh = {};     // kind → InstancedMesh
   var terrainCap = 0;       // 인스턴스 하나가 담을 수 있는 최대 칸 수
+  var waterShader = null;   // onBeforeCompile 로 받아 둔 물결 셰이더(uTime 매 프레임 갱신용)
+  var waterTime = 0;
+  var waterRipple = null;           // 물결 반짝임 Points
+  var waterRipplePos = null;        // Float32Array(cap*2) — 물 칸 중심의 (상대x,상대z)
+  var waterRippleCount = 0;         // 이번에 실제로 채운 칸 수
 
   /** 타일 그림 — 2D 화면(village-view.js)과 **같은 파일**을 쓴다(Kenney
    *  Roguelike/RPG Pack, CC0). "3D 타일이 디테일하지 않다"(사용자, 2026-09-02)
@@ -424,6 +437,14 @@
   function weatherShows(wk) { return { rain: wk === 'rain', snow: wk === 'snow' }; }
   function fireflyVisible(ph, wk) { return ph === 'night' && wk !== 'rain' && wk !== 'snow'; }
 
+  /** 물결(PLAN 12절) — 칸의 세계 좌표(wx,wz)와 시각(time)만으로 그 칸이 지금
+   *  얼마나 솟았는지 준다. **물 셰이더(GLSL, `waterMaterial()`)와 같은 식**을
+   *  써서 반짝임 점(`syncWaterRipple`)이 실제 파동과 같은 위상으로 움직인다 —
+   *  둘이 따로 놀면 반짝임이 물결과 어긋나 보인다. 순수 함수 */
+  function waterWaveY(wx, wz, time) {
+    return Math.sin((wx + wz) * WATER_WAVE_FREQ() + time * WATER_WAVE_SPEED()) * WATER_WAVE_AMP();
+  }
+
   /** base(시작값) 에서 elapsed*speed 만큼 떨어뜨리고 height 로 감는다(modulo) —
    *  매 프레임 새 난수를 안 뽑고도 자연스럽게 반복 낙하한다. 순수 함수 */
   function wrapY(base, elapsed, speed, height) {
@@ -481,6 +502,43 @@
     for (var i = 0; i < base.length; i++) {
       pos.array[i * 3 + 1] = base[i] + Math.sin(weatherClock * 0.8 + i) * 0.4 + 0.6;
     }
+    pos.needsUpdate = true;
+  }
+
+  /** 물결 반짝임 점(PLAN 12절) 창고 — 자리는 `syncTerrain()`이 물 칸을 세우는
+   *  김에 채워 준다(`waterRipplePos`). 칸 수 상한은 `terrainCap`처럼 초기화
+   *  때 한 번만 정한다 */
+  function buildWaterRipple(t) {
+    var cap = WATER_RIPPLE_CAP();
+    var geo = new t.BufferGeometry();
+    geo.setAttribute('position', new t.BufferAttribute(new Float32Array(cap * 3), 3));
+    var mat = new t.PointsMaterial({ color: 0xeaf7ff, size: 0.16, transparent: true, opacity: 0.8, depthWrite: false });
+    waterRipple = new t.Points(geo, mat);
+    waterRipple.visible = false;
+    waterRipplePos = new Float32Array(cap * 2);   // (상대x,상대z) 쌍 — syncTerrain() 이 채운다
+    waterRippleCount = 0;
+    scene.add(waterRipple);
+  }
+
+  /** 물결(PLAN 12절) — 매 프레임(움직임 여부와 무관하게) 물 재질의 파동
+   *  유니폼과 반짝임 점 높이를 시각(waterTime)으로 갱신한다. **자리 자체는
+   *  안 다시 계산한다** — `syncTerrain()`이 채워 둔 `waterRipplePos`(물 칸이
+   *  움직일 때만 갱신)를 그대로 읽고 y 하나만 `waterWaveY()`로 다시 잰다,
+   *  그래서 서 있을 때도 물결은 돌지만 자리 재계산(비싼 쪽)은 안 한다 */
+  function syncWaterRipple(dt) {
+    waterTime += dt;
+    if (waterShader) { waterShader.uniforms.uTime.value = waterTime; }
+    if (!waterRipple) { return; }
+    if (!waterRippleCount) { waterRipple.visible = false; return; }
+    waterRipple.visible = true;
+    var pos = waterRipple.geometry.attributes.position, rx, rz, i;
+    for (i = 0; i < waterRippleCount; i++) {
+      rx = waterRipplePos[i * 2]; rz = waterRipplePos[i * 2 + 1];
+      pos.array[i * 3] = rx;
+      pos.array[i * 3 + 1] = waterWaveY(rx, rz, waterTime) - WATER_DEPTH() + 0.05;
+      pos.array[i * 3 + 2] = rz;
+    }
+    waterRipple.geometry.setDrawRange(0, waterRippleCount);
     pos.needsUpdate = true;
   }
 
@@ -598,22 +656,58 @@
     buildPlayer();
   }
 
+  /** 물 재질(PLAN 12절 "파동·반사") — 나머지 여덟 칸(MeshLambertMaterial)과
+   *  달리 `MeshStandardMaterial`을 쓴다. **반사**는 새 렌더패스 없이 공짜로
+   *  얻는다 — `scene.environment`(위 HDRI, `loadEnvironment()`)를 three.js가
+   *  PBR 재질에 자동으로 물려 준다, 따로 envMap 을 지정할 필요가 없다.
+   *  **파동**은 `onBeforeCompile`로 정점 셰이더에 한 줄 얹는다 — `waterWaveY()`와
+   *  **같은 식**(주파수·속도·진폭 상수까지)을 GLSL로 그대로 옮겨, 반짝임 점
+   *  (`syncWaterRipple`)과 실제 파도가 어긋나지 않게 한다. `instanceMatrix[3].xz`
+   *  는 three.js 가 InstancedMesh 용으로 셰이더에 자동으로 얹어 주는 그 칸의
+   *  월드 좌표라 새 유니폼 없이 칸마다 다른 위상을 낼 수 있다.
+   *  **일부러 안 고친 것** — 칸마다 위상이 달라 이웃 물 칸과 맞닿는 가장자리가
+   *  완전히 안 맞물린다(진폭이 4.5cm 뿐이라 눈에 크게 띄진 않는다). 물 전체를
+   *  하나의 큰 평면으로 잇는 편이 이음매는 없겠지만 지금의 칸별 InstancedMesh
+   *  구조를 갈아엎어야 해서 이번엔 안 건드렸다 */
+  function waterMaterial(t, color, map) {
+    var mat = new t.MeshStandardMaterial({ color: color, map: map, roughness: 0.18, metalness: 0.25 });
+    var amp = WATER_WAVE_AMP(), freq = WATER_WAVE_FREQ(), speed = WATER_WAVE_SPEED();
+    mat.onBeforeCompile = function (shader) {
+      shader.uniforms.uTime = { value: 0 };
+      shader.vertexShader = 'uniform float uTime;\n' + shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\n' +
+        '  transformed.y += sin((instanceMatrix[3].x + instanceMatrix[3].z) * ' + freq.toFixed(4) +
+        ' + uTime * ' + speed.toFixed(4) + ') * ' + amp.toFixed(4) + ';'
+      );
+      waterShader = shader;
+    };
+    return mat;
+  }
+
   /** 종류별 InstancedMesh 를 미리 만들어 둔다 — 칸 수는 매 프레임 늘렸다 줄였다 한다 */
   function initTerrain() {
     var t = three();
     var colors = terrainColors(), k, tileM = tileMeters();
     var geo = new t.PlaneGeometry(tileM, tileM);
     geo.rotateX(-Math.PI / 2);
+    /* 물만 잘게 나눈다(4×4) — 파동이 칸 하나를 통째로 기울이지 않고
+       칸 안에서도 부드럽게 굽이치게. 나머지 여덟 칸은 안 바뀐 것과 같은 4각형 */
+    var waterGeo = new t.PlaneGeometry(tileM, tileM, 4, 4);
+    waterGeo.rotateX(-Math.PI / 2);
     var r = GROUND_TILE_R();
     terrainCap = (2 * r + 1) * (2 * r + 1);
     for (k in colors) {
       if (!Object.prototype.hasOwnProperty.call(colors, k)) { continue; }
-      var mat = new t.MeshLambertMaterial({ color: new t.Color(colors[k]), map: tileTexture(k) });
-      var im = new t.InstancedMesh(geo, mat, terrainCap);
+      var mat = k === 'water' ?
+        waterMaterial(t, new t.Color(colors[k]), tileTexture(k)) :
+        new t.MeshLambertMaterial({ color: new t.Color(colors[k]), map: tileTexture(k) });
+      var im = new t.InstancedMesh(k === 'water' ? waterGeo : geo, mat, terrainCap);
       im.count = 0;
       scene.add(im);
       terrainMesh[k] = im;
     }
+    buildWaterRipple(t);
   }
 
   /** 마을 좌표 한 타일(`V.TILE`)이 3D 로 몇 미터인지 — village.js 가 없으면(진단 등) 3.2m 기본값 */
@@ -868,6 +962,7 @@
 
     var idx = {}, kind, tx, ty, wx, wy, im, y;
     for (k in colors) { idx[k] = 0; }
+    var rippleCap = WATER_RIPPLE_CAP(), rippleN = 0;
 
     for (ty = pty - r; ty <= pty + r; ty++) {
       for (tx = ptx - r; tx <= ptx + r; tx++) {
@@ -880,6 +975,13 @@
         dummy.position.set((wx - px) * scale, y, (wy - py) * scale);
         dummy.updateMatrix();
         im.setMatrixAt(idx[kind]++, dummy.matrix);
+        /* 물결 반짝임(PLAN 12절) — 물 칸을 세우는 김에 그 자리를 최대
+           rippleCap 개까지만 같이 받아 둔다(새 순회를 더 만들지 않는다) */
+        if (kind === 'water' && waterRipplePos && rippleN < rippleCap) {
+          waterRipplePos[rippleN * 2] = (wx - px) * scale;
+          waterRipplePos[rippleN * 2 + 1] = (wy - py) * scale;
+          rippleN++;
+        }
       }
     }
     for (k in terrainMesh) {
@@ -887,6 +989,7 @@
       terrainMesh[k].count = idx[k] || 0;
       terrainMesh[k].instanceMatrix.needsUpdate = true;
     }
+    waterRippleCount = rippleN;
   }
 
   function step(dt) {
@@ -894,6 +997,7 @@
     if (player.mixer) { player.mixer.update(dt); }
     syncCamera();
     syncTerrain();
+    syncWaterRipple(dt);
     syncScatter();
     syncNpcs(dt);
     syncSky();
@@ -944,6 +1048,10 @@
     setUserZoom: setUserZoom,
     /** 진단·QA 전용 — 사람이 드래그로 돌린 시점 덧각(라디안) */
     mouseYaw: function () { return mouseYaw; },
-    setMouseYaw: function (y) { mouseYaw = y; }
+    setMouseYaw: function (y) { mouseYaw = y; },
+    /** 진단 전용 — PLAN 12절 물 표현: 파동 순수 함수와 반짝임 점 상태 */
+    waterWaveY: waterWaveY,
+    waterWaveAmp: WATER_WAVE_AMP, waterWaveSpeed: WATER_WAVE_SPEED,
+    waterRippleCount: function () { return waterRippleCount; }
   };
 })(typeof window !== 'undefined' ? window : this);
