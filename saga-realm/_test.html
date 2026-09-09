@@ -191,9 +191,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       /* data.js 는 다섯 판이 바이트까지 같은 복사본이다. 얹기만 한다 */
       var n = off.all().length;
       var three = off.all().filter(function (h) { return h.era === '삼국지'; }).length;
-      return n === 133 && three === 76 &&
+      return n === 142 && three === 76 &&
         !!DG.data.find('rf_guojia') && !!DG.data.find('sg_caocao') &&
-        ('인물 70 + 무장 54 + 한국 지역 9 = ' + n + ' · 삼국지 ' + three +
+        ('인물 70 + 무장 54 + 한국 지역 9 + 일본 지역 9 = ' + n + ' · 삼국지 ' + three +
          ' · 재야 후보 ' + (n - three));
     });
 
@@ -208,11 +208,11 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     /* ── 판 세우기 ───────────────────────────────────── */
 
-    t('194년 판이 선다 — 서른 성에 주인이 다 있다(한국 지역 일곱은 주인 없이 시작)', function () {
+    t('194년 판이 선다 — 서른 성에 주인이 다 있다(한국·일본 지역 열넷은 주인 없이 시작)', function () {
       var st = fresh('cao');
       var keys = Object.keys(st.cities);
-      /* 한국 지역(garrison 필드가 있는 성)은 처음부터 일부러 주인이 없다 —
-         정복 대상이다. 그 일곱을 빼고서 나머지가 다 주인 있는지만 잰다 */
+      /* 한국·일본 지역(garrison 필드가 있는 성)은 처음부터 일부러 주인이 없다 —
+         정복 대상이다. 그 열넷을 빼고서 나머지가 다 주인 있는지만 잰다 */
       var noOwner = keys.filter(function (k) {
         return !st.cities[k].force && !CD.find(k).garrison;
       });
@@ -226,10 +226,10 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       fresh('cao');
       var free = off.all().filter(function (h) { return h.stats && !off.rec(h.id).force; });
       var nonThree = free.filter(function (h) { return h.era !== '삼국지'; }).length;
-      /* 한국 지역 수비 무장 9인도 force:null 이라 이 정의로는 재야에 든다
-         (48 한국사·유럽사 + 9 한국 지역 = 57) */
-      return free.length === 63 && nonThree === 57 &&
-        ('재야 ' + free.length + ' (한국사·유럽사+한국 지역 ' + nonThree + ' + 삼국지 재야 ' +
+      /* 한국·일본 지역 수비 무장 18인도 force:null 이라 이 정의로는 재야에 든다
+         (48 한국사·유럽사 + 9 한국 지역 + 9 일본 지역 = 66) */
+      return free.length === 72 && nonThree === 66 &&
+        ('재야 ' + free.length + ' (한국사·유럽사+한국·일본 지역 ' + nonThree + ' + 삼국지 재야 ' +
          (free.length - nonThree) + ')');
     });
 
@@ -508,15 +508,23 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('수색해야 등용할 수 있다', function () {
+      /* 재야는 이름 해시로 CD.CITIES.length 를 나눠 결정적으로 흩는다(rtk.scatterFree) —
+         성을 늘리면(한국·일본 지역 확장) 나눗셈이 바뀌어 어느 성에 숨은 사람이
+         걸리는지도 바뀐다. 그래서 특정 성을 못 박는 대신, 내 세력(cao) 성 가운데
+         숨은 재야가 실제로 있는 곳을 찾아서 쓴다 */
       fresh('cao');
-      freeUp('xuchang');
-      var hidden = off.freeAt('xuchang', false);
-      if (!hidden.length) { return false; }
-      var r1 = R.order('xuchang', R.readyAt('xuchang')[0].id, 'hire');   // 아직 못 찾았다
-      freeUp('xuchang');
-      var r2 = R.order('xuchang', R.readyAt('xuchang')[0].id, 'search');
+      var cityId = null;
+      var mine = R.citiesOf('cao');
+      for (var i = 0; i < mine.length; i++) {
+        if (off.freeAt(mine[i], false).length) { cityId = mine[i]; break; }
+      }
+      if (!cityId) { return false; }
+      freeUp(cityId);
+      var r1 = R.order(cityId, R.readyAt(cityId)[0].id, 'hire');   // 아직 못 찾았다
+      freeUp(cityId);
+      var r2 = R.order(cityId, R.readyAt(cityId)[0].id, 'search');
       return r1.ok && r1.amount === 0 && r2.ok && r2.found &&
-        ('먼저 등용 → "' + r1.text + '" · 수색 → ' + r2.found.name + ' 을(를) 찾았다');
+        ('[' + cityId + '] 먼저 등용 → "' + r1.text + '" · 수색 → ' + r2.found.name + ' 을(를) 찾았다');
     });
 
     t('등용하면 그 세력의 무장이 된다', function () {

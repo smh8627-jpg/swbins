@@ -37,6 +37,11 @@
     for (var k = 0; k < kr.length; k++) {
       if (!data.find(kr[k].id)) { data.heroes.push(kr[k]); }
     }
+    /* 일본 지역 수비 무장(2026-09-09) — 같은 방식으로 얹는다 */
+    var jp = FD.JAPAN_OFFICERS || [];
+    for (var jj = 0; jj < jp.length; jj++) {
+      if (!data.find(jp[jj].id)) { data.heroes.push(jp[jj]); }
+    }
     merged = true;
     return data.heroes.length;
   }

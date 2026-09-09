@@ -490,10 +490,10 @@
     if (!st.started) { els.realm.innerHTML = ''; return; }
     var i, j, s = '';
 
-    /* viewBox 를 100→125 로 넓혔다(2026-09-03, 한국 지역 확장) — 그 동쪽에
-       둔 새 성 7개(x:97~118)가 안 잘리게. x/y 값 자체는 CD.CITIES 데이터가
-       그대로 쥐고 있어 여기 말고 고칠 곳이 없다 */
-    s += '<svg class="rmap" viewBox="0 0 125 100" preserveAspectRatio="xMidYMid meet">';
+    /* viewBox 를 100→125→165 로 넓혔다(2026-09-03 한국, 2026-09-09 일본
+       지역 확장) — 그 동쪽·남동쪽에 둔 새 성이 안 잘리게. x/y 값 자체는
+       CD.CITIES 데이터가 그대로 쥐고 있어 여기 말고 고칠 곳이 없다 */
+    s += '<svg class="rmap" viewBox="0 0 165 100" preserveAspectRatio="xMidYMid meet">';
 
     /* 길 — 인접한 성끼리. 같은 편이면 밝게 */
     var drawn = {};

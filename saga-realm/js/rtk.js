@@ -130,7 +130,8 @@
       if (d.garrison) {
         c.troops = d.garrison;
         c.food = d.garrison * 2;
-        var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) || [];
+        var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) ||
+          (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) || [];
         var gov = null;
         for (var j = 0; j < ids.length; j++) {
           var r = off.placeAt(ids[j], d.id, null);
@@ -299,7 +300,8 @@
       var c = st.cities[d.id];
       c.troops = d.garrison;
       c.food = d.garrison * 2;
-      var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) || [];
+      var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) ||
+        (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) || [];
       var gov = null;
       for (var j = 0; j < ids.length; j++) {
         var r = off.placeAt(ids[j], d.id, null);
