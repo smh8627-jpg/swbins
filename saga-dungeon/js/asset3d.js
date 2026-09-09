@@ -303,6 +303,55 @@
     })
   );
 
+  /* 2026-09-09(이어서) — "다른 곳도 찾아봐"를 계속. OpenGameArt.org의
+     Quaternius 업로더 페이지(`opengameart.org/content/all-cc0-uploader-
+     quaternius`)에서 poly.pizza에는 없던 큰 팩을 찾았다 — poly.pizza가
+     자체 CDN(glTF/GLB 직접)으로 갈아탄 뒤에도 OpenGameArt엔 예전 원본
+     업로드(Blend/FBX/OBJ만)가 그대로 남아 있다.
+     **이 판엔 FBX→glTF 변환 도구가 없어 여태 보류해 왔는데**(다른
+     FBX 전용 자산 항목들 참고), npm 패키지 `fbx2gltf`(페이스북 공식
+     `FBX2glTF` 바이너리를 감싼 것)를 세션 스크래치 폴더에 설치해
+     실제로 돌려 보니 **한 번에 깨끗하게 변환됐다**(스켈레톤·클립
+     이름·개수 그대로, `gltf-transform inspect`로도 정상 검증) — 이제
+     이 갈래가 막혀 있던 게 아니라 "도구를 안 갖췄던 것"뿐이었다.
+     이 저장소엔 도구 자체를 커밋하지 않았다(세션 스크래치에서만
+     썼다, `tools/glb-compress`처럼 상시 도구로 두려면 다음에 정식으로
+     들일 것) — 변환된 결과 GLB만 커밋한다.
+
+     `Ultimate Animated Character Pack`(Quaternius, CC0,
+     `opengameart.org/content/animated-characters-pack`, 48.4MB zip)은
+     50벌 넘게(휴먼·엘프·좀비·닌자·카우보이·고블린 등) 들어 있다.
+     사람형 중 다양한 15벌만 골랐다(좀비·고블린·소품(모자·머리카락
+     단품)·이미 가진 것과 너무 겹치는 Casual/Soldier류는 제외):
+     Elf·Wizard·Witch·Doctor_Male_Old·Doctor_Female_Young·Cowboy_Male·
+     Cowboy_Female·Chef_Male·Kimono_Female·Viking_Male·Pirate_Female·
+     OldClassy_Male·Knight_Golden_Male·Ninja_Sand·Suit_Male. 클립
+     11개씩(Defeat·Idle·PickUp·Punch·RecieveHit·Shoot_OneHanded·
+     SitDown·StandUp·Victory·Walk·Walk_Carry) — `mapClips()`가 death·
+     idle·interaction·attack·hit·walk를 실제 클립으로, run·sprint·
+     dodge는 walk로 채운다. */
+  var PEOPLE_OGA_ULTIMATE = 'assets/models/people/oga_ultimate/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Elf', 'Wizard', 'Witch', 'Doctor_Male_Old', 'Doctor_Female_Young',
+      'Cowboy_Male', 'Cowboy_Female', 'Chef_Male', 'Kimono_Female', 'Viking_Male',
+      'Pirate_Female', 'OldClassy_Male', 'Knight_Golden_Male', 'Ninja_Sand', 'Suit_Male'].map(function (n) {
+      var f = PEOPLE_OGA_ULTIMATE + n + '.glb';
+      return { key: 'ogau_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서) — 같은 업로더 페이지의 `LowPoly Animated Knight`
+     (`opengameart.org/content/lowpoly-animated-knight`, CC0, 2.5MB) —
+     poly.pizza·itch.io 양쪽 다 결제/변환 문제로 막혀 있던 바로 그
+     Knight를 OpenGameArt 원본에서 우회해 받았다. `HumanArmature|*`
+     낱말표(위 팩과는 다른 계열), 클립 12개(Death·Idle·
+     Idle_swordLeft/Right·Jump·Roll·Roll_sword·Run·Run_swordAttack/
+     Right·swordAttackJump·Walking). */
+  var PEOPLE_OGA_KNIGHT = 'assets/models/people/oga_knight/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    { key: 'ogaknight_char', body: PEOPLE_OGA_KNIGHT + 'KnightCharacter.glb', anim: PEOPLE_OGA_KNIGHT + 'KnightCharacter.glb' }
+  ]);
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

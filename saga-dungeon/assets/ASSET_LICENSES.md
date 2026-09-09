@@ -1525,3 +1525,59 @@ poly.pizza와 달리 zip 통째로 옴).
 `assets/models/people/kenney_mini/`에 둠, `tools/glb-compress`로 압축
 (2.9MB→0.7MB, 74% 감소). `HERO_RECIPES_LIGHT`에 `kmini_*`로 등록 —
 **78→90종**. 남은 10종.
+
+## 캐릭터 12차분 — OpenGameArt에서, FBX 변환 벽을 처음 넘음 (2026-09-09, 같은 세션 이어서, 목표 달성)
+
+`opengameart.org/content/all-cc0-uploader-quaternius`(Quaternius 업로더
+페이지)에서 poly.pizza엔 없던 예전 원본 업로드를 찾았다 — poly.pizza가
+자체 CDN(glTF/GLB 직접 배포)으로 갈아탄 뒤에도 OpenGameArt엔 Blend/
+FBX/OBJ만 있는 옛 zip이 그대로 남아 있다.
+
+> **FBX 변환 벽을 처음 넘었다.** 이 판(과 다른 네 판)은 "FBX 전용
+> 자산은 변환 도구가 없어 보류"를 여러 번 반복해 왔다(Kenney Animated
+> Characters Protagonists/Retro/Survivors도 이번 세션에 같은 이유로
+> 보류함, 위 참고). npm 패키지 `fbx2gltf`(페이스북 공식 `FBX2glTF`
+> 바이너리를 그대로 감싼 래퍼)를 세션 스크래치 폴더에 설치해 실제
+> 캐릭터 FBX를 돌려 보니 **한 번에 깨끗하게 변환됐다** — 스켈레톤·
+> 애니메이션 클립 이름·개수가 그대로 나오고, `gltf-transform inspect`
+> 로도 유효한 glTF임을 확인했다. 그동안 "도구가 없어서" 막혔던 게
+> 아니라 "도구를 안 찾아봤던 것"이었다. **이 도구 자체는 저장소에
+> 커밋하지 않았다** — 세션 스크래치에서 변환에만 쓰고, 결과 GLB만
+> 커밋한다. `tools/glb-compress`처럼 다섯 판이 상시 쓰는 도구로
+> 정식으로 들이려면 다음에 `tools/fbx2gltf/`를 만들 것(이번엔
+> 급한 대로 임시로만 씀 — 재현 방법: `npm install fbx2gltf` 후
+> `require('fbx2gltf').convert(src, dest)` 또는 그 패키지의
+> `bin/<OS>/FBX2glTF(.exe)`를 직접 실행).
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Ultimate Animated Character Pack(50벌 넘음, 15벌만 골라 씀) | `opengameart.org/content/animated-characters-pack` → `ultimate_animated_character_pack_by_quaternius.zip`(48.4MB) | Quaternius | CC0 |
+| LowPoly Animated Knight | `opengameart.org/content/lowpoly-animated-knight` → `Knight Character by @Quaternius.zip`(2.5MB) | Quaternius | CC0 |
+
+**Ultimate Animated Character Pack**은 사람형만 50벌 넘게(휴먼·엘프·
+좀비·닌자·사무라이 기모노·카우보이·바이킹·해적·고블린·의사·요리사
+등) 들어 있다. 다양성 위주로 15벌만 골랐다(좀비·고블린은 몬스터
+트랙 후보로 남김, 모자·머리카락 단품 액세서리·이미 가진 것과 이름이
+겹치는 Casual/Soldier류는 스킵): Elf·Wizard·Witch·Doctor_Male_Old·
+Doctor_Female_Young·Cowboy_Male·Cowboy_Female·Chef_Male·Kimono_Female·
+Viking_Male·Pirate_Female·OldClassy_Male·Knight_Golden_Male·Ninja_Sand·
+Suit_Male. 클립 11개씩(`CharacterArmature|Defeat·Idle·PickUp·Punch·
+RecieveHit·Shoot_OneHanded·SitDown·StandUp·Victory·Walk·Walk_Carry`) —
+`mapClips()`가 death·idle·interaction·attack·hit·walk를 실제 클립으로
+잡는다(run·sprint·dodge는 walk로 대체). `assets/models/people/
+oga_ultimate/`에 둠, `tools/glb-compress`로 압축(8.9MB→2.3MB).
+`HERO_RECIPES_LIGHT`에 `ogau_*`로 등록.
+
+**LowPoly Animated Knight**는 poly.pizza에서도(중복 UUID로 스킵),
+quaternius.itch.io에서도(결제 흐름 막힘) 못 받았던 바로 그 자산 —
+OpenGameArt 원본으로 우회해 받았다. `HumanArmature|*` 낱말표(위 팩과
+다른 계열), 클립 12개(Death·Idle·Idle_swordLeft/Right·Jump·Roll·
+Roll_sword·Run·Run_swordAttack/Right·swordAttackJump·Walking).
+`assets/models/people/oga_knight/`에 둠, 압축(0.4MB→0.1MB).
+`HERO_RECIPES_LIGHT`에 `ogaknight_char`로 등록.
+
+**90→106종 — "캐릭터 100개" 목표 달성, 여유분 포함.** 이 트랙은 여기서
+갈무리한다. `Ultimate Animated Character Pack`에 아직 안 쓴 사람형이
+20벌 넘게 남아 있어(BlueSoldier·Casual2/3·Goblin·Pirate_Male·
+Soldier·Viking_Female·Zombie 등), 나중에 더 늘리고 싶으면 같은 zip
+(스크래치에 안 남아 있으면 위 URL로 재다운로드)에서 마저 고르면 된다.
