@@ -1405,6 +1405,41 @@ body.tilted3 #vignette {
   #autobar { top: calc(98px + var(--safe-t)); }
 }
 
+/* ══ 가로로 눕힌 폰 (2026-09-09, PLAN 17절 "가로 모드") ═══════════════════
+ * 위 560px 규칙은 **폭**으로 가른다 — 세로로 든 폰(390px 안팎)만 잡고,
+ * 가로로 눕힌 폰(예: 844×390)은 폭이 넉넉해(844px) 안 걸린다. 그러면 이
+ * 파일 앞쪽의 "PC·태블릿" 기본값(#top 두 줄, 조작판 bottom 150px, #hud·
+ * #dock 58px 단추)을 그대로 받는데, 세로 390px 화면에서 그 셋을 다 합치면
+ * 위아래로 화면의 3분의 2 가까이가 UI로 먹혀 PLAN 17절이 가로 모드에 바라는
+ * "더 넓은 시야 · 더 많은 게임 화면"과 정면으로 부딪힌다.
+ *
+ * 그래서 **폭이 아니라 높이**로 가른다(`orientation:landscape`만으로는 세로가
+ * 넉넉한 태블릿 가로 모드까지 잡아버린다 — `max-height`를 반드시 같이 건다).
+ * 세로 여유가 없으니 위(상단바)·아래(조작판·HUD·독) 세 군데를 동시에 줄여
+ * 가운데 게임 화면 몫을 되찾는다. **정확한 여백은 실기기에서 다시 잴 것**
+ * — 여기 값은 기존 560px 규칙의 축소 비율을 그대로 옮긴 어림값이다. */
+@media (orientation: landscape) and (max-height: 500px) {
+  #top { padding: calc(4px + var(--safe-t)) 8px 0; gap: 4px; }
+  .avatar { width: 32px; height: 32px; }
+  .avatar i { font-size: 14px; }
+  .p-bars { margin-top: 2px; }
+  #autobar { top: calc(60px + var(--safe-t)); }
+
+  #dock { bottom: calc(6px + var(--safe-b)); gap: 6px; }
+  #dock button { width: 46px; height: 46px; border-radius: 15px; }
+  #dock button span { font-size: 17px; }
+  #dock button small { font-size: 8px; }
+
+  #hud { bottom: calc(6px + var(--safe-b)); }
+  .hud-card { padding: 6px 9px; }
+  .hud-sk { width: 38px; height: 38px; border-radius: 12px; }
+  .hud-sk b { font-size: 16px; }
+
+  /* 조작판(◀▶·▲▼) — 단추를 줄이고 HUD 가 낮아진 만큼 바닥에 더 붙인다 */
+  .pad-l, .pad-r { bottom: calc(84px + var(--safe-b)); gap: 8px; }
+  .pad-btn { width: 44px; height: 44px; font-size: 16px; }
+}
+
 /* 손가락에는 :hover 가 없다 — 뜬 채로 굳는 것을 막는다 */
 @media (hover: none) {
   .icon-btn:hover, #dock button:hover, .hud-sk:hover, .btn:hover:not(:disabled) {
