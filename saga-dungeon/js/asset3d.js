@@ -277,6 +277,101 @@
     { key: 'ppwide_wizard', body: PEOPLE_PP_WIDE + 'Wizard.glb', anim: PEOPLE_PP_WIDE + 'Wizard.glb' }
   ]);
 
+  /* 2026-09-09(이어서) — "다른 곳도 찾아봐" — poly.pizza를 벗어나 다른
+     CC0 출처를 훑다가 Kenney 공식 사이트(`kenney.nl`)에 아직 안 쓴
+     사람 캐릭터 팩이 있는 걸 찾았다. `Animated Characters Protagonists`
+     (`kenney.nl/assets/animated-characters-protagonists`)는 FBX만 주고
+     클립도 idle·jump·run 셋뿐이라(이 판에 FBX→glTF 변환 도구가 없다,
+     `Blocky Characters` 절 참고와 같은 이유) 보류. `Mini Characters`
+     (`kenney.nl/assets/mini-characters`, CC0, 12벌 — female-a~f·
+     male-a~f)는 **GLB 형식을 직접 준다**(`Models/GLB format/`), 클립도
+     32개(`static`·`idle`·`walk`·`sprint`·`attack-melee-*`·`die`·
+     `emote-*`·`interact-*`·`wheelchair-*` 등) — `Blocky Characters`와
+     똑같은 낱말표라 `mapClips()` 그대로 받는다(리타깃 불필요).
+     **원본은 텍스처가 GLB 밖(`Textures/colormap.png`, 캐릭터 12벌이
+     공유)에 있어** `tools/glb-compress`가 그 상대경로를 못 찾고 처음엔
+     실패했다 — 압축 전에 그 텍스처를 같은 폴더에 잠깐 복사해 두고
+     압축(그 과정에서 텍스처가 GLB 안으로 박힌다), 끝난 뒤 이제 안
+     쓰는 원본 `Textures/` 폴더는 지웠다(`Blocky Characters`도 폴더에
+     안 남아 있는 것과 같은 모양). */
+  var PEOPLE_KENNEY_MINI = 'assets/models/people/kenney_mini/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['female-a', 'female-b', 'female-c', 'female-d', 'female-e', 'female-f',
+      'male-a', 'male-b', 'male-c', 'male-d', 'male-e', 'male-f'].map(function (n) {
+      var f = PEOPLE_KENNEY_MINI + 'character-' + n + '.glb';
+      return { key: 'kmini_' + n, body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서) — "다른 곳도 찾아봐"를 계속. OpenGameArt.org의
+     Quaternius 업로더 페이지(`opengameart.org/content/all-cc0-uploader-
+     quaternius`)에서 poly.pizza에는 없던 큰 팩을 찾았다 — poly.pizza가
+     자체 CDN(glTF/GLB 직접)으로 갈아탄 뒤에도 OpenGameArt엔 예전 원본
+     업로드(Blend/FBX/OBJ만)가 그대로 남아 있다.
+     **이 판엔 FBX→glTF 변환 도구가 없어 여태 보류해 왔는데**(다른
+     FBX 전용 자산 항목들 참고), npm 패키지 `fbx2gltf`(페이스북 공식
+     `FBX2glTF` 바이너리를 감싼 것)를 세션 스크래치 폴더에 설치해
+     실제로 돌려 보니 **한 번에 깨끗하게 변환됐다**(스켈레톤·클립
+     이름·개수 그대로, `gltf-transform inspect`로도 정상 검증) — 이제
+     이 갈래가 막혀 있던 게 아니라 "도구를 안 갖췄던 것"뿐이었다.
+     이 저장소엔 도구 자체를 커밋하지 않았다(세션 스크래치에서만
+     썼다, `tools/glb-compress`처럼 상시 도구로 두려면 다음에 정식으로
+     들일 것) — 변환된 결과 GLB만 커밋한다.
+
+     `Ultimate Animated Character Pack`(Quaternius, CC0,
+     `opengameart.org/content/animated-characters-pack`, 48.4MB zip)은
+     50벌 넘게(휴먼·엘프·좀비·닌자·카우보이·고블린 등) 들어 있다.
+     사람형 중 다양한 15벌만 골랐다(좀비·고블린·소품(모자·머리카락
+     단품)·이미 가진 것과 너무 겹치는 Casual/Soldier류는 제외):
+     Elf·Wizard·Witch·Doctor_Male_Old·Doctor_Female_Young·Cowboy_Male·
+     Cowboy_Female·Chef_Male·Kimono_Female·Viking_Male·Pirate_Female·
+     OldClassy_Male·Knight_Golden_Male·Ninja_Sand·Suit_Male. 클립
+     11개씩(Defeat·Idle·PickUp·Punch·RecieveHit·Shoot_OneHanded·
+     SitDown·StandUp·Victory·Walk·Walk_Carry) — `mapClips()`가 death·
+     idle·interaction·attack·hit·walk를 실제 클립으로, run·sprint·
+     dodge는 walk로 채운다. */
+  var PEOPLE_OGA_ULTIMATE = 'assets/models/people/oga_ultimate/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Elf', 'Wizard', 'Witch', 'Doctor_Male_Old', 'Doctor_Female_Young',
+      'Cowboy_Male', 'Cowboy_Female', 'Chef_Male', 'Kimono_Female', 'Viking_Male',
+      'Pirate_Female', 'OldClassy_Male', 'Knight_Golden_Male', 'Ninja_Sand', 'Suit_Male'].map(function (n) {
+      var f = PEOPLE_OGA_ULTIMATE + n + '.glb';
+      return { key: 'ogau_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서) — 사용자 요청("나머지 20벌도 마저 등록해줘")으로
+     `Ultimate Animated Character Pack`에서 안 쓰고 남겨 뒀던 사람형을
+     마저 등록한다(실제로는 27벌 — 좀비·고블린·동물(Cow·Pug)·소품 단품
+     (Chef_Hat·Cowboy_Hair·Ninja_Male_Hair·VikingHelmet)만 빼면 이만큼
+     남는다). 같은 팩·같은 클립 11개(위 15벌과 동일한 `CharacterArmature|
+     Defeat·Idle·PickUp·Punch·RecieveHit·Shoot_OneHanded·SitDown·
+     StandUp·Victory·Walk·Walk_Carry`) — 변환·검증 방식도 동일. */
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['BaseCharacter', 'BlueSoldier_Female', 'BlueSoldier_Male', 'Casual_Bald',
+      'Casual_Female', 'Casual_Male', 'Casual2_Female', 'Casual2_Male',
+      'Casual3_Female', 'Casual3_Male', 'Chef_Female', 'Doctor_Female_Old',
+      'Doctor_Male_Young', 'Kimono_Male', 'Knight_Golden_Female', 'Knight_Male',
+      'Ninja_Female', 'Ninja_Male', 'Ninja_Sand_Female', 'OldClassy_Female',
+      'Pirate_Male', 'Soldier_Female', 'Soldier_Male', 'Suit_Female',
+      'Viking_Female', 'Worker_Female', 'Worker_Male'].map(function (n) {
+      var f = PEOPLE_OGA_ULTIMATE + n + '.glb';
+      return { key: 'ogau_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
+  /* 2026-09-09(이어서) — 같은 업로더 페이지의 `LowPoly Animated Knight`
+     (`opengameart.org/content/lowpoly-animated-knight`, CC0, 2.5MB) —
+     poly.pizza·itch.io 양쪽 다 결제/변환 문제로 막혀 있던 바로 그
+     Knight를 OpenGameArt 원본에서 우회해 받았다. `HumanArmature|*`
+     낱말표(위 팩과는 다른 계열), 클립 12개(Death·Idle·
+     Idle_swordLeft/Right·Jump·Roll·Roll_sword·Run·Run_swordAttack/
+     Right·swordAttackJump·Walking). */
+  var PEOPLE_OGA_KNIGHT = 'assets/models/people/oga_knight/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    { key: 'ogaknight_char', body: PEOPLE_OGA_KNIGHT + 'KnightCharacter.glb', anim: PEOPLE_OGA_KNIGHT + 'KnightCharacter.glb' }
+  ]);
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

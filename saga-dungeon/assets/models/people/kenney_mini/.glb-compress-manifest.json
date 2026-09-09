@@ -1,0 +1,62 @@
+{
+  "character-female-a.glb": {
+    "size": 66608,
+    "result": "ok",
+    "at": "2026-09-09T10:01:56.043Z"
+  },
+  "character-female-b.glb": {
+    "size": 64600,
+    "result": "ok",
+    "at": "2026-09-09T10:01:56.722Z"
+  },
+  "character-female-c.glb": {
+    "size": 64436,
+    "result": "ok",
+    "at": "2026-09-09T10:01:57.418Z"
+  },
+  "character-female-d.glb": {
+    "size": 65444,
+    "result": "ok",
+    "at": "2026-09-09T10:01:58.085Z"
+  },
+  "character-female-e.glb": {
+    "size": 64112,
+    "result": "ok",
+    "at": "2026-09-09T10:01:58.791Z"
+  },
+  "character-female-f.glb": {
+    "size": 65300,
+    "result": "ok",
+    "at": "2026-09-09T10:01:59.576Z"
+  },
+  "character-male-a.glb": {
+    "size": 63808,
+    "result": "ok",
+    "at": "2026-09-09T10:02:00.328Z"
+  },
+  "character-male-b.glb": {
+    "size": 63656,
+    "result": "ok",
+    "at": "2026-09-09T10:02:01.020Z"
+  },
+  "character-male-c.glb": {
+    "size": 66088,
+    "result": "ok",
+    "at": "2026-09-09T10:02:01.703Z"
+  },
+  "character-male-d.glb": {
+    "size": 63860,
+    "result": "ok",
+    "at": "2026-09-09T10:02:02.426Z"
+  },
+  "character-male-e.glb": {
+    "size": 63572,
+    "result": "ok",
+    "at": "2026-09-09T10:02:03.117Z"
+  },
+  "character-male-f.glb": {
+    "size": 64200,
+    "result": "ok",
+    "at": "2026-09-09T10:02:03.796Z"
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "Chef_Male.glb": {
+    "size": 158752,
+    "result": "ok",
+    "at": "2026-09-09T10:10:35.829Z"
+  },
+  "Cowboy_Female.glb": {
+    "size": 174620,
+    "result": "ok",
+    "at": "2026-09-09T10:10:36.576Z"
+  },
+  "Cowboy_Male.glb": {
+    "size": 146908,
+    "result": "ok",
+    "at": "2026-09-09T10:10:37.300Z"
+  },
+  "Doctor_Female_Young.glb": {
+    "size": 179256,
+    "result": "ok",
+    "at": "2026-09-09T10:10:38.035Z"
+  },
+  "Doctor_Male_Old.glb": {
+    "size": 154460,
+    "result": "ok",
+    "at": "2026-09-09T10:10:38.794Z"
+  },
+  "Elf.glb": {
+    "size": 139120,
+    "result": "ok",
+    "at": "2026-09-09T10:10:39.596Z"
+  },
+  "Kimono_Female.glb": {
+    "size": 182852,
+    "result": "ok",
+    "at": "2026-09-09T10:10:40.369Z"
+  },
+  "Knight_Golden_Male.glb": {
+    "size": 144292,
+    "result": "ok",
+    "at": "2026-09-09T10:10:41.076Z"
+  },
+  "Ninja_Sand.glb": {
+    "size": 140708,
+    "result": "ok",
+    "at": "2026-09-09T10:10:41.827Z"
+  },
+  "OldClassy_Male.glb": {
+    "size": 161848,
+    "result": "ok",
+    "at": "2026-09-09T10:10:42.544Z"
+  },
+  "Pirate_Female.glb": {
+    "size": 193484,
+    "result": "ok",
+    "at": "2026-09-09T10:10:43.310Z"
+  },
+  "Suit_Male.glb": {
+    "size": 167176,
+    "result": "ok",
+    "at": "2026-09-09T10:10:44.036Z"
+  },
+  "Viking_Male.glb": {
+    "size": 172260,
+    "result": "ok",
+    "at": "2026-09-09T10:10:44.781Z"
+  },
+  "Witch.glb": {
+    "size": 173356,
+    "result": "ok",
+    "at": "2026-09-09T10:10:45.496Z"
+  },
+  "Wizard.glb": {
+    "size": 170012,
+    "result": "ok",
+    "at": "2026-09-09T10:10:46.215Z"
+  },
+  "BaseCharacter.glb": {
+    "size": 119204,
+    "result": "ok",
+    "at": "2026-09-09T10:25:57.091Z"
+  },
+  "BlueSoldier_Female.glb": {
+    "size": 172428,
+    "result": "ok",
+    "at": "2026-09-09T10:25:57.850Z"
+  },
+  "BlueSoldier_Male.glb": {
+    "size": 142588,
+    "result": "ok",
+    "at": "2026-09-09T10:25:58.551Z"
+  },
+  "Casual2_Female.glb": {
+    "size": 166348,
+    "result": "ok",
+    "at": "2026-09-09T10:25:59.260Z"
+  },
+  "Casual2_Male.glb": {
+    "size": 140060,
+    "result": "ok",
+    "at": "2026-09-09T10:26:00.055Z"
+  },
+  "Casual3_Female.glb": {
+    "size": 178216,
+    "result": "ok",
+    "at": "2026-09-09T10:26:00.859Z"
+  },
+  "Casual3_Male.glb": {
+    "size": 152128,
+    "result": "ok",
+    "at": "2026-09-09T10:26:01.611Z"
+  },
+  "Casual_Bald.glb": {
+    "size": 130504,
+    "result": "ok",
+    "at": "2026-09-09T10:26:02.320Z"
+  },
+  "Casual_Female.glb": {
+    "size": 166172,
+    "result": "ok",
+    "at": "2026-09-09T10:26:03.034Z"
+  },
+  "Casual_Male.glb": {
+    "size": 164348,
+    "result": "ok",
+    "at": "2026-09-09T10:26:03.751Z"
+  },
+  "Chef_Female.glb": {
+    "size": 182180,
+    "result": "ok",
+    "at": "2026-09-09T10:26:04.508Z"
+  },
+  "Doctor_Female_Old.glb": {
+    "size": 166908,
+    "result": "ok",
+    "at": "2026-09-09T10:26:05.234Z"
+  },
+  "Doctor_Male_Young.glb": {
+    "size": 165748,
+    "result": "ok",
+    "at": "2026-09-09T10:26:05.967Z"
+  },
+  "Kimono_Male.glb": {
+    "size": 130212,
+    "result": "ok",
+    "at": "2026-09-09T10:26:06.673Z"
+  },
+  "Knight_Golden_Female.glb": {
+    "size": 169944,
+    "result": "ok",
+    "at": "2026-09-09T10:26:07.388Z"
+  },
+  "Knight_Male.glb": {
+    "size": 142408,
+    "result": "ok",
+    "at": "2026-09-09T10:26:08.115Z"
+  },
+  "Ninja_Female.glb": {
+    "size": 175352,
+    "result": "ok",
+    "at": "2026-09-09T10:26:08.827Z"
+  },
+  "Ninja_Male.glb": {
+    "size": 140592,
+    "result": "ok",
+    "at": "2026-09-09T10:26:09.555Z"
+  },
+  "Ninja_Sand_Female.glb": {
+    "size": 175348,
+    "result": "ok",
+    "at": "2026-09-09T10:26:10.279Z"
+  },
+  "OldClassy_Female.glb": {
+    "size": 172452,
+    "result": "ok",
+    "at": "2026-09-09T10:26:10.988Z"
+  },
+  "Pirate_Male.glb": {
+    "size": 141032,
+    "result": "ok",
+    "at": "2026-09-09T10:26:11.700Z"
+  },
+  "Soldier_Female.glb": {
+    "size": 172436,
+    "result": "ok",
+    "at": "2026-09-09T10:26:12.428Z"
+  },
+  "Soldier_Male.glb": {
+    "size": 142868,
+    "result": "ok",
+    "at": "2026-09-09T10:26:13.169Z"
+  },
+  "Suit_Female.glb": {
+    "size": 168984,
+    "result": "ok",
+    "at": "2026-09-09T10:26:13.884Z"
+  },
+  "Viking_Female.glb": {
+    "size": 181236,
+    "result": "ok",
+    "at": "2026-09-09T10:26:14.615Z"
+  },
+  "Worker_Female.glb": {
+    "size": 162100,
+    "result": "ok",
+    "at": "2026-09-09T10:26:15.328Z"
+  },
+  "Worker_Male.glb": {
+    "size": 133396,
+    "result": "ok",
+    "at": "2026-09-09T10:26:16.017Z"
+  }
+}
