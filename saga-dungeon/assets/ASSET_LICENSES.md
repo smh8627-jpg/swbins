@@ -1576,8 +1576,34 @@ Roll_sword·Run·Run_swordAttack/Right·swordAttackJump·Walking).
 `assets/models/people/oga_knight/`에 둠, 압축(0.4MB→0.1MB).
 `HERO_RECIPES_LIGHT`에 `ogaknight_char`로 등록.
 
-**90→106종 — "캐릭터 100개" 목표 달성, 여유분 포함.** 이 트랙은 여기서
-갈무리한다. `Ultimate Animated Character Pack`에 아직 안 쓴 사람형이
-20벌 넘게 남아 있어(BlueSoldier·Casual2/3·Goblin·Pirate_Male·
-Soldier·Viking_Female·Zombie 등), 나중에 더 늘리고 싶으면 같은 zip
-(스크래치에 안 남아 있으면 위 URL로 재다운로드)에서 마저 고르면 된다.
+**90→106종 — "캐릭터 100개" 목표 달성, 여유분 포함.** `Ultimate
+Animated Character Pack`에 아직 안 쓴 사람형이 20벌 넘게 남아 있어
+(BlueSoldier·Casual2/3·Goblin·Pirate_Male·Soldier·Viking_Female·
+Zombie 등), 나중에 더 늘리고 싶으면 같은 zip(스크래치에 안 남아
+있으면 위 URL로 재다운로드)에서 마저 고르면 된다.
+
+## 캐릭터 13차분 — Ultimate Animated Character Pack 나머지 27벌 마저 (2026-09-09, 같은 세션 이어서)
+
+사용자 요청("나머지 20벌도 마저 등록해줘")으로 위 팩에서 안 쓰고
+남겨 뒀던 사람형을 전부 등록했다(세어 보니 27벌 — 좀비 2·고블린 2·
+동물(Cow·Pug) 2·소품 단품(Chef_Hat·Cowboy_Hair·Ninja_Male_Hair·
+VikingHelmet) 4개만 빼면 이만큼 남았다): BaseCharacter·
+BlueSoldier_Female/Male·Casual_Bald·Casual_Female/Male·
+Casual2_Female/Male·Casual3_Female/Male·Chef_Female·
+Doctor_Female_Old·Doctor_Male_Young·Kimono_Male·
+Knight_Golden_Female·Knight_Male·Ninja_Female/Male·
+Ninja_Sand_Female·OldClassy_Female·Pirate_Male·
+Soldier_Female/Male·Suit_Female·Viking_Female·Worker_Female/Male.
+
+같은 팩·같은 클립 11개(`CharacterArmature|Defeat·Idle·PickUp·Punch·
+RecieveHit·Shoot_OneHanded·SitDown·StandUp·Victory·Walk·Walk_Carry`),
+같은 `fbx2gltf`(세션 스크래치, 저장소엔 미커밋) 변환 경로 — 27벌 전부
+변환 종료 코드 0, 클립 개수 그대로 확인(3벌 표본 검사).
+
+`assets/models/people/oga_ultimate/`(기존 폴더에 이어 씀)에 둠,
+`tools/glb-compress`로 압축(신규 27벌만 처리, 기존 15벌은 매니페스트로
+건너뜀 — 17.5MB→6.4MB, 63% 감소). `HERO_RECIPES_LIGHT`에 `ogau_*`로
+등록 — **106→133종**.
+
+이걸로 `Ultimate Animated Character Pack`의 사람형(좀비·고블린 제외)
+42벌을 전부 썼다. 좀비 2·고블린 2는 몬스터 트랙 후보로 남겨 둠.

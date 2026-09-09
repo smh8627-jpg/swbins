@@ -340,6 +340,26 @@
     })
   );
 
+  /* 2026-09-09(이어서) — 사용자 요청("나머지 20벌도 마저 등록해줘")으로
+     `Ultimate Animated Character Pack`에서 안 쓰고 남겨 뒀던 사람형을
+     마저 등록한다(실제로는 27벌 — 좀비·고블린·동물(Cow·Pug)·소품 단품
+     (Chef_Hat·Cowboy_Hair·Ninja_Male_Hair·VikingHelmet)만 빼면 이만큼
+     남는다). 같은 팩·같은 클립 11개(위 15벌과 동일한 `CharacterArmature|
+     Defeat·Idle·PickUp·Punch·RecieveHit·Shoot_OneHanded·SitDown·
+     StandUp·Victory·Walk·Walk_Carry`) — 변환·검증 방식도 동일. */
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['BaseCharacter', 'BlueSoldier_Female', 'BlueSoldier_Male', 'Casual_Bald',
+      'Casual_Female', 'Casual_Male', 'Casual2_Female', 'Casual2_Male',
+      'Casual3_Female', 'Casual3_Male', 'Chef_Female', 'Doctor_Female_Old',
+      'Doctor_Male_Young', 'Kimono_Male', 'Knight_Golden_Female', 'Knight_Male',
+      'Ninja_Female', 'Ninja_Male', 'Ninja_Sand_Female', 'OldClassy_Female',
+      'Pirate_Male', 'Soldier_Female', 'Soldier_Male', 'Suit_Female',
+      'Viking_Female', 'Worker_Female', 'Worker_Male'].map(function (n) {
+      var f = PEOPLE_OGA_ULTIMATE + n + '.glb';
+      return { key: 'ogau_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-09(이어서) — 같은 업로더 페이지의 `LowPoly Animated Knight`
      (`opengameart.org/content/lowpoly-animated-knight`, CC0, 2.5MB) —
      poly.pizza·itch.io 양쪽 다 결제/변환 문제로 막혀 있던 바로 그
