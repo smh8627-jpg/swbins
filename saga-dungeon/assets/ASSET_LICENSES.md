@@ -1421,4 +1421,35 @@ Woman 단품)는 poly.pizza 미러가 없고 전부 Google Drive 폴더로만
 `drive.google.com/drive/folders/1XQ3UpQezkOFDdazv6KK16qp3mBXhO9uO`),
 개별 파일이 `.mp4` 미리보기·확인 페이지가 섞여 있어 어떤 게 실제
 `.glb`인지 신뢰성 있게 가려내려면 더 손이 간다 — 다음에 이어갈 때
-여기부터.
+여기부터. `quaternius.itch.io`의 개별 팩(예: `lowpoly-animated-knight`,
+CC0 확인됨)도 "이름값 지불"식이라 페이지에 직접 다운로드 링크가 없고
+itch.io 결제/받기 흐름(세션·CSRF)을 거쳐야 해 스크립트로는 못 받았다
+— 사용자가 UAL2·Universal Base Characters 때처럼 직접 받아 전달해
+주면 바로 쓸 수 있다.
+
+## 캐릭터 9차분 — "Hazmat" 두 작가, 두 몸 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/search/hazmat`에서 같은 방호복 컨셉을 서로 다른 작가
+둘에게서 찾았다 — 몸(리그)이 서로 다르므로 둘 다 등록.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Character Hazmat | `poly.pizza/m/z3TSQYx1Kn` → `static.poly.pizza/484450a4-b76c-4e76-95d2-352337bb41e8.glb` | Quaternius | CC0 |
+| Hazmat Man | `poly.pizza/m/y2ygMH3VYx` → `static.poly.pizza/b18bedd3-8afe-45fa-b1f5-43288396cb5d.glb` | Charlie | CC-BY 3.0 |
+
+Character Hazmat은 클립 17개(`CharacterArmature|*`, 안 깨짐 — Pirate kit
+문제 대조 확인). Hazmat Man은 클립이 `idle`·`run_anydirection`·`death`
+셋뿐이라 얇지만(공격·피격은 FALLBACK으로 idle 대체) 실존하고 몸도
+확연히 다르다.
+
+같은 검색에서 걸린 "Blocks Humanoid"(3Donimus)·"Character Base"·
+"Low Poly human with tabard"는 poly.pizza가 "Animated" 태그를 달아
+뒀지만 실제 GLB엔 애니메이션 클립이 **0개**였다(직접 파싱해 확인) —
+스킵. 이 판단 근거를 남겨 둔다: **poly.pizza의 "Animated" 태그는
+신뢰할 수 없다** — 다운로드해서 GLB JSON 청크의 `animations` 배열을
+직접 세어 보기 전까진 등록하지 않는다(이번 세션 내내 지켜온 방식,
+공식화해 적어 둠).
+
+`assets/models/people/polypizza_hazmat/`에 둠, `tools/glb-compress`로
+압축(2.1MB→0.5MB, 78% 감소). `HERO_RECIPES_LIGHT`에 `pphazmat_*`로
+등록 — **74→76종**.

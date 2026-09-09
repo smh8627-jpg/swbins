@@ -244,6 +244,20 @@
     { key: 'ppapoc_lis', body: PEOPLE_PP_APOC + 'Lis.glb', anim: PEOPLE_PP_APOC + 'Lis.glb' }
   ]);
 
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. poly.pizza `/search/hazmat`
+     에서 같은 방호복 컨셉을 두 작가에게서 찾았다 — 서로 다른 몸(리그)이라
+     따로 등록. `Character Hazmat`(Quaternius, CC0)은 클립 17개
+     (CharacterArmature|* 계열, 안 깨짐) — 다른 Quaternius 팩과 같은
+     수준. `Hazmat Man`(Charlie, CC-BY 3.0)은 클립이 idle·
+     run_anydirection·death 셋뿐이라 얇지만(공격·피격은 FALLBACK으로
+     idle 대체) 실제로 존재하고 몸도 확연히 다르다(작가가 달라 스타일이
+     다름) — 등록. */
+  var PEOPLE_PP_HAZMAT = 'assets/models/people/polypizza_hazmat/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    { key: 'pphazmat_char', body: PEOPLE_PP_HAZMAT + 'CharHazmat.glb', anim: PEOPLE_PP_HAZMAT + 'CharHazmat.glb' },
+    { key: 'pphazmat_man', body: PEOPLE_PP_HAZMAT + 'HazmatMan.glb', anim: PEOPLE_PP_HAZMAT + 'HazmatMan.glb' }
+  ]);
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/
