@@ -258,6 +258,25 @@
     { key: 'pphazmat_man', body: PEOPLE_PP_HAZMAT + 'HazmatMan.glb', anim: PEOPLE_PP_HAZMAT + 'HazmatMan.glb' }
   ]);
 
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. 검색어를 훨씬 넓혀(queen·
+     sniper·medic·assassin·paladin·gladiator·boxer·orc·angel·demon·
+     superhero·teacher·swordsman·mercenary·sorcerer·barbarian·elf·dwarf·
+     사장 40여 개) 훑었다 — 대부분 poly.pizza가 "Animated" 태그를 달아
+     둔 것도 실제로 받아 보면 클립이 0개였다(Female Fighter·Supersup·
+     King(2번째 개체)·Voxel Character Male·OLDMAN·Student·Soldier
+     (madtrollstudio)·Tiny Mage 등 — 전부 스킵). 그물을 넓혀 실제로
+     쓸 수 있던 건 둘뿐: */
+  var PEOPLE_PP_WIDE = 'assets/models/people/polypizza_wide/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    /* "superhero" 검색 → Character Soldier(Quaternius, CC0). 클립 14개,
+       CharacterArmature|* 계열, 안 깨짐. */
+    { key: 'ppwide_soldier', body: PEOPLE_PP_WIDE + 'CharSoldier.glb', anim: PEOPLE_PP_WIDE + 'CharSoldier.glb' },
+    /* "druid" 검색(엉뚱한 검색어에 걸림) → Wizard(Quaternius, CC0). 클립
+       9개(Idle·Walk·Death·HitRecieve·Dance·Bite_Front 등) — attack 슬롯은
+       못 채워 FALLBACK(→interaction→idle)으로 간다. */
+    { key: 'ppwide_wizard', body: PEOPLE_PP_WIDE + 'Wizard.glb', anim: PEOPLE_PP_WIDE + 'Wizard.glb' }
+  ]);
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

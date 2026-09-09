@@ -1453,3 +1453,39 @@ Character Hazmat은 클립 17개(`CharacterArmature|*`, 안 깨짐 — Pirate ki
 `assets/models/people/polypizza_hazmat/`에 둠, `tools/glb-compress`로
 압축(2.1MB→0.5MB, 78% 감소). `HERO_RECIPES_LIGHT`에 `pphazmat_*`로
 등록 — **74→76종**.
+
+## 캐릭터 10차분 — 검색어를 넓혀서 (2026-09-09, 같은 세션 이어서)
+
+사용자 요청("poly.pizza 검색 더 넓혀서 계속")으로 queen·sniper·medic·
+assassin·paladin·gladiator·boxer·wrestler·santa·orc·troll·giant·angel·
+demon·superhero·teacher·lawyer·artist·musician·swordsman·mercenary·
+bandit·thief·blacksmith·alchemist·sorcerer·barbarian·peasant·wizard·
+necromancer·guard·hunter·druid·elf·dwarf·mummy·sheriff·bride·groom·
+cook·librarian·pilot·captain·general·commander·villager·merchant 약
+48개 검색어를 훑었다.
+
+**핵심 발견 — poly.pizza의 "Animated" 태그는 못 믿는다.** 이 라운드에서
+"Animated" 태그가 달린 후보 10여 개를 실제로 받아 GLB JSON 청크의
+`animations` 배열을 직접 세어 봤는데 **대부분 0개**였다(Female
+Fighter·Supersup·King 2번째 개체·Voxel Character Male·OLDMAN·
+Student·Soldier by madtrollstudio·Tiny Mage — 전부 스킵). 태그만 보고
+등록하면 안 되고 반드시 다운로드해서 직접 세어야 한다는 걸 이 세션
+내내 지켜 온 방식이 맞았음을 재확인.
+
+실제로 클립이 있던 건 둘, 둘 다 Quaternius·CC0:
+
+| 자산 | 걸린 검색어 | 받은 곳 | 클립 |
+|---|---|---|---|
+| Character Soldier | superhero | `poly.pizza/m/PpLF4rt4ah` → `static.poly.pizza/1083c1d3-d1d4-4682-adf6-bc516d06ac84.glb` | 14개, `CharacterArmature|*`, 안 깨짐 |
+| Wizard | druid(엉뚱한 검색어) | `poly.pizza/m/o87Upt5uHX` → `static.poly.pizza/d206c071-7934-40eb-9091-35ebdf93c317.glb` | 9개(Idle·Walk·Death·HitRecieve·Dance·Bite_Front 등) — attack 슬롯 없어 FALLBACK |
+
+`assets/models/people/polypizza_wide/`에 둠, `tools/glb-compress`로
+압축(1.4MB→0.4MB). `HERO_RECIPES_LIGHT`에 `ppwide_*`로 등록 —
+**76→78종**.
+
+**남은 전략** — poly.pizza 개별 검색은 Quaternius 것 아니면 거의
+전멸(다른 작가는 애니메이션 없는 정지 메시가 압도적으로 많다)이라
+수율이 계속 떨어지고 있다. 다음에 이어갈 실질적인 방법은 앞 절에
+적어 둔 두 갈래(Quaternius 공식 사이트의 Google Drive 배포,
+quaternius.itch.io의 결제 흐름 뒤에 있는 팩들)를 사용자가 직접
+받아 전달해 주는 것 — 검색으로는 이 근처가 한계에 가깝다.
