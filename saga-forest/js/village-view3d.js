@@ -254,7 +254,10 @@
        하나뿐인 고정 건물이라 나무처럼 변종을 섞지 않는다 */
     shop: 'building:shop', board: 'building:board', home: 'building:home',
     mail: 'building:mail', tailor: 'building:tailor', pole: 'building:pole',
-    museum: 'building:museum'
+    museum: 'building:museum',
+    /* 캠프 오두막(2026-09-09) — village.js buildProps() 의 hamletHouse kind 를
+       그대로 타고 선다. 마을 건물과 같은 결(변종 없음, 자리 하나뿐) */
+    hamletHouse: 'building:hamletHouse'
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
@@ -266,7 +269,10 @@
     /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
        비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
-    shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4
+    shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4,
+    /* House_2(Quaternius) — 마을 건물(house_wooden 등, 3.0~3.4m)보다 한 단
+       작게 잡아 "캠프의 소박한 오두막" 느낌을 준다 */
+    hamletHouse: 2.4
   };
 
   /**

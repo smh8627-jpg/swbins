@@ -500,8 +500,12 @@
       props.push({ id: 'waterfallRockR', kind: 'rock', x: wx + TILE * 0.9, y: wy + TILE * 0.2, deco: true });
     }
 
-    /* 작은 마을(PLAN 40절 PHASE 3 여섯 번째 칸) — 빈 캠프 하나. 사람은 아직
-       없다(PHASE 4 몫) */
+    /* 작은 마을(PLAN 40절 PHASE 3 여섯 번째 칸) — 캠프 하나. 상인(merchant) NPC는
+       buildNpcs() 가 세운다(PHASE 4). **2026-09-09 — 오두막(hamletHouse) 신설**,
+       House_1~4.glb(그동안 미사용, ASSET_LICENSES.md)를 처음 쓴다. 상인 뒤(더
+       북쪽)에 세워 "지나가다 만나는 빈 캠프"였던 곳이 "누가 사는 캠프"로 보이게
+       한다 — 위성 마을·집 다양화를 미뤄 둔 첫 걸음(README 2026-09-09 마을 3D
+       건물 항목 참고) */
     var hs = hamletSpot();
     if (hs) {
       var hx = hs.tx * TILE + TILE * 0.5, hy = hs.ty * TILE + TILE * 0.5;
@@ -513,6 +517,7 @@
       props.push({ id: 'hamletWell', kind: 'well', x: hx + TILE * 1.6, y: hy + TILE * 0.4, deco: true });
       props.push({ id: 'hamletLanternA', kind: 'lantern', x: hx - TILE * 1.8, y: hy + TILE * 0.2, deco: true });
       props.push({ id: 'hamletLanternB', kind: 'lantern', x: hx + TILE * 1.8, y: hy - TILE * 0.2, deco: true });
+      props.push({ id: 'hamletHouse', kind: 'hamletHouse', x: hx - TILE * 0.2, y: hy - TILE * 1.9, deco: true });
     }
 
     /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸 + PHASE 4 "Treasure") — 바위산·

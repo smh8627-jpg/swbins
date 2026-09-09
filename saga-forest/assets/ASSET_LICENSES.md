@@ -66,7 +66,7 @@
 
 | 파일 | 어느 팩 | 쓰이는 곳 |
 |---|---|---|
-| `House_1·2·3·4.glb` | `medieval_village_pack` | (당장은 미사용 — 다음에 위성 마을·다양화용 되돌림 자리) |
+| `House_1·2·3·4.glb` | `medieval_village_pack` | `House_2`는 숲 고리 캠프(hamletSpot)의 오두막(`hamletHouse`, 2026-09-09). 나머지 셋은 여전히 미사용 — 위성 마을·다양화용 되돌림 자리 |
 | `MarketStand_1.glb` | `medieval_village_pack` | **전방**(`shop`) |
 
 `models/animals/` — 새로 받은 것
