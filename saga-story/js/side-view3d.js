@@ -21,7 +21,7 @@
   var renderer = null, scene = null, camera = null, ready = false;
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
-  var playerMesh = null, enemyPool = [], npcPool = [], gatherPool = [];
+  var playerMesh = null, enemyPool = [], npcPool = [], gatherPool = [], critterPool = [];
   var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
   var lastDrawT = 0, frameDt = 0;   // 사람 GLB 의 몸짓(뼈대 애니메이션)을 굴리는 델타타임
 
@@ -363,7 +363,36 @@
     buildScenery(Tc, stg);
     rebuildNpcs(Tc, stg);
     rebuildGathers(Tc, stg);
+    rebuildCritters(Tc, stg);
     lastMood = stg.mood + '|' + stg.width;
+  }
+
+  var CRITTER_FLEE_R = 160, CRITTER_FLEE_SPD = 140, CRITTER_WANDER_SPD = 26;
+
+  /** 비전투 동물(PLAN 9절) — 안 싸운다. 들판·숲(mood sky/forest, town 아님)에만
+   *  세운다. 뼈대 애니메이션은 안 걸고(사슴·여우 GLB의 클립 이름을 이 판이
+   *  아직 안 다룬다) 그냥 미끄러지듯 움직인다 — 플레이어가 가까우면 달아나고,
+   *  아니면 제자리 둘레를 어슬렁댄다. 사냥·판정에는 전혀 안 닿는다 */
+  function rebuildCritters(Tc, stg) {
+    for (var j = 0; j < critterPool.length; j++) { actorGroup.remove(critterPool[j]); disposeDeep(critterPool[j]); }
+    critterPool = [];
+    if (stg.town || stg.mood === 'cave' || stg.mood === 'fire') { return; }
+    var kinds = ['critter:deer', 'critter:fox'];
+    for (var i = 0; i < kinds.length; i++) {
+      var x = 300 + (stg.width - 600) * ((i + 1) / (kinds.length + 1));
+      var holder = new Tc.Group();
+      var h = 40;
+      holder.position.set(x, 0, -35 - i * 20);
+      var prim = new Tc.Mesh(new Tc.CapsuleGeometry(h * 0.2, h * 0.4, 3, 6),
+        new Tc.MeshLambertMaterial({ color: 0x8a6a45 }));
+      prim.position.set(0, h * 0.36, 0);
+      holder.add(prim);
+      holder.userData.anchor = x;
+      holder.userData.phase = i * 2.1;
+      actorGroup.add(holder);
+      swapIn(holder, kinds[i], kinds[i] + ':' + x, h, stageGen);
+      critterPool.push(holder);
+    }
   }
 
   /** 필드 채집물(PLAN 10절) — `side.js` 의 `run.gathers`(살았는지·자리)와
@@ -595,6 +624,22 @@
        세웠으므로(rebuildGathers) 인덱스로 맞춘다 */
     for (i = 0; i < gatherPool.length && i < run.gathers.length; i++) {
       gatherPool[i].visible = run.gathers[i].alive;
+    }
+
+    /* 비전투 동물 — 플레이어가 다가오면 달아나고, 아니면 제자리를 어슬렁댄다.
+       anchor ±260 을 못 벗어나 화면 밖으로 영영 사라지지는 않는다 */
+    var pCenterX = p.x + S.P_W / 2;
+    for (i = 0; i < critterPool.length; i++) {
+      var cr = critterPool[i], cu = cr.userData;
+      var dx = cr.position.x - pCenterX;
+      var vx;
+      if (Math.abs(dx) < CRITTER_FLEE_R) {
+        vx = (dx >= 0 ? 1 : -1) * CRITTER_FLEE_SPD;
+      } else {
+        vx = Math.cos(now * 0.25 + cu.phase) * CRITTER_WANDER_SPD;
+      }
+      cr.position.x = Math.max(cu.anchor - 260, Math.min(cu.anchor + 260, cr.position.x + vx * frameDt));
+      cr.rotation.y = vx >= 0 ? Math.PI / 2 : -Math.PI / 2;
     }
 
     renderer.render(scene, camera);

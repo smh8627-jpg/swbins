@@ -74,7 +74,11 @@
     /* 몬스터 다양화 — 코끼리병처럼 몸집 큰 짐승형 적은 소 GLB 로 대신한다
        (딱 맞는 코끼리는 CC0 로 못 찾았다, 늑대만 쓰면 다 같은 크기·모양이 된다) */
     'beast': ANIMALS + 'Wolf.glb',
-    'beast_big': ANIMALS + 'Cow.glb'
+    'beast_big': ANIMALS + 'Cow.glb',
+    /* 비전투 동물(PLAN 9절, 2026-09-09) — 싸우지 않는 배경 짐승. saga-forest 가
+       이미 받아 둔 사슴·여우 GLB(같은 Quaternius Animals Pack)를 재사용한다 */
+    'critter:deer': ANIMALS + 'Deer.glb',
+    'critter:fox': ANIMALS + 'Fox.glb'
   };
 
   var REG = {};
