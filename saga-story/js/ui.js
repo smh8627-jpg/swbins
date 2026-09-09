@@ -163,6 +163,11 @@
         if (SF1) { SF1.setVibrateEnabled(!SF1.vibrateEnabled()); renderSheet(); }
         return;
       }
+      if (act === 'gq-set') {
+        var SV3 = global.DG.sideView3d;
+        if (SV3) { SV3.setQuality(b.getAttribute('data-level')); renderSheet(); }
+        return;
+      }
       if (act === 's-enter') {
         global.DG.side.enter(b.getAttribute('data-stage'));
       } else if (act === 's-leave') {
@@ -278,12 +283,12 @@
     dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정', settings: '⚙️ 설정'
   };
 
-  /** 2026-09-09(PLAN 30절) — 효과음·진동. BGM·그래픽 품질·조작 감도·화면 방향은
-   *  아직 없다(각각 실제 배경음악 곡·품질 손잡이·아날로그 입력이 먼저 있어야
-   *  뜻이 있는 자리라 뒤로 미뤘다 — 이 판의 조작은 방향키 넷뿐이라 "감도"가 걸릴
-   *  자리가 없다) */
+  /** 2026-09-09(PLAN 30절) — 효과음·진동·그래픽 품질. BGM·조작 감도·화면 방향은
+   *  아직 없다(실제 배경음악 곡과 아날로그 입력이 먼저 있어야 뜻이 있는 자리라
+   *  뒤로 미뤘다 — 이 판의 조작은 방향키 넷뿐이라 "감도"가 걸릴 자리가 없다) */
+  var QUALITY_LABEL = { auto: '자동', low: '낮음', medium: '보통', high: '높음' };
   function viewSettings() {
-    var SF = global.DG.sfx;
+    var SF = global.DG.sfx, SV3 = global.DG.sideView3d;
     if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
     var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
     var vib = SF.vibrateEnabled();
@@ -291,14 +296,28 @@
       ? '<div class="key-row"><b>진동</b>' +
         '<button data-act="vib-toggle">' + (vib ? '켜짐' : '꺼짐') + '</button></div>'
       : '<div class="hint">이 기기는 진동을 지원하지 않습니다</div>';
-    return '<div class="hint">소리·진동만 여기서 바꿉니다. 이동 키는 ⌨️ 키설정에 있습니다.</div>' +
+    var gq = '';
+    if (SV3 && SV3.available()) {
+      var cur = SV3.quality(), lv;
+      gq = '<div class="key-row"><b>그래픽 품질</b><span class="key-cur">' +
+        (cur === 'auto' ? '자동(' + QUALITY_LABEL[SV3.effectiveLevel()] + ')' : QUALITY_LABEL[cur]) +
+        '</span></div><div class="key-row" style="gap:6px">';
+      for (lv in QUALITY_LABEL) {
+        if (!Object.prototype.hasOwnProperty.call(QUALITY_LABEL, lv)) { continue; }
+        gq += '<button class="btn tiny' + (cur === lv ? ' primary' : ' ghost') +
+          '" data-act="gq-set" data-level="' + lv + '">' + QUALITY_LABEL[lv] + '</button>';
+      }
+      gq += '</div><div class="hint">낮음일수록 그림자를 끄고 화면 해상도를 줄여 가벼워집니다. ' +
+        '자동은 실제 프레임 속도를 보고 스스로 오갑니다.</div>';
+    }
+    return '<div class="hint">이동 키는 ⌨️ 키설정에 있습니다.</div>' +
       '<div class="key-row"><b>효과음</b>' +
         '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
       '<div class="key-row"><b>음량</b>' +
         '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
         (on ? '' : ' disabled') + '>' +
         '<span class="key-cur">' + vol + '%</span></div>' +
-      vibRow;
+      vibRow + gq;
   }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고

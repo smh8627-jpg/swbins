@@ -937,8 +937,12 @@
         ctx.lineWidth = 3;
         ctx.stroke();
       } else if (f.t === 'pop') {
+        /* 보스는 목숨을 0.9로 길게 잡는데(잡졸은 0.5) 이 반지름 식은 0.5부터
+           줄어든다고만 가정해 뒀었다 — 보스 pop 이 갓 생겨 0.9~0.5 사이인
+           동안은 음수가 나와 arc() 가 매 프레임 IndexSizeError 로 죽었다
+           (실기기에서 보스를 잡을 때마다 화면이 멈췄을 실제 버그, 2026-09-09 발견) */
         ctx.beginPath();
-        ctx.arc(x, f.y, 20 * (0.5 - f.life) * 2 + 6, 0, Math.PI * 2);
+        ctx.arc(x, f.y, Math.max(0, 20 * (0.5 - f.life) * 2 + 6), 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255,255,255,' + f.life + ')';
         ctx.lineWidth = 2;
         ctx.stroke();

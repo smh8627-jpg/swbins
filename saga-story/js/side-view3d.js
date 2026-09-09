@@ -106,6 +106,111 @@
     return ON();
   }
 
+  /**
+   * 그래픽 품질(PLAN 26·30절) — low/medium/high/auto. 다섯 판 형제 중
+   * `saga-dungeon/js/dungeon3d.js`의 QUALITY_PRESET·오토튜닝을 본떴지만,
+   * 이 판은 사냥터가 한 판씩 통째로 미리 지어지고 매 프레임 다시 짓는
+   * buildField() 류가 없어(구성-측정-등급변경의 되먹임 고리 자체가 없다)
+   * 그쪽의 빌드-프레임 제외·상승/하강 비대칭 쿨다운 같은 방어 장치는
+   * 덜어냈다 — 단순한 이동평균 + 한 단계씩만 옮기는 규칙 정도면 충분하다.
+   * 손잡이는 admin 의 균형 다이얼(core.tuned)이 아니라 **사용자 설정**
+   * (core.save.settings.quality)이다 — 소리·진동과 같은 자리에 있다.
+   */
+  var QUALITY_PRESET = {
+    low: { shadow: false, pixelRatio: 1 },
+    medium: { shadow: true, pixelRatio: 1.25 },
+    high: { shadow: true, pixelRatio: 1.75 }
+  };
+  function qSettings() {
+    var c = global.DG.core;
+    if (!c) { return { quality: 'auto' }; }
+    var s = c.save.settings || (c.save.settings = {});
+    if (s.quality !== 'low' && s.quality !== 'medium' && s.quality !== 'high' && s.quality !== 'auto') {
+      s.quality = 'auto';
+    }
+    return s;
+  }
+  function quality() { return qSettings().quality; }
+  function setQuality(v) {
+    var ok = (v === 'low' || v === 'medium' || v === 'high' || v === 'auto');
+    qSettings().quality = ok ? v : 'auto';
+    if (global.DG.core) { global.DG.core.persist(); }
+    return qSettings().quality;
+  }
+
+  /** 시작 등급을 기기 스펙으로 어림잡는다(코어 수·메모리·화면 픽셀·터치 여부) —
+   *  사가블로의 deviceScore()와 같은 채점, 첫 프레임이 무거워 실측이 늦게
+   *  시작되는 기기에서 처음부터 HIGH로 시작해 버벅이는 것을 막는다 */
+  /** 채점만 하는 순수 함수 — 자가진단이 실제 기기 없이 이 값으로 바로 잰다
+   *  (사가블로 dungeon3d.js 의 deviceScore(o) 와 같은 모양) */
+  function deviceScore(o) {
+    var cores = o.cores || 0, mem = o.mem || 0, px = o.px || 0;
+    var s = 0;
+    s += cores >= 8 ? 2 : (cores >= 4 ? 1 : (cores > 0 ? 0 : 1));
+    s += mem >= 8 ? 2 : (mem >= 4 ? 1 : (mem > 0 ? 0 : 1));
+    s += px > 4000000 ? -1 : (px > 1600000 ? 0 : 1);
+    if (o.touch) { s -= 1; }
+    return s;
+  }
+  /** 지금 이 기기 값을 읽어 온다 — deviceScore() 는 이 결과만 받아 채점한다 */
+  function probeDevice() {
+    var n = global.navigator || {}, sc = global.screen || {};
+    return {
+      cores: n.hardwareConcurrency || 0, mem: n.deviceMemory || 0,
+      px: (sc.width || 0) * (sc.height || 0) * (global.devicePixelRatio || 1) * (global.devicePixelRatio || 1),
+      touch: !!(('ontouchstart' in global) || (n.maxTouchPoints > 0))
+    };
+  }
+  function startLevelFor(s) { return s >= 3 ? 'high' : (s >= 1 ? 'medium' : 'low'); }
+  var LEVEL_ORDER = ['low', 'medium', 'high'];
+  function levelIdx(l) { var i = LEVEL_ORDER.indexOf(l); return i < 0 ? 2 : i; }
+  var autoLevel = startLevelFor(deviceScore(probeDevice()));   // AUTO 가 지금 고른 등급
+  var perfEma = 16.7;                             // 프레임 시간 이동평균(ms)
+  var lastLevelChangeT = 0;
+  var LEVEL_COOLDOWN_MS = 2000;                   // 문턱 근처에서 매 프레임 안 뒤집히게
+
+  /** 실측 ms 하나만 보면 어느 등급이 맞는지 — 순수 함수라 자가진단이 프레임 없이 본다 */
+  function autoLevelFor(ms) {
+    if (ms > 33) { return 'low'; }
+    if (ms > 20) { return 'medium'; }
+    return 'high';
+  }
+  function stepTowards(cur, ideal) {
+    var ci = levelIdx(cur), ii = levelIdx(ideal);
+    if (ii > ci) { return LEVEL_ORDER[ci + 1]; }
+    if (ii < ci) { return LEVEL_ORDER[ci - 1]; }
+    return cur;
+  }
+  /** 매 draw() 가 실제 프레임 간격(ms)을 넘겨준다 — 탭 전환 등으로 튄 값은
+   *  draw() 가 이미 0~250ms 로 잘라 넘기므로 여기서는 그대로 평균에 얹는다 */
+  function updatePerf(dtMs) {
+    if (!(dtMs > 0)) { return; }
+    perfEma = perfEma * 0.9 + dtMs * 0.1;
+    var next = stepTowards(autoLevel, autoLevelFor(perfEma));
+    var now = Date.now();
+    if (next !== autoLevel && now - lastLevelChangeT >= LEVEL_COOLDOWN_MS) {
+      autoLevel = next;
+      lastLevelChangeT = now;
+    }
+  }
+  /** quality() 가 low/medium/high 로 고정돼 있으면 그걸, 'auto' 면 방금 잰 등급 */
+  function effectiveLevel() {
+    var q = quality();
+    return (q === 'low' || q === 'medium' || q === 'high') ? q : autoLevel;
+  }
+  var lastAppliedLevel = null;
+  /** 등급이 실제로 바뀐 프레임에서만 렌더러를 건드린다 — 매 프레임 setPixelRatio 를
+   *  부르면(값이 같아도) 내부적으로 캔버스 크기를 다시 잰다, 공짜가 아니다 */
+  function applyQualityIfChanged() {
+    var lv = effectiveLevel();
+    if (lv === lastAppliedLevel || !renderer) { return; }
+    lastAppliedLevel = lv;
+    var pr = QUALITY_PRESET[lv];
+    renderer.shadowMap.enabled = pr.shadow;
+    renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, pr.pixelRatio));
+    if (dirLight) { dirLight.castShadow = pr.shadow; }
+  }
+
   function init(canvas) {
     var Tc = three();
     if (!Tc || !canvas) { ready = false; return false; }
@@ -564,6 +669,8 @@
     var now = Date.now() / 1000;
     frameDt = lastDrawT ? Math.max(0, Math.min(0.25, now - lastDrawT)) : 0;
     lastDrawT = now;
+    updatePerf(frameDt * 1000);
+    applyQualityIfChanged();
     var S = global.DG.side, SV = global.DG.sideView;
     var run = S.raw();
     if (!run) {
@@ -674,6 +781,12 @@
   global.DG = global.DG || {};
   global.DG.sideView3d = {
     init: init, draw: draw, resize: resize, ready: ready_,
-    available: available, active: active, toggle: toggle
+    available: available, active: active, toggle: toggle,
+    quality: quality, setQuality: setQuality,
+    /** 진단·설정 화면용 — 'auto' 일 때 지금 실제로 도는 등급 */
+    effectiveLevel: effectiveLevel,
+    /** 진단 전용 — 순수 함수들이라 실제 프레임·기기 없이 바로 잰다 */
+    _autoLevelFor: autoLevelFor, _deviceScore: deviceScore, _startLevelFor: startLevelFor,
+    _feedPerf: updatePerf, _perfEma: function () { return perfEma; }
   };
 })(window);
