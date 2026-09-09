@@ -111,7 +111,20 @@
     { key: 'r_talk', name: '민심 순회', need: 6, repeat: true,
       goal: { type: 'talk', n: 8 },
       desc: '아무 마을에서나 여덟 번 말을 걸어라.',
-      reward: { exp: 300, gold: 600, potion: 3 } }
+      reward: { exp: 300, gold: 600, potion: 3 } },
+
+    /* 일일 사명(PLAN 33절) — 되받는 사명과 달리 **하루에 한 번**만 바칠 수 있다
+       (quest.js 의 lastDoneDay 가 잠근다, repeat 는 그대로 true 라 목록에 남는다).
+       매일 들어올 이유를 주는 자리라 되받는 사명보다 보상을 후하게 잡았다 */
+    { key: 'd_hunt', name: '일일 토벌', need: 2, repeat: true, daily: true,
+      goal: { type: 'kill', n: 20 },
+      desc: '오늘 하루, 스무 마리를 베어라. 자정이 지나면 다시 받을 수 있다.',
+      reward: { exp: 500, gold: 1500, potion: 2 } },
+
+    { key: 'd_gather', name: '일일 채집', need: 2, repeat: true, daily: true,
+      goal: { type: 'gather', n: 12 },
+      desc: '오늘 하루, 무엇이든 캔 것 열둘을 바쳐라. 자정이 지나면 다시 받을 수 있다.',
+      reward: { exp: 350, gold: 800, potion: 2 } }
   ];
 
   function find(key) {

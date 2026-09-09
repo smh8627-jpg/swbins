@@ -1307,6 +1307,28 @@ window.DG_NO_TUNE = true;
         ('🪙 +' + gold + ' · 🧪 +' + (pot - pot0) + ' · 한 번뿐인 것은 사라지고 되받는 것은 남음');
     });
 
+    t('일일 사명(PLAN 33절) — 하루에 한 번만 바칠 수 있다, 날짜가 바뀌면 다시', function () {
+      clearQuests();
+      C.save.player.level = Math.max(C.save.player.level, 2);
+      var ok1 = Q.take('d_hunt');
+      var i;
+      for (i = 0; i < 20; i++) { Q._onKill({ boss: false, stage: 'field' }); }
+      var turned = Q.turnIn('d_hunt');
+      var lockedNow = Q.doneToday('d_hunt');
+      var againBlocked = Q.take('d_hunt') === false;
+      var lockedInList = Q.list().filter(function (q) { return q.ref.key === 'd_hunt'; })[0].lockedToday;
+
+      /* 자정이 지난 척 — 세이브에 적힌 '그 날' 값만 옛날로 되돌린다
+         (실제 시각을 흉내내지 않고 quest.js 가 남긴 표기만 건드린다) */
+      C.save.quests.d_hunt.lastDoneDay = '1999-0-1';
+      var unlockedNextDay = !Q.doneToday('d_hunt');
+      var takeAgain = Q.take('d_hunt');
+      clearQuests();
+      return ok1 && turned && lockedNow && againBlocked && lockedInList &&
+        unlockedNextDay && takeAgain &&
+        '오늘 바침 → 잠김 → 날짜 바뀌니 다시 받음';
+    });
+
     t('앉아 쉬면 체력·기력이 찬다 (곁에 적이 있으면 못 앉는다)', function () {
       if (S.active()) { S.leave(); }
       C.save.player.level = 12;

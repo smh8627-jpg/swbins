@@ -33,6 +33,16 @@
   function taken(key) { return !!rec(key).taken; }
   function doneCount(key) { return rec(key).done || 0; }
 
+  /* ── 일일 사명(PLAN 33절) ─────────────────────────────────
+   * 되받는 사명(repeat)은 바치자마자 다시 받을 수 있는데, 일일 사명은
+   * **하루에 한 번**만 — turnIn() 이 남긴 lastDoneDay 가 오늘과 같으면 잠긴다.
+   * 실제 시각이 아니라 로컬 달력의 '그 날'만 본다(자정에 넘어간다). */
+  function todayKey(t) {
+    var d = new Date(t || Date.now());
+    return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  }
+  function doneToday(key) { return rec(key).lastDoneDay === todayKey(); }
+
   /* ── 지금 얼마나 찼나 ─────────────────────────────────── */
 
   /** 보는 것 — 세어 두지 않고 그때그때 읽는다 */
@@ -73,7 +83,8 @@
       if (!d.repeat && doneCount(d.key) > 0) { continue; }
       out.push({
         ref: d, taken: taken(d.key), n: progress(d.key), goal: d.goal.n,
-        full: taken(d.key) && full(d.key), done: doneCount(d.key)
+        full: taken(d.key) && full(d.key), done: doneCount(d.key),
+        lockedToday: !!d.daily && doneToday(d.key)
       });
     }
     return out;
@@ -95,6 +106,10 @@
       return false;
     }
     if (taken(key)) { return false; }
+    if (d.daily && doneToday(key)) {
+      core.emit('toast', '⚠️ 오늘은 이미 받았습니다 — 자정이 지나면 다시');
+      return false;
+    }
     var r = rec(key);
     r.taken = Date.now();
     r.n = 0;                                    // 받은 뒤부터 센다
@@ -115,6 +130,7 @@
     r.done = (r.done || 0) + 1;
     r.taken = 0;
     r.n = 0;
+    if (d.daily) { r.lastDoneDay = todayKey(); }
 
     var rw = d.reward || {}, bits = [];
     if (rw.exp) { core.gainExp(rw.exp); bits.push('경험치 ' + core.fmt(rw.exp)); }
@@ -213,6 +229,9 @@
     state: st, init: init,
     list: list, take: take, turnIn: turnIn,
     taken: taken, progress: progress, full: full, doneCount: doneCount,
-    _onKill: onKill, _onGather: onGather, _onStage: onStage, _onTalk: onTalk
+    _onKill: onKill, _onGather: onGather, _onStage: onStage, _onTalk: onTalk,
+    /** 진단 전용 — 일일 사명(PLAN 33절)의 '오늘' 표기. 실제 시각 없이도
+     *  세이브에 이 문자열을 직접 넣어 "이미 오늘 했다"를 흉내낼 수 있다 */
+    _todayKey: todayKey, doneToday: doneToday
   };
 })(window);

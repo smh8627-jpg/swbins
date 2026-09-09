@@ -662,12 +662,16 @@
       if (d.reward.scroll) { bits.push('📜 ' + global.DG.gearData.scroll(d.reward.scroll).name); }
       html += '<div class="card' + (q.full ? ' on' : '') + '">' +
         '<div class="stat-row"><span><b>' + esc(d.name) + '</b>' +
-          (d.repeat ? ' <small class="muted">— 되받는 사명' +
+          (d.daily ? ' <small class="muted">— 일일 사명' +
+            (q.done ? ' · 누적 ' + q.done + '회' : '') + '</small>'
+          : d.repeat ? ' <small class="muted">— 되받는 사명' +
             (q.done ? ' · ' + q.done + '회' : '') + '</small>' : '') + '</span>' +
           '<span class="muted">' + (q.taken ? q.n + ' / ' + q.goal : 'Lv.' + d.need) + '</span></div>' +
         '<div class="stat-row"><span class="muted">' + esc(d.desc) + '</span>' +
           '<span class="muted">' + esc(bits.join(' · ')) + '</span></div>' +
-        (q.taken
+        (q.lockedToday
+          ? '<button class="btn ghost wide" disabled>✅ 오늘은 이미 마쳤습니다 — 자정이 지나면 다시</button>'
+          : q.taken
           ? (q.full
             ? '<button class="btn primary wide" data-act="q-turn" data-q="' + d.key + '">바친다</button>'
             : '<button class="btn ghost wide" disabled>아직 ' + (q.goal - q.n) + ' 남았다</button>')
