@@ -1108,7 +1108,11 @@
   };
   var MAP_PROP_ICON = {
     shop: '🏪', home: '🏠', mail: '📮', tailor: '🧵', board: '🪧',
-    museum: '🏛️', pole: '🚩'
+    museum: '🏛️', pole: '🚩',
+    /* 다리(2026-09-09) — buildProps() 가 세우는 프롭(kind:'bridge')이
+       하나뿐이라 hamlet/cave 처럼 따로 Spot() 을 부를 필요 없이 이 표
+       한 줄로 끝난다 */
+    bridge: '🌉'
   };
   function viewMap() {
     var V = global.DG.village;
@@ -1184,7 +1188,8 @@
     html += '<div class="sec"><h4>보는 법</h4><div class="card">' +
       '<small class="muted">' +
       '🔴 지금 내 자리 · 🏠 집 · 📮 편지함 · 🏪 전방 · 🧵 침선방 · 🪧 게시판 · ' +
-      '🏛️ 사고(史庫) · 🚩 마을기 · 🌊 호수 · 💦 폭포 · 🏘️ 작은 마을 · 🏕️ 두 번째 캠프 · 🕳️ 동굴' +
+      '🏛️ 사고(史庫) · 🚩 마을기 · 🌊 호수 · 💦 폭포 · 🏘️ 작은 마을 · 🏕️ 두 번째 캠프 · ' +
+      '🌉 다리(강을 건너는 유일한 자리) · 🕳️ 동굴' +
       '</small><br><small class="muted">' +
       '땅빛은 실제 걸어본 굽은 마을을 그대로 위에서 펼친 것입니다 — ' +
       '풀빛·모래·물·바이옴(풀밭/그늘숲/버섯/돌밭)의 진짜 모양이 여기서만 한눈에 보입니다.' +

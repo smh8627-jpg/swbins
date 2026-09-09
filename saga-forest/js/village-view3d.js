@@ -242,6 +242,9 @@
     bush: 'bush', stump: 'stump', log: 'log', plant: 'plant',
     tent: 'tent', campfire: 'campfire', bench: 'bench', well: 'well', lantern: 'lantern',
     mountain: 'mountain',
+    /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
+       처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
+    bridge: 'bridge',
     /* 짐승(PLAN 40절 PHASE 4 첫 칸) — village.js 의 raw().animals 도 이 표를
        그대로 타고 선다(아래 syncScatter() 가 props 배열에 이어 붙인다).
        토끼·다람쥐·오리·새(2026-09-09, PLAN 16절)는 data-village.js 의
@@ -270,6 +273,9 @@
     tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4,
     deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, herb: 0.5, bush: 0.8, stump: 0.6, log: 0.5, plant: 0.6,
     tent: 1.8, campfire: 0.5, bench: 0.5, well: 1.0, lantern: 1.6, mountain: 8.0,
+    /* 다리(2026-09-09) — 정규화라 원본 비례는 모른다. 난간 높이쯤(well·lantern
+       사이) 눈대중으로 잡았다 */
+    bridge: 1.4,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
     /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다

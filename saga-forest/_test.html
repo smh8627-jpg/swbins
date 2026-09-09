@@ -637,6 +637,41 @@ window.DG_NO_TUNE = true;
       return leaked === 0 && '마을 칸 안 강물 침범 0개';
     });
 
+    /* ── 다리(2026-09-09, "다른 추가할 사항 없는지" 훑다가 찾은 회귀) ─────
+     * 강이 ty 전체를 끊김 없이 막고 있어(위 테스트가 확인하는 바로 그 성질)
+     * 호수(서쪽)가 걸어서 아예 못 가는 자리였다. BRIDGE_TY 한 줄만 뚫어
+     * 건널 수 있게 했다 — 그 한 줄 빼고는 여전히 안 뚫려야 진짜 "고정된
+     * 한 자리로만 건넌다"가 지켜진 것이다. */
+
+    t('다리 — 마을 도로와 같은 줄(BRIDGE_TY)에서 강을 건널 수 있다', function () {
+      var ty = V.BRIDGE_TY, cx = Math.round(V.riverCenterX(ty));
+      var kind = V.tileAt(cx, ty);
+      return kind === 'path' && V.walkable(cx * V.TILE + 20, ty * V.TILE + 20) &&
+        ('(' + cx + ',' + ty + ')=' + kind + ' · 통행 가능');
+    });
+
+    t('다리 — 다른 줄에서는 여전히 강이 막고 있다(그 자리만 뚫린 것)', function () {
+      var ty = V.BRIDGE_TY + 3, cx = Math.round(V.riverCenterX(ty));
+      var kind = V.tileAt(cx, ty);
+      return kind === 'water' && !V.walkable(cx * V.TILE + 20, ty * V.TILE + 20) &&
+        ('(' + cx + ',' + ty + ')=' + kind + ' · 여전히 통행 불가');
+    });
+
+    t('다리 — 호수가 사라지면(margin 부족) 다리도 같이 사라진다', function () {
+      C.setTune('forest.margin', 5);
+      var gone = V.inBridge(0, V.BRIDGE_TY);
+      C.setTune('forest.margin', null);
+      return gone === false && 'margin 5 → 다리도 없음(강 자체가 없다)';
+    });
+
+    t('다리 — buildProps() 가 다리 프롭을 세운다', function () {
+      V.buildProps();
+      var raw = V.raw(), byId = {};
+      for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
+      return !!byId.bridge && byId.bridge.kind === 'bridge' && byId.bridge.deco &&
+        '다리 프롭 1개';
+    });
+
     /* ── PLAN 40절 PHASE 3 다섯 번째 칸: 폭포 ─────────────────── */
 
     t('폭포 — 강 위 고정 한 자리, 재현된다', function () {

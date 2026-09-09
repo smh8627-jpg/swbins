@@ -199,6 +199,28 @@
     return d > RIVER_HALF_W && d <= RIVER_HALF_W * 2;
   }
 
+  /* ── 다리(2026-09-09, "다른 추가할 사항 없는지" 훑다가 찾음) ─────────
+   * **강이 처음부터 끝(ty 전체)까지 끊김 없이 막혀 있었다** — `riverCenterX()`가
+   * ty 에 어떤 제한도 안 두고 늘 값을 낸다. `terrain.js`(공사)도 "마을 밖은
+   * 못 한다"고 막혀 있어 사용자가 직접 다리를 놓을 수도 없었다. 그 결과
+   * **호수(와 그 서쪽 바이옴 전부)가 걸어서는 아예 못 가는 자리**였다 —
+   * `asset3d.js`에 `'bridge': Bridge.glb`가 진작에(2026-08-30, 사가고에서
+   * 그대로 옮겨 옴) 등록만 되고 한 번도 안 쓰인 게 그 증거다.
+   *
+   * 마을 자체의 동서 도로(`tileAt()`의 "가운데 가로로 흙길", `ty === H*0.5`
+   * 줄)와 **같은 줄**에 다리를 놓는다 — 마을 안 도로를 따라 걷다 보면 저절로
+   * 다리에 닿는다. 강폭(`RIVER_HALF_W`)만큼만 뚫어 강 자체는 다른 줄에서
+   * 여전히 막혀 있다(다리가 아니면 여전히 못 건넌다 — "아무 데서나 건넌다"가
+   * 아니라 "고정된 한 자리로만 건넌다"는 PLAN 10절과 같은 결).
+   */
+  var BRIDGE_TY = Math.floor(H * 0.5);
+  function inBridge(tx, ty) {
+    if (ty !== BRIDGE_TY) { return false; }
+    var cx = riverCenterX(ty);
+    if (cx === null) { return false; }
+    return Math.abs(tx - cx) <= RIVER_HALF_W;
+  }
+
   /* ── 폭포(PLAN 40절 PHASE 3 다섯 번째 칸) ─────────────────────
    * 강줄기를 따라 호수에서 남쪽으로 내려간 고정 한 자리다(margin 을 벗어나지
    * 않게 자른다) — 강이 없으면(호수가 없으면) 폭포도 없다.
@@ -367,6 +389,7 @@
        아니면 세상 끝(물) */
     var m = forestMargin();
     if (tx < -m || ty < -m || tx >= W + m || ty >= H + m) { return 'water'; }
+    if (inBridge(tx, ty)) { return 'path'; }              // 강을 건너는 유일한 자리
     if (inLake(tx, ty) || inRiver(tx, ty)) { return 'water'; }
     return BIOME_TILE[biomeAt(tx, ty)];
   }
@@ -509,6 +532,17 @@
           if (fh > table[bi][0]) { props.push({ id: fid, kind: table[bi][1], x: fx, y: fy, deco: true }); break; }
         }
       }
+    }
+
+    /* 다리(2026-09-09) — 마을 도로와 같은 줄(BRIDGE_TY)에 실제로 건널 수 있는
+       자리가 생겼으니, `Bridge.glb`(2026-08-30부터 등록만 되고 안 쓰이던 것)를
+       그 위에 세운다. tileAt() 이 이미 그 칸을 'path'로 내주므로 GRASS_FAMILY
+       가 아니라 바이옴 장식·채집·짐승이 저절로 안 겹친다(위 루프가 이미
+       걸러 준다) */
+    var br = riverCenterX(BRIDGE_TY);
+    if (br !== null) {
+      props.push({ id: 'bridge', kind: 'bridge',
+        x: Math.round(br) * TILE + TILE * 0.5, y: BRIDGE_TY * TILE + TILE * 0.5, deco: true });
     }
 
     /* 폭포 표지(PLAN 40절 PHASE 3 다섯 번째 칸) — 강이 있을 때만, 늘 같은 자리.
@@ -1666,6 +1700,7 @@
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
     hamlet2Spot: hamlet2Spot, inHamlet2: inHamlet2,
+    inBridge: inBridge, BRIDGE_TY: BRIDGE_TY,
     caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
     buildNpcs: buildNpcs, firstBiomeSpot: firstBiomeSpot,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,

@@ -62,6 +62,10 @@
     /* 호수 테두리 물가 식생(PLAN 12절 "shoreline") — 갈대·부들 CC0 모델을 아직
        못 구해 asset3d.js 에 이미 있는 범용 'plant' 모델로 대신한다 */
     plant:     { name: '수초',      emoji: '🌾', gather: null, reset: 0, hint: '살펴본다' },
+    /* 다리(2026-09-09) — 강을 건너는 유일한 자리(village.js BRIDGE_TY). 이
+       칸 자체는 걸어서 지나가는 'path' 타일이고, 이 프롭은 그 위에 세우는
+       Bridge.glb(2026-08-30부터 등록만 되어 있던 것)의 눈에 보이는 표시다 */
+    bridge:    { name: '다리',      emoji: '🌉', gather: null, reset: 0, hint: '건넌다' },
     /* 폭포 표지(PLAN 40절 PHASE 3) — 이 판 땅에는 높이 축이 없어(terrain.js
        머리말 참고) 진짜 낙수는 못 만든다. 이 자리를 표시만 해 둔다 */
     waterfall: { name: '폭포',      emoji: '💦', gather: null, reset: 0, hint: '바라본다' },
