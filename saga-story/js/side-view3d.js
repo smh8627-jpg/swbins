@@ -280,10 +280,14 @@
     return (H / 2) / Math.tan(vfov / 2);
   }
 
-  function moodLight(mood) {
+  function moodLight(mood, town) {
     if (mood === 'cave') { return { sky: 0x2b2436, amb: 0.5, dir: 0.55, dirCol: 0x8fa2ff, fog: 900 }; }
     if (mood === 'fire') { return { sky: 0x3a1410, amb: 0.55, dir: 0.9, dirCol: 0xff8a4a, fog: 1400 }; }
     if (mood === 'forest') { return { sky: 0x5fa06a, amb: 0.75, dir: 0.95, dirCol: 0xfff6d8, fog: 1800 }; }
+    /* 마을의 따뜻한 조명(PLAN 22절) — town:true 인 사냥터(mood 는 'sky' 그대로)만
+       하늘·직사광을 노을빛으로 데운다. 색조만 바꾸고 밝기(amb/dir)는 들판과 맞춰
+       마을이 유독 어둡거나 밝아 보이지 않게 한다 */
+    if (town) { return { sky: 0xe8b878, amb: 0.85, dir: 1.0, dirCol: 0xffdca0, fog: 2200 }; }
     return { sky: 0x79c3e8, amb: 0.85, dir: 1.05, dirCol: 0xfff6d8, fog: 2400 };            // field
   }
 
@@ -291,6 +295,10 @@
    *  거치던 자리와 같다). 나중에 CC0 모델을 구하면 이 함수만 바꾸면 된다 */
   function buildScenery(Tc, stg) {
     var mood = stg.mood, i, m;
+    /* 횃불 Point Light(PLAN 22절) — 사냥터 하나당 최대 3개로 예산을 두고(모바일
+       실시간 광원 과용 금지), 저사양(effectiveLevel low)에서는 시각(도형)만 남기고
+       실제 광원은 아예 안 켠다 */
+    var torchBudget = effectiveLevel() === 'low' ? 0 : 3;
     var farMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x2c5230
       : mood === 'cave' ? 0x1c1622 : mood === 'fire' ? 0x241010 : 0x8fc48f });
     var nearMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x3a6b3a
@@ -339,6 +347,33 @@
       var c = new Tc.Mesh(new Tc.ConeGeometry(h * 0.22, h, 6), mat);
       c.position.set(x, h / 2, z);
       worldGroup.add(c);
+      if (torchBudget > 0) {
+        torchBudget--;
+        var lt = new Tc.PointLight(0xff8a3c, 1.4, h * 10, 2);
+        lt.position.set(x, h * 0.6, z);
+        worldGroup.add(lt);
+      }
+    }
+    /** 횃불(PLAN 22절) — 동굴·마을에 세운다. 도형(자루+불머리)은 예산과 무관하게
+     *  항상 서고, 실제 PointLight 만 torchBudget 이 남았을 때 켠다 */
+    function torch(x, z, h) {
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, z);
+      var pole = new Tc.Mesh(new Tc.CylinderGeometry(2.4, 2.4, h * 0.75, 5),
+        new Tc.MeshLambertMaterial({ color: 0x3a2a1a }));
+      pole.position.set(0, h * 0.38, 0);
+      holder.add(pole);
+      var head = new Tc.Mesh(new Tc.ConeGeometry(h * 0.18, h * 0.32, 6),
+        new Tc.MeshBasicMaterial({ color: 0xffab54 }));
+      head.position.set(0, h * 0.75 + h * 0.16, 0);
+      holder.add(head);
+      worldGroup.add(holder);
+      if (torchBudget > 0) {
+        torchBudget--;
+        var lt = new Tc.PointLight(0xffab54, 1.5, h * 10, 2);
+        lt.position.set(0, h * 0.9, 0);
+        holder.add(lt);
+      }
     }
     /** 발밑 밀도(PLAN 6·7절, 2026-09-04) — 배경 지형지물(z -80~-520)과 달리
      *  사람이 걷는 깊이(z=0) 바로 뒤(z -30~-70)에 놓는 작은 식생. 판정에 닿지
@@ -400,6 +435,7 @@
         stalactite(m, -140 - (i % 2) * 60, 90 + (i % 4) * 40, true);
         stalactite(m + 90, -160, 70 + (i % 3) * 30, false);
       }
+      for (i = 0, m = -40; m < span; i++, m += 480) { torch(m, -40, 60); }
     } else if (mood === 'fire') {
       for (i = 0, m = -260; m < span; i++, m += 340) { hill(m, -420, 220 + (i % 3) * 40, farMat); }
       for (i = 0, m = -160; m < span; i++, m += 210) { flame(m, -80, 90 + (i % 3) * 30); }
@@ -409,6 +445,7 @@
       for (i = 0, m = -180; m < span; i++, m += 420) { trunk(m, -90, 90 + (i % 3) * 16, nearMat); }
       well(Math.round(span / 2) - 400, -55, 36);
       for (i = 0, m = 60; m < span - 60; i++, m += 150) { fence(m, -22, 24); }
+      for (i = 0, m = -100; m < span; i++, m += 520) { torch(m, -40, 55); }
     } else {
       for (i = 0, m = -300; m < span; i++, m += 420) { hill(m, -520, 260 + (i % 3) * 50, farMat); }
       for (i = 0, m = -180; m < span; i++, m += 280) { hill(m, -220, 150 + (i % 3) * 30, nearMat); }
@@ -433,7 +470,7 @@
     stageGen++;   // 늦게 도착한 GLB 응답이 지난 세대의 지형에 잘못 꽂히지 않게 한다
     while (worldGroup.children.length) { var wc = worldGroup.children[0]; disposeDeep(wc); worldGroup.remove(wc); }
 
-    var L = moodLight(stg.mood);
+    var L = moodLight(stg.mood, stg.town);
     scene.background = new Tc.Color(L.sky);
     scene.fog = new Tc.Fog(L.sky, L.fog * 0.35, L.fog);
     ambLight.intensity = L.amb;
@@ -787,6 +824,7 @@
     effectiveLevel: effectiveLevel,
     /** 진단 전용 — 순수 함수들이라 실제 프레임·기기 없이 바로 잰다 */
     _autoLevelFor: autoLevelFor, _deviceScore: deviceScore, _startLevelFor: startLevelFor,
-    _feedPerf: updatePerf, _perfEma: function () { return perfEma; }
+    _feedPerf: updatePerf, _perfEma: function () { return perfEma; },
+    _moodLight: moodLight
   };
 })(window);
