@@ -187,6 +187,28 @@
     })
   );
 
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. KayKit "Adventurers Character
+     Pack"(Kay Lousberg, CC0, GitHub `KayKit-Game-Assets/KayKit-Character-
+     Pack-Adventures-1.0` 직접 받음 — itch.io 아님, 이미 몬스터 트랙에서 쓴
+     KayKit Skeletons와 같은 출처 요령) 5종 — Barbarian·Knight·Mage·Rogue·
+     Rogue_Hooded. 몸 하나에 제 클립을 **76개**(Idle·Walking_A/B/C·
+     Running_A/B·Dodge_*·Hit_A/B·Death_A/B·1H/2H_Melee_Attack_*·Interact·
+     Jump_* 등) 내장 — 다른 어떤 팩보다 촘촘하다. `mapClips()` word 표가
+     "Walking"·"Running"·"Attack"·"Dodge"·"Hit"·"Death"·"Interact" 낱말을
+     그대로 하위문자열로 잡아 리타깃 없이 바로 받는다.
+     **무게 확인** — 압축 후 1.95~1.97MB/벌(멀티메시 12~14개, 모듈형 갑주
+     조각). `HERO_RECIPES_LIGHT`의 기존 최중량 레시피 QRPG(1.6~2.1MB)와
+     같은 급 — `hero_light`에서 뺀 MPFB(3.5~4.3MB, 위 §참고)와는 다른
+     체급이라 이 표에 얹어도 그 때 걸렸던 "마을마다 무거운 파일 새로 받기"
+     함정을 다시 밟지 않는다. */
+  var PEOPLE_KAYKIT_ADV = 'assets/models/people/kaykit_adventurers/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Barbarian', 'Knight', 'Mage', 'Rogue', 'Rogue_Hooded'].map(function (n) {
+      var f = PEOPLE_KAYKIT_ADV + n + '.glb';
+      return { key: 'kaykitadv_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

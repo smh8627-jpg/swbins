@@ -1,0 +1,27 @@
+{
+  "Barbarian.glb": {
+    "size": 2006632,
+    "result": "ok",
+    "at": "2026-09-09T08:55:47.973Z"
+  },
+  "Knight.glb": {
+    "size": 2021696,
+    "result": "ok",
+    "at": "2026-09-09T08:55:49.937Z"
+  },
+  "Mage.glb": {
+    "size": 2000884,
+    "result": "ok",
+    "at": "2026-09-09T08:55:51.972Z"
+  },
+  "Rogue.glb": {
+    "size": 2004100,
+    "result": "ok",
+    "at": "2026-09-09T08:55:53.823Z"
+  },
+  "Rogue_Hooded.glb": {
+    "size": 2000420,
+    "result": "ok",
+    "at": "2026-09-09T08:55:55.809Z"
+  }
+}

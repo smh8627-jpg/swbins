@@ -1332,5 +1332,34 @@ Worker·Man 등, Ultimate Modular Men/Animated Men Pack과 이름이 같아
 polypizza_space/`에 둠, `tools/glb-compress`로 압축(2.1MB→0.6MB),
 `HERO_RECIPES_LIGHT`에 `ppspace_*`로 등록 — **62→65종**.
 
+## 캐릭터 6차분 — KayKit Adventurers Character Pack 5벌 (2026-09-09, 같은 세션 이어서)
+
+몬스터 트랙에서 이미 쓴 KayKit Skeletons와 같은 저작자(Kay Lousberg)의
+사람 캐릭터 팩. poly.pizza에는 유료로 올라와 있지만(검색으로 확인),
+같은 팩을 GitHub 조직(`KayKit-Game-Assets`)이 직접 CC0로 미러해 둔다 —
+Skeletons 때와 같은 요령으로 itch.io를 거치지 않고 거기서 받았다.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Barbarian·Knight·Mage·Rogue·Rogue_Hooded | `github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0`, `Characters/gltf/*.glb` | Kay Lousberg(KayKit) | CC0 |
+
+`LICENSE.txt`(저장소에 직접 포함) 확인 — "License: (Creative Commons
+Zero, CC0) … free to use in personal, educational and commercial
+projects". 저작자 표시 불필요(권장 사항일 뿐).
+
+몸 하나에 제 클립을 **76개**씩 내장 — 이 판이 지금까지 쓴 어떤 사람
+자산보다 촘촘하다(Idle·Walking_A/B/C·Running_A/B·Dodge_Forward/Backward/
+Left/Right·Hit_A/B·Death_A/B·1H/2H_Melee_Attack_*·Interact·Jump_* 등).
+`mapClips()` word 표가 "Walking"·"Running"·"Attack"·"Dodge"·"Hit"·
+"Death"·"Interact"를 그대로 하위문자열로 잡아 리타깃 없이 받는다.
+
+`assets/models/people/kaykit_adventurers/`에 둠, `tools/glb-compress`로
+압축(17.2MB→9.6MB, 44% 감소 — 클립이 워낙 많아 위 KayKit Skeletons와
+비슷한 압축률). 압축 후 1.95~1.97MB/벌 — `HERO_RECIPES_LIGHT`의 기존
+최중량 레시피 QRPG(1.6~2.1MB)와 같은 급이라, `hero_light`에서 뺀
+MPFB(3.5~4.3MB, 위 §"2026-09-07" 참고)의 무게 함정과는 다른 체급으로
+판단해 그대로 얹었다. `HERO_RECIPES_LIGHT`에 `kaykitadv_*`로 등록 —
+**65→70종**.
+
 같은 번들의 Enemy Small/Large/Flying·Mech·Rover(로봇/외계생물)는 사람형이
 아니라 등록 안 함 — "몬스터 100개" 트랙 후보로 남겨 둠.
