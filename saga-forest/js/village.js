@@ -505,7 +505,8 @@
        House_1~4.glb(그동안 미사용, ASSET_LICENSES.md)를 처음 쓴다. 상인 뒤(더
        북쪽)에 세워 "지나가다 만나는 빈 캠프"였던 곳이 "누가 사는 캠프"로 보이게
        한다 — 위성 마을·집 다양화를 미뤄 둔 첫 걸음(README 2026-09-09 마을 3D
-       건물 항목 참고) */
+       건물 항목 참고). **같은 날 이어서 — 움집(hamletHut, House_1) 한 채 더**,
+       "상인 혼자 사는 오두막"에서 "여럿이 지내는 움집들"로 늘렸다 */
     var hs = hamletSpot();
     if (hs) {
       var hx = hs.tx * TILE + TILE * 0.5, hy = hs.ty * TILE + TILE * 0.5;
@@ -518,6 +519,7 @@
       props.push({ id: 'hamletLanternA', kind: 'lantern', x: hx - TILE * 1.8, y: hy + TILE * 0.2, deco: true });
       props.push({ id: 'hamletLanternB', kind: 'lantern', x: hx + TILE * 1.8, y: hy - TILE * 0.2, deco: true });
       props.push({ id: 'hamletHouse', kind: 'hamletHouse', x: hx - TILE * 0.2, y: hy - TILE * 1.9, deco: true });
+      props.push({ id: 'hamletHut', kind: 'hamletHut', x: hx + TILE * 2.4, y: hy - TILE * 1.3, deco: true });
     }
 
     /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸 + PHASE 4 "Treasure") — 바위산·

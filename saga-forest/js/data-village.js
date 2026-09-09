@@ -76,6 +76,9 @@
        참고)를 처음 쓴다. 상인(merchant) NPC 뒤에 세워 "지나가다 만나는 빈
        캠프"였던 곳이 "누가 사는 캠프"로 보이게 한다 */
     hamletHouse: { name: '오두막', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
+    /* 같은 날 이어서 — House_1 로 채 하나를 더 얹어 "상인 혼자 사는 오두막"을
+       "여럿이 지내는 움집들"로 늘렸다 */
+    hamletHut: { name: '움집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
     /* 숨겨진 동굴(PLAN 40절 PHASE 3) — 입구 표지만. 안까지 들어가는 실내·
        보물(PLAN 40절 PHASE 4 "Treasure")은 다음 몫이다 */
     mountain:  { name: '바위산', emoji: '🗻', gather: null, reset: 0, hint: '올려다본다' },

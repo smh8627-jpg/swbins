@@ -256,8 +256,10 @@
     mail: 'building:mail', tailor: 'building:tailor', pole: 'building:pole',
     museum: 'building:museum',
     /* 캠프 오두막(2026-09-09) — village.js buildProps() 의 hamletHouse kind 를
-       그대로 타고 선다. 마을 건물과 같은 결(변종 없음, 자리 하나뿐) */
-    hamletHouse: 'building:hamletHouse'
+       그대로 타고 선다. 마을 건물과 같은 결(변종 없음, 자리 하나뿐).
+       hamletHut(House_1)은 같은 날 이어 얹은 두 번째 채 — kind 가 다르므로
+       역시 자리 하나뿐 규칙을 그대로 지킨다 */
+    hamletHouse: 'building:hamletHouse', hamletHut: 'building:hamletHut'
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
@@ -270,9 +272,12 @@
        비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
     shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4,
-    /* House_2(Quaternius) — 마을 건물(house_wooden 등, 3.0~3.4m)보다 한 단
-       작게 잡아 "캠프의 소박한 오두막" 느낌을 준다 */
-    hamletHouse: 2.4
+    /* House_2·House_1(Quaternius) — 마을 건물(house_wooden 등, 3.0~3.4m)보다
+       한 단 작게 잡아 "캠프의 소박한 오두막" 느낌을 준다. 둘 다 정규화로
+       키 1 에서 시작하므로(build() 가 늘 그렇게 눕힌다) 실제 원본 비례는
+       모른다 — 나란히 서도 완전히 같은 키로 안 보이게 일부러 조금 다르게
+       잡았을 뿐이다 */
+    hamletHouse: 2.4, hamletHut: 2.1
   };
 
   /**
