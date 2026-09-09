@@ -127,10 +127,27 @@ scholar·gat·hairpin·monk·braid 투구는 대응 CC0가 없어 맨머리로 �
 "안 맞아도 실제 모델이 도형(빈 자리)보다 낫다"는 사용자 지시에 따라, 무기
 여덟 종은 걸고 나머지 다섯 투구 종만 열린 자리로 둔다.
 
-## 옮기지 않은 것 (앞으로)
+## 동양풍 탑 — 받았지만 아직 시험용 (2026-09-09)
 
-동양풍 건축(성문·군영)에 맞는 CC0 에셋은 아직 못 구했다 — 탑·사찰은 서양풍 판타지라
-이 판의 결(삼국지 동양 판타지)과는 다르다. **품질을 우선해 "결이 안 맞아도 둘 다
-얹는다"**(PLAN 40절 부록)를 따라 우선 그대로 쓴다. 나중에 동양풍 CC0 성문·탑을
-구하면 `js/asset3d.js`의 `DEFAULTS['city:t1'\|'t2'\|'t3']`만 바꾸면 된다 —
-부르는 쪽(`realm3d.js`)은 안 건드린다.
+위 "옮기지 않은 것" 문제(탑·사찰이 서양풍 판타지라 결이 안 맞는다)에 처음으로
+동양풍 CC0 후보를 하나 구했다.
+
+| 항목 | |
+|---|---|
+| **파일** | `models/buildings/asian/BellStructure.glb` |
+| **만든 이** | Polygonal Mind ("lunar-year" 팩 — 설날/중국풍 정자) |
+| **라이선스** | **CC0 1.0 Universal** — `github.com/ToxSam/cc0-models-Polygonal-Mind`(GLB 변환본, `License.md`) 확인. 원본은 `github.com/PolygonalMind/initiative-opensource-release` |
+| **받은 경위** | GitHub 미러 두 곳(`open-source-3d-assets` JSON 색인 → `cc0-models-Polygonal-Mind` 실 GLB)을 이 세션이 직접 확인·다운로드. `raw.githubusercontent.com` 이라 이 저장소 네트워크 규칙 안에서 받을 수 있었다 |
+| **저작자 표시** | 필요 없다(CC0) |
+| **재배포** | 허용된다 |
+| **용량** | 1.2MB — 지금 쓰는 Quaternius 탑(20~85KB)보다 15~60배 무겁다. 성 하나가 아니라 등급 하나(같은 GLB 를 공유)만 받으므로 총 다운로드량 자체는 크게 안 늘지만, 한 파일이 무겁다는 점은 남는다 |
+
+**아직 기본값이 아니다.** `js/asset3d.js`에 `core.tuned('asset3d.asianTower', 0)`
+손잡이로 얹었고, 끈(0) 채로 시작한다 — **이 세션은 실기·헤드리스 화면 확인을
+하지 말라는 지시를 받아 실제로 어떻게 서는지 못 봤다.** `_admin.html` 균형
+손잡이 탭에서 1로 바꾸고 게임을 새로고침하면 1등급 성채(`city:t1`)만 이
+정자로 갈아 선다 — 결이 맞으면 그때 기본값을 뒤집고 2·3등급용으로
+`Portal.glb`(문·아치, 1.5MB)·`MainAltar.glb`(제단, 1.5MB)도 같은 팩에서
+더 받을 수 있다(둘 다 `cc0-models-Polygonal-Mind/projects/lunar-year/`에
+있는 것을 이미 확인해 뒀다). 결이 안 맞으면 손잡이를 그냥 0으로 두면
+된다 — 코드를 걷어낼 필요가 없다.
