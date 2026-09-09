@@ -722,6 +722,7 @@
   var fhp = 1, fhpMax = 1, fmp = 100, fmpMax = 100;
   var fshots = [], ffoeShots = [];
   var fieldSpawnCd = 4;                 // 던전과 같은 4초 주기(dungeon.js FIELD 보충과 동일)
+  var fieldTreasureCd = 90;             // 던전과 같은 필드 보물 조우 재확인 주기(PLAN §60 후보 1)
 
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
@@ -1230,6 +1231,11 @@
     if (fieldSpawnCd <= 0) {
       fieldSpawnCd = 4;
       if (D().fieldRoamerCount(ctx) < D().FIELD_ENEMY_CAP) { D().spawnFieldRoamers(1, ctx); }
+    }
+    fieldTreasureCd -= dt;
+    if (fieldTreasureCd <= 0) {
+      fieldTreasureCd = 90;
+      D().spawnFieldTreasure(ctx);
     }
     D().stepFieldCombat(dt, ctx, fx);
     D().pickupField(ctx, fx);

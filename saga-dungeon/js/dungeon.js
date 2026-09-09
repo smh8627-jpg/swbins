@@ -588,6 +588,7 @@
       roomIdx: 0, rooms: [], room: null,
       loot: { gold: 0, items: [] },
       fieldSpawnCd: 4,                    // 들판 로머 보충 주기(초) — PLAN 10절 "필드 사냥"
+      fieldTreasureCd: 90,                 // 필드 보물 조우 재확인 주기(초) — PLAN §60 후보 1
       kills: 0, startedAt: Date.now(), dead: false
     };
     run.hpMax = hpMaxOf();
@@ -1410,6 +1411,63 @@
     }
   }
 
+  /* 2026-09-09 — PLAN §60 "디아블로4식 자유도" 후보 1 "필드 위 특별 조우".
+     그냥 지나가는 길이 "뭔가 나올 수도 있는 길"이 되도록, 아주 가끔 정예
+     하나가 보물을 지키고 선 자리를 들판에 놓는다. `room.chest`처럼
+     "다 치워야 연다" 게이트를 새로 만들지 않고 노획물(`dropItem`·`dropGold`·
+     `dropMat`)을 그 자리에 바로 놓는다 — 정예를 무시하고 주우려 들면
+     정예가 쫓아오니 그 자체가 위험 부담이다(우물・사당처럼 별도 상태
+     플래그를 만들지 않고, "정예 표시가 붙은 살아 있는 필드 로머가
+     있는가"만 보고 중복 스폰을 막는다). */
+  var FIELD_TREASURE_CHANCE = 0.35;   // 쿨다운이 다 찼을 때 실제로 뜰 확률
+  function hasActiveTreasureGuard(ctx) {
+    var es = ctx ? ctx.room.enemies : (run && run.room.enemies), i;
+    if (!es) { return false; }
+    for (i = 0; i < es.length; i++) { if (es[i].treasureGuard && es[i].hp > 0) { return true; } }
+    return false;
+  }
+  function spawnFieldTreasure(ctx) {
+    if (!fieldOn() || global.DG_NO_DRAW) { return; }
+    if (!ctx && !run) { return; }
+    if (hasActiveTreasureGuard(ctx)) { return; }
+    if (Math.random() >= FIELD_TREASURE_CHANCE) { return; }
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var wl = (ctx && ctx.wall) || WALL;
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
+    var floor = ctx ? ctx.floor : run.floor;
+    var room = ctx ? ctx.room : run.room;
+    var isTown = !!(ctx && ctx.town);
+    var cx0 = ax + rw * 0.5, cy0 = ay + rh * 0.5;
+    var px0 = (isTown && ctx.player) ? ctx.player.x : cx0;
+    var py0 = (isTown && ctx.player) ? ctx.player.y : cy0;
+    var R = fieldRadiusUnits(), tries = 8, x = 0, y = 0, ok = false, a0, d0;
+    while (tries-- && !ok) {
+      a0 = Math.random() * Math.PI * 2;
+      d0 = (wl + 60) + Math.random() * Math.max(40, R - wl - 60);
+      x = px0 + Math.cos(a0) * d0;
+      y = py0 + Math.sin(a0) * d0;
+      if (isTown && Math.hypot(x - cx0, y - cy0) < TOWN_SAFE_R) { continue; }
+      if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
+      ok = true;
+    }
+    if (!ok) { return; }
+    var guard = spawnEnemy(floor, false, { forceElite: true, x: x, y: y });
+    guard.field = true;
+    guard.treasureGuard = true;
+    room.enemies.push(guard);
+    /* dropItem·dropGold·dropMat 은 모듈의 `run`(클로저 변수)을 직접 읽는다 —
+       마을(town.js)이 부를 때는 `run`이 비어 있을 수 있어 `withRun`으로
+       잠깐 ctx를 끼운다(stepFieldCombat과 같은 요령). */
+    withRun(ctx || run, null, function () {
+      dropItem(room, x, y, 24);
+      if (Math.random() < 0.4) { dropItem(room, x, y, 24); }
+      dropGold(room, x, y, 4);
+      if (Math.random() < 0.3) { dropMat(room, x, y, 20); }
+    });
+    core.log('💰 들판에 보물을 지키는 정예가 나타났다', 'good');
+    core.emit('toast', '💰 보물을 지키는 정예!');
+  }
+
   /**
    * 살아 있는 들판 로머 수
    * @param ctx spawnFieldEncounters 와 같은 뜻
@@ -1654,6 +1712,11 @@
     if (run.fieldSpawnCd <= 0) {
       run.fieldSpawnCd = 4;
       if (fieldEnemyCount() < FIELD_ENEMY_CAP) { spawnFieldEncounters(1); }
+    }
+    run.fieldTreasureCd -= dt;
+    if (run.fieldTreasureCd <= 0) {
+      run.fieldTreasureCd = 90;
+      spawnFieldTreasure();
     }
 
     /* 돌진 — 조작을 무시하고 정해진 방향으로 밀고 나간다 */
@@ -2741,6 +2804,7 @@
     fieldBoundPlayer: boundPlayer, _corridorReach: corridorReach,
     _corridorExtra: corridorExtra, _doorCorridorUnits: doorCorridorUnits,
     spawnFieldRoamers: spawnFieldEncounters,
+    spawnFieldTreasure: spawnFieldTreasure,
     fieldRoamerCount: fieldEnemyCount,
     stepFieldCombat: stepFieldCombat,
     pickupField: pickupField,
