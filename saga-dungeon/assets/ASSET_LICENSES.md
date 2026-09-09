@@ -1269,3 +1269,39 @@ PLAN 4절의 우선순위를 따라 나무·바위·폐허(기둥·벽)·절벽�
 glb-compress`로 압축(7.4MB→2.0MB). `HERO_RECIPES_LIGHT`에 `ppmore_*`로
 등록(71→78종). CC-BY 2종(Soldier·Animated Wizard)은 저작자 **Quaternius**
 표시.
+
+> **바로잡음(2026-09-09, 같은 세션 이어서)** — 위 "71→78종"은 실측이
+> 아니었다. 코드로 `HERO_RECIPES_LIGHT.length`를 직접 세어 보니 이
+> 절 작업 **전** 51종·**후** 58종이었다(20종 차이 — `HERO_RECIPES`
+> 전체 표에만 들어가는 MPFB 실사 인물 20벌을 착각해 headcount에
+> 같이 셌던 것으로 보인다, MPFB는 NPC·동행이 고르는 `hero_light`가
+> 아니라 `me:`만 쓰는 `hero`에만 있다). 아래 절부터는 실측값을 쓴다.
+
+## 캐릭터 4차분 — poly.pizza "Animated Women Pack" (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/u/Quaternius/Lists`에서 지금까지 쓴 `Ultimate Modular Women
+Pack`과는 별개인 `Animated Women Pack`(4종)을 찾았다 — 번들 페이지의
+`/m/` 링크로 UUID를 직접 대조해 겹침이 없음을 확인했다.
+
+| 자산 | 받은 곳 | 만든이 | 라이선스 |
+|---|---|---|---|
+| Woman | `poly.pizza/m/AQsd9ngvKU` → `static.poly.pizza/906a0cbe-b0a4-4312-b898-0f974b6f6771.glb` | Quaternius | CC0 |
+| Woman Casual | `poly.pizza/m/jpKRgGDxhk` → `static.poly.pizza/51d5abdd-bb87-4b8d-9967-21738ffb8437.glb` | Quaternius | CC0 |
+| Woman in Tank Top | `poly.pizza/m/XqzeZGB7iU` → `static.poly.pizza/9a6a3e55-23ce-4d5c-89bc-7d3f30307ed0.glb` | Quaternius | CC0 |
+| Woman in Dress | `poly.pizza/m/zMyPlQXBzq` → `static.poly.pizza/a642af96-e239-4c5f-b50d-7661ff51deec.glb` | Quaternius | CC0 |
+
+`HumanArmature|Female_*` 클립 11개씩(Idle·Walk·Run·Jump·Punch·SwordSlash·
+Death 등) 내장, `mapClips()` word 표로 그대로 받는다(리타깃 불필요).
+`assets/models/people/polypizza_women2/`에 둠, `HERO_RECIPES_LIGHT`에
+`ppwomen2_*`로 등록 — **51→58→62종**.
+
+**압축 보류** — `tools/glb-compress`(`../../tools/glb-compress`)의
+`package-lock.json`이 사내망 사설 레지스트리(`172.17.1.200:8081`,
+`C:\link` 전용) `resolved` URL을 그대로 담고 있어 이 환경에서
+`npm install`이 ETIMEDOUT으로 실패했다. lockfile을 고치는 편집 자체도
+권한 분류기가 의존성 변경으로 막아, 이번엔 원본 그대로(4종 합쳐
+2.0MB — 다른 판에서 이미 압축된 비슷한 세트와 큰 차이 없는 크기) 커밋했다.
+**다음 세션이 할 일**: `tools/glb-compress/package-lock.json`의
+`http://172.17.1.200:8081/repository/npm_group/`를
+`https://registry.npmjs.org/`로 되돌리고(사용자 승인 하에) `npm install`
+다시 받은 뒤, 이 폴더(및 압축 안 된 다른 자리)를 마저 압축할 것.

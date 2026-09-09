@@ -147,6 +147,30 @@
     })
   );
 
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. poly.pizza "Animated Women
+     Pack"(Quaternius, CC0, `bundle/Animated-Women-Pack-HHSKxnk1mY`) 4종 —
+     `Ultimate Modular Women Pack`(위 `ppwomen_*`)과는 별개 번들이라
+     UUID 겹침 없음(모델 페이지에서 static.poly.pizza uuid로 직접 확인).
+     `HumanArmature|Female_*` 낱말표, `mapClips()`가 기존 word 표(walk·
+     run·idle·death·jump 등 이름에 그 낱말이 그대로 들어 있다)로 그대로
+     받는다 — attack 은 Punch/SwordSlash 로 받고, hit·dodge 는 FALLBACK
+     (→idle, →run/walk)로 채워짐.
+     **압축 보류** — `tools/glb-compress`의 `package-lock.json`이 사내망
+     전용 사설 레지스트리(172.17.1.200:8081, `C:\link` 네트워크)의
+     `resolved` URL을 그대로 담고 있어 이 환경에서 npm install 이
+     ETIMEDOUT 으로 막힌다. 그 lockfile 을 고치는 것도 권한 분류기가
+     "의존성 변경"으로 막아 이번엔 원본 그대로 등록했다(4종 합쳐
+     2.0MB — 이미 비슷한 급의 압축된 세트와 큰 차이 없는 크기다). 다음에
+     `tools/glb-compress` 를 이 저장소 네트워크에서 쓸 수 있게 lockfile
+     을 공개 레지스트리로 되돌린 뒤, 이 폴더부터 마저 압축할 것. */
+  var PEOPLE_PP_WOMEN2 = 'assets/models/people/polypizza_women2/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['Woman', 'WomanCasual', 'WomanTankTop', 'WomanDress'].map(function (n) {
+      var f = PEOPLE_PP_WOMEN2 + n + '.glb';
+      return { key: 'ppwomen2_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/
