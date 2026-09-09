@@ -241,18 +241,134 @@
 
   /** 바이옴별 하늘·안개 색(PLAN 11절 "색감"). green 은 예전부터 쓰던 하늘색 그대로 */
   var FOG_COLOR = { green: 0x8fc7e8, meadow: 0xbfe0a8, dark: 0x445a48, mushroom: 0x5f7a68, rocky: 0x9a988a };
-  var curBiome = null;
-  /** 인물이 선 칸의 바이옴이 바뀔 때만 하늘·안개 색을 새로 칠한다 */
-  function syncFog() {
-    var V = global.DG.village;
+  var curBiome = null, curPhase = null;
+  var hemiLight = null, sunLight = null;
+
+  /**
+   * 시간대별 조명(PLAN 40절 PHASE 5 Day/Night — "처음에는 실제 시간 시스템까지
+   * 만들 필요 없다. 간단한 day/night preset만 만든다" 그대로). `villageData.PHASES`
+   * (2D 가 쓰는 그 표)의 key 를 그대로 받아 쓴다 — 새 시간 계산을 만들지 않는다.
+   * dark 는 바이옴 하늘색에 곱하는 밝기(1 이 낮). sun/hemi 는 방향광/반구광 값이다.
+   */
+  var PHASE_DARK = { dawn: 0.55, day: 1.0, even: 0.7, night: 0.28 };
+  var PHASE_SUN = {
+    dawn:  { color: 0xffd9a0, intensity: 0.55 },
+    day:   { color: 0xfff4e0, intensity: 1.0 },
+    even:  { color: 0xff8a4a, intensity: 0.6 },
+    night: { color: 0x8fa8ff, intensity: 0.12 }
+  };
+  var PHASE_HEMI = { dawn: 0.55, day: 0.9, even: 0.6, night: 0.3 };
+
+  /** hex 색을 f(0~1)배 어둡게 — 순수 함수(진단에서 scene 없이도 확인 가능) */
+  function darken(hex, f) {
+    var r = Math.round(((hex >> 16) & 255) * f);
+    var g = Math.round(((hex >> 8) & 255) * f);
+    var b = Math.round((hex & 255) * f);
+    return (r << 16) | (g << 8) | b;
+  }
+
+  /** 인물이 선 칸의 바이옴이나 시간대가 바뀔 때만 하늘·안개·조명을 새로 칠한다 */
+  function syncSky() {
+    var V = global.DG.village, VD = global.DG.villageData;
     if (!V || !V.biomeAt || !scene) { return; }
     var raw = V.raw(), TILE = V.TILE;
     var b = V.biomeAt(Math.floor(raw.player.x / TILE), Math.floor(raw.player.y / TILE));
-    if (b === curBiome) { return; }
-    curBiome = b;
-    var c = FOG_COLOR[b] || FOG_COLOR.green;
+    var ph = (VD && VD.phaseOf) ? VD.phaseOf(new Date().getHours()).key : 'day';
+    if (b === curBiome && ph === curPhase) { return; }
+    curBiome = b; curPhase = ph;
+    var c = darken(FOG_COLOR[b] || FOG_COLOR.green, PHASE_DARK[ph] != null ? PHASE_DARK[ph] : 1);
     scene.background.setHex(c);
     scene.fog.color.setHex(c);
+    var sunCfg = PHASE_SUN[ph] || PHASE_SUN.day;
+    if (sunLight) { sunLight.color.setHex(sunCfg.color); sunLight.intensity = sunCfg.intensity; }
+    if (hemiLight) { hemiLight.intensity = PHASE_HEMI[ph] != null ? PHASE_HEMI[ph] : 0.9; }
+  }
+
+  /** 비/눈은 날씨 키가 그대로, 반딧불이(PLAN 22절)는 맑은 밤에만 — 순수 함수라 scene 없이도 확인된다 */
+  function weatherShows(wk) { return { rain: wk === 'rain', snow: wk === 'snow' }; }
+  function fireflyVisible(ph, wk) { return ph === 'night' && wk !== 'rain' && wk !== 'snow'; }
+
+  /** base(시작값) 에서 elapsed*speed 만큼 떨어뜨리고 height 로 감는다(modulo) —
+   *  매 프레임 새 난수를 안 뽑고도 자연스럽게 반복 낙하한다. 순수 함수 */
+  function wrapY(base, elapsed, speed, height) {
+    var y = base - elapsed * speed;
+    return ((y % height) + height) % height;
+  }
+
+  var WEATHER_FX = { rain: null, snow: null, firefly: null };
+  var weatherClock = 0;
+  var RAIN_N = 140, RAIN_H = 14, RAIN_SPEED = 9;
+  var SNOW_N = 90, SNOW_H = 12, SNOW_SPEED = 1.6;
+  var FIREFLY_N = 40, FIREFLY_R = 18, FIREFLY_H = 3.2;
+
+  /**
+   * 비·눈·반딧불이 파티클(PLAN 21·22절)을 미리 지어 둔다. **인물은 늘
+   * 원점(0,0,0)** 이므로 이 파티클도 원점 중심으로 흩뿌리면 따로 위치를
+   * 옮기지 않아도 늘 인물 둘레에 보인다 — 실제로 바뀌는 건 낙하(y)뿐이다.
+   */
+  function buildWeatherFX(t) {
+    var area = RENDER_R() * 1.3;
+
+    function makePoints(n, spreadXZ, spreadY, size, color, opacity) {
+      var geo = new t.BufferGeometry();
+      var pos = new Float32Array(n * 3);
+      var base = new Float32Array(n);
+      for (var i = 0; i < n; i++) {
+        pos[i * 3] = (Math.random() * 2 - 1) * spreadXZ;
+        pos[i * 3 + 2] = (Math.random() * 2 - 1) * spreadXZ;
+        base[i] = Math.random() * spreadY;
+        pos[i * 3 + 1] = base[i];
+      }
+      geo.setAttribute('position', new t.BufferAttribute(pos, 3));
+      var mat = new t.PointsMaterial({ color: color, size: size, transparent: true, opacity: opacity, depthWrite: false });
+      var pts = new t.Points(geo, mat);
+      pts.visible = false;
+      pts.userData.base = base;
+      pts.userData.spreadY = spreadY;
+      scene.add(pts);
+      return pts;
+    }
+
+    WEATHER_FX.rain = makePoints(RAIN_N, area, RAIN_H, 0.06, 0x9fc3e8, 0.55);
+    WEATHER_FX.snow = makePoints(SNOW_N, area, SNOW_H, 0.14, 0xffffff, 0.9);
+    WEATHER_FX.firefly = makePoints(FIREFLY_N, FIREFLY_R, FIREFLY_H, 0.22, 0xf6ef8a, 0.85);
+  }
+
+  function fallStep(pts, speed) {
+    var pos = pts.geometry.attributes.position, base = pts.userData.base, h = pts.userData.spreadY;
+    for (var i = 0; i < base.length; i++) { pos.array[i * 3 + 1] = wrapY(base[i], weatherClock, speed, h); }
+    pos.needsUpdate = true;
+  }
+
+  function floatStep(pts) {
+    var pos = pts.geometry.attributes.position, base = pts.userData.base;
+    for (var i = 0; i < base.length; i++) {
+      pos.array[i * 3 + 1] = base[i] + Math.sin(weatherClock * 0.8 + i) * 0.4 + 0.6;
+    }
+    pos.needsUpdate = true;
+  }
+
+  /** 날씨(town.js 의 그것)·시간대에 맞춰 파티클을 켜고 끈다 */
+  function syncWeatherFX(dt) {
+    if (!scene) { return; }
+    var VD = global.DG.villageData;
+    var wk = (VD && VD.weather) ? VD.weather().key : 'clear';
+    weatherClock += dt;
+    var shows = weatherShows(wk);
+    var fly = fireflyVisible(curPhase, wk);
+
+    if (WEATHER_FX.rain) {
+      WEATHER_FX.rain.visible = shows.rain;
+      if (shows.rain) { fallStep(WEATHER_FX.rain, RAIN_SPEED); }
+    }
+    if (WEATHER_FX.snow) {
+      WEATHER_FX.snow.visible = shows.snow;
+      if (shows.snow) { fallStep(WEATHER_FX.snow, SNOW_SPEED); }
+    }
+    if (WEATHER_FX.firefly) {
+      WEATHER_FX.firefly.visible = fly;
+      if (fly) { floatStep(WEATHER_FX.firefly); }
+    }
   }
 
   /** three 자체가 없거나(파일 못 받음) WebGL 컨텍스트를 못 만들면 false */
@@ -303,18 +419,19 @@
 
     camera = new t.PerspectiveCamera(FOV(), 1, 0.1, 400);
 
-    scene.add(new t.HemisphereLight(0xffffff, 0x4a5a3a, 0.9));
-    var sun = new t.DirectionalLight(0xfff4e0, 1.0);
-    sun.position.set(-30, 40, 20);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 100;
-    sun.shadow.camera.left = -40; sun.shadow.camera.right = 40;
-    sun.shadow.camera.top = 40; sun.shadow.camera.bottom = -40;
-    sun.shadow.bias = -0.0015;
-    scene.add(sun);
-    scene.add(sun.target);   // 인물은 늘 원점 — 해가 늘 원점을 비추게 고정
+    hemiLight = new t.HemisphereLight(0xffffff, 0x4a5a3a, 0.9);
+    scene.add(hemiLight);
+    sunLight = new t.DirectionalLight(0xfff4e0, 1.0);
+    sunLight.position.set(-30, 40, 20);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(1024, 1024);
+    sunLight.shadow.camera.near = 1;
+    sunLight.shadow.camera.far = 100;
+    sunLight.shadow.camera.left = -40; sunLight.shadow.camera.right = 40;
+    sunLight.shadow.camera.top = 40; sunLight.shadow.camera.bottom = -40;
+    sunLight.shadow.bias = -0.0015;
+    scene.add(sunLight);
+    scene.add(sunLight.target);   // 인물은 늘 원점 — 해가 늘 원점을 비추게 고정
 
     var ground = new t.Mesh(
       new t.PlaneGeometry(GROUND_SIZE(), GROUND_SIZE()),
@@ -327,6 +444,7 @@
 
     loadEnvironment(t);
     initTerrain();
+    buildWeatherFX(t);
     resize();
     global.addEventListener('resize', resize);
     bindCamControl(canvas);
@@ -615,7 +733,8 @@
     syncTerrain();
     syncScatter();
     syncNpcs(dt);
-    syncFog();
+    syncSky();
+    syncWeatherFX(dt);
     renderer.render(scene, camera);
   }
 
@@ -637,6 +756,13 @@
     },
     /** 진단 전용 — 지금 하늘·안개에 먹인 바이옴 색 표 */
     fogColors: function () { return FOG_COLOR; },
+    /** 진단 전용 — PLAN 40절 PHASE 5 Day/Night: 시간대별 밝기·조명 표, hex 어둡히기 순수 함수 */
+    phaseLight: function () { return { dark: PHASE_DARK, sun: PHASE_SUN, hemi: PHASE_HEMI }; },
+    darken: darken,
+    /** 진단 전용 — PLAN 40절 PHASE 5 Weather/Ambient: 날씨→파티클, 밤 반딧불이, 낙하 감기(모두 순수 함수) */
+    weatherShows: weatherShows,
+    fireflyVisible: fireflyVisible,
+    wrapY: wrapY,
     /** 진단·QA 전용 — 사람이 핀치·휠로 조절한 확대 배율 */
     userZoom: function () { return userZoom; },
     setUserZoom: setUserZoom,

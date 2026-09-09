@@ -303,6 +303,51 @@ window.DG_NO_TUNE = true;
         'zoom(어깨너머 55°) → 쿼터뷰(28°) 로 좁아짐 · 중간값 그 사이';
     });
 
+    /* ── PLAN 40절 PHASE 5: Weather · Day/Night · Ambient (3D) ──────
+     * scene 없이도 확인되는 순수 함수만 — init() 은 진단에서 안 부른다
+     * (WebGL 컨텍스트·GLB 로딩까지 얽혀 여태 3D 진단이 전부 그래 왔다).
+     */
+
+    t('village-view3d — 시간대 넷(dawn·day·even·night) 모두 밝기·해·반구광 표에 있고, day 가 가장 밝다', function () {
+      var VV3 = DG.villageView3d;
+      var L = VV3.phaseLight();
+      var keys = ['dawn', 'day', 'even', 'night'], i, missing = [];
+      for (i = 0; i < keys.length; i++) {
+        if (L.dark[keys[i]] == null || !L.sun[keys[i]] || L.hemi[keys[i]] == null) { missing.push(keys[i]); }
+      }
+      var brightest = Math.max(L.dark.dawn, L.dark.day, L.dark.even, L.dark.night) === L.dark.day;
+      var darkest = Math.min(L.dark.dawn, L.dark.day, L.dark.even, L.dark.night) === L.dark.night;
+      return missing.length === 0 && brightest && darkest &&
+        '넷 다 표에 있음 · day 가 제일 밝고 night 가 제일 어두움';
+    });
+
+    t('village-view3d — darken(hex,f) 은 f=1 이면 그대로, f 가 작을수록 채널이 고르게 어두워진다', function () {
+      var VV3 = DG.villageView3d;
+      var same = VV3.darken(0x8fc7e8, 1) === 0x8fc7e8;
+      var half = VV3.darken(0xff8800, 0.5);
+      return same && half === 0x804400 && 'f=1 항등 · f=0.5 는 절반 밝기(0x804400)';
+    });
+
+    t('village-view3d — weatherShows 는 비/눈만 각자 키고, 반딧불이(fireflyVisible)는 맑은/흐린 밤에만 켠다', function () {
+      var VV3 = DG.villageView3d;
+      var rain = VV3.weatherShows('rain'), snow = VV3.weatherShows('snow'), clear = VV3.weatherShows('clear');
+      var flyClearNight = VV3.fireflyVisible('night', 'clear');
+      var flyRainNight = VV3.fireflyVisible('night', 'rain');
+      var flyClearDay = VV3.fireflyVisible('day', 'clear');
+      return rain.rain === true && rain.snow === false && snow.snow === true && snow.rain === false &&
+        !clear.rain && !clear.snow && flyClearNight === true && flyRainNight === false && flyClearDay === false &&
+        '비/눈 배타적 · 반딧불이는 밤+비/눈 아닐 때만';
+    });
+
+    t('village-view3d — wrapY 는 낙하를 height 로 감아 늘 [0,height) 안에 있고, 시간이 지날수록 줄어들다 다시 감긴다', function () {
+      var VV3 = DG.villageView3d;
+      var a = VV3.wrapY(5, 0, 2, 10);      // 시작
+      var b = VV3.wrapY(5, 1, 2, 10);      // 2 만큼 떨어짐
+      var wrapped = VV3.wrapY(1, 3, 2, 10); // 1 - 6 = -5 → 감겨서 5
+      return a === 5 && b === 3 && wrapped === 5 && a >= 0 && a < 10 && wrapped >= 0 && wrapped < 10 &&
+        '경과 1·speed2 만큼 줄어듦 · 음수는 height 로 감김';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {
