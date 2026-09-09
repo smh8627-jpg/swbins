@@ -4,6 +4,51 @@
 > 절대 바꾸면 안 되는 것·밟아 본 함정·다음 할 일이 거기 있다. **새 세션은 그 파일부터.**
 > 이 파일은 **사가고 한 판**에 대한 것만 남긴다.
 
+## 2026-09-09 (더욱 이어서) — 코드 감사 이어감(ai·ambient·auto·bag·buddy·codex·quest·milestone·letter·station·talk·icon·net·season·weather·perf.js), 버그 하나 고침
+
+HANDOFF 큐 "6. 코드 감사 이어가기"를 계속 — 이번엔 위 16개 파일을 fork
+에이전트로 정독했다.
+
+**찾은 버그(고쳤다)**: `js/codex.js`의 `dex()`가 `core.save.dex`(구조가
+`{ heroes: {...}, pets: {...} }`, `core.js:55`에서 그렇게 초기화된다)를
+`for (k in save)` 로 훑고 있었다 — 이러면 실제 인물·펫 id가 아니라
+**top-level 키인 `'heroes'`·`'pets'` 두 글자만 잡혀** `save[k]`가 늘 진리값인
+객체라서 `n`이 항상 2로 고정됐다. 즉 얼마나 많은 인물·펫을 모았든 "발견"
+시트(`ui.js` `viewCodex()`, PLAN 13절 "도감 완성률을 표시한다")의 **도감
+칸이 늘 `2/104`처럼 실제와 무관한 값**으로 뜨고 있었다(전체 `%`도 그만큼
+낮게 잡힘) — 화면에 실제로 노출되는 값이라 사용자가 도감을 채울수록
+알아챌 만한 버그였다. `save.heroes`·`save.pets` 각각의 `Object.keys().length`
+를 더하도록 고쳤다(`js/codex.js` `dex()`, ai.js의 `summary()`가 이미 쓰는
+것과 같은 패턴).
+
+**나머지 15개 파일은 확실한 버그 없음.** 특히 의심하고 봤던 자리들:
+- `weather.js`의 `core.hash2` 호출은 `h01()`(두 배 보정)로 감싸져 있어 깨끗함.
+- `ambient.js`의 8방위 나침반(`compass()`) 계산을 손으로 검산 — 동서남북
+  넷 다 맞음.
+- `talk.js`의 `tap()`이 `'walk'`라는 문자열을 반환하는 자리(문서 주석은
+  boolean이라고만 적혀 있었다)를 `world.js:1156`이 실제로 어떻게 받는지
+  확인 — 정확히 분기 처리하고 있어 오탐이었다.
+- `auto.js`·`quest.js`·`milestone.js`·`letter.js`·`station.js`의 기록/카운터
+  로직은 npc.js·duel.js류 함정(정렬 가정·배열 자르기)에 안 걸림.
+
+확신도 낮아 남긴 후보는 없다.
+
+**검증**: `node -c js/codex.js` 통과. 헤드리스 `_test.html` 3회 순차
+**462/462 동일**(고친 게 표시 숫자 계산이지 자가진단이 짚는 판정 값이
+아니라 진단 통과 개수 자체는 안 바뀜 — 도감 완성률 자가진단 항목이
+아직 없다는 뜻이기도 하다, 다음에 이 항목을 자가진단에 추가할 여지가
+있다). 헤드리스 크롬은 3회 모두 정상 종료, 잔여 프로세스 없음 확인.
+`sw.js` VERSION → `go-v5.24.5`.
+
+**다음 감사 후보**: 아직 안 본 파일 — `account.js`·`asset3d.js`·
+`actor3d.js`·`battle3d.js`·`core.js`·`data.js`·`encounter.js`·
+`encounter3d.js`·`geo.js`·`land.js`·`minimap.js`·`overworld.js`·
+`relief3d.js`·`rogue-action.js`·`sprite.js`·`ssao3d.js`·`ui.js`·
+`water3d.js`·`world.js`(world3d.js는 이미 끝냄). `sprite.js`(2505줄)·
+`ui.js`(1349줄)·`world.js`(1866줄)는 크니 나눠서 볼 것. HANDOFF 큐의
+나머지 항목(손맛 검증·녹색 캐릭터 제보·Mesh2Motion 도보·APK·사관 실청취)은
+여전히 실기기·도구가 있어야 해서 못 건드렸다.
+
 ## 2026-09-09 (더 이어서) — 코드 감사 이어감(npc.js·animal.js), 버그 둘 고침
 
 HANDOFF 큐의 "6. 코드 감사 이어가기"(world3d.js는 09-08에 끝냄, npc.js·

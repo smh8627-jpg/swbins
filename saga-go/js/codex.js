@@ -186,8 +186,9 @@
   function dex() {
     var D = global.DG.data;
     var save = core.save.dex || {};
-    var n = 0, k;
-    for (k in save) { if (Object.prototype.hasOwnProperty.call(save, k) && save[k]) { n++; } }
+    var n = 0;
+    if (save.heroes) { n += Object.keys(save.heroes).length; }
+    if (save.pets) { n += Object.keys(save.pets).length; }
     var total = D ? (D.heroes.length + D.pets.length) : 0;
     return { seen: Math.min(n, total), total: total };
   }
