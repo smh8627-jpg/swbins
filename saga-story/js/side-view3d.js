@@ -21,7 +21,7 @@
   var renderer = null, scene = null, camera = null, ready = false;
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
-  var playerMesh = null, enemyPool = [], npcPool = [];
+  var playerMesh = null, enemyPool = [], npcPool = [], gatherPool = [];
   var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
   var lastDrawT = 0, frameDt = 0;   // 사람 GLB 의 몸짓(뼈대 애니메이션)을 굴리는 델타타임
 
@@ -362,7 +362,32 @@
 
     buildScenery(Tc, stg);
     rebuildNpcs(Tc, stg);
+    rebuildGathers(Tc, stg);
     lastMood = stg.mood + '|' + stg.width;
+  }
+
+  /** 필드 채집물(PLAN 10절) — `side.js` 의 `run.gathers`(살았는지·자리)와
+   *  같은 순서로 세운다. GLB 종류는 `sideData.GATHERS[kind].model` 이
+   *  가리키는, 이미 있는 자연물 모델(꽃·덤불·이끼바위·바위) 중 하나다 */
+  function rebuildGathers(Tc, stg) {
+    for (var j = 0; j < gatherPool.length; j++) { actorGroup.remove(gatherPool[j]); disposeDeep(gatherPool[j]); }
+    gatherPool = [];
+    var list = stg.gathers || [];
+    var GD = global.DG.sideData && global.DG.sideData.GATHERS;
+    if (!GD) { return; }
+    for (var i = 0; i < list.length; i++) {
+      var x = list[i][0], info = GD[list[i][1]];
+      if (!info) { continue; }
+      var h = 26;
+      var holder = new Tc.Group();
+      holder.position.set(x, 0, -40);
+      var prim = new Tc.Mesh(new Tc.ConeGeometry(h * 0.3, h, 5), new Tc.MeshLambertMaterial({ color: 0x8fae4a }));
+      prim.position.set(0, h / 2, 0);
+      holder.add(prim);
+      actorGroup.add(holder);
+      swapIn(holder, info.model, x + ':' + list[i][1], h, stageGen);
+      gatherPool.push(holder);
+    }
   }
 
   /** 마을 사람(PLAN 3·8절) — town:true 인 사냥터에만 세운다. 판정에는 안 닿고
@@ -564,6 +589,12 @@
       var speed = Math.cos(now * 0.35 + u.npcPhase) * 40;
       place(npc, u.npcAnchor + Math.sin(now * 0.35 + u.npcPhase) * 55, 0, speed >= 0 ? 1 : -1);
       stepActor(npc, Math.abs(speed) > 6 ? 'walk' : 'idle');
+    }
+
+    /* 채집물 — 캔 자리는 숨긴다(다시 돋을 때까지). run.gathers 와 같은 순서로
+       세웠으므로(rebuildGathers) 인덱스로 맞춘다 */
+    for (i = 0; i < gatherPool.length && i < run.gathers.length; i++) {
+      gatherPool[i].visible = run.gathers[i].alive;
     }
 
     renderer.render(scene, camera);

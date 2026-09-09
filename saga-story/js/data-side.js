@@ -49,6 +49,7 @@
       ropes: [[340, 430, 560, 'rope'], [790, 350, 560, 'rope'], [1210, 440, 560, 'rope'],
               [1650, 340, 560, 'rope'], [1930, 450, 560, 'ladder']],
       portals: [[70, 'heodo'], [2130, 'gangneungjin']],
+      gathers: [[480, 'herb'], [1050, 'herb'], [1750, 'herb']],
       enemyLv: 1, spawn: 7,
       /* 보스 — 사냥터 오른쪽 끝을 지킨다. cool 은 잡은 뒤 다시 나오기까지의 분(分).
          hpMul·dmgMul 은 그 사냥터 일반 적 기준의 배수다. */
@@ -70,6 +71,7 @@
       ropes: [[285, 450, 560, 'rope'], [650, 360, 560, 'rope'], [1010, 280, 560, 'rope'],
               [1370, 380, 560, 'ladder'], [1750, 300, 560, 'rope'], [2090, 430, 560, 'ladder']],
       portals: [[70, 'gangneungjin'], [2530, 'namjeongseong']],
+      gathers: [[420, 'berry'], [1080, 'berry'], [1780, 'berry'], [2340, 'berry']],
       enemyLv: 6, spawn: 9,
       boss: { name: '오랑캐 족장', cool: 20, hpMul: 14, dmgMul: 2.2 }
     },
@@ -89,6 +91,7 @@
       ropes: [[325, 470, 560, 'ladder'], [730, 390, 560, 'ladder'], [1110, 300, 560, 'ladder'],
               [1490, 400, 560, 'rope'], [1870, 320, 560, 'ladder'], [2270, 440, 560, 'ladder']],
       portals: [[70, 'namjeongseong'], [2930, 'gisanchae']],
+      gathers: [[500, 'ore'], [1500, 'ore'], [2500, 'ore']],
       enemyLv: 14, spawn: 11,
       boss: { name: '위군 도독', cool: 30, hpMul: 17, dmgMul: 2.5 }
     },
@@ -117,6 +120,7 @@
               [1330, 420, 560, 'rope'], [1670, 330, 560, 'ladder'], [2030, 250, 560, 'rope'],
               [2390, 400, 560, 'ladder'], [2770, 320, 560, 'rope']],
       portals: [[70, 'gisanchae']],
+      gathers: [[700, 'cinder'], [1800, 'cinder'], [2900, 'cinder']],
       enemyLv: 26, spawn: 13,
       boss: { name: '적국 대장군', cool: 40, hpMul: 20, dmgMul: 2.8 }
     }
@@ -163,9 +167,23 @@
     scroll: { name: '주문서', emoji: '📜', color: '#d8cba0' }
   };
 
+  /**
+   * 필드에서 캐는 것(PLAN 10절) — 사냥터마다 고정 자리(`gathers`)에 서 있다가
+   * 지나가면 줍고, 잠시 뒤 다시 돋는다. 몬스터 드랍과 달리 판정이 필요 없는
+   * 정지 오브젝트라 별도 표(`GATHERS`)로 뺐다. `model` 은 `asset3d.js`가 이미
+   * 갖고 있는 자연물 GLB 종류(부록 "코드로 그리지 말고 에셋으로") 중에서
+   * 골랐다 — 새 GLB 를 받아 오는 대신 이미 있는 것으로 결을 맞췄다.
+   */
+  var GATHERS = {
+    herb:   { name: '들꽃',       emoji: '🌼', model: 'flower' },     // 허창 들판
+    berry:  { name: '덤불 열매',  emoji: '🍇', model: 'bush' },       // 오림 숲
+    ore:    { name: '이끼 광물',  emoji: '⛏️', model: 'moss_rock' },  // 한중 굴혈
+    cinder: { name: '그은 돌',    emoji: '🪨', model: 'rock' }        // 호로곡
+  };
+
   global.DG = global.DG || {};
   global.DG.sideData = {
-    STAGES: STAGES, SKILLS: SKILLS, DROPS: DROPS,
+    STAGES: STAGES, SKILLS: SKILLS, DROPS: DROPS, GATHERS: GATHERS,
     RANGED_WEAPON: RANGED_WEAPON,
     stage: stage, rangedOf: rangedOf
   };

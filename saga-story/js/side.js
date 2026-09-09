@@ -68,6 +68,7 @@
     /* 빠진 칸을 채운다 — 보스가 없던 시절의 세이브에는 이 칸이 없다 */
     if (!s.side.bossAt) { s.side.bossAt = {}; }
     if (typeof s.side.bosses !== 'number') { s.side.bosses = 0; }
+    if (!s.side.mats) { s.side.mats = {}; }   // 채집 재료(PLAN 10절) — { kind: 개수 }
     return s.side;
   }
 
@@ -127,6 +128,18 @@
     return out;
   }
 
+  var GATHER_R = 50;          // 캐는 데 필요한 거리 — 자동으로, 지나가기만 하면 된다
+  var GATHER_RESPAWN = 45;    // 다시 돋기까지(초)
+
+  /** 사냥터의 채집 자리를 살아있는 상태로 되돌린다(문 넘을 때·재입장 시) */
+  function buildGathers(stg) {
+    var list = stg.gathers || [], out = [];
+    for (var i = 0; i < list.length; i++) {
+      out.push({ x: list[i][0], kind: list[i][1], alive: true, respawnAt: 0 });
+    }
+    return out;
+  }
+
   /** 사냥터에 들어간다 */
   function enter(key) {
     var stg = SD.stage(key);
@@ -145,7 +158,7 @@
                 onGround: true, phase: 0, atkCd: 0, hurt: 0, invuln: 0,
                 cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
                 climb: null, dropThru: 0, resting: 0 },
-      enemies: [], drops: [], shots: [], eshots: [],
+      enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       kills: 0, gold: 0, startedAt: Date.now()
     };
     st().stage = stg.key;
@@ -299,6 +312,7 @@
     var goingRight = run.player.x > from.width / 2;
     run.stage = stg;
     run.enemies = []; run.drops = []; run.shots = []; run.eshots = []; run.boss = null;
+    run.gathers = buildGathers(stg);
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
     run.player.vx = 0; run.player.vy = 0; run.player.climb = null;
@@ -915,6 +929,25 @@
         }
         if (d.kind === 'gold') { sfx('gold'); }
         run.drops.splice(i, 1);
+      }
+    }
+
+    /* 필드 채집(PLAN 10절) — 정지 오브젝트라 밟는 판정만 있으면 된다.
+       가방과 달리 칸이 안 차므로(카운터라서) 늘 다 줍는다 */
+    for (i = 0; i < run.gathers.length; i++) {
+      var g = run.gathers[i];
+      if (!g.alive) {
+        if (Date.now() >= g.respawnAt) { g.alive = true; }
+        continue;
+      }
+      if (Math.abs(g.x - (p.x + P_W / 2)) < GATHER_R) {
+        g.alive = false;
+        g.respawnAt = Date.now() + GATHER_RESPAWN * 1000;
+        var s = st();
+        s.mats[g.kind] = (s.mats[g.kind] || 0) + 1;
+        var GD = SD.GATHERS[g.kind];
+        sfx('coin');
+        core.emit('toast', GD.emoji + ' ' + GD.name + ' +1');
       }
     }
 

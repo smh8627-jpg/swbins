@@ -672,6 +672,24 @@
         '업횟만 닳습니다.</small></div>';
     }
     html += '</div>';
+
+    /* 캔 것(PLAN 10절) — 필드에 서 있는 것을 지나가면 줍는다. 칸을 차지하지
+       않는 카운터라 가방과는 딴 줄에 둔다 */
+    var SD = global.DG.sideData, mats = S.state().mats || {}, gk = Object.keys(SD.GATHERS);
+    var got = gk.filter(function (k) { return mats[k] > 0; });
+    html += '<div class="sec"><h4>캔 것</h4>';
+    if (!got.length) {
+      html += '<div class="hint">사냥터를 걷다 보면 꽃·열매·광물이 서 있습니다. 지나가면 줍습니다.</div>';
+    } else {
+      html += '<div class="card">';
+      for (i = 0; i < got.length; i++) {
+        var gi = SD.GATHERS[got[i]];
+        html += '<div class="stat-row"><span>' + gi.emoji + ' ' + esc(gi.name) + '</span>' +
+          '<b>×' + mats[got[i]] + '</b></div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
     return html;
   }
 
