@@ -52,6 +52,11 @@
     for (var xx = 0; xx < xy.length; xx++) {
       if (!data.find(xy[xx].id)) { data.heroes.push(xy[xx]); }
     }
+    /* 남중 지역 수비 무장(2026-09-09, 다섯째 확장) — 같은 방식으로 얹는다 */
+    var nz = FD.NANZHONG_OFFICERS || [];
+    for (var nn = 0; nn < nz.length; nn++) {
+      if (!data.find(nz[nn].id)) { data.heroes.push(nz[nn]); }
+    }
     merged = true;
     return data.heroes.length;
   }

@@ -36,7 +36,9 @@
     /* 2026-09-09 확장(셋째) — 교주(交州, 영남·베트남 북부). 같은 원칙 */
     jiao: '교주',
     /* 2026-09-09 확장(넷째) — 서역(西域, 하서주랑 너머 실크로드 오아시스). 같은 원칙 */
-    xi: '서역'
+    xi: '서역',
+    /* 2026-09-09 확장(다섯째) — 남중(南中, 강주 남쪽 산지·밀림). 같은 원칙 */
+    nz: '남중'
   };
 
   var CITIES = [
@@ -220,7 +222,35 @@
       desc: '남·북 두 길이 다시 만나는 자리. 파미르로 드는 문.' },
     { id: 'dayuan',   name: '대완', hanja: '大宛', prov: 'xi', x: -58, y: 16, land: 'hill',
       agri: 180, comm: 200, wall: 3200, pop: 60000, garrison: 8000,
-      desc: '한혈마(汗血馬)가 난다는 서쪽 끝의 나라.' }
+      desc: '한혈마(汗血馬)가 난다는 서쪽 끝의 나라.' },
+
+    /* ── 남중 (2026-09-09 확장, 주인 없음 — 앞 넷과 같은 결) ──
+       강주(江州) 남쪽, 익주가 다스리기 벅차하던 산지·밀림 지대. 다른 점
+       하나 — 관문 성 주제(朱提)를 강주처럼 land:'river' 로 둬서, 강주↔주제
+       한 구간만 배 없이는 못 건넌다(노수(瀘水)를 건너야 남중에 든다는
+       고사를 그대로 지형으로 옮겼다). 나머지 여섯 성은 전부 육로 나무 —
+       건녕(建寧)이 허브, 실제 한대 남중 군(郡) 이름을 그대로 썼다. */
+    { id: 'zhuti',    name: '주제', hanja: '朱提', prov: 'nz', x: 20, y: 82, land: 'river',
+      agri: 160, comm: 140, wall: 3200, pop: 55000, garrison: 8500,
+      desc: '노수(瀘水)를 건너야 닿는 첫 관문. 은광이 난다는 소문이 있다.' },
+    { id: 'jianning', name: '건녕', hanja: '建寧', prov: 'nz', x: 14, y: 92, land: 'plain',
+      agri: 200, comm: 180, wall: 3800, pop: 85000, garrison: 11000,
+      desc: '남중 여러 부족을 아우르는 다스림의 중심.' },
+    { id: 'yuexi',    name: '월수', hanja: '越巂', prov: 'nz', x: 4,  y: 78, land: 'mount',
+      agri: 120, comm: 100, wall: 2800, pop: 42000, garrison: 7000,
+      desc: '서쪽 산길, 강(羌)족과 맞닿은 변경.' },
+    { id: 'zangke',   name: '장가', hanja: '牂柯', prov: 'nz', x: 28, y: 98, land: 'hill',
+      agri: 150, comm: 120, wall: 3000, pop: 50000, garrison: 7500,
+      desc: '협곡을 낀 물길, 배는 못 다녀도 걷기는 험하다.' },
+    { id: 'yunnan',   name: '운남', hanja: '雲南', prov: 'nz', x: 8,  y: 104, land: 'mount',
+      agri: 140, comm: 130, wall: 2900, pop: 46000, garrison: 7200,
+      desc: '구름 남쪽의 큰 호수, 봄이면 꽃빛으로 물든다.' },
+    { id: 'yongchang',name: '영창', hanja: '永昌', prov: 'nz', x: -8, y: 98, land: 'plain',
+      agri: 170, comm: 200, wall: 3400, pop: 60000, garrison: 8800,
+      desc: '머나먼 서쪽 땅, 천축(天竺)의 물건도 이 길을 거쳐 온다.' },
+    { id: 'xinggu',   name: '흥고', hanja: '興古', prov: 'nz', x: 18, y: 112, land: 'hill',
+      agri: 110, comm: 90, wall: 2600, pop: 38000, garrison: 6500,
+      desc: '가장 먼 변경, 지도 위 마지막 이름.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -289,7 +319,14 @@
     ['yanqi', 'kucha'],
     ['khotan', 'kashgar'],
     ['kucha', 'kashgar'],
-    ['kashgar', 'dayuan']
+    ['kashgar', 'dayuan'],
+
+    /* ── 남중 ─────────────────────────────────────────── */
+    ['jiangzhou', 'zhuti'],
+    ['zhuti', 'jianning'],
+    ['jianning', 'yuexi'], ['jianning', 'zangke'], ['jianning', 'yunnan'],
+    ['yunnan', 'yongchang'],
+    ['zangke', 'xinggu']
   ];
 
   var byId = {};

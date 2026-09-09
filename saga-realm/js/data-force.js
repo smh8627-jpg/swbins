@@ -315,6 +315,49 @@
     dayuan: ['xiyu_cheonma']
   };
 
+  /* ── 남중(南中) 지역 수비 무장 (2026-09-09, 다섯째 확장) — 앞 넷과 같은 결.
+     era 는 전부 '남중(가상)' — 실존 인물이 아니다(루트 CLAUDE.md 이름 정책). */
+  var NANZHONG_OFFICERS = [
+    { id: 'nz_soman',     name: '소만', hanja: '蘇蠻', era: '남중(가상)', faction: '주제',
+      rarity: 3, trait: 'might', emoji: '🗡️', quote: '산길을 막으면 코끼리도 못 지나갑니다.',
+      stats: { might: 80, wisdom: 44, command: 70 } },
+    { id: 'nz_ahyang',    name: '아향', hanja: '阿香', era: '남중(가상)', faction: '주제',
+      rarity: 3, trait: 'wisdom', emoji: '🌿', quote: '독풀을 아는 자가 이 길의 주인입니다.',
+      stats: { might: 40, wisdom: 82, command: 60 } },
+    { id: 'nz_mokro',     name: '목로', hanja: '木老', era: '남중(가상)', faction: '건녕',
+      rarity: 4, trait: 'command', emoji: '🐘', quote: '코끼리 부대는 산을 오르는 법을 압니다.',
+      stats: { might: 76, wisdom: 58, command: 88 } },
+    { id: 'nz_eunga',     name: '은가', hanja: '銀珂', era: '남중(가상)', faction: '건녕',
+      rarity: 3, trait: 'wisdom', emoji: '🥁', quote: '북소리 하나로 부족 셋을 모읍니다.',
+      stats: { might: 38, wisdom: 80, command: 64 } },
+    { id: 'nz_jeokpyo',   name: '적표', hanja: '赤豹', era: '남중(가상)', faction: '월수',
+      rarity: 3, trait: 'might', emoji: '🐆', quote: '표범처럼 능선을 타면 매복은 실패하지 않습니다.',
+      stats: { might: 80, wisdom: 42, command: 68 } },
+    { id: 'nz_hyeoncheon',name: '현천', hanja: '玄泉', era: '남중(가상)', faction: '장가',
+      rarity: 3, trait: 'wisdom', emoji: '💧', quote: '협곡의 샘을 막으면 군대는 목이 마릅니다.',
+      stats: { might: 42, wisdom: 78, command: 62 } },
+    { id: 'nz_unhwa',     name: '운화', hanja: '雲花', era: '남중(가상)', faction: '운남',
+      rarity: 3, trait: 'wisdom', emoji: '🌸', quote: '구름 남쪽 호수는 봄마다 꽃빛으로 물듭니다.',
+      stats: { might: 36, wisdom: 80, command: 58 } },
+    { id: 'nz_geumsang',  name: '금상', hanja: '金商', era: '남중(가상)', faction: '영창',
+      rarity: 4, trait: 'command', emoji: '💰', quote: '천축(天竺)의 물건도 이 길을 거쳐 옵니다.',
+      stats: { might: 70, wisdom: 62, command: 84 } },
+    { id: 'nz_heukwol',   name: '흑월', hanja: '黑月', era: '남중(가상)', faction: '흥고',
+      rarity: 3, trait: 'might', emoji: '🌑', quote: '가장 먼 변경일수록 밤이 깁니다.',
+      stats: { might: 78, wisdom: 40, command: 66 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var NANZHONG_GARRISON = {
+    zhuti: ['nz_soman', 'nz_ahyang'],
+    jianning: ['nz_mokro', 'nz_eunga'],
+    yuexi: ['nz_jeokpyo'],
+    zangke: ['nz_hyeoncheon'],
+    yunnan: ['nz_unhwa'],
+    yongchang: ['nz_geumsang'],
+    xinggu: ['nz_heukwol']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -537,6 +580,7 @@
     JAPAN_OFFICERS: JAPAN_OFFICERS, JAPAN_GARRISON: JAPAN_GARRISON,
     JIAOZHOU_OFFICERS: JIAOZHOU_OFFICERS, JIAOZHOU_GARRISON: JIAOZHOU_GARRISON,
     XIYU_OFFICERS: XIYU_OFFICERS, XIYU_GARRISON: XIYU_GARRISON,
+    NANZHONG_OFFICERS: NANZHONG_OFFICERS, NANZHONG_GARRISON: NANZHONG_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },
