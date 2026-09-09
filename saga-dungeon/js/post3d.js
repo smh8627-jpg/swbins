@@ -143,9 +143,14 @@
    *   msaa   렌더 타깃 표본 수
    *   scale  렌더 타깃 배율
    */
+  /* 2026-09-09 — 사가블로 폰 실기기 "품질을 낮춰줘 + 하얀 안개"(dungeon3d.js
+     QUALITY_PRESET 주석 참고) 재신고에 맞춰 MEDIUM도 LOW에 더 가깝게 낮췄다.
+     후처리(블룸·SSAO)는 이 판에서 가장 비싸면서, AUTO가 잠깐 MEDIUM으로
+     오갈 때마다 syncTargets가 렌더 타깃을 다시 만들어 그 프레임이 통째로
+     멎는 값이었다(§28-8 되먹임 기록) — MEDIUM의 몫을 줄여 그 왕복 비용 자체를 낮춘다. */
   var TIER_POST = {
     HIGH: { post: 1, mips: 4, msaa: 4, scale: 1 },
-    MEDIUM: { post: 1, mips: 3, msaa: 2, scale: 0.85 },
+    MEDIUM: { post: 1, mips: 2, msaa: 0, scale: 0.65 },
     LOW: { post: 0, mips: 0, msaa: 0, scale: 1 }
   };
 

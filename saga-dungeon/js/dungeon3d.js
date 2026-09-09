@@ -133,9 +133,14 @@
        거의 그대로다. low/medium/high 순서(자가진단이 보는 것)만 지켰다. */
     /* 2026-09-08 — "장애물이 너무 많다"(사용자). 세 등급 다 밀도를 절반으로
        낮췄다(순서 자체는 그대로 low<medium<high — 자가진단이 그 순서만 본다) */
-    low: { fieldR: 2, fieldDens: 0.25, shadow: false },
-    medium: { fieldR: 4, fieldDens: 0.375, shadow: true },
-    high: { fieldR: 6, fieldDens: 0.5, shadow: true }
+    /* 2026-09-09 — "이동시 멈추고 맵이 생기면 느려진다"(폰 실기기 재신고).
+       세 등급 다 한 단 더 낮춘다 — 특히 MEDIUM 의 그림자를 껐다(그림자는
+       렌더러에서 가장 비싼 항목인데, AUTO 가 잠깐씩 MEDIUM 으로 오갈 때마다
+       그 비용이 통째로 붙었다 뗐다 해 끊김의 한 갈래였다). 순서(low<medium<high,
+       그림자 low=false·high=true)는 자가진단이 보는 것이라 그대로 지켰다. */
+    low: { fieldR: 1, fieldDens: 0.16, shadow: false },
+    medium: { fieldR: 2, fieldDens: 0.25, shadow: false },
+    high: { fieldR: 4, fieldDens: 0.375, shadow: true }
   };
   function QUALITY() { return tuned('dg3d.quality', 'auto'); }
   /* 2026-09-07 — 폰 실기기 재신고("마을 진입 직후 먹통이 될 정도로 느림").
@@ -429,14 +434,20 @@
          재신고("전체 갈색임·잘안보여"). 사용자가 횃불 톤(조명) 자체가 필요
          없다고 재정정 — torchIntensity를 0으로 내리고, 배경·주변광·직사광의
          색을 호박색(amber) 계열에서 중립(뉴트럴)한 밝은 회백색으로 바꿔
-         "갈색"으로 읽히는 색 자체를 없앤다. 밝기(ambient 2.0 등)는 그대로 둔다
-         — 어둡다는 재신고를 다시 부르면 안 된다. */
+         "갈색"으로 읽히는 색 자체를 없앴다.
+         2026-09-09(같은 날 재신고) — 이번엔 "하얀 안개가 화면을 덮는다"로
+         뒤집혔다. ambient 2.0 + keyIntensity 1.9 + 거의 흰색인 배경(0xd7dde2,
+         RGB 밝기 ~0.86)이 겹쳐 `post3d.js`의 블룸 문턱(threshold 0.9, knee로
+         0.45부터 걸린다)을 화면 대부분이 넘겨 버렸다 — 밝은 배경 자체가
+         블룸으로 번져 화면 전체에 허연 안개처럼 깔린 것(진짜 `scene.fog`가
+         아니라 블룸 블로아웃). 밝기는 유지하되(어둡다는 재신고를 또 부르면
+         안 된다) 블룸 문턱을 확실히 넘지 않는 선까지 낮춘다. */
       return {
-        ambient: 2.0, ambientHex: 0xeef1f4,
-        keyIntensity: 1.9, keyHex: 0xf4f7fb,
+        ambient: 1.3, ambientHex: 0xeef1f4,
+        keyIntensity: 1.2, keyHex: 0xf4f7fb,
         torchIntensity: 0, torchHex: 0xffc070, torchRange: 420,
         fog: { near: 1400, far: 3200 },
-        bgHex: 0xd7dde2, boss: false, deep: 0, town: true
+        bgHex: 0xaeb4ba, boss: false, deep: 0, town: true
       };
     }
     return {
