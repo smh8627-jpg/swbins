@@ -1363,3 +1363,36 @@ MPFB(3.5~4.3MB, 위 §"2026-09-07" 참고)의 무게 함정과는 다른 체급�
 
 같은 번들의 Enemy Small/Large/Flying·Mech·Rover(로봇/외계생물)는 사람형이
 아니라 등록 안 함 — "몬스터 100개" 트랙 후보로 남겨 둠.
+
+## 캐릭터 7차분 — Pirate kit 사람 3종, 클립 이름 깨짐 고쳐서 등록 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/bundle/Pirate-kit-0q5ulmIYqQ`(Quaternius, CC0)의 사람형 3종 —
+Pirate Captain(`m/sN18LyyHAU`)·Anne(`m/tZYaOQ4l94`)·Henry(`m/yEdSk8tRKc`).
+셋 다 CC0, Animated 태그 확인.
+
+> **받는 김에 발견 — 이 번들 특유의 클립 이름 깨짐.** 셋 다 애니메이션
+> 트랙 이름이 `CharacterArmature|CharacterArmature|CharacterArmature|
+> <어간>|CharacterArmature|<어간을 81자 상한에서 다시 자른 것>` 꼴로
+> 나갔다(예: `...Death|CharacterArmature|Dea`, `...HitReact|
+> CharacterArmature|`—뒤가 통째로 잘려 빈 문자열). `mapClips()`는 마지막
+> `|` 뒤 조각만 보는데 그 조각이 잘린 부스러기(`Dea`·빈 문자열·`Pun`)라
+> **death·attack·hit 세 슬롯이 전부 idle로 새 버렸다**(고치기 전 실제로
+> `mapClips()`를 직접 돌려 재현·확인). 같은 `CharacterArmature|*` 계열인
+> `ppmore_*`·`ppspace_*`는 이 문제가 없다(대조 확인) — 이 번들만의
+> 익스포트 문제로 보인다.
+>
+> **고침** — 3번째 `|` 조각(`...|CharacterArmature|CharacterArmature|
+> CharacterArmature|<여기>|...`)은 어느 클립에서도 안 잘리고 온전한
+> 진짜 어간이라, 그걸 읽어 `CharacterArmature|<어간>`으로 다시 쓰는
+> 세션 임시 스크립트를 한 번 돌렸다. **glTF의 JSON 청크만 다시 쓰고
+> BIN 청크(스켈레톤·정점·키프레임)는 바이트 그대로 복사** — 애니메이션
+> 실제 동작은 안 건드리고 이름표만 고쳤다. `gltf-transform inspect`로
+> 파일이 여전히 유효한지, 고친 뒤 `mapClips()`가 death·attack(Punch)·
+> hit(HitReact)까지 실제 클립으로 잡는지(전엔 셋 다 idle 대체) 확인.
+> 이 스크립트는 이번 3개에만 한 번 쓰고 커밋하지 않았다 — 같은 문제가
+> 또 나오면(이 번들의 다른 사람형을 더 받을 때 등) 이 절의 방법을
+> 다시 쓸 것.
+
+`assets/models/people/polypizza_pirate/`에 둠(이름을 고친 뒤 파일),
+`tools/glb-compress`로 압축(1.9MB→0.5MB, 72% 감소). `HERO_RECIPES_LIGHT`에
+`pppirate_*`로 등록 — **70→73종**.

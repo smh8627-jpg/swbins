@@ -209,6 +209,32 @@
     })
   );
 
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. `Pirate kit`(Quaternius, CC0,
+     `poly.pizza/bundle/Pirate-kit-0q5ulmIYqQ`)의 사람형 3종 — Pirate
+     Captain·Anne·Henry.
+     **원본 클립 이름이 깨져 있었다** — `CharacterArmature|CharacterArmature|
+     CharacterArmature|<Stem>|CharacterArmature|<Stem 다시, 81자 상한에서
+     잘림>` 꼴로 내보내져(이 번들 특유의 익스포트 문제로 보인다 — 같은
+     `CharacterArmature|*` 계열인 `ppmore_*`·`ppspace_*`는 안 그렇다,
+     확인해 봄) `Death`→`Dea`·`HitReact`→``(빈 문자열)·`Punch`→`Pun`처럼
+     꼬리가 잘렸다. `mapClips()`가 마지막 `|` 뒤 조각만 보므로 이 잘린
+     꼬리로는 death·attack·hit 슬롯이 전부 idle로 새 버렸다(직접
+     재현해 확인). **원본 데이터는 안 건드리고 이름만 고쳤다** — 3번째
+     `|` 조각(늘 안 잘리고 온전한 진짜 어간)을 읽어 `CharacterArmature|
+     <Stem>`으로 다시 쓰는 스크립트(세션 임시, 커밋 안 함)를 한 번
+     돌렸다. glTF JSON 청크만 재작성하고 BIN 청크(스켈레톤·키프레임)는
+     바이트 그대로 복사 — `gltf-transform inspect`로 파일이 여전히
+     유효한지, 압축 전/후 `mapClips()` 결과가 death·attack(Punch)·
+     hit(HitReact)까지 전부 실제 클립으로 잡히는지(전엔 셋 다 idle
+     대체였다) 확인 후 등록했다. */
+  var PEOPLE_PP_PIRATE = 'assets/models/people/polypizza_pirate/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['PirateCaptain', 'Anne', 'Henry'].map(function (n) {
+      var f = PEOPLE_PP_PIRATE + n + '.glb';
+      return { key: 'pppirate_' + n.toLowerCase(), body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/
