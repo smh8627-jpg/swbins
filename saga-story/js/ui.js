@@ -126,13 +126,23 @@
     /* 음량 슬라이더 — 끌 때마다(input) 바로 듣고, 값칸은 다시 그리지 않고 직접 고쳐
        슬라이더가 손 밑에서 튀지 않게 한다(전체 renderSheet() 는 change 에서만) */
     els['sheet-body'].addEventListener('input', function (e) {
-      var el = e.target;
-      if (el.getAttribute('data-act') !== 'snd-vol') { return; }
-      var SF = global.DG.sfx;
-      if (!SF) { return; }
-      var v = SF.setVolume((parseInt(el.value, 10) || 0) / 100);
-      var lbl = el.nextElementSibling;
-      if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
+      var el = e.target, act = el.getAttribute('data-act');
+      if (act === 'snd-vol') {
+        var SF = global.DG.sfx;
+        if (!SF) { return; }
+        var v = SF.setVolume((parseInt(el.value, 10) || 0) / 100);
+        var lbl = el.nextElementSibling;
+        if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
+        return;
+      }
+      if (act === 'bgm-vol') {
+        var BG0 = global.DG.bgm;
+        if (!BG0) { return; }
+        var v2 = BG0.setVolume((parseInt(el.value, 10) || 0) / 100);
+        var lbl2 = el.nextElementSibling;
+        if (lbl2) { lbl2.textContent = Math.round(v2 * 100) + '%'; }
+        return;
+      }
     });
 
     bindRest();
@@ -156,6 +166,11 @@
       if (act === 'snd-toggle') {
         var SF0 = global.DG.sfx;
         if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
+        return;
+      }
+      if (act === 'bgm-toggle') {
+        var BG1 = global.DG.bgm;
+        if (BG1) { BG1.setEnabled(!BG1.enabled()); renderSheet(); }
         return;
       }
       if (act === 'vib-toggle') {
@@ -304,15 +319,26 @@
     return html;
   }
 
-  /** 2026-09-09(PLAN 30절) — 효과음·진동·그래픽 품질. BGM·조작 감도·화면 방향은
-   *  아직 없다(실제 배경음악 곡과 아날로그 입력이 먼저 있어야 뜻이 있는 자리라
-   *  뒤로 미뤘다 — 이 판의 조작은 방향키 넷뿐이라 "감도"가 걸릴 자리가 없다) */
+  /** 2026-09-09(PLAN 30절) — 효과음·진동·그래픽 품질. **BGM 손잡이는 같은 날
+   *  이어서(PLAN 34절, 실제 배경음악 곡이 생긴 뒤) 추가했다.** 조작 감도·화면
+   *  방향은 여전히 없다(이 판의 조작은 방향키 넷뿐이라 "감도"가 걸릴 자리가
+   *  없다) */
   var QUALITY_LABEL = { auto: '자동', low: '낮음', medium: '보통', high: '높음' };
   function viewSettings() {
-    var SF = global.DG.sfx, SV3 = global.DG.sideView3d;
+    var SF = global.DG.sfx, SV3 = global.DG.sideView3d, BG = global.DG.bgm;
     if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
     var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
     var vib = SF.vibrateEnabled();
+    var bgmRow = '';
+    if (BG) {
+      var bgOn = BG.enabled(), bgVol = Math.round(BG.volume() * 100);
+      bgmRow = '<div class="key-row"><b>배경음악</b>' +
+        '<button data-act="bgm-toggle">' + (bgOn ? '켜짐' : '꺼짐') + '</button></div>' +
+        '<div class="key-row"><b>BGM 음량</b>' +
+        '<input type="range" min="0" max="100" value="' + bgVol + '" data-act="bgm-vol"' +
+        (bgOn ? '' : ' disabled') + '>' +
+        '<span class="key-cur">' + bgVol + '%</span></div>';
+    }
     var vibRow = (global.navigator && navigator.vibrate)
       ? '<div class="key-row"><b>진동</b>' +
         '<button data-act="vib-toggle">' + (vib ? '켜짐' : '꺼짐') + '</button></div>'
@@ -338,7 +364,7 @@
         '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
         (on ? '' : ' disabled') + '>' +
         '<span class="key-cur">' + vol + '%</span></div>' +
-      vibRow + gq;
+      bgmRow + vibRow + gq;
   }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고

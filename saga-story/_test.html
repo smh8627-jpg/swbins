@@ -87,6 +87,7 @@ window.DG_NO_TUNE = true;
 <script src="js/quest.js"></script>
 <script src="js/achieve.js"></script>
 <script src="js/sfx.js"></script>
+<script src="js/bgm.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/auto.js"></script>
@@ -2067,6 +2068,77 @@ window.DG_NO_TUNE = true;
       X.setEnabled(had);
       return rang === false && seen === 'gold' && C.save.settings.sound === had &&
         ('꺼짐 → 적힘(' + seen + ') · 울지 않음');
+    });
+
+    /* ── 배경음악(BGM, PLAN 34절, 2026-09-09) ──────────────────
+     * `desiredTrack()`은 순수 함수다 — `side.status()`가 주는 상태만 보고
+     * town/forest/battle 중 하나를 고른다. DOM·오디오 재생은 안 건드린다
+     * (`unlock()` 을 부른 적이 없으니 `_test.html`에서 실제로 소리가 나지
+     * 않는다 — 헤드리스는 애초에 사람이 누른 적이 없어 브라우저가 막는다). */
+
+    t('BGM — 마을 밖(사냥 중 아님)이면 town', function () {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      return DG.bgm.desiredTrack() === 'town' && '사냥 중 아님 → town';
+    });
+
+    /* 앞선 항목의 C.reset() 이 party 를 비워 뒀다 — enter() 는 앞에 세운 인물이
+       없으면 조용히 거절한다(run 이 그대로 null). "필드 채집물…" 항목이 쓰는
+       것과 같은 되채움 한 줄을 여기도 그대로 쓴다. */
+    function ensureParty() {
+      if (!C.save.party.length) { C.save.party = [DG.data.heroes[0].id]; DG.hero.ensure(DG.data.heroes[0].id); }
+    }
+
+    t('BGM — town:true 사냥터 안에서도 town', function () {
+      var S = DG.side;
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      S.enter('sinya');
+      if (!S.active()) { return false; }   // 실제로 들어갔는지부터 확인 — 안 그러면 !active 경로로 우연히 통과한다
+      var got = DG.bgm.desiredTrack();
+      S.leave();
+      return got === 'town' && ('신야성(마을) → ' + got);
+    });
+
+    t('BGM — 보스 없는 일반 사냥터에서는 forest', function () {
+      var S = DG.side;
+      C.save.side.bossAt = {};
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      S.enter('forest');
+      var run = S.raw();
+      if (!run) { return false; }
+      run.boss = null;               // 오림 숲도 보스가 있는 사냥터라, 잡은/없는 상태를 흉내낸다
+      var got = DG.bgm.desiredTrack();
+      S.leave();
+      return got === 'forest' && ('오림 숲(보스 없음) → ' + got);
+    });
+
+    t('BGM — 보스가 나와 있으면 battle, 잡으면 도로 forest', function () {
+      var S = DG.side;
+      C.save.side.bossAt = {};
+      if (S.active()) { S.leave(); }
+      ensureParty();
+      S.enter('field');
+      var run = S.raw();
+      if (!run) { return false; }
+      var withBoss = run.boss ? DG.bgm.desiredTrack() : null;
+      run.boss = null;                // 잡은 뒤와 같은 상태
+      var afterKill = DG.bgm.desiredTrack();
+      S.leave();
+      return withBoss === 'battle' && afterKill === 'forest' &&
+        ('보스 중 battle · 잡은 뒤 ' + afterKill);
+    });
+
+    t('BGM — 손잡이(켜짐·음량)는 sfx 와 같은 결로 세이브에 남는다', function () {
+      var BG = DG.bgm;
+      var had = BG.enabled(), hadVol = BG.volume();
+      BG.setEnabled(false);
+      var offSaved = C.save.settings.music === false;
+      BG.setVolume(0.77);
+      var volSaved = Math.abs(C.save.settings.musicVol - 0.77) < 0.001;
+      BG.setEnabled(had); BG.setVolume(hadVol);
+      return offSaved && volSaved && '꺼짐·음량 둘 다 세이브에 반영';
     });
 
     /* ── 어드민 손잡이 ──────────────────────────────────── */
