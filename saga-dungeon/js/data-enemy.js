@@ -23,17 +23,24 @@
    * 짐승·수군처럼 두껍지 않은 것은 기가 잘 안 통한다.
    */
 
+  /* 2026-09-09 — PLAN §60 "지역마다 특색" 후속. `biome`는 마을 THEME_BIAS
+     키(`town:forest` 등, `town:` 접두는 뗀 값)와 맞춰 tier1 잡졸만 태그했다
+     — 마을 들판 로머는 `ctx.floor`가 늘 0이라 `tierOf(0)===1`, 실제로
+     **tier1만 마을에 나온다**(tier2 이상은 던전 전용이라 여기 태그가
+     의미 없다). 없으면(`떠돌이 병졸`처럼) 어느 지역에나 나오는 필러다.
+     성소(shrine) 마을은 일부러 전용 몹을 안 두었다 — "제단이 있는
+     조용한 마을"이라는 결이 필러 하나만 도는 것으로도 이미 산다. */
   var ENEMIES = [
     // tier 1 — 잡졸
-    { name: '황건적', emoji: '🟡', kind: 'human', color: '#c9a83a', look: { weapon: 'club', helm: 'none', armor: 'leather' }, tier: 1 },
-    { name: '산적', emoji: '🪓', kind: 'human', color: '#6b5030', look: { weapon: 'axe', helm: 'none', armor: 'leather' }, tier: 1 },
-    { name: '도적떼', emoji: '🗡️', kind: 'human', color: '#5a4a58', look: { weapon: 'sword', helm: 'none', armor: 'leather' }, tier: 1 },
-    { name: '들개', emoji: '🐕', kind: 'beast', color: '#8a7358', form: 'quad', tier: 1, resist: { chi: 25 } },
+    { name: '황건적', emoji: '🟡', kind: 'human', color: '#c9a83a', look: { weapon: 'club', helm: 'none', armor: 'leather' }, tier: 1, biome: 'ruins' },
+    { name: '산적', emoji: '🪓', kind: 'human', color: '#6b5030', look: { weapon: 'axe', helm: 'none', armor: 'leather' }, tier: 1, biome: 'mountain' },
+    { name: '도적떼', emoji: '🗡️', kind: 'human', color: '#5a4a58', look: { weapon: 'sword', helm: 'none', armor: 'leather' }, tier: 1, biome: 'forest' },
+    { name: '들개', emoji: '🐕', kind: 'beast', color: '#8a7358', form: 'quad', tier: 1, resist: { chi: 25 }, biome: 'forest' },
     { name: '떠돌이 병졸', emoji: '🥷', kind: 'human', color: '#6a6a74', look: { weapon: 'spear', helm: 'helmet', armor: 'leather' }, tier: 1 },
     /* 2026-09-05 — 짐승 형이 들개·코끼리병 둘뿐이라 다양화(사용자 요청).
        `body`는 asset3d.js REG 의 키 — 없으면 dungeon3d.js 가 기본 'beast'(늑대)로
        그린다. 멧돼지는 두꺼운 가죽이라 물리에 약간 강하고 기(氣)는 그대로 받는다 */
-    { name: '멧돼지', emoji: '🐗', kind: 'beast', color: '#4a3a2a', form: 'quad', body: 'beast_boar', tier: 1, resist: { phys: 15 } },
+    { name: '멧돼지', emoji: '🐗', kind: 'beast', color: '#4a3a2a', form: 'quad', body: 'beast_boar', tier: 1, resist: { phys: 15 }, biome: 'swamp' },
 
     // tier 2 — 변방
     { name: '왜구', emoji: '⛵', kind: 'human', color: '#8a4a4a', look: { weapon: 'sword', helm: 'none', armor: 'leather' }, tier: 2 },
@@ -85,11 +92,21 @@
     enemies: ENEMIES,
     bosses: BOSSES,
     tierOf: tierOf,
-    /** 해당 관문에 어울리는 적 풀 */
-    poolFor: function (stage, boss) {
+    /**
+     * 해당 관문에 어울리는 적 풀.
+     * @param biome 마을 지역색(PLAN §60) — `town:forest`의 `forest` 부분처럼
+     *   `biome` 접두 없는 값. 없으면(전부 그렇던 옛 호출) 예전과 100% 같다.
+     *   태그된 몬스터가 하나도 안 남으면(그 biome에 어울리는 게 없으면)
+     *   조용히 tier 전체 풀로 되돌아간다 — 자리가 텅 비는 일은 없다.
+     */
+    poolFor: function (stage, boss, biome) {
       var t = tierOf(stage);
       var src = boss ? BOSSES : ENEMIES;
       var pool = src.filter(function (e) { return e.tier === t; });
+      if (biome) {
+        var biomePool = pool.filter(function (e) { return !e.biome || e.biome === biome; });
+        if (biomePool.length) { pool = biomePool; }
+      }
       return pool.length ? pool : src;
     }
   };

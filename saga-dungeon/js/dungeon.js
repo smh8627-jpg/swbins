@@ -147,12 +147,23 @@
   /**
    * data-enemy.js 의 적을 층에 맞게 하나 고른다.
    * 관문(stage) 기준 풀을 그대로 재사용한다 — 던전 층 ≈ 관문 난이도로 본다.
+   * @param biome PLAN §60 "지역마다 특색" — 마을 필드에서만 넘긴다(아래
+   *   biomeOf 참고). 안 넘기면(던전 방 전부) 예전과 100% 같다.
    */
-  function pickEnemyRef(floor, boss) {
+  function pickEnemyRef(floor, boss, biome) {
     var ed = global.DG.enemyData;
     if (!ed) { return { name: '적', kind: 'beast', form: 'quad', color: '#8a7a6a' }; }
-    var pool = ed.poolFor(floor, !!boss);
+    var pool = ed.poolFor(floor, !!boss, biome);
     return core.pick(pool);
+  }
+
+  /** ctx.theme.biome(`town:forest` 등)에서 `town:` 접두를 뗀다 — 던전
+   *  방(ctx 없음)이면 null, poolFor가 그대로 예전 동작으로 되돌아간다. */
+  function biomeOf(ctx) {
+    var b = ctx && ctx.theme && ctx.theme.biome;
+    if (!b) { return null; }
+    var i = b.indexOf(':');
+    return i >= 0 ? b.slice(i + 1) : b;
   }
 
   /* ── 정예(精銳) — 원작(디아블로)의 파란/노란 이름 몬스터 ───
@@ -1378,6 +1389,7 @@
        그대로 anchor(=방 중심) 둘레를 쓴다. */
     var px0 = (isTown && ctx.player) ? ctx.player.x : cx0;
     var py0 = (isTown && ctx.player) ? ctx.player.y : cy0;
+    var biome = biomeOf(ctx);
     var R = fieldRadiusUnits(), remain = count;
     while (remain > 0) {
       var packSize = Math.min(remain, 2 + (Math.random() < 0.5 ? 0 : 1));   // 2~3(남으면)
@@ -1393,7 +1405,7 @@
         ok = true;
       }
       if (!ok) { remain -= packSize; continue; }   // 이번 팩은 자리를 못 찾았다 — 개수만 줄이고 다음 팩으로
-      var ref = pickEnemyRef(floor, false), k, tries2, x, y, en;
+      var ref = pickEnemyRef(floor, false, biome), k, tries2, x, y, en;
       for (k = 0; k < packSize; k++) {
         tries2 = 6;
         while (tries2--) {
@@ -1451,7 +1463,8 @@
       ok = true;
     }
     if (!ok) { return; }
-    var guard = spawnEnemy(floor, false, { forceElite: true, x: x, y: y });
+    var guardRef = pickEnemyRef(floor, false, biomeOf(ctx));
+    var guard = spawnEnemy(floor, false, { forceElite: true, x: x, y: y, ref: guardRef });
     guard.field = true;
     guard.treasureGuard = true;
     room.enemies.push(guard);
