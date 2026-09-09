@@ -234,8 +234,65 @@
     deer: 1.1, fox: 0.55, wolf: 0.95
   };
 
-  var scatter = {};   // propId → { group, kind, building }
+  var scatter = {};   // propId → { group, kind, building, meshes, shadowOn }
   var npc3d = {};      // npc.id → { group, mixer, actions, clipMap, action, building }
+
+  /**
+   * 사물 재사용 창고(PLAN 40절 PHASE 7 Object Pool) — 걸어서 벗어난 나무·바위를
+   * 그냥 버리지 않고 **같은 kind끼리** 쌓아 둔다. 인물이 온 길을 되짚어 걷는(왔다
+   * 갔다 하는) 흔한 경우, 다시 지을 때 `asset3d.build()`(캐시 히트라 GLB 는
+   * 새로 안 받지만 `cloneScene`·`normalize`(Box3 계산·traverse) 는 매번 다시
+   * 돈다)를 또 부르지 않고 쌓아 둔 그룹을 그대로 꺼내 쓴다. GLB 표가 kind마다
+   * 여러 변종(`oneOf`)을 섞어 골라도, 장식용 사물이라 변종이 살짝 바뀌어 보이는
+   * 건 눈에 안 띈다 — 그 대신 재구성 비용을 통째로 아낀다.
+   * 캡을 두는 건 무한정 쌓아 메모리를 먹지 않기 위해서다 — 캡을 넘으면
+   * 그냥 버린다(진짜로 scene 에서 뺀다).
+   */
+  var scatterPool = {};        // kind → group[]
+  var SCATTER_POOL_CAP = 24;
+  function poolSize(kind) { return (scatterPool[kind] || []).length; }
+  /** 순수(scene 없이도 동작) — group 은 `{visible}` 만 있으면 충분해 테스트가 mock 으로 확인한다 */
+  function poolTake(kind) {
+    var arr = scatterPool[kind];
+    if (!arr || !arr.length) { return null; }
+    var g = arr.pop();
+    g.visible = true;
+    return g;
+  }
+  function poolGive(kind, group) {
+    var arr = scatterPool[kind] || (scatterPool[kind] = []);
+    group.visible = false;
+    if (arr.length >= SCATTER_POOL_CAP) {
+      if (scene) { scene.remove(group); }   // 캡을 넘었다 — 안 쌓고 진짜로 치운다
+      return;
+    }
+    arr.push(group);
+  }
+
+  /**
+   * 거리 기반 그림자 LOD(PLAN 30절 "거리 기반 오브젝트 활성화" · PLAN 29절
+   * "그림자 거리 제한") — 그림자는 렌더러에서 가장 비싼 항목 중 하나인데,
+   * 화면 구석의 먼 나무 그림자는 눈에 잘 안 띈다. `SHADOW_R()` 안쪽만 그림자를
+   * 드리우고 그 밖은 끈다(메시 지오메트리는 그대로라 "사라지는" 게 아니라
+   * 그림자만 없어진다 — 이 판엔 저다각형 대타 메시가 없어 진짜 LOD 교체는
+   * 못 한다는 PLAN 31절의 트레이드오프 그대로다).
+   */
+  function SHADOW_R() { return C().tuned('village3d.shadowR', 18); }
+  /** 순수 함수 — 거리 d 가 반경 r 안이면 그림자를 켠다 */
+  function wantShadowAt(d, r) { return d <= r; }
+  function collectMeshes(g) {
+    var list = [];
+    g.traverse(function (o) { if (o.isMesh) { list.push(o); } });
+    return list;
+  }
+  function applyShadowLOD(ent, d) {
+    var want = wantShadowAt(d, SHADOW_R());
+    if (ent.shadowOn === want) { return; }
+    ent.shadowOn = want;
+    var meshes = ent.meshes, i;
+    if (!meshes) { return; }
+    for (i = 0; i < meshes.length; i++) { meshes[i].castShadow = want; }
+  }
 
   /** 타일 색 — villageData.TILES 에서 그대로 가져온다(2D 와 같은 색). floor(방 안)는
    *  마을 바닥에 안 나오니 뺀다. 색을 못 구하면(villageData 가 아직 안 실렸으면)
@@ -680,14 +737,29 @@
       ent = scatter[p.id];
       if (ent && ent.group) {
         ent.group.position.set((p.x - px) * scale, 0, (p.y - py) * scale);
+        applyShadowLOD(ent, d);
         continue;
       }
       if (d > renderU) { continue; }                  // cull 과 render 사이 — 있으면 두고, 새로 안 짓는다
       if (ent && ent.building) { continue; }           // 이미 요청해 둔 것 — 또 부르지 않는다
+
+      /* Object Pool(PLAN 40절 PHASE 7) — 같은 kind 를 쌓아 둔 게 있으면 새로
+         짓지 않고 그대로 꺼내 쓴다. 예산(budget)을 안 쓴다 — 비동기 build() 가
+         아니라 이미 다 만들어진 그룹을 자리만 옮기는 것이라 공짜에 가깝다 */
+      var pooled = poolTake(p.kind);
+      if (pooled) {
+        pooled.scale.setScalar(SCATTER_H[p.kind] || 1);
+        pooled.position.set((p.x - px) * scale, 0, (p.y - py) * scale);
+        ent = scatter[p.id] = { group: pooled, kind: p.kind, building: false, meshes: pooled.userData.lodMeshes, shadowOn: null };
+        if (scene && pooled.parent !== scene) { scene.add(pooled); }
+        applyShadowLOD(ent, d);
+        continue;
+      }
+
       if (budget <= 0) { continue; }                   // 이번 프레임 몫을 다 썼다
       budget--;
-      ent = scatter[p.id] = { group: null, kind: p.kind, building: true };
-      (function (id, kind, wx, wy) {
+      ent = scatter[p.id] = { group: null, kind: p.kind, building: true, meshes: null, shadowOn: null };
+      (function (id, kind, wx, wy, dist) {
         asset3d().build(key, { id: id }, function (g) {
           var cur = scatter[id];
           if (!cur) { return; }                        // 그새 멀어져 치워졌다
@@ -695,17 +767,20 @@
           if (!g || !scene) { return; }
           g.scale.setScalar(SCATTER_H[kind] || 1);
           g.position.set((wx - px) * scale, 0, (wy - py) * scale);
+          g.userData.lodMeshes = collectMeshes(g);
           cur.group = g;
+          cur.meshes = g.userData.lodMeshes;
+          applyShadowLOD(cur, dist);
           scene.add(g);
         });
-      })(p.id, p.kind, p.x, p.y);
+      })(p.id, p.kind, p.x, p.y, d);
     }
 
     /* cullU 밖으로 나간 것만 치운다 — renderU~cullU 사이는 그대로 둔다(경계 깜빡임 방지) */
     for (key in scatter) {
       if (!Object.prototype.hasOwnProperty.call(scatter, key) || within[key]) { continue; }
       ent = scatter[key];
-      if (ent.group && scene) { scene.remove(ent.group); }
+      if (ent.group) { poolGive(ent.kind, ent.group); }
       delete scatter[key];
     }
   }
@@ -840,6 +915,13 @@
     qualityPreset: function () { return QUALITY_PRESET; },
     deviceScore: deviceScore,
     tierFor: tierFor,
+    /** 진단 전용 — PLAN 40절 PHASE 7 Object Pool: kind별 재사용 창고(순수 함수, mock group 으로도 확인됨) */
+    poolTake: poolTake,
+    poolGive: poolGive,
+    poolSize: poolSize,
+    scatterPoolCap: function () { return SCATTER_POOL_CAP; },
+    /** 진단 전용 — PLAN 40절 PHASE 7 LOD: 거리 기반 그림자 켜고 끄기 순수 함수 */
+    wantShadowAt: wantShadowAt,
     /** 진단·QA 전용 — 사람이 핀치·휠로 조절한 확대 배율 */
     userZoom: function () { return userZoom; },
     setUserZoom: setUserZoom,

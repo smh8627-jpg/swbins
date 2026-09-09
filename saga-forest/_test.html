@@ -389,6 +389,45 @@ window.DG_NO_TUNE = true;
         '강한 기기 점수 ' + strong + '(→high) · 약한 기기 점수 ' + weak + '(→low)';
     });
 
+    /* ── PLAN 40절 PHASE 7: LOD · Object Pool ─────────────────────
+     * Terrain(PHASE 2)은 이미 InstancedMesh, GLB 는 이미 asset3d.js 의
+     * url→캐시(`acquire`)가 있어(Instancing·Asset Cache 두 항목은 기존
+     * 것을 그대로 잡는다), 이번엔 남은 둘(Object Pool·거리 LOD)만 채운다.
+     * mock group({visible}) 만으로 scene 없이 확인된다.
+     */
+
+    t('village-view3d — scatterPool 은 kind별 캡까지만 쌓고(take 는 LIFO로 visible 을 되살린다), 캡을 넘으면 안 쌓는다', function () {
+      var VV3 = DG.villageView3d, cap = VV3.scatterPoolCap();
+      var kind = '_test_pool_kind_' + Date.now(), i, groups = [];
+      for (i = 0; i < cap + 3; i++) { groups.push({ visible: true, id: i }); }
+      for (i = 0; i < groups.length; i++) { VV3.poolGive(kind, groups[i]); }
+      var sizeAtCap = VV3.poolSize(kind) === cap;
+      var allHidden = groups.slice(0, cap).every(function (g) { return g.visible === false; });
+      var got = VV3.poolTake(kind);
+      var lifoLast = got === groups[cap - 1] && got.visible === true;   // 마지막에 준 것부터 나온다
+      var sizeAfterTake = VV3.poolSize(kind) === cap - 1;
+      return sizeAtCap && allHidden && lifoLast && sizeAfterTake &&
+        ('캡(' + cap + ')까지만 쌓임 · take 는 최근 것부터(LIFO) · 되살아난 visible');
+    });
+
+    t('village-view3d — 빈 kind 에서 poolTake 는 null, 다른 kind 끼리 안 섞인다', function () {
+      var VV3 = DG.villageView3d;
+      var kindA = '_test_pool_a_' + Date.now(), kindB = '_test_pool_b_' + Date.now();
+      var empty = VV3.poolTake(kindA);
+      VV3.poolGive(kindA, { visible: true });
+      var fromB = VV3.poolTake(kindB);           // A 에만 넣었으니 B 는 여전히 비어 있다
+      var fromA = VV3.poolTake(kindA);
+      return empty === null && fromB === null && !!fromA &&
+        '빈 kind 는 null · kind끼리 안 섞임';
+    });
+
+    t('village-view3d — wantShadowAt 은 반경 안이면 그림자를 켜고, 밖이면 끈다(경계는 켠다)', function () {
+      var VV3 = DG.villageView3d;
+      return VV3.wantShadowAt(10, 18) === true && VV3.wantShadowAt(18, 18) === true &&
+        VV3.wantShadowAt(18.1, 18) === false &&
+        '반경 안·경계=켬 · 반경 밖=끔';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {

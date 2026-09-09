@@ -331,9 +331,44 @@ safe area)에 이미 있었다** — 3D 화면(`village-view3d.js`) 쪽에만 �
 다음 세션에서 손맛부터 물어볼 것.
 
 PLAN 40절 PHASE 5·6이 여기서 실질적으로 끝났다(2D 자산 재사용이 많아
-남은 항목이 적었다). 다음은 **PHASE 7**(LOD·Instancing·Object Pool·Asset
-Cache·Mobile FPS optimization — Terrain/Scatter는 PHASE 2~3에서 이미
-InstancedMesh·거리 기반 컬링을 갖췄으니 남은 게 뭔지부터 확인) 순.
+남은 항목이 적었다).
+
+**2026-09-09 이어서 — PHASE 7.** 다섯 항목(LOD·Instancing·Object Pool·
+Asset Cache·Mobile FPS) 중 **둘은 이미 있었다** — Asset Cache는
+`asset3d.js`의 `acquire()`가 url→GLB 캐시로 처음부터 갖고 있었고
+(같은 GLB 를 몇이 물어도 한 번만 받는다), Instancing은 Terrain(PHASE 2)이
+이미 종류별 `InstancedMesh` 하나로 돈다. **나머지 둘(Object Pool·LOD)을
+채웠다** — Scatter(나무·바위·짐승 등)는 처음부터 진짜 InstancedMesh로
+갈아엎지는 않았다: 이 판은 GLB 를 비동기로 받아 세우는 구조라(사물마다
+크기·변종이 제각각) 인스턴싱하려면 사물 하나하나를 미리 다 구워 둬야
+하는데, 실기기 검증 없이 그 정도 재작성은 위험이 크다고 판단해 미뤘다.
+
+- **Object Pool**: 인물이 걸어서 멀어진 나무·바위를 이번엔 완전히 버리지
+  않고 **kind별로 쌓아 둔다**(`scatterPool`, kind당 최대 24개). 다시
+  가까워지면 `asset3d().build()`(GLB 자체는 캐시 히트라 안 받아도,
+  `cloneScene`·`normalize`의 Box3 계산·traverse는 매번 다시 돈다)를 또
+  부르지 않고 쌓아 둔 그룹을 그대로 꺼내 쓴다 — 왔다 갔다 걷는 흔한
+  동선에서 재구성 비용을 통째로 아낀다. 캡을 넘으면 진짜로 버린다
+  (메모리 무한정 안 먹게).
+- **LOD**: 이 판엔 저다각형 대타 메시가 없어(PLAN 31절이 이미 그 트레이드
+  오프를 인정한다) 진짜 모델 교체 LOD는 못 한다 — 대신 그림자(렌더러에서
+  가장 비싼 항목 중 하나)를 거리로 껐다 켠다(`SHADOW_R()`, 기본 18m).
+  화면 구석 먼 나무 그림자는 어차피 눈에 잘 안 띈다.
+- 새 상태는 `ent.meshes`(그림자 토글용 캐시된 메시 목록)·`ent.shadowOn`
+  뿐 — 기존 스캐터 루프(거리 계산 `d`는 이미 있었다)에 얹었을 뿐 새 순회를
+  더 만들지 않았다.
+
+자가진단에 순수 함수(mock group 만으로 scene 없이 확인되는 `poolTake`·
+`poolGive`·`poolSize`·`wantShadowAt`) 검증 추가, 219 → **222**(세 번 동일).
+`sw.js` → `village-v0.33.0`. **실기기 확인 전** — 특히 왔다 갔다 걸을 때
+끊김이 줄었는지, 그림자 컷오프 거리(18m)가 눈에 띄게 갑자기 꺼지진
+않는지 다음 세션에서 손맛부터 물어볼 것.
+
+PLAN 40절 PHASE 1~7이 모두 실질적으로 끝났다. 다음은 **PHASE 8**(최종
+QA — 지금까지 미룬 항목들, 예: 토끼·다람쥐·오리·새 CC0 모델 못 찾은 것,
+가을/눈/자작나무 저다각형 남은 것, 마을 3D 건물 미착수 등을 한 번에
+훑어 무엇을 더 할지 정리) 아니면 실기기로 지금까지 쌓인 것 전체를
+한 번에 확인하는 쪽 — 다음 세션에서 어느 쪽을 원하는지 먼저 물어볼 것.
 
 ## 네 게임 중 하나
 
