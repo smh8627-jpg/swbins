@@ -39,6 +39,8 @@
   var NAT = 'assets/models/nature/';
   var NAT_REAL = 'assets/models/nature/realistic/';
   var PROP = 'assets/models/props/';
+  var BLD = 'assets/models/buildings/';
+  var BLD_REAL = 'assets/models/buildings/realistic/';
   var ANI = 'assets/models/animals/';
   var PEOPLE = 'assets/models/people/regular/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
@@ -191,6 +193,20 @@
     'well': PROP + 'Well.glb',
     'bridge': PROP + 'Bridge.glb',
     'gazebo': PROP + 'Gazebo.glb',
+
+    /* 마을 3D 건물 (PLAN 6절 "작은 마을") — village.js 의 props 가 이미 갖고
+       있던 shop·home·board·mail·tailor·pole·museum 을 처음으로 GLB 로 세운다.
+       셋 다 정확히 하나뿐인 건물이라 나무·바위처럼 변종(oneOf) 배열을 안 쓰고
+       kind 하나에 파일 하나씩 고정했다. `saga-dungeon`·`saga-story`·
+       `saga-realm`이 이미 확인해 둔 같은 CC0 를 하드링크로 옮겨 왔다(md5
+       동일, `assets/ASSET_LICENSES.md` 참고) — 새로 받은 파일은 없다 */
+    'building:home': BLD_REAL + 'house_wooden.glb',
+    'building:shop': BLD + 'MarketStand_1.glb',
+    'building:tailor': BLD_REAL + 'house_cottage.glb',
+    'building:museum': BLD_REAL + 'house_stone.glb',
+    'building:board': PROP + 'signpost.glb',
+    'building:mail': PROP + 'box_small.gltf.glb',
+    'building:pole': PROP + 'banner_thin_red.gltf.glb',
 
     /* 동물 (PLAN 16절) — 토끼·다람쥐·오리·새는 아직 못 찾았다.
        `assets/ASSET_LICENSES.md` 의 "아직 못 채운 자리" 참고 */

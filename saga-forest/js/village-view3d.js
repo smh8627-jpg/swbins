@@ -12,12 +12,15 @@
  * 것과 같은 요령이다. 카메라는 그 위에서 **걷는 방향**만 따로 돈다(3인칭
  * 어깨너머 시점) — 이동(사물이 흐르는 것)과 시선(카메라가 도는 것)은 다른 일이다.
  *
+ * **건물(전방·집·게시판…)도 2026-09-09부터 GLB 로 선다**(PLAN 6절 "작은
+ * 마을"). 나무·바위와 똑같이 `SCATTER_KIND`에 한 줄 보태는 것으로 끝났다 —
+ * village.js 의 props 는 처음부터 shop·home·board 같은 kind 를 갖고 있었고,
+ * 이 화면이 그동안 그 kind 들을 표에서 빼 놓고만 있었을 뿐이다.
+ *
  * **사물은 새로 흩뿌리지 않는다.** village.js 의 `V.raw().props`(이미 좌표
  * 해시로 정해진, 날마다 같은 자리)를 그대로 읽어 그중 나무·소나무·바위·꽃·
  * 잡초만 GLB 로 세운다(`SCATTER_KIND`). PLAN 10절 "중요한 장소는 랜덤
  * 배치하지 않는다"를 지키는 가장 쉬운 길은 **새 무작위를 아예 안 만드는 것**이다.
- * 건물(전방·집·게시판…)은 아직 3D 사물이 없어 3D 화면에는 안 보인다 —
- * 마을 3D(PLAN 6절 "작은 마을")는 다음 몫.
  *
  * **거리로 켜고 끈다** — 인물에서 `RENDER_R()` 안의 것만 세우고, 벗어나면
  * 치운다(PLAN 9절 "모바일 성능을 고려해 렌더링 수를 자동 조절"의 가장 단순한
@@ -211,8 +214,7 @@
   var player = { group: null, mixer: null, actions: null, clipMap: null, action: null };
   var lastPX = 0, lastPY = 0, haveLast = false, facingYaw = 0;
 
-  /** village.js 사물 kind → asset3d 표의 kind. 여기 없는 kind(전방·집·게시판…)는
-   *  3D 로 안 선다 — 마을 3D 는 다음 몫이다.
+  /** village.js 사물 kind → asset3d 표의 kind. 여기 없는 kind는 3D 로 안 선다.
    *  deadTree·mossyRock·mushroom·bush·stump·log 는 PLAN 11절 Biome — 숲 고리에만
    *  나오고(village.js 의 BIOME_SCATTER), asset3d.js 에 이미 등록돼 있던 표라
    *  여기 줄만 보태면 그대로 선다 */
@@ -224,14 +226,24 @@
     mountain: 'mountain',
     /* 짐승(PLAN 40절 PHASE 4 첫 칸) — village.js 의 raw().animals 도 이 표를
        그대로 타고 선다(아래 syncScatter() 가 props 배열에 이어 붙인다) */
-    deer: 'animal:an_deer', fox: 'animal:an_fox', wolf: 'animal:an_wolf'
+    deer: 'animal:an_deer', fox: 'animal:an_fox', wolf: 'animal:an_wolf',
+    /* 마을 3D 건물(PLAN 6절, 2026-09-09) — village.js `buildProps()`의 shop·
+       board·home·mail·tailor·pole·museum kind 를 그대로 타고 선다. 마을당
+       하나뿐인 고정 건물이라 나무처럼 변종을 섞지 않는다 */
+    shop: 'building:shop', board: 'building:board', home: 'building:home',
+    mail: 'building:mail', tailor: 'building:tailor', pole: 'building:pole',
+    museum: 'building:museum'
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
     tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4,
     deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, herb: 0.5, bush: 0.8, stump: 0.6, log: 0.5, plant: 0.6,
     tent: 1.8, campfire: 0.5, bench: 0.5, well: 1.0, lantern: 1.6, mountain: 8.0,
-    deer: 1.1, fox: 0.55, wolf: 0.95
+    deer: 1.1, fox: 0.55, wolf: 0.95,
+    /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
+       비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
+       banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
+    shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4
   };
 
   var scatter = {};   // propId → { group, kind, building, meshes, shadowOn }

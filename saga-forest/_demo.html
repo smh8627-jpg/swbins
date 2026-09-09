@@ -167,7 +167,11 @@ setTimeout(function () {
     bushtest: { kinds: ['bush'], biome: 'meadow' },
     pinetest: { kinds: ['pine'], biome: 'green' },
     deadtest: { kinds: ['deadTree'], biome: 'dark' },
-    logtest: { kinds: ['log'], biome: 'mushroom' }
+    logtest: { kinds: ['log'], biome: 'mushroom' },
+    /* 마을 3D 건물(PLAN 6절, 2026-09-09) — shop·home·board·mail·tailor·pole·
+       museum 은 전부 마을 한복판(고정 배치)에 있어 바이옴 탐색이 필요 없다.
+       biome 은 그냥 아무 칸이나 하나 짚는 값이라 'green' 을 그대로 둔다 */
+    buildtest: { kinds: ['shop', 'home', 'board', 'mail', 'tailor', 'pole', 'museum'], biome: 'green' }
   };
   var natureTestKey = Object.keys(NATURE_TEST_KINDS).filter(function (k) { return hash.indexOf(k) >= 0; })[0];
   if (natureTestKey && DG.villageView3d) {

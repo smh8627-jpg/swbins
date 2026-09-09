@@ -53,6 +53,16 @@
 | `Bonfire_Lit.glb` | `medieval_village_pack` | 캠프파이어 |
 | `Tent.glb` | `survival_pack` | 작은 천막 |
 
+`models/buildings/` — 2026-09-09, PLAN 6절 "작은 마을" 착수. 새로 받지 않고
+`saga-dungeon`이 이미 확인해 둔 같은 CC0 를 **하드링크**로 옮겼다(md5 동일,
+`saga-dungeon/assets/ASSET_LICENSES.md`의 같은 파일명 절 참고 — 만든 이·출처가
+전부 위 Quaternius 표와 같다)
+
+| 파일 | 어느 팩 | 쓰이는 곳 |
+|---|---|---|
+| `House_1·2·3·4.glb` | `medieval_village_pack` | (당장은 미사용 — 다음에 위성 마을·다양화용 되돌림 자리) |
+| `MarketStand_1.glb` | `medieval_village_pack` | **전방**(`shop`) |
+
 `models/animals/` — 새로 받은 것
 
 | 파일 | 어느 팩 | 쓰이는 곳 |
@@ -380,3 +390,40 @@ Mixamo 실사(아래 절)가 재배포 금지라 공개 저장소에서 캐릭�
 줄기 자작나무·눈 덮인 나무** 태그를 가진 CC0 모델이 없었다(가문비·소나무·야자
 계열 사진측량뿐이다). `tree:common:autumn`·`tree:common:snow`·`tree:birch`는
 이번 항목에서 못 채웠다 — 다른 CC0 출처(OpenGameArt 등)가 나오면 다음에 다시 볼 것.
+
+## PolyScan — 마을 3D 건물(집 셋), 하드링크 (2026-09-09, `saga-dungeon`에서 옮김)
+
+PLAN 6절 "작은 마을" 착수 — `home`(집)·`tailor`(침선방)·`museum`(사고) 셋에
+쓴다. 새로 받지 않고 `saga-dungeon`이 이미 확인해 둔 CC0 를 그대로
+하드링크했다(md5 동일). 라이선스 확인 근거는
+`../../saga-dungeon/assets/ASSET_LICENSES.md`의 같은 파일명 절 참고.
+
+| 항목 | |
+|---|---|
+| **만든 이** | PolyScan (<https://polyscann.com>) |
+| **라이선스** | CC0 1.0 — 사이트가 "재배포·상업적 이용 모두 자유, 표시 의무 없음"으로 명시 |
+| **받은 곳** | `saga-dungeon/assets/models/buildings/realistic/`에서 하드링크(원 출처는 `polyscann.com`, 로그인 없이 CDN 직접 다운로드) |
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `models/buildings/realistic/house_wooden.glb` | **집**(`home`) |
+| `models/buildings/realistic/house_stone.glb` | **사고**(`museum`) — 돌집이라 "곳간"에 어울려서 골랐다 |
+| `models/buildings/realistic/house_cottage.glb` | **침선방**(`tailor`) |
+
+## Kenney·KayKit — 게시판·우편함·마을기 대역, 하드링크 (2026-09-09, `saga-dungeon`에서 옮김)
+
+`board`(게시판)·`mail`(편지함)·`pole`(마을기) 셋은 정확히 맞는 CC0 모델이
+없어(공고판·우편함·깃대만 따로 파는 팩을 못 찾았다) 크기·쓰임새가 가까운
+소품으로 대신했다 — 표시 이름은 그대로고 3D 모양만 근사치다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | `signpost.glb`는 Kenney, `box_small.gltf.glb`·`banner_thin_red.gltf.glb`는 Kay Lousberg(KayKit) |
+| **라이선스** | 둘 다 CC0 1.0 |
+| **받은 곳** | `saga-dungeon/assets/models/props/signpost.glb`·`saga-dungeon/assets/models/dungeon/box_small.gltf.glb`·`banner_thin_red.gltf.glb`에서 하드링크. 원 출처·라이선스 확인 근거는 `../../saga-dungeon/assets/ASSET_LICENSES.md`의 같은 파일명 절 참고(Kenney 는 `poly.pizza` 경유, KayKit 은 `github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0`) |
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `models/props/signpost.glb` | **게시판**(`board`) |
+| `models/props/box_small.gltf.glb` | **편지함**(`mail`) — 원래 던전 방 잡동사니 상자, 작은 나무 상자라 편지함 대역으로 썼다 |
+| `models/props/banner_thin_red.gltf.glb` | **마을기**(`pole`) — 원래 보스방 현수막, 깃발 달린 기둥이라 마을기 대역으로 썼다 |

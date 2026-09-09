@@ -385,14 +385,41 @@ PLAN 40절 PHASE 1~7이 모두 실질적으로 끝났다.
 |---|---|
 | 토끼·다람쥐·오리·새 CC0 모델 못 찾음(PLAN 16절) | 이 미러(`animals_pack`)엔 없다 — 다른 CC0 출처 탐색 필요(`assets/ASSET_LICENSES.md`) |
 | 가을·눈·자작나무는 저다각형 그대로(PLAN 3절 나무 실사화 셋째) | CC0 사진측량 나무 중 가을 단풍·자작·설경 태그를 가진 게 없었다 — 소재 자체가 없는 경우 |
-| 마을 3D 건물(전방·집·게시판 등) 미착수(PLAN 6절) | 3D는 지금 사람·나무·짐승·지형만 있고 건물 스캐터가 없다 — 새 kind·투영 작업이라 PHASE 7 "최종 QA"보다 큰 일 |
 | Scatter를 진짜 InstancedMesh로 안 바꿈(PHASE 7에서 결정) | 비동기 GLB+변종(oneOf) 구조라 재작성 위험이 큼(README PHASE 7 절 참고) — Object Pool로 대신함 |
 | 물 표현(PLAN 12절: 파동·반사·물결 파티클) 미착수 | 지금은 색 있는 타일을 12cm 낮춘 것뿐, 애니메이션 없음 |
 | 3D 화면 CDP 헤드리스 스크린샷 도구 없음 | `ws` npm 패키지가 이 개발 환경에 없어 시도만 하고 못 갖췄다 |
 
+(마을 3D 건물 항목은 아래 2026-09-09 항목으로 채웠다 — 표에서 뺐다)
+
 이 표는 다음에 "뭐부터 할까" 고를 때 쓰는 메뉴다 — 다음 세션은 이 중
 어느 것부터 할지, 아니면 지금까지 쌓인 것 전체를 실기기로 한 번에
 확인할지 먼저 물어볼 것.
+
+**2026-09-09 이어서 — 마을 3D 건물 착수(PLAN 6절 "작은 마을").** 위 표에서
+사용자가 이 항목을 골라 이어서 진행했다. 새 GLB 를 받지 않고 **다른 네
+판이 이미 CC0 확인을 끝내 둔 건물 모델을 하드링크로 옮겨** 채웠다
+([[saga-glb-asset-hardlink-dedup]]와 같은 요령 — `saga-dungeon`에서
+House_1~4·MarketStand_1(Quaternius)·house_wooden·house_stone·house_cottage
+(PolyScan)·signpost(Kenney)·box_small·banner_thin_red(KayKit) 를 md5 동일한
+채로 링크만 걸었다).
+
+- village.js 의 `buildProps()`가 처음부터 갖고 있던 건물 kind 일곱(`shop`
+  전방·`home`집·`board`게시판·`mail`편지함·`tailor`침선방·`pole`마을기·
+  `museum`사고)을 전부 `SCATTER_KIND`·`SCATTER_H`에 보탰다 — 나무·바위와
+  똑같은 자리에 한 줄씩만 추가(`js/village-view3d.js`), 씬 순회·컬링·Object
+  Pool 로직은 한 글자도 안 건드렸다.
+- 정확히 맞는 CC0(공고판·우편함·깃대 전용 모델)는 못 찾아 셋(`board`·
+  `mail`·`pole`)은 크기·쓰임새가 가까운 소품으로 대신했다 — 출처·이유는
+  `assets/ASSET_LICENSES.md`에 적었다.
+- `js/asset3d.js`에 `BLD`·`BLD_REAL` 경로 상수와 `building:*` 키 일곱 개
+  신설. `House_1~4.glb`는 이번엔 안 쓰고 되돌림 자리로만 받아 뒀다(마을당
+  건물이 하나뿐이라 변종이 필요 없었다 — 나중에 위성 마을·집 다양화가
+  생기면 그때 쓴다).
+- 자가진단은 순수 함수(SCATTER_KIND·SCATTER_H 표) 검증뿐이라 새 항목을
+  안 늘렸다 — 회귀 없음(222/222, 세 번 동일). `sw.js` → `village-v0.34.0`.
+- **실기기 확인 전** — 건물 일곱 개가 마을 3D 화면에서 실제로 제자리에
+  서는지, 크기(특히 house_wooden 계열 셋의 3.0~3.4m)가 사람·나무 옆에서
+  안 어색한지 다음 세션 손맛부터 물어볼 것.
 
 ## 네 게임 중 하나
 
