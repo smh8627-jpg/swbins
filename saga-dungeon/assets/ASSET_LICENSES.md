@@ -1396,3 +1396,29 @@ Pirate Captain(`m/sN18LyyHAU`)·Anne(`m/tZYaOQ4l94`)·Henry(`m/yEdSk8tRKc`).
 `assets/models/people/polypizza_pirate/`에 둠(이름을 고친 뒤 파일),
 `tools/glb-compress`로 압축(1.9MB→0.5MB, 72% 감소). `HERO_RECIPES_LIGHT`에
 `pppirate_*`로 등록 — **70→73종**.
+
+## 캐릭터 8차분 — Post Apocalypse Pack "Lis" 1종 (2026-09-09, 같은 세션 이어서)
+
+`poly.pizza/bundle/Post-Apocolypse-Pack-jg0We8Clu0`(51종, 대부분 좀비·
+차량 소품·표지판)을 훑어 사람형 하나(Lis, `m/gjuwleUT1U` →
+`static.poly.pizza/5c3f2a86-c030-49aa-8a4c-86a7a1220801.glb`)를 더
+찾았다. Quaternius, CC0, Animated. 클립 20개(Death·Duck·HitReact·Idle·
+Idle_Gun·Jump·Jump_Idle·Jump_Land·Punch·Run·Run_Gun·Run_Slash·Run_Stab·
+Slash·Stab·Walk·Walk_Gun·Wave 등) — 위 Pirate kit과 달리 이름이 안
+깨져 있다(대조 확인, 그 번들만의 문제였음을 재확인).
+
+같은 번들의 "Characters Matt/Shaun/Sam"(이미 `ppmore_*`로 등록됨,
+UUID 대조로 확인)·Zombie 3종(몬스터 트랙 후보)·German Shepard·
+"Characters Pug"(둘 다 짐승, 펫 트랙 후보)는 스킵.
+
+`assets/models/people/polypizza_apoc/`에 둠, `tools/glb-compress`로 압축
+(0.7MB→0.2MB). `HERO_RECIPES_LIGHT`에 `ppapoc_lis`로 등록 — **73→74종**.
+
+**막힌 것** — Quaternius 공식 사이트(`quaternius.com`)에 더 있는 캐릭터
+류(Knight Character·Modular Character Outfits Fantasy·Animated Man/
+Woman 단품)는 poly.pizza 미러가 없고 전부 Google Drive 폴더로만
+배포된다. Drive 폴더를 직접 긁어 파일 ID까지는 뽑았지만(예:
+`drive.google.com/drive/folders/1XQ3UpQezkOFDdazv6KK16qp3mBXhO9uO`),
+개별 파일이 `.mp4` 미리보기·확인 페이지가 섞여 있어 어떤 게 실제
+`.glb`인지 신뢰성 있게 가려내려면 더 손이 간다 — 다음에 이어갈 때
+여기부터.

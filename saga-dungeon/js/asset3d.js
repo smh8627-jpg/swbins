@@ -235,6 +235,15 @@
     })
   );
 
+  /* 2026-09-09(이어서) — "캐릭터 100개" 계속. `Post Apocalypse Pack`
+     (Quaternius, CC0)을 훑다가 사람형 하나(Lis, 나머지는 좀비·차 소품 등)를
+     더 찾았다 — 이 파일은 위 Pirate kit과 달리 클립 이름이 안 깨져 있다
+     (대조 확인). */
+  var PEOPLE_PP_APOC = 'assets/models/people/polypizza_apoc/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat([
+    { key: 'ppapoc_lis', body: PEOPLE_PP_APOC + 'Lis.glb', anim: PEOPLE_PP_APOC + 'Lis.glb' }
+  ]);
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/
