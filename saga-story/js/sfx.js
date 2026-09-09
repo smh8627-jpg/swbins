@@ -96,6 +96,9 @@
                              { v: 'noise', dur: 0.3, lp: 900, lp2: 4000, gain: 0.07 }] },
     enter:  { gap: 0.5,  l: [{ v: 'chime', notes: [523, 659, 784], step: 0.07,
                                dur: 0.5, wave: 'triangle', gain: 0.12 }] },
+    /* 마을 사람에게 말을 건다 — quest 보다 짧고 낮게, 자주 눌러도 안 거슬리게 */
+    talk:   { gap: 0.2,  l: [{ v: 'chime', notes: [523, 659], step: 0.06,
+                               dur: 0.18, wave: 'sine', gain: 0.08 }] },
 
     /* ── 물건 ── */
     gold:   { gap: 0.06, l: [{ v: 'chime', notes: [1568, 2093], step: 0.03,

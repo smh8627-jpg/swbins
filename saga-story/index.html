@@ -61,6 +61,10 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <!-- 아래: 사냥 중 조작 띠 -->
 <div id="hud"></div>
 
+<!-- 마을 사람 대화(PLAN 16절) — #hud 위에 뜬다. ↑ 를 다시 누르거나 닫는다 버튼,
+     자리를 뜨면 저절로 닫힌다(side.js closeTalk 참고) -->
+<div id="talkbox"></div>
+
 <!-- 손가락 조작판 — 손가락뿐인 기기(hover:none · pointer:coarse)에서만 css 로 보인다.
      화면 전체를 숨은 넷으로 나눠 짚던 것 대신, 사가고 UI처럼 실제로 보이는 유리(glass)
      단추를 준다. 왼쪽 좌우 이동 · 오른쪽 위(점프·오르기·문)·아래(내려가기·앉기) -->

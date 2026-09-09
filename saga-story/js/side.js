@@ -31,6 +31,9 @@
   var CLIMB = core.tuned('side.climb', 168);    // 줄을 오르내리는 속도
   var GRAB = 18;                // 줄에 붙는 좌우 여유 (중심에서)
   var PORTAL_R = 46;            // 문 앞으로 치는 좌우 여유
+  var TALK_R = 90;              // 마을 사람 앞으로 치는 좌우 여유 — 화면(side-view3d)에서
+                                 // 앵커 둘레 ±55 로 서성이므로 그 폭을 감싸도록 넉넉히 잡았다
+  var TALK_LEAVE_R = 160;       // 대화창을 연 채 이만큼 멀어지면 저절로 닫는다
   var DROP_THRU = 0.26;         // ↓+점프로 발판을 빠져나가는 동안
 
   var E_HP = core.tuned('enemy.hpMul', 1);      // 적 체력 배수 (보스도 같이 탄다)
@@ -144,6 +147,18 @@
     return out;
   }
 
+  /** 마을 사람(PLAN 16절) — `stg.npcs`([x, key])를 말 걸 수 있는 자리로 편다.
+   *  이름·대사는 `data-side.js`의 `NPC_TALK` 를 그대로 따른다 — 여기서는 자리만 잡는다 */
+  function buildNpcs(stg) {
+    var list = stg.npcs || [], out = [];
+    for (var i = 0; i < list.length; i++) {
+      var key = list[i][1], t = SD.NPC_TALK[key];
+      if (!t) { continue; }
+      out.push({ x: list[i][0], key: key, name: t.name });
+    }
+    return out;
+  }
+
   /** 랜덤 이벤트(PLAN 11절) — 사냥터에 걸어 들어갈 때마다 낮은 확률로 상자가
    *  하나 생긴다. 마을엔 안 둔다(싸울 일이 없는 곳이라 어울리지 않는다) */
   function buildChest(stg) {
@@ -170,7 +185,7 @@
                 cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
                 climb: null, dropThru: 0, resting: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
-      chest: buildChest(stg),
+      chest: buildChest(stg), npcs: buildNpcs(stg), talk: null,
       kills: 0, gold: 0, startedAt: Date.now()
     };
     st().stage = stg.key;
@@ -243,6 +258,37 @@
     return null;
   }
 
+  /** 이 자리에서 말을 걸 수 있는 마을 사람 (없으면 null) */
+  function npcAt(cx) {
+    if (!run) { return null; }
+    var list = run.npcs || [], i, best = null, bd = TALK_R + 1;
+    for (i = 0; i < list.length; i++) {
+      var d = Math.abs(cx - list[i].x);
+      if (d <= TALK_R && d < bd) { best = list[i]; bd = d; }
+    }
+    return best;
+  }
+
+  /** 말을 건다 — 아무 대사나 하나 뽑는다(순서를 지키는 사명 대화가 아니다) */
+  function talk(npc) {
+    var t = SD.NPC_TALK[npc.key];
+    if (!t || !t.lines.length) { return false; }
+    var text = t.lines[Math.floor(Math.random() * t.lines.length)];
+    run.talk = { x: npc.x, key: npc.key, name: t.name, text: text };
+    sfx('talk');
+    core.emit('side:talk', { stage: run.stage.key, npc: npc.key });
+    core.emit('changed');
+    return true;
+  }
+
+  /** 대화창을 닫는다 */
+  function closeTalk() {
+    if (!run || !run.talk) { return false; }
+    run.talk = null;
+    core.emit('changed');
+    return true;
+  }
+
   /** 줄에 붙는다 */
   function grab(rope) {
     var p = run.player;
@@ -273,15 +319,20 @@
     return r ? grab(r) : false;
   }
 
-  /** ↑ 를 눌렀을 때 — 줄이 먼저, 없으면 문 */
+  /** ↑ 를 눌렀을 때 — 대화창이 열려 있으면 닫고, 아니면 줄 → 문 → 마을 사람 순.
+   *  **문이 마을 사람보다 앞선다** — 사냥터를 넘나드는 길은 데이터를 어떻게
+   *  두든 절대 막히면 안 되니, 둘이 겹치는 자리가 생겨도 문이 이긴다. */
   function useUp() {
     if (!run) { return false; }
+    if (run.talk) { return closeTalk(); }
     var p = run.player;
     if (p.climb) { return true; }
     var r = ropeAt(p.x + P_W / 2, p.y + P_H);
     if (r) { return grab(r); }
     var g = portalAt(p.x + P_W / 2);
     if (g && p.onGround) { return travel(g.to); }
+    var n = npcAt(p.x + P_W / 2);
+    if (n && p.onGround) { return talk(n); }
     return false;
   }
 
@@ -326,6 +377,7 @@
     run.enemies = []; run.drops = []; run.shots = []; run.eshots = []; run.boss = null;
     run.gathers = buildGathers(stg);
     run.chest = buildChest(stg);
+    run.npcs = buildNpcs(stg); run.talk = null;
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
     run.player.vx = 0; run.player.vy = 0; run.player.climb = null;
@@ -754,6 +806,9 @@
     dt = Math.min(dt, 0.05);
     var p = run.player, stg = run.stage, i;
 
+    /* 대화창을 연 채 자리를 뜨면 저절로 닫는다 — 닫는 것을 잊고 걸어가도 막혀 있지 않게 */
+    if (run.talk && Math.abs((p.x + P_W / 2) - run.talk.x) > TALK_LEAVE_R) { closeTalk(); }
+
     for (i = 0; i < p.cds.length; i++) { if (p.cds[i] > 0) { p.cds[i] -= dt; } }
     var bf = buffOn();
     run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * dt);
@@ -1029,7 +1084,8 @@
       bosses: s.bosses || 0,
       stages: stages(), skills: [],
       /* 사냥 중이 아니어도 같은 칸을 준다 — 한쪽에만 있는 칸을 두면 시트가 죽는다 */
-      boss: null, climbing: false, rope: false, gate: null, def: 0, resting: false
+      boss: null, climbing: false, rope: false, gate: null, npc: null, talk: null,
+      def: 0, resting: false
     };
     if (!run) {
       base.active = false;
@@ -1068,12 +1124,15 @@
     base.enemies = run.enemies.length;
     base.atk = Math.round(atkOf());
     base.def = power().def;
-    /* 줄·문 — 조작 띠가 '↑' 를 언제 띄울지 이 셋으로 정한다 */
+    /* 줄·문·마을 사람 — 조작 띠가 '↑' 를 언제 띄울지 이 넷으로 정한다 */
     base.climbing = !!run.player.climb;
     base.resting = run.player.resting > 0.4;
     base.rope = !!ropeAt(run.player.x + P_W / 2, run.player.y + P_H);
     var g = portalAt(run.player.x + P_W / 2);
     base.gate = g ? { to: g.to, name: g.ref.name, open: unlocked(g.to), need: g.ref.need } : null;
+    var n = npcAt(run.player.x + P_W / 2);
+    base.npc = n ? { key: n.key, name: n.name } : null;
+    base.talk = run.talk ? { name: run.talk.name, text: run.talk.text } : null;
     if (run.boss) {
       base.boss = {
         name: run.boss.ref.name,
@@ -1091,7 +1150,7 @@
     setInput: setInput, jump: jump, castSkill: castSkill, drink: drink,
     travel: travel, useUp: useUp, useDown: useDown, dropThrough: dropThrough,
     grabRope: grabRope,
-    ropeAt: ropeAt, portalAt: portalAt, letGo: letGo,
+    ropeAt: ropeAt, portalAt: portalAt, npcAt: npcAt, talk: talk, closeTalk: closeTalk, letGo: letGo,
     power: power, unlocked: unlocked, stages: stages, barSkills: barSkills,
     bossReady: bossReady, bossLeft: bossLeft,
     status: status, state: st, meRef: meRef,

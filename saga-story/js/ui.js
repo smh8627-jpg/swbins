@@ -68,8 +68,8 @@
   }
 
   function init() {
-    ['profile', 'wallet', 'camp', 'hud', 'touchpad', 'autobar', 'dock', 'dock-more', 'sheet',
-     'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
+    ['profile', 'wallet', 'camp', 'hud', 'talkbox', 'touchpad', 'autobar', 'dock', 'dock-more',
+     'sheet', 'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
       els[id] = $(id);
     });
 
@@ -110,6 +110,13 @@
         handleAct(b.getAttribute('data-act'), b);
       });
     }
+    if (els.talkbox) {
+      els.talkbox.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-act]');
+        if (!b) { return; }
+        handleAct(b.getAttribute('data-act'), b);
+      });
+    }
 
     els['sheet-body'].addEventListener('click', function (e) {
       var b = e.target.closest('[data-act]');
@@ -143,6 +150,8 @@
         global.DG.side.castSkill(parseInt(b.getAttribute('data-i'), 10) || 0);
       } else if (act === 's-drink') {
         if (!global.DG.side.drink()) { toast('탕약이 없거나 체력이 가득합니다'); }
+      } else if (act === 'talk-close') {
+        global.DG.side.closeTalk();
       } else if (act === 'auto-on') {
         global.DG.auto.toggle();
       } else if (act === 'auto-flag') {
@@ -457,14 +466,35 @@
          키보드가 있으면 예전 문구 그대로다(진단 출력도 그래서 안 바뀐다) */
       var UP = core.upHint(), ACT = core.actHint();
       if (st.climbing) { msg = UP + ' ' + core.downHint() + ' 오르내리기 · ' + ACT + ' 손 떼기'; }
+      else if (st.talk) { msg = UP + ' 대화를 닫는다'; }
       else if (st.gate) {
         msg = st.gate.open ? (UP + ' → ' + st.gate.name) : ('🔒 ' + st.gate.name + ' — Lv.' + st.gate.need + ' 부터');
       } else if (st.rope) { msg = UP + ' 줄을 탄다'; }
+      else if (st.npc) { msg = UP + ' ' + esc(st.npc.name) + '에게 말을 건다'; }
       hint.textContent = msg;
       hint.classList.toggle('show', !!msg);
     }
     els.hud.classList.add('show');
     if (els.touchpad) { els.touchpad.classList.add('show'); }
+  }
+
+  /** 마을 사람 대화창(PLAN 16절) — 이름·대사 한 줄 + 닫는다 단추 */
+  var talkKey = null;
+  function renderTalkBox() {
+    if (!els.talkbox) { return; }
+    var t = global.DG.side.status().talk;
+    if (!t) {
+      if (talkKey !== null) { els.talkbox.classList.remove('show'); els.talkbox.innerHTML = ''; talkKey = null; }
+      return;
+    }
+    var key = t.name + '|' + t.text;
+    if (key !== talkKey) {
+      talkKey = key;
+      els.talkbox.innerHTML = '<div class="talk-card">' +
+        '<b>💬 ' + esc(t.name) + '</b><p>' + esc(t.text) + '</p>' +
+        '<button class="btn ghost" data-act="talk-close">닫는다</button></div>';
+    }
+    els.talkbox.classList.add('show');
   }
 
   /* ── 사냥터 시트 ──────────────────────────────────────── */
@@ -1180,6 +1210,7 @@
     renderTop();
     renderCamp();
     renderHudBar();
+    renderTalkBox();
     renderAutoBar();
     var a = document.activeElement;
     if (a && (a.tagName === 'SELECT' || a.tagName === 'INPUT') && els['sheet-body'].contains(a)) { return; }
@@ -1214,7 +1245,7 @@
     openSheet: openSheet, closeSheet: closeSheet,
     openDetail: openDetail, closeDetail: closeDetail,
     renderPanel: renderSheet, renderHud: renderTop,
-    renderCamp: renderCamp, renderHudBar: renderHudBar,
+    renderCamp: renderCamp, renderHudBar: renderHudBar, renderTalkBox: renderTalkBox,
     openOverworldMap: openOverworldMap, closeOverworldMap: closeOverworldMap,
     toggleOverworldMap: toggleOverworldMap
   };

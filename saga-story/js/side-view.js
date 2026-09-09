@@ -85,7 +85,7 @@
           held = true;
           if (dir === 'up') {
             var s = S.status();
-            if (s.climbing || s.rope || s.gate) { S.setInput('up', true); }
+            if (s.climbing || s.rope || s.gate || s.npc || s.talk) { S.setInput('up', true); }
             else { S.setInput('jump', true); }
           } else {
             S.setInput(dir, true);
@@ -151,7 +151,7 @@
     if (z === 'up') {
       var s = S.status();
       /* 줄·문 앞이면 오르기·들어가기, 아니면 점프. 점프는 누르는 순간 한 번이다 */
-      if (s.climbing || s.rope || s.gate) { S.setInput('up', true); }
+      if (s.climbing || s.rope || s.gate || s.npc || s.talk) { S.setInput('up', true); }
       else { S.setInput('jump', true); }
     } else {
       S.setInput('up', false);
@@ -192,7 +192,7 @@
     /* 끌어서 위로 올라가는 것은 점프로 읽지 않는다 — 걷다가 뛰어 버린다 */
     if (z === 'up' && zone !== 'up') {
       var s = S.status();
-      if (!(s.climbing || s.rope || s.gate)) { return; }
+      if (!(s.climbing || s.rope || s.gate || s.npc || s.talk)) { return; }
     }
     zone = z;
     apply(zone);

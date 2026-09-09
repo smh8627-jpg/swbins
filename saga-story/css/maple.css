@@ -27,13 +27,13 @@
 }
 
 /* ── 글꼴 ─────────────────────────────────────────────── */
-body, .btn, .card, #sheet, #camp, #hud, .glass {
+body, .btn, .card, #sheet, #camp, #hud, #talkbox, .glass {
   font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", system-ui, sans-serif;
   letter-spacing: -.1px;
 }
 
-/* ── 창 (시트 · 쉬는 판 · 조작 띠 · 상단) ──────────────── */
-#sheet, .camp-card, .hud-card, .glass, .enc-card {
+/* ── 창 (시트 · 쉬는 판 · 조작 띠 · 상단 · 대화창) ──────── */
+#sheet, .camp-card, .hud-card, .talk-card, .glass, .enc-card {
   background: var(--mp-paper) !important;
   border: 2px solid var(--mp-line) !important;
   border-radius: 10px !important;
@@ -43,7 +43,8 @@ body, .btn, .card, #sheet, #camp, #hud, .glass {
   color: var(--mp-ink) !important;
 }
 #sheet { border-radius: 12px 12px 0 0 !important; }
-#sheet-body, .sheet-head h3, #camp, #hud, .glass, .enc-card { color: var(--mp-ink) !important; }
+#sheet-body, .sheet-head h3, #camp, #hud, #talkbox, .glass, .enc-card { color: var(--mp-ink) !important; }
+.talk-card b { color: var(--mp-blue) !important; }
 .sheet-head { border-bottom: 2px solid var(--mp-line); }
 .sheet-head h3 { font-weight: 800; }
 .grip { background: var(--mp-line) !important; }

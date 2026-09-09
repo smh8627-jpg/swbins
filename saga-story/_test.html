@@ -28,7 +28,7 @@
   </div>
   <div class="glass wallet" id="wallet"></div>
 </div>
-<div id="autobar"></div><div id="camp"></div><div id="hud"></div>
+<div id="autobar"></div><div id="camp"></div><div id="hud"></div><div id="talkbox"></div>
 <nav id="dock">
   <button data-sheet="field"><span>f</span><small>f</small></button>
   <button data-sheet="bag"><span>b</span><small>b</small></button>
@@ -314,6 +314,41 @@ window.DG_NO_TUNE = true;
       S.raw().player.invuln = 0;
       return !!gate && moved && kept && placed &&
         (from + ' → 강릉진 · 금 777·5마리·체력 ' + hp0 + ' 그대로');
+    });
+
+    t('마을 사람 — ↑ 로 말을 걸고, 다시 누르면 닫힌다', function () {
+      var before = S.raw().stage.key;
+      S.travel('sinya');                       // 마을 — npcs 가 있다
+      var run = S.raw(), p = run.player;
+      calm(run);
+      var npc = run.npcs[0];
+      p.climb = null; p.x = npc.x - S.P_W / 2; p.y = run.stage.floor - S.P_H;
+      p.vy = 0; p.onGround = true;
+      S.setInput('up', true); restInput();
+      var opened = !!S.raw().talk && S.raw().talk.name === npc.name;
+      S.setInput('up', true); restInput();     // 다시 누르면 닫힌다(문·줄로 새지 않는다)
+      var closed = !S.raw().talk;
+      S.travel(before);
+      S.raw().player.invuln = 0;
+      return opened && closed && ('열림 — ' + npc.name + ' · 다시 누르니 닫힘');
+    });
+
+    t('마을 사람 — 대화창을 연 채 멀어지면 저절로 닫힌다', function () {
+      var before = S.raw().stage.key;
+      S.travel('sinya');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      var npc = run.npcs[0];
+      p.climb = null; p.x = npc.x - S.P_W / 2; p.y = run.stage.floor - S.P_H;
+      p.vy = 0; p.onGround = true;
+      S.setInput('up', true); restInput();
+      var opened = !!S.raw().talk;
+      p.x = npc.x + 400;                        // 닫히는 거리(TALK_LEAVE_R)보다 멀리
+      S.update(0.03);
+      var closedByWalk = !S.raw().talk;
+      S.travel(before);
+      S.raw().player.invuln = 0;
+      return opened && closedByWalk && '멀어지니 저절로 닫힘';
     });
 
     t('못 열린 사냥터의 문은 거절한다', function () {
@@ -1174,6 +1209,25 @@ window.DG_NO_TUNE = true;
       var three = Q.progress('q_explore1');
       clearQuests();
       return two === 1 && three === 2 && ('들판만 두 번 밟아 ' + two + ' · 숲 더해 ' + three);
+    });
+
+    t('사명(대화) — 실제로 ↑ 로 말을 걸어도 사명이 센다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      Q.take('q_talk1');
+      var before = S.raw().stage.key;
+      S.travel('sinya');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      var npc = run.npcs[0];
+      p.climb = null; p.x = npc.x - S.P_W / 2; p.y = run.stage.floor - S.P_H;
+      p.vy = 0; p.onGround = true;
+      S.setInput('up', true); restInput();      // 직접 _onTalk 를 부르지 않고 실제 경로로
+      var got = Q.progress('q_talk1');
+      S.travel(before);
+      S.raw().player.invuln = 0;
+      clearQuests();
+      return got === 1 && ('실제 대화 한 번 → 사명 진행 ' + got);
     });
 
     t('사명을 바치면 보상이 들어오고, 되받는 것만 다시 뜬다', function () {

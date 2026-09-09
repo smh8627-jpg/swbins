@@ -32,6 +32,7 @@
       ground: '#8a6b3a', width: 1200, floor: 560, town: true,
       plats: [[520, 430, 240]], ropes: [[540, 430, 560, 'ladder']],
       portals: [[1130, 'heodo']],
+      npcs: [[220, 'elder'], [620, 'guard'], [980, 'wanderer']],
       enemyLv: 1, spawn: 0
     },
     {
@@ -40,6 +41,7 @@
       plats: [[300, 430, 240], [900, 380, 260]],
       ropes: [[320, 430, 560, 'ladder'], [920, 380, 560, 'rope']],
       portals: [[70, 'sinya'], [1330, 'field']],
+      npcs: [[220, 'merchant'], [620, 'healer'], [980, 'guard'], [1100, 'wanderer']],
       enemyLv: 1, spawn: 0
     },
     {
@@ -61,6 +63,7 @@
       plats: [[400, 420, 240], [820, 360, 220]],
       ropes: [[420, 420, 560, 'ladder'], [840, 360, 560, 'rope']],
       portals: [[70, 'field'], [1230, 'forest']],
+      npcs: [[220, 'guard'], [620, 'elder'], [980, 'merchant']],
       enemyLv: 5, spawn: 0
     },
     {
@@ -81,6 +84,7 @@
       plats: [[380, 420, 240], [860, 360, 220]],
       ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
       portals: [[70, 'forest'], [1230, 'cave']],
+      npcs: [[220, 'guard'], [620, 'healer'], [980, 'wanderer']],
       enemyLv: 12, spawn: 0
     },
     {
@@ -101,6 +105,7 @@
       plats: [[380, 420, 240], [860, 360, 220]],
       ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
       portals: [[70, 'cave'], [1230, 'gorge']],
+      npcs: [[220, 'wanderer'], [620, 'guard'], [980, 'merchant']],
       enemyLv: 25, spawn: 0
     },
     {
@@ -181,9 +186,48 @@
     cinder: { name: '그은 돌',    emoji: '🪨', model: 'rock' }        // 호로곡
   };
 
+  /**
+   * 마을 사람 대화(PLAN 16절) — `town:true` 사냥터의 `npcs`([x, key])가
+   * 가리키는 자리다. 이름은 인물이 아니라 **직책**이라 이름 정책(가명·오마주)에
+   * 걸리지 않는다. `lines` 는 매번 아무거나 하나 뽑아 보여준다 — 순서를
+   * 지키는 대사가 아니라 마을마다 도는 잡담이라 그걸로 충분하다.
+   */
+  var NPC_TALK = {
+    elder: { name: '촌로', lines: [
+      '난리 통에도 사람 사는 꼴은 여전하구먼.',
+      '젊은이, 무예를 부지런히 닦게. 몸이 그 값을 한다네.',
+      '이 근방 사냥터마다 우두머리가 하나씩 있다고 들었네 — 조심하시게.',
+      '들판에 나가면 캐 갈 것이 제법 있을 걸세.'
+    ] },
+    merchant: { name: '장사치', lines: [
+      '저자에 들르시게 — 장비도 주문서도 다 있다네.',
+      '요즘 금 귀한 줄 모르는 사람이 없어.',
+      '주문서는 실패할 때도 있으니 마음 단단히 먹게.',
+      '탕약은 늘 넉넉히 챙겨 두시게, 사냥터에서 아쉬운 게 그거라네.'
+    ] },
+    guard: { name: '파수병', lines: [
+      '앞쪽 사냥터는 만만치 않네. 채비는 갖췄는가?',
+      '두목급은 한동안 다시 안 나온다니, 잡았으면 다른 곳부터 도시게.',
+      '이 성 안에서는 걱정 말게, 아무도 안 덤빈다네.',
+      '전직할 뜻이 있으면 서두르게. 무예는 일찍 닦을수록 낫네.'
+    ] },
+    healer: { name: '의원', lines: [
+      '체력이 다하기 전에 탕약부터 찾으시게.',
+      '몸을 갖추는 것도 중요하지만 쉬어 가는 것도 중요하네.',
+      '앉아 쉬면 체력과 기력이 차네 — 곁에 아무도 없을 때 말일세.',
+      '다치는 건 순간이나 낫는 건 더디니 조심하시게.'
+    ] },
+    wanderer: { name: '나그네', lines: [
+      '이곳저곳 떠돌다 보니 별별 것을 다 보네.',
+      '드물게 희귀한 것들이 나온다더군 — 운이 좋으면 마주칠 걸세.',
+      '보물상자를 봤다는 소문이 있던데, 사실인지는 모르겠네.',
+      '길을 넓히려면 여러 곳을 밟아 봐야 하는 법이지.'
+    ] }
+  };
+
   global.DG = global.DG || {};
   global.DG.sideData = {
-    STAGES: STAGES, SKILLS: SKILLS, DROPS: DROPS, GATHERS: GATHERS,
+    STAGES: STAGES, SKILLS: SKILLS, DROPS: DROPS, GATHERS: GATHERS, NPC_TALK: NPC_TALK,
     RANGED_WEAPON: RANGED_WEAPON,
     stage: stage, rangedOf: rangedOf
   };

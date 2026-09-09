@@ -439,18 +439,18 @@
     }
   }
 
-  /** 마을 사람(PLAN 3·8절) — town:true 인 사냥터에만 세운다. 판정에는 안 닿고
-   *  화면 층에만 있다(fx 로 치지도 않는다) — 그냥 서서 좌우로 조금 서성인다.
-   *  `actorShell` 을 그대로 빌려 쓰므로 사람 GLB(Quaternius) 가 이미 하듯
-   *  못 받으면 조용히 도형 사람으로 남는다 */
+  /** 마을 사람(PLAN 3·8·16절) — `stg.npcs`([x, key], side.js `run.npcs` 와 같은
+   *  자료)가 있는 자리에 세운다. **말을 걸 수 있는 자리와 화면 위 자리가 이제
+   *  같은 표에서 나온다** — 판정(TALK_R)은 side.js 가, 서성이는 몸짓만 여기서
+   *  덧그린다. `actorShell` 을 그대로 빌려 쓰므로 사람 GLB(Quaternius) 가 이미
+   *  하듯 못 받으면 조용히 도형 사람으로 남는다 */
   function rebuildNpcs(Tc, stg) {
     for (var j = 0; j < npcPool.length; j++) { actorGroup.remove(npcPool[j]); disposeDeep(npcPool[j]); }
     npcPool = [];
-    if (!stg.town) { return; }
+    var list = stg.npcs || [];
     var NPC_COLORS = ['#c8b090', '#b7c3d8', '#d8b7a0', '#a8c8a0'];
-    var n = Math.max(3, Math.floor(stg.width / 900));
-    for (var i = 0; i < n; i++) {
-      var anchorX = 220 + i * (stg.width / n);
+    for (var i = 0; i < list.length; i++) {
+      var anchorX = list[i][0];
       var npc = actorShell(Tc, 'human', NPC_COLORS[i % NPC_COLORS.length], false, 'npc' + i, false);
       npc.userData.npcAnchor = anchorX;
       npc.userData.npcPhase = i * 1.7;

@@ -1247,6 +1247,23 @@ body.tilted3 #vignette {
   color: #dff0ff; text-shadow: 0 1px 3px rgba(0,0,0,.6);
 }
 .hud-hint.show { display: block; }
+
+/* 마을 사람 대화(PLAN 16절) — #hud 바로 위, 같은 폭·같은 유리 재질 */
+#talkbox {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(100px + var(--safe-b)); z-index: 13;
+  display: none; width: min(480px, calc(100vw - 48px));
+}
+#talkbox.show { display: block; }
+.talk-card {
+  padding: 12px 14px; border-radius: 18px;
+  background: var(--glass); border: 1px solid var(--glass-br);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+}
+.talk-card b { display: block; font-size: 13px; margin-bottom: 5px; color: #f0e2c8; }
+.talk-card p { margin: 0 0 9px; font-size: 13px; line-height: 1.55; color: var(--ink); }
+.talk-card .btn { width: 100%; }
 /* 체력·기력 띠는 없다 — 상단 프로필 카드(.p-bars)가 상시 보여 준다.
    여기서 또 그리면 조작 띠가 세로로 길어져 캐릭터 발밑을 가린다 */
 .hud-skills { display: flex; gap: 6px; align-items: center; }

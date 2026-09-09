@@ -186,6 +186,16 @@
     }
   }
 
+  /** 말 걸기(PLAN 15절 "NPC 대화") — 마을 사람 아무나 말을 걸 때마다 센다 */
+  function onTalk(info) {
+    for (var i = 0; i < QD.QUESTS.length; i++) {
+      var d = QD.QUESTS[i];
+      if (!taken(d.key) || d.goal.type !== 'talk') { continue; }
+      rec(d.key).n += 1;
+    }
+    void info;
+  }
+
   var bound = false;
   function init() {
     if (bound) { return; }
@@ -194,6 +204,7 @@
     core.on('side:gather', onGather);
     core.on('side:enter', onStage);
     core.on('side:travel', onStage);
+    core.on('side:talk', onTalk);
   }
 
   global.DG = global.DG || {};
@@ -201,6 +212,6 @@
     state: st, init: init,
     list: list, take: take, turnIn: turnIn,
     taken: taken, progress: progress, full: full, doneCount: doneCount,
-    _onKill: onKill, _onGather: onGather, _onStage: onStage
+    _onKill: onKill, _onGather: onGather, _onStage: onStage, _onTalk: onTalk
   };
 })(window);

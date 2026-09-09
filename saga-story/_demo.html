@@ -14,6 +14,7 @@
     #dex    도감                     #log   기록
     #crit   전투 연출(급소·넉백·넘어가는 몸) — 정지 화면으로 볼 유일한 수단
     #gorge  호로곡(넷째 사냥터) — 불타는 골짜기
+    #town   신야성 — 마을 사람 대화창(PLAN 16절)
   해시에 chibi·tall·anime·classic 을 붙이면 등신·양식도 바뀐다 (예: #boss-chibi).
 
   이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
@@ -39,6 +40,7 @@
 <div id="autobar"></div>
 <div id="camp"></div>
 <div id="hud"></div>
+<div id="talkbox"></div>
 <nav id="dock">
   <button data-sheet="field"><span>🏃</span><small>사냥터</small></button>
   <button data-sheet="bag"><span>🎒</span><small>가방</small></button>
@@ -191,6 +193,18 @@ setTimeout(function () {
       S.update(0.016);
     }
     C.setTune('crit.rate', null);
+  }
+  else if (tab === 'town') {
+    /* 마을 사람 대화(PLAN 16절) — 신야성에 들어가 첫 마을 사람 앞에 세우고 말을 건다 */
+    S.enter('sinya');
+    var rt = S.raw();
+    if (rt && rt.npcs.length) {
+      var npc0 = rt.npcs[0];
+      rt.player.x = npc0.x - S.P_W / 2;
+      rt.player.invuln = 9999;
+      S.talk(npc0);
+      S.update(0.016);
+    }
   }
   else if (tab === 'herodetail') {
     /* 초상 렌더 검증용 — 임의 인물 하나를 강제로 상세 화면에 띄운다 */
