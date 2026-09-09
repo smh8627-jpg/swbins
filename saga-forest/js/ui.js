@@ -1158,6 +1158,10 @@
     if (wf) { marks.push({ x: wf.tx * TILE, y: wf.ty * TILE, icon: '💦' }); }
     var hamlet = V.hamletSpot();
     if (hamlet) { marks.push({ x: hamlet.tx * TILE, y: hamlet.ty * TILE, icon: '🏘️' }); }
+    /* 두 번째 캠프(2026-09-09) — hamletSpot()과 같은 방식으로 마크만 하나
+       더 얹는다. 첫 캠프(🏘️)와 다른 아이콘(🏕️)으로 지도에서 구분되게 한다 */
+    var hamlet2 = V.hamlet2Spot();
+    if (hamlet2) { marks.push({ x: hamlet2.tx * TILE, y: hamlet2.ty * TILE, icon: '🏕️' }); }
     var cave = V.caveSpot();
     if (cave) { marks.push({ x: cave.tx * TILE, y: cave.ty * TILE, icon: '🕳️' }); }
 
@@ -1180,7 +1184,7 @@
     html += '<div class="sec"><h4>보는 법</h4><div class="card">' +
       '<small class="muted">' +
       '🔴 지금 내 자리 · 🏠 집 · 📮 편지함 · 🏪 전방 · 🧵 침선방 · 🪧 게시판 · ' +
-      '🏛️ 사고(史庫) · 🚩 마을기 · 🌊 호수 · 💦 폭포 · 🏘️ 작은 마을 · 🕳️ 동굴' +
+      '🏛️ 사고(史庫) · 🚩 마을기 · 🌊 호수 · 💦 폭포 · 🏘️ 작은 마을 · 🏕️ 두 번째 캠프 · 🕳️ 동굴' +
       '</small><br><small class="muted">' +
       '땅빛은 실제 걸어본 굽은 마을을 그대로 위에서 펼친 것입니다 — ' +
       '풀빛·모래·물·바이옴(풀밭/그늘숲/버섯/돌밭)의 진짜 모양이 여기서만 한눈에 보입니다.' +
