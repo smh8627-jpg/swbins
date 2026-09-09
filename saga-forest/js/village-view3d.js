@@ -636,7 +636,12 @@
       new t.MeshLambertMaterial({ color: 0x63b04a })
     );
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -0.02;     // 색칠한 타일(y=0)보다 살짝 아래 — 이음매가 안 보인다
+    /* 색칠한 타일(y=0)보다 살짝 아래 — 이음매가 안 보인다. **물 칸(y=-WATER_DEPTH())
+       보다는 반드시 더 깊어야 한다** — 안 그러면 이 배경판이 물 칸을 그대로
+       덮어 가려 버린다(2026-09-09, CDP 스크린샷으로 처음 잡아낸 버그 — 물이
+       파동·반사까지 다 얹었는데 화면엔 늘 초록만 보였다. 옛 값 -0.02는 기본
+       WATER_DEPTH 0.12보다 얕아 물 칸이 통째로 이 판 밑에 깔려 있었다) */
+    ground.position.y = -(WATER_DEPTH() + 0.02);
     ground.receiveShadow = true;
     scene.add(ground);
 

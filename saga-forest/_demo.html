@@ -197,6 +197,22 @@ setTimeout(function () {
     }
     raw0.player.x = natNear ? natNear.x + 60 : cx0;
     raw0.player.y = natNear ? natNear.y + 60 : cy0;
+    /* `buildtest`(2026-09-09, CDP 스크린샷으로 처음 확인)만 예외 — 건물 일곱이
+       "가장 가까운 하나" 요령으로 못 다 담을 만큼 넓게 퍼져 있다(사고↔집이
+       9칸=28.8m나 떨어짐). renderR 10m 그대로면 한 채도 안 보인다(scatterCount
+       가 트리 스캐터만 세고 있었다 — 실제로 CDP 스크린샷을 찍어서야 드러났다).
+       그래서 이 kind 만 일곱 좌표의 무게중심에 세우고 renderR 도 넉넉히 키운다 */
+    if (natureTestKey === 'buildtest') {
+      var bx = 0, by = 0, bn = 0;
+      raw0.props.forEach(function (p) {
+        if (wantKinds.indexOf(p.kind) < 0) { return; }
+        bx += p.x; by += p.y; bn++;
+      });
+      if (bn) {
+        raw0.player.x = bx / bn; raw0.player.y = by / bn;
+        C.setTune('village3d.renderR', 20);
+      }
+    }
     if (!DG.villageView3d.on()) { DG.villageView3d.toggle(); }
     if (hash.indexOf('stat') >= 0) {
       setTimeout(function () {
@@ -218,11 +234,15 @@ setTimeout(function () {
      타일(V.tileAt)이라 위 NATURE_TEST_KINDS 틀을 못 그대로 쓴다. `V.lakeCenter()`
      (마을 서쪽, 고정 배치)로 곧장 걸어가 3D 를 켠다. `#watertest`, `#watertest-stat` */
   if (hash.indexOf('watertest') >= 0 && DG.villageView3d) {
-    C.setTune('village3d.renderR', 10);
+    /* 2026-09-09, CDP 스크린샷으로 처음 확인 — renderR 10m(다른 nature-test
+       와 같은 값)로는 호수 반경(최대 5칸=16m)을 못 담아 물가에 서도 물이
+       화면 밖이었다. 호수만 더 넉넉히 잡는다(buildtest 와 같은 사정) */
+    C.setTune('village3d.renderR', 20);
     var lc = V.lakeCenter();
     if (lc) {
-      raw.player.x = lc.tx * V.TILE + V.TILE * 0.5;
-      raw.player.y = (lc.ty - lc.r - 1) * V.TILE + V.TILE * 0.5;   // 호수 북쪽 물가
+      var rawW = V.raw();
+      rawW.player.x = lc.tx * V.TILE + V.TILE * 0.5;
+      rawW.player.y = lc.ty * V.TILE + V.TILE * 0.5;   // 호수 한복판 — 사방이 물이라야 잘 보인다
     }
     if (!DG.villageView3d.on()) { DG.villageView3d.toggle(); }
     if (hash.indexOf('stat') >= 0) {

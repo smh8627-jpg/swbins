@@ -372,10 +372,21 @@
   /* ── 여기서부터 three 가 필요하다 ─────────────────────── */
 
   var loaderInst = null;
+  /** 2026-09-09 — `build/three/entry.js`가 `MeshoptDecoder`를 내보내게 바뀌면서
+   *  (사가블로가 2026-09-07에 이미 확인한 요령을 옮겼다) 여기서 GLTFLoader에
+   *  한 번만 물려 둔다. 압축 안 된 옛 GLB는 이 디코더가 있어도 그냥 무시되니
+   *  (`EXT_meshopt_compression` 확장이 없으면 안 탄다) 회귀 걱정 없다 —
+   *  반대로 이걸 안 물리면 `extensionsRequired`로 박힌 압축 GLB(이 판이
+   *  하드링크해 온 마을 3D 건물 일곱 종 전부 포함)가 **조용히 실패한다**
+   *  (`acquire()`의 onError가 콘솔 로그 없이 그냥 넘어가서 화면만 비어
+   *  보인다 — CDP 스크린샷으로 처음 잡아낸 버그, `_cdp_shot.py` 참고) */
   function gltfLoader() {
     var t = three();
     if (!t || !t.GLTFLoader) { return null; }
-    if (!loaderInst) { loaderInst = new t.GLTFLoader(); }
+    if (!loaderInst) {
+      loaderInst = new t.GLTFLoader();
+      if (t.MeshoptDecoder) { loaderInst.setMeshoptDecoder(t.MeshoptDecoder); }
+    }
     return loaderInst;
   }
 
