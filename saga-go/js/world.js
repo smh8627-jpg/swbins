@@ -445,20 +445,14 @@
 
   var tiles = {};              // "z/x/y" → Image
   var tileFail = 0, tileOk = 0;
-  /* CARTO 는 스타일마다 경로가 다르다 — light_all 은 루트에 있는데
-     **voyager 만 `rastertiles/` 아래**다. 루트로 부르면 404 가 오고, 그림이 없는
-     자리는 종이색으로 남는다. 3D 는 밝은 지도를 쓰므로 이걸 놓치면
-     **3D 지면에 지도가 통째로 안 깔린다**(2026-08-26 에 그 상태였다).
-     2026-09-06: 어두운 지도(dark_all)는 2D 배경으로만 쓰던 것을 사용자
-     요청으로 뺐다 — 이제 밝은 지도가 기본(0번)이다. */
-  var MAP_STYLES = [
-    { key: 'voyager',     path: 'rastertiles/voyager', name: '밝은 지도' },
-    { key: 'light_all',   name: '흰 지도' }
-  ];
-  function styleIdx() {
-    var i = (core.save.settings && core.save.settings.mapStyle) || 0;
-    return core.clamp(i, 0, MAP_STYLES.length - 1);
-  }
+  /* 지도 스타일은 이제 하나뿐이다 — **밝은 지도(voyager)**. 예전엔 CARTO의
+     dark_all·light_all 도 골라 쓸 수 있었지만(스타일 버튼으로 순환), CARTO가
+     API 키를 요구하게 바뀌어 화면에는 실제로 안 쓰인 지 오래고(2026-09-04,
+     `terrainTexture`가 대신함), 버튼이 있어 봤자 고를 이유가 없어 통째로
+     뺐다(2026-09-09). CARTO 는 스타일마다 경로가 다른데 voyager 만
+     `rastertiles/` 아래다 — 이 경로를 놓치면 404 가 오고 3D 지면에 지도가
+     통째로 안 깔린다(2026-08-26 에 그 상태였다). */
+  var TILE_PATH = 'rastertiles/voyager';
   /* 고해상 타일(@2x) — 화면이 촘촘한 기기에서 쓴다. **3D 에서는 늘 쓴다**:
      타일 한 장(256px)이 지면 242m 로 펼쳐져 1m 가 한 픽셀이라, 낮게 깔린 카메라
      앞에서는 지도가 뭉개진다. 파일은 8KB → 10KB 남짓이라 값이 싸다 */
@@ -468,19 +462,13 @@
     return !!(w3 && w3.active && w3.active());
   }
 
-  function tileUrl(x, y, z, si) {
-    var st = MAP_STYLES[si];
-    return 'https://basemaps.cartocdn.com/' + (st.path || st.key) +
+  function tileUrl(x, y, z) {
+    return 'https://basemaps.cartocdn.com/' + TILE_PATH +
            '/' + z + '/' + x + '/' + y + (useRetina() ? '@2x' : '') + '.png';
   }
 
-  /**
-   * @param si 지도 스타일 자리 — 3D 렌더러는 **밝은 지도**를 따로 부른다.
-   *   2D 화면도 이제 밝은 지도가 기본이다(어두운 지도는 뺐다).
-   */
-  function getTile(x, y, z, si) {
-    si = (typeof si === 'number') ? core.clamp(si, 0, MAP_STYLES.length - 1) : styleIdx();
-    var key = si + '/' + z + '/' + x + '/' + y;
+  function getTile(x, y, z) {
+    var key = z + '/' + x + '/' + y;
     var t = tiles[key];
     if (t) { return t; }
     var img = new Image();
@@ -491,7 +479,7 @@
     img.decoding = 'async';
     img.onload = function () { img.ready = true; tileOk++; };
     img.onerror = function () { img.failed = true; tileFail++; };
-    img.src = tileUrl(x, y, z, si);
+    img.src = tileUrl(x, y, z);
     tiles[key] = img;
     // 캐시가 너무 커지면 오래된 것부터 버린다
     var ks = Object.keys(tiles);
@@ -1870,16 +1858,6 @@
     get footprints() { return footprints; },
     get motion() { return player; },
     TRAIL_STEP: TRAIL_STEP, TRAIL_MAX: TRAIL_MAX,
-    mapStyles: MAP_STYLES,
-    get mapStyle() { return MAP_STYLES[styleIdx()]; },
-    /** 지금 고른 지도 스타일의 자리 — world3d.js 가 3D 지면 타일에 그대로 쓴다 */
-    mapStyleIdx: styleIdx,
-    cycleMapStyle: function () {
-      core.save.settings.mapStyle = (styleIdx() + 1) % MAP_STYLES.length;
-      tiles = {};
-      core.persist();
-      return MAP_STYLES[styleIdx()];
-    },
     latLng: function () {
       var p = core.save.player.pos;
       return worldToLatLng(p.x, p.y);

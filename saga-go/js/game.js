@@ -157,11 +157,14 @@
       location.reload();
     });
 
-    var mapBtn = document.getElementById('btn-map');
-    if (mapBtn) {
-      mapBtn.addEventListener('click', function () {
-        var st = world.cycleMapStyle();
-        ui.toast('🗺️ ' + st.name);
+    /* 지도를 크게 보기 — 도구줄·독·근처 패널을 감춰 지도(캔버스)만 남긴다.
+       세이브에는 안 남긴다 — 매번 켜진 채로 열리면 첫 화면부터 조작을 못 찾는다 */
+    var focusBtn = document.getElementById('btn-mapfocus');
+    if (focusBtn) {
+      focusBtn.addEventListener('click', function () {
+        var on = document.body.classList.toggle('mapfocus');
+        focusBtn.title = on ? '도구줄 다시 보기' : '지도를 크게 봅니다 (도구줄 감추기)';
+        ui.toast(on ? '🗺️ 도구줄을 감췄습니다 — 다시 누르면 돌아옵니다' : '도구줄을 다시 보입니다');
       });
     }
 
@@ -203,30 +206,6 @@
         inchBtn.classList.toggle('on', on);
         ui.toast(on ? '🔍 3인치 모드 — 화면을 멀리서 봅니다' : '🔍 3인치 모드 해제 — 원래 배율로 돌아갑니다');
         if (tiltBtn) { tiltBtn.textContent = tiltLabel(); }
-      });
-    }
-
-    /* 등신 비례 — 기본(4등신) → 2등신 → 8등신 순환 */
-    var PROP_ORDER = ['normal', 'chibi', 'tall'];
-    var PROP_LABEL = { normal: '4등', chibi: '2등', tall: '8등' };
-    var PROP_MSG = {
-      normal: '🧍 기본 비례 (4등신)',
-      chibi: '🧒 2등신 — 귀엽게',
-      tall: '🕴️ 8등신 — 늘씬하게'
-    };
-    var propBtn = document.getElementById('btn-prop');
-    if (propBtn) {
-      propBtn.textContent = PROP_LABEL[global.DG.sprite.prop()];
-      propBtn.addEventListener('click', function () {
-        var cur = PROP_ORDER.indexOf(global.DG.sprite.prop());
-        var next = PROP_ORDER[(cur + 1) % PROP_ORDER.length];
-        global.DG.sprite.setProp(next);
-        core.save.settings.prop = next;
-        core.persist();
-        propBtn.textContent = PROP_LABEL[next];
-        ui.toast(PROP_MSG[next]);
-        core.emit('changed');           // 초상 <img> 들을 새 비례로 다시 굽는다
-        if (global.DG.world3d) { global.DG.world3d.resetActors(); }  // 지도 위 3D 배우도 새 비례로 다시 짓는다
       });
     }
 
@@ -303,8 +282,8 @@
         '<div class="helplist">' +
           '<div><b>이동</b> WASD · 방향키 (Shift 달리기) · 빈 땅을 탭하면 그쪽으로 걷습니다</div>' +
           '<div><b>지도</b> 실제 지도. 📡 를 누르면 지금 있는 곳으로 이동합니다</div>' +
+          '<div><b>크게 보기</b> ⛶ 를 누르면 도구줄을 감추고 지도만 남깁니다</div>' +
           '<div><b>시점</b> 2D → 2.5D → 3D 버튼으로 순환합니다 (3D는 포켓몬GO식)</div>' +
-          '<div><b>등신</b> 4등/2등/8등 버튼으로 캐릭터 비례를 바꿉니다</div>' +
           '<div><b>양식</b> 🖌️ 전통 → 📗 그림책 → 🎴 만화 순으로 그림이 바뀝니다</div>' +
           '<div><b>보급</b> ' + SUPPLY_STEP + 'm 걸을 때마다 사료·명성, 500m 마다 등용서를 받습니다</div>' +
           '<div><b>배속</b> 걸음을 빠르게 하려면 <b>_admin.html</b> 의 균형 손잡이에서 올립니다 (규칙은 그대로)</div>' +
