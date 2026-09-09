@@ -1672,14 +1672,6 @@
     for (i = 0; i < targets.length; i++) { prefetchRoomTex(targets[i].floor, targets[i].roomIdx); }
   }
 
-  function meShape() {
-    var sg = new T.Group();
-    box(sg, 0, 16, 0, 14, 22, 10, 0xd9c9a8, 'flat', true);       // 몸
-    box(sg, 0, 32, 0, 11, 11, 11, 0xe8c9a4, 'flat', true);       // 머리
-    box(sg, 0, 40, 0, 15, 4, 15, 0x3a3f4a, 'flat', false);       // 갓
-    box(sg, 9, 18, 0, 3, 26, 3, 0xb9c2cf, 'flat', true);         // 칼(placeholder)
-    return sg;
-  }
   /* 2026-09-05 — 플레이어가 실제로 장착한 무기의 `look`(sword·club·spear·
      bow·axe·staff·guandao·staff·scroll·fan·brush, `data-item.js` 참고).
      `js/skill.js`의 `classOf()`가 같은 자리를 읽지만 그 함수는 비공개
@@ -2071,18 +2063,15 @@
     }
     if (kind === 'me') {
       var meParams = meRenderParams();
-      var meBody = AS3 ? AS3.buildHero(meParams.seed, 42, meParams.tint, meShape) : meShape();
+      /* 2026-09-09 — GLB 도착 전 흰빛 도는 각목 도형(옛 meShape())이 실기기에서
+         "저 하얀 캐릭터 없애는 게 낫겠다"는 신고를 받았다. 도형을 아예 안
+         넘기면 `buildHero`가 GLB 다 실릴 때까지 shell을 비워 둔다 —
+         빈 자리보다는 낫다던 placeholder를, 사용자가 빈 자리 쪽을 골랐다. */
+      var meBody = AS3 ? AS3.buildHero(meParams.seed, 42, meParams.tint, null) : new T.Group();
       g.add(meBody);
       g.userData.mixerNode = meBody;
-      /* 2026-09-05 — 플레이어 본인도 실제 장착 무기를 손에 든다. `meShape()`의
-         칼은 GLB 로딩 중에만 보이는 placeholder라(`buildHero`가 다 실리면
-         그 도형째로 지워 버린다), 몸이 실제로 갈아 끼워진 뒤에도 무기가
-         남으려면 `foeGear()`처럼 `g`(바깥 껍데기)에 **따로** 얹어야 한다.
-         r·hh 는 보스급 적과 같은 값(12·31.2)을 썼다 — 플레이어 몸 높이
-         (mul=42)가 `foeBody`의 계산식(`hh+r*0.95`)을 거꾸로 풀면 그 근방이다.
-         2026-09-06 — 무기만 걸치던 `attachWeapon()` 단독 호출을 `foeGear()`
-         로 바꿔 투구·갑주(`meLookOf()`, `js/item.js`의 실제 장착 상태 기준)
-         도 같이 두른다(`foeGear`가 내부에서 `attachWeapon`을 이미 부른다). */
+      /* 실제 장착 무기·투구·갑주는 GLB 진행 상태와 무관하게 `g`(바깥 껍데기)에
+         따로 얹는다(`foeGear()`가 내부에서 `attachWeapon`을 부른다). */
       foeGear(g, meLookOf(), 31.2, 12, null);
       return g;
     }
@@ -2091,7 +2080,7 @@
          장비(foeGear) 조립이지만, seed를 그 인물 id로 박아 선두와
          다른 조합(생김새)이 나오게 한다 — `npc:'+key`와 같은 요령이다. */
       var allyId = (ref && ref.id) || 'ally';
-      var allyBody = AS3 ? AS3.buildHero('ally:' + allyId, 42, null, meShape) : meShape();
+      var allyBody = AS3 ? AS3.buildHero('ally:' + allyId, 42, null, null) : new T.Group();
       g.add(allyBody);
       g.userData.mixerNode = allyBody;
       foeGear(g, meLookOf(allyId), 31.2, 12, null);
