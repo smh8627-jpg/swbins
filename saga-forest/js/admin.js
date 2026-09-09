@@ -465,7 +465,7 @@
        여기서 손잡이를 잡으면(tuned() 가 손잡이를 먼저 본다) 등급과 무관하게
        그 값이 이긴다. 전부 게임 창을 켤 때 한 번만 읽으므로 새로고침이 필요하다 */
     { name: '3D 화면 — 세부', keys: [
-      ['village3d.on', '3D 기본 켬(0/1)', 0],
+      ['village3d.on', '3D 기본 켬(0/1)', 1],
       ['village3d.renderR', '렌더 반경(m)', '등급표'],
       ['village3d.groundTileR', '지형 타일 반경', '등급표'],
       ['village3d.shadowR', '그림자 거리(m, PHASE 7 LOD)', 18],
