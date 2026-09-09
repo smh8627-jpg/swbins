@@ -2402,6 +2402,30 @@ window.requestAnimationFrame = function () { return 0; };
         ('galdae 발판 앞 ' + dist + ' 지점 — 아직 비활성(' + active + ')인데도 프리페치 목록에 galdae 포함');
     });
 
+    t('탐험 보상(PLAN §60 후보3) — 마을을 걸어서 처음 밟으면 금·공적을 한 번만 준다', function () {
+      var T = DG.town, DN2 = DG.dungeon;
+      T._reset('moru');
+      if (C.save.town && C.save.town.visited) { delete C.save.town.visited.galdae; }
+      var R = DN2.fieldRadiusUnits();
+      var ga = T.anchorOf('galdae');
+      var px = ga.x + T.WALL + T.P_R - (R - 50), py = ga.y + T.ROOM_H / 2;   // 활성 반경(R) 안쪽
+      var gold0 = C.save.player.gold, feat0 = C.save.player.feat;
+      T._put(px, py);
+      T.update(0);
+      var gold1 = C.save.player.gold, feat1 = C.save.player.feat;
+      /* visitedTownIds()는 "지금 있는 곳"을 일부러 뺀다(위 §28-8 주석) — 방금
+         걸어 들어와 CURRENT_TOWN이 galdae가 됐으니 원본 플래그를 직접 본다 */
+      var visitedNow = !!(C.save.town && C.save.town.visited && C.save.town.visited.galdae);
+      /* 모루골로 돌아갔다가 같은 자리로 다시 걸어 들어와도 두 번째는 안 준다 */
+      T._reset('moru');
+      T._put(px, py);
+      T.update(0);
+      var gold2 = C.save.player.gold;
+      T._reset('moru');
+      return visitedNow && gold1 > gold0 && feat1 > feat0 && gold2 === gold1 &&
+        ('첫 방문 +' + (gold1 - gold0) + '🪙·+' + (feat1 - feat0) + '공적 · 재방문 추가 없음');
+    });
+
     t('한 자리에서 둘이 동시에 걸리지 않는다', function () {
       var T = DG.town, raw = T.raw();
       var all = raw.room.npcs.concat(raw.room.marks), i, j, close = [], min = 1e9;

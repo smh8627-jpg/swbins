@@ -865,6 +865,7 @@
    */
   var VISION_CHUNKS = 2;
   var lastSeenCx = null, lastSeenCz = null;
+  var TOWN_DISCOVER_GOLD = 30, TOWN_DISCOVER_FEAT = 3;   // 탐험 보상(PLAN §60 후보3)
   function markSeen(x, y) {
     var F = global.DG.field3d;
     if (!F || !core.save.town) { return; }
@@ -889,10 +890,14 @@
      던전 층만 목록으로 냈다)을 마을에도 얹는다. `core.save.town.seen`은
      칸(포그오브워) 단위라 "마을 자체를 가 봤다"를 못 가른다 — id별로
      따로 쌓는다. */
+  /** @returns {boolean} 이 마을을 **처음** 밟는 참이면 true(호출부가 탐험
+   *  보상을 줄지 판단하는 데 쓴다, PLAN §60 후보3) */
   function markTownVisited(id) {
-    if (!id || !core.save.town) { return; }
+    if (!id || !core.save.town) { return false; }
     if (!core.save.town.visited) { core.save.town.visited = {}; }
+    var fresh = !core.save.town.visited[id];
     core.save.town.visited[id] = 1;
+    return fresh;
   }
   /** 가 본 마을 id 목록(지금 있는 곳은 뺀다) — TOWN_ORDER 순서 그대로 */
   function visitedTownIds() {
@@ -1210,7 +1215,19 @@
        옛 방 사각형에 도로 갇힐 수 있다). */
     var nextTown = pickActiveTown(player.x, player.y);
     if (nextTown !== CURRENT_TOWN) {
-      CURRENT_TOWN = nextTown; markTownVisited(CURRENT_TOWN); build();
+      CURRENT_TOWN = nextTown;
+      var freshTown = markTownVisited(CURRENT_TOWN);
+      build();
+      /* 탐험 보상(PLAN §60 후보3, "르나운류") — 걸어서 마을을 **처음**
+         밟는 순간에만 한 번(재방문·재부팅 복귀는 markTownVisited가
+         false를 돌려줘 다시 안 준다). 새 자원 종류를 안 만들고 기존
+         금·공적(feat)만 조금 준다 */
+      if (freshTown && core.save.player) {
+        core.save.player.gold += TOWN_DISCOVER_GOLD;
+        core.gainFeat(TOWN_DISCOVER_FEAT, '마을 발견');
+        core.log('🗺️ ' + cfgOf(CURRENT_TOWN).theme.name + ' 을(를) 처음 밟았다', 'good');
+        core.emit('toast', '🗺️ 새로운 마을 발견! +' + TOWN_DISCOVER_GOLD + ' 🪙');
+      }
       /* 세이브 갈무리 — 옛 travel()이 마을을 건널 때마다 세이브했던 것과
          같은 자리(활성 마을이 갈리는 순간)에 건다. 매 틱 저장하면 너무
          잦다 — 이 정도 빈도면 충분하고, 앱이 죽어도 최근 지난 마을/들판
