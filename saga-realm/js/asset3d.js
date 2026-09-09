@@ -21,6 +21,7 @@
 (function (global) {
   'use strict';
 
+  var core = global.DG.core;
   var T = null;
   function three() { if (!T) { T = global.THREE || null; } return T; }
 
@@ -118,6 +119,22 @@
     return REG;
   }
   restore();
+
+  /**
+   * 동양풍 탑 시험(2026-09-09, README "다음 몫") — 꺼 둔 채로 얹는다.
+   * 지금 성채가 쓰는 Quaternius 탑(20~85KB)은 서양 판타지풍이라고 README에
+   * 적어 둔 자리다. `assets/models/buildings/asian/BellStructure.glb`
+   * (CC0, Polygonal Mind "lunar-year" 팩, ASSET_LICENSES.md 참고)를 받아
+   * 뒀지만, **이 세션은 헤드리스/실기 화면 확인을 하지 말라는 지시를 받아
+   * 실제로 어떻게 서는지 못 봤다** — 그래서 기본은 그대로 서양풍 탑이고,
+   * `core.setTune('asset3d.asianTower', 1)` 로 켜야 1등급 성채(`city:t1`)만
+   * 이걸로 갈아 선다(새로고침 필요, 다른 손잡이와 같은 결). 켜 보고 결이
+   * 맞으면 그때 기본값을 뒤집고 2·3등급도 더 받는다 — 안 맞으면 손잡이를
+   * 놓기만 하면 되돌아간다(코드를 걷어낼 필요가 없다).
+   */
+  if (core && core.tuned('asset3d.asianTower', 0)) {
+    register('city:t1', BLD + 'asian/BellStructure.glb');
+  }
 
   function register(key, url) {
     if (!key) { return REG; }

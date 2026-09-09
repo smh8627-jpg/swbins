@@ -79,9 +79,15 @@ _demo.html       →  스크린샷용 장면 (#scen · #pick · #map · #chibi �
 플레이어는 없다(이 판은 턴제 지도 화면이라 Phase 3 "플레이어"는 다르게 풀어야
 한다). 성을 탭하면 2D 와 똑같이 `ui.openCity()` 가 열린다 — 판정은 손대지 않았다.
 
-**다음 몫**: 동양풍 CC0 탑(지금은 서양 판타지 탑을 임시로 쓴다, `assets/ASSET_LICENSES.md`
-참고) · 실기기 확인(아직 안 함). (~~성 안으로 들어가는 3D 도시 화면(Phase 6)~~ —
-`js/city3d.js`로 이미 완료, 이 줄은 그 뒤로 안 지워지고 남아 있던 것)
+**다음 몫**: 동양풍 CC0 탑 — 2026-09-09에 후보 하나(`BellStructure.glb`,
+CC0, 자세한 것은 `assets/ASSET_LICENSES.md`)를 GitHub 미러에서 받아
+`asset3d.js`에 `core.tuned('asset3d.asianTower', 0)` 손잡이로 얹었다.
+**기본은 꺼짐** — 이 세션이 실기·헤드리스 화면 확인을 안(못) 했다.
+다음 세션에서 `_admin.html` 손잡이를 1로 켜고 실제로 봐서 결이 맞으면
+기본값을 뒤집고 2·3등급용 후보(`Portal.glb`·`MainAltar.glb`, 같은 CC0
+팩에 있음 확인됨)도 더 받는다 · 실기기 확인(아직 안 함).
+(~~성 안으로 들어가는 3D 도시 화면(Phase 6)~~ — `js/city3d.js`로 이미
+완료, 이 줄은 그 뒤로 안 지워지고 남아 있던 것)
 
 **Phase 9(랜덤 사건)는 2026-09-09에 이어서 끝났다** — 원정(`war.js`
 `journeys[]`)이 가는 길에(도착하는 달은 뺀다) 손잡이 확률(`war.journeyEventChance`,
