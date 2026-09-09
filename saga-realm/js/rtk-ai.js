@@ -104,6 +104,10 @@
           (출진할 때 들고 나가는 군량이 두 달치다) */
     acted.supply = trySupply(forceId);
 
+    /* 2.5) 시장 — 군량이 위태로우면 사서 메우고, 금은 모자란데 군량이
+       썩어날 만큼 남으면 판다. 사람이 쓰는 rtk.trade() 를 그대로 부른다 */
+    acted.trade = tryTrade(forceId, cr);
+
     /* 3) 싸울 만한가 — 살림보다 먼저 본다(장수를 명령에 다 써 버리면 못 친다) */
     acted.march = tryWar(forceId, cr);
 
@@ -151,6 +155,39 @@
       if (war.supply(cp.id, 0, food, cp.from).ok) { sent += food; }
     }
     return sent || null;
+  }
+
+  /**
+   * 시장에서 딱 한 성만 사고판다(한 달에 한 번, 사람이 손잡이 쓰듯).
+   * **군량이 위태로우면 산다** — 굶어서 병력이 녹는 것보다 낫다.
+   * **금이 모자라는데 군량이 썩어날 만큼 넉넉하면 판다** — 곳간에 쌓아만
+   * 두는 대신 다른 명령에 쓸 금으로 바꾼다. 두 조건이 동시에 걸리는 성은
+   * 없다(위태로움과 넉넉함은 반대말이라).
+   */
+  function tryTrade(forceId, cr) {
+    var R = global.DG.rtk;
+    var f = R.force(forceId);
+    var cities = R.citiesOf(forceId), i;
+    for (i = 0; i < cities.length; i++) {
+      var c = R.city(cities[i]);
+      var eat = R.eatOf(cities[i]);
+      if (!eat) { continue; }
+      if (c.food < eat * 1.5 && f.gold > cr.keepGold) {
+        var rate = R.marketRate(cities[i]);
+        var want = Math.round(eat * 2 - c.food);
+        var afford = Math.floor((f.gold - cr.keepGold) * rate);
+        var amt = Math.min(want, afford);
+        if (amt < 50) { continue; }
+        var r1 = R.trade(cities[i], 'buy', amt);
+        if (r1.ok) { return { city: cities[i], dir: 'buy', amt: amt }; }
+      } else if (c.food > eat * 6 && f.gold < cr.keepGold * 1.5) {
+        var surplus = Math.round(c.food - eat * 4);
+        if (surplus < 200) { continue; }
+        var r2 = R.trade(cities[i], 'sell', surplus);
+        if (r2.ok) { return { city: cities[i], dir: 'sell', amt: surplus }; }
+      }
+    }
+    return null;
   }
 
   /** 그 성과 맞닿은 적 가운데 가장 센 수비 */
@@ -237,7 +274,12 @@
         var grind = !f.won && !wet && f.wallTo < to.wall * 0.4 &&
           f.lossA < sendHere * cr.lossCap * 0.7;
         if (!f.won && !grind) { continue; }
-        var gain = (f.won ? 1 : 0.35) - f.lossA / Math.max(1, sendHere);
+        /* 우호가 높은 이웃은 맹약이 없어도 덜 매력적인 표적으로 친다 —
+           격식(동맹·화친)만 전쟁을 막던 것을 관계 자체가 조금씩 미는 쪽으로
+           바꿨다. 표적을 고를 여지가 있을 때만 순위를 흔들 뿐, f.won/grind
+           문턱은 그대로라 "칠 만한가"의 판정 자체는 안 건드린다 */
+        var rel = global.DG.diplo.relation(forceId, to.force);
+        var gain = (f.won ? 1 : 0.35) - f.lossA / Math.max(1, sendHere) - rel / 500;
         if (!best || gain > best.gain) {
           best = { from: cities[i], to: adj[j], gain: gain, lead: lead,
                    send: sendHere, water: wet };
@@ -322,6 +364,12 @@
     return res.ok ? { kind: kind, city: target, done: res.done } : null;
   }
 
+  /**
+   * 외교 한 수 — 상황에 따라 **동맹 · 화친 · 조공** 중 하나를 고른다.
+   * 예전엔 화친 하나뿐이라 `diplo.commonEnemy()`가 사람 몫으로만 살아 있었다 —
+   * AI 끼리는 아무리 판을 굴려도 동맹을 안 맺어(적벽처럼 시나리오가 못 박아
+   * 주지 않는 한) "함께 맞서는" 그림이 안 나왔다. 이제 셋을 다 쓴다.
+   */
   function tryEnvoy(forceId) {
     var R = global.DG.rtk;
     var off = global.DG.off;
@@ -329,12 +377,7 @@
     var f = R.force(forceId);
     var nb = D.neighbours(forceId).filter(function (x) { return !D.blocked(forceId, x); });
     if (!nb.length) { return null; }
-    /* 나보다 센 이웃에게 화친을 청한다 — 약한 쪽이 시간을 사는 것이 외교다 */
     var mine = R.summary(forceId).cities;
-    nb.sort(function (a, b) { return R.summary(b).cities - R.summary(a).cities; });
-    var to = nb[0];
-    if (R.summary(to).cities <= mine) { return null; }
-    if (f.gold < 400) { return null; }
 
     var who = null, wv = -1, cities = R.citiesOf(forceId), i, j;
     for (i = 0; i < cities.length; i++) {
@@ -345,8 +388,37 @@
       }
     }
     if (!who) { return null; }
-    var res = D.envoy('truce', to, who.id, 150);
-    return res.ok ? { to: to, done: res.done } : null;
+
+    /* 1) 공동의 적을 둔 이웃과는 동맹을 청한다 — 화친보다 값을 더 쓴다
+          (동맹이 더 큰 다짐이다). 적벽의 손·유 동맹을 시나리오 밖에서도
+          저절로 흉내 낼 수 있어야 "삼국지 같다" */
+    var allyCand = nb.filter(function (x) {
+      return !D.alliedWith(forceId, x) && D.commonEnemy(forceId, x) && D.relation(forceId, x) >= 40;
+    });
+    if (allyCand.length && f.gold >= 400) {
+      var to1 = allyCand[Math.floor(Math.random() * allyCand.length)];
+      var res1 = D.envoy('ally', to1, who.id, 300);
+      return res1.ok ? { to: to1, kind: 'ally', done: res1.done } : null;
+    }
+
+    /* 2) 나보다 센 이웃에게 화친을 청한다 — 약한 쪽이 시간을 사는 것이 외교다 */
+    var bySize = nb.slice().sort(function (a, b) { return R.summary(b).cities - R.summary(a).cities; });
+    var to = bySize[0];
+    if (R.summary(to).cities > mine) {
+      if (f.gold < 400) { return null; }
+      var res2 = D.envoy('truce', to, who.id, 150);
+      return res2.ok ? { to: to, kind: 'truce', done: res2.done } : null;
+    }
+
+    /* 3) 딱히 위협도 동맹거리도 없으면, 금이 넉넉할 때 우호가 가장 낮은
+          이웃에게 미리 조공을 보내 관계를 다져 둔다(위협이 닥친 뒤가 아니라
+          미리 사 두는 시간이다) */
+    if (f.gold >= 800) {
+      var weakest = nb.slice().sort(function (a, b) { return D.relation(forceId, a) - D.relation(forceId, b); })[0];
+      var res3 = D.envoy('tribute', weakest, who.id, 200);
+      return res3.ok ? { to: weakest, kind: 'tribute', done: res3.done } : null;
+    }
+    return null;
   }
 
   /** 사람 것을 뺀 모든 세력이 한 달을 산다 */
@@ -367,7 +439,7 @@
     pickOrder: pickOrder, bestFor: bestFor,
     runForce: runForce, threatAt: threatAt, spareOf: spareOf,
     gatherable: gatherable, gather: gather,
-    tryWar: tryWar, trySupply: trySupply, tryPromote: tryPromote,
+    tryWar: tryWar, trySupply: trySupply, tryTrade: tryTrade, tryPromote: tryPromote,
     tryPlot: tryPlot, tryEnvoy: tryEnvoy,
     runAll: runAll
   };

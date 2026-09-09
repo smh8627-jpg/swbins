@@ -457,7 +457,7 @@
     /* 숲 고리(PLAN 40절 PHASE 3) — 마을 밖 걸어 나갈 수 있는 폭(타일). 실기기
        성능 보며 줄일 수 있게 뒀다. buildProps() 를 다시 부르는(=새로고침) 곳에서만 듣는다 */
     { name: '숲', keys: [
-      ['forest.margin', '숲 고리 폭 (타일)', 20]
+      ['forest.margin', '숲 고리 폭 (타일)', 32]
     ] },
     /* 3D 화면(PLAN 40절 PHASE 2~7) — village3d.quality 는 버튼 행(질 등급행,
        renderTune 위쪽)에서 따로 다룬다. 여기는 그 밖의 세부 값들 — 등급표
@@ -469,8 +469,8 @@
       ['village3d.renderR', '렌더 반경(m)', '등급표'],
       ['village3d.groundTileR', '지형 타일 반경', '등급표'],
       ['village3d.shadowR', '그림자 거리(m, PHASE 7 LOD)', 18],
-      ['village3d.camDist', '3인칭 카메라 거리', 6, '0.1'],
-      ['village3d.camHeight', '3인칭 카메라 높이', 3.2, '0.1'],
+      ['village3d.camDist', '3인칭 카메라 거리', 7.5, '0.1'],
+      ['village3d.camHeight', '3인칭 카메라 높이', 4, '0.1'],
       ['village3d.fov', '화각(FOV)', 55],
       ['village3d.worldScale', '마을 좌표→미터 배율', 0.08, '0.01']
     ] }

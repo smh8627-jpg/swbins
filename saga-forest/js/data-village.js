@@ -62,6 +62,10 @@
     /* 호수 테두리 물가 식생(PLAN 12절 "shoreline") — 갈대·부들 CC0 모델을 아직
        못 구해 asset3d.js 에 이미 있는 범용 'plant' 모델로 대신한다 */
     plant:     { name: '수초',      emoji: '🌾', gather: null, reset: 0, hint: '살펴본다' },
+    /* 다리(2026-09-09) — 강을 건너는 유일한 자리(village.js BRIDGE_TY). 이
+       칸 자체는 걸어서 지나가는 'path' 타일이고, 이 프롭은 그 위에 세우는
+       Bridge.glb(2026-08-30부터 등록만 되어 있던 것)의 눈에 보이는 표시다 */
+    bridge:    { name: '다리',      emoji: '🌉', gather: null, reset: 0, hint: '건넌다' },
     /* 폭포 표지(PLAN 40절 PHASE 3) — 이 판 땅에는 높이 축이 없어(terrain.js
        머리말 참고) 진짜 낙수는 못 만든다. 이 자리를 표시만 해 둔다 */
     waterfall: { name: '폭포',      emoji: '💦', gather: null, reset: 0, hint: '바라본다' },
@@ -72,6 +76,19 @@
     bench:     { name: '평상',   emoji: '🪑', gather: null, reset: 0, hint: '앉는다' },
     well:      { name: '우물',   emoji: '⛲', gather: null, reset: 0, hint: '들여다본다' },
     lantern:   { name: '등롱',   emoji: '🏮', gather: null, reset: 0, hint: '바라본다' },
+    /* 캠프 오두막(2026-09-09) — House_1~4.glb(당장은 미사용, ASSET_LICENSES.md
+       참고)를 처음 쓴다. 상인(merchant) NPC 뒤에 세워 "지나가다 만나는 빈
+       캠프"였던 곳이 "누가 사는 캠프"로 보이게 한다 */
+    hamletHouse: { name: '오두막', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
+    /* 같은 날 이어서 — House_1 로 채 하나를 더 얹어 "상인 혼자 사는 오두막"을
+       "여럿이 지내는 움집들"로 늘렸다 */
+    hamletHut: { name: '움집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
+    /* 또 이어서 — House_3 로 채 하나를 더(House_4만 남는다) */
+    hamletShed: { name: '흙집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
+    /* 두 번째 캠프(2026-09-09) — 첫 캠프와 다른 자리(hamlet2Spot)에 House_4로
+       채 하나. 나그네가 하룻밤 묵어가는 외딴집이라 첫 캠프의 셋과 이름을
+       구분한다 */
+    hamlet2House: { name: '외딴집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
     /* 숨겨진 동굴(PLAN 40절 PHASE 3) — 입구 표지만. 안까지 들어가는 실내·
        보물(PLAN 40절 PHASE 4 "Treasure")은 다음 몫이다 */
     mountain:  { name: '바위산', emoji: '🗻', gather: null, reset: 0, hint: '올려다본다' },

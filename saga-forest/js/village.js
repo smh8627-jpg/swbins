@@ -96,8 +96,15 @@
 
   /** 마을 밖 "숲 고리" 폭(타일) — PLAN 40절 PHASE 3 "넓은 Forest Map". 이 너머는
    *  여전히 물(세상 끝)이라 걸어서 무한히 못 나간다. 실기기 성능 보면 admin 에서
-   *  줄일 수 있게 손잡이로 뒀다 */
-  function forestMargin() { return core.tuned('forest.margin', 20); }
+   *  줄일 수 있게 손잡이로 뒀다.
+   *  **2026-09-09, 20 → 32.** `BIOME_CELL`(22)보다 겨우 2칸 넓은 20에서는 어느 방향으로
+   *  걸어도 바이옴 하나(운 나쁘면 한 칸의 일부)만 스치고 세상 끝(물)에 닿아, PLAN
+   *  11절이 약속한 다섯 바이옴이 실제로는 거의 안 보였다. 32는 `BIOME_CELL`의 1.45배라
+   *  대부분 방향에서 바이옴 하나를 온전히 지나 다음 바이옴 초입까지 걷게 된다. 호수·강·
+   *  캠프·동굴은 전부 이 값에 비례해 고정 배치되므로(PLAN 10절) 좌표를 새로 안 짜도
+   *  저절로 더 멀리 물러난다. 프롭 총수는 고리 넓이 비례라 2배 남짓 늘어난다 —
+   *  느려지면 admin '숲' 탭에서 이 값 하나만 낮추면 된다(코드 손볼 필요 없음). */
+  function forestMargin() { return core.tuned('forest.margin', 32); }
 
   /* ── 숲 고리 바이옴(PLAN 11절) ────────────────────────────
    * 마을 밖을 한 가지 잔디로 두지 않고 큼직한 구역(BIOME_CELL 타일 정사각형)으로
@@ -192,6 +199,28 @@
     return d > RIVER_HALF_W && d <= RIVER_HALF_W * 2;
   }
 
+  /* ── 다리(2026-09-09, "다른 추가할 사항 없는지" 훑다가 찾음) ─────────
+   * **강이 처음부터 끝(ty 전체)까지 끊김 없이 막혀 있었다** — `riverCenterX()`가
+   * ty 에 어떤 제한도 안 두고 늘 값을 낸다. `terrain.js`(공사)도 "마을 밖은
+   * 못 한다"고 막혀 있어 사용자가 직접 다리를 놓을 수도 없었다. 그 결과
+   * **호수(와 그 서쪽 바이옴 전부)가 걸어서는 아예 못 가는 자리**였다 —
+   * `asset3d.js`에 `'bridge': Bridge.glb`가 진작에(2026-08-30, 사가고에서
+   * 그대로 옮겨 옴) 등록만 되고 한 번도 안 쓰인 게 그 증거다.
+   *
+   * 마을 자체의 동서 도로(`tileAt()`의 "가운데 가로로 흙길", `ty === H*0.5`
+   * 줄)와 **같은 줄**에 다리를 놓는다 — 마을 안 도로를 따라 걷다 보면 저절로
+   * 다리에 닿는다. 강폭(`RIVER_HALF_W`)만큼만 뚫어 강 자체는 다른 줄에서
+   * 여전히 막혀 있다(다리가 아니면 여전히 못 건넌다 — "아무 데서나 건넌다"가
+   * 아니라 "고정된 한 자리로만 건넌다"는 PLAN 10절과 같은 결).
+   */
+  var BRIDGE_TY = Math.floor(H * 0.5);
+  function inBridge(tx, ty) {
+    if (ty !== BRIDGE_TY) { return false; }
+    var cx = riverCenterX(ty);
+    if (cx === null) { return false; }
+    return Math.abs(tx - cx) <= RIVER_HALF_W;
+  }
+
   /* ── 폭포(PLAN 40절 PHASE 3 다섯 번째 칸) ─────────────────────
    * 강줄기를 따라 호수에서 남쪽으로 내려간 고정 한 자리다(margin 을 벗어나지
    * 않게 자른다) — 강이 없으면(호수가 없으면) 폭포도 없다.
@@ -229,6 +258,27 @@
   /** 캠프 둘레 7×5 칸 — 이 안에는 바이옴 장식(나무·바위 등)을 안 심는다 */
   function inHamlet(tx, ty) {
     var h = hamletSpot();
+    if (!h) { return false; }
+    return tx >= h.tx - 3 && tx <= h.tx + 3 && ty >= h.ty - 2 && ty <= h.ty + 2;
+  }
+
+  /* ── 두 번째 캠프(2026-09-09, 사용자 지시 "두 번째 캠프 새로 열어") ──────
+   * 첫 캠프(동)·호수(서)·폭포/강(남서)·동굴(북)이 이미 찬 방향 사이 빈틈 —
+   * 남쪽으로 깊게, 동쪽으로는 얕게 잡아 첫 캠프(동, y=0.35H)와도 강·폭포
+   * (서쪽, x 음수대)와도 안 겹친다. 첫 캠프보다 작고 수수하게 — "나그네가
+   * 하룻밤 묵어가는 외딴집" 하나뿐이다(우물 없음, 천막·모닥불·평상·등롱
+   * 하나씩만). 사람은 아직 없다 — 첫 캠프의 상인도 PHASE 3가 아니라 PHASE 4
+   * (NPC)에서 나중에 채워진 것과 같은 순서다.
+   */
+  var HAMLET2_MIN_MARGIN = 14;
+  function hamlet2Spot() {
+    var m = forestMargin();
+    if (m < HAMLET2_MIN_MARGIN) { return null; }
+    return { tx: W + Math.round(m * 0.15), ty: H + Math.round(m * 0.6) };
+  }
+  /** 첫 캠프와 같은 7×5 칸 — 자리는 작아도 비우는 둘레는 맞춘다 */
+  function inHamlet2(tx, ty) {
+    var h = hamlet2Spot();
     if (!h) { return false; }
     return tx >= h.tx - 3 && tx <= h.tx + 3 && ty >= h.ty - 2 && ty <= h.ty + 2;
   }
@@ -339,6 +389,7 @@
        아니면 세상 끝(물) */
     var m = forestMargin();
     if (tx < -m || ty < -m || tx >= W + m || ty >= H + m) { return 'water'; }
+    if (inBridge(tx, ty)) { return 'path'; }              // 강을 건너는 유일한 자리
     if (inLake(tx, ty) || inRiver(tx, ty)) { return 'water'; }
     return BIOME_TILE[biomeAt(tx, ty)];
   }
@@ -466,6 +517,7 @@
       for (tx = -m; tx < W + m; tx++) {
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }   // 마을 안은 위에서 이미 채웠다
         if (inHamlet(tx, ty)) { continue; }                         // 작은 마을 자리는 비워 둔다
+        if (inHamlet2(tx, ty)) { continue; }                        // 두 번째 캠프 자리도 비워 둔다
         if (inCave(tx, ty)) { continue; }                           // 동굴 자리도 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
@@ -482,6 +534,17 @@
       }
     }
 
+    /* 다리(2026-09-09) — 마을 도로와 같은 줄(BRIDGE_TY)에 실제로 건널 수 있는
+       자리가 생겼으니, `Bridge.glb`(2026-08-30부터 등록만 되고 안 쓰이던 것)를
+       그 위에 세운다. tileAt() 이 이미 그 칸을 'path'로 내주므로 GRASS_FAMILY
+       가 아니라 바이옴 장식·채집·짐승이 저절로 안 겹친다(위 루프가 이미
+       걸러 준다) */
+    var br = riverCenterX(BRIDGE_TY);
+    if (br !== null) {
+      props.push({ id: 'bridge', kind: 'bridge',
+        x: Math.round(br) * TILE + TILE * 0.5, y: BRIDGE_TY * TILE + TILE * 0.5, deco: true });
+    }
+
     /* 폭포 표지(PLAN 40절 PHASE 3 다섯 번째 칸) — 강이 있을 때만, 늘 같은 자리.
        좌우에 기존 rock 렌더(3D 모델도 이미 등록돼 있다)를 세워 여울처럼 보이게
        한다 — 새 3D 코드 없이 마크만 남긴다 */
@@ -493,8 +556,15 @@
       props.push({ id: 'waterfallRockR', kind: 'rock', x: wx + TILE * 0.9, y: wy + TILE * 0.2, deco: true });
     }
 
-    /* 작은 마을(PLAN 40절 PHASE 3 여섯 번째 칸) — 빈 캠프 하나. 사람은 아직
-       없다(PHASE 4 몫) */
+    /* 작은 마을(PLAN 40절 PHASE 3 여섯 번째 칸) — 캠프 하나. 상인(merchant) NPC는
+       buildNpcs() 가 세운다(PHASE 4). **2026-09-09 — 오두막(hamletHouse) 신설**,
+       House_1~4.glb(그동안 미사용, ASSET_LICENSES.md)를 처음 쓴다. 상인 뒤(더
+       북쪽)에 세워 "지나가다 만나는 빈 캠프"였던 곳이 "누가 사는 캠프"로 보이게
+       한다 — 위성 마을·집 다양화를 미뤄 둔 첫 걸음(README 2026-09-09 마을 3D
+       건물 항목 참고). **같은 날 이어서 — 움집(hamletHut, House_1) 한 채 더**,
+       "상인 혼자 사는 오두막"에서 "여럿이 지내는 움집들"로 늘렸다. **또
+       이어서 — 흙집(hamletShed, House_3) 한 채 더**(사용자 지시로 이 캠프에
+       계속 얹었다, House_4만 남는다) */
     var hs = hamletSpot();
     if (hs) {
       var hx = hs.tx * TILE + TILE * 0.5, hy = hs.ty * TILE + TILE * 0.5;
@@ -506,6 +576,22 @@
       props.push({ id: 'hamletWell', kind: 'well', x: hx + TILE * 1.6, y: hy + TILE * 0.4, deco: true });
       props.push({ id: 'hamletLanternA', kind: 'lantern', x: hx - TILE * 1.8, y: hy + TILE * 0.2, deco: true });
       props.push({ id: 'hamletLanternB', kind: 'lantern', x: hx + TILE * 1.8, y: hy - TILE * 0.2, deco: true });
+      props.push({ id: 'hamletHouse', kind: 'hamletHouse', x: hx - TILE * 0.2, y: hy - TILE * 1.9, deco: true });
+      props.push({ id: 'hamletHut', kind: 'hamletHut', x: hx + TILE * 2.4, y: hy - TILE * 1.3, deco: true });
+      props.push({ id: 'hamletShed', kind: 'hamletShed', x: hx - TILE * 2.6, y: hy + TILE * 1.5, deco: true });
+    }
+
+    /* 두 번째 캠프(PLAN 10절 "고정 배치", 2026-09-09) — 첫 캠프보다 작고
+       수수하다. House_4를 이번에 처음 쓴다 — 이걸로 House_1~4 넷을 다
+       썼다. 사람은 아직 없다(첫 캠프의 상인처럼 나중 몫) */
+    var hs2 = hamlet2Spot();
+    if (hs2) {
+      var h2x = hs2.tx * TILE + TILE * 0.5, h2y = hs2.ty * TILE + TILE * 0.5;
+      props.push({ id: 'hamlet2Tent', kind: 'tent', x: h2x - TILE * 1.1, y: h2y - TILE * 0.5, deco: true });
+      props.push({ id: 'hamlet2Fire', kind: 'campfire', x: h2x, y: h2y, deco: true });
+      props.push({ id: 'hamlet2Bench', kind: 'bench', x: h2x + TILE * 0.6, y: h2y + TILE * 0.6, deco: true });
+      props.push({ id: 'hamlet2Lantern', kind: 'lantern', x: h2x - TILE * 1.3, y: h2y + TILE * 0.3, deco: true });
+      props.push({ id: 'hamlet2House', kind: 'hamlet2House', x: h2x + TILE * 0.2, y: h2y - TILE * 1.6, deco: true });
     }
 
     /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸 + PHASE 4 "Treasure") — 바위산·
@@ -537,7 +623,7 @@
         var gty = gcy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (!(gtx >= -m && gty >= -m && gtx < W + m && gty < H + m)) { continue; }
         if (gtx >= 0 && gty >= 0 && gtx < W && gty < H) { continue; }     // 마을 안은 기존 사물 몫
-        if (inHamlet(gtx, gty) || inCave(gtx, gty)) { continue; }
+        if (inHamlet(gtx, gty) || inHamlet2(gtx, gty) || inCave(gtx, gty)) { continue; }
         if (!GRASS_FAMILY[tileAt(gtx, gty)]) { continue; }
         var ggate = core.hash2(gcx * 271 + s.seed % 503, gcy * 337 + (s.seed >> 5) % 467);
         if (ggate > 0.55) { continue; }                                  // animal.js 와 같은 문턱 — 45%만
@@ -682,7 +768,7 @@
         var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (tx >= -m && ty >= -m && tx < W + m && ty < H + m &&
             !(tx >= 0 && ty >= 0 && tx < W && ty < H) &&
-            !inHamlet(tx, ty) && !inCave(tx, ty) && GRASS_FAMILY[tileAt(tx, ty)]) {
+            !inHamlet(tx, ty) && !inHamlet2(tx, ty) && !inCave(tx, ty) && GRASS_FAMILY[tileAt(tx, ty)]) {
           var hgate = core.hash2(cx * 211 + s.seed % 701, cy * 179 + (s.seed >> 4) % 659);
           if (hgate > 0.55) { continue; }              // 칸의 절반 넘게는 비워 둔다
           var biome = biomeAt(tx, ty);
@@ -714,7 +800,7 @@
         var tx = cx * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }
-        if (inHamlet(tx, ty) || inCave(tx, ty)) { continue; }
+        if (inHamlet(tx, ty) || inHamlet2(tx, ty) || inCave(tx, ty)) { continue; }
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }
         if (biomeAt(tx, ty) === biome) { return { tx: tx, ty: ty }; }
       }
@@ -1613,6 +1699,8 @@
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
+    hamlet2Spot: hamlet2Spot, inHamlet2: inHamlet2,
+    inBridge: inBridge, BRIDGE_TY: BRIDGE_TY,
     caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
     buildNpcs: buildNpcs, firstBiomeSpot: firstBiomeSpot,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,

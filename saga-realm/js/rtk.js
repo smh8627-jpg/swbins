@@ -130,7 +130,9 @@
       if (d.garrison) {
         c.troops = d.garrison;
         c.food = d.garrison * 2;
-        var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) || [];
+        var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) ||
+          (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) ||
+          (FD.JIAOZHOU_GARRISON && FD.JIAOZHOU_GARRISON[d.id]) || [];
         var gov = null;
         for (var j = 0; j < ids.length; j++) {
           var r = off.placeAt(ids[j], d.id, null);
@@ -299,7 +301,9 @@
       var c = st.cities[d.id];
       c.troops = d.garrison;
       c.food = d.garrison * 2;
-      var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) || [];
+      var ids = (FD.KOREA_GARRISON && FD.KOREA_GARRISON[d.id]) ||
+        (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) ||
+        (FD.JIAOZHOU_GARRISON && FD.JIAOZHOU_GARRISON[d.id]) || [];
       var gov = null;
       for (var j = 0; j < ids.length; j++) {
         var r = off.placeAt(ids[j], d.id, null);
@@ -537,6 +541,49 @@
     var c = city(cityId);
     if (!c) { return 0; }
     return Math.round(c.troops / 1000 * FOOD_PER_1000);
+  }
+
+  /* ── 시장 (2026-09-09, 경제 심화) ─────────────────────────
+   * 지금까지 상업(comm)이 하는 일은 "달마다 금이 는다" 하나뿐이었다 —
+   * 금과 군량은 완전히 남남이라, 금은 넘치는데 군량이 모자라도(혹은 그
+   * 반대여도) 손쓸 길이 없었다. 저자가 큰 성일수록 환율을 후하게 쳐줘서,
+   * 상업 투자의 값을 "수입" 하나에서 "아쉬울 때 자원을 맞바꿀 수 있다"로
+   * 넓힌다. war.transfer 처럼 **명령이 아니다** — officer.done 을 안 쓰는
+   * 물류라 그 달에 몇 번이든 쓸 수 있다.
+   */
+  function marketRate(cityId) {
+    var c = city(cityId);
+    return c ? core.clamp(0.35 + c.comm / 700, 0.35, 0.7) : 0.35;
+  }
+
+  /**
+   * 시장에서 금↔군량을 맞바꾼다.
+   * @param dir 'sell'(군량→금) | 'buy'(금→군량)
+   */
+  function trade(cityId, dir, amount) {
+    var c = city(cityId);
+    if (!c) { return { ok: false, why: '없는 성' }; }
+    if (!c.force) { return { ok: false, why: '주인 없는 성입니다' }; }
+    amount = Math.max(0, Math.round(amount || 0));
+    if (!amount) { return { ok: false, why: '수량을 입력하세요' }; }
+    var f = force(c.force);
+    if (!f) { return { ok: false, why: '없는 세력' }; }
+    var rate = marketRate(cityId);
+    if (dir === 'sell') {
+      if (amount > c.food) { return { ok: false, why: '군량이 모자랍니다' }; }
+      var gained = Math.round(amount * rate);
+      c.food -= amount; f.gold += gained;
+      core.emit('changed');
+      return { ok: true, dir: dir, food: -amount, gold: gained, rate: rate };
+    }
+    if (dir === 'buy') {
+      var cost = Math.round(amount / rate);
+      if (cost > f.gold) { return { ok: false, why: '금이 모자랍니다' }; }
+      f.gold -= cost; c.food += amount;
+      core.emit('changed');
+      return { ok: true, dir: dir, food: amount, gold: -cost, rate: rate };
+    }
+    return { ok: false, why: '알 수 없는 방향' };
   }
 
   function settleMonth() {
@@ -809,6 +856,7 @@
     readyAt: readyAt, capOf: capOf, order: order, tryHire: tryHire,
     setGov: setGov, govMul: govMul, reward: reward,
     goldOf: goldOf, foodOf: foodOf, eatOf: eatOf, secMul: secMul, harvestMul: harvestMul,
+    marketRate: marketRate, trade: trade,
     settleMonth: settleMonth, rollDisasters: rollDisasters, driftLoyalty: driftLoyalty,
     endMonth: endMonth, checkResult: checkResult,
     study: study, revealFree: revealFree,

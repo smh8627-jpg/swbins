@@ -242,6 +242,9 @@
     bush: 'bush', stump: 'stump', log: 'log', plant: 'plant',
     tent: 'tent', campfire: 'campfire', bench: 'bench', well: 'well', lantern: 'lantern',
     mountain: 'mountain',
+    /* 다리(2026-09-09) — asset3d.js 에 진작 등록만 되어 있던 'bridge' 를
+       처음 쓴다(village.js 의 새 BRIDGE_TY 크로싱) */
+    bridge: 'bridge',
     /* 짐승(PLAN 40절 PHASE 4 첫 칸) — village.js 의 raw().animals 도 이 표를
        그대로 타고 선다(아래 syncScatter() 가 props 배열에 이어 붙인다).
        토끼·다람쥐·오리·새(2026-09-09, PLAN 16절)는 data-village.js 의
@@ -254,19 +257,40 @@
        하나뿐인 고정 건물이라 나무처럼 변종을 섞지 않는다 */
     shop: 'building:shop', board: 'building:board', home: 'building:home',
     mail: 'building:mail', tailor: 'building:tailor', pole: 'building:pole',
-    museum: 'building:museum'
+    museum: 'building:museum',
+    /* 캠프 오두막(2026-09-09) — village.js buildProps() 의 hamletHouse kind 를
+       그대로 타고 선다. 마을 건물과 같은 결(변종 없음, 자리 하나뿐).
+       hamletHut(House_1)·hamletShed(House_3)는 같은 날 이어 얹은 두 번째·세
+       번째 채 — kind 가 다르므로 역시 자리 하나뿐 규칙을 그대로 지킨다 */
+    hamletHouse: 'building:hamletHouse', hamletHut: 'building:hamletHut',
+    hamletShed: 'building:hamletShed',
+    /* 두 번째 캠프(2026-09-09) — village.js buildProps() 의 hamlet2House kind.
+       House_4, 첫 캠프의 세 채와 같은 결 */
+    hamlet2House: 'building:hamlet2House'
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
     tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4,
     deadTree: 3.0, mossyRock: 0.9, mushroom: 0.5, herb: 0.5, bush: 0.8, stump: 0.6, log: 0.5, plant: 0.6,
     tent: 1.8, campfire: 0.5, bench: 0.5, well: 1.0, lantern: 1.6, mountain: 8.0,
+    /* 다리(2026-09-09) — 정규화라 원본 비례는 모른다. 난간 높이쯤(well·lantern
+       사이) 눈대중으로 잡았다 */
+    bridge: 1.4,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
     /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
        비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
-    shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4
+    shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4,
+    /* House_2·House_1·House_3(Quaternius) — 마을 건물(house_wooden 등,
+       3.0~3.4m)보다 한 단 작게 잡아 "캠프의 소박한 오두막" 느낌을 준다.
+       셋 다 정규화로 키 1 에서 시작하므로(build() 가 늘 그렇게 눕힌다) 실제
+       원본 비례는 모른다 — 나란히 서도 다 같은 키로 안 보이게 일부러 조금씩
+       다르게 잡았을 뿐이다 */
+    hamletHouse: 2.4, hamletHut: 2.1, hamletShed: 2.3,
+    /* House_4(Quaternius) — 두 번째 캠프의 유일한 채. 첫 캠프 셋과 같은
+       눈대중 범위(2.1~2.4m) 안에서 살짝 다르게 잡았다 */
+    hamlet2House: 2.2
   };
 
   /**

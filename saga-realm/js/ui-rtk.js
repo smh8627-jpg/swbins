@@ -239,6 +239,9 @@
     } else if (a === 'plot') {
       var pr = global.DG.diplo.plot(g('data-kind'), g('data-by'), openCityId, null);
       toast(pr.ok ? pr.text : pr.why);
+    } else if (a === 'trade') {
+      doTrade(openCityId, g('data-dir'));
+      return;
     } else if (a === 'envoy') {
       var er = global.DG.diplo.envoy(g('data-kind'), g('data-to'), g('data-by'),
         g('data-kind') === 'tribute' ? 600 : 200);
@@ -314,6 +317,39 @@
     for (var i = 0; i < lead.length; i++) { off().rec(lead[i]).done = true; }
     toast('🚩 원정을 떠났습니다 (' + res.months + '달 예상)');
     renderTop(); renderMap(); renderSheet(); syncDock();
+  }
+
+  /** 시장 — 명령이 아니라 물류라 askNumber 로 바로 받는다(장수를 안 고른다) */
+  function doTrade(cityId, dir) {
+    var c = R().city(cityId), rate = R().marketRate(cityId);
+    if (dir === 'sell') {
+      if (c.food < 1) { toast('팔 군량이 없습니다'); return; }
+      askNumber({
+        title: '💰 ' + CD.find(cityId).name + ' — 군량을 판다',
+        hint: '군량 🍚 ' + core.fmt(c.food) + ' 중 얼마나 팔까요? (환율 🪙' + rate.toFixed(2) + ')',
+        max: c.food, value: Math.floor(c.food * 0.3), ok: '💰 판다',
+        done: function (n) {
+          var r = R().trade(cityId, 'sell', n);
+          toast(r.ok ? '💰 군량 ' + core.fmt(-r.food) + ' → 금 ' + core.fmt(r.gold) : r.why);
+          core.persist(); renderTop(); renderSheet();
+        }
+      });
+    } else {
+      var f = R().force(c.force);
+      if (!f || f.gold < Math.round(1 / rate)) { toast('살 만한 금이 없습니다'); return; }
+      var maxBuy = Math.floor(f.gold * rate);
+      askNumber({
+        title: '🌾 ' + CD.find(cityId).name + ' — 군량을 산다',
+        hint: '금 🪙 ' + core.fmt(f.gold) + ' 로 최대 🍚 ' + core.fmt(maxBuy) +
+          ' 까지 살 수 있습니다 (환율 🪙' + rate.toFixed(2) + ')',
+        max: maxBuy, value: Math.floor(maxBuy * 0.3), ok: '🌾 산다',
+        done: function (n) {
+          var r = R().trade(cityId, 'buy', n);
+          toast(r.ok ? '🌾 금 ' + core.fmt(-r.gold) + ' → 군량 ' + core.fmt(r.food) : r.why);
+          core.persist(); renderTop(); renderSheet();
+        }
+      });
+    }
   }
 
   /** 개입형 실시간 전투 — 합마다 끊어 명령(돌격·수비·정공법·퇴각)을 받는다.
@@ -490,10 +526,11 @@
     if (!st.started) { els.realm.innerHTML = ''; return; }
     var i, j, s = '';
 
-    /* viewBox 를 100→125 로 넓혔다(2026-09-03, 한국 지역 확장) — 그 동쪽에
-       둔 새 성 7개(x:97~118)가 안 잘리게. x/y 값 자체는 CD.CITIES 데이터가
-       그대로 쥐고 있어 여기 말고 고칠 곳이 없다 */
-    s += '<svg class="rmap" viewBox="0 0 125 100" preserveAspectRatio="xMidYMid meet">';
+    /* viewBox 를 100→125→165(폭)·100→120(높이) 로 넓혔다(2026-09-03 한국,
+       2026-09-09 일본·교주 지역 확장) — 동쪽·남동쪽·남쪽에 둔 새 성이 안
+       잘리게. x/y 값 자체는 CD.CITIES 데이터가 그대로 쥐고 있어 여기 말고
+       고칠 곳이 없다 */
+    s += '<svg class="rmap" viewBox="0 0 165 120" preserveAspectRatio="xMidYMid meet">';
 
     /* 길 — 인접한 성끼리. 같은 편이면 밝게 */
     var drawn = {};
@@ -690,6 +727,15 @@
         '" data-act="set-gov" data-id="' + here[i].id + '">' + esc(here[i].name) + '</button>';
     }
     html += '</div></div></div>';
+
+    /* 시장 — 금↔군량 환전(명령이 아니다, 몇 번이든 쓸 수 있다) */
+    var rate = R().marketRate(openCityId);
+    html += '<div class="sec"><h4>시장 <span class="muted">환율 🍚1 = 🪙' + rate.toFixed(2) +
+      ' (상업이 클수록 후해진다)</span></h4><div class="card">' +
+      '<div class="bagtools">' +
+      '<button class="btn tiny" data-act="trade" data-dir="sell">💰 군량을 판다</button>' +
+      '<button class="btn tiny" data-act="trade" data-dir="buy">🌾 군량을 산다</button>' +
+      '</div></div></div>';
 
     /* 명령 */
     html += '<div class="sec"><h4>명령 <span class="muted">이 달에 쓸 수 있는 장수 ' +
