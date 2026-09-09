@@ -211,6 +211,14 @@
     if (dirLight) { dirLight.castShadow = pr.shadow; }
   }
 
+  /* 후처리(PLAN 24절, `post3d.js`)는 `global.DG.perf.tier().key`(대문자
+     HIGH/MEDIUM/LOW)로 등급을 묻는다 — saga-dungeon 은 실제 `perf.js`가 있지만
+     이 판은 그래픽 품질을 `effectiveLevel()`(소문자) 하나로 이미 정하고 있으니
+     새 시스템을 만들지 않고 다리만 놓는다(dungeon3d.js 가 쓴 것과 같은 패턴) */
+  if (!global.DG.perf) {
+    global.DG.perf = { tier: function () { return { key: effectiveLevel().toUpperCase() }; } };
+  }
+
   function init(canvas) {
     var Tc = three();
     if (!Tc || !canvas) { ready = false; return false; }
@@ -253,6 +261,10 @@
     actorGroup = new Tc.Group();          // 사람·몹(사냥터가 바뀌어도 그대로 둔다)
     scene.add(actorGroup);
 
+    /* 후처리(PLAN 24절, saga-dungeon 에서 이식) — 렌더러를 만든 직후, 여기서
+       한 번만 켠다(post3d.js 가 톤매핑을 여기서 걸고 다시 안 만진다) */
+    if (global.DG.post3d) { global.DG.post3d.init(Tc, renderer); }
+
     ready = true;
     resize();
     return true;
@@ -272,6 +284,7 @@
     renderer.setSize(W, H, true);
     camera.aspect = W / H;
     camera.updateProjectionMatrix();
+    if (global.DG.post3d) { global.DG.post3d.resize(); }
   }
 
   /** Z=0 평면에서 화면 세로 H(px) 이 정확히 보이도록 거리(D)를 역산한다 */
@@ -289,6 +302,17 @@
        마을이 유독 어둡거나 밝아 보이지 않게 한다 */
     if (town) { return { sky: 0xe8b878, amb: 0.85, dir: 1.0, dirCol: 0xffdca0, fog: 2200 }; }
     return { sky: 0x79c3e8, amb: 0.85, dir: 1.05, dirCol: 0xfff6d8, fog: 2400 };            // field
+  }
+
+  /** 후처리(PLAN 24절)의 `post3d.lookAt(alt, weather)`가 바라는 "해 고도"를
+   *  이 판의 무드로 지어낸다 — 이 판에는 해도 날씨도 없다. cave 는 어두운
+   *  무드라 밤처럼(블룸이 세지고 살짝 식는다), fire 는 노을 결(gold)이 가장
+   *  강한 지점(alt=0.10)에 둬 불타는 골짜기의 따뜻한 빛을 살린다, 나머지
+   *  (forest·field·town, moodLight 가 이미 따로 데운다)는 맑은 대낮으로 둔다 */
+  function postAlt(mood) {
+    if (mood === 'cave') { return -0.6; }
+    if (mood === 'fire') { return 0.10; }
+    return 0.9;
   }
 
   /** 지형지물 — 아직 GLB 를 못 받는 자리라 도형으로 세운다(다른 판이 GLB 로 가기 전에
@@ -812,6 +836,13 @@
       cr.rotation.y = vx >= 0 ? Math.PI / 2 : -Math.PI / 2;
     }
 
+    /* 후처리(PLAN 24절)를 거치거나(켜져 있을 때), 없으면 곧바로 그린다.
+       두 길 다 톤매핑은 한 번 걸린다(post3d.js 머리 참고) */
+    var P3 = global.DG.post3d;
+    if (P3 && P3.draw(renderer, scene, camera, { alt: postAlt(stg.mood), weather: 'clear' })) {
+      return;
+    }
+    if (P3) { renderer.setRenderTarget(null); }   // 후처리가 방금 꺼졌을 수 있다 — 타깃이 물린 채면 화면이 검게 남는다
     renderer.render(scene, camera);
   }
 
