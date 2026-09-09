@@ -25,6 +25,7 @@
   var core = global.DG.core;
   var CD = global.DG.cityData;
   var FD = global.DG.forceData;
+  var ID = global.DG.item;
 
   var SHIP_CREW = 100;          // 배 한 척에 타는 병사
 
@@ -1053,20 +1054,32 @@
     { key: 'village',  name: '마을의 환대', emoji: '🏘️', moraleDelta: 0.05, good: true,
       text: '마을 사람들이 술과 밥을 내어 사기가 올랐다.' },
     { key: 'lost',     name: '길 잃음',   emoji: '🌫️', delayMonths: 1,
-      text: '안개 속에서 길을 잃어 하루를 더 걷는다.' }
+      text: '안개 속에서 길을 잃어 하루를 더 걷는다.' },
+    /* 2026-09-09 — 원작 코에이 삼국지의 "보물" 을 원정 사건에 얹었다
+       (data-item.js). 장비창은 없다 — 원정 간 장수 중 하나가 곧바로 씌운다 */
+    { key: 'relic',    name: '유물 발견', emoji: '🏺', grantItem: true, good: true,
+      text: '옛 무덤에서 나온 물건을 장수 하나가 챙겼다.' }
   ];
 
   /** 원정 하나가 이번 달 사건을 만나는가 — `rollDisasters()` 와 같은 확률 손잡이 결 */
   function rollJourneyEvent(j) {
     if (Math.random() > core.tuned('war.journeyEventChance', 0.16)) { return null; }
     var e = JOURNEY_EVENTS[Math.floor(Math.random() * JOURNEY_EVENTS.length)];
-    var R = global.DG.rtk, f = R.force(j.force);
+    var R = global.DG.rtk, off = global.DG.off, f = R.force(j.force);
+    var text = e.text;
     if (e.troopsMul) { j.troops = Math.max(1, Math.round(j.troops * e.troopsMul)); }
     if (e.goldDelta && f) { f.gold = Math.max(0, f.gold + e.goldDelta); }
     if (e.moraleDelta) { j.morale = Math.max(0.5, Math.min(1.5, (j.morale || 1) + e.moraleDelta)); }
     if (e.delayMonths) { j.monthsTotal += e.delayMonths; }
-    j.lastEvent = { key: e.key, emoji: e.emoji, text: e.text, good: !!e.good };
-    core.log(e.emoji + ' ' + R.forceName(j.force) + ' 원정군 — ' + e.text, e.good ? 'good' : 'warn');
+    if (e.grantItem && ID && off && j.officers.length) {
+      var oid = j.officers[Math.floor(Math.random() * j.officers.length)];
+      var it = ID.randomItem();
+      off.equip(oid, it.id);
+      var h = off.find(oid);
+      text += ' (' + it.emoji + it.name + ' → ' + (h ? h.name : oid) + ')';
+    }
+    j.lastEvent = { key: e.key, emoji: e.emoji, text: text, good: !!e.good };
+    core.log(e.emoji + ' ' + R.forceName(j.force) + ' 원정군 — ' + text, e.good ? 'good' : 'warn');
     core.emit('rtk:journeyEvent', { id: j.id, force: j.force, key: e.key });
     return e;
   }

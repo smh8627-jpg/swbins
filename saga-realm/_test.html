@@ -65,6 +65,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/data.js"></script>
 <script src="js/data-city.js"></script>
 <script src="js/data-force.js"></script>
+<script src="js/data-item.js"></script>
 <script src="js/data-quiz.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
@@ -913,10 +914,36 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     /* ── 원정 중 사건 (2026-09-09, PLAN §16 랜덤 이벤트) ────── */
 
-    t('원정 사건 표 — 다섯 종, 저마다 이름·문구가 있다', function () {
+    t('원정 사건 표 — 여섯 종, 저마다 이름·문구가 있다', function () {
       var es = W.JOURNEY_EVENTS;
-      var ok = es.length === 5 && es.every(function (e) { return e.key && e.name && e.emoji && e.text; });
+      var ok = es.length === 6 && es.every(function (e) { return e.key && e.name && e.emoji && e.text; });
       return ok && ('사건 ' + es.length + '종 — ' + es.map(function (e) { return e.emoji + e.name; }).join(' '));
+    });
+
+    t('원정 사건 — "유물 발견" 은 원정 간 장수 하나에게 보물을 곧바로 씌우고, hero.js 장비 계약(global.DG.item.statBonus)을 타고 스탯이 실제로 오른다', function () {
+      fresh('zan');
+      var before = C.tuned('war.journeyEventChance', 0.16);
+      C.setTune('war.journeyEventChance', 1);
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var baseline = {};
+      lead.forEach(function (id) { baseline[id] = off.stats(id); });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { C.setTune('war.journeyEventChance', before); return false; }
+      var guard = 0, j, got = null;
+      while ((j = W.journeyById(res.id)) && guard < 30 && !got) {
+        guard++;
+        W.resolveJourneys();
+        var equipped = lead.filter(function (id) { return off.rec(id).item; });
+        if (equipped.length) { got = equipped[0]; }
+      }
+      C.setTune('war.journeyEventChance', before);
+      var s = got ? off.stats(got) : null;
+      var b = got ? baseline[got] : null;
+      return !!got && !!s && !!b &&
+        (s.might > b.might || s.wisdom > b.wisdom || s.command > b.command) &&
+        ('장수 ' + off.find(got).name + ' 이(가) 보물 착용 — 무 ' + b.might + '→' + s.might +
+         ' · 지 ' + b.wisdom + '→' + s.wisdom + ' · 통 ' + b.command + '→' + s.command);
     });
 
     t('원정 도중 사건 — 손잡이를 100%로 잡으면 가는 달마다 실제로 붙고, 도착 전투 판정은 그대로다', function () {

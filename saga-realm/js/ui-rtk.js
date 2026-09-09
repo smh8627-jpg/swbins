@@ -17,6 +17,7 @@
   var core = global.DG.core;
   var CD = global.DG.cityData;
   var FD = global.DG.forceData;
+  var ID = global.DG.item;
 
   var els = {};
   var openTab = null;
@@ -1032,6 +1033,16 @@
     return html;
   }
 
+  /** 지니고 있는 보물 한 줄 — 없으면 빈 문자열(2026-09-09, data-item.js) */
+  function itemBadge(itemId) {
+    if (!itemId || !ID) { return ''; }
+    var it = ID.itemById(itemId);
+    if (!it) { return ''; }
+    return '<div class="stat-row"><span class="muted">보물</span><b>' + it.emoji + ' ' +
+      esc(it.name) + ' <span class="muted">(' + (off().STAT_KOR[it.stat] || it.stat) +
+      ' +' + it.bonus + ')</span></b></div>';
+  }
+
   /** 무장 한 장 — 능력치 · 충성 · 열전. 도감 상세를 여기로 옮겼다 */
   function officerCard(h, cityId) {
     var s = off().stats(h.id);
@@ -1055,6 +1066,7 @@
           '<span>통 <b>' + s.command + '</b></span>' +
           '<span class="muted">Lv.' + g.lv + '</span></div>' +
         '</div></div>' +
+      (itemBadge(r.item)) +
       '<div class="rstat"><span>충성</span><div class="bar sm' +
         (r.loyal < 25 ? ' bad' : '') + '"><i style="width:' + r.loyal + '%"></i></div>' +
         '<b>' + r.loyal + '</b></div>' +

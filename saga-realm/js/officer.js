@@ -91,15 +91,23 @@
    *   journey  **원정 가는 중인가** — 여러 달에 걸쳐 먼 성으로 실시간 이동하는
    *          중인 원정 id (null 이면 성에 있다. 2026-09-04, UI 문구는 "원정 중"
    *          — camp 와 이름이 헷갈리지 않게 필드부터 갈랐다)
+   *   item   **지니고 있는 보물 id**(2026-09-09, data-item.js) — 한 번에 하나만
+   *          지닌다(장비창 없음, v1). null 이면 맨몸.
    */
   function rec(id) {
     var m = global.DG.rtk.state().officers;
     if (!m[id]) {
       m[id] = { force: null, city: null, loyal: 50, done: false, hurt: 0, feats: 0,
-        camp: null, journey: null };
+        camp: null, journey: null, item: null };
     }
     return m[id];
   }
+
+  /** 보물을 씌운다(이미 있으면 갈아 낀다) — 장비창이 없어 하나만 지닌다 */
+  function equip(id, itemId) { rec(id).item = itemId; return rec(id); }
+
+  /** 보물을 벗긴다 */
+  function unequip(id) { rec(id).item = null; }
 
   function has(id) {
     var m = global.DG.rtk.state().officers;
@@ -174,7 +182,14 @@
 
   /* ── 능력치 ───────────────────────────────────────────── */
 
-  /** 최종 능력치 — hero.js 한 곳만 쓴다(화면과 판정이 갈라지지 않게) */
+  /**
+   * 최종 능력치 — hero.js 한 곳만 쓴다(화면과 판정이 갈라지지 않게).
+   * **보물 보정은 여기서 얹지 않는다** — hero.js(다섯 판 공유 파일)가 이미
+   * `global.DG.item.statBonus(id)` 라는 전용 자리를 갖고 있다(장비 % · flat
+   * 층, `gearOf()`). `data-item.js`가 그 자리에 이 판의 "보물"을 꽂았다 —
+   * 계산이 두 곳으로 갈라지면 화면과 판정이 어긋난다는 hero.js 머리말 경고를
+   * 그대로 따른 것.
+   */
   function stats(id) { return global.DG.hero.stats(id); }
 
   function power(id) {
@@ -333,7 +348,7 @@
     mergeRoster: mergeRoster, all: all, find: find, isThree: isThree,
     rec: rec, has: has, placeAt: placeAt,
     atCity: atCity, freeAt: freeAt, ofForce: ofForce, sortByPower: sortByPower,
-    stats: stats, power: power, skill: skill,
+    stats: stats, power: power, skill: skill, equip: equip, unequip: unequip,
     loyalOf: loyalOf, addLoyal: addLoyal, baseLoyal: baseLoyal
   };
 })(window);
