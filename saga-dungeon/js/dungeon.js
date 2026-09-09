@@ -600,6 +600,7 @@
       loot: { gold: 0, items: [] },
       fieldSpawnCd: 4,                    // 들판 로머 보충 주기(초) — PLAN 10절 "필드 사냥"
       fieldTreasureCd: 90,                 // 필드 보물 조우 재확인 주기(초) — PLAN §60 후보 1
+      fieldMerchantCd: 60,                 // 필드 방랑 상인 재확인 주기(초) — PLAN §60 후보 1 나머지 절반
       kills: 0, startedAt: Date.now(), dead: false
     };
     run.hpMax = hpMaxOf();
@@ -1481,6 +1482,51 @@
     core.emit('toast', '💰 보물을 지키는 정예!');
   }
 
+  /* 2026-09-10 — PLAN §60 "디아블로4식 자유도" 후보 1 나머지 절반 "방랑 상인".
+     던전 방 전용이던 행상 POI(위 rollMerchantStock·room.merchant)를 그대로
+     빌려 쓴다 — 새 재고 규칙을 만들지 않고, "방 안에 박힌 좌판"이 아니라
+     "들판을 걷다 마주치는 사람"으로만 자리를 바꾼다. `room.npcs`(town.js의
+     그 배열, dungeon3d.js가 이미 'npc' 배우로 그려 준다)에 하나 얹으면
+     그림도 공짜로 딸려 온다. **이번엔 던전 필드에만 붙인다** — 마을 필드는
+     `run.merchantChoice`가 dungeon.js 클로저 변수라 town.js의 병렬 상태
+     모델과 안 맞아(고르는 창이 dungeon-view.js 것을 그대로 쓰지만, town이
+     읽는 `run`은 withRun 동안만 잠깐 그 판이라 되돌아가면 없어진다) 이번
+     세션은 손대지 않았다. 다음에 마을까지 넓히려면 town.js 쪽에 별도
+     상태(그 판의 ctx에 직접)를 둬야 한다. */
+  var FIELD_MERCHANT_CHANCE = 0.4;   // 쿨다운이 다 찼을 때 실제로 뜰 확률
+  function hasActiveFieldMerchant() {
+    var ns = run && run.room.npcs, i;
+    if (!ns) { return false; }
+    for (i = 0; i < ns.length; i++) { if (ns[i].fieldMerchant && !ns[i].used) { return true; } }
+    return false;
+  }
+  function spawnFieldMerchant() {
+    if (!fieldOn() || global.DG_NO_DRAW) { return; }
+    if (!run) { return; }
+    if (hasActiveFieldMerchant()) { return; }
+    if (Math.random() >= FIELD_MERCHANT_CHANCE) { return; }
+    var cx0 = ROOM_W * 0.5, cy0 = ROOM_H * 0.5;
+    var R = fieldRadiusUnits(), tries = 8, x = 0, y = 0, ok = false, a0, d0;
+    while (tries-- && !ok) {
+      a0 = Math.random() * Math.PI * 2;
+      d0 = (WALL + 60) + Math.random() * Math.max(40, R - WALL - 60);
+      x = cx0 + Math.cos(a0) * d0;
+      y = cy0 + Math.sin(a0) * d0;
+      if (inRoomRect(x, y) || fieldBlockedAt(x, y)) { continue; }
+      ok = true;
+    }
+    if (!ok) { return; }
+    var room = run.room;
+    if (!room.npcs) { room.npcs = []; }
+    room.npcs.push({
+      key: 'fieldmerchant', name: '방물장수(方物匠手)', emoji: '🧺', color: '#6f5a8a',
+      x: x, y: y, phase: 0, facing: 1,
+      fieldMerchant: true, used: false
+    });
+    core.log('🧺 들판에서 방물장수를 만났다', 'good');
+    core.emit('toast', '🧺 지나가던 방물장수!');
+  }
+
   /**
    * 살아 있는 들판 로머 수
    * @param ctx spawnFieldEncounters 와 같은 뜻
@@ -1730,6 +1776,11 @@
     if (run.fieldTreasureCd <= 0) {
       run.fieldTreasureCd = 90;
       spawnFieldTreasure();
+    }
+    run.fieldMerchantCd -= dt;
+    if (run.fieldMerchantCd <= 0) {
+      run.fieldMerchantCd = 60;
+      spawnFieldMerchant();
     }
 
     /* 돌진 — 조작을 무시하고 정해진 방향으로 밀고 나간다 */
@@ -2036,6 +2087,21 @@
       run.merchantChoice = rollMerchantStock(run.floor);
       sfx('shrine');
       core.emit('toast', '🧺 행상 · 살 것을 고르세요');
+    }
+    /* 방랑 상인(들판) — room.cleared 를 안 본다. 방을 치우고 말고와 상관없이
+       들판에서 그냥 마주치는 사람이다(spawnFieldMerchant) */
+    if (room.npcs) {
+      for (var fmI = 0; fmI < room.npcs.length; fmI++) {
+        var fm = room.npcs[fmI];
+        if (fm.fieldMerchant && !fm.used && dist(p, fm) < P_R + 20) {
+          fm.used = true;
+          run.merchantChoice = rollMerchantStock(run.floor);
+          sfx('shrine');
+          core.emit('toast', '🧺 방물장수 · 살 것을 고르세요');
+          room.npcs.splice(fmI, 1);
+          break;
+        }
+      }
     }
     if (room.puzzle && !room.puzzle.solved) {
       var pz = room.puzzle;
@@ -2818,6 +2884,7 @@
     _corridorExtra: corridorExtra, _doorCorridorUnits: doorCorridorUnits,
     spawnFieldRoamers: spawnFieldEncounters,
     spawnFieldTreasure: spawnFieldTreasure,
+    spawnFieldMerchant: spawnFieldMerchant,
     fieldRoamerCount: fieldEnemyCount,
     stepFieldCombat: stepFieldCombat,
     pickupField: pickupField,
