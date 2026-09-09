@@ -332,6 +332,7 @@
     drawBossBar();
     drawMiniMap(run);
     drawOuch();
+    drawBossIntro();
     drawFadeOverlay();
   }
 
@@ -372,6 +373,36 @@
     if (a <= 0.02) { return; }
     ctx.fillStyle = 'rgba(6,7,10,' + a + ')';
     ctx.fillRect(0, 0, W, H);
+  }
+
+  /** 보스 등장 배너(PLAN 35절) — 사냥터에 들어설 때 안쪽을 지키는 보스가 있으면
+   *  잠깐 이름을 크게 띄운다. 들고 나는 것도 **여기서만** 정한다(side.js 는
+   *  'bossintro' fx 한 줄과 이름만 남긴다) — fade in 0.3s → 머묾 → fade out 0.3s */
+  function drawBossIntro() {
+    var list = S.fx(), best = null, i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].t === 'bossintro' && (!best || list[i].life > best.life)) { best = list[i]; }
+    }
+    if (!best) { return; }
+    var dur = 1.8, edge = 0.3;
+    var a = Math.min(1, (dur - best.life) / edge, best.life / edge);
+    if (a <= 0.02) { return; }
+    var y = H * 0.34, bandH = 64;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(10,8,12,0.62)';
+    ctx.fillRect(0, y - bandH / 2, W, bandH);
+    ctx.fillStyle = 'rgba(224,80,31,0.9)';
+    ctx.fillRect(0, y - bandH / 2, W, 2);
+    ctx.fillRect(0, y + bandH / 2 - 2, W, 2);
+    ctx.textAlign = 'center';
+    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(240,226,200,0.95)';
+    ctx.fillText('👺 보스 등장', W / 2, y - 8);
+    ctx.font = '800 22px system-ui, sans-serif';
+    ctx.fillStyle = '#f0e2c8';
+    ctx.fillText(best.name, W / 2, y + 18);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
   }
 
   /**

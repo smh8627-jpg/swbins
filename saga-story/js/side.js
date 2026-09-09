@@ -134,6 +134,7 @@
   var GATHER_R = 50;          // 캐는 데 필요한 거리 — 자동으로, 지나가기만 하면 된다
   var GATHER_RESPAWN = 45;    // 다시 돋기까지(초)
   var FADE_DUR = 0.4;         // 사냥터를 넘나들 때(PLAN 16절 "화면 전환") 검게 번쩍 잦아드는 시간
+  var BOSS_INTRO_DUR = 1.8;   // 보스 등장 배너(PLAN 35절)가 뜬 채 머무는 시간
 
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
@@ -438,6 +439,7 @@
     };
     run.enemies.push(e);
     run.boss = e;
+    fx.push({ t: 'bossintro', name: ref.name, life: BOSS_INTRO_DUR });   // 등장 연출(PLAN 35절)
     sfx('boss');
     return e;
   }
