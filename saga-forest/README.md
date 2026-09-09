@@ -301,9 +301,39 @@ CDP) 확인 전** — 이번엔 CDP 스크린샷도 시도했으나 `_demo.html`
 잡았던 것과 같은 함정, 여기선 아직 우회 스크립트를 안 만들어 뒀다). 다음
 세션은 밤 조명·비/눈/반딧불이 손맛부터 물어볼 것.
 
-다음은 PHASE 5 나머지(2D 는 대부분 있으니 3D 쪽만 남은 게 있는지 재확인)
-아니면 **PHASE 6**(Portrait·Landscape·Safe Area·Touch — 이쪽도 상당수
-이미 있다) 중 실기기로 뭐가 비었는지 확인한 뒤 고를 것.
+**2026-09-09 이어서 — PHASE 5 나머지 + PHASE 6.** PHASE 5는 날씨가 하늘·
+조명에도 먹게 마저 채우고, PHASE 6는 **살펴보니 대부분 2D 쪽(터치 조작·
+safe area)에 이미 있었다** — 3D 화면(`village-view3d.js`) 쪽에만 비어
+있던 둘(orientationchange·모바일 품질 프리셋)만 채웠다.
+
+- **PHASE 5 나머지**: 날씨(맑음/흐림/비/눈)가 시간대와 **곱해져** 하늘을
+  더 어둡히고(`skyDark()`), 안개 거리도 좁힌다(`weatherFog()` — 비 오는
+  날이 제일 짙다). 전엔 낮에 비가 와도 조명이 그대로였다.
+- **PHASE 6 확인 결과**: 가상 조이스틱·PC 방향버튼([[saga-mobile-joystick-pad-keymap-2026-09-09]]
+  참고, 이미 있음)·카메라 터치 드래그·핀치 줌(`bindCamControl`, PHASE 2부터
+  있었음)·safe-area CSS(`--safe-b`/`--safe-t`, 하단 조작판·미니맵 전부 이미
+  적용)는 **전부 이미 있었다** — 새로 만들지 않았다.
+- **PHASE 6 실제로 채운 것 둘**: (1) `orientationchange` 리스너 추가(구형
+  iOS Safari는 `resize`가 늦거나 안 올 때가 있다 — PLAN 25절). (2) **모바일
+  품질 프리셋**(PLAN 38절) — 켤 때 한 번 기기를 보고(코어 수·메모리·화면
+  픽셀·터치 여부, 사가블로 `dungeon3d.js`의 `deviceScore`와 같은 요령이되
+  그 판의 **프레임 실측 왕복 장치는 옮기지 않았다** — 이 판은 그런 성능
+  제보가 아직 없어 과한 장치라 판단) low/medium/high 등급을 고르고,
+  렌더 반경(`RENDER_R`)·타일 반경(`GROUND_TILE_R`)·픽셀비·그림자를 한
+  표(`QUALITY_PRESET`)로 함께 정한다. 손으로 `village3d.quality`를
+  고정하거나 개별 손잡이(`village3d.renderR` 등)를 직접 주면 여전히 그
+  값이 이긴다(`tuned()`가 손잡이를 먼저 본다).
+
+자가진단에 순수 함수 6개(`skyDark`·`weatherFog`·`qualityPreset`·
+`deviceScore`·`tierFor` 관련) 추가, 215 → **219**(세 번 동일). `sw.js` →
+`village-v0.32.0`. **실기기 확인 전** — 특히 품질 등급이 저사양 폰에서
+실제로 낮게 잡히는지, 그림자가 medium 이하에서 꺼진 게 체감상 자연스러운지
+다음 세션에서 손맛부터 물어볼 것.
+
+PLAN 40절 PHASE 5·6이 여기서 실질적으로 끝났다(2D 자산 재사용이 많아
+남은 항목이 적었다). 다음은 **PHASE 7**(LOD·Instancing·Object Pool·Asset
+Cache·Mobile FPS optimization — Terrain/Scatter는 PHASE 2~3에서 이미
+InstancedMesh·거리 기반 컬링을 갖췄으니 남은 게 뭔지부터 확인) 순.
 
 ## 네 게임 중 하나
 

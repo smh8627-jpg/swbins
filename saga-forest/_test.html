@@ -348,6 +348,47 @@ window.DG_NO_TUNE = true;
         '경과 1·speed2 만큼 줄어듦 · 음수는 height 로 감김';
     });
 
+    t('village-view3d — skyDark 는 시간대·날씨를 곱한다 — 맑은 날은 시간대 값 그대로, 비 오면 더 어둡다', function () {
+      var VV3 = DG.villageView3d;
+      var dayClear = VV3.skyDark('day', 'clear');
+      var dayRain = VV3.skyDark('day', 'rain');
+      var nightClear = VV3.skyDark('night', 'clear');
+      var L = VV3.phaseLight();
+      return dayClear === L.dark.day && dayRain < dayClear && nightClear === L.dark.night &&
+        '맑은 낮=시간대 값 그대로 · 비 오는 낮은 더 어두움';
+    });
+
+    t('village-view3d — weatherFog 는 clear 가 기준(1)이고 rain 이 가장 짙다(near/far 가 가장 좁아짐)', function () {
+      var VV3 = DG.villageView3d;
+      var clear = VV3.weatherFog('clear'), cloud = VV3.weatherFog('cloud'), rain = VV3.weatherFog('rain'), snow = VV3.weatherFog('snow');
+      return clear === 1 && rain < cloud && cloud < clear && rain < snow &&
+        'clear=1 · cloud<clear · rain 이 제일 짙음(가장 작은 배수)';
+    });
+
+    /* ── PLAN 40절 PHASE 6: Mobile 품질 프리셋 (3D) ──────────────
+     * PLAN 38절 "기기 성능을 감지해서 기본값을 자동 설정한다" — 프레임
+     * 실측 왕복(사가블로 dungeon3d.js)까지는 안 만들고, 켤 때 한 번
+     * 기기를 보는 정도만. scene 없이도 순수 함수로 확인된다.
+     */
+
+    t('village-view3d — 품질 등급표(low/medium/high)는 렌더반경·타일반경·픽셀비가 순서대로 커지고, 그림자는 high 만 켠다', function () {
+      var VV3 = DG.villageView3d;
+      var P = VV3.qualityPreset();
+      var order = P.low.renderR < P.medium.renderR && P.medium.renderR < P.high.renderR &&
+        P.low.groundTileR < P.medium.groundTileR && P.medium.groundTileR < P.high.groundTileR &&
+        P.low.dpr <= P.medium.dpr && P.medium.dpr <= P.high.dpr;
+      return order && !P.low.shadow && !P.medium.shadow && P.high.shadow &&
+        'low<medium<high 순서 · 그림자는 high 뿐';
+    });
+
+    t('village-view3d — deviceScore·tierFor: 고성능(코어8·메모리8·저해상도·비터치)은 high, 저성능(코어0·메모리0·고해상도·터치)은 low', function () {
+      var VV3 = DG.villageView3d;
+      var strong = VV3.deviceScore({ cores: 8, mem: 8, w: 800, h: 600, dpr: 1, touch: false });
+      var weak = VV3.deviceScore({ cores: 0, mem: 0, w: 1600, h: 900, dpr: 3, touch: true });
+      return VV3.tierFor(strong) === 'high' && VV3.tierFor(weak) === 'low' && strong > weak &&
+        '강한 기기 점수 ' + strong + '(→high) · 약한 기기 점수 ' + weak + '(→low)';
+    });
+
     /* ── 마을 ─────────────────────────────────────────── */
 
     t('마을이 만들어졌다 — 땅·사물·주민', function () {

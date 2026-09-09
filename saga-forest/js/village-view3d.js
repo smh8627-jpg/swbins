@@ -68,16 +68,63 @@
 
   /** 마을 좌표 한 단위 = 몇 미터 — TILE(40단위)이 3.2m 쯤 되게 잡았다 */
   function WORLD_SCALE() { return C().tuned('village3d.worldScale', 0.08); }
-  /** 인물에서 이 안(미터)에 있는 것만 3D 로 세운다 */
-  function RENDER_R() { return C().tuned('village3d.renderR', 40); }
+  /** 인물에서 이 안(미터)에 있는 것만 3D 로 세운다 — 기본값은 품질 등급표(QUALITY_PRESET)를 탄다 */
+  function RENDER_R() { return C().tuned('village3d.renderR', QUALITY_PRESET[tier()].renderR); }
   /** 벗어나면 치우는 거리 — RENDER_R 보다 살짝 넉넉해야 경계에서 깜빡이지 않는다 */
   function CULL_R() { return RENDER_R() + C().tuned('village3d.cullMargin', 6); }
   /** 한 프레임에 새로 세우는 최대 개수 — 마을을 한꺼번에 안 짓는다 */
   function MAX_BUILD_PER_STEP() { return C().tuned('village3d.maxBuildPerStep', 4); }
-  /** 인물 둘레 몇 칸까지 색칠할까 (타일 수, 반지름) */
-  function GROUND_TILE_R() { return C().tuned('village3d.groundTileR', 14); }
+  /** 인물 둘레 몇 칸까지 색칠할까 (타일 수, 반지름) — 기본값도 품질 등급표를 탄다 */
+  function GROUND_TILE_R() { return C().tuned('village3d.groundTileR', QUALITY_PRESET[tier()].groundTileR); }
   /** 물은 이만큼 낮춘다(미터) — 웅덩이처럼 보이게 */
   function WATER_DEPTH() { return C().tuned('village3d.waterDepth', 0.12); }
+
+  /**
+   * 그래픽 품질(PLAN 38절 "모바일 품질 프리셋" · PLAN 30절 "거리 기반 활성화") —
+   * **프레임을 실측해 오가는 자동 조정까지는 안 만든다**(PLAN 38절은 "기기 성능을
+   * 감지해서 기본값을 자동 설정한다"까지만 요구한다 — 이 판은 아직 그런 성능
+   * 제보가 없어 과한 장치다). `village3d.quality`를 low/medium/high 로 고정하거나
+   * 기본값 `'auto'`면 **켤 때 한 번** 기기를 보고 등급을 고른다.
+   * (사가블로 `dungeon3d.js`의 `deviceScore`/`probeDevice`와 같은 요령이되, 그
+   * 판의 프레임 실측 왕복 장치는 옮기지 않는다 — 다섯 판 공용 파일이 아니라서
+   * 복붙이 아니라 **필요한 만큼만** 옮긴 것이다.)
+   */
+  var QUALITY_PRESET = {
+    low:    { renderR: 26, groundTileR: 9,  dpr: 1,   shadow: false },
+    medium: { renderR: 34, groundTileR: 12, dpr: 1.5, shadow: false },
+    high:   { renderR: 40, groundTileR: 14, dpr: 2,   shadow: true }
+  };
+  function QUALITY() { return C().tuned('village3d.quality', 'auto'); }
+  /** 순수 함수 — probe 값만으로 점수를 매긴다(scene·navigator 없이도 진단됨) */
+  function deviceScore(o) {
+    var s = 0;
+    var cores = o.cores || 0, mem = o.mem || 0;
+    var px = (o.w || 0) * (o.h || 0) * (o.dpr || 1) * (o.dpr || 1);
+    s += cores >= 8 ? 2 : (cores >= 4 ? 1 : (cores > 0 ? 0 : 1));
+    s += mem >= 8 ? 2 : (mem >= 4 ? 1 : (mem > 0 ? 0 : 1));
+    s += px > 4000000 ? -1 : (px > 1600000 ? 0 : 1);
+    if (o.touch) { s -= 1; }
+    return s;
+  }
+  function tierFor(score) { return score >= 3 ? 'high' : (score >= 1 ? 'medium' : 'low'); }
+  function probeDevice() {
+    var n = global.navigator || {}, sc = global.screen || {};
+    return {
+      cores: n.hardwareConcurrency || 0, mem: n.deviceMemory || 0,
+      w: sc.width || 0, h: sc.height || 0, dpr: global.devicePixelRatio || 1,
+      touch: !!(('ontouchstart' in global) || (n.maxTouchPoints > 0))
+    };
+  }
+  var autoTierCache = null;
+  function autoTier() {
+    if (!autoTierCache) { autoTierCache = tierFor(deviceScore(probeDevice())); }
+    return autoTierCache;
+  }
+  /** 고정 값(low/medium/high)이면 그걸, 'auto'면 켤 때 한 번 잰 등급을 쓴다 */
+  function tier() {
+    var q = QUALITY();
+    return (q === 'low' || q === 'medium' || q === 'high') ? q : autoTier();
+  }
 
   var canvas = null, renderer = null, scene = null, camera = null;
   var ready = false, failed = false;
@@ -258,6 +305,12 @@
     night: { color: 0x8fa8ff, intensity: 0.12 }
   };
   var PHASE_HEMI = { dawn: 0.55, day: 0.9, even: 0.6, night: 0.3 };
+  /** 날씨(PLAN 21절)도 하늘을 더 어둡히고 안개를 짙힌다(fog near/far 를 좁힌다) —
+   *  clear 는 기준값(1) 그대로, cloud/rain/snow 순으로 점점 짙어진다 */
+  var WEATHER_DARK = { clear: 1, cloud: 0.85, rain: 0.6, snow: 0.82 };
+  var WEATHER_FOG = { clear: 1, cloud: 0.85, rain: 0.5, snow: 0.68 };
+  var FOG_NEAR = 30, FOG_FAR = 160;
+  var curWeatherSky = null;
 
   /** hex 색을 f(0~1)배 어둡게 — 순수 함수(진단에서 scene 없이도 확인 가능) */
   function darken(hex, f) {
@@ -267,21 +320,30 @@
     return (r << 16) | (g << 8) | b;
   }
 
-  /** 인물이 선 칸의 바이옴이나 시간대가 바뀔 때만 하늘·안개·조명을 새로 칠한다 */
+  /** 시간대·날씨 밝기를 곱한 값 — 순수 함수 */
+  function skyDark(ph, wk) {
+    return (PHASE_DARK[ph] != null ? PHASE_DARK[ph] : 1) * (WEATHER_DARK[wk] != null ? WEATHER_DARK[wk] : 1);
+  }
+
+  /** 인물이 선 칸의 바이옴·시간대·날씨 중 하나라도 바뀔 때만 하늘·안개·조명을 새로 칠한다 */
   function syncSky() {
     var V = global.DG.village, VD = global.DG.villageData;
     if (!V || !V.biomeAt || !scene) { return; }
     var raw = V.raw(), TILE = V.TILE;
     var b = V.biomeAt(Math.floor(raw.player.x / TILE), Math.floor(raw.player.y / TILE));
     var ph = (VD && VD.phaseOf) ? VD.phaseOf(new Date().getHours()).key : 'day';
-    if (b === curBiome && ph === curPhase) { return; }
-    curBiome = b; curPhase = ph;
-    var c = darken(FOG_COLOR[b] || FOG_COLOR.green, PHASE_DARK[ph] != null ? PHASE_DARK[ph] : 1);
+    var wk = (VD && VD.weather) ? VD.weather().key : 'clear';
+    if (b === curBiome && ph === curPhase && wk === curWeatherSky) { return; }
+    curBiome = b; curPhase = ph; curWeatherSky = wk;
+    var c = darken(FOG_COLOR[b] || FOG_COLOR.green, skyDark(ph, wk));
     scene.background.setHex(c);
     scene.fog.color.setHex(c);
+    var fogMul = WEATHER_FOG[wk] != null ? WEATHER_FOG[wk] : 1;
+    scene.fog.near = FOG_NEAR * fogMul;
+    scene.fog.far = FOG_FAR * fogMul;
     var sunCfg = PHASE_SUN[ph] || PHASE_SUN.day;
-    if (sunLight) { sunLight.color.setHex(sunCfg.color); sunLight.intensity = sunCfg.intensity; }
-    if (hemiLight) { hemiLight.intensity = PHASE_HEMI[ph] != null ? PHASE_HEMI[ph] : 0.9; }
+    if (sunLight) { sunLight.color.setHex(sunCfg.color); sunLight.intensity = sunCfg.intensity * (WEATHER_DARK[wk] != null ? WEATHER_DARK[wk] : 1); }
+    if (hemiLight) { hemiLight.intensity = (PHASE_HEMI[ph] != null ? PHASE_HEMI[ph] : 0.9) * (WEATHER_DARK[wk] != null ? WEATHER_DARK[wk] : 1); }
   }
 
   /** 비/눈은 날씨 키가 그대로, 반딧불이(PLAN 22절)는 맑은 밤에만 — 순수 함수라 scene 없이도 확인된다 */
@@ -404,13 +466,17 @@
     try {
       renderer = new t.WebGLRenderer({ canvas: canvas, antialias: true });
     } catch (e) { failed = true; return; }
-    renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+    /* PLAN 38절 "모바일 품질 프리셋" — 켤 때 한 번 기기를 보고 고른 등급(low/medium/high)이
+       픽셀비·그림자를 함께 정한다(등급이 세 갈래인데 손잡이를 따로 두면 조합이 어긋난다,
+       사가블로 dungeon3d.js 의 QUALITY_PRESET과 같은 이유) */
+    var q = QUALITY_PRESET[tier()];
+    renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, q.dpr));
     /* 실사 텍스처(사람 Mixamo·나무껍질 등)가 톤매핑 없이 밋밋하게 뜨는 것을 막는다.
        색공간도 sRGB 로 맞춘다 — 안 맞으면 텍스처가 흐리게(감마 안 먹은 채로) 뜬다 */
     if (t.ACESFilmicToneMapping) { renderer.toneMapping = t.ACESFilmicToneMapping; }
     renderer.toneMappingExposure = 1.0;
     if (t.SRGBColorSpace) { renderer.outputColorSpace = t.SRGBColorSpace; }
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = q.shadow;
     if (t.PCFSoftShadowMap) { renderer.shadowMap.type = t.PCFSoftShadowMap; }
 
     scene = new t.Scene();
@@ -423,7 +489,7 @@
     scene.add(hemiLight);
     sunLight = new t.DirectionalLight(0xfff4e0, 1.0);
     sunLight.position.set(-30, 40, 20);
-    sunLight.castShadow = true;
+    sunLight.castShadow = q.shadow;
     sunLight.shadow.mapSize.set(1024, 1024);
     sunLight.shadow.camera.near = 1;
     sunLight.shadow.camera.far = 100;
@@ -447,6 +513,11 @@
     buildWeatherFX(t);
     resize();
     global.addEventListener('resize', resize);
+    /* PLAN 40절 PHASE 6 · PLAN 25절 "orientationchange / resize 둘 다 처리한다" —
+       구형 iOS Safari는 방향이 바뀌어도 resize 가 늦거나 안 올 때가 있다.
+       resize()는 그냥 다시 불러도 결과가 같은 순수 계산(camera.aspect 등)이라
+       두 번 걸려도 해가 없다 */
+    global.addEventListener('orientationchange', resize);
     bindCamControl(canvas);
     ready = true;
     syncVisibility();
@@ -763,6 +834,12 @@
     weatherShows: weatherShows,
     fireflyVisible: fireflyVisible,
     wrapY: wrapY,
+    skyDark: skyDark,
+    weatherFog: function (wk) { return WEATHER_FOG[wk] != null ? WEATHER_FOG[wk] : 1; },
+    /** 진단 전용 — PLAN 40절 PHASE 6 Mobile 품질: 등급표(순수)와 기기 점수→등급 순수 함수 */
+    qualityPreset: function () { return QUALITY_PRESET; },
+    deviceScore: deviceScore,
+    tierFor: tierFor,
     /** 진단·QA 전용 — 사람이 핀치·휠로 조절한 확대 배율 */
     userZoom: function () { return userZoom; },
     setUserZoom: setUserZoom,
