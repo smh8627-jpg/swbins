@@ -16,6 +16,7 @@
   var lastFrame = 0;
   var uiAcc = 0;
   var saveAcc = 0;
+  var booted = false;   // start() 가 끝까지 돌았는지 — retry3d() 가 이걸로 이중 init() 을 막는다
 
   function start() {
     var fresh = !core.load();
@@ -64,6 +65,23 @@
       else { core.save.lastSeen = Date.now(); }
     });
     global.addEventListener('blur', function () { core.persist(); }); // 포커스만 잃어도 저장
+    booted = true;
+  }
+
+  /** 로딩 최적화(PLAN 27절) — three.js(vendor, 716KB)를 index.html 에서 `async`
+   *  로 받는다. 대부분은 start() 안의 첫 init() 이 이미 THREE 를 물고 성공하지만,
+   *  느린 회선에서는 그보다 늦게 도착할 수 있다 — 그때는 start() 가 이미
+   *  `ready=false`(2D 대체)로 지나간 뒤이니, vendor 스크립트의 onload 가 이걸
+   *  불러 다시 한 번 켠다(side-view.js 는 매 프레임 sideView3d.ready() 를
+   *  다시 묻기 때문에 다음 프레임부터 3D 로 자연스럽게 넘어간다).
+   *  **booted 가 아직 false 면 아무 것도 안 한다** — start() 가 곧 스스로
+   *  init() 을 부를 것이므로, 여기서 먼저 불렀다간 캔버스 하나에 WebGLRenderer
+   *  가 두 번 물려 컨텍스트가 샌다 */
+  function retry3d() {
+    if (!booted) { return; }
+    if (global.DG.sideView3d && !global.DG.sideView3d.available()) {
+      global.DG.sideView3d.init(document.getElementById('stage3d'));
+    }
   }
 
   /* 2026-09-09 — "키세팅이 있어야겠지"(사가블로·사가의숲과 같은 요청).
@@ -348,7 +366,7 @@
 
   global.DG = global.DG || {};
   global.DG.game = {
-    boot: boot, start: start,
+    boot: boot, start: start, retry3d: retry3d,
     keymap: keymap, beginRemap: beginRemap, remapping: function () { return remapping; }
   };
 
