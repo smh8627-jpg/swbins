@@ -104,6 +104,10 @@
           (출진할 때 들고 나가는 군량이 두 달치다) */
     acted.supply = trySupply(forceId);
 
+    /* 2.5) 시장 — 군량이 위태로우면 사서 메우고, 금은 모자란데 군량이
+       썩어날 만큼 남으면 판다. 사람이 쓰는 rtk.trade() 를 그대로 부른다 */
+    acted.trade = tryTrade(forceId, cr);
+
     /* 3) 싸울 만한가 — 살림보다 먼저 본다(장수를 명령에 다 써 버리면 못 친다) */
     acted.march = tryWar(forceId, cr);
 
@@ -151,6 +155,39 @@
       if (war.supply(cp.id, 0, food, cp.from).ok) { sent += food; }
     }
     return sent || null;
+  }
+
+  /**
+   * 시장에서 딱 한 성만 사고판다(한 달에 한 번, 사람이 손잡이 쓰듯).
+   * **군량이 위태로우면 산다** — 굶어서 병력이 녹는 것보다 낫다.
+   * **금이 모자라는데 군량이 썩어날 만큼 넉넉하면 판다** — 곳간에 쌓아만
+   * 두는 대신 다른 명령에 쓸 금으로 바꾼다. 두 조건이 동시에 걸리는 성은
+   * 없다(위태로움과 넉넉함은 반대말이라).
+   */
+  function tryTrade(forceId, cr) {
+    var R = global.DG.rtk;
+    var f = R.force(forceId);
+    var cities = R.citiesOf(forceId), i;
+    for (i = 0; i < cities.length; i++) {
+      var c = R.city(cities[i]);
+      var eat = R.eatOf(cities[i]);
+      if (!eat) { continue; }
+      if (c.food < eat * 1.5 && f.gold > cr.keepGold) {
+        var rate = R.marketRate(cities[i]);
+        var want = Math.round(eat * 2 - c.food);
+        var afford = Math.floor((f.gold - cr.keepGold) * rate);
+        var amt = Math.min(want, afford);
+        if (amt < 50) { continue; }
+        var r1 = R.trade(cities[i], 'buy', amt);
+        if (r1.ok) { return { city: cities[i], dir: 'buy', amt: amt }; }
+      } else if (c.food > eat * 6 && f.gold < cr.keepGold * 1.5) {
+        var surplus = Math.round(c.food - eat * 4);
+        if (surplus < 200) { continue; }
+        var r2 = R.trade(cities[i], 'sell', surplus);
+        if (r2.ok) { return { city: cities[i], dir: 'sell', amt: surplus }; }
+      }
+    }
+    return null;
   }
 
   /** 그 성과 맞닿은 적 가운데 가장 센 수비 */
@@ -402,7 +439,7 @@
     pickOrder: pickOrder, bestFor: bestFor,
     runForce: runForce, threatAt: threatAt, spareOf: spareOf,
     gatherable: gatherable, gather: gather,
-    tryWar: tryWar, trySupply: trySupply, tryPromote: tryPromote,
+    tryWar: tryWar, trySupply: trySupply, tryTrade: tryTrade, tryPromote: tryPromote,
     tryPlot: tryPlot, tryEnvoy: tryEnvoy,
     runAll: runAll
   };

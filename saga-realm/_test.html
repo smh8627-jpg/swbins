@@ -372,6 +372,34 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('보통 ' + base + ' · 황충 ' + bad + ' · 풍년 ' + good);
     });
 
+    t('시장 — 저자가 클수록 환율이 후하고, 판 만큼 정확히 오간다', function () {
+      fresh('cao');
+      var c = R.city('xuchang'), f = R.force('cao');
+      c.food = 5000; f.gold = 1000;
+      c.comm = 100; var lowRate = R.marketRate('xuchang');
+      c.comm = 800; var hiRate = R.marketRate('xuchang');
+      var r1 = R.trade('xuchang', 'sell', 1000);
+      var goldAfter = f.gold, foodAfter = c.food;
+      var r2 = R.trade('xuchang', 'buy', 500);
+      return hiRate > lowRate &&
+        r1.ok && r1.gold === Math.round(1000 * hiRate) && goldAfter === 1000 + r1.gold &&
+        foodAfter === 4000 &&
+        r2.ok && foodAfter + r2.food === c.food && f.gold === goldAfter - Math.round(500 / hiRate) &&
+        ('상업 100 환율 ' + lowRate.toFixed(2) + ' · 상업 800 환율 ' + hiRate.toFixed(2) +
+         ' · 군량 1000 팔아 금 ' + r1.gold);
+    });
+
+    t('시장 — 없는 만큼은 못 판다·못 산다', function () {
+      fresh('cao');
+      var c = R.city('xuchang'), f = R.force('cao');
+      c.food = 100; f.gold = 10;
+      var over1 = R.trade('xuchang', 'sell', 999999);
+      var over2 = R.trade('xuchang', 'buy', 999999);
+      return !over1.ok && over1.why.indexOf('군량') >= 0 &&
+        !over2.ok && over2.why.indexOf('금') >= 0 &&
+        ('군량 초과 → "' + over1.why + '" · 금 초과 → "' + over2.why + '"');
+    });
+
     /* ── 무장 · 충성 ─────────────────────────────────── */
 
     t('군주의 충성은 100에서 움직이지 않는다', function () {
