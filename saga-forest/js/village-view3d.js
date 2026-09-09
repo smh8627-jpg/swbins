@@ -50,18 +50,23 @@
    *  기본 1)와 시점을 맞췄다 — 그 전엔 "2D 가 그대로 간다"가 기본이었다.
    *  🧊 버튼이 이걸 뒤집는다(끄고 싶으면 여전히 끌 수 있다) */
   function ON() { return C().tuned('village3d.on', 1) ? true : false; }
-  function CAM_DIST() { return C().tuned('village3d.camDist', 6); }
-  function CAM_HIGH() { return C().tuned('village3d.camHeight', 3.2); }
+  function CAM_DIST() { return C().tuned('village3d.camDist', 7.5); }
+  function CAM_HIGH() { return C().tuned('village3d.camHeight', 4); }
   /** 3/4 부감(쿼터뷰) 쪽 끝값 — 거리·기울기. tilt 가 클수록 카메라가 더 눕는다(수평 반지름이
    *  커지고 높이가 낮아진다), 작을수록 더 위에서 내리찍는 부감이 된다.
-   *  **2026-09-02, 11 → 24 → 46 으로 올렸다가 도로 11 로.** 사용자가 원래 원한 건
-   *  "버튼으로 클릭해서 바꿨던 그 쿼터뷰"(첫 커밋 db12fe6, 실기기로 이미 확인됨)와
-   *  같은 그림이었다 — 거리·화각을 더 키운 건 세로 드래그가 t=1 까지 실제로 안 닿아서
-   *  (TILT_SENS 가 낮아 짧게 쓸어 올려선 중간에서 멎었다) "덜 부감으로" 보인 걸 잘못
-   *  짚고 화면 자체를 바꾼 것이었다. 진짜 원인(민감도)은 고쳤으니 값은 원래 확인됐던
-   *  그대로 되돌린다. FOV 도 third 와 다르게 좁히지 않는다(camFov 는 남겨 두되 기본은
-   *  안 바뀌게) — 정사영 흉내는 검증 없이 얹은 추측이었다 */
-  function ISO_DIST() { return C().tuned('village3d.isoDist', 11); }
+   *  **2026-09-02, 11 → 24 → 46 으로 올렸다가 도로 11 로.** 그때는 "버튼으로 클릭해서
+   *  바꿨던 그 쿼터뷰"(첫 커밋 db12fe6, 실기기로 확인됨)를 원했던 것뿐이었다 — 세로
+   *  드래그가 t=1 까지 실제로 안 닿아서(TILT_SENS 낮음) "덜 부감으로" 보인 걸 잘못
+   *  짚고 화면 자체를 바꾼 착오였다. 그 사정과는 다르게, **2026-09-09 — camTiltMix
+   *  기본을 1(부감 시작)로 바꾼(§8ec88ab) 당일 바로 "NPC가 3D에서 안 보이고 화면이
+   *  너무 가깝다"는 새 신고가 왔다.** 계산해 보면 t=1 기본값에서도 카메라~플레이어
+   *  거리가 겨우 9.95(월드단위, 캐릭터 키 1.7의 6배가 채 안 된다) — 숲 NPC 다섯은
+   *  전부 호수·동굴·마을 같은 지형지물 자리에 고정이라 스폰에서 20~33타일 떨어져
+   *  있는데(헤드리스 진단으로 실측), 이 거리에서는 방향을 알아도 화면에 걸리지 않는다.
+   *  11 이 "틀렸다"는 뜻이 아니라 그때 확인된 그림은 지금과 다르다(그땐 버튼으로
+   *  수동 전환, 지금은 시작부터 이 값) — 11→16 으로 45% 물렸다. 또 짚기 전에
+   *  실기기로 먼저 확인할 것 */
+  function ISO_DIST() { return C().tuned('village3d.isoDist', 16); }
   function ISO_TILT() { return C().tuned('village3d.isoTilt', 0.62); }
   function PLAYER_H() { return C().tuned('village3d.playerH', 1.7); }
   function GROUND_SIZE() { return C().tuned('village3d.groundSize', 400); }
@@ -1212,6 +1217,14 @@
     /** 진단 전용 — PLAN 12절 물 표현: 파동 순수 함수와 반짝임 점 상태 */
     waterWaveY: waterWaveY,
     waterWaveAmp: WATER_WAVE_AMP, waterWaveSpeed: WATER_WAVE_SPEED,
-    waterRippleCount: function () { return waterRippleCount; }
+    waterRippleCount: function () { return waterRippleCount; },
+    /** 진단 전용 — 숲 NPC 3D 인물이 지금 몇 명 세워졌나(scene 에 실제로 올라간 group 수) */
+    npcMeshCount: function () {
+      var k, n = 0;
+      for (k in npc3d) { if (Object.prototype.hasOwnProperty.call(npc3d, k) && npc3d[k].group) { n++; } }
+      return n;
+    },
+    /** 진단 전용 — camera 가 지금 원점(플레이어)에서 얼마나 떨어져 있나(world 단위) */
+    camDistNow: function () { return camera ? camera.position.length() : null; }
   };
 })(typeof window !== 'undefined' ? window : this);
