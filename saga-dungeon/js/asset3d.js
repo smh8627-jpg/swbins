@@ -277,6 +277,32 @@
     { key: 'ppwide_wizard', body: PEOPLE_PP_WIDE + 'Wizard.glb', anim: PEOPLE_PP_WIDE + 'Wizard.glb' }
   ]);
 
+  /* 2026-09-09(이어서) — "다른 곳도 찾아봐" — poly.pizza를 벗어나 다른
+     CC0 출처를 훑다가 Kenney 공식 사이트(`kenney.nl`)에 아직 안 쓴
+     사람 캐릭터 팩이 있는 걸 찾았다. `Animated Characters Protagonists`
+     (`kenney.nl/assets/animated-characters-protagonists`)는 FBX만 주고
+     클립도 idle·jump·run 셋뿐이라(이 판에 FBX→glTF 변환 도구가 없다,
+     `Blocky Characters` 절 참고와 같은 이유) 보류. `Mini Characters`
+     (`kenney.nl/assets/mini-characters`, CC0, 12벌 — female-a~f·
+     male-a~f)는 **GLB 형식을 직접 준다**(`Models/GLB format/`), 클립도
+     32개(`static`·`idle`·`walk`·`sprint`·`attack-melee-*`·`die`·
+     `emote-*`·`interact-*`·`wheelchair-*` 등) — `Blocky Characters`와
+     똑같은 낱말표라 `mapClips()` 그대로 받는다(리타깃 불필요).
+     **원본은 텍스처가 GLB 밖(`Textures/colormap.png`, 캐릭터 12벌이
+     공유)에 있어** `tools/glb-compress`가 그 상대경로를 못 찾고 처음엔
+     실패했다 — 압축 전에 그 텍스처를 같은 폴더에 잠깐 복사해 두고
+     압축(그 과정에서 텍스처가 GLB 안으로 박힌다), 끝난 뒤 이제 안
+     쓰는 원본 `Textures/` 폴더는 지웠다(`Blocky Characters`도 폴더에
+     안 남아 있는 것과 같은 모양). */
+  var PEOPLE_KENNEY_MINI = 'assets/models/people/kenney_mini/';
+  HERO_RECIPES_LIGHT = HERO_RECIPES_LIGHT.concat(
+    ['female-a', 'female-b', 'female-c', 'female-d', 'female-e', 'female-f',
+      'male-a', 'male-b', 'male-c', 'male-d', 'male-e', 'male-f'].map(function (n) {
+      var f = PEOPLE_KENNEY_MINI + 'character-' + n + '.glb';
+      return { key: 'kmini_' + n, body: f, anim: f };
+    })
+  );
+
   /* 2026-09-05 — 사용자 요청("캐릭터도 더 다양하게") — QRPG 여섯 벌뿐이던 몸을
      `saga-go`가 이미 검증해 둔 MPFB2(makehumancommunity.org, CC0 도구) 실사
      인물 스무 벌로 늘린다. **파일을 그대로 복사했다**(saga-go/assets/models/

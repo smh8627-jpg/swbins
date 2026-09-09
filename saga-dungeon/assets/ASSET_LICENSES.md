@@ -1489,3 +1489,39 @@ Student·Soldier by madtrollstudio·Tiny Mage — 전부 스킵). 태그만 보�
 적어 둔 두 갈래(Quaternius 공식 사이트의 Google Drive 배포,
 quaternius.itch.io의 결제 흐름 뒤에 있는 팩들)를 사용자가 직접
 받아 전달해 주는 것 — 검색으로는 이 근처가 한계에 가깝다.
+
+## 캐릭터 11차분 — Kenney "Mini Characters" 열두 벌, poly.pizza 밖에서 (2026-09-09, 같은 세션 이어서)
+
+사용자 요청("다른 곳 찾아봐")으로 poly.pizza를 벗어나 다른 CC0 출처를
+훑었다. Kenney 공식 사이트(`kenney.nl`)에 이미 쓴 `Blocky Characters`
+말고도 사람 캐릭터 팩이 몇 더 있다:
+
+- `Animated Characters Protagonists` — FBX만 주고(GLB 없음) 클립도
+  idle·jump·run 셋뿐이라 보류(이 판에 FBX→glTF 변환 도구가 없다,
+  기존 "FBX 변환 파이프라인 보류" 결정과 같은 이유).
+- `Modular Characters`(425개 파츠) — 몸+옷+머리 조합형이라 등록하려면
+  `HERO_RECIPES_FALLBACK`류 조합 로직을 되살려야 한다, 이번엔 손 안 댐.
+- **`Mini Characters`(CC0, `kenney.nl/assets/mini-characters`) — 12벌
+  (character-female-a~f, character-male-a~f)을 그대로 등록.** `Models/
+  GLB format/`에 이미 GLB로 준다, 클립 32개(`static`·`idle`·`walk`·
+  `sprint`·`attack-melee-left/right`·`attack-kick-left/right`·`die`·
+  `pick-up`·`emote-yes/no`·`interact-left/right`·`wheelchair-*` 등) —
+  `Blocky Characters`와 **낱말표가 완전히 같다**(같은 Kenney 캐릭터
+  리그 계열), `mapClips()` 그대로 받는다.
+
+**밟은 함정** — 원본 GLB가 텍스처를 밖(`Textures/colormap.png`, 12벌이
+공유하는 아틀라스 한 장)에 상대경로로 참조해서, GLB만 떼어 복사했더니
+`tools/glb-compress`가 `ENOENT`로 전부 실패했다. 압축 전에 그 텍스처를
+같은 폴더에 잠깐 같이 두고 돌리니(압축 과정에서 텍스처가 GLB 안으로
+박힌다) 통과 — 끝난 뒤 이제 안 쓰는 원본 `Textures/` 폴더는 지웠다
+(`Blocky Characters`도 폴더에 그런 게 안 남아 있는 것과 같은 모양).
+
+`kenney.nl`은 다운로드 버튼이 JS로 그려져 있어 정적 `curl`로는 링크를
+못 찾았다 — `WebFetch`로 페이지를 읽어 "Continue without donating…"
+버튼 뒤의 `kenney.nl/media/pages/assets/<slug>/<hash>/kenney_<slug>.zip`
+URL을 찾아낸 뒤 그 URL은 `curl`로 바로 받혔다(로그인·결제 불필요,
+poly.pizza와 달리 zip 통째로 옴).
+
+`assets/models/people/kenney_mini/`에 둠, `tools/glb-compress`로 압축
+(2.9MB→0.7MB, 74% 감소). `HERO_RECIPES_LIGHT`에 `kmini_*`로 등록 —
+**78→90종**. 남은 10종.
