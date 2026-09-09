@@ -491,7 +491,7 @@
     if (key !== talkKey) {
       talkKey = key;
       els.talkbox.innerHTML = '<div class="talk-card">' +
-        '<b>💬 ' + esc(t.name) + '</b><p>' + esc(t.text) + '</p>' +
+        '<b>' + esc(t.emoji || '💬') + ' ' + esc(t.name) + '</b><p>' + esc(t.text) + '</p>' +
         '<button class="btn ghost" data-act="talk-close">닫는다</button></div>';
     }
     els.talkbox.classList.add('show');

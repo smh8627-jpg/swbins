@@ -332,6 +332,7 @@
     drawBossBar();
     drawMiniMap(run);
     drawOuch();
+    drawFadeOverlay();
   }
 
   /** 지금 얼마나 흔들려야 하나 — fx 의 남은 목숨에서 곧바로 낸다(따로 상태를 안 둔다) */
@@ -358,6 +359,18 @@
     g2.addColorStop(0, 'rgba(200,40,40,0)');
     g2.addColorStop(1, 'rgba(200,40,40,' + (a * 0.42) + ')');
     ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  /** 사냥터를 넘나들 때 화면 전환(PLAN 16절) — 검게 번쩍 잦아든다.
+   *  판정은 side.js 가 'fade' fx 한 줄만 남기고, 세기·모양은 여기서만 정한다 */
+  function drawFadeOverlay() {
+    var list = S.fx(), a = 0, i;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].t === 'fade') { a = Math.max(a, Math.min(1, list[i].life / 0.4)); }
+    }
+    if (a <= 0.02) { return; }
+    ctx.fillStyle = 'rgba(6,7,10,' + a + ')';
     ctx.fillRect(0, 0, W, H);
   }
 

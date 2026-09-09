@@ -133,6 +133,7 @@
 
   var GATHER_R = 50;          // 캐는 데 필요한 거리 — 자동으로, 지나가기만 하면 된다
   var GATHER_RESPAWN = 45;    // 다시 돋기까지(초)
+  var FADE_DUR = 0.4;         // 사냥터를 넘나들 때(PLAN 16절 "화면 전환") 검게 번쩍 잦아드는 시간
 
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
@@ -194,6 +195,7 @@
     core.log('🏃 ' + stg.name + ' 에 들어섰다' +
       (b ? ' — 안쪽에 ' + b.ref.name + ' 이(가) 있다' : ''), 'info');
     if (b) { core.emit('toast', '👺 ' + b.ref.name + ' 이(가) 사냥터 안쪽을 지키고 있습니다'); }
+    fx.push({ t: 'fade', life: FADE_DUR });   // 화면 전환(PLAN 16절) — 검게 번쩍 잦아든다
     core.emit('side:enter', run);
     core.emit('changed');
     return true;
@@ -274,7 +276,7 @@
     var t = SD.NPC_TALK[npc.key];
     if (!t || !t.lines.length) { return false; }
     var text = t.lines[Math.floor(Math.random() * t.lines.length)];
-    run.talk = { x: npc.x, key: npc.key, name: t.name, text: text };
+    run.talk = { x: npc.x, key: npc.key, name: t.name, emoji: t.emoji || '💬', text: text };
     sfx('talk');
     core.emit('side:talk', { stage: run.stage.key, npc: npc.key });
     core.emit('changed');
@@ -388,6 +390,7 @@
     var b = spawnBoss();
     core.log('🚪 ' + from.name + ' → ' + stg.name + (b ? ' — ' + b.ref.name + ' 이(가) 지킨다' : ''), 'info');
     core.emit('toast', '🚪 ' + stg.name);
+    fx.push({ t: 'fade', life: FADE_DUR });   // 화면 전환(PLAN 16절) — 검게 번쩍 잦아든다
     core.emit('side:travel', run);
     core.emit('changed');
     return true;
@@ -1132,7 +1135,7 @@
     base.gate = g ? { to: g.to, name: g.ref.name, open: unlocked(g.to), need: g.ref.need } : null;
     var n = npcAt(run.player.x + P_W / 2);
     base.npc = n ? { key: n.key, name: n.name } : null;
-    base.talk = run.talk ? { name: run.talk.name, text: run.talk.text } : null;
+    base.talk = run.talk ? { name: run.talk.name, emoji: run.talk.emoji, text: run.talk.text } : null;
     if (run.boss) {
       base.boss = {
         name: run.boss.ref.name,

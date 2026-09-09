@@ -316,6 +316,26 @@ window.DG_NO_TUNE = true;
         (from + ' → 강릉진 · 금 777·5마리·체력 ' + hp0 + ' 그대로');
     });
 
+    t('사냥터를 넘나들면 화면 전환(검게 번쩍)이 붙고 잦아든다', function () {
+      /* fx 는 여러 항목이 함께 사는 배열이라(다른 시험이 남긴 것이 아직 안
+         잦아들었을 수 있다), **가장 목숨이 긴 것**(방금 push 한 것)을 본다 */
+      function maxFadeLife() {
+        var m = 0, list = S.fx(), i;
+        for (i = 0; i < list.length; i++) { if (list[i].t === 'fade') { m = Math.max(m, list[i].life); } }
+        return m;
+      }
+      var before = S.raw().stage.key;
+      S.travel('sinya');
+      var full = maxFadeLife();
+      /* update() 는 한 틱에 최대 0.05초까지만 받는다(물리 안정) — 여러 번 굴려야
+         FADE_DUR(0.4) 를 다 잦아들게 할 수 있다 */
+      for (var i = 0; i < 15; i++) { S.update(0.05); }
+      var gone = maxFadeLife() === 0;
+      S.travel(before);
+      S.raw().player.invuln = 0;
+      return full > 0.35 && gone && ('전환 fx 생김(목숨 ' + full.toFixed(2) + ') · 다 잦아듦');
+    });
+
     t('마을 사람 — ↑ 로 말을 걸고, 다시 누르면 닫힌다', function () {
       var before = S.raw().stage.key;
       S.travel('sinya');                       // 마을 — npcs 가 있다
@@ -325,12 +345,13 @@ window.DG_NO_TUNE = true;
       p.climb = null; p.x = npc.x - S.P_W / 2; p.y = run.stage.floor - S.P_H;
       p.vy = 0; p.onGround = true;
       S.setInput('up', true); restInput();
-      var opened = !!S.raw().talk && S.raw().talk.name === npc.name;
+      var talk = S.raw().talk;
+      var opened = !!talk && talk.name === npc.name && talk.emoji === SD.NPC_TALK[npc.key].emoji;
       S.setInput('up', true); restInput();     // 다시 누르면 닫힌다(문·줄로 새지 않는다)
       var closed = !S.raw().talk;
       S.travel(before);
       S.raw().player.invuln = 0;
-      return opened && closed && ('열림 — ' + npc.name + ' · 다시 누르니 닫힘');
+      return opened && closed && ('열림 — ' + talk.emoji + ' ' + npc.name + ' · 다시 누르니 닫힘');
     });
 
     t('마을 사람 — 대화창을 연 채 멀어지면 저절로 닫힌다', function () {
