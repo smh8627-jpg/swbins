@@ -458,10 +458,48 @@
        성능 보며 줄일 수 있게 뒀다. buildProps() 를 다시 부르는(=새로고침) 곳에서만 듣는다 */
     { name: '숲', keys: [
       ['forest.margin', '숲 고리 폭 (타일)', 20]
+    ] },
+    /* 3D 화면(PLAN 40절 PHASE 2~7) — village3d.quality 는 버튼 행(질 등급행,
+       renderTune 위쪽)에서 따로 다룬다. 여기는 그 밖의 세부 값들 — 등급표
+       (QUALITY_PRESET)가 renderR·groundTileR·dpr·shadow 의 **기본값**을 정하고,
+       여기서 손잡이를 잡으면(tuned() 가 손잡이를 먼저 본다) 등급과 무관하게
+       그 값이 이긴다. 전부 게임 창을 켤 때 한 번만 읽으므로 새로고침이 필요하다 */
+    { name: '3D 화면 — 세부', keys: [
+      ['village3d.on', '3D 기본 켬(0/1)', 0],
+      ['village3d.renderR', '렌더 반경(m)', '등급표'],
+      ['village3d.groundTileR', '지형 타일 반경', '등급표'],
+      ['village3d.shadowR', '그림자 거리(m, PHASE 7 LOD)', 18],
+      ['village3d.camDist', '3인칭 카메라 거리', 6, '0.1'],
+      ['village3d.camHeight', '3인칭 카메라 높이', 3.2, '0.1'],
+      ['village3d.fov', '화각(FOV)', 55],
+      ['village3d.worldScale', '마을 좌표→미터 배율', 0.08, '0.01']
     ] }
   ];
 
+  /** village3d.quality 등급 버튼 — walk.speedMul 버튼 행(renderTune 안)과 같은 결.
+   *  숫자가 아니라 문자열(auto/low/medium/high)이라 TUNES 의 숫자 칸으로는 못
+   *  담는다 — 그래서 따로 그린다 */
+  var QUALITY_LEVELS = [['', 'auto'], ['low', 'low'], ['medium', 'medium'], ['high', 'high']];
+  function renderQualityRow() {
+    var row = $('qualityrow');
+    if (!row) { return; }
+    row.innerHTML = '';
+    var cur = C.tuned('village3d.quality', '');
+    QUALITY_LEVELS.forEach(function (pair) {
+      var val = pair[0], label = pair[1];
+      var on = cur === val;
+      var b = el('button', on ? 'on' : '', esc(label));
+      b.addEventListener('click', function () {
+        C.setTune('village3d.quality', val === '' ? null : val);
+        renderAll();
+        say('3D 품질 등급 — ' + label + ' (게임 창 새로고침)');
+      });
+      row.appendChild(b);
+    });
+  }
+
   function renderTune() {
+    renderQualityRow();
     var row = $('speedrow');
     row.innerHTML = '';
     [1, 2, 4, 8].forEach(function (m) {
