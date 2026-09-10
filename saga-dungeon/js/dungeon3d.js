@@ -441,10 +441,18 @@
          0.45부터 걸린다)을 화면 대부분이 넘겨 버렸다 — 밝은 배경 자체가
          블룸으로 번져 화면 전체에 허연 안개처럼 깔린 것(진짜 `scene.fog`가
          아니라 블룸 블로아웃). 밝기는 유지하되(어둡다는 재신고를 또 부르면
-         안 된다) 블룸 문턱을 확실히 넘지 않는 선까지 낮춘다. */
+         안 된다) 블룸 문턱을 확실히 넘지 않는 선까지 낮췄다.
+         2026-09-11 재신고 — "바닥이 하얀색" (마을 건물 안 바닥·마을 발판·
+         마을 들판 셋 다). 블룸이 아니라 **바닥 재질 자체**가 씻기는 것 —
+         ambient 1.3 + key 1.2 를 근백색(0xeef1f4·0xf4f7fb)에 곱하면 합이
+         2를 훌쩍 넘어, 어두운 층 색(`stone`)을 입힌 바닥도 노출로 밀려
+         흰 쪽에 바짝 붙는다. 이번엔 밝기 자체를 낮춘다(어둡다는 재신고가
+         또 오면 이 수치가 범인 후보 1순위) — 대신 들판 바닥에 무늬를
+         입혀(아래 `groundTex`) 노출이 밀려도 "흰 판"이 아니라 "밝은 땅"으로
+         읽히게 같이 손봤다. */
       return {
-        ambient: 1.3, ambientHex: 0xeef1f4,
-        keyIntensity: 1.2, keyHex: 0xf4f7fb,
+        ambient: 1.05, ambientHex: 0xe7eaed,
+        keyIntensity: 0.95, keyHex: 0xecf0f3,
         torchIntensity: 0, torchHex: 0xffc070, torchRange: 420,
         fog: { near: 1400, far: 3200 },
         bgHex: 0xaeb4ba, boss: false, deep: 0, town: true
@@ -717,6 +725,68 @@
   function texBox(g, x, y, z, sx, sy, sz, hex, url, cast) {
     var m = new T.Mesh(geo('box', function () { return new T.BoxGeometry(1, 1, 1); }),
       texMat(hex, url, sx / TILE, sy / TILE));
+    m.position.set(x, y, z);
+    m.scale.set(sx, sy, sz);
+    if (cast) { m.castShadow = true; }
+    g.add(m);
+    return m;
+  }
+
+  /** 들판·마을 땅 — 여태 민무늬 단색 상자였다(`mix(stone,...)` 한 색을 그대로
+   *  칠했다). 마을 조명이 밝을 때(위 `lightPlan` 'town' 참고) 단색은 노출에
+   *  밀려 "흰 판"으로 보인다는 제보(2026-09-11) — 사가고(`world3d.js`의
+   *  `terrainTexture`)처럼 캔버스에 얼룩무늬를 한 번 구워 반복해 깐다.
+   *  사진을 안 받아와(오프라인) 텍스처가 없어 보이는 부류의 버그 자체가
+   *  없다 — 캔버스는 이 자리에서 그 자리에 그린다. `stone`(층 테마 색)은
+   *  그대로 물들이는 값으로 쓰므로 "층마다 다른 색"은 안 바뀐다. 무늬는
+   *  hex 값으로 해시를 굴려 늘 같은 자리에 찍는다(Math.random 아님) —
+   *  같은 테마는 재실행해도 같은 무늬, 자가진단 결정론도 안 깨진다. */
+  var GROUND_TEX_UNIT = 260;      // 세계 단위 이만큼마다 무늬 한 판을 반복한다
+  var groundTexCache = {}, groundMatCache = {};
+  function groundTex(hex) {
+    if (groundTexCache[hex]) { return groundTexCache[hex]; }
+    var S = 128;
+    var cv = document.createElement('canvas');
+    cv.width = S; cv.height = S;
+    var c = cv.getContext('2d');
+    var r = (hex >> 16) & 255, gC = (hex >> 8) & 255, b = hex & 255;
+    c.fillStyle = 'rgb(' + r + ',' + gC + ',' + b + ')';
+    c.fillRect(0, 0, S, S);
+    var h = (hex >>> 0) || 1, i, n = 260;
+    for (i = 0; i < n; i++) {
+      h = (h * 1664525 + 1013904223) >>> 0;
+      var x = h % S;
+      h = (h * 1664525 + 1013904223) >>> 0;
+      var y = h % S;
+      h = (h * 1664525 + 1013904223) >>> 0;
+      var sh = (h % 40) - 20;
+      var rr = Math.max(0, Math.min(255, r + sh));
+      var gg = Math.max(0, Math.min(255, gC + sh));
+      var bb = Math.max(0, Math.min(255, b + sh));
+      h = (h * 1664525 + 1013904223) >>> 0;
+      var rad = 2 + (h % 6);
+      c.fillStyle = 'rgb(' + rr + ',' + gg + ',' + bb + ')';
+      c.beginPath(); c.arc(x, y, rad, 0, Math.PI * 2); c.fill();
+    }
+    var tx = new T.CanvasTexture(cv);
+    tx.wrapS = tx.wrapT = T.RepeatWrapping;
+    if (T.SRGBColorSpace) { tx.colorSpace = T.SRGBColorSpace; }
+    groundTexCache[hex] = tx;
+    return tx;
+  }
+  function groundMat(hex, repU, repV) {
+    var kk = hex + '|' + repU.toFixed(2) + '|' + repV.toFixed(2);
+    if (groundMatCache[kk]) { return groundMatCache[kk]; }
+    var tx = groundTex(hex).clone();
+    tx.needsUpdate = true;
+    tx.repeat.set(repU, repV);
+    var m = new T.MeshLambertMaterial({ map: tx, flatShading: true });
+    groundMatCache[kk] = m;
+    return m;
+  }
+  function groundBox(g, x, y, z, sx, sy, sz, hex, cast) {
+    var m = new T.Mesh(geo('box', function () { return new T.BoxGeometry(1, 1, 1); }),
+      groundMat(hex, Math.max(1, sx / GROUND_TEX_UNIT), Math.max(1, sz / GROUND_TEX_UNIT)));
     m.position.set(x, y, z);
     m.scale.set(sx, sy, sz);
     if (cast) { m.castShadow = true; }
@@ -1170,8 +1240,8 @@
        세운 칸보다 한참 낮은 자리에 아주 큰 민무늬 판 하나(그림자 없음,
        draw call 1개뿐)를 깔아 "끊긴 낭떨어지" 대신 "저 멀리 낮은 벌판"으로
        보이게 한다 — 칸별 비용은 그대로다(buildField 한 번에 하나뿐). */
-    var skirt = box(fieldGroup, cx0 * F.CHUNK, -260, cz0 * F.CHUNK, 6000, 40, 6000,
-      mix(stone, 0x141018, groundK), 'flat', false);
+    var skirt = groundBox(fieldGroup, cx0 * F.CHUNK, -260, cz0 * F.CHUNK, 6000, 40, 6000,
+      mix(stone, 0x141018, groundK), false);
     skirt.receiveShadow = false;
 
     var coords = [];
@@ -1193,8 +1263,8 @@
     if (ring === 0) { return; }               // 방이 걸친 조각은 방 바닥이 맡는다
     var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
     var hh = F.heightAt(gx + F.CHUNK / 2, gz + F.CHUNK / 2, seed, W, H);
-    var tile = box(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
-      F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), 'flat', false);
+    var tile = groundBox(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
+      F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), false);
     tile.receiveShadow = true;
 
     /* 통로(PLAN §28-2 Phase 3, §28-4 Phase 2·3) — 이 조각이 마을 사이
