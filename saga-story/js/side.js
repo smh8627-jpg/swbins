@@ -150,6 +150,10 @@
      짧은 동안만 화면 층이 걷기/가만있기 대신 attack 몸짓을 고르게 하는
      타이머다 */
   var ATK_ANIM_DUR = 0.28;
+  /* 회피·마심 몸짓(2026-09-10, 공격 몸짓과 같은 이유) — asset3d.js 몸짓 표의
+     dodge·interaction 자리도 여태 안 부르고 있었다. 회피는 DODGE_INVULN과
+     같은 길이로 두고(그 동안이 실제로 구르는 시간이다), 마심은 따로 짧게 */
+  var DRINK_ANIM_DUR = 0.4;
 
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
   /* 미니보스(PLAN 11절, 2026-09-10) — 희귀(3.2배)와 보스(12~17배) 사이. 새 종을
@@ -266,7 +270,8 @@
       player: { x: 80, y: stg.floor - P_H, vx: 0, vy: 0, facing: 1,
                 onGround: true, phase: 0, atkCd: 0, hurt: 0, invuln: 0,
                 cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
-                climb: null, dropThru: 0, resting: 0, dodgeCd: 0 },
+                climb: null, dropThru: 0, resting: 0, dodgeCd: 0,
+                dodgeAnim: 0, drinkAnim: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), forage: buildForageZone(stg), ambush: buildAmbush(stg),
       miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
@@ -641,6 +646,7 @@
     p.x = core.clamp(p.x + DODGE_DIST * dir, 0, run.stage.width - P_W);
     p.dropThru = 0;
     p.invuln = Math.max(p.invuln, DODGE_INVULN);
+    p.dodgeAnim = DODGE_INVULN;
     var lo = Math.min(from, p.x) - 10, hi = Math.max(from, p.x) + P_W + 10;
     fx.push({ t: 'dash', x: lo, y: p.y, w: hi - lo, h: P_H, life: 0.18 });
     sfx('dodge');
@@ -797,6 +803,7 @@
     s.potions -= 1;
     run.hp = Math.min(run.hpMax, run.hp + Math.round(run.hpMax * 0.45));
     fx.push({ t: 'heal', x: run.player.x, y: run.player.y, life: 0.5 });
+    run.player.drinkAnim = DRINK_ANIM_DUR;
     sfx('potion');
     core.emit('changed');
     return true;
@@ -934,6 +941,8 @@
     for (i = 0; i < p.cds.length; i++) { if (p.cds[i] > 0) { p.cds[i] -= dt; } }
     if (p.dodgeCd > 0) { p.dodgeCd -= dt; }
     if (p.atkCd > 0) { p.atkCd -= dt; }   // 공격 몸짓 타이머(판정과 무관, 화면 층만 본다)
+    if (p.dodgeAnim > 0) { p.dodgeAnim -= dt; }
+    if (p.drinkAnim > 0) { p.drinkAnim -= dt; }
     var bf = buffOn();
     run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }

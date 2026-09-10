@@ -2502,6 +2502,30 @@ window.DG_NO_TUNE = true;
       return e.atkAnim > 0 && '켜짐';
     });
 
+    t('회피하면 몸짓 타이머(dodgeAnim)가 잠깐 켜졌다가 저절로 꺼진다', function () {
+      if (S.active()) { S.leave(); }
+      S.enter('field');
+      var run = S.raw(), p = run.player;
+      p.dodgeCd = 0; p.dodgeAnim = 0; p.climb = null;
+      var ok = S.dodge();
+      var justDodged = p.dodgeAnim > 0;
+      for (var ai = 0; ai < 10; ai++) { S.update(0.05); }
+      return ok && justDodged && p.dodgeAnim <= 0 && '켜짐 → 꺼짐';
+    });
+
+    t('탕약을 마시면 몸짓 타이머(drinkAnim)가 잠깐 켜졌다가 저절로 꺼진다', function () {
+      if (S.active()) { S.leave(); }
+      S.enter('field');
+      var run = S.raw(), p = run.player;
+      S.state().potions = 1;
+      run.hp = 1;   // 가득 차 있으면 drink() 가 거절한다
+      p.drinkAnim = 0;
+      var ok = S.drink();
+      var justDrank = p.drinkAnim > 0;
+      for (var ai = 0; ai < 10; ai++) { S.update(0.05); }
+      return ok && justDrank && p.drinkAnim <= 0 && '켜짐 → 꺼짐';
+    });
+
     t('돌진형(기병)은 뜸을 들이다 빠르게 달려든다', function () {
       if (S.active()) { S.leave(); }
       var found = null, tries = 0, run;

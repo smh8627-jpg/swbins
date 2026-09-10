@@ -784,8 +784,14 @@
     place(playerMesh, p.x + S.P_W / 2, stg.floor - (p.y + S.P_H), p.facing);
     tintHurt(playerMesh, p.hurt || 0);
     var walking = !!p.vx && p.onGround;
+    /* 몸짓 우선순위(2026-09-10) — 맞는 순간이 늘 가장 세다(구르거나 휘두르던
+       중이어도 맞은 티가 나야 한다). interaction(마심·대화)은 걷기·가만있기
+       보다는 위, 회피·공격보다는 아래 — 둘 다 그 자리에서 짧게 끝난다 */
     stepActor(playerMesh, (p.hurt || 0) > 0 ? 'hit' :
-      ((p.atkCd || 0) > 0 ? 'attack' : (walking ? 'walk' : 'idle')));
+      ((p.dodgeAnim || 0) > 0 ? 'dodge' :
+      ((p.atkCd || 0) > 0 ? 'attack' :
+      (((p.drinkAnim || 0) > 0 || !!run.talk) ? 'interaction' :
+      (walking ? 'walk' : 'idle')))));
     var bob = (!playerMesh.userData.mixer && walking) ? Math.abs(Math.sin(Date.now() / 90)) * 3 : 0;
     playerMesh.position.y += bob;
 
