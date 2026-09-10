@@ -2635,10 +2635,16 @@
        있는 꼴이라 화면 대부분이 배경색으로 덮인다 — "갈색이 화면을 가린다"
        제보의 실제 원인. 등급과 무관하게 **카메라가 서 있는 자리까지는 항상
        안개 밖**이게 최소 거리를 보장한다. */
-    if (aim.dist + 260 > fogFar) { fogFar = aim.dist + 260; }
-    if (!scene.fog) { scene.fog = new T.Fog(bgHex, fogNear, fogFar); }
-    scene.fog.color.setHex(bgHex);
-    scene.fog.near = fogNear; scene.fog.far = fogFar;
+    /* 2026-09-10 — 사용자가 "안개는 다 제거해"·"화면이 안보여"로 안개 자체를
+       없애 달라고 요청했다. 위 fogNear/fogFar 계산(들판 가장자리에 맞추기·
+       카메라가 늘 안개 밖에 있게 하기)은 그동안 반복된 "화면이 갈색/안
+       보인다" 제보의 근본 원인이 전부 안개-카메라 거리 상호작용이었다 —
+       안개 자체를 끄면 그 버그 부류가 통째로 없어진다. `scene.background`
+       (하늘·배경색)는 안개와 별개라 그대로 둔다. 대신 들판 가장자리(세운
+       땅이 끊기는 자리)가 이제 안개로 안 가려지므로 그 각진 경계가 보일
+       수 있다 — 다음에 "땅 끝이 각져 보인다"는 제보가 오면 이 트레이드오프
+       때문이다(안개를 다시 켜는 대신 땅을 더 넓게 세우는 쪽으로 풀 것). */
+    scene.fog = null;
     scene.background = new T.Color(bgHex);
     if (frame % 120 === 0) {
       var diagMsg = '📊 tier=' + effectiveLevel() + ' ema=' + perfEma.toFixed(1) +
