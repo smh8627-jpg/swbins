@@ -258,6 +258,7 @@
       btn3d.addEventListener('click', function () {
         var on = SV3.toggle();
         btn3d.classList.toggle('on', on);
+        ui.toast(on ? '🧊 3D 바탕 켜짐 (실험)' : '🧊 3D 바탕 꺼짐');
       });
     }
 
