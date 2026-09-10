@@ -624,12 +624,12 @@ window.requestAnimationFrame = function () { return 0; };
       return !!c && SKD.CLASSES.indexOf(c) >= 0 && ('맨몸 → ' + c.name);
     });
 
-    t('무예 — 직업마다 스물하나(일곱 갈래 × 세 단계)', function () {
+    t('무예 — 직업마다 스물넷(여덟 갈래 × 세 단계)', function () {
       var bad = [], i, j;
       for (i = 0; i < SKD.CLASSES.length; i++) {
         var tree = SKD.skillsOf(SKD.CLASSES[i].key);
-        if (tree.length !== 21) { bad.push(SKD.CLASSES[i].key + ' ' + tree.length); }
-        for (j = 0; j < 7; j++) {
+        if (tree.length !== 24) { bad.push(SKD.CLASSES[i].key + ' ' + tree.length); }
+        for (j = 0; j < 8; j++) {
           var br = tree.filter(function (x) { return x.br === j; });
           var rows = br.map(function (x) { return x.row; }).sort();
           if (rows.join(',') !== '0,1,2') { bad.push(SKD.CLASSES[i].key + ' 갈래' + j); }

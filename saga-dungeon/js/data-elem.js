@@ -17,6 +17,12 @@
  *   뇌(雷)  **편차가 크다** — 적게 들어가거나 크게 들어간다
  *   독(毒)  **몇 초에 걸쳐** 들어간다 (즉발이 아니다)
  *   기(氣)  이 판의 마법 자리. 곧게 들어간다
+ *   전자(電磁)  2026-09-10 신설 — "말도 안 되게 퓨전이 되어야 한다"는
+ *           사용자 지시로 처음 넣은 **미래풍 결**. 화(火)처럼 곁들이는
+ *           것 없이 큰 한 방(엔진 쪽 특수 처리 없음 — 순수 데이터).
+ *           `data-skill.js` 여덟째 갈래가 다섯 직업 다 이 결을 하나씩
+ *           받는다(전자시·전자충격파 같은, 한자 조어 문법은 그대로 두고
+ *           내용만 미래로 튄 이름).
  *
  * 원소를 늘릴 때는 ELEMENTS 에 한 줄. 보석(data-gem.js)이 그 키를 가리키고,
  * dungeon.js 의 applyElem 이 성질을 읽는다.
@@ -36,11 +42,13 @@
     { key: 'pois', name: '독', hanja: '毒', color: '#7ac943', dot: 3.0,
       desc: '3초에 걸쳐 들어간다. 즉발이 아니다.' },
     { key: 'chi', name: '기', hanja: '氣', color: '#b98ae0',
-      desc: '이 판의 마법. 곧게 들어간다.' }
+      desc: '이 판의 마법. 곧게 들어간다.' },
+    { key: 'emp', name: '전자', hanja: '電磁', color: '#ff4fd8',
+      desc: '미래에서 흘러든 낯선 힘. 이 세계의 결 무엇과도 안 닮았다. 큰 한 방, 곁들이는 것은 없다.' }
   ];
 
   /** 보석으로 얻을 수 있는 결 (물리는 무기 자체다) */
-  var GEM_ELEMENTS = ['fire', 'cold', 'lit', 'pois', 'chi'];
+  var GEM_ELEMENTS = ['fire', 'cold', 'lit', 'pois', 'chi', 'emp'];
 
   function elemByKey(k) {
     for (var i = 0; i < ELEMENTS.length; i++) { if (ELEMENTS[i].key === k) { return ELEMENTS[i]; } }
