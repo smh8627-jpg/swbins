@@ -93,6 +93,14 @@ _demo.html       →  스크린샷용 장면 (#scen · #pick · #map · #chibi �
 (~~성 안으로 들어가는 3D 도시 화면(Phase 6)~~ — `js/city3d.js`로 이미
 완료, 이 줄은 그 뒤로 안 지워지고 남아 있던 것)
 
+**2026-09-10 — 도감 초상 외형 20종 추가(MPFB2 실사, `saga-go`에서 복사).**
+`js/asset3d.js`의 `HERO_RECIPES`(QRPG 6종)에 MPFB 몸 20종을 더했다 —
+이 판은 인물이 안 걸으므로(`portrait3d.js` 초상 굽기 전용) `anim`을
+UAL1로 리타깃하지 않고 몸 파일 자신(클립 0개)으로 줘서 mixer 없이 정지
+자세로만 세운다. 자세한 사정·용량은 `assets/ASSET_LICENSES.md` 참고.
+투구 5종(scholar·gat·hairpin·monk·braid)은 재확인 결과 여전히 대응 CC0가
+없어 맨머리로 남긴다 — 무기와 달리 잘못 아무 걸 씌우면 더 어색해진다.
+
 **Phase 9(랜덤 사건)는 2026-09-09에 이어서 끝났다** — 원정(`war.js`
 `journeys[]`)이 가는 길에(도착하는 달은 뺀다) 손잡이 확률(`war.journeyEventChance`,
 기본 16%)로 매복·도적떼·보물·마을의 환대·길 잃음·유물 발견 여섯 종

@@ -40,6 +40,26 @@
     return { key: 'qrpg_' + n.toLowerCase(), body: f, anim: f };
   });
 
+  /* 2026-09-10 — 외형 다양화(saga-go 의 MPFB2 몸 20종을 그대로 복사, CC0,
+   * 자세한 것은 assets/ASSET_LICENSES.md). **이 판은 인물이 안 걷는다** —
+   * `buildHero()`를 부르는 곳이 `portrait3d.js`(도감 초상 굽기) 하나뿐이라
+   * 몸짓(mixer) 없이 정지 자세로만 서도 된다. 그래서 `anim`을 saga-go처럼
+   * `ANIM_SRC`(UAL1, Quaternius 뼈대)로 리타깃하지 않고, **몸 파일 자신을
+   * anim으로 준다**(클립이 0개인 그 파일) — `buildHero()`의
+   * `animC.clips.length` 검사가 그대로 걸러 mixer를 안 만들고 bind pose로
+   * 멈춘다. UAL1을 그대로 물리면(리타깃 없이) saga-go가 이미 겪은 뼈대
+   * 비례 뒤틀림 버그가 초상에 그대로 나온다 — 그래서 일부러 안 걸었다.
+   * 걷는 화면이 생기면(이 판은 아직 없다) 그때 saga-go의 `retargetInto()`를
+   * 옮겨 와야 한다. */
+  var PEOPLE_MPFB = 'assets/models/people/mpfb_real/';
+  var HERO_RECIPES_MPFB = ['female', 'male', 'v3', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12',
+    'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21', 'v22', 'v23']
+    .map(function (n) {
+      var f = PEOPLE_MPFB + n + '.glb';
+      return { key: 'mpfb_' + n, body: f, anim: f };
+    });
+  HERO_RECIPES = HERO_RECIPES.concat(HERO_RECIPES_MPFB);
+
   /* 옛 조합형 — 표 기본에서는 빠졌다. 지우지 않고 남겨 둔다(되돌림 자리).
    * 2026-09-02, 도감 초상을 굽으려고 처음 들였던 것(`js/portrait3d.js`) —
    * `saga-dungeon`과 같은 여섯 조합(몸+옷+머리). */

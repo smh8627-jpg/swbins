@@ -127,6 +127,15 @@ scholar·gat·hairpin·monk·braid 투구는 대응 CC0가 없어 맨머리로 �
 "안 맞아도 실제 모델이 도형(빈 자리)보다 낫다"는 사용자 지시에 따라, 무기
 여덟 종은 걸고 나머지 다섯 투구 종만 열린 자리로 둔다.
 
+**2026-09-10 재확인 — 여전히 대응 CC0 없음.** 이 판·`saga-dungeon`의
+`assets/models/gear/`를 다시 뒤졌다(`helmet.glb`·`crown.glb`·
+`viking_helmet.glb`·`armor_leather.glb`·`armor_metal.glb`·`cape.glb` 뿐).
+다섯 다 형태가 뚜렷이 다른 머리쓰개(사방관·갓·비녀·승모·변발)라, 무기처럼
+"칼이면 다 비슷한 창끝"으로 봐줄 여지가 없다 — 학자에게 바이킹 뿔투구를
+씌우면 안 맞는 정도가 아니라 우스꽝스러워져, 여덟 무기 때와 달리 **맨머리
+쪽이 여전히 낫다**고 판단해 그대로 둔다. 새 CC0를 인터넷에서 받는 것은
+이번 작업 범위 밖이다.
+
 ## 동양풍 탑 — 채택 (2026-09-10)
 
 위 "옮기지 않은 것" 문제(탑·사찰이 서양풍 판타지라 결이 안 맞는다)에 동양풍
@@ -158,3 +167,22 @@ CC0 후보를 구해 채택했다.
 받으려면 `Column.glb`·`BuildingBase.glb`·`RoomRoof.glb` 등 다른 조각을 조합해야
 하는데, 이 저장소는 GLB를 조합 없이 한 파일 그대로 쓰는 방침이라 우선순위를
 낮게 둔다.
+
+## MPFB2 실사 몸 20종 — 초상 외형 다양화 (2026-09-10, `saga-go`에서 복사)
+
+`js/asset3d.js`의 `HERO_RECIPES`(도감 초상용, `portrait3d.js`가 부른다)가
+QRPG 6종뿐이던 것을 saga-go가 2026-09-05에 이미 뽑아 둔 MPFB2 실사 몸
+20종(`assets/models/people/mpfb_real/{male,female,v3,v7~v23}.glb`, 각
+3.5~4.3MB, 총 74MB)으로 더했다 — **라이선스는 CC0**(MPFB2 도구 자체는
+GPLv3이지만 뽑아낸 모델은 `makehuman_system_assets_cc0.zip` 기반 CC0, 자세한
+출처·재현 경위는 `saga-go/assets/ASSET_LICENSES.md`의 "MPFB2 +
+makehuman_system_assets" 절 참고).
+
+**이 판은 인물이 걷지 않는다** — `buildHero()`를 부르는 곳이 도감 초상 하나뿐이라
+몸짓(mixer) 없이 정지 자세로만 서도 된다. 그래서 saga-go처럼 UAL1 몸짓을
+뼈대 비례까지 맞춰 리타깃(`retargetInto()`)하지 않고, 각 MPFB 레시피의
+`anim`을 **몸 파일 자신**(클립 0개)으로 줬다 — `buildHero()`의
+`animC.clips.length` 검사가 그대로 걸러 mixer를 안 만들고 bind pose로
+멈춘다. UAL1을 리타깃 없이 그대로 물렸다면 saga-go가 이미 겪은 뼈대 비례
+뒤틀림 버그가 초상에 그대로 났을 것이다. 이 판에 걷는 3D 화면이 생기면
+그때 `retargetInto` 계열 함수를 옮겨 와야 몸짓이 붙는다.
