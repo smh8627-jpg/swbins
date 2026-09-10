@@ -563,6 +563,15 @@
   }
 
   var TANK_HP_MUL = 2.2, TANK_SPD_MUL = 0.6, TANK_DMG_MUL = 0.85;
+  /* 마법형(PLAN 13절, 2026-09-10) — 근접형·원거리형·돌진형·탱커형에 이어
+     마지막 유형. 새 종·새 데이터(공용 data-enemy.js는 안 건드린다) 없이
+     근접형 잡졸 하나를 이 역으로 굴려 바꾼다(희귀·미니보스와 같은 "굴려서
+     얹는" 결). **높이를 안 가리고**(flat 조건 없음) 서서히 따라오는
+     구슬(homing)을 쏜다 — 활·조총이 "같은 높이라야 맞는" 것과 반대로
+     다른 대처(움직여서 떼어내기)가 필요해 원거리형과는 다른 위협이 된다.
+     대신 몸이 약하다(MAGIC_HP_MUL) */
+  var MAGIC_CHANCE = 0.12, MAGIC_HP_MUL = 0.85, MAGIC_RANGE = 340;
+  var MAGIC_CD = 2.2, MAGIC_SPD = 260, MAGIC_DMG_MUL = 1.15, MAGIC_HOME = 140;
 
   /** @param boost 미니보스(§11) 전용 — {hp, dmg} 배수를 얹는다. 있으면 희귀형
    *  굴림은 건너뛴다(두 배수가 겹쳐 값을 못 읽게 되는 것을 막는다) */
@@ -584,9 +593,13 @@
     var hp = Math.max(1, Math.round(18 * Math.pow(1.22, lv - 1) * E_HP));
     var rw = SD.rangedOf(ref);              // 활·조총을 들었으면 멀리서 쏜다
     var role = enemyRole(ref);
+    /* 마법형 굴림 — 근접형만 대상(원거리·돌진·탱커는 이미 제 역이 있다).
+       boost(미니보스)가 있으면 건너뛴다(수치 배율이 겹치는 걸 피한다) */
+    if (role === 'melee' && !boost && Math.random() < MAGIC_CHANCE) { role = 'magic'; }
     var spd = 42 + Math.min(50, lv * 2);
     var dmgMul = 1;
     if (role === 'tank') { hp = Math.round(hp * TANK_HP_MUL); spd *= TANK_SPD_MUL; dmgMul = TANK_DMG_MUL; }
+    if (role === 'magic') { hp = Math.round(hp * MAGIC_HP_MUL); }
     /* 희귀형(PLAN 11·13절, 2026-09-09) — 낮은 확률로 세다·많이 준다. 새 종을
        만들지 않고 기존 적 하나를 통째로 불려서 만든다(데이터 늘리지 않기).
        boost(미니보스)가 있으면 이 굴림은 건너뛴다 */
@@ -1054,6 +1067,11 @@
     for (i = run.eshots.length - 1; i >= 0; i--) {
       var es = run.eshots[i];
       es.x += es.dir * es.spd * dt;
+      /* 마법형 구슬만 높이를 따라온다(homing) — 활·조총은 쏜 그대로 직선이다 */
+      if (es.homing) {
+        var targetY = p.y + P_H * 0.5, stepY = MAGIC_HOME * dt;
+        es.y = es.y < targetY ? Math.min(targetY, es.y + stepY) : Math.max(targetY, es.y - stepY);
+      }
       es.life -= dt;
       var gone = es.life <= 0 || es.x < -20 || es.x > stg.width + 20;
       if (!gone && overlap({ x: es.x - 7, y: es.y - 5, w: 14, h: 10 },
@@ -1112,6 +1130,27 @@
               x: e.x + e.w / 2 + e.dir * 16, y: e.y + e.h * 0.42,
               dir: e.dir, spd: e.ranged.spd, dmg: Math.round(e.dmg * e.ranged.mul),
               kind: e.ref.look.weapon, life: 2.4
+            });
+            fx.push({ t: 'aim', x: e.x + e.w / 2, y: e.y, life: 0.22 });
+            sfx('aim');
+          }
+        }
+      } else if (e.role === 'magic' && !e.boss) {
+        /* 마법형(PLAN 13절) — 원거리형과 달리 **높이(flat)를 안 가린다**.
+           대신 구슬이 느리게 날며 쫓아온다(update() 아래 eshots 루프의
+           homing) — 다가오지 못하게 막는 게 아니라 자리를 옮겨야 피한다 */
+        e.shotCd -= dt;
+        var farM = Math.abs(dx);
+        if (farM < MAGIC_RANGE) {
+          e.dir = dx > 0 ? 1 : -1;
+          if (farM > REACH * 1.2) { holding = true; }
+          if (e.shotCd <= 0) {
+            e.shotCd = MAGIC_CD * (0.8 + Math.random() * 0.4);
+            e.atkAnim = ATK_ANIM_DUR;
+            run.eshots.push({
+              x: e.x + e.w / 2 + e.dir * 16, y: e.y + e.h * 0.42,
+              dir: e.dir, spd: MAGIC_SPD, dmg: Math.round(e.dmg * MAGIC_DMG_MUL),
+              kind: 'magic', homing: true, life: 2.6
             });
             fx.push({ t: 'aim', x: e.x + e.w / 2, y: e.y, life: 0.22 });
             sfx('aim');

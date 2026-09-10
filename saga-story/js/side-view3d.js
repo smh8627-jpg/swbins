@@ -804,7 +804,8 @@
       /* 미니보스(PLAN 11절, 2026-09-10)도 희귀처럼 물들인다 — 안 그러면
          "미니보스 등장!" 토스트만 뜨고 화면은 잡졸과 똑같아 보인다.
          색을 겹치지 않게 골랐다(희귀=금빛, 미니보스=짙은 자주) */
-      var tint = e.rare ? '#f0c040' : (e.mini ? '#a0305a' : e.ref.color);
+      var tint = e.rare ? '#f0c040' : (e.mini ? '#a0305a' :
+        (e.role === 'magic' ? '#6a4fc0' : e.ref.color));
       var big = e.role === 'tank' || e.mini;
       if (!em) {
         em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big);

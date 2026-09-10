@@ -321,7 +321,18 @@
     for (i = 0; i < (run.eshots || []).length; i++) {
       var es = run.eshots[i];
       var ex = es.x - camX;
-      if (es.kind === 'staff') {
+      if (es.kind === 'magic') {
+        /* 마법형(PLAN 13절) 구슬 — 활·탄환과 겹치지 않는 보랏빛, 옅은 테를
+           둘러 "쫓아온다"는 느낌을 준다(homing) */
+        ctx.beginPath();
+        ctx.arc(ex, es.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(150,90,220,0.55)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ex, es.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(210,170,255,0.95)';
+        ctx.fill();
+      } else if (es.kind === 'staff') {
         ctx.beginPath();
         ctx.arc(ex, es.y, 5, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255,190,120,0.95)';

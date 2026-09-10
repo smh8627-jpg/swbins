@@ -2526,6 +2526,27 @@ window.DG_NO_TUNE = true;
       return ok && justDrank && p.drinkAnim <= 0 && '켜짐 → 꺼짐';
     });
 
+    t('마법형(PLAN 13절)은 높이를 안 가리고 쫓아오는 구슬을 쏜다', function () {
+      if (S.active()) { S.leave(); }
+      var found = null, tries = 0, run;
+      while (!found && tries < 200) {
+        S.enter('forest');
+        run = S.raw();
+        found = run.enemies.filter(function (e) { return e.role === 'magic'; })[0];
+        if (!found) { S.leave(); }
+        tries++;
+      }
+      if (!found) { return false; }
+      /* 원거리형(flat)과 달리 마법형은 다른 높이에서도 쏜다 — 일부러
+         플레이어를 발판 위(다른 높이)에 세운다 */
+      run.player.x = found.x - 200; run.player.y = run.stage.floor - S.P_H - 80;
+      found.y = run.stage.floor - 22; found.shotCd = 0;
+      run.eshots = [];
+      S.update(0.05);
+      var bolt = run.eshots.filter(function (es) { return es.kind === 'magic' && es.homing; })[0];
+      return !!bolt && (found.ref.name + ' 높이 달라도 발사 (' + tries + '판째)');
+    });
+
     t('돌진형(기병)은 뜸을 들이다 빠르게 달려든다', function () {
       if (S.active()) { S.leave(); }
       var found = null, tries = 0, run;
