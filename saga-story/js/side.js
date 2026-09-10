@@ -526,7 +526,7 @@
       x: stg.width - 220, y: stg.floor - 52, w: 52, h: 52,
       hp: hp, hpMax: hp,
       dmg: Math.round((4 + lv * 1.6) * stg.boss.dmgMul * E_DMG),
-      dir: -1, homeY: stg.floor,
+      dir: -1,
       spd: 38 + Math.min(40, lv * 2),
       phase: 0, hurt: 0, cd: 0, atkAnim: 0,
       chargeCd: 4 + Math.random() * 3, charge: 0
@@ -596,7 +596,7 @@
     var e = {
       ref: ref, x: x, y: y - 22, w: 34, h: 34,
       hp: hp, hpMax: hp, dmg: Math.round((4 + lv * 1.6) * dmgMul * E_DMG),
-      dir: Math.random() < 0.5 ? -1 : 1, homeY: y,
+      dir: Math.random() < 0.5 ? -1 : 1,
       spd: spd, phase: Math.random() * 6.28, hurt: 0, cd: 0,
       ranged: rw, shotCd: rw ? rw.cd * (0.4 + Math.random() * 0.8) : 0,
       rare: rare, mini: !!boost, role: role, atkAnim: 0
