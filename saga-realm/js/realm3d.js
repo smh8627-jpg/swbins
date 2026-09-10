@@ -97,9 +97,77 @@
     }
     return sum;
   }
+  /* ── 해협(海峽) — 섬을 가르는 진짜 바다 ──────────────────────
+   * `CD.isWater()`는 강(river) 지형끼리 맞닿으면 다 물길로 잡는데, 그 안에는
+   * 양자강·한수 같은 **내륙 강**도 섞여 있다(실측해 보니 거리로는 못 가른다 —
+   * 예컨대 대륙 안 수춘↔시상 19.7 이 김해↔대마도 11.7 보다 오히려 멀다).
+   * 진짜로 **뭍을 갈라 섬을 만드는 바다**는 PLAN.md 26-2절에 적힌 이 다섯
+   * 구간뿐이다(일본 열도를 대륙·서로 갈라놓는 대한해협·일기해협·간몬해협
+   * 셋, 교주의 연안 항로 하나 — 김해↔대마도는 그 시작점) — 그래서 휴리스틱
+   * 대신 여기 목록으로 못 박는다. 이 구간 둘레만 지형을 해수면 아래로
+   * 파내려, 나머지 물길(내륙 강)은 예전 그대로 얇은 파란 길(addRoad)로 남는다. */
+  var STRAITS = [
+    ['gimhae', 'tsushima'], ['tsushima', 'iki'], ['iki', 'chikushi'],
+    ['chikushi', 'izumo'], ['hepu', 'jiaozhi']
+  ];
+  var STRAIT_HALF_WIDTH = 30;      // 해협 폭의 절반(세계 단위) — 이 안쪽이 바다
+  var STRAIT_DEPTH = 22;           // 해협 바닥이 SEA_LEVEL 아래로 파이는 깊이
+  var STRAIT_LAND_MARGIN = 18;     // 구간 양 끝(=섬 성 그 자체)에서 이만큼은 절대 안 파인다
+  var SEA_LEVEL = -6;              // 해수면 높이 — baseNoise 최저치(-NOISE_AMP)보다 낮게 잡아
+                                    // 성과 먼 빈 들판이 우연히 물에 잠기지 않도록 한다
+
+  var straitSegs = null;
+  function straitSegments() {
+    if (straitSegs) { return straitSegs; }
+    straitSegs = [];
+    var i, a, b;
+    for (i = 0; i < STRAITS.length; i++) {
+      a = cityData().find(STRAITS[i][0]); b = cityData().find(STRAITS[i][1]);
+      if (!a || !b) { continue; }
+      var ax = worldX(a.x), az = worldZ(a.y), bx = worldX(b.x), bz = worldZ(b.y);
+      straitSegs.push({ ax: ax, az: az, bx: bx, bz: bz, len: Math.hypot(bx - ax, bz - az) });
+    }
+    return straitSegs;
+  }
+
+  /** 가장 가까운 해협 구간까지 거리 → 0(구간 위)~1(폭 밖) 파임 비율.
+   *  **두 축을 같이 본다** — ①구간에 대한 수직 거리(폭, STRAIT_HALF_WIDTH)
+   *  ②구간을 따라 잰 거리(구간 양 끝에서 STRAIT_LAND_MARGIN 안쪽은 안 판다).
+   *  둘째 축이 없으면 구간의 두 끝점 — 대마도·일기도 같은 **섬 성 그 자체** —
+   *  이 자기 자리에서 거리 0 으로 잡혀 성이 통째로 물에 잠긴다. 가운데
+   *  트인 바다만 파이고, 두 기슭은 smoothstep 으로 매끄럽게 뭍으로 돌아간다 */
+  function straitFactor(wx, wz) {
+    var segs = straitSegments(), i, s, best = 0;
+    for (i = 0; i < segs.length; i++) {
+      s = segs[i];
+      var dx = s.bx - s.ax, dz = s.bz - s.az, len2 = dx * dx + dz * dz;
+      var tt = len2 > 0 ? ((wx - s.ax) * dx + (wz - s.az) * dz) / len2 : 0;
+      tt = Math.max(0, Math.min(1, tt));
+      var d = Math.hypot(wx - (s.ax + dx * tt), wz - (s.az + dz * tt));
+      if (d >= STRAIT_HALF_WIDTH) { continue; }
+      var fPerp = 1 - smoothstep(d / STRAIT_HALF_WIDTH);
+      var margin = Math.min(STRAIT_LAND_MARGIN, s.len * 0.45);
+      var alongEdge = Math.min(tt, 1 - tt) * s.len;
+      var fAlong = margin > 0 ? smoothstep(Math.max(0, Math.min(1, alongEdge / margin))) : 1;
+      var f = fPerp * fAlong;
+      if (f > best) { best = f; }
+    }
+    return best;
+  }
+
   /** 지형 높이 — 이 함수 하나가 바닥 · 성 · 소품 · 길 · 카메라가 다 같이 읽는
    *  단일 진실 값이다(따로 잰 높이를 쓰면 소품이 바닥에 파묻히거나 뜬다) */
-  function elevAt(wx, wz) { return baseNoise(wx, wz) * NOISE_AMP + cityBump(wx, wz); }
+  function elevAt(wx, wz) {
+    var normal = baseNoise(wx, wz) * NOISE_AMP + cityBump(wx, wz);
+    var f = straitFactor(wx, wz);
+    if (!f) { return normal; }
+    var seaFloor = SEA_LEVEL - STRAIT_DEPTH;
+    return normal + (seaFloor - normal) * f;
+  }
+
+  /** 이 자리가 물속인가 — scatterAround·scatterField 등 소품을 흩는 자리마다
+   *  물어봐서, 해협 한복판(트인 바다)에 나무·바위·집이 잠겨 서는 일을 막는다 */
+  function isSea(wx, wz) { return elevAt(wx, wz) < SEA_LEVEL; }
 
   /** 바닥 — 단색 한 장이 밋밋해서(퀄리티 피드백) **성 지형(land)마다 다른 색을
    *  그 둘레로 은은하게 물들이고**(들판=풀빛·구릉=흙빛·강가=옅은 청록·산=잿빛),
@@ -255,6 +323,18 @@
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
 
+    /* 바다 — 해협(STRAITS) 자리만 지형이 SEA_LEVEL 아래로 파여 있어서, 이
+     * 평평한 판 한 장을 그 높이에 깔아 두면 파인 곳에서만 바닥을 대신해
+     * 드러난다(카메라가 늘 위에서 내려다보므로 나머지는 땅에 가려 안 보인다
+     * — 새 좌표계·새 렌더 패스 없이 z-버퍼만으로 해안선이 선다) */
+    var sea = new t.Mesh(
+      new t.PlaneGeometry(GROUND_SPAN, GROUND_SPAN),
+      new t.MeshPhongMaterial({ color: 0x2f7bb0, transparent: true, opacity: 0.88, shininess: 60 })
+    );
+    sea.rotation.x = -Math.PI / 2;
+    sea.position.y = SEA_LEVEL;
+    scene.add(sea);
+
     pivotY = elevAt(0, 0);
 
     dyn = new t.Group();
@@ -390,6 +470,7 @@
     var ang = ((hh % 360) / 360) * Math.PI * 2;
     var r = 5 + (hh % 3);
     var px = cx + Math.cos(ang) * 9, pz = cz + Math.sin(ang) * 9;
+    if (isSea(px, pz)) { return; }     // 해협 기슭 성이면 진짜 바다가 바로 곁이라 안 그린다
     var pond = new t.Mesh(
       new t.CircleGeometry(r, 20),
       new t.MeshBasicMaterial({ color: 0x5aa9d8, transparent: true, opacity: 0.75 })
@@ -412,6 +493,7 @@
       var ang = ((hh % 360) / 360) * Math.PI * 2;
       var r = 3 + (hh % 4);
       var px = cx + Math.cos(ang) * r, pz = cz + Math.sin(ang) * r;
+      if (isSea(px, pz)) { continue; }
       var pick = hh % 3;
       var kind = pick === 0 ? 'bush' : (pick === 1 ? 'grass' : 'flower');
       var scaleH = kind === 'bush' ? (0.8 + (hh % 6) / 10) : (0.5 + (hh % 5) / 10);
@@ -575,14 +657,16 @@
     /* 2026-09-10 — "맵이 텅 비어 보인다" 피드백으로 성 하나당 1개씩 늘렸다.
        카메라가 가장 오래 머무는 자리(성 바로 곁)라 여기를 조금만 늘려도
        체감이 크고, 성 하나당 늘어난 수(93성 × 1)도 저 아래 scatterField
-       증가분보다 훨씬 적어 성능 부담이 작다. */
-    var n = city.land === 'mount' ? 3 : (city.land === 'hill' ? 3 : 4);
+       증가분보다 훨씬 적어 성능 부담이 작다.
+       2026-09-11 — "아직도 텅 비어 보인다"는 재지적으로 한 번 더 늘렸다. */
+    var n = city.land === 'mount' ? 4 : (city.land === 'hill' ? 4 : 5);
     var i;
     for (i = 0; i < n; i++) {
       var hh = hashOf(city.id + ':' + i);
       var ang = ((hh % 360) / 360) * Math.PI * 2;
       var r = 6 + (hh % 5);
       var px = cx + Math.cos(ang) * r, pz = cz + Math.sin(ang) * r;
+      if (isSea(px, pz)) { continue; }
       var kind = city.land === 'mount' ? 'mount' : (((hh >> 4) % 3) === 0 ? 'rock' : 'tree');
       var scaleH = kind === 'mount' ? (7 + (hh % 5)) : (kind === 'rock' ? 0.9 : (2.2 + (hh % 12) / 10));
       addProp(kind, city.id + ':' + kind + ':' + i, px, pz, scaleH, (hh % 628) / 100, seq);
@@ -602,7 +686,10 @@
    *  선이다). 또한 평야·강가 들판 당첨 칸의 12%는 나무 대신 **작은 화전
    *  마을**(집 한 채 + 우물)을 세운다 — `cityDressing`이 이미 쓰는 CC0
    *  집·우물을 그대로 재사용한다("건물이나 주변 환경이나" 다 비어 보인다는
-   *  지적에 자연물만이 아니라 사람 손길도 보태려는 것). */
+   *  지적에 자연물만이 아니라 사람 손길도 보태려는 것).
+   *
+   *  2026-09-11 — 같은 재지적으로 확률을 26%→32%, 화전 마을 비율도
+   *  12%→16%로 한 번 더 올렸다(전체 소품 수는 약 874→1070개 선). */
   function scatterField(seq) {
     var cities = cityData().CITIES, i, k;
     var minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -617,9 +704,10 @@
     for (var gx = minX; gx < maxX; gx += cell) {
       for (var gz = minZ; gz < maxZ; gz += cell) {
         var hh = hashOf('field:' + Math.round(gx) + ':' + Math.round(gz));
-        if (hh % 100 >= 26) { continue; }
+        if (hh % 100 >= 32) { continue; }
         var jx = gx + ((hh >> 6) % cell) - cell / 2;
         var jz = gz + ((hh >> 12) % cell) - cell / 2;
+        if (isSea(jx, jz)) { continue; }   // 해협 트인 바다 — 여기엔 안 심는다
 
         var near = null, nd = Infinity;
         for (k = 0; k < cities.length; k++) {
@@ -631,9 +719,9 @@
         var land = near.land || 'plain';
         var pick = (hh >> 18) % 10;
         var kind, scaleH;
-        /* 화전 마을 — 평야·강가에서만, 당첨 칸의 12%(hh 상위 비트를 또 하나
+        /* 화전 마을 — 평야·강가에서만, 당첨 칸의 16%(hh 상위 비트를 또 하나
            쓴다 — 위치·종류 결정과 안 겹치게) */
-        if ((land === 'plain' || land === 'river') && ((hh >> 22) % 100) < 12) {
+        if ((land === 'plain' || land === 'river') && ((hh >> 22) % 100) < 16) {
           addProp('house', 'field:' + Math.round(jx) + ':' + Math.round(jz) + ':house',
             jx, jz, 1.6 + (hh % 5) / 10, (hh % 628) / 100, seq);
           addProp('well', 'field:' + Math.round(jx) + ':' + Math.round(jz) + ':well',
