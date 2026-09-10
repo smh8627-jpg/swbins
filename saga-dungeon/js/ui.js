@@ -201,6 +201,29 @@
         openVow();
         return;
       }
+      if (act === 'field-merchant-buy') {
+        var fmi = parseInt(b.getAttribute('data-idx'), 10);
+        var row2 = fieldMerchantStock && fieldMerchantStock[fmi];
+        if (!row2) { return; }
+        var IT2 = global.DG.item;
+        if (core.save.player.gold < row2.price) { toast('🪙 금이 모자랍니다'); return; }
+        if (IT2.bag().length >= IT2.bagCap()) { toast('🎒 봇짐이 가득 찼습니다'); return; }
+        core.save.player.gold -= row2.price;
+        IT2.add(row2.item);
+        fieldMerchantStock.splice(fmi, 1);
+        var SF2 = global.DG.sfx;
+        if (SF2) { SF2.play('coin'); }
+        core.log('🧺 ' + IT2.name(row2.item) + ' 을(를) 샀다 · 금 -' + core.fmt(row2.price), 'info');
+        core.emit('changed');
+        if (!fieldMerchantStock.length) { encClose(); fieldMerchantStock = null; }
+        else { renderFieldMerchant(); }
+        return;
+      }
+      if (act === 'field-merchant-leave') {
+        fieldMerchantStock = null;
+        encClose();
+        return;
+      }
       if (act === 'dg-enter') {
         global.DG.dungeon.enter({ floor: parseInt(b.getAttribute('data-floor'), 10) || 1 });
       } else if (act === 'dg-leave') {
@@ -680,6 +703,10 @@
    */
   function bindTown() {
     core.on('town:npc', function (o) {
+      /* 들판 방랑 상인(PLAN §60 후보 1 나머지 절반) — 마을 붙박이 NPC와
+         달리 시트가 아니라 #encounter 카드로 재고를 고른다(아래
+         openFieldMerchant). 대사도 sheet도 없어 일반 갈래로는 못 받는다. */
+      if (o.key === 'fieldmerchant') { openFieldMerchant(o); return; }
       toast(o.emoji + ' ' + o.name + ' — ' + o.line);
       openSheet(o.sheet);
     });
@@ -792,6 +819,44 @@
         '<button class="btn wide ghost" data-act="town-vow">☠️ 이름을 새긴다</button>';
     }
     html += '<button class="btn primary wide" data-act="enc-close">물러난다</button></div>';
+    encOpen(html);
+  }
+
+  /** 들판 방랑 상인(PLAN §60 후보 1 나머지 절반) — 마주치면 그 자리에서
+   *  재고 셋을 굴려 산다. 재고는 `js/dungeon.js`의 `rollMerchantStock`을
+   *  그대로 빌려 쓰되(값 매기는 규칙까지 같이), 상태는 `run.merchantChoice`가
+   *  아니라 이 파일이 독자로 들고 있는다 — town.js는 이 상인을 dungeon.js의
+   *  `run`과 무관하게 자기 필드에서 만나기 때문이다. */
+  var fieldMerchantStock = null;
+  function openFieldMerchant(npc) {
+    var T = global.DG.town, D = global.DG.dungeon;
+    if (T && T.consumeFieldMerchant) { T.consumeFieldMerchant(npc); }
+    fieldMerchantStock = D.rollMerchantStock(0);
+    var SF = global.DG.sfx;
+    if (SF) { SF.play('shrine'); }
+    renderFieldMerchant();
+  }
+  function renderFieldMerchant() {
+    var IT = global.DG.item;
+    var html = '<div class="enc-card"><h3 style="margin:0 0 4px;font-size:18px">' +
+      '🧺 방물장수(方物匠手) · 살 것을 고른다</h3>' +
+      '<small class="muted">지나가던 사람입니다 — 여기서만 만납니다.</small>' +
+      '<div class="sec" style="margin-top:10px">';
+    if (!fieldMerchantStock || !fieldMerchantStock.length) {
+      html += '<div class="hint">다 팔렸습니다.</div>';
+    } else {
+      for (var i = 0; i < fieldMerchantStock.length; i++) {
+        var row = fieldMerchantStock[i], t = IT.tierOf(row.item);
+        var afford = core.save.player.gold >= row.price;
+        html += '<button class="btn wide" style="text-align:left;margin-bottom:6px" ' +
+          'data-act="field-merchant-buy" data-idx="' + i + '"' + (afford ? '' : ' disabled') + '>' +
+          '<b style="color:' + t.color + '">' + IT.name(row.item) + '</b>' +
+          ' <small>' + t.name + '</small>' +
+          '<span style="float:right">🪙 ' + core.fmt(row.price) + '</span>' +
+          '</button>';
+      }
+    }
+    html += '</div><button class="btn primary wide" data-act="field-merchant-leave">떠난다</button></div>';
     encOpen(html);
   }
 

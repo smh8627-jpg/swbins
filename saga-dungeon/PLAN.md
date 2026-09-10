@@ -3420,6 +3420,29 @@ corridor(방향-결 편향) 시스템이 §28-8(연속 세계로 전환)에서 �
 골라 하나씩 작게 쪼개 진행할 것 — 이번처럼 "안전지대+길+NPC+배치"를
 한 세션에 다 얹으면 검증(자가진단·수치 계산)이 매번 밀려 리스크가 쌓인다.
 
+## 후보 1 "필드 위 특별 조우" — 완료 (2026-09-10)
+
+정예가 보물을 지키는 절반(`spawnFieldTreasure`)은 2026-09-09에 던전 필드·
+마을 들판(town.js) 양쪽에 다 붙었고, 방랑 상인 절반(`spawnFieldMerchant`)은
+2026-09-10 초반엔 "town.js의 병렬 상태 모델과 안 맞는다"는 이유로 던전
+필드에만 붙어 있었다. 이번 세션에 그 차이를 메웠다:
+
+- `js/dungeon.js` — `spawnFieldMerchant`/`hasActiveFieldMerchant`가
+  `spawnFieldTreasure`와 같은 결로 `ctx`를 받게 고쳤다(마을 안전지대 제외
+  포함). `rollMerchantStock`을 새로 export했다.
+- `js/town.js` — `fieldMerchantCd`(60초 주기)를 얹고, `consumeFieldMerchant(npc)`를
+  새로 export해 만난 상인을 자리에서 치운다.
+- `js/ui.js` — 마을 필드 상인은 `run.merchantChoice`(dungeon.js 전용
+  클로저)를 안 쓴다 — 독자 상태(`fieldMerchantStock`)를 들고
+  `#encounter` 카드(`openWaypoint()`·`openVow()`와 같은 자리)로 고르게
+  한다. `town:npc` 리스너에서 `key === 'fieldmerchant'`만 갈라 받는다.
+
+`_test.html` 3연속 278/278 동일(회귀 없음, 새 자가진단 항목은 안 늘렸다 —
+확률 스폰이라 씨앗 고정 진단에 끼워 넣기 까다롭다). **실기기 확인 전** —
+다음 세션은 마을 들판에서 실제로 방물장수를 만나 사는 것까지 눈으로 볼 것.
+
+후보 2(길 위의 목적지형 콘텐츠)·3(탐험 보상)·4(필드 수집품)는 아직 손 안 댔다.
+
 ---
 
 # Claude Code 실행 지침
