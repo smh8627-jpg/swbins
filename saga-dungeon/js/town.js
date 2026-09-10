@@ -937,7 +937,29 @@
    */
   var VISION_CHUNKS = 2;
   var lastSeenCx = null, lastSeenCz = null;
-  var TOWN_DISCOVER_GOLD = 30, TOWN_DISCOVER_FEAT = 3;   // 탐험 보상(PLAN §60 후보3)
+  var TOWN_DISCOVER_GOLD = 30, TOWN_DISCOVER_FEAT = 3;   // 탐험 보상(PLAN §60 후보3, 절반: 마을 첫 발견)
+  /* 2026-09-10 — PLAN §60 후보 3 나머지 절반 "포그오브워 비율 보상".
+     세계 전체 면적을 분모로 삼는 "%"는 못 쓴다 — WORLD_LIMIT(60000)
+     기준 칸(CHUNK=200) 수가 9만 개에 육박해 분모 자체가 의미가 없고,
+     들판 렌더 반경(fieldRadiusUnits)은 그래픽 등급에 따라 흔들려(2/4/6칸)
+     "고정된 분모"가 못 된다. 대신 **밝힌 칸 누적 수의 문턱(milestone)**
+     으로 간다 — "몇 %" 대신 "지도를 이만큼 밝혔다"는 감각은 같고, 구현은
+     `core.save.town.seen`(이미 있음) 길이 하나만 보면 된다. */
+  var EXPLORE_MILESTONES = [50, 150, 350, 700, 1200, 2000];
+  var EXPLORE_GOLD = 25, EXPLORE_FEAT = 2;
+  function checkExploreMilestones() {
+    if (!core.save.town || !core.save.town.seen || !core.save.player) { return; }
+    var total = 0, k;
+    for (k in core.save.town.seen) { if (Object.prototype.hasOwnProperty.call(core.save.town.seen, k)) { total++; } }
+    var got = core.save.town.exploreMilestone || 0;
+    while (got < EXPLORE_MILESTONES.length && total >= EXPLORE_MILESTONES[got]) {
+      core.save.player.gold += EXPLORE_GOLD;
+      core.gainFeat(EXPLORE_FEAT, '지도 ' + EXPLORE_MILESTONES[got] + '칸 밝힘');
+      core.emit('toast', '🗺️ 지도를 ' + EXPLORE_MILESTONES[got] + '칸 밝혔다 · 🪙 +' + EXPLORE_GOLD);
+      got++;
+    }
+    core.save.town.exploreMilestone = got;
+  }
   function markSeen(x, y) {
     var F = global.DG.field3d;
     if (!F || !core.save.town) { return; }
@@ -951,6 +973,7 @@
         seen[(ccx + dx) + ',' + (ccz + dz)] = 1;
       }
     }
+    checkExploreMilestones();
   }
   function isSeen(cx, cz) {
     return !!(core.save.town && core.save.town.seen && core.save.town.seen[cx + ',' + cz]);
