@@ -85,6 +85,22 @@
       outfit: PEOPLE + 'Female_Ranger.gltf', hair: PEOPLE + 'Hair_SimpleParted.gltf' }
   ];
 
+  /* 2026-09-10 — 외형 다양화(saga-go 의 MPFB2 몸 20종을 그대로 복사, CC0,
+   * 자세한 것은 assets/ASSET_LICENSES.md). **아직 표 기본에는 안 넣었다** —
+   * 이 파일 머리말대로 이 표를 실제로 세우는 3D 화면(PLAN PHASE 2, world3d)이
+   * 아직 없어서 지금은 걸어도 안 걸어도 화면에 영향이 없지만, 나중에 그
+   * 화면이 생기면 걷는 인물이 된다. saga-go 의 MPFB 몸은 **제 클립이
+   * 0개**라(saga-go 는 `retargetInto()`로 UAL1 몸짓을 뼈대 비례까지 맞춰
+   * 다시 구워 입힌다) 이 판처럼 그 리타깃 코드가 없는 채로 그냥 걷게 하면
+   * saga-go 가 이미 겪은 뼈대 뒤틀림 버그가 그대로 난다. **PHASE 2에서
+   * 실제 3D 화면을 놓을 때, 이 배열을 쓰기 전에 saga-go 의 `retargetInto`
+   * 계열 함수(`needsRetarget`·`firstSkinned`·`boneNameMap`·`sceneHeight`·
+   * `dressUp`)를 먼저 옮겨 와야 한다** — 그 전까지는 손대지 말 것. */
+  var PEOPLE_MPFB = 'assets/models/people/mpfb_real/';
+  var HERO_RECIPES_MPFB = ['female', 'male', 'v3', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12',
+    'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21', 'v22', 'v23']
+    .map(function (n) { return { key: 'mpfb_' + n, body: PEOPLE_MPFB + n + '.glb' }; });
+
   /** 되돌림 자리 — 실사 바위가 안 맞으면 이 값으로 register() 두 줄이면 돌아간다:
    *    asset3d.register('rock', ROCK_STYLIZED.rock);
    *    asset3d.register('rock:moss', ROCK_STYLIZED['rock:moss']);
