@@ -686,6 +686,77 @@
     ROAD_SEGMENTS = segs;
   })();
 
+  /* 2026-09-10 — PLAN §60 후보 2 "길 위의 목적지형 콘텐츠". 지금까지 길은
+     순수 시각 요소였다(위 buildTownRoads 주석) — 길목에 고정 좌표로 작은
+     발견 거리를 심는다("제단·비석·조난자 등, MARKS처럼").
+     `core.hash2`(순수 함수, Math.random() 이 아니다)로만 정해서 마을
+     배치·장식과 같은 결로 **세계 그 자체의 일부**가 되게 한다 — 다시
+     불러도, 다른 플레이어라도 같은 길목에 같은 것이 있다. 선분 길이의
+     30~70% 지점에만 둬(ANCHOR_DIST 4800 기준 최소 1440 떨어짐) 양끝
+     마을의 TOWN_SAFE_R(1300)과 절대 안 겹친다. 약 45%의 길목에만 둬
+     "가끔 있다"는 느낌을 지킨다(전부 있으면 과하다). */
+  var ROAD_MARK_KINDS = [
+    { key: 'roadAltar', name: '길가 제단', emoji: '⛩️', verb: '빌었다' },
+    { key: 'roadTomb', name: '옛 비석', emoji: '🪦', verb: '읽었다' },
+    { key: 'roadStranded', name: '지친 나그네', emoji: '🧎', verb: '도왔다' }
+  ];
+  var ROAD_MARK_GOLD = 14, ROAD_MARK_FEAT = 1;
+  var ROAD_MARKS = [];
+  (function buildRoadMarks() {
+    var out = [], i, s, roll, t, kind;
+    for (i = 0; i < ROAD_SEGMENTS.length; i++) {
+      s = ROAD_SEGMENTS[i];
+      roll = core.hash2(i * 7 + 3, i * 11 + 5);
+      if (roll >= 0.45) { continue; }
+      t = 0.3 + core.hash2(i * 13 + 1, i * 17 + 9) * 0.4;
+      kind = ROAD_MARK_KINDS[Math.floor(core.hash2(i * 19 + 2, i * 23 + 4) * ROAD_MARK_KINDS.length)];
+      out.push({
+        id: 'road:' + i, kind: kind,
+        x: s.ax + (s.bx - s.ax) * t, y: s.az + (s.bz - s.az) * t
+      });
+    }
+    ROAD_MARKS = out;
+  })();
+  var ROAD_MARK_ACTIVE_R = 500;   // 이 안쪽에 들어와야 room.marks 에 실제로 얹는다(매 틱 전수조사 안 하려고)
+  var roadMarkCd = 1;
+
+  /** 플레이어 둘레에 아직 안 밟은 길목 발견거리를 room.marks 에 얹는다.
+   *  build() 가 room 을 통째로 새로 지을 때마다(마을이 갈릴 때마다) 비므로
+   *  다시 다가서면 다시 얹힌다 — 좌표는 ROAD_MARKS 에 고정이라 매번 같다. */
+  function spawnNearbyRoadMarks() {
+    if (!room || !room.marks) { return; }
+    var done = (core.save.town && core.save.town.roadMarks) || {};
+    for (var i = 0; i < ROAD_MARKS.length; i++) {
+      var rm = ROAD_MARKS[i];
+      if (done[rm.id]) { continue; }
+      if (Math.hypot(player.x - rm.x, player.y - rm.y) >= ROAD_MARK_ACTIVE_R) { continue; }
+      var already = false, j;
+      for (j = 0; j < room.marks.length; j++) { if (room.marks[j].key === rm.id) { already = true; break; } }
+      if (already) { continue; }
+      room.marks.push({
+        key: rm.id, roadMark: true, kindKey: rm.kind.key,
+        name: rm.kind.name, emoji: rm.kind.emoji, verb: rm.kind.verb,
+        x: rm.x, y: rm.y
+      });
+    }
+  }
+
+  /** 길목 발견거리 하나를 밟았다 — 보상을 주고 자리에서 치운다.
+   *  `js/ui.js` 가 `town:mark`(roadMark 표시가 있는 것)에서 부른다. */
+  function rewardRoadMark(mark) {
+    if (!core.save.town) { core.save.town = {}; }
+    if (!core.save.town.roadMarks) { core.save.town.roadMarks = {}; }
+    if (core.save.town.roadMarks[mark.key]) { return; }   // 이중 발동 방지
+    core.save.town.roadMarks[mark.key] = 1;
+    var i = room.marks.indexOf(mark);
+    if (i >= 0) { room.marks.splice(i, 1); }
+    core.save.player.gold += ROAD_MARK_GOLD;
+    core.gainFeat(ROAD_MARK_FEAT, mark.name);
+    core.log(mark.emoji + ' ' + mark.name + ' — ' + mark.verb + ' · 금 +' + core.fmt(ROAD_MARK_GOLD), 'good');
+    core.emit('toast', mark.emoji + ' ' + mark.name + ' — ' + mark.verb + ' · 🪙 +' + ROAD_MARK_GOLD);
+    core.emit('changed');
+  }
+
   function dirEmoji(dir) {
     return dir === 'N' ? '⬆️' : dir === 'S' ? '⬇️' : dir === 'E' ? '➡️' : '⬅️';
   }
@@ -1260,6 +1331,11 @@
       fieldMerchantCd = 60;
       D().spawnFieldMerchant(ctx);
     }
+    roadMarkCd -= dt;
+    if (roadMarkCd <= 0) {
+      roadMarkCd = 1;
+      spawnNearbyRoadMarks();
+    }
     D().stepFieldCombat(dt, ctx, fx);
     D().pickupField(ctx, fx);
     /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
@@ -1364,6 +1440,7 @@
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
     nearest: nearest, note: note, consumeFieldMerchant: consumeFieldMerchant,
+    rewardRoadMark: rewardRoadMark,
     overworld: overworld,
     status: status,
     exitPointRaw: exitPointRaw,
