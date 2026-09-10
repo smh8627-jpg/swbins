@@ -179,10 +179,13 @@
         if (sfn) { toast(sfn.text); }
       } else if (act === 'v-donate') {
         var dn = global.DG.museum.donate(id);
-        if (dn) { toast(dn.text); }
+        if (dn) { toast(dn.text); if (dn.kind === 'donate' && global.DG.sfx) { global.DG.sfx.play('donate'); } }
       } else if (act === 'v-gift') {
         var gv = global.DG.village.giveGift(b.getAttribute('data-who'), id);
-        if (gv) { toast('🎁 ' + (gv.name ? gv.name + ' — ' : '') + gv.text); }
+        if (gv) {
+          toast('🎁 ' + (gv.name ? gv.name + ' — ' : '') + gv.text);
+          if (gv.kind === 'gift' && global.DG.sfx) { global.DG.sfx.play(gv.loved ? 'gift_love' : 'gift_ok'); }
+        }
       } else if (act === 'v-wbuy') {
         var wb = global.DG.wear.buy(b.getAttribute('data-kind'), id);
         if (wb) { toast(wb.text); }

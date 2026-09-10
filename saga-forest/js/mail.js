@@ -66,6 +66,7 @@
       }
       s.mail.splice(cut >= 0 ? cut : s.mail.length - 1, 1);
     }
+    core.emit('village:mail', letter);
     return letter;
   }
 
