@@ -144,6 +144,12 @@
   var DODGE_COOL = 3.0;
   var DODGE_DIST = 140;
   var DODGE_INVULN = 0.35;
+  /* 공격 몸짓(2026-09-10) — `asset3d.js`의 몸짓 표에는 이미 attack 자리가
+     있었는데(saga-dungeon이 실제로 쓰고 있다) 이 판은 한 번도 부른 적이
+     없었다. 판정은 그대로(때리는 순간 이미 strike()가 끝낸다) — 이건 그
+     짧은 동안만 화면 층이 걷기/가만있기 대신 attack 몸짓을 고르게 하는
+     타이머다 */
+  var ATK_ANIM_DUR = 0.28;
 
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
   /* 미니보스(PLAN 11절, 2026-09-10) — 희귀(3.2배)와 보스(12~17배) 사이. 새 종을
@@ -517,7 +523,7 @@
       dmg: Math.round((4 + lv * 1.6) * stg.boss.dmgMul * E_DMG),
       dir: -1, homeY: stg.floor,
       spd: 38 + Math.min(40, lv * 2),
-      phase: 0, hurt: 0, cd: 0,
+      phase: 0, hurt: 0, cd: 0, atkAnim: 0,
       chargeCd: 4 + Math.random() * 3, charge: 0
     };
     run.enemies.push(e);
@@ -588,7 +594,7 @@
       dir: Math.random() < 0.5 ? -1 : 1, homeY: y,
       spd: spd, phase: Math.random() * 6.28, hurt: 0, cd: 0,
       ranged: rw, shotCd: rw ? rw.cd * (0.4 + Math.random() * 0.8) : 0,
-      rare: rare, mini: !!boost, role: role
+      rare: rare, mini: !!boost, role: role, atkAnim: 0
     };
     /* 돌진형(PLAN 13절) — 보스의 "뜸을 들이다 달려든다" 패턴을 그대로 빌린다
        (update() 의 charge 분기가 `e.boss || e.role === 'dash'` 를 본다) */
@@ -833,6 +839,7 @@
     if (p.cds[i] > 0 || run.mp < sk.cost) { return false; }
     run.mp -= sk.cost;
     p.cds[i] = sk.cd;
+    p.atkCd = ATK_ANIM_DUR;
     var S0 = global.DG.sfx;
     sfx(sk.cost === 0 ? 'swing' : (S0 ? S0.skillCue(sk.effect) : 'skill'));
 
@@ -926,6 +933,7 @@
 
     for (i = 0; i < p.cds.length; i++) { if (p.cds[i] > 0) { p.cds[i] -= dt; } }
     if (p.dodgeCd > 0) { p.dodgeCd -= dt; }
+    if (p.atkCd > 0) { p.atkCd -= dt; }   // 공격 몸짓 타이머(판정과 무관, 화면 층만 본다)
     var bf = buffOn();
     run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
@@ -1054,6 +1062,7 @@
     for (i = 0; i < run.enemies.length; i++) {
       var e = run.enemies[i];
       if (e.hurt > 0) { e.hurt -= dt; }
+      if (e.atkAnim > 0) { e.atkAnim -= dt; }
       e.phase += dt * 6;
       var dx = (p.x + P_W / 2) - (e.x + e.w / 2);
       var near = Math.abs(dx) < (e.boss ? 420 : 260) && Math.abs((p.y + P_H) - (e.y + e.h)) < 70;
@@ -1089,6 +1098,7 @@
           if (far > REACH * 1.2) { holding = true; }     // 사거리 안이면 다가오지 않는다
           if (e.shotCd <= 0) {
             e.shotCd = e.ranged.cd * (0.8 + Math.random() * 0.4);
+            e.atkAnim = ATK_ANIM_DUR;
             run.eshots.push({
               x: e.x + e.w / 2 + e.dir * 16, y: e.y + e.h * 0.42,
               dir: e.dir, spd: e.ranged.spd, dmg: Math.round(e.dmg * e.ranged.mul),
@@ -1111,6 +1121,7 @@
       e.cd -= dt;
       if (overlap({ x: p.x, y: p.y, w: P_W, h: P_H }, e) && e.cd <= 0) {
         e.cd = 1.0;
+        e.atkAnim = ATK_ANIM_DUR;
         hurtMe(e.dmg);
         if (!run) { return; }
       }
