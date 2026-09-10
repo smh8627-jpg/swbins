@@ -796,21 +796,28 @@
    *  이미 세운 지형지물(동굴·호수·캠프·폭포·버섯숲)마다 한 명씩 붙인다.
    *  대화·퀘스트·아이템·발견정보(PLAN 17절 역할 넷)는 다음 칸(Interaction·
    *  Quest)에서 채운다 — 지금은 이름과 인사말 하나만 가진 "만날 수 있는
-   *  사람"으로 세운다. 사람 그림(hero 3D 모델·2D 스탬프)은 실제 인물
-   *  로스터에 물려 있어 여기 재사용하면 사연 없는 다른 인물이 튀어나온다
-   *  — 그래서 2D는 짐승과 같은 emoji, 3D는 이번엔 안 세운다(다음 몫) */
+   *  사람"으로 세운다. HEROES 로스터의 실제 인물은 안 물린다(재사용하면
+   *  사연 없는 다른 인물이 튀어나온다) — 대신 2D는 npc.id를 해시해 고른
+   *  Kenney 사람 그림(residents와 같은 stamp(), 2026-09-10), 3D는 npc.id를
+   *  그대로 hero GLB 조합의 씨앗으로 쓴다(둘 다 로스터 밖 제 얼굴).
+   *  emoji는 대화창·초점 카드 같은 UI 표시용으로 여전히 쓴다 */
   var NPCS = {
     keeper:    { name: '숲지기', emoji: '🧙', line: '이 숲은 내가 돌본다 — 짐승을 함부로 놀라게 하지 마시게' },
     angler:    { name: '낚시꾼', emoji: '🎣', line: '이 물엔 씨알 좋은 놈들이 산다네' },
     merchant:  { name: '상인',   emoji: '🧺', line: '먼 길 다니며 이것저것 모았지 — 나중에 풀어놓겠네' },
     explorer:  { name: '탐험가', emoji: '🧭', line: '이 폭포 너머에 뭐가 있는지 아직 아무도 몰라' },
-    herbalist: { name: '약초꾼', emoji: '🌿', line: '버섯 숲엔 좋은 약초가 지천이야' }
+    herbalist: { name: '약초꾼', emoji: '🌿', line: '버섯 숲엔 좋은 약초가 지천이야' },
+    /* 나그네(2026-09-10) — 두 번째 캠프(hamlet2Spot, 2026-09-09에 자리만
+       열고 "사람은 아직 없다"고 남겨 뒀던 곳)에 처음 세우는 사람.
+       외딴집에서 하룻밤 묵어가는 컨셉이라 여정에 먹을 것을 청한다 */
+    wanderer:  { name: '나그네', emoji: '🎒', line: '이 외딴집에서 하룻밤 신세 좀 지고 있다네' }
   };
 
   /**
-   * 숲 NPC 다섯의 부탁 — 하나씩, 한 번만(PLAN 19절 "미니 퀘스트").
+   * 숲 NPC 여섯의 부탁 — 하나씩, 한 번만(PLAN 19절 "미니 퀘스트").
    * **복잡한 시스템은 안 만든다** — PLAN 19절이 예로 든 넷(꽃 5개·잃어버린
-   * 상자·짐승 발견·숲 깊은 곳 NPC)을 그대로 다섯 NPC에 하나씩 얹었다.
+   * 상자·짐승 발견·숲 깊은 곳 NPC)을 그대로 다섯 NPC에 하나씩 얹었고, 여섯
+   * 번째(나그네)도 같은 bagcat 결로 얹었다.
    * type 은 village.js 의 questProgress() 가 셋만 안다(bagcat·chest·meetnpc).
    */
   var QUESTS = {
@@ -823,12 +830,16 @@
     merchant: { title: '꽃 다섯 송이',
       description: '꽃 다섯 송이만 모아다 주게 — 팔 데가 있어',
       type: 'bagcat', cat: 'flower', count: 5, reward: 300 },
+    /* 2026-09-10 — 나그네가 여섯 번째로 늘어 count 4 → 5(자신 뺀 나머지 전부) */
     explorer: { title: '숲의 나머지 사람들',
       description: '이 숲 다른 사람들도 다 만나고 왔나?',
-      type: 'meetnpc', count: 4, reward: 500 },
+      type: 'meetnpc', count: 5, reward: 500 },
     keeper: { title: '동굴의 보물',
       description: '북쪽 동굴에 보물이 숨어 있다던데, 찾았나?',
-      type: 'chest', count: 1, reward: 300 }
+      type: 'chest', count: 1, reward: 300 },
+    wanderer: { title: '길양식',
+      description: '먼 길 갈 양식으로 밤·잣 네 알만 나눠 주게',
+      type: 'bagcat', cat: 'nut', count: 4, reward: 320 }
   };
 
   global.DG = global.DG || {};

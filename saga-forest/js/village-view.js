@@ -1506,9 +1506,34 @@
 
 
   /* ── 짐승(PLAN 40절 PHASE 4 첫 칸, PLAN 16절) ────────────────────
-   * 아직은 emoji 로만 뜬다 — 3D 는 asset3d.js 에 등록된 실제 모델(사슴·여우·
-   * 늑대·토끼·다람쥐·오리·새)이 선다. 2D 쪽 전용 그림은 다음 손질 몫으로 남겨 둔다.
+   * 3D 는 asset3d.js 에 등록된 실제 모델(사슴·여우·늑대·토끼·다람쥐·오리·새·
+   * 개구리·뱀)이 선다. 2D 는 2026-09-10까지 emoji 뿐이었다 — 사슴·여우·
+   * 다람쥐·개구리·새 다섯은 OpenGameArt "Seasons of Forest Animal Pack"
+   * (CC0, `assets/sprites2d/animals/`, `ASSET_LICENSES.md` 참고)의 실제
+   * 4방향 idle/run 그림으로 바꿨다. 원본은 앞/뒤 방향도 있지만 이 게임은
+   * 좌/우(facing -1/1)만 추적하므로 그 둘만 골라 담았다(ANIMAL_SPRITE 표).
+   * 나머지 넷(늑대·토끼·오리·뱀)은 맞는 CC0 를 못 찾아 emoji 그대로 —
+   * ANIMAL_SPRITE 에 없는 kind 는 자동으로 이 fallback 을 탄다.
    */
+  var ANIMAL_SPRITE = {
+    deer:     { w: 41, h: 33, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
+    fox:      { w: 35, h: 32, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
+    squirrel: { w: 30, h: 28, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 },
+    frog:     { w: 24, h: 21, idleFrames: 2, runFrames: 4, idleMs: 600, runMs: 150 },
+    bird:     { w: 28, h: 24, idleFrames: 4, runFrames: 4, idleMs: 300, runMs: 150 }
+  };
+  var animalImgCache = {};
+  function animalImg(kind) {
+    var im = animalImgCache[kind];
+    if (!im) {
+      im = new Image();
+      im.src = 'assets/sprites2d/animals/' + kind + '.png';
+      animalImgCache[kind] = im;
+    }
+    return im;
+  }
+  var ANIMAL_DISPLAY_H = 30;   // emoji 글자 높이(27px)와 맞춘 눈대중 값
+
   function drawAnimal(a, now) {
     var def = VD.ANIMALS[a.kind];
     if (!def) { return; }
@@ -1519,12 +1544,28 @@
     shadow(p.x, p.y + 4 * k, 11 * k, 4 * k);
     ctx.save();
     if (a.state === 'flee') { ctx.globalAlpha = 0.85; }
-    ctx.font = Math.round(27 * k) + 'px "Segoe UI Emoji", system-ui';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.translate(p.x, 0);
-    ctx.scale(a.facing < 0 ? -1 : 1, 1);
-    ctx.fillText(def.emoji, 0, p.y + 7 * k);
+
+    var sp = ANIMAL_SPRITE[a.kind];
+    var img = sp && animalImg(a.kind);
+    if (sp && img.complete && img.naturalWidth) {
+      var moving = a.state === 'wander' || a.state === 'flee';
+      var right = a.facing >= 0;
+      var row = moving ? (right ? 3 : 2) : (right ? 1 : 0);
+      var frames = moving ? sp.runFrames : sp.idleFrames;
+      var ms = moving ? sp.runMs : sp.idleMs;
+      var frame = Math.floor(now / ms) % frames;
+      var dh = ANIMAL_DISPLAY_H * k, dw = dh * (sp.w / sp.h);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, frame * sp.w, row * sp.h, sp.w, sp.h,
+        p.x - dw / 2, p.y + 7 * k - dh, dw, dh);
+    } else {
+      ctx.font = Math.round(27 * k) + 'px "Segoe UI Emoji", system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.translate(p.x, 0);
+      ctx.scale(a.facing < 0 ? -1 : 1, 1);
+      ctx.fillText(def.emoji, 0, p.y + 7 * k);
+    }
     ctx.restore();
   }
 
@@ -1541,14 +1582,14 @@
     if (p.x < -120 || p.x > W + 120 || p.y < -140 || p.y > H + 140) { return; }
     var k = ZOOM * p.s;
     shadow(p.x, p.y + 3 * k, 12 * k, 4.4 * k);
-    ctx.save();
-    ctx.font = Math.round(28 * k) + 'px "Segoe UI Emoji", system-ui';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.translate(p.x, 0);
-    ctx.scale(n.facing < 0 ? -1 : 1, 1);
-    ctx.fillText(def.emoji, 0, p.y + 7 * k);
-    ctx.restore();
+    /* 2026-09-10 — 이모지 대신 residents 와 같은 사람 스탬프(Kenney CC0,
+       sprite.js 의 stamp())를 쓴다. HEROES 로스터를 안 물리려고 ref 를
+       {id:'npc_'+kind} 만 준다 — humanIndexOf() 가 이 문자열을 해시해
+       14종 중 하나를 고정으로 고른다(같은 NPC는 늘 같은 얼굴) */
+    global.DG.sprite.stamp(ctx, {
+      kind: 'human', ref: { id: n.id }, x: p.x, y: p.y, s: 0.86 * k,
+      facing: n.facing, phase: 0, walking: false, t: now
+    });
 
     var raw = V.raw();
     var near = Math.hypot(raw.player.x - n.x, raw.player.y - n.y) < NPC_TALK_DIST;

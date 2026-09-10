@@ -1284,9 +1284,11 @@
   }
 
   /**
-   * 숲 NPC 다섯(PLAN 40절 PHASE 4)을 플레이어와 같은 GLB(`asset3d` 의 'hero'
-   * 표, Quaternius RPG Character Pack)로 세운다. 자리가 고정이고 수가 다섯뿐이라
-   * 스캐터처럼 컬링·예산을 두지 않는다 — 없으면 한 번만 짓고, 있으면 자리만 갱신.
+   * 숲 NPC(PLAN 40절 PHASE 4, 2026-09-10부터 여섯)를 플레이어와 같은
+   * GLB(`asset3d` 의 'hero' 표, Quaternius RPG Character Pack)로 세운다.
+   * 자리가 고정이고 `V.raw().npcs`를 그대로 도는 구조라 늘어도 이 함수는
+   * 안 건드린다 — 스캐터처럼 컬링·예산을 두지 않는다(수가 적어서 괜찮다).
+   * 없으면 한 번만 짓고, 있으면 자리만 갱신.
    */
   function syncNpcs(dt) {
     var V = global.DG.village;

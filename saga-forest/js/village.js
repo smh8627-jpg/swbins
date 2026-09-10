@@ -848,6 +848,13 @@
     if (hb) {
       npcs.push(npcAt('herbalist', hb.tx * TILE + TILE * 0.5, hb.ty * TILE + TILE * 0.5));
     }
+    /* 나그네(2026-09-10) — 두 번째 캠프(hamlet2Spot)에 처음 세우는 사람.
+       buildProps() 의 hamlet2House 바로 앞(남쪽으로 0.6칸)에 세운다 —
+       merchant 가 hamletHouse 앞에 서는 것과 같은 자리 잡기 */
+    var hs2 = hamlet2Spot();
+    if (hs2) {
+      npcs.push(npcAt('wanderer', hs2.tx * TILE + TILE * 0.5 + TILE * 0.2, hs2.ty * TILE + TILE * 0.5 - TILE * 1.0));
+    }
   }
 
   /**

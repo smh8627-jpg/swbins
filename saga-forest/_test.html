@@ -2848,18 +2848,18 @@ window.DG_NO_TUNE = true;
       var n1 = V.raw().npcs.map(function (n) { return n.id + ':' + n.x + ',' + n.y; });
       V.buildNpcs();
       var n2 = V.raw().npcs.map(function (n) { return n.id + ':' + n.x + ',' + n.y; });
-      return n1.length === 5 && JSON.stringify(n1) === JSON.stringify(n2) &&
+      return n1.length === 6 && JSON.stringify(n1) === JSON.stringify(n2) &&
         (n1.length + '명 재현: ' + n1.map(function (s) { return s.split(':')[0]; }).join(', '));
     });
 
-    t('숲 NPC — 다섯 다 등록된 종류고, 걸을 수 있는 자리에 선다', function () {
+    t('숲 NPC — 여섯 다 등록된 종류고, 걸을 수 있는 자리에 선다', function () {
       V.buildNpcs();
       var list = V.raw().npcs, i, bad = null;
       for (i = 0; i < list.length; i++) {
         var n = list[i];
         if (!VD.NPCS[n.kind] || !V.walkable(n.x, n.y)) { bad = n; break; }
       }
-      return !bad && list.length === 5 && '5명 다 통행 가능한 자리';
+      return !bad && list.length === 6 && '6명 다 통행 가능한 자리';
     });
 
     t('숲 NPC — margin 이 좁아 지형지물이 사라져도 죽지 않고 배열을 준다', function () {
@@ -3051,10 +3051,10 @@ window.DG_NO_TUNE = true;
      * 말한 "복잡한 시스템은 필요 없다"를 그대로 따른다).
      */
 
-    t('Quest — 숲 NPC 다섯이 전부 부탁을 하나씩 갖는다', function () {
+    t('Quest — 숲 NPC 여섯이 전부 부탁을 하나씩 갖는다', function () {
       var npcKinds = Object.keys(VD.NPCS);
       var missing = npcKinds.filter(function (k) { return !VD.QUESTS[k]; });
-      return npcKinds.length === 5 && missing.length === 0 && (npcKinds.length + '명 전부 부탁 있음');
+      return npcKinds.length === 6 && missing.length === 0 && (npcKinds.length + '명 전부 부탁 있음');
     });
 
     t('Quest — bagcat 부탁(상인)은 채우기 전엔 설명·진행도만, 채우면 그 자리에서 완료되고 보상을 받는다', function () {
@@ -3083,24 +3083,24 @@ window.DG_NO_TUNE = true;
         ('진행중(0/5) → 완료(+' + VD.QUESTS.merchant.reward + ') → 인사말');
     });
 
-    t('Quest — meetnpc 부탁(탐험가)은 나머지 넷을 만나야 채워진다', function () {
+    t('Quest — meetnpc 부탁(탐험가)은 나머지 다섯을 만나야 채워진다', function () {
       var s = V.state();
       var savedMet = s.metNpcs, savedQuests = s.quests;
       s.metNpcs = {}; s.quests = {};
       var npcs = V.raw().npcs;
       var explorer = npcs.filter(function (n) { return n.kind === 'explorer'; })[0];
       var others = npcs.filter(function (n) { return n.kind !== 'explorer'; });
-      if (!explorer || others.length < 4) { s.metNpcs = savedMet; s.quests = savedQuests; return false; }
-      var before = V.talkNpc(explorer);               // 자신은 안 세므로 0/4
+      if (!explorer || others.length < 5) { s.metNpcs = savedMet; s.quests = savedQuests; return false; }
+      var before = V.talkNpc(explorer);               // 자신은 안 세므로 0/5
       for (var i = 0; i < others.length; i++) { V.talkNpc(others[i]); }
       var g0 = C.save.player.gold;
       var after = V.talkNpc(explorer);
       var g1 = C.save.player.gold;
       C.save.player.gold = g0;
       s.metNpcs = savedMet; s.quests = savedQuests;
-      return before.kind === 'quest' && before.text.indexOf('0/4') >= 0 &&
+      return before.kind === 'quest' && before.text.indexOf('0/5') >= 0 &&
         after.kind === 'quest' && g1 === g0 + VD.QUESTS.explorer.reward &&
-        ('만나기 전 0/4 → 넷 다 만나니 완료(+' + VD.QUESTS.explorer.reward + ')');
+        ('만나기 전 0/5 → 다섯 다 만나니 완료(+' + VD.QUESTS.explorer.reward + ')');
     });
 
     t('Quest — chest 부탁(숲지기)은 동굴 보물을 열어야 채워진다', function () {

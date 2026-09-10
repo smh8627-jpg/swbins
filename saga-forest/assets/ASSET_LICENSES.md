@@ -249,6 +249,12 @@ Idle·Walk 등 클립이 열둘 넘게 있는데(직접 GLB 를 열어 확인), 
 3D(`portrait3d.js`)로 가 있어 영향이 없다 — **지도 위에서 걸어 다니는 모습만**
 바꿨다.
 
+**2026-09-10 — 숲 NPC 여섯도 같은 그림을 쓴다.** `village-view.js`의
+`drawNpc()`가 이모지 대신 residents 와 똑같이 `sprite.js`의 `stamp()`를
+부른다. HEROES 로스터는 안 물린다 — `ref`에 `{id: npc.id}`(예: `npc_keeper`)
+만 넘겨 `humanIndexOf()`가 그 문자열을 해시해 열넷 중 하나를 고정으로
+고르게 했다(사연 있는 다른 역사 인물이 튀어나오지 않는다).
+
 시트에서 사람 여덟 줄 × 두 칸(첫 넉 줄의 오우거·오크 몬스터 줄은 건너뛴다,
 이 판의 사람이 아니다)을 16x16px 그대로 잘라 저장했다.
 
@@ -262,11 +268,48 @@ Idle·Walk 등 클립이 열둘 넘게 있는데(직접 GLB 를 열어 확인), 
 | `human_11.png`·`human_12.png` | (0,170)-(16,186) · (17,170)-(33,186) — 청록 두건 궁수 · 주황 셔츠 |
 | `human_13.png`·`human_14.png` | (0,187)-(16,203) · (17,187)-(33,203) — 청록 방패 기사 · 흰 로브 |
 
-### 아직 못 채운 자리 (PLAN 16절 동물 콘텐츠)
+### 아직 못 채운 자리 (PLAN 16절 동물 콘텐츠) — 3D 는 다 채워졌다
 
-**토끼·다람쥐·오리·새**는 이 미러에 없다. `animals_pack` 에는 Alpaca·Bull·Cow·Deer·
-Donkey·Fox·Horse·Husky·ShibaInu·Stag·Wolf 뿐이다. 다른 CC0 출처를 더 찾아야
-한다 — 다음 세션 몫으로 남긴다(까치를 Poly by Google 에서 따로 구한 것처럼).
+이 문단이 말하던 **토끼·다람쥐·오리·새**의 3D 모델은 2026-09-09에 Poly by
+Google(위 78절)에서 따로 구해 이미 채웠다. 2D 쪽(동물 정지 초상이 아니라
+지도 위 걷는 그림)은 아래 "OpenGameArt — Seasons of Forest Animal Pack"
+절 참고 — 사슴·여우·다람쥐·개구리·새 다섯만 채웠고, 늑대·토끼·오리·뱀
+넷은 2026-09-10 시점에도 맞는 CC0 를 못 찾았다.
+
+---
+
+## OpenGameArt — Seasons of Forest Animal Pack, 무료 샘플 (`assets/sprites2d/animals/`, 2026-09-10)
+
+| 항목 | |
+|---|---|
+| **만든 이** | inkbubi (<https://inkbubi.itch.io/seasons-of-forest-animal-pack>의 무료 샘플) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) — 받은 zip 안 `license.txt`에
+  "This work has been dedicated to the public domain under the Creative Commons
+  CC0 license. No credit is required, but it's appreciated." 라고 명시 |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 — 이 무료 샘플만 CC0 다(유료 정식판은 라이선스가 다르다,
+  이 판에는 무료 샘플만 받았다) |
+| **받은 곳** | <https://opengameart.org/content/free-sample-16x16-pixel-forest-animal-pack-%E2%80%93-top-down-rpg-style> —
+  `seasons_of_forest_animal_pack_free_v1.zip` |
+
+원본은 여우(fox)·암사슴(doe)·올빼미(owl)·다람쥐(squirle)·개구리(frog) 다섯 종을
+idle·run 애니메이션으로 4방향(전·후·좌·우)씩 준다. 이 게임은 `a.facing`이
+좌/우(-1/1)만 추적해서 **좌·우 두 방향만** 골라 받았다 — 직접 PIL 로 종별
+아틀라스 한 장씩(4행: idleLeft·idleRight·runLeft·runRight × 최대 4열)으로
+다시 구웠다(원본 앞/뒤 프레임은 안 옮겼다).
+
+| 원본 폴더 | 이 판의 kind(`VD.ANIMALS`) | 파일 |
+|---|---|---|
+| `doe` | `deer`(사슴) | `deer.png` |
+| `fox` | `fox`(여우) | `fox.png` |
+| `squirle` | `squirrel`(다람쥐) | `squirrel.png` |
+| `frog` | `frog`(개구리) | `frog.png` |
+| `owl` | `bird`(새) — 올빼미가 참새 등 다른 새를 대신한다 | `bird.png` |
+
+`village-view.js`의 `drawAnimal()`이 `ANIMAL_SPRITE` 표에 있는 다섯 종만 이
+아틀라스로 그린다 — 나머지 넷(늑대·토끼·오리·뱀)은 표에 없어 그대로 emoji
+fallback을 탄다(자동, 새 분기 없음). 이미지가 아직 안 실렸으면(첫 프레임)
+같은 fallback을 잠깐 탄다.
 
 ---
 
