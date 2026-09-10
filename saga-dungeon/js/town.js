@@ -757,6 +757,79 @@
     core.emit('changed');
   }
 
+  /* 2026-09-10 — PLAN §60 후보 4 "필드 수집품". 길가 발견거리(위 ROAD_MARKS)와
+     달리 **길에서 벗어나야** 닿는다 — 디아4의 "릴리스 제단"처럼 정해진 자리
+     전부를 모으는 도감류 수집이다. 같은 길 선분을 기준점으로 삼되(새 좌표계를
+     안 만든다), 선분의 수직 방향으로 180~400 떨어뜨려(길 대역 TOWN_ROAD_BAND=70
+     밖) "길 옆 숲·바위 사이"에 둔다. 도감(js/ui.js DEX_COMPLETE)에 새 갈래
+     'relics'로 얹는다 — 새 도감 시스템을 만들지 않고 기존 것에 얹는다. */
+  var FIELD_RELIC_KINDS = [
+    { name: '옛 석표(石標)', emoji: '🗿' },
+    { name: '이끼 낀 종', emoji: '🔔' },
+    { name: '금 간 청동거울', emoji: '🪞' },
+    { name: '녹슨 인장', emoji: '🔏' }
+  ];
+  var FIELD_RELIC_GOLD = 20, FIELD_RELIC_FEAT = 4;
+  var FIELD_RELICS = [];
+  (function buildFieldRelics() {
+    var out = [], i, s, roll, t, dx, dz, len, bx, by, side, offR, kind;
+    for (i = 0; i < ROAD_SEGMENTS.length; i++) {
+      s = ROAD_SEGMENTS[i];
+      roll = core.hash2(i * 31 + 101, i * 37 + 103);
+      if (roll >= 0.3) { continue; }   // 길목 발견거리(45%)보다 더 드물게 — 릴리스 제단처럼 귀해야 한다
+      t = 0.3 + core.hash2(i * 41 + 7, i * 43 + 11) * 0.4;
+      dx = s.bx - s.ax; dz = s.bz - s.az;
+      len = Math.hypot(dx, dz) || 1;
+      dx /= len; dz /= len;
+      bx = s.ax + (s.bx - s.ax) * t;
+      by = s.az + (s.bz - s.az) * t;
+      side = core.hash2(i * 53 + 13, i * 59 + 17) < 0.5 ? -1 : 1;
+      offR = 180 + core.hash2(i * 61 + 19, i * 67 + 23) * 220;   // 180~400, 길 대역(70) 밖
+      kind = FIELD_RELIC_KINDS[Math.floor(core.hash2(i * 71 + 29, i * 73 + 31) * FIELD_RELIC_KINDS.length)];
+      out.push({
+        id: 'relic:' + i, kind: kind,
+        x: bx + (-dz) * offR * side, y: by + dx * offR * side
+      });
+    }
+    FIELD_RELICS = out;
+  })();
+  var FIELD_RELIC_ACTIVE_R = 500;
+  var relicMarkCd = 1;
+
+  function spawnNearbyFieldRelics() {
+    if (!room || !room.marks) { return; }
+    var found = (core.save.dex && core.save.dex.relics) || {};
+    for (var i = 0; i < FIELD_RELICS.length; i++) {
+      var fr = FIELD_RELICS[i];
+      if (found[fr.id]) { continue; }
+      if (Math.hypot(player.x - fr.x, player.y - fr.y) >= FIELD_RELIC_ACTIVE_R) { continue; }
+      var already = false, j;
+      for (j = 0; j < room.marks.length; j++) { if (room.marks[j].key === fr.id) { already = true; break; } }
+      if (already) { continue; }
+      room.marks.push({
+        key: fr.id, fieldRelic: true,
+        name: fr.kind.name, emoji: fr.kind.emoji,
+        x: fr.x, y: fr.y
+      });
+    }
+  }
+
+  /** 필드 유적 하나를 밟았다 — 도감에 등록하고 보상을 준 뒤 자리에서 치운다.
+   *  `js/ui.js` 가 `town:mark`(fieldRelic 표시가 있는 것)에서 부른다. */
+  function rewardFieldRelic(mark) {
+    if (!core.save.dex.relics) { core.save.dex.relics = {}; }
+    if (core.save.dex.relics[mark.key]) { return; }   // 이중 발동 방지
+    core.save.dex.relics[mark.key] = true;
+    var i = room.marks.indexOf(mark);
+    if (i >= 0) { room.marks.splice(i, 1); }
+    core.save.player.gold += FIELD_RELIC_GOLD;
+    core.gainFeat(FIELD_RELIC_FEAT, mark.name);
+    core.log(mark.emoji + ' ' + mark.name + ' 발견 · 금 +' + core.fmt(FIELD_RELIC_GOLD), 'good');
+    core.emit('toast', mark.emoji + ' 유적 발견 · ' + mark.name);
+    core.emit('dex:new', { cat: 'relics', id: mark.key });
+    core.emit('changed');
+  }
+
   function dirEmoji(dir) {
     return dir === 'N' ? '⬆️' : dir === 'S' ? '⬇️' : dir === 'E' ? '➡️' : '⬅️';
   }
@@ -1359,6 +1432,11 @@
       roadMarkCd = 1;
       spawnNearbyRoadMarks();
     }
+    relicMarkCd -= dt;
+    if (relicMarkCd <= 0) {
+      relicMarkCd = 1;
+      spawnNearbyFieldRelics();
+    }
     D().stepFieldCombat(dt, ctx, fx);
     D().pickupField(ctx, fx);
     /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
@@ -1464,6 +1542,10 @@
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
     nearest: nearest, note: note, consumeFieldMerchant: consumeFieldMerchant,
     rewardRoadMark: rewardRoadMark,
+    rewardFieldRelic: rewardFieldRelic,
+    /** 도감 'relics' 탭(js/ui.js)이 총 개수·목록을 읽는다 — 참조 그대로 주지
+     *  않는다(호출자가 실수로 고치면 세계 배치가 흔들린다). */
+    fieldRelics: function () { return FIELD_RELICS.map(function (r) { return { id: r.id, name: r.kind.name, emoji: r.kind.emoji }; }); },
     overworld: overworld,
     status: status,
     exitPointRaw: exitPointRaw,
