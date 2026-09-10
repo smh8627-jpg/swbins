@@ -28,6 +28,10 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <canvas id="stage"></canvas>
 <div id="vignette"></div>
 
+<!-- 사냥 화면을 크게 보기 — #top 밖에 따로 둔다. 도구줄을 감췄을 때도 이 단추만은
+     남아 있어야 다시 불러올 수 있다(사가고 UI와 같은 결) -->
+<button class="icon-btn" id="btn-focus" title="사냥 화면을 크게 봅니다 (도구줄 감추기)"><span data-icon="expand">⛶</span></button>
+
 <!-- 상단: 프로필 · 재화 · 도구 (사가고 UI와 같은 결 — 넓은 화면에서는 다 펼치고,
      좁은 화면에서만 ⋯ 뒤로 접는다) -->
 <div id="top">

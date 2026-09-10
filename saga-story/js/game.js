@@ -279,6 +279,18 @@
     }
 
     document.getElementById('btn-help').addEventListener('click', showHelp);
+
+    /* 사냥 화면을 크게 보기 — 도구줄·독·자동 상태 띠를 감춰 사냥 화면만 남긴다
+       (사가고 UI와 같은 결). 세이브에는 안 남긴다 — 매번 켜진 채로 열리면
+       첫 화면부터 조작을 못 찾는다 */
+    var focusBtn = document.getElementById('btn-focus');
+    if (focusBtn) {
+      focusBtn.addEventListener('click', function () {
+        var on = document.body.classList.toggle('focus');
+        focusBtn.title = on ? '도구줄 다시 보기' : '사냥 화면을 크게 봅니다 (도구줄 감추기)';
+        ui.toast(on ? '⛶ 도구줄을 감췄습니다 — 다시 누르면 돌아옵니다' : '도구줄을 다시 보입니다');
+      });
+    }
   }
 
   function showHelp() {
