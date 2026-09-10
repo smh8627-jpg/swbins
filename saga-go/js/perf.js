@@ -174,13 +174,32 @@
     return idx;
   }
 
-  /** 사람이 직접 고를 때 (어드민·데모) */
+  /** 사람이 직접 고를 때 (어드민·데모) — 메모리에만 얹는다(손잡이는 안 건드린다) */
   function set(key) {
     for (var i = 0; i < TIERS.length; i++) {
       if (TIERS[i].key === key) { idx = i; lowFor = 0; highFor = 0; return TIERS[i]; }
     }
     return tier();
   }
+
+  /**
+   * 설정 화면(⚙️, 2026-09-10)에서 등급을 못박는다 — **자동조절을 끄고**
+   * (`perf.auto=0`) 다음에 켤 때도 이 등급에서 시작하도록(`perf.startTier`)
+   * 손잡이 둘을 함께 저장한다. `set()` 과 달리 새로고침해도 유지된다.
+   * 곧바로도 적용한다 — 다음 프레임부터 이 등급으로 그린다.
+   */
+  function pin(key) {
+    core.setTune({ 'perf.auto': 0, 'perf.startTier': key });
+    return set(key);
+  }
+
+  /** 자동(기기를 보고 시작 → 프레임에 맞춰 스스로 오르내림)으로 되돌린다 */
+  function unpin() {
+    core.setTune({ 'perf.auto': 1, 'perf.startTier': null });
+  }
+
+  /** 지금 등급이 사람이 못박은 것인가(true) 자동인가(false) — 설정 화면 표시용 */
+  function pinned() { return !auto(); }
 
   function stats() {
     return {
@@ -198,7 +217,7 @@
     auto: auto, tier: tier, mul: mul, meshOk: meshOk, shadowOk: shadowOk, postOk: postOk,
     /* 기기 보기 — `score`·`tierOfScore` 는 순수 함수다 */
     score: score, tierOfScore: tierOfScore, probe: probe, start: start,
-    decide: decide, tick: tick, set: set, stats: stats,
+    decide: decide, tick: tick, set: set, pin: pin, unpin: unpin, pinned: pinned, stats: stats,
     fps: function () { return fps; },
     reset: function () { idx = 0; lowFor = 0; highFor = 0; fps = 60; changes = 0; started = false; }
   };

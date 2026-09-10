@@ -144,6 +144,24 @@
     return (q === 'low' || q === 'medium' || q === 'high') ? q : autoTier();
   }
 
+  /**
+   * 설정 화면(⚙️, 2026-09-10)에서 고른다 — `village3d.quality` 손잡이에
+   * **저장한다**(`core.setTune`, `yeoksa-village/tune` 에 남아 새로고침해도
+   * 유지된다). 사가블로 `dungeon3d.js` 의 `D3.set()` 은 메모리에만 얹어 두고
+   * 새로고침하면 사라지는데, 이 판은 `core.tuned` 가 있으니 그 손잡이를
+   * 그대로 쓴다 — 장치가 따로 없다. 렌더러가 이미 서 있으면(3D 를 이미
+   * 켠 채로 바꾸는 경우) 픽셀비도 즉시 다시 먹인다 — 그림자는 `step()` 이
+   * 매 프레임 다시 먹이므로 여기서 건드리지 않아도 곧 따라온다.
+   */
+  function setQuality(level) {
+    C().setTune('village3d.quality', level);
+    if (renderer) {
+      var q = QUALITY_PRESET[tier()];
+      renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, q.dpr));
+    }
+    return tier();
+  }
+
   var canvas = null, renderer = null, scene = null, camera = null;
   var ready = false, failed = false;
 
@@ -1242,6 +1260,13 @@
 
   function step(dt) {
     if (!active() || !renderer || !scene || !camera) { return; }
+    /* 그림자 on/off 는 매 프레임 다시 먹인다(사가블로 dungeon3d.js 와 같은 요령) —
+       설정 화면에서 등급을 바꿔도 3D 를 껐다 켤 필요 없이 곧바로 듣는다.
+       같은 값을 매번 대입해도 three.js 쪽에서 그냥 넘어가므로 "바뀔 때만"을
+       따로 가리지 않았다 */
+    var q = QUALITY_PRESET[tier()];
+    renderer.shadowMap.enabled = q.shadow;
+    if (sunLight) { sunLight.castShadow = q.shadow; }
     if (player.mixer) { player.mixer.update(dt); }
     syncCamera();
     syncTerrain();
@@ -1293,6 +1318,8 @@
     qualityPreset: function () { return QUALITY_PRESET; },
     deviceScore: deviceScore,
     tierFor: tierFor,
+    /** 설정 화면(⚙️) — 지금 실제로 도는 등급(low/medium/high), 손잡이 원값('auto' 포함), 고르기 */
+    quality: tier, qualityRaw: QUALITY, setQuality: setQuality,
     /** 진단 전용 — PLAN 40절 PHASE 7 Object Pool: kind별 재사용 창고(순수 함수, mock group 으로도 확인됨) */
     poolTake: poolTake,
     poolGive: poolGive,

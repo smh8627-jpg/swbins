@@ -94,8 +94,18 @@
 
   function stats() { return { on: ON(), vol: VOL(), clips: Object.keys(CLIPS).length }; }
 
+  /** 설정 화면(⚙️, 2026-09-10) — 다른 네 판의 `sfx.js` 가 쓰는 이름
+   *  (`enabled`·`volume`·`setEnabled`·`setVolume`)과 맞춰, 같은 UI 코드를
+   *  그대로 옮겨 쓸 수 있게 한다. 이 판은 손잡이(`core.tuned`)가 이미
+   *  저장소를 쥐고 있어(다른 네 판의 `save.settings` 대신) 값은 그리로 간다 */
+  function setEnabled(v) { core().setTune('audio.on', v ? 1 : 0); return ON(); }
+  function setVolume(v) { core().setTune('audio.vol', Math.max(0, Math.min(1, v))); return VOL(); }
+
   global.DG = global.DG || {};
-  global.DG.audio = { play: play, stats: stats, CLIPS: CLIPS };
+  global.DG.audio = {
+    play: play, stats: stats, CLIPS: CLIPS,
+    enabled: ON, volume: VOL, setEnabled: setEnabled, setVolume: setVolume
+  };
 
   if (global.DG.core) { wire(); }
 })(window);

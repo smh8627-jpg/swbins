@@ -119,6 +119,18 @@
       if (!b) { return; }
       handleAct(b.getAttribute('data-act'), b);
     });
+    /* 음량 슬라이더 — 끌 때마다(input) 바로 듣고, 값칸만 직접 고쳐 슬라이더가
+       손 밑에서 튀지 않게 한다(전체 renderSheet() 는 안 부른다) */
+    els['sheet-body'].addEventListener('input', function (e) {
+      var el = e.target, act = el.getAttribute('data-act');
+      if (act === 'snd-vol') {
+        var SF = global.DG.sfx;
+        if (!SF) { return; }
+        var v = SF.setVolume((parseInt(el.value, 10) || 0) / 100);
+        var lbl = el.nextElementSibling;
+        if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
+      }
+    });
 
     bindRest();
   }
@@ -134,6 +146,16 @@
       if (act === 'key-remap') {
         var V0 = global.DG.village;
         if (V0 && V0.beginRemap) { V0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
+        return;
+      }
+      if (act === 'snd-toggle') {
+        var SF0 = global.DG.sfx;
+        if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
+        return;
+      }
+      if (act === 'gq-set') {
+        var V3s = global.DG.villageView3d;
+        if (V3s && V3s.setQuality) { V3s.setQuality(b.getAttribute('data-level')); renderSheet(); }
         return;
       }
       if (act === 'v-do') {
@@ -306,8 +328,40 @@
   var SHEET_TITLE = {
     bag: '🎒 가방', folks: '🏡 주민', dex: '📖 도감', log: '📜 기록',
     mail: '📮 편지', home: '🏠 집', museum: '🏛️ 사고(史庫)', town: '🏳️ 마을',
-    wear: '🧵 침선방', build: '🪧 공사', map: '🗺️ 전체지도', keys: '⌨️ 키설정'
+    wear: '🧵 침선방', build: '🪧 공사', map: '🗺️ 전체지도', keys: '⌨️ 키설정',
+    settings: '⚙️ 설정'
   };
+
+  /** 2026-09-10 — 효과음·그래픽 품질(사가블로·사가스토리 설정 시트와 같은 결).
+   *  이 판엔 아직 BGM·진동이 없어(sfx.js 에 그 손잡이 자체가 없다) 그 둘은 뺐다. */
+  var QUALITY_LABEL = { auto: '자동', low: '낮음', medium: '보통', high: '높음' };
+  function viewSettings() {
+    var SF = global.DG.sfx, V3 = global.DG.villageView3d;
+    if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
+    var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
+    var gq = '';
+    if (V3 && V3.active && V3.active()) {
+      var cur = V3.qualityRaw(), lv;
+      gq = '<div class="key-row"><b>그래픽 품질</b><span class="key-cur">' +
+        (cur === 'auto' ? '자동(' + QUALITY_LABEL[V3.quality()] + ')' : QUALITY_LABEL[cur]) +
+        '</span></div><div class="key-row" style="gap:6px">';
+      for (lv in QUALITY_LABEL) {
+        if (!Object.prototype.hasOwnProperty.call(QUALITY_LABEL, lv)) { continue; }
+        gq += '<button class="btn tiny' + (cur === lv ? ' primary' : ' ghost') +
+          '" data-act="gq-set" data-level="' + lv + '">' + QUALITY_LABEL[lv] + '</button>';
+      }
+      gq += '</div><div class="hint">낮음일수록 그림자를 끄고 화면 해상도를 줄여 가벼워집니다. ' +
+        '자동은 켤 때 한 번 기기를 보고 고릅니다.</div>';
+    }
+    return '<div class="hint">이동 키는 ⌨️ 키설정에 있습니다.</div>' +
+      '<div class="key-row"><b>효과음</b>' +
+        '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row"><b>음량</b>' +
+        '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
+        (on ? '' : ' disabled') + '>' +
+        '<span class="key-cur">' + vol + '%</span></div>' +
+      gq;
+  }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
    *  (실수로 못 쓰게 되지 않게), 여기서는 그 옆에 하나 더 쓸 키만 고른다. */
@@ -403,7 +457,8 @@
           : openTab === 'build' ? viewBuild()
           : openTab === 'map' ? viewMap()
           : openTab === 'dex' ? viewDex()
-          : openTab === 'keys' ? viewKeys() : viewLog();
+          : openTab === 'keys' ? viewKeys()
+          : openTab === 'settings' ? viewSettings() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 

@@ -102,6 +102,14 @@
       });
     }
 
+    var settingsBtn = document.getElementById('btn-settings');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', function () {
+        if (more) { more.classList.remove('show'); }
+        ui.openSheet('settings');
+      });
+    }
+
     var btn3d = document.getElementById('btn-3d');
     if (btn3d && global.DG.realm3d) {
       var R3 = global.DG.realm3d;

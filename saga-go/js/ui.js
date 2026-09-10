@@ -99,6 +99,21 @@
         if (W0 && W0.beginRemap) { W0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
         return;
       }
+      if (act === 'snd-toggle') {
+        var AU0 = global.DG.audio;
+        if (AU0) { AU0.setEnabled(!AU0.enabled()); renderSheet(); }
+        return;
+      }
+      if (act === 'gq-auto') {
+        var PF0 = global.DG.perf;
+        if (PF0 && PF0.unpin) { PF0.unpin(); renderSheet(); }
+        return;
+      }
+      if (act === 'gq-set') {
+        var PF1 = global.DG.perf;
+        if (PF1 && PF1.pin) { PF1.pin(b.getAttribute('data-level')); renderSheet(); }
+        return;
+      }
       if (act === 'auto-on') {
         global.DG.auto.toggle();
       } else if (act === 'auto-flag') {
@@ -121,6 +136,18 @@
         }
       } else { return; }
       core.persist(); renderSheet();
+    });
+    /* 음량 슬라이더 — 끌 때마다(input) 바로 듣고, 값칸만 직접 고쳐 슬라이더가
+       손 밑에서 튀지 않게 한다(전체 renderSheet() 는 안 부른다) */
+    els['sheet-body'].addEventListener('input', function (e) {
+      var el = e.target, act = el.getAttribute('data-act');
+      if (act === 'snd-vol') {
+        var AU = global.DG.audio;
+        if (!AU) { return; }
+        var v = AU.setVolume((parseInt(el.value, 10) || 0) / 100);
+        var lbl = el.nextElementSibling;
+        if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
+      }
     });
 
     /* 상세 화면 — 별도 오버레이라 이벤트도 따로 받는다 */
@@ -195,8 +222,50 @@
 
   var SHEET_TITLE = {
     quest: '📋 사명', bag: '🎒 행낭', letters: '✉️ 천거장',
-    dex: '📖 도감', oracle: '🔮 사관', log: '📜 기록', keys: '⌨️ 키설정'
+    dex: '📖 도감', oracle: '🔮 사관', log: '📜 기록', keys: '⌨️ 키설정',
+    settings: '⚙️ 설정'
   };
+
+  /**
+   * 2026-09-10 — 다른 네 판의 ⚙️ 설정 시트와 같은 결. 이 판은 효과음(`js/audio.js`,
+   * mp3 다섯 조각)도 그래픽 품질(`js/perf.js`, 기기를 보고 시작해 프레임에 맞춰
+   * 스스로 오르내리는 3단)도 **이미 있었다** — 그저 사람이 손댈 자리가 없었을
+   * 뿐이다(어드민에서만 손잡이로 만졌다). 새로 만든 것은 이 화면과, `perf.js`의
+   * `pin`/`unpin`(고른 등급을 손잡이에 남겨 새로고침해도 유지) 뿐이다.
+   */
+  var Q_ORDER = ['LOW', 'MEDIUM', 'HIGH'];
+  function viewSettings() {
+    var AU = global.DG.audio, PF = global.DG.perf, W3 = global.DG.world3d;
+    if (!AU) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
+    var on = AU.enabled(), vol = Math.round(AU.volume() * 100);
+    var gq = '';
+    if (PF && W3 && W3.active && W3.active()) {
+      var cur = PF.tier(), pinned = PF.pinned(), i;
+      gq = '<div class="key-row"><b>그래픽 품질</b><span class="key-cur">' +
+        (pinned ? cur.name : '자동(' + cur.name + ')') +
+        '</span></div><div class="key-row" style="gap:6px">' +
+        '<button class="btn tiny' + (!pinned ? ' primary' : ' ghost') +
+          '" data-act="gq-auto">자동</button>';
+      for (i = 0; i < Q_ORDER.length; i++) {
+        var key = Q_ORDER[i];
+        var t = null, j;
+        for (j = 0; j < PF.TIERS.length; j++) { if (PF.TIERS[j].key === key) { t = PF.TIERS[j]; } }
+        if (!t) { continue; }
+        gq += '<button class="btn tiny' + (pinned && cur.key === key ? ' primary' : ' ghost') +
+          '" data-act="gq-set" data-level="' + key + '">' + t.name + '</button>';
+      }
+      gq += '</div><div class="hint">낮음일수록 사물이 성글고 그림자가 꺼져 가벼워집니다. ' +
+        '자동은 기기를 보고 시작해 프레임에 맞춰 스스로 오갑니다.</div>';
+    }
+    return '<div class="hint">이동 키는 ⌨️ 키설정에 있습니다.</div>' +
+      '<div class="key-row"><b>효과음</b>' +
+        '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row"><b>음량</b>' +
+        '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
+        (on ? '' : ' disabled') + '>' +
+        '<span class="key-cur">' + vol + '%</span></div>' +
+      gq;
+  }
 
   /** 2026-09-09 — 이동 키 다시 지정(키보드 모의 이동 모드용). WASD·방향키는
    *  코드에 그대로 박혀 있고(실수로 못 쓰게 되지 않게), 여기서는 그 옆에
@@ -249,7 +318,8 @@
           : openTab === 'letters' ? viewLetters()
           : openTab === 'dex' ? viewDex()
           : openTab === 'oracle' ? viewOracle()
-          : openTab === 'keys' ? viewKeys() : viewLog();
+          : openTab === 'keys' ? viewKeys()
+          : openTab === 'settings' ? viewSettings() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 

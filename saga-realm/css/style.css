@@ -248,6 +248,19 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 .hint { font-size: 11.5px; color: var(--ink-dim); background: rgba(255,255,255,.04);
         border-radius: var(--r-sm); padding: 10px 12px; line-height: 1.6; }
 .hint b { color: var(--gold); }
+/* ⚙️ 설정 시트(2026-09-10) — 다른 네 판(사가블로·사가의숲·사가스토리·사가고)과 같은 이름 */
+.key-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; margin-top: 6px;
+  background: rgba(255,255,255,.045); border-radius: var(--r-sm);
+}
+.key-row b { flex: 0 0 48px; }
+.key-cur { flex: 1; font-weight: 700; color: var(--gold); letter-spacing: .5px; }
+.key-row button {
+  padding: 6px 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--glass-br); background: rgba(255,255,255,.06);
+  color: var(--ink); font-size: 11.5px; cursor: pointer;
+}
 .muted { color: var(--ink-dim); }
 .warn { color: var(--bad); }
 small.muted { display: block; margin-top: 7px; font-size: 10.5px; }

@@ -119,6 +119,18 @@
     });
     els['sheet-body'].addEventListener('click', onAct);
     els.encounter.addEventListener('click', onAct);
+    /* 음량 슬라이더 — 끌 때마다(input) 바로 듣고, 값칸만 직접 고쳐 슬라이더가
+       손 밑에서 튀지 않게 한다(전체 renderSheet() 는 안 부른다) */
+    els['sheet-body'].addEventListener('input', function (e) {
+      var el = e.target, a0 = el.getAttribute('data-act');
+      if (a0 === 'snd-vol') {
+        var SF = global.DG.sfx;
+        if (!SF) { return; }
+        var v = SF.setVolume((parseInt(el.value, 10) || 0) / 100);
+        var lbl = el.nextElementSibling;
+        if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
+      }
+    });
 
     core.on('toast', toast);
     core.on('changed', function () { renderTop(); renderMap(); renderSheet(); syncDock(); });
@@ -150,6 +162,11 @@
       return;
     }
     if (a === 'back-scen') { showScenPick(); return; }
+    if (a === 'snd-toggle') {
+      var SF0 = global.DG.sfx;
+      if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
+      return;
+    }
     if (a === 'pick-force') {
       R().setup(g('data-id'), pickScen);
       closeEnc();
@@ -613,7 +630,23 @@
   /* ── 시트 ─────────────────────────────────────────────── */
 
   var SHEET_TITLE = { city: '🏯 성', officers: '👤 무장', camp: '🏕️ 진·원정',
-                      diplo: '🤝 외교', school: '📚 학당', log: '📜 기록' };
+                      diplo: '🤝 외교', school: '📚 학당', log: '📜 기록', settings: '⚙️ 설정' };
+
+  /** 2026-09-10 — 효과음(사가블로·사가스토리·사가의숲 설정 시트와 같은 결).
+   *  이 판엔 그래픽 품질 손잡이가 없다(realm3d.js 에 등급표 자체가 없다) —
+   *  진·BGM·진동도 없어(sfx.js 에 그 손잡이 자체가 없다) 효과음 하나만 둔다.
+   *  상단 더보기(⋯)의 🔊 는 그대로 둔다(빠른 켬/끔 — 이 시트로 대체하지 않는다). */
+  function viewSettings() {
+    var SF = global.DG.sfx;
+    if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
+    var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
+    return '<div class="key-row"><b>효과음</b>' +
+        '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="key-row"><b>음량</b>' +
+        '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
+        (on ? '' : ' disabled') + '>' +
+        '<span class="key-cur">' + vol + '%</span></div>';
+  }
 
   function openSheet(name) {
     openTab = name;
@@ -658,8 +691,12 @@
   }
 
   function renderSheet() {
-    if (!openTab || !R().state().started) { return; }
-    var v = openTab === 'city' ? viewCity()
+    if (!openTab) { return; }
+    /* 설정은 게임을 시작하기 전(세력을 고르기 전)에도 소리를 끄고 싶을 수 있어
+       "시작함" 문턱을 건너뛴다 — 나머지 시트는 국토 자체가 없어 그 문턱이 맞다 */
+    if (openTab !== 'settings' && !R().state().started) { return; }
+    var v = openTab === 'settings' ? viewSettings()
+          : openTab === 'city' ? viewCity()
           : openTab === 'officers' ? viewOfficers()
           : openTab === 'camp' ? viewCamp()
           : openTab === 'diplo' ? viewDiplo()
