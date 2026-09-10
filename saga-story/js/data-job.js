@@ -5,8 +5,9 @@
  *   1) 처음엔 **무명(초보자)**. 정해진 네 가지만 쓴다
  *   2) Lv.10 에 **1차 전직** — 직업 넷 중 하나를 고른다 (되돌릴 수 없다)
  *   3) Lv.25 에 **2차 전직** — 같은 갈래의 윗자리로 오르고 무예 셋이 열린다
- *   4) Lv.45 에 **3차 전직** — 갈래의 끝. 무예 넷이 더 열린다 (2026-08-26)
- *   5) 레벨마다 **무예 점수(SP) 3점**. 점수를 부어 무예를 올린다
+ *   4) Lv.45 에 **3차 전직** — 무예 넷이 더 열린다 (2026-08-26)
+ *   5) Lv.70 에 **4차 전직** — 갈래의 끝. 무예 넷이 더 열린다 (2026-09-10)
+ *   6) 레벨마다 **무예 점수(SP) 3점**. 점수를 부어 무예를 올린다
  *
  * **SP 는 세이브에 따로 담지 않는다.** 총점은 (레벨-1)×3 이고 쓴 점수는 찍은
  * 무예 레벨의 합이다 — 파생값이라 옛 세이브도 그냥 맞는다(core.js 를 안 건드린다).
@@ -17,10 +18,11 @@
 (function (global) {
   'use strict';
 
-  /* 갈래 넷. tier 1 은 Lv.10, tier 2 는 Lv.25, tier 3 은 Lv.45 에 오른다.
+  /* 갈래 넷. tier 1 은 Lv.10, tier 2 는 Lv.25, tier 3 은 Lv.45, tier 4 는 Lv.70 에 오른다.
      **갈래는 늘리지 않았다** — 넷을 다섯으로 늘리면 인물 능력치와 무기가 따라가야 한다.
-     대신 각 갈래를 **한 단 더 높였다**. 오르는 조건은 자리마다 무거워진다:
-     2차는 아랫자리 무예 하나를 5 이상, 3차는 **8 이상**. */
+     대신 각 갈래를 **한 단 더 높였다**(2026-09-10, 3차에 이어 4차까지). 오르는 조건은
+     자리마다 무거워진다: 2차는 아랫자리 무예 하나를 5 이상, 3차는 8 이상, 4차는
+     **10(만렙) — 3차 무예 하나를 끝까지 익혀야 마지막 자리에 오른다.** */
   var JOBS = [
     { key: 'none', name: '무명(無名)', emoji: '🚶', tier: 0, need: 0, from: null,
       desc: '아직 길을 정하지 않았다' },
@@ -51,7 +53,18 @@
     { key: 'wraith',  name: '귀영(鬼影)', emoji: '🌑', tier: 3, need: 45, from: 'assassin',
       grow: { hp: 95, atk: 20 }, desc: '자객의 윗자리 — 그림자만 남는다' },
     { key: 'immortal', name: '진인(眞人)', emoji: '🧙', tier: 3, need: 45, from: 'sage',
-      grow: { hp: 80, atk: 17, mp: 160 }, desc: '도사의 윗자리 — 천지를 부린다' }
+      grow: { hp: 80, atk: 17, mp: 160 }, desc: '도사의 윗자리 — 천지를 부린다' },
+
+    /* 4차 — 갈래의 끝(2026-09-10). 3차와 같은 결로, 원작 상표를 피해 이름을 고르되
+       실존 인물이 아니라 범용 칭호(전신·명왕처럼 누구를 딱 집어 가리키지 않는 별칭)만 쓴다 */
+    { key: 'warlord', name: '전신(戰神)', emoji: '🔱', tier: 4, need: 70, from: 'marshal',
+      grow: { hp: 300, atk: 20 }, desc: '원수의 윗자리 — 싸움 그 자체가 된다' },
+    { key: 'falcon', name: '궁성(弓聖)', emoji: '🌌', tier: 4, need: 70, from: 'flier',
+      grow: { hp: 115, atk: 39 }, desc: '비장의 윗자리 — 온 하늘이 화살이 된다' },
+    { key: 'reaper', name: '명왕(冥王)', emoji: '👑', tier: 4, need: 70, from: 'wraith',
+      grow: { hp: 155, atk: 30 }, desc: '귀영의 윗자리 — 저승의 문지기가 된다' },
+    { key: 'ascendant', name: '천존(天尊)', emoji: '🌠', tier: 4, need: 70, from: 'immortal',
+      grow: { hp: 130, atk: 26, mp: 260 }, desc: '진인의 윗자리 — 하늘과 땅을 굽어본다' }
   ];
 
   /**
@@ -103,6 +116,19 @@
     { key: 'n_banner', job: 'marshal', name: '대장기(大將旗)', emoji: '🚩', cost: 56, cd: 24, max: 10,
       effect: 'buff', mul: [0, 0], buff: { sec: 13, atk: 1.55, guard: 0.45, regen: 1.8 },
       need: { key: 'g_wall', lv: 5 }, desc: '13초간 삼군이 따른다 — 철벽 5' },
+    /* 전신 — 무사 갈래의 끝(4차) */
+    { key: 'o_ruin', job: 'warlord', name: '파멸격(破滅擊)', emoji: '💢', cost: 62, cd: 12, max: 10,
+      effect: 'melee', mul: [6.2, 0.57], hits: 4, need: { key: 'n_heaven', lv: 5 },
+      desc: '앞을 네 번 내리찍어 부순다 — 천붕격 5' },
+    { key: 'o_tremor', job: 'warlord', name: '지열(地裂)', emoji: '🌋', cost: 58, cd: 14, max: 10,
+      effect: 'aoe', mul: [4.9, 0.44], r: 340, need: { key: 'n_quake', lv: 5 },
+      desc: '땅이 갈라지도록 흔든다 — 진각 5' },
+    { key: 'o_smite', job: 'warlord', name: '벽력돌(霹靂突)', emoji: '⚡', cost: 54, cd: 10, max: 10,
+      effect: 'dash', mul: [4.5, 0.4], dist: 410, need: { key: 'n_charge', lv: 5 },
+      desc: '번개처럼 꿰뚫고 지나간다 — 철기돌격 5' },
+    { key: 'o_conquer', job: 'warlord', name: '패천기(覇天旗)', emoji: '🚩', cost: 62, cd: 26, max: 10,
+      effect: 'buff', mul: [0, 0], buff: { sec: 15, atk: 1.8, guard: 0.5, regen: 2.4 },
+      need: { key: 'n_banner', lv: 5 }, desc: '15초간 온 전장을 호령한다 — 대장기 5' },
 
     /* 궁수 → 신궁 */
     { key: 'a_shot', job: 'archer', name: '사격(射擊)', emoji: '🏹', cost: 8, cd: 0.6, max: 10,
@@ -136,6 +162,19 @@
     { key: 'f_focus', job: 'flier', name: '정심(定心)', emoji: '🧿', cost: 46, cd: 22, max: 10,
       effect: 'buff', mul: [0, 0], buff: { sec: 12, atk: 1.75, speed: 1.15 },
       need: { key: 'a_eye', lv: 5 }, desc: '12초간 공격 +75% — 응안 5' },
+    /* 궁성 — 궁수 갈래의 끝(4차) */
+    { key: 'h_tempest', job: 'falcon', name: '천사우(天射雨)', emoji: '⛈️', cost: 66, cd: 13, max: 10,
+      effect: 'rain', mul: [5.6, 0.5], need: { key: 'f_storm', lv: 5 },
+      desc: '하늘 전체가 화살비로 뒤덮인다 — 시우 5' },
+    { key: 'h_ray', job: 'falcon', name: '광시(光矢)', emoji: '✨', cost: 60, cd: 10, max: 10,
+      effect: 'bolt', mul: [8.4, 0.7], need: { key: 'f_pierce', lv: 5 },
+      desc: '빛살 하나가 모든 것을 꿰뚫는다 — 파천시 5' },
+    { key: 'h_swarm', job: 'falcon', name: '십이시(十二矢)', emoji: '🎆', cost: 56, cd: 8, max: 10,
+      effect: 'volley', mul: [2.4, 0.2], shots: 12, need: { key: 'f_volley', lv: 5 },
+      desc: '화살 열둘이 한 손에서 갈라진다 — 만시 5' },
+    { key: 'h_zenith', job: 'falcon', name: '궁천합(弓天合)', emoji: '🌠', cost: 52, cd: 24, max: 10,
+      effect: 'buff', mul: [0, 0], buff: { sec: 14, atk: 2.0, speed: 1.2 },
+      need: { key: 'f_focus', lv: 5 }, desc: '14초간 활이 하늘과 하나가 된다 — 정심 5' },
 
     /* 협객 → 자객 */
     { key: 'r_twin', job: 'rogue', name: '쌍참(雙斬)', emoji: '⚡', cost: 7, cd: 0.42, max: 10,
@@ -170,6 +209,19 @@
     { key: 'v_mark', job: 'wraith', name: '사혼(死魂)', emoji: '💀', cost: 48, cd: 20, max: 10,
       effect: 'buff', mul: [0, 0], buff: { sec: 10, atk: 1.95 },
       need: { key: 'r_vital', lv: 5 }, desc: '10초간 공격 +95% — 급소 5' },
+    /* 명왕 — 협객 갈래의 끝(4차) */
+    { key: 'd_carve', job: 'reaper', name: '팔도(八刀)', emoji: '🔪', cost: 60, cd: 9, max: 10,
+      effect: 'melee', mul: [3.0, 0.26], hits: 8, need: { key: 'v_blur', lv: 5 },
+      desc: '여덟 번 긋고 나서야 멈춘다 — 잔영 5' },
+    { key: 'd_bloom', job: 'reaper', name: '구화만개(九花滿開)', emoji: '🌺', cost: 62, cd: 10, max: 10,
+      effect: 'volley', mul: [2.2, 0.18], shots: 9, need: { key: 'v_petal', lv: 5 },
+      desc: '표창 아홉이 지지 않고 흩날린다 — 낙화 5' },
+    { key: 'd_veil', job: 'reaper', name: '명계보(冥界步)', emoji: '⚰️', cost: 50, cd: 8, max: 10,
+      effect: 'dash', mul: [3.8, 0.32], dist: 420, invuln: 1.5, need: { key: 'v_void', lv: 5 },
+      desc: '저승 문턱을 밟고 되돌아온다 — 허공답보 5' },
+    { key: 'd_curse', job: 'reaper', name: '명왕부(冥王符)', emoji: '👑', cost: 56, cd: 22, max: 10,
+      effect: 'buff', mul: [0, 0], buff: { sec: 12, atk: 2.3 },
+      need: { key: 'v_mark', lv: 5 }, desc: '12초간 죽음의 기운을 두른다 — 사혼 5' },
 
     /* 방사 → 도사 */
     { key: 'm_fire', job: 'mage', name: '화구(火球)', emoji: '🔥', cost: 12, cd: 0.9, max: 10,
@@ -202,7 +254,20 @@
       desc: '몸을 되돌린다 (체력 42%+) — 치유 5' },
     { key: 'i_tao', job: 'immortal', name: '태극(太極)', emoji: '☯', cost: 58, cd: 22, max: 10,
       effect: 'buff', mul: [0, 0], buff: { sec: 14, atk: 1.5, guard: 0.3, regen: 4.0 },
-      need: { key: 'p_ward', lv: 5 }, desc: '14초간 음양이 돈다 — 호신부 5' }
+      need: { key: 'p_ward', lv: 5 }, desc: '14초간 음양이 돈다 — 호신부 5' },
+    /* 천존 — 방사 갈래의 끝(4차) */
+    { key: 'z_starfall', job: 'ascendant', name: '낙성우(落星雨)', emoji: '💫', cost: 70, cd: 13, max: 10,
+      effect: 'rain', mul: [6.5, 0.56], need: { key: 'i_meteor', lv: 5 },
+      desc: '별들이 통째로 떨어진다 — 유성 5' },
+    { key: 'z_collapse', job: 'ascendant', name: '건곤붕(乾坤崩)', emoji: '🌌', cost: 74, cd: 15, max: 10,
+      effect: 'aoe', mul: [6.8, 0.58], r: 330, need: { key: 'i_abyss', lv: 5 },
+      desc: '하늘과 땅이 함께 무너진다 — 천붕지열 5' },
+    { key: 'z_rebirth', job: 'ascendant', name: '환생(還生)', emoji: '🌿', cost: 58, cd: 14, max: 10,
+      effect: 'heal', mul: [0, 0], heal: [0.65, 0.05], need: { key: 'i_mend', lv: 5 },
+      desc: '죽음의 문턱에서 되돌린다 (체력 65%+) — 회춘 5' },
+    { key: 'z_eternity', job: 'ascendant', name: '무극(無極)', emoji: '🌠', cost: 64, cd: 24, max: 10,
+      effect: 'buff', mul: [0, 0], buff: { sec: 16, atk: 1.65, guard: 0.35, regen: 4.8 },
+      need: { key: 'i_tao', lv: 5 }, desc: '16초간 하늘과 땅을 몸에 두른다 — 태극 5' }
   ];
 
   var SP_PER_LEVEL = 3;
