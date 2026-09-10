@@ -89,6 +89,11 @@
        채 하나. 나그네가 하룻밤 묵어가는 외딴집이라 첫 캠프의 셋과 이름을
        구분한다 */
     hamlet2House: { name: '외딴집', emoji: '🛖', gather: null, reset: 0, hint: '들여다본다' },
+    /* 폐허(2026-09-10, "시대 혼합 소품·폐허" — 퓨전 방향, PLAN 10절
+       "폐허" 예시). 새로 안 받고 saga-go·saga-dungeon 이 이미 CC0 확인해
+       둔 Quaternius 무너진 아치를 그대로 복사했다(순전히 장식, deco:true —
+       캠프 소품과 같은 결) */
+    ruinArch: { name: '무너진 아치', emoji: '🏚️', gather: null, reset: 0, hint: '바라본다' },
     /* 숨겨진 동굴(PLAN 40절 PHASE 3) — 입구 표지만. 안까지 들어가는 실내·
        보물(PLAN 40절 PHASE 4 "Treasure")은 다음 몫이다 */
     mountain:  { name: '바위산', emoji: '🗻', gather: null, reset: 0, hint: '올려다본다' },
@@ -789,8 +794,20 @@
     duck:     { name: '오리',   emoji: '🦆', speed: 14, wander: 45, flee: 160, fleeSpeed: 60, biomes: ['meadow'] },
     bird:     { name: '새',     emoji: '🐦', speed: 20, wander: 70, flee: 210, fleeSpeed: 95, biomes: ['green', 'meadow'] },
     frog:  { name: '개구리', emoji: '🐸', speed: 10, wander: 35, flee: 150, fleeSpeed: 50, biomes: ['mushroom', 'dark'] },
-    snake: { name: '뱀',     emoji: '🐍', speed: 12, wander: 50, flee: 170, fleeSpeed: 55, biomes: ['rocky', 'dark'] }
+    snake: { name: '뱀',     emoji: '🐍', speed: 12, wander: 50, flee: 170, fleeSpeed: 55, biomes: ['rocky', 'dark'] },
+    /* 포자괴물(2026-09-10, "괴물이 나와도 되고" — 퓨전 방향, PLAN 20절 "몬스터
+       습격" 예시를 새 전투 없이 채운 첫 걸음). 나머지 짐승과 똑같은 idle/
+       wander/flee 만 탄다 — 새 상태·전투는 안 만들었다. `rare: true`라
+       buildAnimals() 의 일반 바이옴 뽑기 풀에는 안 끼고, `MONSTER_BIOME`
+       경유로 아주 드물게만(8%) 여우 대신 선다 */
+    mushnub: { name: '포자괴물', emoji: '🍄', speed: 16, wander: 40, flee: 160, fleeSpeed: 58,
+      biomes: ['mushroom'], rare: true }
   };
+
+  /** 바이옴별로 아주 드물게 나오는 몬스터 — buildAnimals() 가 일반 뽑기 뒤에
+   *  낮은 확률로만 덮어쓴다. 늘리려면 여기 한 줄 + 위 ANIMALS 에 rare:true
+   *  종 하나만 보태면 된다 */
+  var MONSTER_BIOME = { mushroom: 'mushnub' };
 
   /** 숲 NPC(PLAN 40절 PHASE 4 NPC 칸) — PLAN 10절 "고정 배치" 그대로,
    *  이미 세운 지형지물(동굴·호수·캠프·폭포·버섯숲)마다 한 명씩 붙인다.
@@ -845,7 +862,7 @@
   global.DG = global.DG || {};
   global.DG.villageData = {
     TILES: TILES, PROPS: PROPS, ITEMS: ITEMS, PHASES: PHASES, REQUEST_N: REQUEST_N,
-    ANIMALS: ANIMALS, NPCS: NPCS, QUESTS: QUESTS,
+    ANIMALS: ANIMALS, MONSTER_BIOME: MONSTER_BIOME, NPCS: NPCS, QUESTS: QUESTS,
     SEASONS: SEASONS, TOOLS: TOOLS,
     FURNITURE: FURNITURE, FURN_SETS: FURN_SETS, furn: furn,
     WALLS: WALLS, FLOORS: FLOORS, wall: wall, floor: floor,

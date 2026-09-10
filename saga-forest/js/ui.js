@@ -532,7 +532,7 @@
   /** 손짓 없이 넘어가는 결과 — 대화·시트 열기·문 여닫기처럼 "손을 쓴다"는
    *  느낌이 안 나는 것들. 나머지(나무 흔들기·낚시·상자 열기·잡초 뽑기 등)는
    *  전부 몸짓 한 번을 튼다(`triggerAction()`, 2026-09-10 "더 자연스럽게") */
-  var NO_GESTURE_KIND = { open: 1, talk: 1, quest: 1, request: 1, reward: 1, no: 1, leaving: 1, home: 1, cave: 1 };
+  var NO_GESTURE_KIND = { open: 1, talk: 1, quest: 1, request: 1, reward: 1, no: 1, leaving: 1, home: 1, cave: 1, locked: 1 };
 
   function doInteract() {
     var r = global.DG.village.interact();
@@ -552,7 +552,7 @@
     } else if (r.kind === 'gather' || r.kind === 'furn' || r.kind === 'gold' ||
                r.kind === 'bees' || r.kind === 'treasure') {
       toast(r.text);
-    } else if (r.kind === 'empty') {
+    } else if (r.kind === 'empty' || r.kind === 'locked') {
       toast(r.text);
     }
     renderTop(); renderFocus(); renderSheet();
@@ -619,13 +619,17 @@
     }
     if (f.type === 'chest') {
       var opened = V.chestOpened(f.obj.id);
-      key = 'ch|' + f.obj.id + '|' + opened;
+      var isBoss = f.obj.id === 'bossChest';
+      var locked = isBoss && !V.bossUnlocked();
+      key = 'ch|' + f.obj.id + '|' + opened + '|' + locked;
       html = '<div class="focus-card">' +
-        '<span class="fc-ico">' + (opened ? '📭' : '📦') + '</span>' +
-        '<span class="fc-meta"><b>보물상자</b>' +
-          '<small class="muted">' + (opened ? '이미 열어 보았습니다' : '열어 봅니다 — ' + core.actHint()) + '</small></span>' +
-        (opened ? '<button class="btn ghost" disabled>비었음</button>'
-                : '<button class="btn primary" data-act="v-do">연다</button>') +
+        '<span class="fc-ico">' + (locked ? '👹' : (opened ? '📭' : (isBoss ? '👑' : '📦'))) + '</span>' +
+        '<span class="fc-meta"><b>' + (isBoss ? '포자대왕의 보물' : '보물상자') + '</b>' +
+          '<small class="muted">' + (locked ? '포자대왕이 지키고 있다 — 다른 상자 셋을 먼저 찾을 것'
+            : (opened ? '이미 열어 보았습니다' : '열어 봅니다 — ' + core.actHint())) + '</small></span>' +
+        (locked ? '<button class="btn ghost" disabled>봉인됨</button>'
+          : opened ? '<button class="btn ghost" disabled>비었음</button>'
+                   : '<button class="btn primary" data-act="v-do">연다</button>') +
         '</div>';
       if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
       els.focusbar.classList.add('show');
@@ -1200,7 +1204,12 @@
     /* 다리(2026-09-09) — buildProps() 가 세우는 프롭(kind:'bridge')이
        하나뿐이라 hamlet/cave 처럼 따로 Spot() 을 부를 필요 없이 이 표
        한 줄로 끝난다 */
-    bridge: '🌉'
+    bridge: '🌉',
+    /* 폐허(2026-09-10, 퓨전 방향) — 사고(museum, 🏛️)와 헷갈리지 않게
+       다른 이모지를 쓴다. 두 번째 캠프가 이 표에서 빠졌던 조용한 구멍
+       (2026-09-09 항목)을 다시 겪지 않으려고 새 자리를 만들 때마다
+       이 표부터 챙긴다 */
+    ruinArch: '🏚️'
   };
   function viewMap() {
     var V = global.DG.village;
@@ -1256,6 +1265,9 @@
     if (hamlet2) { marks.push({ x: hamlet2.tx * TILE, y: hamlet2.ty * TILE, icon: '🏕️' }); }
     var cave = V.caveSpot();
     if (cave) { marks.push({ x: cave.tx * TILE, y: cave.ty * TILE, icon: '🕳️' }); }
+    /* 폐허(2026-09-10, 퓨전 방향) — 위 넷과 같은 요령으로 마크 하나 더 */
+    var ruin = V.ruinSpot();
+    if (ruin) { marks.push({ x: ruin.tx * TILE, y: ruin.ty * TILE, icon: '🏚️' }); }
 
     var fontSize = TILE * 1.1;
     for (i = 0; i < marks.length; i++) {
@@ -1277,7 +1289,7 @@
       '<small class="muted">' +
       '🔴 지금 내 자리 · 🏠 집 · 📮 편지함 · 🏪 전방 · 🧵 침선방 · 🪧 게시판 · ' +
       '🏛️ 사고(史庫) · 🚩 마을기 · 🌊 호수 · 💦 폭포 · 🏘️ 작은 마을 · 🏕️ 두 번째 캠프 · ' +
-      '🌉 다리(강을 건너는 유일한 자리) · 🕳️ 동굴' +
+      '🌉 다리(강을 건너는 유일한 자리) · 🕳️ 동굴 · 🏚️ 폐허' +
       '</small><br><small class="muted">' +
       '땅빛은 실제 걸어본 굽은 마을을 그대로 위에서 펼친 것입니다 — ' +
       '풀빛·모래·물·바이옴(풀밭/그늘숲/버섯/돌밭)의 진짜 모양이 여기서만 한눈에 보입니다.' +

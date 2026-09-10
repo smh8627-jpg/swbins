@@ -283,6 +283,24 @@
     return tx >= h.tx - 3 && tx <= h.tx + 3 && ty >= h.ty - 2 && ty <= h.ty + 2;
   }
 
+  /* ── 폐허(2026-09-10, "시대 혼합 소품·폐허" — 퓨전 방향, PLAN 10절 예시)
+   * 호수(서·중간 높이)·캠프(동)·폭포(호수와 같은 x대, 남쪽)·캠프2(동남
+   * 구석)·동굴(북, 중앙보다 동쪽)이 다 찬 뒤 남은 방향 — **서북쪽**
+   * (호수와 같은 서쪽 x대이지만 중간이 아니라 훨씬 북쪽)에 놓는다.
+   */
+  var RUIN_MIN_MARGIN = 12;
+  function ruinSpot() {
+    var m = forestMargin();
+    if (m < RUIN_MIN_MARGIN) { return null; }
+    return { tx: -Math.round(m * 0.5), ty: -Math.round(m * 0.45) };
+  }
+  /** 폐허 둘레 5×4 칸 — 바이옴 장식·짐승·채집을 비운다(다른 고정 장소와 같은 결) */
+  function inRuin(tx, ty) {
+    var r = ruinSpot();
+    if (!r) { return false; }
+    return tx >= r.tx - 2 && tx <= r.tx + 2 && ty >= r.ty - 2 && ty <= r.ty + 1;
+  }
+
   /* ── 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸) ────────────────────
    * 호수(서)·캠프(동)·폭포(강 남쪽)와 안 겹치는 마지막 방향 — **북쪽**에
    * 고정한다. PLAN 10절이 "던전 입구"도 고정 배치로 못 박아 둔 것과 같은
@@ -314,7 +332,9 @@
    * enterHome()/enterCave() 양쪽에서 서로를 막는다). 방 크기는 안 늘어난다
    * (집의 HOME_TIERS 같은 증축이 없다) — 보물상자 셋을 넣을 만큼만.
    */
-  var CAVE_ROOM = { tw: 8, th: 6 };
+  /* 2026-09-10 — 깊은 칸(3줄) 추가, 보스방(PLAN 10절 "보스 지역"·퓨전 방향).
+     기존 6줄(상자 셋)은 그대로 두고 뒤에 이어 붙였을 뿐이다 */
+  var CAVE_ROOM = { tw: 8, th: 9 };
   function caveRoom() { return { tw: CAVE_ROOM.tw, th: CAVE_ROOM.th, w: CAVE_ROOM.tw * TILE, h: CAVE_ROOM.th * TILE }; }
   /** 문은 집과 같은 자리(뒷벽 가운데) */
   function caveDoor() { return { x: Math.floor(CAVE_ROOM.tw / 2) * TILE + TILE * 0.5, y: TILE * 0.8 }; }
@@ -324,7 +344,17 @@
     { id: 'chest1', x: TILE * 6 + TILE * 0.5, y: TILE * 2.2 + TILE * 0.5, reward: 1000 },
     { id: 'chest2', x: TILE * 4 + TILE * 0.5, y: TILE * 4.6 + TILE * 0.5, reward: 1800 }
   ];
-  function caveChests() { return CAVE_CHESTS; }
+  /** 보스방(2026-09-10, "괴물이 나와도 되고" 퓨전 방향, PLAN 10절 "보스
+   *  지역") — 새 전투는 안 만들었다. 상자 셋을 다 열어야 이 상자가 열리고
+   *  (`bossUnlocked()`), 그전엔 "포자대왕이 지키고 있다"는 안내만 준다.
+   *  깊은 칸(뒤에 이어 붙인 3줄)에 혼자 서 있다 */
+  var CAVE_BOSS_CHEST = { id: 'bossChest', x: TILE * 4 + TILE * 0.5, y: TILE * 7.6 + TILE * 0.5, reward: 3500 };
+  function caveBossChest() { return CAVE_BOSS_CHEST; }
+  function bossUnlocked() {
+    var o = st().caveOpened || {};
+    return !!(o.chest0 && o.chest1 && o.chest2);
+  }
+  function caveChests() { return CAVE_CHESTS.concat([CAVE_BOSS_CHEST]); }
   function chestOpened(id) { return !!(st().caveOpened || {})[id]; }
   function caveInside() { return caveIn; }
 
@@ -357,15 +387,19 @@
   function openChest(c) {
     var s = st();
     if (!s.caveOpened) { s.caveOpened = {}; }
+    if (c.id === 'bossChest' && !bossUnlocked()) {
+      return { kind: 'locked', text: '👹 포자대왕이 지키고 있다 — 먼저 다른 상자 셋을 다 찾아야 한다' };
+    }
     if (s.caveOpened[c.id]) { return { kind: 'empty', text: '이미 열어 본 상자입니다' }; }
     s.caveOpened[c.id] = true;
     core.save.player.gold += c.reward;
     core.gainFeat(1, '보물');
-    core.gainExp(10);
-    core.log('📦 보물상자에서 🪙 ' + core.fmt(c.reward) + ' 을 찾았다', 'good');
+    core.gainExp(c.id === 'bossChest' ? 40 : 10);
+    core.log((c.id === 'bossChest' ? '👑 포자대왕의 보물에서 ' : '📦 보물상자에서 ') +
+      '🪙 ' + core.fmt(c.reward) + ' 을 찾았다', 'good');
     core.emit('changed');
     core.persist();
-    return { kind: 'treasure', text: '📦 🪙 ' + core.fmt(c.reward) };
+    return { kind: 'treasure', text: (c.id === 'bossChest' ? '👑 ' : '📦 ') + '🪙 ' + core.fmt(c.reward) };
   }
 
   function tileAt(tx, ty) {
@@ -519,6 +553,7 @@
         if (inHamlet(tx, ty)) { continue; }                         // 작은 마을 자리는 비워 둔다
         if (inHamlet2(tx, ty)) { continue; }                        // 두 번째 캠프 자리도 비워 둔다
         if (inCave(tx, ty)) { continue; }                           // 동굴 자리도 비워 둔다
+        if (inRuin(tx, ty)) { continue; }                           // 폐허 자리도 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
@@ -594,6 +629,17 @@
       props.push({ id: 'hamlet2House', kind: 'hamlet2House', x: h2x + TILE * 0.2, y: h2y - TILE * 1.6, deco: true });
     }
 
+    /* 폐허(PLAN 10절 "고정 배치", 2026-09-10 — "시대 혼합 소품·폐허" 퓨전
+       방향). 무너진 아치 하나 + 이끼바위 둘로 "옛날에 뭔가 있었던 자리"
+       느낌만 준다 — 전부 순수 장식(deco:true), 상호작용은 없다 */
+    var rs = ruinSpot();
+    if (rs) {
+      var rx = rs.tx * TILE + TILE * 0.5, ry = rs.ty * TILE + TILE * 0.5;
+      props.push({ id: 'ruinArch', kind: 'ruinArch', x: rx, y: ry, deco: true });
+      props.push({ id: 'ruinRockL', kind: 'mossyRock', x: rx - TILE * 1.3, y: ry + TILE * 0.4, deco: true });
+      props.push({ id: 'ruinRockR', kind: 'mossyRock', x: rx + TILE * 1.4, y: ry + TILE * 0.3, deco: true });
+    }
+
     /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸 + PHASE 4 "Treasure") — 바위산·
        이끼바위 둘은 여전히 순수 장식(deco:true)이지만, **입구(caveMouth)는
        이제 손이 닿는다**(PHASE 3 때는 표지만이라 deco:true였다 — focus()가
@@ -623,7 +669,7 @@
         var gty = gcy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (!(gtx >= -m && gty >= -m && gtx < W + m && gty < H + m)) { continue; }
         if (gtx >= 0 && gty >= 0 && gtx < W && gty < H) { continue; }     // 마을 안은 기존 사물 몫
-        if (inHamlet(gtx, gty) || inHamlet2(gtx, gty) || inCave(gtx, gty)) { continue; }
+        if (inHamlet(gtx, gty) || inHamlet2(gtx, gty) || inCave(gtx, gty) || inRuin(gtx, gty)) { continue; }
         if (!GRASS_FAMILY[tileAt(gtx, gty)]) { continue; }
         var ggate = core.hash2(gcx * 271 + s.seed % 503, gcy * 337 + (s.seed >> 5) % 467);
         if (ggate > 0.55) { continue; }                                  // animal.js 와 같은 문턱 — 45%만
@@ -768,17 +814,28 @@
         var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (tx >= -m && ty >= -m && tx < W + m && ty < H + m &&
             !(tx >= 0 && ty >= 0 && tx < W && ty < H) &&
-            !inHamlet(tx, ty) && !inHamlet2(tx, ty) && !inCave(tx, ty) && GRASS_FAMILY[tileAt(tx, ty)]) {
+            !inHamlet(tx, ty) && !inHamlet2(tx, ty) && !inCave(tx, ty) && !inRuin(tx, ty) &&
+            GRASS_FAMILY[tileAt(tx, ty)]) {
           var hgate = core.hash2(cx * 211 + s.seed % 701, cy * 179 + (s.seed >> 4) % 659);
           if (hgate > 0.55) { continue; }              // 칸의 절반 넘게는 비워 둔다
           var biome = biomeAt(tx, ty);
           var pool = [], k;
           for (k in VD.ANIMALS) {
-            if (VD.ANIMALS.hasOwnProperty(k) && VD.ANIMALS[k].biomes.indexOf(biome) >= 0) { pool.push(k); }
+            if (VD.ANIMALS.hasOwnProperty(k) && !VD.ANIMALS[k].rare &&
+                VD.ANIMALS[k].biomes.indexOf(biome) >= 0) { pool.push(k); }
           }
           if (!pool.length) { continue; }
           var hpick = core.hash2(cx * 97 + 3, cy * 131 + 5);
           var kind = pool[Math.floor(hpick * pool.length) % pool.length];
+          /* 몬스터(2026-09-10) — 일반 뽑기 뒤에 아주 드물게만(8%) 덮어쓴다.
+             새 난수 스트림 없이 다른 좌표 계수의 hash2 하나만 더 쓴다 —
+             기존 hgate·hpick 흐름은 그대로라 여우 등 기존 짐승 수·자리는
+             안 흔들린다(그 칸이 몬스터로 바뀔 때만 대신 선다) */
+          var monKind = VD.MONSTER_BIOME && VD.MONSTER_BIOME[biome];
+          if (monKind) {
+            var hmon = core.hash2(cx * 53 + 17 + s.seed % 331, cy * 61 + 29 + (s.seed >> 3) % 293);
+            if (hmon < 0.08) { kind = monKind; }
+          }
           var wx = tx * TILE + TILE * 0.5, wy = ty * TILE + TILE * 0.5;
           animals.push({ id: 'a' + cx + '_' + cy, kind: kind, x: wx, y: wy,
                          home: { x: wx, y: wy }, facing: 1, state: 'idle', aim: null, pause: 0 });
@@ -806,7 +863,7 @@
         var tx = cx * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         var ty = cy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (tx >= 0 && ty >= 0 && tx < W && ty < H) { continue; }
-        if (inHamlet(tx, ty) || inHamlet2(tx, ty) || inCave(tx, ty)) { continue; }
+        if (inHamlet(tx, ty) || inHamlet2(tx, ty) || inCave(tx, ty) || inRuin(tx, ty)) { continue; }
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }
         if (biomeAt(tx, ty) === biome) { return { tx: tx, ty: ty }; }
         if (!fallback) { fallback = { tx: tx, ty: ty }; }
@@ -1714,12 +1771,14 @@
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
     hamlet2Spot: hamlet2Spot, inHamlet2: inHamlet2,
+    ruinSpot: ruinSpot, inRuin: inRuin,
     inBridge: inBridge, BRIDGE_TY: BRIDGE_TY,
     caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
     buildNpcs: buildNpcs, firstBiomeSpot: firstBiomeSpot,
     indoors: inside, enterHome: enterHome, leaveHome: leaveHome,
     caveInside: caveInside, enterCave: enterCave, leaveCave: leaveCave,
     caveRoom: caveRoom, caveDoor: caveDoor, caveChests: caveChests, chestOpened: chestOpened,
+    caveBossChest: caveBossChest, bossUnlocked: bossUnlocked,
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
     rollDay: rollDay, today: today, status: status, state: st,

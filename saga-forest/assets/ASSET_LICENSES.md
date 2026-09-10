@@ -604,3 +604,63 @@ ASSET_LICENSES.md`의 "MPFB2 + makehuman_system_assets" 절 참고).
 
 **실기기 확인 전** — 실제로 음악이 나오는지, 효과음과 볼륨 균형이 맞는지는
 사용자가 직접 들어봐야 한다.
+
+---
+
+## Quaternius "Ultimate Monsters Bundle" — 포자괴물(Mushnub), 하드링크 (2026-09-10, `saga-dungeon`에서 옮김)
+
+사용자가 "완전 모방 할 필요 없어 — 괴물이 나와도 되고, 퓨전이야"로 방향을
+넓혀(퓨전 방향, PLAN 20절 "몬스터 습격" 예시) 처음 들인 몬스터. 새로 받지
+않고 `saga-dungeon`이 "몬스터 100개" 작업(2026-09-07)에서 이미 CC0 확인해
+둔 것 중 버섯숲(mushroom) 바이옴에 맞는 것 하나만 옮겼다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 저작자 표시 필요 없다, 재배포 허용된다 |
+| **받은 곳** | `poly.pizza/bundle/Ultimate-Monsters-Bundle-5oyGWAmOB6` 미러 —
+  원 출처·라이선스 확인 근거는 `../../saga-dungeon/assets/ASSET_LICENSES.md`
+  "몬스터 — KayKit Skeletons + Quaternius Ultimate Monsters" 절 참고 |
+| **파일** | `assets/models/monsters/Mushnub_55c64684.glb`(30KB, md5 동일 — 그대로
+  복사만 했다) — `saga-dungeon/assets/models/monsters/quaternius/Mushnub_55c64684.glb`
+  와 같은 파일 |
+
+원본 클립(`CharacterArmature|Idle`·`Walk`·`Bite_Front`·`Death` 등)이 있어
+`asset3d.js`의 `buildGeneric()`이 다른 짐승과 같은 결로 mixer 를 태운다 —
+지금은 idle/walk 만 쓴다(공격·죽음 클립은 이 판에 전투가 없어 안 쓴다).
+
+`data-village.js`의 `VD.ANIMALS.mushnub`(이름 '포자괴물', biomes:['mushroom'],
+`rare:true`)로 등록 — `village.js`의 `buildAnimals()`가 버섯숲 바이옴 칸에서
+아주 드물게만(8%, `MONSTER_BIOME` 표) 여우 대신 세운다. 새 전투 시스템은
+안 만들었다 — 다른 짐승과 똑같은 idle/wander/flee 만 탄다(발견하면 놀랍지만
+싸우지는 않는, "만나면 반가운 희귀 존재" 쪽). 2D는 맞는 CC0 스프라이트가
+없어 emoji(🍄)로 뜬다.
+
+---
+
+## Quaternius — 무너진 아치(Arch.glb), 하드링크 (2026-09-10, `saga-go`에서 옮김)
+
+퓨전 방향("시대 혼합 소품·폐허")으로 처음 채운 PLAN 10절 "폐허" 예시. 새로
+받지 않고 `saga-go`·`saga-dungeon`이 이미 CC0 확인해 둔 것을 그대로 복사했다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 저작자 표시 필요 없다, 재배포 허용된다 |
+| **받은 곳** | <https://github.com/trebeljahr/quaternius-showcase> `public/glb/modular_dungeon_1/` —
+  원 출처·라이선스 확인 근거는 `../../saga-go/assets/ASSET_LICENSES.md`의
+  같은 파일명 절 참고 |
+| **파일** | `assets/models/props/Arch.glb`(234KB, md5 `saga-go` 쪽과 동일 — 그대로
+  복사만 했다) |
+
+`village.js`에 `ruinSpot()`/`inRuin()` 신설(호수·캠프·동굴이 다 찬 뒤 남은
+서북쪽) — `buildProps()`가 아치 하나 + 이끼바위(`mossyRock`, 기존 등록)
+둘로 "옛날에 뭔가 있었던 자리" 느낌만 준다. **전부 순수 장식**(`deco:true`)
+— 새 상호작용은 없다. `js/asset3d.js`에 `ruin:arch` 한 줄, `village-view3d.js`의
+`SCATTER_KIND`·`SCATTER_H`에 한 줄, `ui.js`의 `MAP_PROP_ICON`·범례·전체지도
+마크에도 각각 한 줄(🏚️ — 사고 🏛️와 안 겹치게 다른 이모지를 썼다).
+
+**당장 "미래적" 소품은 못 채웠다** — 이 저장소가 지금까지 CC0 확인해 둔
+자산 중에 SF/미래풍 폐허가 없다(다섯 판 다 사극·판타지·현대 배경이라
+그런 자산을 받은 적이 없다). 다음에 그런 CC0 자산을 찾으면 같은 `ruinSpot()`
+자리에 더 얹거나 새 자리를 열면 된다.

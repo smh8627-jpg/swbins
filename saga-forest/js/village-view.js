@@ -2138,16 +2138,21 @@
     ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.fillRect(inOx, inOy, fw, 5 * u);
 
-    /* 상자와 사람 — 방 좌표의 y 순서로 */
+    /* 상자와 사람 — 방 좌표의 y 순서로. 보스방(2026-09-10) 이후 보스 상자도
+       V.caveChests() 가 그대로 끼워 주므로 이 루프는 안 건드렸다 —
+       가디언(👹)만 한 자리 더 그린다 */
     var chests = V.caveChests();
     var order = [], i;
     for (i = 0; i < chests.length; i++) { order.push({ y: chests[i].y, t: 'c', o: chests[i] }); }
+    var bc = V.caveBossChest();
+    order.push({ y: bc.y - 26, t: 'guard', o: bc });
     order.push({ y: p.y, t: 'me', o: p });
     order.sort(function (a, b) { return a.y - b.y; });
 
     var f = V.focus();
     for (i = 0; i < order.length; i++) {
       if (order[i].t === 'c') { drawChest(order[i].o, u); }
+      else if (order[i].t === 'guard') { drawBossGuard(order[i].o, u); }
       else { drawMeIn(order[i].o, now); }
     }
 
@@ -2160,17 +2165,36 @@
     ctx.fillRect(0, 0, W, H);
   }
 
-  /** 보물상자 하나 — 연 것은 빛바랜 표시(📭)로, 안 연 것은 그대로(📦) */
+  /** 보물상자 하나 — 연 것은 빛바랜 표시(📭)로, 안 연 것은 그대로(📦).
+   *  보스 상자(bossChest, 2026-09-10)는 👑로 갈라 도드라지게 한다 */
   function drawChest(c, u) {
     var q = projIn(c.x, c.y);
     var opened = V.chestOpened(c.id);
-    shadow(q.x, q.y + 4 * u, 16 * u, 6 * u);
-    ctx.font = Math.round(34 * u) + 'px "Segoe UI Emoji", system-ui';
+    var boss = c.id === 'bossChest';
+    shadow(q.x, q.y + 4 * u, (boss ? 20 : 16) * u, (boss ? 7 : 6) * u);
+    ctx.font = Math.round((boss ? 40 : 34) * u) + 'px "Segoe UI Emoji", system-ui';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.globalAlpha = opened ? 0.55 : 1;
-    ctx.fillText(opened ? '📭' : '📦', q.x, q.y + 8 * u);
+    ctx.fillText(opened ? '📭' : (boss ? '👑' : '📦'), q.x, q.y + 8 * u);
     ctx.globalAlpha = 1;
+  }
+
+  /** 보스방 가디언(포자대왕, 2026-09-10) — 순전히 장식이다(새 전투 없음).
+   *  상자 셋을 다 열기 전엔 위압적으로 서 있고, 다 열면 길을 내준 듯 흐려진다 */
+  function drawBossGuard(bc, u) {
+    var q = projIn(bc.x, bc.y - 42);
+    var unlocked = V.bossUnlocked();
+    shadow(q.x, q.y + 6 * u, 22 * u, 7 * u);
+    ctx.font = Math.round(46 * u) + 'px "Segoe UI Emoji", system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = unlocked ? 0.45 : 1;
+    ctx.fillText('👹', q.x, q.y + 10 * u);
+    ctx.globalAlpha = 1;
+    if (!unlocked) {
+      bubble('포자대왕이 지키고 있다', q.x, q.y - 40 * u, '#3a1414', '#ffe2d8');
+    }
   }
 
   /** 창호 창 하나 */

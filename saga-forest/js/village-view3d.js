@@ -279,6 +279,10 @@
     /* 개구리·뱀(2026-09-10, "동물들도 찾아봐") — mushroom·dark·rocky 바이옴이
        유독 짐승이 적어(mushroom 은 여우 하나뿐이었다) 보탰다 */
     frog: 'animal:an_frog', snake: 'animal:an_snake',
+    /* 포자괴물(2026-09-10, "괴물이 나와도 되고" — 퓨전 방향) — village.js
+       buildAnimals() 가 여우 대신 아주 드물게(8%) 세우는 버섯숲 전용 몬스터.
+       다른 짐승과 같은 syncScatter()/Object Pool 경로를 그대로 탄다 */
+    mushnub: 'monster:mushnub',
     /* 마을 3D 건물(PLAN 6절, 2026-09-09) — village.js `buildProps()`의 shop·
        board·home·mail·tailor·pole·museum kind 를 그대로 타고 선다. 마을당
        하나뿐인 고정 건물이라 나무처럼 변종을 섞지 않는다 */
@@ -293,13 +297,16 @@
     hamletShed: 'building:hamletShed',
     /* 두 번째 캠프(2026-09-09) — village.js buildProps() 의 hamlet2House kind.
        House_4, 첫 캠프의 세 채와 같은 결 */
-    hamlet2House: 'building:hamlet2House'
+    hamlet2House: 'building:hamlet2House',
+    /* 폐허(2026-09-10, 퓨전 방향) — village.js buildProps() 의 ruinArch kind */
+    ruinArch: 'ruin:arch'
   };
   /** 2026-09-10 "움직이는 모션을 더 자연스럽게" — 이 표에 있는 kind만
    *  `syncScatter()`가 이동 방향으로 몸을 튼다. 나무·건물처럼 안 움직이는
    *  것까지 매 프레임 회전을 계산할 까닭이 없어 짐승 일곱 종만 추렸다 */
   var TURNING_KIND = {
-    deer: 1, fox: 1, wolf: 1, rabbit: 1, squirrel: 1, duck: 1, bird: 1, frog: 1, snake: 1
+    deer: 1, fox: 1, wolf: 1, rabbit: 1, squirrel: 1, duck: 1, bird: 1, frog: 1, snake: 1,
+    mushnub: 1
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
@@ -313,6 +320,9 @@
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
     /* 개구리·뱀 — 토끼·다람쥐보다도 작게, 땅에 붙어 다니는 쪽이라 낮게 잡았다 */
     frog: 0.18, snake: 0.15,
+    /* 포자괴물 — 여우(0.55)보다 살짝 작게, 버섯 소품(mushroom 0.5)과 비슷한
+       눈높이로 눈대중 잡았다 */
+    mushnub: 0.5,
     /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
        비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
@@ -325,7 +335,10 @@
     hamletHouse: 2.4, hamletHut: 2.1, hamletShed: 2.3,
     /* House_4(Quaternius) — 두 번째 캠프의 유일한 채. 첫 캠프 셋과 같은
        눈대중 범위(2.1~2.4m) 안에서 살짝 다르게 잡았다 */
-    hamlet2House: 2.2
+    hamlet2House: 2.2,
+    /* 무너진 아치(Arch.glb) — 눈대중, 폐허 표지답게 나무보다는 낮고
+       건물보다는 존재감 있게 */
+    ruinArch: 2.6
   };
 
   /**
@@ -530,7 +543,17 @@
    *  clear 는 기준값(1) 그대로, cloud/rain/snow 순으로 점점 짙어진다 */
   var WEATHER_DARK = { clear: 1, cloud: 0.85, rain: 0.6, snow: 0.82 };
   var WEATHER_FOG = { clear: 1, cloud: 0.85, rain: 0.5, snow: 0.68 };
-  var FOG_NEAR = 30, FOG_FAR = 160;
+  /* 2026-09-10 — "NPC가 여전히 안 보인다"는 재신고로 다시 보니, 2026-09-09
+     카메라 거리 확대는 진짜 원인이 아니었다. 숲 NPC 여섯은 마을 중심에서
+     67~113m 떨어진 고정 지형지물 자리에 서는데(호수·캠프·동굴 등), 안개
+     먼 끝(far)이 160m 뿐이라 맑은 날에도 이미 절반 넘게 안개에 덮이고,
+     비/눈이면(WEATHER_FOG 배율) far 가 80~125m 로 더 좁아져 가장 먼 나그네
+     (113m)는 거의 안 보였다. NPC는 원래도 거리 컬링이 없어(주석 참고)
+     장면엔 계속 세워지고 있었다 — 안개가 먹어 버렸을 뿐이다. far 를
+     160→320 으로 넉넉히 늘려 맑은 날 기준 가장 먼 NPC도 안개 30%대로
+     떨어지게 했다(다른 스캐터·지형 렌더 비용은 그대로 — fog 는 셰이더
+     블렌딩 값이라 값만 바꿔도 공짜다) */
+  var FOG_NEAR = 30, FOG_FAR = 320;
   var curWeatherSky = null;
 
   /** hex 색을 f(0~1)배 어둡게 — 순수 함수(진단에서 scene 없이도 확인 가능) */
@@ -832,7 +855,7 @@
 
     scene = new t.Scene();
     scene.background = new t.Color(0x8fc7e8);
-    scene.fog = new t.Fog(0x8fc7e8, 30, 160);
+    scene.fog = new t.Fog(0x8fc7e8, FOG_NEAR, FOG_FAR);
 
     camera = new t.PerspectiveCamera(FOV(), 1, 0.1, 400);
 

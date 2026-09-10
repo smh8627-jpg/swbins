@@ -408,7 +408,7 @@ window.DG_NO_TUNE = true;
 
     t('village-view3d — 걷는 짐승만(딱 그만큼) 이동 방향으로 몸을 트는 표에 있다(나무·건물은 없음)', function () {
       var VV3 = DG.villageView3d, T = VV3.turningKind();
-      var need = ['deer', 'fox', 'wolf', 'rabbit', 'squirrel', 'duck', 'bird', 'frog', 'snake'];
+      var need = ['deer', 'fox', 'wolf', 'rabbit', 'squirrel', 'duck', 'bird', 'frog', 'snake', 'mushnub'];
       var miss = need.filter(function (k) { return !T[k]; });
       var leaked = ['tree', 'rock', 'flower', 'home', 'board'].filter(function (k) { return !!T[k]; });
       return miss.length === 0 && leaked.length === 0 && Object.keys(T).length === need.length &&
@@ -867,6 +867,49 @@ window.DG_NO_TUNE = true;
         if (V.inHamlet2(tx, ty)) { bad++; }
       }
       return bad === 0 && '두 번째 캠프 둘레 겹침 0개';
+    });
+
+    /* ── 폐허(2026-09-10, "시대 혼합 소품·폐허" — 퓨전 방향, PLAN 10절) ──
+     * 위 두 번째 캠프·동굴과 같은 결의 네 가지를 그대로 반복한다 */
+
+    t('폐허 — 호수·캠프·동굴과 안 겹치는 서북쪽 고정 자리, 재현된다', function () {
+      var a = V.ruinSpot(), b = V.ruinSpot();
+      var lake = V.lakeCenter(), h1 = V.hamletSpot(), c = V.caveSpot();
+      var farFromLake = !lake || Math.abs(a.tx - lake.tx) > 6 || Math.abs(a.ty - lake.ty) > 6;
+      var farFromH1 = !h1 || Math.abs(a.tx - h1.tx) > 6 || Math.abs(a.ty - h1.ty) > 6;
+      var farFromCave = !c || Math.abs(a.tx - c.tx) > 6 || Math.abs(a.ty - c.ty) > 6;
+      return !!a && JSON.stringify(a) === JSON.stringify(b) && a.ty < 0 && a.tx < 0 &&
+        farFromLake && farFromH1 && farFromCave &&
+        ('(' + a.tx + ',' + a.ty + ') 재현 · 호수·캠프·동굴과 안 겹침');
+    });
+
+    t('폐허 — margin 이 너무 좁으면 아예 없어진다', function () {
+      C.setTune('forest.margin', 5);
+      var gone = V.ruinSpot();
+      C.setTune('forest.margin', null);
+      return gone === null && 'margin 5 → 폐허 없음';
+    });
+
+    t('폐허 — buildProps() 가 무너진 아치·이끼바위 둘을 세운다', function () {
+      V.buildProps();
+      var raw = V.raw(), byId = {};
+      for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
+      var want = ['ruinArch', 'ruinRockL', 'ruinRockR'];
+      var n = 0, i2;
+      for (i2 = 0; i2 < want.length; i2++) { if (byId[want[i2]] && byId[want[i2]].deco) { n++; } }
+      return n === want.length && ('폐허 사물 ' + n + '/' + want.length + '개');
+    });
+
+    t('폐허 — 둘레엔 바이옴 장식(f 접두)이 안 겹쳐 심긴다', function () {
+      V.buildProps();
+      var raw = V.raw(), i, bad = 0;
+      for (i = 0; i < raw.props.length; i++) {
+        var p = raw.props[i];
+        if (p.id.charAt(0) !== 'f') { continue; }
+        var tx = Math.floor(p.x / V.TILE), ty = Math.floor(p.y / V.TILE);
+        if (V.inRuin(tx, ty)) { bad++; }
+      }
+      return bad === 0 && '폐허 둘레 겹침 0개';
     });
 
     /* ── PLAN 40절 PHASE 3 마지막 칸: 숨겨진 동굴 ─────────────── */
@@ -2783,7 +2826,7 @@ window.DG_NO_TUNE = true;
         (a1.length + '마리 재현');
     });
 
-    t('짐승 — 등록된 자산이 있는 종(사슴·여우·늑대·토끼·다람쥐·오리·새·개구리·뱀)만 나고, 제 바이옴에만 선다', function () {
+    t('짐승 — 등록된 자산이 있는 종(사슴·여우·늑대·토끼·다람쥐·오리·새·개구리·뱀·포자괴물)만 나고, 제 바이옴에만 선다', function () {
       V.buildAnimals();
       var list = V.raw().animals, i, bad = null;
       for (i = 0; i < list.length; i++) {
@@ -3024,6 +3067,36 @@ window.DG_NO_TUNE = true;
       return r1 && r1.kind === 'treasure' && g1 === g0 + chest.reward &&
         r2 && r2.kind === 'empty' &&
         ('🪙 +' + chest.reward + ' · 두 번째는 ' + r2.kind);
+    });
+
+    /* ── 보스방(2026-09-10, "괴물이 나와도 되고" — 퓨전 방향, PLAN 10절
+     * "보스 지역") ────────────────────────────────────────────
+     * 새 전투는 없다 — 상자 셋을 다 열어야 네 번째(보스) 상자가 열리는
+     * 잠금만 얹었다. */
+    t('보스방 — 셋을 다 열기 전엔 봉인, 다 열면 열리고 보상도 더 크다', function () {
+      var s = V.state();
+      var saved = { chest0: s.caveOpened.chest0, chest1: s.caveOpened.chest1,
+        chest2: s.caveOpened.chest2, bossChest: s.caveOpened.bossChest };
+      delete s.caveOpened.chest0; delete s.caveOpened.chest1;
+      delete s.caveOpened.chest2; delete s.caveOpened.bossChest;
+      V.enterCave();
+      var raw = V.raw();
+      var boss = V.caveBossChest();
+      raw.player.x = boss.x; raw.player.y = boss.y;
+      var lockedTry = V.interact();                     // 아직 셋 다 안 열었다
+      s.caveOpened.chest0 = true; s.caveOpened.chest1 = true; s.caveOpened.chest2 = true;
+      var g0 = C.save.player.gold;
+      var openTry = V.interact();                        // 이제 열린다
+      var g1 = C.save.player.gold;
+      var again = V.interact();                          // 두 번째는 이미 열었다
+      V.leaveCave();
+      C.save.player.gold = g0;
+      s.caveOpened.chest0 = saved.chest0; s.caveOpened.chest1 = saved.chest1;
+      s.caveOpened.chest2 = saved.chest2; s.caveOpened.bossChest = saved.bossChest;
+      return lockedTry && lockedTry.kind === 'locked' &&
+        openTry && openTry.kind === 'treasure' && g1 === g0 + boss.reward &&
+        again && again.kind === 'empty' && boss.reward > V.caveChests()[0].reward &&
+        ('봉인(' + lockedTry.kind + ') → 개봉(+' + boss.reward + ') → 재시도(' + again.kind + ')');
     });
 
     t('Treasure — 집과 동굴은 동시에 못 들어간다 (상호 배제)', function () {

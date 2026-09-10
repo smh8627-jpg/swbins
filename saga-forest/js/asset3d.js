@@ -42,6 +42,7 @@
   var BLD = 'assets/models/buildings/';
   var BLD_REAL = 'assets/models/buildings/realistic/';
   var ANI = 'assets/models/animals/';
+  var MON = 'assets/models/monsters/';
   var PEOPLE = 'assets/models/people/regular/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
   /* 2026-09-02 — 사용자가 "사람도 실사로" 요청, Mixamo(mixamo.com) 에서 직접 받아 온
@@ -242,6 +243,10 @@
     'well': PROP + 'Well.glb',
     'bridge': PROP + 'Bridge.glb',
     'gazebo': PROP + 'Gazebo.glb',
+    /* 폐허(2026-09-10, 퓨전 방향 — PLAN 10절 "폐허") — saga-go·saga-dungeon
+       이 이미 CC0 확인해 둔 Quaternius 무너진 아치(modular_dungeon_1 팩)를
+       그대로 복사(md5 saga-go 쪽과 동일, ASSET_LICENSES.md 참고) */
+    'ruin:arch': PROP + 'Arch.glb',
 
     /* 마을 3D 건물 (PLAN 6절 "작은 마을") — village.js 의 props 가 이미 갖고
        있던 shop·home·board·mail·tailor·pole·museum 을 처음으로 GLB 로 세운다.
@@ -286,6 +291,13 @@
        있어 `buildGeneric()`가 자동으로 걷는 몸짓을 태운다 */
     'animal:an_frog': ANI + 'Frog.glb',
     'animal:an_snake': ANI + 'Snake.glb',
+
+    /* 몬스터(2026-09-10, "괴물이 나와도 되고" — 퓨전 방향으로 확장, PLAN 20절
+       "몬스터 습격" 예시). saga-dungeon 이 이미 CC0 확인해 둔 Quaternius
+       "Ultimate Monsters Bundle"에서 버섯숲(mushroom) 바이옴에 맞는
+       Mushnub 하나만 옮겨 왔다(`ASSET_LICENSES.md` 참고) — 원본에
+       Idle·Walk·Attack 클립이 있어 다른 짐승과 같은 결로 걷는 몸짓이 탄다 */
+    'monster:mushnub': MON + 'Mushnub_55c64684.glb',
 
     /* 2026-09-05 — 도감 펫(`pt_*`·`pk_*`) 초상을 굽는 자리(`portrait3d.js`).
        위 `animal:an_*` 는 숲의 **배경 짐승** 전용이라 도감 펫과 id 가 안
