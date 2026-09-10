@@ -154,6 +154,11 @@
      (이 판은 🏪 도구줄로 언제든 연다, 그 구조가 낫다고 이미 README에 적혀
      있다). 대신 마주치면 값에만 잠깐 얹는 버프를 준다(`gear.js`의 `priceMul()`) */
   var MERCHANT_CHANCE = 0.12, MERCHANT_R = 70, MERCHANT_DUR = 90;
+  /* NPC 구조 이벤트(PLAN 11절, 2026-09-10) — §11이 적어 둔 예시 일곱 중
+     마지막으로 남아 있던 것. 마을 사람(NPC_TALK)을 사냥터에 들여오지 않고
+     (표지판처럼 선 존재라 어울리지 않는다), 붙잡힌 사람 하나를 지키는
+     잡졸을 다 잡으면 사례금을 준다 — 몬스터 습격의 "역"에 가깝다 */
+  var RESCUE_CHANCE = 0.10, RESCUE_R = 90, RESCUE_COUNT = 2;
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
   var CHEST_R = 46;
   var FORAGE_CHANCE = 0.18, FORAGE_HALF = 130, FORAGE_MUL = 2;   // 채집 보너스 지역(PLAN 11절)
@@ -230,6 +235,14 @@
     return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
   }
 
+  /** 랜덤 이벤트(PLAN 11절) "NPC 구조" — 걸어 들어갈 때 낮은 확률로 붙잡힌
+   *  사람 자리가 하나 생긴다. 가까이 가면 지키던 잡졸이 나타나고(update()),
+   *  그 잡졸을 다 잡으면 사례금을 받는다 */
+  function buildRescue(stg) {
+    if (stg.town || Math.random() >= RESCUE_CHANCE) { return null; }
+    return { x: 260 + Math.random() * (stg.width - 520), spawned: false, done: false };
+  }
+
   /** 사냥터에 들어간다 */
   function enter(key) {
     var stg = SD.stage(key);
@@ -250,7 +263,8 @@
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), forage: buildForageZone(stg), ambush: buildAmbush(stg),
-      miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), npcs: buildNpcs(stg), talk: null,
+      miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
+      npcs: buildNpcs(stg), talk: null,
       chatCd: CHAT_EVERY * (0.7 + Math.random() * 0.6),
       kills: 0, gold: 0, startedAt: Date.now()
     };
@@ -448,6 +462,7 @@
     run.ambush = buildAmbush(stg);
     run.miniboss = buildMiniboss(stg);
     run.merchant = buildMerchant(stg);
+    run.rescue = buildRescue(stg);
     run.npcs = buildNpcs(stg); run.talk = null;
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
@@ -1219,6 +1234,31 @@
       core.save.player.merchantUntil = Date.now() + MERCHANT_DUR * 1000;
       sfx('gold');
       core.emit('toast', '🛒 지나가던 상인 — ' + MERCHANT_DUR + '초 동안 상점이 30% 싸집니다!');
+    }
+
+    /* NPC 구조(PLAN 11절) — 가까이 가면 지키던 잡졸이 나타나고, 다 잡으면
+       사례금을 받는다. 잡는 것 자체는 보통 전투와 같아 별도 판정이 없다 —
+       여기서는 "다 잡혔나"만 본다 */
+    if (run.rescue && !run.rescue.spawned && Math.abs(run.rescue.x - px) < RESCUE_R) {
+      run.rescue.spawned = true;
+      for (var ri = 0; ri < RESCUE_COUNT; ri++) {
+        var rOff = (ri - (RESCUE_COUNT - 1) / 2) * AMBUSH_SPREAD;
+        var rX = Math.max(60, Math.min(stg.width - 60, run.rescue.x + rOff));
+        var rg = spawnEnemy(rX);
+        if (rg) { rg.guard = true; }
+      }
+      sfx('hurt');
+      core.emit('toast', '😱 도적에게 붙잡힌 사람이 있다!');
+    }
+    if (run.rescue && run.rescue.spawned && !run.rescue.done) {
+      var guardsLeft = run.enemies.filter(function (e) { return e.guard; }).length;
+      if (guardsLeft === 0) {
+        run.rescue.done = true;
+        var rGold = Math.round((30 + stg.enemyLv * 10) * (0.8 + Math.random() * 0.4) * GAIN_GOLD);
+        run.gold += rGold;
+        sfx('gold');
+        core.emit('toast', '🙏 구해줘서 고맙다며 사례금을 줬다 · 🪙+' + rGold);
+      }
     }
 
     /* 마을 사람끼리의 잡담 — 사냥터엔 없고, 마을(town:true)에서만, 그것도

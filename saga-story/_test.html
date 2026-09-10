@@ -2455,6 +2455,30 @@ window.DG_NO_TUNE = true;
       return ok && ('🪙 ' + priceBefore + ' → ' + priceAfter + ' (' + tries + '판째)');
     });
 
+    t('NPC 구조(PLAN 11절) — 지키는 잡졸을 다 잡으면 사례금을 받는다', function () {
+      if (S.active()) { S.leave(); }
+      var found = null, tries = 0, run;
+      while (!found && tries < 200) {
+        S.enter('field');
+        run = S.raw();
+        found = run.rescue;
+        if (!found) { S.leave(); }
+        tries++;
+      }
+      if (!found) { return false; }
+      run.player.x = found.x - 10; run.player.y = run.stage.floor - S.P_H;
+      S.update(0.05);
+      var guards = run.enemies.filter(function (e) { return e.guard; });
+      if (!found.spawned || guards.length === 0) { return false; }
+      var goldBefore = run.gold;
+      /* 실제로 베지 않고 직접 치운다 — 여기서 보는 것은 "다 치우면 사례금이
+         나오는지"이지 타격 판정이 아니다(그건 다른 항목이 이미 본다) */
+      run.enemies = run.enemies.filter(function (e) { return !e.guard; });
+      S.update(0.05);
+      return found.done && run.gold > goldBefore &&
+        ('🪙 +' + Math.round(run.gold - goldBefore) + ' (' + tries + '판째)');
+    });
+
     t('돌진형(기병)은 뜸을 들이다 빠르게 달려든다', function () {
       if (S.active()) { S.leave(); }
       var found = null, tries = 0, run;
