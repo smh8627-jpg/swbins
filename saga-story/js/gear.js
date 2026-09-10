@@ -20,11 +20,13 @@
 
   var core = global.DG.core;
   var GD = global.DG.gearData;
+  var UD = global.DG.uniqueData;   // 고유(固有) — data-unique.js. 없어도(옛 캐시 등) 그냥 안 나올 뿐 돈다
 
   /* 규칙 값은 균형 손잡이를 거친다 — 어드민이 잡고, 켜질 때 한 번 읽는다 */
   var BAG = core.tuned('gear.bag', 24);         // 가방 칸
   var DROP_MUL = core.tuned('drop.gearMul', 1); // 장비·주문서가 떨어질 확률 (배수)
   var SCROLL_MUL = core.tuned('scroll.rateMul', 1); // 주문서 성공률 (배수 — 1 을 넘으면 상한 1)
+  var UNIQUE_CHANCE = core.tuned('drop.uniqueChance', 0.16); // 보스가 Lv.20 장비를 떨굴 때 고유로 바뀔 확률
 
   function st() {
     var s = core.save;
@@ -38,15 +40,21 @@
 
   /* ── 물건 ─────────────────────────────────────────────── */
 
+  /** 물건 key 하나로 그 정의를 찾는다 — 고유(固有)가 먼저다(같은 key 를 밑감이 쓸 일은 없다) */
+  function findDef(key) {
+    var u = UD ? UD.find(key) : null;
+    return u || GD.find(key);
+  }
+
   /** 데이터 한 줄로 실물 하나를 찍어 낸다 */
   function make(key) {
-    var def = GD.find(key);
+    var def = findDef(key);
     if (!def) { return null; }
     var g = st();
     return { uid: g.uid++, key: key, up: 0, left: def.up, atk: 0, def: 0, hp: 0 };
   }
 
-  function defOf(it) { return it ? GD.find(it.key) : null; }
+  function defOf(it) { return it ? findDef(it.key) : null; }
 
   /** 기본값 + 붙은 값 */
   function statsOf(it) {
@@ -55,10 +63,12 @@
     return { atk: d.atk + (it.atk || 0), def: d.def + (it.def || 0), hp: d.hp + (it.hp || 0) };
   }
 
+  function isUnique(it) { return !!(it && UD && UD.find(it.key)); }
+
   function nameOf(it) {
     var d = defOf(it);
     if (!d) { return '?'; }
-    return d.name + (it.up ? ' (+' + it.up + ')' : '');
+    return (isUnique(it) ? '★ ' : '') + d.name + (it.up ? ' (+' + it.up + ')' : '');
   }
 
   function byUid(uid) {
@@ -281,7 +291,15 @@
     var scrollRate = Math.min(1 - gearRate, (boss ? 0.7 : 0.05) * DROP_MUL);
     if (r < gearRate) {
       var pool = GD.poolFor(lv);
-      return { kind: 'gear', key: core.pick(pool).key };
+      var picked = core.pick(pool);
+      /* 고유(固有) — 보스가 그 부위의 마지막 단(Lv.20)을 떨굴 때만, 그것도 드물게
+         이름 있는 물건으로 바뀐다. 낮은 단이 고유가 되면 표의 마지막 물건보다
+         세져 버려 어색하다 */
+      if (boss && UD && picked.need === 20 && Math.random() < UNIQUE_CHANCE) {
+        var uq = UD.forBase(picked.key);
+        if (uq) { return { kind: 'gear', key: uq.key, uniq: true }; }
+      }
+      return { kind: 'gear', key: picked.key };
     }
     if (r < gearRate + scrollRate) {
       /* 낮은 확률 주문서는 더 드물게 나온다 */
@@ -296,7 +314,7 @@
   global.DG.gear = {
     BAG: BAG, SELL_RATE: SELL_RATE,
     state: st, make: make, put: put, drop: drop, inv: inv, bagLeft: bagLeft,
-    byUid: byUid, defOf: defOf, statsOf: statsOf, nameOf: nameOf,
+    byUid: byUid, defOf: defOf, statsOf: statsOf, nameOf: nameOf, isUnique: isUnique,
     equip: equip, unequip: unequip, equipped: equipped, isEquipped: isEquipped,
     bonus: bonus, cut: cut,
     scrollCount: scrollCount, addScroll: addScroll, apply: apply,

@@ -799,6 +799,7 @@
           '<span class="muted">' + esc(GD.slot(d.slot).name) + ' · Lv.' + d.need + '</span></div>' +
         '<div class="stat-row"><span class="muted">' + esc(optLine(G.statsOf(g))) + '</span>' +
           '<span class="muted">업횟 ' + g.left + '</span></div>' +
+        (G.isUnique(g) && d.desc ? '<div class="hint">' + esc(d.desc) + '</div>' : '') +
         '<div class="btn-row">' +
           (on ? '' : (canWear
             ? '<button class="btn tiny primary" data-act="g-equip" data-uid="' + g.uid + '">낀다</button> '

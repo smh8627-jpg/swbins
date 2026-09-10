@@ -149,6 +149,10 @@
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
   var CHEST_R = 46;
   var FORAGE_CHANCE = 0.18, FORAGE_HALF = 130, FORAGE_MUL = 2;   // 채집 보너스 지역(PLAN 11절)
+  /* 마을 사람끼리의 잡담(2026-09-10, `data-side.js` NPC_CHAT 참고) — 마을에서
+     이만큼 시간이 지날 때마다 굴려 보고, 맞으면 화제를 하나 골라 전한다.
+     사냥터엔 없다(싸우는 자리라 한가한 잡담이 어울리지 않는다) */
+  var CHAT_EVERY = 16, CHAT_CHANCE = 0.4;
 
   /** 사냥터의 채집 자리를 살아있는 상태로 되돌린다(문 넘을 때·재입장 시) */
   function buildGathers(stg) {
@@ -209,6 +213,7 @@
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), forage: buildForageZone(stg), npcs: buildNpcs(stg), talk: null,
+      chatCd: CHAT_EVERY * (0.7 + Math.random() * 0.6),
       kills: 0, gold: 0, startedAt: Date.now()
     };
     st().stage = stg.key;
@@ -648,7 +653,7 @@
     if (G) {
       var got = G.rollDrop(lv, !!e.boss);
       if (got) {
-        run.drops.push({ kind: got.kind, key: got.key,
+        run.drops.push({ kind: got.kind, key: got.key, uniq: !!got.uniq,
                          x: e.x + e.w / 2 - 12, y: e.y, vy: -240, n: 1 });
       }
     }
@@ -1064,9 +1069,12 @@
               var made = GG.make(d.key);
               /* 가방이 가득 차면 **줍지 못하고 그대로 남는다** — 원작의 그 답답함이다 */
               if (!GG.put(made)) { sfx('bagfull'); continue; }
-              sfx('gear');
-              core.emit('toast', '📦 ' + GG.nameOf(made));
-              fx.push({ t: 'itempop', x: p.x + P_W / 2, y: p.y, emoji: '📦', text: GG.nameOf(made), life: ITEMPOP_DUR });
+              /* 고유(固有)는 소리부터 다르다 — 원작에서 유니크가 그렇다 */
+              sfx(d.uniq ? 'uniq' : 'gear');
+              core.emit('toast', (d.uniq ? '⭐ 고유 · ' : '📦 ') + GG.nameOf(made));
+              if (d.uniq) { core.log('⭐ 고유 장비를 주웠다 — ' + GG.nameOf(made), 'good'); }
+              fx.push({ t: 'itempop', x: p.x + P_W / 2, y: p.y, emoji: d.uniq ? '⭐' : '📦',
+                        text: GG.nameOf(made), life: ITEMPOP_DUR });
             } else {
               GG.addScroll(d.key, 1);
               sfx('scroll');
@@ -1127,6 +1135,25 @@
       core.emit('toast', '💰 보물상자! 🪙+' + cgold + (gotItem ? ' · 📦 ' + GG2.nameOf(gotItem) : ''));
       if (gotItem) {
         fx.push({ t: 'itempop', x: p.x + P_W / 2, y: p.y, emoji: '📦', text: GG2.nameOf(gotItem), life: ITEMPOP_DUR });
+      }
+    }
+
+    /* 마을 사람끼리의 잡담 — 사냥터엔 없고, 마을(town:true)에서만, 그것도
+       대화창을 열어 놓은 동안엔 겹치지 않게 쉰다 */
+    if (stg.town && run.npcs.length >= 2 && !run.talk) {
+      run.chatCd -= dt;
+      if (run.chatCd <= 0) {
+        run.chatCd = CHAT_EVERY * (0.7 + Math.random() * 0.6);
+        if (Math.random() < CHAT_CHANCE) {
+          var a = core.pick(run.npcs), b;
+          do { b = core.pick(run.npcs); } while (b === a);
+          var topic = core.pick(SD.NPC_CHAT);
+          var lineA = topic[0].replace('{town}', stg.name);
+          var lineB = topic[1].replace('{town}', stg.name);
+          sfx('talk');
+          core.emit('toast', '💬 ' + a.name + ': "' + lineA + '"');
+          core.log('💬 ' + a.name + ': "' + lineA + '" / ' + b.name + ': "' + lineB + '"', 'info');
+        }
       }
     }
 

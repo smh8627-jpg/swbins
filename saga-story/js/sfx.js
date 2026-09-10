@@ -114,6 +114,10 @@
                                dur: 0.12, wave: 'triangle', gain: 0.09 }] },
     gear:   { gap: 0.08, l: [{ v: 'chime', notes: [880, 1175, 1568], step: 0.05,
                                dur: 0.3, wave: 'triangle', gain: 0.13 }] },
+    /* 고유(固有) — 이름 있는 물건이 나올 때만. gear 보다 한 음 더 얹고 높이 올라간다 */
+    uniq:   { gap: 0.6,  l: [{ v: 'chime', notes: [659, 880, 1109, 1397, 1760], step: 0.06,
+                               dur: 0.55, wave: 'triangle', gain: 0.18 },
+                             { v: 'tone', f: 2093, f2: 2093, dur: 0.4, wave: 'sine', gain: 0.08, at: 0.05 }] },
     scroll: { gap: 0.08, l: [{ v: 'noise', dur: 0.14, lp: 4200, lp2: 1600, gain: 0.08 }] },
     potion: { gap: 0.15, l: [{ v: 'tone', f: 300, f2: 820, dur: 0.22, wave: 'sine', gain: 0.12 }] },
     /* 가방이 차서 못 줍는다 — 답답함도 규칙이라 소리로도 알린다 */
