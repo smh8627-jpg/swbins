@@ -784,6 +784,10 @@
     place(playerMesh, p.x + S.P_W / 2, stg.floor - (p.y + S.P_H), p.facing);
     tintHurt(playerMesh, p.hurt || 0);
     var walking = !!p.vx && p.onGround;
+    /* 북돋움(buff, PLAN §12)이 걸린 동안은 실제로 더 빠르게 걷는데(side.js의
+       mul) 몸짓은 그대로 walk였다 — buffOn()과 같은 조건을 여기서 그대로
+       본다(내보낼 필요 없이 p.buff를 직접 읽는다) */
+    var running = walking && p.buff && p.buff.until > Date.now() && p.buff.speed > 1;
     /* 몸짓 우선순위(2026-09-10) — 맞는 순간이 늘 가장 세다(구르거나 휘두르던
        중이어도 맞은 티가 나야 한다). interaction(마심·대화)은 걷기·가만있기
        보다는 위, 회피·공격보다는 아래 — 둘 다 그 자리에서 짧게 끝난다 */
@@ -791,7 +795,7 @@
       ((p.dodgeAnim || 0) > 0 ? 'dodge' :
       ((p.atkCd || 0) > 0 ? 'attack' :
       (((p.drinkAnim || 0) > 0 || !!run.talk) ? 'interaction' :
-      (walking ? 'walk' : 'idle')))));
+      (running ? 'run' : (walking ? 'walk' : 'idle'))))));
     var bob = (!playerMesh.userData.mixer && walking) ? Math.abs(Math.sin(Date.now() / 90)) * 3 : 0;
     playerMesh.position.y += bob;
 
