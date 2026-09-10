@@ -408,12 +408,14 @@
   var DEX_COMPLETE = {
     heroes:  { gold: 3000, feat: 100, label: '인물' },
     pets:    { gold: 1500, feat: 60,  label: '펫' },
-    regions: { gold: 800,  feat: 30,  label: '지역' }
+    regions: { gold: 800,  feat: 30,  label: '지역' },
+    relics:  { gold: 1200, feat: 50,  label: '유적' }
   };
   function dexTotal(cat) {
     if (cat === 'heroes') { return data.heroes.length; }
     if (cat === 'pets') { return data.pets.length; }
     if (cat === 'regions') { return (global.DG.dungeonData && global.DG.dungeonData.THEMES.length) || 0; }
+    if (cat === 'relics') { return (global.DG.town && global.DG.town.fieldRelics) ? global.DG.town.fieldRelics().length : 0; }
     return 0;
   }
   function checkDexComplete(cat) {
@@ -721,6 +723,8 @@
       /* 길 위의 발견거리(PLAN §60 후보 2) — 창을 안 띄운다. 토스트만
          뜨고 그 자리에서 바로 보상까지 끝난다(town.js rewardRoadMark). */
       else if (o.roadMark) { global.DG.town.rewardRoadMark(o); }
+      /* 필드 유적(PLAN §60 후보 4) — 도감 'relics'에 등록되며 같은 결로 끝난다. */
+      else if (o.fieldRelic) { global.DG.town.rewardFieldRelic(o); }
       else { openVow(); }
     });
     /* 장면이 바뀌는 순간 곧바로 다시 그린다. tickRefresh(0.3초)를 기다리면
@@ -1033,15 +1037,20 @@
     var pC = Object.keys(core.save.dex.pets).length;
     var themes = (global.DG.dungeonData && global.DG.dungeonData.THEMES) || [];
     var rC = Object.keys(core.save.dex.regions || {}).length;
+    var relics = (global.DG.town && global.DG.town.fieldRelics) ? global.DG.town.fieldRelics() : [];
+    var lC = Object.keys(core.save.dex.relics || {}).length;
     return '<div class="sec"><h4>인물</h4>' + dexBar(hC, data.heroes.length) +
              dexGrid(data.heroes, core.save.dex.heroes) + '</div>' +
            '<div class="sec"><h4>펫</h4>' + dexBar(pC, data.pets.length) +
              dexGrid(data.pets, core.save.dex.pets) + '</div>' +
            '<div class="sec"><h4>지역</h4>' + dexBar(rC, themes.length || 1) +
              regionGrid(themes, core.save.dex.regions || {}) + '</div>' +
+           '<div class="sec"><h4>유적</h4>' + dexBar(lC, relics.length || 1) +
+             relicGrid(relics, core.save.dex.relics || {}) + '</div>' +
            '<div class="hint">카드를 누르면 열전·승급·펫 장착 화면이 열립니다. ' +
            '같은 인물을 또 등용하면 <b>중복(+n)</b>이 쌓여 승급 재료가 됩니다. ' +
-           '지역은 그 층 테마에 처음 들어서면 밝혀집니다.</div>';
+           '지역은 그 층 테마에 처음 들어서면 밝혀집니다. 유적은 길에서 벗어나 ' +
+           '들판을 뒤져야 닿습니다.</div>';
   }
 
   /** 지역 도감 — 인물·펫과 달리 등급색·중복 개념이 없는 단순 목록이다.
@@ -1053,6 +1062,20 @@
       out += '<div class="dcell' + (have ? '' : ' locked') + '" title="' + esc(have ? t.name : '미발견') + '">' +
         (have ? '<span class="de">🗺️</span>' : '<span class="de locked-mark">❔</span>') +
         '<small>' + (have ? esc(t.name) : '???') + '</small></div>';
+    }
+    return out + '</div>';
+  }
+
+  /** 유적 도감(PLAN §60 후보4) — 지역과 같은 단순 목록. 이미 찾은 것만
+   *  실제 이름·그림을 보여준다(못 찾은 것은 자리만 있고 정체는 감춘다 —
+   *  릴리스 제단처럼 "몇 개 남았는지"만 보이고 어디인지는 안 가르쳐 준다). */
+  function relicGrid(relics, owned) {
+    var out = '<div class="dexgrid">';
+    for (var i = 0; i < relics.length; i++) {
+      var r = relics[i], have = !!owned[r.id];
+      out += '<div class="dcell' + (have ? '' : ' locked') + '" title="' + esc(have ? r.name : '미발견') + '">' +
+        (have ? '<span class="de">' + r.emoji + '</span>' : '<span class="de locked-mark">❔</span>') +
+        '<small>' + (have ? esc(r.name) : '???') + '</small></div>';
     }
     return out + '</div>';
   }
