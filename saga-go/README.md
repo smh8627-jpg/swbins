@@ -1308,6 +1308,16 @@ portrait(kind, ref, size)  오프스크린으로 한 번 그려 data URL 로 캐
 성능 주의: 헤드리스 브라우저의 소프트웨어 렌더링에서는 스프라이트가 느리다.
 자가진단 페이지는 `window.DG_NO_DRAW = true` 로 캔버스 렌더를 건너뛴다.
 
+**2026-09-10 — 2D 지도 위 사람만 실제 에셋으로 갈아 끼웠다.** 위 `human()`은
+여전히 살아 있고 초상·`portraitCard`·아직 그림이 안 실린 첫 프레임의 되돌림
+자리로 쓰이지만, **지도 위를 걸어 다니는 스폰·주민의 몸**(`world.js`의
+`drawSpawn`·`drawNpc` → `sprite.stamp()`)은 이제 `bake()`가 Kenney Roguelike
+Characters(CC0, saga-forest 선례와 같은 파일)에서 오려 낸 열넷 중 인물 id로
+고른 정지 그림을 붙인다. 세력색·계절 물듦·등신·그림 양식은 이 그림 하나로는
+못 낸다(고정 그림이라) — 좌우 뒤집기·걸음 통통거림은 그대로 산다. 자세한
+트레이드오프는 `assets/ASSET_LICENSES.md`의 같은 절 참고. **3D(기본 화면)는
+안 건드림** — 3D가 꺼진 저사양 폴백/2D 모드에서만 보인다.
+
 ### 걷기 애니메이션 (구현됨)
 `world.js` 가 **위치 변화만 보고** 걸음 상태를 만든다. 그래서 키보드 이동이든 실제 GPS든
 같은 코드로 걷는다 (`updatePlayerMotion`).
