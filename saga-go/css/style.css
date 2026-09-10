@@ -113,7 +113,10 @@ body.r3d.tilted #vignette {
 .p-goal b { color: #fff; }
 .p-goal.ready { color: #7ee787; }
 
-.tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
+/* margin-right: #top 밖의 #btn-mapfocus(⛶)가 이 줄과 똑같은 top-right 자리(우측
+   12px)에 고정돼 있다 — 자리를 안 비워 두면 도구줄 맨 끝 단추(⋯ 또는 어드민 쪽
+   단추들)가 그 밑에 완전히 가려 눌리지 않는다(2026-09-11, 실기에서 발견) */
+.tools { grid-area: tools; display: flex; gap: 7px; position: relative; margin-right: 50px; }
 /* 도구 서랍 — 넓은 화면에서는 **없는 셈** 치고(display:contents) 안의 단추가
    도구줄에 그대로 늘어선다. 좁은 화면에서만 ⋯ 뒤로 접힌다(아래 600px 규칙) */
 .tools-drawer { display: contents; }
