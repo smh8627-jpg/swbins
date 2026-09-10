@@ -770,7 +770,16 @@
    *  찾아 채웠다(`asset3d.js` DEFAULTS 참고 — 이제 "아직 못 채운 자리"는
    *  없다).
    *  biomes 는 이 짐승이 사는 바이옴(village.js 의 biomeAt() 키) 목록,
-   *  wander/flee 단위는 그림 좌표(TILE=40)다 */
+   *  wander/flee 단위는 그림 좌표(TILE=40)다
+   *
+   *  **2026-09-10 "동물들도 찾아봐" — 개구리·뱀 보탰다.** 바이옴별로 세어
+   *  보니 mushroom 은 여우 하나뿐이고 dark·rocky 도 둘씩이라 숲 고리를
+   *  걸어도 그 근방은 유독 휑했다. 새로 안 받고 `saga-go`(Quaternius 짐승
+   *  팩, CC0)가 이미 갖고 있던 개구리·뱀을 옮겼다 — 자세한 출처는
+   *  `assets/ASSET_LICENSES.md`. 덤으로 이 둘은 원본 GLB에 Idle·Walk(개구리는
+   *  Jump) 클립이 실제로 있는데, 확인해 보니 사슴·여우·늑대도 이미 그랬다
+   *  (애초에 있던 클립을 3D 화면이 여태 안 읽고 있었을 뿐 — `asset3d.js`
+   *  `buildGeneric()` 고침 참고). 토끼·다람쥐·오리·새 넷만 정말 정지 모델이다 */
   var ANIMALS = {
     deer: { name: '사슴', emoji: '🦌', speed: 22, wander: 90, flee: 220, fleeSpeed: 70, biomes: ['green', 'meadow'] },
     fox:  { name: '여우', emoji: '🦊', speed: 26, wander: 80, flee: 190, fleeSpeed: 78, biomes: ['mushroom', 'rocky'] },
@@ -778,7 +787,9 @@
     rabbit:   { name: '토끼',   emoji: '🐇', speed: 20, wander: 60, flee: 200, fleeSpeed: 82, biomes: ['green', 'meadow'] },
     squirrel: { name: '다람쥐', emoji: '🐿️', speed: 18, wander: 55, flee: 180, fleeSpeed: 80, biomes: ['green', 'dark'] },
     duck:     { name: '오리',   emoji: '🦆', speed: 14, wander: 45, flee: 160, fleeSpeed: 60, biomes: ['meadow'] },
-    bird:     { name: '새',     emoji: '🐦', speed: 20, wander: 70, flee: 210, fleeSpeed: 95, biomes: ['green', 'meadow'] }
+    bird:     { name: '새',     emoji: '🐦', speed: 20, wander: 70, flee: 210, fleeSpeed: 95, biomes: ['green', 'meadow'] },
+    frog:  { name: '개구리', emoji: '🐸', speed: 10, wander: 35, flee: 150, fleeSpeed: 50, biomes: ['mushroom', 'dark'] },
+    snake: { name: '뱀',     emoji: '🐍', speed: 12, wander: 50, flee: 170, fleeSpeed: 55, biomes: ['rocky', 'dark'] }
   };
 
   /** 숲 NPC(PLAN 40절 PHASE 4 NPC 칸) — PLAN 10절 "고정 배치" 그대로,

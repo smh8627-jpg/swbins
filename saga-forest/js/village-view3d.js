@@ -75,6 +75,12 @@
   function ISO_FOV() { return C().tuned('village3d.isoFov', FOV()); }
   /** 걸음이라고 볼 최소 속도(마을 좌표/초) — 이보다 느리면 멈춘 것으로 본다 */
   function MOVE_EPS() { return C().tuned('village3d.moveEps', 4); }
+  /** 2026-09-10 "움직이는 모션을 더 자연스럽게" — 인물·짐승이 방향을 트는 빠르기
+   *  (1/초, 지수감쇠 계수). 예전엔 걸음 방향(facingYaw)을 매 프레임 그대로
+   *  대입해 한 프레임 만에 홱 돌아갔다(특히 팻말·자갈밭 지그재그로 걸을 때
+   *  로봇처럼 스냅됐다) — 이제 이 빠르기로 부드럽게 좇아간다. 값이 클수록
+   *  빨리 따라잡는다(8 → 약 0.35초 만에 목표각의 95%까지) */
+  function TURN_RATE() { return C().tuned('village3d.turnRate', 8); }
 
   /** 마을 좌표 한 단위 = 몇 미터 — TILE(40단위)이 3.2m 쯤 되게 잡았다 */
   function WORLD_SCALE() { return C().tuned('village3d.worldScale', 0.08); }
@@ -270,6 +276,9 @@
     deer: 'animal:an_deer', fox: 'animal:an_fox', wolf: 'animal:an_wolf',
     rabbit: 'animal:an_rabbit', squirrel: 'animal:an_squirrel',
     duck: 'animal:an_duck', bird: 'animal:an_bird',
+    /* 개구리·뱀(2026-09-10, "동물들도 찾아봐") — mushroom·dark·rocky 바이옴이
+       유독 짐승이 적어(mushroom 은 여우 하나뿐이었다) 보탰다 */
+    frog: 'animal:an_frog', snake: 'animal:an_snake',
     /* 마을 3D 건물(PLAN 6절, 2026-09-09) — village.js `buildProps()`의 shop·
        board·home·mail·tailor·pole·museum kind 를 그대로 타고 선다. 마을당
        하나뿐인 고정 건물이라 나무처럼 변종을 섞지 않는다 */
@@ -286,6 +295,12 @@
        House_4, 첫 캠프의 세 채와 같은 결 */
     hamlet2House: 'building:hamlet2House'
   };
+  /** 2026-09-10 "움직이는 모션을 더 자연스럽게" — 이 표에 있는 kind만
+   *  `syncScatter()`가 이동 방향으로 몸을 튼다. 나무·건물처럼 안 움직이는
+   *  것까지 매 프레임 회전을 계산할 까닭이 없어 짐승 일곱 종만 추렸다 */
+  var TURNING_KIND = {
+    deer: 1, fox: 1, wolf: 1, rabbit: 1, squirrel: 1, duck: 1, bird: 1, frog: 1, snake: 1
+  };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
     tree: 3.4, pine: 3.0, rock: 0.9, flower: 0.35, weed: 0.4,
@@ -296,6 +311,8 @@
     bridge: 1.4,
     deer: 1.1, fox: 0.55, wolf: 0.95,
     rabbit: 0.3, squirrel: 0.25, duck: 0.35, bird: 0.2,
+    /* 개구리·뱀 — 토끼·다람쥐보다도 작게, 땅에 붙어 다니는 쪽이라 낮게 잡았다 */
+    frog: 0.18, snake: 0.15,
     /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
        비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
@@ -445,20 +462,32 @@
   var waterRipplePos = null;        // Float32Array(cap*2) — 물 칸 중심의 (상대x,상대z)
   var waterRippleCount = 0;         // 이번에 실제로 채운 칸 수
 
-  /** 타일 그림 — 2D 화면(village-view.js)과 **같은 파일**을 쓴다(Kenney
-   *  Roguelike/RPG Pack, CC0). "3D 타일이 디테일하지 않다"(사용자, 2026-09-02)
-   *  는 지적에 색 한 장이던 것을 그림으로 바꾼다. 숲 고리 네 변종은 2D 와
-   *  같이 같은 잔디 그림을 재질 색(`color`)으로 물들여 쓴다 */
+  /** 타일 그림 — **2026-09-10 이전엔 2D 화면(village-view.js)과 같은
+   *  Kenney tile_*.png 를 썼는데, 실제로 열어 보니 16x16 이 색 둘뿐인
+   *  거의 단색 조각이었다(2026-09-02 커밋이 시트에서 잘라 오는 과정이
+   *  깨져 있었던 것으로 보인다 — ASSET_LICENSES.md 는 여전히 "grass 그림"
+   *  이라 적혀 있었지만 실물은 사실상 색 채우기와 다를 바 없었다).
+   *  사용자가 "사가고나 사가블로처럼"(둘 다 실제 CC0 사진 텍스처를 쓴다)
+   *  요청해, 이미 저장소에 있는 CC0 1.0 텍스처를 **다른 판에서 그대로
+   *  옮겨** 쓴다(그 판들도 opengameart/ambientCG/polyhaven CC0라 재배포
+   *  제약이 없다) — 새로 받아오지 않았다:
+   *   - grass  → `saga-go/assets/textures/land/grass1.webp`(ambientCG Grass005)
+   *   - path   → `saga-go/assets/textures/land/road1.webp`(ambientCG Ground081, 흙길)
+   *   - stone  → `saga-dungeon/assets/textures/dungeon/floor_stone.webp`(polyhaven)
+   *  숲 고리 네 변종은 여전히 같은 grass 사진을 재질 색(`color`)으로 물들여
+   *  쓴다. sand·water 는 이번엔 안 건드렸다(맞는 CC0 사진이 저장소에 없다 —
+   *  다음에 손볼 때는 이 자리부터, 물은 어차피 위에 파동·반사 셰이더가
+   *  덧입혀져 기본 그림 비중이 작다) */
   var TILE_TEX_SRC = {
-    grass: 'assets/sprites2d/tile_grass.png',
-    grass_meadow: 'assets/sprites2d/tile_grass.png',
-    grass_dark: 'assets/sprites2d/tile_grass.png',
-    grass_mush: 'assets/sprites2d/tile_grass.png',
-    grass_rocky: 'assets/sprites2d/tile_grass.png',
-    path: 'assets/sprites2d/tile_dirt.png',
+    grass: 'assets/textures/land/grass.webp',
+    grass_meadow: 'assets/textures/land/grass.webp',
+    grass_dark: 'assets/textures/land/grass.webp',
+    grass_mush: 'assets/textures/land/grass.webp',
+    grass_rocky: 'assets/textures/land/grass.webp',
+    path: 'assets/textures/land/dirt.webp',
     sand: 'assets/sprites2d/tile_sand.png',
     water: 'assets/sprites2d/tile_water.png',
-    stone: 'assets/sprites2d/tile_stone.png'
+    stone: 'assets/textures/land/stone.webp'
   };
   var tileTexCache = {};
   function tileTexture(kind) {
@@ -467,9 +496,12 @@
     if (!src || !t) { return null; }
     if (tileTexCache[src]) { return tileTexCache[src]; }
     var tex = new t.TextureLoader().load(src);
-    /* 도트그림이라 흐려지면 안 된다 — 가까이서 봐도 또렷한 픽셀아트 그대로 */
-    tex.magFilter = t.NearestFilter;
-    tex.minFilter = t.NearestFilter;
+    /* 예전엔 도트그림 보존용 NearestFilter 였는데, 이제 대부분 실사
+       사진이라 LinearFilter + 밉맵으로 부드럽게 — 남은 sand·water 픽셀
+       그림도 워낙 작아(16x16) 흐려져 보여도 눈에 띄지 않는다 */
+    tex.magFilter = t.LinearFilter;
+    tex.minFilter = t.LinearMipmapLinearFilter;
+    tex.generateMipmaps = true;
     if (t.SRGBColorSpace) { tex.colorSpace = t.SRGBColorSpace; }
     tileTexCache[src] = tex;
     return tex;
@@ -735,8 +767,27 @@
 
   /** three 자체가 없거나(파일 못 받음) WebGL 컨텍스트를 못 만들면 false */
   function available() { return !!three() && !failed; }
-  /** 지금 화면에 이게 그려지고 있나 — 손잡이 + 초기화 성공 둘 다 참이어야 한다 */
-  function active() { return ON() && ready; }
+  /** 지금 화면에 이게 그려지고 있나 — 손잡이 + 초기화 성공 둘 다 참이어야 한다.
+   *  **2026-09-10 고침** — 집·동굴 안(`indoors()`/`caveInside()`)은 이 3D
+   *  화면이 전혀 모른다(방 자체를 3D로 세우지 않는다, PLAN에도 없다). 그런데
+   *  `player.x/y`는 집·동굴 안에서도 **같은 칸**(문 앞 좌표)을 재사용하다 보니
+   *  (`village.js`의 `enterHome()` 주석) 3D 를 기본으로 켠 채 집·동굴에
+   *  들어가면 문 앞 바깥 풍경이 얼어붙은 채로 계속 떠 있고, 정작 방 안(가구·
+   *  보물상자)은 어디에도 안 보였다 — 2D 캔버스가 `syncVisibility()`로 아예
+   *  가려져 있었기 때문. 실내에선 3D를 끈 것처럼 굴어 2D 쪽(실제로 방을
+   *  그리는 유일한 화면)이 저절로 앞에 나서게 한다 — 나가면 `step()`이
+   *  매 프레임 다시 이 값을 보므로 따로 이벤트를 안 걸어도 곧바로 돌아온다. */
+  /** 순수 함수로 뺐다 — `ready`(실제 WebGL 초기화 성공)와 무관하게 "지금 실내라서
+   *  눌렸다"만 진단이 볼 수 있게. 자가진단은 `init()`을 안 부르므로(`DG_NO_DRAW`)
+   *  `ready`가 늘 false라 `active()`만으로는 이 갈래를 확인할 수 없다 */
+  function indoorSuppressed() {
+    var V = global.DG.village;
+    return !!(V && (V.indoors() || V.caveInside()));
+  }
+  function active() {
+    if (!ON() || !ready) { return false; }
+    return !indoorSuppressed();
+  }
 
   /** HDRI 환경광(IBL) — Poly Haven CC0 "Alps Field"(사철 무료, 로그인 없이 받음).
    *  2026-09-02 사용자가 "사실처럼" 을 요청해 얹었다. **하늘 색은 안 바꾼다** —
@@ -941,6 +992,27 @@
     entity.action = act;
   }
 
+  /** 2026-09-10 "더 자연스럽게" — 여태 인물은 걷기·멈춤(idle) 둘만 오갔다.
+   *  나무를 흔들거나 낚싯대를 던지거나 상자를 열어도 화면엔 아무 몸짓이 없이
+   *  그냥 서 있었다 — `ui.js`의 `doInteract()`가 손을 쓴 순간마다 이 함수를
+   *  불러 몸짓을 한 번 튼다. 남은 초(`actionTimer`)는 `syncCamera()`가
+   *  매 프레임 줄이며, 그동안은 idle/walk 로 안 덮어쓴다(재생 도중 끊기지
+   *  않는다) — 한 번 다 튼 뒤엔 저절로 걷기/멈춤으로 돌아온다. */
+  var actionTimer = 0;
+  function triggerAction() {
+    if (!player.actions || !player.clipMap) { return; }
+    var name = player.clipMap.interaction || player.clipMap.attack;
+    if (!name || !player.actions[name]) { return; }
+    var t = three(), act = player.actions[name];
+    if (player.action && player.action !== act) { player.action.fadeOut(0.1); }
+    act.reset();
+    if (t && t.LoopOnce) { act.setLoop(t.LoopOnce, 1); act.clampWhenFinished = true; }
+    act.fadeIn(0.1).play();
+    player.action = act;
+    var clip = act.getClip();
+    actionTimer = (clip && clip.duration) ? clip.duration : 0.6;
+  }
+
   /**
    * 카메라 자리 — **순수 함수다**(사가블로 dungeon3d.js 의 camAim/camAim3rd 와 같은 결이되,
    * 여기는 둘을 딱 자르지 않고 `t`(camTiltMix, 0~1)로 이어 붙인다 — **따로 켜는 버튼이
@@ -959,8 +1031,20 @@
   /** 화각도 t 로 섞는다 — 순수 함수. 좁아질수록(정사영에 가까워질수록) 원근 왜곡이 준다 */
   function camFov(t, fov0, fov1) { return fov0 + (fov1 - fov0) * t; }
 
+  /** 순수 함수 — 각 a 를 목표 각 b 쪽으로 k(0~1)만큼 **최단 방향**으로 끌어당긴다.
+   *  단순히 `a + (b-a)*k` 를 쓰면 -179°→+179° 처럼 경계를 넘는 회전이 반대
+   *  방향(먼 길)으로 돌아버린다 — 각 차를 먼저 -π~π 로 접어(wrap) 최단 회전만
+   *  고른다. `2026-09-10 "움직이는 모션을 더 자연스럽게"`로 신설 */
+  function angleLerp(a, b, k) {
+    var d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+    return a + d * k;
+  }
+  /** 순수 함수 — dt초 동안 TURN_RATE 로 지수감쇠한 보간 계수(0~1). 프레임이
+   *  들쭉날쭉해도(저사양 폰) 같은 실제 시간엔 같은 만큼 돈다 */
+  function turnLerpK(dt) { return 1 - Math.exp(-TURN_RATE() * Math.max(dt, 0)); }
+
   /** 걸음 방향 → 카메라가 뒤에서 도는 각. 마을 좌표(x,y) → 3D(x,-z 앞) */
-  function syncCamera() {
+  function syncCamera(dt) {
     var V = global.DG.village;
     if (!V) { return; }
     var raw = V.raw();
@@ -968,13 +1052,18 @@
     if (!haveLast) { lastPX = px; lastPY = py; haveLast = true; }
     var dx = px - lastPX, dy = py - lastPY;
     var moved = Math.hypot(dx, dy);
+    var targetYaw = facingYaw;
     if (moved > MOVE_EPS() * (1 / 60)) {
-      facingYaw = Math.atan2(dx, dy);
-      playAction(player, 'walk');
-    } else {
+      targetYaw = Math.atan2(dx, dy);
+      if (actionTimer <= 0) { playAction(player, 'walk'); }
+    } else if (actionTimer <= 0) {
       playAction(player, 'idle');
     }
+    if (actionTimer > 0) { actionTimer = Math.max(0, actionTimer - dt); }
     lastPX = px; lastPY = py;
+    /* 목표각으로 한 프레임 만에 스냅하지 않고 부드럽게 돈다 — 카메라(camPose)도
+       이 같은 facingYaw 를 물려 쓰므로 몸과 시점이 같이, 같은 속도로 돈다 */
+    facingYaw = angleLerp(facingYaw, targetYaw, turnLerpK(dt));
 
     if (player.group) { player.group.rotation.y = facingYaw; }
 
@@ -1004,7 +1093,7 @@
    * 보던 그 나무가 3D 에서도 같은 자리에 선다. 가깝지만 아직 없으면 짓고
    * (한 프레임에 `MAX_BUILD_PER_STEP()` 개까지만), 멀어지면 치운다.
    */
-  function syncScatter() {
+  function syncScatter(dt) {
     var V = global.DG.village;
     if (!V || !scene) { return; }
     syncTreeSeason();
@@ -1024,6 +1113,24 @@
       ent = scatter[p.id];
       if (ent && ent.group) {
         ent.group.position.set((p.x - px) * scale, 0, (p.y - py) * scale);
+        if (ent.mixer) { ent.mixer.update(dt); }
+        /* 짐승만 걷는 쪽으로 몸을 튼다(TURNING_KIND) — 이전 프레임 자리와
+           비교해 방향을 잡고, 인물과 같은 지수감쇠로 부드럽게 돈다. 나무처럼
+           안 움직이는 건 lastX/lastY 가 애초에 없어 여기 안 들어온다.
+           **2026-09-10 마저 — 원본 GLB에 몸짓이 있으면(짐승은 보통 Idle·Walk
+           를 갖고 있다) 걷는 동안만 walk 로 틀어 준다**(`asset3d.js`가 이제
+           mixer·actions 를 실어 준다, 인물·NPC 와 같은 `playAction()`을 그대로
+           쓴다) — 회전만 부드러워지고 다리는 안 움직이던 것까지 마저 고친다 */
+        if (TURNING_KIND[p.kind] && ent.lastX != null) {
+          var mdx = p.x - ent.lastX, mdy = p.y - ent.lastY;
+          var movedNow = Math.hypot(mdx, mdy) > 0.01;
+          if (movedNow) {
+            ent.yaw = angleLerp(ent.yaw || 0, Math.atan2(mdx, mdy), turnLerpK(dt));
+            ent.group.rotation.y = ent.yaw;
+          }
+          if (ent.actions) { playAction(ent, movedNow ? 'walk' : 'idle'); }
+          ent.lastX = p.x; ent.lastY = p.y;
+        }
         applyShadowLOD(ent, d);
         continue;
       }
@@ -1037,7 +1144,14 @@
       if (pooled) {
         pooled.scale.setScalar(SCATTER_H[p.kind] || 1);
         pooled.position.set((p.x - px) * scale, 0, (p.y - py) * scale);
-        ent = scatter[p.id] = { group: pooled, kind: p.kind, building: false, meshes: pooled.userData.lodMeshes, shadowOn: null };
+        pooled.rotation.y = 0;
+        ent = scatter[p.id] = {
+          group: pooled, kind: p.kind, building: false, meshes: pooled.userData.lodMeshes, shadowOn: null,
+          yaw: 0, lastX: TURNING_KIND[p.kind] ? p.x : null, lastY: TURNING_KIND[p.kind] ? p.y : null,
+          /* 몸짓 — 창고 자리도 `asset3d.js`가 그룹의 userData 에 실어 둔 걸 그대로 물려받는다 */
+          mixer: pooled.userData.mixer || null, actions: pooled.userData.actions || null,
+          clipMap: pooled.userData.clipMap || null, action: null
+        };
         if (scene && pooled.parent !== scene) { scene.add(pooled); }
         applyShadowLOD(ent, d);
         continue;
@@ -1045,7 +1159,11 @@
 
       if (budget <= 0) { continue; }                   // 이번 프레임 몫을 다 썼다
       budget--;
-      ent = scatter[p.id] = { group: null, kind: p.kind, building: true, meshes: null, shadowOn: null };
+      ent = scatter[p.id] = {
+        group: null, kind: p.kind, building: true, meshes: null, shadowOn: null,
+        yaw: 0, lastX: TURNING_KIND[p.kind] ? p.x : null, lastY: TURNING_KIND[p.kind] ? p.y : null,
+        mixer: null, actions: null, clipMap: null, action: null
+      };
       (function (id, kind, wx, wy, dist) {
         asset3d().build(key, { id: id }, function (g) {
           var cur = scatter[id];
@@ -1057,6 +1175,9 @@
           g.userData.lodMeshes = collectMeshes(g);
           cur.group = g;
           cur.meshes = g.userData.lodMeshes;
+          cur.mixer = g.userData.mixer || null;
+          cur.actions = g.userData.actions || null;
+          cur.clipMap = g.userData.clipMap || null;
           applyShadowLOD(cur, dist);
           scene.add(g);
         });
@@ -1259,6 +1380,11 @@
   }
 
   function step(dt) {
+    /* 실내 출입은 이벤트를 새로 안 걸었다 — 매 프레임 이미 도는 이 자리에서
+       active() 를 다시 재 보는 것만으로 충분하고(들고 나는 순간을 한 프레임
+       안에 잡는다), syncVisibility() 자체도 같은 값을 다시 대입하면 그냥
+       넘어가는 싸구려 대입이라 매번 불러도 비용이 없다 */
+    syncVisibility();
     if (!active() || !renderer || !scene || !camera) { return; }
     /* 그림자 on/off 는 매 프레임 다시 먹인다(사가블로 dungeon3d.js 와 같은 요령) —
        설정 화면에서 등급을 바꿔도 3D 를 껐다 켤 필요 없이 곧바로 듣는다.
@@ -1268,10 +1394,10 @@
     renderer.shadowMap.enabled = q.shadow;
     if (sunLight) { sunLight.castShadow = q.shadow; }
     if (player.mixer) { player.mixer.update(dt); }
-    syncCamera();
+    syncCamera(dt);
     syncTerrain();
     syncWaterRipple(dt);
-    syncScatter();
+    syncScatter(dt);
     syncInstScatter();
     syncNpcs(dt);
     syncSky();
@@ -1284,10 +1410,20 @@
   global.DG.villageView3d = {
     init: init, resize: resize, step: step, toggle: toggle,
     active: active, available: available, on: ON,
+    /** ui.js 의 doInteract() 가 손을 쓴 순간마다 부른다 — 나무 흔들기·낚시
+     *  던지기·상자 열기 등에 몸짓 한 번(interaction/attack 클립). 그런 클립이
+     *  없는 조합이면 조용히 아무 일도 안 한다 */
+    triggerAction: triggerAction,
+    /** 진단 전용 — 지금 한 번짜리 몸짓이 재생 중이면 남은 초(순수 상태 조회) */
+    actionTimer: function () { return actionTimer; },
     /** 진단·QA 전용 — 세로 드래그로 잇는 시점 높이(0 어깨너머~1 부감), 진단용 순수 함수 */
     camTiltMix: function () { return camTiltMix; },
     setCamTiltMix: setCamTiltMix,
     camPose: camPose, camFov: camFov,
+    /** 진단 전용 — 2026-09-10 "움직이는 모션을 더 자연스럽게": 각도 보간·감쇠 순수 함수 */
+    angleLerp: angleLerp, turnLerpK: turnLerpK,
+    /** 진단 전용 — 지금 화면에 세워진 짐승이 걷는 쪽으로 몸을 트는 표 */
+    turningKind: function () { return TURNING_KIND; },
     /** 진단 전용 — 표(순수 함수)와 지금 세운 개수 */
     scatterKind: function () { return SCATTER_KIND; },
     scatterCount: function () { return Object.keys(scatter).length; },
@@ -1320,6 +1456,9 @@
     tierFor: tierFor,
     /** 설정 화면(⚙️) — 지금 실제로 도는 등급(low/medium/high), 손잡이 원값('auto' 포함), 고르기 */
     quality: tier, qualityRaw: QUALITY, setQuality: setQuality,
+    /** 진단 전용 — 2026-09-10 "실내에선 3D를 끈 것처럼" 고침: ready 와 무관하게
+     *  지금 집·동굴 안이라 3D가 눌려 있는지만 순수하게 본다 */
+    indoorSuppressed: indoorSuppressed,
     /** 진단 전용 — PLAN 40절 PHASE 7 Object Pool: kind별 재사용 창고(순수 함수, mock group 으로도 확인됨) */
     poolTake: poolTake,
     poolGive: poolGive,
