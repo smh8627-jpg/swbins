@@ -2320,6 +2320,7 @@ window.DG_NO_TUNE = true;
       if (!run) { return false; }
       var g = run.gathers[0];
       if (!g) { return false; }
+      run.forage = null;   // 이 판이 우연히 보너스 구간을 물면(§11) +1 가정이 깨진다 — 여긴 기본만 본다
       var before = S.state().mats[g.kind] || 0;
       run.player.x = g.x - 10; run.player.y = run.stage.floor - S.P_H;
       S.update(0.05);
@@ -2391,6 +2392,25 @@ window.DG_NO_TUNE = true;
       var after = S.state().mats[g.kind] || 0;
       return !g.alive && (after - before) === 2 &&
         (SD.GATHERS[g.kind].name + ' ' + before + ' → ' + after + ' (' + tries + '판째)');
+    });
+
+    t('몬스터 습격(PLAN 11절) — 매복 지점을 지나면 잡졸이 한꺼번에 나타난다', function () {
+      if (S.active()) { S.leave(); }
+      var found = null, tries = 0, run;
+      while (!found && tries < 200) {
+        S.enter('field');
+        run = S.raw();
+        found = run.ambush;
+        if (!found) { S.leave(); }
+        tries++;
+      }
+      if (!found) { return false; }
+      var before = run.enemies.length;
+      run.player.x = found.x - 10; run.player.y = run.stage.floor - S.P_H;
+      S.update(0.05);
+      var after = run.enemies.length;
+      return found.triggered && (after - before) === 3 &&
+        ('적 ' + before + ' → ' + after + ' (' + tries + '판째)');
     });
 
     t('돌진형(기병)은 뜸을 들이다 빠르게 달려든다', function () {

@@ -149,6 +149,10 @@
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
   var CHEST_R = 46;
   var FORAGE_CHANCE = 0.18, FORAGE_HALF = 130, FORAGE_MUL = 2;   // 채집 보너스 지역(PLAN 11절)
+  /* 몬스터 습격(PLAN 11절, 2026-09-10) — 이동 상인·미니보스와 함께 남아 있던
+     예시 셋 중 하나. 새 종을 만들지 않고 잡졸을 한꺼번에 여럿(AMBUSH_COUNT)
+     불러내는 것만 다르다 — 희귀 몬스터·보물상자와 같은 "기존 것을 재사용" 결 */
+  var AMBUSH_CHANCE = 0.15, AMBUSH_R = 70, AMBUSH_COUNT = 3, AMBUSH_SPREAD = 110;
   /* 마을 사람끼리의 잡담(2026-09-10, `data-side.js` NPC_CHAT 참고) — 마을에서
      이만큼 시간이 지날 때마다 굴려 보고, 맞으면 화제를 하나 골라 전한다.
      사냥터엔 없다(싸우는 자리라 한가한 잡담이 어울리지 않는다) */
@@ -193,6 +197,15 @@
     return { x1: cx - FORAGE_HALF, x2: cx + FORAGE_HALF, notified: false };
   }
 
+  /** 랜덤 이벤트(PLAN 11절) "몬스터 습격" — 사냥터에 걸어 들어갈 때마다 낮은
+   *  확률로 매복 지점이 하나 생긴다. 그 자리를 지나면 그 자리 근처에 잡졸
+   *  `AMBUSH_COUNT`마리가 한꺼번에 나타난다(update() 참고) — 자리만 여기서 뽑는다.
+   *  마을엔 안 둔다(싸울 일이 없는 곳) */
+  function buildAmbush(stg) {
+    if (stg.town || Math.random() >= AMBUSH_CHANCE) { return null; }
+    return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
+  }
+
   /** 사냥터에 들어간다 */
   function enter(key) {
     var stg = SD.stage(key);
@@ -212,7 +225,8 @@
                 cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
-      chest: buildChest(stg), forage: buildForageZone(stg), npcs: buildNpcs(stg), talk: null,
+      chest: buildChest(stg), forage: buildForageZone(stg), ambush: buildAmbush(stg),
+      npcs: buildNpcs(stg), talk: null,
       chatCd: CHAT_EVERY * (0.7 + Math.random() * 0.6),
       kills: 0, gold: 0, startedAt: Date.now()
     };
@@ -407,6 +421,7 @@
     run.gathers = buildGathers(stg);
     run.chest = buildChest(stg);
     run.forage = buildForageZone(stg);
+    run.ambush = buildAmbush(stg);
     run.npcs = buildNpcs(stg); run.talk = null;
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
@@ -1136,6 +1151,19 @@
       if (gotItem) {
         fx.push({ t: 'itempop', x: p.x + P_W / 2, y: p.y, emoji: '📦', text: GG2.nameOf(gotItem), life: ITEMPOP_DUR });
       }
+    }
+
+    /* 몬스터 습격(PLAN 11절) — 매복 지점을 지나면 그 자리 근처에 잡졸이
+       한꺼번에 여럿 나타난다. 상자처럼 한 판에 한 번뿐이다(triggered) */
+    if (run.ambush && !run.ambush.triggered && Math.abs(run.ambush.x - px) < AMBUSH_R) {
+      run.ambush.triggered = true;
+      for (var ai = 0; ai < AMBUSH_COUNT; ai++) {
+        var aOff = (ai - (AMBUSH_COUNT - 1) / 2) * AMBUSH_SPREAD;
+        var aX = Math.max(60, Math.min(stg.width - 60, run.ambush.x + aOff));
+        spawnEnemy(aX);
+      }
+      sfx('boss');
+      core.emit('toast', '🚨 몬스터 무리가 덮쳤다!');
     }
 
     /* 마을 사람끼리의 잡담 — 사냥터엔 없고, 마을(town:true)에서만, 그것도
