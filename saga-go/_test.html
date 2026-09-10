@@ -3434,6 +3434,40 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          r0.seen + ' → ' + r1.seen);
     });
 
+    t('발견 — 도감 수(dex)가 실제 등용·포획 수를 센다 (2026-09-09 버그 회귀 방지)', function () {
+      /* 예전엔 `core.save.dex`(={heroes:{},pets:{}})를 `for (k in save)`로
+         훑어 최상위 키 'heroes'·'pets' 두 글자만 잡히는 바람에, 몇 마리를
+         모았든 `dex().seen`이 늘 2로 고정됐었다(고침, 2026-09-09 — 도감
+         시트에 "늘 2/104"로 뜨던 실제 버그). 이 테스트는 그 증상(늘 2)이
+         다시 재현되지 않는지 직접 잰다 — 그동안 자가진단이 없던 자리다 */
+      var was = { heroes: C.save.dex.heroes, pets: C.save.dex.pets };
+      C.save.dex.heroes = {}; C.save.dex.pets = {};
+      var d0 = CX.dex();
+      C.save.dex.heroes[D.heroes[0].id] = { count: 1, firstAt: Date.now() };
+      C.save.dex.heroes[D.heroes[1].id] = { count: 1, firstAt: Date.now() };
+      C.save.dex.heroes[D.heroes[2].id] = { count: 1, firstAt: Date.now() };
+      C.save.dex.pets[D.pets[0].id] = { count: 1, firstAt: Date.now() };
+      var d1 = CX.dex();
+      C.save.dex.heroes = was.heroes; C.save.dex.pets = was.pets;
+      return d0.seen === 0 && d1.seen === 4 && d1.seen !== 2 &&
+        d1.total === D.heroes.length + D.pets.length &&
+        ('빈 도감 ' + d0.seen + ' → 인물 3·펫 1 채우니 ' + d1.seen + '/' + d1.total);
+    });
+
+    t('발견 — stats() 의 도감 칸도 실제 수를 보여준다', function () {
+      /* `ui.js`의 도감 완성률 화면이 실제로 읽는 자리(`stats().by.dex`)가
+         "seen/total" 형태로 실제 수를 반영하는지 — 화면에 직접 노출되는
+         값이라 형식까지 함께 잰다 */
+      var was = { heroes: C.save.dex.heroes, pets: C.save.dex.pets };
+      C.save.dex.heroes = {}; C.save.dex.pets = {};
+      C.save.dex.pets[D.pets[0].id] = { count: 1, firstAt: Date.now() };
+      C.save.dex.pets[D.pets[1].id] = { count: 1, firstAt: Date.now() };
+      var by = CX.stats().by;
+      C.save.dex.heroes = was.heroes; C.save.dex.pets = was.pets;
+      return by.dex === ('2/' + (D.heroes.length + D.pets.length)) &&
+        ('stats().by.dex = ' + by.dex);
+    });
+
     t('발견 — 소액 보상을 준다 (PLAN 49절, 2026-08-31 갱신)', function () {
       /* 예전엔 "발견은 기록이지 보상이 아니다"였다 — 사용자가 PLAN 49절대로
          바꾸기로 했다. 공적(등용·포획 같은 큰 성취의 몫)은 여전히 안 건드린다 */
