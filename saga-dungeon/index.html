@@ -50,9 +50,14 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <!-- 가운데: 본영/마을 — 기본은 필드를 도는 화면이고, 던전(굴혈)은 걸어 들어가야 하는 이벤트 던전이다 -->
 <div id="camp"></div>
 
-<!-- 우하단: 액션 독 — 자주 쓰는 셋만 붙박이로 두고, 나머지는 "더보기" 뒤로 접는다 -->
+<!-- 우하단: 액션 독 — 2026-09-11, "하단 메뉴가 화면을 가려" 재신고로 붙박이 셋
+     (부대·장비·지도)까지 마저 접었다. 이제 화면에 늘 떠 있는 건 "더보기"
+     버튼 하나뿐 — 열 셋 전부 그 뒤에서 기다린다. -->
 <nav id="dock">
   <div id="dock-more">
+    <button data-sheet="party"><span data-icon="swords">⚔️</span><small>부대</small></button>
+    <button data-sheet="gear"><span data-icon="backpack">🎒</span><small>장비</small></button>
+    <button data-sheet="world"><span data-icon="map">🗺️</span><small>지도</small></button>
     <button data-sheet="skill"><span data-icon="scroll-text">📜</span><small>무예</small></button>
     <button data-sheet="craft"><span data-icon="hammer">🔨</span><small>세공</small></button>
     <button data-sheet="vendor"><span data-icon="store">🧺</span><small>행상</small></button>
@@ -64,9 +69,6 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
     <button data-sheet="keys"><span data-icon="keyboard">⌨️</span><small>키설정</small></button>
     <button data-sheet="settings"><span data-icon="settings">⚙️</span><small>설정</small></button>
   </div>
-  <button data-sheet="party"><span data-icon="swords">⚔️</span><small>부대</small></button>
-  <button data-sheet="gear"><span data-icon="backpack">🎒</span><small>장비</small></button>
-  <button data-sheet="world"><span data-icon="map">🗺️</span><small>지도</small></button>
   <button id="dock-more-btn"><span data-icon="ellipsis">⋯</span><small>더보기</small></button>
 </nav>
 
