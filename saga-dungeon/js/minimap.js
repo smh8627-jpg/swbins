@@ -348,6 +348,19 @@
     road: '#8a7a5a', water: '#2f5a78', cave: '#201d1a', altar: '#5a4a78',
     camp: '#7a5030', swamp: '#4a5a3a'
   };
+
+  /** 소품 점 색(2026-09-10, "점만 보여" 해결) — field3d.chunkAt()이 내는
+   *  t 값 그대로 키를 쓴다. 단색 칸(KIND_COLOR) 위에 이 점들을 얹으면
+   *  "실제 화면을 축소한 것"에 가까워진다 — dungeon3d.js가 그 자리에
+   *  세우는 것과 같은 소품이다(같은 산식으로 뽑으니 자리도 같다). */
+  var PROP_COLOR = {
+    tree: '#5fae5f', tree_dead: '#8a7050', rock: '#9a9a92',
+    pillar: '#b8ab8c', wall: '#b8ab8c', altar: '#c9a4f5',
+    cavemouth: '#0c0a08', fire: '#f0a244', tent: '#c9915a',
+    pond: '#6fb4e8', reed: '#7fbf7f', post: '#d8c48a'
+    /* path(길)는 이미 road 칸 색으로 충분해 점을 안 찍는다 — 안 그러면
+       길이 온통 점으로 덮여 오히려 abstract해진다. */
+  };
   var WORLD_VIEW_HALF = 3200;   // 화면 중심(플레이어) 기준 세계 좌표로 이만큼(±) 보여준다
 
   /** 코너(상시) 미니맵 지형 — 순수 계산(캔버스 없이, 자가진단이 값으로
@@ -410,7 +423,10 @@
     var cx0 = Math.floor((p.x - halfX) / CHUNK) - 1, cx1 = Math.floor((p.x + halfX) / CHUNK) + 1;
     var cz0 = Math.floor((p.y - halfY) / CHUNK) - 1, cz1 = Math.floor((p.y + halfY) / CHUNK) + 1;
     var tilePx = Math.max(1, CHUNK * scale) + 1;   // +1 — 인접 칸 사이 이음매(반올림 틈)가 안 뜨게
-    var cx, cz;
+    /* 소품 점 — 칸이 화면에서 너무 작아지면(축소를 많이 했을 때) 점이
+       서로 뭉개져 오히려 지저분해지므로, 칸 하나가 8px는 넘을 때만 찍는다. */
+    var drawProps = tilePx >= 8 && !!T.worldPropsAt;
+    var cx, cz, pr;
     for (cz = cz0; cz <= cz1; cz++) {
       for (cx = cx0; cx <= cx1; cx++) {
         if (!T.isSeen(cx, cz)) { continue; }        // 안 밝힌 칸은 안개 그대로
@@ -419,6 +435,16 @@
         var s = toScreen(cx * CHUNK, cz * CHUNK);
         bigCtx.fillStyle = col;
         bigCtx.fillRect(s.x, s.y, tilePx, tilePx);
+        if (drawProps && kind !== 'town') {
+          var props = T.worldPropsAt(cx, cz);
+          for (pr = 0; pr < props.length; pr++) {
+            var pc = PROP_COLOR[props[pr].t];
+            if (!pc) { continue; }
+            var ps = toScreen(props[pr].x, props[pr].z);
+            bigCtx.fillStyle = pc;
+            bigCtx.beginPath(); bigCtx.arc(ps.x, ps.y, Math.max(1, tilePx * 0.07), 0, Math.PI * 2); bigCtx.fill();
+          }
+        }
       }
     }
 

@@ -2777,6 +2777,21 @@ window.requestAnimationFrame = function () { return 0; };
         ('모루골 발판 칸 = town · 먼 칸(' + farCx + ',' + farCz + ') = ' + k2a + '(재현됨)');
     });
 
+    t('자동지도 — 칸 소품(worldPropsAt)도 결정적이고, worldKindAt과 같은 자리를 본다', function () {
+      /* 2026-09-10, "전체지도에서 현재 화면처럼 바닥도 보여야" — 지형
+         종류(worldKindAt)뿐 아니라 그 칸에 실제로 서는 소품 목록도
+         내야 미니맵이 나무·바위·제단 점을 찍을 수 있다. */
+      var T = DG.town, ma = T.anchorOf('moru');
+      var townCx = Math.floor((ma.x + T.ROOM_W / 2) / 200), townCz = Math.floor((ma.y + T.ROOM_H / 2) / 200);
+      var farCx = 900, farCz = 900;
+      var p0 = T.worldPropsAt(townCx, townCz);          // 마을 발판 — 소품 없음
+      var p1a = T.worldPropsAt(farCx, farCz), p1b = T.worldPropsAt(farCx, farCz);
+      var same = p1a.length === p1b.length &&
+        p1a.every(function (it, i) { return it.t === p1b[i].t && it.x === p1b[i].x && it.z === p1b[i].z; });
+      return p0.length === 0 && p1a.length > 0 && same &&
+        ('마을 발판 소품 0개 · 먼 칸 소품 ' + p1a.length + '개(재현됨)');
+    });
+
     t('미니맵 — 마을이 갈려도(모루골이 아닌 마을도) NPC 점이 방 안(0~1)에 그대로 잡힌다', function () {
       /* PLAN §28-8 회귀 — norm()이 마을 좌표를 세계 좌표(앵커 포함)로 받게
          되면서, 앵커를 안 빼면(모루골=원점이라 안 드러나던 버그) 위성

@@ -1003,6 +1003,29 @@
   }
 
   /**
+   * 칸 하나에 실제로 서는 소품(2026-09-10, 사용자: "전체지도에서 현재
+   * 화면처럼 바닥도 보여야 하고 축소했다고 보면 될 것 같다" · "점만
+   * 보여"). `worldKindAt()`과 똑같은 자리에서 **종류(kindOf) 대신
+   * 소품 목록(chunkAt)**을 낸다 — 자동지도가 단색 칸이 아니라 실제로
+   * 그 자리에 서는 나무·바위·폐허·제단을 작은 점으로 찍을 수 있게.
+   * dungeon3d.js의 buildField와 똑같은 산식(seed·ring·theme)을 쓴다 —
+   * 안 그러면 지도에 보이는 소품과 실제로 걸어서 만나는 소품이 어긋난다.
+   * 밀도(dens)는 그래픽 등급과 안 엮는다 — 지도는 늘 같은 모습이어야
+   * 한다(등급 바뀔 때마다 지도가 다시 그려지면 헷갈린다), 기본값 1로 고정.
+   */
+  function worldPropsAt(cx, cz) {
+    var F = global.DG.field3d;
+    if (!F) { return []; }
+    var wx = cx * F.CHUNK + F.CHUNK / 2, wy = cz * F.CHUNK + F.CHUNK / 2;
+    var id = nearestTownId(wx, wy), a = anchorOf(id), cfg = cfgOf(id);
+    var acx = Math.floor(a.x / F.CHUNK), acz = Math.floor(a.y / F.CHUNK);
+    var ring = F.ringOf(cx - acx, cz - acz, ROOM_W, ROOM_H);
+    if (ring === 0) { return []; }        // 마을 발판 — 건물은 따로 그려진다, 여긴 없음
+    var seed = F.seedOf(0, undefined, cfg.theme.name);
+    return F.chunkAt(cx, cz, seed, ring, 1, cfg.theme.biome || cfg.theme.name);
+  }
+
+  /**
    * 밝힌 칸(포그오브워, PLAN §28-8 Phase 2) — 자동지도가 "지나온 곳을
    * 기억"하게 세이브(core.save.town.seen)에 "cx,cz" 키로 쌓는다. 마을
    * 발판(ring 0)은 따로 안 밝힌다 — 마을 자체는 시작부터 다 아는 곳이라
@@ -1574,7 +1597,7 @@
     /** PLAN §28-8 Phase 2(자동지도) — minimap.js가 읽는다. worldKindAt·
      *  isSeen 은 순수(three 필요 없음), currentAnchor 는 raw()와 같은 값을
      *  raw() 없이(town 이 꺼져 있어도) 셀 수 있게 한다. */
-    worldKindAt: worldKindAt, isSeen: isSeen,
+    worldKindAt: worldKindAt, worldPropsAt: worldPropsAt, isSeen: isSeen,
     currentAnchor: function () { return anchorOf(CURRENT_TOWN ? CURRENT_TOWN : nearestTownId(player ? player.x : 0, player ? player.y : 0)); },
     /** 지역 진입 전 미리 로드(PLAN 39절, `dungeon3d.js`의 `prefetchTownDest()`가
      *  읽는다) — 그 마을 decor 에 쓰이는 건물 종류(house·well·inn 등)를
