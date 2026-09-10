@@ -601,6 +601,8 @@
       fieldSpawnCd: 4,                    // 들판 로머 보충 주기(초) — PLAN 10절 "필드 사냥"
       fieldTreasureCd: 90,                 // 필드 보물 조우 재확인 주기(초) — PLAN §60 후보 1
       fieldMerchantCd: 60,                 // 필드 방랑 상인 재확인 주기(초) — PLAN §60 후보 1 나머지 절반
+      hitstopT: 0,                        // 타격 정지(hitstop) 남은 초 — 2026-09-10 "전투가 심심하다"
+      combo: 0, comboT: 0,                // 연속 타격 수 · 끊기는 문턱(초)
       kills: 0, startedAt: Date.now(), dead: false
     };
     run.hpMax = hpMaxOf();
@@ -937,6 +939,8 @@
     fx.push({ t: 'hit', x: run.player.x, y: run.player.y, v: Math.round(amount),
               life: 0.7, foe: true, el: el && el !== 'phys' ? el : null });
     sfx('hurt');
+    /* 맞으면 콤보가 끊긴다 — 안 맞고 계속 때려야 이어지는 긴장감(축2 손맛) */
+    run.combo = 0; run.comboT = 0;
     if (run.hp <= 0) { die(); }
   }
 
@@ -1753,6 +1757,17 @@
     dt = Math.min(dt, 0.05);
     var p = run.player, room = run.room, i;
 
+    /* 타격 정지(hitstop) — 한 대 맞은 순간 몇 프레임 시간을 확 늦춘다(멈추지는
+       않는다 — dt를 0으로 주면 몇몇 카운트다운이 얼어붙은 티가 난다). 2026-09-10
+       "전투가 심심하다 — 모션이 없어서 그런가"(사용자) 대응 — 새 애니메이션을
+       더는 대신, 있는 모션(넉백·번쩍임·칼궤적)이 훨씬 묵직하게 느껴지게 한다. */
+    if (run.hitstopT > 0) { run.hitstopT -= dt; dt *= 0.08; }
+    /* 연속 타격(콤보) — 일정 시간 안에 다시 안 때리면 끊긴다(strike()가 갱신) */
+    if (run.comboT > 0) {
+      run.comboT -= dt;
+      if (run.comboT <= 0) { run.combo = 0; }
+    }
+
     /* 스킬 쿨다운 · 기력 · 무적 시간 */
     for (i = 0; i < p.cds.length; i++) { if (p.cds[i] > 0) { p.cds[i] -= dt; } }
     /* 명민·정신 같은 상시 무예가 기력 회복을 올린다 */
@@ -2227,6 +2242,8 @@
     }
   }
 
+  var COMBO_WINDOW = 1.6;   // 이 안에 다시 안 때리면 콤보가 끊긴다(초)
+
   /**
    * 한 대 때린다.
    * @param mul  스킬 배율 (기본 1)
@@ -2285,6 +2302,19 @@
               resist: res >= 20 });
     sfx(crit ? 'crit' : 'hit');
 
+    /* 타격 정지(hitstop) — update()가 dt를 확 줄여 몇 프레임 묵직하게 만든다.
+       크리티컬은 더 길게(Math.max라 짧은 값이 겹쳐도 안 줄어든다). */
+    run.hitstopT = Math.max(run.hitstopT || 0, crit ? 0.09 : 0.05);
+    /* 연속 타격(콤보) — COMBO_WINDOW 안에 다시 때리면 쌓인다(update()가 끊는다).
+       PLAN 15절 "필수: 콤보" — 3부터 화면에 띄운다(1·2는 콤보라 부르기 민망하다). */
+    run.combo = (run.combo || 0) + 1;
+    run.comboT = COMBO_WINDOW;
+    if (run.combo >= 3 && run.player) {
+      fx.push({ t: 'get', x: run.player.x, y: run.player.y - P_R - 30,
+        text: run.combo + ' 연속!', life: 0.5,
+        color: run.combo >= 12 ? '#ff5a5a' : (run.combo >= 6 ? '#ffb454' : '#ffe066') });
+    }
+
     /* 원소 — 무기에 박은 보석이 얹는다. **결마다 저항이 따로**다(원작과 같다).
        한 대에 여러 결이 같이 들어갈 수 있다 — 원작의 무기 피해가 그렇다. */
     applyElem(e, mul || 1);
@@ -2336,6 +2366,7 @@
   function kill(e) {
     run.kills += 1;
     dstate().kills = (dstate().kills || 0) + 1;
+    run.hitstopT = Math.max(run.hitstopT || 0, e.boss ? 0.18 : 0.11);   // 처치는 한 대 맞은 것보다 더 묵직하게
     core.emit('dungeon:kill', { e: e, floor: run.floor });
     var drain = boonVal('drainPct');
     if (drain) { healBy(run.hpMax * drain / 100); }

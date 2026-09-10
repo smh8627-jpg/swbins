@@ -197,6 +197,10 @@
     if (!f) { return 0; }
     if (f.t === 'pop') { return f.boss ? 12 : 4; }
     if (f.t === 'hit' && f.foe) { return 6; }
+    /* 2026-09-10 — "전투가 심심하다"(사용자) 대응. 여태 이쪽(적을 때린 쪽)엔
+       흔들림이 전혀 없었다 — 맞았을 때만(위 foe) 흔들렸다. 크리티컬만
+       살짝 얹는다(평타까지 흔들면 한 대 한 대가 다 시끄러워진다). */
+    if (f.t === 'hit' && f.crit) { return 3; }
     if (f.t === 'ring') { return 3; }
     return 0;
   }
