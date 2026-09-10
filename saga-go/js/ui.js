@@ -412,7 +412,7 @@
         '<div class="near-ico" style="border-color:' + rar.color + '">' +
           pt(s.kind === 'hero' ? 'hero' : 'pet', s.ref, 46) + '</div>' +
         '<div class="near-meta"><b>' + esc(s.ref.name) + '</b>' +
-          '<small style="color:' + rar.color + '">' + rar.label + ' · ' +
+          '<small style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + ' · ' +
           (s.kind === 'hero' ? '등용 대상' : '포획 대상') + ' · ' + Math.round(n.dist) + 'm</small></div>' +
         (n.inRange
           ? '<button class="btn primary" data-act="meet">만난다</button>'
@@ -729,7 +729,7 @@
       var dup = have ? owned[e.id].count - 1 : 0;
       out += '<button class="dcell' + (have ? '' : ' locked') + '" style="border-color:' +
         (have ? rar.color : 'transparent') + '" title="' +
-        esc(e.name + (have ? (dup ? ' · 중복 ' + dup : '') : ' (미획득)')) + '"' +
+        esc(e.name + ' · ' + rar.name + (have ? (dup ? ' · 중복 ' + dup : '') : ' (미획득)')) + '"' +
         ' data-act="detail" data-kind="' + kind + '" data-id="' + e.id + '">' +
         (have ? '<span class="de">' + pt(kind, e, 52) + '</span>'
               : '<span class="de locked-mark">❔</span>') +
@@ -1014,7 +1014,7 @@
           '<div class="dt-tags">' +
             '<span class="tag fac" style="background:' + fac.color + '">' + fac.mark + ' ' + esc(h.faction) + '</span>' +
             '<span class="tag">' + esc(h.era) + '</span>' +
-            '<span class="tag" style="color:' + rar.color + '">' + rar.label + '</span>' +
+            '<span class="tag" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span>' +
             '<span class="tag">' + data.traitMark[h.trait] + '</span>' +
           '</div>';
 
@@ -1212,7 +1212,7 @@
           '<div class="dt-tags">' +
             '<span class="tag fac" style="background:' + (p.kind === 'divine' ? '#8a5cc0' : '#5f7a4a') + '">' +
               (p.kind === 'divine' ? '神 신수' : '獸 동물') + '</span>' +
-            '<span class="tag" style="color:' + rar.color + '">' + rar.label + '</span>' +
+            '<span class="tag" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span>' +
           '</div>' +
           '<div class="dt-lv">' + (owned
             ? '보유 ' + d.count + '마리' + (wearer ? ' · ' + esc(wearer.name) + ' 장착 중' : ' · 장착 안 됨')

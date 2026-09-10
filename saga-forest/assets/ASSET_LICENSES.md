@@ -107,10 +107,18 @@ saga-go 쪽과 달리 이 넷은 **저작자 표시가 필요한 CC-BY 3.0**이�
 Squirrel 2.02MB→126KB, Bird 2.27MB→101KB. Duck 은 텍스처가 아예 없어(단색
 버텍스 컬러, 27KB) 그대로 뒀다. 지오메트리는 넷 다 가벼워(수천 정점)
 심플리파이 없이 텍스처만 줄였다. 넷 다 애니메이션 클립이 없다(원본
-자체에 없음) — 사실 `Deer.glb`(Quaternius)엔 걷기·공격 등 클립이 여럿
-있지만 `village-view3d.js`의 스캐터 렌더러가 애초에 짐승을 나무·바위와
-같은 정지 오브젝트로만 세운다(mixer 를 안 만든다, `hero`만 재생한다) —
-그래서 클립이 있든 없든 화면상 차이는 없다.
+자체에 없음).
+
+**2026-09-10 바로 위 문단 정정 — "클립이 있든 없든 화면상 차이는 없다"는
+더 이상 안 맞다.** `Deer.glb`·`Fox.glb`·`Wolf.glb`(Quaternius)엔 실제로
+Idle·Walk 등 클립이 열둘 넘게 있는데(직접 GLB 를 열어 확인), 그동안
+`village-view3d.js`의 스캐터 렌더러가 짐승을 나무·바위처럼 정지 오브젝트로만
+세워(mixer 를 안 만들었다, `hero`만 재생했다) 있는 클립을 안 썼다 —
+"움직이는 모션을 더 자연스럽게" 요청으로 `asset3d.js`의 `buildGeneric()`이
+원본에 클립이 있으면 `hero`와 같은 결로 mixer·actions 를 실어 주게 고쳐서
+이제 사슴·여우·늑대도 걸을 때 실제로 다리가 움직인다(`syncScatter()`가
+매 프레임 재생). **토끼·다람쥐·오리·새 넷은 여전히 원본 자체에 클립이
+없어 정지 모형 그대로다** — 이건 자산의 한계지 렌더러 탓이 아니다.
 
 ### 넣은 파일 — saga-go 에서 그대로 옮긴 것 (**md5 동일**, 새로 받지 않았다)
 
@@ -121,6 +129,8 @@ Squirrel 2.02MB→126KB, Bird 2.27MB→101KB. Duck 은 텍스처가 아예 없�
 |---|---|
 | `models/animals/Deer.glb` | `saga-go/assets/models/animals/Deer.glb` |
 | `models/animals/Wolf.glb` | `saga-go/assets/models/animals/Wolf.glb` |
+| `models/animals/Frog.glb` | `saga-go/assets/models/animals/Frog.glb` — Quaternius `easy_enemies_pack`, CC0. 클립 넷(Idle·Attack·Death·Jump, 걷기 대신 뜀), 2026-09-10 "동물들도 찾아봐"로 mushroom·dark 바이옴에 보탰다 |
+| `models/animals/Snake.glb` | `saga-go/assets/models/animals/Snake.glb` — Quaternius `easy_enemies_pack`, CC0. 클립 넷(Idle·Attack·Jump·**Walk**), 2026-09-10 같은 요청으로 rocky·dark 바이옴에 보탰다 |
 | `models/nature/Mountain_1·2.glb` | `saga-go/assets/models/nature/` |
 | `models/props/WoodenTorch.glb` | `saga-go/assets/models/props/WoodenTorch.glb` (랜턴 대타) |
 | `models/props/Well.glb` | `saga-go/assets/models/buildings/Well.glb` |
@@ -177,10 +187,44 @@ Squirrel 2.02MB→126KB, Bird 2.27MB→101KB. Duck 은 텍스처가 아예 없�
 | `tile_floor.png` | (136,34)-(152,50) 나무 바닥 | `floor`(마루) |
 
 **3D 마을 화면**(`village-view3d.js` 의 `initTerrain`, 2026-09-02)의 땅 타일도
-**같은 파일**을 그대로 쓴다 — 색 한 장(`MeshLambertMaterial({color})`)이던
-것에 `map` 으로 얹었다("3D 타일이 디테일하지 않다", 사용자). `NearestFilter`
-로 도트그림이 흐려지지 않게 했다. 숲 고리 네 변종은 2D 와 같이 잔디 그림을
-재질 색으로 물들여 쓴다. `floor`(방 안 마루)는 3D 마을 바닥에 안 나와 빠졌다.
+한때 **같은 파일**을 그대로 썼다 — 색 한 장(`MeshLambertMaterial({color})`)이던
+것에 `map` 으로 얹었다("3D 타일이 디테일하지 않다", 사용자). `floor`(방 안
+마루)는 3D 마을 바닥에 안 나와 빠졌다.
+
+**2026-09-10 — 3D 쪽만 다른 CC0 사진으로 교체.** 사용자가 "바닥 그래픽이
+왜 이래, 사가고·사가블로처럼 바꿔 달라" 고 신고해 실제 파일을 열어 보니
+위 `tile_grass.png`·`tile_dirt.png`·`tile_stone.png` 가 16x16 에 색이
+**둘뿐인** 거의 단색 조각이었다 — 위 문단이 "시트에서 오려 낸 그림"이라
+적어 둔 것과 실물이 안 맞았다(자르는 과정이 그때 깨졌던 것으로 보인다).
+2D 화면(`village-view.js`)은 원래 색 채우기가 먼저 깔리고 그 위에 그림을
+옅게(0.6) 얹는 구조라 티가 덜 났지만, 3D는 그림이 재질의 전부라 거의
+단색 사각형으로 보였던 것 — "NPC가 안 보인다"는 신고와 같이 들어온
+"바닥이 왜 이러냐"는 바로 이 문제였다.
+
+새로 CC0 사진을 받아오는 대신 **이 저장소 안에 이미 있는 CC0 1.0 텍스처를
+그대로 옮겼다**(둘 다 재배포 제약 없는 CC0라 출처만 옮겨 적으면 된다) —
+`models/props/*`·`Kenney·KayKit` 절처럼 다섯 판 사이 재사용은 이미 있던
+관례다:
+
+| 파일 | 옮겨 온 곳 | 원 출처 |
+|---|---|---|
+| `assets/textures/land/grass.webp` | `saga-go/assets/textures/land/grass1.webp` | ambientCG `Grass005`(CC0 1.0) — `saga-go/assets/ASSET_LICENSES.md` 참고 |
+| `assets/textures/land/dirt.webp` | `saga-go/assets/textures/land/road1.webp` | ambientCG `Ground081`(CC0 1.0), 흙길에 씀 |
+| `assets/textures/land/stone.webp` | `saga-dungeon/assets/textures/dungeon/floor_stone.webp` | polyhaven(CC0 1.0) — `saga-dungeon/assets/ASSET_LICENSES.md` 참고 |
+
+`grass`·`grass_meadow`·`grass_dark`·`grass_mush`·`grass_rocky`(숲 고리 네
+변종)는 여전히 같은 `grass.webp` 한 장을 재질 색(`color`)으로 물들여 쓴다.
+`path`는 `dirt.webp`, `stone`은 `stone.webp`로 바뀌었다. **`sand`·`water`는
+이번엔 손 안 댔다** — 맞는 CC0 사진이 이 저장소 어디에도 아직 없다(물은
+`waterMaterial()`의 파동·반사가 이미 덧입혀져 기본 그림 비중이 작아 우선
+순위를 낮췄다). 다음에 바닥을 더 손보게 되면 이 둘부터.
+
+`tileTexture()`의 필터도 픽셀아트 보존용 `NearestFilter`에서
+`LinearFilter`+밉맵으로 바꿨다 — 이제 대부분 실사 사진이라 흐려져야
+자연스럽다. 2D 화면(`village-view.js`)과 `tile_grass.png`·`tile_dirt.png`·
+`tile_stone.png` 원본 파일은 **이번엔 안 건드렸다** — 2D 캔버스는 매 프레임
+`drawImage`로 다시 그리므로 큰 사진(수백 KB)을 얹으면 저사양에서 느려질
+위험이 있어, 3D(한 번 구워 두는 `InstancedMesh` 재질)만 우선 바꿨다.
 
 ---
 
@@ -486,3 +530,34 @@ ASSET_LICENSES.md`의 "MPFB2 + makehuman_system_assets" 절 참고).
 `assemble()`에서 몸마다 한 번만 다시 굽도록 이어 붙였다. 이 판은 아직
 이 표를 실제로 세우는 3D 화면(PLAN PHASE 2, world3d)이 없어 지금은 화면에
 영향이 없다 — 그 화면이 생기면 이 20종이 뒤틀리지 않고 걷는 인물로 선다.
+
+---
+
+## 배경음악(BGM) — `forest.mp3` (2026-09-10, `saga-story`에서 옮김)
+
+"다른 게임을 참조해서 개선해 달라"는 요청으로 다섯 판 중 소리(효과음)만
+있고 배경음악은 없던 이 판에 음악을 얹었다. 새로 받지 않고 `saga-story`가
+이미 갖고 있던 CC0 트랙을 그대로 옮겼다 — 곡 이름부터 이 판과 맞는다.
+
+| 항목 | |
+|---|---|
+| **곡명** | Peaceful forest |
+| **만든 이** | Samza |
+| **라이선스** | **CC0 1.0 Universal** — 저작자 표시 필요 없다, 재배포 허용된다 |
+| **받은 곳** | <https://opengameart.org/content/peaceful-forest> (Samza 본인 업로드).
+  이 판은 `saga-story/assets/audio/bgm/forest.mp3`에서 하드링크로 받았다 —
+  원 출처·라이선스 확인 근거는 `../../saga-story/assets/ASSET_LICENSES.md`의
+  같은 절 참고 |
+| **파일** | `assets/audio/bgm/forest.mp3`(2.4MB) |
+
+`js/bgm.js` 신설 — `saga-story/js/bgm.js`를 본으로 삼되, 이 판은 마을
+하나뿐이고 전투가 없어 town/forest/battle 세 트랙을 가릴 필요가 없다.
+**트랙 하나만 늘 돌린다**(단순하게 시작). `core.save.settings.music`
+(기본 켜짐)·`musicVol`(기본 0.35)에 저장되고, 브라우저 자동재생 정책 때문에
+`sfx.js`와 같은 요령으로 첫 클릭/터치/키 입력 뒤에야 실제로 울린다. ⚙️ 설정
+시트에 "배경음악" on/off·음량 슬라이더를 효과음 항목 바로 아래 얹었다.
+자가진단(`_test.html`)에 세 항목(모듈·기본값 확인 / 첫 눌림 전엔 안 풀림 /
+음량 0~1 끊김) 추가, 245→248(3회 동일).
+
+**실기기 확인 전** — 실제로 음악이 나오는지, 효과음과 볼륨 균형이 맞는지는
+사용자가 직접 들어봐야 한다.

@@ -789,12 +789,18 @@
 
   /** 링(숲 고리) 안에서 어느 바이옴이 처음 나오는 칸을 준다 — 좌표 순서로
    *  훑으므로(위→아래, 왼→오른) 늘 같은 칸이다. herbalist 를 버섯 숲 어딘가에
-   *  붙일 때 쓴다 */
+   *  붙일 때 쓴다.
+   *  **2026-09-10 고침** — margin(forestMargin) 이 얕은 링만 훑다 보니 씨앗에
+   *  따라 그 링 안에 'mushroom' 칸이 하나도 없을 수 있어(바이옴이 좌표 해시라
+   *  세이브마다 다르다) `null`을 돌려줬다. 그러면 `buildNpcs()`가 herbalist를
+   *  아예 안 세워 "NPC 하나가 안 보인다"는 신고로 이어졌다 — 링을 훑으며 맞는
+   *  바이옴이 없어도 **지나친 첫 유효 칸**(grass-family, 마을 시설 밖)을
+   *  대역으로 쌓아 뒀다가 끝까지 못 찾으면 그걸 돌려준다. */
   function firstBiomeSpot(biome) {
     var m = forestMargin();
     var cxMin = Math.floor(-m / BIOME_CELL), cxMax = Math.ceil((W + m) / BIOME_CELL);
     var cyMin = Math.floor(-m / BIOME_CELL), cyMax = Math.ceil((H + m) / BIOME_CELL);
-    var cx, cy;
+    var cx, cy, fallback = null;
     for (cy = cyMin; cy <= cyMax; cy++) {
       for (cx = cxMin; cx <= cxMax; cx++) {
         var tx = cx * BIOME_CELL + Math.floor(BIOME_CELL / 2);
@@ -803,9 +809,10 @@
         if (inHamlet(tx, ty) || inHamlet2(tx, ty) || inCave(tx, ty)) { continue; }
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }
         if (biomeAt(tx, ty) === biome) { return { tx: tx, ty: ty }; }
+        if (!fallback) { fallback = { tx: tx, ty: ty }; }
       }
     }
-    return null;
+    return fallback;
   }
 
   /* ── 숲 NPC(PLAN 40절 PHASE 4 NPC 칸) ─────────────────────────

@@ -78,6 +78,7 @@ window.DG_NO_TUNE = true;
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/sfx.js"></script>
+<script src="js/bgm.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/portrait3d.js"></script>
 <script src="js/account.js"></script>
@@ -230,6 +231,21 @@ window.DG_NO_TUNE = true;
         '손잡이는 뒤집힘 · 화면은 init 없이 안 켜짐';
     });
 
+    t('village-view3d — 집·동굴 안에서는 3D가 눌린다(방을 3D로 안 그리므로)', function () {
+      /* 2026-09-10 고침 — 예전엔 실내에서도 active() 가 그대로 켜져 있어
+         문 앞 바깥 풍경이 얼어붙은 채로 계속 떠 있고 방 안(2D 쪽)이 안 보였다.
+         `ready` 가 진단에선 늘 false 라 active() 만으로는 못 보므로 ready 와
+         무관한 순수 함수(indoorSuppressed)로 확인한다 */
+      var VV3 = DG.villageView3d, V = DG.village;
+      var before = VV3.indoorSuppressed();
+      V.enterHome();
+      var whileIn = VV3.indoorSuppressed();
+      V.leaveHome();
+      var after = VV3.indoorSuppressed();
+      return before === false && whileIn === true && after === false &&
+        '밖 false → 집 안 true → 나오면 다시 false';
+    });
+
     t('village-view3d — 흩뿌릴 kind 는 전부 asset3d 표에 실제로 있다 (PLAN 9절)', function () {
       var VV3 = DG.villageView3d, A3 = DG.asset3d;
       var map = VV3.scatterKind(), k, missing = [];
@@ -354,6 +370,60 @@ window.DG_NO_TUNE = true;
       var f1 = VV3.camFov(1, 55, 28);
       return f0 === 55 && f1 === 28 && fMid > f1 && fMid < f0 &&
         'zoom(어깨너머 55°) → 쿼터뷰(28°) 로 좁아짐 · 중간값 그 사이';
+    });
+
+    /* ── "움직이는 모션을 더 자연스럽게" (2026-09-10) — 방향 전환을 한 프레임
+     * 스냅이 아니라 부드러운 보간으로 바꿨다. angleLerp·turnLerpK 둘 다
+     * scene 없이도 도는 순수 함수라 여기서 그대로 확인된다. ────────── */
+
+    t('village-view3d — angleLerp 은 최단 방향으로 돈다(경계를 넘어도 먼 길로 안 돈다)', function () {
+      var VV3 = DG.villageView3d;
+      /* 179° → -179°(≈181°) 는 2° 만 돌면 되는데, 순진하게 빼면(180 - (-179) = 359°)
+         반대로 먼 길을 돈다 — wrap 이 최단(짧은) 쪽을 골라야 한다.
+         sin·cos 로 비교하는 건 각도는 2π 마다 같은 방향을 가리키므로(모듈러
+         계산을 직접 다시 하지 않고) "같은 방향인가"만 안전하게 본다 */
+      var a = Math.PI * 0.995, b = -Math.PI * 0.995;
+      var half = VV3.angleLerp(a, b, 0.5);
+      var full = VV3.angleLerp(a, b, 1);
+      var zero = VV3.angleLerp(a, b, 0);
+      var fullMatchesB = Math.abs(Math.sin(full) - Math.sin(b)) < 1e-6 &&
+        Math.abs(Math.cos(full) - Math.cos(b)) < 1e-6;
+      return zero === a && fullMatchesB &&
+        Math.abs(half) > Math.PI * 0.99 &&   // 최단 경로라 경계(±π) 부근에 머문다
+        'k=0 이면 그대로 · k=1 이면 목표각과 같은 방향 · 최단 경로로 이어짐';
+    });
+
+    t('village-view3d — angleLerp 은 일반적인(경계 안 넘는) 경우엔 그냥 선형 보간과 같다', function () {
+      var VV3 = DG.villageView3d;
+      var v = VV3.angleLerp(0, Math.PI / 2, 0.5);
+      return Math.abs(v - Math.PI / 4) < 1e-9 && '0→90° 의 절반은 45°';
+    });
+
+    t('village-view3d — turnLerpK 는 0~1 사이이고, dt 가 클수록(또는 음수여도) 목표에 더 가깝다', function () {
+      var VV3 = DG.villageView3d;
+      var k0 = VV3.turnLerpK(0), kSmall = VV3.turnLerpK(0.05), kBig = VV3.turnLerpK(1), kNeg = VV3.turnLerpK(-1);
+      return k0 === 0 && kSmall > 0 && kSmall < 1 && kBig > kSmall && kBig <= 1 && kNeg === k0 &&
+        'dt=0→0 · dt 클수록 1 에 가까움(못 넘음) · 음수 dt 는 0 으로 접힘';
+    });
+
+    t('village-view3d — 걷는 짐승만(딱 그만큼) 이동 방향으로 몸을 트는 표에 있다(나무·건물은 없음)', function () {
+      var VV3 = DG.villageView3d, T = VV3.turningKind();
+      var need = ['deer', 'fox', 'wolf', 'rabbit', 'squirrel', 'duck', 'bird', 'frog', 'snake'];
+      var miss = need.filter(function (k) { return !T[k]; });
+      var leaked = ['tree', 'rock', 'flower', 'home', 'board'].filter(function (k) { return !!T[k]; });
+      return miss.length === 0 && leaked.length === 0 && Object.keys(T).length === need.length &&
+        (need.length + '종 다 있고 딱 그만큼 · 안 움직이는 것엔 안 새어 나감');
+    });
+
+    t('village-view3d — triggerAction 은 init 전(몸짓 표가 아직 없음)엔 조용히 아무 일도 안 한다', function () {
+      /* "더 자연스럽게" — 나무 흔들기·낚시 던지기 같은 손짓에 몸짓 한 번을
+         튼다(2026-09-10). 실제로 도는지는 WebGL 컨텍스트가 있어야 보이므로
+         (자가진단은 init() 을 안 부른다) 여기선 "없을 때 안 죽는지"만 본다 */
+      var VV3 = DG.villageView3d;
+      var before = VV3.actionTimer();
+      VV3.triggerAction();
+      var after = VV3.actionTimer();
+      return before === 0 && after === 0 && '몸짓 표 없음 → 조용히 무시, 남은 시간 그대로 0';
     });
 
     /* ── PLAN 40절 PHASE 5: Weather · Day/Night · Ambient (3D) ──────
@@ -2713,7 +2783,7 @@ window.DG_NO_TUNE = true;
         (a1.length + '마리 재현');
     });
 
-    t('짐승 — 등록된 자산이 있는 종(사슴·여우·늑대·토끼·다람쥐·오리·새)만 나고, 제 바이옴에만 선다', function () {
+    t('짐승 — 등록된 자산이 있는 종(사슴·여우·늑대·토끼·다람쥐·오리·새·개구리·뱀)만 나고, 제 바이옴에만 선다', function () {
       V.buildAnimals();
       var list = V.raw().animals, i, bad = null;
       for (i = 0; i < list.length; i++) {
@@ -3440,6 +3510,26 @@ window.DG_NO_TUNE = true;
         var a2 = S._tail(2);
         return a1[a1.length - 1] === 'meteor' && a2.length === a1.length && '슬롯이 바뀔 때만';
       } finally { TW.starNow = orig; }
+    });
+
+    /* ── 배경음악(BGM) — 사가스토리에서 forest.mp3 그대로 옮김 (2026-09-10) ── */
+
+    t('BGM 모듈이 있고 기본은 켜짐·볼륨 35%다', function () {
+      var B = DG.bgm;
+      return !!B && B.enabled() === true && Math.abs(B.volume() - 0.35) < 1e-9 &&
+        '기본값 확인';
+    });
+
+    t('BGM 은 첫 눌림 전에는 안 풀린다(브라우저 규칙, sfx.js 와 같은 요령)', function () {
+      var B = DG.bgm;
+      return B.unlocked() === false && B.hasEl() === false && '깨우기 전 = <audio> 도 아직 없음';
+    });
+
+    t('BGM 음량 손잡이는 0~1로 끊긴다', function () {
+      var B = DG.bgm;
+      var v1 = B.setVolume(1.4), v2 = B.setVolume(-0.4);
+      B.setVolume(0.35);   // 다른 항목에 영향 안 주게 기본값으로 되돌린다
+      return v1 === 1 && v2 === 0 && '위아래 다 끊김';
     });
 
     t('런타임 에러 없음', function () {

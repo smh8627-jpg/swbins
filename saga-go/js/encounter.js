@@ -89,7 +89,7 @@
           '<div class="enc-icon" style="border-color:' + rar.color + '">' +
             global.DG.portrait3d.img('hero', h, 74) + '</div>' +
           '<div>' +
-            '<div class="enc-name">' + h.name + ' <span class="rar" style="color:' + rar.color + '">' + rar.label + '</span></div>' +
+            '<div class="enc-name">' + h.name + ' <span class="rar" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span></div>' +
             '<div class="enc-sub">' + h.era + ' · ' + h.faction + ' · ' +
               (cur.revealed ? traitLabel(h.trait) : '<span class="muted">기질 불명 ❓</span>') + '</div>' +
             '<div class="enc-stats">무 ' + h.stats.might + ' / 지 ' + h.stats.wisdom + ' / 통 ' + h.stats.command + '</div>' +
@@ -400,7 +400,7 @@
           '<div class="enc-icon" style="border-color:' + rar.color + '">' +
             global.DG.portrait3d.img('pet', p, 74) + '</div>' +
           '<div>' +
-            '<div class="enc-name">' + p.name + ' <span class="rar" style="color:' + rar.color + '">' + rar.label + '</span></div>' +
+            '<div class="enc-name">' + p.name + ' <span class="rar" style="color:' + rar.color + '">' + rar.name + ' ' + rar.label + '</span></div>' +
             '<div class="enc-sub">' + (p.kind === 'divine' ? '신수(神獸)' : '동물') + ' · 기본 포획률 ' + rate + '%</div>' +
             '<div class="enc-stats">' + p.desc + '</div>' +
           '</div>' +

@@ -130,6 +130,13 @@
         var lbl = el.nextElementSibling;
         if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
       }
+      if (act === 'music-vol') {
+        var BG0 = global.DG.bgm;
+        if (!BG0) { return; }
+        var v2 = BG0.setVolume((parseInt(el.value, 10) || 0) / 100);
+        var lbl2 = el.nextElementSibling;
+        if (lbl2) { lbl2.textContent = Math.round(v2 * 100) + '%'; }
+      }
     });
 
     bindRest();
@@ -151,6 +158,11 @@
       if (act === 'snd-toggle') {
         var SF0 = global.DG.sfx;
         if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
+        return;
+      }
+      if (act === 'music-toggle') {
+        var BG1 = global.DG.bgm;
+        if (BG1) { BG1.setEnabled(!BG1.enabled()); renderSheet(); }
         return;
       }
       if (act === 'gq-set') {
@@ -336,9 +348,19 @@
    *  이 판엔 아직 BGM·진동이 없어(sfx.js 에 그 손잡이 자체가 없다) 그 둘은 뺐다. */
   var QUALITY_LABEL = { auto: '자동', low: '낮음', medium: '보통', high: '높음' };
   function viewSettings() {
-    var SF = global.DG.sfx, V3 = global.DG.villageView3d;
+    var SF = global.DG.sfx, BG = global.DG.bgm, V3 = global.DG.villageView3d;
     if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
     var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
+    var mrow = '';
+    if (BG) {
+      var mon = BG.enabled(), mvol = Math.round(BG.volume() * 100);
+      mrow = '<div class="key-row"><b>배경음악</b>' +
+        '<button data-act="music-toggle">' + (mon ? '켜짐' : '꺼짐') + '</button></div>' +
+        '<div class="key-row"><b>음악 음량</b>' +
+        '<input type="range" min="0" max="100" value="' + mvol + '" data-act="music-vol"' +
+        (mon ? '' : ' disabled') + '>' +
+        '<span class="key-cur">' + mvol + '%</span></div>';
+    }
     var gq = '';
     if (V3 && V3.active && V3.active()) {
       var cur = V3.qualityRaw(), lv;
@@ -360,7 +382,7 @@
         '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
         (on ? '' : ' disabled') + '>' +
         '<span class="key-cur">' + vol + '%</span></div>' +
-      gq;
+      mrow + gq;
   }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
@@ -507,10 +529,18 @@
 
   var focusKey = null, lastResult = null, resultAt = 0;
 
+  /** 손짓 없이 넘어가는 결과 — 대화·시트 열기·문 여닫기처럼 "손을 쓴다"는
+   *  느낌이 안 나는 것들. 나머지(나무 흔들기·낚시·상자 열기·잡초 뽑기 등)는
+   *  전부 몸짓 한 번을 튼다(`triggerAction()`, 2026-09-10 "더 자연스럽게") */
+  var NO_GESTURE_KIND = { open: 1, talk: 1, quest: 1, request: 1, reward: 1, no: 1, leaving: 1, home: 1, cave: 1 };
+
   function doInteract() {
     var r = global.DG.village.interact();
     if (!r) { return; }
     lastResult = r; resultAt = Date.now();
+    if (!NO_GESTURE_KIND[r.kind] && global.DG.villageView3d && global.DG.villageView3d.triggerAction) {
+      global.DG.villageView3d.triggerAction();
+    }
     if (r.kind === 'open') { openPlace(r.place || 'shop'); }
     else if (r.kind === 'home' || r.kind === 'pick' || r.kind === 'keep' ||
              r.kind === 'weed' || r.kind === 'wish' || r.kind === 'cave') { toast(r.text); }

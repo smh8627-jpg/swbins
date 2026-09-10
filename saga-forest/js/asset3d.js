@@ -281,6 +281,11 @@
     'animal:an_squirrel': ANI + 'Squirrel.glb',
     'animal:an_duck': ANI + 'Duck.glb',
     'animal:an_bird': ANI + 'Bird.glb',
+    /* 개구리·뱀(2026-09-10, "동물들도 찾아봐") — saga-go 의 Quaternius 짐승
+       팩(CC0)에서 그대로 옮겼다. 둘 다 원본에 Idle·Walk(개구리는 Jump) 클립이
+       있어 `buildGeneric()`가 자동으로 걷는 몸짓을 태운다 */
+    'animal:an_frog': ANI + 'Frog.glb',
+    'animal:an_snake': ANI + 'Snake.glb',
 
     /* 2026-09-05 — 도감 펫(`pt_*`·`pk_*`) 초상을 굽는 자리(`portrait3d.js`).
        위 `animal:an_*` 는 숲의 **배경 짐승** 전용이라 도감 펫과 id 가 안
@@ -790,6 +795,16 @@
   }
 
   /** 인물이 아닌 사물 하나 — 표에서 골라 그대로 받아 눕힌다 */
+  /**
+   * 2026-09-10 "움직이는 모션을 더 자연스럽게" 뒤이어 — `acquire()`가 이미
+   * GLB 마다 `clips`/`map`(몸짓 이름 매칭, `loadHeroRecipe()`와 같은 표)을
+   * 캐시해 두는데 여기서는 여태 안 썼다(그냥 정지 모형으로 세웠다). **원본에
+   * 클립이 있으면**(사슴 등 짐승 GLB는 보통 Idle·Walk 를 갖고 있다) 인물과
+   * 같은 결로 mixer·actions·clipMap 을 실어 준다 — `village-view3d.js`의
+   * `playAction()`이 NPC·인물과 똑같이 쓸 수 있다. 클립이 없는 나무·바위·
+   * 건물류는 `c.clips.length === 0`이라 그냥 지금처럼 정지 모형으로 남는다
+   * (동작 안 바뀜, 전부 하위호환).
+   */
   function buildGeneric(kind, ref, cb) {
     var hit = lookup(kind, ref);
     if (!hit) { cb(null); return; }
@@ -799,7 +814,17 @@
       if (!c || !c.gltf) { cb(null); return; }
       built++;
       var model = cloneScene(c.gltf);
-      cb(normalize(model, 1));
+      var wrapped = normalize(model, 1);
+      if (c.clips && c.clips.length) {
+        var t = three();
+        var mx = new t.AnimationMixer(wrapped.children[0]);
+        var acts = {}, i;
+        for (i = 0; i < c.clips.length; i++) { acts[c.clips[i].name] = mx.clipAction(c.clips[i]); }
+        wrapped.userData.mixer = mx;
+        wrapped.userData.actions = acts;
+        wrapped.userData.clipMap = c.map;
+      }
+      cb(wrapped);
     });
   }
 
