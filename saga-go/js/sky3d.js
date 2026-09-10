@@ -176,12 +176,14 @@
     tickClouds(dt);
     tickDust(dt);
     tickBirds(dt, light);
+    tickStars(dt, light);
     if (!live()) {
       if (curKind && group) { reshape(null); }
       return 0;
     }
     var W = global.DG.weather;
     var wkey = (light && light.weather) || (W ? W.current().key : 'clear');
+    tickLightning(dt, wkey);
     var kind = fallOf(wkey);
     if (kind !== curKind) { reshape(kind); }
     if (!kind || !pool.length) { return 0; }
@@ -454,6 +456,124 @@
     }
   }
 
+  /* ── 별 (2026-09-10, "지도도 더 자연스럽게 … 별도 보이고") ─────────
+   * 밤낮 전환을 다시 켠 김에(`world3d.js` DAYNIGHT, 같은 요청) 밤하늘을
+   * 채운다. 구름·새와 달리 알갱이가 안 움직인다 — 자리를 한 번만 뽑아
+   * 플레이어를 따라다니는 아주 큰 반구 위에 고정해 둔다(`BufferGeometry`
+   * 하나, `Points` 한 덩이 — 수백 개라도 그리기 비용이 거의 없다).
+   * 맑거나 바람 부는 밤에만 보인다 — 흐림·비·눈·안개는 구름이 가린다.
+   * `light.lamp`(밤일수록 1에 가까운, `lightingAt`이 이미 내는 값)를
+   * 그대로 밝기로 쓴다 — 새 낮밤 판정을 또 만들지 않는다.
+   */
+  function STAR_ON() { return core.tuned('sky3d.stars', 1) ? true : false; }
+  function STAR_N() { return Math.max(0, Math.round(core.tuned('sky3d.starN', 260) * DENS())); }
+  function STAR_R() { return core.tuned('sky3d.starR', 420); }   // 뜨는 반지름(m)
+
+  /** 이 천후에 별이 뜰 만한가 — 순수 함수 */
+  function starSkyOk(wkey) { return wkey === 'clear' || wkey === 'wind'; }
+
+  var starPoints = null, starMat = null, starN = 0;
+
+  function ensureStars() {
+    var T = three();
+    if (!T || starPoints) { return !!starPoints; }
+    var n = Math.max(1, STAR_N());
+    var pos = new Float32Array(n * 3), r = STAR_R(), i;
+    for (i = 0; i < n; i++) {
+      var az = Math.random() * Math.PI * 2;
+      var el = (0.16 + Math.random() * 0.76) * (Math.PI / 2);   // 지평선 위 ~14°~90°
+      pos[i * 3] = Math.cos(el) * Math.sin(az) * r;
+      pos[i * 3 + 1] = Math.sin(el) * r;
+      pos[i * 3 + 2] = Math.cos(el) * Math.cos(az) * r;
+    }
+    var geo2 = new T.BufferGeometry();
+    geo2.setAttribute('position', new T.BufferAttribute(pos, 3));
+    starMat = new T.PointsMaterial({
+      color: 0xfff6e0, size: 2.2, sizeAttenuation: false,
+      transparent: true, opacity: 0, depthWrite: false
+    });
+    starPoints = new T.Points(geo2, starMat);
+    starN = n;
+    W3().addFx(starPoints);
+    return true;
+  }
+
+  /** 이 조명·천후에서 별이 얼마나 밝은가(0~1) — 순수 함수, 자가진단이 값으로 본다 */
+  function starOpacity(light, wkey) {
+    if (!light || !starSkyOk(wkey)) { return 0; }
+    return Math.max(0, Math.min(0.92, (light.lamp || 0) * 0.92));
+  }
+
+  var starBroken = false;
+  function tickStars(dt, light) {
+    if (!live() || starBroken) { return 0; }
+    try {
+      var W = global.DG.weather;
+      var wkey = (light && light.weather) || (W ? W.current().key : 'clear');
+      if (!STAR_ON()) {
+        if (starMat) { starMat.opacity = 0; }
+        return 0;
+      }
+      if (!ensureStars()) { return 0; }
+      var op = starOpacity(light, wkey);
+      starMat.opacity = op;
+      if (op > 0) {
+        var pos = core.save.player.pos;
+        starPoints.position.set(pos.x, 0, pos.y);
+      }
+      return op > 0 ? starN : 0;
+    } catch (err) {
+      starBroken = true;
+      if (global.console) { console.error('[sky3d] 별에서 멎어 껐다', err); }
+      return 0;
+    }
+  }
+
+  /* ── 번개 (2026-09-10, "천둥번개도 보이고") ──────────────────────
+   * 비 오는 날에만, 6~18초마다 한 번 화면이 번쩍인다 — 새 CSS를 안 만들고
+   * `duel.js`가 이미 쓰는 `.flash`(`css/style.css`의 `dflash`, brightness
+   * 애니메이션)를 3D 캔버스(`#map3d`)에 그대로 입힌다. **판정에는 안
+   * 닿는다** — 소리를 낼 자리만 이벤트로 열어 둔다(`sky:thunder`, 지금은
+   * 듣는 쪽이 없다 — 이 판엔 아직 천둥 CC0 음원이 없다).
+   */
+  function LIGHTNING_ON() { return core.tuned('sky3d.lightning', 1) ? true : false; }
+  function LIGHTNING_MIN() { return core.tuned('sky3d.lightningMinS', 6); }
+  function LIGHTNING_MAX() { return core.tuned('sky3d.lightningMaxS', 18); }
+
+  var lightningT = 0, lightningNext = 0;
+  function scheduleLightning() {
+    var lo = LIGHTNING_MIN(), hi = Math.max(lo + 1, LIGHTNING_MAX());
+    lightningNext = lo + Math.random() * (hi - lo);
+  }
+
+  function flashScreen() {
+    var el = document.getElementById('map3d');
+    if (!el || !el.classList) { return; }
+    el.classList.remove('flash');
+    void el.offsetWidth;         // 리플로우 — 애니메이션을 처음부터 다시 돌린다
+    el.classList.add('flash');
+    global.setTimeout(function () { el.classList.remove('flash'); }, 320);
+  }
+
+  var lightningBroken = false;
+  function tickLightning(dt, wkey) {
+    if (!live() || lightningBroken) { return; }
+    try {
+      if (!LIGHTNING_ON() || wkey !== 'rain') { lightningT = 0; lightningNext = 0; return; }
+      if (!lightningNext) { scheduleLightning(); }
+      lightningT += dt;
+      if (lightningT >= lightningNext) {
+        lightningT = 0;
+        scheduleLightning();
+        flashScreen();
+        core.emit('sky:thunder', { t: Date.now() });
+      }
+    } catch (err) {
+      lightningBroken = true;
+      if (global.console) { console.error('[sky3d] 번개에서 멎어 껐다', err); }
+    }
+  }
+
   /** 눈으로 확인할 때 */
   function stats() {
     var W = global.DG.weather;
@@ -465,7 +585,9 @@
       want: countOf(wkey), pool: pool.length, shown: vis, kind: curKind,
       clouds: CLOUD_ON() ? clouds.length : 0, cloudsWant: CLOUD_ON() ? CLOUD_N() : 0,
       leaves: leavesOn(), autumn: autumnNow(),
-      dust: dust.length, birds: birds.length
+      dust: dust.length, birds: birds.length,
+      stars: starN, starOpacity: starMat ? starMat.opacity : 0,
+      lightningOn: LIGHTNING_ON()
     };
   }
 
@@ -478,6 +600,8 @@
     leavesOn: leavesOn, autumnNow: autumnNow,
     dustOn: DUST_ON, dustCount: DUST_N, dustWeatherOk: dustWeatherOk,
     birdOn: BIRD_ON, birdCount: BIRD_N, birdSkyOk: birdSkyOk,
+    starOn: STAR_ON, starCount: STAR_N, starSkyOk: starSkyOk, starOpacity: starOpacity,
+    lightningOn: LIGHTNING_ON,
     /* 화면이 쓰는 것 */
     tick: tick, reshape: reshape, stats: stats,
     reset: function () {
@@ -488,6 +612,7 @@
       for (i = 0; i < clouds.length; i++) { clouds[i].node.visible = false; }
       for (i = 0; i < dust.length; i++) { dust[i].node.visible = false; }
       for (i = 0; i < birds.length; i++) { birds[i].node.visible = false; }
+      if (starMat) { starMat.opacity = 0; }
       return pool.length;
     },
     get pool() { return pool; }

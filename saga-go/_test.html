@@ -1912,31 +1912,31 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
        (천후를 clear 로 붙들어 둔 것과 같은 이유다) */
     function atH(h, m) { return new Date(2026, 7, 26, h, m || 0, 0, 0).getTime(); }
 
-    t('조명 — 기본값은 밤 없이 늘 한낮이다', function () {
-      /* 다섯 번을 밝혀도(색·세기·깊은밤 감쇠 다 낮 수준까지) 사용자가 실기기에서
-         계속 어둡다고 했고, 결국 "밤을 낮으로 바꿔 달라"고 했다(2026-08-30).
-         그래서 `world3d.dayNight` 기본값을 1→0 으로 내렸다 — 손잡이를 안 만지면
-         한밤에 물어도 낮 그대로 나와야 한다 */
+    t('조명 — 기본값이 이미 밤낮을 가른다 (2026-09-10, "별도 보이고" 요청으로 다시 켬)', function () {
+      /* 2026-08-30엔 실기기 어두움 문제로 기본을 껐었다(늘 한낮). 2026-09-10에
+         별을 넣으려고 밤을 되살리면서, 그때 최대한 밝혀 둔 밤 세기·색은 안
+         건드리고 사이클만 되살렸다 — 그래서 자정이 정오보다 어둡긴 해도
+         차이는 크지 않다(세기 차보다 색조 차가 더 크다, `lightingAt` 주석 참고) */
       var mid = R3.lightingAt(atH(0), 'clear');
       var noon = R3.lightingAt(atH(12), 'clear');
-      return mid.phase === 'day' && mid.sun.intensity === noon.sun.intensity &&
-        R3.lum(mid.bg) === R3.lum(noon.bg) &&
-        ('자정 phase=' + mid.phase + ' · 해 ' + mid.sun.intensity.toFixed(2));
+      return mid.phase !== 'day' && noon.phase === 'day' &&
+        noon.sun.intensity > mid.sun.intensity && R3.lum(noon.bg) > R3.lum(mid.bg) &&
+        ('자정 phase=' + mid.phase + ' · 해 ' + mid.sun.intensity.toFixed(2) +
+         ' vs 정오 phase=' + noon.phase + ' · 해 ' + noon.sun.intensity.toFixed(2));
     });
 
-    t('조명 — 손잡이를 올리면 밤낮 주기가 여전히 돈다', function () {
-      /* 기능 자체를 지운 게 아니라 기본을 끈 것뿐이다 — `world3d.dayNight` 를
-         1 로 올리면 옛 밤낮 계산이 그대로 살아 있어야 한다 */
-      C.setTune('world3d.dayNight', 1);
-      var noon = R3.lightingAt(atH(12), 'clear');
+    t('조명 — 손잡이를 내리면 밤낮 없이 늘 한낮이다', function () {
+      /* 기능을 지운 게 아니라 기본을 다시 켠 것뿐이다 — `world3d.dayNight` 를
+         0 으로 내리면 2026-08-30~09-10 사이 쓰던 "늘 한낮" 화면으로 돌아가야
+         한다(되돌림 손잡이) */
+      C.setTune('world3d.dayNight', 0);
       var mid = R3.lightingAt(atH(0), 'clear');
-      var ok = noon.sun.intensity > mid.sun.intensity * 1.1 &&
-        noon.hemi.intensity > mid.hemi.intensity &&
-        R3.lum(noon.bg) > R3.lum(mid.bg) * 2;
+      var noon = R3.lightingAt(atH(12), 'clear');
+      var ok = mid.phase === 'day' && mid.sun.intensity === noon.sun.intensity &&
+        R3.lum(mid.bg) === R3.lum(noon.bg);
       C.setTune('world3d.dayNight', null);
       return ok &&
-        ('손잡이 켜면 해 ' + noon.sun.intensity.toFixed(2) + ' vs ' + mid.sun.intensity.toFixed(2) +
-         ' · 하늘밝기 ' + R3.lum(noon.bg).toFixed(2) + ' vs ' + R3.lum(mid.bg).toFixed(2));
+        ('손잡이 내리면 자정도 phase=' + mid.phase + ' · 해 ' + mid.sun.intensity.toFixed(2));
     });
 
     t('조명 — 손잡이를 올리면 시각이 아침·낮·저녁·밤을 가른다', function () {
@@ -1967,8 +1967,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('조명 — 손잡이를 올리면 해는 동에서 떠 서로 진다', function () {
-      /* `world3d.dayNight` 기본이 꺼진 뒤로(2026-08-30) `hour` 자체가 정오로
-         못박히므로, 시각에 따라 해가 움직이는지는 손잡이를 켜야 잴 수 있다 */
+      /* 기본은 2026-09-10부터 다시 켜져 있지만(위 테스트), 이 자리는 명시적으로
+         켠 채 재는 게 더 또렷해 그대로 둔다 — 껐을 때는 `hour`가 정오로
+         못박혀 해가 안 움직인다(바로 위 "손잡이를 내리면" 테스트 참고) */
       C.setTune('world3d.dayNight', 1);
       var m = R3.lightingAt(atH(8), 'clear'), e = R3.lightingAt(atH(16), 'clear');
       C.setTune('world3d.dayNight', null);
@@ -3273,8 +3274,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     var SK = DG.sky3d;
 
     t('시각 — 손잡이를 올리면 깊은 밤이 밤보다 어둡다', function () {
-      /* PLAN 20절의 02:00 Deep Night. `world3d.dayNight` 기본이 꺼진 뒤로는
-         (2026-08-30, 위 "늘 한낮" 절) 이 계산도 손잡이를 켜야 살아난다 */
+      /* PLAN 20절의 02:00 Deep Night. 기본은 2026-09-10부터 다시 켜져 있지만
+         이 자리는 명시적으로 켠 채 잰다(위 "손잡이를 내리면" 테스트 참고) */
       C.setTune('world3d.dayNight', 1);
       var deep = R3.lightingAt(atH(2), 'clear');
       var night = R3.lightingAt(atH(23), 'clear');
@@ -5108,6 +5109,48 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       C.setTune('sky3d.birds', null);
       return on0 === true && n0 > 0 && off === false && SK.birdOn() === true &&
         '기본 ' + n0 + '마리 · sky3d.birds=0 이면 안 뜬다';
+    });
+
+    /* ── 별 (2026-09-10, "별도 보이고") ─────────────────────────
+     * 순수 함수(천후 판정·밝기 계산)와 켬 손잡이만 본다 — three 없이도 잰다.
+     */
+
+    t('별 — 맑거나 바람 불 때만 뜬다', function () {
+      return SK.starSkyOk('clear') === true && SK.starSkyOk('wind') === true &&
+        SK.starSkyOk('cloud') === false && SK.starSkyOk('rain') === false &&
+        SK.starSkyOk('snow') === false && SK.starSkyOk('fog') === false &&
+        '맑음·바람만 뜨고 흐림·비·눈·안개엔 안 뜬다';
+    });
+
+    t('별 — 밤일수록 밝고, 낮·흐린 날엔 안 보인다', function () {
+      var dayL = { lamp: 0 }, nightL = { lamp: 1 };
+      var day = SK.starOpacity(dayL, 'clear');
+      var night = SK.starOpacity(nightL, 'clear');
+      var cloudy = SK.starOpacity(nightL, 'cloud');
+      return day === 0 && night > 0.8 && cloudy === 0 &&
+        ('낮 ' + day.toFixed(2) + ' · 밤(맑음) ' + night.toFixed(2) + ' · 밤(흐림) ' + cloudy.toFixed(2));
+    });
+
+    t('별 — 기본은 켜져 있고, 손잡이로 끌 수 있다', function () {
+      var on0 = SK.starOn(), n0 = SK.starCount();
+      C.setTune('sky3d.stars', 0);
+      var off = SK.starOn();
+      C.setTune('sky3d.stars', null);
+      return on0 === true && n0 > 0 && off === false && SK.starOn() === true &&
+        '기본 ' + n0 + '개 · sky3d.stars=0 이면 안 뜬다';
+    });
+
+    /* ── 번개 (2026-09-10, "천둥번개도 보이고") — 기본 켬 손잡이만 본다.
+     * 실제 번쩍임은 시간(Math.random)에 걸려 있어 `tick()`을 순수 함수처럼
+     * 재현 검증하지 않는다(비·눈 알갱이와 같은 사정) — 판정에도 안 닿는다.
+     */
+
+    t('번개 — 기본은 켜져 있고, 손잡이로 끌 수 있다', function () {
+      var on0 = SK.lightningOn();
+      C.setTune('sky3d.lightning', 0);
+      var off = SK.lightningOn();
+      C.setTune('sky3d.lightning', null);
+      return on0 === true && off === false && 'sky3d.lightning=0 이면 안 친다';
     });
 
     t('3D — 값을 내도 세이브는 그대로다', function () {
