@@ -1541,7 +1541,7 @@
     /* 나무 — 갈래 셋 × 단계 셋 */
     var tree = SK.treeOf(skillHero);
     var br;
-    for (br = 0; br < 5; br++) {
+    for (br = 0; br < 6; br++) {
       var row = tree.filter(function (x) { return x.br === br; })
                     .sort(function (a, b) { return a.row - b.row; });
       if (!row.length) { continue; }
