@@ -147,23 +147,38 @@
     });
   }
 
+  /* ── 도구 서랍 (⋯) — 사가고 UI와 같은 결 ────────────────────
+   * 폰 폭에서만 열린다. 넓은 화면에서는 CSS 가 서랍을 풀어(display:contents)
+   * 단추가 도구줄에 그대로 서므로 여기서 하는 일은 아무 뜻이 없다.
+   */
   function bindTopbar() {
-    /* "더보기" — 등신·양식·3D·소리·도움말·어드민·리셋은 자주 안 쓰니 접어 둔다
-       (사가국지와 같은 결). 지도·자동만 붙박이로 남는다 */
     var moreBtn = document.getElementById('btn-more');
-    var more = document.getElementById('top-more');
-    if (moreBtn && more) {
+    var drawer = document.getElementById('tools-drawer');
+    if (moreBtn && drawer) {
+      function closeDrawer() {
+        drawer.classList.remove('show');
+        moreBtn.classList.remove('on');
+        moreBtn.setAttribute('aria-expanded', 'false');
+      }
       moreBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        more.classList.toggle('show');
+        var open = !drawer.classList.contains('show');
+        drawer.classList.toggle('show', open);
+        moreBtn.classList.toggle('on', open);
+        moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      /* 서랍 안의 무엇을 누르든 닫는다 — 눌러 본 결과를 화면에서 봐야 하는데
+         서랍이 덮고 있으면 볼 수가 없다 */
+      drawer.addEventListener('click', function (e) {
+        if (e.target.closest('button, a')) { closeDrawer(); }
       });
       document.addEventListener('click', function (e) {
-        if (more.classList.contains('show') && !more.contains(e.target) && e.target !== moreBtn) {
-          more.classList.remove('show');
+        if (drawer.classList.contains('show') && !drawer.contains(e.target) && e.target !== moreBtn) {
+          closeDrawer();
         }
       });
       global.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { more.classList.remove('show'); }
+        if (e.key === 'Escape') { closeDrawer(); }
       });
     }
 

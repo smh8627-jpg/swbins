@@ -101,16 +101,11 @@ body.tilted #vignette {
 .p-bar.hp > i { background: linear-gradient(90deg, #b3423f, #e0705f); }
 .p-bar.mp > i { background: linear-gradient(90deg, #2f5f8a, #5aa0d0); }
 
-/* 지도·자동만 붙박이, 나머지(등신·양식·3D·소리·도움말·어드민·리셋)는
-   "더보기" 뒤로 접는다 — #dock-more 와 같은 결(사가국지에서 먼저 밟았다) */
 .tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
-#top-more {
-  position: absolute; right: 0; top: calc(100% + 8px);
-  display: grid; grid-template-columns: repeat(2, 40px); gap: 7px;
-  opacity: 0; pointer-events: none; transform: translateY(-6px);
-  transition: opacity .16s, transform .16s;
-}
-#top-more.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+/* 도구 서랍 — 넓은 화면에서는 **없는 셈** 치고(display:contents) 안의 단추가
+   도구줄에 그대로 늘어선다. 좁은 화면에서만 ⋯ 뒤로 접힌다(사가고 UI와 같은 결) */
+.tools-drawer { display: contents; }
+#btn-more { display: none; font-size: 19px; line-height: 1; padding-bottom: 4px; }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   background: var(--glass); border: 1px solid var(--glass-br);
@@ -178,21 +173,12 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 .near-meta small { display: block; font-size: 10.5px; color: var(--ink-dim); }
 
 /* ── 액션 독 ──────────────────────────────────────────── */
-/* 사냥터·가방만 붙박이, 나머지 넷(무예·저자·도감·기록)은 "더보기" 뒤로 접는다 —
-   측면 조작판 사이 폭이 좁은 세로 화면에서 독 자체가 전투 화면을 크게 차지하던
-   것을 줄인다(사가블로·사가국지와 같은 결). #dock-more 는 #dock(position:fixed
-   라 포함 블록이 된다) 기준 절대배치로 독 바로 위에 뜨는 팝오버다. */
+/* 접지 않고 다 펼친다(사가고 UI와 같은 결) — 좁은 화면에서는 가로 한 줄로
+   눕고 넘치는 만큼 옆으로 스크롤한다(아래 780px 규칙) */
 #dock {
   position: fixed; right: 12px; bottom: calc(14px + var(--safe-b)); z-index: 12;
   display: flex; flex-direction: column; gap: 8px;
 }
-#dock-more {
-  position: absolute; right: 0; bottom: calc(100% + 8px);
-  display: grid; grid-template-columns: repeat(2, 58px); gap: 8px;
-  opacity: 0; pointer-events: none; transform: translateY(6px);
-  transition: opacity .16s, transform .16s;
-}
-#dock-more.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 #dock button {
   width: 58px; height: 58px; border-radius: 19px; cursor: pointer;
   display: grid; place-items: center; gap: 1px;
@@ -493,9 +479,31 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   #widgets { width: calc(100% - 96px); max-width: 236px; }
   #dock { flex-direction: row; }
   #dock button { width: 52px; height: 52px; border-radius: 17px; }
-  #dock-more { grid-template-columns: repeat(2, 52px); }
   #near { bottom: calc(84px + var(--safe-b)); }
   .wallet { flex-wrap: wrap; }
+}
+
+/* 독을 접지 않고 다 펼치면(사가고 UI와 같은 결) 아홉 칸이 된다 — 좁은 화면에서는
+   가로로 다 못 앉으니 옆으로 스크롤한다(사가고에서 먼저 밟은 자리) */
+@media (max-width: 780px) {
+  #dock { left: 12px; justify-content: flex-end; overflow-x: auto; scrollbar-width: none; }
+  #dock::-webkit-scrollbar { display: none; }
+}
+
+/* ── 폰 폭: 상단 도구를 ⋯ 뒤로 접는다 (사가고 UI와 같은 결) ───────── */
+@media (max-width: 600px) {
+  #btn-more { display: inline-block; }
+  .tools-drawer {
+    display: none;
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 14;
+    flex-wrap: wrap; justify-content: flex-end; gap: 7px;
+    width: max-content; max-width: calc(100vw - 24px);
+    padding: 9px; border-radius: var(--r-md);
+    background: var(--glass); border: 1px solid var(--glass-br);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
+  }
+  .tools-drawer.show { display: flex; }
 }
 
 /* ══ 인물 성장 · 영지 경영 (v0.7) ═══════════════════════════════ */
@@ -976,7 +984,6 @@ body.tilted3 #vignette {
   .tools { gap: 5px; }
   .icon-btn { width: 34px; height: 34px; font-size: 13px; }
   .icon-btn.txt { font-size: 9.5px; }
-  #top-more { grid-template-columns: repeat(2, 34px); }
 
   .wallet { flex-wrap: wrap; padding: 4px 6px; }
   .coin { padding: 3px 7px; font-size: 11px; }
@@ -1016,7 +1023,6 @@ body.tilted3 #vignette {
   #dock button { width: 42px; height: 42px; border-radius: 13px; flex: 0 0 auto; }
   #dock button span { font-size: 16px; }
   #dock button small { font-size: 8px; }
-  #dock-more { grid-template-columns: repeat(2, 42px); }
 
   /* 손가락 조작판 — #hud 가 여기서 거의 전체 폭(calc(100vw-16px))으로 커지고
      두 줄(3차 전직은 스킬 여덟 칸)이라 카드가 높다. 체력·기력 띠를 뺀 뒤로

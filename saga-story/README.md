@@ -128,11 +128,16 @@ chrome --headless=new --disable-gpu --dump-dom http://127.0.0.1:PORT/_sfxcheck.h
   않는다. 움직임은 스크린샷으로 판정할 수 없으니 `_test.html` 처럼 `update(dt)` 를
   직접 굴려서 본다
 
-## 원작처럼 보이게 (2026-08-26)
+## 원작처럼 보이게 (2026-08-26, 2026-09-10에 기본값 해제)
 
 **규칙은 한 줄도 안 건드렸다.** 외피는 새 파일 `css/maple.css` 한 장이고,
 `index.html` 에서 그 `<link>` 한 줄을 빼면 예전 모습으로 돌아온다
 (사가블로의 `css/diablo.css` 와 같은 방식이다).
+
+**2026-09-10 — 사용자 요청으로 `index.html`에서 그 `<link>` 를 뺐다**(사가고 UI와
+테마·독·상단 도구줄 구조를 맞추려는 것). 파일 자체와 아래 내용은 그대로 남아 있고,
+`_test.html`·`_demo.html` 은 여전히 이 외피를 걸고 돈다 — 되살리려면 index.html에
+`<link rel="stylesheet" href="css/maple.css">` 한 줄만 다시 넣으면 된다.
 
 옮긴 것 여섯 —
 **밝은 창**(어두운 유리 → 흰 종이 + 굵은 남색 테) ·
