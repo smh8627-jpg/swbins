@@ -33,6 +33,15 @@
      "보스 패턴" 미달). `look.weapon`으로 넷을 가른다(`bossPattern()` 참고) */
   var RANGED_STOP = 150;                // 이 거리에서 더 안 다가온다
   var RANGED_MAX = 260;                 // 이보다 멀면 아예 안 쏜다
+  /* 어그로(2026-09-10, 사용자 요청) — PLAN 15절 "필수" 목록의 마지막 둘
+     (어그로·추적) 중 남아 있던 절반. 그 전까지는 방에 들어서는 순간 방 안
+     전부가 한꺼번에 달려왔다 — 이 사거리 안에 들어야 비로소 알아챈다.
+     궁수·조총병은 더 멀리서 보고, 정예는 좀 더 예민하다(*1.15). 맞으면
+     거리와 상관없이 무조건 깬다(`wakeEnemy`, `strike()`가 부른다) — "몰래
+     지나칠 수는 있어도 몰래 때릴 수는 없다". */
+  var AGGRO_RANGE = 230;                // 잡졸이 알아채는 거리
+  var AGGRO_RANGE_RANGED = 300;         // 활·조총은 더 멀리서 본다
+  var AGGRO_PACK_R = 110;               // 하나가 깨면 이 거리 안의 동료도 같이 깬다
   var SLAM_WARN = 0.7;                  // club — 강타 예고 시간(초)
   var SLAM_RANGE = 110;                 // club — 강타 반경
   var SLAM_MUL = 1.8;                   // club — 강타 배율(평타 대비)
@@ -276,7 +285,11 @@
       cd: 0.6 + Math.random() * 0.8,
       ref: ref,
       phase: Math.random() * 6.28,
-      hurt: 0
+      hurt: 0,
+      /* 어그로 — 보스·미니보스만 처음부터 깨어 있다(보스방은 들어가는
+         순간이 곧 교전이다). 나머지는 사거리 안에 들거나 맞아야 깬다
+         (아래 wakeEnemy). */
+      aggro: !!boss
     };
   }
 
@@ -1685,50 +1698,59 @@
         var stopAt = ranged ? RANGED_STOP : (en.r + P_R - 2);
         var wob = (!ranged && lookW === 'axe') ? Math.sin(en.phase * 0.6) * 0.5 : 0;
         var lunge = (!ranged && lookW === 'club') ? 1 + Math.max(0, Math.sin(en.phase * 0.9)) * 0.7 : 1;
-        if (ed > stopAt) {
-          var mvx = (p.x - en.x) / ed, mvy = (p.y - en.y) / ed;
-          if (wob) {
-            var perpx = -mvy, perpy = mvx;
-            mvx += perpx * wob; mvy += perpy * wob;
-            var mvl = Math.sqrt(mvx * mvx + mvy * mvy) || 1;
-            mvx /= mvl; mvy /= mvl;
-          }
-          var nex = en.x + mvx * espd * lunge * dt;
-          var ney = en.y + mvy * espd * lunge * dt;
-          if (en.field) {
-            /* 들판 로머는 방(마을 벽) 안으로는 못 들어온다 — 플레이어를
-               쫓다가도 벽 자리에서 멈춘다. 축을 나눠 막아 대각선으로
-               다가와도 한쪽 축은 계속 미끄러진다(boundPlayer와 같은 요령).
-               마을에서는 안전지대(TOWN_SAFE_R) 경계도 같은 방식으로 막아 —
-               플레이어가 안전지대로 피하면 쫓던 로머가 담장 코앞까지
-               따라붙지 못한다. */
-            if (!inRoomRect(nex, en.y, ctx) && !inTownSafe(nex, en.y, ctx)) { en.x = nex; }
-            if (!inRoomRect(en.x, ney, ctx) && !inTownSafe(en.x, ney, ctx)) { en.y = ney; }
-          } else {
-            en.x = nex; en.y = ney;
-          }
+        /* 어그로 — update()의 그 블록과 같은 자리, 같은 상수(AGGRO_RANGE 등)를
+           그대로 쓴다. 들판 로머(en.field)도 이걸 탄다 — 오히려 여기가 더
+           뜻이 있다(길을 걷다 옆을 지나쳐도 안 쫓아오는 채비가 열린다). */
+        if (!en.aggro) {
+          var aggroR = (ranged ? AGGRO_RANGE_RANGED : AGGRO_RANGE) * (en.elite ? 1.15 : 1);
+          if (ed <= aggroR) { wakeEnemy(en); }
         }
-        var reachBonus = (lookW === 'spear' || lookW === 'halberd') ? 14 : 0;
-        en.cd -= dt;
-        if (ed <= en.r + P_R + 6 + reachBonus && en.cd <= 0) {
-          en.cd = ENEMY_CD * (el && el.cd ? el.cd : 1) / chill;
-          hurtPlayer(en.dmg, en.ref && en.ref.atkEl);
-          if (!run) { return; }
-        } else if (ranged && ed > en.r + P_R + 6 && ed <= RANGED_MAX && en.cd <= 0) {
-          en.cd = ENEMY_CD * 1.4 * (el && el.cd ? el.cd : 1) / chill;
-          var frdx = p.x - en.x, frdy = p.y - en.y;
-          var frd = Math.sqrt(frdx * frdx + frdy * frdy) || 1;
-          var frEl = (en.ref && en.ref.atkEl) || 'phys';
-          run.foeShots.push({
-            x: en.x, y: en.y - 8, dx: frdx / frd, dy: frdy / frd, spd: 260, life: 1.8,
-            dmg: en.dmg, el: frEl, color: elemColorOf(frEl)
-          });
-        }
-        /* 들판 로머는 늘 boss:false 로 태어나므로(spawnFieldEncounters) 보스
-           패턴은 안 타지만, 나중에 예외가 생겨도 안전하도록 그대로 둔다 */
-        if (en.boss) {
-          bossPattern(en, p, ed, dt);
-          if (!run) { return; }
+        if (en.aggro) {
+          if (ed > stopAt) {
+            var mvx = (p.x - en.x) / ed, mvy = (p.y - en.y) / ed;
+            if (wob) {
+              var perpx = -mvy, perpy = mvx;
+              mvx += perpx * wob; mvy += perpy * wob;
+              var mvl = Math.sqrt(mvx * mvx + mvy * mvy) || 1;
+              mvx /= mvl; mvy /= mvl;
+            }
+            var nex = en.x + mvx * espd * lunge * dt;
+            var ney = en.y + mvy * espd * lunge * dt;
+            if (en.field) {
+              /* 들판 로머는 방(마을 벽) 안으로는 못 들어온다 — 플레이어를
+                 쫓다가도 벽 자리에서 멈춘다. 축을 나눠 막아 대각선으로
+                 다가와도 한쪽 축은 계속 미끄러진다(boundPlayer와 같은 요령).
+                 마을에서는 안전지대(TOWN_SAFE_R) 경계도 같은 방식으로 막아 —
+                 플레이어가 안전지대로 피하면 쫓던 로머가 담장 코앞까지
+                 따라붙지 못한다. */
+              if (!inRoomRect(nex, en.y, ctx) && !inTownSafe(nex, en.y, ctx)) { en.x = nex; }
+              if (!inRoomRect(en.x, ney, ctx) && !inTownSafe(en.x, ney, ctx)) { en.y = ney; }
+            } else {
+              en.x = nex; en.y = ney;
+            }
+          }
+          var reachBonus = (lookW === 'spear' || lookW === 'halberd') ? 14 : 0;
+          en.cd -= dt;
+          if (ed <= en.r + P_R + 6 + reachBonus && en.cd <= 0) {
+            en.cd = ENEMY_CD * (el && el.cd ? el.cd : 1) / chill;
+            hurtPlayer(en.dmg, en.ref && en.ref.atkEl);
+            if (!run) { return; }
+          } else if (ranged && ed > en.r + P_R + 6 && ed <= RANGED_MAX && en.cd <= 0) {
+            en.cd = ENEMY_CD * 1.4 * (el && el.cd ? el.cd : 1) / chill;
+            var frdx = p.x - en.x, frdy = p.y - en.y;
+            var frd = Math.sqrt(frdx * frdx + frdy * frdy) || 1;
+            var frEl = (en.ref && en.ref.atkEl) || 'phys';
+            run.foeShots.push({
+              x: en.x, y: en.y - 8, dx: frdx / frd, dy: frdy / frd, spd: 260, life: 1.8,
+              dmg: en.dmg, el: frEl, color: elemColorOf(frEl)
+            });
+          }
+          /* 들판 로머는 늘 boss:false 로 태어나므로(spawnFieldEncounters) 보스
+             패턴은 안 타지만, 나중에 예외가 생겨도 안전하도록 그대로 둔다 */
+          if (en.boss) {
+            bossPattern(en, p, ed, dt);
+            if (!run) { return; }
+          }
         }
       }
     });
@@ -1992,42 +2014,55 @@
          Math.random() 순서에 기대지 않게 하려는 뜻이다). */
       var wob = (!ranged && lookW === 'axe') ? Math.sin(en.phase * 0.6) * 0.5 : 0;
       var lunge = (!ranged && lookW === 'club') ? 1 + Math.max(0, Math.sin(en.phase * 0.9)) * 0.7 : 1;
-      if (ed > stopAt) {
-        var mvx = (p.x - en.x) / ed, mvy = (p.y - en.y) / ed;
-        if (wob) {
-          var perpx = -mvy, perpy = mvx;
-          mvx += perpx * wob; mvy += perpy * wob;
-          var mvl = Math.sqrt(mvx * mvx + mvy * mvy) || 1;
-          mvx /= mvl; mvy /= mvl;
+      /* 어그로(2026-09-10, 사용자 요청) — 방에 들어서자마자 방 안 전부가
+         한꺼번에 달려오던 것을 고친다. **사거리 안에 들어야 알아챈다**
+         (궁수·조총병은 더 멀리서 본다, 정예는 좀 더 예민하다) — 그 전엔
+         phase(숨쉬기)만 돌고 가만히 서 있는다. 맞으면 거리와 상관없이
+         무조건 깬다(strike()의 wakeEnemy 훅). 보스·미니보스는 spawnEnemy가
+         처음부터 aggro:true로 낸다 — 보스방은 원래 들어가는 순간이 곧
+         교전이다(살금살금 지나가는 방이 아니다). */
+      if (!en.aggro) {
+        var aggroR = (ranged ? AGGRO_RANGE_RANGED : AGGRO_RANGE) * (en.elite ? 1.15 : 1);
+        if (ed <= aggroR) { wakeEnemy(en); }
+      }
+      if (en.aggro) {
+        if (ed > stopAt) {
+          var mvx = (p.x - en.x) / ed, mvy = (p.y - en.y) / ed;
+          if (wob) {
+            var perpx = -mvy, perpy = mvx;
+            mvx += perpx * wob; mvy += perpy * wob;
+            var mvl = Math.sqrt(mvx * mvx + mvy * mvy) || 1;
+            mvx /= mvl; mvy /= mvl;
+          }
+          en.x += mvx * espd * lunge * dt;
+          en.y += mvy * espd * lunge * dt;
         }
-        en.x += mvx * espd * lunge * dt;
-        en.y += mvy * espd * lunge * dt;
-      }
-      /* 창·극(戟) 은 자루가 길다 — 몸이 닿기 전에 먼저 닿는다(무기마다 다른
-         사거리, 몬스터 다양화의 나머지 절반) */
-      var reachBonus = (lookW === 'spear' || lookW === 'halberd') ? 14 : 0;
-      en.cd -= dt;
-      if (ed <= en.r + P_R + 6 + reachBonus && en.cd <= 0) {
-        /* 붙었으면 궁수·조총병도 그냥 몸으로 밀친다(막다른 곳에 몰렸을 때) */
-        en.cd = ENEMY_CD * (el && el.cd ? el.cd : 1) / chill;
-        hurtPlayer(en.dmg, en.ref && en.ref.atkEl);
-        if (!run) { return; }
-      } else if (ranged && ed > en.r + P_R + 6 && ed <= RANGED_MAX && en.cd <= 0) {
-        en.cd = ENEMY_CD * 1.4 * (el && el.cd ? el.cd : 1) / chill;
-        var frdx = p.x - en.x, frdy = p.y - en.y;
-        var frd = Math.sqrt(frdx * frdx + frdy * frdy) || 1;
-        var frEl = (en.ref && en.ref.atkEl) || 'phys';
-        run.foeShots.push({
-          x: en.x, y: en.y - 8, dx: frdx / frd, dy: frdy / frd, spd: 260, life: 1.8,
-          dmg: en.dmg, el: frEl, color: elemColorOf(frEl)
-        });
-      }
+        /* 창·극(戟) 은 자루가 길다 — 몸이 닿기 전에 먼저 닿는다(무기마다 다른
+           사거리, 몬스터 다양화의 나머지 절반) */
+        var reachBonus = (lookW === 'spear' || lookW === 'halberd') ? 14 : 0;
+        en.cd -= dt;
+        if (ed <= en.r + P_R + 6 + reachBonus && en.cd <= 0) {
+          /* 붙었으면 궁수·조총병도 그냥 몸으로 밀친다(막다른 곳에 몰렸을 때) */
+          en.cd = ENEMY_CD * (el && el.cd ? el.cd : 1) / chill;
+          hurtPlayer(en.dmg, en.ref && en.ref.atkEl);
+          if (!run) { return; }
+        } else if (ranged && ed > en.r + P_R + 6 && ed <= RANGED_MAX && en.cd <= 0) {
+          en.cd = ENEMY_CD * 1.4 * (el && el.cd ? el.cd : 1) / chill;
+          var frdx = p.x - en.x, frdy = p.y - en.y;
+          var frd = Math.sqrt(frdx * frdx + frdy * frdy) || 1;
+          var frEl = (en.ref && en.ref.atkEl) || 'phys';
+          run.foeShots.push({
+            x: en.x, y: en.y - 8, dx: frdx / frd, dy: frdy / frd, spd: 260, life: 1.8,
+            dmg: en.dmg, el: frEl, color: elemColorOf(frEl)
+          });
+        }
 
-      /* 보스 패턴 — 예고 뒤 터진다(PLAN 15절, `bossPattern()` 참고 —
-         무기마다 다르다, 2026-09-05까지는 전부 같은 강타 하나였다) */
-      if (en.boss) {
-        bossPattern(en, p, ed, dt);
-        if (!run) { return; }
+        /* 보스 패턴 — 예고 뒤 터진다(PLAN 15절, `bossPattern()` 참고 —
+           무기마다 다르다, 2026-09-05까지는 전부 같은 강타 하나였다) */
+        if (en.boss) {
+          bossPattern(en, p, ed, dt);
+          if (!run) { return; }
+        }
       }
     }
 
@@ -2269,6 +2304,30 @@
   var COMBO_WINDOW = 1.6;   // 이 안에 다시 안 때리면 콤보가 끊긴다(초)
 
   /**
+   * 어그로 — 이 적이 플레이어를 알아챈다. 이미 깨어 있으면 아무 일도 없다
+   * (값싸게 여러 번 불러도 된다 — 매 틱 사거리 체크가 그렇게 부른다).
+   * 그 자리서 "!"가 뜨고(기존 fx 'get' 텍스트 팝업을 그대로 쓴다, 새 렌더
+   * 코드 없음), AGGRO_PACK_R 안의 아직 안 깬 동료도 **연쇄로** 같이 깬다 —
+   * 원작에서 몹 하나가 터지면 무리가 통째로 달려오는 그 감각이다. `strike()`
+   * 가 맞을 때마다 불러 "몰래 지나칠 수는 있어도 몰래 때릴 수는 없다"를
+   * 지킨다. `run`/`fx`는 이 시점에 항상 유효하다(update()·stepFieldCombat
+   * 안에서만 불린다, withRun이 이미 알맞은 것으로 바꿔 끼운 뒤다).
+   */
+  function wakeEnemy(en) {
+    if (!en || en.aggro || en.hp <= 0) { return; }
+    en.aggro = true;
+    fx.push({ t: 'get', x: en.x, y: en.y - en.r - 14, text: '!', life: 0.5, color: '#ffcf4d' });
+    sfx('alert');
+    if (!run.room) { return; }
+    var list = run.room.enemies, i;
+    for (i = 0; i < list.length; i++) {
+      var o = list[i];
+      if (o === en || o.hp <= 0 || o.aggro) { continue; }
+      if (dist(o, en) <= AGGRO_PACK_R) { wakeEnemy(o); }
+    }
+  }
+
+  /**
    * 한 대 때린다.
    * @param mul  스킬 배율 (기본 1)
    * @param kb   밀쳐내는 거리 (기본 8 — 타격감의 핵심)
@@ -2279,6 +2338,7 @@
    */
   function strike(e, mul, kb, kind) {
     kind = kind || 'phys';
+    wakeEnemy(e);
     var dmg = atkOf() * (mul || 1) * (0.86 + Math.random() * 0.28);
     var critChance = boonVal('critPct') + core.effect('critPct');
     var crit = Math.random() * 100 < critChance;

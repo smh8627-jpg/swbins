@@ -1531,7 +1531,10 @@
       kind: isHuman ? 'human' : 'beast',
       ref: ref, key: ref.name,
       x: p.x, y: p.y, s: s, facing: -1,
-      phase: e.phase, walking: true,
+      /* 어그로(2026-09-10) — 못 알아챈 적은 walking:false로 가만히 선 자세를
+         쓴다(sprite.js가 이미 그 자세를 안다, 3D 쪽 dungeon3d.js의 'idle'과
+         같은 결). 안 그러면 안 쫓아오는데 제자리서 걷는 시늉만 계속한다. */
+      phase: e.phase, walking: !!e.aggro,
       color: ref.color, look: ref.look, form: ref.form,
       divine: !!ref.divine, t: now
     });

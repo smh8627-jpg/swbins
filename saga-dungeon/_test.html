@@ -942,6 +942,63 @@ window.requestAnimationFrame = function () { return 0; };
         ('빙 걸림 · 독 ' + (e.dots ? e.dots.length : 0) + '겹 · 시간 지나 깎임');
     });
 
+    /* ── 어그로(2026-09-10) — PLAN 15절 "필수" 목록의 마지막 둘(어그로·추적)
+     * 중 남은 절반. 방에 들어서자마자 전부가 한꺼번에 달려오던 것을 고쳐,
+     * 사거리 안에 들거나 맞아야 알아채게 했다.
+     */
+
+    t('어그로 — 사거리 밖이면 가만히 있다가, 안에 들면 쫓아온다', function () {
+      DN.enter({ floor: 8, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var e = DN._spawnEnemy(8, false, { spawned: true, x: 520, y: 180 });
+      e.ref = { name: '허수아비', kind: 'human', color: '#888', look: {} }; // 근접(활·조총 아님)
+      run.room.enemies.push(e);
+      var asleep0 = !e.aggro;
+      var x0 = e.x;
+      DN.update(0.3); DN.update(0.3); DN.update(0.3);          // 0.9초 — 멀어서 안 움직여야 한다
+      var stillAsleep = !e.aggro && e.x === x0;
+      run.player.x = e.x - 120;                                // 사거리(230) 안으로 들어간다
+      DN.update(0.3);
+      var woke = e.aggro && e.x < x0;                           // 깨서 플레이어 쪽으로 움직였다
+      DN.leave();
+      return asleep0 && stillAsleep && woke &&
+        ('멀 때 가만 · 사거리 안 → 깨서 다가옴(' + Math.round(x0) + '→' + Math.round(e.x) + ')');
+    });
+
+    t('어그로 — 맞으면 거리와 상관없이 무조건 깬다', function () {
+      DN.enter({ floor: 8, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var e = DN._spawnEnemy(8, false, { spawned: true, x: 520, y: 180 });
+      run.room.enemies.push(e);
+      var before = !e.aggro;                                    // 아직 멀어서 안 깨 있다
+      DN._strike(e, 1, 0, 'phys');
+      DN.leave();
+      return before && e.aggro && '멀리서도 맞으면 즉시 깬다';
+    });
+
+    t('어그로 — 하나가 깨면 가까운 동료도 같이 깨지만, 먼 것은 안 깬다', function () {
+      DN.enter({ floor: 8, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var near1 = DN._spawnEnemy(8, false, { spawned: true, x: 520, y: 180 });
+      var near2 = DN._spawnEnemy(8, false, { spawned: true, x: 560, y: 200 }); // 근처(≤110)
+      var far = DN._spawnEnemy(8, false, { spawned: true, x: 520, y: 340 });   // 멀리(>110)
+      run.room.enemies.push(near1, near2, far);
+      DN._strike(near1, 1, 0, 'phys');
+      DN.leave();
+      return near1.aggro && near2.aggro && !far.aggro &&
+        '가까운 동료 연쇄로 깸 · 먼 것은 그대로';
+    });
+
+    t('어그로 — 보스·미니보스는 처음부터 깨어 있다', function () {
+      var boss = DN._spawnEnemy(10, true, { spawned: true });
+      var grunt = DN._spawnEnemy(10, false, { spawned: true });
+      return boss.aggro === true && grunt.aggro === false &&
+        '보스 처음부터 깸 · 잡졸은 아직';
+    });
+
     /* ── 저항(抵抗) — 원작의 몬스터 내성 ─────────────────
      * 이 판에는 원소가 없어 때리는 두 결로 갈랐다 —
      * 물리(평타·회전참·돌진) · 기(기공파).
@@ -3007,6 +3064,11 @@ window.requestAnimationFrame = function () { return 0; };
       if (DN.active()) { DN.leave(); }
       DN.enter({ floor: 8 });
       var r = DN.raw(), before = IT.jewels().length;
+      /* 항아리(room.decor)가 하필 플레이어 시작 자리 코앞에 놓이면 지나치기만
+         해도 깨져 금이 떨어진다 — 이 항목이 보려는 건 순수하게 "주옥을
+         밟으면 줍는다"뿐이라 그 자리를 비워 둔다(채집방 항목이 room.enemies를
+         비우는 것과 같은 요령, 위 참고). */
+      r.room.decor = [];
       r.room.drops.push({ kind: 'mat', mat: { kind: 'jewel', j: DG.gemData.rollJewel(9) },
                           x: r.player.x, y: r.player.y });
       DN.update(0.05);
