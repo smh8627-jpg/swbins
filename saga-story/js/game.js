@@ -222,6 +222,14 @@
 
     var STYLE_ORDER = ['maple', 'classic', 'story', 'anime'];
     var STYLE_ICON = { maple: '🍁', classic: '🖌️', story: '📗', anime: '🎴' };
+    /* 사가고 UI와 같은 결 — 양식을 바꾸면 무엇으로 바뀌었는지 토스트로 알려준다
+       (예전엔 단추 아이콘만 조용히 바뀌어 눈치채기 어려웠다) */
+    var STYLE_MSG = {
+      maple: '🍁 메이플풍 — 밝고 각진 채색',
+      classic: '🖌️ 전통 삽화풍',
+      story: '📗 그림책풍 — 선화 + 플랫 채색',
+      anime: '🎴 일본 만화풍'
+    };
     var styleBtn = document.getElementById('btn-style');
     if (styleBtn) {
       var syncStyleBtn = function () {
@@ -237,6 +245,7 @@
         core.save.settings.style = next;
         core.persist();
         syncStyleBtn();
+        ui.toast(STYLE_MSG[next]);
         core.emit('changed');
       });
     }
