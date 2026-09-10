@@ -611,14 +611,64 @@
     return 'grass';
   }
 
+  /** 2026-09-10 — 2D 폴백 지형도 실제 사진으로. 3D(`world3d.js`의
+   *  `landTexture`)가 이미 받아 둔 ambientCG CC0 땅 사진(`assets/textures/
+   *  land/`)을 그대로 재사용한다 — `water`는 3D처럼 뺀다(맞는 CC0 사진이
+   *  없어 옅은 색 그대로 둔다, 실제 물결도 없는 자리라 색만으로 충분하다).
+   *  원본(1024px)을 매 프레임 그대로 그리면 커서(`sprite.js` `human()` 교체
+   *  때 밟은 "큰 사진을 매 프레임 drawImage하면 저사양에서 느려진다"는
+   *  트레이드오프 참고) 한 번만 작게(`LAND_TEX_PX`) 구워 둔 캔버스를 소스로
+   *  쓴다 — 그 뒤로는 작은 캔버스→작은 사각형 blit이라 옛 `fillRect`(색)와
+   *  비용이 비슷하다. 종류마다 셋씩 있어(3D와 같은 파일) 48칸(tx,ty) 해시로
+   *  하나를 고른다(3D의 `variantFor`와 같은 결, 반복 주기만 더 성기다).
+   */
+  var LAND_TEX_VARIANTS = {
+    grass: ['assets/textures/land/grass1.webp', 'assets/textures/land/grass2.webp', 'assets/textures/land/grass3.webp'],
+    forest: ['assets/textures/land/forest1.webp', 'assets/textures/land/forest2.webp', 'assets/textures/land/forest3.webp'],
+    mount: ['assets/textures/land/mount1.webp', 'assets/textures/land/mount2.webp', 'assets/textures/land/mount3.webp'],
+    road: ['assets/textures/land/road1.webp', 'assets/textures/land/road2.webp', 'assets/textures/land/road3.webp'],
+    town: ['assets/textures/land/town1.webp', 'assets/textures/land/town2.webp', 'assets/textures/land/town3.webp'],
+    farm: ['assets/textures/land/farm1.webp', 'assets/textures/land/farm2.webp', 'assets/textures/land/farm3.webp']
+  };
+  var LAND_TEX_PX = 40;
+  var landTexCv = {};        // "kind#variant" → 구운 작은 캔버스 (로딩 중·없음이면 null)
+  function landTexCanvas(kind, variant) {
+    var key = kind + '#' + variant;
+    if (landTexCv.hasOwnProperty(key)) { return landTexCv[key]; }
+    var urls = LAND_TEX_VARIANTS[kind], url = urls && urls[variant];
+    landTexCv[key] = null;   // 자리부터 선점 — onload 전에 다시 새 Image를 만들지 않게
+    if (!url) { return null; }
+    var img = new Image();
+    img.onload = function () {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = LAND_TEX_PX;
+      cv.getContext('2d').drawImage(img, 0, 0, LAND_TEX_PX, LAND_TEX_PX);
+      landTexCv[key] = cv;
+    };
+    img.src = url;
+    return null;
+  }
+  /** `core.hash2` 는 0~0.5만 돌려준다(다른 자리의 h01 참고) — 두 배로 펴서 쓴다 */
+  function landVariant(tx, ty) {
+    var n = 3, h = Math.min(0.999999, core.hash2(tx * 977 + 31, ty * 733 + 11) * 2);
+    return Math.floor(h * n);
+  }
+
   function drawFallback(ctx, camX, camY, W, H, sc) {
     var T = 48 * sc;
     var t0x = Math.floor(camX / 48) - 1, t1x = Math.ceil((camX + W / sc) / 48) + 1;
     var t0y = Math.floor(camY / 48) - 1, t1y = Math.ceil((camY + H / sc) / 48) + 1;
     for (var ty = t0y; ty <= t1y; ty++) {
       for (var tx = t0x; tx <= t1x; tx++) {
-        ctx.fillStyle = TERRAIN[terrainAt(tx, ty)];
-        ctx.fillRect((tx * 48 - camX) * sc, (ty * 48 - camY) * sc, T + 1, T + 1);
+        var kind = terrainAt(tx, ty);
+        var sx = (tx * 48 - camX) * sc, sy = (ty * 48 - camY) * sc;
+        var cv = LAND_TEX_VARIANTS[kind] ? landTexCanvas(kind, landVariant(tx, ty)) : null;
+        if (cv) {
+          ctx.drawImage(cv, sx, sy, T + 1, T + 1);
+        } else {
+          ctx.fillStyle = TERRAIN[kind];
+          ctx.fillRect(sx, sy, T + 1, T + 1);
+        }
       }
     }
   }

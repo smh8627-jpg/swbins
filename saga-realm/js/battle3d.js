@@ -287,11 +287,19 @@
   }
 
   /**
-   * 일기토 실제 캐릭터 둘을 세운다(비동기, `dyn`에 한 번만 얹는다 — 성벽·
-   * 무리처럼 합마다 다시 짓지 않는다). `rep.duel.a`(공격 쪽 장수)·
-   * `rep.duel.d`(수비 쪽 장수) 무장의 실제 QRPG 모델을 `off().find()`로
-   * 찾아 각 세력 색으로 물들여 마주 세운다 — 일기토가 없는 싸움(무력 차가
-   * 커서 아무도 안 나온 경우)은 `rep.duel`이 애초에 없어 조용히 건너뛴다.
+   * 실제 캐릭터 둘을 세운다(비동기, `dyn`에 한 번만 얹는다 — 성벽·무리처럼
+   * 합마다 다시 짓지 않는다). `rep.duel.a`(공격 쪽 장수)·`rep.duel.d`
+   * (수비 쪽 장수) 무장의 실제 QRPG 모델을 `off().find()`로 찾아 각 세력
+   * 색으로 물들여 마주 세운다.
+   *
+   * **2026-09-10 — 일기토가 없는 싸움도 이제 지휘관 둘은 세운다("인물
+   * 추가").** `war.js`의 `duel()`은 능력치 차가 크면 아예 안 뽑히고,
+   * 뽑혀도 65%는 그냥 안 붙는다 — 그동안 그 나머지 싸움은 깃발 다발뿐이라
+   * "인물"이 하나도 안 보였다. `rep.leadA`/`rep.leadD`(합을 안 주고받아도
+   * `fightIntro()`가 늘 남겨 두는 두 세력의 우두머리 장수)로 같은 자리를
+   * 채운다 — `duelWant`는 `rep.duel`이 없으면 늘 idle 로만 두므로(위
+   * `updateDuel()` 참고) 공격·피격 동작은 절대 안 걸린다. **새 판정이
+   * 아니다** — 이미 `armyPower`가 골라 둔 값을 그대로 세워 보여줄 뿐이다.
    */
   /** 재질을 복제해 떼어 온다(사가블로 asset3d.js `ownAllMat`과 같은 요령) —
    *  안 그러면 캐시된 재질을 여러 모델이 같이 쓰다 한쪽만 번쩍이려 해도
@@ -316,10 +324,12 @@
     duelActors = null;
     duelWant = { a: 'idle', d: 'idle' };
     flashA = 0; flashD = 0;
-    if (!rep.duel || !rep.duel.a || !rep.duel.d) { return; }
+    var aId = (rep.duel && rep.duel.a) || rep.leadA;
+    var dId = (rep.duel && rep.duel.d) || rep.leadD;
+    if (!aId || !dId) { return; }
     var OFF = off(), A3 = asset3d();
     if (!OFF || !A3 || !A3.buildHero) { return; }
-    var oa = OFF.find(rep.duel.a), od = OFF.find(rep.duel.d);
+    var oa = OFF.find(aId), od = OFF.find(dId);
     if (!oa || !od) { return; }
     var got = {};
     /* 마주 보고 서게 90도씩 돌린다 — QRPG 몸의 기본 정면이 어느 쪽인지는

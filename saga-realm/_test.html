@@ -823,6 +823,23 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('여포 vs 순욱 ' + far + '회 · 관우 vs 장비 ' + near + '/200회');
     });
 
+    t('leadA/leadD — 일기토가 안 붙어도 양쪽 우두머리 장수 이름표는 남는다("인물 추가")', function () {
+      /* battle3d.js 의 setupDuel() 이 이 값으로 "지휘관 둘이 서 있는" 실제
+         캐릭터를 세운다(idle 뿐, 공격·피격 없음) — 여기선 3D 를 안 실어
+         (_test.html 이 battle3d.js/asset3d.js 를 안 불러온다) war.js 가
+         이름표를 빠짐없이 남기는지만 본다 */
+      fresh('cao');
+      var from = R.city('chenliu'), to = R.city('luoyang');
+      from.troops = 20000; from.food = 999999;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 2).map(function (h) { return h.id; });
+      var defOff = off.atCity('luoyang', to.force).map(function (h) { return h.id; });
+      var expectA = W.topBy(lead, 'might'), expectD = W.topBy(defOff, 'might');
+      var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+      return !!rep.leadA && !!rep.leadD && rep.leadA === expectA && rep.leadD === expectD &&
+        (off.find(rep.leadA).name + ' vs ' + off.find(rep.leadD).name +
+         (rep.duel ? ' (일기토도 실제로 붙었다)' : ' (일기토는 안 붙었지만 이름표는 남았다)'));
+    });
+
     /* ── 여러 달에 걸치는 원정 ───────────────────────── */
 
     t('한 달에 못 떨어뜨리면 물러나지 않고 진을 친다', function () {

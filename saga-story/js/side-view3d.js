@@ -784,7 +784,14 @@
     place(playerMesh, p.x + S.P_W / 2, stg.floor - (p.y + S.P_H), p.facing);
     tintHurt(playerMesh, p.hurt || 0);
     var walking = !!p.vx && p.onGround;
-    stepActor(playerMesh, (p.hurt || 0) > 0 ? 'hit' : (walking ? 'walk' : 'idle'));
+    /* 몸짓 우선순위(2026-09-10) — 맞는 순간이 늘 가장 세다(구르거나 휘두르던
+       중이어도 맞은 티가 나야 한다). interaction(마심·대화)은 걷기·가만있기
+       보다는 위, 회피·공격보다는 아래 — 둘 다 그 자리에서 짧게 끝난다 */
+    stepActor(playerMesh, (p.hurt || 0) > 0 ? 'hit' :
+      ((p.dodgeAnim || 0) > 0 ? 'dodge' :
+      ((p.atkCd || 0) > 0 ? 'attack' :
+      (((p.drinkAnim || 0) > 0 || !!run.talk) ? 'interaction' :
+      (walking ? 'walk' : 'idle')))));
     var bob = (!playerMesh.userData.mixer && walking) ? Math.abs(Math.sin(Date.now() / 90)) * 3 : 0;
     playerMesh.position.y += bob;
 
@@ -794,23 +801,29 @@
       var em = enemyPool[i];
       /* 배우를 새로 만들 때만 필요한 값들 — 두 생성 분기 안으로 옮김(감사, 2026-09-08).
          희귀형(PLAN 11·13절)은 금빛으로 물들이고, 탱커형(코끼리병 포함)은 크게 세운다 */
-      var tint = e.rare ? '#f0c040' : e.ref.color;
-      var big = e.role === 'tank';
+      /* 미니보스(PLAN 11절, 2026-09-10)도 희귀처럼 물들인다 — 안 그러면
+         "미니보스 등장!" 토스트만 뜨고 화면은 잡졸과 똑같아 보인다.
+         색을 겹치지 않게 골랐다(희귀=금빛, 미니보스=짙은 자주) */
+      var tint = e.rare ? '#f0c040' : (e.mini ? '#a0305a' : e.ref.color);
+      var big = e.role === 'tank' || e.mini;
       if (!em) {
         em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big);
-        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare; em.userData.role = e.role;
+        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
+        em.userData.mini = !!e.mini; em.userData.role = e.role;
         actorGroup.add(em); enemyPool[i] = em;
       }
-      if (em.userData.boss !== !!e.boss || em.userData.rare !== !!e.rare || em.userData.role !== e.role) {
+      if (em.userData.boss !== !!e.boss || em.userData.rare !== !!e.rare ||
+          em.userData.mini !== !!e.mini || em.userData.role !== e.role) {
         actorGroup.remove(em);
         em = actorShell(Tc, e.ref.kind, tint, e.boss, e.ref.name, big);
-        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare; em.userData.role = e.role;
+        em.userData.boss = !!e.boss; em.userData.rare = !!e.rare;
+        em.userData.mini = !!e.mini; em.userData.role = e.role;
         actorGroup.add(em); enemyPool[i] = em;
       }
       em.visible = true;
       place(em, e.x + e.w / 2, stg.floor - (e.y + e.h), e.dir);
       tintHurt(em, e.hurt || 0);
-      stepActor(em, (e.hurt || 0) > 0 ? 'hit' : 'walk');
+      stepActor(em, (e.hurt || 0) > 0 ? 'hit' : ((e.atkAnim || 0) > 0 ? 'attack' : 'walk'));
       if (!em.userData.mixer) {
         var eb = Math.abs(Math.sin((Date.now() + i * 130) / 110)) * 2.4;
         em.position.y += eb;
