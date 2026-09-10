@@ -79,6 +79,73 @@
   ];
   var ANIM_SRC = ANIM_DIR + 'UAL1_Standard.glb';
 
+  /* ── 클립 이름 → 표준 슬롯(2026-09-10, 사가블로 asset3d.js 에서 그대로 옮김) ──
+   * GLB 마다 클립 이름이 다 다르다("Attack1_swordShield" 같은 식) — 실제 이름을
+   * 하나하나 맞추는 대신 낱말로 어림잡아 `idle`·`attack`·`hit` 같은 표준 슬롯에
+   * 잇는다. 순수 함수라 사가블로에서 이미 검증된 로직을 한 글자도 안 고치고
+   * 그대로 옮겼다 — 이 판 QRPG 몸도 같은 팩(Quaternius)이라 클립 이름 결이 같다 */
+  var SLOTS = ['idle', 'walk', 'run', 'sprint', 'attack', 'hit', 'dodge', 'death', 'interaction'];
+  var WORDS = {
+    idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop'],
+    walk: ['walk', 'walking', 'locomotion', 'move'],
+    run: ['run', 'running', 'jog'],
+    sprint: ['sprint', 'runfast', 'fastrun', 'dash'],
+    attack: ['attack', 'atk', 'slash', 'swing', 'strike', 'punch', 'shoot', 'cast'],
+    hit: ['hit', 'hurt', 'damage', 'gethit', 'takedamage', 'impact', 'flinch'],
+    dodge: ['dodge', 'roll', 'evade', 'sidestep'],
+    death: ['death', 'die', 'dead', 'dying', 'defeat'],
+    interaction: ['interact', 'interaction', 'use', 'pick', 'gather', 'talk', 'open', 'action']
+  };
+  function normName(s) {
+    var n = String(s || '');
+    if (n.indexOf('|') >= 0) { n = n.split('|').pop(); }
+    n = n.replace(/\.\d+$/, '');
+    return n.toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+  function clipScore(slot, name) {
+    var ws = WORDS[slot] || [], i, w, best = 0, s;
+    for (i = 0; i < ws.length; i++) {
+      w = ws[i];
+      if (name === w) { s = 100; } else if (name.indexOf(w) === 0) { s = 70; }
+      else if (name.indexOf(w) >= 0) { s = 40; } else { continue; }
+      s -= i;
+      if (s > best) { best = s; }
+    }
+    return best;
+  }
+  var CLIP_FALLBACK = {
+    run: ['walk', 'idle'], sprint: ['run', 'walk'], walk: ['run', 'idle'],
+    hit: ['idle'], dodge: ['run', 'walk'], attack: ['interaction', 'idle'],
+    death: ['hit', 'idle'], interaction: ['idle'], idle: ['walk']
+  };
+  function mapClips(names) {
+    var list = (names || []).map(function (n) { return { raw: n, n: normName(n) }; });
+    var pairs = [], si, ci, sc;
+    for (si = 0; si < SLOTS.length; si++) {
+      for (ci = 0; ci < list.length; ci++) {
+        sc = clipScore(SLOTS[si], list[ci].n);
+        if (sc > 0) { pairs.push({ slot: SLOTS[si], raw: list[ci].raw, s: sc, si: si, ci: ci }); }
+      }
+    }
+    pairs.sort(function (a, b) { return (b.s - a.s) || (a.si - b.si) || (a.ci - b.ci); });
+    var out = {}, taken = {}, i, p;
+    for (i = 0; i < pairs.length; i++) {
+      p = pairs[i];
+      if (out[p.slot] || taken[p.raw]) { continue; }
+      out[p.slot] = p.raw; taken[p.raw] = true;
+    }
+    var alias = {}, j, alt;
+    for (i = 0; i < SLOTS.length; i++) {
+      if (out[SLOTS[i]]) { continue; }
+      alt = CLIP_FALLBACK[SLOTS[i]] || [];
+      for (j = 0; j < alt.length; j++) {
+        if (out[alt[j]]) { out[SLOTS[i]] = out[alt[j]]; alias[SLOTS[i]] = alt[j]; break; }
+      }
+    }
+    out.alias = alias;
+    return out;
+  }
+
   /** 표 — 성채는 **등급마다 다른 탑**이 선다(wall 값이 클수록 높은 탑).
    *  좁은 키(`city:t3`)부터 찾으므로 등급이 안 실려 와도 `city` 로 떨어진다 */
   var DEFAULTS = {
@@ -266,6 +333,12 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
+      /* 2026-09-10 — `c.clips`가 여태 안 채워져 있었다. QRPG 장수 몸 파일은
+         걷기·공격·사망 클립을 제 안에 이미 담고 있는데(위 HERO_RECIPES 주석),
+         이 줄이 없으면 `buildHero()`의 `animC.clips.length` 검사가 늘 undefined
+         라 실패해 mixer 를 한 번도 못 만들었다 — 사가블로 asset3d.js 의
+         `acquire()`와 같은 줄을 그대로 가져왔다(그쪽은 이미 실전 검증됨) */
+      c.clips = gltf.animations || [];
       delam(gltf.scene);
       flush(c, c);
     }, undefined, function () {
@@ -491,8 +564,13 @@
       built++;
       var animC = parts.anim;
       if (animC && animC.clips && animC.clips.length) {
-        model.userData.mixer = new t.AnimationMixer(model.children[0]);
-        model.userData.clips = animC.clips;
+        var clips = animC.clips;
+        var mx = new t.AnimationMixer(model.children[0]);
+        var acts = {}, ci;
+        for (ci = 0; ci < clips.length; ci++) { acts[clips[ci].name] = mx.clipAction(clips[ci]); }
+        model.userData.mixer = mx;
+        model.userData.actions = acts;
+        model.userData.clipMap = mapClips(clips.map(function (c) { return c.name; }));
       }
       /* 무기·투구는 세력색을 입지 않는다(제 빛깔이 맞다) — tint 뒤에 붙인다 */
       attachAccessories(model, ref, function () { cb(model); });
@@ -524,6 +602,35 @@
     });
   }
 
+  /** 한 프레임 재생 — `model`은 `buildHero()`가 돌려준 그 그룹(`userData.mixer`
+   *  등을 직접 지고 있다, 사가블로처럼 따로 감싼 shell이 없다). mixer 가 없는
+   *  모델(클립 0개, 또는 애초에 GLB 가 아니라 도형으로 떨어진 것)이면 아무
+   *  것도 안 하고 false — 부르는 쪽이 실패를 몰라도 되게 한다 */
+  function play(model, slot) {
+    var u = model && model.userData;
+    if (!u || !u.mixer) { return false; }
+    var name = u.clipMap && u.clipMap[slot];
+    var next = name && u.actions[name];
+    if (!next) { return false; }
+    if (u.anim === slot) { return true; }
+    var prev = u.anim && u.clipMap[u.anim] && u.actions[u.clipMap[u.anim]];
+    next.reset().play();
+    if (prev && prev !== next) { prev.crossFadeTo(next, 0.15, false); }
+    u.anim = slot;
+    return true;
+  }
+  function step(model, o) {
+    var u = model && model.userData;
+    if (!u || !u.mixer) { return false; }
+    var want = (o && o.anim) || 'idle';
+    play(model, want);
+    var t = (o && o.t) || 0;
+    var dt = u.lastT === undefined ? 0 : Math.max(0, Math.min(0.25, t - u.lastT));
+    u.lastT = t;
+    u.mixer.update(dt);
+    return true;
+  }
+
   global.DG = global.DG || {};
   global.DG.asset3d = {
     register: register,
@@ -534,6 +641,9 @@
     build: build,
     heroRecipe: heroRecipe,
     buildHero: buildHero,
+    mapClips: mapClips,
+    play: play,
+    step: step,
     ANIM_SRC: ANIM_SRC,
     primitive: primitive,
     three: three,

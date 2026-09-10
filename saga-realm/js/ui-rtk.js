@@ -84,6 +84,229 @@
     return f ? f.color : '#5b6572';
   }
 
+  /* ── 지도 이동·확대(2026-09-10) ───────────────────────────
+   * 세계가 삼국지 한 판이던 때는 늘 전체를 한눈에 보여주는 것으로 충분했다 —
+   * 한국·일본·교주 등으로 늘어난 지금은 전체를 다 보여주면 성 하나하나가
+   * 점 하나로 뭉개져 "내가 어느 땅을 가졌는지" 알아보기 어렵다. `renderMap()`
+   * 의 viewBox 를 고정 문자열 대신 여기 상태(mapCx·mapCy·mapZoom)로 계산해
+   * 확대·이동이 되게 한다 — **성·길 좌표(CD.CITIES)는 그대로다**, 보여주는
+   * 창(viewBox)만 좁힌다. MAP_VB 는 `renderMap()` 이 그리는 전체 지도 범위와
+   * 반드시 같아야 한다(그쪽 viewBox 주석 참고).
+   */
+  var MAP_VB = { x: -60, y: -30, w: 225, h: 180 };
+  var MAP_ZOOM_MAX = 6;
+  var mapCx = MAP_VB.x + MAP_VB.w / 2, mapCy = MAP_VB.y + MAP_VB.h / 2, mapZoom = 1;
+  var MAP_PAN_SPEED = 0.022;   // 조이스틱을 완전히 기울였을 때 프레임당 이동(뷰포트 폭의 비율)
+
+  function clampMapCenter() {
+    var w = MAP_VB.w / mapZoom, h = MAP_VB.h / mapZoom;
+    mapCx = core.clamp(mapCx, MAP_VB.x + w / 2, MAP_VB.x + MAP_VB.w - w / 2);
+    mapCy = core.clamp(mapCy, MAP_VB.y + h / 2, MAP_VB.y + MAP_VB.h - h / 2);
+  }
+  function mapViewBox() {
+    clampMapCenter();
+    var w = MAP_VB.w / mapZoom, h = MAP_VB.h / mapZoom;
+    return (mapCx - w / 2).toFixed(2) + ' ' + (mapCy - h / 2).toFixed(2) + ' ' +
+      w.toFixed(2) + ' ' + h.toFixed(2);
+  }
+  /** renderMap() 을 통째로 다시 돌리지 않고 보이는 창만 바꾼다(조이스틱을
+   *  쥔 동안 매 프레임 불러도 가볍다) */
+  function applyMapViewNow() {
+    var svg = els.realm && els.realm.querySelector('.rmap');
+    if (svg) { svg.setAttribute('viewBox', mapViewBox()); }
+  }
+  function panMapBy(dx, dy) {
+    var w = MAP_VB.w / mapZoom, h = MAP_VB.h / mapZoom;
+    mapCx += dx * w * MAP_PAN_SPEED;
+    mapCy += dy * h * MAP_PAN_SPEED;
+    applyMapViewNow();
+  }
+  function zoomMapBy(factor) {
+    mapZoom = core.clamp(mapZoom * factor, 1, MAP_ZOOM_MAX);
+    applyMapViewNow();
+  }
+  /** "내 땅으로" — 내 성들의 무게중심으로 지도(2D·3D 다)를 옮기고, **내 땅의
+   *  실제 넓이에 맞춰** 당긴다. 세력을 고른 직후에도 불러 처음부터 내 땅이
+   *  보이게 한다.
+   *
+   *  2026-09-10 정정 — "시작시 너무 멀리서 시작해, 이동이 되면 멀리서 볼
+   *  필요가 있나?"(사용자 피드백). 예전엔 늘 고정 배율(2.6)로만 당겨서
+   *  전 세계 일부가 여전히 함께 보였다 — 이제 조이스틱·드래그·핀치로 얼마든
+   *  더 넓게 볼 수 있으니, 기본값은 **내 성 몇 개만 꽉 차게 바짝** 당기고
+   *  더 보고 싶으면 손으로 나가면 된다는 판단이다. 내 성들의 실제 좌표
+   *  범위(bounding box)를 재서 그게 화면에 꽉 차는 배율을 스스로 구한다 —
+   *  성 하나뿐이거나 다닥다닥 붙어 있어도 최소 폭(MIN_SPAN)만큼은 보장해
+   *  카메라가 도시 안으로 파고들지 않게 한다.
+   */
+  var MIN_SPAN = 10;   // 지도 단위(0~100대, data-city.js 와 같은 잣대) — 성 하나뿐이어도 이만큼은 보여준다
+  function centerOnMine(zoomTo) {
+    var st = R().state();
+    if (!st.started) { return; }
+    var xs = [], ys = [], i;
+    for (i = 0; i < CD.CITIES.length; i++) {
+      var d = CD.CITIES[i];
+      if (st.cities[d.id].force === st.me) { xs.push(d.x); ys.push(d.y); }
+    }
+    if (!xs.length) { return; }
+    var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+    var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+    var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    /* 패딩 ×2 — 성 이름표·인접 성 일부까지 여백으로 보이게. 스팬이 0(성 하나)
+       이어도 MIN_SPAN 이 바닥을 받쳐 카메라가 도시 안으로 안 들어간다 */
+    var spanX = Math.max(maxX - minX, MIN_SPAN) * 2;
+    var spanY = Math.max(maxY - minY, MIN_SPAN) * 2;
+    var z = zoomTo || core.clamp(Math.min(MAP_VB.w / spanX, MAP_VB.h / spanY), 2, MAP_ZOOM_MAX);
+    mapCx = cx; mapCy = cy; mapZoom = z;
+    applyMapViewNow();
+    if (global.DG.realm3d && global.DG.realm3d.panTo) {
+      global.DG.realm3d.panTo(cx, cy, Math.max(spanX, spanY));
+    }
+  }
+
+  /** 조이스틱(#rjoy) — 쥐고 있는 동안 2D(뷰박스) · 3D(궤도 중심) 중 지금
+   *  보이는 쪽을 매 프레임 옮긴다. 판정은 없다 — 화면 이동뿐 */
+  var mjoyId = null, mjoyCX = 0, mjoyCY = 0, mjoyDX = 0, mjoyDY = 0, mjoyLoop = false;
+  var MJOY_R = 46, MJOY_DEAD = 8;
+  function initMapStick() {
+    var joyEl = $('rjoy'), knobEl = $('rjoy-knob');
+    if (!joyEl || !knobEl) { return; }
+    function knobAt(x, y) { knobEl.style.transform = 'translate(' + x + 'px,' + y + 'px)'; }
+    function reset() { mjoyId = null; mjoyDX = 0; mjoyDY = 0; knobAt(0, 0); }
+    function startLoop() {
+      if (mjoyLoop) { return; }
+      mjoyLoop = true;
+      requestAnimationFrame(function tick() {
+        if (mjoyDX || mjoyDY) {
+          var R3 = global.DG.realm3d;
+          if (R3 && R3.active()) { R3.panBy(mjoyDX, mjoyDY); } else { panMapBy(mjoyDX, mjoyDY); }
+        }
+        if (mjoyId !== null || mjoyDX || mjoyDY) { requestAnimationFrame(tick); }
+        else { mjoyLoop = false; }
+      });
+    }
+    joyEl.addEventListener('pointerdown', function (e) {
+      if (mjoyId !== null) { return; }
+      var r = joyEl.getBoundingClientRect();
+      mjoyCX = r.left + r.width / 2; mjoyCY = r.top + r.height / 2;
+      mjoyId = e.pointerId;
+      joyEl.setPointerCapture && joyEl.setPointerCapture(e.pointerId);
+      startLoop();
+      e.preventDefault();
+    });
+    joyEl.addEventListener('pointermove', function (e) {
+      if (e.pointerId !== mjoyId) { return; }
+      var dx = e.clientX - mjoyCX, dy = e.clientY - mjoyCY;
+      var len = Math.hypot(dx, dy);
+      var kx = len > MJOY_R ? dx / len * MJOY_R : dx, ky = len > MJOY_R ? dy / len * MJOY_R : dy;
+      knobAt(kx, ky);
+      if (len < MJOY_DEAD) { mjoyDX = 0; mjoyDY = 0; return; }
+      mjoyDX = dx / len; mjoyDY = dy / len;
+      e.preventDefault();
+    });
+    function release(e) { if (e.pointerId === mjoyId) { reset(); } }
+    joyEl.addEventListener('pointerup', release);
+    joyEl.addEventListener('pointercancel', release);
+    joyEl.addEventListener('pointerleave', release);
+  }
+
+  /** 2D 지도 한 손가락 드래그 + 두 손가락 핀치(2026-09-10) — "맵 이동이
+   *  편해야 한다"는 신고로 조이스틱만으로는 부족하다고 보고 더한다. 지도를
+   *  직접 밀고 두 손가락으로 오므리는 게 가장 자연스러운 손짓이다(구글지도·
+   *  이 판 3D 지도(`realm3d.js` `bindPointer()`)와 같은 결). 손가락이 하나면
+   *  드래그(살짝만 움직이면 성 탭, 크게 끌면 이동으로 가른다), 둘이면 핀치—
+   *  `realm3d.js`의 pointers 표·twoPointerDist() 요령을 그대로 옮겼다 */
+  var mapPointers = {}, mapDragMoved = false, mapPinchDist = 0;
+  var mapVelX = 0, mapVelY = 0, mapMomentumOn = false;
+  function mapPointerCount() {
+    var n = 0, k;
+    for (k in mapPointers) { if (mapPointers.hasOwnProperty(k)) { n++; } }
+    return n;
+  }
+  function mapTwoDist() {
+    var ks = Object.keys(mapPointers);
+    if (ks.length < 2) { return 0; }
+    var a = mapPointers[ks[0]], b = mapPointers[ks[1]];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+  /** 손을 뗀 뒤에도 살짝 미끄러져 멎는다(2026-09-10, "맵이동이 편해야 한다"
+   *  이어서) — 마지막 프레임의 픽셀 속도(mapVelX/Y)를 그대로 이어받아 매
+   *  프레임 10%씩 줄이며 민다. 드래그 쪽과 똑같은 픽셀→지도단위 환산을 쓴다 */
+  function startMapMomentum() {
+    if (mapMomentumOn) { return; }
+    mapMomentumOn = true;
+    function step() {
+      /* 2026-09-10 버그 수정 — 이 검사가 없으면 손을 다시 대서(pointerdown이
+         mapMomentumOn = false 로 끔) 이 관성을 끊으려 해도, 이미 예약돼 있던
+         requestAnimationFrame(step) 은 그 사실을 모른 채 한 번 더(사실상
+         속도가 죽을 때까지 계속) 돌아 새 드래그와 밀어내기 싸움을 벌였다 —
+         매 프레임 이 값부터 다시 확인해야 밖에서 끈 게 그 자리에서 먹힌다 */
+      if (!mapMomentumOn) { return; }
+      var svg = els.realm.querySelector('.rmap');
+      mapVelX *= 0.9; mapVelY *= 0.9;
+      if (!svg || Math.abs(mapVelX) + Math.abs(mapVelY) < 0.4) { mapMomentumOn = false; return; }
+      var r = svg.getBoundingClientRect();
+      if (r.width && r.height) {
+        var w = MAP_VB.w / mapZoom, h = MAP_VB.h / mapZoom;
+        mapCx -= mapVelX / r.width * w;
+        mapCy -= mapVelY / r.height * h;
+        applyMapViewNow();
+      }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function bindMapDrag() {
+    els.realm.addEventListener('pointerdown', function (e) {
+      if (!els.realm.querySelector('.rmap')) { return; }
+      mapPointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      try { els.realm.setPointerCapture(e.pointerId); } catch (ex) { /* noop */ }
+      if (mapPointerCount() === 1) { mapDragMoved = false; mapVelX = 0; mapVelY = 0; mapMomentumOn = false; }
+      if (mapPointerCount() === 2) { mapPinchDist = mapTwoDist(); }
+    });
+    els.realm.addEventListener('pointermove', function (e) {
+      var p = mapPointers[e.pointerId];
+      if (!p) { return; }
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      var svg = els.realm.querySelector('.rmap');
+      var r = svg ? svg.getBoundingClientRect() : null;
+      if (mapPointerCount() === 1) {
+        if (Math.abs(dx) + Math.abs(dy) > 3) { mapDragMoved = true; }
+        if (svg && r && r.width && r.height) {
+          var w = MAP_VB.w / mapZoom, h = MAP_VB.h / mapZoom;
+          mapCx -= dx / r.width * w;
+          mapCy -= dy / r.height * h;
+          applyMapViewNow();
+        }
+        mapVelX = dx; mapVelY = dy;
+      } else if (mapPointerCount() === 2) {
+        var nd = mapTwoDist();
+        if (mapPinchDist > 0 && nd > 0) { zoomMapBy(nd / mapPinchDist); }
+        mapPinchDist = nd;
+        mapDragMoved = true;
+        mapVelX = 0; mapVelY = 0;   // 핀치 중엔 관성을 안 쌓는다
+      }
+      mapPointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+    });
+    function endDrag(e) {
+      var wasSingleDrag = mapPointerCount() === 1 && mapDragMoved;
+      delete mapPointers[e.pointerId];
+      if (wasSingleDrag && mapPointerCount() === 0) { startMapMomentum(); }
+    }
+    els.realm.addEventListener('pointerup', endDrag);
+    els.realm.addEventListener('pointercancel', endDrag);
+  }
+
+  /** 지도 화면일 때만 조이스틱·홈·확대 손잡이를 보여준다(세력 고르기 전 ·
+   *  시트가 지도를 덮었을 때는 숨긴다 — saga-go 의 #gjoy 와 같은 결) */
+  function syncMapControls() {
+    var show = R().state().started && !openTab;
+    ['rjoy', 'rmapctl'].forEach(function (id) {
+      var el = $(id);
+      if (el) { el.classList.toggle('show', show); }
+    });
+  }
+
   /* ── 배선 ─────────────────────────────────────────────── */
 
   function init() {
@@ -114,9 +337,17 @@
     });
 
     els.realm.addEventListener('click', function (e) {
+      if (mapDragMoved) { mapDragMoved = false; return; }
       var n = e.target.closest('[data-city]');
-      if (n) { openCity(n.getAttribute('data-city')); }
+      if (n) { openCity(n.getAttribute('data-city')); return; }
+      if (e.target.closest('[data-act="center-mine"]')) { centerOnMine(); }
     });
+    bindMapDrag();
+    var mapHome = $('btn-map-home'), mapZin = $('btn-map-zoomin'), mapZout = $('btn-map-zoomout');
+    if (mapHome) { mapHome.addEventListener('click', function () { centerOnMine(); }); }
+    if (mapZin) { mapZin.addEventListener('click', function () { zoomMapBy(1.5); }); }
+    if (mapZout) { mapZout.addEventListener('click', function () { zoomMapBy(1 / 1.5); }); }
+    initMapStick();
     els['sheet-body'].addEventListener('click', onAct);
     els.encounter.addEventListener('click', onAct);
     /* 음량 슬라이더 — 끌 때마다(input) 바로 듣고, 값칸만 직접 고쳐 슬라이더가
@@ -167,9 +398,15 @@
       if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
       return;
     }
+    if (a === 'shake-toggle') {
+      core.setTune('battle3d.shake', core.tuned('battle3d.shake', 1) ? 0 : 1);
+      renderSheet();
+      return;
+    }
     if (a === 'pick-force') {
       R().setup(g('data-id'), pickScen);
       closeEnc();
+      centerOnMine();
       renderTop(); renderMap(); syncDock();
       return;
     }
@@ -410,12 +647,58 @@
     }
   }
 
+  /** 실시간 전투 현황판 — 3D 디오라마(깃발 다발)만으로는 지금 몇 대 몇인지
+   *  숫자로 읽을 수가 없다는 신고(2026-09-10)로 더한다. `.rstat`(성 시트가
+   *  쓰는 그 줄)를 그대로 재사용해 아군·적군 병력과(물길이 아니면) 성벽을
+   *  막대+숫자로 보여주고, 합마다 `updateBattleHud()`가 값만 갈아 끼운다 —
+   *  판정은 없다, war.js 가 이미 낸 수치를 그대로 읽을 뿐이다 */
+  /** 일기토 예고장 — "OOO ⚔️ OOO"(초상 곁들여). 삼국지 게임들이 결투 전에
+   *  두 장수를 마주 세워 보여주는 그 카드와 같은 결이다(2026-09-10). 이름·
+   *  초상 다 안 바뀌는 값이라(합마다 그림이 바뀌는 건 3D 쪽 몫) 여기 한 번만
+   *  적어 두고 갱신은 안 한다 — battle3d.js 의 실제 캐릭터 대결과 짝을 이룬다 */
+  function duelCaptionHtml(rep) {
+    if (!rep.duel || !rep.duel.a || !rep.duel.d) { return ''; }
+    var oa = off().find(rep.duel.a), od = off().find(rep.duel.d);
+    if (!oa || !od) { return ''; }
+    return '<div class="bduel">' + pt(oa, 30) + '<b>' + esc(oa.name) + '</b>' +
+      '<span>⚔️</span><b>' + esc(od.name) + '</b>' + pt(od, 30) + '</div>';
+  }
+  function battleHudHtml(rep) {
+    var af = FD.force(rep.force), df = FD.force(rep.defForce);
+    return '<div class="bhud" id="bhud">' +
+      duelCaptionHtml(rep) +
+      bar((af ? esc(af.name) : '아군') + ' ⚔️', rep.atkStart, rep.atkStart) +
+      bar((df ? esc(df.name) : '적군') + ' 🛡️', rep.defStart, rep.defStart) +
+      (rep.water ? '' : bar('성벽', rep.wallFrom || 1, rep.wallFrom || 1)) +
+      '<div class="bhud-round" id="bhud-round">전투 시작</div>' +
+      '</div>';
+  }
+  function setBarRow(row, val, max) {
+    if (!row) { return; }
+    var pct = Math.round(core.clamp(val / Math.max(1, max), 0, 1) * 100);
+    var i = row.querySelector('.bar > i');
+    if (i) { i.style.width = pct + '%'; }
+    var b = row.querySelector('b');
+    if (b) { b.textContent = core.fmt(Math.max(0, Math.round(val))); }
+  }
+  function updateBattleHud(rep, state) {
+    var el = $('bhud');
+    if (!el || !rep) { return; }
+    var rows = el.querySelectorAll('.rstat');
+    setBarRow(rows[0], state.atk != null ? state.atk : rep.atkStart, rep.atkStart);
+    setBarRow(rows[1], state.def != null ? state.def : rep.defStart, rep.defStart);
+    if (!rep.water && rows[2]) { setBarRow(rows[2], state.wall != null ? state.wall : rep.wallFrom, rep.wallFrom || 1); }
+    var rd = $('bhud-round');
+    if (rd && state.r != null) { rd.textContent = state.r > 0 ? state.r + '합째' : '전투 시작'; }
+  }
+
   function showBattleLive(fromId, toId, lead, t) {
     liveStep = null; liveRepStub = null; liveBase = null;
     var res = global.DG.war.marchInteractive(fromId, toId, lead, t, {
       onIntro: function (lines, repStub) {
         var html = (global.DG.battle3d ? '<canvas id="battle3d"></canvas>' : '') +
           '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황 (진행 중)</h3>' +
+          battleHudHtml(repStub) +
           '<div class="warlog" id="livelog"></div><div id="livecmd"></div>';
         showEnc(html);
         liveRepStub = repStub;
@@ -427,9 +710,12 @@
         }
       },
       onLog: liveAppendLog,
-      onRound: function (frame) {
+      onRound: function (frame, r) {
         liveShowState({ atk: frame.atk, def: frame.def, wall: frame.wall,
-          duelPhase: liveRepStub && liveRepStub.duel ? 'done' : null });
+          duelPhase: liveRepStub && liveRepStub.duel ? 'done' : null, roundTick: true });
+        updateBattleHud(liveRepStub, { atk: frame.atk, def: frame.def, wall: frame.wall, r: r });
+        var SFX = global.DG.sfx;
+        if (SFX) { SFX.play('round_clash'); }
       },
       onPrompt: function (state, step) {
         liveStep = step;
@@ -561,8 +847,11 @@
        (min-x -60·min-y -30, 너비 225·높이 150). 천축(여섯째)·막북(일곱째)은
        기존 120·-30 높이 안에 다 들어와 손 안 댔다. 임읍(여덟째, 2026-09-10)만
        y:118~134 로 아래로 더 뻗어 **높이를 150→180 으로 다시 넓혔다** —
-       x/y 값 자체는 CD.CITIES 데이터가 그대로 쥐고 있어 여기 말고 고칠 곳이 없다 */
-    s += '<svg class="rmap" viewBox="-60 -30 225 180" preserveAspectRatio="xMidYMid meet">';
+       x/y 값 자체는 CD.CITIES 데이터가 그대로 쥐고 있어 여기 말고 고칠 곳이 없다.
+     전체 범위 자체(MAP_VB, 위 "지도 이동·확대" 절)는 여기 -60/-30/225/180 과
+     반드시 같아야 한다 — 보이는 창(viewBox)은 mapViewBox() 가 이동·확대
+     상태에 따라 그 범위 **안의 일부**를 계산해 낸다(2026-09-10) */
+    s += '<svg class="rmap" viewBox="' + mapViewBox() + '" preserveAspectRatio="xMidYMid meet">';
 
     /* 길 — 인접한 성끼리. 같은 편이면 밝게 */
     var drawn = {};
@@ -618,13 +907,16 @@
     var rank = R().ranking();
     s += '<div class="rlegend">';
     for (i = 0; i < rank.length; i++) {
-      s += '<span class="rlg' + (rank[i].id === st.me ? ' me' : '') + '">' +
+      var mine = rank[i].id === st.me;
+      s += '<span class="rlg' + (mine ? ' me' : '') + '"' +
+        (mine ? ' data-act="center-mine" title="내 땅으로"' : '') + '>' +
         '<i style="background:' + forceColor(rank[i].id) + '"></i>' +
         esc(rank[i].name) + ' <b>' + rank[i].cities + '</b></span>';
     }
     s += '</div>';
 
     els.realm.innerHTML = s;
+    syncMapControls();
   }
 
   /* ── 시트 ─────────────────────────────────────────────── */
@@ -640,12 +932,18 @@
     var SF = global.DG.sfx;
     if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
     var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
+    var shakeOn = core.tuned('battle3d.shake', 1) ? true : false;
     return '<div class="key-row"><b>효과음</b>' +
         '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
       '<div class="key-row"><b>음량</b>' +
         '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
         (on ? '' : ' disabled') + '>' +
-        '<span class="key-cur">' + vol + '%</span></div>';
+        '<span class="key-cur">' + vol + '%</span></div>' +
+      /* 2026-09-10 — 전투 화면에 성벽 붕괴 카메라 흔들림(wallShake)을 더하면서
+         같이 둔다. 부드러운 것(라운드 충격 거리·일기토 근접 컷)은 안 가리고
+         진짜 화면이 떨리는 것만 끌 수 있다 */
+      '<div class="key-row"><b>전투 화면 흔들림</b>' +
+        '<button data-act="shake-toggle">' + (shakeOn ? '켜짐' : '꺼짐') + '</button></div>';
   }
 
   function openSheet(name) {
@@ -656,6 +954,7 @@
     document.body.classList.add('sheet-open');
     if (global.innerWidth <= 780) { els.scrim.classList.add('show'); }
     syncDock();
+    syncMapControls();
     renderSheet();
   }
 
@@ -671,6 +970,7 @@
     document.body.classList.remove('sheet-open');
     els.scrim.classList.remove('show');
     syncDock();
+    syncMapControls();
   }
 
   function syncDock() {
@@ -1362,15 +1662,25 @@
     showEnc(html + '</div>');
   }
 
+  /** 개입 없이 끝난 싸움(AI 가 친 것 · 진영 재개 등)도 실시간으로 숫자가
+   *  바뀐다(2026-09-10) — 처음엔 시작 대 끝만 못박아 뒀는데("합마다 갈아
+   *  끼우지 않는다"), battle3d.render() 가 이미 합·라운드마다 디오라마를
+   *  갈아 끼우면서도 그 타이밍을 밖으로 안 알려 줘서 HUD 만 멈춰 있었다 —
+   *  이제 render() 의 둘째 인자(onFrame)로 같은 타이밍을 받아 개입형 실시간
+   *  전투(`updateBattleHud`, `showBattleLive` 참고)와 같은 함수로 갱신한다 */
   function showBattle(rep) {
     var html = (global.DG.battle3d ? '<canvas id="battle3d"></canvas>' : '') +
-      '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황</h3><div class="warlog">';
+      '<h3 style="margin:0 0 6px;font-size:18px">⚔️ 전황</h3>' +
+      battleHudHtml(rep) +
+      '<div class="warlog">';
     for (var i = 0; i < rep.log.length; i++) {
       html += '<div>' + esc(rep.log[i]) + '</div>';
     }
     html += '</div><button class="btn primary wide" data-act="close-enc">확인</button>';
     showEnc(html);
-    if (global.DG.battle3d) { global.DG.battle3d.render(rep); }
+    if (global.DG.battle3d) {
+      global.DG.battle3d.render(rep, function (state) { updateBattleHud(rep, state); });
+    }
   }
 
   function showEnd(kind) {

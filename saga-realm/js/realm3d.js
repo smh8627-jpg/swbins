@@ -177,6 +177,44 @@
   var targetYaw = 0, targetPitch = 0.85, targetDist = 260;
   var pivotY = 0;                 // 카메라가 도는 중심의 지형 높이(elevAt(0,0)) — init()에서 한 번 잰다
 
+  /* ── 조이스틱 이동(pan, 2026-09-10) ────────────────────────
+   * 궤도 중심은 원래 늘 원점(0,0)이었다 — 세계가 삼국지 한 판이던 때는 그걸로
+   * 충분했지만, 한국·일본·교주 등으로 늘어난 지금은 원점 언저리만 보여서는
+   * 다른 지역(내 땅)이 어디 있는지 알 길이 없다. `pivotX`·`pivotZ` 를 원점에서
+   * 옮겨 궤도 중심 자체를 그 자리로 옮긴다 — 카메라 회전·확대(yaw·pitch·dist)는
+   * 그대로 그 중심을 도는 것뿐이라 한 줄도 안 건드린다 */
+  var pivotX = 0, pivotZ = 0, targetPivotX = 0, targetPivotZ = 0;
+  var PAN_LIMIT = 950;             // GROUND_SPAN(2200)의 절반보다 살짝 좁게 — 가장자리 밖으로 안 나간다
+  var PAN_SPEED = 9;               // 조이스틱을 완전히 기울였을 때 프레임당 이동(world 단위)
+
+  function clampPan(v) { return Math.max(-PAN_LIMIT, Math.min(PAN_LIMIT, v)); }
+
+  /** 조이스틱 한 프레임 분 — dx·dy 는 -1~1(정규화, 화면 기준: 오른쪽·아래가 양수),
+   *  지금 카메라가 보는 방향(yaw)으로 돌려 세계 좌표에 얹는다(궤도 카메라라
+   *  늘 수평이므로 pitch는 무시) */
+  function panBy(dx, dy) {
+    var s = Math.sin(yaw), c = Math.cos(yaw);
+    targetPivotX = clampPan(targetPivotX + (dx * c + dy * s) * PAN_SPEED);
+    targetPivotZ = clampPan(targetPivotZ + (dy * c - dx * s) * PAN_SPEED);
+  }
+
+  /** 절대 이동 — 지도 좌표(0~100대, data-city.js 와 같은 잣대)를 받아 그 자리로
+   *  궤도 중심을 옮긴다("내 땅으로" 버튼·범례 탭이 부른다).
+   *
+   *  2026-09-10 — `spanUnits`(내 땅의 실제 넓이, ui-rtk.js 지도 단위)를 같이
+   *  받으면 거리(dist)도 그만큼만 당긴다. 예전엔 `fitCameraToMap()`이 세계
+   *  전체(성 60곳 안팎)가 다 들어오도록 늘 멀리 잡아 둔 거리를 안 건드려서,
+   *  panTo() 로 중심만 내 땅으로 옮겨도 여전히 세계 절반이 함께 보였다 —
+   *  "시작시 너무 멀리서 시작한다"는 신고의 원인. 조이스틱·드래그·핀치로
+   *  얼마든 더 물러날 수 있으니, 기본은 내 땅만 꽉 차게 당기는 쪽으로 바꿨다 */
+  function panTo(mapX, mapY, spanUnits) {
+    targetPivotX = clampPan(worldX(mapX));
+    targetPivotZ = clampPan(worldZ(mapY));
+    if (spanUnits) {
+      targetDist = clamp(spanUnits * WORLD_SCALE() * 0.9, DIST_MIN(), DIST_MAX());
+    }
+  }
+
   function available() { return !!three() && !failed; }
   function active() { return ON() && ready; }
 
@@ -816,13 +854,15 @@
     yaw += (targetYaw - yaw) * 0.15;
     pitch += (targetPitch - pitch) * 0.15;
     dist += (targetDist - dist) * 0.15;
+    pivotX += (targetPivotX - pivotX) * 0.15;
+    pivotZ += (targetPivotZ - pivotZ) * 0.15;
 
     camera.position.set(
-      Math.cos(pitch) * Math.sin(yaw) * dist,
+      pivotX + Math.cos(pitch) * Math.sin(yaw) * dist,
       Math.sin(pitch) * dist + pivotY + 6,
-      Math.cos(pitch) * Math.cos(yaw) * dist
+      pivotZ + Math.cos(pitch) * Math.cos(yaw) * dist
     );
-    camera.lookAt(0, pivotY + 6, 0);
+    camera.lookAt(pivotX, pivotY + 6, pivotZ);
 
     var t = now || 0;
     for (var i = 0; i < pulseRings.length; i++) {
@@ -844,7 +884,9 @@
     active: active,
     init: init,
     toggle: toggle,
-    rebuild: rebuild
+    rebuild: rebuild,
+    panBy: panBy,
+    panTo: panTo
   };
 
   /* 세력이 바뀌거나(정벌·외교) 달이 넘어가면 다시 짓는다 — 켜져 있을 때만.

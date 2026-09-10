@@ -571,6 +571,11 @@
     if (aTop && dTop && !dry) {
       du = duel(aTop, dTop);
       if (du) {
+        /* 2026-09-10 — battle3d.js 가 실제 장수 모델 둘을 세우려면 이 싸움의
+           '공격 쪽 장수'·'수비 쪽 장수'가 누구인지 알아야 한다. hits[].who
+           ('a'|'d')와 짝이 맞는 이름으로 판정에는 없던 것을 그대로 붙인다 —
+           새 판정이 아니라 이미 정해진 aTop/dTop 을 기록해 둘 뿐이다 */
+        du.a = aTop; du.d = dTop;
         lines('🤺 ' + du.text + (du.hurt ? ' — ' + off.find(du.loser).name + ' 이(가) 다쳤다' : ''));
         var winSide = atk.officers.indexOf(du.winner) >= 0 ? atk : def;
         var loseSide = winSide === atk ? def : atk;
