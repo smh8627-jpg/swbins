@@ -66,7 +66,12 @@
       weapon: { kind: 'eldmg', el: 'chi', v: 6 },
       armor:  { kind: 'elres', el: 'chi', v: 8 },
       charm:  { kind: 'flat', stat: 'all', v: 2 },
-      desc: '검게 빛나는 돌. 기(氣)가 곧게 뻗는다.' }
+      desc: '검게 빛나는 돌. 기(氣)가 곧게 뻗는다.' },
+    { key: 'voidstone', name: '전자석(電磁石)', emoji: '🟣', el: 'emp',
+      weapon: { kind: 'eldmg', el: 'emp', v: 7 },
+      armor:  { kind: 'elres', el: 'emp', v: 8 },
+      charm:  { kind: 'world', eff: 'expPct', v: 6 },
+      desc: '2026-09-10 신설 — 출처를 알 수 없는 돌. 미래의 힘이 깃들었다.' }
   ];
 
   /**
@@ -157,12 +162,14 @@
     { key: 'j_lit',  kind: 'eldmg', el: 'lit',  lo: 4, hi: 10, pre: '벼락 든' },
     { key: 'j_pois', kind: 'eldmg', el: 'pois', lo: 4, hi: 9,  pre: '검푸른' },
     { key: 'j_chi',  kind: 'eldmg', el: 'chi',  lo: 3, hi: 7,  pre: '고요한' },
+    { key: 'j_emp',  kind: 'eldmg', el: 'emp',  lo: 4, hi: 9,  pre: '낯선' },
     /* 원소 저항 — 갑주가 아니어도 붙는다 */
     { key: 'j_rfire', kind: 'elres', el: 'fire', lo: 4, hi: 9, post: '방화(防火)' },
     { key: 'j_rcold', kind: 'elres', el: 'cold', lo: 4, hi: 9, post: '방한(防寒)' },
     { key: 'j_rlit',  kind: 'elres', el: 'lit',  lo: 4, hi: 9, post: '피뢰(避雷)' },
     { key: 'j_rpois', kind: 'elres', el: 'pois', lo: 4, hi: 9, post: '해독(解毒)' },
     { key: 'j_rchi',  kind: 'elres', el: 'chi',  lo: 4, hi: 9, post: '진기(鎭氣)' },
+    { key: 'j_remp',  kind: 'elres', el: 'emp',  lo: 4, hi: 9, post: '차폐(遮蔽)' },
     /* 능력치 */
     { key: 'j_might',   kind: 'flat', stat: 'might',   lo: 3, hi: 7, pre: '억센' },
     { key: 'j_wisdom',  kind: 'flat', stat: 'wisdom',  lo: 3, hi: 7, pre: '밝은' },

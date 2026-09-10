@@ -26,22 +26,22 @@
  * 점수는 **직업마다 따로** 센다 — 무기를 바꿔도 그 나무의 점수는 그대로 남는다.
  *
  * ── 나무의 모양 ────────────────────────────────────────────
- * 직업마다 **일곱 갈래 × 세 단계 = 스물하나**(2026-09-10 하루에 다섯 번
+ * 직업마다 **여덟 갈래 × 세 단계 = 스물넷**(2026-09-10 하루에 여섯 번
  * 늘었다 — 세 갈래·아홉 → "스킬이 다양해야 하고"·"더 추가해"로 넷째 →
  * "더 추가해"로 다섯째 → "응 진행해"로 여섯째 → 다시 "응 진행해"로
- * 일곱째). 더 늘려 달라고 하면 같은 요령으로 여덟째도 열 수 있다 —
- * 막힌 이유가 없다(`ui.js`의 `br < 7` 하나만 갈래 수에 맞춰 늘리면
- * 된다. 모양×원소 조합은 다섯 모양(swing·bolt·nova·dash·chain) ×
- * 다섯 원소(phys·fire·cold·lit·pois·chi 여섯이니 실은 서른 자리) 중
- * 아직 안 채운 자리가 직업마다 여럿 남아 있어 당분간 재료가 안
- * 바닥난다). 원작은 세 탭 × 열이지만, 이 판은 인물이 여럿이고 레벨이
- * 낮게 오르므로 스물하나면 끝까지 타 볼 수 있다.
+ * 일곱째 → "시작해"로 여덟째, 이번엔 처음으로 **새 원소**(전자·emp,
+ * data-elem.js)를 곁들였다 — "미래·현대·과거 다 퓨전"·"이 세상에 없는
+ * 게임"이라는 사용자의 새 창작 방향(SAGA-HANDOFF.md "창작 방향" 절)의
+ * 첫 실제 반영이다). 더 늘려 달라고 하면 같은 요령으로 아홉째도 열
+ * 수 있다 — 막힌 이유가 없다(`ui.js`의 `br < 8` 하나만 갈래 수에 맞춰
+ * 늘리면 된다). 원작은 세 탭 × 열이지만, 이 판은 인물이 여럿이고
+ * 레벨이 낮게 오르므로 스물넷이면 끝까지 타 볼 수 있다.
  *   · 한 무예는 **다섯 단**까지 올린다
  *   · **앞 단계에 1점이 있어야** 다음 단계가 열린다 (원작의 그 규칙)
  *   · 점수는 **인물 레벨만큼** 생긴다 — 인물마다 따로 센다
  *
  * ── 왜 '모양(shape)' 으로 짰나 ──────────────────────────────
- * 스물하나 × 다섯 직업 = 백다섯인데, 백다섯 개를 따로 구현하면 손을 못 댄다.
+ * 스물넷 × 다섯 직업 = 백스물인데, 백스물 개를 따로 구현하면 손을 못 댄다.
  * 원작의 스킬도 실은 **몇 가지 모양**이 원소·수치만 바꿔 가며 되풀이된다.
  * 그래서 모양만 dungeon.js 에 두고, 아래 표는 그 모양에 값을 끼운다.
  *
@@ -121,8 +121,8 @@
     return out;
   }
 
-  /* ── 무예 아흔 ────────────────────────────────────────────
-   * cls    직업 · br 갈래(0~5) · row 단계(0~2)
+  /* ── 무예 백스물 ──────────────────────────────────────────
+   * cls    직업 · br 갈래(0~7) · row 단계(0~2)
    * shape  모양 (위 주석)
    * cost   기력 · cd 재냉각(초) · el 결(없으면 물리)
    * v      1단 기준 값 (모양마다 뜻이 다르다 — 아래 각 줄에 적었다)
@@ -434,6 +434,61 @@
     { key: 'y_frostchain', cls: 'mystic', br: 5, row: 2, name: '빙쇄(氷鎖)', emoji: '🧊',
       shape: 'chain', cost: 24, cd: 9, v: 1.8, grow: 0.4, el: 'cold',
       desc: '언 기운이 적 사이를 옮겨 붙는다.' },
+
+    /* ── 여덟째 갈래(2026-09-10, "시작해") — 새 원소 전자(電磁, emp) 첫
+     * 실전 배치. 다섯 직업이 다 하나씩 손에 쥐되, 이름은 한자 조어
+     * 문법(원작류 무예 명명법)은 그대로 두고 **내용만 미래로 튄다**
+     * (전자시·특이점·위성포처럼) — "말도 안 되게 퓨전이 되어야 한다"는
+     * 사용자 지시를 이름에서부터 드러낸다. */
+    { key: 'a_emp_bolt', cls: 'archer', br: 7, row: 0, name: '전자시(電子矢)', emoji: '🟣',
+      shape: 'bolt', cost: 18, cd: 4, v: 1.6, grow: 0.4, el: 'emp',
+      desc: '낯선 힘을 실은 화살. 이 세계 것이 아니다.' },
+    { key: 'a_emp_nova', cls: 'archer', br: 7, row: 1, name: '전자충격파(電子衝擊波)', emoji: '💥',
+      shape: 'nova', cost: 32, cd: 10, v: 2.2, grow: 0.5, r: 130, el: 'emp',
+      desc: '둘레에 낯선 파동이 퍼진다.' },
+    { key: 'a_emp_chain', cls: 'archer', br: 7, row: 2, name: '궤도연환시(軌道連環矢)', emoji: '🛰️',
+      shape: 'chain', cost: 26, cd: 9, v: 1.9, grow: 0.45, el: 'emp',
+      desc: '하늘 높이서 떨어지듯 적 사이를 옮겨 붙는다.' },
+
+    { key: 'w_emp_swing', cls: 'warrior', br: 7, row: 0, name: '전자인(電子刃)', emoji: '🟣',
+      shape: 'swing', cost: 22, cd: 6, v: 1.8, grow: 0.4, r: 1.7, kb: 24, el: 'emp',
+      desc: '날에 낯선 빛이 서린다.' },
+    { key: 'w_emp_dash', cls: 'warrior', br: 7, row: 1, name: '광속돌격(光速突擊)', emoji: '⚡',
+      shape: 'dash', cost: 22, cd: 7, v: 1.5, grow: 0.35, el: 'emp',
+      desc: '빛처럼 파고든다.' },
+    { key: 'w_emp_nova', cls: 'warrior', br: 7, row: 2, name: '전자진(電子陣)', emoji: '💥',
+      shape: 'nova', cost: 36, cd: 12, v: 2.7, grow: 0.55, r: 145, el: 'emp',
+      desc: '땅을 굴러 낯선 힘을 터뜨린다.' },
+
+    { key: 's_emp_bolt', cls: 'scholar', br: 7, row: 0, name: '입자탄(粒子彈)', emoji: '🟣',
+      shape: 'bolt', cost: 18, cd: 4, v: 1.7, grow: 0.45, el: 'emp',
+      desc: '작은 알갱이를 뭉쳐 쏜다.' },
+    { key: 's_emp_nova', cls: 'scholar', br: 7, row: 1, name: '특이점(特異點)', emoji: '🕳️',
+      shape: 'nova', cost: 40, cd: 14, v: 3.2, grow: 0.7, r: 140, el: 'emp',
+      desc: '한 점으로 빨려 들다 터진다.' },
+    { key: 's_emp_chain', cls: 'scholar', br: 7, row: 2, name: '양자쇄(量子鎖)', emoji: '🔗',
+      shape: 'chain', cost: 26, cd: 9, v: 1.9, grow: 0.45, el: 'emp',
+      desc: '보이지 않는 사슬이 적 사이를 옮겨 붙는다.' },
+
+    { key: 'm_emp_swing', cls: 'marshal', br: 7, row: 0, name: '전자검(電子劍)', emoji: '🟣',
+      shape: 'swing', cost: 22, cd: 6, v: 1.9, grow: 0.4, r: 1.7, kb: 26, el: 'emp',
+      desc: '칼끝에 낯선 힘이 맺힌다.' },
+    { key: 'm_emp_bolt', cls: 'marshal', br: 7, row: 1, name: '위성포(衛星砲)', emoji: '🛰️',
+      shape: 'bolt', cost: 24, cd: 6, v: 2.0, grow: 0.5, el: 'emp',
+      desc: '하늘 저편에서 힘이 내리꽂힌다.' },
+    { key: 'm_emp_nova', cls: 'marshal', br: 7, row: 2, name: '전자결계(電磁結界)', emoji: '💥',
+      shape: 'nova', cost: 36, cd: 12, v: 2.6, grow: 0.55, r: 145, el: 'emp',
+      desc: '둘레에 낯선 장막이 터진다.' },
+
+    { key: 'y_emp_chain', cls: 'mystic', br: 7, row: 0, name: '유령신호(幽靈信號)', emoji: '📡',
+      shape: 'chain', cost: 22, cd: 9, v: 1.8, grow: 0.4, el: 'emp',
+      desc: '넋과 낯선 신호가 뒤섞여 적 사이를 옮겨 붙는다.' },
+    { key: 'y_emp_bolt', cls: 'mystic', br: 7, row: 1, name: '환영입자탄(幻影粒子彈)', emoji: '🟣',
+      shape: 'bolt', cost: 18, cd: 4, v: 1.7, grow: 0.45, el: 'emp',
+      desc: '넋과 알갱이가 뒤섞여 날아간다.' },
+    { key: 'y_emp_nova', cls: 'mystic', br: 7, row: 2, name: '차원진동(次元振動)', emoji: '🌀',
+      shape: 'nova', cost: 38, cd: 13, v: 3.0, grow: 0.65, r: 140, el: 'emp',
+      desc: '둘레의 결이 낯설게 흔들린다.' },
 
     /* ── 일곱째 갈래(2026-09-10, "응 진행해") — 다섯 갈래·여섯째와 같은
      * 요령: 모양은 안 늘리고, 그 직업이 아직 안 써 본 모양×원소 조합을
