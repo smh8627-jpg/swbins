@@ -723,6 +723,7 @@
   var fshots = [], ffoeShots = [];
   var fieldSpawnCd = 4;                 // 던전과 같은 4초 주기(dungeon.js FIELD 보충과 동일)
   var fieldTreasureCd = 90;             // 던전과 같은 필드 보물 조우 재확인 주기(PLAN §60 후보 1)
+  var fieldMerchantCd = 60;             // 던전과 같은 방랑 상인 재확인 주기(PLAN §60 후보 1 나머지 절반)
 
   function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
@@ -1254,6 +1255,11 @@
       fieldTreasureCd = 90;
       D().spawnFieldTreasure(ctx);
     }
+    fieldMerchantCd -= dt;
+    if (fieldMerchantCd <= 0) {
+      fieldMerchantCd = 60;
+      D().spawnFieldMerchant(ctx);
+    }
     D().stepFieldCombat(dt, ctx, fx);
     D().pickupField(ctx, fx);
     /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
@@ -1271,6 +1277,13 @@
     }
 
     touchCheck();
+  }
+
+  /** 들판 방랑 상인을 만났다 — 재고를 고르는 동안 자리에서 치운다
+   *  (PLAN §60 후보 1 나머지 절반). `js/ui.js`가 `town:npc`에서 부른다. */
+  function consumeFieldMerchant(npc) {
+    var i = room.npcs.indexOf(npc);
+    if (i >= 0) { room.npcs.splice(i, 1); }
   }
 
   /** 표식 위에 글자 하나 띄운다 (역참을 밟았다 같은 것) */
@@ -1350,7 +1363,7 @@
     TALK_R: TALK_R, MARKS: MARKS,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
-    nearest: nearest, note: note,
+    nearest: nearest, note: note, consumeFieldMerchant: consumeFieldMerchant,
     overworld: overworld,
     status: status,
     exitPointRaw: exitPointRaw,

@@ -1487,36 +1487,44 @@
      빌려 쓴다 — 새 재고 규칙을 만들지 않고, "방 안에 박힌 좌판"이 아니라
      "들판을 걷다 마주치는 사람"으로만 자리를 바꾼다. `room.npcs`(town.js의
      그 배열, dungeon3d.js가 이미 'npc' 배우로 그려 준다)에 하나 얹으면
-     그림도 공짜로 딸려 온다. **이번엔 던전 필드에만 붙인다** — 마을 필드는
-     `run.merchantChoice`가 dungeon.js 클로저 변수라 town.js의 병렬 상태
-     모델과 안 맞아(고르는 창이 dungeon-view.js 것을 그대로 쓰지만, town이
-     읽는 `run`은 withRun 동안만 잠깐 그 판이라 되돌아가면 없어진다) 이번
-     세션은 손대지 않았다. 다음에 마을까지 넓히려면 town.js 쪽에 별도
-     상태(그 판의 ctx에 직접)를 둬야 한다. */
+     그림도 공짜로 딸려 온다.
+     2026-09-10(이어서) — 마을 들판까지 마저 넓힌다. `spawnFieldTreasure`와
+     같은 결로 `ctx` 를 받게 고쳤다 — ctx 가 있으면 마을(town.js)이 빌려
+     쓰는 것이고, 없으면 던전 자신의 `run` 그대로다. 재고 굴림(rollMerchantStock)·
+     구매 처리(buyMerchant)는 `run.merchantChoice` 클로저에 그대로 묶여 있어
+     마을 쪽까지는 못 쓴다 — town.js 는 이 NPC를 만나면 독자적인 재고 상태를
+     들고 `js/ui.js`의 `#encounter` 창(마을 창과 같은 자리)으로 고르게 한다. */
   var FIELD_MERCHANT_CHANCE = 0.4;   // 쿨다운이 다 찼을 때 실제로 뜰 확률
-  function hasActiveFieldMerchant() {
-    var ns = run && run.room.npcs, i;
+  function hasActiveFieldMerchant(ctx) {
+    var ns = ctx ? ctx.room.npcs : (run && run.room.npcs), i;
     if (!ns) { return false; }
     for (i = 0; i < ns.length; i++) { if (ns[i].fieldMerchant && !ns[i].used) { return true; } }
     return false;
   }
-  function spawnFieldMerchant() {
+  function spawnFieldMerchant(ctx) {
     if (!fieldOn() || global.DG_NO_DRAW) { return; }
-    if (!run) { return; }
-    if (hasActiveFieldMerchant()) { return; }
+    if (!ctx && !run) { return; }
+    if (hasActiveFieldMerchant(ctx)) { return; }
     if (Math.random() >= FIELD_MERCHANT_CHANCE) { return; }
-    var cx0 = ROOM_W * 0.5, cy0 = ROOM_H * 0.5;
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var wl = (ctx && ctx.wall) || WALL;
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
+    var room = ctx ? ctx.room : run.room;
+    var isTown = !!(ctx && ctx.town);
+    var cx0 = ax + rw * 0.5, cy0 = ay + rh * 0.5;
+    var px0 = (isTown && ctx.player) ? ctx.player.x : cx0;
+    var py0 = (isTown && ctx.player) ? ctx.player.y : cy0;
     var R = fieldRadiusUnits(), tries = 8, x = 0, y = 0, ok = false, a0, d0;
     while (tries-- && !ok) {
       a0 = Math.random() * Math.PI * 2;
-      d0 = (WALL + 60) + Math.random() * Math.max(40, R - WALL - 60);
-      x = cx0 + Math.cos(a0) * d0;
-      y = cy0 + Math.sin(a0) * d0;
-      if (inRoomRect(x, y) || fieldBlockedAt(x, y)) { continue; }
+      d0 = (wl + 60) + Math.random() * Math.max(40, R - wl - 60);
+      x = px0 + Math.cos(a0) * d0;
+      y = py0 + Math.sin(a0) * d0;
+      if (isTown && Math.hypot(x - cx0, y - cy0) < TOWN_SAFE_R) { continue; }
+      if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
       ok = true;
     }
     if (!ok) { return; }
-    var room = run.room;
     if (!room.npcs) { room.npcs = []; }
     room.npcs.push({
       key: 'fieldmerchant', name: '방물장수(方物匠手)', emoji: '🧺', color: '#6f5a8a',
@@ -2892,6 +2900,9 @@
     setInput: setInput, moveTo: moveTo,
     pickBoon: pickBoon, goRoom: goRoom,
     buyMerchant: buyMerchant, leaveMerchant: leaveMerchant,
+    /** 마을 들판 방랑 상인(PLAN §60 후보 1) — town.js/ui.js가 독자 재고
+     *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
+    rollMerchantStock: rollMerchantStock,
     castSkill: castSkill, refill: refill,
     boonVal: boonVal, boonEffect: boonEffect,
     status: status, state: dstate,
