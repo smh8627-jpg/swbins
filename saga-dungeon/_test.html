@@ -3066,6 +3066,18 @@ window.requestAnimationFrame = function () { return 0; };
         '설정에 남는다 (settings.sound)';
     });
 
+    t('설정 시트 — 효과음 단추가 실제로 sfx.enabled() 를 뒤집는다 (2026-09-10)', function () {
+      var S = DG.sfx, before = S.enabled();
+      DG.ui.openSheet('settings');
+      var btn = document.querySelector('#sheet-body [data-act="snd-toggle"]');
+      if (!btn) { DG.ui.closeSheet(); return false; }
+      btn.click();
+      var flipped = S.enabled() === !before;
+      S.setEnabled(before);        // 원상 복구 — 뒤에 오는 항목이 안 흔들리게
+      DG.ui.closeSheet();
+      return flipped && '⚙️ 설정 시트 단추 → sfx 실제로 반영';
+    });
+
     /* ── 가입해서 저장 ─────────────────────────────────── */
 
     t('세이브는 프로필 아래로 들어간다', function () {
