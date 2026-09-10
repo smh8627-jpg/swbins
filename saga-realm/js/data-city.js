@@ -6,6 +6,11 @@
  *
  *   x·y      화면 비율(0~100). 실제 중국 지리를 대충 따른다(서→동 x, 북→남 y).
  *            지도는 svg 로 그린다 — 이 판에는 원래 지도가 없었다(강역은 목록이었다).
+ *   landmark "탐험"(README 여덟 축, 2026-09-10) 표시. 처음 함락하는 세력에게
+ *            `war.js`의 `capture()`가 한 번뿐인 발견 보상을 준다(save.rtk.discovered
+ *            로 이미 발견됐는지 기억한다). 확장 지역마다 눈에 띄는 성 하나씩,
+ *            일곱 곳을 골랐다 — 지도 전체에 새 좌표계를 만들지 않고 **기존
+ *            성에 표시만 하나 얹는** 방식.
  *   adj      인접 도시. **한쪽만 적으면 된다** — link() 가 양쪽으로 이어 준다.
  *   agri/comm  논밭·저잣거리의 초기값(내정으로 올린다)
  *   wall     성벽 초기값. 공성전이 이 값을 깎는다
@@ -130,7 +135,7 @@
       agri: 220, comm: 180, wall: 3800, pop: 90000, garrison: 12000,
       desc: '요동의 관문. 중원과 반도 사이, 누구의 땅도 아니다.' },
     { id: 'guknae',    name: '국내성', hanja: '國內城', prov: 'kr', x: 104, y: 14, land: 'mount',
-      agri: 200, comm: 160, wall: 4600, pop: 100000, garrison: 15000,
+      agri: 200, comm: 160, wall: 4600, pop: 100000, garrison: 15000, landmark: true,
       desc: '산이 성벽을 대신하는 곳. 오르는 자가 지친다.' },
     { id: 'nakrang',   name: '낙랑',   hanja: '樂浪',   prov: 'kr', x: 103, y: 24, land: 'plain',
       agri: 260, comm: 220, wall: 4200, pop: 130000, garrison: 16000,
@@ -195,7 +200,7 @@
       agri: 170, comm: 220, wall: 3200, pop: 85000, garrison: 10000,
       desc: '진주가 나는 바닷가. 배가 곧 재물이다.' },
     { id: 'jiaozhi',   name: '교지',     hanja: '交趾',   prov: 'jiao', x: 48, y: 102, land: 'river',
-      agri: 280, comm: 260, wall: 4600, pop: 150000, garrison: 16000,
+      agri: 280, comm: 260, wall: 4600, pop: 150000, garrison: 16000, landmark: true,
       desc: '붉은 강이 바다로 드는 삼각주. 교주에서 가장 큰 저자다.' },
     { id: 'jiuzhen',   name: '구진',     hanja: '九眞',   prov: 'jiao', x: 44, y: 107, land: 'plain',
       agri: 200, comm: 140, wall: 3000, pop: 70000, garrison: 9000,
@@ -230,7 +235,7 @@
       agri: 240, comm: 260, wall: 4200, pop: 110000, garrison: 14000,
       desc: '남·북 두 길이 다시 만나는 자리. 파미르로 드는 문.' },
     { id: 'dayuan',   name: '대완', hanja: '大宛', prov: 'xi', x: -58, y: 16, land: 'hill',
-      agri: 180, comm: 200, wall: 3200, pop: 60000, garrison: 8000,
+      agri: 180, comm: 200, wall: 3200, pop: 60000, garrison: 8000, landmark: true,
       desc: '한혈마(汗血馬)가 난다는 서쪽 끝의 나라.' },
 
     /* ── 남중 (2026-09-09 확장, 주인 없음 — 앞 넷과 같은 결) ──
@@ -255,7 +260,7 @@
       agri: 140, comm: 130, wall: 2900, pop: 46000, garrison: 7200,
       desc: '구름 남쪽의 큰 호수, 봄이면 꽃빛으로 물든다.' },
     { id: 'yongchang',name: '영창', hanja: '永昌', prov: 'nz', x: -8, y: 98, land: 'plain',
-      agri: 170, comm: 200, wall: 3400, pop: 60000, garrison: 8800,
+      agri: 170, comm: 200, wall: 3400, pop: 60000, garrison: 8800, landmark: true,
       desc: '머나먼 서쪽 땅, 천축(天竺)의 물건도 이 길을 거쳐 온다.' },
     { id: 'xinggu',   name: '흥고', hanja: '興古', prov: 'nz', x: 18, y: 112, land: 'hill',
       agri: 110, comm: 90, wall: 2600, pop: 38000, garrison: 6500,
@@ -267,7 +272,7 @@
        필요 없는 **육로**라는 점이 다르다(물길로 막힌 남중·일본과 다른 변주).
        성 이름은 한서·후한서에 실제로 나오는 서역·인도 지명 그대로다. */
     { id: 'shendu',      name: '신독',     hanja: '身毒',     prov: 'tz', x: -22, y: 100, land: 'plain',
-      agri: 220, comm: 240, wall: 4000, pop: 95000, garrison: 11000,
+      agri: 220, comm: 240, wall: 4000, pop: 95000, garrison: 11000, landmark: true,
       desc: '한서(漢書)가 "신독"이라 적은 땅. 촉의 장사꾼도 여기까지는 온다.' },
     { id: 'jiantuoluo',  name: '건타라',   hanja: '健馱邏',   prov: 'tz', x: -18, y: 92,  land: 'hill',
       agri: 160, comm: 180, wall: 3400, pop: 58000, garrison: 8500,
@@ -293,7 +298,7 @@
        그 진양을 관문 삼는다. 배가 필요 없는 **초원길**(물길 없음)이라는
        점이 다르다. 성 이름은 실제 한대(漢代) 북방 변경 군(郡) 이름이다. */
     { id: 'yunzhong',   name: '운중', hanja: '雲中', prov: 'mb', x: 45, y: 5,   land: 'plain',
-      agri: 160, comm: 130, wall: 3400, pop: 55000, garrison: 8500,
+      agri: 160, comm: 130, wall: 3400, pop: 55000, garrison: 8500, landmark: true,
       desc: '흉노와 맞댄 첫 군(郡). 말 떼가 지평선을 채운다.' },
     { id: 'yanmen',     name: '안문', hanja: '雁門', prov: 'mb', x: 55, y: 0,   land: 'mount',
       agri: 130, comm: 110, wall: 3000, pop: 42000, garrison: 6800,
@@ -335,7 +340,7 @@
       agri: 140, comm: 110, wall: 2700, pop: 40000, garrison: 6400,
       desc: '산을 낀 서쪽 현. 코끼리가 짐을 나른다.' },
     { id: 'dianchong',  name: '전충', hanja: '典沖', prov: 'cp', x: 40, y: 128, land: 'plain',
-      agri: 220, comm: 200, wall: 3800, pop: 72000, garrison: 9500,
+      agri: 220, comm: 200, wall: 3800, pop: 72000, garrison: 9500, landmark: true,
       desc: '임읍국의 도성. 벽돌로 쌓은 성벽이 낯설다.' },
     { id: 'quzu',       name: '구속', hanja: '區粟', prov: 'cp', x: 36, y: 134, land: 'hill',
       agri: 120, comm: 100, wall: 2500, pop: 34000, garrison: 5800,

@@ -104,6 +104,50 @@
       desc: '둥글게 다져 무너지지 않고 민다 — 데려가는 장수 중 통솔 75 이상이 있어야 선다.' }
   ];
 
+  /**
+   * "역사 분기"(README 여덟 축, 2026-09-10) — 실제 삼국지의 이름난 갈림길에서
+   * **원래 역사와 다른 결과**가 나올 수 있게 첫 충돌에 flavor 를 얹는다.
+   * 새 전투 판정은 없다 — `finishMarch()`가 이미 굴린 `report.won`/`report.routed`
+   * 를 그대로 읽어 로그만 가르고, 승자에게 작은 금전 보상 하나만 준다(진형·
+   * 장비와 같은 결 — "판정은 한 곳"). 같은 두 세력의 첫 충돌에만 한 번 붙는다
+   * (그 뒤로 이 둘이 몇 번을 더 싸워도 다시 안 뜬다 — `save.rtk.history` 로 표시).
+   *
+   * v1 은 하나뿐이다 — **관도대전**(조조 vs 원소). 표만 늘리면 다른 갈림길도
+   * 같은 방식으로 붙는다(적벽·이릉처럼 이미 수전·화공으로 재현된 것은 넣지
+   * 않았다 — 겹치는 flavor 라 뜻이 없다).
+   */
+  var HISTORY_BRANCHES = [
+    { id: 'guandu', name: '관도대전', hanja: '官渡大戰', a: 'cao', b: 'shao', gold: 800,
+      textA: '역사와 같이 조조가 원소를 꺾었다 — 관도의 승부가 갈렸다.',
+      textB: '역사와 다르게 원소가 조조를 밀어냈다 — 관도의 승부가 뒤집혔다.' }
+  ];
+
+  /** report 를 보고 역사 분기 표를 훑는다 — finishMarch() 가 부른다 */
+  function checkHistoryBranch(report) {
+    var R = global.DG.rtk;
+    if (!report.won && !report.routed) { return; }   // 진 채로 승부가 안 갈렸으면(포위 지속) 아직이다
+    var st = R.state();
+    st.history = st.history || {};
+    var a = report.force, b = report.defForce;
+    for (var i = 0; i < HISTORY_BRANCHES.length; i++) {
+      var h = HISTORY_BRANCHES[i];
+      if (st.history[h.id]) { continue; }
+      var match = (a === h.a && b === h.b) || (a === h.b && b === h.a);
+      if (!match) { continue; }
+      st.history[h.id] = true;
+      /* 공격자가 이겼으면(report.won) 공격자 쪽이 이 충돌의 승자다.
+         물러났으면(report.routed) 수비자가 막아 낸 것이다. */
+      var winnerIsA = report.won ? (a === h.a) : (b === h.a);
+      var text = winnerIsA ? h.textA : h.textB;
+      var winnerForce = report.won ? a : b;
+      var f = R.force(winnerForce);
+      if (f) { f.gold += h.gold; }
+      report.log.push('📜 ' + h.name + '(' + h.hanja + ') — ' + text + ' (금 ' + core.fmt(h.gold) + ')');
+      core.log('📜 ' + h.name + ' — ' + text, 'good');
+      core.emit('rtk:history', { id: h.id, winner: winnerForce });
+    }
+  }
+
   /** 이 무장들로 지금 설 수 있는 진형 중 가장 센 것(없으면 null) */
   function formationOf(officerIds) {
     var off = global.DG.off, best = null, i, j, top;
@@ -344,6 +388,7 @@
       report.campId = encamp(fromId, toId, atk, baggage, report).id;
     }
 
+    checkHistoryBranch(report);
     core.emit('rtk:battle', report);
     core.emit('changed');
     core.persist();
@@ -678,6 +723,16 @@
     var oldForce = to.force;
     var i;
 
+    /* "보스전"(README 여덟 축) — 성을 잃기 전, 그 성이 데리고 있던 수비 무장
+       중 `boss:true` 가 있었는지 먼저 본다(아래서 이 사람들 자리가 옮겨지기
+       전에 확인해야 한다). 새 전투 판정은 없다 — fight()/capture() 가 이미
+       끝낸 결과에 보상만 얹는다. */
+    var bossBeaten = null;
+    for (i = 0; i < def.officers.length; i++) {
+      var bh = off.find(def.officers[i]);
+      if (bh && bh.boss) { bossBeaten = bh; break; }
+    }
+
     var fled = [], caught = [];
     var refuge = null;
     var adj = CD.find(toId).adj;
@@ -730,6 +785,41 @@
       report.log.push('🏃 달아남 — ' + fled.map(function (x) { return off.find(x).name; }).join(', '));
     }
     core.log('🚩 ' + CD.find(toId).name + ' 함락 — ' + R.forceName(newForce), 'good');
+
+    if (bossBeaten) {
+      var bf = R.force(newForce);
+      var bonusGold = 600;
+      if (bf) { bf.gold += bonusGold; }
+      if (ID && atk.officers.length) {
+        var boid = atk.officers[Math.floor(Math.random() * atk.officers.length)];
+        var bit = ID.randomItem();
+        off.equip(boid, bit.id);
+        var bh2 = off.find(boid);
+        report.log.push('👑 ' + bossBeaten.name + '(' + bossBeaten.faction + ') 을(를) 꺾었다! 금 ' +
+          core.fmt(bonusGold) + ' · ' + bit.emoji + bit.name + ' → ' + (bh2 ? bh2.name : boid));
+      } else {
+        report.log.push('👑 ' + bossBeaten.name + '(' + bossBeaten.faction + ') 을(를) 꺾었다! 금 ' + core.fmt(bonusGold));
+      }
+      core.log('👑 보스급 수비 무장 ' + bossBeaten.name + ' 을(를) 꺾었다 — ' + R.forceName(newForce), 'good');
+    }
+
+    /* "탐험"(README 여덟 축, 2026-09-10) — 표시해 둔 랜드마크 성을 **처음**
+       함락하면 한 번뿐인 발견 보상을 준다(재정복은 해당 없다 — 이미
+       발견된 곳이다). 새 판정이 아니라 capture() 가 이미 끝낸 결과에
+       보상만 더한다(보스전과 같은 결). */
+    var cityDef = CD.find(toId);
+    if (cityDef && cityDef.landmark) {
+      st.discovered = st.discovered || {};
+      if (!st.discovered[toId]) {
+        st.discovered[toId] = true;
+        var lf = R.force(newForce);
+        var landGold = 1000;
+        if (lf) { lf.gold += landGold; }
+        report.log.push('🗺️ 처음 밟는 땅 — ' + cityDef.name + '(' + cityDef.hanja + ') 발견! 금 ' + core.fmt(landGold));
+        core.log('🗺️ ' + cityDef.name + ' 을(를) 처음으로 밟았다 — ' + R.forceName(newForce), 'good');
+        core.emit('rtk:discover', { city: toId, force: newForce });
+      }
+    }
 
     /* 세력이 통째로 지워졌는가 — 주인 없던 성(한국 지역 등, oldForce===null)을
        처음 뺏는 것은 "멸망"이 아니다. 그 성은 애초에 세력이 아니었다 */
@@ -1375,6 +1465,7 @@
     CAMP_DECAY: CAMP_DECAY, CAMP_QUIT: CAMP_QUIT, CAMP_MIN: CAMP_MIN,
     armyPower: armyPower, topBy: topBy, duel: duel, fireRoll: fireRoll,
     FORMATIONS: FORMATIONS, formationOf: formationOf,
+    HISTORY_BRANCHES: HISTORY_BRANCHES, checkHistoryBranch: checkHistoryBranch,
     reinforce: reinforce, reliefOf: reliefOf, forecast: forecast,
     canMarch: canMarch, march: march, marchInteractive: marchInteractive, capture: capture,
     transfer: transfer, moveOfficer: moveOfficer,

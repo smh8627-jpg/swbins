@@ -362,11 +362,15 @@
 
   /* ── 천축(天竺) 지역 수비 무장 (2026-09-10, 여섯째 확장) — 앞 다섯과 같은 결.
      era 는 전부 '천축(가상)' — 실존 인물이 아니다(루트 CLAUDE.md 이름 정책).
-     faction 은 지키는 성 이름(신독·건타라 등)을 그대로 쓴다(앞 지역과 같은 관례). */
+     faction 은 지키는 성 이름(신독·건타라 등)을 그대로 쓴다(앞 지역과 같은 관례).
+     `boss: true` — 2026-09-10 "보스전"(README 여덟 축) 표시. 지역 허브를 지키는
+     가장 센 수비 무장 한 명에게만 붙였다. `war.js` `capture()`가 이 표시를 보고
+     쓰러뜨렸을 때 보상을 더 준다 — 새 전투 판정이 아니라 기존 fight()/capture()
+     결과에 얹는 보상일 뿐이다. */
   var TIANZHU_OFFICERS = [
     { id: 'tz_beonwang',  name: '번왕', hanja: '番王', era: '천축(가상)', faction: '신독',
       rarity: 4, trait: 'command', emoji: '🐘', quote: '코끼리 부대 앞에서는 어떤 성벽도 오래 못 버팁니다.',
-      stats: { might: 74, wisdom: 60, command: 86 } },
+      stats: { might: 74, wisdom: 60, command: 86 }, boss: true },
     { id: 'tz_hyanggae',  name: '향개', hanja: '香蓋', era: '천축(가상)', faction: '신독',
       rarity: 3, trait: 'wisdom', emoji: '🕉️', quote: '항하의 물은 마르지 않듯, 이 땅의 셈도 끝이 없습니다.',
       stats: { might: 40, wisdom: 82, command: 62 } },
@@ -433,7 +437,7 @@
       stats: { might: 76, wisdom: 40, command: 62 } },
     { id: 'mb_seonwoo',   name: '선우', hanja: '單于', era: '막북(가상)', faction: '운중',
       rarity: 4, trait: 'command', emoji: '👑', quote: '초원의 여러 부족이 제 깃발 아래 모입니다.',
-      stats: { might: 78, wisdom: 56, command: 90 } }
+      stats: { might: 78, wisdom: 56, command: 90 }, boss: true }
   ];
 
   /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
@@ -470,7 +474,7 @@
       stats: { might: 78, wisdom: 42, command: 64 } },
     { id: 'ly_jeonchung', name: '전충', hanja: '典沖', era: '임읍(가상)', faction: '전충',
       rarity: 4, trait: 'command', emoji: '🏯', quote: '벽돌로 쌓은 성벽은 불에도 잘 안 무너집니다.',
-      stats: { might: 74, wisdom: 60, command: 88 } },
+      stats: { might: 74, wisdom: 60, command: 88 }, boss: true },
     { id: 'ly_byeokjeon', name: '벽전', hanja: '甓塼', era: '임읍(가상)', faction: '전충',
       rarity: 3, trait: 'wisdom', emoji: '🧱', quote: '벽돌 굽는 가마 불은 밤에도 꺼지지 않습니다.',
       stats: { might: 44, wisdom: 76, command: 64 } },

@@ -668,6 +668,7 @@
     }
 
     rollDisasters();
+    rollScouting();
     driftLoyalty();
     /* 이탈은 충성이 움직인 **뒤에** 본다 — 먼저 보면 이 달에 깎인 이간이 안 먹는다 */
     if (global.DG.diplo) { global.DG.diplo.checkDefection(); }
@@ -753,6 +754,17 @@
       if (got) { out.found = got; }
     }
     return out;
+  }
+
+  /**
+   * "무장 수집"(README 여덟 축, 2026-09-10) — 문답(학당)을 안 풀어도 매달
+   * 조금씩 재야가 드러나는 축. **새 등용 판정을 만들지 않는다** — 이미 있는
+   * `revealFree()`(문답이 학식을 채웠을 때 부르던 바로 그 함수)를 달마다
+   * 작은 확률로 그대로 부른다. 세작(細作)이 저절로 소문을 물어 온다는 결이다.
+   */
+  function rollScouting() {
+    if (Math.random() > core.tuned('rtk.scoutChance', 0.12)) { return null; }
+    return revealFree();
   }
 
   /** 우리 땅에 묻힌 재야 하나를 드러낸다 (가장 귀한 사람부터) */
@@ -869,7 +881,7 @@
     marketRate: marketRate, trade: trade,
     settleMonth: settleMonth, rollDisasters: rollDisasters, driftLoyalty: driftLoyalty,
     endMonth: endMonth, checkResult: checkResult,
-    study: study, revealFree: revealFree,
+    study: study, revealFree: revealFree, rollScouting: rollScouting,
     summary: summary, ranking: ranking
   };
 })(window);

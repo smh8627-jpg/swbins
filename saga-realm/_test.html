@@ -1079,6 +1079,49 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
          ' · ' + guard + '달만에 도착');
     });
 
+    /* ── 여덟 축 중 남은 넷 (2026-09-10, README 로드맵) ────── */
+
+    t('역사 분기 — 관도대전은 조조·원소의 첫 충돌에서 한 번만 갈린다', function () {
+      fresh('cao');
+      R.state().history = {};
+      var f = R.force('cao'), goldBefore = f.gold;
+      var rep1 = { won: true, force: 'cao', defForce: 'shao', log: [] };
+      W.checkHistoryBranch(rep1);
+      var rep2 = { won: true, force: 'cao', defForce: 'shao', log: [] };
+      W.checkHistoryBranch(rep2);   // 같은 두 세력, 두 번째는 다시 안 뜬다
+      return !!R.state().history.guandu && f.gold === goldBefore + 800 &&
+        rep1.log.length === 1 && rep1.log[0].indexOf('관도대전') >= 0 && rep2.log.length === 0 &&
+        ('1차: ' + rep1.log[0] + ' · 2차는 조용함');
+    });
+
+    t('탐험·보스전 — 랜드마크 성을 처음 함락하면 발견 보상이, boss 수비 무장을 꺾으면 처치 보상이 함께 붙는다', function () {
+      /* 신독(천축 관문 다음 성)은 이 세션이 추가한 landmark 이자 boss(번왕)가
+         지키는 성이라 한 번의 함락으로 "탐험"·"보스전" 둘 다 확인된다 */
+      fresh('cao');
+      var lord = FD.force('cao').lord;
+      R.city('yongchang').force = 'cao';
+      R.city('yongchang').troops = 30000; R.city('yongchang').food = 999999;
+      off.placeAt(lord, 'yongchang', 'cao');
+      var f = R.force('cao'), goldBefore = f.gold;
+      var rep = W.march('yongchang', 'shendu', [lord], 25000);
+      if (!rep.ok || !rep.won) { return false; }
+      var landmarkLine = rep.log.some(function (l) { return l.indexOf('처음 밟는') >= 0; });
+      var bossLine = rep.log.some(function (l) { return l.indexOf('번왕') >= 0; });
+      return landmarkLine && bossLine && R.state().discovered.shendu === true &&
+        f.gold === goldBefore + 600 + 1000 &&
+        ('금 ' + goldBefore + '→' + f.gold + ' (보스 600 + 발견 1,000)');
+    });
+
+    t('무장 수집 — 세작 손잡이를 100%로 잡으면 문답 없이도 매달 재야가 드러난다', function () {
+      fresh('cao');
+      var before = C.tuned('rtk.scoutChance', 0.12);
+      C.setTune('rtk.scoutChance', 1);
+      var got = R.rollScouting();
+      C.setTune('rtk.scoutChance', before);
+      return !!got && off.rec(got.id).found === true &&
+        ('세작이 ' + got.name + ' 의 소문을 물어왔다');
+    });
+
     /* ── 수군 (물길 · 배 · 수전) ─────────────────────── */
 
     t('물길은 양쪽이 다 강일 때만 난다', function () {
