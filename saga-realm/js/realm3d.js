@@ -572,7 +572,11 @@
    *  같은 성은 늘 같은 자리에 같은 것이 선다(해시 기반 — 매번 안 흔들린다) */
   function scatterAround(city, seq) {
     var cx = worldX(city.x), cz = worldZ(city.y);
-    var n = city.land === 'mount' ? 2 : (city.land === 'hill' ? 2 : 3);
+    /* 2026-09-10 — "맵이 텅 비어 보인다" 피드백으로 성 하나당 1개씩 늘렸다.
+       카메라가 가장 오래 머무는 자리(성 바로 곁)라 여기를 조금만 늘려도
+       체감이 크고, 성 하나당 늘어난 수(93성 × 1)도 저 아래 scatterField
+       증가분보다 훨씬 적어 성능 부담이 작다. */
+    var n = city.land === 'mount' ? 3 : (city.land === 'hill' ? 3 : 4);
     var i;
     for (i = 0; i < n; i++) {
       var hh = hashOf(city.id + ':' + i);
@@ -588,9 +592,17 @@
   /** 성 사이 빈 들 — 성마다 두르는 `scatterAround`/`scatterSmall` 는 성 둘레
    *  6~13 유닛에만 꽂혀서, 그 사이 넓은 빈칸은 늘 판판했다(퀄리티 피드백,
    *  2026-09-04). 성 좌표를 담는 사각형을 격자로 훑으며 **가장 가까운 성의
-   *  land** 를 물려받아 그 결에 맞는 소품을 성기게(칸마다 18% 확률) 흩는다.
-   *  성 발밑(반경 16유닛)은 건너뛴다 — `cityDressing`이 이미 그 자리를 쓴다.
-   *  칸 좌표 하나로 심을지·무엇을·어디에를 다 정해 늘 같은 그림이 선다. */
+   *  land** 를 물려받아 그 결에 맞는 소품을 흩는다. 성 발밑(반경 16유닛)은
+   *  건너뛴다 — `cityDressing`이 이미 그 자리를 쓴다. 칸 좌표 하나로 심을지·
+   *  무엇을·어디에를 다 정해 늘 같은 그림이 선다.
+   *
+   *  2026-09-10 — "맵이 아직 텅 빈 것 같다, 자연스럽고 아름답게" 피드백으로
+   *  칸마다 확률을 18%→26%로 올렸다(칸 크기는 그대로 18 — 성능을 생각해
+   *  칸 수 자체는 안 늘리고 당첨률만 올렸다, 전체 소품 수는 약 605→874개
+   *  선이다). 또한 평야·강가 들판 당첨 칸의 12%는 나무 대신 **작은 화전
+   *  마을**(집 한 채 + 우물)을 세운다 — `cityDressing`이 이미 쓰는 CC0
+   *  집·우물을 그대로 재사용한다("건물이나 주변 환경이나" 다 비어 보인다는
+   *  지적에 자연물만이 아니라 사람 손길도 보태려는 것). */
   function scatterField(seq) {
     var cities = cityData().CITIES, i, k;
     var minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -605,7 +617,7 @@
     for (var gx = minX; gx < maxX; gx += cell) {
       for (var gz = minZ; gz < maxZ; gz += cell) {
         var hh = hashOf('field:' + Math.round(gx) + ':' + Math.round(gz));
-        if (hh % 100 >= 18) { continue; }
+        if (hh % 100 >= 26) { continue; }
         var jx = gx + ((hh >> 6) % cell) - cell / 2;
         var jz = gz + ((hh >> 12) % cell) - cell / 2;
 
@@ -619,6 +631,15 @@
         var land = near.land || 'plain';
         var pick = (hh >> 18) % 10;
         var kind, scaleH;
+        /* 화전 마을 — 평야·강가에서만, 당첨 칸의 12%(hh 상위 비트를 또 하나
+           쓴다 — 위치·종류 결정과 안 겹치게) */
+        if ((land === 'plain' || land === 'river') && ((hh >> 22) % 100) < 12) {
+          addProp('house', 'field:' + Math.round(jx) + ':' + Math.round(jz) + ':house',
+            jx, jz, 1.6 + (hh % 5) / 10, (hh % 628) / 100, seq);
+          addProp('well', 'field:' + Math.round(jx) + ':' + Math.round(jz) + ':well',
+            jx + 2.4, jz + 1.6, 0.7, 0, seq);
+          continue;
+        }
         if (land === 'mount') {
           kind = pick < 6 ? 'rock' : 'mount';
           scaleH = kind === 'mount' ? (5 + (hh % 4)) : 0.8;
