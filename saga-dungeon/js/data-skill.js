@@ -26,16 +26,22 @@
  * 점수는 **직업마다 따로** 센다 — 무기를 바꿔도 그 나무의 점수는 그대로 남는다.
  *
  * ── 나무의 모양 ────────────────────────────────────────────
- * 직업마다 **네 갈래 × 세 단계 = 열둘**(2026-09-10까지는 세 갈래·아홉이었다
- * — 사용자가 "스킬이 다양해야 하고" · "더 추가해" 로 넷째 갈래를 더했다).
- * 원작은 세 탭 × 열이지만, 이 판은 인물이 여럿이고 레벨이 낮게 오르므로
- * 열둘이면 끝까지 타 볼 수 있다.
+ * 직업마다 **일곱 갈래 × 세 단계 = 스물하나**(2026-09-10 하루에 다섯 번
+ * 늘었다 — 세 갈래·아홉 → "스킬이 다양해야 하고"·"더 추가해"로 넷째 →
+ * "더 추가해"로 다섯째 → "응 진행해"로 여섯째 → 다시 "응 진행해"로
+ * 일곱째). 더 늘려 달라고 하면 같은 요령으로 여덟째도 열 수 있다 —
+ * 막힌 이유가 없다(`ui.js`의 `br < 7` 하나만 갈래 수에 맞춰 늘리면
+ * 된다. 모양×원소 조합은 다섯 모양(swing·bolt·nova·dash·chain) ×
+ * 다섯 원소(phys·fire·cold·lit·pois·chi 여섯이니 실은 서른 자리) 중
+ * 아직 안 채운 자리가 직업마다 여럿 남아 있어 당분간 재료가 안
+ * 바닥난다). 원작은 세 탭 × 열이지만, 이 판은 인물이 여럿이고 레벨이
+ * 낮게 오르므로 스물하나면 끝까지 타 볼 수 있다.
  *   · 한 무예는 **다섯 단**까지 올린다
  *   · **앞 단계에 1점이 있어야** 다음 단계가 열린다 (원작의 그 규칙)
  *   · 점수는 **인물 레벨만큼** 생긴다 — 인물마다 따로 센다
  *
  * ── 왜 '모양(shape)' 으로 짰나 ──────────────────────────────
- * 열둘 × 다섯 직업 = 예순인데, 예순 개를 따로 구현하면 손을 못 댄다.
+ * 스물하나 × 다섯 직업 = 백다섯인데, 백다섯 개를 따로 구현하면 손을 못 댄다.
  * 원작의 스킬도 실은 **몇 가지 모양**이 원소·수치만 바꿔 가며 되풀이된다.
  * 그래서 모양만 dungeon.js 에 두고, 아래 표는 그 모양에 값을 끼운다.
  *
@@ -45,6 +51,13 @@
  *   curse   둘레의 적을 약하게        summon  분신을 세운다
  *   chain   가까운 적을 치고 다음 적으로 튄다(2026-09-10 신설, 넷째 갈래 전용)
  *   passive 늘 붙어 있다 (쓰지 않는다)
+ *
+ * 다섯째 갈래부터는 새 모양을 안 늘렸다 — 대신 **그 직업이 여태 한 번도
+ * 안 써 본 모양·원소 조합**을 채워 넣는 쪽으로 갔다(궁장의 첫 근접기,
+ * 무장의 첫 원거리기, 여섯째 갈래는 이미 모든 모양을 갖춘 직업(방사·
+ * 도독)엔 **안 써 본 원소**를 얹는 식). 참고 — `curse`·`heal`·`buff`·
+ * `summon` 은 `el`(원소)을 안 읽는다(다치는 판정을 안 하거나 상태만
+ * 바꾼다) — 이 네 모양엔 `el`을 안 붙인다, 붙여도 조용히 무시된다.
  *
  * 무예를 늘릴 때는 SKILLS 에 한 줄. dungeon.js 는 shape 만 보고 굴린다.
  */
@@ -108,8 +121,8 @@
     return out;
   }
 
-  /* ── 무예 예순 ───────────────────────────────────────────
-   * cls    직업 · br 갈래(0~3) · row 단계(0~2)
+  /* ── 무예 아흔 ────────────────────────────────────────────
+   * cls    직업 · br 갈래(0~5) · row 단계(0~2)
    * shape  모양 (위 주석)
    * cost   기력 · cd 재냉각(초) · el 결(없으면 물리)
    * v      1단 기준 값 (모양마다 뜻이 다르다 — 아래 각 줄에 적었다)
@@ -315,7 +328,165 @@
       desc: '음기를 둘러 손이 닿는 대로 친다.' },
     { key: 'y_possess', cls: 'mystic', br: 3, row: 2, name: '귀합(鬼合)', emoji: '🕯️',
       shape: 'buff', cost: 32, cd: 16, v: 35, grow: 9, sec: 7, eff: 'atkPct',
-      desc: '한동안 음병의 기운이 몸에 실려 공격이 세진다.' }
+      desc: '한동안 음병의 기운이 몸에 실려 공격이 세진다.' },
+
+    /* ── 다섯째 갈래(2026-09-10, 같은 세션에 "더 추가해") — 새 모양은
+     * 안 늘리고, 그 직업이 여태 한 번도 안 써 본 모양만 골라 채운다. */
+    { key: 'a_flourish', cls: 'archer', br: 4, row: 0, name: '궁신무(弓身舞)', emoji: '🥋',
+      shape: 'swing', cost: 20, cd: 5, v: 1.5, grow: 0.35, r: 1.6, kb: 18,
+      desc: '활대로 후려친다. 가까이 붙은 적에게 쓴다.' },
+    { key: 'a_speedy', cls: 'archer', br: 4, row: 1, name: '속사태세(速射態勢)', emoji: '🏃',
+      shape: 'buff', cost: 28, cd: 14, v: 32, grow: 8, sec: 6, eff: 'atkSpdPct',
+      desc: '한동안 손이 훨씬 빨라진다.' },
+    { key: 'a_hawk', cls: 'archer', br: 4, row: 2, name: '응사소환(鷹使召喚)', emoji: '🦅',
+      shape: 'summon', cost: 36, cd: 16, v: 1, grow: 1, sec: 14,
+      desc: '매를 불러 대신 싸우게 한다.' },
+
+    { key: 'w_throw', cls: 'warrior', br: 4, row: 0, name: '투창(投槍)', emoji: '🎯',
+      shape: 'bolt', cost: 16, cd: 4, v: 1.6, grow: 0.4,
+      desc: '창을 던진다. 곧게 나간다.' },
+    { key: 'w_regen', cls: 'warrior', br: 4, row: 1, name: '회생(回生)', emoji: '💗',
+      shape: 'heal', cost: 30, cd: 16, v: 16, grow: 6,
+      desc: '상처를 다잡아 체력을 되찾는다.' },
+    { key: 'w_hound', cls: 'warrior', br: 4, row: 2, name: '군견소환(軍犬召喚)', emoji: '🐕',
+      shape: 'summon', cost: 34, cd: 15, v: 1, grow: 1, sec: 13,
+      desc: '군견을 풀어 대신 싸우게 한다.' },
+
+    { key: 's_blink', cls: 'scholar', br: 4, row: 0, name: '축지(縮地)', emoji: '⚡',
+      shape: 'dash', cost: 20, cd: 7, v: 1.3, grow: 0.3, el: 'lit',
+      desc: '번개처럼 파고든다.' },
+    { key: 's_hex', cls: 'scholar', br: 4, row: 1, name: '저주(咀呪)', emoji: '🕸️',
+      shape: 'curse', cost: 24, cd: 9, v: 30, grow: 8, r: 130, sec: 5,
+      desc: '적을 굼뜨고 약하게 만든다.' },
+    { key: 's_insight', cls: 'scholar', br: 4, row: 2, name: '심득(心得)', emoji: '🧠',
+      shape: 'buff', cost: 32, cd: 15, v: 38, grow: 9, sec: 7, eff: 'skillPct',
+      desc: '한동안 무예의 위력이 크게 오른다.' },
+
+    { key: 'm_javelin', cls: 'marshal', br: 4, row: 0, name: '표창(標槍)', emoji: '🎯',
+      shape: 'bolt', cost: 16, cd: 4, v: 1.5, grow: 0.35, el: 'chi',
+      desc: '기를 실은 창을 던진다.' },
+    { key: 'm_reserve', cls: 'marshal', br: 4, row: 1, name: '원군소환(援軍召喚)', emoji: '🛡️',
+      shape: 'summon', cost: 36, cd: 16, v: 1, grow: 1, sec: 14,
+      desc: '원군을 불러 대신 싸우게 한다.' },
+    { key: 'm_precision', cls: 'marshal', br: 4, row: 2, name: '필중(必中)', emoji: '🎯',
+      shape: 'buff', cost: 30, cd: 15, v: 12, grow: 4, sec: 6, eff: 'critPct',
+      desc: '한동안 급소를 정확히 노린다.' },
+
+    { key: 'y_soulbolt', cls: 'mystic', br: 4, row: 0, name: '혼탄(魂彈)', emoji: '🔮',
+      shape: 'bolt', cost: 16, cd: 3, v: 1.6, grow: 0.4, el: 'chi',
+      desc: '넋을 실은 기를 쏜다.' },
+    { key: 'y_specter', cls: 'mystic', br: 4, row: 1, name: '귀보(鬼步)', emoji: '👻',
+      shape: 'dash', cost: 20, cd: 7, v: 1.3, grow: 0.3, el: 'pois',
+      desc: '혼백처럼 스며들어 파고든다.' },
+    { key: 'y_soulmend', cls: 'mystic', br: 4, row: 2, name: '혼백치유(魂魄治癒)', emoji: '💗',
+      shape: 'heal', cost: 34, cd: 18, v: 20, grow: 7,
+      desc: '떠도는 기운을 모아 상처를 아문다.' },
+
+    /* ── 여섯째 갈래(2026-09-10, 같은 세션에 다시 "더 추가해") — 궁장·
+     * 무장·책사는 아직 안 남은 모양 자리(대시·회복·저주)부터 채우고,
+     * 이미 모양을 다 갖춘 도독·방사는 **안 써 본 원소**로 채운다. */
+    { key: 'a_dashshot', cls: 'archer', br: 5, row: 0, name: '질주사(疾走射)', emoji: '💨',
+      shape: 'dash', cost: 18, cd: 6, v: 1.3, grow: 0.3,
+      desc: '몸을 날려 스치며 벤다. 궁장의 첫 돌진기.' },
+    { key: 'a_firstaid', cls: 'archer', br: 5, row: 1, name: '응급처치(應急處置)', emoji: '💗',
+      shape: 'heal', cost: 26, cd: 14, v: 14, grow: 5,
+      desc: '상처를 싸매 체력을 되찾는다.' },
+    { key: 'a_gale', cls: 'archer', br: 5, row: 2, name: '기환시(氣環矢)', emoji: '🌀',
+      shape: 'nova', cost: 30, cd: 9, v: 2.1, grow: 0.5, r: 130, el: 'chi',
+      desc: '기를 실은 화살비. 시우(矢雨)와 달리 기 결이다.' },
+
+    { key: 'w_intimidate', cls: 'warrior', br: 5, row: 0, name: '위해(威嚇)', emoji: '📛',
+      shape: 'curse', cost: 24, cd: 9, v: 30, grow: 8, r: 130, sec: 5,
+      desc: '노호로 적을 굼뜨고 약하게 만든다. 무장의 첫 저주.' },
+    { key: 'w_frostcleave', cls: 'warrior', br: 5, row: 1, name: '빙인참(氷刃斬)', emoji: '🧊',
+      shape: 'swing', cost: 24, cd: 6, v: 1.8, grow: 0.4, r: 1.7, kb: 30, el: 'cold',
+      desc: '날을 얼려 벤다. 맞은 적이 굼떠진다.' },
+    { key: 'w_thunderlance', cls: 'warrior', br: 5, row: 2, name: '벽력창(霹靂槍)', emoji: '⚡',
+      shape: 'bolt', cost: 22, cd: 6, v: 1.8, grow: 0.45, el: 'lit',
+      desc: '벼락을 실어 던진다.' },
+
+    { key: 's_restore', cls: 'scholar', br: 5, row: 0, name: '축기회복(蓄氣回復)', emoji: '💗',
+      shape: 'heal', cost: 30, cd: 16, v: 16, grow: 6,
+      desc: '기를 모아 상처를 아문다. 책사의 첫 회복.' },
+    { key: 's_plague', cls: 'scholar', br: 5, row: 1, name: '역병(疫病)', emoji: '🦠',
+      shape: 'nova', cost: 32, cd: 10, v: 2.1, grow: 0.5, r: 130, el: 'pois',
+      desc: '둘레에 역병을 퍼뜨린다.' },
+    { key: 's_venombolt', cls: 'scholar', br: 5, row: 2, name: '독무탄(毒霧彈)', emoji: '☠️',
+      shape: 'bolt', cost: 18, cd: 4, v: 1.5, grow: 0.4, el: 'pois',
+      desc: '독무를 뭉쳐 던진다.' },
+
+    { key: 'm_flamesaber', cls: 'marshal', br: 5, row: 0, name: '화도(火刀)', emoji: '🔥',
+      shape: 'swing', cost: 24, cd: 6, v: 1.9, grow: 0.4, r: 1.7, kb: 26, el: 'fire',
+      desc: '칼날에 불을 둘러 벤다. 도독의 첫 불.' },
+    { key: 'm_venomfield', cls: 'marshal', br: 5, row: 1, name: '독진(毒陣)', emoji: '☠️',
+      shape: 'nova', cost: 32, cd: 10, v: 2.2, grow: 0.5, r: 140, el: 'pois',
+      desc: '둘레에 독 기운을 퍼뜨린다.' },
+    { key: 'm_frostcharge', cls: 'marshal', br: 5, row: 2, name: '빙보(氷步)', emoji: '🧊',
+      shape: 'dash', cost: 20, cd: 7, v: 1.4, grow: 0.35, el: 'cold',
+      desc: '얼음을 두르고 파고든다.' },
+
+    { key: 'y_thunderdoom', cls: 'mystic', br: 5, row: 0, name: '뇌쇄(雷殺)', emoji: '⚡',
+      shape: 'nova', cost: 30, cd: 9, v: 2.2, grow: 0.5, r: 130, el: 'lit',
+      desc: '벼락이 둘레에 떨어진다. 방사의 첫 벼락.' },
+    { key: 'y_hellstrike', cls: 'mystic', br: 5, row: 1, name: '화령타(火靈打)', emoji: '🔥',
+      shape: 'swing', cost: 24, cd: 6, v: 1.8, grow: 0.4, r: 1.7, kb: 22, el: 'fire',
+      desc: '귀화(鬼火)를 둘러 손이 닿는 대로 친다.' },
+    { key: 'y_frostchain', cls: 'mystic', br: 5, row: 2, name: '빙쇄(氷鎖)', emoji: '🧊',
+      shape: 'chain', cost: 24, cd: 9, v: 1.8, grow: 0.4, el: 'cold',
+      desc: '언 기운이 적 사이를 옮겨 붙는다.' },
+
+    /* ── 일곱째 갈래(2026-09-10, "응 진행해") — 다섯 갈래·여섯째와 같은
+     * 요령: 모양은 안 늘리고, 그 직업이 아직 안 써 본 모양×원소 조합을
+     * 채운다. */
+    { key: 'a_flamedance', cls: 'archer', br: 6, row: 0, name: '염인무(炎刃舞)', emoji: '🔥',
+      shape: 'swing', cost: 22, cd: 6, v: 1.7, grow: 0.4, r: 1.7, kb: 22, el: 'fire',
+      desc: '활대에 불을 둘러 후려친다.' },
+    { key: 'a_venomchain', cls: 'archer', br: 6, row: 1, name: '독쇄시(毒鎖矢)', emoji: '🔗',
+      shape: 'chain', cost: 24, cd: 9, v: 1.8, grow: 0.4, el: 'pois',
+      desc: '독 기운이 적 사이를 옮겨 붙는다.' },
+    { key: 'a_firerain', cls: 'archer', br: 6, row: 2, name: '화우(火雨)', emoji: '🌋',
+      shape: 'nova', cost: 32, cd: 10, v: 2.3, grow: 0.5, r: 130, el: 'fire',
+      desc: '불화살비가 둘레에 쏟아진다.' },
+
+    { key: 'w_blastfire', cls: 'warrior', br: 6, row: 0, name: '폭염진(爆炎陣)', emoji: '🌋',
+      shape: 'nova', cost: 34, cd: 11, v: 2.6, grow: 0.55, r: 140, el: 'fire',
+      desc: '땅을 굴러 불길을 뿜는다.' },
+    { key: 'w_firelance', cls: 'warrior', br: 6, row: 1, name: '화창(火槍)', emoji: '🔥',
+      shape: 'bolt', cost: 20, cd: 5, v: 1.7, grow: 0.4, el: 'fire',
+      desc: '불을 둘러 던진다.' },
+    { key: 'w_frostchain', cls: 'warrior', br: 6, row: 2, name: '빙격연환(氷擊連環)', emoji: '🔗',
+      shape: 'chain', cost: 24, cd: 9, v: 1.8, grow: 0.4, el: 'cold',
+      desc: '언 기운이 적 사이를 옮겨 붙는다.' },
+
+    { key: 's_thundercage', cls: 'scholar', br: 6, row: 0, name: '뇌옥(雷獄)', emoji: '⚡',
+      shape: 'nova', cost: 34, cd: 10, v: 2.4, grow: 0.55, r: 130, el: 'lit',
+      desc: '벼락 감옥이 둘레를 가둔다.' },
+    { key: 's_flamefan', cls: 'scholar', br: 6, row: 1, name: '화선(火扇)', emoji: '🪭',
+      shape: 'swing', cost: 22, cd: 6, v: 1.7, grow: 0.4, r: 1.8, kb: 20, el: 'fire',
+      desc: '부채에 불을 실어 휘두른다.' },
+    { key: 's_chichain', cls: 'scholar', br: 6, row: 2, name: '기쇄(氣鎖)', emoji: '🔗',
+      shape: 'chain', cost: 26, cd: 9, v: 1.9, grow: 0.45, el: 'chi',
+      desc: '기가 적 사이를 옮겨 붙는다.' },
+
+    { key: 'm_firestrike', cls: 'marshal', br: 6, row: 0, name: '화표(火標)', emoji: '🔥',
+      shape: 'bolt', cost: 20, cd: 5, v: 1.7, grow: 0.4, el: 'fire',
+      desc: '불을 실은 표창을 던진다.' },
+    { key: 'm_firestorm', cls: 'marshal', br: 6, row: 1, name: '화진(火陣)', emoji: '🌋',
+      shape: 'nova', cost: 34, cd: 11, v: 2.5, grow: 0.55, r: 140, el: 'fire',
+      desc: '둘레에 불길을 일으킨다.' },
+    { key: 'm_frostblade', cls: 'marshal', br: 6, row: 2, name: '빙인(氷刃)', emoji: '🧊',
+      shape: 'swing', cost: 22, cd: 6, v: 1.8, grow: 0.4, r: 1.7, kb: 26, el: 'cold',
+      desc: '날을 얼려 벤다.' },
+
+    { key: 'y_poisonbolt', cls: 'mystic', br: 6, row: 0, name: '독혼탄(毒魂彈)', emoji: '☠️',
+      shape: 'bolt', cost: 18, cd: 4, v: 1.6, grow: 0.4, el: 'pois',
+      desc: '독을 실은 넋을 쏜다.' },
+    { key: 'y_frostspirit', cls: 'mystic', br: 6, row: 1, name: '빙령타(氷靈打)', emoji: '🧊',
+      shape: 'swing', cost: 22, cd: 6, v: 1.7, grow: 0.4, r: 1.7, kb: 20, el: 'cold',
+      desc: '언 기운을 둘러 손이 닿는 대로 친다.' },
+    { key: 'y_infernoring', cls: 'mystic', br: 6, row: 2, name: '화염귀진(火焰鬼陣)', emoji: '🌋',
+      shape: 'nova', cost: 32, cd: 10, v: 2.3, grow: 0.5, r: 130, el: 'fire',
+      desc: '귀화가 둘레에 터진다.' }
   ];
 
   function skillByKey(k) {
