@@ -50,6 +50,22 @@
       outfit: PEOPLE + 'Female_Ranger.gltf', hair: PEOPLE + 'Hair_SimpleParted.gltf' }
   ];
 
+  /* 2026-09-10 — 외형 다양화(saga-go 의 MPFB2 몸 20종을 그대로 복사, CC0,
+   * 자세한 것은 assets/ASSET_LICENSES.md). **표 기본(DEFAULTS.hero)에는
+   * 안 넣었다** — 이 판은 `side-view3d.js`가 `asset3d.buildHero()`를 실제
+   * 플레이 화면에서 살아 있게 부른다(위 HERO_RECIPES_FALLBACK과 달리 죽은
+   * 자리가 아니다). saga-go 의 MPFB 몸은 제 클립이 0개라 saga-go 는
+   * `retargetInto()`로 UAL1 몸짓을 뼈대 비례까지 맞춰 다시 구워 입히는데,
+   * 이 판엔 그 리타깃 코드가 없다 — 지금 그냥 걷는 인물 표에 섞으면 **실제
+   * 플레이 화면에서** saga-go 가 이미 겪은 뼈대 뒤틀림 버그가 그대로 난다.
+   * **이 배열을 DEFAULTS.hero에 넣기 전에 saga-go 의 `retargetInto` 계열
+   * 함수(`needsRetarget`·`firstSkinned`·`boneNameMap`·`sceneHeight`·
+   * `dressUp`)부터 옮겨 와야 한다** — 그 전까지는 손대지 말 것. */
+  var PEOPLE_MPFB = 'assets/models/people/mpfb_real/';
+  var HERO_RECIPES_MPFB = ['female', 'male', 'v3', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12',
+    'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21', 'v22', 'v23']
+    .map(function (n) { return { key: 'mpfb_' + n, body: PEOPLE_MPFB + n + '.glb' }; });
+
   /** 표 — 지형지물은 사냥터 mood 어휘, 사람·짐승은 PLAN 36절 Phase 2 어휘 */
   var DEFAULTS = {
     'tree:near': [NAT + 'CommonTree_1.glb', NAT + 'CommonTree_2.glb', NAT + 'CommonTree_3.glb'],

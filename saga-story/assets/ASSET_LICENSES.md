@@ -213,3 +213,21 @@ CC0(저작자 표시 불필요) 곡만 새로 찾았다. **직접 들어보고 �
 파일이 아니라 `icon.js` 안에 문자열로 박혀 있다 — 출처·라이선스는
 `../saga-go/assets/ASSET_LICENSES.md`의 Lucide 항목을 그대로 따른다
 (Lucide, <https://lucide.dev>, **ISC**).
+
+## MPFB2 실사 몸 20종 — 외형 다양화 후보, 아직 미적용 (2026-09-10, `saga-go`에서 복사)
+
+`saga-go`가 2026-09-05에 뽑아 둔 MPFB2 실사 몸 20종(`assets/models/people/
+mpfb_real/{male,female,v3,v7~v23}.glb`, 각 3.5~4.3MB, 총 74MB)을 이 판에도
+복사해 뒀다 — **라이선스는 CC0**(출처·재현 경위는 `saga-go/assets/
+ASSET_LICENSES.md`의 "MPFB2 + makehuman_system_assets" 절 참고).
+
+`js/asset3d.js`에 `HERO_RECIPES_MPFB`로 **선언만 해 뒀고 `DEFAULTS.hero`엔
+안 넣었다** — **이 판은 `side-view3d.js`가 `asset3d.buildHero()`를 실제
+플레이 화면에서 살아 있게 부른다**(saga-forest·saga-realm과 달리 죽은
+자리가 아니다). 이 MPFB 몸은 제 클립이 0개라 saga-go처럼 `retargetInto()`로
+UAL1 몸짓을 뼈대 비례까지 맞춰 다시 구워 입혀야 하는데, 이 판엔 그 리타깃
+코드가 없다 — 지금 그냥 표 기본에 섞으면 **실제 플레이 화면에서** saga-go가
+이미 겪은 뼈대 뒤틀림 버그가 그대로 난다. **이 배열을 `DEFAULTS.hero`에
+넣기 전에 saga-go 의 `retargetInto` 계열 함수(`needsRetarget`·
+`firstSkinned`·`boneNameMap`·`sceneHeight`·`dressUp`)부터 반드시 옮겨 올
+것.**
