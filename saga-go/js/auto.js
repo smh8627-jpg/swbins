@@ -182,7 +182,7 @@
         w.walkTo(t.x, t.y);
         var dist = Math.hypot(t.x - core.save.player.pos.x, t.y - core.save.player.pos.y);
         doing = (t.kind === 'hero' ? '🤝 ' : '🐾 ') + t.ref.name +
-          '(' + global.DG.data.rarity[t.ref.rarity].label + ') 으로 ' + Math.round(dist) + 'm';
+          '(' + global.DG.data.rarity[t.ref.rarity].name + ') 으로 ' + Math.round(dist) + 'm';
       } else {
         aimUid = null;
         var pos = core.save.player.pos;
