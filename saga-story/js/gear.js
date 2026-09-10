@@ -224,22 +224,45 @@
 
   var SELL_RATE = 0.3;          // 판 값은 산 값의 3할 (원작도 헐값이다)
 
+  /* 이동 상인(PLAN 11절, 2026-09-10) — 사냥터에서 마주치면 잠깐 상점이 싸진다.
+     상점을 위치에 매지 않고(이 판은 🏪 도구줄로 언제든 연다, 그 구조는 그대로
+     둔다) **값에만** 얹는 잠깐의 버프라 새 UI가 필요 없다. `side.js`가
+     `core.save.player.merchantUntil`(끝나는 시각)만 적어 두고, 여기서 그
+     시각이 남아 있는 동안만 읽는다 */
+  var MERCHANT_DISCOUNT = 0.7;
+  function priceMul() {
+    var u = core.save.player.merchantUntil || 0;
+    return Date.now() < u ? MERCHANT_DISCOUNT : 1;
+  }
+
+  /** 원본을 물들이지 않고 price 칸만 바꾼 얕은 복사본을 낸다(할인 표시용) */
+  function withPrice(d, mul) {
+    if (mul === 1) { return d; }
+    var c = {}, k;
+    for (k in d) { if (d.hasOwnProperty(k)) { c[k] = d[k]; } }
+    c.price = Math.round(d.price * mul);
+    return c;
+  }
+
   /** 지금 살 수 있는 것 — 레벨이 오르면 목록이 는다 */
   function shopList() {
-    var lv = core.save.player.level;
-    var gears = GD.GEAR.filter(function (g) { return g.need <= lv + 2; });
-    return { gears: gears, scrolls: GD.SCROLLS.slice(), potion: { name: '탕약', price: 90 } };
+    var lv = core.save.player.level, mul = priceMul();
+    var gears = GD.GEAR.filter(function (g) { return g.need <= lv + 2; })
+      .map(function (g) { return withPrice(g, mul); });
+    var scrolls = GD.SCROLLS.map(function (s) { return withPrice(s, mul); });
+    return { gears: gears, scrolls: scrolls, potion: { name: '탕약', price: Math.round(90 * mul) } };
   }
 
   function buyGear(key) {
     var d = GD.find(key);
     if (!d) { return false; }
-    if (core.save.player.gold < d.price) { core.emit('toast', '🪙 금이 모자랍니다'); return false; }
+    var price = Math.round(d.price * priceMul());
+    if (core.save.player.gold < price) { core.emit('toast', '🪙 금이 모자랍니다'); return false; }
     if (bagLeft() <= 0) { core.emit('toast', '🎒 가방이 가득 찼습니다'); return false; }
-    core.save.player.gold -= d.price;
+    core.save.player.gold -= price;
     put(make(key));
     sfx('coin');
-    core.log('🏪 ' + d.name + ' 을(를) 샀다 · 🪙 -' + core.fmt(d.price), 'info');
+    core.log('🏪 ' + d.name + ' 을(를) 샀다 · 🪙 -' + core.fmt(price), 'info');
     core.persist();
     return true;
   }
@@ -247,8 +270,9 @@
   function buyScroll(key) {
     var sc = GD.scroll(key);
     if (!sc) { return false; }
-    if (core.save.player.gold < sc.price) { core.emit('toast', '🪙 금이 모자랍니다'); return false; }
-    core.save.player.gold -= sc.price;
+    var price = Math.round(sc.price * priceMul());
+    if (core.save.player.gold < price) { core.emit('toast', '🪙 금이 모자랍니다'); return false; }
+    core.save.player.gold -= price;
     addScroll(key, 1);
     core.persist();
     return true;
@@ -319,6 +343,6 @@
     bonus: bonus, cut: cut,
     scrollCount: scrollCount, addScroll: addScroll, apply: apply,
     shopList: shopList, buyGear: buyGear, buyScroll: buyScroll, buyPotion: buyPotion, sell: sell,
-    rollDrop: rollDrop
+    rollDrop: rollDrop, priceMul: priceMul, MERCHANT_DISCOUNT: MERCHANT_DISCOUNT
   };
 })(window);

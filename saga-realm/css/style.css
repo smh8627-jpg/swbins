@@ -1218,8 +1218,11 @@ body.tilted3 #vignette {
 #realm {
   position: fixed; inset: 76px 12px 84px; z-index: 6;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  /* iOS 사파리는 user-scalable=no 를 무시한다 — 더블탭 줌이 성 누르기를 방해한다 */
-  touch-action: manipulation;
+  /* 2026-09-10 — 한 손가락 드래그로 지도를 직접 미는 손짓(ui-rtk.js bindMapDrag())을
+     들이면서 manipulation → none 으로 바꿨다. 어차피 이 안은 스크롤 안 되는
+     고정 상자라 브라우저 제스처가 가로챌 게 없고, none 이 여전히 iOS 더블탭
+     줌(예전에 manipulation 을 고른 이유)까지 막아 준다 — realm3d 캔버스와 같은 값 */
+  touch-action: none;
 }
 body.sheet-open #realm { right: calc(min(420px, 92vw) + 20px); }
 @media (max-width: 780px) { body.sheet-open #realm { right: 12px; } }
@@ -1255,11 +1258,46 @@ body.sheet-open #realm3d { right: calc(min(420px, 92vw) + 20px); }
 }
 .rlg { display: inline-flex; align-items: center; gap: 4px; }
 .rlg i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.rlg.me { color: var(--gold, #e8c46a); font-weight: 700; }
+.rlg.me { color: var(--gold, #e8c46a); font-weight: 700; cursor: pointer; }
 .rlg b { color: #dfe6f2; }
 
 /* 상단 '다음 달' */
 .next-btn { margin-left: 6px; white-space: nowrap; }
+
+/* ── 지도 조이스틱 · 내 땅으로 · 확대·축소(2026-09-10) ──────────
+ * 세계가 삼국지 한 판을 넘어 한국·일본·교주 등으로 늘면서, 전체를 한눈에
+ * 다 보여주던 지도는 성 하나하나를 점으로 뭉개 "내 땅이 어딘지" 알아보기
+ * 어려워졌다. saga-go 의 #gjoy 와 같은 요령으로 지도(2D·3D 다)를 옮기고
+ * 당길 수 있게 한다 — 세력을 고르기 전·시트가 지도를 덮었을 때는 숨긴다
+ * (js/ui-rtk.js `syncMapControls()`). */
+#rjoy, #rmapctl {
+  display: none; position: fixed; z-index: 8;
+  left: 14px; bottom: calc(96px + var(--safe-b));
+}
+#rjoy.show, #rmapctl.show { display: block; }
+#rjoy {
+  width: 108px; height: 108px; border-radius: 50%; touch-action: none;
+  background: rgba(20, 22, 28, .32); border: 1px solid var(--glass-br);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, .35), 0 3px 10px rgba(0, 0, 0, .25);
+}
+#rjoy-knob {
+  position: absolute; left: 50%; top: 50%; width: 46px; height: 46px;
+  margin: -23px 0 0 -23px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #cfe8ff, var(--gold) 75%, #7a5a1a);
+  border: 1px solid var(--glass-br); box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+#rmapctl {
+  left: 130px; display: none; flex-direction: column; gap: 6px;
+}
+#rmapctl.show { display: flex; }
+
+/* ── 실시간 전투 현황판(2026-09-10) ───────────────────────────
+ * `.rstat`(성 시트가 쓰는 그 줄)를 그대로 재사용한다 — 새 막대 스타일을
+ * 만들지 않는다. bhud-round 만 작은 표 하나 더한다. */
+.bhud { margin: 2px 0 8px; }
+.bhud-round {
+  font-size: 11px; color: var(--ink-dim, #93a0b4); text-align: right; margin-top: -2px;
+}
 
 /* 성 살림 한 줄 — 이름 · 막대 · 값 */
 .rstat {
@@ -1313,6 +1351,17 @@ body.sheet-open #realm3d { right: calc(min(420px, 92vw) + 20px); }
 .fcard:hover { background: rgba(255, 255, 255, .11); }
 .fcard b { font-size: 13px; }
 .fcard small { font-size: 10px; }
+
+/* 일기토 예고장(2026-09-10) — "OOO ⚔️ OOO", 초상 곁들여 */
+.bduel {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font-size: 13px; margin-bottom: 6px; flex-wrap: wrap;
+}
+.bduel img.pt {
+  width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+  border: 1.5px solid var(--glass-br); flex: 0 0 auto;
+}
+.bduel span { font-size: 15px; }
 
 /* 전황 */
 .warlog {

@@ -43,6 +43,14 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <div id="realm"></div>
 <canvas id="realm3d"></canvas>
 
+<!-- 좌하단: 지도 조이스틱 · 내 땅으로 · 확대·축소 (2D·3D 다 통한다) -->
+<div id="rjoy"><div id="rjoy-knob"></div></div>
+<div id="rmapctl">
+  <button class="icon-btn sm" id="btn-map-home" title="내 땅으로">🏠</button>
+  <button class="icon-btn sm" id="btn-map-zoomin" title="확대">➕</button>
+  <button class="icon-btn sm" id="btn-map-zoomout" title="축소">➖</button>
+</div>
+
 <!-- 우하단: 액션 독 -->
 <nav id="dock">
   <button data-sheet="city"><span>🏯</span><small>성</small></button>

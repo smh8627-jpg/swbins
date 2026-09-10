@@ -589,6 +589,67 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (f.emoji + f.name + ' ×' + f.mul + ' 확인 — ' + Math.round(withoutMul) + ' → ' + Math.round(withMul));
     });
 
+    /* ── 나이 (2026-09-10, README "다음에 채울 것" 마지막 항목) ────── */
+
+    t('birthYear·age — id마다 결정적, 시나리오를 바꾸면 나이만 그만큼 변한다', function () {
+      var id = 'sg_xiahoudun';
+      var b1 = off.birthYear(id), b2 = off.birthYear(id);
+      fresh('cao', '194');
+      var a194 = off.age(id);
+      fresh('cao', '208');
+      var a208 = off.age(id);
+      return b1 === b2 && off.birthYear(id) === b1 && (a208 - a194) === 14 &&
+        (id + ' 생년 ' + b1 + ' — 194년 ' + a194 + '세 → 208년 ' + a208 + '세');
+    });
+
+    t('agingMul — 60세까지 그대로, 이후 서서히 줄어 90세에서 바닥(0.55)', function () {
+      var m40 = off.agingMul(40), m60 = off.agingMul(60);
+      var m75 = off.agingMul(75), m90 = off.agingMul(90), m120 = off.agingMul(120);
+      return m40 === 1 && m60 === 1 && m75 < 1 && m75 > m90 && m90 === 0.55 && m120 === 0.55 &&
+        ('40세 ×' + m40 + ' · 60세 ×' + m60 + ' · 75세 ×' + m75 + ' · 90세 ×' + m90);
+    });
+
+    t('stats() — 늙으면 준다(hero.js 는 그대로, off.stats() 한 곳에서만 곱한다)', function () {
+      fresh('cao');
+      var id = 'sg_xiahoudun';
+      var raw = DG.hero.stats(id);
+      R.state().year = off.birthYear(id) + 95;   // 확실히 90세를 넘겨 바닥(0.55)을 보게 한다
+      var aged = off.stats(id);
+      var expect = Math.max(1, Math.round(raw.might * 0.55));
+      return aged.might < raw.might && aged.might === expect &&
+        ('무력 ' + raw.might + ' → ' + aged.might + '(향년 ' + off.age(id) + '세)');
+    });
+
+    t('rollAging — 군주는 안 죽는다, 늙은 부하는 죽을 수 있고 태수 자리도 비운다', function () {
+      fresh('cao');
+      var lordId = FD.force('cao').lord;
+      var id = 'sg_xiahoudun';
+      var cityId = off.rec(id).city;
+      R.city(cityId).gov = id;
+      R.state().year = off.birthYear(id) + 500;   // 사망 확률이 상한(연 60%)에 닿도록
+      /* 이 나이에선 명부 전체가 걸려 rollAging() 한 번에 Math.random() 을
+         수백 번 끌어 쓴다 — 진단 전체가 공유하는 고정 씨앗 순번이 이
+         항목 때문에 밀리면 뒤따르는 다른 항목이 죄다 흔들린다. 여기서만
+         잠깐 딴 발생기를 끼우고 끝나면 반드시 원래 것으로 되돌린다. */
+      var savedRandom = Math.random, seed = 0xC0FFEE;
+      Math.random = function () {
+        seed = (seed + 0x6D2B79F5) >>> 0;
+        var x = seed;
+        x = Math.imul(x ^ (x >>> 15), x | 1);
+        x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+      };
+      var died = false, tries = 0;
+      for (; tries < 500 && !died; tries++) {
+        off.rollAging();
+        died = off.isDead(id);
+      }
+      Math.random = savedRandom;
+      return died && !off.isDead(lordId) && R.city(cityId).gov === null &&
+        off.atCity(cityId, 'cao').every(function (h) { return h.id !== id; }) &&
+        (id + ' 이(가) ' + tries + '번째 굴림에 별세 — 군주 ' + off.find(lordId).name + ' 는 그대로');
+    });
+
     t('공이 쌓여야 승진한다 — 올리면 충성이 오른다', function () {
       fresh('cao');
       var id = 'sg_xiahoudun';

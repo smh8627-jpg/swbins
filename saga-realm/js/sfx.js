@@ -48,6 +48,15 @@
     battle_dusk:   { gap: 0.5, l: [{ v: 'noise', dur: 0.3, lp: 500, lp2: 150, gain: 0.09 }] },
     duel:          { gap: 0.4, l: [{ v: 'tone', f: 1100, f2: 700, dur: 0.08, wave: 'square', gain: 0.14 },
                                     { v: 'tone', f: 1100, f2: 700, dur: 0.08, wave: 'square', gain: 0.12, at: 0.12 }] },
+    /* 2026-09-10 — 라운드(무리 대 무리)가 부딪힐 때마다. `battle3d.js`가 합마다
+       (실시간 재생·개입형 둘 다) 부른다 — 'duel'(일기토, 날카로운 병장기 소리)과
+       달리 둔탁하게 부딪히는 느낌으로 갈랐다 */
+    round_clash:   { gap: 0.35, l: [{ v: 'noise', dur: 0.14, lp: 650, lp2: 180, gain: 0.09 },
+                                    { v: 'tone', f: 170, f2: 85, dur: 0.16, wave: 'sawtooth', gain: 0.07 }] },
+    /* 2026-09-10 — 성벽이 실제로 한 칸 무너지는 순간(합마다는 아니고, 그 중
+       성벽이 실제로 깎인 합만). 'round_clash'보다 낮고 오래 끄는 소리로 갈랐다 */
+    wall_break:    { gap: 0.6, l: [{ v: 'noise', dur: 0.22, lp: 350, lp2: 90, gain: 0.13 },
+                                    { v: 'tone', f: 120, f2: 50, dur: 0.3, wave: 'sawtooth', gain: 0.1 }] },
 
     /* 무장 */
     grow:    { gap: 0.4, l: [{ v: 'chime', notes: [523, 659], step: 0.06,

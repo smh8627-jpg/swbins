@@ -423,6 +423,37 @@ sword_attack·hit·death…). `_RM`(root motion 포함) 이 아니라 **기본�
 골라 합친다. 손잡이 `portrait3d.cute` 를 1 로 올려야 이 조합이 나온다(기본은
 EverFace).
 
+## Kenney — Roguelike Characters Pack (`assets/sprites2d/human_*.png`, 2026-09-10)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kenney (<https://kenney.nl>) |
+| **라이선스** | **CC0 1.0 Universal** (퍼블릭 도메인 헌정) |
+| **저작자 표시** | 필요 없다. 그래도 적어 둔다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-forest/assets/sprites2d/human_*.png`에서 그대로 복사(선례,
+  2026-09-02) — 원 출처는 <https://kenney.nl/assets/roguelike-characters>,
+  `kenney_roguelike-characters.zip` 안 `Spritesheet/roguelikeChar_transparent.png`.
+  같은 CC0 파일을 다섯 판 사이 재사용하는 것은 이미 있던 관례다(`saga-dungeon`
+  게시판·우편함 하드링크 절 참고) |
+
+**2026-09-10, 사용자 요청("2D 모드 캐릭터를 실제 에셋으로")**으로 2D 지도
+화면의 **사람**(`sprite.js` 의 `bake()`, `kind==='human'`)이 도형으로 절차적으로
+그리던 것을 이 시트에서 오려 낸 정지 초상 그림으로 바뀌었다. 3D 전환이 끝난
+판이라 이 2D 화면은 **저사양 폴백/2D 모드 전용**이다 — 조우·전투·초상(이미
+`portrait3d.js`)에는 안 닿는다.
+
+**트레이드오프를 saga-forest 선례와 똑같이 그대로 적는다** — 이 그림은 인물마다
+다른 색(세력색·옷·계절 물듦)·등신 4단계·그림 양식 3가지·다리 걷기 애니메이션을
+못 낸다(고정 그림 한 장이라). 인물 id 를 해시해 열넷 중 하나를 **늘 같은
+얼굴로** 고른다. 좌우 뒤집기(`stamp()` 의 `ctx.scale(-1,1)`)와 걸음
+통통거림(bounce)은 그림과 무관하게 그대로 산다. 스폰(조우 대상)의 등급은
+발밑 고리 색으로 이미 따로 표시되므로(`drawSpawn`) 몸 색을 잃어도 등급 구분은
+남는다.
+
+파일 이름·시트 좌표는 saga-forest 문서(같은 파일, `human_01.png` ~
+`human_14.png`)와 완전히 같다 — 다시 적지 않는다.
+
 ## OpenGameArt "RPG Sound Pack" — 효과음 (`assets/audio/sfx/`)
 
 **2026-09-04, 오디오 시스템을 처음 들였다.** `SAGA WEB.md` 감사에서 드러난 격차 —
