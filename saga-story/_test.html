@@ -2413,6 +2413,48 @@ window.DG_NO_TUNE = true;
         ('적 ' + before + ' → ' + after + ' (' + tries + '판째)');
     });
 
+    t('미니보스(PLAN 11절) — 그 자리를 지나면 잡졸이 크게 불려 나온다', function () {
+      if (S.active()) { S.leave(); }
+      var found = null, tries = 0, run;
+      while (!found && tries < 200) {
+        S.enter('field');
+        run = S.raw();
+        found = run.miniboss;
+        if (!found) { S.leave(); }
+        tries++;
+      }
+      if (!found) { return false; }
+      run.player.x = found.x - 10; run.player.y = run.stage.floor - S.P_H;
+      S.update(0.05);
+      var mb = run.enemies.filter(function (e) { return e.mini; })[0];
+      var common = run.enemies.filter(function (e) { return !e.mini && !e.rare; })[0];
+      return found.triggered && !!mb && !!common && mb.hpMax > common.hpMax * 5 &&
+        (mb.ref.name + ' 체력 ' + mb.hpMax + ' vs 잡졸 ' + common.hpMax + ' (' + tries + '판째)');
+    });
+
+    t('이동 상인(PLAN 11절) — 마주치면 상점이 잠깐 싸진다', function () {
+      var G = DG.gear;
+      C.save.player.merchantUntil = 0;   // 앞선 항목이 남겼을 수 있는 버프를 지운다
+      if (S.active()) { S.leave(); }
+      var found = null, tries = 0, run;
+      while (!found && tries < 200) {
+        S.enter('field');
+        run = S.raw();
+        found = run.merchant;
+        if (!found) { S.leave(); }
+        tries++;
+      }
+      if (!found) { return false; }
+      var priceBefore = G.shopList().gears[0].price;
+      run.player.x = found.x - 10; run.player.y = run.stage.floor - S.P_H;
+      S.update(0.05);
+      var priceAfter = G.shopList().gears[0].price;
+      var ok = found.triggered && priceAfter < priceBefore &&
+        Math.abs(priceAfter - Math.round(priceBefore * G.MERCHANT_DISCOUNT)) <= 1;
+      C.save.player.merchantUntil = 0;   // 뒤이은 항목에 안 새게 정리
+      return ok && ('🪙 ' + priceBefore + ' → ' + priceAfter + ' (' + tries + '판째)');
+    });
+
     t('돌진형(기병)은 뜸을 들이다 빠르게 달려든다', function () {
       if (S.active()) { S.leave(); }
       var found = null, tries = 0, run;

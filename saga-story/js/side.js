@@ -146,6 +146,14 @@
   var DODGE_INVULN = 0.35;
 
   var RARE_CHANCE = 0.07, RARE_HP_MUL = 3.2, RARE_DMG_MUL = 1.35, RARE_GAIN_MUL = 4;
+  /* 미니보스(PLAN 11절, 2026-09-10) — 희귀(3.2배)와 보스(12~17배) 사이. 새 종을
+     만들지 않고 spawnEnemy() 의 boost 인자로 기존 적 하나를 크게 불린다.
+     쿨타임 없이 매 입장 낮은 확률로 한 번, 정해진 자리 하나에서만 나온다 */
+  var MINI_CHANCE = 0.09, MINI_R = 70, MINI_HP_MUL = 7, MINI_DMG_MUL = 1.7, MINI_GAIN_MUL = 8;
+  /* 이동 상인(PLAN 11절, 2026-09-10) — 상점을 위치에 매는 구조로 바꾸지 않는다
+     (이 판은 🏪 도구줄로 언제든 연다, 그 구조가 낫다고 이미 README에 적혀
+     있다). 대신 마주치면 값에만 잠깐 얹는 버프를 준다(`gear.js`의 `priceMul()`) */
+  var MERCHANT_CHANCE = 0.12, MERCHANT_R = 70, MERCHANT_DUR = 90;
   var CHEST_CHANCE = 0.22;    // 사냥터에 걸어 들어갈 때 보물상자가 있을 확률
   var CHEST_R = 46;
   var FORAGE_CHANCE = 0.18, FORAGE_HALF = 130, FORAGE_MUL = 2;   // 채집 보너스 지역(PLAN 11절)
@@ -206,6 +214,22 @@
     return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
   }
 
+  /** 랜덤 이벤트(PLAN 11절) "미니보스" — 사냥터에 걸어 들어갈 때마다 낮은 확률로
+   *  자리가 하나 생긴다. 지나면 잡졸 하나가 그 자리에서 크게 불려 나온다
+   *  (update() 참고) — 진짜 보스(spawnBoss)와 달리 쿨타임·전용 UI가 없다 */
+  function buildMiniboss(stg) {
+    if (stg.town || Math.random() >= MINI_CHANCE) { return null; }
+    return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
+  }
+
+  /** 랜덤 이벤트(PLAN 11절) "이동 상인" — 사냥터에 걸어 들어갈 때마다 낮은
+   *  확률로 마주치는 자리가 하나 생긴다. 지나면 `MERCHANT_DUR`초 동안 상점
+   *  (🏪, 어디서든 연다)이 싸진다 — 자리를 옮기는 게 아니라 값에만 붙는다 */
+  function buildMerchant(stg) {
+    if (stg.town || Math.random() >= MERCHANT_CHANCE) { return null; }
+    return { x: 260 + Math.random() * (stg.width - 520), triggered: false };
+  }
+
   /** 사냥터에 들어간다 */
   function enter(key) {
     var stg = SD.stage(key);
@@ -226,7 +250,7 @@
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), forage: buildForageZone(stg), ambush: buildAmbush(stg),
-      npcs: buildNpcs(stg), talk: null,
+      miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), npcs: buildNpcs(stg), talk: null,
       chatCd: CHAT_EVERY * (0.7 + Math.random() * 0.6),
       kills: 0, gold: 0, startedAt: Date.now()
     };
@@ -422,6 +446,8 @@
     run.chest = buildChest(stg);
     run.forage = buildForageZone(stg);
     run.ambush = buildAmbush(stg);
+    run.miniboss = buildMiniboss(stg);
+    run.merchant = buildMerchant(stg);
     run.npcs = buildNpcs(stg); run.talk = null;
     run.player.x = goingRight ? 130 : stg.width - 160;
     run.player.y = stg.floor - P_H;
@@ -512,15 +538,19 @@
 
   var TANK_HP_MUL = 2.2, TANK_SPD_MUL = 0.6, TANK_DMG_MUL = 0.85;
 
-  function spawnEnemy(atX) {
+  /** @param boost 미니보스(§11) 전용 — {hp, dmg} 배수를 얹는다. 있으면 희귀형
+   *  굴림은 건너뛴다(두 배수가 겹쳐 값을 못 읽게 되는 것을 막는다) */
+  function spawnEnemy(atX, boost) {
     if (!run) { return; }
     var stg = run.stage;
     var lv = stg.enemyLv;
     var ref = enemyRef(lv);
     var x = atX !== undefined ? atX : 200 + Math.random() * (stg.width - 300);
-    /* 발판 위에 세우거나 바닥에 세운다 */
+    /* 발판 위에 세우거나 바닥에 세운다 — atX 로 자리를 못박아 부른 경우(습격 등)에는
+       건드리지 않는다. 안 그러면 45% 확률로 엉뚱한 발판에 떨어져 "그 자리 근처에
+       나타난다" 는 약속이 깨진다 */
     var y = stg.floor;
-    if (Math.random() < 0.45 && stg.plats.length) {
+    if (atX === undefined && Math.random() < 0.45 && stg.plats.length) {
       var pl = core.pick(stg.plats);
       x = pl[0] + Math.random() * pl[2];
       y = pl[1];
@@ -532,22 +562,25 @@
     var dmgMul = 1;
     if (role === 'tank') { hp = Math.round(hp * TANK_HP_MUL); spd *= TANK_SPD_MUL; dmgMul = TANK_DMG_MUL; }
     /* 희귀형(PLAN 11·13절, 2026-09-09) — 낮은 확률로 세다·많이 준다. 새 종을
-       만들지 않고 기존 적 하나를 통째로 불려서 만든다(데이터 늘리지 않기) */
-    var rare = Math.random() < RARE_CHANCE;
+       만들지 않고 기존 적 하나를 통째로 불려서 만든다(데이터 늘리지 않기).
+       boost(미니보스)가 있으면 이 굴림은 건너뛴다 */
+    var rare = !boost && Math.random() < RARE_CHANCE;
     if (rare) { hp = Math.round(hp * RARE_HP_MUL); dmgMul *= RARE_DMG_MUL; }
+    if (boost) { hp = Math.round(hp * boost.hp); dmgMul *= boost.dmg; }
     var e = {
       ref: ref, x: x, y: y - 22, w: 34, h: 34,
       hp: hp, hpMax: hp, dmg: Math.round((4 + lv * 1.6) * dmgMul * E_DMG),
       dir: Math.random() < 0.5 ? -1 : 1, homeY: y,
       spd: spd, phase: Math.random() * 6.28, hurt: 0, cd: 0,
       ranged: rw, shotCd: rw ? rw.cd * (0.4 + Math.random() * 0.8) : 0,
-      rare: rare, role: role
+      rare: rare, mini: !!boost, role: role
     };
     /* 돌진형(PLAN 13절) — 보스의 "뜸을 들이다 달려든다" 패턴을 그대로 빌린다
        (update() 의 charge 분기가 `e.boss || e.role === 'dash'` 를 본다) */
     if (role === 'dash') { e.chargeCd = 3 + Math.random() * 2; e.charge = 0; }
     run.enemies.push(e);
     if (rare) { core.emit('toast', '✨ 희귀 ' + ref.name + ' 등장!'); }
+    return e;
   }
 
   /* ── 입력 ─────────────────────────────────────────────── */
@@ -653,26 +686,28 @@
     run.kills += 1;
     st().kills = (st().kills || 0) + 1;
     var lv = run.stage.enemyLv;
-    var mul = e.boss ? 12 : (e.rare ? RARE_GAIN_MUL : 1);
+    var mul = e.boss ? 12 : (e.rare ? RARE_GAIN_MUL : (e.mini ? MINI_GAIN_MUL : 1));
     var gold = Math.round((6 + lv * 3) * (0.8 + Math.random() * 0.6) * mul * GAIN_GOLD);
     run.gold += gold;
     run.drops.push({ kind: 'gold', x: e.x + e.w / 2, y: e.y, vy: -180, n: gold });
     if (e.boss) {
       /* 보스는 탕약을 확정으로 떨군다 — 다음 판을 이어 갈 밑천이다 */
       run.drops.push({ kind: 'potion', x: e.x + e.w / 2 + 14, y: e.y, vy: -220, n: 3 });
-    } else if (Math.random() < DROP_POTION) {
-      run.drops.push({ kind: 'potion', x: e.x + e.w / 2 + 10, y: e.y, vy: -200, n: 1 });
+    } else if (e.mini || Math.random() < DROP_POTION) {
+      /* 미니보스도 확정으로 하나 떨군다 — 보스만큼은 아니어도 값진 싸움이다 */
+      run.drops.push({ kind: 'potion', x: e.x + e.w / 2 + 10, y: e.y, vy: -200, n: e.mini ? 2 : 1 });
     }
-    /* 장비·주문서 — 무엇이 나올지는 gear.js 가 정한다 (여기는 떨구기만 한다) */
+    /* 장비·주문서 — 무엇이 나올지는 gear.js 가 정한다 (여기는 떨구기만 한다).
+       미니보스는 보스와 같은 표를 쓴다(약한 싸움이 아니라는 보상 신호) */
     var G = global.DG.gear;
     if (G) {
-      var got = G.rollDrop(lv, !!e.boss);
+      var got = G.rollDrop(lv, !!e.boss || !!e.mini);
       if (got) {
         run.drops.push({ kind: got.kind, key: got.key, uniq: !!got.uniq,
                          x: e.x + e.w / 2 - 12, y: e.y, vy: -240, n: 1 });
       }
     }
-    core.gainExp((6 + lv * 4) * (e.boss ? 15 : (e.rare ? RARE_GAIN_MUL : 1)) * GAIN_EXP);
+    core.gainExp((6 + lv * 4) * (e.boss ? 15 : (e.rare ? RARE_GAIN_MUL : (e.mini ? MINI_GAIN_MUL : 1))) * GAIN_EXP);
     /* 사명(quest.js)이 이 소식을 듣는다 — 규칙이 서로를 부르지 않게 알림으로만 잇는다 */
     core.emit('side:kill', { ref: e.ref, boss: !!e.boss, lv: lv, stage: run.stage.key });
     if (global.DG.hero.awardParty) { global.DG.hero.awardParty((2 + lv) * (e.boss ? 8 : 1)); }
@@ -682,7 +717,7 @@
               dir: (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1,
               ref: e.ref, boss: !!e.boss, life: e.boss ? 1.1 : 0.55 });
     if (e.boss) { fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.6, big: true }); }
-    sfx(e.boss ? 'bosskill' : 'kill');
+    sfx((e.boss || e.mini) ? 'bosskill' : 'kill');
 
     var idx = run.enemies.indexOf(e);
     if (idx >= 0) { run.enemies.splice(idx, 1); }
@@ -1164,6 +1199,26 @@
       }
       sfx('boss');
       core.emit('toast', '🚨 몬스터 무리가 덮쳤다!');
+    }
+
+    /* 미니보스(PLAN 11절) — 그 자리를 지나면 잡졸 하나가 크게 불려 나온다.
+       한 판에 한 번뿐이다(triggered) */
+    if (run.miniboss && !run.miniboss.triggered && Math.abs(run.miniboss.x - px) < MINI_R) {
+      run.miniboss.triggered = true;
+      var mb = spawnEnemy(run.miniboss.x, { hp: MINI_HP_MUL, dmg: MINI_DMG_MUL });
+      if (mb) {
+        sfx('boss');
+        core.emit('toast', '👹 미니보스 ' + mb.ref.name + ' 등장!');
+      }
+    }
+
+    /* 이동 상인(PLAN 11절) — 마주치면 상점이 잠깐 싸진다. 자리를 옮기는 게
+       아니라 core.save.player.merchantUntil 만 밀어 둔다(gear.js 가 읽는다) */
+    if (run.merchant && !run.merchant.triggered && Math.abs(run.merchant.x - px) < MERCHANT_R) {
+      run.merchant.triggered = true;
+      core.save.player.merchantUntil = Date.now() + MERCHANT_DUR * 1000;
+      sfx('gold');
+      core.emit('toast', '🛒 지나가던 상인 — ' + MERCHANT_DUR + '초 동안 상점이 30% 싸집니다!');
     }
 
     /* 마을 사람끼리의 잡담 — 사냥터엔 없고, 마을(town:true)에서만, 그것도
