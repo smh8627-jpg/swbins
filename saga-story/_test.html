@@ -1136,7 +1136,7 @@ window.DG_NO_TUNE = true;
       run.mp = run.mpMax;
       var buffed = S.castSkill(1);             // 띠 1 = 부적
       var atk1 = S.status().atk;
-      p.buff = null; p.braceUntil = 0; p.invuln = 0;
+      p.buff = null; p.invuln = 0;
       unlearn();
       return healed && buffed && hp1 > hp0 && atk1 > atk0 &&
         ('체력 ' + hp0 + ' → ' + hp1 + ' · 공격 ' + atk0 + ' → ' + atk1);

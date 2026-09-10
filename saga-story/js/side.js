@@ -269,7 +269,7 @@
       stage: stg, hpMax: pw.hp, hp: pw.hp, mp: pw.mp, mpMax: pw.mp,
       player: { x: 80, y: stg.floor - P_H, vx: 0, vy: 0, facing: 1,
                 onGround: true, phase: 0, atkCd: 0, hurt: 0, invuln: 0,
-                cds: [0, 0, 0, 0, 0, 0], braceUntil: 0, buff: null,
+                cds: [0, 0, 0, 0, 0, 0], buff: null,
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0,
                 dodgeAnim: 0, drinkAnim: 0 },
       enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
@@ -277,7 +277,7 @@
       miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
       npcs: buildNpcs(stg), talk: null,
       chatCd: CHAT_EVERY * (0.7 + Math.random() * 0.6),
-      kills: 0, gold: 0, startedAt: Date.now()
+      kills: 0, gold: 0
     };
     st().stage = stg.key;
     for (var i = 0; i < stg.spawn; i++) { spawnEnemy(); }
@@ -929,7 +929,6 @@
         atk: b.atk || 1, speed: b.speed || 1, guard: b.guard || 0, regen: b.regen || 1,
         name: sk.name
       };
-      p.braceUntil = p.buff.until;               // 옛 이름 — 화면·진단이 아직 본다
       fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: 60, life: 0.4 });
     }
     core.emit('side:skill', sk.key);
