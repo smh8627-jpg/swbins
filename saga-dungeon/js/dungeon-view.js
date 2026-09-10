@@ -25,7 +25,7 @@
   var DD = null;
 
   var host = null, cv = null, ctx = null, hud = null, choiceEl = null;
-  var bottomEl = null, foeEl = null;
+  var bottomEl = null, foeEl = null, actionsEl = null;
   var lightCv = null, lightCtx = null;         // 어둠 레이어 (오프스크린)
   var shown = false;
   var keys = {};
@@ -127,9 +127,19 @@
             '<button data-dir="down">▼</button>' +
             '<button data-dir="right">▶</button>' +
           '</div>' +
+          /* 강공격·회피(2026-09-10) — 조이스틱(왼쪽)과 대칭인 오른쪽 자리.
+             #dg-bottom(HUD 바, 폭 예산이 이미 390px 실측으로 빠듯하게 짜여
+             있다)에 끼워 넣지 않는다 — 무대 위에 따로 띄운다. */
+          '<div id="dg-actions">' +
+            '<button class="dg-skill" data-heavy title="강공격 (Shift)">' +
+              '<span class="dg-sk-e">💥</span><i class="dg-sk-cd"></i></button>' +
+            '<button class="dg-skill" data-dodge title="회피 (Space)">' +
+              '<span class="dg-sk-e">💨</span><i class="dg-sk-cd"></i></button>' +
+          '</div>' +
         '</div>' +
         '<div id="dg-bottom"></div>' +
         '<div class="dg-tip">이동 <b>WASD</b> · 물약 <b>1 2 3 4</b> · 스킬 <b>Z X C V</b> · ' +
+          '강공격 <b>Shift</b> · 회피 <b>Space</b> · ' +
           '<b>화면을 누른 채 끌면</b> 그쪽으로 걷습니다 · ' +
           '<b>손가락 둘로 벌리거나 오므리면</b> 확대·축소</div>' +
       '</div>';
@@ -339,6 +349,14 @@
       e.preventDefault();
     });
 
+    actionsEl = document.getElementById('dg-actions');
+    if (actionsEl) {
+      actionsEl.addEventListener('pointerdown', function (e) {
+        if (e.target.closest('[data-heavy]')) { d().heavyAttack(); e.preventDefault(); return; }
+        if (e.target.closest('[data-dodge]')) { d().doDodge(); e.preventDefault(); }
+      });
+    }
+
     global.addEventListener('keydown', onKey);
     global.addEventListener('keyup', onKeyUp);
   }
@@ -433,6 +451,11 @@
       e.preventDefault();
       return;
     }
+    /* 강공격·회피(2026-09-10) — 스킬 넷(Z X C V)과 안 겹치는 자리.
+       Shift 는 누르고 있어도 keydown 이 반복 안 되게(브라우저 auto-repeat)
+       e.repeat 로 거른다 — 안 그러면 쥐고만 있어도 강공격이 연타된다. */
+    if (k === ' ') { d().doDodge(); e.preventDefault(); return; }
+    if (k === 'shift' && !e.repeat) { d().heavyAttack(); e.preventDefault(); return; }
     keys[k] = true;
     pushInput();
     var km = keymap();
@@ -727,6 +750,23 @@
       btns[i].classList.toggle('empty', !!sk.empty);
       btns[i].classList.toggle('ready', sk.ready);
       btns[i].classList.toggle('nomana', !sk.empty && sk.cd <= 0 && !sk.ready);
+    }
+
+    /* 강공격·회피 쿨다운 링 — 스킬바와 같은 계산(위 st.heavy/st.dodgeAct,
+       js/dungeon.js status() 참고), 버튼만 다른 자리(data-heavy/data-dodge). */
+    var hBtn = actionsEl && actionsEl.querySelector('[data-heavy]');
+    if (hBtn && st.heavy) {
+      var hCd = hBtn.querySelector('.dg-sk-cd');
+      hCd.style.height = (st.heavy.cdMax ? (st.heavy.cd / st.heavy.cdMax) * 100 : 0) + '%';
+      hCd.textContent = st.heavy.cd > 0.05 ? Math.ceil(st.heavy.cd) : '';
+      hBtn.classList.toggle('ready', st.heavy.cd <= 0);
+    }
+    var dBtn = actionsEl && actionsEl.querySelector('[data-dodge]');
+    if (dBtn && st.dodgeAct) {
+      var dCd = dBtn.querySelector('.dg-sk-cd');
+      dCd.style.height = (st.dodgeAct.cdMax ? (st.dodgeAct.cd / st.dodgeAct.cdMax) * 100 : 0) + '%';
+      dCd.textContent = st.dodgeAct.cd > 0.05 ? Math.ceil(st.dodgeAct.cd) : '';
+      dBtn.classList.toggle('ready', st.dodgeAct.cd <= 0);
     }
   }
 

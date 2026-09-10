@@ -46,6 +46,11 @@
                             { v: 'tone', f: 110, f2: 41, dur: 0.6, wave: 'sawtooth', gain: 0.16 }] },
     skill: { gap: 0.05, l: [{ v: 'tone', f: 300, f2: 1180, dur: 0.17, wave: 'sine', gain: 0.15 }] },
     hurt:  { gap: 0.15, l: [{ v: 'tone', f: 180, f2: 72, dur: 0.18, wave: 'sawtooth', gain: 0.17 }] },
+    /* 회피(전용 회피 버튼) — 스치는 바람 소리 하나만. 2026-09-10 */
+    dash:  { gap: 0.1,  l: [{ v: 'noise', dur: 0.12, lp: 1800, lp2: 600, gain: 0.14 }] },
+    /* 강공격 — 평타보다 굵고 낮게 짓누르는 소리. 2026-09-10 */
+    heavy: { gap: 0.1,  l: [{ v: 'noise', dur: 0.16, lp: 700, lp2: 220, gain: 0.22 },
+                            { v: 'tone', f: 140, f2: 60, dur: 0.15, wave: 'sawtooth', gain: 0.1 }] },
     /* 죽음 — 내려가던 것이 멎는 소리. 결사(하드코어)면 이게 마지막이다 */
     die:   { gap: 1.0,  l: [{ v: 'chime', notes: [330, 247, 165, 110], step: 0.13,
                               dur: 0.9, wave: 'triangle', gain: 0.20 }] },

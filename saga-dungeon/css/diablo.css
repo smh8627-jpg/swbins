@@ -377,6 +377,22 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 #dg-pad button[data-dir="left"] { left: 2px; top: 50%; transform: translateY(-50%); }
 #dg-pad button[data-dir="right"] { right: 2px; top: 50%; transform: translateY(-50%); }
 
+/* ── 강공격·회피(#dg-actions) — 2026-09-10, 조이스틱(왼쪽)과 대칭으로
+ * 오른쪽에 둔다. #dg-bottom(HUD 바)은 이미 폭 예산이 390px 실측으로
+ * 빠듯해(위 @media 431절 참고) 거기 끼워 넣지 않고 무대 위에 따로 띄운다.
+ * 둥근 버튼으로 — 무예(사각) 넷과 생김새부터 갈라 "습득 안 해도 쓰는
+ * 기본기"라는 티를 낸다. */
+#dg-actions {
+  position: fixed; z-index: 20;
+  right: calc(20px + var(--safe-r)); bottom: calc(150px + var(--safe-b));
+  display: flex; flex-direction: column; gap: 10px;
+}
+#dg-actions .dg-skill {
+  width: 52px; height: 52px; border-radius: 50% !important;
+}
+#dg-actions .dg-sk-e { line-height: 52px; }
+#dg-actions .dg-sk-cd { line-height: 52px; border-radius: 50%; }
+
 /* ── 전체 지도(자동지도) — 디아블로 M키처럼, 화면을 반투명하게 덮는다.
    미니맵과 같은 blips()·norm()을 그대로 재사용해 크게 그린 것뿐이다
    (2026-09-06, PLAN §51 인접 — 사용자가 "디아블로처럼·투명으로" 요청). */

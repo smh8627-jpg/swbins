@@ -632,9 +632,15 @@
       x: WALL + 40, y: ROOM_H * 0.5, atkCd: 0, phase: 0, walking: false, facing: 1, hurt: 0,
       atkAnim: 0,                         // 공격 자세 남은 시간(초) — 3D·2D 렌더가 읽는다
       cds: [0, 0, 0, 0],                  // 스킬 쿨다운 (남은 초)
-      dash: null,                         // 돌진 중 { t, dx, dy, hit }
-      invuln: 0,                          // 무적 남은 초 (돌진)
-      rallyUntil: 0                       // 사기 버프가 끝나는 시각 (ms)
+      dash: null,                         // 돌진 중 { t, dx, dy, hit } (무예 "돌진" 모양)
+      invuln: 0,                          // 무적 남은 초 (돌진·회피)
+      rallyUntil: 0,                      // 사기 버프가 끝나는 시각 (ms)
+      /* 2026-09-10 — "강공격이랑 전용 회피 버튼도"(사용자). 스킬(Z X C V,
+         MP 소모·슬롯 필요)과 달리 **누구나 처음부터 쓰는 기본기**다 —
+         쿨다운만 있고 MP·무예 습득이 필요 없다. */
+      heavyCd: 0,                         // 강공격 재사용 대기(초)
+      dodge: null,                        // 회피 중 { t, dx, dy } (dash와 달리 적을 안 벤다)
+      dodgeCd: 0                          // 회피 재사용 대기(초)
     };
     run.shots = [];
     run.foeShots = [];
@@ -1774,6 +1780,8 @@
     run.mp = Math.min(run.mpMax, run.mp + (MP_REGEN + boonVal('mpRegen')) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
     if (p.atkAnim > 0) { p.atkAnim -= dt; }
+    if (p.heavyCd > 0) { p.heavyCd -= dt; }
+    if (p.dodgeCd > 0) { p.dodgeCd -= dt; }
     /* 독(毒) dot — 함정(spike)에 물렸을 때. 적에게 쓰는 `e.dots`와 같은
        패턴(dps·t)을 그대로 사람에게도 돌린다 */
     if (p.dots && p.dots.length) {
@@ -1834,6 +1842,17 @@
          roomIdx를 안 실어 보내면 항상 undefined가 되어 매 프레임 "막힌
          것 없음"으로 새 버렸을 뻔했다(자가진단이 이 층을 안 보는 값이라
          하마터면 조용히 회귀할 뻔한 자리, PLAN §28-4 Phase 2). */
+      boundPlayer(p, px0, py0, { corridors: run.corridors, floor: run.floor, roomIdx: run.roomIdx });
+    } else if (p.dodge) {
+      /* 회피 — dash와 같은 모양이지만 적을 베지 않는다(위 doDodge() 참고) */
+      var dg = p.dodge;
+      p.x += dg.dx * DODGE_SPD * dt;
+      p.y += dg.dy * DODGE_SPD * dt;
+      p.walking = true;
+      p.phase += dt * 16;
+      fx.push({ t: 'trail', x: p.x, y: p.y, life: 0.18, color: '#cfe8ff' });
+      dg.t -= dt;
+      if (dg.t <= 0) { p.dodge = null; }
       boundPlayer(p, px0, py0, { corridors: run.corridors, floor: run.floor, roomIdx: run.roomIdx });
     } else {
       /* 이동 */
@@ -2412,6 +2431,53 @@
     tryCatchPet(e);
   }
 
+  /* 2026-09-10 — "강공격이랑 전용 회피 버튼도"(사용자). 평타(위 update() "내
+     공격")는 자동이고 무예(Z X C V)는 MP·슬롯이 든다 — 그 사이에 **아무나
+     처음부터, 쿨다운만으로** 쓰는 기본기 둘을 놓는다. PLAN 15절 "필수" 목록의
+     "강공격"·"회피"에 정확히 대응한다. */
+  var HEAVY_CD = 1.3, HEAVY_MUL = 2.6, HEAVY_KB = 26, HEAVY_RECOVER = 0.16;
+  var DODGE_CD = 0.9, DODGE_SEC = 0.16, DODGE_SPD = 520, DODGE_INVULN = 0.22;
+
+  /** 강공격 — 평타보다 훨씬 세고 크게 밀치지만, 감아 치는 동안(HEAVY_RECOVER)
+   *  평타가 못 낀다(atkCd를 같이 밀어 둔다) 그리고 쿨다운이 있다.
+   *  사거리 안에 적이 없으면 그냥 아무 일도 안 일어난다(헛손질 연출은 안 둔다
+   *  — 평타도 표적이 없으면 아예 안 그린다, 같은 결). */
+  function heavyAttack() {
+    if (!run) { return false; }
+    var p = run.player;
+    if (p.heavyCd > 0 || p.dash || p.dodge) { return false; }
+    var reach = reachOf() * 1.15, room = run.room;
+    var near = null, nd = 1e9, i;
+    for (i = 0; i < room.enemies.length; i++) {
+      var e = room.enemies[i];
+      if (e.hp <= 0) { continue; }
+      var d = dist(run.player, e) - e.r;
+      if (d < nd) { nd = d; near = e; }
+    }
+    if (!near || nd > reach) { return false; }
+    p.heavyCd = HEAVY_CD;
+    p.atkCd = Math.max(p.atkCd, HEAVY_RECOVER);
+    p.atkAnim = 0.38;                    // 평타(0.22)보다 오래 자세가 남는다 — 묵직한 스윙
+    sfx('heavy');
+    strike(near, HEAVY_MUL, HEAVY_KB);
+    return true;
+  }
+
+  /** 회피 — 짧게 미끄러지며 그동안 무적이다. `p.dash`(무예 "돌진")와 달리
+   *  적을 베지 않는다 — 순수 회피다. 쿨다운만 있고 MP·스킬 슬롯이 안 든다. */
+  function doDodge() {
+    if (!run) { return false; }
+    var p = run.player;
+    if (p.dodgeCd > 0 || p.dodge || p.dash) { return false; }
+    var ddx = p.dirX || p.facing, ddy = p.dirY || 0;
+    var dl = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+    p.dodge = { t: DODGE_SEC, dx: ddx / dl, dy: ddy / dl };
+    p.invuln = Math.max(p.invuln || 0, DODGE_INVULN);
+    p.dodgeCd = DODGE_CD;
+    sfx('dash');
+    return true;
+  }
+
   /**
    * 포획(捕獲) — PLAN 34절 "도감을 콘텐츠 수집 시스템으로". `data.js` 의
    * PETS 표에는 진작부터 `catchBase`(잡힐 확률) 가 붙어 있었는데, 이걸 읽어
@@ -2890,7 +2956,12 @@
       loot: { gold: Math.round(run.loot.gold), items: run.loot.items.length },
       boons: run.boons, choice: run.choice, merchantChoice: run.merchantChoice,
       kills: run.kills, best: dstate().best || 0,
-      atk: Math.round(atkOf()), reach: Math.round(reachOf())
+      atk: Math.round(atkOf()), reach: Math.round(reachOf()),
+      /* 강공격·회피(2026-09-10) — 스킬과 같은 자리(cd/cdMax)로 내준다.
+         화면이 버튼 위에 쿨다운 링을 그릴 때 스킬바와 같은 계산을 쓸 수 있게. */
+      heavy: { cd: Math.max(0, run.player.heavyCd), cdMax: HEAVY_CD },
+      dodgeAct: { cd: Math.max(0, run.player.dodgeCd), cdMax: DODGE_CD },
+      combo: run.combo || 0
     };
   }
 
@@ -2935,6 +3006,7 @@
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
     rollMerchantStock: rollMerchantStock,
     castSkill: castSkill, refill: refill,
+    heavyAttack: heavyAttack, doDodge: doDodge,
     boonVal: boonVal, boonEffect: boonEffect,
     status: status, state: dstate,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
