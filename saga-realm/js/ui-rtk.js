@@ -1402,9 +1402,10 @@
     return '<div class="card offcard">' +
       '<div class="dt-top">' + ptBig(h) +
         '<div class="dt-name"><b>' + esc(h.name) + '</b> <span class="muted">' +
-          esc(h.hanja || '') + '</span>' +
+          esc(h.hanja || '') + ' · ' + off().age(h.id) + '세</span>' +
           (isLord ? ' <span class="tag">군주</span>' : '') +
           (c && c.gov === h.id ? ' <span class="tag">태수</span>' : '') +
+          (off().age(h.id) > 60 ? ' <span class="tag warnt">노쇠</span>' : '') +
           (r.hurt ? ' <span class="tag warnt">부상 ' + r.hurt + '개월</span>' : '') +
           (r.done ? ' <span class="muted">· 이 달 명령 씀</span>' : '') +
           (r.camp ? ' <span class="tag">진 치는 중</span>' : '') +

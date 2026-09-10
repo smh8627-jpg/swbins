@@ -672,6 +672,7 @@
     driftLoyalty();
     /* 이탈은 충성이 움직인 **뒤에** 본다 — 먼저 보면 이 달에 깎인 이간이 안 먹는다 */
     if (global.DG.diplo) { global.DG.diplo.checkDefection(); }
+    off.rollAging();
     checkResult();
   }
 

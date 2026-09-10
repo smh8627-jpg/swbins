@@ -111,12 +111,14 @@
    *          — camp 와 이름이 헷갈리지 않게 필드부터 갈랐다)
    *   item   **지니고 있는 보물 id**(2026-09-09, data-item.js) — 한 번에 하나만
    *          지닌다(장비창 없음, v1). null 이면 맨몸.
+   *   dead   **노환으로 별세했는가**(2026-09-10, 아래 "나이" 절). true 면
+   *          `atCity`/`freeAt`/`ofForce` 어디에도 안 잡힌다.
    */
   function rec(id) {
     var m = global.DG.rtk.state().officers;
     if (!m[id]) {
       m[id] = { force: null, city: null, loyal: 50, done: false, hurt: 0, feats: 0,
-        camp: null, journey: null, item: null };
+        camp: null, journey: null, item: null, dead: false };
     }
     return m[id];
   }
@@ -130,6 +132,16 @@
   function has(id) {
     var m = global.DG.rtk.state().officers;
     return Object.prototype.hasOwnProperty.call(m, id);
+  }
+
+  /** 이 사람이 어느 세력의 군주인가 — `rec()`(없으면 만든다)이 아니라
+   *  기록을 있는 그대로만 본다. 도감 등 아직 세이브에 안 얹힌 인물을
+   *  `stats()`로 물어도 새 기록을 만들지 않게 하려는 것이다. */
+  function isLordId(id) {
+    var m = global.DG.rtk.state().officers, r = m[id];
+    if (!r || !r.force) { return false; }
+    var f = FD.force(r.force);
+    return !!f && f.lord === id;
   }
 
   /** 무장을 도시에 놓는다 (force=null 이면 재야로) */
@@ -152,6 +164,7 @@
     var m = global.DG.rtk.state().officers, out = [], k;
     for (k in m) {
       if (!Object.prototype.hasOwnProperty.call(m, k)) { continue; }
+      if (m[k].dead) { continue; }
       if (m[k].camp) { continue; }
       if (m[k].journey) { continue; }
       if (m[k].city !== cityId) { continue; }
@@ -173,6 +186,7 @@
     var m = global.DG.rtk.state().officers, out = [], k;
     for (k in m) {
       if (!Object.prototype.hasOwnProperty.call(m, k)) { continue; }
+      if (m[k].dead) { continue; }
       if (m[k].force || m[k].city !== cityId) { continue; }
       if (foundOnly && !m[k].found) { continue; }
       var h = find(k);
@@ -185,6 +199,7 @@
     var m = global.DG.rtk.state().officers, out = [], k;
     for (k in m) {
       if (!Object.prototype.hasOwnProperty.call(m, k)) { continue; }
+      if (m[k].dead) { continue; }
       if (m[k].force !== forceId) { continue; }
       var h = find(k);
       if (h) { out.push(h); }
@@ -208,7 +223,17 @@
    * 계산이 두 곳으로 갈라지면 화면과 판정이 어긋난다는 hero.js 머리말 경고를
    * 그대로 따른 것.
    */
-  function stats(id) { return global.DG.hero.stats(id); }
+  function stats(id) {
+    var s = global.DG.hero.stats(id);
+    if (isLordId(id)) { return s; }   // 군주는 나이 축 전체에서 빠진다(늙지도 죽지도 않는다)
+    var mul = agingMul(age(id));
+    if (mul >= 1) { return s; }
+    return {
+      might: Math.max(1, Math.round(s.might * mul)),
+      wisdom: Math.max(1, Math.round(s.wisdom * mul)),
+      command: Math.max(1, Math.round(s.command * mul))
+    };
+  }
 
   function power(id) {
     var s = stats(id);
@@ -219,6 +244,77 @@
   function skill(id, statKey) {
     var s = stats(id);
     return (s[statKey] || 0) / 100;
+  }
+
+  /* ── 나이 · 노쇠 · 죽음 (2026-09-10, README "다음에 채울 것" 마지막 항목) ──
+   * 원작에서는 무장이 늙고 죽는다. 실제 생년을 조사해 넣는 대신(명부
+   * 231인 다수가 이 판이 새로 지어낸 가명 인물이라 애초에 "실제 생년"이
+   * 없다) id 문자열을 해시해 **결정적** 생년을 만든다 — `realm3d.js`의
+   * `hashOf`(재야 결정적 산포에 쓰는 것)와 같은 결이다. 세이브에 생년을
+   * 따로 적지 않아도 늘 같은 값이 나오고, 시나리오(194/200/208)를 바꿔도
+   * 그 사람의 생년 자체는 안 바뀐다 — 다만 시작 연도가 늦을수록 다들
+   * 그만큼 나이 들어 시작한다(자연스럽다).
+   *
+   * `hero.js`(다섯 판 공유 파일)의 능력치 계산은 한 줄도 안 건드렸다 —
+   * 노쇠 배율은 **`stats()` 한 곳**(위)에서 그 결과 위에 곱해진다. 무장
+   * 성장(레벨·관직)이 같은 자리를 거치는 것과 같은 이유다.
+   */
+  function birthHash(id) {
+    var s = String(id || ''), h = 0, i;
+    for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    return h;
+  }
+  /** 130~178년 사이로 흩는다 — 가장 이른 시나리오(194년)에도 누구나
+   *  최소 16세는 되도록 잡은 바닥이다. */
+  function birthYear(id) { return 130 + (birthHash(id) % 49); }
+  function age(id) {
+    return Math.max(0, global.DG.rtk.state().year - birthYear(id));
+  }
+  /** 60세부터 능력치가 서서히 준다 — 90세(30년 초과)에서 0.55배로 바닥진다 */
+  function agingMul(a) {
+    if (a <= 60) { return 1; }
+    return 1 - Math.min(a - 60, 30) * 0.015;
+  }
+  /** 65세부터 자연사할 확률이 생긴다 — 연간 위험률을 12개월로 나눠
+   *  달마다 굴린다(`rollAging` 이 부른다). */
+  function deathChanceMonthly(a) {
+    if (a < 65) { return 0; }
+    var annual = core.clamp((a - 65) * 0.018, 0, 0.6);
+    return 1 - Math.pow(1 - annual, 1 / 12);
+  }
+  function isDead(id) { return !!rec(id).dead; }
+
+  /**
+   * 달마다 한 번 — 노환으로 별세하는 사람이 있는지 본다. `rtk.js`
+   * `settleMonth()` 가 재해·이간과 같은 자리에서 부른다.
+   * **군주는 빠진다**(승계 체계가 없다 — 세력이 그 자리에서 끝나 버린다,
+   * "새 판정을 만들지 않는다" 원칙과 같은 결로 이번엔 범위를 좁혔다).
+   * 태수 자리(city.gov)를 비우는 것까지가 이 함수의 몫이다(`diplo.js`
+   * `checkDefection` 이 이간으로 사람을 잃을 때 하는 정리와 같다).
+   */
+  function rollAging() {
+    var R = global.DG.rtk, st = R.state(), k, gone = [];
+    for (k in st.officers) {
+      if (!Object.prototype.hasOwnProperty.call(st.officers, k)) { continue; }
+      var r = st.officers[k];
+      if (r.dead) { continue; }
+      var a = age(k);
+      if (a < 65) { continue; }
+      if (r.force) {
+        var f = FD.force(r.force);
+        if (f && f.lord === k) { continue; }
+      }
+      if (Math.random() >= deathChanceMonthly(a) * core.tuned('rtk.agingDeathMul', 1)) { continue; }
+      r.dead = true;
+      var c = r.city ? R.city(r.city) : null;
+      if (c && c.gov === k) { c.gov = null; }
+      core.log('⚰️ ' + find(k).name + ' 이(가) 노환으로 별세했다(향년 ' + a + '세)', 'warn');
+      if (r.force && r.force === R.me()) {
+        core.emit('toast', '⚰️ ' + find(k).name + ' 이(가) 별세했다');
+      }
+      gone.push(k);
+    }
+    return gone;
   }
 
   /* ── 성장 (經驗과 昇進) ────────────────────────────────
@@ -367,6 +463,8 @@
     rec: rec, has: has, placeAt: placeAt,
     atCity: atCity, freeAt: freeAt, ofForce: ofForce, sortByPower: sortByPower,
     stats: stats, power: power, skill: skill, equip: equip, unequip: unequip,
-    loyalOf: loyalOf, addLoyal: addLoyal, baseLoyal: baseLoyal
+    loyalOf: loyalOf, addLoyal: addLoyal, baseLoyal: baseLoyal,
+    birthYear: birthYear, age: age, agingMul: agingMul,
+    deathChanceMonthly: deathChanceMonthly, isDead: isDead, rollAging: rollAging
   };
 })(window);
