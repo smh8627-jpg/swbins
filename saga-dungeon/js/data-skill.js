@@ -26,21 +26,24 @@
  * 점수는 **직업마다 따로** 센다 — 무기를 바꿔도 그 나무의 점수는 그대로 남는다.
  *
  * ── 나무의 모양 ────────────────────────────────────────────
- * 직업마다 **세 갈래 × 세 단계 = 아홉**. 원작은 세 탭 × 열이지만, 이 판은
- * 인물이 여럿이고 레벨이 낮게 오르므로 아홉이면 끝까지 타 볼 수 있다.
+ * 직업마다 **네 갈래 × 세 단계 = 열둘**(2026-09-10까지는 세 갈래·아홉이었다
+ * — 사용자가 "스킬이 다양해야 하고" · "더 추가해" 로 넷째 갈래를 더했다).
+ * 원작은 세 탭 × 열이지만, 이 판은 인물이 여럿이고 레벨이 낮게 오르므로
+ * 열둘이면 끝까지 타 볼 수 있다.
  *   · 한 무예는 **다섯 단**까지 올린다
  *   · **앞 단계에 1점이 있어야** 다음 단계가 열린다 (원작의 그 규칙)
  *   · 점수는 **인물 레벨만큼** 생긴다 — 인물마다 따로 센다
  *
  * ── 왜 '모양(shape)' 으로 짰나 ──────────────────────────────
- * 아홉 × 다섯 직업 = 마흔다섯인데, 마흔다섯 개를 따로 구현하면 손을 못 댄다.
+ * 열둘 × 다섯 직업 = 예순인데, 예순 개를 따로 구현하면 손을 못 댄다.
  * 원작의 스킬도 실은 **몇 가지 모양**이 원소·수치만 바꿔 가며 되풀이된다.
- * 그래서 모양 아홉만 dungeon.js 에 두고, 아래 표는 그 모양에 값을 끼운다.
+ * 그래서 모양만 dungeon.js 에 두고, 아래 표는 그 모양에 값을 끼운다.
  *
  *   swing   내 둘레를 벤다            bolt    곧게 나가는 것을 쏜다
  *   nova    내 자리에서 터진다        dash    앞으로 파고든다
  *   buff    잠깐 세진다               heal    그 자리에서 회복한다
  *   curse   둘레의 적을 약하게        summon  분신을 세운다
+ *   chain   가까운 적을 치고 다음 적으로 튄다(2026-09-10 신설, 넷째 갈래 전용)
  *   passive 늘 붙어 있다 (쓰지 않는다)
  *
  * 무예를 늘릴 때는 SKILLS 에 한 줄. dungeon.js 는 shape 만 보고 굴린다.
@@ -105,8 +108,8 @@
     return out;
   }
 
-  /* ── 무예 마흔다섯 ─────────────────────────────────────────
-   * cls    직업 · br 갈래(0~2) · row 단계(0~2)
+  /* ── 무예 예순 ───────────────────────────────────────────
+   * cls    직업 · br 갈래(0~3) · row 단계(0~2)
    * shape  모양 (위 주석)
    * cost   기력 · cd 재냉각(초) · el 결(없으면 물리)
    * v      1단 기준 값 (모양마다 뜻이 다르다 — 아래 각 줄에 적었다)
@@ -258,7 +261,61 @@
       desc: '무예의 위력이 오른다.' },
     { key: 'y_spirit', cls: 'mystic', br: 2, row: 2, name: '정신(精神)', emoji: '✨',
       shape: 'passive', eff: 'mpRegen', v: 2, grow: 1.2,
-      desc: '기력이 빨리 찬다.' }
+      desc: '기력이 빨리 찬다.' },
+
+    /* ── 넷째 갈래(2026-09-10) — 다섯 직업 다 "연환(連環, chain)"을 하나씩
+     * 들고, 나머지 두 자리는 그 직업이 여태 안 써 본 모양을 끼운다
+     * (예: 책사가 처음 휘두르는 무기, 무장이 처음 던지는 원소 대시).
+     * 직업 색은 그대로 두되 **손이 진짜 넓어지게**. */
+    { key: 'a_chain', cls: 'archer', br: 3, row: 0, name: '연환시(連環矢)', emoji: '🔗',
+      shape: 'chain', cost: 22, cd: 9, v: 1.7, grow: 0.4,
+      desc: '가까운 적을 꿰고 다음 적으로 튄다.' },
+    { key: 'a_venom', cls: 'archer', br: 3, row: 1, name: '독시(毒矢)', emoji: '🧪',
+      shape: 'bolt', cost: 18, cd: 4, v: 1.4, grow: 0.35, el: 'pois',
+      desc: '독을 바른 화살. 스민 독이 계속 아프게 한다.' },
+    { key: 'a_cripple', cls: 'archer', br: 3, row: 2, name: '파훼시(破毀矢)', emoji: '💢',
+      shape: 'curse', cost: 28, cd: 10, v: 36, grow: 9, r: 140, sec: 6,
+      desc: '급소를 노려 적을 굼뜨고 약하게 만든다.' },
+
+    { key: 'w_chain', cls: 'warrior', br: 3, row: 0, name: '연환격(連環擊)', emoji: '🔗',
+      shape: 'chain', cost: 24, cd: 9, v: 1.8, grow: 0.4,
+      desc: '가까운 적을 치고 다음 적으로 옮겨 붙는다.' },
+    { key: 'w_blaze_dash', cls: 'warrior', br: 3, row: 1, name: '화염돌진(火焰突進)', emoji: '🔥',
+      shape: 'dash', cost: 22, cd: 8, v: 1.4, grow: 0.35, el: 'fire',
+      desc: '불을 두르고 파고든다.' },
+    { key: 'w_palm', cls: 'warrior', br: 3, row: 2, name: '벽력장(霹靂掌)', emoji: '👊',
+      shape: 'nova', cost: 40, cd: 13, v: 3.2, grow: 0.65, r: 150, el: 'chi',
+      desc: '기를 뻗어 둘레를 크게 친다.' },
+
+    { key: 's_chainfire', cls: 'scholar', br: 3, row: 0, name: '연쇄화염(連鎖火焰)', emoji: '🔗',
+      shape: 'chain', cost: 26, cd: 9, v: 1.9, grow: 0.45, el: 'fire',
+      desc: '불덩이가 적 사이를 옮겨 붙는다.' },
+    { key: 's_fan', cls: 'scholar', br: 3, row: 1, name: '선풍(扇風)', emoji: '🪭',
+      shape: 'swing', cost: 20, cd: 5, v: 1.6, grow: 0.35, r: 1.8, kb: 24, el: 'cold',
+      desc: '부채를 크게 휘둘러 둘레를 벤다.' },
+    { key: 's_spirit', cls: 'scholar', br: 3, row: 2, name: '빙정소환(氷精召喚)', emoji: '❄️',
+      shape: 'summon', cost: 34, cd: 15, v: 1, grow: 1, sec: 13,
+      desc: '얼음 정령을 불러 대신 싸우게 한다.' },
+
+    { key: 'm_chain', cls: 'marshal', br: 3, row: 0, name: '연환기격(連環氣擊)', emoji: '🔗',
+      shape: 'chain', cost: 24, cd: 9, v: 1.9, grow: 0.4, el: 'chi',
+      desc: '기를 실어 가까운 적을 연달아 친다.' },
+    { key: 'm_press', cls: 'marshal', br: 3, row: 1, name: '위압(威壓)', emoji: '📛',
+      shape: 'curse', cost: 26, cd: 10, v: 32, grow: 8, r: 140, sec: 6,
+      desc: '위세로 적을 굼뜨고 약하게 만든다.' },
+    { key: 'm_charge', cls: 'marshal', br: 3, row: 2, name: '기신보(氣身步)', emoji: '💨',
+      shape: 'dash', cost: 20, cd: 7, v: 1.5, grow: 0.35, el: 'chi',
+      desc: '기를 두르고 파고든다.' },
+
+    { key: 'y_chain', cls: 'mystic', br: 3, row: 0, name: '독쇄(毒鎖)', emoji: '🔗',
+      shape: 'chain', cost: 22, cd: 9, v: 1.8, grow: 0.4, el: 'pois',
+      desc: '독한 기운이 적 사이를 옮겨 붙는다.' },
+    { key: 'y_ghoststrike', cls: 'mystic', br: 3, row: 1, name: '음령타(陰靈打)', emoji: '👻',
+      shape: 'swing', cost: 22, cd: 6, v: 1.7, grow: 0.35, r: 1.8, kb: 20, el: 'chi',
+      desc: '음기를 둘러 손이 닿는 대로 친다.' },
+    { key: 'y_possess', cls: 'mystic', br: 3, row: 2, name: '귀합(鬼合)', emoji: '🕯️',
+      shape: 'buff', cost: 32, cd: 16, v: 35, grow: 9, sec: 7, eff: 'atkPct',
+      desc: '한동안 음병의 기운이 몸에 실려 공격이 세진다.' }
   ];
 
   function skillByKey(k) {

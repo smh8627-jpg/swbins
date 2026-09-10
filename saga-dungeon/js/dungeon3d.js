@@ -2472,7 +2472,8 @@
        땅 높이(meGroundY) 위에 얹는다 — 안 그러면 언덕에서 튈 때마다 땅 밑으로 파고든다 */
     me.node.position.y = meGroundY + (p.walking ? Math.abs(Math.sin(p.phase || 0)) * 2.2 : 0);
     if (AS3) {
-      AS3.step(me.node.userData.mixerNode, { t: nowT, walking: !!p.walking, anim: p.atkAnim > 0 ? 'attack' : (p.walking ? 'walk' : 'idle') });
+      AS3.step(me.node.userData.mixerNode, { t: nowT, walking: !!p.walking,
+        anim: p.dodge ? 'dodge' : (p.atkAnim > 0 ? (p.castAnim ? 'interaction' : 'attack') : (p.walking ? 'walk' : 'idle')) });
       AS3.flashAllMat(ensureFlash(me.node), p.hurt, 0.28);
     }
 

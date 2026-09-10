@@ -624,12 +624,12 @@ window.requestAnimationFrame = function () { return 0; };
       return !!c && SKD.CLASSES.indexOf(c) >= 0 && ('맨몸 → ' + c.name);
     });
 
-    t('무예 — 직업마다 아홉(세 갈래 × 세 단계)', function () {
+    t('무예 — 직업마다 열둘(네 갈래 × 세 단계)', function () {
       var bad = [], i, j;
       for (i = 0; i < SKD.CLASSES.length; i++) {
         var tree = SKD.skillsOf(SKD.CLASSES[i].key);
-        if (tree.length !== 9) { bad.push(SKD.CLASSES[i].key + ' ' + tree.length); }
-        for (j = 0; j < 3; j++) {
+        if (tree.length !== 12) { bad.push(SKD.CLASSES[i].key + ' ' + tree.length); }
+        for (j = 0; j < 4; j++) {
           var br = tree.filter(function (x) { return x.br === j; });
           var rows = br.map(function (x) { return x.row; }).sort();
           if (rows.join(',') !== '0,1,2') { bad.push(SKD.CLASSES[i].key + ' 갈래' + j); }
@@ -644,7 +644,7 @@ window.requestAnimationFrame = function () { return 0; };
 
     t('무예 — 모양이 다 구현돼 있다 (표에만 있는 모양은 없다)', function () {
       /* 표에 새 모양을 적어 놓고 dungeon.js 에 안 넣으면 눌러도 아무 일이 없다 */
-      var DONE = ['swing', 'bolt', 'nova', 'dash', 'buff', 'heal', 'curse', 'summon', 'passive'];
+      var DONE = ['swing', 'bolt', 'nova', 'dash', 'buff', 'heal', 'curse', 'summon', 'chain', 'passive'];
       var used = {}, bad = [];
       SKD.SKILLS.forEach(function (x) {
         used[x.shape] = true;
@@ -779,6 +779,30 @@ window.requestAnimationFrame = function () { return 0; };
       return fired && !again && run.mp === before - act.cost &&
         st2.skills[0].key === act.key &&
         (act.name + ' · 기력 -' + act.cost);
+    });
+
+    t('무예 — 연환(chain)은 가까운 적을 치고 다음 적으로 옮겨 붙는다', function () {
+      var id = C.save.party[0];
+      C.save.skills = {}; C.save.slots = {};
+      var chainSk = SKD.SKILLS.filter(function (x) {
+        return x.shape === 'chain' && x.cls === SK.classOf(id).key;
+      })[0];
+      SK.learn(id, chainSk.key);                       // row 0 — 앞 단계 필요 없다
+      SK.setSlot(id, 0, chainSk.key);
+      DN.enter({ floor: 6, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      run.player.x = 0; run.player.y = 0;
+      var e1 = DN._spawnEnemy(6, false, { spawned: true, x: 30, y: 0 });
+      var e2 = DN._spawnEnemy(6, false, { spawned: true, x: 90, y: 0 });
+      e1.hp = 1e6; e1.hpMax = 1e6; e2.hp = 1e6; e2.hpMax = 1e6;
+      run.room.enemies.push(e1, e2);
+      run.mp = run.mpMax;
+      var fired = DN.castSkill(0);
+      var hurt1 = e1.hp < 1e6, hurt2 = e2.hp < 1e6;
+      DN.leave();
+      C.save.skills = {}; C.save.slots = {};
+      return fired && hurt1 && hurt2 && (chainSk.name + ' — 둘 다 맞았다');
     });
 
     t('무예 — 빈 칸은 눌러도 아무 일이 없다', function () {

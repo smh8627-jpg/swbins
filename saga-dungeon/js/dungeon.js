@@ -1660,6 +1660,7 @@
       if (near && nd <= reach && p.atkCd <= 0) {
         p.atkCd = atkCdOf() / (rally ? 1.4 : 1);
         p.atkAnim = 0.22;
+        p.castAnim = false;
         strike(near);
         if (!run) { return; }
         if (Math.random() * 100 < boonVal('echoPct')) { strike(near); }
@@ -1967,6 +1968,7 @@
     if (near && nd <= reach && p.atkCd <= 0) {
       p.atkCd = atkCdOf() / (rally ? 1.4 : 1);
       p.atkAnim = 0.22;
+      p.castAnim = false;
       strike(near);
       if (!run) { return; }
       if (Math.random() * 100 < boonVal('echoPct')) { strike(near); }
@@ -2523,6 +2525,7 @@
     p.heavyCd = HEAVY_CD;
     p.atkCd = Math.max(p.atkCd, HEAVY_RECOVER);
     p.atkAnim = 0.38;                    // 평타(0.22)보다 오래 자세가 남는다 — 묵직한 스윙
+    p.castAnim = false;
     sfx('heavy');
     strike(near, HEAVY_MUL, HEAVY_KB);
     return true;
@@ -2563,6 +2566,8 @@
     var sk = got.sk, p = run.player;
     if (p.setSkCd > 0 || p.dash) { return false; }
     p.setSkCd = sk.cd;
+    p.atkAnim = castPoseSecOf(sk);
+    p.castAnim = !MELEE_SHAPES[sk.shape];
     sfx('setsk');
     applyShapeSkill(sk, sk.v);
     core.emit('dungeon:skill', 'set:' + got.set.key);
@@ -2781,6 +2786,19 @@
   /** 무예의 위력 배수 — '집중·주술' 같은 상시가 여기 얹힌다 */
   function skillMul() { return 1 + boonVal('skillPct') / 100; }
 
+  /** 몸으로 베는 모양 — 그 밖은 다 '시전' 자세(p.castAnim)로 간다.
+   *  3D·2D 렌더가 p.castAnim 을 보고 attack/interaction 애니메이션을 가른다. */
+  var MELEE_SHAPES = { swing: 1, dash: 1 };
+
+  /** 무예 모양마다 자세가 남는 길이 — 평타(0.22)·강공격(0.38)과 같은 결로,
+   *  기력을 많이 먹는 무예일수록(대략 sec·cd로 짐작되는 "큰 기술")
+   *  조금 더 오래 자세가 남는다. 상한을 둬 시전 중 다음 입력이 너무 안
+   *  먹진 않게 한다. */
+  function castPoseSecOf(sk) {
+    if (sk.shape === 'passive') { return 0; }
+    return Math.min(0.5, 0.24 + (sk.cost || 20) / 160);
+  }
+
   function castSkill(i) {
     if (!run || run.choice) { return false; }
     var got = slotSkills()[i];
@@ -2791,6 +2809,8 @@
     if (p.cds[i] > 0 || run.mp < sk.cost || p.dash) { return false; }
     run.mp -= sk.cost;
     p.cds[i] = sk.cd;
+    p.atkAnim = castPoseSecOf(sk);
+    p.castAnim = !MELEE_SHAPES[sk.shape];
     applyShapeSkill(sk, SDx.valueAt(sk, rank));
     core.emit('dungeon:skill', sk.key);
     return true;
@@ -2874,6 +2894,34 @@
 
     } else if (sk.shape === 'summon') {
       summon(Math.round(v), sk.sec || 12, sk.str || 1, !!sk.big);
+
+    } else if (sk.shape === 'chain') {
+      /* 연환(連環) — 가장 가까운 적을 치고, 아직 안 맞은 적 중 가장 가까운
+       * 쪽으로 튀어 또 친다(최대 sk.hops 번). bolt(똑바로 날아간다)·
+       * nova(제자리서 터진다)와 달리 **적을 좇아 옮겨 다닌다** — 표적이
+       * 흩어져 있을 때 값어치가 는다. 한 번 튈 때마다 12%씩 약해진다.
+       * 새 fx 종류를 안 만든다 — nova 가 쓰는 'ring' 을 맞는 자리마다 찍는다. */
+      var hops = sk.hops || 3, chainR = sk.r || 260, hit = [], cur = null, bd = 1e9, ci;
+      for (j = 0; j < room.enemies.length; j++) {
+        ci = room.enemies[j];
+        if (ci.hp <= 0) { continue; }
+        var d0 = dist(p, ci);
+        if (d0 < bd) { bd = d0; cur = ci; }
+      }
+      for (j = 0; cur && j < hops; j++) {
+        strike(cur, v * skillMul() * (1 - j * 0.12), sk.kb || 0, sk.el || 'phys');
+        fx.push({ t: 'ring', x: cur.x, y: cur.y, life: 0.35,
+          el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
+        hit.push(cur);
+        var next = null, nd = chainR, ck;
+        for (ck = 0; ck < room.enemies.length; ck++) {
+          var cand = room.enemies[ck];
+          if (cand.hp <= 0 || hit.indexOf(cand) >= 0) { continue; }
+          var d1 = dist(cur, cand);
+          if (d1 <= nd) { nd = d1; next = cand; }
+        }
+        cur = next;
+      }
     }
   }
 
