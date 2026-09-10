@@ -429,7 +429,11 @@
     b.title = (acc ? acc.name : '프로필') + ' — 이름 바꾸기 · 다른 이름으로 놀기';
     b.textContent = '👤';
     b.addEventListener('click', showSwitch);
-    tools.insertBefore(b, tools.firstChild);
+    /* 폰에서는 도구가 ⋯ 서랍으로 접힌다 — 👤 도 그 안에 들어가야 한다.
+       서랍이 없는 판(옛 index.html)이면 예전처럼 도구줄 맨 앞에 선다 */
+    var drawer = document.getElementById('tools-drawer');
+    if (drawer) { drawer.insertBefore(b, drawer.firstChild); }
+    else { tools.insertBefore(b, tools.firstChild); }
   }
 
   global.DG = global.DG || {};
