@@ -1939,12 +1939,136 @@ window.DG_NO_TUNE = true;
       return bar.length === 8 && top === 4 && tiers[0] === 3 && out;
     });
 
-    t('무예 마흔여덟은 side.js 가 아는 효과 아홉만 쓴다', function () {
+    /* ── 4차 전직 (2026-09-10) ─────────────────────────── */
+
+    t('갈래 넷이 저마다 4차까지 이어진다', function () {
+      var ends = JD.JOBS.filter(function (j) { return j.tier === 4; });
+      var ok = ends.length === 4;
+      ends.forEach(function (j) {
+        var chain = [], k = j;
+        while (k) { chain.unshift(k.key); k = k.from ? JD.job(k.from) : null; }
+        if (chain.length !== 5 || chain[0] !== 'none') { ok = false; }
+      });
+      return ok && (ends.map(function (j) { return j.name; }).join(' · '));
+    });
+
+    t('4차는 Lv.70 이고 아랫자리 무예 10(만렙)을 요구한다', function () {
+      unlearn();
+      C.save.player.level = 69;
+      J.join('warrior');
+      var i;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      J.join('marshal');
+      for (i = 0; i < 5; i++) { J.raise('n_heaven'); }   // 아직 만렙(10)이 아니다
+      var tooLow = J.canJoin('warlord');                 // 레벨도, 무예도 모자란다
+      C.save.player.level = 71;
+      var noSkill = J.canJoin('warlord');                // 레벨은 됐지만 무예가 모자란다
+      for (i = 0; i < 5; i++) { J.raise('n_heaven'); }    // 마저 만렙까지
+      var okNow = J.canJoin('warlord');
+      var joined = J.join('warlord');
+      var out = 'Lv.69 "' + tooLow + '" · 무예 5 "' + noSkill + '" · 10 익힌 뒤 ' +
+        (joined ? '오름' : '못 오름');
+      unlearn();
+      return !!tooLow && !!noSkill && okNow === null && joined &&
+        noSkill.indexOf('10') >= 0 && out;
+    });
+
+    t('4차 무예는 3차 무예를 밟아야 열린다', function () {
+      unlearn();
+      C.save.player.level = 90;
+      J.join('warrior');
+      var i;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      J.join('marshal');
+      for (i = 0; i < 10; i++) { J.raise('n_heaven'); }
+      J.join('warlord');
+      var locked = J.canRaise('o_ruin');                 // 천붕격 10 이라 이미 열려 있다
+      var lockedToo = J.canRaise('o_conquer');           // 대장기 0 — 아직 못 연다
+      /* 패천기(o_conquer) 는 대장기(n_banner) 5 를, 대장기는 철벽(g_wall) 5 를,
+         철벽은 철갑(w_iron) 5 를 요구한다 — 한 단씩 내려가는 사슬을 다 밟아야 한다 */
+      for (i = 0; i < 5; i++) { J.raise('w_iron'); }
+      for (i = 0; i < 5; i++) { J.raise('g_wall'); }
+      for (i = 0; i < 5; i++) { J.raise('n_banner'); }
+      var openNow = J.canRaise('o_conquer');
+      var out = '천붕격 10 → 파멸격 ' + (locked ? '잠김' : '열림') +
+        ' · 대장기 0 → 패천기 ' + (lockedToo ? '잠김' : '열림') +
+        ' · 대장기 5 → ' + (openNow ? '잠김' : '열림');
+      unlearn();
+      return locked === null && !!lockedToo && openNow === null && out;
+    });
+
+    t('조작 띠는 4차에서도 여덟을 넘지 않는다', function () {
+      /* 4차를 더해 한 갈래가 열다섯(1차4+2차3+3차4+4차4)이 됐다 — bar() 가 윗자리부터
+         채우므로 4차 넷 + 3차 넷이 이미 여덟을 정확히 채운다. 조작 띠를 더 늘리지
+         않아도 된다는 뜻이다(사가고 UI에 맞추며 화면을 안 가리기로 잡아 둔 원칙과
+         같은 결 — job.js BAR 주석 참고) */
+      unlearn();
+      C.save.player.level = 90;
+      J.join('warrior');
+      var i, k;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      J.join('marshal');
+      for (i = 0; i < 10; i++) { J.raise('n_heaven'); }
+      J.join('warlord');
+      ['w_whirl', 'w_rush', 'w_iron', 'g_roar', 'g_wall',
+       'n_quake', 'n_charge', 'n_banner'].forEach(function (key) {
+        for (k = 0; k < 5; k++) { J.raise(key); }
+      });
+      ['o_ruin', 'o_tremor', 'o_smite', 'o_conquer'].forEach(function (key) { J.raise(key); });
+      var bar = J.bar();
+      var tiers = bar.map(function (sk) { return JD.job(sk.job).tier; });
+      var t4 = tiers.filter(function (n) { return n === 4; }).length;
+      var t3 = tiers.filter(function (n) { return n === 3; }).length;
+      var out = '띠 ' + bar.length + '칸 · 4차 ' + t4 + '개 · 3차 ' + t3 + '개';
+      unlearn();
+      return bar.length === 8 && t4 === 4 && t3 === 4 && out;
+    });
+
+    t('4차 무예도 실제로 적을 친다', function () {
+      unlearn();
+      if (S.active()) { S.leave(); }
+      C.save.player.level = 90;
+      J.join('warrior');
+      var i;
+      for (i = 0; i < 5; i++) { J.raise('w_cut'); }
+      J.join('general');
+      for (i = 0; i < 8; i++) { J.raise('g_smash'); }
+      J.join('marshal');
+      for (i = 0; i < 10; i++) { J.raise('n_heaven'); }
+      J.join('warlord');
+      for (i = 0; i < 3; i++) { J.raise('o_ruin'); }
+      S.enter('field');
+      var run = S.raw(), p = run.player;
+      calm(run);
+      p.x = 200; p.y = run.stage.floor - S.P_H; p.onGround = true; p.facing = 1;
+      run.enemies = [{ ref: { name: '허수아비', kind: 'human', look: {} },
+                       x: p.x + 40, y: p.y, w: 34, h: 34,
+                       hp: 99999, hpMax: 99999, dmg: 0, dir: -1, homeY: p.y + 34,
+                       spd: 0, phase: 0, hurt: 0, cd: 99 }];
+      run.mp = run.mpMax = 999;
+      var bar = J.bar();
+      var at = -1;
+      for (i = 0; i < bar.length; i++) { if (bar[i].key === 'o_ruin') { at = i; } }
+      var before = run.enemies[0].hp;
+      if (at >= 0) { S.castSkill(at); }
+      var dealt = before - run.enemies[0].hp;
+      S.leave();
+      unlearn();
+      return at >= 0 && dealt > 0 && ('파멸격 ' + at + '번 자리 · 피해 ' + dealt);
+    });
+
+    t('무예 예순넷은 side.js 가 아는 효과 아홉만 쓴다', function () {
       /* 데이터는 **무엇을 할지만** 적고 어떻게 하는지는 side.js 에만 있다.
-         새 효과를 만들면 그 규칙을 두 곳에 적게 된다 — 3차를 넣으며 하나도 안 늘렸다. */
+         새 효과를 만들면 그 규칙을 두 곳에 적게 된다 — 3차·4차를 넣으며 하나도 안 늘렸다. */
       var KNOWN = ['melee', 'aoe', 'bolt', 'arrow', 'volley', 'dash', 'rain', 'buff', 'heal'];
       var bad = JD.SKILLS.filter(function (sk) { return KNOWN.indexOf(sk.effect) < 0; });
-      return JD.SKILLS.length === 48 && bad.length === 0 &&
+      return JD.SKILLS.length === 64 && bad.length === 0 &&
         ('무예 ' + JD.SKILLS.length + ' · 효과 ' + KNOWN.length + ' · 모르는 것 0');
     });
 
