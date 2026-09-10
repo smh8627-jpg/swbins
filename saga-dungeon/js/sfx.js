@@ -51,6 +51,10 @@
     /* 강공격 — 평타보다 굵고 낮게 짓누르는 소리. 2026-09-10 */
     heavy: { gap: 0.1,  l: [{ v: 'noise', dur: 0.16, lp: 700, lp2: 220, gain: 0.22 },
                             { v: 'tone', f: 140, f2: 60, dur: 0.15, wave: 'sawtooth', gain: 0.1 }] },
+    /* 투장 전용 무예 — 세트를 맞춘 보상이라 'skill'보다 한 겹 더 화려하게. 2026-09-10 */
+    setsk: { gap: 0.15, l: [{ v: 'noise', dur: 0.2, lp: 2600, lp2: 600, gain: 0.18 },
+                            { v: 'chime', notes: [392, 659, 988], step: 0.05,
+                              dur: 0.5, wave: 'sine', gain: 0.15 }] },
     /* 죽음 — 내려가던 것이 멎는 소리. 결사(하드코어)면 이게 마지막이다 */
     die:   { gap: 1.0,  l: [{ v: 'chime', notes: [330, 247, 165, 110], step: 0.13,
                               dur: 0.9, wave: 'triangle', gain: 0.20 }] },

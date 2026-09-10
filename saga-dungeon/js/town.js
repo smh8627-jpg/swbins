@@ -1299,6 +1299,13 @@
   /** 마을에서는 무예가 나가지 않는다 — 벨 것이 없다 */
   function castSkill() { return false; }
 
+  /* 2026-09-10 — d()가 던전/마을 중 지금 켜진 쪽을 내주므로(위 dungeon-view.js
+     의 그 약속) #dg-actions 버튼 셋(강공격·회피·투장 무예)이 마을에서 눌려도
+     안 죽어야 한다. castSkill과 같은 자리 — 마을엔 벨 것이 없다. */
+  function heavyAttack() { return false; }
+  function doDodge() { return false; }
+  function castSetSkill() { return false; }
+
   /** 단약도 마실 일이 없다(늘 가득) — potion.js 가 이 값을 보고 알을 아낀다 */
   function refill() { return false; }
 
@@ -1540,6 +1547,7 @@
     TALK_R: TALK_R, MARKS: MARKS,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
+    heavyAttack: heavyAttack, doDodge: doDodge, castSetSkill: castSetSkill,
     nearest: nearest, note: note, consumeFieldMerchant: consumeFieldMerchant,
     rewardRoadMark: rewardRoadMark,
     rewardFieldRelic: rewardFieldRelic,

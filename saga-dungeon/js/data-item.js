@@ -44,7 +44,16 @@
     { key: 'w_changj',   slot: 'weapon', name: '장창',       main: 'might',   base: 11, look: 'spear' },
     { key: 'w_wolto',    slot: 'weapon', name: '월도',       main: 'might',   base: 12, look: 'guandao' },
     { key: 'w_gakgung',  slot: 'weapon', name: '각궁',       main: 'might',   base: 8,  look: 'bow' },
+    /* 궁장(弓將)은 여태 각궁 하나뿐이었다 — 같은 look(3D·직업 판정은 그대로)에
+       기본값만 다른 둘째 활. 무장·책사·도독·방사는 다 둘 이상이었는데
+       궁장만 하나라 여기부터 메운다. */
+    { key: 'w_cheoltae', slot: 'weapon', name: '철태궁',     main: 'might',   base: 10, look: 'bow' },
     { key: 'w_bugae',    slot: 'weapon', name: '부월',       main: 'might',   base: 11, look: 'axe' },
+    /* 2026-09-10 — "무기도 다양해야겠네"(사용자). WEAPON_CLASS(data-skill.js)에는
+       진작부터 halberd 가 무장(武將)으로 적혀 있었고 dungeon3d.js 의 3D 무기도
+       이미 그린다(spear·guandao와 같은 자리) — 밑감만 없어서 죽어 있던 look이다.
+       이걸로 무장은 장창·편곤·부월·극창 넷이 된다. */
+    { key: 'w_geukchang',slot: 'weapon', name: '극창',       main: 'might',   base: 13, look: 'halberd' },
     { key: 'w_seonchae', slot: 'weapon', name: '선채',       main: 'wisdom',  base: 9,  look: 'fan' },
     { key: 'w_jukjang',  slot: 'weapon', name: '죽장',       main: 'wisdom',  base: 8,  look: 'staff' },
     { key: 'w_bilbut',   slot: 'weapon', name: '필묵',       main: 'wisdom',  base: 7,  look: 'brush' },
