@@ -173,12 +173,17 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 .near-meta small { display: block; font-size: 10.5px; color: var(--ink-dim); }
 
 /* ── 액션 독 ──────────────────────────────────────────── */
-/* 접지 않고 다 펼친다(사가고 UI와 같은 결) — 좁은 화면에서는 가로 한 줄로
-   눕고 넘치는 만큼 옆으로 스크롤한다(아래 780px 규칙) */
+/* 접지 않고 다 펼친다(사가고 UI와 같은 결) — 아홉 칸이라 사가고(여덟 칸)보다
+   세로로 더 길다. **사냥 화면을 가리면 안 된다** — 세로 폭이 짧아 위쪽 도구줄과
+   부딪힐 자리가 생기면 넘치는 만큼 안에서 스크롤하고(잘려도 화면 위를 덮지
+   않는다), 좁은 화면에서는 가로 한 줄로 눕고 옆으로 스크롤한다(아래 780px 규칙) */
 #dock {
   position: fixed; right: 12px; bottom: calc(14px + var(--safe-b)); z-index: 12;
   display: flex; flex-direction: column; gap: 8px;
+  max-height: calc(100vh - 130px - var(--safe-t) - var(--safe-b));
+  overflow-y: auto; scrollbar-width: none;
 }
+#dock::-webkit-scrollbar { display: none; }
 #dock button {
   width: 58px; height: 58px; border-radius: 19px; cursor: pointer;
   display: grid; place-items: center; gap: 1px;
@@ -484,10 +489,31 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 }
 
 /* 독을 접지 않고 다 펼치면(사가고 UI와 같은 결) 아홉 칸이 된다 — 좁은 화면에서는
-   가로로 다 못 앉으니 옆으로 스크롤한다(사가고에서 먼저 밟은 자리) */
+   가로로 다 못 앉으니 옆으로 스크롤한다(사가고에서 먼저 밟은 자리).
+   **가운데 조작 띠(#hud, 사냥 중 스킬 줄)를 덮으면 안 된다** — #hud 는
+   `min(560px, 100vw-96px)` 로 가운데 앉으므로, 독의 너비를 그 양옆 남는
+   자리(= (100vw - hud폭)/2)로 못 박아 아무리 가로로 늘어도 hud 쪽으로
+   넘어가지 않고 그 안에서만 옆으로 스크롤한다 */
 @media (max-width: 780px) {
-  #dock { left: 12px; justify-content: flex-end; overflow-x: auto; scrollbar-width: none; }
-  #dock::-webkit-scrollbar { display: none; }
+  #dock { left: 12px; justify-content: flex-end; overflow-x: auto; }
+}
+/* 561~780px 만 — #hud 가 아직 가운데 앉아 있는 폭이다(560px 이하에서는 아래
+   560px 규칙이 hud 를 오른쪽으로 옮겨 독 위에 쌓아서, 이 계산이 필요 없다.
+   그 폭까지 이 값을 그대로 물리면 hud 공식과 안 맞아 독이 과하게 좁아진다) */
+@media (min-width: 561px) and (max-width: 780px) {
+  #dock { max-width: calc((100vw - min(560px, 100vw - 96px)) / 2 - 24px); }
+}
+
+/* 세로 폭이 짧으면(가로로 눕힌 폰·창을 낮게 줄인 PC) 폭은 780px 을 넘어도
+   독(세로 아홉 칸, 약 590px)이 위쪽 도구줄까지 덮을 수 있다 — 그때도 위
+   780px 규칙과 같은 결로 눕혀서 사냥 화면을 가리지 않게 한다 */
+@media (min-width: 781px) and (max-height: 640px) {
+  #dock {
+    flex-direction: row; left: 12px; justify-content: flex-end;
+    max-height: none; overflow-y: visible; overflow-x: auto;
+    max-width: calc((100vw - min(560px, 100vw - 96px)) / 2 - 24px);
+  }
+  #dock button { width: 46px; height: 46px; border-radius: 15px; }
 }
 
 /* ── 폰 폭: 상단 도구를 ⋯ 뒤로 접는다 (사가고 UI와 같은 결) ───────── */
