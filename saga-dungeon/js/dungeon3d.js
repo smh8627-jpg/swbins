@@ -2508,8 +2508,12 @@
       /* 맞은 직후에는 흔들린다 */
       if (e.hurt > 0) { a.node.position.x += (Math.random() - 0.5) * 3; }
       if (AS3) {
-        var eWalking = Math.hypot(p.x - e.x, p.y - e.y) > (e.r || 12) + (d().P_R || 13) + 8;
-        AS3.step(a.node.userData.mixerNode, { t: nowT, walking: eWalking, anim: e.hurt > 0 ? 'hit' : (eWalking ? 'walk' : 'attack') });
+        /* 어그로(2026-09-10) — 아직 못 알아챈 적은 사거리 판정과 무관하게
+           'idle'(마을 NPC와 같은 이름, 아래 townMark 자리와 같은 결)이다.
+           안 그러면 안 쫓아오는데 걷는 시늉만 제자리서 계속하는 것처럼 보인다. */
+        var eWalking = e.aggro && Math.hypot(p.x - e.x, p.y - e.y) > (e.r || 12) + (d().P_R || 13) + 8;
+        var eAnim = e.hurt > 0 ? 'hit' : (!e.aggro ? 'idle' : (eWalking ? 'walk' : 'attack'));
+        AS3.step(a.node.userData.mixerNode, { t: nowT, walking: eWalking, anim: eAnim });
         AS3.flashAllMat(ensureFlash(a.node), e.hurt, 0.2);
         if (e.shade) { ensureShade(a.node); }
       }

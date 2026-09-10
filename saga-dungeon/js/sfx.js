@@ -55,6 +55,8 @@
     setsk: { gap: 0.15, l: [{ v: 'noise', dur: 0.2, lp: 2600, lp2: 600, gain: 0.18 },
                             { v: 'chime', notes: [392, 659, 988], step: 0.05,
                               dur: 0.5, wave: 'sine', gain: 0.15 }] },
+    /* 어그로 — 적이 막 알아챘을 때의 짧고 낮은 "엇" 소리. 2026-09-10 */
+    alert: { gap: 0.12, l: [{ v: 'tone', f: 260, f2: 520, dur: 0.09, wave: 'square', gain: 0.09 }] },
     /* 죽음 — 내려가던 것이 멎는 소리. 결사(하드코어)면 이게 마지막이다 */
     die:   { gap: 1.0,  l: [{ v: 'chime', notes: [330, 247, 165, 110], step: 0.13,
                               dur: 0.9, wave: 'triangle', gain: 0.20 }] },
