@@ -977,6 +977,16 @@
         var col = i % cols, row = Math.floor(i / cols);
         var lotX = (col + 0.5) / cols * lotArea - lotArea / 2;
         var lotZ = (row + 0.5) / rows * lotArea - lotArea / 2;
+        /* 2026-09-10 — "바둑판 같다" 재지적("삼각형·둥근 라인"·"각을 랜덤으로"·
+           "지도 건물 배치처럼"). 대지를 줄·칸으로 나눈 것 자체는 그대로 두되
+           (허물면 겹침·충돌 판정을 다시 다 맞춰야 한다), **줄마다 엇갈리게**
+           밀어 칸 하나가 "완전한 격자"로 안 보이게 한다 — 벽돌쌓기와 같은
+           원리, 옛 마을 골목이 신도시 아파트 단지처럼 안 보이는 이유가 이것이다.
+           방향은 칸마다 해시로 갈라 옆 칸과 같은 쪽으로만 안 쏠리게 한다 */
+        if (row % 2 === 1) {
+          var staggerDir = h1(gx * 41 + row * 7, gy * 43 + row * 5) > 0.5 ? 1 : -1;
+          lotX += lotW * 0.3 * staggerDir;
+        }
         var jx = (h1(gx * 3 + i * 13, gy * 7 + i * 5) - 0.5) * lotW * 0.5;
         var jz = (h1(gx * 11 + i * 3, gy * 17 + i * 29) - 0.5) * lotD * 0.5;
         var hh = h1(gx * 13 + i, gy * 19 + i * 3);
@@ -987,7 +997,10 @@
           x: lotX + jx, z: lotZ + jz,
           w: w, d: w * (0.8 + hh * 0.5),
           h: tall ? (12 + hh * 22) * (0.6 + u * 0.8) : 4 + hh * 4,
-          rot: baseRot + (h1(gx + i * 7, gy - i * 5) - 0.5) * 0.5,
+          /* 각도 흔들림 폭을 0.5→0.7로 넓혔다(사용자가 직접 "각을 랜덤으로
+             변경" 요청) — baseRot(길 방향)에서 너무 멀어지면 집이 길과
+             동떨어져 보이므로 상한은 둔다 */
+          rot: baseRot + (h1(gx + i * 7, gy - i * 5) - 0.5) * 0.7,
           shade: 0.30 + hh * 0.46,
           roof: !tall
         });

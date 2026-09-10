@@ -615,12 +615,16 @@
    *  `landTexture`)가 이미 받아 둔 ambientCG CC0 땅 사진(`assets/textures/
    *  land/`)을 그대로 재사용한다 — `water`는 3D처럼 뺀다(맞는 CC0 사진이
    *  없어 옅은 색 그대로 둔다, 실제 물결도 없는 자리라 색만으로 충분하다).
-   *  원본(1024px)을 매 프레임 그대로 그리면 커서(`sprite.js` `human()` 교체
-   *  때 밟은 "큰 사진을 매 프레임 drawImage하면 저사양에서 느려진다"는
-   *  트레이드오프 참고) 한 번만 작게(`LAND_TEX_PX`) 구워 둔 캔버스를 소스로
-   *  쓴다 — 그 뒤로는 작은 캔버스→작은 사각형 blit이라 옛 `fillRect`(색)와
-   *  비용이 비슷하다. 종류마다 셋씩 있어(3D와 같은 파일) 48칸(tx,ty) 해시로
-   *  하나를 고른다(3D의 `variantFor`와 같은 결, 반복 주기만 더 성기다).
+   *
+   *  **첫 버전(칸마다 같은 사진을 통째로 욱여넣기)은 오히려 "바둑판" 을
+   *  더 도드라지게 했다** (2026-09-10, 바로 이어서 재지적) — 칸마다 독립된
+   *  도장을 찍는 꼴이라 48px 마다 똑같은 사진이 뚝뚝 끊겨 반복됐다. 3D의
+   *  `landPattern()`과 같은 원리로 바꾼다: 사진 한 장을 **세계 좌표에
+   *  붙박아 이어 반복**시키는 `CanvasPattern`(+`setTransform`) 하나를
+   *  종류마다 두고, 칸은 그 패턴을 그대로 오려 붙이기만 한다 — 옆 칸과
+   *  사진이 이어지므로 칸 경계에 이음매가 안 생긴다. 종류당 변형이 셋
+   *  있지만(3D와 같은 파일) 2D는 **첫 번째만** 쓴다 — 변형을 칸마다
+   *  섞으면 그 경계마다 다시 이음매가 생겨 도로아미타불이다.
    */
   var LAND_TEX_VARIANTS = {
     grass: ['assets/textures/land/grass1.webp', 'assets/textures/land/grass2.webp', 'assets/textures/land/grass3.webp'],
@@ -630,41 +634,56 @@
     town: ['assets/textures/land/town1.webp', 'assets/textures/land/town2.webp', 'assets/textures/land/town3.webp'],
     farm: ['assets/textures/land/farm1.webp', 'assets/textures/land/farm2.webp', 'assets/textures/land/farm3.webp']
   };
-  var LAND_TEX_PX = 40;
-  var landTexCv = {};        // "kind#variant" → 구운 작은 캔버스 (로딩 중·없음이면 null)
-  function landTexCanvas(kind, variant) {
-    var key = kind + '#' + variant;
-    if (landTexCv.hasOwnProperty(key)) { return landTexCv[key]; }
-    var urls = LAND_TEX_VARIANTS[kind], url = urls && urls[variant];
-    landTexCv[key] = null;   // 자리부터 선점 — onload 전에 다시 새 Image를 만들지 않게
-    if (!url) { return null; }
+  /** 사진 한 변이 세계에서 덮는 폭(m) — 3D(12m)보다 성기다. 2D는 화면이
+   *  작고 확대도 자주 안 해 더 촘촘히 반복하면 오히려 무늬가 흐물거린다 */
+  var LAND_TEX_METERS_2D = 24;
+  var landTexImg2D = {};   // kind → Image
+  var landPat2D = {};      // kind → CanvasPattern (한 번 만들어 계속 쓴다)
+
+  function landTexImg2DGet(kind) {
+    if (landTexImg2D[kind]) { return landTexImg2D[kind]; }
     var img = new Image();
-    img.onload = function () {
-      var cv = document.createElement('canvas');
-      cv.width = cv.height = LAND_TEX_PX;
-      cv.getContext('2d').drawImage(img, 0, 0, LAND_TEX_PX, LAND_TEX_PX);
-      landTexCv[key] = cv;
-    };
-    img.src = url;
-    return null;
+    landTexImg2D[kind] = img;
+    var urls = LAND_TEX_VARIANTS[kind];
+    if (urls && urls[0]) {
+      img.onload = function () { img.ready = true; };
+      img.src = urls[0];
+    }
+    return img;
   }
-  /** `core.hash2` 는 0~0.5만 돌려준다(다른 자리의 h01 참고) — 두 배로 펴서 쓴다 */
-  function landVariant(tx, ty) {
-    var n = 3, h = Math.min(0.999999, core.hash2(tx * 977 + 31, ty * 733 + 11) * 2);
-    return Math.floor(h * n);
+
+  /** 이 종류의 패턴을 지금 카메라 기준으로 맞춰 돌려준다. 못 받았으면 null —
+   *  그러면 옛 색칠로 물러난다(화면이 안 빈다) */
+  function landPattern2D(ctx, kind, camX, camY, sc) {
+    var img = landTexImg2DGet(kind);
+    if (!img.ready || !img.naturalWidth || !ctx.createPattern) { return null; }
+    var pat = landPat2D[kind];
+    if (!pat) { pat = ctx.createPattern(img, 'repeat'); landPat2D[kind] = pat; }
+    if (pat && pat.setTransform && typeof DOMMatrix !== 'undefined') {
+      var M = LAND_TEX_METERS_2D, side = M * sc;
+      var wx0 = Math.floor(camX / M) * M, wy0 = Math.floor(camY / M) * M;
+      var tx = (wx0 - camX) * sc, ty = (wy0 - camY) * sc;
+      pat.setTransform(new DOMMatrix([side / img.naturalWidth, 0, 0, side / img.naturalHeight, tx, ty]));
+    }
+    return pat;
   }
 
   function drawFallback(ctx, camX, camY, W, H, sc) {
     var T = 48 * sc;
     var t0x = Math.floor(camX / 48) - 1, t1x = Math.ceil((camX + W / sc) / 48) + 1;
     var t0y = Math.floor(camY / 48) - 1, t1y = Math.ceil((camY + H / sc) / 48) + 1;
+    var patCache = {};   // 이번 프레임엔 종류당 한 번만 구한다(패턴 변환 값 재사용)
     for (var ty = t0y; ty <= t1y; ty++) {
       for (var tx = t0x; tx <= t1x; tx++) {
         var kind = terrainAt(tx, ty);
         var sx = (tx * 48 - camX) * sc, sy = (ty * 48 - camY) * sc;
-        var cv = LAND_TEX_VARIANTS[kind] ? landTexCanvas(kind, landVariant(tx, ty)) : null;
-        if (cv) {
-          ctx.drawImage(cv, sx, sy, T + 1, T + 1);
+        if (!(kind in patCache)) {
+          patCache[kind] = LAND_TEX_VARIANTS[kind] ? landPattern2D(ctx, kind, camX, camY, sc) : null;
+        }
+        var pat = patCache[kind];
+        if (pat) {
+          ctx.fillStyle = pat;
+          ctx.fillRect(sx, sy, T + 1, T + 1);
         } else {
           ctx.fillStyle = TERRAIN[kind];
           ctx.fillRect(sx, sy, T + 1, T + 1);
