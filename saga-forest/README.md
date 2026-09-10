@@ -827,10 +827,14 @@ M 키)가 호수·폭포·첫 캠프·동굴은 아이콘으로 찍으면서 두
 세이브도 완전히 분리돼 있어 도감·성장이 서로 오가지 않는다.
 
 **2026-09-10 — 3D 몸 외형 후보 20종(MPFB2 실사, `saga-go`에서 복사)을
-`js/asset3d.js`에 선언만 해 뒀다** — 이 판은 아직 인물을 3D로 세우는 화면
-(PLAN PHASE 2)이 없어 표 기본(`DEFAULTS.hero`)엔 안 넣었다. 그 화면이
-생기면 걸기 전에 saga-go의 리타깃 코드(`retargetInto` 등)부터 옮겨 와야
-한다 — 자세한 사정은 `assets/ASSET_LICENSES.md` 참고.
+`js/asset3d.js`에 선언**, 같은 날 뒤이어 saga-go의 리타깃 코드
+(`retargetInto`·`firstSkinned`·`boneNameMap`·`sceneHeight`)를 옮겨 오고
+**표 기본(`DEFAULTS.hero`)에 실제로 얹었다** — 뼈 길이가 다른 UAL1 몸짓을
+raw로 물리면 팔다리가 뒤틀리는 문제(saga-go가 먼저 겪음)를 몸마다 한
+번씩 다시 구워 입혀서 피한다. 이 판은 아직 인물을 3D로 세우는 화면
+(PLAN PHASE 2)이 없어 지금은 화면에 영향이 없다 — 그 화면이 생기면 이
+20종이 바로 걷는 인물로 선다. 자가진단 245/245(3회 동일). 자세한 사정은
+`assets/ASSET_LICENSES.md` 참고.
 
 ## 가입해서 저장 (account.js)
 

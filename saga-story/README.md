@@ -53,11 +53,15 @@ _demo.html       →  스크린샷용 데모 상태 (#boss · #hunt · #camp · 
 세이브도 완전히 분리돼 있어 도감·성장이 서로 오가지 않는다.
 
 **2026-09-10 — 3D 몸 외형 후보 20종(MPFB2 실사, `saga-go`에서 복사)을
-`js/asset3d.js`에 선언만 해 뒀다, 표 기본(`DEFAULTS.hero`)엔 아직 안
-넣었다.** 이 판은 `side-view3d.js`가 실제 플레이 화면에서 인물을 3D로
-세우는데, 이 몸들은 saga-go의 리타깃(`retargetInto` 등)이 있어야 걷기
-자세가 안 뒤틀린다 — 그 코드부터 옮겨 온 뒤에 표 기본에 얹을 것. 자세한
-사정은 `assets/ASSET_LICENSES.md` 참고.
+`js/asset3d.js`에 선언**, 같은 날 뒤이어 saga-go의 리타깃 코드
+(`retargetInto`·`firstSkinned`·`boneNameMap`·`sceneHeight`)를 옮겨 오고
+**표 기본(`DEFAULTS.hero`)에 실제로 얹었다.** 이 판은 `side-view3d.js`가
+`asset3d.buildHero()`를 **실제 플레이 화면**에서 부르므로(사가의숲과
+달리 죽은 자리가 아니다), 몸마다 다른 `heightPx`(58·75.4·110.2 등)로
+불려도 리타깃 캐시가 뒤틀리지 않게 **정규화 전 원본 몸을 기준으로 재고
+굽는다**(코드 주석 참고 — 사가의숲과 다른 점). 자가진단 134/134(3회
+동일). **실기기 확인은 아직**(20종이 실제 플레이 화면에서 걷는 모습을
+직접 볼 것). 자세한 사정은 `assets/ASSET_LICENSES.md` 참고.
 
 ## 가입해서 저장 (account.js)
 

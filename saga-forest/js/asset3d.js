@@ -86,20 +86,23 @@
   ];
 
   /* 2026-09-10 — 외형 다양화(saga-go 의 MPFB2 몸 20종을 그대로 복사, CC0,
-   * 자세한 것은 assets/ASSET_LICENSES.md). **아직 표 기본에는 안 넣었다** —
-   * 이 파일 머리말대로 이 표를 실제로 세우는 3D 화면(PLAN PHASE 2, world3d)이
-   * 아직 없어서 지금은 걸어도 안 걸어도 화면에 영향이 없지만, 나중에 그
-   * 화면이 생기면 걷는 인물이 된다. saga-go 의 MPFB 몸은 **제 클립이
-   * 0개**라(saga-go 는 `retargetInto()`로 UAL1 몸짓을 뼈대 비례까지 맞춰
-   * 다시 구워 입힌다) 이 판처럼 그 리타깃 코드가 없는 채로 그냥 걷게 하면
-   * saga-go 가 이미 겪은 뼈대 뒤틀림 버그가 그대로 난다. **PHASE 2에서
-   * 실제 3D 화면을 놓을 때, 이 배열을 쓰기 전에 saga-go 의 `retargetInto`
-   * 계열 함수(`needsRetarget`·`firstSkinned`·`boneNameMap`·`sceneHeight`·
-   * `dressUp`)를 먼저 옮겨 와야 한다** — 그 전까지는 손대지 말 것. */
+   * 자세한 것은 assets/ASSET_LICENSES.md). saga-go 의 MPFB 몸은 **제 클립이
+   * 0개**라 `anim` 없이 공용 `ANIM_SRC`(UAL1)를 빌리는데, 뼈 길이가 UAL1과
+   * 달라 raw 로 물리면 팔다리가 뒤틀린다(saga-go 가 겪은 "팔이 T자로 안
+   * 움직인다" 버그) — **같은 날 뒤이어** saga-go 의 `retargetInto()` 계열
+   * (`firstSkinned`·`boneNameMap`·`sceneHeight`·`retargetInto`, 아래
+   * `assembleHero` 앞)을 옮겨 오고 `loadHeroRecipe()`의 `assemble()`에서
+   * 몸마다 한 번만 다시 구워 입히도록 이어 붙였다 — 이제 `DEFAULTS.hero`에도
+   * 실제로 걸린다(바로 아래 `.concat`). 이 파일 머리말대로 이 표를 실제로
+   * 세우는 3D 화면(PLAN PHASE 2, world3d)이 아직 없어 지금은 화면에 아무
+   * 영향이 없다 — 그 화면이 생기면 이 20종이 뒤틀리지 않고 걷는 인물로
+   * 선다(사가스토리 `asset3d.js`에 같은 이식을 했으니 거기서 먼저 실기
+   * 확인이 될 수도 있다). */
   var PEOPLE_MPFB = 'assets/models/people/mpfb_real/';
   var HERO_RECIPES_MPFB = ['female', 'male', 'v3', 'v7', 'v8', 'v9', 'v10', 'v11', 'v12',
     'v13', 'v14', 'v15', 'v16', 'v17', 'v18', 'v19', 'v20', 'v21', 'v22', 'v23']
     .map(function (n) { return { key: 'mpfb_' + n, body: PEOPLE_MPFB + n + '.glb' }; });
+  HERO_RECIPES = HERO_RECIPES.concat(HERO_RECIPES_MPFB);
 
   /** 되돌림 자리 — 실사 바위가 안 맞으면 이 값으로 register() 두 줄이면 돌아간다:
    *    asset3d.register('rock', ROCK_STYLIZED.rock);
@@ -613,6 +616,72 @@
     return g;
   }
 
+  /** 이 장면의 키(m) — 뼈대 크기를 견줄 때 쓴다(saga-go `asset3d.js`에서 옮김) */
+  function sceneHeight(obj) {
+    var t = three();
+    var b = new t.Box3().setFromObject(obj);
+    return Math.max(1e-4, b.max.y - b.min.y);
+  }
+
+  function firstSkinned(obj) {
+    var found = null;
+    obj.traverse(function (o) { if (!found && o.isSkinnedMesh) { found = o; } });
+    return found;
+  }
+
+  /** 목표 뼈 이름 → 원본 뼈 이름 표. 이름이 같은 것만 잇는다(항등) —
+   *  saga-go `asset3d.js`의 `boneNameMap()`과 동일 */
+  function boneNameMap(tm, sm) {
+    var map = {}, n = 0, i;
+    if (!tm.skeleton || !sm.skeleton) { return { map: map, count: 0 }; }
+    var have = {}, sb = sm.skeleton.bones, tb = tm.skeleton.bones;
+    for (i = 0; i < sb.length; i++) { have[sb[i].name] = 1; }
+    for (i = 0; i < tb.length; i++) {
+      if (have[tb[i].name]) { map[tb[i].name] = tb[i].name; n++; }
+    }
+    return { map: map, count: n };
+  }
+
+  /**
+   * 원본(src, 제 몸짓을 가진 모델)의 클립을 이 몸(c)에 맞게 다시 굽는다 —
+   * saga-go 의 `retargetInto()`를 그대로 옮겼다. 뼈 길이가 달라도 맞는 이유,
+   * "팔이 T자로 안 움직인다" 버그를 왜 이렇게 고쳤는지는 saga-go
+   * `asset3d.js`의 같은 이름 함수 주석 참고. 못 하면 빈 배열 — 그러면 이 몸은
+   * 가만히 선다(뒤틀리는 것보다 낫다).
+   */
+  function retargetInto(c, src) {
+    var t = three();
+    if (!t || !t.SkeletonUtils || !t.SkeletonUtils.retargetClip) { return []; }
+    var tgt = firstSkinned(c.gltf.scene), s = firstSkinned(src.gltf.scene);
+    if (!tgt || !s) { return []; }
+    /* 옮기는 동안 뼈가 실제로 움직이므로 사본으로 굴린다 —
+       원본을 굴리면 그 모델을 쓰는 다른 배우가 같이 뒤틀린다 */
+    var tc = cloneScene(c.gltf), sc = cloneScene(src.gltf);
+    var tm = firstSkinned(tc), sm = firstSkinned(sc);
+    if (!tm || !sm) { return []; }
+    tc.updateMatrixWorld(true); sc.updateMatrixWorld(true);
+
+    var mul = sceneHeight(tc) / sceneHeight(sc);
+    var names = boneNameMap(tm, sm);
+    if (!names.count) { return []; }
+
+    var out = [], i, j, clip;
+    for (i = 0; i < src.clips.length; i++) {
+      try {
+        clip = t.SkeletonUtils.retargetClip(tm, sm, src.clips[i],
+          { hip: 'Hips', scale: mul, names: names.map });
+        if (clip) {
+          clip.name = src.clips[i].name;
+          for (j = 0; j < clip.tracks.length; j++) {
+            clip.tracks[j].name = clip.tracks[j].name.replace(/^\.bones\[([^\]]+)\]/, '$1');
+          }
+          out.push(clip);
+        }
+      } catch (e) { /* 이 클립 하나만 건너뛴다 */ }
+    }
+    return out;
+  }
+
   /**
    * 인물 하나 — **몸 위에 옷·머리를 얹어 한 뼈대에 묶는다.** 셋 다 뼈 이름·순서가
    * 완전히 같으므로(saga-go 에서 직접 대조했다) 스킨 메시를 몸의 스켈레톤에
@@ -697,12 +766,24 @@
       swapped++;
       var animC = parts.anim;
       if (animC && animC.clips && animC.clips.length) {
+        var clips = animC.clips;
+        /* 몸에 제 몸짓이 없어(rec.anim 이 rec.body 와 다른 파일 — 즉 ANIM_SRC 를
+           빌려 옴) MPFB 같은 실사 몸은 뼈 길이가 ANIM_SRC 와 달라 raw 로 물리면
+           팔다리가 뒤틀린다(saga-go 가 겪은 버그, 위 `retargetInto` 주석 참고) —
+           다시 구워 입힌다. 몸마다 한 번만 굽도록 parts.body(URL 로 캐싱되는
+           원본 캐시 칸)에 매달아 둔다 */
+        if (rec.anim !== rec.body) {
+          if (!parts.body.heroClips) {
+            parts.body.heroClips = retargetInto({ gltf: { scene: model } }, animC) || [];
+          }
+          if (parts.body.heroClips.length) { clips = parts.body.heroClips; }
+        }
         var mx = new t.AnimationMixer(model.children[0]);
         var acts = {}, i;
-        for (i = 0; i < animC.clips.length; i++) { acts[animC.clips[i].name] = mx.clipAction(animC.clips[i]); }
+        for (i = 0; i < clips.length; i++) { acts[clips[i].name] = mx.clipAction(clips[i]); }
         model.userData.mixer = mx;
         model.userData.actions = acts;
-        model.userData.clipMap = mapClips(animC.clips.map(function (a) { return a.name; }));
+        model.userData.clipMap = mapClips(clips.map(function (a) { return a.name; }));
       }
       cb(model);
     }

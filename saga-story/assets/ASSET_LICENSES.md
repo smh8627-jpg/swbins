@@ -214,20 +214,23 @@ CC0(저작자 표시 불필요) 곡만 새로 찾았다. **직접 들어보고 �
 `../saga-go/assets/ASSET_LICENSES.md`의 Lucide 항목을 그대로 따른다
 (Lucide, <https://lucide.dev>, **ISC**).
 
-## MPFB2 실사 몸 20종 — 외형 다양화 후보, 아직 미적용 (2026-09-10, `saga-go`에서 복사)
+## MPFB2 실사 몸 20종 — 외형 다양화, 표 기본에 적용됨 (2026-09-10, `saga-go`에서 복사)
 
 `saga-go`가 2026-09-05에 뽑아 둔 MPFB2 실사 몸 20종(`assets/models/people/
 mpfb_real/{male,female,v3,v7~v23}.glb`, 각 3.5~4.3MB, 총 74MB)을 이 판에도
 복사해 뒀다 — **라이선스는 CC0**(출처·재현 경위는 `saga-go/assets/
 ASSET_LICENSES.md`의 "MPFB2 + makehuman_system_assets" 절 참고).
 
-`js/asset3d.js`에 `HERO_RECIPES_MPFB`로 **선언만 해 뒀고 `DEFAULTS.hero`엔
-안 넣었다** — **이 판은 `side-view3d.js`가 `asset3d.buildHero()`를 실제
-플레이 화면에서 살아 있게 부른다**(saga-forest·saga-realm과 달리 죽은
-자리가 아니다). 이 MPFB 몸은 제 클립이 0개라 saga-go처럼 `retargetInto()`로
-UAL1 몸짓을 뼈대 비례까지 맞춰 다시 구워 입혀야 하는데, 이 판엔 그 리타깃
-코드가 없다 — 지금 그냥 표 기본에 섞으면 **실제 플레이 화면에서** saga-go가
-이미 겪은 뼈대 뒤틀림 버그가 그대로 난다. **이 배열을 `DEFAULTS.hero`에
-넣기 전에 saga-go 의 `retargetInto` 계열 함수(`needsRetarget`·
-`firstSkinned`·`boneNameMap`·`sceneHeight`·`dressUp`)부터 반드시 옮겨 올
-것.**
+`js/asset3d.js`에 `HERO_RECIPES_MPFB`로 선언하고 **`DEFAULTS.hero`에도
+얹었다**(같은 날 뒤이어 완료) — **이 판은 `side-view3d.js`가
+`asset3d.buildHero()`를 실제 플레이 화면에서 살아 있게 부른다**
+(saga-forest·saga-realm과 달리 죽은 자리가 아니다). 이 MPFB 몸은 제
+클립이 0개라 saga-go의 리타깃 계열 함수(`firstSkinned`·`boneNameMap`·
+`sceneHeight`·`retargetInto`)를 이 파일로 옮겨 오고 `buildHero()`의
+`assemble()`에서 몸마다 한 번만 다시 구워 입히도록 이어 붙였다 — 뼈
+길이가 다른 UAL1 몸짓을 raw로 물리면 팔다리가 뒤틀리던(saga-go가 먼저
+겪은) 문제를 피한다. 이 판은 배우마다 `heightPx`(58·75.4·110.2 등)가
+달라 **정규화(normalize) 전의 원본 몸을 기준으로 재고 굽는다** — 이미
+정규화된 모델을 기준으로 하면 캐시가 처음 잰 배율에 고정돼 다른 배율로
+부른 다음 배우가 뒤틀린다(`js/asset3d.js`의 `retargetInto` 주석 참고,
+saga-forest와 다른 점 — 그 판은 hero 배율이 늘 1이라 이 문제가 없다).

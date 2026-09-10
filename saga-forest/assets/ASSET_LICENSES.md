@@ -471,18 +471,18 @@ PLAN 6절 "작은 마을" 착수 — `home`(집)·`tailor`(침선방)·`museum`(
 | `models/props/box_small.gltf.glb` | **편지함**(`mail`) — 원래 던전 방 잡동사니 상자, 작은 나무 상자라 편지함 대역으로 썼다 |
 | `models/props/banner_thin_red.gltf.glb` | **마을기**(`pole`) — 원래 보스방 현수막, 깃발 달린 기둥이라 마을기 대역으로 썼다 |
 
-## MPFB2 실사 몸 20종 — 외형 다양화 후보, 아직 미적용 (2026-09-10, `saga-go`에서 복사)
+## MPFB2 실사 몸 20종 — 외형 다양화, 표 기본에 적용됨 (2026-09-10, `saga-go`에서 복사)
 
 `saga-go`가 2026-09-05에 뽑아 둔 MPFB2 실사 몸 20종(`assets/models/people/
 mpfb_real/{male,female,v3,v7~v23}.glb`, 각 3.5~4.3MB, 총 74MB)을 이 판에도
 복사해 뒀다 — **라이선스는 CC0**(출처·재현 경위는 `saga-go/assets/
 ASSET_LICENSES.md`의 "MPFB2 + makehuman_system_assets" 절 참고).
 
-`js/asset3d.js`에 `HERO_RECIPES_MPFB`로 **선언만 해 뒀고 `DEFAULTS.hero`엔
-안 넣었다** — 이 판은 아직 이 표를 실제로 세우는 3D 화면(PLAN PHASE 2,
-world3d)이 없어 지금은 영향이 없지만, 그 화면이 생겨 걷는 인물이 되면
-문제가 생긴다: 이 MPFB 몸은 제 클립이 0개라 saga-go처럼 `retargetInto()`로
-UAL1 몸짓을 뼈대 비례까지 맞춰 다시 구워 입혀야 하는데, 이 판엔 그 리타깃
-코드가 없다. **PHASE 2에서 실제 3D 화면을 놓을 때 saga-go 의
-`retargetInto` 계열 함수(`needsRetarget`·`firstSkinned`·`boneNameMap`·
-`sceneHeight`·`dressUp`)부터 옮겨 온 뒤에 이 배열을 표 기본에 얹을 것.**
+`js/asset3d.js`에 `HERO_RECIPES_MPFB`로 선언하고 **`DEFAULTS.hero`에도
+얹었다**(같은 날 뒤이어 완료) — 이 MPFB 몸은 제 클립이 0개라 saga-go의
+`retargetInto()`처럼 UAL1 몸짓을 뼈대 비례까지 맞춰 다시 구워 입혀야
+하는데, saga-go의 리타깃 계열 함수(`firstSkinned`·`boneNameMap`·
+`sceneHeight`·`retargetInto`)를 이 파일로 옮겨 오고 `loadHeroRecipe()`의
+`assemble()`에서 몸마다 한 번만 다시 굽도록 이어 붙였다. 이 판은 아직
+이 표를 실제로 세우는 3D 화면(PLAN PHASE 2, world3d)이 없어 지금은 화면에
+영향이 없다 — 그 화면이 생기면 이 20종이 뒤틀리지 않고 걷는 인물로 선다.
