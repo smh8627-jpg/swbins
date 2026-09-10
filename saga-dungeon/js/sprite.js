@@ -131,7 +131,7 @@
     kr_hwanghui:      { weapon: 'scroll', helm: 'gat', armor: 'robe', beard: true },
     kr_jeongmongju:   { weapon: 'scroll', helm: 'gat', armor: 'robe', beard: true },
 
-    /* 유럽사 — 규칙(ruleLook)에 맡기면 갓·도포가 붙으므로 전원 지정한다.
+    /* 세계사(옛 유럽사) — 규칙(ruleLook)에 맡기면 갓·도포가 붙으므로 전원 지정한다.
        새 파츠를 만들지 않고 있는 것으로만 조합했다: 투구는 helmet, 장식 모자는 plume,
        왕관은 crown, 제복은 coat. */
     eu_caesar:        { weapon: 'sword', helm: 'crown', armor: 'plate', cape: true },
@@ -155,7 +155,46 @@
     eu_machiavelli:   { weapon: 'brush', helm: 'none', armor: 'robe' },
     eu_newton:        { weapon: 'scroll', helm: 'scholar', armor: 'robe' },
     eu_michelangelo:  { weapon: 'brush', helm: 'none', armor: 'robe', beard: true },
-    eu_eleanor:       { weapon: 'none', helm: 'crown', armor: 'dress', skirt: true }
+    eu_eleanor:       { weapon: 'none', helm: 'crown', armor: 'dress', skirt: true },
+
+    /* 일본사(2026-09-10) — 갑주 계열은 gapju(투구 대역)로 통일, 문인은 none+robe */
+    jp_himiko:      { weapon: 'staff', helm: 'none', armor: 'dress', skirt: true },
+    jp_taira:       { weapon: 'sword', helm: 'crown', armor: 'coat', cape: true },
+    jp_yoritomo:    { weapon: 'sword', helm: 'helmet', armor: 'plate', cape: true },
+    jp_yoshitsune:  { weapon: 'spear', helm: 'helmet', armor: 'plate', cape: true },
+    jp_murasaki:    { weapon: 'brush', helm: 'none', armor: 'robe' },
+    jp_seishonagon: { weapon: 'brush', helm: 'none', armor: 'robe' },
+    jp_tomoegozen:  { weapon: 'guandao', helm: 'helmet', armor: 'plate', cape: true },
+    jp_nobunaga:    { weapon: 'sword', helm: 'gapju', armor: 'plate', cape: true },
+    jp_hideyoshi:   { weapon: 'fan', helm: 'gapju', armor: 'coat' },
+    jp_ieyasu:      { weapon: 'sword', helm: 'gapju', armor: 'plate', cape: true },
+    jp_shingen:     { weapon: 'guandao', helm: 'gapju', armor: 'plate', cape: true, beard: true },
+    jp_kenshin:     { weapon: 'sword', helm: 'gapju', armor: 'plate', cape: true },
+    jp_masamune:    { weapon: 'sword', helm: 'gapju', armor: 'plate', cape: true, beard: true },
+    jp_yukimura:    { weapon: 'spear', helm: 'gapju', armor: 'plate', cape: true },
+    jp_musashi:     { weapon: 'sword', helm: 'none', armor: 'leather' },
+    jp_hanzo:       { weapon: 'club', helm: 'none', armor: 'leather' },
+    jp_mitsukuni:   { weapon: 'scroll', helm: 'none', armor: 'robe', beard: true },
+    jp_naosuke:     { weapon: 'scroll', helm: 'none', armor: 'coat', beard: true },
+    jp_saigo:       { weapon: 'sword', helm: 'none', armor: 'coat', beard: true },
+    jp_ryoma:       { weapon: 'sword', helm: 'none', armor: 'coat' },
+
+    /* 세계사, 비유럽(2026-09-10) */
+    wd_ashoka:      { weapon: 'staff', helm: 'crown', armor: 'robe' },
+    wd_akbar:       { weapon: 'sword', helm: 'crown', armor: 'coat', cape: true },
+    wd_saladin:     { weapon: 'sword', helm: 'helmet', armor: 'plate', cape: true, beard: true },
+    wd_suleiman:    { weapon: 'sword', helm: 'crown', armor: 'coat', cape: true, beard: true },
+    wd_ibnsina:     { weapon: 'scroll', helm: 'none', armor: 'robe', beard: true },
+    wd_genghis:     { weapon: 'spear', helm: 'helmet', armor: 'plate', cape: true, beard: true },
+    wd_khubilai:    { weapon: 'sword', helm: 'crown', armor: 'coat', cape: true, beard: true },
+    wd_mansamusa:   { weapon: 'none', helm: 'crown', armor: 'robe', cape: true },
+    wd_shaka:       { weapon: 'spear', helm: 'none', armor: 'leather' },
+    wd_cleopatra:   { weapon: 'none', helm: 'crown', armor: 'dress', skirt: true },
+    wd_pachacuti:   { weapon: 'staff', helm: 'crown', armor: 'robe' },
+    wd_moctezuma:   { weapon: 'club', helm: 'crown', armor: 'leather' },
+    wd_ibnbattuta:  { weapon: 'scroll', helm: 'none', armor: 'robe' },
+    wd_hammurabi:   { weapon: 'scroll', helm: 'crown', armor: 'robe', beard: true },
+    wd_attila:      { weapon: 'axe', helm: 'helmet', armor: 'plate', beard: true }
   };
 
   /** 표에 없는 인물은 기질·등급에서 규칙으로 만든다 */
