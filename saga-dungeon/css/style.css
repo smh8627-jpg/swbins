@@ -101,17 +101,14 @@ body.tilted #vignette {
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
 
-/* 2026-09-08 — 자동 순회만 붙박이로 두고 나머지(양식·소리·도움말·어드민·
-   리셋)는 "더보기" 뒤로 접는다 — #dock-more 와 같은 결(사가국지·사가스토리에서
-   먼저 밟았다, "사가고랑 UI가 완전히 같지 않다" 제보로 여기도 맞췄다) */
+/* 2026-09-10 — 사가고와 UI를 맞춘다: 넓은 화면에서는 도구가 줄에 그대로
+   늘어서고(.tools-drawer 가 display:contents), 폰 폭(600px 이하)에서만
+   ⋯ 뒤로 접힌다(아래 @media 참고). 2026-09-08엔 "붙박이 자동순회 + 나머지는
+   늘 접기"로 갔었는데, 그건 사가고의 실제 동작과 달랐다 — 사가고는 넓은
+   화면에서 도구를 다 펼쳐 보여준다. */
 .tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
-#top-more {
-  position: absolute; right: 0; top: calc(100% + 8px);
-  display: grid; grid-template-columns: repeat(2, 40px); gap: 7px;
-  opacity: 0; pointer-events: none; transform: translateY(-6px);
-  transition: opacity .16s, transform .16s;
-}
-#top-more.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.tools-drawer { display: contents; }
+#btn-more { display: none; font-size: 19px; line-height: 1; padding-bottom: 4px; }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   background: var(--glass); border: 1px solid var(--glass-br);
@@ -580,6 +577,22 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   #autobar { top: calc(212px + var(--safe-t)); }
   #near { bottom: calc(84px + var(--safe-b)); }
   .wallet { flex-wrap: wrap; }
+}
+
+/* ── 폰 폭: 상단 도구를 ⋯ 뒤로 접는다 (사가고와 같은 문턱) ────── */
+@media (max-width: 600px) {
+  #btn-more { display: inline-block; }
+  .tools-drawer {
+    display: none;
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 14;
+    flex-wrap: wrap; justify-content: flex-end; gap: 7px;
+    width: max-content; max-width: calc(100vw - 24px);
+    padding: 9px; border-radius: var(--r-md);
+    background: var(--glass); border: 1px solid var(--glass-br);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow);
+  }
+  .tools-drawer.show { display: flex; }
 }
 
 /* ══ 인물 성장 · 영지 경영 (v0.7) ═══════════════════════════════ */
