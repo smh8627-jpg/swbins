@@ -69,6 +69,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/data-quiz.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
+<script src="js/sfx.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/officer.js"></script>
@@ -1762,6 +1763,125 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     t('진단의 무작위는 씨앗으로 고정된다', function () {
       return window.DG_SEED === 20260824 &&
         Math.random() >= 0 && Math.random() < 1 && ('씨앗 ' + window.DG_SEED);
+    });
+
+    /* ── 소리(音) — WebAudio 로 그 자리에서 만든다 (2026-09-10) ────── */
+
+    t('소리표에 전투·무장·세계·시간·원정·학당·외교/재해 갈래가 다 있다', function () {
+      var S = DG.sfx;
+      var need = ['battle_win', 'battle_routed', 'battle_dusk', 'duel',
+                  'grow', 'promote', 'history', 'discover', 'fallen', 'victory', 'defeat',
+                  'month', 'newyear', 'march', 'journey_good', 'journey_bad', 'camp_retreat',
+                  'quiz_ok', 'quiz_miss',
+                  'omen', 'friendly', 'defect', 'disaster_good', 'disaster_bad'];
+      var miss = [], i;
+      for (i = 0; i < need.length; i++) { if (!S.CUES[need[i]]) { miss.push(need[i]); } }
+      var keys = Object.keys(S.CUES);
+      return miss.length === 0 && ('소리 ' + keys.length + '가지 · 빠진 것 없음');
+    });
+
+    t('첫 눌림 전에는 소리가 안 난다 (브라우저 규칙)', function () {
+      var S = DG.sfx;
+      return S.ready() === false && S.play('battle_win') === false &&
+        '깨우기 전에는 play() 가 false';
+    });
+
+    t('소리는 꺼져 있어도 요청을 남긴다 (판정 층과 소리 층이 갈렸다)', function () {
+      var S = DG.sfx;
+      S._clear();
+      S.play('battle_win'); S.play('victory');
+      var tail = S._tail(2);
+      return tail.length === 2 && tail[0] === 'battle_win' && tail[1] === 'victory' &&
+        '소리가 안 나도 기록은 남는다';
+    });
+
+    t('없는 소리를 불러도 안 죽는다', function () {
+      var S = DG.sfx;
+      S._clear();
+      var r = S.play('그런소리없음');
+      return r === false && S._tail(1)[0] === '그런소리없음' &&
+        '모르는 키는 조용히 흘린다';
+    });
+
+    t('rtk:battle — 내 세력이 관여하지 않은 싸움은 조용하다 (war.js 는 안 건드렸다)', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var others = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; });
+      S._clear();
+      C.emit('rtk:battle', { force: others[0], defForce: others[1], won: true, duel: false });
+      return S._tail(5).length === 0 && 'AI 끼리의 싸움은 안 울린다';
+    });
+
+    t('rtk:battle — 내가 친(공격) 싸움은 결과대로 울리고, 일기토는 따로 겹친다', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var other = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; })[0];
+      S._clear();
+      C.emit('rtk:battle', { force: 'cao', defForce: other, won: true, duel: true });
+      var tail = S._tail(2);
+      return tail[0] === 'duel' && tail[1] === 'battle_win' && (tail.join(' · '));
+    });
+
+    t('rtk:battle — 내가 맞은(수비) 싸움도 듣는다', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var other = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; })[0];
+      S._clear();
+      C.emit('rtk:battle', { force: other, defForce: 'cao', won: false, routed: true, duel: false });
+      return S._tail(1)[0] === 'battle_routed' && '수비 쪽이어도 듣는다';
+    });
+
+    t('rtk:grew·rtk:promote — 남의 무장이 크는 것은 조용하고, 내 무장만 듣는다', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var mineId = off.ofForce('cao')[0].id;
+      var otherForce = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; })[0];
+      var otherId = off.ofForce(otherForce)[0].id;
+      S._clear();
+      C.emit('rtk:grew', { id: otherId, lv: 5, levels: 1 });
+      var otherSilent = S._tail(5).length === 0;
+      S._clear();
+      C.emit('rtk:grew', { id: mineId, lv: 5, levels: 1 });
+      var mineGrows = S._tail(1)[0] === 'grow';
+      S._clear();
+      C.emit('rtk:promote', { id: otherId, rank: 1 });
+      var promOtherSilent = S._tail(5).length === 0;
+      S._clear();
+      C.emit('rtk:promote', { id: mineId, rank: 1 });
+      var minePromotes = S._tail(1)[0] === 'promote';
+      return otherSilent && mineGrows && promOtherSilent && minePromotes &&
+        '내 세력 문턱이 grew·promote 둘 다에 걸려 있다';
+    });
+
+    t('rtk:end · rtk:month — 승패와 새해/평달을 가른다', function () {
+      var S = DG.sfx;
+      S._clear(); C.emit('rtk:end', 'win'); var v = S._tail(1)[0] === 'victory';
+      S._clear(); C.emit('rtk:end', 'lose'); var d = S._tail(1)[0] === 'defeat';
+      S._clear(); C.emit('rtk:month', { year: 200, month: 1 }); var ny = S._tail(1)[0] === 'newyear';
+      S._clear(); C.emit('rtk:month', { year: 200, month: 5 }); var mo = S._tail(1)[0] === 'month';
+      return v && d && ny && mo && '넷 다 맞다';
+    });
+
+    t('quiz:answered — 정답/오답을 가른다', function () {
+      var S = DG.sfx;
+      S._clear(); C.emit('quiz:answered', { id: 'x', ok: true }); var ok1 = S._tail(1)[0] === 'quiz_ok';
+      S._clear(); C.emit('quiz:answered', { id: 'x', ok: false }); var ok2 = S._tail(1)[0] === 'quiz_miss';
+      return ok1 && ok2 && '학당 정오답';
+    });
+
+    t('toast 머리 이모지로만 갈래를 가른다 (천기·동맹/합류·귀순·발견·재해) — 판정 파일은 안 건드렸다', function () {
+      var S = DG.sfx;
+      S._clear(); C.emit('toast', '🔮 길조 · 시험'); var om = S._tail(1)[0] === 'omen';
+      S._clear(); C.emit('toast', '🤝 아무개 합류!'); var fr = S._tail(1)[0] === 'friendly';
+      S._clear(); C.emit('toast', '💰 아무개 이(가) 넘어왔다'); var de = S._tail(1)[0] === 'defect';
+      S._clear(); C.emit('toast', '🔍 아무개 을(를) 찾았다'); var di = S._tail(1)[0] === 'discover';
+      S._clear(); C.emit('toast', '🌻 낙양 풍년'); var gg = S._tail(1)[0] === 'disaster_good';
+      S._clear(); C.emit('toast', '🌊 낙양 수해'); var bb = S._tail(1)[0] === 'disaster_bad';
+      return om && fr && de && di && gg && bb && '여섯 갈래 다 맞다';
+    });
+
+    t('승진("✨")·사관 오류("⚠️") 토스트는 따로 안 듣는다 (rtk:promote 로 이미 울렸다 — 중복 방지)', function () {
+      var S = DG.sfx;
+      S._clear();
+      C.emit('toast', '✨ 아무개 승급 ★1');
+      C.emit('toast', '⚠️ 오류');
+      return S._tail(5).length === 0 && '두 갈래는 toast 표에 없다 (중복 방지)';
     });
 
     t('런타임 에러 없음', function () {

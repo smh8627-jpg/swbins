@@ -88,6 +88,20 @@
       });
     }
 
+    var soundBtn = document.getElementById('btn-sound');
+    if (soundBtn && global.DG.sfx) {
+      var SFX = global.DG.sfx;
+      var syncSoundBtn = function () {
+        soundBtn.textContent = SFX.enabled() ? '🔊' : '🔇';
+        soundBtn.classList.toggle('on', SFX.enabled());
+      };
+      syncSoundBtn();
+      soundBtn.addEventListener('click', function () {
+        SFX.setEnabled(!SFX.enabled());
+        syncSoundBtn();
+      });
+    }
+
     var btn3d = document.getElementById('btn-3d');
     if (btn3d && global.DG.realm3d) {
       var R3 = global.DG.realm3d;

@@ -359,7 +359,7 @@ js/game.js        부트 — **rAF 루프가 없다**(턴제라 시간은 사람
 
 ```
 chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom \
-  http://127.0.0.1:8795/_test.html        → RESULT 95/95
+  http://127.0.0.1:8795/_test.html        → RESULT 128/128
 ```
 
 **무작위는 씨앗(mulberry32, 20260824)으로 고정돼 있다.** 세 번 돌려 **한 줄도 다르지 않은지**로
@@ -435,6 +435,34 @@ _mobileframe.html?fresh    가입 화면부터
 
 전투는 **×1 무승부 · ×2 성벽을 크게 깎음 · ×3 이상 함락** 언저리다.
 **균형은 사람이 봐야 한다** — 이 수치는 "얼지도 쓸려 나가지도 않는다" 는 것까지만 말해 준다.
+
+## 소리(音) — 절차적 생성 (2026-09-10)
+
+**다섯 판 중 이 판만 여태 무음이었다.** `saga-dungeon/js/sfx.js`(33종 절차 음)를
+그대로 본으로 삼아 `js/sfx.js`를 새로 얹었다 — WebAudio 로 그 자리에서 합성하고
+(에셋 없음), 첫 입력 전에는 안 나고, 꺼져 있어도 요청은 `_tail()`에 남는다.
+
+**이 판만의 차이 — 폴링이 없다.** 사가의숲(계절·유성·발소리를 값으로 폴링)과
+달리 이 판은 턴제라 시간이 흐르는 계기가 "다음 달" 버튼뿐이고, 일어나는 일은
+전부 `core.emit(...)`으로 이미 이름 붙어 나온다. 그래서 **판정 파일(`war.js`·
+`rtk.js`·`officer.js`·`diplo.js`·`ai.js`)은 한 줄도 안 건드렸다** — 전부 이미 있는
+이벤트 구독(`rtk:battle`·`rtk:grew`·`rtk:promote`·`rtk:end`·`rtk:discover`·
+`rtk:fallen`·`rtk:history`·`rtk:month`·`rtk:journey`·`rtk:journeyEvent`·
+`rtk:camp`·`quiz:answered`)과, `toast`의 머리 이모지(🔮 천기·🤝 동맹/합류·
+💰 배신/귀순·🔍 재야 발견·🌻 풍년·🌵🌊🦠🦗 재해)로만 갈래를 가른다.
+
+**"내 세력" 문턱.** `rtk:grew`·`rtk:promote`는 AI 세력의 무장에도 매달 똑같이
+일어난다 — 안 거르면 세력이 열 개 안팎인 판에서 "다음 달" 한 번에 종소리가
+수십 번 겹친다. `officer.js`가 이미 화면 로그를 내 세력으로만 거르는 그 판단을
+그대로 베껴 `off.rec(id).force === rtk.me()` 로 조용히 걸렀다. `rtk:battle`도
+내가 치거나 맞은 싸움만 듣는다(공격·수비 둘 다 — 대신 관전만 하는 AI끼리의
+싸움은 지도 반대편 소식이라 안 울린다).
+
+상단 더보기(⋯) 안 🔊 로 끈다(`settings.sound`). 소리 24종을 하나씩 들어볼 수
+있는 `_sfxcheck.html`도 같이 뒀다(사가의숲과 같은 패턴). **소리가 실제로 나는지는
+자가진단으로 못 본다** — 자가진단은 아무것도 안 눌러 늘 잠겨 있기 때문이다.
+`_test.html` RESULT 116→**128**(12개 보탬, 3회 동일), `_admin.html?selftest`
+ADMIN 12/12 그대로. `sw.js` → `realm-v1.23.0`.
 
 ## 다음에 채울 것
 
