@@ -50,6 +50,29 @@
    *  기본 1)와 시점을 맞췄다 — 그 전엔 "2D 가 그대로 간다"가 기본이었다.
    *  🧊 버튼이 이걸 뒤집는다(끄고 싶으면 여전히 끌 수 있다) */
   function ON() { return C().tuned('village3d.on', 1) ? true : false; }
+  /** 안개 켜고 끄기(2026-09-10, "안개는 중요 하지 않으니 제거 하던지
+   *  옵션에 키고 끄는걸 추가해 끄는게 기본이고") — §44 에서 FOG_FAR 를
+   *  늘려 고치려 했던 것 자체를 사용자가 "중요하지 않다"고 되돌렸다.
+   *  **기본은 꺼짐**(0) — 꺼져 있으면 안개가 아예 안 생겨 거리와 무관하게
+   *  또렷이 보인다(멀리 있는 NPC 도 이걸로 해결된다). ⚙️ 설정 시트에서
+   *  다시 켤 수도 있다(취향 문제로 남겨 둔다) — `village3d.quality` 와
+   *  같은 결로 `core.tuned`/`setTune`(새로고침해도 유지) 에 저장한다 */
+  function FOG_ON() { return C().tuned('village3d.fog', 0) ? true : false; }
+  function setFogOn(v) {
+    C().setTune('village3d.fog', v ? 1 : 0);
+    var t = three();
+    if (scene && t) {
+      if (v) {
+        if (!scene.fog) {
+          scene.fog = new t.Fog(0x8fc7e8, FOG_NEAR, FOG_FAR);
+          curBiome = null; curPhase = null; curWeatherSky = null;  // syncSky() 가 다음 프레임에 색을 새로 먹인다
+        }
+      } else {
+        scene.fog = null;
+      }
+    }
+    return FOG_ON();
+  }
   function CAM_DIST() { return C().tuned('village3d.camDist', 7.5); }
   function CAM_HIGH() { return C().tuned('village3d.camHeight', 4); }
   /** 3/4 부감(쿼터뷰) 쪽 끝값 — 거리·기울기. tilt 가 클수록 카메라가 더 눕는다(수평 반지름이
@@ -581,10 +604,12 @@
     curBiome = b; curPhase = ph; curWeatherSky = wk;
     var c = darken(FOG_COLOR[b] || FOG_COLOR.green, skyDark(ph, wk));
     scene.background.setHex(c);
-    scene.fog.color.setHex(c);
-    var fogMul = WEATHER_FOG[wk] != null ? WEATHER_FOG[wk] : 1;
-    scene.fog.near = FOG_NEAR * fogMul;
-    scene.fog.far = FOG_FAR * fogMul;
+    if (scene.fog) {                    // 꺼져 있으면(기본) 안개 자체가 없다
+      scene.fog.color.setHex(c);
+      var fogMul = WEATHER_FOG[wk] != null ? WEATHER_FOG[wk] : 1;
+      scene.fog.near = FOG_NEAR * fogMul;
+      scene.fog.far = FOG_FAR * fogMul;
+    }
     var sunCfg = PHASE_SUN[ph] || PHASE_SUN.day;
     if (sunLight) { sunLight.color.setHex(sunCfg.color); sunLight.intensity = sunCfg.intensity * (WEATHER_DARK[wk] != null ? WEATHER_DARK[wk] : 1); }
     if (hemiLight) { hemiLight.intensity = (PHASE_HEMI[ph] != null ? PHASE_HEMI[ph] : 0.9) * (WEATHER_DARK[wk] != null ? WEATHER_DARK[wk] : 1); }
@@ -855,7 +880,7 @@
 
     scene = new t.Scene();
     scene.background = new t.Color(0x8fc7e8);
-    scene.fog = new t.Fog(0x8fc7e8, FOG_NEAR, FOG_FAR);
+    scene.fog = FOG_ON() ? new t.Fog(0x8fc7e8, FOG_NEAR, FOG_FAR) : null;
 
     camera = new t.PerspectiveCamera(FOV(), 1, 0.1, 400);
 
@@ -1481,6 +1506,7 @@
     tierFor: tierFor,
     /** 설정 화면(⚙️) — 지금 실제로 도는 등급(low/medium/high), 손잡이 원값('auto' 포함), 고르기 */
     quality: tier, qualityRaw: QUALITY, setQuality: setQuality,
+    fogOn: FOG_ON, setFogOn: setFogOn,
     /** 진단 전용 — 2026-09-10 "실내에선 3D를 끈 것처럼" 고침: ready 와 무관하게
      *  지금 집·동굴 안이라 3D가 눌려 있는지만 순수하게 본다 */
     indoorSuppressed: indoorSuppressed,

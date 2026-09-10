@@ -170,6 +170,11 @@
         if (V3s && V3s.setQuality) { V3s.setQuality(b.getAttribute('data-level')); renderSheet(); }
         return;
       }
+      if (act === 'fog-toggle') {
+        var V3f = global.DG.villageView3d;
+        if (V3f && V3f.setFogOn) { V3f.setFogOn(!V3f.fogOn()); renderSheet(); }
+        return;
+      }
       if (act === 'v-do') {
         doInteract();
       } else if (act === 'v-sell') {
@@ -374,6 +379,12 @@
       }
       gq += '</div><div class="hint">낮음일수록 그림자를 끄고 화면 해상도를 줄여 가벼워집니다. ' +
         '자동은 켤 때 한 번 기기를 보고 고릅니다.</div>';
+      /* 안개(2026-09-10, "안개는 중요 하지 않으니 제거 하던지 옵션에 키고
+         끄는걸 추가해 끄는게 기본이고") — 기본은 꺼짐. 켜면 먼 사물이
+         점점 흐려진다(대기감), 끄면 거리와 무관하게 또렷하다 */
+      var fon = V3.fogOn();
+      gq += '<div class="key-row"><b>안개</b>' +
+        '<button data-act="fog-toggle">' + (fon ? '켜짐' : '꺼짐') + '</button></div>';
     }
     return '<div class="hint">이동 키는 ⌨️ 키설정에 있습니다.</div>' +
       '<div class="key-row"><b>효과음</b>' +
