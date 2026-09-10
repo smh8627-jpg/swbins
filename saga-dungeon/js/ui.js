@@ -718,6 +718,9 @@
          발판에 들어서면 활성 마을이 저절로 갈린다(travel() 은퇴). */
       if (o.key === 'gate' || o.key === 'exit_dungeon') { enterGate(); }
       else if (o.key === 'waypoint') { openWaypoint(); }
+      /* 길 위의 발견거리(PLAN §60 후보 2) — 창을 안 띄운다. 토스트만
+         뜨고 그 자리에서 바로 보상까지 끝난다(town.js rewardRoadMark). */
+      else if (o.roadMark) { global.DG.town.rewardRoadMark(o); }
       else { openVow(); }
     });
     /* 장면이 바뀌는 순간 곧바로 다시 그린다. tickRefresh(0.3초)를 기다리면
