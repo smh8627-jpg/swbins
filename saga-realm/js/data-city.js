@@ -52,7 +52,15 @@
     mb: '막북',
     /* 2026-09-10 확장(여덟째) — 참파/임읍(林邑, 베트남 중부). 일남(교주)
        남쪽. 실제 한대 일남군 속현·임읍국 도성 이름을 그대로 썼다. 같은 원칙 */
-    cp: '임읍'
+    cp: '임읍',
+    /* 2026-09-10 확장(아홉째) — 여기부터는 실제 지명이 아니다. 사용자 지시
+       ("너무 삼국지처럼 안 해도 돼, 현대 미래 과거 다 있어 / 완전 퓨전이야 /
+       괴물도 나오고 / 다 짬뽕이야 / 난 완전 모방이 아니야, 모방보다 더 좋아야
+       해") — 여덟 지역이 전부 고대·역사 지명 오마주였던 데서 처음 벗어난다.
+       야마토(일본) 너머, 시간이 뒤섞인 자리에 열린 가상의 관문 — 지키는
+       무장도 사람이 아니라 괴물이다(data-force.js FUTURE_OFFICERS, 실제
+       CC0 몬스터 3D 모델을 신다) */
+    fu: '균열'
   };
 
   var CITIES = [
@@ -344,7 +352,36 @@
       desc: '임읍국의 도성. 벽돌로 쌓은 성벽이 낯설다.' },
     { id: 'quzu',       name: '구속', hanja: '區粟', prov: 'cp', x: 36, y: 134, land: 'hill',
       agri: 120, comm: 100, wall: 2500, pop: 34000, garrison: 5800,
-      desc: '지도 위 가장 남쪽 이름. 여기서부터는 기록도 흐릿하다.' }
+      desc: '지도 위 가장 남쪽 이름. 여기서부터는 기록도 흐릿하다.' },
+
+    /* ── 균열(龜裂) (2026-09-10 확장, 아홉째, 주인 없음 — 앞 여덟과 자리·
+       판정은 같은 결이지만 처음으로 실제 지명이 아니다) ── 야마토(일본)
+       너머, 시간이 뒤섞인 자리에 열린 가상의 지역. 지키는 무장은 사람이
+       아니라 괴물이다(data-force.js FUTURE_OFFICERS 의 `monster` 필드가
+       실제 CC0 3D 모델 경로를 문다). 2D 지도 viewBox 를 동쪽으로
+       (폭 225→270, ui-rtk.js 한 곳) 다시 넓혀야 한다 — 일본이 x축 끝
+       (158)까지 이미 차 있어서다. 3D 는 WORLD_SCALE 이 넉넉해 손 안 댔다. */
+    { id: 'cheongwe',   name: '천궤', hanja: '天軌', prov: 'fu', x: 172, y: 75, land: 'plain',
+      agri: 200, comm: 220, wall: 3400, pop: 70000, garrison: 9000,
+      desc: '야마토 너머 바다 위, 시간이 어긋난 자리에 처음 나타난 관문.' },
+    { id: 'noeseong',   name: '뇌성', hanja: '雷城', prov: 'fu', x: 180, y: 64, land: 'hill',
+      agri: 150, comm: 180, wall: 3000, pop: 55000, garrison: 7500,
+      desc: '번개를 가둬 쓰는 성벽. 밤에도 대낮처럼 밝다.' },
+    { id: 'gangcheol',  name: '강철', hanja: '鋼鐵', prov: 'fu', x: 178, y: 90, land: 'plain',
+      agri: 170, comm: 160, wall: 3600, pop: 60000, garrison: 8200,
+      desc: '쇠로 지은 성. 옛 병기와 낯선 기계가 나란히 걸려 있다.' },
+    { id: 'yuri',       name: '유리', hanja: '琉璃', prov: 'fu', x: 196, y: 68, land: 'river',
+      agri: 140, comm: 240, wall: 3200, pop: 58000, garrison: 7800,
+      desc: '투명한 벽 안에서 저잣거리가 돈다. 안이 훤히 다 보인다.' },
+    { id: 'hwanyeong',  name: '환영', hanja: '幻影', prov: 'fu', x: 186, y: 78, land: 'plain',
+      agri: 160, comm: 200, wall: 3100, pop: 52000, garrison: 7200,
+      desc: '실체 없는 형상이 저잣거리를 오간다. 다가서면 흩어진다.' },
+    { id: 'janyeong',   name: '잔영', hanja: '殘影', prov: 'fu', x: 200, y: 90, land: 'hill',
+      agri: 130, comm: 150, wall: 2900, pop: 48000, garrison: 7000,
+      desc: '허물어진 자리마다 그림자가 아직 서 있다.' },
+    { id: 'jongmal',    name: '종말', hanja: '終末', prov: 'fu', x: 194, y: 60, land: 'plain',
+      agri: 240, comm: 260, wall: 4200, pop: 95000, garrison: 13000, landmark: true,
+      desc: '이 땅에서 가장 늦게, 또는 가장 먼저 열린 자리. 시간이 여기서 겹친다.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -438,7 +475,15 @@
     ['rinan', 'xianglin'],
     ['xianglin', 'luorong'], ['xianglin', 'dianchong'],
     ['luorong', 'zhuwu'],
-    ['dianchong', 'bijing'], ['dianchong', 'xiquan'], ['dianchong', 'quzu']
+    ['dianchong', 'bijing'], ['dianchong', 'xiquan'], ['dianchong', 'quzu'],
+
+    /* ── 균열(龜裂) — 야마토 너머 ─────────────────────── */
+    ['yamato', 'cheongwe'],
+    ['cheongwe', 'noeseong'], ['cheongwe', 'gangcheol'],
+    ['noeseong', 'yuri'],
+    ['gangcheol', 'hwanyeong'],
+    ['hwanyeong', 'janyeong'],
+    ['yuri', 'jongmal'], ['janyeong', 'jongmal']
   ];
 
   var byId = {};

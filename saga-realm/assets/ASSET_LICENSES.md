@@ -186,3 +186,27 @@ makehuman_system_assets" 절 참고).
 멈춘다. UAL1을 리타깃 없이 그대로 물렸다면 saga-go가 이미 겪은 뼈대 비례
 뒤틀림 버그가 초상에 그대로 났을 것이다. 이 판에 걷는 3D 화면이 생기면
 그때 `retargetInto` 계열 함수를 옮겨 와야 몸짓이 붙는다.
+
+## Quaternius "Ultimate Monsters Bundle" 9종 — 균열 지역 수비 무장 (2026-09-10)
+
+아홉째 확장(균열, 실제 지명이 아닌 첫 지역 — "너무 삼국지처럼 안 해도 돼,
+현대 미래 과거 다 있어" 사용자 지시)의 수비 무장은 사람이 아니라 괴물이다.
+`saga-dungeon/assets/models/monsters/quaternius/`가 이미 검증해 둔 CC0
+자산을 그대로 복사해 왔다(같은 저장소 안이라 네트워크 재수신 없이 파일만
+옮겼다) — 라이선스·출처는 saga-dungeon의
+`assets/ASSET_LICENSES.md`("몬스터 — KayKit Skeletons + Quaternius
+Ultimate Monsters Bundle" 절)과 완전히 같다.
+
+| 파일 | 만든 이 | 받은 곳 | 라이선스 |
+|---|---|---|---|
+| `Alien_0bb74be9.glb` · `Alien_b048d82a.glb` · `Blue_Demon_6fbb8914.glb` ·
+  `Demon_46b52ba4.glb` · `Goleling_Evolved_d6308fbf.glb` · `Yeti_40a831b3.glb` ·
+  `Orc_Enemy_3076c5f7.glb` · `Ghost_Skull_0716bf8e.glb` · `Dragon_Evolved_90ed3740.glb` | Quaternius | `poly.pizza` 미러(saga-dungeon 경유) | **CC0**, 저작자 표시 불필요 |
+
+원작 팩의 몬스터 이름(Alien·Demon 등)은 파일명(내부 식별자)에만 남아 있고
+**화면에는 절대 안 뜬다** — 표시 이름(성혼·강마·종왕 등)은 이 판이 새로
+지었다(`js/data-force.js` `FUTURE_OFFICERS`). `js/asset3d.js`의
+`heroRecipe()`가 무장 데이터의 `monster` 필드(이 GLB들의 경로)를 곧장
+몸+몸짓으로 쓴다 — 이미 각 파일에 idle·attack·death 등 클립이 다 박혀
+있어(그 팩 자체가 그렇게 만들어졌다) 옷·머리 조합이 필요 없다. 아홉
+파일 합쳐 약 1MB — 가볍다.

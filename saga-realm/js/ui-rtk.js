@@ -93,7 +93,9 @@
    * 창(viewBox)만 좁힌다. MAP_VB 는 `renderMap()` 이 그리는 전체 지도 범위와
    * 반드시 같아야 한다(그쪽 viewBox 주석 참고).
    */
-  var MAP_VB = { x: -60, y: -30, w: 225, h: 180 };
+  /* 2026-09-10 — 균열(아홉째 확장) 이 일본 동쪽(x 최대 158) 너머로 더
+     뻗어(x 최대 205) w 를 225→270 으로 다시 넓혔다. y 는 그대로다. */
+  var MAP_VB = { x: -60, y: -30, w: 270, h: 180 };
   var MAP_ZOOM_MAX = 6;
   var mapCx = MAP_VB.x + MAP_VB.w / 2, mapCy = MAP_VB.y + MAP_VB.h / 2, mapZoom = 1;
   var MAP_PAN_SPEED = 0.022;   // 조이스틱을 완전히 기울였을 때 프레임당 이동(뷰포트 폭의 비율)

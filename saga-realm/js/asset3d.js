@@ -431,8 +431,20 @@
     return wrap;
   }
 
-  /** 이 인물의 몸·옷·머리 조합 — 표에 조합 객체가 있을 때만 준다 */
+  /**
+   * 이 인물의 몸·옷·머리 조합 — 표에 조합 객체가 있을 때만 준다.
+   *
+   * **2026-09-10 — `ref.monster`(무장 데이터의 실제 CC0 몬스터 GLB 경로,
+   * `data-force.js` FUTURE_OFFICERS 참고)가 있으면 그 파일 하나를 몸이자
+   * 몸짓(anim)으로 그대로 준다.** MPFB 초상 몸(위 `PEOPLE_MPFB` 머리말)이
+   * 이미 "몸 파일 자신을 anim으로 준다" 요령을 쓰고 있어 그대로 옮겼다 —
+   * 몬스터 GLB 는 이미 자기 스켈레톤에 idle·attack·death 등 클립이 다
+   * 박혀 있어(그 팩 자체가 그렇게 만들어졌다) 옷·머리 조합이 필요 없다.
+   * `assembleHero()`가 outfit·hair 없이도 몸 하나만으로 이미 잘 도는
+   * 구조라 새 코드 없이 이 한 줄만으로 충분하다.
+   */
   function heroRecipe(ref) {
+    if (ref && ref.monster) { return { body: ref.monster, anim: ref.monster }; }
     var h = lookup('hero', ref);
     if (!h) { return null; }
     var v = oneOf(h.url, ref);
@@ -486,6 +498,9 @@
    * 건너뛴다 — 맨몸도 이미 실제 3D 모델이라 화면이 비지는 않는다.
    */
   function attachAccessories(body, ref, done) {
+    /* 몬스터(ref.monster)는 사람 몸이 아니라 무기·투구를 얹을 자리(손·머리
+       위치 가정)가 안 맞는다 — 애초에 자기 모습 그대로가 맞다 */
+    if (ref && ref.monster) { done(); return; }
     var t = three();
     var S = global.DG.sprite;
     var look = (S && S.lookOf) ? S.lookOf(ref) : null;

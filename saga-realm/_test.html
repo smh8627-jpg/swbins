@@ -127,6 +127,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     }
 
     /**
+     * 재야(在野)는 이름 해시로 `CD.CITIES.length` 를 나눠 결정적으로 흩는다
+     * (`rtk.scatterFree`) — 성을 늘릴 때마다(지역 확장) 나눗셈이 바뀌어 어느
+     * 성에 숨은 사람이 걸리는지도 통째로 바뀐다. 대개는 내 세력(cao)의 몇
+     * 안 되는 시작 성 어딘가에 우연히 걸리지만, **2026-09-10 균열(아홉째)
+     * 확장에서 실제로 셋 다 빗나가 세 항목이 한꺼번에 깨졌다** — 성 수가
+     * 93 이 되면서 하필 cao 의 세 시작 성(진류·복양·허창) 모두에 숨은 재야가
+     * 하나도 안 떨어졌다. 자연스러운 산포 운에 기대는 대신, 아무 데나 숨어
+     * 있는 재야 하나를 내 세력 성으로 직접 옮겨 확실하게 만든다 — 시험하려는
+     * 것("수색 전엔 등용 못 한다", "학식·세작이 재야를 드러낸다")은 그대로다,
+     * 산포 자체의 운을 시험하는 게 아니다. */
+    function ensureHiddenAtMine() {
+      var mine = R.citiesOf('cao'), i;
+      for (i = 0; i < mine.length; i++) {
+        if (off.freeAt(mine[i], false).length) { return mine[i]; }
+      }
+      for (i = 0; i < CD.CITIES.length; i++) {
+        var hidden = off.freeAt(CD.CITIES[i].id, false)[0];
+        if (hidden) {
+          off.placeAt(hidden.id, mine[0], null);
+          off.rec(hidden.id).found = false;
+          return mine[0];
+        }
+      }
+      return null;
+    }
+
+    /**
      * 낙양 앞에 진(陣)을 하나 세운다.
      * **배수를 올려 가며 진영이 설 때까지** 해 본다 — 한 배수에 못을 박아 두면
      * 앞 항목이 난수를 얼마나 썼느냐에 따라 함락이 되거나 퇴각이 되어 흔들린다.
@@ -692,16 +719,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('수색해야 등용할 수 있다', function () {
-      /* 재야는 이름 해시로 CD.CITIES.length 를 나눠 결정적으로 흩는다(rtk.scatterFree) —
-         성을 늘리면(한국·일본 지역 확장) 나눗셈이 바뀌어 어느 성에 숨은 사람이
-         걸리는지도 바뀐다. 그래서 특정 성을 못 박는 대신, 내 세력(cao) 성 가운데
-         숨은 재야가 실제로 있는 곳을 찾아서 쓴다 */
       fresh('cao');
-      var cityId = null;
-      var mine = R.citiesOf('cao');
-      for (var i = 0; i < mine.length; i++) {
-        if (off.freeAt(mine[i], false).length) { cityId = mine[i]; break; }
-      }
+      var cityId = ensureHiddenAtMine();
       if (!cityId) { return false; }
       freeUp(cityId);
       var r1 = R.order(cityId, R.readyAt(cityId)[0].id, 'hire');   // 아직 못 찾았다
@@ -1193,6 +1212,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('무장 수집 — 세작 손잡이를 100%로 잡으면 문답 없이도 매달 재야가 드러난다', function () {
       fresh('cao');
+      ensureHiddenAtMine();
       var before = C.tuned('rtk.scoutChance', 0.12);
       C.setTune('rtk.scoutChance', 1);
       var got = R.rollScouting();
@@ -1485,6 +1505,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('학식이 차면 재야가 저절로 드러난다', function () {
       fresh('cao');
+      ensureHiddenAtMine();
       R.state().lore = 0;
       var before = countFound();
       var guard = 0;

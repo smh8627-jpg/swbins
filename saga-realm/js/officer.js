@@ -75,6 +75,12 @@
     for (var ll = 0; ll < ly.length; ll++) {
       if (!data.find(ly[ll].id)) { data.heroes.push(ly[ll]); }
     }
+    /* 균열 지역 수비 무장(2026-09-10, 아홉째 확장 — 사람이 아니라 괴물) —
+       같은 방식으로 얹는다 */
+    var fu = FD.FUTURE_OFFICERS || [];
+    for (var ff = 0; ff < fu.length; ff++) {
+      if (!data.find(fu[ff].id)) { data.heroes.push(fu[ff]); }
+    }
     merged = true;
     return data.heroes.length;
   }

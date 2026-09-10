@@ -494,6 +494,65 @@
     quzu: ['ly_heuksang']
   };
 
+  /* ── 균열(龜裂) 지역 수비 무장 (2026-09-10, 아홉째 확장) — 앞 여덟과
+     자리·판정은 같은 결(force:null·GARRISON 표·9인)이지만 사람이 아니라
+     **괴물**이다. era 는 전부 '균열(가상)' — 실존 인물도, 실존 지명도
+     아니다. `monster` 필드는 asset3d.js `heroRecipe()`가 곧장 읽는 실제
+     CC0 3D 모델 경로다(Quaternius "Ultimate Monsters Bundle", CC0 —
+     `assets/ASSET_LICENSES.md` 참고, saga-dungeon 이 이미 검증해 둔
+     자산을 그대로 복사해 왔다) — 표시 이름은 원작 몬스터 팩 이름(Alien·
+     Demon 등)을 그대로 안 쓰고 이 판이 새로 지었다(내부 파일명은 화면에
+     안 뜨니 이름 정책과 무관하다). */
+  var FUTURE_OFFICERS = [
+    { id: 'fu_seonghon',  name: '성혼', hanja: '星魂', era: '균열(가상)', faction: '천궤',
+      rarity: 4, trait: 'wisdom', emoji: '👽', quote: '별 사이를 건너온 자리, 이 관문부터 지킵니다.',
+      stats: { might: 50, wisdom: 88, command: 70 },
+      monster: 'assets/models/monsters/quaternius/Alien_0bb74be9.glb' },
+    { id: 'fu_yuseong',   name: '유성', hanja: '流星', era: '균열(가상)', faction: '천궤',
+      rarity: 3, trait: 'wisdom', emoji: '☄️', quote: '떨어지는 것은 다 여기로 떨어집니다.',
+      stats: { might: 46, wisdom: 80, command: 62 },
+      monster: 'assets/models/monsters/quaternius/Alien_b048d82a.glb' },
+    { id: 'fu_noejang',   name: '뇌장', hanja: '雷將', era: '균열(가상)', faction: '뇌성',
+      rarity: 3, trait: 'might', emoji: '⚡', quote: '번개가 치기 전에 이미 우리가 먼저 움직입니다.',
+      stats: { might: 78, wisdom: 44, command: 66 },
+      monster: 'assets/models/monsters/quaternius/Blue_Demon_6fbb8914.glb' },
+    { id: 'fu_gangma',    name: '강마', hanja: '鋼魔', era: '균열(가상)', faction: '강철',
+      rarity: 3, trait: 'might', emoji: '🔩', quote: '쇠는 부러지지 않습니다, 휘어질 뿐입니다.',
+      stats: { might: 80, wisdom: 40, command: 60 },
+      monster: 'assets/models/monsters/quaternius/Demon_46b52ba4.glb' },
+    { id: 'fu_yugwi',     name: '유귀', hanja: '琉鬼', era: '균열(가상)', faction: '유리',
+      rarity: 3, trait: 'command', emoji: '💎', quote: '투명한 벽 안에서는 숨을 곳이 없습니다 — 지키는 저희도 마찬가지입니다.',
+      stats: { might: 52, wisdom: 58, command: 82 },
+      monster: 'assets/models/monsters/quaternius/Goleling_Evolved_d6308fbf.glb' },
+    { id: 'fu_hwanryeong',name: '환령', hanja: '幻靈', era: '균열(가상)', faction: '환영',
+      rarity: 3, trait: 'wisdom', emoji: '👻', quote: '보이는 것을 믿지 마십시오, 저부터가 그렇습니다.',
+      stats: { might: 42, wisdom: 78, command: 56 },
+      monster: 'assets/models/monsters/quaternius/Ghost_Skull_0716bf8e.glb' },
+    { id: 'fu_janhon',    name: '잔혼', hanja: '殘魂', era: '균열(가상)', faction: '잔영',
+      rarity: 3, trait: 'might', emoji: '❄️', quote: '허물어진 것도 끝까지 버티면 성벽입니다.',
+      stats: { might: 76, wisdom: 40, command: 58 },
+      monster: 'assets/models/monsters/quaternius/Yeti_40a831b3.glb' },
+    { id: 'fu_jongwang',  name: '종왕', hanja: '終末王', era: '균열(가상)', faction: '종말',
+      rarity: 4, trait: 'command', emoji: '🐲', quote: '이 자리가 끝이라면, 지키는 것도 제가 마지막입니다.',
+      stats: { might: 80, wisdom: 70, command: 92 }, boss: true,
+      monster: 'assets/models/monsters/quaternius/Dragon_Evolved_90ed3740.glb' },
+    { id: 'fu_myeongje',  name: '명제', hanja: '冥帝', era: '균열(가상)', faction: '종말',
+      rarity: 3, trait: 'might', emoji: '👹', quote: '겹친 시간 속에서는 죽는 것도 순서가 없습니다.',
+      stats: { might: 82, wisdom: 42, command: 64 },
+      monster: 'assets/models/monsters/quaternius/Orc_Enemy_3076c5f7.glb' }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var FUTURE_GARRISON = {
+    cheongwe: ['fu_seonghon', 'fu_yuseong'],
+    noeseong: ['fu_noejang'],
+    gangcheol: ['fu_gangma'],
+    yuri: ['fu_yugwi'],
+    hwanyeong: ['fu_hwanryeong'],
+    janyeong: ['fu_janhon'],
+    jongmal: ['fu_jongwang', 'fu_myeongje']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -720,6 +779,7 @@
     TIANZHU_OFFICERS: TIANZHU_OFFICERS, TIANZHU_GARRISON: TIANZHU_GARRISON,
     MOBEI_OFFICERS: MOBEI_OFFICERS, MOBEI_GARRISON: MOBEI_GARRISON,
     LINYI_OFFICERS: LINYI_OFFICERS, LINYI_GARRISON: LINYI_GARRISON,
+    FUTURE_OFFICERS: FUTURE_OFFICERS, FUTURE_GARRISON: FUTURE_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },
