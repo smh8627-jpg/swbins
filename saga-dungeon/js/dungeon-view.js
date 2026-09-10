@@ -135,11 +135,16 @@
               '<span class="dg-sk-e">💥</span><i class="dg-sk-cd"></i></button>' +
             '<button class="dg-skill" data-dodge title="회피 (Space)">' +
               '<span class="dg-sk-e">💨</span><i class="dg-sk-cd"></i></button>' +
+            /* 투장 전용 무예(2026-09-10) — 세 점을 다 갖춰야 손에 잡힌다.
+               강공격·회피와 같은 자리, 셋째 자리. 못 갖췄으면 'empty'로 흐리게
+               그린다(renderBottom) — 스킬 넷의 빈 칸과 같은 결. */
+            '<button class="dg-skill empty" data-setsk title="투장 무예 (F)">' +
+              '<span class="dg-sk-e">✨</span><i class="dg-sk-cd"></i></button>' +
           '</div>' +
         '</div>' +
         '<div id="dg-bottom"></div>' +
         '<div class="dg-tip">이동 <b>WASD</b> · 물약 <b>1 2 3 4</b> · 스킬 <b>Z X C V</b> · ' +
-          '강공격 <b>Shift</b> · 회피 <b>Space</b> · ' +
+          '강공격 <b>Shift</b> · 회피 <b>Space</b> · 투장 무예 <b>F</b> · ' +
           '<b>화면을 누른 채 끌면</b> 그쪽으로 걷습니다 · ' +
           '<b>손가락 둘로 벌리거나 오므리면</b> 확대·축소</div>' +
       '</div>';
@@ -353,7 +358,8 @@
     if (actionsEl) {
       actionsEl.addEventListener('pointerdown', function (e) {
         if (e.target.closest('[data-heavy]')) { d().heavyAttack(); e.preventDefault(); return; }
-        if (e.target.closest('[data-dodge]')) { d().doDodge(); e.preventDefault(); }
+        if (e.target.closest('[data-dodge]')) { d().doDodge(); e.preventDefault(); return; }
+        if (e.target.closest('[data-setsk]')) { pressSetSkill(); e.preventDefault(); }
       });
     }
 
@@ -456,6 +462,8 @@
        e.repeat 로 거른다 — 안 그러면 쥐고만 있어도 강공격이 연타된다. */
     if (k === ' ') { d().doDodge(); e.preventDefault(); return; }
     if (k === 'shift' && !e.repeat) { d().heavyAttack(); e.preventDefault(); return; }
+    /* 투장 전용 무예(2026-09-10) — 강공격·회피와 같은 자리, F 하나 더. */
+    if (k === 'f') { pressSetSkill(); e.preventDefault(); return; }
     keys[k] = true;
     pushInput();
     var km = keymap();
@@ -467,6 +475,17 @@
     keys[e.key.toLowerCase()] = false;
     pushInput();
   }
+  /** 투장 전용 무예를 쓴다 — 세 점을 못 갖췄을 때만 그 까닭을 알려 준다
+   *  (쿨다운 중이면 heavyAttack처럼 조용히 실패 — 버튼 위 쿨다운 링이 이미
+   *  말해 준다). 2026-09-10 */
+  function pressSetSkill() {
+    if (d().castSetSkill()) { return; }
+    var st = d().status();
+    if (st.active && st.setSkill && !st.setSkill.avail) {
+      core.emit('toast', '투장(세트) 세 점을 한 인물이 다 걸쳐야 손에 잡힙니다');
+    }
+  }
+
   /** 한 칸 마신다 — 실패한 까닭을 짧게 알려 준다(빈 칸을 계속 누르게 두지 않는다) */
   function drink(slot) {
     var P = global.DG.potion;
@@ -767,6 +786,22 @@
       dCd.style.height = (st.dodgeAct.cdMax ? (st.dodgeAct.cd / st.dodgeAct.cdMax) * 100 : 0) + '%';
       dCd.textContent = st.dodgeAct.cd > 0.05 ? Math.ceil(st.dodgeAct.cd) : '';
       dBtn.classList.toggle('ready', st.dodgeAct.cd <= 0);
+    }
+    /* 투장 전용 무예 — 세 점을 못 갖추면 'empty'로 흐리게(스킬 넷의 빈 칸과
+       같은 결). 갖췄으면 어느 벌인지에 따라 그림·이름이 매 틱 바뀐다
+       (선두를 바꾸면 손이 통째로 바뀐다, 위 무예와 같은 규칙). */
+    var sBtn = actionsEl && actionsEl.querySelector('[data-setsk]');
+    if (sBtn && st.setSkill) {
+      var ssk = st.setSkill;
+      var sCd = sBtn.querySelector('.dg-sk-cd');
+      sBtn.querySelector('.dg-sk-e').textContent = ssk.avail ? ssk.emoji : '✨';
+      sCd.style.height = (ssk.avail && ssk.cdMax ? (ssk.cd / ssk.cdMax) * 100 : 0) + '%';
+      sCd.textContent = ssk.avail && ssk.cd > 0.05 ? Math.ceil(ssk.cd) : '';
+      sBtn.title = ssk.avail
+        ? ('〈' + ssk.setName + '〉 ' + ssk.name + ' (F) — ' + ssk.desc)
+        : '투장 무예 (F) — 무기·갑주·부적 세 점을 한 벌로 갖추면 열립니다';
+      sBtn.classList.toggle('empty', !ssk.avail);
+      sBtn.classList.toggle('ready', ssk.avail && ssk.cd <= 0);
     }
   }
 

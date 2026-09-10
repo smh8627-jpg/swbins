@@ -968,6 +968,21 @@
     return out;
   }
 
+  /** 지금 손에 잡히는 투장 전용 무예 — **세 점을 다** 걸쳐야 나온다(2026-09-10).
+   *  한 인물이 셋 다 채울 수 있는 벌은 하나뿐이라(무기·갑주·부적 자리가
+   *  각각 하나씩이다) 첫 번째로 찾은 것을 낸다. 없으면 null. */
+  function setSkillFor(heroId) {
+    var S = SD();
+    if (!S) { return null; }
+    var cnt = setCounts(heroId), k;
+    for (k in cnt) {
+      if (!Object.prototype.hasOwnProperty.call(cnt, k) || cnt[k] < 3) { continue; }
+      var set = S.setByKey(k);
+      if (set && set.skill) { return { set: set, sk: set.skill }; }
+    }
+    return null;
+  }
+
   function statBonus(heroId) {
     var out = { flat: { might: 0, wisdom: 0, command: 0 }, pct: { might: 0, wisdom: 0, command: 0 } };
     var eq = gear().equip[heroId];
@@ -1160,7 +1175,7 @@
     toStash: toStash, fromStash: fromStash, findAnywhere: findAnywhere,
     baseOf: baseOf, tierOf: tierOf, statKor: statKor,
     /* 투장 · 고유 */
-    setOf: setOf, setCounts: setCounts, setEffects: setEffects,
+    setOf: setOf, setCounts: setCounts, setEffects: setEffects, setSkillFor: setSkillFor,
     uniqOf: uniqOf, uniqEffects: uniqEffects, effLine: effLine,
     /* 감정 */
     scrolls: scrolls, addScroll: addScroll, isUnid: isUnid, unidList: unidList,

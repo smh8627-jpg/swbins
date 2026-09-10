@@ -392,6 +392,9 @@ b, strong, .p-sub, .coin, .dg-loot, .d2-gv { font-variant-numeric: tabular-nums;
 }
 #dg-actions .dg-sk-e { line-height: 52px; }
 #dg-actions .dg-sk-cd { line-height: 52px; border-radius: 50%; }
+/* 투장 전용 무예(2026-09-10) — 세 점을 못 갖췄을 때 흐리게(강공격·회피는
+   늘 쓸 수 있어 이 상태가 없다, 셋째 버튼만 켜고 끄는 자리가 있다). */
+#dg-actions .dg-skill.empty { opacity: .4; filter: grayscale(0.7); }
 
 /* ── 전체 지도(자동지도) — 디아블로 M키처럼, 화면을 반투명하게 덮는다.
    미니맵과 같은 blips()·norm()을 그대로 재사용해 크게 그린 것뿐이다

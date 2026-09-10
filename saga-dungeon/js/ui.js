@@ -1250,6 +1250,15 @@
         html += '<div style="font-size:11px;color:' + (on ? '#00c000' : 'var(--ink-faint)') + '">' +
           kk + '점 — ' + esc(effLines(st1.bonus[kk]).join(' · ')) + '</div>';
       }
+      /* 투장 전용 무예(2026-09-10) — 세 점째의 진짜 보상. 아직 못 갖췄어도
+         무엇을 노리고 모으는지 미리 보여 준다(원작에서 세트 물건의 다음
+         줄이 다 그렇게 흐리게 미리 보인다). */
+      if (st1.skill) {
+        var skOn = worn >= 3;
+        html += '<div style="font-size:11px;color:' + (skOn ? '#00c000' : 'var(--ink-faint)') + '">' +
+          '3점 — 무예 ' + st1.skill.emoji + ' ' + esc(st1.skill.name) +
+          ' · ' + esc(st1.skill.desc) + '</div>';
+      }
     }
     if (sn) {
       html += '<div class="d2-sock">세공 구멍 ' + (sn - se) + ' / ' + sn +

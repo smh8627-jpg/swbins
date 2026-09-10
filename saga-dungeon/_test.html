@@ -397,7 +397,12 @@ window.requestAnimationFrame = function () { return 0; };
 
     t('부문을 순서대로 박으면 부문어가 이루어진다', function () {
       var IT = DG.item, GD = DG.gemData;
-      var g = IT.roll(20, { slot: 'armor', tier: 4, sock: 3, unid: false });
+      /* uniq:false — 고유는 **제 이름으로 불린다**(name()이 wordOf보다 먼저
+         본다, 원작의 그 규칙). 안 막으면 하필 고유로 뽑힌 날 "이름에 부문어가
+         없다"로 깨진다 — 부문어가 안 된 게 아니라 고유 이름에 밀린 것뿐인데
+         이 항목은 그 둘을 못 가른다(밑감·고유 표가 늘 때마다 실제로 걸린다,
+         data-set.js·data-unique.js 주석과 같은 결). 순수하게 부문어만 본다. */
+      var g = IT.roll(20, { slot: 'armor', tier: 4, sock: 3, unid: false, uniq: false });
       IT.add(g);
       ['cheon', 'ji', 'in'].forEach(function (k) { IT.addMat('rune', k, 0, 1); });
       IT.socket(g.uid, 'rune', 'cheon');
@@ -562,7 +567,7 @@ window.requestAnimationFrame = function () { return 0; };
 
     var SK = DG.skill, SKD = DG.skillData;
 
-    t('직업 — 무기 밑감 열 가지가 다섯 직업을 다 연다', function () {
+    t('직업 — 무기 밑감이 다섯 직업을 다 연다', function () {
       /* 기질로만 가르면 인물 70 중 방사가 하나뿐이라 그 나무는 영영 못 탄다.
          그래서 **장착한 무기**가 직업을 정한다 — 사람이 고를 수 있고, 다섯이 다 열린다. */
       var seen = {}, bad = [], i;
@@ -837,7 +842,7 @@ window.requestAnimationFrame = function () { return 0; };
     });
 
     t('원소 — 무기에 박으면 그 결의 피해가 걷힌다', function () {
-      /* 2026-09-06 — uniq:false를 명시한다. 이 무기 밑감 열 개는 전부 이미
+      /* 2026-09-06 — uniq:false를 명시한다. 무기 밑감은 전부 이미
          고유가 있고(그중 여럿이 원소 피해를 자체로 낀다), 그걸 막지 않으면
          "박기 전엔 원소 피해가 0" 이라는 전제가 어쩌다 뽑힌 고유 하나 때문에
          깨진다 — 이 항목이 보려는 것은 순수하게 보석이 붙이는 원소다. */
@@ -1424,6 +1429,68 @@ window.requestAnimationFrame = function () { return 0; };
                             set: 'chungmu', unid: false });
       return IT.name(g).indexOf('충무') >= 0 && IT.name(g).indexOf('환도') >= 0 &&
         IT.name(g);
+    });
+
+    /* ── 투장 전용 무예 — "방어구 세트마다 특색 스킬"(2026-09-10, 사용자) ──
+     * 세 점을 한 인물이 다 걸쳐야 손에 잡힌다. 배우지 않는다 — 점수도
+     * 슬롯도 안 쓴다. 모양 실행은 슬롯형 무예와 같은 applyShapeSkill 을
+     * 공유한다(dungeon.js) — 여기는 "손에 잡히는지"와 "실제로 쓰이는지"만 본다.
+     */
+
+    t('투장 무예 — 열 벌 모두 갖고 있고 모양이 다 구현돼 있다', function () {
+      var DONE = ['swing', 'bolt', 'nova', 'dash', 'buff', 'heal', 'curse', 'summon', 'passive'];
+      var bad = [];
+      SD.SETS.forEach(function (s) {
+        if (!s.skill) { bad.push(s.key + ' 무예 없음'); return; }
+        if (!s.skill.name || !s.skill.emoji || !s.skill.cd) { bad.push(s.key + ' 필드 부족'); }
+        if (DONE.indexOf(s.skill.shape) < 0) { bad.push(s.key + ':' + s.skill.shape + ' 미구현'); }
+      });
+      return bad.length === 0 && (SD.SETS.length + '벌 다 있음 · 미구현 모양 없음');
+    });
+
+    t('투장 무예 — 두 점으로는 안 잡히고 세 점이어야 잡힌다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      wearSet(id, 'horang', 2);
+      var two = IT.setSkillFor(id);
+      C.save.gear.equip = {}; C.save.gear.bag = [];
+      wearSet(id, 'horang', 3);
+      var three = IT.setSkillFor(id);
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return !two && !!three && three.set.key === 'horang' &&
+        three.sk.name === '맹호출림(猛虎出林)' &&
+        ('2점 안 잡힘 · 3점 ' + three.sk.name);
+    });
+
+    t('투장 무예 — 실제로 쓰면 쿨다운이 돌고 MP는 안 든다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      wearSet(id, 'horang', 3);
+      DN.enter({ floor: 4, mode: 'easy' });
+      var run = DN.raw();
+      run.mp = run.mpMax;
+      var beforeMp = run.mp;
+      var fired = DN.castSetSkill();
+      var again = DN.castSetSkill();                     // 재냉각 중이라 안 나간다
+      var st2 = DN.status();
+      DN.leave();
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return fired && !again && run.mp === beforeMp && st2.setSkill.avail &&
+        ('맹호출림 · 기력 그대로(' + run.mp + ')');
+    });
+
+    t('투장 무예 — 세 점을 못 갖췄으면 눌러도 아무 일이 없다', function () {
+      var id = C.save.party[0];
+      var keep = C.save.gear.bag, keepEq = C.save.gear.equip;
+      C.save.gear.bag = []; C.save.gear.equip = {};
+      DN.enter({ floor: 4, mode: 'easy' });
+      var fired = DN.castSetSkill();
+      var avail = DN.status().setSkill.avail;
+      DN.leave();
+      C.save.gear.bag = keep; C.save.gear.equip = keepEq;
+      return !fired && !avail && '세 점 없음 · 손에 안 잡힘';
     });
 
     /* ── 내구(耐久)와 수리(修理) ─────────────────────────

@@ -640,7 +640,11 @@
          쿨다운만 있고 MP·무예 습득이 필요 없다. */
       heavyCd: 0,                         // 강공격 재사용 대기(초)
       dodge: null,                        // 회피 중 { t, dx, dy } (dash와 달리 적을 안 벤다)
-      dodgeCd: 0                          // 회피 재사용 대기(초)
+      dodgeCd: 0,                         // 회피 재사용 대기(초)
+      /* 2026-09-10 — "방어구 세트마다 특색 스킬"(사용자). 투장 세 점을
+         한 인물이 다 걸쳐야 손에 잡히는 세트 전용 무예 — 강공격·회피와
+         같은 자리(쿨다운만, MP·슬롯 안 씀)에 셋째로 놓는다. */
+      setSkCd: 0                          // 투장 무예 재사용 대기(초)
     };
     run.shots = [];
     run.foeShots = [];
@@ -1782,6 +1786,7 @@
     if (p.atkAnim > 0) { p.atkAnim -= dt; }
     if (p.heavyCd > 0) { p.heavyCd -= dt; }
     if (p.dodgeCd > 0) { p.dodgeCd -= dt; }
+    if (p.setSkCd > 0) { p.setSkCd -= dt; }
     /* 독(毒) dot — 함정(spike)에 물렸을 때. 적에게 쓰는 `e.dots`와 같은
        패턴(dps·t)을 그대로 사람에게도 돌린다 */
     if (p.dots && p.dots.length) {
@@ -2478,6 +2483,32 @@
     return true;
   }
 
+  /* ── 투장(套裝) 전용 무예 — 2026-09-10 ───────────────────────
+   * "방어구 세트마다 특색 스킬"(사용자). 배우지 않는다 — 무기·갑주·부적
+   * 세 점을 **선두가** 다 걸쳐야 손에 잡힌다(item.js의 setSkillFor).
+   * 강공격·회피처럼 쿨다운만 있는 기본기 자리에 셋째로 놓는다 — MP도
+   * 배움도 안 쓴다, 세트를 맞춘 것 자체가 값이다. 모양 실행은 슬롯형
+   * 무예와 같은 applyShapeSkill 을 그대로 쓴다(위 castSkill 참고). */
+
+  /** 지금 손에 잡히는 투장 무예 — 없으면 null. 화면(status())도 이걸 읽는다 */
+  function activeSetSkill() {
+    var it = global.DG.item, id = leadId();
+    return (it && id) ? it.setSkillFor(id) : null;
+  }
+
+  function castSetSkill() {
+    if (!run || run.choice) { return false; }
+    var got = activeSetSkill();
+    if (!got) { return false; }
+    var sk = got.sk, p = run.player;
+    if (p.setSkCd > 0 || p.dash) { return false; }
+    p.setSkCd = sk.cd;
+    sfx('setsk');
+    applyShapeSkill(sk, sk.v);
+    core.emit('dungeon:skill', 'set:' + got.set.key);
+    return true;
+  }
+
   /**
    * 포획(捕獲) — PLAN 34절 "도감을 콘텐츠 수집 시스템으로". `data.js` 의
    * PETS 표에는 진작부터 `catchBase`(잡힐 확률) 가 붙어 있었는데, 이걸 읽어
@@ -2700,9 +2731,19 @@
     if (p.cds[i] > 0 || run.mp < sk.cost || p.dash) { return false; }
     run.mp -= sk.cost;
     p.cds[i] = sk.cd;
+    applyShapeSkill(sk, SDx.valueAt(sk, rank));
+    core.emit('dungeon:skill', sk.key);
+    return true;
+  }
 
-    var v = SDx.valueAt(sk, rank);
-    var room = run.room, j;
+  /**
+   * 모양(shape)에 값을 끼워 실제 효과를 낸다 — **슬롯형 무예(castSkill)와
+   * 투장 전용 무예(castSetSkill)가 이 한 함수를 같이 쓴다.** 코스트·쿨다운·
+   * MP 차감은 부른 쪽이 먼저 끝내고 온다 — 여기는 sk.shape 만 본다
+   * (data-skill.js 머리말의 "모양 아홉" 설계를 그대로 잇는다).
+   */
+  function applyShapeSkill(sk, v) {
+    var p = run.player, room = run.room, j;
 
     if (sk.shape === 'swing') {
       var radius = reachOf() * (sk.r || 2.0);
@@ -2774,9 +2815,6 @@
     } else if (sk.shape === 'summon') {
       summon(Math.round(v), sk.sec || 12, sk.str || 1, !!sk.big);
     }
-
-    core.emit('dungeon:skill', sk.key);
-    return true;
   }
 
   function elemColorOf(el) {
@@ -2961,6 +2999,15 @@
          화면이 버튼 위에 쿨다운 링을 그릴 때 스킬바와 같은 계산을 쓸 수 있게. */
       heavy: { cd: Math.max(0, run.player.heavyCd), cdMax: HEAVY_CD },
       dodgeAct: { cd: Math.max(0, run.player.dodgeCd), cdMax: DODGE_CD },
+      /* 투장 무예 — 없으면(세 점을 안 갖췄으면) avail:false 만 내려 화면이
+         비활성으로 그리게 한다(위 heavy/dodgeAct와 같은 cd/cdMax 자리). */
+      setSkill: (function () {
+        var got = activeSetSkill();
+        if (!got) { return { avail: false, cd: 0, cdMax: 1 }; }
+        return { avail: true, name: got.sk.name, emoji: got.sk.emoji, desc: got.sk.desc,
+                 setName: got.set.name,
+                 cd: Math.max(0, run.player.setSkCd), cdMax: got.sk.cd };
+      })(),
       combo: run.combo || 0
     };
   }
@@ -3006,7 +3053,7 @@
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
     rollMerchantStock: rollMerchantStock,
     castSkill: castSkill, refill: refill,
-    heavyAttack: heavyAttack, doDodge: doDodge,
+    heavyAttack: heavyAttack, doDodge: doDodge, castSetSkill: castSetSkill,
     boonVal: boonVal, boonEffect: boonEffect,
     status: status, state: dstate,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
