@@ -601,6 +601,8 @@
       fieldSpawnCd: 4,                    // 들판 로머 보충 주기(초) — PLAN 10절 "필드 사냥"
       fieldTreasureCd: 90,                 // 필드 보물 조우 재확인 주기(초) — PLAN §60 후보 1
       fieldMerchantCd: 60,                 // 필드 방랑 상인 재확인 주기(초) — PLAN §60 후보 1 나머지 절반
+      hitstopT: 0,                        // 타격 정지(hitstop) 남은 초 — 2026-09-10 "전투가 심심하다"
+      combo: 0, comboT: 0,                // 연속 타격 수 · 끊기는 문턱(초)
       kills: 0, startedAt: Date.now(), dead: false
     };
     run.hpMax = hpMaxOf();
@@ -630,9 +632,15 @@
       x: WALL + 40, y: ROOM_H * 0.5, atkCd: 0, phase: 0, walking: false, facing: 1, hurt: 0,
       atkAnim: 0,                         // 공격 자세 남은 시간(초) — 3D·2D 렌더가 읽는다
       cds: [0, 0, 0, 0],                  // 스킬 쿨다운 (남은 초)
-      dash: null,                         // 돌진 중 { t, dx, dy, hit }
-      invuln: 0,                          // 무적 남은 초 (돌진)
-      rallyUntil: 0                       // 사기 버프가 끝나는 시각 (ms)
+      dash: null,                         // 돌진 중 { t, dx, dy, hit } (무예 "돌진" 모양)
+      invuln: 0,                          // 무적 남은 초 (돌진·회피)
+      rallyUntil: 0,                      // 사기 버프가 끝나는 시각 (ms)
+      /* 2026-09-10 — "강공격이랑 전용 회피 버튼도"(사용자). 스킬(Z X C V,
+         MP 소모·슬롯 필요)과 달리 **누구나 처음부터 쓰는 기본기**다 —
+         쿨다운만 있고 MP·무예 습득이 필요 없다. */
+      heavyCd: 0,                         // 강공격 재사용 대기(초)
+      dodge: null,                        // 회피 중 { t, dx, dy } (dash와 달리 적을 안 벤다)
+      dodgeCd: 0                          // 회피 재사용 대기(초)
     };
     run.shots = [];
     run.foeShots = [];
@@ -937,6 +945,8 @@
     fx.push({ t: 'hit', x: run.player.x, y: run.player.y, v: Math.round(amount),
               life: 0.7, foe: true, el: el && el !== 'phys' ? el : null });
     sfx('hurt');
+    /* 맞으면 콤보가 끊긴다 — 안 맞고 계속 때려야 이어지는 긴장감(축2 손맛) */
+    run.combo = 0; run.comboT = 0;
     if (run.hp <= 0) { die(); }
   }
 
@@ -1753,12 +1763,25 @@
     dt = Math.min(dt, 0.05);
     var p = run.player, room = run.room, i;
 
+    /* 타격 정지(hitstop) — 한 대 맞은 순간 몇 프레임 시간을 확 늦춘다(멈추지는
+       않는다 — dt를 0으로 주면 몇몇 카운트다운이 얼어붙은 티가 난다). 2026-09-10
+       "전투가 심심하다 — 모션이 없어서 그런가"(사용자) 대응 — 새 애니메이션을
+       더는 대신, 있는 모션(넉백·번쩍임·칼궤적)이 훨씬 묵직하게 느껴지게 한다. */
+    if (run.hitstopT > 0) { run.hitstopT -= dt; dt *= 0.08; }
+    /* 연속 타격(콤보) — 일정 시간 안에 다시 안 때리면 끊긴다(strike()가 갱신) */
+    if (run.comboT > 0) {
+      run.comboT -= dt;
+      if (run.comboT <= 0) { run.combo = 0; }
+    }
+
     /* 스킬 쿨다운 · 기력 · 무적 시간 */
     for (i = 0; i < p.cds.length; i++) { if (p.cds[i] > 0) { p.cds[i] -= dt; } }
     /* 명민·정신 같은 상시 무예가 기력 회복을 올린다 */
     run.mp = Math.min(run.mpMax, run.mp + (MP_REGEN + boonVal('mpRegen')) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
     if (p.atkAnim > 0) { p.atkAnim -= dt; }
+    if (p.heavyCd > 0) { p.heavyCd -= dt; }
+    if (p.dodgeCd > 0) { p.dodgeCd -= dt; }
     /* 독(毒) dot — 함정(spike)에 물렸을 때. 적에게 쓰는 `e.dots`와 같은
        패턴(dps·t)을 그대로 사람에게도 돌린다 */
     if (p.dots && p.dots.length) {
@@ -1819,6 +1842,17 @@
          roomIdx를 안 실어 보내면 항상 undefined가 되어 매 프레임 "막힌
          것 없음"으로 새 버렸을 뻔했다(자가진단이 이 층을 안 보는 값이라
          하마터면 조용히 회귀할 뻔한 자리, PLAN §28-4 Phase 2). */
+      boundPlayer(p, px0, py0, { corridors: run.corridors, floor: run.floor, roomIdx: run.roomIdx });
+    } else if (p.dodge) {
+      /* 회피 — dash와 같은 모양이지만 적을 베지 않는다(위 doDodge() 참고) */
+      var dg = p.dodge;
+      p.x += dg.dx * DODGE_SPD * dt;
+      p.y += dg.dy * DODGE_SPD * dt;
+      p.walking = true;
+      p.phase += dt * 16;
+      fx.push({ t: 'trail', x: p.x, y: p.y, life: 0.18, color: '#cfe8ff' });
+      dg.t -= dt;
+      if (dg.t <= 0) { p.dodge = null; }
       boundPlayer(p, px0, py0, { corridors: run.corridors, floor: run.floor, roomIdx: run.roomIdx });
     } else {
       /* 이동 */
@@ -2227,6 +2261,8 @@
     }
   }
 
+  var COMBO_WINDOW = 1.6;   // 이 안에 다시 안 때리면 콤보가 끊긴다(초)
+
   /**
    * 한 대 때린다.
    * @param mul  스킬 배율 (기본 1)
@@ -2285,6 +2321,19 @@
               resist: res >= 20 });
     sfx(crit ? 'crit' : 'hit');
 
+    /* 타격 정지(hitstop) — update()가 dt를 확 줄여 몇 프레임 묵직하게 만든다.
+       크리티컬은 더 길게(Math.max라 짧은 값이 겹쳐도 안 줄어든다). */
+    run.hitstopT = Math.max(run.hitstopT || 0, crit ? 0.09 : 0.05);
+    /* 연속 타격(콤보) — COMBO_WINDOW 안에 다시 때리면 쌓인다(update()가 끊는다).
+       PLAN 15절 "필수: 콤보" — 3부터 화면에 띄운다(1·2는 콤보라 부르기 민망하다). */
+    run.combo = (run.combo || 0) + 1;
+    run.comboT = COMBO_WINDOW;
+    if (run.combo >= 3 && run.player) {
+      fx.push({ t: 'get', x: run.player.x, y: run.player.y - P_R - 30,
+        text: run.combo + ' 연속!', life: 0.5,
+        color: run.combo >= 12 ? '#ff5a5a' : (run.combo >= 6 ? '#ffb454' : '#ffe066') });
+    }
+
     /* 원소 — 무기에 박은 보석이 얹는다. **결마다 저항이 따로**다(원작과 같다).
        한 대에 여러 결이 같이 들어갈 수 있다 — 원작의 무기 피해가 그렇다. */
     applyElem(e, mul || 1);
@@ -2336,6 +2385,7 @@
   function kill(e) {
     run.kills += 1;
     dstate().kills = (dstate().kills || 0) + 1;
+    run.hitstopT = Math.max(run.hitstopT || 0, e.boss ? 0.18 : 0.11);   // 처치는 한 대 맞은 것보다 더 묵직하게
     core.emit('dungeon:kill', { e: e, floor: run.floor });
     var drain = boonVal('drainPct');
     if (drain) { healBy(run.hpMax * drain / 100); }
@@ -2379,6 +2429,53 @@
     core.gainExp(Math.round((1 + Math.floor(run.floor / 3)) * mode().exp));
     global.DG.hero.awardParty(1 + Math.floor(run.floor / 4));
     tryCatchPet(e);
+  }
+
+  /* 2026-09-10 — "강공격이랑 전용 회피 버튼도"(사용자). 평타(위 update() "내
+     공격")는 자동이고 무예(Z X C V)는 MP·슬롯이 든다 — 그 사이에 **아무나
+     처음부터, 쿨다운만으로** 쓰는 기본기 둘을 놓는다. PLAN 15절 "필수" 목록의
+     "강공격"·"회피"에 정확히 대응한다. */
+  var HEAVY_CD = 1.3, HEAVY_MUL = 2.6, HEAVY_KB = 26, HEAVY_RECOVER = 0.16;
+  var DODGE_CD = 0.9, DODGE_SEC = 0.16, DODGE_SPD = 520, DODGE_INVULN = 0.22;
+
+  /** 강공격 — 평타보다 훨씬 세고 크게 밀치지만, 감아 치는 동안(HEAVY_RECOVER)
+   *  평타가 못 낀다(atkCd를 같이 밀어 둔다) 그리고 쿨다운이 있다.
+   *  사거리 안에 적이 없으면 그냥 아무 일도 안 일어난다(헛손질 연출은 안 둔다
+   *  — 평타도 표적이 없으면 아예 안 그린다, 같은 결). */
+  function heavyAttack() {
+    if (!run) { return false; }
+    var p = run.player;
+    if (p.heavyCd > 0 || p.dash || p.dodge) { return false; }
+    var reach = reachOf() * 1.15, room = run.room;
+    var near = null, nd = 1e9, i;
+    for (i = 0; i < room.enemies.length; i++) {
+      var e = room.enemies[i];
+      if (e.hp <= 0) { continue; }
+      var d = dist(run.player, e) - e.r;
+      if (d < nd) { nd = d; near = e; }
+    }
+    if (!near || nd > reach) { return false; }
+    p.heavyCd = HEAVY_CD;
+    p.atkCd = Math.max(p.atkCd, HEAVY_RECOVER);
+    p.atkAnim = 0.38;                    // 평타(0.22)보다 오래 자세가 남는다 — 묵직한 스윙
+    sfx('heavy');
+    strike(near, HEAVY_MUL, HEAVY_KB);
+    return true;
+  }
+
+  /** 회피 — 짧게 미끄러지며 그동안 무적이다. `p.dash`(무예 "돌진")와 달리
+   *  적을 베지 않는다 — 순수 회피다. 쿨다운만 있고 MP·스킬 슬롯이 안 든다. */
+  function doDodge() {
+    if (!run) { return false; }
+    var p = run.player;
+    if (p.dodgeCd > 0 || p.dodge || p.dash) { return false; }
+    var ddx = p.dirX || p.facing, ddy = p.dirY || 0;
+    var dl = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
+    p.dodge = { t: DODGE_SEC, dx: ddx / dl, dy: ddy / dl };
+    p.invuln = Math.max(p.invuln || 0, DODGE_INVULN);
+    p.dodgeCd = DODGE_CD;
+    sfx('dash');
+    return true;
   }
 
   /**
@@ -2859,7 +2956,12 @@
       loot: { gold: Math.round(run.loot.gold), items: run.loot.items.length },
       boons: run.boons, choice: run.choice, merchantChoice: run.merchantChoice,
       kills: run.kills, best: dstate().best || 0,
-      atk: Math.round(atkOf()), reach: Math.round(reachOf())
+      atk: Math.round(atkOf()), reach: Math.round(reachOf()),
+      /* 강공격·회피(2026-09-10) — 스킬과 같은 자리(cd/cdMax)로 내준다.
+         화면이 버튼 위에 쿨다운 링을 그릴 때 스킬바와 같은 계산을 쓸 수 있게. */
+      heavy: { cd: Math.max(0, run.player.heavyCd), cdMax: HEAVY_CD },
+      dodgeAct: { cd: Math.max(0, run.player.dodgeCd), cdMax: DODGE_CD },
+      combo: run.combo || 0
     };
   }
 
@@ -2904,6 +3006,7 @@
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
     rollMerchantStock: rollMerchantStock,
     castSkill: castSkill, refill: refill,
+    heavyAttack: heavyAttack, doDodge: doDodge,
     boonVal: boonVal, boonEffect: boonEffect,
     status: status, state: dstate,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
