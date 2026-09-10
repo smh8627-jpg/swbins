@@ -445,13 +445,15 @@
     };
     var intro = fightIntro(atk, def, wallRef, toId2, land, false, lines);
     var water = intro.water, sortie = intro.sortie, du = intro.du;
+    var leadA = intro.leadA, leadD = intro.leadD;
     var startWall = wallRef.wall;
     var frames = [], r = 0;
 
     if (hooks.onIntro) {
       hooks.onIntro(log.slice(), {
         to: toId2, water: water, force: atk.force, defForce: def.force,
-        atkStart: atk.start, defStart: def.start, duel: du, wallFrom: startWall
+        atkStart: atk.start, defStart: def.start, duel: du, wallFrom: startWall,
+        leadA: leadA, leadD: leadD
       });
     }
 
@@ -473,6 +475,7 @@
         lossA: atk.start - atk.troops, lossD: def.start - def.troops,
         atkStart: atk.start, defStart: def.start,
         wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
+        leadA: leadA, leadD: leadD,
         frames: frames
       };
       var full = finishMarch(setup, report);
@@ -597,7 +600,13 @@
     else if (sortie) { lines('🏇 성문이 열리고 수비군이 마주 나왔다 (야전)'); }
     else { lines('🧱 수비군은 성을 닫고 지킨다 (공성)'); }
 
-    return { water: water, sortie: sortie, du: du };
+    /* leadA/leadD — 2026-09-10, "인물 추가". `du`(실제 합을 주고받는 일기토)는
+       능력치 차가 크면(DUEL_GAP) 아예 안 뽑히고, 뽑혀도 65%는 그냥 안 붙는다
+       (`duel()` 참고) — 그 나머지 싸움은 지금까지 깃발 다발만 보였다.
+       aTop/dTop 은 이미 정해져 있던 값이라(위), 합을 주고받지 않아도 그
+       이름표만 그대로 넘긴다 — `battle3d.js`가 이걸로 "지휘관 둘이 서 있는"
+       실제 캐릭터를 세운다(공격·피격 동작 없이 idle로만, 새 판정 아님) */
+    return { water: water, sortie: sortie, du: du, leadA: aTop, leadD: dTop };
   }
 
   /**
@@ -682,6 +691,7 @@
     var lines = function (s) { log.push(s); };
     var intro = fightIntro(atk, def, wallRef, toId, land, dry, lines);
     var water = intro.water, sortie = intro.sortie, du = intro.du;
+    var leadA = intro.leadA, leadD = intro.leadD;
 
     var startWall = wallRef.wall;
     var r, won = false, routed = false;
@@ -710,6 +720,7 @@
       lossA: atk.start - atk.troops, lossD: def.start - def.troops,
       atkStart: atk.start, defStart: def.start,
       wallFrom: startWall, wallTo: wallRef.wall, sortie: sortie, water: water,
+      leadA: leadA, leadD: leadD,
       /* 실시간 재생용(battle3d.js) — 판정과 무관, dry(가늠)면 안 쓰이니 그대로 둬도 된다 */
       frames: frames
     };

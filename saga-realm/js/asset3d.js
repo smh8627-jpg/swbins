@@ -606,6 +606,12 @@
    *  등을 직접 지고 있다, 사가블로처럼 따로 감싼 shell이 없다). mixer 가 없는
    *  모델(클립 0개, 또는 애초에 GLB 가 아니라 도형으로 떨어진 것)이면 아무
    *  것도 안 하고 false — 부르는 쪽이 실패를 몰라도 되게 한다 */
+  /* 한 번만 재생하고 마지막 자세에서 멈추는 슬롯 — 기본 LoopRepeat 이면
+     클립이 끝나자마자 처음부터 다시 돌아, 이를테면 죽은 장수가 잠깐 뒤
+     되살아났다 다시 쓰러지는 것처럼 보인다(2026-09-10, "모션도 리얼해야"
+     지적으로 드러난 것). idle·walk·run 등은 원래대로 반복해야 자연스러워
+     그대로 둔다. */
+  var ONE_SHOT = { attack: true, hit: true, death: true, interaction: true, dodge: true };
   function play(model, slot) {
     var u = model && model.userData;
     if (!u || !u.mixer) { return false; }
@@ -614,6 +620,14 @@
     if (!next) { return false; }
     if (u.anim === slot) { return true; }
     var prev = u.anim && u.clipMap[u.anim] && u.actions[u.clipMap[u.anim]];
+    var t = three();
+    if (ONE_SHOT[slot]) {
+      next.setLoop(t.LoopOnce, 1);
+      next.clampWhenFinished = true;
+    } else {
+      next.setLoop(t.LoopRepeat);
+      next.clampWhenFinished = false;
+    }
     next.reset().play();
     if (prev && prev !== next) { prev.crossFadeTo(next, 0.15, false); }
     u.anim = slot;
