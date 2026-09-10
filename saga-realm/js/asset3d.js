@@ -121,18 +121,20 @@
   restore();
 
   /**
-   * 동양풍 탑 시험(2026-09-09, README "다음 몫") — 꺼 둔 채로 얹는다.
-   * 지금 성채가 쓰는 Quaternius 탑(20~85KB)은 서양 판타지풍이라고 README에
-   * 적어 둔 자리다. `assets/models/buildings/asian/BellStructure.glb`
-   * (CC0, Polygonal Mind "lunar-year" 팩, ASSET_LICENSES.md 참고)를 받아
-   * 뒀지만, **이 세션은 헤드리스/실기 화면 확인을 하지 말라는 지시를 받아
-   * 실제로 어떻게 서는지 못 봤다** — 그래서 기본은 그대로 서양풍 탑이고,
-   * `core.setTune('asset3d.asianTower', 1)` 로 켜야 1등급 성채(`city:t1`)만
-   * 이걸로 갈아 선다(새로고침 필요, 다른 손잡이와 같은 결). 켜 보고 결이
-   * 맞으면 그때 기본값을 뒤집고 2·3등급도 더 받는다 — 안 맞으면 손잡이를
-   * 놓기만 하면 되돌아간다(코드를 걷어낼 필요가 없다).
+   * 동양풍 탑 — 2026-09-10 채택(README "다음 몫" 후속).
+   * 지금 성채가 쓰는 Quaternius 탑(20~85KB)은 서양 판타지풍이라 결이 안
+   * 맞는다는 문제가 있었는데, `assets/models/buildings/asian/BellStructure.glb`
+   * (CC0, Polygonal Mind "lunar-year" 팩, ASSET_LICENSES.md 참고)로 1등급
+   * 성채(`city:t1`)를 갈아 봤더니 붉은 기둥 종틀 형태로 서양풍과 뚜렷이
+   * 다르게 서서 기본값으로 삼았다(예외적으로 허용된 헤드리스 스크린샷
+   * 한 번으로 확인). `core.setTune('asset3d.asianTower', 0)` 으로 끄면
+   * 서양풍 Watchtower로 되돌아간다(코드를 걷어낼 필요가 없다).
+   *
+   * 같은 팩의 `Portal.glb`·`MainAltar.glb`는 2·3등급용으로 더 받으려다
+   * 썸네일을 확인해 보니 각각 **병풍(폴딩 스크린)·낮은 제단 상자**로
+   * 탑이 아니었다 — 채택하지 않았다. 2·3등급은 당분간 서양풍 그대로 둔다.
    */
-  if (core && core.tuned('asset3d.asianTower', 0)) {
+  if (core && core.tuned('asset3d.asianTower', 1)) {
     register('city:t1', BLD + 'asian/BellStructure.glb');
   }
 

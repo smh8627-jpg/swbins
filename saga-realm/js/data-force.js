@@ -5,10 +5,12 @@
  * 여기서 한 줄만 늘려도 다섯 곳을 맞춰야 한다(인계 문서의 못이다).
  * 그래서 삼국지 무장은 이 파일이 따로 들고, `officer.js` 가 둘을 **합쳐서** 본다.
  *
- *   data.js 의 인물 70   — 삼국지 22 · 한국사 26 · 유럽사 22
+ *   data.js 의 인물 105  — 삼국지 22 · 한국사 26 · 일본사 20 · 세계사 37
+ *                        (2026-09-10 HEROES 가명화 후속으로 늘었다 — 더 늘 수 있으니
+ *                        코드에서는 이 수를 못 박지 않는다)
  *   이 파일의 무장 54     — 삼국지 군주와 그 부하들
  *
- * 삼국지 사람이 아닌 인물(한국사·유럽사 48)은 **재야(在野)** 다.
+ * 삼국지 사람이 아닌 인물(한국사·일본사·세계사, data.js 쪽 83)은 **재야(在野)** 다.
  * 도시에서 수색하면 나온다 — 이 판이 '역사 전체' 를 다루는 판이라는 뜻이기도 하다.
  *
  * 무장 기록은 data.js 의 인물과 **같은 모양**이어야 한다.
@@ -358,6 +360,136 @@
     xinggu: ['nz_heukwol']
   };
 
+  /* ── 천축(天竺) 지역 수비 무장 (2026-09-10, 여섯째 확장) — 앞 다섯과 같은 결.
+     era 는 전부 '천축(가상)' — 실존 인물이 아니다(루트 CLAUDE.md 이름 정책).
+     faction 은 지키는 성 이름(신독·건타라 등)을 그대로 쓴다(앞 지역과 같은 관례). */
+  var TIANZHU_OFFICERS = [
+    { id: 'tz_beonwang',  name: '번왕', hanja: '番王', era: '천축(가상)', faction: '신독',
+      rarity: 4, trait: 'command', emoji: '🐘', quote: '코끼리 부대 앞에서는 어떤 성벽도 오래 못 버팁니다.',
+      stats: { might: 74, wisdom: 60, command: 86 } },
+    { id: 'tz_hyanggae',  name: '향개', hanja: '香蓋', era: '천축(가상)', faction: '신독',
+      rarity: 3, trait: 'wisdom', emoji: '🕉️', quote: '항하의 물은 마르지 않듯, 이 땅의 셈도 끝이 없습니다.',
+      stats: { might: 40, wisdom: 82, command: 62 } },
+    { id: 'tz_seoksang',  name: '석상', hanja: '石像', era: '천축(가상)', faction: '건타라',
+      rarity: 3, trait: 'wisdom', emoji: '🗿', quote: '돌에 새긴 얼굴은 세월이 지나도 웃고 있습니다.',
+      stats: { might: 38, wisdom: 80, command: 60 } },
+    { id: 'tz_ganda',     name: '간다', hanja: '干陀', era: '천축(가상)', faction: '건타라',
+      rarity: 3, trait: 'might', emoji: '⚔️', quote: '동서의 상단이 다 이 저자를 거쳐 갑니다.',
+      stats: { might: 78, wisdom: 46, command: 68 } },
+    { id: 'tz_seolsan',   name: '설산', hanja: '雪山', era: '천축(가상)', faction: '계빈',
+      rarity: 4, trait: 'might', emoji: '🏔️', quote: '눈 덮인 고개를 넘어 본 자만이 이 땅을 지킬 자격이 있습니다.',
+      stats: { might: 84, wisdom: 48, command: 74 } },
+    { id: 'tz_daehacheon',name: '대하천', hanja: '大夏泉', era: '천축(가상)', faction: '대하',
+      rarity: 3, trait: 'wisdom', emoji: '🐎', quote: '대월지가 남긴 말과 활은 아직 녹슬지 않았습니다.',
+      stats: { might: 44, wisdom: 78, command: 66 } },
+    { id: 'tz_sanri',     name: '산리', hanja: '山離', era: '천축(가상)', faction: '오익산리',
+      rarity: 3, trait: 'wisdom', emoji: '🏛️', quote: '먼 서쪽 나라의 돌기둥을 본 적이 있습니다.',
+      stats: { might: 36, wisdom: 76, command: 58 } },
+    { id: 'tz_hangha',    name: '항하', hanja: '恒河', era: '천축(가상)', faction: '마게타',
+      rarity: 4, trait: 'command', emoji: '🌊', quote: '강이 곧 길이고, 강이 곧 국경입니다.',
+      stats: { might: 68, wisdom: 64, command: 84 } },
+    { id: 'tz_sawi',      name: '사위', hanja: '舍衛', era: '천축(가상)', faction: '사위',
+      rarity: 3, trait: 'virtue', emoji: '🪷', quote: '순례자를 막지 않는 것이 이 저자의 오랜 법입니다.',
+      stats: { might: 42, wisdom: 74, command: 60 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var TIANZHU_GARRISON = {
+    shendu: ['tz_beonwang', 'tz_hyanggae'],
+    jiantuoluo: ['tz_seoksang', 'tz_ganda'],
+    jibin: ['tz_seolsan'],
+    daxia: ['tz_daehacheon'],
+    wuyishanli: ['tz_sanri'],
+    moqietuo: ['tz_hangha'],
+    sheyi: ['tz_sawi']
+  };
+
+  /* ── 막북(漠北) 지역 수비 무장 (2026-09-10, 일곱째 확장) — 앞 여섯과 같은 결.
+     era 는 전부 '막북(가상)' — 실존 인물이 아니다. faction 은 성 이름 그대로. */
+  var MOBEI_OFFICERS = [
+    { id: 'mb_cheolgak',  name: '철각', hanja: '鐵角', era: '막북(가상)', faction: '운중',
+      rarity: 4, trait: 'might', emoji: '🐎', quote: '초원의 말은 지치는 법을 모릅니다.',
+      stats: { might: 88, wisdom: 40, command: 76 } },
+    { id: 'mb_hoja',      name: '호자', hanja: '胡刺', era: '막북(가상)', faction: '운중',
+      rarity: 3, trait: 'might', emoji: '🏹', quote: '활은 말 위에서 쏘아야 제맛입니다.',
+      stats: { might: 82, wisdom: 42, command: 68 } },
+    { id: 'mb_baekwoon',  name: '백운', hanja: '白雲', era: '막북(가상)', faction: '안문',
+      rarity: 3, trait: 'wisdom', emoji: '🪶', quote: '기러기 넘는 고개, 봉화가 늦으면 안 됩니다.',
+      stats: { might: 44, wisdom: 78, command: 62 } },
+    { id: 'mb_hanpung',   name: '한풍', hanja: '寒風', era: '막북(가상)', faction: '정양',
+      rarity: 3, trait: 'might', emoji: '❄️', quote: '찬바람이 부는 쪽에서 적이 옵니다.',
+      stats: { might: 80, wisdom: 38, command: 64 } },
+    { id: 'mb_hwangto',   name: '황토', hanja: '黃土', era: '막북(가상)', faction: '상군',
+      rarity: 4, trait: 'command', emoji: '🏜️', quote: '고원의 흙바람은 성벽보다 오래 버팁니다.',
+      stats: { might: 72, wisdom: 58, command: 84 } },
+    { id: 'mb_gangho',    name: '강호', hanja: '羌胡', era: '막북(가상)', faction: '북지',
+      rarity: 3, trait: 'wisdom', emoji: '🐑', quote: '강족과 흉노가 뒤섞여도 셈은 하나입니다.',
+      stats: { might: 46, wisdom: 76, command: 60 } },
+    { id: 'mb_hanam',     name: '하남', hanja: '河南', era: '막북(가상)', faction: '삭방',
+      rarity: 3, trait: 'wisdom', emoji: '🌊', quote: '황하가 크게 굽이치는 곳, 여기가 하남지입니다.',
+      stats: { might: 40, wisdom: 74, command: 58 } },
+    { id: 'mb_janggwang',name: '장광', hanja: '長光', era: '막북(가상)', faction: '오원',
+      rarity: 3, trait: 'might', emoji: '🌌', quote: '가장 먼 북쪽, 겨울밤이 유난히 깁니다.',
+      stats: { might: 76, wisdom: 40, command: 62 } },
+    { id: 'mb_seonwoo',   name: '선우', hanja: '單于', era: '막북(가상)', faction: '운중',
+      rarity: 4, trait: 'command', emoji: '👑', quote: '초원의 여러 부족이 제 깃발 아래 모입니다.',
+      stats: { might: 78, wisdom: 56, command: 90 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var MOBEI_GARRISON = {
+    yunzhong: ['mb_cheolgak', 'mb_hoja', 'mb_seonwoo'],
+    yanmen: ['mb_baekwoon'],
+    dingxiang: ['mb_hanpung'],
+    shangjun: ['mb_hwangto'],
+    beidi: ['mb_gangho'],
+    shuofang: ['mb_hanam'],
+    wuyuan: ['mb_janggwang']
+  };
+
+  /* ── 임읍(林邑) 지역 수비 무장 (2026-09-10, 여덟째 확장) — 앞 일곱과 같은 결.
+     era 는 전부 '임읍(가상)' — 실존 인물이 아니다. faction 은 성 이름 그대로. */
+  var LINYI_OFFICERS = [
+    { id: 'ly_sangnim',   name: '상님', hanja: '象林', era: '임읍(가상)', faction: '상림',
+      rarity: 4, trait: 'might', emoji: '🐘', quote: '임읍이 일어난 땅, 이 현을 지키는 것이 곧 나라를 지키는 일입니다.',
+      stats: { might: 82, wisdom: 48, command: 78 } },
+    { id: 'ly_uhwa',      name: '우화', hanja: '雨花', era: '임읍(가상)', faction: '상림',
+      rarity: 3, trait: 'wisdom', emoji: '🌧️', quote: '우기가 오면 벼가 두 번 여뭅니다.',
+      stats: { might: 38, wisdom: 80, command: 60 } },
+    { id: 'ly_nogyong',   name: '노경', hanja: '盧景', era: '임읍(가상)', faction: '노용',
+      rarity: 3, trait: 'might', emoji: '🌾', quote: '들이 기름지면 지킬 값어치도 큽니다.',
+      stats: { might: 76, wisdom: 44, command: 66 } },
+    { id: 'ly_jinju',     name: '진주', hanja: '眞珠', era: '임읍(가상)', faction: '비경',
+      rarity: 3, trait: 'wisdom', emoji: '🦪', quote: '바다가 내어 주는 것은 진주만이 아닙니다.',
+      stats: { might: 40, wisdom: 78, command: 62 } },
+    { id: 'ly_juoh',      name: '주오', hanja: '朱吾', era: '임읍(가상)', faction: '주오',
+      rarity: 3, trait: 'virtue', emoji: '🌊', quote: '기록이 끝나는 곳에서도 사람은 삽니다.',
+      stats: { might: 42, wisdom: 70, command: 58 } },
+    { id: 'ly_sanga',     name: '산아', hanja: '山牙', era: '임읍(가상)', faction: '서권',
+      rarity: 3, trait: 'might', emoji: '🐆', quote: '코끼리가 못 오르는 산도 사람은 오릅니다.',
+      stats: { might: 78, wisdom: 42, command: 64 } },
+    { id: 'ly_jeonchung', name: '전충', hanja: '典沖', era: '임읍(가상)', faction: '전충',
+      rarity: 4, trait: 'command', emoji: '🏯', quote: '벽돌로 쌓은 성벽은 불에도 잘 안 무너집니다.',
+      stats: { might: 74, wisdom: 60, command: 88 } },
+    { id: 'ly_byeokjeon', name: '벽전', hanja: '甓塼', era: '임읍(가상)', faction: '전충',
+      rarity: 3, trait: 'wisdom', emoji: '🧱', quote: '벽돌 굽는 가마 불은 밤에도 꺼지지 않습니다.',
+      stats: { might: 44, wisdom: 76, command: 64 } },
+    { id: 'ly_heuksang',  name: '흑상', hanja: '黑象', era: '임읍(가상)', faction: '구속',
+      rarity: 3, trait: 'might', emoji: '🌑', quote: '지도 위 가장 남쪽, 기록도 여기서 흐려집니다.',
+      stats: { might: 76, wisdom: 38, command: 60 } }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var LINYI_GARRISON = {
+    xianglin: ['ly_sangnim', 'ly_uhwa'],
+    luorong: ['ly_nogyong'],
+    bijing: ['ly_jinju'],
+    zhuwu: ['ly_juoh'],
+    xiquan: ['ly_sanga'],
+    dianchong: ['ly_jeonchung', 'ly_byeokjeon'],
+    quzu: ['ly_heuksang']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -581,6 +713,9 @@
     JIAOZHOU_OFFICERS: JIAOZHOU_OFFICERS, JIAOZHOU_GARRISON: JIAOZHOU_GARRISON,
     XIYU_OFFICERS: XIYU_OFFICERS, XIYU_GARRISON: XIYU_GARRISON,
     NANZHONG_OFFICERS: NANZHONG_OFFICERS, NANZHONG_GARRISON: NANZHONG_GARRISON,
+    TIANZHU_OFFICERS: TIANZHU_OFFICERS, TIANZHU_GARRISON: TIANZHU_GARRISON,
+    MOBEI_OFFICERS: MOBEI_OFFICERS, MOBEI_GARRISON: MOBEI_GARRISON,
+    LINYI_OFFICERS: LINYI_OFFICERS, LINYI_GARRISON: LINYI_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

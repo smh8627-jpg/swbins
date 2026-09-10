@@ -134,7 +134,10 @@
           (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) ||
           (FD.JIAOZHOU_GARRISON && FD.JIAOZHOU_GARRISON[d.id]) ||
           (FD.XIYU_GARRISON && FD.XIYU_GARRISON[d.id]) ||
-          (FD.NANZHONG_GARRISON && FD.NANZHONG_GARRISON[d.id]) || [];
+          (FD.NANZHONG_GARRISON && FD.NANZHONG_GARRISON[d.id]) ||
+          (FD.TIANZHU_GARRISON && FD.TIANZHU_GARRISON[d.id]) ||
+          (FD.MOBEI_GARRISON && FD.MOBEI_GARRISON[d.id]) ||
+          (FD.LINYI_GARRISON && FD.LINYI_GARRISON[d.id]) || [];
         var gov = null;
         for (var j = 0; j < ids.length; j++) {
           var r = off.placeAt(ids[j], d.id, null);
@@ -307,7 +310,10 @@
         (FD.JAPAN_GARRISON && FD.JAPAN_GARRISON[d.id]) ||
         (FD.JIAOZHOU_GARRISON && FD.JIAOZHOU_GARRISON[d.id]) ||
         (FD.XIYU_GARRISON && FD.XIYU_GARRISON[d.id]) ||
-        (FD.NANZHONG_GARRISON && FD.NANZHONG_GARRISON[d.id]) || [];
+        (FD.NANZHONG_GARRISON && FD.NANZHONG_GARRISON[d.id]) ||
+        (FD.TIANZHU_GARRISON && FD.TIANZHU_GARRISON[d.id]) ||
+        (FD.MOBEI_GARRISON && FD.MOBEI_GARRISON[d.id]) ||
+        (FD.LINYI_GARRISON && FD.LINYI_GARRISON[d.id]) || [];
       var gov = null;
       for (var j = 0; j < ids.length; j++) {
         var r = off.placeAt(ids[j], d.id, null);

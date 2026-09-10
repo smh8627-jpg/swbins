@@ -38,7 +38,16 @@
     /* 2026-09-09 확장(넷째) — 서역(西域, 하서주랑 너머 실크로드 오아시스). 같은 원칙 */
     xi: '서역',
     /* 2026-09-09 확장(다섯째) — 남중(南中, 강주 남쪽 산지·밀림). 같은 원칙 */
-    nz: '남중'
+    nz: '남중',
+    /* 2026-09-10 확장(여섯째) — 천축(天竺, 인도). 영창(남중) 너머, 실제
+       한대 사료에 등장하는 서역·인도 지명을 그대로 썼다. 같은 원칙 */
+    tz: '천축',
+    /* 2026-09-10 확장(일곱째) — 막북(漠北, 몽골 초원·흉노 땅). 진양(병주)
+       북쪽. 실제 한대 북방 변경 군(郡) 이름을 그대로 썼다. 같은 원칙 */
+    mb: '막북',
+    /* 2026-09-10 확장(여덟째) — 참파/임읍(林邑, 베트남 중부). 일남(교주)
+       남쪽. 실제 한대 일남군 속현·임읍국 도성 이름을 그대로 썼다. 같은 원칙 */
+    cp: '임읍'
   };
 
   var CITIES = [
@@ -250,7 +259,87 @@
       desc: '머나먼 서쪽 땅, 천축(天竺)의 물건도 이 길을 거쳐 온다.' },
     { id: 'xinggu',   name: '흥고', hanja: '興古', prov: 'nz', x: 18, y: 112, land: 'hill',
       agri: 110, comm: 90, wall: 2600, pop: 38000, garrison: 6500,
-      desc: '가장 먼 변경, 지도 위 마지막 이름.' }
+      desc: '가장 먼 변경, 지도 위 마지막 이름.' },
+
+    /* ── 천축 (2026-09-10 확장, 여섯째, 주인 없음 — 앞 다섯과 같은 결) ──
+       영창(永昌, 남중)의 설명 그대로 "천축의 물건도 이 길을 거쳐 온다" —
+       실제 촉신독도(蜀身毒道, Shu-Body road) 를 지형으로 옮겼다. 배가
+       필요 없는 **육로**라는 점이 다르다(물길로 막힌 남중·일본과 다른 변주).
+       성 이름은 한서·후한서에 실제로 나오는 서역·인도 지명 그대로다. */
+    { id: 'shendu',      name: '신독',     hanja: '身毒',     prov: 'tz', x: -22, y: 100, land: 'plain',
+      agri: 220, comm: 240, wall: 4000, pop: 95000, garrison: 11000,
+      desc: '한서(漢書)가 "신독"이라 적은 땅. 촉의 장사꾼도 여기까지는 온다.' },
+    { id: 'jiantuoluo',  name: '건타라',   hanja: '健馱邏',   prov: 'tz', x: -18, y: 92,  land: 'hill',
+      agri: 160, comm: 180, wall: 3400, pop: 58000, garrison: 8500,
+      desc: '간다라의 저자. 석상을 새기는 장인이 많다.' },
+    { id: 'jibin',       name: '계빈',     hanja: '罽賓',     prov: 'tz', x: -25, y: 80,  land: 'mount',
+      agri: 120, comm: 140, wall: 2800, pop: 40000, garrison: 6500,
+      desc: '눈 덮인 산 아래 나라. 카슈미르의 옛 이름이다.' },
+    { id: 'daxia',       name: '대하',     hanja: '大夏',     prov: 'tz', x: -15, y: 86,  land: 'hill',
+      agri: 150, comm: 170, wall: 3200, pop: 52000, garrison: 8000,
+      desc: '박트리아의 옛 이름. 대월지가 한때 이곳에 자리 잡았다.' },
+    { id: 'wuyishanli',  name: '오익산리', hanja: '烏弋山離', prov: 'tz', x: -32, y: 88,  land: 'hill',
+      agri: 110, comm: 130, wall: 2600, pop: 36000, garrison: 6000,
+      desc: '알렉산드리아라 불리던 땅의 한역(漢譯) 이름.' },
+    { id: 'moqietuo',    name: '마게타',   hanja: '摩揭陀',   prov: 'tz', x: -30, y: 106, land: 'plain',
+      agri: 200, comm: 190, wall: 3600, pop: 70000, garrison: 9500,
+      desc: '마가다. 항하(恒河) 유역의 크고 오래된 나라.' },
+    { id: 'sheyi',       name: '사위',     hanja: '舍衛',     prov: 'tz', x: -26, y: 112, land: 'plain',
+      agri: 170, comm: 150, wall: 3000, pop: 48000, garrison: 7500,
+      desc: '사위성. 순례자들이 마지막으로 닿는 저자.' },
+
+    /* ── 막북 (2026-09-10 확장, 일곱째, 주인 없음 — 앞 여섯과 같은 결) ──
+       화북 북쪽, 흉노의 땅. 진양(晉陽)의 설명 그대로 "흉노와 접한다" —
+       그 진양을 관문 삼는다. 배가 필요 없는 **초원길**(물길 없음)이라는
+       점이 다르다. 성 이름은 실제 한대(漢代) 북방 변경 군(郡) 이름이다. */
+    { id: 'yunzhong',   name: '운중', hanja: '雲中', prov: 'mb', x: 45, y: 5,   land: 'plain',
+      agri: 160, comm: 130, wall: 3400, pop: 55000, garrison: 8500,
+      desc: '흉노와 맞댄 첫 군(郡). 말 떼가 지평선을 채운다.' },
+    { id: 'yanmen',     name: '안문', hanja: '雁門', prov: 'mb', x: 55, y: 0,   land: 'mount',
+      agri: 130, comm: 110, wall: 3000, pop: 42000, garrison: 6800,
+      desc: '기러기도 넘기 힘들다는 고개. 봉화가 자주 오른다.' },
+    { id: 'dingxiang',  name: '정양', hanja: '定襄', prov: 'mb', x: 52, y: -10, land: 'plain',
+      agri: 140, comm: 100, wall: 2800, pop: 38000, garrison: 6300,
+      desc: '초원의 첫 저자. 가죽과 말을 바꾼다.' },
+    { id: 'shangjun',   name: '상군', hanja: '上郡', prov: 'mb', x: 30, y: 10,  land: 'hill',
+      agri: 150, comm: 120, wall: 3200, pop: 48000, garrison: 7500,
+      desc: '황토 고원의 군. 오랜 세월 변방을 지켰다.' },
+    { id: 'beidi',      name: '북지', hanja: '北地', prov: 'mb', x: 18, y: 6,   land: 'plain',
+      agri: 170, comm: 110, wall: 3000, pop: 44000, garrison: 7000,
+      desc: '농서와 이어지는 변경. 강족과 흉노가 뒤섞인다.' },
+    { id: 'shuofang',   name: '삭방', hanja: '朔方', prov: 'mb', x: 28, y: -8,  land: 'plain',
+      agri: 180, comm: 100, wall: 2900, pop: 40000, garrison: 6600,
+      desc: '하남지(河南地)의 요새. 황하가 크게 굽이치는 자리다.' },
+    { id: 'wuyuan',     name: '오원', hanja: '五原', prov: 'mb', x: 38, y: -15, land: 'hill',
+      agri: 120, comm: 90,  wall: 2700, pop: 36000, garrison: 6000,
+      desc: '가장 먼 북쪽 군. 겨울이 유난히 길다.' },
+
+    /* ── 임읍(林邑, 참파) (2026-09-10 확장, 여덟째, 주인 없음 — 앞 일곱과 같은 결) ──
+       교주 최남단 일남(日南) 너머. 실제 후한서·양서에 나오는 일남군 속현과
+       임읍국 도성 이름을 그대로 썼다 — 상림(象林)은 후한 말 임읍국이 실제로
+       일어난 바로 그 현이다. 2D 지도 viewBox 를 높이 방향(120→150)으로
+       다시 넓혀야 한다(ui-rtk.js 한 곳) — 남쪽으로 더 뻗는 첫 지역. */
+    { id: 'xianglin',   name: '상림', hanja: '象林', prov: 'cp', x: 38, y: 118, land: 'plain',
+      agri: 180, comm: 150, wall: 3200, pop: 60000, garrison: 8000,
+      desc: '일남군의 남쪽 끝 현. 임읍국이 바로 이곳에서 일어났다.' },
+    { id: 'luorong',    name: '노용', hanja: '盧容', prov: 'cp', x: 34, y: 122, land: 'plain',
+      agri: 160, comm: 130, wall: 2800, pop: 46000, garrison: 6800,
+      desc: '상림과 나란한 옛 현. 벼가 두 번 여문다.' },
+    { id: 'bijing',     name: '비경', hanja: '比景', prov: 'cp', x: 44, y: 124, land: 'river',
+      agri: 150, comm: 170, wall: 3000, pop: 50000, garrison: 7200,
+      desc: '해안의 옛 현. 진주조개를 캐는 배가 나간다.' },
+    { id: 'zhuwu',      name: '주오', hanja: '朱吾', prov: 'cp', x: 30, y: 130, land: 'river',
+      agri: 130, comm: 120, wall: 2600, pop: 38000, garrison: 6200,
+      desc: '한(漢)의 문서에 남은 가장 남쪽 현.' },
+    { id: 'xiquan',     name: '서권', hanja: '西卷', prov: 'cp', x: 50, y: 120, land: 'hill',
+      agri: 140, comm: 110, wall: 2700, pop: 40000, garrison: 6400,
+      desc: '산을 낀 서쪽 현. 코끼리가 짐을 나른다.' },
+    { id: 'dianchong',  name: '전충', hanja: '典沖', prov: 'cp', x: 40, y: 128, land: 'plain',
+      agri: 220, comm: 200, wall: 3800, pop: 72000, garrison: 9500,
+      desc: '임읍국의 도성. 벽돌로 쌓은 성벽이 낯설다.' },
+    { id: 'quzu',       name: '구속', hanja: '區粟', prov: 'cp', x: 36, y: 134, land: 'hill',
+      agri: 120, comm: 100, wall: 2500, pop: 34000, garrison: 5800,
+      desc: '지도 위 가장 남쪽 이름. 여기서부터는 기록도 흐릿하다.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -326,7 +415,25 @@
     ['zhuti', 'jianning'],
     ['jianning', 'yuexi'], ['jianning', 'zangke'], ['jianning', 'yunnan'],
     ['yunnan', 'yongchang'],
-    ['zangke', 'xinggu']
+    ['zangke', 'xinggu'],
+
+    /* ── 천축 ─────────────────────────────────────────── */
+    ['yongchang', 'shendu'],
+    ['shendu', 'jiantuoluo'], ['shendu', 'daxia'], ['shendu', 'moqietuo'], ['shendu', 'sheyi'],
+    ['jiantuoluo', 'jibin'],
+    ['daxia', 'wuyishanli'],
+
+    /* ── 막북 ─────────────────────────────────────────── */
+    ['jinyang', 'yunzhong'],
+    ['yunzhong', 'yanmen'], ['yunzhong', 'dingxiang'], ['yunzhong', 'shangjun'],
+    ['shangjun', 'beidi'], ['shangjun', 'shuofang'],
+    ['shuofang', 'wuyuan'],
+
+    /* ── 임읍(林邑) ───────────────────────────────────── */
+    ['rinan', 'xianglin'],
+    ['xianglin', 'luorong'], ['xianglin', 'dianchong'],
+    ['luorong', 'zhuwu'],
+    ['dianchong', 'bijing'], ['dianchong', 'xiquan'], ['dianchong', 'quzu']
   ];
 
   var byId = {};

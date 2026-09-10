@@ -3,7 +3,10 @@
  * ---------------------------------------------------------------
  * 무장 명부는 두 곳에서 온다.
  *
- *   data.js       인물 70 (삼국지 22 · 한국사 26 · 유럽사 22) — **다섯 판이 나눠 가진 복사본**
+ *   data.js       인물 105 (삼국지 22 · 한국사 26 · 일본사 20 · 세계사 37) — **다섯 판이 나눠 가진 복사본**
+ *                 (2026-09-10 — 일본사·세계사는 HEROES 가명화 후속으로 늘었다. 이 숫자는
+ *                 앞으로도 또 늘 수 있어 코드에서는 절대 이 수를 못 박지 않는다 — 아래
+ *                 mergeRoster()·_test.html 은 전부 DG.data.heroes.length 를 그때그때 잰다)
  *   data-force.js 무장 54 (삼국지 군주와 부하)               — 이 판만의 것
  *
  * `data.js` 는 다섯 벌이 바이트까지 같다. 그래서 **파일을 고치지 않고**,
@@ -11,7 +14,7 @@
  * 그러면 `data.find` · `hero.stats` · `sprite.portrait` · 도감이 손대지 않고 그대로 돈다.
  * (data.find 는 배열을 그때그때 훑는다 — 미리 만든 색인이 아니라서 얹기만 하면 된다)
  *
- * 삼국지 사람이 아닌 인물(한국사·유럽사 48)은 **재야(在野)** 다. 어느 세력에도 없고
+ * 삼국지 사람이 아닌 인물(한국사·일본사·세계사, data.js 쪽 83)은 **재야(在野)** 다. 어느 세력에도 없고
  * 도시에 흩어져 있다 — 수색으로 찾아 등용한다.
  */
 (function (global) {
@@ -56,6 +59,21 @@
     var nz = FD.NANZHONG_OFFICERS || [];
     for (var nn = 0; nn < nz.length; nn++) {
       if (!data.find(nz[nn].id)) { data.heroes.push(nz[nn]); }
+    }
+    /* 천축 지역 수비 무장(2026-09-10, 여섯째 확장) — 같은 방식으로 얹는다 */
+    var tz = FD.TIANZHU_OFFICERS || [];
+    for (var tt = 0; tt < tz.length; tt++) {
+      if (!data.find(tz[tt].id)) { data.heroes.push(tz[tt]); }
+    }
+    /* 막북 지역 수비 무장(2026-09-10, 일곱째 확장) — 같은 방식으로 얹는다 */
+    var mb = FD.MOBEI_OFFICERS || [];
+    for (var mm = 0; mm < mb.length; mm++) {
+      if (!data.find(mb[mm].id)) { data.heroes.push(mb[mm]); }
+    }
+    /* 임읍 지역 수비 무장(2026-09-10, 여덟째 확장) — 같은 방식으로 얹는다 */
+    var ly = FD.LINYI_OFFICERS || [];
+    for (var ll = 0; ll < ly.length; ll++) {
+      if (!data.find(ly[ll].id)) { data.heroes.push(ly[ll]); }
     }
     merged = true;
     return data.heroes.length;

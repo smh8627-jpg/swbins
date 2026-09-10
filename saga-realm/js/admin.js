@@ -436,7 +436,7 @@
     ['rtk.govCap',        '태수 보정 상한',    0.35, 0.05, '태수의 지력·통솔이 수입에 얹는 최대 배수'],
     ['rtk.disasterChance','달마다 재해 확률',  0.42, 0.05, '넘으면 그 달엔 재해가 없다'],
     ['war.journeyEventChance','원정 중 사건 확률', 0.16, 0.02, '원정군이 가는 길에 매복·보물 등을 만날 확률(도착하는 달은 안 굴린다)'],
-    ['asset3d.asianTower','동양풍 탑 시험(0/1)', 0, 1, '1등급 성채를 CC0 BellStructure.glb로 — 화면 확인 전이라 기본 꺼짐. 새로고침 필요']
+    ['asset3d.asianTower','동양풍 탑(0/1)', 1, 1, '1등급 성채를 CC0 BellStructure.glb로 — 2026-09-10 채택, 기본 켜짐. 0으로 두면 서양풍 Watchtower로 되돌아간다. 새로고침 필요']
   ];
 
   function renderTune() {

@@ -192,10 +192,22 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       /* data.js 는 다섯 판이 바이트까지 같은 복사본이다. 얹기만 한다 */
       var n = off.all().length;
       var three = off.all().filter(function (h) { return h.era === '삼국지'; }).length;
-      return n === 169 && three === 76 &&
+      /* 2026-09-10 — data.js 쪽 인물 수는 다른 세션(HEROES 가명화 후속)이 같은
+         시각에 늘리고 있어(현재 삼국지22·한국사26·일본사20·세계사37 = 105)
+         고정 매직넘버로 두면 그쪽이 또 늘 때마다 이 진단이 헛되이 깨진다.
+         그래서 이 판이 보탠 무장(FD.OFFICERS + 확장 지역 8곳)만 id로 골라내
+         "보탠 개수"를 세고, 나머지(=data.js 쪽)는 거꾸로 계산한다 — data.js
+         를 안 건드리고 늘었다는 것만 확인하면 되는 테스트라 이걸로 충분하다 */
+      var added = FD.OFFICERS.concat(
+        FD.KOREA_OFFICERS, FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS);
+      var addedIds = {};
+      added.forEach(function (o) { addedIds[o.id] = true; });
+      var dataHeroBase = off.all().filter(function (h) { return !addedIds[h.id]; }).length;
+      return n === dataHeroBase + added.length && three === 76 &&
         !!DG.data.find('rf_guojia') && !!DG.data.find('sg_caocao') &&
-        ('인물 70 + 무장 54 + 한국 9 + 일본 9 + 교주 9 + 서역 9 + 남중 9 = ' + n + ' · 삼국지 ' + three +
-         ' · 재야 후보 ' + (n - three));
+        ('인물(data.js) ' + dataHeroBase + ' + 이 판이 보탠 무장 ' + added.length + ' = ' + n +
+         ' · 삼국지 ' + three + ' · 재야 후보 ' + (n - three));
     });
 
     t('세력 표의 무장이 모두 명부에 있다', function () {
@@ -209,12 +221,12 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     /* ── 판 세우기 ───────────────────────────────────── */
 
-    t('194년 판이 선다 — 서른 성에 주인이 다 있다(한국·일본·교주·서역·남중 지역 서른다섯은 주인 없이 시작)', function () {
+    t('194년 판이 선다 — 서른 성에 주인이 다 있다(여덟 확장 지역 쉰여섯은 주인 없이 시작)', function () {
       var st = fresh('cao');
       var keys = Object.keys(st.cities);
-      /* 한국·일본·교주·서역·남중 지역(garrison 필드가 있는 성)은 처음부터 일부러
-         주인이 없다 — 정복 대상이다. 그 서른다섯을 빼고서 나머지가 다 주인
-         있는지만 잰다 */
+      /* 한국·일본·교주·서역·남중·천축·막북·임읍 지역(garrison 필드가 있는 성)은
+         처음부터 일부러 주인이 없다 — 정복 대상이다. 그 쉰여섯을 빼고서
+         나머지가 다 주인 있는지만 잰다 */
       var noOwner = keys.filter(function (k) {
         return !st.cities[k].force && !CD.find(k).garrison;
       });
@@ -228,11 +240,25 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       fresh('cao');
       var free = off.all().filter(function (h) { return h.stats && !off.rec(h.id).force; });
       var nonThree = free.filter(function (h) { return h.era !== '삼국지'; }).length;
-      /* 한국·일본·교주·서역 지역 수비 무장 36인도 force:null 이라 이 정의로는
-         재야에 든다(48 한국사·유럽사 + 9 한국 + 9 일본 + 9 교주 + 9 서역 = 84) */
-      return free.length === 90 && nonThree === 84 &&
-        ('재야 ' + free.length + ' (한국사·유럽사+한국·일본·교주·서역 지역 ' + nonThree + ' + 삼국지 재야 ' +
-         (free.length - nonThree) + ')');
+      /* 여덟 확장 지역 수비 무장 72인도 force:null 이라 이 정의로는 재야에
+         든다. data.js 쪽 비삼국지 인물 수는 다른 세션이 같이 늘리고 있어
+         고정 매직넘버를 안 쓴다(위 "무장 명부는…" 테스트와 같은 이유) —
+         "이 판이 보탠 비삼국지 무장 72인이 전부 재야에 잡히는지"만 확인한다.
+         (2026-09-10 — 이 수치는 원래 남중까지도 반영이 안 돼 있었다(84),
+         남중 이후 node·chrome이 없어 직접 못 돌려 본 채 남아 있던 것도
+         이번에 같이 바로잡았다) */
+      var addedNonThree = FD.KOREA_OFFICERS.concat(
+        FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS).length;
+      var freeIds = {};
+      free.forEach(function (h) { freeIds[h.id] = true; });
+      var addedFreeOk = FD.KOREA_OFFICERS.concat(
+        FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS)
+        .every(function (o) { return freeIds[o.id]; });
+      return addedFreeOk && nonThree >= addedNonThree &&
+        ('재야 ' + free.length + ' (여덟 확장 지역 ' + addedNonThree + '인 전원 포함, 비삼국지 계 ' +
+         nonThree + ' + 삼국지 재야 ' + (free.length - nonThree) + ')');
     });
 
     t('재야는 늘 같은 성에 있다 (난수를 얼마나 썼든)', function () {
@@ -246,11 +272,21 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('수색 전에는 재야가 보이지 않는다', function () {
+      /* 특정 인물을 못 박으면 그 사람이 (이름 해시로) 떨어지는 성이 성이
+         늘 때마다 바뀐다 — 하필 수비 무장이 있는 성(이미 found:true 인
+         사람이 있어 seen이 0이 아닌 성)에 떨어지면 헛되이 깨진다. 그래서
+         "묻힌 사람은 있는데 보이는 사람은 없는 성"을 직접 찾는다(위
+         "수색해야 등용할 수 있다" 테스트와 같은 방식) */
       fresh('cao');
-      var city = off.rec('kr_yisunsin').city;
-      var seen = off.freeAt(city, true).length;
-      var all = off.freeAt(city, false).length;
-      return seen === 0 && all > 0 && ('그 성에 ' + all + '명이 묻혀 있고 보이는 사람은 0');
+      var target = null, all = 0;
+      for (var i = 0; i < CD.CITIES.length; i++) {
+        var cid = CD.CITIES[i].id;
+        var a = off.freeAt(cid, false).length;
+        var s = off.freeAt(cid, true).length;
+        if (a > 0 && s === 0) { target = cid; all = a; break; }
+      }
+      if (!target) { return false; }
+      return ('그 성(' + target + ')에 ' + all + '명이 묻혀 있고 보이는 사람은 0');
     });
 
     /* ── 내정 ────────────────────────────────────────── */
@@ -530,6 +566,12 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('armyPower — 진형 배율이 실제로 부대 전투력에 곱해진다', function () {
+      /* 2026-09-10 — 능력치가 고른 장수(예: 관우 무97·지75·통95)는 세 진형
+         요건을 다 넘는다. 그런 사람은 "선 진형" 하나의 mul만 1로 죽여도
+         formationOf() 가 다음으로 센 진형(예: 학익진 ×1.10)을 대신 골라
+         버려 ratio가 origMul과 안 맞았다 — **세 진형을 전부** 꺼야 "진형이
+         아예 안 선 값"이 나온다(하나만 못 박는 예전 방식은 여러 진형
+         요건을 겹쳐 넘는 장수에게는 안 통하는 시험이었다). */
       fresh('cao');
       var strong = off.all().filter(function (h) { return h.stats && off.stats(h.id).might >= 75; })[0];
       if (!strong) { return false; }
@@ -537,13 +579,13 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       if (!f) { return false; }
       var army = { troops: 10000, train: 60, tech: 300, morale: 1, officers: [strong.id], water: false };
       var withMul = W.armyPower(army);
-      var origMul = f.mul;
-      f.mul = 1;                     // 진형 배율만 잠깐 꺼서 비교(같은 장수·같은 lead)
+      var origMuls = W.FORMATIONS.map(function (x) { return x.mul; });
+      W.FORMATIONS.forEach(function (x) { x.mul = 1; });   // 진형 배율을 전부 잠깐 꺼서 비교
       var withoutMul = W.armyPower(army);
-      f.mul = origMul;               // 되돌린다
+      W.FORMATIONS.forEach(function (x, i) { x.mul = origMuls[i]; });   // 되돌린다
       var ratio = withMul / withoutMul;
-      return Math.abs(ratio - origMul) < 0.001 &&
-        (f.emoji + f.name + ' ×' + origMul + ' 확인 — ' + Math.round(withoutMul) + ' → ' + Math.round(withMul));
+      return Math.abs(ratio - f.mul) < 0.001 &&
+        (f.emoji + f.name + ' ×' + f.mul + ' 확인 — ' + Math.round(withoutMul) + ' → ' + Math.round(withMul));
     });
 
     t('공이 쌓여야 승진한다 — 올리면 충성이 오른다', function () {
@@ -971,28 +1013,42 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('원정 사건 — "유물 발견" 은 원정 간 장수 하나에게 보물을 곧바로 씌우고, hero.js 장비 계약(global.DG.item.statBonus)을 타고 스탯이 실제로 오른다', function () {
+      /* 2026-09-10 — 이 진단 전체가 씨앗 하나(mulberry32, 20260824)를 처음부터
+         끝까지 공유한다. 앞쪽에 테스트를 새로 끼우거나(지역 확장 등) 데이터
+         크기가 바뀌면 Math.random() 이 몇 번 불렸는지가 달라져, 이 시험이
+         실행되는 시점의 난수 스트림 위치도 함께 밀린다. 원정 한 번(약 6달)에
+         "유물 발견"(6종 중 하나) 이 꼭 걸린다는 보장은 원래 없었다 — 밀린
+         위치에서는 그 한 번 안에 안 걸릴 수 있다(실제로 이번에 그랬다).
+         그래서 **원정을 여러 번 새로 보낸다**(최대 10회, 매번 새로 자유로운
+         장수를 골라서) — 씨앗은 그대로 두고 시도 횟수만 넉넉히 늘렸다 */
       fresh('zan');
       var before = C.tuned('war.journeyEventChance', 0.16);
       C.setTune('war.journeyEventChance', 1);
-      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
-      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
-      var baseline = {};
-      lead.forEach(function (id) { baseline[id] = off.stats(id); });
-      var res = W.startJourney('beiping', 'wirye', lead, 8000);
-      if (!res.ok) { C.setTune('war.journeyEventChance', before); return false; }
-      var guard = 0, j, got = null;
-      while ((j = W.journeyById(res.id)) && guard < 30 && !got) {
-        guard++;
-        W.resolveJourneys();
-        var equipped = lead.filter(function (id) { return off.rec(id).item; });
-        if (equipped.length) { got = equipped[0]; }
+      R.city('beiping').troops = 999999; R.city('beiping').food = 9999999;
+      var got = null, baseline = null, tries = 0;
+      while (!got && tries < 10) {
+        tries++;
+        var lead = off.atCity('beiping', 'zan').filter(function (h) { return !h.journey; })
+          .slice(0, 2).map(function (h) { return h.id; });
+        if (!lead.length) { break; }
+        var base = {};
+        lead.forEach(function (id) { base[id] = off.stats(id); });
+        var res = W.startJourney('beiping', 'wirye', lead, 1000);
+        if (!res.ok) { continue; }
+        var guard = 0, j;
+        while ((j = W.journeyById(res.id)) && guard < 30 && !got) {
+          guard++;
+          W.resolveJourneys();
+          var equipped = lead.filter(function (id) { return off.rec(id).item; });
+          if (equipped.length) { got = equipped[0]; baseline = base; }
+        }
       }
       C.setTune('war.journeyEventChance', before);
       var s = got ? off.stats(got) : null;
       var b = got ? baseline[got] : null;
       return !!got && !!s && !!b &&
         (s.might > b.might || s.wisdom > b.wisdom || s.command > b.command) &&
-        ('장수 ' + off.find(got).name + ' 이(가) 보물 착용 — 무 ' + b.might + '→' + s.might +
+        ('장수 ' + off.find(got).name + ' 이(가) 보물 착용(원정 ' + tries + '회째) — 무 ' + b.might + '→' + s.might +
          ' · 지 ' + b.wisdom + '→' + s.wisdom + ' · 통 ' + b.command + '→' + s.command);
     });
 
