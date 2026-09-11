@@ -25,6 +25,19 @@ var def: float = BASE_DEF
 
 func recruit(id: String) -> void:
 	members.append(id)
+	_recompute()
+	power_changed.emit(atk, def)
+
+
+## save_state.gd가 저장 파일을 불러온 뒤 여기로 넘긴다 — recruit()와
+## 다르게 이미 정해진 목록을 통째로 앉히고 수치만 다시 계산한다(한 명씩
+## 등용하며 신호를 여러 번 쏘지 않는다).
+func restore(saved_members: Array[String]) -> void:
+	members = saved_members.duplicate()
+	_recompute()
+	power_changed.emit(atk, def)
+
+
+func _recompute() -> void:
 	atk = BASE_ATK + members.size() * ATK_PER_MEMBER
 	def = BASE_DEF + members.size() * DEF_PER_MEMBER
-	power_changed.emit(atk, def)

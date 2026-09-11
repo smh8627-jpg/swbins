@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.7", "Mobile")
 [autoload]
 
 PartyState="*res://games/saga_go/data/party_state.gd"
+SaveState="*res://games/saga_go/data/save_state.gd"
 
 [display]
 

@@ -1,12 +1,13 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/ui/renderer_debug_label.gd" id="2"]
 [ext_resource type="Script" path="res://games/saga_go/ui/party_label.gd" id="3"]
+[ext_resource type="Script" path="res://games/saga_go/ui/save_button.gd" id="4"]
 
 [node name="MobileHUD" type="CanvasLayer"]
 
-[node name="Joystick" type="Control" parent="."]
+[node name="Joystick" type="Control" parent="." groups=["virtual_joystick"]]
 custom_minimum_size = Vector2(140, 140)
 offset_left = 40.0
 offset_top = -180.0
@@ -16,7 +17,6 @@ grow_vertical = 0
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-groups = ["virtual_joystick"]
 script = ExtResource("1")
 radius = 60.0
 
@@ -37,9 +37,8 @@ offset_bottom = 98.0
 color = Color(1, 1, 1, 0.5)
 mouse_filter = 2
 
-[node name="DialogueLabel" type="Label" parent="."]
+[node name="DialogueLabel" type="Label" parent="." groups=["dialogue_label"]]
 visible = false
-groups = ["dialogue_label"]
 anchor_left = 0.0
 anchor_top = 0.0
 anchor_right = 1.0
@@ -67,6 +66,17 @@ theme_override_colors/font_color = Color(1, 1, 1, 0.9)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
 script = ExtResource("3")
+
+[node name="SaveButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -100.0
+offset_right = -40.0
+offset_bottom = -40.0
+script = ExtResource("4")
 
 [node name="RendererDebugLabel" type="Label" parent="."]
 anchor_left = 1.0
