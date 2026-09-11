@@ -31,7 +31,7 @@ vegetation/rocks/props/weapons/armor/effects/UI/audio`를 권장 구조로 든�
 
 ```text
 assets/
-├── characters/   character-a.glb + Textures/texture-a.png
+├── characters/   character-{a,b,c,d}.glb + Textures/texture-{a,b,c,d}.png
 ├── vegetation/   tree_oak.glb
 ├── rocks/        rock_largeA.glb · rock_smallA.glb
 ├── buildings/    wall-block.glb · roof-gable.glb · pillar-stone.glb ·
@@ -59,6 +59,9 @@ get_aabb()`를 합쳐 실측했다(추측 아님) — 아래 스케일은 그 �
 | `buildings/pillar-stone.glb` | 0.16 × 1.0 × 0.16 | 바닥 | 폐허 기둥, 높이=스케일값 |
 | `buildings/planks.glb` | 1 × 0.06 × 1 | 바닥 | 다리(44개 이어 붙임) |
 | `characters/character-a.glb` | 1.6 × 2.7 × 0.8 | 바닥 | 플레이어, ×1.25 |
+| `characters/character-b.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 마을 촌장, ×1.25 |
+| `characters/character-c.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 떠돌이 상인, ×1.25 |
+| `characters/character-d.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 산적, ×1.25 |
 
 "피벗 바닥"은 원점(0,0,0)이 모델의 발밑이라는 뜻 — primitive였을 때는
 대부분 중앙 피벗(BoxMesh/SphereMesh/CylinderMesh 기본값)이라 `height*0.5`
@@ -81,10 +84,16 @@ get_aabb()`를 합쳐 실측했다(추측 아님) — 아래 스케일은 그 �
 - **동굴 입구**(`landmarks_builder.gd::_add_cave`) — Nature/Fantasy Town
   Kit에 어울리는 조각이 없어 그대로 primitive(검은 박스)다. 동굴/던전
   킷을 새로 받아야 한다.
-- **NPC(촌장·상인)·산적** — `npc_builder.gd`·`bandit_encounter.gd`는
-  여전히 캡슐이다. `character-a.glb`와 같은 킷의 다른 글자
-  (`character-b.glb`~)를 받아 인물마다 다르게 입히면 되는데, 이번
-  교체 범위(Player 하나)에서는 안 했다.
+- ~~NPC(촌장·상인)·산적~~ — **완료(2026-09-11②).** 마을 촌장=
+  `character-b.glb`, 떠돌이 상인=`character-c.glb`, 산적=
+  `character-d.glb`. 같은 킷이라 추가 다운로드 없이 미리 받아 둔
+  `chars/Models/GLB format/`에서 바로 골랐다. 산적 쪽은 "강타 예고"
+  텔레그래프(몸 전체를 잠깐 물들이는 연출)가 캡슐 시절 `material_override`
+  하나로 되던 걸, GLB는 몸통·팔·다리·머리가 각각 다른 MeshInstance3D라
+  `GLBUtils.find_all_mesh_instances()`로 전부 찾아 같이 바꾸게 고쳤다
+  (`bandit_encounter.gd::_set_visual_color`/`_clear_visual_color`) —
+  평소엔 override를 안 걸어 텍스처가 그대로 보이고, 텔레그래프 순간만
+  색을 입혔다가 원래 텍스처로 되돌린다.
 - **모바일 프로파일에서 이 에셋들이 실기(저사양 기기)에서 어떻게
   보이는지** — 66-1장 실기 확인 방침대로 몰아서 할 일.
 
@@ -108,3 +117,14 @@ Mesh만 뽑지 않고 **씬 전체를 그대로 인스턴스**한다(`Player.tsc
 스크린샷으로도 확인 — 캐릭터가 텍스처까지 정상 렌더링(핑크색 "텍스처
 없음" 표시 없음), 그림자 정상, 배경에 나무·지붕 형태 확인됨. 자세한
 경위는 `docs/PROJECT_STATE.md` 2026-09-11 항목 참고.
+
+**NPC·산적 교체(같은 날 뒤 이어 진행) 검증**: character-b/c/d.glb +
+texture-{b,c,d}.png 추가 후 헤드리스 임포트 중 `f.is_null()` 오류가 한
+번 떴다 — 새 텍스처 4장이 한꺼번에 재임포트되며 생긴 일회성 경합으로
+보이고(같은 조건으로 바로 재실행하니 재현 안 됨), 실제 씬 실행 로그
+(`--quit-after 5`)에는 애초에 안 뜬 적 없다. `--headless --quit-after 5`를
+연속 3번 돌려 **셋 다 exit 0·오류 0건** 확인(루트 CLAUDE.md "세 번 돌려
+출력이 한 줄도 다르지 않은지" 습관대로). GUI 스크린샷에서는 카메라가
+마침 마을 촌장·상인·산적이 있는 자리를 비추지 않아 이번엔 눈으로는
+확인 못 했다 — 헤드리스 로그로 네 캐릭터 GLB·텍스처 전부 정상 로드된
+것만 확인됐다.

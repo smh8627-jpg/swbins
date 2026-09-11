@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cvi3twan2pmv7"
-path="res://.godot/imported/colormap.png-d9a92f239cdc405f7c0b0057fa60cc56.ctex"
+uid="uid://cqy4dbhb3dbcv"
+path="res://.godot/imported/texture-d.png-d739c9d241947d6b370109fa77ac16cd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/buildings/Textures/colormap.png"
-dest_files=["res://.godot/imported/colormap.png-d9a92f239cdc405f7c0b0057fa60cc56.ctex"]
+source_file="res://assets/characters/Textures/texture-d.png"
+dest_files=["res://.godot/imported/texture-d.png-d739c9d241947d6b370109fa77ac16cd.ctex"]
 
 [params]
 

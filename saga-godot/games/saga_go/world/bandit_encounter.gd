@@ -15,6 +15,13 @@ extends Node3D
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
+
+## 2026-09-11 GLB 교체 — 플레이어(character-a)·주민(b·c)과 다른 글자를 써서
+## 산적임을 옷 색만으로도 구별한다(docs/ASSET_GUIDE.md). 실측·스케일 근거는
+## Player.tscn과 동일(2.7m 실측 → 1.25배).
+const BANDIT_GLB := "res://assets/characters/character-d.glb"
+const BANDIT_SCALE := 1.25
 
 const GRID := Vector2i(5, 3)
 const FOE_NAME := "산적"
@@ -34,8 +41,13 @@ var _duel: DuelRules = null
 var _cooldown_left := 0.0
 
 var _area: Area3D
-var _visual: MeshInstance3D
+var _visual: Node3D
+## GLB로 바뀐 뒤로는 평소엔 텍스처 그대로 보여준다(material_override를
+## 걸지 않는다) — "강타 예고" 순간에만 몸 전체를 물들이고 바로 원래
+## 텍스처로 되돌린다. _base_color는 GLB를 못 받아 왔을 때의 캡슐
+## 대체용으로만 쓴다.
 var _base_color := Color(0.5, 0.14, 0.14)
+var _using_glb := false
 
 var _prompt_layer: CanvasLayer
 var _combat_layer: CanvasLayer
@@ -57,15 +69,23 @@ func _spawn_visual() -> void:
 	var ground: float = TerrainBuilder.LEGEND[ch].height
 	position = TestMap.world_pos(GRID.x, GRID.y) + Vector3(0, ground, 0)
 
-	_visual = MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.9
-	mesh.height = 3.4
-	_visual.mesh = mesh
-	_visual.position = Vector3(0, 1.7, 0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = _base_color
-	_visual.material_override = mat
+	var scene: PackedScene = load(BANDIT_GLB)
+	if scene != null:
+		_visual = scene.instantiate()
+		_visual.scale = Vector3.ONE * BANDIT_SCALE
+		_using_glb = true
+	else:
+		## 못 받아 왔으면 예전 캡슐 — 산적이 아예 안 보이는 것보단 낫다.
+		var mi := MeshInstance3D.new()
+		var mesh := CapsuleMesh.new()
+		mesh.radius = 0.9
+		mesh.height = 3.4
+		mi.mesh = mesh
+		mi.position = Vector3(0, 1.7, 0)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = _base_color
+		mi.material_override = mat
+		_visual = mi
 	add_child(_visual)
 
 func _spawn_area() -> void:
@@ -264,7 +284,7 @@ func _on_duel_event(e: Dictionary) -> void:
 			_toast("강타가 온다 — 피하라!")
 			_set_visual_color(Color(1.0, 0.55, 0.1))
 		"heavy":
-			_set_visual_color(_base_color)
+			_clear_visual_color()
 			var dodged: bool = e.get("dodged", false)
 			var col: Color = Color(0.2, 1.0, 0.4, 0.35) if dodged else Color(1.0, 0.15, 0.15, 0.45)
 			_screen_flash(col)
@@ -301,14 +321,30 @@ func _enter_cooldown() -> void:
 	_cooldown_left = RETRY_COOLDOWN_SEC
 
 func _pulse_visual(scale_to: float) -> void:
+	## GLB는 평소 스케일이 1.0이 아니라 BANDIT_SCALE이다 — 원래 크기로
+	## 돌아오는 지점도 그 값이어야 "펀치 후 원래 크기"가 맞는다.
+	var base := BANDIT_SCALE if _using_glb else 1.0
 	var tw := create_tween()
-	tw.tween_property(_visual, "scale", Vector3.ONE * scale_to, 0.08)
-	tw.tween_property(_visual, "scale", Vector3.ONE, 0.16)
+	tw.tween_property(_visual, "scale", Vector3.ONE * scale_to * base, 0.08)
+	tw.tween_property(_visual, "scale", Vector3.ONE * base, 0.16)
 
+## GLB로 바뀐 뒤로는 캡슐 하나가 아니라 몸통·팔·다리·머리가 각각 다른
+## MeshInstance3D다 — "강타 예고" 때 몸 전체를 물들이려면 전부 찾아
+## 같이 바꿔야 한다(games/saga_go/world/glb_utils.gd 참고).
 func _set_visual_color(color: Color) -> void:
-	var mat := _visual.material_override as StandardMaterial3D
-	if mat:
-		mat.albedo_color = color
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	for mi in GLBUtils.find_all_mesh_instances(_visual):
+		mi.material_override = mat
+
+## 텔레그래프가 끝나면 원래 텍스처로 되돌린다(GLB일 때). 캡슐 대체
+## 상태였다면 기본 색으로 되돌린다.
+func _clear_visual_color() -> void:
+	if _using_glb:
+		for mi in GLBUtils.find_all_mesh_instances(_visual):
+			mi.material_override = null
+	else:
+		_set_visual_color(_base_color)
 
 func _screen_flash(color: Color) -> void:
 	_flash_rect.color = color

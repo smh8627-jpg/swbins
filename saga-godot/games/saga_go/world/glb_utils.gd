@@ -30,3 +30,15 @@ static func _find_mesh_instance(node: Node) -> MeshInstance3D:
 		if found != null:
 			return found
 	return null
+
+## 뼈대 있는 캐릭터(assets/characters/*)는 몸통·팔·다리·머리가 각각
+## 별도 MeshInstance3D다 — 산적 강타 예고처럼 "몸 전체를 한 색으로
+## 물들인다" 같은 연출은 이걸로 전부 찾아 material_override를 같이
+## 바꿔야 한다(games/saga_go/world/bandit_encounter.gd 참고).
+static func find_all_mesh_instances(node: Node) -> Array[MeshInstance3D]:
+	var result: Array[MeshInstance3D] = []
+	if node is MeshInstance3D:
+		result.append(node)
+	for c in node.get_children():
+		result.append_array(find_all_mesh_instances(c))
+	return result

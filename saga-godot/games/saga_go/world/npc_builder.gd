@@ -13,13 +13,18 @@ const TALK_RADIUS := 14.0
 const TALK_GAP_SEC := 45.0
 const LINE_SHOW_SEC := 4.0
 
+## character-a.glb는 플레이어 몫(Player.tscn) — 주민마다 다른 글자를 써서
+## 최소한 옷 색만으로도 플레이어·서로와 구별되게 한다(같은 킷 공유,
+## docs/ASSET_GUIDE.md 참고). 실측 키(2.7m)·스케일(1.25배)도 플레이어와 같다.
+const NPC_CHAR_SCALE := 1.25
+
 const VILLAGERS := [
 	{"id": "npc_elder", "name": "마을 촌장",
 	 "line": "이 마을에 무슨 일로 오셨소.",
-	 "grid": Vector2i(1, 3), "color": Color(0.54, 0.5, 0.42)},
+	 "grid": Vector2i(1, 3), "glb": "res://assets/characters/character-b.glb"},
 	{"id": "npc_merchant", "name": "떠돌이 상인",
 	 "line": "북쪽 산길은 요즘 값이 오르오. 짐꾼을 못 구해서.",
-	 "grid": Vector2i(4, 3), "color": Color(0.48, 0.42, 0.25)},
+	 "grid": Vector2i(4, 3), "glb": "res://assets/characters/character-c.glb"},
 ]
 
 var _last_said_ms := {}
@@ -37,19 +42,12 @@ func _spawn(v: Dictionary) -> void:
 	root.position = TestMap.world_pos(v.grid.x, v.grid.y) + Vector3(0, ground, 0)
 	add_child(root)
 
-	var body := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.9
-	mesh.height = 3.4
-	body.mesh = mesh
-	body.position = Vector3(0, 1.7, 0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = v.color
-	body.material_override = mat
+	var body := _build_body(v.glb)
 	root.add_child(body)
 
 	var area := Area3D.new()
 	area.name = "TalkArea"
+
 	var cs := CollisionShape3D.new()
 	var shape := SphereShape3D.new()
 	shape.radius = TALK_RADIUS
@@ -57,6 +55,24 @@ func _spawn(v: Dictionary) -> void:
 	area.add_child(cs)
 	root.add_child(area)
 	area.body_entered.connect(_on_body_entered.bind(v))
+
+## GLB 캐릭터를 통째로 인스턴스한다(대화만 하는 주민이라 애니메이션은
+## idle 그대로 둔다 — player.gd처럼 걷기 전환이 필요 없다). 못 받아 왔으면
+## 예전 캡슐로 대체해 주민이 아예 안 보이는 것보단 낫게 한다.
+func _build_body(glb_path: String) -> Node3D:
+	var scene: PackedScene = load(glb_path)
+	if scene != null:
+		var inst := scene.instantiate()
+		inst.scale = Vector3.ONE * NPC_CHAR_SCALE
+		return inst
+
+	var body := MeshInstance3D.new()
+	var mesh := CapsuleMesh.new()
+	mesh.radius = 0.9
+	mesh.height = 3.4
+	body.mesh = mesh
+	body.position = Vector3(0, 1.7, 0)
+	return body
 
 ## 지나가다 듣는 한 마디다(웹판 npc.js와 같은 감각) — 누르는 대화창은
 ## 아니다. 조우 판정에는 손대지 않는다.
