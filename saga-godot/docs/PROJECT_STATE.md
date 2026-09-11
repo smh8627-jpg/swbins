@@ -1417,6 +1417,44 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     심으니 같은 방식으로 잎 색만 계절별로 바꿀 수 있음), 사건 가중치
     (희귀 약초 같은 게 생기면 봄·여름에 더 잦게), NPC 옷 색.
 
+## 완료 단계 (추가, 2026-09-12⑨) — GO 사건 두 종 추가(굴·여울) + 날씨 연동 첫 사례
+
+- **"GO 작은 콘텐츠 계속"도 같이 골라 주셔서, 날씨·계절에 이어 작은 사건을
+  더했다.** 웹판 `event.js`에서 아직 안 옮긴 것 중 기존 랜드마크(굴·다리)
+  만으로 되는 둘을 골랐다 — `flood_ford`(불어난 여울)·`cave_secret`(이름
+  없는 굴). `waterfall_falls`(산속 폭포)는 새 랜드마크(폭포)가 지도에
+  없어서 이번 범위 밖으로 남겨 뒀다(다음에 폭포 랜드마크부터 세우고
+  이어야 함).
+  - `simple_event.gd`를 두 가지로 확장(둘 다 하위 호환 — 기본값이면 예전
+    사건들과 완전히 같게 동작):
+    ① `choice_c_*`(선택지 세 번째, 웹판 flood_ford의 cross/wait/around처럼
+    셋을 주는 사건을 위해). `choice_c_label`이 비어 있으면(기본값) 패널에
+    두 줄만 뜬다.
+    ② `require_weather`(웹판 flood_ford의 `wet: true` — 비가 올 때만
+    나타난다). 비어 있으면(기본값) 항상 나타난다. 값이 있으면 Timer로
+    60초마다 `Weather.current_key()`와 비교해 시각(`_visual.visible`)과
+    트리거(`_area.monitoring`/`monitorable`)를 같이 껐다 켠다 — season_
+    weather_visual.gd와 같은 절약(매 프레임 안 봄).
+  - `TestVillage.tscn`에 `CaveSecretEvent`(격자 (5,1), 굴 바로 북쪽 길)·
+    `FloodFordEvent`(격자 (5,6), 다리 바로 북쪽 길, `require_weather="rain"`)
+    추가. 웹판 대비 gold/feat/fame은 이 판에 그 재화가 없어 전부 빼고
+    exp로만 옮겼다(map_scrap·lost_child 때와 같은 경계 — 성공 쪽이 실패
+    쪽보다 더 받도록 값을 골랐다).
+  - `codex_state.gd`의 `TOTAL.event`를 11→13으로(전체 24→26) — 늑대 무리·
+    정찰병(밤에만)처럼 여울도 조건부(비 올 때만)지만 갈래 총량엔 넣는다,
+    같은 선례.
+  - **검증 — 임시 디버그(`test_village.gd`에 넣고 끝나고 원상복구, diff 0)로
+    실제 값 확인:** `Weather.force("clear")` 후 `_apply_weather_gate()` →
+    `FloodFordEvent`의 visible/monitoring 둘 다 `false` · `Weather.force
+    ("rain")` 후 같은 호출 → 둘 다 `true` · `CaveSecretEvent.choice_c_label`
+    이 빈 문자열(2choice 그대로)인 것 · `CodexState.total()`이 정확히 26.
+    `--headless --editor --quit`(임포트) · `--headless --quit-after 5`
+    연속 3번 — 디버그 있을 때·되돌린 뒤 최종 상태 둘 다 exit 0·오류 0건.
+  - **GUI 미확인** — 굴 옆 캡슐이 자연스러운 자리인지, 비가 왔을 때
+    여울 사건이 실제로 나타나는지(비가 오는 시각까지 기다려야 확인
+    가능 — 밤 사건처럼 실기로만 볼 수 있는 자리), 선택지 세 줄짜리
+    패널이 화면에서 안 잘리는지는 다음 실기 확인 때 같이 볼 것.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9

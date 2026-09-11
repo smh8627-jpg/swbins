@@ -152,6 +152,38 @@ choice_b_label = "촌장에게 알린다"
 choice_b_outcome = "촌장이 사람을 풀었다."
 choice_b_exp = 4.0
 
+[node name="CaveSecretEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(5, 1)
+event_title = "🕳️ 이름 없는 굴\n\"어둠 속에서 찬 바람이 새어 나온다. 안쪽은 보이지 않는다.\""
+choice_a_label = "안으로 들어가 본다"
+choice_a_outcome = "박쥐 떼를 피해 들어가니 오래된 항아리가 있었다."
+choice_a_exp = 30.0
+choice_a_chance = 0.5
+choice_a_fail_outcome = "안쪽은 막다른 굴이었다. 그래도 시원한 바람을 쐬었다."
+choice_a_fail_exp = 22.0
+choice_b_label = "그냥 지나친다"
+choice_b_outcome = "섬뜩한 기운에 발길을 돌렸다."
+choice_b_exp = 0.0
+
+[node name="FloodFordEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(5, 6)
+require_weather = "rain"
+event_title = "🌊 불어난 여울\n\"물이 부어 건널목이 잠겼다. 물살 소리가 크다.\""
+choice_a_label = "그대로 건넌다"
+choice_a_outcome = "허리께까지 잠기며 건넜다."
+choice_a_exp = 25.0
+choice_a_chance = 0.55
+choice_a_fail_outcome = "물살에 밀려 발을 헛디딜 뻔했다."
+choice_a_fail_exp = 8.0
+choice_b_label = "물이 빠지기를 기다린다"
+choice_b_outcome = "비가 잦아들 때까지 처마 밑에 섰다."
+choice_b_exp = 4.0
+choice_c_label = "돌아간다"
+choice_c_outcome = "위쪽 여울로 크게 돌았다."
+choice_c_exp = 0.0
+
 [node name="HeroEncounter" type="Node3D" parent="."]
 script = ExtResource("12")
 
