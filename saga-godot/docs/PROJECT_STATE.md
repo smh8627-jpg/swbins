@@ -1495,6 +1495,38 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     순서대로 DUNGEON으로 넘어가는 것 — 사용자가 이미 "계획 순서대로 다
     진행"을 요청했으니(2026-09-12⑪) 다음은 그 판단에 맞춰 진행한다.
 
+## 착수 (2026-09-12⑫) — PLAN.md 39장 순서대로 DUNGEON 착수
+
+- **사용자가 "플랜 순서대로 다 진행해"로 명시적으로 지시** — GO는 계속 작은
+  콘텐츠로 다지되, PLAN.md 39장 순서(GO→DUNGEON→FOREST→STORY→REALM)의 다음
+  칸인 DUNGEON에 착수한다. Legacy Audit(LEGACY_FEATURE_AUDIT.md "SAGA
+  DUNGEON" 절)은 2026-08-31에 이미 끝나 있어 다시 안 함 — PLAN.md FINAL RULE의
+  "Legacy Audit → Architecture → Vertical Slice → Project Foundation" 중
+  다음 순서인 **Vertical Slice 설계**부터 시작.
+  - `docs/VERTICAL_SLICE_DUNGEON.md`(신규) 작성 — 웹판(`saga-dungeon`)
+    조사 결과 핵심 발견: **2026-09-06에 사용자가 "디아블로4랑 완전 비슷하면
+    좋겠음"·"디아블로처럼 화면을 고정 가능해"라고 명시적으로 요청**해
+    회전 가능한 3인칭 카메라(`camAim3rd`)를 전부 지우고 고정 카메라
+    (`camAim`)만 남긴 이력이 있음(README.md "안 쓰는 기능 정리" 절) — 즉
+    **GO의 회전·줌 가능한 `camera_rig.gd`를 그대로 재사용하면 이 결정을
+    뒤집는 것**이라 DUNGEON은 카메라부터 새로 설계해야 한다는 게 이번
+    조사의 가장 큰 결론.
+  - 첫 슬라이스 범위: 방 하나(1층 "고분" 테마) · 직업 하나(무장, 곤봉) ·
+    실시간 근접 전투(평타만) · 잡졸 하나(황건적, `data-enemy.js` tier1
+    그대로, HP≈24·공격력≈5 — `dungeon.js`의 `enemyHp`/`enemyDmg` 공식을
+    floor=1로 계산한 실측치) · 노획(이름만 있는 장비) · 방 출구 → 저장.
+    은사·소켓/부문어/투장·직업 5종 전체·인물 등용·결사·보스층은 전부
+    다음 슬라이스로 미룸(GO가 보스·퀘스트·장비를 처음엔 뺐던 것과 같은 이유).
+  - `player.gd`는 거의 그대로 재사용 가능(카메라 기준 이동이라 카메라가
+    고정이든 회전이든 안 가림), `camera_rig.gd`(드래그 회전·핀치 줌)는
+    재사용 불가 — 새 고정 각도 스크립트가 필요. `bandit_encounter.gd`·
+    `duel_rules.gd`(GO의 턴형 선택지 전투)도 재사용 불가 — 실시간 전투는
+    완전히 다른 입력/판정 모델이 필요.
+  - **다음 작업**: `games/saga_dungeon/` 폴더 스캐폴딩 — 고정 각도
+    카메라 스크립트, 최소 방 씬(`TestRoom.tscn`, 이미 받아 둔 CC0 Modular
+    Cave Kit의 room/corridor 조각 활용 검토 — ASSET_GUIDE.md "이번에 안
+    바꾼 것" 절에 남겨 뒀던 미사용 조각), 실시간 전투 스크립트 1개.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
