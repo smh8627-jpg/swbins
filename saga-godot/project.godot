@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.7", "Mobile")
 PartyState="*res://games/saga_go/data/party_state.gd"
 SaveState="*res://games/saga_go/data/save_state.gd"
 QuestState="*res://games/saga_go/data/quest_state.gd"
+EventState="*res://games/saga_go/data/event_state.gd"
 
 [importer_defaults]
 

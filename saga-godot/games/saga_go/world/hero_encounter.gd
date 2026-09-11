@@ -124,14 +124,19 @@ func _do_appeal(key: String) -> void:
 	else:
 		_show_round()
 
+## 웹판 encounter.js도 "물러난다"는 그냥 창을 닫을 뿐 조우 자체를 없애지
+## 않는다(close()가 removeSpawn을 안 부름) — 여기서도 노드를 안 지우고
+## _triggered만 되돌린다. 트리거 반경을 벗어났다 다시 들어오면 처음부터
+## 다시 설득해 볼 수 있다(성공/실패만 EventState에 남는 진짜 끝이다).
 func _flee() -> void:
 	if _layer:
 		_layer.queue_free()
 	Toast.show(self, "%s와(과) 인사를 나누고 헤어졌다." % _hero.name, TOAST_SEC)
-	queue_free()
+	_triggered = false
 
 func _fail() -> void:
 	Toast.show(self, "%s — \"인연이 아닌 듯하오.\" 그가 떠났다." % _hero.name, TOAST_SEC)
+	EventState.mark_resolved(name)
 	queue_free()
 
 func _recruit() -> void:
@@ -139,4 +144,5 @@ func _recruit() -> void:
 	var exp_reward: float = int(_hero.rarity) * EXP_PER_RARITY
 	PartyState.add_exp(exp_reward)
 	Toast.show(self, "%s가 부대에 합류했다! \"%s\" (경험 +%d)" % [_hero.name, _hero.quote, int(exp_reward)], TOAST_SEC)
+	EventState.mark_resolved(name)
 	queue_free()

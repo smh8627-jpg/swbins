@@ -26,6 +26,7 @@ func save() -> bool:
 		"quest_active_name": QuestState.active_name,
 		"quest_done": QuestState.done,
 		"quest_offered": QuestState.offered,
+		"resolved_events": EventState.resolved,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -76,6 +77,15 @@ func try_load() -> bool:
 		bool(data.get("quest_done", false)),
 		offered
 	)
+
+	## resolved_events도 §31 이후 추가된 필드와 같은 경계(추가만 있고
+	## 없으면 빈 목록으로 안전하게 채워짐, 마이그레이션 불필요). 이 시점
+	## (test_village.gd의 _remove_resolved_events()가 부르기 전)에
+	## 채워 둬야 정리가 제대로 된다 — 순서 삽질 기록은 test_village.gd 참고.
+	var resolved: Array[String] = []
+	for id in data.get("resolved_events", []):
+		resolved.append(str(id))
+	EventState.restore(resolved)
 	return true
 
 

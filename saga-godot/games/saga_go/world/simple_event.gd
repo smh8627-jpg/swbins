@@ -113,6 +113,7 @@ func _resolve(text: String, exp_reward: float) -> void:
 		PartyState.add_exp(exp_reward)
 		text += " (경험 +%d)" % int(exp_reward)
 	_toast(text)
+	EventState.mark_resolved(name)
 	queue_free() # 패널·트리거 모두 이 노드 자식이라 같이 사라진다
 
 func _toast(text: String) -> void:

@@ -44,12 +44,6 @@ const VILLAGERS := [
 
 var _last_said_ms := {}
 var _quest_prompt_by_id := {}
-## 웹판 road_merchant처럼 "우연히 한 번" 마주치는 제안 — quest_id와 달리
-## 완료 조건이 없어 QuestState에 안 올리고 이 세션 안에서만 기억한다
-## (저장/로드로는 안 이어짐, 재실행하면 다시 제안할 수 있다 — 사명과
-## 달리 결과가 가볍고 반복돼도 loop이 안 깨지는 성격이라 지금은 이 정도로
-## 충분하다고 판단, 필요해지면 save_state.gd에 필드를 더 추가하면 된다).
-var _offer_used := {}
 
 func _ready() -> void:
 	for v in VILLAGERS:
@@ -120,28 +114,33 @@ func _on_body_entered(body: Node3D, v: Dictionary) -> void:
 		if QuestState.active_id == v.quest_id:
 			_say(v.name, v.quest_done_line if QuestState.done else v.quest_wait_line)
 			return
-	if v.has("offer_title") and not _offer_used.get(v.id, false):
-		_offer_used[v.id] = true
+	if v.has("offer_title") and not EventState.is_resolved(_offer_event_id(v)):
 		_show_offer_prompt(v)
 		return
 	_say(v.name, v.line)
 
 ## road_merchant 같은 일회성 제안 — 사명과 달리 상시 유지되는 패널을
 ## 미리 만들어 두지 않고 트리거될 때 그때 세운다(simple_event.gd의
-## 사건 패널과 같은 경계, 어차피 _offer_used로 한 번뿐이라 재사용 필요 없다).
+## 사건 패널과 같은 경계). 2026-09-11㉑ 전에는 이 세션 안에서만 기억하고
+## 저장/로드로는 안 이어지는 알려진 한계였는데, EventState.gd(다른 사건들과
+## 같은 저장 구조)로 옮겨 고쳤다.
+func _offer_event_id(v: Dictionary) -> String:
+	return "offer_" + v.id
+
 func _show_offer_prompt(v: Dictionary) -> void:
 	var layer: CanvasLayer
 	layer = ChoicePrompt.build(self, v.offer_title, [
-		{"label": v.offer_a_label, "cb": func() -> void: _resolve_offer(layer, v.offer_a_outcome, v.offer_a_exp)},
-		{"label": v.offer_b_label, "cb": func() -> void: _resolve_offer(layer, v.offer_b_outcome, v.offer_b_exp)},
+		{"label": v.offer_a_label, "cb": func() -> void: _resolve_offer(v, layer, v.offer_a_outcome, v.offer_a_exp)},
+		{"label": v.offer_b_label, "cb": func() -> void: _resolve_offer(v, layer, v.offer_b_outcome, v.offer_b_exp)},
 	])
 
-func _resolve_offer(layer: CanvasLayer, text: String, exp_reward: float) -> void:
+func _resolve_offer(v: Dictionary, layer: CanvasLayer, text: String, exp_reward: float) -> void:
 	layer.queue_free()
 	if exp_reward > 0.0:
 		PartyState.add_exp(exp_reward)
 		text += " (경험 +%d)" % int(exp_reward)
 	Toast.show(self, text, LINE_SHOW_SEC)
+	EventState.mark_resolved(_offer_event_id(v))
 
 func _build_quest_prompt(v: Dictionary) -> CanvasLayer:
 	var layer := ChoicePrompt.build(self, v.quest_offer_title, [

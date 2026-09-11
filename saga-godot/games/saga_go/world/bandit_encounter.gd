@@ -310,6 +310,7 @@ func _finish_fight() -> void:
 			QuestState.complete(quest_id_to_complete)
 			msg += "\n📋 사명을 완료했다!"
 		_toast(msg)
+		EventState.mark_resolved(name)
 		queue_free() # 물리친 적은 사라진다 — 이번 슬라이스에서는 다시 나지 않는다
 		return
 	if dealt <= 0.0:

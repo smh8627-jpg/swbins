@@ -905,6 +905,59 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     않는지(지금 지도에서 최대로 모을 수 있는 인원은 4명 — 도적·도적
     두목·해장·현책).
 
+## 완료 단계 (추가, 2026-09-11㉑) — 실제 버그 발견/수정: 사건이 저장/재실행에서 안 지워짐
+
+- **발견 — bandit_encounter.gd·simple_event.gd·hero_encounter.gd는 전부
+  "한 번뿐"이라고 주석에 적어 두고 승리/선택 직후 `queue_free()`로
+  사라졌지만, 그 "이미 끝냈다"는 사실은 어디에도 저장되지 않았다.**
+  TestVillage.tscn은 씬을 다시 열 때마다 모든 자식 노드를 새로 만들기
+  때문에, 저장 → 재실행을 하면 이미 물리친 도적·이미 등용한 인물·이미
+  읽은 비문이 전부 되살아난다 — 단순 "다시 보인다" 수준이 아니라
+  `PartyState.recruit()`가 dedup을 안 해서 **같은 인물이 부대에 두 번
+  들어가 전투력이 부풀 수 있는 실제 버그**였다(이번 세션에서 만든
+  save/load·사건 시스템 자체의 결함, 저장 코드를 훑다가 발견).
+  - `games/saga_go/data/event_state.gd`(신규, `EventState`로 autoload
+    등록) — 사건 노드 이름(씬에서 이미 고유)을 키로 "끝난 사건" 목록만
+    갖는다. `is_resolved`·`mark_resolved`·`restore`.
+  - **처음엔 각 사건 스크립트의 `_ready()`에서 `EventState.is_resolved
+    (name)`이면 스스로 안 만들게 하려 했는데, 헤드리스에 순서 출력을
+    직접 찍어 보니 순서가 안 맞았다** — BanditEncounter 등 사건 노드의
+    `_ready()`가 `TestVillage._ready()`(그 안에서 `SaveState.try_load()`
+    호출)보다 **먼저** 끝나서, 사건 노드가 스스로를 확인하는 시점엔
+    `EventState`가 로드 전이라 항상 비어 있었다(추측이 아니라 실제로
+    `DEBUG_ORDER` 프린트를 넣어 헤드리스로 순서를 확인 — `bandit_encounter.
+    _ready`가 `test_village._ready START`보다 먼저 찍혔다). 그래서 각
+    스크립트의 자체 확인은 지우고, **`test_village.gd`가 `try_load()`
+    뒤에 자기 자식들을 한 번 훑어 `EventState.resolved`에 있는 이름을
+    가진 것만 치우는 방식**으로 바꿨다(사건 노드는 일단 평소대로 다
+    지어지고, 이미 끝난 것만 사후에 청소).
+  - `bandit_encounter.gd`(승리 시)·`simple_event.gd`(`_resolve` 시)·
+    `hero_encounter.gd`(`_recruit`/`_fail` 시, `_flee`는 웹판
+    encounter.js의 close()처럼 소모가 아니라서 제외 — `_triggered`만
+    되돌려 다시 다가가면 또 설득 가능)에 `EventState.mark_resolved(name)`
+    추가.
+  - `npc_builder.gd`의 떠돌이 상인 일회성 제안(2026-09-11⑭에서 "저장/
+    로드로는 안 이어지는 알려진 한계"로 문서화해 뒀던 것)도 같은 구조로
+    옮겨 **그 한계를 없앴다** — `_offer_used` 로컬 딕셔너리를 지우고
+    `EventState.is_resolved("offer_" + v.id)`로 교체.
+  - `save_state.gd`에 `resolved_events` 필드 추가(quest_* 필드와 같은
+    경계 — 추가만 있고 없으면 빈 목록으로 안전하게 채워져 마이그레이션
+    불필요).
+  - **검증 — 실제 버그였다는 것과 고쳐졌다는 것 둘 다 재현/확인했다.**
+    1회차 실행: 도적을 물리친 상황을 흉내내 `EventState.mark_resolved
+    ("BanditEncounter")`+`PartyState.recruit("산적")`+저장. **완전히 새
+    프로세스로 2회차 실행**: `resolved_after_load=["BanditEncounter"]`·
+    `has_node("BanditEncounter")=false`(정말 안 되살아남)·
+    `members=["산적"]`(정확히 한 번만 — dedup 안 해도 두 번 안 쌓임)까지
+    확인. 고치기 전 상태(각 스크립트 자체 확인 방식)로도 먼저 돌려 봐서
+    "고쳐지기 전엔 실패했다"는 것도 실증했다(정말 회귀 테스트).
+  - `--headless --editor --quit`(임포트)·`--headless --quit-after 5`
+    연속 3번 exit 0·오류 0건.
+  - 여전히 GUI 미확인 — 실제로 도적을 이기고 저장한 뒤 게임을 다시
+    실행했을 때 그 자리에 도적이 없는지, 대신 다른 사건들은 그대로
+    있는지 — 파일 IO 자체는 헤드리스로 재현 검증했으니 이번엔 눈으로만
+    보면 되는 확인.
+
 ## 다음 세션 시작 지점 (사용자 지정, 2026-09-11)
 
 **사용자가 "새로운 세션에서 이어 하자"로 saga-godot을 다음 세션의
@@ -984,6 +1037,8 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
   있어 실기로 걸어 보면 둘이 붐비는 느낌이 있는지.**
 - **(2026-09-11⑳ 신규) 인물을 여럿 등용했을 때 PartyLabel의 이름
   목록이 화면 폭을 넘거나 잘리지 않는지.**
+- **(2026-09-11㉑ 신규) 도적을 이기고 저장 후 재실행했을 때 그 자리에
+  도적이 없는지(파일 IO는 헤드리스로 검증 완료, 눈으로 보는 것만 남음).**
 
 ## 알려진 오류
 
