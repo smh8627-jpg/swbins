@@ -1601,8 +1601,8 @@ window.requestAnimationFrame = function () { return 0; };
     /* ── 인물별 서명 무예 — "캐릭터마다 스킬이 달라야 해"(2026-09-11, 사용자) ──
      * 장비 3점 대신 "이 인물이 선두"면 손에 잡힌다는 것만 다르고, 나머지
      * 계약(applyShapeSkill 공유·MP/슬롯 안 씀·v 고정)은 위 투장 무예와
-     * 완전히 같다. 파일럿 8명으로 시작해, 같은 날 레어(rarity 5) 47명
-     * 전체로 확장했다(js/data-hero-skill.js 참고) — 아래 검사는 그 수와
+     * 완전히 같다. 파일럿 8명 → 레어(rarity 5) 47명 → 105명 전체까지
+     * 같은 날 확장했다(js/data-hero-skill.js 참고) — 아래 검사는 그 수와
      * 무관하게 SIG에 있는 항목 전부를 훑는다.
      */
 
@@ -1620,16 +1620,21 @@ window.requestAnimationFrame = function () { return 0; };
       return bad.length === 0 && (Object.keys(HS.SIG).length + '명 검사, 이상 없음');
     });
 
-    t('서명 무예 — 파일럿 밖 인물은 sigOf가 null, 손에도 안 잡힌다', function () {
+    t('서명 무예 — 105명 전체 확장(2026-09-11) 이후에도 알 수 없는 id는 sigOf가 null, 손에도 안 잡힌다', function () {
+      /* 2026-09-11 — 파일럿 8명 → 레어 47명 → 105명 전체로 늘며 이 검사가
+         "파일럿 밖 인물"로 쓰던 sg_zhangfei도 서명 무예를 갖게 됐다(더는
+         빈 자리가 없다). 존재하지 않는 id로 같은 방어 경로(HS.sigOf가
+         모르는 id를 만나도 안 죽는지)를 대신 지킨다. */
       var keep = C.save.party.slice();
-      C.save.party[0] = 'sg_zhangfei';                    // 파일럿 8명 밖 인물
+      var fakeId = 'sg_no_such_hero_id';
+      C.save.party[0] = fakeId;
       DN.enter({ floor: 4, mode: 'easy' });
       var avail = DN.status().sigSkill.avail;
       var fired = DN.castSigSkill();
       DN.leave();
       C.save.party = keep;
-      return !DG.heroSkillData.sigOf('sg_zhangfei') && !avail && !fired &&
-        'sg_zhangfei — sigOf null · 손에 안 잡힘 · 캐도 무반응';
+      return !DG.heroSkillData.sigOf(fakeId) && !avail && !fired &&
+        '없는 id — sigOf null · 손에 안 잡힘 · 캐도 무반응';
     });
 
     t('서명 무예 — 실제로 쓰면 쿨다운이 돌고 MP는 안 든다', function () {

@@ -20,6 +20,11 @@
  *     buff v 18~45·sec 8~9, dash v 2.4~2.8·far 2.2~2.6, heal v 22~26,
  *     bolt v 2~2.4, chain v 1.7~2.4)를 그대로 따라 통일감을 지켰다.
  *
+ * **2026-09-11(같은 날, 세 번째) — 남은 rarity 1~4, 58명까지 채워
+ * 105명 전부가 서명 무예를 갖게 됐다.** 같은 규칙·값 범위를 그대로
+ * 따랐다 — name 중복만 새로 늘어난 만큼(105개) 한 번 더 훑어 확인했다
+ * (`역세훈`으로 고쳐 잡은 것 하나 — `개세훈`이 이미 jp_yoritomo에 있었다).
+ *
  * 계약은 "투장(套裝) 전용 무예"(data-set.js의 `.skill`)와 완전히 같다 —
  * 배우지 않는다, 슬롯(Z X C V)도 MP도 안 쓴다, `v`는 **고정값**(성장 없음,
  * `grow` 필드를 여기선 아예 안 쓴다 — 실수로 넣어도 아무도 안 읽는다).
@@ -96,6 +101,71 @@
       v: 40, r: 140, sec: 5, cd: 16,
       desc: '그림자처럼 스며든 자태가 다가선 적의 마음을 흐트러뜨린다.'
     },
+    sg_zhangfei: {
+      name: '호기훈(豪氣訓)', emoji: '🍶', shape: 'buff',
+      eff: 'atkPct', v: 30, sec: 8, cd: 20,
+      desc: '한잔 걸친 호기가 손끝을 뜨겁게 만든다.'
+    },
+    sg_machao: {
+      name: '서풍가(西風駕)', emoji: '🏇', shape: 'dash',
+      v: 2.6, far: 2.4, cd: 17,
+      desc: '서쪽 벌판을 달리던 창끝이 앞으로 세차게 뻗는다.'
+    },
+    sg_huangzhong: {
+      name: '노익시(老益矢)', emoji: '🏹', shape: 'bolt',
+      v: 2.2, shots: 3, spread: 0.35, cd: 11,
+      desc: '늙었다는 말을 비웃듯 화살 셋이 정확히 꽂힌다.'
+    },
+    sg_xiahoudun: {
+      name: '독안결(獨眼決)', emoji: '🩹', shape: 'swing',
+      v: 3.3, r: 2.2, kb: 55, cd: 15,
+      desc: '한쪽 눈으로도 충분하다는 기백이 앞을 크게 벤다.'
+    },
+    sg_zhangliao: {
+      name: '철벽훈(鐵壁訓)', emoji: '🛡️', shape: 'buff',
+      eff: 'guardPct', v: 40, sec: 8, cd: 20,
+      desc: '적은 수로도 막아내겠다는 배짱이 버티는 힘이 된다.'
+    },
+    sg_xunyu: {
+      name: '왕좌훈(王佐訓)', emoji: '📜', shape: 'buff',
+      eff: 'skillPct', v: 30, sec: 8, cd: 20,
+      desc: '돕는 재주라 부끄러워하는 그 안목이 무예를 벼린다.'
+    },
+    sg_sunquan: {
+      name: '벽해훈(碧海訓)', emoji: '🔷', shape: 'buff',
+      eff: 'hpPct', v: 24, sec: 8, cd: 20,
+      desc: '손을 잡을 줄 아는 마음이 둘레의 기운을 다시 채운다.'
+    },
+    sg_luxun: {
+      name: '담연계(淡然計)', emoji: '🌊', shape: 'curse',
+      v: 45, r: 145, sec: 6, cd: 18,
+      desc: '서두르지 않는 눈이 다가선 적을 크게 무르게 한다.'
+    },
+    sg_taishici: {
+      name: '궁성시(弓星矢)', emoji: '🎯', shape: 'bolt',
+      v: 2.3, shots: 3, spread: 0.4, cd: 11,
+      desc: '별처럼 빛나는 활 솜씨가 화살 셋으로 퍼진다.'
+    },
+    sg_ganning: {
+      name: '영진습(鈴陣襲)', emoji: '🔔', shape: 'dash',
+      v: 2.7, far: 2.3, cd: 16,
+      desc: '방울 소리가 울릴 즈음엔 이미 앞이 갈라져 있다.'
+    },
+    sg_pangtong: {
+      name: '봉래계(鳳來計)', emoji: '🦅', shape: 'curse',
+      v: 46, r: 145, sec: 6, cd: 18,
+      desc: '숨어 있던 재주가 드러나 다가선 적을 크게 무르게 한다.'
+    },
+    sg_huatuo: {
+      name: '신침활(神鍼活)', emoji: '💊', shape: 'heal',
+      v: 25, cd: 20,
+      desc: '사람을 살리겠다는 마음이 그 자리에서 상처를 다스린다.'
+    },
+    sg_menghuo: {
+      name: '불굴훈(不屈訓)', emoji: '🐘', shape: 'buff',
+      eff: 'allResPct', v: 22, sec: 8, cd: 20,
+      desc: '일곱 번 져도 다시 일어서는 기개가 둘레를 두루 지켜 준다.'
+    },
     /* 한국사 */
     kr_yisunsin: {
       name: '결기(決氣)', emoji: '⚓', shape: 'buff',
@@ -157,6 +227,76 @@
       eff: 'allResPct', v: 22, sec: 8, cd: 20,
       desc: '스스로 강해지겠다는 소원이 둘레를 두루 지켜 준다.'
     },
+    kr_gyebaek: {
+      name: '결사단(決死斷)', emoji: '🛡️', shape: 'swing',
+      v: 3.4, r: 2.3, kb: 60, cd: 15,
+      desc: '물러서지 않겠다는 각오가 앞을 크게 무너뜨린다.'
+    },
+    kr_jangyeongsil: {
+      name: '성시훈(星時訓)', emoji: '⏱️', shape: 'buff',
+      eff: 'skillPct', v: 30, sec: 8, cd: 20,
+      desc: '그림자로 시간을 재던 정밀함이 무예를 벼린다.'
+    },
+    kr_choemuseon: {
+      name: '화포탄(火砲彈)', emoji: '🧨', shape: 'bolt',
+      el: 'fire', v: 2.6, cd: 10,
+      desc: '화약을 다루던 손이 불덩이를 곧게 쏘아 보낸다.'
+    },
+    kr_jeongyakyong: {
+      name: '거중훈(擧重訓)', emoji: '🏗️', shape: 'buff',
+      eff: 'hpPct', v: 26, sec: 8, cd: 20,
+      desc: '짐을 덜어주겠다는 궁리가 둘레의 기운을 다시 채운다.'
+    },
+    kr_heojun: {
+      name: '제중활(濟衆活)', emoji: '🌿', shape: 'heal',
+      v: 26, cd: 20,
+      desc: '귀천을 가리지 않는 마음이 그 자리에서 상처를 다스린다.'
+    },
+    kr_sinsaimdang: {
+      name: '초충훈(草蟲訓)', emoji: '🎨', shape: 'buff',
+      eff: 'skillPct', v: 26, sec: 8, cd: 20,
+      desc: '붓끝에 담은 마음이 손끝의 무예를 벼린다.'
+    },
+    kr_wonhyo: {
+      name: '각원훈(覺圓訓)', emoji: '🪷', shape: 'buff',
+      eff: 'allResPct', v: 22, sec: 8, cd: 20,
+      desc: '마음이 짓는 것이라는 깨달음이 둘레를 두루 지켜 준다.'
+    },
+    kr_kimjeongho: {
+      name: '방각훈(方刻訓)', emoji: '🗺️', shape: 'buff',
+      eff: 'reachPct', v: 20, sec: 8, cd: 20,
+      desc: '땅을 한 장에 담던 눈썰미가 손이 닿는 자리를 넓힌다.'
+    },
+    kr_gwakjaeu: {
+      name: '홍의진(紅衣陣)', emoji: '🔴', shape: 'nova',
+      v: 3.4, r: 150, kb: 35, cd: 15,
+      desc: '붉은 옷이 나타나면 그 자리 전체가 흔들린다.'
+    },
+    kr_nongae: {
+      name: '화영결(花影決)', emoji: '🌸', shape: 'dash',
+      v: 2.5, far: 2.0, cd: 17,
+      desc: '물결을 기억해 달라는 다짐이 몸을 앞으로 던진다.'
+    },
+    kr_yihwang: {
+      name: '경헌훈(敬軒訓)', emoji: '📚', shape: 'buff',
+      eff: 'skillPct', v: 27, sec: 8, cd: 20,
+      desc: '마음을 바로 하는 공부가 무예를 한층 벼린다.'
+    },
+    kr_yii: {
+      name: '양병훈(養兵訓)', emoji: '✒️', shape: 'buff',
+      eff: 'guardPct', v: 40, sec: 8, cd: 20,
+      desc: '미리 대비하자는 헤아림이 버티는 힘으로 쌓인다.'
+    },
+    kr_hwanghui: {
+      name: '균형훈(均衡訓)', emoji: '⚖️', shape: 'buff',
+      eff: 'allResPct', v: 22, sec: 8, cd: 20,
+      desc: '양쪽 다 옳다 여기는 균형이 둘레를 두루 지켜 준다.'
+    },
+    kr_jeongmongju: {
+      name: '일편훈(一片訓)', emoji: '🌉', shape: 'buff',
+      eff: 'guardPct', v: 42, sec: 9, cd: 21,
+      desc: '백 번 고쳐 죽어도 하나인 마음이 버티는 힘으로 쌓인다.'
+    },
     /* 일본사 */
     jp_himiko: {
       name: '귀도유인(鬼道誘引)', emoji: '🔮', shape: 'curse',
@@ -207,6 +347,56 @@
       name: '애인활(愛人活)', emoji: '🐕', shape: 'heal',
       v: 26, cd: 20,
       desc: '하늘을 공경하고 사람을 아끼는 마음이 그 자리에서 상처를 낫게 한다.'
+    },
+    jp_taira: {
+      name: '평가훈(平家訓)', emoji: '⚓', shape: 'buff',
+      eff: 'atkPct', v: 30, sec: 8, cd: 20,
+      desc: '가문이 아니면 안 된다는 자부가 전군의 손끝에 옮아간다.'
+    },
+    jp_murasaki: {
+      name: '물어계(物語計)', emoji: '🖋️', shape: 'curse',
+      v: 44, r: 140, sec: 5, cd: 17,
+      desc: '덧없는 이야기가 다가선 적의 마음을 흐트러뜨린다.'
+    },
+    jp_seishonagon: {
+      name: '침초훈(枕草訓)', emoji: '📝', shape: 'buff',
+      eff: 'skillPct', v: 27, sec: 8, cd: 20,
+      desc: '가장 좋은 순간을 알아채는 눈썰미가 무예를 벼린다.'
+    },
+    jp_tomoegozen: {
+      name: '여무시(女武矢)', emoji: '🗡️', shape: 'bolt',
+      v: 2.3, shots: 3, spread: 0.4, cd: 11,
+      desc: '못 당길 이유가 없다는 그 활이 셋으로 퍼져 나간다.'
+    },
+    jp_masamune: {
+      name: '독안룡파(獨眼龍破)', emoji: '🐉', shape: 'nova',
+      v: 3.7, r: 160, kb: 45, cd: 16,
+      desc: '한쪽 눈으로 다 본다는 그 위엄이 둘레를 크게 뒤흔든다.'
+    },
+    jp_musashi: {
+      name: '이도단련(二刀鍛鍊)', emoji: '🗡️', shape: 'swing',
+      v: 3.6, r: 2.3, kb: 45, cd: 14,
+      desc: '만 일의 단련이 두 자루 칼끝으로 한 번에 갈라놓는다.'
+    },
+    jp_hanzo: {
+      name: '암영섬(暗影閃)', emoji: '🥷', shape: 'dash',
+      v: 2.7, far: 2.5, cd: 17,
+      desc: '소리를 안 남기는 그림자가 순식간에 앞으로 파고든다.'
+    },
+    jp_mitsukuni: {
+      name: '수사훈(修史訓)', emoji: '📖', shape: 'buff',
+      eff: 'skillPct', v: 28, sec: 8, cd: 20,
+      desc: '역사를 엮겠다는 정성이 손끝의 무예를 벼린다.'
+    },
+    jp_naosuke: {
+      name: '개항훈(開港訓)', emoji: '⚓', shape: 'buff',
+      eff: 'allResPct', v: 21, sec: 8, cd: 20,
+      desc: '문을 여는 것도 지키는 길이라는 믿음이 둘레를 두루 지켜 준다.'
+    },
+    jp_ryoma: {
+      name: '해원가(海援駕)', emoji: '⛵', shape: 'dash',
+      v: 2.6, far: 2.3, cd: 17,
+      desc: '세상을 씻어내겠다는 뜻이 앞으로 세차게 나아간다.'
     },
     /* 세계사 */
     eu_caesar: {
@@ -288,6 +478,111 @@
       name: '천벌편(天罰鞭)', emoji: '🐎', shape: 'swing',
       v: 3.5, r: 2.2, kb: 65, cd: 15,
       desc: '채찍이 신의 벌인 양 앞을 후려친다.'
+    },
+    eu_augustus: {
+      name: '대리훈(大理訓)', emoji: '🦅', shape: 'buff',
+      eff: 'guardPct', v: 40, sec: 8, cd: 20,
+      desc: '벽돌을 대리석으로 바꾸겠다는 다짐이 버티는 힘이 된다.'
+    },
+    eu_scipio: {
+      name: '전법습득(戰法習得)', emoji: '🛡️', shape: 'swing',
+      v: 3.3, r: 2.2, kb: 50, cd: 15,
+      desc: '적에게 배운 그 수로 되받아치며 앞을 크게 벤다.'
+    },
+    eu_leonidas: {
+      name: '불퇴진(不退陣)', emoji: '🔺', shape: 'swing',
+      v: 3.5, r: 2.4, kb: 65, cd: 15,
+      desc: '와서 가져가라는 배짱이 앞을 크게 쓸어버린다.'
+    },
+    eu_aurelius: {
+      name: '성찰훈(省察訓)', emoji: '📖', shape: 'buff',
+      eff: 'allResPct', v: 25, sec: 9, cd: 21,
+      desc: '미루지 않겠다는 다짐이 둘레를 두루 지켜 준다.'
+    },
+    eu_richard: {
+      name: '사자심결(獅子心決)', emoji: '🦁', shape: 'swing',
+      v: 3.5, r: 2.3, kb: 60, cd: 15,
+      desc: '물러서는 법을 모르는 심장이 창끝으로 앞을 크게 벤다.'
+    },
+    eu_william: {
+      name: '소선가(燒船駕)', emoji: '🏹', shape: 'dash',
+      v: 2.8, far: 2.6, cd: 16,
+      desc: '돌아갈 배가 없다는 각오가 몸을 앞으로 세차게 던진다.'
+    },
+    eu_harald: {
+      name: '북풍부(北風斧)', emoji: '🪓', shape: 'swing',
+      v: 3.6, r: 2.3, kb: 60, cd: 15,
+      desc: '노를 젓던 팔이 도끼를 크게 휘둘러 앞을 벤다.'
+    },
+    eu_frederick: {
+      name: '종복훈(從僕訓)', emoji: '🎼', shape: 'buff',
+      eff: 'skillPct', v: 32, sec: 8, cd: 20,
+      desc: '첫째 종복이라는 마음가짐이 무예를 벼린다.'
+    },
+    eu_peter: {
+      name: '해로진(海路陣)', emoji: '⚓', shape: 'nova',
+      el: 'cold', v: 3.4, r: 155, cd: 16,
+      desc: '바다로 나가려는 뜻이 둘레를 얼어붙게 후려친다.'
+    },
+    eu_elizabeth: {
+      name: '혼인서(婚姻誓)', emoji: '💍', shape: 'buff',
+      eff: 'guardPct', v: 42, sec: 8, cd: 20,
+      desc: '나라와 혼인했다는 맹세가 버티는 힘으로 쌓인다.'
+    },
+    eu_nelson: {
+      name: '본분훈(本分訓)', emoji: '🔭', shape: 'buff',
+      eff: 'atkSpdPct', v: 30, sec: 8, cd: 20,
+      desc: '본분을 다하라는 기대가 전군의 손발을 재촉한다.'
+    },
+    eu_machiavelli: {
+      name: '외경계(畏敬計)', emoji: '🖋️', shape: 'curse',
+      v: 44, r: 140, sec: 5, cd: 17,
+      desc: '얕보이지 않겠다는 셈이 다가선 적을 크게 무르게 한다.'
+    },
+    eu_newton: {
+      name: '만유시(萬有矢)', emoji: '🍎', shape: 'bolt',
+      el: 'lit', v: 2.5, shots: 3, spread: 0.4, cd: 12,
+      desc: '떨어지는 이치를 꿰뚫어 본 궁리가 셋으로 갈라져 날아간다.'
+    },
+    eu_michelangelo: {
+      name: '조각파(彫刻破)', emoji: '🗿', shape: 'nova',
+      v: 3.3, r: 150, cd: 15,
+      desc: '돌 안의 형상을 꺼내는 손놀림이 둘레를 한 번에 쓸어 낸다.'
+    },
+    eu_eleanor: {
+      name: '이관훈(二冠訓)', emoji: '🌹', shape: 'buff',
+      eff: 'hpPct', v: 26, sec: 8, cd: 20,
+      desc: '두 왕관을 지녔던 관록이 둘레의 기운을 다시 채운다.'
+    },
+    wd_ibnsina: {
+      name: '의전활(醫典活)', emoji: '📗', shape: 'heal',
+      v: 28, cd: 20,
+      desc: '몸의 이치를 담은 책이 그 자리에서 상처를 다스린다.'
+    },
+    wd_shaka: {
+      name: '단창파(短槍破)', emoji: '🛡️', shape: 'swing',
+      v: 3.4, r: 2.1, kb: 55, cd: 14,
+      desc: '짧은 창이 이긴다는 그 이치가 가까운 둘레를 벤다.'
+    },
+    wd_pachacuti: {
+      name: '역세훈(易世訓)', emoji: '🏔️', shape: 'buff',
+      eff: 'atkPct', v: 32, sec: 8, cd: 20,
+      desc: '세상을 뒤바꾸겠다는 그 이름값이 전군의 손끝에 옮아간다.'
+    },
+    wd_moctezuma: {
+      name: '창천훈(蒼天訓)', emoji: '🦅', shape: 'buff',
+      eff: 'allResPct', v: 23, sec: 8, cd: 20,
+      desc: '하늘의 조짐을 읽던 눈이 둘레를 두루 지켜 준다.'
+    },
+    wd_ibnbattuta: {
+      name: '천리행(千里行)', emoji: '🧭', shape: 'dash',
+      v: 2.5, far: 2.4, cd: 17,
+      desc: '멈추지 않겠다는 그 걸음이 몸을 앞으로 세차게 나아가게 한다.'
+    },
+    wd_hammurabi: {
+      name: '율법계(律法計)', emoji: '🪨', shape: 'curse',
+      v: 46, r: 145, sec: 6, cd: 18,
+      desc: '돌에 새긴 그 셈법대로, 준 만큼 되받게 한다.'
     }
   };
 
