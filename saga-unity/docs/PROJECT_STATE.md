@@ -34,6 +34,22 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   곳이 각자 만들면 겹친다 — saga-godot과 같은 결정). `BuildTestVillageScene
   .cs`에 `BuildLandmarks()` 훅 추가(초목 다음, 플레이어 전). 씬 재저장·
   PlaytestHeadless까지 전부 통과 확인됨.
+- **Phase 3(23~25단계) 넷째 조각 — Sky/Fog.** PLAN.md에 적혀 있던
+  "URP Volume — Physically Based Sky/Fog 오버라이드"는 실제론 HDRP
+  전용 기능이라 URP엔 없다는 걸 확인(Library/PackageCache의 URP
+  Volume 컴포넌트 목록에 Fog·Sky류 없음, Bloom/Vignette 등 포스트
+  프로세싱만 있음) — 대신 URP가 쓰는 고전 방식(`RenderSettings`)으로
+  짰다. `BuildTestVillageScene.cs`의 `BuildSkyAndFog()` — 절차적
+  Skybox 머티리얼 에셋(`Assets/Games/SagaGo/World/Sky.mat`, saga-godot
+  `env_pc.tres` 색 참고) 생성/재사용 + `RenderSettings.fog`(Linear,
+  150~430m — 336m 사방 지도 기준). **주의 — 이 안개는 URP/Lit 셰이더만
+  자동으로 받는다.** `VertexColorLit.shader`·`WaterUnlit.shader`(땅·
+  나무·바위·강 전부 이 둘을 씀)는 직접 짠 커스텀 셰이더라 URP 표준
+  안개 믹싱(`multi_compile_fog`+`ComputeFogFactor`+`MixFog`)을 손으로
+  넣어야 했다 — 넣기 전엔 랜드마크만 안개 지고 나머지 세계는 안 지는
+  상태였을 것(직접 눈으로 확인은 안 함, 셰이더 임포트 에러 없음+
+  PlaytestHeadless 통과까지만 확인). 실제로 안개가 자연스러워 보이는지는
+  다음에 GUI로 몰아서 확인할 때 볼 것.
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -58,14 +74,16 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- Phase 3 나머지: Sky/Fog(URP Volume), Path/Road 구성(32장 — 지금은
-  '=' 타일이 그냥 색만 다른 평지, 실제 길처럼 보이는 건 아님)
+- Phase 3 나머지: Path/Road 구성(32장 — 지금은 '=' 타일이 그냥 색만
+  다른 평지, 실제 길처럼 보이는 건 아님)
 - NPC 최소 구현(주민 1~2명, 대화만) — saga-godot이 "대화가 전투보다
   먼저"로 순서를 정정했던 교훈 그대로 반영해 Combat보다 먼저 할 것
 - 위 항목들이 어느 정도 쌓이면(플레이어가 실제로 걸어 다닐 수 있게
   되면) 그때 한 번 GUI로 몰아서 확인 — 매 조각마다 스크린샷 찍지 않는다.
   **CameraRig의 드래그 방향이 실제로 자연스러운지는 그때 반드시 볼 것**
-  (위 완료 단계 주석 참고 — 부호를 새로 판단해 정한 자리라 확신이 낮다)
+  (위 완료 단계 주석 참고 — 부호를 새로 판단해 정한 자리라 확신이 낮다).
+  **Sky/Fog가 실제로 자연스러운지도 그때 같이 볼 것** — Skybox 색·안개
+  거리(150~430m)는 눈으로 본 적 없이 숫자만으로 정한 값이다.
 
 ## 알려진 오류
 

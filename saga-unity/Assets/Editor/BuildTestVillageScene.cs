@@ -3,6 +3,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using Saga.Go.World;
 using Saga.Go.Player;
@@ -20,6 +21,7 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestVillage.unity";
         private const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
+        private const string SkyMaterialPath = "Assets/Games/SagaGo/World/Sky.mat";
 
         // saga-godot TestVillage.tscn의 마을 중심 스폰 자리와 동일.
         private static readonly Vector3 PlayerSpawn = new Vector3(-48f, 0.1f, -24f);
@@ -29,7 +31,8 @@ namespace Saga.EditorTools
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            BuildLighting();
+            var sun = BuildLighting();
+            BuildSkyAndFog(sun);
             var terrainGo = BuildTerrain();
             BuildVegetation();
             BuildLandmarks();
@@ -42,12 +45,13 @@ namespace Saga.EditorTools
             // 씬 저장 시점엔 명시로 잡아 두는 쪽이 안전하다).
             SetPrivateField(playerGo.GetComponent<PlayerController>(), "joystick", joystick);
 
+            AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(scene, ScenePath);
             Debug.Log($"[BuildTestVillageScene] saved to {ScenePath} — " +
                       $"groundVerts={terrainGo.GetComponent<MeshFilter>().sharedMesh.vertexCount}");
         }
 
-        private static void BuildLighting()
+        private static Light BuildLighting()
         {
             var sunGo = new GameObject("Sun");
             var sun = sunGo.AddComponent<Light>();
@@ -55,6 +59,48 @@ namespace Saga.EditorTools
             sun.intensity = 1.1f;
             sun.shadows = LightShadows.Soft;
             sunGo.transform.rotation = Quaternion.Euler(45f, -30f, 0f);
+            return sun;
+        }
+
+        /// <summary>
+        /// PLAN.md 24·25장. HDRP 전용인 "Physically Based Sky" Volume은 URP엔
+        /// 없다 — URP는 saga-godot(Environment 리소스, env_pc.tres)과 달리
+        /// RenderSettings 기반 고전 방식(Skybox 머티리얼 + 기본 Fog)을 쓴다.
+        /// 색 값은 env_pc.tres를 참고해 맞춤(완전히 같은 룩은 아니다 — Godot의
+        /// ProceduralSkyMaterial은 top/horizon/ground를 따로 받지만 Unity
+        /// Skybox/Procedural은 대기 산란 모델이라 파라미터가 다르다).
+        /// 이 안개가 실제로 보이려면 VertexColorLit·WaterUnlit 셰이더에도
+        /// URP 표준 안개 믹싱을 넣어야 한다(두 셰이더에 이미 추가함) — 안
+        /// 넣으면 URP/Lit(랜드마크)만 안개가 지고 땅·나무·바위·강은 안 진다.
+        /// </summary>
+        private static void BuildSkyAndFog(Light sun)
+        {
+            var sky = AssetDatabase.LoadAssetAtPath<Material>(SkyMaterialPath);
+            if (sky == null)
+            {
+                sky = new Material(Shader.Find("Skybox/Procedural")) { name = "Sky" };
+                AssetDatabase.CreateAsset(sky, SkyMaterialPath);
+            }
+            sky.SetColor("_SkyTint", new Color(0.5f, 0.62f, 0.82f));
+            sky.SetColor("_GroundColor", new Color(0.3f, 0.28f, 0.24f));
+            sky.SetFloat("_AtmosphereThickness", 1.0f);
+            sky.SetFloat("_Exposure", 1.3f);
+            sky.SetFloat("_SunSize", 0.04f);
+            sky.SetFloat("_SunSizeConvergence", 5f);
+            EditorUtility.SetDirty(sky);
+
+            RenderSettings.skybox = sky;
+            RenderSettings.sun = sun;
+            RenderSettings.ambientMode = AmbientMode.Skybox;
+            DynamicGI.UpdateEnvironment();
+
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = new Color(0.75f, 0.78f, 0.72f);
+            // 7x7칸×48m 지도(336m 사방, 대각선 약 475m) 기준 — 마을 안에선
+            // 거의 안 보이고 지도 가장자리로 갈수록 흐려지게.
+            RenderSettings.fogStartDistance = 150f;
+            RenderSettings.fogEndDistance = 430f;
         }
 
         private static GameObject BuildTerrain()

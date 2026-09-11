@@ -20,6 +20,7 @@ Shader "Saga/VertexColorLit"
             #pragma fragment Frag
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
+            #pragma multi_compile_fog
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -37,6 +38,7 @@ Shader "Saga/VertexColorLit"
                 float3 normalWS    : TEXCOORD0;
                 float3 positionWS  : TEXCOORD1;
                 float4 color       : COLOR;
+                float fogCoord     : TEXCOORD2;
             };
 
             Varyings Vert(Attributes IN)
@@ -47,6 +49,7 @@ Shader "Saga/VertexColorLit"
                 OUT.positionWS = posInputs.positionWS;
                 OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS);
                 OUT.color = IN.color;
+                OUT.fogCoord = ComputeFogFactor(OUT.positionHCS.z);
                 return OUT;
             }
 
@@ -58,6 +61,7 @@ Shader "Saga/VertexColorLit"
                 half3 shadowed = mainLight.color * (ndotl * mainLight.shadowAttenuation);
                 half3 ambient = SampleSH(normalWS);
                 half3 lit = IN.color.rgb * (shadowed + ambient);
+                lit = MixFog(lit, IN.fogCoord);
                 return half4(lit, 1);
             }
             ENDHLSL
