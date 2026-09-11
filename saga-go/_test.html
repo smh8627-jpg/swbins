@@ -63,6 +63,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/data.js"></script>
 <script src="js/region-kr.js"></script>
 <script src="js/genchar.js"></script>
+<script src="js/region-jp.js"></script>
+<script src="js/genchar-jp.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/perf.js"></script>
@@ -5809,6 +5811,81 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var found = DG.data.find(h.id);
       var bio = DG.data.bio(h.id);
       var p = GC.pet('gangwon', 1, 555);
+      var foundPet = DG.data.find(p.id);
+      return !!found && found.name === h.name && bio === h._bio &&
+        !!foundPet && foundPet.name === p.name &&
+        (h.id + ' · ' + p.id + ' 모두 find()로 되살아남');
+    });
+
+    t('일본 권역(region-jp) — 대표 도시 다섯 곳이 각각 맞는 권역으로 잡힌다', function () {
+      var RJ = DG.regionJp;
+      if (!RJ) { return false; }
+      var cases = [
+        ['도쿄', 35.6812, 139.7671, '간토'], ['오사카', 34.6937, 135.5023, '간사이'],
+        ['후쿠오카', 33.5904, 130.4017, '규슈'], ['삿포로', 43.0621, 141.3544, '홋카이도'],
+        ['나하', 26.2124, 127.6809, '오키나와']
+      ];
+      var miss = cases.filter(function (c) {
+        var r = RJ.regionOf(c[1], c[2]);
+        return !r || r.name !== c[3];
+      });
+      return miss.length === 0 &&
+        (cases.map(function (c) { return c[0] + '→' + c[3]; }).join(' · '));
+    });
+
+    t('한국·일본 권역 병합 최근접 — 후쿠오카가 한국으로 잘못 잡히지 않는다', function () {
+      /* 2026-09-11 실측으로 찾은 버그: 나라별 "9권역 평균 중심"끼리 먼저
+         비교하면 규슈(한국에 가까운 일본 변두리)가 한국 쪽 평균 중심에 더
+         가까워져 한국으로 잘못 판정됐다. world.js의 genRegionAt()과 같은
+         계산(18개 대표점 통째로 최근접)을 여기서도 그대로 재현해 지킨다. */
+      var RK = DG.regionKr, RJ = DG.regionJp;
+      if (!RK || !RJ) { return false; }
+      function nearest(lat, lng) {
+        var all = RK.REGIONS.concat(RJ.REGIONS);
+        var cosLat = Math.cos(lat * Math.PI / 180), best = null, bestD = Infinity;
+        for (var i = 0; i < all.length; i++) {
+          var r = all[i], dLat = lat - r.center.lat, dLng = (lng - r.center.lng) * cosLat;
+          var d = dLat * dLat + dLng * dLng;
+          if (d < bestD) { bestD = d; best = r; }
+        }
+        return best;
+      }
+      var fukuoka = nearest(33.5904, 130.4017);
+      var busan = nearest(35.1796, 129.0756);
+      return fukuoka.country === 'jp' && fukuoka.code === 'kyushu' &&
+        busan.country === 'kr' && busan.code === 'gyeongsang' &&
+        ('후쿠오카→' + fukuoka.name + '(' + fukuoka.country + ') · 부산→' + busan.name + '(' + busan.country + ')');
+    });
+
+    t('절차적 인물 생성(genchar-jp) — 같은 (권역·등급·지표)면 항상 같은 사람', function () {
+      var GJ = DG.gencharJp;
+      if (!GJ) { return false; }
+      var a = GJ.hero('kansai', 2, 777);
+      var b = GJ.hero('kansai', 2, 777);
+      var c = GJ.hero('kansai', 2, 778);
+      return a && b && a.name === b.name && a.hanja === b.hanja &&
+        JSON.stringify(a.stats) === JSON.stringify(b.stats) && a.name !== c.name &&
+        (a.name + '(' + a.hanja + ') · 등급' + a.rarity + ' · ' + a.trait);
+    });
+
+    t('절차적 인물(genchar-jp) — HEROES(105명 도감)에는 안 섞여 들어가고, 한국 쪽과 id가 안 겹친다', function () {
+      var GJ = DG.gencharJp, GC = DG.genchar;
+      var before = DG.data.heroes.length;
+      GJ && GJ.hero('okinawa', 1, 1);
+      GJ && GJ.hero('tohoku', 2, 2);
+      var h = GJ && GJ.hero('kyushu', 3, 3);
+      return DG.data.heroes.length === before && before === 105 &&
+        (!GC || !GC.find(h.id)) && (!DG.gencharJp || DG.gencharJp.find('kr_gyeonggi_2_1') === null) &&
+        ('도감 인물 수 그대로 ' + before + ' · id 교차 없음');
+    });
+
+    t('data.find/bio — 일본 절차적 id도 정적 배열처럼 되살아난다', function () {
+      var GJ = DG.gencharJp;
+      if (!GJ) { return false; }
+      var h = GJ.hero('chugoku', 1, 999);
+      var found = DG.data.find(h.id);
+      var bio = DG.data.bio(h.id);
+      var p = GJ.pet('shikoku', 1, 555);
       var foundPet = DG.data.find(p.id);
       return !!found && found.name === h.name && bio === h._bio &&
         !!foundPet && foundPet.name === p.name &&

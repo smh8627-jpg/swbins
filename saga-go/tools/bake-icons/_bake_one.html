@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>bake-one</title></head>
+<body>
+<!--
+  bake.html 하나가 33개를 한 페이지에서 순서대로 구우면 특정 잡이 간헐적으로
+  멎을 때(README "알려진 흠" 참고) 그 잡 하나만 완전히 새 브라우저 프로세스로
+  격리해 재시도하기 위한 보조 도구다. 쿼리스트링으로 잡 하나만 받는다:
+    _bake_one.html?key=<이름>&group=beast|building&url=<GLB/GLTF 상대경로(URL 인코딩)>
+  결과는 bake.html과 같은 형식으로 <pre id="manifest">에 JSON 배열(길이 1) 하나로 남는다.
+-->
+<div id="log" style="font:12px monospace;white-space:pre-wrap;padding:10px;">굽는 중…</div>
+<pre id="manifest" style="display:none"></pre>
+<script src="../../js/vendor/three.iife.js"></script>
+<script>
+(function () {
+  'use strict';
+  var T = window.THREE;
+  var logEl = document.getElementById('log');
+  function log(s) { logEl.textContent += '\n' + s; }
+
+  var params = new URLSearchParams(location.search);
+  var key = params.get('key');
+  var group = params.get('group');
+  var url = params.get('url');
+  var ICON = 96;
+
+  var TIMEOUT_MS = 60000;
+
+  function finish(r) {
+    var entry = { key: key, group: group, ok: r.ok, error: r.error, dataURL: r.dataURL };
+    document.getElementById('manifest').textContent = JSON.stringify([entry]);
+    log((r.ok ? 'OK ' : 'FAIL ') + group + '/' + key + (r.ok ? '' : (' — ' + r.error)));
+    log('BAKE_ONE_DONE ' + (r.ok ? 1 : 0) + '/1');
+    document.title = 'BAKE_ONE_DONE ' + (r.ok ? 1 : 0) + '/1';
+  }
+
+  function fitAndFrame(root, camera, group) {
+    root.updateMatrixWorld(true);
+    var box = new T.Box3().setFromObject(root);
+    var size = new T.Vector3(); box.getSize(size);
+    var center = new T.Vector3(); box.getCenter(center);
+    var maxDim = Math.max(size.x, size.y, size.z) || 1;
+    var scale = 1.6 / maxDim;
+    root.position.copy(center).multiplyScalar(-scale);
+    root.scale.setScalar(scale);
+    var elevDeg = group === 'building' ? 22 : 42;
+    var dist = 2.1;
+    var elev = elevDeg * Math.PI / 180;
+    camera.position.set(0, dist * Math.sin(elev), dist * Math.cos(elev));
+    camera.lookAt(0, group === 'building' ? 0.15 : 0, 0);
+  }
+
+  function run() {
+    var cv = document.createElement('canvas');
+    var renderer = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setSize(ICON, ICON, false);
+    var scene = new T.Scene();
+    var camera = new T.PerspectiveCamera(30, 1, 0.01, 100);
+    scene.add(new T.HemisphereLight(0xdCE8FF, 0x746a5c, 2.4));
+    var light1 = new T.DirectionalLight(0xFFF3DC, 1.8);
+    light1.position.set(1.2, 2.0, 1.6);
+    scene.add(light1);
+    var light2 = new T.DirectionalLight(0xbdd2ee, 0.9);
+    light2.position.set(-1.3, 1.0, -1.0);
+    scene.add(light2);
+
+    var done = false;
+    var timer = setTimeout(function () {
+      if (done) { return; }
+      done = true;
+      finish({ ok: false, error: '시간 초과(' + TIMEOUT_MS + 'ms)' });
+    }, TIMEOUT_MS);
+    var loader = new T.GLTFLoader();
+    log('start ' + key + ' <- ' + url);
+    loader.load(url, function (gltf) {
+      if (done) { return; }
+      done = true; clearTimeout(timer);
+      try {
+        var root = gltf.scene || gltf.scenes[0];
+        scene.add(root);
+        fitAndFrame(root, camera, group);
+        renderer.render(scene, camera);
+        var dataURL = renderer.domElement.toDataURL('image/png');
+        finish({ ok: true, dataURL: dataURL });
+      } catch (e) {
+        finish({ ok: false, error: String(e && e.message || e) });
+      }
+    }, function (xhr) {
+      log(key + ' progress ' + xhr.loaded + '/' + xhr.total);
+    }, function (err) {
+      if (done) { return; }
+      done = true; clearTimeout(timer);
+      finish({ ok: false, error: String(err && err.message || err) });
+    });
+  }
+
+  if (!T || !T.GLTFLoader) {
+    finish({ ok: false, error: 'no GLTFLoader' });
+  } else if (!key || !group || !url) {
+    finish({ ok: false, error: 'missing query params' });
+  } else {
+    run();
+  }
+})();
+</script>
+</body></html>

@@ -130,38 +130,51 @@
   }
 
   function bakeOne(job) {
-    /* 일부 임베디드(base64) .gltf(예: 큰 몬스터팩)가 로더 콜백을 아예 안 불러
-       그대로 멎는 경우가 있었다(2026-09-11, 실제로 겪음) — 한 파일 때문에
-       나머지 서른두 개가 다 막히면 안 되므로 자리마다 제한 시간을 둔다. */
-    var TIMEOUT_MS = 8000;
-    return new Promise(function (resolve) {
-      var done = false;
-      var timer = setTimeout(function () {
-        if (done) { return; }
-        done = true;
-        resolve({ key: job.key, group: job.group, ok: false, error: '시간 초과(' + TIMEOUT_MS + 'ms) — 로더 콜백 없음' });
-      }, TIMEOUT_MS);
-      var loader = new T.GLTFLoader();
-      loader.load(job.url, function (gltf) {
-        if (done) { return; }
-        done = true; clearTimeout(timer);
-        try {
-          var root = gltf.scene || gltf.scenes[0];
-          scene.add(root);
-          fitAndFrame(root, job.group);
-          renderer.render(scene, camera);
-          var url = renderer.domElement.toDataURL('image/png');
-          scene.remove(root);
-          disposeDeep(root);
-          resolve({ key: job.key, group: job.group, ok: true, dataURL: url });
-        } catch (e) {
-          resolve({ key: job.key, group: job.group, ok: false, error: String(e && e.message || e) });
-        }
-      }, undefined, function (err) {
-        if (done) { return; }
-        done = true; clearTimeout(timer);
-        resolve({ key: job.key, group: job.group, ok: false, error: String(err && err.message || err) });
+    /* 2026-09-11엔 8초에서 콜백이 영영 안 오는 걸로 봤는데, 2026-09-11(후속
+       재확인)에 같은 파일을 단독으로 다시 열어 보니 어떤 시도는 1초 안에
+       끝나고 어떤 시도는 30초를 줘도 그대로 멎었다 — 로더 자체가 항상
+       막히는 게 아니라 이 환경(헤드리스+동시 GLB 여러 개)에서 간헐적으로
+       느려지는 것으로 보인다. 그래서 시간을 30초로 늘리고 **한 번 더
+       시도**(새 GLTFLoader 인스턴스로 재시도)까지 두어 일시적 지연을
+       버티게 한다. */
+    var TIMEOUT_MS = 30000;
+    function attempt() {
+      return new Promise(function (resolve) {
+        var done = false;
+        var timer = setTimeout(function () {
+          if (done) { return; }
+          done = true;
+          resolve({ ok: false, error: '시간 초과(' + TIMEOUT_MS + 'ms) — 로더 콜백 없음' });
+        }, TIMEOUT_MS);
+        var loader = new T.GLTFLoader();
+        loader.load(job.url, function (gltf) {
+          if (done) { return; }
+          done = true; clearTimeout(timer);
+          try {
+            var root = gltf.scene || gltf.scenes[0];
+            scene.add(root);
+            fitAndFrame(root, job.group);
+            renderer.render(scene, camera);
+            var url = renderer.domElement.toDataURL('image/png');
+            scene.remove(root);
+            disposeDeep(root);
+            resolve({ ok: true, dataURL: url });
+          } catch (e) {
+            resolve({ ok: false, error: String(e && e.message || e) });
+          }
+        }, undefined, function (err) {
+          if (done) { return; }
+          done = true; clearTimeout(timer);
+          resolve({ ok: false, error: String(err && err.message || err) });
+        });
       });
+    }
+    return attempt().then(function (r) {
+      if (r.ok) { return r; }
+      log('  (재시도) ' + job.group + '/' + job.key + ' — ' + r.error);
+      return attempt();
+    }).then(function (r) {
+      return { key: job.key, group: job.group, ok: r.ok, error: r.error, dataURL: r.dataURL };
     });
   }
 

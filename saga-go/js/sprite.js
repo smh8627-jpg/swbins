@@ -950,11 +950,11 @@
    * 같은 개체로 보인다. 배경 생물(animal.js, id 없음)은 대상이 아니다 —
    * 그쪽은 원래 결대로 절차적 그림 그대로 둔다(캔버스 자체가 그 용도다).
    *
-   * ogre 형태(도깨비·그늘귀·만권·의조)만 구성 파일이 없다 — 배치 굽기에서
-   * 이 셋(Orc·Demon·BlueDemon, 큰 임베디드 .gltf)만 헤드리스 크롬에서 로더
-   * 콜백이 영영 안 와 구워지지 않았다(원인 불명 — 실제 GPU가 있는 브라우저
-   * 라면 될 가능성이 있다, SAGA-HANDOFF 2026-09-11 참고). 그래서 ogre만
-   * 여전히 procedural fallback으로 돈다 — 회귀가 아니라 애초에 그림이 없다.
+   * ogre 형태(도깨비·그늘귀·만권·의조)는 2026-09-11 첫 배치 굽기에선 셋
+   * (Orc·Demon·BlueDemon, 큰 임베디드 .gltf)이 헤드리스 크롬에서 로더
+   * 콜백이 영영 안 와 구워지지 않았었다 — 이후(같은 날 이어서) 다시 확인해
+   * 보니 **간헐적**이었다(같은 파일을 격리된 새 브라우저 프로세스에서 다시
+   * 열면 되기도 했다, 원인은 끝내 못 밝힘). 재시도 끝에 셋 다 구웠다.
    */
   var BEAST_FORM_FILES = {
     quad: ['Deer', 'Wolf', 'Cow', 'Alpaca', 'Bull', 'Donkey', 'Fox', 'Husky', 'ShibaInu', 'Stag'],
@@ -963,9 +963,8 @@
     horse: ['Horse', 'Horse_White'],
     toad: ['Frog'],
     dragon: ['Trex', 'Triceratops', 'Stegosaurus', 'Velociraptor'],
-    turtle: ['Snake', 'Snake_angry']
-    /* ogre: 구운 파일 없음 — 일부러 안 넣는다(beastImgOf가 null을 주면
-       procedural로 그대로 떨어진다) */
+    turtle: ['Snake', 'Snake_angry'],
+    ogre: ['Orc', 'Demon', 'BlueDemon']
   };
   var beastImgCache = {};
   function beastImgFile(name) {

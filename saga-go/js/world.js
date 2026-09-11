@@ -704,19 +704,41 @@
     return 1;
   }
 
-  /** 절차적 권역 풀(한국, saga-go 전용) — rarity 1~2는 원래 HEROES/PETS에
-   *  아무도 없던 자리라(105명은 3~5만 쓴다) 여길 채워도 기존 등급 분포와
-   *  안 부딪힌다. region이 안 잡히면(모듈 미로딩·한국 밖) 예전처럼 정적
-   *  풀로 그냥 간다 — 구조를 건드리지 않는다. */
+  /** 절차적 권역 풀(saga-go 전용) — rarity 1~2는 원래 HEROES/PETS에 아무도
+   *  없던 자리라(105명은 3~5만 쓴다) 여길 채워도 기존 등급 분포와 안
+   *  부딪힌다. 나라가 둘로 늘면서(한국·일본, 2026-09-11) 두 나라의
+   *  `REGIONS`를 **그냥 하나로 합쳐 통째로 최근접 탐색**한다 — 나라별
+   *  대표 중심끼리 먼저 비교하는 방식을 시도했다가, 규슈(한국에 가까운
+   *  일본 변두리)가 "일본 9곳 평균 중심"보다 "한국 9곳 평균 중심"에 더
+   *  가까워져 한국으로 잘못 판정되는 걸 실측으로 확인하고 버렸다
+   *  (`region-kr.js` 머리말 참고). 18개 대표점 중 가장 가까운 하나를
+   *  그냥 고르는 쪽이 더 정확하고 코드도 더 짧다. region이 안 잡히면
+   *  (모듈 미로딩) 예전처럼 정적 풀로 그냥 간다 — 구조를 건드리지 않는다. */
   function genRegionAt(x, y) {
-    var RK = global.DG.regionKr;
-    if (!RK) { return null; }
+    var RK = global.DG.regionKr, RJ = global.DG.regionJp;
+    if (!RK && !RJ) { return null; }
     var ll = worldToLatLng(x, y);
-    return RK.regionOf(ll.lat, ll.lng);
+    var all = (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []);
+    var cosLat = Math.cos(ll.lat * Math.PI / 180);
+    var best = null, bestD = Infinity;
+    for (var i = 0; i < all.length; i++) {
+      var r = all[i];
+      var dLat = ll.lat - r.center.lat, dLng = (ll.lng - r.center.lng) * cosLat;
+      var d = dLat * dLat + dLng * dLng;
+      if (d < bestD) { bestD = d; best = r; }
+    }
+    return best;
+  }
+
+  /** region.country('kr'/'jp')에 맞는 생성기를 고른다 */
+  function gencharOf(region) {
+    if (!region) { return null; }
+    if (region.country === 'jp') { return global.DG.gencharJp || null; }
+    return global.DG.genchar || null;
   }
 
   function pickHero(rar, region) {
-    var GC = global.DG.genchar;
+    var GC = gencharOf(region);
     if (region && GC && rar <= 2 && Math.random() < 0.85) {
       var h = GC.hero(region.code, rar, Math.floor(Math.random() * 1e6));
       if (h) { return h; }
@@ -738,7 +760,7 @@
     var W = global.DG.weather;
     var wantDivine = Math.random() <
       (0.18 + core.effect('divinePct') / 100 + (W ? W.divineBias() : 0));
-    var GC = global.DG.genchar;
+    var GC = gencharOf(region);
     if (region && GC && rar <= 2 && !wantDivine && Math.random() < 0.85) {
       var p = GC.pet(region.code, rar, Math.floor(Math.random() * 1e6));
       if (p) { return p; }
@@ -1582,12 +1604,13 @@
       ctx.globalAlpha = 1;
     }
 
-    /* 등급(tier)마다 다른 실제 탑 그림 — t3(웅진)만 배치 굽기에서 못 구워
-       (SAGA-HANDOFF 2026-09-11) 절차적 그림으로 그대로 떨어진다 */
+    /* 등급(tier)마다 다른 실제 탑 그림 — 2026-09-11 배치 굽기에서 처음엔
+       t3(웅진)만 못 구웠다가, 같은 날 이어서 재시도 끝에 마저 구웠다 */
     var sp = global.DG.sprite;
     var fortTier = info && info.tier && info.tier.tier;
     var fortImg = fortTier === 1 ? sp.buildingImg('Watchtower')
       : fortTier === 2 ? sp.buildingImg('Tower')
+      : fortTier === 3 ? sp.buildingImg('tower_round')
       : null;
     sp.building(ctx, {
       x: p.x, y: p.y, s: z * 1.15, form: 'wall', color: mine ? '#7a6234' : undefined,

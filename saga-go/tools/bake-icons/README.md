@@ -22,21 +22,36 @@
    `bake-dump.html`을 받아 `<pre id="manifest">`를 잘라 `JSON.parse` 후
    각 `dataURL`의 base64 부분을 파일로 저장하면 된다).
 
-## 알려진 흠 (2026-09-11)
+## 알려진 흠 (2026-09-11, 같은 날 이어서 넷은 해소)
 
-헤드리스 크롬(`--use-angle=swiftshader`)에서는 아래 **다섯 개**가 로더
-콜백이 영영 안 와 구워지지 않는다(fetch는 100% 받아지는데 파싱 단계에서
-멎는다 — 큰 임베디드 base64 텍스처를 이 소프트웨어 렌더 조합이 못 견디는
-것으로 보이나 확증은 못 했다):
+첫 배치 굽기(헤드리스 크롬 `--use-angle=swiftshader`)에서는 아래 **다섯
+개**가 로더 콜백이 영영 안 와 구워지지 않았다(fetch는 100% 받아지는데
+파싱 단계에서 멎는다):
 
-- `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf` (ogre 형태 펫 넷 — 도깨비·
-  그늘귀·만권·의조가 아직 절차적 그림 그대로)
-- `tower_round.glb`(성채 3등급/웅진), `tower_ruin.glb`(역참) — 둘 다
-  `assets/models/buildings/realistic/`의 실사 스캔이라 텍스처가 크다
+- `Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf` (ogre 형태 펫 셋 — 도깨비·
+  그늘귀·만권·의조)
+- `tower_round.glb`(성채 3등급/웅진), `tower_ruin.glb`(역참)
 
-**실제 GPU가 있는 보통 브라우저 창(헤드리스 아님)으로 열면 될 가능성이
-있다** — 아직 시도 안 해 봤다. 되면 이 다섯 개도 같은 방식으로
-`assets/sprites2d/`에 추가하고, `js/sprite.js`의 `BEAST_FORM_FILES`에
-`ogre` 줄을 채우고 `js/world.js`의 `drawFort`(tier 3)·`drawStation`에
-이미지를 넘기게 한 줄씩 보태면 된다(패턴은 이미 있는 t1/t2 자리 그대로
-따라 하면 된다).
+**같은 날 이어서 재조사한 결과 — GPU(소프트웨어 렌더 vs `--use-angle=d3d11`
+실제 GPU 플래그)는 원인이 아니었다.** 실제 GPU 플래그를 줘도 그대로
+막혔고, `tower_ruin`의 `image/webp` 텍스처를 의심해 PNG로 바꿔 먹여봐도
+그대로 막혔다 — JSON 구조(정점 NaN·순환 노드·인덱스 범위)도 다 정상이었다.
+**대신 이 막힘 자체가 간헐적이라는 걸 확인했다** — 같은 파일을 완전히
+새로운(격리된) 헤드리스 크롬 프로세스로 다시 열면 되기도, 안 되기도 했다
+(Orc는 실패했다가 성공, Demon은 성공했다가 실패, 순서가 매번 달랐다).
+원인은 이 환경(헤드리스+소프트웨어 또는 D3D11 렌더 조합)에서의 텍스처
+디코드 관련 리소스 경합으로 추정되나 **끝내 확증은 못 했다**.
+
+**대응 — `bake.html`의 잡마다 제한 시간을 8초→30초로 늘리고 실패하면
+한 번 더 재시도하게 했다(재시도해도 안 되면 그 잡만 넘어간다, 새
+`_bake_one.html` 하나짜리 잡 전용 페이지로 완전히 새 프로세스에서
+격리해 재시도하는 방법도 씀).** 이렇게 **넷(Orc·Demon·BlueDemon·
+tower_round)은 결국 구웠다** — `js/sprite.js`의 `BEAST_FORM_FILES.ogre`,
+`js/world.js`의 `drawFort`(tier 3)에 이미 배선했다.
+
+**`tower_ruin.glb`(역참)만 여섯 번 넘게 재시도해도 매번 막혔다** — 아직
+안 풀렸다. `js/world.js`의 `drawStation`은 그대로 절차적 그림이다. 다음에
+다시 시도하려면 `_bake_one.html?key=tower_ruin&group=building&url=` +
+(`../../assets/models/buildings/realistic/tower_ruin.glb`를 URL 인코딩한
+값)으로 격리 재시도부터 몇 번 더 해 볼 것 — 그래도 안 되면 사용자의
+실제 GPU 브라우저(헤드리스 아님)로 열어 보는 쪽으로 넘겨야 한다.
