@@ -5,6 +5,31 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **Phase 6(59~67단계) — Stats/EXP/Level Up/Item/Inventory/Equipment/
+  Reward/Loot Table.** 버티컬 슬라이스 코드가 다 끝난 뒤(77~78단계는
+  사람의 플레이 평가가 필요해 못 넘어감) 2026-09-11 사용자가 "게이트를
+  건너뛰고 계속 진행"을 명시로 골라 착수. `Data/PlayerStats.cs`(레벨·
+  경험치, static — PartyState.cs와 같은 자리, UnityEngine 안 끌어옴)
+  + `Data/ItemData.cs`(무기/방어구 카탈로그 4종, plain C# — TestMapData.cs
+  처럼 이 슬라이스는 ScriptableObject 대신 코드 카탈로그로 통일) +
+  `Data/Inventory.cs`(소지 목록 + 장비 슬롯, "더 센 장비를 주우면 자동
+  장착" — 장비창 UI를 새로 만들지 않고 이게 유일한 조작 경로) +
+  `Data/LootTable.cs`(가중치 룰렛, 도적 전용 테이블 하나뿐 — 사건이
+  하나뿐이라 (id→테이블) 사전 구조는 아직 안 만듦). `World/
+  BanditEncounter.cs`의 `StartFight()`가 `PartyState.Atk/Def`에
+  `PlayerStats`·`Inventory` 보너스를 더해 실전투력을 만들고,
+  `FinishFight()`의 승리 분기가 경험치(+100, 1레벨 임계치 80이라 첫
+  승리에 바로 레벨업하도록 일부러 맞춤)·루트 굴림·자동장착까지 한
+  토스트 메시지로 모아 보여준다. **도적은 슬라이스 안에서 한 번만
+  나고 다시 안 나서(기존 설계) 이 보상 루프도 실질적으로 한 판만
+  체감된다** — 재도전으로 파밍하는 느낌은 이번 조각 밖. "값을
+  치른다"/"달아난다"는 여전히 대사만(골드 경제는 Phase 6 목록에 없어
+  이번에도 안 건드림). `Data/SaveState.cs`를 v1→v2로 올려 레벨·경험치·
+  인벤토리·장비도 저장/로드하게 하고, `MigrateStep(1, ...)`에 실제
+  내용을 처음 채웠다(전엔 자리만 파 둔 빈 경로였다 — PLAN.md 75장
+  "Data Versioning"의 첫 실사용례). 컴파일·PlaytestHeadless 전부 통과
+  (헤드리스 플레이는 플레이어가 안 움직여 조우 자체가 안 일어나므로
+  새 로직의 실제 동작은 검증 못함 — 사람이 직접 싸워 확인해야 함).
 - `PLAN.md`·`CLAUDE.md` 작성 완료 — `saga-godot/PLAN.md` 기반, Unity(C#,
   URP, ScriptableObject 등)에 맞게 다시 씀. 레거시 감사는 새로 안 하고
   `saga-godot/docs/LEGACY_FEATURE_AUDIT.md` 참고.
@@ -195,14 +220,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     Combine() 넣기 전/후 비교 — 헤드리스로는 확인 불가)
   - **MSAA를 켠 뒤 가장자리 계단 현상이 실제로 줄었는지**(PC 4x/Mobile
     2x로 숫자만 넣었다 — Quality 레벨을 PC/Mobile로 오가며 눈으로 볼 것)
-- **VERTICAL_SLICE.md 완료 조건(12단계 루프)이 코드상으로는 전부
-  채워졌다** — 게임 실행→마을 진입→걷기→NPC 대화→도적 조우→맞선다→
-  실시간 전투→승리→등용→전투력 상승 확인→저장→재시작 이어짐, 이
-  열두 단계 전부 구현은 끝났다. **위 GUI 확인에서 실제로 도는 게
-  확인되면 Vertical Slice 자체가 마무리 단계다.** 그 다음은 PLAN.md의
-  나머지 Phase(Stats/Item/Inventory/Equipment 등 Phase 9, 나머지 네
-  판 이식)로 넘어가는 큰 전환점 — 여기서부터는 세션 시작 시 PLAN.md를
-  다시 훑어 순서를 다시 잡을 것.
+  - **경험치·레벨업·루트·자동장착이 실제로 도는지**(도적을 이기면
+    토스트에 "경험치 +100 — 레벨업! (1 → 2)"·주운 장비 문구가 뜨는지,
+    수치만으로 정한 자리라 실제 UX로 한 번 봐야 함 — 도적은 한 번
+    이기면 다시 안 나니 **세이브 파일을 지우고 처음부터** 봐야 재현됨)
+- **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
+  EXP/Item/Inventory/Equipment/Reward/Loot)까지 코드상으로는 전부
+  채워졌다.** **위 GUI 확인에서 실제로 도는 게 확인되면 PLAN.md
+  77~78단계(전체 플레이 테스트 → 재미 평가)로 넘어갈 수 있다** — 이번
+  세션은 그 게이트를 사용자가 명시로 건너뛰라고 골라 Phase 6을 먼저
+  끝냈다(2026-09-11). 다음 후보는 PLAN.md 51~65장이 적어 둔 확장 순서
+  (GO 월드 확장 → DUNGEON → FOREST → STORY → REALM) 또는 이번에 미룬
+  항목들(장비창 UI, 사건/루트 테이블을 사전 구조로 일반화, 골드 경제)
+  — 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
 
 ## 알려진 오류
 
@@ -249,3 +279,14 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   더 밟음) — `-quit` 없이 불러야 한다(Run() 자신이 EditorApplication.Exit로
   끝낸다). `CombineStaticBatches()` 추가 후에도 컴파일·PlaytestHeadless
   전부 통과.
+- Phase 6(PlayerStats/ItemData/Inventory/LootTable + BanditEncounter·
+  SaveState 통합) 추가 후 컴파일·PlaytestHeadless 재확인, 둘 다 통과.
+  **`BuildTestVillageScene.Build()`는 이번엔 다시 안 돌렸다** — 씬
+  하이어라키·GameObject 구성을 하나도 안 건드린 변경(Data 계층 로직만)
+  이라 기존 커밋된 `TestVillage.unity`가 그대로 유효하다. (한 번 다시
+  돌려 봤다가 이 씬 파일이 재실행마다 통째로 다시 짜여 fileID가 매번
+  바뀌면서 14000줄대 순수 churn diff가 나는 걸 확인하고 되돌렸다 — 앞으로도
+  씬 GameObject 구성 자체를 바꾸지 않는 변경에는 Build()를 다시 안 돌린다.)
+  PlaytestHeadless는 플레이어가 안 움직여 도적 조우 자체가 안 일어나므로
+  **경험치/레벨업/루트/자동장착의 실제 동작은 여전히 검증 못함**(컴파일
+  통과 + 정적 씬 로드까지만 확인) — 사람이 직접 싸워 봐야 하는 부분.

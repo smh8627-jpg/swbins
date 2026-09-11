@@ -28,7 +28,9 @@ namespace Saga.Go.World
         private const float AmbushRadius = 20f;
         private const float RetryCooldownSec = 8f;
         private const float ToastSec = 4f;
+        private const float VictoryToastSec = 6f; // 등용+경험치+장비까지 한 번에 읽어야 해 더 길게
         private const string RecruitId = "산적";
+        private const int ExpReward = 100;
 
         private static readonly Color BaseColor = new Color(0.5f, 0.14f, 0.14f);
         private static readonly Color TellColor = new Color(1.0f, 0.55f, 0.1f);
@@ -253,7 +255,11 @@ namespace Saga.Go.World
         {
             _state = State.Fight;
             float foeHp = Mathf.Max(1f, Mathf.Round(FoePower * FoeHpMul));
-            _duel = DuelRules.Create(foeHp, PartyState.Atk, PartyState.Def);
+            // PLAN.md 59~65장 — 부대(PartyState) + 내 레벨(PlayerStats) + 낀
+            // 장비(Inventory) 세 축을 합쳐 실제 전투력을 만든다.
+            float atk = PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus;
+            float def = PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus;
+            _duel = DuelRules.Create(foeHp, atk, def);
             _combatRoot.SetActive(true);
             RefreshCombatUi();
         }
@@ -321,7 +327,32 @@ namespace Saga.Go.World
             if (cleared)
             {
                 PartyState.Recruit(RecruitId);
-                Toast($"{FoeName}을 물리쳤다 — 부대에 합류했다! (전투력 {Mathf.RoundToInt(PartyState.Atk + PartyState.Def)})");
+
+                // PLAN.md 66장 Reward — 등용 외에 경험치·장비 보상도 준다.
+                // 레벨업 여러 번은 LeveledUp 이벤트로, 실제 문구는 아래서 한 번에 모은다.
+                int levelBefore = PlayerStats.Level;
+                PlayerStats.AddExp(ExpReward);
+                string lootId = LootTable.RollBanditDrop();
+                ItemData lootItem = null;
+                bool lootEquipped = false;
+                if (lootId != null)
+                {
+                    lootItem = ItemData.Get(lootId);
+                    void OnGained(ItemData item, bool equipped)
+                    {
+                        if (item == lootItem) lootEquipped = equipped;
+                    }
+                    Inventory.ItemGained += OnGained;
+                    Inventory.AddItem(lootId);
+                    Inventory.ItemGained -= OnGained;
+                }
+
+                var msg = $"{FoeName}을 물리쳤다 — 부대에 합류했다! (전투력 {Mathf.RoundToInt(PartyState.Atk + PartyState.Def)})\n" +
+                          $"경험치 +{ExpReward}";
+                if (PlayerStats.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {PlayerStats.Level})";
+                if (lootItem != null) msg += $"\n{lootItem.Name}을(를) 주웠다{(lootEquipped ? " — 바로 갖췄다." : ".")}";
+                Toast(msg, VictoryToastSec);
+
                 // 물리친 도적은 사라진다 — 이번 슬라이스에서는 다시 나지 않는다.
                 Destroy(gameObject);
                 return;
@@ -402,9 +433,9 @@ namespace Saga.Go.World
             }
         }
 
-        private void Toast(string text)
+        private void Toast(string text, float seconds = ToastSec)
         {
-            DialogueLabel.Instance?.Show(text, ToastSec);
+            DialogueLabel.Instance?.Show(text, seconds);
         }
 
         // ---- UI 조립 공통 --------------------------------------------------------

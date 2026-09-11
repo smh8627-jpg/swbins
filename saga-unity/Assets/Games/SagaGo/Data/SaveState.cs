@@ -7,16 +7,15 @@ namespace Saga.Go.Data
 {
     /// <summary>
     /// VERTICAL_SLICE.md 26절 "저장/로드(로컬 파일 하나)" — 12단계 완료
-    /// 조건의 마지막 단계. PLAN.md 28장은 레벨·경험치·장비·인벤토리·퀘스트·
-    /// 월드 상태까지 저장하라고 하지만 그중 이 슬라이스에 실제로 있는
-    /// 상태는 플레이어 위치와 부대(PartyState)뿐이다 — 없는 시스템을
-    /// 저장하는 코드는 만들지 않는다. saga-godot의 save_state.gd와 같은
-    /// 구조(_migrate_step 마이그레이션 경로 포함, PLAN.md Phase 9의
-    /// "Data Versioning"을 처음부터 지킴).
+    /// 조건의 마지막 단계. saga-godot의 save_state.gd와 같은 구조
+    /// (_migrate_step 마이그레이션 경로 포함, PLAN.md 75장 "Data
+    /// Versioning"을 처음부터 지킴 — v1→v2 전환이 그 첫 실사용례다).
+    /// PLAN.md 28장의 퀘스트·월드 상태는 이 슬라이스에 그 시스템 자체가
+    /// 없어 여전히 저장 안 함(없는 시스템을 저장하는 코드는 안 만든다).
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 1;
+        private const int SaveVersion = 2;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -26,6 +25,12 @@ namespace Saga.Go.Data
             public int version;
             public float[] playerPos;
             public List<string> partyMembers;
+            // v2(PLAN.md 59~65장 Stats/Item/Inventory/Equipment 추가) — v1엔 없던 필드.
+            public int level;
+            public int exp;
+            public List<string> ownedItems;
+            public string equippedWeapon;
+            public string equippedArmor;
         }
 
         public static bool Save()
@@ -38,6 +43,11 @@ namespace Saga.Go.Data
                 version = SaveVersion,
                 playerPos = new[] { player.position.x, player.position.y, player.position.z },
                 partyMembers = new List<string>(PartyState.MemberIds),
+                level = PlayerStats.Level,
+                exp = PlayerStats.Exp,
+                ownedItems = new List<string>(Inventory.OwnedIds),
+                equippedWeapon = Inventory.EquippedWeaponId,
+                equippedArmor = Inventory.EquippedArmorId,
             };
 
             try
@@ -52,9 +62,9 @@ namespace Saga.Go.Data
             }
         }
 
-        /// <summary>저장 파일이 있으면 부대·플레이어 위치에 적용하고 true, 없거나
-        /// 마이그레이션 경로가 없거나 깨져 있으면 아무것도 바꾸지 않고 false
-        /// (새 게임 취급).</summary>
+        /// <summary>저장 파일이 있으면 부대·레벨/경험치·인벤토리·플레이어 위치에
+        /// 적용하고 true, 없거나 마이그레이션 경로가 없거나 깨져 있으면
+        /// 아무것도 바꾸지 않고 false(새 게임 취급).</summary>
         public static bool TryLoad()
         {
             if (!File.Exists(SavePath)) return false;
@@ -75,6 +85,8 @@ namespace Saga.Go.Data
             if (data == null) return false;
 
             PartyState.Restore(data.partyMembers ?? new List<string>());
+            PlayerStats.Restore(data.level, data.exp);
+            Inventory.Restore(data.ownedItems ?? new List<string>(), data.equippedWeapon, data.equippedArmor);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -103,12 +115,21 @@ namespace Saga.Go.Data
         }
 
         /// <summary>버전 fromVersion에서 온 data를 fromVersion+1 모양으로 바꿔
-        /// 돌려준다. 등록된 경로가 없으면 null. 지금은 SaveVersion이 1뿐이라
-        /// 등록된 마이그레이션이 없다 — 스키마를 실제로 바꿀 때(필드 추가·
-        /// 이름 변경 등) SaveVersion을 올리고 여기 switch에 그 버전 분기를
-        /// 추가하면 된다.</summary>
+        /// 돌려준다. 등록된 경로가 없으면 null.</summary>
         private static SaveData MigrateStep(int fromVersion, SaveData data)
         {
+            if (fromVersion == 1)
+            {
+                // v1엔 레벨/경험치/인벤토리 필드가 아예 없었다 — 처음 시작한
+                // 것과 같은 기본값(1레벨, 빈 손)으로 채운다.
+                data.version = 2;
+                data.level = 1;
+                data.exp = 0;
+                data.ownedItems = new List<string>();
+                data.equippedWeapon = null;
+                data.equippedArmor = null;
+                return data;
+            }
             return null;
         }
 

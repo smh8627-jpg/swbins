@@ -9,9 +9,10 @@ namespace Saga.Go.Data
     /// saga-godot의 project.godot [autoload] 싱글턴(party_state.gd)과 같은
     /// 역할 — Unity엔 오토로드가 없어 static 클래스로 대신한다(씬을 새로
     /// 열어도 값이 남는다는 뜻이 아니라, 어느 스크립트에서든 이름으로 바로
-    /// 쓸 수 있다는 뜻만 같다). Phase 7(Stats/Item/Inventory/Equipment)을
-    /// 통째로 만드는 게 아니라, 등용한 인원 수만 세고 그 수에 비례해
-    /// 공격력/방어력을 올린다.
+    /// 쓸 수 있다는 뜻만 같다). 이 클래스는 등용한 인원 수만 세고 그 수에
+    /// 비례해 공격력/방어력을 올린다 — 캐릭터 레벨(PlayerStats.cs)·장비
+    /// (Inventory.cs)는 별도 축으로 따로 관리하고, 실전투력은 BanditEncounter
+    /// 가 셋을 합쳐 만든다.
     ///
     /// BaseAtk/BaseDef는 예전 BanditEncounter의 임시 상수와 같은 값이다 —
     /// 아직 아무도 등용하지 않았을 때 기존 전투 밸런스가 그대로 유지되도록
