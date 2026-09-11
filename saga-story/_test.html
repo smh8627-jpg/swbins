@@ -725,7 +725,7 @@ window.DG_NO_TUNE = true;
       C.emit('changed');
     }
 
-    t('장비 데이터 — 부위 일곱에 단이 넷씩', function () {
+    t('장비 데이터 — 부위마다 단이 넷씩(2026-09-11, 장신구 셋 추가로 일곱 → 열)', function () {
       var bad = [], i;
       for (i = 0; i < GD.SLOTS.length; i++) {
         var s = GD.SLOTS[i];
@@ -740,6 +740,17 @@ window.DG_NO_TUNE = true;
       }
       return bad.length === 0 &&
         ('부위 ' + GD.SLOTS.length + ' · 물건 ' + GD.GEAR.length + ' · 주문서 ' + GD.SCROLLS.length);
+    });
+
+    t('장신구 셋(반지·목걸이·귀걸이)의 고유가 밑감과 부위·요구Lv를 맞춘다 (2026-09-11)', function () {
+      var UD = DG.uniqueData;
+      var bases = ['ring4', 'neck4', 'ear4'];
+      var bad = bases.filter(function (baseKey) {
+        var base = GD.find(baseKey), u = UD.forBase(baseKey);
+        return !base || !u || u.slot !== base.slot || u.need !== base.need;
+      });
+      return UD.UNIQUES.length === 10 && bad.length === 0 &&
+        ('고유 ' + UD.UNIQUES.length + ' · 장신구 셋 다 맞음');
     });
 
     t('낀 것이 몸에 얹힌다 (인물의 힘 위에 더한다)', function () {
