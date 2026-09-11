@@ -9,12 +9,12 @@ namespace Saga.Go.Data
     /// VERTICAL_SLICE.md 26절 "저장/로드(로컬 파일 하나)" — 12단계 완료
     /// 조건의 마지막 단계. saga-godot의 save_state.gd와 같은 구조
     /// (_migrate_step 마이그레이션 경로 포함, PLAN.md 75장 "Data
-    /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4, v4→v5 전환이 그
-    /// 실사용례다).
+    /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4, v4→v5, v5→v6
+    /// 전환이 그 실사용례다).
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 5;
+        private const int SaveVersion = 6;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -37,6 +37,8 @@ namespace Saga.Go.Data
             // v5(PLAN.md 66장 Reward의 돈·상인 거래 추가) — v4까지는 없던 필드.
             public int gold;
             public bool merchantSold;
+            // v6(PLAN.md 51장 GO 월드 확장 — 수집) — v5까지는 없던 필드.
+            public List<string> gatheredSpots;
         }
 
         public static bool Save()
@@ -58,6 +60,7 @@ namespace Saga.Go.Data
                 caveTreasureFound = WorldEventState.CaveTreasureFound,
                 gold = GoldState.Gold,
                 merchantSold = ShopState.MerchantSold,
+                gatheredSpots = new List<string>(GatherState.GatheredIds),
             };
 
             try
@@ -101,6 +104,7 @@ namespace Saga.Go.Data
             WorldEventState.Restore(data.caveTreasureFound);
             GoldState.Restore(data.gold);
             ShopState.Restore(data.merchantSold);
+            GatherState.Restore(data.gatheredSpots);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -167,6 +171,14 @@ namespace Saga.Go.Data
                 data.version = 5;
                 data.gold = GoldState.StartingGold;
                 data.merchantSold = false;
+                return data;
+            }
+            if (fromVersion == 5)
+            {
+                // v5엔 채집 필드가 없었다 — 아직 아무 데도 안 캔 것과 같은
+                // 기본값(빈 목록)으로 채운다.
+                data.version = 6;
+                data.gatheredSpots = new List<string>();
                 return data;
             }
             return null;

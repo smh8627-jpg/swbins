@@ -40,6 +40,7 @@ namespace Saga.EditorTools
             BuildNpcs();
             BuildBanditEncounter();
             BuildHiddenTreasure();
+            BuildGatherables();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
@@ -153,6 +154,30 @@ namespace Saga.EditorTools
             var go = new GameObject("HiddenTreasure");
             var treasure = go.AddComponent<HiddenTreasure>();
             treasure.Build();
+        }
+
+        // 마을·굴·폐허·다리를 안 겹치는 들판(plains) 자리 3곳(PLAN.md 51장
+        // "수집"). 격자 좌표는 TestMapData.Rows 참고 — (1,2)/(5,2)/(2,4) 전부
+        // '.' 타일이고 촌장(1,3)·상인(4,3)·도적(5,3)의 말 걸기/조우 반경과
+        // 한 칸(48유닛) 이상 떨어져 안 겹친다.
+        private static readonly (string Id, int Gx, int Gy)[] GatherSpots =
+        {
+            ("herb_1", 1, 2),
+            ("herb_2", 5, 2),
+            ("herb_3", 2, 4),
+        };
+
+        private static void BuildGatherables()
+        {
+            var parent = new GameObject("Gatherables");
+            foreach (var spot in GatherSpots)
+            {
+                var go = new GameObject($"Gatherable_{spot.Id}");
+                go.transform.SetParent(parent.transform, false);
+                var g = go.AddComponent<Gatherable>();
+                g.Init(spot.Id, spot.Gx, spot.Gy);
+                g.Build();
+            }
         }
 
         /// <summary>지나가다 듣는 한 마디를 띄우는 화면 상단 자막(누르는 대화창 아님).</summary>

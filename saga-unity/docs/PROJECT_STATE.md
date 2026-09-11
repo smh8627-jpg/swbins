@@ -5,6 +5,31 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 51장 GO 월드 확장 — "수집" 콘텐츠 첫 조각.** 기술부채
+  정리 다음으로 이어서(같은 세션, 2026-09-11) — 지도 크기를 키우는
+  대신(TerrainBuilder·LandmarksBuilder·모든 격자 좌표를 건드리는 가장
+  파급이 큰 손질이라 이번엔 피함, 32장 "최소 변경") 기존 7x7 지도의
+  빈 들판 세 자리에 산나물 채집 지점을 심었다. `Data/GatherState.cs`
+  (id 집합 — 도적·보물은 자리가 하나뿐이라 전용 상태 클래스를 뒀지만
+  채집은 처음부터 여러 자리라 문자열 id로 구분, 사전에 일반화한 게
+  아니라 이 콘텐츠 자체가 N개라 구조가 다름) + `World/Gatherable.cs`
+  (HiddenTreasure.cs와 같은 결 — 트리거 한 번, 작은 발광 구슬, 캐면
+  돈 +8냥). **자리마다 격자 좌표·id가 다른 첫 재사용 가능 컴포넌트라**
+  BanditEncounter·HiddenTreasure처럼 상수로 못 박지 못하고
+  `[SerializeField]`로 받는다 — 안 그러면 씬 저장 뒤 실제 Play 때
+  Awake()가 기본값(0,0,null)으로 돈다(주석에 이유 남김). **Awake()가
+  이미 "Visual" 자식이 있으면 다시 안 만들게 방어 코드를 넣었다** —
+  이 프로젝트의 배치 모드 편집기 스크립트(`-executeMethod`)는 Awake를
+  안 부르는 것으로 보이지만(그래서 각 Builder가 AddComponent 뒤에
+  `.Build()`를 직접 또 부른다) 확신이 낮아 이중 생성에 안전하게
+  만들어 둠 — **다음에 비슷한 컴포넌트를 새로 짤 때도 이 방어를
+  기본으로 넣을 것.** 촌장(1,3)·상인(4,3)·도적(5,3) 말 걸기/조우
+  반경과 안 겹치는 들판(1,2)/(5,2)/(2,4) 세 자리. `BuildTestVillageScene
+  .cs`에 `BuildGatherables()` 훅 추가 — GameObject가 늘어 씬 재빌드
+  (groundVerts=3136 그대로). `SaveState.cs` v5→v6로 캔 자리 목록도
+  저장/로드. 컴파일·씬 재저장·PlaytestHeadless 전부 통과 — 발광
+  구슬이 실제로 보이는지·캐지는지는 역시 사람이 직접 봐야 확인됨.
+
 - **미뤄 둔 기술부채 — 골드 경제 + 상인 거래 + 상시 HUD.** Phase 6·7
   (59~73장)을 다 채운 뒤 사용자가 "다 하면 안 될까, 안 묻고 최대한
   계속해줘"로 판단을 맡겨(2026-09-11) 이전에 미뤄 뒀던 항목부터 정리.
@@ -296,16 +321,20 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     실제로 낼 수 있는지/모자라면 거절당하는지, 상인에게 처음/두 번째
     말 걸 때 문구가 바뀌는지, 화면 왼쪽 위 HUD 줄이 DebugUI와 안
     겹치고 값이 실제로 갱신되는지)
+  - **산나물 채집 세 자리가 실제로 보이고 캐지는지**((1,2)/(5,2)/(2,4)
+    들판에 작은 초록 구슬이 보이는지, 밟으면 돈 +8냥이 들어오는지)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
-  World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud까지 코드상
-  으로는 전부 채워졌다.** **위 GUI 확인에서 실제로 도는 게 확인되면
-  PLAN.md 77~78단계(전체 플레이 테스트 → 재미 평가)로 넘어갈 수 있다**
-  — 이번 세션은 그 게이트를 사용자가 명시로 건너뛰라고 골라 여기까지
-  끝냈다(2026-09-11). 다음 후보는 PLAN.md 51~65장이 적어 둔 확장 순서
-  (GO 월드 확장 → DUNGEON → FOREST → STORY → REALM) — 사건/퀘스트/
-  상점을 사전 구조로 일반화하는 건 콘텐츠가 하나뿐이라 여전히 미룸(두
-  번째 사건이 생길 때). 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
+  World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
+  51장 채집 첫 조각까지 코드상으로는 전부 채워졌다.** **위 GUI
+  확인에서 실제로 도는 게 확인되면 PLAN.md 77~78단계(전체 플레이 테스트
+  → 재미 평가)로 넘어갈 수 있다** — 이번 세션은 그 게이트를 사용자가
+  명시로 건너뛰라고("다 하면 안 될까, 안 묻고 최대한 계속해줘") 골라
+  여기까지 끝냈다(2026-09-11). 다음 후보는 PLAN.md 51장의 나머지(GO
+  월드 확장 — 지도 자체를 키우기, 희귀 몬스터) · 51~65장이 적어 둔
+  확장 순서(GO → DUNGEON → FOREST → STORY → REALM) — 사건/퀘스트/상점을
+  사전 구조로 일반화하는 건 콘텐츠가 아직 각각 하나뿐이라(채집만 예외)
+  여전히 미룸. 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
 
 ## 알려진 오류
 
@@ -382,3 +411,6 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   BanditEncounter·NpcBuilder·SaveState v5 통합) 추가 후 컴파일 통과,
   PlayerHud가 씬에 새 GameObject라 `BuildTestVillageScene.Build()` 재실행
   (groundVerts=3136 그대로), PlaytestHeadless도 통과.
+- 채집(GatherState/Gatherable + BuildGatherables 훅 + SaveState v6) 추가
+  후 컴파일 통과, 씬 재빌드(groundVerts=3136 그대로) 후 PlaytestHeadless
+  통과.
