@@ -1879,8 +1879,7 @@
    * 손잡이를 껐으면) 1단계의 빌보드로 돌아간다 — 그림은 `sprite.js` 것을 그대로 쓴다.
    */
   function spriteTexture(kind, ref, px) {
-    var key = kind + '/' + (ref.id || ref.key || ref.name) + '/' + px + '/' +
-      global.DG.sprite.style() + '/' + global.DG.sprite.prop() + '/flat';
+    var key = kind + '/' + (ref.id || ref.key || ref.name) + '/' + px + '/flat';
     if (texCache[key]) { return texCache[key]; }
     /* 네 번째 인자가 **종이 바탕 없이** 굽게 한다 — 3D 에서는 배경이 사각형으로 남는다 */
     var url = global.DG.sprite.portrait(kind, ref, px, true);

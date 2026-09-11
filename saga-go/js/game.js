@@ -83,9 +83,6 @@
   function start() {
     var fresh = !core.load();
 
-    // 저장된 등신 비례·그림 양식을 스프라이트에 적용 (캐시가 쌓이기 전에)
-    if (core.save.settings.prop) { global.DG.sprite.setProp(core.save.settings.prop); }
-    if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
     // 옛 세이브: 보급 기준점이 없으면 지금 거리에서 시작 (누적분 몰아주기 방지)
     if (!core.save.player.supplyMark && core.save.player.distance > 0) {
       core.save.player.supplyMark = core.save.player.distance;
@@ -206,34 +203,6 @@
         inchBtn.classList.toggle('on', on);
         ui.toast(on ? '🔍 3인치 모드 — 화면을 멀리서 봅니다' : '🔍 3인치 모드 해제 — 원래 배율로 돌아갑니다');
         if (tiltBtn) { tiltBtn.textContent = tiltLabel(); }
-      });
-    }
-
-    /* 그림 양식 — 전통 삽화 → 그림책(도감) → 일본 만화 순환 */
-    var STYLE_ORDER = ['classic', 'story', 'anime'];
-    var STYLE_ICON = { classic: '🖌️', story: '📗', anime: '🎴' };
-    var STYLE_MSG = {
-      classic: '🖌️ 전통 삽화풍',
-      story: '📗 그림책풍 — 선화 + 플랫 채색',
-      anime: '🎴 일본 만화풍'
-    };
-    var styleBtn = document.getElementById('btn-style');
-    if (styleBtn) {
-      var syncStyleBtn = function () {
-        var cur = global.DG.sprite.style();
-        styleBtn.textContent = STYLE_ICON[cur] || '🖌️';
-        styleBtn.classList.toggle('on', cur !== 'classic');
-      };
-      syncStyleBtn();
-      styleBtn.addEventListener('click', function () {
-        var cur = STYLE_ORDER.indexOf(global.DG.sprite.style());
-        var next = STYLE_ORDER[(cur + 1) % STYLE_ORDER.length];
-        global.DG.sprite.setStyle(next);
-        core.save.settings.style = next;
-        core.persist();
-        syncStyleBtn();
-        ui.toast(STYLE_MSG[next]);
-        core.emit('changed');           // 초상 <img> 를 새 양식으로 다시 굽는다
       });
     }
 

@@ -22,18 +22,13 @@
 <script src="js/genchar.js"></script>
 <script src="js/sprite.js"></script>
 <script>
-/* 카드 배경·문양 없이 스프라이트만 크게 그린다 (만화풍 다듬기 판정용)
+/* 카드 배경·문양 없이 스프라이트만 크게 그린다 (그림책풍 다듬기 판정용)
      ?ids=sg_guanyu,sg_zhugeliang   인물 id 지정 (없으면 앞에서 n명)
      ?n=8  ?s=6                     인원 · 배율(스케일)
-     ?style=anime|classic|story  ?prop=chibi|normal|tall
      ?head=1                        머리만 크게 잘라 본다 */
 (function () {
   var q = new URLSearchParams(location.search);
   var D = DG.data, S = DG.sprite;
-  var wantStyle = q.get('style');
-  S.setStyle(wantStyle === 'classic' ? 'classic'
-    : (wantStyle === 'story' ? 'story' : 'anime'));
-  if (q.get('prop')) { S.setProp(q.get('prop')); }
   var sc = parseFloat(q.get('s') || '6');
   var head = q.get('head') === '1';
   var ids = (q.get('ids') || '').split(',').filter(Boolean);
@@ -42,8 +37,9 @@
     : D.heroes.slice(0, parseInt(q.get('n') || '6', 10));
 
   var H = 40 * sc;                       // human() 의 기준 높이
-  /* 머리 중심은 발에서 headY 만큼 위. head 모드는 그 지점을 캔버스 중앙에 둔다 */
-  var pr = S.PROPS[S.prop()] || S.PROPS.normal;
+  /* 머리 중심은 발에서 headY 만큼 위. head 모드는 그 지점을 캔버스 중앙에 둔다
+     (headY 는 sprite.js 의 PROPS_NORMAL 과 같은 값 — 이제 고정값이라 여기 그대로 적는다) */
+  var pr = { headY: 0.885 };
   var W = Math.ceil(H * 1.9), CH = Math.ceil(head ? H * 0.95 : H * 1.75);
   var out = document.getElementById('out');
   var html = '<div class="row">';

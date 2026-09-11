@@ -27,7 +27,7 @@
     #noao   맞닿은 자리의 그늘(SSAO)을 끄고 견줘 본다
     #nowater 물결치는 수면을 끄고 옛 판 한 장으로 (물을 견줘 볼 때)
     #minimap 미니맵(좌하단) — mmfar 를 붙이면 360m, mmfold 를 붙이면 접힌 모습
-  해시에 2d·3d·chibi·tall·anime·story 를 붙이면 시점·등신·양식도 바뀐다 (예: #map-3d-chibi).
+  해시에 2d·3d 를 붙이면 시점도 바뀐다 (예: #map-3d).
   뒤에 -b 를 붙이면 시트를 끝까지 내려서 찍는다 (예: #dex-b).
 
   이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
@@ -41,7 +41,6 @@
     <button class="icon-btn" id="btn-auto"><span data-icon="bot">🤖</span></button>
     <button class="icon-btn on" id="btn-geo"><span data-icon="satellite-dish">📡</span></button>
     <button class="icon-btn txt" id="btn-tilt">2.5D</button>
-    <button class="icon-btn" id="btn-style"><span data-icon="palette">🖌️</span></button>
     <button class="icon-btn" id="btn-help"><span data-icon="circle-question-mark">❔</span></button>
     <button class="icon-btn" id="btn-reset"><span data-icon="rotate-ccw">↺</span></button>
   </div>
@@ -667,10 +666,6 @@ setTimeout(function () {
   /* 3D 배율 — #3d-z9 처럼 붙이면 그 배율로 찍는다 */
   var zm = hash.match(/z(\d+(?:\.\d+)?)/);
   if (zm && DG.world.setZoom3d) { DG.world.setZoom3d(Number(zm[1])); }
-  if (hash.indexOf('chibi') >= 0) { DG.sprite.setProp('chibi'); C.emit('changed'); }
-  if (hash.indexOf('tall') >= 0) { DG.sprite.setProp('tall'); C.emit('changed'); }
-  if (hash.indexOf('anime') >= 0) { DG.sprite.setStyle('anime'); C.emit('changed'); }
-  if (hash.indexOf('story') >= 0) { DG.sprite.setStyle('story'); C.emit('changed'); }
   var tab = hash.split('-')[0];
 
   if (hash.indexOf('perf') >= 0) {

@@ -22,17 +22,13 @@
 /* 스프라이트를 한 판에 늘어놓고 눈으로 확인하는 용도. 게임 로직은 안 쓴다.
      ?w=120&h=140      크기
      ?only=hero|pet    종류
-     ?style=anime|story 그림 양식 (기본 classic)
-     ?prop=chibi|tall  등신 비례
-     ?compare=1        같은 인물을 전통 / 그림책 / 만화 나란히 (양식 비교용)
-     ?n=12             앞에서 n명만 (비교할 때 편하다) */
+     ?n=12             앞에서 n명만 */
 (function () {
   var q = new URLSearchParams(location.search);
   var W = parseInt(q.get('w') || '110', 10), H = parseInt(q.get('h') || '126', 10);
   var D = DG.data, S = DG.sprite;
   var only = q.get('only');
   var n = parseInt(q.get('n') || '0', 10);
-  if (q.get('prop')) { S.setProp(q.get('prop')); }
 
   function cell(kind, ref, tag) {
     return '<div class="c"><img src="' + S.portraitCard(kind, ref, W, H) + '" width="' + W + '" height="' + H + '">' +
@@ -42,36 +38,9 @@
 
   var html = '';
 
-  var STYLES = [
-    { key: 'classic', tag: '전통' },
-    { key: 'story', tag: '그림책' },
-    { key: 'anime', tag: '만화' }
-  ];
-  var LABEL = { classic: '전통풍', story: '그림책풍', anime: '만화풍' };
-
-  if (q.get('compare')) {
-    /* 같은 인물을 세 양식으로 — 나란히 놓고 판단한다 */
-    var pool = only === 'pet' ? list(D.pets) : list(D.heroes);
-    var kind = only === 'pet' ? 'pet' : 'hero';
-    for (var c = 0; c < pool.length; c++) {
-      html += '<div class="g" style="align-items:flex-end">';
-      for (var si = 0; si < STYLES.length; si++) {
-        S.setStyle(STYLES[si].key);
-        html += cell(kind, pool[c], STYLES[si].tag);
-      }
-      html += '</div>';
-    }
-    document.getElementById('out').innerHTML =
-      '<h3>양식 비교 — 전통 / 그림책 / 만화 (' + pool.length + ')</h3>' + html;
-    return;
-  }
-
-  var want = q.get('style');
-  S.setStyle(want === 'anime' ? 'anime' : (want === 'story' ? 'story' : 'classic'));
-  var label = LABEL[S.style()];
   if (only !== 'pet') {
     var hs = list(D.heroes);
-    html += '<h3>인물 ' + hs.length + '명 · ' + label + ' · ' + S.prop() + '</h3><div class="g">';
+    html += '<h3>인물 ' + hs.length + '명</h3><div class="g">';
     for (var i = 0; i < hs.length; i++) { html += cell('hero', hs[i]); }
     html += '</div>';
   }

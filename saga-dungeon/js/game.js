@@ -122,7 +122,6 @@
       fresh = true;
     }
 
-    if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
     /* 행상 — 회차가 끝날 때마다 새 물건이 온다(vendor.js 가 dungeon:end 를 듣는다) */
     if (global.DG.vendor) { global.DG.vendor.init(); }
 
@@ -248,37 +247,6 @@
       core.reset();
       location.reload();
     });
-
-    /* 그림 양식 — 디아블로 → 전통 → 그림책 → 만화.
-       이 판의 기본은 **디아블로풍**이다(sprite.js styleMode). 나머지 셋은
-       시리즈 공통 양식이라 남겨 둔다 — 취향껏 갈아 볼 수 있게. */
-    var STYLE_ORDER = ['diablo', 'classic', 'story', 'anime'];
-    var STYLE_ICON = { diablo: '\uD83D\uDD25', classic: '🖌️', story: '📗', anime: '🎴' };
-    var STYLE_MSG = {
-      diablo: '\uD83D\uDD25 디아블로풍 — 낮은 채도 · 횃불 테',
-      classic: '🖌️ 전통 삽화풍',
-      story: '📗 그림책풍 — 선화 + 플랫 채색',
-      anime: '🎴 일본 만화풍'
-    };
-    var styleBtn = document.getElementById('btn-style');
-    if (styleBtn) {
-      var syncStyleBtn = function () {
-        var cur = global.DG.sprite.style();
-        styleBtn.textContent = STYLE_ICON[cur] || '\uD83D\uDD25';
-        styleBtn.classList.toggle('on', cur !== 'diablo');
-      };
-      syncStyleBtn();
-      styleBtn.addEventListener('click', function () {
-        var cur = STYLE_ORDER.indexOf(global.DG.sprite.style());
-        var next = STYLE_ORDER[(cur + 1) % STYLE_ORDER.length];
-        global.DG.sprite.setStyle(next);
-        core.save.settings.style = next;
-        core.persist();
-        syncStyleBtn();
-        ui.toast(STYLE_MSG[next]);
-        core.emit('changed');
-      });
-    }
 
     /* 소리 — 원작의 감각에서 큰 몫이라 켠 채로 시작한다(sfx.js).
        브라우저 규칙 때문에 **첫 눌림 전에는 소리가 안 난다** — 이 버튼을 누르는 것이

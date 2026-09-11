@@ -48,34 +48,13 @@
   var PROPS_NORMAL = { headR: 0.118, headY: 0.885, shoY: 0.760, hipY: 0.420, leg: 0.420, arm: 0.340, thick: 1.00 };
 
   /* ── 그림 양식 ────────────────────────────────────────────
-   * 'classic' 전통 삽화풍 — 사실적 비례, 부드러운 그라디언트 명암
-   * 'anime'   일본 만화풍 — 큰 눈·뾰족한 머리·2톤 셀 셰이딩·검은 윤곽선
-   * 'story'   그림책(도감)풍 — 얇은 갈색 선화 + 낮은 채도의 플랫 채색
-   *
-   * classic·anime 는 도형을 다르게 그려서 만든다(얼굴·머리·명암만 갈아끼우고
-   * 골격은 공유한다). story 는 **다 그린 다음 픽셀에서 한 번 훑어** 만든다 —
-   * 선화·플랫 채색은 도형마다 손보는 게 아니라 화면 전체에 걸리는 성질이라
-   * 그쪽이 인물 48·짐승 25·장비까지 한 번에 맞추는 유일한 길이다 (storyize 참조).
+   * 이 판(saga-dungeon)은 `diablo` 양식 하나로 고정돼 있다 — 낮은 채도 · 센 대비 ·
+   * 왼쪽 위 횃불 테(아래 diabloize 참조). 2026-09-14에 classic·story·anime
+   * 토글을 걷어내고 이 하나만 남겼다(README 참고).
+   * **이 판(saga-dungeon)에만 있던 양식이다.** sprite.js 는 다섯 게임이 한 벌씩
+   * 나눠 든 복사본인데, 다른 네 판의 sprite.js 에 이 양식을 옮겨 심지 말 것 —
+   * 갈라 둔 것이 뜻이다.
    */
-  /* 'diablo'  디아블로2풍 — 낮은 채도 · 센 대비 · 왼쪽 위 횃불 테 (아래 diabloize)
-     **이 판(saga-dungeon)에만 있다.** sprite.js 는 다섯 게임이 한 벌씩 나눠 든
-     복사본인데, 사용자가 "다 달라야 함" 이라 해서 이 한 벌만 갈랐다.
-     다른 네 판의 sprite.js 에 이 양식을 옮겨 심지 말 것 — 갈라 둔 것이 뜻이다. */
-  var styleMode = 'diablo';
-  var STYLES = ['classic', 'story', 'anime', 'diablo'];
-
-  /** 그림 양식 변경 — 마찬가지로 캐시를 비운다 */
-  function setStyle(mode) {
-    if (STYLES.indexOf(mode) < 0 || mode === styleMode) { return styleMode; }
-    styleMode = mode;
-    clearCaches();
-    return styleMode;
-  }
-
-  function clearCaches() {
-    stampCache = {}; stampOrder = [];
-    cache = {}; cardCache = {};
-  }
 
   /* ── 인물 외형 ────────────────────────────────────────── */
 
@@ -261,15 +240,6 @@
 
     var hipY = -H * P.hipY, shoY = -H * P.shoY, headR = H * P.headR, headY = -H * P.headY;
     var lw = H * 0.085 * P.thick;
-    var anime = styleMode === 'anime';            // 그림 양식 (얼굴·머리·명암만 다르다)
-    var seed = anime ? animeSeed(o) : 0;
-    /* 만화풍은 머리를 키운다 — 애니메 그림의 인상은 큰 머리·큰 눈에서 나온다. */
-    if (anime) {
-      headR *= 1.42;
-      /* 턱이 어깨를 파고들면 목이 사라지고 어깨 갑옷이 턱에 달라붙는다.
-         달걀형 턱 끝(headY + headR*1.16)이 어깨보다 조금 위에 오도록 머리를 올린다. */
-      headY = shoY - H * 0.025 - headR * 1.16;
-    }
     var robe = look.armor === 'robe' || look.armor === 'coat';
 
     ctx.save();
@@ -371,17 +341,9 @@
       ctx.ellipse(H * 0.06, -H * 0.01, H * 0.05, H * 0.026, 0, 0, Math.PI * 2);
       ctx.fillStyle = cloth; ctx.fill();
     } else {
-      /* 상체 — 전통풍은 그라디언트, 만화풍은 2톤 셀 셰이딩 */
-      var tg;
-      if (anime) {
-        tg = ctx.createLinearGradient(-H * 0.15, 0, H * 0.15, 0);
-        var edge = shade(mid, -0.26), face = shade(mid, 0.10);
-        tg.addColorStop(0, edge); tg.addColorStop(0.34, edge);
-        tg.addColorStop(0.341, face); tg.addColorStop(1, face);
-      } else {
-        tg = ctx.createLinearGradient(-H * 0.15, shoY, H * 0.15, hipY);
-        tg.addColorStop(0, shade(mid, -0.22)); tg.addColorStop(0.45, mid); tg.addColorStop(1, shade(mid, 0.06));
-      }
+      /* 상체 — 그라디언트 */
+      var tg = ctx.createLinearGradient(-H * 0.15, shoY, H * 0.15, hipY);
+      tg.addColorStop(0, shade(mid, -0.22)); tg.addColorStop(0.45, mid); tg.addColorStop(1, shade(mid, 0.06));
       ctx.beginPath();
       if (robe) {                                  // 도포 — 아래로 퍼진다
         ctx.moveTo(-H * 0.15, shoY);
@@ -520,88 +482,41 @@
     weapon(ctx, look.weapon, hx, hy, H, metal, metalDark, col, dark);
     if (fine) { hand(ctx, hx, hy, H * 0.05, skin); }
 
-    /* ── 목 · 머리 ──
-     * 만화풍은 머리가 커서 목이 그만큼 길게 드러난다 — 얇으면 부러진 것처럼 보인다. */
+    /* ── 목 · 머리 ── */
     ctx.beginPath();
     ctx.moveTo(0, shoY);
     ctx.lineTo(0, headY + headR * 0.6);
     ctx.strokeStyle = skinDark;
-    ctx.lineWidth = H * (anime ? 0.082 : 0.055);
+    ctx.lineWidth = H * 0.055;
     ctx.stroke();
 
-    /* 머리 — 만화풍은 턱이 좁은 달걀형, 전통풍은 원형 */
+    /* 머리 — 원형 */
     ctx.beginPath();
-    if (anime) {
-      ctx.moveTo(-headR * 0.94, headY - headR * 0.16);
-      ctx.quadraticCurveTo(-headR * 0.92, headY - headR * 1.06, 0, headY - headR * 1.04);
-      ctx.quadraticCurveTo(headR * 0.96, headY - headR * 1.02, headR * 0.98, headY - headR * 0.12);
-      ctx.quadraticCurveTo(headR * 0.96, headY + headR * 0.72, headR * 0.30, headY + headR * 1.04);
-      ctx.quadraticCurveTo(0, headY + headR * 1.16, -headR * 0.44, headY + headR * 0.86);
-      ctx.quadraticCurveTo(-headR * 0.92, headY + headR * 0.52, -headR * 0.94, headY - headR * 0.16);
-      ctx.closePath();
-    } else {
-      ctx.arc(0, headY, headR, 0, Math.PI * 2);
-    }
-    if (anime) {
-      /* 셀 셰이딩 — 두 톤으로 딱 끊는다 */
-      ctx.fillStyle = shade(skin, 0.16);
-      ctx.fill();
-      ctx.save();
-      ctx.clip();
-      ctx.beginPath();
-      ctx.moveTo(-headR * 1.1, headY + headR * 1.2);
-      ctx.lineTo(-headR * 1.1, headY - headR * 0.30);
-      ctx.quadraticCurveTo(-headR * 0.2, headY + headR * 0.10, headR * 1.1, headY - headR * 0.55);
-      ctx.lineTo(headR * 1.1, headY + headR * 1.2);
-      ctx.closePath();
-      ctx.fillStyle = shade(skin, -0.14);
-      ctx.fill();
-      ctx.restore();
-      if (fine) {                                  // 윤곽선
-        ctx.strokeStyle = 'rgba(60,40,38,0.55)';
-        ctx.lineWidth = Math.max(0.5, headR * 0.07);
-        ctx.stroke();
-      }
-    } else {
-      var hg = ctx.createRadialGradient(headR * 0.35, headY - headR * 0.3, headR * 0.2,
-                                        0, headY, headR * 1.25);
-      hg.addColorStop(0, shade(skin, 0.22)); hg.addColorStop(1, shade(skin, -0.06));
-      ctx.fillStyle = hg; ctx.fill();
-    }
+    ctx.arc(0, headY, headR, 0, Math.PI * 2);
+    var hg = ctx.createRadialGradient(headR * 0.35, headY - headR * 0.3, headR * 0.2,
+                                      0, headY, headR * 1.25);
+    hg.addColorStop(0, shade(skin, 0.22)); hg.addColorStop(1, shade(skin, -0.06));
+    ctx.fillStyle = hg; ctx.fill();
 
     /* 머리카락 — 투구를 쓰면 감춰진다 */
     var bare = !look.helm || look.helm === 'none' || look.helm === 'hairpin' ||
                look.helm === 'braid' || look.helm === 'topknot';
-    if (anime && !bare && look.helm !== 'monk') {
-      /* 투구·관모를 써도 만화풍은 앞머리가 삐져나온다 — 없으면 대머리처럼 보인다.
-         단 승려(monk)는 민머리가 본인 특징이라 앞머리를 붙이면 안 된다 */
-      animeFringe(ctx, headY, headR, seed, hair);
-    }
     if (bare) {
-      if (anime) {
-        var female = !!(look.skirt || look.helm === 'hairpin' || look.helm === 'braid');
-        animeHair(ctx, headY, headR, seed, fine, hair, female);
-      } else {
+      ctx.beginPath();
+      ctx.arc(0, headY - headR * 0.10, headR * 1.0, Math.PI * 1.08, Math.PI * 1.98);
+      ctx.lineTo(-headR * 0.70, headY + headR * 0.22);
+      ctx.quadraticCurveTo(-headR * 1.02, headY - headR * 0.30, -headR * 0.92, headY - headR * 0.55);
+      ctx.closePath();
+      ctx.fillStyle = hair; ctx.fill();
+      if (fine) {                                 // 상투 — 뒤통수 위로 묶은 머리
         ctx.beginPath();
-        ctx.arc(0, headY - headR * 0.10, headR * 1.0, Math.PI * 1.08, Math.PI * 1.98);
-        ctx.lineTo(-headR * 0.70, headY + headR * 0.22);
-        ctx.quadraticCurveTo(-headR * 1.02, headY - headR * 0.30, -headR * 0.92, headY - headR * 0.55);
-        ctx.closePath();
-        ctx.fillStyle = hair; ctx.fill();
-        if (fine) {                                 // 상투 — 뒤통수 위로 묶은 머리
-          ctx.beginPath();
-          ctx.arc(-headR * 0.10, headY - headR * 1.06, headR * 0.26, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        ctx.arc(-headR * 0.10, headY - headR * 1.06, headR * 0.26, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
     /* 얼굴 */
-    if (anime) {
-      animeFace(ctx, headY, headR, look, seed, fine, superFine, hair);
-    } else if (story() && fine) {
-      storyFace(ctx, headY, headR, look);
-    } else if (fine) {
+    if (fine) {
       var browTilt = look.brow === 'sharp' ? -0.5 : (look.brow === 'soft' ? 0.22 : -0.1);
       ctx.fillStyle = 'rgba(252,252,252,0.92)';
       ctx.beginPath();
@@ -641,11 +556,6 @@
       ctx.fill();
     }
 
-    if (look.eyepatch || look.glasses) {
-      /* 만화풍은 눈을 옮겨 그렸으니 안대·안경도 같이 옮겨야 눈에 맞는다 */
-      ctx.save();
-      if (anime) { ctx.translate(-headR * ANIME_FACE_DX, 0); }
-    }
     if (look.eyepatch) {
       ctx.fillStyle = '#1b1b22';
       ctx.beginPath();
@@ -666,10 +576,9 @@
       ctx.lineTo(headR * 0.20, headY - headR * 0.10);
       ctx.stroke();
     }
-    if (look.eyepatch || look.glasses) { ctx.restore(); }
     if (look.beard) {
-      /* 수염 — 전통풍은 길게 흐르고, 만화풍은 턱 끝에 짧게 붙는다(길면 얼굴을 먹는다) */
-      var bl = anime ? 0.52 : 1.0;                 // 길이 배율
+      /* 수염 */
+      var bl = 1.0;                                // 길이 배율
       ctx.beginPath();
       ctx.moveTo(-headR * 0.40, headY + headR * 0.80);
       ctx.quadraticCurveTo(-headR * 0.18, headY + headR * (0.80 + 0.86 * bl),
@@ -677,9 +586,7 @@
       ctx.quadraticCurveTo(headR * 0.28, headY + headR * (0.76 + 0.80 * bl),
                            headR * 0.46, headY + headR * 0.76);
       ctx.quadraticCurveTo(0, headY + headR * (0.80 + 0.32 * bl), -headR * 0.40, headY + headR * 0.80);
-      /* 만화풍 수염은 밝은 갈색 — 머리색(거의 검정)을 쓰면 턱에 검은 덩어리가 생긴다 */
-      ctx.fillStyle = anime ? 'rgba(120,92,68,0.95)'
-        : (story() ? 'rgba(96,76,56,0.95)' : 'rgba(74,62,52,0.92)');
+      ctx.fillStyle = 'rgba(74,62,52,0.92)';
       ctx.fill();
       if (superFine) {                              // 콧수염 — 입 위에만 아주 얇게
         ctx.beginPath();
@@ -690,25 +597,16 @@
       }
     }
 
-    /* ── 투구 · 모자 ──
-     * 만화풍은 머리가 커진 만큼 조금 더 크게 얹고 위로 올려 쓴다 —
-     * 눈이 커져서 원래 위치로 씌우면 투구가 눈을 덮는다.
-     * 단 **올려도 되는 건 머리를 감싸는 것들뿐**이다. 정수리에 얹는 관모·갓·면류관을
-     * 같이 올리면 머리에서 떨어져 공중에 뜬다(관모 쓴 인물 전원이 그랬다). */
-    headgear(ctx, look.helm, headY - (anime ? headR * HELM_LIFT(look.helm) : 0),
-      headR * (anime ? 1.04 : 1), H, col, mid, dark, metal, metalDark, anime, skin);
+    /* ── 투구 · 모자 ── */
+    headgear(ctx, look.helm, headY, headR, H, col, mid, dark, metal, metalDark, skin);
 
-    /* ★5 인물은 윤곽에 옅은 금빛이 돈다.
-       만화풍은 머리가 커지고 모자가 위로 올라가 이 아치가 이마·모자를 가로지르는
-       금색 링처럼 보인다 — 그래서 만화풍에서는 어깨 쪽 금빛만 남긴다. */
+    /* ★5 인물은 윤곽에 옅은 금빛이 돈다. */
     if (o.rarity >= 5 && fine) {
       ctx.strokeStyle = 'rgba(240,190,90,0.5)';
       ctx.lineWidth = H * 0.014;
-      if (!anime) {
-        ctx.beginPath();
-        ctx.arc(0, headY, headR * 1.04, Math.PI * 1.15, Math.PI * 1.95);
-        ctx.stroke();
-      }
+      ctx.beginPath();
+      ctx.arc(0, headY, headR * 1.04, Math.PI * 1.15, Math.PI * 1.95);
+      ctx.stroke();
       ctx.beginPath();
       ctx.moveTo(-H * 0.145, shoY + H * 0.01);
       ctx.lineTo(-H * 0.115, hipY + H * 0.02);
@@ -716,315 +614,6 @@
     }
 
     ctx.restore();
-  }
-
-  /* ── 만화풍(anime) 얼굴 · 머리카락 ────────────────────────
-   * 애니메 그림이 사실화와 다른 지점은 다섯 가지뿐이다. 그것만 흉낸다.
-   *   1 눈이 크고 위쪽에 몰려 있다 (흰자 + 큰 홍채 + 하이라이트 + 굵은 위 속눈썹)
-   *   2 코·입이 아주 작다 (점과 짧은 선)
-   *   3 머리카락이 뾰족한 다발로 갈라진다 + 광택 밴드가 있다
-   *   4 명암이 두 톤으로 딱 끊긴다 (그라디언트 없음)
-   *   5 윤곽선이 어둡게 들어간다
-   */
-
-  /** 인물 id 로 고정되는 값 — 같은 인물은 늘 같은 머리 모양·눈 색이 된다 */
-  function animeSeed(o) {
-    var key = (o.ref && (o.ref.id || o.ref.name)) || o.key || 'x';
-    var h = 0;
-    for (var i = 0; i < key.length; i++) { h = (h * 31 + key.charCodeAt(i)) & 0x7fffffff; }
-    return h;
-  }
-
-  /* 눈 색 — 동양 인물이라 갈색·흑갈색을 중심에 두고 한둘만 청·자를 섞는다.
-     (예전엔 청록·초록이 섞여 관우 눈이 초록으로 나왔다) */
-  /* 만화풍 이목구비를 얼굴 안쪽으로 당기는 양 (headR 배수) — 눈·안경·안대가 공유한다 */
-  /* 그림책풍 얼굴 — 정면을 보고 웃는다.
-   * 전통풍 얼굴은 3/4 각도라 눈이 한쪽에 몰려 있고 흰자·눈동자가 아주 작다.
-   * 그 상태로 storyize() 를 통과하면 이목구비가 계단·선에 먹혀 얼굴이 뭉갠 자국처럼
-   * 남는다(실제로 그랬다). 그래서 이 양식만 **크고 단순한 정면 이목구비**로 그린다.
-   * 굵기·크기는 후처리 뒤에도 남을 만큼(머리 반지름의 15% 이상) 잡는다.
-   */
-  var STORY_INK = '#4a3a2c';
-
-  function storyFace(ctx, headY, headR, look) {
-    /* 이목구비를 조금 내려 잡는다 — 투구·관모의 테가 이마를 덮으므로, 원래
-       위치(눈이 머리 중심보다 위)에 두면 눈·눈썹이 테와 겹쳐 뭉갠 자국이 된다. */
-    var ex = headR * 0.31, ey = headY + headR * 0.06;
-    var er = Math.max(0.9, headR * 0.16);
-
-    /* 눈 — 꽉 찬 타원 하나로. 흰자를 두면 이 크기에서는 회색 점으로 보인다 */
-    ctx.fillStyle = STORY_INK;
-    ctx.beginPath();
-    ctx.ellipse(-ex, ey, er * 0.86, er, 0, 0, Math.PI * 2);
-    ctx.ellipse(ex, ey, er * 0.86, er, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    /* 눈썹 — 기질(brow)에 따라 기울기만 바꾼다 */
-    var tilt = look.brow === 'sharp' ? -0.28 : (look.brow === 'soft' ? 0.16 : -0.06);
-    ctx.strokeStyle = STORY_INK;
-    ctx.lineWidth = Math.max(0.8, headR * 0.11);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-ex - headR * 0.18, ey - headR * 0.26 - tilt * headR * 0.6);
-    ctx.lineTo(-ex + headR * 0.16, ey - headR * 0.30 + tilt * headR * 0.6);
-    ctx.moveTo(ex - headR * 0.16, ey - headR * 0.30 + tilt * headR * 0.6);
-    ctx.lineTo(ex + headR * 0.18, ey - headR * 0.26 - tilt * headR * 0.6);
-    ctx.stroke();
-
-    /* 입 — 수염이 있으면 입은 수염이 가리므로 그리지 않는다 */
-    if (!look.beard) {
-      ctx.lineWidth = Math.max(0.7, headR * 0.09);
-      ctx.beginPath();
-      ctx.arc(0, headY + headR * 0.36, headR * 0.22, Math.PI * 0.18, Math.PI * 0.82);
-      ctx.stroke();
-    }
-  }
-
-  var ANIME_FACE_DX = 0.13;
-
-  var ANIME_EYES = ['#5b3a26', '#7a4c2a', '#3d2a22', '#334f74', '#5a3550', '#2f2a30'];
-
-  /**
-   * 만화풍 얼굴. (0, headY) 가 머리 중심이고 오른쪽을 보는 기준이다.
-   * @param fine 잔 디테일을 그릴 만큼 큰가 · superFine 더 큰가
-   */
-  function animeFace(ctx, headY, headR, look, seed, fine, superFine, hair) {
-    var eyeCol = ANIME_EYES[seed % ANIME_EYES.length];
-    /* 이목구비를 통째로 조금 왼쪽으로 — 3/4 각도라 오른쪽(앞쪽)에 몰리는 게 맞지만,
-       만화풍은 머리를 1.4배 키우므로 같은 비율이면 왼쪽 뺨이 텅 비어 보인다.
-       안경·안대도 같은 값을 써야 눈과 어긋나지 않는다(ANIME_FACE_DX). */
-    ctx.save();
-    ctx.translate(-headR * ANIME_FACE_DX, 0);
-    /* 눈은 얼굴 가로 중앙보다 살짝 위, 서로 멀찍이 (애니메 특징).
-       얼굴 폭의 3분의 1을 차지할 만큼 크게 — 이게 애니메의 핵이다. */
-    var eyes = [
-      { x: headR * 0.54, y: headY + headR * 0.10, w: headR * 0.28, h: headR * 0.40 },  // 앞쪽 눈(큼)
-      { x: -headR * 0.28, y: headY + headR * 0.07, w: headR * 0.25, h: headR * 0.35 }  // 뒤쪽 눈
-    ];
-    var i, e;
-
-    if (!fine) {
-      /* 작을 때는 큰 눈 두 점만 — 이것만으로도 애니메로 읽힌다 */
-      ctx.fillStyle = '#20242e';
-      for (i = 0; i < eyes.length; i++) {
-        e = eyes[i];
-        ctx.beginPath();
-        ctx.ellipse(e.x, e.y, Math.max(0.7, e.w * 0.62), Math.max(0.9, e.h * 0.62), 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-      return;
-    }
-
-    for (i = 0; i < eyes.length; i++) {
-      e = eyes[i];
-      /* 흰자 */
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y, e.w, e.h, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#fbfcff';
-      ctx.fill();
-      /* 홍채 — 크지만 흰자를 남긴다 (꽉 채우면 인형 눈처럼 보인다) */
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y + e.h * 0.08, e.w * 0.68, e.h * 0.70, 0, 0, Math.PI * 2);
-      ctx.fillStyle = eyeCol;
-      ctx.fill();
-      /* 홍채 아래쪽이 밝다 (애니메 특유의 그라데) */
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y + e.h * 0.30, e.w * 0.46, e.h * 0.28, 0, 0, Math.PI * 2);
-      ctx.fillStyle = shade(eyeCol, 0.34);
-      ctx.fill();
-      /* 동공 */
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y + e.h * 0.08, e.w * 0.30, e.h * 0.34, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#141118';
-      ctx.fill();
-      /* 하이라이트 — 이 점 하나가 눈을 살린다 */
-      ctx.beginPath();
-      ctx.ellipse(e.x + e.w * 0.26, e.y - e.h * 0.34, e.w * 0.22, e.h * 0.19, -0.4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.fill();
-      if (superFine) {
-        ctx.beginPath();
-        ctx.arc(e.x - e.w * 0.30, e.y + e.h * 0.30, e.w * 0.13, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.fill();
-      }
-      /* 위 속눈썹 — 눈매를 결정한다. 눈 전체를 두르면 안경처럼 보이므로 위쪽만 얇게 */
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y, e.w * 1.02, e.h * 1.02, 0, Math.PI * 1.12, Math.PI * 1.90);
-      ctx.strokeStyle = '#171520';
-      ctx.lineWidth = Math.max(0.6, e.h * 0.19);
-      ctx.lineCap = 'round';
-      ctx.stroke();
-      /* 눈꼬리 — 바깥쪽으로 살짝 뻗는 선 하나 */
-      if (superFine) {
-        ctx.beginPath();
-        ctx.moveTo(e.x + e.w * 0.86, e.y - e.h * 0.34);
-        ctx.lineTo(e.x + e.w * 1.24, e.y - e.h * 0.52);
-        ctx.lineWidth = Math.max(0.5, e.h * 0.13);
-        ctx.stroke();
-      }
-    }
-
-    /* 눈썹 — 얇고 높다. 기질에 따라 각도가 다르다 */
-    var tilt = look.brow === 'sharp' ? -0.55 : (look.brow === 'soft' ? 0.28 : -0.12);
-    ctx.strokeStyle = shade(hair, 0.12);
-    ctx.lineWidth = Math.max(0.6, headR * 0.075);
-    ctx.beginPath();
-    ctx.moveTo(headR * 0.30, headY - headR * 0.56 + tilt * headR * 0.22);
-    ctx.quadraticCurveTo(headR * 0.54, headY - headR * 0.66,
-                         headR * 0.74, headY - headR * 0.52 - tilt * headR * 0.22);
-    ctx.moveTo(-headR * 0.18, headY - headR * 0.54 + tilt * headR * 0.20);
-    ctx.quadraticCurveTo(headR * 0.00, headY - headR * 0.64,
-                         headR * 0.18, headY - headR * 0.52 - tilt * headR * 0.14);
-    ctx.stroke();
-
-    /* 코 — 작은 삼각 점 */
-    ctx.beginPath();
-    ctx.moveTo(headR * 0.66, headY + headR * 0.22);
-    ctx.lineTo(headR * 0.77, headY + headR * 0.36);
-    ctx.lineTo(headR * 0.58, headY + headR * 0.36);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(146,88,72,0.78)';
-    ctx.fill();
-
-    /* 입 — 짧은 곡선 (수염이 있으면 생략) */
-    if (!look.beard) {
-      ctx.beginPath();
-      ctx.moveTo(headR * 0.34, headY + headR * 0.60);
-      ctx.quadraticCurveTo(headR * 0.50, headY + headR * 0.72, headR * 0.64, headY + headR * 0.58);
-      ctx.strokeStyle = 'rgba(150,62,58,0.95)';
-      ctx.lineWidth = Math.max(0.7, headR * 0.085);
-      ctx.stroke();
-    }
-
-    /* 볼 홍조 — 애니메 감성의 마무리 */
-    if (superFine) {
-      ctx.beginPath();
-      ctx.ellipse(headR * 0.66, headY + headR * 0.40, headR * 0.20, headR * 0.11, 0, 0, Math.PI * 2);
-      ctx.ellipse(-headR * 0.10, headY + headR * 0.38, headR * 0.16, headR * 0.09, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(232,120,120,0.30)';
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
-  /** 투구·모자 아래로 삐져나오는 앞머리만 (모자는 나중에 위에 덮인다) */
-  function animeFringe(ctx, headY, headR, seed, hair) {
-    ctx.fillStyle = hair;
-    /* 이마 밑판 — 두피를 따라 덮는다.
-       예전엔 다발을 평평한 한 줄(y 고정)에서 시작해, 머리 곡면이 가장 높은
-       정수리 쪽이 0.2R 남만큼 떠서 살색 두피가 비쳤다. */
-    ctx.beginPath();
-    ctx.arc(0, headY, headR * 0.99, Math.PI * 1.02, Math.PI * 1.98);
-    ctx.quadraticCurveTo(headR * 0.10, headY - headR * 0.46, -headR * 0.96, headY - headR * 0.22);
-    ctx.closePath();
-    ctx.fill();
-
-    var n = 3 + (seed % 2);
-    for (var i = 0; i < n; i++) {
-      var t = n === 1 ? 0.5 : i / (n - 1);
-      var x = -headR * 0.70 + headR * 1.46 * t;
-      /* 다발 뿌리를 머리 곡면 위에 올린다 (평평한 선에서 시작하면 떠 보인다) */
-      var rx = Math.max(-0.96, Math.min(0.96, x / headR));
-      var rootY = headY - Math.sqrt(1 - rx * rx) * headR * 0.97;
-      var len = headR * (0.40 + ((seed >> (i * 3)) % 4) * 0.11);
-      /* 다발 끝이 눈 위를 넘지 않게 — 넘으면 눈이 머리카락에 파묻힌다 */
-      var tipY = Math.min(rootY + len, headY - headR * 0.16);
-      ctx.beginPath();
-      ctx.moveTo(x - headR * 0.17, rootY + headR * 0.02);
-      ctx.quadraticCurveTo(x + headR * 0.02, tipY - headR * 0.14, x + headR * 0.10, tipY);
-      ctx.quadraticCurveTo(x + headR * 0.24, tipY - headR * 0.18, x + headR * 0.21, rootY - headR * 0.02);
-      ctx.closePath();
-      ctx.fill();
-    }
-    /* 귀 앞 구레나룻 */
-    ctx.beginPath();
-    ctx.moveTo(headR * 0.80, headY - headR * 0.56);
-    ctx.quadraticCurveTo(headR * 1.00, headY - headR * 0.10, headR * 0.84, headY + headR * 0.34);
-    ctx.quadraticCurveTo(headR * 0.70, headY - headR * 0.06, headR * 0.66, headY - headR * 0.52);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  /**
-   * 만화풍 머리카락 — 뾰족한 다발 + 광택 밴드.
-   * 다발 수·길이는 seed 로 고정되므로 같은 인물은 늘 같은 머리다.
-   */
-  function animeHair(ctx, headY, headR, seed, fine, hair, female) {
-    var dark = shade(hair, -0.35), lite = shade(hair, 0.42);
-
-    /* 뒷머리 덩어리 */
-    ctx.beginPath();
-    ctx.arc(0, headY - headR * 0.06, headR * 1.10, Math.PI * 0.98, Math.PI * 2.02);
-    ctx.lineTo(headR * 0.92, headY + headR * 0.30);
-    ctx.quadraticCurveTo(0, headY - headR * 0.20, -headR * 0.92, headY + headR * 0.34);
-    ctx.closePath();
-    ctx.fillStyle = hair;
-    ctx.fill();
-
-    /* 앞머리 다발 — 정수리에서 갈라져 뾰족하게 내려온다 */
-    var n = 4 + (seed % 3);                       // 4~6 다발
-    var spread = Math.PI * 1.06;                  // 이마를 덮는 각도 범위
-    ctx.fillStyle = hair;
-    for (var i = 0; i < n; i++) {
-      var t = i / (n - 1);
-      var a = Math.PI * 1.02 + spread * t;        // 왼쪽 → 오른쪽
-      var rootX = Math.cos(a) * headR * 0.98;
-      var rootY = headY + Math.sin(a) * headR * 0.98;
-      /* 다발 길이·기울기를 seed 로 흔든다 (일정하면 빗자루처럼 보인다) */
-      var len = headR * (0.54 + ((seed >> (i * 3)) % 5) * 0.10);
-      var lean = ((seed >> (i * 2 + 1)) % 3 - 1) * headR * 0.22;
-      var tipX = rootX * 0.72 + lean + headR * 0.14;
-      var tipY = rootY + len;
-      /* 얼굴 정면으로 내려오는 다발은 눈 위에서 멈춘다 — 안 그러면 눈이 파묻힌다.
-         (얼굴 옆으로 흐르는 다발은 길어도 괜찮으니 건드리지 않는다) */
-      if (Math.abs(tipX) < headR * 0.78) { tipY = Math.min(tipY, headY - headR * 0.18); }
-      var w = headR * 0.30;
-      ctx.beginPath();
-      ctx.moveTo(rootX - w * 0.5, rootY - headR * 0.06);
-      ctx.quadraticCurveTo(rootX + w * 0.2, rootY + len * 0.5, tipX, tipY);   // 다발 앞선
-      ctx.quadraticCurveTo(rootX + w * 0.9, rootY + len * 0.4, rootX + w * 0.6, rootY - headR * 0.10);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    /* 옆머리 (귀 앞으로 내려오는 한 줄) — 얼굴 바깥선에 붙인다.
-       안쪽으로 들어오면 뺨을 덮어 얼굴이 좁아 보인다(여성 인물에서 특히 심했다) */
-    ctx.beginPath();
-    ctx.moveTo(headR * 0.92, headY - headR * 0.30);
-    ctx.quadraticCurveTo(headR * 1.14, headY + headR * 0.30, headR * 0.96, headY + headR * (female ? 1.30 : 0.66));
-    ctx.quadraticCurveTo(headR * 0.84, headY + headR * 0.20, headR * 0.80, headY - headR * 0.26);
-    ctx.closePath();
-    ctx.fill();
-
-    /* 여성은 뒤로 긴 머리를 하나 더 */
-    if (female) {
-      ctx.beginPath();
-      ctx.moveTo(-headR * 0.94, headY - headR * 0.10);
-      ctx.quadraticCurveTo(-headR * 1.30, headY + headR * 1.40, -headR * 0.62, headY + headR * 2.30);
-      ctx.quadraticCurveTo(-headR * 0.46, headY + headR * 1.20, -headR * 0.58, headY - headR * 0.06);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    /* 광택 밴드 — 애니메 머리의 상징 */
-    if (fine) {
-      ctx.beginPath();
-      ctx.ellipse(headR * 0.10, headY - headR * 0.62, headR * 0.66, headR * 0.15, -0.18, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.16)';
-      ctx.fill();
-      /* 다발 사이 음영 몇 줄 */
-      ctx.strokeStyle = dark;
-      ctx.lineWidth = Math.max(0.5, headR * 0.06);
-      ctx.beginPath();
-      ctx.moveTo(-headR * 0.30, headY - headR * 0.86);
-      ctx.lineTo(-headR * 0.10, headY - headR * 0.20);
-      ctx.moveTo(headR * 0.44, headY - headR * 0.90);
-      ctx.lineTo(headR * 0.52, headY - headR * 0.26);
-      ctx.stroke();
-    }
-    return lite;
   }
 
   /**
@@ -1068,19 +657,7 @@
     }
   }
 
-  /**
-   * 만화풍에서 모자를 얼마나 위로 올릴지 (headR 배수).
-   * 머리를 감싸는 것(투구·갓·면류관·쪽머리)은 올려야 커진 눈을 덮지 않는다.
-   * 관모(scholar)만은 정수리 위에 얹히는 판이라, 올리면 머리에서 떨어져
-   * 공중에 뜬 검은 상자로 보인다 — 관모 쓴 인물 전원이 그랬다.
-   */
-  function HELM_LIFT(kind) {
-    /* 관모·면류관은 정수리 위에 얹히는 물건이라 올리면 머리에서 떨어져 뜬다 */
-    if (kind === 'scholar' || kind === 'crown') { return 0; }
-    return 0.30;
-  }
-
-  function headgear(ctx, kind, headY, headR, H, col, mid, dark, metal, metalDark, anime, skin) {
+  function headgear(ctx, kind, headY, headR, H, col, mid, dark, metal, metalDark, skin) {
     var topY = headY - headR;
     if (kind === 'helmet' || kind === 'gapju' || kind === 'plume') {
       ctx.beginPath();
@@ -1146,33 +723,22 @@
         ctx.stroke();
       }
     } else if (kind === 'hairpin') {      // 여성 — 쪽머리 + 비녀
-      /* 만화풍은 animeHair 가 이미 긴 머리·옆머리를 그린다.
-         여기서 머리 덩어리를 또 얹으면 두 겹이 되어 뒤쪽 눈까지 덮었다 → 비녀만 남긴다. */
-      if (!anime) {
-        ctx.beginPath();
-        ctx.arc(-headR * 0.75, headY + headR * 0.1, headR * 0.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#2a2228'; ctx.fill();
-        ctx.beginPath();
-        ctx.arc(0, headY - headR * 0.25, headR * 1.05, Math.PI, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.beginPath();
+      ctx.arc(-headR * 0.75, headY + headR * 0.1, headR * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#2a2228'; ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, headY - headR * 0.25, headR * 1.05, Math.PI, Math.PI * 2);
+      ctx.fill();
       ctx.strokeStyle = '#d9b23c'; ctx.lineWidth = H * 0.016;
       ctx.beginPath();
-      if (anime) {                        // 머리 안쪽에 비스듬히 — 이마도, 실루엣 밖도 벗어나지 않게
-        ctx.moveTo(-headR * 0.55, headY - headR * 0.18);
-        ctx.lineTo(headR * 0.05, headY - headR * 0.38);
-      } else {
-        ctx.moveTo(-headR * 1.3, headY + headR * 0.05);
-        ctx.lineTo(-headR * 0.2, headY - headR * 0.1);
-      }
+      ctx.moveTo(-headR * 1.3, headY + headR * 0.05);
+      ctx.lineTo(-headR * 0.2, headY - headR * 0.1);
       ctx.stroke();
     } else if (kind === 'braid') {        // 단발·댕기
-      if (!anime) {
-        ctx.beginPath();
-        ctx.arc(0, headY - headR * 0.2, headR * 1.06, Math.PI, Math.PI * 2);
-        ctx.fillStyle = '#2a2228'; ctx.fill();
-      }
-      ctx.beginPath();                    // 댕기 — 만화풍에서도 뒤로 늘어뜨린다
+      ctx.beginPath();
+      ctx.arc(0, headY - headR * 0.2, headR * 1.06, Math.PI, Math.PI * 2);
+      ctx.fillStyle = '#2a2228'; ctx.fill();
+      ctx.beginPath();                    // 댕기
       ctx.moveTo(-headR * 0.9, headY);
       ctx.quadraticCurveTo(-headR * 1.2, headY + headR * 1.6, -headR * 0.5, headY + headR * 1.8);
       ctx.strokeStyle = '#2a2228'; ctx.lineWidth = H * 0.03; ctx.stroke();
@@ -1766,35 +1332,12 @@
     ctx.stroke();
   }
 
-  /**
-   * 짐승 눈 — 25종이 전부 이 함수를 쓴다.
-   * 만화풍에서는 인물과 같은 눈 문법(흰자 + 큰 홍채 + 하이라이트 한 점)으로 그린다.
-   * 안 그러면 인물만 큰 눈이 되어 동행·도감 화면에서 양식이 어긋난다.
-   */
+  /** 짐승 눈 — 25종이 전부 이 함수를 쓴다. */
   function eye(ctx, x, y, r) {
     r = Math.max(0.6, r);
-    if (styleMode !== 'anime') {
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(25,22,22,0.85)';
-      ctx.fill();
-      return;
-    }
-    var R = r * 3.1;
-    ctx.beginPath();                                 // 흰자
-    ctx.ellipse(x, y, R * 0.86, R, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#fbfcff';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(30,24,26,0.7)';          // 윤곽 — 밝은 털에 묻히지 않게
-    ctx.lineWidth = Math.max(0.5, R * 0.16);
-    ctx.stroke();
-    ctx.beginPath();                                 // 홍채
-    ctx.ellipse(x, y + R * 0.10, R * 0.58, R * 0.68, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#221a1e';
-    ctx.fill();
-    ctx.beginPath();                                 // 하이라이트
-    ctx.arc(x + R * 0.24, y - R * 0.32, Math.max(0.5, R * 0.20), 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(25,22,22,0.85)';
     ctx.fill();
   }
 
@@ -2122,17 +1665,11 @@
       common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
       beast(c, common);
     }
-    /* 그림책풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
-       실루엣만 밝은 테를 둘러 형태가 묻히지 않게 한다 */
-    if (story()) { storyize(cv, { rim: STORY_RIM_MAP, inner: H >= 40, thick: 1 }); }
-    /* 디아블로풍 — 무대가 어두우니 테를 조금 더 세워 형태가 안 묻히게 한다 */
     /* 디아블로풍 — 무대 위 인물은 커 봐야 40~60px 이라 **거의 모든 픽셀이 테**다.
        초상만큼 두르면 인물이 통째로 밝은 실루엣이 된다(그렇게 나왔다).
        그래서 스탬프는 늘 얇게, 위쪽 테만 두른다. 초상 쪽은 각자 세기를 준다. */
-    else if (d2()) {
-      diabloize(cv, H >= 64 ? { rimK: 0.30, dark: 0.88 }
-                            : { rimK: 0.24, wide: false, dark: 0.88 });
-    }
+    diabloize(cv, H >= 64 ? { rimK: 0.30, dark: 0.88 }
+                          : { rimK: 0.24, wide: false, dark: 0.88 });
     return { cv: cv, w: w, h: h, footX: footX, footY: footY, base: base, sc: sc };
   }
 
@@ -2180,121 +1717,8 @@
     return { hit: stat.hit, miss: stat.miss, size: stampOrder.length };
   }
 
-  /* ── 그림책풍 후처리 (styleMode === 'story') ──────────────
-   * 다 그린 스프라이트를 픽셀에서 한 번 훑는다.
-   *   1) 채도를 낮추고 살짝 밝힌 뒤 색을 계단으로 끊는다 → 플랫 채색
-   *   2) 밝기 단차·실루엣 경계를 찾아 얇은 선을 얹는다   → 선화
-   *
-   * 도형 코드를 건드리지 않으므로 인물·짐승·장비·건물이 한꺼번에 같은 양식이 된다.
-   * 비용은 **캐시 미스 때 한 번**만 든다 (스탬프·초상 모두 캐시된다).
-   *
-   * 선 색을 두 가지로 쓴다:
-   *   line 안쪽 경계 — 짙은 갈색 (종이 위 펜선)
-   *   rim  실루엣    — 지도 스탬프는 어두운 지도 위에 서므로 밝은 테를 두른다.
-   *                    (짙은 갈색으로 두르면 배경에 묻혀 형태가 사라진다)
-   */
-  var STORY_LINE = [78, 60, 46];
-  var STORY_RIM_MAP = [242, 232, 208];
-  var STORY_STEP = 24;              // 색 계단 폭 — 크면 더 플랫해진다
-  var STORY_EDGE = 22;              // 색이 이만큼 꺾이면 선을 긋는다 (채널 최대 차)
-
-  /** 선 굵기 — 화면 배율만큼 굽는데, 선은 **화면에서** 1px 로 보여야 한다 */
-  function storyThick() {
-    return Math.max(1, Math.round(Math.min(global.devicePixelRatio || 1, 2)));
-  }
-
-  function storyize(cv, opts) {
-    opts = opts || {};
-    var W = cv.width, H = cv.height;
-    if (!W || !H) { return; }
-    var c = cv.getContext('2d');
-    var img;
-    try { img = c.getImageData(0, 0, W, H); } catch (e) { return; }   // 오염된 캔버스면 그냥 둔다
-    var d = img.data, n = W * H, i, q;
-
-    var alp = new Uint8Array(n);
-    for (i = 0; i < n; i++) {
-      q = i * 4;
-      var a = d[q + 3];
-      alp[i] = a;
-      if (!a) { continue; }
-      var r = d[q], g = d[q + 1], b = d[q + 2];
-      var y = 0.299 * r + 0.587 * g + 0.114 * b;
-      r = y + (r - y) * 0.74;                    // 채도 낮추기
-      g = y + (g - y) * 0.74;
-      b = y + (b - y) * 0.74;
-      r = r * 0.90 + 22; g = g * 0.90 + 20; b = b * 0.90 + 15;   // 종이 톤으로 살짝 들어올리기
-      r = Math.round(r / STORY_STEP) * STORY_STEP;               // 계단
-      g = Math.round(g / STORY_STEP) * STORY_STEP;
-      b = Math.round(b / STORY_STEP) * STORY_STEP;
-      d[q] = r < 0 ? 0 : (r > 255 ? 255 : r);
-      d[q + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
-      d[q + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
-    }
-
-    /* 경계 찾기 — 1 안쪽 선 · 2 실루엣.
-       밝기만 보면 초록 옷과 초록 갑옷처럼 명도가 비슷한 경계를 놓친다.
-       그래서 채널별 차이의 최댓값(색 차이)으로 본다. */
-    function diff(i1, i2) {
-      var a1 = i1 * 4, a2 = i2 * 4;
-      var dr = d[a1] - d[a2], dg = d[a1 + 1] - d[a2 + 1], db = d[a1 + 2] - d[a2 + 2];
-      dr = dr < 0 ? -dr : dr; dg = dg < 0 ? -dg : dg; db = db < 0 ? -db : db;
-      return dr > dg ? (dr > db ? dr : db) : (dg > db ? dg : db);
-    }
-
-    /* 작은 스프라이트(지도 위 대상)는 안쪽 선을 빼고 실루엣만 두른다 —
-       20~30px 안에 선을 다 그으면 형태가 뭉개져 뼈만 남은 것처럼 보인다. */
-    var inner = opts.inner !== false;
-    var edge = new Uint8Array(n), x, y2;
-    for (y2 = 0; y2 < H; y2++) {
-      for (x = 0; x < W; x++) {
-        i = y2 * W + x;
-        if (alp[i] <= 120) { continue; }
-        if ((x + 1 < W && alp[i + 1] < 60) || (x > 0 && alp[i - 1] < 60) ||
-            (y2 + 1 < H && alp[i + W] < 60) || (y2 > 0 && alp[i - W] < 60)) {
-          edge[i] = 2;
-        } else if (inner &&
-                   ((x + 1 < W && alp[i + 1] > 120 && diff(i, i + 1) > STORY_EDGE) ||
-                    (y2 + 1 < H && alp[i + W] > 120 && diff(i, i + W) > STORY_EDGE))) {
-          edge[i] = 1;
-        }
-      }
-    }
-
-    /* 화면 배율이 2 면 1 device px 선은 화면에서 반 픽셀이라 보이지 않는다 —
-       그만큼 오른쪽·아래로 한 번 불려 준다 (원본 표시를 따로 둬서 번지지 않게) */
-    var thick = opts.thick || storyThick();
-    if (thick > 1) {
-      var base = edge.slice();
-      for (y2 = 0; y2 < H; y2++) {
-        for (x = 0; x < W; x++) {
-          i = y2 * W + x;
-          if (!base[i]) { continue; }
-          if (x + 1 < W && !edge[i + 1] && alp[i + 1] > 120) { edge[i + 1] = base[i]; }
-          if (y2 + 1 < H && !edge[i + W] && alp[i + W] > 120) { edge[i + W] = base[i]; }
-        }
-      }
-    }
-
-    var line = opts.line || STORY_LINE;
-    var rim = opts.rim || line;
-    for (i = 0; i < n; i++) {
-      if (!edge[i]) { continue; }
-      q = i * 4;
-      var col = edge[i] === 2 ? rim : line;
-      d[q] = d[q] * 0.12 + col[0] * 0.88;
-      d[q + 1] = d[q + 1] * 0.12 + col[1] * 0.88;
-      d[q + 2] = d[q + 2] * 0.12 + col[2] * 0.88;
-      if (d[q + 3] < 240) { d[q + 3] = 240; }
-    }
-    c.putImageData(img, 0, 0);
-  }
-
-  function story() { return styleMode === 'story'; }
-
-  /* ── 디아블로2풍 후처리 (styleMode === 'diablo') ────────────
-   * storyize 와 같은 자리(다 그린 뒤 픽셀 한 번)에서 도는 **정반대의 양식**이다.
-   * 그림책풍이 "밝은 종이 + 선화" 라면 이쪽은 "어둠 + 금속 반사" 다.
+  /* ── 디아블로2풍 후처리 ────────────────────────────────────
+   * 다 그린 스프라이트를 픽셀에서 한 번 훑어 "어둠 + 금속 반사"로 만든다.
    *
    * 원작의 인물이 눈에 남기는 것 셋만 옮긴다.
    *   1) 채도가 낮고 어둡다 — 색이 아니라 **쇠와 가죽**으로 읽힌다
@@ -2391,8 +1815,6 @@
     c.putImageData(img, 0, 0);
   }
 
-  function d2() { return styleMode === 'diablo'; }
-
   /* ── 초상 캐시 (HTML 목록용) ──────────────────────────── */
 
   var cache = {};
@@ -2413,20 +1835,12 @@
     var c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    /* 그림책풍은 종이 바탕을 깔고 그린다 — 갈색 선화를 어두운 UI 에 그대로 얹으면
-       선이 배경에 묻혀 그림이 뭉개진다. 도감 카드처럼 보이는 효과도 같이 난다. */
-    if (story()) {
-      c.fillStyle = '#f2e7cf';
-      c.fillRect(0, 0, size, size);
-    } else if (d2()) {
-      /* 어두운 돌 바탕 — 어두운 인물을 어두운 UI 에 그냥 얹으면 형태가 사라진다.
-         (그림책풍이 종이를 까는 것과 같은 이유, 반대 색이다) */
-      var bgg = c.createLinearGradient(0, 0, 0, size);
-      bgg.addColorStop(0, '#2a2117');
-      bgg.addColorStop(1, '#0c0906');
-      c.fillStyle = bgg;
-      c.fillRect(0, 0, size, size);
-    }
+    /* 어두운 돌 바탕 — 어두운 인물을 어두운 UI 에 그냥 얹으면 형태가 사라진다 */
+    var bgg = c.createLinearGradient(0, 0, 0, size);
+    bgg.addColorStop(0, '#2a2117');
+    bgg.addColorStop(1, '#0c0906');
+    c.fillStyle = bgg;
+    c.fillRect(0, 0, size, size);
 
     if (kind === 'hero') {
       var f = global.DG.data.faction(ref.faction);
@@ -2444,8 +1858,7 @@
     } else if (kind === 'building') {
       building(c, { x: size * 0.5, y: size * 0.95, s: size / 58, form: ref.key, color: ref.color, t: 0 });
     }
-    if (story()) { storyize(cv); }
-    else if (d2()) { diabloize(cv, { rimK: 0.58 }); }
+    diabloize(cv, { rimK: 0.58 });
     cache[key] = cv.toDataURL();
     return cache[key];
   }
@@ -2475,82 +1888,36 @@
     var fac = isHero ? D.faction(ref.faction) : { color: ref.kind === 'divine' ? '#8a5cc0' : '#5f7a4a', mark: ref.kind === 'divine' ? '神' : '獸' };
     var rar = D.rarity[ref.rarity] || D.rarity[3];
 
-    if (story()) {
-      /* 그림책풍 — 종이 바탕에 옅은 배경(하늘·산·들·기와)을 깔고 인물을 세운다.
-         배경 선은 **여기서 직접 긋는다**. 배경까지 storyize() 에 맡기면 세력 문양
-         같은 큰 무늬의 윤곽까지 따라 그려서, 인물을 가로지르는 네모가 생긴다. */
-      var ink = 'rgba(122,98,74,0.75)';
-      c.fillStyle = '#eef0e2';                         // 하늘
-      c.fillRect(0, 0, w, h);
+    /* 배경 — 위는 세력색, 아래는 어둡게 */
+    var bg = c.createLinearGradient(0, 0, w * 0.4, h);
+    bg.addColorStop(0, shade(fac.color, -0.10));
+    bg.addColorStop(0.55, shade(fac.color, -0.52));
+    bg.addColorStop(1, '#14161c');
+    c.fillStyle = bg;
+    c.fillRect(0, 0, w, h);
 
-      c.save();
-      c.globalAlpha = 0.14;                            // 세력 문양 — 종이에 찍은 도장처럼
-      c.fillStyle = '#6b533a';
-      c.font = '700 ' + Math.round(h * 0.5) + 'px "Malgun Gothic", serif';
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText(fac.mark, w * 0.5, h * 0.5);
-      c.restore();
+    /* 문양 — 크게 깔아 두고 흐리게 */
+    c.save();
+    c.globalAlpha = 0.16;
+    c.fillStyle = '#ffffff';
+    c.font = '700 ' + Math.round(h * 0.62) + 'px "Malgun Gothic", serif';
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(fac.mark, w * 0.5, h * 0.46);
+    c.restore();
 
-      c.beginPath();                                   // 먼 산
-      c.moveTo(-2, h * 0.62);
-      c.quadraticCurveTo(w * 0.26, h * 0.36, w * 0.52, h * 0.60);
-      c.quadraticCurveTo(w * 0.74, h * 0.42, w + 2, h * 0.58);
-      c.lineTo(w + 2, h * 0.72); c.lineTo(-2, h * 0.72);
-      c.closePath();
-      c.fillStyle = '#cddcc4'; c.fill();
-      c.strokeStyle = ink; c.lineWidth = 1; c.stroke();
+    /* 바닥 빛 */
+    var floor = c.createRadialGradient(w * 0.5, h * 0.88, 2, w * 0.5, h * 0.88, w * 0.5);
+    floor.addColorStop(0, 'rgba(255,255,255,0.20)');
+    floor.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = floor;
+    c.fillRect(0, h * 0.62, w, h * 0.38);
 
-      c.fillStyle = '#b9c9ae';                         // 가까운 들
-      c.fillRect(0, h * 0.70, w, h * 0.30);
-      c.beginPath();
-      c.moveTo(0, h * 0.70); c.lineTo(w, h * 0.70);
-      c.strokeStyle = ink; c.lineWidth = 1; c.stroke();
-
-      /* 기와 처마 한 줄 — 배경이 '동아시아' 로 읽히게 하는 최소한의 장치.
-         맨 위에 얇게 붙인다. 아래로 내리면 인물 얼굴을 가로질러 큰 삿갓처럼 보인다. */
-      c.beginPath();
-      c.moveTo(w * 0.02, h * 0.085);
-      c.quadraticCurveTo(w * 0.5, h * 0.015, w * 0.98, h * 0.085);
-      c.lineTo(w * 0.98, h * 0.125);
-      c.quadraticCurveTo(w * 0.5, h * 0.055, w * 0.02, h * 0.125);
-      c.closePath();
-      c.fillStyle = '#9c8f79'; c.fill();
-      c.strokeStyle = ink; c.lineWidth = 1; c.stroke();
-    } else {
-      /* 배경 — 위는 세력색, 아래는 어둡게 */
-      var bg = c.createLinearGradient(0, 0, w * 0.4, h);
-      bg.addColorStop(0, shade(fac.color, -0.10));
-      bg.addColorStop(0.55, shade(fac.color, -0.52));
-      bg.addColorStop(1, '#14161c');
-      c.fillStyle = bg;
-      c.fillRect(0, 0, w, h);
-
-      /* 문양 — 크게 깔아 두고 흐리게 */
-      c.save();
-      c.globalAlpha = 0.16;
-      c.fillStyle = '#ffffff';
-      c.font = '700 ' + Math.round(h * 0.62) + 'px "Malgun Gothic", serif';
-      c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText(fac.mark, w * 0.5, h * 0.46);
-      c.restore();
-
-      /* 바닥 빛 */
-      var floor = c.createRadialGradient(w * 0.5, h * 0.88, 2, w * 0.5, h * 0.88, w * 0.5);
-      floor.addColorStop(0, 'rgba(255,255,255,0.20)');
-      floor.addColorStop(1, 'rgba(255,255,255,0)');
-      c.fillStyle = floor;
-      c.fillRect(0, h * 0.62, w, h * 0.38);
-    }
-
-    /* 인물 · 펫 — 그림책풍이면 **딴 캔버스에 그려 그것만** 후처리한 뒤 얹는다.
-       (배경까지 같이 훑으면 문양·산의 윤곽이 인물을 가로지른다) */
-    var fig = c, figCv = null;
-    if (story() || d2()) {
-      figCv = document.createElement('canvas');
-      figCv.width = cv.width; figCv.height = cv.height;
-      fig = figCv.getContext('2d');
-      fig.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
+    /* 인물 · 펫 — **딴 캔버스에 그려 그것만** 후처리한 뒤 얹는다.
+       (배경까지 같이 훑으면 문양의 윤곽이 인물을 가로지른다) */
+    var figCv = document.createElement('canvas');
+    figCv.width = cv.width; figCv.height = cv.height;
+    var fig = figCv.getContext('2d');
+    fig.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (isHero) {
       human(fig, {
         x: w * 0.5, y: h * 0.93, s: h / 56, facing: 1, phase: 0, walking: false,
@@ -2564,19 +1931,17 @@
         divine: ref.kind === 'divine', ref: ref, t: 0
       });
     }
-    if (figCv) {
-      if (d2()) { diabloize(figCv, { rimK: 0.5 }); } else { storyize(figCv); }
-      c.save();
-      c.setTransform(1, 0, 0, 1, 0, 0);      // 이미 배율이 반영된 캔버스라 그대로 얹는다
-      c.drawImage(figCv, 0, 0);
-      c.restore();
-    }
+    diabloize(figCv, { rimK: 0.5 });
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);      // 이미 배율이 반영된 캔버스라 그대로 얹는다
+    c.drawImage(figCv, 0, 0);
+    c.restore();
 
     /* 등급 테두리 */
     c.strokeStyle = rar.color;
     c.lineWidth = 2;
     c.strokeRect(1, 1, w - 2, h - 2);
-    c.strokeStyle = story() ? 'rgba(107,83,58,0.45)' : 'rgba(255,255,255,0.18)';
+    c.strokeStyle = 'rgba(255,255,255,0.18)';
     c.lineWidth = 1;
     c.strokeRect(4.5, 4.5, w - 9, h - 9);
 
@@ -2591,8 +1956,6 @@
     stamp: stamp, stampStats: stampStats,
     lookOf: lookOf, beastFormOf: beastFormOf, beastColorOf: beastColorOf,
     beastPatternOf: beastPatternOf,
-    portrait: portrait, shade: shade,
-    setStyle: setStyle,
-    style: function () { return styleMode; }
+    portrait: portrait, shade: shade
   };
 })(window);
