@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/world/terrain_builder.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/world/landmarks_builder.gd" id="2"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://games/saga_go/world/test_village.gd" id="10"]
 [ext_resource type="Script" path="res://games/saga_go/world/simple_event.gd" id="11"]
 [ext_resource type="Script" path="res://games/saga_go/world/hero_encounter.gd" id="12"]
+[ext_resource type="Script" path="res://games/saga_go/world/animal_builder.gd" id="13"]
 
 [node name="TestVillage" type="Node3D"]
 script = ExtResource("10")
@@ -37,6 +38,9 @@ script = ExtResource("3")
 [node name="Villagers" type="Node3D" parent="."]
 script = ExtResource("6")
 
+[node name="Animals" type="Node3D" parent="."]
+script = ExtResource("13")
+
 [node name="BanditEncounter" type="Node3D" parent="."]
 script = ExtResource("7")
 
@@ -52,6 +56,44 @@ event_quote = "\"여기까지 들어온 배짱은 인정하마. 하나 살아 �
 recruit_id = "도적_두목"
 quest_id_to_complete = "village_ask"
 foe_exp_reward = 90.0
+
+[node name="WolfPackEvent" type="Node3D" parent="."]
+script = ExtResource("7")
+grid = Vector2i(9, 2)
+night_only = true
+visual_glb_path = ""
+visual_fallback_color = Color(0.35, 0.32, 0.3, 1)
+foe_name = "늑대 무리"
+foe_power = 90.0
+event_title = "🐺 늑대 무리에 둘러싸이다"
+event_quote = "\"풀숲에서 눈이 여럿 빛난다.\""
+choice_fight_label = "맞선다"
+choice_pay_label = "불을 피운다 (🕯️ 향 1)"
+choice_pay_text = "불빛에 눈들이 물러났다."
+choice_flee_label = "천천히 물러난다"
+choice_flee_text = "등을 보이지 않고 물러났다."
+grants_recruit = false
+victory_text = "무리를 흩었다."
+foe_exp_reward = 30.0
+
+[node name="EnemyScoutEvent" type="Node3D" parent="."]
+script = ExtResource("7")
+grid = Vector2i(5, 9)
+night_only = true
+visual_glb_path = ""
+visual_fallback_color = Color(0.12, 0.2, 0.15, 1)
+foe_name = "적군 정찰병"
+foe_power = 170.0
+event_title = "🏹 적군 정찰병"
+event_quote = "\"능선 위로 사람 그림자 하나가 지나간다.\""
+choice_fight_label = "잡는다"
+choice_pay_label = "숨는다"
+choice_pay_text = "바위 뒤에서 지나가기를 기다렸다."
+choice_flee_label = "보낸다"
+choice_flee_text = "가는 길을 막지 않았다."
+grants_recruit = false
+victory_text = "정찰병을 잡았다. 품에서 밀서가 나왔다."
+foe_exp_reward = 55.0
 
 [node name="HurtSoldierEvent" type="Node3D" parent="."]
 script = ExtResource("11")

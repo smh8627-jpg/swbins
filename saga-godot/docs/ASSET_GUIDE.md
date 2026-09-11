@@ -119,6 +119,15 @@ _build_wall_perimeter()`로 실제 모듈형 조립으로 바꿨다 — `wall-bl
 
 ## 이번에 안 바꾼 것
 
+- **사슴·까치·잉어·소(2026-09-12③⑤⑥, `animal_builder.gd`)** — 웹판
+  동물 생태(늑대 제외 넷 다) 이식인데 어울리는 동물 GLB가 없어(동물
+  킷을 새로 안 받음) 박스 조합으로 대체했다(사슴·소=몸통+머리, 까치=
+  박스 하나, 잉어=납작한 박스). 다음에 CC0 동물 킷(예: Kenney Animal
+  Pack이 있는지 확인)을 받으면 `_build_deer_body()`/`_build_magpie_body()`/
+  `_build_carp_body()`/`_build_ox_body()`만 바꾸면 된다 — 위치·행동
+  (배회·도주·앉았다 날아오르기·헤엄·정지) 로직은 시각과 분리돼 있어
+  안 건드려도 된다. 이제 GO 동물 생태는 늑대(이미 전투 사건으로 있음)
+  빼고 웹판 다섯 종을 다 옮긴 상태.
 - ~~동굴 입구~~ — **완료(2026-09-11④).** Nature/Fantasy Town Kit엔
   어울리는 조각이 없어 CC0 Kenney Modular Cave Kit(신규 다운로드)의
   `gate-rock.glb`(아치형 바위 문, 바닥 피벗)를 받아 `assets/dungeon/`에

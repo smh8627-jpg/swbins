@@ -48,6 +48,12 @@ const SHRINE_SIZE := Vector3(1.04, 0.49, 0.65)
 const SHRINE_SCALE := 2.5
 
 
+## 2026-09-12④ — CodexState "지역" 갈래(§26 "발견 도감") 발견 반경.
+## 사건 조우 반경(20m)보다 넉넉히 잡았다 — 위협이 아니라 그냥 랜드마크에
+## 가까이 왔다는 것만 확인하면 되니 더 관대해도 된다.
+const DISCOVERY_RADIUS := 25.0
+
+
 func _ready() -> void:
 	_add_cave()
 	_add_village()
@@ -65,6 +71,23 @@ func _box(size: Vector3, color: Color) -> MeshInstance3D:
 	mat.albedo_color = color
 	mi.material_override = mat
 	return mi
+
+
+## CodexState "지역" 발견 — 마을(집 두 채)처럼 한 곳에 여러 번 걸어도
+## discover()가 알아서 dedup한다(두 번째부터는 조용히 아무 일도 안 함).
+func _add_discovery_area(codex_id: String, pos: Vector3, parent: Node3D) -> void:
+	var area := Area3D.new()
+	area.name = "Discover_" + codex_id
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = DISCOVERY_RADIUS
+	cs.shape = shape
+	area.add_child(cs)
+	area.position = pos
+	parent.add_child(area)
+	area.body_entered.connect(func(body: Node3D) -> void:
+		if body.is_in_group("player"):
+			CodexState.discover("place", codex_id))
 
 
 ## 그림만 있고 부딪히지 않던 것 — 건물마다 이걸로 실제 벽을 붙인다.
@@ -106,6 +129,7 @@ func _add_cave() -> void:
 	## (village 쪽 주석과 같은 이유) — 동굴 입구는 지나갈 수 있는 통로가
 	## 아니라 랜드마크 장애물이라는 기존 동작을 그대로 유지한다.
 	_solid(size, base_pos + Vector3(0, size.y * 0.5, 0), self)
+	_add_discovery_area("cave", base_pos, self)
 
 
 ## 옛 사당(S) — test_map.gd LEGEND에 이미 있었지만 2026-09-11㉒ 지도 확장
@@ -134,6 +158,7 @@ func _add_shrine() -> void:
 		add_child(altar)
 
 	_solid(size, base_pos + Vector3(0, size.y * 0.5, 0), self)
+	_add_discovery_area("shrine", base_pos, self)
 
 
 func _add_village() -> void:
@@ -160,6 +185,8 @@ func _add_village() -> void:
 			roof.mesh = roof_mesh
 			roof.transform = Transform3D(Basis().scaled(ROOF_SCALE), Vector3(0, body_size.y, 0))
 			house.add_child(roof)
+
+		_add_discovery_area("village", house.position, self)
 
 
 ## wall-block.glb(1x1x1, 바닥 피벗) 여러 장을 footprint(x칸·y층·z칸, 전부
@@ -231,6 +258,8 @@ func _add_ruins() -> void:
 		body.add_child(cs)
 		add_child(body)
 
+	_add_discovery_area("ruins", base, self)
+
 
 func _add_bridge() -> void:
 	## 다리 밑은 강바닥(height -1.0)이고 그 위에 수면(-0.45)이 떠 있다
@@ -250,6 +279,7 @@ func _add_bridge() -> void:
 		plank.name = "Bridge"
 		plank.position = base_pos
 		add_child(plank)
+		_add_discovery_area("bridge", base_pos, self)
 		return
 
 	## planks.glb는 1x1x1칸짜리 널빤지 — primitive처럼 하나를 44배 길게
@@ -271,3 +301,4 @@ func _add_bridge() -> void:
 	mmi.multimesh = mm
 	mmi.name = "Bridge"
 	add_child(mmi)
+	_add_discovery_area("bridge", base_pos, self)

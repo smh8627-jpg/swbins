@@ -94,6 +94,7 @@ func _on_body_entered(body: Node3D) -> void:
 	if _triggered or not body.is_in_group("player"):
 		return
 	_triggered = true
+	CodexState.discover("event", name)
 	ChoicePrompt.build(self, event_title, [
 		{"label": choice_a_label, "cb": func() -> void: _resolve_roll(choice_a_outcome, choice_a_exp, choice_a_fail_outcome, choice_a_fail_exp, choice_a_chance)},
 		{"label": choice_b_label, "cb": func() -> void: _resolve_roll(choice_b_outcome, choice_b_exp, choice_b_fail_outcome, choice_b_fail_exp, choice_b_chance)},

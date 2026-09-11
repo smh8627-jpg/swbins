@@ -29,6 +29,13 @@ const Toast := preload("res://games/saga_go/ui/toast.gd")
 ## Player.tscn과 동일(2.7m 실측 → 1.25배).
 const BANDIT_GLB := "res://assets/characters/character-d.glb"
 
+## 2026-09-12 — 늑대 무리·정찰병은 사람이 아니다(늑대 무리는 짐승,
+## 정찰병은 그냥 사람이지만 character-d를 또 쓰면 "산적이 사실 정찰병?"
+## 하는 혼란이 생긴다, simple_event.gd의 부상병과 같은 경계). 어울리는
+## GLB가 없으면(짐승 킷을 새로 안 받음) 빈 문자열로 두면 캡슐 fallback을
+## 쓴다 — @export로 인스턴스마다 GLB 경로와 캡슐 색을 다르게 잡을 수 있다.
+@export var visual_glb_path := BANDIT_GLB
+
 const AMBUSH_RADIUS := 20.0
 const RETRY_COOLDOWN_SEC := 8.0
 const TOAST_SEC := 4.0
@@ -55,9 +62,34 @@ const TOAST_SEC := 4.0
 ## 같이 부른다(§31 "마을의 부탁" — 도적 두목을 물리치면 사명이 끝난다).
 @export var quest_id_to_complete := ""
 
+## 2026-09-12 — 웹판 event.js를 보면 "도적"만 이겼을 때 등용된다(사람이라
+## 부대에 합류). 늑대 무리("무리를 흩었다")·정찰병("잡았다")은 승리해도
+## 등용 문구가 없다 — 흩거나 붙잡을 뿐, 부대원이 되진 않는다. 이 차이를
+## 무시하고 전부 등용시키면 원문을 왜곡하게 되니 꺼 둘 수 있게 뺐다.
+@export var grants_recruit := true
+## grants_recruit == false일 때만 쓰는 승리 토스트 문구(웹판 각 사건의
+## win:true 결과 text 그대로).
+@export var victory_text := ""
+
 ## 웹판 event.js "bandit_ambush" 승리 시 exp:40과 같은 값. 도적 두목은
 ## 전투력 차이(약 2배)에 맞춰 TestVillage.tscn에서 더 높게 덮어쓴다.
 @export var foe_exp_reward := 40.0
+
+## 2026-09-12 — 웹판 event.js의 `when:'night'` 사건(늑대 무리·정찰병)을
+## 이식하려고 추가. 켜져 있으면 낮에는 안 보이고 안 걸린다(TimeOfDay 참고) —
+## 새 State를 만들지 않고 IDLE일 때만 확인해서, 전투 중에 자정을 넘겨도
+## 싸움이 갑자기 끊기지 않는다.
+@export var night_only := false
+
+## 2026-09-12 — 세 선택지의 이름·문구도 @export로 뺐다. "도적의 습격"
+## 하나만 있을 땐 하드코딩이어도 됐지만, 늑대 무리(불을 피운다/천천히
+## 물러난다)·정찰병(숨는다/보낸다)은 웹판에서 이미 도적과 다른 문구를 쓴다
+## (event.js 그대로 — 여기서 새로 짓지 않았다).
+@export var choice_fight_label := "맞선다"
+@export var choice_pay_label := "값을 치른다"
+@export var choice_pay_text := "길세를 치르고 지나갔다."
+@export var choice_flee_label := "달아난다"
+@export var choice_flee_text := "어둠 속으로 달아났다."
 
 enum State { IDLE, PROMPT, FIGHT, COOLDOWN }
 
@@ -71,6 +103,10 @@ var _visual: Node3D
 ## 걸지 않는다) — "강타 예고" 순간에만 몸 전체를 물들이고 바로 원래
 ## 텍스처로 되돌린다. _base_color는 GLB를 못 받아 왔을 때의 캡슐
 ## 대체용으로만 쓴다.
+@export var visual_fallback_color := Color(0.5, 0.14, 0.14)
+## _ready()가 _spawn_visual()에서 visual_fallback_color로 채운다 — 필드
+## 초기값에서 바로 복사하면 씬이 덮어쓴 @export 값보다 먼저 굳어 버린다
+## (Godot가 export 오버라이드를 적용하는 시점은 _init 이후·_ready 이전).
 var _base_color := Color(0.5, 0.14, 0.14)
 var _using_glb := false
 
@@ -88,19 +124,23 @@ func _ready() -> void:
 	_spawn_area()
 	_build_prompt_ui()
 	_build_combat_ui()
+	if night_only:
+		_apply_night_visibility(TimeOfDay.is_night())
 
 func _spawn_visual() -> void:
 	var ch: String = TestMap.tile_at(grid.x, grid.y)
 	var ground: float = TerrainBuilder.LEGEND[ch].height
 	position = TestMap.world_pos(grid.x, grid.y) + Vector3(0, ground, 0)
 
-	var scene: PackedScene = load(BANDIT_GLB)
+	_base_color = visual_fallback_color
+	var scene: PackedScene = load(visual_glb_path) if visual_glb_path != "" else null
 	if scene != null:
 		_visual = scene.instantiate()
 		_visual.scale = Vector3.ONE * bandit_scale
 		_using_glb = true
 	else:
-		## 못 받아 왔으면 예전 캡슐 — 산적이 아예 안 보이는 것보단 낫다.
+		## GLB가 없거나(visual_glb_path 비움) 못 받아 왔으면 캡슐 — 아예 안
+		## 보이는 것보단 낫다(hurt_soldier 등 다른 primitive 사건과 같은 경계).
 		var mi := MeshInstance3D.new()
 		var mesh := CapsuleMesh.new()
 		mesh.radius = 0.9
@@ -123,11 +163,22 @@ func _spawn_area() -> void:
 	_area.add_child(cs)
 	add_child(_area)
 
+func _apply_night_visibility(active: bool) -> void:
+	_visual.visible = active
+	_area.monitoring = active
+
 func _process(delta: float) -> void:
+	if night_only and _state == State.IDLE:
+		var active := TimeOfDay.is_night()
+		if _visual.visible != active:
+			_apply_night_visibility(active)
+		if not active:
+			return
 	match _state:
 		State.IDLE:
 			if _player_in_range():
 				_state = State.PROMPT
+				CodexState.discover("event", name)
 				_prompt_layer.show()
 		State.FIGHT:
 			if _duel:
@@ -161,9 +212,9 @@ func _unhandled_input(event: InputEvent) -> void:
 ## ── 사건 선택지 (event.js bandit_ambush) ────────────────────────────
 func _build_prompt_ui() -> void:
 	_prompt_layer = ChoicePrompt.build(self, event_title + "\n" + event_quote, [
-		{"label": "맞선다", "cb": _choose_fight},
-		{"label": "값을 치른다", "cb": _choose_pay},
-		{"label": "달아난다", "cb": _choose_flee_event},
+		{"label": choice_fight_label, "cb": _choose_fight},
+		{"label": choice_pay_label, "cb": _choose_pay},
+		{"label": choice_flee_label, "cb": _choose_flee_event},
 	])
 	_prompt_layer.visible = false
 
@@ -173,12 +224,12 @@ func _choose_fight() -> void:
 
 func _choose_pay() -> void:
 	_prompt_layer.hide()
-	_toast(foe_name + " — 길세를 치르고 지나갔다.")
+	_toast(foe_name + " — " + choice_pay_text)
 	_enter_cooldown()
 
 func _choose_flee_event() -> void:
 	_prompt_layer.hide()
-	_toast("어둠 속으로 달아났다.")
+	_toast(choice_flee_text)
 	_enter_cooldown()
 
 ## ── 전투 화면 ────────────────────────────────────────────────────
@@ -303,9 +354,13 @@ func _finish_fight() -> void:
 	_combat_layer.hide()
 	_duel = null
 	if cleared:
-		PartyState.recruit(recruit_id)
 		PartyState.add_exp(foe_exp_reward)
-		var msg := foe_name + "을 물리쳤다 — 부대에 합류했다! (전투력 %d)" % int(PartyState.atk + PartyState.def)
+		var msg: String
+		if grants_recruit:
+			PartyState.recruit(recruit_id)
+			msg = foe_name + "을 물리쳤다 — 부대에 합류했다! (전투력 %d)" % int(PartyState.atk + PartyState.def)
+		else:
+			msg = victory_text
 		if quest_id_to_complete != "":
 			QuestState.complete(quest_id_to_complete)
 			msg += "\n📋 사명을 완료했다!"

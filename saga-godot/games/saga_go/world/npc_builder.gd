@@ -103,6 +103,7 @@ func _build_body(glb_path: String) -> Node3D:
 func _on_body_entered(body: Node3D, v: Dictionary) -> void:
 	if not body.is_in_group("player"):
 		return
+	CodexState.discover("people", v.id)
 	var now := Time.get_ticks_msec()
 	var last: int = _last_said_ms.get(v.id, -TALK_GAP_SEC * 1000.0 as int)
 	if now - last < TALK_GAP_SEC * 1000.0:
@@ -111,12 +112,14 @@ func _on_body_entered(body: Node3D, v: Dictionary) -> void:
 
 	if v.has("quest_id"):
 		if not QuestState.has_been_offered(v.quest_id):
+			CodexState.discover("event", v.quest_id)
 			_quest_prompt_by_id[v.id].show()
 			return
 		if QuestState.active_id == v.quest_id:
 			_say(v.name, v.quest_done_line if QuestState.done else v.quest_wait_line)
 			return
 	if v.has("offer_title") and not EventState.is_resolved(_offer_event_id(v)):
+		CodexState.discover("event", _offer_event_id(v))
 		_show_offer_prompt(v)
 		return
 	_say(v.name, v.line)
