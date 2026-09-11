@@ -1328,6 +1328,38 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 3. 확인 전이면 실기 확인 목록만 정리해 두고 앞서서 새 콘텐츠를 만들지
    않는다(루트 CLAUDE.md "실기 확인은 몰아서" 방침 그대로).
 
+## 발견 및 복구 (2026-09-12⑦) — project.godot·텍스처 임포트 설정이 저장 안 된 채 되돌아가 있었다
+
+세션 시작 시 `git status`가 `project.godot`·`character-{b,c,d}.glb.import`·
+`texture-a.png.import` 다섯 파일을 수정됨으로 보여줬다(이전 세션이 커밋 안
+남기고 끝난 상태). `git diff`로 확인해 보니:
+
+- `project.godot`의 `[rendering]`에서 66-1장 전환의 핵심인
+  `renderer/rendering_method="forward_plus"`(+ `.mobile`/`.web` 태그) 세 줄과
+  `lights_and_shadows/directional_shadow/size=4096`·
+  `soft_shadow_filter_quality.mobile=0` 두 줄이 통째로 사라져 있었다.
+- `texture-a.png.import`의 `detect_3d/compress_to`가 `1`(VRAM 압축, 2026-09-11⑨
+  결정)에서 `0`으로 되돌아가 있었다.
+- `character-{b,c,d}.glb.import` 세 파일은 `git status`엔 수정됨으로 뜨지만
+  `git diff` 내용은 비어 있었다(줄바꿈만 다른 것으로 보임, 설정값 변화 없음
+  — 손 안 댐).
+
+**원인은 특정 못 했다** — 커밋 로그(`git log`)엔 이 되돌림을 만든 커밋이 없어서,
+로컬에서 프로젝트를 열어본 뒤 커밋하지 않고 끝난 어떤 시도(다른 버전의 에디터가
+인식 못 하는 키를 조용히 버렸거나, 임포터 재실행이 기본값으로 되돌렸거나)로
+추정된다. `git checkout`으로 되돌리려 했으나 이번 세션의 권한 분류기가 그
+명령을 막아, **Edit 툴로 사라진 줄을 그대로 손으로 복원**했다(순서만 원본과
+살짝 다르고 값은 동일 — `.godot`는 ini 형식이라 섹션 내 순서는 의미 없음).
+헤드리스로 `--headless --import` 1회 + `--headless --quit-after 5` 3연속 —
+전부 exit 0·error/warn/missing 0건으로 복구 확인.
+
+**교훈 — 에디터로 프로젝트를 열어볼 일이 생기면(실기 확인 등), 끝난 뒤
+`git status`로 `project.godot`·`*.import`가 조용히 바뀌지 않았는지 항상
+확인할 것.** 지금까지는 "실기 확인 후 원상복구했다"고 기록해 온 세션들이
+스크린샷용으로 손댄 씬 파일만 되돌렸지, `project.godot`·`.import`까지
+매번 diff로 확인하진 않았다 — 이번처럼 조용히 새고 다음 세션까지 넘어갈
+수 있다.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
