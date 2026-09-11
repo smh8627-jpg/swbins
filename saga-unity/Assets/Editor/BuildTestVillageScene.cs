@@ -40,6 +40,7 @@ namespace Saga.EditorTools
             BuildAnimals();
             BuildNpcs();
             BuildBanditEncounter();
+            BuildRareWolfEncounter();
             BuildHiddenTreasure();
             BuildGatherables();
             BuildMountainShrine();
@@ -155,6 +156,13 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("BanditEncounter");
             var encounter = go.AddComponent<BanditEncounter>();
+            encounter.Build();
+        }
+
+        private static void BuildRareWolfEncounter()
+        {
+            var go = new GameObject("RareWolfEncounter");
+            var encounter = go.AddComponent<RareWolfEncounter>();
             encounter.Build();
         }
 
