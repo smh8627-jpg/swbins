@@ -35,6 +35,9 @@ namespace Saga.Go.Data
             ["wp_iron"] = new ItemData("wp_iron", "쇠칼", ItemSlot.Weapon, 22f, 0f),
             ["ar_cloth"] = new ItemData("ar_cloth", "베옷 갑주", ItemSlot.Armor, 0f, 8f),
             ["ar_leather"] = new ItemData("ar_leather", "가죽 갑주", ItemSlot.Armor, 0f, 16f),
+            // 도적 전리품엔 안 나온다 — 굴 속 숨겨진 보물(World/HiddenTreasure.cs)
+            // 전용, 탐험 보상이 전투 보상보다 확실히 세도록.
+            ["wp_relic"] = new ItemData("wp_relic", "유물 검", ItemSlot.Weapon, 30f, 0f),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;

@@ -5,6 +5,25 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **Phase 7(72~73단계) — World Event / Hidden Area.** Quest(70~71) 다음
+  순서로 이어서(2026-09-11, 같은 세션). `Data/WorldEventState.cs`(사건
+  하나뿐 — 굴 옆 보물을 찾았는지만 기억, PartyState.cs와 같은 자리) +
+  `World/HiddenTreasure.cs` — 굴 입구(LandmarksBuilder가 격자 (3,0)에
+  세운 상자, 크기 10x6x4)를 안 가리게 +7 비켜 둔 자리에 발광 구슬 하나.
+  BanditEncounter처럼 선택지 UI를 안 두고 VillagerTalk 수준의 단순
+  트리거로 줄였다 — 들어서는 순간 바로 발견 처리. **보상은 `ItemData.cs`
+  에 새로 추가한 "유물 검"(공격+30, 기존 최고인 쇠칼 +22보다 셈)** —
+  도적 전리품 테이블엔 안 넣어서 이 굴을 찾아야만 얻을 수 있는 탐험
+  전용 보상으로 갈랐다(PLAN.md 51장 "계속 플레이할 이유"의 "숨겨진
+  장소"를 실제로 다른 보상으로 갚음). 한 번 찾으면 `WorldEventState`가
+  기억해 다음 씬 로드(세이브 불러오기)에서 `HiddenTreasure.Awake()`가
+  스스로 지운다. `SaveState.cs` v3→v4로 이 플래그도 저장/로드.
+  `BuildTestVillageScene.cs`에 `BuildHiddenTreasure()` 훅 추가 — **이번엔
+  씬 하이어라키에 GameObject가 실제로 늘어 `BuildTestVillageScene.Build()`
+  를 다시 돌렸다**(Phase 6·7 Quest 때와 달리 재실행이 필요한 경우,
+  groundVerts=3136 그대로 — 땅은 안 바뀜). 컴파일·씬 재저장·
+  PlaytestHeadless 전부 통과 — 역시 트리거가 실제로 발동해 발광 구슬이
+  눈에 보이고 문구가 뜨는지는 사람이 직접 걸어가서 봐야 확인된다.
 - **Phase 7(70~71단계) — Quest 시스템 / Quest Objective·Reward.** Phase 6
   다음 순서로 이어서(2026-09-11, 같은 세션). `Data/QuestState.cs`(퀘스트
   하나뿐 — NotStarted/Active/Completed 3단계, PartyState.cs와 같은 자리)
@@ -247,16 +266,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     수락 대사, 다시 걸면 재촉 대사, 도적을 이긴 뒤 다시 걸면 사례
     대사로 바뀌는지 — 3단계 다 순서대로 봐야 함, 역시 세이브 지우고
     새로 시작해야 재현됨)
+  - **굴 옆 숨겨진 보물이 실제로 보이고 주워지는지**(발광 구슬이 굴
+    입구 상자에 안 가려 보이는지, 다가가면 "유물 검"을 얻는지 —
+    한 번 주우면 다시 안 나니 역시 세이브 지우고 새로 시작해야 재현됨)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
-  EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7 70~71단계(Quest)
-  까지 코드상으로는 전부 채워졌다.** **위 GUI 확인에서 실제로 도는 게
-  확인되면 PLAN.md 77~78단계(전체 플레이 테스트 → 재미 평가)로 넘어갈
-  수 있다** — 이번 세션은 그 게이트를 사용자가 명시로 건너뛰라고 골라
-  Phase 6·7을 먼저 끝냈다(2026-09-11). 다음 후보는 Phase 7 나머지
-  (72 World Event·73 Hidden Area) · PLAN.md 51~65장이 적어 둔 확장 순서
-  (GO 월드 확장 → DUNGEON → FOREST → STORY → REALM) · 이번에 미룬
-  항목들(장비창 UI, 사건/퀘스트/루트 테이블을 사전 구조로 일반화, 골드
-  경제) — 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
+  EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
+  World Event/Hidden Area)까지 코드상으로는 전부 채워졌다.** **위 GUI
+  확인에서 실제로 도는 게 확인되면 PLAN.md 77~78단계(전체 플레이 테스트
+  → 재미 평가)로 넘어갈 수 있다** — 이번 세션은 그 게이트를 사용자가
+  명시로 건너뛰라고 골라 Phase 6·7을 먼저 끝냈다(2026-09-11). 다음
+  후보는 PLAN.md 51~65장이 적어 둔 확장 순서(GO 월드 확장 → DUNGEON →
+  FOREST → STORY → REALM) · 이번에 미룬 항목들(장비창 UI, 사건/퀘스트/
+  루트 테이블을 사전 구조로 일반화, 골드 경제) — 세션 시작 시 PLAN.md를
+  다시 훑어 고를 것.
 
 ## 알려진 오류
 
@@ -324,3 +346,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   짧게 쓴 UnityEngine 호출이 있으면 항상 이 충돌을 의심할 것.** 고친
   뒤 컴파일·PlaytestHeadless(씬 재사용, Build() 다시 안 돌림) 둘 다
   통과. 촌장 대사 3단계 전환·퀘스트 완료도 역시 헤드리스로는 확인 못함.
+- Phase 7 World Event/Hidden Area(WorldEventState + HiddenTreasure +
+  BuildTestVillageScene 훅 + SaveState v4) 추가 후 컴파일 통과, 이번엔
+  씬에 GameObject가 실제로 늘어(HiddenTreasure) `BuildTestVillageScene
+  .Build()`를 다시 돌림 — `groundVerts=3136` 그대로(땅은 안 바뀜),
+  PlaytestHeadless도 재저장된 씬으로 통과.

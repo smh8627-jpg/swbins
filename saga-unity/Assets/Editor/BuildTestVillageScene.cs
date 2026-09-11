@@ -39,6 +39,7 @@ namespace Saga.EditorTools
             BuildLandmarks();
             BuildNpcs();
             BuildBanditEncounter();
+            BuildHiddenTreasure();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
@@ -144,6 +145,13 @@ namespace Saga.EditorTools
             var go = new GameObject("BanditEncounter");
             var encounter = go.AddComponent<BanditEncounter>();
             encounter.Build();
+        }
+
+        private static void BuildHiddenTreasure()
+        {
+            var go = new GameObject("HiddenTreasure");
+            var treasure = go.AddComponent<HiddenTreasure>();
+            treasure.Build();
         }
 
         /// <summary>지나가다 듣는 한 마디를 띄우는 화면 상단 자막(누르는 대화창 아님).</summary>
