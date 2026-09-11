@@ -62,6 +62,23 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   `BuildNpcs()`·`BuildDialogueUi()` 훅 추가. 씬 재저장·PlaytestHeadless
   까지 통과 확인됨 — **말 걸기가 실제로 되는지(트리거 판정·자막 표시)는
   헤드리스로 못 본다, 사람이 직접 플레이해서 확인해야 하는 부분.**
+- **Phase 6(61~71단계) — Combat "도적의 습격".** 72~74 엘리트/보스는
+  이번 슬라이스에서 스킵(saga-godot과 같은 범위). saga-godot의
+  duel_rules.gd(원본 js/duel.js)를 상수 하나 안 바꾸고 그대로 옮긴
+  `Assets/Games/SagaGo/Data/DuelRules.cs`(판정 층, 엔진 비의존 순수
+  클래스) + `PartyState.cs`(등용 인원 수 → 공격력/방어력, Godot의
+  autoload 싱글턴을 static 클래스로 대신함 — Unity엔 오토로드가 없다)
+  + `World/BanditEncounter.cs`(화면 층 — 조우 트리거 → 사건 선택지
+  3지(맞선다/값을 치른다/달아난다) → 실시간 전투 UI, 기세·사기·기
+  세 막대는 `Image.fillAmount`로, 속공/필살/회피/물러난다 4버튼).
+  "값을 치른다"·"달아난다"는 골드·소지품 시스템이 없어(Phase 9 몫)
+  대사만 보여주고 끝 — 새 경제 시스템 안 만듦. 승리 시 `PartyState
+  .Recruit()`로 등용, 도적은 `Destroy(gameObject)`로 사라짐(이번
+  슬라이스에서는 다시 안 남). 컴파일·씬 재저장·PlaytestHeadless
+  전부 통과. **전투가 실제로 손맛 있게 도는지(트리거 진입·버튼
+  반응·막대 움직임·화면 플래시)는 헤드리스로 못 본다 — 사람이 직접
+  플레이해서 확인해야 하는 부분.** 키보드 단축키(J/K/L)는 이번엔
+  안 넣었다 — 화면 버튼만으로 조작(모바일 우선 설계와 같은 결).
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -97,8 +114,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     으로 정함)
   - **NPC 말 걸기가 실제로 되는지**(TalkArea 트리거 판정·화면 상단
     자막 표시 — 헤드리스로는 트리거가 실제로 발동하는지 확인 불가)
-- Combat(saga-godot의 bandit_encounter.gd 상당) — NPC/Dialogue를
-  먼저 넣었으니 이제 순서상 다음.
+  - **도적의 습격이 실제로 되는지**(조우 트리거 → 선택지 → 전투 →
+    등용까지 12단계 루프 전체가 헤드리스 검증 밖 — 사람이 직접
+    "맞선다"를 눌러 승리까지 가 봐야 한다)
+- VERTICAL_SLICE.md 완료 조건(12단계 루프)이 코드상으로는 다 채워졌다
+  — 위 GUI 확인에서 실제로 도는 게 확인되면 Vertical Slice 자체는
+  마무리 단계. 그 다음은 PLAN.md의 나머지 Phase(Stats/Item/
+  Inventory/Equipment 등 Phase 9, 나머지 네 판 이식)로 넘어가는 큰
+  전환점 — 여기서부터는 세션 시작 시 PLAN.md를 다시 훑어 순서를
+  다시 잡을 것.
 
 ## 알려진 오류
 
