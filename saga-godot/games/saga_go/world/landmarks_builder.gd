@@ -19,6 +19,7 @@ const ROOF_GLB := "res://assets/buildings/roof-gable.glb"
 const PILLAR_GLB := "res://assets/buildings/pillar-stone.glb"
 const PLANK_GLB := "res://assets/buildings/planks.glb"
 const CAVE_GATE_GLB := "res://assets/dungeon/gate-rock.glb"
+const SHRINE_GLB := "res://assets/shrine/altar-stone.glb"
 
 ## wall-block.glb는 1x1x1 정육면체(바닥이 원점) — 실제 모듈형 킷답게
 ## 늘리지 않고 원래 크기 그대로 여러 장을 격자로 이어 붙인다(_build_wall_perimeter).
@@ -38,6 +39,13 @@ const RUIN_PILLAR_RADIUS_SCALE := 4.0
 ## primitive 높이(6)에 맞춰 스케일을 역산했다.
 const CAVE_GATE_SIZE := Vector3(4.0, 4.05, 2.454)
 const CAVE_GATE_SCALE := 6.0 / 4.05
+## altar-stone.glb(CC0 Kenney Graveyard Kit, ASSET_GUIDE.md 참고, 실측
+## 1.04 x 0.49 x 0.65m, 바닥 중앙 피벗)는 gate-rock.glb와 같은 이유로
+## 균일 스케일만 쓴다(실제 돌 표면 굴곡이 있는 조각). 웃허리 높이 제단
+## 하나가 목표라 primitive 선례 없이 새로 잡았다 — 최종 높이 약 1.2m,
+## 너비 약 2.6m.
+const SHRINE_SIZE := Vector3(1.04, 0.49, 0.65)
+const SHRINE_SCALE := 2.5
 
 
 func _ready() -> void:
@@ -45,6 +53,7 @@ func _ready() -> void:
 	_add_village()
 	_add_ruins()
 	_add_bridge()
+	_add_shrine()
 
 
 func _box(size: Vector3, color: Color) -> MeshInstance3D:
@@ -96,6 +105,34 @@ func _add_cave() -> void:
 	## 충돌은 시각 메시의 피벗과 무관하게 중심 기준이라 그대로 둔다
 	## (village 쪽 주석과 같은 이유) — 동굴 입구는 지나갈 수 있는 통로가
 	## 아니라 랜드마크 장애물이라는 기존 동작을 그대로 유지한다.
+	_solid(size, base_pos + Vector3(0, size.y * 0.5, 0), self)
+
+
+## 옛 사당(S) — test_map.gd LEGEND에 이미 있었지만 2026-09-11㉒ 지도 확장
+## 전까지 지도에 한 번도 안 쓰인 자리(격자 (2,1), 북서쪽 숲 모퉁이). 굴·
+## 폐허·다리처럼 눈에 보이는 랜드마크 하나만 세운다 — 안에 들어가는 씬은
+## 아니다(§32와 같은 경계, 이번엔 사당이라 충돌은 얕게만 잡는다).
+func _add_shrine() -> void:
+	var ground: float = TerrainBuilder.LEGEND["S"].height
+	var base_pos := TestMap.world_pos(2, 1) + Vector3(0, ground, 0)
+	var size := SHRINE_SIZE * SHRINE_SCALE
+	var altar_mesh := GLBUtils.extract_mesh(SHRINE_GLB)
+
+	if altar_mesh != null:
+		var mi := MeshInstance3D.new()
+		mi.name = "ShrineAltar"
+		mi.mesh = altar_mesh
+		## altar-stone.glb도 바닥 중앙 피벗이라 cave/ruins와 같은 이유로
+		## height*0.5만큼 안 띄워도 된다.
+		mi.transform = Transform3D(Basis().scaled(Vector3.ONE * SHRINE_SCALE), base_pos)
+		add_child(mi)
+	else:
+		## 못 받아 왔으면 예전 방식과 같은 fallback(primitive 박스).
+		var altar := _box(size, Color(0.42, 0.4, 0.38))
+		altar.name = "ShrineAltar"
+		altar.position = base_pos + Vector3(0, size.y * 0.5, 0)
+		add_child(altar)
+
 	_solid(size, base_pos + Vector3(0, size.y * 0.5, 0), self)
 
 

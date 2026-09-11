@@ -19,10 +19,18 @@ CC0(퍼블릭 도메인) 범용 로우폴리 킷은 그 원작들과 무관한 �
 | [Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) | 2.0 | 2026-09-11 | 마을집·폐허 기둥·다리 |
 | [Blocky Characters](https://kenney.nl/assets/blocky-characters) | 2.0 | 2026-09-11 | 플레이어·NPC·산적 |
 | [Modular Cave Kit](https://kenney.nl/assets/modular-cave-kit) | 1.0 | 2026-09-11 | 동굴 입구 |
+| [Nature Kit](https://kenney.nl/assets/nature-kit) (재다운로드, 밀 이랑만 추가) | - | 2026-09-12 | 논밭 작물 |
+| [Graveyard Kit](https://kenney.nl/assets/graveyard-kit) | 5.0 | 2026-09-12 | 옛 사당 제단 |
 
 라이선스: CC0 (Creative Commons Zero) — 출처 표시 의무 없음. 그래도
 각 킷 폴더에 원본 `License.txt`를 그대로 두지 않고 이 문서에 요약해
 둔다(라이선스 텍스트 자체는 재배포 안 해도 되는 게 CC0의 요점).
+
+**Graveyard Kit에서 딱 하나만 골라 쓴 이유** — 이름은 "묘지"지만 킷 안의
+`altar-stone.glb`(석재 제단)는 십자가·해골 같은 서구 묘지 도상이 전혀
+없는 밋밋한 돌 제단이라, GO의 "옛 사당"(한국 전통 사당 오마주) 자리에
+그대로 써도 이질감이 없다. 무덤·관·좀비 같은 킷의 나머지 조각은 이번에
+전혀 안 받았다(altar-stone.glb + 그 텍스처 한 장만 추출).
 
 ## 폴더 매핑 (master.md 8장 구조와 다른 점만)
 
@@ -33,11 +41,12 @@ vegetation/rocks/props/weapons/armor/effects/UI/audio`를 권장 구조로 든�
 ```text
 assets/
 ├── characters/   character-{a,b,c,d}.glb + Textures/texture-{a,b,c,d}.png
-├── vegetation/   tree_oak.glb
+├── vegetation/   tree_oak.glb · crops_wheatStageB.glb
 ├── rocks/        rock_largeA.glb · rock_smallA.glb
 ├── buildings/    wall-block.glb · roof-gable.glb · pillar-stone.glb ·
 │                 planks.glb + Textures/colormap.png
 ├── dungeon/      gate-rock.glb + Textures/colormap.png (동굴 입구)
+├── shrine/       altar-stone.glb + Textures/colormap.png (옛 사당)
 └── environment/  env_pc.tres · env_mobile.tres (66-1장, GLB 아님)
 ```
 
@@ -81,6 +90,8 @@ get_aabb()`를 합쳐 실측했다(추측 아님) — 아래 스케일은 그 �
 | `characters/character-c.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 떠돌이 상인, ×1.25 |
 | `characters/character-d.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 산적, ×1.25 |
 | `dungeon/gate-rock.glb` | 4.0 × 4.05 × 2.454 | 바닥 | 동굴 입구, 균일 ×(6/4.05≈1.48) |
+| `vegetation/crops_wheatStageB.glb` | 0.54 × 0.53 × 0.45 | 바닥 중앙 | 논밭 타일, ×2.5(개체별 0.8~1.2 추가 배율) |
+| `shrine/altar-stone.glb` | 1.04 × 0.49 × 0.65 | 바닥 중앙 | 옛 사당, 균일 ×2.5 |
 
 "피벗 바닥"은 원점(0,0,0)이 모델의 발밑이라는 뜻 — primitive였을 때는
 대부분 중앙 피벗(BoxMesh/SphereMesh/CylinderMesh 기본값)이라 `height*0.5`
@@ -168,6 +179,24 @@ gate-rock.glb + colormap.png 재임포트 로그 확인) → `--headless
 `res://assets/dungeon/Textures/colormap.png` 둘 다 정상 로드 확인. GUI
 스크린샷 확인은 이번엔 안 함(사용자 명시적 요청 없었음 — 실기기 확인은
 몰아서 할 일에 쌓아 둠).
+
+**논밭·옛 사당 GLB 교체(2026-09-12) 검증**: `--headless --editor --quit`
+(임포트, crops_wheatStageB.glb·altar-stone.glb·colormap.png 재임포트 로그
+확인) → `--headless --quit-after 5`를 연속 3번, **셋 다 exit 0·
+error/warn/missing/invalid/cannot 0건**. `--script`로 직접 인스턴스화해
+두 GLB의 실측 AABB를 구했다(추측 아님, 위 실측표 값의 출처). 씬을 정식
+경로(`--quit-after`, autoload 정상 초기화)로 돌렸을 때 `ShrineAltar`의
+`global_position`이 `world_pos(2,1)` 계산값과 정확히 일치하는 것과
+`Crops` MultiMesh의 인스턴스 수가 12(농지 2칸×6)인 것을 확인했다. **발견
+— MultiMesh 인스턴스별 transform은 헤드리스 null 렌더러에서 `get_instance_
+transform()`으로 읽으면 항상 identity로 나온다**(최소 재현: 빈 프로젝트
+스크립트로 set/get 왕복만 해도 재현됨) — 렌더링 서버 쪽 버퍼가 헤드리스
+더미 드라이버에서 안 채워지는 것으로 보이는 엔진 한계이지, 이번에 추가한
+코드의 버그가 아니다(기존 나무/바위/다리/벽 MultiMesh도 같은 패턴이라
+똑같이 이 한계에 걸릴 것). 그래서 이번엔 transform 자체가 아니라 위치
+계산값(`pos0`)과 인스턴스 개수로 정확성을 확인했다 — 다음에 MultiMesh
+배치를 다시 검증할 일이 있으면 `get_instance_transform()` 값을 믿지 말
+것. GUI 실기 확인은 안 함(아래 다음 세션 목록에 추가).
 
 **NPC·산적 교체(같은 날 뒤 이어 진행) 검증**: character-b/c/d.glb +
 texture-{b,c,d}.png 추가 후 헤드리스 임포트 중 `f.is_null()` 오류가 한
