@@ -267,3 +267,20 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
   미검증**(GUI로 직접 열어야 함). 설치 절차는 `saga-godot/CLAUDE.md`에
   PC마다 다시 확인/재설치하는 방법으로 정리해 둠 — 다음 세션은 이 표의
   winget 경로를 그대로 믿지 말 것.
+- **2026-09-11 — GUI 실제 화면 확인, 사용자 명시적 요청으로 1회.** windowed
+  빌드로 `TestVillage.tscn`을 14초간 실제로 띄우고 스크린샷을 찍어 확인.
+  - **"renderer: forward_plus" 디버그 라벨이 화면 우상단에 정확히 뜬다** —
+    `environment_profile.gd`가 데스크톱 실행에서 `OS.has_feature("mobile")`을
+    거짓으로 판단해 PC 프로파일(`env_pc.tres`)을 골랐다는 것까지 확인
+  - DirectionalLight3D 그림자가 플레이어 캡슐 아래 실제로 드리워짐(그림자
+    렌더링 정상 동작)
+  - 크래시·오류 다이얼로그 없이 한 프레임 정상 렌더
+  - 씬 전체가 밋밋하고 뿌옇게 보이는데 이건 버그가 아니다 — 지형·건물·나무가
+    전부 아직 primitive(단색 도형)뿐이라 SDFGI/SSR이 켜져 있어도 반사할
+    표면·복잡한 지오메트리가 없어 GI 효과가 육안으로 구별되지 않는 단계다.
+    GLB 실에셋으로 교체된 뒤 다시 확인해야 진짜 판단 가능
+  - **발견 — Bash 툴의 `$TEMP`는 실제 데스크톱과 격리된 별도 파일시스템
+    뷰다.** Bash로 받은 exe가 Bash 안에서는 보여도 PowerShell/실제 GUI
+    실행에는 안 잡혀서, 이번엔 PowerShell로 새로 받아야 했다(프로젝트
+    폴더 `C:\swbins`는 두 툴에서 동일 — 영향 없음). 방법은
+    `saga-godot/CLAUDE.md`에 정리해 둠

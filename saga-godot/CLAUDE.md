@@ -58,3 +58,43 @@ GUI를 띄우지 않는다.
 에디터 창을 띄웠다면 그 turn 안에서 `taskkill //F //IM Godot_v*.exe`로 반드시
 정리한다(다른 세션의 프로세스까지 잡지 않도록 `//IM godot.exe`처럼 뭉뚱그리지
 말고 정확한 실행 파일명을 쓴다).
+
+## 실제 화면(GUI) 확인이 필요할 때 — Bash 툴 임시 폴더는 실제 데스크톱과 분리돼 있다
+
+**2026-09-11 발견.** 위 방법대로 Bash 툴(`curl`+`unzip`)로 받은 실행 파일은
+Bash 안에서는 `ls`로 잘 보이고 헤드리스 실행도 되지만, **PowerShell이나
+실제 Windows 데스크톱에서는 그 경로에 파일이 없는 것으로 나온다.** Bash 툴이
+파일시스템을 격리된 뷰로 쓰는 것으로 보인다(프로젝트 폴더 `C:\swbins` 자체는
+두 툴에서 동일하게 보인다 — git 작업엔 영향 없음, 격리되는 건 `$TEMP` 같은
+스크래치 영역뿐).
+
+**그래서 실제 창을 띄워 스크린샷으로 눈으로 확인하려면 다운로드·압축 풀기부터
+PowerShell로 다시 해야 한다:**
+
+```powershell
+$zip = "$env:TEMP\godot_editor\Godot.zip"   # 이미 있으면 재사용, 없으면 Invoke-WebRequest로 받기
+Expand-Archive -Path $zip -DestinationPath "$env:TEMP\godot_editor" -Force
+```
+
+그 뒤 windowed 빌드(`_console` 아닌 쪽)를 헤드리스 없이 실행하고, 몇 초 기다렸다가
+`System.Drawing`으로 화면을 캡처해 PNG로 저장한 뒤 Read 툴로 본다:
+
+```powershell
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$proc = Start-Process -FilePath "$env:TEMP\godot_editor\Godot_v<TAG>-stable_win64.exe" `
+  -ArgumentList @("--path", "C:\swbins\saga-godot") -PassThru
+Start-Sleep -Seconds 14
+$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+$g = [System.Drawing.Graphics]::FromImage($bmp)
+$g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+$bmp.Save("$env:TEMP\godot_editor\screenshot.png", [System.Drawing.Imaging.ImageFormat]::Png)
+Stop-Process -Id $proc.Id -Force   # PID로 정확히 지정 — 이름으로 뭉뚱그리지 않는다
+```
+
+이 방식은 실제로 사용자 화면을 잠깐 띄우는 것이다(가짜 렌더러가 아니라
+진짜 GPU 렌더링). **매번 습관적으로 쓰지 않는다** — 루트 CLAUDE.md의
+"2026-09-09 정정"(헤드리스/CDP 크롬을 개발 중 습관적으로 켜지 말 것)과
+같은 이유다. 사용자가 시각 확인을 명시적으로 요청했을 때만 쓰고, 확인이
+끝나면 `Stop-Process`로 바로 정리한다(위 스크립트처럼 PID 기준으로).
