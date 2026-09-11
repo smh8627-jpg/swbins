@@ -31,6 +31,7 @@ namespace Saga.EditorTools
 
             BuildLighting();
             var terrainGo = BuildTerrain();
+            BuildVegetation();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
@@ -61,6 +62,13 @@ namespace Saga.EditorTools
             var terrainBuilder = terrainGo.AddComponent<TerrainBuilder>();
             terrainBuilder.Build();
             return terrainGo;
+        }
+
+        private static void BuildVegetation()
+        {
+            var go = new GameObject("Vegetation");
+            var builder = go.AddComponent<VegetationBuilder>();
+            builder.Build();
         }
 
         private static (GameObject playerGo, CameraRig cameraRig) BuildPlayer()
