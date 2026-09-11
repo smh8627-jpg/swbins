@@ -197,6 +197,18 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
 - Phase 4 나머지(41 GLB import 구조, 45·46 primitive→GLB 교체)는 실제
   3D 에셋을 고른 뒤로 미룸
+- **렌더러 프로파일 전환(2026-09-11, 커밋 `97ab1fd`·`a628fce`) 헤드리스 검증
+  완료** — PLAN.md 66-1장대로 `project.godot`의 `renderer/rendering_method`를
+  `forward_plus`(기본) + `.mobile`/`.web` 태그 분기로 바꾼 것을, 이 세션이
+  GitHub 릴리스에서 받은 Godot 4.7.2 콘솔 빌드(`saga-godot/CLAUDE.md`의
+  2026-09-11 안내대로 winget PATH를 안 믿고 새로 받음)로 `--headless
+  --editor --quit`(첫 임포트) → `--headless --quit-after 3 --verbose`
+  두 단계 다 돌렸다. **exit 0, error/warn/missing/invalid/cannot 전부
+  0건** — TestVillage.tscn의 Player·MobileHUD·npc_builder·bandit_encounter·
+  vegetation_builder까지 스크립트·리소스 참조가 전부 정상 로드됨을 확인.
+  단, 헤드리스는 더미 렌더러라 **Forward+가 실제로 화면에 무엇을 다르게
+  그리는지는 여전히 미확인** — 그래픽 품질 자체는 에디터를 직접 열어야 한다
+  (다음 "실기 확인 몰아서" 때 같이 볼 것).
 
 ## 알려진 오류
 
@@ -206,6 +218,7 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 
 - `godot --headless --path saga-godot --import` → 프로젝트 첫 스캔/임포트 성공 (exit 0)
 - `godot --headless --path saga-godot --quit` → Main.tscn 실행 성공 (exit 0, 오류 로그 없음)
+- **2026-09-11**: Forward+ 렌더러 전환 이후 재검증 — 위 항목 참고, exit 0·오류 0건
 - 실제 GUI 렌더링(그래픽 화면 확인)은 headless라 검증 안 됨 — 필요하면 에디터를 직접 띄워야 함
 - **2026-09-11 — Forward+ 전환 후 재검증, 그리고 winget 경로 기록이 PC마다 다르다는 것 확인.**
   `project.godot`의 `renderer/rendering_method`를 `forward_plus`(+ `.mobile`/`.web`
