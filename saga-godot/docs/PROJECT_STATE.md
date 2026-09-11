@@ -210,6 +210,41 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
   그리는지는 여전히 미확인** — 그래픽 품질 자체는 에디터를 직접 열어야 한다
   (다음 "실기 확인 몰아서" 때 같이 볼 것).
 
+## 완료 단계 (추가, 2026-09-11)
+
+- **PLAN.md 66-1장(렌더러 프로파일) 나머지 구현 — Environment 리소스 분리 +
+  AA/그림자 품질 feature tag + 렌더러 디버그 표시.**
+  - `assets/environment/env_pc.tres`(신규) — `TestVillage.tscn`에 인라인으로
+    박혀 있던 Sky/Environment sub_resource를 뽑아냈다. 기존 하늘·안개·톤매핑
+    값은 그대로 두고 `ssr_enabled`·`ssao_enabled`·`ssil_enabled`·
+    `sdfgi_enabled`·`volumetric_fog_enabled`를 켰다
+  - `assets/environment/env_mobile.tres`(신규) — 하늘·안개·톤매핑·Glow는
+    `env_pc.tres`와 **값을 동일하게**(66-1장 "게임의 색 톤은 같아야 한다")
+    유지하고, 위 GI/반사 계열은 전부 뺐다(45장 위반 방지)
+  - `games/saga_go/world/environment_profile.gd`(신규) — `WorldEnvironment`
+    노드에 붙는 스크립트. `_ready()`에서 `OS.has_feature("mobile")`/
+    `("web")`로 두 리소스 중 하나를 골라 assign. 씬 파일 안에는 분기를
+    두지 않는다는 원칙대로 이 스크립트 하나가 유일한 분기점
+  - `TestVillage.tscn` — 인라인 sub_resource 3개(SkyMat1·Sky1·Env1) 제거,
+    `WorldEnvironment`가 `env_pc.tres`를 기본값(에디터 뷰포트용)으로 물고
+    `environment_profile.gd`를 실행 시점 오버라이드로 붙임
+  - `project.godot` — `[rendering]`에 `anti_aliasing/quality/msaa_3d`·
+    `use_taa`·`lights_and_shadows/directional_shadow/size`·
+    `soft_shadow_filter_quality`를 PC 기본값 + `.mobile` feature tag 오버라이드로
+    추가(키 이름은 받아 둔 Godot 4.7.2 바이너리로 `ProjectSettings.has_setting`
+    직접 호출해 실재 확인 후 반영 — 추측으로 안 넣음)
+  - `games/saga_go/ui/renderer_debug_label.gd` + `MobileHUD.tscn`에
+    `RendererDebugLabel` 노드(신규) — 46장 "현재 rendering_method 표시".
+    `OS.is_debug_build()`가 거짓이면(릴리즈 빌드) 자동으로 숨는다
+  - 검증: `--headless --editor --quit`(임포트) · `--headless --quit-after 5
+    --verbose`(TestVillage.tscn 완주) 둘 다 exit 0, error/warning/missing
+    로그 0건. verbose 로그로 `env_pc.tres`·`env_mobile.tres`·
+    `environment_profile.gd`·`renderer_debug_label.gd` 전부 정상 로드 확인
+  - 여전히 미검증: 실제 GUI에서 PC 프로파일이 SDFGI·SSR을 눈에 보이게
+    그리는지, Mobile 프로파일 전환이 실기(Android/iOS 내보내기)에서 진짜
+    `mobile` feature로 잡히는지 — 이건 에디터를 직접 띄우거나 실기 빌드가
+    있어야 확인된다(66-1장 "실기 확인은 몰아서" 그대로 유지)
+
 ## 알려진 오류
 
 - 없음. Main.tscn 추가로 이전에 있던 "no main scene defined" 오류는 해소됐다.
