@@ -2085,14 +2085,36 @@ window.DG_NO_TUNE = true;
       return at >= 0 && dealt > 0 && ('파멸격 ' + at + '번 자리 · 피해 ' + dealt);
     });
 
-    t('무예 여든은 side.js 가 아는 효과 아홉만 쓴다', function () {
+    t('무예 아흔여섯은 side.js 가 아는 효과 아홉만 쓴다', function () {
       /* 데이터는 **무엇을 할지만** 적고 어떻게 하는지는 side.js 에만 있다.
-         새 효과를 만들면 그 규칙을 두 곳에 적게 된다 — 3차·4차, 다섯째 무예를
-         넣으며 하나도 안 늘렸다(2026-09-10, 64 → 80). */
+         새 효과를 만들면 그 규칙을 두 곳에 적게 된다 — 3차·4차, 다섯째·여섯째
+         무예를 넣으며 하나도 안 늘렸다(2026-09-10, 64 → 80 → 2026-09-11, 96). */
       var KNOWN = ['melee', 'aoe', 'bolt', 'arrow', 'volley', 'dash', 'rain', 'buff', 'heal'];
       var bad = JD.SKILLS.filter(function (sk) { return KNOWN.indexOf(sk.effect) < 0; });
-      return JD.SKILLS.length === 80 && bad.length === 0 &&
+      return JD.SKILLS.length === 96 && bad.length === 0 &&
         ('무예 ' + JD.SKILLS.length + ' · 효과 ' + KNOWN.length + ' · 모르는 것 0');
+    });
+
+    t('여섯째 무예(2026-09-11)도 자기들끼리만 need 사슬을 잇는다', function () {
+      var CHAINS = [
+        ['w_vital', 'g_vital', 'n_vital', 'o_vital'],
+        ['a_burst', 's_burst', 'f_burst', 'h_burst'],
+        ['r_dart', 'x_dart', 'v_dart', 'd_dart'],
+        ['m_orb', 'p_orb', 'i_orb', 'z_orb']
+      ];
+      var i, c, ok = true, msg = [];
+      for (i = 0; i < CHAINS.length; i++) {
+        c = CHAINS[i];
+        var s1 = JD.skill(c[0]), s2 = JD.skill(c[1]), s3 = JD.skill(c[2]), s4 = JD.skill(c[3]);
+        var chainOk = !!s1 && !s1.need &&
+          !!s2 && s2.need && s2.need.key === c[0] && s2.need.lv === 5 &&
+          !!s3 && s3.need && s3.need.key === c[1] && s3.need.lv === 5 &&
+          !!s4 && s4.need && s4.need.key === c[2] && s4.need.lv === 5 &&
+          s1.effect === s2.effect && s2.effect === s3.effect && s3.effect === s4.effect;
+        ok = ok && chainOk;
+        msg.push(c[0] + (chainOk ? ' ok' : ' FAIL'));
+      }
+      return ok && msg.join(' · ');
     });
 
     t('3차 무예도 실제로 적을 친다', function () {

@@ -98,6 +98,10 @@
        수단이 되어 준다. 새 효과가 아니라 무명의 기탄과 같은 bolt 를 쓴다 */
     { key: 'w_edge', job: 'warrior', name: '파공검(破空劍)', emoji: '🌊', cost: 18, cd: 5, max: 10,
       effect: 'bolt', mul: [1.6, 0.14], desc: '벤 기운을 앞으로 쏘아 보낸다 · 관통' },
+    /* 여섯째 무예(2026-09-11) — 무사 갈래엔 없던 자가 치유. 새 효과가 아니라
+       방사의 치유와 같은 heal 을 기공(氣功)으로 쓴다 */
+    { key: 'w_vital', job: 'warrior', name: '생기결(生氣訣)', emoji: '💚', cost: 24, cd: 18, max: 10,
+      effect: 'heal', mul: [0, 0], heal: [0.14, 0.016], desc: '몸을 다잡는다 (체력 14%+)' },
     { key: 'g_smash', job: 'general', name: '패왕격(霸王擊)', emoji: '💥', cost: 40, cd: 9, max: 10,
       effect: 'melee', mul: [3.4, 0.3], hits: 2, need: { key: 'w_cut', lv: 5 },
       desc: '앞을 두 번 내리친다 — 참격 5' },
@@ -110,6 +114,9 @@
     { key: 'g_edge', job: 'general', name: '벽공검(劈空劍)', emoji: '🌊', cost: 32, cd: 7, max: 10,
       effect: 'bolt', mul: [2.8, 0.24], need: { key: 'w_edge', lv: 5 },
       desc: '기운이 더 멀리, 더 세게 뻗는다 — 파공검 5' },
+    { key: 'g_vital', job: 'general', name: '회천결(回天訣)', emoji: '💚', cost: 36, cd: 20, max: 10,
+      effect: 'heal', mul: [0, 0], heal: [0.26, 0.024], need: { key: 'w_vital', lv: 5 },
+      desc: '기운을 되돌린다 (체력 26%+) — 생기결 5' },
     /* 원수 — 무사 갈래의 끝 */
     { key: 'n_heaven', job: 'marshal', name: '천붕격(天崩擊)', emoji: '☄️', cost: 58, cd: 11, max: 10,
       effect: 'melee', mul: [4.6, 0.42], hits: 3, need: { key: 'g_smash', lv: 5 },
@@ -126,6 +133,9 @@
     { key: 'n_edge', job: 'marshal', name: '천단검(天斷劍)', emoji: '🌊', cost: 44, cd: 9, max: 10,
       effect: 'bolt', mul: [4.0, 0.35], need: { key: 'g_edge', lv: 5 },
       desc: '장수의 기백이 검 끝에 실린다 — 벽공검 5' },
+    { key: 'n_vital', job: 'marshal', name: '불사결(不死訣)', emoji: '💚', cost: 48, cd: 22, max: 10,
+      effect: 'heal', mul: [0, 0], heal: [0.4, 0.034], need: { key: 'g_vital', lv: 5 },
+      desc: '죽음을 밀어낸다 (체력 40%+) — 회천결 5' },
     /* 전신 — 무사 갈래의 끝(4차) */
     { key: 'o_ruin', job: 'warlord', name: '파멸격(破滅擊)', emoji: '💢', cost: 62, cd: 12, max: 10,
       effect: 'melee', mul: [6.2, 0.57], hits: 4, need: { key: 'n_heaven', lv: 5 },
@@ -142,6 +152,9 @@
     { key: 'o_edge', job: 'warlord', name: '파천검(破天劍)', emoji: '🌊', cost: 58, cd: 11, max: 10,
       effect: 'bolt', mul: [5.6, 0.5], need: { key: 'n_edge', lv: 5 },
       desc: '전신의 검기가 하늘까지 닿는다 — 천단검 5' },
+    { key: 'o_vital', job: 'warlord', name: '재생결(再生訣)', emoji: '💚', cost: 60, cd: 24, max: 10,
+      effect: 'heal', mul: [0, 0], heal: [0.58, 0.048], need: { key: 'n_vital', lv: 5 },
+      desc: '무너진 몸이 다시 선다 (체력 58%+) — 불사결 5' },
 
     /* 궁수 → 신궁 */
     { key: 'a_shot', job: 'archer', name: '사격(射擊)', emoji: '🏹', cost: 8, cd: 0.6, max: 10,
@@ -157,6 +170,10 @@
        무사의 돌진과 같은 dash 를 "물러나며" 쓴다 */
     { key: 'a_retreat', job: 'archer', name: '퇴보사(退步射)', emoji: '🏃', cost: 20, cd: 6, max: 10,
       effect: 'dash', mul: [1.3, 0.11], dist: 180, desc: '뒤로 물러나며 화살을 놓는다' },
+    /* 여섯째 무예(2026-09-11) — 궁수 갈래엔 없던 주위 공격. 새 효과가 아니라
+       협객의 선풍각과 같은 aoe 를 사방으로 놓는 화살 고리로 쓴다 */
+    { key: 'a_burst', job: 'archer', name: '환시(環矢)', emoji: '💫', cost: 20, cd: 5, max: 10,
+      effect: 'aoe', mul: [1.4, 0.12], r: 110, desc: '사방으로 화살을 흩놓는다' },
     { key: 's_rain', job: 'sniper', name: '전우(箭雨)', emoji: '🌧️', cost: 42, cd: 10, max: 10,
       effect: 'rain', mul: [2.6, 0.24], need: { key: 'a_shot', lv: 5 },
       desc: '앞쪽에 화살을 쏟는다 — 사격 5' },
@@ -169,6 +186,9 @@
     { key: 's_retreat', job: 'sniper', name: '활보사(闊步射)', emoji: '🏃', cost: 34, cd: 7, max: 10,
       effect: 'dash', mul: [2.3, 0.2], dist: 240, need: { key: 'a_retreat', lv: 5 },
       desc: '더 크게 물러나며 쏜다 — 퇴보사 5' },
+    { key: 's_burst', job: 'sniper', name: '광환시(廣環矢)', emoji: '💫', cost: 34, cd: 6, max: 10,
+      effect: 'aoe', mul: [2.4, 0.21], r: 140, need: { key: 'a_burst', lv: 5 },
+      desc: '고리가 더 넓게 퍼진다 — 환시 5' },
     /* 비장 — 궁수 갈래의 끝 */
     { key: 'f_storm', job: 'flier', name: '시우(矢雨)', emoji: '⛈️', cost: 60, cd: 12, max: 10,
       effect: 'rain', mul: [4.2, 0.38], need: { key: 's_rain', lv: 5 },
@@ -185,6 +205,9 @@
     { key: 'f_retreat', job: 'flier', name: '답공사(踏空射)', emoji: '🏃', cost: 46, cd: 8, max: 10,
       effect: 'dash', mul: [3.5, 0.3], dist: 300, need: { key: 's_retreat', lv: 5 },
       desc: '허공을 딛듯 물러나며 꿰뚫는다 — 활보사 5' },
+    { key: 'f_burst', job: 'flier', name: '천환시(天環矢)', emoji: '💫', cost: 46, cd: 7, max: 10,
+      effect: 'aoe', mul: [3.6, 0.31], r: 175, need: { key: 's_burst', lv: 5 },
+      desc: '하늘 전체가 고리로 뒤덮인다 — 광환시 5' },
     /* 궁성 — 궁수 갈래의 끝(4차) */
     { key: 'h_tempest', job: 'falcon', name: '천사우(天射雨)', emoji: '⛈️', cost: 66, cd: 13, max: 10,
       effect: 'rain', mul: [5.6, 0.5], need: { key: 'f_storm', lv: 5 },
@@ -201,6 +224,9 @@
     { key: 'h_retreat', job: 'falcon', name: '익보사(翼步射)', emoji: '🏃', cost: 58, cd: 9, max: 10,
       effect: 'dash', mul: [5.0, 0.44], dist: 360, need: { key: 'f_retreat', lv: 5 },
       desc: '날개 돋친 듯 물러나며 하늘을 꿴다 — 답공사 5' },
+    { key: 'h_burst', job: 'falcon', name: '극환시(極環矢)', emoji: '💫', cost: 58, cd: 8, max: 10,
+      effect: 'aoe', mul: [5.2, 0.44], r: 210, need: { key: 'f_burst', lv: 5 },
+      desc: '고리 끝에 하늘이 걸린다 — 천환시 5' },
 
     /* 협객 → 자객 */
     { key: 'r_twin', job: 'rogue', name: '쌍참(雙斬)', emoji: '⚡', cost: 7, cd: 0.42, max: 10,
@@ -217,6 +243,10 @@
        무사의 선풍과 같은 aoe 를 몸을 낮춘 발차기로 쓴다 */
     { key: 'r_whirl', job: 'rogue', name: '선풍각(旋風脚)', emoji: '🦵', cost: 20, cd: 5, max: 10,
       effect: 'aoe', mul: [1.4, 0.12], r: 110, desc: '몸을 낮춰 주위를 걷어찬다' },
+    /* 여섯째 무예(2026-09-11) — 협객 갈래엔 없던 관통. 새 효과가 아니라
+       무사의 파공검과 같은 bolt 를 던지는 암기(暗器)로 쓴다 */
+    { key: 'r_dart', job: 'rogue', name: '관통표(貫通鏢)', emoji: '🎯', cost: 18, cd: 5, max: 10,
+      effect: 'bolt', mul: [1.6, 0.14], desc: '표창을 꿰뚫듯 던진다 · 관통' },
     { key: 'x_storm', job: 'assassin', name: '난무(亂舞)', emoji: '🌀', cost: 38, cd: 8, max: 10,
       effect: 'melee', mul: [1.5, 0.13], hits: 4, need: { key: 'r_twin', lv: 5 },
       desc: '앞을 네 번 긋는다 — 쌍참 5' },
@@ -229,6 +259,9 @@
     { key: 'x_whirl', job: 'assassin', name: '질풍각(疾風脚)', emoji: '🦵', cost: 34, cd: 6, max: 10,
       effect: 'aoe', mul: [2.4, 0.21], r: 140, need: { key: 'r_whirl', lv: 5 },
       desc: '더 빠르게, 더 넓게 휩쓴다 — 선풍각 5' },
+    { key: 'x_dart', job: 'assassin', name: '암습표(暗襲鏢)', emoji: '🎯', cost: 32, cd: 7, max: 10,
+      effect: 'bolt', mul: [2.8, 0.24], need: { key: 'r_dart', lv: 5 },
+      desc: '어둠 속에서 꿰뚫는다 — 관통표 5' },
     /* 귀영 — 협객 갈래의 끝 */
     { key: 'v_blur', job: 'wraith', name: '잔영(殘影)', emoji: '👥', cost: 52, cd: 8, max: 10,
       effect: 'melee', mul: [2.2, 0.19], hits: 6, need: { key: 'x_storm', lv: 5 },
@@ -245,6 +278,9 @@
     { key: 'v_whirl', job: 'wraith', name: '광풍각(狂風脚)', emoji: '🦵', cost: 46, cd: 7, max: 10,
       effect: 'aoe', mul: [3.6, 0.31], r: 175, need: { key: 'x_whirl', lv: 5 },
       desc: '미친 듯이 휘돌아 찬다 — 질풍각 5' },
+    { key: 'v_dart', job: 'wraith', name: '귀표(鬼鏢)', emoji: '🎯', cost: 44, cd: 9, max: 10,
+      effect: 'bolt', mul: [4.0, 0.35], need: { key: 'x_dart', lv: 5 },
+      desc: '귀신 들린 듯 파고든다 — 암습표 5' },
     /* 명왕 — 협객 갈래의 끝(4차) */
     { key: 'd_carve', job: 'reaper', name: '팔도(八刀)', emoji: '🔪', cost: 60, cd: 9, max: 10,
       effect: 'melee', mul: [3.0, 0.26], hits: 8, need: { key: 'v_blur', lv: 5 },
@@ -261,6 +297,9 @@
     { key: 'd_whirl', job: 'reaper', name: '절명풍(絶命風)', emoji: '🦵', cost: 58, cd: 8, max: 10,
       effect: 'aoe', mul: [5.2, 0.44], r: 210, need: { key: 'v_whirl', lv: 5 },
       desc: '휘도는 바람이 목숨을 끊는다 — 광풍각 5' },
+    { key: 'd_dart', job: 'reaper', name: '명표(冥鏢)', emoji: '🎯', cost: 58, cd: 11, max: 10,
+      effect: 'bolt', mul: [5.6, 0.5], need: { key: 'v_dart', lv: 5 },
+      desc: '저승의 기운이 표창 끝에 실린다 — 귀표 5' },
 
     /* 방사 → 도사 */
     { key: 'm_fire', job: 'mage', name: '화구(火球)', emoji: '🔥', cost: 12, cd: 0.9, max: 10,
@@ -277,6 +316,10 @@
     { key: 'm_step', job: 'mage', name: '축지(縮地)', emoji: '🌀', cost: 22, cd: 7, max: 10,
       effect: 'dash', mul: [1.2, 0.1], dist: 220, invuln: 0.5,
       desc: '땅을 접어 순식간에 나아간다' },
+    /* 여섯째 무예(2026-09-11) — 방사 갈래엔 없던 여러 발. 새 효과가 아니라
+       궁수의 연사와 같은 volley 를 여러 개의 마탄으로 쓴다 */
+    { key: 'm_orb', job: 'mage', name: '마탄(魔彈)', emoji: '🔵', cost: 22, cd: 3.4, max: 10,
+      effect: 'volley', mul: [1.1, 0.08], shots: 3, desc: '기운 구슬 셋을 잇달아 놓는다' },
     { key: 'p_quake', job: 'sage', name: '지진(地震)', emoji: '🌋', cost: 44, cd: 10, max: 10,
       effect: 'aoe', mul: [3.2, 0.28], r: 230, need: { key: 'm_bolt', lv: 5 },
       desc: '땅을 흔든다 — 뇌전 5' },
@@ -289,6 +332,9 @@
     { key: 'p_step', job: 'sage', name: '축지술(縮地術)', emoji: '🌀', cost: 36, cd: 8, max: 10,
       effect: 'dash', mul: [2.0, 0.17], dist: 280, invuln: 0.7, need: { key: 'm_step', lv: 5 },
       desc: '땅을 더 크게 접는다 — 축지 5' },
+    { key: 'p_orb', job: 'sage', name: '연환탄(連環彈)', emoji: '🔵', cost: 34, cd: 5, max: 10,
+      effect: 'volley', mul: [1.5, 0.12], shots: 4, need: { key: 'm_orb', lv: 5 },
+      desc: '구슬 넷이 고리처럼 잇는다 — 마탄 5' },
     /* 진인 — 방사 갈래의 끝 */
     { key: 'i_meteor', job: 'immortal', name: '유성(流星)', emoji: '💫', cost: 64, cd: 12, max: 10,
       effect: 'rain', mul: [4.8, 0.42], need: { key: 'p_beam', lv: 5 },
@@ -305,6 +351,9 @@
     { key: 'i_step', job: 'immortal', name: '이형보(移形步)', emoji: '🌀', cost: 48, cd: 9, max: 10,
       effect: 'dash', mul: [3.0, 0.26], dist: 340, invuln: 0.9, need: { key: 'p_step', lv: 5 },
       desc: '형체를 옮기듯 건너간다 — 축지술 5' },
+    { key: 'i_orb', job: 'immortal', name: '유성탄(流星彈)', emoji: '🔵', cost: 50, cd: 7, max: 10,
+      effect: 'volley', mul: [1.9, 0.16], shots: 6, need: { key: 'p_orb', lv: 5 },
+      desc: '별 여섯이 한 손에서 쏟아진다 — 연환탄 5' },
     /* 천존 — 방사 갈래의 끝(4차) */
     { key: 'z_starfall', job: 'ascendant', name: '낙성우(落星雨)', emoji: '💫', cost: 70, cd: 13, max: 10,
       effect: 'rain', mul: [6.5, 0.56], need: { key: 'i_meteor', lv: 5 },
@@ -320,7 +369,10 @@
       need: { key: 'i_tao', lv: 5 }, desc: '16초간 하늘과 땅을 몸에 두른다 — 태극 5' },
     { key: 'z_step', job: 'ascendant', name: '신행보(神行步)', emoji: '🌀', cost: 62, cd: 10, max: 10,
       effect: 'dash', mul: [4.2, 0.36], dist: 400, invuln: 1.1, need: { key: 'i_step', lv: 5 },
-      desc: '신선의 걸음으로 세상을 건넌다 — 이형보 5' }
+      desc: '신선의 걸음으로 세상을 건넌다 — 이형보 5' },
+    { key: 'z_orb', job: 'ascendant', name: '성라탄(星羅彈)', emoji: '🔵', cost: 56, cd: 8, max: 10,
+      effect: 'volley', mul: [2.4, 0.2], shots: 8, need: { key: 'i_orb', lv: 5 },
+      desc: '별자리 여덟이 한꺼번에 쏟아진다 — 유성탄 5' }
   ];
 
   var SP_PER_LEVEL = 3;
