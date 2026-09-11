@@ -49,6 +49,7 @@ namespace Saga.EditorTools
             BuildGatherables();
             BuildMountainShrine();
             BuildEastGroveRelic();
+            BuildLuckyCairn();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
@@ -188,6 +189,16 @@ namespace Saga.EditorTools
             var go = new GameObject("EastGroveRelic");
             var relic = go.AddComponent<EastGroveRelic>();
             relic.Build();
+        }
+
+        // PLAN.md 24~27장 "랜덤 이벤트" 첫 콘텐츠. 남쪽 첫 공터(row7)의
+        // herb_4(3,7) 옆 빈 들판(4,7) — 남쪽 문을 지나면 채집 자리와 나란히
+        // 바로 보인다.
+        private static void BuildLuckyCairn()
+        {
+            var go = new GameObject("LuckyCairn");
+            var cairn = go.AddComponent<LuckyCairn>();
+            cairn.Build();
         }
 
         private static void BuildGatherables()
