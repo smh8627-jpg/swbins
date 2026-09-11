@@ -23,10 +23,17 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   전이라 TerrainBuilder와 같은 방식(결합 메시+정점 색+VertexColorLit)으로
   씀. 나무 줄기만 CapsuleCollider로 막음(잎은 안 막음), 바위는 산 타일
   자체가 이미 막혀 있어 추가 충돌 없음. `BuildTestVillageScene.cs`에
-  `BuildVegetation()` 훅 추가(땅 다음, 플레이어 전). **컴파일만 확인
-  됐고(quit-only 배치, 에러 0) `BuildTestVillageScene.Build`로 씬을
-  다시 저장해 groundVerts/나무 개수를 확인하는 건 아직 안 함** — 다음
-  세션이 이어서 할 것.
+  `BuildVegetation()` 훅 추가(땅 다음, 플레이어 전). 씬 재저장·
+  PlaytestHeadless(Play 모드 실행)까지 전부 통과 확인됨.
+- **Phase 3(28~31단계) 둘째 조각 — 랜드마크.** `Assets/Games/SagaGo/
+  World/LandmarksBuilder.cs` — saga-godot의 landmarks_builder.gd와
+  같은 자리·크기(굴 입구·마을집 2채·폐허 기둥 3개·다리 1개). 개수가
+  적어 VegetationBuilder처럼 결합 메시로 안 묶고 Unity 기본
+  Cube/Cylinder primitive + URP/Lit 단색 머티리얼을 그대로 씀. 다리
+  덱은 시각만(충돌은 TerrainBuilder가 'B' 타일에 이미 만들어 둠, 두
+  곳이 각자 만들면 겹친다 — saga-godot과 같은 결정). `BuildTestVillageScene
+  .cs`에 `BuildLandmarks()` 훅 추가(초목 다음, 플레이어 전). 씬 재저장·
+  PlaytestHeadless까지 전부 통과 확인됨.
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -51,8 +58,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- Phase 3 나머지: 랜드마크(굴 입구·마을집·폐허·다리 — primitive로,
-  PLAN.md 8장), Sky/Fog(URP Volume)
+- Phase 3 나머지: Sky/Fog(URP Volume), Path/Road 구성(32장 — 지금은
+  '=' 타일이 그냥 색만 다른 평지, 실제 길처럼 보이는 건 아님)
 - NPC 최소 구현(주민 1~2명, 대화만) — saga-godot이 "대화가 전투보다
   먼저"로 순서를 정정했던 교훈 그대로 반영해 Combat보다 먼저 할 것
 - 위 항목들이 어느 정도 쌓이면(플레이어가 실제로 걸어 다닐 수 있게
