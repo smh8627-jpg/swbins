@@ -87,6 +87,12 @@
     for (var rr = 0; rr < ru.length; rr++) {
       if (!data.find(ru[rr].id)) { data.heroes.push(ru[rr]); }
     }
+    /* 묘역 지역 수비 무장(2026-09-11, 열한째 확장 — 되살아난 해골 병사) —
+       같은 방식으로 얹는다 */
+    var tb = FD.TOMB_OFFICERS || [];
+    for (var tt2 = 0; tt2 < tb.length; tt2++) {
+      if (!data.find(tb[tt2].id)) { data.heroes.push(tb[tt2]); }
+    }
     merged = true;
     return data.heroes.length;
   }

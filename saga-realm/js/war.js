@@ -822,7 +822,13 @@
     /* "탐험"(README 여덟 축, 2026-09-10) — 표시해 둔 랜드마크 성을 **처음**
        함락하면 한 번뿐인 발견 보상을 준다(재정복은 해당 없다 — 이미
        발견된 곳이다). 새 판정이 아니라 capture() 가 이미 끝낸 결과에
-       보상만 더한다(보스전과 같은 결). */
+       보상만 더한다(보스전과 같은 결).
+       2026-09-11 — "유물 시스템을 깊게 판다"는 방향으로, 금뿐이던 발견
+       보상에 보스전과 같은 결로 유물 하나를 더했다(위 `bossBeaten` 블록을
+       그대로 본떴다 — 새 판정 없이 이미 있는 `ID.randomItem()`/`off.equip()`
+       를 한 번 더 부를 뿐). 균열·폐허·묘역처럼 landmark 이자 boss 이기도
+       한 성(jongmal·pyedo·myomun)은 두 유물을 다 받는다 — 원래도 두
+       보상 블록이 독립적으로 실행되던 것과 같은 결이라 새 겹침이 아니다. */
     var cityDef = CD.find(toId);
     if (cityDef && cityDef.landmark) {
       st.discovered = st.discovered || {};
@@ -831,7 +837,15 @@
         var lf = R.force(newForce);
         var landGold = 1000;
         if (lf) { lf.gold += landGold; }
-        report.log.push('🗺️ 처음 밟는 땅 — ' + cityDef.name + '(' + cityDef.hanja + ') 발견! 금 ' + core.fmt(landGold));
+        var landLine = '🗺️ 처음 밟는 땅 — ' + cityDef.name + '(' + cityDef.hanja + ') 발견! 금 ' + core.fmt(landGold);
+        if (ID && atk.officers.length) {
+          var loid = atk.officers[Math.floor(Math.random() * atk.officers.length)];
+          var lit = ID.randomItem();
+          off.equip(loid, lit.id);
+          var lh = off.find(loid);
+          landLine += ' · ' + lit.emoji + lit.name + ' → ' + (lh ? lh.name : loid);
+        }
+        report.log.push(landLine);
         core.log('🗺️ ' + cityDef.name + ' 을(를) 처음으로 밟았다 — ' + R.forceName(newForce), 'good');
         core.emit('rtk:discover', { city: toId, force: newForce });
       }

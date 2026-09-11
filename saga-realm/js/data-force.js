@@ -612,6 +612,68 @@
     janhyang: ['ru_doksi']
   };
 
+  /* ── 묘역(墓域) 지역 수비 무장 (2026-09-11, 열한째 확장) — 균열·폐허와
+     같은 결(force:null·GARRISON 표·9인, 사람이 아니다)이지만 **셋째
+     팩**을 쓴다. era 는 전부 '묘역(가상)' — 되살아난 해골 병사다.
+     `monster` 필드는 asset3d.js `heroRecipe()`가 곧장 읽는 실제 CC0
+     3D 모델 경로다(KayKit Skeletons 4종 — Mage·Minion·Rogue·Warrior,
+     `saga-dungeon`이 이미 검증해 둔 자산을 그대로 복사해 왔다 —
+     `assets/ASSET_LICENSES.md` 참고). **9인이 4종 모델을 나눠 쓴다**
+     (균열·폐허처럼 1인 1모델이 아니다 — 이 팩은 한 벌이 2.5MB 안팎으로
+     무거워, 9벌을 다 받으면 20MB를 넘는다. `asset3d.js`의 `acquire()`
+     캐시가 URL 기준이라 같은 GLB 를 쓰는 인물끼리는 실제로 한 번만
+     받는다 — tint(세력색)로만 서로 다르게 보인다). 표시 이름은 원작
+     파일명을 그대로 안 쓰고 이 판이 새로 지었다. */
+  var TOMB_OFFICERS = [
+    { id: 'tb_baekgi',  name: '백기', hanja: '白騎', era: '묘역(가상)', faction: '묘문',
+      rarity: 4, trait: 'might', emoji: '💀', quote: '이 무덤 앞에서는 산 것도 죽은 것도 다 같은 손님입니다.',
+      stats: { might: 86, wisdom: 38, command: 70 }, boss: true,
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Warrior.glb' },
+    { id: 'tb_ganghae', name: '강해', hanja: '强骸', era: '묘역(가상)', faction: '백골',
+      rarity: 3, trait: 'might', emoji: '🦴', quote: '부러진 뼈로도 창은 들 수 있습니다.',
+      stats: { might: 78, wisdom: 32, command: 56 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Warrior.glb' },
+    { id: 'tb_gojeon',  name: '고전', hanja: '古戰', era: '묘역(가상)', faction: '침관',
+      rarity: 3, trait: 'might', emoji: '⚔️', quote: '옛 싸움을 기억하는 건 이제 저희뿐입니다.',
+      stats: { might: 74, wisdom: 36, command: 60 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Warrior.glb' },
+    { id: 'tb_amseup',  name: '암습', hanja: '暗襲', era: '묘역(가상)', faction: '혼로',
+      rarity: 3, trait: 'wisdom', emoji: '🗡️', quote: '그림자가 길어질 때, 저도 함께 깁니다.',
+      stats: { might: 56, wisdom: 70, command: 52 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Rogue.glb' },
+    { id: 'tb_jamhon',  name: '잠혼', hanja: '潛魂', era: '묘역(가상)', faction: '진혼',
+      rarity: 3, trait: 'wisdom', emoji: '👤', quote: '혼은 몸이 없어도 숨을 곳을 압니다.',
+      stats: { might: 52, wisdom: 74, command: 50 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Rogue.glb' },
+    { id: 'tb_saryeong',name: '사령', hanja: '死靈', era: '묘역(가상)', faction: '유골',
+      rarity: 3, trait: 'wisdom', emoji: '🔮', quote: '죽음을 부리는 건 죽은 자가 제일 잘합니다.',
+      stats: { might: 38, wisdom: 84, command: 58 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Mage.glb' },
+    { id: 'tb_heukju',  name: '흑주', hanja: '黑呪', era: '묘역(가상)', faction: '심연',
+      rarity: 3, trait: 'wisdom', emoji: '🕯️', quote: '저주는 말보다 오래 남습니다.',
+      stats: { might: 36, wisdom: 82, command: 62 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Mage.glb' },
+    { id: 'tb_japgol',  name: '잡골', hanja: '雜骨', era: '묘역(가상)', faction: '백골',
+      rarity: 3, trait: 'might', emoji: '🩻', quote: '이름은 잊었지만, 자리는 안 잊었습니다.',
+      stats: { might: 60, wisdom: 34, command: 44 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Minion.glb' },
+    { id: 'tb_jongja',  name: '종자', hanja: '從者', era: '묘역(가상)', faction: '침관',
+      rarity: 3, trait: 'command', emoji: '⛓️', quote: '누군가는 앞에 서야 합니다, 저는 그게 익숙합니다.',
+      stats: { might: 58, wisdom: 36, command: 46 },
+      monster: 'assets/models/monsters/kaykit_skeletons/Skeleton_Minion.glb' }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var TOMB_GARRISON = {
+    myomun: ['tb_baekgi', 'tb_ganghae'],
+    baekgol: ['tb_japgol'],
+    chimgwan: ['tb_gojeon', 'tb_jongja'],
+    honro: ['tb_amseup'],
+    jinhon: ['tb_jamhon'],
+    yugol: ['tb_saryeong'],
+    simyeon: ['tb_heukju']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -840,6 +902,7 @@
     LINYI_OFFICERS: LINYI_OFFICERS, LINYI_GARRISON: LINYI_GARRISON,
     FUTURE_OFFICERS: FUTURE_OFFICERS, FUTURE_GARRISON: FUTURE_GARRISON,
     RUIN_OFFICERS: RUIN_OFFICERS, RUIN_GARRISON: RUIN_GARRISON,
+    TOMB_OFFICERS: TOMB_OFFICERS, TOMB_GARRISON: TOMB_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

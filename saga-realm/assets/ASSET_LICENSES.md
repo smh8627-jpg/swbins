@@ -236,3 +236,26 @@ quaternius2/`·`community/`가 이미 검증해 둔 CC0 자산을 그대로 복�
 같은 이유로 `fly`를 넣었다 — 어느 쪽이든 `Wasp_Flying`과 매칭된다) —
 안 그러면 벌이 가만히 bind pose로 굳어 있었을 것이다. 아홉 파일 합쳐
 약 1.27MB.
+
+## KayKit Character Pack: Skeletons 4종 — 묘역 지역 수비 무장 (2026-09-11)
+
+열한째 확장(묘역, 균열·폐허에 이은 셋째 몬스터 팩)의 수비 무장은 되살아난
+해골 병사다. `saga-dungeon/assets/models/monsters/kaykit_skeletons/`가
+이미 검증해 둔 CC0 자산을 그대로 복사해 왔다(같은 저장소 안이라 네트워크
+재수신 없이 파일만 옮겼다) — 라이선스·출처는 saga-dungeon의
+`assets/ASSET_LICENSES.md`("몬스터 — KayKit Skeletons + Quaternius
+Ultimate Monsters" 절)와 완전히 같다.
+
+| 파일 | 만든 이 | 받은 곳 | 라이선스 |
+|---|---|---|---|
+| `kaykit_skeletons/Skeleton_Mage.glb`·`Skeleton_Minion.glb`·
+  `Skeleton_Rogue.glb`·`Skeleton_Warrior.glb` | Kay Lousberg(KayKit) | `github.com/KayKit-Game-Assets`(saga-dungeon 경유) | **CC0**, 저작자 표시 불필요(권장) |
+
+**이 팩만 9인이 4종을 나눠 쓴다** — 균열·폐허는 무장 한 명당 GLB 한 개씩
+1:1이었는데, 이 팩은 한 벌이 2.5MB 안팎(몸마다 근접·원거리·2인용 무기
+애니메이션이 90여 개씩 내장돼 있어서다)이라 9벌을 다 받으면 20MB를
+넘는다. `asset3d.js`의 `acquire()` 캐시가 URL 기준이라 같은 GLB 를 쓰는
+인물끼리는 실제로 한 번만 받고, tint(세력색)로만 서로 다르게 보인다 —
+전투(`battle3d.js` `setupDuel()`)에서 같은 팩 인물끼리 마주 세우면 몸이
+겹칠 수 있다는 뜻이다(예: 강해·고전이 둘 다 Warrior). 네 파일 합쳐
+약 10.5MB — 균열·폐허(합쳐 약 2.3MB)보다 훨씬 무겁다.

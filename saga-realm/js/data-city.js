@@ -66,7 +66,15 @@
        "시간이 뒤섞인 관문"이 아니라 그 뒤에 남은 **폐허** — 좀비·거대
        변이체·독충 떼가 지킨다(data-force.js RUIN_OFFICERS, 실제 CC0
        괴물 3D 모델을 신다, 균열과는 다른 팩) */
-    pf: '폐허'
+    pf: '폐허',
+    /* 2026-09-11 확장(열한째) — 폐허 너머, 산 자와 죽은 자의 경계가
+       흐려진 무덤들의 영역. 균열(미래·시간)·폐허(오염·변이) 다음으로
+       "완전 퓨전"의 나머지 한 축인 판타지·죽음의 이미지를 담는다(실제
+       고대 지명·인물 오마주가 아니다 — 균열·폐허와 같은 원칙). 지키는
+       무장은 사람이 아니라 되살아난 해골 병사다(data-force.js
+       TOMB_OFFICERS, 실제 CC0/CC-BY 해골 3D 모델 — 균열·폐허와도 다른
+       셋째 팩, KayKit Skeletons) */
+    my: '묘역'
   };
 
   var CITIES = [
@@ -417,7 +425,36 @@
       desc: '병이 먼저 휩쓸고 간 자리. 그래도 뭔가는 여전히 움직인다.' },
     { id: 'janhyang',   name: '잔향', hanja: '殘響', prov: 'pf', x: 236, y: 96, land: 'hill',
       agri: 95, comm: 80, wall: 2500, pop: 32000, garrison: 5200,
-      desc: '지도 위 가장 동쪽 이름. 무너진 것들의 마지막 메아리다.' }
+      desc: '지도 위 가장 동쪽 이름. 무너진 것들의 마지막 메아리다.' },
+
+    /* ── 묘역(墓域) (2026-09-11 확장, 열한째, 주인 없음 — 균열·폐허와
+       자리·판정은 같은 결) ── 폐허 남쪽, 산 자와 죽은 자의 경계가 흐려진
+       무덤들의 자리. 지키는 무장은 되살아난 해골 병사다(data-force.js
+       TOMB_OFFICERS 의 `monster` 필드, 균열·폐허와도 다른 셋째 팩).
+       좌표는 폐허 남쪽 빈 공간(x 200~226, y 112~148)에 잇는다 — 기존
+       viewBox(x:-60~240, y:-30~150) 안에 다 들어와 2D·3D 어느 쪽도
+       다시 넓힐 필요가 없었다. */
+    { id: 'myomun',    name: '묘문', hanja: '墓門', prov: 'my', x: 214, y: 120, land: 'plain',
+      agri: 180, comm: 160, wall: 3600, pop: 62000, garrison: 8600, landmark: true,
+      desc: '폐허 남쪽, 땅 밑으로 이어지는 첫 관문. 안으로 들어가면 못 돌아온다는 말이 있다.' },
+    { id: 'baekgol',   name: '백골', hanja: '白骨', prov: 'my', x: 206, y: 132, land: 'hill',
+      agri: 90, comm: 70, wall: 2400, pop: 34000, garrison: 5200,
+      desc: '뼈가 쌓여 언덕을 이뤘다. 바람이 불면 서로 부딪혀 소리를 낸다.' },
+    { id: 'chimgwan',  name: '침관', hanja: '沈棺', prov: 'my', x: 220, y: 128, land: 'river',
+      agri: 80, comm: 100, wall: 2500, pop: 32000, garrison: 5000,
+      desc: '물 아래 가라앉은 관들이 줄지어 있다. 물이 맑아 그대로 다 보인다.' },
+    { id: 'honro',     name: '혼로', hanja: '魂爐', prov: 'my', x: 200, y: 140, land: 'mount',
+      agri: 70, comm: 90, wall: 2700, pop: 36000, garrison: 5400,
+      desc: '혼을 태우는 화로가 밤낮없이 탄다. 재는 안 남는다.' },
+    { id: 'jinhon',    name: '진혼', hanja: '鎭魂', prov: 'my', x: 226, y: 140, land: 'plain',
+      agri: 100, comm: 110, wall: 2600, pop: 30000, garrison: 4800,
+      desc: '혼을 달래는 자리. 그런데도 잠들지 못한 것들이 여전히 걷는다.' },
+    { id: 'yugol',     name: '유골', hanja: '遺骨', prov: 'my', x: 210, y: 146, land: 'plain',
+      agri: 85, comm: 75, wall: 2300, pop: 28000, garrison: 4600,
+      desc: '주인 없는 뼈가 자리마다 놓여 있다. 이름은 다 잊혔다.' },
+    { id: 'simyeon',   name: '심연', hanja: '深淵', prov: 'my', x: 218, y: 148, land: 'hill',
+      agri: 75, comm: 85, wall: 2200, pop: 26000, garrison: 4400,
+      desc: '지도 위 가장 남쪽 이름. 내려다보면 끝이 안 보인다.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -527,7 +564,16 @@
     ['janjae', 'hoegok'],
     ['oyeom', 'chimmuk'],
     ['hoegok', 'yeokbyeong'], ['hoegok', 'janhyang'],
-    ['chimmuk', 'janhyang']
+    ['chimmuk', 'janhyang'],
+
+    /* ── 묘역(墓域) — 폐허 남쪽 ───────────────────────── */
+    ['chimmuk', 'myomun'],
+    ['myomun', 'baekgol'], ['myomun', 'chimgwan'],
+    ['baekgol', 'honro'],
+    ['chimgwan', 'jinhon'],
+    ['honro', 'yugol'],
+    ['jinhon', 'simyeon'],
+    ['yugol', 'simyeon']
   ];
 
   var byId = {};

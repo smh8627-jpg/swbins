@@ -37,7 +37,17 @@
     { id: 'itm_seal',      name: '인수',   emoji: '🔶', stat: 'command', bonus: 6,
       desc: '위엄을 세우는 관인.' },
     { id: 'itm_drum',      name: '전고',   emoji: '🥁', stat: 'command', bonus: 10,
-      desc: '북소리 하나로 군세를 다잡는다.' }
+      desc: '북소리 하나로 군세를 다잡는다.' },
+    /* 2026-09-11 — 균열·폐허·묘역(현대·미래·판타지 세 지역)을 만들고 나서
+       "유물"도 그 세계관에 맞게 늘렸다. `randomItem()`이 배열 전체에서
+       고르는 순수 확률표라 이 셋을 더해도 판정 코드는 한 글자도 안
+       바뀐다 — hero.js 계약(`statBonus`)도 그대로다. */
+    { id: 'itm_timeshard', name: '시간의 파편', emoji: '⏳', stat: 'wisdom', bonus: 9,
+      desc: '균열에서 흘러나온 조각. 지니면 앞일이 어렴풋이 보인다.' },
+    { id: 'itm_purifier',  name: '정화 장치',   emoji: '🧪', stat: 'might',  bonus: 9,
+      desc: '오염을 씻어내는 장치. 몸에 지니면 숨쉬기가 한결 낫다.' },
+    { id: 'itm_boneseal',  name: '해골의 인장', emoji: '💀', stat: 'command', bonus: 9,
+      desc: '주인 없는 인장. 지니면 죽은 자도 따른다는 말이 있다.' }
   ];
 
   function itemById(id) {
