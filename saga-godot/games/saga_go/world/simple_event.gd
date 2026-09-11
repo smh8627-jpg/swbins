@@ -21,6 +21,7 @@ extends Node3D
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+const Toast := preload("res://games/saga_go/ui/toast.gd")
 
 const TRIGGER_RADIUS := 16.0
 const TOAST_SEC := 4.0
@@ -94,13 +95,4 @@ func _resolve(text: String, exp_reward: float) -> void:
 	queue_free() # 패널·트리거 모두 이 노드 자식이라 같이 사라진다
 
 func _toast(text: String) -> void:
-	var labels := get_tree().get_nodes_in_group("dialogue_label")
-	if labels.is_empty():
-		return
-	var label: Label = labels[0]
-	label.text = text
-	label.show()
-	get_tree().create_timer(TOAST_SEC).timeout.connect(func() -> void:
-		if is_instance_valid(label) and label.text == text:
-			label.hide()
-	)
+	Toast.show(self, text, TOAST_SEC)
