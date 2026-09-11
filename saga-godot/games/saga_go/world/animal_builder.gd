@@ -6,11 +6,14 @@ extends Node3D
 ## 움직이는가?"에 지금까지 동물 쪽이 답이 없었다.
 ##
 ## 웹판 js/animal.js의 KINDS 다섯 종(사슴·늑대·까치·잉어·소) 중 이번엔
-## **사슴·까치 둘만** 옮겼다 — 웹판 그대로:
+## **사슴·까치·잉어 셋** — 웹판 그대로:
 ##   - 늑대는 이미 `bandit_encounter.gd`(night_only)의 "늑대 무리" 전투
 ##     사건으로 있다. 걸어 다니는(전투 없는) 늑대까지 더하면 "이 늑대는
 ##     싸우는 늑대인가 아닌가" 혼란이 생겨 뺐다.
-##   - 잉어(물)·소(매인 짐승, 농경)는 이번 범위 밖 — 다음에 이어 붙일 자리.
+##   - 소(매인 짐승, `act:null` — 그냥 서 있기만 함)는 이번 범위 밖.
+## 잉어(2026-09-12⑤)는 웹판 KINDS.carp에 `only:'day'`가 없다 — 사슴·까치와
+## 달리 밤에도 강에 있다(TimeOfDay로 안 가린다). 강(~) 타일 위, 수면
+## (WaterSurface, terrain_builder.gd)보다 살짝 아래서 헤엄친다.
 ## 웹판 HERDS(이름난 자리 둘 사이를 사인 곡선으로 오가는 무리 이동)는 이
 ## 판에 "이름난 자리" 개념이 없어 그대로 못 옮긴다 — 대신 각자 집 자리
 ## 근처를 맴돈다(같은 감각, 다른 구현). 어울리는 GLB가 없어(동물 킷을
@@ -33,13 +36,25 @@ const MAGPIE_SENSE_RADIUS := 18.0
 const MAGPIE_FLY_COOLDOWN_SEC := 20.0
 const MAGPIE_COLOR := Color(0.184, 0.2, 0.251) # 웹판 #2f3340
 
+## 웹판 animal.js KINDS.carp의 sense(12)·move(9)를 그대로 옮겼다(다른
+## 종보다 둘 다 작다 — 좁은 강 안에서만 움직이니 그게 맞다). 다리(격자
+## (5,7))에서 떨어진 강 타일 (2,7)을 집으로 삼았다.
+const CARP_HOME := Vector2i(2, 7)
+const CARP_COUNT := 3
+const CARP_WANDER_RADIUS := 4.0
+const CARP_SENSE_RADIUS := 12.0
+const CARP_FLEE_SPEED := 4.0
+const CARP_COLOR := Color(0.851, 0.541, 0.353) # 웹판 #d98a5a
+
 var _deer: Array[Dictionary] = []
 var _magpies: Array[Dictionary] = []
+var _carps: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	_spawn_deer()
 	_spawn_magpies()
+	_spawn_carps()
 
 
 static func _hash(i: int, salt: int) -> float:
@@ -104,6 +119,30 @@ func _build_magpie_body() -> MeshInstance3D:
 	return mi
 
 
+func _spawn_carps() -> void:
+	## 강바닥(-1.0) 위, 수면(-0.45, terrain_builder.gd _build_water 참고)
+	## 보다 살짝 아래서 헤엄친다 — 물 밖으로 튀어나와 보이지 않게.
+	var bed: float = TerrainBuilder.LEGEND["~"].height
+	var swim_y := bed + TerrainBuilder.WATER_HEIGHT_ABOVE_BED * 0.5
+	var home_pos := TestMap.world_pos(CARP_HOME.x, CARP_HOME.y) + Vector3(0, swim_y, 0)
+	for i in CARP_COUNT:
+		var body := _build_carp_body()
+		body.position = home_pos
+		add_child(body)
+		_carps.append({"node": body, "home": home_pos, "phase": _hash(i, 31) * TAU})
+
+
+func _build_carp_body() -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.5, 0.18, 0.16)
+	mi.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = CARP_COLOR
+	mi.material_override = mat
+	return mi
+
+
 func _find_player() -> Node3D:
 	var players := get_tree().get_nodes_in_group("player")
 	return players[0] if not players.is_empty() else null
@@ -150,3 +189,21 @@ func _process(delta: float) -> void:
 			CodexState.discover("beast", "magpie")
 			m.cooldown = MAGPIE_FLY_COOLDOWN_SEC
 			mnode.visible = false
+
+	## 웹판 KINDS.carp엔 only:'day'가 없다 — 밤에도 강에 있다(TimeOfDay로
+	## 안 가림, 사슴·까치와 다른 유일한 차이).
+	for c in _carps:
+		var cnode: Node3D = c.node
+		var chome: Vector3 = c.home
+		var cphase: float = c.phase
+		var cdesired := chome + Vector3(sin(t * 0.5 + cphase), 0.0, cos(t * 0.37 + cphase * 1.2)) * CARP_WANDER_RADIUS
+		if player != null:
+			var cdist := cnode.global_position.distance_to(player.global_position)
+			if cdist < CARP_SENSE_RADIUS:
+				CodexState.discover("beast", "carp")
+				var caway: Vector3 = cnode.global_position - player.global_position
+				caway.y = 0.0
+				if caway.length() > 0.01:
+					caway = caway.normalized()
+				cdesired = cnode.global_position + caway * CARP_WANDER_RADIUS
+		cnode.position = cnode.position.move_toward(cdesired, CARP_FLEE_SPEED * delta)
