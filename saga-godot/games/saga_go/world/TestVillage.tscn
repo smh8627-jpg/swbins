@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/world/terrain_builder.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/world/landmarks_builder.gd" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://games/saga_go/world/environment_profile.gd" id="9"]
 [ext_resource type="Script" path="res://games/saga_go/world/test_village.gd" id="10"]
 [ext_resource type="Script" path="res://games/saga_go/world/simple_event.gd" id="11"]
+[ext_resource type="Script" path="res://games/saga_go/world/hero_encounter.gd" id="12"]
 
 [node name="TestVillage" type="Node3D"]
 script = ExtResource("10")
@@ -104,6 +105,9 @@ choice_a_fail_exp = 10.0
 choice_b_label = "촌장에게 알린다"
 choice_b_outcome = "촌장이 사람을 풀었다."
 choice_b_exp = 4.0
+
+[node name="HeroEncounter" type="Node3D" parent="."]
+script = ExtResource("12")
 
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
