@@ -38,6 +38,18 @@ script = ExtResource("6")
 [node name="BanditEncounter" type="Node3D" parent="."]
 script = ExtResource("7")
 
+[node name="BanditLeaderEncounter" type="Node3D" parent="."]
+script = ExtResource("7")
+grid = Vector2i(5, 2)
+foe_name = "도적 두목"
+foe_power = 260.0
+foe_hp_mul = 9.0
+bandit_scale = 1.4
+event_title = "🗡️ 도적 두목의 소굴"
+event_quote = "\"여기까지 들어온 배짱은 인정하마. 하나 살아 나갈 배짱까지 있을까.\""
+recruit_id = "도적_두목"
+quest_id_to_complete = "village_ask"
+
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
 current = false

@@ -21,6 +21,10 @@ func save() -> bool:
 		"version": SAVE_VERSION,
 		"player_pos": [player.global_position.x, player.global_position.y, player.global_position.z],
 		"party_members": PartyState.members,
+		"quest_active_id": QuestState.active_id,
+		"quest_active_name": QuestState.active_name,
+		"quest_done": QuestState.done,
+		"quest_offered": QuestState.offered,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -55,6 +59,20 @@ func try_load() -> bool:
 	var player := _find_player()
 	if player != null and pos.size() == 3:
 		player.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+
+	## 이 세 필드는 §31에서 새로 추가됐다 — 그 전에 저장된 파일엔 아예 없다.
+	## 값이 없어도 기본값(빈 사명·안 물어본 목록)으로 안전하게 채워지므로
+	## SAVE_VERSION을 올리는 마이그레이션은 필요 없다(추가만 있고 기존 필드
+	## 모양은 안 바뀌었다).
+	var offered: Array[String] = []
+	for id in data.get("quest_offered", []):
+		offered.append(str(id))
+	QuestState.restore(
+		str(data.get("quest_active_id", "")),
+		str(data.get("quest_active_name", "")),
+		bool(data.get("quest_done", false)),
+		offered
+	)
 	return true
 
 

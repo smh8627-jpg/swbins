@@ -8,6 +8,7 @@ extends Node3D
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 
 const TALK_RADIUS := 14.0
 const TALK_GAP_SEC := 45.0
@@ -18,16 +19,25 @@ const LINE_SHOW_SEC := 4.0
 ## docs/ASSET_GUIDE.md 참고). 실측 키(2.7m)·스케일(1.25배)도 플레이어와 같다.
 const NPC_CHAR_SCALE := 1.25
 
+## 2026-09-11② — GO 사건 다양화(VERTICAL_SLICE §31 "마을의 부탁"). 촌장에게
+## quest_* 필드를 추가했다 — 있으면 처음 말 걸었을 때 사명 제안 패널을
+## 띄우고, 그 뒤로는 진행/완료 상태에 맞는 대사로 갈아 낀다. 상인은 그대로
+## 한 줄뿐인 예전 방식이다(모든 NPC가 사명을 들 필요는 없다).
 const VILLAGERS := [
 	{"id": "npc_elder", "name": "마을 촌장",
 	 "line": "이 마을에 무슨 일로 오셨소.",
-	 "grid": Vector2i(1, 3), "glb": "res://assets/characters/character-b.glb"},
+	 "grid": Vector2i(1, 3), "glb": "res://assets/characters/character-b.glb",
+	 "quest_id": "village_ask", "quest_name": "도적 두목을 물리쳐라",
+	 "quest_offer_title": "🙏 마을의 부탁\n\"보아하니 멀리서 오신 분 같은데, 청이 하나 있소. 요 며칠 산길에 도적 두목이 나타나 오가는 이들을 괴롭힌다오. 그자를 물리쳐 주실 수 있겠소?\"",
+	 "quest_wait_line": "아직인가... 부디 조심하시게.",
+	 "quest_done_line": "정말 고맙소이다! 이 은혜는 잊지 않겠소."},
 	{"id": "npc_merchant", "name": "떠돌이 상인",
 	 "line": "북쪽 산길은 요즘 값이 오르오. 짐꾼을 못 구해서.",
 	 "grid": Vector2i(4, 3), "glb": "res://assets/characters/character-c.glb"},
 ]
 
 var _last_said_ms := {}
+var _quest_prompt_by_id := {}
 
 func _ready() -> void:
 	for v in VILLAGERS:
@@ -56,6 +66,9 @@ func _spawn(v: Dictionary) -> void:
 	root.add_child(area)
 	area.body_entered.connect(_on_body_entered.bind(v))
 
+	if v.has("quest_id"):
+		_quest_prompt_by_id[v.id] = _build_quest_prompt(v)
+
 ## GLB 캐릭터를 통째로 인스턴스한다(대화만 하는 주민이라 애니메이션은
 ## idle 그대로 둔다 — player.gd처럼 걷기 전환이 필요 없다). 못 받아 왔으면
 ## 예전 캡슐로 대체해 주민이 아예 안 보이는 것보단 낫게 한다.
@@ -75,7 +88,10 @@ func _build_body(glb_path: String) -> Node3D:
 	return body
 
 ## 지나가다 듣는 한 마디다(웹판 npc.js와 같은 감각) — 누르는 대화창은
-## 아니다. 조우 판정에는 손대지 않는다.
+## 아니다. 조우 판정에는 손대지 않는다. 사명이 딸린 NPC(촌장)는 처음
+## 말 걸었을 때만 제안 패널(_build_quest_prompt)이 뜨고, 그 뒤로는
+## 진행/완료 상태에 맞는 한 줄로 갈아 낀다 — event.js village_ask가
+## "한 번 맡으면 다시 안 묻는다"는 것과 같은 경계.
 func _on_body_entered(body: Node3D, v: Dictionary) -> void:
 	if not body.is_in_group("player"):
 		return
@@ -84,14 +100,36 @@ func _on_body_entered(body: Node3D, v: Dictionary) -> void:
 	if now - last < TALK_GAP_SEC * 1000.0:
 		return
 	_last_said_ms[v.id] = now
-	_say(v)
 
-func _say(v: Dictionary) -> void:
+	if v.has("quest_id"):
+		if not QuestState.has_been_offered(v.quest_id):
+			_quest_prompt_by_id[v.id].show()
+			return
+		if QuestState.active_id == v.quest_id:
+			_say(v.name, v.quest_done_line if QuestState.done else v.quest_wait_line)
+			return
+	_say(v.name, v.line)
+
+func _build_quest_prompt(v: Dictionary) -> CanvasLayer:
+	var layer := ChoicePrompt.build(self, v.quest_offer_title, [
+		{"label": "맡는다", "cb": func() -> void:
+			_quest_prompt_by_id[v.id].hide()
+			QuestState.accept(v.quest_id, v.quest_name)
+			_say(v.name, "고맙소, 부디 몸조심하시게.")},
+		{"label": "사양한다", "cb": func() -> void:
+			_quest_prompt_by_id[v.id].hide()
+			QuestState.decline(v.quest_id)
+			_say(v.name, "그런가... 아쉽구려.")},
+	])
+	layer.visible = false
+	return layer
+
+func _say(npc_name: String, line: String) -> void:
 	var labels := get_tree().get_nodes_in_group("dialogue_label")
 	if labels.is_empty():
 		return
 	var label: Label = labels[0]
-	var text := "%s — %s" % [v.name, v.line]
+	var text := "%s — %s" % [npc_name, line]
 	label.text = text
 	label.show()
 	get_tree().create_timer(LINE_SHOW_SEC).timeout.connect(func() -> void:

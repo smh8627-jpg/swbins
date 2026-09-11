@@ -540,6 +540,80 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     0건, `--headless --quit-after 5` 연속 3번 exit 0·error/warn/
     missing 0건.
 
+## PLAN.md 100단계 — Vertical Slice 승인 (2026-09-11⑩)
+
+**사용자가 "다음 세션 시작 지점"에 남겨 둔 실기 확인 목록을 확인 완료 —
+"확인했다 — 문제 없음, 재미도 있음".** PLAN.md 100단계("100단계에서
+무조건 다음 콘텐츠로 넘어가지 않는다. 게임이 재미없다면 Phase를 되돌려
+개선한다")의 게이트를 통과했다 — GO Vertical Slice는 **승인**됐고,
+39장 순서(Core→Vertical Slice→GO→DUNGEON→...)대로 "GO 콘텐츠를 더
+채우는 단계"로 넘어간다. 어디부터 이어갈지는 사용자에게 다시 물어
+**"GO 사건 다양화"**를 골랐다(VERTICAL_SLICE.md §30·31이 미뤄 둔 것).
+
+## 완료 단계 (추가, 2026-09-11⑩) — GO 사건 다양화 1호
+
+- **VERTICAL_SLICE.md §30(도적 두목 같은 강화형 사건) + §31("마을의 부탁"
+  새 사건 유형 + 퀘스트 로그 UI)을 함께 구현.** 웹판 event.js의
+  `village_ask`(마을 촌장이 사명을 맡긴다) → 그 사명의 목표를 `bandit_ambush`의
+  강화형("도적 두목")으로 잡아, 두 절이 자연스럽게 한 줄기 loop로
+  이어지게 했다(사명 수락 → 도적 두목을 찾아 물리친다 → 사명 완료).
+  - **`bandit_encounter.gd` 리팩터 — const 설정값을 `@export` var로.**
+    `GRID`·`FOE_NAME`·`FOE_POWER`·`FOE_HP_MUL`·`BANDIT_SCALE`·`RECRUIT_ID`가
+    전부 상수라 "도적의 습격" 사건 하나만 표현할 수 있었다. 같은 스크립트를
+    인스턴스마다 다른 값으로 씬에 놓을 수 있게 바꿔(§30 "새로 설계하지
+    않는다"), 새 필드 `event_title`·`event_quote`·`quest_id_to_complete`도
+    추가했다(마지막 것은 비어 있지 않으면 승리 시 `QuestState.complete()`도
+    같이 부른다).
+  - `TestVillage.tscn`에 `BanditLeaderEncounter`(신규 노드, 같은
+    `bandit_encounter.gd`) 추가 — 격자 (5,2)(기존 산적 자리 (5,3) 폐허
+    바로 위, "산채가 폐허 근처에 있다"는 자연스러운 배치), 전투력은
+    일반 산적(120×7배 체력)의 약 2배 이상(260×9배 체력), 시각적으로도
+    1.4배 스케일로 더 크게. 승리 시 `village_ask` 사명을 완료한다.
+  - **`games/saga_go/data/quest_state.gd`(신규, `QuestState`로 autoload
+    등록)** — 웹판 `js/quest.js`는 진행형 사명을 여러 개 동시에 들지만,
+    이 슬라이스는 "사명 하나를 맡고 무언가를 해내면 끝난다"는 loop 하나만
+    있으면 돼서 **동시에 하나만** 든다(과설계 방지). `accept`·`decline`·
+    `complete`·`has_been_offered`(같은 사명 재제안 방지)·`restore`(저장
+    불러오기용).
+  - **`games/saga_go/ui/quest_label.gd`(신규) + `MobileHUD.tscn`의
+    `QuestLabel`** — `party_label.gd`와 같은 경계(잠깐 뜨는 토스트가 아니라
+    상시 표시), "📋 사명: …" / "📋 사명 완료: …"를 `QuestState.quest_changed`
+    신호로 갱신한다.
+  - **`games/saga_go/ui/choice_prompt.gd`(신규)** — bandit_encounter.gd의
+    사건 선택지 패널(맞선다/값을 치른다/달아난다)과 새 퀘스트 제안 패널
+    (맡는다/사양한다)이 같은 모양이라 공용 헬퍼로 뽑았다(제목+버튼 목록
+    → CanvasLayer). bandit_encounter.gd의 `_build_prompt_ui()`도 이걸
+    쓰게 바꿈.
+  - `npc_builder.gd` — 마을 촌장(`npc_elder`) 항목에 `quest_id`·
+    `quest_name`·`quest_offer_title`·`quest_wait_line`·`quest_done_line`
+    필드 추가. 처음 말 걸었을 때만 제안 패널이 뜨고(`QuestState.has_been_offered`
+    로 판정), 그 뒤로는 진행/완료 상태에 맞는 한 줄로 갈아 낀다. 상인은
+    손 안 댐(모든 NPC가 사명을 들 필요는 없다).
+  - `save_state.gd` — `quest_active_id`·`quest_active_name`·`quest_done`·
+    `quest_offered`를 저장/복원에 추가. 전부 없던 필드를 **추가**만 한
+    것이라(기존 필드 모양은 안 바뀜, 없으면 빈 값으로 안전하게 채워짐)
+    `SAVE_VERSION`을 올리는 마이그레이션은 필요 없었다.
+  - **검증 — 이 세션이 도는 PC에 마침 이전 세션이 받아 둔 Godot 4.7.2
+    콘솔 빌드가 `%TEMP%/godot_bin`에 남아 있어 그걸로 실행**(설치가
+    아니라 압축 푼 실행 파일 하나라 그대로 실행 가능, `saga-godot/CLAUDE.md`
+    참고 — 다음 세션·다른 PC엔 없을 수 있다는 점은 그대로 유효).
+    `--headless --editor --quit`(임포트, exit 0) → `--headless
+    --quit-after 5`를 연속 3번(exit 0·error/warn/missing/invalid/cannot
+    0건). **임시 디버그 코드로 실제 값 왕복까지 확인(검증 뒤 되돌림,
+    레포에 안 남음)**: ①`BanditLeaderEncounter`의 `@export` 값이 씬
+    파일 그대로 인스턴스에 적용됨(grid=(5,2)·foe_name=도적 두목·
+    foe_power=260·foe_hp_mul=9·bandit_scale=1.4 전부 확인) ②
+    `QuestState.accept`→`complete`→`SaveState.save()` → **완전히 새
+    프로세스로 재실행**해 `try_load()`가 offered/active_id/done을
+    그대로 복원하는 것까지 확인(단순 "에러 없음"이 아니라 값 자체
+    비교, `save_state.gd` 왕복 검증 때와 같은 방식). 확인 뒤
+    `user://save.json` 삭제, 디버그 프린트도 원상복구(diff 0).
+  - **아직 GUI로 눈으로 확인 안 함** — 도적 두목이 실제로 화면에서
+    더 커 보이는지, 사명 제안 패널이 촌장에게 말 걸었을 때 자연스럽게
+    뜨는지, QuestLabel이 PartyLabel과 안 겹치는지는 루트 CLAUDE.md
+    "실기 확인은 몰아서" 방침대로 다음 실기 확인 때 같이 볼 것(아래
+    "다음에 이어질 것" 목록에 추가).
+
 ## 다음 세션 시작 지점 (사용자 지정, 2026-09-11)
 
 **사용자가 "새로운 세션에서 이어 하자"로 saga-godot을 다음 세션의
@@ -588,6 +662,11 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 - 텍스처 6장을 VRAM Compressed로 바꾼 뒤(2026-09-11⑨) 실기기 화면에서
   색이 이상해지거나(압축 아티팩트) 밉맵 때문에 멀리서 흐릿해 보이는 등
   눈에 띄는 부작용이 없는지.
+- **(2026-09-11⑩ 신규) 마을 촌장에게 말 걸었을 때 "마을의 부탁" 제안
+  패널이 자연스럽게 뜨는지, 맡은 뒤 QuestLabel("📋 사명: …")이 PartyLabel과
+  안 겹치는지.** 도적 두목(격자 (5,2))이 화면에서 일반 산적보다 실제로
+  더 커 보이는지(1.4배 vs 1.25배)·더 세게 느껴지는지(체력 9배), 물리쳤을
+  때 QuestLabel이 "📋 사명 완료: …"로 바뀌는지.
 
 ## 알려진 오류
 

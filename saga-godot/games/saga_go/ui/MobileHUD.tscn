@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/ui/renderer_debug_label.gd" id="2"]
 [ext_resource type="Script" path="res://games/saga_go/ui/party_label.gd" id="3"]
 [ext_resource type="Script" path="res://games/saga_go/ui/save_button.gd" id="4"]
+[ext_resource type="Script" path="res://games/saga_go/ui/quest_label.gd" id="5"]
 
 [node name="MobileHUD" type="CanvasLayer"]
 
@@ -66,6 +67,19 @@ theme_override_colors/font_color = Color(1, 1, 1, 0.9)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
 script = ExtResource("3")
+
+[node name="QuestLabel" type="Label" parent="."]
+anchor_left = 0.0
+anchor_right = 0.0
+offset_left = 40.0
+offset_top = 145.0
+offset_right = 420.0
+offset_bottom = 175.0
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.92, 0.6, 0.95)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+script = ExtResource("5")
 
 [node name="SaveButton" type="Button" parent="."]
 anchor_left = 1.0
