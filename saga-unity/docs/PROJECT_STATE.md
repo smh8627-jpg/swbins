@@ -5,6 +5,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **동쪽 숲 공터(col7)에 첫 콘텐츠 — 낡은 돌기둥 발견 (2026-09-12).**
+  WorldEventState 일반화 다음으로 이어서(같은 세션) — 방금 합친
+  `WorldEventState`를 실제로 바로 재사용해 봤다. `World/
+  EastGroveRelic.cs`(격자 (7,3), HiddenTreasure.cs와 같은 결 — 트리거
+  한 번, 작은 마커, 발견 보상) 신규. 굴 보물처럼 무기를 주는 대신
+  경험치+20·돈+15만 주는 가벼운 발견이라 새 `ItemData` 없음 — 이벤트
+  id `"east_grove_relic"`이 일반화 이후 처음 생긴 네 번째 id. 마커는
+  HiddenTreasure의 발광 구슬과 다르게 살짝 기울어진 낡은 돌기둥
+  (primitive Cylinder)으로 구분. `BuildTestVillageScene.cs`에
+  `BuildEastGroveRelic()` 훅 추가 — GameObject가 늘어 씬 재빌드
+  (`groundVerts=5184` 그대로). 컴파일·씬 재빌드·PlaytestHeadless 전부
+  통과 — 실제로 눈에 띄는지·트리거가 발동하는지는 역시 사람이 직접
+  가 봐야 확인됨.
 - **기술부채 정리 — WorldEventState를 id 집합으로 일반화 (2026-09-12).**
   동쪽 지도 확장 다음으로 이어서(같은 세션) — `ShrineState.cs`가
   스스로 남겨 둔 예고("세 번째 '자리 하나' 월드 이벤트가 생기면
@@ -462,12 +475,12 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 ## 다음 작업 (다음 세션이 이어갈 것)
 
 - **지도 크기 다음 조각.** 남쪽 2줄(row7~8, row7엔 채집 자리 herb_4) +
-  동쪽 2칸(col7~8, 아직 콘텐츠 없음)까지 늘렸다 — 남은 후보는 (1) row8의
-  산을 열어 더 남쪽으로 계속 늘리는 것, (2) 새로 생긴 동쪽 숲 공터
-  (col7, row2~4 부근)에 콘텐츠 심기, (3) 북쪽·서쪽으로도 늘려 보는 것
-  (이번엔 "끝에 보태기"라 안전했지만, **앞쪽에 끼워 넣는 방향은 기존
-  좌표가 실제로 밀리므로** 시도한다면 기존 콘텐츠 좌표를 전부 다시
-  맞추는 별도 작업이 필요). 안개는 이제 SkyFogBuilder의
+  동쪽 2칸(col7~8, EastGroveRelic 발견)까지 늘리고 각각 콘텐츠도 하나씩
+  심었다 — 남은 후보는 (1) row8의 산을 열어 더 남쪽으로 계속 늘리는
+  것, (2) 북쪽·서쪽으로도 늘려 보는 것(이번엔 "끝에 보태기"라 안전했지만,
+  **앞쪽에 끼워 넣는 방향은 기존 좌표가 실제로 밀리므로** 시도한다면
+  기존 콘텐츠 좌표를 전부 다시 맞추는 별도 작업이 필요). 안개는 이제
+  SkyFogBuilder의
   ExponentialSquared 밀도 방식이라(아래 병합 정리 항목 참고) "거리"
   숫자가 아니라 밀도가 새 지도 크기에 맞는지를 사람이 GUI 확인할 때
   같이 볼 것.
@@ -552,6 +565,9 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **지도가 동쪽으로 실제로 늘어났는지**(마을에서 동쪽 숲을 계속
     걸으면 col7~8의 새 공터가 나오고 그 너머는 산으로 막혀 있는지 —
     남쪽과 달리 문 없이 자연스럽게 이어지는지도 같이 확인)
+  - **낡은 돌기둥(EastGroveRelic, 격자 (7,3))이 실제로 눈에 띄고
+    발견되는지**(숲 사이에서 발광 없이도 구분되는지, 다가가면 경험치
+    +20·돈 +15 토스트가 뜨는지)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
@@ -702,3 +718,7 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   MigrateStep(8,...)이 세 bool을 worldFlags로 올바르게 접는지는 사람이
   구버전 세이브로 직접 확인해야 함(헤드리스 플레이는 새 게임 취급이라
   이 경로를 안 지나감).
+- EastGroveRelic(신규, WorldEventState 일반화 이후 첫 재사용) 추가 후
+  컴파일 통과, 씬에 GameObject가 늘어 `BuildTestVillageScene.Build()`
+  재실행(`groundVerts=5184` 그대로 — 땅은 안 바뀜), PlaytestHeadless
+  (`OK - 10 frames, no errors`)도 통과.

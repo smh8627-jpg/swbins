@@ -48,6 +48,7 @@ namespace Saga.EditorTools
             BuildHiddenTreasure();
             BuildGatherables();
             BuildMountainShrine();
+            BuildEastGroveRelic();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
@@ -176,6 +177,13 @@ namespace Saga.EditorTools
             var go = new GameObject("MountainShrine");
             var shrine = go.AddComponent<MountainShrine>();
             shrine.Build();
+        }
+
+        private static void BuildEastGroveRelic()
+        {
+            var go = new GameObject("EastGroveRelic");
+            var relic = go.AddComponent<EastGroveRelic>();
+            relic.Build();
         }
 
         private static void BuildGatherables()
