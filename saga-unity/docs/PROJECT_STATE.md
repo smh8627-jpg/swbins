@@ -5,6 +5,25 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **Phase 7(70~71단계) — Quest 시스템 / Quest Objective·Reward.** Phase 6
+  다음 순서로 이어서(2026-09-11, 같은 세션). `Data/QuestState.cs`(퀘스트
+  하나뿐 — NotStarted/Active/Completed 3단계, PartyState.cs와 같은 자리)
+  + `VillagerTalk.cs`를 고정 문자열 대신 `Func<string>`도 받게 넓혀
+  (기존 `Init(name, string)`는 그대로 유지, 내부에서 람다로 감싸 호출)
+  `NpcBuilder.cs`의 마을 촌장에게 퀘스트 상태별 대사(`ElderLine()`)를
+  줬다 — **말을 거는 순간이 곧 수락**이라 그 함수 안에서
+  `QuestState.StartBanditQuest()`를 직접 부른다(VillagerTalk는 그 결과
+  문장을 보여주기만 하는 화면 층, 부수효과는 NpcBuilder 쪽에 둠).
+  `BanditEncounter.FinishFight()`가 승리 시 `QuestState
+  .CompleteBanditQuest()`를 불러(퀘스트가 Active일 때만 true — 촌장을
+  안 만났으면 조용히 건너뜀, 이미 끝났으면 중복 방지) 완료 시
+  경험치 +50을 추가로 주고 토스트에 "퀘스트 완료" 줄을 얹는다. **"값을
+  치른다"/"달아난다"를 골라도 도적은 안 사라지므로(기존 동작) 나중에
+  다시 "맞선다"로 퀘스트를 끝낼 수 있다** — 퀘스트 진행이 그 선택 때문에
+  막히지 않는다. `SaveState.cs`를 v2→v3로 올려 퀘스트 단계도 저장/
+  로드(`MigrateStep(2, ...)`로 예전 세이브는 NotStarted로 채움). 컴파일·
+  PlaytestHeadless 전부 통과 — **역시 헤드리스로는 촌장과의 대화도
+  퀘스트 완료도 실제로 안 일어나 확인 못함**(플레이어가 안 움직임).
 - **Phase 6(59~67단계) — Stats/EXP/Level Up/Item/Inventory/Equipment/
   Reward/Loot Table.** 버티컬 슬라이스 코드가 다 끝난 뒤(77~78단계는
   사람의 플레이 평가가 필요해 못 넘어감) 2026-09-11 사용자가 "게이트를
@@ -224,15 +243,20 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     토스트에 "경험치 +100 — 레벨업! (1 → 2)"·주운 장비 문구가 뜨는지,
     수치만으로 정한 자리라 실제 UX로 한 번 봐야 함 — 도적은 한 번
     이기면 다시 안 나니 **세이브 파일을 지우고 처음부터** 봐야 재현됨)
+  - **촌장 퀘스트 대사·완료 처리가 실제로 도는지**(처음 말 걸면
+    수락 대사, 다시 걸면 재촉 대사, 도적을 이긴 뒤 다시 걸면 사례
+    대사로 바뀌는지 — 3단계 다 순서대로 봐야 함, 역시 세이브 지우고
+    새로 시작해야 재현됨)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
-  EXP/Item/Inventory/Equipment/Reward/Loot)까지 코드상으로는 전부
-  채워졌다.** **위 GUI 확인에서 실제로 도는 게 확인되면 PLAN.md
-  77~78단계(전체 플레이 테스트 → 재미 평가)로 넘어갈 수 있다** — 이번
-  세션은 그 게이트를 사용자가 명시로 건너뛰라고 골라 Phase 6을 먼저
-  끝냈다(2026-09-11). 다음 후보는 PLAN.md 51~65장이 적어 둔 확장 순서
-  (GO 월드 확장 → DUNGEON → FOREST → STORY → REALM) 또는 이번에 미룬
-  항목들(장비창 UI, 사건/루트 테이블을 사전 구조로 일반화, 골드 경제)
-  — 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
+  EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7 70~71단계(Quest)
+  까지 코드상으로는 전부 채워졌다.** **위 GUI 확인에서 실제로 도는 게
+  확인되면 PLAN.md 77~78단계(전체 플레이 테스트 → 재미 평가)로 넘어갈
+  수 있다** — 이번 세션은 그 게이트를 사용자가 명시로 건너뛰라고 골라
+  Phase 6·7을 먼저 끝냈다(2026-09-11). 다음 후보는 Phase 7 나머지
+  (72 World Event·73 Hidden Area) · PLAN.md 51~65장이 적어 둔 확장 순서
+  (GO 월드 확장 → DUNGEON → FOREST → STORY → REALM) · 이번에 미룬
+  항목들(장비창 UI, 사건/퀘스트/루트 테이블을 사전 구조로 일반화, 골드
+  경제) — 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
 
 ## 알려진 오류
 
@@ -290,3 +314,13 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   PlaytestHeadless는 플레이어가 안 움직여 도적 조우 자체가 안 일어나므로
   **경험치/레벨업/루트/자동장착의 실제 동작은 여전히 검증 못함**(컴파일
   통과 + 정적 씬 로드까지만 확인) — 사람이 직접 싸워 봐야 하는 부분.
+- Phase 7 Quest(QuestState + VillagerTalk의 `Func<string>` 확장 +
+  NpcBuilder 촌장 대사 + BanditEncounter 완료 처리 + SaveState v3) 추가
+  후 첫 컴파일에서 `NpcBuilder.cs(89,13): error CS0104` — `Func` 쓰려고
+  넣은 `using System;`이 기존 `Object.DestroyImmediate(...)`(암묵적으로
+  `UnityEngine.Object`를 가리키던 것)와 `System.Object`를 놓고 충돌을
+  일으켰다. `UnityEngine.Object.DestroyImmediate(...)`로 완전한 이름을
+  써서 고침 — **`using System;`을 새로 추가하는 파일에 `Object.`로
+  짧게 쓴 UnityEngine 호출이 있으면 항상 이 충돌을 의심할 것.** 고친
+  뒤 컴파일·PlaytestHeadless(씬 재사용, Build() 다시 안 돌림) 둘 다
+  통과. 촌장 대사 3단계 전환·퀘스트 완료도 역시 헤드리스로는 확인 못함.

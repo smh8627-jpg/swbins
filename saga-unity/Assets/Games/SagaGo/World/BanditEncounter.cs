@@ -347,8 +347,16 @@ namespace Saga.Go.World
                     Inventory.ItemGained -= OnGained;
                 }
 
+                // PLAN.md 70~71장 Quest — 촌장에게 말을 걸어 받아 둔 퀘스트가
+                // 있으면 여기서 완료 처리(활성 상태가 아니면 CompleteBanditQuest가
+                // false를 돌려줘 조용히 건너뛴다 — 촌장을 안 만났어도 전투 자체는
+                // 그대로 된다).
+                bool questDone = QuestState.CompleteBanditQuest();
+                if (questDone) PlayerStats.AddExp(QuestState.BanditRewardExp);
+
                 var msg = $"{FoeName}을 물리쳤다 — 부대에 합류했다! (전투력 {Mathf.RoundToInt(PartyState.Atk + PartyState.Def)})\n" +
                           $"경험치 +{ExpReward}";
+                if (questDone) msg += $"\n퀘스트 완료 — 촌장이 사례하다 (경험치 +{QuestState.BanditRewardExp})";
                 if (PlayerStats.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {PlayerStats.Level})";
                 if (lootItem != null) msg += $"\n{lootItem.Name}을(를) 주웠다{(lootEquipped ? " — 바로 갖췄다." : ".")}";
                 Toast(msg, VictoryToastSec);
