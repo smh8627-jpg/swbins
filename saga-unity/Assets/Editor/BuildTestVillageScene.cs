@@ -36,9 +36,11 @@ namespace Saga.EditorTools
             var terrainGo = BuildTerrain();
             BuildVegetation();
             BuildLandmarks();
+            BuildNpcs();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
+            BuildDialogueUi();
             var joystick = BuildMobileHud();
 
             // 조이스틱 참조를 Player에 연결(FindFirstObjectByType으로도 찾지만
@@ -123,6 +125,48 @@ namespace Saga.EditorTools
             var go = new GameObject("Landmarks");
             var builder = go.AddComponent<LandmarksBuilder>();
             builder.Build();
+        }
+
+        private static void BuildNpcs()
+        {
+            var go = new GameObject("NPCs");
+            var builder = go.AddComponent<NpcBuilder>();
+            builder.Build();
+        }
+
+        /// <summary>지나가다 듣는 한 마디를 띄우는 화면 상단 자막(누르는 대화창 아님).</summary>
+        private static void BuildDialogueUi()
+        {
+            var canvasGo = new GameObject("DialogueUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -80f);
+            rect.sizeDelta = new Vector2(920f, 140f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 34;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.text = "";
+
+            var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
+            SetPrivateField(dialogueLabel, "label", text);
+            // DialogueLabel.Awake()가 label 필드를 채우기 전(AddComponent 시점)에
+            // 이미 돌아서 자동으로는 안 숨겨진다 — 여기서 직접 초기 상태를 맞춘다.
+            textGo.SetActive(false);
         }
 
         private static (GameObject playerGo, CameraRig cameraRig) BuildPlayer()

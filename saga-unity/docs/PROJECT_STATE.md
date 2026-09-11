@@ -50,6 +50,18 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   상태였을 것(직접 눈으로 확인은 안 함, 셰이더 임포트 에러 없음+
   PlaytestHeadless 통과까지만 확인). 실제로 안개가 자연스러워 보이는지는
   다음에 GUI로 몰아서 확인할 때 볼 것.
+- **Phase 8 최소 조각 — NPC·Dialogue.** VERTICAL_SLICE.md 26절 범위로
+  좁힌 saga-godot npc_builder.gd와 같은 것: 주민 2명(마을 촌장·떠돌이
+  상인), 하루 일과·날씨·LOD는 범위 밖, 등용 대상 아님. saga-godot이
+  "대화가 전투보다 먼저"로 순서를 정정했던 교훈 그대로 Combat보다
+  먼저 넣었다. `NpcBuilder.cs`(자리·모양 — Player와 같은 크기 primitive
+  capsule, 옷 색만 다르게) + `VillagerTalk.cs`(SphereCollider 트리거,
+  반지름 14, 쿨다운 45초) + `Assets/Games/SagaGo/UI/DialogueLabel.cs`
+  (화면 상단 자막, 4초 표시 — 그룹 대신 자기등록 싱글턴으로 Godot의
+  "dialogue_label" 그룹 흉내). `BuildTestVillageScene.cs`에
+  `BuildNpcs()`·`BuildDialogueUi()` 훅 추가. 씬 재저장·PlaytestHeadless
+  까지 통과 확인됨 — **말 걸기가 실제로 되는지(트리거 판정·자막 표시)는
+  헤드리스로 못 본다, 사람이 직접 플레이해서 확인해야 하는 부분.**
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -74,16 +86,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- Phase 3 나머지: Path/Road 구성(32장 — 지금은 '=' 타일이 그냥 색만
-  다른 평지, 실제 길처럼 보이는 건 아님)
-- NPC 최소 구현(주민 1~2명, 대화만) — saga-godot이 "대화가 전투보다
-  먼저"로 순서를 정정했던 교훈 그대로 반영해 Combat보다 먼저 할 것
-- 위 항목들이 어느 정도 쌓이면(플레이어가 실제로 걸어 다닐 수 있게
-  되면) 그때 한 번 GUI로 몰아서 확인 — 매 조각마다 스크린샷 찍지 않는다.
-  **CameraRig의 드래그 방향이 실제로 자연스러운지는 그때 반드시 볼 것**
-  (위 완료 단계 주석 참고 — 부호를 새로 판단해 정한 자리라 확신이 낮다).
-  **Sky/Fog가 실제로 자연스러운지도 그때 같이 볼 것** — Skybox 색·안개
-  거리(150~430m)는 눈으로 본 적 없이 숫자만으로 정한 값이다.
+- Path/Road 구성(PLAN.md 32장)은 saga-godot도 색 구분 외엔 따로 안
+  한 항목이라(terrain_builder.gd의 '=' LEGEND에 특별한 처리 없음)
+  이번 손질에서 건너뜀 — TerrainBuilder의 지형 색 구분으로 이미 충족.
+- 플레이어가 실제로 걸어 다닐 수 있는 수준까지 쌓였다 — **이제 한 번
+  GUI로 몰아서 확인할 때가 됐다**(사람이 직접, 헤드리스로는 못 봄):
+  - **CameraRig의 드래그 방향이 실제로 자연스러운지**(부호를 새로
+    판단해 정한 자리라 확신이 낮다)
+  - **Sky/Fog가 자연스러운지**(Skybox 색·안개 거리 150~430m는 숫자만
+    으로 정함)
+  - **NPC 말 걸기가 실제로 되는지**(TalkArea 트리거 판정·화면 상단
+    자막 표시 — 헤드리스로는 트리거가 실제로 발동하는지 확인 불가)
+- Combat(saga-godot의 bandit_encounter.gd 상당) — NPC/Dialogue를
+  먼저 넣었으니 이제 순서상 다음.
 
 ## 알려진 오류
 
