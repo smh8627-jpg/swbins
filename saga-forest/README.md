@@ -1265,7 +1265,13 @@ chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom   htt
   사가고·사가블로는 그때 다른 작업 중이라 이번엔 빠졌다). `sprite.js`의
   `PROPS.chibi`/`PROPS.tall`·`propMode`·`setProp()`을 지우고 이 판의 실제
   기본값이던 `chibi` 수치를 `PROPS_NORMAL` 고정값으로 남겼다(그림 양식은
-  그대로 살아 있다)
+  그대로 살아 있다). **2026-09-11에 그림 양식(전통/그림책/만화 세 갈래를
+  고르던 `styleMode`)도 마저 지웠다** — `sprite.js`의 `human()`/`beast()`/
+  `portrait()`/`portraitCard()`에 있던 `anime`·`classic` 분기와 그 전용
+  헬퍼(`animeFace`·`animeHair`·`animeFringe`·`animeSeed`·`HELM_LIFT` 등)를
+  지우고, 그림책(`story`)풍 하나로 고정했다. 초상도 늘 이 양식이다.
+  `core.js`의 `settings.style`, `game.js`의 `btn-style` 배선, 각 HTML의
+  `#btn-style` 버튼도 함께 지웠다
 
 땅은 **색별로 한 번에 칠한다**. 칸마다 `fill()` 하면 한 화면에 이천 번이 넘어
 프레임이 무너진다. 먼 줄은 두 칸씩 건너뛴다 — 몇 픽셀로 뭉개지는 자리라 눈에 띄지 않는다.

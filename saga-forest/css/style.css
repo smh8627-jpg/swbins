@@ -97,7 +97,7 @@ body.tilted #vignette {
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
 
-/* 자동·손쓰기만 붙박이, 나머지(살금살금·양식·3D·시점·도움말·어드민·리셋)는
+/* 자동·손쓰기만 붙박이, 나머지(살금살금·3D·시점·도움말·어드민·리셋)는
    "더보기" 뒤로 접는다 — #dock-more 와 같은 결(사가스토리·사가국지에서 먼저 밟았다) */
 .tools { grid-area: tools; display: flex; gap: 7px; position: relative; }
 #top-more {

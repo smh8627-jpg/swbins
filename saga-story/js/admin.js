@@ -709,10 +709,6 @@
         C.save.player.level = Math.max(C.save.player.level, 12);
         S.state().stage = 'cave';
         S.state().potions = 30;
-      }],
-    ['🍁 외피 되돌리기', '그림 양식을 원작풍(maple)으로',
-      function () {
-        C.save.settings.style = 'maple';
       }]
   ];
 

@@ -23,8 +23,6 @@
   function start() {
     core.load();
 
-    if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
-
     if (global.DG.realm3d && !global.DG_NO_DRAW) {
       global.DG.realm3d.init(document.getElementById('realm3d'));
     }
@@ -63,27 +61,6 @@
         if (!confirm('정말 처음부터 다시 시작할까요? 성·무장·지식이 모두 사라집니다.')) { return; }
         core.reset();
         location.reload();
-      });
-    }
-
-    var STYLE_ORDER = ['classic', 'story', 'anime'];
-    var STYLE_ICON = { classic: '🖌️', story: '📗', anime: '🎴' };
-    var styleBtn = document.getElementById('btn-style');
-    if (styleBtn) {
-      var syncStyleBtn = function () {
-        var c = global.DG.sprite.style();
-        styleBtn.textContent = STYLE_ICON[c] || '🖌️';
-        styleBtn.classList.toggle('on', c !== 'classic');
-      };
-      syncStyleBtn();
-      styleBtn.addEventListener('click', function () {
-        var cur = STYLE_ORDER.indexOf(global.DG.sprite.style());
-        var next = STYLE_ORDER[(cur + 1) % STYLE_ORDER.length];
-        global.DG.sprite.setStyle(next);
-        core.save.settings.style = next;
-        core.persist();
-        syncStyleBtn();
-        core.emit('changed');
       });
     }
 

@@ -20,7 +20,6 @@
   <div class="glass profile" id="profile"></div>
   <div class="tools">
     <button class="icon-btn" id="btn-auto">a</button>
-    <button class="icon-btn" id="btn-style">s</button>
     <button class="icon-btn" id="btn-sound">v</button>
     <button class="icon-btn" id="btn-help">h</button>
     <button class="icon-btn" id="btn-reset">r</button>
@@ -1389,19 +1388,13 @@ window.DG_NO_TUNE = true;
          ' · 적이 오면 일어섬');
     });
 
-    t('원작풍 외피는 CSS 한 장이고, 그림 양식은 넷째로 들어갔다', function () {
-      /* 사가블로의 css/diablo.css 와 같은 방식 — <link> 한 줄을 빼면 되돌아온다 */
+    t('원작풍 외피는 CSS 한 장이다', function () {
+      /* 사가블로의 css/diablo.css 와 같은 방식 — <link> 한 줄을 빼면 되돌아온다.
+         그림 양식 토글(전통/그림책/만화)은 2026-09-11에 제거해 maple 하나로 고정했다. */
       var links = [], ls = document.querySelectorAll('link[rel="stylesheet"]'), i;
       for (i = 0; i < ls.length; i++) { links.push(ls[i].getAttribute('href')); }
       var skin = links.indexOf('css/maple.css') >= 0;
-      var was = DG.sprite.style();
-      var all = ['classic', 'story', 'anime', 'maple'], ok = true;
-      for (i = 0; i < all.length; i++) { if (DG.sprite.setStyle(all[i]) !== all[i]) { ok = false; } }
-      DG.sprite.setStyle('maple');
-      var isDefault = C.save.settings.style === 'maple';
-      DG.sprite.setStyle(was);
-      return skin && ok && isDefault &&
-        ('외피 ' + skin + ' · 양식 ' + all.length + '가지 · 기본은 maple');
+      return skin && ('외피 ' + skin);
     });
 
     t('미니맵은 사냥터 전체를 원 안에 다 담는다', function () {

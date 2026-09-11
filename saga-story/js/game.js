@@ -21,8 +21,6 @@
   function start() {
     var fresh = !core.load();
 
-    if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
-
     if (global.DG.sideView3d) { global.DG.sideView3d.init(document.getElementById('stage3d')); }
     global.DG.sideView.init(document.getElementById('stage'));
     if (global.DG.quest) { global.DG.quest.init(); }   // 사명이 'side:kill' 을 듣기 시작한다
@@ -202,36 +200,6 @@
       core.reset();
       location.reload();
     });
-
-    var STYLE_ORDER = ['maple', 'classic', 'story', 'anime'];
-    var STYLE_ICON = { maple: '🍁', classic: '🖌️', story: '📗', anime: '🎴' };
-    /* 사가고 UI와 같은 결 — 양식을 바꾸면 무엇으로 바뀌었는지 토스트로 알려준다
-       (예전엔 단추 아이콘만 조용히 바뀌어 눈치채기 어려웠다) */
-    var STYLE_MSG = {
-      maple: '🍁 메이플풍 — 밝고 각진 채색',
-      classic: '🖌️ 전통 삽화풍',
-      story: '📗 그림책풍 — 선화 + 플랫 채색',
-      anime: '🎴 일본 만화풍'
-    };
-    var styleBtn = document.getElementById('btn-style');
-    if (styleBtn) {
-      var syncStyleBtn = function () {
-        var cur = global.DG.sprite.style();
-        styleBtn.textContent = STYLE_ICON[cur] || '🖌️';
-        styleBtn.classList.toggle('on', cur !== 'classic');
-      };
-      syncStyleBtn();
-      styleBtn.addEventListener('click', function () {
-        var cur = STYLE_ORDER.indexOf(global.DG.sprite.style());
-        var next = STYLE_ORDER[(cur + 1) % STYLE_ORDER.length];
-        global.DG.sprite.setStyle(next);
-        core.save.settings.style = next;
-        core.persist();
-        syncStyleBtn();
-        ui.toast(STYLE_MSG[next]);
-        core.emit('changed');
-      });
-    }
 
     var btn3d = document.getElementById('btn-3d');
     if (btn3d && global.DG.sideView3d) {

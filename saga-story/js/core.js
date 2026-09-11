@@ -55,7 +55,6 @@
       },
       settings: {
         mapStyle: 0, tilt: 1,
-        style: 'maple',                   // 그림 양식 'maple'(원작풍) | 'classic'(전통 삽화) | 'story'(그림책) | 'anime'(일본 만화)
         mode: 'offline',                  // 'offline' | 'online' (net.js)
         aiBase: ''                        // 온라인 서버 주소 (빈 값 = 같은 출처)
       },

@@ -10,7 +10,6 @@
     #map    마을            #fish  낚시 중(입질)     #plant 심어 둔 묘목 곁
     #bag    가방·심기 시트   #folks 주민            #dex 도감   #log 기록
   계절을 지정하려면 -spring · -summer · -autumn · -winter 를 붙인다 (예: #map-winter).
-  양식은 -anime · -classic.
 
   이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
   화면이 통째로 죽는다 (사가고에서 실제로 그렇게 오래 죽어 있었다).
@@ -24,7 +23,6 @@
     <button class="icon-btn" id="btn-auto">🤖</button>
     <button class="icon-btn" id="btn-do">✋</button>
     <button class="icon-btn" id="btn-sneak">🐾</button>
-    <button class="icon-btn" id="btn-style">📗</button>
     <button class="icon-btn" id="btn-help">❔</button>
     <button class="icon-btn" id="btn-reset">↺</button>
   </div>
@@ -260,8 +258,6 @@ setTimeout(function () {
     }
   }
 
-  if (hash.indexOf('anime') >= 0) { DG.sprite.setStyle('anime'); }
-  if (hash.indexOf('classic') >= 0) { DG.sprite.setStyle('classic'); }
   var tab = hash.split('-')[0];
 
   var raw = V.raw();

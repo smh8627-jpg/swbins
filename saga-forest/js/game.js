@@ -24,8 +24,6 @@
   function start() {
     var fresh = !core.load();
 
-    if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
-
     V.init();
     V.bindKeys();
     global.DG.villageView.init(document.getElementById('map'));
@@ -62,7 +60,7 @@
   }
 
   function bindTopbar() {
-    /* "더보기" — 살금살금·양식·3D·시점·도움말·어드민·리셋은 자주 안 쓰니
+    /* "더보기" — 살금살금·3D·시점·도움말·어드민·리셋은 자주 안 쓰니
        접어 둔다(사가스토리·사가국지와 같은 결). 자동·손쓰기만 붙박이로 남는다 */
     var moreBtn = document.getElementById('btn-more');
     var more = document.getElementById('top-more');
@@ -111,27 +109,6 @@
       core.reset();
       location.reload();
     });
-
-    var STYLE_ORDER = ['classic', 'story', 'anime'];
-    var STYLE_ICON = { classic: '🖌️', story: '📗', anime: '🎴' };
-    var styleBtn = document.getElementById('btn-style');
-    if (styleBtn) {
-      var syncStyleBtn = function () {
-        var cur = global.DG.sprite.style();
-        styleBtn.textContent = STYLE_ICON[cur] || '🖌️';
-        styleBtn.classList.toggle('on', cur !== 'classic');
-      };
-      syncStyleBtn();
-      styleBtn.addEventListener('click', function () {
-        var cur = STYLE_ORDER.indexOf(global.DG.sprite.style());
-        var next = STYLE_ORDER[(cur + 1) % STYLE_ORDER.length];
-        global.DG.sprite.setStyle(next);
-        core.save.settings.style = next;
-        core.persist();
-        syncStyleBtn();
-        core.emit('changed');
-      });
-    }
 
     var soundBtn = document.getElementById('btn-sound');
     if (soundBtn && global.DG.sfx) {
