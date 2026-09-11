@@ -50,6 +50,20 @@
     return isNaN(n) ? def : n;
   }
 
+  /** 3D 모델이 있는 펫만 여기 올린다 — 나머지 62종은 2D 도감 그림 그대로
+   *  (사슴·구미호만 실제 GLB(Deer.glb·Fox.glb)와 정확히 맞는다, 2026-09-11 결정) */
+  var PET_MAP = { pt_deer: 'critter:deer', pt_gumiho: 'critter:fox' };
+  function petKeyOf(id) { return PET_MAP[id] || null; }
+
+  /** 이 kind·ref 조합을 3D 로 구울 수 있나 — hero 는 다 되고, pet 은 PET_MAP 에
+   *  있는 것만 된다 (ui.js `p3tag` 가 이 문을 그대로 쓴다) */
+  function supports(kind, ref) {
+    if (!ref) { return false; }
+    if (kind === 'hero') { return true; }
+    if (kind === 'pet') { return !!petKeyOf(ref.id); }
+    return false;
+  }
+
   /** 카메라를 어디에 두나 — **키 1 로 눕힌 모델** 기준의 순수 계산이다 */
   function camPlan(w, h) {
     var aspect = w / Math.max(1, h);
@@ -225,29 +239,39 @@
     var job = queue.shift();
     busy = true;
     var A3 = global.DG.asset3d;
-    if (!A3 || !A3.buildHero) { delete pending[job.key]; cache[job.key] = false; busy = false; pump(); return; }
+    if (!A3) { delete pending[job.key]; cache[job.key] = false; busy = false; pump(); return; }
 
-    var fac = global.DG.data.faction(job.ref.faction);
+    function onModel(model) {
+      delete pending[job.key];
+      busy = false;
+      if (!model) { cache[job.key] = false; gaveUp++; pump(); return; }
+      var url = null;
+      try { url = bake(job.kind, job.ref, job.w, job.h, model); } catch (e) { url = null; }
+      if (url) { cache[job.key] = url; sweep(); } else { cache[job.key] = false; gaveUp++; }
+      pump();
+    }
+
     try {
-      A3.buildHero(job.ref.id, 1, hexOf(fac.color, null), function (model) {
-        delete pending[job.key];
-        busy = false;
-        if (!model) { cache[job.key] = false; gaveUp++; pump(); return; }
-        var url = null;
-        try { url = bake(job.kind, job.ref, job.w, job.h, model); } catch (e) { url = null; }
-        if (url) { cache[job.key] = url; sweep(); } else { cache[job.key] = false; gaveUp++; }
-        pump();
-      });
+      if (job.kind === 'hero') {
+        if (!A3.buildHero) { throw new Error('buildHero 없음'); }
+        var fac = global.DG.data.faction(job.ref.faction);
+        A3.buildHero(job.ref.id, 1, hexOf(fac.color, null), onModel);
+      } else {
+        var pkey = petKeyOf(job.ref.id);
+        if (!A3.build || !pkey) { throw new Error('pet 3D 짝 없음'); }
+        /* 짐승은 안 물들인다(제 털빛이 맞다) — build() 는 tint 인자가 없다 */
+        A3.build(pkey, job.ref.id, 1, onModel);
+      }
     } catch (e) { delete pending[job.key]; cache[job.key] = false; gaveUp++; busy = false; pump(); }
   }
 
-  /** 줄에 올린다 — `asset3d.buildHero` 콜백이 한 번 오면 그 자리에서 곧바로 굽는다 */
+  /** 줄에 올린다 — `asset3d.buildHero`/`build` 콜백이 한 번 오면 그 자리에서 곧바로 굽는다 */
   function warm(kind, ref, w, h) {
-    if (!ready() || !ref || kind !== 'hero') { return false; }
+    if (!ready() || !ref || !supports(kind, ref)) { return false; }
     var key = keyOf(kind, ref, w, h);
     if (has(key) || pending[key]) { return false; }
     var A3 = global.DG.asset3d;
-    if (!A3 || !A3.buildHero) { return false; }
+    if (!A3 || (kind === 'hero' ? !A3.buildHero : !A3.build)) { return false; }
     pending[key] = true;
     queue.push({ kind: kind, ref: ref, w: w, h: h, key: key });
     pump();
@@ -286,6 +310,7 @@
 
   global.DG = global.DG || {};
   global.DG.portrait3d = {
-    ON: ON, ready: ready, keyOf: keyOf, of: of, warm: warm, sweep: sweep, stats: stats
+    ON: ON, ready: ready, keyOf: keyOf, of: of, warm: warm, sweep: sweep, stats: stats,
+    supports: supports
   };
 })(window);

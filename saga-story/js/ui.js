@@ -37,11 +37,12 @@
   /**
    * 초상 <img> 에 붙일 이름표. `portrait3d` 가 실제 모델로 그림을 다 구우면
    * 이 표를 보고 `src` 를 갈아 끼운다. 못 쓸 자리(three 없음 · 손잡이 내림 ·
-   * pet)에서는 빈 문자열이라 **여태 그림이 그대로 남는다**.
+   * 3D 짝이 없는 펫 — `portrait3d.PET_MAP` 참고)에서는 빈 문자열이라
+   * **여태 그림이 그대로 남는다**.
    */
   function p3tag(kind, ref, w, h) {
     var P3 = global.DG.portrait3d;
-    if (!P3 || !P3.ready() || kind !== 'hero') { return ''; }
+    if (!P3 || !P3.ready() || !P3.supports(kind, ref)) { return ''; }
     if (!p3tag.timer) {
       p3tag.timer = global.setTimeout(function () {
         p3tag.timer = null;
@@ -1291,7 +1292,7 @@
     return '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
-        '<img class="dt-portrait" alt="" src="' +
+        '<img class="dt-portrait" alt=""' + p3tag('pet', p, 150, 172) + ' src="' +
           global.DG.sprite.portraitCard('pet', p, 150, 172) + '">' +
         '<div class="dt-head">' +
           '<div class="dt-name"><b>' + esc(p.name) + '</b></div>' +
