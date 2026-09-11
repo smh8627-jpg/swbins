@@ -24,8 +24,13 @@ namespace Saga.EditorTools
         private const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
         private const string SkyMaterialPath = "Assets/Games/SagaGo/World/Sky.mat";
 
-        // saga-godot TestVillage.tscn의 마을 중심 스폰 자리와 동일.
-        private static readonly Vector3 PlayerSpawn = new Vector3(-48f, 0.1f, -24f);
+        // saga-godot TestVillage.tscn의 마을 중심 스폰 자리와 동일 — 마을 집 두 칸
+        // (2,3)·(3,3) 사이 중앙. 예전엔 WorldPos(2.5,3)의 계산 결과를 상수로 박아
+        // 뒀었는데(-48,0.1,-24), 그러면 TestMapData.Rows의 칸 수가 바뀔 때(지도
+        // 확장) halfW/halfH가 바뀌어도 이 상수는 안 따라가 스폰 자리가 마을에서
+        // 벗어나 버린다 — WorldPos()를 직접 불러 자동으로 같이 밀리게 한다.
+        private static Vector3 PlayerSpawn =>
+            TestMapData.WorldPos(2.5f, 3f) + new Vector3(0f, 0.1f, 0f);
 
         [MenuItem("Saga/Build TestVillage Scene")]
         public static void Build()
@@ -110,8 +115,12 @@ namespace Saga.EditorTools
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = new Color(0.75f, 0.78f, 0.72f);
-            // 7x7칸×48m 지도(336m 사방, 대각선 약 475m) 기준 — 마을 안에선
-            // 거의 안 보이고 지도 가장자리로 갈수록 흐려지게.
+            // 원래 7x7칸×48m 지도(336m 사방, 대각선 약 475m) 기준으로 잡은 값 —
+            // 2026-09-12 남쪽으로 2줄 늘려 336m×432m(대각선 약 547m)가 됐지만
+            // 숫자는 그대로 둔다. 새로 늘어난 자리는 마을에서 먼 가장자리라
+            // 원래도 안개에 흐려지는 구간이었고, 정확한 재조정은 눈으로 봐야
+            // 할 값이라(루트 CLAUDE.md — 개발 중엔 화면을 안 찍어 본다) 사람이
+            // GUI로 확인할 때 같이 볼 것.
             RenderSettings.fogStartDistance = 150f;
             RenderSettings.fogEndDistance = 430f;
         }

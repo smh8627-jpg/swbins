@@ -5,8 +5,21 @@ namespace Saga.Go.Data
 {
     /// <summary>
     /// VERTICAL_SLICE.md의 테스트 지역. saga-godot의 test_map.gd와 같은 글자
-    /// 지도를 그대로 쓴다(0장 — 기획은 공유, 구현만 각자). 7x7칸(칸당 48m =
-    /// 336m 사방).
+    /// 지도를 원안으로 쓰되(0장 — 기획은 공유, 구현만 각자), **2026-09-12
+    /// PLAN.md 51장 "GO 월드 확장 — 지도 크기" 첫 조각으로 saga-unity 쪽만
+    /// 남쪽으로 2줄 늘렸다**(saga-godot은 아직 7x7 그대로 — 두 트랙이 지도
+    /// 크기까지 반드시 같을 필요는 없다, 0장 "기획만 같이 본다"). 지금
+    /// 7칸×9칸(칸당 48m = 336m×432m). 가로(Cols)는 안 건드렸다 — 기존
+    /// BanditEncounter·HiddenTreasure·Gatherable·MountainShrine·
+    /// RareWolfEncounter·NpcBuilder·WanderingAnimal이 전부 상수 (gx,gy)를
+    /// `TestMapData.WorldPos(gx,gy)`로만 넘겨 자리를 잡는다 — **남쪽(행 끝)에만
+    /// 새 줄을 보태면 기존 좌표들의 내용은 하나도 안 바뀐다**(새 행은 index가
+    /// 더 큰 gy로만 추가되니까). **주의 — 칸 수가 바뀌면 WorldPos()의
+    /// halfW/halfH가 같이 바뀌어 기존 모든 좌표가 월드 공간에서 다 같이
+    /// 밀린다**(개별 좌표 사이 관계는 그대로라 안전하지만, WorldPos()를 거치지
+    /// 않고 값을 상수로 박아 둔 자리가 있으면 그 자리만 안 따라간다 —
+    /// BuildTestVillageScene.cs의 PlayerSpawn이 실제로 이 함정에 걸려 있어서
+    /// 이번에 WorldPos() 호출로 고쳤다).
     ///
     /// ^ 산   T 숲   ~ 강   = 길   H 마을   F 논밭   . 들
     /// C 굴 입구   S 옛 사당   R 폐허   B 다리
@@ -22,6 +35,8 @@ namespace Saga.Go.Data
             "T..=..T",
             "~~~B~~~",
             "^^^=^^^",
+            "^T...T^",
+            "^^^^^^^",
         };
 
         public const float TileSize = 48f;
