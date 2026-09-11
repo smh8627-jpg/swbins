@@ -994,6 +994,23 @@ window.DG_NO_TUNE = true;
       return ok && empty === 0 && bar.length === 2 && keys === 'w_cut,w_whirl' && out;
     });
 
+    t('전직을 되돌리면(resetJob) 무명으로 돌아가고 점수를 되찾는다 (2026-09-11)', function () {
+      unlearn();
+      var noopOnNone = J.resetJob();           // 이미 무명이면 되돌릴 게 없다
+      C.save.player.level = 12;
+      J.join('warrior');
+      J.raise('w_cut');
+      var spentBefore = J.spSpent();
+      var reset = J.resetJob();
+      var backToNone = C.save.job === 'none';
+      var refunded = J.spSpent() === 0 && J.spLeft() === J.spTotal();
+      var rejoined = J.join('archer');         // 되돌린 뒤 **다른** 길로 갈 수 있다
+      unlearn();
+      return !noopOnNone && reset && backToNone && refunded && spentBefore > 0 && rejoined &&
+        ('무명에서 되돌리기 ' + noopOnNone + ' · 되돌린 뒤 무명 ' + backToNone +
+         ' · 점수 회복 ' + refunded + ' · 다른 길(궁수) 재전직 ' + rejoined);
+    });
+
     t('무예 점수는 있는 만큼만 쓴다', function () {
       unlearn();
       C.save.player.level = 11;                // 30점

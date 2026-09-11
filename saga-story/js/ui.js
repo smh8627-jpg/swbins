@@ -210,6 +210,10 @@
         global.DG.quest.turnIn(b.getAttribute('data-q'));
       } else if (act === 'j-join') {
         global.DG.job.join(b.getAttribute('data-job'));
+      } else if (act === 'j-reset') {
+        if (confirm('전직을 되돌릴까요? 무명으로 돌아가고 찍은 무예 점수를 전부 되찾습니다.')) {
+          global.DG.job.resetJob();
+        }
       } else if (act === 'j-raise') {
         global.DG.job.raise(b.getAttribute('data-skill'));
       } else if (act === 'sh-gear') {
@@ -844,12 +848,17 @@
         '<b>무예 점수 ' + left + '</b></div>' +
       '<small class="muted">점수는 레벨마다 ' + JD.SP_PER_LEVEL + '점씩 늘어납니다 ' +
         '(쓴 것 ' + J.spSpent() + ' / 모두 ' + J.spTotal() + '). ' +
-        '<b>찍은 무예만 조작 띠에 놓입니다.</b></small></div></div>';
+        '<b>찍은 무예만 조작 띠에 놓입니다.</b></small>' +
+      (me.key !== 'none'
+        ? '<div class="btn-row"><button class="btn ghost" data-act="j-reset">🔄 전직을 되돌린다</button></div>'
+        : '') +
+      '</div></div>';
 
     /* 전직 */
     var nexts = JD.nextJobs(me.key);
     if (nexts.length) {
-      html += '<div class="sec"><h4>전직 <small class="muted">— 되돌릴 수 없습니다</small></h4>';
+      html += '<div class="sec"><h4>전직 <small class="muted">— 오르는 것 자체는 그대로지만, ' +
+        '위 "전직을 되돌린다"로 무명에 돌아가 다른 길을 다시 고를 수 있습니다</small></h4>';
       for (i = 0; i < nexts.length; i++) {
         var nj = nexts[i], why = J.canJoin(nj.key);
         html += '<div class="card"><div class="stat-row">' +

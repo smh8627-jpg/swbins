@@ -72,7 +72,12 @@
     return null;
   }
 
-  /** 전직 — 되돌릴 수 없다 (원작도 그렇다) */
+  /** 전직 — 원작은 되돌릴 수 없지만, 이 판은 "퓨전"이 방향이라 규칙을 하나
+   *  더 얹는다(2026-09-11, 사용자 요청 — 다섯 판 전체 퓨전 순서와는 별개로
+   *  사가스토리만 먼저 넣는 예외). resetJob() 이 무명으로 돌아가고 무예
+   *  점수를 전부 돌려준다 — 그 뒤에 join() 으로 처음부터 **다른 길**을
+   *  고를 수 있다. 되돌린 대가(비용·쿨타임)는 없다 — 아직 무엇이 적당한지
+   *  실기기로 확인하기 전이라 우선 자유롭게 열어 둔다. */
   /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
   function sfx(key) {
     var S = global.DG.sfx;
@@ -88,6 +93,21 @@
     sfx('jobup');
     core.log('🎓 ' + j.name + ' 이(가) 되었다 — ' + j.desc, 'good');
     core.emit('toast', j.emoji + ' ' + j.name);
+    core.emit('changed');
+    core.persist();
+    return true;
+  }
+
+  /** 전직을 되돌린다 — 무명으로 돌아가고 찍은 무예 점수를 전부 되찾는다.
+   *  이미 무명이면 되돌릴 게 없다. 부르는 쪽(ui.js)이 되돌릴지 먼저 되묻는다 */
+  function resetJob() {
+    st();
+    if (core.save.job === 'none') { return false; }
+    core.save.job = 'none';
+    core.save.skills = {};
+    sfx('jobup');
+    core.log('🔄 전직을 되돌렸다 — 처음부터 다른 길을 고를 수 있다', 'info');
+    core.emit('toast', '🔄 전직을 되돌렸습니다');
     core.emit('changed');
     core.persist();
     return true;
@@ -177,7 +197,7 @@
     BAR: BAR,
     state: st, cur: cur, levelOf: levelOf,
     spTotal: spTotal, spSpent: spSpent, spLeft: spLeft,
-    canJoin: canJoin, join: join, canRaise: canRaise, raise: raise,
+    canJoin: canJoin, join: join, resetJob: resetJob, canRaise: canRaise, raise: raise,
     bar: bar, mulOf: mulOf, grow: grow
   };
 })(window);
