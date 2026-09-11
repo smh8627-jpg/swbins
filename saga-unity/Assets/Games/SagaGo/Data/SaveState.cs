@@ -9,12 +9,12 @@ namespace Saga.Go.Data
     /// VERTICAL_SLICE.md 26절 "저장/로드(로컬 파일 하나)" — 12단계 완료
     /// 조건의 마지막 단계. saga-godot의 save_state.gd와 같은 구조
     /// (_migrate_step 마이그레이션 경로 포함, PLAN.md 75장 "Data
-    /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4, v4→v5, v5→v6
-    /// 전환이 그 실사용례다).
+    /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4, v4→v5, v5→v6,
+    /// v6→v7 전환이 그 실사용례다).
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 6;
+        private const int SaveVersion = 7;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -39,6 +39,8 @@ namespace Saga.Go.Data
             public bool merchantSold;
             // v6(PLAN.md 51장 GO 월드 확장 — 수집) — v5까지는 없던 필드.
             public List<string> gatheredSpots;
+            // v7(PLAN.md 51장 GO 월드 확장 — 산신당 가호) — v6까지는 없던 필드.
+            public bool shrineBlessed;
         }
 
         public static bool Save()
@@ -61,6 +63,7 @@ namespace Saga.Go.Data
                 gold = GoldState.Gold,
                 merchantSold = ShopState.MerchantSold,
                 gatheredSpots = new List<string>(GatherState.GatheredIds),
+                shrineBlessed = ShrineState.Blessed,
             };
 
             try
@@ -105,6 +108,7 @@ namespace Saga.Go.Data
             GoldState.Restore(data.gold);
             ShopState.Restore(data.merchantSold);
             GatherState.Restore(data.gatheredSpots);
+            ShrineState.Restore(data.shrineBlessed);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -179,6 +183,14 @@ namespace Saga.Go.Data
                 // 기본값(빈 목록)으로 채운다.
                 data.version = 6;
                 data.gatheredSpots = new List<string>();
+                return data;
+            }
+            if (fromVersion == 6)
+            {
+                // v6엔 산신당 가호 필드가 없었다 — 아직 못 받은 것과 같은
+                // 기본값(false)으로 채운다.
+                data.version = 7;
+                data.shrineBlessed = false;
                 return data;
             }
             return null;

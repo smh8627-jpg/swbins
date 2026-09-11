@@ -41,6 +41,7 @@ namespace Saga.EditorTools
             BuildBanditEncounter();
             BuildHiddenTreasure();
             BuildGatherables();
+            BuildMountainShrine();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
@@ -166,6 +167,13 @@ namespace Saga.EditorTools
             ("herb_2", 5, 2),
             ("herb_3", 2, 4),
         };
+
+        private static void BuildMountainShrine()
+        {
+            var go = new GameObject("MountainShrine");
+            var shrine = go.AddComponent<MountainShrine>();
+            shrine.Build();
+        }
 
         private static void BuildGatherables()
         {

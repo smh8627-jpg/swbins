@@ -5,7 +5,7 @@ namespace Saga.Go.World
 {
     /// <summary>
     /// PLAN.md 28~31장 — 지도 위 이름난 자리(랜드마크): 굴 입구·마을집·폐허·
-    /// 다리. saga-godot의 landmarks_builder.gd와 같은 자리·같은 크기지만,
+    /// 다리·산신당. saga-godot의 landmarks_builder.gd와 같은 자리·같은 크기지만,
     /// 아직 GLB 전(PLAN.md 8장)이라 개수가 적은 이 자리들은 VegetationBuilder
     /// 처럼 결합 메시로 묶을 필요 없이 Unity 기본 primitive(Cube/Cylinder)를
     /// 그대로 쓴다 — draw call 몇 개 늘어나는 건 여기선 문제가 안 된다.
@@ -17,6 +17,7 @@ namespace Saga.Go.World
         private static readonly Color RoofColor = new Color(0.45f, 0.18f, 0.14f);
         private static readonly Color RuinColor = new Color(0.5f, 0.48f, 0.46f);
         private static readonly Color BridgeColor = new Color(0.42f, 0.3f, 0.18f);
+        private static readonly Color ShrineColor = new Color(0.62f, 0.52f, 0.3f);
 
         private void Awake()
         {
@@ -29,6 +30,7 @@ namespace Saga.Go.World
             BuildVillage();
             BuildRuins();
             BuildBridge();
+            BuildShrine();
             MarkStatic();
         }
 
@@ -111,6 +113,33 @@ namespace Saga.Go.World
             var size = new Vector3(6f, 0.6f, TestMapData.TileSize * 0.92f);
             var bridge = CreateBox("Bridge", pos, size, BridgeColor, withCollider: false);
             bridge.transform.SetParent(transform, true);
+        }
+
+        // ---- 산신당 --------------------------------------------------------
+
+        /// <summary>
+        /// PLAN.md 51장 GO 월드 확장 — Legend엔 처음부터 있었지만 Rows엔 한
+        /// 번도 안 쓰였던 'S'(사당) 타일을 처음 심는다(TestMapData.cs 2026-
+        /// 09-11). 지도 격자 수는 그대로라 WorldPos()가 계산하는 나머지
+        /// 모든 좌표가 안 밀린다 — 칸 하나 종류만 바꿨다.
+        /// </summary>
+        private void BuildShrine()
+        {
+            float ground = TestMapData.Legend['S'].Height;
+            Vector3 basePos = TestMapData.WorldPos(5, 1) + new Vector3(0, ground, 0);
+
+            var baseSize = new Vector3(5f, 0.6f, 5f);
+            var baseBlock = CreateBox("ShrineBase", basePos + Vector3.up * (baseSize.y * 0.5f), baseSize, ShrineColor);
+            baseBlock.transform.SetParent(transform, true);
+
+            const float pillarHeight = 3.2f;
+            const float pillarRadius = 0.35f;
+            foreach (var offset in new[] { new Vector2(-1.6f, -1.6f), new Vector2(1.6f, -1.6f), new Vector2(-1.6f, 1.6f), new Vector2(1.6f, 1.6f) })
+            {
+                Vector3 pos = basePos + new Vector3(offset.x, baseSize.y + pillarHeight * 0.5f, offset.y);
+                var pillar = CreateCylinder("ShrinePillar", pos, pillarRadius, pillarHeight, ShrineColor);
+                pillar.transform.SetParent(transform, true);
+            }
         }
 
         // ---- 공통 --------------------------------------------------------

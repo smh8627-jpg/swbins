@@ -16,7 +16,7 @@ namespace Saga.Go.Data
         public static readonly string[] Rows =
         {
             "^^^C^^^",
-            "^TT=TT^",
+            "^TT=TS^",
             "T..=..T",
             "T.HH.RT",
             "T..=..T",
