@@ -8,6 +8,7 @@ using UnityEngine.UI;
 using Saga.Go.World;
 using Saga.Go.Player;
 using Saga.Go.UI;
+using Saga.Go.Data;
 
 namespace Saga.EditorTools
 {
@@ -42,6 +43,8 @@ namespace Saga.EditorTools
             BuildReviewCamera();
             BuildEventSystem();
             BuildDialogueUi();
+            BuildSaveButton();
+            BuildBootstrap();
             var joystick = BuildMobileHud();
 
             // 조이스틱 참조를 Player에 연결(FindFirstObjectByType으로도 찾지만
@@ -175,6 +178,58 @@ namespace Saga.EditorTools
             // DialogueLabel.Awake()가 label 필드를 채우기 전(AddComponent 시점)에
             // 이미 돌아서 자동으로는 안 숨겨진다 — 여기서 직접 초기 상태를 맞춘다.
             textGo.SetActive(false);
+        }
+
+        /// <summary>12단계 완료 조건의 "저장한다" — 화면 오른쪽 위 버튼 하나.</summary>
+        private static void BuildSaveButton()
+        {
+            var canvasGo = new GameObject("SaveUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var btnGo = new GameObject("SaveButton", typeof(RectTransform));
+            btnGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)btnGo.transform;
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-30f, -30f);
+            rect.sizeDelta = new Vector2(160f, 80f);
+
+            var img = btnGo.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0.18f);
+            var button = btnGo.AddComponent<Button>();
+            button.targetGraphic = img;
+            button.onClick.AddListener(() =>
+            {
+                bool ok = SaveState.Save();
+                DialogueLabel.Instance?.Show(ok ? "저장했다." : "저장 실패 — 플레이어를 못 찾았다.", 3f);
+            });
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(btnGo.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 26;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.text = "저장";
+        }
+
+        /// <summary>씬이 다 올라온 뒤 저장 파일을 되돌린다(saga-godot test_village.gd와 같은 역할).</summary>
+        private static void BuildBootstrap()
+        {
+            var go = new GameObject("GameBootstrap");
+            go.AddComponent<GameBootstrap>();
         }
 
         private static (GameObject playerGo, CameraRig cameraRig) BuildPlayer()

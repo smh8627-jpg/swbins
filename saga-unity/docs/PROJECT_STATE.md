@@ -79,6 +79,21 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   반응·막대 움직임·화면 플래시)는 헤드리스로 못 본다 — 사람이 직접
   플레이해서 확인해야 하는 부분.** 키보드 단축키(J/K/L)는 이번엔
   안 넣었다 — 화면 버튼만으로 조작(모바일 우선 설계와 같은 결).
+- **Save/Load 최소 구현 (12단계 완료 조건의 마지막 "저장한다 → 다시
+  켜서 이어진다").** saga-godot의 save_state.gd와 같은 구조 —
+  `Assets/Games/SagaGo/Data/SaveState.cs`가 `Application
+  .persistentDataPath/save.json`에 버전 필드 포함 JSON으로 저장(지금
+  실제로 있는 상태는 플레이어 위치·부대뿐이라 그것만 — PLAN.md
+  28장이 요구하는 레벨/장비/인벤토리/퀘스트는 이 슬라이스에 아직
+  없어서 저장 안 함). `MigrateStep()` 자리는 미리 파 뒀다(지금은
+  버전 1뿐이라 빈 경로, 스키마 바뀔 때 여기 채움 — PLAN.md Phase 9
+  "Data Versioning" 선반영). 화면 오른쪽 위 저장 버튼(누르면
+  `DialogueLabel`로 토스트) + `GameBootstrap.cs`(씬 시작 시
+  `SaveState.TryLoad()`, saga-godot test_village.gd `_ready()`와
+  같은 역할 — Awake 대신 Start를 써서 Player가 이미 자리 잡은 뒤임을
+  보장). `PartyState.cs`에 `MemberIds`(읽기 전용) 추가해 SaveState가
+  등용 목록을 읽게 함. 컴파일·씬 재저장·PlaytestHeadless 전부 통과.
+  **저장→재시작→위치/부대가 실제로 돌아오는지는 헤드리스로 못 본다.**
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -117,12 +132,16 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **도적의 습격이 실제로 되는지**(조우 트리거 → 선택지 → 전투 →
     등용까지 12단계 루프 전체가 헤드리스 검증 밖 — 사람이 직접
     "맞선다"를 눌러 승리까지 가 봐야 한다)
-- VERTICAL_SLICE.md 완료 조건(12단계 루프)이 코드상으로는 다 채워졌다
-  — 위 GUI 확인에서 실제로 도는 게 확인되면 Vertical Slice 자체는
-  마무리 단계. 그 다음은 PLAN.md의 나머지 Phase(Stats/Item/
-  Inventory/Equipment 등 Phase 9, 나머지 네 판 이식)로 넘어가는 큰
-  전환점 — 여기서부터는 세션 시작 시 PLAN.md를 다시 훑어 순서를
-  다시 잡을 것.
+  - **저장·재시작이 실제로 되는지**(저장 버튼 → 에디터에서 Play를
+    끄고 다시 켬 → 위치·부대가 돌아오는지)
+- **VERTICAL_SLICE.md 완료 조건(12단계 루프)이 코드상으로는 전부
+  채워졌다** — 게임 실행→마을 진입→걷기→NPC 대화→도적 조우→맞선다→
+  실시간 전투→승리→등용→전투력 상승 확인→저장→재시작 이어짐, 이
+  열두 단계 전부 구현은 끝났다. **위 GUI 확인에서 실제로 도는 게
+  확인되면 Vertical Slice 자체가 마무리 단계다.** 그 다음은 PLAN.md의
+  나머지 Phase(Stats/Item/Inventory/Equipment 등 Phase 9, 나머지 네
+  판 이식)로 넘어가는 큰 전환점 — 여기서부터는 세션 시작 시 PLAN.md를
+  다시 훑어 순서를 다시 잡을 것.
 
 ## 알려진 오류
 

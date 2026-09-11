@@ -29,6 +29,9 @@ namespace Saga.Go.Data
         public static float Atk { get; private set; } = BaseAtk;
         public static float Def { get; private set; } = BaseDef;
 
+        /// <summary>SaveState.cs가 저장할 때 읽는다 — 바깥에서 못 고친다.</summary>
+        public static IReadOnlyList<string> MemberIds => Members;
+
         public static event Action<float, float> PowerChanged;
 
         public static void Recruit(string id)
