@@ -3,10 +3,12 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 using Saga.Go.World;
 using Saga.Go.Player;
 using Saga.Go.UI;
+using Saga.Go.Data;
 
 namespace Saga.EditorTools
 {
@@ -34,21 +36,33 @@ namespace Saga.EditorTools
             var terrainGo = BuildTerrain();
             BuildVegetation();
             BuildLandmarks();
+            BuildAnimals();
+            BuildNpcs();
+            BuildBanditEncounter();
+            BuildHiddenTreasure();
+            BuildGatherables();
+            BuildMountainShrine();
             var (playerGo, cameraRig) = BuildPlayer();
             BuildReviewCamera();
             BuildEventSystem();
+            BuildDialogueUi();
+            BuildSaveButton();
+            BuildPlayerHud();
+            BuildDebugOverlay();
+            BuildBootstrap();
             var joystick = BuildMobileHud();
 
             // 조이스틱 참조를 Player에 연결(FindFirstObjectByType으로도 찾지만
             // 씬 저장 시점엔 명시로 잡아 두는 쪽이 안전하다).
             SetPrivateField(playerGo.GetComponent<PlayerController>(), "joystick", joystick);
 
+            AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(scene, ScenePath);
             Debug.Log($"[BuildTestVillageScene] saved to {ScenePath} — " +
                       $"groundVerts={terrainGo.GetComponent<MeshFilter>().sharedMesh.vertexCount}");
         }
 
-        private static void BuildLighting()
+        private static Light BuildLighting()
         {
             var sunGo = new GameObject("Sun");
             var sun = sunGo.AddComponent<Light>();
@@ -56,8 +70,23 @@ namespace Saga.EditorTools
             sun.intensity = 1.1f;
             sun.shadows = LightShadows.Soft;
             sunGo.transform.rotation = Quaternion.Euler(45f, -30f, 0f);
+            return sun;
         }
 
+        /// <summary>
+        /// 2026-09-12 병합 정리 — 이 자리엔 한때 Skybox 머티리얼(Sky.mat) +
+        /// RenderSettings.sun 기반의 다른 BuildSkyAndFog(Light) 구현이 있었다.
+        /// 그런데 BuildPlayerCamera/BuildReviewCamera가 이미
+        /// `clearFlags = CameraClearFlags.SolidColor` +
+        /// `backgroundColor = SkyFogBuilder.HorizonColor`로 스카이박스 없이
+        /// 단색 배경을 쓰도록 짜여 있어(둘 다 이 조건 없이 항상 그렇게
+        /// 동작), Skybox 자산을 만드는 그 구현은 애초에 카메라에 안 보이는
+        /// 죽은 코드였다 — 두 세션이 각자 다른 방향으로 SkyFogBuilder를
+        /// 만들면서 생긴 병합 충돌을 정리하며 제거했다(SkyMaterialPath 상수도
+        /// 그 구현에서만 쓰여 같이 지움). SkyFogBuilder.cs(Trilight 앰비언트 +
+        /// ExponentialSquared 안개, env_pc.tres 수치 그대로)가 실제로 쓰이는
+        /// 쪽이다.
+        /// </summary>
         private static void BuildSkyAndFog()
         {
             var go = new GameObject("SkyFog");
@@ -84,6 +113,215 @@ namespace Saga.EditorTools
             var go = new GameObject("Landmarks");
             var builder = go.AddComponent<LandmarksBuilder>();
             builder.Build();
+        }
+
+        private static void BuildAnimals()
+        {
+            var go = new GameObject("Animals");
+            var builder = go.AddComponent<AnimalBuilder>();
+            builder.Build();
+        }
+
+        private static void BuildNpcs()
+        {
+            var go = new GameObject("NPCs");
+            var builder = go.AddComponent<NpcBuilder>();
+            builder.Build();
+        }
+
+        private static void BuildBanditEncounter()
+        {
+            var go = new GameObject("BanditEncounter");
+            var encounter = go.AddComponent<BanditEncounter>();
+            encounter.Build();
+        }
+
+        private static void BuildHiddenTreasure()
+        {
+            var go = new GameObject("HiddenTreasure");
+            var treasure = go.AddComponent<HiddenTreasure>();
+            treasure.Build();
+        }
+
+        // 마을·굴·폐허·다리를 안 겹치는 들판(plains) 자리 3곳(PLAN.md 51장
+        // "수집"). 격자 좌표는 TestMapData.Rows 참고 — (1,2)/(5,2)/(2,4) 전부
+        // '.' 타일이고 촌장(1,3)·상인(4,3)·도적(5,3)의 말 걸기/조우 반경과
+        // 한 칸(48유닛) 이상 떨어져 안 겹친다.
+        private static readonly (string Id, int Gx, int Gy)[] GatherSpots =
+        {
+            ("herb_1", 1, 2),
+            ("herb_2", 5, 2),
+            ("herb_3", 2, 4),
+        };
+
+        private static void BuildMountainShrine()
+        {
+            var go = new GameObject("MountainShrine");
+            var shrine = go.AddComponent<MountainShrine>();
+            shrine.Build();
+        }
+
+        private static void BuildGatherables()
+        {
+            var parent = new GameObject("Gatherables");
+            foreach (var spot in GatherSpots)
+            {
+                var go = new GameObject($"Gatherable_{spot.Id}");
+                go.transform.SetParent(parent.transform, false);
+                var g = go.AddComponent<Gatherable>();
+                g.Init(spot.Id, spot.Gx, spot.Gy);
+                g.Build();
+            }
+        }
+
+        /// <summary>지나가다 듣는 한 마디를 띄우는 화면 상단 자막(누르는 대화창 아님).</summary>
+        private static void BuildDialogueUi()
+        {
+            var canvasGo = new GameObject("DialogueUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -80f);
+            rect.sizeDelta = new Vector2(920f, 140f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 34;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.text = "";
+
+            var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
+            SetPrivateField(dialogueLabel, "label", text);
+            // DialogueLabel.Awake()가 label 필드를 채우기 전(AddComponent 시점)에
+            // 이미 돌아서 자동으로는 안 숨겨진다 — 여기서 직접 초기 상태를 맞춘다.
+            textGo.SetActive(false);
+        }
+
+        /// <summary>12단계 완료 조건의 "저장한다" — 화면 오른쪽 위 버튼 하나.</summary>
+        private static void BuildSaveButton()
+        {
+            var canvasGo = new GameObject("SaveUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var btnGo = new GameObject("SaveButton", typeof(RectTransform));
+            btnGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)btnGo.transform;
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-30f, -30f);
+            rect.sizeDelta = new Vector2(160f, 80f);
+
+            var img = btnGo.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0.18f);
+            var button = btnGo.AddComponent<Button>();
+            button.targetGraphic = img;
+            button.onClick.AddListener(() =>
+            {
+                bool ok = SaveState.Save();
+                DialogueLabel.Instance?.Show(ok ? "저장했다." : "저장 실패 — 플레이어를 못 찾았다.", 3f);
+            });
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(btnGo.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 26;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.text = "저장";
+        }
+
+        /// <summary>화면 왼쪽 위 — 레벨/경험치/돈/장비, 릴리즈 빌드에서도 항상 보임
+        /// (DebugUI와 자리가 겹치지 않게 그 아래 둔다).</summary>
+        private static void BuildPlayerHud()
+        {
+            var canvasGo = new GameObject("PlayerHudUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(20f, -130f);
+            rect.sizeDelta = new Vector2(500f, 90f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 24;
+            text.alignment = TextAnchor.UpperLeft;
+            text.color = Color.white;
+            text.text = "";
+
+            var hud = canvasGo.AddComponent<PlayerHud>();
+            SetPrivateField(hud, "label", text);
+        }
+
+        /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS.</summary>
+        private static void BuildDebugOverlay()
+        {
+            var canvasGo = new GameObject("DebugUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(20f, -20f);
+            rect.sizeDelta = new Vector2(500f, 100f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 22;
+            text.alignment = TextAnchor.UpperLeft;
+            text.color = new Color(1f, 1f, 1f, 0.8f);
+            text.text = "";
+
+            var overlay = canvasGo.AddComponent<DebugHud>();
+            SetPrivateField(overlay, "label", text);
+        }
+
+        /// <summary>씬이 다 올라온 뒤 저장 파일을 되돌린다(saga-godot test_village.gd와 같은 역할).</summary>
+        private static void BuildBootstrap()
+        {
+            var go = new GameObject("GameBootstrap");
+            go.AddComponent<GameBootstrap>();
         }
 
         private static (GameObject playerGo, CameraRig cameraRig) BuildPlayer()

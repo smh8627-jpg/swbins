@@ -16,7 +16,7 @@ namespace Saga.Go.Data
         public static readonly string[] Rows =
         {
             "^^^C^^^",
-            "^TT=TT^",
+            "^TT=TS^",
             "T..=..T",
             "T.HH.RT",
             "T..=..T",
@@ -79,6 +79,17 @@ namespace Saga.Go.Data
             float halfW = Cols * 0.5f;
             float halfH = RowCount * 0.5f;
             return new Vector3((gx - halfW) * TileSize, 0f, (gy - halfH) * TileSize);
+        }
+
+        /// <summary>WorldPos()의 역함수 — PLAN.md 24~27장 "동물"의 배회 AI가
+        /// 다음 목표 지점이 걸을 수 있는 칸인지 물을 때 쓴다.</summary>
+        public static (int gx, int gy) WorldToGrid(Vector3 worldPos)
+        {
+            float halfW = Cols * 0.5f;
+            float halfH = RowCount * 0.5f;
+            int gx = Mathf.RoundToInt(worldPos.x / TileSize + halfW);
+            int gy = Mathf.RoundToInt(worldPos.z / TileSize + halfH);
+            return (gx, gy);
         }
     }
 }

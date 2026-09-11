@@ -5,6 +5,151 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 24~27장 "동물" 첫 조각 — 배회하는 사슴 두 마리.** 산신당
+  다음으로 이어서(같은 세션, 2026-09-11). 지금까지 이 슬라이스엔 동물이
+  하나도 없었다(9~10장 "여기는 아무것도 없다는 느낌을 최대한 피한다"가
+  요구하는 항목이 빠져 있었음). `World/WanderingAnimal.cs`(스폰 자리
+  중심 반경 24유닛 안에서 걷기↔멈춤 반복, 목표 지점이 걸을 수 있는
+  칸인지 `TestMapData.WorldToGrid()`로 확인 — Idle/Wander만, Flee/
+  Group/Interaction은 다음 조각) + `World/AnimalBuilder.cs`(작은
+  primitive capsule 두 마리, 사람 크기 capsule과 비율로 구분, 안
+  움직이는 게 아니라 `MarkStatic()` 대상 아님). `TestMapData.cs`에
+  `WorldToGrid()`(`WorldPos()`의 역함수) 추가. 마을·NPC·도적·채집·
+  산신당과 안 겹치는 들판 (2,2)/(4,4)에 배치. `BuildTestVillageScene
+  .cs`에 `BuildAnimals()` 훅. **이 조각은 PlaytestHeadless의 10프레임
+  동안 `WanderingAnimal.Update()`가 실제로 여러 번 돈다** — 지금까지
+  조각들과 달리 정적 배치만이 아니라 매 프레임 로직이 실제로 오류 없이
+  도는지까지 헤드리스로 확인된 셈(그래도 눈으로 자연스럽게 걷는지는
+  못 봄). 컴파일·씬 재빌드(groundVerts=3136 그대로)·PlaytestHeadless
+  전부 통과.
+- **PLAN.md 51장 GO 월드 확장 — 산신당(둘째 조각, 같은 세션 이어서).**
+  지도 자체를 키우는 건 여전히 안 함 — `WorldPos()`가 격자 전체 크기
+  기준 중심 좌표라 칸 수를 바꾸면 지금까지 심어 둔 모든 좌표(마을·
+  도적·굴·채집)가 통째로 밀린다(헤드리스로 못 잡는 리스크라 이번에도
+  피함). 대신 **`TestMapData.Rows`의 격자 수는 그대로 두고 칸 하나의
+  종류만 바꿨다** — `Legend`엔 원래부터 있었지만 `Rows`엔 한 번도 안
+  쓰인 `'S'`(사당) 타일을 격자 (5,1)(원래 숲 `T`)에 심음. 칸 하나만
+  바뀌어 나머지 좌표는 전혀 안 밀린다(groundVerts=3136 그대로로 확인).
+  `LandmarksBuilder.BuildShrine()`(받침대+기둥 4개, primitive) +
+  `Data/ShrineState.cs`(WorldEventState.cs와 같은 결 — 자리 하나짜리
+  전용 상태 클래스, **세 번째 "자리 하나" 월드 이벤트가 생기면 그때
+  GatherState.cs처럼 id 집합으로 둘을 합칠 것**) + `World/
+  MountainShrine.cs`(HiddenTreasure와 달리 사당 자체가 이미 눈에 띄는
+  표지라 반짝이는 마커 없이 트리거만 — 다가가면 경험치+돈). `SaveState
+  .cs` v6→v7로 가호 여부도 저장. 컴파일·씬 재빌드(groundVerts 불변
+  확인)·PlaytestHeadless 전부 통과 — 사당이 실제로 눈에 띄는지·트리거가
+  발동하는지는 역시 사람이 직접 봐야 확인됨.
+- **PLAN.md 51장 GO 월드 확장 — "수집" 콘텐츠 첫 조각.** 기술부채
+  정리 다음으로 이어서(같은 세션, 2026-09-11) — 지도 크기를 키우는
+  대신(TerrainBuilder·LandmarksBuilder·모든 격자 좌표를 건드리는 가장
+  파급이 큰 손질이라 이번엔 피함, 32장 "최소 변경") 기존 7x7 지도의
+  빈 들판 세 자리에 산나물 채집 지점을 심었다. `Data/GatherState.cs`
+  (id 집합 — 도적·보물은 자리가 하나뿐이라 전용 상태 클래스를 뒀지만
+  채집은 처음부터 여러 자리라 문자열 id로 구분, 사전에 일반화한 게
+  아니라 이 콘텐츠 자체가 N개라 구조가 다름) + `World/Gatherable.cs`
+  (HiddenTreasure.cs와 같은 결 — 트리거 한 번, 작은 발광 구슬, 캐면
+  돈 +8냥). **자리마다 격자 좌표·id가 다른 첫 재사용 가능 컴포넌트라**
+  BanditEncounter·HiddenTreasure처럼 상수로 못 박지 못하고
+  `[SerializeField]`로 받는다 — 안 그러면 씬 저장 뒤 실제 Play 때
+  Awake()가 기본값(0,0,null)으로 돈다(주석에 이유 남김). **Awake()가
+  이미 "Visual" 자식이 있으면 다시 안 만들게 방어 코드를 넣었다** —
+  이 프로젝트의 배치 모드 편집기 스크립트(`-executeMethod`)는 Awake를
+  안 부르는 것으로 보이지만(그래서 각 Builder가 AddComponent 뒤에
+  `.Build()`를 직접 또 부른다) 확신이 낮아 이중 생성에 안전하게
+  만들어 둠 — **다음에 비슷한 컴포넌트를 새로 짤 때도 이 방어를
+  기본으로 넣을 것.** 촌장(1,3)·상인(4,3)·도적(5,3) 말 걸기/조우
+  반경과 안 겹치는 들판(1,2)/(5,2)/(2,4) 세 자리. `BuildTestVillageScene
+  .cs`에 `BuildGatherables()` 훅 추가 — GameObject가 늘어 씬 재빌드
+  (groundVerts=3136 그대로). `SaveState.cs` v5→v6로 캔 자리 목록도
+  저장/로드. 컴파일·씬 재저장·PlaytestHeadless 전부 통과 — 발광
+  구슬이 실제로 보이는지·캐지는지는 역시 사람이 직접 봐야 확인됨.
+
+- **미뤄 둔 기술부채 — 골드 경제 + 상인 거래 + 상시 HUD.** Phase 6·7
+  (59~73장)을 다 채운 뒤 사용자가 "다 하면 안 될까, 안 묻고 최대한
+  계속해줘"로 판단을 맡겨(2026-09-11) 이전에 미뤄 뒀던 항목부터 정리.
+  `Data/GoldState.cs`(시작 소지금 50냥 — 도적이 유일한 돈줄인데 그
+  조우가 슬라이스에서 한 번뿐이라 사전에 돈이 없으면 "값을 치른다"가
+  죽은 선택지가 된다, 그래서 시작부터 쥐여 줌) + `Data/ShopState.cs`
+  (떠돌이 상인이 "베옷 갑주"를 25냥에 딱 한 번 판다 — Inventory.cs의
+  "자동 장착"과 같은 결로 새 상점 화면 없이 말을 거는 순간 거래가
+  끝난다). `BanditEncounter.ChoosePay()`가 이제 실제로 40냥을 쓰고
+  (없으면 거절당해 도적이 다시 막아선다), 승리 보상에 돈 +30냥,
+  `HiddenTreasure`도 +20냥을 얹는다. `NpcBuilder.cs`의 상인 대사를
+  `ElderLine()`과 같은 패턴(`MerchantLine()`)으로 상태 분기(아직 못
+  삼/방금 삼/이미 삼)하게 바꿈. **`UI/PlayerHud.cs`** — 새 인벤토리·
+  장비창 화면을 만드는 대신(범위 밖으로 계속 미룸) 화면 왼쪽 위
+  DebugUI 바로 아래에 "Lv.N (경험치 x/y) 돈 z냥 / 무기·방어구" 한
+  줄을 릴리즈 빌드에서도 항상 띄운다(0.5초마다 갱신, DebugHud.cs의
+  FPS 갱신과 같은 방식). `BuildTestVillageScene.cs`에 `BuildPlayerHud()`
+  훅 추가 — GameObject가 늘어 씬 재빌드(`groundVerts=3136` 그대로).
+  `SaveState.cs` v4→v5로 돈·상인 거래 여부도 저장/로드. 컴파일·씬
+  재저장·PlaytestHeadless 전부 통과 — 상인 거래·길세 거절 문구·HUD
+  갱신은 역시 사람이 직접 봐야 확인됨. **사전 구조로 사건/퀘스트/상점을
+  일반화하는 건 여전히 안 함**(콘텐츠가 이 하나뿐이라 2장 "테스트되지
+  않은 시스템을 대량 생성" 위반 — 두 번째 사건이 생길 때 할 일).
+- **Phase 7(72~73단계) — World Event / Hidden Area.** Quest(70~71) 다음
+  순서로 이어서(2026-09-11, 같은 세션). `Data/WorldEventState.cs`(사건
+  하나뿐 — 굴 옆 보물을 찾았는지만 기억, PartyState.cs와 같은 자리) +
+  `World/HiddenTreasure.cs` — 굴 입구(LandmarksBuilder가 격자 (3,0)에
+  세운 상자, 크기 10x6x4)를 안 가리게 +7 비켜 둔 자리에 발광 구슬 하나.
+  BanditEncounter처럼 선택지 UI를 안 두고 VillagerTalk 수준의 단순
+  트리거로 줄였다 — 들어서는 순간 바로 발견 처리. **보상은 `ItemData.cs`
+  에 새로 추가한 "유물 검"(공격+30, 기존 최고인 쇠칼 +22보다 셈)** —
+  도적 전리품 테이블엔 안 넣어서 이 굴을 찾아야만 얻을 수 있는 탐험
+  전용 보상으로 갈랐다(PLAN.md 51장 "계속 플레이할 이유"의 "숨겨진
+  장소"를 실제로 다른 보상으로 갚음). 한 번 찾으면 `WorldEventState`가
+  기억해 다음 씬 로드(세이브 불러오기)에서 `HiddenTreasure.Awake()`가
+  스스로 지운다. `SaveState.cs` v3→v4로 이 플래그도 저장/로드.
+  `BuildTestVillageScene.cs`에 `BuildHiddenTreasure()` 훅 추가 — **이번엔
+  씬 하이어라키에 GameObject가 실제로 늘어 `BuildTestVillageScene.Build()`
+  를 다시 돌렸다**(Phase 6·7 Quest 때와 달리 재실행이 필요한 경우,
+  groundVerts=3136 그대로 — 땅은 안 바뀜). 컴파일·씬 재저장·
+  PlaytestHeadless 전부 통과 — 역시 트리거가 실제로 발동해 발광 구슬이
+  눈에 보이고 문구가 뜨는지는 사람이 직접 걸어가서 봐야 확인된다.
+- **Phase 7(70~71단계) — Quest 시스템 / Quest Objective·Reward.** Phase 6
+  다음 순서로 이어서(2026-09-11, 같은 세션). `Data/QuestState.cs`(퀘스트
+  하나뿐 — NotStarted/Active/Completed 3단계, PartyState.cs와 같은 자리)
+  + `VillagerTalk.cs`를 고정 문자열 대신 `Func<string>`도 받게 넓혀
+  (기존 `Init(name, string)`는 그대로 유지, 내부에서 람다로 감싸 호출)
+  `NpcBuilder.cs`의 마을 촌장에게 퀘스트 상태별 대사(`ElderLine()`)를
+  줬다 — **말을 거는 순간이 곧 수락**이라 그 함수 안에서
+  `QuestState.StartBanditQuest()`를 직접 부른다(VillagerTalk는 그 결과
+  문장을 보여주기만 하는 화면 층, 부수효과는 NpcBuilder 쪽에 둠).
+  `BanditEncounter.FinishFight()`가 승리 시 `QuestState
+  .CompleteBanditQuest()`를 불러(퀘스트가 Active일 때만 true — 촌장을
+  안 만났으면 조용히 건너뜀, 이미 끝났으면 중복 방지) 완료 시
+  경험치 +50을 추가로 주고 토스트에 "퀘스트 완료" 줄을 얹는다. **"값을
+  치른다"/"달아난다"를 골라도 도적은 안 사라지므로(기존 동작) 나중에
+  다시 "맞선다"로 퀘스트를 끝낼 수 있다** — 퀘스트 진행이 그 선택 때문에
+  막히지 않는다. `SaveState.cs`를 v2→v3로 올려 퀘스트 단계도 저장/
+  로드(`MigrateStep(2, ...)`로 예전 세이브는 NotStarted로 채움). 컴파일·
+  PlaytestHeadless 전부 통과 — **역시 헤드리스로는 촌장과의 대화도
+  퀘스트 완료도 실제로 안 일어나 확인 못함**(플레이어가 안 움직임).
+- **Phase 6(59~67단계) — Stats/EXP/Level Up/Item/Inventory/Equipment/
+  Reward/Loot Table.** 버티컬 슬라이스 코드가 다 끝난 뒤(77~78단계는
+  사람의 플레이 평가가 필요해 못 넘어감) 2026-09-11 사용자가 "게이트를
+  건너뛰고 계속 진행"을 명시로 골라 착수. `Data/PlayerStats.cs`(레벨·
+  경험치, static — PartyState.cs와 같은 자리, UnityEngine 안 끌어옴)
+  + `Data/ItemData.cs`(무기/방어구 카탈로그 4종, plain C# — TestMapData.cs
+  처럼 이 슬라이스는 ScriptableObject 대신 코드 카탈로그로 통일) +
+  `Data/Inventory.cs`(소지 목록 + 장비 슬롯, "더 센 장비를 주우면 자동
+  장착" — 장비창 UI를 새로 만들지 않고 이게 유일한 조작 경로) +
+  `Data/LootTable.cs`(가중치 룰렛, 도적 전용 테이블 하나뿐 — 사건이
+  하나뿐이라 (id→테이블) 사전 구조는 아직 안 만듦). `World/
+  BanditEncounter.cs`의 `StartFight()`가 `PartyState.Atk/Def`에
+  `PlayerStats`·`Inventory` 보너스를 더해 실전투력을 만들고,
+  `FinishFight()`의 승리 분기가 경험치(+100, 1레벨 임계치 80이라 첫
+  승리에 바로 레벨업하도록 일부러 맞춤)·루트 굴림·자동장착까지 한
+  토스트 메시지로 모아 보여준다. **도적은 슬라이스 안에서 한 번만
+  나고 다시 안 나서(기존 설계) 이 보상 루프도 실질적으로 한 판만
+  체감된다** — 재도전으로 파밍하는 느낌은 이번 조각 밖. "값을
+  치른다"/"달아난다"는 여전히 대사만(골드 경제는 Phase 6 목록에 없어
+  이번에도 안 건드림). `Data/SaveState.cs`를 v1→v2로 올려 레벨·경험치·
+  인벤토리·장비도 저장/로드하게 하고, `MigrateStep(1, ...)`에 실제
+  내용을 처음 채웠다(전엔 자리만 파 둔 빈 경로였다 — PLAN.md 75장
+  "Data Versioning"의 첫 실사용례). 컴파일·PlaytestHeadless 전부 통과
+  (헤드리스 플레이는 플레이어가 안 움직여 조우 자체가 안 일어나므로
+  새 로직의 실제 동작은 검증 못함 — 사람이 직접 싸워 확인해야 함).
 - `PLAN.md`·`CLAUDE.md` 작성 완료 — `saga-godot/PLAN.md` 기반, Unity(C#,
   URP, ScriptableObject 등)에 맞게 다시 씀. 레거시 감사는 새로 안 하고
   `saga-godot/docs/LEGACY_FEATURE_AUDIT.md` 참고.
@@ -34,6 +179,123 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   곳이 각자 만들면 겹친다 — saga-godot과 같은 결정). `BuildTestVillageScene
   .cs`에 `BuildLandmarks()` 훅 추가(초목 다음, 플레이어 전). 씬 재저장·
   PlaytestHeadless까지 전부 통과 확인됨.
+- **Phase 3(23~25단계) 넷째 조각 — Sky/Fog.** PLAN.md에 적혀 있던
+  "URP Volume — Physically Based Sky/Fog 오버라이드"는 실제론 HDRP
+  전용 기능이라 URP엔 없다는 걸 확인(Library/PackageCache의 URP
+  Volume 컴포넌트 목록에 Fog·Sky류 없음, Bloom/Vignette 등 포스트
+  프로세싱만 있음) — 대신 URP가 쓰는 고전 방식(`RenderSettings`)으로
+  짰다. `BuildTestVillageScene.cs`의 `BuildSkyAndFog()` — 절차적
+  Skybox 머티리얼 에셋(`Assets/Games/SagaGo/World/Sky.mat`, saga-godot
+  `env_pc.tres` 색 참고) 생성/재사용 + `RenderSettings.fog`(Linear,
+  150~430m — 336m 사방 지도 기준). **주의 — 이 안개는 URP/Lit 셰이더만
+  자동으로 받는다.** `VertexColorLit.shader`·`WaterUnlit.shader`(땅·
+  나무·바위·강 전부 이 둘을 씀)는 직접 짠 커스텀 셰이더라 URP 표준
+  안개 믹싱(`multi_compile_fog`+`ComputeFogFactor`+`MixFog`)을 손으로
+  넣어야 했다 — 넣기 전엔 랜드마크만 안개 지고 나머지 세계는 안 지는
+  상태였을 것(직접 눈으로 확인은 안 함, 셰이더 임포트 에러 없음+
+  PlaytestHeadless 통과까지만 확인). 실제로 안개가 자연스러워 보이는지는
+  다음에 GUI로 몰아서 확인할 때 볼 것.
+- **Phase 8 최소 조각 — NPC·Dialogue.** VERTICAL_SLICE.md 26절 범위로
+  좁힌 saga-godot npc_builder.gd와 같은 것: 주민 2명(마을 촌장·떠돌이
+  상인), 하루 일과·날씨·LOD는 범위 밖, 등용 대상 아님. saga-godot이
+  "대화가 전투보다 먼저"로 순서를 정정했던 교훈 그대로 Combat보다
+  먼저 넣었다. `NpcBuilder.cs`(자리·모양 — Player와 같은 크기 primitive
+  capsule, 옷 색만 다르게) + `VillagerTalk.cs`(SphereCollider 트리거,
+  반지름 14, 쿨다운 45초) + `Assets/Games/SagaGo/UI/DialogueLabel.cs`
+  (화면 상단 자막, 4초 표시 — 그룹 대신 자기등록 싱글턴으로 Godot의
+  "dialogue_label" 그룹 흉내). `BuildTestVillageScene.cs`에
+  `BuildNpcs()`·`BuildDialogueUi()` 훅 추가. 씬 재저장·PlaytestHeadless
+  까지 통과 확인됨 — **말 걸기가 실제로 되는지(트리거 판정·자막 표시)는
+  헤드리스로 못 본다, 사람이 직접 플레이해서 확인해야 하는 부분.**
+- **Phase 6(61~71단계) — Combat "도적의 습격".** 72~74 엘리트/보스는
+  이번 슬라이스에서 스킵(saga-godot과 같은 범위). saga-godot의
+  duel_rules.gd(원본 js/duel.js)를 상수 하나 안 바꾸고 그대로 옮긴
+  `Assets/Games/SagaGo/Data/DuelRules.cs`(판정 층, 엔진 비의존 순수
+  클래스) + `PartyState.cs`(등용 인원 수 → 공격력/방어력, Godot의
+  autoload 싱글턴을 static 클래스로 대신함 — Unity엔 오토로드가 없다)
+  + `World/BanditEncounter.cs`(화면 층 — 조우 트리거 → 사건 선택지
+  3지(맞선다/값을 치른다/달아난다) → 실시간 전투 UI, 기세·사기·기
+  세 막대는 `Image.fillAmount`로, 속공/필살/회피/물러난다 4버튼).
+  "값을 치른다"·"달아난다"는 골드·소지품 시스템이 없어(Phase 9 몫)
+  대사만 보여주고 끝 — 새 경제 시스템 안 만듦. 승리 시 `PartyState
+  .Recruit()`로 등용, 도적은 `Destroy(gameObject)`로 사라짐(이번
+  슬라이스에서는 다시 안 남). 컴파일·씬 재저장·PlaytestHeadless
+  전부 통과. **전투가 실제로 손맛 있게 도는지(트리거 진입·버튼
+  반응·막대 움직임·화면 플래시)는 헤드리스로 못 본다 — 사람이 직접
+  플레이해서 확인해야 하는 부분.** 키보드 단축키(J/K/L)는 이번엔
+  안 넣었다 — 화면 버튼만으로 조작(모바일 우선 설계와 같은 결).
+- **Save/Load 최소 구현 (12단계 완료 조건의 마지막 "저장한다 → 다시
+  켜서 이어진다").** saga-godot의 save_state.gd와 같은 구조 —
+  `Assets/Games/SagaGo/Data/SaveState.cs`가 `Application
+  .persistentDataPath/save.json`에 버전 필드 포함 JSON으로 저장(지금
+  실제로 있는 상태는 플레이어 위치·부대뿐이라 그것만 — PLAN.md
+  28장이 요구하는 레벨/장비/인벤토리/퀘스트는 이 슬라이스에 아직
+  없어서 저장 안 함). `MigrateStep()` 자리는 미리 파 뒀다(지금은
+  버전 1뿐이라 빈 경로, 스키마 바뀔 때 여기 채움 — PLAN.md Phase 9
+  "Data Versioning" 선반영). 화면 오른쪽 위 저장 버튼(누르면
+  `DialogueLabel`로 토스트) + `GameBootstrap.cs`(씬 시작 시
+  `SaveState.TryLoad()`, saga-godot test_village.gd `_ready()`와
+  같은 역할 — Awake 대신 Start를 써서 Player가 이미 자리 잡은 뒤임을
+  보장). `PartyState.cs`에 `MemberIds`(읽기 전용) 추가해 SaveState가
+  등용 목록을 읽게 함. 컴파일·씬 재저장·PlaytestHeadless 전부 통과.
+  **저장→재시작→위치/부대가 실제로 돌아오는지는 헤드리스로 못 본다.**
+- **디버그 오버레이 (PLAN.md 46장·66-1장).** `Assets/Games/SagaGo/
+  UI/DebugHud.cs`(원래 이름 DebugOverlay였는데 `UnityEngine.Rendering
+  .DebugOverlay`와 겹쳐 CS0104 컴파일 에러 — DebugHud로 고침, 다음에
+  또 "DebugOverlay"라는 이름을 쓰지 않는다) — 디버그 빌드에서만 화면
+  왼쪽 위에 현재 Render Pipeline Asset 이름 + FPS. saga-godot의
+  renderer_debug_label.gd와 같은 최소 범위 — PLAN.md 44~49장이 나열한
+  전체 목록(Draw Calls/Enemy Count/Current Quest 등)은 그 시스템
+  자체가 없어서 안 만듦(saga-godot도 실제로는 렌더러 이름만 보여줌).
+  컴파일·씬 재저장·PlaytestHeadless 전부 통과.
+- **Mobile Performance Pass 첫 조각 (PLAN.md 76장).** TerrainBuilder·
+  VegetationBuilder·LandmarksBuilder가 만드는 것들(땅·물·충돌·나무·
+  바위·굴 입구·마을집·폐허·다리)은 전부 절대 안 움직이는 지오메트리라
+  `Build()` 끝에 `MarkStatic()`(자식 트리 전체를 훑어 `isStatic=true`)
+  을 걸었다 — 정적 배칭·오클루전 컬링 대상이 된다. **NPC·플레이어·
+  도적은 일부러 안 건드렸다** — 도적은 `PulseVisual()`로 강타 때
+  scale이 실제로 바뀌고, static 오브젝트를 런타임에 옮기면 Unity가
+  경고를 내고 제대로 안 움직인다(NPC는 지금 안 움직이지만 "하루 일과"
+  로 나중에 움직일 계획이 있어 미리 막지 않음). 씬 YAML에
+  `m_StaticEditorFlags: 2147483647`로 정확히 그 오브젝트들만 찍힌
+  것 확인함(Player·NPC·Bandit·UI는 0). **주의 — `isStatic=true`만으로는
+  런타임에 생성된 메시가 자동으로 정적 배칭까지 되는 건 아니다**
+  (에디터에서 손으로 만든 오브젝트와 달리, 우리 건 전부 Awake() 때
+  코드로 만든다 — 실제 드로우콜 감소를 보려면 `StaticBatchingUtility
+  .Combine()`을 명시로 불러야 한다, 이번엔 안 함). 이번 조각은 플래그만
+  — 오클루전 컬링·라이트매핑 자격 부여 정도의 효과는 있지만 드로우콜
+  감소 효과는 아직 없다. 컴파일·씬 재저장·PlaytestHeadless 전부 통과.
+- **Mobile Performance Pass 둘째 조각 — 실제 배칭 호출 (PLAN.md 76장,
+  위 "첫 조각"에서 멈춘 자리를 이어서).** `isStatic` 플래그만으론 드로우콜이
+  안 준다는 문제를 `GameBootstrap.cs`에 `CombineStaticBatches()`를 추가해
+  풀었다 — `Start()`(씬의 모든 Awake가 끝난 뒤 보장)에서 `Terrain`·
+  `Vegetation`·`Landmarks` 세 루트 각각에 `StaticBatchingUtility.Combine
+  (root)`를 부른다. 세 루트가 공통 부모를 안 나누고 있어(BuildTestVillageScene
+  .cs가 셋을 씬 최상위에 따로 만든다) 배칭도 세 그룹으로 따로 묶인다 —
+  Terrain↔Vegetation↔Landmarks 사이 교차 배칭은 없다(더 줄이려면 셋을 공통
+  부모 밑에 넣고 그 부모 하나로 Combine을 바꿔야 하는데, 이번 조각에서는
+  안 함). 컴파일·PlaytestHeadless 전부 통과(`OK - 10 frames, no errors`) —
+  **드로우콜이 실제로 줄었는지 수치 확인은 아직 안 함**(Stats 창은 GUI
+  에디터라야 보여 헤드리스로는 못 본다 — 다음에 사람이 GUI로 확인할 때
+  Game 뷰 Stats로 Before/After 드로우콜을 같이 봐 둘 것).
+- **PLAN.md 66-1장(PC/Mobile 렌더러 이중 프로파일) 재점검·MSAA 튠.**
+  Phase 1에서 "콘텐츠가 늘면 다시 점검한다"고 미뤄 뒀던 지점 — 버티컬
+  슬라이스 콘텐츠가 다 들어간 지금 다시 봤다. **SSAO·그림자 Cascade
+  수(PC 4/Mobile 1)·그림자 해상도(PC 2048/Mobile 1024)·Depth/Opaque
+  텍스처 요구(PC만 켜짐, SSR 등에 필요)는 이미 템플릿 기본값이 66-1장
+  표와 정확히 맞아 있었다** — 손 안 댐. **MSAA만 PC·Mobile 둘 다
+  꺼진 채(`m_MSAA: 1`=Disabled) 방치돼 있어서** `Mobile_RPAsset.asset`
+  →2(2x), `PC_RPAsset.asset`→4(4x)로 바꿨다(표의 "PC: MSAA/TAA"를
+  TAA 대신 MSAA 쪽으로 택함 — TAA는 카메라별 AdditionalCameraData·
+  Motion Vector 설정이 더 필요해 지금 콘텐츠 규모에는 과함, 32장 "최소
+  변경" 원칙). **Screen Space Reflection·Volumetric Fog는 일부러 안
+  넣었다** — 표에 PC 항목으로 적혀 있지만 지금 씬엔 그 효과가 붙을
+  반사면/안개 콘텐츠가 없어 검증 없이 넣으면 2장 "테스트되지 않은
+  시스템을 대량 생성" 위반이다 — 반사 재질이나 짙은 안개가 들어갈 때
+  같이 넣을 것. 두 URP Asset의 Volume Profile을 공유(`SampleSceneProfile`
+  guid `10fc4df2...`)하는 것도 **의도된 상태**(표 아래 "색 톤은 두 Asset에서
+  같게 유지" 요구사항 — 버그 아님, 갈라놓지 않는다). 컴파일·PlaytestHeadless
+  전부 통과.
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -81,18 +343,84 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- **(우선) Unity 있는 PC라면 먼저 `-batchmode -nographics -quit`
-  컴파일 확인 + `PlaytestHeadless.Run`부터 — 이번 SkyFogBuilder 추가가
-  실제로 컴파일·씬 재조립이 되는지 아직 미검증.**
-- Path/Road 구성(32장 — 지금은 '=' 타일이 그냥 색만 다른 평지, 실제
-  길처럼 보이는 건 아님)
-- NPC 최소 구현(주민 1~2명, 대화만) — saga-godot이 "대화가 전투보다
-  먼저"로 순서를 정정했던 교훈 그대로 반영해 Combat보다 먼저 할 것
-- 위 항목들이 어느 정도 쌓이면(플레이어가 실제로 걸어 다닐 수 있게
-  되면) 그때 한 번 GUI로 몰아서 확인 — 매 조각마다 스크린샷 찍지 않는다.
-  **CameraRig의 드래그 방향이 실제로 자연스러운지는 그때 반드시 볼 것**
-  (위 완료 단계 주석 참고 — 부호를 새로 판단해 정한 자리라 확신이 낮다).
-  Sky/Fog 색조·안개 농도가 실제로 알맞아 보이는지도 같이 볼 것.
+- **(2026-09-12) 병합 충돌 정리 — `BuildTestVillageScene.cs`의
+  `BuildSkyAndFog` 호출부가 로컬(HEAD)과 원격(이 branch)에서 각자 다른
+  방향으로 진화해 있었다.** 로컬 쪽은 `var sun = BuildLighting();
+  BuildSkyAndFog(sun);`(Skybox 머티리얼 생성 + `RenderSettings.sun`
+  방식)로 남아 있었는데, `BuildPlayerCamera`/`BuildReviewCamera`가 이미
+  `clearFlags = SolidColor` + `backgroundColor = SkyFogBuilder
+  .HorizonColor`로 스카이박스 없는 단색 배경을 쓰도록 짜여 있어서 그
+  방식은 실제로는 화면에 하나도 안 보이는 죽은 코드였다. 무인자
+  `BuildSkyAndFog()`(SkyFogBuilder 위임, Trilight 앰비언트 +
+  ExponentialSquared 안개)가 실제로 카메라 설정과 맞물려 쓰이는 쪽이라
+  그걸로 통일하고, Skybox 방식 메서드·`SkyMaterialPath` 상수·안 쓰는
+  `Sky.mat` 자산은 지웠다. `docs/PROJECT_STATE.md`(이 파일)의 "다음
+  작업" 절도 병합 때 두 세션이 각자 다른 시점에 적어 둬 갈라졌던 것을
+  이 branch(더 나중 시점, Phase 6·7·경제·채집·산신당·동물까지 반영된
+  쪽)를 기준으로 정리했다 — 아래 "Sky/Fog가 자연스러운지" 항목도 그때
+  기준으로 고침(Skybox 색·거리 숫자 → Trilight 앰비언트·안개 밀도).
+- Path/Road 구성(PLAN.md 32장)은 saga-godot도 색 구분 외엔 따로 안
+  한 항목이라(terrain_builder.gd의 '=' LEGEND에 특별한 처리 없음)
+  이번 손질에서 건너뜀 — TerrainBuilder의 지형 색 구분으로 이미 충족.
+- 플레이어가 실제로 걸어 다닐 수 있는 수준까지 쌓였다 — **이제 한 번
+  GUI로 몰아서 확인할 때가 됐다**(사람이 직접, 헤드리스로는 못 봄):
+  - **CameraRig의 드래그 방향이 실제로 자연스러운지**(부호를 새로
+    판단해 정한 자리라 확신이 낮다)
+  - **Sky/Fog가 자연스러운지**(SkyFogBuilder의 Trilight 앰비언트 색·
+    ExponentialSquared 안개 밀도 0.006은 env_pc.tres 수치를 그대로
+    옮긴 것 — 실제 화면에서 Godot 쪽과 비슷한 느낌인지 눈으로 볼 것.
+    위 병합 정리로 이제 이 경로 하나만 실제로 쓰인다)
+  - **NPC 말 걸기가 실제로 되는지**(TalkArea 트리거 판정·화면 상단
+    자막 표시 — 헤드리스로는 트리거가 실제로 발동하는지 확인 불가)
+  - **도적의 습격이 실제로 되는지**(조우 트리거 → 선택지 → 전투 →
+    등용까지 12단계 루프 전체가 헤드리스 검증 밖 — 사람이 직접
+    "맞선다"를 눌러 승리까지 가 봐야 한다)
+  - **저장·재시작이 실제로 되는지**(저장 버튼 → 에디터에서 Play를
+    끄고 다시 켬 → 위치·부대가 돌아오는지)
+  - **정적 배칭이 실제로 드로우콜을 줄였는지**(Game 뷰 Stats 창,
+    Combine() 넣기 전/후 비교 — 헤드리스로는 확인 불가)
+  - **MSAA를 켠 뒤 가장자리 계단 현상이 실제로 줄었는지**(PC 4x/Mobile
+    2x로 숫자만 넣었다 — Quality 레벨을 PC/Mobile로 오가며 눈으로 볼 것)
+  - **경험치·레벨업·루트·자동장착이 실제로 도는지**(도적을 이기면
+    토스트에 "경험치 +100 — 레벨업! (1 → 2)"·주운 장비 문구가 뜨는지,
+    수치만으로 정한 자리라 실제 UX로 한 번 봐야 함 — 도적은 한 번
+    이기면 다시 안 나니 **세이브 파일을 지우고 처음부터** 봐야 재현됨)
+  - **촌장 퀘스트 대사·완료 처리가 실제로 도는지**(처음 말 걸면
+    수락 대사, 다시 걸면 재촉 대사, 도적을 이긴 뒤 다시 걸면 사례
+    대사로 바뀌는지 — 3단계 다 순서대로 봐야 함, 역시 세이브 지우고
+    새로 시작해야 재현됨)
+  - **굴 옆 숨겨진 보물이 실제로 보이고 주워지는지**(발광 구슬이 굴
+    입구 상자에 안 가려 보이는지, 다가가면 "유물 검"을 얻는지 —
+    한 번 주우면 다시 안 나니 역시 세이브 지우고 새로 시작해야 재현됨)
+  - **골드 경제·상인 거래·PlayerHud가 실제로 도는지**(길세 40냥을
+    실제로 낼 수 있는지/모자라면 거절당하는지, 상인에게 처음/두 번째
+    말 걸 때 문구가 바뀌는지, 화면 왼쪽 위 HUD 줄이 DebugUI와 안
+    겹치고 값이 실제로 갱신되는지)
+  - **산나물 채집 세 자리가 실제로 보이고 캐지는지**((1,2)/(5,2)/(2,4)
+    들판에 작은 초록 구슬이 보이는지, 밟으면 돈 +8냥이 들어오는지)
+  - **산신당이 실제로 자리 잡고 가호가 도는지**(격자 (5,1)에 받침대+
+    기둥 4개가 숲 사이로 눈에 띄는지, 다가가면 경험치+돈을 받는지)
+  - **사슴 두 마리가 실제로 자연스럽게 걷는지**((2,2)/(4,4) 들판 근처를
+    돌아다니는지, 산·강으로 걸어 들어가지 않는지, 멈췄다 걷는 리듬이
+    부자연스럽지 않은지 — 수치(반경 24·속도 2.2)만으로 정한 자리)
+- **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
+  EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
+  World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
+  51장 채집·산신당 + PLAN.md 24~27장 동물(사슴)까지 코드상으로는 전부
+  채워졌다.** **위 GUI 확인에서 실제로 도는 게 확인되면 PLAN.md
+  77~78단계(전체 플레이 테스트 → 재미 평가)로 넘어갈 수 있다** — 이번
+  세션은 그 게이트를 사용자가 명시로 건너뛰라고("다 하면 안 될까, 안
+  묻고 최대한 계속해줘") 골라 여기까지 끝냈다(2026-09-11). **지도
+  자체를 키우는 건(칸 수 확장) 여전히 미룸** — `WorldPos()`가 격자
+  전체 크기 기준이라 칸 수를 바꾸면 기존 모든 좌표가 같이 밀리는 파급
+  큰 작업, 헤드리스로 결과를 못 봐 리스크가 큼(자세한 이유는 위 "완료
+  단계" 산신당 항목 참고) — 하려면 별도 세션에서 좌표 전부를 한 번에
+  맞춰 잡을 것. 다음 후보는 PLAN.md 51장의 남은 것(희귀 몬스터 — 지금
+  사슴은 평범한 동물이지 "희귀"는 아니다) · 동물의 Flee/Group/
+  Interaction · 51~65장이 적어 둔 확장 순서(GO → DUNGEON → FOREST →
+  STORY → REALM) — 사건/퀘스트/상점을 사전 구조로 일반화하는
+  건 콘텐츠가 각각 하나(또는 둘)뿐이라(채집만 예외) 여전히 미룸. 세션
+  시작 시 PLAN.md를 다시 훑어 고를 것.
 
 ## 알려진 오류
 
@@ -133,3 +461,51 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   타이밍과 겹쳐 찍혀서 `OnLog`가 매번 FAIL로 오판했었다 — `OnLog`에서
   이 스택트레이스만 걸러내도록 고쳤다.
 - 실제 GUI 렌더링(그래픽 화면 확인)은 아직 안 함.
+- 2026-09-11 재확인 — `PlaytestHeadless.Run`을 `-executeMethod`로 부를 때
+  `-quit`을 같이 주면 Run()이 반환하자마자(Play 모드 시작 전) 종료돼 OK/FAIL
+  로그가 안 찍힌다(스크립트 주석에 이미 적혀 있던 주의사항, 실제로 한 번
+  더 밟음) — `-quit` 없이 불러야 한다(Run() 자신이 EditorApplication.Exit로
+  끝낸다). `CombineStaticBatches()` 추가 후에도 컴파일·PlaytestHeadless
+  전부 통과.
+- Phase 6(PlayerStats/ItemData/Inventory/LootTable + BanditEncounter·
+  SaveState 통합) 추가 후 컴파일·PlaytestHeadless 재확인, 둘 다 통과.
+  **`BuildTestVillageScene.Build()`는 이번엔 다시 안 돌렸다** — 씬
+  하이어라키·GameObject 구성을 하나도 안 건드린 변경(Data 계층 로직만)
+  이라 기존 커밋된 `TestVillage.unity`가 그대로 유효하다. (한 번 다시
+  돌려 봤다가 이 씬 파일이 재실행마다 통째로 다시 짜여 fileID가 매번
+  바뀌면서 14000줄대 순수 churn diff가 나는 걸 확인하고 되돌렸다 — 앞으로도
+  씬 GameObject 구성 자체를 바꾸지 않는 변경에는 Build()를 다시 안 돌린다.)
+  PlaytestHeadless는 플레이어가 안 움직여 도적 조우 자체가 안 일어나므로
+  **경험치/레벨업/루트/자동장착의 실제 동작은 여전히 검증 못함**(컴파일
+  통과 + 정적 씬 로드까지만 확인) — 사람이 직접 싸워 봐야 하는 부분.
+- Phase 7 Quest(QuestState + VillagerTalk의 `Func<string>` 확장 +
+  NpcBuilder 촌장 대사 + BanditEncounter 완료 처리 + SaveState v3) 추가
+  후 첫 컴파일에서 `NpcBuilder.cs(89,13): error CS0104` — `Func` 쓰려고
+  넣은 `using System;`이 기존 `Object.DestroyImmediate(...)`(암묵적으로
+  `UnityEngine.Object`를 가리키던 것)와 `System.Object`를 놓고 충돌을
+  일으켰다. `UnityEngine.Object.DestroyImmediate(...)`로 완전한 이름을
+  써서 고침 — **`using System;`을 새로 추가하는 파일에 `Object.`로
+  짧게 쓴 UnityEngine 호출이 있으면 항상 이 충돌을 의심할 것.** 고친
+  뒤 컴파일·PlaytestHeadless(씬 재사용, Build() 다시 안 돌림) 둘 다
+  통과. 촌장 대사 3단계 전환·퀘스트 완료도 역시 헤드리스로는 확인 못함.
+- Phase 7 World Event/Hidden Area(WorldEventState + HiddenTreasure +
+  BuildTestVillageScene 훅 + SaveState v4) 추가 후 컴파일 통과, 이번엔
+  씬에 GameObject가 실제로 늘어(HiddenTreasure) `BuildTestVillageScene
+  .Build()`를 다시 돌림 — `groundVerts=3136` 그대로(땅은 안 바뀜),
+  PlaytestHeadless도 재저장된 씬으로 통과.
+- 골드 경제/상인 거래/PlayerHud(GoldState/ShopState/PlayerHud +
+  BanditEncounter·NpcBuilder·SaveState v5 통합) 추가 후 컴파일 통과,
+  PlayerHud가 씬에 새 GameObject라 `BuildTestVillageScene.Build()` 재실행
+  (groundVerts=3136 그대로), PlaytestHeadless도 통과.
+- 채집(GatherState/Gatherable + BuildGatherables 훅 + SaveState v6) 추가
+  후 컴파일 통과, 씬 재빌드(groundVerts=3136 그대로) 후 PlaytestHeadless
+  통과.
+- 산신당(TestMapData 'S' 타일 + LandmarksBuilder.BuildShrine +
+  ShrineState/MountainShrine + SaveState v7) 추가 후 컴파일 통과, 씬
+  재빌드에서 groundVerts=3136 그대로임을 확인(칸 하나 종류만 바뀌고
+  격자 크기는 안 바뀌었다는 뜻) 후 PlaytestHeadless 통과.
+- 동물(WanderingAnimal/AnimalBuilder + TestMapData.WorldToGrid + Build
+  TestVillageScene.BuildAnimals) 추가 후 컴파일 통과, 씬 재빌드
+  (groundVerts=3136 그대로) 후 PlaytestHeadless 통과 — 이번엔 Update()가
+  매 프레임 도는 컴포넌트라 10프레임 동안 실제로 몇 번 실행돼 그 경로도
+  오류 없음까지 확인됨(다른 조각들과 달리 정적 배치만이 아님).
