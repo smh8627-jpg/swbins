@@ -54,6 +54,24 @@ quest_id_to_complete = "village_ask"
 [node name="HurtSoldierEvent" type="Node3D" parent="."]
 script = ExtResource("11")
 
+[node name="StoneTextEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(1, 2)
+event_title = "🪨 고대 비문\n\"이끼 아래로 글자가 반쯤 남아 있다.\""
+choice_a_label = "읽어 본다"
+choice_a_outcome = "옛 싸움의 날짜와 이름 셋을 읽어 냈다."
+choice_b_label = "그냥 둔다"
+choice_b_outcome = "이끼를 도로 덮어 두었다."
+
+[node name="RareHerbEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(4, 4)
+event_title = "🌿 희귀 약초\n\"바위 그늘에 보기 드문 잎이 돋아 있다.\""
+choice_a_label = "캔다"
+choice_a_outcome = "별미로 쓸 만한 것을 두 몫 캤다."
+choice_b_label = "남겨 둔다"
+choice_b_outcome = "씨가 여물도록 두고 왔다."
+
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
 current = false
