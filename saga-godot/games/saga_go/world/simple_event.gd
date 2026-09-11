@@ -32,7 +32,7 @@ const Toast := preload("res://games/saga_go/ui/toast.gd")
 const TRIGGER_RADIUS := 16.0
 const TOAST_SEC := 4.0
 
-@export var grid := Vector2i(2, 4)
+@export var grid := Vector2i(4, 6) # 2026-09-11㉒ 지도 확장(+2,+2)
 @export var event_title := "🩹 부상당한 병사\n\"물… 물 좀 주시오.\""
 @export var visual_glb := ""
 @export var vis_scale := 1.25

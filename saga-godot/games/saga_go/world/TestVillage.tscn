@@ -42,7 +42,7 @@ script = ExtResource("7")
 
 [node name="BanditLeaderEncounter" type="Node3D" parent="."]
 script = ExtResource("7")
-grid = Vector2i(5, 2)
+grid = Vector2i(7, 4)
 foe_name = "도적 두목"
 foe_power = 260.0
 foe_hp_mul = 9.0
@@ -58,7 +58,7 @@ script = ExtResource("11")
 
 [node name="StoneTextEvent" type="Node3D" parent="."]
 script = ExtResource("11")
-grid = Vector2i(1, 2)
+grid = Vector2i(3, 4)
 event_title = "🪨 고대 비문\n\"이끼 아래로 글자가 반쯤 남아 있다.\""
 choice_a_label = "읽어 본다"
 choice_a_outcome = "옛 싸움의 날짜와 이름 셋을 읽어 냈다."
@@ -69,7 +69,7 @@ choice_b_exp = 0.0
 
 [node name="MapScrapEvent" type="Node3D" parent="."]
 script = ExtResource("11")
-grid = Vector2i(2, 2)
+grid = Vector2i(4, 4)
 event_title = "🗺️ 보물 지도 조각\n\"무너진 기둥 틈에 기름 먹인 종이가 끼여 있다.\""
 choice_a_label = "적힌 자리를 파 본다"
 choice_a_outcome = "돌 아래에서 묻어 둔 전대가 나왔다."
@@ -83,7 +83,7 @@ choice_b_exp = 0.0
 
 [node name="RareHerbEvent" type="Node3D" parent="."]
 script = ExtResource("11")
-grid = Vector2i(4, 4)
+grid = Vector2i(6, 6)
 event_title = "🌿 희귀 약초\n\"바위 그늘에 보기 드문 잎이 돋아 있다.\""
 choice_a_label = "캔다"
 choice_a_outcome = "별미로 쓸 만한 것을 두 몫 캤다."
@@ -94,7 +94,7 @@ choice_b_exp = 0.0
 
 [node name="LostChildEvent" type="Node3D" parent="."]
 script = ExtResource("11")
-grid = Vector2i(1, 4)
+grid = Vector2i(3, 6)
 event_title = "🧒 사라진 아이\n\"우리 아이를 못 보셨소? 아침부터 안 보이오.\""
 choice_a_label = "찾아 나선다"
 choice_a_outcome = "숲 어귀에서 잠든 아이를 찾았다."
@@ -111,7 +111,7 @@ script = ExtResource("12")
 
 [node name="HeroEncounter2" type="Node3D" parent="."]
 script = ExtResource("12")
-grid = Vector2i(4, 2)
+grid = Vector2i(6, 4)
 hero_id = "sg_zhugeliang"
 
 [node name="ReviewCamera" type="Camera3D" parent="."]

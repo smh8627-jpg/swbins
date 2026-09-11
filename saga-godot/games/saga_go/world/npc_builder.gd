@@ -24,17 +24,19 @@ const NPC_CHAR_SCALE := 1.25
 ## quest_* 필드를 추가했다 — 있으면 처음 말 걸었을 때 사명 제안 패널을
 ## 띄우고, 그 뒤로는 진행/완료 상태에 맞는 대사로 갈아 낀다. 상인은 그대로
 ## 한 줄뿐인 예전 방식이다(모든 NPC가 사명을 들 필요는 없다).
+## 2026-09-11㉒ 지도 확장(+2,+2) — test_map.gd 참고. 촌장·상인의 격자
+## 좌표를 그 값만큼 옮겼다(마을 안에서의 상대 위치는 그대로).
 const VILLAGERS := [
 	{"id": "npc_elder", "name": "마을 촌장",
 	 "line": "이 마을에 무슨 일로 오셨소.",
-	 "grid": Vector2i(1, 3), "glb": "res://assets/characters/character-b.glb",
+	 "grid": Vector2i(3, 5), "glb": "res://assets/characters/character-b.glb",
 	 "quest_id": "village_ask", "quest_name": "도적 두목을 물리쳐라",
 	 "quest_offer_title": "🙏 마을의 부탁\n\"보아하니 멀리서 오신 분 같은데, 청이 하나 있소. 요 며칠 산길에 도적 두목이 나타나 오가는 이들을 괴롭힌다오. 그자를 물리쳐 주실 수 있겠소?\"",
 	 "quest_wait_line": "아직인가... 부디 조심하시게.",
 	 "quest_done_line": "정말 고맙소이다! 이 은혜는 잊지 않겠소."},
 	{"id": "npc_merchant", "name": "떠돌이 상인",
 	 "line": "북쪽 산길은 요즘 값이 오르오. 짐꾼을 못 구해서.",
-	 "grid": Vector2i(4, 3), "glb": "res://assets/characters/character-c.glb",
+	 "grid": Vector2i(6, 5), "glb": "res://assets/characters/character-c.glb",
 	 "offer_title": "🧺 길 위의 상인\n\"수레가 무거워 못 가겠소. 값은 후하게 쳐 드리리다.\"",
 	 "offer_a_label": "짐을 덜어 준다", "offer_a_outcome": "상인이 등용서와 사료를 얹어 주었다.",
 	 "offer_a_exp": 8.0,

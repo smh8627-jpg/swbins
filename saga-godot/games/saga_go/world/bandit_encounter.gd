@@ -38,7 +38,7 @@ const TOAST_SEC := 4.0
 ## 같은 스크립트를 인스턴스마다 다른 값으로 씬에 놓을 수 있게 했다 — 이번에
 ## 새로 만든 "도적 두목"(TestVillage.tscn의 BanditLeaderEncounter)이 이
 ## 스크립트를 그대로 재사용한다(§30 "새로 설계하지 않는다"와 같은 원칙).
-@export var grid := Vector2i(5, 3)
+@export var grid := Vector2i(7, 5) # 2026-09-11㉒ 지도 확장(+2,+2)
 @export var foe_name := "산적"
 @export var foe_power := 120.0
 @export var foe_hp_mul := 7.0           # 웹판 event.js "event.foeHpMul" 기본값

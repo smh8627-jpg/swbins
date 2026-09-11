@@ -36,7 +36,7 @@ const APPEALS := [
 	{"key": "virtue", "label": "🙏 덕(德)으로 청하자"},
 ]
 
-@export var grid := Vector2i(5, 4)
+@export var grid := Vector2i(7, 6) # 2026-09-11㉒ 지도 확장(+2,+2)
 @export var hero_id := "kr_yisunsin"
 
 var _hero: Dictionary
