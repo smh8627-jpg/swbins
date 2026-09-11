@@ -1205,7 +1205,15 @@
     /* 2026-09-09 — 원작 코에이 삼국지의 "보물" 을 원정 사건에 얹었다
        (data-item.js). 장비창은 없다 — 원정 간 장수 중 하나가 곧바로 씌운다 */
     { key: 'relic',    name: '유물 발견', emoji: '🏺', grantItem: true, good: true,
-      text: '옛 무덤에서 나온 물건을 장수 하나가 챙겼다.' }
+      text: '옛 무덤에서 나온 물건을 장수 하나가 챙겼다.' },
+    /* 2026-09-11 — 균열·폐허(균열/폐허 두 확장 지역, PLAN 26-4절 "완전
+       퓨전" 방향)를 만들고 나서 "지역 콘텐츠"뿐 아니라 판 전체에 걸치는
+       축 하나를 더했다. 시간이 뒤섞인다는 그 지역의 설정이 원정 중
+       아무 데서나(균열 근처가 아니어도) 새어 나온다는 발상 — `lost`
+       (길 잃음, +1달)의 정반대다. `delayMonths` 가 처음으로 음수를
+       받는 경우라 아래 clamp(elapsed+1 미만으로는 안 줄어든다)를 같이 뒀다 */
+    { key: 'timeRift', name: '시간 뒤틀림', emoji: '⏳', delayMonths: -1, good: true,
+      text: '길이 갑자기 접혔다 — 균열의 여파인지, 여정이 하루 앞당겨졌다.' }
   ];
 
   /** 원정 하나가 이번 달 사건을 만나는가 — `rollDisasters()` 와 같은 확률 손잡이 결 */
@@ -1217,7 +1225,7 @@
     if (e.troopsMul) { j.troops = Math.max(1, Math.round(j.troops * e.troopsMul)); }
     if (e.goldDelta && f) { f.gold = Math.max(0, f.gold + e.goldDelta); }
     if (e.moraleDelta) { j.morale = Math.max(0.5, Math.min(1.5, (j.morale || 1) + e.moraleDelta)); }
-    if (e.delayMonths) { j.monthsTotal += e.delayMonths; }
+    if (e.delayMonths) { j.monthsTotal = Math.max((j.monthsElapsed || 0) + 1, j.monthsTotal + e.delayMonths); }
     if (e.grantItem && ID && off && j.officers.length) {
       var oid = j.officers[Math.floor(Math.random() * j.officers.length)];
       var it = ID.randomItem();

@@ -553,6 +553,65 @@
     jongmal: ['fu_jongwang', 'fu_myeongje']
   };
 
+  /* ── 폐허(廢墟) 지역 수비 무장 (2026-09-11, 열째 확장) — 균열과 같은
+     결(force:null·GARRISON 표·9인, 사람이 아니다)이지만 **다른 팩**을
+     쓴다. era 는 전부 '폐허(가상)' — 균열의 외계·마수가 아니라 오염된
+     짐승과 되살아난 주검이다. `monster` 필드는 asset3d.js
+     `heroRecipe()`가 곧장 읽는 실제 CC0 3D 모델 경로다(Quaternius
+     "Bandits & Zombies"·"Nature Enemies" 계열 + community Slime,
+     `saga-dungeon`이 이미 검증해 둔 자산을 그대로 복사해 왔다 —
+     `assets/ASSET_LICENSES.md` 참고). 표시 이름은 원작 파일명(Zombie·
+     Giant 등)을 그대로 안 쓰고 이 판이 새로 지었다. */
+  var RUIN_OFFICERS = [
+    { id: 'ru_busaeng',   name: '부생', hanja: '腐生', era: '폐허(가상)', faction: '폐도',
+      rarity: 3, trait: 'might', emoji: '🧟', quote: '죽어도 멈추지 않습니다.',
+      stats: { might: 74, wisdom: 30, command: 52 },
+      monster: 'assets/models/monsters/quaternius2/Zombie.glb' },
+    { id: 'ru_geohae',    name: '거해', hanja: '巨骸', era: '폐허(가상)', faction: '폐도',
+      rarity: 4, trait: 'might', emoji: '🗿', quote: '이 폐허에서 가장 큰 그림자는 저입니다.',
+      stats: { might: 88, wisdom: 34, command: 66 }, boss: true,
+      monster: 'assets/models/monsters/quaternius2/Giant.glb' },
+    { id: 'ru_gogol',     name: '고골', hanja: '枯骨', era: '폐허(가상)', faction: '잔재',
+      rarity: 3, trait: 'might', emoji: '💀', quote: '살은 다 떨어져 나갔지만, 자리는 지킵니다.',
+      stats: { might: 70, wisdom: 42, command: 58 },
+      monster: 'assets/models/monsters/quaternius2/SkeletonSolo.glb' },
+    { id: 'ru_mangdok',   name: '망독', hanja: '網毒', era: '폐허(가상)', faction: '잔재',
+      rarity: 3, trait: 'wisdom', emoji: '🕷️', quote: '걸리면 빠져나갈 길이 없습니다.',
+      stats: { might: 48, wisdom: 76, command: 50 },
+      monster: 'assets/models/monsters/quaternius2/Spider.glb' },
+    { id: 'ru_sanaek',    name: '산액', hanja: '酸液', era: '폐허(가상)', faction: '오염',
+      rarity: 3, trait: 'command', emoji: '🧪', quote: '베어도 갈라질 뿐, 죽지 않습니다.',
+      stats: { might: 40, wisdom: 60, command: 78 },
+      monster: 'assets/models/monsters/community/SlimeEnemy.glb' },
+    { id: 'ru_sayeong',   name: '사영', hanja: '蛇影', era: '폐허(가상)', faction: '침묵',
+      rarity: 3, trait: 'wisdom', emoji: '🐍', quote: '소리 없이 다가섭니다, 이 침묵과 같이.',
+      stats: { might: 50, wisdom: 80, command: 48 },
+      monster: 'assets/models/monsters/quaternius2/Snake.glb' },
+    { id: 'ru_seogun',    name: '서군', hanja: '鼠群', era: '폐허(가상)', faction: '회곡',
+      rarity: 3, trait: 'command', emoji: '🐀', quote: '하나씩은 약해도, 무리는 다릅니다.',
+      stats: { might: 44, wisdom: 52, command: 74 },
+      monster: 'assets/models/monsters/quaternius2/Rat.glb' },
+    { id: 'ru_wadok',     name: '와독', hanja: '蛙毒', era: '폐허(가상)', faction: '역병',
+      rarity: 3, trait: 'wisdom', emoji: '🐸', quote: '병이 지나간 자리에 저희가 남았습니다.',
+      stats: { might: 46, wisdom: 72, command: 54 },
+      monster: 'assets/models/monsters/quaternius2/FrogEnemy.glb' },
+    { id: 'ru_doksi',     name: '독시', hanja: '毒翅', era: '폐허(가상)', faction: '잔향',
+      rarity: 3, trait: 'command', emoji: '🐝', quote: '메아리처럼, 떼로 몰려옵니다.',
+      stats: { might: 58, wisdom: 46, command: 72 },
+      monster: 'assets/models/monsters/quaternius2/Wasp.glb' }
+  ];
+
+  /** 성 id → 그 성의 수비 무장 id 목록 (rtk.js seedNeutral() 이 쓴다) */
+  var RUIN_GARRISON = {
+    pyedo: ['ru_busaeng', 'ru_geohae'],
+    janjae: ['ru_gogol', 'ru_mangdok'],
+    oyeom: ['ru_sanaek'],
+    chimmuk: ['ru_sayeong'],
+    hoegok: ['ru_seogun'],
+    yeokbyeong: ['ru_wadok'],
+    janhyang: ['ru_doksi']
+  };
+
   /* ── 시나리오 ───────────────────────────────────────────
    * 표를 하나 더 두면 시나리오가 하나 는다. 그 밖에 고칠 곳이 없다.
    *
@@ -780,6 +839,7 @@
     MOBEI_OFFICERS: MOBEI_OFFICERS, MOBEI_GARRISON: MOBEI_GARRISON,
     LINYI_OFFICERS: LINYI_OFFICERS, LINYI_GARRISON: LINYI_GARRISON,
     FUTURE_OFFICERS: FUTURE_OFFICERS, FUTURE_GARRISON: FUTURE_GARRISON,
+    RUIN_OFFICERS: RUIN_OFFICERS, RUIN_GARRISON: RUIN_GARRISON,
     SCENARIOS: SCENARIOS, scenario: scenario, use: use,
     current: function () { return current; },
     find: function (id) { return byId[id] || null; },

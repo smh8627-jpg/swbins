@@ -210,3 +210,29 @@ Ultimate Monsters Bundle" 절)과 완전히 같다.
 몸+몸짓으로 쓴다 — 이미 각 파일에 idle·attack·death 등 클립이 다 박혀
 있어(그 팩 자체가 그렇게 만들어졌다) 옷·머리 조합이 필요 없다. 아홉
 파일 합쳐 약 1MB — 가볍다.
+
+## Quaternius "Nature Enemies" 8종 + community Slime 1종 — 폐허 지역 수비 무장 (2026-09-11)
+
+열째 확장(폐허, 균열 너머 — "다음 지역/콘텐츠 개발"로 사용자가 방향만
+정하고 세부는 세션 재량에 맡긴 자리)의 수비 무장도 사람이 아니다 —
+균열과는 다른 팩을 썼다. `saga-dungeon/assets/models/monsters/
+quaternius2/`·`community/`가 이미 검증해 둔 CC0 자산을 그대로 복사해
+왔다(같은 저장소 안이라 네트워크 재수신 없이 파일만 옮겼다) — 라이선스·
+출처는 saga-dungeon의 `assets/ASSET_LICENSES.md`와 완전히 같다.
+
+| 파일 | 만든 이 | 받은 곳 | 라이선스 |
+|---|---|---|---|
+| `quaternius2/Zombie.glb`·`Giant.glb`·`SkeletonSolo.glb`·`Spider.glb`·
+  `Snake.glb`·`Rat.glb`·`FrogEnemy.glb`·`Wasp.glb` | Quaternius | `poly.pizza` 미러(saga-dungeon 경유) | **CC0**, 저작자 표시 불필요 |
+| `community/SlimeEnemy.glb` | **Charlie** | `poly.pizza/m/6O6XUMssAW`(saga-dungeon 경유) | **CC-BY** — 저작자 표시 필요 |
+
+> **Slime Enemy** — © **Charlie**, CC-BY(`poly.pizza/m/6O6XUMssAW`). 이
+> 저장소에서 이 판이 CC-BY 를 쓰는 유일한 자리다(나머지 여덟은 전부 CC0).
+
+원작 파일명(Zombie·Giant 등)은 여기서도 화면에 안 뜬다 — 표시 이름(부생·
+거해·서군 등)은 이 판이 새로 지었다(`js/data-force.js` `RUIN_OFFICERS`).
+`Wasp.glb`는 idle 클립이 없고 `Flying`뿐이라(균열 아홉 종엔 없던 경우)
+`asset3d.js`의 `WORDS.idle`에 `flying`을 더해 매칭했다(saga-dungeon 쪽은
+같은 이유로 `fly`를 넣었다 — 어느 쪽이든 `Wasp_Flying`과 매칭된다) —
+안 그러면 벌이 가만히 bind pose로 굳어 있었을 것이다. 아홉 파일 합쳐
+약 1.27MB.

@@ -81,6 +81,12 @@
     for (var ff = 0; ff < fu.length; ff++) {
       if (!data.find(fu[ff].id)) { data.heroes.push(fu[ff]); }
     }
+    /* 폐허 지역 수비 무장(2026-09-11, 열째 확장 — 균열과 다른 팩의 괴물) —
+       같은 방식으로 얹는다 */
+    var ru = FD.RUIN_OFFICERS || [];
+    for (var rr = 0; rr < ru.length; rr++) {
+      if (!data.find(ru[rr].id)) { data.heroes.push(ru[rr]); }
+    }
     merged = true;
     return data.heroes.length;
   }

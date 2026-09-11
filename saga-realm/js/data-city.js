@@ -60,7 +60,13 @@
        야마토(일본) 너머, 시간이 뒤섞인 자리에 열린 가상의 관문 — 지키는
        무장도 사람이 아니라 괴물이다(data-force.js FUTURE_OFFICERS, 실제
        CC0 몬스터 3D 모델을 신다) */
-    fu: '균열'
+    fu: '균열',
+    /* 2026-09-11 확장(열째) — 균열 너머, 무너진 문명의 폐허. 같은 원칙
+       (실제 지명 아님·수비 무장이 사람이 아니다)을 이어가되, 이번엔
+       "시간이 뒤섞인 관문"이 아니라 그 뒤에 남은 **폐허** — 좀비·거대
+       변이체·독충 떼가 지킨다(data-force.js RUIN_OFFICERS, 실제 CC0
+       괴물 3D 모델을 신다, 균열과는 다른 팩) */
+    pf: '폐허'
   };
 
   var CITIES = [
@@ -381,7 +387,37 @@
       desc: '허물어진 자리마다 그림자가 아직 서 있다.' },
     { id: 'jongmal',    name: '종말', hanja: '終末', prov: 'fu', x: 194, y: 60, land: 'plain',
       agri: 240, comm: 260, wall: 4200, pop: 95000, garrison: 13000, landmark: true,
-      desc: '이 땅에서 가장 늦게, 또는 가장 먼저 열린 자리. 시간이 여기서 겹친다.' }
+      desc: '이 땅에서 가장 늦게, 또는 가장 먼저 열린 자리. 시간이 여기서 겹친다.' },
+
+    /* ── 폐허(廢墟) (2026-09-11 확장, 열째, 주인 없음 — 균열과 자리·판정은
+       같은 결) ── 균열 너머, 무너진 문명이 남긴 자리. 지키는 무장은
+       사람도 아니고 균열의 외계·마수도 아니다 — 오염된 짐승과 되살아난
+       주검이다(data-force.js RUIN_OFFICERS 의 `monster` 필드, 균열과는
+       다른 CC0 팩). 좌표는 균열 동쪽(x 205~236)에 잇는다 — 2D 지도
+       viewBox 를 다시 넓혀야 한다(ui-rtk.js, 폭 270→310). 3D 는
+       WORLD_SCALE 로도 x:236 이 지면(GROUND_SPAN 2200 의 절반=1100) 안에
+       들어와 손 안 댔다. */
+    { id: 'pyedo',      name: '폐도', hanja: '廢都', prov: 'pf', x: 210, y: 95, land: 'plain',
+      agri: 210, comm: 190, wall: 3800, pop: 68000, garrison: 9200, landmark: true,
+      desc: '균열 너머 가장 먼저 닿는 자리. 무너진 도읍의 잔해가 그대로 남았다.' },
+    { id: 'janjae',     name: '잔재', hanja: '殘滓', prov: 'pf', x: 218, y: 70, land: 'hill',
+      agri: 130, comm: 110, wall: 2900, pop: 42000, garrison: 6400,
+      desc: '타다 남은 것들이 쌓여 둔덕을 이뤘다.' },
+    { id: 'oyeom',      name: '오염', hanja: '汚染', prov: 'pf', x: 214, y: 112, land: 'river',
+      agri: 90, comm: 120, wall: 2600, pop: 38000, garrison: 5800,
+      desc: '흐르는 물빛이 탁하다. 가까이 가면 살갗이 따갑다.' },
+    { id: 'hoegok',     name: '회곡', hanja: '灰谷', prov: 'pf', x: 227, y: 84, land: 'mount',
+      agri: 100, comm: 90, wall: 3000, pop: 45000, garrison: 6800,
+      desc: '재가 쌓여 골짜기를 메웠다. 바람이 불면 앞이 안 보인다.' },
+    { id: 'chimmuk',    name: '침묵', hanja: '沈默', prov: 'pf', x: 222, y: 102, land: 'plain',
+      agri: 110, comm: 100, wall: 2700, pop: 36000, garrison: 5400,
+      desc: '아무 소리도 안 난다. 걷는 발소리조차 삼켜진다.' },
+    { id: 'yeokbyeong', name: '역병', hanja: '疫病', prov: 'pf', x: 231, y: 66, land: 'plain',
+      agri: 150, comm: 130, wall: 2950, pop: 50000, garrison: 6600,
+      desc: '병이 먼저 휩쓸고 간 자리. 그래도 뭔가는 여전히 움직인다.' },
+    { id: 'janhyang',   name: '잔향', hanja: '殘響', prov: 'pf', x: 236, y: 96, land: 'hill',
+      agri: 95, comm: 80, wall: 2500, pop: 32000, garrison: 5200,
+      desc: '지도 위 가장 동쪽 이름. 무너진 것들의 마지막 메아리다.' }
   ];
 
   /* 인접 — 한쪽만 적는다. link() 가 양쪽에 넣는다.
@@ -483,7 +519,15 @@
     ['noeseong', 'yuri'],
     ['gangcheol', 'hwanyeong'],
     ['hwanyeong', 'janyeong'],
-    ['yuri', 'jongmal'], ['janyeong', 'jongmal']
+    ['yuri', 'jongmal'], ['janyeong', 'jongmal'],
+
+    /* ── 폐허(廢墟) — 균열 너머 ────────────────────────── */
+    ['janyeong', 'pyedo'],
+    ['pyedo', 'janjae'], ['pyedo', 'oyeom'],
+    ['janjae', 'hoegok'],
+    ['oyeom', 'chimmuk'],
+    ['hoegok', 'yeokbyeong'], ['hoegok', 'janhyang'],
+    ['chimmuk', 'janhyang']
   ];
 
   var byId = {};

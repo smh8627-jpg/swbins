@@ -1103,9 +1103,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     /* ── 원정 중 사건 (2026-09-09, PLAN §16 랜덤 이벤트) ────── */
 
-    t('원정 사건 표 — 여섯 종, 저마다 이름·문구가 있다', function () {
+    t('원정 사건 표 — 일곱 종, 저마다 이름·문구가 있다', function () {
       var es = W.JOURNEY_EVENTS;
-      var ok = es.length === 6 && es.every(function (e) { return e.key && e.name && e.emoji && e.text; });
+      var ok = es.length === 7 && es.every(function (e) { return e.key && e.name && e.emoji && e.text; });
       return ok && ('사건 ' + es.length + '종 — ' + es.map(function (e) { return e.emoji + e.name; }).join(' '));
     });
 

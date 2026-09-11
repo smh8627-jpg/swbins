@@ -94,8 +94,10 @@
    * 반드시 같아야 한다(그쪽 viewBox 주석 참고).
    */
   /* 2026-09-10 — 균열(아홉째 확장) 이 일본 동쪽(x 최대 158) 너머로 더
-     뻗어(x 최대 205) w 를 225→270 으로 다시 넓혔다. y 는 그대로다. */
-  var MAP_VB = { x: -60, y: -30, w: 270, h: 180 };
+     뻗어(x 최대 205) w 를 225→270 으로 다시 넓혔다. y 는 그대로다.
+     2026-09-11 — 폐허(열째 확장) 가 균열 너머로 더 뻗어(x 최대 236)
+     w 를 270→300 으로 다시 넓혔다. */
+  var MAP_VB = { x: -60, y: -30, w: 300, h: 180 };
   var MAP_ZOOM_MAX = 6;
   var mapCx = MAP_VB.x + MAP_VB.w / 2, mapCy = MAP_VB.y + MAP_VB.h / 2, mapZoom = 1;
   var MAP_PAN_SPEED = 0.022;   // 조이스틱을 완전히 기울였을 때 프레임당 이동(뷰포트 폭의 비율)
@@ -1450,6 +1452,11 @@
           esc(h.hanja || '') + ' · ' + off().age(h.id) + '세</span>' +
           (isLord ? ' <span class="tag">군주</span>' : '') +
           (c && c.gov === h.id ? ' <span class="tag">태수</span>' : '') +
+          /* 균열·폐허(2026-09-10·11 확장) 수비 무장은 사람이 아니다 —
+             등용해서 데려온 뒤에도 이름·초상만 보고는 "괴물"임을 놓치기
+             쉬워 배지 하나를 더한다. `h.monster`(asset3d.js `heroRecipe()`
+             가 읽는 그 필드) 유무만 본다 — 새 판정 없이 이미 있는 값 */
+          (h.monster ? ' <span class="tag">괴물</span>' : '') +
           (off().age(h.id) > 60 ? ' <span class="tag warnt">노쇠</span>' : '') +
           (r.hurt ? ' <span class="tag warnt">부상 ' + r.hurt + '개월</span>' : '') +
           (r.done ? ' <span class="muted">· 이 달 명령 씀</span>' : '') +

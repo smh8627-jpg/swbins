@@ -86,7 +86,7 @@
    * 그대로 옮겼다 — 이 판 QRPG 몸도 같은 팩(Quaternius)이라 클립 이름 결이 같다 */
   var SLOTS = ['idle', 'walk', 'run', 'sprint', 'attack', 'hit', 'dodge', 'death', 'interaction'];
   var WORDS = {
-    idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop'],
+    idle: ['idle', 'stand', 'standing', 'breathe', 'rest', 'wait', 'loop', 'flying'],
     walk: ['walk', 'walking', 'locomotion', 'move'],
     run: ['run', 'running', 'jog'],
     sprint: ['sprint', 'runfast', 'fastrun', 'dash'],
