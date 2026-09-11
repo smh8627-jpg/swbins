@@ -94,6 +94,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   보장). `PartyState.cs`에 `MemberIds`(읽기 전용) 추가해 SaveState가
   등용 목록을 읽게 함. 컴파일·씬 재저장·PlaytestHeadless 전부 통과.
   **저장→재시작→위치/부대가 실제로 돌아오는지는 헤드리스로 못 본다.**
+- **디버그 오버레이 (PLAN.md 46장·66-1장).** `Assets/Games/SagaGo/
+  UI/DebugHud.cs`(원래 이름 DebugOverlay였는데 `UnityEngine.Rendering
+  .DebugOverlay`와 겹쳐 CS0104 컴파일 에러 — DebugHud로 고침, 다음에
+  또 "DebugOverlay"라는 이름을 쓰지 않는다) — 디버그 빌드에서만 화면
+  왼쪽 위에 현재 Render Pipeline Asset 이름 + FPS. saga-godot의
+  renderer_debug_label.gd와 같은 최소 범위 — PLAN.md 44~49장이 나열한
+  전체 목록(Draw Calls/Enemy Count/Current Quest 등)은 그 시스템
+  자체가 없어서 안 만듦(saga-godot도 실제로는 렌더러 이름만 보여줌).
+  컴파일·씬 재저장·PlaytestHeadless 전부 통과.
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
