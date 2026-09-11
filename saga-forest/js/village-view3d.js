@@ -416,6 +416,7 @@
 
   var scatter = {};   // propId → { group, kind, building, meshes, shadowOn }
   var npc3d = {};      // npc.id → { group, mixer, actions, clipMap, action, building }
+  var res3d = {};      // resident.id(HEROES id) → { group, mixer, actions, clipMap, action, building, yaw, lastX, lastY }
 
   /**
    * 사물 재사용 창고(PLAN 40절 PHASE 7 Object Pool) — 걸어서 벗어난 나무·바위를
@@ -1371,6 +1372,61 @@
     }
   }
 
+  /**
+   * 마을 주민(residents, `buildResidents()`가 HEROES 로스터에서 다섯 명을 뽑아
+   * 마을 안에 흩어 놓는다 — `folk.js`가 매 프레임 어슬렁거리게 걸음도 준다)을
+   * 세운다. **2026-09-11 발견 — 이 함수가 아예 없었다**: `syncNpcs()`는 숲
+   * 고정 NPC 여섯(§44)만 다루고, 정작 마을 한복판에서 어슬렁대는 다섯 주민은
+   * 2D(`village-view.js`의 `drawResident()`)에만 그려지고 3D에는 한 번도
+   * 안 세워졌다 — "3D에서 NPC가 안 보인다" 신고가 안개·거리를 고친 뒤에도
+   * 이어진 진짜 이유. 자리 갱신 방식은 `syncNpcs()`와 같되, 주민은 실제로
+   * 걸어 다니므로(`folk.js`가 매 프레임 자리를 옮긴다) 걷는 쪽으로 몸을
+   * 트는 것만 `syncScatter()`의 짐승 처리(TURNING_KIND)와 같은 결로 보탰다.
+   */
+  function syncResidents(dt) {
+    var V = global.DG.village;
+    if (!V || !scene) { return; }
+    var raw = V.raw(), px = raw.player.x, py = raw.player.y, scale = WORLD_SCALE();
+    var residents = raw.residents || [], i, res, slot;
+    for (i = 0; i < residents.length; i++) {
+      res = residents[i];
+      slot = res3d[res.id];
+      if (!slot) {
+        slot = res3d[res.id] = {
+          group: null, mixer: null, actions: null, clipMap: null, action: null,
+          building: true, yaw: 0, lastX: res.x, lastY: res.y
+        };
+        (function (id) {
+          asset3d().build('hero', { id: id }, function (g) {
+            var cur = res3d[id];
+            if (!cur) { return; }
+            cur.building = false;
+            if (!g || !scene) { return; }
+            cur.group = g;
+            cur.mixer = g.userData.mixer || null;
+            cur.actions = g.userData.actions || null;
+            cur.clipMap = g.userData.clipMap || null;
+            g.scale.setScalar(PLAYER_H());
+            scene.add(g);
+            playAction(cur, 'idle');
+          });
+        })(res.id);
+        continue;
+      }
+      if (!slot.group) { continue; }   // 아직 짓는 중
+      slot.group.position.set((res.x - px) * scale, 0, (res.y - py) * scale);
+      if (slot.mixer) { slot.mixer.update(dt); }
+      var mdx = res.x - slot.lastX, mdy = res.y - slot.lastY;
+      var movedNow = Math.hypot(mdx, mdy) > 0.01;
+      if (movedNow) {
+        slot.yaw = angleLerp(slot.yaw, Math.atan2(mdx, mdy), turnLerpK(dt));
+        slot.group.rotation.y = slot.yaw;
+      }
+      if (slot.actions) { playAction(slot, movedNow ? 'walk' : 'idle'); }
+      slot.lastX = res.x; slot.lastY = res.y;
+    }
+  }
+
   var dummy = null;
   var lastTermPx = null, lastTermPy = null, lastTermR = null, lastTermScale = null;
 
@@ -1450,6 +1506,7 @@
     syncScatter(dt);
     syncInstScatter();
     syncNpcs(dt);
+    syncResidents(dt);
     syncSky();
     syncWeatherFX(dt);
     syncMeteor();
@@ -1531,6 +1588,12 @@
     npcMeshCount: function () {
       var k, n = 0;
       for (k in npc3d) { if (Object.prototype.hasOwnProperty.call(npc3d, k) && npc3d[k].group) { n++; } }
+      return n;
+    },
+    /** 진단 전용 — 2026-09-11 신설: 마을 주민(residents) 3D 인물이 지금 몇 명 세워졌나 */
+    residentMeshCount: function () {
+      var k, n = 0;
+      for (k in res3d) { if (Object.prototype.hasOwnProperty.call(res3d, k) && res3d[k].group) { n++; } }
       return n;
     },
     /** 진단 전용 — camera 가 지금 원점(플레이어)에서 얼마나 떨어져 있나(world 단위) */

@@ -1398,6 +1398,34 @@ NPC·모든 사물이 또렷이 보인다. `village3d.fog` 손잡이(`core.tuned
 
 ---
 
+# 44-2. 3D NPC "아직도 안 보인다" — 진짜 빠진 건 residents였다 (2026-09-11)
+
+§44의 안개 진단은 틀리지 않았지만(안개를 꺼도 여전히 신고가 이어져), **정작
+사용자가 마주치는 "NPC"는 숲 고정 여섯(`village.js`의 `npcs`, §44가 다룬
+대상)이 아니라 마을 한복판을 어슬렁대는 **주민 다섯**(`residents`,
+`buildResidents()`가 HEROES 로스터에서 뽑는다, `folk.js`가 매 프레임 걷게
+한다)이었다. 2D(`village-view.js`)는 `drawResident()`로 이 다섯을 그리고
+있었는데, **`village-view3d.js`에는 이들을 세우는 함수 자체가 없었다** —
+`syncNpcs()`가 숲 여섯만 돌고, `step()`엔 residents를 다루는 호출이
+한 줄도 없었다(grep으로 확인, `resident`라는 문자열이 이 파일에 아예
+없었다). 안개·거리를 아무리 고쳐도 애초에 안 세워지는 인물이라 신고가
+안 사라진 것이 당연했다.
+
+`syncNpcs()` 바로 아래 `syncResidents()`를 새로 만들어(같은 `asset3d().build
+('hero', {id: res.id}, cb)` 조합, `res3d` 라는 별도 창고, `step()`의
+`syncNpcs(dt)` 다음 줄에 호출 추가) 마을 주민도 3D에 실제로 선다. 주민은
+`folk.js`가 실제로 걸어 다니게 하므로(숲 NPC 여섯은 고정 자리라 회전이
+없었다) `syncScatter()`의 짐승 처리(TURNING_KIND)와 같은 결로 이동 방향으로
+몸을 트는 것과 idle/walk 몸짓 전환도 같이 얹었다. 진단 전용
+`residentMeshCount()`를 `npcMeshCount()` 옆에 추가(둘 다 init 전엔 0).
+
+**실기 확인 전** — 위 원칙(§"Claude Code 최종 작업 원칙")대로 지금 바로
+확인을 요청하지 않는다. 다음에 실기 확인할 때 마을 안 3D 화면에서 다섯
+주민이 걸어 다니는지, `DG.villageView3d.residentMeshCount()`가 5를
+돌려주는지 확인할 것.
+
+---
+
 # 45. 다음 큰 방향(아직 미착수, 설계만) — 맵 크기 대비 빈 밀도 + "다른 마을" + 배달 아르바이트 (2026-09-10)
 
 **아직 코드는 하나도 안 건드렸다.** 사용자가 여러 메시지에 걸쳐 낸 아이디어를
