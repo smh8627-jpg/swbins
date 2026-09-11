@@ -1189,6 +1189,69 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     읽히는지(너무 단순해 오브젝트로 보일 수 있음), 도망/날아오름 타이밍이
     자연스러운지는 다음 실기 확인 때 같이 볼 것(아래 목록에 추가).
 
+## 완료 단계 (추가, 2026-09-12④) — 발견 도감 5갈래(CodexState)
+
+- **PLAN.md 12·13·36절 / VERTICAL_SLICE.md §26이 "발견 도감 5갈래"로
+  미뤄 뒀던 것.** 웹판 `js/codex.js`의 설계 원칙("목록을 새로 만들지
+  않는다 — 본 것에 도장을 찍고 세는 일만 한다")을 그대로 따랐다.
+  - **`games/saga_go/data/codex_state.gd`(신규, `CodexState`로 autoload
+    등록)** — `discover(kind, id)`가 처음 볼 때만 `true`를 주고
+    (dedup은 `book` 딕셔너리 키 `"kind:id"`로), 웹판 `REWARD` 테이블
+    (지역12·사람8·생물6·사건10·역사14 exp, gold는 재화 시스템이 없어
+    뺐다)대로 `PartyState.add_exp()`를 부른다. `count()`/`total()`로
+    완성률을 낸다(PLAN 13절 "완성률을 표시한다").
+  - **웹판은 KINDS가 지역·사람·생물·사건·역사 다섯인데, "역사"만 다르게
+    채웠다** — 웹판은 `event.record`(사건이 남기는 별도 기록 문구)를
+    쓰지만 이 판의 사건들엔 그 필드가 없다. 대신 **역사 인물 조우**
+    (해장·현책)를 "역사" 갈래에 넣었다 — GO의 정체성 자체가 "역사
+    인물로 노는" 것이라(루트 CLAUDE.md) 그쪽이 더 맞는다고 판단했다
+    (코드 주석에 웹판과 다르다는 점 명시).
+  - **갈래별 총 개수는 지금 지도 기준 실측치를 상수로 박아 뒀다**(웹판
+    처럼 `list()` 함수로 목록화하지 않음 — 지역이 하나뿐인 지금은 추측성
+    확장 없이 그걸로 충분): 지역 5(굴·마을·폐허·다리·사당)·사람
+    2(촌장·상인)·생물 2(사슴·까치)·사건 11(전투 9종+마을의 부탁+길 위의
+    상인)·역사 2(해장·현책) = 22.
+  - **여섯 파일에 `CodexState.discover()` 호출을 심었다:**
+    - `landmarks_builder.gd` — 랜드마크마다 `_add_discovery_area()`
+      (신규 헬퍼, 반경 25m Area3D)로 "지역" 갈래. 마을은 집 두 채가
+      각각 같은 `"village"` id를 찍어 dedup되므로 중복 집계 안 됨.
+    - `npc_builder.gd` — `_on_body_entered()` 첫 줄에서 "사람", 사명
+      제안·상인 제안이 처음 뜨는 순간엔 "사건"도 같이 찍는다.
+    - `bandit_encounter.gd` — IDLE→PROMPT 전환 시점(사건을 실제로
+      마주친 순간)에 "사건".
+    - `simple_event.gd`·`hero_encounter.gd` — 각자 `_on_body_entered()`
+      첫 트리거 시점에 "사건"/"역사".
+    - `animal_builder.gd` — 사슴·까치가 플레이어를 감지해 도망/날아오를
+      때 "생물"(개체가 아니라 종 단위 — 사슴 3마리 다 같은 `"deer"` id).
+  - **`games/saga_go/ui/codex_label.gd` + `MobileHUD.tscn`의
+    `CodexLabel`** — PartyLabel·QuestLabel과 같은 경계(상시 표시,
+    "📖 발견 N/22"). 세부 목록 화면(어떤 지역을 아직 못 봤는지)은
+    이번 범위 밖 — 완성률 숫자만 먼저 채웠다.
+  - `save_state.gd`에 `codex_book` 필드 추가 — quest_*·resolved_events와
+    같은 경계(추가만 있고 없으면 빈 딕셔너리로 안전하게 채워져 마이그레이션
+    불필요).
+  - **검증 — 임시로 `test_village.gd::_ready()`에 디버그 호출을 넣어
+    실제 값 왕복까지 확인(끝나고 원상복구, diff 0).** ①직접
+    `discover("place","cave")` 두 번 호출 → 첫 번째만 `true`,
+    `PartyState.exp`가 정확히 12 늘어남 ②플레이어를 사당 발견 Area3D
+    반경으로 텔레포트(물리 프레임 5회 대기) → `has("place","shrine")`
+    가 `true`로 바뀜(**처음엔 물리 프레임 2회로 테스트했다가 실패해
+    5회로 늘려 통과 — 텔레포트 직후 Area3D 겹침이 실제로 감지되기까지
+    몇 프레임 걸린다는 것을 발견, 게임 코드 버그 아니라 디버그 harness
+    타이밍 문제였다는 것까지 확인**) ③플레이어를 촌장 TalkArea로
+    옮기니 "사람"뿐 아니라 처음 제안되는 "마을의 부탁"까지 "사건"으로
+    같이 찍히는 연쇄 확인(`book.keys()`로 5개 키 전부 직접 대조:
+    `place:cave`·`place:village`(스폰 지점이 마을 안이라 시작부터 자동
+    발견)·`place:shrine`·`people:npc_elder`·`event:village_ask`) ④
+    `restore({})`로 비웠다가 저장해 둔 값으로 `restore()` → count가
+    정확히 되돌아옴. 단순 "에러 없음"이 아니라 값 자체 비교.
+    `--headless --editor --quit`(임포트, 새 autoload·전역 클래스 확인)·
+    `--headless --quit-after 5` 연속 3번 전부 exit 0·error/warn/
+    missing/invalid/cannot 0건(디버그 되돌린 최종 상태로 재검증).
+  - 여전히 GUI 미확인 — CodexLabel이 QuestLabel과 안 겹치는지, 사건을
+    발견할 때마다 숫자가 실제로 눈에 띄게 올라가는지는 다음 실기 확인
+    때 같이 볼 것(아래 목록에 추가).
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
@@ -1214,6 +1277,11 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
   "동물처럼" 읽히는지(primitive 박스라 너무 단순해 보일 수 있음), 도망
   치는 속도·날아오르는 타이밍이 자연스러운지, 밤엔 안 보이는 게 맞는지.**
   위 "완료 단계 (추가, 2026-09-12③)" 참고.
+- **(2026-09-12④ 신규) `CodexLabel`("📖 발견 N/22")이 `QuestLabel`과
+  화면에서 안 겹치는지, 마을 스폰 지점이 "마을" 발견 반경 안이라 게임을
+  막 시작하면 "발견 1/22"로 시작하는 게 자연스러운지, 사건을 하나씩
+  마주칠 때마다 숫자가 눈에 띄게 올라가는지.** 위 "완료 단계 (추가,
+  2026-09-12④)" 참고.
 
 <details>
 <summary>2026-09-12 이전 해소된 옛 목록(참고용, 접어 둠)</summary>

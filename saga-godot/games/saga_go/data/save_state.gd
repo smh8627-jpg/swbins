@@ -27,6 +27,7 @@ func save() -> bool:
 		"quest_done": QuestState.done,
 		"quest_offered": QuestState.offered,
 		"resolved_events": EventState.resolved,
+		"codex_book": CodexState.book,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -86,6 +87,10 @@ func try_load() -> bool:
 	for id in data.get("resolved_events", []):
 		resolved.append(str(id))
 	EventState.restore(resolved)
+
+	## codex_book도 같은 경계(추가만, 없으면 빈 딕셔너리로 안전하게 채워짐).
+	var codex_book: Variant = data.get("codex_book", {})
+	CodexState.restore(codex_book if typeof(codex_book) == TYPE_DICTIONARY else {})
 	return true
 
 

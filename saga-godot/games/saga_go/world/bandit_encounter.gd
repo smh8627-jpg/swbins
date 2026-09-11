@@ -178,6 +178,7 @@ func _process(delta: float) -> void:
 		State.IDLE:
 			if _player_in_range():
 				_state = State.PROMPT
+				CodexState.discover("event", name)
 				_prompt_layer.show()
 		State.FIGHT:
 			if _duel:

@@ -87,6 +87,7 @@ func _on_body_entered(body: Node3D) -> void:
 	if _triggered or not body.is_in_group("player"):
 		return
 	_triggered = true
+	CodexState.discover("record", hero_id)
 	_persuade = PersuadeRules.create(_hero["trait"])
 	_revealed = int(_hero.rarity) <= 3
 	_show_round()

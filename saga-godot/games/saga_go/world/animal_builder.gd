@@ -127,6 +127,7 @@ func _process(delta: float) -> void:
 		if player != null:
 			var dist := node.global_position.distance_to(player.global_position)
 			if dist < DEER_SENSE_RADIUS:
+				CodexState.discover("beast", "deer")
 				var away: Vector3 = node.global_position - player.global_position
 				away.y = 0.0
 				if away.length() > 0.01:
@@ -146,5 +147,6 @@ func _process(delta: float) -> void:
 		if not is_day:
 			continue
 		if player != null and mnode.global_position.distance_to(player.global_position) < MAGPIE_SENSE_RADIUS:
+			CodexState.discover("beast", "magpie")
 			m.cooldown = MAGPIE_FLY_COOLDOWN_SEC
 			mnode.visible = false
