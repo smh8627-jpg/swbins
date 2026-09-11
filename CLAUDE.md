@@ -8,11 +8,14 @@
 예전에 개인 도구 저장소가 쓰던 `C:\swbins` 경로는 그 전에 이미 `C:\swbins2`로
 옮겨져 있었어서 겹치지 않는다.
 
-**정본은 `master.md` 다 — 단, `saga-godot/`(신규 Godot 3D 재구축) 한정.**
-기존 다섯 웹 판(saga-go·saga-dungeon·saga-forest·saga-story·saga-realm)은
-`master.md`를 보지 않는다 — 각자 폴더의 `PLAN.md`가 그대로 정본이다.
-saga-godot은 그 다섯 판과 완전히 별개인 신규 프로젝트이고, master.md는
-그 프로젝트만의 작업지시서다(master.md 0장 참고).
+**다섯 웹 판(saga-go·saga-dungeon·saga-forest·saga-story·saga-realm)은
+각자 폴더의 `PLAN.md`가 그대로 정본이다.** 그 다섯과 완전히 별개로,
+같은 다섯 게임을 3D로 새로 짓는 프로젝트가 **둘** 있다 —
+`saga-godot/`(Godot 4.x, 2026-08-31 착수)과 `saga-unity/`(Unity 6,
+2026-09-11 착수, saga-godot과 나란히 가는 병행 트랙 — saga-godot을
+대체하지 않는다). 둘 다 **각자 폴더의 `PLAN.md`가 정본**이고(예전엔
+`master.md`라는 이름이었으나 saga-godot 쪽은 `PLAN.md`로 옮겨졌다),
+서로 코드를 공유하지 않는다 — 기획만 같이 본다.
 저장소 전체 규칙·이력은 `SAGA-HANDOFF.md`. 이 파일은 어디로 가야 하는지
 가리키는 길잡이일 뿐이다 — 규칙·수치를 여기 겹쳐 쓰지 않는다.
 
