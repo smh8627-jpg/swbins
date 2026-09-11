@@ -91,6 +91,20 @@ choice_b_label = "남겨 둔다"
 choice_b_outcome = "씨가 여물도록 두고 왔다."
 choice_b_exp = 0.0
 
+[node name="LostChildEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(1, 4)
+event_title = "🧒 사라진 아이\n\"우리 아이를 못 보셨소? 아침부터 안 보이오.\""
+choice_a_label = "찾아 나선다"
+choice_a_outcome = "숲 어귀에서 잠든 아이를 찾았다."
+choice_a_exp = 20.0
+choice_a_chance = 0.62
+choice_a_fail_outcome = "해가 질 때까지 찾았지만 못 찾았다. 마을 사람들이 나섰다."
+choice_a_fail_exp = 10.0
+choice_b_label = "촌장에게 알린다"
+choice_b_outcome = "촌장이 사람을 풀었다."
+choice_b_exp = 4.0
+
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
 current = false
