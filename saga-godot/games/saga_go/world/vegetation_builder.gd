@@ -18,23 +18,31 @@ const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 
 const TREES_PER_FOREST_TILE := 3
 const ROCKS_PER_MOUNTAIN_TILE := 1
+## 2026-09-12 — 논밭(F) 타일 산포. 마을 사방 채집 밀도(§60)와는 무관하게
+## 그냥 시각 채움이라, 숲보다 조금 더 촘촘하게 둬도 된다(밀 이랑 느낌).
+const CROPS_PER_FARM_TILE := 6
 
 ## 원본 GLB는 이 세계 격자 단위보다 훨씬 작게 모델링돼 있다(실측:
-## tree_oak ~1.2m, rock_largeA ~1.0m). 기존 primitive가 만들던 나무·바위
-## 크기(트렁크 높이 3·수관 반지름 2.2 / 바위 반지름 1.4)에 맞춰 스케일을
-## 역산했다 — ASSET_GUIDE.md에 실측값과 계산 근거를 남겨 둠.
+## tree_oak ~1.2m, rock_largeA ~1.0m, crops_wheatStageB ~0.53m). 기존
+## primitive가 만들던 나무·바위 크기(트렁크 높이 3·수관 반지름 2.2 / 바위
+## 반지름 1.4)에 맞춰 스케일을 역산했다 — ASSET_GUIDE.md에 실측값과 계산
+## 근거를 남겨 둠. 밀은 그런 primitive 선례가 없어 인물 키(character-a
+## ×1.25 ≈ 3.4m)의 1/3 정도(허리~가슴 높이)를 목표로 새로 잡았다.
 const TREE_SCALE := 4.5
 const ROCK_LARGE_SCALE := 2.6
 const ROCK_SMALL_SCALE := 3.5
+const CROP_SCALE := 2.5
 
 const TREE_GLB := "res://assets/vegetation/tree_oak.glb"
 const ROCK_LARGE_GLB := "res://assets/rocks/rock_largeA.glb"
 const ROCK_SMALL_GLB := "res://assets/rocks/rock_smallA.glb"
+const CROP_GLB := "res://assets/vegetation/crops_wheatStageB.glb"
 
 
 func _ready() -> void:
 	_scatter_trees()
 	_scatter_rocks()
+	_scatter_crops()
 
 
 ## 정수 좌표 + salt에서 결정적으로 0~1 값을 뽑는다. core.hash2와 같은 정신 —
@@ -104,6 +112,51 @@ func _scatter_trees() -> void:
 		cs.shape = shape
 		cs.position = base_pos + Vector3(0, 1.5 * scales[i], 0)
 		trunks.add_child(cs)
+
+
+## 밀은 나무처럼 줄기가 굵지 않아 충돌을 안 붙인다 — 숲의 캐노피처럼
+## "스쳐도 안 걸린다" 쪽이 논밭 한가운데를 걸어 지날 때 자연스럽다
+## (다른 지면 장식인 vegetation 없음, 새로 만든 첫 예외).
+func _scatter_crops() -> void:
+	var ground: float = TerrainBuilder.LEGEND["F"].height
+	var positions: Array[Vector3] = []
+	var scales: Array[float] = []
+	var yaws: Array[float] = []
+	var rows := TestMap.ROWS
+	for y in rows.size():
+		var row: String = rows[y]
+		for x in row.length():
+			if row[x] != "F":
+				continue
+			for i in CROPS_PER_FARM_TILE:
+				var jx := (_hash(x, y, i * 2 + 700) - 0.5) * TestMap.TILE_SIZE * 0.85
+				var jz := (_hash(x, y, i * 2 + 701) - 0.5) * TestMap.TILE_SIZE * 0.85
+				var s := 0.8 + _hash(x, y, i * 2 + 800) * 0.4
+				positions.append(TestMap.world_pos(x, y) + Vector3(jx, ground, jz))
+				scales.append(s)
+				yaws.append(_hash(x, y, i * 2 + 900) * TAU)
+
+	if positions.is_empty():
+		return
+
+	var crop_mesh := GLBUtils.extract_mesh(CROP_GLB)
+	if crop_mesh == null:
+		return
+
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = crop_mesh
+	mm.instance_count = positions.size()
+
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.name = "Crops"
+	add_child(mmi)
+
+	for i in positions.size():
+		var s: float = scales[i] * CROP_SCALE
+		var basis := Basis(Vector3.UP, yaws[i]).scaled(Vector3(s, s, s))
+		mm.set_instance_transform(i, Transform3D(basis, positions[i]))
 
 
 func _scatter_rocks() -> void:
