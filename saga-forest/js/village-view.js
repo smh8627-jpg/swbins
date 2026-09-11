@@ -2165,19 +2165,66 @@
     ctx.fillRect(0, 0, W, H);
   }
 
-  /** 보물상자 하나 — 연 것은 빛바랜 표시(📭)로, 안 연 것은 그대로(📦).
-   *  보스 상자(bossChest, 2026-09-10)는 👑로 갈라 도드라지게 한다 */
+  /**
+   * 보물상자 하나 — 이모지 대신 우편함·게시판(drawMailbox·drawBoard)과
+   * 같은 결로 나무 궤·뚜껑·띠·자물쇠를 직접 그린다. 연 것은 뚜껑이 열린
+   * 채 빛바래고, 보스 상자(bossChest, 2026-09-10)는 더 크고 금빛 띠로
+   * 갈라 도드라지게 한다.
+   * **2026-09-11(PLAN 46-2절)** — "동굴 보물상자를 실제 3D 모델로" 아이디어를
+   * 조사하다, 동굴 안은 3D 자체를 안 그린다는 걸 확인했다(`indoorSuppressed()`
+   * — 실내는 2D 전용). GLB를 갖다 놔도 안 쓰이므로, 대신 이 판의 다른
+   * 소품들과 같은 방식(캔버스 직접 그리기)으로 "이모지 한 글자"보다 나은
+   * 모습을 준다 — 새 에셋 없이 같은 목표(제대로 된 상자로 보이기)를 이뤘다.
+   */
   function drawChest(c, u) {
     var q = projIn(c.x, c.y);
     var opened = V.chestOpened(c.id);
     var boss = c.id === 'bossChest';
-    shadow(q.x, q.y + 4 * u, (boss ? 20 : 16) * u, (boss ? 7 : 6) * u);
-    ctx.font = Math.round((boss ? 40 : 34) * u) + 'px "Segoe UI Emoji", system-ui';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
+    var s = (boss ? 1.35 : 1) * u;
+    var bw = 30 * s, bh = 15 * s, lid = 11 * s;
+    var bx = q.x - bw * 0.5, by = q.y - bh;
+
+    shadow(q.x, q.y + 2 * s, (boss ? 20 : 16) * u, (boss ? 7 : 6) * u);
+
+    ctx.save();
     ctx.globalAlpha = opened ? 0.55 : 1;
-    ctx.fillText(opened ? '📭' : (boss ? '👑' : '📦'), q.x, q.y + 8 * u);
-    ctx.globalAlpha = 1;
+
+    var wood = boss ? '#8a5a20' : '#7a5230';
+    var band = boss ? '#e8c04a' : '#4a3420';
+
+    /* 몸통 */
+    ctx.fillStyle = wood;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fillRect(bx, by + bh - 3 * s, bw, 3 * s);
+
+    /* 뚜껑 — 열렸으면 뒤로 젖혀진 모양, 안 열렸으면 몸통 위에 반원으로 얹힌다 */
+    ctx.fillStyle = wood;
+    ctx.beginPath();
+    if (opened) {
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(bx + bw * 0.15, by - lid * 1.3, bx + bw * 0.55, by - lid * 1.1);
+      ctx.lineTo(bx + bw * 0.78, by - lid * 0.25);
+      ctx.lineTo(bx, by);
+    } else {
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(q.x, by - lid, bx + bw, by);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    /* 테두리 띠 — 몸통 가운데 세로 둘, 보스는 금빛 */
+    ctx.fillStyle = band;
+    ctx.fillRect(bx + bw * 0.26, by, 2.6 * s, bh);
+    ctx.fillRect(bx + bw * 0.74 - 2.6 * s, by, 2.6 * s, bh);
+
+    /* 자물쇠 — 안 열렸을 때만 */
+    if (!opened) {
+      ctx.fillStyle = band;
+      ctx.fillRect(q.x - 3 * s, by + bh * 0.32, 6 * s, 6 * s);
+    }
+
+    ctx.restore();
   }
 
   /** 보스방 가디언(포자대왕, 2026-09-10) — 순전히 장식이다(새 전투 없음).

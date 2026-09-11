@@ -323,6 +323,10 @@
     hamlet2House: 'building:hamlet2House',
     /* 폐허(2026-09-10, 퓨전 방향) — village.js buildProps() 의 ruinArch kind */
     ruinArch: 'ruin:arch',
+    /* 폐허 확장(2026-09-11, PLAN 46-2절) — 진짜 탑성 폐허 스캔(building:ruinTower)
+       과, 등록만 되고 여태 안 쓰이던 정자(gazebo, fence·cart가 그랬던 것과
+       같은 결)를 폐허 자리에 처음 이었다 */
+    ruinTower: 'building:ruinTower', gazebo: 'gazebo',
     /* 우주기지(PLAN 45절, 2026-09-11) — fence·cart는 asset3d.js에 진작
        등록만 되어 있던 것을 처음 쓴다(다리가 그랬던 것과 같은 결), crate는
        building:mail과 같은 파일을 새 kind로 쓴다 */
@@ -370,6 +374,11 @@
     /* 무너진 아치(Arch.glb) — 눈대중, 폐허 표지답게 나무보다는 낮고
        건물보다는 존재감 있게 */
     ruinArch: 2.6,
+    /* 폐허 확장(2026-09-11, PLAN 46-2절) — 탑성 폐허(4층짜리 원본, 한쪽이
+       무너진 실사 스캔)는 마을 건물(3.0~3.4)보다 확실히 높게, mountain(8.0)
+       보다는 낮게 눈대중 잡았다. 정자(gazebo)는 쉼터 소품이라 well(1.0)
+       정도 눈높이 */
+    ruinTower: 4.4, gazebo: 1.1,
     /* 우주기지(PLAN 45절, 2026-09-11) — crate(box_small)는 mail(0.9)과
        같은 파일이라 같은 눈대중, fence·cart는 well(1.0)과 bench(0.5)
        사이 소품 눈대중 */

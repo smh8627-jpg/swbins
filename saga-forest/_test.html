@@ -901,11 +901,13 @@ window.DG_NO_TUNE = true;
       return gone === null && 'margin 5 → 폐허 없음';
     });
 
-    t('폐허 — buildProps() 가 무너진 아치·이끼바위 둘을 세운다', function () {
+    t('폐허 — buildProps() 가 무너진 아치·이끼바위 둘·탑성·정자를 세운다', function () {
+      /* 2026-09-11(PLAN 46-2절) — 탑성(ruinTower)·정자(ruinGazebo) 둘을
+         보태 §45가 냈던 "과거" 목적지를 실제로 채웠다 */
       V.buildProps();
       var raw = V.raw(), byId = {};
       for (var i = 0; i < raw.props.length; i++) { byId[raw.props[i].id] = raw.props[i]; }
-      var want = ['ruinArch', 'ruinRockL', 'ruinRockR'];
+      var want = ['ruinArch', 'ruinRockL', 'ruinRockR', 'ruinTower', 'ruinGazebo'];
       var n = 0, i2;
       for (i2 = 0; i2 < want.length; i2++) { if (byId[want[i2]] && byId[want[i2]].deco) { n++; } }
       return n === want.length && ('폐허 사물 ' + n + '/' + want.length + '개');

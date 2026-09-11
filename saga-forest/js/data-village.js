@@ -108,7 +108,14 @@
     cart:  { name: '수레', emoji: '🛒', gather: null, reset: 0, hint: '살펴본다' },
     /* 마을 쪽 배달 접수대 — 우편함(mail)과 다른 자리, 다른 kind. 소포가
        없을 때 손을 쓰면 하나 받는다(반복 가능, village.js pickupParcel()) */
-    courierPost: { name: '택배 접수대', emoji: '📦', gather: null, reset: 0, hint: '소포를 받는다' }
+    courierPost: { name: '택배 접수대', emoji: '📦', gather: null, reset: 0, hint: '소포를 받는다' },
+    /* 폐허 확장(PLAN 46-2절, 2026-09-11) — §45가 냈던 "과거" 목적지를
+       아치 하나뿐이던 폐허(ruinSpot)에 실제로 채웠다. ruinTower는 진짜
+       13~14세기 탑성 폐허 사진측량 스캔(saga-go에서 하드링크, 새로 안
+       받음), gazebo는 asset3d.js에 등록만 되고 여태 안 쓰이던 정자 —
+       "폐허를 발견한 나그네가 잠시 쉬어 가는" 자리로 곁들였다 */
+    ruinTower: { name: '무너진 탑성', emoji: '🏰', gather: null, reset: 0, hint: '올려다본다' },
+    gazebo: { name: '정자', emoji: '🏯', gather: null, reset: 0, hint: '앉아 쉰다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────

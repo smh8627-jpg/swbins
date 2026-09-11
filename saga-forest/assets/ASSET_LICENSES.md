@@ -135,7 +135,7 @@ Idle·Walk 등 클립이 열둘 넘게 있는데(직접 GLB 를 열어 확인), 
 | `models/props/WoodenTorch.glb` | `saga-go/assets/models/props/WoodenTorch.glb` (랜턴 대타) |
 | `models/props/Well.glb` | `saga-go/assets/models/buildings/Well.glb` |
 | `models/props/Bridge.glb` | `saga-go/assets/models/props/Bridge.glb` (나무다리) |
-| `models/props/Gazebo.glb` | `saga-go/assets/models/props/Gazebo.glb` |
+| `models/props/Gazebo.glb` | `saga-go/assets/models/props/Gazebo.glb` — 등록만 되어 있다가 2026-09-11 폐허(ruinSpot, PLAN 46-2절)에서 처음 쓴다 |
 | `models/people/regular/*` (몸 둘·옷 넷·머리 여섯, gltf+bin+png) | `saga-go/assets/models/people/regular/` — Player 3D(PHASE 4) 에 쓸 인물 뼈대. 조합 규칙도 그대로: `saga-go/js/asset3d.js` 의 `HERO_RECIPES` 주석 참고 |
 | `models/anim/UAL1_Standard.glb` (Quaternius Universal Animation Library, 몸짓 마흔한 벌) | `saga-go/assets/models/anim/UAL1_Standard.glb` — 위 인물 뼈대와 이름까지 같은 뼈라 옮겨 입히기 없이 그대로 물린다 |
 
@@ -557,6 +557,23 @@ PLAN 6절 "작은 마을" 착수 — `home`(집)·`tailor`(침선방)·`museum`(
 | `models/props/signpost.glb` | **게시판**(`board`) |
 | `models/props/box_small.gltf.glb` | **편지함**(`mail`) — 원래 던전 방 잡동사니 상자, 작은 나무 상자라 편지함 대역으로 썼다. 2026-09-11 — 같은 파일을 새 키(`crate`)로 한 번 더 등록해 우주기지(PLAN 45절)의 보급 상자·택배 접수대(`courierPost`)에도 그대로 썼다(새 파일 안 받음) |
 | `models/props/banner_thin_red.gltf.glb` | **마을기**(`pole`) — 원래 보스방 현수막, 깃발 달린 기둥이라 마을기 대역으로 썼다 |
+
+## Sketchfab — 아일랜드 문화유산 사진측량 스캔, 하드링크 (2026-09-11, `saga-go`에서 옮김)
+
+폐허(§43·46-2, `ruinSpot`)에 아치·이끼바위뿐이던 것을 실제 탑성 폐허로
+키웠다. 원 출처·CC0 확인·정제 경위는 `saga-go`가 이미 다 적어 뒀다 —
+여기서는 이 판에 옮긴 파일만 추린다.
+
+| 항목 | |
+|---|---|
+| **원본 이름** | Renvylle Castle — 13~14세기 탑성(tower house) 폐허, 아일랜드 코네마라 |
+| **만든 이** | Galway3D_DH_Age (Sketchfab) |
+| **라이선스** | CC0 Public Domain |
+| **받은 곳** | `saga-go/assets/models/buildings/realistic/tower_ruin.glb`에서 하드링크(md5 동일). 원 출처·정제 경위(13.4MB → 584.5KB, gltf-transform) 자세한 것은 `../../saga-go/assets/ASSET_LICENSES.md`의 "Sketchfab — 아일랜드 문화유산 사진측량 스캔" 절 참고 |
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `models/buildings/realistic/tower_ruin.glb` | **무너진 탑성**(`ruinTower`, PLAN 46-2절) — 폐허(ruinSpot)의 새 중심 건물 |
 
 ## MPFB2 실사 몸 20종 — 외형 다양화, 표 기본에 적용됨 (2026-09-10, `saga-go`에서 복사)
 

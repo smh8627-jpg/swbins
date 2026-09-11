@@ -251,6 +251,13 @@
        이 이미 CC0 확인해 둔 Quaternius 무너진 아치(modular_dungeon_1 팩)를
        그대로 복사(md5 saga-go 쪽과 동일, ASSET_LICENSES.md 참고) */
     'ruin:arch': PROP + 'Arch.glb',
+    /* 폐허 확장(2026-09-11, PLAN 46-2절 — §45가 제안한 "과거" 목적지를
+       아치 하나뿐이던 폐허에 실제로 채웠다) — saga-go가 Sketchfab에서
+       CC0로 받아 이미 다듬어 둔 **진짜 13~14세기 탑성(tower house) 폐허
+       사진측량 스캔**(Renvylle Castle, 584.5KB로 정제됨)을 하드링크로
+       옮겼다. 새로 안 받았다 — `BLD_REAL`(집 셋과 같은 실사 경로)이라
+       `looksRealistic()`이 PBR을 안 벗긴다(house_wooden 등과 같은 결) */
+    'building:ruinTower': BLD_REAL + 'tower_ruin.glb',
 
     /* 마을 3D 건물 (PLAN 6절 "작은 마을") — village.js 의 props 가 이미 갖고
        있던 shop·home·board·mail·tailor·pole·museum 을 처음으로 GLB 로 세운다.

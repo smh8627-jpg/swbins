@@ -656,13 +656,20 @@
 
     /* 폐허(PLAN 10절 "고정 배치", 2026-09-10 — "시대 혼합 소품·폐허" 퓨전
        방향). 무너진 아치 하나 + 이끼바위 둘로 "옛날에 뭔가 있었던 자리"
-       느낌만 준다 — 전부 순수 장식(deco:true), 상호작용은 없다 */
+       느낌만 준다 — 전부 순수 장식(deco:true), 상호작용은 없다.
+       **2026-09-11 확장(PLAN 46-2절)** — §45가 제안했던 "과거" 목적지를
+       이 자리에 실제로 채웠다: 진짜 탑성 폐허(ruinTower, saga-go에서
+       하드링크한 사진측량 스캔)를 아치 뒤에 세우고, 정자(gazebo)를 앞에
+       놓아 "무너진 성터를 나그네가 지나가다 쉬어 가는" 자리로 마무리했다.
+       기존 인터랙션 자리(inRuin 5×4칸)를 안 넓혔다 — 전부 그 안에 들어간다 */
     var rs = ruinSpot();
     if (rs) {
       var rx = rs.tx * TILE + TILE * 0.5, ry = rs.ty * TILE + TILE * 0.5;
       props.push({ id: 'ruinArch', kind: 'ruinArch', x: rx, y: ry, deco: true });
       props.push({ id: 'ruinRockL', kind: 'mossyRock', x: rx - TILE * 1.3, y: ry + TILE * 0.4, deco: true });
       props.push({ id: 'ruinRockR', kind: 'mossyRock', x: rx + TILE * 1.4, y: ry + TILE * 0.3, deco: true });
+      props.push({ id: 'ruinTower', kind: 'ruinTower', x: rx - TILE * 0.3, y: ry - TILE * 0.9, deco: true });
+      props.push({ id: 'ruinGazebo', kind: 'gazebo', x: rx + TILE * 0.5, y: ry + TILE * 0.8, deco: true });
     }
 
     /* 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸 + PHASE 4 "Treasure") — 바위산·
