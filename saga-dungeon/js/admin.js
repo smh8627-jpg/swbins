@@ -31,6 +31,7 @@
   var C = DG.core, A = DG.account, D = DG.data, H = DG.hero;
   var IT = DG.item, ID = DG.itemData;
   var SK = DG.skill, SKD = DG.skillData;
+  var HS = DG.heroSkillData;
   var DN = DG.dungeon, DD = DG.dungeonData;
   var Q = DG.quest, QD = DG.questData;
   var PO = DG.potion, VD = DG.vendor, AU = DG.auto;
@@ -417,6 +418,57 @@
     });
   }
 
+  /** 인물별 서명 무예 — 105명 전부를 고를 수 있는 목록(도감 소유 여부 무관,
+   *  위 renderParty()의 #lead 와 달리 시험은 등용 전 인물도 눌러 봐야 하니
+   *  ownedHeroes()로 좁히지 않는다). 서명 무예가 없는 인물도 "(없음)"으로
+   *  그대로 보여 — 105명 중 어디까지 채워졌는지 이 목록만 봐도 안다. */
+  function renderSigTester() {
+    var sel = $('sig-hero');
+    if (!sel) { return; }               // 이 카드가 없는 옛 캐시 대비 방어적 가드
+    var keepVal = sel.value;
+    sel.innerHTML = '';
+    D.heroes.forEach(function (h) {
+      var sig = HS && HS.sigOf(h.id);
+      var o = el('option');
+      o.value = h.id;
+      o.textContent = h.name + (sig ? (' · ' + sig.emoji + ' ' + sig.name) : ' · (없음)');
+      sel.appendChild(o);
+    });
+    if (keepVal) { sel.value = keepVal; }
+  }
+
+  /**
+   * 인물 하나의 서명 무예를 실제로 발동시켜 본다 — `dungeon.js`의
+   * `castSigSkill()`을 그대로 부른다(가짜 계산이 아니라 실제 판정 경로).
+   * **지금 프로필의 동행·회차 기록은 시험 전으로 그대로 되돌린다** —
+   * 위 `selftest()`가 임시 프로필을 쓰는 것과 달리, 이건 지금 열어 둔
+   * 진짜 프로필에서 바로 눌러 보는 자리라 흔적을 남기면 안 된다.
+   */
+  function testSigSkill(id) {
+    var sig = HS && HS.sigOf(id);
+    if (!sig) { return { ok: false, reason: 'no-sig' }; }
+    var keepParty = C.save.party.slice();
+    var keepHeroRec = C.save.heroes[id];
+    var keepRuns = DN.state().runs;
+    if (DN.raw()) { DN.leave(); }       // 남은 회차가 있으면(드묾) 먼저 치운다
+    H.ensure(id);
+    C.save.party = [id];
+    var entered = DN.enter({ floor: 4, mode: 'easy' });
+    var result;
+    if (!entered) {
+      result = { ok: false, reason: 'enter-failed' };
+    } else {
+      var fired = DN.castSigSkill();
+      var st = DN.status();
+      DN.leave();
+      result = { ok: true, fired: fired, sig: sig, cdAfter: st.sigSkill.cd };
+    }
+    C.save.party = keepParty;
+    DN.state().runs = keepRuns;
+    if (keepHeroRec === undefined) { delete C.save.heroes[id]; } else { C.save.heroes[id] = keepHeroRec; }
+    return result;
+  }
+
   /** 선두 레벨을 만렙까지 올리고, 갈래마다 낮은 단부터 되는 데까지 찍는다 */
   function fillSkillTree() {
     var lead = C.save.party[0];
@@ -742,6 +794,7 @@
     renderBeltInfo();
     renderClasses();
     renderSkills();
+    renderSigTester();
     renderTunePill();
     renderSnaps();
   }
@@ -885,6 +938,23 @@
       if (!lead) { say('동행이 없습니다'); return; }
       var spent = SK.respec(lead);
       commit('환원 — ' + spent + '점을 돌려받았습니다');
+    });
+
+    $('sig-test').addEventListener('click', function () {
+      var id = $('sig-hero').value;
+      var h = D.find(id);
+      var out = $('sig-result');
+      var r = testSigSkill(id);
+      if (!r.ok) {
+        out.textContent = r.reason === 'no-sig'
+          ? (h ? h.name : id) + ' — 서명 무예가 아직 없습니다.'
+          : '시험 진입에 실패했습니다(부대·세이브 상태를 확인하세요).';
+        return;
+      }
+      out.innerHTML = (r.fired ? '<span style="color:var(--good)">✔ 발동됨</span>' : '<span style="color:var(--bad)">✘ 발동 실패</span>') +
+        ' — ' + r.sig.emoji + ' <b>' + esc(r.sig.name) + '</b> · ' + esc(r.sig.desc) +
+        '<br>모양 ' + esc(r.sig.shape) + ' · 재사용 ' + r.sig.cd + '초 · 발동 직후 남은 쿨다운 ' +
+        r.cdAfter.toFixed(1) + '초 (동행·회차 기록은 시험 전으로 되돌렸습니다)';
     });
 
     $('tune-clear').addEventListener('click', function () {

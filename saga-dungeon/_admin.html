@@ -286,6 +286,21 @@
     <p class="note">게임의 <code>skill.equipped()</code> 를 그대로 부릅니다.</p>
     <div class="row tight" id="barrow"></div>
   </div>
+
+  <div class="card">
+    <h2>인물별 서명 무예 — 전부 시험 발동</h2>
+    <p class="note">
+      <b>인물 105명 전부</b>가 목록에 있습니다 — 서명 무예가 있는 인물만 골라
+      <code>dungeon.enter()</code>로 잠깐 들어갔다가 <code>castSigSkill()</code>을
+      실제로 부르고 나옵니다(회차 기록·동행 편성은 시험 전으로 그대로 되돌립니다).
+      새 인물을 늘릴 때마다 여기서 하나씩 실제로 눌러 확인할 수 있습니다.
+    </p>
+    <div class="row">
+      <label>인물</label><select id="sig-hero"></select>
+      <button id="sig-test">시험 발동</button>
+    </div>
+    <div id="sig-result" style="font-size:11.5px;color:var(--dim);line-height:1.8"></div>
+  </div>
 </section>
 
 <!-- ── 3D 손잡이 ──────────────────────────────────────── -->
@@ -359,6 +374,7 @@
 <script src="js/data-elem.js"></script>
 <script src="js/data-skill.js"></script>
 <script src="js/data-set.js"></script>
+<script src="js/data-hero-skill.js"></script>
 <script src="js/data-unique.js"></script>
 <script src="js/data-dungeon.js"></script>
 <script src="js/data-quest.js"></script>
