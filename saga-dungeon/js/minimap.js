@@ -244,6 +244,14 @@
         ctx.fillStyle = tiles[ti].color;
         ctx.fillRect(c - k / 2 + tiles[ti].x, c - k / 2 + tiles[ti].y, tiles[ti].w, tiles[ti].h);
       }
+      /* 소품 점(2026-09-11) — 큰 지도(M키)가 이미 하던 걸 코너에도 얹는다 */
+      var props = smallWorldProps(M, k, k), pi;
+      for (pi = 0; pi < props.length; pi++) {
+        ctx.fillStyle = props[pi].color;
+        ctx.beginPath();
+        ctx.arc(c - k / 2 + props[pi].x, c - k / 2 + props[pi].y, props[pi].r, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     var bs = blips(run), i, st;
@@ -392,6 +400,52 @@
         var kind = T.worldKindAt(cx, cz);
         var col = kind === 'town' ? '#5a4a30' : (KIND_COLOR[kind] || '#3a3a3a');
         out.push({ x: cx * CHUNK * scaleX + offX, y: cz * CHUNK * scaleY + offY, w: tw, h: th, color: col });
+      }
+    }
+    return out;
+  }
+
+  /** 코너(상시) 미니맵 소품 점(2026-09-11) — `drawBigWorld()`가 이미 하는
+   *  일(`worldPropsAt`+`PROP_COLOR`)을 코너 미니맵에도 그대로 얹는다.
+   *  과거 세션이 "칸이 너무 작아 점이 안 보일 것 같다"며 미뤄 뒀었는데,
+   *  실측하니 이 칸(`tw`/`th`, 위 `smallWorldTiles` 계산과 동일)이 데스크톱
+   *  ~17-41px·폰 ~26-41px 로 `drawBigWorld`의 8px 문턱을 이미 넉넉히
+   *  넘는다 — 안 보일 거라는 추측이 틀렸다. `smallWorldTiles`는 손 안 댄다
+   *  (`_test.html`이 그 반환 모양에 기대고 있다) — 대신 같은 좌표 변환을
+   *  그대로 복붙한다(이 파일이 이미 `drawBigWorld`/`smallWorldTiles`로
+   *  쓰고 있는 "복붙이지만 나란히 유지" 관례). */
+  function smallWorldProps(T, s, h) {
+    var F = global.DG.field3d;
+    if (!F || !T.worldKindAt || !T.worldPropsAt || !T.isSeen) { return []; }
+    var W = T.ROOM_W, H = T.ROOM_H, WALL = T.WALL;
+    var o = windowOrigin(T), ax = o.x, ay = o.y;
+    var iw = Math.max(1, W - WALL * 2), ih = Math.max(1, H - WALL * 2);
+    var MARGIN = 0.06;
+    var scaleX = s / iw, scaleY = h / ih;
+    var offX = -(ax + WALL) * scaleX, offY = -(ay + WALL) * scaleY;
+    var CHUNK = F.CHUNK;
+    var x0 = ax + WALL - iw * MARGIN, x1 = ax + WALL + iw * (1 + MARGIN);
+    var y0 = ay + WALL - ih * MARGIN, y1 = ay + WALL + ih * (1 + MARGIN);
+    var cx0 = Math.floor(x0 / CHUNK) - 1, cx1 = Math.floor(x1 / CHUNK) + 1;
+    var cz0 = Math.floor(y0 / CHUNK) - 1, cz1 = Math.floor(y1 / CHUNK) + 1;
+    var tw = CHUNK * scaleX + 1, th = CHUNK * scaleY + 1;
+    var drawProps = Math.min(tw, th) >= 8;    // drawBigWorld()와 같은 문턱
+    if (!drawProps) { return []; }
+    var out = [], cx, cz, pr;
+    for (cz = cz0; cz <= cz1; cz++) {
+      for (cx = cx0; cx <= cx1; cx++) {
+        if (!T.isSeen(cx, cz)) { continue; }
+        var kind = T.worldKindAt(cx, cz);
+        if (kind === 'town') { continue; }    // 마을 발판 — 건물은 따로 그려진다
+        var props = T.worldPropsAt(cx, cz);
+        for (pr = 0; pr < props.length; pr++) {
+          var pc = PROP_COLOR[props[pr].t];
+          if (!pc) { continue; }
+          out.push({
+            x: props[pr].x * scaleX + offX, y: props[pr].z * scaleY + offY,
+            r: Math.max(1, Math.min(tw, th) * 0.12), color: pc
+          });
+        }
       }
     }
     return out;
@@ -630,6 +684,7 @@
     /** 자가진단용 — 순수 계산만(캔버스 없이) */
     _bigLayout: bigLayout,
     _smallWorldTiles: smallWorldTiles,
+    _smallWorldProps: smallWorldProps,
     get bigOn() { return bigOn; }
   };
 })(window);

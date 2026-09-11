@@ -140,11 +140,15 @@
                그린다(renderBottom) — 스킬 넷의 빈 칸과 같은 결. */
             '<button class="dg-skill empty" data-setsk title="투장 무예 (F)">' +
               '<span class="dg-sk-e">✨</span><i class="dg-sk-cd"></i></button>' +
+            /* 인물별 서명 무예(2026-09-11) — 투장 무예 옆, 넷째 자리. 파일럿
+               8명 밖 인물이면 계속 흐린 채(empty)로 남는다. */
+            '<button class="dg-skill empty" data-sigsk title="서명 무예 (G)">' +
+              '<span class="dg-sk-e">🌟</span><i class="dg-sk-cd"></i></button>' +
           '</div>' +
         '</div>' +
         '<div id="dg-bottom"></div>' +
         '<div class="dg-tip">이동 <b>WASD</b> · 물약 <b>1 2 3 4</b> · 스킬 <b>Z X C V</b> · ' +
-          '강공격 <b>Shift</b> · 회피 <b>Space</b> · 투장 무예 <b>F</b> · ' +
+          '강공격 <b>Shift</b> · 회피 <b>Space</b> · 투장 무예 <b>F</b> · 서명 무예 <b>G</b> · ' +
           '<b>화면을 누른 채 끌면</b> 그쪽으로 걷습니다 · ' +
           '<b>손가락 둘로 벌리거나 오므리면</b> 확대·축소</div>' +
       '</div>';
@@ -359,7 +363,8 @@
       actionsEl.addEventListener('pointerdown', function (e) {
         if (e.target.closest('[data-heavy]')) { d().heavyAttack(); e.preventDefault(); return; }
         if (e.target.closest('[data-dodge]')) { d().doDodge(); e.preventDefault(); return; }
-        if (e.target.closest('[data-setsk]')) { pressSetSkill(); e.preventDefault(); }
+        if (e.target.closest('[data-setsk]')) { pressSetSkill(); e.preventDefault(); return; }
+        if (e.target.closest('[data-sigsk]')) { pressSigSkill(); e.preventDefault(); }
       });
     }
 
@@ -464,6 +469,8 @@
     if (k === 'shift' && !e.repeat) { d().heavyAttack(); e.preventDefault(); return; }
     /* 투장 전용 무예(2026-09-10) — 강공격·회피와 같은 자리, F 하나 더. */
     if (k === 'f') { pressSetSkill(); e.preventDefault(); return; }
+    /* 인물별 서명 무예(2026-09-11) — 같은 자리, G 하나 더. */
+    if (k === 'g') { pressSigSkill(); e.preventDefault(); return; }
     keys[k] = true;
     pushInput();
     var km = keymap();
@@ -483,6 +490,15 @@
     var st = d().status();
     if (st.active && st.setSkill && !st.setSkill.avail) {
       core.emit('toast', '투장(세트) 세 점을 한 인물이 다 걸쳐야 손에 잡힙니다');
+    }
+  }
+
+  /** 서명 무예를 쓴다 — 위 pressSetSkill과 같은 요령(2026-09-11) */
+  function pressSigSkill() {
+    if (d().castSigSkill()) { return; }
+    var st = d().status();
+    if (st.active && st.sigSkill && !st.sigSkill.avail) {
+      core.emit('toast', '이 인물은 아직 서명 무예가 없습니다');
     }
   }
 
@@ -802,6 +818,21 @@
         : '투장 무예 (F) — 무기·갑주·부적 세 점을 한 벌로 갖추면 열립니다';
       sBtn.classList.toggle('empty', !ssk.avail);
       sBtn.classList.toggle('ready', ssk.avail && ssk.cd <= 0);
+    }
+    /* 인물별 서명 무예(2026-09-11) — 위 투장 무예와 완전히 같은 요령.
+       파일럿 8명 밖 인물이 선두면 'empty'로 계속 흐리다. */
+    var gBtn = actionsEl && actionsEl.querySelector('[data-sigsk]');
+    if (gBtn && st.sigSkill) {
+      var gsk = st.sigSkill;
+      var gCd = gBtn.querySelector('.dg-sk-cd');
+      gBtn.querySelector('.dg-sk-e').textContent = gsk.avail ? gsk.emoji : '🌟';
+      gCd.style.height = (gsk.avail && gsk.cdMax ? (gsk.cd / gsk.cdMax) * 100 : 0) + '%';
+      gCd.textContent = gsk.avail && gsk.cd > 0.05 ? Math.ceil(gsk.cd) : '';
+      gBtn.title = gsk.avail
+        ? (gsk.emoji + ' ' + gsk.name + ' (G) — ' + gsk.desc)
+        : '서명 무예 (G) — 아직 이 인물만의 무예가 없습니다';
+      gBtn.classList.toggle('empty', !gsk.avail);
+      gBtn.classList.toggle('ready', gsk.avail && gsk.cd <= 0);
     }
   }
 

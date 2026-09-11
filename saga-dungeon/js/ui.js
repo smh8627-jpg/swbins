@@ -2108,6 +2108,15 @@
           statKor(bk.pet.bonus.stat) + ' +' + bk.pet.bonus.value + '</small>'
                 : '<small class="muted">장착하면 능력치가 더해집니다</small>') +
         '</div>';
+
+      /* 인물별 서명 무예(2026-09-11) — 파일럿 8명만 있다. 없으면 아무것도
+         안 그린다("곧 옵니다" 문구로 97명을 도배하지 않는다). */
+      var HS = global.DG.heroSkillData && global.DG.heroSkillData.sigOf(h.id);
+      if (HS) {
+        out += '<div class="dt-sig" style="color:#c7a76c">⭐ 서명 무예 ' + HS.emoji + ' ' +
+          '<b>' + esc(HS.name) + '</b>' +
+          '<div class="muted" style="font-size:11px">' + esc(HS.desc) + '</div></div>';
+      }
     }
 
     var bio = data.bio(h.id);

@@ -1328,6 +1328,7 @@
   function heavyAttack() { return false; }
   function doDodge() { return false; }
   function castSetSkill() { return false; }
+  function castSigSkill() { return false; }
 
   /** 단약도 마실 일이 없다(늘 가득) — potion.js 가 이 값을 보고 알을 아낀다 */
   function refill() { return false; }
@@ -1571,6 +1572,7 @@
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo, castSkill: castSkill, refill: refill,
     heavyAttack: heavyAttack, doDodge: doDodge, castSetSkill: castSetSkill,
+    castSigSkill: castSigSkill,
     nearest: nearest, note: note, consumeFieldMerchant: consumeFieldMerchant,
     rewardRoadMark: rewardRoadMark,
     rewardFieldRelic: rewardFieldRelic,

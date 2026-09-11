@@ -146,14 +146,31 @@
     if (global.DG.minimap) { global.DG.minimap.init(); }   // 우상단 미니맵 (PLAN 27절)
 
     if (fresh) {
-      /* 출사표 — 맨몸으로는 던전에 들어갈 수 없으니 셋을 붙여 준다 */
-      for (var i = 0; i < START_PARTY; i++) {
-        var h = pickNewHero(3);
-        if (h) { joinHero(h, '출사표'); }
-      }
-      core.log('출사표를 올렸습니다. 아래로 내려가면 될 일입니다.', 'info');
+      /* 출사표 — 맨몸으로는 던전에 들어갈 수 없으니 셋을 붙여 준다.
+         2026-09-11 — 여태는 pickNewHero(3)가 무작위로 골라 조용히
+         합류시켰는데, 사용자가 "시작 캐릭터를 직접 고르게" 요청 — 화면으로
+         바꾼다(js/starter.js, account.js의 "부트를 멈추고 화면을 띄운 뒤
+         콜백으로 이어간다" 패턴을 그대로 본떴다). `finishBoot()`(마을 진입·
+         루프 시작)는 그 확인 콜백이 온 뒤에야 돈다 — town.enter() 가 아직
+         한 번도 안 불린 시점이라 화면이 잠깐이라도 마을을 보여 준 뒤
+         picker가 덮는 일이 없다. */
+      global.DG.starter.show(START_PARTY, function (ids) {
+        ids.forEach(function (id) {
+          var h = global.DG.data.find(id);
+          if (h) { joinHero(h, '출사표'); }
+        });
+        core.log('출사표를 올렸습니다. 아래로 내려가면 될 일입니다.', 'info');
+        finishBoot();
+      });
+    } else {
+      finishBoot();
     }
+  }
 
+  /** 부트의 나머지 — 출사표가 필요 없거나(기존 세이브), 방금 픽커가
+   *  끝난 뒤에 이어진다. 기존 세이브라면 이 함수가 예전처럼 startInner()
+   *  본문 그대로 이어지므로 동작이 한 틱도 안 바뀐다. */
+  function finishBoot() {
     /* 보스 층을 깨면 인물이 합류한다 — 층을 내려가는 순간에 판정한다 */
     core.on('dungeon:floor', function (floor) {
       var cleared = floor - 1;               // 방금 깬 층

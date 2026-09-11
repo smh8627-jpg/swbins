@@ -657,7 +657,10 @@
       /* 2026-09-10 — "방어구 세트마다 특색 스킬"(사용자). 투장 세 점을
          한 인물이 다 걸쳐야 손에 잡히는 세트 전용 무예 — 강공격·회피와
          같은 자리(쿨다운만, MP·슬롯 안 씀)에 셋째로 놓는다. */
-      setSkCd: 0                          // 투장 무예 재사용 대기(초)
+      setSkCd: 0,                         // 투장 무예 재사용 대기(초)
+      /* 2026-09-11 — "캐릭터마다 스킬이 달라야 해"(사용자). 인물별 서명
+         무예 — 장비가 아니라 이 인물이 선두면 상시 켜지는 넷째 기본기. */
+      sigSkCd: 0                          // 서명 무예 재사용 대기(초)
     };
     run.shots = [];
     run.foeShots = [];
@@ -1810,6 +1813,7 @@
     if (p.heavyCd > 0) { p.heavyCd -= dt; }
     if (p.dodgeCd > 0) { p.dodgeCd -= dt; }
     if (p.setSkCd > 0) { p.setSkCd -= dt; }
+    if (p.sigSkCd > 0) { p.sigSkCd -= dt; }
     /* 독(毒) dot — 함정(spike)에 물렸을 때. 적에게 쓰는 `e.dots`와 같은
        패턴(dps·t)을 그대로 사람에게도 돌린다 */
     if (p.dots && p.dots.length) {
@@ -2574,6 +2578,33 @@
     return true;
   }
 
+  /* ── 인물별 서명 무예 — 2026-09-11 ────────────────────────────
+   * "캐릭터마다 스킬이 달라야 해"(사용자). 투장 전용 무예와 계약이
+   * 완전히 같다 — 배우지 않는다, MP·슬롯 안 씀, v 는 고정값. 다른 점은
+   * 트리거 하나뿐: 장비 3점이 아니라 **이 인물이 선두**면 상시 켜진다.
+   * 모양 실행은 같은 applyShapeSkill 을 그대로 쓴다. */
+
+  /** 지금 선두의 서명 무예 — 파일럿 밖 인물이면 null */
+  function activeSigSkill() {
+    var HS = global.DG.heroSkillData, id = leadId();
+    return (HS && id) ? HS.sigOf(id) : null;
+  }
+
+  function castSigSkill() {
+    if (!run || run.choice) { return false; }
+    var sk = activeSigSkill();
+    if (!sk) { return false; }
+    var p = run.player;
+    if (p.sigSkCd > 0 || p.dash) { return false; }
+    p.sigSkCd = sk.cd;
+    p.atkAnim = castPoseSecOf(sk);
+    p.castAnim = !MELEE_SHAPES[sk.shape];
+    sfx('setsk');                          // 새 효과음 자산 없이 투장 무예 것을 빌린다
+    applyShapeSkill(sk, sk.v);
+    core.emit('dungeon:skill', 'sig:' + leadId());
+    return true;
+  }
+
   /**
    * 포획(捕獲) — PLAN 34절 "도감을 콘텐츠 수집 시스템으로". `data.js` 의
    * PETS 표에는 진작부터 `catchBase`(잡힐 확률) 가 붙어 있었는데, 이걸 읽어
@@ -3116,6 +3147,13 @@
                  setName: got.set.name,
                  cd: Math.max(0, run.player.setSkCd), cdMax: got.sk.cd };
       })(),
+      /* 서명 무예(2026-09-11) — 위 setSkill과 같은 자리(avail/cd/cdMax) */
+      sigSkill: (function () {
+        var sk = activeSigSkill();
+        if (!sk) { return { avail: false, cd: 0, cdMax: 1 }; }
+        return { avail: true, name: sk.name, emoji: sk.emoji, desc: sk.desc,
+                 cd: Math.max(0, run.player.sigSkCd), cdMax: sk.cd };
+      })(),
       combo: run.combo || 0
     };
   }
@@ -3162,6 +3200,7 @@
     rollMerchantStock: rollMerchantStock,
     castSkill: castSkill, refill: refill,
     heavyAttack: heavyAttack, doDodge: doDodge, castSetSkill: castSetSkill,
+    castSigSkill: castSigSkill,
     boonVal: boonVal, boonEffect: boonEffect,
     status: status, state: dstate,
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
