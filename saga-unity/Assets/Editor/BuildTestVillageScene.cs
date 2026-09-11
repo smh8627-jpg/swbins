@@ -45,6 +45,7 @@ namespace Saga.EditorTools
             BuildEventSystem();
             BuildDialogueUi();
             BuildSaveButton();
+            BuildPlayerHud();
             BuildDebugOverlay();
             BuildBootstrap();
             var joystick = BuildMobileHud();
@@ -232,6 +233,38 @@ namespace Saga.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.text = "저장";
+        }
+
+        /// <summary>화면 왼쪽 위 — 레벨/경험치/돈/장비, 릴리즈 빌드에서도 항상 보임
+        /// (DebugUI와 자리가 겹치지 않게 그 아래 둔다).</summary>
+        private static void BuildPlayerHud()
+        {
+            var canvasGo = new GameObject("PlayerHudUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(20f, -130f);
+            rect.sizeDelta = new Vector2(500f, 90f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 24;
+            text.alignment = TextAnchor.UpperLeft;
+            text.color = Color.white;
+            text.text = "";
+
+            var hud = canvasGo.AddComponent<PlayerHud>();
+            SetPrivateField(hud, "label", text);
         }
 
         /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS.</summary>

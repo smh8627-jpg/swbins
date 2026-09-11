@@ -9,11 +9,12 @@ namespace Saga.Go.Data
     /// VERTICAL_SLICE.md 26절 "저장/로드(로컬 파일 하나)" — 12단계 완료
     /// 조건의 마지막 단계. saga-godot의 save_state.gd와 같은 구조
     /// (_migrate_step 마이그레이션 경로 포함, PLAN.md 75장 "Data
-    /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4 전환이 그 실사용례다).
+    /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4, v4→v5 전환이 그
+    /// 실사용례다).
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 4;
+        private const int SaveVersion = 5;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -33,6 +34,9 @@ namespace Saga.Go.Data
             public int questBanditStage;
             // v4(PLAN.md 72~73장 World Event/Hidden Area 추가) — v3까지는 없던 필드.
             public bool caveTreasureFound;
+            // v5(PLAN.md 66장 Reward의 돈·상인 거래 추가) — v4까지는 없던 필드.
+            public int gold;
+            public bool merchantSold;
         }
 
         public static bool Save()
@@ -52,6 +56,8 @@ namespace Saga.Go.Data
                 equippedArmor = Inventory.EquippedArmorId,
                 questBanditStage = (int)QuestState.BanditQuest,
                 caveTreasureFound = WorldEventState.CaveTreasureFound,
+                gold = GoldState.Gold,
+                merchantSold = ShopState.MerchantSold,
             };
 
             try
@@ -67,8 +73,8 @@ namespace Saga.Go.Data
         }
 
         /// <summary>저장 파일이 있으면 부대·레벨/경험치·인벤토리·퀘스트·숨겨진
-        /// 보물·플레이어 위치에 적용하고 true, 없거나 마이그레이션 경로가
-        /// 없거나 깨져 있으면 아무것도 바꾸지 않고 false(새 게임 취급).</summary>
+        /// 보물·돈/상인 거래·플레이어 위치에 적용하고 true, 없거나 마이그레이션
+        /// 경로가 없거나 깨져 있으면 아무것도 바꾸지 않고 false(새 게임 취급).</summary>
         public static bool TryLoad()
         {
             if (!File.Exists(SavePath)) return false;
@@ -93,6 +99,8 @@ namespace Saga.Go.Data
             Inventory.Restore(data.ownedItems ?? new List<string>(), data.equippedWeapon, data.equippedArmor);
             QuestState.Restore((QuestStage)data.questBanditStage);
             WorldEventState.Restore(data.caveTreasureFound);
+            GoldState.Restore(data.gold);
+            ShopState.Restore(data.merchantSold);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -150,6 +158,15 @@ namespace Saga.Go.Data
                 // 기본값(false)으로 채운다.
                 data.version = 4;
                 data.caveTreasureFound = false;
+                return data;
+            }
+            if (fromVersion == 4)
+            {
+                // v4엔 돈·상인 거래 필드가 없었다 — 처음 시작한 것과 같은
+                // 기본값(시작 소지금, 상인한테서 아직 안 산 상태)으로 채운다.
+                data.version = 5;
+                data.gold = GoldState.StartingGold;
+                data.merchantSold = false;
                 return data;
             }
             return null;

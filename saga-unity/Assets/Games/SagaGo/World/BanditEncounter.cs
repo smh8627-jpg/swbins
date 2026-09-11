@@ -13,9 +13,9 @@ namespace Saga.Go.World
     /// 그대로)가 맡는다 — 여기는 그 상태를 3D 세계에 그려 보여주는 화면
     /// 층일 뿐이다(saga-godot의 bandit_encounter.gd와 같은 경계).
     ///
-    /// "값을 치른다"·"달아난다"(사건 선택지)는 골드·소지품 시스템이 아직
-    /// 없어(Phase 9 몫) 대사만 보여주고 넘어간다 — 여기서 새 경제 시스템을
-    /// 만들지 않는다.
+    /// "달아난다"(사건 선택지)는 여전히 대사만 보여주고 넘어간다. "값을
+    /// 치른다"는 GoldState.cs가 생긴 뒤로는 실제로 돈을 쓴다 — 못 낼
+    /// 만큼 없으면 그 선택지가 거절된다(아래 ChoosePay 참고).
     /// </summary>
     [RequireComponent(typeof(SphereCollider))]
     public class BanditEncounter : MonoBehaviour
@@ -31,6 +31,8 @@ namespace Saga.Go.World
         private const float VictoryToastSec = 6f; // 등용+경험치+장비까지 한 번에 읽어야 해 더 길게
         private const string RecruitId = "산적";
         private const int ExpReward = 100;
+        private const int VictoryGoldReward = 30;
+        private const int PayTollCost = 40;
 
         private static readonly Color BaseColor = new Color(0.5f, 0.14f, 0.14f);
         private static readonly Color TellColor = new Color(1.0f, 0.55f, 0.1f);
@@ -174,7 +176,14 @@ namespace Saga.Go.World
         private void ChoosePay()
         {
             _promptRoot.SetActive(false);
-            Toast($"{FoeName} — 길세를 치르고 지나갔다.");
+            if (GoldState.TrySpend(PayTollCost))
+            {
+                Toast($"{FoeName} — 길세 {PayTollCost}냥을 치르고 지나갔다. (남은 돈 {GoldState.Gold}냥)");
+            }
+            else
+            {
+                Toast($"길세로 낼 {PayTollCost}냥이 없다 — {FoeName}이 앞을 막아선다.");
+            }
             EnterCooldown();
         }
 
@@ -332,6 +341,7 @@ namespace Saga.Go.World
                 // 레벨업 여러 번은 LeveledUp 이벤트로, 실제 문구는 아래서 한 번에 모은다.
                 int levelBefore = PlayerStats.Level;
                 PlayerStats.AddExp(ExpReward);
+                GoldState.Add(VictoryGoldReward);
                 string lootId = LootTable.RollBanditDrop();
                 ItemData lootItem = null;
                 bool lootEquipped = false;
@@ -355,7 +365,7 @@ namespace Saga.Go.World
                 if (questDone) PlayerStats.AddExp(QuestState.BanditRewardExp);
 
                 var msg = $"{FoeName}을 물리쳤다 — 부대에 합류했다! (전투력 {Mathf.RoundToInt(PartyState.Atk + PartyState.Def)})\n" +
-                          $"경험치 +{ExpReward}";
+                          $"경험치 +{ExpReward} · 돈 +{VictoryGoldReward}냥";
                 if (questDone) msg += $"\n퀘스트 완료 — 촌장이 사례하다 (경험치 +{QuestState.BanditRewardExp})";
                 if (PlayerStats.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {PlayerStats.Level})";
                 if (lootItem != null) msg += $"\n{lootItem.Name}을(를) 주웠다{(lootEquipped ? " — 바로 갖췄다." : ".")}";

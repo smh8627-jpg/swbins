@@ -5,6 +5,29 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **미뤄 둔 기술부채 — 골드 경제 + 상인 거래 + 상시 HUD.** Phase 6·7
+  (59~73장)을 다 채운 뒤 사용자가 "다 하면 안 될까, 안 묻고 최대한
+  계속해줘"로 판단을 맡겨(2026-09-11) 이전에 미뤄 뒀던 항목부터 정리.
+  `Data/GoldState.cs`(시작 소지금 50냥 — 도적이 유일한 돈줄인데 그
+  조우가 슬라이스에서 한 번뿐이라 사전에 돈이 없으면 "값을 치른다"가
+  죽은 선택지가 된다, 그래서 시작부터 쥐여 줌) + `Data/ShopState.cs`
+  (떠돌이 상인이 "베옷 갑주"를 25냥에 딱 한 번 판다 — Inventory.cs의
+  "자동 장착"과 같은 결로 새 상점 화면 없이 말을 거는 순간 거래가
+  끝난다). `BanditEncounter.ChoosePay()`가 이제 실제로 40냥을 쓰고
+  (없으면 거절당해 도적이 다시 막아선다), 승리 보상에 돈 +30냥,
+  `HiddenTreasure`도 +20냥을 얹는다. `NpcBuilder.cs`의 상인 대사를
+  `ElderLine()`과 같은 패턴(`MerchantLine()`)으로 상태 분기(아직 못
+  삼/방금 삼/이미 삼)하게 바꿈. **`UI/PlayerHud.cs`** — 새 인벤토리·
+  장비창 화면을 만드는 대신(범위 밖으로 계속 미룸) 화면 왼쪽 위
+  DebugUI 바로 아래에 "Lv.N (경험치 x/y) 돈 z냥 / 무기·방어구" 한
+  줄을 릴리즈 빌드에서도 항상 띄운다(0.5초마다 갱신, DebugHud.cs의
+  FPS 갱신과 같은 방식). `BuildTestVillageScene.cs`에 `BuildPlayerHud()`
+  훅 추가 — GameObject가 늘어 씬 재빌드(`groundVerts=3136` 그대로).
+  `SaveState.cs` v4→v5로 돈·상인 거래 여부도 저장/로드. 컴파일·씬
+  재저장·PlaytestHeadless 전부 통과 — 상인 거래·길세 거절 문구·HUD
+  갱신은 역시 사람이 직접 봐야 확인됨. **사전 구조로 사건/퀘스트/상점을
+  일반화하는 건 여전히 안 함**(콘텐츠가 이 하나뿐이라 2장 "테스트되지
+  않은 시스템을 대량 생성" 위반 — 두 번째 사건이 생길 때 할 일).
 - **Phase 7(72~73단계) — World Event / Hidden Area.** Quest(70~71) 다음
   순서로 이어서(2026-09-11, 같은 세션). `Data/WorldEventState.cs`(사건
   하나뿐 — 굴 옆 보물을 찾았는지만 기억, PartyState.cs와 같은 자리) +
@@ -269,16 +292,20 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **굴 옆 숨겨진 보물이 실제로 보이고 주워지는지**(발광 구슬이 굴
     입구 상자에 안 가려 보이는지, 다가가면 "유물 검"을 얻는지 —
     한 번 주우면 다시 안 나니 역시 세이브 지우고 새로 시작해야 재현됨)
+  - **골드 경제·상인 거래·PlayerHud가 실제로 도는지**(길세 40냥을
+    실제로 낼 수 있는지/모자라면 거절당하는지, 상인에게 처음/두 번째
+    말 걸 때 문구가 바뀌는지, 화면 왼쪽 위 HUD 줄이 DebugUI와 안
+    겹치고 값이 실제로 갱신되는지)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
-  World Event/Hidden Area)까지 코드상으로는 전부 채워졌다.** **위 GUI
-  확인에서 실제로 도는 게 확인되면 PLAN.md 77~78단계(전체 플레이 테스트
-  → 재미 평가)로 넘어갈 수 있다** — 이번 세션은 그 게이트를 사용자가
-  명시로 건너뛰라고 골라 Phase 6·7을 먼저 끝냈다(2026-09-11). 다음
-  후보는 PLAN.md 51~65장이 적어 둔 확장 순서(GO 월드 확장 → DUNGEON →
-  FOREST → STORY → REALM) · 이번에 미룬 항목들(장비창 UI, 사건/퀘스트/
-  루트 테이블을 사전 구조로 일반화, 골드 경제) — 세션 시작 시 PLAN.md를
-  다시 훑어 고를 것.
+  World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud까지 코드상
+  으로는 전부 채워졌다.** **위 GUI 확인에서 실제로 도는 게 확인되면
+  PLAN.md 77~78단계(전체 플레이 테스트 → 재미 평가)로 넘어갈 수 있다**
+  — 이번 세션은 그 게이트를 사용자가 명시로 건너뛰라고 골라 여기까지
+  끝냈다(2026-09-11). 다음 후보는 PLAN.md 51~65장이 적어 둔 확장 순서
+  (GO 월드 확장 → DUNGEON → FOREST → STORY → REALM) — 사건/퀘스트/
+  상점을 사전 구조로 일반화하는 건 콘텐츠가 하나뿐이라 여전히 미룸(두
+  번째 사건이 생길 때). 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
 
 ## 알려진 오류
 
@@ -351,3 +378,7 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   씬에 GameObject가 실제로 늘어(HiddenTreasure) `BuildTestVillageScene
   .Build()`를 다시 돌림 — `groundVerts=3136` 그대로(땅은 안 바뀜),
   PlaytestHeadless도 재저장된 씬으로 통과.
+- 골드 경제/상인 거래/PlayerHud(GoldState/ShopState/PlayerHud +
+  BanditEncounter·NpcBuilder·SaveState v5 통합) 추가 후 컴파일 통과,
+  PlayerHud가 씬에 새 GameObject라 `BuildTestVillageScene.Build()` 재실행
+  (groundVerts=3136 그대로), PlaytestHeadless도 통과.

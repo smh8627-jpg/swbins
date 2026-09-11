@@ -37,10 +37,29 @@ namespace Saga.Go.World
             new VillagerDef
             {
                 Id = "npc_merchant", Name = "떠돌이 상인",
-                LineFn = () => "북쪽 산길은 요즘 값이 오르오. 짐꾼을 못 구해서.",
+                LineFn = MerchantLine,
                 Gx = 4, Gy = 3, Color = new Color(0.55f, 0.32f, 0.18f),
             },
         };
+
+        /// <summary>PLAN.md 66장 Reward — 상인은 새 상점 화면 없이 "말을 걸면
+        /// 살 수 있으면 판다"로 거래를 끝낸다(Inventory.cs의 "더 센 장비는
+        /// 자동 장착"과 같은 결). 딱 한 번만 판다.</summary>
+        private static string MerchantLine()
+        {
+            string itemName = ItemData.Get(ShopState.MerchantItemId)?.Name ?? ShopState.MerchantItemId;
+
+            if (ShopState.MerchantSold)
+            {
+                return "덕분에 짐이 줄어 고맙네. 좋은 길 되시게.";
+            }
+            if (ShopState.TryBuyFromMerchant())
+            {
+                return $"짐이 무거워 골치였는데 — {itemName}을 {ShopState.MerchantPrice}냥에 내주지. 가져가시게.";
+            }
+            return $"북쪽 산길은 요즘 값이 오르오. {itemName}을 {ShopState.MerchantPrice}냥에 넘기고 싶은데, " +
+                   "자네 주머니 사정이 넉넉지 않아 보이는군.";
+        }
 
         /// <summary>PLAN.md 70장 — 도적 퀘스트를 내주고, 진행 중이면 재촉하고,
         /// 끝났으면 사례한다. 말을 거는 순간이 곧 "퀘스트 수락"이라 여기서

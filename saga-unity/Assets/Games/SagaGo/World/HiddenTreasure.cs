@@ -24,6 +24,7 @@ namespace Saga.Go.World
 
         private const float PickupRadius = 6f;
         private const int RewardExp = 30;
+        private const int RewardGold = 20;
         private const string RewardItemId = "wp_relic";
         private const float ToastSec = 5f;
 
@@ -66,9 +67,10 @@ namespace Saga.Go.World
 
             Inventory.AddItem(RewardItemId);
             PlayerStats.AddExp(RewardExp);
+            GoldState.Add(RewardGold);
             var item = ItemData.Get(RewardItemId);
             DialogueLabel.Instance?.Show(
-                $"숨겨진 보물을 발견했다! {item?.Name}을(를) 얻었다. 경험치 +{RewardExp}", ToastSec);
+                $"숨겨진 보물을 발견했다! {item?.Name}을(를) 얻었다. 경험치 +{RewardExp} · 돈 +{RewardGold}냥", ToastSec);
             Destroy(gameObject);
         }
     }
