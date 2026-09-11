@@ -22,6 +22,8 @@
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
   var playerMesh = null, enemyPool = [], npcPool = [], gatherPool = [], critterPool = [], chestMesh = null;
+  var deadMeshes = {};   // run.dying 의 uid → 배우. 인덱스가 아니라 uid로 붙드므로
+                          // 죽는 도중에 다른 적이 그 자리를 이어받지 않는다(side.js kill() 참고)
   var stageGen = 0;   // 사냥터가 바뀔 때마다 올린다 — 늦게 도착한 GLB 응답을 걸러낸다
   var lastDrawT = 0, frameDt = 0;   // 사람 GLB 의 몸짓(뼈대 애니메이션)을 굴리는 델타타임
 
@@ -493,6 +495,8 @@
     var Tc = three();
     stageGen++;   // 늦게 도착한 GLB 응답이 지난 세대의 지형에 잘못 꽂히지 않게 한다
     while (worldGroup.children.length) { var wc = worldGroup.children[0]; disposeDeep(wc); worldGroup.remove(wc); }
+    for (var dk in deadMeshes) { actorGroup.remove(deadMeshes[dk]); disposeDeep(deadMeshes[dk]); }
+    deadMeshes = {};
 
     var L = moodLight(stg.mood, stg.town);
     scene.background = new Tc.Color(L.sky);
@@ -723,6 +727,13 @@
       if (next) {
         var prevClip = u.anim && u.clipMap[u.anim];
         var prev = prevClip && u.actions[prevClip];
+        /* death는 한 번만 돌고 마지막 자세에서 멈춘다 — 나머지(걷기·공격 등)처럼
+           반복되면 쓰러진 채 다시 일어서는 꼴이 되어 버린다 */
+        if (animName === 'death') {
+          var Tc0 = three();
+          next.clampWhenFinished = true;
+          next.setLoop(Tc0.LoopOnce);
+        }
         next.reset().play();
         if (prev && prev !== next) { prev.crossFadeTo(next, 0.2, false); }
         u.anim = animName;
@@ -836,6 +847,30 @@
     }
     for (i = run.enemies.length; i < enemyPool.length; i++) {
       if (enemyPool[i]) { enemyPool[i].visible = false; }
+    }
+
+    /* 죽는 몸짓(2026-09-11) — `run.dying`(side.js kill() 참고)을 uid로 붙든
+       별도 배우 풀로 세운다. enemyPool처럼 인덱스로 재활용하면 방금 죽은
+       자리를 다른 적이 이어받아 death 몸짓 도중 모습이 뒤바뀐다 */
+    var dying = run.dying || [], seenDead = {};
+    for (i = 0; i < dying.length; i++) {
+      var d = dying[i];
+      seenDead[d.uid] = true;
+      var dm = deadMeshes[d.uid];
+      if (!dm) {
+        var dtint = d.rare ? '#f0c040' : (d.mini ? '#a0305a' :
+          (d.role === 'magic' ? '#6a4fc0' : d.ref.color));
+        dm = actorShell(Tc, d.ref.kind, dtint, d.boss, d.ref.name, d.role === 'tank' || d.mini);
+        actorGroup.add(dm);
+        deadMeshes[d.uid] = dm;
+      }
+      place(dm, d.x + d.w / 2, stg.floor - (d.y + d.h), d.dir);
+      stepActor(dm, 'death');
+    }
+    for (var dk in deadMeshes) {
+      if (!seenDead[dk]) {
+        actorGroup.remove(deadMeshes[dk]); disposeDeep(deadMeshes[dk]); delete deadMeshes[dk];
+      }
     }
 
     /* 마을 사람 서성임 — 판정에 안 닿는 화면 층뿐이다. 정지 앵커 둘레를 느리게

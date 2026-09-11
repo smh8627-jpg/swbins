@@ -60,6 +60,8 @@
   var run = null;               // 지금 사냥 중인 판
   var input = { left: false, right: false, jump: false, up: false, down: false };
   var fx = [];
+  var deathUid = 0;             // run.dying 항목마다 붙는 값 — 화면(side-view3d)이
+                                 // 배열 인덱스 대신 이 값으로 죽는 몸을 붙든다
 
   /* ── 세이브 ───────────────────────────────────────────── */
 
@@ -272,7 +274,7 @@
                 cds: [0, 0, 0, 0, 0, 0], buff: null,
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0,
                 dodgeAnim: 0, drinkAnim: 0 },
-      enemies: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
+      enemies: [], dying: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), forage: buildForageZone(stg), ambush: buildAmbush(stg),
       miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
       npcs: buildNpcs(stg), talk: null,
@@ -753,11 +755,24 @@
     if (global.DG.hero.awardParty) { global.DG.hero.awardParty((2 + lv) * (e.boss ? 8 : 1)); }
     fx.push({ t: 'pop', x: e.x + e.w / 2, y: e.y, life: e.boss ? 0.9 : 0.5 });
     /* 뒤로 넘어가며 사라진다 — 원작에서 몹이 죽던 그 모습이다(화면 층이 그린다) */
+    var deathDur = e.boss ? 1.1 : (e.mini ? 0.7 : 0.55);
     fx.push({ t: 'fall', x: e.x + e.w / 2, y: e.y, w: e.w, h: e.h,
               dir: (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1,
-              ref: e.ref, boss: !!e.boss, life: e.boss ? 1.1 : 0.55 });
+              ref: e.ref, boss: !!e.boss, life: deathDur });
     if (e.boss) { fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.6, big: true }); }
     sfx((e.boss || e.mini) ? 'bosskill' : 'kill');
+
+    /* 죽는 몸짓(2026-09-11) — `run.enemies`(판정)에서는 바로 빼지만, 화면(3D)이
+       `run.dying`으로 잠깐 더 붙들어 death 몸짓이 다 돌 때까지 세워 둔다. uid를
+       따로 매겨 배열 인덱스로 안 묶는다 — run.enemies 는 이 자리에서 바로
+       splice 되어 뒤 원소가 인덱스 하나씩 당겨지는데, 화면 쪽 배우 풀이 인덱스로
+       재활용하는 예전 방식이었다면 죽는 도중 다른 적의 모습으로 바뀌어 버렸을 것 */
+    run.dying.push({
+      uid: ++deathUid, ref: e.ref, x: e.x, y: e.y, w: e.w, h: e.h,
+      dir: (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1,
+      boss: !!e.boss, mini: !!e.mini, rare: !!e.rare, role: e.role,
+      t: 0, dur: deathDur
+    });
 
     var idx = run.enemies.indexOf(e);
     if (idx >= 0) { run.enemies.splice(idx, 1); }
@@ -1342,6 +1357,11 @@
     for (i = fx.length - 1; i >= 0; i--) {
       fx[i].life -= dt;
       if (fx[i].life <= 0) { fx.splice(i, 1); }
+    }
+    /* 죽는 몸짓 수명(위 kill() 참고) — death 몸짓이 다 돈 뒤에야 치운다 */
+    for (i = run.dying.length - 1; i >= 0; i--) {
+      run.dying[i].t += dt;
+      if (run.dying[i].t >= run.dying[i].dur) { run.dying.splice(i, 1); }
     }
   }
 

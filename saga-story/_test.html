@@ -423,6 +423,19 @@ window.DG_NO_TUNE = true;
         ('잡음 ' + run.kills + ' · 금 ' + run.gold + ' · 적 수 유지 ' + run.enemies.length);
     });
 
+    t('잡은 적은 곧바로 안 사라지고 death 몸짓 동안 run.dying 에 uid로 남는다', function () {
+      var run = S.raw();
+      var e = run.enemies[0];
+      e.x = run.player.x + 40; e.y = run.player.y; e.hp = 1; e.boss = false; e.mini = false;
+      run.player.facing = 1; run.player.cds = [0, 0, 0, 0];
+      S.castSkill(0);
+      var d = run.dying[run.dying.length - 1];
+      var justDied = !!d && typeof d.uid === 'number' && d.t === 0 && d.dur > 0;
+      for (var i = 0; i < 40; i++) { S.update(0.05); }   // dur(최대 1.1초)보다 넉넉히 지난다
+      return justDied && run.dying.indexOf(d) === -1 &&
+        ('death 등록 ' + justDied + ' · dur ' + (d ? d.dur.toFixed(2) : '?') + ' · 정리됨');
+    });
+
     t('탕약 — 체력을 채우고 개수가 줄어든다', function () {
       var run = S.raw(), s = S.state();
       run.hp = Math.round(run.hpMax * 0.3);
