@@ -186,6 +186,9 @@
         global.DG.side.dodge();
       } else if (act === 'talk-close') {
         global.DG.side.closeTalk();
+      } else if (act === 'talk-shop') {
+        global.DG.side.closeTalk();
+        openSheet('shop');
       } else if (act === 'auto-on') {
         global.DG.auto.toggle();
       } else if (act === 'auto-flag') {
@@ -589,7 +592,10 @@
       talkKey = key;
       els.talkbox.innerHTML = '<div class="talk-card">' +
         '<b>' + esc(t.emoji || '💬') + ' ' + esc(t.name) + '</b><p>' + esc(t.text) + '</p>' +
-        '<button class="btn ghost" data-act="talk-close">닫는다</button></div>';
+        '<div class="btn-row">' +
+          (t.shop ? '<button class="btn tiny primary" data-act="talk-shop">🏪 저자를 연다</button>' : '') +
+          '<button class="btn ghost" data-act="talk-close">닫는다</button>' +
+        '</div></div>';
     }
     els.talkbox.classList.add('show');
   }

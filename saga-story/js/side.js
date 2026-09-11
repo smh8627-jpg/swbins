@@ -366,7 +366,7 @@
     var t = SD.NPC_TALK[npc.key];
     if (!t || !t.lines.length) { return false; }
     var text = t.lines[Math.floor(Math.random() * t.lines.length)];
-    run.talk = { x: npc.x, key: npc.key, name: t.name, emoji: t.emoji || '💬', text: text };
+    run.talk = { x: npc.x, key: npc.key, name: t.name, emoji: t.emoji || '💬', text: text, shop: !!t.shop };
     sfx('talk');
     core.emit('side:talk', { stage: run.stage.key, npc: npc.key });
     core.emit('changed');
@@ -1405,7 +1405,8 @@
     base.gate = g ? { to: g.to, name: g.ref.name, open: unlocked(g.to), need: g.ref.need } : null;
     var n = npcAt(run.player.x + P_W / 2);
     base.npc = n ? { key: n.key, name: n.name } : null;
-    base.talk = run.talk ? { name: run.talk.name, emoji: run.talk.emoji, text: run.talk.text } : null;
+    base.talk = run.talk ?
+      { name: run.talk.name, emoji: run.talk.emoji, text: run.talk.text, shop: !!run.talk.shop } : null;
     if (run.boss) {
       base.boss = {
         name: run.boss.ref.name,

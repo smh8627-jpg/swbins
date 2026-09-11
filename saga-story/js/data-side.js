@@ -32,7 +32,7 @@
       ground: '#8a6b3a', width: 1200, floor: 560, town: true,
       plats: [[520, 430, 240]], ropes: [[540, 430, 560, 'ladder']],
       portals: [[1130, 'heodo']],
-      npcs: [[220, 'elder'], [620, 'guard'], [980, 'wanderer']],
+      npcs: [[220, 'elder'], [620, 'guard'], [800, 'merchant'], [980, 'wanderer']],
       enemyLv: 1, spawn: 0
     },
     {
@@ -84,7 +84,7 @@
       plats: [[380, 420, 240], [860, 360, 220]],
       ropes: [[400, 420, 560, 'ladder'], [880, 360, 560, 'rope']],
       portals: [[70, 'forest'], [1230, 'cave']],
-      npcs: [[220, 'guard'], [620, 'healer'], [980, 'wanderer']],
+      npcs: [[220, 'guard'], [620, 'healer'], [800, 'merchant'], [980, 'wanderer']],
       enemyLv: 12, spawn: 0
     },
     {
@@ -191,6 +191,12 @@
    * 가리키는 자리다. 이름은 인물이 아니라 **직책**이라 이름 정책(가명·오마주)에
    * 걸리지 않는다. `lines` 는 매번 아무거나 하나 뽑아 보여준다 — 순서를
    * 지키는 대사가 아니라 마을마다 도는 잡담이라 그걸로 충분하다.
+   *
+   * `shop: true`(2026-09-11) — 이 마을 사람과 말을 트면 대사 밑에 저자(🏪)를
+   * 여는 단추가 하나 붙는다(`side.js`의 `talk()`·`ui.js`의 `renderTalkBox()`
+   * 참고). 상점은 여전히 도구줄 🏪로 어디서든 연다(PLAN 11절 결정을 뒤집지
+   * 않는다) — `merchant` 옆에 서면 **같은 상점을 여는 지름길**이 하나 더
+   * 생기는 것뿐이다. 모든 마을에 `merchant`를 하나씩 세워 뒀다.
    */
   var NPC_TALK = {
     elder: { name: '촌로', emoji: '🧓', lines: [
@@ -199,7 +205,7 @@
       '이 근방 사냥터마다 우두머리가 하나씩 있다고 들었네 — 조심하시게.',
       '들판에 나가면 캐 갈 것이 제법 있을 걸세.'
     ] },
-    merchant: { name: '장사치', emoji: '💰', lines: [
+    merchant: { name: '장사치', emoji: '💰', shop: true, lines: [
       '저자에 들르시게 — 장비도 주문서도 다 있다네.',
       '요즘 금 귀한 줄 모르는 사람이 없어.',
       '주문서는 실패할 때도 있으니 마음 단단히 먹게.',
