@@ -5,7 +5,10 @@ extends Node3D
 ## CC0 Kenney Fantasy Town Kit(assets/buildings, ASSET_GUIDE.md 참고)의
 ## GLB 조각으로 바꿨다. 굴 입구는 이 킷에 맞는 조각이 없어 이번 교체에서
 ## 빠졌었다 — 같은 날 뒤이어 CC0 Kenney Modular Cave Kit의 gate-rock.glb로
-## 마저 바꿨다(아래 _add_cave 참고, docs/ASSET_GUIDE.md 참고).
+## 마저 바꿨다(아래 _add_cave 참고). 마을집도 처음엔 wall-block.glb 한 장을
+## 비균등 스케일로 늘려 대체했었는데, 그 뒤 이어서 실제로 여러 장을 격자로
+## 이어 붙이는 모듈형 조립(_build_wall_perimeter)으로 바꿨다 —
+## docs/ASSET_GUIDE.md 참고.
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
@@ -17,11 +20,11 @@ const PILLAR_GLB := "res://assets/buildings/pillar-stone.glb"
 const PLANK_GLB := "res://assets/buildings/planks.glb"
 const CAVE_GATE_GLB := "res://assets/dungeon/gate-rock.glb"
 
-## wall-block.glb는 1x1x1 정육면체(바닥이 원점) — 기존 박스 몸통(10x4x10)에
-## 맞춰 축마다 다르게 늘렸다. 텍스처가 단순 색 아틀라스라 늘려도 눈에 띄게
-## 이상하진 않다(ASSET_GUIDE.md에 실측·근거 기록). 진짜 모듈형 벽 타일링은
-## 이번 교체 범위 밖 — 다음 손질 때 여러 장 이어 붙이는 걸로 바꿀 수 있다.
-const WALL_SCALE := Vector3(10, 4, 10)
+## wall-block.glb는 1x1x1 정육면체(바닥이 원점) — 실제 모듈형 킷답게
+## 늘리지 않고 원래 크기 그대로 여러 장을 격자로 이어 붙인다(_build_wall_perimeter).
+## 값은 발자국 x칸·z칸·y층수(전부 1m 단위) — 기존 primitive 몸통(10x4x10)과
+## 같은 바깥 치수가 나오게 잡았다.
+const WALL_FOOTPRINT := Vector3(10, 4, 10)
 ## roof-gable.glb(1.1 x 0.57 x 1.07)는 원래 비율이 이미 지붕다워서 세 축을
 ## 거의 같은 배수로만 키웠다 — 폭 기준 10배.
 const ROOF_SCALE := Vector3(10, 10, 10)
@@ -106,15 +109,9 @@ func _add_village() -> void:
 		house.position = TestMap.world_pos(gx, 3) + Vector3(0, ground, 0)
 		add_child(house)
 
-		var body_size := Vector3(10, 4, 10)
+		var body_size := WALL_FOOTPRINT
 		if wall_mesh != null:
-			var body := MeshInstance3D.new()
-			body.name = "Wall"
-			body.mesh = wall_mesh
-			## wall-block.glb는 바닥이 원점이라 y=0에 그대로 세우면 된다
-			## (BoxMesh였을 때처럼 높이 절반만큼 띄울 필요가 없다).
-			body.transform = Transform3D(Basis().scaled(WALL_SCALE), Vector3.ZERO)
-			house.add_child(body)
+			house.add_child(_build_wall_perimeter(wall_mesh, body_size))
 		## 충돌은 시각 메시의 피벗과 무관하게 중심 기준이라 그대로 둔다.
 		_solid(body_size, Vector3(0, body_size.y * 0.5, 0), house)
 
@@ -124,6 +121,40 @@ func _add_village() -> void:
 			roof.mesh = roof_mesh
 			roof.transform = Transform3D(Basis().scaled(ROOF_SCALE), Vector3(0, body_size.y, 0))
 			house.add_child(roof)
+
+
+## wall-block.glb(1x1x1, 바닥 피벗) 여러 장을 footprint(x칸·y층·z칸, 전부
+## 1m 단위) **둘레**에만 실제로 이어 붙인다 — 안쪽 칸은 비운다. 안쪽을
+## 채우지 않아도 밖에서 보면 꽉 찬 벽과 구별이 안 되고(들어갈 수 없는
+## 장식용 외형이라 내부가 안 보임), 400칸을 다 채우는 것보다 훨씬 가볍다.
+## MultiMesh 하나로 몇 백 개를 놓아도 draw call은 house마다 1회(다리
+## planks.glb와 같은 방식, master.md 35장).
+func _build_wall_perimeter(wall_mesh: Mesh, footprint: Vector3) -> MultiMeshInstance3D:
+	var cols_x := int(footprint.x)
+	var layers := int(footprint.y)
+	var cols_z := int(footprint.z)
+
+	var cells: Array[Vector3] = []
+	for ix in cols_x:
+		for iz in cols_z:
+			if ix == 0 or ix == cols_x - 1 or iz == 0 or iz == cols_z - 1:
+				cells.append(Vector3(ix - cols_x * 0.5 + 0.5, 0, iz - cols_z * 0.5 + 0.5))
+
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = wall_mesh
+	mm.instance_count = cells.size() * layers
+
+	var idx := 0
+	for layer in layers:
+		for cell in cells:
+			mm.set_instance_transform(idx, Transform3D(Basis(), cell + Vector3(0, layer, 0)))
+			idx += 1
+
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.name = "Wall"
+	return mmi
 
 
 func _add_ruins() -> void:
