@@ -61,6 +61,8 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 })(20260824);
 </script>
 <script src="js/data.js"></script>
+<script src="js/region-kr.js"></script>
+<script src="js/genchar.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/perf.js"></script>
@@ -5826,6 +5828,55 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       }
       return miss.length === 0 &&
         (need.map(function (n) { return R[n].name; }).join('→') + ' — 다섯 단 다 있음');
+    });
+
+    t('한국 권역(region-kr) — 대표 도시 다섯 곳이 각각 맞는 권역으로 잡힌다', function () {
+      var RK = DG.regionKr;
+      if (!RK) { return false; }
+      var cases = [
+        ['서울', 37.5665, 126.9780, '경기'], ['부산', 35.1796, 129.0756, '경상'],
+        ['강릉', 37.7519, 128.8761, '강원'], ['제주시', 33.4996, 126.5312, '제주'],
+        ['평양', 39.0392, 125.7625, '평안']
+      ];
+      var miss = cases.filter(function (c) {
+        var r = RK.regionOf(c[1], c[2]);
+        return !r || r.name !== c[3];
+      });
+      return miss.length === 0 &&
+        (cases.map(function (c) { return c[0] + '→' + c[3]; }).join(' · '));
+    });
+
+    t('절차적 인물 생성(genchar) — 같은 (권역·등급·지표)면 항상 같은 사람', function () {
+      var GC = DG.genchar;
+      if (!GC) { return false; }
+      var a = GC.hero('gyeongsang', 2, 777);
+      var b = GC.hero('gyeongsang', 2, 777);
+      var c = GC.hero('gyeongsang', 2, 778);
+      return a && b && a.name === b.name && a.hanja === b.hanja &&
+        JSON.stringify(a.stats) === JSON.stringify(b.stats) && a.name !== c.name &&
+        (a.name + '(' + a.hanja + ') · 등급' + a.rarity + ' · ' + a.trait);
+    });
+
+    t('절차적 인물 — HEROES(105명 도감)에는 안 섞여 들어간다', function () {
+      var GC = DG.genchar;
+      var before = DG.data.heroes.length;
+      GC && GC.hero('jeju', 1, 1);
+      GC && GC.hero('hamgyeong', 2, 2);
+      return DG.data.heroes.length === before && before === 105 &&
+        ('도감 인물 수 그대로 ' + before);
+    });
+
+    t('data.find/bio — 절차적 id도 정적 배열처럼 되살아난다', function () {
+      var GC = DG.genchar;
+      if (!GC) { return false; }
+      var h = GC.hero('jeolla', 1, 999);
+      var found = DG.data.find(h.id);
+      var bio = DG.data.bio(h.id);
+      var p = GC.pet('gangwon', 1, 555);
+      var foundPet = DG.data.find(p.id);
+      return !!found && found.name === h.name && bio === h._bio &&
+        !!foundPet && foundPet.name === p.name &&
+        (h.id + ' · ' + p.id + ' 모두 find()로 되살아남');
     });
 
     t('가명 정책 — BIOS·PETS·quote에 실제 역사 인물의 실명이 없다', function () {

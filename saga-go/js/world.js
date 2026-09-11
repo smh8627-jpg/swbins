@@ -704,7 +704,23 @@
     return 1;
   }
 
-  function pickHero(rar) {
+  /** 절차적 권역 풀(한국, saga-go 전용) — rarity 1~2는 원래 HEROES/PETS에
+   *  아무도 없던 자리라(105명은 3~5만 쓴다) 여길 채워도 기존 등급 분포와
+   *  안 부딪힌다. region이 안 잡히면(모듈 미로딩·한국 밖) 예전처럼 정적
+   *  풀로 그냥 간다 — 구조를 건드리지 않는다. */
+  function genRegionAt(x, y) {
+    var RK = global.DG.regionKr;
+    if (!RK) { return null; }
+    var ll = worldToLatLng(x, y);
+    return RK.regionOf(ll.lat, ll.lng);
+  }
+
+  function pickHero(rar, region) {
+    var GC = global.DG.genchar;
+    if (region && GC && rar <= 2 && Math.random() < 0.85) {
+      var h = GC.hero(region.code, rar, Math.floor(Math.random() * 1e6));
+      if (h) { return h; }
+    }
     var pool = data.heroes.filter(function (h) { return h.rarity === rar; });
     if (!pool.length) { pool = data.heroes.filter(function (h) { return h.rarity <= rar; }); }
     if (!pool.length) { return core.pick(data.heroes); }
@@ -718,10 +734,15 @@
     return core.pick(pool);
   }
 
-  function pickPet(rar) {
+  function pickPet(rar, region) {
     var W = global.DG.weather;
     var wantDivine = Math.random() <
       (0.18 + core.effect('divinePct') / 100 + (W ? W.divineBias() : 0));
+    var GC = global.DG.genchar;
+    if (region && GC && rar <= 2 && !wantDivine && Math.random() < 0.85) {
+      var p = GC.pet(region.code, rar, Math.floor(Math.random() * 1e6));
+      if (p) { return p; }
+    }
     var pool = data.pets.filter(function (p) {
       return p.rarity === rar && (wantDivine ? p.kind === 'divine' : p.kind === 'beast');
     });
@@ -741,10 +762,11 @@
     var rar = rarityRoll();
     var sx = pos.x + Math.cos(ang) * dist;
     var sy = pos.y + Math.sin(ang) * dist;
+    var region = genRegionAt(sx, sy);
     return {
       uid: ++spawnSeq,
       kind: isHero ? 'hero' : 'pet',
-      ref: isHero ? pickHero(rar) : pickPet(rar),
+      ref: isHero ? pickHero(rar, region) : pickPet(rar, region),
       x: sx, y: sy,
       homeX: sx, homeY: sy,          // 배회 중심
       tx: sx, ty: sy,                // 현재 목적지
