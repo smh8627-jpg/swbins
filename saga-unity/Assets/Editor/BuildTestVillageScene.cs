@@ -30,6 +30,7 @@ namespace Saga.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             BuildLighting();
+            BuildSkyAndFog();
             var terrainGo = BuildTerrain();
             BuildVegetation();
             BuildLandmarks();
@@ -55,6 +56,12 @@ namespace Saga.EditorTools
             sun.intensity = 1.1f;
             sun.shadows = LightShadows.Soft;
             sunGo.transform.rotation = Quaternion.Euler(45f, -30f, 0f);
+        }
+
+        private static void BuildSkyAndFog()
+        {
+            var go = new GameObject("SkyFog");
+            go.AddComponent<SkyFogBuilder>().Build();
         }
 
         private static GameObject BuildTerrain()
@@ -108,6 +115,8 @@ namespace Saga.EditorTools
             camGo.transform.SetParent(rigGo.transform, false);
             var cam = camGo.AddComponent<Camera>();
             cam.tag = "MainCamera";
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = SkyFogBuilder.HorizonColor;
             camGo.AddComponent<AudioListener>();
 
             var inputActions = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputActionAsset>(InputActionsPath);
@@ -134,6 +143,8 @@ namespace Saga.EditorTools
             var camGo = new GameObject("ReviewCamera");
             var cam = camGo.AddComponent<Camera>();
             cam.enabled = false;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = SkyFogBuilder.HorizonColor;
             camGo.transform.position = new Vector3(0, 300, 140);
             camGo.transform.rotation = Quaternion.LookRotation(new Vector3(0, -0.9063f, -0.4226f), Vector3.forward);
         }
