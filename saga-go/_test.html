@@ -5896,6 +5896,86 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (h.id + ' · ' + p.id + ' 모두 find()로 되살아남');
     });
 
+    /* ── 중국 권역(region-cn·genchar-cn) — 셋째 나라, 2026-09-11 ──
+     * 일본 권역 바로 위 다섯 항목과 같은 결로, 우공구주(고대 중국 아홉
+     * 주)가 대표 도시별로 맞게 잡히는지·genchar-jp와 같은 안전장치를
+     * 그대로 지키는지 확인한다. */
+
+    t('중국 권역(region-cn) — 대표 도시 다섯 곳이 각각 맞는 권역으로 잡힌다', function () {
+      var RC = DG.regionCn;
+      if (!RC) { return false; }
+      var cases = [
+        ['청두', 30.67, 104.06, '익주'], ['우한', 30.59, 114.30, '형주'],
+        ['시안', 34.27, 108.95, '옹주'], ['난징', 32.06, 118.78, '양주'],
+        ['스자좡', 38.04, 114.48, '기주']
+      ];
+      var miss = cases.filter(function (c) {
+        var r = RC.regionOf(c[1], c[2]);
+        return !r || r.name !== c[3];
+      });
+      return miss.length === 0 &&
+        (cases.map(function (c) { return c[0] + '→' + c[3]; }).join(' · '));
+    });
+
+    t('한국·일본·중국 권역 병합 최근접 — 세 나라 다 제 나라로만 잡힌다', function () {
+      /* region-jp.js 머리말의 그 계산(대표점 통째로 최근접)을 세 나라로
+         늘려도 그대로 지키는지 — 서해를 사이에 둔 한국 서해안·중국
+         동해안이 서로 잘못 넘어가지 않는지가 핵심이다 */
+      var RK = DG.regionKr, RJ = DG.regionJp, RC = DG.regionCn;
+      if (!RK || !RJ || !RC) { return false; }
+      var all = RK.REGIONS.concat(RJ.REGIONS).concat(RC.REGIONS);
+      function nearest(lat, lng) {
+        var cosLat = Math.cos(lat * Math.PI / 180), best = null, bestD = Infinity;
+        for (var i = 0; i < all.length; i++) {
+          var r = all[i], dLat = lat - r.center.lat, dLng = (lng - r.center.lng) * cosLat;
+          var d = dLat * dLat + dLng * dLng;
+          if (d < bestD) { bestD = d; best = r; }
+        }
+        return best;
+      }
+      var incheon = nearest(37.4563, 126.7052);   // 한국 서해안
+      var weifang = nearest(36.7069, 119.1618);   // 중국 동해안(청주 권역)
+      var fukuoka = nearest(33.5904, 130.4017);   // 일본 규슈(§ 위 항목과 같은 실측 오류 재확인)
+      return incheon.country === 'kr' && weifang.country === 'cn' && fukuoka.country === 'jp' &&
+        ('인천→' + incheon.name + '(kr) · 웨이팡→' + weifang.name + '(cn) · 후쿠오카→' + fukuoka.name + '(jp)');
+    });
+
+    t('절차적 인물 생성(genchar-cn) — 같은 (권역·등급·지표)면 항상 같은 사람', function () {
+      var GC2 = DG.gencharCn;
+      if (!GC2) { return false; }
+      var a = GC2.hero('yizhou', 2, 777);
+      var b = GC2.hero('yizhou', 2, 777);
+      var c = GC2.hero('yizhou', 2, 778);
+      return a && b && a.name === b.name && a.hanja === b.hanja &&
+        JSON.stringify(a.stats) === JSON.stringify(b.stats) && a.name !== c.name &&
+        (a.name + '(' + a.hanja + ') · 등급' + a.rarity + ' · ' + a.trait);
+    });
+
+    t('절차적 인물(genchar-cn) — HEROES(105명 도감)에는 안 섞여 들어가고, 한국·일본 쪽과 id가 안 겹친다', function () {
+      var GC2 = DG.gencharCn, GC = DG.genchar, GJ = DG.gencharJp;
+      var before = DG.data.heroes.length;
+      GC2 && GC2.hero('jizhou', 1, 1);
+      GC2 && GC2.hero('yuzhou', 2, 2);
+      var h = GC2 && GC2.hero('yongzhou', 3, 3);
+      return DG.data.heroes.length === before && before === 105 &&
+        (!GC || !GC.find(h.id)) && (!GJ || !GJ.find(h.id)) &&
+        (!GC2 || GC2.find('kr_gyeonggi_2_1') === null) && (!GC2 || GC2.find('jp_kanto_2_1') === null) &&
+        ('도감 인물 수 그대로 ' + before + ' · id 교차 없음');
+    });
+
+    t('data.find/bio — 중국 절차적 id도 정적 배열처럼 되살아난다', function () {
+      var GC2 = DG.gencharCn;
+      if (!GC2) { return false; }
+      var h = GC2.hero('qingzhou', 1, 999);
+      var found = DG.data.find(h.id);
+      var bio = DG.data.bio(h.id);
+      var p = GC2.pet('xuzhou', 1, 555);
+      var foundPet = DG.data.find(p.id);
+      return !!found && found.name === h.name && found.era === '삼국지' && bio === h._bio &&
+        !!foundPet && foundPet.name === p.name &&
+        (h.id + ' · ' + p.id + ' 모두 find()로 되살아남');
+    });
+
     t('가명 정책 — BIOS·PETS·quote에 실제 역사 인물의 실명이 없다', function () {
       /* 2026-09-10 발견된 구멍(SAGA-HANDOFF 참고): name/hanja만 가명으로 바꾸고
          BIOS·PETS의 name/desc·HEROES의 quote에는 실명·실제 사건명이 그대로
