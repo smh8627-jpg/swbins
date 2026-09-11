@@ -133,6 +133,24 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   **드로우콜이 실제로 줄었는지 수치 확인은 아직 안 함**(Stats 창은 GUI
   에디터라야 보여 헤드리스로는 못 본다 — 다음에 사람이 GUI로 확인할 때
   Game 뷰 Stats로 Before/After 드로우콜을 같이 봐 둘 것).
+- **PLAN.md 66-1장(PC/Mobile 렌더러 이중 프로파일) 재점검·MSAA 튠.**
+  Phase 1에서 "콘텐츠가 늘면 다시 점검한다"고 미뤄 뒀던 지점 — 버티컬
+  슬라이스 콘텐츠가 다 들어간 지금 다시 봤다. **SSAO·그림자 Cascade
+  수(PC 4/Mobile 1)·그림자 해상도(PC 2048/Mobile 1024)·Depth/Opaque
+  텍스처 요구(PC만 켜짐, SSR 등에 필요)는 이미 템플릿 기본값이 66-1장
+  표와 정확히 맞아 있었다** — 손 안 댐. **MSAA만 PC·Mobile 둘 다
+  꺼진 채(`m_MSAA: 1`=Disabled) 방치돼 있어서** `Mobile_RPAsset.asset`
+  →2(2x), `PC_RPAsset.asset`→4(4x)로 바꿨다(표의 "PC: MSAA/TAA"를
+  TAA 대신 MSAA 쪽으로 택함 — TAA는 카메라별 AdditionalCameraData·
+  Motion Vector 설정이 더 필요해 지금 콘텐츠 규모에는 과함, 32장 "최소
+  변경" 원칙). **Screen Space Reflection·Volumetric Fog는 일부러 안
+  넣었다** — 표에 PC 항목으로 적혀 있지만 지금 씬엔 그 효과가 붙을
+  반사면/안개 콘텐츠가 없어 검증 없이 넣으면 2장 "테스트되지 않은
+  시스템을 대량 생성" 위반이다 — 반사 재질이나 짙은 안개가 들어갈 때
+  같이 넣을 것. 두 URP Asset의 Volume Profile을 공유(`SampleSceneProfile`
+  guid `10fc4df2...`)하는 것도 **의도된 상태**(표 아래 "색 톤은 두 Asset에서
+  같게 유지" 요구사항 — 버그 아님, 갈라놓지 않는다). 컴파일·PlaytestHeadless
+  전부 통과.
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -175,6 +193,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     끄고 다시 켬 → 위치·부대가 돌아오는지)
   - **정적 배칭이 실제로 드로우콜을 줄였는지**(Game 뷰 Stats 창,
     Combine() 넣기 전/후 비교 — 헤드리스로는 확인 불가)
+  - **MSAA를 켠 뒤 가장자리 계단 현상이 실제로 줄었는지**(PC 4x/Mobile
+    2x로 숫자만 넣었다 — Quality 레벨을 PC/Mobile로 오가며 눈으로 볼 것)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프)이 코드상으로는 전부
   채워졌다** — 게임 실행→마을 진입→걷기→NPC 대화→도적 조우→맞선다→
   실시간 전투→승리→등용→전투력 상승 확인→저장→재시작 이어짐, 이
