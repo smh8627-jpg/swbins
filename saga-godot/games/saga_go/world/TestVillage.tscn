@@ -66,6 +66,20 @@ choice_b_label = "그냥 둔다"
 choice_b_outcome = "이끼를 도로 덮어 두었다."
 choice_b_exp = 0.0
 
+[node name="MapScrapEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(2, 2)
+event_title = "🗺️ 보물 지도 조각\n\"무너진 기둥 틈에 기름 먹인 종이가 끼여 있다.\""
+choice_a_label = "적힌 자리를 파 본다"
+choice_a_outcome = "돌 아래에서 묻어 둔 전대가 나왔다."
+choice_a_exp = 25.0
+choice_a_chance = 0.45
+choice_a_fail_outcome = "흙만 나왔다. 종이는 챙겨 두었다."
+choice_a_fail_exp = 15.0
+choice_b_label = "상인에게 판다"
+choice_b_outcome = "조각을 넘기고 값을 받았다."
+choice_b_exp = 0.0
+
 [node name="RareHerbEvent" type="Node3D" parent="."]
 script = ExtResource("11")
 grid = Vector2i(4, 4)
