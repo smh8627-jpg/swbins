@@ -2169,6 +2169,80 @@ Region 1
 
 ---
 
+# 66-1. 렌더러 프로파일 — Forward+ / Mobile 이중 구성
+
+## 결정 (2026-09-11)
+
+**Godot을 유지한다. Unity·Unreal로 갈아타지 않는다.**
+
+"언리얼 수준의 3D"라는 요구를 검토한 결론:
+
+- 화면 품질 차이의 대부분은 엔진이 아니라 **에셋 품질**(모델·텍스처·애니메이션·라이팅 셋업)에서 난다.
+  이 부분은 어느 엔진으로 가도 똑같이 만들어야 한다.
+- 엔진이 실제로 차이를 내는 것은 Nanite·Lumen·Megascans 같은 **PC 전용 포토리얼 파이프라인**이다.
+  이 프로젝트는 모바일을 목표로 하므로(45장) 그쪽으로 가도 그 기능을 꺼야 한다.
+- 따라서 엔진 교체는 비용만 크고 이득이 없다. 대신 **PC에서는 Forward+ 렌더러를 켜서**
+  Godot이 낼 수 있는 상한까지 올린다.
+
+품질 목표는 **스타일라이즈드 고품질**이다. 포토리얼 야외 대규모 씬은 목표로 잡지 않는다.
+
+## 두 프로파일
+
+| 프로파일 | 대상 | rendering_method | 켜는 것 |
+|---|---|---|---|
+| **PC** | Windows / macOS / Linux 빌드, 에디터 | `forward_plus` | SDFGI(또는 VoxelGI), SSR, SSAO, SSIL, Volumetric Fog, Glow, TAA/FSR2, 고품질 그림자 |
+| **Mobile** | Android / iOS 빌드 | `mobile` | Glow, MSAA 2x, 저해상도 그림자, 나머지 전부 꺼짐 |
+
+Web 내보내기는 `gl_compatibility`만 지원하므로 Web은 Mobile 프로파일에 준한다.
+
+## project.godot 설정 방식
+
+기본값을 Forward+로 두고, 플랫폼 feature tag로 덮어쓴다.
+
+```text
+[rendering]
+
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
+```
+
+- 렌더러 선택은 **이 세 줄로만** 한다. 씬 파일 안에서 렌더러를 분기하지 않는다.
+- 현재 `project.godot`은 `renderer/rendering_method="mobile"` 단일 구성이다.
+  전환은 **Vertical Slice(81~100장) 이후**, 실기 확인 때 몰아서 한다. 지금은 바꾸지 않는다.
+
+## Environment 분리
+
+프로파일 차이는 **project.godot + WorldEnvironment 리소스 두 개**에만 존재한다.
+
+```text
+assets/environment/
+├── env_pc.tres        # SDFGI · SSR · SSAO · SSIL · Volumetric Fog · Glow
+└── env_mobile.tres    # Glow · Tonemap · 색보정만
+```
+
+- 시작 시 `OS.has_feature("mobile")` 또는 `OS.has_feature("web")`로 하나를 골라 WorldEnvironment에 붙인다.
+- 톤매핑(ACES 또는 Filmic)·노출·색보정 값은 **두 리소스에서 같게** 유지한다. 프로파일이 달라도
+  게임의 색 톤은 같아야 한다.
+- 메시·머티리얼·텍스처·애니메이션은 **한 벌**이다. 프로파일별로 에셋을 따로 두지 않는다.
+  LOD·텍스처 해상도 차이는 Godot import 설정과 `rendering/textures` 프로젝트 설정으로만 조절한다.
+
+## 하지 말 것
+
+- 프로파일을 셋 이상으로 늘리기
+- Mobile 프로파일에서 SDFGI·SSR·SSIL·Volumetric Fog를 켜 보는 것 (45장 위반)
+- "언리얼만큼"을 이유로 엔진 교체를 다시 제안하기 — 위 결정으로 종결
+- Nanite·Lumen에 대응하는 기능이 없다는 이유로 Forward+ 채택을 미루기 —
+  이 프로젝트의 품질은 에셋과 라이팅 셋업에서 나온다(8장·44장)
+
+## 검증
+
+- 46장 디버그 화면에 **현재 rendering_method**를 표시한다.
+- PC 프로파일 FPS·Draw Call은 에디터에서, Mobile 프로파일은 71장 테스트 기기에서 확인한다.
+- 실기 확인은 매 단계마다 하지 않고 **마지막에 몰아서** 한다.
+
+---
+
 # 67. 사운드
 
 초기부터 구조만 만들어 둔다.
