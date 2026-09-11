@@ -37,6 +37,7 @@ namespace Saga.EditorTools
             var terrainGo = BuildTerrain();
             BuildVegetation();
             BuildLandmarks();
+            BuildAnimals();
             BuildNpcs();
             BuildBanditEncounter();
             BuildHiddenTreasure();
@@ -133,6 +134,13 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Landmarks");
             var builder = go.AddComponent<LandmarksBuilder>();
+            builder.Build();
+        }
+
+        private static void BuildAnimals()
+        {
+            var go = new GameObject("Animals");
+            var builder = go.AddComponent<AnimalBuilder>();
             builder.Build();
         }
 
