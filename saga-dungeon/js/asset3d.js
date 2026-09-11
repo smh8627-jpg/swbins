@@ -1341,7 +1341,14 @@
     return shell;
   }
 
-  /** 사람이 아닌 홑짜리 GLB(짐승·나무·바위) 하나 — 부위 변형이 없으니 그대로 눕혀 세운다 */
+  /** 사람이 아닌 홑짜리 GLB(짐승·나무·바위) 하나 — 부위 변형이 없으니 그대로 눕혀 세운다.
+   *  2026-09-11 — "장애물·짐승형 몹이 늦게 뜨고 그 사이 멈칫한다"(실기기 제보).
+   *  `buildHero()`의 `assemble()`은 위 2026-09-08 주석대로 이미 `scheduleHeavy()`로
+   *  프레임당 하나만 돌게 미뤄 뒀는데, 이 함수(나무·바위·기둥·상자 — 들판 장애물
+   *  전부와 짐승형 몹까지 여기로 온다)만 그 손질에서 빠져 있었다. 같은 URL을 기다리던
+   *  여럿이 `flush()` 한 자리에서 동기로 `cloneScene`+`normalize`를 돌던 것이 원인 —
+   *  같은 대기줄로 흘려보낸다(몸 조립과 경합하지만, 몰아서 도는 것보다 한 프레임에
+   *  하나씩 흩어 놓는 쪽이 낫다). */
   function build(kind, seed, mul, tintHex, makeShape) {
     var t = three();
     var shell = new t.Group();
@@ -1353,21 +1360,23 @@
 
     acquire(url, function (c) {
       if (!c) { shell.userData.assetState = 'fail'; return; }
-      var model;
-      try {
-        model = cloneScene(c.gltf);
-        model = normalize(model, mul);
-        applyTint(model, tintHex);
-      } catch (e) { shell.userData.assetState = 'fail'; return; }
-      while (shell.children.length) { shell.remove(shell.children[0]); }
-      shell.add(model);
-      shell.userData.assetState = 'glb';
-      if (c.clips && c.clips.length) {
-        var mx = new t.AnimationMixer(model);
-        var acts = {}, i;
-        for (i = 0; i < c.clips.length; i++) { acts[c.clips[i].name] = mx.clipAction(c.clips[i]); }
-        shell.userData.mixer = mx; shell.userData.actions = acts; shell.userData.clipMap = c.map;
-      }
+      scheduleHeavy(function () {
+        var model;
+        try {
+          model = cloneScene(c.gltf);
+          model = normalize(model, mul);
+          applyTint(model, tintHex);
+        } catch (e) { shell.userData.assetState = 'fail'; return; }
+        while (shell.children.length) { shell.remove(shell.children[0]); }
+        shell.add(model);
+        shell.userData.assetState = 'glb';
+        if (c.clips && c.clips.length) {
+          var mx = new t.AnimationMixer(model);
+          var acts = {}, i;
+          for (i = 0; i < c.clips.length; i++) { acts[c.clips[i].name] = mx.clipAction(c.clips[i]); }
+          shell.userData.mixer = mx; shell.userData.actions = acts; shell.userData.clipMap = c.map;
+        }
+      });
     });
     return shell;
   }
