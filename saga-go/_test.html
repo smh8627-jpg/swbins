@@ -5828,6 +5828,41 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (need.map(function (n) { return R[n].name; }).join('→') + ' — 다섯 단 다 있음');
     });
 
+    t('가명 정책 — BIOS·PETS·quote에 실제 역사 인물의 실명이 없다', function () {
+      /* 2026-09-10 발견된 구멍(SAGA-HANDOFF 참고): name/hanja만 가명으로 바꾸고
+         BIOS·PETS의 name/desc·HEROES의 quote에는 실명·실제 사건명이 그대로
+         남아 있었다. 같은 구멍이 다시 안 생기게 알려진 실명 몇 개만이라도
+         박아 둔다(전수 검사는 아니다 — 새 인물을 추가할 때 사람이 한 번 더
+         눈으로 훑어야 한다). */
+      var BLACK = ['유비', '관우', '조조', '사마의', '하후돈', '장료', '순욱', '손권', '주유',
+        '육손', '태사자', '감녕', '여포', '초선', '방통', '화타', '맹획', '봉추',
+        '이순신', '을지문덕', '강감찬', '김유신', '계백', '연개소문', '광개토대왕', '세종대왕',
+        '장영실', '최무선', '대조영', '왕건', '정약용', '허준', '신사임당',
+        '안중근', '이토 히로부미', '히로부미', '하얼빈', '뤼순', '유관순', '아우내', '서대문',
+        '김구', '백범', '원효', '김정호', '곽재우', '논개', '이황', '황희', '정몽주', '선죽교',
+        '히미코', '노부나가', '히데요시', '이에야스', '다케다 신겐', '우에스기 겐신',
+        '마사무네', '유키무라', '미야모토 무사시', '핫토리 한조',
+        '카이사르', '시저', '알렉산더', '한니발', '샤를마뉴', '잔다르크', '나폴레옹', '다빈치',
+        '레오니다스', '엘리자베스', '넬슨', '마키아벨리', '뉴턴', '미켈란젤로',
+        '칭기즈칸', '징기스칸', '쿠빌라이', '만사무사', '샤카', '클레오파트라',
+        '함무라비', '아틸라', '적토마', '절영'];
+      var Dx = DG.data, hit = [], i, j, text;
+      for (i = 0; i < Dx.heroes.length; i++) {
+        text = Dx.bio(Dx.heroes[i].id) + ' ' + Dx.heroes[i].quote;
+        for (j = 0; j < BLACK.length; j++) {
+          if (text.indexOf(BLACK[j]) >= 0) { hit.push(Dx.heroes[i].id + '←' + BLACK[j]); }
+        }
+      }
+      for (i = 0; i < Dx.pets.length; i++) {
+        text = Dx.pets[i].name + ' ' + Dx.pets[i].desc;
+        for (j = 0; j < BLACK.length; j++) {
+          if (text.indexOf(BLACK[j]) >= 0) { hit.push(Dx.pets[i].id + '←' + BLACK[j]); }
+        }
+      }
+      return hit.length === 0 &&
+        (Dx.heroes.length + '명 BIOS·quote + ' + Dx.pets.length + '개 PETS 검사, 걸린 실명 없음');
+    });
+
     t('런타임 에러 없음', function () {
       return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
     });
