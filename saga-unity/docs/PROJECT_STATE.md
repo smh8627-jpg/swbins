@@ -120,6 +120,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   .Combine()`을 명시로 불러야 한다, 이번엔 안 함). 이번 조각은 플래그만
   — 오클루전 컬링·라이트매핑 자격 부여 정도의 효과는 있지만 드로우콜
   감소 효과는 아직 없다. 컴파일·씬 재저장·PlaytestHeadless 전부 통과.
+- **Mobile Performance Pass 둘째 조각 — 실제 배칭 호출 (PLAN.md 76장,
+  위 "첫 조각"에서 멈춘 자리를 이어서).** `isStatic` 플래그만으론 드로우콜이
+  안 준다는 문제를 `GameBootstrap.cs`에 `CombineStaticBatches()`를 추가해
+  풀었다 — `Start()`(씬의 모든 Awake가 끝난 뒤 보장)에서 `Terrain`·
+  `Vegetation`·`Landmarks` 세 루트 각각에 `StaticBatchingUtility.Combine
+  (root)`를 부른다. 세 루트가 공통 부모를 안 나누고 있어(BuildTestVillageScene
+  .cs가 셋을 씬 최상위에 따로 만든다) 배칭도 세 그룹으로 따로 묶인다 —
+  Terrain↔Vegetation↔Landmarks 사이 교차 배칭은 없다(더 줄이려면 셋을 공통
+  부모 밑에 넣고 그 부모 하나로 Combine을 바꿔야 하는데, 이번 조각에서는
+  안 함). 컴파일·PlaytestHeadless 전부 통과(`OK - 10 frames, no errors`) —
+  **드로우콜이 실제로 줄었는지 수치 확인은 아직 안 함**(Stats 창은 GUI
+  에디터라야 보여 헤드리스로는 못 본다 — 다음에 사람이 GUI로 확인할 때
+  Game 뷰 Stats로 Before/After 드로우콜을 같이 봐 둘 것).
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
@@ -160,12 +173,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     "맞선다"를 눌러 승리까지 가 봐야 한다)
   - **저장·재시작이 실제로 되는지**(저장 버튼 → 에디터에서 Play를
     끄고 다시 켬 → 위치·부대가 돌아오는지)
-- **Mobile Performance Pass 이어서.** 지금은 `isStatic` 플래그만 걸려
-  있고 실제 드로우콜 감소는 아직 없다(위 완료 단계 주석 참고) —
-  `StaticBatchingUtility.Combine()`을 Awake() 끝(또는 씬 전체를 한 번에
-  훑는 별도 부트스트랩)에서 명시로 불러야 진짜 배칭이 된다. 이번
-  세션은 여기서 멈췄다 — 다음 세션이 이어갈 것("새로운 세션에서
-  하자"로 끊음, 2026-09-11).
+  - **정적 배칭이 실제로 드로우콜을 줄였는지**(Game 뷰 Stats 창,
+    Combine() 넣기 전/후 비교 — 헤드리스로는 확인 불가)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프)이 코드상으로는 전부
   채워졌다** — 게임 실행→마을 진입→걷기→NPC 대화→도적 조우→맞선다→
   실시간 전투→승리→등용→전투력 상승 확인→저장→재시작 이어짐, 이
@@ -214,3 +223,9 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   타이밍과 겹쳐 찍혀서 `OnLog`가 매번 FAIL로 오판했었다 — `OnLog`에서
   이 스택트레이스만 걸러내도록 고쳤다.
 - 실제 GUI 렌더링(그래픽 화면 확인)은 아직 안 함.
+- 2026-09-11 재확인 — `PlaytestHeadless.Run`을 `-executeMethod`로 부를 때
+  `-quit`을 같이 주면 Run()이 반환하자마자(Play 모드 시작 전) 종료돼 OK/FAIL
+  로그가 안 찍힌다(스크립트 주석에 이미 적혀 있던 주의사항, 실제로 한 번
+  더 밟음) — `-quit` 없이 불러야 한다(Run() 자신이 EditorApplication.Exit로
+  끝낸다). `CombineStaticBatches()` 추가 후에도 컴파일·PlaytestHeadless
+  전부 통과.
