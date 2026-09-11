@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/world/terrain_builder.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/world/landmarks_builder.gd" id="2"]
@@ -10,6 +10,7 @@
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="8"]
 [ext_resource type="Script" path="res://games/saga_go/world/environment_profile.gd" id="9"]
 [ext_resource type="Script" path="res://games/saga_go/world/test_village.gd" id="10"]
+[ext_resource type="Script" path="res://games/saga_go/world/simple_event.gd" id="11"]
 
 [node name="TestVillage" type="Node3D"]
 script = ExtResource("10")
@@ -49,6 +50,9 @@ event_title = "🗡️ 도적 두목의 소굴"
 event_quote = "\"여기까지 들어온 배짱은 인정하마. 하나 살아 나갈 배짱까지 있을까.\""
 recruit_id = "도적_두목"
 quest_id_to_complete = "village_ask"
+
+[node name="HurtSoldierEvent" type="Node3D" parent="."]
+script = ExtResource("11")
 
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
