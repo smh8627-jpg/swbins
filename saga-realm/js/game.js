@@ -23,7 +23,6 @@
   function start() {
     core.load();
 
-    if (core.save.settings.prop) { global.DG.sprite.setProp(core.save.settings.prop); }
     if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
 
     if (global.DG.realm3d && !global.DG_NO_DRAW) {

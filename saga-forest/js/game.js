@@ -24,7 +24,6 @@
   function start() {
     var fresh = !core.load();
 
-    if (core.save.settings.prop) { global.DG.sprite.setProp(core.save.settings.prop); }
     if (core.save.settings.style) { global.DG.sprite.setStyle(core.save.settings.style); }
 
     V.init();
@@ -63,7 +62,7 @@
   }
 
   function bindTopbar() {
-    /* "더보기" — 살금살금·등신·양식·3D·시점·도움말·어드민·리셋은 자주 안 쓰니
+    /* "더보기" — 살금살금·양식·3D·시점·도움말·어드민·리셋은 자주 안 쓰니
        접어 둔다(사가스토리·사가국지와 같은 결). 자동·손쓰기만 붙박이로 남는다 */
     var moreBtn = document.getElementById('btn-more');
     var more = document.getElementById('top-more');
@@ -112,22 +111,6 @@
       core.reset();
       location.reload();
     });
-
-    var PROP_ORDER = ['normal', 'chibi', 'tall'];
-    var PROP_LABEL = { normal: '4등', chibi: '2등', tall: '8등' };
-    var propBtn = document.getElementById('btn-prop');
-    if (propBtn) {
-      propBtn.textContent = PROP_LABEL[global.DG.sprite.prop()];
-      propBtn.addEventListener('click', function () {
-        var cur = PROP_ORDER.indexOf(global.DG.sprite.prop());
-        var next = PROP_ORDER[(cur + 1) % PROP_ORDER.length];
-        global.DG.sprite.setProp(next);
-        core.save.settings.prop = next;
-        core.persist();
-        propBtn.textContent = PROP_LABEL[next];
-        core.emit('changed');
-      });
-    }
 
     var STYLE_ORDER = ['classic', 'story', 'anime'];
     var STYLE_ICON = { classic: '🖌️', story: '📗', anime: '🎴' };

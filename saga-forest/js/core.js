@@ -55,7 +55,6 @@
       },
       settings: {
         mapStyle: 0, tilt: 1,
-        prop: 'chibi',                    // 등신 비례 'chibi'(2등신·원작 비례) | 'normal'(4) | 'tall'(8)
         style: 'story',                   // 그림 양식 'classic'(전통 삽화) | 'story'(그림책) | 'anime'(일본 만화)
         mode: 'offline',                  // 'offline' | 'online' (net.js)
         aiBase: ''                        // 온라인 서버 주소 (빈 값 = 같은 출처)

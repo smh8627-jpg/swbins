@@ -15,7 +15,7 @@
     #crit   전투 연출(급소·넉백·넘어가는 몸) — 정지 화면으로 볼 유일한 수단
     #gorge  호로곡(넷째 사냥터) — 불타는 골짜기
     #town   신야성 — 마을 사람 대화창(PLAN 16절)
-  해시에 chibi·tall·anime·classic 을 붙이면 등신·양식도 바뀐다 (예: #boss-chibi).
+  해시에 anime·classic 을 붙이면 양식도 바뀐다 (예: #boss-anime).
 
   이 파일은 index.html 과 **같은 스크립트 목록**을 써야 한다. 하나가 어긋나면
   화면이 통째로 죽는다 (사가고에서 실제로 그렇게 오래 죽어 있었다).
@@ -29,7 +29,6 @@
   <div class="glass profile" id="profile"></div>
   <div class="tools">
     <button class="icon-btn" id="btn-auto">🤖</button>
-    <button class="icon-btn txt" id="btn-prop">4등</button>
     <button class="icon-btn" id="btn-style">📗</button>
     <button class="icon-btn" id="btn-sound">🔊</button>
     <button class="icon-btn" id="btn-help">❔</button>
@@ -141,8 +140,6 @@ setTimeout(function () {
   document.getElementById('dock').style.transition = 'none';
 
   var hash = location.hash.replace('#', '');
-  if (hash.indexOf('chibi') >= 0) { DG.sprite.setProp('chibi'); C.emit('changed'); }
-  if (hash.indexOf('tall') >= 0) { DG.sprite.setProp('tall'); C.emit('changed'); }
   if (hash.indexOf('anime') >= 0) { DG.sprite.setStyle('anime'); C.emit('changed'); }
   if (hash.indexOf('classic') >= 0) { DG.sprite.setStyle('classic'); C.emit('changed'); }
   var tab = hash.split('-')[0];

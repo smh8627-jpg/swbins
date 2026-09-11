@@ -710,10 +710,9 @@
         S.state().stage = 'cave';
         S.state().potions = 30;
       }],
-    ['🍁 외피 되돌리기', '그림 양식을 원작풍(maple)으로 · 등신 4',
+    ['🍁 외피 되돌리기', '그림 양식을 원작풍(maple)으로',
       function () {
         C.save.settings.style = 'maple';
-        C.save.settings.prop = 'normal';
       }]
   ];
 
