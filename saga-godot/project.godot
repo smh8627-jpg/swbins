@@ -19,6 +19,13 @@ config/features=PackedStringArray("4.7", "Mobile")
 PartyState="*res://games/saga_go/data/party_state.gd"
 SaveState="*res://games/saga_go/data/save_state.gd"
 
+[importer_defaults]
+
+texture={
+"compress/mode": 2,
+"mipmaps/generate": true
+}
+
 [display]
 
 window/size/viewport_width=1080

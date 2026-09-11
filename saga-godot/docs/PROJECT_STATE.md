@@ -504,12 +504,49 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     새로 추가할 항목은 없음 — Data Versioning은 순수 로직이라 헤드리스
     검증으로 충분).
 
+## 완료 단계 (추가, 2026-09-11⑨)
+
+- **PLAN.md Phase 9(98단계) Mobile Performance Pass — 실기기 없이 되는
+  코드 단위 부분.** 사용자가 실기 측정 몫(실기기 프로파일링·전체 플레이
+  테스트)과 지금 당장 코드 리뷰로 되는 부분을 나눠, 코드 단위만 먼저
+  진행.
+  - **발견 — 3D에서 쓰는 텍스처 6장이 전부 Godot 기본값 그대로
+    무압축(Lossless) + 밉맵 없음이었다.** `buildings/Textures/
+    colormap.png`·`dungeon/Textures/colormap.png`·`characters/
+    Textures/texture-{a,b,c,d}.png`. 원인은 Godot 에디터가 보통
+    "이 텍스처는 3D에 쓰인다, VRAM 압축으로 바꿀까?" 하고 뜨는 자동
+    감지 프롬프트가 사람이 인스펙터를 직접 열어야 뜨는 것이라, 이
+    저장소의 모든 GLB 임포트가 헤드리스 CLI로만 진행돼 온 이 세션
+    내내 한 번도 안 걸렸다는 것. 여섯 파일 다 `compress/mode=2`
+    (VRAM Compressed)·`mipmaps/generate=true`로 바꿔 재임포트했다
+    (`.import` 메타의 `vram_texture` 플래그가 `false`→`true`로
+    바뀐 것까지 확인). 밉맵은 3D 월드에서 멀리 보이는 나무·건물·
+    인물 텍스처의 앨리어싱(반짝임)·대역폭을 줄여준다 — 실기 없이도
+    맞다고 확신할 수 있는 자리라 코드 단위로 처리.
+  - `project.godot`에 `[importer_defaults]`로 텍스처 임포트 기본값
+    자체를 바꿔 뒀다 — 앞으로 새 킷을 받을 때 같은 구멍이 다시 안
+    생긴다(이전에도 groups=[...] 문법처럼 "여러 파일에 반복된 같은
+    실수"를 근본 원인에서 막은 적이 있다, 2026-09-11⑦ 참고).
+  - **더 살펴봤지만 문제 없다고 판단한 것들** — 나무·바위·마을집 벽·
+    다리·짐승/펫 배치는 이미 전부 MultiMesh(draw call 최소화, 코드
+    주석에 근거 있음), 개별 `MeshInstance3D`로 남은 자리(동굴 입구
+    1개·지붕 2개·폐허 기둥 3개)는 개수가 한 자리라 MultiMesh로 바꿀
+    이유가 없음. 렌더러 프로파일(그림자 크기·MSAA·SSAO/SSR/SDFGI
+    끄기)은 66-1장에서 이미 PC/Mobile로 분리해 뒀음(env_pc.tres·
+    env_mobile.tres). 오브젝트별 그림자 on/off처럼 **실측 없이 판단할
+    근거가 없는 최적화는 이번에 손 안 댔다** — 실기 프로파일링 몫으로
+    남겨 둔다(추측성 최적화를 코드에 넣지 않는다는 원칙).
+  - 검증: `--headless --editor --quit`로 6장 재임포트 exit 0·오류
+    0건, `--headless --quit-after 5` 연속 3번 exit 0·error/warn/
+    missing 0건.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
-Data Versioning도 채웠다.** 남은 건 재미 평가(37장)와 아래 실기 확인,
-그리고 Mobile Performance Pass·전체 플레이 테스트(둘 다 실기기가 있어야
-의미가 있어 아래 목록과 겹친다).
+Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 건
+재미 평가(37장)와 아래 실기 확인, 그리고 Mobile Performance Pass의
+실측 부분(실기기에서 실제 프레임률 등)·전체 플레이 테스트(둘 다 실기기가
+있어야 의미가 있어 아래 목록과 겹친다).
 
 **실기 확인은 몰아서 할 것(사용자 확정, 루트 CLAUDE.md 방침)** — 지금까지
 쌓인 목록:
@@ -531,6 +568,9 @@ Data Versioning도 채웠다.** 남은 건 재미 평가(37장)와 아래 실기
 - `SaveButton`을 눌러 저장하고 게임을 다시 실행했을 때 GUI에서 정말
   이어지는지(파일 IO 자체는 헤드리스로 왕복 검증 완료, 화면으로 직접
   보는 것만 남음).
+- 텍스처 6장을 VRAM Compressed로 바꾼 뒤(2026-09-11⑨) 실기기 화면에서
+  색이 이상해지거나(압축 아티팩트) 밉맵 때문에 멀리서 흐릿해 보이는 등
+  눈에 띄는 부작용이 없는지.
 
 ## 알려진 오류
 
