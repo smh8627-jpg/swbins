@@ -14,6 +14,9 @@ namespace Saga.Go.World
     public class NpcBuilder : MonoBehaviour
     {
         private const float TalkRadius = 14f;
+        private const string TravelerEventId = "traveler_met";
+        private const int TravelerRewardExp = 15;
+        private const int TravelerRewardGold = 10;
 
         private struct VillagerDef
         {
@@ -39,6 +42,17 @@ namespace Saga.Go.World
                 Id = "npc_merchant", Name = "떠돌이 상인",
                 LineFn = MerchantLine,
                 Gx = 4, Gy = 3, Color = new Color(0.55f, 0.32f, 0.18f),
+            },
+            new VillagerDef
+            {
+                // PLAN.md 24~27장 "NPC 이벤트" — 2026-09-12 지도 확장으로 생긴
+                // 둘째 남쪽 공터(row9)에 세운 한 번뿐인 만남. 촌장(퀘스트)·
+                // 상인(거래)과 달리 진행 상태가 없는 "말 걸면 한 번, 그걸로
+                // 끝"인 가장 단순한 형태 — WorldEventState(2026-09-12에 id
+                // 집합으로 일반화된 것)를 그대로 재사용.
+                Id = "npc_traveler", Name = "나그네",
+                LineFn = TravelerLine,
+                Gx = 4, Gy = 9, Color = new Color(0.42f, 0.4f, 0.36f),
             },
         };
 
@@ -77,6 +91,23 @@ namespace Saga.Go.World
                 default:
                     return "고맙네, 자네 덕에 길이 편해졌어.";
             }
+        }
+
+        /// <summary>PLAN.md 24~27장 "NPC 이벤트" — 처음 말을 걸면 소소한 보상과
+        /// 함께 흘려듣는 정보 한 마디, 그다음부턴 그냥 지나가는 인사말뿐이다
+        /// (촌장의 3단계 퀘스트 대사·상인의 거래 상태 분기보다 훨씬 가벼운
+        /// "한 번뿐인 만남").</summary>
+        private static string TravelerLine()
+        {
+            if (WorldEventState.IsTriggered(TravelerEventId))
+            {
+                return "또 만났군. 좋은 길 되시게.";
+            }
+            WorldEventState.TryTrigger(TravelerEventId);
+            PlayerStats.AddExp(TravelerRewardExp);
+            GoldState.Add(TravelerRewardGold);
+            return "이 근처 지리를 좀 아네. 도움이 될 만한 걸 나눠 주지 — " +
+                   $"경험치 +{TravelerRewardExp} · 돈 +{TravelerRewardGold}냥";
         }
 
         private void Awake()
