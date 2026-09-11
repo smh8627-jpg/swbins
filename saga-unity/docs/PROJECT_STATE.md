@@ -5,6 +5,20 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 24~27장 "동물" 셋째 조각 — 첫 farmland 종, 소 (2026-09-12).**
+  성황당 돌무더기 다음으로 이어서(같은 세션, 사용자 "응 계속 진행해") —
+  지금까지 사슴 세 마리뿐이던 동물이 전부 숲/들판(forest/plains) 출신이고,
+  2026-09-12 남쪽 확장으로 처음 생긴 논밭('F') 타일(row9)엔 아직 아무
+  생물도 없었다. `AnimalBuilder.cs`의 `AnimalDef`에 `Species`/`Scale`/
+  `Color` 필드를 넣어(이전엔 전부 "Deer" 하드코딩) 종별로 다르게 꾸밀 수
+  있게 일반화하고, 그 첫 사용으로 `cow_1`(격자 (3,9), 논밭 타일 정중앙)을
+  추가 — 사슴보다 크고(1.0/0.75/1.0 스케일) 옅은 크림색, 혼자 배회(무리
+  자리 아님). `WanderingAnimal.cs`는 애초에 종 이름을 몰라도 되게 짜여
+  있어(자막도 "동물이 놀라 달아난다"로 이미 종 불문) **한 줄도 안 고쳤다**
+  — Idle/Wander/Flee/Group/Interaction 전부 그대로 상속. 씬에 GameObject가
+  늘어 `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 —
+  땅은 안 바뀜). 컴파일·씬 재빌드·PlaytestHeadless 전부 통과 — 논밭 위에
+  실제로 소가 서 있는지·크기가 사슴과 구별되는지는 사람이 직접 봐야 확인됨.
 - **PLAN.md 24~27장 "랜덤 이벤트" 첫 콘텐츠 — 성황당 돌무더기 (2026-09-12).**
   나그네 NPC 다음으로 이어서(새 세션, "이어해") — "다음 작업"이 콕 집어 둔
   빈자리("지역/시간/랜덤 이벤트"는 아직 하나도 없다)를 채웠다.
@@ -643,6 +657,9 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     뜨는지, 돈이 3냥 미만이면 안 빠지고 거절 문구만 뜨는지, 20초 안에
     다시 들어가면 아무 반응이 없는지, 20초 뒤엔 다시 굴려지는지 —
     가중치 룰렛이라 결과가 매번 다를 수 있음을 감안하고 여러 번 볼 것)
+  - **소(cow_1, 격자 (3,9) 논밭)가 실제로 보이고 자연스러운지**(사슴보다
+    크고 옅은 색으로 구별되는지, 논밭 타일 위에서 배회하는지, 다가가면
+    사슴과 똑같이 놀라 달아나는지)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
@@ -807,5 +824,9 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   — 땅은 안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.
 - 성황당 돌무더기(LuckyCairn 신규, WorldEventState 없이 쿨다운+가중치
   룰렛만) 추가 후 컴파일 통과, 씬에 GameObject가 늘어
+  `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 — 땅은
+  안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.
+- 소(AnimalDef를 Species/Scale/Color로 일반화 + cow_1 추가, WanderingAnimal.cs
+  무변경) 추가 후 컴파일 통과, 씬에 GameObject가 늘어
   `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 — 땅은
   안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.
