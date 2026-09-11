@@ -322,7 +322,15 @@
        House_4, 첫 캠프의 세 채와 같은 결 */
     hamlet2House: 'building:hamlet2House',
     /* 폐허(2026-09-10, 퓨전 방향) — village.js buildProps() 의 ruinArch kind */
-    ruinArch: 'ruin:arch'
+    ruinArch: 'ruin:arch',
+    /* 우주기지(PLAN 45절, 2026-09-11) — fence·cart는 asset3d.js에 진작
+       등록만 되어 있던 것을 처음 쓴다(다리가 그랬던 것과 같은 결), crate는
+       building:mail과 같은 파일을 새 kind로 쓴다 */
+    crate: 'crate', fence: 'fence', cart: 'cart',
+    /* 택배 접수대(PLAN 45절) — 마을 안 물건, mail(우편함)과 같은 파일을
+       그대로 빌린다. courierPost는 deco:true가 아니라 syncScatter()가
+       mail·shop 같은 마을 건물과 나란히 세운다 */
+    courierPost: 'building:mail'
   };
   /** 2026-09-10 "움직이는 모션을 더 자연스럽게" — 이 표에 있는 kind만
    *  `syncScatter()`가 이동 방향으로 몸을 튼다. 나무·건물처럼 안 움직이는
@@ -361,7 +369,13 @@
     hamlet2House: 2.2,
     /* 무너진 아치(Arch.glb) — 눈대중, 폐허 표지답게 나무보다는 낮고
        건물보다는 존재감 있게 */
-    ruinArch: 2.6
+    ruinArch: 2.6,
+    /* 우주기지(PLAN 45절, 2026-09-11) — crate(box_small)는 mail(0.9)과
+       같은 파일이라 같은 눈대중, fence·cart는 well(1.0)과 bench(0.5)
+       사이 소품 눈대중 */
+    crate: 0.9, fence: 1.1, cart: 0.9,
+    /* 택배 접수대 — mail 과 같은 파일이니 같은 눈대중(0.9) */
+    courierPost: 0.9
   };
 
   /**

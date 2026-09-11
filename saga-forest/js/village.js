@@ -301,6 +301,26 @@
     return tx >= r.tx - 2 && tx <= r.tx + 2 && ty >= r.ty - 2 && ty <= r.ty + 1;
   }
 
+  /* ── 우주기지(PLAN 45절, 2026-09-11 — "다른 마을·배달 알바") ───────
+   * 사용자가 고른 세 결정: ① 처음부터 지도에 있는 고정 마을(발견형 아님)
+   * ② 기존 다섯(서북 폐허·북 동굴·동 캠프1·동남 캠프2·서 호수)과 안 겹치는
+   * **더 먼 대각선**(남서) ③ 배달은 무제한 반복. `SPACEBASE_MIN_MARGIN`을
+   * 다른 고정 자리(10~14)보다 훨씬 높게, 비율(0.7·0.75)도 더 크게 잡아
+   * "더 먼"을 좌표로 그대로 나타낸다.
+   */
+  var SPACEBASE_MIN_MARGIN = 20;
+  function spaceBaseSpot() {
+    var m = forestMargin();
+    if (m < SPACEBASE_MIN_MARGIN) { return null; }
+    return { tx: -Math.round(m * 0.7), ty: H + Math.round(m * 0.75) };
+  }
+  /** 우주기지 둘레 7×7 칸 — 다른 고정 자리와 같은 결로 바이옴 장식·채집·짐승을 비운다 */
+  function inSpaceBase(tx, ty) {
+    var b = spaceBaseSpot();
+    if (!b) { return false; }
+    return tx >= b.tx - 3 && tx <= b.tx + 3 && ty >= b.ty - 3 && ty <= b.ty + 3;
+  }
+
   /* ── 숨겨진 동굴(PLAN 40절 PHASE 3 마지막 칸) ────────────────────
    * 호수(서)·캠프(동)·폭포(강 남쪽)와 안 겹치는 마지막 방향 — **북쪽**에
    * 고정한다. PLAN 10절이 "던전 입구"도 고정 배치로 못 박아 둔 것과 같은
@@ -425,6 +445,10 @@
     if (tx < -m || ty < -m || tx >= W + m || ty >= H + m) { return 'water'; }
     if (inBridge(tx, ty)) { return 'path'; }              // 강을 건너는 유일한 자리
     if (inLake(tx, ty) || inRiver(tx, ty)) { return 'water'; }
+    /* 우주기지(PLAN 45절) — 다른 다섯 고정 자리는 바이옴 잔디 그대로인데,
+       여기만 "착륙장" 느낌을 주려 이미 있는 'sand' 타일을 빌린다(새 타일
+       종류를 안 늘렸다 — TILES·terrainColors() 둘 다 손 안 댔다) */
+    if (inSpaceBase(tx, ty)) { return 'sand'; }
     return BIOME_TILE[biomeAt(tx, ty)];
   }
 
@@ -554,6 +578,7 @@
         if (inHamlet2(tx, ty)) { continue; }                        // 두 번째 캠프 자리도 비워 둔다
         if (inCave(tx, ty)) { continue; }                           // 동굴 자리도 비워 둔다
         if (inRuin(tx, ty)) { continue; }                           // 폐허 자리도 비워 둔다
+        if (inSpaceBase(tx, ty)) { continue; }                      // 우주기지 자리도 비워 둔다
         if (!GRASS_FAMILY[tileAt(tx, ty)]) { continue; }            // 공사로 딴 걸 깔았으면 스킵
         var fh = core.hash2(tx * 31 + s.seed % 613 + 2000, ty * 17 + s.seed % 419 + 2000);
         var fx = tx * TILE + TILE * 0.5, fy = ty * TILE + TILE * 0.5;
@@ -653,6 +678,27 @@
       props.push({ id: 'caveMouth', kind: 'cave', x: cvx, y: cvy + TILE * 0.8 });
     }
 
+    /* 우주기지(PLAN 45절, 2026-09-11) — 남서 먼 대각선. 새 GLB를 안 받고
+       이미 있는(다른 자리에서 쓰거나 등록만 되어 있던) 모델만 빌렸다 —
+       crate는 mail 상자와 같은 box_small.gltf.glb, fence·cart는 asset3d.js
+       에 진작 등록만 되고 여태 3D scatter에 안 이어져 있던 것을 처음 쓴다
+       (다리(bridge)가 그랬던 것과 같은 결). 배달원(courier)은
+       buildNpcs()가 세운다(다른 다섯 NPC와 같은 순서) */
+    var sb = spaceBaseSpot();
+    if (sb) {
+      var sbx = sb.tx * TILE + TILE * 0.5, sby = sb.ty * TILE + TILE * 0.5;
+      props.push({ id: 'spaceCrateA', kind: 'crate', x: sbx - TILE * 1.2, y: sby - TILE * 0.5, deco: true });
+      props.push({ id: 'spaceCrateB', kind: 'crate', x: sbx - TILE * 0.6, y: sby - TILE * 1.0, deco: true });
+      props.push({ id: 'spaceFence', kind: 'fence', x: sbx + TILE * 1.6, y: sby + TILE * 0.2, deco: true });
+      props.push({ id: 'spaceCart', kind: 'cart', x: sbx + TILE * 0.9, y: sby - TILE * 1.1, deco: true });
+      props.push({ id: 'spaceLantern', kind: 'lantern', x: sbx - TILE * 1.7, y: sby + TILE * 0.6, deco: true });
+    }
+
+    /* 택배 접수대(PLAN 45절) — 우편함(mail) 곁, 마을 안. 우편함과 다른
+       kind라 mail.js의 편지·이사 상태를 건드리지 않는다 — village.js
+       자체 상태(st().delivery)만 쓴다 */
+    props.push({ id: 'courierPost', kind: 'courierPost', x: (cx + 3) * TILE + 20, y: (cy + 1) * TILE + 46 });
+
     /* 숲 고리 real 채집 자원(PLAN 18절 "채집" · PLAN 40절 PHASE 4 "Gathering") —
        위 숲 고리 사물은 전부 deco:true(장식)라 채집이 안 된다(PHASE 3 몫은
        "걸어 나갈 공간"만 여는 것이었다). 여기서부터가 그 다음 몫이다.
@@ -669,7 +715,8 @@
         var gty = gcy * BIOME_CELL + Math.floor(BIOME_CELL / 2);
         if (!(gtx >= -m && gty >= -m && gtx < W + m && gty < H + m)) { continue; }
         if (gtx >= 0 && gty >= 0 && gtx < W && gty < H) { continue; }     // 마을 안은 기존 사물 몫
-        if (inHamlet(gtx, gty) || inHamlet2(gtx, gty) || inCave(gtx, gty) || inRuin(gtx, gty)) { continue; }
+        if (inHamlet(gtx, gty) || inHamlet2(gtx, gty) || inCave(gtx, gty) || inRuin(gtx, gty) ||
+            inSpaceBase(gtx, gty)) { continue; }
         if (!GRASS_FAMILY[tileAt(gtx, gty)]) { continue; }
         var ggate = core.hash2(gcx * 271 + s.seed % 503, gcy * 337 + (s.seed >> 5) % 467);
         if (ggate > 0.55) { continue; }                                  // animal.js 와 같은 문턱 — 45%만
@@ -815,6 +862,7 @@
         if (tx >= -m && ty >= -m && tx < W + m && ty < H + m &&
             !(tx >= 0 && ty >= 0 && tx < W && ty < H) &&
             !inHamlet(tx, ty) && !inHamlet2(tx, ty) && !inCave(tx, ty) && !inRuin(tx, ty) &&
+            !inSpaceBase(tx, ty) &&
             GRASS_FAMILY[tileAt(tx, ty)]) {
           var hgate = core.hash2(cx * 211 + s.seed % 701, cy * 179 + (s.seed >> 4) % 659);
           if (hgate > 0.55) { continue; }              // 칸의 절반 넘게는 비워 둔다
@@ -912,6 +960,13 @@
     if (hs2) {
       npcs.push(npcAt('wanderer', hs2.tx * TILE + TILE * 0.5 + TILE * 0.2, hs2.ty * TILE + TILE * 0.5 - TILE * 1.0));
     }
+    /* 배달원(2026-09-11, PLAN 45절) — 우주기지(spaceBaseSpot) 한복판에 선다.
+       다른 여섯과 같은 자리 배치 방식(npcAt), 다른 점은 QUESTS가 아니라
+       talkNpc() 의 courier 특수 분기 + interact() 의 pickupParcel() 을 탄다 */
+    var sb = spaceBaseSpot();
+    if (sb) {
+      npcs.push(npcAt('courier', sb.tx * TILE + TILE * 0.5, sb.ty * TILE + TILE * 0.5 + TILE * 0.4));
+    }
   }
 
   /**
@@ -951,6 +1006,9 @@
       s.metNpcs[npc.kind] = true;
       core.persist();
     }
+    /* 배달원(PLAN 45절, 2026-09-11)은 QUESTS 표가 없는 유일한 NPC라 아래
+       일반 흐름(한 번뿐인 부탁)을 안 타고 여기서 갈라진다 — talkCourier() 참고 */
+    if (npc.kind === 'courier') { return talkCourier(); }
     var q = VD.QUESTS[npc.kind];
     if (!q) { return { kind: 'talk', name: def.name, text: def.line }; }
     if (!s.quests) { s.quests = {}; }
@@ -969,6 +1027,54 @@
     core.persist();
     return { kind: 'quest', name: def.name,
       text: '「' + q.title + '」을 마쳤다! 🪙 ' + core.fmt(q.reward) };
+  }
+
+  /** 배달원과의 대화(PLAN 45절, 2026-09-11) — 소포가 없으면 심부름만 알려
+   *  주고, 있으면 받고 보상을 준다. **무제한 반복**(사용자가 고른 세
+   *  결정 중 하나) — s.quests 같은 "한 번뿐" 플래그가 없다, s.delivery
+   *  하나로만 오간다(가방·item 카테고리를 새로 안 늘렸다 — PLAN 19절
+   *  "복잡한 시스템은 안 만든다"). */
+  var DELIVERY_REWARD = core.tuned('delivery.reward', 220);
+  function talkCourier() {
+    var def = VD.NPCS.courier;
+    var s = st();
+    if (!s.delivery) { s.delivery = { carrying: false, n: 0 }; }
+    if (!s.delivery.carrying) {
+      return { kind: 'talk', name: def.name,
+        text: '아직 소포가 없구먼 — 마을 택배 접수대에서 받아 오게' };
+    }
+    s.delivery.carrying = false;
+    s.delivery.n = (s.delivery.n || 0) + 1;
+    core.save.player.gold += DELIVERY_REWARD;
+    core.gainFeat(1, '배달');
+    core.gainExp(10);
+    core.log('📦 ' + def.name + '에게 소포를 전했다 — 🪙 ' + core.fmt(DELIVERY_REWARD) +
+      ' (누적 ' + s.delivery.n + '건)', 'good');
+    core.emit('changed');
+    core.persist();
+    return { kind: 'quest', name: def.name,
+      text: '소포 잘 받았네! 🪙 ' + core.fmt(DELIVERY_REWARD) + ' (누적 ' + s.delivery.n + '건)' };
+  }
+
+  /** 택배 접수대(마을 안, courierPost) — 소포가 없을 때만 하나 내준다.
+   *  이미 들고 있으면 배달원에게 먼저 갖다 주라고 한다 — 한 번에 하나씩,
+   *  무제한 반복 */
+  function pickupParcel() {
+    var s = st();
+    if (!s.delivery) { s.delivery = { carrying: false, n: 0 }; }
+    if (s.delivery.carrying) {
+      return { kind: 'no', text: '이미 소포를 갖고 있습니다 — 배달원에게 먼저 가져다 주세요' };
+    }
+    s.delivery.carrying = true;
+    core.emit('changed');
+    core.persist();
+    return { kind: 'talk', name: '택배 접수대', text: '📦 소포를 받았다 — 배달원에게 가져다 주게' };
+  }
+
+  /** 진단·QA 전용 — 지금 소포를 들고 있는지, 몇 건 배달했는지(순수 조회) */
+  function deliveryState() {
+    var s = st();
+    return { carrying: !!(s.delivery && s.delivery.carrying), n: (s.delivery && s.delivery.n) || 0 };
   }
 
   function init() {
@@ -1350,6 +1456,7 @@
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }
     if (prop.kind === 'cave') { return enterCave(); }
+    if (prop.kind === 'courierPost') { return pickupParcel(); }
     if (!def.gather) {
       if (prop.kind === 'museum') {
         core.emit('village:open', 'museum');
@@ -1772,6 +1879,8 @@
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
     hamlet2Spot: hamlet2Spot, inHamlet2: inHamlet2,
     ruinSpot: ruinSpot, inRuin: inRuin,
+    spaceBaseSpot: spaceBaseSpot, inSpaceBase: inSpaceBase,
+    pickupParcel: pickupParcel, deliveryState: deliveryState,
     inBridge: inBridge, BRIDGE_TY: BRIDGE_TY,
     caveSpot: caveSpot, inCave: inCave, buildAnimals: buildAnimals,
     buildNpcs: buildNpcs, firstBiomeSpot: firstBiomeSpot,

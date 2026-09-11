@@ -2898,22 +2898,23 @@ window.DG_NO_TUNE = true;
     /* ── PLAN 40절 PHASE 4 NPC 칸 ───────────────────────────── */
 
     t('숲 NPC — 지형지물마다 고정으로 붙고, 재현된다', function () {
+      /* 2026-09-11 — 배달원(courier, PLAN 45절)이 일곱 번째로 늘었다 */
       V.buildNpcs();
       var n1 = V.raw().npcs.map(function (n) { return n.id + ':' + n.x + ',' + n.y; });
       V.buildNpcs();
       var n2 = V.raw().npcs.map(function (n) { return n.id + ':' + n.x + ',' + n.y; });
-      return n1.length === 6 && JSON.stringify(n1) === JSON.stringify(n2) &&
+      return n1.length === 7 && JSON.stringify(n1) === JSON.stringify(n2) &&
         (n1.length + '명 재현: ' + n1.map(function (s) { return s.split(':')[0]; }).join(', '));
     });
 
-    t('숲 NPC — 여섯 다 등록된 종류고, 걸을 수 있는 자리에 선다', function () {
+    t('숲 NPC — 일곱 다 등록된 종류고, 걸을 수 있는 자리에 선다', function () {
       V.buildNpcs();
       var list = V.raw().npcs, i, bad = null;
       for (i = 0; i < list.length; i++) {
         var n = list[i];
         if (!VD.NPCS[n.kind] || !V.walkable(n.x, n.y)) { bad = n; break; }
       }
-      return !bad && list.length === 6 && '6명 다 통행 가능한 자리';
+      return !bad && list.length === 7 && '7명 다 통행 가능한 자리';
     });
 
     t('숲 NPC — margin 이 좁아 지형지물이 사라져도 죽지 않고 배열을 준다', function () {
@@ -3135,10 +3136,13 @@ window.DG_NO_TUNE = true;
      * 말한 "복잡한 시스템은 필요 없다"를 그대로 따른다).
      */
 
-    t('Quest — 숲 NPC 여섯이 전부 부탁을 하나씩 갖는다', function () {
-      var npcKinds = Object.keys(VD.NPCS);
+    t('Quest — 대화형 숲 NPC 여섯은 전부 부탁을 하나씩 갖고, 배달원(courier)만 없다', function () {
+      /* 2026-09-11 — 배달원(PLAN 45절)은 반복 가능한 배달을 대신 맡아
+         QUESTS 표에 일부러 안 넣었다(위 QUESTS 머리말 주석 참고) */
+      var npcKinds = Object.keys(VD.NPCS).filter(function (k) { return k !== 'courier'; });
       var missing = npcKinds.filter(function (k) { return !VD.QUESTS[k]; });
-      return npcKinds.length === 6 && missing.length === 0 && (npcKinds.length + '명 전부 부탁 있음');
+      return npcKinds.length === 6 && missing.length === 0 && !VD.QUESTS.courier &&
+        (npcKinds.length + '명 부탁 있음 · courier 는 반복 배달로 별도');
     });
 
     t('Quest — bagcat 부탁(상인)은 채우기 전엔 설명·진행도만, 채우면 그 자리에서 완료되고 보상을 받는다', function () {
@@ -3167,24 +3171,27 @@ window.DG_NO_TUNE = true;
         ('진행중(0/5) → 완료(+' + VD.QUESTS.merchant.reward + ') → 인사말');
     });
 
-    t('Quest — meetnpc 부탁(탐험가)은 나머지 다섯을 만나야 채워진다', function () {
+    t('Quest — meetnpc 부탁(탐험가)은 나머지 여섯을 만나야 채워진다', function () {
+      /* 2026-09-11 — 배달원(courier)이 늘어 count 5 → 6(자신 뺀 나머지 전부).
+         courier는 QUESTS가 없어도 talkNpc()가 metNpcs는 그대로 기록하므로
+         (talkCourier() 호출 전에 이미 찍는다) meetnpc 셈에는 그대로 들어간다 */
       var s = V.state();
       var savedMet = s.metNpcs, savedQuests = s.quests;
       s.metNpcs = {}; s.quests = {};
       var npcs = V.raw().npcs;
       var explorer = npcs.filter(function (n) { return n.kind === 'explorer'; })[0];
       var others = npcs.filter(function (n) { return n.kind !== 'explorer'; });
-      if (!explorer || others.length < 5) { s.metNpcs = savedMet; s.quests = savedQuests; return false; }
-      var before = V.talkNpc(explorer);               // 자신은 안 세므로 0/5
+      if (!explorer || others.length < 6) { s.metNpcs = savedMet; s.quests = savedQuests; return false; }
+      var before = V.talkNpc(explorer);               // 자신은 안 세므로 0/6
       for (var i = 0; i < others.length; i++) { V.talkNpc(others[i]); }
       var g0 = C.save.player.gold;
       var after = V.talkNpc(explorer);
       var g1 = C.save.player.gold;
       C.save.player.gold = g0;
       s.metNpcs = savedMet; s.quests = savedQuests;
-      return before.kind === 'quest' && before.text.indexOf('0/5') >= 0 &&
+      return before.kind === 'quest' && before.text.indexOf('0/6') >= 0 &&
         after.kind === 'quest' && g1 === g0 + VD.QUESTS.explorer.reward &&
-        ('만나기 전 0/5 → 다섯 다 만나니 완료(+' + VD.QUESTS.explorer.reward + ')');
+        ('만나기 전 0/6 → 여섯 다 만나니 완료(+' + VD.QUESTS.explorer.reward + ')');
     });
 
     t('Quest — chest 부탁(숲지기)은 동굴 보물을 열어야 채워진다', function () {
@@ -3203,6 +3210,80 @@ window.DG_NO_TUNE = true;
       return before.kind === 'quest' && before.text.indexOf('0/1') >= 0 &&
         after.kind === 'quest' && g1 === g0 + VD.QUESTS.keeper.reward &&
         ('보물 열기 전 0/1 → 여니 완료(+' + VD.QUESTS.keeper.reward + ')');
+    });
+
+    /* ── PLAN 45절 "다른 마을·배달 알바" (2026-09-11) ─────────────
+     * 사용자가 고른 세 결정: 고정 마을(발견형 아님) · 더 먼 남서 대각선 ·
+     * 무제한 반복 배달. 다른 다섯 고정 자리와 같은 결(spot 함수 + in* 제외
+     * 등록)로 지었다 — 새 InteractionManager 없이 기존 focus()/interact()·
+     * talkNpc() 표에 courierPost·courier 한 줄씩만 보탰다.
+     */
+
+    t('우주기지 — 기본 margin 에서 남서 먼 대각선에 서고, 다른 다섯과 안 겹친다', function () {
+      var sb = V.spaceBaseSpot();
+      var others = [V.hamletSpot(), V.hamlet2Spot(), V.ruinSpot(), V.caveSpot()];
+      var overlap = others.some(function (o) { return o && Math.hypot(o.tx - sb.tx, o.ty - sb.ty) < 10; });
+      return !!sb && sb.tx < 0 && sb.ty > V.H && !overlap &&
+        ('(' + sb.tx + ',' + sb.ty + ') — 서쪽·남쪽 다 벗어난 자리, 다른 넷과 10칸 이상');
+    });
+
+    t('우주기지 — margin 이 좁으면(다른 고정 자리보다 더 일찍) 사라진다', function () {
+      C.setTune('forest.margin', 15);                  // 다른 고정 자리(10~14)는 남고 우주기지(20)만 빠진다
+      var sb = V.spaceBaseSpot(), hm2 = V.hamlet2Spot();
+      C.setTune('forest.margin', null);
+      return sb === null && !!hm2 && 'margin 15 — 우주기지만 null, 두 번째 캠프는 그대로';
+    });
+
+    t('우주기지 — 땅은 다른 다섯과 달리 sand, 둘레는 바이옴 장식·짐승이 안 선다', function () {
+      var sb = V.spaceBaseSpot();
+      var ground = V.tileAt(sb.tx, sb.ty);
+      var inside = V.inSpaceBase(sb.tx + 1, sb.ty - 1), outside = V.inSpaceBase(sb.tx + 10, sb.ty);
+      V.buildProps();
+      var raw = V.raw();
+      var decoOk = raw.props.filter(function (p) {
+        return p.id.indexOf('space') === 0 && p.deco === true;
+      }).length === 5;                                  // crateA·crateB·fence·cart·lantern
+      var post = raw.props.filter(function (p) { return p.kind === 'courierPost'; })[0];
+      return ground === 'sand' && inside && !outside && decoOk && !!post && !post.deco &&
+        '땅 sand · 장식 5개 deco · courierPost 는 손이 닿음';
+    });
+
+    t('배달 — 접수대 → 배달원 왕복이 무제한 반복된다(소포 없인 못 받고, 들고는 하나만)', function () {
+      V.buildProps(); V.buildNpcs();
+      var s = V.state();
+      var saved = s.delivery;
+      s.delivery = { carrying: false, n: 0 };
+      var courier = V.raw().npcs.filter(function (n) { return n.kind === 'courier'; })[0];
+      var post = V.raw().props.filter(function (p) { return p.kind === 'courierPost'; })[0];
+      if (!courier || !post) { s.delivery = saved; return false; }
+      var savedX = V.raw().player.x, savedY = V.raw().player.y;
+
+      V.raw().player.x = courier.x; V.raw().player.y = courier.y;
+      var before = V.talkNpc(courier);                   // 아직 소포가 없다 — 안내만
+
+      V.raw().player.x = post.x; V.raw().player.y = post.y;
+      var pickup1 = V.interact();                         // 받는다
+      var again = V.interact();                            // 들고 있으니 또 못 받는다
+
+      V.raw().player.x = courier.x; V.raw().player.y = courier.y;
+      var g0 = C.save.player.gold;
+      var deliver1 = V.talkNpc(courier);                   // 첫 배달 완료
+      var g1 = C.save.player.gold;
+
+      V.raw().player.x = post.x; V.raw().player.y = post.y;
+      var pickup2 = V.interact();                          // 무제한 — 곧바로 한 번 더 받는다
+      V.raw().player.x = courier.x; V.raw().player.y = courier.y;
+      var deliver2 = V.talkNpc(courier);                   // 두 번째 배달도 완료
+      var g2 = C.save.player.gold;
+
+      var state = V.deliveryState();
+      V.raw().player.x = savedX; V.raw().player.y = savedY;
+      s.delivery = saved;
+      return before.kind === 'talk' && pickup1.kind === 'talk' && again.kind === 'no' &&
+        deliver1.kind === 'quest' && g1 === g0 + 220 &&
+        pickup2.kind === 'talk' && deliver2.kind === 'quest' && g2 === g1 + 220 &&
+        !state.carrying && state.n === 2 &&
+        ('안내 → 수령 → (거절) → 배달 🪙+220 → 재수령 → 배달 🪙+220 (누적 ' + state.n + '건)');
     });
 
     t('주민 — 두 사람이 번갈아 말한다', function () {

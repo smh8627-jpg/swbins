@@ -97,7 +97,18 @@
     /* 숨겨진 동굴(PLAN 40절 PHASE 3) — 입구 표지만. 안까지 들어가는 실내·
        보물(PLAN 40절 PHASE 4 "Treasure")은 다음 몫이다 */
     mountain:  { name: '바위산', emoji: '🗻', gather: null, reset: 0, hint: '올려다본다' },
-    cave:      { name: '동굴 입구', emoji: '🕳️', gather: null, reset: 0, hint: '들어간다' }
+    cave:      { name: '동굴 입구', emoji: '🕳️', gather: null, reset: 0, hint: '들어간다' },
+    /* 우주기지(PLAN 45절, 2026-09-11 — "다른 마을·배달 알바") — 남서 먼
+       대각선에 고정으로 선다. crate·fence·cart 는 asset3d.js 에 이미
+       등록만 되어 있던(fence·cart) 또는 다른 자리에서 쓰던(crate, mail
+       상자와 같은 파일) 모델을 그대로 빌린다 — 새 GLB를 안 받았다.
+       전부 순수 장식(deco:true, 캠프 소품과 같은 결) */
+    crate: { name: '보급 상자', emoji: '📦', gather: null, reset: 0, hint: '살펴본다' },
+    fence: { name: '펜스', emoji: '🚧', gather: null, reset: 0, hint: '살펴본다' },
+    cart:  { name: '수레', emoji: '🛒', gather: null, reset: 0, hint: '살펴본다' },
+    /* 마을 쪽 배달 접수대 — 우편함(mail)과 다른 자리, 다른 kind. 소포가
+       없을 때 손을 쓰면 하나 받는다(반복 가능, village.js pickupParcel()) */
+    courierPost: { name: '택배 접수대', emoji: '📦', gather: null, reset: 0, hint: '소포를 받는다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────
@@ -827,7 +838,13 @@
     /* 나그네(2026-09-10) — 두 번째 캠프(hamlet2Spot, 2026-09-09에 자리만
        열고 "사람은 아직 없다"고 남겨 뒀던 곳)에 처음 세우는 사람.
        외딴집에서 하룻밤 묵어가는 컨셉이라 여정에 먹을 것을 청한다 */
-    wanderer:  { name: '나그네', emoji: '🎒', line: '이 외딴집에서 하룻밤 신세 좀 지고 있다네' }
+    wanderer:  { name: '나그네', emoji: '🎒', line: '이 외딴집에서 하룻밤 신세 좀 지고 있다네' },
+    /* 배달원(2026-09-11, PLAN 45절 "다른 마을·배달 알바") — 우주기지
+       (spaceBaseSpot, 남서 대각선 먼 자리)에 처음 세우는 사람. 다른 다섯과
+       달리 **QUESTS 에 없다** — 한 번뿐인 부탁 대신, 마을 courierPost에서
+       받은 소포를 이 사람에게 가져다 주면 몇 번이고 보상을 받는 반복
+       일거리를 맡는다(talkNpc() 의 별도 분기, 아래 courier 특수 처리 참고) */
+    courier:   { name: '배달원', emoji: '📦', line: '먼 길 오느라 고생했네 — 소포는 잘 챙겨 왔나?' }
   };
 
   /**
@@ -836,6 +853,9 @@
    * 상자·짐승 발견·숲 깊은 곳 NPC)을 그대로 다섯 NPC에 하나씩 얹었고, 여섯
    * 번째(나그네)도 같은 bagcat 결로 얹었다.
    * type 은 village.js 의 questProgress() 가 셋만 안다(bagcat·chest·meetnpc).
+   * **배달원(courier, 2026-09-11)은 이 표에 없다** — 반복 가능한 일이라
+   * "한 번뿐인 부탁"을 전제하는 이 표·questProgress() 결과 안 맞는다.
+   * village.js 의 talkNpc()가 courier만 따로 갈라 처리한다.
    */
   var QUESTS = {
     herbalist: { title: '약초 다섯 뿌리',
@@ -847,10 +867,13 @@
     merchant: { title: '꽃 다섯 송이',
       description: '꽃 다섯 송이만 모아다 주게 — 팔 데가 있어',
       type: 'bagcat', cat: 'flower', count: 5, reward: 300 },
-    /* 2026-09-10 — 나그네가 여섯 번째로 늘어 count 4 → 5(자신 뺀 나머지 전부) */
+    /* 2026-09-10 — 나그네가 여섯 번째로 늘어 count 4 → 5(자신 뺀 나머지 전부).
+       2026-09-11 — 배달원(courier)이 일곱 번째로 늘었지만 QUESTS가 없는
+       특수 NPC라도 meetnpc는 "만나 봤나"만 보므로 그대로 세어진다 — count
+       5 → 6(자신 뺀 나머지 여섯 전부) */
     explorer: { title: '숲의 나머지 사람들',
       description: '이 숲 다른 사람들도 다 만나고 왔나?',
-      type: 'meetnpc', count: 5, reward: 500 },
+      type: 'meetnpc', count: 6, reward: 500 },
     keeper: { title: '동굴의 보물',
       description: '북쪽 동굴에 보물이 숨어 있다던데, 찾았나?',
       type: 'chest', count: 1, reward: 300 },

@@ -54,8 +54,8 @@
 |---|---|---|
 | `Mushroom_1·2.glb` | `crops_pack` | 버섯 |
 | `Bench_1.glb` | `medieval_village_pack` | 벤치 |
-| `Fence.glb` | `medieval_village_pack` | 울타리 |
-| `Cart.glb` | `medieval_village_pack` | 카트 |
+| `Fence.glb` | `medieval_village_pack` | 울타리 — 등록만 되어 있다가 2026-09-11 우주기지(spaceBaseSpot, PLAN 45절)에서 처음 쓴다 |
+| `Cart.glb` | `medieval_village_pack` | 카트 — 위와 같은 날, 같은 우주기지에서 처음 쓴다 |
 | `Bonfire_Lit.glb` | `medieval_village_pack` | 캠프파이어 |
 | `Tent.glb` | `survival_pack` | 작은 천막 |
 
@@ -555,7 +555,7 @@ PLAN 6절 "작은 마을" 착수 — `home`(집)·`tailor`(침선방)·`museum`(
 | 파일 | 이 판에서 쓰는 곳 |
 |---|---|
 | `models/props/signpost.glb` | **게시판**(`board`) |
-| `models/props/box_small.gltf.glb` | **편지함**(`mail`) — 원래 던전 방 잡동사니 상자, 작은 나무 상자라 편지함 대역으로 썼다 |
+| `models/props/box_small.gltf.glb` | **편지함**(`mail`) — 원래 던전 방 잡동사니 상자, 작은 나무 상자라 편지함 대역으로 썼다. 2026-09-11 — 같은 파일을 새 키(`crate`)로 한 번 더 등록해 우주기지(PLAN 45절)의 보급 상자·택배 접수대(`courierPost`)에도 그대로 썼다(새 파일 안 받음) |
 | `models/props/banner_thin_red.gltf.glb` | **마을기**(`pole`) — 원래 보스방 현수막, 깃발 달린 기둥이라 마을기 대역으로 썼다 |
 
 ## MPFB2 실사 몸 20종 — 외형 다양화, 표 기본에 적용됨 (2026-09-10, `saga-go`에서 복사)

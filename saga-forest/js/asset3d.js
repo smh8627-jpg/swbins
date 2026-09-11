@@ -243,6 +243,10 @@
     'well': PROP + 'Well.glb',
     'bridge': PROP + 'Bridge.glb',
     'gazebo': PROP + 'Gazebo.glb',
+    /* 우주기지(PLAN 45절, 2026-09-11) — 새 GLB를 안 받았다. 'crate'는
+       'building:mail'(우편함)이 이미 쓰는 box_small.gltf.glb를 같은
+       파일 그대로 새 kind로 한 줄 더 등록한 것뿐이다 */
+    'crate': PROP + 'box_small.gltf.glb',
     /* 폐허(2026-09-10, 퓨전 방향 — PLAN 10절 "폐허") — saga-go·saga-dungeon
        이 이미 CC0 확인해 둔 Quaternius 무너진 아치(modular_dungeon_1 팩)를
        그대로 복사(md5 saga-go 쪽과 동일, ASSET_LICENSES.md 참고) */
