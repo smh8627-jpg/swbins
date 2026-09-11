@@ -10,8 +10,10 @@ extends Node3D
 ##
 ## "값을 치른다"·"달아난다"(사건 선택지)는 골드·소지품 시스템이 아직 Godot
 ## 쪽에 없어(Phase 9 몫) 대사만 보여주고 넘어간다 — 여기서 새 경제 시스템을
-## 만들지 않는다. 내 공격력·방어력도 Phase 7(Stats)이 없어 임시 상수다 —
-## 부대 전투력이 들어오면 이 두 상수만 그 값으로 바꾸면 된다.
+## 만들지 않는다. 내 공격력·방어력은 예전엔 이 파일의 임시 상수였는데,
+## VERTICAL_SLICE.md 12단계 루프의 "도적이 부대에 합류한다"를 최소
+## 구현하면서 games/saga_go/data/party_state.gd(자동 로드 싱글턴)의
+## PartyState.atk/def로 옮겼다 — 도적을 이길 때마다 등용돼 이 값이 오른다.
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
@@ -31,8 +33,10 @@ const AMBUSH_RADIUS := 20.0
 const RETRY_COOLDOWN_SEC := 8.0
 const TOAST_SEC := 4.0
 
-const PLACEHOLDER_ATK := 60.0           # Phase 7 Stats가 들어오면 부대 전투력으로 교체
-const PLACEHOLDER_DEF := 35.0
+## 물리친 도적이 부대에 등용될 때 PartyState에 남기는 id. 아직 인물별
+## 개성(saga_core 인물 데이터 연동)은 없다 — 이번 슬라이스는 "합류했다는
+## 사실 자체"만 loop에 채운다.
+const RECRUIT_ID := "산적"
 
 enum State { IDLE, PROMPT, FIGHT, COOLDOWN }
 
@@ -256,7 +260,7 @@ func _make_combat_button(text: String, cb: Callable) -> Button:
 func _start_fight() -> void:
 	_state = State.FIGHT
 	var foe_hp := maxf(1.0, roundf(FOE_POWER * FOE_HP_MUL))
-	_duel = DuelRules.create(foe_hp, PLACEHOLDER_ATK, PLACEHOLDER_DEF)
+	_duel = DuelRules.create(foe_hp, PartyState.atk, PartyState.def)
 	_combat_layer.show()
 	_refresh_combat_ui()
 
@@ -306,7 +310,8 @@ func _finish_fight() -> void:
 	_combat_layer.hide()
 	_duel = null
 	if cleared:
-		_toast(FOE_NAME + "을 물리쳤다. 두고 간 전대가 남았다.")
+		PartyState.recruit(RECRUIT_ID)
+		_toast(FOE_NAME + "을 물리쳤다 — 부대에 합류했다! (전투력 %d)" % int(PartyState.atk + PartyState.def))
 		queue_free() # 물리친 도적은 사라진다 — 이번 슬라이스에서는 다시 나지 않는다
 		return
 	if dealt <= 0.0:
