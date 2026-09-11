@@ -28,9 +28,11 @@ namespace Saga.Go.World
         private const string RewardItemId = "wp_relic";
         private const float ToastSec = 5f;
 
+        private const string EventId = "cave_treasure";
+
         private void Awake()
         {
-            if (WorldEventState.CaveTreasureFound)
+            if (WorldEventState.IsTriggered(EventId))
             {
                 Destroy(gameObject);
                 return;
@@ -63,7 +65,7 @@ namespace Saga.Go.World
         private void OnTriggerEnter(Collider other)
         {
             if (!other.CompareTag("Player")) return;
-            if (!WorldEventState.TryFindCaveTreasure()) return;
+            if (!WorldEventState.TryTrigger(EventId)) return;
 
             Inventory.AddItem(RewardItemId);
             PlayerStats.AddExp(RewardExp);

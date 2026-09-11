@@ -10,11 +10,11 @@ namespace Saga.Go.Data
     /// 조건의 마지막 단계. saga-godot의 save_state.gd와 같은 구조
     /// (_migrate_step 마이그레이션 경로 포함, PLAN.md 75장 "Data
     /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4, v4→v5, v5→v6,
-    /// v6→v7, v7→v8 전환이 그 실사용례다).
+    /// v6→v7, v7→v8, v8→v9 전환이 그 실사용례다).
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 8;
+        private const int SaveVersion = 9;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -33,6 +33,7 @@ namespace Saga.Go.Data
             // v3(PLAN.md 70~71장 Quest 추가) — v2까지는 없던 필드.
             public int questBanditStage;
             // v4(PLAN.md 72~73장 World Event/Hidden Area 추가) — v3까지는 없던 필드.
+            // v9부터는 worldFlags로 옮겨 가고 이 필드는 v8 이하 파일을 읽을 때만 쓰인다.
             public bool caveTreasureFound;
             // v5(PLAN.md 66장 Reward의 돈·상인 거래 추가) — v4까지는 없던 필드.
             public int gold;
@@ -40,9 +41,15 @@ namespace Saga.Go.Data
             // v6(PLAN.md 51장 GO 월드 확장 — 수집) — v5까지는 없던 필드.
             public List<string> gatheredSpots;
             // v7(PLAN.md 51장 GO 월드 확장 — 산신당 가호) — v6까지는 없던 필드.
+            // v9부터는 worldFlags로 옮겨 가고 이 필드는 v8 이하 파일을 읽을 때만 쓰인다.
             public bool shrineBlessed;
             // v8(PLAN.md 51장 GO 월드 확장 — 희귀 몬스터) — v7까지는 없던 필드.
+            // v9부터는 worldFlags로 옮겨 가고 이 필드는 v8 이하 파일을 읽을 때만 쓰인다.
             public bool rareWolfDefeated;
+            // v9(WorldEventState를 GatherState처럼 id 집합으로 일반화, 2026-09-12) —
+            // 위 세 bool 필드를 하나로 접었다. v8 이하 파일을 읽을 땐 MigrateStep(8,...)이
+            // 세 bool을 보고 이 목록을 채운다.
+            public List<string> worldFlags;
         }
 
         public static bool Save()
@@ -61,12 +68,10 @@ namespace Saga.Go.Data
                 equippedWeapon = Inventory.EquippedWeaponId,
                 equippedArmor = Inventory.EquippedArmorId,
                 questBanditStage = (int)QuestState.BanditQuest,
-                caveTreasureFound = WorldEventState.CaveTreasureFound,
                 gold = GoldState.Gold,
                 merchantSold = ShopState.MerchantSold,
                 gatheredSpots = new List<string>(GatherState.GatheredIds),
-                shrineBlessed = ShrineState.Blessed,
-                rareWolfDefeated = RareWolfState.Defeated,
+                worldFlags = new List<string>(WorldEventState.TriggeredIds),
             };
 
             try
@@ -107,12 +112,10 @@ namespace Saga.Go.Data
             PlayerStats.Restore(data.level, data.exp);
             Inventory.Restore(data.ownedItems ?? new List<string>(), data.equippedWeapon, data.equippedArmor);
             QuestState.Restore((QuestStage)data.questBanditStage);
-            WorldEventState.Restore(data.caveTreasureFound);
             GoldState.Restore(data.gold);
             ShopState.Restore(data.merchantSold);
             GatherState.Restore(data.gatheredSpots);
-            ShrineState.Restore(data.shrineBlessed);
-            RareWolfState.Restore(data.rareWolfDefeated);
+            WorldEventState.Restore(data.worldFlags);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -203,6 +206,19 @@ namespace Saga.Go.Data
                 // 기본값(false)으로 채운다.
                 data.version = 8;
                 data.rareWolfDefeated = false;
+                return data;
+            }
+            if (fromVersion == 8)
+            {
+                // v8까지는 caveTreasureFound/shrineBlessed/rareWolfDefeated가
+                // 각각 별도 bool 필드였다 — WorldEventState를 GatherState처럼
+                // id 집합으로 일반화하며 하나의 문자열 목록으로 접는다(값은
+                // 그대로 옮기는 것뿐이라 진행 손실 없음).
+                data.version = 9;
+                data.worldFlags = new List<string>();
+                if (data.caveTreasureFound) data.worldFlags.Add("cave_treasure");
+                if (data.shrineBlessed) data.worldFlags.Add("shrine_blessing");
+                if (data.rareWolfDefeated) data.worldFlags.Add("rare_wolf");
                 return data;
             }
             return null;

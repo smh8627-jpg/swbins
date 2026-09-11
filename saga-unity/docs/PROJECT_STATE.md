@@ -5,6 +5,24 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **기술부채 정리 — WorldEventState를 id 집합으로 일반화 (2026-09-12).**
+  동쪽 지도 확장 다음으로 이어서(같은 세션) — `ShrineState.cs`가
+  스스로 남겨 둔 예고("세 번째 '자리 하나' 월드 이벤트가 생기면
+  GatherState.cs처럼 id 집합으로 합칠 것")가, `RareWolfState.cs`가
+  생기며 이미 세 번째를 넘긴 채 안 지켜지고 있던 걸 발견해 정리했다.
+  `WorldEventState.cs`를 `GatherState.cs`와 같은 모양(HashSet<string>
+  기반 `IsTriggered`/`TryTrigger`/`TriggeredIds`/`Restore`)으로 다시
+  썼다 — 굴 보물은 `"cave_treasure"`, 산신당은 `"shrine_blessing"`,
+  희귀 몬스터는 `"rare_wolf"` id를 쓴다. `ShrineState.cs`·
+  `RareWolfState.cs`는 삭제, `HiddenTreasure.cs`·`MountainShrine.cs`·
+  `RareWolfEncounter.cs` 세 호출부를 새 API로 바꿨다(안 쓰이던
+  `TreasureFound`/`Blessing` 이벤트도 같이 정리됨 — 구독하는 곳이
+  코드베이스 어디에도 없었음). `SaveState.cs` v8→v9 — 예전 세 bool
+  필드(`caveTreasureFound`/`shrineBlessed`/`rareWolfDefeated`)를 하나의
+  `worldFlags` 문자열 목록으로 접었다(`MigrateStep(8,...)`가 세 bool을
+  보고 목록을 채워 넣어 진행 손실 없이 옮김 — 옛 필드는 마이그레이션
+  전용으로 클래스에 그대로 남겨 둠). 씬 GameObject 구성은 안 바뀐
+  변경이라 씬 재빌드는 생략, 컴파일·PlaytestHeadless 전부 통과.
 - **지도 크기 확장 둘째 조각 — 동쪽 2칸 (2026-09-12).** 채집 자리 4호
   다음으로 이어서(같은 세션) — 남쪽 확장 때 세운 "행/열 끝에만 보태면
   기존 좌표 안 밀림" 원칙을 동쪽(열)에도 실제로 적용해 검증했다. 9×7 →
@@ -677,3 +695,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   9×7→9×9) 추가 후 컴파일 통과, 씬 재빌드에서 `groundVerts=4032→5184`로
   정확히 9×9×4×4서브쿼드×4정점과 일치함을 확인, PlaytestHeadless
   (`OK - 10 frames, no errors`)도 통과.
+- WorldEventState 일반화(ShrineState·RareWolfState 삭제, SaveState v9)
+  추가 후 컴파일 통과 — 씬 GameObject 구성을 하나도 안 건드린 변경이라
+  BuildTestVillageScene.Build()는 다시 안 돌림. PlaytestHeadless
+  (`OK - 10 frames, no errors`) 통과 — v8 세이브 파일을 실제로 로드해
+  MigrateStep(8,...)이 세 bool을 worldFlags로 올바르게 접는지는 사람이
+  구버전 세이브로 직접 확인해야 함(헤드리스 플레이는 새 게임 취급이라
+  이 경로를 안 지나감).
