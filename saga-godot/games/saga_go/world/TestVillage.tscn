@@ -109,6 +109,11 @@ choice_b_exp = 4.0
 [node name="HeroEncounter" type="Node3D" parent="."]
 script = ExtResource("12")
 
+[node name="HeroEncounter2" type="Node3D" parent="."]
+script = ExtResource("12")
+grid = Vector2i(4, 2)
+hero_id = "sg_zhugeliang"
+
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)
 current = false
