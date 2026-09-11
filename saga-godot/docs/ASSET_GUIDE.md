@@ -17,7 +17,8 @@ CC0(퍼블릭 도메인) 범용 로우폴리 킷은 그 원작들과 무관한 �
 |---|---|---|---|
 | [Nature Kit](https://kenney.nl/assets/nature-kit) | 2.1 | 2026-09-11 | 나무·바위 |
 | [Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) | 2.0 | 2026-09-11 | 마을집·폐허 기둥·다리 |
-| [Blocky Characters](https://kenney.nl/assets/blocky-characters) | 2.0 | 2026-09-11 | 플레이어 |
+| [Blocky Characters](https://kenney.nl/assets/blocky-characters) | 2.0 | 2026-09-11 | 플레이어·NPC·산적 |
+| [Modular Cave Kit](https://kenney.nl/assets/modular-cave-kit) | 1.0 | 2026-09-11 | 동굴 입구 |
 
 라이선스: CC0 (Creative Commons Zero) — 출처 표시 의무 없음. 그래도
 각 킷 폴더에 원본 `License.txt`를 그대로 두지 않고 이 문서에 요약해
@@ -36,6 +37,7 @@ assets/
 ├── rocks/        rock_largeA.glb · rock_smallA.glb
 ├── buildings/    wall-block.glb · roof-gable.glb · pillar-stone.glb ·
 │                 planks.glb + Textures/colormap.png
+├── dungeon/      gate-rock.glb + Textures/colormap.png (동굴 입구)
 └── environment/  env_pc.tres · env_mobile.tres (66-1장, GLB 아님)
 ```
 
@@ -62,6 +64,7 @@ get_aabb()`를 합쳐 실측했다(추측 아님) — 아래 스케일은 그 �
 | `characters/character-b.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 마을 촌장, ×1.25 |
 | `characters/character-c.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 떠돌이 상인, ×1.25 |
 | `characters/character-d.glb` | (a와 같은 골격 — 실측 생략) | 바닥 | 산적, ×1.25 |
+| `dungeon/gate-rock.glb` | 4.0 × 4.05 × 2.454 | 바닥 | 동굴 입구, 균일 ×(6/4.05≈1.48) |
 
 "피벗 바닥"은 원점(0,0,0)이 모델의 발밑이라는 뜻 — primitive였을 때는
 대부분 중앙 피벗(BoxMesh/SphereMesh/CylinderMesh 기본값)이라 `height*0.5`
@@ -81,9 +84,15 @@ get_aabb()`를 합쳐 실측했다(추측 아님) — 아래 스케일은 그 �
 
 ## 이번에 안 바꾼 것
 
-- **동굴 입구**(`landmarks_builder.gd::_add_cave`) — Nature/Fantasy Town
-  Kit에 어울리는 조각이 없어 그대로 primitive(검은 박스)다. 동굴/던전
-  킷을 새로 받아야 한다.
+- ~~동굴 입구~~ — **완료(2026-09-11④).** Nature/Fantasy Town Kit엔
+  어울리는 조각이 없어 CC0 Kenney Modular Cave Kit(신규 다운로드)의
+  `gate-rock.glb`(아치형 바위 문, 바닥 피벗)를 받아 `assets/dungeon/`에
+  넣고 균일 스케일(≈1.48)로 교체했다. wall-block처럼 단순 색 아틀라스가
+  아니라 실제 바위 굴곡이 있는 조각이라 **비균등 스케일은 안 썼다**(위
+  실측표 참고). 못 받아 왔을 때는 bridge와 같은 방식으로 예전 primitive
+  박스로 대체(fallback). 동굴 입구는 여전히 지나갈 수 있는 통로가 아니라
+  랜드마크 장애물(충돌 박스 그대로) — 실제 동굴 내부(방·복도)는 이 킷에
+  있는 room/corridor 조각들로 나중에 할 일(Phase 3 이후, 아직 계획 없음).
 - ~~NPC(촌장·상인)·산적~~ — **완료(2026-09-11②).** 마을 촌장=
   `character-b.glb`, 떠돌이 상인=`character-c.glb`, 산적=
   `character-d.glb`. 같은 킷이라 추가 다운로드 없이 미리 받아 둔
@@ -117,6 +126,15 @@ Mesh만 뽑지 않고 **씬 전체를 그대로 인스턴스**한다(`Player.tsc
 스크린샷으로도 확인 — 캐릭터가 텍스처까지 정상 렌더링(핑크색 "텍스처
 없음" 표시 없음), 그림자 정상, 배경에 나무·지붕 형태 확인됨. 자세한
 경위는 `docs/PROJECT_STATE.md` 2026-09-11 항목 참고.
+
+**동굴 입구 교체(2026-09-11④) 검증**: `--headless --editor --quit`(임포트,
+gate-rock.glb + colormap.png 재임포트 로그 확인) → `--headless
+--quit-after 5`를 연속 3번 돌려 **셋 다 exit 0·error/warn/missing 로그
+0건**(루트 CLAUDE.md "세 번 돌려 출력이 한 줄도 다르지 않은지" 습관대로).
+`--verbose` 로그로 `res://assets/dungeon/gate-rock.glb`·
+`res://assets/dungeon/Textures/colormap.png` 둘 다 정상 로드 확인. GUI
+스크린샷 확인은 이번엔 안 함(사용자 명시적 요청 없었음 — 실기기 확인은
+몰아서 할 일에 쌓아 둠).
 
 **NPC·산적 교체(같은 날 뒤 이어 진행) 검증**: character-b/c/d.glb +
 texture-{b,c,d}.png 추가 후 헤드리스 임포트 중 `f.is_null()` 오류가 한

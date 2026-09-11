@@ -332,6 +332,40 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     카메라·오브젝트 Transform3D를 손으로 써넣을 때 같은 함정을
     밟지 않도록 여기 적어 둔다
 
+## 완료 단계 (추가, 2026-09-11④)
+
+- **동굴 입구도 GLB로 교체.** 이전 항목에서 "다음 세션은 동굴 입구부터"로
+  적어 둔 것을 같은 날 이어서 마쳤다. Nature Kit·Fantasy Town Kit엔
+  어울리는 조각이 없어 CC0 Kenney **Modular Cave Kit**(신규 다운로드,
+  `kenney.nl/assets/modular-cave-kit`)을 받아 `gate-rock.glb`(아치형
+  바위 문, 바닥 피벗, 4.0×4.05×2.454)를 `assets/dungeon/`에 넣었다.
+  - `landmarks_builder.gd::_add_cave()` — primitive 검은 박스를
+    `GLBUtils.extract_mesh`로 뽑은 gate-rock 메시로 교체, 균일 스케일
+    (6/4.05≈1.48, 원래 primitive 높이 6에 맞춤)만 적용했다. wall-block과
+    달리 단순 색 아틀라스가 아니라 실제 바위 굴곡이 있는 조각이라
+    **비균등 스케일은 일부러 안 씀**(ASSET_GUIDE.md에 근거 기록). 못
+    받아 왔을 때는 bridge와 같은 fallback(예전 primitive 박스)으로
+    대체하도록 짰다. 충돌은 기존과 동일하게 랜드마크 장애물(지나갈 수
+    있는 통로 아님) — 이번 교체는 시각만 바꾸는 범위였다.
+  - 검증: `--headless --editor --quit`(임포트) → `--headless
+    --quit-after 5`를 연속 3번, **셋 다 exit 0·error/warn/missing 0건**.
+    verbose 로그로 `assets/dungeon/gate-rock.glb`·`Textures/colormap.png`
+    둘 다 정상 로드 확인. GUI 스크린샷 확인은 이번엔 안 함(사용자가
+    명시적으로 요청하지 않음 — 66-1장 "실기 확인은 몰아서" 방침대로 쌓아
+    둠).
+  - 이 킷엔 room/corridor/ladder/stairs 조각도 있어(41개 중 4개만 씀)
+    **동굴 내부(방·통로)를 실제로 만들 때 같은 킷에서 더 가져올 수
+    있다** — 지금은 입구 랜드마크 하나만 교체하는 범위였고, 내부 던전은
+    아직 계획도 없다.
+
+## 다음에 이어질 것
+
+남은 조각은 `docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 절 참고 —
+**마을집 실제 모듈 타일링**(`wall-block.glb` 여러 장을 격자로 이어
+붙이는 것, 지금은 비균등 스케일로 하나를 늘려 대체 중, "마을집이
+primitive보다 늘어난 이유" 절 참고)과 **모바일 프로파일 실기 확인**
+(GLB 자산들이 저사양 기기에서 어떻게 보이는지)이 남아 있다.
+
 ## 알려진 오류
 
 - 없음. Main.tscn 추가로 이전에 있던 "no main scene defined" 오류는 해소됐다.

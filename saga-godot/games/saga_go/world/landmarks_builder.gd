@@ -4,8 +4,8 @@ extends Node3D
 ## 2026-09-11 — PLAN.md 45·46장(GLB 교체). 마을집·폐허 기둥·다리 널판을
 ## CC0 Kenney Fantasy Town Kit(assets/buildings, ASSET_GUIDE.md 참고)의
 ## GLB 조각으로 바꿨다. 굴 입구는 이 킷에 맞는 조각이 없어 이번 교체에서
-## 빠졌다 — 여전히 primitive다(아래 _add_cave 참고, PROJECT_STATE.md에
-## 남은 일로 기록).
+## 빠졌었다 — 같은 날 뒤이어 CC0 Kenney Modular Cave Kit의 gate-rock.glb로
+## 마저 바꿨다(아래 _add_cave 참고, docs/ASSET_GUIDE.md 참고).
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
@@ -15,6 +15,7 @@ const WALL_GLB := "res://assets/buildings/wall-block.glb"
 const ROOF_GLB := "res://assets/buildings/roof-gable.glb"
 const PILLAR_GLB := "res://assets/buildings/pillar-stone.glb"
 const PLANK_GLB := "res://assets/buildings/planks.glb"
+const CAVE_GATE_GLB := "res://assets/dungeon/gate-rock.glb"
 
 ## wall-block.glb는 1x1x1 정육면체(바닥이 원점) — 기존 박스 몸통(10x4x10)에
 ## 맞춰 축마다 다르게 늘렸다. 텍스처가 단순 색 아틀라스라 늘려도 눈에 띄게
@@ -26,6 +27,14 @@ const WALL_SCALE := Vector3(10, 4, 10)
 const ROOF_SCALE := Vector3(10, 10, 10)
 ## pillar-stone.glb(높이 1m 원기둥)의 지름 스케일 — 얇을수록 폐허답다.
 const RUIN_PILLAR_RADIUS_SCALE := 4.0
+## gate-rock.glb(4.0 x 4.05 x 2.454, 바닥 피벗)은 이미 아치 비율이 잡혀
+## 있어 축을 고르게(균일) 키우기만 한다 — wall-block처럼 단순 색 아틀라스가
+## 아니라 실제 바위 굴곡 노멀맵이 있는 조각이라, 비균등 스케일을 쓰면
+## 그 결이 늘어나 이상해 보인다(ASSET_GUIDE.md "마을집이 늘어난 이유" 절
+## 참고 — 거긴 색 아틀라스라 비균등이 통했지만 여긴 안 통한다). 원래
+## primitive 높이(6)에 맞춰 스케일을 역산했다.
+const CAVE_GATE_SIZE := Vector3(4.0, 4.05, 2.454)
+const CAVE_GATE_SCALE := 6.0 / 4.05
 
 
 func _ready() -> void:
@@ -59,16 +68,31 @@ func _solid(size: Vector3, local_pos: Vector3, parent: Node3D) -> void:
 	parent.add_child(body)
 
 
-## 아직 primitive다 — Fantasy Town/Nature Kit에 어울리는 "동굴 입구" 조각이
-## 없다. master.md 8장 "Primitive는 프로토타입에서만" 그대로 유지.
 func _add_cave() -> void:
 	var ground: float = TerrainBuilder.LEGEND["C"].height
-	var size := Vector3(10, 6, 4)
-	var cave := _box(size, Color(0.12, 0.12, 0.14))
-	cave.name = "CaveEntrance"
-	cave.position = TestMap.world_pos(3, 0) + Vector3(0, ground + 3, 0)
-	add_child(cave)
-	_solid(size, cave.position, self)
+	var base_pos := TestMap.world_pos(3, 0) + Vector3(0, ground, 0)
+	var size := CAVE_GATE_SIZE * CAVE_GATE_SCALE
+	var gate_mesh := GLBUtils.extract_mesh(CAVE_GATE_GLB)
+
+	if gate_mesh != null:
+		var mi := MeshInstance3D.new()
+		mi.name = "CaveEntrance"
+		mi.mesh = gate_mesh
+		## gate-rock.glb는 바닥이 원점이라 primitive 시절처럼 높이 절반만큼
+		## 띄울 필요가 없다(village/ruins와 같은 이유, ASSET_GUIDE.md 참고).
+		mi.transform = Transform3D(Basis().scaled(Vector3.ONE * CAVE_GATE_SCALE), base_pos)
+		add_child(mi)
+	else:
+		## 못 받아 왔으면 예전 primitive로 대체 — bridge의 fallback과 같은 패턴.
+		var cave := _box(size, Color(0.12, 0.12, 0.14))
+		cave.name = "CaveEntrance"
+		cave.position = base_pos + Vector3(0, size.y * 0.5, 0)
+		add_child(cave)
+
+	## 충돌은 시각 메시의 피벗과 무관하게 중심 기준이라 그대로 둔다
+	## (village 쪽 주석과 같은 이유) — 동굴 입구는 지나갈 수 있는 통로가
+	## 아니라 랜드마크 장애물이라는 기존 동작을 그대로 유지한다.
+	_solid(size, base_pos + Vector3(0, size.y * 0.5, 0), self)
 
 
 func _add_village() -> void:
