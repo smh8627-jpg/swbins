@@ -45,6 +45,22 @@ assets/
 한다 — glTF가 `"uri":"Textures/xxx.png"`처럼 자기 위치 기준 상대경로로
 참조하기 때문이다(킷 하나 안에서 여러 모델이 텍스처 하나를 공유하는 구조).
 
+## 텍스처 임포트 설정 (2026-09-11⑨, Mobile Performance Pass)
+
+새 텍스처를 헤드리스로 처음 받으면 Godot 기본값 그대로 **무압축
+(Lossless) + 밉맵 없음**으로 들어온다 — 에디터에서 "이 텍스처는 3D에
+쓰인다, VRAM 압축으로 바꿀까?" 프롬프트가 뜨는 자동 감지가 헤드리스
+CLI로는 한 번도 안 걸렸기 때문이다(사람이 인스펙터를 직접 열어야 뜨는
+프롬프트). 실제로 `colormap.png`(buildings·dungeon 공용) ·
+`texture-{a,b,c,d}.png`(characters) 여섯 장 전부 이 상태였던 걸 확인하고
+`compress/mode=2`(VRAM Compressed) + `mipmaps/generate=true`로
+바꿨다 — 3D 월드에서 멀리 보이는 나무·건물·인물 텍스처에 밉맵이 없으면
+GPU 대역폭도 더 먹고 앨리어싱(반짝임)도 더 심해진다.
+
+앞으로 새 킷을 받을 때 같은 구멍이 안 생기도록 `project.godot`에
+`[importer_defaults]`로 텍스처 임포트 기본값 자체를 바꿔 뒀다 — 이제
+새로 받는 텍스처는 처음부터 VRAM Compressed + 밉맵으로 들어온다.
+
 ## 쓴 파일과 실측값
 
 Godot 4.7.2 콘솔 빌드로 각 GLB를 실제로 인스턴스화해서 `VisualInstance3D.

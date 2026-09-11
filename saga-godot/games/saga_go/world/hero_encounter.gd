@@ -1,0 +1,148 @@
+extends Node3D
+
+## GO의 실제 정체성("saga — 역사 인물로 노는 웹 게임", 루트 CLAUDE.md 첫 줄)을
+## 대표하는 사건 — 지금까지 만든 8개 사건(도적 두목·마을의 부탁·부상병 등)은
+## 다 일반 산적·주민이었고, **실제 역사 인물을 만나 등용하는** 조우는 아직
+## 하나도 없었다. saga_core/data/characters.gd(2026-08-31에 결정만 되고
+## 안 만들어져 있던 것 — 105명 데이터를 옮겨 완성)를 처음 쓰는 자리다.
+##
+## 2026-09-11⑱ — 처음엔 "등용한다/보낸다" 두 선택지로 좁혀 항상 성공하게
+## 했었는데, 웹판 encounter.js의 3라운드 설득(무/지/덕 어필이 인물 trait과
+## 맞으면 호감도가 크게 오른다)이 그리 무겁지 않아 games/saga_go/data/
+## persuade_rules.gd로 그대로 옮겨 붙였다(duel_rules.gd와 같은 경계 — 판정
+## 층은 웹판 그대로, 화면만 3D). rarity 4 이상은 기질을 처음엔 감춘다
+## (웹판 revealed = rarity<=3과 같음) — 한 번 찔러봐야 안다.
+##
+## 시각은 캡슐로 남겼다(다른 사건과 같은 이유 — 받아 둔 GLB 4종은 이미
+## 플레이어·촌장·상인·산적 자리가 정해져 있다). rarity가 높을수록 금빛에
+## 가깝게 색을 낸다 — 도감 rarity 색(data.js RARITY.5 = 금)과 같은 감각.
+
+const TestMap := preload("res://games/saga_go/data/test_map.gd")
+const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+const Toast := preload("res://games/saga_go/ui/toast.gd")
+const Characters := preload("res://saga_core/data/characters.gd")
+## PersuadeRules는 class_name으로 전역 등록돼 있어(duel_rules.gd와 같은
+## 경계) 여기서 다시 preload하지 않는다 — 이름이 겹치면 파싱 오류가 난다.
+
+const TRIGGER_RADIUS := 18.0
+const TOAST_SEC := 5.0
+## 웹판 encounter.js의 gainHero() exp 그대로(h.rarity * 14).
+const EXP_PER_RARITY := 14.0
+
+const APPEALS := [
+	{"key": "might", "label": "⚔️ 무(武)로 겨루자"},
+	{"key": "wisdom", "label": "📜 지(智)를 논하자"},
+	{"key": "virtue", "label": "🙏 덕(德)으로 청하자"},
+]
+
+@export var grid := Vector2i(7, 6) # 2026-09-11㉒ 지도 확장(+2,+2)
+@export var hero_id := "kr_yisunsin"
+
+var _hero: Dictionary
+var _triggered := false
+var _persuade: PersuadeRules
+var _revealed := false
+var _layer: CanvasLayer
+
+func _ready() -> void:
+	var found: Variant = Characters.find(hero_id)
+	if found == null:
+		push_warning("hero_encounter: unknown hero_id " + hero_id)
+		queue_free()
+		return
+	_hero = found
+	_spawn_visual()
+	_spawn_area()
+
+func _spawn_visual() -> void:
+	var ch: String = TestMap.tile_at(grid.x, grid.y)
+	var ground: float = TerrainBuilder.LEGEND[ch].height
+	position = TestMap.world_pos(grid.x, grid.y) + Vector3(0, ground, 0)
+
+	var mi := MeshInstance3D.new()
+	var mesh := CapsuleMesh.new()
+	mesh.radius = 0.85
+	mesh.height = 3.2
+	mi.mesh = mesh
+	mi.position = Vector3(0, 1.6, 0)
+	var mat := StandardMaterial3D.new()
+	## rarity 5=금빛, 낮을수록 은빛 쪽으로 — data.js RARITY 색 감각을 흉내.
+	var t: float = clampf((int(_hero.rarity) - 1) / 4.0, 0.0, 1.0)
+	mat.albedo_color = Color(0.75, 0.7, 0.55).lerp(Color(0.95, 0.78, 0.25), t)
+	mi.material_override = mat
+	add_child(mi)
+
+func _spawn_area() -> void:
+	var area := Area3D.new()
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = TRIGGER_RADIUS
+	cs.shape = shape
+	area.add_child(cs)
+	add_child(area)
+	area.body_entered.connect(_on_body_entered)
+
+func _on_body_entered(body: Node3D) -> void:
+	if _triggered or not body.is_in_group("player"):
+		return
+	_triggered = true
+	_persuade = PersuadeRules.create(_hero["trait"])
+	_revealed = int(_hero.rarity) <= 3
+	_show_round()
+
+func _trait_label(trait_key: String) -> String:
+	match trait_key:
+		"might": return "무인 기질 ⚔️"
+		"wisdom": return "지략가 기질 📜"
+		_: return "덕망가 기질 🙏"
+
+func _show_round() -> void:
+	if _layer:
+		_layer.queue_free()
+	var trait_text := _trait_label(_hero["trait"]) if _revealed else "기질 불명 ❓"
+	var title := "%s %s(%s) · %s·%s\n무 %d / 지 %d / 통 %d\n%s\n호감도 %d/100 (%d/%d라운드)" % [
+		_hero.emoji, _hero.name, _hero.hanja, _hero.era, _hero.faction,
+		int(_hero.stats.might), int(_hero.stats.wisdom), int(_hero.stats.command),
+		trait_text, int(_persuade.favor), _persuade.round_num, PersuadeRules.MAX_ROUND,
+	]
+	var choices: Array = []
+	for a in APPEALS:
+		choices.append({"label": a.label, "cb": func() -> void: _do_appeal(a.key)})
+	choices.append({"label": "물러난다", "cb": _flee})
+	_layer = ChoicePrompt.build(self, title, choices)
+
+func _do_appeal(key: String) -> void:
+	var r: Dictionary = _persuade.appeal(key)
+	_revealed = true
+	if not r.get("ok", false):
+		return
+	if r.succeeded:
+		_recruit()
+	elif r.done:
+		_fail()
+	else:
+		_show_round()
+
+## 웹판 encounter.js도 "물러난다"는 그냥 창을 닫을 뿐 조우 자체를 없애지
+## 않는다(close()가 removeSpawn을 안 부름) — 여기서도 노드를 안 지우고
+## _triggered만 되돌린다. 트리거 반경을 벗어났다 다시 들어오면 처음부터
+## 다시 설득해 볼 수 있다(성공/실패만 EventState에 남는 진짜 끝이다).
+func _flee() -> void:
+	if _layer:
+		_layer.queue_free()
+	Toast.show(self, "%s와(과) 인사를 나누고 헤어졌다." % _hero.name, TOAST_SEC)
+	_triggered = false
+
+func _fail() -> void:
+	Toast.show(self, "%s — \"인연이 아닌 듯하오.\" 그가 떠났다." % _hero.name, TOAST_SEC)
+	EventState.mark_resolved(name)
+	queue_free()
+
+func _recruit() -> void:
+	PartyState.recruit(_hero.id)
+	var exp_reward: float = int(_hero.rarity) * EXP_PER_RARITY
+	PartyState.add_exp(exp_reward)
+	Toast.show(self, "%s가 부대에 합류했다! \"%s\" (경험 +%d)" % [_hero.name, _hero.quote, int(exp_reward)], TOAST_SEC)
+	EventState.mark_resolved(name)
+	queue_free()

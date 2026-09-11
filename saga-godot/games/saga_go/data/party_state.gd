@@ -10,6 +10,12 @@ extends Node
 ## BASE_ATK/BASE_DEF는 bandit_encounter.gd가 쓰던 예전 PLACEHOLDER_ATK/
 ## PLACEHOLDER_DEF와 같은 값이다 — 아직 아무도 등용하지 않았을 때 기존
 ## 전투 밸런스가 그대로 유지되도록 맞췄다.
+##
+## 2026-09-11⑬ — GO 사건 다양화로 사건마다 exp 보상(웹판 event.js의
+## exp 필드)이 생겼는데, 그걸 받아 줄 자리가 없었다. Phase 7 전체(Stats/
+## Item/Inventory/Equipment)를 만드는 대신, §37 재미 평가의 "레벨업이
+## 의미가 있는가?"에 답할 만큼만 — 경험치를 모으면 부대 레벨이 오르고
+## 그만큼 공격력/방어력이 조금씩 더 붙는다(EXP_PER_LEVEL마다 1레벨).
 
 signal power_changed(atk: float, def: float)
 
@@ -18,7 +24,13 @@ const BASE_DEF := 35.0
 const ATK_PER_MEMBER := 18.0
 const DEF_PER_MEMBER := 10.0
 
+const EXP_PER_LEVEL := 100.0
+const ATK_PER_LEVEL := 4.0
+const DEF_PER_LEVEL := 2.0
+
 var members: Array[String] = []
+var exp: float = 0.0
+var level: int = 0
 var atk: float = BASE_ATK
 var def: float = BASE_DEF
 
@@ -29,15 +41,26 @@ func recruit(id: String) -> void:
 	power_changed.emit(atk, def)
 
 
-## save_state.gd가 저장 파일을 불러온 뒤 여기로 넘긴다 — recruit()와
-## 다르게 이미 정해진 목록을 통째로 앉히고 수치만 다시 계산한다(한 명씩
-## 등용하며 신호를 여러 번 쏘지 않는다).
-func restore(saved_members: Array[String]) -> void:
+## 사건 보상(고대 비문을 읽는다·부상병을 돌본다·적을 물리친다 등)이
+## 경험치를 쌓는 유일한 통로다 — 걷기·시간 경과로는 안 오른다.
+func add_exp(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	exp += amount
+	_recompute()
+	power_changed.emit(atk, def)
+
+
+## save_state.gd가 저장 파일을 불러온 뒤 여기로 넘긴다 — recruit()·add_exp()와
+## 다르게 이미 정해진 값을 통째로 앉히고 수치만 다시 계산한다(신호는 한 번만).
+func restore(saved_members: Array[String], saved_exp: float = 0.0) -> void:
 	members = saved_members.duplicate()
+	exp = saved_exp
 	_recompute()
 	power_changed.emit(atk, def)
 
 
 func _recompute() -> void:
-	atk = BASE_ATK + members.size() * ATK_PER_MEMBER
-	def = BASE_DEF + members.size() * DEF_PER_MEMBER
+	level = int(exp / EXP_PER_LEVEL)
+	atk = BASE_ATK + members.size() * ATK_PER_MEMBER + level * ATK_PER_LEVEL
+	def = BASE_DEF + members.size() * DEF_PER_MEMBER + level * DEF_PER_LEVEL

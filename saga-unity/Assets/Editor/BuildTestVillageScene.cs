@@ -22,7 +22,6 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestVillage.unity";
         private const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
-        private const string SkyMaterialPath = "Assets/Games/SagaGo/World/Sky.mat";
 
         // saga-godot TestVillage.tscn의 마을 중심 스폰 자리와 동일 — 마을 집 두 칸
         // (2,3)·(3,3) 사이 중앙. 예전엔 WorldPos(2.5,3)의 계산 결과를 상수로 박아
@@ -37,8 +36,8 @@ namespace Saga.EditorTools
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            var sun = BuildLighting();
-            BuildSkyAndFog(sun);
+            BuildLighting();
+            BuildSkyAndFog();
             var terrainGo = BuildTerrain();
             BuildVegetation();
             BuildLandmarks();
@@ -81,48 +80,23 @@ namespace Saga.EditorTools
         }
 
         /// <summary>
-        /// PLAN.md 24·25장. HDRP 전용인 "Physically Based Sky" Volume은 URP엔
-        /// 없다 — URP는 saga-godot(Environment 리소스, env_pc.tres)과 달리
-        /// RenderSettings 기반 고전 방식(Skybox 머티리얼 + 기본 Fog)을 쓴다.
-        /// 색 값은 env_pc.tres를 참고해 맞춤(완전히 같은 룩은 아니다 — Godot의
-        /// ProceduralSkyMaterial은 top/horizon/ground를 따로 받지만 Unity
-        /// Skybox/Procedural은 대기 산란 모델이라 파라미터가 다르다).
-        /// 이 안개가 실제로 보이려면 VertexColorLit·WaterUnlit 셰이더에도
-        /// URP 표준 안개 믹싱을 넣어야 한다(두 셰이더에 이미 추가함) — 안
-        /// 넣으면 URP/Lit(랜드마크)만 안개가 지고 땅·나무·바위·강은 안 진다.
+        /// 2026-09-12 병합 정리 — 이 자리엔 한때 Skybox 머티리얼(Sky.mat) +
+        /// RenderSettings.sun 기반의 다른 BuildSkyAndFog(Light) 구현이 있었다.
+        /// 그런데 BuildPlayerCamera/BuildReviewCamera가 이미
+        /// `clearFlags = CameraClearFlags.SolidColor` +
+        /// `backgroundColor = SkyFogBuilder.HorizonColor`로 스카이박스 없이
+        /// 단색 배경을 쓰도록 짜여 있어(둘 다 이 조건 없이 항상 그렇게
+        /// 동작), Skybox 자산을 만드는 그 구현은 애초에 카메라에 안 보이는
+        /// 죽은 코드였다 — 두 세션이 각자 다른 방향으로 SkyFogBuilder를
+        /// 만들면서 생긴 병합 충돌을 정리하며 제거했다(SkyMaterialPath 상수도
+        /// 그 구현에서만 쓰여 같이 지움). SkyFogBuilder.cs(Trilight 앰비언트 +
+        /// ExponentialSquared 안개, env_pc.tres 수치 그대로)가 실제로 쓰이는
+        /// 쪽이다.
         /// </summary>
-        private static void BuildSkyAndFog(Light sun)
+        private static void BuildSkyAndFog()
         {
-            var sky = AssetDatabase.LoadAssetAtPath<Material>(SkyMaterialPath);
-            if (sky == null)
-            {
-                sky = new Material(Shader.Find("Skybox/Procedural")) { name = "Sky" };
-                AssetDatabase.CreateAsset(sky, SkyMaterialPath);
-            }
-            sky.SetColor("_SkyTint", new Color(0.5f, 0.62f, 0.82f));
-            sky.SetColor("_GroundColor", new Color(0.3f, 0.28f, 0.24f));
-            sky.SetFloat("_AtmosphereThickness", 1.0f);
-            sky.SetFloat("_Exposure", 1.3f);
-            sky.SetFloat("_SunSize", 0.04f);
-            sky.SetFloat("_SunSizeConvergence", 5f);
-            EditorUtility.SetDirty(sky);
-
-            RenderSettings.skybox = sky;
-            RenderSettings.sun = sun;
-            RenderSettings.ambientMode = AmbientMode.Skybox;
-            DynamicGI.UpdateEnvironment();
-
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.Linear;
-            RenderSettings.fogColor = new Color(0.75f, 0.78f, 0.72f);
-            // 원래 7x7칸×48m 지도(336m 사방, 대각선 약 475m) 기준으로 잡은 값 —
-            // 2026-09-12 남쪽으로 2줄 늘려 336m×432m(대각선 약 547m)가 됐지만
-            // 숫자는 그대로 둔다. 새로 늘어난 자리는 마을에서 먼 가장자리라
-            // 원래도 안개에 흐려지는 구간이었고, 정확한 재조정은 눈으로 봐야
-            // 할 값이라(루트 CLAUDE.md — 개발 중엔 화면을 안 찍어 본다) 사람이
-            // GUI로 확인할 때 같이 볼 것.
-            RenderSettings.fogStartDistance = 150f;
-            RenderSettings.fogEndDistance = 430f;
+            var go = new GameObject("SkyFog");
+            go.AddComponent<SkyFogBuilder>().Build();
         }
 
         private static GameObject BuildTerrain()
@@ -392,6 +366,8 @@ namespace Saga.EditorTools
             camGo.transform.SetParent(rigGo.transform, false);
             var cam = camGo.AddComponent<Camera>();
             cam.tag = "MainCamera";
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = SkyFogBuilder.HorizonColor;
             camGo.AddComponent<AudioListener>();
 
             var inputActions = AssetDatabase.LoadAssetAtPath<UnityEngine.InputSystem.InputActionAsset>(InputActionsPath);
@@ -418,6 +394,8 @@ namespace Saga.EditorTools
             var camGo = new GameObject("ReviewCamera");
             var cam = camGo.AddComponent<Camera>();
             cam.enabled = false;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = SkyFogBuilder.HorizonColor;
             camGo.transform.position = new Vector3(0, 300, 140);
             camGo.transform.rotation = Quaternion.LookRotation(new Vector3(0, -0.9063f, -0.4226f), Vector3.forward);
         }

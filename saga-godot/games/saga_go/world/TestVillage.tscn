@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/world/terrain_builder.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/world/landmarks_builder.gd" id="2"]
@@ -10,6 +10,8 @@
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="8"]
 [ext_resource type="Script" path="res://games/saga_go/world/environment_profile.gd" id="9"]
 [ext_resource type="Script" path="res://games/saga_go/world/test_village.gd" id="10"]
+[ext_resource type="Script" path="res://games/saga_go/world/simple_event.gd" id="11"]
+[ext_resource type="Script" path="res://games/saga_go/world/hero_encounter.gd" id="12"]
 
 [node name="TestVillage" type="Node3D"]
 script = ExtResource("10")
@@ -37,6 +39,80 @@ script = ExtResource("6")
 
 [node name="BanditEncounter" type="Node3D" parent="."]
 script = ExtResource("7")
+
+[node name="BanditLeaderEncounter" type="Node3D" parent="."]
+script = ExtResource("7")
+grid = Vector2i(7, 4)
+foe_name = "도적 두목"
+foe_power = 260.0
+foe_hp_mul = 9.0
+bandit_scale = 1.4
+event_title = "🗡️ 도적 두목의 소굴"
+event_quote = "\"여기까지 들어온 배짱은 인정하마. 하나 살아 나갈 배짱까지 있을까.\""
+recruit_id = "도적_두목"
+quest_id_to_complete = "village_ask"
+foe_exp_reward = 90.0
+
+[node name="HurtSoldierEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+
+[node name="StoneTextEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(3, 4)
+event_title = "🪨 고대 비문\n\"이끼 아래로 글자가 반쯤 남아 있다.\""
+choice_a_label = "읽어 본다"
+choice_a_outcome = "옛 싸움의 날짜와 이름 셋을 읽어 냈다."
+choice_a_exp = 35.0
+choice_b_label = "그냥 둔다"
+choice_b_outcome = "이끼를 도로 덮어 두었다."
+choice_b_exp = 0.0
+
+[node name="MapScrapEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(4, 4)
+event_title = "🗺️ 보물 지도 조각\n\"무너진 기둥 틈에 기름 먹인 종이가 끼여 있다.\""
+choice_a_label = "적힌 자리를 파 본다"
+choice_a_outcome = "돌 아래에서 묻어 둔 전대가 나왔다."
+choice_a_exp = 25.0
+choice_a_chance = 0.45
+choice_a_fail_outcome = "흙만 나왔다. 종이는 챙겨 두었다."
+choice_a_fail_exp = 15.0
+choice_b_label = "상인에게 판다"
+choice_b_outcome = "조각을 넘기고 값을 받았다."
+choice_b_exp = 0.0
+
+[node name="RareHerbEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(6, 6)
+event_title = "🌿 희귀 약초\n\"바위 그늘에 보기 드문 잎이 돋아 있다.\""
+choice_a_label = "캔다"
+choice_a_outcome = "별미로 쓸 만한 것을 두 몫 캤다."
+choice_a_exp = 0.0
+choice_b_label = "남겨 둔다"
+choice_b_outcome = "씨가 여물도록 두고 왔다."
+choice_b_exp = 0.0
+
+[node name="LostChildEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(3, 6)
+event_title = "🧒 사라진 아이\n\"우리 아이를 못 보셨소? 아침부터 안 보이오.\""
+choice_a_label = "찾아 나선다"
+choice_a_outcome = "숲 어귀에서 잠든 아이를 찾았다."
+choice_a_exp = 20.0
+choice_a_chance = 0.62
+choice_a_fail_outcome = "해가 질 때까지 찾았지만 못 찾았다. 마을 사람들이 나섰다."
+choice_a_fail_exp = 10.0
+choice_b_label = "촌장에게 알린다"
+choice_b_outcome = "촌장이 사람을 풀었다."
+choice_b_exp = 4.0
+
+[node name="HeroEncounter" type="Node3D" parent="."]
+script = ExtResource("12")
+
+[node name="HeroEncounter2" type="Node3D" parent="."]
+script = ExtResource("12")
+grid = Vector2i(6, 4)
+hero_id = "sg_zhugeliang"
 
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)

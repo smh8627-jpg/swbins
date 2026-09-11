@@ -73,7 +73,8 @@ func _solid(size: Vector3, local_pos: Vector3, parent: Node3D) -> void:
 
 func _add_cave() -> void:
 	var ground: float = TerrainBuilder.LEGEND["C"].height
-	var base_pos := TestMap.world_pos(3, 0) + Vector3(0, ground, 0)
+	## 2026-09-11㉒ 지도 확장(+2,+2) — test_map.gd 참고.
+	var base_pos := TestMap.world_pos(5, 2) + Vector3(0, ground, 0)
 	var size := CAVE_GATE_SIZE * CAVE_GATE_SCALE
 	var gate_mesh := GLBUtils.extract_mesh(CAVE_GATE_GLB)
 
@@ -103,10 +104,11 @@ func _add_village() -> void:
 	var wall_mesh := GLBUtils.extract_mesh(WALL_GLB)
 	var roof_mesh := GLBUtils.extract_mesh(ROOF_GLB)
 
-	for gx in [2, 3]:
+	## 2026-09-11㉒ 지도 확장(+2,+2) — test_map.gd 참고.
+	for gx in [4, 5]:
 		var house := Node3D.new()
 		house.name = "House_%d" % gx
-		house.position = TestMap.world_pos(gx, 3) + Vector3(0, ground, 0)
+		house.position = TestMap.world_pos(gx, 5) + Vector3(0, ground, 0)
 		add_child(house)
 
 		var body_size := WALL_FOOTPRINT
@@ -159,7 +161,8 @@ func _build_wall_perimeter(wall_mesh: Mesh, footprint: Vector3) -> MultiMeshInst
 
 func _add_ruins() -> void:
 	var ground: float = TerrainBuilder.LEGEND["R"].height
-	var base := TestMap.world_pos(5, 3) + Vector3(0, ground, 0)
+	## 2026-09-11㉒ 지도 확장(+2,+2) — test_map.gd 참고.
+	var base := TestMap.world_pos(7, 5) + Vector3(0, ground, 0)
 	var offsets := [Vector2(-3, -2), Vector2(2, 1), Vector2(-1, 3)]
 	var pillar_mesh := GLBUtils.extract_mesh(PILLAR_GLB)
 	## pillar-stone.glb는 높이 1m짜리 원기둥 — 스케일 값을 그대로 목표
@@ -198,7 +201,8 @@ func _add_bridge() -> void:
 	## 충돌은 terrain_builder.gd의 "B" 타일이 이미 같은 높이(BRIDGE_CLEARANCE)에
 	## 놓아 두므로 여기서 따로 만들지 않는다 — 두 파일이 각자 만들면 겹친다.
 	var bed: float = TerrainBuilder.LEGEND["B"].height
-	var base_pos := TestMap.world_pos(3, 5) + Vector3(0, bed + TerrainBuilder.BRIDGE_CLEARANCE, 0)
+	## 2026-09-11㉒ 지도 확장(+2,+2) — test_map.gd 참고.
+	var base_pos := TestMap.world_pos(5, 7) + Vector3(0, bed + TerrainBuilder.BRIDGE_CLEARANCE, 0)
 	var bridge_length := 44.0
 	var bridge_width := 6.0
 

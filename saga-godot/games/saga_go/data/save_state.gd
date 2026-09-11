@@ -21,6 +21,12 @@ func save() -> bool:
 		"version": SAVE_VERSION,
 		"player_pos": [player.global_position.x, player.global_position.y, player.global_position.z],
 		"party_members": PartyState.members,
+		"party_exp": PartyState.exp,
+		"quest_active_id": QuestState.active_id,
+		"quest_active_name": QuestState.active_name,
+		"quest_done": QuestState.done,
+		"quest_offered": QuestState.offered,
+		"resolved_events": EventState.resolved,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -49,12 +55,37 @@ func try_load() -> bool:
 	var members: Array[String] = []
 	for m in data.get("party_members", []):
 		members.append(str(m))
-	PartyState.restore(members)
+	## party_exp도 §31 이후 추가된 필드다 — 없으면 0.0(경험치 없음)으로
+	## 안전하게 채워진다, 위 quest_* 필드와 같은 경계(마이그레이션 불필요).
+	PartyState.restore(members, float(data.get("party_exp", 0.0)))
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()
 	if player != null and pos.size() == 3:
 		player.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+
+	## 이 세 필드는 §31에서 새로 추가됐다 — 그 전에 저장된 파일엔 아예 없다.
+	## 값이 없어도 기본값(빈 사명·안 물어본 목록)으로 안전하게 채워지므로
+	## SAVE_VERSION을 올리는 마이그레이션은 필요 없다(추가만 있고 기존 필드
+	## 모양은 안 바뀌었다).
+	var offered: Array[String] = []
+	for id in data.get("quest_offered", []):
+		offered.append(str(id))
+	QuestState.restore(
+		str(data.get("quest_active_id", "")),
+		str(data.get("quest_active_name", "")),
+		bool(data.get("quest_done", false)),
+		offered
+	)
+
+	## resolved_events도 §31 이후 추가된 필드와 같은 경계(추가만 있고
+	## 없으면 빈 목록으로 안전하게 채워짐, 마이그레이션 불필요). 이 시점
+	## (test_village.gd의 _remove_resolved_events()가 부르기 전)에
+	## 채워 둬야 정리가 제대로 된다 — 순서 삽질 기록은 test_village.gd 참고.
+	var resolved: Array[String] = []
+	for id in data.get("resolved_events", []):
+		resolved.append(str(id))
+	EventState.restore(resolved)
 	return true
 
 

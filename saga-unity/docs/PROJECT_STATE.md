@@ -25,11 +25,14 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   따라가 마을 밖으로 스폰될 뻔했다 — `TestMapData.WorldPos(2.5f, 3f)`를
   직접 부르는 계산 프로퍼티로 고쳤다. 컴파일·씬 재빌드
   (`groundVerts=3136→4032`, 7×9×4×4서브쿼드×4정점과 정확히 일치)·
-  PlaytestHeadless 전부 통과. **안개 거리(150~430m)는 원래 7×7 대각선
-  기준으로 잡은 값이라 그대로 뒀다** — 정확한 재조정은 눈으로 봐야 하는
-  값이라 사람이 GUI로 확인할 때 같이 볼 것(주석에 남겨 둠). saga-godot은
-  아직 7×7 그대로 — 두 트랙이 지도 크기까지 반드시 같을 필요는 없다(PLAN
-  0장 "기획만 같이 본다").
+  PlaytestHeadless 전부 통과. **커밋 직후 push가 origin에 선점당해**
+  (다른 PC 세션이 먼저 올린 `BuildSkyAndFog` 병합 정리 커밋과 충돌) 다시
+  `git merge`로 받아 `BuildTestVillageScene.cs`·`PROJECT_STATE.md` 충돌을
+  풀었다 — 안개는 이제 그 병합으로 들어온 `SkyFogBuilder`(Trilight
+  앰비언트 + ExponentialSquared 밀도)가 맡는다(아래 "다음 작업"의 병합
+  정리 항목 참고), 이번 지도 확장 자체는 그 병합과 무관하게 그대로
+  유효. saga-godot은 아직 7×7 그대로 — 두 트랙이 지도 크기까지 반드시
+  같을 필요는 없다(PLAN 0장 "기획만 같이 본다").
 - **PLAN.md 51장 "희귀 몬스터" + BanditEncounter 리팩터·버그 고침.**
   동물(사슴) 다음으로 이어서(같은 세션, 2026-09-11, 사용자가 "완성도를
   올려줘, 최대한 다 만들어줘"로 확인). 두 번째 실시간 전투 사건이
@@ -367,6 +370,29 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 - 없음.
 
+## 완료 단계 (추가, 2026-09-11)
+
+- **Phase 3(32장) 첫 조각 — Sky/Fog.** `Assets/Games/SagaGo/World/
+  SkyFogBuilder.cs`(신규) — saga-godot의 `env_pc.tres`(ProceduralSkyMaterial
+  + Environment fog) 수치를 그대로 옮겼다. 스카이박스 셰이더 자산을 새로
+  만들지 않고 URP/RenderSettings API만으로 채웠다: Trilight 앰비언트
+  (하늘/수평선/땅 3색)가 Godot의 sky_top/horizon·ground_bottom/horizon
+  색과 같은 역할, `RenderSettings.fog`(ExponentialSquared, density=0.006 —
+  env_pc.tres와 같은 값, 두 판이 같은 세계 축척 TileSize=48m을 쓰기로
+  한 결정을 따름)가 fog_enabled/density/light_color와 같은 역할. 카메라
+  (PlayerCamera·ReviewCamera 둘 다) `clearFlags=SolidColor` +
+  `backgroundColor=HorizonColor`로 스카이박스 자산 없이도 하늘이 파랗게
+  보이게 함. `BuildTestVillageScene.cs`에 `BuildSkyAndFog()` 훅 추가
+  (조명 다음, 지형 전).
+  - **이번 세션은 이 PC에 Unity가 설치돼 있지 않아(`CLAUDE.md`의 "PC마다
+    다르다" 그대로) 배치 모드 컴파일·PlaytestHeadless 검증을 못 했다.**
+    코드는 기존 파일(LandmarksBuilder.cs 등)과 같은 네임스페이스·스타일
+    관례를 그대로 따랐고 API(`AmbientMode`·`FogMode`·`CameraClearFlags`
+    등)도 안정적인 표준 Unity API라 컴파일이 될 것으로 보이지만, **다음
+    세션이 Unity 있는 PC에서 열면 `-batchmode -nographics -quit`
+    컴파일 확인과 `PlaytestHeadless.Run` 둘 다 가장 먼저 돌려 볼 것**
+    (아래 "다음 작업" 맨 앞에 넣어 둠).
+
 ## 다음 작업 (다음 세션이 이어갈 것)
 
 - **지도 크기 다음 조각.** 이번엔 남쪽으로만 2줄(row7~8) 늘리고 새 공터
@@ -374,8 +400,26 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   계속 늘리거나, (2) row7 공터에 실제 콘텐츠(동물·채집·작은 이벤트 등)를
   심는 것, (3) 동쪽(Cols)으로도 늘려 보는 것(이번에 검증한 "행 끝에만
   보태면 기존 좌표 안 밀림" 원칙이 열 끝에 보태는 것에도 그대로 적용될
-  것으로 보임 — 아직 실제로는 안 해 봄). 안개 거리(150~430m)도 사람이
-  GUI 확인할 때 새 지도 크기에 맞는지 같이 볼 것.
+  것으로 보임 — 아직 실제로는 안 해 봄). 안개는 이제 SkyFogBuilder의
+  ExponentialSquared 밀도 방식이라(아래 병합 정리 항목 참고) "거리"
+  숫자가 아니라 밀도가 새 지도 크기에 맞는지를 사람이 GUI 확인할 때
+  같이 볼 것.
+- **(2026-09-12) 병합 충돌 정리 — `BuildTestVillageScene.cs`의
+  `BuildSkyAndFog` 호출부가 로컬(HEAD)과 원격(이 branch)에서 각자 다른
+  방향으로 진화해 있었다.** 로컬 쪽은 `var sun = BuildLighting();
+  BuildSkyAndFog(sun);`(Skybox 머티리얼 생성 + `RenderSettings.sun`
+  방식)로 남아 있었는데, `BuildPlayerCamera`/`BuildReviewCamera`가 이미
+  `clearFlags = SolidColor` + `backgroundColor = SkyFogBuilder
+  .HorizonColor`로 스카이박스 없는 단색 배경을 쓰도록 짜여 있어서 그
+  방식은 실제로는 화면에 하나도 안 보이는 죽은 코드였다. 무인자
+  `BuildSkyAndFog()`(SkyFogBuilder 위임, Trilight 앰비언트 +
+  ExponentialSquared 안개)가 실제로 카메라 설정과 맞물려 쓰이는 쪽이라
+  그걸로 통일하고, Skybox 방식 메서드·`SkyMaterialPath` 상수·안 쓰는
+  `Sky.mat` 자산은 지웠다. `docs/PROJECT_STATE.md`(이 파일)의 "다음
+  작업" 절도 병합 때 두 세션이 각자 다른 시점에 적어 둬 갈라졌던 것을
+  이 branch(더 나중 시점, Phase 6·7·경제·채집·산신당·동물까지 반영된
+  쪽)를 기준으로 정리했다 — 아래 "Sky/Fog가 자연스러운지" 항목도 그때
+  기준으로 고침(Skybox 색·거리 숫자 → Trilight 앰비언트·안개 밀도).
 - Path/Road 구성(PLAN.md 32장)은 saga-godot도 색 구분 외엔 따로 안
   한 항목이라(terrain_builder.gd의 '=' LEGEND에 특별한 처리 없음)
   이번 손질에서 건너뜀 — TerrainBuilder의 지형 색 구분으로 이미 충족.
@@ -383,8 +427,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   GUI로 몰아서 확인할 때가 됐다**(사람이 직접, 헤드리스로는 못 봄):
   - **CameraRig의 드래그 방향이 실제로 자연스러운지**(부호를 새로
     판단해 정한 자리라 확신이 낮다)
-  - **Sky/Fog가 자연스러운지**(Skybox 색·안개 거리 150~430m는 숫자만
-    으로 정함)
+  - **Sky/Fog가 자연스러운지**(SkyFogBuilder의 Trilight 앰비언트 색·
+    ExponentialSquared 안개 밀도 0.006은 env_pc.tres 수치를 그대로
+    옮긴 것 — 실제 화면에서 Godot 쪽과 비슷한 느낌인지 눈으로 볼 것.
+    위 병합 정리로 이제 이 경로 하나만 실제로 쓰인다)
   - **NPC 말 걸기가 실제로 되는지**(TalkArea 트리거 판정·화면 상단
     자막 표시 — 헤드리스로는 트리거가 실제로 발동하는지 확인 불가)
   - **도적의 습격이 실제로 되는지**(조우 트리거 → 선택지 → 전투 →
@@ -455,7 +501,7 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 알려진 오류
 
-- 없음.
+- 없음(SkyFogBuilder 추가분은 컴파일 자체가 미검증 — 위 참고).
 
 ## 테스트 상태
 
