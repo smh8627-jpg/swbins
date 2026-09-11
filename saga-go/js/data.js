@@ -482,13 +482,14 @@
       return FACTIONS[name] || { color: '#5b6572', mark: '·' };
     },
     /** 열전 한 줄 (없으면 빈 문자열). 정적 BIOS에 없으면 절차적 생성기
-     *  (`js/genchar.js`(한국)·`js/genchar-jp.js`(일본), saga-go 전용)의
-     *  것을 시도한다 — 그 모듈들이 없는 나머지 네 판에서는 그냥 빈
-     *  문자열로 그친다(회귀 아님). */
+     *  (`js/genchar.js`(한국)·`js/genchar-jp.js`(일본)·`js/genchar-cn.js`
+     *  (중국), saga-go 전용)의 것을 시도한다 — 그 모듈들이 없는 나머지
+     *  네 판에서는 그냥 빈 문자열로 그친다(회귀 아님). */
     bio: function (id) {
       if (BIOS[id]) { return BIOS[id]; }
       return (global.DG.genchar && global.DG.genchar.bio(id)) ||
-        (global.DG.gencharJp && global.DG.gencharJp.bio(id)) || '';
+        (global.DG.gencharJp && global.DG.gencharJp.bio(id)) ||
+        (global.DG.gencharCn && global.DG.gencharCn.bio(id)) || '';
     },
     /** id 로 찾기. 정적 HEROES/PETS에 없으면 절차적 생성기(있는 판에서만)로
      *  되살린다 — 세이브에는 id만 있으면 되므로 정적 배열에 없어도 된다. */
@@ -497,7 +498,8 @@
       for (i = 0; i < HEROES.length; i++) { if (HEROES[i].id === id) { return HEROES[i]; } }
       for (i = 0; i < PETS.length; i++) { if (PETS[i].id === id) { return PETS[i]; } }
       return (global.DG.genchar && global.DG.genchar.find(id)) ||
-        (global.DG.gencharJp && global.DG.gencharJp.find(id)) || null;
+        (global.DG.gencharJp && global.DG.gencharJp.find(id)) ||
+        (global.DG.gencharCn && global.DG.gencharCn.find(id)) || null;
     }
   };
 })(window);

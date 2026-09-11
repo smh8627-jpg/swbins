@@ -713,12 +713,15 @@
    *  가까워져 한국으로 잘못 판정되는 걸 실측으로 확인하고 버렸다
    *  (`region-kr.js` 머리말 참고). 18개 대표점 중 가장 가까운 하나를
    *  그냥 고르는 쪽이 더 정확하고 코드도 더 짧다. region이 안 잡히면
-   *  (모듈 미로딩) 예전처럼 정적 풀로 그냥 간다 — 구조를 건드리지 않는다. */
+   *  (모듈 미로딩) 예전처럼 정적 풀로 그냥 간다 — 구조를 건드리지 않는다.
+   *  **2026-09-11 — 셋째 나라(중국, region-cn.js)가 붙어 27개 대표점이
+   *  됐다.** 나라 수가 늘어도 이 "그냥 다 합쳐 최근접" 방식은 그대로
+   *  안전하다(위 규슈 오류가 나라별 평균 중심 비교에서만 나던 문제였다). */
   function genRegionAt(x, y) {
-    var RK = global.DG.regionKr, RJ = global.DG.regionJp;
-    if (!RK && !RJ) { return null; }
+    var RK = global.DG.regionKr, RJ = global.DG.regionJp, RC = global.DG.regionCn;
+    if (!RK && !RJ && !RC) { return null; }
     var ll = worldToLatLng(x, y);
-    var all = (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []);
+    var all = (RK ? RK.REGIONS : []).concat(RJ ? RJ.REGIONS : []).concat(RC ? RC.REGIONS : []);
     var cosLat = Math.cos(ll.lat * Math.PI / 180);
     var best = null, bestD = Infinity;
     for (var i = 0; i < all.length; i++) {
@@ -730,10 +733,11 @@
     return best;
   }
 
-  /** region.country('kr'/'jp')에 맞는 생성기를 고른다 */
+  /** region.country('kr'/'jp'/'cn')에 맞는 생성기를 고른다 */
   function gencharOf(region) {
     if (!region) { return null; }
     if (region.country === 'jp') { return global.DG.gencharJp || null; }
+    if (region.country === 'cn') { return global.DG.gencharCn || null; }
     return global.DG.genchar || null;
   }
 
