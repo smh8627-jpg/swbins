@@ -34,8 +34,10 @@
   function R() { return global.DG.rtk; }
   function W() { return global.DG.war; }
 
-  /** 손잡이 — 기본은 꺼져 있다(svg 지도가 그대로 간다). 🧊 버튼이 이걸 뒤집는다 */
-  function ON() { return C().tuned('realm3d.on', 0) ? true : false; }
+  /** 손잡이 — 2026-09-11부터 기본으로 켠다("아직도 2D 지도가 남아있다"는
+   *  신고 — svg 지도는 이제 🧊 버튼으로 되돌아갈 때만 쓰는 대체 화면이다).
+   *  세이브에 값이 있으면(사용자가 직접 껐던 적이 있으면) 그 값을 존중한다 */
+  function ON() { return C().tuned('realm3d.on', 1) ? true : false; }
   function WORLD_SCALE() { return C().tuned('realm3d.worldScale', 4.5); }
   function FOV() { return C().tuned('realm3d.fov', 50); }
   function PITCH_MIN() { return C().tuned('realm3d.pitchMin', 0.35); }

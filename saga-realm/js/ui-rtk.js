@@ -211,6 +211,47 @@
     joyEl.addEventListener('pointerleave', release);
   }
 
+  /** 키보드 이동(2026-09-11) — 방향키·WASD 로 국토 지도를 민다(2D·3D 다
+   *  통한다, 조이스틱과 같은 요령: 눌려 있는 동안 매 프레임 `panBy`/
+   *  `panMapBy` 를 부른다). 입력칸(설정 화면 등)에 포커스가 있으면 무시한다 */
+  var kbKeys = {}, kbLoop = false;
+  var KB_MAP = { arrowup: 'u', arrowdown: 'd', arrowleft: 'l', arrowright: 'r',
+    w: 'u', s: 'd', a: 'l', d: 'r' };
+  function kbAxis() {
+    var dx = (kbKeys.r ? 1 : 0) - (kbKeys.l ? 1 : 0);
+    var dy = (kbKeys.d ? 1 : 0) - (kbKeys.u ? 1 : 0);
+    if (!dx && !dy) { return null; }
+    var len = Math.hypot(dx, dy) || 1;
+    return { x: dx / len, y: dy / len };
+  }
+  function kbStartLoop() {
+    if (kbLoop) { return; }
+    kbLoop = true;
+    requestAnimationFrame(function tick() {
+      var ax = kbAxis();
+      if (ax) {
+        var R3 = global.DG.realm3d;
+        if (R3 && R3.active()) { R3.panBy(ax.x, ax.y); } else { panMapBy(ax.x, ax.y); }
+      }
+      if (ax) { requestAnimationFrame(tick); } else { kbLoop = false; }
+    });
+  }
+  function initMapKeyboard() {
+    global.addEventListener('keydown', function (e) {
+      var tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') { return; }
+      var dir = KB_MAP[e.key.toLowerCase()];
+      if (!dir) { return; }
+      kbKeys[dir] = true;
+      kbStartLoop();
+      e.preventDefault();
+    });
+    global.addEventListener('keyup', function (e) {
+      var dir = KB_MAP[e.key.toLowerCase()];
+      if (dir) { kbKeys[dir] = false; }
+    });
+  }
+
   /** 2D 지도 한 손가락 드래그 + 두 손가락 핀치(2026-09-10) — "맵 이동이
    *  편해야 한다"는 신고로 조이스틱만으로는 부족하다고 보고 더한다. 지도를
    *  직접 밀고 두 손가락으로 오므리는 게 가장 자연스러운 손짓이다(구글지도·
@@ -350,6 +391,7 @@
     if (mapZin) { mapZin.addEventListener('click', function () { zoomMapBy(1.5); }); }
     if (mapZout) { mapZout.addEventListener('click', function () { zoomMapBy(1 / 1.5); }); }
     initMapStick();
+    initMapKeyboard();
     els['sheet-body'].addEventListener('click', onAct);
     els.encounter.addEventListener('click', onAct);
     /* 음량 슬라이더 — 끌 때마다(input) 바로 듣고, 값칸만 직접 고쳐 슬라이더가
@@ -375,6 +417,7 @@
     core.on('rtk:end', function (kind) { showEnd(kind); });
 
     if (!R().state().started) { showScenPick(); }
+    else { centerOnMine(); }
     renderTop(); renderMap();
   }
 

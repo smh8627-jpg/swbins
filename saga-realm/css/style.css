@@ -1227,13 +1227,18 @@ body.tilted3 #vignette {
 body.sheet-open #realm { right: calc(min(420px, 92vw) + 20px); }
 @media (max-width: 780px) { body.sheet-open #realm { right: 12px; } }
 
+/* 2026-09-11 — 예전엔 #realm(2D)과 같은 좁은 인셋(위·아래에 상단바·독을
+   피하는 여백)을 썼는데, 3D는 카메라를 돌려 보는 화면이라 2D처럼 "성이
+   상단 유리판 밑에 가려 못 눌리는" 문제가 없다(위 #realm 780px 미디어쿼리의
+   사정과 다르다) — 그래서 진짜 전체화면으로 깔고, 위에 뜬 유리 패널·독은
+   그대로 오버레이로 얹는다("위아래에 검은 화면이 남는다"는 신고의 원인이
+   바로 이 여백이었다 — body 배경(#12141a)이 그 틈으로 보인 것). */
 #realm3d {
-  position: fixed; inset: 76px 12px 84px; z-index: 6; display: none;
-  width: calc(100% - 24px); height: calc(100% - 160px);
-  touch-action: none; border-radius: 12px;
+  position: fixed; inset: 0; z-index: 6; display: none;
+  touch-action: none;
 }
 body.sheet-open #realm3d { right: calc(min(420px, 92vw) + 20px); }
-@media (max-width: 780px) { body.sheet-open #realm3d { right: 12px; } }
+@media (max-width: 780px) { body.sheet-open #realm3d { right: 0; } }
 
 .rmap { width: 100%; height: 100%; }
 .rlink {
