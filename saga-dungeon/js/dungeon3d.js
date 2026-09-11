@@ -735,52 +735,53 @@
   /** 들판·마을 땅 — 여태 민무늬 단색 상자였다(`mix(stone,...)` 한 색을 그대로
    *  칠했다). 마을 조명이 밝을 때(위 `lightPlan` 'town' 참고) 단색은 노출에
    *  밀려 "흰 판"으로 보인다는 제보(2026-09-11) — 사가고(`world3d.js`의
-   *  `terrainTexture`)처럼 캔버스에 얼룩무늬를 한 번 구워 반복해 깐다.
-   *  사진을 안 받아와(오프라인) 텍스처가 없어 보이는 부류의 버그 자체가
-   *  없다 — 캔버스는 이 자리에서 그 자리에 그린다. `stone`(층 테마 색)은
-   *  그대로 물들이는 값으로 쓰므로 "층마다 다른 색"은 안 바뀐다. 무늬는
-   *  hex 값으로 해시를 굴려 늘 같은 자리에 찍는다(Math.random 아님) —
-   *  같은 테마는 재실행해도 같은 무늬, 자가진단 결정론도 안 깨진다. */
+   *  `terrainTexture`)처럼 캔버스에 얼룩무늬를 구워 반복해 깐다.
+   *  2026-09-11(같은 날, 실기기 재신고) — 처음엔 이 텍스처를 **테마 색(hex)
+   *  마다 따로** 구웠다. 마을·통로마다 테마가 달라(`themeHex`) 처음 보는
+   *  색을 만날 때마다 캔버스에 반점 260개를 그 자리에서 그렸는데, 이게
+   *  동기 작업이라 폰에서 그 프레임을 확 잡아먹어 "걷다가 특정 자리에서
+   *  멈췄다 풀린다"로 나타났다 — 방금 추가한 무늬 자체가 멈춤의 범인이었다.
+   *  `texMat`(바로 위)가 이미 쓰는 원칙 그대로 고친다: **무늬(회색조 반점)는
+   *  딱 한 번만** 굽고, 테마 색은 `material.color`가 곱해서 낸다(텍스처 ×
+   *  color, three 기본 동작) — 테마가 몇 개든 캔버스 작업은 최초 1회뿐이라
+   *  이후 어떤 테마를 만나도 멈출 일이 없다. 무늬는 고정 씨앗 해시라 항상
+   *  같다(Math.random 아님) — 자가진단 결정론도 안 깨진다. */
   var GROUND_TEX_UNIT = 260;      // 세계 단위 이만큼마다 무늬 한 판을 반복한다
-  var groundTexCache = {}, groundMatCache = {};
-  function groundTex(hex) {
-    if (groundTexCache[hex]) { return groundTexCache[hex]; }
+  var groundNoiseTex = null, groundMatCache = {};
+  function groundNoise() {
+    if (groundNoiseTex) { return groundNoiseTex; }
     var S = 128;
     var cv = document.createElement('canvas');
     cv.width = S; cv.height = S;
     var c = cv.getContext('2d');
-    var r = (hex >> 16) & 255, gC = (hex >> 8) & 255, b = hex & 255;
-    c.fillStyle = 'rgb(' + r + ',' + gC + ',' + b + ')';
+    c.fillStyle = 'rgb(128,128,128)';       // 중립 회색 — material.color가 곱해져 실제 색을 낸다
     c.fillRect(0, 0, S, S);
-    var h = (hex >>> 0) || 1, i, n = 260;
+    var h = 20260911, i, n = 260;
     for (i = 0; i < n; i++) {
       h = (h * 1664525 + 1013904223) >>> 0;
       var x = h % S;
       h = (h * 1664525 + 1013904223) >>> 0;
       var y = h % S;
       h = (h * 1664525 + 1013904223) >>> 0;
-      var sh = (h % 40) - 20;
-      var rr = Math.max(0, Math.min(255, r + sh));
-      var gg = Math.max(0, Math.min(255, gC + sh));
-      var bb = Math.max(0, Math.min(255, b + sh));
+      var v = 128 + (h % 90) - 45;          // 밝기 반점(83~217) — 색이 아니라 밝기만 흔든다
       h = (h * 1664525 + 1013904223) >>> 0;
       var rad = 2 + (h % 6);
-      c.fillStyle = 'rgb(' + rr + ',' + gg + ',' + bb + ')';
+      c.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')';
       c.beginPath(); c.arc(x, y, rad, 0, Math.PI * 2); c.fill();
     }
     var tx = new T.CanvasTexture(cv);
     tx.wrapS = tx.wrapT = T.RepeatWrapping;
     if (T.SRGBColorSpace) { tx.colorSpace = T.SRGBColorSpace; }
-    groundTexCache[hex] = tx;
+    groundNoiseTex = tx;
     return tx;
   }
   function groundMat(hex, repU, repV) {
     var kk = hex + '|' + repU.toFixed(2) + '|' + repV.toFixed(2);
     if (groundMatCache[kk]) { return groundMatCache[kk]; }
-    var tx = groundTex(hex).clone();
+    var tx = groundNoise().clone();
     tx.needsUpdate = true;
     tx.repeat.set(repU, repV);
-    var m = new T.MeshLambertMaterial({ map: tx, flatShading: true });
+    var m = new T.MeshLambertMaterial({ color: new T.Color(hex), map: tx, flatShading: true });
     groundMatCache[kk] = m;
     return m;
   }
