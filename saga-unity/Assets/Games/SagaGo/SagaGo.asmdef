@@ -2,7 +2,8 @@
     "name": "SagaGo",
     "rootNamespace": "Saga.Go",
     "references": [
-        "SagaCore"
+        "SagaCore",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

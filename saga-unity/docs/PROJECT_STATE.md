@@ -10,71 +10,79 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   `saga-godot/docs/LEGACY_FEATURE_AUDIT.md` 참고.
 - **Phase 1(01~09단계) 완료.** Unity 6000.3.23f1 배치 모드로 "3D
   Cross-Platform"(URP) 템플릿 프로젝트 생성. `productName`="SAGA".
-  `SagaCore.asmdef`·`SagaGo.asmdef`(SagaGo→SagaCore 참조). `.gitignore`
-  작성. 66-1장(렌더러 이중 프로파일)은 템플릿이 이미
+  `SagaCore.asmdef`·`SagaGo.asmdef`(SagaGo→SagaCore, Unity.InputSystem
+  참조). `.gitignore` 작성. 66-1장(렌더러 이중 프로파일)은 템플릿이 이미
   `PC_RPAsset`(ForwardPlus)/`Mobile_RPAsset`(Forward)+Quality 자동분기를
   갖추고 있어 확인만 함.
 - **Phase 2(11~13단계) 완료.** `docs/VERTICAL_SLICE.md` 작성 — 범위는
   `saga-godot`과 동일(사가고 "도적의 습격"), 같은 7×7 테스트 지도 재사용
-  결정, saga-godot이 겪은 "칸 경계 바둑판" 함정을 Unity 쪽은 처음부터
-  피하기로 미리 적어 둠.
-- **Phase 3(21~35단계) 첫 조각 — TestVillage.unity 생성.**
-  - `Assets/Games/SagaGo/Data/TestMapData.cs` — saga-godot의
-    `test_map.gd`와 같은 7×7 글자 지도·LEGEND(지형별 색·높이)를 C#으로
-    옮김(기계적 번역이 아니라 값만 맞춰 새로 짬, PLAN.md 2장)
-  - `Assets/Games/SagaGo/World/TerrainBuilder.cs` — 칸을 4×4 서브쿼드로
-    쪼개 정점 색 블렌딩(칸 중심 68%는 제 색, 가장자리만 이웃과 섞임)으로
-    땅을 짓는다. **바둑판 문제를 saga-godot처럼 나중에 고치지 않고
-    처음부터 피함**(VERTICAL_SLICE.md에 미리 적어 둔 대로). 강/다리
-    위에 반투명 수면, 타일마다 BoxCollider(산·강은 벽, 다리는 널판
-    높이)도 같이 만듦 — saga-godot의 `_build_collision()`과 같은 규칙
-  - `Assets/Games/SagaGo/World/VertexColorLit.shader`,
-    `WaterUnlit.shader` — URP용 최소 커스텀 셰이더(정점 색을 그대로
-    알베도로 쓰는 셰이더가 URP엔 기본으로 없어 새로 씀). `Cull Off`로
-    방어(감김 방향 계산이 틀려도 안 뚫리게, 실제로는 노멀을 명시로
-    줘서 감김 방향과 무관하게 만듦 — Godot 쪽에서 겪은 외적 부호 계산
-    문제를 여기선 처음부터 피함)
-  - `Assets/Editor/BuildTestVillageScene.cs` — 씬을 손으로 안 쓰고
-    코드로 조립해 저장하는 에디터 스크립트(`-executeMethod`로 배치
-    모드에서 실행). `Assets/Scenes/TestVillage.unity`로 저장,
-    `EditorBuildSettings`의 시작 씬으로 지정
-  - 검증: 배치 모드 컴파일 exit 0(첫 시도에서 VertexColorLit.shader의
-    `FallbackError` 문법 오류 하나 잡아 고침 — `Fallback`이 아니라
-    존재하지 않는 키워드였다). 씬 빌드 실행 로그에
-    `verts=3136`(=49칸×4×4서브쿼드×4정점, 계산과 정확히 일치) 확인,
-    재임포트도 exit 0 깨끗함
-  - **실제 화면(GUI)은 아직 안 봤다** — CLAUDE.md 원칙대로 기능이 다
-    갖춰지기 전엔 습관적으로 스크린샷을 안 찍는다. Player가 들어와야
-    비로소 "걷다가 보이는" 실제 모습을 판단할 수 있다
+  결정.
+- **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
+  TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
+  (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계
+  바둑판" 문제를 처음부터 피함, 강/다리 수면·타일별 BoxCollider도 같이
+  만듦) + `VertexColorLit.shader`·`WaterUnlit.shader`(URP엔 기본으로
+  없는 "정점 색=알베도" 셰이더를 새로 씀).
+- **Phase 4(36~45단계) 첫 조각 — Player.** `Assets/Games/SagaGo/Player/
+  PlayerController.cs`(이동·중력·달리기·회전, saga-godot player.gd
+  수치 그대로) + `CameraRig.cs`(추적·드래그 회전·줌, camera_rig.gd 수치
+  그대로 — 단 Godot↔Unity 좌표 핸디니스 차이로 드래그 방향 부호는 "일반
+  적인 오빗 카메라" 감각으로 다시 판단해 정함, 실제로 saga-godot과 같은
+  느낌인지는 미확인) + `Assets/Games/SagaGo/UI/VirtualJoystick.cs`
+  (Unity UI EventSystem 인터페이스 사용, Godot의 터치 index 수동 추적
+  불필요). `Assets/Editor/BuildTestVillageScene.cs`를 확장해 Player·
+  CameraRig·PlayerCamera·ReviewCamera(비활성)·EventSystem(새 Input
+  System용 InputSystemUIInputModule)·MobileHUD(조이스틱 Canvas)까지
+  전부 코드로 조립하도록 늘림.
 
 ## 현재 작업
 
-- 없음 — Phase 3 첫 조각(땅) 끝, 다음 조각(초목/랜드마크) 또는 Phase 4
-  착수 전.
+- 없음 — 사용자가 "새로운 세션에서 하자"로 여기서 끊음.
 
-## 다음 작업
+## 다음 작업 (다음 세션이 이어갈 것)
 
+- **미완: Player 런타임(Play Mode) 검증.** 배치 모드 컴파일(exit 0)과
+  씬 저장(exit 0, groundVerts=3136)까지는 확인했지만, `Assets/Editor/
+  PlaytestHeadless.cs`(Play 모드로 실제로 몇 프레임 돌려 런타임 예외를
+  잡는 도구, 이번에 같이 만듦)를 돌린 실행이 **에디터 시작 단계(에셋
+  인덱싱)에서 멈춘 듯 오래 걸려 결론을 못 냄** — 타임아웃 후 프로세스를
+  강제 종료했다(다른 세션 작업으로 넘어가라는 사용자 지시 때문). **이
+  검증은 아직 통과도 실패도 아니고 그냥 안 끝난 상태다** — 다음 세션이
+  다시 실행해 볼 것:
+  ```
+  Unity.exe -batchmode -nographics -projectPath <경로>
+    -executeMethod Saga.EditorTools.PlaytestHeadless.Run
+    -logFile <경로>
+  ```
+  (`-quit`을 같이 주면 안 된다 — 스크립트 자신이 EditorApplication.Exit로
+  끝낸다). 오래 걸리면 첫 실행의 "Start Indexing on Editor startup"
+  단계(Unity Search 색인, 이 프로젝트 코드와 무관한 에디터 내부 동작)가
+  원인일 수 있다 — 그 로그에 있던 `ArgumentOutOfRangeException`도 같은
+  Unity Search 쪽 예외로 보이고 내가 만든 스크립트 오류는 아닌 것 같지만
+  **확인된 사실은 아니다**(끝까지 못 지켜봤다).
 - Phase 3 나머지: 초목/바위 산포(VegetationBuilder), 랜드마크(굴 입구·
-  마을집·폐허·다리 — primitive로, PLAN.md 8장 "primitive는 프로토타입
-  전용"), Sky/Fog(URP Volume)
-- Phase 4: Player(CharacterController 이동, Cinemachine 카메라, 모바일
-  가상 조이스틱)
+  마을집·폐허·다리 — primitive로, PLAN.md 8장), Sky/Fog(URP Volume)
 - NPC 최소 구현(주민 1~2명, 대화만) — saga-godot이 "대화가 전투보다
   먼저"로 순서를 정정했던 교훈 그대로 반영해 Combat보다 먼저 할 것
-- 이 단계들이 어느 정도 쌓이면(플레이어가 실제로 걸어 다닐 수 있게
-  되면) 그때 한 번 GUI로 몰아서 확인 — 매 조각마다 스크린샷 찍지 않는다
+- 위 항목들이 어느 정도 쌓이면(플레이어가 실제로 걸어 다닐 수 있게
+  되면) 그때 한 번 GUI로 몰아서 확인 — 매 조각마다 스크린샷 찍지 않는다.
+  **CameraRig의 드래그 방향이 실제로 자연스러운지는 그때 반드시 볼 것**
+  (위 완료 단계 주석 참고 — 부호를 새로 판단해 정한 자리라 확신이 낮다)
 
 ## 알려진 오류
 
-- 없음.
+- 없음(런타임 검증이 안 끝나서 "없다"고 확정할 수 없다 — 위 다음 작업
+  참고).
 
 ## 테스트 상태
 
 - `Unity.exe -batchmode -nographics -projectPath saga-unity -quit` →
-  재임포트·컴파일 exit 0, 오류 없음(라이선싱 access token 경고만,
-  무관)
-- `Unity.exe -batchmode -nographics -projectPath saga-unity
-  -executeMethod Saga.EditorTools.BuildTestVillageScene.Build -quit` →
-  exit 0, `TestVillage.unity` 저장 성공(verts=3136 로그로 확인)
-- 실제 GUI 렌더링(그래픽 화면 확인)은 아직 안 함 — Player가 들어온
-  뒤 몰아서 할 예정
+  재임포트·컴파일 exit 0, 오류 없음(라이선싱 access token 경고만, 무관).
+  Player/CameraRig/VirtualJoystick 추가 후에도 동일(SagaGo.asmdef에
+  `Unity.InputSystem` 참조 추가로 첫 컴파일 오류 고침).
+- `-executeMethod Saga.EditorTools.BuildTestVillageScene.Build -quit`
+  → exit 0, `TestVillage.unity` 저장 성공(groundVerts=3136,
+  49칸×4×4서브쿼드×4정점과 정확히 일치).
+- `-executeMethod Saga.EditorTools.PlaytestHeadless.Run`(Play 모드
+  실제 실행) → **미완, 다음 세션이 이어서 확인**.
+- 실제 GUI 렌더링(그래픽 화면 확인)은 아직 안 함.
