@@ -464,11 +464,52 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
   조이스틱 입력·NPC 대화 토스트가 지금 진짜로 뜨는지는 아직 GUI로 못
   봤다** — 아래 실기 확인 목록에 추가.
 
+## 완료 단계 (추가, 2026-09-11⑧)
+
+- **PLAN.md Phase 9(97단계) Data Versioning.** 사용자가 Phase 9 나머지
+  (Data Versioning·Mobile Performance Pass·전체 플레이 테스트) 중 이걸
+  먼저 골랐다 — 나머지 둘은 실기기가 있어야 의미가 있어 실기 확인 몰아서
+  할 때와 겹친다.
+  - `save_state.gd`에 `_migrate()`(버전이 낮으면 `_migrate_step()`을
+    한 단계씩 적용해 최신 모양으로 만듦, 경로가 없거나 이 빌드보다
+    나중 버전이면 null)·`_migrate_step(from_version, data)`(버전별
+    분기는 `match`, 지금은 `SAVE_VERSION`이 1뿐이라 `_: return null`만
+    있음) 추가. `try_load()`는 이제 버전이 안 맞으면 바로 포기하지 않고
+    이 마이그레이션 체인을 먼저 거친다.
+  - **처음 짠 설계(문서에는 안 남음)는 `const MIGRATIONS: Dictionary`에
+    버전별 `Callable`을 등록하는 방식이었는데, 실제로 헤드리스에서
+    테스트해 보니 GDScript가 "Assigned value for constant "MIGRATIONS"
+    isn't a constant expression"로 컴파일을 거부했다** — 람다(Callable)는
+    이 GDScript 버전에서 const 컬렉션 리터럴 안에 값으로 못 들어간다.
+    `match from_version: ...`으로 바꿔 해결 — 스키마를 실제로 바꿀 때
+    (`SAVE_VERSION`을 올릴 때) 여기 분기 하나를 추가하면 된다.
+  - **검증 — 임시 디버그 코드로 두 경로를 다 실제로 태워 봤다(검증 뒤
+    되돌림, 레포에는 안 들어감).** ①버전 0(구버전 흉내) 페이로드를
+    `_migrate_step`에 등록된 게 없는 상태로 로드 → `try_load()`가
+    `false`를 돌려주고 `PartyState`는 손 안 댐(안전하게 포기, 확인됨).
+    ②`_migrate_step`에 `0: ...`(부대원 하나 추가하고 버전을 1로 올리는
+    실제 변환)을 임시로 넣고 같은 버전-0 페이로드를 다시 로드 → 성공해서
+    `members=["legacy_member", "migrated_in"]`·`atk` 공식대로 재계산까지
+    확인. 두 테스트 다 끝난 뒤 `_migrate_step`은 원래의 빈 `match`로,
+    `test_village.gd`도 원래 한 줄(`SaveState.try_load()`)로 되돌렸다.
+  - **삽질 기록 — 이 세션 중간에 셸 작업 디렉터리가 `C:\swbins`(레포
+    루트)로 조용히 되돌아간 적이 있었다.** 그 상태로 Godot를
+    `--path .`로 돌렸더니 씬이 하나도 안 뜨고 에디터 초기화 로그만
+    찍힌 채 조용히 끝나(오류 메시지 없음) 처음엔 코드가 깨진 줄 알고
+    한참 헤맸다 — 실제로는 `pwd`로 확인해 보니 그냥 엉뚱한 폴더를
+    프로젝트로 잡고 있었던 것. 다음에 비슷하게 "아무 로그도 없이 씬이
+    안 도는" 증상을 보면 코드보다 **먼저 `pwd`부터 확인할 것**.
+  - 헤드리스 3연속 `--quit-after 5` exit 0·오류 0건(디버그 코드 되돌린
+    뒤 최종 상태로). GUI 확인은 안 함(실기 확인 몰아서 할 목록에
+    새로 추가할 항목은 없음 — Data Versioning은 순수 로직이라 헤드리스
+    검증으로 충분).
+
 ## 다음에 이어질 것
 
-**VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌다.** 남은
-건 재미 평가(37장)와 아래 실기 확인뿐. Phase 9의 나머지(Data Versioning·
-Mobile Performance Pass·전체 플레이 테스트)가 다음 개발 단위.
+**VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
+Data Versioning도 채웠다.** 남은 건 재미 평가(37장)와 아래 실기 확인,
+그리고 Mobile Performance Pass·전체 플레이 테스트(둘 다 실기기가 있어야
+의미가 있어 아래 목록과 겹친다).
 
 **실기 확인은 몰아서 할 것(사용자 확정, 루트 CLAUDE.md 방침)** — 지금까지
 쌓인 목록:
