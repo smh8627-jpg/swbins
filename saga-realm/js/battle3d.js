@@ -76,6 +76,14 @@
      슬롯이고, `renderLive()`가 그 값만 갈아 끼운다 — 판정은 없다, war.js가
      이미 낸 `hits[].who`를 그대로 옮길 뿐이다 */
   var duelActors = null, duelWant = { a: 'idle', d: 'idle' };
+  /* duelGen — 합이 새로 왔다는 표(2026-09-11). `renderLive()`가 새 합을
+     그릴 때마다(duelHit·done) 하나씩 올린다. tick()이 이 값이 지난
+     프레임과 달라졌을 때만 `asset3d.step()`에 force 를 실어 보낸다 —
+     같은 슬롯(예: 두 합 연속으로 맞아 'hit'·'hit')이라도 매 합 처음부터
+     다시 재생되게 하기 위해서다(안 그러면 asset3d.js `play()`가 "이미 그
+     슬롯이다"로 보고 두 번째 합을 그냥 건너뛴다 — 첫 합의 정지 자세
+     그대로 멈춰 있는 것처럼 보인다) */
+  var duelGen = 0, tickDuelGen = -1;
   /* 맞았을 때 붉게 번쩍(2026-09-10, 사가블로 asset3d.js 의 ownAllMat·flashAllMat
      과 같은 요령) — 'hit' 를 재생하기 시작한 그 프레임에 1로 켜고 tick()마다
      0.82배씩 죽인다. 재질을 복제해 두는 건(setupDuel() 이 짓는 순간, `place()`)
@@ -323,6 +331,7 @@
   function setupDuel(rep, seq) {
     duelActors = null;
     duelWant = { a: 'idle', d: 'idle' };
+    duelGen = 0; tickDuelGen = -1;
     flashA = 0; flashD = 0;
     var aId = (rep.duel && rep.duel.a) || rep.leadA;
     var dId = (rep.duel && rep.duel.d) || rep.leadD;
@@ -406,9 +415,11 @@
           ? { a: 'idle', d: rep.duel.hurt ? 'death' : 'idle' }
           : { d: 'idle', a: rep.duel.hurt ? 'death' : 'idle' };
         if (rep.duel.hurt) { if (winA) { flashD = 1; } else { flashA = 1; } }
+        duelGen++;
       } else if (state.duelHit) {
         duelWant = state.duelHit.who === 'a' ? { a: 'attack', d: 'hit' } : { a: 'hit', d: 'attack' };
         if (state.duelHit.who === 'a') { flashD = 1; } else { flashA = 1; }
+        duelGen++;
       } else {
         duelWant = { a: 'idle', d: 'idle' };
       }
@@ -604,8 +615,10 @@
     if (duelActors) {
       var nowT = (now || 0) / 1000;
       var A3 = asset3d();
-      A3.step(duelActors.a, { t: nowT, anim: duelWant.a });
-      A3.step(duelActors.d, { t: nowT, anim: duelWant.d });
+      var freshHit = duelGen !== tickDuelGen;
+      tickDuelGen = duelGen;
+      A3.step(duelActors.a, { t: nowT, anim: duelWant.a, force: freshHit });
+      A3.step(duelActors.d, { t: nowT, anim: duelWant.d, force: freshHit });
       if (duelActors.a) { setFlash(duelActors.a.userData.flashMats, flashA); }
       if (duelActors.d) { setFlash(duelActors.d.userData.flashMats, flashD); }
     }

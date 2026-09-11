@@ -627,13 +627,22 @@
      지적으로 드러난 것). idle·walk·run 등은 원래대로 반복해야 자연스러워
      그대로 둔다. */
   var ONE_SHOT = { attack: true, hit: true, death: true, interaction: true, dodge: true };
-  function play(model, slot) {
+  /**
+   * @param force  같은 슬롯을 다시 요청해도 처음부터 다시 튼다(2026-09-11).
+   *   `u.anim === slot` 이면 원래 아무 것도 안 하는데, `attack`·`hit` 처럼
+   *   **매 합(라운드)마다 반복돼야 하는 원샷 동작**은 그러면 안 된다 — 예를
+   *   들어 일기토에서 같은 쪽이 두 합 연속 맞으면(hit→hit) 두 번째 합은
+   *   `u.anim`이 이미 'hit'이라 재생을 걸지 않고 첫 합의 clamp된 정지
+   *   자세 그대로 멈춰 있었다(위 "되살아나는" 버그를 고치며 생긴 부작용 —
+   *   부르는 쪽(`battle3d.js`)이 "새 합이다"를 알 때만 `force`를 준다).
+   */
+  function play(model, slot, force) {
     var u = model && model.userData;
     if (!u || !u.mixer) { return false; }
     var name = u.clipMap && u.clipMap[slot];
     var next = name && u.actions[name];
     if (!next) { return false; }
-    if (u.anim === slot) { return true; }
+    if (u.anim === slot && !force) { return true; }
     var prev = u.anim && u.clipMap[u.anim] && u.actions[u.clipMap[u.anim]];
     var t = three();
     if (ONE_SHOT[slot]) {
@@ -652,7 +661,7 @@
     var u = model && model.userData;
     if (!u || !u.mixer) { return false; }
     var want = (o && o.anim) || 'idle';
-    play(model, want);
+    play(model, want, o && o.force);
     var t = (o && o.t) || 0;
     var dt = u.lastT === undefined ? 0 : Math.max(0, Math.min(0.25, t - u.lastT));
     u.lastT = t;
