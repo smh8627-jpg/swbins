@@ -163,13 +163,17 @@ namespace Saga.EditorTools
         // 반경과 한 칸(48유닛) 이상 떨어져 안 겹친다. herb_4(3,7)은
         // 2026-09-12 지도 확장으로 새로 생긴 남쪽 숲 공터("^T...T^",
         // row7) 한가운데 — 남쪽 성벽 문을 지나 처음 만나는 새 콘텐츠라
-        // "새 지역을 열었다"는 느낌을 곧바로 준다.
+        // "새 지역을 열었다"는 느낌을 곧바로 준다. herb_5(2,9)는 그 다음
+        // 문 너머 둘째 남쪽 공터("^T.F.T^^^", row9)의 '.' 타일 — 옆에
+        // 심은 'F'(논밭) 자체엔 안 둔다, Gatherable의 토스트 문구가
+        // "산나물을 캤다"라 밭보다는 들판 쪽이 결이 맞는다.
         private static readonly (string Id, int Gx, int Gy)[] GatherSpots =
         {
             ("herb_1", 1, 2),
             ("herb_2", 5, 2),
             ("herb_3", 2, 4),
             ("herb_4", 3, 7),
+            ("herb_5", 2, 9),
         };
 
         private static void BuildMountainShrine()
