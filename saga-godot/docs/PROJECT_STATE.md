@@ -207,3 +207,15 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 - `godot --headless --path saga-godot --import` → 프로젝트 첫 스캔/임포트 성공 (exit 0)
 - `godot --headless --path saga-godot --quit` → Main.tscn 실행 성공 (exit 0, 오류 로그 없음)
 - 실제 GUI 렌더링(그래픽 화면 확인)은 headless라 검증 안 됨 — 필요하면 에디터를 직접 띄워야 함
+- **2026-09-11 — Forward+ 전환 후 재검증, 그리고 winget 경로 기록이 PC마다 다르다는 것 확인.**
+  `project.godot`의 `renderer/rendering_method`를 `forward_plus`(+ `.mobile`/`.web`
+  feature tag)로 바꾼 뒤, 이 세션이 도는 PC에는 위 "완료 단계"에 적힌 winget 설치
+  경로가 **없었다**(다른 PC에서 남긴 기록으로 추정). Godot 4.7.2 stable(non-Mono)
+  win64 콘솔 빌드를 GitHub 릴리스에서 스크래치패드로 새로 받아 확인 —
+  `--headless --editor --quit`(임포트) · `--headless --quit-after 3 --verbose`
+  (TestVillage.tscn 실행) 둘 다 exit 0, error/warning/missing 계열 로그 0건.
+  Forward+ 설정 문자열 자체는 프로젝트를 안 깨뜨리는 것까지 확인됐다 — 단
+  headless는 더미 렌더러라 **실제 화면에 Forward+가 뭘 그리는지는 여전히
+  미검증**(GUI로 직접 열어야 함). 설치 절차는 `saga-godot/CLAUDE.md`에
+  PC마다 다시 확인/재설치하는 방법으로 정리해 둠 — 다음 세션은 이 표의
+  winget 경로를 그대로 믿지 말 것.
