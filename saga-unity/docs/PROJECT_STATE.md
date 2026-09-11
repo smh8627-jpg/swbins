@@ -5,6 +5,95 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **지도 크기 확장 셋째 조각 — 남쪽 더 (2026-09-12) + 채집 자리 5호.**
+  동쪽 공터 콘텐츠 다음으로 이어서(같은 세션) — row8의 산 벽을 열어
+  (row6과 같은 모양 "^^^=^^^^^") 더 남쪽으로 2줄(row9~10) 늘렸다.
+  9×9 → 9×11(432m×528m). row9엔 **`Legend`엔 있었지만 `Rows`엔 한 번도
+  안 쓰이던 `'F'`(논밭) 타일을 처음 심었다**(산신당 `'S'` 때와 같은
+  결) — "^T.F.T^^^". row10은 새 산 경계로 닫아 다음 확장 여지를 남김.
+  같이 채집 자리 herb_5(2,9)도 심었다 — 'F' 옆 '.' 타일에(밭 자체는
+  Gatherable의 "산나물을 캤다" 문구와 결이 안 맞아 피함). 기존 콘텐츠
+  좌표는 전혀 안 건드림. 컴파일·씬 재빌드(`groundVerts=5184→6336`,
+  9×11×4×4서브쿼드×4정점과 정확히 일치)·PlaytestHeadless 전부 통과.
+- **동쪽 숲 공터(col7)에 첫 콘텐츠 — 낡은 돌기둥 발견 (2026-09-12).**
+  WorldEventState 일반화 다음으로 이어서(같은 세션) — 방금 합친
+  `WorldEventState`를 실제로 바로 재사용해 봤다. `World/
+  EastGroveRelic.cs`(격자 (7,3), HiddenTreasure.cs와 같은 결 — 트리거
+  한 번, 작은 마커, 발견 보상) 신규. 굴 보물처럼 무기를 주는 대신
+  경험치+20·돈+15만 주는 가벼운 발견이라 새 `ItemData` 없음 — 이벤트
+  id `"east_grove_relic"`이 일반화 이후 처음 생긴 네 번째 id. 마커는
+  HiddenTreasure의 발광 구슬과 다르게 살짝 기울어진 낡은 돌기둥
+  (primitive Cylinder)으로 구분. `BuildTestVillageScene.cs`에
+  `BuildEastGroveRelic()` 훅 추가 — GameObject가 늘어 씬 재빌드
+  (`groundVerts=5184` 그대로). 컴파일·씬 재빌드·PlaytestHeadless 전부
+  통과 — 실제로 눈에 띄는지·트리거가 발동하는지는 역시 사람이 직접
+  가 봐야 확인됨.
+- **기술부채 정리 — WorldEventState를 id 집합으로 일반화 (2026-09-12).**
+  동쪽 지도 확장 다음으로 이어서(같은 세션) — `ShrineState.cs`가
+  스스로 남겨 둔 예고("세 번째 '자리 하나' 월드 이벤트가 생기면
+  GatherState.cs처럼 id 집합으로 합칠 것")가, `RareWolfState.cs`가
+  생기며 이미 세 번째를 넘긴 채 안 지켜지고 있던 걸 발견해 정리했다.
+  `WorldEventState.cs`를 `GatherState.cs`와 같은 모양(HashSet<string>
+  기반 `IsTriggered`/`TryTrigger`/`TriggeredIds`/`Restore`)으로 다시
+  썼다 — 굴 보물은 `"cave_treasure"`, 산신당은 `"shrine_blessing"`,
+  희귀 몬스터는 `"rare_wolf"` id를 쓴다. `ShrineState.cs`·
+  `RareWolfState.cs`는 삭제, `HiddenTreasure.cs`·`MountainShrine.cs`·
+  `RareWolfEncounter.cs` 세 호출부를 새 API로 바꿨다(안 쓰이던
+  `TreasureFound`/`Blessing` 이벤트도 같이 정리됨 — 구독하는 곳이
+  코드베이스 어디에도 없었음). `SaveState.cs` v8→v9 — 예전 세 bool
+  필드(`caveTreasureFound`/`shrineBlessed`/`rareWolfDefeated`)를 하나의
+  `worldFlags` 문자열 목록으로 접었다(`MigrateStep(8,...)`가 세 bool을
+  보고 목록을 채워 넣어 진행 손실 없이 옮김 — 옛 필드는 마이그레이션
+  전용으로 클래스에 그대로 남겨 둠). 씬 GameObject 구성은 안 바뀐
+  변경이라 씬 재빌드는 생략, 컴파일·PlaytestHeadless 전부 통과.
+- **지도 크기 확장 둘째 조각 — 동쪽 2칸 (2026-09-12).** 채집 자리 4호
+  다음으로 이어서(같은 세션) — 남쪽 확장 때 세운 "행/열 끝에만 보태면
+  기존 좌표 안 밀림" 원칙을 동쪽(열)에도 실제로 적용해 검증했다. 9×7 →
+  9×9칸(432m×432m). 마을 행(row2~4)의 동쪽 벽이 원래 숲(walkable)이라
+  남쪽처럼 따로 "문"을 뚫을 필요가 없었다 — col7에 숲 버퍼(row3만
+  들판), col8에 새 산 경계를 둬 자연스럽게 작은 동쪽 숲 공터가 생겼다
+  (아직 콘텐츠는 안 심음 — 다음 후보). 기존 콘텐츠 좌표(도적·NPC·채집
+  4곳·산신당·흰늑대·사슴)는 전혀 안 건드림. 이번엔 halfW(가로 중심)도
+  같이 바뀌어(halfH만 바뀌었던 남쪽 확장과 달리) `PlayerSpawn`의
+  `WorldPos()` 수정이 처음으로 x축 밀림까지 실전에서 검증됐다. 컴파일·
+  씬 재빌드(`groundVerts=4032→5184`, 9×9×4×4서브쿼드×4정점과 정확히
+  일치)·PlaytestHeadless 전부 통과.
+- **지도 확장 남쪽 공터(row7)에 첫 콘텐츠 — 채집 자리 4호 (2026-09-12).**
+  동물 Flee/Group/Interaction 다음으로 이어서(같은 세션) — 지도 크기
+  확장 때 "터레인만 깔고 콘텐츠는 다음"으로 남겨 뒀던 자리를 채웠다.
+  새 시스템 없이 기존 `Gatherable`/`GatherState`(id 문자열 집합이라
+  이미 임의 개수를 받게 짜여 있음)에 `herb_4(3,7)` 한 줄만 추가 —
+  `BuildTestVillageScene.GatherSpots` 배열에 등록. `SaveState` 스키마
+  변경도 필요 없다(GatherState가 id를 그대로 문자열 집합에 넣고 빼는
+  구조라 새 id를 몰라도 저장/복원이 자동으로 됨). 씬에 GameObject가
+  늘어 `BuildTestVillageScene.Build()`를 다시 돌렸다(groundVerts=4032
+  그대로 — 땅은 안 바뀜). 컴파일·씬 재빌드·PlaytestHeadless 전부 통과 —
+  남쪽 문을 지나 처음 만나는 콘텐츠라 실제로 눈에 띄는지·캐지는지는
+  역시 사람이 직접 가 봐야 확인됨.
+- **PLAN.md 24~27장 "동물" 둘째 조각 — Flee/Group/Interaction (2026-09-12).**
+  지도 크기 확장 다음으로 이어서(같은 세션). 첫 조각(사슴 두 마리
+  Idle/Wander)이 "Flee/Group/Interaction은 다음에"로 남겨 뒀던 부분 —
+  `WanderingAnimal.cs`에 `State{Idle,Wander,Flee}`를 추가했다.
+  **Flee**: `Player` 태그 오브젝트와의 평면 거리(y 무시)가 16유닛 안으로
+  들어오면 즉시 도망 상태로 바뀌고(4.6유닛/초, 기존 배회 2.2보다 빠름)
+  플레이어 반대 방향으로 몇 걸음씩(`FleeStepRadius=18`) 걸을 수 있는
+  칸을 골라 이어 달아난다 — 30유닛 밖으로 멀어져야 진정한다(붙었다
+  뗐다 방지용 히스테리시스, 16/30 두 문턱). **Group**: 정적 리스트
+  `Active`에 씬의 모든 `WanderingAnimal`을 등록해 두고, 플레이어를 직접
+  보고 놀란 개체가 반경 40유닛 안의 다른 동물도 같이 `StartFlee`시킨다
+  — **다만 지금 스폰된 사슴 두 자리(2,2)·(4,4)는 실제 거리가 약
+  136유닛이라 서로 이 반경 밖이라 지금은 실제로 안 겹친다**(메커니즘은
+  맞게 짰지만 지금 콘텐츠로는 발동 장면을 볼 수 없다 — 동물이 늘거나
+  더 가까이 배치되면 그때 실제로 보임, 기존 스폰 좌표는 이번에 안
+  건드렸다). **Interaction**: 플레이어를 직접 보고 놀란 경우에만(무리
+  전파로 놀란 경우는 조용히) `DialogueLabel`로 "동물이 놀라 달아난다."
+  자막을 2초 띄운다 — NPC의 `_say()`와 같은 자기등록 싱글턴 재사용,
+  새 UI 없음. 씬 구조(GameObject 구성)는 하나도 안 바뀐 변경이라
+  `BuildTestVillageScene.Build()`는 다시 안 돌렸다(기존 관례). 컴파일·
+  PlaytestHeadless 전부 통과 — **플레이어가 안 움직이는 헤드리스에서는
+  Flee가 실제로 발동 안 함**(스폰 지점 사이 거리가 이미 알림 반경
+  밖이라 우연히도 안전) — 실제로 다가가면 놀라 달아나는지·자막이
+  뜨는지·30유닛 밖에서 다시 진정하는지는 사람이 직접 봐야 확인됨.
 - **PLAN.md 51장 "GO 월드 확장 — 지도 크기" 첫 조각 (2026-09-12).** 여러
   세션 동안 "파급이 큰 작업"이라 미뤄 뒀던 항목 — 사용자가 "지도크기
   작업부터"로 이번 세션 첫 과제로 지목. `TestMapData.Rows`를 **남쪽으로만
@@ -395,12 +484,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- **지도 크기 다음 조각.** 이번엔 남쪽으로만 2줄(row7~8) 늘리고 새 공터
-  (row7)엔 터레인만 깔았다 — 다음 후보는 (1) row8의 산을 열어 더 남쪽으로
-  계속 늘리거나, (2) row7 공터에 실제 콘텐츠(동물·채집·작은 이벤트 등)를
-  심는 것, (3) 동쪽(Cols)으로도 늘려 보는 것(이번에 검증한 "행 끝에만
-  보태면 기존 좌표 안 밀림" 원칙이 열 끝에 보태는 것에도 그대로 적용될
-  것으로 보임 — 아직 실제로는 안 해 봄). 안개는 이제 SkyFogBuilder의
+- **지도 크기 다음 조각.** 남쪽 4줄(row7~10, row7엔 herb_4, row9엔 논밭+
+  herb_5) + 동쪽 2칸(col7~8, EastGroveRelic)까지 늘리고 각각 콘텐츠도
+  심었다 — 남은 후보는 (1) row10의 산을 또 열어 계속 남쪽으로 늘리는
+  것(같은 패턴이 벌써 세 번째라 — 남쪽 방향 자체를 여기서 일단 멈추고
+  다른 방향/다른 콘텐츠로 갈아탈 때가 됐을 수 있음), (2) 북쪽·서쪽으로도
+  늘려 보는 것(이번엔 "끝에 보태기"라 안전했지만, **앞쪽에 끼워 넣는
+  방향은 기존 좌표가 실제로 밀리므로** 시도한다면 기존 콘텐츠 좌표를
+  전부 다시 맞추는 별도 작업이 필요). 안개는 이제
+  SkyFogBuilder의
   ExponentialSquared 밀도 방식이라(아래 병합 정리 항목 참고) "거리"
   숫자가 아니라 밀도가 새 지도 크기에 맞는지를 사람이 GUI 확인할 때
   같이 볼 것.
@@ -464,6 +556,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **사슴 두 마리가 실제로 자연스럽게 걷는지**((2,2)/(4,4) 들판 근처를
     돌아다니는지, 산·강으로 걸어 들어가지 않는지, 멈췄다 걷는 리듬이
     부자연스럽지 않은지 — 수치(반경 24·속도 2.2)만으로 정한 자리)
+  - **사슴이 실제로 놀라 달아나는지**(16유닛 안으로 다가가면 바로 도망
+    상태로 바뀌어 반대 방향으로 뛰는지, "동물이 놀라 달아난다." 자막이
+    뜨는지, 30유닛 밖으로 물러나면 다시 진정해 배회로 돌아오는지 —
+    Group 전파는 지금 스폰 좌표로는 두 마리가 서로 멀어 볼 수 없음)
   - **흰 늑대(희귀 몬스터)가 실제로 도는지**(격자 (0,3) 숲에서 조우
     프롬프트가 뜨는지, "맞선다"/"피한다" 둘뿐인지, 이겼을 때 경험치
     150·돈 50냥·"늑대 가죽 갑주"를 확정으로 받는지, 다시 그 자리를
@@ -474,6 +570,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **지도가 남쪽으로 실제로 늘어났는지**(다리 건너 남쪽 성벽 문(격자
     (3,6))을 지나면 새 숲 공터(row7)가 나오고 그 너머는 산으로 막혀
     있는지 — 플레이어 스폰이 여전히 마을 두 집 사이인지도 같이 확인)
+  - **새 공터의 채집 자리(herb_4, 격자 (3,7))가 실제로 보이고 캐지는지**
+    (남쪽 문을 지나자마자 발광 구슬이 눈에 띄는지, 밟으면 돈 +8냥이
+    들어오는지 — 기존 세 자리와 같은 컴포넌트라 동작은 검증됐지만 이
+    자리 자체는 처음 확인)
+  - **지도가 동쪽으로 실제로 늘어났는지**(마을에서 동쪽 숲을 계속
+    걸으면 col7~8의 새 공터가 나오고 그 너머는 산으로 막혀 있는지 —
+    남쪽과 달리 문 없이 자연스럽게 이어지는지도 같이 확인)
+  - **낡은 돌기둥(EastGroveRelic, 격자 (7,3))이 실제로 눈에 띄고
+    발견되는지**(숲 사이에서 발광 없이도 구분되는지, 다가가면 경험치
+    +20·돈 +15 토스트가 뜨는지)
+  - **둘째 남쪽 공터(row9)까지 실제로 갈 수 있는지**(row8의 새 문을
+    지나면 논밭 타일이 보이는지, herb_5(2,9)가 실제로 보이고 캐지는지,
+    row10 산으로 다시 막혀 있는지)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
@@ -486,10 +595,12 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   조각을 냈다** — 남쪽으로만 2줄(7×7→7×9)로, "행 끝에만 보태면 기존
   좌표 안 밀림" 전략으로 기존 콘텐츠 좌표를 안 건드리고 해냈다(위
   "완료 단계" 참고). 더 늘리거나(동쪽 Cols·남쪽 더) 새 공터에 콘텐츠를
-  심는 건 다음 조각. 다음 후보는 동물의 Flee/Group/Interaction · 51~65장이
-  적어 둔 확장 순서(GO → DUNGEON → FOREST → STORY → REALM) — 사건/퀘스트/
-  상점을 사전 구조로 일반화하는 건 콘텐츠가 각각 하나~둘뿐이라(채집만
-  예외) 여전히 미룸. 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
+  심는 건 다음 조각. 동물의 Flee/Group/Interaction도 2026-09-12에 이어서
+  냈다(위 "완료 단계" 참고 — Group은 메커니즘만 맞고 지금 스폰 두 자리는
+  서로 멀어 실제 발동 장면은 아직 없음). 다음 후보는 51~65장이 적어 둔
+  확장 순서(GO → DUNGEON → FOREST → STORY → REALM) — 사건/퀘스트/상점을
+  사전 구조로 일반화하는 건 콘텐츠가 각각 하나~둘뿐이라(채집만 예외)
+  여전히 미룸. 세션 시작 시 PLAN.md를 다시 훑어 고를 것.
 - **이번 세션은 여기서 멈췄다** — 사용자가 "새로운 세션에서 다시
   하자"로 끊음(2026-09-11 끝, 2026-09-12로 날짜 넘어감). 이 세션 하나
   안에서 10개 커밋(`5965798`~`34fc937`)이 나갔다 — 전부 컴파일·
@@ -595,3 +706,38 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   PlayerSpawn을 WorldPos() 계산식으로 교체) 추가 후 컴파일 통과, 씬
   재빌드에서 `groundVerts=3136→4032`로 정확히 7×9×4×4서브쿼드×4정점과
   일치함을 확인, PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.
+  이어서 origin에 먼저 올라온 saga-godot 지도 확장·saga-unity Sky/Fog
+  병합 정리 커밋과 겹쳐 push가 거절돼 `git merge`로 `BuildTestVillageScene
+  .cs`·`docs/PROJECT_STATE.md` 충돌을 손으로 풀고, 병합된 코드로 컴파일·
+  씬 재빌드(`groundVerts=4032` 그대로)·PlaytestHeadless를 한 번 더 통과
+  시킨 뒤 병합 커밋으로 push 완료.
+- 동물 Flee/Group/Interaction(WanderingAnimal.cs State 확장, DialogueLabel
+  자막 재사용) 추가 후 컴파일 통과 — 씬 GameObject 구성을 하나도 안
+  건드린 변경이라 BuildTestVillageScene.Build()는 다시 안 돌림(기존
+  TestVillage.unity 그대로 유효). PlaytestHeadless(`OK - 10 frames, no
+  errors`) 통과 — 플레이어가 스폰 지점에서 안 움직여 사슴과의 거리가
+  이미 FleeAlertRadius(16) 밖이라 이번 10프레임 동안 Flee 경로 자체는
+  실행 안 됨(정상 — 실제 발동은 사람이 다가가 봐야 확인).
+- 채집 자리 4호(herb_4, GatherSpots 배열에 한 줄 추가) 추가 후 컴파일
+  통과, 씬에 GameObject가 늘어 `BuildTestVillageScene.Build()` 재실행
+  (`groundVerts=4032` 그대로 — 땅은 안 바뀜), PlaytestHeadless(`OK - 10
+  frames, no errors`)도 통과.
+- 지도 크기 확장 동쪽 2칸(TestMapData.Rows 각 행 끝에 2글자씩 추가,
+  9×7→9×9) 추가 후 컴파일 통과, 씬 재빌드에서 `groundVerts=4032→5184`로
+  정확히 9×9×4×4서브쿼드×4정점과 일치함을 확인, PlaytestHeadless
+  (`OK - 10 frames, no errors`)도 통과.
+- WorldEventState 일반화(ShrineState·RareWolfState 삭제, SaveState v9)
+  추가 후 컴파일 통과 — 씬 GameObject 구성을 하나도 안 건드린 변경이라
+  BuildTestVillageScene.Build()는 다시 안 돌림. PlaytestHeadless
+  (`OK - 10 frames, no errors`) 통과 — v8 세이브 파일을 실제로 로드해
+  MigrateStep(8,...)이 세 bool을 worldFlags로 올바르게 접는지는 사람이
+  구버전 세이브로 직접 확인해야 함(헤드리스 플레이는 새 게임 취급이라
+  이 경로를 안 지나감).
+- EastGroveRelic(신규, WorldEventState 일반화 이후 첫 재사용) 추가 후
+  컴파일 통과, 씬에 GameObject가 늘어 `BuildTestVillageScene.Build()`
+  재실행(`groundVerts=5184` 그대로 — 땅은 안 바뀜), PlaytestHeadless
+  (`OK - 10 frames, no errors`)도 통과.
+- 지도 크기 확장 셋째 조각(row8 문 개방 + row9~10 신규, 'F' 논밭 타일
+  첫 사용) + 채집 자리 5호(herb_5) 추가 후 컴파일 통과, 씬 재빌드에서
+  `groundVerts=5184→6336`으로 정확히 9×11×4×4서브쿼드×4정점과 일치함을
+  확인, PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.

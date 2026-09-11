@@ -31,6 +31,7 @@ namespace Saga.Go.World
         private const int ExpReward = 150;
         private const int RewardGold = 50;
         private const string RewardItemId = "ar_wolf";
+        private const string EventId = "rare_wolf";
 
         private static readonly Color BaseColor = new Color(0.78f, 0.78f, 0.8f);
         private static readonly Color TellColor = new Color(1.0f, 0.4f, 0.2f);
@@ -59,9 +60,9 @@ namespace Saga.Go.World
         private void Awake()
         {
             // 등용 대상이 아니라 PartyState.MemberIds엔 안 남는다 — 대신
-            // WorldEventState.cs·ShrineState.cs와 같은 결로 별도 플래그를
-            // 둔다(RareWolfState.cs).
-            if (RareWolfState.Defeated)
+            // WorldEventState(굴 보물·산신당과 같은 id 집합)로 처치 여부를
+            // 기억한다.
+            if (WorldEventState.IsTriggered(EventId))
             {
                 Destroy(gameObject);
                 return;
@@ -293,7 +294,7 @@ namespace Saga.Go.World
 
             if (cleared)
             {
-                RareWolfState.MarkDefeated();
+                WorldEventState.TryTrigger(EventId);
 
                 int levelBefore = PlayerStats.Level;
                 PlayerStats.AddExp(ExpReward);

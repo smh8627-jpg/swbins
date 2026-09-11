@@ -19,10 +19,11 @@ namespace Saga.Go.World
         private const int RewardExp = 50;
         private const int RewardGold = 25;
         private const float ToastSec = 5f;
+        private const string EventId = "shrine_blessing";
 
         private void Awake()
         {
-            if (ShrineState.Blessed)
+            if (WorldEventState.IsTriggered(EventId))
             {
                 Destroy(gameObject);
                 return;
@@ -43,7 +44,7 @@ namespace Saga.Go.World
         private void OnTriggerEnter(Collider other)
         {
             if (!other.CompareTag("Player")) return;
-            if (!ShrineState.TryBless()) return;
+            if (!WorldEventState.TryTrigger(EventId)) return;
 
             PlayerStats.AddExp(RewardExp);
             GoldState.Add(RewardGold);
