@@ -1,7 +1,10 @@
 extends CharacterBody3D
 
-## VERTICAL_SLICE.md Phase 5 — 51~54절. 실제 GLB 캐릭터가 붙기 전까지는
-## Visual(캡슐)이 몸을 대신한다(master.md 8장 "Primitive는 프로토타입에서만").
+## VERTICAL_SLICE.md Phase 5 — 51~54절.
+## 2026-09-11 — 51절(3D 모델 연결)·52절(Idle/Walk/Run) GLB 교체.
+## Visual은 이제 캡슐이 아니라 assets/characters/character-a.glb
+## (CC0 Kenney Blocky Characters, ASSET_GUIDE.md 참고) — 안에 idle·walk·
+## sprint 애니메이션이 이미 들어 있어서 그걸 그대로 재생만 한다.
 
 const WALK_SPEED := 6.0
 const RUN_SPEED := 10.0
@@ -9,14 +12,17 @@ const GRAVITY := 20.0
 const TURN_RATE := 12.0
 
 @onready var camera_rig: Node3D = $CameraRig
-@onready var visual: MeshInstance3D = $Visual
+@onready var visual: Node3D = $Visual
+@onready var _anim: AnimationPlayer = visual.find_child("AnimationPlayer", true, false)
 
 var _joystick: Control = null
+var _current_anim := ""
 
 func _ready() -> void:
 	var found := get_tree().get_nodes_in_group("virtual_joystick")
 	if found.size() > 0:
 		_joystick = found[0]
+	_play_anim("idle")
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
@@ -27,15 +33,30 @@ func _physics_process(delta: float) -> void:
 	var input_dir := _movement_input()
 	var move_dir := _world_direction(input_dir)
 
-	var speed := RUN_SPEED if Input.is_action_pressed("run") else WALK_SPEED
+	var running := Input.is_action_pressed("run")
+	var speed := RUN_SPEED if running else WALK_SPEED
 	velocity.x = move_dir.x * speed
 	velocity.z = move_dir.z * speed
 
 	if move_dir.length() > 0.05:
 		var target_yaw := atan2(move_dir.x, move_dir.z)
 		visual.rotation.y = lerp_angle(visual.rotation.y, target_yaw, TURN_RATE * delta)
+		_play_anim("sprint" if running else "walk")
+	else:
+		_play_anim("idle")
 
 	move_and_slide()
+
+## character-a.glb 안의 이름 그대로 재생한다(idle/walk/sprint) — 같은 걸
+## 다시 요청하면 매 프레임 play()를 다시 걸지 않는다(안 그러면 블렌드가
+## 매번 처음으로 튄다).
+func _play_anim(anim_name: String) -> void:
+	if _anim == null or not _anim.has_animation(anim_name):
+		return
+	if _current_anim == anim_name:
+		return
+	_current_anim = anim_name
+	_anim.play(anim_name)
 
 ## 조이스틱이 있으면 그걸 우선한다(모바일) — 없거나 안 밀었으면 키보드로 되돈다.
 func _movement_input() -> Vector2:

@@ -2,12 +2,9 @@
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/player/camera_rig.gd" id="2"]
+[ext_resource type="PackedScene" path="res://assets/characters/character-a.glb" id="3"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
-radius = 0.9
-height = 3.4
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh1"]
 radius = 0.9
 height = 3.4
 
@@ -19,9 +16,11 @@ groups = ["player"]
 shape = SubResource("CapsuleShape1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
 
-[node name="Visual" type="MeshInstance3D" parent="."]
-mesh = SubResource("CapsuleMesh1")
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+[node name="Visual" parent="." instance=ExtResource("3")]
+## character-a.glb(CC0 Kenney Blocky Characters, assets/characters/,
+## ASSET_GUIDE.md 참고) — 2026-09-11 GLB 교체. 실측 키 2.7m를 기존 캡슐
+## 총높이 3.4에 맞춰 1.25배 키웠다. 바닥 피벗이라 y=0에 그대로 세운다.
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")

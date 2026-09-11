@@ -1,17 +1,39 @@
 extends Node3D
 
-## VERTICAL_SLICE.md 27절 — 지도 위 이름난 자리(랜드마크)를 primitive로 세운다.
-## master.md 8장의 "Primitive는 프로토타입에서만" 원칙대로, 실제 GLB 에셋이
-## 붙기 전까지만 쓰는 자리다. 좌표는 test_map.gd의 글자 지도와 맞춘다.
+## VERTICAL_SLICE.md 27절 — 지도 위 이름난 자리(랜드마크)를 세운다.
+## 2026-09-11 — PLAN.md 45·46장(GLB 교체). 마을집·폐허 기둥·다리 널판을
+## CC0 Kenney Fantasy Town Kit(assets/buildings, ASSET_GUIDE.md 참고)의
+## GLB 조각으로 바꿨다. 굴 입구는 이 킷에 맞는 조각이 없어 이번 교체에서
+## 빠졌다 — 여전히 primitive다(아래 _add_cave 참고, PROJECT_STATE.md에
+## 남은 일로 기록).
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
+const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
+
+const WALL_GLB := "res://assets/buildings/wall-block.glb"
+const ROOF_GLB := "res://assets/buildings/roof-gable.glb"
+const PILLAR_GLB := "res://assets/buildings/pillar-stone.glb"
+const PLANK_GLB := "res://assets/buildings/planks.glb"
+
+## wall-block.glb는 1x1x1 정육면체(바닥이 원점) — 기존 박스 몸통(10x4x10)에
+## 맞춰 축마다 다르게 늘렸다. 텍스처가 단순 색 아틀라스라 늘려도 눈에 띄게
+## 이상하진 않다(ASSET_GUIDE.md에 실측·근거 기록). 진짜 모듈형 벽 타일링은
+## 이번 교체 범위 밖 — 다음 손질 때 여러 장 이어 붙이는 걸로 바꿀 수 있다.
+const WALL_SCALE := Vector3(10, 4, 10)
+## roof-gable.glb(1.1 x 0.57 x 1.07)는 원래 비율이 이미 지붕다워서 세 축을
+## 거의 같은 배수로만 키웠다 — 폭 기준 10배.
+const ROOF_SCALE := Vector3(10, 10, 10)
+## pillar-stone.glb(높이 1m 원기둥)의 지름 스케일 — 얇을수록 폐허답다.
+const RUIN_PILLAR_RADIUS_SCALE := 4.0
+
 
 func _ready() -> void:
 	_add_cave()
 	_add_village()
 	_add_ruins()
 	_add_bridge()
+
 
 func _box(size: Vector3, color: Color) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
@@ -22,6 +44,7 @@ func _box(size: Vector3, color: Color) -> MeshInstance3D:
 	mat.albedo_color = color
 	mi.material_override = mat
 	return mi
+
 
 ## 그림만 있고 부딪히지 않던 것 — 건물마다 이걸로 실제 벽을 붙인다.
 func _solid(size: Vector3, local_pos: Vector3, parent: Node3D) -> void:
@@ -35,6 +58,9 @@ func _solid(size: Vector3, local_pos: Vector3, parent: Node3D) -> void:
 	body.add_child(cs)
 	parent.add_child(body)
 
+
+## 아직 primitive다 — Fantasy Town/Nature Kit에 어울리는 "동굴 입구" 조각이
+## 없다. master.md 8장 "Primitive는 프로토타입에서만" 그대로 유지.
 func _add_cave() -> void:
 	var ground: float = TerrainBuilder.LEGEND["C"].height
 	var size := Vector3(10, 6, 4)
@@ -44,8 +70,12 @@ func _add_cave() -> void:
 	add_child(cave)
 	_solid(size, cave.position, self)
 
+
 func _add_village() -> void:
 	var ground: float = TerrainBuilder.LEGEND["H"].height
+	var wall_mesh := GLBUtils.extract_mesh(WALL_GLB)
+	var roof_mesh := GLBUtils.extract_mesh(ROOF_GLB)
+
 	for gx in [2, 3]:
 		var house := Node3D.new()
 		house.name = "House_%d" % gx
@@ -53,50 +83,59 @@ func _add_village() -> void:
 		add_child(house)
 
 		var body_size := Vector3(10, 4, 10)
-		var body := _box(body_size, Color(0.85, 0.78, 0.6))
-		body.position = Vector3(0, 2, 0)
-		house.add_child(body)
-		_solid(body_size, body.position, house)
+		if wall_mesh != null:
+			var body := MeshInstance3D.new()
+			body.name = "Wall"
+			body.mesh = wall_mesh
+			## wall-block.glb는 바닥이 원점이라 y=0에 그대로 세우면 된다
+			## (BoxMesh였을 때처럼 높이 절반만큼 띄울 필요가 없다).
+			body.transform = Transform3D(Basis().scaled(WALL_SCALE), Vector3.ZERO)
+			house.add_child(body)
+		## 충돌은 시각 메시의 피벗과 무관하게 중심 기준이라 그대로 둔다.
+		_solid(body_size, Vector3(0, body_size.y * 0.5, 0), house)
 
-		var roof := MeshInstance3D.new()
-		var roof_mesh := PrismMesh.new()
-		roof_mesh.size = Vector3(11, 3.5, 11)
-		roof.mesh = roof_mesh
-		var roof_mat := StandardMaterial3D.new()
-		roof_mat.albedo_color = Color(0.5, 0.24, 0.18)
-		roof.material_override = roof_mat
-		roof.position = Vector3(0, 5.75, 0)
-		house.add_child(roof)
+		if roof_mesh != null:
+			var roof := MeshInstance3D.new()
+			roof.name = "Roof"
+			roof.mesh = roof_mesh
+			roof.transform = Transform3D(Basis().scaled(ROOF_SCALE), Vector3(0, body_size.y, 0))
+			house.add_child(roof)
+
 
 func _add_ruins() -> void:
 	var ground: float = TerrainBuilder.LEGEND["R"].height
 	var base := TestMap.world_pos(5, 3) + Vector3(0, ground, 0)
 	var offsets := [Vector2(-3, -2), Vector2(2, 1), Vector2(-1, 3)]
+	var pillar_mesh := GLBUtils.extract_mesh(PILLAR_GLB)
+	## pillar-stone.glb는 높이 1m짜리 원기둥 — 스케일 값을 그대로 목표
+	## 높이(m)로 쓸 수 있다. 반지름은 얇게 두는 쪽이 폐허다워서 primitive
+	## 시절(반지름 최대 1.2)보다 가늘게 잡았다 — ASSET_GUIDE.md 참고.
+	var radius_scale := RUIN_PILLAR_RADIUS_SCALE
 	for i in offsets.size():
 		var off: Vector2 = offsets[i]
-		var mi := MeshInstance3D.new()
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = 1.0
-		mesh.bottom_radius = 1.2
-		mesh.height = 5.0 + float(i % 2) * 1.5
-		mi.mesh = mesh
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.55, 0.52, 0.48)
-		mi.material_override = mat
-		mi.position = base + Vector3(off.x, mesh.height * 0.5, off.y)
-		mi.name = "RuinPillar_%d" % i
-		add_child(mi)
+		var height := 5.0 + float(i % 2) * 1.5
+		var pos := base + Vector3(off.x, 0, off.y)
+
+		if pillar_mesh != null:
+			var mi := MeshInstance3D.new()
+			mi.mesh = pillar_mesh
+			mi.name = "RuinPillar_%d" % i
+			## 바닥 피벗이라 그대로 세우면 된다(primitive 때는 중앙 피벗이라
+			## height*0.5만큼 띄워야 했다).
+			mi.transform = Transform3D(Basis().scaled(Vector3(radius_scale, height, radius_scale)), pos)
+			add_child(mi)
 
 		var body := StaticBody3D.new()
 		body.name = "Collision"
-		body.position = mi.position
+		body.position = pos + Vector3(0, height * 0.5, 0)
 		var cs := CollisionShape3D.new()
 		var shape := CylinderShape3D.new()
-		shape.radius = 1.1
-		shape.height = mesh.height
+		shape.radius = 0.08 * radius_scale
+		shape.height = height
 		cs.shape = shape
 		body.add_child(cs)
 		add_child(body)
+
 
 func _add_bridge() -> void:
 	## 다리 밑은 강바닥(height -1.0)이고 그 위에 수면(-0.45)이 떠 있다
@@ -104,7 +143,35 @@ func _add_bridge() -> void:
 	## 충돌은 terrain_builder.gd의 "B" 타일이 이미 같은 높이(BRIDGE_CLEARANCE)에
 	## 놓아 두므로 여기서 따로 만들지 않는다 — 두 파일이 각자 만들면 겹친다.
 	var bed: float = TerrainBuilder.LEGEND["B"].height
-	var plank := _box(Vector3(6, 0.6, 44), Color(0.42, 0.3, 0.18))
-	plank.name = "Bridge"
-	plank.position = TestMap.world_pos(3, 5) + Vector3(0, bed + TerrainBuilder.BRIDGE_CLEARANCE, 0)
-	add_child(plank)
+	var base_pos := TestMap.world_pos(3, 5) + Vector3(0, bed + TerrainBuilder.BRIDGE_CLEARANCE, 0)
+	var bridge_length := 44.0
+	var bridge_width := 6.0
+
+	var plank_mesh := GLBUtils.extract_mesh(PLANK_GLB)
+	if plank_mesh == null:
+		## 못 받아 왔으면 예전 primitive로 대체 — 다리가 아예 안 보이는 것보단 낫다.
+		var plank := _box(Vector3(bridge_width, 0.6, bridge_length), Color(0.42, 0.3, 0.18))
+		plank.name = "Bridge"
+		plank.position = base_pos
+		add_child(plank)
+		return
+
+	## planks.glb는 1x1x1칸짜리 널빤지 — primitive처럼 하나를 44배 길게
+	## 늘리면 나뭇결이 다 뭉개져 보이므로, 강을 따라 실제로 이어 붙인다
+	## (MultiMesh — 44개라도 draw call은 1회, master.md 35장 그대로).
+	var plank_count := int(ceil(bridge_length))
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = plank_mesh
+	mm.instance_count = plank_count
+
+	var start_z := -bridge_length * 0.5 + 0.5
+	for i in plank_count:
+		var basis := Basis().scaled(Vector3(bridge_width, 2.0, 1.02))
+		var pos := base_pos + Vector3(0, 0, start_z + i)
+		mm.set_instance_transform(i, Transform3D(basis, pos))
+
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.name = "Bridge"
+	add_child(mmi)

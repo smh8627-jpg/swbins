@@ -195,8 +195,11 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 - **결정됨(2026-08-31)**: saga-godot은 인물 데이터를 공유한다(다섯 웹판은
   기존 다섯 벌 복사 구조 그대로 유지, 무관). `saga_core/data/characters/`에
   인물 70+REALM 무장 54를 id 불변으로 통합. LEGACY_FEATURE_AUDIT.md 6장 참고
-- Phase 4 나머지(41 GLB import 구조, 45·46 primitive→GLB 교체)는 실제
-  3D 에셋을 고른 뒤로 미룸
+- ~~Phase 4 나머지(41 GLB import 구조, 45·46 primitive→GLB 교체)는 실제
+  3D 에셋을 고른 뒤로 미룸~~ — **완료. 아래 "완료 단계 (추가,
+  2026-09-11②)" 참고.** 남은 조각(동굴 입구, NPC·산적 캐릭터, 마을집
+  실제 모듈 타일링)은 `docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 절에
+  정리해 둠 — 다음 GLB 손질 때 거기부터 보면 된다
 - **렌더러 프로파일 전환(2026-09-11, 커밋 `97ab1fd`·`a628fce`) 헤드리스 검증
   완료** — PLAN.md 66-1장대로 `project.godot`의 `renderer/rendering_method`를
   `forward_plus`(기본) + `.mobile`/`.web` 태그 분기로 바꾼 것을, 이 세션이
@@ -245,6 +248,46 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     `mobile` feature로 잡히는지 — 이건 에디터를 직접 띄우거나 실기 빌드가
     있어야 확인된다(66-1장 "실기 확인은 몰아서" 그대로 유지)
 
+## 완료 단계 (추가, 2026-09-11②)
+
+- **PLAN.md 41·43~46·51장 — primitive → 실제 GLB 에셋 첫 교체.** CC0
+  Kenney 킷 세 개(Nature Kit·Fantasy Town Kit·Blocky Characters, 전부
+  2026-09-11 다운로드)를 받아 나무·바위·마을집·폐허 기둥·다리·플레이어를
+  전부 GLB로 바꿨다. 무엇을 어떤 스케일로 썼는지는 `docs/ASSET_GUIDE.md`
+  (신규 — PLAN 34장에서 계획만 되고 안 만들어져 있던 문서)에 실측치와
+  근거를 정리해 뒀다.
+  - `games/saga_go/world/glb_utils.gd`(신규) — 뼈대 없는 단순 소품
+    GLB(나무·바위·건물 조각)에서 `Mesh` 리소스만 뽑아내는 공용 헬퍼.
+    `vegetation_builder.gd`·`landmarks_builder.gd`가 같이 쓴다 — 그래야
+    기존처럼 MultiMesh 하나에 얹어서 draw call을 안 늘릴 수 있다
+    (master.md 35장)
+  - `vegetation_builder.gd` — 나무는 `tree_oak.glb`(몸통+수관이 이미 한
+    Mesh 안에 표면 2장으로 합쳐져 있어 MultiMesh 하나로 충분), 바위는
+    `rock_largeA`/`rock_smallA` 두 GLB를 타일마다 해시로 섞어 씀(능선이
+    다 똑같아 보이지 않게)
+  - `landmarks_builder.gd` — 마을집은 `wall-block.glb`(몸통, 비균등
+    스케일)+`roof-gable.glb`(지붕), 폐허 기둥은 `pillar-stone.glb`,
+    다리는 `planks.glb` 44장을 MultiMesh로 이어 붙임(하나를 44배 늘리는
+    대신). 동굴 입구만 어울리는 조각이 없어 primitive로 남김
+  - `Player.tscn`/`player.gd` — Visual을 캡슐에서 `character-a.glb`
+    (CC0 Kenney Blocky Characters) 전체 씬 인스턴스로 교체. 안에 이미
+    있는 `idle`/`walk`/`sprint` 애니메이션을 이동 상태에 맞춰 재생하도록
+    `_play_anim()` 추가 — PLAN 52절("Idle/Walk/Run 구현")도 같이 해결됨
+  - 검증: `--headless --editor --quit`(임포트) · `--headless
+    --quit-after 5 --verbose`(TestVillage 완주) 둘 다 exit 0,
+    error/warning/missing 로그 0건. verbose 로그로 GLB 8개 + PNG 텍스처
+    2개 전부 정상 로드 확인
+  - **GUI 실제 화면 확인(사용자 명시적 요청)** — windowed 빌드로 16초
+    띄워 스크린샷. 캐릭터가 모자·얼굴·상의·하의 색이 다 구분되는 실제
+    텍스처로 렌더링됨(핑크색 "텍스처 없음" 표시 없음 — `texture-a.png`
+    경로 참조가 제대로 걸렸다는 뜻), 그림자 정상, 배경에 나무·지붕 형태
+    확인됨. 씬이 여전히 안개로 뿌옇게 보이는 것과 나무 색이 예상보다
+    옅은 청록 쪽으로 도는 것은 `env_pc.tres`의 안개·주변광 값이 primitive
+    시절 기준으로 맞춰져 있어서로 보임 — 다음 손질 때 GLB 색에 맞춰
+    다시 조정할 것(버그 아님, 튜닝 거리)
+  - 남은 일은 `docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 절 그대로:
+    동굴 입구, NPC·산적 캐릭터 교체, 마을집 실제 모듈 타일링
+
 ## 알려진 오류
 
 - 없음. Main.tscn 추가로 이전에 있던 "no main scene defined" 오류는 해소됐다.
@@ -279,8 +322,15 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     전부 아직 primitive(단색 도형)뿐이라 SDFGI/SSR이 켜져 있어도 반사할
     표면·복잡한 지오메트리가 없어 GI 효과가 육안으로 구별되지 않는 단계다.
     GLB 실에셋으로 교체된 뒤 다시 확인해야 진짜 판단 가능
-  - **발견 — Bash 툴의 `$TEMP`는 실제 데스크톱과 격리된 별도 파일시스템
-    뷰다.** Bash로 받은 exe가 Bash 안에서는 보여도 PowerShell/실제 GUI
-    실행에는 안 잡혀서, 이번엔 PowerShell로 새로 받아야 했다(프로젝트
-    폴더 `C:\swbins`는 두 툴에서 동일 — 영향 없음). 방법은
-    `saga-godot/CLAUDE.md`에 정리해 둠
+  - **정정(2026-09-11, 같은 날 뒤에 확인) — 위 "격리된 파일시스템" 결론은
+    틀렸다.** 그때는 Bash로 받은 exe가 PowerShell의 `Get-ChildItem`에 한
+    번 안 잡혀서 "Bash와 PowerShell이 다른 파일시스템 뷰를 쓴다"고
+    적었는데, 몇 턴 뒤 같은 경로를 다시 봤더니 Bash·PowerShell 양쪽에서
+    exe·zip·스크린샷 PNG(PowerShell이 만든 것)까지 전부 정상으로 보였다.
+    **일회성 현상이었고 원인은 끝내 특정 못 했다**(Windows Defender
+    격리 로그도 없었다 — `Get-MpThreatDetection`·이벤트 로그 1116/1117
+    둘 다 빈 결과). 실제 프로젝트 폴더(`C:\swbins`)는 이 세션 내내 두
+    툴에서 한 번도 어긋난 적 없다 — git 작업·이번 GLB 에셋 파일 복사
+    전부 Bash로 써도 PowerShell에서 바로 보였다. `saga-godot/CLAUDE.md`의
+    관련 안내도 "확정된 격리" 대신 "가끔 exe가 안 보일 수 있으니 그때
+    PowerShell로 다시 받으면 된다"는 정도로 낮춰 정정함
