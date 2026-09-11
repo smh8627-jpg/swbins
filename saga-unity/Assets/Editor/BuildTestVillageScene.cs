@@ -156,15 +156,19 @@ namespace Saga.EditorTools
             treasure.Build();
         }
 
-        // 마을·굴·폐허·다리를 안 겹치는 들판(plains) 자리 3곳(PLAN.md 51장
-        // "수집"). 격자 좌표는 TestMapData.Rows 참고 — (1,2)/(5,2)/(2,4) 전부
-        // '.' 타일이고 촌장(1,3)·상인(4,3)·도적(5,3)의 말 걸기/조우 반경과
-        // 한 칸(48유닛) 이상 떨어져 안 겹친다.
+        // 마을·굴·폐허·다리를 안 겹치는 들판(plains) 자리(PLAN.md 51장
+        // "수집"). 격자 좌표는 TestMapData.Rows 참고 — (1,2)/(5,2)/(2,4)
+        // 전부 '.' 타일이고 촌장(1,3)·상인(4,3)·도적(5,3)의 말 걸기/조우
+        // 반경과 한 칸(48유닛) 이상 떨어져 안 겹친다. herb_4(3,7)은
+        // 2026-09-12 지도 확장으로 새로 생긴 남쪽 숲 공터("^T...T^",
+        // row7) 한가운데 — 남쪽 성벽 문을 지나 처음 만나는 새 콘텐츠라
+        // "새 지역을 열었다"는 느낌을 곧바로 준다.
         private static readonly (string Id, int Gx, int Gy)[] GatherSpots =
         {
             ("herb_1", 1, 2),
             ("herb_2", 5, 2),
             ("herb_3", 2, 4),
+            ("herb_4", 3, 7),
         };
 
         private static void BuildMountainShrine()
