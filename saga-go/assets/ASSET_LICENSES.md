@@ -709,6 +709,60 @@ Sketchfab CC0·OpenGameArt·Poly Pizza를 전부 확인했지만 "벼"로 걸리
 특히 `Shrub_04`가 논 위에서 어색하게 크거나 작게 서지 않는지, 디딤돌이
 강폭에 맞게 자연스럽게 늘어서는지 볼 것.
 
+## Sketchfab — 청더 사원 (`chengde_temple.glb`, 손그린 땅의 단 한 자리뿐인 랜드마크)
+
+2026-09-11, "건물 에셋 확충"(건물이 유럽 중세풍 하나뿐이라는 지적) 요청으로
+새로 조사. **한옥(hanok) CC0는 이번에도 못 찾았다** — Sketchfab API를
+`hanok`·`korean traditional house`·`korean pagoda`·`joseon`·`minka`·
+`old chinese house`·`chinese pavilion`·`asian house`·`tiled roof house`
+등으로 CC0 필터 돌려도 결과가 아예 없거나(hanok 태그 자체는 있지만 전부
+CC-BY/Standard, 이 저장소는 CC-BY를 이미 다 걷어낸 CC0 전용 정책이라 제외)
+가구·장신구뿐이었다. PolyHaven(Chinese 카테고리는 가구뿐)·PolyScan(건물
+7종 전부 유럽 중세)도 재확인했지만 건물류는 없었다.
+
+**대신 찾은 유일한 실제 CC0 동양풍 건물** — "chinese temple" 검색에서
+스톡홀름 민족박물관(Etnografiska museet) 소장품을 스캔한 모델을 확인.
+
+| 항목 | |
+|---|---|
+| **원본 이름** | Model of the Golden Temple, Wan fa Gui yi Hall |
+| **원본 설명** | 청(淸) 건륭제 시절 지어진 허베이성 청더(承德) 보타종승묘(普陀宗乘之廟)의 완법귀의전(萬法歸一殿)을 본뜬 축소 모형. 스웨덴 탐험가 스벤 헤딘이 1929년 "1933년 시카고 세계박람회에 라마교 사원을 들이겠다"는 목적으로 베이징의 건축가 량쓰청(W. H. Liang) 공방에 의뢰, 1932년에 1:10 축소 모형 두 벌을 제작했다 — 하나는 시카고로, 하나는 스톡홀름 민족박물관으로 갔다. 이 모델은 후자를 사진측량한 것이다 |
+| **만든 이 / 출처** | 스톡홀름 민족박물관(SMVK-EM) 소장품 3D 디지털화, Sketchfab uid `97673d5721d743328022c282b77b33ae` |
+| **라이선스** | CC0 Public Domain — Sketchfab API로 확인(`license.slug === 'cc0'`) |
+| **받은 곳** | `GET /v3/models/{uid}/download` — 사용자가 이 세션에 새 Sketchfab 계정을 만들고 API 토큰을 줬다(토큰 자체는 저장소에 남기지 않는다, 대화에서만 오간 값) |
+| **원본 크기** | GLB 200.87MB, 283만 폴리곤·157만 버텍스, **재질(텍스처) 약 70개** — 기둥·문틀·지붕 기와 등 수천 개의 작은 조각이 저마다 제 텍스처를 따로 물고 있다(실제 건물처럼 부재가 다 나뉜 정교한 축소 모형이라 그렇다) |
+| **다듬기** | `@gltf-transform/cli optimize`(simplify ratio 0.02·error 0.03, join+palette, texture-compress webp·1024px) — 그런데 **여느 자산과 달리 42MB 밑으로 안 줄었다.** simplify 비율을 0.002까지, 텍스처를 256px까지 내려도 35MB가 바닥이었다 — 원인은 폴리곤이 아니라 **재질 수**다: `palette`는 무늬 없는 단색 재질끼리만 묶어 주는데, 이 모델은 재질 70개가 죄다 저마다의 사진 텍스처를 갖고 있어 병합이 안 먹힌다. 진짜로 합치려면 텍스처 아틀라스를 새로 굽는 Blender 작업이 필요한데, 이 저장소 파이프라인은 지금껏 Blender 없이 `gltf-transform` CLI만으로 다듬어 왔다(사람 캐릭터 절 참고) — 그 선을 넘지 않기로 하고 42.44MB에서 멈췄다 |
+| **파일** | `models/buildings/realistic/chengde_temple.glb`(42.44MB) |
+
+**다른 건물(집·탑·역참 등 500KB~1.3MB대)보다 30~80배 무겁다** — 그래서
+**마을에 반복해서 세우는 자리가 아니라, 손그린 땅(`land.js`)에 단 한
+자리만 있는 특별 랜드마크**로 다뤘다(마을 house/tower처럼 매 칸 인스턴싱
+하는 게 아니라, shrine·cave·ruin과 같은 "그 칸에 다가가야만 한 번 받는"
+자리). `sw.js`의 정적 프리캐시 목록에도 안 넣는다(`sw.js` 머리말이 이미
+"`assets/models/*.glb`는 일부러 안 넣는다"고 못박아 둠 — 이 자산은 그
+규칙 덕에 안 켜진 플레이어의 첫 설치를 안 무겁게 한다).
+
+`js/land.js`: 지도 글자 `X`(숲, mark `temple`) 신설, 마을 남동쪽 숲 한 칸
+(`tx:7, ty:9`)에 배치, `places`에 `{ id: 'temple', name: '숲 속 옛 사원',
+hidden: true }` 추가 — 46절의 "숨겨진 장소 3개"가 이걸로 넷이 됐다.
+`js/prop3d.js`: `REG.temple`(`chengde_temple.glb`) 신설, `casts()`에 추가
+(그림자 짐). `EAGER_KIND`엔 안 넣는다(shrine·cave·ruin과 같은 결 — 그
+칸에 실제로 다가갈 때만 42MB를 받는다). `js/world3d.js`: `propPlan`의
+markAt 분기에 `temple` 추가, GLB 이름표에 `temple: 'temple'` 추가, GLB를
+못 받았을 때만 보일 절차적 대체(사당보다 큰 2단 지붕집)를 `buildProp`에
+신설.
+
+한옥은 아니고 청 티베트 불교 양식이라 정확한 오마주는 아니지만, 지금
+마을 전체가 유럽 중세풍인 것보다는 동양풍에 가깝다 — 사용자가 "그거
+아니어도 됨"으로 이미 승인해 온 대체 범위(사당=폴란드 성상, 장터=아일랜드
+시장 십자가 등)와 같은 결로 받아들였다.
+
+`_test.html`의 "땅 — 아홉 가지 땅과 숨은 곳" 자가진단을 숨은 곳 3→4·
+`@temple` 검사로 갱신, `node -c` 문법 확인 + Node로 `land.js`를 직접
+불러 지도 무결성(`validate()`)·새 자리 좌표를 확인함. **실기기 확인
+전이다** — 특히 42MB 자산이 실제 기기에서 로딩 시간·프레임에 어떤
+영향을 주는지는 걸어가 봐야 안다.
+
 ---
 
 ## MPFB2 + makehuman_system_assets — 사람 캐릭터 실사화 (2026-09-05, QRPG에 추가 변형으로 통합됨)

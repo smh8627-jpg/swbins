@@ -1173,6 +1173,9 @@
     else if (mk === 'ruin') { out.push({ t: 'ruin', x: 0, z: 0, h: 4.5 }); }
     else if (mk === 'shrine') { out.push({ t: 'shrine', x: 0, z: 0, h: 5 }); }
     else if (mk === 'waterfall') { out.push({ t: 'waterfall', x: 0, z: 0, h: 16 }); }   // PLAN 44절
+    /* 옛 사원 — 손그린 땅에 **딱 한 칸**뿐인 특별 랜드마크(2026-09-11).
+       shrine·cave·ruin과 같은 결로 markAt 이 답할 때만 세운다 */
+    else if (mk === 'temple') { out.push({ t: 'temple', x: 0, z: 0, h: 18 }); }
 
     return out;
   }
@@ -1469,7 +1472,8 @@
                 house: 'house', tower: 'tower',
                 peak: 'peak', lamp: 'lamp', shrine: 'shrine', cave: 'cave',
                 ruin: 'ruin', bridge: 'bridge', rice: 'rice',
-                well: 'well', market: 'market', waterfall: 'waterfall' };
+                well: 'well', market: 'market', waterfall: 'waterfall',
+                temple: 'temple' };
     /* LOD(PLAN 36절) — 나무·바위·풀·갈대는 `LOD_NEAR` 안에 있을 때만 진짜
        모델을 받는다. 밖이면 곧장 아래의 싼 도형(원뿔·공)으로 간다. 집·탑·
        랜드마크는 칸당 수가 적어 거리를 안 가린다 */
@@ -1703,6 +1707,17 @@
         /* 지금이 밤인지 여기서 곧바로 정한다 — 나중에 걸어 들어온 격자는
            `syncLamps` 가 이미 훑고 지나간 뒤라 낮에도 켜진 채 남는다 */
         bulb.visible = !!(lightNow && lightNow.lamp > 0.2);
+      } else if (p.t === 'temple') {
+        /* 옛 사원 — **GLB(`chengde_temple.glb`)를 못 받았을 때만** 여기 온다.
+           2단 지붕집 하나로 "여느 사당보다 훨씬 크다"만 전한다 — 진짜 모양은
+           GLB 몫이라 여기서 정교하게 흉내 내지 않는다 */
+        box(g, 'box', pmat(0x6a6258, 'flat'), 0, 0.3, 0, 15, 0.6, 15, false).receiveShadow = true;
+        box(g, 'box', pmat(0xb08a4a), 0, p.h * 0.28, 0, 10, p.h * 0.5, 9.4, true);
+        box(g, 'cone4', pmat(0xc9a24a, 'flat'), 0, p.h * 0.58, 0, 12, p.h * 0.3, 12, true)
+          .rotation.y = Math.PI / 4;
+        box(g, 'box', pmat(0x8a5a34), 0, p.h * 0.76, 0, 6, p.h * 0.32, 5.6, true);
+        box(g, 'cone4', pmat(0x9a2f2a, 'flat'), 0, p.h * 0.96, 0, 7.4, p.h * 0.22, 7.4, true)
+          .rotation.y = Math.PI / 4;
       }
     }
     return g;

@@ -2278,13 +2278,15 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('길 ' + (tl.road + (tl['@bridge'] || 0)) + '칸이 한 덩어리');
     });
 
-    t('땅 — 아홉 가지 땅과 숨은 곳 셋이 다 있다', function () {
+    t('땅 — 아홉 가지 땅과 숨은 곳 넷이 다 있다', function () {
+      /* 2026-09-11 — 청더 사원 랜드마크(temple)를 넷째 숨은 곳으로 추가
+         (건물 에셋 확충, 한옥은 못 찾아 청 사원 CC0 스캔으로 대체) */
       var tl = LD.tally();
       var kinds = ['town', 'forest', 'mount', 'water', 'road', 'farm', 'grass'];
       var all = kinds.every(function (k) { return tl[k] > 0; });
       var hidden = LD.places().filter(function (p) { return p.hidden; });
       return all && tl['@bridge'] === 1 && tl['@cave'] === 1 && tl['@ruin'] > 0 &&
-        tl['@shrine'] === 1 && hidden.length === 3 &&
+        tl['@shrine'] === 1 && tl['@temple'] === 1 && hidden.length === 4 &&
         ('마을 ' + tl.town + ' · 논 ' + tl.farm + ' · 숲 ' + tl.forest + ' · 산 ' + tl.mount +
          ' · 강 ' + tl.water + ' · 숨은 곳 ' + hidden.map(function (p) { return p.name; }).join('·'));
     });

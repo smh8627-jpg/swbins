@@ -55,7 +55,7 @@
   function casts(name) {
     return name === 'tree' || name === 'pine' || name === 'house' || name === 'tower' ||
       name === 'peak' || name === 'shrine' || name === 'ruin' || name === 'cave' ||
-      name === 'bridge';
+      name === 'bridge' || name === 'temple';
   }
 
   /**
@@ -241,6 +241,19 @@
      *  받은 파일은 없다. 정확히 벼는 아니지만 "논에 자란 초록"이라는 뜻은
      *  살아 있다. 옛 값은 `RICE_STYLIZED` */
     rice: { all: [NAT_REAL + 'Shrub_04.glb'] },
+    /** 숲 속 옛 사원 — 손으로 그린 땅에 **딱 한 자리**만 있는 특별 랜드마크다
+     *  (2026-09-11, "건물 에셋 확충" 요청으로 새로 신설). 한옥 CC0 실사 스캔은
+     *  이번에도 못 찾았다(Sketchfab·PolyHaven·PolyScan·itch.io 전부 재확인) —
+     *  대신 청더(淸) 보타종승묘 완법귀의전(1932년 베이징에서 만든 1:10 축소
+     *  모형, 스톡홀름 민족박물관 소장)을 사진측량한 CC0 모델을 받았다. 원본이
+     *  283만 폴리곤·재질 70개짜리라(`@gltf-transform/cli optimize`로도
+     *  42MB 아래로는 안 줄었다 — 재질이 너무 많아 단순화가 안 먹힌다) **마을에
+     *  흔하게 세우는 다른 건물과 달리 이 한 자리에만** 쓴다(`land.js`의
+     *  `temple` 자리, EAGER_KIND에도 안 넣는다 — shrine·cave·ruin과 같은 결로
+     *  그 자리를 그릴 때만 받는다). 한옥은 아니지만(청 티베트 불교 양식) 지금
+     *  마을의 유럽 중세풍보다는 동양풍에 가깝다. 자세한 라이선스·다운로드
+     *  경위는 `assets/ASSET_LICENSES.md` 참고 */
+    temple: { all: [BLD_REAL + 'chengde_temple.glb'] },
     /** 우물 — 마을의 제 자리(landmark). **`house` 표에 못 끼운다** — 집은
      *  키(`p.h`) 4~20m 짜리 상자로 정규화되는데, 우물은 원본 키가 그 셋에
      *  하나(1.25m)라 같은 줄에서 골라 쓰면 우물이 집만큼 부풀거나 집이

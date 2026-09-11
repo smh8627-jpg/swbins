@@ -32,6 +32,7 @@
    *
    *   ^ 산    T 숲    ~ 강    = 길    H 마을    F 농지    . 들
    *   C 동굴(산)      S 옛 사당(숲)   R 폐허(들)   B 다리(강)   W 폭포(산, PLAN 44절)
+   *   X 옛 사원(숲, 2026-09-11 신설 — 단 한 자리뿐인 특별 랜드마크)
    *
    * 길이 하나로 이어져 있다 — 북쪽 산속 동굴에서 내려와 마을을 지나 남쪽 다리를
    * 건넌다. 걸어서 구역을 가로지르는 동안 아홉 가지 땅을 다 밟게 두었다.
@@ -65,7 +66,7 @@
       '..FFF....=....FFFF...',
       '~~~~~~~~~B~~~~~~~~~~~',
       '..RR.....=.......T...',
-      '..RR.....=.......T...',
+      '..RR.....=.......X...',
       '.........=...........'
     ],
     /* 글자 → 무슨 땅이냐. `mark` 는 그 자리에만 서는 것(다리·동굴 입구·무너진 기둥) */
@@ -81,7 +82,8 @@
       'C': { kind: 'mount', mark: 'cave' },
       'W': { kind: 'mount', mark: 'waterfall' },
       'S': { kind: 'forest', mark: 'shrine' },
-      'R': { kind: 'grass', mark: 'ruin' }
+      'R': { kind: 'grass', mark: 'ruin' },
+      'X': { kind: 'forest', mark: 'temple' }
     },
     /* 이름난 자리 — 격자 번호로 적는다. PHASE 6 부터 여기에 사람과 사건을 건다.
        `hidden` 셋이 46절의 "숨겨진 장소 3개" 다 */
@@ -97,7 +99,8 @@
       { id: 'cave', name: '이름 없는 굴', tx: 0, ty: -9, hidden: true },
       { id: 'waterfall', name: '산속 폭포', tx: 3, ty: -9 },
       { id: 'shrine', name: '무너진 사당', tx: -3, ty: -5, hidden: true },
-      { id: 'ruin', name: '강 건너 폐허', tx: -8, ty: 8, hidden: true }
+      { id: 'ruin', name: '강 건너 폐허', tx: -8, ty: 8, hidden: true },
+      { id: 'temple', name: '숲 속 옛 사원', tx: 7, ty: 9, hidden: true }
     ]
   };
 
