@@ -184,6 +184,20 @@ choice_c_label = "돌아간다"
 choice_c_outcome = "위쪽 여울로 크게 돌았다."
 choice_c_exp = 0.0
 
+[node name="WaterfallFallsEvent" type="Node3D" parent="."]
+script = ExtResource("11")
+grid = Vector2i(8, 4)
+event_title = "💦 산속 폭포\n\"물줄기가 바위를 타고 쏟아진다. 무지개가 잠깐 걸렸다 사라진다.\""
+choice_a_label = "물가에서 쉬어 간다"
+choice_a_outcome = "물소리를 들으며 잠시 숨을 돌렸다."
+choice_a_exp = 10.0
+choice_b_label = "폭포 뒤를 살펴본다"
+choice_b_outcome = "물이 가려 둔 바위틈에서 젖지 않은 두루마리를 찾았다."
+choice_b_exp = 25.0
+choice_b_chance = 0.4
+choice_b_fail_outcome = "물보라만 흠뻑 맞았다."
+choice_b_fail_exp = 15.0
+
 [node name="HeroEncounter" type="Node3D" parent="."]
 script = ExtResource("12")
 

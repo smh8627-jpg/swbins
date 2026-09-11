@@ -1455,6 +1455,46 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     가능 — 밤 사건처럼 실기로만 볼 수 있는 자리), 선택지 세 줄짜리
     패널이 화면에서 안 잘리는지는 다음 실기 확인 때 같이 볼 것.
 
+## 완료 단계 (추가, 2026-09-12⑩) — GO 사건 마지막 종(산속 폭포) + land.js 다섯 표식 완성
+
+- **`waterfall_falls`(산속 폭포) — 새 랜드마크가 필요해 2026-09-12⑨에서
+  범위 밖으로 미뤄 뒀던 것.** land.js의 다섯 표식(다리·굴·사당·폐허·폭포)
+  중 마지막으로 남았던 폭포를 채워 다섯이 전부 갖춰졌다.
+  - `terrain_builder.gd` LEGEND에 `"W"`(waterfall) 추가, `test_map.gd`
+    ROWS의 산(^) 한 칸(옛 (8,3))을 W로 바꿨다 — 굴(C)이 산을 파고든 것과
+    같은 방식으로 **칸을 늘리지 않고** 기존 산 자리를 깎았다.
+  - `landmarks_builder.gd::_add_waterfall()`(신규) — 새 킷을 받지 않고
+    이미 받아 둔 `rock_largeA.glb`(vegetation_builder.gd가 산 산포에 쓰던
+    것)를 절벽처럼 세로로 세워 재사용, 물줄기·물웅덩이는 GLB가 아예 없어
+    (강물도 마찬가지였다) `terrain_builder.gd`의 `WaterSurface`와 같은
+    색·투명도의 primitive 평면으로 냈다. 충돌은 사당과 같은 경계로
+    바위에만 얕게(물줄기·물웅덩이는 장식, 안 막음).
+    `_add_discovery_area("waterfall", ...)`로 "지역" 갈래에 편입.
+  - `TestVillage.tscn`에 `WaterfallFallsEvent`(simple_event.gd, 격자
+    (8,4)) — "물가에서 쉬어 간다"(exp 10, 결정적)·"폭포 뒤를 살펴본다"
+    (chance 0.4, 성공 exp 25/실패 exp 15). 웹판의 gold/items 보상은 이
+    판에 그 재화가 없어 exp로만 옮김(map_scrap·cave_secret과 같은 경계).
+  - `codex_state.gd`의 `TOTAL.place` 5→6(폭포 추가)·`TOTAL.event` 13→14
+    (산속 폭포 사건 추가) — 전체 26→28.
+  - **검증 — 임시 디버그(`test_village.gd`에 넣고 끝나고 원상복구, diff 0)
+    로 실제 값 확인:** `CodexState.total()`이 정확히 28 · `discover("place",
+    "waterfall")`이 처음엔 `true`·두 번째는 `false`(dedup 정상) ·
+    `WaterfallRock` 메시가 **`ArrayMesh`**(GLB 로드 성공, `BoxMesh` fallback
+    아님)인 것 · `Discover_waterfall` Area3D가 실제로 자식으로 붙은 것 ·
+    `LEGEND["W"]` 값이 의도대로(`walkable=true, height=0.3`)인 것까지 확인.
+    `--headless --editor --quit`(임포트, 새 지형 글자·랜드마크 함수 확인)·
+    `--headless --quit-after 5` 연속 3번 — 디버그 있을 때·되돌린 뒤 최종
+    상태 둘 다 exit 0·오류 0건.
+  - **GUI 미확인** — 절벽·물줄기·물웅덩이가 실제로 폭포처럼 읽히는지
+    (rock_largeA 하나를 세로로 세운 것뿐이라 기대치를 낮게 잡아야 할 수
+    있음), (8,3) 자리가 산과 자연스럽게 이어지는지는 다음 실기 확인 때
+    같이 볼 것.
+  - **다음 GO 콘텐츠 후보**: land.js 다섯 표식은 다 채웠다. 남은 웹판
+    사건은 다 옮겼고(뒤 "완료 단계" 이력 참고), 이제 남은 확장은 성채
+    (골드·세력 시스템 필요, 2026-09-11⑥에서 보류) 또는 PLAN.md 39장
+    순서대로 DUNGEON으로 넘어가는 것 — 사용자가 이미 "계획 순서대로 다
+    진행"을 요청했으니(2026-09-12⑪) 다음은 그 판단에 맞춰 진행한다.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
