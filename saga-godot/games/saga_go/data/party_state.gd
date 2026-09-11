@@ -43,10 +43,12 @@ func recruit(id: String) -> void:
 
 ## 사건 보상(고대 비문을 읽는다·부상병을 돌본다·적을 물리친다 등)이
 ## 경험치를 쌓는 유일한 통로다 — 걷기·시간 경과로는 안 오른다.
+## 천후(weather.gd)가 이 보상에 보너스를 건다(웹판 weather.js의 expPct와
+## 같은 자리 — 이 판엔 포획·스폰 계열이 없어 exp만 옮겼다).
 func add_exp(amount: float) -> void:
 	if amount <= 0.0:
 		return
-	exp += amount
+	exp += amount * Weather.exp_bonus_mul()
 	_recompute()
 	power_changed.emit(atk, def)
 

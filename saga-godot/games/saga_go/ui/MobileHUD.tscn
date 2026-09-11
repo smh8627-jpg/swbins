@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://games/saga_go/ui/save_button.gd" id="4"]
 [ext_resource type="Script" path="res://games/saga_go/ui/quest_label.gd" id="5"]
 [ext_resource type="Script" path="res://games/saga_go/ui/codex_label.gd" id="6"]
+[ext_resource type="Script" path="res://games/saga_go/ui/weather_label.gd" id="7"]
 
 [node name="MobileHUD" type="CanvasLayer"]
 
@@ -94,6 +95,19 @@ theme_override_colors/font_color = Color(0.75, 0.9, 1, 0.9)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
 script = ExtResource("6")
+
+[node name="WeatherLabel" type="Label" parent="."]
+anchor_left = 0.0
+anchor_right = 0.0
+offset_left = 40.0
+offset_top = 215.0
+offset_right = 320.0
+offset_bottom = 245.0
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.85, 0.95, 0.85, 0.9)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+script = ExtResource("7")
 
 [node name="SaveButton" type="Button" parent="."]
 anchor_left = 1.0

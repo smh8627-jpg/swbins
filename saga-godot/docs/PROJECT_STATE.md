@@ -1360,6 +1360,63 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 매번 diff로 확인하진 않았다 — 이번처럼 조용히 새고 다음 세션까지 넘어갈
 수 있다.
 
+## 완료 단계 (추가, 2026-09-12⑧) — 날씨·계절 (PLAN.md 66-1장 이후 첫 "큰 시스템")
+
+- **사용자가 "GO 작은 콘텐츠 계속"과 "큰 시스템(날씨·성채) 착수" 둘 다 고르고,
+  큰 시스템 중에서는 날씨·계절을 먼저 골랐다** — 성채는 골드·세력 시스템이
+  아직 없어 범위가 훨씬 크다(2026-09-11⑥ 마무리 기록에서 이미 보류해 둔 이유
+  그대로). 날씨·계절은 이미 있는 TimeOfDay(밤/낮)와 같은 "시각의 순수 함수"
+  뼈대라 웹판(`saga-go/js/weather.js`·`season.js`)을 그대로 옮길 수 있었다.
+  - `games/saga_go/data/season.gd`(신규, `class_name Season`) — 웹판
+    SEASONS 표에서 이 판에 실제로 쓸 자리만 옮김: `wx`(계절별 날씨 가중치,
+    weather.gd가 읽는다)와 `ambient_mul`(환경광 배수, 시각 전용). 웹판의
+    식생 색 틴트·NPC 옷 색·사건 가중치는 옮기지 않았다 — 이 판엔 아직 그
+    자리가 없거나(NPC 옷은 GLB 텍스처 고정) 범위 밖(사건 가중치는 다음
+    손질 때 표에 필드만 추가하면 됨). `TimeOfDay.force()`와 같은 이유로
+    `Season.force()`를 둠(헤드리스 검증이 실행 시각에 안 흔들리게).
+  - `games/saga_go/data/weather.gd`(신규, `class_name Weather`) — 웹판처럼
+    **3시간마다 바뀌는 결정론적 천후**(실제 기상 API 없음, `vegetation_
+    builder.gd`의 좌표 해시와 같은 정신의 정수 해시로 슬롯 번호에서 뽑음).
+    웹판의 포획 확률·신수 출현·인물 스폰 편향은 옮기지 않았다 — 이 판엔
+    무작위 스폰·포획·신수 자체가 없다(고정 배치 사건뿐). 대신 이 판에
+    실제로 있는 두 자리만 이었다: `exp_pct`(사건 보상 경험치 보너스)·
+    `fog_density_mul`/`tint`(환경 분위기).
+  - `party_state.gd::add_exp()` — `Weather.exp_bonus_mul()`을 곱하도록
+    한 줄 추가. 호출부(사건 스크립트들)는 손 안 댐 — 이미 있던 단일
+    관문(choke point)이라 여기 하나만 고치면 전부 적용된다.
+  - `games/saga_go/world/season_weather_visual.gd`(신규,
+    `class_name SeasonWeatherVisual`) — `WorldEnvironment`의 형제 노드로
+    `TestVillage.tscn`에 추가(`environment_profile.gd`가 `environment`를
+    먼저 골라 둬야 하므로, 형제는 선언 순서대로 부모보다 먼저 ready된다는
+    규칙대로 그 **다음** 자리에 둠). env_pc.tres/env_mobile.tres의 기준값은
+    그대로 두고(66-1장 "게임의 색 톤은 같아야 한다"), 실행 시점에 안개
+    밀도·색에만 배수를 곱한다. 값이 느리게 바뀌므로(날씨 3h·계절 1달) 매
+    프레임 대신 Timer로 60초마다만 다시 봄(29장 절약 원칙).
+  - `games/saga_go/ui/weather_label.gd`(신규) + `MobileHUD.tscn`의
+    `WeatherLabel`(신규, CodexLabel 아래) — PartyLabel·QuestLabel·CodexLabel과
+    같은 경계(상시 표시). `SeasonWeatherVisual.summary()`를 60초마다 다시 읽음.
+  - **검증 — 임시 디버그(`test_village.gd`·`season_weather_visual.gd`에 넣고
+    끝나고 원상복구, diff 0)로 실제 값까지 확인:**
+    ①`Season.force(SUMMER)`+`Weather.force("clear")`에서 `add_exp(100)` →
+    정확히 110(10% 보너스) ②같은 계절에서 `Weather.force("snow")` → 정확히
+    112(12% 보너스) ③`Season.force(WINTER)`에서 `weather_weight("clear")=0.9`·
+    `weather_weight("snow")=2.6`(웹판 SEASONS.winter.wx 값 그대로) 확인
+    ④환경 훅은 `Weather.force("fog")`+`Season.force(WINTER)`에서
+    `fog_density`가 base(0.006)×2.4=0.0144, `volumetric_fog_density`가
+    0.01×2.4=0.024, `fog_light_color`가 세 배수(base·tint·ambient_mul)를
+    곱한 값과 정확히 일치하는 것까지 소수점 단위로 확인.
+  - `--headless --editor --quit`(임포트, 새 전역 클래스 3개 등록 확인)·
+    `--headless --quit-after 5` 연속 3번 — 디버그 코드 있을 때·되돌린 뒤
+    최종 상태 둘 다 exit 0·error/warn/missing/invalid/cannot 0건.
+  - **GUI 미확인** — 안개·색조가 실제로 눈에 띄게 바뀌는지(수치는 확인됨,
+    시각적으로 "날씨가 바뀌었다"고 느껴지는 정도인지는 실기로만 알 수
+    있다), `WeatherLabel`이 다른 라벨과 안 겹치는지는 다음 실기 확인 때
+    같이 볼 것(아래 목록에 추가).
+  - 다음에 이 표에 필드를 더 넣을 수 있는 자리(이번엔 일부러 안 건드림):
+    식생 색 계절 틴트(vegetation_builder.gd가 이미 결정적 해시로 나무를
+    심으니 같은 방식으로 잎 색만 계절별로 바꿀 수 있음), 사건 가중치
+    (희귀 약초 같은 게 생기면 봄·여름에 더 잦게), NPC 옷 색.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9

@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://games/saga_go/world/simple_event.gd" id="11"]
 [ext_resource type="Script" path="res://games/saga_go/world/hero_encounter.gd" id="12"]
 [ext_resource type="Script" path="res://games/saga_go/world/animal_builder.gd" id="13"]
+[ext_resource type="Script" path="res://games/saga_go/world/season_weather_visual.gd" id="14"]
 
 [node name="TestVillage" type="Node3D"]
 script = ExtResource("10")
@@ -20,6 +21,9 @@ script = ExtResource("10")
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = ExtResource("8")
 script = ExtResource("9")
+
+[node name="SeasonWeatherVisual" type="Node" parent="."]
+script = ExtResource("14")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.8, -0.35, 0.48, 0, 0.807, 0.59, -0.6, -0.472, 0.646, 0, 220, 0)
