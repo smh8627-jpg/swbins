@@ -38,6 +38,9 @@ namespace Saga.Go.Data
             // 도적 전리품엔 안 나온다 — 굴 속 숨겨진 보물(World/HiddenTreasure.cs)
             // 전용, 탐험 보상이 전투 보상보다 확실히 세도록.
             ["wp_relic"] = new ItemData("wp_relic", "유물 검", ItemSlot.Weapon, 30f, 0f),
+            // 희귀 몬스터(World/RareWolfEncounter.cs) 전용 확정 보상 — 방어구
+            // 축의 최고치를 여기 둬서 "희귀"가 실제로 제일 좋은 걸 준다.
+            ["ar_wolf"] = new ItemData("ar_wolf", "늑대 가죽 갑주", ItemSlot.Armor, 0f, 24f),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;

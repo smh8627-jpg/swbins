@@ -7,40 +7,33 @@ using Saga.Go.UI;
 namespace Saga.Go.World
 {
     /// <summary>
-    /// VERTICAL_SLICE.md Phase 6(61~71단계 — 72~74 엘리트/보스는 이번
-    /// 슬라이스에서 스킵) + 29·34·35절의 "도적의 습격" 단 하나의 사건 +
-    /// 실시간 전투. 승패를 가르는 수식은 Data/DuelRules.cs(웹판 js/duel.js
-    /// 그대로)가 맡는다 — 여기는 그 상태를 3D 세계에 그려 보여주는 화면
-    /// 층일 뿐이다(saga-godot의 bandit_encounter.gd와 같은 경계).
-    ///
-    /// "달아난다"(사건 선택지)는 여전히 대사만 보여주고 넘어간다. "값을
-    /// 치른다"는 GoldState.cs가 생긴 뒤로는 실제로 돈을 쓴다 — 못 낼
-    /// 만큼 없으면 그 선택지가 거절된다(아래 ChoosePay 참고).
-    ///
-    /// UI 조립 공통 부품(캔버스/패널/텍스트/버튼/막대)은 2026-09-11에
-    /// `UI/EncounterUiKit.cs`로 뽑아냈다 — 두 번째 실시간 전투 사건
-    /// (World/RareWolfEncounter.cs)이 생기며 그대로 복붙하면 코드가
-    /// 그대로 두 벌이 될 상황이었다.
+    /// PLAN.md 51장 GO 월드 확장 — "희귀 몬스터". BanditEncounter.cs와
+    /// 뼈대는 같지만(판정은 똑같이 Data/DuelRules.cs가 맡는다) 사람이
+    /// 아니라 짐승이라 다른 점이 있다: "값을 치른다"가 없다(늑대한테
+    /// 돈을 줄 수 없다) — 선택지가 "맞선다"/"피한다" 둘뿐이다. 등용
+    /// 대상도 아니라 이겨도 부대(PartyState)엔 안 들어간다 — 대신
+    /// 확정 보상(경험치·돈·전용 방어구)이 도적보다 후하다("희귀"가
+    /// 실제로 특별해야 한다). UI 조립은 두 사건이 같이 쓰는
+    /// UI/EncounterUiKit.cs로 만든다.
     /// </summary>
     [RequireComponent(typeof(SphereCollider))]
-    public class BanditEncounter : MonoBehaviour
+    public class RareWolfEncounter : MonoBehaviour
     {
-        private const int Gx = 5;
+        private const int Gx = 0;
         private const int Gy = 3;
-        private const string FoeName = "산적";
-        private const float FoePower = 120f;
-        private const float FoeHpMul = 7f; // 웹판 event.js "event.foeHpMul" 기본값
-        private const float AmbushRadius = 20f;
+        private const string FoeName = "흰 늑대";
+        private const float FoePower = 160f; // 도적(120)보다 세게 — "희귀"가 더 어렵게 느껴지도록.
+        private const float FoeHpMul = 7f;
+        private const float AmbushRadius = 16f;
         private const float RetryCooldownSec = 8f;
         private const float ToastSec = 4f;
-        private const float VictoryToastSec = 6f; // 등용+경험치+장비까지 한 번에 읽어야 해 더 길게
-        private const string RecruitId = "산적";
-        private const int ExpReward = 100;
-        private const int VictoryGoldReward = 30;
-        private const int PayTollCost = 40;
+        private const float VictoryToastSec = 6f;
+        private const int ExpReward = 150;
+        private const int RewardGold = 50;
+        private const string RewardItemId = "ar_wolf";
 
-        private static readonly Color BaseColor = new Color(0.5f, 0.14f, 0.14f);
-        private static readonly Color TellColor = new Color(1.0f, 0.55f, 0.1f);
+        private static readonly Color BaseColor = new Color(0.78f, 0.78f, 0.8f);
+        private static readonly Color TellColor = new Color(1.0f, 0.4f, 0.2f);
 
         private enum State { Idle, Prompt, Fight, Cooldown }
 
@@ -65,18 +58,13 @@ namespace Saga.Go.World
 
         private void Awake()
         {
-            // 세이브를 불러온 씬에서 이미 등용된 도적이 또 나오지 않게
-            // 막는다 — HiddenTreasure.cs·MountainShrine.cs·Gatherable.cs가
-            // 쓰는 것과 같은 "한 번뿐인 자리" 패턴인데 이 클래스엔 빠져
-            // 있었다(2026-09-11 발견·고침). PartyState.MemberIds가
-            // IReadOnlyList라 Linq 없이 직접 훑는다.
-            foreach (var id in PartyState.MemberIds)
+            // 등용 대상이 아니라 PartyState.MemberIds엔 안 남는다 — 대신
+            // WorldEventState.cs·ShrineState.cs와 같은 결로 별도 플래그를
+            // 둔다(RareWolfState.cs).
+            if (RareWolfState.Defeated)
             {
-                if (id == RecruitId)
-                {
-                    Destroy(gameObject);
-                    return;
-                }
+                Destroy(gameObject);
+                return;
             }
             Build();
         }
@@ -146,16 +134,16 @@ namespace Saga.Go.World
             float ground = TestMapData.Legend[tile].Height;
             transform.position = TestMapData.WorldPos(Gx, Gy) + new Vector3(0, ground, 0);
 
-            // 아직 GLB가 없어 primitive Capsule(PLAN.md 8장) — 플레이어·주민과
-            // 같은 크기, 옷 색만 달라 구별된다.
+            // 아직 GLB 전(PLAN.md 8장) — 짐승이라 사람(Player·NPC·도적)보다
+            // 살짝 낮고 홀쭉한 비율로만 구분한다.
             var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             visual.name = "Visual";
             Object.DestroyImmediate(visual.GetComponent<Collider>());
             visual.transform.SetParent(transform, false);
-            visual.transform.localScale = new Vector3(1.8f, 1.7f, 1.8f);
-            visual.transform.localPosition = new Vector3(0f, 1.7f, 0f);
+            visual.transform.localScale = new Vector3(1.3f, 1.3f, 1.3f);
+            visual.transform.localPosition = new Vector3(0f, 1.3f, 0f);
 
-            _visualMat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Bandit (generated)" };
+            _visualMat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "RareWolf (generated)" };
             _visualMat.color = BaseColor;
             visual.GetComponent<MeshRenderer>().sharedMaterial = _visualMat;
         }
@@ -171,18 +159,17 @@ namespace Saga.Go.World
 
         private void BuildPromptUi()
         {
-            var canvas = EncounterUiKit.NewCanvas("EncounterPrompt");
+            var canvas = EncounterUiKit.NewCanvas("RareEncounterPrompt");
             _promptRoot = canvas.gameObject;
             _promptRoot.SetActive(false);
 
-            var panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(700f, 480f), new Color(0f, 0f, 0f, 0.72f));
+            var panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(700f, 420f), new Color(0f, 0f, 0f, 0.72f));
 
-            EncounterUiKit.NewText(panel.transform, "🗡 도적의 습격\n\"길세를 내고 가라. 아니면 두고 가든지.\"",
+            EncounterUiKit.NewText(panel.transform, "🐺 흰 늑대\n숲 그늘에서 눈빛 하나가 이쪽을 노려본다.",
                 new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(620f, 180f), 30);
 
             EncounterUiKit.NewButton(panel.transform, "맞선다", new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(560f, 74f), ChooseFight);
-            EncounterUiKit.NewButton(panel.transform, "값을 치른다", new Vector2(0.5f, 1f), new Vector2(0f, -304f), new Vector2(560f, 74f), ChoosePay);
-            EncounterUiKit.NewButton(panel.transform, "달아난다", new Vector2(0.5f, 1f), new Vector2(0f, -388f), new Vector2(560f, 74f), ChooseFleeEvent);
+            EncounterUiKit.NewButton(panel.transform, "피한다", new Vector2(0.5f, 1f), new Vector2(0f, -304f), new Vector2(560f, 74f), ChooseAvoid);
         }
 
         private void ChooseFight()
@@ -191,24 +178,10 @@ namespace Saga.Go.World
             StartFight();
         }
 
-        private void ChoosePay()
+        private void ChooseAvoid()
         {
             _promptRoot.SetActive(false);
-            if (GoldState.TrySpend(PayTollCost))
-            {
-                Toast($"{FoeName} — 길세 {PayTollCost}냥을 치르고 지나갔다. (남은 돈 {GoldState.Gold}냥)");
-            }
-            else
-            {
-                Toast($"길세로 낼 {PayTollCost}냥이 없다 — {FoeName}이 앞을 막아선다.");
-            }
-            EnterCooldown();
-        }
-
-        private void ChooseFleeEvent()
-        {
-            _promptRoot.SetActive(false);
-            Toast("어둠 속으로 달아났다.");
+            Toast("숨을 죽이고 조용히 발길을 돌렸다.");
             EnterCooldown();
         }
 
@@ -216,7 +189,7 @@ namespace Saga.Go.World
 
         private void BuildCombatUi()
         {
-            var canvas = EncounterUiKit.NewCanvas("CombatUI");
+            var canvas = EncounterUiKit.NewCanvas("RareCombatUI");
             _combatRoot = canvas.gameObject;
             _combatRoot.SetActive(false);
 
@@ -231,7 +204,7 @@ namespace Saga.Go.World
             _flashImage.color = new Color(1f, 0.15f, 0.15f, 0f);
             _flashImage.raycastTarget = false;
 
-            var titleText = EncounterUiKit.NewText(canvas.transform, $"🗡 {FoeName}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
+            var titleText = EncounterUiKit.NewText(canvas.transform, $"🐺 {FoeName}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
             titleText.alignment = TextAnchor.MiddleLeft;
 
             _timerText = EncounterUiKit.NewText(canvas.transform, "60초", new Vector2(1f, 1f), new Vector2(-140f, -50f), new Vector2(220f, 60f), 30);
@@ -251,8 +224,6 @@ namespace Saga.Go.World
         {
             _state = State.Fight;
             float foeHp = Mathf.Max(1f, Mathf.Round(FoePower * FoeHpMul));
-            // PLAN.md 59~65장 — 부대(PartyState) + 내 레벨(PlayerStats) + 낀
-            // 장비(Inventory) 세 축을 합쳐 실제 전투력을 만든다.
             float atk = PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus;
             float def = PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus;
             _duel = DuelRules.Create(foeHp, atk, def);
@@ -290,7 +261,7 @@ namespace Saga.Go.World
             switch (e.T)
             {
                 case "tell":
-                    Toast("강타가 온다 — 피하라!");
+                    Toast("늑대가 몸을 낮춘다 — 덮치기 전에 피하라!");
                     _visualMat.color = TellColor;
                     break;
                 case "heavy":
@@ -322,50 +293,27 @@ namespace Saga.Go.World
 
             if (cleared)
             {
-                PartyState.Recruit(RecruitId);
+                RareWolfState.MarkDefeated();
 
-                // PLAN.md 66장 Reward — 등용 외에 경험치·장비 보상도 준다.
-                // 레벨업 여러 번은 LeveledUp 이벤트로, 실제 문구는 아래서 한 번에 모은다.
                 int levelBefore = PlayerStats.Level;
                 PlayerStats.AddExp(ExpReward);
-                GoldState.Add(VictoryGoldReward);
-                string lootId = LootTable.RollBanditDrop();
-                ItemData lootItem = null;
-                bool lootEquipped = false;
-                if (lootId != null)
-                {
-                    lootItem = ItemData.Get(lootId);
-                    void OnGained(ItemData item, bool equipped)
-                    {
-                        if (item == lootItem) lootEquipped = equipped;
-                    }
-                    Inventory.ItemGained += OnGained;
-                    Inventory.AddItem(lootId);
-                    Inventory.ItemGained -= OnGained;
-                }
+                GoldState.Add(RewardGold);
+                Inventory.AddItem(RewardItemId);
+                var item = ItemData.Get(RewardItemId);
 
-                // PLAN.md 70~71장 Quest — 촌장에게 말을 걸어 받아 둔 퀘스트가
-                // 있으면 여기서 완료 처리(활성 상태가 아니면 CompleteBanditQuest가
-                // false를 돌려줘 조용히 건너뛴다 — 촌장을 안 만났어도 전투 자체는
-                // 그대로 된다).
-                bool questDone = QuestState.CompleteBanditQuest();
-                if (questDone) PlayerStats.AddExp(QuestState.BanditRewardExp);
-
-                var msg = $"{FoeName}을 물리쳤다 — 부대에 합류했다! (전투력 {Mathf.RoundToInt(PartyState.Atk + PartyState.Def)})\n" +
-                          $"경험치 +{ExpReward} · 돈 +{VictoryGoldReward}냥";
-                if (questDone) msg += $"\n퀘스트 완료 — 촌장이 사례하다 (경험치 +{QuestState.BanditRewardExp})";
+                var msg = $"{FoeName}을 물리쳤다 — 희귀 몬스터 토벌!\n경험치 +{ExpReward} · 돈 +{RewardGold}냥";
                 if (PlayerStats.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {PlayerStats.Level})";
-                if (lootItem != null) msg += $"\n{lootItem.Name}을(를) 주웠다{(lootEquipped ? " — 바로 갖췄다." : ".")}";
+                if (item != null) msg += $"\n{item.Name}을(를) 확실히 얻었다.";
                 Toast(msg, VictoryToastSec);
 
-                // 물리친 도적은 사라진다 — 이번 슬라이스에서는 다시 나지 않는다.
+                // 희귀 몬스터는 이번 슬라이스에서 한 번만 나고 다시 안 난다
+                // (도적과 같은 결, RareWolfState가 재등장을 막는다).
                 Destroy(gameObject);
                 return;
             }
 
             if (dealt <= 0f)
             {
-                // 한 대도 못 때리고 물러난 것은 패배로 안 친다(웹판 event.js와 같은 경계).
                 Toast("물러났다.");
             }
             else
@@ -394,7 +342,7 @@ namespace Saga.Go.World
             Transform visual = transform.Find("Visual");
             if (visual == null) yield break;
 
-            Vector3 baseScale = new Vector3(1.8f, 1.7f, 1.8f);
+            Vector3 baseScale = new Vector3(1.3f, 1.3f, 1.3f);
             Vector3 peakScale = baseScale * scaleTo;
 
             float t = 0f;

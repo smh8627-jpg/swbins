@@ -10,11 +10,11 @@ namespace Saga.Go.Data
     /// 조건의 마지막 단계. saga-godot의 save_state.gd와 같은 구조
     /// (_migrate_step 마이그레이션 경로 포함, PLAN.md 75장 "Data
     /// Versioning"을 처음부터 지킴 — v1→v2, v2→v3, v3→v4, v4→v5, v5→v6,
-    /// v6→v7 전환이 그 실사용례다).
+    /// v6→v7, v7→v8 전환이 그 실사용례다).
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 7;
+        private const int SaveVersion = 8;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -41,6 +41,8 @@ namespace Saga.Go.Data
             public List<string> gatheredSpots;
             // v7(PLAN.md 51장 GO 월드 확장 — 산신당 가호) — v6까지는 없던 필드.
             public bool shrineBlessed;
+            // v8(PLAN.md 51장 GO 월드 확장 — 희귀 몬스터) — v7까지는 없던 필드.
+            public bool rareWolfDefeated;
         }
 
         public static bool Save()
@@ -64,6 +66,7 @@ namespace Saga.Go.Data
                 merchantSold = ShopState.MerchantSold,
                 gatheredSpots = new List<string>(GatherState.GatheredIds),
                 shrineBlessed = ShrineState.Blessed,
+                rareWolfDefeated = RareWolfState.Defeated,
             };
 
             try
@@ -109,6 +112,7 @@ namespace Saga.Go.Data
             ShopState.Restore(data.merchantSold);
             GatherState.Restore(data.gatheredSpots);
             ShrineState.Restore(data.shrineBlessed);
+            RareWolfState.Restore(data.rareWolfDefeated);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -191,6 +195,14 @@ namespace Saga.Go.Data
                 // 기본값(false)으로 채운다.
                 data.version = 7;
                 data.shrineBlessed = false;
+                return data;
+            }
+            if (fromVersion == 7)
+            {
+                // v7엔 희귀 몬스터 필드가 없었다 — 아직 못 잡은 것과 같은
+                // 기본값(false)으로 채운다.
+                data.version = 8;
+                data.rareWolfDefeated = false;
                 return data;
             }
             return null;
