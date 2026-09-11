@@ -34,6 +34,22 @@ namespace Saga.Go.World
             BuildGround();
             BuildWater();
             BuildCollision();
+            MarkStatic();
+        }
+
+        /// <summary>
+        /// PLAN.md 76장 Mobile Performance Pass — 절대 안 움직이는
+        /// 지오메트리라 정적 배칭·오클루전 컬링 대상으로 표시한다.
+        /// isStatic은 오브젝트 하나에만 걸리고 자식으로 안 번져서
+        /// (WaterSurface·TerrainCollision과 그 밑의 Col_* 전부) 트리
+        /// 전체를 훑어 건다.
+        /// </summary>
+        private void MarkStatic()
+        {
+            foreach (Transform t in GetComponentsInChildren<Transform>(true))
+            {
+                t.gameObject.isStatic = true;
+            }
         }
 
         // ---- 땅 ------------------------------------------------------

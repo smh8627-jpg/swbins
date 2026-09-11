@@ -103,6 +103,23 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   전체 목록(Draw Calls/Enemy Count/Current Quest 등)은 그 시스템
   자체가 없어서 안 만듦(saga-godot도 실제로는 렌더러 이름만 보여줌).
   컴파일·씬 재저장·PlaytestHeadless 전부 통과.
+- **Mobile Performance Pass 첫 조각 (PLAN.md 76장).** TerrainBuilder·
+  VegetationBuilder·LandmarksBuilder가 만드는 것들(땅·물·충돌·나무·
+  바위·굴 입구·마을집·폐허·다리)은 전부 절대 안 움직이는 지오메트리라
+  `Build()` 끝에 `MarkStatic()`(자식 트리 전체를 훑어 `isStatic=true`)
+  을 걸었다 — 정적 배칭·오클루전 컬링 대상이 된다. **NPC·플레이어·
+  도적은 일부러 안 건드렸다** — 도적은 `PulseVisual()`로 강타 때
+  scale이 실제로 바뀌고, static 오브젝트를 런타임에 옮기면 Unity가
+  경고를 내고 제대로 안 움직인다(NPC는 지금 안 움직이지만 "하루 일과"
+  로 나중에 움직일 계획이 있어 미리 막지 않음). 씬 YAML에
+  `m_StaticEditorFlags: 2147483647`로 정확히 그 오브젝트들만 찍힌
+  것 확인함(Player·NPC·Bandit·UI는 0). **주의 — `isStatic=true`만으로는
+  런타임에 생성된 메시가 자동으로 정적 배칭까지 되는 건 아니다**
+  (에디터에서 손으로 만든 오브젝트와 달리, 우리 건 전부 Awake() 때
+  코드로 만든다 — 실제 드로우콜 감소를 보려면 `StaticBatchingUtility
+  .Combine()`을 명시로 불러야 한다, 이번엔 안 함). 이번 조각은 플래그만
+  — 오클루전 컬링·라이트매핑 자격 부여 정도의 효과는 있지만 드로우콜
+  감소 효과는 아직 없다. 컴파일·씬 재저장·PlaytestHeadless 전부 통과.
 - **Phase 3(21~35단계) 첫 조각 — 땅.** `Assets/Games/SagaGo/Data/
   TestMapData.cs`(지도·LEGEND, C#으로 새로 짬) + `World/TerrainBuilder.cs`
   (칸을 4×4 서브쿼드로 쪼개 정점 색 블렌딩 — saga-godot이 겪은 "칸 경계

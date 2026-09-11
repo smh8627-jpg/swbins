@@ -29,6 +29,18 @@ namespace Saga.Go.World
             BuildVillage();
             BuildRuins();
             BuildBridge();
+            MarkStatic();
+        }
+
+        /// <summary>PLAN.md 76장 Mobile Performance Pass — 굴 입구·마을집·
+        /// 폐허·다리는 절대 안 움직이니 정적 배칭·오클루전 컬링 대상으로
+        /// 표시한다.</summary>
+        private void MarkStatic()
+        {
+            foreach (Transform t in GetComponentsInChildren<Transform>(true))
+            {
+                t.gameObject.isStatic = true;
+            }
         }
 
         // ---- 굴 입구 --------------------------------------------------------
