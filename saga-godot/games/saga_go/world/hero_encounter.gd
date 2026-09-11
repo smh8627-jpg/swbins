@@ -4,13 +4,14 @@ extends Node3D
 ## 대표하는 사건 — 지금까지 만든 8개 사건(도적 두목·마을의 부탁·부상병 등)은
 ## 다 일반 산적·주민이었고, **실제 역사 인물을 만나 등용하는** 조우는 아직
 ## 하나도 없었다. saga_core/data/characters.gd(2026-08-31에 결정만 되고
-## 안 만들어져 있던 것 — 이번에 105명 데이터를 옮겨 완성)를 처음 쓰는 자리다.
+## 안 만들어져 있던 것 — 105명 데이터를 옮겨 완성)를 처음 쓰는 자리다.
 ##
-## 웹판 encounter.js의 "설득 어필(무/지/덕)이 인물 trait과 맞으면 호감도가
-## 크게 오른다"는 미니게임은 이번 슬라이스 범위 밖 — 새로 설계하지 않고
-## "등용한다/보낸다" 두 선택지로 좁혔다(항상 성공, VERTICAL_SLICE의 다른
-## 사건들과 같은 최소 구현). 인물의 개성(trait·stats)은 데이터에 이미
-## 있으니, 설득 미니게임을 실제로 만들 때 그대로 쓸 수 있다.
+## 2026-09-11⑱ — 처음엔 "등용한다/보낸다" 두 선택지로 좁혀 항상 성공하게
+## 했었는데, 웹판 encounter.js의 3라운드 설득(무/지/덕 어필이 인물 trait과
+## 맞으면 호감도가 크게 오른다)이 그리 무겁지 않아 games/saga_go/data/
+## persuade_rules.gd로 그대로 옮겨 붙였다(duel_rules.gd와 같은 경계 — 판정
+## 층은 웹판 그대로, 화면만 3D). rarity 4 이상은 기질을 처음엔 감춘다
+## (웹판 revealed = rarity<=3과 같음) — 한 번 찔러봐야 안다.
 ##
 ## 시각은 캡슐로 남겼다(다른 사건과 같은 이유 — 받아 둔 GLB 4종은 이미
 ## 플레이어·촌장·상인·산적 자리가 정해져 있다). rarity가 높을수록 금빛에
@@ -21,18 +22,28 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://games/saga_go/ui/toast.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
+## PersuadeRules는 class_name으로 전역 등록돼 있어(duel_rules.gd와 같은
+## 경계) 여기서 다시 preload하지 않는다 — 이름이 겹치면 파싱 오류가 난다.
 
 const TRIGGER_RADIUS := 18.0
 const TOAST_SEC := 5.0
-## 웹판에는 "등용 exp"라는 필드가 따로 없다 — rarity(1~5)에 비례해서
-## 새로 정한 값이다(설득 난이도가 곧 성장 보상이라는 감각).
-const EXP_PER_RARITY := 15.0
+## 웹판 encounter.js의 gainHero() exp 그대로(h.rarity * 14).
+const EXP_PER_RARITY := 14.0
+
+const APPEALS := [
+	{"key": "might", "label": "⚔️ 무(武)로 겨루자"},
+	{"key": "wisdom", "label": "📜 지(智)를 논하자"},
+	{"key": "virtue", "label": "🙏 덕(德)으로 청하자"},
+]
 
 @export var grid := Vector2i(5, 4)
 @export var hero_id := "kr_yisunsin"
 
 var _hero: Dictionary
 var _triggered := false
+var _persuade: PersuadeRules
+var _revealed := false
+var _layer: CanvasLayer
 
 func _ready() -> void:
 	var found: Variant = Characters.find(hero_id)
@@ -76,19 +87,56 @@ func _on_body_entered(body: Node3D) -> void:
 	if _triggered or not body.is_in_group("player"):
 		return
 	_triggered = true
-	var title := "%s %s(%s)\n\"%s\"" % [_hero.emoji, _hero.name, _hero.hanja, _hero.quote]
-	ChoicePrompt.build(self, title, [
-		{"label": "등용한다", "cb": _recruit},
-		{"label": "보낸다", "cb": _let_go},
-	])
+	_persuade = PersuadeRules.create(_hero["trait"])
+	_revealed = int(_hero.rarity) <= 3
+	_show_round()
+
+func _trait_label(trait_key: String) -> String:
+	match trait_key:
+		"might": return "무인 기질 ⚔️"
+		"wisdom": return "지략가 기질 📜"
+		_: return "덕망가 기질 🙏"
+
+func _show_round() -> void:
+	if _layer:
+		_layer.queue_free()
+	var trait_text := _trait_label(_hero["trait"]) if _revealed else "기질 불명 ❓"
+	var title := "%s %s(%s) · %s·%s\n무 %d / 지 %d / 통 %d\n%s\n호감도 %d/100 (%d/%d라운드)" % [
+		_hero.emoji, _hero.name, _hero.hanja, _hero.era, _hero.faction,
+		int(_hero.stats.might), int(_hero.stats.wisdom), int(_hero.stats.command),
+		trait_text, int(_persuade.favor), _persuade.round_num, PersuadeRules.MAX_ROUND,
+	]
+	var choices: Array = []
+	for a in APPEALS:
+		choices.append({"label": a.label, "cb": func() -> void: _do_appeal(a.key)})
+	choices.append({"label": "물러난다", "cb": _flee})
+	_layer = ChoicePrompt.build(self, title, choices)
+
+func _do_appeal(key: String) -> void:
+	var r: Dictionary = _persuade.appeal(key)
+	_revealed = true
+	if not r.get("ok", false):
+		return
+	if r.succeeded:
+		_recruit()
+	elif r.done:
+		_fail()
+	else:
+		_show_round()
+
+func _flee() -> void:
+	if _layer:
+		_layer.queue_free()
+	Toast.show(self, "%s와(과) 인사를 나누고 헤어졌다." % _hero.name, TOAST_SEC)
+	queue_free()
+
+func _fail() -> void:
+	Toast.show(self, "%s — \"인연이 아닌 듯하오.\" 그가 떠났다." % _hero.name, TOAST_SEC)
+	queue_free()
 
 func _recruit() -> void:
 	PartyState.recruit(_hero.id)
 	var exp_reward: float = int(_hero.rarity) * EXP_PER_RARITY
 	PartyState.add_exp(exp_reward)
-	Toast.show(self, "%s가 부대에 합류했다! (경험 +%d)" % [_hero.name, int(exp_reward)], TOAST_SEC)
-	queue_free()
-
-func _let_go() -> void:
-	Toast.show(self, "%s가 길을 따라 멀어졌다." % _hero.name, TOAST_SEC)
+	Toast.show(self, "%s가 부대에 합류했다! \"%s\" (경험 +%d)" % [_hero.name, _hero.quote, int(exp_reward)], TOAST_SEC)
 	queue_free()
