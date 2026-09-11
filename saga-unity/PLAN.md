@@ -801,20 +801,30 @@ DUNGEON(던전 증가→엘리트/보스/장비/빌드)→FOREST(생태계→동
 | **PC** | Windows/macOS/Linux 빌드, 에디터 | **Forward+**(Unity 6 URP 신규 지원) | SSAO, Screen Space Reflection, Volumetric Fog, HDR Bloom, 고품질 그림자(Cascade 4단), MSAA/TAA |
 | **Mobile** | Android/iOS 빌드 | Forward(전통 경로) | Bloom만, 그림자 저해상도·Cascade 1~2단, MSAA 2x, SSAO·SSR·Volumetric 전부 끔 |
 
-## 설정 방식
+## 설정 방식 — **Unity 공식 "3D (URP) Cross-Platform" 템플릿이 이미 그대로 갖고 있다**
 
-`Assets/Settings/`에 URP Asset을 **두 벌** 만든다:
+2026-09-11 Phase 1에서 프로젝트를 `com.unity.template.3d-cross-platform`
+템플릿으로 만들어 보니, 이 절이 하려던 일을 템플릿이 **이미 다 해 뒀다**
+(직접 만들 필요 없음 — 확인만 했다):
 
 ```text
 Assets/Settings/
-├── URP_PC.asset           (Renderer: Forward+, 고품질 오버라이드 전부 켬)
-└── URP_Mobile.asset       (Renderer: Forward, 저사양 오버라이드)
+├── PC_RPAsset.asset       (renderingMode=ForwardPlus)  + PC_Renderer.asset
+└── Mobile_RPAsset.asset   (renderingMode=Forward)      + Mobile_Renderer.asset
 ```
 
-Quality Settings(`Edit → Project Settings → Quality`)에 두 품질 레벨을
-만들고 각각 다른 URP Asset을 연결한다. 빌드 타깃에 따라 자동으로 맞는
-품질 레벨을 고르게 `QualitySettings.SetQualityLevel()`을 시작 스크립트에서
-플랫폼 분기로 호출한다(`Application.isMobilePlatform` 체크).
+`ProjectSettings/QualitySettings.asset`에 Quality 레벨이 이미 둘
+(`Mobile`·`PC`)이고, 각 레벨의 `customRenderPipeline`이 각각
+`Mobile_RPAsset`·`PC_RPAsset`을 가리킨다. `Mobile` 레벨엔
+`excludedTargetPlatforms: [Standalone]`이 걸려 있어 PC 빌드에서는
+자동으로 `PC` 레벨(=Forward+)이 골라진다 — **플랫폼 분기 스크립트를
+따로 안 짜도 된다.** 66-1장이 원래 요구하던 "씬 안에서 안 갈라짐"·
+"빌드 타깃에 따라 자동 전환" 둘 다 템플릿 기본값으로 충족된다.
+
+**할 일은 확인·튜닝뿐이다** — 두 RPAsset의 그림자·AA·후처리 오버라이드
+값이 아래 표(PC=고품질/Mobile=저사양)와 실제로 맞는지 Phase 3~4에서
+콘텐츠가 늘 때 다시 점검한다. 지금(Phase 1) 단계에서 값을 미리 튜닝하지
+않는다 — 아직 비교할 실제 씬이 없다(32장 "최소 변경" 원칙).
 
 - **씬/프리팹 안에서 렌더러를 분기하지 않는다** — Quality Settings +
   URP Asset 스위칭으로만 한다(saga-godot의 "이 세 줄로만 한다"와 같은 원칙).
