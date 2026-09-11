@@ -13,6 +13,10 @@ extends Node3D
 ## 그대로 재사용하면 "부상당한 병사가 사실 상인이었나?" 같은 혼란이 생긴다.
 ## 다른 primitive→GLB 교체(동굴 입구 등)와 같은 경계로, 어울리는 조각을
 ## 새로 받기 전까진 primitive로 남겨 둔다.
+##
+## choice_*_exp는 웹판 event.js의 exp 필드 값을 그대로 옮긴 것 — 0이면
+## 그 선택지는 보상 없이 문구만 보여준다(TestVillage.tscn에서 사건마다
+## 다르게 덮어씀, 이 스크립트의 기본값은 hurt_soldier 기준이다).
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
@@ -27,8 +31,10 @@ const TOAST_SEC := 4.0
 @export var vis_scale := 1.25
 @export var choice_a_label := "돌본다"
 @export var choice_a_outcome := "물병을 건네자 병사가 고개를 끄덕였다. \"고맙소, 이 은혜는 잊지 않겠소.\""
+@export var choice_a_exp := 20.0
 @export var choice_b_label := "지나간다"
 @export var choice_b_outcome := "뒤에서 낮은 기침 소리가 들렸다."
+@export var choice_b_exp := 0.0
 
 var _area: Area3D
 var _triggered := false
@@ -76,11 +82,14 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	_triggered = true
 	ChoicePrompt.build(self, event_title, [
-		{"label": choice_a_label, "cb": func() -> void: _resolve(choice_a_outcome)},
-		{"label": choice_b_label, "cb": func() -> void: _resolve(choice_b_outcome)},
+		{"label": choice_a_label, "cb": func() -> void: _resolve(choice_a_outcome, choice_a_exp)},
+		{"label": choice_b_label, "cb": func() -> void: _resolve(choice_b_outcome, choice_b_exp)},
 	])
 
-func _resolve(text: String) -> void:
+func _resolve(text: String, exp_reward: float) -> void:
+	if exp_reward > 0.0:
+		PartyState.add_exp(exp_reward)
+		text += " (경험 +%d)" % int(exp_reward)
 	_toast(text)
 	queue_free() # 패널·트리거 모두 이 노드 자식이라 같이 사라진다
 

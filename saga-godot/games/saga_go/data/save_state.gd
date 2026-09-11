@@ -21,6 +21,7 @@ func save() -> bool:
 		"version": SAVE_VERSION,
 		"player_pos": [player.global_position.x, player.global_position.y, player.global_position.z],
 		"party_members": PartyState.members,
+		"party_exp": PartyState.exp,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
 		"quest_done": QuestState.done,
@@ -53,7 +54,9 @@ func try_load() -> bool:
 	var members: Array[String] = []
 	for m in data.get("party_members", []):
 		members.append(str(m))
-	PartyState.restore(members)
+	## party_exp도 §31 이후 추가된 필드다 — 없으면 0.0(경험치 없음)으로
+	## 안전하게 채워진다, 위 quest_* 필드와 같은 경계(마이그레이션 불필요).
+	PartyState.restore(members, float(data.get("party_exp", 0.0)))
 
 	var pos: Array = data.get("player_pos", [])
 	var player := _find_player()

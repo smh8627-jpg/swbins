@@ -11,4 +11,4 @@ func _ready() -> void:
 	PartyState.power_changed.connect(_refresh)
 
 func _refresh(atk: float, def: float) -> void:
-	text = "부대 %d명 · 전투력 %d" % [PartyState.members.size(), int(atk + def)]
+	text = "부대 %d명 · 전투력 %d · Lv.%d" % [PartyState.members.size(), int(atk + def), PartyState.level]

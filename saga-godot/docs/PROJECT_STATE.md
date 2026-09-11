@@ -658,6 +658,42 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     걷다 보면 뭔가 마주치는 느낌이 늘었다 — 실기 확인 때 밀도가
     적당한지(너무 자주/드물게 마주치는지)도 같이 볼 것.
 
+## 완료 단계 (추가, 2026-09-11⑬) — 부대 경험치/레벨 최소 구현
+
+- **사건 보상에 딸린 exp(웹판 event.js 필드)가 지금까지 받아 줄 자리가
+  없었다** — 고대 비문 35, 부상병 20, 도적 90 같은 값이 코드에 있어도
+  아무 데도 안 쌓였다. Phase 7 전체(Stats/Item/Inventory/Equipment)를
+  만드는 대신, §37 재미 평가 "레벨업이 의미가 있는가?"에 답할 만큼만
+  `party_state.gd`에 최소 성장을 얹었다.
+  - `party_state.gd` — `exp`·`level`(정수, `EXP_PER_LEVEL`=100마다 1)
+    추가, `add_exp(amount)`가 쌓고 레벨을 다시 매겨 `ATK_PER_LEVEL`(4)·
+    `DEF_PER_LEVEL`(2)만큼 공격력/방어력에 더한다. `restore()`에
+    `saved_exp` 인자 추가(기본값 0.0이라 기존 호출부는 안 깨짐).
+  - `party_label.gd` — "부대 N명 · 전투력 X" 뒤에 "· Lv.N" 붙임.
+  - `bandit_encounter.gd` — `@export foe_exp_reward`(기본 40, 웹판
+    bandit_ambush 승리 exp와 같음) 추가, 승리 시 `PartyState.add_exp()`
+    호출. 도적 두목은 전투력 차이(약 2배)에 맞춰 `TestVillage.tscn`에서
+    90으로 덮어씀(웹판에 보스 analog가 없어 비례로 새로 정한 값).
+  - `simple_event.gd` — 선택지마다 `choice_*_exp` 추가(기본값은
+    hurt_soldier 기준 20/0). **StoneTextEvent·RareHerbEvent에 명시적으로
+    덮어써야 했다** — 안 덮어쓰면 스크립트 기본값(20/0)을 그대로 물려받아
+    "고대 비문"이 20(웹판은 35)으로, "희귀 약초"가 0 아닌 20(웹판은 원래
+    exp 보상이 없다)으로 잘못 적립될 뻔했다. StoneTextEvent는
+    choice_a_exp=35·choice_b_exp=0, RareHerbEvent는 둘 다 0으로 명시.
+  - `save_state.gd` — `party_exp` 필드 추가(§31 quest_* 필드와 같은
+    경계 — 추가만 있고 없으면 0.0으로 안전하게 채워져 마이그레이션
+    불필요).
+  - 검증: `--headless --editor --quit`(임포트) 및 `--headless
+    --quit-after 5` 연속 3번 exit 0·오류 0건. **임시 디버그로 실제
+    수치 왕복까지 확인(검증 뒤 원상복구, diff 0)** — `add_exp(35)`→
+    `add_exp(90)` 후 `exp=125→atk 64·def 37(레벨 1)`을 계산대로 확인,
+    `SaveState.save()` → **완전히 새 프로세스로 재실행**해 두 번째
+    실행이 `exp=125`부터 이어받아 `add_exp` 호출을 더 쌓는 것까지
+    확인(단순 "에러 없음"이 아니라 값 자체 비교).
+  - 여전히 GUI 미확인 — 레벨이 오를 때 PartyLabel의 "Lv.N"이 실제로
+    갱신되는 게 눈에 띄는지, 사건마다 뜨는 "(경험 +N)" 토스트 문구가
+    자연스러운지는 다음 실기 확인 때 같이 볼 것.
+
 ## 다음 세션 시작 지점 (사용자 지정, 2026-09-11)
 
 **사용자가 "새로운 세션에서 이어 하자"로 saga-godot을 다음 세션의
@@ -717,6 +753,9 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 - **(2026-09-11⑫ 신규) 고대 비문(1,2)·희귀 약초(4,4)도 같은 방식으로
   잘 뜨는지, 사건 네 개(부상병·비문·약초·도적 두목)가 마을을 돌아다닐
   때 밀도가 적당한지(너무 자주/드물게 마주치는지).**
+- **(2026-09-11⑬ 신규) 사건을 겪어 경험치가 쌓이고 레벨이 올랐을 때
+  PartyLabel의 "Lv.N"이 화면에서 실제로 바뀌는지, "(경험 +N)" 토스트
+  문구가 눈에 거슬리지 않는지.**
 
 ## 알려진 오류
 

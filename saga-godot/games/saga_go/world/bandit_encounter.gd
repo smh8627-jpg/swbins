@@ -54,6 +54,10 @@ const TOAST_SEC := 4.0
 ## 같이 부른다(§31 "마을의 부탁" — 도적 두목을 물리치면 사명이 끝난다).
 @export var quest_id_to_complete := ""
 
+## 웹판 event.js "bandit_ambush" 승리 시 exp:40과 같은 값. 도적 두목은
+## 전투력 차이(약 2배)에 맞춰 TestVillage.tscn에서 더 높게 덮어쓴다.
+@export var foe_exp_reward := 40.0
+
 enum State { IDLE, PROMPT, FIGHT, COOLDOWN }
 
 var _state := State.IDLE
@@ -299,6 +303,7 @@ func _finish_fight() -> void:
 	_duel = null
 	if cleared:
 		PartyState.recruit(recruit_id)
+		PartyState.add_exp(foe_exp_reward)
 		var msg := foe_name + "을 물리쳤다 — 부대에 합류했다! (전투력 %d)" % int(PartyState.atk + PartyState.def)
 		if quest_id_to_complete != "":
 			QuestState.complete(quest_id_to_complete)
