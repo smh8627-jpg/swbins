@@ -505,6 +505,29 @@ window.DG_NO_TUNE = true;
          ' · 적 데이터는 그대로');
     });
 
+    t('잡졸 스물 → 서른둘(2026-09-11) — 비어 있던 유형 자리를 채웠다', function () {
+      var ed = DG.enemyData;
+      function role(ref) {
+        if (SD.rangedOf(ref)) { return 'ranged'; }
+        if (/기병/.test(ref.name)) { return 'dash'; }
+        if (/코끼리/.test(ref.name) || (ref.look && ref.look.weapon === 'halberd')) { return 'tank'; }
+        return ref.kind === 'beast' ? 'beast' : 'melee';
+      }
+      var byTier = {}, i;
+      for (i = 0; i < ed.enemies.length; i++) {
+        var e = ed.enemies[i], t = e.tier;
+        byTier[t] = byTier[t] || {};
+        byTier[t][role(e)] = true;
+      }
+      /* 옛날엔 1관문대(잡졸)에 원거리형이, 3관문대(정규군)에 탱커형이
+         하나도 없었다 — 이번에 노략 궁수·중장 창병으로 각각 채웠다 */
+      var tier1Ranged = !!(byTier[1] && byTier[1].ranged);
+      var tier3Tank = !!(byTier[3] && byTier[3].tank);
+      return ed.enemies.length === 32 && tier1Ranged && tier3Tank &&
+        ('잡졸 ' + ed.enemies.length + ' · 1관문대 원거리 ' + tier1Ranged +
+         ' · 3관문대 탱커 ' + tier3Tank);
+    });
+
     t('쏘는 적은 사거리에서 멈춰 화살을 날린다', function () {
       var run = S.raw(), p = run.player, stg = run.stage;
       var e = run.enemies[0];
