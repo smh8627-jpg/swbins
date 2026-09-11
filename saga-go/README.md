@@ -1594,3 +1594,34 @@ css·js 를 전부 한 파일에 녹여 넣으므로 서버도 파이썬도 필�
   직접 돌려 통과 확인함 — 실제 화면(지도 위 스폰 체감)은 이번에도 실기기
   확인 몫으로 남긴다.
 
+## 지도 위 짐승·건물 마커 — 캔버스 그림에서 실제 에셋으로 (2026-09-11)
+
+사용자가 "스프라이트 사용하는 부분을 모두 제거해, 에셋이 없으면 툴을
+만들어서 제작해야 해"로 범위를 넓혀 요청 — `js/sprite.js`가 지도 위
+들짐승·성채·역참을 여전히 캔버스로 절차적으로 그리고 있던 것을 실제 CC0
+GLB 스냅샷으로 바꿨다(사람은 2026-09 초에 이미 Kenney PNG로 끝나 있었다).
+
+- **`tools/bake-icons/bake.html`**(새 오프라인 배치 툴, 자세한 사용법은 그
+  폴더 README) — THREE.js로 `assets/models/animals/*`·
+  `assets/models/buildings/*`(=`asset3d.js`의 `DEFAULTS`와 같은 파일)를
+  하나씩 불러 작은 스냅샷을 굽는다. 사용자 승인 하에 헤드리스 크롬
+  (`--use-angle=swiftshader`)으로 한 번 돌려 **33개 중 28개**를
+  `assets/sprites2d/beast_*.png`·`building_*.png`로 받았다. 남은 다섯(ogre
+  형태 펫 셋 + 성채 3등급 + 역참 — 전부 큰 실사/임베디드 텍스처)은 헤드리스
+  환경에서 로더 콜백이 영영 안 와 못 구웠다 — 자세한 내용·재시도 방법은
+  `tools/bake-icons/README.md`.
+- **`js/sprite.js`**: `beastImgOf(pet)`가 펫의 형태(form)별 파일 목록에서
+  `asset3d.js`의 `oneOf()`와 **같은 id 해시**로 하나를 고른다 — 그래서 같은
+  펫이 도감의 3D 초상과 지도 위 스탬프에서 같은 개체로 보인다. 그림이
+  없거나(ogre) 아직 안 실렸으면 예전 절차적 `beast()`로 떨어진다
+  (`humanImg`가 이미 쓰던 것과 같은 폴백 결). `building()`도 `o.img`가
+  오면 그 그림을, 없으면 절차적 도형을 그린다.
+- **`js/world.js`**: `drawFort`가 `info.tier.tier`(1~3)로 등급별 그림
+  (Watchtower→t1, Tower→t2)을 골라 넘긴다 — t3(웅진)는 그림이 없어
+  그대로 절차적. `drawStation`은 이번엔 손대지 않았다(역참 그림도 없다).
+- **범위 밖으로 남긴 것**: `animal.js`의 배경(비수집) 짐승 — id가 없어
+  펫과 같은 방식으로 고를 수 없다, 원래 결대로 절차적. `world3d.js`의 3D
+  빌보드 폴백(WebGL 전체 실패 시만 씀)도 실효성이 낮아 그대로 뒀다.
+  `portrait3d.js`의 초상 굽기 실패 시 캔버스 대체(플랜의 Phase 3 항목
+  일부)는 이번엔 손 안 댔다 — 다음에 이어갈 것.
+

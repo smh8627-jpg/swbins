@@ -1376,6 +1376,48 @@
     pk_alakazam: 'mane', pk_gyarados: 'stripe', pk_mewtwo: 'mane'
   };
 
+  /**
+   * 짐승 도감(펫) 지도 스탬프 — 2026-09-11, tools/bake-icons/bake.html로
+   * 실제 CC0 GLB(asset3d.js의 pet:form:* 와 같은 목록)를 구워 얻은 PNG로
+   * 바꾼다. 형태(form)별 파일 목록에서 `oneOf`(asset3d.js:337)와 **같은
+   * 해시**로 하나를 고른다 — 그래야 같은 펫이 도감 3D 초상과 지도 스탬프에서
+   * 같은 개체로 보인다. 배경 생물(animal.js, id 없음)은 대상이 아니다 —
+   * 그쪽은 원래 결대로 절차적 그림 그대로 둔다(캔버스 자체가 그 용도다).
+   *
+   * ogre 형태(도깨비·그늘귀·만권·의조)만 구성 파일이 없다 — 배치 굽기에서
+   * 이 셋(Orc·Demon·BlueDemon, 큰 임베디드 .gltf)만 헤드리스 크롬에서 로더
+   * 콜백이 영영 안 와 구워지지 않았다(원인 불명 — 실제 GPU가 있는 브라우저
+   * 라면 될 가능성이 있다, SAGA-HANDOFF 2026-09-11 참고). 그래서 ogre만
+   * 여전히 procedural fallback으로 돈다 — 회귀가 아니라 애초에 그림이 없다.
+   */
+  var BEAST_FORM_FILES = {
+    quad: ['Deer', 'Wolf', 'Cow', 'Alpaca', 'Bull', 'Donkey', 'Fox', 'Husky', 'ShibaInu', 'Stag'],
+    bird: ['Pigeon', 'Birb'],
+    fish: ['Koi', 'Shark', 'Dolphin', 'Manta_ray'],
+    horse: ['Horse', 'Horse_White'],
+    toad: ['Frog'],
+    dragon: ['Trex', 'Triceratops', 'Stegosaurus', 'Velociraptor'],
+    turtle: ['Snake', 'Snake_angry']
+    /* ogre: 구운 파일 없음 — 일부러 안 넣는다(beastImgOf가 null을 주면
+       procedural로 그대로 떨어진다) */
+  };
+  var beastImgCache = {};
+  function beastImgFile(name) {
+    var src = 'assets/sprites2d/beast_' + name + '.png';
+    var im = beastImgCache[src];
+    if (!im) { im = new Image(); im.src = src; beastImgCache[src] = im; }
+    return im;
+  }
+  /** 도감 펫(id가 pt_/pk_로 시작)에만 적용한다 — 배경 생물은 null */
+  function beastImgOf(pet) {
+    if (!pet || !pet.id || !/^(pt_|pk_)/.test(pet.id)) { return null; }
+    var list = BEAST_FORM_FILES[beastFormOf(pet)];
+    if (!list) { return null; }
+    var s = String(pet.id || pet.name || ''), h = 0, i;
+    for (i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+    return beastImgFile(list[h % list.length]);
+  }
+
   function beastPatternOf(pet) { return (pet && BEAST_PATTERN[pet.id]) || ''; }
   /* 도감에 없는 짐승도 그린다 — 들·강의 **배경 생물**(`animal.js`)은 잡는 대상이
      아니라서 도감에 자리가 없다. 그런 것은 제 형태·색을 직접 들고 온다.
@@ -1864,7 +1906,30 @@
     beacon: '#6a6a74', shrine: '#8a3b32'
   };
 
+  /** 성채·역참 지도 마커 — 2026-09-11, tools/bake-icons/bake.html로 구운
+   *  실제 CC0 건물 GLB 스냅샷(assets/models/buildings/*.glb, asset3d.js의
+   *  fort:t1/t2·station 표와 같은 파일). `o.img`에 로드된 Image를 넘기면
+   *  절차적 도형 대신 이 그림을 쓴다 — world.js가 등급(fort tier)·종류에
+   *  맞는 그림을 골라 넘긴다. tier 3(웅진)·역참은 배치 굽기에서 못 구웠으니
+   *  (SAGA-HANDOFF 2026-09-11 참고) `o.img`를 안 넘기면 여기 그대로
+   *  절차적 그림으로 떨어진다 — 회귀가 아니라 그림이 아직 없다. */
+  var buildingImgCache = {};
+  function buildingImg(name) {
+    var src = 'assets/sprites2d/building_' + name + '.png';
+    var im = buildingImgCache[src];
+    if (!im) { im = new Image(); im.src = src; buildingImgCache[src] = im; }
+    return im;
+  }
+
   function building(ctx, o) {
+    if (o.img && o.img.complete && o.img.naturalWidth) {
+      var H0 = 46 * (o.s || 1), bw = H0 * 1.3, bh = H0 * 1.3;
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(o.img, o.x - bw / 2, o.y - bh, bw, bh);
+      ctx.restore();
+      return;
+    }
     var H = 46 * (o.s || 1);
     var form = o.form || 'hall';
     var wood = '#7a5334', woodDark = '#5a3c26';
@@ -2205,9 +2270,18 @@
         human(c, common);
       }
     } else {
-      common.form = o.form; common.color = o.color; common.divine = o.divine;
-      common.ref = o.ref;                      // 무늬는 ref 에서 뽑는다
-      beast(c, common);
+      var bimg = beastImgOf(o.ref);
+      if (bimg && bimg.complete && bimg.naturalWidth) {
+        var bdw = H * 1.5, bdh = H * 1.5;
+        c.imageSmoothingEnabled = false;
+        c.drawImage(bimg, footX - bdw / 2, footY - bdh, bdw, bdh);
+      } else {
+        /* 그림이 없거나(ogre 형태) 아직 안 실렸으면(첫 프레임) 절차적 그림 —
+           humanImg 와 같은 결의 폴백(2201행 주석 참고) */
+        common.form = o.form; common.color = o.color; common.divine = o.divine;
+        common.ref = o.ref;                    // 무늬는 ref 에서 뽑는다
+        beast(c, common);
+      }
     }
     /* 그림책풍은 여기서 한 번 훑는다 — 지도 위 스탬프는 어두운 배경에 서므로
        실루엣만 밝은 테를 둘러 형태가 묻히지 않게 한다 */
@@ -2562,7 +2636,7 @@
 
   global.DG = global.DG || {};
   global.DG.sprite = {
-    human: human, beast: beast, building: building,
+    human: human, beast: beast, building: building, buildingImg: buildingImg,
     portraitCard: portraitCard,
     stamp: stamp, stampStats: stampStats,
     lookOf: lookOf, idSeed: idSeed, beastFormOf: beastFormOf, beastColorOf: beastColorOf,

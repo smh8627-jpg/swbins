@@ -5090,3 +5090,33 @@ saga-go 정본을 다른 네 판에도 동일 반영, 가드돼 있어 그 판�
 그리고 아직 손 안 댄 Phase 3(사용자가 이어서 요청한 "스프라이트로 그리는
 곳 전부 제거, 에셋 없으면 만드는 툴" — 짐승 지도 스탬프·성채/역참
 마커·초상 굽기 실패 폴백 세 자리가 남아 있다).
+
+**2026-09-11 (같은 세션, 이어서) — Phase 3 중 "짐승 지도 스탬프·성채/역참
+마커" 두 자리를 실제로 마쳤다.** 사용자가 실행을 승인해 새 오프라인 배치
+툴(`saga-go/tools/bake-icons/bake.html`)로 이미 있는 CC0 GLB(짐승 28종+
+건물 5종, `asset3d.js`의 `DEFAULTS`표와 같은 파일)를 THREE.js로 한 번씩
+띄워 작은 스냅샷을 구웠다.
+
+- 헤드리스 크롬(`--use-angle=swiftshader`)으로 실행 — 처음엔 33개 중 몇
+  개가 완전히 빈 화면으로 나왔다(Trex·Koi·Manta_ray·Stegosaurus·
+  Triceratops·Velociraptor·PointyTower). 원인은 `fitAndFrame()`의 좌표
+  버그였다 — 스케일 적용 *전* 로컬 좌표에 `-center`만 넣어서, 모델이
+  클수록 화면 밖으로 튕겨 나갔다(`position = -center * scale`이어야
+  맞다). 고치고 나니 28개가 다 알아볼 수 있게 나왔다.
+- 나머지 5개(`Orc.gltf`·`Demon.gltf`·`BlueDemon.gltf` — ogre 형태 펫 넷,
+  `tower_round.glb`·`tower_ruin.glb` — 성채 3등급·역참, 전부 큰 실사/
+  임베디드 텍스처)는 fetch는 100% 받아지는데 GLTFLoader 콜백이 45초를
+  줘도 영영 안 왔다 — 헤드리스+소프트웨어렌더 조합의 한계로 보이나
+  확증은 못 했다(`tools/bake-icons/README.md`의 "알려진 흠" 참고, 실제
+  GPU가 있는 보통 브라우저 창으로 재시도하면 될 가능성이 있다).
+- `assets/sprites2d/beast_*.png`(28) 확보 → `js/sprite.js`의
+  `beastImgOf()`가 `asset3d.js`의 `oneOf()`와 같은 id 해시로 펫마다
+  같은 그림을 고르게 배선, `js/world.js`의 `drawFort`가 성채 등급별
+  그림(t1/t2, t3는 그림 없어 절차적 그대로)을 고르게 배선. `node -c`
+  문법 확인 + 결과 이미지 몇 장을 Read 툴로 직접 눈으로 확인함(도구
+  실행 자체는 이 세션이 승인받아 진행한 것이므로 "개발 중 헤드리스 금지"
+  방침과 별개).
+- **아직 남은 것** — ogre 펫 넷·성채 3등급·역참(그림 5개 모자람, 위
+  참고), `portrait3d.js` 초상 굽기 실패 시 캔버스 대체(Phase 3 계획의
+  세 번째 항목, 아직 손 안 댐), `animal.js` 배경 짐승(범위 밖으로 확정),
+  `world3d.js` 3D 빌보드 폴백(실효성 낮아 그대로 둠).

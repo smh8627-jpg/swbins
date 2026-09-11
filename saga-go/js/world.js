@@ -1582,9 +1582,16 @@
       ctx.globalAlpha = 1;
     }
 
-    global.DG.sprite.building(ctx, {
+    /* 등급(tier)마다 다른 실제 탑 그림 — t3(웅진)만 배치 굽기에서 못 구워
+       (SAGA-HANDOFF 2026-09-11) 절차적 그림으로 그대로 떨어진다 */
+    var sp = global.DG.sprite;
+    var fortTier = info && info.tier && info.tier.tier;
+    var fortImg = fortTier === 1 ? sp.buildingImg('Watchtower')
+      : fortTier === 2 ? sp.buildingImg('Tower')
+      : null;
+    sp.building(ctx, {
       x: p.x, y: p.y, s: z * 1.15, form: 'wall', color: mine ? '#7a6234' : undefined,
-      t: now / 1000
+      t: now / 1000, img: fortImg
     });
 
     /* 깃발 — 지키는 세력의 표식 */
