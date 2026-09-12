@@ -118,6 +118,10 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Vegetation");
             var builder = go.AddComponent<VegetationBuilder>();
+            builder.Init(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Vegetation/tree_oak.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Rocks/rock_largeA.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Rocks/rock_smallA.glb"));
             builder.Build();
         }
 
@@ -125,6 +129,12 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Landmarks");
             var builder = go.AddComponent<LandmarksBuilder>();
+            builder.Init(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Dungeon/gate-rock.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/wall-block.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/roof-gable.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/pillar-stone.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/planks.glb"));
             builder.Build();
         }
 

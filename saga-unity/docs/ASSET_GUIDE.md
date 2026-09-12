@@ -20,6 +20,9 @@ CC0(퍼블릭 도메인) 킷은 그 원작들과 무관한 제3자 소재라 해
 | 킷 | 받은 날(saga-godot 기준) | saga-unity 도입일 | 용도 |
 |---|---|---|---|
 | [Blocky Characters](https://kenney.nl/assets/blocky-characters) 2.0 | 2026-09-11 | 2026-09-12 | 플레이어·NPC·산적 |
+| [Nature Kit](https://kenney.nl/assets/nature-kit) 2.1 | 2026-09-11 | 2026-09-12 | 나무·바위 |
+| [Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) 2.0 | 2026-09-11 | 2026-09-12 | 마을집 벽/지붕·폐허 기둥·다리 |
+| [Modular Cave Kit](https://kenney.nl/assets/modular-cave-kit) 1.0 | 2026-09-11 | 2026-09-12 | 굴 입구 |
 
 라이선스: CC0 — 출처 표시 의무 없음.
 
@@ -76,6 +79,41 @@ Player·NPC·산적 전부 동일)에 맞춰 `targetHeight / NativeHeight`
 대신 채워 씬 빌드 자체는 안 깨지게 한다 — saga-godot의 "동굴 입구 GLB
 못 받아 오면 이전 박스로 대체" 관례와 같다.
 
+## 환경/건물 GLB (2026-09-12, 캐릭터 다음 조각)
+
+`VegetationBuilder.cs`(나무·바위)·`LandmarksBuilder.cs`(굴 입구·마을집·
+폐허·다리)에 Kenney Nature/Fantasy Town/Modular Cave Kit GLB를 넣었다.
+saga-godot 실측표(위 표와 같은 파일)를 그대로 신뢰해 재실측 없이 스케일을
+가져다 썼다(같은 TileSize=48 세계 축척이라 유효) — `MeasureCharacterGlb.cs`
+로 한 번 더 재확인만 하고(값 100% 일치) 지웠다.
+
+| 파일 | 실측 크기(m) | 스케일 | 쓰는 곳 |
+|---|---|---|---|
+| `vegetation/tree_oak.glb` | 0.64×1.23×0.74 | ×4.5×(개체별 0.7~1.3) | 숲 타일, 타일당 3그루 |
+| `rocks/rock_largeA.glb` | 0.78×0.26×1.02 | ×2.6×(개체별 변주) | 산 타일 절반 |
+| `rocks/rock_smallA.glb` | 0.36×0.19×0.36 | ×3.5×(개체별 변주) | 산 타일 나머지 절반 |
+| `buildings/wall-block.glb` | 1×1×1 | 비균등=bodySize(10,4,10) 그대로 | 마을집 벽 |
+| `buildings/roof-gable.glb` | 1.1×0.57×1.07 | 균일 ×10 | 마을집 지붕(콜라이더 없음) |
+| `buildings/pillar-stone.glb` | 0.16×1.0×0.16 | 균일=목표 높이 | 폐허 기둥 3개·산신당 기둥 4개 |
+| `buildings/planks.glb` | 1×0.06×1 | 비균등(폭 6, 길이는 44개 등분) | 다리 덱 |
+| `dungeon/gate-rock.glb` | 4.00×4.05×2.45 | 균일 ×1.48(목표 높이 6m) | 굴 입구 |
+
+**GLB엔 물리 콜라이더가 없다** — glTF 포맷 자체가 충돌체를 안 담는다.
+굴 입구·마을집 벽·기둥류는 실측 로컬 AABB(위 표) 그대로
+`BoxCollider`/`CapsuleCollider`를 코드로 직접 얹었다(캐릭터는 트리거
+판정만 있어 콜라이더가 없어도 됐지만, 이 랜드마크들은 "지나갈 수 없는
+장애물"이라 필요) — 지붕·다리 덱은 원래도 콜라이더가 없던 자리라 그대로
+안 얹었다(지붕은 밟는 자리가 아니고, 다리는 TerrainBuilder가 'B' 타일에
+이미 별도로 막아 뒀다, 두 곳이 각자 만들면 겹친다는 기존 원칙 그대로).
+
+**산신당('S' 타일, `LandmarksBuilder.BuildShrine()`)은 이번에 안 바꿨다.**
+`shrine/altar-stone.glb`(saga-godot이 옛 사당에 쓰는 파일)는 작은 제단
+하나짜리 모양이라, 지금 구조(받침대 박스+기둥 4개)와 형태가 많이 달라
+그대로 자리만 바꿔 끼우면 어색할 수 있다 — 기둥 4개만 `pillar-stone.glb`
+로 바꾸고(폐허 기둥과 같은 파일 재사용) 받침대는 primitive 박스로 남겨
+뒀다. altar-stone.glb를 실제로 쓰려면 구조 자체를 다시 설계해야 해서
+다음 조각으로 미룬다.
+
 ## 이번에 발견해 같이 고친 것 — Awake() 중복 생성
 
 `NpcBuilder.cs`·`BanditEncounter.cs`가 `Awake()`에서 조건 없이
@@ -84,8 +122,10 @@ Play(헤드리스든 사람이 직접 하든)로 열면 시각·UI가 두 벌씩
 잠재 버그였다(`Gatherable.cs`·`HiddenTreasure.cs` 등은 이미 방어가
 있었는데 이 둘만 빠져 있었음). 캐릭터 GLB로 바꾸며 두 파일을 어차피
 손대는 김에 `transform.Find("Visual") != null`이면 다시 안 짓게 방어를
-넣었다. **`AnimalBuilder.cs`·`RareWolfEncounter.cs`·`HiddenTreasure.cs`·
-`MountainShrine.cs`·`EastGroveRelic.cs`·`LuckyCairn.cs`도 같은 패턴(무조건
-`Build()`)이라 이론상 같은 버그가 있을 수 있다** — 이번엔 GLB 교체
-범위 밖이라 손 안 댔다, 다음에 손댈 때 같이 고칠 것(`docs/PROJECT_STATE.md`
+넣었다. 환경/건물 GLB 조각(`VegetationBuilder.cs`·`LandmarksBuilder.cs`)도
+어차피 다시 쓰는 김에 `transform.childCount > 0`이면 건너뛰는 같은 방어를
+추가해 뒀다. **`AnimalBuilder.cs`·`RareWolfEncounter.cs`·
+`HiddenTreasure.cs`·`MountainShrine.cs`·`EastGroveRelic.cs`·
+`LuckyCairn.cs`는 아직 이 패턴(무조건 `Build()`)이라 이론상 같은 버그가
+남아 있을 수 있다** — 다음에 손댈 때 같이 고칠 것(`docs/PROJECT_STATE.md`
 "다음 작업"에도 적어 둠).

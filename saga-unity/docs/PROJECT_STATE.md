@@ -5,6 +5,44 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 8장 "실제 3D 에셋" 둘째 조각 — 환경/건물 GLB 도입 (2026-09-12).**
+  캐릭터 GLB 다음으로 이어서(같은 세션, 사용자 "이어서 환경/건물 GLB도
+  진행해") — 44~49장 자산 우선순위(Player→주요 Enemy→Boss→Environment→
+  Building→...)대로 다음 칸을 채웠다. 자세한 표는 `docs/ASSET_GUIDE.md`
+  참고, 여기는 요약만.
+  - saga-godot이 이미 받아 둔 Kenney Nature Kit(나무·바위)·Fantasy Town
+    Kit(마을집 벽/지붕·폐허 기둥·다리)·Modular Cave Kit(굴 입구)를 그대로
+    재사용. saga-godot의 실측표를 신뢰해 재실측 없이 스케일을 그대로
+    가져다 썼다(같은 TileSize=48이라 유효) — 도입 후 한 번 재확인만 함
+    (100% 일치).
+  - `VegetationBuilder.cs` — 예전엔 나무·바위를 정점 단위로 직접 베이크해
+    하나의 결합 메시로 묶었는데(draw call 절약 목적), 이번에 진짜 GLB
+    개체를 하나씩 인스턴스화하는 방식으로 바꿨다 — 이미 있는
+    `GameBootstrap.CombineStaticBatches()`(PLAN.md 76장, static 오브젝트를
+    같은 머티리얼끼리 자동으로 묶는 Unity 표준 기능)가 그대로 이 역할을
+    대신해 줘서, 손으로 정점을 합칠 필요가 없어졌다(UV·텍스처도 그대로
+    산다는 덤). GLB를 못 찾으면 예전 결합 메시 방식 그대로 폴백 —
+    두 경로 다 같은 파일 안에 남겨 뒀다.
+  - `LandmarksBuilder.cs` — 굴 입구(gate-rock)·마을집 벽(wall-block)·
+    지붕(roof-gable)·폐허 기둥 3개(pillar-stone)·다리 널판 44개(planks)
+    교체. **산신당('S' 타일)은 이번엔 안 바꿨다** — 기둥 4개만
+    pillar-stone으로 바꾸고 받침대는 primitive로 남김(altar-stone.glb는
+    지금 구조와 형태가 많이 달라 다시 설계해야 함, ASSET_GUIDE.md 참고).
+  - **GLB엔 물리 콜라이더가 없어서**(glTF 포맷 자체가 안 담음) 굴 입구·
+    마을집 벽·기둥류는 실측 로컬 AABB 그대로 BoxCollider/CapsuleCollider를
+    코드로 직접 얹었다.
+  - 두 파일 다 어차피 다시 쓰는 김에 `transform.childCount > 0`이면
+    건너뛰는 Awake 중복 생성 방어(캐릭터 GLB 때 발견한 것과 같은 패턴)를
+    추가했다.
+  - **검증** — 씬 재빌드 후 오브젝트 개수를 지도 데이터에서 직접 셈해
+    맞춰 봤다: 숲 'T' 타일 15개×3그루=나무 45그루, 산 '^' 타일 48개×1=
+    바위 48개, 다리 44m/1m=널판 44개, 굴 입구 1개·벽 2채·지붕 2채·폐허
+    기둥 3개·산신당 기둥 4개 — 전부 씬 파일에서 정확히 일치 확인(추측이
+    아니라 실제로 셈). 컴파일·씬 재빌드(`groundVerts=6336` 그대로 — 땅은
+    안 바뀜)·PlaytestHeadless(`OK - 10 frames, no errors`, static 배칭
+    호출도 에러 없이 통과) 전부 통과. **실제로 화면에서 자연스러워
+    보이는지(텍스처 이음새, 다리 널판 사이 틈, 지붕 비례, 바위 크기감)는
+    사람이 직접 봐야 확인됨.**
 - **PLAN.md 8장 "실제 3D 에셋" 첫 조각 — 캐릭터 GLB 도입 (2026-09-12).**
   소(cow) 다음으로 이어서(같은 세션, 사용자가 "캐릭터 디자인은 아직이지?"
   로 확인 후 "플랜 순서대로 다 진행해"로 지시) — 지금까지 플레이어·NPC·
@@ -600,29 +638,26 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   ExponentialSquared 밀도 방식이라(아래 병합 정리 항목 참고) "거리"
   숫자가 아니라 밀도가 새 지도 크기에 맞는지를 사람이 GUI 확인할 때
   같이 볼 것.
-- **Awake() 중복 생성 의심 — 나머지 6곳.** 캐릭터 GLB 교체 때
-  `NpcBuilder.cs`·`BanditEncounter.cs`에서 고친 것과 같은 패턴(Awake가
-  조건 없이 Build()를 다시 불러 실제 Play 때 시각 오브젝트가 두 벌
-  겹칠 수 있는 문제)이 `AnimalBuilder.cs`·`RareWolfEncounter.cs`·
+- **Awake() 중복 생성 의심 — 나머지 4곳.** 캐릭터·환경/건물 GLB 교체
+  때 `NpcBuilder.cs`·`BanditEncounter.cs`·`VegetationBuilder.cs`·
+  `LandmarksBuilder.cs` 넷은 같은 방어(`Build()` 전에 기존 자식 유무
+  확인)를 넣었다. **`AnimalBuilder.cs`·`RareWolfEncounter.cs`·
   `HiddenTreasure.cs`·`MountainShrine.cs`·`EastGroveRelic.cs`·
-  `LuckyCairn.cs`에도 있어 보인다(전부 `transform.Find` 등으로 기존
-  자식 유무를 확인 안 하고 바로 Build() 호출). `Gatherable.cs`만
-  원래부터 방어가 있었다. 한 번에 다 훑어 같은 가드를 넣는 작은
-  정리 작업으로 다음에 처리할 것 — 사람이 GUI로 처음 플레이해서
-  동물·보물·산신당 등이 두 개씩 겹쳐 보이는지 먼저 확인해 보는 것도
-  방법(실제로 겹치는지 아직 실측 안 함, 코드 패턴만 보고 의심하는
-  단계).
+  `LuckyCairn.cs`엔 아직 없다**(무조건 `Build()`) — `Gatherable.cs`만
+  원래부터 방어가 있었다. 한 번에 다 훑어 같은 가드를 넣는 작은 정리
+  작업으로 다음에 처리할 것 — 사람이 GUI로 처음 플레이해서 동물·보물·
+  산신당 등이 두 개씩 겹쳐 보이는지 먼저 확인해 보는 것도 방법(실제로
+  겹치는지 아직 실측 안 함, 코드 패턴만 보고 의심하는 단계).
 - **PLAN.md 8장 에셋 도입 다음 후보(우선순위 44~49장: Player→주요
   Enemy→Boss→Environment→Building→Vegetation→Props→Animals→VFX).**
-  캐릭터(최우선) 다음은 흰 늑대(RareWolfEncounter, 지금은 primitive)—
-  다만 saga-godot도 어울리는 동물 GLB가 없어 동물류는 전부 primitive로
-  남겨 뒀다(`saga-godot/docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 참고,
-  CC0 동물 킷을 새로 받아야 함). 그다음은 Environment/Building —
-  saga-godot이 이미 받아 둔 Nature Kit(나무·바위)·Fantasy Town Kit
-  (마을집·폐허·다리)·Modular Cave Kit(굴 입구)·Graveyard Kit(사당
-  제단) GLB도 전부 같은 방식(복사+실측+`CharacterVisual.cs`와 비슷한
-  공용 스케일/배치 로직)으로 saga-unity에 옮길 수 있다 — 다음 세션이
-  이어갈 것.
+  캐릭터(완료)·Environment/Building(완료, 위 "완료 단계" 참고) 다음은
+  Animals(사슴·소·흰 늑대, 지금 전부 primitive) — 다만 saga-godot도
+  어울리는 동물 GLB가 없어 동물류는 전부 primitive로 남겨 뒀다
+  (`saga-godot/docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 참고, CC0 동물
+  킷을 새로 받아야 함). 그 외 남은 것: **산신당 재설계**(altar-stone.glb
+  도입, `docs/ASSET_GUIDE.md` "환경/건물 GLB" 절 참고 — 지금 구조와
+  형태가 달라 다음 조각으로 미뤄 둠), Props(VFX 앞 단계, 아직 대상
+  없음).
 - **GO 콘텐츠 다양화 다음 후보.** PLAN.md 24~27장 이벤트 종류 중 "랜덤
   이벤트"는 성황당 돌무더기(LuckyCairn, 위 "완료 단계")로 채웠다 —
   **"시간" 이벤트(특정 시간대에만 나오는 것)는 아직 없다**(하루 일과·
@@ -738,6 +773,14 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     배역이 색조로 구별되는지(상인·나그네는 같은 모델이라 색만 다름),
     산적 강타 텔레그래프 때 주황으로 물들었다 원래 색으로 돌아오는지,
     강타 스케일 연출 때 비율이 안 찌그러지는지
+  - **환경/건물 GLB(나무·바위·굴 입구·마을집·폐허 기둥·다리)가 실제로
+    자연스러운지** — 나무·바위가 텍스처와 함께 제대로 보이는지(폴백
+    단색 primitive가 아니라 실제 GLB로 나온다는 뜻), 마을집 벽·지붕
+    비례가 어색하지 않은지(지붕이 균일 ×10이라 뾰족하게 커 보일 수
+    있음 — 실제로 봤을 때 너무 크면 스케일 조정 필요), 다리 널판
+    44개가 이음새 없이 이어져 보이는지, 폐허 기둥·산신당 기둥이
+    가늘어 보이지 않는지(pillar-stone은 원래 얇은 기둥이라 의도된
+    모습일 수 있음)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
@@ -764,6 +807,20 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   중 사용자가 고르는 대로 이어가거나, 여기까지 쌓인 걸 사람이 먼저
   직접 플레이해 GUI 확인 목록을 하나씩 지워 나갈 수도 있다 — 둘 다
   유효한 다음 수, PLAN.md를 다시 훑어 정할 것.
+- **2026-09-12 후속 세션(같은 날, 사용자가 "이어해"로 계속) — 여기서
+  멈췄다.** 위 항목 이후로 GO 콘텐츠 다양화(동물 Group 재배치·나그네
+  NPC)까지 마친 다른 세션 뒤를 이어, 이번 세션은 캐릭터 디자인 여부를
+  사용자가 물어본 걸 계기로 **PLAN.md 8장 "실제 3D 에셋" 도입**을
+  시작했다 — 캐릭터 GLB(플레이어·촌장·상인·나그네·산적) + 환경/건물
+  GLB(나무·바위·굴 입구·마을집·폐허·다리)까지 두 조각을 끝냈다(위
+  "완료 단계" 참고). 사용자가 "완료하면 새 세션에서 이어하자"로 끊어
+  여기서 멈춘다. **다음 세션이 볼 것**: (1) 이번에 쌓인 GUI 확인
+  목록(캐릭터·환경/건물 항목이 새로 늘었다, 위 체크리스트 참고) —
+  사람이 직접 플레이해 눈으로 확인하는 게 제일 먼저 할 만한 일,
+  (2) Awake() 중복 생성 의심 나머지 4곳 정리(위 "다음 작업" 참고),
+  (3) 산신당 재설계(altar-stone.glb), (4) 남은 자산 우선순위(Animals·
+  Props·VFX) 또는 51~65장 다음 게임(DUNGEON) 착수 — PLAN.md를 다시
+  훑어 정할 것.
 
 ## 알려진 오류
 
@@ -915,3 +972,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과 — 이번엔
   Awake 가드 분기(`transform.Find("Visual") != null`)가 실제 Play
   진입으로 한 번 지나가는 것까지 확인됨.
+- 환경/건물 GLB 도입(VegetationBuilder.cs를 결합 메시 베이크→GLB
+  인스턴스화로 재작성 + LandmarksBuilder.cs의 굴 입구/벽/지붕/폐허 기둥/
+  다리 교체 + 콜라이더 수동 추가 + Awake 중복 생성 방어) 후 컴파일 통과,
+  씬 재빌드(`groundVerts=6336` 그대로 — 땅은 안 바뀜)에서 나무 45·바위
+  48·다리 널판 44·굴 입구 1·벽 2·지붕 2·폐허 기둥 3·산신당 기둥 4를
+  지도 데이터에서 직접 셈한 값과 정확히 대조해 확인, PlaytestHeadless
+  (`OK - 10 frames, no errors`, static 배칭 호출도 에러 없음)도 통과.
