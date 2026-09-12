@@ -1,0 +1,127 @@
+extends Node3D
+
+## VERTICAL_SLICE_FOREST.md 4절 "제외" 목록 1번 착수 — 나무 이외 채집
+## 대상(소나무·바위·꽃) + 진짜 하루 1회 리셋(day 시스템, ForestDay.gd).
+## 웹판 data-village.js PROPS 그대로: 넷 다 reset:1이다(낚시터만 reset:0
+## — 그건 "제외" 목록 2번, 이번 범위 밖).
+##
+## 이전 슬라이스의 gatherable_tree.gd(나무 하나, 무제한 흔들기 프로토타입)를
+## 대체한다 — 여러 채집 대상을 데이터 배열 하나로 두고 한 스크립트가 전부
+## 만든다(villager_builder.gd의 VILLAGERS 배열과 같은 패턴).
+##
+## 1절 결정(구면 투영)에 따라 이 채집물들도 땅과 같은 곡률 머티리얼을
+## 쓴다. 소나무는 새 GLB를 안 구하고 tree_oak.glb를 재사용하되
+## tint_color로 살짝 푸르스름하게 튼다(44장 "에셋은 무작정 많이 넣지
+## 않는다") — 바위는 GO가 이미 쓰는 rock_largeA.glb를 그대로. 꽃은 어울리는
+## CC0 GLB가 없어 primitive(작은 구)로 표시한다(waterfall 물웅덩이 등
+## 이 저장소가 이미 쓰는 "적당한 에셋이 없으면 primitive" 예외와 같은 결).
+
+const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
+const TerrainBuilder := preload("res://games/saga_forest/world/forest_terrain_builder.gd")
+const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
+const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
+
+const CURVE_AMOUNT := 0.004
+const GATHER_RADIUS := 3.5
+
+const DEFS := [
+	{"id": "gather_tree", "name": "나무", "hint": "흔든다", "item_label": "과일",
+	 "grid": Vector2i(19, 7), "glb": "res://assets/vegetation/tree_oak.glb",
+	 "scale": 4.5, "tint": Color(1, 1, 1), "trunk_radius": 0.4, "trunk_height": 3.0},
+	{"id": "gather_pine", "name": "소나무", "hint": "흔든다", "item_label": "솔방울",
+	 "grid": Vector2i(9, 12), "glb": "res://assets/vegetation/tree_oak.glb",
+	 "scale": 3.6, "tint": Color(0.72, 0.84, 0.95), "trunk_radius": 0.4, "trunk_height": 3.0},
+	{"id": "gather_rock", "name": "바위", "hint": "캔다", "item_label": "광석",
+	 "grid": Vector2i(22, 12), "glb": "res://assets/rocks/rock_largeA.glb",
+	 "scale": 3.0, "tint": Color(1, 1, 1), "trunk_radius": 0.0, "trunk_height": 0.0},
+	{"id": "gather_flower", "name": "꽃", "hint": "꺾는다", "item_label": "꽃",
+	 "grid": Vector2i(9, 5), "glb": "", "scale": 1.0,
+	 "tint": Color(1, 0.55, 0.72), "trunk_radius": 0.0, "trunk_height": 0.0},
+]
+
+var _in_range: Dictionary = {}  # id(String) -> bool
+
+
+func _ready() -> void:
+	for d: Dictionary in DEFS:
+		_build(d)
+
+
+func _build(d: Dictionary) -> void:
+	var ground: float = TerrainBuilder.LEGEND["."].height
+	var root := Node3D.new()
+	root.name = "Gather_%s" % d.id
+	root.position = ForestMap.world_pos(d.grid.x, d.grid.y) + Vector3(0, ground, 0)
+	add_child(root)
+
+	var mesh: Mesh = GLBUtils.extract_mesh(d.glb) if d.glb != "" else null
+	var mi := MeshInstance3D.new()
+	mi.name = "Visual"
+	if mesh != null:
+		mi.mesh = mesh
+		mi.scale = Vector3.ONE * float(d.scale)
+		mi.material_override = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.95, d.tint)
+	else:
+		var sphere := SphereMesh.new()
+		sphere.radius = 0.5
+		sphere.height = 1.0
+		mi.mesh = sphere
+		mi.position = Vector3(0, 0.5, 0)
+		mi.material_override = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.6, d.tint)
+	root.add_child(mi)
+
+	if float(d.trunk_radius) > 0.0:
+		var trunk := StaticBody3D.new()
+		trunk.name = "Trunk"
+		var cs := CollisionShape3D.new()
+		var shape := CylinderShape3D.new()
+		shape.radius = d.trunk_radius
+		shape.height = d.trunk_height
+		cs.shape = shape
+		cs.position = Vector3(0, d.trunk_height * 0.5, 0)
+		trunk.add_child(cs)
+		root.add_child(trunk)
+
+	var area := Area3D.new()
+	area.name = "GatherArea"
+	var area_cs := CollisionShape3D.new()
+	var area_shape := SphereShape3D.new()
+	area_shape.radius = GATHER_RADIUS
+	area_cs.shape = area_shape
+	area.add_child(area_cs)
+	root.add_child(area)
+
+	_in_range[d.id] = false
+	area.body_entered.connect(_on_entered.bind(d))
+	area.body_exited.connect(_on_exited.bind(d))
+
+
+func _process(_delta: float) -> void:
+	for d: Dictionary in DEFS:
+		if _in_range.get(d.id, false) and Input.is_action_just_pressed("forest_gather"):
+			_gather(d)
+
+
+func _on_entered(body: Node3D, d: Dictionary) -> void:
+	if not body.is_in_group("player"):
+		return
+	_in_range[d.id] = true
+	if ForestSaveState.can_gather(d.id):
+		Toast.show(self, "[G] %s를 %s" % [d.name, d.hint], 2.0)
+	else:
+		Toast.show(self, "%s — 오늘 몫은 이미 다 썼다." % d.name, 2.0)
+
+
+func _on_exited(body: Node3D, d: Dictionary) -> void:
+	if body.is_in_group("player"):
+		_in_range[d.id] = false
+
+
+func _gather(d: Dictionary) -> void:
+	if not ForestSaveState.can_gather(d.id):
+		Toast.show(self, "%s — 오늘 몫은 이미 다 썼다." % d.name, 2.0)
+		return
+	ForestSaveState.mark_gathered(d.id)
+	ForestSaveState.add_item(d.item_label, 1)
+	Toast.show(self, "%s(을)를 %s — %s +1" % [d.name, d.hint, d.item_label], 2.5)

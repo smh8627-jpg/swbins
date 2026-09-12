@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://games/saga_forest/world/forest_vegetation_builder.gd" id="5"]
 [ext_resource type="Script" path="res://games/saga_forest/world/forest_house.gd" id="6"]
 [ext_resource type="Script" path="res://games/saga_forest/world/villager_builder.gd" id="7"]
-[ext_resource type="Script" path="res://games/saga_forest/world/gatherable_tree.gd" id="8"]
+[ext_resource type="Script" path="res://games/saga_forest/world/gatherable_builder.gd" id="8"]
 [ext_resource type="PackedScene" path="res://games/saga_forest/player/ForestPlayer.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://games/saga_forest/ui/ForestHUD.tscn" id="10"]
 
@@ -35,7 +35,7 @@ script = ExtResource("6")
 [node name="Villager" type="Node3D" parent="."]
 script = ExtResource("7")
 
-[node name="GatherableTree" type="Node3D" parent="."]
+[node name="Gatherables" type="Node3D" parent="."]
 script = ExtResource("8")
 
 [node name="ReviewCamera" type="Camera3D" parent="."]

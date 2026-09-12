@@ -2854,3 +2854,58 @@ saga-godot 트랙에도 확장한다. PLAN.md 5장 "역사 인물로 노는" 정
     순무 시세·꽃 교배·계절행사·옷·바이옴 다양성·몬스터). PLAN.md 100단계
     Vertical Slice 승인 게이트는 위 GUI 실기 확인이 끝나야 통과할 수
     있다(GO·DUNGEON과 같은 순서).
+  - **사용자가 "실기로 직접 확인해볼게 다음거 진행해"로 응답** — 위 GUI
+    확인 목록은 사용자가 알아서 확인할 것이므로 재촉하지 않는다(루트
+    CLAUDE.md "실기 확인은 몰아서" 방침 그대로). "다음거"로 아래 제외
+    목록 1번을 이어서 구현했다.
+
+## 완료 단계 (추가, 2026-09-12㉘) — FOREST "제외" 목록 1번: 나무 이외 채집 대상 + 진짜 하루 1회 리셋
+
+- **DUNGEON이 "제외" 목록을 번호 순서대로 밟은 것과 같은 방식으로 FOREST도
+  이어간다.** 1번(나무 이외 채집 대상 + day 시스템)을 구현 — 첫 슬라이스는
+  나무 하나·무제한 흔들기였던 프로토타입을 실제 웹판 규칙(하루 1회 리셋,
+  나무 외 세 종류)으로 승격했다.
+  - `games/saga_forest/data/forest_day.gd`(신규, `class_name ForestDay`) —
+    웹판 `village.js`의 `today()`/`rollDay()` 조사 결과, 채집물의 "하루 1회"
+    리셋(`data-village.js` PROPS의 `reset:1`)은 **게임 내 가속 시계가
+    아니라 실제 달력 날짜** 기준이었다(`new Date().getTimezoneOffset()`로
+    그 지역 자정을 계산). Godot는 `Time.get_datetime_dict_from_system(false)`
+    가 이미 로컬 달력 날짜를 주므로 `year*10000+month*100+day` 정수 하나로
+    충분 — GO의 `weather.gd`/`time_of_day.gd`와 같은 이유로 `force()`도 뒀다
+    (안 그러면 헤드리스 검증 결과가 실행 시각에 따라 달라진다).
+  - `games/saga_forest/data/forest_save_state.gd` 스키마 교체
+    (SAVE_VERSION 1→2, GO/DUNGEON과 같은 기준 — 필드가 추가만 되면 버전을
+    안 올리지만 이건 `fruit_count`(int) → `items`(Dictionary) + `used`
+    (Dictionary, prop_id→day_key) 로 모양 자체가 바뀌는 진짜 변경이다).
+    `_migrate_step(1, ...)`에 옛 `fruit_count`를 `items["과일"]`로 옮기는
+    경로를 채웠다. `can_gather(id)`/`mark_gathered(id)`/`add_item()`/
+    `total_items()` 추가.
+  - `games/saga_forest/world/gatherable_builder.gd`(신규) — 이전 슬라이스의
+    `gatherable_tree.gd`(나무 하나, 무제한)를 대체(`git rm`으로 삭제).
+    `DEFS` 배열 하나로 나무·소나무·바위·꽃 넷을 만든다(villager_builder.gd의
+    `VILLAGERS` 배열과 같은 패턴). 소나무는 새 GLB를 안 구하고
+    `tree_oak.glb`를 재사용하되 새로 추가한 `tint_color` 유니폼(아래
+    참고)으로 살짝 푸르스름하게 튼다, 바위는 GO가 이미 쓰는
+    `rock_largeA.glb`, 꽃은 어울리는 CC0 GLB가 없어 primitive(작은 구)로
+    — 44장 "에셋은 무작정 많이 넣지 않는다".
+  - `saga_core/shaders/curved_vertex_color.gdshader` +
+    `saga_core/world/world_curve_material.gd::vertex_color_material()`에
+    `tint_color`(기본 흰색, `ALBEDO = COLOR.rgb * tint_color`) 추가 — 기존
+    호출부(터레인·산포 나무·NPC)는 기본값이라 안 바뀐다. 같은 메시를 색만
+    바꿔 재사용하고 싶을 때 새 셰이더를 안 짜도 되는 자리를 하나 만들어
+    둔 것.
+  - `games/saga_forest/ui/fruit_label.gd` → `gather_label.gd`로 교체(파일
+    이름도 바꿈, `git rm`+신규) — 이제 여러 채집물을 합산해 보여준다
+    (`ForestSaveState.total_items()`).
+  - **검증(헤드리스)** — `--headless --editor --quit`(임포트, `ForestDay`
+    전역 클래스 인식 확인) → `TestVillageForest.tscn`을 `--quit-after 5
+    --verbose`로 세 번 연속 exit 0·오류 0건. **마이그레이션은 실제
+    파일로 실측** — `user://save_forest.json`에 옛 스키마
+    (`{"version":1,"fruit_count":5}`)를 직접 써 넣고 불러와 `items=
+    {"과일":5}`·`used={}`로 정확히 바뀌는 것을 확인(임시 디버그 프린트,
+    검증 뒤 원상복구). **day 리셋 로직도 값으로 직접 확인** —
+    `ForestDay.force()`로 하루 강제 → `can_gather("t")`=true →
+    `mark_gathered("t")` → 같은 날 `can_gather`=false → 다음 날로 force →
+    다시 true, 셋 다 기대값과 일치(임시 디버그, 검증 뒤 원상복구). GO·
+    DUNGEON 회귀 없음도 재확인. 테스트에 쓴 `save_forest.json`은 지웠다.
+  - **다음 이어질 것** — "제외" 목록 2번(낚시, 별도 미니게임)부터 순서대로.

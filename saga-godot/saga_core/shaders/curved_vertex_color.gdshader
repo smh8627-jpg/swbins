@@ -12,12 +12,17 @@ render_mode blend_mix, cull_back, diffuse_burley, specular_schlick_ggx;
 
 uniform float curve_amount : hint_range(0.0, 0.02) = 0.004;
 uniform float roughness_value : hint_range(0.0, 1.0) = 0.95;
+// 같은 메시(예: tree_oak.glb)를 색만 다르게 재사용하고 싶을 때 곱하는 값
+// — 기본 흰색(1,1,1)이면 정점색 그대로다. 소나무가 나무 GLB를 재사용하되
+// 살짝 푸르스름하게 보이는 것처럼(games/saga_forest/world/gatherable_builder.gd
+// 참고), 새 메시를 안 구하고 톤만 바꿀 때 쓴다.
+uniform vec3 tint_color : source_color = vec3(1.0);
 
 void vertex() {
 	VERTEX = saga_apply_world_curve(VERTEX, MODEL_MATRIX, curve_amount);
 }
 
 void fragment() {
-	ALBEDO = COLOR.rgb;
+	ALBEDO = COLOR.rgb * tint_color;
 	ROUGHNESS = roughness_value;
 }

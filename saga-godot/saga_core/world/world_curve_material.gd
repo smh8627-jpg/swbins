@@ -38,12 +38,14 @@ static func update_center(center: Vector3) -> void:
 	RenderingServer.global_shader_parameter_set(GLOBAL_PARAM_NAME, center)
 
 
-static func vertex_color_material(curve_amount: float, roughness_value: float = 0.95) -> ShaderMaterial:
+static func vertex_color_material(curve_amount: float, roughness_value: float = 0.95,
+		tint_color: Color = Color(1, 1, 1)) -> ShaderMaterial:
 	ensure_global_registered()
 	var mat := ShaderMaterial.new()
 	mat.shader = VERTEX_COLOR_SHADER
 	mat.set_shader_parameter("curve_amount", curve_amount)
 	mat.set_shader_parameter("roughness_value", roughness_value)
+	mat.set_shader_parameter("tint_color", tint_color)
 	return mat
 
 
