@@ -17,6 +17,28 @@ namespace Saga.Dungeon.World
     /// 방 넷(숲·늪·산·사당, `DungeonRoomBuilder.cs`)에 못 들어간 나머지
     /// 하나를 여기 배정한 것 — 좁은 통로(3m)엔 소품을 안 둔다(길 막힘
     /// 방지, 색 톤만 바뀐다).
+    ///
+    /// "환경/건물 GLB" 슬라이스 — CC0 Kenney Modular Cave Kit(SagaGo가
+    /// 이미 쓰는 킷, `saga-godot/assets/dungeon/corridor.glb` 그대로
+    /// 복사, `docs/ASSET_GUIDE.md` 실측 4.0×4.05×4.0, 바닥 중앙 피벗)를
+    /// `corridorModel`이 채워져 있으면 순수 시각용으로 두 장 이어 붙인다
+    /// (`Length`(8)가 타일 깊이(4.0)의 정확히 2배라 Z축은 전혀 안
+    /// 늘림 — 폭만 DoorWidth(3)/4.0=0.75로 살짝 줄임, `LandmarksBuilder
+    /// .cs`의 "굴곡 있는 조각은 균일 스케일만" 원칙과 달리 이 타일은
+    /// 밋밋한 통로 박스라 축소 정도의 비균등 스케일은 감수). **GLB
+    /// 자체엔 콜라이더가 없다**(saga-godot `test_room.gd` 주석과 같은
+    /// 이유) — 기존 primitive Floor/SideWalls를 그대로 두고 렌더러만
+    /// 꺼서 보이지 않는 충돌체로 남긴다(saga-godot의 StaticBody3D 분리
+    /// 방식과 같은 결). `corridorModel`이 없으면(다른 PC에 에셋이 아직
+    /// 없는 경우) 예전처럼 primitive 색상 그대로 보인다 — 씬이 안 깨짐.
+    /// **room-small.glb(방 셸)는 이번 슬라이스에서 안 씀** — 실측
+    /// 12×4.4×12가 이 프로젝트 방 크기(20×14×4)와 비율이 많이 달라
+    /// (X 1.667배·Z 1.167배·Y 0.909배로 축이 제각각) 비균등 스케일 시
+    /// 벽 질감이 뚜렷하게 뒤틀릴 걸로 보임 — 방 치수를 GLB에 맞추는
+    /// 재설계(saga-godot `test_room.gd`가 택한 길, 스케일 없이 12×12
+    /// 그대로 씀)는 이미 있는 방 넷의 모든 스폰 좌표를 다시 잡아야
+    /// 하는 파급 큰 작업이라 다음 슬라이스로 미룸(VERTICAL_SLICE_DUNGEON
+    /// .md "다음 슬라이스 후보" 갱신 참고).
     /// </summary>
     public class DungeonCorridorBuilder : MonoBehaviour
     {
@@ -31,6 +53,13 @@ namespace Saga.Dungeon.World
         private static readonly Color RuinsWallColor = new Color(0.20f, 0.18f, 0.16f);
 
         [SerializeField] private SagaBiome biome = SagaBiome.None;
+
+        // corridor.glb — 실측 4.0×4.05×4.0(바닥 중앙 피벗), BuildTestDungeonScene.cs가
+        // AssetDatabase로 채워 준다(런타임 Awake()는 그 API를 못 씀).
+        [SerializeField] private GameObject corridorModel;
+        private const float CorridorModelWidth = 4.0f;
+        private const float CorridorModelHeight = 4.05f;
+        private const float CorridorModelDepth = 4.0f;
 
         /// <summary>복도 길이(z축) — 두 방의 벽 바깥면 사이 거리는
         /// BuildTestDungeonScene.cs가 방 간격을 잡을 때 이 값을 그대로
@@ -47,6 +76,7 @@ namespace Saga.Dungeon.World
         {
             BuildFloor();
             BuildSideWalls();
+            BuildVisualModel();
             MarkStatic();
         }
 
@@ -68,7 +98,9 @@ namespace Saga.Dungeon.World
             floor.transform.SetParent(transform, false);
             floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             floor.transform.localScale = new Vector3(DoorWidth, 1f, Length);
-            floor.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(Colors().floor);
+            var renderer = floor.GetComponent<MeshRenderer>();
+            if (corridorModel != null) renderer.enabled = false; // GLB가 보여줄 자리 — 콜라이더만 남김.
+            else renderer.sharedMaterial = MakeMaterial(Colors().floor);
         }
 
         private void BuildSideWalls()
@@ -88,7 +120,32 @@ namespace Saga.Dungeon.World
             wall.transform.SetParent(transform, false);
             wall.transform.localPosition = pos;
             wall.transform.localScale = size;
-            wall.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(color);
+            var renderer = wall.GetComponent<MeshRenderer>();
+            if (corridorModel != null) renderer.enabled = false; // GLB가 보여줄 자리 — 콜라이더만 남김.
+            else renderer.sharedMaterial = MakeMaterial(color);
+        }
+
+        /// <summary>corridor.glb 타일 두 장을 이어 붙인다(위 클래스 주석 —
+        /// Length(8)가 타일 깊이(4.0)의 정확히 2배). 비어 있으면 아무 것도
+        /// 안 함(위 BuildFloor/BuildSideWalls가 이미 예전 색을 보여줌).</summary>
+        private void BuildVisualModel()
+        {
+            if (corridorModel == null) return;
+
+            float scaleX = DoorWidth / CorridorModelWidth;
+            float scaleY = WallHeight / CorridorModelHeight;
+            var scale = new Vector3(scaleX, scaleY, 1f); // Z는 타일 원본 그대로(늘리지 않음)
+            var tint = Colors().wall; // 통로 전체를 한 톤으로(폐허 색, 방과 달리 성격 하나뿐)
+
+            for (int i = 0; i < 2; i++)
+            {
+                float tileCenterZ = -Length * 0.5f + CorridorModelDepth * (i + 0.5f);
+                var tile = Object.Instantiate(corridorModel, transform, false);
+                tile.name = $"Tile_{i + 1}";
+                tile.transform.localPosition = new Vector3(0f, 0f, tileCenterZ);
+                tile.transform.localScale = scale;
+                CharacterVisual.Tint(tile, tint);
+            }
         }
 
         private static Material MakeMaterial(Color color)

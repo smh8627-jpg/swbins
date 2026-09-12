@@ -19,6 +19,16 @@ namespace Saga.Dungeon.World
     /// `BuildTestDungeonScene.cs`가 다른 필드들과 같은 결(`SetPrivateField`)
     /// 로 방마다 배정한다(Room1=숲·Room2=늪·Room3=산·Room4=사당 — 방 안
     /// 콘텐츠와 어울리게 고른 배정, 근거는 그 파일 주석 참고).
+    ///
+    /// "환경/건물 GLB" 슬라이스 — 문(OpenNorthDoor/OpenSouthDoor)이
+    /// 뚫릴 때 `gateModel`(CC0 Kenney Modular Cave Kit `gate.glb`,
+    /// SagaGo가 이미 쓰는 킷 재사용, 실측 4.4×4.4×1.4 바닥 중앙 피벗)이
+    /// 채워져 있으면 그 문 폭(3m)에 맞춰 X만 축소(3/4.4=0.682)해 아치를
+    /// 세운다 — "아치는 앞뒤 대칭이라 방향 안 따짐"(saga-godot
+    /// `test_room.gd` 주석과 같은 결). 문은 실제로 지나다니는 자리라
+    /// 콜라이더는 안 붙인다(반대로 `DungeonCorridorBuilder.cs`의
+    /// `corridorModel`처럼 방 몸체(room-small.glb)는 이번 슬라이스에서
+    /// 안 씀 — 그 파일 클래스 주석에 이유 적어 둠).
     /// </summary>
     public class DungeonRoomBuilder : MonoBehaviour
     {
@@ -35,6 +45,11 @@ namespace Saga.Dungeon.World
         // 소품(BuildDecor) 클러스터 중심 — 기존 방 콘텐츠(적·상자·행상 등)와
         // 안 겹치는 빈 구석을 방마다 BuildTestDungeonScene.cs가 따로 잡는다.
         [SerializeField] private Vector3 decorOffset = new Vector3(-8f, 0f, 5f);
+
+        // gate.glb — 실측 4.4×4.4×1.4(바닥 중앙 피벗), BuildTestDungeonScene.cs가
+        // AssetDatabase로 채워 준다(런타임 Awake()는 그 API를 못 씀).
+        [SerializeField] private GameObject gateModel;
+        private const float GateModelWidth = 4.4f;
 
         private void Awake()
         {
@@ -247,7 +262,21 @@ namespace Saga.Dungeon.World
             SpawnWall(wallName + "_W", new Vector3(pos.x - offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z), wallColor);
             SpawnWall(wallName + "_E", new Vector3(pos.x + offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z), wallColor);
 
+            BuildGateArch(wallName, new Vector3(pos.x, 0f, pos.z), doorWidth);
+
             MarkStatic();
+        }
+
+        /// <summary>"환경/건물 GLB" — 문 자리에 gate.glb 아치를 세운다(위
+        /// 클래스 주석 참고). 콜라이더 없음 — 실제로 지나다니는 자리.</summary>
+        private void BuildGateArch(string wallName, Vector3 doorFloorPos, float doorWidth)
+        {
+            if (gateModel == null) return;
+
+            var gate = Object.Instantiate(gateModel, transform, false);
+            gate.name = wallName + "_Gate";
+            gate.transform.localPosition = doorFloorPos;
+            gate.transform.localScale = new Vector3(doorWidth / GateModelWidth, 1f, 1f);
         }
 
         private void SpawnWall(string name, Vector3 pos, Vector3 size, Color color)
