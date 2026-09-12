@@ -200,6 +200,11 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Room");
             var builder = go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 황건적 소굴은 웹판 THEME_BIAS의 '산채(山寨)'
+            // (forest 1.8 가중치)와 같은 결이라 숲으로 잡음. 우물(-2,5)·
+            // 상자(-2,-5)·성소(-8,-4)·잡졸·두목과 안 겹치는 NW 빈 구석.
+            SetPrivateField(builder, "biome", SagaBiome.Forest);
+            SetPrivateField(builder, "decorOffset", new Vector3(-8f, 0f, 5f));
             builder.Build();
             builder.OpenNorthDoor(DoorWidth); // "오픈월드/필드" 슬라이스 — 복도로 Room2와 잇는다.
             return go;
@@ -212,11 +217,17 @@ namespace Saga.EditorTools
         {
             var corridorGo = new GameObject("Corridor");
             corridorGo.transform.position = CorridorCenter;
-            corridorGo.AddComponent<DungeonCorridorBuilder>().Build();
+            var corridorBuilder = corridorGo.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridorBuilder, "biome", SagaBiome.Ruins); // "바이옴 5종" — 복도 셋은 전부 폐허
+            corridorBuilder.Build();
 
             var room2Go = new GameObject("Room2");
             room2Go.transform.position = Room2Center;
             var room2Builder = room2Go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 오픈월드/필드 방은 늪으로 잡음(필드 잡졸(0,2)·
+            // (-4,-2)·행상(3,-3)과 안 겹치는 NE 빈 구석).
+            SetPrivateField(room2Builder, "biome", SagaBiome.Swamp);
+            SetPrivateField(room2Builder, "decorOffset", new Vector3(7f, 0f, 5f));
             room2Builder.Build();
             room2Builder.OpenSouthDoor(DoorWidth);
             room2Builder.OpenNorthDoor(DoorWidth); // "방 종류 마지막" — 복도2로 Room3와 잇는다.
@@ -250,11 +261,18 @@ namespace Saga.EditorTools
         {
             var corridor2Go = new GameObject("Corridor2");
             corridor2Go.transform.position = Corridor2Center;
-            corridor2Go.AddComponent<DungeonCorridorBuilder>().Build();
+            var corridor2Builder = corridor2Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor2Builder, "biome", SagaBiome.Ruins);
+            corridor2Builder.Build();
 
             var room3Go = new GameObject("Room3");
             room3Go.transform.position = Room3Center;
             var room3Builder = room3Go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 정예·미니보스·채광방(광산)이 있는 방은 산으로
+            // 잡음. 정예(6,0)·호위(5,±2.5)·미니보스(9,0)·광맥(-6,-4)·
+            // 신규 행상(-8,4)과 안 겹치는 남쪽 빈 자리(문 폭 밖 x=3).
+            SetPrivateField(room3Builder, "biome", SagaBiome.Mountain);
+            SetPrivateField(room3Builder, "decorOffset", new Vector3(3f, 0f, -6f));
             room3Builder.Build();
             room3Builder.OpenSouthDoor(DoorWidth);
             room3Builder.OpenNorthDoor(DoorWidth); // 복도3으로 Room4와 잇는다.
@@ -340,11 +358,18 @@ namespace Saga.EditorTools
         {
             var corridor3Go = new GameObject("Corridor3");
             corridor3Go.transform.position = Corridor3Center;
-            corridor3Go.AddComponent<DungeonCorridorBuilder>().Build();
+            var corridor3Builder = corridor3Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor3Builder, "biome", SagaBiome.Ruins);
+            corridor3Builder.Build();
 
             var room4Go = new GameObject("Room4");
             room4Go.transform.position = Room4Center;
             var room4Builder = room4Go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 퍼즐 제단·구출을 품은 막다른 방은 사당으로
+            // 잡음(제단 셋 = 사당 콘셉트와 그대로 맞음). 구출(6,0)·호위
+            // (5,±2.5)·퍼즐(-5,0)·채집(-2,2)과 안 겹치는 SW 빈 자리.
+            SetPrivateField(room4Builder, "biome", SagaBiome.Shrine);
+            SetPrivateField(room4Builder, "decorOffset", new Vector3(-8f, 0f, -5f));
             room4Builder.Build();
             room4Builder.OpenSouthDoor(DoorWidth);
 

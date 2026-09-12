@@ -12,6 +12,13 @@ namespace Saga.Dungeon.World
     /// `OpenNorthDoor()`/`OpenSouthDoor()`를 따로 불러야 그 방향 벽에
     /// 문이 뚫린다(기본 동작은 안 바뀜 — 기존 첫 방처럼 문이 필요 없는
     /// 호출부는 그대로 완전히 막힌 방을 받는다).
+    ///
+    /// "바이옴 5종" 슬라이스 — `SagaBiome.cs` 참고. `biome`이
+    /// `SagaBiome.None`(기본값)이면 예전 색 그대로(회귀 없음), 채워져
+    /// 있으면 바닥/벽 색과 방 구석 소품(`BuildDecor()`)이 바뀐다.
+    /// `BuildTestDungeonScene.cs`가 다른 필드들과 같은 결(`SetPrivateField`)
+    /// 로 방마다 배정한다(Room1=숲·Room2=늪·Room3=산·Room4=사당 — 방 안
+    /// 콘텐츠와 어울리게 고른 배정, 근거는 그 파일 주석 참고).
     /// </summary>
     public class DungeonRoomBuilder : MonoBehaviour
     {
@@ -20,8 +27,14 @@ namespace Saga.Dungeon.World
         private const float WallHeight = 4f;
         private const float WallThickness = 1f;
 
-        private static readonly Color FloorColor = new Color(0.28f, 0.26f, 0.24f);
-        private static readonly Color WallColor = new Color(0.16f, 0.15f, 0.14f);
+        private static readonly Color NeutralFloorColor = new Color(0.28f, 0.26f, 0.24f);
+        private static readonly Color NeutralWallColor = new Color(0.16f, 0.15f, 0.14f);
+
+        [SerializeField] private SagaBiome biome = SagaBiome.None;
+
+        // 소품(BuildDecor) 클러스터 중심 — 기존 방 콘텐츠(적·상자·행상 등)와
+        // 안 겹치는 빈 구석을 방마다 BuildTestDungeonScene.cs가 따로 잡는다.
+        [SerializeField] private Vector3 decorOffset = new Vector3(-8f, 0f, 5f);
 
         private void Awake()
         {
@@ -38,8 +51,25 @@ namespace Saga.Dungeon.World
         {
             BuildFloor();
             BuildWalls();
+            BuildDecor();
             MarkStatic();
         }
+
+        private (Color floor, Color wall) Colors() => biome switch
+        {
+            // 웹판 THEME_BIAS 색 수치가 없어 새로 잡음(SagaBiome.cs 참고) —
+            // 이끼 낀 바닥·거뭇한 나무껍질 벽.
+            SagaBiome.Forest => (new Color(0.20f, 0.27f, 0.16f), new Color(0.17f, 0.14f, 0.09f)),
+            // 진창 바닥·눅눅한 이끼벽.
+            SagaBiome.Swamp => (new Color(0.16f, 0.23f, 0.20f), new Color(0.13f, 0.17f, 0.16f)),
+            // 회색 암반 바닥·짙은 화강암 벽.
+            SagaBiome.Mountain => (new Color(0.34f, 0.33f, 0.32f), new Color(0.22f, 0.21f, 0.20f)),
+            // 볕에 바랜 석재 바닥·붉은 단청 기둥벽(제단 방 정체성).
+            SagaBiome.Shrine => (new Color(0.36f, 0.30f, 0.20f), new Color(0.30f, 0.18f, 0.15f)),
+            // 무너진 잔해 — 회갈색으로 어둡게.
+            SagaBiome.Ruins => (new Color(0.25f, 0.23f, 0.20f), new Color(0.20f, 0.18f, 0.16f)),
+            _ => (NeutralFloorColor, NeutralWallColor),
+        };
 
         /// <summary>PLAN.md 76장 Mobile Performance Pass — 방은 절대 안
         /// 움직이니 정적 배칭·오클루전 컬링 대상으로 표시한다.</summary>
@@ -58,7 +88,7 @@ namespace Saga.Dungeon.World
             floor.transform.SetParent(transform, false);
             floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             floor.transform.localScale = new Vector3(RoomWidth, 1f, RoomDepth);
-            floor.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(FloorColor);
+            floor.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(Colors().floor);
         }
 
         private void BuildWalls()
@@ -66,15 +96,127 @@ namespace Saga.Dungeon.World
             float halfW = RoomWidth * 0.5f;
             float halfD = RoomDepth * 0.5f;
             float wallY = WallHeight * 0.5f;
+            var wallColor = Colors().wall;
 
             SpawnWall("Wall_North", new Vector3(0f, wallY, halfD + WallThickness * 0.5f),
-                new Vector3(RoomWidth + WallThickness * 2f, WallHeight, WallThickness));
+                new Vector3(RoomWidth + WallThickness * 2f, WallHeight, WallThickness), wallColor);
             SpawnWall("Wall_South", new Vector3(0f, wallY, -halfD - WallThickness * 0.5f),
-                new Vector3(RoomWidth + WallThickness * 2f, WallHeight, WallThickness));
+                new Vector3(RoomWidth + WallThickness * 2f, WallHeight, WallThickness), wallColor);
             SpawnWall("Wall_East", new Vector3(halfW + WallThickness * 0.5f, wallY, 0f),
-                new Vector3(WallThickness, WallHeight, RoomDepth));
+                new Vector3(WallThickness, WallHeight, RoomDepth), wallColor);
             SpawnWall("Wall_West", new Vector3(-halfW - WallThickness * 0.5f, wallY, 0f),
-                new Vector3(WallThickness, WallHeight, RoomDepth));
+                new Vector3(WallThickness, WallHeight, RoomDepth), wallColor);
+        }
+
+        /// <summary>"바이옴 5종" — 방 구석에 성격을 드러내는 소품 클러스터
+        /// 하나(primitive뿐, GLB는 다음 슬라이스). Unity 기본 primitive엔
+        /// 원뿔이 없어 나무는 원기둥(줄기)+구(수관)로 대신한다. 물리
+        /// 충돌·트리거를 안 쓰는 DUNGEON 관례대로 콜라이더는 다 지운다
+        /// (`DungeonTrove.cs`·`DungeonPuzzle.cs`와 같은 결).</summary>
+        private void BuildDecor()
+        {
+            switch (biome)
+            {
+                case SagaBiome.Forest:
+                    BuildTree(decorOffset);
+                    BuildTree(decorOffset + new Vector3(1.3f, 0f, 0.8f));
+                    BuildTree(decorOffset + new Vector3(-1.1f, 0f, 1.1f));
+                    break;
+                case SagaBiome.Swamp:
+                    BuildWaterPatch(decorOffset);
+                    BuildReed(decorOffset + new Vector3(0.6f, 0f, -0.4f));
+                    BuildReed(decorOffset + new Vector3(-0.5f, 0f, 0.5f));
+                    BuildReed(decorOffset + new Vector3(0.2f, 0f, 0.9f));
+                    break;
+                case SagaBiome.Mountain:
+                    BuildRock(decorOffset, 1.1f);
+                    BuildRock(decorOffset + new Vector3(1.2f, 0f, 0.6f), 0.8f);
+                    BuildRock(decorOffset + new Vector3(-0.9f, 0f, 0.7f), 0.7f);
+                    break;
+                case SagaBiome.Shrine:
+                    BuildLantern(decorOffset);
+                    break;
+            }
+        }
+
+        private void BuildTree(Vector3 pos)
+        {
+            var trunk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            trunk.name = "Decor_TreeTrunk";
+            trunk.transform.SetParent(transform, false);
+            trunk.transform.localScale = new Vector3(0.3f, 1.2f, 0.3f);
+            trunk.transform.localPosition = pos + new Vector3(0f, 1.2f, 0f);
+            trunk.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(new Color(0.30f, 0.20f, 0.12f));
+            Object.DestroyImmediate(trunk.GetComponent<Collider>());
+
+            var foliage = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            foliage.name = "Decor_TreeFoliage";
+            foliage.transform.SetParent(transform, false);
+            foliage.transform.localScale = new Vector3(1.6f, 1.6f, 1.6f);
+            foliage.transform.localPosition = pos + new Vector3(0f, 2.6f, 0f);
+            foliage.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(new Color(0.16f, 0.40f, 0.18f));
+            Object.DestroyImmediate(foliage.GetComponent<Collider>());
+        }
+
+        private void BuildWaterPatch(Vector3 pos)
+        {
+            var patch = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            patch.name = "Decor_WaterPatch";
+            patch.transform.SetParent(transform, false);
+            patch.transform.localScale = new Vector3(3.2f, 0.05f, 3.2f);
+            patch.transform.localPosition = pos + new Vector3(0f, -0.44f, 0f); // 바닥보다 살짝 낮게 — 고인 물
+            patch.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(new Color(0.10f, 0.18f, 0.20f));
+            Object.DestroyImmediate(patch.GetComponent<Collider>());
+        }
+
+        private void BuildReed(Vector3 pos)
+        {
+            var reed = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            reed.name = "Decor_Reed";
+            reed.transform.SetParent(transform, false);
+            reed.transform.localScale = new Vector3(0.08f, 0.7f, 0.08f);
+            reed.transform.localPosition = pos + new Vector3(0f, 0.7f, 0f);
+            reed.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(new Color(0.30f, 0.38f, 0.16f));
+            Object.DestroyImmediate(reed.GetComponent<Collider>());
+        }
+
+        private void BuildRock(Vector3 pos, float scale)
+        {
+            var rock = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            rock.name = "Decor_Rock";
+            rock.transform.SetParent(transform, false);
+            rock.transform.localScale = new Vector3(scale * 1.3f, scale * 0.8f, scale);
+            rock.transform.localPosition = pos + new Vector3(0f, scale * 0.4f, 0f);
+            rock.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(new Color(0.42f, 0.41f, 0.40f));
+            Object.DestroyImmediate(rock.GetComponent<Collider>());
+        }
+
+        private void BuildLantern(Vector3 pos)
+        {
+            var baseCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            baseCube.name = "Decor_LanternBase";
+            baseCube.transform.SetParent(transform, false);
+            baseCube.transform.localScale = new Vector3(0.6f, 1.6f, 0.6f);
+            baseCube.transform.localPosition = pos + new Vector3(0f, 0.8f, 0f);
+            baseCube.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(new Color(0.32f, 0.28f, 0.22f));
+            Object.DestroyImmediate(baseCube.GetComponent<Collider>());
+
+            var top = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            top.name = "Decor_LanternTop";
+            top.transform.SetParent(transform, false);
+            top.transform.localScale = new Vector3(0.9f, 0.3f, 0.9f);
+            top.transform.localPosition = pos + new Vector3(0f, 1.75f, 0f);
+            top.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(new Color(0.55f, 0.15f, 0.1f)); // 단청 붉은빛
+            Object.DestroyImmediate(top.GetComponent<Collider>());
+
+            var lightGo = new GameObject("Decor_LanternLight");
+            lightGo.transform.SetParent(transform, false);
+            lightGo.transform.localPosition = pos + new Vector3(0f, 1.9f, 0f);
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.75f, 0.45f);
+            light.range = 6f;
+            light.intensity = 1.5f;
         }
 
         /// <summary>북쪽 벽을 문 폭만큼 갈라 둘로 나눈다 — 편집기 빌드
@@ -101,20 +243,21 @@ namespace Saga.Dungeon.World
             Object.DestroyImmediate(wall.gameObject);
 
             float offset = doorWidth * 0.5f + segWidth * 0.5f;
-            SpawnWall(wallName + "_W", new Vector3(pos.x - offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z));
-            SpawnWall(wallName + "_E", new Vector3(pos.x + offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z));
+            var wallColor = Colors().wall;
+            SpawnWall(wallName + "_W", new Vector3(pos.x - offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z), wallColor);
+            SpawnWall(wallName + "_E", new Vector3(pos.x + offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z), wallColor);
 
             MarkStatic();
         }
 
-        private void SpawnWall(string name, Vector3 pos, Vector3 size)
+        private void SpawnWall(string name, Vector3 pos, Vector3 size, Color color)
         {
             var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
             wall.name = name;
             wall.transform.SetParent(transform, false);
             wall.transform.localPosition = pos;
             wall.transform.localScale = size;
-            wall.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(WallColor);
+            wall.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(color);
         }
 
         private static Material MakeMaterial(Color color)
