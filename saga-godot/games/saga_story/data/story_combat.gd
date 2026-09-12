@@ -28,6 +28,41 @@ const START_HP := 162.0  # 60 + 15*6 + 1*12
 const ENEMY_HP := 18.0
 const ENEMY_DMG := 6.0
 
+## **2026-09-12 추가 — 무예 나머지 셋(횡소·기탄·기합).** VERTICAL_
+## SLICE_STORY.md 1절 "제외" 목록의 "무예 나머지(48-1개)" 중, 무명이
+## 처음부터 갖는 tier0 넷(`data-job.js` SKILLS job:'none') 나머지 셋만
+## 먼저 채운다. cost·cd·mul·buff는 원문 그대로(재해석 없음). `side.js`
+## MP_MAX=100·MP_REGEN=8(core.tuned('side.mpRegen', 8) 기본값) 그대로 —
+## "앉아 쉬면 더 빨리 찬다"(resting 보너스)는 이번엔 안 옮긴다(입력 하나
+## 더 얹는 것보다 "MP가 있어야 쓴다"는 핵심 감각부터 검증한다, 다음에
+## 볼 자리).
+const MP_MAX := 100.0
+const MP_REGEN := 8.0  # 초당
+
+## 횡소(橫掃) — aoe, r:117(px) = REACH(78px)*1.5. ATTACK_RANGE(2.2m,
+## story_player.gd)가 REACH의 자리를 대신하므로 같은 1.5배를 그대로 곱해
+## 미터로 옮긴다(원문 그대로 픽셀을 안 옮기고 "비율만" 지키는 이 포트의
+## 기존 방식과 같다, VERTICAL_SLICE_STORY.md 2절).
+const SWEEP_COST := 18.0
+const SWEEP_CD := 4.0
+const SWEEP_MUL := 1.8
+const SWEEP_RANGE_MUL := 1.5  # story_player.gd ATTACK_RANGE에 곱한다
+
+## 기탄(氣彈) — bolt(관통). 이 슬라이스엔 투사체 이동이 없어(적이 제자리에
+## 서 있다, story_enemy.gd 머리말) "더 멀리 뻗는 관통 공격"으로 재해석 —
+## 사거리만 늘리고(연참의 2배) 판정은 연참과 같은 정면 판정을 그대로 쓴다.
+const BOLT_COST := 24.0
+const BOLT_CD := 6.0
+const BOLT_MUL := 2.1
+const BOLT_RANGE_MUL := 2.0  # story_player.gd ATTACK_RANGE에 곱한다
+
+## 기합(氣合) — buff. sec:8·atk×1.35·speed×1.2 원문 그대로.
+const BRACE_COST := 30.0
+const BRACE_CD := 14.0
+const BRACE_SEC := 8.0
+const BRACE_ATK_MUL := 1.35
+const BRACE_SPEED_MUL := 1.2
+
 static var _hitstop_active := false
 
 

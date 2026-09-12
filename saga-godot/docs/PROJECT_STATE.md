@@ -4276,3 +4276,28 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
     작업. STORY가 진도 가장 얕아(첫 Vertical Slice 조각만 완료) 유력 —
     "제외" 목록(사냥터 8곳·전직 트리·무예 47개·장비/노획·보스·원거리
     적)을 DUNGEON/FOREST 방식으로 하나씩 채우는 쪽.
+
+
+## STORY 무예 나머지 셋 — 횡소·기탄·기합 (2026-09-12)
+
+- **사용자 지시 "1,2,3 다 진행해"** — 세 번째(REALM 밖 다른 판). STORY가
+  진도 가장 얕아 골랐다. 1절 "제외" 목록의 "무예 나머지" 중 tier0
+  넷(무명 기본기) 나머지 셋만 채웠다 — cost·cd·mul·buff 전부 원문
+  그대로. MP(MP_MAX100·MP_REGEN8/초, side.js 그대로) 신규 도입.
+  - 횡소(sweep, aoe, cost18·cd4·mul1.8, 등 뒤도 맞음) · 기탄(bolt,
+    cost24·cd6·mul2.1, 재해석 — 투사체 없어 사거리 2배 정면 공격으로) ·
+    기합(brace, cost30·cd14, 8초간 atk×1.35·speed×1.2).
+  - `story_combat.gd`: 상수 신규. `story_player.gd`: mp·쿨다운 셋·
+    `_buff_time_left`·`_melee_hit()`(연참·기탄 공용)·`_cast_sweep/
+    bolt/brace()` 신규. `project.godot`: 입력 액션 셋(U·I·O) 신규.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 4절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림; project.godot는 의도한 입력 액션 셋만 추가됨 확인) →
+    다섯 씬 세 번 연속 exit 0·로그 무결. 임시 디버그로 기탄 명중·MP
+    소모(76)·쿨다운 차단, 횡소 등 뒤 명중·MP 소모(18), 기합 atk
+    21→28.35·buff_time_left=8·MP 소모(30), 잔여 MP 부족 시 재시전
+    차단까지 전부 손 계산과 일치 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — MP를 보여줄 HUD가 없어 손맛
+    체감이 눈에 안 보인다(다음 후보). 계속 몰아서 받을 것.
+  - **다음 이어질 것** — MP HUD 게이지, 또는 STORY "제외" 목록 다음
+    항목(사다리+Z축 깊이·나머지 사냥터·전직 트리 등) — 승인 후.

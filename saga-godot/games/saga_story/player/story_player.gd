@@ -28,6 +28,15 @@ var _attack_cd_left := 0.0
 var _on_rope := false
 var _rope_area: Area3D = null
 
+## **2026-09-12 추가 — 무예 나머지 셋(횡소·기탄·기합).** story_combat.gd
+## 머리말 참고. MP는 세이브에 안 넣는다(재입장 시 가득 찬 채 시작 —
+## 원작도 "쉬는 중은 실제로 mp 가득 참으로 시작"이 기본 흐름이다).
+var mp := StoryCombat.MP_MAX
+var _cd_sweep := 0.0
+var _cd_bolt := 0.0
+var _cd_brace := 0.0
+var _buff_time_left := 0.0  # 기합(brace) 남은 시간 — atk·speed 배율에 쓴다
+
 
 func _ready() -> void:
 	visual.rotation.y = PI * 0.5  # 오른쪽(+X)을 보고 시작 — StoryPlayer.tscn 참고
@@ -36,6 +45,11 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	_attack_cd_left = maxf(0.0, _attack_cd_left - delta)
+	_cd_sweep = maxf(0.0, _cd_sweep - delta)
+	_cd_bolt = maxf(0.0, _cd_bolt - delta)
+	_cd_brace = maxf(0.0, _cd_brace - delta)
+	_buff_time_left = maxf(0.0, _buff_time_left - delta)
+	mp = minf(StoryCombat.MP_MAX, mp + StoryCombat.MP_REGEN * delta)
 	_check_rope()
 
 	if _on_rope and _rope_area != null:
@@ -52,6 +66,12 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("combat_quick") and _attack_cd_left <= 0.0:
 		_attack()
+	if Input.is_action_just_pressed("story_skill_sweep"):
+		_cast_sweep()
+	if Input.is_action_just_pressed("story_skill_bolt"):
+		_cast_bolt()
+	if Input.is_action_just_pressed("story_skill_brace"):
+		_cast_brace()
 
 
 func _walk(delta: float) -> void:
@@ -63,7 +83,8 @@ func _walk(delta: float) -> void:
 		velocity.y = 0.0
 
 	var axis := Input.get_axis("move_left", "move_right")
-	velocity.x = axis * RUN_SPEED
+	var speed := RUN_SPEED * (StoryCombat.BRACE_SPEED_MUL if _buff_time_left > 0.0 else 1.0)
+	velocity.x = axis * speed
 
 	if absf(axis) > 0.05:
 		_facing = signf(axis)
@@ -125,23 +146,79 @@ func clear_rope_area(area: Area3D) -> void:
 		_on_rope = false
 
 
-func _attack() -> void:
-	_attack_cd_left = ATTACK_COOLDOWN
-	_play_anim("sprint")  # 전용 공격 애니메이션이 없어 임시로 빌림(재해석, 실기 확인 때 다시 볼 것)
+## 기합(brace)이 걸려 있으면 atk×1.35(원문 buff.atk 그대로) — 연참·
+## 횡소·기탄 전부 이 값을 쓴다(side.js가 pw.atk 자체를 buff로 올리는 것과
+## 같은 결 — 스킬마다 따로 배율을 안 곱한다).
+func _effective_atk() -> float:
+	return StoryCombat.START_ATK * (StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0)
 
+
+## 정면 판정 공용 — 연참(reach)·기탄(reach*2)이 같이 쓴다. mul은 무예별
+## 배율(연참 1.0·기탄 BOLT_MUL), range는 사거리.
+func _melee_hit(range_m: float, mul: float) -> void:
 	for enemy in get_tree().get_nodes_in_group("story_enemy"):
 		var e := enemy as Node3D
 		if e == null:
 			continue
 		var dx: float = e.global_position.x - global_position.x
-		if absf(dx) > ATTACK_RANGE:
+		if absf(dx) > range_m:
 			continue
 		if signf(dx) != 0.0 and signf(dx) != _facing and absf(dx) > 0.3:
 			continue  # 등 뒤는 안 맞는다(바로 겹친 자리 정도는 봐준다)
-		var roll: Dictionary = StoryCombat.roll_damage(StoryCombat.START_ATK)
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
 		if bool(roll.crit):
 			StoryCombat.trigger_hitstop(get_tree())
+
+
+func _attack() -> void:
+	_attack_cd_left = ATTACK_COOLDOWN
+	_play_anim("sprint")  # 전용 공격 애니메이션이 없어 임시로 빌림(재해석, 실기 확인 때 다시 볼 것)
+	_melee_hit(ATTACK_RANGE, 1.0)
+
+
+## 횡소(sweep) — aoe, 등 뒤도 맞는다(360도 판정, side.js effect:'aoe' 그대로
+## — 정면 판정이 없다). MP·쿨다운 부족하면 side.js castSkill()처럼 조용히
+## 무시한다(원문에 실패 메시지가 없다).
+func _cast_sweep() -> void:
+	if _cd_sweep > 0.0 or mp < StoryCombat.SWEEP_COST:
+		return
+	_cd_sweep = StoryCombat.SWEEP_CD
+	mp -= StoryCombat.SWEEP_COST
+	_play_anim("sprint")
+	var range_m := ATTACK_RANGE * StoryCombat.SWEEP_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), StoryCombat.SWEEP_MUL)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 기탄(bolt) — 관통. 이 슬라이스는 투사체가 없어(적이 안 움직인다) "더
+## 멀리 뻗는 정면 공격"으로 재해석(story_combat.gd BOLT_RANGE_MUL 참고).
+func _cast_bolt() -> void:
+	if _cd_bolt > 0.0 or mp < StoryCombat.BOLT_COST:
+		return
+	_cd_bolt = StoryCombat.BOLT_CD
+	mp -= StoryCombat.BOLT_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE * StoryCombat.BOLT_RANGE_MUL, StoryCombat.BOLT_MUL)
+
+
+## 기합(brace) — buff, 대미지 없음. _effective_atk()·_walk()의 speed
+## 배율이 _buff_time_left>0을 읽어 실제로 적용한다.
+func _cast_brace() -> void:
+	if _cd_brace > 0.0 or mp < StoryCombat.BRACE_COST:
+		return
+	_cd_brace = StoryCombat.BRACE_CD
+	mp -= StoryCombat.BRACE_COST
+	_buff_time_left = StoryCombat.BRACE_SEC
 
 
 func _play_anim(anim_name: String) -> void:

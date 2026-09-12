@@ -136,6 +136,70 @@ GO의 12단계·DUNGEON의 8단계·FOREST의 7단계와 같은 자리 — 이 �
 단계가 "때리는 손맛이 이 판답게 다른가"(급소+경직이 다른 네 판과
 구별되는 유일한 축)를 스스로 답할 수 있으면 성공이다.
 
+## 4. 무예 나머지 셋 — 횡소·기탄·기합 (2026-09-12)
+
+**사용자 지시 "1,2,3 다 진행해"**(REALM VERTICAL_SLICE_REALM.md 11·12절과
+같은 승인 묶음의 세 번째, "REALM 밖 다른 판" 후보) — STORY가 GO/DUNGEON/
+FOREST 중 진도가 가장 얕아 골랐다. 1절 "제외" 목록의 "무예 나머지
+(48-1개)" 중, 무명이 처음부터 갖는 tier0 넷(`data-job.js` SKILLS
+job:'none') 나머지 셋(횡소·기탄·기합)만 먼저 채운다 — DUNGEON/FOREST가
+"제외" 목록을 하나씩 좁혀 채운 것과 같은 방식.
+
+**MP 도입** — 연참(cost 0) 하나만 있을 땐 자원이 필요 없었다. 나머지
+셋은 전부 cost>0이라 `side.js`의 MP_MAX=100·MP_REGEN=8(초당, core.tuned
+기본값) 그대로 들였다. "앉아 쉬면 더 빨리 찬다"(resting 보너스)는 입력을
+하나 더 얹는 일이라 이번엔 뺐다(다음에 볼 자리) — 세이브에도 안 넣는다
+(재입장 시 가득 찬 채 시작, 원작 "쉬는 중은 mp 가득 참으로 시작"과
+같은 결과).
+
+**세 무예**(cost·cd·mul·buff 전부 원문 그대로, `data-job.js` SKILLS):
+- **횡소(sweep)** — aoe, cost18·cd4·mul1.8. r:117px = REACH(78px)*1.5를
+  ATTACK_RANGE(2.2m)*1.5=3.3m로 옮겼다(비율만 유지, 이 포트의 기존
+  방식). **정면 판정이 없다** — 등 뒤도 맞는다(원작 aoe가 360도라 그대로).
+- **기탄(bolt)** — 관통, cost24·cd6·mul2.1. **재해석** — 이 슬라이스는
+  투사체 이동이 없어(적이 제자리에 서 있다, story_enemy.gd) "더 멀리
+  뻗는 정면 공격"으로 바꿨다(사거리 ATTACK_RANGE*2=4.4m, 판정은 연참과
+  같은 정면 판정 재사용).
+- **기합(brace)** — buff, cost30·cd14, sec8·atk×1.35·speed×1.2 그대로.
+  `_effective_atk()`(연참·횡소·기탄 공용)와 `_walk()`의 속도 배율이
+  `_buff_time_left`를 읽어 적용한다.
+
+**구현**:
+- `story_combat.gd`: MP_MAX·MP_REGEN·SWEEP_*·BOLT_*·BRACE_* 상수 신규.
+- `story_player.gd`: `mp`·쿨다운 셋(`_cd_sweep`/`_cd_bolt`/`_cd_brace`)·
+  `_buff_time_left` 신규. `_melee_hit(range, mul)` 공용 헬퍼로 연참·기탄이
+  같은 정면 판정을 공유(중복 제거). `_cast_sweep()`/`_cast_bolt()`/
+  `_cast_brace()` 신규 — MP·쿨다운 부족하면 `side.js castSkill()`처럼
+  조용히 무시(원문에 실패 메시지가 없다).
+- `project.godot`: `story_skill_sweep`(U)·`story_skill_bolt`(I)·
+  `story_skill_brace`(O) 입력 액션 신규(J=연참·Space=점프 옆자리).
+  **모바일 스킬 버튼은 이번에 안 넣었다** — 이 슬라이스는 애초에
+  키보드만 있고(가상 조이스틱도 없다) 이동 입력 자체가 아직 키보드
+  전용이라, 스킬만 먼저 모바일 버튼을 얹으면 오히려 어색하다(다음에
+  볼 자리, 모바일 입력 전체를 붙일 때 같이).
+
+**검증(헤드리스, 값 자체까지)** — import 확인 → texture-a.png.import만
+재발생(알려진 노이즈, 되돌림), `project.godot`엔 의도한 입력 액션
+셋만 추가됨 확인(diff 검토). 다섯 씬 전부 `--quit-after 5` 세 번 연속
+exit 0·로그 무결. **임시 디버그로 실제 값 확인**(`story_field.gd`
+`_ready()`에 잠깐 추가, 서로 다른 적 둘을 써서 "한 방에 죽는 잡졸"이
+다음 판정을 가리지 않게 함): MP 시작 100 → 기탄 시전(사거리 3.0m,
+ATTACK_RANGE 2.2 밖·BOLT_RANGE 4.4 안) 명중 확인·MP 76(100-24) 정확
+→ 쿨다운 중 재시전 MP 안 깎임(차단) 확인 → 횡소(적을 등 뒤 -1.5m에
+둠, `_facing`은 오른쪽) 명중 확인(방향 안 가림)·MP 18 소모 정확 →
+기합 시전 후 `_effective_atk()` 21→28.35(21×1.35) 정확·`_buff_time_
+left`=8 정확·MP 30 소모 정확 → 남은 MP 28로 기합 재시전 시 MP 안
+깎임(부족으로 차단) 확인. 디버그 원상복구(`story_field.gd` git diff
+0줄, story_player.gd/story_combat.gd는 이 절의 정식 변경이라 유지).
+
+**GUI 실기 확인은 아직 안 함** — 횡소·기탄·기합을 실제로 눌러 손맛·
+MP 게이지 체감(전용 UI가 없어 지금은 눈에 안 보인다, 다음에 볼 자리)을
+확인할 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — MP를 눈에 보이게 하는 HUD(게이지 하나), 또는 1절
+"제외" 목록의 다음 항목(사다리+Z축 깊이, 나머지 사냥터, 전직 트리 등) —
+승인 후.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
