@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Saga.Dungeon.Data;
@@ -67,10 +68,14 @@ namespace Saga.Dungeon.World
 
         private enum State { Idle, Chase, Dead }
 
+        private const float FlashSec = 0.08f; // "타격감 1차" 슬라이스 — enemy flash.
+
         private State _state = State.Idle;
         private float _curHp;
         private float _attackCooldown;
         private Transform _player;
+        private GameObject _visualGo;
+        private Coroutine _flashRoutine;
 
         private void Awake()
         {
@@ -94,14 +99,10 @@ namespace Saga.Dungeon.World
         {
             float targetHeight = 2f * visualScale; // 기존 primitive capsule 기준(높이 2m × visualScale) 그대로 유지.
 
-            if (modelPrefab != null)
-            {
-                CharacterVisual.Spawn(modelPrefab, transform, targetHeight, bodyColor);
-            }
-            else
-            {
-                CharacterVisual.SpawnFallbackCapsule(transform, targetHeight, bodyColor);
-            }
+            Transform visual = modelPrefab != null
+                ? CharacterVisual.Spawn(modelPrefab, transform, targetHeight, bodyColor)
+                : CharacterVisual.SpawnFallbackCapsule(transform, targetHeight, bodyColor);
+            _visualGo = visual.gameObject;
         }
 
         private void Update()
@@ -172,11 +173,34 @@ namespace Saga.Dungeon.World
             return count;
         }
 
-        public void TakeDamage(float amount)
+        /// <summary>"타격감 1차" 슬라이스(PLAN.md 38장 "damage popup"·
+        /// "enemy flash") — heavy는 PlayerCombat.TryHeavyAttack()이 넘겨
+        /// 팝업 색·크기만 다르게 한다(새 크리티컬 확률 시스템은 범위 밖,
+        /// 강공격 자체가 이미 있는 "확실히 센 한 방" 신호라 재사용).</summary>
+        public void TakeDamage(float amount, bool heavy = false)
         {
             if (_state == State.Dead) return;
             _curHp -= amount;
+
+            Vector3 popupPos = transform.position + Vector3.up * (2f * visualScale);
+            DamagePopup.Spawn(popupPos, amount, heavy);
+
+            if (_visualGo != null)
+            {
+                if (_flashRoutine != null) StopCoroutine(_flashRoutine);
+                _flashRoutine = StartCoroutine(FlashHit());
+            }
+
             if (_curHp <= 0f) Die();
+        }
+
+        private IEnumerator FlashHit()
+        {
+            CharacterVisual.Tint(_visualGo, Color.white);
+            yield return new WaitForSeconds(FlashSec);
+            // ClearTint()가 아니라 bodyColor로 되돌린다 — 두목·정예처럼
+            // 원래부터 색이 있는 개체는 ClearTint()가 그 색까지 지워 버린다.
+            if (_visualGo != null) CharacterVisual.Tint(_visualGo, bodyColor);
         }
 
         private void Die()
