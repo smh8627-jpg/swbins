@@ -28,7 +28,11 @@ const ROOM_GLB := "res://assets/dungeon/room-small.glb"
 const GATE_GLB := "res://assets/dungeon/gate.glb"
 const CORRIDOR_GLB := "res://assets/dungeon/corridor.glb"
 
-const ROOM_COUNT := 2
+## "제외" 목록 7번(보스층) — 방 하나 늘려 3개로. data-dungeon.js
+## `isBossFloor(floor) = floor % 3 === 0`을 그대로 옮기면 이 슬라이스에서
+## 방=층 취급(각 방의 floor_num은 i+1)이라 마지막 방(floor_num=3)이 정확히
+## 보스 층이다 — 그 방의 잡졸 자리를 보스로 바꾼다(새 방 구조를 안 만든다).
+const ROOM_COUNT := 3
 
 ## "제외" 목록 5번(인물 등용) — 방마다 실제 역사 인물 하나씩(saga_core
 ## 105명 중 새로 골랐다 — GO가 이미 kr_yisunsin을 쓰고 있어 안 겹치게).
@@ -80,7 +84,7 @@ func _ready() -> void:
 	for i in range(ROOM_COUNT):
 		var cleared: bool = loaded and DungeonSaveState.is_room_cleared(i)
 		if not cleared:
-			_spawn_enemy(_room_origin_z[i], i + 1)
+			_spawn_enemy(_room_origin_z[i], i + 1, i == ROOM_COUNT - 1)
 		else:
 			## 클리어한 방을 불러오면 저장된 위치가 그 방의 출구 트리거
 			## 안일 수 있다(마지막으로 나간 자리 그대로 복원하니까) —
@@ -297,10 +301,39 @@ func _finish_exit(body: Node3D, room_index: int, is_final: bool) -> void:
 		Toast.show(self, "다음 방으로 향한다 — 진행 상황을 저장했다.", 3.0)
 
 
-func _spawn_enemy(origin_z: float, floor_num: int) -> void:
-	var enemy: CharacterBody3D = DungeonEnemy.new(floor_num)
+func _spawn_enemy(origin_z: float, floor_num: int, is_boss: bool = false) -> void:
+	var enemy: CharacterBody3D = DungeonEnemy.new(floor_num, is_boss)
 	enemy.position = Vector3(0, 0, origin_z - 1.5)
 	add_child(enemy)
+	if is_boss:
+		## LEGACY_FEATURE_AUDIT.md KEEP "인물은 던전에서 등용(출사표3+보스층
+		## 합류)" 의 후반부 — 2026-09-12㉔가 "7번이 생긴 뒤로 미룬다"고
+		## 남겨 둔 그 경로. game.js bossReward()를 그대로 옮긴다: 보스가
+		## 죽는 순간(문을 나가는 시점이 아니라) 인물 하나가 자동으로 합류.
+		enemy.died.connect(_on_boss_defeated.bind(floor_num - 1))
+
+
+## room_index별 hero_resolved를 재사용한다 — 뜻은 다르지만("설득 성공/실패"
+## 대신 "보스 격파로 자동 합류") "이 방의 인물 관련 사건이 끝났다"는 같은
+## 경계라 새 저장 필드를 안 만든다. rooms_cleared[room_index]가 이미
+## enemy 재생성을 막고(§ _ready 위쪽), 저장은 그 방을 나갈 때(`_finish_exit`)
+## 이 값과 함께 한 번에 기록되므로 이중 지급 경로가 없다.
+func _on_boss_defeated(room_index: int) -> void:
+	if DungeonSaveState.is_hero_resolved(room_index):
+		return
+	DungeonSaveState.mark_hero_resolved(room_index)
+	var floor_num: int = room_index + 1
+	## game.js bossReward()의 등급 상한 그대로: floor>=21→5·>=12→4·>=6→3·그외 2.
+	var max_rarity: int = 5 if floor_num >= 21 else (4 if floor_num >= 12 else (3 if floor_num >= 6 else 2))
+	var pool: Array[Dictionary] = []
+	for h: Dictionary in Characters.HEROES:
+		if int(h.rarity) <= max_rarity and not DungeonPartyState.members.has(str(h.id)):
+			pool.append(h)
+	## game.js pickNewHero()가 다 모았으면(pool 없음) 중복으로라도 준다.
+	var hero: Dictionary = (pool[randi() % pool.size()] if not pool.is_empty()
+		else Characters.HEROES[randi() % Characters.HEROES.size()])
+	DungeonPartyState.recruit(str(hero.id))
+	Toast.show(self, "🤝 %s(%s) 합류! (제%d층 보스 격파)" % [str(hero.name), str(hero.hanja), floor_num], 4.0)
 
 
 ## "제외" 목록 5번(인물 등용) — 잡졸은 방 중심에서 북쪽(출구 쪽, -z)으로

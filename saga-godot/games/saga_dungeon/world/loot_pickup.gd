@@ -33,6 +33,11 @@ extends RefCounted
 ## 감정서 7%. 장비 드롭은 이전 세션에서 이미 "매번 확정"으로 잡아 뒀던
 ## 것을 그대로 둔다(원작의 0.2~0.35 확률보다 후하지만, 이미 검증·커밋된
 ## 동작을 이번 범위 밖에서 바꾸지 않는다).
+##
+## "제외" 목록 7번(보스층) — dungeon.js kill()의 `e.boss` 갈래 그대로:
+## 금 ×5(dropGold mul), 재료·단약·감정서 드롭 확률이 0.9/1/0.8로 뛰고,
+## 장비·재료는 ilvl에 +30(dropItem/dropMat의 `e.boss?30:0`)이 붙어 같은
+## 층에서도 훨씬 센 물건이 나온다.
 
 const Toast := preload("res://saga_core/ui/toast.gd")
 const TOAST_SEC := 4.0
@@ -40,6 +45,9 @@ const TRIGGER_RADIUS := 1.4
 const MAT_DROP_CHANCE := 0.12 # dungeon.js "e.boss?0.9:0.12"(dropMat 호출 확률) 그대로
 const POTION_DROP_CHANCE := 0.16 # dungeon.js "e.boss?1:(elK?0.34:0.16)" 그대로
 const SCROLL_DROP_CHANCE := 0.07 # dungeon.js "e.boss?0.8:0.07" 그대로
+const BOSS_MAT_DROP_CHANCE := 0.9
+const BOSS_POTION_DROP_CHANCE := 1.0
+const BOSS_SCROLL_DROP_CHANCE := 0.8
 const RUNE_COLOR := Color(0.94, 0.65, 0.22) # dungeon.js take()의 룬 색('#f0a53a') 그대로
 const JEWEL_COLOR := Color(0.94, 0.48, 0.75) # dungeon.js take()의 주옥 색('#f07ac0') 그대로
 const GOLD_COLOR := Color(1.0, 0.84, 0.2)
@@ -47,8 +55,8 @@ const POTION_COLOR := Color(0.75, 0.22, 0.17) # potion.js KINDS.heal.color '#c03
 const SCROLL_COLOR := Color(0.56, 0.78, 1.0)
 
 
-static func spawn_at(parent: Node, pos: Vector3, ilvl: int) -> void:
-	var it := DungeonItems.roll(ilvl)
+static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false) -> void:
+	var it := DungeonItems.roll(ilvl + (30 if is_boss else 0))
 	var tier: Dictionary = DungeonItems.TIERS[it.tier]
 	var b := DungeonItems.base_by_key(str(it.base))
 	var slot_name := str(b.get("slot", "weapon"))
@@ -88,19 +96,19 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int) -> void:
 			area.queue_free()
 	)
 
-	_spawn_gold(parent, pos + Vector3(-0.6, 0, -0.6), ilvl)
-	if randf() < MAT_DROP_CHANCE:
-		_spawn_mat(parent, pos + Vector3(0.6, 0, 0.6), ilvl)
-	if randf() < POTION_DROP_CHANCE:
+	_spawn_gold(parent, pos + Vector3(-0.6, 0, -0.6), ilvl, 5.0 if is_boss else 1.0)
+	if randf() < (BOSS_MAT_DROP_CHANCE if is_boss else MAT_DROP_CHANCE):
+		_spawn_mat(parent, pos + Vector3(0.6, 0, 0.6), ilvl + (30 if is_boss else 0))
+	if randf() < (BOSS_POTION_DROP_CHANCE if is_boss else POTION_DROP_CHANCE):
 		_spawn_potion(parent, pos + Vector3(0.6, 0, -0.6), ilvl)
-	if randf() < SCROLL_DROP_CHANCE:
+	if randf() < (BOSS_SCROLL_DROP_CHANCE if is_boss else SCROLL_DROP_CHANCE):
 		_spawn_scroll(parent, pos + Vector3(-0.6, 0, 0.6))
 
 
-## dungeon.js dropGold()의 잡졸(mul=1) 갈래 그대로 — 은사+장비 goldPct까지
-## DungeonRunState.gold_mult()가 이미 합산해 준다.
-static func _spawn_gold(parent: Node, pos: Vector3, floor_num: int) -> void:
-	var amount := int(roundf(5.0 * pow(1.19, float(floor_num) - 1.0) * DungeonRunState.gold_mult()))
+## dungeon.js dropGold()의 mul 인자 그대로(잡졸 1·보스 5) — 은사+장비
+## goldPct까지 DungeonRunState.gold_mult()가 이미 합산해 준다.
+static func _spawn_gold(parent: Node, pos: Vector3, floor_num: int, mul: float = 1.0) -> void:
+	var amount := int(roundf(5.0 * pow(1.19, float(floor_num) - 1.0) * DungeonRunState.gold_mult() * mul))
 	if amount <= 0:
 		return
 

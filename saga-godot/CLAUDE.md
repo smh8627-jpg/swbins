@@ -48,6 +48,17 @@ GODOT=<받은 폴더>/Godot_v<TAG>-stable_win64_console.exe
   > log.txt 2>&1; grep -iE "error|warn|missing|invalid|cannot" log.txt
 ```
 
+**주의 — `--headless --editor --quit`(임포트)는 `project.godot`·`*.import`를
+조용히 고쳐 쓸 수 있다(2026-09-12 발견).** 에디터를 한 번이라도 열면
+엔진 기본값과 같다고 판단한 명시적 설정(예: 이미 기본값인
+`renderer/rendering_method="forward_plus"`, `directional_shadow/size=4096`)을
+"불필요한 중복"으로 보고 저장할 때 지워 버린다 — 66-1장이 공들여 넣어 둔
+렌더러 프로파일 줄이 실제로 이렇게 사라진 적이 있다(반영한 적 없는 diff로
+발견, `git checkout`으로 되돌림). **헤드리스 검증을 돌린 뒤에는 커밋 전에
+반드시 `git status`/`git diff -- project.godot '*.import'`로 의도하지 않은
+변경이 없는지 훑는다** — 있으면 이번 작업과 무관한 에디터 부작용이니
+`git checkout`으로 되돌리고, 실제로 고치려던 파일만 add한다.
+
 **주의 — 이걸로 확인되는 것과 안 되는 것.** `--headless`는 디스플레이 서버 없이
 더미 렌더러로 돈다. 즉 project.godot 파싱·씬/스크립트 참조가 안 깨졌는지는
 확인되지만, Forward+ 같은 렌더러 설정이 **실제 화면에 무엇을 그리는지는 확인

@@ -20,6 +20,13 @@ extends CharacterBody3D
 ## 저항 있는 몬스터가 추가될 자리를 남겨 둔 것뿐이다. 빙(냉)·독(dot) 둘은
 ## dungeon.js applyElem()의 성질(slow·dot)을 그대로 옮겨 여기서 받는다 —
 ## 새 피해 공식을 안 만들고 melee_attack.gd가 결마다 값을 계산해 넘긴다.
+##
+## "제외" 목록 7번(보스층) — data-enemy.js BOSSES 첫 항목 "황건 두목"(황건적과
+## 같은 색 '#c9a83a' 그대로 — 원작도 보스를 색이 아니라 몸집·수식어로만
+## 가른다, 새 색을 상상하지 않는다). HP·공격력은 `enemyHp`/`enemyDmg`의
+## `boss` 갈래(*7·*2.2) 그대로 — 위 함수 이름이 이미 `boss` 인자를 받게
+## 지어져 있었다(이번에 처음 실제로 쓴다). 몸집은 dungeon.js spawnEnemy()의
+## `r = boss?22:13`(≈1.7배) 그대로 캡슐 반지름·높이·공격 사거리에 적용.
 
 signal died
 
@@ -28,6 +35,7 @@ const CHASE_SPEED := 2.4
 const DETECT_RADIUS := 9.0
 const ATTACK_RANGE := 2.0
 const COLOR := Color(0.788, 0.659, 0.227)  # data-enemy.js 황건적 color '#c9a83a' 그대로
+const BOSS_SCALE := 22.0 / 13.0  # dungeon.js spawnEnemy()의 r = boss?22:13 그대로
 const LootPickup := preload("res://games/saga_dungeon/world/loot_pickup.gd")
 
 ## 이 몬스터의 결별 저항(% ) — 황건적은 원작에 저항 키가 없어 빈 채로 둔다.
@@ -46,20 +54,26 @@ var max_hp: float
 var attack_damage: float
 var hp: float
 var _floor_num: int = 1
+var is_boss: bool = false
+var _scale_mul: float = 1.0
 var _attack_cd_left := 0.0
 var _player: Node3D
 var _dead := false
 
 
-func _init(floor_num: int = 1) -> void:
+func _init(floor_num: int = 1, boss: bool = false) -> void:
 	_floor_num = floor_num
-	max_hp = roundf(24.0 * pow(1.26, floor_num - 1))
-	attack_damage = roundf(5.0 * pow(1.20, floor_num - 1))
+	is_boss = boss
+	_scale_mul = BOSS_SCALE if boss else 1.0
+	max_hp = roundf(24.0 * pow(1.26, floor_num - 1) * (7.0 if boss else 1.0))
+	attack_damage = roundf(5.0 * pow(1.20, floor_num - 1) * (2.2 if boss else 1.0))
 	hp = max_hp
 
 
 func _ready() -> void:
 	add_to_group("dungeon_enemy")
+	if is_boss:
+		add_to_group("dungeon_boss")
 	_player = get_tree().get_first_node_in_group("player")
 	_spawn_visual()
 
@@ -67,10 +81,10 @@ func _ready() -> void:
 func _spawn_visual() -> void:
 	var mi := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.7
-	mesh.height = 1.7
+	mesh.radius = 0.7 * _scale_mul
+	mesh.height = 1.7 * _scale_mul
 	mi.mesh = mesh
-	mi.position = Vector3(0, 0.85, 0)
+	mi.position = Vector3(0, 0.85 * _scale_mul, 0)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = COLOR
 	mi.material_override = mat
@@ -78,9 +92,9 @@ func _spawn_visual() -> void:
 
 	var cs := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.7
-	shape.height = 1.7
-	cs.position = Vector3(0, 0.85, 0)
+	shape.radius = 0.7 * _scale_mul
+	shape.height = 1.7 * _scale_mul
+	cs.position = Vector3(0, 0.85 * _scale_mul, 0)
 	cs.shape = shape
 	add_child(cs)
 
@@ -96,7 +110,7 @@ func _physics_process(delta: float) -> void:
 	var to_player: Vector3 = _player.global_position - global_position
 	to_player.y = 0
 	var dist := to_player.length()
-	if dist <= ATTACK_RANGE:
+	if dist <= ATTACK_RANGE * _scale_mul:
 		velocity = Vector3.ZERO
 		if _attack_cd_left <= 0.0:
 			_attack_cd_left = ATTACK_COOLDOWN
@@ -175,5 +189,5 @@ func _die() -> void:
 		return
 	_dead = true
 	died.emit()
-	LootPickup.spawn_at(get_parent(), global_position, _floor_num)
+	LootPickup.spawn_at(get_parent(), global_position, _floor_num, is_boss)
 	queue_free()
