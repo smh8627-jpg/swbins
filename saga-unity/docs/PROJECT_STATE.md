@@ -5,6 +5,46 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON — 절차적 층 진행 실제 GameObject 경로 자동 검증 + 발견한
+  진짜 결함 수정 (2026-09-12, 열한 번째 세션).** 지난 세션이 "다음
+  세션이 가장 먼저 할 만한 일"로 남긴 빈틈 — `PlaytestDungeonHeadless`
+  (10프레임, 플레이어 안 움직임)는 ProcRoom 첫 방 스폰까지만 확인하고
+  문 선택 트리거·`AdvanceRoom`·`Descend`는 이 프로젝트의 어떤 자동
+  검증도 안 거쳤던 것 — 를 메웠다. 신규 `Editor/PlaytestDungeonFloorProgression
+  .cs` — Play 모드에서 ProcRoom 몬스터를 `DungeonEnemy.TakeDamage(9999
+  99f)`로 강제로 죽이고, `DungeonFloorRunner`의 private `_doorPods`를
+  리플렉션으로 읽어 첫 문 표지 위치로 플레이어를 순간이동시키는 걸
+  반복해 실제 문 트리거·방 전환·층 하강이 GameObject 수준(TextMesh
+  라벨·머티리얼·`DoorLabelBillboard` 포함)에서 진짜로 도는지 12회
+  왕복 확인한다.
+  - **첫 실행에서 실제 버그 둘을 잡았다.**
+    (1) 테스트 하니스 쪽 — `CharacterController`가 켜진 채 `transform
+    .position`을 그냥 대입하면 다음 프레임에 조용히 원래 자리로
+    되돌아간다(Unity 표준 동작, `SaveState.cs`의 위치 복원이 이 문제를
+    안 밟은 이유는 `Start()` 이전이라 CC가 아직 한 번도 안 움직인
+    시점이라서). 대입 전후로 `controller.enabled`를 잠깐 껐다 켜서 고침.
+    (2) **진짜 게임 결함** — `DungeonFloorRunner`가 방을 갈아치운 뒤에도
+    플레이어를 문 표지 자리(z=8~9)에 그대로 뒀다. 다음 방이 무전투
+    종류(POI, 가중치상 약 49%)면 그 자리에 새로 선 문이 `DoorTriggerRadius`
+    (1.8) 안에서 곧바로 다시 트리거돼, 사람이 한 발짝도 안 걸었는데
+    방 여러 개(때로는 층 하나 전체)를 순식간에 건너뛰어 버리는 결함이었다
+    (자동 검증 전엔 아무도 못 볼 뻔했다 — 실기 플레이어는 문에 닿자마자
+    반사적으로 몇 걸음 더 걷지만, 가만히 서 있으면 재현된다). `DungeonFloorRunner
+    .RepositionPlayerToEntry()` 신규 — `AdvanceRoom()`/`Descend()`가
+    `BuildRoomContent()` 직후 플레이어를 문 구역과 충분히 떨어진 남쪽
+    진입 지점(`PlayerEntryOffset`, 로컬 (0,0,-6))으로 되돌려 세운다(다른
+    물리적 방들이 복도를 지나야 닿는 것과 같은 느낌으로 통일). 여기도
+    CharacterController를 껐다 켜는 같은 패턴 필요.
+  - 고친 뒤 재검증 — `[PlaytestDungeonFloorProgression] OK - 12 room
+    advances, floor reached 4, no errors`(roomIndex가 매번 정확히 1씩
+    증가, floor 2→3→4, cave·fight·well·forage·stair 등 여러 방 종류를
+    실제로 거침). `PlaytestDungeonHeadless`(회귀, `OK - 10 frames, no
+    errors`)·전체 재컴파일도 통과.
+  - **문 선택 트리거·`AdvanceRoom`·`Descend`가 실제 GameObject 경로에서
+    도는 것 자체는 이제 자동 검증됐다** — 다만 문 표지 라벨이 실제로
+    잘 읽히는지, 남쪽 재배치가 사람이 보기에 자연스러운지(순간이동
+    연출 없음 — 시각 효과가 필요할 수도)는 여전히 사람이 GUI로 봐야
+    한다(아래 목록에 추가).
 - **DUNGEON — 층 깊이 공격력 체감 보정 추가 (2026-09-12, 열 번째
   세션 이어서).** "무기 진행도(atk)도 floor에 따라 오르게" 후보를
   실제로 검토해 보니, 레벨(선형 성장)과 몬스터 hp(1.26^floor 지수
@@ -1530,30 +1570,17 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   더 다듬기" 세 개(세이브 층 유지·HUD 층수 표시·깊이 공격력 체감
   보정)도 끝냈다.** Room5~11은 이제 존재하지 않는다 — ProcRoom 하나 +
   `DungeonFloorRunner`가 층2~100까지 다 맡는다.
-  - **이번 세션이 끊긴 지점 — 사용자가 "새로운 세션에서 이어 하자"로
-    끊기 직전, 코드 검토 중 진짜 빈틈을 하나 더 찾았다: `PlaytestDungeonHeadless`
-    (10프레임, 플레이어가 안 움직임)는 ProcRoom의 첫 방(전투) 스폰까지만
-    확인하지, 방을 실제로 클리어해서 문 선택 트리거(`ShowKindDoors`/
-    `BuildDoorPod`/`AdvanceRoom`)나 층 하강(`Descend`)이 실제로 도는지는
-    이 프로젝트의 어떤 자동 검증도 아직 한 번도 통과 안 시켰다** —
-    `SimulateDungeonFloors.cs`는 공식(숫자)만 검증했지 실제 GameObject
-    생성 경로(TextMesh 폰트·머티리얼·`DoorLabelBillboard` 중첩 컴포넌트
-    등)는 안 건드린다. **다음 세션이 가장 먼저 할 만한 일** — Play
-    모드에서 ProcRoom 잡졸을 코드로 강제로 죽여(`DungeonEnemy.TakeDamage`
-    또는 새 테스트 전용 훅) `ShowKindDoors()`가 실제로 문 표지·라벨을
-    세우는지, 플레이어를 pod 위치로 순간이동시켜 `AdvanceRoom`/`Descend`
-    가 실제로 도는지까지 헤드리스로 몇 프레임 더 돌려 확인하는 새
-    에디터 도구(`PlaytestDungeonHeadless.cs`가 이미 쓰는 도메인 리로드
-    끄기 패턴 참고)를 만드는 것 — 사람이 실기로 보기 전에 코드 검증으로
-    한 번 더 거를 수 있는 지점(이번 세션에 SaveState 층 유지·HUD 층수
-    표시 결함을 코드 검토로 미리 잡은 것과 같은 결).
-  - 그 다음은 (1) 위 자동 검증 결과에 따라 door UI를 더 다듬을지,
-    (2) 100층 이후(200층 등)로 더 늘릴지, (3) 사람이 실기로 ProcRoom을
-    확인한 피드백을 반영할지, (4) 다른 게임(STORY 등, 51~65장 확장
-    순서)으로 넘어갈지 — **사용자가 "DUNGEON을 더 다듬는다(사람 실기
-    확인 반영)"으로 방향을 골랐지만 이번 세션엔 실제 사람 피드백이
-    아직 없었다** — 다음 세션 시작 시 사람이 플레이해 본 소감이
-    있으면 그것부터, 없으면 위 자동 검증부터.
+  - **위 빈틈은 열한 번째 세션(2026-09-12)이 메웠다** — `PlaytestDungeonFloorProgression
+    .cs`(신규)로 문 선택 트리거·`AdvanceRoom`·`Descend`가 실제 GameObject
+    경로에서 도는 것까지 자동 검증했고, 그 과정에서 실제 게임 결함
+    (문 자리에 서 있으면 무전투 방이 연쫓아 자동으로 건너뛰어지던 것)을
+    찾아 고쳤다(자세한 내용은 위 "완료 단계" 맨 위 항목 참고).
+  - **다음 세션이 볼 것** — (1) 사람이 실기로 ProcRoom(특히 이번에
+    고친 "방 전환 후 남쪽 재배치"가 순간이동처럼 뚝뚝 끊겨 보이지 않는지,
+    문 표지 라벨이 잘 읽히는지)을 확인한 피드백이 있으면 그것부터,
+    (2) 없으면 door UI를 더 다듬을지/100층 이후로 늘릴지/다른 게임
+    (STORY 등, 51~65장 확장 순서)으로 넘어갈지 사용자와 상의 — 이건
+    코드 판단이 아니라 방향 결정이라 세션이 임의로 고르지 않는다.
 - **사용자가 "1,2 순서대로"로 두 방향을 확정했다 — (1) FOREST 착수
   (완료, 위 "완료 단계" 참고) → (2) DUNGEON을 진짜 오픈월드로 확장
   (아직 착수 전).** 다음 세션은 (2)부터 시작한다 — 방 넷짜리 선형
@@ -2152,3 +2179,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   보상 int 오버플로(exp/gold가 음수로 뒤집힘) 발견 → `ClampToInt()`로
   고침 → 재실행 결과 `OK - 2층~100층 전부 통과, 방 856개 방문, 예외·
   NaN 없음`.
+- `PlaytestDungeonFloorProgression.cs`(신규, 열한 번째 세션) 첫 실행에서
+  `CharacterController` 순간이동 미반영(테스트 하니스 버그) + 문 자리에
+  서 있으면 무전투 방이 자동 연쇄 진행되는 실제 게임 결함을 발견 →
+  각각 고침 → 재실행 결과 `OK - 12 room advances, floor reached 4, no
+  errors`(roomIndex 매번 정확히 1씩 증가, floor 2→3→4, cave·fight·
+  well·forage·stair 등 실제 GameObject 경로로 확인). 회귀로
+  `PlaytestDungeonHeadless`(`OK - 10 frames, no errors`)도 재확인.

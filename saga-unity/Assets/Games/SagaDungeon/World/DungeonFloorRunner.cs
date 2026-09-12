@@ -66,6 +66,16 @@ namespace Saga.Dungeon.World
         private bool _doorsShown;
         private Transform _contentRoot;
         private Transform _player;
+        private CharacterController _playerController;
+
+        // `PlaytestDungeonFloorProgression.cs`(신규 검증 도구)가 실제로 잡아낸 결함 —
+        // 방을 갈아치운 뒤에도 플레이어를 문 표지 자리(z=8~9)에 그대로 둬서, 다음 방이
+        // 무전투 종류(POI)면 그 자리에 새로 선 문이 곧바로 다시 트리거돼 사람이 걷지도
+        // 않았는데 방 여러 개를 순식간에 건너뛰어 버렸다(DoorTriggerRadius 1.8 안에
+        // 계속 서 있는 셈이라). 방을 다시 지을 때마다 문 구역과 충분히 떨어진 남쪽
+        // 진입 지점으로 되돌려 세워, 다음 문까지 다시 걸어오게 한다(다른 물리적 방들이
+        // 복도를 지나야 다음 방에 닿는 것과 같은 느낌).
+        private static readonly Vector3 PlayerEntryOffset = new Vector3(0f, 0f, -6f);
 
         /// <summary>`Data/SaveState.cs`가 저장/복원 시점에 찾아 쓰는 정식
         /// 접근점 — 씬에 이 컴포넌트가 하나뿐이라(ProcRoom 하나) 싱글턴으로
@@ -79,7 +89,9 @@ namespace Saga.Dungeon.World
         private void Awake()
         {
             Instance = this;
-            _player = GameObject.FindWithTag("Player")?.transform;
+            var playerGo = GameObject.FindWithTag("Player");
+            _player = playerGo != null ? playerGo.transform : null;
+            _playerController = playerGo != null ? playerGo.GetComponent<CharacterController>() : null;
 
             var contentGo = new GameObject("RoomContent");
             contentGo.transform.SetParent(transform, false);
@@ -204,6 +216,7 @@ namespace Saga.Dungeon.World
             _roomIndex++;
             bool forceBoss = DungeonFormulas.IsBossFloor(_floor) && _roomIndex >= _roomTotal - 1;
             BuildRoomContent(forceBoss ? "boss" : kind);
+            RepositionPlayerToEntry();
         }
 
         private void Descend()
@@ -213,6 +226,22 @@ namespace Saga.Dungeon.World
             _roomTotal = DungeonFormulas.RoomsFor(_floor);
             DialogueLabel.Instance?.Show($"🪜 제{_floor}층으로 내려간다", 4f);
             BuildRoomContent("fight");
+            RepositionPlayerToEntry();
+        }
+
+        /// <summary>`PlaytestDungeonFloorProgression.cs`가 잡아낸 결함 수정 — 문 표지
+        /// 구역(z=8~9)에 그대로 서 있으면 무전투 방이 연달아 나올 때 걷지도 않았는데
+        /// 자동으로 계속 트리거됐다. CharacterController가 켜진 채 transform.position을
+        /// 그냥 대입하면 다음 프레임에 조용히 되돌아가므로(Unity 표준 동작) 잠깐 꺼서
+        /// 옮긴다 — `Data/SaveState.cs`의 위치 복원은 Start() 이전이라 이 문제를 안
+        /// 밟았지만, 이건 Play 도중(런타임) 실행이라 다르다.</summary>
+        private void RepositionPlayerToEntry()
+        {
+            if (_player == null) return;
+            Vector3 target = transform.TransformPoint(PlayerEntryOffset);
+            if (_playerController != null) _playerController.enabled = false;
+            _player.position = target;
+            if (_playerController != null) _playerController.enabled = true;
         }
 
         private void BuildRoomContent(string kind)
