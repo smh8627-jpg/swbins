@@ -3703,3 +3703,39 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 나머지 5종 명령(기술·축성·징병·훈련·조선) 확장,
     또는 `realm3d.js`(여러 성 월드맵) 실측(여러 성으로 넓힐 때).
+
+
+## REALM 명령 확장 — 나머지 다섯(기술·축성·징병·훈련·조선) 마저 추가 (2026-09-12)
+
+- **사용자 지시 "나머지 명령도 마저 추가해줘"** — 직전 항목(치안 추가)이
+  남긴 "다음 이어질 것" 중 남은 5종 명령을 마저 넣어 `rtk.js` ORDERS
+  10종이 REALM에 전부 들어왔다. "명령이 만드는 값만 들이고 그 값에 딸린
+  다른 시스템은 안 들인다"는 치안 때 원칙을 그대로 다섯 개에 적용:
+  기술·훈련·축성은 war.js가 없어 그냥 자라기만 하는 숫자, 조선은 허창이
+  plain이라 원작처럼 늘 실패, 징병만 pop·troops 두 값을 새로 들이되
+  인구 자연 증감(치안·개간 연동 성장 공식)은 안 옮기고 징병으로만 줄게
+  했다 — 대신 병력이 매달 군량을 먹고 굶주리면 흩어지는 로직은 옮겨서
+  징병이 군량과 무관한 죽은 숫자가 되지 않게 했다.
+  - `realm_orders.gd`: ORDERS 나머지 다섯 추가, `cap_of()`에 tech/wall/
+    train 추가, `food_upkeep()` 신설(eatOf 이식), BASE_WALL/CAP_WALL/
+    POP_START 등 상수 추가.
+  - `realm_save_state.gd`: `_roll_amount()`로 대성공+성과량 계산을
+    devel/draft가 공유하도록 추출, `_do_draft()` 신설(room 클램프·훈련도
+    희석), `execute_order()`에 ships river-체크 추가(금 차감보다 먼저),
+    `next_month()`에 병력 군량 소비·굶주림 로직 추가, 저장/불러오기에
+    tech/wall/train/pop/troops 다섯 필드 추가.
+  - `realm_status_label.gd`: HUD에 🪖 병력 표시 추가.
+  - `realm_officer_pool.gd`/`realm_order_button.gd`: 낡은 주석("명령
+    넷이 전부 wisdom 판정") 정정.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-3절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot·.import
+    변경 없음) → GO·DUNGEON·FOREST·STORY·REALM 다섯 씬 전부 `--quit-after
+    5` 세 번 연속 exit 0·로그 완전 동일. 임시 디버그로 조선 항상 실패
+    (금 안 나감)·기술/축성/훈련 amount 공식과 정확히 일치·징병의 pop/
+    troops/훈련도 희석까지 손 계산과 일치·다음 달 군량 소비(troops×10/
+    1000)·저장/불러오기 왕복(다섯 필드) 전부 확인. 디버그 원상복구
+    (diff 0), 테스트 세이브 삭제.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 여러 성 동시 운영, 전쟁/외교(war.js/diplo.js),
+    문답(quiz.js), 또는 이번에 들여온 wall/tech/train을 실제로 소비하는
+    전투 슬라이스 — 어느 쪽이든 승인 후.

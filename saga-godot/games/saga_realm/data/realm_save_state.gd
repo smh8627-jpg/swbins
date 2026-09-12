@@ -3,7 +3,8 @@ extends Node
 ## VERTICAL_SLICE_REALM.md 완료 조건 — GO/DUNGEON/FOREST/STORY save_state
 ## 계열과 같은 정신(로컬 파일 하나, 버전 필드, 게임마다 완전히 분리된
 ## 세이브)이되, REALM은 다섯 판 중 유일한 턴제라 player_pos 대신 성 하나의
-## 살림(연·월·금·군량·개간·상업 수치)과 무장(로스터/재야록)을 담는다.
+## 살림(연·월·금·군량·개간·상업·기술·치안·축성·훈련·인구·병력 수치)과
+## 무장(로스터/재야록)을 담는다.
 ##
 ## project.godot [autoload]에 RealmSaveState로 등록.
 ##
@@ -39,7 +40,12 @@ var gold := 2400
 var food := 11200
 var agri := 400
 var comm := 360
-var sec := RealmOrders.SEC_START  # rtk.js setup() sec 시작값(60)
+var sec := RealmOrders.SEC_START      # rtk.js setup() sec 시작값(60)
+var tech := RealmOrders.TECH_START    # rtk.js setup() tech 시작값(100)
+var wall := RealmOrders.BASE_WALL     # rtk.js setup() wall = d.wall(5400)
+var train := RealmOrders.TRAIN_START  # rtk.js setup() train 시작값(40)
+var pop := RealmOrders.POP_START      # data-city.js 허창 pop(260000) — 징병으로만 준다
+var troops := 0                       # rtk.js setup() troops 시작값(0)
 
 var roster: Array = [RealmOfficerPool.STARTING_OFFICER]
 var found: Array = []               # 수색으로 찾아냈지만 아직 등용 전
@@ -54,13 +60,19 @@ func _ready() -> void:
 
 ## 명령을 실행한다 — rtk.js order()의 성 하나짜리 축약.
 ## 반환: {"ok": bool, "why": String}(실패) 또는
-##       {"ok": true, "officer": String, "amount": int, "crit": bool}(개간/상업) /
+##       {"ok": true, "officer": String, "amount": int, "crit": bool}
+##       (개간/상업/기술/치안/축성/징병/훈련 — 조선은 이 성에서 늘 실패) /
 ##       {"ok": true, "found": String}(수색, 빈 문자열이면 "더 찾을 사람 없음") /
 ##       {"ok": true, "hired": String, "chance": float}(등용, 빈 문자열이면 거절)
 func execute_order(key: String) -> Dictionary:
 	var o := RealmOrders.by_key(key)
 	if o.is_empty():
 		return {"ok": false, "why": "없는 명령"}
+	## rtk.js order() "배는 물가에서만 짓는다" — 허창(plain)은 항상 여기서
+	## 막힌다. 금·무장 턴을 쓰기 전에 먼저 걸러 gold_income 등과 마찬가지로
+	## 원작 순서(금 차감보다 먼저)를 그대로 지켰다.
+	if key == "ships" and not RealmOrders.IS_RIVER:
+		return {"ok": false, "why": "물길이 없는 성입니다"}
 	if gold < int(o.gold):
 		return {"ok": false, "why": "금이 모자랍니다"}
 
@@ -75,17 +87,26 @@ func execute_order(key: String) -> Dictionary:
 		return _do_search(officer_id)
 	if key == "hire":
 		return _do_hire(officer_id)
+	if key == "draft":
+		return _do_draft(o, officer_id)
 	return _do_devel(key, o, officer_id)
 
 
-## agri/comm/sec 셋 다 같은 모양(cap까지 채우고 남은 만큼만 는다)이라
-## `get()`/`set()`(Object 리플렉션)으로 한 벌만 쓴다 — 세 번째(sec)가
-## 들어오며 if/else 두 갈래를 늘리는 대신 이렇게 합쳤다.
-func _do_devel(key: String, o: Dictionary, officer_id: String) -> Dictionary:
+## rtk.js order()의 "대성공 판정 + 성과량" 부분 — 개발형 명령(devel)과
+## 징병(draft)이 공유한다(뒤에서 amount를 다르게 다룰 뿐 굴리는 방식은 같다).
+func _roll_amount(o: Dictionary, officer_id: String) -> Dictionary:
 	var h = Characters.find(officer_id)
 	var stat_val: float = float(h.stats.get(String(o.stat), 0))
 	var crit := _rng.randf() < clampf(stat_val / 400.0, 0.03, 0.28)
 	var amount := roundi((float(o.base) + stat_val * float(o.per)) * (1.5 if crit else 1.0))
+	return {"amount": amount, "crit": crit}
+
+
+## agri/comm/tech/sec/wall/train 여섯 다 같은 모양(cap까지 채우고 남은
+## 만큼만 는다)이라 `get()`/`set()`(Object 리플렉션)으로 한 벌만 쓴다.
+func _do_devel(key: String, o: Dictionary, officer_id: String) -> Dictionary:
+	var roll := _roll_amount(o, officer_id)
+	var amount: int = roll.amount
 
 	var cap := RealmOrders.cap_of(key)
 	var before: int = int(get(key))
@@ -93,7 +114,24 @@ func _do_devel(key: String, o: Dictionary, officer_id: String) -> Dictionary:
 	set(key, after)
 	amount = after - before
 
-	return {"ok": true, "officer": officer_id, "amount": amount, "crit": crit}
+	return {"ok": true, "officer": officer_id, "amount": amount, "crit": roll.crit}
+
+
+## rtk.js order()의 draft 분기 그대로 — 인구가 뽑을 수 있는 만큼(room)만
+## 병력이 늘고, 그만큼 인구가 준다. 새 병사가 섞이면 훈련도가 희석된다.
+func _do_draft(o: Dictionary, officer_id: String) -> Dictionary:
+	var roll := _roll_amount(o, officer_id)
+	var amount: int = roll.amount
+
+	var room := floori(float(pop) * 0.06) - troops
+	amount = maxi(0, mini(amount, maxi(0, room)))
+	amount = mini(amount, floori(float(pop) / 12.0))
+	troops += amount
+	pop -= amount
+	if troops > 0:
+		train = roundi(float(train) * float(troops - amount) / float(troops))
+
+	return {"ok": true, "officer": officer_id, "amount": amount, "crit": roll.crit}
 
 
 ## rtk.js doSearch() — 재야 후보를 rarity 내림차순으로 보고, 지력이 높을수록
@@ -159,8 +197,19 @@ func next_month() -> void:
 	if month in RealmOrders.HARVEST_MONTHS:
 		food += RealmOrders.food_income(agri, mul, sec)
 
+	## rtk.js settleMonth() "군량이 떨어지면 병사가 흩어진다" — 병력이 생긴
+	## 이상(징병) 매달 군량을 먹는다는 것까지는 옮겨야 징병이 군량과 관계
+	## 없는 죽은 숫자가 되지 않는다. troops=0이면 food_upkeep도 0이라
+	## 징병 전까지는 지금까지의 정산과 완전히 같다.
+	food -= RealmOrders.food_upkeep(troops)
+	if food < 0:
+		var lost := mini(troops, roundi(-float(food) / float(RealmOrders.FOOD_PER_1000) * 1000.0))
+		troops -= lost
+		food = 0
+
 	## rtk.js settleMonth() "치안은 가만두면 내려간다" — 그대로 이식.
-	## 인구·성벽 연동 줄은 그 값 자체가 없어(3·4절 "제외") 안 옮겼다.
+	## 인구 증감(치안·개간 연동 성장 공식)은 그 값 자체가 없어(3·4절 "제외")
+	## 안 옮겼다 — pop은 징병으로만 준다.
 	sec = clampi(sec - 1, 0, 100)
 
 	month += 1
@@ -208,6 +257,7 @@ func save() -> bool:
 		"year": year, "month": month,
 		"gold": gold, "food": food,
 		"agri": agri, "comm": comm, "sec": sec,
+		"tech": tech, "wall": wall, "train": train, "pop": pop, "troops": troops,
 		"roster": roster, "found": found,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -237,6 +287,11 @@ func try_load() -> bool:
 	agri = int(data.get("agri", 400))
 	comm = int(data.get("comm", 360))
 	sec = int(data.get("sec", RealmOrders.SEC_START))
+	tech = int(data.get("tech", RealmOrders.TECH_START))
+	wall = int(data.get("wall", RealmOrders.BASE_WALL))
+	train = int(data.get("train", RealmOrders.TRAIN_START))
+	pop = int(data.get("pop", RealmOrders.POP_START))
+	troops = int(data.get("troops", 0))
 	roster = data.get("roster", [RealmOfficerPool.STARTING_OFFICER])
 	found = data.get("found", [])
 	_done_this_month.clear()

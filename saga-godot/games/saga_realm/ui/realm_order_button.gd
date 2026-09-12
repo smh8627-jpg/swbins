@@ -1,8 +1,9 @@
 extends Button
 
-## "명령" 버튼 — GO ChoicePrompt를 그대로 재사용해 명령 넷(개간/상업/수색/
-## 등용)을 고르는 패널을 띄운다(villager_builder.gd가 선물/구매 메뉴에
-## 쓰는 것과 같은 패턴). 결과는 saga_core Toast로 한 줄 알린다.
+## "명령" 버튼 — GO ChoicePrompt를 그대로 재사용해 rtk.js ORDERS 10종
+## 전부(개간/상업/기술/치안/축성/징병/훈련/조선/수색/등용)를 고르는 패널을
+## 띄운다(villager_builder.gd가 선물/구매 메뉴에 쓰는 것과 같은 패턴).
+## 결과는 saga_core Toast로 한 줄 알린다.
 
 const RealmOrders := preload("res://games/saga_realm/data/realm_orders.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
