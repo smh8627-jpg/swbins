@@ -1,0 +1,48 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://games/saga_forest/world/forest_village.gd" id="1"]
+[ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
+[ext_resource type="Script" path="res://games/saga_go/world/environment_profile.gd" id="3"]
+[ext_resource type="Script" path="res://games/saga_forest/world/forest_terrain_builder.gd" id="4"]
+[ext_resource type="Script" path="res://games/saga_forest/world/forest_vegetation_builder.gd" id="5"]
+[ext_resource type="Script" path="res://games/saga_forest/world/forest_house.gd" id="6"]
+[ext_resource type="Script" path="res://games/saga_forest/world/villager_builder.gd" id="7"]
+[ext_resource type="Script" path="res://games/saga_forest/world/gatherable_tree.gd" id="8"]
+[ext_resource type="PackedScene" path="res://games/saga_forest/player/ForestPlayer.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://games/saga_forest/ui/ForestHUD.tscn" id="10"]
+
+[node name="TestVillageForest" type="Node3D"]
+script = ExtResource("1")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("2")
+script = ExtResource("3")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.8, -0.35, 0.48, 0, 0.807, 0.59, -0.6, -0.472, 0.646, 0, 40, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="Terrain" type="Node3D" parent="."]
+script = ExtResource("4")
+
+[node name="Vegetation" type="Node3D" parent="."]
+script = ExtResource("5")
+
+[node name="House" type="Node3D" parent="."]
+script = ExtResource("6")
+
+[node name="Villager" type="Node3D" parent="."]
+script = ExtResource("7")
+
+[node name="GatherableTree" type="Node3D" parent="."]
+script = ExtResource("8")
+
+[node name="ReviewCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 60, 40)
+current = false
+
+[node name="Player" parent="." instance=ExtResource("9")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 0.1, -3)
+
+[node name="MobileHUD" parent="." instance=ExtResource("10")]

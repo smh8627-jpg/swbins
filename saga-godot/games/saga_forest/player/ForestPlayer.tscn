@@ -1,0 +1,39 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/dungeon_camera_rig.gd" id="2"]
+[ext_resource type="PackedScene" path="res://assets/characters/character-a.glb" id="3"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
+radius = 0.9
+height = 3.4
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+script = ExtResource("1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape1")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+
+[node name="Visual" parent="." instance=ExtResource("3")]
+## VERTICAL_SLICE_FOREST.md 3절 — 곡률(1절)은 정점 셰이더라 카메라와
+## 무관하지만, 플레이어 자신은 곡률 중심 그 자체라(delta≈0) 안 굽는다 —
+## GO/DUNGEON과 같은 재사용, 별도 곡률 머티리얼이 필요 없다.
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("2")
+## VERTICAL_SLICE_FOREST.md 3절 결정 — pitch_deg=62.0(DUNGEON 55°보다 더
+## 위에서), spring_length=14.0(DUNGEON 12m보다 조금 멂). 새 스크립트를
+## 안 짜고 DUNGEON의 dungeon_camera_rig.gd를 그대로 크로스게임 재사용한다
+## (그 스크립트는 DUNGEON 전용 로직이 없는 순수 범용 컴포넌트 — 3절 근거).
+pitch_deg = 62.0
+spring_length = 14.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraRig"]
+spring_length = 14.0
+collision_mask = 1
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm3D"]
+current = true

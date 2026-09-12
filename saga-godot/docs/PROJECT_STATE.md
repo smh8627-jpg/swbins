@@ -2762,3 +2762,95 @@ saga-godot 트랙에도 확장한다. PLAN.md 5장 "역사 인물로 노는" 정
 자연스럽다 — 단, 착수 여부는 사용자에게 확인받을 것(DUNGEON의 GUI 승인
 게이트도 아직 대기 중이라는 점은 FOREST 설계 착수와 무관하게 별도로 남아
 있다, 위 2026-09-12㉖ 항목 참고).
+
+## 착수 (2026-09-12㉗) — FOREST 첫 콘텐츠 루프 코드로 구현 (완료 조건 7단계 전부)
+
+- **사용자가 "착수해"로 승인 — DUNGEON이 밟은 순서(2026-09-12⑫·⑬·⑭)를
+  그대로 따라 VERTICAL_SLICE_FOREST.md 4절의 완료 조건 7단계를 한 번에
+  구현했다.** `games/saga_forest/` 신규.
+  - **1절(구면 투영) 실장 — 새 공용 인프라, saga_core에 둠(FOREST 전용
+    아님).** `saga_core/shaders/curved_vertex_color.gdshader`·
+    `curved_textured.gdshader`(둘 다 `world_curve.gdshaderinc`를
+    `#include`) + `saga_core/world/world_curve_material.gd`
+    (`class_name WorldCurveMaterial`) — `saga_world_curve_center` 전역
+    유니폼을 런타임에 직접 등록하는 것(CLAUDE.md 2026-09-12 발견 "헤드리스
+    --editor --quit로 자동 등록 안 됨"을 그대로 지킨 것)과, 그 유니폼을
+    읽는 ShaderMaterial 두 종류(정점색 전용/텍스처 전용)를 만드는 것
+    둘 다 한 곳에 모았다. 등록은 멱등이라(정적 플래그) 여러 빌더가 각자
+    처음 곡률 머티리얼을 만들 때 자동으로 한 번만 등록된다.
+  - `games/saga_forest/world/forest_village.gd`(신규, 씬 루트) — 매
+    `_process()`마다 `WorldCurveMaterial.update_center(player.global_position)`.
+    땅(`forest_terrain_builder.gd`)·산포 나무(`forest_vegetation_builder.gd`,
+    GO의 `tree_oak.glb`×4.5를 그대로 재사용 — 2절이 이미 이 스케일에
+    맞다고 확인해 둔 값)·집 외관(`forest_house.gd`)·주민
+    (`villager_builder.gd`)까지 전부 이 곡률 머티리얼을 쓴다(안 그러면
+    "나무가 공중에 뜬 것처럼 보인다"는 1절 우려 그대로 재현되기 때문) —
+    반대로 **집 내부·플레이어 자신은 곡률을 안 쓴다**(내부는 평범한
+    `StandardMaterial3D`, 플레이어는 자신이 곡률 중심이라 delta≈0이라
+    시각 효과가 없다).
+  - `games/saga_forest/data/village_map.gd`(신규) — 2절이 정한
+    TILE_SIZE=3.0m 30×20 지도. GO test_map.gd와 같은 "글자 지도" 방식,
+    바이옴 다양성 없이 사방 숲(T) 테두리+풀밭(.)+흙길(=)+집 자리(H)
+    하나뿐(4절 "제외" 목록 그대로).
+  - `forest_terrain_builder.gd` — GO보다 훨씬 단순하다(높낮이가 아예
+    없어 GO식 칸별 경계 블렌딩·칸별 충돌 대신 통짜 평면 충돌체 하나).
+  - `forest_vegetation_builder.gd` — 숲 테두리 타일마다 나무 2그루
+    (결정적 해시 산포, GO와 같은 원칙), 트렁크 충돌은 GO의 매직넘버
+    (반지름 0.4·높이 3.0)를 그대로 물려받음(TREE_SCALE과 무관하게
+    고정 — GO 원 코드의 기존 관례를 그대로 따름, 새로 고안 안 함).
+  - `forest_house.gd` — 3절 "집 하나 + 들어가기/나가기"의 핵심.
+    외관은 GO `landmarks_builder.gd`의 `wall-block.glb`/`roof-gable.glb`
+    재사용이지만, GO의 마을집과 달리 **남쪽 벽 가운데 2칸을 비워 실제
+    문으로 지나갈 수 있게** 시각(MultiMesh)·충돌(벽 4개로 분리, DUNGEON
+    `test_room.gd`의 문틈 방식과 같은 발상) 둘 다 뚫었다. 내부는 마을과
+    안 겹치는 먼 좌표(500,0,500)에 통째로 새로 지은 8×8m 방 하나 — 씬
+    전환 없이 두 Area3D 트리거(EnterTrigger/ExitTrigger)로 텔레포트만
+    한다. 도착 지점은 각 트리거 존과 충분히 떨어뜨려 도착하자마자
+    되튕기지 않게 함(DUNGEON이 겪었던 "로드 직후 트리거 재발화" 버그와
+    같은 함정을 설계 단계에서 미리 피함).
+  - `villager_builder.gd` — 주민 1명("숲지기", data-village.js NPCS 중
+    하나, 역할 이름이지 실존 인물 아님 — 4절에서 이미 확인). GO
+    npc_builder.gd보다 훨씬 단순(사명·제안 패널·CodexState 연동 없음,
+    대사 한 줄만).
+  - `gatherable_tree.gd` — 4절 "채집 동사 하나만: 나무 흔들기". 새
+    입력 액션 `forest_gather`(G키, project.godot 추가)를 범위 안에서
+    누르면 `ForestSaveState.fruit_count` 증가 + 토스트. day 리셋 없이
+    무제한(4절 "reset:1은 이번엔 무시").
+  - `games/saga_forest/data/forest_save_state.gd`(신규, autoload
+    `ForestSaveState`) — GO/DUNGEON과 같은 정신(로컬 파일 하나, 버전
+    필드)이되 파일·스키마 완전 분리(DUNGEON이 이미 세운 선례). 저장
+    내용은 플레이어 위치+`fruit_count`뿐(4절 "최소 범위").
+  - `games/saga_forest/player/ForestPlayer.tscn` — GO/DUNGEON과 같은
+    `player.gd`+`character-a.glb`, 카메라만 DUNGEON의
+    `dungeon_camera_rig.gd`를 **크로스게임으로 그대로 재사용**하되
+    `pitch_deg=62.0`·`spring_length=14.0`(3절 결정)으로 다르게 얹음 —
+    새 카메라 스크립트를 안 짬.
+  - `games/saga_forest/ui/ForestHUD.tscn` — `saga_core/ui`의
+    조이스틱·토스트 재사용 + 새 `fruit_label.gd`(과일 개수 상시 표시,
+    GO party_label.gd와 같은 폴링 패턴)·`forest_save_button.gd`(GO
+    save_button.gd와 완전히 같은 패턴).
+  - **검증(헤드리스, 실제 파일 IO 왕복까지)** — `--headless --editor
+    --quit`(임포트, `WorldCurveMaterial` 전역 클래스 정상 인식 확인) →
+    `TestVillageForest.tscn`을 `--quit-after 5 --verbose`로 세 번 연속,
+    **매번 exit 0·error/warn/missing/invalid/cannot 0건**(tree_oak·
+    wall-block·roof-gable·character-b GLB 전부 정상 로드 확인). **저장/
+    불러오기는 완전히 별도인 두 프로세스로 실측**: 1차 프로세스가
+    `fruit_count=7`을 저장(임시 디버그 프린트, 검증 뒤 원상복구·diff
+    없음) → 완전히 새 2차 프로세스가 그 파일을 읽어 `fruit=7`로 복원되는
+    것까지 확인(GO save_state.gd 때와 같은 엄격도 — 단순 "에러 없음"이
+    아니라 값 자체 비교). `user://save_forest.json`은 검증 뒤 지웠다
+    (레포에는 안 들어감). GO(`TestVillage.tscn`)·DUNGEON(`TestRoom.tscn`)
+    둘 다 이번 변경(project.godot autoload/입력 액션 추가) 이후에도
+    그대로 exit 0·오류 0건인 것을 다시 확인 — 회귀 없음.
+  - **GUI 실기 확인은 아직 안 함** — 구면 투영이 실제로 화면에서 그릇처럼
+    휘어 보이는지, 집 문 개구부가 자연스러운지, 카메라 각도(62°)가
+    적당한지는 전부 미확인(루트 CLAUDE.md "실기 확인은 몰아서" 방침).
+    다음에 사용자가 실기로 확인할 때 볼 목록: ①마을이 실제로 곡률
+    셰이더로 휘어 보이는지 ②집에 들어갔다 나올 때 평평함↔곡률 전환이
+    자연스러운지 ③나무 흔들기(G)·주민 대화·저장 버튼이 화면에서
+    잘 동작하는지 ④카메라 pitch 62°/spring 14m이 적당한지.
+  - **다음 이어질 것** — VERTICAL_SLICE_FOREST.md 4절 "제외" 목록 전부
+    (소나무/바위/꽃 채집·낚시·주민 5명 전체+부탁/선물/편지·도감·박물관·
+    순무 시세·꽃 교배·계절행사·옷·바이옴 다양성·몬스터). PLAN.md 100단계
+    Vertical Slice 승인 게이트는 위 GUI 실기 확인이 끝나야 통과할 수
+    있다(GO·DUNGEON과 같은 순서).
