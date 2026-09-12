@@ -31,6 +31,7 @@ DungeonPartyState="*res://games/saga_dungeon/data/dungeon_party_state.gd"
 DungeonHardcoreState="*res://games/saga_dungeon/data/dungeon_hardcore_state.gd"
 ForestSaveState="*res://games/saga_forest/data/forest_save_state.gd"
 StorySaveState="*res://games/saga_story/data/story_save_state.gd"
+RealmSaveState="*res://games/saga_realm/data/realm_save_state.gd"
 
 [display]
 

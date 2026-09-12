@@ -3569,3 +3569,173 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — Phase 1(`games/saga_realm/` 폴더 생성) 착수
     여부를 사용자에게 확인받거나, 다음 세션에서 `city3d.js`/`realm3d.js`
     실측부터 이어간다.
+
+## REALM Phase 1 착수 — games/saga_realm/ 첫 코드 (2026-09-12)
+
+- **사용자 지시 "games/saga_realm 폴더 만들어서 착수해줘"** — VERTICAL_
+  SLICE_REALM.md 1~5절 설계를 그대로 코드로 옮겼다. GO/DUNGEON/FOREST/
+  STORY와 달리 REALM은 플레이어 아바타가 없다(1절 결정 — "성 조망"이
+  유일한 시점).
+  - `saga_core/data/characters.gd`(2026-08-31에 이미 있던 105명 가명
+    HEROES)를 그대로 재사용 — REALM 전용 무장 데이터(웹판 `data-force.js`)
+    는 **일부러 안 옮겼다**. 확인해 보니 `data-force.js`의 삼국지 무장
+    54명(`OFFICERS` 배열, 하후연·조인 등)은 아직 실명 그대로였다(한국사·
+    일본사 등 비삼국지 "재야"만 이미 가명) — 루트 CLAUDE.md 이름 정책이
+    "사가국지의 세계 각국 인물... 전부 포함"이라 명시하는데, 이 파일은
+    아직 그 정책을 못 지킨 상태(`js/data.js` HEROES가 2026-09-06에 가명화
+    된 것과 별개로 남은 흠으로 보인다 — 다음에 웹판 REALM을 손볼 때 참고
+    할 것). 그래서 이미 가명이 확인된 `characters.gd`에서만 골랐다.
+  - `games/saga_realm/data/realm_officer_pool.gd` — 시작 책사(현책/
+    sg_zhugeliang, wisdom100) + 재야 둘(해장/kr_yisunsin·이도인/jp_musashi).
+  - `games/saga_realm/data/realm_orders.gd` — 웹판 `rtk.js` ORDERS 중
+    개간·상업·수색·등용 4종, capOf()·goldOf()·foodOf()·govMul() 그대로
+    이식(성 허창 하나·sec=60 고정으로 좁힌 상수화, 공식 자체는 원문 그대로).
+  - `games/saga_realm/data/realm_save_state.gd`(신규 autoload
+    `RealmSaveState`) — `rtk.js` order()/doSearch()/doHire()/tryHire()/
+    settleMonth()/endMonth()를 성 하나·무장 1~2명 규모로 옮겼다. **재해석**
+    — 명령마다 쓸 무장을 화면에서 고르지 않고 그 자질이 가장 높은,
+    이번 달에 안 쓴 무장을 자동으로 고른다(`_best_officer_for`). 무작위는
+    고정 시드(20260824, 루트 CLAUDE.md 진단 시드와 같은 값)로 돌려 헤드리스
+    검증이 재현 가능하다(FOREST 몬스터들과 같은 이유).
+  - `games/saga_realm/world/realm_city.gd` — 허창을 primitive(기단+누각+
+    담장 넷)로 짓는다. `WorldCurveMaterial`을 curve_amount=0으로 써서
+    (구면 투영 없음, REALM은 1절에서 이미 "성 조망"으로 결정) 셰이더
+    종류만 다른 네 판과 공유한다.
+  - `games/saga_realm/world/realm_camera.gd` — 플레이어가 없어 GO/DUNGEON/
+    FOREST/STORY가 이미 쓰던 이동 입력 액션(move_left/right/forward/back)을
+    **그대로 재사용**해 카메라를 궤도 회전+줌 한다 — project.godot [input]
+    섹션을 새로 안 늘렸다(헤드리스 에디터가 그 파일을 조용히 고쳐 쓸 수
+    있다는 이 프로젝트의 알려진 흠을 피하려고).
+  - `games/saga_realm/ui/*` — RealmHUD(상태 라벨+명령/다음 달/저장 버튼),
+    GO ChoicePrompt·saga_core Toast를 그대로 재사용(새 UI 패턴을 안
+    만들었다).
+  - `project.godot` [autoload]에 `RealmSaveState` 한 줄 추가.
+  - **검증(헤드리스, 값 자체까지)** — `--headless --editor --quit` 임포트
+    확인(project.godot diff가 그 한 줄뿐임을 확인) → `TestCity.tscn`
+    `--quit-after 5 --verbose` 세 번 연속 exit 0·오류 0건·로그 완전 동일.
+    **임시 디버그로 실제 값 확인**: 개간 명령 amount=9(공식 round(3+100×
+    0.055)=8.5→9와 일치), 다음 달 정산 gold 변화가 gold_income() 공식과
+    소수점까지 일치, 6월에 도달했을 때만 군량이 늘어난 것 확인(harvest
+    month 게이트 확인), 수색으로 해장 발견 → 등용 시도 시 성공률
+    0.39461538461538(공식 0.28+100/260-3×0.09와 정확히 일치), 저장/
+    불러오기 왕복(골드·로스터 둘 다 흩트린 뒤 정확히 복원) 확인. **이
+    과정에서 설계 문서의 실수를 하나 발견** — 무장 한 명은 한 달에 명령
+    하나만 쓸 수 있다는(`rtk.js` 원래 규칙) 걸 빠뜨리고 완료 조건에
+    "개간→상업→..."을 한 턴에 다 되는 것처럼 적어 놨었다. VERTICAL_
+    SLICE_REALM.md 5절에 정정 기록을 남기고 문구를 고쳤다. 디버그 코드
+    원상복구(diff 0), 테스트 세이브(`save_realm.json`) 삭제. GO·DUNGEON·
+    FOREST·STORY 헤드리스 회귀 없음 재확인.
+  - **GUI 실기 확인은 아직 안 함**(카메라 궤도 회전 감각, UI 버튼 배치가
+    실제로 조작하기 편한지) — 사용자가 알아서 몰아서 확인할 것.
+  - **다음 이어질 것** — 웹판 `city3d.js`/`realm3d.js` 실측(지금 성 모형은
+    "성처럼 보이는" 최소 실루엣일 뿐, 원작 3D 렌더 감각을 아직 안
+    참고했다), 또는 VERTICAL_SLICE_REALM.md 4절 "제외" 목록(치안·축성 등
+    나머지 명령, 여러 성, 외교·전쟁, 문답)을 승인 후 확장.
+
+## REALM — city3d.js 실측 반영: 디오라마 재구성 (2026-09-12)
+
+- **사용자 지시 "응 이어해"** — 직전 세션이 남긴 "다음 이어질 것" 중
+  `city3d.js`/`realm3d.js` 실측을 골랐다(다른 하나인 4절 "제외" 목록
+  확장은 GUI 승인 게이트 전이라 보류, 실기는 마지막이라는 방침 그대로).
+  `city3d.js`(263줄)를 읽었다 — 핵심 개념은 "장식이 아니라 읽는 화면":
+  성벽 파손율·인구·상업·개간·군량·치안을 전부 소품 개수로 그대로 세운
+  디오라마이고, `sig()` 스냅샷 비교로 숫자가 바뀔 때만 다시 짓는다.
+  `realm3d.js`(1006줄, 여러 성을 한눈에 보는 월드맵)는 이번엔 안 읽었다
+  — 이 슬라이스가 성 하나뿐이라 지금 당장 필요한 참고는 city3d.js
+  쪽이었다(realm3d.js는 여러 성으로 넓힐 때 다시 볼 것).
+  - `realm_city.gd` 재구성 — 기존 정적 실루엣(대·누각·담장)은 그대로
+    두고, `_dyn`(Node3D, 별도 자식) 아래에 `city3d.js` build()의 밭
+    (개간)·시장(상업)·곳간(군량) 개수 공식을 그대로 이식(기준값 90·
+    80·400도 원작 그대로), `sig()`/`render()`처럼 값이 바뀔 때만
+    다시 짓는다(`_rebuild_if_changed()`, `_process()`에서 매 프레임
+    폴링 — FOREST gather_label.gd와 같은 정신). **재해석** — 원작의
+    "집(인구)"·성벽 파손율·치안 연동 횃불은 이 슬라이스에 그 값 자체가
+    없어(3·4절 "제외") 뺐고, 대신 이 슬라이스만의 값인 **로스터(무장
+    수)를 깃발로 세운다** — 원작에 없는 항목이지만 "숫자를 그대로
+    센다"는 원작 원칙에 맞춰 새로 골랐다.
+  - **검증(헤드리스, 값 자체까지)** — `--headless --editor --quit` 임포트
+    확인(project.godot 변경 없음) → `TestCity.tscn` `--quit-after 5
+    --verbose` 세 번 연속 exit 0·오류 0건·로그 완전 동일. **임시
+    디버그로 실제 개수 확인**(세 단계, 매번 실제 프레임을 건너뛰게
+    `await get_tree().process_frame`을 둘씩 넣어 `queue_free()`가 실제로
+    처리된 뒤 세었다 — 처음엔 이걸 안 넣어서 20/44/51처럼 숫자가 겹쳐
+    보이는 실수를 했었다, 프레임을 안 쉬면 이전 프레임의 `queue_free()`
+    된 노드가 아직 안 지워진 채로 세어진다는 걸 이번에 확인): (agri=400,
+    comm=360,food=11200,roster=1)→20개(밭4+시장5×2+곳간4+깃발1×2, 손
+    계산과 정확히 일치), (agri=900,comm=900,food=20000,roster=2)→24개
+    (전부 상한 clamp: 밭6+시장5×2+곳간4+깃발2×2), (agri=90,comm=10,
+    food=0,roster=1)→7개(전부 하한 clamp: 밭2+시장1×2+곳간1+깃발1×2)
+    — 셋 다 정확히 일치. 디버그 원상복구(diff 0). GO·DUNGEON·FOREST·
+    STORY 헤드리스 회귀 없음 재확인.
+  - **GUI 실기 확인은 아직 안 함**(디오라마가 실제로 성처럼 읽히는지,
+    소품들이 서로 안 겹치는지) — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — `realm3d.js`(여러 성 월드맵) 실측은 여러 성으로
+    넓힐 때, 또는 VERTICAL_SLICE_REALM.md 4절 "제외" 목록 확장(치안·
+    축성 등 나머지 명령, 여러 성)은 승인 후.
+
+
+## REALM 명령 확장 — 치안(sec) 추가 (2026-09-12)
+
+- **사용자 지시 "saga-godot 이어해"** — 직전 항목이 남긴 "다음 이어질 것"
+  두 후보(realm3d.js 여러 성 월드맵 실측 / VERTICAL_SLICE_REALM.md 4절
+  "제외" 목록 확장) 중 후자를 골랐다. `gold_income()`/`food_income()`
+  공식이 이미 `secMul`을 갖고 있었는데(sec=60 고정 상수로 흉내만 냄)
+  치안 명령을 넣는 것은 그 자리를 실제 값으로 바꾸는 것뿐이라, 인구·
+  성벽·재해 같은 아직 없는 다른 시스템을 끌어들이지 않고도 스코프를
+  좁게 유지할 수 있다고 판단했다.
+  - `realm_orders.gd`: ORDERS에 `sec`(치안) 추가, `cap_of()` 신설,
+    `sec_mul()`을 상수 대신 함수로.
+  - `realm_save_state.gd`: `sec` 변수·저장/불러오기 필드 추가,
+    `_do_devel()`을 `get()`/`set()` 리플렉션으로 일반화(agri/comm/sec
+    공용), `next_month()`에 월 -1 감쇠(`rtk.js` 그대로) 추가.
+  - `realm_city.gd`: 원작 city3d.js "치안 sec>=80이면 횃불 하나 더"를
+    옮겨 셋째 횃불을 고정 소품에서 `_dyn`(값에 물린 디오라마)로 이동.
+  - `realm_status_label.gd`: HUD에 🪧 sec 표시 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-2절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot·.import
+    변경 없음, 이 세션 시작 시점부터 있던 texture-a.png.import diff는
+    그대로 안 건드림) → GO(TestVillage)·DUNGEON(TestRoom)·
+    FOREST(TestVillageForest)·STORY(TestField)·REALM(TestCity) 다섯 씬
+    전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전 동일. 임시 디버그로
+    치안 명령 실행(amount=8, 금 40 차감)·다음 달 정산의 sec_mul 반영·
+    월 -1 감쇠·횃불 조건(sec>=80)·저장/불러오기 왕복(77) 전부 손 계산과
+    일치 확인. 디버그 원상복구(diff 0), 테스트 세이브 삭제.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 나머지 5종 명령(기술·축성·징병·훈련·조선) 확장,
+    또는 `realm3d.js`(여러 성 월드맵) 실측(여러 성으로 넓힐 때).
+
+
+## REALM 명령 확장 — 나머지 다섯(기술·축성·징병·훈련·조선) 마저 추가 (2026-09-12)
+
+- **사용자 지시 "나머지 명령도 마저 추가해줘"** — 직전 항목(치안 추가)이
+  남긴 "다음 이어질 것" 중 남은 5종 명령을 마저 넣어 `rtk.js` ORDERS
+  10종이 REALM에 전부 들어왔다. "명령이 만드는 값만 들이고 그 값에 딸린
+  다른 시스템은 안 들인다"는 치안 때 원칙을 그대로 다섯 개에 적용:
+  기술·훈련·축성은 war.js가 없어 그냥 자라기만 하는 숫자, 조선은 허창이
+  plain이라 원작처럼 늘 실패, 징병만 pop·troops 두 값을 새로 들이되
+  인구 자연 증감(치안·개간 연동 성장 공식)은 안 옮기고 징병으로만 줄게
+  했다 — 대신 병력이 매달 군량을 먹고 굶주리면 흩어지는 로직은 옮겨서
+  징병이 군량과 무관한 죽은 숫자가 되지 않게 했다.
+  - `realm_orders.gd`: ORDERS 나머지 다섯 추가, `cap_of()`에 tech/wall/
+    train 추가, `food_upkeep()` 신설(eatOf 이식), BASE_WALL/CAP_WALL/
+    POP_START 등 상수 추가.
+  - `realm_save_state.gd`: `_roll_amount()`로 대성공+성과량 계산을
+    devel/draft가 공유하도록 추출, `_do_draft()` 신설(room 클램프·훈련도
+    희석), `execute_order()`에 ships river-체크 추가(금 차감보다 먼저),
+    `next_month()`에 병력 군량 소비·굶주림 로직 추가, 저장/불러오기에
+    tech/wall/train/pop/troops 다섯 필드 추가.
+  - `realm_status_label.gd`: HUD에 🪖 병력 표시 추가.
+  - `realm_officer_pool.gd`/`realm_order_button.gd`: 낡은 주석("명령
+    넷이 전부 wisdom 판정") 정정.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-3절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot·.import
+    변경 없음) → GO·DUNGEON·FOREST·STORY·REALM 다섯 씬 전부 `--quit-after
+    5` 세 번 연속 exit 0·로그 완전 동일. 임시 디버그로 조선 항상 실패
+    (금 안 나감)·기술/축성/훈련 amount 공식과 정확히 일치·징병의 pop/
+    troops/훈련도 희석까지 손 계산과 일치·다음 달 군량 소비(troops×10/
+    1000)·저장/불러오기 왕복(다섯 필드) 전부 확인. 디버그 원상복구
+    (diff 0), 테스트 세이브 삭제.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 여러 성 동시 운영, 전쟁/외교(war.js/diplo.js),
+    문답(quiz.js), 또는 이번에 들여온 wall/tech/train을 실제로 소비하는
+    전투 슬라이스 — 어느 쪽이든 승인 후.
