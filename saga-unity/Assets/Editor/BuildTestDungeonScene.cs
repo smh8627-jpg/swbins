@@ -23,7 +23,19 @@ namespace Saga.EditorTools
         private const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
 
         private static readonly Vector3 PlayerSpawn = new Vector3(-6f, 0.1f, 0f);
-        private static readonly Vector3 EnemySpawn = new Vector3(5f, 0f, 0f);
+
+        // "몬스터 무리" 슬라이스 — saga-dungeon 웹판 js/dungeon.js:333
+        // makeRoom('fight', ...)의 floor=1 공식 min(12, 4 + rand(0~3))의
+        // 최소값 4마리를 무작위 롤 없이 결정적으로 씀(DungeonEnemy.cs
+        // 주석 참고). 방(20m×14m, 벽 두께 1m) 안쪽에서 서로 안 겹치게
+        // 플레이어 스폰(-6,0,0) 반대편에 부채꼴로 흩어 둔다.
+        private static readonly Vector3[] EnemySpawns =
+        {
+            new Vector3(5f, 0f, 0f),
+            new Vector3(6.5f, 0f, 3.5f),
+            new Vector3(6.5f, 0f, -3.5f),
+            new Vector3(3f, 0f, 5f),
+        };
 
         [MenuItem("Saga/Build TestDungeon Scene")]
         public static void Build()
@@ -72,9 +84,12 @@ namespace Saga.EditorTools
 
         private static void BuildEnemy()
         {
-            var go = new GameObject("Enemy_HwangGeon");
-            go.transform.position = EnemySpawn;
-            go.AddComponent<DungeonEnemy>();
+            for (int i = 0; i < EnemySpawns.Length; i++)
+            {
+                var go = new GameObject($"Enemy_HwangGeon_{i + 1}");
+                go.transform.position = EnemySpawns[i];
+                go.AddComponent<DungeonEnemy>();
+            }
         }
 
         private static (GameObject playerGo, PlayerCombat combat) BuildPlayer()

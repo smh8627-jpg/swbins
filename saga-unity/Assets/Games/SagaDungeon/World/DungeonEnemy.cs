@@ -6,13 +6,18 @@ using Saga.Dungeon.UI;
 namespace Saga.Dungeon.World
 {
     /// <summary>
-    /// VERTICAL_SLICE_DUNGEON.md의 유일한 적 — 황건적(saga-dungeon 웹판
-    /// `js/data-enemy.js` tier1). 체력·공격력은 `js/dungeon.js`의 실제
-    /// 공식(`enemyHp`/`enemyDmg`, 1층·잡졸·평 난이도 기준)을 그대로
-    /// 옮겼다: HP=24, 공격력=5. GO의 BanditEncounter.cs와 달리 **선택지
-    /// 화면이 없는 실시간 전투**다 — saga-dungeon 웹판 정체성 자체가
-    /// 이동+근접 판정이라 GO의 턴제 UI 화면을 베끼지 않는다(VERTICAL_
-    /// SLICE_DUNGEON.md "왜 GO와 다르게 설계하는가" 참고).
+    /// VERTICAL_SLICE_DUNGEON.md 다음 슬라이스 "몬스터 무리" — 황건적
+    /// (saga-dungeon 웹판 `js/data-enemy.js` tier1). 체력·공격력은
+    /// `js/dungeon.js`의 실제 공식(`enemyHp`/`enemyDmg`, 1층·잡졸·평
+    /// 난이도 기준)을 그대로 옮겼다: HP=24, 공격력=5. 몬스터 수는 같은
+    /// 파일의 `makeRoom('fight', ...)` 공식(`dungeon.js:333`, floor=1 기준
+    /// `min(12, 4 + rand(0~3))` = 4~7마리)에서 무작위 롤 없이 최소값
+    /// 4마리를 결정적으로 씀(BuildTestDungeonScene.cs 참고) — 이 컴포넌트
+    /// 자체는 인스턴스 하나가 몬스터 한 마리라 개수와 무관하게 그대로다.
+    /// GO의 BanditEncounter.cs와 달리 **선택지 화면이 없는 실시간
+    /// 전투**다 — saga-dungeon 웹판 정체성 자체가 이동+근접 판정이라
+    /// GO의 턴제 UI 화면을 베끼지 않는다(VERTICAL_SLICE_DUNGEON.md
+    /// "왜 GO와 다르게 설계하는가" 참고).
     /// </summary>
     public class DungeonEnemy : MonoBehaviour
     {
