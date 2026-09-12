@@ -10,9 +10,11 @@ namespace Saga.Forest.World
     /// 적용한 것 — saga-godot FOREST 트랙이 이미 네 종(숲도깨비·바위도깨비·
     /// 버섯정령·꽃정령, `forest_creature.gd`)으로 검증해 둔 걸 개념만
     /// 참고해 Unity로 새로 짰다(코드는 안 베낀다, 다섯 판/두 엔진 트랙 공통
-    /// 원칙). **2026-09-12, 두 종(포자괴물·안개유령) 추가** — saga-godot에
-    /// 없던 종이라 이번엔 saga-forest 웹판 `data-village.js`(ANIMALS.mushnub)·
-    /// 한국 설화 모티프(도깨비불)만 참고해 saga-unity가 처음 짰다.
+    /// 원칙). **2026-09-12, 네 종(포자괴물·안개유령·무쇠도깨비·나비정령)
+    /// 추가** — saga-godot에 없던 종이라 saga-forest 웹판 `data-village.js`
+    /// (ANIMALS.mushnub)·한국 설화 모티프(도깨비불)만 참고해 saga-unity가
+    /// 처음 짰다. 여덟 종이 네 바이옴에 둘씩(`ForestBiomeData.Zones`
+    /// 참고).
     ///
     /// **전투·포획·HP는 이번에도 안 만든다** — 이 판의 핵심 루프는 "돌아다니면
     /// 재미있다"이지 전투가 아니다(`saga-godot/docs/LEGACY_FEATURE_AUDIT.md`
@@ -79,6 +81,20 @@ namespace Saga.Forest.World
                     // 안 건드리므로).
                     _moveSpeed = 1.8f; _fleeSpeed = 4.0f; _fleeRadius = 7.5f; _wanderRadius = 4.2f;
                     SpawnVisualAngaeyuryeong();
+                    break;
+                case "musoetokkebi":
+                    // 일곱째 종(2026-09-12) — 여섯 중 가장 느리게 튄다(fleeSpeed
+                    // 최솟값, 새 초과 축 — 이전까지 이 축엔 기록이 없었다).
+                    // 바위 지대(무쇠처럼 단단한 껍질, 놀라도 안 서두른다).
+                    _moveSpeed = 1.0f; _fleeSpeed = 1.8f; _fleeRadius = 4.5f; _wanderRadius = 2.2f;
+                    SpawnVisualMusoetokkebi();
+                    break;
+                case "nabijeongryeong":
+                    // 여덟째 종(2026-09-12) — 여섯 중 가장 급하게 튄다(fleeSpeed
+                    // 최댓값, musoetokkebi와 같은 축의 반대쪽 끝). 꽃밭(팔랑이며
+                    // 날듯 산다는 인상, 실제 이동 로직은 다른 종과 동일).
+                    _moveSpeed = 1.6f; _fleeSpeed = 4.8f; _fleeRadius = 5.5f; _wanderRadius = 4.5f;
+                    SpawnVisualNabijeongryeong();
                     break;
                 default: // "dokkaebi" — 첫 종, 기본값.
                     _moveSpeed = 1.5f; _fleeSpeed = 3.5f; _fleeRadius = 6.0f; _wanderRadius = 4.0f;
@@ -185,8 +201,9 @@ namespace Saga.Forest.World
         // ── 종별 시각 — 전부 primitive 조합(GLB 없음, PLAN.md 8장 placeholder),
         // `Saga/ForestWorldCurve` 머티리얼을 물려 땅과 같이 휘게 한다(안 그러면
         // 공중에 뜬 것처럼 보인다 — 셰이더 클래스 주석 "땅·나무·NPC 등" 참고).
-        // 여섯 종 다 primitive 조합이 겹치지 않게 짰다(구+원기둥 / 상자+상자 /
-        // 원기둥+구 / 구+납작구 / 구+작은구 셋 / 구+구).
+        // 여덟 종 다 primitive 조합이 겹치지 않게 짰다(구+원기둥 / 상자+상자 /
+        // 원기둥+구 / 구+납작구 / 구+작은구 셋 / 구+구 / 납작구+작은구 둘 /
+        // 구+납작구 둘).
 
         private Material CurveMat(string name, Color color)
         {
@@ -279,6 +296,31 @@ namespace Saga.Forest.World
             var coreMat = CurveMat("AngaeyuryeongCore (generated)", new Color(0.95f, 0.9f, 0.55f));
             Primitive(transform, PrimitiveType.Sphere, "Body", Vector3.zero, Vector3.one * 0.7f, outerMat);
             Primitive(transform, PrimitiveType.Sphere, "Core", new Vector3(0.08f, 0.05f, 0f), Vector3.one * 0.32f, coreMat);
+        }
+
+        // 무쇠도깨비 — 일곱째 종(2026-09-12), 바위 지대(bawi와 공유). 납작하게
+        // 웅크린 몸통(무쇠빛 청회색) + 눈 혹 둘(밝은 회백)로 "단단히 웅크린
+        // 짐승" 인상을 준다 — bawi(상자+상자 혹, 돌빛 회갈)와 실루엣·색조
+        // 둘 다 갈랐다(납작 구 vs 상자, 청회 vs 회갈).
+        private void SpawnVisualMusoetokkebi()
+        {
+            var bodyMat = CurveMat("Musoetokkebi (generated)", new Color(0.42f, 0.46f, 0.55f));
+            var eyeMat = CurveMat("MusoetokkebiEye (generated)", new Color(0.75f, 0.78f, 0.8f));
+            Primitive(transform, PrimitiveType.Sphere, "Body", new Vector3(0f, 0.28f, 0f), new Vector3(1.1f, 0.5f, 1.0f), bodyMat);
+            Primitive(transform, PrimitiveType.Sphere, "EyeL", new Vector3(-0.25f, 0.55f, 0.35f), Vector3.one * 0.16f, eyeMat);
+            Primitive(transform, PrimitiveType.Sphere, "EyeR", new Vector3(0.25f, 0.55f, 0.35f), Vector3.one * 0.16f, eyeMat);
+        }
+
+        // 나비정령 — 여덟째 종(2026-09-12), 꽃밭(kkot과 공유). 작은 구 몸통 +
+        // 납작구 날개 둘(파스텔 보라/청보라)로 kkot(구+화관, 크림/분홍)과
+        // 갈랐다 — 날개는 화관처럼 Y로 누른 구를 좌우 대칭으로 붙였다.
+        private void SpawnVisualNabijeongryeong()
+        {
+            var bodyMat = CurveMat("Nabijeongryeong (generated)", new Color(0.85f, 0.55f, 0.85f));
+            var wingMat = CurveMat("NabijeongryeongWing (generated)", new Color(0.6f, 0.7f, 0.95f));
+            Primitive(transform, PrimitiveType.Sphere, "Body", new Vector3(0f, 0.55f, 0f), Vector3.one * 0.4f, bodyMat);
+            Primitive(transform, PrimitiveType.Sphere, "WingL", new Vector3(-0.32f, 0.62f, 0f), new Vector3(0.5f, 0.08f, 0.32f), wingMat);
+            Primitive(transform, PrimitiveType.Sphere, "WingR", new Vector3(0.32f, 0.62f, 0f), new Vector3(0.5f, 0.08f, 0.32f), wingMat);
         }
     }
 }

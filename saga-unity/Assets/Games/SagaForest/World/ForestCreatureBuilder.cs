@@ -8,9 +8,9 @@ namespace Saga.Forest.World
     /// (기존 콘텐츠 — 나무(-10,5)·주민(10,5)·집(15,-10)·플레이어 스폰(0,-15)과
     /// 안 겹치는 자리)에 하나씩. **바이옴 지형 다양성 슬라이스로 이 den
     /// 좌표가 그대로 `ForestBiomeData.Zones`의 중심과 일치한다**(den 좌표
-    /// 자체는 안 옮김 — `ForestBiomeData.cs` 참고). **2026-09-12 종 늘리기 —
-    /// 포자괴물·안개유령을 각각 버섯숲·어둑숲에 추가**해 이제 두 바이옴은
-    /// 종 둘씩, 나머지 둘(바위 지대·꽃밭)은 여전히 하나씩이다.
+    /// 자체는 안 옮김 — `ForestBiomeData.cs` 참고). **2026-09-12 종 늘리기 둘** —
+    /// 포자괴물·안개유령을 버섯숲·어둑숲에, 무쇠도깨비·나비정령을 바위
+    /// 지대·꽃밭에 추가해 네 바이옴 전부 종 둘씩이 됐다.
     /// </summary>
     public class ForestCreatureBuilder : MonoBehaviour
     {
@@ -31,6 +31,10 @@ namespace Saga.Forest.World
             // (`ForestBiomeData.Zones`의 반경 17m 안).
             new CreatureDef { Kind = "pojagoemul", Den = new Vector3(-31f, 0f, 24f) },     // 버섯숲(beoseot과 공유).
             new CreatureDef { Kind = "angaeyuryeong", Den = new Vector3(-31f, 1.0f, -24f) }, // 어둑숲(dokkaebi와 공유), 땅 위 1m에 떠 있음.
+            // 2026-09-12 "바위 지대·꽃밭도 두 종씩" — 나머지 두 바이옴도
+            // 같은 패턴(den을 zone 중심에서 약 7.2m 비껴 둠)으로 채웠다.
+            new CreatureDef { Kind = "musoetokkebi", Den = new Vector3(31f, 0f, 24f) },      // 바위 지대(bawi와 공유).
+            new CreatureDef { Kind = "nabijeongryeong", Den = new Vector3(31f, 0f, -24f) },  // 꽃밭(kkot과 공유).
         };
 
         private void Awake()

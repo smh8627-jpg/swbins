@@ -18,7 +18,10 @@ namespace Saga.EditorTools
     {
         private const string ScenePath = "Assets/Scenes/TestVillageForest.unity";
         private static readonly string[] Kinds =
-            { "dokkaebi", "bawi", "beoseot", "kkot", "pojagoemul", "angaeyuryeong" };
+        {
+            "dokkaebi", "bawi", "beoseot", "kkot",
+            "pojagoemul", "angaeyuryeong", "musoetokkebi", "nabijeongryeong",
+        };
 
         private static bool _hadError;
         private static int _framesSeen;
@@ -85,7 +88,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestForestCreatures] OK - all six creatures wandered and fled correctly, no errors"
+                    ? "[PlaytestForestCreatures] OK - all eight creatures wandered and fled correctly, no errors"
                     : $"[PlaytestForestCreatures] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
