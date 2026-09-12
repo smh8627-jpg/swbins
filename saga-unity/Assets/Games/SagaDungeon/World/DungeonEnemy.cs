@@ -77,6 +77,18 @@ namespace Saga.Dungeon.World
         private GameObject _visualGo;
         private Coroutine _flashRoutine;
 
+        /// <summary>"랜덤 이벤트" 슬라이스 — `DungeonAmbush.cs`처럼 런타임에
+        /// 즉석으로 만든 개체에 값을 채우는 정식 API. 편집기 빌드 스크립트의
+        /// 리플렉션 `SetPrivateField()`와 달리 Play 중에도 동작해야 한다.
+        /// **`Awake()`가 아직 안 돈 상태에서만 의미가 있다** — 호출부가
+        /// GameObject를 비활성 상태로 만들고 이 메서드를 부른 뒤 활성화해야
+        /// `BuildVisual()`이 올바른 모델로 도는 게 보장된다.</summary>
+        public void SetSpawnContext(string newRoomId, GameObject newModelPrefab)
+        {
+            roomId = newRoomId;
+            modelPrefab = newModelPrefab;
+        }
+
         private void Awake()
         {
             _curHp = hp;

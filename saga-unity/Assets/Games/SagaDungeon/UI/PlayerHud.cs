@@ -13,6 +13,11 @@ namespace Saga.Dungeon.UI
     {
         [SerializeField] private Text label;
 
+        // "HUD 개선" 슬라이스(PLAN.md 26장) — 숫자 텍스트뿐이던 체력 표시에
+        // 시각적 게이지를 더한다. Image.Type.Filled(Horizontal)라 값만
+        // 매 프레임 바꾸면 돼 텍스트 갱신과 같은 타이머를 그대로 쓴다.
+        [SerializeField] private Image healthBarFill;
+
         private const float RefreshGapSec = 0.5f;
         private float _timer;
 
@@ -37,6 +42,11 @@ namespace Saga.Dungeon.UI
                          $"(경험치 {HeroState.Exp}/{HeroState.ExpToNext})  돈 {HeroState.Gold}냥\n" +
                          $"{weapon} (공격력 {HeroState.Atk:0})\n" +
                          $"{QuestState.ObjectiveText}"; // "퀘스트 시스템" 슬라이스
+
+            if (healthBarFill != null)
+            {
+                healthBarFill.fillAmount = HeroState.HpMax > 0 ? (float)HeroState.Hp / HeroState.HpMax : 0f;
+            }
         }
     }
 }

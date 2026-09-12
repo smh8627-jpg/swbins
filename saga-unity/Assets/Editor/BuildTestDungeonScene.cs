@@ -285,6 +285,19 @@ namespace Saga.EditorTools
             }
 
             BuildMerchant();
+            BuildAmbush();
+        }
+
+        /// <summary>"랜덤 이벤트" 슬라이스 — 필드 사건 자리(DungeonAmbush.cs).
+        /// 기존 콘텐츠(필드 잡졸(0,2)·(-4,-2), 행상(3,-3), 늪 소품(7,5))와
+        /// 안 겹치는 NW 빈 구석.</summary>
+        private static void BuildAmbush()
+        {
+            var go = new GameObject("Ambush");
+            go.transform.position = Room2Center + new Vector3(-6f, 0f, 6f);
+            var ambush = go.AddComponent<DungeonAmbush>();
+            SetPrivateField(ambush, "roomId", "room2");
+            SetPrivateField(ambush, "enemyModelPrefab", _characterD);
         }
 
         /// <summary>"방 종류 나머지" 슬라이스 — Room2 잡졸 둘을 다 잡아야
@@ -635,6 +648,34 @@ namespace Saga.EditorTools
 
             var hud = canvasGo.AddComponent<PlayerHud>();
             SetPrivateField(hud, "label", text);
+
+            // "HUD 개선" 슬라이스 — 텍스트 줄 바로 아래 체력 게이지.
+            var barBgGo = new GameObject("HealthBarBg", typeof(RectTransform));
+            barBgGo.transform.SetParent(canvasGo.transform, false);
+            var barBgRect = (RectTransform)barBgGo.transform;
+            barBgRect.anchorMin = new Vector2(0f, 1f);
+            barBgRect.anchorMax = new Vector2(0f, 1f);
+            barBgRect.pivot = new Vector2(0f, 1f);
+            barBgRect.anchoredPosition = new Vector2(20f, -170f); // Label(y=-20, 높이140) 바로 아래
+            barBgRect.sizeDelta = new Vector2(320f, 22f);
+            var barBgImg = barBgGo.AddComponent<Image>();
+            barBgImg.color = new Color(0f, 0f, 0f, 0.4f);
+
+            var barFillGo = new GameObject("HealthBarFill", typeof(RectTransform));
+            barFillGo.transform.SetParent(barBgGo.transform, false);
+            var barFillRect = (RectTransform)barFillGo.transform;
+            barFillRect.anchorMin = Vector2.zero;
+            barFillRect.anchorMax = Vector2.one;
+            barFillRect.offsetMin = Vector2.zero;
+            barFillRect.offsetMax = Vector2.zero;
+            var barFillImg = barFillGo.AddComponent<Image>();
+            barFillImg.color = new Color(0.75f, 0.15f, 0.15f);
+            barFillImg.type = Image.Type.Filled;
+            barFillImg.fillMethod = Image.FillMethod.Horizontal;
+            barFillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+            barFillImg.fillAmount = 1f;
+
+            SetPrivateField(hud, "healthBarFill", barFillImg);
         }
 
         /// <summary>"미니맵" 슬라이스 — 방1~4 중심을 고정 점으로 찍고
