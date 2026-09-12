@@ -16,18 +16,30 @@ namespace Saga.Dungeon.World
     /// 또 시도**한다(웹판도 `!room.merchant.used`만 보고 돈은 딱히
     /// 안 깎지도 확인하지도 않지만, 이 슬라이스는 GoldState가 있으니
     /// GO의 "돈 있어야 산다" 규칙을 그대로 가져왔다).
+    ///
+    /// "세공·행상 재고 굴리기·도감" 슬라이스 — 웹판 `rollMerchantStock()`의
+    /// 절차적 티어 룰렛은 여전히 범위 밖이지만, "행상마다 파는 게 다르다"는
+    /// 핵심만 최소로 살렸다: 행상 인스턴스별로 무기(`sellItemId`) 또는
+    /// 보석(`sellGemId`) 중 하나를 고정 재고로 배정한다(둘 다 프리팹
+    /// 하나가 아니라 `BuildTestDungeonScene`가 인스턴스마다 다르게 채워
+    /// 넣는 값 — 이 프로젝트의 "테스트 씬은 전부 고정 좌표" 결정성 원칙을
+    /// 그대로 따름, 웹판처럼 `Math.random()`을 쓰지 않는다). Room2 행상은
+    /// 기존 그대로(무기), Room3 행상(신규)은 보석을 판다.
     /// </summary>
     public class DungeonMerchant : MonoBehaviour
     {
         private const float TriggerRadius = 2.0f;
-        private const string SellItemId = "wp_saber";
-        private const int Price = 45; // Room1을 다 정리하면 잡졸4×8+두목40=72골드라 무리 없이 살 수 있는 값
         private const float ToastSec = 4f;
         private const float DeclineCooldownSec = 3f; // 돈이 모자랄 때 매 프레임 토스트가 안 뜨게
 
         private float _declineCooldownLeft;
 
         [SerializeField] private string roomId = "room1";
+        [SerializeField] private string sellItemId = "wp_saber";
+        [SerializeField] private int price = 45; // Room2 잡졸 둘(8×2)이면 무리 없이 살 수 있는 값
+
+        // 채워져 있으면 sellItemId 대신 이 보석을 판다(Room3 전용, 위 클래스 주석 참고).
+        [SerializeField] private string sellGemId;
 
         private static readonly Color MerchantColor = new Color(0.15f, 0.5f, 0.25f);
 
@@ -65,18 +77,29 @@ namespace Saga.Dungeon.World
             if (Vector3.Distance(transform.position, _player.position) > TriggerRadius) return;
             if (_declineCooldownLeft > 0f) return; // 방금 거절당했다 — 매 프레임 토스트 스팸 방지.
 
-            if (!HeroState.TrySpendGold(Price))
+            bool isGem = !string.IsNullOrEmpty(sellGemId);
+            string wantName = isGem ? GemData.Get(sellGemId)?.Name : ItemData.Get(sellItemId)?.Name;
+
+            if (!HeroState.TrySpendGold(price))
             {
                 _declineCooldownLeft = DeclineCooldownSec;
-                DialogueLabel.Instance?.Show($"행상 — 환도({Price}냥)를 살 돈이 모자라다.", ToastSec);
+                DialogueLabel.Instance?.Show($"행상 — {wantName}({price}냥)를 살 돈이 모자라다.", ToastSec);
                 return; // 안 판 상태로 남겨 둔다 — 돈이 모이면 다시 시도 가능(GO ShopState.cs와 같은 결).
             }
 
             _sold = true;
-            bool equipped = HeroState.EquipIfBetter(SellItemId);
-            var item = ItemData.Get(SellItemId);
-            DialogueLabel.Instance?.Show(
-                $"행상 — {item.Name}을(를) {Price}냥에 샀다{(equipped ? " — 바로 갖췄다." : ".")}", ToastSec);
+            if (isGem)
+            {
+                bool socketed = HeroState.SocketIfBetter(sellGemId);
+                DialogueLabel.Instance?.Show(
+                    $"행상 — {wantName}을(를) {price}냥에 샀다{(socketed ? " — 바로 세공했다." : ".")}", ToastSec);
+            }
+            else
+            {
+                bool equipped = HeroState.EquipIfBetter(sellItemId);
+                DialogueLabel.Instance?.Show(
+                    $"행상 — {wantName}을(를) {price}냥에 샀다{(equipped ? " — 바로 갖췄다." : ".")}", ToastSec);
+            }
         }
     }
 }

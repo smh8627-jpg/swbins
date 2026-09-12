@@ -266,6 +266,22 @@ namespace Saga.EditorTools
             veinGo.transform.position = VeinSpawn;
             var vein = veinGo.AddComponent<DungeonVein>();
             SetPrivateField(vein, "roomId", "room3");
+
+            BuildGemMerchant();
+        }
+
+        /// <summary>"세공·행상 재고 굴리기·도감" 슬라이스 — Room2 행상(무기)과
+        /// 재고를 다르게 배정한 두 번째 행상. 정예·미니보스·채광방과 안
+        /// 겹치는 서쪽 빈 자리(EliteSpawn·MinibossSpawn은 동쪽 +X,
+        /// VeinSpawn은 -6,-4)에 둔다.</summary>
+        private static void BuildGemMerchant()
+        {
+            var merchantGo = new GameObject("GemMerchant");
+            merchantGo.transform.position = Room3Center + new Vector3(-8f, 0f, 4f);
+            var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "roomId", "room3");
+            SetPrivateField(merchant, "sellGemId", "gem_sapphire");
+            SetPrivateField(merchant, "price", 50); // wp_saber(45)보다 비싸게 — 무기를 대체하지 않고 그 위에 더해지는 능력치라서
         }
 
         /// <summary>정예 소굴(js/dungeon.js:342-347) — 정예 하나(ELITES
@@ -310,6 +326,7 @@ namespace Saga.EditorTools
             SetPrivateField(miniboss, "rewardExp", 100);
             SetPrivateField(miniboss, "rewardGold", 40);
             SetPrivateField(miniboss, "rewardItemId", "wp_glaive");
+            SetPrivateField(miniboss, "rewardGemId", "gem_ruby"); // "세공·행상 재고 굴리기·도감" 슬라이스 — GemData.cs 참고
             SetPrivateField(miniboss, "isBoss", true);
             SetPrivateField(miniboss, "displayName", "황건 살수");
             SetPrivateField(miniboss, "bodyColor", new Color(0.32f, 0.24f, 0.5f)); // 자보라 — 두목의 적갈과 구분

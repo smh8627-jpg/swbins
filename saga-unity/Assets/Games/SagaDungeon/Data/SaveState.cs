@@ -13,7 +13,10 @@ namespace Saga.Dungeon.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 1;
+        // v2("세공·행상 재고 굴리기·도감" 슬라이스) — gemId·discovered 추가.
+        // 구 v1 세이브는 JsonUtility가 이 두 필드를 그냥 기본값(null/빈
+        // 배열)으로 채워 그대로 로드된다(PLAN.md 75장 "Data Versioning").
+        private const int SaveVersion = 2;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -27,6 +30,8 @@ namespace Saga.Dungeon.Data
             public int gold;
             public int hp;
             public string weaponId;
+            public string gemId;
+            public string[] discovered;
         }
 
         public static bool Save()
@@ -43,6 +48,8 @@ namespace Saga.Dungeon.Data
                 gold = HeroState.Gold,
                 hp = HeroState.Hp,
                 weaponId = HeroState.EquippedWeaponId,
+                gemId = HeroState.SocketedGemId,
+                discovered = BestiaryState.Snapshot(),
             };
 
             try
@@ -78,7 +85,8 @@ namespace Saga.Dungeon.Data
             // 이 빌드보다 나중 버전(다운그레이드)이면 반쯤 바뀐 채로 적용하지 않는다.
             if (data.version > SaveVersion) return false;
 
-            HeroState.Restore(data.level, data.exp, data.hp, data.gold, data.weaponId);
+            HeroState.Restore(data.level, data.exp, data.hp, data.gold, data.weaponId, data.gemId);
+            BestiaryState.Restore(data.discovered);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

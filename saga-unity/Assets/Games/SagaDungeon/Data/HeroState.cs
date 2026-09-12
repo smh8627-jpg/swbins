@@ -30,7 +30,14 @@ namespace Saga.Dungeon.Data
         public static int Hp { get; private set; } = BaseHp;
         public static string EquippedWeaponId { get; private set; } = "wp_start";
         public static ItemData EquippedWeapon => ItemData.Get(EquippedWeaponId);
-        public static float Atk => BaseAtk + (Level - 1) * AtkPerLevel + (EquippedWeapon?.AtkBonus ?? 0f);
+
+        // "세공·행상 재고 굴리기·도감" 슬라이스 — 무기 소켓 하나(둘째
+        // 소켓·세트 효과는 범위 밖, GemData.cs 참고).
+        public static string SocketedGemId { get; private set; }
+        public static GemData SocketedGem => GemData.Get(SocketedGemId);
+
+        public static float Atk => BaseAtk + (Level - 1) * AtkPerLevel
+            + (EquippedWeapon?.AtkBonus ?? 0f) + (SocketedGem?.AtkBonus ?? 0f);
 
         /// <summary>js/dungeon.js:140 — `Math.max(4, p.atk * ... / 6)` 한 타 피해.</summary>
         public static float HitDamage => Math.Max(4f, Atk / 6f);
@@ -79,6 +86,17 @@ namespace Saga.Dungeon.Data
             return true;
         }
 
+        /// <summary>더 센 보석만 자동 세공 — EquipIfBetter()와 같은 규칙
+        /// (소켓 하나뿐이라 "더 센 것으로 교체"가 그대로 세공에 대응).</summary>
+        public static bool SocketIfBetter(string gemId)
+        {
+            var gem = GemData.Get(gemId);
+            if (gem == null) return false;
+            if (SocketedGem != null && SocketedGem.AtkBonus >= gem.AtkBonus) return false;
+            SocketedGemId = gemId;
+            return true;
+        }
+
         public static void TakeDamage(float amount)
         {
             if (Invulnerable || amount <= 0f || Hp <= 0) return;
@@ -101,12 +119,13 @@ namespace Saga.Dungeon.Data
             Hp = Math.Min(HpMax, Hp + amount);
         }
 
-        public static void Restore(int level, int exp, int hp, int gold, string weaponId)
+        public static void Restore(int level, int exp, int hp, int gold, string weaponId, string gemId = null)
         {
             Level = Math.Max(1, level);
             Exp = Math.Max(0, exp);
             Gold = Math.Max(0, gold);
             EquippedWeaponId = string.IsNullOrEmpty(weaponId) ? "wp_start" : weaponId;
+            SocketedGemId = gemId; // 없으면 null 그대로 — 소켓 빈 채로 시작(구 세이브도 그대로 로드됨).
             Hp = Math.Clamp(hp, 0, HpMax);
             if (Hp <= 0) Hp = HpMax;
         }
