@@ -48,6 +48,15 @@ namespace Saga.EditorTools
             new Vector3(8f, 0f, -2.5f),
         };
 
+        // "방 종류 다양화" 슬라이스 — saga-dungeon 웹판 room.well/chest/shrine
+        // (dungeon.js:336-341)을 한 방 안에 같이 두는 걸로 옮겼다(웹판은
+        // 각각 다른 kind의 방인데, 이 슬라이스는 방이 하나뿐). 몬스터 무리
+        // (동쪽, x=3~9)와 안 겹치게 플레이어 스폰(-6,0,0) 주변 서쪽에 흩어
+        // 둔다.
+        private static readonly Vector3 WellSpawn = new Vector3(-2f, 0f, 5f);
+        private static readonly Vector3 TroveSpawn = new Vector3(-2f, 0f, -5f);
+        private static readonly Vector3 ShrineSpawn = new Vector3(-8f, 0f, -4f);
+
         [MenuItem("Saga/Build TestDungeon Scene")]
         public static void Build()
         {
@@ -56,6 +65,7 @@ namespace Saga.EditorTools
             BuildLighting();
             var roomGo = BuildRoom();
             BuildEnemy();
+            BuildRoomPois();
             var (playerGo, playerCombat) = BuildPlayer();
             BuildEventSystem();
             BuildDialogueUi();
@@ -131,6 +141,21 @@ namespace Saga.EditorTools
                 go.transform.position = BossEscortSpawns[i];
                 go.AddComponent<DungeonEnemy>();
             }
+        }
+
+        private static void BuildRoomPois()
+        {
+            var wellGo = new GameObject("Well");
+            wellGo.transform.position = WellSpawn;
+            wellGo.AddComponent<DungeonWell>();
+
+            var troveGo = new GameObject("Trove");
+            troveGo.transform.position = TroveSpawn;
+            troveGo.AddComponent<DungeonTrove>();
+
+            var shrineGo = new GameObject("Shrine");
+            shrineGo.transform.position = ShrineSpawn;
+            shrineGo.AddComponent<DungeonShrine>();
         }
 
         private static (GameObject playerGo, PlayerCombat combat) BuildPlayer()

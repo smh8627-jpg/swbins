@@ -88,6 +88,14 @@ namespace Saga.Dungeon.Data
             Hp = HpMax;
         }
 
+        /// <summary>우물(World/DungeonWell.cs)처럼 일부만 회복 — 최대치를
+        /// 넘기지 않는다.</summary>
+        public static void HealBy(int amount)
+        {
+            if (amount <= 0 || Hp <= 0) return;
+            Hp = Math.Min(HpMax, Hp + amount);
+        }
+
         public static void Restore(int level, int exp, int hp, int gold, string weaponId)
         {
             Level = Math.Max(1, level);
