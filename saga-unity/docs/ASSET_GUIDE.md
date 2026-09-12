@@ -191,6 +191,70 @@ Quaternius Discord/Patreon 클레임으로 위 팩을 받아 스크래치패드�
 `AnimalBuilder.cs`에 스케일·콜라이더 반영→md5 확인)으로 이어받을 수
 있다. 그때까지는 사슴·소·흰 늑대 모두 primitive로 남는다.
 
+## DUNGEON 환경/건물 GLB (2026-09-12, 여섯 번째 세션)
+
+`VERTICAL_SLICE_DUNGEON.md` "환경/건물 GLB" 후보 — `saga-godot/assets/
+dungeon/`에서 corridor.glb·gate.glb만 마저 복사해 `Assets/Art/Dungeon/`
+(SagaGo가 이미 gate-rock.glb·colormap.png를 둔 그 폴더)에 넣었다.
+같은 Modular Cave Kit(위 표), 새 다운로드 없음.
+
+| 파일 | 실측 크기(m, saga-godot ASSET_GUIDE 기준) | 스케일(최초 도입 당시) | 쓰는 곳 |
+|---|---|---|---|
+| `dungeon/corridor.glb` | 4.0×4.05×4.0, 바닥 중앙 피벗 | X=DoorWidth/4.0=0.75, Y=WallHeight/4.05≈0.988, Z=1(그대로) | DUNGEON 복도 셋, 타일 2장(4.0×2=Length 8과 정확히 일치 — Z축 안 늘림) |
+| `dungeon/gate.glb` | 4.4×4.4×1.4, 바닥 중앙 피벗 | X=문 폭(3)/4.4≈0.682, Y·Z=1 | DUNGEON 방 넷의 문 6곳(아치는 앞뒤 대칭이라 방향 안 따짐) |
+
+**room-small.glb(방 셸, 12.0×4.4×12.0)는 이번엔 안 씀** — DUNGEON 방
+치수(20×14×4)와 비율이 많이 달라(X 1.667배·Z 1.167배·Y 0.909배로 축마다
+제각각) 비균등 스케일 시 벽 질감이 뚜렷하게 뒤틀릴 걸로 보인다.
+`saga-godot/games/saga_dungeon/world/test_room.gd`는 이 문제를 **방
+치수를 GLB 원본(12×12, 스케일 없음)에 맞추는 쪽으로 풀었다** — Unity
+쪽도 같은 길을 가려면 이미 있는 방 넷의 모든 스폰 좌표(적·상자·행상·
+소품 등)를 전부 다시 잡아야 하는 파급 큰 재설계라 다음 슬라이스로
+미뤘다.
+
+**GLB엔 콜라이더가 없다**(위 원칙과 같음, `saga-godot/games/saga_dungeon/
+world/test_room.gd`도 같은 이유로 StaticBody3D를 따로 둔다) — 기존
+primitive Floor/Wall을 그대로 두되 `corridorModel`이 채워져 있으면
+`MeshRenderer.enabled = false`로 안 보이는 충돌체로만 남긴다. 문 아치
+(`gate.glb`)는 실제로 지나다니는 자리라 애초에 콜라이더를 안 붙인다.
+색은 `CharacterVisual.Tint()`(캐릭터 GLB 슬라이스가 만든 `_BaseColor`
+MaterialPropertyBlock 유틸)를 그대로 재사용해 복도 타일을 폐허 톤으로
+물들인다 — 새 유틸을 안 만들고 이미 있는 것을 다른 용도로 재사용.
+
+## DUNGEON 방 셸 GLB (2026-09-12, 여덟 번째 세션 — 위 절 뒤이음)
+
+**바로 위 절의 "이번엔 안 씀" 결정을 뒤집었다.** 비균등 스케일(축마다
+다른 배율)이 문제였지, room-small.glb 자체를 못 쓸 이유는 없었다 —
+**"방을 GLB 원본의 정사각(12×12) 비율에 맞추는 균일 스케일"**로 풀었다:
+기존 폭(RoomWidth=20)을 그대로 지키려면 배율은 20/12=5/3, 정사각형이라
+같은 배율을 깊이에도 적용하면 자동으로 20이 나온다(왜곡 없음) —
+`DungeonRoomBuilder.RoomDepth`를 14→20으로 올린 이유. 방 넷의 기존
+콘텐츠는 전부 X축 기준 좌표라 **하나도 안 옮겼다** — 깊이만 넉넉해져
+오히려 여유가 늘었다. 복도 간 이동 거리(Room2/3/4 중심 z좌표)만 새
+halfD(10)에 맞춰 다시 계산했다(`BuildTestDungeonScene.cs` 주석 참고).
+
+| 파일 | 실측 크기(m) | 스케일(이 슬라이스로 바뀜) | 비고 |
+|---|---|---|---|
+| `dungeon/room-small.glb` | 12.0×4.4×12.0, 바닥 중앙 피벗 | 균일 5/3(=RoomWidth/12) | 방 넷의 바닥·벽 셸, 색은 바이옴 톤으로 틴트 |
+| `dungeon/gate.glb` | 4.4×4.4×1.4 | 균일 5/3(문 폭도 4.4×5/3≈7.33로 넓어짐) | 예전엔 X만 좁히는 비균등이었는데 셸과 짝을 맞추며 균일로 개선됨 |
+| `dungeon/corridor.glb` | 4.0×4.05×4.0 | **스케일 없음(1,1,1)** | `DoorWidth`를 3→4.0(corridor.glb 실측 폭)으로 올려 완전히 무왜곡이 됨 |
+
+**문 폭(RoomDoorWidth≈7.33)이 복도 폭(4.0)보다 넓어 문턱에 살짝 좁아지는
+단이 생긴다** — saga-godot도 `gate.glb`(4.4)·`corridor.glb`(4.0) 사이에
+같은 종류 차이를 그대로 두고 문서화해 둔 것과 같은 트레이드오프, 이
+프로젝트도 그대로 받아들인다.
+
+**확인 안 된 가정 — room-small.glb의 실제 문 구멍 폭이 gate.glb(4.4)와
+같다.** 메시를 직접 열어 본 게 아니라 saga-godot `test_room.gd`가
+`GATE_HALF_WIDTH`(gate.glb 폭의 절반)로 방 벽 틈을 계산하는 코드 구조에서
+역으로 추론한 값이다 — 사람이 실제로 걸어서 문 자리를 확인하기 전까진
+셸의 시각적 문 구멍과 콜라이더 문 폭이 정확히 겹치는지 100% 확신 못 함
+(아래 GUI 확인 목록 참고).
+
+컴파일·씬 재빌드(`room childCount` 13→14, Room1에 셸(Shell) 하나 추가)·
+PlaytestDungeonHeadless 전부 통과, 실제 화면 확인은 미정(실기 확인
+방침에 따라 사람이 직접 할 몫).
+
 ## 이번에 발견해 같이 고친 것 — Awake() 중복 생성
 
 `NpcBuilder.cs`·`BanditEncounter.cs`가 `Awake()`에서 조건 없이

@@ -32,12 +32,24 @@ namespace Saga.EditorTools
         private const string CharacterCPath = "Assets/Art/Characters/character-c.glb";
         private const string CharacterDPath = "Assets/Art/Characters/character-d.glb";
 
+        // "환경/건물 GLB" 슬라이스 — SagaGo가 이미 쓰는 CC0 Kenney Modular
+        // Cave Kit(gate-rock.glb와 같은 킷)에서 문·복도 타일만 마저 뽑아
+        // saga-godot의 assets/dungeon/에서 그대로 복사(새 다운로드 없음).
+        // "방 셸 GLB" 슬라이스(뒤이음)가 room-small.glb(방 셸)도 마저
+        // 받아 왔다 — DungeonRoomBuilder.cs 클래스 주석 참고(비균등
+        // 스케일 문제를 "방을 셸 원본 정사각 비율에 맞추는 균일 스케일"
+        // 로 풀었다).
+        private const string CorridorGlbPath = "Assets/Art/Dungeon/corridor.glb";
+        private const string GateGlbPath = "Assets/Art/Dungeon/gate.glb";
+        private const string RoomGlbPath = "Assets/Art/Dungeon/room-small.glb";
+
         private static readonly Vector3 PlayerSpawn = new Vector3(-6f, 0.1f, 0f);
 
         // "몬스터 무리" 슬라이스 — saga-dungeon 웹판 js/dungeon.js:333
         // makeRoom('fight', ...)의 floor=1 공식 min(12, 4 + rand(0~3))의
         // 최소값 4마리를 무작위 롤 없이 결정적으로 씀(DungeonEnemy.cs
-        // 주석 참고). 방(20m×14m, 벽 두께 1m) 안쪽에서 서로 안 겹치게
+        // 주석 참고). 방(가로 20m, 벽 두께 1m — 세로는 "방 셸 GLB"
+        // 슬라이스로 14→20m, 아래 참고) 안쪽에서 서로 안 겹치게
         // 플레이어 스폰(-6,0,0) 반대편에 부채꼴로 흩어 둔다.
         private static readonly Vector3[] EnemySpawns =
         {
@@ -68,13 +80,24 @@ namespace Saga.EditorTools
         private static readonly Vector3 ShrineSpawn = new Vector3(-8f, 0f, -4f);
 
         // "오픈월드/필드" 슬라이스 — 방 하나짜리 구조를 벗어나는 첫 조각.
-        // Room(방1)의 북쪽 벽에 문(3m)을 뚫고 복도(길이 8m)로 Room2와
-        // 잇는다. 좌표 산출: Room1 북쪽 벽 바깥면 z = halfD(7)+두께(1) = 8,
-        // 복도 길이 8 → Room2 남쪽 벽 바깥면 z = 8+8 = 16, Room2 중심
-        // z = 16+halfD(7)+두께(1) = 24. 복도 중심 z = (8+16)/2 = 12.
-        private const float DoorWidth = 3f; // DungeonCorridorBuilder.DoorWidth와 같은 값
-        private static readonly Vector3 CorridorCenter = new Vector3(0f, 0f, 12f);
-        private static readonly Vector3 Room2Center = new Vector3(0f, 0f, 24f);
+        // Room(방1)의 북쪽 벽에 문을 뚫고 복도(길이 8m)로 Room2와 잇는다.
+        //
+        // "방 셸 GLB" 슬라이스(뒤이음) — room-small.glb(정사각 12×12)를
+        // 왜곡 없이 쓰려고 `DungeonRoomBuilder.RoomDepth`를 14→20으로
+        // 올렸다(그 파일 클래스 주석 참고) — halfD가 7→10으로 바뀌어
+        // 아래 산출식도 전부 다시 잡음. 문 폭도 셸의 배율(RoomScale)을
+        // 그대로 따라 gate.glb(4.4)×5/3 ≈ 7.33으로 넓어졌다(예전 3m는
+        // 셸이 없던 시절 임의로 잡은 값 — 이제 셸의 실제 문 구멍 폭을
+        // 따라야 어긋나지 않는다, DungeonRoomBuilder.cs 클래스 주석의
+        // "확인 안 됨" 가정 참고). 좌표 산출: Room1 북쪽 벽 바깥면
+        // z = halfD(10)+두께(1) = 11, 복도 길이 8(안 바뀜 — 복도는
+        // room-small.glb가 아니라 corridor.glb 몫, DungeonCorridorBuilder
+        // .cs 참고) → Room2 남쪽 벽 바깥면 z = 11+8 = 19, Room2 중심
+        // z = 19+halfD(10)+두께(1) = 30. 복도 중심 z = (11+19)/2 = 15.
+        private static readonly float RoomDoorWidth =
+            DungeonRoomBuilder.GateModelWidth * DungeonRoomBuilder.RoomScale; // ≈7.33 — 방 셸 배율을 그대로 따름
+        private static readonly Vector3 CorridorCenter = new Vector3(0f, 0f, 15f);
+        private static readonly Vector3 Room2Center = new Vector3(0f, 0f, 30f);
 
         // Room2 "필드" 콘텐츠 — 잡졸 둘(기본값 그대로, 다음 구역에도
         // 몬스터가 있다는 걸 보여주는 최소 단위). 좌표는 Room2Center 기준
@@ -87,16 +110,17 @@ namespace Saga.EditorTools
 
         // "방 종류 마지막" 슬라이스 — Room2 북쪽에 복도로 Room3(정예 소굴+
         // 미니보스+채광방)을, 그 북쪽에 다시 복도로 Room4(구출+퍼즐+
-        // 채집)를 잇는다. 좌표 산출은 "오픈월드/필드" 슬라이스가 쓴 것과
-        // 같은 식(방 halfD=7, 벽 두께=1, 복도 길이=8)을 그대로 이어감:
-        // Room2 북쪽 벽 바깥면 z=24+7+1=32 → 복도2 중심 z=32+4=36 →
-        // Room3 남쪽 벽 바깥면 z=36+4=40 → Room3 중심 z=40+7+1=48 →
-        // Room3 북쪽 벽 바깥면 z=48+7+1=56 → 복도3 중심 z=56+4=60 →
-        // Room4 남쪽 벽 바깥면 z=60+4=64 → Room4 중심 z=64+7+1=72.
-        private static readonly Vector3 Corridor2Center = new Vector3(0f, 0f, 36f);
-        private static readonly Vector3 Room3Center = new Vector3(0f, 0f, 48f);
-        private static readonly Vector3 Corridor3Center = new Vector3(0f, 0f, 60f);
-        private static readonly Vector3 Room4Center = new Vector3(0f, 0f, 72f);
+        // 채집)를 잇는다. "방 셸 GLB" 슬라이스로 halfD가 7→10이 돼(위
+        // 주석 참고) 산출식을 다시 잡음(방 halfD=10, 벽 두께=1, 복도
+        // 길이=8은 안 바뀜): Room2 북쪽 벽 바깥면 z=30+10+1=41 →
+        // 복도2 중심 z=41+4=45 → Room3 남쪽 벽 바깥면 z=41+8=49 →
+        // Room3 중심 z=49+10+1=60 → Room3 북쪽 벽 바깥면 z=60+10+1=71 →
+        // 복도3 중심 z=71+4=75 → Room4 남쪽 벽 바깥면 z=71+8=79 →
+        // Room4 중심 z=79+10+1=90.
+        private static readonly Vector3 Corridor2Center = new Vector3(0f, 0f, 45f);
+        private static readonly Vector3 Room3Center = new Vector3(0f, 0f, 60f);
+        private static readonly Vector3 Corridor3Center = new Vector3(0f, 0f, 75f);
+        private static readonly Vector3 Room4Center = new Vector3(0f, 0f, 90f);
 
         // Room3 "정예 소굴"(js/dungeon.js:342-347) — 정예 하나(forceElite,
         // ELITES 표의 'fierce' 배율 hp×1.35·dmg×1.9를 그대로 적용,
@@ -132,12 +156,13 @@ namespace Saga.EditorTools
 
         // Room4 "채집·낚시방"(js/dungeon.js:394-412, `DungeonForage.cs`) —
         // 북쪽(플레이어 진입 방향인 남쪽 문과 안 겹치게). 내부 오프셋(herb
-        // z=+3~+3.5)을 더하면 최대 z=2+3.5=5.5로 북쪽 벽(z=7)에서 1.5m
-        // 여유를 둔다.
+        // z=+3~+3.5)을 더하면 최대 z=2+3.5=5.5로 북쪽 벽(z=10, "방 셸
+        // GLB" 슬라이스로 7→10)에서 4.5m 여유를 둔다.
         private static readonly Vector3 ForageAnchor = Room4Center + new Vector3(-2f, 0f, 2f);
 
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
+        private static GameObject _corridorGlb, _gateGlb, _roomGlb;
 
         [MenuItem("Saga/Build TestDungeon Scene")]
         public static void Build()
@@ -145,6 +170,7 @@ namespace Saga.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             LoadCharacterModels();
+            LoadDungeonModels();
             BuildLighting();
             var roomGo = BuildRoom();
             BuildEnemy();
@@ -181,6 +207,17 @@ namespace Saga.EditorTools
             }
         }
 
+        private static void LoadDungeonModels()
+        {
+            _corridorGlb = AssetDatabase.LoadAssetAtPath<GameObject>(CorridorGlbPath);
+            _gateGlb = AssetDatabase.LoadAssetAtPath<GameObject>(GateGlbPath);
+            _roomGlb = AssetDatabase.LoadAssetAtPath<GameObject>(RoomGlbPath);
+            if (_corridorGlb == null || _gateGlb == null || _roomGlb == null)
+            {
+                Debug.LogWarning("[BuildTestDungeonScene] corridor.glb/gate.glb/room-small.glb 중 일부를 못 찾음 — primitive 색상으로 대체됨.");
+            }
+        }
+
         private static void BuildLighting()
         {
             // 던전다운 어두운 분위기 — 은은한 방향광 하나뿐(saga-dungeon 웹판의
@@ -200,8 +237,15 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Room");
             var builder = go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 황건적 소굴은 웹판 THEME_BIAS의 '산채(山寨)'
+            // (forest 1.8 가중치)와 같은 결이라 숲으로 잡음. 우물(-2,5)·
+            // 상자(-2,-5)·성소(-8,-4)·잡졸·두목과 안 겹치는 NW 빈 구석.
+            SetPrivateField(builder, "biome", SagaBiome.Forest);
+            SetPrivateField(builder, "decorOffset", new Vector3(-8f, 0f, 5f));
+            SetPrivateField(builder, "gateModel", _gateGlb); // "환경/건물 GLB"
+            SetPrivateField(builder, "roomModel", _roomGlb); // "방 셸 GLB"
             builder.Build();
-            builder.OpenNorthDoor(DoorWidth); // "오픈월드/필드" 슬라이스 — 복도로 Room2와 잇는다.
+            builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드/필드" 슬라이스 — 복도로 Room2와 잇는다.
             return go;
         }
 
@@ -212,14 +256,23 @@ namespace Saga.EditorTools
         {
             var corridorGo = new GameObject("Corridor");
             corridorGo.transform.position = CorridorCenter;
-            corridorGo.AddComponent<DungeonCorridorBuilder>().Build();
+            var corridorBuilder = corridorGo.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridorBuilder, "biome", SagaBiome.Ruins); // "바이옴 5종" — 복도 셋은 전부 폐허
+            SetPrivateField(corridorBuilder, "corridorModel", _corridorGlb); // "환경/건물 GLB"
+            corridorBuilder.Build();
 
             var room2Go = new GameObject("Room2");
             room2Go.transform.position = Room2Center;
             var room2Builder = room2Go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 오픈월드/필드 방은 늪으로 잡음(필드 잡졸(0,2)·
+            // (-4,-2)·행상(3,-3)과 안 겹치는 NE 빈 구석).
+            SetPrivateField(room2Builder, "biome", SagaBiome.Swamp);
+            SetPrivateField(room2Builder, "decorOffset", new Vector3(7f, 0f, 5f));
+            SetPrivateField(room2Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
+            SetPrivateField(room2Builder, "roomModel", _roomGlb); // "방 셸 GLB"
             room2Builder.Build();
-            room2Builder.OpenSouthDoor(DoorWidth);
-            room2Builder.OpenNorthDoor(DoorWidth); // "방 종류 마지막" — 복도2로 Room3와 잇는다.
+            room2Builder.OpenSouthDoor(RoomDoorWidth);
+            room2Builder.OpenNorthDoor(RoomDoorWidth); // "방 종류 마지막" — 복도2로 Room3와 잇는다.
 
             for (int i = 0; i < FieldEnemySpawns.Length; i++)
             {
@@ -250,14 +303,24 @@ namespace Saga.EditorTools
         {
             var corridor2Go = new GameObject("Corridor2");
             corridor2Go.transform.position = Corridor2Center;
-            corridor2Go.AddComponent<DungeonCorridorBuilder>().Build();
+            var corridor2Builder = corridor2Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor2Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(corridor2Builder, "corridorModel", _corridorGlb); // "환경/건물 GLB"
+            corridor2Builder.Build();
 
             var room3Go = new GameObject("Room3");
             room3Go.transform.position = Room3Center;
             var room3Builder = room3Go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 정예·미니보스·채광방(광산)이 있는 방은 산으로
+            // 잡음. 정예(6,0)·호위(5,±2.5)·미니보스(9,0)·광맥(-6,-4)·
+            // 신규 행상(-8,4)과 안 겹치는 남쪽 빈 자리(문 폭 밖 x=3).
+            SetPrivateField(room3Builder, "biome", SagaBiome.Mountain);
+            SetPrivateField(room3Builder, "decorOffset", new Vector3(3f, 0f, -6f));
+            SetPrivateField(room3Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
+            SetPrivateField(room3Builder, "roomModel", _roomGlb); // "방 셸 GLB"
             room3Builder.Build();
-            room3Builder.OpenSouthDoor(DoorWidth);
-            room3Builder.OpenNorthDoor(DoorWidth); // 복도3으로 Room4와 잇는다.
+            room3Builder.OpenSouthDoor(RoomDoorWidth);
+            room3Builder.OpenNorthDoor(RoomDoorWidth); // 복도3으로 Room4와 잇는다.
 
             BuildElite();
             BuildMiniboss();
@@ -340,13 +403,23 @@ namespace Saga.EditorTools
         {
             var corridor3Go = new GameObject("Corridor3");
             corridor3Go.transform.position = Corridor3Center;
-            corridor3Go.AddComponent<DungeonCorridorBuilder>().Build();
+            var corridor3Builder = corridor3Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor3Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(corridor3Builder, "corridorModel", _corridorGlb); // "환경/건물 GLB"
+            corridor3Builder.Build();
 
             var room4Go = new GameObject("Room4");
             room4Go.transform.position = Room4Center;
             var room4Builder = room4Go.AddComponent<DungeonRoomBuilder>();
+            // "바이옴 5종" — 퍼즐 제단·구출을 품은 막다른 방은 사당으로
+            // 잡음(제단 셋 = 사당 콘셉트와 그대로 맞음). 구출(6,0)·호위
+            // (5,±2.5)·퍼즐(-5,0)·채집(-2,2)과 안 겹치는 SW 빈 자리.
+            SetPrivateField(room4Builder, "biome", SagaBiome.Shrine);
+            SetPrivateField(room4Builder, "decorOffset", new Vector3(-8f, 0f, -5f));
+            SetPrivateField(room4Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
+            SetPrivateField(room4Builder, "roomModel", _roomGlb); // "방 셸 GLB"
             room4Builder.Build();
-            room4Builder.OpenSouthDoor(DoorWidth);
+            room4Builder.OpenSouthDoor(RoomDoorWidth);
 
             BuildCaptive();
 
