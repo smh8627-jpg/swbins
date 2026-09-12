@@ -39,6 +39,12 @@ namespace Saga.Dungeon.Data
             // 잡았다(웹판 행상의 절차적 재고 굴리기는 범위 밖, GO
             // ShopState.cs와 같은 "고정 물건 하나" 단순화).
             ["wp_saber"] = new ItemData("wp_saber", "환도", 18f),
+            // 층2 두목("오픈월드 확장" 슬라이스, Editor/BuildTestDungeonScene.cs
+            // BuildBossFloor2()) 확정 드랍 — js/dungeon.js enemyDmg가
+            // floor 1→2에 걸리는 성장률(11→13, 약 1.18배)을 wp_glaive(26)에
+            // 그대로 곱해 round(26*13/11)=31로 잡았다(층1 두목 아이템이
+            // 이미 floor=1 공식 배율을 재사용한 것과 같은 결).
+            ["wp_greatblade"] = new ItemData("wp_greatblade", "흑철중검", 31f),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;
