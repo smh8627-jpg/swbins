@@ -5,6 +5,30 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON 다음 슬라이스 후보 — 회피(구르기) (2026-09-12).** 방 종류
+  다양화 다음으로 이어서(같은 세션, "1,2,3,4 순서대로 다해" 중 3번) —
+  웹판 `js/dungeon.js:2510` `doDodge()`의 실제 상수(`DODGE_CD=0.9`·
+  `DODGE_SEC=0.16`·`DODGE_INVULN=0.22`, 전부 시간 단위라 변환 없이
+  그대로)를 옮겼다. **`DODGE_SPD=520`(px/초)만 물리 거리라** 이미
+  `DungeonRoomBuilder.cs`가 쓴 px→m 환산(ROOM_W 560px=20m, 28px/m)을
+  그대로 적용해 이동 거리 ≈2.97m→3m으로 잡고, 속도는 `거리÷지속시간`
+  으로 역산(≈18.75m/s). `Player/PlayerController.cs`(GO에서 그대로
+  복사해 온 파일)에 **DUNGEON 고유 로직으로 처음** 손을 댔다 — 회피 중엔
+  일반 이동·회전을 건너뛰고 저장해 둔 방향으로 CharacterController를
+  직접 미는 분기 추가, 방향은 현재 입력 방향(없으면 마지막 바라보는
+  방향)을 씀(웹판 `p.dirX||p.facing`과 같은 우선순위). 무적은
+  `HeroState.Invulnerable`(신규 정적 플래그)로 노출해 `TakeDamage`
+  맨 앞에서 막는다 — `DungeonEnemy.cs`는 이 플래그를 몰라도 된다(정적
+  클래스 하나만 보면 됨). 데스크톱은 Left Ctrl 직접 읽기(PlayerCombat.cs
+  가 이미 쓴 "Attack 액션 대신 Keyboard.current 직접 읽기" 관례를
+  그대로 따름 — Move/Sprint 액션과 안 겹치게), 모바일은 공격 버튼
+  왼쪽에 새 "회피" 버튼(`BuildDodgeButton`, `BuildAttackButton`과 같은
+  결). 컴파일·씬 재빌드(`room childCount=5` 그대로)·
+  PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부 통과 —
+  **회피 중 실제로 3m가량 미끄러지는 느낌인지, 그동안 몬스터 공격이
+  실제로 안 박히는지, 쿨다운 0.9초가 손에 잡히는 리듬인지는 사람이
+  직접 눌러 봐야 확인됨**(헤드리스는 키 입력을 안 보내 회피 발동 자체가
+  검증 밖).
 - **DUNGEON 다음 슬라이스 후보 — 방 종류 다양화 (2026-09-12).** 엘리트/
   보스 다음으로 이어서(같은 세션, "1,2,3,4 순서대로 다해" 중 2번) —
   웹판 `room.well`/`room.chest`/`room.shrine`(dungeon.js:336-341,

@@ -35,6 +35,11 @@ namespace Saga.Dungeon.Data
         /// <summary>js/dungeon.js:140 — `Math.max(4, p.atk * ... / 6)` 한 타 피해.</summary>
         public static float HitDamage => Math.Max(4f, Atk / 6f);
 
+        /// <summary>회피(Player/PlayerController.cs) 중에만 켜진다 — 켜져
+        /// 있는 동안 TakeDamage가 전부 무시된다(dungeon.js `p.invuln`과
+        /// 같은 뜻, DungeonEnemy.cs는 이 플래그를 몰라도 된다).</summary>
+        public static bool Invulnerable { get; set; }
+
         public static event Action<int> LeveledUp;
         public static event Action Died;
 
@@ -76,7 +81,7 @@ namespace Saga.Dungeon.Data
 
         public static void TakeDamage(float amount)
         {
-            if (amount <= 0f || Hp <= 0) return;
+            if (Invulnerable || amount <= 0f || Hp <= 0) return;
             Hp = Math.Max(0, Hp - RoundInt(amount));
             if (Hp <= 0) Died?.Invoke();
         }

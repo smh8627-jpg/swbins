@@ -66,12 +66,13 @@ namespace Saga.EditorTools
             var roomGo = BuildRoom();
             BuildEnemy();
             BuildRoomPois();
-            var (playerGo, playerCombat) = BuildPlayer();
+            var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildEventSystem();
             BuildDialogueUi();
             BuildPlayerHud();
             BuildSaveButton();
             BuildAttackButton(playerCombat);
+            BuildDodgeButton(playerController);
             BuildMobileHud();
             BuildBootstrap();
 
@@ -158,7 +159,7 @@ namespace Saga.EditorTools
             shrineGo.AddComponent<DungeonShrine>();
         }
 
-        private static (GameObject playerGo, PlayerCombat combat) BuildPlayer()
+        private static (GameObject playerGo, PlayerCombat combat, PlayerController controller) BuildPlayer()
         {
             var playerGo = new GameObject("Player");
             playerGo.tag = "Player";
@@ -205,7 +206,7 @@ namespace Saga.EditorTools
 
             var combat = playerGo.AddComponent<PlayerCombat>();
 
-            return (playerGo, combat);
+            return (playerGo, combat, pc);
         }
 
         private static void BuildEventSystem()
@@ -361,6 +362,48 @@ namespace Saga.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.text = "공격";
+        }
+
+        /// <summary>"회피" 슬라이스 — 공격 버튼 왼쪽(20px 간격), 데스크톱은
+        /// Left Ctrl로도 된다(PlayerController.TryDodge() 참고).</summary>
+        private static void BuildDodgeButton(PlayerController controller)
+        {
+            var canvasGo = new GameObject("DodgeUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var btnGo = new GameObject("DodgeButton", typeof(RectTransform));
+            btnGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)btnGo.transform;
+            rect.anchorMin = new Vector2(1f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(1f, 0f);
+            rect.anchoredPosition = new Vector2(-280f, 180f); // AttackButton(-100, 폭160)의 왼쪽, 20px 간격
+            rect.sizeDelta = new Vector2(130f, 130f);
+
+            var img = btnGo.AddComponent<Image>();
+            img.color = new Color(0.15f, 0.45f, 0.6f, 0.55f);
+            var button = btnGo.AddComponent<Button>();
+            button.targetGraphic = img;
+            button.onClick.AddListener(controller.TryDodge);
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(btnGo.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 26;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.text = "회피";
         }
 
         private static void BuildMobileHud()
