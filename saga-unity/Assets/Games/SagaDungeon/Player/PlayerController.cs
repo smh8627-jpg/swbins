@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
+using Saga.Dungeon.World;
 
 namespace Saga.Dungeon.Player
 {
@@ -16,6 +17,21 @@ namespace Saga.Dungeon.Player
     /// (전부 시간 단위라 변환 불필요). `DODGE_SPD=520`(px/초)만 물리 거리라
     /// `DungeonRoomBuilder.cs`가 이미 쓴 px→m 환산(ROOM_W 560px = 20m,
     /// 28px/m)을 그대로 적용해 이동 거리 ≈2.97m→3m으로 잡았다.
+    ///
+    /// "회피 애니메이션·이펙트" 슬라이스 — 이 프로젝트엔 아직 Animator/
+    /// 스켈레톤 애니메이션 재생 파이프라인이 전혀 없다(캐릭터 GLB는
+    /// `CharacterVisual.Spawn()`으로 정적으로 세울 뿐, saga-godot의
+    /// `assets/characters/*`엔 AnimationPlayer가 딸려 있어도 이쪽에서
+    /// 아직 그 클립을 재생하지 않음). 그 파이프라인을 새로 놓는 건 이
+    /// 조각 하나 몫을 훨씬 넘는 일이라, `BanditEncounter.cs`가 이미 쓰는
+    /// 절차적 연출 방식(Tint·Coroutine 스케일 펄스)과 같은 결로 세
+    /// 가지를 코드로 직접 만든다: **회전 애니메이션**(구르는 동작 —
+    /// `visual`을 회피 방향으로 향하게 한 뒤 로컬 X축으로 360도 굴림,
+    /// 정확히 한 바퀴라 끝나면 자동으로 다시 똑바로 섬), **잔상 이펙트**
+    /// (`TrailRenderer`, 새 셰이더 없이 어디서나 되는 `Sprites/Default`),
+    /// **무적 틴트**(`CharacterVisual.Tint()` 재사용 — 회피 대시(0.16초)
+    /// 보다 긴 무적 시간(0.22초) 내내 옅은 하늘색으로 덮어써 "지금 안
+    /// 맞는다"를 눈으로 알 수 있게).
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
@@ -31,6 +47,9 @@ namespace Saga.Dungeon.Player
         private const float DodgeDistance = 3f;        // DODGE_SPD(520px/s) × 0.16s ÷ 28px/m ≈ 2.97m
         private const float DodgeSpeed = DodgeDistance / DodgeDurationSec;
 
+        private const float DodgeTrailFadeSec = 0.25f; // 대시보다 살짝 길게 남는 잔상
+        private static readonly Color DodgeTintColor = new Color(0.75f, 0.92f, 1f); // 무적 동안 옅은 하늘색
+
         [SerializeField] private Transform visual;
         [SerializeField] private CameraRig cameraRig;
         [SerializeField] private InputActionAsset inputActions;
@@ -45,6 +64,8 @@ namespace Saga.Dungeon.Player
         private float _dodgeCooldownLeft;
         private float _invulnTimeLeft;
         private Vector3 _dodgeDir;
+        private TrailRenderer _dodgeTrail;
+        private bool _wasInvulnerable;
 
         public Transform Visual => visual;
 
@@ -71,6 +92,25 @@ namespace Saga.Dungeon.Player
             {
                 joystick = Object.FindFirstObjectByType<VirtualJoystick>();
             }
+
+            _dodgeTrail = BuildDodgeTrail();
+        }
+
+        /// <summary>회피 잔상 — 회전 애니메이션과 달리 `visual`이 아니라
+        /// 플레이어 루트(`transform`)에 붙인다(구르는 회전에 잔상 폭이
+        /// 같이 뒤틀리지 않게).</summary>
+        private TrailRenderer BuildDodgeTrail()
+        {
+            var trail = gameObject.AddComponent<TrailRenderer>();
+            trail.time = DodgeTrailFadeSec;
+            trail.startWidth = 0.5f;
+            trail.endWidth = 0.05f;
+            trail.minVertexDistance = 0.05f;
+            trail.material = new Material(Shader.Find("Sprites/Default")) { name = "DodgeTrail (generated)" };
+            trail.startColor = new Color(DodgeTintColor.r, DodgeTintColor.g, DodgeTintColor.b, 0.55f);
+            trail.endColor = new Color(DodgeTintColor.r, DodgeTintColor.g, DodgeTintColor.b, 0f);
+            trail.emitting = false;
+            return trail;
         }
 
         private void Update()
@@ -85,7 +125,14 @@ namespace Saga.Dungeon.Player
 
             if (_dodgeCooldownLeft > 0f) _dodgeCooldownLeft -= dt;
             if (_invulnTimeLeft > 0f) _invulnTimeLeft -= dt;
-            HeroState.Invulnerable = _invulnTimeLeft > 0f;
+            bool invulnerableNow = _invulnTimeLeft > 0f;
+            HeroState.Invulnerable = invulnerableNow;
+            if (invulnerableNow != _wasInvulnerable && visual != null)
+            {
+                if (invulnerableNow) CharacterVisual.Tint(visual.gameObject, DodgeTintColor);
+                else CharacterVisual.ClearTint(visual.gameObject);
+            }
+            _wasInvulnerable = invulnerableNow;
 
             var kb = Keyboard.current;
             if (kb != null && kb.leftCtrlKey.wasPressedThisFrame)
@@ -101,6 +148,21 @@ namespace Saga.Dungeon.Player
                 _dodgeTimeLeft -= dt;
                 Vector3 dash = _dodgeDir * DodgeSpeed;
                 _controller.Move(new Vector3(dash.x, _verticalVelocity, dash.z) * dt);
+
+                if (visual != null)
+                {
+                    // 회피 방향을 향해 정확히 한 바퀴(360도) 구른다 — 끝나는
+                    // 시점(progress=1)에 각도가 360도라 별도 복구 없이 저절로
+                    // 다시 똑바로 선다.
+                    float rollProgress = 1f - Mathf.Clamp01(_dodgeTimeLeft / DodgeDurationSec);
+                    float yaw = Mathf.Atan2(_dodgeDir.x, _dodgeDir.z) * Mathf.Rad2Deg;
+                    visual.rotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(rollProgress * 360f, 0f, 0f);
+                }
+                if (_dodgeTimeLeft <= 0f && _dodgeTrail != null)
+                {
+                    _dodgeTrail.emitting = false; // 대시 끝 — 남은 잔상은 trail.time 동안 저절로 흐려짐.
+                }
+
                 return; // 회피 중엔 일반 이동·회전 입력을 무시 — dungeon.js도 dodge 중엔 p.dirX/Y를 안 봄.
             }
 
@@ -137,6 +199,12 @@ namespace Saga.Dungeon.Player
             _dodgeTimeLeft = DodgeDurationSec;
             _dodgeCooldownLeft = DodgeCooldownSec;
             _invulnTimeLeft = DodgeInvulnSec;
+
+            if (_dodgeTrail != null)
+            {
+                _dodgeTrail.Clear(); // 이전 잔상과 안 이어붙게.
+                _dodgeTrail.emitting = true;
+            }
         }
 
         private Vector2 MovementInput()
