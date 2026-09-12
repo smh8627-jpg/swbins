@@ -5,6 +5,75 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **REALM 착수 — 버티컬 슬라이스 첫 구현 (2026-09-13, 열일곱 번째 세션,
+  "이어 해"로 열여섯 번째 세션이 남긴 "(4) REALM 착수" 확정).** PLAN.md
+  확장 순서(GO→DUNGEON→FOREST→STORY→**REALM**)의 마지막 칸 — 다섯 판
+  중 유일하게 실시간 이동·전투가 없는 턴제 경영. `saga-godot/docs/
+  VERTICAL_SLICE_REALM.md` 1~5절(기본 설계, 이후 2-1~2-10·3절의 다성
+  확장은 godot 쪽 후속 세션들이 붙인 것이라 이번엔 참고 안 함 — STORY
+  착수 때와 같이 **첫 슬라이스만** 옮겼다)을 개념만 참고해 Unity
+  관용구로 새로 지었다. 판정 공식·수치는 `saga-realm/js/rtk.js`·
+  `data-city.js`·`data.js`를 직접 읽어 그대로 옮겼다(레거시 감사
+  재분석이 아니라 실제 수식·수치 확인 — 게임 디자인 자료는 다시
+  고르지 않는다는 원칙과 별개로, godot 문서엔 agri/comm 공식 자체가
+  안 적혀 있어 원본을 봐야 했다).
+  - **범위** — 허창 하나, 명령 4종(개간·상업·수색·등용, rtk.js ORDERS
+    10종 중 첫 슬라이스 몫), 로스터 1명(현책)+재야 2명(해장·이도인,
+    js/data.js HEROES 가명 그대로 — 루트 CLAUDE.md 이름 정책), "다음
+    달" 정산(금고=상업 소득×치안 배율−봉록, 군량은 6·10월만), 저장/
+    불러오기. 병력·인구·재해·전쟁·외교·문답·여러 성은 전부 범위 밖
+    (VERTICAL_SLICE_REALM.md 4절 원래 "제외" 그대로 — 이후 godot이
+    2-x절에서 넓힌 건 REALM 자체의 다음 슬라이스 후보이지 이번 착수
+    범위가 아니다).
+  - 신규 — `Data/{RealmOfficer,RealmOfficerPool,RealmOrderData,
+    RealmCityState,RealmSaveState}.cs`·`World/{RealmCityBuilder,
+    GameBootstrap}.cs`·`Player/RealmOrbitCamera.cs`·`UI/{RealmUiKit,
+    RealmToast,RealmHud,RealmCommandUi}.cs`·`Editor/{BuildTestCityScene,
+    PlaytestRealmSlice}.cs`. asmdef 없음(SagaStory와 같은 결 — 최근
+    두 판째부터는 게임별 asmdef를 새로 안 늘리고 기본 어셈블리로 둔다).
+  - **카메라 — 드래그 오빗 대신 WASD 오빗을 새로 짰다**(`RealmOrbitCamera.cs`).
+    REALM엔 쫓아갈 플레이어 아바타가 없어(1절 "실시간 이동·전투 없음")
+    GO/DUNGEON `CameraRig.cs`(플레이어 자식, 드래그 회전)를 그대로 못
+    쓴다 — 성 중심(원점)에 고정된 리그가 WASD로 요/피치, 휠로 줌만
+    한다(godot REALM 1절의 "드래그보다 WASD가 더 어울린다" 결론과
+    같은 결, 코드는 새로 — 0장 "개념만 참고" 원칙).
+  - **디오라마 — 처음부터 개수 기반으로 지었다**(정적 실루엣 먼저 →
+    나중에 city3d.js 참고해 개수 기반으로 바꾸는 godot의 2단계를 안
+    거침 — 결과가 이미 알려져 있는데 구식 버전을 먼저 만들 이유가
+    없다고 판단). 밭(개간/90)·시장(상업/80)·곳간(군량/400)·로스터
+    깃발(무장 수) 개수를 성벽+망루+본성 primitive 둘레에 뿌린다
+    (`RealmCityBuilder.Rebuild()`, `RealmCityState.Changed` 이벤트로
+    값이 바뀔 때마다 다시 지음). GLB 없음(primitive만 — 8장 우선순위
+    밖, 성 디오라마는 GO/DUNGEON 초기처럼 primitive로 충분하다는 판단).
+  - **명령 실행 — 무장 자동 선택으로 단순화**. rtk.js는 화면에서 무장을
+    직접 골라 명령하지만, 로스터가 1~3명뿐인 이 슬라이스는 "이 달에
+    아직 안 쓴 무장 중 지력(wisdom) 최고"가 자동으로 나선다
+    (`RealmCityState.BestAvailableOfficer()`) — 무장 선택 UI는 로스터가
+    늘어날 다음 슬라이스 몫으로 미뤘다(문서화된 재해석).
+  - **수색·등용 판정도 rtk.js 그대로** — 수색은 rarity 내림차순 정렬 뒤
+    `reach=clamp(round(hidden.Count×wisdom/130),1,hidden.Count)` 안에서
+    무작위, 등용은 `chance=clamp(0.28+wisdom/260-(rarity-2)×0.09,
+    0.05,0.9)` 판정(포로 갈래는 이 슬라이스에 포로가 없어 안 옮김).
+  - **검증** — 컴파일(오류 없음)·씬 재빌드(`BuildTestCityScene`,
+    "saved to TestCity.unity")·`PlaytestRealmSlice`(신규, `OK -
+    agri/comm/settle/search/hire/save-load all verified, no errors`
+    — 개간·상업 실행 시 금 차감·수치 증가, 다음 달 정산 시 금이
+    공식(상업×0.55×치안배율−봉록)대로 정확히 바뀌고 비수확달엔 군량이
+    그대로인 것, 수색이 재야를 실제로 찾는 것, 등용이 성공할 때까지
+    반복해(확률 판정, 이번엔 2번째 시도에 성공) 로스터에 실제로
+    합류하는 것, 저장→상태를 흩트림→불러오기로 금/로스터/발견 목록/
+    연월이 전부 정확히 돌아오는 것까지 전부 확인)·회귀
+    `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·
+    `PlaytestForestHeadless`·`PlaytestStorySlice`(다른 네 판 무관 확인)
+    전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨, 다른 네 판의 밀린 확인 목록
+    뒤에 이어짐) — `RealmCommandUi.cs`의 "명령"/"다음 달" 버튼이 실제
+    클릭으로 잘 열리고 눌리는지(Playtest는 버튼을 안 거치고
+    `RealmCityState`를 직접 불러 판정 경로만 검증했다 — 이 프로젝트의
+    다른 Playtest들과 같은 관행, PlaytestStorySlice.cs 클래스 주석
+    참고), WASD 오빗 카메라 감도가 자연스러운지, 디오라마(밭·시장·
+    곳간·깃발 개수)가 눈으로 봤을 때 "커지고 있다"는 게 느껴지는지,
+    HUD 문구가 안 겹치고 잘 읽히는지.
 - **DUNGEON — 위성↔위성 지름길 후속: Town2↔Town4 (2026-09-13, 열여섯
   번째 세션, "2,3,4 순으로 다해줘"의 (3)).** 열다섯 번째 세션이
   Town3↔Town2 지름길을 넣으며 "Town2↔Town4는 후속 후보로 남김"이라
@@ -2128,33 +2197,22 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- **열여섯 번째 세션은 여기서 멈췄다(2026-09-13) — 사용자가 "2,3,4
-  순으로 다해줘"(STORY 콘텐츠 확장 → DUNGEON 지름길 후속 → REALM
-  착수)로 확정한 세 가지 중 앞 둘(STORY 콘텐츠 확장·DUNGEON Town2↔
-  Town4 지름길)을 끝내고, **(4) REALM 착수는 아직 시작 전** —
-  사용자가 "현재 작업 완료 되면 다른 세션에 이어하게 저장 해줘"로
-  요청해 여기서 끊음.**
-  - 작업 트리 깨끗함(커밋되지 않은 변경 없음). 이 세션에서 나간 커밋:
-    `28ff038`(STORY 콘텐츠 확장 — 무예 나머지 셋+잡졸 열+로프/발판
-    결함 수정)·이 커밋 직후의 DUNGEON Town2↔Town4 지름길 커밋(아래
-    "다음 세션이 볼 것" 참고, 이 문서 저장 시점 기준 아직 커밋 전이면
-    다음 세션이 먼저 `git status`/`git log`로 확인). 전부 컴파일·
-    헤드리스 플레이테스트 통과 확인 후 그때그때 커밋·푸시.
-  - **다음 세션이 할 일 — (4) REALM 착수부터.** PLAN.md 확장 순서
-    (GO→DUNGEON→FOREST→STORY→**REALM**)의 마지막 칸. `saga-godot
-    /docs/VERTICAL_SLICE_REALM.md`가 이미 설계·구현·헤드리스 검증까지
-    끝내 둔 걸 개념만 참고해(코드 기계적 번역 금지, 루트 CLAUDE.md
-    2장) Unity 관용구로 새로 지을 것 — STORY 착수 때 썼던 것과 같은
-    절차(레거시 감사는 새로 안 함 → VERTICAL_SLICE_REALM.md 요약 확인
-    → Unity 프로젝트 구조에 맞게 새로 설계 → BuildTestCityScene류 +
-    PlaytestRealmSlice류 헤드리스 검증). saga-godot STORY 이후 REALM
-    착수 세션 기록(`saga-godot/docs/PROJECT_STATE.md`의 "REALM" 절,
-    이 문서 위쪽 인용 — "REALM은 플레이어 아바타가 없다" 등 핵심
-    재해석 결정들)부터 훑어볼 것.
-  - 사람이 아직 실기로 안 본 것 — DUNGEON 마을 넷 전체(Town2·3·4·
-    장식·M키 지도·들길 매복·Crossroads·Crossroads2 지름길 둘 다)·
-    STORY 첫 슬라이스+무예 나머지 셋. REALM 착수와 별개로, 사람의
-    실기 확인 피드백이 먼저 도착하면 그것부터 반영할 것.
+- **열일곱 번째 세션은 여기서 멈췄다(2026-09-13) — "이어 해"로 REALM
+  착수(위 "완료 단계" 맨 위 항목)를 끝냈다. PLAN.md 확장 순서(GO→
+  DUNGEON→FOREST→STORY→REALM)의 다섯 판 전부 첫 슬라이스가 생겼다.**
+  - 작업 트리 상태·커밋은 다음 세션이 먼저 `git status`/`git log`로
+    확인(이 문서 저장 시점 기준 REALM 착수 커밋이 아직 안 나갔을 수
+    있음 — 컴파일·헤드리스 플레이테스트 통과는 이미 확인됨, 위 참고).
+  - **다음 세션이 볼 것** — (1) 사람의 실기 확인 피드백이 먼저 도착
+    하면 그것부터(DUNGEON 마을 넷 전체·STORY 첫 슬라이스+무예 나머지
+    셋·REALM 첫 슬라이스 전부 아직 사람이 GUI로 안 봄, 위 각 항목의
+    확인 목록 참고), (2) 없으면 REALM 다음 조각 — `saga-godot`
+    VERTICAL_SLICE_REALM.md 2-x절(치안 포함 명령 나머지 6종, 여러
+    성으로 확장, 무장 성 소속, 월드맵, 전쟁·외교 등)을 후보로 훑되
+    **어느 걸 먼저 할지는 방향 결정이라 세션이 임의로 안 고른다** —
+    saga-godot이 밟은 순서를 그대로 따라야 할 이유는 없다(두 트랙은
+    독립, 0장). 다섯 판 모두 첫 슬라이스가 갖춰진 지금부터는 "어느
+    판을 더 키울까"도 함께 사용자와 상의할 자리.
 - **(과거) 열네 번째 세션(2026-09-12)이 지난 세션의 네 후보(마을 셋째·넷째·
   Town2 장식·오버월드 지도·필드 조우)를 전부 끝냈다(위 "완료 단계" 참고).**
   아래는 그 결정이 나오기 전까지 남아 있던 옛 기록(참고용, 위 최신 항목이
