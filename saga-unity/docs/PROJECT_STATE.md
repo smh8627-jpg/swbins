@@ -5,6 +5,29 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 8장 "실제 3D 에셋" — 산신당 재설계 (2026-09-12).** Awake()
+  중복 생성 정리 다음으로 이어서(같은 세션, 사용자가 "산신당 재설계부터
+  진행해"로 지목) — 환경/건물 GLB 조각이 "형태가 많이 달라 다음 조각으로
+  미룬다"고 남겨 둔 항목을 처리했다. 예전 구조(받침대 박스 5×0.6×5 +
+  `pillar-stone.glb` 기둥 4개)를 통째로 걷어내고, saga-godot
+  `landmarks_builder.gd`의 `SHRINE_SIZE`(1.04×0.49×0.65)·
+  `SHRINE_SCALE`(2.5, 균일)을 그대로 옮겨 **`shrine/altar-stone.glb`
+  제단 하나**로 바꿨다(saga-godot도 옛 사당을 이 파일 하나로만 지음 —
+  같은 이유로 균일 스케일만 씀, 실제 돌 표면 굴곡이 있는 조각).
+  `shrine/altar-stone.glb` + `shrine/Textures/colormap.png`를
+  saga-godot에서 그대로 복사해 `Assets/Art/Shrine/`에 신규 도입(다른
+  GLB들과 같은 재사용 원칙, PLAN.md 0장). `LandmarksBuilder.cs`에
+  `shrineModel` 필드 추가로 `Init()` 시그니처가 5개→6개 인자로 늘어
+  `BuildTestVillageScene.cs` 호출부도 같이 고쳤다. GLB가 없을 때의
+  폴백도 예전 받침대+기둥 구조 대신 최종 크기(약 2.6×1.23×1.63m) 그대로의
+  단일 박스로 바꿨다. 덤으로 `SpawnPillar()`의 `addToRoot` 매개변수가
+  (산신당 기둥 호출이 없어지며) 완전히 죽은 코드가 돼 같이 지웠다.
+  `MountainShrine.cs`(트리거·보상 로직)는 안 건드림 — 순전히
+  `LandmarksBuilder.cs`의 시각 담당 쪽 변경. 컴파일·씬 재빌드
+  (`groundVerts=6336` 그대로 — 땅은 안 바뀜)·PlaytestHeadless(`OK - 10
+  frames, no errors`) 전부 통과 — **실제로 제단이 자연스러워 보이는지
+  (텍스처 이음새, 예전보다 훨씬 작아진 크기감, 숲 사이에서 눈에 띄는지)는
+  사람이 직접 봐야 확인됨.**
 - **기술부채 정리 — Awake() 중복 생성 방어를 나머지 6곳에 적용
   (2026-09-12).** 캐릭터/환경 GLB 세션이 "다음 작업"에 남겨 둔 항목 —
   `AnimalBuilder.cs`·`HiddenTreasure.cs`·`EastGroveRelic.cs`·
@@ -690,10 +713,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   Animals(사슴·소·흰 늑대, 지금 전부 primitive) — 다만 saga-godot도
   어울리는 동물 GLB가 없어 동물류는 전부 primitive로 남겨 뒀다
   (`saga-godot/docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 참고, CC0 동물
-  킷을 새로 받아야 함). 그 외 남은 것: **산신당 재설계**(altar-stone.glb
-  도입, `docs/ASSET_GUIDE.md` "환경/건물 GLB" 절 참고 — 지금 구조와
-  형태가 달라 다음 조각으로 미뤄 둠), Props(VFX 앞 단계, 아직 대상
-  없음).
+  킷을 새로 받아야 함). **산신당 재설계는 2026-09-12에 끝냈다**(위 "완료
+  단계" 참고). 그 외 남은 것: Props(VFX 앞 단계, 아직 대상 없음).
 - **GO 콘텐츠 다양화 다음 후보.** PLAN.md 24~27장 이벤트 종류 중 "랜덤
   이벤트"는 성황당 돌무더기(LuckyCairn, 위 "완료 단계")로 채웠다 —
   **"시간" 이벤트(특정 시간대에만 나오는 것)는 아직 없다**(하루 일과·

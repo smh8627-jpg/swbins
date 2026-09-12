@@ -9,12 +9,14 @@ namespace Saga.Go.World
     ///
     /// 2026-09-12 GLB 도입(PLAN.md 8장) — Kenney Fantasy Town Kit·Modular
     /// Cave Kit(CC0, saga-godot 트랙과 같은 파일, docs/ASSET_GUIDE.md 참고)로
-    /// 굴 입구·마을집 벽/지붕·폐허 기둥·다리 널판을 교체한다. **산신당은 이번엔
-    /// 그대로 둔다** — 받아 온 altar-stone.glb는 지금 기둥 4개짜리 구조와
-    /// 형태가 많이 달라(작은 제단 하나 vs 받침대+기둥) 그대로 자리만 바꿔
-    /// 끼우면 어색할 수 있어, 디자인을 다시 판단해야 하는 다음 조각으로
-    /// 미룬다(2장 "테스트 안 된 추측성 변경" 회피). GLB를 못 찾으면(다른 PC
-    /// 등) 예전 primitive로 대체한다.
+    /// 굴 입구·마을집 벽/지붕·폐허 기둥·다리 널판을 교체했다. GLB를 못 찾으면
+    /// (다른 PC 등) 예전 primitive로 대체한다.
+    ///
+    /// **산신당은 그때 미뤄 뒀다가(altar-stone.glb가 기둥 4개짜리 옛 구조와
+    /// 형태가 많이 달라 재설계가 필요했다) 같은 날 후속 조각으로 처리했다**
+    /// — saga-godot landmarks_builder.gd의 SHRINE_SIZE/SHRINE_SCALE을 그대로
+    /// 옮겨 받침대+기둥 4개 구조를 통째로 걷어내고 작은 제단 하나로 바꿨다
+    /// (아래 BuildShrine() 참고).
     /// </summary>
     public class LandmarksBuilder : MonoBehaviour
     {
@@ -34,14 +36,16 @@ namespace Saga.Go.World
         [SerializeField] private GameObject roofModel;    // roof-gable.glb, 실측 1.1×0.57×1.07, ×10(균일)
         [SerializeField] private GameObject pillarModel;  // pillar-stone.glb, 실측 0.16×1.0×0.16, 스케일=높이
         [SerializeField] private GameObject plankModel;   // planks.glb, 실측 1×0.06×1, 44개 이어 붙임
+        [SerializeField] private GameObject shrineModel;  // altar-stone.glb, 실측 1.04×0.49×0.65, ×2.5(균일)
 
-        public void Init(GameObject cave, GameObject wall, GameObject roof, GameObject pillar, GameObject plank)
+        public void Init(GameObject cave, GameObject wall, GameObject roof, GameObject pillar, GameObject plank, GameObject shrine)
         {
             caveModel = cave;
             wallModel = wall;
             roofModel = roof;
             pillarModel = pillar;
             plankModel = plank;
+            shrineModel = shrine;
         }
 
         private void Awake()
@@ -212,33 +216,41 @@ namespace Saga.Go.World
 
         // ---- 산신당 --------------------------------------------------------
 
+        // saga-godot landmarks_builder.gd의 SHRINE_SIZE/SHRINE_SCALE 그대로
+        // (altar-stone.glb, CC0 Kenney Graveyard Kit, 바닥 중앙 피벗) —
+        // gate-rock.glb와 같은 이유로(실제 돌 표면 굴곡이 있는 조각) 균일
+        // 스케일만 쓴다. 최종 크기 약 2.6×1.23×1.63m.
+        private static readonly Vector3 ShrineSize = new Vector3(1.04f, 0.49f, 0.65f);
+        private const float ShrineScale = 2.5f;
+
         /// <summary>
-        /// PLAN.md 51장 GO 월드 확장 — 아직 primitive 그대로(클래스 주석 참고).
+        /// PLAN.md 8장 "실제 3D 에셋" — 2026-09-12 재설계. 예전엔 받침대
+        /// 박스(5×0.6×5)+기둥 4개짜리 구조였는데, 실제로 받아 온
+        /// altar-stone.glb는 작은 제단 하나짜리 모양이라 그 구조를 통째로
+        /// 걷어내고 saga-godot과 같은 단일 제단으로 바꿨다.
         /// </summary>
         private void BuildShrine()
         {
             float ground = TestMapData.Legend['S'].Height;
             Vector3 basePos = TestMapData.WorldPos(5, 1) + new Vector3(0, ground, 0);
 
-            var baseSize = new Vector3(5f, 0.6f, 5f);
-            var baseBlock = CreateBox("ShrineBase", basePos + Vector3.up * (baseSize.y * 0.5f), baseSize, ShrineColor);
-            baseBlock.transform.SetParent(transform, true);
-
-            const float pillarHeight = 3.2f;
-            const float pillarRadius = 0.35f;
-            foreach (var offset in new[] { new Vector2(-1.6f, -1.6f), new Vector2(1.6f, -1.6f), new Vector2(-1.6f, 1.6f), new Vector2(1.6f, 1.6f) })
+            if (shrineModel != null)
             {
-                Vector3 pos = basePos + new Vector3(offset.x, baseSize.y, offset.y);
-                if (pillarModel != null)
-                {
-                    SpawnPillar("ShrinePillar", pos, pillarHeight, ShrineColor, addToRoot: true);
-                }
-                else
-                {
-                    Vector3 primPos = pos + Vector3.up * (pillarHeight * 0.5f);
-                    var pillar = CreateCylinder("ShrinePillar", primPos, pillarRadius, pillarHeight, ShrineColor);
-                    pillar.transform.SetParent(transform, true);
-                }
+                var altar = Object.Instantiate(shrineModel, transform);
+                altar.name = "ShrineAltar";
+                altar.transform.position = basePos;
+                altar.transform.localScale = Vector3.one * ShrineScale;
+
+                // GLB엔 콜라이더가 없다 — 실측 로컬 AABB(바닥 피벗)로 직접 추가.
+                var col = altar.AddComponent<BoxCollider>();
+                col.center = new Vector3(0f, ShrineSize.y * 0.5f, 0f);
+                col.size = ShrineSize;
+            }
+            else
+            {
+                var size = ShrineSize * ShrineScale;
+                var altar = CreateBox("ShrineAltar", basePos + Vector3.up * (size.y * 0.5f), size, ShrineColor);
+                altar.transform.SetParent(transform, true);
             }
         }
 
@@ -247,7 +259,7 @@ namespace Saga.Go.World
         /// <summary>pillar-stone.glb(실측 0.16×1.0×0.16, 바닥 피벗) — 스케일이
         /// 곧 목표 높이(docs/ASSET_GUIDE.md "높이=스케일값"). GLB가 없으면
         /// 예전 primitive Cylinder로 대체한다.</summary>
-        private void SpawnPillar(string name, Vector3 groundPos, float height, Color color, bool addToRoot = false)
+        private void SpawnPillar(string name, Vector3 groundPos, float height, Color color)
         {
             if (pillarModel != null)
             {

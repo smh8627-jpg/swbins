@@ -94,9 +94,10 @@ saga-godot 실측표(위 표와 같은 파일)를 그대로 신뢰해 재실측 
 | `rocks/rock_smallA.glb` | 0.36×0.19×0.36 | ×3.5×(개체별 변주) | 산 타일 나머지 절반 |
 | `buildings/wall-block.glb` | 1×1×1 | 비균등=bodySize(10,4,10) 그대로 | 마을집 벽 |
 | `buildings/roof-gable.glb` | 1.1×0.57×1.07 | 균일 ×10 | 마을집 지붕(콜라이더 없음) |
-| `buildings/pillar-stone.glb` | 0.16×1.0×0.16 | 균일=목표 높이 | 폐허 기둥 3개·산신당 기둥 4개 |
+| `buildings/pillar-stone.glb` | 0.16×1.0×0.16 | 균일=목표 높이 | 폐허 기둥 3개 |
 | `buildings/planks.glb` | 1×0.06×1 | 비균등(폭 6, 길이는 44개 등분) | 다리 덱 |
 | `dungeon/gate-rock.glb` | 4.00×4.05×2.45 | 균일 ×1.48(목표 높이 6m) | 굴 입구 |
+| `shrine/altar-stone.glb` | 1.04×0.49×0.65 | 균일 ×2.5(목표 높이 약 1.23m) | 산신당 제단(재설계, 아래 절 참고) |
 
 **GLB엔 물리 콜라이더가 없다** — glTF 포맷 자체가 충돌체를 안 담는다.
 굴 입구·마을집 벽·기둥류는 실측 로컬 AABB(위 표) 그대로
@@ -106,13 +107,22 @@ saga-godot 실측표(위 표와 같은 파일)를 그대로 신뢰해 재실측 
 안 얹었다(지붕은 밟는 자리가 아니고, 다리는 TerrainBuilder가 'B' 타일에
 이미 별도로 막아 뒀다, 두 곳이 각자 만들면 겹친다는 기존 원칙 그대로).
 
-**산신당('S' 타일, `LandmarksBuilder.BuildShrine()`)은 이번에 안 바꿨다.**
-`shrine/altar-stone.glb`(saga-godot이 옛 사당에 쓰는 파일)는 작은 제단
-하나짜리 모양이라, 지금 구조(받침대 박스+기둥 4개)와 형태가 많이 달라
-그대로 자리만 바꿔 끼우면 어색할 수 있다 — 기둥 4개만 `pillar-stone.glb`
-로 바꾸고(폐허 기둥과 같은 파일 재사용) 받침대는 primitive 박스로 남겨
-뒀다. altar-stone.glb를 실제로 쓰려면 구조 자체를 다시 설계해야 해서
-다음 조각으로 미룬다.
+## 산신당 재설계 (2026-09-12, 환경/건물 GLB 다음 후속 조각)
+
+**산신당('S' 타일, `LandmarksBuilder.BuildShrine()`)은 그때(위 절) "형태가
+많이 달라 재설계 필요"로 미뤄 뒀다가 같은 날 처리했다.** 예전 구조(받침대
+박스 5×0.6×5 + `pillar-stone.glb` 기둥 4개)를 통째로 걷어내고,
+saga-godot `landmarks_builder.gd`의 `SHRINE_SIZE`(1.04×0.49×0.65)·
+`SHRINE_SCALE`(2.5, 균일)을 그대로 옮겨 **`shrine/altar-stone.glb`
+제단 하나**로 바꿨다 — saga-godot도 옛 사당을 이 파일 하나로만 짓는다
+(같은 이유: 실제 돌 표면 굴곡이 있는 조각이라 gate-rock.glb처럼 균일
+스케일만 쓴다). 최종 크기 약 2.6×1.23×1.63m, 바닥 중앙 피벗이라
+`gate-rock.glb`·`altar-stone.glb`처럼 위치 계산에 y 오프셋이 필요 없다.
+`shrine/altar-stone.glb` + `shrine/Textures/colormap.png`를
+saga-godot에서 그대로 복사(다른 GLB들과 같은 재사용 원칙). GLB가 없을 때의
+폴백도 예전 받침대+기둥 구조 대신 이 크기 그대로의 단일 박스로 바꿨다.
+`MountainShrine.cs`(트리거·보상 로직)는 안 건드림 — 이건 순전히
+`LandmarksBuilder.cs`의 시각 담당 쪽 변경이다.
 
 ## 이번에 발견해 같이 고친 것 — Awake() 중복 생성
 
@@ -124,8 +134,8 @@ Play(헤드리스든 사람이 직접 하든)로 열면 시각·UI가 두 벌씩
 손대는 김에 `transform.Find("Visual") != null`이면 다시 안 짓게 방어를
 넣었다. 환경/건물 GLB 조각(`VegetationBuilder.cs`·`LandmarksBuilder.cs`)도
 어차피 다시 쓰는 김에 `transform.childCount > 0`이면 건너뛰는 같은 방어를
-추가해 뒀다. **`AnimalBuilder.cs`·`RareWolfEncounter.cs`·
+추가해 뒀다. 나머지 `AnimalBuilder.cs`·`RareWolfEncounter.cs`·
 `HiddenTreasure.cs`·`MountainShrine.cs`·`EastGroveRelic.cs`·
-`LuckyCairn.cs`는 아직 이 패턴(무조건 `Build()`)이라 이론상 같은 버그가
-남아 있을 수 있다** — 다음에 손댈 때 같이 고칠 것(`docs/PROJECT_STATE.md`
-"다음 작업"에도 적어 둠).
+`LuckyCairn.cs` 여섯 곳은 **후속 세션(2026-09-12)이 정리했다** —
+자세한 내용(그 중 `RareWolfEncounter`·`BanditEncounter`에서 찾은 더 깊은
+NRE 버그 포함)은 `docs/PROJECT_STATE.md` 참고.

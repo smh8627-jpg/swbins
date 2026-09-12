@@ -134,7 +134,8 @@ namespace Saga.EditorTools
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/wall-block.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/roof-gable.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/pillar-stone.glb"),
-                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/planks.glb"));
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/planks.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Shrine/altar-stone.glb"));
             builder.Build();
         }
 
