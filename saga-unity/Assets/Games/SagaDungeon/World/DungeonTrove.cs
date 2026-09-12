@@ -31,6 +31,12 @@ namespace Saga.Dungeon.World
         private bool _used;
         private Transform _player;
 
+        /// <summary>"DUNGEON 오픈월드 확장 — 절차적 층 진행" 슬라이스 —
+        /// `DungeonFloorRunner`가 런타임에 즉석으로 만든 POI에 값을 채우는
+        /// 정식 API(`DungeonEnemy.SetSpawnContext()`와 같은 결). Awake가
+        /// 아직 안 돈 상태(비활성 GameObject)에서만 의미가 있다.</summary>
+        public void SetRoomId(string newRoomId) => roomId = newRoomId;
+
         private void Awake()
         {
             if (transform.childCount == 0) BuildVisual();

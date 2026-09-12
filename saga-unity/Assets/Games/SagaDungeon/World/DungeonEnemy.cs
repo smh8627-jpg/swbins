@@ -90,6 +90,26 @@ namespace Saga.Dungeon.World
             modelPrefab = newModelPrefab;
         }
 
+        /// <summary>"DUNGEON 오픈월드 확장 — 절차적 층 진행" 슬라이스 —
+        /// `DungeonFloorRunner`가 층 공식(`DungeonFormulas`)으로 계산한
+        /// 스탯·보상을 즉석으로 만든 개체에 채운다. `SetSpawnContext()`와
+        /// 같은 제약(Awake가 아직 안 돈 상태에서만 의미가 있다).</summary>
+        public void ConfigureCombat(float newHp, float newDmg, int newRewardExp, int newRewardGold,
+            string newRewardItemId, string newRewardGemId, bool newIsBoss, string newDisplayName,
+            Color newBodyColor, float newVisualScale)
+        {
+            hp = newHp;
+            dmg = newDmg;
+            rewardExp = newRewardExp;
+            rewardGold = newRewardGold;
+            rewardItemId = newRewardItemId;
+            rewardGemId = newRewardGemId;
+            isBoss = newIsBoss;
+            displayName = newDisplayName;
+            bodyColor = newBodyColor;
+            visualScale = newVisualScale;
+        }
+
         private void Awake()
         {
             _curHp = hp;

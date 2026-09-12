@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Dungeon.Data;
+using Saga.Dungeon.World;
 
 namespace Saga.Dungeon.UI
 {
@@ -38,9 +39,12 @@ namespace Saga.Dungeon.UI
         {
             if (label == null) return;
             string weapon = HeroState.EquippedWeapon?.Name ?? "맨손";
+            // "절차적 층 진행" 슬라이스 — ProcRoom에 아직 안 닿았으면(Room1~4,
+            // 개념상 "층1") DungeonFloorRunner.Instance가 null이라 1로 대신함.
+            int floor = DungeonFloorRunner.Instance?.CurrentFloor ?? 1;
             label.text = $"Lv.{HeroState.Level}  체력 {HeroState.Hp}/{HeroState.HpMax}  " +
                          $"(경험치 {HeroState.Exp}/{HeroState.ExpToNext})  돈 {HeroState.Gold}냥\n" +
-                         $"{weapon} (공격력 {HeroState.Atk:0})\n" +
+                         $"{weapon} (공격력 {HeroState.Atk:0})  🕳️ 지하 {floor}층\n" +
                          $"{QuestState.ObjectiveText}"; // "퀘스트 시스템" 슬라이스
 
             if (healthBarFill != null)
