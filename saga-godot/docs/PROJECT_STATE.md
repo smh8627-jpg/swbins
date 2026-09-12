@@ -2714,3 +2714,15 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 실측 캐노피 폭 ≈2.9m)가 이 타일 크기에 그대로 들어맞아 새 자산 없이 재사용
 가능한 것도 같이 확인. 아직 안 정한 것: 카메라, Vertical Slice 범위,
 몬스터·퓨전 자유 적용 여부.
+
+### 완료 단계 (추가) — 카메라 결정
+
+**사용자가 "카메라부터 정하자"로 지시.** 웹판 코드를 다시 보니 원작이
+이미 고정 카메라였다(`cam.x=p.x, cam.y=p.y`, 회전·줌 입력 없음) — GO의
+회전 카메라가 아니라 **DUNGEON의 `dungeon_camera_rig.gd`를 그대로 크로스게임
+재사용**하기로 했다(DUNGEON 전용 로직이 없는 순수 범용 컴포넌트임을 확인).
+`pitch_deg=62.0`(DUNGEON 55°보다 더 위에서)·`spring_length=14.0`(DUNGEON
+12m보다 조금 멂)만 새로 정함, 둘 다 실기 튜닝 대상. 구면 투영(1절)은
+정점 셰이더라 카메라 보정이 따로 필요 없다는 것도 이번에 확인. 근거는
+`docs/VERTICAL_SLICE_FOREST.md` 3절. 아직 안 정한 것: Vertical Slice
+범위, 몬스터·퓨전 자유 적용 여부.
