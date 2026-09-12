@@ -11,6 +11,7 @@ extends Node3D
 ## 그 문제 자체가 없다), 정점색 기반 곡률 셰이더는 그대로 재사용한다.
 
 const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
+const ForestBiome := preload("res://games/saga_forest/data/forest_biome.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 
 ## height는 전부 0 — 이번 슬라이스는 높낮이가 없다(그래도 GO의 LEGEND와
@@ -49,7 +50,9 @@ func _build_ground() -> void:
 				continue
 			var info: Dictionary = LEGEND[ch]
 			var center := ForestMap.world_pos(x, y) + Vector3(0, info.height, 0)
-			var col: Color = info.color
+			## 제외 목록 7번(바이옴 지형 다양성) — 풀밭(".")만 사분면
+			## 바이옴 색으로, 나머지(숲 테두리·흙길·집 자리)는 그대로.
+			var col: Color = ForestBiome.color_at(x, y) if ch == "." else info.color
 
 			var p00 := center + Vector3(-half, 0, -half)
 			var p10 := center + Vector3(half, 0, -half)

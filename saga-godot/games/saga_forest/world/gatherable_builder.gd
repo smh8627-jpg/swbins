@@ -59,6 +59,13 @@ const DEFS := [
 	{"id": "gather_fossil", "name": "갈라진 자리", "hint": "판다", "item_label": "화석",
 	 "grid": Vector2i(6, 11), "glb": "", "scale": 1.0,
 	 "tint": Color(0.45, 0.38, 0.3), "trunk_radius": 0.0, "trunk_height": 0.0, "tool": "spade"},
+	## 제외 목록 7번(바이옴 지형 다양성) — 웹판은 약초(herb)를 버섯숲
+	## 바이옴 전용 채집물로 못박아 둔다(data-village.js "숲 고리 버섯숲
+	## 바이옴 전용" 주석). 이 슬라이스도 같은 자리(SW 사분면, forest_
+	## biome.gd 기준 "mush")에 놓아 그 경계를 지킨다.
+	{"id": "gather_herb", "name": "약초", "hint": "캔다", "item_label": "약초",
+	 "grid": Vector2i(8, 15), "glb": "", "scale": 1.0,
+	 "tint": Color(0.35, 0.55, 0.28), "trunk_radius": 0.0, "trunk_height": 0.0, "tool": ""},
 ]
 
 var _in_range: Dictionary = {}  # id(String) -> bool
