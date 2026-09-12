@@ -23,6 +23,11 @@ namespace Saga.EditorTools
         private const string ScenePath = "Assets/Scenes/TestVillage.unity";
         private const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
 
+        // Kenney Blocky Characters(CC0, docs/ASSET_GUIDE.md 참고 — saga-godot
+        // assets/characters/*.glb와 같은 파일). a=플레이어, b=마을 촌장,
+        // c=떠돌이 상인·나그네(모델 재사용, 색조로만 구분), d=산적.
+        private const string PlayerModelPath = "Assets/Art/Characters/character-a.glb";
+
         // saga-godot TestVillage.tscn의 마을 중심 스폰 자리와 동일 — 마을 집 두 칸
         // (2,3)·(3,3) 사이 중앙. 예전엔 WorldPos(2.5,3)의 계산 결과를 상수로 박아
         // 뒀었는데(-48,0.1,-24), 그러면 TestMapData.Rows의 칸 수가 바뀔 때(지도
@@ -134,6 +139,12 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("NPCs");
             var builder = go.AddComponent<NpcBuilder>();
+            builder.Init(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-b.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-c.glb"),
+                // 나그네도 상인과 같은 모델(character-c)을 재사용 — 색조(v.Color)로만
+                // 구분한다. Kenney 킷을 4종만 받아 뒀고 넷째(d)는 산적 몫이라(50~52행).
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-c.glb"));
             builder.Build();
         }
 
@@ -141,6 +152,7 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("BanditEncounter");
             var encounter = go.AddComponent<BanditEncounter>();
+            encounter.Init(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-d.glb"));
             encounter.Build();
         }
 
@@ -375,13 +387,13 @@ namespace Saga.EditorTools
             controller.height = 3.4f;
             controller.center = new Vector3(0f, 1.7f, 0f);
 
-            // Visual — 아직 GLB가 없어 primitive Capsule(PLAN.md 8장).
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visual.name = "Visual";
-            Object.DestroyImmediate(visual.GetComponent<Collider>()); // CharacterController가 충돌을 대신한다
-            visual.transform.SetParent(playerGo.transform, false);
-            visual.transform.localScale = new Vector3(1.8f, 1.7f, 1.8f);
-            visual.transform.localPosition = new Vector3(0f, 1.7f, 0f);
+            // Visual — Kenney Blocky Characters character-a.glb(PLAN.md 8장,
+            // docs/ASSET_GUIDE.md 참고 — saga-godot 트랙과 같은 CC0 파일 재사용).
+            // GLB 피벗이 발밑이라 primitive capsule과 달리 y 오프셋이 필요 없다.
+            var playerModel = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerModelPath);
+            Transform visual = playerModel != null
+                ? CharacterVisual.Spawn(playerModel, playerGo.transform, CharacterVisual.HumanHeight, Color.white)
+                : CharacterVisual.SpawnFallbackCapsule(playerGo.transform, Color.white);
 
             // CameraRig — Player 자식, capsule 중심 높이(1.7)에서 시작.
             var rigGo = new GameObject("CameraRig");
@@ -404,7 +416,7 @@ namespace Saga.EditorTools
             }
 
             var pc = playerGo.AddComponent<PlayerController>();
-            SetPrivateField(pc, "visual", visual.transform);
+            SetPrivateField(pc, "visual", visual);
             SetPrivateField(pc, "cameraRig", cameraRig);
             SetPrivateField(pc, "inputActions", inputActions);
 

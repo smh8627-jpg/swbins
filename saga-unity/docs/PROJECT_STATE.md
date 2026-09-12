@@ -5,6 +5,55 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 8장 "실제 3D 에셋" 첫 조각 — 캐릭터 GLB 도입 (2026-09-12).**
+  소(cow) 다음으로 이어서(같은 세션, 사용자가 "캐릭터 디자인은 아직이지?"
+  로 확인 후 "플랜 순서대로 다 진행해"로 지시) — 지금까지 플레이어·NPC·
+  산적이 전부 primitive capsule이었던 걸 실제 3D 모델로 바꾼 첫 조각.
+  자세한 내용은 신규 `docs/ASSET_GUIDE.md` 참고, 여기는 요약만.
+  - Unity 6000.3.23f1엔 GLB 임포터가 기본으로 없다(PLAN.md 8장의 전제가
+    틀렸다 — URP Sky/Fog 오판과 같은 종류) — `com.unity.cloud.gltfast`
+    패키지를 `manifest.json`에 추가해 해결.
+  - saga-godot이 이미 받아 둔 Kenney "Blocky Characters"(CC0)
+    character-{a,b,c,d}.glb + 텍스처를 그대로 복사해
+    `Assets/Art/Characters/`에 도입(PLAN.md 8장·0장이 트랙 간 재사용을
+    이미 허용해 둠). 실측(1.6×2.7×0.8, 바닥 피벗) 후 삭제하는 일회성
+    도구 `MeasureCharacterGlb.cs`로 확인.
+  - `World/CharacterVisual.cs`(신규, 공용 로직) — 목표 높이에 맞춘 균일
+    스케일 + `MaterialPropertyBlock`으로 `_BaseColor` 색조 입히기(공유
+    머티리얼은 안 건드림) + GLB를 못 찾을 때의 primitive capsule 폴백.
+  - 플레이어=character-a(색조 없음), 촌장=character-b(파랑),
+    상인=character-c(갈색), 나그네=character-c 재사용(회색, 킷을 4종만
+    받아서 5번째 배역은 모델 재사용), 산적=character-d(어두운 빨강,
+    전투 텔레그래프 때 주황으로 덮어씀 — 기존 단일 머티리얼 방식을
+    `CharacterVisual.Tint()`로 다중 Renderer 대응으로 바꿈).
+  - **런타임 AssetDatabase 제약 발견** — `NpcBuilder.cs`·
+    `BanditEncounter.cs`의 `Awake()`는 실제 Play 때도 도는 진짜 런타임
+    코드라 `AssetDatabase.LoadAssetAtPath`를 못 쓴다(에디터 전용 API).
+    `Gatherable.cs`가 이미 쓰던 패턴대로 `[SerializeField] GameObject`
+    필드 + `Init()`을 추가해 편집기 빌드 스크립트가 값을 채워 씬에
+    직렬화해 두는 방식으로 풀었다.
+  - **덤으로 발견해 같이 고친 버그** — `NpcBuilder`·`BanditEncounter`
+    둘 다 `Awake()`가 조건 없이 `Build()`를 다시 불러서, 이미 저장된
+    씬을 실제 Play로 열면 시각·UI가 두 벌씩 겹쳐 생기는 잠재 버그였다.
+    `transform.Find("Visual") != null`이면 다시 안 짓게 방어 추가(단,
+    `BanditEncounter`는 `_visual`/`_visualBaseScale`을 그 경로에서도
+    다시 채워야 `PulseVisual()`이 안 깨진다 — 완전히 건너뛰지 않고
+    기존 자식을 찾아 필드만 복원). **같은 패턴(무조건 `Build()`)이
+    `AnimalBuilder.cs`·`RareWolfEncounter.cs`·`HiddenTreasure.cs`·
+    `MountainShrine.cs`·`EastGroveRelic.cs`·`LuckyCairn.cs`에도 있어
+    이론상 같은 버그가 있을 수 있다 — 이번엔 GLB 교체 범위 밖이라 손
+    안 댐, 아래 "다음 작업" 참고.**
+  - `BanditEncounter.PulseVisual()`의 강타 스케일 애니메이션이 예전
+    capsule 스케일(1.8,1.7,1.8)을 상수로 박아 뒀던 걸, 실제 스폰 시점의
+    스케일(`_visualBaseScale`, GLB 기준 ≈1.259 균일)을 쓰도록 고쳤다 —
+    안 고쳤으면 강타 연출 때 캐릭터가 잘못된 비율로 찌그러졌을 것.
+  - 컴파일·씬 재빌드(`groundVerts=6336` 그대로 — 땅은 안 바뀜)·
+    PlaytestHeadless(`OK - 10 frames, no errors`, Awake 중복 방지
+    분기도 이 경로로 실제로 한 번 지나갔다) 전부 통과. **실제로 캐릭터가
+    화면에 제대로 보이는지(텍스처·비율·정면 방향), 산적 텔레그래프
+    색조가 실제로 도는지는 사람이 직접 봐야 확인됨** — 특히 GLB
+    모델의 "정면"이 Unity +Z와 맞는지는 확신 없음(CameraRig 드래그
+    방향처럼 실측이 아니라 관례로 가정한 부분).
 - **PLAN.md 24~27장 "동물" 셋째 조각 — 첫 farmland 종, 소 (2026-09-12).**
   성황당 돌무더기 다음으로 이어서(같은 세션, 사용자 "응 계속 진행해") —
   지금까지 사슴 세 마리뿐이던 동물이 전부 숲/들판(forest/plains) 출신이고,
@@ -551,6 +600,29 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   ExponentialSquared 밀도 방식이라(아래 병합 정리 항목 참고) "거리"
   숫자가 아니라 밀도가 새 지도 크기에 맞는지를 사람이 GUI 확인할 때
   같이 볼 것.
+- **Awake() 중복 생성 의심 — 나머지 6곳.** 캐릭터 GLB 교체 때
+  `NpcBuilder.cs`·`BanditEncounter.cs`에서 고친 것과 같은 패턴(Awake가
+  조건 없이 Build()를 다시 불러 실제 Play 때 시각 오브젝트가 두 벌
+  겹칠 수 있는 문제)이 `AnimalBuilder.cs`·`RareWolfEncounter.cs`·
+  `HiddenTreasure.cs`·`MountainShrine.cs`·`EastGroveRelic.cs`·
+  `LuckyCairn.cs`에도 있어 보인다(전부 `transform.Find` 등으로 기존
+  자식 유무를 확인 안 하고 바로 Build() 호출). `Gatherable.cs`만
+  원래부터 방어가 있었다. 한 번에 다 훑어 같은 가드를 넣는 작은
+  정리 작업으로 다음에 처리할 것 — 사람이 GUI로 처음 플레이해서
+  동물·보물·산신당 등이 두 개씩 겹쳐 보이는지 먼저 확인해 보는 것도
+  방법(실제로 겹치는지 아직 실측 안 함, 코드 패턴만 보고 의심하는
+  단계).
+- **PLAN.md 8장 에셋 도입 다음 후보(우선순위 44~49장: Player→주요
+  Enemy→Boss→Environment→Building→Vegetation→Props→Animals→VFX).**
+  캐릭터(최우선) 다음은 흰 늑대(RareWolfEncounter, 지금은 primitive)—
+  다만 saga-godot도 어울리는 동물 GLB가 없어 동물류는 전부 primitive로
+  남겨 뒀다(`saga-godot/docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 참고,
+  CC0 동물 킷을 새로 받아야 함). 그다음은 Environment/Building —
+  saga-godot이 이미 받아 둔 Nature Kit(나무·바위)·Fantasy Town Kit
+  (마을집·폐허·다리)·Modular Cave Kit(굴 입구)·Graveyard Kit(사당
+  제단) GLB도 전부 같은 방식(복사+실측+`CharacterVisual.cs`와 비슷한
+  공용 스케일/배치 로직)으로 saga-unity에 옮길 수 있다 — 다음 세션이
+  이어갈 것.
 - **GO 콘텐츠 다양화 다음 후보.** PLAN.md 24~27장 이벤트 종류 중 "랜덤
   이벤트"는 성황당 돌무더기(LuckyCairn, 위 "완료 단계")로 채웠다 —
   **"시간" 이벤트(특정 시간대에만 나오는 것)는 아직 없다**(하루 일과·
@@ -660,6 +732,12 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **소(cow_1, 격자 (3,9) 논밭)가 실제로 보이고 자연스러운지**(사슴보다
     크고 옅은 색으로 구별되는지, 논밭 타일 위에서 배회하는지, 다가가면
     사슴과 똑같이 놀라 달아나는지)
+  - **캐릭터 GLB(플레이어·촌장·상인·나그네·산적)가 실제로 제대로
+    보이는지** — 텍스처가 깨지지 않았는지, 걸을 때 이동 방향으로 실제로
+    정면을 향하는지(글TF "정면"이 Unity +Z와 맞는지 확신 없음), 다섯
+    배역이 색조로 구별되는지(상인·나그네는 같은 모델이라 색만 다름),
+    산적 강타 텔레그래프 때 주황으로 물들었다 원래 색으로 돌아오는지,
+    강타 스케일 연출 때 비율이 안 찌그러지는지
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
@@ -830,3 +908,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   무변경) 추가 후 컴파일 통과, 씬에 GameObject가 늘어
   `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 — 땅은
   안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.
+- 캐릭터 GLB 도입(com.unity.cloud.gltfast 패키지 추가 + CharacterVisual.cs
+  신규 + Player/NpcBuilder/BanditEncounter를 capsule→GLB로 교체 + Awake
+  중복 생성 방어 추가) 후 컴파일 통과, 씬에 실제 3D 모델이 들어가
+  `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 — 땅은
+  안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과 — 이번엔
+  Awake 가드 분기(`transform.Find("Visual") != null`)가 실제 Play
+  진입으로 한 번 지나가는 것까지 확인됨.
