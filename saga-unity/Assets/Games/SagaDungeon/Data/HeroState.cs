@@ -1,4 +1,5 @@
 using System;
+using Saga.Dungeon.World;
 
 namespace Saga.Dungeon.Data
 {
@@ -36,8 +37,18 @@ namespace Saga.Dungeon.Data
         public static string SocketedGemId { get; private set; }
         public static GemData SocketedGem => GemData.Get(SocketedGemId);
 
+        // "DUNGEON 더 다듬기" 슬라이스(2026-09-12) — 절차적 층 진행이
+        // 100층까지 가능해졌지만 몬스터 hp는 지수적으로(1.26^floor) 크는
+        // 반면 이 보정은 선형이라 근본 해결이 아니다 — 사용자에게 그 수학
+        // 차이를 먼저 설명하고 "체감용으로만" 추가하기로 확인받았다.
+        // 층이 깊어질수록 장비가 조금씩 세진다는 감각만 준다.
+        private const float DepthAtkPerFloor = 2f;
+
+        public static float DepthAtkBonus =>
+            Math.Max(0f, ((DungeonFloorRunner.Instance?.CurrentFloor ?? 1) - 1) * DepthAtkPerFloor);
+
         public static float Atk => BaseAtk + (Level - 1) * AtkPerLevel
-            + (EquippedWeapon?.AtkBonus ?? 0f) + (SocketedGem?.AtkBonus ?? 0f);
+            + (EquippedWeapon?.AtkBonus ?? 0f) + (SocketedGem?.AtkBonus ?? 0f) + DepthAtkBonus;
 
         /// <summary>js/dungeon.js:140 — `Math.max(4, p.atk * ... / 6)` 한 타 피해.</summary>
         public static float HitDamage => Math.Max(4f, Atk / 6f);

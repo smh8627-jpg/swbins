@@ -5,6 +5,20 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON — 층 깊이 공격력 체감 보정 추가 (2026-09-12, 열 번째
+  세션 이어서).** "무기 진행도(atk)도 floor에 따라 오르게" 후보를
+  실제로 검토해 보니, 레벨(선형 성장)과 몬스터 hp(1.26^floor 지수
+  성장)의 성장 속도 차이가 근본이라 어떤 작은 보정을 얹어도 "100층이
+  실제로 클리어 가능해진다"는 뜻은 아니라는 걸 사용자에게 먼저
+  설명하고 확인받은 뒤(질문·답변: "그래도 작은 보정을 추가한다(체감용,
+  근본 해결 아님)") 진행. `HeroState.Atk`에 `DepthAtkBonus`(층당 +2,
+  `DungeonFloorRunner.Instance?.CurrentFloor ?? 1` 기준) 추가 — 새
+  세이브 필드 없이 이미 저장되는 층 값에서 매번 다시 계산(파생값).
+  `HeroState.cs`가 지금까지 UnityEngine을 안 끌어오는 순수 데이터
+  클래스였는데 `Saga.Dungeon.World`(MonoBehaviour가 있는 네임스페이스)
+  참조가 처음 생겼다 — `SaveState.cs`가 이미 같은 세션에서 만든
+  선례(Data→World 참조)를 그대로 따름. 컴파일·PlaytestDungeonHeadless
+  (`OK - 10 frames, no errors`) 통과.
 - **DUNGEON — HUD에 던전 층수 표시 추가 (2026-09-12, 열 번째 세션
   이어서, "DUNGEON 더 다듬기" 방향으로 계속).** `PlayerHud.cs`를 보니
   이번 세션에 층 개념(`DungeonFloorRunner`)을 처음 도입했는데 정작
