@@ -5,21 +5,23 @@ using Saga.Dungeon.UI;
 namespace Saga.Dungeon.World
 {
     /// <summary>
-    /// VERTICAL_SLICE_DUNGEON.md 다음 슬라이스 "방 종류 마지막" — saga-dungeon
-    /// 웹판 `room.vein`(채광방, js/dungeon.js:357, 2163-2172)을 옮겼다. 웹판은
-    /// 광맥을 캐면 세공 재료 둘이 확정으로 나오는데, 세공 시스템 자체가
-    /// 이번 슬라이스 범위 밖(VERTICAL_SLICE_DUNGEON.md "제외")이라
-    /// `DungeonShrine.cs`와 같은 단순화(재료 대신 경험치·돈 확정 지급)를
-    /// 썼다 — 웹판 주석 "우물의 회복량 40%만큼 후하게"를 그대로 따라
-    /// `DungeonTrove.cs`(24골드)보다 후하게 잡았다. `DungeonTrove.cs`와
-    /// 같은 이유로 `room.cleared` 대신 `DungeonEnemy.CountAliveInRoom
-    /// (roomId) == 0`을 씀.
+    /// VERTICAL_SLICE_DUNGEON.md 다음 슬라이스 "방 종류 마지막"(2026-09-12)
+    /// — saga-dungeon 웹판 `room.vein`(채광방, js/dungeon.js:357,
+    /// 2163-2172)을 옮겼다. 웹판은 광맥을 캐면 세공 재료 둘이 확정으로
+    /// 나오는데, 이때는 세공 시스템 자체가 없어 `DungeonShrine.cs`와
+    /// 같은 단순화(재료 대신 경험치·돈 확정 지급)로 대신했었다.
+    /// **"세공·행상 재고 굴리기·도감" 슬라이스에서 소켓 시스템이 생겨
+    /// 원래 의도대로 되돌렸다** — 돈 대신 보석 하나(`GemData.cs`,
+    /// `HeroState.SocketIfBetter()`)를 확정으로 준다(둘째 소켓이 없어
+    /// 웹판의 "재료 둘"은 하나로 줄었다), 경험치는 그대로. `DungeonTrove
+    /// .cs`와 같은 이유로 `room.cleared` 대신 `DungeonEnemy.
+    /// CountAliveInRoom(roomId) == 0`을 씀.
     /// </summary>
     public class DungeonVein : MonoBehaviour
     {
         private const float TriggerRadius = 2.0f;
         private const int RewardExp = 15;
-        private const int RewardGold = 36; // "우물의 회복량 40%만큼 후하게" — 트로브(24)보다 후하게
+        private const string RewardGemId = "gem_jade";
         private const float ToastSec = 4f;
 
         [SerializeField] private string roomId = "room1";
@@ -59,8 +61,11 @@ namespace Saga.Dungeon.World
 
             _used = true;
             HeroState.AddExp(RewardExp);
-            HeroState.AddGold(RewardGold);
-            DialogueLabel.Instance?.Show($"광맥 · 캐냈다 — 경험치 +{RewardExp} · 돈 +{RewardGold}냥", ToastSec);
+            bool socketed = HeroState.SocketIfBetter(RewardGemId);
+            var gem = GemData.Get(RewardGemId);
+            DialogueLabel.Instance?.Show(
+                $"광맥 · 캐냈다 — 경험치 +{RewardExp}, {gem.Name}을(를) 얻었다{(socketed ? " — 바로 세공했다." : ".")}",
+                ToastSec);
         }
     }
 }

@@ -5,6 +5,47 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON 다음 슬라이스 후보 — 세공·행상 재고 굴리기·도감 (2026-09-12,
+  네 번째 세션, 토큰 소진으로 중단됐다 이어서 마무리).** 방 종류 마지막
+  다음으로 이어서 — 남은 후보 중 이 한 묶음을 골라 세 조각을 함께
+  끝냈다.
+  - **세공**(신규 `Data/GemData.cs`) — `js/data-gem.js`의 절차적 세공
+    (구멍 수·등급별 옵션 룰렛)은 범위 밖이라 `ItemData.cs`와 같은 결로
+    고정 3종만: 벽옥(gem_jade, atk+4, 광맥 확정 드랍)·남주(gem_sapphire,
+    atk+8, 신규 Room3 행상 판매)·홍옥(gem_ruby, atk+14, 미니보스 확정
+    드랍). 무기 소켓 하나뿐(둘째 소켓·세트 효과 없음) —
+    `HeroState.SocketedGemId`+`SocketIfBetter()`(`EquipIfBetter()`와
+    같은 "더 센 것만" 규칙)로 `Atk` 계산에 더해진다. `DungeonVein.cs`가
+    원래 세공 시스템 부재로 돈 지급으로 단순화했던 걸 **원래 의도(보석
+    지급)로 되돌렸다**, `DungeonEnemy.Die()`도 `rewardGemId`가 채워진
+    적(미니보스)만 보석을 준다.
+  - **행상 재고 굴리기**(`World/DungeonMerchant.cs` 확장 + `Editor/
+    BuildTestDungeonScene.cs`의 `BuildGemMerchant()` 신규) —
+    `rollMerchantStock()`의 절차적 티어 룰렛은 여전히 범위 밖(이 프로젝트
+    "테스트 씬은 전부 고정 좌표" 결정성 원칙과 `Math.random()`이
+    상충한다)이라, **"행상마다 파는 게 다르다"는 핵심만** 인스턴스별
+    고정값으로 살렸다 — 기존 `SellItemId`/`Price` const를
+    `[SerializeField]` 필드(`sellItemId`/`price`/신규 `sellGemId`)로
+    바꿔 Room2 행상(무기, 기존 동작 그대로)과 새 Room3 행상(보석
+    남주, 50냥 — wp_saber(45)보다 비싸게, 무기를 대체 안 하고 위에
+    더해지는 값이라서)이 서로 다른 재고를 팔게 했다.
+  - **도감**(신규 `Data/BestiaryState.cs`) — 웹판 PLAN 34절의 완전한
+    포획·펫 장착 시스템(saga-go와 공유하는 PD 도감)은 범위 밖(DUNGEON엔
+    아직 펫 장착 자체가 없음)이라 "만난 몬스터 종류를 기록한다"는 핵심만
+    — `DungeonEnemy.Die()`가 처치마다 `displayName`을 기록하고, 처음
+    보는 이름이면 토스트에 "📖 도감에 처음 기록됨"을 덧붙인다(새 UI
+    화면 없음 — `DungeonTrove.cs`·`DungeonShrine.cs`가 이미 쓴 "화면
+    대신 토스트" 원칙과 같은 결).
+  - `SaveState.cs` v1→v2 — `gemId`·`discovered`(도감 스냅샷) 필드 추가,
+    구 v1 세이브는 JsonUtility가 그냥 기본값(null/빈 배열)으로 채워
+    그대로 로드된다(PLAN.md 75장 Data Versioning).
+  - 컴파일(`-batchmode -nographics -quit`, 오류 없음)·씬 재빌드
+    (`BuildTestDungeonScene.Build`, `room childCount=6` 그대로 — Room3에
+    GameObject가 늘었지만 그 카운트는 Room1 것이라 안 바뀜)·
+    PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부 통과 —
+    **Room3 신규 행상이 실제로 남주를 파는지, 미니보스가 홍옥을 떨구는지,
+    광맥이 벽옥을 주는지, 도감 토스트가 실제로 뜨는지는 사람이 직접
+    가 봐야 확인됨** — 아래 GUI 확인 목록에 추가.
 - **DUNGEON 다음 슬라이스 후보 — 방 종류 마지막 (2026-09-12, 세 번째
   세션 "1,2 순서대로" 중 첫 조각).** GLB 자산 도입 다음으로 이어서(새
   세션, "이어해") — saga-dungeon 웹판의 남은 room kind 여섯 종
@@ -1034,22 +1075,23 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 ## 다음 작업 (다음 세션이 이어갈 것)
 
 - **DUNGEON 다음 슬라이스 후보** (`docs/VERTICAL_SLICE_DUNGEON.md`
-  "다음 슬라이스 후보" 절 참고) — 2026-09-12 세 세션에 걸쳐 열 조각을
+  "다음 슬라이스 후보" 절 참고) — 2026-09-12 네 세션에 걸쳐 열한 조각을
   끝냈다: 몬스터 무리·엘리트/보스·방 종류 다양화(우물·상자·성소)·
   회피(구르기)·오픈월드/필드(방 두 개+복도) + 스킬 다양화(강공격)·방
   종류 나머지(행상)·부대(다중 영웅) 최소 단위(동행)·GLB 자산 도입
-  (캐릭터, Kenney Blocky Characters 재사용) + **방 종류 마지막(정예
-  소굴·미니보스·채광방·퍼즐방·구출·채집, 위 "완료 단계" 참고)**.
+  (캐릭터, Kenney Blocky Characters 재사용) + 방 종류 마지막(정예
+  소굴·미니보스·채광방·퍼즐방·구출·채집) + **세공·행상 재고 굴리기·도감
+  (위 "완료 단계" 참고)**.
   사용자가 "1,2,3,4 순서대로 다해"/"1,2 순서대로"로 그때그때 지시(위
   "완료 단계" 각 항목 참고). **아직 사람이 GUI로 하나도 확인 안 함** —
   매 조각마다 컴파일·씬 재빌드·PlaytestDungeonHeadless만 통과시키고
   바로 다음 조각으로 넘어갔다(아래 GUI 확인 목록에 계속 쌓인다). 남은
-  후보: 바이옴 5종, 세공·행상 재고 굴리기·도감, 환경/건물 GLB(방·복도
-  — saga-godot이 이미 받아 둔 `saga-godot/assets/dungeon/{room-small,
-  gate,corridor}.glb`, 12×12m 방 기준이라 Unity의 20×14m 방과 치수가
-  안 맞음, 방 치수를 GLB에 맞추거나 GLB를 새 치수로 다시 스케일해야
-  함 — 파급이 있어 이번엔 안 건드림), 회피 애니메이션·이펙트 —
-  saga-dungeon 웹판 PLAN.md 챕터 순서를 참고해 사용자가 고르는 대로.
+  후보: 바이옴 5종, 환경/건물 GLB(방·복도 — saga-godot이 이미 받아 둔
+  `saga-godot/assets/dungeon/{room-small, gate,corridor}.glb`, 12×12m
+  방 기준이라 Unity의 20×14m 방과 치수가 안 맞음, 방 치수를 GLB에
+  맞추거나 GLB를 새 치수로 다시 스케일해야 함 — 파급이 있어 이번엔 안
+  건드림), 회피 애니메이션·이펙트 — saga-dungeon 웹판 PLAN.md 챕터
+  순서를 참고해 사용자가 고르는 대로.
 - **지도 크기는 9×11에서 일단 멈췄다** — 남쪽 4줄+동쪽 2칸을 늘리고
   각 공터에 콘텐츠도 심은 뒤, 같은 확장 패턴이 세 번 반복되자 사용자가
   "GO 콘텐츠 다양화"로 방향을 정했다(위 "완료 단계" 참고 — 동물 Group
@@ -1290,6 +1332,13 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     반응하고 틀리면 처음부터 리셋되는지, 구출(지친 인영)이 지키는
     잡졸 둘을 잡아야만 풀려나는지, 채집(약초 셋+못)이 약초는 방 안
     치워도 캐지고 못은 방을 다 치운 뒤에만 반응하는지
+  - **세공·행상 재고 굴리기·도감(2026-09-12)이 실제로 도는지** — 채광방을
+    캐면 벽옥이 바로 세공되는지, 미니보스를 잡으면 홍옥이 벽옥보다
+    세서 자동 교체되는지(반대 순서로 얻으면 안 바뀌는 것도 정상), Room3
+    신규 행상(Room2 행상과 다른 자리)이 50냥에 남주를 파는지, 몬스터를
+    처음 잡을 때만 "📖 도감에 처음 기록됨" 토스트가 뜨고 같은 종류를 또
+    잡으면 안 뜨는지, 저장 후 다시 켰을 때 세공한 보석·도감 기록이
+    그대로 남아 있는지
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
