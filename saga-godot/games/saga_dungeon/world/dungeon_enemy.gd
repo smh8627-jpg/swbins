@@ -84,7 +84,7 @@ func _attack_player() -> void:
 
 
 func take_damage(amount: float) -> void:
-	if _dead:
+	if _dead or amount <= 0.0:
 		return
 	hp -= amount
 	if hp <= 0.0:

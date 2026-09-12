@@ -43,6 +43,8 @@ func try_load() -> bool:
 	if typeof(parsed) != TYPE_DICTIONARY or parsed.get("version") != SAVE_VERSION:
 		return false
 	room_cleared = parsed.get("room_cleared", false)
-	var p: Array = parsed.get("player_pos", [0.0, 0.0, 0.0])
+	var p: Variant = parsed.get("player_pos", [0.0, 0.0, 0.0])
+	if not (p is Array) or p.size() < 3:
+		return false # 손상된 저장 파일 — 인덱스 에러 대신 안전하게 포기
 	player_pos = Vector3(p[0], p[1], p[2])
 	return true
