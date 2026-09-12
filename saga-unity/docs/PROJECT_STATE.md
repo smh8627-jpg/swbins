@@ -5,6 +5,53 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 51~65장 "확장 순서" — DUNGEON 착수, 첫 버티컬 슬라이스
+  (2026-09-12).** Props 도입 다음으로 이어서(같은 세션, 사용자가 "남은
+  후보 진행해줘"에 "1,2번 진행해"로 답해 기획 문서부터 쓰고 곧바로
+  구현까지 진행) — GO 다음 게임(사가블로) 착수. saga-godot도 아직 손
+  안 댄 첫 시도라 `docs/VERTICAL_SLICE_DUNGEON.md`(신규)를 먼저 써서
+  범위를 정했다: **웹판 `saga-dungeon`(오픈월드·바이옴·엘리트/보스·
+  세공·행상까지 갖춘 이미 아주 깊은 게임)를 통째로 옮기지 않고, GO의
+  첫 슬라이스와 같은 크기로 "방 하나·몬스터 한 마리·실시간 전투·장비
+  보상 하나"만 재현했다.** 몬스터 체력·피해량은 웹판 `js/dungeon.js`의
+  실제 공식(`enemyHp`/`enemyDmg`, 1층·잡졸·평 난이도)에서 그대로 가져옴
+  — HP=24, 공격력=5. **GO의 턴제 선택지 화면과 다르게 실제 이동+거리
+  판정 실시간 전투로 짰다** — DUNGEON 정체성 자체가 실시간 액션이라
+  GO의 DuelRules.cs 방식을 안 베꼈다(문서의 "왜 GO와 다르게 설계하는가"
+  참고). 상세 범위·수치 근거·재사용 표는 그 문서 참고, 여기는 요약만.
+  - **새 폴더 `Assets/Games/SagaDungeon/`**(`SagaDungeon.asmdef`,
+    `Saga.Dungeon` 루트 네임스페이스) — **SagaGo 코드를 참조하지
+    않는다**(루트 CLAUDE.md "다섯 판은 다섯 벌 복사" 원칙을 이 Unity
+    트랙에도 적용, SagaCore가 아직 비어 있어 공유할 기반도 없다).
+    엔진 무관 로직(`PlayerController.cs`·`CameraRig.cs`·
+    `VirtualJoystick.cs`·`DialogueLabel.cs`)은 SagaGo에서 그대로
+    복사(네임스페이스만 변경) — `CameraRig`만 기본 피치·줌을 더
+    내려다보게 튜닝(GO 35°→DUNGEON 55°, "디아블로 감각").
+  - **새로 짠 것**: `Data/HeroState.cs`(단일 캐릭터 체력·레벨·경험치·
+    돈·장비 — GO처럼 PartyState/PlayerStats/Inventory로 안 쪼갬,
+    DUNGEON엔 부대가 없다) + `Data/ItemData.cs`(무기 2종) +
+    `Data/SaveState.cs`(별도 파일 `save_dungeon.json` — GO의
+    `save.json`과 안 겹침) + `World/DungeonRoomBuilder.cs`(20×14m
+    방 하나, primitive) + `World/DungeonEnemy.cs`(Idle→Chase→Attack
+    실시간 AI, 죽으면 경험치·돈·무기 확정 드랍) +
+    `Player/PlayerCombat.cs`(스페이스바 또는 화면 "공격" 버튼).
+  - **`PlayerCombat.cs`는 프로젝트 기본 InputActions의 "Attack"
+    액션을 일부러 안 썼다** — 그 액션이 마우스 왼쪽 버튼에도 물려
+    있어 `CameraRig.cs`의 드래그 판정(마우스 왼쪽 버튼을 직접 읽음)과
+    같은 프레임에 겹칠 수 있어서다. 대신 `Keyboard.current`로 스페이스
+    바를 직접 읽고, 모바일은 화면 버튼이 `TriggerAttack()`을 직접
+    부른다. **이 우회가 실제로 카메라 조작과 안 겹치는지는 사람이
+    확인 전이다**(아래 GUI 확인 목록 참고).
+  - `Editor/BuildTestDungeonScene.cs`(신규, `BuildTestVillageScene.cs`
+    와 같은 결이지만 훨씬 짧다) + `Editor/PlaytestDungeonHeadless.cs`
+    (신규, `PlaytestHeadless.cs`와 같은 결 — 씬 경로만 다름).
+  - 컴파일(`SagaDungeon.dll` 정상 생성)·씬 저장(`Assets/Scenes/
+    TestDungeon.unity`, room childCount=5 — 바닥+벽 4개와 정확히
+    일치)·PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부
+    통과. **플레이어가 안 움직이는 헤드리스라 몬스터의 Chase/Attack
+    상태(AggroRadius=8m, 스폰 거리 11m라 우연히 밖)는 이 검증으론 실제로
+    안 도는 걸 확인 못했다** — 사람이 직접 다가가 싸워 봐야
+    Idle→Chase→Attack 전이·플레이어 공격·보상까지 전부 확인된다.
 - **PLAN.md 8장 "실제 3D 에셋" — Props 도입 (2026-09-12).** 산신당
   재설계 다음으로 이어서(같은 세션, 사용자가 "남은 후보 진행해줘"에
   "2,3,1번 순으로"로 답해 동물 GLB 조사(2번)·Props 대상 정하기(3번)·
@@ -708,6 +755,13 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
+- **DUNGEON 첫 슬라이스 다음 후보** (`docs/VERTICAL_SLICE_DUNGEON.md`
+  "다음 슬라이스 후보" 절 참고) — 사람이 GUI로 먼저 확인하는 게 제일
+  먼저 할 만한 일(아래 체크리스트), 그다음은 saga-dungeon 웹판
+  PLAN.md 챕터 순서(14~34장)를 참고해: 오픈월드/필드, 바이옴 5종,
+  방 종류 다양화(보물·성소·정예방 등), 몬스터 무리(지금은 1마리뿐),
+  엘리트/보스, 부대(다중 영웅) 시스템, 세공·행상·도감, 회피(구르기),
+  GLB 자산(Modular Dungeon Kit 후보) 중 사용자가 고르는 대로.
 - **지도 크기는 9×11에서 일단 멈췄다** — 남쪽 4줄+동쪽 2칸을 늘리고
   각 공터에 콘텐츠도 심은 뒤, 같은 확장 패턴이 세 번 반복되자 사용자가
   "GO 콘텐츠 다양화"로 방향을 정했다(위 "완료 단계" 참고 — 동물 Group
@@ -873,6 +927,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     상인 옆 시장 좌판이 거래 자리처럼 보이는지, 논밭 소 옆 울타리 3칸+
     문 1칸이 "목장 한구석" 느낌을 주는지(소를 실제로 가두진 않아 소가
     울타리를 넘나들어도 정상 동작임)
+  - **DUNGEON 첫 슬라이스(`TestDungeon.unity`, 2026-09-12 신규)가 실제로
+    도는지** — `Saga/Build TestDungeon Scene` 메뉴로 씬을 열어 Play:
+    카메라가 GO보다 더 내려다보는 각도(디아블로 감각)로 시작하는지,
+    이동·오빗 카메라가 자연스러운지, 몬스터(황건적)에게 다가가면
+    Idle→Chase로 바뀌어 쫓아오는지, 사거리 안에서 스페이스바(또는 화면
+    오른쪽 아래 "공격" 버튼)로 때리면 몬스터 체력이 줄고 몬스터도
+    반격하는지, **화면 "공격" 버튼을 눌렀을 때 `CameraRig`의 마우스
+    왼쪽 버튼 드래그 판정과 안 겹치는지**(코드는 안 겹치게 짰지만
+    실제 클릭 동작으로 확인 안 됨), 몬스터를 처치하면 경험치·돈·
+    "쇠도끼"를 얻고 왼쪽 위 HUD의 공격력 숫자가 오르는지, 저장 버튼→
+    Play 재시작으로 위치·레벨·장비가 이어지는지, 체력이 0이 되면
+    바로 회복되고 토스트가 뜨는지(이번 슬라이스는 죽음 페널티 없음,
+    의도된 동작)
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
