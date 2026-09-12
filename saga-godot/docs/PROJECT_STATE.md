@@ -3424,3 +3424,54 @@ DUNGEON에 이어 FOREST도 같은 방식으로 **승인**됐다 — PLAN.md 39�
 
 둘 다 급하지 않다 — 사용자가 먼저 꺼낼 때까지 재촉하지 않는다(root
 CLAUDE.md "실기 확인은 몰아서" 방침).
+
+## FOREST 콘텐츠 확장 2호 — 몬스터·퓨전 콘텐츠 1호(숲도깨비) (2026-09-12)
+
+- **"이 세션 마무리" 항목이 남긴 두 선택지(STORY GUI 실기 확인 / FOREST 몬스터·
+  퓨전 콘텐츠) 중 사용자가 "실기는 마지막에, 다른 작업이 우선"으로 답해
+  2번(몬스터·퓨전)부터 이어간다.** VERTICAL_SLICE_FOREST.md 5절 "몬스터·퓨전
+  자유" 결정을 실제 콘텐츠로 처음 쓴 자리 — 4절 "제외" 목록 마지막 항목
+  ("몬스터·퓨전 콘텐츠")을 이걸로 착수한다.
+  - `games/saga_forest/world/forest_creature.gd`(신규, CharacterBody3D) —
+    웹판 `data-village.js` ANIMALS 상태기계(idle→wander→flee, "새 상태·전투는
+    안 만들었다" 원문)를 3D로 옮겼다. **재해석** — 원작 mushnub(포자괴물,
+    버섯숲 한정)를 그대로 안 옮기고, 5절 결정 자체가 준 자유를 실제로 써서
+    새 창작 몬스터("숲도깨비" — 실존 인물·원작사 캐릭터가 아닌 한국 설화의
+    일반명사, `dungeon_enemy.gd`의 "황건적"과 같은 "부류를 가리키는 이름"
+    경계)로 짓고 서식 바이옴도 어둑숲(dark, forest_biome.gd)으로 새로
+    골랐다. 시각은 primitive 둘(구 몸통+원뿔 뿔, GLB 없음 — 버섯·가구가 이미
+    쓴 예외와 같은 이유), `WorldCurveMaterial.vertex_color_material()`을 써서
+    이동 중에도 구면 투영을 받는다(villager_builder.gd와 같은 결).
+    **전투·포획·HP는 이번에도 안 만들었다** — 몬스터라도 이 판의 핵심 루프는
+    "돌아다니면 재미있다"이지 전투가 아니다(LEGACY_FEATURE_AUDIT.md 문장
+    그대로).
+  - `games/saga_forest/world/forest_creature_builder.gd`(신규) —
+    villager_builder.gd·gatherable_builder.gd와 같은 "정의 배열 + `_ready()`
+    스폰" 패턴. 지금은 1종(`creature_dokkaebi`, den=격자(19,3), 어둑숲 내
+    기존 고정 자리(forest_biome_scatter.gd CLEAR_SPOTS)에서 전부 격자거리
+    3 이상 떨어진 빈 풀밭)뿐 — 종을 늘릴 땐 이 배열에 한 줄만 보태면 된다.
+    씨앗은 den 격자 좌표 해시(forest_biome_scatter.gd `_hash()`와 같은
+    원칙 — Math.random 안 씀, 세 번 돌려도 같은 결과).
+  - `TestVillageForest.tscn` — `Creatures` 노드 신규 추가(다른 빌더들과
+    같은 형제 노드).
+  - **검증(헤드리스, 값 자체까지)** — `--headless --editor --quit` 임포트
+    확인(project.godot 의도치 않은 변경 없음 확인, 이 세션 시작 시점부터
+    있던 `texture-a.png.import` diff는 그대로 안 건드림) →
+    `TestVillageForest.tscn` `--quit-after 5 --verbose` 세 번 연속 exit
+    0·오류 0건·로그 세 개가 바이트까지 완전히 동일. **임시 디버그로 실제
+    상태 전이 확인**: (1) 기본 스폰 위치에서 den 월드좌표(격자(19,3)→
+    (12,0,-21), 손 계산과 정확히 일치)에서 IDLE로 시작해 약 2.8초 뒤(범위
+    1.5~3.5초 안) WANDER로 전이·이동 확인. (2) 플레이어를 den 2m 앞으로
+    임시로 옮겨 재실행 — 첫 물리 프레임부터 FLEE로 즉시 전이, 플레이어
+    반대 방향(−Z)으로 약 3.5m/s로 이동(≈1.3초에 5m, 손 계산과 일치) 확인.
+    두 디버그 모두 확인 뒤 원상복구(diff 0, 플레이어 스폰 좌표도 원래
+    값(-15,0.1,-3)으로 복귀). GO·DUNGEON·STORY 헤드리스 회귀 없음 재확인
+    (TestRoom.tscn 포함 넷 전부 exit 0·오류 0).
+  - **GUI 실기 확인은 아직 안 함**(숲도깨비가 실제로 화면에서 잘 보이는지,
+    구면 투영 속에서 이동이 자연스러운지, 도망 타이밍이 눈에 거슬리지
+    않는지) — 사용자가 "실기는 마지막"이라고 정했으니 이번에도 재촉하지
+    않고 몰아서 받을 것(root CLAUDE.md 방침).
+  - **다음 이어질 것** — 사용자가 먼저 꺼낼 때까지 급하지 않다. 후보:
+    (a) 숲도깨비 종을 더 늘리기(CREATURES 배열에 한 줄), (b) STORY 첫
+    슬라이스 GUI 실기 확인(여전히 대기 중), (c) FOREST 다른 콘텐츠 확장
+    (지도 확장 등, 4절 "제외" 목록의 나머지 항목들).
