@@ -41,11 +41,7 @@ namespace Saga.Forest.World
 
         private void Awake()
         {
-            if (transform.childCount == 0)
-            {
-                BuildExterior();
-                BuildIndoorRoom();
-            }
+            if (transform.childCount == 0) Build();
 
             _entryTriggerPos = transform.position + new Vector3(0f, 0f, -2.5f);
             _exitLandingPos = transform.position + new Vector3(0f, 0.1f, -5f);
@@ -70,6 +66,17 @@ namespace Saga.Forest.World
             if (_playerController != null) _playerController.enabled = false;
             _player.position = position;
             if (_playerController != null) _playerController.enabled = true;
+        }
+
+        /// <summary>`ForestGroundBuilder.Build()`/`DungeonRoomBuilder.Build()`와
+        /// 같은 결로 공개 메서드로 뺐다 — Awake()는 Play 모드에서만 저절로 불리고
+        /// 에디터 스크립트가 씬을 조립하는 시점(edit-time)에는 안 불린다("집 꾸미기
+        /// (가구)" 슬라이스에서 `BuildTestVillageForestScene.cs`가 IndoorRoom을
+        /// 바로 찾으려다 실제로 겪은 문제 — 이 메서드를 명시로 부르면 해결된다).</summary>
+        public void Build()
+        {
+            BuildExterior();
+            BuildIndoorRoom();
         }
 
         /// <summary>4m×2.5m 벽 셋(남쪽만 비워 문으로 삼는다) + 지붕. 실제

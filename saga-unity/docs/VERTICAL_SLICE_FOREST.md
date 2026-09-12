@@ -98,3 +98,111 @@ CLAUDE.md "다섯 판은 다섯 벌 복사" 원칙).
   `curve_amount=0.004`가 90×60m 규모에 적당한지. 집 안 들어가기(곡률
   꺼짐)·나오기(켜짐)·나무 채집·주민 대화·저장/재시작도 전부 사람이
   직접 봐야 확인됨.
+
+## 집 꾸미기(가구) 슬라이스 (2026-09-12, 열한 번째 세션)
+
+`docs/PROJECT_STATE.md` "완료 단계"에 자세한 내용 — 요약만.
+
+- 웹판 `js/data-village.js`(FURNITURE 14종·4계열)·`js/home.js`(score
+  공식)를 그대로 옮기되, **금 경제 없음 → 과일(`ForestState.FruitCount`)을
+  구매 통화로 재해석**, **자유 배치 없음 → 고정 자리 여섯**(이 트랙에
+  "놓기" 입력 자체가 없어서), **날짜별 진열 없음 → 상시 룰렛**(day 시스템이
+  없어서)으로 세 군데 단순화했다 — 벽지/장판·집 증축(HOME_TIERS)은 이번에도
+  범위 밖(godot도 같은 결정).
+- `Data/ForestHomeData.cs`(카탈로그·등급표)·`Data/ForestHomeState.cs`
+  (창고·자리·점수)·`World/ForestFurnitureStall.cs`(구매)·`World/
+  ForestFurnitureAnchor.cs`(놓기/거두기). `ForestSaveState` v1→v2.
+- `ForestHouse.Build()`를 공개 메서드로 뺐다 — Awake()는 edit-time
+  씬 조립에서 안 불린다는 걸 이번에 처음 발견(DUNGEON류는 처음부터
+  공개 Build()를 쓰는 관례였다).
+- 검증: 컴파일·씬 재빌드·`PlaytestForestFurniture.cs`(신규, 구매→배치→
+  점수→쿨다운 후 거두기까지 실제 Play로 확인) + 회귀
+  `PlaytestForestHeadless`·`PlaytestForestHouseTransition` 전부 `OK`.
+- **GUI 실기 확인 아직 안 함** — 고정 자리 여섯이 방 안에서 안 겹쳐
+  보이는지, 가구 primitive가 놓였을 때 그럴듯한지.
+
+## 몬스터·퓨전 콘텐츠 슬라이스 (2026-09-12, 열한 번째 세션)
+
+`docs/PROJECT_STATE.md` "완료 단계"에 자세한 내용 — 요약만.
+
+- saga-godot FOREST 5절 "몬스터·퓨전 자유" 결정을 그대로 적용 — 코드는
+  안 베끼고 개념만(숲도깨비·바위도깨비·버섯정령·꽃정령 네 종, 각기 다른
+  primitive 조합·속도·경계심) 참고해 `World/ForestCreature.cs`(Idle→
+  Wander→Flee, Group 없음)·`World/ForestCreatureBuilder.cs`로 새로 짰다.
+  전투·포획·HP 없음(이 판의 핵심은 "돌아다니면 재미있다").
+  바이옴이 없어 마을 네 귀퉁이에 하나씩 흩어 뒀다.
+- 검증: 컴파일·씬 재빌드·`PlaytestForestCreatures.cs`(신규, 배회·도주를
+  실제 Play로 확인) + 회귀 전부 `OK`.
+- **GUI 실기 확인 — 2026-09-12(열두 번째 세션) "문제 없어 보여"로 완료.**
+
+## 바이옴 지형 다양성 슬라이스 (2026-09-12, 열두 번째 세션)
+
+`docs/PROJECT_STATE.md` "완료 단계"에 자세한 내용 — 요약만.
+
+- godot 문서 4절 "결정 — 제외"의 "바이옴 지형 다양성(꽃밭·어둑숲·버섯숲·
+  바위 지대)"을 채웠다. 위 몬스터·퓨전 슬라이스가 이미 창조물 넷을
+  "바이옴을 흉내낸 마을 네 귀퉁이"에 심어 뒀던 걸 그대로 실제 바이옴
+  존으로 승격 — den 좌표는 안 옮기고 그 자리를 존 중심으로 재사용했다.
+- 신규 `Data/ForestBiomeData.cs`(존 4개: 중심·반경·안쪽 반경·정점색
+  틴트, `SampleTint(wx,wz)`로 임의 좌표 배율 반환). `Shaders/
+  ForestWorldCurve.shader`에 `COLOR` 정점 입력 추가(`_BaseColor`에 곱함,
+  정점색 없는 메시는 Unity가 흰색 기본값을 채워 기존 결과와 동일).
+  `World/ForestGroundBuilder.cs`가 땅 메시를 구울 때 정점마다
+  `SampleTint()`를 평가.
+- **타일 격자가 없는 연속 메시라 GO `TerrainBuilder.cs`가 겪은 "칸 경계가
+  바둑판처럼 갈라져 보이는" 문제 자체가 원천적으로 없다** — 정점마다
+  세계 좌표 연속 함수를 그대로 평가하면 경계가 저절로 매끈하다.
+- 순수 시각 다양성 — 걷기 판정·콜라이더는 여전히 단일 평면, 바이옴이
+  이동 속도·채집 가능 여부 등 게임플레이 규칙을 바꾸지 않는다(godot
+  문서도 이 항목을 "지형 다양성"으로만 분류했지 규칙으로 분류하지 않음).
+- 검증: 컴파일(신규 COLOR 시맨틱 포함 오류 없음)·회귀
+  `PlaytestForestHeadless`·`PlaytestForestCreatures`(den 좌표 무변경이라
+  배회/도주 수치 그대로)·`PlaytestForestHouseTransition`·
+  `PlaytestForestFurniture`·`PlaytestDungeonHeadless`(다른 트랙 무관
+  확인) 전부 `OK`.
+- **GUI 실기 확인 아직 안 함** — 네 바이옴 색이 실제로 구별되어 보이는지,
+  존 경계가 매끈한지, 창조물 넷이 각자 바이옴 안에서 자연스러운지,
+  기존 콘텐츠(나무·주민·집·가구 좌판)가 바이옴 색과 안 부딪히는지.
+
+## 창조물 종 늘리기 — 포자괴물·안개유령 (2026-09-12, 열두 번째 세션)
+
+`docs/PROJECT_STATE.md` "완료 단계"에 자세한 내용 — 요약만.
+
+- saga-godot에 대응하는 원본이 없다(그쪽은 네 바이옴을 넷으로 딱 채우고
+  끝났다) — saga-forest 웹판 `ANIMALS.mushnub`("포자괴물")와 한국 설화
+  모티프(도깨비불)만 참고해 saga-unity가 처음 설계했다.
+- **포자괴물** — 버섯숲(beoseot과 공유, den만 비껴 둠), 넷 중 가장 좁게
+  돈다(wanderRadius 1.8, 새 최솟값). **안개유령** — 어둑숲(dokkaebi와
+  공유), 도깨비불 모티프, 땅 위 1m에 떠서 산다(Den y=1.0, 기존
+  `MoveToward`가 XZ만 바꾸는 걸 그대로 이용 — 새 이동 로직 불필요),
+  넷 중 가장 쉽게 놀란다(fleeRadius 7.5, 새 최댓값).
+- 기존 네 종의 "가장 ~함" 주장(bawi 최저 속도, beoseot 최저 fleeRadius,
+  kkot 최대 wander)과 겹치지 않는 새 축으로만 초과값을 잡아 문서상
+  모순이 안 생기게 했다.
+- 검증: 컴파일·`PlaytestForestCreatures.cs`(`Kinds` 배열에 두 종 추가,
+  여섯 종 전부 배회 확인 — `OK - all six creatures wandered and fled
+  correctly, no errors`) + 회귀 전부 `OK`.
+- **GUI 실기 확인 아직 안 함** — 두 종이 화면에서 잘 보이는지, 안개유령의
+  뜬 높이가 부자연스럽지 않은지, 같은 바이옴 안에서 두 종이 겹쳐 보이지
+  않는지.
+
+## 창조물 종 늘리기 둘째 — 무쇠도깨비·나비정령 (2026-09-12, 열두 번째 세션)
+
+`docs/PROJECT_STATE.md` "완료 단계"에 자세한 내용 — 요약만.
+
+- "바위 지대·꽃밭도 두 종씩 채워줘" — 앞 슬라이스와 같은 패턴(den을
+  zone 중심에서 약 7.2m 비껴 둠)으로 나머지 두 바이옴을 채웠다. 이제
+  `ForestBiomeData.Zones` 넷 전부 종 둘씩, 총 여덟 종.
+- **무쇠도깨비**(바위 지대, bawi와 공유) — 웅크린 무쇠빛 몸통+눈 혹 둘.
+  **나비정령**(꽃밭, kkot와 공유) — 구 몸통+납작구 날개 둘(파스텔).
+- **fleeSpeed가 처음으로 초과값을 갖는 축이 됐다** — moveSpeed·
+  fleeRadius·wanderRadius 세 축은 이미 앞선 종들이 최댓값/최솟값을
+  가져가 있어, 이번 둘은 그때까지 비어 있던 fleeSpeed 축에서 새
+  최솟값(무쇠도깨비 1.8)·최댓값(나비정령 4.8)을 잡아 기존 여섯 종의
+  "가장 ~함" 주장과 안 겹쳤다.
+- 검증: 컴파일·`PlaytestForestCreatures.cs`(`Kinds` 배열에 두 종 추가,
+  여덟 종 전부 배회 확인 — `OK - all eight creatures wandered and fled
+  correctly, no errors`, musoetokkebi 0.33m로 가장 낮았지만 기준(0.2m)
+  통과) + 회귀 전부 `OK`.
+- **GUI 실기 확인 아직 안 함** — 두 종이 화면에서 잘 보이는지, 네
+  바이옴 전부 종 둘씩이 됐을 때 마을이 붐벼 보이지는 않는지.

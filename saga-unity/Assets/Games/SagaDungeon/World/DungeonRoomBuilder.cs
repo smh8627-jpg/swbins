@@ -43,6 +43,11 @@ namespace Saga.Dungeon.World
     /// 실제로 이 폭인지는 사람이 직접 봐야 확인됨**(saga-godot
     /// `test_room.gd`의 `GATE_HALF_WIDTH`가 room-small.glb의 실제 문
     /// 구멍 폭과 같다고 가정한 추론, 메시를 직접 열어 본 게 아니다).
+    ///
+    /// "마을 여러 개 — 셋째·넷째" 슬라이스 — `OpenEastDoor()`/`OpenWestDoor()`
+    /// 추가(모루골=Room1이 중심, 위성 마을이 사방으로 뻗는 별형 구조를
+    /// 이으려면 X축 벽에도 문이 필요했다). 아치도 그 방향엔 Y축 90도
+    /// 회전이 필요해 `BuildGateArch()`에 `rotate90` 매개변수를 더했다.
     /// </summary>
     public class DungeonRoomBuilder : MonoBehaviour
     {
@@ -271,48 +276,66 @@ namespace Saga.Dungeon.World
             light.intensity = 1.5f;
         }
 
-        /// <summary>북쪽 벽을 문 폭만큼 갈라 둘로 나눈다 — 편집기 빌드
-        /// 스크립트가 `Build()` 직후에 부른다(런타임 X, `Object.
-        /// DestroyImmediate` 사용).</summary>
-        public void OpenNorthDoor(float doorWidth) => OpenDoorOnWall("Wall_North", doorWidth);
+        /// <summary>벽을 문 폭만큼 갈라 둘로 나눈다 — 편집기 빌드 스크립트가
+        /// `Build()` 직후에 부른다(런타임 X, `Object.DestroyImmediate` 사용).
+        /// "마을 여러 개 — 셋째·넷째" 슬라이스 — 북/남(장축 X)뿐이던 문을
+        /// 동/서(장축 Z)로도 열 수 있게 `OpenDoorOnWall()`을 축 매개변수로
+        /// 일반화했다(기존 두 메서드의 동작·시그니처는 안 바뀜).</summary>
+        public void OpenNorthDoor(float doorWidth) => OpenDoorOnWall("Wall_North", doorWidth, splitAlongX: true);
 
-        public void OpenSouthDoor(float doorWidth) => OpenDoorOnWall("Wall_South", doorWidth);
+        public void OpenSouthDoor(float doorWidth) => OpenDoorOnWall("Wall_South", doorWidth, splitAlongX: true);
 
-        private void OpenDoorOnWall(string wallName, float doorWidth)
+        public void OpenEastDoor(float doorWidth) => OpenDoorOnWall("Wall_East", doorWidth, splitAlongX: false);
+
+        public void OpenWestDoor(float doorWidth) => OpenDoorOnWall("Wall_West", doorWidth, splitAlongX: false);
+
+        private void OpenDoorOnWall(string wallName, float doorWidth, bool splitAlongX)
         {
             var wall = transform.Find(wallName);
             if (wall == null) return;
 
             Vector3 pos = wall.localPosition;
             Vector3 size = wall.localScale;
-            float segWidth = (size.x - doorWidth) * 0.5f;
-            if (segWidth <= 0f)
+            float wallLength = splitAlongX ? size.x : size.z;
+            float segLength = (wallLength - doorWidth) * 0.5f;
+            if (segLength <= 0f)
             {
-                Debug.LogWarning($"[DungeonRoomBuilder] {wallName} — 문 폭({doorWidth})이 벽 길이({size.x})보다 넓다.");
+                Debug.LogWarning($"[DungeonRoomBuilder] {wallName} — 문 폭({doorWidth})이 벽 길이({wallLength})보다 넓다.");
                 return;
             }
 
             Object.DestroyImmediate(wall.gameObject);
 
-            float offset = doorWidth * 0.5f + segWidth * 0.5f;
+            float offset = doorWidth * 0.5f + segLength * 0.5f;
             var wallColor = Colors().wall;
-            SpawnWall(wallName + "_W", new Vector3(pos.x - offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z), wallColor);
-            SpawnWall(wallName + "_E", new Vector3(pos.x + offset, pos.y, pos.z), new Vector3(segWidth, size.y, size.z), wallColor);
+            if (splitAlongX)
+            {
+                SpawnWall(wallName + "_W", new Vector3(pos.x - offset, pos.y, pos.z), new Vector3(segLength, size.y, size.z), wallColor);
+                SpawnWall(wallName + "_E", new Vector3(pos.x + offset, pos.y, pos.z), new Vector3(segLength, size.y, size.z), wallColor);
+            }
+            else
+            {
+                SpawnWall(wallName + "_S", new Vector3(pos.x, pos.y, pos.z - offset), new Vector3(size.x, size.y, segLength), wallColor);
+                SpawnWall(wallName + "_N", new Vector3(pos.x, pos.y, pos.z + offset), new Vector3(size.x, size.y, segLength), wallColor);
+            }
 
-            BuildGateArch(wallName, new Vector3(pos.x, 0f, pos.z), doorWidth);
+            BuildGateArch(wallName, new Vector3(pos.x, 0f, pos.z), doorWidth, rotate90: !splitAlongX);
 
             MarkStatic();
         }
 
         /// <summary>"환경/건물 GLB" — 문 자리에 gate.glb 아치를 세운다(위
-        /// 클래스 주석 참고). 콜라이더 없음 — 실제로 지나다니는 자리.</summary>
-        private void BuildGateArch(string wallName, Vector3 doorFloorPos, float doorWidth)
+        /// 클래스 주석 참고). 콜라이더 없음 — 실제로 지나다니는 자리.
+        /// "마을 여러 개 — 셋째·넷째" — 동/서 문은 아치를 Y축으로 90도
+        /// 돌려 문 폭 축(원래 로컬 X)이 벽의 장축(Z)에 맞게 한다.</summary>
+        private void BuildGateArch(string wallName, Vector3 doorFloorPos, float doorWidth, bool rotate90)
         {
             if (gateModel == null) return;
 
             var gate = Object.Instantiate(gateModel, transform, false);
             gate.name = wallName + "_Gate";
             gate.transform.localPosition = doorFloorPos;
+            if (rotate90) gate.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
             // 문 폭이 곧 RoomScale×GateModelWidth로 설계돼(BuildTestDungeonScene.cs
             // RoomDoorWidth) 이 나눗셈이 자동으로 RoomScale과 같아진다 — 균일
             // 스케일, 왜곡 없음(방 셸 GLB 슬라이스 전엔 X만 줄이는 비균등이었음).

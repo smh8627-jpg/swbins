@@ -5,6 +5,449 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON — 위성↔위성 지름길: Town3↔Town2 (2026-09-12, 열다섯 번째
+  세션 이어서, "1,2 다해줘"의 (2)).** saga-dungeon 웹판 PLAN.md §28-3
+  "위성↔위성 통로"를 개념만 참고했다(코드 없음 — 웹판은 화면이 서로
+  분리된 2D 포털이라 "출구 방향"이 실제 기하학적 방향과 안 맞아도
+  됐지만, saga-unity DUNGEON은 처음부터 하나의 연속 좌표계라 그 트릭
+  자체가 필요 없다). §28-3이 "인접 사분면끼리만 잇는다, 정반대(N-S)는
+  뺀다"고 정한 논리를 그대로 따라 — Town3(서)·Town4(동)는 정반대라
+  빼고, **인접한 Town2(남)↔Town3(서)** 하나만 첫 지름길로 잇는다
+  (Town2↔Town4는 후속 후보, §28-3도 두 번째 쌍을 후속으로 미뤄 뒀던
+  것과 같은 절제).
+  - Town3 남쪽 문(신규)→복도(회전 없음, N-S)→**Crossroads**(신규,
+  (-30,0,-30), 문 둘만 — 새 콘텐츠 없는 순수 경유지)→복도(Y축 90도
+  회전, E-W)→Town2 서쪽 문(신규)으로 이었다. 기존 인프라(OpenNorthDoor/
+  OpenSouthDoor/OpenEastDoor/OpenWestDoor, 회전으로 축 바꾸는 복도
+  트릭)를 그대로 재사용 — 새 제네릭화 없음.
+  - **정직하게 기록 — 거리 자체는 안 줄어든다.** Town3→Crossroads(30)+
+  Crossroads→Town2(30)=60, Room1을 거치는 것(Town3→Room1 30+Room1→
+  Town2 30=60)과 정확히 같다 — 이 던전이 사방 30 단위 격자라 축 정렬
+  통로로는 원래 어느 경로를 골라도 모루골이 이미 기하학적 최단
+  경유지다(대각선 직선이 아니면 더 짧게 만들 방법이 없다). 그래도
+  §28-3 원문 취지("모루골을 안 거치고 옆 사분면으로 바로 질러간다")
+  그대로 **Room1 내부(적·POI)를 다시 안 지나도 되는 우회로**로서
+  가치가 있다고 보고 넣었다 — "지름길"이라기보다 "우회로"에 가깝다는
+  걸 다음 세션이 헷갈리지 않게 여기 명시해 둔다.
+  - Crossroads에 등불 하나만(BuildTownLantern 재사용) — 마을 황금빛도
+  야생 바이옴색도 아닌 회색 미니맵 점으로 "그냥 갈림길"임을 표시.
+  - 신규 `Editor/PlaytestDungeonShortcut.cs` — Crossroads·Town2(지름길
+  경유)에 실제로 서도 예외 없는지 확인. 컴파일(오류 없음)·씬 재빌드
+  (`room childCount=20` 그대로, 문 폭·GLB 경고 없음)·`PlaytestDungeonShortcut`
+  (`OK`, 신규)·회귀 `PlaytestDungeonHeadless`·`PlaytestDungeonTown2`·
+  `PlaytestDungeonTowns34`·`PlaytestDungeonFieldAmbush`·
+  `PlaytestOverworldMap`·`PlaytestDungeonFloorProgression`(`OK - 12
+  room advances, floor reached 4` — Town2·Town3에 문이 하나씩 더
+  늘어도 기존 층 진행에 영향 없음 재확인)·`PlaytestForestHeadless`
+  (다른 트랙 무관 확인) 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — Crossroads를 실제로 걸어서
+  지나 봤을 때 "그냥 갈림길"로 자연스럽게 읽히는지(방이 통째로 텅
+  비어 보일 수 있음 — 등불 하나로 충분한지), 두 복도의 방향 전환(N-S→
+  E-W)이 시각적으로 어색하지 않은지.
+- **STORY 착수 — 버티컬 슬라이스 첫 구현 (2026-09-12, 열다섯 번째 세션,
+  "다음은 어느 쪽으로 갈까요?" 질문에 사용자가 "1,2 다해줘"로 (1) STORY
+  착수를 확정해 착수).** DUNGEON이 마을 넷(모루골+위성3)으로 원작 규모를
+  채운 뒤 PLAN.md 51~65장 확장 순서(GO→DUNGEON→FOREST→STORY→REALM)의
+  다음 칸. **레거시 설계를 새로 하지 않았다** — `saga-godot/docs/
+  VERTICAL_SLICE_STORY.md`가 이미 설계·구현·헤드리스 검증까지 끝내
+  둔 걸 개념만 참고해(코드 기계적 번역 금지, 루트 CLAUDE.md 2장) Unity
+  관용구로 새로 지었다.
+  - **범위** — 허창 들판 하나, 2.5D 플랫포머(가로 X·높이 Y만 움직임,
+    깊이 Z는 이번 슬라이스에서 고정), 달리기+점프+로프 오르내리기 하나,
+    무명(초기 직업) 연참(기본 평타) 하나, **급소(crit 15%)+경직(히트스톱
+    0.055초)** — 다섯 판 중 이 판만의 손맛이라 **`Time.timeScale`을
+    프로젝트 최초로 씀**. 잡졸(황건적) 고정 셋, "첫 사냥"(kill 10) 사명
+    (3마리뿐이라 3/10에서 멈춤 — 다음 확장 몫), 저장/불러오기.
+  - 신규 — `Data/{StoryCombat,FieldMapData,StoryQuestState,
+    StorySaveState}.cs`·`World/{CharacterVisual,StoryRope,StoryEnemy,
+    StoryTerrainBuilder,StoryEnemySpawner,StoryCameraFollow,
+    GameBootstrap}.cs`·`Player/StoryPlayerController.cs`·
+    `UI/{HoldButton,StoryHud}.cs`·`Editor/BuildTestStoryScene.cs`·
+    `Editor/PlaytestStorySlice.cs`. 웹판 `data-side.js` 필드 좌표(플랫폼·
+    로프·잡졸 자리)는 saga-godot `field_map.gd`가 이미 옮겨 둔 미터값을
+    그대로 재사용(다시 역산 안 함).
+  - **재해석** — 이 판은 가로 1축 플랫포머라 다른 네 판의 2축
+    `VirtualJoystick.cs`를 안 베끼고 좌/우·오르내리기 hold 버튼 넷(신규
+    `HoldButton.cs`) + 점프/공격 버튼 둘로 새로 짰다. `DialogueLabel.cs`도
+    이 슬라이스엔 상점·대화가 없어 안 만들었다(안 쓸 파일을 다섯 벌째
+    복사하지 않음).
+  - **자동 검증 중 실제 결함 둘을 잡았다**(사람이 밟기 전에):
+    (1) `StoryPlayerController`의 Z고정 로직이 `p.z != 0f`(부동소수점
+    정확 비교)였는데, `Move()`의 충돌 슬라이딩이 남기는 1e-6 수준 잔차도
+    항상 걸려 **매 프레임 CharacterController를 껐다 켰다** 했다 — 그
+    부작용으로 로프 트리거가 Enter 직후 바로 Exit해 버려(로프 위에
+    서 있어도 오르기가 아예 안 켜짐) 실기에서도 실제로 겪었을 결함.
+    문턱값(0.01) 비교로 고침. (2) 로프(X=6.8m)가 하필 Platform[0]
+    (X 3.8~9.0, Y 2.2~2.6) 바로 아래를 지난다 — 로프 위쪽 절반(Y 2.2
+    이상)을 오르면 머리가 발판 밑면과 부딪힐 수 있다(원작 2D 웹판엔
+    없던 문제 — 평면 사이드스크롤엔 "밑을 지나는 발판"이라는 개념
+    자체가 없어서 3D로 옮기며 새로 생겼다). **아직 안 고침** — 아래
+    GUI 확인 목록에 추가.
+  - **프로젝트 전체에 적용되는 발견** — Unity는 "**트리거와 겹친
+    콜라이더를 disable하는 순간 OnTriggerExit를 안 보낸다**"(문서화된
+    엔진 동작). 이 저장소의 여러 Playtest가 쓰는 `TeleportPlayer()`류
+    헬퍼(`CharacterController.enabled`를 껐다 대입하고 다시 켜는 순간이동)
+    로는 트리거 **Enter는 잘 잡히는데 Exit는 안 잡힌다**(disable하는
+    순간 이미 "겹침 해제"가 조용히 사라져서) — `PlaytestStorySlice.cs`
+    에서 실제로 겪고, Exit 확인만 `CharacterController.Move()`로 실제
+    스윕을 굴리는 방식으로 바꿔 고쳤다. DUNGEON이 애초에 트리거 콜백
+    대신 Update() 폴링 거리 판정을 쓰는 관례(클래스 주석에 이미 명시돼
+    있던 이유)가 바로 이 함정을 피하기 위해서였다는 게 이번에 실제로
+    확인됐다 — **트리거 Exit을 순간이동 테스트로 확인해야 하면 이 함정을
+    기억할 것.**
+  - 검증 — 컴파일(오류 없음)·씬 재빌드(`BuildTestStoryScene`, character-
+    {a,d}.glb 정상 로드, GLB 못 찾음 경고 없음)·`PlaytestStorySlice`
+    (`OK - killed 3 grunts, jump/rope/save-load all verified, no
+    errors`)·회귀 GO `PlaytestHeadless`·DUNGEON `PlaytestDungeonHeadless`·
+    FOREST `PlaytestForestHeadless`(다른 트랙 무관 확인) 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — 이동감·점프 궤적·로프 W/S
+    오르내리기가 실제로 자연스러운지, 로프 위쪽 절반이 Platform[0]과
+    실제로 부딪히는지(위 "아직 안 고침" 항목, 부딪히면 로프 길이를
+    줄이거나 발판을 옮기는 후속 조치 필요), 급소 히트스톱이 실제로
+    느껴지는지, 잡졸 셋을 실기로 잡아 "첫 사냥" 카운트가 오르는지,
+    모바일 hold 버튼 넷+점프/공격 버튼이 화면에서 안 겹치는지.
+- **DUNGEON — 오픈월드 확장 네 후보 전부(2026-09-12, 열네 번째 세션,
+  "1,2,3,4 다해줘"로 착수).** 열세 번째 세션이 남긴 네 후보(마을
+  셋째·넷째 추가 / Town2 장식 보강 / 오버월드 지도 UI / 마을 간 필드
+  조우)를 순서대로 전부 끝냈다. Room1↔Town2 슬라이스는 여전히 사람이
+  실기 확인 전이었지만("아직 안 봤다, 코드로 계속 진행"으로 확인) 그대로
+  이어감.
+  - **(1) 마을 셋째·넷째** — saga-dungeon 웹판 PLAN.md 28-1절의 별형
+    구조(위성 마을은 서로 안 잇고 전부 모루골에만 통한다)를 그대로 따라,
+    Room1의 나머지 두 벽(동/서, 지금까지 안 쓰던)을 열어 Town3(서)·
+    Town4(동)로 이었다. `DungeonRoomBuilder.cs`에 `OpenEastDoor()`/
+    `OpenWestDoor()` 신규(기존 `OpenNorthDoor`/`OpenSouthDoor`와 같은
+    `OpenDoorOnWall()`을 축 매개변수로 일반화, 아치도 동/서는 Y축 90도
+    회전 필요). 복도는 `DungeonCorridorBuilder`가 늘 로컬 Z를 긴 축으로
+    짓는 걸 그대로 두고 **GameObject를 Y축 90도 돌려 세우는 것만으로**
+    X축 복도를 만들었다(그 클래스 자체 코드 변경 없음 — 대칭 도형이라
+    회전 방향은 안 따진다). Town3 행상은 gem_jade(4, 지금까지 광맥
+    확정 드랍 말고는 아무도 안 팔던 재고, 15냥) — Town4 행상은
+    wp_glaive(26, 90냥)를 판다(원래 Room10 재고였는데 "절차적 층 진행"
+    전환으로 Room10 자체가 없어져 살 자리가 사라졌던 것을 새 마을에서
+    되살림 — "층1 두목을 못 잡아도 중간 이상 티어를 살 수 있게"라는
+    원래 취지 그대로).
+  - **(2) Town2 장식 보강** — 마을 셋(Town2·3·4) 전부에 등롱 둘(점광
+    포함)·궤짝 하나·정주 촌민 하나(character-b 모델, Ally와 다른 베이지
+    톤, 전투·대화 없는 순수 시각)를 채웠다. 신규 헬퍼는 전투원과 안
+    겹치게 마을마다 문·행상 위치에 맞는 오프셋을 따로 받는다.
+  - **(3) 오버월드 지도 UI** — saga-dungeon 웹판 PLAN.md 28-1절 "디아블로
+    M키 방식"을 옮겼다. 신규 `UI/OverworldMapUI.cs` — M키(`Keyboard
+    .current.mKey`, PlayerCombat.cs가 이미 쓰는 것과 같은 직접 읽기
+    패턴)로 화면 중앙에 나침반형 5칸(중심=모루골/Room1, 남/서/동=마을
+    셋, 북=던전 굴혈)을 펼친다. **텔레포트 없음 — 보기만 하는 창**(웹판과
+    같은 결, 미니맵과 목적이 다름을 `Minimap.cs` 클래스 주석에도 명시).
+    현재 위치 칸만 플레이어 좌표 문턱(±15)으로 매 프레임(패널이 열려
+    있을 때만) 강조.
+  - **(4) 마을 간 필드 조우** — 원작(28-1절)은 필드에 로밍 몬스터가
+    있었는데 첫 마을 슬라이스(Room1↔Town2)는 통로를 전투 없이 단순화해
+    뒀던 것을, 새 시스템 없이 기존 `DungeonAmbush.cs`(랜덤 이벤트
+    슬라이스, 25초 쿨다운 룰렛 — 55% 고요·30% 매복·15% 돈주머니)를 들길
+    셋(남/서/동) 한가운데 그대로 재사용해 채웠다. roomId를 "field_남/
+    서/동"으로 따로 둬 마을 행상의 "방을 다 잡아야 연다" 조건과 안
+    엮이게 했다.
+  - `UI/Minimap.cs` — Town3(x=-30)·Town4(x=+30)가 동서로 생기며
+    `WorldXMin/Max`를 -12/12 → -42/42로 넓혔다(Town2 남쪽 확장 때 Z축을
+    넓힌 것과 같은 이유).
+  - 신규 검증 도구 셋 — `PlaytestDungeonTowns34.cs`(Town3=gem_jade 세공·
+    Town4=wp_glaive 장착 실제 구매까지, `PlaytestDungeonTown2.cs`와 같은
+    결)·`PlaytestDungeonFieldAmbush.cs`(들길 셋 방문, 무작위 롤이라
+    결과는 안 따지고 예외만 확인)·`PlaytestOverworldMap.cs`(리플렉션으로
+    `UpdateHighlight()`를 직접 불러 다섯 좌표→다섯 칸 매핑을 전수
+    검증 — M키 입력 자체는 이 프로젝트가 이미 스페이스바·왼쪽 Alt에서
+    검증 없이 써 온 표준 패턴이라 새로 안 흉내 냄).
+  - 컴파일(오류 없음)·씬 재빌드(`room childCount=14→20`, 문 폭 경고·GLB
+    못 찾음 경고 없음)·`PlaytestDungeonTowns34`(`OK`, 신규)·
+    `PlaytestDungeonFieldAmbush`(`OK`, 신규)·`PlaytestOverworldMap`(`OK`,
+    신규)·회귀 `PlaytestDungeonTown2`(`OK`)·`PlaytestDungeonFloorProgression`
+    (`OK - 12 room advances, floor reached 4` — Room1 문 구성이 또 늘어도
+    기존 북쪽 진행에 영향 없음 재확인)·`PlaytestDungeonHeadless`·
+    `PlaytestForestHeadless`(다른 트랙 무관 확인) 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — Town3·Town4로 가는 동/서
+    복도·문턱이 실제로 자연스러운지(특히 Y축 90도 회전 복도가 처음이라
+    시각적으로 안 어색한지), 마을 셋의 장식(등롱·궤짝·촌민)이 휑함을
+    실제로 줄였는지, 오버월드 지도(M키)가 화면에 잘 뜨고 강조가 잘
+    보이는지, 들길에서 매복이 실제로 튀어나올 때 위협적으로 느껴지는지.
+- **DUNGEON — 오픈월드 확장, 첫 슬라이스: 마을 둘을 걸어서 잇는 진짜
+  오픈월드 (2026-09-12, 열세 번째 세션, "DUNGEON 오픈월드 확장으로
+  넘어가줘"로 착수).** 착수 전 `js/dungeon.js`·saga-dungeon PLAN.md
+  28장을 훑어보니 "오픈월드"가 두 다른 뜻으로 쓰인다는 걸 발견해 먼저
+  사용자에게 확인 질문 — (1) 던전 층 하나를 클리어마다 갈아치우는
+  로그라이크식 진행(이미 `DungeonFloorRunner`로 구현·100층 검증
+  완료) vs (2) **마을이 여럿이고 마을 밖 들판을 걸어서 다른 마을로
+  건너가는 구조**(28-1~28-8절, 원작은 마을마다 좌표계가 독립이라
+  "위장된 전환"까지 만들어야 했다). 사용자가 (2) "마을 여러 개 —
+  걸어서 이어지는 진짜 오픈월드(권장)"로 확정.
+  - **핵심 발견 — 이 프로젝트는 원작의 근본 문제 자체가 없다.** 원작이
+    28-2절에서 "위장된 전환"(A안 단일 연속 좌표계 대신 B안 통로 트릭)을
+    택한 이유는 네 마을이 각자 독립 좌표계라서였다. saga-unity DUNGEON은
+    Room1~ProcRoom이 처음부터 **하나의 연속 좌표계**다 — 그래서 "마을
+    두 개를 걸어서 잇는다"는 그냥 방 하나 더 짓고 복도로 잇는 것과
+    완전히 같다. 새 이동/전환 시스템이 전혀 필요 없다. 세이브도
+    `SaveState.cs`가 이미 `playerPos` 세 값을 그대로 저장/복원해
+    Town2에서 저장해도 "현재 마을" 같은 새 필드가 필요 없다(둘 다
+    검증됨 — 아래).
+  - **첫 슬라이스 범위 — 마을 2개**(원작 4개, Vertical Slice First).
+    오버월드 지도 UI·마을 3개 이상·마을 간 필드 조우는 범위 밖, 다음
+    슬라이스 후보로 남김.
+  - Room1의 **남쪽 문**(지금까지 안 쓰던 벽 — 북쪽은 이미 Room2행
+    진행에 씀)을 새로 열어 `TownCorridor`(전투 없음, 폐허 톤 대신
+    `SagaBiome.None` 중립색으로 "던전이 아니라 들길"임을 구분)를 지나
+    **Town2**(첫 위성 마을)로 잇는다. 좌표는 북쪽 진행과 정확히
+    대칭(부호만 반대) — 복도 중심 z=-15, Town2 중심 z=-30.
+  - Town2도 `biome=None` — 다섯 바이옴(숲·늪·산·사당·폐허)은 전부 이
+    던전의 "야생" 정체성이라, 마을(문명)은 일부러 그 다섯에 안 낀다.
+    막다른 마을(북쪽 문 하나뿐, 이번 슬라이스엔 더 이상 분기 없음).
+  - 신규 `TownMerchant`(`DungeonMerchant.cs` 그대로 재사용) — 지금까지
+    어떤 행상도 안 팔던 `wp_axe`(atk12, 이전 최저가 wp_saber18보다
+    낮은 티어)를 20냥에 판다. Room1 남쪽 문 바로 너머라 전투 없이도
+    닿을 수 있는 자리라, 시작 골드(0)에서도 Room1 안 몇 마리만 잡으면
+    살 만한 낮은 가격으로 잡았다. `roomId="town2"`로 등록된 적이 아예
+    없어 `DungeonEnemy.CountAliveInRoom("town2")`가 항상 0을 반환하고,
+    "방을 다 잡아야 연다" 조건이 평화로운 마을엔 자연히 안 걸린다.
+  - 미니맵에 Town2 점 추가(황금빛, 다섯 바이옴 색과 구분되는 "문명"
+    색). `Minimap.cs`의 `WorldZMin`도 -15→-45로 넓혀 Town2가 가장자리에
+    눌리지 않고 정확한 위치에 찍히게 했다.
+  - 신규 `Editor/PlaytestDungeonTown2.cs` — Play 모드에서 Town2·
+    TownMerchant 좌표로 순간이동해 실제로 구매(골드 차감·`wp_axe` 장착)
+    까지 되는지 확인(문 자체는 스크립트 트리거가 없는 순수 지오메트리라
+    — 씬 재빌드 로그에 `DungeonRoomBuilder.OpenDoorOnWall()`의 "문
+    폭이 벽 길이보다 넓다" 경고가 없음으로 이미 확인됨 — 별도 검증
+    불필요, 진짜 새로 확인이 필요했던 건 "적이 하나도 없는 방에서도
+    행상이 예전과 같이 동작하는가"였다). `OK - walked to Town2, bought
+    from TownMerchant, no errors`(gold 50→30, wp_axe 장착 확인).
+  - **씬 재빌드 중 배치 프로세스가 두 번 안 끝나는 것처럼 보였다** —
+    원인은 `-quit` 플래그를 안 줘서였다(`BuildTestDungeonScene.Build()`는
+    Playtest류와 달리 자체적으로 `EditorApplication.Exit()`을 안 부른다
+    — 저장은 이미 끝났는데 배치 모드가 계속 떠 있던 것뿐, 실제 행 없음).
+    로그에 "saved to ... room childCount=16"이 이미 찍혀 있는 걸 확인하고
+    PID로 정확히 종료(`taskkill //F //PID`, 이름으로 뭉뚱그리지 않음 —
+    다른 세션의 Unity 프로세스를 잘못 건드리지 않기 위해서도 중요). 다음
+    세션 참고 — `Build()`류(자체 종료 없음) 백그라운드 호출은 로그의
+    "saved to" 줄로 완료를 판단하고 PID로 정리할 것, 무한정 기다리지
+    말 것.
+  - 컴파일(오류 없음)·씬 재빌드(`room childCount=14→16`, Room1에
+    남쪽 문 벽 조각+아치 추가)·`PlaytestDungeonTown2`(`OK`, 신규)·
+    `PlaytestDungeonFloorProgression`(회귀, `OK - 12 room advances,
+    floor reached 4` — Room1 문 구성 변경이 기존 북쪽 진행에 영향 없음
+    확인)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`(다른 트랙
+    무관 확인) 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — Room1 남쪽 문·들길·Town2가
+    실제로 자연스럽게 이어져 보이는지(문턱 단차 포함, 기존 복도들과
+    같은 트레이드오프), Town2가 "마을"답게 느껴지는지(지금은 방 셸+
+    행상 하나뿐이라 휑할 수 있음 — 다음 슬라이스 후보로 장식/NPC 추가
+    검토), 행상 가격·구매 흐름이 실제로 자연스러운지, 미니맵에서 Town2
+    위치가 실제 방향과 맞게 보이는지.
+- **FOREST — 창조물 종 늘리기 둘째: 무쇠도깨비·나비정령 (2026-09-12,
+  열두 번째 세션 이어서, "바위 지대·꽃밭도 두 종씩 채워줘"로 착수).**
+  바로 앞 슬라이스가 채운 버섯숲·어둑숲과 같은 패턴으로 나머지 두
+  바이옴도 채웠다 — 이제 `ForestBiomeData.Zones` 넷 전부 종 둘씩,
+  여덟 종.
+  - **무쇠도깨비** — 바위 지대(bawi와 공유, den을 zone 중심에서
+    약 7.2m 비껴 둠). 납작하게 웅크린 몸통(무쇠빛 청회색)+눈 혹 둘로
+    bawi(상자+상자 혹, 돌빛 회갈)와 실루엣·색조 둘 다 갈랐다. 여덟 종
+    중 가장 느리게 튄다(fleeSpeed 1.8 — 새 초과, 이전엔 이 축(fleeSpeed)
+    에 기록이 없었다 — moveSpeed·fleeRadius·wanderRadius 세 축은 이미
+    앞선 슬라이스들이 최댓값/최솟값을 다 가져가 있어서 이번에 남은
+    유일한 빈 축을 찾아 썼다).
+  - **나비정령** — 꽃밭(kkot과 공유, 마찬가지로 약 7.2m 비껴 둠). 작은
+    구 몸통 + 납작구 날개 둘(파스텔 보라/청보라)로 kkot(구+화관, 크림/
+    분홍)과 갈랐다. 여덟 종 중 가장 급하게 튄다(fleeSpeed 4.8 —
+    musoetokkebi와 같은 축의 반대쪽 새 초과).
+  - **기존 여섯 종의 "가장 ~함" 주장과 충돌 안 함을 다시 확인** —
+    moveSpeed 최댓값(beoseot 2.0)·최솟값(bawi 0.9), fleeRadius
+    최댓값(angaeyuryeong 7.5)·최솟값(beoseot 3.0), wanderRadius
+    최댓값(kkot 5.0)·최솟값(pojagoemul 1.8) 전부 새 두 종(모두 그 범위
+    안쪽 값)에도 그대로 성립. fleeSpeed 축만 이번에 처음 초과값이
+    생겼다(1.8/4.8).
+  - `ForestCreatureBuilder`에 두 정의 추가(den만, 기존 여섯 무변경).
+    `PlaytestForestCreatures.cs`의 `Kinds` 배열에 두 종 추가해 검증
+    범위를 여덟으로 넓혔다(성공 로그 "여섯" → "여덟").
+  - 검증: 컴파일(오류 없음)·`PlaytestForestCreatures`(`OK - all eight
+    creatures wandered and fled correctly, no errors` — 여덟 종 전부
+    배회 이동량 0.33~4.51m로 통과, musoetokkebi가 0.33m로 가장 아슬아슬
+    했지만 통과 기준(0.2m) 위 — 좁은 wanderRadius를 가진 종일수록
+    낮게 나올 확률이 있다는 걸 이번에 실측으로 확인, 기존에도 있던
+    시드 없는 무작위 테스트의 성질이라 새로 손대지 않음)·dokkaebi
+    도주 재확인·회귀 `PlaytestForestHeadless`·
+    `PlaytestForestHouseTransition`·`PlaytestForestFurniture`·
+    `PlaytestDungeonHeadless`(다른 트랙 무관 확인) 전부 `OK`.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — 무쇠도깨비·나비정령이 실제로
+    화면에서 잘 보이는지, 같은 바이옴 안에서 두 종씩(넷 다) 서로 안
+    겹쳐 보이는지, 여덟 종 전체를 몰아 봤을 때 마을이 붐벼 보이지는
+    않는지.
+- **FOREST — 창조물 종 늘리기: 포자괴물·안개유령 (2026-09-12, 열두 번째
+  세션 이어서, "창조물 종 더 늘리기부터 이어가줘"로 착수).** 다섯째·
+  여섯째 종 추가 — saga-godot에 대응하는 원본이 없어(그쪽은 네 바이옴을
+  넷으로 딱 채우고 끝났다) 이번엔 saga-forest 웹판 `data-village.js`
+  (`ANIMALS.mushnub`, "포자괴물" — 버섯숲 한정 몬스터)와 한국 설화
+  모티프(도깨비불)만 참고해 saga-unity가 처음 설계했다.
+  - **포자괴물** — 버섯숲(beoseot과 같은 바이옴, den을 beoseot 자리에서
+    약 7.8m 비껴 둠) 몬스터. 찌그러진 몸통(황록) + 삐죽한 포자 혹 셋(암록,
+    120°씩 배치)으로 버섯정령(줄기+갓, 청록)과 실루엣을 갈랐다. 넷 중
+    가장 좁게 돈다(wanderRadius 1.8 — 새 최솟값, 기존 넷의 "가장 ~함"
+    주장과 안 겹치는 축을 새로 잡았다).
+  - **안개유령** — 어둑숲(dokkaebi와 같은 바이옴, 마찬가지로 약 8.5m
+    비껴 둠) 몬스터, 도깨비불 모티프. **땅에 안 붙어 사는 유일한 종** —
+    Den의 y를 1.0으로 줘서 배회 내내 그 높이를 유지한다(`MoveToward`가
+    XZ만 바꾸고 y는 그대로 둔다는 걸 이용, 새 코드 추가 없이 기존 이동
+    로직 그대로 재사용). 창백한 겉불꽃 구 + 밝은 속불꽃 작은 구로
+    "빛이 흔들린다"는 인상만 정적으로 흉내(애니메이션은 범위 밖). 넷 중
+    가장 쉽게 놀란다(fleeRadius 7.5 — 새 최댓값).
+  - **기존 네 종의 "가장 ~함" 주장과 충돌 안 함을 직접 확인** — bawi(가장
+    느림 0.9/가장 안 겁냄 중 최소 fleeRadius는 아님, 4.0)·beoseot(가장
+    빠름 2.0, 최소 fleeRadius 3.0 그대로 유지)·kkot(가장 넓은 wander 5.0,
+    angaeyuryeong의 4.2보다 여전히 큼) 전부 새 두 종 추가 후에도 그대로
+    성립.
+  - `ForestCreatureBuilder`에 두 정의만 추가(den 좌표, 기존 넷은 무변경).
+    `PlaytestForestCreatures.cs`의 `Kinds` 배열에 두 종 추가해 배회 검증
+    범위를 여섯으로 넓혔다(성공 로그 문구도 "네" → "여섯"으로 수정).
+  - 검증: 컴파일(오류 없음)·`PlaytestForestCreatures`(`OK - all six
+    creatures wandered and fled correctly, no errors` — 여섯 종 전부
+    배회 이동량 0.83~3.91m로 통과, dokkaebi 도주 재확인)·회귀
+    `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+    `PlaytestForestFurniture`·`PlaytestDungeonHeadless`(다른 트랙 무관
+    확인) 전부 `OK`.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — 포자괴물·안개유령이 실제로
+    화면에서 잘 보이는지(특히 안개유령이 땅 위 1m에 떠 있는 게 자연
+    스러운지, 순간이동한 것처럼 안 보이는지), 같은 바이옴 안에서 두 종이
+    서로 겹쳐 보이지 않는지.
+- **FOREST — 바이옴 지형 다양성 슬라이스 (2026-09-12, 열두 번째 세션,
+  "1,2 순서대로 진행"의 (1) — FOREST 단순화 부분 채우기부터).**
+  `VERTICAL_SLICE_FOREST.md`(saga-godot·saga-unity 둘 다)가 "다음
+  슬라이스로 미룸"에 남겨 뒀던 "바이옴 지형 다양성(꽃밭·어둑숲·버섯숲·
+  바위 지대)"을 채웠다 — `ForestCreatureBuilder`가 이미 네 창조물을
+  "바이옴을 흉내낸 구석"이라며 마을 네 귀퉁이에 흩어 둔 자리(주석에
+  명시)를 그대로 재사용해, 그 den 좌표를 실제 바이옴 존 중심으로
+  승격시켰다 — 창조물 좌표는 하나도 안 옮김.
+  - 신규 `Data/ForestBiomeData.cs` — 존 4개(중심·반경·안쪽 반경·정점색
+    틴트), `SampleTint(wx,wz)`로 임의 좌표의 배율을 반환(각 존 영향을
+    부드럽게 lerp, 겹칠 일 없음 — 대각선으로 가장 가까운 두 존도
+    64m 이상 떨어져 있고 반경은 17m).
+  - `Shaders/ForestWorldCurve.shader`에 `COLOR` 정점 입력 추가 —
+    `_BaseColor`에 곱한다. **정점색이 없는 메시(창조물 primitive 등)는
+    Unity가 기본값 (1,1,1,1)을 채워 기존 결과와 완전히 동일** — 실제로
+    검증(아래)에서 창조물 넷 다 배회·도주가 그대로 통과했다.
+  - `World/ForestGroundBuilder.cs` — 땅 메시를 구울 때 정점마다
+    `ForestBiomeData.SampleTint()`를 평가해 정점색으로 얹는다. GO
+    `TerrainBuilder.cs`가 겪은 "칸 경계가 바둑판처럼 갈라져 보이는"
+    문제와 원인 자체가 다르다 — FOREST 땅은 애초에 타일 격자가 없는
+    연속 메시라 정점마다 세계 좌표 연속 함수를 그대로 평가하면 경계가
+    저절로 매끈하다(칸별 보간·블렌딩 마진 같은 별도 장치 불필요).
+  - **재해석 하나, 문서화됨** — 이 존은 순수 시각 다양성이다. 걷기 판정·
+    콜라이더는 여전히 단일 평면(`ForestGroundBuilder` 클래스 주석
+    "판정은 항상 평면 좌표로" 원칙 그대로) — 바이옴이 이동 속도·채집
+    가능 여부 등 게임플레이 규칙을 바꾸지 않는다(godot 문서도 이 항목을
+    "지형 다양성"으로만 분류해 뒀지 규칙으로 분류하지 않았다).
+  - 컴파일(신규 셰이더 COLOR 시맨틱 포함 오류 없음)·회귀
+    `PlaytestForestHeadless`(`OK - 10 frames, no errors`)·
+    `PlaytestForestCreatures`(`OK - all four creatures wandered and
+    fled correctly` — den 좌표 무변경이라 배회/도주 수치 그대로)·
+    `PlaytestForestHouseTransition`·`PlaytestForestFurniture`·
+    `PlaytestDungeonHeadless`(다른 트랙 무관 확인) 전부 `OK`.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — 네 바이옴 색이 실제로
+    구별되어 보이는지, 존 경계가 매끈한지(이론상 연속 함수라 매끈해야
+    하지만 눈으로 확인된 적 없음), 창조물 넷이 각자 바이옴 안에서
+    자연스러워 보이는지, 기존 콘텐츠(나무·주민·집·가구 좌판)가 바이옴
+    색과 안 부딪히는지.
+- **FOREST — 실기 확인 완료, "문제 없어 보여" (2026-09-12, 열두 번째
+  세션).** 지난 세션이 "실기 확인부터 할게, 새로운 세션에서 하자"로
+  넘긴 것을 사용자가 유니티 에디터로 직접 플레이해 확인 — 구면 투영·
+  집 들어가기/나가기·가구 여섯 자리·네 창조물(숲도깨비·바위도깨비·
+  버섯정령·꽃정령)의 배회/도주 전부 이상 없음. 아래 "완료 단계"의
+  관련 GUI 확인 항목 세 개(몬스터·퓨전 슬라이스, 가구 슬라이스, 구면
+  투영/집 곡률)를 지웠다.
+- **FOREST — 몬스터·퓨전 콘텐츠 슬라이스 (2026-09-12, 열한 번째 세션
+  이어서, "몬스터·퓨전 콘텐츠부터 이어가줘"로 착수).** saga-godot FOREST
+  트랙이 `VERTICAL_SLICE_FOREST.md` 5절("몬스터·퓨전 자유" — FOREST 주민은
+  애초에 역사 인물이 아니라 역할 이름이라 PLAN.md 5장과 안 충돌한다는 결정)
+  에 따라 이미 검증해 둔 네 종(숲도깨비·바위도깨비·버섯정령·꽃정령)을
+  개념만 참고해 Unity로 새로 짰다(코드는 안 베낌).
+  - 신규 `World/ForestCreature.cs` — Idle→Wander→Flee 상태기계(GO
+    `WanderingAnimal.cs`와 같은 구조지만 **Group(무리 전파)는 뺐다** —
+    godot 원본 설계에 없던 걸 새로 안 얹음). 전투·포획·HP 없음(이 판의
+    핵심은 "돌아다니면 재미있다" — `LEGACY_FEATURE_AUDIT.md` 원칙 그대로).
+    FOREST엔 GO의 타일 맵 같은 보행 판정 데이터가 없어(단일 평면) 걸을 수
+    있는 자리 검사는 생략.
+  - **종별 시각 — 전부 primitive 조합**(GLB 없음) — 숲도깨비(구+원기둥
+    뿔)·바위도깨비(상자+상자 혹)·버섯정령(원기둥 줄기+구 갓)·꽃정령(구+
+    납작구 화관). Unity 기본 도형에 원뿔·토러스가 없어(DUNGEON 바이옴
+    소품이 나무를 원기둥+구로 대신한 것과 같은 이유) 뿔은 기울인 원기둥,
+    화관은 Y로 누른 구로 대신했다 — 문서화된 재해석. `Saga/ForestWorldCurve`
+    셰이더 머티리얼을 물려 땅과 같이 휘게 했다(셰이더 클래스 주석이 "땅·
+    나무·NPC 등" 전부 이걸 써야 한다고 명시하는데, 기존 나무·캐릭터
+    폴백은 실제로는 평범한 URP Lit라 안 휠 수 있다는 걸 코드 검토 중
+    발견 — 기존 결함은 이번 범위 밖이라 안 건드리고 그대로 둠, 이미
+    "나무·주민이 공중에 뜨는지" GUI 확인 항목으로 대기 중이던 것과
+    같은 사안이라 새 항목을 안 늘림).
+  - **종별 능력치를 갈라 체감을 다르게 잡았다**(godot 수치 그대로 재사용) —
+    숲도깨비(속도1.5·도주3.5·경계6.0·배회4.0, 기본값)·바위도깨비(0.9·2.2·
+    4.0·2.5, 가장 느리고 덜 겁냄)·버섯정령(2.0·4.2·3.0·3.5, 가장 빠르고
+    가장 안 겁냄)·꽃정령(1.2·3.0·5.0·5.0, 가장 넓게 배회).
+  - 신규 `World/ForestCreatureBuilder.cs`(GO `AnimalBuilder.cs`와 같은
+    "정의 배열+Awake 스폰" 패턴) — 바이옴이 없어 대신 마을 네 귀퉁이
+    (기존 콘텐츠와 안 겹치는 자리)에 하나씩. `BuildTestVillageForestScene
+    .cs`에 `BuildCreatures()` 추가(명시적 Build() 호출 없음 — 이 컴포넌트는
+    edit-time에 그 자식을 즉시 찾을 일이 없어 GO AnimalBuilder와 같은
+    패턴으로 충분, `ForestHouse`가 겪은 문제와는 다른 경우).
+  - 신규 `Editor/PlaytestForestCreatures.cs` — Play 모드에서 네 종 전부
+    배회(Idle→Wander) 실제 이동을 관찰하고, 플레이어를 숲도깨비 옆으로
+    순간이동시켜 도주(멀어짐)까지 확인. `OK - all four creatures wandered
+    and fled correctly, no errors`(dokkaebi 이동 3.32m·bawi 0.56m·
+    beoseot 2.68m·kkot 3.71m, flee 거리 1.00→4.50).
+  - 회귀 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+    `PlaytestForestFurniture`·`PlaytestDungeonHeadless`·
+    `PlaytestDungeonFloorProgression` 전부 재확인.
+  - **사람의 GUI 확인 — 2026-09-12(열두 번째 세션) "문제 없어 보여"로 완료.**
+- **FOREST — 집 꾸미기(가구) 슬라이스 (2026-09-12, 열한 번째 세션 이어서,
+  "가구부터 진행해줘"로 착수).** saga-godot FOREST 트랙이 이미 검증해 둔
+  다음 콘텐츠 순서(가구 → 몬스터·퓨전)를 참고해 시작 — 코드는 안 베끼고
+  saga-forest 웹판 `js/data-village.js`(FURNITURE 14종·FURN_SETS 4계열·
+  HOME_GRADES 6단)·`js/home.js`(score 공식)를 원본 삼아 Unity로 새로 짰다.
+  - **재해석 둘, 문서화됨** — (1) FOREST엔 아직 금 경제가 없어(HeroState.Gold
+    대응 없음) 채집한 과일(`ForestState.FruitCount`)을 구매 통화로 재해석
+    (`ForestState.SpendFruit()` 신규). 집 평가 점수 계산은 웹판 '냥' 값
+    그대로 써서 `HOME_GRADES` 문턱이 원작과 그대로 맞아떨어진다(`FurnitureItem
+    .Value` vs `.FruitCost` 분리). (2) 원작의 "날짜 해시로 매일 4점만 진열"은
+    day/시간 시스템 자체가 없어 GO `LuckyCairn.cs` 패턴(상시 룰렛+쿨다운)으로
+    대신했다.
+  - **자유 배치 대신 고정 자리 여섯** — 원작은 "선 자리에 놓는다"(임의 좌표)
+    지만 FOREST 트랙엔 아직 "놓기" 같은 상호작용 입력 자체가 없어(이동뿐인
+    GO판 컨트롤러 재사용), 이 트랙 기존 관례(나무·주민·집 문처럼 "다가가면
+    반응")를 그대로 따라 여섯 개 고정 자리로 단순화(`ForestFurnitureAnchor.cs`
+    신규) — 비면 창고에서 가장 값진 것을 놓고, 있으면 되거둔다.
+  - 신규 `Data/ForestHomeData.cs`(카탈로그·등급표)·`Data/ForestHomeState.cs`
+    (창고·자리·점수, `BestiaryState`류와 같은 정적 상태 클래스 결)·
+    `World/ForestFurnitureStall.cs`(구매)·`World/ForestFurnitureAnchor.cs`
+    (놓기/거두기). `ForestSaveState` v1→v2(`homeStockKeys/Counts`·
+    `homeAnchors`).
+  - **세이브 로드 시점 문제를 미리 피함** — `ForestFurnitureAnchor`의 자식
+    Awake가 `GameBootstrap.Start()`의 `ForestSaveState.TryLoad()`보다 먼저
+    돌아 시각화가 로드 전 상태로 굳을 뻔한 걸(saga-godot `forest_house.gd`가
+    이미 겪은 것과 같은 순서 문제) 코드 작성 중에 미리 알아채, 첫 `Update()`
+    프레임에 한 번만 동기화하는 `_synced` 플래그로 고쳤다(godot의 해법과
+    같은 결).
+  - **에디터 스크립트 쪽 실제 버그 하나 발견·수정** — `BuildTestVillageForestScene
+    .cs`가 방금 지은 `IndoorRoom`을 찾으려다 못 찾는 실제 오류가 났다.
+    원인: `ForestHouse`가 지금까지 `Awake()`에서만 실내를 지었는데, **Awake()는
+    Play 모드에서만 저절로 불리고 에디터가 씬을 조립하는 edit-time에는
+    안 불린다**(DUNGEON류 빌더가 진작부터 공개 `Build()`를 명시로 부르는
+    것과 다른 패턴이었다 — `ForestGroundBuilder`도 같은 잠재 결함을 안고
+    있었지만 이번엔 안 건드림). `ForestHouse.Build()`를 공개 메서드로
+    빼 에디터 스크립트가 명시로 부르도록 고쳤다 — 이 결함이 있었어도
+    지금까지의 헤드리스 테스트(Play 모드로 씬을 다시 여는 방식)는 우연히
+    다 통과해 왔다(edit-time 조립 직후 상태를 검사한 적이 없어서).
+  - 신규 `Editor/PlaytestForestFurniture.cs` — Play 모드에서 과일을 채우고
+    좌판·자리를 실제로 오가며 구매→배치→점수→쿨다운 후 거두기까지
+    GameObject 경로로 검증. 처음엔 거두기 검증이 실패했는데(프레임 2장만
+    기다림), 배치 모드가 실시간보다 훨씬 빠르게(약 초당 5700프레임) 도는
+    걸 알아채고 `Time.time` 기준 대기로 고침(프레임 수 기준 대기가 실제
+    쿨다운 경과와 다르다는 걸 이번에 처음 확인) — `OK - bought, placed and
+    picked up furniture, score changed as expected, no errors`.
+  - 회귀 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+    `PlaytestDungeonHeadless`·`PlaytestDungeonFloorProgression` 전부 재확인
+    (`OK`, 다른 트랙 무관 확인).
+  - **사람의 GUI 확인 — 2026-09-12(열두 번째 세션) "문제 없어 보여"로 완료.**
 - **FOREST — 집 들어가기/나가기 CharacterController 순간이동 결함 수정 +
   자동 검증 도구 (2026-09-12, 열한 번째 세션, DUNGEON 실기 확인 "문제
   없어 보여" 이후 "더 진행해줘"로 계속).** 사용자가 다음 방향을 물어
@@ -35,9 +478,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     이름 전부 diff 0) — 의도한 변경이 아니라 커밋 전 `git checkout`으로
     되돌림(루트 CLAUDE.md급 습관, saga-godot CLAUDE.md의 "에디터가 project.godot을
     조용히 고쳐 쓴다"와 같은 종류의 부작용).
-  - **여전히 사람의 GUI 확인이 필요한 것**(이번 수정과 무관, 원래부터
-    대기 중) — 구면 투영이 실제로 휘어 보이는지, 집 안 곡률이 꺼지는지
-    등 `docs/VERTICAL_SLICE_FOREST.md` "검증" 절 참고.
+  - **구면 투영·집 안 곡률 포함 — 2026-09-12(열두 번째 세션) "문제 없어
+    보여"로 확인 완료.**
 - **DUNGEON — 절차적 층 진행 실제 GameObject 경로 자동 검증 + 발견한
   진짜 결함 수정 (2026-09-12, 열한 번째 세션).** 지난 세션이 "다음
   세션이 가장 먼저 할 만한 일"로 남긴 빈틈 — `PlaytestDungeonHeadless`
@@ -1597,6 +2039,46 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
+- **열다섯 번째 세션(2026-09-12) — "다음은 어느 쪽?" 질문에 사용자가
+  "1,2 다해줘"로 (1) STORY 착수 → (2) DUNGEON 위성↔위성 지름길 둘 다
+  확정, 이 세션이 둘 다 끝냈다(위 "완료 단계" 맨 위 두 항목 참고).**
+  사람이 아직 DUNGEON 마을 넷 전체(Town2·3·4·장식·M키 지도·들길 매복·
+  Crossroads 지름길)와 STORY 첫 슬라이스를 실기로 안 봄 — **다음
+  세션이 볼 것**: (1) 사람이 실기로 확인한 피드백이 있으면(어느 쪽이든)
+  그것부터. (2) 없으면 saga-dungeon PLAN.md·`VERTICAL_SLICE_DUNGEON.md`·
+  saga-godot STORY 확장 기록(`docs/PROJECT_STATE.md` STORY 이후 행보)을
+  참고해 다음 방향(STORY 콘텐츠 확장 vs DUNGEON Town2↔Town4 지름길
+  후속 vs 다른 게임 REALM 착수 등)을 사용자와 상의할 것 — 방향 결정이라
+  세션이 임의로 고르지 않는다.
+- **(과거) 열네 번째 세션(2026-09-12)이 지난 세션의 네 후보(마을 셋째·넷째·
+  Town2 장식·오버월드 지도·필드 조우)를 전부 끝냈다(위 "완료 단계" 참고).**
+  아래는 그 결정이 나오기 전까지 남아 있던 옛 기록(참고용, 위 최신 항목이
+  우선) — saga-dungeon PLAN.md·`VERTICAL_SLICE_DUNGEON.md`를 다시 훑어
+  다음 콘텐츠 방향(예: 마을 간 지름길, 위성↔위성 통로 §28-3, 다른 게임
+  STORY 착수 등)을 사용자와 상의할 것 — 이건 코드
+  판단이 아니라 방향 결정이라 세션이 임의로 고르지 않는다.
+- **(과거, 이제 완료) DUNGEON 오픈월드 확장 — 마을 두 개(Room1↔Town2)를
+  걸어서 잇는 첫 슬라이스는 열세 번째 세션(2026-09-12)이 끝냈다.** 그
+  세션이 남긴 네 후보는 열네 번째 세션이 전부 처리했다(위 참고).
+- **(과거) 사용자가 "1,2 순서대로 진행"으로 확정 (2026-09-12, 열두
+  번째 세션) — (1) FOREST가 문제없다는 실기 확인 뒤 단순화해 둔 부분
+  채우기 → (2) DUNGEON 진짜 오픈월드 확장.** (1)의 세 조각(바이옴
+  지형 다양성, 창조물 종 늘리기 두 번 — 포자괴물·안개유령 → 무쇠도깨비·
+  나비정령)과 (2)의 첫 슬라이스까지 전부 끝났다(위 "완료 단계" 참고).
+  **네 바이옴 전부 종 둘씩, 총 여덟 종**으로 "창조물 종 늘리기" 축은
+  당분간 충분히 채워졌다고 볼 수 있다 — 더 늘릴지는 다음 방향 결정에서
+  판단. 아래는 그 결정이 나오기 전까지 남아 있던 옛 "다음 세션이 볼
+  것" 기록(참고용, 위 최신 항목이 우선):
+  - 사람이 이번 세 슬라이스(바이옴·신규 종 넷)를 실기로 확인한 피드백이
+    있으면 그것부터.
+  - 없으면 (1)의 나머지 후보 — **가구 자유 배치**(지금은 고정 자리
+    여섯, `ForestFurnitureAnchor.cs` — "다가가서 상호작용" 대신 실제
+    좌표에 놓으려면 새 입력 동사가 필요해 파급이 큼) 또는 **벽지/장판**
+    (`ForestHomeData.cs`에 카테고리 추가 필요, godot도 같은 이유로
+    범위 밖에 둬 왔다) — 중 하나를 채우거나, 이 정도면 (1)을 충분히
+    채웠다고 보고 (2) DUNGEON 오픈월드 확장으로 넘어간다(아래 항목 —
+    saga-dungeon 웹판의 실제 방 배치/복도 연결 알고리즘부터 훑어 범위를
+    정할 것). 어느 쪽이든 방향 결정이라 세션이 임의로 고르지 않는다.
 - **DUNGEON 오픈월드 확장 — 물리적 확장(Room5~11) 네 조각 끝난 뒤
   사용자가 "100층까지 진행해줘"로 요청, 절차적 층 진행 시스템으로
   전환해 100층 검증까지 끝냈다(위 "완료 단계" 참고) — 이어서 "DUNGEON
@@ -1621,15 +2103,25 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   사용자 몫으로 남겨 두고, DUNGEON에서 배운 CharacterController 순간
   이동 패턴이 다른 트랙에도 있는지 코드로 훑어 `ForestHouse.cs`에서
   같은 결함을 찾아 고쳤다(위 "완료 단계" 맨 위 항목 참고).
+  - **가구 슬라이스는 이 세션이 끝냈다**(사용자가 "가구부터 진행해줘"로
+    확정, 위 "완료 단계" 참고). **이어서 "몬스터·퓨전 콘텐츠부터
+    이어가줘"로 그 슬라이스도 끝냈다**(숲도깨비·바위도깨비·버섯정령·
+    꽃정령 네 종, 위 "완료 단계" 맨 위 항목 참고).
   - **다음 세션이 볼 것** — (1) 사람이 FOREST를 실기로 확인한 피드백
-    (구면 투영이 실제로 휘어 보이는지, 집 들어가기/나가기가 이번 수정
-    이후 실제로 자연스러운지)이 있으면 그것부터, (2) 없으면 saga-godot
-    FOREST 트랙이 이미 검증해 둔 다음 콘텐츠 순서(가구/집 꾸미기 →
-    몬스터·퓨전 콘텐츠, `saga-godot/docs/PROJECT_STATE.md` "FOREST
-    콘텐츠 확장" 절 참고 — 코드는 안 베끼고 개념만) 중 가구부터 이어가는
-    쪽이 자연스럽다(같은 이유로 godot도 이 순서를 골랐다: 이미 있는
-    ForestHouse 실내 위에 바로 이어붙일 수 있어 범위가 작고 확실함),
-    (3) 또는 DUNGEON/다른 게임 착수 — 방향 결정은 사용자와 상의할 것.
+    (구면 투영·집 들어가기/나가기·가구 여섯 자리·네 창조물의 배회/도주가
+    실제로 자연스러운지)이 있으면 그것부터, (2) 없으면 이번에 단순화해
+    둔 것들(가구 자유 배치·벽지/장판, 창조물 종 더 늘리기·바이옴 구분
+    도입) 중 하나를 채우거나, (3) DUNGEON/다른 게임 착수 — 방향 결정은
+    사용자와 상의할 것.
+  - **이 세션은 여기서 멈췄다** — 사용자가 "실기 확인부터 할게, 새로운
+    세션에서 하자"로 끊음(2026-09-12, 열한 번째 세션 끝). 작업 트리
+    깨끗함(커밋되지 않은 변경 없음), 이 세션에서 나간 커밋:
+    `53691d3`·`16a84d0`·`c7a8e27`·`8fb953f`(그 사이 다른 세션의
+    saga-godot 병합 커밋 여러 개 포함) — 전부 컴파일·헤드리스 플레이
+    테스트 통과 확인 후 그때그때 커밋·푸시해 뒀다. **다음 세션은 사람이
+    유니티 에디터로 FOREST(구면 투영·집·가구·창조물)를 직접 플레이해 본
+    소감/버그 리포트부터 받을 것** — 있으면 그것부터 처리, 위 "다음
+    세션이 볼 것" (2)·(3)은 그다음.
 - **사용자가 "1,2 순서대로"로 두 방향을 확정했다 — (1) FOREST 착수
   (완료, 위 "완료 단계" 참고) → (2) DUNGEON을 진짜 오픈월드로 확장
   (아직 착수 전).** 다음 세션은 (2)부터 시작한다 — 방 넷짜리 선형
@@ -2239,3 +2731,19 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   .cs`의 CharacterController 순간이동 결함 수정 뒤 `OK - entered and
   exited the house, position held across frames, no errors`. 회귀로
   `PlaytestForestHeadless`(`OK - 10 frames, no errors`)도 재확인.
+- `PlaytestForestFurniture.cs`(신규, 열한 번째 세션, 가구 슬라이스) —
+  과일을 채우고 좌판→자리를 오가며 구매→배치→점수→쿨다운 후 거두기까지
+  확인, 처음엔 거두기 검증이 프레임 수 기반 대기라 실패(배치 모드가
+  초당 약 5700프레임으로 실시간보다 훨씬 빠르게 돎을 확인) →
+  `Time.time` 기준 대기로 고쳐 `OK - bought, placed and picked up
+  furniture, score changed as expected, no errors`. 회귀로
+  `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+  `PlaytestDungeonHeadless`·`PlaytestDungeonFloorProgression` 전부
+  재확인.
+- `PlaytestForestCreatures.cs`(신규, 열한 번째 세션, 몬스터·퓨전 슬라이스) —
+  네 종 전부 배회 이동 확인(dokkaebi 3.32m·bawi 0.56m·beoseot 2.68m·
+  kkot 3.71m) + 플레이어 접근 시 도주 확인(거리 1.00→4.50) →
+  `OK - all four creatures wandered and fled correctly, no errors`.
+  회귀로 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+  `PlaytestForestFurniture`·`PlaytestDungeonHeadless`·
+  `PlaytestDungeonFloorProgression` 전부 재확인.

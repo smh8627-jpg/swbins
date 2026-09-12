@@ -1,18 +1,23 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Saga.Forest.Data;
 
 namespace Saga.Forest.World
 {
     /// <summary>
-    /// VERTICAL_SLICE_FOREST.md(saga-godot) 2·4절 — 마을 지형 하나(잔디,
-    /// 바이옴 다양성은 범위 밖). 30×20칸 × 3m/칸 = 90×60m 단일 색 평면을
-    /// 촘촘히 쪼개(1.5m 해상도) `Saga/ForestWorldCurve` 머티리얼을 입힌다
-    /// — 정점이 너무 성기면(예: Unity 기본 Plane) 곡률이 뭉텅뭉텅 각져
-    /// 보인다. **콜라이더는 평평한 원본 메시 그대로 붙인다** — 곡률은
-    /// 순수 정점 셰이더 트릭이라 실제 좌표·충돌은 평면이어야 한다(1절
-    /// "판정은 항상 평면 좌표로" 원칙, GO `TerrainBuilder.cs`와 달리 칸별
-    /// 색·타일 데이터가 없어 훨씬 단순).
+    /// VERTICAL_SLICE_FOREST.md(saga-godot) 2·4절 — 마을 지형 하나(잔디).
+    /// 30×20칸 × 3m/칸 = 90×60m 단일 메시를 촘촘히 쪼개(1.5m 해상도)
+    /// `Saga/ForestWorldCurve` 머티리얼을 입힌다 — 정점이 너무 성기면
+    /// (예: Unity 기본 Plane) 곡률이 뭉텅뭉텅 각져 보인다. **콜라이더는
+    /// 평평한 원본 메시 그대로 붙인다** — 곡률은 순수 정점 셰이더 트릭이라
+    /// 실제 좌표·충돌은 평면이어야 한다(1절 "판정은 항상 평면 좌표로" 원칙).
+    /// **바이옴 지형 다양성(2026-09-12 추가)** — `ForestBiomeData`의 네 존을
+    /// 정점색(COLOR)으로 굽는다. GO `TerrainBuilder.cs`의 "칸 경계가
+    /// 바둑판처럼 갈라져 보이는" 함정과 원인 자체가 다르다 — 여기는 애초에
+    /// 타일 격자가 없는 연속 메시라 정점마다 `ForestBiomeData.SampleTint()`를
+    /// 그대로 평가하면(칸 단위 보간이 아니라 세계 좌표 연속 함수) 경계가
+    /// 저절로 매끈하다.
     /// </summary>
     [RequireComponent(typeof(MeshFilter))]
     [RequireComponent(typeof(MeshRenderer))]
@@ -35,6 +40,7 @@ namespace Saga.Forest.World
         {
             var verts = new List<Vector3>();
             var normals = new List<Vector3>();
+            var colors = new List<Color>();
             var tris = new List<int>();
 
             float halfW = VillageWidth * 0.5f;
@@ -50,6 +56,7 @@ namespace Saga.Forest.World
                     float wx = Mathf.Lerp(-halfW, halfW, u);
                     verts.Add(new Vector3(wx, 0f, wz));
                     normals.Add(Vector3.up);
+                    colors.Add(ForestBiomeData.SampleTint(wx, wz));
                 }
             }
 
@@ -71,6 +78,7 @@ namespace Saga.Forest.World
             mesh.indexFormat = verts.Count > 65000 ? IndexFormat.UInt32 : IndexFormat.UInt16;
             mesh.SetVertices(verts);
             mesh.SetNormals(normals);
+            mesh.SetColors(colors);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
 
