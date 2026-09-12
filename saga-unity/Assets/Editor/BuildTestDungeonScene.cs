@@ -240,6 +240,19 @@ namespace Saga.EditorTools
         // 퍼즐과 같은 값). 문(남쪽) 폭 밖 서쪽에 둔다.
         private static readonly Vector3 PuzzleFloor2Anchor = Room9Center + new Vector3(-3f, 0f, 0f);
 
+        // "DUNGEON 오픈월드 확장 네 번째 조각" — Room9(퍼즐방, 예전엔
+        // 막다른 방) 북쪽에 문을 새로 뚫어 복도9→Room10(층2 행상, 새
+        // 막다른 방). 좌표는 기존 공식 그대로 연장(Room9Center 240 기준
+        // +30): Corridor9=255, Room10=270.
+        private static readonly Vector3 Corridor9Center = new Vector3(0f, 0f, 255f);
+        private static readonly Vector3 Room10Center = new Vector3(0f, 0f, 270f);
+
+        // Room10 "층2 행상" — 기존 `wp_glaive`(층1 두목 확정 드랍)를 더
+        // 비싸게(90냥, Room2 행상 wp_saber 45냥의 2배) 파는 자리. 층1
+        // 두목을 안 잡은 플레이어도 이 깊이에서 중간 이상 티어 무기를
+        // 살 수 있게 하는 게 목적 — 새 아이템 없이 기존 카탈로그만 재사용.
+        private static readonly Vector3 MerchantFloor2Anchor = Room10Center + new Vector3(0f, 0f, 0f);
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
@@ -263,6 +276,7 @@ namespace Saga.EditorTools
             BuildCorridorAndRoom7();
             BuildCorridorAndRoom8();
             BuildCorridorAndRoom9();
+            BuildCorridorAndRoom10();
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();
             BuildEventSystem();
@@ -711,10 +725,40 @@ namespace Saga.EditorTools
             SetPrivateField(room9Builder, "roomModel", _roomGlb);
             room9Builder.Build();
             room9Builder.OpenSouthDoor(RoomDoorWidth);
+            room9Builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드 확장 네 번째 조각" — 복도9로 Room10과 잇는다. Room9는 더는 막다른 방이 아니다.
 
             var puzzleGo = new GameObject("PuzzleFloor2");
             puzzleGo.transform.position = PuzzleFloor2Anchor;
             puzzleGo.AddComponent<DungeonPuzzle>();
+        }
+
+        /// <summary>"오픈월드 확장 네 번째 조각" — Room9 북쪽에서 복도9를
+        /// 지나 Room10(층2 행상, 새 막다른 방)로 이어진다.</summary>
+        private static void BuildCorridorAndRoom10()
+        {
+            var corridor9Go = new GameObject("Corridor9");
+            corridor9Go.transform.position = Corridor9Center;
+            var corridor9Builder = corridor9Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor9Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(corridor9Builder, "corridorModel", _corridorGlb);
+            corridor9Builder.Build();
+
+            var room10Go = new GameObject("Room10");
+            room10Go.transform.position = Room10Center;
+            var room10Builder = room10Go.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(room10Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(room10Builder, "decorOffset", new Vector3(-8f, 0f, 5f));
+            SetPrivateField(room10Builder, "gateModel", _gateGlb);
+            SetPrivateField(room10Builder, "roomModel", _roomGlb);
+            room10Builder.Build();
+            room10Builder.OpenSouthDoor(RoomDoorWidth);
+
+            var merchantGo = new GameObject("MerchantFloor2");
+            merchantGo.transform.position = MerchantFloor2Anchor;
+            var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "roomId", "room10");
+            SetPrivateField(merchant, "sellItemId", "wp_glaive");
+            SetPrivateField(merchant, "price", 90); // Room2 행상(wp_saber 45냥)의 2배 — 층1 두목 아이템을 더 비싸게 대신 판다
         }
 
         /// <summary>층2 두목 — 층1 두목(3.2m 짙은 적갈)·미니보스(3.6m
@@ -1022,6 +1066,7 @@ namespace Saga.EditorTools
             BuildMinimapDot(areaRect, Room7Center, new Color(0.65f, 0.35f, 0.15f), 14f); // Room7 — 층2 정예(녹슨 주황)
             BuildMinimapDot(areaRect, Room8Center, new Color(0.35f, 0.32f, 0.28f), 14f); // Room8 — 층2 채광방(폐허)
             BuildMinimapDot(areaRect, Room9Center, new Color(0.42f, 0.35f, 0.10f), 14f); // Room9 — 층2 퍼즐방(제단 금빛과 어울리는 황갈)
+            BuildMinimapDot(areaRect, Room10Center, new Color(0.15f, 0.5f, 0.25f), 14f); // Room10 — 층2 행상(좌판 색과 맞춤)
 
             var dotGo = new GameObject("PlayerDot", typeof(RectTransform));
             dotGo.transform.SetParent(areaRect, false);
