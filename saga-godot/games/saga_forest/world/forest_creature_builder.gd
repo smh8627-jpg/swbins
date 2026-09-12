@@ -18,11 +18,17 @@ const ForestCreature := preload("res://games/saga_forest/world/forest_creature.g
 ## 추가 — 숲도깨비보다 느리고(speed·flee_speed↓) 덜 겁내게(flee_m↓) 해서
 ## 첫 종과 체감이 겹치지 않게 갈랐다(웹판 ANIMALS도 종마다 speed/flee가
 ## 다 달랐던 것과 같은 이유).
+## 2026-09-12: 3종째 "버섯정령"(버섯숲, biome_at(11,16)=mush 확인됨) 추가 —
+## 웹판 mushnub가 원래 살던 바이옴을 이걸로 마저 채웠다. 셋 중 가장
+## 재빠르고(speed·flee_speed 최댓값) 가장 안 겁내게(flee_m 최솟값) 잡아
+## 앞선 두 종과 또 다르게 갈랐다.
 const CREATURES := [
 	{"id": "creature_dokkaebi", "kind": "dokkaebi", "den": Vector2i(19, 3),
 	 "wander_m": 4.0, "flee_m": 6.0, "speed": 1.5, "flee_speed": 3.5},
 	{"id": "creature_bawi", "kind": "bawi", "den": Vector2i(24, 15),
 	 "wander_m": 2.5, "flee_m": 4.0, "speed": 0.9, "flee_speed": 2.2},
+	{"id": "creature_beoseot", "kind": "beoseot", "den": Vector2i(11, 16),
+	 "wander_m": 3.5, "flee_m": 3.0, "speed": 2.0, "flee_speed": 4.2},
 ]
 
 

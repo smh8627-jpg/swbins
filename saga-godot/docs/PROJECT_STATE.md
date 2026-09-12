@@ -3499,3 +3499,29 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
     IDLE→WANDER→IDLE 한 바퀴 확인). 디버그 원상복구(diff 0). GO·DUNGEON·
     FOREST·STORY 헤드리스 회귀 없음 재확인.
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+
+## FOREST 몬스터·퓨전 콘텐츠 3종째 — 버섯정령 (2026-09-12)
+
+- **사용자 지시 "더 진행해"** — 직전 항목의 2종(어둑숲·바위 지대)에 이어
+  웹판 mushnub(포자괴물)가 원래 살던 버섯숲(mush) 바이옴을 마저 채웠다.
+  이름·색·행동은 그대로 안 옮기고 "버섯정령"으로 재해석(위 항목들과 같은
+  원칙).
+  - `forest_creature.gd` — `_spawn_visual()`을 `match`로 바꾸고
+    `_spawn_visual_beoseot()` 추가. forest_biome_scatter.gd 장식 버섯과
+    같은 2부(줄기+갓) 구성이되 갓 색(청록)·크기(갓 반지름 0.16→0.22)를
+    달리해 "장식이 아니라 움직이는 것"이 갈리게 했다.
+  - `forest_creature_builder.gd` CREATURES에 `creature_beoseot`(den=격자
+    (11,16), `biome_at()`로 mush 확인) 추가 — 셋 중 가장 빠르고
+    (speed 2.0·flee_speed 4.2) 가장 안 겁내게(flee_m 3.0, 최솟값) 잡아
+    앞선 둘과 체감을 또 갈랐다.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음)
+    → `TestVillageForest.tscn` `--quit-after 5` 세 번 연속 exit 0·오류
+    0건·로그 완전 동일. **임시 디버그로 실제 값 확인**: 세 종 전부 spawn
+    위치가 den 격자→월드좌표 손 계산과 정확히 일치(버섯정령 (-12,0,18)
+    포함), 700프레임 창에서 셋 다 IDLE↔WANDER 전이 확인. 디버그 원상복구
+    (diff 0). GO·DUNGEON·FOREST·STORY 헤드리스 회귀 없음 재확인.
+  - 이제 마을 네 바이옴(꽃밭·어둑숲·버섯숲·바위 지대) 중 셋에 몬스터가
+    산다 — 꽃밭(meadow)만 비워 뒀다(원작도 몬스터는 버섯숲 한정이었고,
+    이 판도 "안전한 바이옴 하나는 남겨 둔다"는 셈으로 의도적으로 비워
+    둔 것 — 다음에 채울 때는 이 기록 참고).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.

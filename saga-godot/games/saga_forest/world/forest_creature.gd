@@ -13,11 +13,18 @@ extends CharacterBody3D
 ## 아니라서, 새 창작 몬스터로 짓는다 — 전부 실존 인물·원작사 캐릭터가 아닌
 ## 한국 설화의 일반명사("황건적"처럼 부류를 가리키는 이름) 계열이다.
 ##
-## 종 둘(forest_creature_builder.gd CREATURES 참고, `kind`로 갈린다):
+## 종 셋(forest_creature_builder.gd CREATURES 참고, `kind`로 갈린다):
 ## - "dokkaebi"(숲도깨비, 어둑숲) — 구 몸통+원뿔 뿔, 짙은 보라.
 ## - "bawi"(바위도깨비, 바위 지대, 2026-09-12 추가) — 상자 몸통+상자 혹 둘,
 ##   돌빛 회갈색. 몸집이 크고 느린 대신(speed·flee_speed가 낮다) 잘 안
 ##   달아난다는 인상을 주려고 flee_radius도 좁게 잡았다(builder 쪽 수치).
+## - "beoseot"(버섯정령, 버섯숲, 2026-09-12 추가) — 원기둥 대+구 갓, 청록빛.
+##   웹판 mushnub(포자괴물)가 원래 살던 바이옴(버섯숲)을 이걸로 마저
+##   채웠지만 이름·색·행동은 그대로 안 옮겼다(위 "재해석" 원칙 그대로) —
+##   forest_biome_scatter.gd의 장식용 버섯(줄기+갓, 살구색 갓)과 갓 색을
+##   달리해 "장식이 아니라 살아 움직이는 것"이 한눈에 갈리게 했다. 셋 중
+##   가장 재빠르고(speed·flee_speed가 가장 높다) 대신 아주 가까이 가야만
+##   놀란다(flee_radius가 가장 좁다) — 붙임성 있는 인상.
 ##
 ## 시각은 전부 primitive — 이 판의 몬스터 전용 GLB가 없다(버섯·가구가 이미
 ## 쓴 예외와 같은 이유). WorldCurveMaterial을 쓴다 — 이동하는 오브젝트도
@@ -30,6 +37,8 @@ enum State { IDLE, WANDER, FLEE }
 const CURVE_AMOUNT := 0.004
 const COLOR_DOKKAEBI := Color(0.22, 0.12, 0.28)  # 신규 창작색 — 어둑숲 톤에 맞춘 짙은 보라
 const COLOR_BAWI := Color(0.42, 0.38, 0.33)      # 신규 창작색 — 바위 지대 톤에 맞춘 돌빛 회갈색
+const COLOR_BEOSEOT_STEM := Color(0.88, 0.85, 0.74)  # forest_biome_scatter.gd 장식 버섯 줄기와 같은 톤
+const COLOR_BEOSEOT_CAP := Color(0.22, 0.55, 0.5)    # 장식 버섯(살구색 갓)과 갈리는 청록빛 신규 창작색
 const IDLE_TIME_MIN := 1.5
 const IDLE_TIME_MAX := 3.5
 const FLEE_TIME := 2.5
@@ -72,10 +81,13 @@ func _ready() -> void:
 
 
 func _spawn_visual() -> void:
-	if _kind == "bawi":
-		_spawn_visual_bawi()
-	else:
-		_spawn_visual_dokkaebi()
+	match _kind:
+		"bawi":
+			_spawn_visual_bawi()
+		"beoseot":
+			_spawn_visual_beoseot()
+		_:
+			_spawn_visual_dokkaebi()
 
 
 func _spawn_visual_dokkaebi() -> void:
@@ -138,6 +150,42 @@ func _spawn_visual_bawi() -> void:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(0.56, 0.5, 0.46)
 	cs.position = Vector3(0, 0.3, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 버섯정령 — forest_biome_scatter.gd `_spawn_mushroom()`과 같은 2부(줄기+갓)
+## 구성이되 갓 색만 달리해(청록 vs 장식의 살구색) "이건 움직인다"가
+## 갈린다. 크기도 장식보다 한결 크게(갓 반지름 0.16→0.22) 해서 눈에 띈다.
+func _spawn_visual_beoseot() -> void:
+	var stem_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.9, COLOR_BEOSEOT_STEM)
+	var cap_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.6, COLOR_BEOSEOT_CAP)
+
+	var stem := MeshInstance3D.new()
+	var stem_mesh := CylinderMesh.new()
+	stem_mesh.top_radius = 0.07
+	stem_mesh.bottom_radius = 0.08
+	stem_mesh.height = 0.3
+	stem.mesh = stem_mesh
+	stem.position = Vector3(0, 0.15, 0)
+	stem.material_override = stem_mat
+	add_child(stem)
+
+	var cap := MeshInstance3D.new()
+	var cap_mesh := SphereMesh.new()
+	cap_mesh.radius = 0.22
+	cap_mesh.height = 0.22
+	cap.mesh = cap_mesh
+	cap.position = Vector3(0, 0.33, 0)
+	cap.material_override = cap_mat
+	add_child(cap)
+
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.22
+	cs.position = Vector3(0, 0.24, 0)
 	cs.shape = shape
 	add_child(cs)
 
