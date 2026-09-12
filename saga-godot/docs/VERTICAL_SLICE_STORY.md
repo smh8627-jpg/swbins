@@ -230,6 +230,51 @@ MP 게이지 체감(전용 UI가 없어 지금은 눈에 안 보인다, 다음�
 **다음 이어질 것** — STORY "제외" 목록 다음 항목(사다리+Z축 깊이·나머지
 사냥터·전직 트리 등), 또는 다른 판 작업 — 승인 후.
 
+## 6. 사다리 — 허창 들판 나머지 줄 넷 (2026-09-12)
+
+**사용자 지시 "saga-godot 이어해"** — 1절 "제외" 목록의 "사다리(로프만
+먼저)"를 마저 채웠다. **재확인한 것** — "field"는 이미 발판 다섯 전부가
+지어져 있었다(1절이 좁힌 건 줄만, 발판은 처음부터 다섯 다 지었다). 다만
+줄은 하나뿐이라 나머지 네 발판(760·1180·1620·1900px)이 사실상 오르기
+어려운 채로 남아 있었다 — data-side.js 원문을 보니 각 줄의 top이 바로
+옆 발판의 y와 정확히 같다(발판마다 전용 오름길이 하나씩 있는 구조,
+새로 지어낸 배치 아님). 이번에 그 네 줄(rope 셋+ladder 하나)을 마저
+옮겨 다섯 발판 전부가 실제로 오를 수 있게 됐다.
+
+**kind는 시각만 가른다** — `side.js`도 `kind: r[3] || 'rope'`를
+렌더링에만 쓰고(줄 336번대) 등반 판정(오르내리기)은 rope·ladder를
+안 가른다. 그래서 `story_player.gd`는 **한 글자도 안 바꿨다** — 이미
+Area3D의 메타(`rope_top`/`rope_bottom`/`rope_x`)만 읽는 일반 코드였다.
+
+**구현**:
+- `field_map.gd`: `ROPE_TOP_PX`/`ROPE_BOTTOM_PX`/`ROPE_X_PX`(하나)를
+  `ROPES_PX`(다섯, `[x, top_px, bottom_px, kind]`)로 교체. `rope_m()`
+  →`ropes_m()`(배열 반환)로 이름도 갱신.
+- `story_terrain_builder.gd`: `_build_rope()`(하나)를 `_build_climb(r)`
+  (kind로 시각 분기)로 교체 — `_build_rope_visual()`(기존 원통 그대로)
+  과 `_build_ladder_visual()`(신규 — 세로 기둥 둘+0.4m 간격 가로대,
+  더 짙은 목재색)로 나눴다. Area3D 생성·메타·신호 배선은 공용(kind
+  안 가림).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결. **임시 디버그로
+실제 값 확인**: `ropes_m()` 다섯 개 x·top·bottom·kind가 원문 픽셀값을
+SCALE(0.02)로 정확히 옮긴 값과 일치(예: x=38.6m=1930px×0.02, kind
+="ladder" 다섯째만). Terrain 아래 Area3D 다섯 개 전부 생성 확인
+(`find_children("*", "Area3D")`.size()=5). 사다리 전용 시각 노드
+(`Ladder`) 존재 확인. **사다리 Area3D를 story_player.gd의
+`set_rope_area()`에 직접 물려 `_rope_area`가 정확히 그 노드로
+설정됨**(rope든 ladder든 코드 분기 없이 똑같이 동작) 확인. 디버그
+원상복구(`story_field.gd` git diff 0줄).
+
+**GUI 실기 확인은 아직 안 함** — 사다리가 줄과 다르게 보이는지, 다섯
+발판을 실제로 오르내리는 느낌이 자연스러운지는 눈으로 볼 것. 계속
+몰아서 받을 것.
+
+**다음 이어질 것** — 1절 "제외" 목록의 나머지(Gameplay Depth 실제
+Z축 이동·나머지 사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판
+작업 — 승인 후.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

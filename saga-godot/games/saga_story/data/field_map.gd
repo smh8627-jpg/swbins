@@ -12,11 +12,20 @@ extends RefCounted
 ## 보인다"는 느낌만 지키는 근사치다(DUNGEON 카메라 각도를 다시 잡을
 ## 때와 같은 방식, 원문 그대로 이식하지 않는다).
 ##
-## **재해석(1절 "제외" 목록)** — 사다리(ladder)·문(portal)·채집
-## (gathers)·보스는 이번 슬라이스에 안 옮긴다. 줄(rope)은 다섯 중
-## **첫째 하나만** 옮긴다. 잡졸 스폰은 원작의 "spawn:7"(전투 중 무작위
+## **재해석(1절 "제외" 목록)** — 문(portal)·채집(gathers)·보스는 이번
+## 슬라이스에 안 옮긴다. 잡졸 스폰은 원작의 "spawn:7"(전투 중 무작위
 ## 보충)이 아니라 **고정된 자리 셋**으로 단순화했다 — day/파도 시스템
 ## 자체가 이번 슬라이스 밖이다.
+##
+## **2026-09-12 추가 — 사다리(로프 나머지 넷).** VERTICAL_SLICE_STORY.md
+## 1절이 "줄 이동 하나만"으로 좁혔던 것을 마저 채운다 — data-side.js
+## field.ropes 다섯 다 옮겼다(4 rope + 1 ladder, 좌표·kind 안 바꿈).
+## 각 줄의 top이 그 옆 platform의 y와 정확히 같다 — 발판마다 전용
+## 오름길이 하나씩 있는 구조였다(원작 그대로, 새로 지어낸 배치 아님).
+## kind는 물리(오르내리기)엔 안 쓴다 — side.js도 `kind: r[3] || 'rope'`를
+## 렌더링에만 쓰고 등반 로직은 rope/ladder를 안 가른다(같은 Area3D
+## 판정, story_player.gd 변경 없음) — story_terrain_builder.gd가 시각만
+## 다르게 그린다(사다리는 세로 기둥 둘+가로대, 줄은 원통 하나).
 
 const SCALE := 0.02
 
@@ -32,10 +41,14 @@ const PLATS_PX: Array = [
 	[1900.0, 450.0, 220.0],
 ]
 
-## 웹판 ropes[0] = [340, 430, 560, 'rope'] — kind가 'rope'인 것 중 첫째.
-const ROPE_TOP_PX := 430.0
-const ROPE_BOTTOM_PX := 560.0
-const ROPE_X_PX := 340.0
+## 웹판 FIELDS.field.ropes 그대로 — [x, top_px, bottom_px, kind] 다섯.
+const ROPES_PX: Array = [
+	[340.0, 430.0, 560.0, "rope"],
+	[790.0, 350.0, 560.0, "rope"],
+	[1210.0, 440.0, 560.0, "rope"],
+	[1650.0, 340.0, 560.0, "rope"],
+	[1930.0, 450.0, 560.0, "ladder"],
+]
 
 ## 잡졸 스폰 자리(고정 셋, 위 "재해석" 참고) — 발판 사이 평지 위주로 골랐다.
 const ENEMY_X_PX: Array = [520.0, 1000.0, 1500.0]
@@ -61,12 +74,16 @@ static func plats_m() -> Array:
 	return out
 
 
-static func rope_m() -> Dictionary:
-	return {
-		"x": ROPE_X_PX * SCALE,
-		"top": height_of_px(ROPE_TOP_PX),
-		"bottom": height_of_px(ROPE_BOTTOM_PX),  # = 0.0(바닥)
-	}
+static func ropes_m() -> Array:
+	var out: Array = []
+	for r: Array in ROPES_PX:
+		out.append({
+			"x": float(r[0]) * SCALE,
+			"top": height_of_px(float(r[1])),
+			"bottom": height_of_px(float(r[2])),  # = 0.0(바닥)
+			"kind": String(r[3]),
+		})
+	return out
 
 
 static func enemy_positions_m() -> Array:

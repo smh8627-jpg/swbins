@@ -15,6 +15,7 @@ const PLATFORM_THICKNESS := 0.4
 const GROUND_COLOR := Color(0.435, 0.686, 0.333)  # data-side.js field.ground '#6faf55'
 const PLAT_COLOR := Color(0.55, 0.42, 0.28)
 const ROPE_COLOR := Color(0.6, 0.5, 0.35)
+const LADDER_COLOR := Color(0.42, 0.32, 0.2)  # 사다리 — 줄보다 짙은 목재색
 const WALL_HEIGHT := 20.0
 
 
@@ -22,7 +23,8 @@ func _ready() -> void:
 	_build_ground()
 	for p: Dictionary in FieldMap.plats_m():
 		_build_platform(p)
-	_build_rope()
+	for r: Dictionary in FieldMap.ropes_m():
+		_build_climb(r)
 	_build_boundary_walls()
 
 
@@ -58,28 +60,22 @@ func _build_box(center_x: float, center_y: float, width: float, thickness: float
 	body.add_child(cs)
 
 
-## 웹판 ropes[0](kind:'rope') — 오르내리는 동안 옆으로 못 움직이게
-## story_player.gd가 이 Area3D 안에서만 "on_rope" 상태로 바뀐다.
-func _build_rope() -> void:
-	var r: Dictionary = FieldMap.rope_m()
+## 웹판 field.ropes 다섯(rope 넷+ladder 하나) — 오르내리는 동안 옆으로
+## 못 움직이게 story_player.gd가 이 Area3D 안에서만 "on_rope" 상태로
+## 바뀐다. kind는 시각만 가른다(등반 판정은 story_player.gd가 rope든
+## ladder든 똑같이 다룬다 — 원작도 물리를 안 가른다, field_map.gd 참고).
+func _build_climb(r: Dictionary) -> void:
 	var height: float = float(r.top) - float(r.bottom)
 	var mid_y: float = float(r.bottom) + height * 0.5
+	var kind: String = String(r.kind)
 
-	var visual := MeshInstance3D.new()
-	visual.name = "Rope"
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = 0.06
-	cyl.bottom_radius = 0.06
-	cyl.height = height
-	visual.mesh = cyl
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = ROPE_COLOR
-	visual.material_override = mat
-	visual.position = Vector3(float(r.x), mid_y, 0)
-	add_child(visual)
+	if kind == "ladder":
+		_build_ladder_visual(float(r.x), mid_y, height)
+	else:
+		_build_rope_visual(float(r.x), mid_y, height)
 
 	var area := Area3D.new()
-	area.name = "RopeArea"
+	area.name = "LadderArea" if kind == "ladder" else "RopeArea"
 	area.add_to_group("story_rope")
 	var cs := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -93,6 +89,58 @@ func _build_rope() -> void:
 	area.body_entered.connect(_on_rope_body_entered.bind(area))
 	area.body_exited.connect(_on_rope_body_exited.bind(area))
 	add_child(area)
+
+
+func _build_rope_visual(x: float, mid_y: float, height: float) -> void:
+	var visual := MeshInstance3D.new()
+	visual.name = "Rope"
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.06
+	cyl.bottom_radius = 0.06
+	cyl.height = height
+	visual.mesh = cyl
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = ROPE_COLOR
+	visual.material_override = mat
+	visual.position = Vector3(x, mid_y, 0)
+	add_child(visual)
+
+
+## 사다리 — 세로 기둥 둘(폭 0.5m) + 0.4m 간격 가로대. 줄과 시각으로만
+## 갈린다(위 _build_climb() 머리말).
+func _build_ladder_visual(x: float, mid_y: float, height: float) -> void:
+	var root := Node3D.new()
+	root.name = "Ladder"
+	root.position = Vector3(x, mid_y, 0)
+	add_child(root)
+
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = LADDER_COLOR
+
+	for side_x: float in [-0.25, 0.25]:
+		var rail := MeshInstance3D.new()
+		var rail_mesh := CylinderMesh.new()
+		rail_mesh.top_radius = 0.04
+		rail_mesh.bottom_radius = 0.04
+		rail_mesh.height = height
+		rail.mesh = rail_mesh
+		rail.material_override = mat
+		rail.position = Vector3(side_x, 0, 0)
+		root.add_child(rail)
+
+	var rung_gap := 0.4
+	var rung_count: int = maxi(1, floori(height / rung_gap))
+	for i in rung_count:
+		var rung := MeshInstance3D.new()
+		var rung_mesh := CylinderMesh.new()
+		rung_mesh.top_radius = 0.035
+		rung_mesh.bottom_radius = 0.035
+		rung_mesh.height = 0.5
+		rung.mesh = rung_mesh
+		rung.material_override = mat
+		rung.rotation.z = PI * 0.5
+		rung.position = Vector3(0, height * 0.5 - float(i) * rung_gap, 0)
+		root.add_child(rung)
 
 
 func _on_rope_body_entered(body: Node3D, area: Area3D) -> void:
