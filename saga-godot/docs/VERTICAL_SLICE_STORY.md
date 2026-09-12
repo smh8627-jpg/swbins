@@ -200,6 +200,36 @@ MP 게이지 체감(전용 UI가 없어 지금은 눈에 안 보인다, 다음�
 "제외" 목록의 다음 항목(사다리+Z축 깊이, 나머지 사냥터, 전직 트리 등) —
 승인 후.
 
+## 5. MP 게이지 HUD (2026-09-12)
+
+**사용자 지시 "saga-godot 이어해"** — 4절이 남긴 두 후보(MP HUD·"제외"
+목록 다음 항목) 중 작고 바로 앞 작업의 손맛을 눈에 보이게 하는 쪽을
+먼저 골랐다. quest_label.gd와 같은 폴링 패턴(플레이어→HUD로 신호를
+새로 안 뚫는다)의 `ProgressBar` 하나.
+
+**구현**:
+- `ui/mp_bar.gd`(신규) — `_ready()`에서 `max_value`를 `StoryCombat.
+  MP_MAX`로 고정, `_process()`가 매 프레임 `player.mp`를 읽어
+  `value`에 반영.
+- `StoryHUD.tscn` — `MpLabel`(텍스트 "MP") + `MpBar`(`ProgressBar`,
+  `mp_bar.gd` 부착)를 QuestLabel 바로 아래(offset_top 148~172)에 추가.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결. **임시 디버그로
+실제 값 확인**(`story_field.gd`에 프레임 카운터 기반 디버그를 잠깐
+추가 — `await get_tree().process_frame`은 이 헤드리스 `--quit-after`
+조합에서 재개되지 않아 못 썼다, 대신 `_process()` 프레임 카운트로
+바꿔 확인): 3프레임째 `player.mp`를 37.0으로 강제 설정 → 6프레임째
+`MpBar.value`가 37.0(설정 직후 값, `player.mp`는 그새 회복으로
+37.13까지 오름 — 폴링이 매 프레임 갱신되고 있다는 뜻)으로 확인.
+디버그 원상복구(`story_field.gd` git diff 0줄).
+
+**GUI 실기 확인은 아직 안 함** — 게이지 위치가 화면을 안 가리는지,
+줄어들고 차는 게 눈으로 보기 편한지는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — STORY "제외" 목록 다음 항목(사다리+Z축 깊이·나머지
+사냥터·전직 트리 등), 또는 다른 판 작업 — 승인 후.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

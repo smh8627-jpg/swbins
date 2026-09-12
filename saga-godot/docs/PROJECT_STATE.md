@@ -4301,3 +4301,18 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
     체감이 눈에 안 보인다(다음 후보). 계속 몰아서 받을 것.
   - **다음 이어질 것** — MP HUD 게이지, 또는 STORY "제외" 목록 다음
     항목(사다리+Z축 깊이·나머지 사냥터·전직 트리 등) — 승인 후.
+
+
+## STORY MP 게이지 HUD (2026-09-12)
+
+- **사용자 지시 "saga-godot 이어해"** — 위 두 후보 중 작은 쪽(MP HUD)을
+  먼저 골랐다. `ui/mp_bar.gd`(신규, quest_label.gd와 같은 폴링 패턴) +
+  `StoryHUD.tscn`에 `MpLabel`+`MpBar`(ProgressBar) 추가.
+  - 자세한 기록은 `docs/VERTICAL_SLICE_STORY.md` 5절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결. 임시 디버그로
+    player.mp를 37.0으로 강제 설정 후 몇 프레임 뒤 MpBar.value가 그
+    값을 정확히 따라옴(폴링 확인) → 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — STORY "제외" 목록 다음 항목(사다리+Z축 깊이·
+    나머지 사냥터·전직 트리 등), 또는 다른 판 작업 — 승인 후.
