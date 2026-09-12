@@ -12,15 +12,20 @@ extends Node
 ## 애초에 저장할 상태 자체가 없다).
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2  # 1→2: mats(필드 채집 누적) 추가
 
 var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
+var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
 
 
 func add_kill() -> void:
 	kills += 1
+
+
+func add_mat(kind: String, amount: int = 1) -> void:
+	mats[kind] = int(mats.get(kind, 0)) + amount
 
 
 func quest_done() -> bool:
@@ -37,6 +42,7 @@ func save() -> bool:
 		"level": level,
 		"exp": exp,
 		"kills": kills,
+		"mats": mats,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -61,6 +67,8 @@ func try_load() -> bool:
 	level = int(data.get("level", 1))
 	exp = int(data.get("exp", 0))
 	kills = int(data.get("kills", 0))
+	var loaded_mats: Variant = data.get("mats", {})
+	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:

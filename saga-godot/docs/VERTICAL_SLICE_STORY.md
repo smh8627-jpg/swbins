@@ -271,9 +271,45 @@ SCALE(0.02)로 정확히 옮긴 값과 일치(예: x=38.6m=1930px×0.02, kind
 발판을 실제로 오르내리는 느낌이 자연스러운지는 눈으로 볼 것. 계속
 몰아서 받을 것.
 
-**다음 이어질 것** — 1절 "제외" 목록의 나머지(Gameplay Depth 실제
-Z축 이동·나머지 사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판
-작업 — 승인 후.
+**다음 이어질 것** — ~~1절 "제외" 목록의 나머지~~(7절에서 채집 완료),
+남은 것: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳·전직 트리·
+장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+## 7. 필드 채집(gathers) — 들꽃 셋 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. field_map.gd 머리말이 "문(portal)·
+채집(gathers)·보스는 이번 슬라이스에 안 옮긴다"고 적어 뒀던 셋 중
+채집을 채웠다 — data-side.js `field.gathers` 셋(전부 herb/들꽃) 그대로,
+side.js `GATHER_R=50px`·`GATHER_RESPAWN=45초` 그대로(§136-137, SCALE로
+미터 환산: 반경 1.0m). 원작은 `s.mats[kind]` 누적 카운터(칸 제한
+없음) — 그대로 옮겼다.
+
+- `field_map.gd`: `GATHERS_PX`(신규) + `gather_positions_m()`.
+- `story_combat.gd`: `GATHER_RADIUS_M`·`GATHER_RESPAWN_SEC`·`GATHER_INFO`
+  (herb만, 다른 사냥터가 늘면 berry/ore/cinder 추가) 신규.
+- `story_save_state.gd`: `mats: Dictionary`(신규) + `add_mat()`. 세이브에
+  포함, SAVE_VERSION 1→2(마이그레이션 체인 없이 그냥 재시작 — 기존
+  규칙 그대로).
+- `story_gather.gd`(신규) — Area3D 트리거(loot_pickup.gd와 같은 뼈대),
+  밟으면 사라지고 Toast로 알림 + `GATHER_RESPAWN_SEC` 뒤 같은 자리에
+  다시 돋는다. `story_gather_spawner.gd`(신규) — story_enemy_spawner.gd와
+  같은 패턴으로 `gather_positions_m()`의 고정 자리 셋에 하나씩 세운다.
+  `TestField.tscn`에 `GatherSpawner` 노드 추가.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림 — 나머지 project.godot/*.import 변경 없음) → 다섯 씬
+  세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST 회귀 확인 포함). 임시
+  디버그(`GATHER_RESPAWN_SEC`를 3.0으로 잠깐 낮춤)로: 세 자리 좌표가
+  480/1050/1750px×0.02=9.6/21.0/35.0m와 정확히 일치, 첫 접촉 시
+  `mats.herb`가 1로 늘고 시각·판정이 꺼짐, 안 살아있는 동안 다시
+  밟아도 안 늘어남(같은 자리 반복 접촉해도 1 유지), respawn 뒤
+  다시 밟으면 2로 늘어남(재획득 가능) 확인. 디버그 원상복구
+  (`GATHER_RESPAWN_SEC` 45.0로, diff 0).
+- **GUI 실기 확인은 아직 안 함** — 들꽃이 실제로 눈에 띄는 크기·색인지,
+  줍는 손맛(사라짐+토스트)이 자연스러운지는 눈으로 볼 것. 계속 몰아서
+  받을 것.
+- **다음 이어질 것** — 1절 "제외" 목록의 나머지(Gameplay Depth 실제
+  Z축 이동·나머지 사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판
+  작업 — 승인 후.
 
 ## FINAL RULE (이 문서에도 동일 적용)
 

@@ -26,6 +26,10 @@ extends RefCounted
 ## 렌더링에만 쓰고 등반 로직은 rope/ladder를 안 가른다(같은 Area3D
 ## 판정, story_player.gd 변경 없음) — story_terrain_builder.gd가 시각만
 ## 다르게 그린다(사다리는 세로 기둥 둘+가로대, 줄은 원통 하나).
+##
+## **2026-09-13 추가 — 필드 채집(gathers).** field_map.gd 머리말이
+## "문(portal)·채집·보스는 이번 슬라이스에 안 옮긴다"고 적어 뒀던 셋 중
+## 하나를 채운다 — data-side.js field.gathers 셋(전부 herb) 그대로.
 
 const SCALE := 0.02
 
@@ -52,6 +56,13 @@ const ROPES_PX: Array = [
 
 ## 잡졸 스폰 자리(고정 셋, 위 "재해석" 참고) — 발판 사이 평지 위주로 골랐다.
 const ENEMY_X_PX: Array = [520.0, 1000.0, 1500.0]
+
+## data-side.js FIELDS.field.gathers 그대로 — [x, kind] 셋, 전부 herb(들꽃).
+const GATHERS_PX: Array = [
+	[480.0, "herb"],
+	[1050.0, "herb"],
+	[1750.0, "herb"],
+]
 
 
 static func width_m() -> float:
@@ -90,4 +101,11 @@ static func enemy_positions_m() -> Array:
 	var out: Array = []
 	for x: float in ENEMY_X_PX:
 		out.append(x * SCALE)
+	return out
+
+
+static func gather_positions_m() -> Array:
+	var out: Array = []
+	for g: Array in GATHERS_PX:
+		out.append({"x": float(g[0]) * SCALE, "kind": String(g[1])})
 	return out

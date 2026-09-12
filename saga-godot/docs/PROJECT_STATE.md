@@ -4339,3 +4339,28 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 1절 "제외" 목록의 나머지(Z축 깊이·나머지
     사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 필드 채집 — 들꽃 셋 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 1절 "제외" 목록이 아니라
+  field_map.gd 자체 머리말이 남겨 둔 세 미완성(문·채집·보스) 중
+  채집을 채웠다. data-side.js field.gathers 셋(전부 herb) + side.js
+  GATHER_R(50px)·GATHER_RESPAWN(45초) 그대로, s.mats[kind] 누적
+  카운터 방식도 그대로.
+  - `field_map.gd`: `GATHERS_PX`+`gather_positions_m()` 신규.
+    `story_combat.gd`: `GATHER_RADIUS_M`·`GATHER_RESPAWN_SEC`·
+    `GATHER_INFO`(herb만) 신규. `story_save_state.gd`: `mats`
+    Dictionary+`add_mat()`, SAVE_VERSION 1→2. `story_gather.gd`+
+    `story_gather_spawner.gd`(신규, loot_pickup.gd·story_enemy_
+    spawner.gd 패턴 재사용) + `TestField.tscn`에 GatherSpawner 노드.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 7절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(GATHER_RESPAWN_SEC 3.0으로
+    잠깐 낮춤)로 좌표 셋(9.6/21.0/35.0m) 정확, 첫 접촉 시 mats.herb=1·
+    시각/판정 꺼짐, 안 살아있는 동안 반복 접촉해도 안 늘어남, respawn
+    뒤 재접촉 시 2로 늘어남까지 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 1절 "제외" 목록의 나머지(Z축 깊이·나머지
+    사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판 작업 — 승인 후.

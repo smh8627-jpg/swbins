@@ -63,6 +63,17 @@ const BRACE_SEC := 8.0
 const BRACE_ATK_MUL := 1.35
 const BRACE_SPEED_MUL := 1.2
 
+## side.js GATHER_R=50px·GATHER_RESPAWN=45초(§136-137) 그대로 — field_map.gd
+## SCALE(0.02)로 미터 환산. 필드 채집(허브 등) 판정 반경·되돋는 시간.
+const GATHER_RADIUS_M := 1.0  # 50px * 0.02
+const GATHER_RESPAWN_SEC := 45.0
+
+## data-side.js GATHERS 표 — 이 슬라이스는 field.gathers가 전부 herb라
+## 이 하나만 옮긴다(다른 사냥터가 늘어나면 berry/ore/cinder도 추가).
+const GATHER_INFO := {
+	"herb": {"name": "들꽃", "emoji": "🌼"},
+}
+
 static var _hitstop_active := false
 
 
