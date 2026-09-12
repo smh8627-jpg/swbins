@@ -2686,3 +2686,22 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
     전부 Bash로 써도 PowerShell에서 바로 보였다. `saga-godot/CLAUDE.md`의
     관련 안내도 "확정된 격리" 대신 "가끔 exe가 안 보일 수 있으니 그때
     PowerShell로 다시 받으면 된다"는 정도로 낮춰 정정함
+
+## FOREST — Vertical Slice 설계 착수 (2026-09-12)
+
+사용자가 "다음 판 계획이나 살펴봐" → "구면 투영부터 정하자, 정점 셰이더
+쪽으로"로 지시. **DUNGEON의 GUI 승인 게이트를 기다리지 않고 FOREST 설계를
+병행 착수**(설계는 구현 착수 순서와 별개). 자세한 내용·공식·검증은
+`docs/VERTICAL_SLICE_FOREST.md` 신규 — 여기는 짧게만:
+
+- **구면 투영을 정점 셰이더로 결정.** 진짜 구 지오메트리가 아니라 순수
+  시각 효과 — 걷기·타일 판정은 계속 평면 그리드. 공용 include
+  `saga_core/shaders/world_curve.gdshaderinc`(신규)로 뽑아 뒀다 — 중심
+  (플레이어) 기준 원형 포물면, Y축 회전만 쓰는 오브젝트 전제.
+- 헤드리스로 셰이더 컴파일·공식 검산은 확인. **global uniform 실제 반영은
+  헤드리스 더미 렌더러가 stub만 해 둔 것으로 보여 확인 불가** — GUI/실기
+  때 같이 볼 것으로 미룸(FOREST 씬 자체가 아직 없어 지금은 확인할 지형도
+  없다).
+- 아직 안 정한 것(다음에 이어 정함): 카메라, 월드 스케일(미터/타일 비율),
+  Vertical Slice 포함/제외 범위, 2026-09-10 "몬스터·퓨전 자유" 메모가
+  saga-godot 트랙에도 적용되는지.
