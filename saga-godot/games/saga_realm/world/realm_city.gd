@@ -16,6 +16,12 @@ extends Node3D
 ## - **2026-09-12 추가 — 치안(sec)이 명령으로 들어와 값이 생겼다.**
 ##   city3d.js "치안이 높으면 횃불 하나가 더 선다"(sec>=80)를 그대로
 ##   옮겨 셋째 횃불을 `_dyn` 아래로 옮겼다(값에 물리니 고정 소품이 아니다).
+## - **2026-09-12 추가 — 여러 성(진류·복양·허창).** 디오라마는 여전히
+##   하나뿐이다("성 하나를 3D로 조망한다", 1절) — `RealmSaveState.
+##   current_city`가 가리키는 성의 값을 읽어 같은 자리에서 다시 짓는다.
+##   성 버튼(`realm_city_button.gd`)으로 current_city가 바뀌면 sig()가
+##   달라져 자동으로 다시 지어진다. 세 성을 동시에 한 지도 위에 띄우는
+##   realm3d.js식 월드맵은 아직 안 만들었다(다음에 볼 자리).
 ##
 ## 대(기단)+누각(망루)+담장은 고정(전 세션에 지음, 안 바꿨다). 이 디오라마
 ## 링만 원작 `city3d.js` `build()`의 sig() 비교 방식(값이 바뀔 때만 다시
@@ -60,23 +66,26 @@ func _process(_delta: float) -> void:
 	_rebuild_if_changed()
 
 
-## city3d.js sig()/render() 그대로 — 성이 다르거나 숫자가 바뀌었을 때만
-## 다시 짓는다(매 프레임 재생성 방지).
+## city3d.js sig()/render() 그대로 — 성이 다르거나(current_city) 숫자가
+## 바뀌었을 때만 다시 짓는다(매 프레임 재생성 방지).
 func _rebuild_if_changed() -> void:
-	var sig := "%d:%d:%d:%d:%s" % [
-		RealmSaveState.agri, RealmSaveState.comm, RealmSaveState.food, RealmSaveState.sec,
+	var city_id := RealmSaveState.current_city
+	var c: Dictionary = RealmSaveState.cities.get(city_id, {})
+	var sig := "%s:%d:%d:%d:%d:%s" % [
+		city_id, int(c.get("agri", 0)), int(c.get("comm", 0)),
+		int(c.get("food", 0)), int(c.get("sec", 0)),
 		",".join(RealmSaveState.roster)]
 	if sig == _last_sig:
 		return
 	_last_sig = sig
 
-	for c in _dyn.get_children():
-		c.queue_free()
-	_build_farms()
-	_build_markets()
-	_build_granary()
+	for ch in _dyn.get_children():
+		ch.queue_free()
+	_build_farms(c)
+	_build_markets(c)
+	_build_granary(c)
 	_build_roster_banners()
-	_build_sec_torch()
+	_build_sec_torch(c)
 
 
 func _build_base() -> void:
@@ -171,14 +180,14 @@ func _torch(parent: Node3D, pos: Vector3) -> void:
 
 
 ## city3d.js "치안이 높으면 횃불 하나가 더 선다"(sec>=80) 그대로.
-func _build_sec_torch() -> void:
-	if RealmSaveState.sec >= 80:
+func _build_sec_torch(c: Dictionary) -> void:
+	if int(c.get("sec", 0)) >= 80:
 		_torch(_dyn, Vector3(0, 0, -4.6))
 
 
 ## 밭 — 개간(agri). city3d.js: clamp(round(agri/90), 2, 6).
-func _build_farms() -> void:
-	var n := clampi(roundi(RealmSaveState.agri / FARM_PER), 2, 6)
+func _build_farms(c: Dictionary) -> void:
+	var n := clampi(roundi(float(c.get("agri", 0)) / FARM_PER), 2, 6)
 	for p: Vector2 in _ring(n, 6.4, -2.0):
 		var mi := MeshInstance3D.new()
 		var mesh := BoxMesh.new()
@@ -190,8 +199,8 @@ func _build_farms() -> void:
 
 
 ## 시장 — 상업(comm). city3d.js: clamp(round(comm/80), 1, 5).
-func _build_markets() -> void:
-	var n := clampi(roundi(RealmSaveState.comm / MARKET_PER), 1, 5)
+func _build_markets(c: Dictionary) -> void:
+	var n := clampi(roundi(float(c.get("comm", 0)) / MARKET_PER), 1, 5)
 	for p: Vector2 in _ring(n, 5.6, 1.1):
 		var stall := MeshInstance3D.new()
 		var stall_mesh := BoxMesh.new()
@@ -213,8 +222,8 @@ func _build_markets() -> void:
 
 
 ## 곳간 통나무 — 군량(food). city3d.js: clamp(round(food/400)+1, 1, 4).
-func _build_granary() -> void:
-	var n := clampi(roundi(RealmSaveState.food / GRANARY_PER) + 1, 1, 4)
+func _build_granary(c: Dictionary) -> void:
+	var n := clampi(roundi(float(c.get("food", 0)) / GRANARY_PER) + 1, 1, 4)
 	for i in n:
 		var mi := MeshInstance3D.new()
 		var mesh := CylinderMesh.new()
