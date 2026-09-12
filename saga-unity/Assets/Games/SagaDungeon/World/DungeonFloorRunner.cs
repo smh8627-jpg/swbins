@@ -67,8 +67,18 @@ namespace Saga.Dungeon.World
         private Transform _contentRoot;
         private Transform _player;
 
+        /// <summary>`Data/SaveState.cs`가 저장/복원 시점에 찾아 쓰는 정식
+        /// 접근점 — 씬에 이 컴포넌트가 하나뿐이라(ProcRoom 하나) 싱글턴으로
+        /// 충분하다.</summary>
+        public static DungeonFloorRunner Instance { get; private set; }
+
+        /// <summary>지금 층 — 세이브가 저장하는 값(정확한 방 인덱스·종류까지는
+        /// 안 남긴다, 아래 `JumpToFloor()` 주석 참고).</summary>
+        public int CurrentFloor => _floor;
+
         private void Awake()
         {
+            Instance = this;
             _player = GameObject.FindWithTag("Player")?.transform;
 
             var contentGo = new GameObject("RoomContent");
@@ -77,6 +87,28 @@ namespace Saga.Dungeon.World
 
             _roomTotal = DungeonFormulas.RoomsFor(_floor);
             BuildRoomContent("fight"); // dungeon.js buildFloor() — 층의 첫 방은 항상 전투방.
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
+        /// <summary>`SaveState.TryLoad()`가 부른다(Awake가 끝난 뒤, GameBootstrap
+        /// .Start()에서 — Unity 실행 순서상 이 컴포넌트의 Awake가 이미
+        /// floor=2 첫 방을 지어 둔 다음이라 한 번 다시 짓는 비용이 든다,
+        /// 단순함을 위해 감수). **정확한 방 인덱스·종류까지는 저장하지
+        /// 않는다** — 층 하나가 이 프로젝트가 다루기로 한 "의미 있는 진행
+        /// 단위"라(원작도 `dstate().best`로 최고 층만 따로 추적한다,
+        /// dungeon.js descend()) 저장된 층의 첫 방(전투)부터 다시 시작한다.</summary>
+        public void JumpToFloor(int floor)
+        {
+            if (floor < 2) return;
+            ClearDoorPods();
+            _floor = floor;
+            _roomIndex = 0;
+            _roomTotal = DungeonFormulas.RoomsFor(_floor);
+            BuildRoomContent("fight");
         }
 
         private void Update()

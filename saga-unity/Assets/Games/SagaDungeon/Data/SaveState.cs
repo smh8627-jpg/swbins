@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using UnityEngine;
+using Saga.Dungeon.World;
 
 namespace Saga.Dungeon.Data
 {
@@ -13,13 +14,13 @@ namespace Saga.Dungeon.Data
     /// </summary>
     public static class SaveState
     {
-        // v4(QuestState 순서 무관 플래그로 재설계) — questStage(단일
-        // 정수) 대신 bossDead/minibossDead/captiveFreed 세 플래그로
-        // 저장한다(QuestState.cs 클래스 주석 "결함" 참고). v3 세이브는
-        // 옛 questStage 필드가 JsonUtility로 그대로 읽혀 `RestoreLegacyStage()`
-        // 로 등가 환산되고, v1/v2는 questStage 자체가 없어 int 기본값 0
-        // (아직 아무 것도 안 끝남)으로 채워져 그대로 맞다.
-        private const int SaveVersion = 4;
+        // v5("절차적 층 진행" 슬라이스) — `DungeonFloorRunner.CurrentFloor`를
+        // 저장 안 하면 저장/로드할 때마다 던전 진행이 항상 층2로 돌아가
+        // 버리는 실제 결함이 있었다(이 필드가 생기기 전엔 방이 넷뿐이라
+        // 저장할 "층" 개념 자체가 없어서 문제가 안 됐다). v4 이하 세이브는
+        // dungeonFloor가 int 기본값 0으로 채워지고, `TryLoad()`가 2 미만이면
+        // 무시하도록 짜서 옛 세이브도 그대로 로드된다(새로 층2부터 시작).
+        private const int SaveVersion = 5;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -39,6 +40,7 @@ namespace Saga.Dungeon.Data
             public bool bossDead;
             public bool minibossDead;
             public bool captiveFreed;
+            public int dungeonFloor; // v5 — DungeonFloorRunner.CurrentFloor, 0이면 "없음"(v4 이하 세이브).
         }
 
         public static bool Save()
@@ -60,6 +62,7 @@ namespace Saga.Dungeon.Data
                 bossDead = QuestState.BossDead,
                 minibossDead = QuestState.MinibossDead,
                 captiveFreed = QuestState.CaptiveFreed,
+                dungeonFloor = DungeonFloorRunner.Instance?.CurrentFloor ?? 0,
             };
 
             try
@@ -104,6 +107,10 @@ namespace Saga.Dungeon.Data
             else
             {
                 QuestState.RestoreLegacyStage(data.questStage);
+            }
+            if (data.version >= 5 && data.dungeonFloor >= 2)
+            {
+                DungeonFloorRunner.Instance?.JumpToFloor(data.dungeonFloor);
             }
 
             Transform player = FindPlayer();
