@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://games/saga_forest/world/forest_village.gd" id="1"]
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://games/saga_forest/world/forest_planting.gd" id="13"]
 [ext_resource type="Script" path="res://games/saga_forest/world/forest_wear_visual.gd" id="14"]
 [ext_resource type="Script" path="res://games/saga_forest/world/forest_biome_scatter.gd" id="15"]
+[ext_resource type="Script" path="res://games/saga_forest/world/forest_creature_builder.gd" id="16"]
 [ext_resource type="PackedScene" path="res://games/saga_forest/player/ForestPlayer.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://games/saga_forest/ui/ForestHUD.tscn" id="10"]
 
@@ -36,6 +37,9 @@ script = ExtResource("5")
 
 [node name="BiomeScatter" type="Node3D" parent="."]
 script = ExtResource("15")
+
+[node name="Creatures" type="Node3D" parent="."]
+script = ExtResource("16")
 
 [node name="House" type="Node3D" parent="."]
 script = ExtResource("6")
