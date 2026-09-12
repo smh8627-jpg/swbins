@@ -20,7 +20,14 @@ var _yaw := 0.6
 var _radius := 11.0
 
 
+## **2026-09-12 추가 — 월드맵 카메라(realm_worldmap_camera.gd)와 화면을
+## 나눠 쓴다.** RealmSaveState.viewing_map이 켜지면 이 카메라를 끄고 조작도
+## 멈춘다(둘이 같은 move_* 입력 액션을 나눠 쓰므로 동시에 반응하면 안 된다).
 func _process(delta: float) -> void:
+	current = not RealmSaveState.viewing_map
+	if not current:
+		return
+
 	var turn := Input.get_axis("move_left", "move_right")
 	_yaw += turn * ORBIT_SPEED * delta
 

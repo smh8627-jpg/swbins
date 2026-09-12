@@ -3871,3 +3871,41 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — realm3d.js식 여러 성 월드맵, 또는 전쟁/외교
     (war.js/diplo.js)·문답(quiz.js) — 어느 쪽이든 승인 후.
+
+
+## REALM 월드맵 첫 슬라이스 — 성 셋을 한 지도로 (2026-09-12)
+
+- **사용자 지시 "응 진행해"** — 직전 항목이 남긴 세 후보 중
+  `realm3d.js`(여러 성으로 넓힐 때 다시 보기로 미뤄 왔던 것, 이제 성이
+  셋이라 시점이 됐다)를 골랐다. realm3d.js 전체(1006줄: heightmap
+  지형·해협·드래그 궤도 카메라)는 안 옮기고, "평평한 바닥 + 성마다
+  표지 하나 + 지금 조망 중인 성 강조"로 첫 슬라이스를 좁혔다 —
+  realm_city.gd가 없는 값을 안 그리는 것과 같은 원칙.
+  - `realm_cities.gd`: CITIES에 x·y(data-city.js 좌표) 추가, `map_center()`
+    신설(평균 — 성이 늘어도 상수 재조정 불필요).
+  - `realm_worldmap.gd`(신규): 성마다 기둥+깃발 성표. 실측 좌표를
+    쓰되 축척(WORLD_SCALE=14)은 성 셋짜리 규모에 맞게 새로 골랐다
+    (원작 4.5는 성 서른 곳 기준이라 그대로 쓰면 겹친다). current_city
+    폴링해 강조색 갱신.
+  - `realm_worldmap_camera.gd`(신규): realm_camera.gd와 같은 WASD 궤도
+    카메라, 반경·높이만 지도 전체 크기로.
+  - `realm_map_button.gd`(신규) + `RealmSaveState.viewing_map`(신설,
+    저장 안 함) — "지도" 버튼 하나로 디오라마⇄월드맵 전환.
+  - `realm_city.gd`/`realm_camera.gd`: viewing_map 폴링해 디오라마·
+    카메라 끄고 켜기(두 카메라가 같은 WASD를 나눠 쓰므로 불리언 하나로
+    정확히 하나만 활성화).
+  - `TestCity.tscn`/`RealmHUD.tscn`: WorldMap·WorldMapCamera3D 노드,
+    "지도" 버튼 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-8절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경
+    없음, texture-a.png.import는 늘 그렇듯 재발생해 되돌림) → 다섯 씬
+    전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전 무결(error/warn/
+    missing/invalid/cannot 전부 0건). 임시 디버그로 map_center·세 마커
+    좌표 손 계산과 전부 일치 확인 — 이 과정에서 허창-복양 대각 거리가
+    처음 잡은 GROUND_SPAN(220)보다 커 가장자리가 빠듯한 것을 발견해
+    260으로 키웠다(재검증 통과 확인). viewing_map 기본값/전환 확인.
+    디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 마커가 안 겹치고 읽히는지, 카메라
+    전환이 매끄러운지는 눈으로 볼 것. 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 성표 탭으로 조망 대상 바꾸기, 또는 전쟁/외교
+    (war.js/diplo.js)·문답(quiz.js) — 어느 쪽이든 승인 후.

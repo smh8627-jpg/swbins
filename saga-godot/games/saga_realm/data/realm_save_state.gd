@@ -58,6 +58,14 @@ var gold := 3200
 var cities: Dictionary = {}
 var current_city := RealmCities.DEFAULT_CITY  # "지금 조망 중인 성"
 
+## **2026-09-12 추가 — 월드맵 손잡이(viewing_map).** true면 realm_worldmap.gd
+## (성 셋을 한눈에)를 보여주고 diorama(realm_city.gd, "성 하나를 3D로
+## 조망")를 숨긴다. **저장하지 않는다** — 세이브를 열 때마다 항상 디오라마
+## 부터 보이는 게 원작 rtk.js의 "2D 지도가 기본"과 같은 결(realm3d.js는
+## 2026-09-11부터 기본 on이지만, 그건 30개 성 전체를 다루는 원작 얘기고
+## 이 슬라이스는 아직 지도가 순전히 조망용이라 디오라마가 더 자주 쓰인다).
+var viewing_map := false
+
 var roster: Array = [RealmOfficerPool.STARTING_OFFICER]
 var found: Array = []               # 수색으로 찾아냈지만 아직 등용 전
 ## officer_id -> city_id. 개발형 명령(agri~ships·draft)은 이 배치를 따진다

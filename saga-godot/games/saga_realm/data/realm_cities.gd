@@ -13,14 +13,17 @@ extends RefCounted
 ## 명령이 처음으로 실제 쓸모가 생겼다 — plain 성은 capOf('ships')=0이라
 ## 여전히 항상 실패한다).
 
+## **2026-09-12 추가 — x·y.** `data-city.js`의 지도 좌표(0~100, 지도 비율)를
+## 그대로 실측해 옮겼다 — `realm_worldmap.gd`가 성 셋의 실제 방향·비율을
+## 그대로 쓰기 위해서다(축척만 새로 고른다, `map_center()` 참고).
 const CITIES := [
-	{"id": "chenliu", "name": "진류", "hanja": "陳留", "land": "plain",
+	{"id": "chenliu", "name": "진류", "hanja": "陳留", "land": "plain", "x": 63, "y": 39,
 	 "agri_start": 340, "comm_start": 320, "wall_start": 4800, "pop_start": 240000,
 	 "desc": "연주의 중심. 의병을 일으키기 좋은 자리."},
-	{"id": "puyang", "name": "복양", "hanja": "濮陽", "land": "river",
+	{"id": "puyang", "name": "복양", "hanja": "濮陽", "land": "river", "x": 68, "y": 33,
 	 "agri_start": 300, "comm_start": 280, "wall_start": 4600, "pop_start": 210000,
 	 "desc": "황하를 낀 연주의 목. 물길이 곧 길이다."},
-	{"id": "xuchang", "name": "허창", "hanja": "許昌", "land": "plain",
+	{"id": "xuchang", "name": "허창", "hanja": "許昌", "land": "plain", "x": 58, "y": 47,
 	 "agri_start": 400, "comm_start": 360, "wall_start": 5400, "pop_start": 260000,
 	 "desc": "중원 한복판. 둔전을 벌이기에 이만한 땅이 없다."},
 ]
@@ -59,6 +62,17 @@ static func ids() -> Array:
 	for c: Dictionary in CITIES:
 		out.append(String(c.id))
 	return out
+
+
+## realm_worldmap.gd가 x·y를 화면 중앙 기준으로 옮길 때 쓰는 중심점 — 성
+## 목록이 셋뿐이라 상수로 안 박고 평균을 낸다(성이 늘어도 그대로 맞는다).
+static func map_center() -> Vector2:
+	var sx := 0.0
+	var sy := 0.0
+	for c: Dictionary in CITIES:
+		sx += float(c.x)
+		sy += float(c.y)
+	return Vector2(sx / CITIES.size(), sy / CITIES.size())
 
 
 static func _land(id: String) -> String:

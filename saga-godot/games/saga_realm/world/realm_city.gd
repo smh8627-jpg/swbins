@@ -62,8 +62,13 @@ func _ready() -> void:
 	add_child(_dyn)
 
 
+## **2026-09-12 추가 — 월드맵과 화면을 나눠 쓴다.** RealmSaveState.
+## viewing_map이 켜지면(realm_map_button.gd) 이 디오라마를 숨기고 리빌드도
+## 건너뛴다 — realm_worldmap.gd가 대신 보인다.
 func _process(_delta: float) -> void:
-	_rebuild_if_changed()
+	visible = not RealmSaveState.viewing_map
+	if visible:
+		_rebuild_if_changed()
 
 
 ## city3d.js sig()/render() 그대로 — 성이 다르거나(current_city) 숫자가
