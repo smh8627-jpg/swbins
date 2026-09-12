@@ -5,6 +5,59 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **STORY — 콘텐츠 확장: 무예 나머지 셋 + 잡졸 열 + 로프/발판 결함 수정
+  (2026-09-13, 열여섯 번째 세션, "2,3,4 순으로 다해줘"의 (2)).**
+  VERTICAL_SLICE_STORY.md 1절 "제외" 목록(무예 나머지 셋, 사명이
+  3/10에서 멈추는 문제)과 열다섯 번째 세션이 "아직 안 고침"으로 남긴
+  로프/발판 결함을 함께 메웠다.
+  - **잡졸 열 자리** — `FieldMapData.EnemyXPx`를 셋→열로 늘려
+    `StoryQuestState.KillGoal`(10)과 정확히 맞췄다("첫 사냥"이 이제
+    실제로 완료될 수 있다). 여전히 고정 자리 단순화 유지(원작의
+    무작위 리스폰은 범위 밖) — 자리 수만 늘렸다.
+  - **로프/발판 결함 수정** — Platform[0](X 3.8~9.0)이 로프(X=6.8) 바로
+    위를 지나 로프 위쪽 절반을 오르면 CharacterController가 발판
+    밑면에 꼈던 문제(열다섯 번째 세션 발견, 미수정). 로프를 옮기거나
+    자르는 대신 **발판 쪽에 틈을 낸다** — `StoryTerrainBuilder
+    .BuildPlatform()`이 로프 X가 발판 범위 안이면 두 조각(좌우, 틈
+    반폭 0.5=플레이어 반지름0.4+여유)으로 쪼개 짓는다. 오르는 높이는
+    그대로(발판 높이까지), 그 사이로 통과만 시킨다.
+  - **무예 나머지 셋** — 횡소(橫掃, aoe, cost18·cd4·mul1.8·r≈2.34m)·
+    기탄(氣彈, 관통 투사체, cost24·cd6·mul2.1·speed≈10.4m/s, 신규
+    `World/StoryBolt.cs`)·기합(氣合, buff, cost30·cd14·8초간 공격
+    +35%·이동+20%) — `js/data-job.js` SKILLS[0..3](job:'none' 넷)
+    값 그대로, r·spd 등 픽셀만 `FieldMapData.ScaleMPerPx`(구
+    `Scale`을 공개로 승격, 중복 정의 방지)로 환산. MP 자원 신규
+    (`StoryCombat.Mp`, MpMax=100·회복 8/초, side.js MP_MAX/MP_REGEN
+    그대로) — 세이브엔 안 넣음(레벨업·장비처럼 이 슬라이스 밖).
+    키보드 2/3/4(연참은 기존 J 그대로), 모바일 액션 버튼 셋 추가
+    (점프·공격 줄 위 한 줄, `BuildTestStoryScene.cs`).
+  - `StoryHud.cs`에 MP 표시 줄 추가(사명 진행도 아래).
+  - `PlaytestStorySlice.cs` 대폭 확장 — 잡졸 열 킬(사명 완료 확인
+    포함)·횡소/기탄/기합 각각 즉석 더미로 실제 피해+MP 차감 확인(기탄은
+    관통이라 더미 둘을 한 줄에 세워 둘 다 죽는지)·로프 위쪽 끝 겹침
+    없음(신규 `RopeTopClearance` 단계, `Move(Vector3.zero)`로 겹침
+    강제 재계산)까지. **자동 검증 중 테스트 자체의 결함 둘을 잡았다**
+    — (1) MP 차감 확인을 대기(realtime wait) 이후에 하면 그 사이
+    자연회복(TickMpRegen)이 이미 수치를 불려 놔 항상 실패 — 대기
+    전으로 옮겨 고침. (2) `TeleportPlayer()`(CC disable→대입→enable)를
+    같은 프레임 안에서 두 번 연달아 부르면(로프 꼭대기→곧바로 밑동)
+    물리 스텝이 한 번도 안 낀 채 토글이 겹쳐 트리거 겹침 추적이 꼬여
+    나중 실제 이탈(Move) 때 OnTriggerExit이 안 잡혔다 — 사이에 실시간
+    대기(`RopeDescend` 단계)를 끼워 고침. 세이브/로드 kills 기대값도
+    하드코딩 3 대신 저장 직전 실측값으로 바꿈(스킬 테스트 더미까지
+    합쳐 실제로는 13).
+  - 컴파일(오류 없음)·씬 재빌드(`BuildTestStoryScene`, 경고 없음)·
+    `PlaytestStorySlice`(`OK - killed 10 grunts (quest done),
+    sweep/bolt/brace/jump/rope/save-load all verified, no errors`)·
+    회귀 `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·
+    `PlaytestForestHeadless`·`PlaytestDungeonFloorProgression`(다른
+    트랙·DUNGEON 문 구성 무관 확인) 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨, 열다섯 번째 세션의 STORY
+    첫 슬라이스 확인 항목에 이어짐) — 횡소·기탄·기합 손맛(특히 기탄
+    투사체가 날아가는 게 자연스러운지)·기합 버프 중 이동·공격이
+    실제로 빨라 보이는지·잡졸 열을 실기로 잡아 "첫 사냥" 완료 배너가
+    뜨는지·로프 꼭대기 근처가 실제로 안 막히는지·모바일 액션 버튼
+    다섯 개(점프·공격·횡소·기탄·기합)가 화면에서 안 겹치는지.
 - **DUNGEON — 위성↔위성 지름길: Town3↔Town2 (2026-09-12, 열다섯 번째
   세션 이어서, "1,2 다해줘"의 (2)).** saga-dungeon 웹판 PLAN.md §28-3
   "위성↔위성 통로"를 개념만 참고했다(코드 없음 — 웹판은 화면이 서로

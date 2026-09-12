@@ -33,7 +33,8 @@ namespace Saga.Story.UI
             if (label == null) return;
             bool done = StoryQuestState.QuestDone;
             label.text = $"🗡️ 첫 사냥 {Mathf.Min(StoryQuestState.Kills, StoryQuestState.KillGoal)}/{StoryQuestState.KillGoal}" +
-                         (done ? " — 완료!" : "");
+                         (done ? " — 완료!" : "") +
+                         $"\n💧 MP {Mathf.RoundToInt(StoryCombat.Mp)}/{Mathf.RoundToInt(StoryCombat.MpMax)}";
         }
     }
 }

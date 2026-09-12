@@ -37,8 +37,18 @@ namespace Saga.Story.Player
         private float _verticalVelocity;
         private float _facing = 1f; // +1 오른쪽, -1 왼쪽
         private float _attackCooldownLeft;
+        private float _sweepCooldownLeft;
+        private float _boltCooldownLeft;
+        private float _braceCooldownLeft;
+        private float _buffUntilTime; // Time.time 기준 — 기합(氣合) 지속시간, StoryCombat.BraceSeconds
         private StoryRope _ropeArea;
         private bool _onRope;
+
+        private bool BuffActive => Time.time < _buffUntilTime;
+
+        /// <summary>side.js buffOn().atk와 같은 자리 — 기합이 켜져 있으면
+        /// 연참·횡소·기탄 전부 이 값으로 굴린다.</summary>
+        private float CurrentAtk => StoryCombat.StartAtk * (BuffActive ? StoryCombat.BraceAtkMul : 1f);
 
         private void Awake()
         {
@@ -50,6 +60,10 @@ namespace Saga.Story.Player
         {
             float dt = Time.deltaTime;
             _attackCooldownLeft = Mathf.Max(0f, _attackCooldownLeft - dt);
+            _sweepCooldownLeft = Mathf.Max(0f, _sweepCooldownLeft - dt);
+            _boltCooldownLeft = Mathf.Max(0f, _boltCooldownLeft - dt);
+            _braceCooldownLeft = Mathf.Max(0f, _braceCooldownLeft - dt);
+            StoryCombat.TickMpRegen(dt);
             CheckRope();
 
             if (_onRope && _ropeArea != null) Climb(dt);
@@ -73,12 +87,21 @@ namespace Saga.Story.Player
             }
 
             if (WantsAttack()) TryAttack();
+            if (WantsSweep()) TrySweep();
+            if (WantsBolt()) TryBolt();
+            if (WantsBrace()) TryBrace();
         }
 
         /// <summary>모바일 "공격" 버튼(OnClick)이 부른다 — 쿨다운 확인은
         /// TryAttack() 안에서 하므로 이 경로도 DUNGEON PlayerCombat.cs의
         /// TriggerAttack()과 같이 쿨다운을 그대로 존중한다.</summary>
         public void TriggerAttack() => TryAttack();
+
+        /// <summary>모바일 "횡소"·"기탄"·"기합" 버튼(OnClick)이 부른다 —
+        /// 위 TriggerAttack()과 같은 결.</summary>
+        public void TriggerSweep() => TrySweep();
+        public void TriggerBolt() => TryBolt();
+        public void TriggerBrace() => TryBrace();
 
         /// <summary>모바일 "점프" 버튼(OnClick)이 부른다.</summary>
         public void TriggerJump()
@@ -98,10 +121,52 @@ namespace Saga.Story.Player
                 if (Mathf.Abs(dx) > AttackRange) continue;
                 if (Mathf.Abs(dx) > 0.3f && !Mathf.Approximately(Mathf.Sign(dx), _facing)) continue; // 등 뒤는 안 맞는다.
 
-                var (dmg, crit) = StoryCombat.RollDamage(StoryCombat.StartAtk);
+                var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk);
                 enemy.TakeDamage(dmg);
                 if (crit) StoryCombat.TriggerHitstop(this);
             }
+        }
+
+        /// <summary>횡소(橫掃) — data-job.js sweep, aoe. 등 뒤·앞 구분 없이
+        /// 반경 안 전부(side.js castSkill() effect==='aoe'와 같은 결).</summary>
+        private void TrySweep()
+        {
+            if (_sweepCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.SweepCost)) return;
+            _sweepCooldownLeft = StoryCombat.SweepCooldown;
+
+            Vector2 origin = new Vector2(transform.position.x, transform.position.y);
+            foreach (var enemy in StoryEnemy.All)
+            {
+                if (enemy == null) continue;
+                Vector2 pos = new Vector2(enemy.transform.position.x, enemy.transform.position.y);
+                if (Vector2.Distance(origin, pos) > StoryCombat.SweepRadius) continue;
+
+                var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, StoryCombat.SweepMul);
+                enemy.TakeDamage(dmg);
+                if (crit) StoryCombat.TriggerHitstop(this);
+            }
+        }
+
+        /// <summary>기탄(氣彈) — data-job.js bolt, 관통 투사체
+        /// (`StoryBolt.cs` 참고).</summary>
+        private void TryBolt()
+        {
+            if (_boltCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.BoltCost)) return;
+            _boltCooldownLeft = StoryCombat.BoltCooldown;
+
+            var go = new GameObject("StoryBolt");
+            go.transform.position = transform.position + new Vector3(_facing * 0.6f, 1f, 0f);
+            go.AddComponent<StoryBolt>().Configure(_facing, CurrentAtk, StoryCombat.BoltMul);
+        }
+
+        /// <summary>기합(氣合) — data-job.js brace, buff. 8초간 공격·이동
+        /// 배율만 올린다(side.js buffOn()과 달리 guard·regen은 이 슬라이스가
+        /// 아직 안 쓰는 축이라 배선 안 함 — RunSpeed·CurrentAtk 둘만).</summary>
+        private void TryBrace()
+        {
+            if (_braceCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.BraceCost)) return;
+            _braceCooldownLeft = StoryCombat.BraceCooldown;
+            _buffUntilTime = Time.time + StoryCombat.BraceSeconds;
         }
 
         private void Walk(float dt)
@@ -122,7 +187,8 @@ namespace Saga.Story.Player
                 }
             }
 
-            var move = new Vector3(axis * RunSpeed, _verticalVelocity, 0f);
+            float runSpeed = RunSpeed * (BuffActive ? StoryCombat.BraceSpeedMul : 1f);
+            var move = new Vector3(axis * runSpeed, _verticalVelocity, 0f);
             _controller.Move(move * dt);
         }
 
@@ -213,6 +279,26 @@ namespace Saga.Story.Player
         {
             var kb = Keyboard.current;
             return kb != null && kb.jKey.wasPressedThisFrame;
+        }
+
+        // 무예 넷 중 연참(J)만 기존 배선 — 나머지 셋은 숫자키로(모바일은
+        // Trigger*() 버튼, BuildTestStoryScene.cs 참고).
+        private bool WantsSweep()
+        {
+            var kb = Keyboard.current;
+            return kb != null && kb.digit2Key.wasPressedThisFrame;
+        }
+
+        private bool WantsBolt()
+        {
+            var kb = Keyboard.current;
+            return kb != null && kb.digit3Key.wasPressedThisFrame;
+        }
+
+        private bool WantsBrace()
+        {
+            var kb = Keyboard.current;
+            return kb != null && kb.digit4Key.wasPressedThisFrame;
         }
     }
 }
