@@ -57,6 +57,24 @@ namespace Saga.EditorTools
         private static readonly Vector3 TroveSpawn = new Vector3(-2f, 0f, -5f);
         private static readonly Vector3 ShrineSpawn = new Vector3(-8f, 0f, -4f);
 
+        // "오픈월드/필드" 슬라이스 — 방 하나짜리 구조를 벗어나는 첫 조각.
+        // Room(방1)의 북쪽 벽에 문(3m)을 뚫고 복도(길이 8m)로 Room2와
+        // 잇는다. 좌표 산출: Room1 북쪽 벽 바깥면 z = halfD(7)+두께(1) = 8,
+        // 복도 길이 8 → Room2 남쪽 벽 바깥면 z = 8+8 = 16, Room2 중심
+        // z = 16+halfD(7)+두께(1) = 24. 복도 중심 z = (8+16)/2 = 12.
+        private const float DoorWidth = 3f; // DungeonCorridorBuilder.DoorWidth와 같은 값
+        private static readonly Vector3 CorridorCenter = new Vector3(0f, 0f, 12f);
+        private static readonly Vector3 Room2Center = new Vector3(0f, 0f, 24f);
+
+        // Room2 "필드" 콘텐츠 — 잡졸 둘(기본값 그대로, 다음 구역에도
+        // 몬스터가 있다는 걸 보여주는 최소 단위). 좌표는 Room2Center 기준
+        // 로컬 오프셋을 world로 변환해 둠(월드 좌표를 직접 씀).
+        private static readonly Vector3[] FieldEnemySpawns =
+        {
+            Room2Center + new Vector3(0f, 0f, 2f),
+            Room2Center + new Vector3(-4f, 0f, -2f),
+        };
+
         [MenuItem("Saga/Build TestDungeon Scene")]
         public static void Build()
         {
@@ -66,6 +84,7 @@ namespace Saga.EditorTools
             var roomGo = BuildRoom();
             BuildEnemy();
             BuildRoomPois();
+            BuildCorridorAndRoom2();
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildEventSystem();
             BuildDialogueUi();
@@ -101,7 +120,31 @@ namespace Saga.EditorTools
             var go = new GameObject("Room");
             var builder = go.AddComponent<DungeonRoomBuilder>();
             builder.Build();
+            builder.OpenNorthDoor(DoorWidth); // "오픈월드/필드" 슬라이스 — 복도로 Room2와 잇는다.
             return go;
+        }
+
+        /// <summary>"오픈월드/필드" 슬라이스 — Room(방1)의 북쪽 문에서
+        /// 복도를 지나 Room2(잡졸 둘)로 이어진다. 자세한 좌표 산출은 위
+        /// `CorridorCenter`/`Room2Center` 주석 참고.</summary>
+        private static void BuildCorridorAndRoom2()
+        {
+            var corridorGo = new GameObject("Corridor");
+            corridorGo.transform.position = CorridorCenter;
+            corridorGo.AddComponent<DungeonCorridorBuilder>().Build();
+
+            var room2Go = new GameObject("Room2");
+            room2Go.transform.position = Room2Center;
+            var room2Builder = room2Go.AddComponent<DungeonRoomBuilder>();
+            room2Builder.Build();
+            room2Builder.OpenSouthDoor(DoorWidth);
+
+            for (int i = 0; i < FieldEnemySpawns.Length; i++)
+            {
+                var go = new GameObject($"Enemy_HwangGeon_Field_{i + 1}");
+                go.transform.position = FieldEnemySpawns[i];
+                go.AddComponent<DungeonEnemy>();
+            }
         }
 
         private static void BuildEnemy()
