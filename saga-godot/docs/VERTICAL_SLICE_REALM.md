@@ -839,3 +839,71 @@ loss_a(28)=99972). `playable_ids()`가 함락 후 `xiaopei`를 포함하는 것,
 
 **다음 이어질 것** — 사용자가 이미 순서를 정했다: 다음은 무장 충성
 (loyal) 값을 들여 계략(plot)의 문을 여는 것, 그다음은 문답(quiz.js).
+
+
+## 6. 무장 충성(loyal) + 계략(plot) 절반 (2026-09-12)
+
+**사용자 지시 "1,2,3 순서대로 다해"** — 두 번째. `officer.js`
+`baseLoyal()`/`checkDefection()`, `diplo.js`의 계략(PLOTS) 절을 다시
+읽었다.
+
+**포함**: `base_loyal(id)` = 52 + (군주와 trait 같으면 +12) - (rarity-3)*6
+- (삼국지 사람이 아니면 -4), clamp 25~85(officer.js 그대로). 시작
+무장(현책)·새로 등용된 무장 전부 이 값으로 `officer_loyal`에 채워진다.
+`checkDefection()`(월말, 12 이하면 35% 확률로 이탈) — officer.js 그대로.
+계략은 유언비어(치안 -10~-22)·화계(군량 -25%~-55%) 둘 — 계수·성공률
+공식(0.30+(내지력-태수지력)/200+(60-치안)/400, clamp 0.05~0.9) 전부
+diplo.js 그대로. 걸기만 해도 우호 -4, 들통나면 추가 -6(diplo.js
+addRelation 그대로). **화친 체크 없음도 원작 그대로** — `plot()`은
+`attack()`과 달리 `diplo.blocked()`를 안 본다.
+
+**뺀 것(재해석)**:
+- **이간·매수** — 적 무장을 대상으로 하는데(`off.atCity(cityId,
+  c.force)` 후보), 소패엔 3절이 밝힌 대로 "이름 있는 수비 장수가
+  없다" — 대상 자체가 없어 늘 죽은 버튼이 된다. 유언비어·화계(성
+  자체가 대상)만 남겼다. 이간·매수는 적 쪽에 이름 있는 무장을 먼저
+  들여야 하는 자리(다음에 볼 자리).
+- **국력 차·공동의 적 보정** — plotChance()의 이간/매수 전용 항이라
+  애초에 안 옮긴 두 계략용, 여기 있을 이유가 없다.
+- **이탈한 무장이 재야로 돌아가는 것** — officer.js는 떠난 사람을
+  그 성의 `found`로 되돌리는데, 그러면 재등용 창구가 새로 열리는
+  셈이라 스코프가 는다. 이 슬라이스는 로스터·배치·충성 기록에서
+  조용히 지운다.
+
+**구현**:
+- `realm_diplo.gd` — `LORD_ID`("sg_caocao", data-force.js force('cao').
+  lord)·`base_loyal()`·`PLOTS`(rumor·fire 둘)·`plot_chance()`·관련 상수
+  (SEC_HIT_*·FOOD_BURN_*·PLOT_*_HIT·PLOT_GUARD_WISDOM=30, "태수가 비어
+  있으면"의 원작 기본값 — 이 슬라이스는 적 태수를 안 다뤄 늘 이 값).
+- `realm_save_state.gd` — `officer_loyal: Dictionary`(신설, 시작 무장·
+  `_do_hire()` 성공 시 채움). `_init_enemies()`에 `sec`/`food` 추가
+  (계략의 대상 값, `_init_cities()`와 같은 공식). `next_month()`에
+  `_check_defection()` 호출 추가. `plot(kind, enemy_id)`/`plot_preview()`
+  /`_plot_check()`(공용 검증) 신규 — 목표 존재·아직 우리 성 아님·맞닿음
+  (`playable_ids()` 중 하나라도 `is_adjacent`)·금·무장·이 달 명령 순서로
+  검증. SAVE_VERSION 6→7.
+- `realm_plot_button.gd`(신규) + `RealmHUD.tscn`에 "계략" 버튼(외교
+  버튼 바로 위) — ChoicePrompt에 **계산한 성공률을 미리 보여준다**
+  ("계략은 성공률을 숨기지 않는다", diplo.js 머리말 원칙 그대로).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전부
+`--quit-after 5` 세 번 연속 exit 0·로그 완전 무결. **임시 디버그로
+실제 값 확인**: `base_loyal(sg_zhugeliang)`=52(rarity5·trait 일치
++12·rarity 벌점 -12·삼국지라 0 — 상쇄돼 52), `base_loyal(kr_yisunsin)`
+=36(52-12-4), `base_loyal(jp_musashi)`=42(52-6-4) 전부 손 계산과 정확히
+일치. `plot_preview(rumor)` chance=0.65(0.30+(100-30)/200+(60-60)/400,
+현책 지력100과 정확히 일치) → 실행 → 치안 60→38(hit 22, 범위 10~22
+안), 우호 40→36(-4) 정확. 연이어 `plot(fire)` chance=0.705(치안이 38로
+바뀐 뒤 재계산 — 0.30+0.35+0.055, 정확히 일치) → 군량 9760→5882(burn
+3878, 39.7% — 범위 25~55% 안). 함락 후 `plot()` → "우리 성입니다"로
+정확히 막힘(전쟁·정복·계략 세 슬라이스 통합 지점 확인). 충성을 5로
+강제하고 `next_month()` 20회 반복 → 로스터에서 정확히 이탈(35%×20회
+누적 확률상 당연), `officer_loyal`에서도 같이 지워짐 확인. 디버그
+원상복구(diff 0).
+
+**GUI 실기 확인은 아직 안 함** — 계략 메뉴의 성공률 표시가 읽기 좋은지,
+버튼 다섯 개가 화면에 다 들어가는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 사용자가 이미 순서를 정했다: 마지막으로 문답
+(quiz.js).

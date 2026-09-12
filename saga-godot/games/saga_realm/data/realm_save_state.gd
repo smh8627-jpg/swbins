@@ -46,7 +46,7 @@ const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 6  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입)
+const SAVE_VERSION := 7  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -73,6 +73,13 @@ var found: Array = []               # 수색으로 찾아냈지만 아직 등용
 ## officer_id -> city_id. 개발형 명령(agri~ships·draft)은 이 배치를 따진다
 ## (수색·등용은 예외, "재해석" 문단 참고).
 var officer_city: Dictionary = {RealmOfficerPool.STARTING_OFFICER: RealmCities.DEFAULT_CITY}
+## **2026-09-12 추가 — 무장 충성(loyal).** officer_id -> int(0~100).
+## `_ready()`가 시작 무장을, `_do_hire()`가 새로 합류한 무장을 `RealmDiplo.
+## base_loyal()`로 채운다. `next_month()`가 매달 12 이하인 사람을 35%
+## 확률로 이탈시킨다(officer.js checkDefection() 그대로) — 이 슬라이스엔
+## 아직 충성을 깎는 수단(이간)이 없어 실전에서 잘 안 터지는 안전망이지만,
+## 값과 문(door)은 이걸로 열어 둔다.
+var officer_loyal: Dictionary = {RealmOfficerPool.STARTING_OFFICER: RealmDiplo.base_loyal(RealmOfficerPool.STARTING_OFFICER)}
 var _done_this_month: Dictionary = {}  # officer_id -> bool
 
 ## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).**
@@ -115,6 +122,10 @@ func _init_cities() -> void:
 
 
 ## RealmCities.ENEMY_CITIES 기본값으로 채운다 — _init_cities()와 같은 패턴.
+## **2026-09-12 추가 — sec·food.** 계략(유언비어·화계)의 대상 값 — 이전엔
+## 전투에만 쓰는 값만 있었다. sec는 `RealmOrders.SEC_START`(우리 성 시작값과
+## 같은 기준, 적 태수 정보가 없어 새 값을 안 지어냈다), food는 `_init_cities()`
+## 와 같은 공식(`RealmCities.food_start()`).
 func _init_enemies() -> void:
 	for def: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid: String = String(def.id)
@@ -122,6 +133,7 @@ func _init_enemies() -> void:
 			"troops": int(def.troops_start), "wall": int(def.wall_start),
 			"max_wall": int(def.wall_start), "train": int(def.train_start),
 			"tech": int(def.tech_start), "captured": false,
+			"sec": RealmOrders.SEC_START, "food": RealmCities.food_start(eid),
 		}
 
 
@@ -267,6 +279,7 @@ func _do_hire(officer_id: String) -> Dictionary:
 	found.erase(target_id)
 	roster.append(target_id)
 	officer_city[target_id] = current_city  # 찾아낸(수색한) 성에 배치된다
+	officer_loyal[target_id] = RealmDiplo.base_loyal(target_id)
 	_done_this_month[target_id] = true  # rtk.js: 들어온 달에는 일하지 않는다
 	return {"ok": true, "hired": target_id, "chance": chance}
 
@@ -317,11 +330,31 @@ func next_month() -> void:
 		var dip: Dictionary = diplomacy[force_id]
 		dip.truce_months = maxi(0, int(dip.truce_months) - 1)
 
+	_check_defection()
+
 	month += 1
 	if month > 12:
 		month = 1
 		year += 1
 	_done_this_month.clear()
+
+
+## officer.js checkDefection() — 충성이 12 이하면 35% 확률로 스스로
+## 떠난다. 원작은 떠난 사람을 그 성의 재야(found)로 되돌리는데, 이
+## 슬라이스는 그 경로를 안 옮겼다(re-hire 창구를 새로 여는 셈이라
+## 스코프가 는다) — 로스터·배치·충성 기록에서 조용히 지운다.
+func _check_defection() -> void:
+	var leaving: Array = []
+	for id: String in roster:
+		if int(officer_loyal.get(id, 50)) > 12:
+			continue
+		if _rng.randf() > 0.35:
+			continue
+		leaving.append(id)
+	for id: String in leaving:
+		roster.erase(id)
+		officer_city.erase(id)
+		officer_loyal.erase(id)
 
 
 ## rtk.js war.js moveOfficer() — 무장을 맞닿은 성으로 옮긴다(그 달의 명령을
@@ -532,6 +565,94 @@ func envoy_tribute(enemy_id: String) -> Dictionary:
 	return {"ok": true, "up": up, "relation": int(dip.relation)}
 
 
+## diplo.js plot() 중 성 자체가 대상인 rumor/fire만 옮긴 것(2026-09-12,
+## "1,2,3 순서대로 다해" 두 번째 — `realm_diplo.gd` 머리말 "재해석" 참고).
+## 화친 체크가 없는 것도 원작 그대로(plot()은 `attack()`과 달리 diplo.
+## blocked()를 안 본다 — 첩보전은 정식 화친과 별개다).
+func plot(kind: String, enemy_id: String) -> Dictionary:
+	var chk := _plot_check(kind, enemy_id)
+	if not bool(chk.get("ok", false)):
+		return chk
+
+	var officer_id: String = chk.officer_id
+	var force_id: String = chk.force_id
+	var e: Dictionary = chk.e
+	var dip: Dictionary = chk.dip
+	var chance: float = chk.chance
+
+	gold -= int(RealmDiplo.plot_by_key(kind).gold)
+	_done_this_month[officer_id] = true
+	dip.relation = RealmDiplo.clamp_relation(int(dip.relation) + RealmDiplo.PLOT_RELATION_HIT)
+
+	if _rng.randf() > chance:
+		dip.relation = RealmDiplo.clamp_relation(int(dip.relation) + RealmDiplo.PLOT_FAIL_RELATION_HIT)
+		diplomacy[force_id] = dip
+		return {"ok": true, "done": false, "chance": chance}
+
+	var result := {"ok": true, "done": true, "chance": chance}
+	if kind == "rumor":
+		var before_sec := int(e.sec)
+		e.sec = maxi(0, before_sec - roundi(RealmDiplo.SEC_HIT_BASE + _rng.randf() * RealmDiplo.SEC_HIT_RANGE))
+		result["sec_from"] = before_sec
+		result["sec_to"] = int(e.sec)
+	elif kind == "fire":
+		var burned := roundi(float(e.food) * (RealmDiplo.FOOD_BURN_BASE + _rng.randf() * RealmDiplo.FOOD_BURN_RANGE))
+		e.food = maxi(0, int(e.food) - burned)
+		result["burned"] = burned
+
+	enemies[enemy_id] = e
+	diplomacy[force_id] = dip
+	return result
+
+
+## `plot()`과 같은 검증·확률 계산을 상태 변경 없이 미리 보여 준다
+## ("계략은 성공률을 숨기지 않는다", diplo.js 머리말) — 버튼이 메뉴를
+## 띄우기 전에 부른다.
+func plot_preview(kind: String, enemy_id: String) -> Dictionary:
+	return _plot_check(kind, enemy_id)
+
+
+func _plot_check(kind: String, enemy_id: String) -> Dictionary:
+	var plot_def := RealmDiplo.plot_by_key(kind)
+	if plot_def.is_empty():
+		return {"ok": false, "why": "없는 계략"}
+	var enemy_def := RealmCities.enemy_by_id(enemy_id)
+	if enemy_def.is_empty():
+		return {"ok": false, "why": "없는 목표"}
+	var e: Dictionary = enemies.get(enemy_id, {})
+	if bool(e.get("captured", false)):
+		return {"ok": false, "why": "우리 성입니다"}
+
+	## diplo.js touching() — 우리 성 중 하나라도 대상과 맞닿아 있어야 한다.
+	var touching := false
+	for cid: String in RealmCities.playable_ids():
+		if RealmCities.is_adjacent(cid, enemy_id):
+			touching = true
+			break
+	if not touching:
+		return {"ok": false, "why": "손이 닿지 않는 성입니다"}
+
+	if gold < int(plot_def.gold):
+		return {"ok": false, "why": "금이 모자랍니다"}
+
+	var officer_id := _best_officer_for("wisdom")
+	if officer_id.is_empty():
+		return {"ok": false, "why": "계략을 쓸 무장이 없습니다"}
+	if _done_this_month.get(officer_id, false):
+		return {"ok": false, "why": "이 달에 이미 명령을 썼습니다"}
+
+	var force_id: String = String(enemy_def.get("force", ""))
+	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
+	var h = Characters.find(officer_id)
+	var chance := RealmDiplo.plot_chance(
+		float(h.stats.get("wisdom", 0)), float(RealmDiplo.PLOT_GUARD_WISDOM), int(e.get("sec", 50)))
+
+	return {
+		"ok": true, "officer_id": officer_id, "force_id": force_id,
+		"e": e, "dip": dip, "chance": chance,
+	}
+
+
 ## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제
 ## officer_city로 실제 배치를 아니까, 그 성에 배치된 무장 중에서만 고른다.
 func _governor_at(city_id: String) -> String:
@@ -579,6 +700,7 @@ func save() -> bool:
 		"current_city": current_city,
 		"roster": roster, "found": found,
 		"officer_city": officer_city,
+		"officer_loyal": officer_loyal,
 		"enemies": enemies,
 		"diplomacy": diplomacy,
 	}
@@ -614,6 +736,9 @@ func try_load() -> bool:
 	var loaded_officer_city: Variant = data.get("officer_city", {})
 	if typeof(loaded_officer_city) == TYPE_DICTIONARY and not loaded_officer_city.is_empty():
 		officer_city = loaded_officer_city
+	var loaded_officer_loyal: Variant = data.get("officer_loyal", {})
+	if typeof(loaded_officer_loyal) == TYPE_DICTIONARY and not loaded_officer_loyal.is_empty():
+		officer_loyal = loaded_officer_loyal
 	var loaded_enemies: Variant = data.get("enemies", {})
 	if typeof(loaded_enemies) == TYPE_DICTIONARY and not loaded_enemies.is_empty():
 		enemies = loaded_enemies

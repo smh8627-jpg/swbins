@@ -4089,3 +4089,34 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 사용자가 이미 순서를 정했다: 무장 충성(loyal)
     값을 들여 계략(plot)의 문을 여는 것 → 문답(quiz.js).
+
+
+## REALM 무장 충성(loyal) + 계략(plot) 절반 (2026-09-12)
+
+- **사용자 지시 "1,2,3 순서대로 다해"** — 두 번째. officer.js
+  `baseLoyal()`/`checkDefection()` + diplo.js 계략(PLOTS) 절 중 유언비어·
+  화계 둘만 옮겼다. 이간·매수는 소패에 이름 있는 수비 장수가 없어
+  대상 자체가 없다(다음에 볼 자리로 남김).
+  - `realm_diplo.gd`: `LORD_ID`("sg_caocao")·`base_loyal()`(52+trait일치
+    12-rarity벌점-비삼국지4, clamp 25~85)·`PLOTS`(rumor·fire)·
+    `plot_chance()`(0.30+(내지력-30)/200+(60-치안)/400) 신규.
+  - `realm_save_state.gd`: `officer_loyal: Dictionary`(신설) — 시작
+    무장·등용 성공 시 채움. `_init_enemies()`에 `sec`/`food` 추가(계략
+    대상 값). `next_month()`에 `_check_defection()`(충성 12 이하 35%
+    이탈) 추가. `plot()`/`plot_preview()`/`_plot_check()` 신규 — 목표·
+    맞닿음·금·무장·이 달 명령 검증 공용화. 화친 체크 없음도 원작
+    그대로. SAVE_VERSION 6→7.
+  - `realm_plot_button.gd`(신규) + `RealmHUD.tscn` "계략" 버튼(외교
+    버튼 위) — 메뉴에 성공률을 미리 보여준다("계략은 성공률을 숨기지
+    않는다").
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 6절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경
+    없음) → 다섯 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전
+    무결. 임시 디버그로 base_loyal 셋(52·36·42) 전부 손 계산과 정확히
+    일치, plot_chance 재계산(치안 바뀐 뒤 0.705)까지 정확, 유언비어·
+    화계 실행 결과(치안 60→38·군량 9760→5882)·우호 하락(40→36) 전부
+    범위·공식대로. 함락 후 plot() 차단, 강제 저충성 20개월로 이탈까지
+    확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 사용자가 이미 순서를 정했다: 마지막으로 문답
+    (quiz.js).
