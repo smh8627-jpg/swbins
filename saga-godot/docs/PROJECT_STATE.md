@@ -4364,3 +4364,27 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 1절 "제외" 목록의 나머지(Z축 깊이·나머지
     사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 보스 — 황건 두목 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — field_map.gd 머리말이 남긴
+  세 미완성(문·채집·보스) 중 마지막을 채웠다. data-side.js field.boss
+  (hpMul12·dmgMul2.0·cool15분) 그대로, 자리(x)만 새로 정함(2050px,
+  마지막 발판과 문 사이).
+  - `field_map.gd`: BOSS_NAME·BOSS_X_PX+boss_position_m() 신규.
+    `story_combat.gd`: BOSS_HP_MUL·BOSS_DMG_MUL·BOSS_COOL_SEC 신규.
+    `story_enemy.gd`: is_boss(신규, HP×12·시각×1.6, story_boss 그룹).
+    `story_boss_spawner.gd`(신규, died 시그널로 15분 뒤 재스폰) +
+    `TestField.tscn`에 BossSpawner 노드.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 8절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(BOSS_COOL_SEC 3.0으로 낮춤)로
+    위치 41.0m·HP 216 정확, 킬 시 StorySaveState.kills +1(사명 기여),
+    스포너 자식 0→대기 후 1(재스폰, 같은 위치·HP) 확인. 디버그
+    원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — field_map.gd의 문·채집·보스 셋을 전부 채웠다.
+    남은 후보: Z축 깊이·나머지 사냥터 8곳(이제 문까지 필요)·전직
+    트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.

@@ -74,6 +74,13 @@ const GATHER_INFO := {
 	"herb": {"name": "들꽃", "emoji": "🌼"},
 }
 
+## data-side.js field.boss(황건 두목) — hpMul 12·dmgMul 2.0·cool 15(분) 그대로.
+## DMG_MUL은 ENEMY_DMG와 같은 이유로 이번 슬라이스엔 안 쓰인다(story_enemy.gd
+## 머리말 — 추격·반격이 없다, 데이터만 옮겨 둔다).
+const BOSS_HP_MUL := 12.0
+const BOSS_DMG_MUL := 2.0
+const BOSS_COOL_SEC := 900.0  # 15분 * 60초
+
 static var _hitstop_active := false
 
 

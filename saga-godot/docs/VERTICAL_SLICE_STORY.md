@@ -307,9 +307,48 @@ side.js `GATHER_R=50px`·`GATHER_RESPAWN=45초` 그대로(§136-137, SCALE로
 - **GUI 실기 확인은 아직 안 함** — 들꽃이 실제로 눈에 띄는 크기·색인지,
   줍는 손맛(사라짐+토스트)이 자연스러운지는 눈으로 볼 것. 계속 몰아서
   받을 것.
-- **다음 이어질 것** — 1절 "제외" 목록의 나머지(Gameplay Depth 실제
-  Z축 이동·나머지 사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판
-  작업 — 승인 후.
+- **다음 이어질 것** — ~~1절 "제외" 목록의 나머지~~(8절에서 보스 완료),
+  남은 것: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳·전직 트리·
+  장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+## 8. 보스 — 황건 두목 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. field_map.gd 머리말의 세 미완성
+(문·채집·보스) 중 마지막 하나. data-side.js `field.boss`
+(`{name:'황건 두목', cool:15, hpMul:12, dmgMul:2.0}`) 그대로 — 원작에
+자리(x) 데이터가 없어(사냥터 오른쪽 끝을 지킨다는 설명뿐) 마지막
+발판(1900px)과 문(2130px, 아직 안 옮김) 사이 2050px로 새로 정했다.
+잡으면 `BOSS_COOL_SEC`(15분) 뒤 같은 자리에 다시 선다 — story_gather.gd
+respawn과 같은 결이지만 대상이 하나뿐이라 `died` 시그널로 다음 스폰을
+잇는 방식(DUNGEON처럼 한 번 잡으면 끝나는 게 아니라, 필드형 사냥터의
+"계속 도는" 보스 — 원작 cool 필드 자체가 그 뜻이다).
+
+- `field_map.gd`: `BOSS_NAME`·`BOSS_X_PX`+`boss_position_m()` 신규.
+- `story_combat.gd`: `BOSS_HP_MUL`(12.0)·`BOSS_DMG_MUL`(2.0, ENEMY_DMG와
+  같은 이유로 미사용)·`BOSS_COOL_SEC`(900초) 신규.
+- `story_enemy.gd`: `is_boss`(신규, story_gather.gd의 `kind`와 같은
+  배선 — add_child 전에 세팅) — HP×12, 시각 몸집×1.6(원작에 없는 값,
+  DUNGEON dungeon_enemy.gd의 `r=boss?22:13`≈1.7배와 같은 결로 새로
+  정함, 색은 그대로). `story_boss` 그룹 추가.
+- `story_boss_spawner.gd`(신규) — 스폰 → `died` 연결 → 죽으면
+  `BOSS_COOL_SEC` 타이머 뒤 재스폰. `TestField.tscn`에 `BossSpawner`
+  노드 추가.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림 — 나머지 project.godot/*.import 변경 없음) → 다섯 씬
+  세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST 회귀 확인 포함). 임시
+  디버그(`BOSS_COOL_SEC`를 3.0으로 잠깐 낮춤)로: 위치 41.0m(2050px×
+  0.02) 정확, HP 216(18×12) 정확, `story_boss` 그룹 소속 확인,
+  `take_damage(9999)`로 죽이면 `StorySaveState.kills`가 +1(잡졸과 같은
+  카운트, "첫 사냥" 사명에 기여), 스포너 자식이 0개로 줄었다가 대기
+  뒤 다시 1개(같은 위치·HP·is_boss)로 재생성 확인. 디버그 원상복구
+  (`BOSS_COOL_SEC` 900.0로, diff 0).
+- **GUI 실기 확인은 아직 안 함** — 몸집이 눈에 띄게 커 보이는지, 15분
+  대기가 실제 플레이 리듬에 맞는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — field_map.gd의 문(portal)·채집·보스 셋을 전부
+  채웠다(문은 다른 사냥터로 나가는 통로라 "나머지 사냥터 8곳"과 함께
+  묶임). 남은 후보: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳
+  (강릉진·오림숲 등, 이제 문까지 만들 이유가 생겼다)·전직 트리·
+  장비/노획 등, 또는 다른 판 작업 — 승인 후.
 
 ## FINAL RULE (이 문서에도 동일 적용)
 

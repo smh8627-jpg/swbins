@@ -30,6 +30,11 @@ extends RefCounted
 ## **2026-09-13 추가 — 필드 채집(gathers).** field_map.gd 머리말이
 ## "문(portal)·채집·보스는 이번 슬라이스에 안 옮긴다"고 적어 뒀던 셋 중
 ## 하나를 채운다 — data-side.js field.gathers 셋(전부 herb) 그대로.
+##
+## **2026-09-13 추가(같은 날 더) — 보스(황건 두목).** 위 셋 중 남은 하나.
+## data-side.js field.boss엔 자리(x) 데이터가 없다(사냥터 오른쪽 끝을
+## 지킨다는 설명뿐) — 마지막 발판(1900px)과 문(2130px, 아직 안 옮김)
+## 사이로 새로 정했다. hpMul·dmgMul·cool은 원문 그대로(story_combat.gd).
 
 const SCALE := 0.02
 
@@ -63,6 +68,10 @@ const GATHERS_PX: Array = [
 	[1050.0, "herb"],
 	[1750.0, "herb"],
 ]
+
+## data-side.js field.boss.name 그대로. 자리(x)는 원작에 없어 새로 정함(위 참고).
+const BOSS_NAME := "황건 두목"
+const BOSS_X_PX := 2050.0
 
 
 static func width_m() -> float:
@@ -109,3 +118,7 @@ static func gather_positions_m() -> Array:
 	for g: Array in GATHERS_PX:
 		out.append({"x": float(g[0]) * SCALE, "kind": String(g[1])})
 	return out
+
+
+static func boss_position_m() -> float:
+	return BOSS_X_PX * SCALE
