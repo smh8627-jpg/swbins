@@ -5,6 +5,42 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON — 위성↔위성 지름길 후속: Town2↔Town4 (2026-09-13, 열여섯
+  번째 세션, "2,3,4 순으로 다해줘"의 (3)).** 열다섯 번째 세션이
+  Town3↔Town2 지름길을 넣으며 "Town2↔Town4는 후속 후보로 남김"이라
+  적어 둔 그 두 번째 인접 쌍(§28-3과 같은 논리 — Town3(서)·Town4(동)만
+  정반대라 빼고 나머지 인접 쌍은 다 잇는다). Town3↔Town2와 완전히 같은
+  패턴 재사용 — 새 트릭 없음.
+  - Crossroads2(30,0,-30, Town4.x·Town2.z가 만나는 자리 — 첫 Crossroads가
+    Town3.x·Town2.z였던 것과 같은 공식) 신규, 문 둘만(서=Town2 방향,
+    북=Town4 방향), 등불 하나(BuildTownLantern 재사용)로 "그냥 갈림길"
+    표시.
+  - Town2에 동쪽 문 추가(북=Room1, 서=Crossroads 경유 Town3, 이제 동=
+    Crossroads2 경유 Town4). Town4에 남쪽 문 추가 — **더는 막다른
+    마을이 아니다**(서쪽 문 하나뿐이던 것에서).
+  - 복도 둘 — Town2→Crossroads2(E-W, Y축 90도 회전)·Crossroads2→Town4
+    (N-S, 회전 없음) — 기존 `DungeonCorridorBuilder`/도어 헬퍼 그대로.
+  - 미니맵에 Crossroads2 점 추가(첫 Crossroads와 같은 회색 "경유지"
+    색). **오버월드 지도(M키) UI는 안 건드림** — 그 UI는 처음부터
+    "대각선 네 칸은 안 채운다"고 명시해 뒀고 Crossroads2는 Town1
+    기준 대각선(남동) 자리라 애초에 그 설계 밖.
+  - `PlaytestDungeonShortcut.cs` 확장 — 기존 Town3→Crossroads→Town2
+    확인에 이어 Town2→Crossroads2→Town4 구간도 같은 방식(순간이동 후
+    예외 없는지)으로 검증하도록 Phase 둘 추가.
+  - 컴파일(오류 없음)·씬 재빌드(`room childCount=20`, 문 폭·GLB 경고
+    없음)·`PlaytestDungeonShortcut`(`OK - walked Town3->Crossroads
+    ->Town2 and Town2->Crossroads2->Town4 shortcuts, no errors`)·
+    회귀 `PlaytestDungeonTown2`·`PlaytestDungeonTowns34`·
+    `PlaytestDungeonFieldAmbush`·`PlaytestOverworldMap`·
+    `PlaytestDungeonFloorProgression`(`OK - 12 room advances, floor
+    reached 4` — 문 구성이 또 늘어도 기존 진행 무관 재확인)·
+    `PlaytestDungeonHeadless`·`PlaytestForestHeadless`(다른 트랙 무관
+    확인) 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨, 앞선 마을 넷·STORY 확인
+    항목에 이어짐) — Town2↔Town4 새 복도·Crossroads2가 실제로 자연
+    스럽게 이어져 보이는지, Town4가 더는 막다른 곳이 아니라는 게
+    실제 플레이에서 자연스러운지(문이 늘어난 것만으로 방향감이
+    헷갈리지 않는지).
 - **STORY — 콘텐츠 확장: 무예 나머지 셋 + 잡졸 열 + 로프/발판 결함 수정
   (2026-09-13, 열여섯 번째 세션, "2,3,4 순으로 다해줘"의 (2)).**
   VERTICAL_SLICE_STORY.md 1절 "제외" 목록(무예 나머지 셋, 사명이
@@ -2092,28 +2128,33 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- **열다섯 번째 세션은 여기서 멈췄다(2026-09-12) — 사용자가 "새로운
-  세션에서 이어하자"로 끊음.** 작업 트리 깨끗함(커밋되지 않은 변경
-  없음), 이 세션에서 나간 커밋: `88425b8`(DUNGEON 오픈월드 확장 네
-  후보 — 마을 셋째·넷째·장식·오버월드 지도·필드 조우)·`96c6057`
-  (STORY 착수 — 버티컬 슬라이스 첫 구현)·`d534736`(DUNGEON 위성↔위성
-  지름길 Town3↔Town2) — 전부 컴파일·헤드리스 플레이테스트 통과 확인
-  후 그때그때 커밋·푸시해 뒀다. **다음 세션은 먼저 아래 "열다섯 번째
-  세션" 항목의 "다음 세션이 볼 것"부터 읽을 것** — 사람의 실기 확인
-  피드백이 있으면 그것부터, 없으면 saga-dungeon/saga-godot 기록을
-  참고해 다음 방향(STORY 콘텐츠 확장/DUNGEON 지름길 후속/REALM 착수)을
-  사용자와 상의한다.
-- **열다섯 번째 세션(2026-09-12) — "다음은 어느 쪽?" 질문에 사용자가
-  "1,2 다해줘"로 (1) STORY 착수 → (2) DUNGEON 위성↔위성 지름길 둘 다
-  확정, 이 세션이 둘 다 끝냈다(위 "완료 단계" 맨 위 두 항목 참고).**
-  사람이 아직 DUNGEON 마을 넷 전체(Town2·3·4·장식·M키 지도·들길 매복·
-  Crossroads 지름길)와 STORY 첫 슬라이스를 실기로 안 봄 — **다음
-  세션이 볼 것**: (1) 사람이 실기로 확인한 피드백이 있으면(어느 쪽이든)
-  그것부터. (2) 없으면 saga-dungeon PLAN.md·`VERTICAL_SLICE_DUNGEON.md`·
-  saga-godot STORY 확장 기록(`docs/PROJECT_STATE.md` STORY 이후 행보)을
-  참고해 다음 방향(STORY 콘텐츠 확장 vs DUNGEON Town2↔Town4 지름길
-  후속 vs 다른 게임 REALM 착수 등)을 사용자와 상의할 것 — 방향 결정이라
-  세션이 임의로 고르지 않는다.
+- **열여섯 번째 세션은 여기서 멈췄다(2026-09-13) — 사용자가 "2,3,4
+  순으로 다해줘"(STORY 콘텐츠 확장 → DUNGEON 지름길 후속 → REALM
+  착수)로 확정한 세 가지 중 앞 둘(STORY 콘텐츠 확장·DUNGEON Town2↔
+  Town4 지름길)을 끝내고, **(4) REALM 착수는 아직 시작 전** —
+  사용자가 "현재 작업 완료 되면 다른 세션에 이어하게 저장 해줘"로
+  요청해 여기서 끊음.**
+  - 작업 트리 깨끗함(커밋되지 않은 변경 없음). 이 세션에서 나간 커밋:
+    `28ff038`(STORY 콘텐츠 확장 — 무예 나머지 셋+잡졸 열+로프/발판
+    결함 수정)·이 커밋 직후의 DUNGEON Town2↔Town4 지름길 커밋(아래
+    "다음 세션이 볼 것" 참고, 이 문서 저장 시점 기준 아직 커밋 전이면
+    다음 세션이 먼저 `git status`/`git log`로 확인). 전부 컴파일·
+    헤드리스 플레이테스트 통과 확인 후 그때그때 커밋·푸시.
+  - **다음 세션이 할 일 — (4) REALM 착수부터.** PLAN.md 확장 순서
+    (GO→DUNGEON→FOREST→STORY→**REALM**)의 마지막 칸. `saga-godot
+    /docs/VERTICAL_SLICE_REALM.md`가 이미 설계·구현·헤드리스 검증까지
+    끝내 둔 걸 개념만 참고해(코드 기계적 번역 금지, 루트 CLAUDE.md
+    2장) Unity 관용구로 새로 지을 것 — STORY 착수 때 썼던 것과 같은
+    절차(레거시 감사는 새로 안 함 → VERTICAL_SLICE_REALM.md 요약 확인
+    → Unity 프로젝트 구조에 맞게 새로 설계 → BuildTestCityScene류 +
+    PlaytestRealmSlice류 헤드리스 검증). saga-godot STORY 이후 REALM
+    착수 세션 기록(`saga-godot/docs/PROJECT_STATE.md`의 "REALM" 절,
+    이 문서 위쪽 인용 — "REALM은 플레이어 아바타가 없다" 등 핵심
+    재해석 결정들)부터 훑어볼 것.
+  - 사람이 아직 실기로 안 본 것 — DUNGEON 마을 넷 전체(Town2·3·4·
+    장식·M키 지도·들길 매복·Crossroads·Crossroads2 지름길 둘 다)·
+    STORY 첫 슬라이스+무예 나머지 셋. REALM 착수와 별개로, 사람의
+    실기 확인 피드백이 먼저 도착하면 그것부터 반영할 것.
 - **(과거) 열네 번째 세션(2026-09-12)이 지난 세션의 네 후보(마을 셋째·넷째·
   Town2 장식·오버월드 지도·필드 조우)를 전부 끝냈다(위 "완료 단계" 참고).**
   아래는 그 결정이 나오기 전까지 남아 있던 옛 기록(참고용, 위 최신 항목이
