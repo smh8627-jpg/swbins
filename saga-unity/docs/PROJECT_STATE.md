@@ -5,6 +5,42 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **PLAN.md 51~65장 확장 순서 — FOREST 착수, 첫 버티컬 슬라이스
+  (2026-09-12, 아홉 번째 세션 이어서).** DUNGEON 작은 폴리싱을 다 끝낸
+  뒤 "다음 방향" 질문에 사용자가 "1,2 순서대로"(FOREST 착수 → DUNGEON
+  진짜 오픈월드 확장)로 답해 착수. **설계는 이미 saga-godot 쪽에
+  끝나 있었다** — `saga-godot/docs/VERTICAL_SLICE_FOREST.md`가 구면
+  투영·월드 스케일(3m/칸, 90×60m)·카메라(고정, pitch 62°)·첫 콘텐츠
+  루프(걷기→채집→대화→집 들어가기→저장)까지 다 결정해 둔 걸 그대로
+  참고해 Unity로 옮겼다(자세한 내용·설계 근거는 saga-unity
+  `docs/VERTICAL_SLICE_FOREST.md` 참고, 여기는 요약만).
+  - **새 폴더 `Assets/Games/SagaForest/`**(`SagaForest.asmdef`) —
+    SagaGo·SagaDungeon 코드 참조 없음(다섯 벌 복사 원칙).
+  - **이 프로젝트 첫 커스텀 정점 셰이더** — `Shaders/ForestWorldCurve
+    .shader`(URP HLSL, godot의 곡률 공식을 그대로 옮김: 플레이어
+    위치에서 멀수록 `dot(diff,diff)*curveAmount`만큼 Y를 낮춘다).
+    SagaGo `VertexColorLit.shader`를 뼈대로 재사용해 리스크를 줄였다.
+    전역 파라미터(`Shader.SetGlobalVector`)라 godot이 헤드리스에서
+    확인 못 했던 문제 자체가 Unity엔 없다.
+  - **월드**: `ForestGroundBuilder.cs`(90×60m 단일 색 평면, 1.5m
+    해상도, 콜라이더는 평평한 원본 — 곡률은 순수 시각 효과).
+  - **카메라**: `Player/CameraRig.cs` — DUNGEON의 자유 오빗과 달리
+    입력 처리가 아예 없는 완전 고정 카메라로 새로 짬(pitch 62°·거리
+    14m). **이동**: `Player/PlayerController.cs` — DUNGEON판(회피
+    포함) 대신 GO판(회피 없음)을 복사(이 슬라이스에 전투 없음).
+  - **콘텐츠**: `ForestFruitTree.cs`(tree_oak.glb ×4.5, 무제한 채집+
+    2초 쿨다운)·`ForestVillager.cs`(NPCS.keeper "숲지기", 대사 그대로)·
+    `ForestHouse.cs`(별도 씬 없이 +500m "포켓 공간"으로 곡률 꺼짐/켜짐
+    증명, 건물은 아직 primitive) + `Data/ForestState.cs`(과일 개수)·
+    `Data/ForestSaveState.cs`(`save_forest.json`).
+  - 컴파일(신규 셰이더 임포트 포함 오류 없음)·씬 저장(`Assets/Scenes/
+    TestVillageForest.unity`, tree_oak.glb·character-a/b.glb 전부
+    로드됨)·`PlaytestForestHeadless.Run`(`OK - 10 frames, no errors`,
+    신규 `Editor/PlaytestForestHeadless.cs`) 전부 통과 — **이 프로젝트
+    첫 커스텀 셰이더라 GUI 실기 확인이 특히 중요한데 아직 하나도
+    안 됨**(땅이 실제로 그릇처럼 휘어 보이는지, 나무·주민이 땅과 같이
+    굽어 공중에 안 뜨는지, 집 들어가기/나가기가 실제로 꺼짐/켜짐을
+    보여 주는지 — 아래 GUI 확인 목록에 추가).
 - **DUNGEON — 미니보스 덩치·색 강화, 사람이 실기로 재확인 완료
   (2026-09-12).** "이제 훨씬 세 보여"로 확인 — 커밋 `66b5f25`(1.8배·
   3.6m·짙은 자보라)가 실제로 효과 있었다. 아래 GUI 확인 목록의 관련
@@ -1337,6 +1373,17 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
+- **사용자가 "1,2 순서대로"로 두 방향을 확정했다 — (1) FOREST 착수
+  (완료, 위 "완료 단계" 참고) → (2) DUNGEON을 진짜 오픈월드로 확장
+  (아직 착수 전).** 다음 세션은 (2)부터 시작한다 — 방 넷짜리 선형
+  통로를 넘어 실제 복수의 방·바이옥·분기가 있는 구조로 좌표 체계를
+  다시 잡는 큰 작업(파급이 커서 이전 세션들이 "범위 밖"으로 미뤄
+  뒀던 것). 착수 전에 saga-dungeon 웹판의 실제 오픈월드 생성 로직
+  (`js/dungeon.js`의 방 배치·복도 연결 알고리즘)을 먼저 훑어 범위를
+  정할 것 — 이 프로젝트의 "테스트 씬은 전부 고정 좌표" 원칙과 절차적
+  생성이 어떻게 절충되는지가 핵심 설계 질문(방 개수·연결 구조까지
+  고정할지, 그 안의 콘텐츠 배치만 고정할지 등). FOREST 쪽은 아직
+  GUI 실기 확인이 하나도 안 됐다는 것도 같이 기억할 것(아래 목록).
 - **DUNGEON PLAN 챕터 순 심화 — 2026-09-12 아홉 번째 세션에서 여섯
   조각을 끝내고 멈췄다**(퀘스트 36장·미니맵 27장·타격감 일부 38장 +
   랜덤 이벤트 35장·HUD 체력 게이지 26장·절차적 SFX 37장, 위 "완료
