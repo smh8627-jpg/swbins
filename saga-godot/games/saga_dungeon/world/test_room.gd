@@ -28,7 +28,25 @@ func _ready() -> void:
 	_spawn_walls()
 	_spawn_gate()
 	_spawn_exit_trigger()
-	_spawn_enemy()
+	## GO의 test_village.gd::_ready()와 같은 순서 규칙(자식이 부모보다
+	## 먼저 ready되므로 Player는 이미 트리에 있다) — 이미 클리어한 방이면
+	## 잡졸을 다시 세우지 않는다(EventState의 "이미 끝난 사건은 되살아나지
+	## 않는다"와 같은 경계).
+	var loaded: bool = DungeonSaveState.try_load()
+	if not (loaded and DungeonSaveState.room_cleared):
+		_spawn_enemy()
+	if loaded:
+		var player: Node3D = get_tree().get_first_node_in_group("player")
+		if player:
+			player.global_position = DungeonSaveState.player_pos
+		## 클리어한 방을 불러오면 저장된 위치가 출구 트리거 안일 수 있다
+		## (마지막으로 나간 자리 그대로 복원하니까) — _exit_used를 미리
+		## true로 앉혀 두지 않으면 로드 직후 트리거가 다시 걸려 매번
+		## 재저장(위치가 벽 depenetration으로 조금씩 밀림)이 반복된다.
+		## 실제로 두 번째 프로세스 실행에서 이 재발화를 헤드리스로 잡아냄
+		## (아래 검증 참고) — 추측이 아니라 실측으로 찾은 문제다.
+		if DungeonSaveState.room_cleared:
+			_exit_used = true
 
 
 func _spawn_room_mesh() -> void:
@@ -104,17 +122,14 @@ func _spawn_exit_trigger() -> void:
 	area.body_entered.connect(_on_exit_entered)
 
 
-## 실제 저장(SaveState)은 GO 전용 스키마(플레이어 위치+PartyState)라
-## DUNGEON에 그대로 못 쓴다 — 게임별 세이브를 어떻게 나눌지부터 정해야
-## 하는 별도 결정이라(PROJECT_STATE.md 참고) 이번 슬라이스는 토스트만
-## 보여주고 실제 파일 IO는 다음 단계로 미룬다(완료 조건 8절엔 "저장한다"
-## 라고 적었지만, 지금은 그 자리만 비워 뒀다는 뜻 — 조용히 가짜로 채우지
-## 않는다).
+## DungeonSaveState(전용 파일, GO의 SaveState와 완전히 분리)로 실제
+## 저장한다 — VERTICAL_SLICE_DUNGEON.md 완료 조건 8단계의 마지막 자리.
 func _on_exit_entered(body: Node3D) -> void:
 	if _exit_used or not body.is_in_group("player"):
 		return
 	_exit_used = true
-	Toast.show(self, "이번 슬라이스는 여기까지 — 저장은 다음 단계에서 잇는다.", 5.0)
+	DungeonSaveState.save(body, true)
+	Toast.show(self, "이번 방을 클리어했다 — 저장했다.", 5.0)
 
 
 func _spawn_enemy() -> void:

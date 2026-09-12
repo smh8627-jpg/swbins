@@ -21,6 +21,7 @@ SaveState="*res://games/saga_go/data/save_state.gd"
 QuestState="*res://games/saga_go/data/quest_state.gd"
 EventState="*res://games/saga_go/data/event_state.gd"
 CodexState="*res://games/saga_go/data/codex_state.gd"
+DungeonSaveState="*res://games/saga_dungeon/data/dungeon_save_state.gd"
 
 [display]
 
