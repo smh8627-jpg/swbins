@@ -943,8 +943,7 @@ func _reveal_free() -> String:
 	return got
 
 
-## quiz.js progress() 축약 — 분야·등급별 세부는 이 슬라이스가 아직
-## 안 보여준다(다음에 볼 자리, UI가 더 필요해지면).
+## quiz.js progress() 축약 — 분야·등급별 세부는 quiz_cat_counts()가 맡는다.
 func quiz_progress() -> Dictionary:
 	return {
 		"learned": quiz.learned.size(), "total": RealmQuizData.BANK.size(),
@@ -978,6 +977,25 @@ func quiz_learned_list(cat_key: String = "", limit: int = 20) -> Array:
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.at) > int(b.at))
 	return out.slice(0, mini(limit, out.size()))
+
+
+## 서고 "분야 필터" 메뉴(2026-09-12, 서고 UI 확장) — 분야별 학습 현황
+## (분야 key·이름·익힌 수·전체 문항 수). 분야당 문항이 최대 15개라
+## quiz_learned_list(cat_key)의 기본 limit(20)에 걸릴 일이 없다.
+func quiz_cat_counts() -> Array:
+	var out: Array = []
+	for c: Dictionary in RealmQuizData.CATS:
+		var key: String = String(c.key)
+		var total := 0
+		var learned := 0
+		for ref: Dictionary in RealmQuizData.BANK:
+			if String(ref.cat) != key:
+				continue
+			total += 1
+			if quiz.learned.has(String(ref.id)):
+				learned += 1
+		out.append({"key": key, "name": String(c.name), "learned": learned, "total": total})
+	return out
 
 
 ## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제

@@ -1141,3 +1141,50 @@ texture-a.png.import만 재발생해 되돌림) → 다섯 씬 전부 `--quit-af
 UI, rf_mizhu·rf_jianyong을 saga_core에 들여 소패 수비를 완전하게
 하는 것, 또는 REALM 밖의 다른 판(GO/DUNGEON/FOREST/STORY) 작업 —
 어느 쪽이든 승인 후.
+
+
+## 11. 서고 — 전체·분야 필터 메뉴 (2026-09-12)
+
+**사용자 지시 "1,2,3 다 진행해"** — 10절 끝에 남은 세 후보를 전부
+승인, 이 중 첫 번째. 서고 버튼을 누르면 곧바로 "최근 20개" 목록으로
+가던 것을, 먼저 **"전체" + 학습이 있는 분야만 고르는 메뉴 한 단계**를
+더 넣었다.
+
+**설계** — 각 분야는 최대 15문항(8절에서 분야당 5→15로 늘어난 뒤
+그대로)이라 `quiz_learned_list(cat_key)`의 기본 `limit=20`에 걸릴 일이
+없다 — 분야를 고르면 그 분야를 전부 볼 수 있다("최근 N개"로 잘리는 건
+"전체"를 골랐을 때뿐). 아직 한 문제도 안 익힌 분야는 메뉴에서 뺀다
+(고를 게 없는 항목을 안 보여준다).
+
+**구현**:
+- `realm_save_state.gd`: `quiz_cat_counts()` 신규 — `CATS`를 돌며 분야별
+  {key, name, learned, total}을 센다. `quiz_progress()`의 주석만 이
+  함수로 위임하도록 손봤다(로직은 그대로).
+- `realm_archive_button.gd`: `_on_pressed()`가 이제 1단계 메뉴("전체" +
+  분야별 "이름 (익힌/전체)")를 띄우고, 고르면 `_open_list(cat_key, ...)`
+  가 그 목록을 연다(기존 `_on_pressed()`가 하던 목록 구성 로직을 그대로
+  옮김). `_show_detail()`은 안 바꿨다.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(`--headless --editor
+--quit`) → texture-a.png.import 재발생, 이전과 같은 알려진 노이즈라
+되돌림(diff 0), 그 외 project.godot·`*.import` 변경 없음 확인. 다섯 씬
+전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전 무결(수정 전/후 두 번씩
+= 총 30회). **임시 디버그로 실제 값 확인**(`realm_city.gd` `_ready()`에
+`_debug_archive_check()`를 잠깐 추가): (1) 90문항 전부 학습 후
+`quiz_cat_counts()` 여섯 분야 전부 `15/15`, `quiz_learned_list()`(전체)
+size=20(제한 정확), 분야별 `quiz_learned_list(cat_key)` size가 각각
+`quiz_cat_counts()`의 `learned`값과 정확히 일치, 필터링 결과에 다른
+분야가 섞이지 않음(`filter_ok=true` 전부) 확인. (2) 부분 학습(37/90,
+분야별 8·3·8·5·6·7로 고르게 안 나눠짐)에서도 분야별 합(37)이 전체
+학습 수와 정확히 일치, 각 분야 목록 크기가 기대값과 정확히 일치 확인.
+두 케이스 모두 확인 뒤 디버그 코드(전용 preload·`_ready()` 호출·함수
+전부) 원상복구 — `git diff`로 `realm_city.gd` 변경 0줄 확인. 테스트
+세이브 없음(`save()` 호출 안 함).
+
+**GUI 실기 확인은 아직 안 함** — 1단계 메뉴가 늘어도 ChoicePrompt 패널이
+화면에 다 들어가는지(분야 6개 + 전체 = 최대 7줄), 분야를 고른 뒤 목록
+제목이 잘 읽히는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 사용자가 승인한 나머지 둘: rf_mizhu·rf_jianyong을
+saga_core에 들이는 것, 그리고 REALM 밖 다른 판(STORY가 가장 진도가
+얕아 유력) 작업.
