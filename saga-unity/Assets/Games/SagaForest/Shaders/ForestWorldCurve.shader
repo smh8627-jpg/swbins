@@ -18,6 +18,12 @@ Shader "Saga/ForestWorldCurve"
     // 이 값을 보는 모든 머티리얼(땅·나무·NPC 등)이 같은 값을 봐야 한다 —
     // 땅만 휘고 나무는 안 휘면 나무가 공중에 뜬 것처럼 보인다. 실내
     // 머티리얼은 이 셰이더를 아예 안 물리는 것으로 "안 휨"을 표현한다.
+    //
+    // 정점색(COLOR) — `_BaseColor`에 곱해지는 배율(2026-09-12, 바이옴
+    // 지형 다양성 슬라이스). `ForestGroundBuilder`만 실제로 흰색이 아닌
+    // 값을 채운다(`Data/ForestBiomeData.cs`의 바이옴 틴트) — 정점색이 없는
+    // 메시(창조물 primitive 등)는 Unity가 기본값 (1,1,1,1)을 채워 기존
+    // 결과와 동일하다.
     Properties
     {
         _BaseColor("Base Color", Color) = (0.35, 0.55, 0.25, 1)
@@ -51,6 +57,7 @@ Shader "Saga/ForestWorldCurve"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
+                float4 color      : COLOR;
             };
 
             struct Varyings
@@ -59,6 +66,7 @@ Shader "Saga/ForestWorldCurve"
                 float3 normalWS    : TEXCOORD0;
                 float3 positionWS  : TEXCOORD1;
                 float fogCoord     : TEXCOORD2;
+                float4 color       : TEXCOORD3;
             };
 
             Varyings Vert(Attributes IN)
@@ -76,6 +84,11 @@ Shader "Saga/ForestWorldCurve"
                 OUT.positionWS = posInputs.positionWS;
                 OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS);
                 OUT.fogCoord = ComputeFogFactor(OUT.positionHCS.z);
+                // 정점색이 없는 메시(primitive 몸통 등)는 Unity가 기본값
+                // (1,1,1,1)을 채워 준다 — _BaseColor만 쓰던 기존 결과와 같다.
+                // 정점색이 있는 메시(ForestGroundBuilder의 바이옴 틴트)만
+                // 실제로 곱이 달라진다.
+                OUT.color = IN.color;
                 return OUT;
             }
 
@@ -86,7 +99,8 @@ Shader "Saga/ForestWorldCurve"
                 half ndotl = saturate(dot(normalWS, mainLight.direction));
                 half3 shadowed = mainLight.color * (ndotl * mainLight.shadowAttenuation);
                 half3 ambient = SampleSH(normalWS);
-                half3 lit = _BaseColor.rgb * (shadowed + ambient);
+                half3 albedo = _BaseColor.rgb * IN.color.rgb;
+                half3 lit = albedo * (shadowed + ambient);
                 lit = MixFog(lit, IN.fogCoord);
                 return half4(lit, _BaseColor.a);
             }

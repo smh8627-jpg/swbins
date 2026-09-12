@@ -4,11 +4,13 @@ namespace Saga.Forest.World
 {
     /// <summary>
     /// FOREST "몬스터·퓨전 콘텐츠" 슬라이스(2026-09-12) — `AnimalBuilder.cs`
-    /// (GO)와 같은 "정의 배열 + Awake 스폰" 패턴. saga-godot이 종마다
-    /// 바이옴(어둑숲·바위 지대·버섯숲·꽃밭)에 den을 뒀던 것과 달리 Unity
-    /// FOREST엔 아직 바이옴 구분이 없어(단일 색 평면, `ForestGroundBuilder.cs`
-    /// 참고) 대신 마을 네 귀퉁이(기존 콘텐츠 — 나무(-10,5)·주민(10,5)·
-    /// 집(15,-10)·플레이어 스폰(0,-15)과 안 겹치는 자리)에 하나씩 흩어 뒀다.
+    /// (GO)와 같은 "정의 배열 + Awake 스폰" 패턴. 마을 네 귀퉁이(기존
+    /// 콘텐츠 — 나무(-10,5)·주민(10,5)·집(15,-10)·플레이어 스폰(0,-15)과
+    /// 안 겹치는 자리)에 하나씩 흩어 뒀다. **2026-09-12 바이옴 지형
+    /// 다양성 슬라이스로 이 den 좌표가 그대로 `ForestBiomeData.Zones`의
+    /// 중심과 일치하게 됐다** — saga-godot이 종마다 바이옴(어둑숲·바위
+    /// 지대·버섯숲·꽃밭)에 den을 뒀던 것과 이제 같은 인상을 준다(den
+    /// 좌표 자체는 안 옮김 — `ForestBiomeData.cs` 참고).
     /// </summary>
     public class ForestCreatureBuilder : MonoBehaviour
     {
