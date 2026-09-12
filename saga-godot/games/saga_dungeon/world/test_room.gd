@@ -17,16 +17,32 @@ extends Node3D
 
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const DungeonEnemy := preload("res://games/saga_dungeon/world/dungeon_enemy.gd")
+const DungeonHeroEncounter := preload("res://games/saga_dungeon/world/dungeon_hero_encounter.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 ## GO의 사건 선택지 패널을 그대로 재사용한다(GLBUtils·Toast와 같은 cross-game
 ## 재사용 경계 — GO 전용 로직이 아니라 순수 UI 빌더라 옮길 필요가 없다).
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+const Characters := preload("res://saga_core/data/characters.gd")
 
 const ROOM_GLB := "res://assets/dungeon/room-small.glb"
 const GATE_GLB := "res://assets/dungeon/gate.glb"
 const CORRIDOR_GLB := "res://assets/dungeon/corridor.glb"
 
 const ROOM_COUNT := 2
+
+## "제외" 목록 5번(인물 등용) — 방마다 실제 역사 인물 하나씩(saga_core
+## 105명 중 새로 골랐다 — GO가 이미 kr_yisunsin을 쓰고 있어 안 겹치게).
+## 둘 다 삼국지·rarity 5(기질이 처음엔 가려진다, GO의 "기질 불명 ❓"과
+## 같은 경로도 같이 검증된다) — 하나는 virtue(은창), 하나는 wisdom(현책).
+const ROOM_HERO_IDS: Array[String] = ["sg_zhaoyun", "sg_zhugeliang"]
+
+## "제외" 목록 5번(출사표) — 웹판 starter.js의 문턱(희귀도 낮은 인물만
+## 시작에 고른다)을 그대로 옮겼다. 원작은 정해진 셋을 주지만, 이 판은
+## "누구를 등용했는가"가 핵심이라(root CLAUDE.md 첫 줄) 후보 중 직접
+## 고르게 했다 — 새 UI가 아니라 기존 ChoicePrompt를 그대로 재사용.
+const STARTER_PICK_COUNT := 3
+const STARTER_POOL_SIZE := 5
+const STARTER_RARITY_CAP := 3
 
 const ROOM_HALF := Vector3(6.0, 0.0, 6.0)
 const WALL_HEIGHT := 4.4
@@ -74,10 +90,28 @@ func _ready() -> void:
 			## 재발화를 헤드리스로 잡아냄(아래 검증 참고) — 추측이 아니라
 			## 실측으로 찾은 문제다.
 			_exit_used[i] = true
+		## "제외" 목록 5번(인물 등용) — 이미 등용했거나(성공) 떠나보낸
+		## (실패) 인물은 다시 세우지 않는다(위 잡졸의 rooms_cleared와 같은
+		## 경계, hero_resolved).
+		var hero_done: bool = loaded and DungeonSaveState.is_hero_resolved(i)
+		if not hero_done and i < ROOM_HERO_IDS.size():
+			_spawn_hero_encounter(_room_origin_z[i], i, ROOM_HERO_IDS[i])
 	if loaded:
 		var player: Node3D = get_tree().get_first_node_in_group("player")
 		if player:
 			player.global_position = DungeonSaveState.player_pos
+	else:
+		_maybe_show_starter_pick()
+
+	## "제외" 목록 6번(결사) — 지난 회차가 결사로 스러진 채 저장됐으면
+	## (dungeon_hardcore_state.gd::fallen) 이번에 불러오자마자 바로 그
+	## 자리에서 멈춘다 — player_health.gd::_fall()과 같은 얼림
+	## (get_tree().paused = true), 다시 내려갈 수 없다는 웹판 enter()의
+	## fallen() 가드와 같은 뜻이다.
+	if not DungeonHardcoreState.fallen.is_empty():
+		Toast.show(self, "☠️ 결사로 스러진 판입니다(제%d층) — 이어서 내려갈 수 없다." %
+			int(DungeonHardcoreState.fallen.get("floor", 0)), 8.0)
+		get_tree().paused = true
 
 
 func _spawn_room_mesh(origin_z: float) -> void:
@@ -267,3 +301,52 @@ func _spawn_enemy(origin_z: float, floor_num: int) -> void:
 	var enemy: CharacterBody3D = DungeonEnemy.new(floor_num)
 	enemy.position = Vector3(0, 0, origin_z - 1.5)
 	add_child(enemy)
+
+
+## "제외" 목록 5번(인물 등용) — 잡졸은 방 중심에서 북쪽(출구 쪽, -z)으로
+## 살짝 치우쳐 있고 출구 트리거는 더 북쪽이라(_spawn_exit_trigger), 인물은
+## 반대로 남쪽(입구 쪽, +z)에 옆으로 비켜(x=±3.5) 세운다 — 걸어 들어오자마자
+## 잡졸과 겹치지 않게, 복도 폭(±2.0) 밖이라 지나가는 길도 안 막는다.
+func _spawn_hero_encounter(origin_z: float, room_index: int, hero_id: String) -> void:
+	var encounter: Node3D = DungeonHeroEncounter.new(hero_id, room_index)
+	var side: float = 3.5 if room_index % 2 == 0 else -3.5
+	encounter.position = Vector3(side, 0, origin_z + 2.0)
+	add_child(encounter)
+
+
+## "제외" 목록 5번(출사표) — 새 저장(불러온 게 없을 때)에만 딱 한 번,
+## 함께할 인물 셋을 순서대로 고른다. 웹판 starter.js의 희귀도 문턱
+## (rarity ≤ STARTER_RARITY_CAP)을 그대로 쓰되, 원작처럼 정해진 셋을
+## 주는 대신 후보 다섯 중 직접 고르게 했다(위 상수 주석 참고).
+func _maybe_show_starter_pick() -> void:
+	var pool: Array[Dictionary] = []
+	for h: Dictionary in Characters.HEROES:
+		if int(h.rarity) <= STARTER_RARITY_CAP:
+			pool.append(h)
+	pool.shuffle()
+	var candidates: Array[Dictionary] = pool.slice(0, mini(STARTER_POOL_SIZE, pool.size()))
+	_show_starter_round(candidates, 1)
+
+
+func _show_starter_round(candidates: Array[Dictionary], round_num: int) -> void:
+	if candidates.is_empty() or round_num > STARTER_PICK_COUNT:
+		Toast.show(self, "출사표를 마쳤다 — 부대 %d명." % DungeonPartyState.members.size(), 3.0)
+		return
+	## test_room.gd의 은사 선택지와 같은 "생성 시점 값 캡처" 우회(위
+	## _on_exit_entered 주석 참고) — layer_box에 나중에 채워 넣는다.
+	var layer_box := {}
+	var choices: Array = []
+	for h: Dictionary in candidates:
+		choices.append({
+			"label": "%s %s(%s) · %s·%s" % [h.emoji, h.name, h.hanja, h.era, h.faction],
+			"cb": func() -> void: _on_starter_picked(h, candidates, round_num, layer_box),
+		})
+	layer_box["layer"] = ChoicePrompt.build(
+		self, "📜 출사표 — 함께할 인물을 고르세요 (%d/%d)" % [round_num, STARTER_PICK_COUNT], choices)
+
+
+func _on_starter_picked(hero: Dictionary, candidates: Array[Dictionary], round_num: int, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	DungeonPartyState.recruit(str(hero.id))
+	candidates.erase(hero)
+	_show_starter_round(candidates, round_num + 1)

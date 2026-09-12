@@ -2199,6 +2199,225 @@ GUI 실기 확인은 다른 항목들과 함께 몰아서 나중에 확인한다
 세션은 "제외" 목록 4번(원소 6결+저항)부터 다시 물어보지 않고 이어가면
 된다**(2026-09-12⑲가 이미 정해 둔 순서, 위 참고).
 
+## 완료 단계 (추가, 2026-09-12㉓) — 위 목록 4번: 원소 6결+저항
+
+**사용자가 "4번이어해"로 지시.** `data-elem.js`의 ELEMENTS(phys+6결)·
+`data-gem.js`의 GRADES·GEMS(6종)·JEWEL_*(20종 접사)를 `dungeon_items.gd`에
+이어 옮겼다. 이번에도 갑주 슬롯이 없다는 제약이 그대로 이어진다 —
+보석의 armor 자리(원소 저항)는 안 닿지만, **주옥은 부위를 안 가려**
+무기·부적 소켓 어디에 박아도 elres가 그대로 붙는다(원소 저항이 이
+슬라이스에서 갑주 없이 손에 닿는 유일한 길). 데이터는 armor 자리까지
+원작 그대로 셋 다 옮겨 뒀다 — 나중에 갑주가 생기면 바로 쓴다.
+
+- `dungeon_items.gd` — ELEMENTS·GEM_ELEMENTS·RESIST_CAP·GRADES(+`grade()`)·
+  GEMS·GEM_SLOT_CAT(weapon·charm만)·JEWEL_TWO·JEWEL_MAX·JEWEL_AFFIXES 추가.
+  `roll_jewel()`·`jewel_eff()`·`jewel_name()`·`elem_by_key()`/`elem_name()`·
+  `roll_gem_drop()`·`roll_material_drop()`(dropMat() 전체 — 주옥 4층부터·
+  부문 22%·보석 나머지) 신규. `socket_effects()`에 gem·jewel 갈래 추가(룬
+  갈래 옆에 나란히), `item_lines()`의 소켓 표시도 세 갈래 다 보여주게 확장.
+- `dungeon_equipment_state.gd` — `socket_gem()`·`socket_jewel()`(socket_rune()과
+  같은 경계) + `elem_damage()`(item.js elemDamage(), 결별 합산)·
+  `elem_resist(el)`(item.js elemResist(), RESIST_CAP까지 클램프) 신규.
+- `dungeon_materials_state.gd` — 보석 주머니(개수+등급, 룬과 같은 "개수만
+  세는 재료" 경계지만 키에 등급을 물린다)·주옥 주머니(낱개, item.js
+  jewels()와 같은 경계) 신규. `combine_gem()`(forge.js makeGem()) 추가,
+  `restore()`에 gems/jewels 인자 추가(기본값 있어 기존 호출도 안 깨짐).
+- `melee_attack.gd::_apply_elemental()` — dungeon.js strike()가 물리 타격
+  뒤 `applyElem(e, mul)`을 부르는 자리 그대로. 결마다 저항이 따로고
+  크리티컬은 안 탄다(원작도 mul만 넘긴다). 빙(cold)은 느려짐, 독(pois)은
+  dot, 뇌(lit)는 편차(spread)가 크다 — 세 성질 다 `dungeon_enemy.gd`의
+  새 메서드(`apply_elem_slow()`·`apply_elem_dot()`)로 넘긴다.
+- `dungeon_enemy.gd` — `resist: Dictionary`(황건적은 원작에 저항 키가
+  없어 빈 채로 둠, 새 몬스터를 상상 안 함)·`resist_pct()`·dot 틱(`_dots`,
+  `_tick_dots()`)·빙 슬로우(`_slow_mult`/`_slow_time_left`, `_tick_slow()`)
+  신규. 사망 경로를 `_die()`로 한데 모았다(물리 타격·dot 둘 다 그리로 온다).
+- `loot_pickup.gd` — `RUNE_DROP_CHANCE`를 `MAT_DROP_CHANCE`로 이름만
+  바꾸고(바깥 확률은 그대로, 안쪽만 세 갈래), `_spawn_rune()`을
+  `_spawn_mat()`으로 넓혀 보석·주옥 픽업(각각 다른 색 구슬)도 낸다.
+  주옥은 주머니가 차 있으면(JEWEL_MAX) 바닥에 남는다(물약 벨트가 찼을
+  때와 같은 규칙 — area를 안 지운다).
+- `socket_button.gd`/`forge_button.gd` — 소켓 목록에 보석(등급별 묶음)·
+  주옥(낱개)도 룬과 나란히 올린다. 연단(⚗️)에 **보석 셋→한 등급 위**
+  (forge.js makeGem()) 추가 — 2026-09-12㉑이 "보석이 없어 못 넣는다"고
+  미뤄 둔 세 조합 중 하나가 이제 채워졌다(장비 셋·접사 다시 굴리기는
+  여전히 가방이 없어 이 슬라이스 밖).
+- `materials_label.gd` — "🔩 부문 N"에 "💎 보석 N · ◈ 주옥 N"을 이어 붙임.
+- `dungeon_save_state.gd` — `gems`/`jewels` 순수 추가 필드(SAVE_VERSION
+  안 올림, 기존 세이브도 빈 값으로 안전하게 채워짐).
+- **검증(헤드리스) — `test_room.gd::_ready()`에 임시 디버그 함수를 넣어
+  실제 오토로드(DungeonEquipmentState·DungeonMaterialsState) 상태로
+  실측하고 검증 뒤 되돌렸다(diff 0)**: ELEMENTS 7종·GEMS 6종 개수,
+  `grade()` 클램프(10 → 완), `roll_jewel()` 접사 개수 분포 2000회(1개
+  ~66%/2개 ~34%, JEWEL_TWO=0.34와 일치), 무기에 마노(화) 보석을 박으니
+  `elem_damage()`가 정확히 `{fire:6.0}`, 부적에 j_rfire 접사를 가진 주옥을
+  박으니 `elem_resist('fire')`가 정확히 10.0(갑주 없이도 저항이 붙는 것
+  확인), `item_lines()`가 보석 소켓을 "소켓: 조(粗) 마노(瑪瑙)"로 보여주고
+  룬이 안 섞였으니 부문어는 안 뜨는 것 확인, `combine_gem()`으로 조(粗)
+  마노 3개 → 양(良) 마노 1개, 주옥 주머니 추가/제거 왕복, gems/jewels
+  저장·복원 왕복, 새로 만든 적 인스턴스에 임의 저항(화 50%)을 줘
+  `resist_pct()`가 정확히 반영되는 것, dot(dps10×2초)이 1초 뒤 hp를
+  정확히 10 깎는 것, 빙 슬로우가 시간 경과 후 정확히 1.0으로 풀리는 것
+  — 전부 assert 통과("DBG ALL_ELEM_CHECKS_OK"). 이어서 `--headless
+  --editor --quit`(임포트) · `--headless --quit-after 3`을 DUNGEON·GO
+  양쪽 다 — DUNGEON 3연속 + GO 1회, 전부 exit 0·error/warn/missing/
+  invalid/cannot 0건.
+- **GUI 실기 확인은 아직 안 함** — 소켓 목록에서 보석·주옥이 룬과 나란히
+  잘 보이는지, 보석/주옥 노획 시 색이 다른 구슬로 자연스럽게 뜨는지,
+  연단 목록에 보석 조합이 뜨는지, MaterialsLabel이 세 숫자로 길어져도
+  안 잘리는지, 빙 원소를 얻고 나서 적이 실제로 느려지는 게 체감되는지,
+  독 원소의 dot 틱이 화면에서 부자연스럽지 않은지. 아래 "다음에 이어질
+  것" 목록에 추가.
+- **다음은 "제외" 목록의 마지막 셋 — 5번(인물 등용)·6번(결사)·7번(보스층)**
+  (창고·4번은 이번에 끝남). 순서는 2026-09-12⑲가 정해 둔 그대로.
+
+## 완료 단계 (추가, 2026-09-12㉔) — 위 목록 5번: 인물 등용
+
+**사용자가 "5번 인물 등용 이어해"로 지시.** 조사해 보니 두 정본 문서가
+서로 다른 방식을 가리키고 있었다 — `VERTICAL_SLICE_DUNGEON.md`는 "GO에서
+이미 구현된 saga_core 인물 데이터·PartyState 패턴을 참고"라고만 적어
+GO의 3라운드 설득 조우를 시사했지만, `LEGACY_FEATURE_AUDIT.md`의 KEEP
+분류는 웹판 실제 방식이 "출사표3(시작 인물 3명 고르기)+보스층 합류(보스
+층 클리어 후 자동 합류)"라고 명시했다. 보스층 자체가 아직 없어(7번,
+미착수) 후자의 절반은 지금 못 만든다는 점을 사용자에게 알리고 확인—
+**"둘 다(출사표 + 방 안 설득 조우)"** 로 확정. 보스층 합류는 7번이 생긴
+뒤로 미룬다.
+
+- **`dungeon_party_state.gd`(신규 autoload `DungeonPartyState`)** — GO의
+  `party_state.gd`(등용 인원 수만큼 flat 60/35 스탯이 오르는 모델)를 그대로
+  옮기지 않았다. DUNGEON은 이미 장비 기반 전투 채널(`DungeonEquipmentState`
+  의 flat/pct)이 있어 GO식 스탯 체계를 새로 만드는 대신, `dungeon_run_state.gd`
+  가 이미 쓰는 world eff 어휘(atkPct·hpPct)로 인원 수만큼 보탠다
+  (`ATK_PCT_PER_MEMBER=4.0`·`HP_PCT_PER_MEMBER=5.0`, 원작에 없는 값 — 장비
+  world 접사의 2~7% 범위와 비슷한 무게로 직접 정함). `_sum_eff()`에 boons·
+  장비 옆 세 번째 자리로 한 줄만 추가했더니 `melee_attack.gd`·
+  `player_health.gd`는 손 안 대고도 자동으로 반영됐다(atk_mult()/hp_mult()
+  를 이미 쓰고 있었으므로) — `player_health.gd`는 `party_changed` 신호
+  구독 한 줄만 추가해 인원이 늘 때 max_hp를 다시 계산하게 했다.
+- **`games/saga_dungeon/world/dungeon_hero_encounter.gd`(신규)** — GO의
+  `hero_encounter.gd`+`persuade_rules.gd`(3라운드 설득, 무/지/덕 어필,
+  rarity 4+는 "기질 불명 ❓")를 판정 층까지 그대로 따른다(`PersuadeRules`는
+  class_name으로 전역 등록돼 있어 다시 만들지 않고 그대로 재사용). 갈아
+  낀 것 셋: ①등용 성공 시 GO의 `PartyState.recruit()` 대신
+  `DungeonPartyState.recruit()` ②exp 보상 없음(DUNGEON엔 레벨 개념이 없다)
+  ③해결 여부는 GO의 `EventState`(노드 이름 키) 대신
+  `DungeonSaveState.mark_hero_resolved(room_index)`로 남김(세이브 스키마를
+  GO와 안 섞는다는 기존 원칙 그대로). "물러난다"는 GO와 같이 조우를 안
+  지운다 — 트리거를 다시 들어오면 처음부터 다시 설득해 볼 수 있다.
+- **`test_room.gd`** — 방마다 saga_core 105명 중 둘(`sg_zhaoyun`=은창·
+  `sg_zhugeliang`=현책, 둘 다 rarity 5라 "기질 불명" 경로도 같이 검증됨,
+  GO가 이미 쓰는 `kr_yisunsin`과는 안 겹치게 새로 골랐다)을 배치 —
+  잡졸(방 중심에서 북쪽/출구 쪽)과 안 겹치게 남쪽/입구 쪽에 옆으로
+  비켜(x=±3.5) 세운다. **출사표**(`_maybe_show_starter_pick()`) — 새
+  저장(불러온 게 없을 때)에만, 웹판 starter.js의 희귀도 문턱(rarity≤3)
+  후보 다섯 중 셋을 순서대로 고르게 한다(원작처럼 정해진 셋을 주는 대신
+  직접 고르게 한 것은 "누구를 등용했는가"가 이 시리즈의 핵심이라는 루트
+  CLAUDE.md 첫 줄에 맞춘 선택 — 새 UI가 아니라 기존 ChoicePrompt 재사용).
+- **`dungeon_save_state.gd`** — `hero_resolved: Array[bool]`(rooms_cleared와
+  같은 모양)·`party_members`를 순수 추가 필드로(SAVE_VERSION 안 올림).
+- **`project.godot`** — `[autoload]`에 `DungeonPartyState` 등록.
+- **`games/saga_dungeon/ui/party_label.gd`(신규)+`DungeonHUD.tscn`의
+  `PartyLabel`** — GO의 `party_label.gd`처럼 등용한 인물 이름을
+  saga_core에서 찾아 같이 보여준다("🛡️ 부대 N명 (이름·이름)") — GO와
+  달리 "전투력"·"Lv." 표기는 없다(그 개념 자체가 없다, 대신 atk/hpPct
+  보탬으로만 반영).
+- **검증(헤드리스) — 새 통합 지점만 실측**(PersuadeRules·Characters
+  자체는 GO에서 이미 검증된 기존 코드라 재검증 안 함): `test_room.gd::
+  _ready()`에 임시 디버그를 넣어 ①인물 둘 등용 후 `atk_mult()`가 정확히
+  1.08, `hp_mult()`가 정확히 1.10(4%·5%×2명) ②`player_health`가
+  `party_changed`를 구독해 인물을 더 등용하면 max_hp가 실제로 오르는 것
+  (66→69) ③`mark_hero_resolved(0)`+`DungeonPartyState`에 셋 등용한 뒤
+  저장 — **완전히 새 프로세스로 재실행**해 `DungeonPartyState.members`
+  셋·`hero_resolved=[true]`가 정확히 복원되는 것까지 확인. 검증 뒤
+  디버그 코드는 원상복구(diff는 의도된 기능 추가만 남음), `user://
+  save_dungeon.json`도 지웠다. `--headless --editor --quit`(임포트)·
+  `--headless --quit-after 3`을 DUNGEON 3연속(매번 새 저장으로 출사표
+  경로도 매번 탐) + GO 1회 — 전부 exit 0, error/warn/missing/invalid/
+  cannot 0건.
+- **GUI 실기 확인은 아직 안 함** — 출사표 패널이 게임 시작하자마자 자연
+  스럽게 뜨는지(3라운드 연속), 방 안의 두 인물이 잡졸과 안 붐비는지,
+  기질 불명 인물에게 처음 말을 걸었을 때(둘 다 rarity 5라 항상 가려진
+  채 시작) 자연스러운지, PartyLabel이 이름이 늘어도 화면 폭 안에서
+  줄바꿈되는지(autowrap 켜 둠). 아래 "다음에 이어질 것" 목록에 추가.
+- **다음은 "제외" 목록의 마지막 둘 — 6번(결사)·7번(보스층)**. 7번이
+  생기면 위에서 미뤄 둔 "보스층 합류" 등용 경로도 이어서 채울 수 있다.
+
+## 완료 단계 (추가, 2026-09-12㉕) — 위 목록 6번: 결사(하드코어)
+
+**사용자가 "6번 결사 이어해"로 지시.** 웹판 `dungeon.js`의 결사(決死)를
+조사했다 — 핵심은 **켜는 것은 되돌릴 수 없고, 켜진 채로 쓰러지면 그
+"프로필"이 통째로 끝나 다시 못 내려간다**(여러 이름의 세이브 프로필
+중 하나가 영구히 막히는 것). 우리는 세이브가 `save_dungeon.json` 하나
+뿐이라(다중 프로필 없음) "새 이름으로 시작하세요"를 그대로 옮길 수
+없어, 대신 **스러진 순간 화면 전체를 멈춘다**(`get_tree().paused =
+true`)로 옮겼다 — 저장 파일은 안 지운다(정말 새로 시작하려면 사용자가
+직접 지워야 한다, 원작의 "새 이름"에 해당하는 유일한 길).
+
+이 기능은 "플레이어가 쓰러진다"는 개념 자체가 필요한데, VERTICAL_SLICE_
+DUNGEON.md는 애초에 "죽음·부활은 범위 밖 — hp 0이면 그냥 멈춘다"고
+정해 뒀었다. **그 원칙은 비결사 모드에서 그대로 유지했다** — 새로 만든
+`_dead` 가드는 결사 판정을 한 번만 하기 위한 것뿐이고, 비결사 모드는
+관찰 가능한 동작이 하나도 안 바뀐다(hp는 이미 0에서 그대로 머물러
+있었다). 결사가 켜져 있을 때만 hp 0이 "쓰러짐"으로 이어진다.
+
+- **`dungeon_hardcore_state.gd`(신규 autoload `DungeonHardcoreState`)**
+  — `hardcore: bool`(한 번 켜지면 못 끔, `enable()`이 이미 켜져 있으면
+  false를 돌려줌)·`fallen: Dictionary`({} 면 안 스러짐, 아니면
+  {floor, at}, `mark_fallen()`도 한 번만 정해지면 안 바뀜).
+- **`player_health.gd`** — `died` 신호(hp 0에 처음 닿을 때 한 번)를
+  추가하고, `_dead` 가드로 `take_damage()`가 그 뒤론 아무 일도 안
+  하게 했다. **결사가 켜져 있을 때만** `_fall()`을 불러 ①현재 층을
+  가늠하고(정확한 "지금 층" 추적 자체가 없어 `rooms_cleared.count(true)
+  + 1`로 근사, vendor_button.gd의 `_vendor_lv()`와 같은 근사 방식)
+  ②`DungeonHardcoreState.mark_fallen()` ③**그 자리에서 바로
+  `DungeonSaveState.save()`**(다른 이벤트는 방 출구에서만 저장하지만,
+  이건 방 출구까지 못 갈 수도 있어 즉시 저장해야 한다) ④영구 토스트
+  ⑤`get_tree().paused = true`로 화면 전체를 멈춘다.
+- **`test_room.gd::_ready()`** — 불러온 저장이 이미 결사로 스러진
+  채였으면(`DungeonHardcoreState.fallen`이 안 비어 있으면) 방을 다 세운
+  뒤 바로 같은 방식으로 얼린다 — 웹판 `enter()`의 `fallen()` 가드("이
+  판은 못 내려간다")와 같은 뜻.
+- **`dungeon_save_state.gd`** — `hardcore`·`fallen` 순수 추가 필드
+  (SAVE_VERSION 안 올림).
+- **`games/saga_dungeon/ui/hardcore_button.gd`(신규)+`DungeonHUD.tscn`의
+  `HardcoreButton`(☠️)** — vendor_button.gd·socket_button.gd와 같은
+  경계(HUD 버튼 하나가 ChoicePrompt로 확인을 받는다). 웹판 ui.js의
+  `confirm(...)`을 ChoicePrompt(켠다/그만둔다)로 옮겼다. 이미 켜져
+  있으면 확인창 없이 "이미 결사입니다"만 보여주고(admin.js가 버튼을
+  비활성화하는 것과 같은 뜻), 버튼 자체도 켜진 뒤엔 💀로 바뀐다.
+- **`project.godot`** — `[autoload]`에 `DungeonHardcoreState` 등록.
+- **검증(헤드리스)** — ①`enable()`이 처음엔 true, 두 번째부턴 계속
+  false(한 번만 켜짐) ②결사를 켠 뒤 `player_health.take_damage(9999)`로
+  즉사시키니 `DungeonHardcoreState.fallen`이 채워지고
+  `get_tree().paused`가 실제로 true가 되는 것 확인 ③**완전히 새
+  프로세스로 재실행**해 `hardcore=true`·`fallen`이 정확히 복원되고,
+  `_ready()`가 그 자리에서 바로 다시 `paused=true`로 얼리는 것까지
+  확인. 검증 뒤 디버그 코드는 원상복구(diff는 의도된 기능 추가만
+  남음), `user://save_dungeon.json`도 지웠다. `--headless --editor
+  --quit`(임포트)·`--headless --quit-after 3`을 DUNGEON 3연속(매번
+  새 저장) + GO 1회 — 전부 exit 0, error/warn/missing/invalid/cannot
+  0건.
+- **GUI 실기 확인은 아직 안 함** — HardcoreButton(💀 위치, 소켓·행상·
+  연단 버튼 위 다섯째)이 다른 버튼과 안 겹치는지, 확인 패널 문구가 세
+  줄로 자연스럽게 보이는지, 실제로 쓰러졌을 때 화면이 멈추는 느낌이
+  "결사답게" 무겁게 느껴지는지(토스트 문구 포함), 다시 켰을 때(같은
+  세이브 재실행) 바로 얼어붙은 화면이 뜨는 게 당혹스럽지 않은지. 아래
+  "다음에 이어질 것" 목록에 추가.
+- **다음은 "제외" 목록의 마지막 하나 — 7번(보스층)**. 이 목록(2026-09-
+  12⑲가 정한 순서)의 마지막 항목이다 — 끝나면 DUNGEON의 "제외" 목록
+  전체가 완료된다.
+
+### 이 세션 마무리 (사용자 지정, 2026-09-12㉕)
+
+**사용자가 "현재 작업 완료 하면 새로운 세션에서 이어 할게"로 지정.**
+위 6번(결사)을 커밋까지 마친 상태에서 세션을 넘긴다. **다음 세션은
+"제외" 목록의 마지막 항목 — 7번(보스층)부터 다시 물어보지 않고
+이어가면 된다**(2026-09-12⑲가 이미 정해 둔 순서). 7번까지 끝나면
+VERTICAL_SLICE_DUNGEON.md의 "제외" 목록 전체가 완료되므로, 그다음은
+PLAN.md 39장 순서(Core→Vertical Slice→GO→**DUNGEON**→FOREST→...)대로
+DUNGEON도 GO처럼 "Vertical Slice 승인" 게이트(PLAN.md 100단계)를
+사용자에게 확인받는 게 자연스러운 다음 매듭이다 — GO가 2026-09-11에
+그 게이트를 통과한 뒤 "GO 사건 다양화"로 넘어간 것과 같은 흐름.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
@@ -2212,6 +2431,22 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 필요 없다(기록만 남김). 이 시점 이후 새로 생긴 미확인 항목만 이 절
 맨 위에 쌓는다:
 
+- **(2026-09-12㉕ 신규, DUNGEON) HardcoreButton(💀 위치, 소켓·행상·연단
+  버튼 위 다섯째)이 다른 버튼과 안 겹치는지, 확인 패널 문구가 세 줄로
+  자연스럽게 보이는지, 실제로 쓰러졌을 때 화면이 멈추는 느낌이 무겁게
+  느껴지는지, 다시 켰을 때 바로 얼어붙은 화면이 뜨는 게 당혹스럽지
+  않은지.** 위 "완료 단계 (추가, 2026-09-12㉕)" 참고.
+- **(2026-09-12㉔ 신규, DUNGEON) 출사표 패널이 게임 시작하자마자
+  자연스럽게 뜨는지(3라운드 연속), 방 안의 두 역사 인물이 잡졸과 안
+  붐비는지, 기질 불명(rarity 5) 인물에게 처음 말을 걸었을 때 패널이
+  자연스러운지, PartyLabel이 이름이 늘어도 화면 폭 안에서 줄바꿈되는지.**
+  위 "완료 단계 (추가, 2026-09-12㉔)" 참고.
+- **(2026-09-12㉓ 신규, DUNGEON) 소켓 목록에서 보석·주옥이 룬과 나란히
+  잘 보이는지, 보석/주옥 노획 시 색이 다른 구슬로 자연스럽게 뜨는지,
+  연단 목록에 보석 조합이 뜨는지, MaterialsLabel("🔩·💎·◈" 세 숫자)이
+  길어져도 안 잘리는지, 빙 원소를 얻고 나서 적이 실제로 느려지는 게
+  체감되는지, 독 원소의 dot 틱이 화면에서 부자연스럽지 않은지.** 위
+  "완료 단계 (추가, 2026-09-12㉓)" 참고.
 - **(2026-09-12㉒ 신규, DUNGEON) VendorButton(🏪)·ForgeButton(⚗️)이 다른
   버튼과 안 겹치는지, GoldLabel·PotionLabel이 다른 라벨과 안 겹치는지,
   1·2·3·4 키 물약 손맛, 행상 ChoicePrompt 다섯 줄이 화면에 다 들어오는지,

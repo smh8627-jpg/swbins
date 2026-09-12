@@ -65,8 +65,10 @@ func restore(saved: Dictionary) -> void:
 
 ## "제외" 목록 3번(장비 등급+접사) — 장비의 world 접사가 은사와 완전히
 ## 같은 eff 키 이름을 쓰므로 여기서 같이 더한다(DungeonEquipmentState.
-## world_eff_sum 참고). 이 함수 하나로 atk_mult()·hp_mult()·crit_chance()
-## 등 아래 모든 getter가 은사+장비를 자동으로 같이 반영한다.
+## world_eff_sum 참고). "제외" 목록 5번(인물 등용)에서 DungeonPartyState도
+## 같은 자리에 이어 붙였다(atkPct·hpPct만 반응, dungeon_party_state.gd
+## 참고). 이 함수 하나로 atk_mult()·hp_mult()·crit_chance() 등 아래 모든
+## getter가 은사+장비+부대를 자동으로 같이 반영한다.
 func _sum_eff(eff_key: String) -> float:
 	var total := 0.0
 	for key in boons:
@@ -74,6 +76,7 @@ func _sum_eff(eff_key: String) -> float:
 		if not b.is_empty() and b.eff.has(eff_key):
 			total += float(b.eff[eff_key]) * int(boons[key])
 	total += DungeonEquipmentState.world_eff_sum(eff_key)
+	total += DungeonPartyState.world_eff_sum(eff_key)
 	return total
 
 

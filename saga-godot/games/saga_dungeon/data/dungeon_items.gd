@@ -7,11 +7,14 @@ class_name DungeonItems
 ##
 ## "제외" 목록 2번(소켓+부문어·투장·내구) — `data-gem.js`의 RUNES·WORDS,
 ## `data-set.js`의 SETS(스킬 필드는 제외 — 무예/핫바 시스템이 아직 없다),
-## `item.js`의 rollSockets()·내구 공식을 여기 이어 옮겼다. **보석(GEMS)·
-## 주옥(珠玉/JEWEL_*)은 여전히 빠졌다** — 원소(元素) 피해·저항 계층이
-## 있어야 뜻이 생기는데 그건 "제외" 목록 4번(원소 6결+저항) 몫이다(무기
-## 슬롯 하나뿐인 지금 넣어 봐야 100% 못 쓰는 수치만 굴러나온다). **감정
-## (미확인)·고유(유니크)·가방/창고**도 여전히 이 슬라이스 밖이다.
+## `item.js`의 rollSockets()·내구 공식을 여기 이어 옮겼다. **감정(미확인)·
+## 고유(유니크)·가방/창고**는 여전히 이 슬라이스 밖이다.
+##
+## "제외" 목록 4번(원소 6결+저항) — `data-elem.js`의 ELEMENTS·`data-gem.js`의
+## GRADES·GEMS·JEWEL_*를 여기 이어 옮겼다(아래 ELEMENTS 블록부터). 갑주
+## 슬롯이 없어 보석(GEMS)의 armor 자리(원소 저항)는 안 닿지만, 데이터는
+## 원작 그대로 셋(weapon/armor/charm) 다 옮겨 뒀다 — 주옥(珠玉)은 부위를
+## 안 가려 우리 무기·부적 소켓에도 저항이 그대로 붙는다.
 ##
 ## BASES는 원본 31종 중 **무기 10종 + 부적(charm) 5종**만 옮겼다(갑주·
 ## 투구·장갑·신발·목걸이·반지는 여전히 뺐다 — 방어력·기질 스탯 자체가
@@ -148,6 +151,121 @@ const RUNES: Array[Dictionary] = [
 	{ "key": "wang", "glyph": "王", "name": "왕", "tier": 5, "eff": { "kind": "flat", "stat": "all", "v": 8.0 }, "desc": "임금 왕. 아주 드물다." },
 ]
 
+## "제외" 목록 4번(원소 6결+저항) — data-elem.js ELEMENTS 그대로: phys(물리)
+## 하나 + 보석으로 얻는 6결(화·빙·뇌·독·기·전자). 결마다 성질이 다르다
+## (빙=느려짐·뇌=편차 큼·독=dot·화/기/전자=곧은 한 방) — melee_attack.gd·
+## dungeon_enemy.gd가 이 성질(slow/spread/dot)을 그대로 읽어 적용한다.
+const ELEMENTS: Array[Dictionary] = [
+	{ "key": "phys", "name": "물리", "hanja": "物理", "color": "#d0c8b8",
+		"desc": "칼과 주먹. 보석으로는 못 얻는다 — 무기가 곧 물리다." },
+	{ "key": "fire", "name": "화", "hanja": "火", "color": "#e2601a",
+		"desc": "큰 한 방." },
+	{ "key": "cold", "name": "빙", "hanja": "氷", "color": "#5fa8e8", "slow": 0.45, "slow_sec": 1.6,
+		"desc": "맞은 적이 잠깐 느려진다." },
+	{ "key": "lit", "name": "뇌", "hanja": "雷", "color": "#f0d060", "spread": 1.4,
+		"desc": "편차가 크다 — 적게 들어가거나 크게 들어간다." },
+	{ "key": "pois", "name": "독", "hanja": "毒", "color": "#7ac943", "dot": 3.0,
+		"desc": "3초에 걸쳐 들어간다. 즉발이 아니다." },
+	{ "key": "chi", "name": "기", "hanja": "氣", "color": "#b98ae0",
+		"desc": "이 판의 마법. 곧게 들어간다." },
+	{ "key": "emp", "name": "전자", "hanja": "電磁", "color": "#ff4fd8",
+		"desc": "미래에서 흘러든 낯선 힘. 큰 한 방, 곁들이는 것은 없다." },
+]
+
+## 보석으로 얻을 수 있는 결(물리는 무기 자체라 못 얻는다) — data-elem.js GEM_ELEMENTS.
+const GEM_ELEMENTS: Array[String] = ["fire", "cold", "lit", "pois", "chi", "emp"]
+
+## 저항 상한 — data-enemy.js·dungeon.js RESIST_CAP 그대로(면역은 안 둔다).
+const RESIST_CAP := 75.0
+
+## data-gem.js GRADES 5등급 — 거칠수록 값이 작다. 보석·주옥이 아니라
+## **보석에만** 등급이 있다(주옥은 등급 없이 접사가 굴러 나온다).
+const GRADES: Array[Dictionary] = [
+	{ "g": 0, "name": "조(粗)", "mul": 1.0, "color": "#9aa3b2" },
+	{ "g": 1, "name": "양(良)", "mul": 1.8, "color": "#5ec26a" },
+	{ "g": 2, "name": "정(精)", "mul": 3.0, "color": "#4aa3f0" },
+	{ "g": 3, "name": "보(寶)", "mul": 4.6, "color": "#b06bf0" },
+	{ "g": 4, "name": "완(完)", "mul": 7.0, "color": "#f0a53a" },
+]
+
+
+static func grade(g: int) -> Dictionary:
+	return GRADES[clampi(g, 0, GRADES.size() - 1)]
+
+
+## data-gem.js GEMS 6종 전부 — **박는 자리에 따라 다른 것을 준다**(원작 그대로):
+##   무기(weapon)  그 원소의 피해(eldmg)
+##   갑주(armor)   그 원소의 저항(elres) — 이 슬라이스엔 갑주 슬롯이 없어 안 닿는다
+##                 (아래 GEM_SLOT_CAT이 weapon·charm만 있는 이유. 데이터 자체는
+##                 원작 그대로 셋 다 옮겨 뒀다 — 나중에 갑주가 생기면 바로 쓴다)
+##   부적(charm)   능력치
+const GEMS: Array[Dictionary] = [
+	{ "key": "agate", "name": "마노(瑪瑙)", "emoji": "🔴", "el": "fire",
+		"weapon": { "kind": "eldmg", "el": "fire", "v": 6.0 },
+		"armor": { "kind": "elres", "el": "fire", "v": 8.0 },
+		"charm": { "kind": "pct", "stat": "might", "v": 3.0 },
+		"desc": "붉은 마노. 박으면 불이 붙는다." },
+	{ "key": "pearl", "name": "진주(眞珠)", "emoji": "⚪", "el": "cold",
+		"weapon": { "kind": "eldmg", "el": "cold", "v": 5.0 },
+		"armor": { "kind": "elres", "el": "cold", "v": 8.0 },
+		"charm": { "kind": "pct", "stat": "command", "v": 3.0 },
+		"desc": "바다에서 온 구슬. 맞은 것이 굼떠진다." },
+	{ "key": "amber", "name": "호박(琥珀)", "emoji": "🟠", "el": "lit",
+		"weapon": { "kind": "eldmg", "el": "lit", "v": 7.0 },
+		"armor": { "kind": "elres", "el": "lit", "v": 8.0 },
+		"charm": { "kind": "world", "eff": "lootPct", "v": 4.0 },
+		"desc": "송진이 굳은 돌. 번개를 머금는다." },
+	{ "key": "jade", "name": "옥(玉)", "emoji": "🟢", "el": "pois",
+		"weapon": { "kind": "eldmg", "el": "pois", "v": 8.0 },
+		"armor": { "kind": "elres", "el": "pois", "v": 8.0 },
+		"charm": { "kind": "pct", "stat": "wisdom", "v": 3.0 },
+		"desc": "맑은 옥. 스미면 오래 간다." },
+	{ "key": "onyx", "name": "흑요(黑曜)", "emoji": "⚫", "el": "chi",
+		"weapon": { "kind": "eldmg", "el": "chi", "v": 6.0 },
+		"armor": { "kind": "elres", "el": "chi", "v": 8.0 },
+		"charm": { "kind": "flat", "stat": "all", "v": 2.0 },
+		"desc": "검게 빛나는 돌. 기(氣)가 곧게 뻗는다." },
+	{ "key": "voidstone", "name": "전자석(電磁石)", "emoji": "🟣", "el": "emp",
+		"weapon": { "kind": "eldmg", "el": "emp", "v": 7.0 },
+		"armor": { "kind": "elres", "el": "emp", "v": 8.0 },
+		"charm": { "kind": "world", "eff": "expPct", "v": 6.0 },
+		"desc": "출처를 알 수 없는 돌. 미래의 힘이 깃들었다." },
+]
+
+## data-item.js GEM_SLOT_CAT 중 우리가 가진 부위만(무기·부적). 갑주 계열
+##(armor/helm/glove/boot)·장신구 계열(ring/neck)은 슬롯 자체가 없어 뺐다.
+const GEM_SLOT_CAT: Dictionary = { "weapon": "weapon", "charm": "charm" }
+
+## data-gem.js JEWEL_TWO·JEWEL_MAX 그대로.
+const JEWEL_TWO := 0.34
+const JEWEL_MAX := 40
+
+## data-gem.js JEWEL_AFFIXES 20종 전부 — **부위를 안 가린다**(주옥의 정체).
+## 원소 저항(elres)이 이 슬라이스에서 갑주 없이도 손에 닿는 유일한 길이다
+## (보석의 armor 자리는 안 쓰이지만 주옥은 무기·부적 소켓에도 그대로 붙는다).
+const JEWEL_AFFIXES: Array[Dictionary] = [
+	{ "key": "j_fire", "kind": "eldmg", "el": "fire", "lo": 3.0, "hi": 8.0, "pre": "타는" },
+	{ "key": "j_cold", "kind": "eldmg", "el": "cold", "lo": 3.0, "hi": 7.0, "pre": "시린" },
+	{ "key": "j_lit", "kind": "eldmg", "el": "lit", "lo": 4.0, "hi": 10.0, "pre": "벼락 든" },
+	{ "key": "j_pois", "kind": "eldmg", "el": "pois", "lo": 4.0, "hi": 9.0, "pre": "검푸른" },
+	{ "key": "j_chi", "kind": "eldmg", "el": "chi", "lo": 3.0, "hi": 7.0, "pre": "고요한" },
+	{ "key": "j_emp", "kind": "eldmg", "el": "emp", "lo": 4.0, "hi": 9.0, "pre": "낯선" },
+	{ "key": "j_rfire", "kind": "elres", "el": "fire", "lo": 4.0, "hi": 9.0, "post": "방화(防火)" },
+	{ "key": "j_rcold", "kind": "elres", "el": "cold", "lo": 4.0, "hi": 9.0, "post": "방한(防寒)" },
+	{ "key": "j_rlit", "kind": "elres", "el": "lit", "lo": 4.0, "hi": 9.0, "post": "피뢰(避雷)" },
+	{ "key": "j_rpois", "kind": "elres", "el": "pois", "lo": 4.0, "hi": 9.0, "post": "해독(解毒)" },
+	{ "key": "j_rchi", "kind": "elres", "el": "chi", "lo": 4.0, "hi": 9.0, "post": "진기(鎭氣)" },
+	{ "key": "j_remp", "kind": "elres", "el": "emp", "lo": 4.0, "hi": 9.0, "post": "차폐(遮蔽)" },
+	{ "key": "j_might", "kind": "flat", "stat": "might", "lo": 3.0, "hi": 7.0, "pre": "억센" },
+	{ "key": "j_wisdom", "kind": "flat", "stat": "wisdom", "lo": 3.0, "hi": 7.0, "pre": "밝은" },
+	{ "key": "j_command", "kind": "flat", "stat": "command", "lo": 3.0, "hi": 7.0, "pre": "무거운" },
+	{ "key": "j_all", "kind": "flat", "stat": "all", "lo": 1.0, "hi": 3.0, "pre": "온전한" },
+	{ "key": "j_atk", "kind": "world", "eff": "atkPct", "lo": 2.0, "hi": 5.0, "post": "전열" },
+	{ "key": "j_crit", "kind": "world", "eff": "critPct", "lo": 2.0, "hi": 5.0, "post": "일격" },
+	{ "key": "j_find", "kind": "world", "eff": "findPct", "lo": 4.0, "hi": 10.0, "post": "탐색" },
+	{ "key": "j_loot", "kind": "world", "eff": "lootPct", "lo": 3.0, "hi": 8.0, "post": "약탈" },
+]
+
 ## data-gem.js WORDS 5종 전부 — slot이 null이면 부위를 안 가린다.
 const WORDS: Array[Dictionary] = [
 	{ "key": "cheonjiin", "name": "천지인(天地人)", "runes": ["cheon", "ji", "in"], "slot": null,
@@ -231,6 +349,113 @@ static func rune_by_key(k: String) -> Dictionary:
 		if r.key == k:
 			return r
 	return {}
+
+
+static func elem_by_key(k: String) -> Dictionary:
+	for e: Dictionary in ELEMENTS:
+		if e.key == k:
+			return e
+	return {}
+
+
+## data-elem.js elemName() — "화(火)" 형태. 못 찾으면 키를 그대로 보여준다
+## (새 결을 잊고 표에 안 넣었을 때 조용히 숨기지 않기 위해).
+static func elem_name(k: String) -> String:
+	var e := elem_by_key(k)
+	return "%s(%s)" % [e.name, e.hanja] if not e.is_empty() else k
+
+
+static func gem_by_key(k: String) -> Dictionary:
+	for g: Dictionary in GEMS:
+		if g.key == k:
+			return g
+	return {}
+
+
+static func jewel_affix_by_key(k: String) -> Dictionary:
+	for a: Dictionary in JEWEL_AFFIXES:
+		if a.key == k:
+			return a
+	return {}
+
+
+## data-gem.js rollJewel(ilvl) — 접사 하나(66%) 또는 둘(34%), flat·eldmg만
+## 층(ilvl)을 탄다(%는 안 탄다 — 고유·주옥이 같은 이유, 깊은 층에서 저항·
+## 전역 효과가 걷잡을 수 없이 커지는 것을 막는다). id는 여기서 안 붙인다
+## (DungeonMaterialsState.add_jewel()이 붙인다 — item.js addJewel()과 같은 경계).
+static func roll_jewel(ilvl: int) -> Dictionary:
+	ilvl = maxi(1, ilvl)
+	var n := 2 if randf() < JEWEL_TWO else 1
+	var aff: Array[Dictionary] = []
+	var used: Dictionary = {}
+	var guard := 0
+	while aff.size() < n and guard < 30:
+		guard += 1
+		var a: Dictionary = JEWEL_AFFIXES[randi() % JEWEL_AFFIXES.size()]
+		if used.has(a.key):
+			continue
+		used[a.key] = true
+		var grow: float = (1.0 + ilvl * 0.05) if (a.kind == "flat" or a.kind == "eldmg") else 1.0
+		var v: float = (a.lo + randf() * (a.hi - a.lo)) * grow
+		aff.append({"k": a.key, "v": maxf(1.0, roundf(v))})
+	return {"aff": aff}
+
+
+## 주옥이 내는 것 — 보석·투장과 같은 모양(kind/stat/eff/el/v)이라
+## socket_effects()가 그대로 더한다.
+static func jewel_eff(j: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if j.is_empty() or not j.has("aff"):
+		return out
+	for a_ref: Dictionary in j.aff:
+		var a := jewel_affix_by_key(str(a_ref.k))
+		if a.is_empty():
+			continue
+		out.append({"kind": a.kind, "stat": a.get("stat", ""), "eff": a.get("eff", ""),
+			"el": a.get("el", ""), "v": float(a_ref.v)})
+	return out
+
+
+## '타는 주옥 · 일격' — 접사가 이름이 된다(item.js jewelName()과 같은 규칙).
+static func jewel_name(j: Dictionary) -> String:
+	if j.is_empty() or not j.has("aff"):
+		return "주옥(珠玉)"
+	var pre := ""
+	var post := ""
+	for a_ref: Dictionary in j.aff:
+		var a := jewel_affix_by_key(str(a_ref.k))
+		if a.is_empty():
+			continue
+		if a.get("pre", "") != "" and pre == "":
+			pre = str(a.pre) + " "
+		elif a.get("post", "") != "" and post == "":
+			post = " · " + str(a.post)
+	return pre + "주옥" + post
+
+
+## dungeon.js dropMat()의 보석 갈래 — 등급도 층을 탄다(45%씩 더, 층/3만큼 상한).
+static func roll_gem_drop(floor_num: int) -> Dictionary:
+	var gem: Dictionary = GEMS[randi() % GEMS.size()]
+	var g := 0
+	var cap: int = clampi(floor_num / 3, 0, 4)
+	while g < cap and randf() < 0.45:
+		g += 1
+	return {"kind": "gem", "key": gem.key, "g": g}
+
+
+## dungeon.js dropMat() 전체 — 주옥(4층부터, 최대 10%) → 부문(22%) → 보석
+## (나머지) 순으로 갈린다. 바깥 확률(잡졸 12%, loot_pickup.gd MAT_DROP_CHANCE)은
+## 호출 쪽이 이미 걸러 부른다고 본다.
+static func roll_material_drop(floor_num: int) -> Dictionary:
+	if floor_num >= 4:
+		var jewel_chance: float = minf(0.10, 0.02 + float(floor_num) * 0.004)
+		if randf() < jewel_chance:
+			return {"kind": "jewel", "j": roll_jewel(floor_num + 1)}
+	if randf() < 0.22:
+		var key := roll_rune_drop(floor_num)
+		if key != "":
+			return {"kind": "rune", "key": key}
+	return roll_gem_drop(floor_num)
 
 
 ## forge.js nextRune() — RUNES는 tier 순으로 늘어서 있어 "다음 글자"는
@@ -432,10 +657,25 @@ static func socket_effects(it: Dictionary) -> Array[Dictionary]:
 	for s in sock:
 		if s == null:
 			continue
-		if str(s.get("t", "")) == "rune":
-			var r := rune_by_key(str(s.get("key", "")))
-			if not r.is_empty():
-				out.append(r.eff)
+		match str(s.get("t", "")):
+			"rune":
+				var r := rune_by_key(str(s.get("key", "")))
+				if not r.is_empty():
+					out.append(r.eff)
+			## "제외" 목록 4번(원소 6결+저항) — item.js socketEffects()의 gem
+			## 갈래. 보석은 **박힌 부위**로 무엇을 내는지가 갈린다(GEM_SLOT_CAT)
+			## — 우리는 weapon(eldmg)·charm(pct/flat/world)만 닿는다.
+			"gem":
+				var gd := gem_by_key(str(s.get("key", "")))
+				var cat: String = str(GEM_SLOT_CAT.get(slot, slot))
+				if not gd.is_empty() and gd.has(cat):
+					var e: Dictionary = gd[cat]
+					var mul: float = grade(int(s.get("g", 0))).mul
+					out.append({"kind": e.kind, "stat": e.get("stat", ""), "eff": e.get("eff", ""),
+						"el": e.get("el", ""), "v": maxf(1.0, roundf(float(e.v) * mul))})
+			## 주옥 — **부위를 안 가린다**(어디에 박아도 굴려 나온 접사 그대로).
+			"jewel":
+				out.append_array(jewel_eff(s.get("j", {})))
 	return out
 
 
@@ -564,10 +804,17 @@ static func item_lines(it: Dictionary) -> Array[String]:
 				if s == null:
 					continue
 				filled += 1
-				if str(s.get("t", "")) == "rune":
-					var r := rune_by_key(str(s.get("key", "")))
-					if not r.is_empty():
-						out.append("소켓: %s(%s)" % [r.glyph, r.name])
+				match str(s.get("t", "")):
+					"rune":
+						var r := rune_by_key(str(s.get("key", "")))
+						if not r.is_empty():
+							out.append("소켓: %s(%s)" % [r.glyph, r.name])
+					"gem":
+						var gd := gem_by_key(str(s.get("key", "")))
+						if not gd.is_empty():
+							out.append("소켓: %s %s" % [grade(int(s.get("g", 0))).name, gd.name])
+					"jewel":
+						out.append("소켓: %s" % jewel_name(s.get("j", {})))
 			var empty_n: int = sock.size() - filled
 			if empty_n > 0:
 				out.append("빈 소켓 %d" % empty_n)

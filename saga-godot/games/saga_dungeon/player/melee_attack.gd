@@ -21,6 +21,12 @@ extends Node
 ## × (1 + 장비 pct) + 펫 + 장비 flat)를 그대로 따른다: 은사 배율에 장비의
 ## might/allPct(atk_pct_bonus)까지 곱한 뒤, 장비의 main+might/allstat
 ## flat(atk_flat_bonus)을 마지막에 더한다.
+##
+## "제외" 목록 4번(원소 6결+저항) — dungeon.js strike()가 물리 타격 뒤
+## `applyElem(e, mul)`을 부르는 것과 같은 자리. **결마다 저항이 따로**고
+## (DungeonEquipmentState.elem_damage()가 결별로 이미 더해 준다), 크리티컬은
+## 안 탄다(웹판도 mul만 받지 crit 배율은 안 넘긴다). 빙은 느려짐, 독은
+## dot으로 나눠 문다 — DungeonEnemy.apply_elem_slow()/apply_elem_dot()가 받는다.
 
 const ATK_COOLDOWN := 0.55 # 웹판 BASE_ATK_CD 그대로
 const ATK_DAMAGE := 9.0
@@ -65,8 +71,36 @@ func _strike(enemy: Node) -> void:
 	if randf() * 100.0 < DungeonRunState.crit_chance():
 		dmg *= CRIT_MULT
 	enemy.take_damage(dmg)
+	if is_instance_valid(enemy) and enemy.hp > 0.0:
+		_apply_elemental(enemy)
 	var drain: float = DungeonRunState.drain_pct()
 	if was_alive and drain > 0.0 and (not is_instance_valid(enemy) or enemy.hp <= 0.0):
 		var found := get_tree().get_nodes_in_group("player_health")
 		if not found.is_empty():
 			found[0].heal_by(found[0].max_hp * drain / 100.0)
+
+
+## dungeon.js applyElem() — 무기(+부적)에 박은 보석·주옥이 얹는 원소 피해.
+## 결마다 저항이 따로다. 빙은 느려짐, 독은 dot, 뇌는 편차(spread)가 크다.
+func _apply_elemental(enemy: Node) -> void:
+	var dmgs := DungeonEquipmentState.elem_damage()
+	for el in dmgs:
+		var def := DungeonItems.elem_by_key(str(el))
+		if def.is_empty():
+			continue
+		var v: float = float(dmgs[el])
+		var spread: float = float(def.get("spread", 0.0))
+		if spread > 0.0:
+			v *= 1.0 - spread / 2.0 + randf() * spread
+		var er: float = float(enemy.resist_pct(str(el))) if enemy.has_method("resist_pct") else 0.0
+		v *= 1.0 - er / 100.0
+		v = maxf(1.0, roundf(v))
+		var dot: float = float(def.get("dot", 0.0))
+		if dot > 0.0:
+			if enemy.has_method("apply_elem_dot"):
+				enemy.apply_elem_dot(v / dot, dot)
+		elif is_instance_valid(enemy):
+			enemy.take_damage(v)
+		var slow: float = float(def.get("slow", 0.0))
+		if slow > 0.0 and is_instance_valid(enemy) and enemy.has_method("apply_elem_slow"):
+			enemy.apply_elem_slow(slow, float(def.get("slow_sec", 1.0)))

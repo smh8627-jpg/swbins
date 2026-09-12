@@ -14,6 +14,12 @@ extends CharacterBody3D
 ## 전용 GLB가 아직 없다). 공격 간격(1.4초)은 원작에 없어(플레이어 공격
 ## 간격만 명시돼 있었다) 이번에 직접 정했다 — 너무 잦으면 첫 전투부터
 ## 벅차 보인다.
+##
+## "제외" 목록 4번(원소 6결+저항) — data-enemy.js 황건적 항목엔 `resist`
+## 키가 아예 없다(0으로 본다, 새로 상상하지 않는다). `resist_pct()`는 다음에
+## 저항 있는 몬스터가 추가될 자리를 남겨 둔 것뿐이다. 빙(냉)·독(dot) 둘은
+## dungeon.js applyElem()의 성질(slow·dot)을 그대로 옮겨 여기서 받는다 —
+## 새 피해 공식을 안 만들고 melee_attack.gd가 결마다 값을 계산해 넘긴다.
 
 signal died
 
@@ -23,6 +29,12 @@ const DETECT_RADIUS := 9.0
 const ATTACK_RANGE := 2.0
 const COLOR := Color(0.788, 0.659, 0.227)  # data-enemy.js 황건적 color '#c9a83a' 그대로
 const LootPickup := preload("res://games/saga_dungeon/world/loot_pickup.gd")
+
+## 이 몬스터의 결별 저항(% ) — 황건적은 원작에 저항 키가 없어 빈 채로 둔다.
+var resist: Dictionary = {}
+var _dots: Array[Dictionary] = [] # [{dps, t}] — applyElem()의 독(pois) dot과 같은 모양
+var _slow_mult := 1.0
+var _slow_time_left := 0.0
 
 ## "여러 방 연결"(§28-8 A안 이전의 최소 버전) — 방을 층처럼 취급해 웹판
 ## `dungeon.js`의 `enemyHp(floor, boss)`·`enemyDmg(floor, boss)` 공식을
@@ -74,8 +86,12 @@ func _spawn_visual() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _dead:
+		return
+	_tick_dots(delta)
 	if _dead or _player == null:
 		return
+	_tick_slow(delta)
 	_attack_cd_left = maxf(0.0, _attack_cd_left - delta)
 	var to_player: Vector3 = _player.global_position - global_position
 	to_player.y = 0
@@ -86,10 +102,59 @@ func _physics_process(delta: float) -> void:
 			_attack_cd_left = ATTACK_COOLDOWN
 			_attack_player()
 	elif dist <= DETECT_RADIUS:
-		velocity = to_player.normalized() * CHASE_SPEED
+		velocity = to_player.normalized() * CHASE_SPEED * _slow_mult
 	else:
 		velocity = Vector3.ZERO
 	move_and_slide()
+
+
+## dungeon.js applyElem()의 독(pois) dot과 같은 모양 — dps*t로 몇 초에
+## 걸쳐 나눠 문다. update()의 p.dots 틱과 같은 자리(여기선 적 쪽).
+func _tick_dots(delta: float) -> void:
+	if _dots.is_empty():
+		return
+	var i := _dots.size() - 1
+	while i >= 0:
+		var d: Dictionary = _dots[i]
+		var dmg: float = float(d.dps) * delta
+		hp -= dmg
+		d.t = float(d.t) - delta
+		if d.t <= 0.0:
+			_dots.remove_at(i)
+		else:
+			_dots[i] = d
+		i -= 1
+	if hp <= 0.0:
+		_die()
+
+
+func _tick_slow(delta: float) -> void:
+	if _slow_time_left <= 0.0:
+		return
+	_slow_time_left -= delta
+	if _slow_time_left <= 0.0:
+		_slow_mult = 1.0
+
+
+## 빙(cold) — 맞은 적이 잠깐 느려진다(data-elem.js). 여러 번 맞아도
+## 겹쳐 더 안 느려지고 시간만 제일 긴 것으로 갱신된다(원작 dungeon.js
+## "e.slow = max(e.slow||0, def.slowSec)"와 같은 규칙).
+func apply_elem_slow(mult: float, secs: float) -> void:
+	if _dead:
+		return
+	_slow_mult = minf(_slow_mult, mult) if _slow_time_left > 0.0 else mult
+	_slow_time_left = maxf(_slow_time_left, secs)
+
+
+## 독(pois) — 즉발 대신 dps*t로 나눠 문다(applyElem() 그대로).
+func apply_elem_dot(dps: float, secs: float) -> void:
+	if _dead or dps <= 0.0 or secs <= 0.0:
+		return
+	_dots.append({"dps": dps, "t": secs})
+
+
+func resist_pct(kind: String) -> float:
+	return clampf(float(resist.get(kind, 0.0)), 0.0, DungeonItems.RESIST_CAP)
 
 
 func _attack_player() -> void:
@@ -102,7 +167,13 @@ func take_damage(amount: float) -> void:
 		return
 	hp -= amount
 	if hp <= 0.0:
-		_dead = true
-		died.emit()
-		LootPickup.spawn_at(get_parent(), global_position, _floor_num)
-		queue_free()
+		_die()
+
+
+func _die() -> void:
+	if _dead:
+		return
+	_dead = true
+	died.emit()
+	LootPickup.spawn_at(get_parent(), global_position, _floor_num)
+	queue_free()

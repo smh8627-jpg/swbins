@@ -22,6 +22,12 @@ const SAVE_VERSION := 2
 var rooms_cleared: Array[bool] = []
 var player_pos := Vector3.ZERO
 
+## "제외" 목록 5번(인물 등용) — 방마다 있는 역사 인물 조우가 해결됐는지
+## (등용 성공 또는 설득 실패, 둘 다 "다시 안 뜬다") — rooms_cleared와
+## 완전히 같은 모양(방마다 하나씩인 bool 배열)이라 같은 패턴을 그대로
+## 옮겼다. 순수 추가 필드라 버전은 안 올린다.
+var hero_resolved: Array[bool] = []
+
 
 func is_room_cleared(index: int) -> bool:
 	return index < rooms_cleared.size() and rooms_cleared[index]
@@ -31,6 +37,16 @@ func mark_room_cleared(index: int) -> void:
 	while rooms_cleared.size() <= index:
 		rooms_cleared.append(false)
 	rooms_cleared[index] = true
+
+
+func is_hero_resolved(index: int) -> bool:
+	return index < hero_resolved.size() and hero_resolved[index]
+
+
+func mark_hero_resolved(index: int) -> void:
+	while hero_resolved.size() <= index:
+		hero_resolved.append(false)
+	hero_resolved[index] = true
 
 
 func save(player: Node3D) -> void:
@@ -56,6 +72,15 @@ func save(player: Node3D) -> void:
 		"scrolls": DungeonMaterialsState.scrolls,
 		"gold": DungeonGoldState.gold,
 		"belt": DungeonPotionState.belt,
+		## §"제외" 4번(원소 6결+저항) — 순수 추가 필드, 버전 안 올림.
+		"gems": DungeonMaterialsState.gem_counts,
+		"jewels": DungeonMaterialsState.jewels,
+		## §"제외" 5번(인물 등용) — 순수 추가 필드, 버전 안 올림.
+		"hero_resolved": hero_resolved,
+		"party_members": DungeonPartyState.members,
+		## §"제외" 6번(결사) — 순수 추가 필드, 버전 안 올림.
+		"hardcore": DungeonHardcoreState.hardcore,
+		"fallen": DungeonHardcoreState.fallen,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -84,6 +109,12 @@ func try_load() -> bool:
 		for v in rc:
 			rooms_cleared.append(bool(v))
 
+	var hr: Variant = data.get("hero_resolved", [])
+	hero_resolved.clear()
+	if hr is Array:
+		for v in hr:
+			hero_resolved.append(bool(v))
+
 	var p: Variant = data.get("player_pos", [0.0, 0.0, 0.0])
 	if not (p is Array) or p.size() < 3:
 		return false # 손상된 저장 파일 — 인덱스 에러 대신 안전하게 포기
@@ -97,13 +128,28 @@ func try_load() -> bool:
 		charm if typeof(charm) == TYPE_DICTIONARY else {})
 	var runes: Variant = data.get("runes", {})
 	var scrolls: Variant = data.get("scrolls", 0)
+	var gems: Variant = data.get("gems", {})
+	var jewels: Variant = data.get("jewels", [])
 	DungeonMaterialsState.restore(
 		runes if typeof(runes) == TYPE_DICTIONARY else {},
-		int(scrolls) if (typeof(scrolls) == TYPE_INT or typeof(scrolls) == TYPE_FLOAT) else 0)
+		int(scrolls) if (typeof(scrolls) == TYPE_INT or typeof(scrolls) == TYPE_FLOAT) else 0,
+		gems if typeof(gems) == TYPE_DICTIONARY else {},
+		jewels if jewels is Array else [])
 	var gold: Variant = data.get("gold", 0)
 	DungeonGoldState.restore(int(gold) if (typeof(gold) == TYPE_INT or typeof(gold) == TYPE_FLOAT) else 0)
 	var belt: Variant = data.get("belt", [])
 	DungeonPotionState.restore(belt if belt is Array else [])
+	var party_members: Variant = data.get("party_members", [])
+	var members: Array[String] = []
+	if party_members is Array:
+		for v in party_members:
+			members.append(str(v))
+	DungeonPartyState.restore(members)
+	var hardcore: Variant = data.get("hardcore", false)
+	var fallen: Variant = data.get("fallen", {})
+	DungeonHardcoreState.restore(
+		bool(hardcore),
+		fallen if typeof(fallen) == TYPE_DICTIONARY else {})
 	return true
 
 

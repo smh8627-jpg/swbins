@@ -27,6 +27,8 @@ DungeonEquipmentState="*res://games/saga_dungeon/data/dungeon_equipment_state.gd
 DungeonMaterialsState="*res://games/saga_dungeon/data/dungeon_materials_state.gd"
 DungeonGoldState="*res://games/saga_dungeon/data/dungeon_gold_state.gd"
 DungeonPotionState="*res://games/saga_dungeon/data/dungeon_potion_state.gd"
+DungeonPartyState="*res://games/saga_dungeon/data/dungeon_party_state.gd"
+DungeonHardcoreState="*res://games/saga_dungeon/data/dungeon_hardcore_state.gd"
 
 [display]
 
