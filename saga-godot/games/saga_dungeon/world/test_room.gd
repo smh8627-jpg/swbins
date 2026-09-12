@@ -103,6 +103,16 @@ func _ready() -> void:
 	else:
 		_maybe_show_starter_pick()
 
+	## "제외" 목록 6번(결사) — 지난 회차가 결사로 스러진 채 저장됐으면
+	## (dungeon_hardcore_state.gd::fallen) 이번에 불러오자마자 바로 그
+	## 자리에서 멈춘다 — player_health.gd::_fall()과 같은 얼림
+	## (get_tree().paused = true), 다시 내려갈 수 없다는 웹판 enter()의
+	## fallen() 가드와 같은 뜻이다.
+	if not DungeonHardcoreState.fallen.is_empty():
+		Toast.show(self, "☠️ 결사로 스러진 판입니다(제%d층) — 이어서 내려갈 수 없다." %
+			int(DungeonHardcoreState.fallen.get("floor", 0)), 8.0)
+		get_tree().paused = true
+
 
 func _spawn_room_mesh(origin_z: float) -> void:
 	var mesh := GLBUtils.extract_mesh(ROOM_GLB)

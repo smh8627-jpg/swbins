@@ -78,6 +78,9 @@ func save(player: Node3D) -> void:
 		## §"제외" 5번(인물 등용) — 순수 추가 필드, 버전 안 올림.
 		"hero_resolved": hero_resolved,
 		"party_members": DungeonPartyState.members,
+		## §"제외" 6번(결사) — 순수 추가 필드, 버전 안 올림.
+		"hardcore": DungeonHardcoreState.hardcore,
+		"fallen": DungeonHardcoreState.fallen,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -142,6 +145,11 @@ func try_load() -> bool:
 		for v in party_members:
 			members.append(str(v))
 	DungeonPartyState.restore(members)
+	var hardcore: Variant = data.get("hardcore", false)
+	var fallen: Variant = data.get("fallen", {})
+	DungeonHardcoreState.restore(
+		bool(hardcore),
+		fallen if typeof(fallen) == TYPE_DICTIONARY else {})
 	return true
 
 

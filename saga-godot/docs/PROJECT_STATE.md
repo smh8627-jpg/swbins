@@ -2341,6 +2341,83 @@ GO의 3라운드 설득 조우를 시사했지만, `LEGACY_FEATURE_AUDIT.md`의 
 - **다음은 "제외" 목록의 마지막 둘 — 6번(결사)·7번(보스층)**. 7번이
   생기면 위에서 미뤄 둔 "보스층 합류" 등용 경로도 이어서 채울 수 있다.
 
+## 완료 단계 (추가, 2026-09-12㉕) — 위 목록 6번: 결사(하드코어)
+
+**사용자가 "6번 결사 이어해"로 지시.** 웹판 `dungeon.js`의 결사(決死)를
+조사했다 — 핵심은 **켜는 것은 되돌릴 수 없고, 켜진 채로 쓰러지면 그
+"프로필"이 통째로 끝나 다시 못 내려간다**(여러 이름의 세이브 프로필
+중 하나가 영구히 막히는 것). 우리는 세이브가 `save_dungeon.json` 하나
+뿐이라(다중 프로필 없음) "새 이름으로 시작하세요"를 그대로 옮길 수
+없어, 대신 **스러진 순간 화면 전체를 멈춘다**(`get_tree().paused =
+true`)로 옮겼다 — 저장 파일은 안 지운다(정말 새로 시작하려면 사용자가
+직접 지워야 한다, 원작의 "새 이름"에 해당하는 유일한 길).
+
+이 기능은 "플레이어가 쓰러진다"는 개념 자체가 필요한데, VERTICAL_SLICE_
+DUNGEON.md는 애초에 "죽음·부활은 범위 밖 — hp 0이면 그냥 멈춘다"고
+정해 뒀었다. **그 원칙은 비결사 모드에서 그대로 유지했다** — 새로 만든
+`_dead` 가드는 결사 판정을 한 번만 하기 위한 것뿐이고, 비결사 모드는
+관찰 가능한 동작이 하나도 안 바뀐다(hp는 이미 0에서 그대로 머물러
+있었다). 결사가 켜져 있을 때만 hp 0이 "쓰러짐"으로 이어진다.
+
+- **`dungeon_hardcore_state.gd`(신규 autoload `DungeonHardcoreState`)**
+  — `hardcore: bool`(한 번 켜지면 못 끔, `enable()`이 이미 켜져 있으면
+  false를 돌려줌)·`fallen: Dictionary`({} 면 안 스러짐, 아니면
+  {floor, at}, `mark_fallen()`도 한 번만 정해지면 안 바뀜).
+- **`player_health.gd`** — `died` 신호(hp 0에 처음 닿을 때 한 번)를
+  추가하고, `_dead` 가드로 `take_damage()`가 그 뒤론 아무 일도 안
+  하게 했다. **결사가 켜져 있을 때만** `_fall()`을 불러 ①현재 층을
+  가늠하고(정확한 "지금 층" 추적 자체가 없어 `rooms_cleared.count(true)
+  + 1`로 근사, vendor_button.gd의 `_vendor_lv()`와 같은 근사 방식)
+  ②`DungeonHardcoreState.mark_fallen()` ③**그 자리에서 바로
+  `DungeonSaveState.save()`**(다른 이벤트는 방 출구에서만 저장하지만,
+  이건 방 출구까지 못 갈 수도 있어 즉시 저장해야 한다) ④영구 토스트
+  ⑤`get_tree().paused = true`로 화면 전체를 멈춘다.
+- **`test_room.gd::_ready()`** — 불러온 저장이 이미 결사로 스러진
+  채였으면(`DungeonHardcoreState.fallen`이 안 비어 있으면) 방을 다 세운
+  뒤 바로 같은 방식으로 얼린다 — 웹판 `enter()`의 `fallen()` 가드("이
+  판은 못 내려간다")와 같은 뜻.
+- **`dungeon_save_state.gd`** — `hardcore`·`fallen` 순수 추가 필드
+  (SAVE_VERSION 안 올림).
+- **`games/saga_dungeon/ui/hardcore_button.gd`(신규)+`DungeonHUD.tscn`의
+  `HardcoreButton`(☠️)** — vendor_button.gd·socket_button.gd와 같은
+  경계(HUD 버튼 하나가 ChoicePrompt로 확인을 받는다). 웹판 ui.js의
+  `confirm(...)`을 ChoicePrompt(켠다/그만둔다)로 옮겼다. 이미 켜져
+  있으면 확인창 없이 "이미 결사입니다"만 보여주고(admin.js가 버튼을
+  비활성화하는 것과 같은 뜻), 버튼 자체도 켜진 뒤엔 💀로 바뀐다.
+- **`project.godot`** — `[autoload]`에 `DungeonHardcoreState` 등록.
+- **검증(헤드리스)** — ①`enable()`이 처음엔 true, 두 번째부턴 계속
+  false(한 번만 켜짐) ②결사를 켠 뒤 `player_health.take_damage(9999)`로
+  즉사시키니 `DungeonHardcoreState.fallen`이 채워지고
+  `get_tree().paused`가 실제로 true가 되는 것 확인 ③**완전히 새
+  프로세스로 재실행**해 `hardcore=true`·`fallen`이 정확히 복원되고,
+  `_ready()`가 그 자리에서 바로 다시 `paused=true`로 얼리는 것까지
+  확인. 검증 뒤 디버그 코드는 원상복구(diff는 의도된 기능 추가만
+  남음), `user://save_dungeon.json`도 지웠다. `--headless --editor
+  --quit`(임포트)·`--headless --quit-after 3`을 DUNGEON 3연속(매번
+  새 저장) + GO 1회 — 전부 exit 0, error/warn/missing/invalid/cannot
+  0건.
+- **GUI 실기 확인은 아직 안 함** — HardcoreButton(💀 위치, 소켓·행상·
+  연단 버튼 위 다섯째)이 다른 버튼과 안 겹치는지, 확인 패널 문구가 세
+  줄로 자연스럽게 보이는지, 실제로 쓰러졌을 때 화면이 멈추는 느낌이
+  "결사답게" 무겁게 느껴지는지(토스트 문구 포함), 다시 켰을 때(같은
+  세이브 재실행) 바로 얼어붙은 화면이 뜨는 게 당혹스럽지 않은지. 아래
+  "다음에 이어질 것" 목록에 추가.
+- **다음은 "제외" 목록의 마지막 하나 — 7번(보스층)**. 이 목록(2026-09-
+  12⑲가 정한 순서)의 마지막 항목이다 — 끝나면 DUNGEON의 "제외" 목록
+  전체가 완료된다.
+
+### 이 세션 마무리 (사용자 지정, 2026-09-12㉕)
+
+**사용자가 "현재 작업 완료 하면 새로운 세션에서 이어 할게"로 지정.**
+위 6번(결사)을 커밋까지 마친 상태에서 세션을 넘긴다. **다음 세션은
+"제외" 목록의 마지막 항목 — 7번(보스층)부터 다시 물어보지 않고
+이어가면 된다**(2026-09-12⑲가 이미 정해 둔 순서). 7번까지 끝나면
+VERTICAL_SLICE_DUNGEON.md의 "제외" 목록 전체가 완료되므로, 그다음은
+PLAN.md 39장 순서(Core→Vertical Slice→GO→**DUNGEON**→FOREST→...)대로
+DUNGEON도 GO처럼 "Vertical Slice 승인" 게이트(PLAN.md 100단계)를
+사용자에게 확인받는 게 자연스러운 다음 매듭이다 — GO가 2026-09-11에
+그 게이트를 통과한 뒤 "GO 사건 다양화"로 넘어간 것과 같은 흐름.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
@@ -2354,6 +2431,11 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 필요 없다(기록만 남김). 이 시점 이후 새로 생긴 미확인 항목만 이 절
 맨 위에 쌓는다:
 
+- **(2026-09-12㉕ 신규, DUNGEON) HardcoreButton(💀 위치, 소켓·행상·연단
+  버튼 위 다섯째)이 다른 버튼과 안 겹치는지, 확인 패널 문구가 세 줄로
+  자연스럽게 보이는지, 실제로 쓰러졌을 때 화면이 멈추는 느낌이 무겁게
+  느껴지는지, 다시 켰을 때 바로 얼어붙은 화면이 뜨는 게 당혹스럽지
+  않은지.** 위 "완료 단계 (추가, 2026-09-12㉕)" 참고.
 - **(2026-09-12㉔ 신규, DUNGEON) 출사표 패널이 게임 시작하자마자
   자연스럽게 뜨는지(3라운드 연속), 방 안의 두 역사 인물이 잡졸과 안
   붐비는지, 기질 불명(rarity 5) 인물에게 처음 말을 걸었을 때 패널이

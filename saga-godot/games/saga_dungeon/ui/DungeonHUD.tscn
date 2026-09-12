@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/vendor_button.gd" id="9"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/forge_button.gd" id="10"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/party_label.gd" id="11"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/hardcore_button.gd" id="12"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -191,3 +192,16 @@ offset_bottom = -350.0
 text = "⚗️"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("10")
+
+[node name="HardcoreButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -500.0
+offset_right = -40.0
+offset_bottom = -430.0
+text = "☠️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("12")
