@@ -5,6 +5,43 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **기술부채 정리 — Awake() 중복 생성 방어를 나머지 6곳에 적용
+  (2026-09-12).** 캐릭터/환경 GLB 세션이 "다음 작업"에 남겨 둔 항목 —
+  `AnimalBuilder.cs`·`HiddenTreasure.cs`·`EastGroveRelic.cs`·
+  `LuckyCairn.cs`·`MountainShrine.cs`·`RareWolfEncounter.cs` 여섯 곳을
+  훑었다.
+  - `AnimalBuilder`·`HiddenTreasure`·`EastGroveRelic`·`LuckyCairn`은
+    NpcBuilder.cs와 같은 `if (transform.childCount > 0) return;` 한
+    줄로 충분(자식 생성 뒤 별도로 기억해 둬야 할 필드가 없다).
+  - `MountainShrine`은 살펴보니 애초에 자식 GameObject를 하나도 안
+    만든다(transform·collider 설정만) — Build()가 몇 번 다시 돌아도
+    그대로 덮어써질 뿐이라 방어가 필요 없다는 걸 확인하고 주석만 남김
+    (방어를 "빠뜨린" 게 아니라 원래 안 필요했던 경우).
+  - **`RareWolfEncounter.cs`를 고치다가 `BanditEncounter.cs`에도 같은
+    미완결 버그가 있는 걸 발견했다.** 두 컴포넌트 다 이전 세션이
+    "Visual 자식이 있으면 Build() 건너뛰고 PulseVisual()이 쓸
+    `_visual`/`_visualBaseScale`만 복원"으로 고쳤다고 기록했는데,
+    Update()가 실제로 쓰는 `_promptRoot`/`_combatRoot`/`_hpFill` 등
+    나머지 UI 필드는 그 복원 목록에 없었다 — 즉 세이브 로드 후 진짜
+    Play가 시작될 때(이 프로젝트 구조상 Awake는 그 한 번만 불린다)
+    저 필드들은 세션 내내 null로 남고, 도적/흰 늑대에게 실제로 다가가
+    Update()의 Idle 분기가 `_promptRoot.SetActive(true)`를 부르는 순간
+    NullReferenceException이 났을 것이다(아직 사람이 실제로 걸어가 본
+    적이 없어 안 걸렸던 잠재 버그). 두 파일 다 "Visual 자식이 있으면
+    복원"이 아니라 **기존 자식을 전부 지우고 Build()를 처음부터 다시
+    돌리는 방식**으로 바꿔 모든 필드가 항상 새로 채워지게 했다. 단,
+    `EncounterUiKit.NewCanvas()`가 만드는 UI 캔버스는 씬 루트에 생겨(이
+    컴포넌트의 자식이 아니다) 이 방식으로는 못 지운다 — 편집기 빌드가
+    만들어 둔 옛 캔버스 두 개(비활성 상태)가 고아로 남지만, 새로 만든
+    캔버스가 실제 동작을 맡으니 기능엔 지장 없다(감수한 트레이드오프,
+    각 파일 Awake() 주석에 남겨 둠).
+  - 컴파일·씬 재빌드(`groundVerts=6336` 그대로 — 땅은 안 바뀜)·
+    PlaytestHeadless(`OK - 10 frames, no errors`) 전부 통과. **주의—
+    헤드리스 플레이어는 안 움직여 도적/늑대 트리거 반경에 실제로 안
+    들어간다**, 그래서 이번에 고친 NRE 경로 자체(Update의 Idle 분기)는
+    이 자동 검증으로는 직접 재현 못 한다 — 코드 검토로 원인을 확인하고
+    고친 것이고, 실제로 다가가도 더 이상 죽지 않는지는 사람이 GUI로
+    확인해야 완전히 닫힌다(아래 "다음 작업" GUI 확인 목록에 추가).
 - **PLAN.md 8장 "실제 3D 에셋" 둘째 조각 — 환경/건물 GLB 도입 (2026-09-12).**
   캐릭터 GLB 다음으로 이어서(같은 세션, 사용자 "이어서 환경/건물 GLB도
   진행해") — 44~49장 자산 우선순위(Player→주요 Enemy→Boss→Environment→
@@ -638,16 +675,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   ExponentialSquared 밀도 방식이라(아래 병합 정리 항목 참고) "거리"
   숫자가 아니라 밀도가 새 지도 크기에 맞는지를 사람이 GUI 확인할 때
   같이 볼 것.
-- **Awake() 중복 생성 의심 — 나머지 4곳.** 캐릭터·환경/건물 GLB 교체
-  때 `NpcBuilder.cs`·`BanditEncounter.cs`·`VegetationBuilder.cs`·
-  `LandmarksBuilder.cs` 넷은 같은 방어(`Build()` 전에 기존 자식 유무
-  확인)를 넣었다. **`AnimalBuilder.cs`·`RareWolfEncounter.cs`·
-  `HiddenTreasure.cs`·`MountainShrine.cs`·`EastGroveRelic.cs`·
-  `LuckyCairn.cs`엔 아직 없다**(무조건 `Build()`) — `Gatherable.cs`만
-  원래부터 방어가 있었다. 한 번에 다 훑어 같은 가드를 넣는 작은 정리
-  작업으로 다음에 처리할 것 — 사람이 GUI로 처음 플레이해서 동물·보물·
-  산신당 등이 두 개씩 겹쳐 보이는지 먼저 확인해 보는 것도 방법(실제로
-  겹치는지 아직 실측 안 함, 코드 패턴만 보고 의심하는 단계).
+- **Awake() 중복 생성 의심 — 나머지 6곳 (2026-09-12에 해결됨, 위 "완료
+  단계" 참고).** `AnimalBuilder`·`HiddenTreasure`·`EastGroveRelic`·
+  `LuckyCairn`엔 방어를 추가, `MountainShrine`은 원래 방어가 필요 없음을
+  확인, `RareWolfEncounter`·`BanditEncounter` 둘은 더 깊은 버그(UI 필드
+  미복원으로 인한 잠재 NRE)를 찾아 "기존 자식 삭제 후 Build() 재실행"
+  방식으로 고쳤다. **사람이 GUI로 확인할 것**: 도적/흰 늑대에게 세이브를
+  불러온 상태에서 실제로 다가가도 더 이상 죽지 않는지(고친 NRE 경로
+  자체는 헤드리스로 재현 못 함), 그리고 동물·보물·산신당 등이 여전히
+  한 벌로만 보이는지.
 - **PLAN.md 8장 에셋 도입 다음 후보(우선순위 44~49장: Player→주요
   Enemy→Boss→Environment→Building→Vegetation→Props→Animals→VFX).**
   캐릭터(완료)·Environment/Building(완료, 위 "완료 단계" 참고) 다음은
@@ -697,7 +733,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     자막 표시 — 헤드리스로는 트리거가 실제로 발동하는지 확인 불가)
   - **도적의 습격이 실제로 되는지**(조우 트리거 → 선택지 → 전투 →
     등용까지 12단계 루프 전체가 헤드리스 검증 밖 — 사람이 직접
-    "맞선다"를 눌러 승리까지 가 봐야 한다)
+    "맞선다"를 눌러 승리까지 가 봐야 한다). **특히 세이브를 불러온 채로
+    다가갈 때 더는 안 죽는지**(2026-09-12에 고친 잠재 NRE 경로 — 위
+    "완료 단계" 참고, 코드 검토로만 확인했고 실제 재현·회귀 확인은
+    아직 안 됨)
   - **저장·재시작이 실제로 되는지**(저장 버튼 → 에디터에서 Play를
     끄고 다시 켬 → 위치·부대가 돌아오는지)
   - **정적 배칭이 실제로 드로우콜을 줄였는지**(Game 뷰 Stats 창,
@@ -733,7 +772,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **흰 늑대(희귀 몬스터)가 실제로 도는지**(격자 (0,3) 숲에서 조우
     프롬프트가 뜨는지, "맞선다"/"피한다" 둘뿐인지, 이겼을 때 경험치
     150·돈 50냥·"늑대 가죽 갑주"를 확정으로 받는지, 다시 그 자리를
-    지나도 재등장 안 하는지)
+    지나도 재등장 안 하는지). **세이브를 불러온 채로 다가갈 때 더는
+    안 죽는지도 같이**(2026-09-12에 고친 잠재 NRE 경로, 도적과 같은 결)
   - **도적을 이긴 뒤 저장→재시작해도 다시 안 나오는지**(이번에 고친
     버그 — `Awake()`가 `PartyState.MemberIds`를 확인하게 바꿨다,
     재현하려면 도적을 이기고 저장한 뒤 Play를 끄고 다시 켜서 확인)

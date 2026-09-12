@@ -53,6 +53,11 @@ namespace Saga.Go.World
 
         private void Awake()
         {
+            // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
+            // 또 돌리는데, 편집기 빌드 스크립트가 이미 자식들을 만들어 둔
+            // 뒤라 그대로 두면 동물이 두 벌씩 겹쳐 생긴다 — NpcBuilder.cs가
+            // 쓰는 것과 같은 방어.
+            if (transform.childCount > 0) return;
             Build();
         }
 

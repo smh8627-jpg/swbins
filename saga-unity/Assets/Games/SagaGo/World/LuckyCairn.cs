@@ -42,7 +42,17 @@ namespace Saga.Go.World
 
         private float _lastWishTime = -CooldownSec;
 
-        private void Awake() => Build();
+        private void Awake()
+        {
+            // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
+            // 또 돌리는데, 편집기 빌드 스크립트가 이미 돌 세 개를 만들어 둔
+            // 뒤라 그대로 두면 돌무더기가 두 벌씩 겹쳐 생긴다 — NpcBuilder.cs와
+            // 같은 방어(2026-09-12 GLB 교체 때 같이 발견한 패턴, 여기 뒤늦게
+            // 적용). 이 자리는 다른 발견형 콘텐츠와 달리 WorldEventState로
+            // 한 번뿐인 자리가 아니라(몇 번이고 다시 옴) 그 확인은 없다.
+            if (transform.childCount > 0) return;
+            Build();
+        }
 
         public void Build()
         {
