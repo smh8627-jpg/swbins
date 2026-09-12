@@ -3,15 +3,16 @@ using UnityEngine;
 namespace Saga.Dungeon.UI
 {
     /// <summary>
-    /// PLAN.md(saga-dungeon 웹판) 27장 "미니맵" — 이 던전이 Room1→Corridor→
-    /// Room2→...→Room4로 이어지는 **한 줄짜리 통로**뿐이라(오픈월드/필드
-    /// 슬라이스, 방 종류 마지막 슬라이스 참고, PLAN.md 28장 "월드맵"급
-    /// 오버월드 지도는 범위 밖) 렌더텍스처용 위쪽 카메라를 새로 두지
-    /// 않고 **좌표를 UI 사각형에 직접 투영하는 개략도**로 가장 작게
-    /// 만들었다(모바일 성능 우선, PLAN.md 18장 — 카메라 추가 없음).
-    /// 방 넷의 중심 좌표만 정적 점으로 찍어 두고(`roomMarkers`,
-    /// BuildTestDungeonScene.cs가 배치), 플레이어 위치만 매 프레임
-    /// 갱신한다.
+    /// PLAN.md(saga-dungeon 웹판) 27장 "미니맵" — 렌더텍스처용 위쪽
+    /// 카메라를 새로 두지 않고 **좌표를 UI 사각형에 직접 투영하는
+    /// 개략도**로 가장 작게 만들었다(모바일 성능 우선, PLAN.md 18장 —
+    /// 카메라 추가 없음). 방·마을 중심 좌표만 정적 점으로 찍어 두고
+    /// (`roomMarkers`, BuildTestDungeonScene.cs가 배치), 플레이어 위치만
+    /// 매 프레임 갱신한다. "마을 여러 개" 슬라이스부터 던전이 한 줄짜리
+    /// 통로가 아니라 십자형(모루골+동서남북)이 됐다 — **PLAN.md 28장
+    /// "월드맵"급 눌러서 펼치는 전체 지도는 별개**(`OverworldMapUI.cs`,
+    /// M키로 여는 나침반형 5칸) — 이 미니맵은 여전히 늘 켜져 있는 작은
+    /// 개략도 역할만 한다.
     /// </summary>
     public class Minimap : MonoBehaviour
     {
@@ -23,8 +24,11 @@ namespace Saga.Dungeon.UI
         // WorldZMax(105) 밖에서 가장자리에 눌려 찍히는 것과 같은 기존
         // 관례를 Town2에도 그대로 적용해도 됐지만, 이번엔 여유가 남아
         // 정확한 위치로 찍히게 했다).
-        private const float WorldXMin = -12f;
-        private const float WorldXMax = 12f;
+        // "마을 여러 개 — 셋째·넷째" — Town3(x=-30)·Town4(x=+30)가 동서로
+        // 생기면서 X축도 같은 여유(방 반깊이 10+두께 1)를 더해 -12/12 →
+        // -42/42로 넓혔다.
+        private const float WorldXMin = -42f;
+        private const float WorldXMax = 42f;
         private const float WorldZMin = -45f;
         private const float WorldZMax = 105f;
 

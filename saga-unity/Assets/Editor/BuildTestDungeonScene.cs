@@ -209,6 +209,24 @@ namespace Saga.EditorTools
         private static readonly Vector3 TownCorridorCenter = new Vector3(0f, 0f, -15f);
         private static readonly Vector3 Town2Center = new Vector3(0f, 0f, -30f);
 
+        // "마을 여러 개 — 셋째·넷째" (2026-09-12) — saga-dungeon 웹판
+        // PLAN.md 28-1절의 별형 구조를 그대로 따른다: 위성 마을은 서로
+        // 안 잇고 전부 모루골(Room1)에만 통한다. Room1의 나머지 두 벽
+        // (동/서, 지금까지 안 쓰던)을 각각 열어 Town3(서)·Town4(동)로
+        // 잇는다 — 좌표 산출은 Town2(남쪽)와 완전히 같은 공식, 축만 X로
+        // 바뀐다: Room1 서쪽 벽 바깥면 x=-(halfW(10)+두께(1))=-11, 복도
+        // 길이 8 → Town3 동쪽 벽 바깥면 x=-11-8=-19, Town3 중심
+        // x=-19-halfW(10)-두께(1)=-30(동쪽 Town4는 부호만 반대로 +30/+15).
+        private static readonly Vector3 TownCorridorWestCenter = new Vector3(-15f, 0f, 0f);
+        private static readonly Vector3 Town3Center = new Vector3(-30f, 0f, 0f);
+        private static readonly Vector3 TownCorridorEastCenter = new Vector3(15f, 0f, 0f);
+        private static readonly Vector3 Town4Center = new Vector3(30f, 0f, 0f);
+
+        // "마을 장식 보강" 슬라이스 — 마을 셋(Town2·3·4) 정주 촌민에 공통으로
+        // 쓰는 옷 색(따뜻한 베이지) — 전투원(잡졸=황건, 두목=적갈)과 겹치지
+        // 않는 톤으로 "민간인"임을 색으로도 가른다.
+        private static readonly Color VillagerTint = new Color(0.72f, 0.62f, 0.42f);
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
@@ -225,6 +243,8 @@ namespace Saga.EditorTools
             BuildEnemy();
             BuildRoomPois();
             BuildCorridorAndTown2();
+            BuildCorridorAndTown3();
+            BuildCorridorAndTown4();
             BuildCorridorAndRoom2();
             BuildCorridorAndRoom3();
             BuildCorridorAndRoom4();
@@ -235,6 +255,7 @@ namespace Saga.EditorTools
             BuildDialogueUi();
             BuildPlayerHud();
             BuildMinimap();
+            BuildOverworldMap();
             BuildSaveButton();
             BuildAttackButton(playerCombat);
             BuildHeavyAttackButton(playerCombat);
@@ -299,6 +320,8 @@ namespace Saga.EditorTools
             builder.Build();
             builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드/필드" 슬라이스 — 복도로 Room2와 잇는다.
             builder.OpenSouthDoor(RoomDoorWidth); // "오픈월드 확장 — 마을 여러 개" — 들길로 Town2와 잇는다.
+            builder.OpenWestDoor(RoomDoorWidth); // "마을 여러 개 — 셋째" — 들길로 Town3와 잇는다.
+            builder.OpenEastDoor(RoomDoorWidth); // "마을 여러 개 — 넷째" — 들길로 Town4와 잇는다.
             return go;
         }
 
@@ -343,6 +366,175 @@ namespace Saga.EditorTools
             // 얼마 안 되는 돈으로도 살 만한 자리가 필요).
             SetPrivateField(merchant, "sellItemId", "wp_axe");
             SetPrivateField(merchant, "price", 20);
+
+            // "마을 장식 보강" — 문(북)·행상(+3,0) 자리와 안 겹치는 좌표.
+            BuildTownDecor(Town2Center, new Vector3(-6f, 0f, 5f), new Vector3(-6f, 0f, -5f),
+                new Vector3(6f, 0f, -5f), new Vector3(0f, 0f, -7f), VillagerTint);
+            // "마을 간 필드 조우" — 들길 한가운데, 지나가면 반드시 마주친다.
+            BuildFieldAmbush(TownCorridorCenter, "south");
+        }
+
+        /// <summary>"마을 여러 개 — 셋째" 슬라이스 — Room1의 서쪽 문에서
+        /// 들길을 지나 Town3로 이어진다. `DungeonCorridorBuilder`는 항상
+        /// 로컬 Z를 긴 축으로 짓기 때문에(그 클래스 참고), 이 복도는
+        /// GameObject를 Y축 90도 돌려 세우는 것만으로 X축 복도가 된다
+        /// (자체 코드 변경 없음 — 대칭 도형이라 회전 방향은 안 따진다).</summary>
+        private static void BuildCorridorAndTown3()
+        {
+            var corridorGo = new GameObject("TownCorridorWest");
+            corridorGo.transform.position = TownCorridorWestCenter;
+            corridorGo.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            var corridorBuilder = corridorGo.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridorBuilder, "corridorModel", _corridorGlb);
+            corridorBuilder.Build();
+
+            var town3Go = new GameObject("Town3");
+            town3Go.transform.position = Town3Center;
+            var town3Builder = town3Go.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(town3Builder, "gateModel", _gateGlb);
+            SetPrivateField(town3Builder, "roomModel", _roomGlb);
+            town3Builder.Build();
+            town3Builder.OpenEastDoor(RoomDoorWidth); // 복도 쪽(Room1 방향) 문 하나뿐 — 막다른 마을.
+
+            var merchantGo = new GameObject("Town3Merchant");
+            merchantGo.transform.position = Town3Center + new Vector3(6f, 0f, 0f);
+            var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "roomId", "town3");
+            // gem_jade(4) — 광맥(Room3 Vein) 확정 드랍 말고는 지금까지 어떤
+            // 행상도 안 팔던 재고. 가장 싼 보석 티어라 위성 마을 초입에 맞다.
+            SetPrivateField(merchant, "sellGemId", "gem_jade");
+            SetPrivateField(merchant, "price", 15);
+
+            BuildTownDecor(Town3Center, new Vector3(-5f, 0f, 6f), new Vector3(-5f, 0f, -6f),
+                new Vector3(2f, 0f, 6f), new Vector3(2f, 0f, -6f), VillagerTint);
+            BuildFieldAmbush(TownCorridorWestCenter, "west");
+        }
+
+        /// <summary>"마을 여러 개 — 넷째" 슬라이스 — Room1의 동쪽 문에서
+        /// 들길을 지나 Town4로 이어진다(Town3와 같은 결, 부호만 반대).</summary>
+        private static void BuildCorridorAndTown4()
+        {
+            var corridorGo = new GameObject("TownCorridorEast");
+            corridorGo.transform.position = TownCorridorEastCenter;
+            corridorGo.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            var corridorBuilder = corridorGo.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridorBuilder, "corridorModel", _corridorGlb);
+            corridorBuilder.Build();
+
+            var town4Go = new GameObject("Town4");
+            town4Go.transform.position = Town4Center;
+            var town4Builder = town4Go.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(town4Builder, "gateModel", _gateGlb);
+            SetPrivateField(town4Builder, "roomModel", _roomGlb);
+            town4Builder.Build();
+            town4Builder.OpenWestDoor(RoomDoorWidth); // 복도 쪽(Room1 방향) 문 하나뿐 — 막다른 마을.
+
+            var merchantGo = new GameObject("Town4Merchant");
+            merchantGo.transform.position = Town4Center + new Vector3(-6f, 0f, 0f);
+            var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "roomId", "town4");
+            // wp_glaive(26) — 원래 Room10(층2 행상) 재고였는데 "절차적 층
+            // 진행" 전환으로 Room10 자체가 없어져 이 아이템을 살 자리가
+            // 사라졌었다(PROJECT_STATE.md 참고). 그 취지(층1 두목을 못
+            // 잡은 플레이어도 중간 이상 티어를 살 수 있게)를 넷째 마을에서
+            // 되살렸다 — 가격도 그때와 같은 90냥.
+            SetPrivateField(merchant, "sellItemId", "wp_glaive");
+            SetPrivateField(merchant, "price", 90);
+
+            BuildTownDecor(Town4Center, new Vector3(5f, 0f, 6f), new Vector3(5f, 0f, -6f),
+                new Vector3(-2f, 0f, 6f), new Vector3(-2f, 0f, -6f), VillagerTint);
+            BuildFieldAmbush(TownCorridorEastCenter, "east");
+        }
+
+        /// <summary>"마을 장식 보강" 슬라이스 — 방 셸+행상 하나뿐이라 휑해
+        /// 보이던 마을 셋(Town2·Town3·Town4) 전부에 등롱 둘·궤짝 하나·
+        /// 정주 촌민 하나를 채운다(전투·상호작용 없음 — 순수 시각). 문·
+        /// 행상 자리와 안 겹치는 좌표는 마을마다 호출부가 문 방향에 맞게
+        /// 넘긴다.</summary>
+        private static void BuildTownDecor(Vector3 center, Vector3 lanternAOffset, Vector3 lanternBOffset,
+            Vector3 crateOffset, Vector3 villagerOffset, Color villagerTint)
+        {
+            BuildTownLantern(center + lanternAOffset);
+            BuildTownLantern(center + lanternBOffset);
+            BuildCrateStack(center + crateOffset);
+            BuildVillager(center + villagerOffset, villagerTint);
+        }
+
+        private static void BuildTownLantern(Vector3 pos)
+        {
+            var baseCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            baseCube.name = "Decor_TownLanternBase";
+            baseCube.transform.position = pos + new Vector3(0f, 0.8f, 0f);
+            baseCube.transform.localScale = new Vector3(0.6f, 1.6f, 0.6f);
+            baseCube.GetComponent<MeshRenderer>().sharedMaterial = MakeDecorMaterial(new Color(0.32f, 0.28f, 0.22f));
+            Object.DestroyImmediate(baseCube.GetComponent<Collider>());
+
+            var top = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            top.name = "Decor_TownLanternTop";
+            top.transform.position = pos + new Vector3(0f, 1.75f, 0f);
+            top.transform.localScale = new Vector3(0.9f, 0.3f, 0.9f);
+            top.GetComponent<MeshRenderer>().sharedMaterial = MakeDecorMaterial(new Color(0.55f, 0.15f, 0.1f));
+            Object.DestroyImmediate(top.GetComponent<Collider>());
+
+            var lightGo = new GameObject("Decor_TownLanternLight");
+            lightGo.transform.position = pos + new Vector3(0f, 1.9f, 0f);
+            var light = lightGo.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.75f, 0.45f);
+            light.range = 6f;
+            light.intensity = 1.5f;
+        }
+
+        private static void BuildCrateStack(Vector3 pos)
+        {
+            var bottom = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bottom.name = "Decor_Crate";
+            bottom.transform.position = pos + new Vector3(0f, 0.4f, 0f);
+            bottom.transform.localScale = new Vector3(0.9f, 0.8f, 0.9f);
+            bottom.GetComponent<MeshRenderer>().sharedMaterial = MakeDecorMaterial(new Color(0.38f, 0.28f, 0.16f));
+            Object.DestroyImmediate(bottom.GetComponent<Collider>());
+
+            var top = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            top.name = "Decor_Crate";
+            top.transform.position = pos + new Vector3(0.15f, 1.05f, 0.1f);
+            top.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
+            top.transform.rotation = Quaternion.Euler(0f, 20f, 0f);
+            top.GetComponent<MeshRenderer>().sharedMaterial = MakeDecorMaterial(new Color(0.42f, 0.31f, 0.18f));
+            Object.DestroyImmediate(top.GetComponent<Collider>());
+        }
+
+        /// <summary>마을이 사람 사는 곳처럼 보이게 세워 두는 정지 촌민
+        /// (전투·대화 없음 — 순수 시각, AllyFighter 같은 컴포넌트 없음.
+        /// character-b 모델을 Ally와 다른 톤으로 재사용한다).</summary>
+        private static void BuildVillager(Vector3 pos, Color tint)
+        {
+            var go = new GameObject("Villager");
+            go.transform.position = pos;
+            if (_characterB != null) CharacterVisual.Spawn(_characterB, go.transform, 1.7f, tint);
+            else CharacterVisual.SpawnFallbackCapsule(go.transform, 1.7f, tint);
+        }
+
+        private static Material MakeDecorMaterial(Color color)
+        {
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "TownDecor (generated)" };
+            mat.color = color;
+            return mat;
+        }
+
+        /// <summary>"마을 간 필드 조우" 슬라이스 — 원작(28-1절) 필드엔
+        /// 로밍 몬스터가 있었는데 첫 마을 슬라이스(Room1↔Town2)는 들길을
+        /// 전투 없는 통로로 단순화해 뒀다. 새 시스템 없이 기존
+        /// `DungeonAmbush.cs`(랜덤 이벤트 슬라이스, 25초 쿨다운 룰렛 —
+        /// 55% 고요·30% 매복·15% 돈주머니)를 들길 한가운데 그대로
+        /// 재사용한다 — roomId는 어떤 방·행상도 안 보는 값이라 마을
+        /// 클리어·구매 조건에 영향이 없다.</summary>
+        private static void BuildFieldAmbush(Vector3 pos, string fieldId)
+        {
+            var go = new GameObject("Ambush_" + fieldId);
+            go.transform.position = pos;
+            var ambush = go.AddComponent<DungeonAmbush>();
+            SetPrivateField(ambush, "roomId", "field_" + fieldId);
+            SetPrivateField(ambush, "enemyModelPrefab", _characterD);
         }
 
         /// <summary>"오픈월드/필드" 슬라이스 — Room(방1)의 북쪽 문에서
@@ -848,6 +1040,9 @@ namespace Saga.EditorTools
             // "오픈월드 확장 — 마을 여러 개" — 다섯 바이옴 색과 겹치지 않는
             // 황금빛으로 "문명/안전지대"임을 표시.
             BuildMinimapDot(areaRect, Town2Center, new Color(0.75f, 0.65f, 0.35f), 14f); // Town2 — 마을
+            // "마을 여러 개 — 셋째·넷째" — 같은 "문명/안전지대" 황금빛.
+            BuildMinimapDot(areaRect, Town3Center, new Color(0.75f, 0.65f, 0.35f), 14f); // Town3 — 마을
+            BuildMinimapDot(areaRect, Town4Center, new Color(0.75f, 0.65f, 0.35f), 14f); // Town4 — 마을
             BuildMinimapDot(areaRect, Room2Center, new Color(0.35f, 0.45f, 0.3f), 14f); // Room2 — 늪
             BuildMinimapDot(areaRect, Room3Center, new Color(0.55f, 0.5f, 0.45f), 14f); // Room3 — 산
             BuildMinimapDot(areaRect, Room4Center, new Color(0.6f, 0.35f, 0.2f), 14f);  // Room4 — 사당
@@ -871,6 +1066,103 @@ namespace Saga.EditorTools
             rect.anchoredPosition = Minimap.ProjectToMap(worldPos, mapArea.rect.size);
             var img = go.AddComponent<Image>();
             img.color = color;
+        }
+
+        /// <summary>"오버월드 지도 UI" 슬라이스 — saga-dungeon 웹판 PLAN.md
+        /// 28-1절 "지도 UI — 디아블로 M키 방식"을 옮겼다. 미니맵(항상
+        /// 화면 구석의 작은 개략도)과는 목적이 다르다 — M키를 누르면
+        /// 화면 중앙에 나침반형 5칸(중심=모루골/Room1, 남/서/동=마을 셋,
+        /// 북=던전 굴혈)이 펼쳐져 "지금 어느 지역에 있고 다른 마을이
+        /// 어느 방향에 있는지"를 보여준다. **텔레포트 없음 — 보기만
+        /// 하는 창**(웹판과 같은 결). 대각선 네 칸은 안 채운다(원작도
+        /// 대각선 방향 마을이 없다).</summary>
+        private static void BuildOverworldMap()
+        {
+            var canvasGo = new GameObject("OverworldMapUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var panelGo = new GameObject("MapPanel", typeof(RectTransform));
+            panelGo.transform.SetParent(canvasGo.transform, false);
+            var panelRect = (RectTransform)panelGo.transform;
+            panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = new Vector2(460f, 520f);
+            var panelBg = panelGo.AddComponent<Image>();
+            panelBg.color = new Color(0f, 0f, 0f, 0.72f);
+
+            var titleGo = new GameObject("Title", typeof(RectTransform));
+            titleGo.transform.SetParent(panelGo.transform, false);
+            var titleRect = (RectTransform)titleGo.transform;
+            titleRect.anchorMin = new Vector2(0.5f, 1f);
+            titleRect.anchorMax = new Vector2(0.5f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.anchoredPosition = new Vector2(0f, -20f);
+            titleRect.sizeDelta = new Vector2(420f, 50f);
+            var titleText = titleGo.AddComponent<Text>();
+            titleText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            titleText.fontSize = 28;
+            titleText.alignment = TextAnchor.MiddleCenter;
+            titleText.color = Color.white;
+            titleText.text = "지역 지도 (M)";
+
+            var gridGo = new GameObject("Grid", typeof(RectTransform));
+            gridGo.transform.SetParent(panelGo.transform, false);
+            var gridRect = (RectTransform)gridGo.transform;
+            gridRect.anchorMin = gridRect.anchorMax = new Vector2(0.5f, 0.5f);
+            gridRect.pivot = new Vector2(0.5f, 0.5f);
+            gridRect.anchoredPosition = new Vector2(0f, -30f);
+            gridRect.sizeDelta = Vector2.zero;
+
+            var centerCell = BuildMapCell(gridRect, Vector2.zero, "모루골");
+            var northCell = BuildMapCell(gridRect, new Vector2(0f, 110f), "던전 굴혈");
+            var southCell = BuildMapCell(gridRect, new Vector2(0f, -110f), "Town2");
+            var westCell = BuildMapCell(gridRect, new Vector2(-110f, 0f), "Town3");
+            var eastCell = BuildMapCell(gridRect, new Vector2(110f, 0f), "Town4");
+
+            var mapUi = canvasGo.AddComponent<OverworldMapUI>();
+            SetPrivateField(mapUi, "panel", panelGo);
+            SetPrivateField(mapUi, "centerCell", centerCell);
+            SetPrivateField(mapUi, "northCell", northCell);
+            SetPrivateField(mapUi, "southCell", southCell);
+            SetPrivateField(mapUi, "westCell", westCell);
+            SetPrivateField(mapUi, "eastCell", eastCell);
+
+            panelGo.SetActive(false); // OverworldMapUI가 M키로 토글 — 시작은 닫힘.
+        }
+
+        private static Image BuildMapCell(RectTransform parent, Vector2 offset, string label)
+        {
+            var cellGo = new GameObject("Cell_" + label, typeof(RectTransform));
+            cellGo.transform.SetParent(parent, false);
+            var cellRect = (RectTransform)cellGo.transform;
+            cellRect.anchorMin = cellRect.anchorMax = new Vector2(0.5f, 0.5f);
+            cellRect.pivot = new Vector2(0.5f, 0.5f);
+            cellRect.anchoredPosition = offset;
+            cellRect.sizeDelta = new Vector2(100f, 100f);
+            var img = cellGo.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0.12f);
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(cellGo.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 20;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.text = label;
+
+            return img;
         }
 
         private static void BuildSaveButton()
