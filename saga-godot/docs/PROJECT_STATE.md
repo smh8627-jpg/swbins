@@ -2199,6 +2199,77 @@ GUI 실기 확인은 다른 항목들과 함께 몰아서 나중에 확인한다
 세션은 "제외" 목록 4번(원소 6결+저항)부터 다시 물어보지 않고 이어가면
 된다**(2026-09-12⑲가 이미 정해 둔 순서, 위 참고).
 
+## 완료 단계 (추가, 2026-09-12㉓) — 위 목록 4번: 원소 6결+저항
+
+**사용자가 "4번이어해"로 지시.** `data-elem.js`의 ELEMENTS(phys+6결)·
+`data-gem.js`의 GRADES·GEMS(6종)·JEWEL_*(20종 접사)를 `dungeon_items.gd`에
+이어 옮겼다. 이번에도 갑주 슬롯이 없다는 제약이 그대로 이어진다 —
+보석의 armor 자리(원소 저항)는 안 닿지만, **주옥은 부위를 안 가려**
+무기·부적 소켓 어디에 박아도 elres가 그대로 붙는다(원소 저항이 이
+슬라이스에서 갑주 없이 손에 닿는 유일한 길). 데이터는 armor 자리까지
+원작 그대로 셋 다 옮겨 뒀다 — 나중에 갑주가 생기면 바로 쓴다.
+
+- `dungeon_items.gd` — ELEMENTS·GEM_ELEMENTS·RESIST_CAP·GRADES(+`grade()`)·
+  GEMS·GEM_SLOT_CAT(weapon·charm만)·JEWEL_TWO·JEWEL_MAX·JEWEL_AFFIXES 추가.
+  `roll_jewel()`·`jewel_eff()`·`jewel_name()`·`elem_by_key()`/`elem_name()`·
+  `roll_gem_drop()`·`roll_material_drop()`(dropMat() 전체 — 주옥 4층부터·
+  부문 22%·보석 나머지) 신규. `socket_effects()`에 gem·jewel 갈래 추가(룬
+  갈래 옆에 나란히), `item_lines()`의 소켓 표시도 세 갈래 다 보여주게 확장.
+- `dungeon_equipment_state.gd` — `socket_gem()`·`socket_jewel()`(socket_rune()과
+  같은 경계) + `elem_damage()`(item.js elemDamage(), 결별 합산)·
+  `elem_resist(el)`(item.js elemResist(), RESIST_CAP까지 클램프) 신규.
+- `dungeon_materials_state.gd` — 보석 주머니(개수+등급, 룬과 같은 "개수만
+  세는 재료" 경계지만 키에 등급을 물린다)·주옥 주머니(낱개, item.js
+  jewels()와 같은 경계) 신규. `combine_gem()`(forge.js makeGem()) 추가,
+  `restore()`에 gems/jewels 인자 추가(기본값 있어 기존 호출도 안 깨짐).
+- `melee_attack.gd::_apply_elemental()` — dungeon.js strike()가 물리 타격
+  뒤 `applyElem(e, mul)`을 부르는 자리 그대로. 결마다 저항이 따로고
+  크리티컬은 안 탄다(원작도 mul만 넘긴다). 빙(cold)은 느려짐, 독(pois)은
+  dot, 뇌(lit)는 편차(spread)가 크다 — 세 성질 다 `dungeon_enemy.gd`의
+  새 메서드(`apply_elem_slow()`·`apply_elem_dot()`)로 넘긴다.
+- `dungeon_enemy.gd` — `resist: Dictionary`(황건적은 원작에 저항 키가
+  없어 빈 채로 둠, 새 몬스터를 상상 안 함)·`resist_pct()`·dot 틱(`_dots`,
+  `_tick_dots()`)·빙 슬로우(`_slow_mult`/`_slow_time_left`, `_tick_slow()`)
+  신규. 사망 경로를 `_die()`로 한데 모았다(물리 타격·dot 둘 다 그리로 온다).
+- `loot_pickup.gd` — `RUNE_DROP_CHANCE`를 `MAT_DROP_CHANCE`로 이름만
+  바꾸고(바깥 확률은 그대로, 안쪽만 세 갈래), `_spawn_rune()`을
+  `_spawn_mat()`으로 넓혀 보석·주옥 픽업(각각 다른 색 구슬)도 낸다.
+  주옥은 주머니가 차 있으면(JEWEL_MAX) 바닥에 남는다(물약 벨트가 찼을
+  때와 같은 규칙 — area를 안 지운다).
+- `socket_button.gd`/`forge_button.gd` — 소켓 목록에 보석(등급별 묶음)·
+  주옥(낱개)도 룬과 나란히 올린다. 연단(⚗️)에 **보석 셋→한 등급 위**
+  (forge.js makeGem()) 추가 — 2026-09-12㉑이 "보석이 없어 못 넣는다"고
+  미뤄 둔 세 조합 중 하나가 이제 채워졌다(장비 셋·접사 다시 굴리기는
+  여전히 가방이 없어 이 슬라이스 밖).
+- `materials_label.gd` — "🔩 부문 N"에 "💎 보석 N · ◈ 주옥 N"을 이어 붙임.
+- `dungeon_save_state.gd` — `gems`/`jewels` 순수 추가 필드(SAVE_VERSION
+  안 올림, 기존 세이브도 빈 값으로 안전하게 채워짐).
+- **검증(헤드리스) — `test_room.gd::_ready()`에 임시 디버그 함수를 넣어
+  실제 오토로드(DungeonEquipmentState·DungeonMaterialsState) 상태로
+  실측하고 검증 뒤 되돌렸다(diff 0)**: ELEMENTS 7종·GEMS 6종 개수,
+  `grade()` 클램프(10 → 완), `roll_jewel()` 접사 개수 분포 2000회(1개
+  ~66%/2개 ~34%, JEWEL_TWO=0.34와 일치), 무기에 마노(화) 보석을 박으니
+  `elem_damage()`가 정확히 `{fire:6.0}`, 부적에 j_rfire 접사를 가진 주옥을
+  박으니 `elem_resist('fire')`가 정확히 10.0(갑주 없이도 저항이 붙는 것
+  확인), `item_lines()`가 보석 소켓을 "소켓: 조(粗) 마노(瑪瑙)"로 보여주고
+  룬이 안 섞였으니 부문어는 안 뜨는 것 확인, `combine_gem()`으로 조(粗)
+  마노 3개 → 양(良) 마노 1개, 주옥 주머니 추가/제거 왕복, gems/jewels
+  저장·복원 왕복, 새로 만든 적 인스턴스에 임의 저항(화 50%)을 줘
+  `resist_pct()`가 정확히 반영되는 것, dot(dps10×2초)이 1초 뒤 hp를
+  정확히 10 깎는 것, 빙 슬로우가 시간 경과 후 정확히 1.0으로 풀리는 것
+  — 전부 assert 통과("DBG ALL_ELEM_CHECKS_OK"). 이어서 `--headless
+  --editor --quit`(임포트) · `--headless --quit-after 3`을 DUNGEON·GO
+  양쪽 다 — DUNGEON 3연속 + GO 1회, 전부 exit 0·error/warn/missing/
+  invalid/cannot 0건.
+- **GUI 실기 확인은 아직 안 함** — 소켓 목록에서 보석·주옥이 룬과 나란히
+  잘 보이는지, 보석/주옥 노획 시 색이 다른 구슬로 자연스럽게 뜨는지,
+  연단 목록에 보석 조합이 뜨는지, MaterialsLabel이 세 숫자로 길어져도
+  안 잘리는지, 빙 원소를 얻고 나서 적이 실제로 느려지는 게 체감되는지,
+  독 원소의 dot 틱이 화면에서 부자연스럽지 않은지. 아래 "다음에 이어질
+  것" 목록에 추가.
+- **다음은 "제외" 목록의 마지막 셋 — 5번(인물 등용)·6번(결사)·7번(보스층)**
+  (창고·4번은 이번에 끝남). 순서는 2026-09-12⑲가 정해 둔 그대로.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
@@ -2212,6 +2283,12 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 필요 없다(기록만 남김). 이 시점 이후 새로 생긴 미확인 항목만 이 절
 맨 위에 쌓는다:
 
+- **(2026-09-12㉓ 신규, DUNGEON) 소켓 목록에서 보석·주옥이 룬과 나란히
+  잘 보이는지, 보석/주옥 노획 시 색이 다른 구슬로 자연스럽게 뜨는지,
+  연단 목록에 보석 조합이 뜨는지, MaterialsLabel("🔩·💎·◈" 세 숫자)이
+  길어져도 안 잘리는지, 빙 원소를 얻고 나서 적이 실제로 느려지는 게
+  체감되는지, 독 원소의 dot 틱이 화면에서 부자연스럽지 않은지.** 위
+  "완료 단계 (추가, 2026-09-12㉓)" 참고.
 - **(2026-09-12㉒ 신규, DUNGEON) VendorButton(🏪)·ForgeButton(⚗️)이 다른
   버튼과 안 겹치는지, GoldLabel·PotionLabel이 다른 라벨과 안 겹치는지,
   1·2·3·4 키 물약 손맛, 행상 ChoicePrompt 다섯 줄이 화면에 다 들어오는지,

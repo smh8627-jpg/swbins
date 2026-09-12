@@ -182,6 +182,63 @@ func socket_rune(slot_name: String, rune_key: String) -> Dictionary:
 	return DungeonItems.word_of(sock, str(b.get("slot", "")))
 
 
+## "제외" 목록 4번(원소 6결+저항) — socket_rune()과 같은 경계(부문어 여부를
+## 돌려준다, 여기선 보석·주옥이 섞이면 부문어가 절대 안 되니 늘 {}다).
+func socket_gem(slot_name: String, gem_key: String, grade_num: int) -> Dictionary:
+	var it: Dictionary = weapon if slot_name == "weapon" else charm
+	if it.is_empty():
+		return {}
+	var sock: Array = it.get("sock", [])
+	var idx := sock.find(null)
+	if idx < 0:
+		return {}
+	sock[idx] = {"t": "gem", "key": gem_key, "g": grade_num}
+	if slot_name == "weapon":
+		weapon_changed.emit()
+	else:
+		charm_changed.emit()
+	return {}
+
+
+## 주옥은 **부위를 안 가린다** — 어느 소켓에 박아도 굴려 나온 접사 그대로 낸다.
+func socket_jewel(slot_name: String, jewel: Dictionary) -> Dictionary:
+	var it: Dictionary = weapon if slot_name == "weapon" else charm
+	if it.is_empty():
+		return {}
+	var sock: Array = it.get("sock", [])
+	var idx := sock.find(null)
+	if idx < 0:
+		return {}
+	sock[idx] = {"t": "jewel", "j": jewel}
+	if slot_name == "weapon":
+		weapon_changed.emit()
+	else:
+		charm_changed.emit()
+	return {}
+
+
+## item.js elemDamage() 그대로 — 걸친(안 부서진) 것들의 소켓 효과 중 eldmg만
+## 결별로 더한다. melee_attack.gd가 물리 타격 뒤 이 결과를 결마다 따로 적용한다.
+func elem_damage() -> Dictionary:
+	var out: Dictionary = {}
+	for e: Dictionary in _affix_and_socket_effects():
+		if e.kind == "eldmg":
+			var el := str(e.el)
+			out[el] = float(out.get(el, 0.0)) + float(e.v)
+	return out
+
+
+## item.js elemResist() 그대로 — 결별 저항(%), 상한은 DungeonItems.RESIST_CAP.
+## 갑주 슬롯이 없어 보석의 elres는 안 닿고, **주옥만**(부위를 안 가리므로)
+## 이 값을 채울 수 있다.
+func elem_resist(el: String) -> float:
+	var total := 0.0
+	for e: Dictionary in _affix_and_socket_effects():
+		if e.kind == "elres" and str(e.el) == el:
+			total += float(e.v)
+	return clampf(total, 0.0, DungeonItems.RESIST_CAP)
+
+
 ## "제외" 목록 3번(감정) — 미확인 표시를 끈다. 재료(감정서)는 호출 쪽
 ## (vendor_button.gd)이 이미 DungeonMaterialsState에서 있는지 확인하고
 ## 불렀다고 본다(socket_rune()과 같은 경계). 이미 확인된 물건이면 false.

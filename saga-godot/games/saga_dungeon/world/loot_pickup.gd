@@ -13,6 +13,11 @@ extends RefCounted
 ## 같은 킬에 독립된 확률로 부문 하나가 따로 떨어질 수 있다(재료는 즉시
 ## 주머니로 — 웹판과 같은 규칙, "노획물 정산"을 안 탄다).
 ##
+## "제외" 목록 4번(원소 6결+저항) — dropMat()이 실은 부문 하나만이 아니라
+## **주옥(4층부터)·부문·보석 셋 중 하나**를 낸다(DungeonItems.roll_material_drop()).
+## 아래 MAT_DROP_CHANCE(옛 RUNE_DROP_CHANCE)는 그 바깥 확률(잡졸 12%) 그대로 —
+## 이름만 실제로 나오는 세 갈래를 가리키게 바꿨다.
+##
 ## "제외" 목록 3번(행상/투전/연단·단약/요대·감정·창고) — dungeon.js의
 ## 잡졸 킬 드롭 표(2481~2498줄)를 그대로 옮겨 **금·단약·감정서**를
 ## 더했다. 이때 발견한 오차 하나 — **"부문(룬)" 확률을 이전에 잘못
@@ -32,10 +37,11 @@ extends RefCounted
 const Toast := preload("res://saga_core/ui/toast.gd")
 const TOAST_SEC := 4.0
 const TRIGGER_RADIUS := 1.4
-const RUNE_DROP_CHANCE := 0.12 # dungeon.js "e.boss?0.9:0.12"(dropMat 호출 확률) 그대로
+const MAT_DROP_CHANCE := 0.12 # dungeon.js "e.boss?0.9:0.12"(dropMat 호출 확률) 그대로
 const POTION_DROP_CHANCE := 0.16 # dungeon.js "e.boss?1:(elK?0.34:0.16)" 그대로
 const SCROLL_DROP_CHANCE := 0.07 # dungeon.js "e.boss?0.8:0.07" 그대로
 const RUNE_COLOR := Color(0.94, 0.65, 0.22) # dungeon.js take()의 룬 색('#f0a53a') 그대로
+const JEWEL_COLOR := Color(0.94, 0.48, 0.75) # dungeon.js take()의 주옥 색('#f07ac0') 그대로
 const GOLD_COLOR := Color(1.0, 0.84, 0.2)
 const POTION_COLOR := Color(0.75, 0.22, 0.17) # potion.js KINDS.heal.color '#c0392b' 그대로
 const SCROLL_COLOR := Color(0.56, 0.78, 1.0)
@@ -83,8 +89,8 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int) -> void:
 	)
 
 	_spawn_gold(parent, pos + Vector3(-0.6, 0, -0.6), ilvl)
-	if randf() < RUNE_DROP_CHANCE:
-		_spawn_rune(parent, pos + Vector3(0.6, 0, 0.6), ilvl)
+	if randf() < MAT_DROP_CHANCE:
+		_spawn_mat(parent, pos + Vector3(0.6, 0, 0.6), ilvl)
 	if randf() < POTION_DROP_CHANCE:
 		_spawn_potion(parent, pos + Vector3(0.6, 0, -0.6), ilvl)
 	if randf() < SCROLL_DROP_CHANCE:
@@ -109,23 +115,58 @@ static func _spawn_gold(parent: Node, pos: Vector3, floor_num: int) -> void:
 	)
 
 
-static func _spawn_rune(parent: Node, pos: Vector3, floor_num: int) -> void:
-	var key := DungeonItems.roll_rune_drop(floor_num)
-	if key == "":
-		return
-	var r := DungeonItems.rune_by_key(key)
-
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.28
-	mesh.height = 0.56
-	var area := _pickup_area("RunePickup", pos, RUNE_COLOR, mesh)
-	parent.add_child(area)
-	area.body_entered.connect(func(body: Node3D) -> void:
-		if body.is_in_group("player"):
-			DungeonMaterialsState.add_rune(key)
-			Toast.show(area, "🪨 부문 획득 · %s(%s)" % [r.glyph, r.name], TOAST_SEC)
-			area.queue_free()
-	)
+## dungeon.js dropMat() 전체 — 주옥(4층부터)·부문·보석 중 하나가 나온다
+## (DungeonItems.roll_material_drop()이 그 셋 사이 확률을 가른다).
+static func _spawn_mat(parent: Node, pos: Vector3, floor_num: int) -> void:
+	var mat := DungeonItems.roll_material_drop(floor_num)
+	match str(mat.get("kind", "")):
+		"rune":
+			var r := DungeonItems.rune_by_key(str(mat.key))
+			if r.is_empty():
+				return
+			var mesh := SphereMesh.new()
+			mesh.radius = 0.28
+			mesh.height = 0.56
+			var area := _pickup_area("RunePickup", pos, RUNE_COLOR, mesh)
+			parent.add_child(area)
+			area.body_entered.connect(func(body: Node3D) -> void:
+				if body.is_in_group("player"):
+					DungeonMaterialsState.add_rune(str(mat.key))
+					Toast.show(area, "🪨 부문 획득 · %s(%s)" % [r.glyph, r.name], TOAST_SEC)
+					area.queue_free()
+			)
+		"gem":
+			var gd := DungeonItems.gem_by_key(str(mat.key))
+			if gd.is_empty():
+				return
+			var grade_num := int(mat.get("g", 0))
+			var gr := DungeonItems.grade(grade_num)
+			var mesh := SphereMesh.new()
+			mesh.radius = 0.3
+			mesh.height = 0.6
+			var area := _pickup_area("GemPickup", pos, Color(String(gr.color)), mesh)
+			parent.add_child(area)
+			area.body_entered.connect(func(body: Node3D) -> void:
+				if body.is_in_group("player"):
+					DungeonMaterialsState.add_gem(str(mat.key), grade_num)
+					Toast.show(area, "💎 보석 획득 · %s %s" % [gr.name, gd.name], TOAST_SEC)
+					area.queue_free()
+			)
+		"jewel":
+			var mesh := SphereMesh.new()
+			mesh.radius = 0.3
+			mesh.height = 0.6
+			var area := _pickup_area("JewelPickup", pos, JEWEL_COLOR, mesh)
+			parent.add_child(area)
+			area.body_entered.connect(func(body: Node3D) -> void:
+				if body.is_in_group("player"):
+					## 주머니가 차 있으면(JEWEL_MAX) 바닥에 남는다 — area는 안 지운다
+					## (potion 벨트가 찼을 때와 같은 규칙, _spawn_potion 참고).
+					var r := DungeonMaterialsState.add_jewel(mat.j)
+					if bool(r.get("ok", false)):
+						Toast.show(area, "◈ 주옥 획득 · %s" % DungeonItems.jewel_name(r.jewel), TOAST_SEC)
+						area.queue_free()
+			)
 
 
 ## potion.js rollDrop(floor)의 등급 갈래만(종류는 회복단 고정 — DungeonPotionState

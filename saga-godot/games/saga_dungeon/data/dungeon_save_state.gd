@@ -56,6 +56,9 @@ func save(player: Node3D) -> void:
 		"scrolls": DungeonMaterialsState.scrolls,
 		"gold": DungeonGoldState.gold,
 		"belt": DungeonPotionState.belt,
+		## §"제외" 4번(원소 6결+저항) — 순수 추가 필드, 버전 안 올림.
+		"gems": DungeonMaterialsState.gem_counts,
+		"jewels": DungeonMaterialsState.jewels,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -97,9 +100,13 @@ func try_load() -> bool:
 		charm if typeof(charm) == TYPE_DICTIONARY else {})
 	var runes: Variant = data.get("runes", {})
 	var scrolls: Variant = data.get("scrolls", 0)
+	var gems: Variant = data.get("gems", {})
+	var jewels: Variant = data.get("jewels", [])
 	DungeonMaterialsState.restore(
 		runes if typeof(runes) == TYPE_DICTIONARY else {},
-		int(scrolls) if (typeof(scrolls) == TYPE_INT or typeof(scrolls) == TYPE_FLOAT) else 0)
+		int(scrolls) if (typeof(scrolls) == TYPE_INT or typeof(scrolls) == TYPE_FLOAT) else 0,
+		gems if typeof(gems) == TYPE_DICTIONARY else {},
+		jewels if jewels is Array else [])
 	var gold: Variant = data.get("gold", 0)
 	DungeonGoldState.restore(int(gold) if (typeof(gold) == TYPE_INT or typeof(gold) == TYPE_FLOAT) else 0)
 	var belt: Variant = data.get("belt", [])
