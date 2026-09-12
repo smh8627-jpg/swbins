@@ -2,20 +2,27 @@ extends Node3D
 
 ## villager_builder.gd·gatherable_builder.gd와 같은 "정의 배열 하나 + _ready()
 ## 에서 스폰" 패턴 — forest_creature.gd(개체 행동)를 몇 마리 세울지는 이
-## 파일이 정한다. 지금은 1종("숲도깨비", forest_creature.gd 상단 주석 참고)
-## 뿐이지만, 나중에 종을 늘릴 때 이 배열에 한 줄만 보태면 된다(웹판
-## ANIMALS가 원래 그런 모양이었다).
+## 파일이 정한다. 종을 늘릴 땐 이 배열에 한 줄만 보태면 된다(웹판 ANIMALS가
+## 원래 그런 모양이었다).
 
 const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
 const ForestCreature := preload("res://games/saga_forest/world/forest_creature.gd")
 
-## den(격자) — 어둑숲 바이옴(forest_biome.gd: grid_y<10 and grid_x>=15)
-## 안, villager_builder.gd VILLAGERS·gatherable_builder.gd·forest_house.gd·
-## fishing_spot.gd 등 기존 고정 자리(forest_biome_scatter.gd CLEAR_SPOTS
-## 참고)에서 전부 격자거리 3 이상 떨어진 빈 풀밭.
+## den(격자)은 전부 자기 바이옴(forest_biome.gd biome_at()) 안, 기존
+## 고정 자리(villager_builder.gd VILLAGERS·gatherable_builder.gd·
+## forest_house.gd·fishing_spot.gd 등, forest_biome_scatter.gd CLEAR_SPOTS
+## 참고)에서 격자거리 3 이상 떨어진 빈 풀밭으로 손으로 골랐다.
+##
+## kind는 forest_creature.gd `_spawn_visual()`이 아는 시각(+행동 체감) 키다.
+## 2026-09-12: 2종째 "바위도깨비"(바위 지대, biome_at(24,15)=rocky 확인됨)
+## 추가 — 숲도깨비보다 느리고(speed·flee_speed↓) 덜 겁내게(flee_m↓) 해서
+## 첫 종과 체감이 겹치지 않게 갈랐다(웹판 ANIMALS도 종마다 speed/flee가
+## 다 달랐던 것과 같은 이유).
 const CREATURES := [
-	{"id": "creature_dokkaebi", "den": Vector2i(19, 3), "wander_m": 4.0,
-	 "flee_m": 6.0, "speed": 1.5, "flee_speed": 3.5},
+	{"id": "creature_dokkaebi", "kind": "dokkaebi", "den": Vector2i(19, 3),
+	 "wander_m": 4.0, "flee_m": 6.0, "speed": 1.5, "flee_speed": 3.5},
+	{"id": "creature_bawi", "kind": "bawi", "den": Vector2i(24, 15),
+	 "wander_m": 2.5, "flee_m": 4.0, "speed": 0.9, "flee_speed": 2.2},
 ]
 
 
@@ -30,4 +37,4 @@ func _ready() -> void:
 		## 원칙 — Math.random을 안 쓴다, 세 번 돌려도 같은 진단 결과).
 		var seed_salt: int = den_grid.x * 92821 + den_grid.y * 68917
 		inst.setup(den_world, float(c.wander_m), float(c.flee_m),
-			float(c.speed), float(c.flee_speed), seed_salt)
+			float(c.speed), float(c.flee_speed), seed_salt, String(c.kind))

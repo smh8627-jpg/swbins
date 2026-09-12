@@ -10,20 +10,26 @@ extends CharacterBody3D
 ##
 ## **재해석** — 웹판 mushnub(포자괴물)를 그대로 옮기지 않았다. 5절 결정 자체가
 ## "몬스터·다른 시대 요소를 넣어도 된다"는 자유이지 "포자괴물을 옮겨라"가
-## 아니라서, 새 창작 몬스터(숲도깨비 — 실존 인물·원작사 캐릭터가 아닌 한국
-## 설화의 일반명사, "황건적"처럼 부류를 가리키는 이름)로 짓고 서식 바이옴도
-## 어둑숲(dark)으로 새로 골랐다(원작은 버섯숲 한정).
+## 아니라서, 새 창작 몬스터로 짓는다 — 전부 실존 인물·원작사 캐릭터가 아닌
+## 한국 설화의 일반명사("황건적"처럼 부류를 가리키는 이름) 계열이다.
 ##
-## 시각은 primitive 둘(구 몸통+원뿔 뿔) — 이 판의 몬스터 전용 GLB가 없다
-## (버섯·가구가 이미 쓴 예외와 같은 이유). WorldCurveMaterial을 쓴다 —
-## 이동하는 오브젝트도 구면 투영 대상이다(villager_builder.gd와 같은 결).
+## 종 둘(forest_creature_builder.gd CREATURES 참고, `kind`로 갈린다):
+## - "dokkaebi"(숲도깨비, 어둑숲) — 구 몸통+원뿔 뿔, 짙은 보라.
+## - "bawi"(바위도깨비, 바위 지대, 2026-09-12 추가) — 상자 몸통+상자 혹 둘,
+##   돌빛 회갈색. 몸집이 크고 느린 대신(speed·flee_speed가 낮다) 잘 안
+##   달아난다는 인상을 주려고 flee_radius도 좁게 잡았다(builder 쪽 수치).
+##
+## 시각은 전부 primitive — 이 판의 몬스터 전용 GLB가 없다(버섯·가구가 이미
+## 쓴 예외와 같은 이유). WorldCurveMaterial을 쓴다 — 이동하는 오브젝트도
+## 구면 투영 대상이다(villager_builder.gd와 같은 결).
 
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 
 enum State { IDLE, WANDER, FLEE }
 
 const CURVE_AMOUNT := 0.004
-const COLOR := Color(0.22, 0.12, 0.28)  # 신규 창작색 — 어둑숲 톤에 맞춘 짙은 보라
+const COLOR_DOKKAEBI := Color(0.22, 0.12, 0.28)  # 신규 창작색 — 어둑숲 톤에 맞춘 짙은 보라
+const COLOR_BAWI := Color(0.42, 0.38, 0.33)      # 신규 창작색 — 바위 지대 톤에 맞춘 돌빛 회갈색
 const IDLE_TIME_MIN := 1.5
 const IDLE_TIME_MAX := 3.5
 const FLEE_TIME := 2.5
@@ -35,6 +41,7 @@ var flee_radius: float
 var speed: float
 var flee_speed: float
 
+var _kind := "dokkaebi"
 var _state: State = State.IDLE
 var _timer := 0.0
 var _target: Vector3
@@ -44,15 +51,17 @@ var _rng := RandomNumberGenerator.new()
 
 ## 웹판 ANIMALS 항목 하나를 그대로 옮기는 자리 — 씨앗은 den 좌표로 고정해
 ## 매번 같은 진단 결과가 나오게 한다(루트 CLAUDE.md 검증 습관 "세 번 돌려
-## 출력이 같은지").
+## 출력이 같은지"). kind는 위 주석의 종 키("dokkaebi"·"bawi") — 안 주면
+## 첫 종(숲도깨비) 그대로.
 func setup(p_den: Vector3, p_wander: float, p_flee: float, p_speed: float,
-		p_flee_speed: float, seed_salt: int) -> void:
+		p_flee_speed: float, seed_salt: int, kind: String = "dokkaebi") -> void:
 	den = p_den
 	wander_radius = p_wander
 	flee_radius = p_flee
 	speed = p_speed
 	flee_speed = p_flee_speed
 	_rng.seed = seed_salt
+	_kind = kind
 	global_position = den
 
 
@@ -63,7 +72,14 @@ func _ready() -> void:
 
 
 func _spawn_visual() -> void:
-	var mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.85, COLOR)
+	if _kind == "bawi":
+		_spawn_visual_bawi()
+	else:
+		_spawn_visual_dokkaebi()
+
+
+func _spawn_visual_dokkaebi() -> void:
+	var mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.85, COLOR_DOKKAEBI)
 
 	var body := MeshInstance3D.new()
 	var body_mesh := SphereMesh.new()
@@ -88,6 +104,40 @@ func _spawn_visual() -> void:
 	var shape := SphereShape3D.new()
 	shape.radius = 0.32
 	cs.position = Vector3(0, 0.32, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 바위도깨비 — 몸집이 다부지다는 인상을 상자 셋(몸통+혹 둘)으로 준다.
+func _spawn_visual_bawi() -> void:
+	var mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.95, COLOR_BAWI)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := BoxMesh.new()
+	body_mesh.size = Vector3(0.56, 0.5, 0.46)
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.3, 0)
+	body.material_override = mat
+	add_child(body)
+
+	var bump_l := MeshInstance3D.new()
+	var bump_mesh := BoxMesh.new()
+	bump_mesh.size = Vector3(0.16, 0.16, 0.16)
+	bump_l.mesh = bump_mesh
+	bump_l.position = Vector3(-0.15, 0.62, 0)
+	bump_l.rotation.y = 0.5
+	bump_l.material_override = mat
+	add_child(bump_l)
+
+	var bump_r: MeshInstance3D = bump_l.duplicate()
+	bump_r.position = Vector3(0.15, 0.62, 0)
+	bump_r.rotation.y = -0.5
+	add_child(bump_r)
+
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.56, 0.5, 0.46)
+	cs.position = Vector3(0, 0.3, 0)
 	cs.shape = shape
 	add_child(cs)
 

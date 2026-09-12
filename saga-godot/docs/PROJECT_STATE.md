@@ -3475,3 +3475,27 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
     (a) 숲도깨비 종을 더 늘리기(CREATURES 배열에 한 줄), (b) STORY 첫
     슬라이스 GUI 실기 확인(여전히 대기 중), (c) FOREST 다른 콘텐츠 확장
     (지도 확장 등, 4절 "제외" 목록의 나머지 항목들).
+
+## FOREST 몬스터·퓨전 콘텐츠 2종째 — 바위도깨비 (2026-09-12)
+
+- **사용자 지시 "숲도깨비 종 하나 더 추가해줘"** — CREATURES 배열에 한 줄
+  보태는 확장 경로(위 항목의 "다음 이어질 것 (a)")를 그대로 밟았다.
+  - `forest_creature.gd` — `setup()`에 `kind` 매개변수 추가(기본값
+    "dokkaebi", 기존 스폰 그대로 하위호환). `_spawn_visual()`을
+    `_spawn_visual_dokkaebi()`/`_spawn_visual_bawi()`로 갈랐다 — 바위도깨비는
+    상자 몸통+상자 혹 둘(돌빛 회갈색 `COLOR_BAWI`), 숲도깨비의 구+원뿔과
+    시각을 겹치지 않게 했다.
+  - `forest_creature_builder.gd` CREATURES에 `creature_bawi`(den=격자(24,15),
+    `ForestBiome.biome_at()`로 rocky(바위 지대) 확인) 추가. 숲도깨비보다
+    느리고(speed 1.5→0.9, flee_speed 3.5→2.2) 덜 겁내게(flee_m 6.0→4.0,
+    wander_m 4.0→2.5) 갈라 체감이 겹치지 않게 했다(웹판 ANIMALS도 종마다
+    speed/flee가 다 달랐다).
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음)
+    → `TestVillageForest.tscn` `--quit-after 5` 세 번 연속 exit 0·오류
+    0건·로그 완전 동일. **임시 디버그로 실제 값 확인**: 두 종 spawn
+    위치(각각 den 격자→월드좌표 손 계산과 정확히 일치: 숲도깨비
+    (12,0,-21)·바위도깨비 (27,0,15)), 바위도깨비도 결국 IDLE→WANDER
+    전이하며 wander_radius(2.5m) 안에서만 움직임 확인(700프레임 창에서
+    IDLE→WANDER→IDLE 한 바퀴 확인). 디버그 원상복구(diff 0). GO·DUNGEON·
+    FOREST·STORY 헤드리스 회귀 없음 재확인.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
