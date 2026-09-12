@@ -92,6 +92,9 @@ get_aabb()`를 합쳐 실측했다(추측 아님) — 아래 스케일은 그 �
 | `dungeon/gate-rock.glb` | 4.0 × 4.05 × 2.454 | 바닥 | 동굴 입구, 균일 ×(6/4.05≈1.48) |
 | `vegetation/crops_wheatStageB.glb` | 0.54 × 0.53 × 0.45 | 바닥 중앙 | 논밭 타일, ×2.5(개체별 0.8~1.2 추가 배율) |
 | `shrine/altar-stone.glb` | 1.04 × 0.49 × 0.65 | 바닥 중앙 | 옛 사당, 균일 ×2.5 |
+| `dungeon/room-small.glb` | 12.0 × 4.4 × 12.0 | 바닥 중앙 | DUNGEON 첫 방(고분 테마), 스케일 없음 — VERTICAL_SLICE_DUNGEON.md |
+| `dungeon/gate.glb` | 4.4 × 4.4 × 1.4 | 바닥 중앙 | DUNGEON 방 출구, 스케일 없음 |
+| `dungeon/corridor.glb` | 4.0 × 4.05 × 4.0 | 바닥 중앙 | DUNGEON 방 사이 복도 타일, 스케일 없음 — 여러 방 연결(2026-09-12) |
 
 "피벗 바닥"은 원점(0,0,0)이 모델의 발밑이라는 뜻 — primitive였을 때는
 대부분 중앙 피벗(BoxMesh/SphereMesh/CylinderMesh 기본값)이라 `height*0.5`
@@ -137,6 +140,20 @@ _build_wall_perimeter()`로 실제 모듈형 조립으로 바꿨다 — `wall-bl
   박스로 대체(fallback). 동굴 입구는 여전히 지나갈 수 있는 통로가 아니라
   랜드마크 장애물(충돌 박스 그대로) — 실제 동굴 내부(방·복도)는 이 킷에
   있는 room/corridor 조각들로 나중에 할 일(Phase 3 이후, 아직 계획 없음).
+  **후속(2026-09-12⑫)** — "나중에"가 왔다. GO가 아니라 DUNGEON 첫 방
+  (`games/saga_dungeon/world/test_room.gd`)에서 `room-small.glb`·
+  `gate.glb`를 이 킷에서 마저 뽑아 썼다 — 새 다운로드 없이 스크래치패드
+  에 남아 있던 압축 해제본(`%TEMP%/cave_kit/extracted/`)에서 그대로
+  복사(위 실측표 참고). 킷엔 `room-large`·`corridor-*`·`stairs`·
+  `ladder` 등도 있어 방이 여러 개로 늘어날 때 계속 이 킷에서 가져오면
+  된다 — VERTICAL_SLICE_DUNGEON.md가 제외한 "층 전체(여러 방 연결)"가
+  다음에 여기로 이어진다.
+  **후속(2026-09-12⑰)** — 그 "다음"이 왔다. 같은 압축 해제본에서
+  `corridor.glb`(직선 복도 한 칸)만 추가로 뽑아 방 둘을 잇는 데 썼다
+  (자세한 내용은 `docs/PROJECT_STATE.md` 2026-09-12⑰ 항목). 킷엔
+  `corridor-corner`·`corridor-junction`·`room-large` 등 아직 안 쓴
+  조각이 더 있다 — 방이 셋 이상으로 늘어나거나 갈림길이 생길 때 거기서
+  더 가져오면 된다.
 - ~~NPC(촌장·상인)·산적~~ — **완료(2026-09-11②).** 마을 촌장=
   `character-b.glb`, 떠돌이 상인=`character-c.glb`, 산적=
   `character-d.glb`. 같은 킷이라 추가 다운로드 없이 미리 받아 둔

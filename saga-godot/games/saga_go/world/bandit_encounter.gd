@@ -22,7 +22,7 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
-const Toast := preload("res://games/saga_go/ui/toast.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 
 ## 2026-09-11 GLB 교체 — 플레이어(character-a)·주민(b·c)과 다른 글자를 써서
 ## 산적임을 옷 색만으로도 구별한다(docs/ASSET_GUIDE.md). 실측·스케일 근거는

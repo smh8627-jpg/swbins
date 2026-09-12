@@ -20,6 +20,7 @@ const LEGEND := {
 	"S": {"name": "shrine", "color": Color(0.5, 0.42, 0.3), "walkable": true, "height": 0.2},
 	"R": {"name": "ruins", "color": Color(0.45, 0.42, 0.4), "walkable": true, "height": 0.2},
 	"B": {"name": "bridge", "color": Color(0.5, 0.36, 0.2), "walkable": true, "height": -1.0},
+	"W": {"name": "waterfall", "color": Color(0.3, 0.42, 0.48), "walkable": true, "height": 0.3},
 }
 
 const WATER_HEIGHT_ABOVE_BED := 0.55

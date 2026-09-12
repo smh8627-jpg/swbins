@@ -23,12 +23,15 @@ extends RefCounted
 ## 안 쓰던 걸 처음 쓴 것이다(terrain_builder.gd 참고).
 ##
 ## ^ 산   T 숲   ~ 강   = 길   H 마을   F 논밭   . 들
-## C 굴 입구   S 옛 사당   R 폐허   B 다리
+## C 굴 입구   S 옛 사당   R 폐허   B 다리   W 폭포
+##
+## 2026-09-12⑩ — 산 타일 하나(옛 (8,3))를 폭포(W)로 바꿨다. 굴(C)이 산을
+## 파고든 것과 같은 방식 — 새 칸을 늘리지 않고 기존 산 자리 하나를 깎았다.
 const ROWS := [
 	"^^^^^=^^^^^",
 	"^TS^^=^^TT^",
 	"TT^^^C^^^TT",
-	"TT^TT=TT^TT",
+	"TT^TT=TTWTT",
 	"TTT..=..TTT",
 	"TTT.HH.RTTT",
 	"TTT..=..TTT",

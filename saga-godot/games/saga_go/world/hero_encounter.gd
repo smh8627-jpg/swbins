@@ -20,7 +20,7 @@ extends Node3D
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
-const Toast := preload("res://games/saga_go/ui/toast.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
 ## PersuadeRules는 class_name으로 전역 등록돼 있어(duel_rules.gd와 같은
 ## 경계) 여기서 다시 preload하지 않는다 — 이름이 겹치면 파싱 오류가 난다.

@@ -47,6 +47,20 @@ const CAVE_GATE_SCALE := 6.0 / 4.05
 const SHRINE_SIZE := Vector3(1.04, 0.49, 0.65)
 const SHRINE_SCALE := 2.5
 
+## 2026-09-12⑩ — 산속 폭포(waterfall_falls, land.js 다섯 표식 중 마지막).
+## 새 킷을 받지 않고 **이미 받아 둔** vegetation_builder.gd의 산 바위
+## (rock_largeA.glb, 실측 0.78 x 0.26 x 1.02)를 절벽처럼 세로로 세워
+## 재사용한다 — 사당·굴처럼 새 킷을 받을 정도로 다른 조각이 필요하진
+## 않다고 판단(44장 "에셋은 무작정 많이 넣지 않는다"). 폭포 물줄기·물웅덩이는
+## 이 판에 맞는 GLB가 아예 없어(강물도 마찬가지였다) terrain_builder.gd의
+## WaterSurface와 같은 색·투명도의 primitive 평면으로 낸다 — "primitive는
+## 프로토타입에서만"의 예외가 아니라, 강물 표면도 이미 같은 방식이었다.
+const WATERFALL_ROCK_GLB := "res://assets/rocks/rock_largeA.glb"
+const WATERFALL_ROCK_SCALE := Vector3(2.6, 5.0, 2.2)
+const WATERFALL_FACE_SIZE := Vector2(2.6, 4.0)
+const WATERFALL_POOL_SIZE := Vector2(3.2, 3.2)
+const WATERFALL_WATER_COLOR := Color(0.25, 0.45, 0.62, 0.72) # terrain_builder.gd WaterSurface와 같은 색
+
 
 ## 2026-09-12④ — CodexState "지역" 갈래(§26 "발견 도감") 발견 반경.
 ## 사건 조우 반경(20m)보다 넉넉히 잡았다 — 위협이 아니라 그냥 랜드마크에
@@ -60,6 +74,7 @@ func _ready() -> void:
 	_add_ruins()
 	_add_bridge()
 	_add_shrine()
+	_add_waterfall()
 
 
 func _box(size: Vector3, color: Color) -> MeshInstance3D:
@@ -159,6 +174,58 @@ func _add_shrine() -> void:
 
 	_solid(size, base_pos + Vector3(0, size.y * 0.5, 0), self)
 	_add_discovery_area("shrine", base_pos, self)
+
+
+## 산속 폭포(W) — 격자 (8,3), 옛 산(^) 자리 하나를 깎았다(test_map.gd 참고).
+## rock_largeA.glb를 세로로 세운 절벽 배경 + primitive 물줄기·물웅덩이.
+## 물줄기는 장식이라 충돌 없음 — 막히는 건 뒤쪽 바위뿐(사당과 같은 경계,
+## "충돌은 얕게만 잡는다").
+func _add_waterfall() -> void:
+	var ground: float = TerrainBuilder.LEGEND["W"].height
+	var base_pos := TestMap.world_pos(8, 3) + Vector3(0, ground, 0)
+	var rock_back_offset := Vector3(0, 0, -1.2) # 물줄기 뒤로 살짝 물러난 자리
+	var rock_mesh := GLBUtils.extract_mesh(WATERFALL_ROCK_GLB)
+
+	if rock_mesh != null:
+		var mi := MeshInstance3D.new()
+		mi.name = "WaterfallRock"
+		mi.mesh = rock_mesh
+		mi.transform = Transform3D(Basis().scaled(WATERFALL_ROCK_SCALE),
+			base_pos + rock_back_offset + Vector3(0, WATERFALL_ROCK_SCALE.y * 0.13, 0))
+		add_child(mi)
+	else:
+		var fallback := _box(WATERFALL_ROCK_SCALE, Color(0.4, 0.4, 0.42))
+		fallback.name = "WaterfallRock"
+		fallback.position = base_pos + rock_back_offset + Vector3(0, WATERFALL_ROCK_SCALE.y * 0.5, 0)
+		add_child(fallback)
+	_solid(Vector3(WATERFALL_ROCK_SCALE.x, WATERFALL_ROCK_SCALE.y * 0.5, WATERFALL_ROCK_SCALE.z),
+		base_pos + rock_back_offset + Vector3(0, WATERFALL_ROCK_SCALE.y * 0.25, 0), self)
+
+	var water_mat := StandardMaterial3D.new()
+	water_mat.albedo_color = WATERFALL_WATER_COLOR
+	water_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var face_mi := MeshInstance3D.new()
+	face_mi.name = "WaterfallFace"
+	var face_mesh := PlaneMesh.new()
+	face_mesh.size = WATERFALL_FACE_SIZE
+	face_mi.mesh = face_mesh
+	face_mi.material_override = water_mat
+	face_mi.rotation_degrees = Vector3(90, 0, 0)
+	face_mi.position = base_pos + Vector3(0, WATERFALL_FACE_SIZE.y * 0.5, -0.5)
+	add_child(face_mi)
+
+	var pool_mi := MeshInstance3D.new()
+	pool_mi.name = "WaterfallPool"
+	var pool_mesh := PlaneMesh.new()
+	pool_mesh.size = WATERFALL_POOL_SIZE
+	pool_mi.mesh = pool_mesh
+	pool_mi.material_override = water_mat
+	pool_mi.position = base_pos + Vector3(0, 0.05, 0.7)
+	add_child(pool_mi)
+
+	_add_discovery_area("waterfall", base_pos, self)
 
 
 func _add_village() -> void:

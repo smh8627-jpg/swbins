@@ -1360,6 +1360,845 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 매번 diff로 확인하진 않았다 — 이번처럼 조용히 새고 다음 세션까지 넘어갈
 수 있다.
 
+## 완료 단계 (추가, 2026-09-12⑧) — 날씨·계절 (PLAN.md 66-1장 이후 첫 "큰 시스템")
+
+- **사용자가 "GO 작은 콘텐츠 계속"과 "큰 시스템(날씨·성채) 착수" 둘 다 고르고,
+  큰 시스템 중에서는 날씨·계절을 먼저 골랐다** — 성채는 골드·세력 시스템이
+  아직 없어 범위가 훨씬 크다(2026-09-11⑥ 마무리 기록에서 이미 보류해 둔 이유
+  그대로). 날씨·계절은 이미 있는 TimeOfDay(밤/낮)와 같은 "시각의 순수 함수"
+  뼈대라 웹판(`saga-go/js/weather.js`·`season.js`)을 그대로 옮길 수 있었다.
+  - `games/saga_go/data/season.gd`(신규, `class_name Season`) — 웹판
+    SEASONS 표에서 이 판에 실제로 쓸 자리만 옮김: `wx`(계절별 날씨 가중치,
+    weather.gd가 읽는다)와 `ambient_mul`(환경광 배수, 시각 전용). 웹판의
+    식생 색 틴트·NPC 옷 색·사건 가중치는 옮기지 않았다 — 이 판엔 아직 그
+    자리가 없거나(NPC 옷은 GLB 텍스처 고정) 범위 밖(사건 가중치는 다음
+    손질 때 표에 필드만 추가하면 됨). `TimeOfDay.force()`와 같은 이유로
+    `Season.force()`를 둠(헤드리스 검증이 실행 시각에 안 흔들리게).
+  - `games/saga_go/data/weather.gd`(신규, `class_name Weather`) — 웹판처럼
+    **3시간마다 바뀌는 결정론적 천후**(실제 기상 API 없음, `vegetation_
+    builder.gd`의 좌표 해시와 같은 정신의 정수 해시로 슬롯 번호에서 뽑음).
+    웹판의 포획 확률·신수 출현·인물 스폰 편향은 옮기지 않았다 — 이 판엔
+    무작위 스폰·포획·신수 자체가 없다(고정 배치 사건뿐). 대신 이 판에
+    실제로 있는 두 자리만 이었다: `exp_pct`(사건 보상 경험치 보너스)·
+    `fog_density_mul`/`tint`(환경 분위기).
+  - `party_state.gd::add_exp()` — `Weather.exp_bonus_mul()`을 곱하도록
+    한 줄 추가. 호출부(사건 스크립트들)는 손 안 댐 — 이미 있던 단일
+    관문(choke point)이라 여기 하나만 고치면 전부 적용된다.
+  - `games/saga_go/world/season_weather_visual.gd`(신규,
+    `class_name SeasonWeatherVisual`) — `WorldEnvironment`의 형제 노드로
+    `TestVillage.tscn`에 추가(`environment_profile.gd`가 `environment`를
+    먼저 골라 둬야 하므로, 형제는 선언 순서대로 부모보다 먼저 ready된다는
+    규칙대로 그 **다음** 자리에 둠). env_pc.tres/env_mobile.tres의 기준값은
+    그대로 두고(66-1장 "게임의 색 톤은 같아야 한다"), 실행 시점에 안개
+    밀도·색에만 배수를 곱한다. 값이 느리게 바뀌므로(날씨 3h·계절 1달) 매
+    프레임 대신 Timer로 60초마다만 다시 봄(29장 절약 원칙).
+  - `games/saga_go/ui/weather_label.gd`(신규) + `MobileHUD.tscn`의
+    `WeatherLabel`(신규, CodexLabel 아래) — PartyLabel·QuestLabel·CodexLabel과
+    같은 경계(상시 표시). `SeasonWeatherVisual.summary()`를 60초마다 다시 읽음.
+  - **검증 — 임시 디버그(`test_village.gd`·`season_weather_visual.gd`에 넣고
+    끝나고 원상복구, diff 0)로 실제 값까지 확인:**
+    ①`Season.force(SUMMER)`+`Weather.force("clear")`에서 `add_exp(100)` →
+    정확히 110(10% 보너스) ②같은 계절에서 `Weather.force("snow")` → 정확히
+    112(12% 보너스) ③`Season.force(WINTER)`에서 `weather_weight("clear")=0.9`·
+    `weather_weight("snow")=2.6`(웹판 SEASONS.winter.wx 값 그대로) 확인
+    ④환경 훅은 `Weather.force("fog")`+`Season.force(WINTER)`에서
+    `fog_density`가 base(0.006)×2.4=0.0144, `volumetric_fog_density`가
+    0.01×2.4=0.024, `fog_light_color`가 세 배수(base·tint·ambient_mul)를
+    곱한 값과 정확히 일치하는 것까지 소수점 단위로 확인.
+  - `--headless --editor --quit`(임포트, 새 전역 클래스 3개 등록 확인)·
+    `--headless --quit-after 5` 연속 3번 — 디버그 코드 있을 때·되돌린 뒤
+    최종 상태 둘 다 exit 0·error/warn/missing/invalid/cannot 0건.
+  - **GUI 미확인** — 안개·색조가 실제로 눈에 띄게 바뀌는지(수치는 확인됨,
+    시각적으로 "날씨가 바뀌었다"고 느껴지는 정도인지는 실기로만 알 수
+    있다), `WeatherLabel`이 다른 라벨과 안 겹치는지는 다음 실기 확인 때
+    같이 볼 것(아래 목록에 추가).
+  - 다음에 이 표에 필드를 더 넣을 수 있는 자리(이번엔 일부러 안 건드림):
+    식생 색 계절 틴트(vegetation_builder.gd가 이미 결정적 해시로 나무를
+    심으니 같은 방식으로 잎 색만 계절별로 바꿀 수 있음), 사건 가중치
+    (희귀 약초 같은 게 생기면 봄·여름에 더 잦게), NPC 옷 색.
+
+## 완료 단계 (추가, 2026-09-12⑨) — GO 사건 두 종 추가(굴·여울) + 날씨 연동 첫 사례
+
+- **"GO 작은 콘텐츠 계속"도 같이 골라 주셔서, 날씨·계절에 이어 작은 사건을
+  더했다.** 웹판 `event.js`에서 아직 안 옮긴 것 중 기존 랜드마크(굴·다리)
+  만으로 되는 둘을 골랐다 — `flood_ford`(불어난 여울)·`cave_secret`(이름
+  없는 굴). `waterfall_falls`(산속 폭포)는 새 랜드마크(폭포)가 지도에
+  없어서 이번 범위 밖으로 남겨 뒀다(다음에 폭포 랜드마크부터 세우고
+  이어야 함).
+  - `simple_event.gd`를 두 가지로 확장(둘 다 하위 호환 — 기본값이면 예전
+    사건들과 완전히 같게 동작):
+    ① `choice_c_*`(선택지 세 번째, 웹판 flood_ford의 cross/wait/around처럼
+    셋을 주는 사건을 위해). `choice_c_label`이 비어 있으면(기본값) 패널에
+    두 줄만 뜬다.
+    ② `require_weather`(웹판 flood_ford의 `wet: true` — 비가 올 때만
+    나타난다). 비어 있으면(기본값) 항상 나타난다. 값이 있으면 Timer로
+    60초마다 `Weather.current_key()`와 비교해 시각(`_visual.visible`)과
+    트리거(`_area.monitoring`/`monitorable`)를 같이 껐다 켠다 — season_
+    weather_visual.gd와 같은 절약(매 프레임 안 봄).
+  - `TestVillage.tscn`에 `CaveSecretEvent`(격자 (5,1), 굴 바로 북쪽 길)·
+    `FloodFordEvent`(격자 (5,6), 다리 바로 북쪽 길, `require_weather="rain"`)
+    추가. 웹판 대비 gold/feat/fame은 이 판에 그 재화가 없어 전부 빼고
+    exp로만 옮겼다(map_scrap·lost_child 때와 같은 경계 — 성공 쪽이 실패
+    쪽보다 더 받도록 값을 골랐다).
+  - `codex_state.gd`의 `TOTAL.event`를 11→13으로(전체 24→26) — 늑대 무리·
+    정찰병(밤에만)처럼 여울도 조건부(비 올 때만)지만 갈래 총량엔 넣는다,
+    같은 선례.
+  - **검증 — 임시 디버그(`test_village.gd`에 넣고 끝나고 원상복구, diff 0)로
+    실제 값 확인:** `Weather.force("clear")` 후 `_apply_weather_gate()` →
+    `FloodFordEvent`의 visible/monitoring 둘 다 `false` · `Weather.force
+    ("rain")` 후 같은 호출 → 둘 다 `true` · `CaveSecretEvent.choice_c_label`
+    이 빈 문자열(2choice 그대로)인 것 · `CodexState.total()`이 정확히 26.
+    `--headless --editor --quit`(임포트) · `--headless --quit-after 5`
+    연속 3번 — 디버그 있을 때·되돌린 뒤 최종 상태 둘 다 exit 0·오류 0건.
+  - **GUI 미확인** — 굴 옆 캡슐이 자연스러운 자리인지, 비가 왔을 때
+    여울 사건이 실제로 나타나는지(비가 오는 시각까지 기다려야 확인
+    가능 — 밤 사건처럼 실기로만 볼 수 있는 자리), 선택지 세 줄짜리
+    패널이 화면에서 안 잘리는지는 다음 실기 확인 때 같이 볼 것.
+
+## 완료 단계 (추가, 2026-09-12⑩) — GO 사건 마지막 종(산속 폭포) + land.js 다섯 표식 완성
+
+- **`waterfall_falls`(산속 폭포) — 새 랜드마크가 필요해 2026-09-12⑨에서
+  범위 밖으로 미뤄 뒀던 것.** land.js의 다섯 표식(다리·굴·사당·폐허·폭포)
+  중 마지막으로 남았던 폭포를 채워 다섯이 전부 갖춰졌다.
+  - `terrain_builder.gd` LEGEND에 `"W"`(waterfall) 추가, `test_map.gd`
+    ROWS의 산(^) 한 칸(옛 (8,3))을 W로 바꿨다 — 굴(C)이 산을 파고든 것과
+    같은 방식으로 **칸을 늘리지 않고** 기존 산 자리를 깎았다.
+  - `landmarks_builder.gd::_add_waterfall()`(신규) — 새 킷을 받지 않고
+    이미 받아 둔 `rock_largeA.glb`(vegetation_builder.gd가 산 산포에 쓰던
+    것)를 절벽처럼 세로로 세워 재사용, 물줄기·물웅덩이는 GLB가 아예 없어
+    (강물도 마찬가지였다) `terrain_builder.gd`의 `WaterSurface`와 같은
+    색·투명도의 primitive 평면으로 냈다. 충돌은 사당과 같은 경계로
+    바위에만 얕게(물줄기·물웅덩이는 장식, 안 막음).
+    `_add_discovery_area("waterfall", ...)`로 "지역" 갈래에 편입.
+  - `TestVillage.tscn`에 `WaterfallFallsEvent`(simple_event.gd, 격자
+    (8,4)) — "물가에서 쉬어 간다"(exp 10, 결정적)·"폭포 뒤를 살펴본다"
+    (chance 0.4, 성공 exp 25/실패 exp 15). 웹판의 gold/items 보상은 이
+    판에 그 재화가 없어 exp로만 옮김(map_scrap·cave_secret과 같은 경계).
+  - `codex_state.gd`의 `TOTAL.place` 5→6(폭포 추가)·`TOTAL.event` 13→14
+    (산속 폭포 사건 추가) — 전체 26→28.
+  - **검증 — 임시 디버그(`test_village.gd`에 넣고 끝나고 원상복구, diff 0)
+    로 실제 값 확인:** `CodexState.total()`이 정확히 28 · `discover("place",
+    "waterfall")`이 처음엔 `true`·두 번째는 `false`(dedup 정상) ·
+    `WaterfallRock` 메시가 **`ArrayMesh`**(GLB 로드 성공, `BoxMesh` fallback
+    아님)인 것 · `Discover_waterfall` Area3D가 실제로 자식으로 붙은 것 ·
+    `LEGEND["W"]` 값이 의도대로(`walkable=true, height=0.3`)인 것까지 확인.
+    `--headless --editor --quit`(임포트, 새 지형 글자·랜드마크 함수 확인)·
+    `--headless --quit-after 5` 연속 3번 — 디버그 있을 때·되돌린 뒤 최종
+    상태 둘 다 exit 0·오류 0건.
+  - **GUI 미확인** — 절벽·물줄기·물웅덩이가 실제로 폭포처럼 읽히는지
+    (rock_largeA 하나를 세로로 세운 것뿐이라 기대치를 낮게 잡아야 할 수
+    있음), (8,3) 자리가 산과 자연스럽게 이어지는지는 다음 실기 확인 때
+    같이 볼 것.
+  - **다음 GO 콘텐츠 후보**: land.js 다섯 표식은 다 채웠다. 남은 웹판
+    사건은 다 옮겼고(뒤 "완료 단계" 이력 참고), 이제 남은 확장은 성채
+    (골드·세력 시스템 필요, 2026-09-11⑥에서 보류) 또는 PLAN.md 39장
+    순서대로 DUNGEON으로 넘어가는 것 — 사용자가 이미 "계획 순서대로 다
+    진행"을 요청했으니(2026-09-12⑪) 다음은 그 판단에 맞춰 진행한다.
+
+## 착수 (2026-09-12⑫) — PLAN.md 39장 순서대로 DUNGEON 착수
+
+- **사용자가 "플랜 순서대로 다 진행해"로 명시적으로 지시** — GO는 계속 작은
+  콘텐츠로 다지되, PLAN.md 39장 순서(GO→DUNGEON→FOREST→STORY→REALM)의 다음
+  칸인 DUNGEON에 착수한다. Legacy Audit(LEGACY_FEATURE_AUDIT.md "SAGA
+  DUNGEON" 절)은 2026-08-31에 이미 끝나 있어 다시 안 함 — PLAN.md FINAL RULE의
+  "Legacy Audit → Architecture → Vertical Slice → Project Foundation" 중
+  다음 순서인 **Vertical Slice 설계**부터 시작.
+  - `docs/VERTICAL_SLICE_DUNGEON.md`(신규) 작성 — 웹판(`saga-dungeon`)
+    조사 결과 핵심 발견: **2026-09-06에 사용자가 "디아블로4랑 완전 비슷하면
+    좋겠음"·"디아블로처럼 화면을 고정 가능해"라고 명시적으로 요청**해
+    회전 가능한 3인칭 카메라(`camAim3rd`)를 전부 지우고 고정 카메라
+    (`camAim`)만 남긴 이력이 있음(README.md "안 쓰는 기능 정리" 절) — 즉
+    **GO의 회전·줌 가능한 `camera_rig.gd`를 그대로 재사용하면 이 결정을
+    뒤집는 것**이라 DUNGEON은 카메라부터 새로 설계해야 한다는 게 이번
+    조사의 가장 큰 결론.
+  - 첫 슬라이스 범위: 방 하나(1층 "고분" 테마) · 직업 하나(무장, 곤봉) ·
+    실시간 근접 전투(평타만) · 잡졸 하나(황건적, `data-enemy.js` tier1
+    그대로, HP≈24·공격력≈5 — `dungeon.js`의 `enemyHp`/`enemyDmg` 공식을
+    floor=1로 계산한 실측치) · 노획(이름만 있는 장비) · 방 출구 → 저장.
+    은사·소켓/부문어/투장·직업 5종 전체·인물 등용·결사·보스층은 전부
+    다음 슬라이스로 미룸(GO가 보스·퀘스트·장비를 처음엔 뺐던 것과 같은 이유).
+  - `player.gd`는 거의 그대로 재사용 가능(카메라 기준 이동이라 카메라가
+    고정이든 회전이든 안 가림), `camera_rig.gd`(드래그 회전·핀치 줌)는
+    재사용 불가 — 새 고정 각도 스크립트가 필요. `bandit_encounter.gd`·
+    `duel_rules.gd`(GO의 턴형 선택지 전투)도 재사용 불가 — 실시간 전투는
+    완전히 다른 입력/판정 모델이 필요.
+  - **다음 작업**: `games/saga_dungeon/` 폴더 스캐폴딩 — 고정 각도
+    카메라 스크립트, 최소 방 씬(`TestRoom.tscn`, 이미 받아 둔 CC0 Modular
+    Cave Kit의 room/corridor 조각 활용 검토 — ASSET_GUIDE.md "이번에 안
+    바꾼 것" 절에 남겨 뒀던 미사용 조각), 실시간 전투 스크립트 1개.
+
+## 완료 단계 (추가, 2026-09-12⑬) — DUNGEON 첫 방 코드로 구현(Phase 1~5 최소)
+
+- **VERTICAL_SLICE_DUNGEON.md의 "완료 조건" 8단계 중 저장을 뺀 나머지를
+  전부 코드로 채웠다.** `games/saga_dungeon/` 신규.
+  - **`saga_core/ui/`로 승격(신규 폴더)** — DUNGEON이 GO와 같은 모바일
+    조이스틱·토스트가 필요해진 시점에, 계속 `games/saga_go/ui/`를 가리키게
+    두지 않고 `virtual_joystick.gd`·`toast.gd` 둘을 `saga_core/ui/`로
+    옮겼다(LEGACY_FEATURE_AUDIT.md 3장이 "모바일 터치 조작 골격"을
+    saga_core 후보로 이미 짚어 둔 것과 같은 방향). `git mv`로 이력 보존,
+    참조 4곳(`bandit_encounter.gd`·`hero_encounter.gd`·`npc_builder.gd`·
+    `simple_event.gd`) + `MobileHUD.tscn` 경로 갱신. 그룹 기반 조회(예:
+    `get_nodes_in_group("virtual_joystick")`)라 `player.gd` 등은 안 건드림.
+    **이동 직후 GO를 헤드리스로 재검증(exit 0·오류 0) — 두 파일 다.**
+  - `games/saga_dungeon/player/dungeon_camera_rig.gd`(신규) — 고정
+    각도(pitch 55°)·고정 거리(12m), 입력 전혀 안 받음. GO의
+    `camera_rig.gd`는 그대로 두고 새로 짬(설계 문서 2절 결정 그대로).
+  - `games/saga_dungeon/player/player_health.gd`·`melee_attack.gd`
+    (신규, 둘 다 Player의 자식 컴포넌트) — GO의 `player.gd`는 안 건드리고
+    체력·공격을 별도 컴포넌트로 얹었다. 공격 간격(0.55초)은 웹판
+    `dungeon.js`의 `BASE_ATK_CD` 그대로, 데미지(9)·체력(60)은 이번
+    슬라이스에 스탯/장비 시스템이 없어 직접 정한 값(주석에 근거 명시 —
+    잡졸 HP≈24를 세 대 안에 눕히는 감각을 노림).
+  - `games/saga_dungeon/world/dungeon_enemy.gd`(신규) — 황건적
+    (`data-enemy.js` 첫 항목 그대로, 색 `#c9a83a`까지). HP=24·공격력=5는
+    `dungeon.js`의 `enemyHp(1,false)`/`enemyDmg(1,false)` 공식을 floor=1로
+    계산한 실측치(추측 아님). 추격+근접 공격만(예고 패턴은 다음 슬라이스).
+    시각은 캡슐(hero_encounter.gd·simple_event.gd와 같은 이유 — 전용 GLB
+    없음).
+  - `games/saga_dungeon/world/loot_pickup.gd`(신규, 공용 정적 헬퍼) — 적이
+    죽으면 이름만 있는 장비 하나를 바닥에 놓는다(착용 효과 없음).
+  - `games/saga_dungeon/world/test_room.gd` + `TestRoom.tscn`(신규) —
+    CC0 Kenney Modular Cave Kit의 `room-small.glb`(실측 12×4.4×12)·
+    `gate.glb`(실측 4.4×4.4×1.4)를 **새 다운로드 없이** 스크래치패드에
+    남아 있던 압축 해제본에서 복사해 씀(ASSET_GUIDE.md 갱신). GLB엔
+    충돌이 없어 벽 넷(출구 쪽만 문 폭만큼 틈)·바닥을 직접 만든다(GO의
+    `terrain_builder.gd`와 같은 방식). 출구 Area3D는 닿으면 토스트만
+    띄운다 — **저장은 일부러 안 넣었다**(아래 참고).
+  - `games/saga_dungeon/player/DungeonPlayer.tscn`(신규) — GO의
+    Player.tscn과 같은 구조(CharacterBody3D+캡슐+character-a.glb
+    재사용, 직업별 시각 구분은 제외 목록)에 CameraRig만 새 스크립트로,
+    PlayerHealth·MeleeAttack 컴포넌트만 추가.
+  - `games/saga_dungeon/ui/DungeonHUD.tscn` + `hp_label.gd`·
+    `attack_button.gd`(신규) — 조이스틱은 saga_core에서 재사용, 체력
+    라벨(❤)·공격 버튼(⚔, 키보드 F와 같은 진입점을 그룹으로 찾아 호출)
+    추가. `project.godot`에 입력 액션 `dungeon_attack`(F) 신규.
+  - **저장을 일부러 안 넣은 이유** — `SaveState`/`PartyState`는 GO 전용
+    스키마(플레이어 위치+등용 인원)로 짜여 있어 DUNGEON에 그대로 못
+    쓴다. 게임별 세이브를 자동로드 싱글턴을 게임마다 따로 둘지, 공용
+    스키마로 합칠지는 아직 결정된 적 없는 진짜 아키텍처 질문이라(
+    LEGACY_FEATURE_AUDIT.md 4장 "Save/Load 골격"이 saga_core 후보로만
+    짚어 두고 미결로 남겨 둠), 조용히 GO 스키마에 얹어 겉만 맞추는 대신
+    **완료 조건 문서에 적어 둔 "저장한다" 자리를 비워 두고 토스트만
+    띄운다** — 다음에 실제로 채울 때 이 결정부터 사용자와 정할 것.
+  - **검증** — `--headless --editor --quit`(임포트, 새 스크립트·씬·GLB 8개
+    확인)·`--headless --quit-after 5` 연속 3번을 **GO(TestVillage.tscn,
+    기본 메인 씬)·DUNGEON(TestRoom.tscn, 씬 인자로 직접 지정)** 양쪽 다
+    실행 — 전부 exit 0·error/warn/missing/invalid/cannot 0건. **임시
+    디버그(`test_room.gd`에 넣고 끝나고 원상복구, diff 0)로 실제 전투
+    값까지 확인**: 적 HP 시작값 24 · 적이 플레이어를 때리면 체력이
+    정확히 60→55(딱 5 감소) · 평타 3대(9×3=27)를 맞으면 적 HP가
+    24→-3(사망 조건 충족, `_dead` 플래그 `true`) · 죽으면 `LootPickup`
+    노드가 실제로 자식에 생김 · 출구 트리거를 부르면 `_exit_used`가
+    `true`로 바뀌는 것까지 확인. 단순 "에러 없음"이 아니라 값 자체 비교.
+  - **GUI 미확인** — 고정 카메라 각도(55°)가 실제로 디아블로 느낌인지,
+    방·문 GLB가 자연스럽게 이어지는지, 공격 버튼·체력 라벨 배치가
+    화면에서 자연스러운지는 다음 실기 확인 때 볼 것(GO의 "실기 확인은
+    몰아서" 방침 그대로 — 지금은 헤드리스 값 검증까지만).
+  - **다음 이어질 것**: 저장 아키텍처 결정(게임별 분리 vs 공용 스키마),
+    보스·은사·직업 5종·장비 등급 등은 전부 다음 슬라이스. 재미 평가
+    (VERTICAL_SLICE_DUNGEON.md "완료 조건" 하단)는 실기로 카메라·타격감을
+    직접 봐야 답할 수 있다 — 지금은 "코드로는 여덟 단계 중 일곱 단계가
+    돈다"까지만 확인된 상태.
+
+## 완료 단계 (추가, 2026-09-12⑭) — DUNGEON 저장/불러오기 (완료 조건 8단계 전부)
+
+- **저장 아키텍처를 "게임별 완전 분리"로 정하고 바로 구현.** GO의
+  `SaveState`/`PartyState`는 스키마가 GO 전용(등용 인원+플레이어 위치)이라
+  얹지 않고, `games/saga_dungeon/data/dungeon_save_state.gd`(신규,
+  `DungeonSaveState`로 autoload 등록, `user://save_dungeon.json` — GO의
+  `user://save.json`과 별도 파일)를 새로 만들었다. 공용 세이브 스키마로
+  합칠지는 여전히 미결(LEGACY_FEATURE_AUDIT.md 4장)이지만, 파일을 분리해
+  두면 지금 당장 서로 안 건드리고 나중에 합치기도 어렵지 않다 — "결정을
+  기다리다 아무것도 안 하는" 대신 되돌리기 쉬운 안전한 기본값을 골랐다.
+  - 저장 내용: `room_cleared`(방을 이미 클리어했는지)·`player_pos`·
+    `version`. `test_room.gd::_on_exit_entered()`가 출구에서 저장하고,
+    `_ready()`가 시작할 때 불러와 **이미 클리어했으면 잡졸을 다시 세우지
+    않는다**(GO의 `EventState` "이미 끝난 사건은 되살아나지 않는다"와
+    같은 경계).
+  - **실제 버그를 하나 찾아 고쳤다 — 로드 직후 출구 트리거가 다시
+    걸렸다.** 저장된 위치가 출구 트리거 범위 안(마지막으로 나간 자리
+    그대로)이라, 불러온 뒤 물리 프레임에서 트리거가 다시 반응해
+    `_on_exit_entered()`가 또 불렸다. 벽 모서리와 살짝 겹친 캡슐이
+    depenetration으로 밀려나 좌표가 매번 조금씩 바뀌었고(재현: 두 번째
+    프로세스 실행에서 저장된 x좌표가 1.5→1.299107로 달라진 것을 헤드리스
+    로그로 직접 확인, 세 번째 실행에서 또 바뀌는 것까지 봄), 그때마다
+    재저장이 반복되는 구조였다. `_ready()`에서 `room_cleared`를 불러오면
+    `_exit_used`를 바로 `true`로 앉혀 막았다 — 고친 뒤 두 번 연속 실행해
+    좌표가 완전히 똑같이 유지되는 것까지 확인.
+  - **검증 — 실제 프로세스를 세 번 따로 실행(파일 IO 자체를 왕복
+    검증, 헤드리스로 값 비교, GO의 save_state.gd 때와 같은 엄격도)**:
+    ①저장 파일 없는 첫 실행 → 시뮬레이션으로 출구 통과 → 파일에
+    `room_cleared:true, player_pos:[1.5, 0.1, -6.5]` 정확히 기록 확인
+    ②완전히 새 프로세스로 재실행 → `loaded=true`·`room_cleared=true`·
+    `player_pos` 그대로 복원·**잡졸이 다시 안 생기는 것**(`get_nodes_in_
+    group("dungeon_enemy")`가 빔) 확인 — 이 시점에 위 버그 발견
+    ③버그 고친 뒤 연속 두 번 재실행 → 좌표가 두 실행 사이에 완전히
+    동일(더 이상 안 밀림) 확인. 디버그 코드는 검증 뒤 전부 원상복구
+    (diff 0), 로컬 `user://save_dungeon.json`도 지웠다(레포에는 원래도
+    안 들어감).
+  - `--headless --editor --quit`(임포트)·`--headless --quit-after 5`
+    연속 3번을 GO·DUNGEON 양쪽 다 — 최종 상태 exit 0·오류 0건.
+  - **VERTICAL_SLICE_DUNGEON.md 완료 조건 8단계가 이제 코드로는 전부
+    채워졌다**(GUI 실기 확인만 남음). 다음은 성채처럼 실기 확인을 기다려야
+    하는 GO 콘텐츠를 계속하거나, DUNGEON을 실기로 확인한 뒤 다음 슬라이스
+    (은사·직업 5종·장비 등급)로 넘어가는 것 — 어느 쪽이든 지금은 코드로
+    더 밀어붙이기보다 실기 확인이 우선이다("재미가 확인된 후 콘텐츠를
+    확장한다", GO·DUNGEON 설계 문서 공통 원칙).
+
+## 완료 단계 (추가, 2026-09-12⑮) — DUNGEON 코드 자체 리뷰 + 방어 코드 보강
+
+- **실기 확인 전에 콘텐츠를 더 쌓는 대신, 이번 세션에서 빠르게 짠
+  DUNGEON 코드 전체(12개 파일)를 별도 리뷰 에이전트로 점검했다** —
+  VERTICAL_SLICE_DUNGEON.md 자체가 "재미 확인 후 확장"을 원칙으로 두고
+  있어, 확인 전엔 점검이 확장보다 맞는 일이라고 판단.
+  - **크래시급 버그는 없음.** 고정 카메라(pitch 55°만 회전)가 `player.gd`
+    의 `_world_direction()`(카메라 basis에서 y를 0으로 지우고 재정규화)을
+    왜곡하지 않는지 수식으로 재확인 — 순수 X축 회전은 수평 방향 벡터를
+    그대로 보존한다(문제 없음, 확인 완료). `saga_core/ui/` 이동 후
+    `games/saga_go/ui/toast`·`virtual_joystick` 경로를 참조하는 곳이
+    전체 트리에 하나도 안 남은 것도 grep으로 재확인. 적 죽음→노획→
+    queue_free 순서, 중복 노획 방지, `is_instance_valid()` 가드도 문제
+    없음.
+  - **사소한 것 둘을 고쳤다(둘 다 지금 경로로는 실제로 안 걸리지만
+    방어적으로 보강)**:
+    ① `dungeon_enemy.gd::take_damage()`에 `player_health.gd`와 같은
+    `amount <= 0.0` 가드가 없었다 — 추가.
+    ② `dungeon_save_state.gd::try_load()`가 손상된 저장 파일의
+    `player_pos` 배열 길이를 안 보고 바로 `p[0..2]`를 인덱싱해, 배열이
+    3개보다 짧으면 크래시할 수 있었다 — `p is Array`·`size() >= 3`
+    확인 후 아니면 `false`로 안전하게 포기하도록 고침. **실제로 2개짜리
+    배열(`[1.5, 0.1]`)이 담긴 손상 파일을 직접 만들어 헤드리스로 로드해
+    보고, 고치기 전엔 (이론상) 크래시 경로였던 것을 고친 뒤
+    `loaded=false`로 안전하게 넘어가는 것까지 확인**(디버그 프린트로
+    검증 뒤 원상복구, diff 0).
+  - `--headless --editor --quit`(임포트)·`--headless --quit-after 5`
+    연속 3번을 GO·DUNGEON 양쪽 다 — 최종 상태 exit 0·오류 0건.
+
+### 이 세션 마무리 (사용자 지정, 2026-09-12)
+
+**사용자가 "리뷰 결과 알려줘 그리고 새로운 세션에서 하자"로 세션을
+넘기기로 했다.** 이번 세션 요약 — GO는 land.js 다섯 표식 완성(폭포)까지
+작은 콘텐츠를 더 채웠고, PLAN.md 39장 순서대로 **DUNGEON에 처음
+착수**해 VERTICAL_SLICE_DUNGEON.md 설계부터 첫 방(고정 카메라·실시간
+근접 전투·잡졸·노획·저장/불러오기)까지 완료 조건 8단계를 코드로 전부
+채웠다. 전부 헤드리스 검증 + 디버그 값 왕복 확인 완료, 커밋도 다
+반영됨(`45ecfd2`~`d060c4e`, 저장 구현 `9d17cc8`, 리뷰 보강분 이번 커밋).
+
+**다음 세션 시작 지점:**
+1. ~~DUNGEON은 이번이 첫 실기 확인이다~~ — **확인 완료(2026-09-12, 다음
+   세션).** 사용자가 "확인함 — 문제 없음"으로 답변. 고정 카메라(pitch
+   55°) 느낌도 "디아블로처럼 화면 고정"이라는 원래 요청과 맞는다는
+   뜻으로 통과. **DUNGEON Vertical Slice도 GO와 같은 방식으로 승인됨** —
+   이제 DUNGEON 다음 슬라이스(은사·직업 5종·장비 등급+접사·보스층 등,
+   VERTICAL_SLICE_DUNGEON.md "제외" 목록)로 넘어갈 수 있다.
+2. GO의 실기 확인 목록(2026-09-12①~⑥)은 아직 별도 확인 전 — DUNGEON과
+   별개로 남아 있다.
+3. 확인 결과에 따라 고치거나, DUNGEON 다음 슬라이스로 넘어가거나, GO의
+   남은 큰 시스템(성채)을 잇거나 — 사용자에게 다시 방향을 물어 정한다.
+4. 확인 전이면 실기 확인 목록만 정리해 두고 앞서서 새 콘텐츠를 만들지
+   않는다(루트 CLAUDE.md "실기 확인은 몰아서" 방침 그대로).
+
+## 완료 단계 (추가, 2026-09-12⑯) — DUNGEON "제외" 목록 1번: 은사(恩賜)
+
+**사용자가 "1,2,3 순서대로 진행해"로 DUNGEON 다음 슬라이스 순서를
+정했다 — 은사 → 층 전체(여러 방 연결) → 장비 등급+접사.** 이번 세션은
+그중 1번(은사)만.
+
+- 웹판 `saga-dungeon/js/data-dungeon.js`의 `BOONS`(14종, key·name·emoji·
+  max·desc·eff 전부)를 상수 하나 안 바꾸고 `games/saga_dungeon/data/
+  dungeon_boons.gd`(`class_name DungeonBoons`)로 옮겼다.
+- `games/saga_dungeon/data/dungeon_run_state.gd`(신규, autoload
+  `DungeonRunState`) — 웹판 `rollBoonChoice()`(상한 안 찬 것 중 3개 무작위,
+  중복 없음)·`applyBoon()`(상한 확인·healOnPick 즉시 회복)을 그대로 이식.
+  **실제로 적용한 eff 키**: atkPct·atkSpdPct·moveSpdPct·reachPct·
+  hpPct+healOnPick·guardPct·drainPct·critPct(1.85배, `dungeon.js` strike()
+  그대로)·echoPct(분신 — 같은 대상에게 한 번 더). **적용하지 않은 키**(이
+  슬라이스에 해당 시스템 자체가 없다 — 주석에 이유 남김): goldPct(경제
+  없음)·worldFindPct(장비 희귀도 없음)·healOnFloor(여러 방/층 진입
+  이벤트 없음)·reveal(시야 시스템 없음)·piercePct(적에게 방어력 자체가
+  없다, 잡졸은 고정 HP만).
+- `test_room.gd::_on_exit_entered()` — 웹판 `descend()`가 층 내려가기 전
+  은사를 고르게 하는 자리를, 방 하나뿐인 이 슬라이스에서는 "문으로
+  나간다"가 대신한다. GO의 `choice_prompt.gd`(순수 UI 빌더, GLBUtils·
+  Toast와 같은 cross-game 재사용 경계)로 3택 패널을 띄우고, 고른 뒤에야
+  `DungeonSaveState.save()`를 부른다(은사 없이 바로 나가던 이전 흐름을
+  대체).
+  - **실제로 밟은 삽질 — GDScript 람다는 바깥 지역 변수를 "생성 시점
+    값"으로 캡처한다.** `var layer; ...for k in choice: choices.append({"cb":
+    func(): _on_boon_picked(key, body, layer)}); layer = ChoicePrompt.build(...)`
+    처럼 짰더니 콜백이 항상 `layer=null`을 캡처해 고르는 순간
+    `Cannot call method 'queue_free' on a null value`로 죽었다(헤드리스
+    E2E 시뮬레이션으로 실제로 재현·확인). Dictionary(참조 타입) 하나에
+    담아 나중에 채워 넣는 우회(`layer_box["layer"] = ...`)로 고쳤다.
+    **GO의 `npc_builder.gd::_show_offer_prompt()`도 구조가 완전히
+    똑같다("맡는다"/"사양한다"를 실제로 눌러야 걸리는 자리)** — 이번
+    세션은 손 안 댔다(DUNGEON 작업 범위 밖), 다음에 GO 쪽을 만지는
+    세션이 참고할 것.
+- `games/saga_go/player/player.gd`에 `speed_mult`(기본 1.0) 필드 하나만
+  추가 — GO는 이 값을 몰라도 그만이고(항상 1.0), DUNGEON 전용
+  `boon_speed_sync.gd`(신규 컴포넌트, `DungeonPlayer.tscn`에 추가)만
+  `DungeonRunState.move_speed_mult()`를 읽어 이 필드에 밀어 넣는다 —
+  player.gd 자체는 DungeonRunState를 모른다(기존 "player.gd는 손대지
+  않는다, 컴포넌트로 얹는다" 원칙과 최대한 가깝게).
+- `player_health.gd` — `MAX_HP`(상수)를 `MAX_HP_BASE` + `max_hp`(가변,
+  `DungeonRunState.hp_mult()`로 재계산)로 바꿨다. `hp_label.gd`도 같이
+  고침(`health.MAX_HP` → `health.max_hp`).
+- `dungeon_save_state.gd` — `boons` 필드를 저장/불러오기에 추가(GO
+  save_state.gd와 같은 경계: 순수 추가 필드라 SAVE_VERSION은 안 올림,
+  없으면 빈 Dictionary로 안전하게 채워짐).
+- **검증 — 실제 값 왕복까지 헤드리스로 확인(디버그 코드는 전부 원상복구,
+  diff 0)**: ①은사 하나씩 적용하며 각 eff의 곱 배율이 웹판 공식과
+  정확히 일치하는 것 확인(예: fury 3중첩 → atk_mult=1.54=1+3×0.18,
+  wall 적용 → max_hp 60→72·hp가 그만큼 즉시 회복되지만 max_hp를 못
+  넘고 클램프됨, scout을 6번 시도해도 max=2에서 멈춤). ②실제 노출
+  경로(ExitTrigger→패널 3개 생성→버튼 하나 누름)를 헤드리스로 그대로
+  태워 위 람다 버그를 여기서 발견·재확인. ③고친 뒤 같은 경로로 은사가
+  실제로 `DungeonRunState.boons`에 반영되고 `save_dungeon.json`에
+  기록되는 것, **완전히 새 프로세스로 재실행해 그 파일을 읽어
+  `DungeonRunState.boons`가 그대로 복원되는 것**까지 확인(GO save_state
+  검증 때와 같은 기준 — 파일 존재·에러 없음이 아니라 값 자체 비교).
+  검증에 쓴 로컬 `user://save_dungeon.json`은 지웠다(레포에는 안 들어감).
+  `--headless --editor --quit`(임포트)·`--headless --quit-after 3`
+  연속 3번을 GO·DUNGEON 양쪽 다 최종 상태로 재확인 — exit 0·오류 0건.
+- **GUI 실기 확인은 아직 안 함** — 은사 패널이 화면에서 자연스럽게
+  뜨는지, 버튼 셋이 안 겹치는지, 철벽(하트가 즉시 차오르는지)·질주
+  (실제로 빨라지는 느낌인지) 같은 체감은 실기로만 확인된다. 아래
+  "다음에 이어질 것" 목록에 추가.
+
+## 완료 단계 (추가, 2026-09-12⑰) — DUNGEON "제외" 목록 2번: 여러 방 연결
+
+사용자가 지시한 순서(은사→층 전체→장비 등급)의 2번째. §28-8("진짜 이어진
+세계" A안, 완전한 오픈월드)은 여전히 더 큰 다음 슬라이스 몫으로 남겨
+두고, 그 정신("로딩 없이 걸어서 이어진다")만 가장 작게 증명했다 — 방
+2개를 한 씬에 나란히 세우고 복도로 이었다(씬 전환 전혀 없음).
+
+- `test_room.gd` 전체를 방 개수(`ROOM_COUNT := 2`)에 대한 루프로
+  일반화했다. 방마다 `origin_z` 오프셋(`ROOM_SPACING`=방 하나
+  깊이(12)+복도 길이(8)=20)만큼 떨어져 서고, 방 0만 남쪽 벽이 완전히
+  막혀 있다(입구가 필요 없다) — 나머지 방은 북쪽(출구)과 대칭으로
+  남쪽에도 틈을 낸다.
+- **새 GLB — `assets/dungeon/corridor.glb`**(실측 4.0×4.05×4.0, 바닥
+  중앙 피벗). 이미 받아 둔 CC0 Kenney Modular Cave Kit(새 다운로드
+  없음, 스크래치패드 압축 해제본에서 이번엔 corridor 조각만 더 뽑음)
+  — `docs/ASSET_GUIDE.md`에 실측치·근거 추가. 방 사이를 `CORRIDOR_TILES_
+  PER_GAP(=2)`개 타일로 잇고, GLB엔 충돌이 없어(room-small·gate와 같은
+  이유) 옆벽·바닥은 기존과 같은 방식(StaticBody3D+BoxShape3D)으로
+  직접 만든다.
+- `dungeon_enemy.gd` — 잡졸 스탯을 상수(24/5)에서 웹판 `dungeon.js`의
+  `enemyHp(floor,boss)`·`enemyDmg(floor,boss)` 공식(`round(24*1.26^
+  (floor-1))`·`round(5*1.20^(floor-1))`, boss=false 고정)으로 바꿨다
+  — `_init(floor_num)`으로 방 번호(=층 번호)를 받는다. 방 0(floor=1)은
+  기존 24/5와 정확히 같은 값이라 회귀 없음, 방 1(floor=2)은 30/6으로
+  세진다(헤드리스로 직접 확인, 아래 참고). 새 몬스터를 상상하지 않고
+  같은 잡졸이 층마다 세지기만 한다.
+- `dungeon_save_state.gd` — 방 하나짜리 `room_cleared: bool`을 방마다
+  하나씩인 `rooms_cleared: Array[bool]`로 바꿨다. 이건 기존 필드의
+  **모양이 바뀌는** 진짜 스키마 변경이라(GO save_state.gd 기준 — 추가만
+  이면 버전 유지, 바꿔치기는 버전을 올린다) **SAVE_VERSION을 1→2로
+  올리고 `_migrate_step()`에 첫 실제 마이그레이션 경로**(옛
+  `room_cleared`를 `rooms_cleared[0]`로 옮김)를 채웠다 — GO
+  save_state.gd는 아직 `_migrate_step()`이 빈 채였는데(SAVE_VERSION이
+  계속 1이라 등록된 경로가 없었다) 이 저장소에서 처음으로 실제
+  마이그레이션이 작동하는 사례가 됐다.
+- `test_room.gd::_on_exit_entered()` — 이제 방마다(각자의 출구에서) 은사
+  선택 + 진행 저장이 일어난다(웹판이 "층 클리어마다" 은사를 주는 것과
+  같은 리듬). 마지막 방만 "이번 슬라이스는 여기까지" 토스트를 겸하고,
+  중간 방은 "다음 방으로 향한다" 토스트로 조용히 진행 상황만 저장한다
+  (중간에 그만둬도 이미 클리어한 방은 안 되풀이됨).
+  방마다 `Area3D.body_entered.connect(_on_exit_entered.bind(room_index))`
+  — 은사 콜백 람다와 달리 `.bind()`는 인자를 그 자리에서 즉시 값으로
+  굳혀서, 앞서 발견한 "람다가 지역 변수를 생성 시점 값으로 캡처하는"
+  문제가 애초에 생기지 않는다(함수 매개변수를 bind하는 거라 안전).
+- **검증 — 방 두 개를 실제로 순서대로 완주하는 것까지 헤드리스로 확인
+  (디버그 코드는 전부 원상복구, diff 0)**:
+  ①새로 만든 `corridor.glb` 임포트 확인, 두 방 모두 `--quit-after`
+  스모크 테스트 통과.
+  ②방 0(z=-1.5, HP=24, DMG=5)·방 1(z=-21.5, HP=30, DMG=6) 잡졸이 정확한
+  자리·정확한 공식값으로 스폰되는 것 확인.
+  ③플레이어를 방 0 출구로 순간이동 → `_on_exit_entered` 호출 →
+  은사 패널 버튼 클릭 → `rooms_cleared=[true]` 확인 → 이어서 방 1
+  출구로 이동 → 같은 과정 → `rooms_cleared=[true,true]` + 최종 토스트
+  경로까지 확인, 두 방에서 고른 은사가 `DungeonRunState.boons`에 함께
+  누적되는 것 확인.
+  ④**v1→v2 마이그레이션을 실제로 태웠다** — `{"version":1,
+  "room_cleared":true,"boons":{"fury":2}}` 모양의 가짜 구버전 파일을
+  직접 만들어 로드 → `rooms_cleared=[true]`로 정확히 변환되고(방 0
+  잡졸 재스폰 안 함, 방 1만 스폰) 이어서 방 1을 마저 깨서
+  `rooms_cleared=[true,true]`·`boons={"fury":2,"reach":1}`(마이그레이션된
+  값+새로 고른 값)까지 실제 파일에 정확히 기록되는 것 확인.
+  검증에 쓴 로컬 `user://save_dungeon.json`은 지웠다(레포에는 안 들어감).
+  `--headless --editor --quit`(임포트)·`--headless --quit-after 3~4`
+  연속 3번을 GO·DUNGEON 양쪽 다 최종 상태로 재확인 — exit 0·오류 0건.
+- **GUI 실기 확인은 아직 안 함** — 복도를 실제로 걸어 방 0→복도→방 1이
+  로딩 없이 자연스럽게 이어지는지, 복도 폭(corridor.glb 4.0)이 방 벽
+  틈(gate.glb 4.4)보다 살짝 좁아 생기는 턱이 눈에 거슬리는지, 방 1의
+  더 세진 잡졸(HP 30)이 체감상 다르게 느껴지는지. 아래 "다음에 이어질
+  것" 목록에 추가.
+
+## 완료 단계 (추가, 2026-09-12⑱) — DUNGEON "제외" 목록 3번: 장비 등급+접사
+
+사용자가 지시한 순서(은사→층 전체→장비 등급)의 3번째이자 마지막. 원래
+"제외" 목록은 등급+접사를 소켓·부문어·투장·고유·감정·내구/수리·가방/창고와
+한 줄로 묶어 뒀었다 — 이번엔 그 줄에서 **등급+접사만** 뗐다(나머지는
+여전히 이 슬라이스 밖, 가방 자체가 없어 필요하지도 않다).
+
+- **신규 `games/saga_dungeon/data/dungeon_items.gd`**(`class_name
+  DungeonItems`) — 웹판 `data-item.js`의 `TIERS`(5등급: 상품·양품·명품·
+  보물·전설, 색·배율·접사 개수 값 그대로)와 `AFFIXES`(13종 전부: flat·
+  pct·world 세 갈래, 수치 범위·이름 접두/접미 값 그대로)를 옮겼다.
+  `BASES`는 원본 27종 중 **무장(武將) 계열 무기 4종만**(편곤·장창·부월·
+  극창 — `data-skill.js`의 `WEAPON_CLASS` 기준) 옮겼다 — 이 슬라이스의
+  유일한 직업이 무장이고 갑주 등 다른 부위는 걸쳐도 받을 스탯 자체가
+  없어서다(새 스탯을 상상해서 채우지 않는다는 원칙). `roll(ilvl)`이
+  `item.js::roll()`의 굴림 공식(등급 가중 추첨 · 접사 성장 공식
+  `(lo+rand*span)*tier.mul*(1+ilvl*0.055또는0.022)` · 주능력치
+  `round(base*tier.mul*(1+ilvl*0.085))`)을 그대로 재현한다. `item_name`·
+  `item_lines`도 웹판 이름 조립(접두/접미 하나씩만 이름에 실림) 그대로.
+- **신규 `games/saga_dungeon/data/dungeon_equipment_state.gd`**(autoload
+  `DungeonEquipmentState`) — 무기 한 자루짜리 최소 장착(가방 없이 주우면
+  바로 갈아 든다). `atk_flat_bonus()`(주능력치+무력/전능력치 계열 flat
+  접사)·`atk_pct_bonus()`(무력/전능력치 계열 pct 접사)는 이 슬라이스의
+  유일한 목표 스탯(무력)에 실제로 닿는 값만 더한다 — 지력·통솔 계열
+  접사는 값은 굴러 나오고 이름에도 실리지만(원작처럼 아무 등급에나 아무
+  접사가 붙는다) 받을 스탯이 없어 수치 효과는 안 낸다. `world_eff_sum
+  (key)`는 world 접사(전리품·금·경험치·부대공격력·부대체력·탐색·치명타)
+  합을 낸다 — **은사(DungeonRunState)와 완전히 같은 eff 키 이름
+  (atkPct·hpPct·critPct 등)을 쓰므로**, `DungeonRunState._sum_eff()`가
+  이 함수를 더해 은사+장비가 자동으로 한 공식에 합산된다(atk_mult()·
+  hp_mult()·crit_chance() 등 전부가 따로 안 고쳐도 장비를 반영).
+  `player_health.gd`도 `weapon_changed` 신호를 구독해 장비의 hpPct가
+  바뀔 때 `max_hp`를 다시 계산한다.
+- `melee_attack.gd::_strike()` — item.js 주석의 순서(기본치 × 성장배율
+  × (1 + 장비 pct) + 펫 + 장비 flat)를 그대로 따라 `ATK_DAMAGE *
+  (은사 atk_mult + 장비 atk_pct_bonus) + 장비 atk_flat_bonus`로 다시 짰다.
+- `loot_pickup.gd` — "이름 없는 장비"(줍기만) 대신 `DungeonItems.roll
+  (ilvl)`로 실제 등급+접사 있는 무기를 **적이 죽는 시점에 미리 굴려
+  둔다**(줍는 순간이 아니라 — 웹판 drop()이 킬 시점에 굴리는 것과 같은
+  자리). 바닥 상자 색을 등급색(원작 그대로)으로 칠하고, 주우면 즉시
+  장착 + 등급·이름·옵션 줄을 토스트로 보여준다. `dungeon_enemy.gd`가
+  자신의 `_floor_num`(방 번호=층 번호, "여러 방 연결" 작업에서 이미
+  있던 값)을 그대로 넘겨 ilvl로 쓴다 — 방이 깊을수록 아이템도 세진다.
+- `dungeon_save_state.gd` — `weapon` 필드 추가(boons와 같은 경계: 순수
+  추가 필드라 SAVE_VERSION은 안 올림). **사용자가 명시적으로 확인한
+  요구사항**("응 저장해서 나중에도 계속 적용 되게") — 장비도 은사처럼
+  저장/불러오기에서 그대로 이어진다.
+- **검증 — 굴림 분포·수치 공식·실제 킬→노획→장착→저장→재실행 왕복까지
+  전부 헤드리스로 확인(디버그 코드는 전부 원상복구, diff 0)**:
+  ①굴림 4000회 등급 분포가 가중치(100:52:22:7:1.6)와 비례 확인
+  (2204:1138:476:145:37 — 55%:28%:12%:3.6%:0.9%, 기대치와 정확히
+  들어맞음). ②주능력치 공식값 확인(예: base=11 항목이 tier=0·ilvl=1일
+  때 main=12=round(11×1.085)). ③수동으로 만든 결정적 아이템(무력+8·
+  무력%+5·부대공격력%+4 접사)으로 `atk_flat_bonus`·`atk_pct_bonus`·
+  `world_eff_sum`·`DungeonRunState.atk_mult()`(장비 반영분까지 포함)
+  전부 손으로 계산한 값과 정확히 일치 확인. ④**실제 잡졸을 죽여
+  (`take_damage(9999)`) 노획 상자가 뜨고, 플레이어가 그 자리로 들어가면
+  실제로 장착되는 것까지 물리 프레임 단위로 확인**(단순 신호 호출이
+  아니라 Area3D 충돌 판정을 실제로 태움). ⑤저장 후 **완전히 새
+  프로세스로 재실행해 장착 무기가 정확히 복원되고 `atk_flat_bonus()`도
+  그 무기 기준으로 다시 계산되는 것**까지 확인. 로컬
+  `user://save_dungeon.json`은 지웠다(레포에는 안 들어감).
+  `--headless --editor --quit`(임포트)·`--headless --quit-after 3`
+  연속 3번을 GO·DUNGEON 양쪽 다 최종 상태로 재확인 — exit 0·오류 0건.
+- **GUI 실기 확인은 아직 안 함** — 바닥 상자가 등급색으로 실제로
+  구별되는지, 토스트에 뜬 이름·옵션 줄이 읽기 편한지, 장비를 갈아 든
+  뒤 실제로 때리는 느낌(공격력 변화)이 체감되는지. 아래 "다음에 이어질
+  것" 목록에 추가.
+
+**DUNGEON 다음 슬라이스 3개(은사→여러 방 연결→장비 등급) 전부 완료 +
+실기 확인까지 끝남(2026-09-12⑲, "실기로 확인했으니").**
+
+### 이 세션 마무리 (사용자 지정, 2026-09-12⑲)
+
+**사용자가 "남아 있는 거 다해" → "새로운 세션에서 이어 하자"로 방향을
+정하고 세션을 넘기기로 했다.** "남아 있는 거"는 VERTICAL_SLICE_DUNGEON.md
+"제외" 목록에서 은사·여러 방 연결·장비 등급+접사 **셋을 뺀 나머지 전부**
+를 가리킨다 — 즉 **사용자에게 다시 안 물어보고 아래 목록을 순서대로
+이어간다**(이번처럼 "1,2,3 순서대로"를 매번 다시 받을 필요 없음).
+
+**다음 세션 시작 지점 — 남은 "제외" 목록을 이 순서로 이어간다**
+(VERTICAL_SLICE_DUNGEON.md 원문 나열 순서 그대로, 앞의 것이 뒤의 것의
+전제가 되는 자리가 많아 순서를 지키는 게 자연스럽다):
+
+1. **직업 5종 전부**(현재 무장 하나뿐 — 궁장·책사·도독·방사 4종 추가,
+   각자 무기 종류·look이 다르다. `data-skill.js` WEAPON_CLASS·
+   `data-item.js` BASES에 이미 각 직업 무기가 데이터로 있다 — 새로
+   상상하지 않고 그대로 옮긴다). 무예(스킬트리, 9모양×5단)는 5종이
+   갖춰진 뒤에 자연스럽게 이어진다.
+2. **소켓+부문어(룬워드)·투장(세트)·내구/수리** — `dungeon_items.gd`가
+   이미 `data-item.js`의 등급+접사만 옮겨 뒀으니, 같은 파일에 나머지
+   (`SOCK_MAX`·소켓 굴림·`data-gem.js`·`data-rune.js`·세트·내구 공식)를
+   이어 옮기면 된다. 가방/장착 UI가 없어 "장착 즉시 적용" 원칙(이번
+   세션 결정)을 계속 따를지, 이쯤에서 최소 인벤토리 UI가 필요해지는지는
+   다음 세션이 직접 재봐야 한다(무기 하나가 아니라 갑주·부적 등 여러
+   부위가 생기면 "줍는 즉시 갈아 든다"가 안 맞을 수 있다).
+3. **행상/투전/연단·단약/요대(1234 키)·감정·창고** — 골드 시스템
+   자체가 없어(이번 세션까지 goldPct 접사도 안 적용됨) 먼저 최소 골드
+   개념부터 있어야 할 수 있다.
+4. **원소 6결+저항** — 무기/갑주에 원소 피해·저항을 얹는 계층. 소켓
+   시스템(2번)이 먼저 있어야 자리가 생긴다(원작도 보석을 박아야 원소가
+   붙는다).
+5. **인물 등용**(GO의 "등용"과 같은 개념, 부대에 합류) — GO에서 이미
+   구현된 `saga_core` 인물 데이터·`PartyState` 패턴을 참고할 수 있다.
+6. **결사(하드코어)**
+7. **보스층** — 이 목록의 마지막, 모든 시스템이 어느 정도 갖춰진 뒤가
+   자연스럽다.
+
+각 항목은 이번 세션의 은사·여러 방 연결·장비 등급처럼 **작게 잘라 하나씩
+헤드리스로 실측 검증하고 커밋**한다(웹판 수치·데이터를 그대로 옮기고
+새로 상상하지 않는다는 원칙 계속 유지). 실기 확인은 몰아서 하되, 매
+항목 뒤에 "미확인" 목록에 쌓아 두기만 하고 사용자가 부를 때(또는
+자연스러운 세션 경계) 한 번에 몰아 묻는다 — 이번 세션이 시작할 때처럼.
+
+## 완료 단계 (추가, 2026-09-12⑳) — 위 목록 1번: 직업 5종 전부
+
+- `dungeon_items.gd::BASES` — 무장(武將) 무기 4종만 있던 것에 나머지 세
+  직업의 무기 6종을 `data-item.js` 값 그대로 추가했다(궁장=각궁·철태궁,
+  책사=선채·필묵, 도독=환도·월도, 방사=죽장·병서 — 총 10종). 새 무기를
+  상상하지 않고 웹판 BASES 항목을 그대로 옮겼다.
+- `dungeon_items.gd`에 `WEAPON_CLASS`(data-skill.js 것 그대로: bow→archer·
+  spear/club/axe/halberd→warrior·fan/brush→scholar·sword/guandao→marshal·
+  staff/scroll→mystic)·`CLASS_NAMES`(표시용 한글: 무장·궁장·책사·도독·
+  방사)·`class_key_for_weapon()`/`class_name_for_weapon()`을 추가했다.
+  맨손은 warrior로 본다(melee_attack.gd의 기본 ATK_DAMAGE가 애초에 무장
+  기준으로 잡힌 값이라 — 회귀 없음).
+- **실제 버그 하나 발견·수정 — `dungeon_equipment_state.gd::atk_flat_bonus()`
+  가 무기의 주 능력치 종류(might/wisdom/command)를 안 가리고 `weapon.main`을
+  무조건 공격력에 더하고 있었다.** 무장 하나뿐이던 때는(BASES가 전부
+  main="might") 우연히 항상 맞는 값이었는데, 이번에 책사(wisdom)·방사
+  (wisdom/command) 무기가 생기면서 실제로 검증해 보니 지필묵을 든 책사가
+  무장과 똑같이 세지는 것을 확인했다. `DungeonItems.base_by_key()`로
+  주 능력치가 "might"인지 먼저 확인하도록 고쳤다 — 지금은 might 계열
+  무기(무장·궁장·도독)만 main 수치가 공격력에 실제로 반영되고, wisdom/
+  command 계열(책사·방사)은 이름·수치는 뜨지만 이 슬라이스의 유일한
+  전투 채널(무력)엔 안 닿는다(주석에 이미 있던 의도였는데 코드가 안
+  따라가고 있었다).
+- `games/saga_dungeon/ui/job_label.gd`(신규) + `DungeonHUD.tscn`의
+  `JobLabel`(HpLabel 바로 아래) — HpLabel·PartyLabel과 같은 경계(상시
+  표시). `DungeonEquipmentState.weapon_changed`를 구독해 무기를 갈아 들
+  때마다 "🧭 직업: OO"가 바로 바뀐다 — 무예(스킬트리)가 아직 없어 직업이
+  실제로 바꾸는 건 이름·주 능력치 반영 여부뿐이지만, 그것부터 화면에서
+  확인 가능하게 만들었다.
+- `DungeonPlayer.tscn`의 낡은 주석("이번 슬라이스는 직업별 시각 구분을
+  넣지 않는다")을 갱신 — 데이터·라벨로는 직업이 구분되지만, 무기를 손에
+  쥐여 그리는 3D 모델 시스템 자체가 이 판에 아직 없다는 것을 명확히 함
+  (노획도 바닥의 색 박스일 뿐, 이번 항목의 범위 밖).
+- **검증(헤드리스, 디버그 코드는 검증 뒤 원상복구 — diff 0)**: ①
+  `BASES.size()==12` 확인. ②맨손 class_name="무장" 확인. ③여섯 무기
+  (각궁·선채·환도·죽장·병서·편곤) 각각의 look→class 매핑이 WEAPON_CLASS
+  표와 정확히 일치(archer/scholar/marshal/mystic/mystic/warrior) 확인.
+  ④책사 무기(main=20) 장착 시 `atk_flat_bonus()==0.0`, 무장 무기(main=20)
+  장착 시 `atk_flat_bonus()==20.0` — 버그 수정이 실제로 작동함을 확인.
+  ⑤`DungeonItems.roll(1)` 4000회 분포 확인 — 12종 전부 300~360회 사이로
+  고르게 섞여 나옴(기대치 333회에 근접, 새 무기 6종이 실제로 굴림 풀에
+  들어갔다는 뜻). `--headless --editor --quit`(임포트) · `--headless
+  --quit-after 3~4`를 GO·DUNGEON 양쪽 다 연속 3번 — 여섯 번 다 exit 0,
+  error/warn/missing/invalid/cannot 전부 0건.
+  (DUNGEON 씬은 `project.godot`의 `run/main_scene`이 GO의 TestVillage라
+  기본 실행으로는 안 돈다 — `godot --headless --path <프로젝트>
+  res://games/saga_dungeon/world/TestRoom.tscn`처럼 씬 경로를 인자로
+  직접 줘야 DUNGEON을 헤드리스로 돌릴 수 있다. 이전 세션들이 이미 이
+  방식을 썼겠지만 이 문서엔 안 적혀 있었어서 다음에 헤매지 않게 적어 둔다.)
+- **GUI 실기 확인은 아직 안 함** — JobLabel이 화면에서 HpLabel과 안
+  겹치는지, 다른 계열 무기를 주웠을 때 직업 표시가 실제로 바뀌는 게
+  자연스러운지. 아래 "다음에 이어질 것" 목록에 추가.
+- 다음은 위 "다음 세션 시작 지점" 목록의 **2번(소켓+부문어·투장·내구/수리)**.
+
+## 완료 단계 (추가, 2026-09-12㉑) — 위 목록 2번: 소켓+부문어(룬워드)·투장(세트)·내구
+
+**사용자가 "2번 소켓+부문어·투장·내구 이어해"로 지시.** 사용자 문구가
+"내구/수리" 중 "내구"만 짚은 것과 맞물려, **수리(修理)는 이번에 일부러
+안 붙였다** — `item.js::repairCost()`가 `price()`(물건 값어치)를 필요로
+하는데 이 슬라이스엔 아직 골드가 없다("제외" 목록 3번, 행상/투전 몫). 그
+경계는 코드 주석에도 남겨 뒀다.
+
+- **부적(charm) 슬롯을 새로 열었다 — 투장(세트)이 뜻을 가지려면 부위가
+  최소 둘이어야 한다.** data-set.js의 세트는 "한 벌은 셋(무기·갑주·부적)"
+  인데 우리는 갑주가 없다 — 무기 하나뿐이던 것에 부적을 더해 **2점
+  세트 문턱까지만** 시험할 수 있게 했다(3점 완성은 갑주가 생겨야 함,
+  `dungeon_items.gd` 헤더에 근거 기록). `DungeonEquipmentState`에
+  `charm: Dictionary`·`charm_changed` 신호를 무기와 나란히 추가했고,
+  `player_health.gd`도 charm_changed를 구독하도록 고쳤다(부적의 hpPct도
+  체력 재계산에 반영되게).
+- `dungeon_items.gd::BASES`에 부적 5종(data-item.js 그대로: 호패·염주·
+  호부·도깨비방울·청동경) 추가. `roll(ilvl, slot="")`는 이제 **웹판
+  dropItem()과 같은 방식**으로 무기/부적을 안 가리고 전체 BASES에서
+  고른다 — 노획이 어느 부위로 나올지도 굴림의 일부다.
+- **소켓+부문(룬)+부문어(룬워드)** — `data-gem.js`의 RUNES(12종)·
+  WORDS(5종)를 값 그대로 옮겼다(보석·주옥은 여전히 제외 — 원소 계층이
+  있어야 뜻이 생기는데 그건 "제외" 목록 4번 몫, 무기 슬롯 하나뿐인 지금
+  넣어 봐야 100% 못 쓰는 수치만 나온다). `item.js::rollSockets()` 공식
+  그대로(상품 28%~전설 60% 확률로 최소 1개, 그 뒤 42%씩 추가, 부위별
+  SOCK_MAX 무기3·부적2) 노획 시 소켓을 같이 굴린다. 부문은 새 드롭
+  경로로 얻는다 — `dungeon.js::dropMat()`의 룬 갈래(확률 0.22, 층이
+  감당하는 등급까지만, 낮은 등급일수록 가중치 1/tier로 더 잘 나온다)를
+  `loot_pickup.gd`에 이식해 **같은 킬에 독립 확률로** 룬 하나가 따로
+  떨어질 수 있게 했다(색이 다른 별도 Area3D, 즉시 주머니로 — 노획물
+  정산을 안 탄다는 원작 규칙 그대로).
+  - `dungeon_materials_state.gd`(신규 autoload `DungeonMaterialsState`) —
+    룬 개수만 세는 주머니(보석·주옥이 없어 한 종류뿐).
+  - `games/saga_dungeon/ui/socket_button.gd`(신규) + HUD `SocketButton`
+    (🔨) — 지금 박을 수 있는 부위(무기부터 본다)를 찾아 GO의
+    ChoicePrompt로 가진 룬 중 하나를 고르게 한다. **삽질 우려를 미리
+    실측으로 없앴다** — for 루프 안에서 만드는 람다가 각자 다른 반복의
+    값을 제대로 캡처하는지(2026-09-12⑯이 "생성 시점 값 캡처" 버그를
+    발견한 자리와 비슷한 모양이라)를 헤드리스로 직접 확인했다: 서로
+    다른 키 세 개로 만든 콜백 셋을 나중에 한꺼번에 불러 봤더니 각자
+    자기 반복의 값을 정확히 기억했다 — `.bind()` 없이도 안전한 패턴임을
+    확인 후에 그대로 썼다.
+  - `dungeon_items.gd::word_of()`/`socket_effects()` — 부문어가 이루어지면
+    (순서까지 맞아야 한다) 개별 룬 효과 대신 부문어 효과만 낸다.
+    `item_name()`/`item_lines()`도 갱신 — 부문어가 이루어지면 "《이름》
+    밑감" 형태로 불리고, 아니면 채워진 룬·빈 소켓 수를 줄로 보여준다.
+- **투장(세트)** — `data-set.js`의 SETS 10벌을 옮겼다(`skill` 필드 —
+  세트 전용 무예 — 는 뺐다, 무예/핫바 시스템이 없다). `roll_set()`은
+  원작처럼 **보물(3) 등급에서만, SET_CHANCE(55%)로만** 붙는다.
+  `DungeonEquipmentState._set_effects()`가 걸친(안 부서진) 무기+부적이
+  같은 벌이면 그 점수(우리는 최대 2)만큼 `bonus_for()`를 더한다 — 10벌
+  중 무기+부적 조합이 실제로 있는 넷(충무·와룡·호랑·청낭)만 이 슬라이스
+  에서 닿을 수 있고 나머지 여섯(갑주·투구·장갑·신발·목걸이·반지끼리
+  묶인 것)은 계속 미완성으로 남는다 — 새 세트를 상상해 채우지 않는다.
+- **내구(耐久)** — `item.js::durMaxOf()`(부적은 0, 안 닳음 · 나머지는
+  24+tier×10)·`wearAll()`(원작 "층을 내려갈 때마다 1")을 그대로 옮겼다.
+  `test_room.gd::_finish_exit()`(방 출구 = descend)에서 무기·부적을
+  1씩 닳리고, 방금 부서진 부위가 있으면 토스트를 띄운다. 부서진 장비는
+  `DungeonEquipmentState._active_items()`에서 아예 빠져 main·접사·소켓·
+  세트 효과를 전부 안 낸다(새로 주울 때까지).
+- **atk_flat_bonus()·atk_pct_bonus()·world_eff_sum()을 한 집계 지점
+  (`_affix_and_socket_effects()`/`_set_effects()`)으로 리팩터** — 무기
+  하나만 보던 것에서 무기+부적+소켓+세트 넷을 다 훑어야 해서, 예전처럼
+  getter마다 따로 루프를 두면 넷 중 하나를 빠뜨리기 쉬웠다(dungeon_run_
+  state.gd::_sum_eff()가 이미 쓰던 "단일 집계 지점" 패턴과 같은 이유로
+  옮김).
+- **검증(헤드리스, 디버그 코드는 검증 뒤 원상복구 — diff는 의도된
+  `_finish_exit()` 변경 11줄만 남음) — 여덟 갈래를 실측**: ①소켓 개수
+  분포(상품 2000회 vs 전설 2000회)가 공식과 비례(0개 비율 각각
+  ~72%/~38%, 기대 72%/40%) 확인. ②3소켓 무기에 천→지→인을 순서대로
+  박으니 셋째에서만 "천지인(天地人)" 완성, `socket_effects()`가 개별
+  룬 대신 부문어 효과(전능력치 flat14+pct6)만 반환, `item_name()`이
+  "《천지인(天地人)》 환도"로 바뀌는 것까지 확인. ③순서를 인·지·천으로
+  틀리면 부문어가 안 되고 개별 룬 효과 셋이 그대로 남는 것 확인.
+  ④무기(장창, might)+부적(호부, might) 둘 다 "호랑" 세트로 걸치니
+  `atk_flat_bonus()`가 11(무기 main)+6(부적 main)+16(세트 2점 보너스)=33
+  정확히 일치, 무기만 걸쳤을 땐 11(세트 미발동) 확인. ⑤내구 1짜리
+  무기에 `wear_all(1)`을 부르니 부서짐 보고 + `atk_flat_bonus()`가
+  11→0으로 떨어지는 것 확인. ⑥`roll_rune_drop(1)`은 300회 다 1단(천/지/
+  인)만, `roll_rune_drop(20)`은 500회에서 1~5단이 고루 나오는 것 확인.
+  ⑦`roll_set()`은 200회 중 등급2에서는 한 번도, 등급3에서는 반드시
+  붙는 것 확인. ⑧socket_button.gd과 같은 모양의 람다-루프가 실제로
+  서로 다른 값을 캡처하는 것 확인(위 socket_button.gd 항목 참고).
+  charm·runes 저장 왕복도 GO/DUNGEON save_state 검증 때와 같은 기준으로
+  확인 — **완전히 새 프로세스**로 재실행해 이전 실행이 저장한 무기·
+  부적·룬 개수가 정확히 복원되고, 이어서 룬을 하나 더 얻어 다시 저장한
+  값(개수가 정확히 +1)까지 확인. `--headless --editor --quit`(임포트)·
+  `--headless --quit-after 3~4`를 GO·DUNGEON 양쪽 다 연속 3번 —
+  전부 exit 0, error/warn/missing/invalid/cannot 0건.
+- **GUI 실기 확인은 아직 안 함** — SocketButton(🔨)을 눌렀을 때
+  ChoicePrompt가 자연스럽게 뜨는지, MaterialsLabel("🔩 부문 N")이 다른
+  라벨과 안 겹치는지, 룬 획득 토스트(색이 다른 구슬)가 무기/부적 노획
+  토스트와 헷갈리지 않는지, 부문어가 완성됐을 때의 토스트가 눈에
+  띄는지, 장비가 부서졌을 때의 토스트 문구가 자연스러운지. 아래
+  "다음에 이어질 것" 목록에 추가.
+- 다음은 위 "다음 세션 시작 지점" 목록의 **3번(행상/투전/연단·단약/요대
+  (1234 키)·감정·창고)** — 골드 시스템부터 있어야 시작할 수 있다.
+
+## 완료 단계 (추가, 2026-09-12㉒) — 위 목록 3번: 행상·투전·연단(부문 갈래)·단약/요대·감정
+
+**사용자가 "3번 이어해" → 도중에 "계속 이어해 묻지말고"로 질문 없이 계속
+진행 지시 → 다 끝나면 "새로운 세션에서 이어 하자"로 세션 마무리를
+미리 지정.** 목록 3번은 원래 "행상/투전/연단·단약/요대(1234 키)·감정·
+창고" 일곱 갈래를 한 줄에 묶어 뒀던 것 — 이번 세션은 그중 **창고만
+빼고 나머지 여섯을 전부** 넣었다(연단은 넷 중 하나만, 아래 참고).
+
+- **금(金)** — `dungeon_gold_state.gd`(신규 autoload `DungeonGoldState`).
+  dungeon.js `dropGold()`의 잡졸(mul=1) 갈래를 그대로: `round(5×1.19^
+  (floor-1)×gold_mult())`. `gold_mult()`는 `DungeonRunState`에 새로
+  추가한 getter — 은사+장비의 goldPct를 atk_mult()와 같은 방식으로
+  이미 합산해 준다(_sum_eff 재사용).
+- **단약(丹藥)/요대(腰帶)** — `dungeon_potion_state.gd`(신규 autoload
+  `DungeonPotionState`). potion.js의 벨트 규칙(4칸, 칸마다 같은 등급이
+  4개까지) 그대로 옮기되 **기력단(mana)은 뺐다** — 우리 쪽엔 채울
+  기력(MP) 자원 자체가 없어 아무 효과도 안 내는 소비 아이템을 만드는
+  게 의미가 없다(회복단만). 원작처럼 키 1·2·3·4가 벨트 네 칸을 그대로
+  마신다 — `potion_belt_input.gd`(신규, Player 자식 컴포넌트,
+  melee_attack.gd와 같은 경계) + `project.godot`에 `potion_1`~`potion_4`
+  입력 액션(물리 키코드 49~52) 추가. 노획에 단약 드롭(16%, 등급은 깊이
+  게이트)도 같이 얹었다.
+- **감정(鑑定)** — `dungeon_items.gd::roll()`에 `unid`(tier≥1이면 참)를
+  추가했지만, **원작과 다르게 지켰다**: 원작은 "미확인은 장착 자체가
+  안 된다"(가방에 넣고 감정서를 기다린다)인데 우리는 가방이 없어 주우면
+  무조건 즉시 장착된다는 원칙이 이미 있다. 그 원칙과 안 부딪히게
+  **미확인이어도 그대로 장착되고 능력치도 그대로 적용되지만, 이름·
+  옵션 표시만 잠근다**(`item_name()`/`item_lines()`가 "미확인 — 감정해야
+  옵션이 보입니다" 한 줄만 보여준다, 원작 문구 그대로). `identify()`
+  (DungeonEquipmentState)가 감정서 1장을 태워 표시를 연다. 감정서는
+  드롭(7%)과 행상 구매 두 갈래로 얻는다 — `DungeonMaterialsState`에
+  룬과 같은 "개수만 세는 재료" 경계로 같이 뒀다.
+- **행상(行商)** — `games/saga_dungeon/ui/vendor_button.gd`(신규) + HUD
+  `VendorButton`(🏪). socket_button.gd와 같은 경계(ChoicePrompt로 선택지를
+  연다). 원작의 셋(재고 사고팔기·투전·물약/스크롤 구매) 중 **재고
+  사고팔기만 뺐다** — "판다"는 가방에 남는 여벌이 있어야 뜻이 생기는데
+  우리는 무기·부적 한 점씩만 걸치고 나머지는 그 자리에서 바로 갈아
+  들 뿐이라 "여벌"이라는 개념이 없다. 감정서·물약(소) 구매, **수리**,
+  **투전** 넷을 담았다.
+  - **수리(修理)** — 지난 세션(2026-09-12㉑)에 "골드가 없어서 뺀다"고
+    미뤄 둔 것을 이번에 채웠다. `item.js::price()`(등급·수준만 보는
+    값어치 공식)·`repairCost()`(닳은 만큼만) 그대로 이식.
+  - **투전(投錢)** — vendor.js GAMBLE_W(등급 저울이 드롭보다 훨씬
+    위쪽이 두껍다)로 부위(무기/부적)만 정해 놓고 등급은 사고 나서
+    안다. 산 것은 바로 장착(가방이 없어 loot_pickup.gd와 같은 경계) —
+    원작처럼 **확인된 채로** 온다(unid=false 강제).
+- **연단(鍊丹)** — `games/saga_dungeon/ui/forge_button.gd`(신규) + HUD
+  `ForgeButton`(⚗️) + `DungeonMaterialsState::combine_rune()`. forge.js의
+  조합 넷(보석 셋→한 등급 위·부문 셋→다음 글자·장비 셋→한 등급 위·
+  접사 다시 굴리기) 중 **"부문 셋→다음 글자"만** 옮겼다 — 나머지
+  셋은 보석(GEMS, 원소 계층 몫)이 있거나 "가방에 남는 여벌"이 있어야
+  하는데 우리는 둘 다 없다.
+- **드롭 확률을 다시 짜며 실제 오차 하나를 찾아 고쳤다** — 지난 세션
+  (2026-09-12⑳)이 룬 드롭 확률로 쓴 0.22는 사실 dungeon.js `dropMat()`
+  **내부**의 "재료 종류(주옥/룬/보석) 중 무엇이 나올지" 가르는 확률이었고,
+  `dropMat()` 자체가 불릴 바깥 확률(잡졸 12%)을 빠뜨려 실제보다 **8배
+  더 자주** 룬이 나오고 있었다. 우리는 보석·주옥이 없으니 "재료 드롭이
+  일어나면(12%) 늘 룬"으로 단순화해 `RUNE_DROP_CHANCE`를 0.12로 고쳤다.
+  금(확정)·단약(16%)·감정서(7%)는 dungeon.js의 잡졸 갈래 값 그대로
+  처음부터 맞게 넣었다.
+- **검증(헤드리스, 디버그 코드는 검증 뒤 원상복구 — diff 0) — 여섯
+  갈래 실측**: ①`gold_mult()`=1.0 기준 floor1 드롭량=5(공식대로),
+  add/spend 잔액 계산 정확 확인. ②단약을 벨트에 넣고 플레이어 체력을
+  30 깎은 뒤 마시니 정확히 소(小)의 25%(60의 15)만큼 회복(30→45),
+  벨트 칸이 정확히 빈다. ③tier≥1 아이템을 실제로 굴려 미확인 상태에서
+  "미확인 — 감정해야…" 한 줄만 보이는 것, 감정 후 접사가 이름에
+  드러나는 것("죽장" → "죽장 · 탐색"), 이미 확인된 것을 다시 감정하면
+  false인 것 확인. ④투전 등급 분포 2000회가 GAMBLE_W 비율과 거의 정확히
+  일치(기대 200/880/600/260/60 vs 실측 185/871/604/280/60), 투전으로 산
+  물건은 항상 unid=false 확인. ⑤룬 3개→다음 글자 변환 정확(cheon×3→
+  ji×1), 재료 부족 시 정확히 실패. ⑥price()·repairCost() 공식값을 손
+  계산과 대조해 정확히 일치(186/41) 확인. 금·단약·감정서 저장 왕복도
+  **완전히 새 프로세스**로 재실행해 이전 실행이 저장한 값이 정확히
+  복원되고 이어서 늘린 값(+37금·+1물약·+1감정서)까지 정확히 재저장되는
+  것 확인. `--headless --editor --quit`(임포트)·`--headless --quit-after
+  3~4`를 GO·DUNGEON 양쪽 다 연속 3번 — 전부 exit 0,
+  error/warn/missing/invalid/cannot 0건.
+- **GUI 실기 확인은 아직 안 함** — VendorButton(🏪)·ForgeButton(⚗️)이
+  다른 버튼과 안 겹치는지(우측 하단에 넷째·다섯째로 쌓임), GoldLabel·
+  PotionLabel이 다른 라벨과 안 겹치는지(좌측에 다섯째·여섯째로 쌓임),
+  1·2·3·4 키로 실제 물약을 마시는 손맛, 행상 ChoicePrompt에 옵션
+  다섯 줄(감정서·물약·수리·투전×2)이 화면에 다 들어오는지, 투전으로
+  산 물건의 "미확인" 표시가 자연스러운지, 부서진 장비를 행상에서
+  수리하고 나면 능력치가 실제로 돌아오는 느낌인지. 아래 "다음에 이어질
+  것" 목록에 추가.
+- **다음은 "제외" 목록의 마지막 셋 — 4번(원소 6결+저항)·5번(인물 등용)·
+  6번(결사)·7번(보스층)** (창고는 이번에 최종적으로 스킵 — 가방/인벤토리
+  자체가 없어 지킬 대상이 없다, 다시 열 필요 없음). 순서는
+  PROJECT_STATE.md 2026-09-12⑲ 항목이 이미 정해 둔 그대로.
+
+### 이 세션 마무리 (사용자 지정, 2026-09-12㉒)
+
+**사용자가 "현재 작업 모두 완료 후 새로운 세션에서 이어 하자"로 지정.**
+위 목록 3번(행상 등)을 커밋까지 마친 상태에서 세션을 넘긴다 — 남은
+GUI 실기 확인은 다른 항목들과 함께 몰아서 나중에 확인한다. **다음
+세션은 "제외" 목록 4번(원소 6결+저항)부터 다시 물어보지 않고 이어가면
+된다**(2026-09-12⑲가 이미 정해 둔 순서, 위 참고).
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
@@ -1373,6 +2212,24 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 필요 없다(기록만 남김). 이 시점 이후 새로 생긴 미확인 항목만 이 절
 맨 위에 쌓는다:
 
+- **(2026-09-12㉒ 신규, DUNGEON) VendorButton(🏪)·ForgeButton(⚗️)이 다른
+  버튼과 안 겹치는지, GoldLabel·PotionLabel이 다른 라벨과 안 겹치는지,
+  1·2·3·4 키 물약 손맛, 행상 ChoicePrompt 다섯 줄이 화면에 다 들어오는지,
+  투전 결과·수리 결과가 자연스러운지.** 위 "완료 단계 (추가,
+  2026-09-12㉒)" 참고.
+- **(2026-09-12㉑ 신규, DUNGEON) 소켓 버튼(🔨)·MaterialsLabel·룬 획득
+  토스트·부문어 완성 토스트·장비 파손 토스트가 화면에서 자연스러운지.**
+  위 "완료 단계 (추가, 2026-09-12㉑)" 참고.
+- **(2026-09-12⑳ 신규, DUNGEON) JobLabel("🧭 직업: OO")이 HpLabel과 화면에서
+  안 겹치는지, 각궁/선채/환도/죽장 등 다른 계열 무기를 주웠을 때 직업
+  표시가 바로 바뀌는 게 자연스러운지.** 위 "완료 단계 (추가, 2026-09-12⑳)"
+  참고.
+- ~~(2026-09-12⑯~⑱, DUNGEON — 은사·여러 방 연결·장비 등급+접사)~~ —
+  **다음 세션에서 실기 확인 완료**("실기로 확인했으니" — 사용자,
+  2026-09-12⑲). 세 가지 다 문제 없음.
+- ~~(2026-09-12⑫~⑭, DUNGEON) 고정 카메라·근접 전투·GLB 이음새·HP 라벨·
+  조이스틱+공격 버튼~~ — **이번 세션 시작 시 확인 완료("확인함 — 문제
+  없음")**, 위 "다음 세션 시작 지점" 절 1번 참고.
 - **(2026-09-12 신규) 논밭(8,9)(9,9) 밀밭·옛 사당(2,1) 제단이 실제로
   그 지형 이름에 어울리게 보이는지, 크기가 다른 랜드마크와 비교해
   어색하지 않은지.** 위 "완료 단계 (추가, 2026-09-12)" 참고.
