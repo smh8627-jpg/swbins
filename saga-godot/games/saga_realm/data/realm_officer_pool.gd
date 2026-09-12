@@ -10,9 +10,20 @@ extends RefCounted
 ## 이 슬라이스 범위(무장 하나)로 줄인 것. 로스터가 하나뿐이라 매달 명령을
 ## 하나만 쓸 수 있다는 제약은 그대로 유효하다(어느 명령이든).
 ##
-## HIDDEN_POOL — 허창에 묻힌 재야 둘, 수색(search)으로 찾아야 보인다.
+## HIDDEN_POOL_BY_CITY — 2026-09-12 "여러 성으로 넓히는 것" 다음 단계로
+## 재야를 성마다 나눠 묻었다("무장을 성마다 나눠 앉히는 시스템"의 첫
+## 조각 — VERTICAL_SLICE_REALM.md 2-4절이 "다음"으로 남긴 항목). 수색
+## (search)은 이제 **current_city에 묻힌 재야만** 보여준다(rtk.js
+## doSearch()가 애초에 그 성 소속만 찾던 것과 같은 결) — 세 성을 다
+## 둘러봐야 재야를 전부 찾는다는 뜻이다. 허창(본거지, 시작 무장이 이미
+## 있음)엔 일부러 안 묻었다 — 진류·복양 둘로 나눠 "다른 성에 가 볼
+## 이유"를 만들었다.
 ## data-force.js 주석 그대로 "삼국지 사람이 아닌 인물은 재야다"를 따라
 ## 한국사·일본사 쪽에서 골랐다(해장=이순신 가명, rarity 5 · 이도인=미야모토
 ## 무사시 가명, rarity 4).
 const STARTING_OFFICER := "sg_zhugeliang"
-const HIDDEN_POOL := ["kr_yisunsin", "jp_musashi"]
+const HIDDEN_POOL_BY_CITY := {
+	"chenliu": ["jp_musashi"],
+	"puyang": ["kr_yisunsin"],
+	"xuchang": [],
+}

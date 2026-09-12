@@ -161,11 +161,13 @@ func _do_draft(o: Dictionary, officer_id: String) -> Dictionary:
 
 
 ## rtk.js doSearch() — 재야 후보를 rarity 내림차순으로 보고, 지력이 높을수록
-## "뻗치는 범위"(reach)가 넓어져 더 귀한 사람도 뽑힐 수 있다. 재야는 성에
-## 매이지 않는다(force-wide) — 무장 위치와 같은 이유로 아직 안 나눴다.
+## "뻗치는 범위"(reach)가 넓어져 더 귀한 사람도 뽑힐 수 있다.
+## **2026-09-12 추가 — 재야는 이제 current_city에 묻힌 사람만 나온다**
+## (`HIDDEN_POOL_BY_CITY`, rtk.js doSearch()가 애초에 그 성 소속만 찾던
+## 것과 같은 결) — 성마다 다른 재야가 있어 세 성을 다 둘러볼 이유가 생겼다.
 func _do_search(officer_id: String) -> Dictionary:
 	var hidden: Array = []
-	for id: String in RealmOfficerPool.HIDDEN_POOL:
+	for id: String in RealmOfficerPool.HIDDEN_POOL_BY_CITY.get(current_city, []):
 		if id in found or id in roster:
 			continue
 		hidden.append(id)
