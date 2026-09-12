@@ -269,6 +269,27 @@ func next_month() -> void:
 	_done_this_month.clear()
 
 
+## rtk.js war.js moveOfficer() — 무장을 맞닿은 성으로 옮긴다(그 달의 명령을
+## 쓴다). 이 슬라이스는 성 셋이 전부 우리 것이라 원작의 `to.force !== r.force`
+## 체크(남의 성인가)는 늘 통과 — 맞닿음과 "이 달에 이미 명령을 썼는가"만
+## 실제로 갈린다. 태수(`from.gov = null`) 정리는 옮기지 않았다 — 이 슬라이스는
+## 태수를 저장하지 않고 `_governor_at()`이 매번 배치를 보고 다시 골라서다.
+func transfer_officer(officer_id: String, to_city_id: String) -> Dictionary:
+	if not (officer_id in roster):
+		return {"ok": false, "why": "로스터에 없는 무장"}
+	var from_city: String = officer_city.get(officer_id, "")
+	if from_city == to_city_id:
+		return {"ok": false, "why": "이미 그 성에 있습니다"}
+	if not RealmCities.is_adjacent(from_city, to_city_id):
+		return {"ok": false, "why": "맞닿아 있지 않습니다"}
+	if _done_this_month.get(officer_id, false):
+		return {"ok": false, "why": "이 달에 이미 명령을 썼습니다"}
+
+	officer_city[officer_id] = to_city_id
+	_done_this_month[officer_id] = true
+	return {"ok": true}
+
+
 ## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제
 ## officer_city로 실제 배치를 아니까, 그 성에 배치된 무장 중에서만 고른다.
 func _governor_at(city_id: String) -> String:

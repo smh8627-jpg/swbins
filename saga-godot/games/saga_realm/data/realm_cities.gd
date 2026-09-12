@@ -32,6 +32,20 @@ const LAND_COMM_CAP := {"plain": 1.0, "river": 1.15, "hill": 0.9, "mount": 0.8}
 
 const DEFAULT_CITY := "xuchang"  # 기존 단일 슬라이스가 쓰던 성 — 하위 호환
 
+## rtk.js data-city.js ADJ 중 이 세 성에 걸치는 간선만 옮겼다(2026-09-12,
+## war.js moveOfficer()의 "맞닿아 있지 않습니다" 체크에 쓴다) — 복양↔진류,
+## 진류↔허창만 있고 복양↔허창은 없다(원작 지도 그대로, 사이에 진류가 있다).
+const ADJ := [
+	["puyang", "chenliu"], ["chenliu", "xuchang"],
+]
+
+
+static func is_adjacent(a: String, b: String) -> bool:
+	for pair: Array in ADJ:
+		if (pair[0] == a and pair[1] == b) or (pair[0] == b and pair[1] == a):
+			return true
+	return false
+
 
 static func by_id(id: String) -> Dictionary:
 	for c: Dictionary in CITIES:

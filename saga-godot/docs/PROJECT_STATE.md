@@ -3832,3 +3832,42 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — realm3d.js식 월드맵, 무장을 성 사이로 옮기는
     명령(전임/이동), 또는 전쟁/외교·문답 — 어느 쪽이든 승인 후.
+
+
+## REALM 무장을 성 사이로 옮기는 명령 — 전임 (2026-09-12)
+
+- **사용자 지시 "saga-godot 이어해"** — 직전 항목이 남긴 세 후보 중
+  가장 좁은 스코프인 전임/이동을 골랐다. 진류·복양은 등용해야만 개발형
+  명령을 쓸 수 있는데(2-6절) 등용은 늘 수색한 성에 배치돼 배치를 바꿀
+  방법이 없었던 막힌 자리를, `war.js moveOfficer()`를 그대로 옮겨 풀었다.
+  - `realm_cities.gd`: `ADJ`(맞닿은 성 간선, data-city.js에서 이 세 성에
+    걸치는 것만 — 복양↔진류, 진류↔허창. 복양↔허창은 없음)·
+    `is_adjacent()` 신설.
+  - `realm_save_state.gd`: `transfer_officer(officer_id, to_city_id)`
+    신설 — 맞닿음·"이 달에 이미 명령을 썼는가"(`_done_this_month` 공유)
+    만 갈린다. 원작의 "남의 성인가" 체크는 세 성이 전부 우리 것이라
+    뺐고, 태수 자리 비우기(`from.gov=null`)도 `_governor_at()`이 매번
+    다시 골라 자동 반영되니 안 옮겼다.
+  - `realm_transfer_button.gd`(신규) + `RealmHUD.tscn`: "전임" 버튼
+    (성 버튼 바로 위), `ChoicePrompt` 2단(무장 → 갈 성).
+  - **검증 중 발견하고 고친 별개의 버그** — `realm_month_button.gd`가
+    2-4절(commit d41c687)이 `RealmSaveState.food`를
+    `cities[city_id].food`로 옮긴 뒤 안 따라와, 없는 프로퍼티를 읽으려다
+    **파싱 자체가 실패**하고 있었다(그동안 헤드리스 검증이 exit 0만
+    보고 로그의 SCRIPT ERROR는 안 훑어서 놓침). `current_city` 기준으로
+    고쳤다. **다음 세션부터 헤드리스 검증에서 exit 코드뿐 아니라 로그의
+    SCRIPT ERROR/Parse Error도 grep으로 같이 확인할 것.**
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-7절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(이번에도 66-1절
+    렌더러 프로파일 3줄이 또 지워져 `git checkout`으로 되돌림, 알려진
+    흠 그대로) → 다섯 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그를
+    error/warn/missing/invalid/cannot로 훑어 한 줄도 없음 확인(이 방식
+    으로 month_button.gd 버그를 찾았다). 임시 디버그로 is_adjacent 셋
+    (복양-진류·진류-허창 true, 복양-허창 false), 시작 무장 전임 성공→
+    officer_city 반영, 같은 달 재전임 차단, 달 넘긴 뒤 전임 성공, 안
+    맞닿은 성 차단, 없는 무장·같은 성 전임 각각의 실패 사유까지 손
+    계산과 전부 일치 확인. 디버그 원상복구(diff 0), 테스트 세이브 없음
+    (디버그가 save()를 안 불러 애초에 안 생겼다).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — realm3d.js식 여러 성 월드맵, 또는 전쟁/외교
+    (war.js/diplo.js)·문답(quiz.js) — 어느 쪽이든 승인 후.
