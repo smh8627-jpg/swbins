@@ -45,6 +45,19 @@ const GIFT_CATS := ["과일", "솔방울", "광석", "꽃", "물고기"]
 ## 같은 자리(설명은 아래 _quest_progress() 참고). 로스터가 6명이라 5.
 const ROSTER_SIZE := 6
 
+## 제외 목록 6번(계절행사 8일) 착수 — 웹판 town.js priceMul()이 값을
+## 가지려면 "판다"(sell) 동작 자체가 있어야 하는데 이 슬라이스엔 없었다.
+## 상인에게 최소한의 판매를 얹었다 — 종별로 값이 갈리는 웹판 ITEMS
+## 카탈로그(예: 과일 안에 능금 40·복숭아 70…)를 갈래 하나로 이미
+## 단순화해 둔 이 슬라이스(museum.gd와 같은 단순화 방향)에 맞춰, 갈래별
+## **가장 흔한(제일 싼) 종의 값** 하나만 기준가로 삼는다(웹판
+## data-village.js ITEMS 그대로: 능금40·밤35·철석80·진달래30·배추흰나비40·
+## 붕어50). ForestFestival.price_mul()이 오늘이 그 갈래의 행사날이면
+## 배율을 곱한다.
+const SELL_BASE_PRICE := {
+	"과일": 40, "솔방울": 35, "광석": 80, "꽃": 30, "곤충": 40, "물고기": 50,
+}
+
 const VILLAGERS := [
 	{"id": "npc_keeper", "name": "숲지기", "line": "이 숲은 내가 돌본다 — 짐승을 함부로 놀라게 하지 마시게",
 	 "grid": Vector2i(19, 9), "glb": "res://assets/characters/character-b.glb",
@@ -162,6 +175,16 @@ func _on_body_exited(body: Node3D, v: Dictionary) -> void:
 ## 웹판 talkNpc() 그대로 — 부탁을 이미 마쳤으면 인사말, 안 마쳤는데
 ## 조건을 채웠으면 그 자리에서 마치고 보상, 아직이면 진행 상황.
 func _talk(v: Dictionary) -> void:
+	## 설날 — 첫 인사는 세배다(웹판과 같은 우선순위, "부탁"보다 먼저 본다).
+	## 사람마다 하루 한 번, 친밀도가 깊을수록 두둑하다(500 + 친밀도*150,
+	## 웹판 village.js talk() 그대로).
+	if ForestFestival.is_new_year() and not ForestSaveState.has_bowed_today(v.id):
+		var money: int = 500 + int(ForestSaveState.affinity.get(v.id, 0)) * 150
+		ForestSaveState.add_gold(money)
+		ForestSaveState.mark_bowed(v.id)
+		Toast.show(self, "%s — 새해 복 많이 받으시오. 🧧 🪙 +%d" % [v.name, money], LINE_SHOW_SEC)
+		return
+
 	if ForestSaveState.is_quest_done(v.id):
 		Toast.show(self, "%s — %s" % [v.name, v.line], LINE_SHOW_SEC)
 		return
@@ -230,6 +253,24 @@ func _open_interact_menu(v: Dictionary) -> void:
 				"cb": func() -> void: _trade_turnip(v, false, layer_box),
 			})
 
+		## 제외 목록 6번(계절행사 8일) — 이 갈래들을 판다(SELL_BASE_PRICE
+		## 상단 주석 참고). 오늘이 그 갈래의 행사날이면 값이 오른다.
+		for cat in SELL_BASE_PRICE:
+			if ForestSaveState.item_count(cat) > 0:
+				var unit: int = int(round(float(SELL_BASE_PRICE[cat]) * ForestFestival.price_mul(cat)))
+				choices.append({
+					"label": "%s 팔기 (%d개, 개당 🪙%d)" % [cat, ForestSaveState.item_count(cat), unit],
+					"cb": func() -> void: _sell_items(v, cat, unit, layer_box),
+				})
+
+		## 제외 목록 6번(옷·침선방) — 새 건물 없이 상인에게 얹었다(도구·
+		## 순무와 같은 이유). 넷 중 하나를 고르는 메뉴로 한 번 더 들어간다
+		## (겉옷·머리·옷 빛·덧옷 스물한 종을 한 메뉴에 다 늘어놓으면 너무 길다).
+		choices.append({
+			"label": "🧵 옷(침선방)",
+			"cb": func() -> void: _open_wear_menu(v, layer_box),
+		})
+
 	if not ForestSaveState.gifted_today(v.id):
 		for cat in GIFT_CATS:
 			if ForestSaveState.item_count(cat) > 0:
@@ -269,6 +310,62 @@ func _trade_turnip(v: Dictionary, buying: bool, layer_box: Dictionary) -> void:
 			Toast.show(self, "%s — %s" % [v.name, err], 2.5)
 	else:
 		Toast.show(self, ForestSaveState.sell_turnip(), LINE_SHOW_SEC)
+
+
+func _sell_items(v: Dictionary, cat: String, unit_price: int, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	var revenue := ForestSaveState.sell_items(cat, unit_price)
+	Toast.show(self, "%s 에게 %s 을(를) 팔았다 — 🪙 +%d" % [v.name, cat, revenue], LINE_SHOW_SEC)
+
+
+## 침선방 1단계 — 넷(겉옷·머리·옷 빛·덧옷) 중 어느 칸을 볼지.
+func _open_wear_menu(v: Dictionary, outer_layer_box: Dictionary) -> void:
+	(outer_layer_box["layer"] as CanvasLayer).queue_free()
+	var layer_box := {}
+	var choices: Array = []
+	for p: Dictionary in ForestWear.PARTS:
+		var now := ForestWear.item(p.key, ForestSaveState.wearing(p.key))
+		choices.append({
+			"label": "%s (지금: %s)" % [p.name, now.get("name", "?")],
+			"cb": func() -> void: _open_wear_part_menu(v, p, layer_box),
+		})
+	layer_box["layer"] = ChoicePrompt.build(self, "침선방", choices)
+
+
+## 침선방 2단계 — 그 칸에서 고를 수 있는 것들. 안 가진 것은 "사기"(사면
+## 곧바로 입는다), 가진 것은 "입기", 지금 입은 것은 상태만 보여준다.
+func _open_wear_part_menu(v: Dictionary, part: Dictionary, outer_layer_box: Dictionary) -> void:
+	(outer_layer_box["layer"] as CanvasLayer).queue_free()
+	var layer_box := {}
+	var choices: Array = []
+	for it: Dictionary in (part.list as Array):
+		var owned: bool = ForestSaveState.owns_wear(part.key, it.key)
+		var wearing_now: bool = ForestSaveState.wearing(part.key) == it.key
+		var label: String
+		if wearing_now:
+			label = "%s (입은 중)" % it.name
+		elif owned:
+			label = "%s 입기" % it.name
+		else:
+			label = "%s 사기 (🪙%d)" % [it.name, int(it.price)]
+		choices.append({
+			"label": label,
+			"cb": func() -> void: _choose_wear(v, part.key, it.key, int(it.price), layer_box),
+		})
+	layer_box["layer"] = ChoicePrompt.build(self, part.name, choices)
+
+
+func _choose_wear(v: Dictionary, part: String, key: String, price: int, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if ForestSaveState.wearing(part) == key:
+		Toast.show(self, "이미 입고 있다.", 2.0)
+		return
+	if not ForestSaveState.owns_wear(part, key):
+		if not ForestSaveState.buy_wear(part, key, price):
+			Toast.show(self, "골드가 모자란다 (🪙%d 필요)" % price, 2.5)
+			return
+	ForestSaveState.set_wear(part, key)
+	Toast.show(self, "🧵 %s (으)로 갈아입었다." % ForestWear.item(part, key).name, LINE_SHOW_SEC)
 
 
 func _give_gift(v: Dictionary, cat: String, layer_box: Dictionary) -> void:

@@ -45,6 +45,29 @@ var museum_donated := 0     # 사고에 기증한 누적 개수(종 수가 아�
 ## ForestTurnip이 주 번호에서 다시 계산한다(저장 안 함).
 var turnip: Dictionary = {}  # {"n": int, "buy": int, "week": int} 또는 빈 딕셔너리(없음)
 
+## 6번째 확장(제외 목록 6번 — 벽지/장판·꽃 교배·계절행사 8일·옷) — 전부
+## 순수 추가.
+var bow: Dictionary = {}  # npc_id(String) -> day_key(설날 세배를 받은 날)
+
+## 심은 꽃 — {"x": float, "z": float, "day": int(ForestDay.epoch_day_index()
+## 심은 날), "hybrid": bool}의 배열. 인덱스가 곧 forest_planting.gd가 쓰는
+## can_gather() prop_id("planted_%d")다 — 항상 append만 하고 지우지 않으니
+## 인덱스가 안정적이다.
+var planted: Array = []
+
+var wall_key := "earth"
+var floor_key := "wood"
+## "earth"·"wood"(기본값, 값 0)는 웹판처럼 처음부터 갖고 있다.
+var owned_walls: Dictionary = {"earth": true}
+var owned_floors: Dictionary = {"wood": true}
+
+var wear_on: Dictionary = {"coat": "leather", "head": "topknot", "dye": "none", "cape": "off"}
+## 값이 0인 기본 한 벌은 웹판처럼 처음부터 옷장에 있다.
+var wear_owned: Dictionary = {
+	"coat:leather": true, "head:none": true, "head:topknot": true,
+	"dye:none": true, "cape:off": true,
+}
+
 
 func can_gather(prop_id: String) -> bool:
 	return int(used.get(prop_id, -1)) != ForestDay.today_key()
@@ -180,6 +203,77 @@ func sell_turnip() -> String:
 		[n, price, "이문 🪙+" if profit >= 0 else "밑진 것 🪙", absi(profit)]
 
 
+## 설날 세배 — 웹판 village.js talk()의 그 자리(500 + 친밀도*150). 사람마다
+## 하루 한 번(gifted_today()와 같은 날짜 비교 패턴, 다른 딕셔너리를 씀).
+func has_bowed_today(npc_id: String) -> bool:
+	return int(bow.get(npc_id, -1)) == ForestDay.today_key()
+
+
+func mark_bowed(npc_id: String) -> void:
+	bow[npc_id] = ForestDay.today_key()
+
+
+## 계절행사 8일(price_mul)에 값을 주는 자리 — 가진 것을 한 번에 다 판다
+## (turnip sell_turnip()과 같은 결). 실패(가진 게 없음)면 0.
+func sell_items(item_label: String, unit_price: int) -> int:
+	var n := item_count(item_label)
+	if n <= 0:
+		return 0
+	items[item_label] = 0
+	var revenue := n * unit_price
+	gold += revenue
+	return revenue
+
+
+func owns_finish(kind: String, key: String) -> bool:
+	var m: Dictionary = owned_walls if kind == "wall" else owned_floors
+	return bool(m.get(key, false))
+
+
+func buy_finish(kind: String, key: String, price: int) -> bool:
+	if owns_finish(kind, key) or gold < price:
+		return false
+	gold -= price
+	if kind == "wall":
+		owned_walls[key] = true
+	else:
+		owned_floors[key] = true
+	return true
+
+
+func set_finish(kind: String, key: String) -> bool:
+	if not owns_finish(kind, key):
+		return false
+	if kind == "wall":
+		wall_key = key
+	else:
+		floor_key = key
+	return true
+
+
+func owns_wear(part: String, key: String) -> bool:
+	return bool(wear_owned.get("%s:%s" % [part, key], false))
+
+
+func buy_wear(part: String, key: String, price: int) -> bool:
+	if owns_wear(part, key) or gold < price:
+		return false
+	gold -= price
+	wear_owned["%s:%s" % [part, key]] = true
+	return true
+
+
+func set_wear(part: String, key: String) -> bool:
+	if not owns_wear(part, key):
+		return false
+	wear_on[part] = key
+	return true
+
+
+func wearing(part: String) -> String:
+	return String(wear_on.get(part, ""))
+
+
 func save() -> bool:
 	var player := _find_player()
 	if player == null:
@@ -197,6 +291,14 @@ func save() -> bool:
 		"tools": tools,
 		"museum_donated": museum_donated,
 		"turnip": turnip,
+		"bow": bow,
+		"planted": planted,
+		"wall_key": wall_key,
+		"floor_key": floor_key,
+		"owned_walls": owned_walls,
+		"owned_floors": owned_floors,
+		"wear_on": wear_on,
+		"wear_owned": wear_owned,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -238,6 +340,21 @@ func try_load() -> bool:
 	museum_donated = int(data.get("museum_donated", 0))
 	var loaded_turnip: Variant = data.get("turnip", {})
 	turnip = loaded_turnip if typeof(loaded_turnip) == TYPE_DICTIONARY else {}
+
+	var loaded_bow: Variant = data.get("bow", {})
+	bow = loaded_bow if typeof(loaded_bow) == TYPE_DICTIONARY else {}
+	var loaded_planted: Variant = data.get("planted", [])
+	planted = loaded_planted if typeof(loaded_planted) == TYPE_ARRAY else []
+	wall_key = String(data.get("wall_key", "earth"))
+	floor_key = String(data.get("floor_key", "wood"))
+	var loaded_owned_walls: Variant = data.get("owned_walls", {"earth": true})
+	owned_walls = loaded_owned_walls if typeof(loaded_owned_walls) == TYPE_DICTIONARY else {"earth": true}
+	var loaded_owned_floors: Variant = data.get("owned_floors", {"wood": true})
+	owned_floors = loaded_owned_floors if typeof(loaded_owned_floors) == TYPE_DICTIONARY else {"wood": true}
+	var loaded_wear_on: Variant = data.get("wear_on", wear_on)
+	wear_on = loaded_wear_on if typeof(loaded_wear_on) == TYPE_DICTIONARY else wear_on
+	var loaded_wear_owned: Variant = data.get("wear_owned", wear_owned)
+	wear_owned = loaded_wear_owned if typeof(loaded_wear_owned) == TYPE_DICTIONARY else wear_owned
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:

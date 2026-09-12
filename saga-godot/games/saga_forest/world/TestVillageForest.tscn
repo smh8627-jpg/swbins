@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://games/saga_forest/world/forest_village.gd" id="1"]
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
@@ -10,6 +10,8 @@
 [ext_resource type="Script" path="res://games/saga_forest/world/gatherable_builder.gd" id="8"]
 [ext_resource type="Script" path="res://games/saga_forest/world/fishing_spot.gd" id="11"]
 [ext_resource type="Script" path="res://games/saga_forest/world/museum.gd" id="12"]
+[ext_resource type="Script" path="res://games/saga_forest/world/forest_planting.gd" id="13"]
+[ext_resource type="Script" path="res://games/saga_forest/world/forest_wear_visual.gd" id="14"]
 [ext_resource type="PackedScene" path="res://games/saga_forest/player/ForestPlayer.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://games/saga_forest/ui/ForestHUD.tscn" id="10"]
 
@@ -45,6 +47,12 @@ script = ExtResource("11")
 
 [node name="Museum" type="Node3D" parent="."]
 script = ExtResource("12")
+
+[node name="Planting" type="Node3D" parent="."]
+script = ExtResource("13")
+
+[node name="WearVisual" type="Node3D" parent="."]
+script = ExtResource("14")
 
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 60, 40)
