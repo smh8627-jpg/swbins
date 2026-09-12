@@ -51,6 +51,7 @@ namespace Saga.EditorTools
             BuildVillager();
             var houseGo = BuildHouse();
             BuildHomeFurniture(houseGo);
+            BuildCreatures();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
             BuildEventSystem();
@@ -156,6 +157,15 @@ namespace Saga.EditorTools
                 var anchor = anchorGo.AddComponent<ForestFurnitureAnchor>();
                 anchor.SetIndex(i);
             }
+        }
+
+        // "몬스터·퓨전 콘텐츠" 슬라이스 — Awake()가 Play 모드에서만 저절로
+        // 불려도 되는 컴포넌트라(GO AnimalBuilder.cs와 같은 결 — 아무도 edit-time에
+        // 그 자식을 즉시 찾을 필요가 없다) 명시적 Build() 호출 없이 AddComponent만.
+        private static void BuildCreatures()
+        {
+            var go = new GameObject("Creatures");
+            go.AddComponent<ForestCreatureBuilder>();
         }
 
         private static (GameObject playerGo, Transform playerTransform) BuildPlayer()

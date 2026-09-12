@@ -120,3 +120,18 @@ CLAUDE.md "다섯 판은 다섯 벌 복사" 원칙).
   `PlaytestForestHeadless`·`PlaytestForestHouseTransition` 전부 `OK`.
 - **GUI 실기 확인 아직 안 함** — 고정 자리 여섯이 방 안에서 안 겹쳐
   보이는지, 가구 primitive가 놓였을 때 그럴듯한지.
+
+## 몬스터·퓨전 콘텐츠 슬라이스 (2026-09-12, 열한 번째 세션)
+
+`docs/PROJECT_STATE.md` "완료 단계"에 자세한 내용 — 요약만.
+
+- saga-godot FOREST 5절 "몬스터·퓨전 자유" 결정을 그대로 적용 — 코드는
+  안 베끼고 개념만(숲도깨비·바위도깨비·버섯정령·꽃정령 네 종, 각기 다른
+  primitive 조합·속도·경계심) 참고해 `World/ForestCreature.cs`(Idle→
+  Wander→Flee, Group 없음)·`World/ForestCreatureBuilder.cs`로 새로 짰다.
+  전투·포획·HP 없음(이 판의 핵심은 "돌아다니면 재미있다").
+  바이옴이 없어 마을 네 귀퉁이에 하나씩 흩어 뒀다.
+- 검증: 컴파일·씬 재빌드·`PlaytestForestCreatures.cs`(신규, 배회·도주를
+  실제 Play로 확인) + 회귀 전부 `OK`.
+- **GUI 실기 확인 아직 안 함** — 네 종이 화면에서 잘 보이는지, 구면 투영
+  속에서 이동이 자연스러운지, 도주 타이밍이 거슬리지 않는지.

@@ -5,6 +5,50 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **FOREST — 몬스터·퓨전 콘텐츠 슬라이스 (2026-09-12, 열한 번째 세션
+  이어서, "몬스터·퓨전 콘텐츠부터 이어가줘"로 착수).** saga-godot FOREST
+  트랙이 `VERTICAL_SLICE_FOREST.md` 5절("몬스터·퓨전 자유" — FOREST 주민은
+  애초에 역사 인물이 아니라 역할 이름이라 PLAN.md 5장과 안 충돌한다는 결정)
+  에 따라 이미 검증해 둔 네 종(숲도깨비·바위도깨비·버섯정령·꽃정령)을
+  개념만 참고해 Unity로 새로 짰다(코드는 안 베낌).
+  - 신규 `World/ForestCreature.cs` — Idle→Wander→Flee 상태기계(GO
+    `WanderingAnimal.cs`와 같은 구조지만 **Group(무리 전파)는 뺐다** —
+    godot 원본 설계에 없던 걸 새로 안 얹음). 전투·포획·HP 없음(이 판의
+    핵심은 "돌아다니면 재미있다" — `LEGACY_FEATURE_AUDIT.md` 원칙 그대로).
+    FOREST엔 GO의 타일 맵 같은 보행 판정 데이터가 없어(단일 평면) 걸을 수
+    있는 자리 검사는 생략.
+  - **종별 시각 — 전부 primitive 조합**(GLB 없음) — 숲도깨비(구+원기둥
+    뿔)·바위도깨비(상자+상자 혹)·버섯정령(원기둥 줄기+구 갓)·꽃정령(구+
+    납작구 화관). Unity 기본 도형에 원뿔·토러스가 없어(DUNGEON 바이옴
+    소품이 나무를 원기둥+구로 대신한 것과 같은 이유) 뿔은 기울인 원기둥,
+    화관은 Y로 누른 구로 대신했다 — 문서화된 재해석. `Saga/ForestWorldCurve`
+    셰이더 머티리얼을 물려 땅과 같이 휘게 했다(셰이더 클래스 주석이 "땅·
+    나무·NPC 등" 전부 이걸 써야 한다고 명시하는데, 기존 나무·캐릭터
+    폴백은 실제로는 평범한 URP Lit라 안 휠 수 있다는 걸 코드 검토 중
+    발견 — 기존 결함은 이번 범위 밖이라 안 건드리고 그대로 둠, 이미
+    "나무·주민이 공중에 뜨는지" GUI 확인 항목으로 대기 중이던 것과
+    같은 사안이라 새 항목을 안 늘림).
+  - **종별 능력치를 갈라 체감을 다르게 잡았다**(godot 수치 그대로 재사용) —
+    숲도깨비(속도1.5·도주3.5·경계6.0·배회4.0, 기본값)·바위도깨비(0.9·2.2·
+    4.0·2.5, 가장 느리고 덜 겁냄)·버섯정령(2.0·4.2·3.0·3.5, 가장 빠르고
+    가장 안 겁냄)·꽃정령(1.2·3.0·5.0·5.0, 가장 넓게 배회).
+  - 신규 `World/ForestCreatureBuilder.cs`(GO `AnimalBuilder.cs`와 같은
+    "정의 배열+Awake 스폰" 패턴) — 바이옴이 없어 대신 마을 네 귀퉁이
+    (기존 콘텐츠와 안 겹치는 자리)에 하나씩. `BuildTestVillageForestScene
+    .cs`에 `BuildCreatures()` 추가(명시적 Build() 호출 없음 — 이 컴포넌트는
+    edit-time에 그 자식을 즉시 찾을 일이 없어 GO AnimalBuilder와 같은
+    패턴으로 충분, `ForestHouse`가 겪은 문제와는 다른 경우).
+  - 신규 `Editor/PlaytestForestCreatures.cs` — Play 모드에서 네 종 전부
+    배회(Idle→Wander) 실제 이동을 관찰하고, 플레이어를 숲도깨비 옆으로
+    순간이동시켜 도주(멀어짐)까지 확인. `OK - all four creatures wandered
+    and fled correctly, no errors`(dokkaebi 이동 3.32m·bawi 0.56m·
+    beoseot 2.68m·kkot 3.71m, flee 거리 1.00→4.50).
+  - 회귀 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+    `PlaytestForestFurniture`·`PlaytestDungeonHeadless`·
+    `PlaytestDungeonFloorProgression` 전부 재확인.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — 네 종이 실제로 화면에서 잘
+    보이는지, 구면 투영 속에서 이동이 자연스러운지, 도주 타이밍이 눈에
+    거슬리지 않는지, 마을 네 귀퉁이가 기존 콘텐츠와 안 겹쳐 보이는지.
 - **FOREST — 집 꾸미기(가구) 슬라이스 (2026-09-12, 열한 번째 세션 이어서,
   "가구부터 진행해줘"로 착수).** saga-godot FOREST 트랙이 이미 검증해 둔
   다음 콘텐츠 순서(가구 → 몬스터·퓨전)를 참고해 시작 — 코드는 안 베끼고
@@ -1674,14 +1718,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   이동 패턴이 다른 트랙에도 있는지 코드로 훑어 `ForestHouse.cs`에서
   같은 결함을 찾아 고쳤다(위 "완료 단계" 맨 위 항목 참고).
   - **가구 슬라이스는 이 세션이 끝냈다**(사용자가 "가구부터 진행해줘"로
-    확정, 위 "완료 단계" 맨 위 항목 참고).
+    확정, 위 "완료 단계" 참고). **이어서 "몬스터·퓨전 콘텐츠부터
+    이어가줘"로 그 슬라이스도 끝냈다**(숲도깨비·바위도깨비·버섯정령·
+    꽃정령 네 종, 위 "완료 단계" 맨 위 항목 참고).
   - **다음 세션이 볼 것** — (1) 사람이 FOREST를 실기로 확인한 피드백
-    (구면 투영이 실제로 휘어 보이는지, 집 들어가기/나가기·가구 여섯 자리가
-    실제로 자연스러운지)이 있으면 그것부터, (2) 없으면 saga-godot FOREST
-    트랙의 다음 순서(몬스터·퓨전 콘텐츠, `saga-godot/docs/PROJECT_STATE.md`
-    "FOREST 몬스터·퓨전 콘텐츠" 절 참고 — 코드는 안 베끼고 개념만) 또는
-    자유 배치·벽지/장판처럼 이번에 단순화해 둔 것을 채우는 쪽, (3) 또는
-    DUNGEON/다른 게임 착수 — 방향 결정은 사용자와 상의할 것.
+    (구면 투영·집 들어가기/나가기·가구 여섯 자리·네 창조물의 배회/도주가
+    실제로 자연스러운지)이 있으면 그것부터, (2) 없으면 이번에 단순화해
+    둔 것들(가구 자유 배치·벽지/장판, 창조물 종 더 늘리기·바이옴 구분
+    도입) 중 하나를 채우거나, (3) DUNGEON/다른 게임 착수 — 방향 결정은
+    사용자와 상의할 것.
 - **사용자가 "1,2 순서대로"로 두 방향을 확정했다 — (1) FOREST 착수
   (완료, 위 "완료 단계" 참고) → (2) DUNGEON을 진짜 오픈월드로 확장
   (아직 착수 전).** 다음 세션은 (2)부터 시작한다 — 방 넷짜리 선형
@@ -2300,3 +2345,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
   `PlaytestDungeonHeadless`·`PlaytestDungeonFloorProgression` 전부
   재확인.
+- `PlaytestForestCreatures.cs`(신규, 열한 번째 세션, 몬스터·퓨전 슬라이스) —
+  네 종 전부 배회 이동 확인(dokkaebi 3.32m·bawi 0.56m·beoseot 2.68m·
+  kkot 3.71m) + 플레이어 접근 시 도주 확인(거리 1.00→4.50) →
+  `OK - all four creatures wandered and fled correctly, no errors`.
+  회귀로 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+  `PlaytestForestFurniture`·`PlaytestDungeonHeadless`·
+  `PlaytestDungeonFloorProgression` 전부 재확인.
