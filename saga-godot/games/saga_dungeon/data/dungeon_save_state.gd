@@ -11,18 +11,33 @@ extends Node
 ## project.godot [autoload]에 DungeonSaveState로 등록.
 
 const SAVE_PATH := "user://save_dungeon.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 
-var room_cleared := false
+## "제외" 목록 2번(여러 방 연결) — 방 하나짜리 `room_cleared: bool`을
+## 방마다 하나씩인 `rooms_cleared: Array[bool]`로 바꿨다. 기존 필드의
+## "모양"이 바뀌는 진짜 스키마 변경이라(GO save_state.gd의 기준과 같음
+## — 추가만이면 버전을 안 올리지만 이건 바꿔치기다) SAVE_VERSION을 1→2로
+## 올리고 아래 `_migrate_step()`에 옛 `room_cleared` 하나를
+## `rooms_cleared[0]`로 옮기는 경로를 처음으로 채웠다.
+var rooms_cleared: Array[bool] = []
 var player_pos := Vector3.ZERO
 
 
-func save(player: Node3D, cleared: bool) -> void:
-	room_cleared = cleared
+func is_room_cleared(index: int) -> bool:
+	return index < rooms_cleared.size() and rooms_cleared[index]
+
+
+func mark_room_cleared(index: int) -> void:
+	while rooms_cleared.size() <= index:
+		rooms_cleared.append(false)
+	rooms_cleared[index] = true
+
+
+func save(player: Node3D) -> void:
 	player_pos = player.global_position
 	var data := {
 		"version": SAVE_VERSION,
-		"room_cleared": room_cleared,
+		"rooms_cleared": rooms_cleared,
 		"player_pos": [player_pos.x, player_pos.y, player_pos.z],
 		## §"제외" 1번(은사) — GO의 save_state.gd와 같은 경계(순수 추가
 		## 필드는 SAVE_VERSION을 안 올린다, 없으면 빈 Dictionary로 안전하게
@@ -35,8 +50,7 @@ func save(player: Node3D, cleared: bool) -> void:
 
 
 ## GO의 save_state.gd::try_load()와 같은 계약 — 있으면 읽어서 true,
-## 없거나 버전이 안 맞으면 false(안전하게 포기, 마이그레이션은 이번
-## 슬라이스 범위 밖 — 스키마가 SAVE_VERSION 1 하나뿐이다).
+## 없거나 마이그레이션 경로가 없거나 깨져 있으면 false(안전하게 포기).
 func try_load() -> bool:
 	if not FileAccess.file_exists(SAVE_PATH):
 		return false
@@ -44,13 +58,51 @@ func try_load() -> bool:
 	if f == null:
 		return false
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
-	if typeof(parsed) != TYPE_DICTIONARY or parsed.get("version") != SAVE_VERSION:
+	if typeof(parsed) != TYPE_DICTIONARY:
 		return false
-	room_cleared = parsed.get("room_cleared", false)
-	var p: Variant = parsed.get("player_pos", [0.0, 0.0, 0.0])
+	var migrated: Variant = _migrate(parsed)
+	if migrated == null:
+		return false
+	var data: Dictionary = migrated
+
+	var rc: Variant = data.get("rooms_cleared", [])
+	rooms_cleared.clear()
+	if rc is Array:
+		for v in rc:
+			rooms_cleared.append(bool(v))
+
+	var p: Variant = data.get("player_pos", [0.0, 0.0, 0.0])
 	if not (p is Array) or p.size() < 3:
 		return false # 손상된 저장 파일 — 인덱스 에러 대신 안전하게 포기
 	player_pos = Vector3(p[0], p[1], p[2])
-	var boons: Variant = parsed.get("boons", {})
+	var boons: Variant = data.get("boons", {})
 	DungeonRunState.restore(boons if typeof(boons) == TYPE_DICTIONARY else {})
 	return true
+
+
+## GO의 save_state.gd::_migrate()와 완전히 같은 계약 — 버전이 낮으면
+## _migrate_step()을 한 단계씩 적용, 경로가 없거나(null) 이 빌드보다
+## 나중 버전(다운그레이드)이면 null.
+func _migrate(data: Dictionary) -> Variant:
+	var version := int(data.get("version", 0))
+	while version < SAVE_VERSION:
+		var stepped: Variant = _migrate_step(version, data)
+		if stepped == null:
+			return null
+		data = stepped
+		version = int(data.get("version", version + 1))
+	if version > SAVE_VERSION:
+		return null
+	return data
+
+
+func _migrate_step(from_version: int, data: Dictionary) -> Variant:
+	match from_version:
+		1:
+			## 방 하나뿐이던 시절의 room_cleared를 방 0 하나짜리 배열로.
+			data["rooms_cleared"] = [bool(data.get("room_cleared", false))]
+			data.erase("room_cleared")
+			data["version"] = 2
+			return data
+		_:
+			return null

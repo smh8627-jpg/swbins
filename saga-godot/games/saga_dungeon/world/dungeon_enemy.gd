@@ -17,8 +17,6 @@ extends CharacterBody3D
 
 signal died
 
-const MAX_HP := 24.0  # enemyHp(1, false) = round(24 * 1.26^0 * 1 * mode().hp) = 24
-const ATTACK_DAMAGE := 5.0  # enemyDmg(1, false) = round(5 * 1.20^0 * 1 * mode().dmg) = 5
 const ATTACK_COOLDOWN := 1.4  # 원작에 없는 값 — 직접 정함(위 주석 참고)
 const CHASE_SPEED := 2.4
 const DETECT_RADIUS := 9.0
@@ -26,10 +24,24 @@ const ATTACK_RANGE := 2.0
 const COLOR := Color(0.788, 0.659, 0.227)  # data-enemy.js 황건적 color '#c9a83a' 그대로
 const LootPickup := preload("res://games/saga_dungeon/world/loot_pickup.gd")
 
-var hp := MAX_HP
+## "여러 방 연결"(§28-8 A안 이전의 최소 버전) — 방을 층처럼 취급해 웹판
+## `dungeon.js`의 `enemyHp(floor, boss)`·`enemyDmg(floor, boss)` 공식을
+## 그대로 옮겼다: `round(24 * 1.26^(floor-1))`·`round(5 * 1.20^(floor-1))`
+## (boss=false 고정, mode().hp/dmg는 난도 시스템이 없어 1로 취급 — 기존
+## 방 0의 24/5와 정확히 일치하는 걸로 확인). 새 몬스터를 상상하지 않고
+## 같은 잡졸이 층마다 세지기만 한다.
+var max_hp: float
+var attack_damage: float
+var hp: float
 var _attack_cd_left := 0.0
 var _player: Node3D
 var _dead := false
+
+
+func _init(floor_num: int = 1) -> void:
+	max_hp = roundf(24.0 * pow(1.26, floor_num - 1))
+	attack_damage = roundf(5.0 * pow(1.20, floor_num - 1))
+	hp = max_hp
 
 
 func _ready() -> void:
@@ -80,7 +92,7 @@ func _physics_process(delta: float) -> void:
 
 func _attack_player() -> void:
 	if _player.has_node("PlayerHealth"):
-		_player.get_node("PlayerHealth").take_damage(ATTACK_DAMAGE)
+		_player.get_node("PlayerHealth").take_damage(attack_damage)
 
 
 func take_damage(amount: float) -> void:
