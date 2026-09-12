@@ -1527,6 +1527,79 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
     Cave Kit의 room/corridor 조각 활용 검토 — ASSET_GUIDE.md "이번에 안
     바꾼 것" 절에 남겨 뒀던 미사용 조각), 실시간 전투 스크립트 1개.
 
+## 완료 단계 (추가, 2026-09-12⑬) — DUNGEON 첫 방 코드로 구현(Phase 1~5 최소)
+
+- **VERTICAL_SLICE_DUNGEON.md의 "완료 조건" 8단계 중 저장을 뺀 나머지를
+  전부 코드로 채웠다.** `games/saga_dungeon/` 신규.
+  - **`saga_core/ui/`로 승격(신규 폴더)** — DUNGEON이 GO와 같은 모바일
+    조이스틱·토스트가 필요해진 시점에, 계속 `games/saga_go/ui/`를 가리키게
+    두지 않고 `virtual_joystick.gd`·`toast.gd` 둘을 `saga_core/ui/`로
+    옮겼다(LEGACY_FEATURE_AUDIT.md 3장이 "모바일 터치 조작 골격"을
+    saga_core 후보로 이미 짚어 둔 것과 같은 방향). `git mv`로 이력 보존,
+    참조 4곳(`bandit_encounter.gd`·`hero_encounter.gd`·`npc_builder.gd`·
+    `simple_event.gd`) + `MobileHUD.tscn` 경로 갱신. 그룹 기반 조회(예:
+    `get_nodes_in_group("virtual_joystick")`)라 `player.gd` 등은 안 건드림.
+    **이동 직후 GO를 헤드리스로 재검증(exit 0·오류 0) — 두 파일 다.**
+  - `games/saga_dungeon/player/dungeon_camera_rig.gd`(신규) — 고정
+    각도(pitch 55°)·고정 거리(12m), 입력 전혀 안 받음. GO의
+    `camera_rig.gd`는 그대로 두고 새로 짬(설계 문서 2절 결정 그대로).
+  - `games/saga_dungeon/player/player_health.gd`·`melee_attack.gd`
+    (신규, 둘 다 Player의 자식 컴포넌트) — GO의 `player.gd`는 안 건드리고
+    체력·공격을 별도 컴포넌트로 얹었다. 공격 간격(0.55초)은 웹판
+    `dungeon.js`의 `BASE_ATK_CD` 그대로, 데미지(9)·체력(60)은 이번
+    슬라이스에 스탯/장비 시스템이 없어 직접 정한 값(주석에 근거 명시 —
+    잡졸 HP≈24를 세 대 안에 눕히는 감각을 노림).
+  - `games/saga_dungeon/world/dungeon_enemy.gd`(신규) — 황건적
+    (`data-enemy.js` 첫 항목 그대로, 색 `#c9a83a`까지). HP=24·공격력=5는
+    `dungeon.js`의 `enemyHp(1,false)`/`enemyDmg(1,false)` 공식을 floor=1로
+    계산한 실측치(추측 아님). 추격+근접 공격만(예고 패턴은 다음 슬라이스).
+    시각은 캡슐(hero_encounter.gd·simple_event.gd와 같은 이유 — 전용 GLB
+    없음).
+  - `games/saga_dungeon/world/loot_pickup.gd`(신규, 공용 정적 헬퍼) — 적이
+    죽으면 이름만 있는 장비 하나를 바닥에 놓는다(착용 효과 없음).
+  - `games/saga_dungeon/world/test_room.gd` + `TestRoom.tscn`(신규) —
+    CC0 Kenney Modular Cave Kit의 `room-small.glb`(실측 12×4.4×12)·
+    `gate.glb`(실측 4.4×4.4×1.4)를 **새 다운로드 없이** 스크래치패드에
+    남아 있던 압축 해제본에서 복사해 씀(ASSET_GUIDE.md 갱신). GLB엔
+    충돌이 없어 벽 넷(출구 쪽만 문 폭만큼 틈)·바닥을 직접 만든다(GO의
+    `terrain_builder.gd`와 같은 방식). 출구 Area3D는 닿으면 토스트만
+    띄운다 — **저장은 일부러 안 넣었다**(아래 참고).
+  - `games/saga_dungeon/player/DungeonPlayer.tscn`(신규) — GO의
+    Player.tscn과 같은 구조(CharacterBody3D+캡슐+character-a.glb
+    재사용, 직업별 시각 구분은 제외 목록)에 CameraRig만 새 스크립트로,
+    PlayerHealth·MeleeAttack 컴포넌트만 추가.
+  - `games/saga_dungeon/ui/DungeonHUD.tscn` + `hp_label.gd`·
+    `attack_button.gd`(신규) — 조이스틱은 saga_core에서 재사용, 체력
+    라벨(❤)·공격 버튼(⚔, 키보드 F와 같은 진입점을 그룹으로 찾아 호출)
+    추가. `project.godot`에 입력 액션 `dungeon_attack`(F) 신규.
+  - **저장을 일부러 안 넣은 이유** — `SaveState`/`PartyState`는 GO 전용
+    스키마(플레이어 위치+등용 인원)로 짜여 있어 DUNGEON에 그대로 못
+    쓴다. 게임별 세이브를 자동로드 싱글턴을 게임마다 따로 둘지, 공용
+    스키마로 합칠지는 아직 결정된 적 없는 진짜 아키텍처 질문이라(
+    LEGACY_FEATURE_AUDIT.md 4장 "Save/Load 골격"이 saga_core 후보로만
+    짚어 두고 미결로 남겨 둠), 조용히 GO 스키마에 얹어 겉만 맞추는 대신
+    **완료 조건 문서에 적어 둔 "저장한다" 자리를 비워 두고 토스트만
+    띄운다** — 다음에 실제로 채울 때 이 결정부터 사용자와 정할 것.
+  - **검증** — `--headless --editor --quit`(임포트, 새 스크립트·씬·GLB 8개
+    확인)·`--headless --quit-after 5` 연속 3번을 **GO(TestVillage.tscn,
+    기본 메인 씬)·DUNGEON(TestRoom.tscn, 씬 인자로 직접 지정)** 양쪽 다
+    실행 — 전부 exit 0·error/warn/missing/invalid/cannot 0건. **임시
+    디버그(`test_room.gd`에 넣고 끝나고 원상복구, diff 0)로 실제 전투
+    값까지 확인**: 적 HP 시작값 24 · 적이 플레이어를 때리면 체력이
+    정확히 60→55(딱 5 감소) · 평타 3대(9×3=27)를 맞으면 적 HP가
+    24→-3(사망 조건 충족, `_dead` 플래그 `true`) · 죽으면 `LootPickup`
+    노드가 실제로 자식에 생김 · 출구 트리거를 부르면 `_exit_used`가
+    `true`로 바뀌는 것까지 확인. 단순 "에러 없음"이 아니라 값 자체 비교.
+  - **GUI 미확인** — 고정 카메라 각도(55°)가 실제로 디아블로 느낌인지,
+    방·문 GLB가 자연스럽게 이어지는지, 공격 버튼·체력 라벨 배치가
+    화면에서 자연스러운지는 다음 실기 확인 때 볼 것(GO의 "실기 확인은
+    몰아서" 방침 그대로 — 지금은 헤드리스 값 검증까지만).
+  - **다음 이어질 것**: 저장 아키텍처 결정(게임별 분리 vs 공용 스키마),
+    보스·은사·직업 5종·장비 등급 등은 전부 다음 슬라이스. 재미 평가
+    (VERTICAL_SLICE_DUNGEON.md "완료 조건" 하단)는 실기로 카메라·타격감을
+    직접 봐야 답할 수 있다 — 지금은 "코드로는 여덟 단계 중 일곱 단계가
+    돈다"까지만 확인된 상태.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9

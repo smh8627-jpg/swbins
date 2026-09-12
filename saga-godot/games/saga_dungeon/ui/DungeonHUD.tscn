@@ -1,0 +1,80 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/attack_button.gd" id="3"]
+
+[node name="DungeonHUD" type="CanvasLayer"]
+
+[node name="Joystick" type="Control" parent="." groups=["virtual_joystick"]]
+custom_minimum_size = Vector2(140, 140)
+offset_left = 40.0
+offset_top = -180.0
+offset_right = 180.0
+offset_bottom = -40.0
+grow_vertical = 0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+radius = 60.0
+
+[node name="Base" type="ColorRect" parent="Joystick"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(1, 1, 1, 0.18)
+mouse_filter = 2
+
+[node name="Knob" type="ColorRect" parent="Joystick"]
+custom_minimum_size = Vector2(56, 56)
+offset_left = 42.0
+offset_top = 42.0
+offset_right = 98.0
+offset_bottom = 98.0
+color = Color(1, 1, 1, 0.5)
+mouse_filter = 2
+
+[node name="DialogueLabel" type="Label" parent="." groups=["dialogue_label"]]
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="HpLabel" type="Label" parent="."]
+anchor_left = 0.0
+anchor_right = 0.0
+offset_left = 40.0
+offset_top = 110.0
+offset_right = 260.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 0.95)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+script = ExtResource("2")
+
+[node name="AttackButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -180.0
+offset_right = -40.0
+offset_bottom = -40.0
+text = "⚔"
+theme_override_font_sizes/font_size = 36
+script = ExtResource("3")

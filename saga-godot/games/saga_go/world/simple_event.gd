@@ -37,7 +37,7 @@ extends Node3D
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
-const Toast := preload("res://games/saga_go/ui/toast.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 
 const TRIGGER_RADIUS := 16.0
 const TOAST_SEC := 4.0
