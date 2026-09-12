@@ -48,6 +48,10 @@ namespace Saga.Dungeon.Player
 
         public Transform Visual => visual;
 
+        /// <summary>강공격(Player/PlayerCombat.cs)이 참고 — 웹판 heavyAttack()도
+        /// `p.dodge`(회피 중) 동안엔 강공격을 막는다.</summary>
+        public bool IsDodging => _dodgeTimeLeft > 0f;
+
         private void Awake()
         {
             _controller = GetComponent<CharacterController>();
