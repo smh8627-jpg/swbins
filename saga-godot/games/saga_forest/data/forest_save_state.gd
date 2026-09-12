@@ -68,6 +68,18 @@ var wear_owned: Dictionary = {
 	"dye:none": true, "cape:off": true,
 }
 
+## FOREST 콘텐츠 확장 1호(가구) — 순수 추가.
+var home_stock: Dictionary = {}  # furn_key(String) -> count(int), 창고
+var home_items: Array = []       # [{"key":String,"x":float,"z":float}], 놓인 것
+
+
+func home_stock_add(key: String, n: int = 1) -> void:
+	home_stock[key] = int(home_stock.get(key, 0)) + n
+
+
+func home_stock_count(key: String) -> int:
+	return int(home_stock.get(key, 0))
+
 
 func can_gather(prop_id: String) -> bool:
 	return int(used.get(prop_id, -1)) != ForestDay.today_key()
@@ -299,6 +311,8 @@ func save() -> bool:
 		"owned_floors": owned_floors,
 		"wear_on": wear_on,
 		"wear_owned": wear_owned,
+		"home_stock": home_stock,
+		"home_items": home_items,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -355,6 +369,10 @@ func try_load() -> bool:
 	wear_on = loaded_wear_on if typeof(loaded_wear_on) == TYPE_DICTIONARY else wear_on
 	var loaded_wear_owned: Variant = data.get("wear_owned", wear_owned)
 	wear_owned = loaded_wear_owned if typeof(loaded_wear_owned) == TYPE_DICTIONARY else wear_owned
+	var loaded_home_stock: Variant = data.get("home_stock", {})
+	home_stock = loaded_home_stock if typeof(loaded_home_stock) == TYPE_DICTIONARY else {}
+	var loaded_home_items: Variant = data.get("home_items", [])
+	home_items = loaded_home_items if typeof(loaded_home_items) == TYPE_ARRAY else []
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:
