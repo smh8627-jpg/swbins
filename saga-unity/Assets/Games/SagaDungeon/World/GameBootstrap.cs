@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Dungeon.Audio;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 
@@ -19,11 +20,18 @@ namespace Saga.Dungeon.World
             SaveState.TryLoad();
             CombineStaticBatches();
             QuestState.StageCompleted += OnQuestStageCompleted;
+            HeroState.LeveledUp += OnLeveledUp; // "사운드" 슬라이스 — PLAN.md 37장, 레벨업 신호음.
         }
 
         private void OnDestroy()
         {
             QuestState.StageCompleted -= OnQuestStageCompleted;
+            HeroState.LeveledUp -= OnLeveledUp;
+        }
+
+        private void OnLeveledUp(int newLevel)
+        {
+            SfxPlayer.PlayLevelUp();
         }
 
         private void Update()

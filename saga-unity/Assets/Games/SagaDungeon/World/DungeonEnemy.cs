@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Saga.Dungeon.Audio;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 
@@ -218,6 +219,7 @@ namespace Saga.Dungeon.World
         private void Die()
         {
             _state = State.Dead;
+            SfxPlayer.PlayEnemyDeath();
 
             int levelBefore = HeroState.Level;
             HeroState.AddExp(rewardExp);

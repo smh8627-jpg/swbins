@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Saga.Dungeon.Audio;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.World;
 using Saga.Dungeon.UI;
@@ -88,6 +89,7 @@ namespace Saga.Dungeon.Player
             _cooldownLeft = AttackCooldown;
             enemy.TakeDamage(HeroState.HitDamage);
             _cameraRig?.Shake(HitShakeMag, HitShakeSec);
+            SfxPlayer.PlayHit();
         }
 
         private void TryHeavyAttack()
@@ -100,6 +102,7 @@ namespace Saga.Dungeon.Player
             _cooldownLeft = Mathf.Max(_cooldownLeft, HeavyRecoverSec);
             enemy.TakeDamage(HeroState.HitDamage * HeavyDamageMul, heavy: true);
             _cameraRig?.Shake(HeavyShakeMag, HeavyShakeSec);
+            SfxPlayer.PlayHeavyHit();
         }
 
         /// <summary>이번 슬라이스는 죽음 화면·페널티 없이 바로 회복한다 —
