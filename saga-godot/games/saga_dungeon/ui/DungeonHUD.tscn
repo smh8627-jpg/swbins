@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/attack_button.gd" id="3"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/job_label.gd" id="4"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -65,6 +66,19 @@ theme_override_colors/font_color = Color(1, 0.4, 0.4, 0.95)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
 script = ExtResource("2")
+
+[node name="JobLabel" type="Label" parent="."]
+anchor_left = 0.0
+anchor_right = 0.0
+offset_left = 40.0
+offset_top = 140.0
+offset_right = 260.0
+offset_bottom = 170.0
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.8, 0.9, 1, 0.95)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+script = ExtResource("4")
 
 [node name="AttackButton" type="Button" parent="."]
 anchor_left = 1.0

@@ -7,13 +7,12 @@ class_name DungeonItems
 ## (미확인)·내구/수리·가방/창고**는 여전히 이 슬라이스 밖이다(그 전부가
 ## 원래 "제외" 목록 같은 줄에 묶여 있던 것 — 등급+접사만 먼저 뗀다).
 ##
-## BASES는 원본 27종 중 **무장(武將) 계열 무기 4종만** 옮겼다 — 이번
-## 슬라이스의 유일한 직업이 무장이고(VERTICAL_SLICE_DUNGEON.md 1절
-## "곤봉 하나만 쥔 채 시작"), 갑주·투구·장갑·신발·목걸이·부적·반지는
-## 우리 쪽에 아직 방어력·기질 스탯 자체가 없어 걸칠 자리가 없다(장착해도
-## 아무 효과가 안 난다 — 새 스탯을 상상해서 채우지 않는다). 무기 계열은
-## `data-skill.js`의 `WEAPON_CLASS`(spear·club·axe·halberd → warrior=무장)
-## 기준 그대로.
+## BASES는 원본 27종 중 **무기 10종 전부**(갑주·투구·장갑·신발·목걸이·부적·
+## 반지는 여전히 뺐다 — 우리 쪽에 아직 방어력·기질 스탯 자체가 없어 걸칠
+## 자리가 없다, 장착해도 아무 효과가 안 난다. 새 스탯을 상상해서 채우지
+## 않는다). "제외" 목록 6번(직업 5종 전부)에서 무장 넷에 나머지 세 직업
+## (궁장·책사·도독·방사)의 무기 여섯을 더했다 — `data-skill.js`의
+## `WEAPON_CLASS`(아래 참고) 기준 그대로, 새 무기를 상상하지 않는다.
 
 const TIERS: Array[Dictionary] = [
 	{ "key": 0, "name": "상품", "hanja": "常品", "color": "#d0c8b8", "mul": 1.00, "affix": 0, "weight": 100.0 },
@@ -23,14 +22,58 @@ const TIERS: Array[Dictionary] = [
 	{ "key": 4, "name": "전설", "hanja": "傳說", "color": "#c7a76c", "mul": 2.15, "affix": 4, "weight": 1.6 },
 ]
 
-## 무장(武將) 무기만 — data-item.js BASES 중 look이 spear/club/axe/halberd인
-## 넷을 값 그대로.
+## 무기 10종 전부 — data-item.js BASES 중 slot이 weapon인 것만, 값 그대로.
 const BASES: Array[Dictionary] = [
+	## 무장(武將) — spear/club/axe/halberd
 	{ "key": "w_pyeongon", "slot": "weapon", "name": "편곤", "main": "might", "base": 10.0, "look": "club" },
 	{ "key": "w_changj", "slot": "weapon", "name": "장창", "main": "might", "base": 11.0, "look": "spear" },
 	{ "key": "w_bugae", "slot": "weapon", "name": "부월", "main": "might", "base": 11.0, "look": "axe" },
 	{ "key": "w_geukchang", "slot": "weapon", "name": "극창", "main": "might", "base": 13.0, "look": "halberd" },
+	## 궁장(弓將) — bow
+	{ "key": "w_gakgung", "slot": "weapon", "name": "각궁", "main": "might", "base": 8.0, "look": "bow" },
+	{ "key": "w_cheoltae", "slot": "weapon", "name": "철태궁", "main": "might", "base": 10.0, "look": "bow" },
+	## 책사(策士) — fan/brush
+	{ "key": "w_seonchae", "slot": "weapon", "name": "선채", "main": "wisdom", "base": 9.0, "look": "fan" },
+	{ "key": "w_bilbut", "slot": "weapon", "name": "필묵", "main": "wisdom", "base": 7.0, "look": "brush" },
+	## 도독(都督) — sword/guandao
+	{ "key": "w_hwando", "slot": "weapon", "name": "환도", "main": "might", "base": 9.0, "look": "sword" },
+	{ "key": "w_wolto", "slot": "weapon", "name": "월도", "main": "might", "base": 12.0, "look": "guandao" },
+	## 방사(方士) — staff/scroll
+	{ "key": "w_jukjang", "slot": "weapon", "name": "죽장", "main": "wisdom", "base": 8.0, "look": "staff" },
+	{ "key": "w_byeongseo", "slot": "weapon", "name": "병서", "main": "command", "base": 8.0, "look": "scroll" },
 ]
+
+## data-skill.js WEAPON_CLASS 그대로 — 장착한 무기의 look이 직업을 정한다
+## (원작 그대로, VERTICAL_SLICE_DUNGEON.md 1절). 맨손(look 없음)은 warrior로
+## 본다 — melee_attack.gd의 기본 ATK_DAMAGE가 애초에 무장 기준으로 잡힌 값.
+const WEAPON_CLASS: Dictionary = {
+	"bow": "archer",
+	"spear": "warrior", "club": "warrior", "axe": "warrior", "halberd": "warrior",
+	"fan": "scholar", "brush": "scholar",
+	"sword": "marshal", "guandao": "marshal",
+	"staff": "mystic", "scroll": "mystic",
+}
+
+## 화면 표기용 — 실제 인물 이름이 아니라 직업 이름이라 원작 상표 회피
+## 정책(루트 CLAUDE.md)과 무관하다.
+const CLASS_NAMES: Dictionary = {
+	"warrior": "무장", "archer": "궁장", "scholar": "책사",
+	"marshal": "도독", "mystic": "방사",
+}
+
+
+## 장착 중인 무기(DungeonEquipmentState.weapon)로 현재 직업 key를 정한다.
+static func class_key_for_weapon(weapon: Dictionary) -> String:
+	if weapon.is_empty():
+		return "warrior"
+	var b := base_by_key(str(weapon.get("base", "")))
+	if b.is_empty():
+		return "warrior"
+	return str(WEAPON_CLASS.get(b.look, "warrior"))
+
+
+static func class_name_for_weapon(weapon: Dictionary) -> String:
+	return str(CLASS_NAMES.get(class_key_for_weapon(weapon), "무장"))
 
 ## data-item.js AFFIXES 13종 전부 — 클래스에 안 맞는(지력·통솔) 것도 값은
 ## 그대로 굴러 나온다(원작도 아무 등급에나 아무 접사가 붙는다). might/

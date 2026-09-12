@@ -1949,6 +1949,60 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 항목 뒤에 "미확인" 목록에 쌓아 두기만 하고 사용자가 부를 때(또는
 자연스러운 세션 경계) 한 번에 몰아 묻는다 — 이번 세션이 시작할 때처럼.
 
+## 완료 단계 (추가, 2026-09-12⑳) — 위 목록 1번: 직업 5종 전부
+
+- `dungeon_items.gd::BASES` — 무장(武將) 무기 4종만 있던 것에 나머지 세
+  직업의 무기 6종을 `data-item.js` 값 그대로 추가했다(궁장=각궁·철태궁,
+  책사=선채·필묵, 도독=환도·월도, 방사=죽장·병서 — 총 10종). 새 무기를
+  상상하지 않고 웹판 BASES 항목을 그대로 옮겼다.
+- `dungeon_items.gd`에 `WEAPON_CLASS`(data-skill.js 것 그대로: bow→archer·
+  spear/club/axe/halberd→warrior·fan/brush→scholar·sword/guandao→marshal·
+  staff/scroll→mystic)·`CLASS_NAMES`(표시용 한글: 무장·궁장·책사·도독·
+  방사)·`class_key_for_weapon()`/`class_name_for_weapon()`을 추가했다.
+  맨손은 warrior로 본다(melee_attack.gd의 기본 ATK_DAMAGE가 애초에 무장
+  기준으로 잡힌 값이라 — 회귀 없음).
+- **실제 버그 하나 발견·수정 — `dungeon_equipment_state.gd::atk_flat_bonus()`
+  가 무기의 주 능력치 종류(might/wisdom/command)를 안 가리고 `weapon.main`을
+  무조건 공격력에 더하고 있었다.** 무장 하나뿐이던 때는(BASES가 전부
+  main="might") 우연히 항상 맞는 값이었는데, 이번에 책사(wisdom)·방사
+  (wisdom/command) 무기가 생기면서 실제로 검증해 보니 지필묵을 든 책사가
+  무장과 똑같이 세지는 것을 확인했다. `DungeonItems.base_by_key()`로
+  주 능력치가 "might"인지 먼저 확인하도록 고쳤다 — 지금은 might 계열
+  무기(무장·궁장·도독)만 main 수치가 공격력에 실제로 반영되고, wisdom/
+  command 계열(책사·방사)은 이름·수치는 뜨지만 이 슬라이스의 유일한
+  전투 채널(무력)엔 안 닿는다(주석에 이미 있던 의도였는데 코드가 안
+  따라가고 있었다).
+- `games/saga_dungeon/ui/job_label.gd`(신규) + `DungeonHUD.tscn`의
+  `JobLabel`(HpLabel 바로 아래) — HpLabel·PartyLabel과 같은 경계(상시
+  표시). `DungeonEquipmentState.weapon_changed`를 구독해 무기를 갈아 들
+  때마다 "🧭 직업: OO"가 바로 바뀐다 — 무예(스킬트리)가 아직 없어 직업이
+  실제로 바꾸는 건 이름·주 능력치 반영 여부뿐이지만, 그것부터 화면에서
+  확인 가능하게 만들었다.
+- `DungeonPlayer.tscn`의 낡은 주석("이번 슬라이스는 직업별 시각 구분을
+  넣지 않는다")을 갱신 — 데이터·라벨로는 직업이 구분되지만, 무기를 손에
+  쥐여 그리는 3D 모델 시스템 자체가 이 판에 아직 없다는 것을 명확히 함
+  (노획도 바닥의 색 박스일 뿐, 이번 항목의 범위 밖).
+- **검증(헤드리스, 디버그 코드는 검증 뒤 원상복구 — diff 0)**: ①
+  `BASES.size()==12` 확인. ②맨손 class_name="무장" 확인. ③여섯 무기
+  (각궁·선채·환도·죽장·병서·편곤) 각각의 look→class 매핑이 WEAPON_CLASS
+  표와 정확히 일치(archer/scholar/marshal/mystic/mystic/warrior) 확인.
+  ④책사 무기(main=20) 장착 시 `atk_flat_bonus()==0.0`, 무장 무기(main=20)
+  장착 시 `atk_flat_bonus()==20.0` — 버그 수정이 실제로 작동함을 확인.
+  ⑤`DungeonItems.roll(1)` 4000회 분포 확인 — 12종 전부 300~360회 사이로
+  고르게 섞여 나옴(기대치 333회에 근접, 새 무기 6종이 실제로 굴림 풀에
+  들어갔다는 뜻). `--headless --editor --quit`(임포트) · `--headless
+  --quit-after 3~4`를 GO·DUNGEON 양쪽 다 연속 3번 — 여섯 번 다 exit 0,
+  error/warn/missing/invalid/cannot 전부 0건.
+  (DUNGEON 씬은 `project.godot`의 `run/main_scene`이 GO의 TestVillage라
+  기본 실행으로는 안 돈다 — `godot --headless --path <프로젝트>
+  res://games/saga_dungeon/world/TestRoom.tscn`처럼 씬 경로를 인자로
+  직접 줘야 DUNGEON을 헤드리스로 돌릴 수 있다. 이전 세션들이 이미 이
+  방식을 썼겠지만 이 문서엔 안 적혀 있었어서 다음에 헤매지 않게 적어 둔다.)
+- **GUI 실기 확인은 아직 안 함** — JobLabel이 화면에서 HpLabel과 안
+  겹치는지, 다른 계열 무기를 주웠을 때 직업 표시가 실제로 바뀌는 게
+  자연스러운지. 아래 "다음에 이어질 것" 목록에 추가.
+- 다음은 위 "다음 세션 시작 지점" 목록의 **2번(소켓+부문어·투장·내구/수리)**.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
@@ -1962,6 +2016,10 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 필요 없다(기록만 남김). 이 시점 이후 새로 생긴 미확인 항목만 이 절
 맨 위에 쌓는다:
 
+- **(2026-09-12⑳ 신규, DUNGEON) JobLabel("🧭 직업: OO")이 HpLabel과 화면에서
+  안 겹치는지, 각궁/선채/환도/죽장 등 다른 계열 무기를 주웠을 때 직업
+  표시가 바로 바뀌는 게 자연스러운지.** 위 "완료 단계 (추가, 2026-09-12⑳)"
+  참고.
 - ~~(2026-09-12⑯~⑱, DUNGEON — 은사·여러 방 연결·장비 등급+접사)~~ —
   **다음 세션에서 실기 확인 완료**("실기로 확인했으니" — 사용자,
   2026-09-12⑲). 세 가지 다 문제 없음.

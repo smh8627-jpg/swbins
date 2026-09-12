@@ -19,8 +19,10 @@ shape = SubResource("CapsuleShape1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
 
 [node name="Visual" parent="." instance=ExtResource("3")]
-## GO의 Player.tscn과 같은 재사용(character-a.glb, 1.25배) — 이번
-## 슬라이스는 직업(무장)별 시각 구분을 넣지 않는다(제외 목록).
+## GO의 Player.tscn과 같은 재사용(character-a.glb, 1.25배). 직업 5종은
+## 이제 데이터+장비로 구분되지만(DungeonItems.WEAPON_CLASS, JobLabel UI),
+## 손에 쥔 무기 3D 모델·직업별 외형은 여전히 없다 — 이 판엔 "무기를 손에
+## 그려 붙이는" 시스템 자체가 아직 없다(노획도 바닥의 색 박스일 뿐).
 transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
 
 [node name="CameraRig" type="Node3D" parent="."]

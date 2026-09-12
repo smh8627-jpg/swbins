@@ -28,10 +28,15 @@ func restore(saved: Dictionary) -> void:
 ## main + might/all 계열 flat 접사 — 이 슬라이스의 유일한 목표 스탯(무력)에
 ## 실제로 닿는 값만 더한다. 지력·통솔 계열 flat은 목표가 없어 0을 더한다
 ## (수치는 이름에 실리지만 효과는 안 낸다 — DungeonItems 주석 참고).
+## "제외" 목록 6번(직업 5종) 이전엔 BASES가 전부 main="might"라 이 주석과
+## 실제 코드(`weapon.main`을 무조건 더함)가 우연히 늘 같은 결과였다 — 이제
+## 책사(wisdom)·방사(wisdom/command) 무기가 생겨 주 능력치 종류를 실제로
+## 가려야 한다(안 가리면 지필묵을 든 책사가 무장과 똑같이 세져 버린다).
 func atk_flat_bonus() -> float:
 	if weapon.is_empty():
 		return 0.0
-	var total: float = float(weapon.main)
+	var b := DungeonItems.base_by_key(str(weapon.get("base", "")))
+	var total: float = float(weapon.main) if (not b.is_empty() and b.main == "might") else 0.0
 	for a_ref: Dictionary in weapon.get("aff", []):
 		var a := DungeonItems.affix_by_key(a_ref.k)
 		if a.is_empty() or a.kind != "flat":
