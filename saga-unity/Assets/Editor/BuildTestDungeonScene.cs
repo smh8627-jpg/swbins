@@ -85,6 +85,57 @@ namespace Saga.EditorTools
             Room2Center + new Vector3(-4f, 0f, -2f),
         };
 
+        // "방 종류 마지막" 슬라이스 — Room2 북쪽에 복도로 Room3(정예 소굴+
+        // 미니보스+채광방)을, 그 북쪽에 다시 복도로 Room4(구출+퍼즐+
+        // 채집)를 잇는다. 좌표 산출은 "오픈월드/필드" 슬라이스가 쓴 것과
+        // 같은 식(방 halfD=7, 벽 두께=1, 복도 길이=8)을 그대로 이어감:
+        // Room2 북쪽 벽 바깥면 z=24+7+1=32 → 복도2 중심 z=32+4=36 →
+        // Room3 남쪽 벽 바깥면 z=36+4=40 → Room3 중심 z=40+7+1=48 →
+        // Room3 북쪽 벽 바깥면 z=48+7+1=56 → 복도3 중심 z=56+4=60 →
+        // Room4 남쪽 벽 바깥면 z=60+4=64 → Room4 중심 z=64+7+1=72.
+        private static readonly Vector3 Corridor2Center = new Vector3(0f, 0f, 36f);
+        private static readonly Vector3 Room3Center = new Vector3(0f, 0f, 48f);
+        private static readonly Vector3 Corridor3Center = new Vector3(0f, 0f, 60f);
+        private static readonly Vector3 Room4Center = new Vector3(0f, 0f, 72f);
+
+        // Room3 "정예 소굴"(js/dungeon.js:342-347) — 정예 하나(forceElite,
+        // ELITES 표의 'fierce' 배율 hp×1.35·dmg×1.9를 그대로 적용,
+        // 세공·희귀도 절차 표는 범위 밖이라 고정 한 종만 씀) + 잡졸 둘.
+        private static readonly Vector3 EliteSpawn = Room3Center + new Vector3(6f, 0f, 0f);
+        private static readonly Vector3[] EliteEscortSpawns =
+        {
+            Room3Center + new Vector3(5f, 0f, 2.5f),
+            Room3Center + new Vector3(5f, 0f, -2.5f),
+        };
+
+        // Room3 "미니보스"(js/dungeon.js:348-352) — 부하 없이 혼자, 보스와
+        // 같은 노획 흐름(`isBoss=true`)을 그대로 재사용(웹판도 `kill()`이
+        // `e.boss`만 보고 이미 보스급 노획을 준다 — 미니보스도 같은 흐름).
+        private static readonly Vector3 MinibossSpawn = Room3Center + new Vector3(9f, 0f, 0f);
+
+        // Room3 "채광방"(js/dungeon.js:353-358, `DungeonVein.cs`) — 정예
+        // 소굴·미니보스(동쪽)와 안 겹치게 서쪽에.
+        private static readonly Vector3 VeinSpawn = Room3Center + new Vector3(-6f, 0f, -4f);
+
+        // Room4 "이벤트방(구출)"(js/dungeon.js:383-393, `DungeonCaptive.cs`) —
+        // 지키는 잡졸 둘을 다 잡아야 풀려난다. 동쪽에.
+        private static readonly Vector3 CaptiveSpawn = Room4Center + new Vector3(6f, 0f, 0f);
+        private static readonly Vector3[] CaptiveGuardSpawns =
+        {
+            Room4Center + new Vector3(5f, 0f, 2.5f),
+            Room4Center + new Vector3(5f, 0f, -2.5f),
+        };
+
+        // Room4 "퍼즐방"(js/dungeon.js:366-382, `DungeonPuzzle.cs`) — 서쪽,
+        // 구출 자리와 안 겹치게.
+        private static readonly Vector3 PuzzleAnchor = Room4Center + new Vector3(-5f, 0f, 0f);
+
+        // Room4 "채집·낚시방"(js/dungeon.js:394-412, `DungeonForage.cs`) —
+        // 북쪽(플레이어 진입 방향인 남쪽 문과 안 겹치게). 내부 오프셋(herb
+        // z=+3~+3.5)을 더하면 최대 z=2+3.5=5.5로 북쪽 벽(z=7)에서 1.5m
+        // 여유를 둔다.
+        private static readonly Vector3 ForageAnchor = Room4Center + new Vector3(-2f, 0f, 2f);
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
 
@@ -99,6 +150,8 @@ namespace Saga.EditorTools
             BuildEnemy();
             BuildRoomPois();
             BuildCorridorAndRoom2();
+            BuildCorridorAndRoom3();
+            BuildCorridorAndRoom4();
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();
             BuildEventSystem();
@@ -166,6 +219,7 @@ namespace Saga.EditorTools
             var room2Builder = room2Go.AddComponent<DungeonRoomBuilder>();
             room2Builder.Build();
             room2Builder.OpenSouthDoor(DoorWidth);
+            room2Builder.OpenNorthDoor(DoorWidth); // "방 종류 마지막" — 복도2로 Room3와 잇는다.
 
             for (int i = 0; i < FieldEnemySpawns.Length; i++)
             {
@@ -188,6 +242,124 @@ namespace Saga.EditorTools
             merchantGo.transform.position = Room2Center + new Vector3(3f, 0f, -3f);
             var merchant = merchantGo.AddComponent<DungeonMerchant>();
             SetPrivateField(merchant, "roomId", "room2");
+        }
+
+        /// <summary>"방 종류 마지막" 슬라이스 — Room2 북쪽에서 복도2를 지나
+        /// Room3(정예 소굴+미니보스+채광방)로 이어진다.</summary>
+        private static void BuildCorridorAndRoom3()
+        {
+            var corridor2Go = new GameObject("Corridor2");
+            corridor2Go.transform.position = Corridor2Center;
+            corridor2Go.AddComponent<DungeonCorridorBuilder>().Build();
+
+            var room3Go = new GameObject("Room3");
+            room3Go.transform.position = Room3Center;
+            var room3Builder = room3Go.AddComponent<DungeonRoomBuilder>();
+            room3Builder.Build();
+            room3Builder.OpenSouthDoor(DoorWidth);
+            room3Builder.OpenNorthDoor(DoorWidth); // 복도3으로 Room4와 잇는다.
+
+            BuildElite();
+            BuildMiniboss();
+
+            var veinGo = new GameObject("Vein");
+            veinGo.transform.position = VeinSpawn;
+            var vein = veinGo.AddComponent<DungeonVein>();
+            SetPrivateField(vein, "roomId", "room3");
+        }
+
+        /// <summary>정예 소굴(js/dungeon.js:342-347) — 정예 하나(ELITES
+        /// 'fierce' 배율 hp×1.35·dmg×1.9 고정 적용) + 잡졸 둘.</summary>
+        private static void BuildElite()
+        {
+            var eliteGo = new GameObject("Enemy_HwangGeon_Elite");
+            eliteGo.transform.position = EliteSpawn;
+            var elite = eliteGo.AddComponent<DungeonEnemy>();
+            SetPrivateField(elite, "roomId", "room3");
+            SetPrivateField(elite, "hp", 32f);   // round(24 * 1.35)
+            SetPrivateField(elite, "dmg", 10f);  // round(5 * 1.9)
+            SetPrivateField(elite, "rewardExp", 30);
+            SetPrivateField(elite, "rewardGold", 16);
+            SetPrivateField(elite, "rewardItemId", "wp_saber");
+            SetPrivateField(elite, "displayName", "사나운 황건적");
+            SetPrivateField(elite, "bodyColor", new Color(0.88f, 0.4f, 0.4f)); // ELITES 'fierce' 색(#e06565)
+            SetPrivateField(elite, "visualScale", 1.15f);
+            SetPrivateField(elite, "modelPrefab", _characterD);
+
+            for (int i = 0; i < EliteEscortSpawns.Length; i++)
+            {
+                var go = new GameObject($"Enemy_HwangGeon_EliteEscort_{i + 1}");
+                go.transform.position = EliteEscortSpawns[i];
+                var escort = go.AddComponent<DungeonEnemy>();
+                SetPrivateField(escort, "roomId", "room3");
+                SetPrivateField(escort, "modelPrefab", _characterD);
+            }
+        }
+
+        /// <summary>미니보스(js/dungeon.js:348-352) — 부하 없이 혼자,
+        /// 두목과 같은 노획 흐름(`isBoss=true`)을 재사용하되 덩치·색으로만
+        /// 구분(두목=3.2m 짙은 적갈, 미니보스=2.6m 자보라).</summary>
+        private static void BuildMiniboss()
+        {
+            var go = new GameObject("Enemy_HwangGeon_Miniboss");
+            go.transform.position = MinibossSpawn;
+            var miniboss = go.AddComponent<DungeonEnemy>();
+            SetPrivateField(miniboss, "roomId", "room3");
+            SetPrivateField(miniboss, "hp", 168f);
+            SetPrivateField(miniboss, "dmg", 11f);
+            SetPrivateField(miniboss, "rewardExp", 100);
+            SetPrivateField(miniboss, "rewardGold", 40);
+            SetPrivateField(miniboss, "rewardItemId", "wp_glaive");
+            SetPrivateField(miniboss, "isBoss", true);
+            SetPrivateField(miniboss, "displayName", "황건 살수");
+            SetPrivateField(miniboss, "bodyColor", new Color(0.32f, 0.24f, 0.5f)); // 자보라 — 두목의 적갈과 구분
+            SetPrivateField(miniboss, "visualScale", 1.3f);
+            SetPrivateField(miniboss, "modelPrefab", _characterC);
+        }
+
+        /// <summary>"방 종류 마지막" 슬라이스 — Room3 북쪽에서 복도3을 지나
+        /// Room4(구출+퍼즐+채집)로 이어진다(막다른 방 — 더 북쪽은 없다).</summary>
+        private static void BuildCorridorAndRoom4()
+        {
+            var corridor3Go = new GameObject("Corridor3");
+            corridor3Go.transform.position = Corridor3Center;
+            corridor3Go.AddComponent<DungeonCorridorBuilder>().Build();
+
+            var room4Go = new GameObject("Room4");
+            room4Go.transform.position = Room4Center;
+            var room4Builder = room4Go.AddComponent<DungeonRoomBuilder>();
+            room4Builder.Build();
+            room4Builder.OpenSouthDoor(DoorWidth);
+
+            BuildCaptive();
+
+            var puzzleGo = new GameObject("Puzzle");
+            puzzleGo.transform.position = PuzzleAnchor;
+            puzzleGo.AddComponent<DungeonPuzzle>();
+
+            var forageGo = new GameObject("Forage");
+            forageGo.transform.position = ForageAnchor;
+            var forage = forageGo.AddComponent<DungeonForage>();
+            SetPrivateField(forage, "roomId", "room4");
+        }
+
+        /// <summary>이벤트방(구출, js/dungeon.js:383-393) — 지키는 잡졸
+        /// 둘을 다 잡아야 풀려난다.</summary>
+        private static void BuildCaptive()
+        {
+            var captiveGo = new GameObject("Captive");
+            captiveGo.transform.position = CaptiveSpawn;
+            var captive = captiveGo.AddComponent<DungeonCaptive>();
+            SetPrivateField(captive, "roomId", "room4");
+
+            for (int i = 0; i < CaptiveGuardSpawns.Length; i++)
+            {
+                var go = new GameObject($"Enemy_HwangGeon_CaptiveGuard_{i + 1}");
+                go.transform.position = CaptiveGuardSpawns[i];
+                var guard = go.AddComponent<DungeonEnemy>();
+                SetPrivateField(guard, "roomId", "room4");
+                SetPrivateField(guard, "modelPrefab", _characterD);
+            }
         }
 
         private static void BuildEnemy()
