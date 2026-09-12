@@ -3739,3 +3739,43 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 여러 성 동시 운영, 전쟁/외교(war.js/diplo.js),
     문답(quiz.js), 또는 이번에 들여온 wall/tech/train을 실제로 소비하는
     전투 슬라이스 — 어느 쪽이든 승인 후.
+
+
+## REALM 여러 성으로 확장 — 진류·복양·허창 (2026-09-12)
+
+- **사용자 지시 "여러 성으로 넓히는 것부터 해줘"** — 전쟁·정복 없이
+  여러 성을 굴리는 방법으로, 시나리오 194의 조조군이 원래부터 성 셋
+  (진류·복양·허창)을 갖고 시작한다는 `data-force.js` 사실을 그대로
+  썼다. "이미 갖고 있던 것"만 플레이 가능하게 넓힌 것 — 외교·전쟁은
+  여전히 범위 밖.
+  - `realm_cities.gd`(신규): 세 성의 data-city.js 정의 + land별 배율.
+    복양(river)이 첫 강가 성이라 조선(ships) 명령이 처음 실제로 쓸모가
+    생겼다.
+  - `realm_orders.gd`: `cap_of()`가 city_id를 받게 바뀜(agri/comm/
+    wall/ships는 성마다, tech/sec/train은 공통).
+  - `realm_save_state.gd`: 가장 큰 변화 — agri~ships 아홉 필드가 플랫
+    var에서 `cities: Dictionary`(city_id→그 성 살림)로, `current_city`
+    (조망·명령 대상) 신설. gold/roster/year/month는 세력 전체 공유
+    그대로. 시작 금고 2400→3200(rtk.js 공식: 2000+성수×400). `next_
+    month()`는 세 성 상업 소득을 합산해 금고에 반영, 군량·치안·병력은
+    성마다 따로 정산. 무장 "성 소속(위치)"은 여전히 안 따진다(로스터
+    중 가장 나은 무장이 current_city 어디든 명령 실행). SAVE_VERSION
+    1→2(구조 변경, 옛 세이브는 자동 무시).
+  - `realm_city_button.gd`(신규): "성" 버튼으로 조망·명령 대상 전환
+    (GO ChoicePrompt 재사용). 디오라마·카메라는 여전히 하나뿐 — 성을
+    바꾸면 같은 자리에서 다시 짓는다.
+  - `realm_city.gd`/`realm_status_label.gd`: current_city 기준으로
+    읽도록 수정, HUD에 성 이름 표시 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-4절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot·.import
+    변경 없음) → 다섯 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그
+    완전 동일. 임시 디버그로 시작 금고 3200·세 성 기본값 전부 공식과
+    일치, 복양 조선 성공(amount=10)·진류 조선 항상 실패(river 게이트)
+    확인, 로스터가 하나뿐이라 한 성에서 명령 쓰면 같은 달 다른 성도
+    못 쓰는 것(officer 소진, 의도된 동작) 확인, 다음 달 정산이 세 성
+    상업 소득 합과 정확히 일치, 저장/불러오기 왕복(세 성 아홉 필드+
+    금고) 확인. 디버그 원상복구(diff 0), 테스트 세이브 삭제.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — realm3d.js식 여러 성 월드맵, 무장을 성마다
+    나눠 앉히는 시스템, 또는 전쟁/외교(war.js/diplo.js)·문답(quiz.js)
+    — 어느 쪽이든 승인 후.

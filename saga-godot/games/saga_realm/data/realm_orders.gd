@@ -1,5 +1,7 @@
 extends RefCounted
 
+const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
+
 ## VERTICAL_SLICE_REALM.md 3절 결정 — 웹판 `rtk.js` ORDERS(10종)을 이제
 ## **전부** 그대로 이식했다(2026-09-12, "나머지 명령도 마저 추가해줘").
 ## gold·base·per 값도 원작 그대로 — 새 판정식을 상상하지 않는다는 이
@@ -20,14 +22,13 @@ extends RefCounted
 ##   옮겼다** — pop은 징병으로만 줄어든다. troops는 대신 매달 군량을
 ##   먹는다(rtk.js eatOf()/굶주림 로직은 그대로 옮겼다 — 안 그러면 병력이
 ##   군량과 아무 관계 없는 죽은 숫자가 된다).
-## - 조선(ships) — 허창은 land: plain(강 없음)이라 rtk.js도 이 성에서는
-##   원래 늘 실패한다("물길이 없는 성입니다"). 새 판정을 안 만들고 그
-##   실패 그대로 옮겼다 — 여러 성(그중 강가 성)으로 넓힐 때 실제로 쓰이게
-##   된다.
+## - 조선(ships) — land: plain(강 없음) 성에서는 rtk.js도 원래 늘 실패한다
+##   ("물길이 없는 성입니다"). 새 판정을 안 만들고 그 실패 그대로 옮겼다.
 ##
-## capOf()·goldOf()·foodOf()·secMul()·govMul()도 전부 `rtk.js` 원문 그대로
-## 옮겼다. 이 슬라이스는 성이 허창(許昌) 하나뿐이고(land: plain, agriCap/
-## commCap 둘 다 1.0) capOf()는 그 경우로 좁혀 상수로 굳혔다 — 공식 자체는
+## **2026-09-12 추가 — 여러 성(진류·복양·허창).** capOf()가 이제 성마다
+## 다르다(`realm_cities.gd`의 land별 배율) — 성 하나(허창)만 있을 때
+## 상수로 굳혔던 CAP_AGRI 등을 city_id를 받는 계산으로 되돌렸다. capOf()·
+## goldOf()·foodOf()·secMul()·govMul() 공식 자체는 여전히 `rtk.js` 원문
 ## 그대로다.
 
 const ORDERS := [
@@ -53,24 +54,17 @@ const ORDERS := [
 	 "desc": "찾아낸 재야를 부른다."},
 ]
 
-const CAP_AGRI := 900     # rtk.js capOf(): round(900 * land.agriCap), 허창 agriCap=1.0
-const CAP_COMM := 900     # 위와 같음(commCap=1.0)
-const CAP_TECH := 900     # rtk.js capOf(key === 'tech') 그대로
-const CAP_SEC := 100      # rtk.js capOf(key === 'sec') 그대로
-const CAP_TRAIN := 100    # rtk.js capOf(key === 'train') 그대로
-const BASE_WALL := 5400   # data-city.js 허창 wall(=rtk.js d.wall) — capOf('wall')의 기준값
-const CAP_WALL := 10800   # rtk.js capOf(): round(d.wall * 2) = round(5400*2)
-const CAP_SHIPS := 0      # rtk.js capOf(): 강가 아닌 성은 0 — 허창은 plain이라 늘 0
-const IS_RIVER := false   # 허창(plain) — rtk.js order()가 ships를 여기서 항상 막는 이유
+const CAP_TECH := 900     # rtk.js capOf(key === 'tech') 그대로 — land 무관
+const CAP_SEC := 100      # rtk.js capOf(key === 'sec') 그대로 — land 무관
+const CAP_TRAIN := 100    # rtk.js capOf(key === 'train') 그대로 — land 무관
 
 const UPKEEP_PER_OFFICER := 12   # rtk.js UPKEEP_PER_OFFICER
 const GOLD_MUL := 0.55           # rtk.js goldOf()의 rtk.goldMul 튜닝값 기본값
 const FOOD_MUL := 6.0            # rtk.js foodOf()의 rtk.foodMul 튜닝값 기본값
 const FOOD_PER_1000 := 10        # rtk.js FOOD_PER_1000 — 병사 1000명의 한 달 군량
-const SEC_START := 60            # rtk.js setup()의 sec 시작값
-const TECH_START := 100          # rtk.js setup()의 tech 시작값
-const TRAIN_START := 40          # rtk.js setup()의 train 시작값
-const POP_START := 260000        # data-city.js 허창 pop
+const SEC_START := 60            # rtk.js setup()의 sec 시작값 — land 무관
+const TECH_START := 100          # rtk.js setup()의 tech 시작값 — land 무관
+const TRAIN_START := 40          # rtk.js setup()의 train 시작값 — land 무관
 const HARVEST_MONTHS := [6, 10]  # rtk.js HARVEST_MONTHS
 
 
@@ -81,16 +75,17 @@ static func by_key(key: String) -> Dictionary:
 	return {}
 
 
-## rtk.js capOf() — draft(별도 공식)·ships(허창은 늘 0, order()가 아예
-## 막는다)를 뺀 나머지 개발형 명령(agri/comm/tech/sec/wall/train) 전부.
-static func cap_of(key: String) -> int:
+## rtk.js capOf() — draft(별도 공식)를 뺀 나머지 개발형 명령 전부.
+## agri/comm/wall/ships는 성마다 다르다(RealmCities, land별 배율).
+static func cap_of(key: String, city_id: String) -> int:
 	match key:
-		"agri": return CAP_AGRI
-		"comm": return CAP_COMM
+		"agri": return RealmCities.agri_cap(city_id)
+		"comm": return RealmCities.comm_cap(city_id)
 		"tech": return CAP_TECH
 		"sec": return CAP_SEC
-		"wall": return CAP_WALL
+		"wall": return RealmCities.wall_cap(city_id)
 		"train": return CAP_TRAIN
+		"ships": return RealmCities.ships_cap(city_id)
 	return 999999
 
 
