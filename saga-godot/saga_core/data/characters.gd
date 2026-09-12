@@ -6,7 +6,8 @@ extends RefCounted
 ## 다섯 곳은 서로 md5로 동일함을 확인하며 유지되는 한 벌이라, 여기 옮긴 것도
 ## 그 한 벌에서 그대로 가져온 것 — 새 id 체계를 만들지 않았다).
 ##
-## 2026-09-11 시점 105명(삼국지 22·한국사 26·일본사 20·세계사 37). REALM
+## 2026-09-11 시점 105명(삼국지 22·한국사 26·일본사 20·세계사 37,
+## 2026-09-12 rf_mizhu·rf_jianyong 추가로 107명·삼국지 24). REALM
 ## 전용 무장(js/data-force.js, 130명+)은 이번에 포함하지 않았다 — LEGACY_
 ## FEATURE_AUDIT.md는 REALM 것도 통합하기로 했지만, REALM Godot 포트는
 ## 39장 순서상(Core→Vertical Slice→GO→DUNGEON→FOREST→STORY→REALM) 아직
@@ -16,6 +17,17 @@ extends RefCounted
 ## CLAUDE.md "이름 정책")은 원본에서 이미 지켜진 상태 그대로 옮겼다 —
 ## name·hanja만 가명, BIOS(열전)는 옮기지 않았다(정책 미준수 상태라 그대로
 ## 들고 오면 saga_core에도 같은 문제가 생긴다 — 옮기지 않는 것이 맞다).
+##
+## **2026-09-12 추가 — rf_mizhu·rf_jianyong(사용자 승인, 소패 수비
+## 완전화 목적)만 예외로 앞당겨 옮겼다.** 나머지 REALM 무장 130명+은
+## 여전히 REALM 차례(위 이유)까지 안 옮긴다. **주의 — 이 둘의 원본
+## (js/data-force.js)은 name·hanja가 가명화가 안 된 실명(미축/麋竺·
+## 간옹/簡雍) 상태다** — 105명과 달리 "원본에서 이미 지켜진 상태를
+## 그대로 옮긴" 것이 아니라, **이 파일에서 처음으로 가명(창윤/倉潤·
+## 언유/言柔)을 새로 지어 넣었다.** era·faction·rarity·trait·stats·
+## emoji·quote는 원본 그대로(quote는 이름을 드러내지 않아 정책에 안
+## 걸린다). 나중에 REALM 무장 전체를 옮길 때 이 둘도 다시 마주칠 텐데,
+## 그때 다른 이름으로 또 바뀌지 않도록 이 가명을 그대로 이어 쓸 것.
 ##
 ## 필드: id(불변 고유키) · name(표시 이름, 가명) · era(시대 그룹) ·
 ## faction(세력) · rarity(1~5) · trait(might/wisdom/virtue, 설득 어필 방향) ·
@@ -375,6 +387,38 @@ const HEROES := [
 		"hanja": "蠻王",
 		"emoji": "🐘",
 		"quote": "일곱 번 져도 여덟 번 일어난다!"
+	},
+	{
+		"id": "rf_mizhu",
+		"name": "창윤",
+		"era": "삼국지",
+		"faction": "촉",
+		"rarity": 3,
+		"trait": "wisdom",
+		"stats": {
+			"might": 26,
+			"wisdom": 84,
+			"command": 62
+		},
+		"hanja": "倉潤",
+		"emoji": "💰",
+		"quote": "집안의 재물을 다 내어 군자금에 보태겠습니다."
+	},
+	{
+		"id": "rf_jianyong",
+		"name": "언유",
+		"era": "삼국지",
+		"faction": "촉",
+		"rarity": 2,
+		"trait": "wisdom",
+		"stats": {
+			"might": 30,
+			"wisdom": 80,
+			"command": 55
+		},
+		"hanja": "言柔",
+		"emoji": "🗣️",
+		"quote": "말로 푸는 일이라면 제가 가지요."
 	},
 	{
 		"id": "kr_yisunsin",

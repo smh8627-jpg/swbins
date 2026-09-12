@@ -48,7 +48,15 @@ const Characters := preload("res://saga_core/data/characters.gd")
 ## = [sg_guanyu, sg_zhangfei, rf_mizhu, rf_jianyong] 중 **saga_core
 ## characters.gd에 이미 있는 둘만**(sg_guanyu·sg_zhangfei) 소패 수비
 ## 무장으로 들였다 — rf_* 둘은 REALM 전용 데이터(130명+)라 saga_core에
-## 아직 없다(다음에 볼 자리). `base_loyal()`을 **군주를 인자로 받게**
+## 아직 없다(다음에 볼 자리).
+##
+## **2026-09-12 추가② — rf_mizhu·rf_jianyong도 saga_core에 들어왔다
+## (가명 창윤·언유, characters.gd 참고).** `realm_cities.gd`
+## `ENEMY_CITIES[xiaopei].officers`가 이제 넷 다 들고 있다 — 이 파일의
+## 판정식(base_loyal·PLOTS·discord_chance·bribe_chance)은 officers
+## 배열 길이·대상 id에 안 물려 있어(대상은 매번 `enemies[].officers`를
+## 읽어 고른다) 코드 변경 없이 그대로 넷을 다 받는다.
+## `base_loyal()`을 **군주를 인자로 받게**
 ## 일반화했다(기본값 LORD_ID로 기존 호출은 그대로) — 소패 수비 무장의
 ## 충성 바닥값은 그들의 군주(`sg_liubei`) 기준으로 재야만큼 계산해야
 ## 해서다. **매수 후보에서 군주는 뺀다**(diplo.js plot() "cands.filter

@@ -4247,3 +4247,32 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 사용자가 승인한 나머지 둘: rf_mizhu·
     rf_jianyong을 saga_core에 들이는 것, 그리고 REALM 밖 다른 판
     (STORY가 진도 가장 얕음) 작업.
+
+
+## rf_mizhu·rf_jianyong을 saga_core에 들이기 — 소패 수비 완전화 (2026-09-12)
+
+- **사용자 지시 "1,2,3 다 진행해"** — 세 후보 중 두 번째. 소패 수비
+  무장을 data-force.js 원문 넷(sg_guanyu·sg_zhangfei·rf_mizhu·
+  rf_jianyong) 전부로 채웠다.
+  - **이름 정책 예외** — 이 둘의 원본(`saga-realm/js/data-force.js`)은
+    가명화가 안 된 실명 상태(미축/麋竺·간옹/簡雍)였다 — 루트 CLAUDE.md
+    이름 정책에 따라 이 세션에서 처음 가명을 지었다: 창윤(倉潤)·
+    언유(言柔). id·era·faction·rarity·trait·stats·emoji·quote는
+    원문 그대로.
+  - `saga_core/data/characters.gd`: 105명→107명(삼국지 22→24), 머리말에
+    예외 처리 기록.
+  - `realm_cities.gd`: `ENEMY_CITIES[xiaopei].officers`를 넷으로.
+  - `realm_diplo.gd`/`realm_save_state.gd` — **코드 변경 없음**(이미
+    officers 배열 길이에 안 물리는 일반식이었다).
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 12절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결. 임시 디버그로
+    base_loyal 넷(52·46·52·58)·guard_wisdom(84, 미축으로 바뀜)·
+    army_power(4명, 777.09, 2명일 때 751.33에서 증가) 전부 손 계산과
+    일치. 허창 병력 10만으로 강제 함락 → found[]에 네 명 전부 이동,
+    officers 빈 배열 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 사용자가 승인한 마지막 하나: REALM 밖 다른 판
+    작업. STORY가 진도 가장 얕아(첫 Vertical Slice 조각만 완료) 유력 —
+    "제외" 목록(사냥터 8곳·전직 트리·무예 47개·장비/노획·보스·원거리
+    적)을 DUNGEON/FOREST 방식으로 하나씩 채우는 쪽.

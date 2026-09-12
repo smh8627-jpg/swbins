@@ -112,15 +112,18 @@ static func map_center() -> Vector2:
 ## (지도 좌표가 있어야 realm_worldmap.gd가 마커를 세울 수 있다).
 ## **2026-09-12 추가 — 이간·매수용 수비 무장(`officers`).** data-force.js
 ## force('bei').officers = [sg_guanyu, sg_zhangfei, rf_mizhu, rf_jianyong]
-## 중 saga_core characters.gd에 이미 있는 둘만(rf_* 둘은 REALM 전용
-## 데이터라 아직 없다, `realm_diplo.gd` 머리말 참고). **군주(`lord`)는 이
-## 목록에 안 넣는다** — diplo.js plot() "매수 후보에서 군주는 뺀다"를
+## 넷 다 원문 그대로. 처음엔 saga_core characters.gd에 있던 둘만(sg_*)
+## 넣었다가(rf_* 둘은 당시 REALM 전용 데이터라 saga_core에 없었다), 같은 날
+## rf_mizhu·rf_jianyong을 saga_core에 가명(창윤·언유)으로 들여온 뒤
+## 마저 채웠다(characters.gd 머리말 2026-09-12 항목 참고). **군주(`lord`)는
+## 이 목록에 안 넣는다** — diplo.js plot() "매수 후보에서 군주는 뺀다"를
 ## 자료 단계에서부터 지킨다(필터링 코드로 매번 걸러내지 않아도 된다).
 const ENEMY_CITIES := [
 	{"id": "xiaopei", "name": "소패", "hanja": "小沛", "land": "plain", "from_city": "xuchang",
 	 "x": 70, "y": 43, "agri_start": 220, "comm_start": 200, "pop_start": 120000,
 	 "wall_start": 3600, "troops_start": 800, "train_start": 40, "tech_start": 100,
-	 "force": "bei", "lord": "sg_liubei", "officers": ["sg_guanyu", "sg_zhangfei"],
+	 "force": "bei", "lord": "sg_liubei",
+	 "officers": ["sg_guanyu", "sg_zhangfei", "rf_mizhu", "rf_jianyong"],
 	 "desc": "서주의 작은 성. 허창과 맞닿아 있다."},
 ]
 

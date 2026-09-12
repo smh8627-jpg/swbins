@@ -1188,3 +1188,59 @@ size=20(제한 정확), 분야별 `quiz_learned_list(cat_key)` size가 각각
 **다음 이어질 것** — 사용자가 승인한 나머지 둘: rf_mizhu·rf_jianyong을
 saga_core에 들이는 것, 그리고 REALM 밖 다른 판(STORY가 가장 진도가
 얕아 유력) 작업.
+
+
+## 12. rf_mizhu·rf_jianyong을 saga_core에 들이기 — 소패 수비 완전화 (2026-09-12)
+
+**사용자 지시 "1,2,3 다 진행해"** — 세 후보 중 두 번째. 9절에서 "saga_core
+characters.gd에 없어서" 뺐던 유비군 남은 둘(미축·간옹)을 마저 들여 소패
+수비 무장을 data-force.js 원문의 넷(sg_guanyu·sg_zhangfei·rf_mizhu·
+rf_jianyong) 전부로 채웠다.
+
+**주의 — 이름 정책 예외 처리.** 105명의 기존 HEROES는 "원본(웹판)에서
+이미 가명화된 상태를 그대로 옮긴" 것인데, 이 둘의 원본(`saga-realm/js/
+data-force.js`)은 **가명화가 안 된 실명 상태**였다(미축/麋竺·간옹/簡雍
+그대로 — REALM 전용 데이터라 2026-09-06 HEROES 가명화 작업의 범위 밖에
+있었다). 루트 CLAUDE.md 이름 정책("새 역사 인물을 추가할 때 실명을
+쓰지 않는다")에 따라 **이 세션에서 처음으로 가명을 새로 지었다**:
+미축(麋竺)→**창윤(倉潤)**, 간옹(簡雍)→**언유(言柔)**. id·era·faction·
+rarity·trait·stats·emoji·quote는 원문 그대로(quote는 이름을 안 드러내
+정책에 안 걸린다).
+
+**구현**:
+- `saga_core/data/characters.gd`: `rf_mizhu`·`rf_jianyong` 두 항목을
+  삼국지 절 끝(`sg_menghuo` 다음)에 추가. 105명→107명(삼국지 22→24).
+  머리말에 이 예외 처리를 기록(다음에 REALM 무장 전체를 옮길 때 같은
+  가명을 이어 쓰도록).
+- `realm_cities.gd`: `ENEMY_CITIES[xiaopei].officers`를 `[sg_guanyu,
+  sg_zhangfei]`에서 data-force.js 원문 그대로 넷으로 채웠다.
+- `realm_diplo.gd`, `realm_save_state.gd`(`_enemy_guard_wisdom()`·
+  `_pick_plot_target()`·`attack()`의 `def_army`·capture `found[]` 이동)
+  전부 **코드 변경 없음** — 이미 `officers` 배열 길이에 안 물리고
+  루프로 도는 일반식이었다(9절에서 이렇게 짠 이유가 여기서 그대로
+  득이 됐다).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 알려진 노이즈라 되돌림) → 다섯 씬 전부 `--quit-after 5` 세 번
+연속 exit 0·로그 무결. **임시 디버그로 실제 값 확인**(`realm_city.gd`
+`_ready()`에 잠깐 추가): `officers`=네 id 정확 → `base_loyal()` 재계산
+— 관우 52·장비 46(기존과 동일, 회귀 없음)·**미축 52**(rarity3, trait
+불일치라 보정 없음)·**간옹 58**(rarity2, (2-3)*6=-6 만큼 오히려 +6)
+전부 손 계산과 정확히 일치. `guard_wisdom`=**84**(미축, 지력84로 관우
+75보다 높아져 태수 역할이 바뀜 — 의도한 재균형) → 2명일 때(75)와
+비교해 변화 확인. `army_power`(4명, troops800·train40·tech100·
+command95·might98)=**777.09**(officer_count 보정 (4-1)×0.03=0.09 추가,
+2명일 때 751.33에서 손 계산대로 증가) 정확히 일치. `_pick_plot_target`
+=장비(로열티 46, 최저) 정확. **함락까지 재현**(허창 병력 10만으로
+`attack("xiaopei")` 강제 승리) → `found[]`에 네 명 전부 정확히 들어감,
+`enemies.xiaopei.officers`는 빈 배열로 정리됨 확인. 디버그 원상복구
+(`realm_city.gd` git diff 0줄), 테스트 세이브 없음.
+
+**GUI 실기 확인은 아직 안 함** — 계략 메뉴에 네 후보(대상)가 다 뜨는지,
+이름(창윤·언유)이 자연스럽게 보이는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 사용자가 승인한 마지막 하나: REALM 밖 다른 판
+작업. STORY가 방금 첫 Vertical Slice 조각만 끝나 진도가 가장 얕다
+(3절 참고 아님 — `docs/PROJECT_STATE.md` STORY 항목) — STORY의 "제외"
+목록(사냥터 8곳·전직 트리·무예 47개·장비/노획·보스·원거리 적)을
+DUNGEON·FOREST가 했던 것과 같은 방식으로 하나씩 채우는 쪽이 유력.
