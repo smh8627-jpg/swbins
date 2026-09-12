@@ -37,6 +37,17 @@ namespace Saga.EditorTools
             new Vector3(3f, 0f, 5f),
         };
 
+        // "엘리트/보스" 슬라이스 — saga-dungeon 웹판 makeRoom('boss', ...)
+        // (dungeon.js:327-330)와 같은 구성, floor=1 기준 부하 수 공식
+        // min(6, 2 + floor(1/5)) = 2명. 잡졸 무리보다 더 안쪽(동쪽 벽
+        // 가까이)에 둬 방을 가로질러야 만나는 "정점" 자리로 삼는다.
+        private static readonly Vector3 BossSpawn = new Vector3(9f, 0f, 0f);
+        private static readonly Vector3[] BossEscortSpawns =
+        {
+            new Vector3(8f, 0f, 2.5f),
+            new Vector3(8f, 0f, -2.5f),
+        };
+
         [MenuItem("Saga/Build TestDungeon Scene")]
         public static void Build()
         {
@@ -88,6 +99,36 @@ namespace Saga.EditorTools
             {
                 var go = new GameObject($"Enemy_HwangGeon_{i + 1}");
                 go.transform.position = EnemySpawns[i];
+                go.AddComponent<DungeonEnemy>();
+            }
+
+            BuildBoss();
+        }
+
+        /// <summary>두목 하나 + 부하 둘 — 잡졸과 같은 `DungeonEnemy`
+        /// 컴포넌트를 재사용하되(다음 슬라이스 코멘트 참고, 값이 다른
+        /// 인스턴스라 [SerializeField]로 받는다) 두목만 스탯을 덮어쓴다.
+        /// 부하 둘은 잡졸 기본값 그대로(웹판 boss room도 부하는 일반
+        /// spawnEnemy).</summary>
+        private static void BuildBoss()
+        {
+            var bossGo = new GameObject("Enemy_HwangGeon_Boss");
+            bossGo.transform.position = BossSpawn;
+            var boss = bossGo.AddComponent<DungeonEnemy>();
+            SetPrivateField(boss, "hp", 168f);            // enemyHp(1, boss=true) = round(24*7)
+            SetPrivateField(boss, "dmg", 11f);             // enemyDmg(1, boss=true) = round(5*2.2)
+            SetPrivateField(boss, "rewardExp", 100);       // 잡졸(20)의 5배 — dungeon.js dropGold의 boss 배율(5) 재사용
+            SetPrivateField(boss, "rewardGold", 40);       // 잡졸(8)의 5배, 같은 이유
+            SetPrivateField(boss, "rewardItemId", "wp_glaive");
+            SetPrivateField(boss, "isBoss", true);
+            SetPrivateField(boss, "displayName", "황건적 두목");
+            SetPrivateField(boss, "bodyColor", new Color(0.45f, 0.08f, 0.08f)); // 짙은 적갈 — 잡졸의 누런 두건과 구분
+            SetPrivateField(boss, "visualScale", 1.6f);
+
+            for (int i = 0; i < BossEscortSpawns.Length; i++)
+            {
+                var go = new GameObject($"Enemy_HwangGeon_Escort_{i + 1}");
+                go.transform.position = BossEscortSpawns[i];
                 go.AddComponent<DungeonEnemy>();
             }
         }

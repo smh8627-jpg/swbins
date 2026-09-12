@@ -27,6 +27,13 @@ namespace Saga.Dungeon.Data
             // 황건적(World/DungeonEnemy.cs) 처치 확정 드랍 — 이번 슬라이스
             // 유일한 보상 아이템이라 확률 룰렛 없이 항상 나온다.
             ["wp_axe"] = new ItemData("wp_axe", "쇠도끼", 12f),
+            // 두목(황건적 두목, DungeonEnemy isBoss=true) 확정 드랍 —
+            // js/dungeon.js의 boss 공격력 배율(2.2배, enemyDmg 공식)을
+            // 그대로 재사용해 wp_axe(12) × 2.2 = 26.4 → 26으로 잡았다
+            // (웹판 boss 노획은 절차적 희귀도 시스템이라 이번 슬라이스
+            // 범위 밖 — VERTICAL_SLICE_DUNGEON.md "제외" 참고, 그래도
+            // 임의 수치 대신 기존 공식의 배율을 재사용).
+            ["wp_glaive"] = new ItemData("wp_glaive", "귀두도", 26f),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;
