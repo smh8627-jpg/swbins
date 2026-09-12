@@ -86,6 +86,7 @@ namespace Saga.EditorTools
             BuildRoomPois();
             BuildCorridorAndRoom2();
             var (playerGo, playerCombat, playerController) = BuildPlayer();
+            BuildAlly();
             BuildEventSystem();
             BuildDialogueUi();
             BuildPlayerHud();
@@ -265,6 +266,16 @@ namespace Saga.EditorTools
             var combat = playerGo.AddComponent<PlayerCombat>();
 
             return (playerGo, combat, pc);
+        }
+
+        /// <summary>"부대(다중 영웅) 시스템" 슬라이스 — 등용 없이 처음부터
+        /// 함께 있는 동행 하나(`AllyFighter.cs` 참고). 플레이어 스폰
+        /// 바로 옆에 둔다.</summary>
+        private static void BuildAlly()
+        {
+            var go = new GameObject("Ally");
+            go.transform.position = PlayerSpawn + new Vector3(1.5f, 0f, 0f);
+            go.AddComponent<AllyFighter>();
         }
 
         private static void BuildEventSystem()
