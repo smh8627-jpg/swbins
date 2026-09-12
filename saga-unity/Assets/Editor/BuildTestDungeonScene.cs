@@ -406,8 +406,14 @@ namespace Saga.EditorTools
             SetPrivateField(miniboss, "rewardGemId", "gem_ruby"); // "세공·행상 재고 굴리기·도감" 슬라이스 — GemData.cs 참고
             SetPrivateField(miniboss, "isBoss", true);
             SetPrivateField(miniboss, "displayName", "황건 살수");
-            SetPrivateField(miniboss, "bodyColor", new Color(0.32f, 0.24f, 0.5f)); // 자보라 — 두목의 적갈과 구분
-            SetPrivateField(miniboss, "visualScale", 1.3f);
+            // 사람이 실기로 "두목보다 안 세 보인다"고 제보(2026-09-12) — 웹판
+            // spawnEnemy(floor, true) 공식이 두목과 완전히 같은 HP/공격력이라
+            // 수치는 그대로 두되(웹판 기준 원래 동급), 진행상 더 나중(Room3)에
+            // 만나는 개체가 더 작고 색도 옅어 약해 보였다. 두목(1.6배·3.2m)보다
+            // **더 크게(1.8배·3.6m)**·색도 짙고 채도 높은 자보라로 올려 "더
+            // 깊이 들어갈수록 더 위협적"으로 읽히게 했다.
+            SetPrivateField(miniboss, "bodyColor", new Color(0.24f, 0.04f, 0.4f));
+            SetPrivateField(miniboss, "visualScale", 1.8f);
             SetPrivateField(miniboss, "modelPrefab", _characterC);
         }
 
