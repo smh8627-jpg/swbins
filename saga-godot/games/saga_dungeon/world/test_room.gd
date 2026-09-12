@@ -11,6 +11,9 @@ extends Node3D
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const DungeonEnemy := preload("res://games/saga_dungeon/world/dungeon_enemy.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+## GO의 사건 선택지 패널을 그대로 재사용한다(GLBUtils·Toast와 같은 cross-game
+## 재사용 경계 — GO 전용 로직이 아니라 순수 UI 빌더라 옮길 필요가 없다).
+const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 
 const ROOM_GLB := "res://assets/dungeon/room-small.glb"
 const GATE_GLB := "res://assets/dungeon/gate.glb"
@@ -122,12 +125,43 @@ func _spawn_exit_trigger() -> void:
 	area.body_entered.connect(_on_exit_entered)
 
 
-## DungeonSaveState(전용 파일, GO의 SaveState와 완전히 분리)로 실제
-## 저장한다 — VERTICAL_SLICE_DUNGEON.md 완료 조건 8단계의 마지막 자리.
+## "제외" 목록 1번(은사) — 웹판 dungeon.js의 descend()가 층을 내려가기 전에
+## 은사 셋 중 하나를 고르게 하는 것과 같은 자리. 이 슬라이스는 층이 아니라
+## 방 하나뿐이라 "문으로 나간다"가 그 자리를 대신한다. 고른 뒤에야 실제로
+## 저장한다(DungeonSaveState, GO의 SaveState와 완전히 분리) —
+## VERTICAL_SLICE_DUNGEON.md 완료 조건 8단계의 마지막 자리.
 func _on_exit_entered(body: Node3D) -> void:
 	if _exit_used or not body.is_in_group("player"):
 		return
 	_exit_used = true
+	var choice := DungeonRunState.roll_choice()
+	if choice.is_empty():
+		## 모든 은사가 상한까지 찬 드문 경우 — 고를 게 없으니 그냥 나간다.
+		_finish_exit(body)
+		return
+	## GDScript 람다는 바깥 지역 변수를 "생성 시점 값"으로 캡처한다 —
+	## `layer`를 ChoicePrompt.build() 호출 **전에** 만든 콜백에서 그대로
+	## 참조하면 항상 null을 캡처한다(실측으로 확인: "Cannot call method
+	## 'queue_free' on a null value"). Dictionary는 참조 타입이라 그 안에
+	## 나중에 채워 넣으면 콜백도 같은 내용을 보게 된다 — 그 우회로 고쳤다.
+	var layer_box := {}
+	var choices: Array = []
+	for key in choice:
+		var b := DungeonBoons.by_key(key)
+		choices.append({
+			"label": "%s %s — %s" % [b.emoji, b.name, b.desc],
+			"cb": func() -> void: _on_boon_picked(key, body, layer_box),
+		})
+	layer_box["layer"] = ChoicePrompt.build(self, "🎴 은사를 고르세요", choices)
+
+
+func _on_boon_picked(key: String, body: Node3D, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	DungeonRunState.apply_boon(key)
+	_finish_exit(body)
+
+
+func _finish_exit(body: Node3D) -> void:
 	DungeonSaveState.save(body, true)
 	Toast.show(self, "이번 방을 클리어했다 — 저장했다.", 5.0)
 

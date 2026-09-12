@@ -1685,18 +1685,85 @@ master.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 �
 반영됨(`45ecfd2`~`d060c4e`, 저장 구현 `9d17cc8`, 리뷰 보강분 이번 커밋).
 
 **다음 세션 시작 지점:**
-1. **DUNGEON은 이번이 첫 실기 확인이다** — 위 "실기 확인" 절 맨 위
-   (2026-09-12⑫~⑭ 신규)에 쌓아 둔 목록을 사용자가 확인했는지 먼저
-   물어본다. 특히 고정 카메라 각도가 "디아블로처럼"이라는 원래 요청과
-   맞는 느낌인지가 가장 중요한 질문 — 안 맞으면 콘텐츠를 더 쌓기 전에
-   여기부터 고친다(VERTICAL_SLICE_DUNGEON.md 자체가 그렇게 하라고 못박아
-   둠).
-2. GO의 실기 확인 목록(2026-09-12①~⑥)도 아직 확인 전이면 같이 물어본다.
-3. 확인 결과에 따라 고치거나, DUNGEON 다음 슬라이스(은사·직업 5종·장비
-   등급·보스층)로 넘어가거나, GO의 남은 큰 시스템(성채)을 잇거나 —
-   사용자에게 다시 방향을 물어 정한다.
+1. ~~DUNGEON은 이번이 첫 실기 확인이다~~ — **확인 완료(2026-09-12, 다음
+   세션).** 사용자가 "확인함 — 문제 없음"으로 답변. 고정 카메라(pitch
+   55°) 느낌도 "디아블로처럼 화면 고정"이라는 원래 요청과 맞는다는
+   뜻으로 통과. **DUNGEON Vertical Slice도 GO와 같은 방식으로 승인됨** —
+   이제 DUNGEON 다음 슬라이스(은사·직업 5종·장비 등급+접사·보스층 등,
+   VERTICAL_SLICE_DUNGEON.md "제외" 목록)로 넘어갈 수 있다.
+2. GO의 실기 확인 목록(2026-09-12①~⑥)은 아직 별도 확인 전 — DUNGEON과
+   별개로 남아 있다.
+3. 확인 결과에 따라 고치거나, DUNGEON 다음 슬라이스로 넘어가거나, GO의
+   남은 큰 시스템(성채)을 잇거나 — 사용자에게 다시 방향을 물어 정한다.
 4. 확인 전이면 실기 확인 목록만 정리해 두고 앞서서 새 콘텐츠를 만들지
    않는다(루트 CLAUDE.md "실기 확인은 몰아서" 방침 그대로).
+
+## 완료 단계 (추가, 2026-09-12⑯) — DUNGEON "제외" 목록 1번: 은사(恩賜)
+
+**사용자가 "1,2,3 순서대로 진행해"로 DUNGEON 다음 슬라이스 순서를
+정했다 — 은사 → 층 전체(여러 방 연결) → 장비 등급+접사.** 이번 세션은
+그중 1번(은사)만.
+
+- 웹판 `saga-dungeon/js/data-dungeon.js`의 `BOONS`(14종, key·name·emoji·
+  max·desc·eff 전부)를 상수 하나 안 바꾸고 `games/saga_dungeon/data/
+  dungeon_boons.gd`(`class_name DungeonBoons`)로 옮겼다.
+- `games/saga_dungeon/data/dungeon_run_state.gd`(신규, autoload
+  `DungeonRunState`) — 웹판 `rollBoonChoice()`(상한 안 찬 것 중 3개 무작위,
+  중복 없음)·`applyBoon()`(상한 확인·healOnPick 즉시 회복)을 그대로 이식.
+  **실제로 적용한 eff 키**: atkPct·atkSpdPct·moveSpdPct·reachPct·
+  hpPct+healOnPick·guardPct·drainPct·critPct(1.85배, `dungeon.js` strike()
+  그대로)·echoPct(분신 — 같은 대상에게 한 번 더). **적용하지 않은 키**(이
+  슬라이스에 해당 시스템 자체가 없다 — 주석에 이유 남김): goldPct(경제
+  없음)·worldFindPct(장비 희귀도 없음)·healOnFloor(여러 방/층 진입
+  이벤트 없음)·reveal(시야 시스템 없음)·piercePct(적에게 방어력 자체가
+  없다, 잡졸은 고정 HP만).
+- `test_room.gd::_on_exit_entered()` — 웹판 `descend()`가 층 내려가기 전
+  은사를 고르게 하는 자리를, 방 하나뿐인 이 슬라이스에서는 "문으로
+  나간다"가 대신한다. GO의 `choice_prompt.gd`(순수 UI 빌더, GLBUtils·
+  Toast와 같은 cross-game 재사용 경계)로 3택 패널을 띄우고, 고른 뒤에야
+  `DungeonSaveState.save()`를 부른다(은사 없이 바로 나가던 이전 흐름을
+  대체).
+  - **실제로 밟은 삽질 — GDScript 람다는 바깥 지역 변수를 "생성 시점
+    값"으로 캡처한다.** `var layer; ...for k in choice: choices.append({"cb":
+    func(): _on_boon_picked(key, body, layer)}); layer = ChoicePrompt.build(...)`
+    처럼 짰더니 콜백이 항상 `layer=null`을 캡처해 고르는 순간
+    `Cannot call method 'queue_free' on a null value`로 죽었다(헤드리스
+    E2E 시뮬레이션으로 실제로 재현·확인). Dictionary(참조 타입) 하나에
+    담아 나중에 채워 넣는 우회(`layer_box["layer"] = ...`)로 고쳤다.
+    **GO의 `npc_builder.gd::_show_offer_prompt()`도 구조가 완전히
+    똑같다("맡는다"/"사양한다"를 실제로 눌러야 걸리는 자리)** — 이번
+    세션은 손 안 댔다(DUNGEON 작업 범위 밖), 다음에 GO 쪽을 만지는
+    세션이 참고할 것.
+- `games/saga_go/player/player.gd`에 `speed_mult`(기본 1.0) 필드 하나만
+  추가 — GO는 이 값을 몰라도 그만이고(항상 1.0), DUNGEON 전용
+  `boon_speed_sync.gd`(신규 컴포넌트, `DungeonPlayer.tscn`에 추가)만
+  `DungeonRunState.move_speed_mult()`를 읽어 이 필드에 밀어 넣는다 —
+  player.gd 자체는 DungeonRunState를 모른다(기존 "player.gd는 손대지
+  않는다, 컴포넌트로 얹는다" 원칙과 최대한 가깝게).
+- `player_health.gd` — `MAX_HP`(상수)를 `MAX_HP_BASE` + `max_hp`(가변,
+  `DungeonRunState.hp_mult()`로 재계산)로 바꿨다. `hp_label.gd`도 같이
+  고침(`health.MAX_HP` → `health.max_hp`).
+- `dungeon_save_state.gd` — `boons` 필드를 저장/불러오기에 추가(GO
+  save_state.gd와 같은 경계: 순수 추가 필드라 SAVE_VERSION은 안 올림,
+  없으면 빈 Dictionary로 안전하게 채워짐).
+- **검증 — 실제 값 왕복까지 헤드리스로 확인(디버그 코드는 전부 원상복구,
+  diff 0)**: ①은사 하나씩 적용하며 각 eff의 곱 배율이 웹판 공식과
+  정확히 일치하는 것 확인(예: fury 3중첩 → atk_mult=1.54=1+3×0.18,
+  wall 적용 → max_hp 60→72·hp가 그만큼 즉시 회복되지만 max_hp를 못
+  넘고 클램프됨, scout을 6번 시도해도 max=2에서 멈춤). ②실제 노출
+  경로(ExitTrigger→패널 3개 생성→버튼 하나 누름)를 헤드리스로 그대로
+  태워 위 람다 버그를 여기서 발견·재확인. ③고친 뒤 같은 경로로 은사가
+  실제로 `DungeonRunState.boons`에 반영되고 `save_dungeon.json`에
+  기록되는 것, **완전히 새 프로세스로 재실행해 그 파일을 읽어
+  `DungeonRunState.boons`가 그대로 복원되는 것**까지 확인(GO save_state
+  검증 때와 같은 기준 — 파일 존재·에러 없음이 아니라 값 자체 비교).
+  검증에 쓴 로컬 `user://save_dungeon.json`은 지웠다(레포에는 안 들어감).
+  `--headless --editor --quit`(임포트)·`--headless --quit-after 3`
+  연속 3번을 GO·DUNGEON 양쪽 다 최종 상태로 재확인 — exit 0·오류 0건.
+- **GUI 실기 확인은 아직 안 함** — 은사 패널이 화면에서 자연스럽게
+  뜨는지, 버튼 셋이 안 겹치는지, 철벽(하트가 즉시 차오르는지)·질주
+  (실제로 빨라지는 느낌인지) 같은 체감은 실기로만 확인된다. 아래
+  "다음에 이어질 것" 목록에 추가.
 
 ## 다음에 이어질 것
 
@@ -1711,14 +1778,15 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 필요 없다(기록만 남김). 이 시점 이후 새로 생긴 미확인 항목만 이 절
 맨 위에 쌓는다:
 
-- **(2026-09-12⑫~⑭ 신규, DUNGEON) 고정 카메라 각도(pitch 55°·거리 12m)가
-  실제로 "디아블로처럼 화면 고정"이라는 사용자 요청과 맞는 느낌인지,
-  실시간 근접 전투(공격 간격 0.55초·잡졸 HP 24)의 타격감, `room-small.glb`
-  ·`gate.glb`가 자연스럽게 이어지는지(벽 틈 위치가 GLB의 실제 문 자리와
-  맞는지는 육안으로만 확인 가능), HP 라벨(❤)·공격 버튼(⚔) 배치가 화면을
-  안 가리는지, 모바일 조이스틱으로 공격 버튼까지 같이 조작하기 자연스러운지.**
-  DUNGEON은 이번이 첫 실기 확인이라 GO처럼 "이전 확인 이후 신규 항목"이
-  아니라 통째로 새 목록이다 — 위 "완료 단계 (추가, 2026-09-12⑫~⑭)" 참고.
+- **(2026-09-12⑯ 신규, DUNGEON — 은사) 문으로 나갈 때 뜨는 3택 은사
+  패널(예: "⚔️ 맹공(猛攻) — 공격력 +18%")이 자연스럽게 뜨는지, 버튼
+  셋이 화면 폭을 안 넘는지, 철벽(🛡️)을 고르면 하트(❤)가 실제로 차오르는
+  게 보이는지, 질주(🏃)를 고른 뒤 실제로 더 빨라진 느낌인지, 연격(💨)·
+  일격(✨)을 고른 뒤 공격감이 달라졌다고 체감되는지.** 위 "완료 단계
+  (추가, 2026-09-12⑯)" 참고 — 잡졸을 잡고 문까지 가야 볼 수 있다.
+- ~~(2026-09-12⑫~⑭, DUNGEON) 고정 카메라·근접 전투·GLB 이음새·HP 라벨·
+  조이스틱+공격 버튼~~ — **이번 세션 시작 시 확인 완료("확인함 — 문제
+  없음")**, 위 "다음 세션 시작 지점" 절 1번 참고.
 - **(2026-09-12 신규) 논밭(8,9)(9,9) 밀밭·옛 사당(2,1) 제단이 실제로
   그 지형 이름에 어울리게 보이는지, 크기가 다른 랜드마크와 비교해
   어색하지 않은지.** 위 "완료 단계 (추가, 2026-09-12)" 참고.

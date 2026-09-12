@@ -9,7 +9,7 @@ func _ready() -> void:
 	if found.is_empty():
 		return
 	var health: Node = found[0]
-	_refresh(health.hp, health.MAX_HP)
+	_refresh(health.hp, health.max_hp)
 	health.hp_changed.connect(_refresh)
 
 func _refresh(hp: float, max_hp: float) -> void:

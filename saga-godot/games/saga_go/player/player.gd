@@ -11,6 +11,11 @@ const RUN_SPEED := 10.0
 const GRAVITY := 20.0
 const TURN_RATE := 12.0
 
+## GO는 이 값을 모른 채 항상 1.0으로 지나간다 — DUNGEON의 "질주" 은사가
+## boon_speed_sync.gd를 통해 이 필드만 밀어 넣는다(player.gd 자체는
+## DungeonRunState를 모른다, games/saga_dungeon/player/boon_speed_sync.gd 참고).
+var speed_mult := 1.0
+
 @onready var camera_rig: Node3D = $CameraRig
 @onready var visual: Node3D = $Visual
 @onready var _anim: AnimationPlayer = visual.find_child("AnimationPlayer", true, false)
@@ -34,7 +39,7 @@ func _physics_process(delta: float) -> void:
 	var move_dir := _world_direction(input_dir)
 
 	var running := Input.is_action_pressed("run")
-	var speed := RUN_SPEED if running else WALK_SPEED
+	var speed := (RUN_SPEED if running else WALK_SPEED) * speed_mult
 	velocity.x = move_dir.x * speed
 	velocity.z = move_dir.z * speed
 

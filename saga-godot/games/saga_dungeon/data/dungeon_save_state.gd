@@ -24,6 +24,10 @@ func save(player: Node3D, cleared: bool) -> void:
 		"version": SAVE_VERSION,
 		"room_cleared": room_cleared,
 		"player_pos": [player_pos.x, player_pos.y, player_pos.z],
+		## §"제외" 1번(은사) — GO의 save_state.gd와 같은 경계(순수 추가
+		## 필드는 SAVE_VERSION을 안 올린다, 없으면 빈 Dictionary로 안전하게
+		## 채워짐).
+		"boons": DungeonRunState.boons,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -47,4 +51,6 @@ func try_load() -> bool:
 	if not (p is Array) or p.size() < 3:
 		return false # 손상된 저장 파일 — 인덱스 에러 대신 안전하게 포기
 	player_pos = Vector3(p[0], p[1], p[2])
+	var boons: Variant = parsed.get("boons", {})
+	DungeonRunState.restore(boons if typeof(boons) == TYPE_DICTIONARY else {})
 	return true
