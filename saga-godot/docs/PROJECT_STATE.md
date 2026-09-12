@@ -3672,3 +3672,34 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — `realm3d.js`(여러 성 월드맵) 실측은 여러 성으로
     넓힐 때, 또는 VERTICAL_SLICE_REALM.md 4절 "제외" 목록 확장(치안·
     축성 등 나머지 명령, 여러 성)은 승인 후.
+
+
+## REALM 명령 확장 — 치안(sec) 추가 (2026-09-12)
+
+- **사용자 지시 "saga-godot 이어해"** — 직전 항목이 남긴 "다음 이어질 것"
+  두 후보(realm3d.js 여러 성 월드맵 실측 / VERTICAL_SLICE_REALM.md 4절
+  "제외" 목록 확장) 중 후자를 골랐다. `gold_income()`/`food_income()`
+  공식이 이미 `secMul`을 갖고 있었는데(sec=60 고정 상수로 흉내만 냄)
+  치안 명령을 넣는 것은 그 자리를 실제 값으로 바꾸는 것뿐이라, 인구·
+  성벽·재해 같은 아직 없는 다른 시스템을 끌어들이지 않고도 스코프를
+  좁게 유지할 수 있다고 판단했다.
+  - `realm_orders.gd`: ORDERS에 `sec`(치안) 추가, `cap_of()` 신설,
+    `sec_mul()`을 상수 대신 함수로.
+  - `realm_save_state.gd`: `sec` 변수·저장/불러오기 필드 추가,
+    `_do_devel()`을 `get()`/`set()` 리플렉션으로 일반화(agri/comm/sec
+    공용), `next_month()`에 월 -1 감쇠(`rtk.js` 그대로) 추가.
+  - `realm_city.gd`: 원작 city3d.js "치안 sec>=80이면 횃불 하나 더"를
+    옮겨 셋째 횃불을 고정 소품에서 `_dyn`(값에 물린 디오라마)로 이동.
+  - `realm_status_label.gd`: HUD에 🪧 sec 표시 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-2절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot·.import
+    변경 없음, 이 세션 시작 시점부터 있던 texture-a.png.import diff는
+    그대로 안 건드림) → GO(TestVillage)·DUNGEON(TestRoom)·
+    FOREST(TestVillageForest)·STORY(TestField)·REALM(TestCity) 다섯 씬
+    전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전 동일. 임시 디버그로
+    치안 명령 실행(amount=8, 금 40 차감)·다음 달 정산의 sec_mul 반영·
+    월 -1 감쇠·횃불 조건(sec>=80)·저장/불러오기 왕복(77) 전부 손 계산과
+    일치 확인. 디버그 원상복구(diff 0), 테스트 세이브 삭제.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 나머지 5종 명령(기술·축성·징병·훈련·조선) 확장,
+    또는 `realm3d.js`(여러 성 월드맵) 실측(여러 성으로 넓힐 때).

@@ -6,13 +6,16 @@ extends Node3D
 ## 소품 개수로 디오라마를 짓는다. 새 판정은 없다, 숫자를 셀 뿐이다.
 ##
 ## **재해석 — 이 슬라이스가 안 가진 값은 뺐다.** 원작은 성벽 파손율(wall/
-## maxWall)·인구(pop)·치안(sec)까지 세는데, 이 슬라이스엔 축성·인구·치안
-## 명령이 없어(3·4절 "제외") 그 값 자체가 없다. 그래서:
+## maxWall)·인구(pop)까지 세는데, 이 슬라이스엔 축성·인구 명령이 없어(3·4절
+## "제외") 그 값 자체가 없다. 그래서:
 ## - 성벽은 파손 없이 늘 꽉 찬 넷(기존 그대로 유지)
 ## - "집(인구)" 자리 대신 **로스터(무장) 깃발**을 세운다 — 이 슬라이스가
 ##   실제로 갖고 있는 값이라 더 정직하다
 ## - 시장(상업)·밭(개간)·곳간(군량)은 원작 그대로: 개수 = clamp(round(수치
 ##   /기준),최소,최대)
+## - **2026-09-12 추가 — 치안(sec)이 명령으로 들어와 값이 생겼다.**
+##   city3d.js "치안이 높으면 횃불 하나가 더 선다"(sec>=80)를 그대로
+##   옮겨 셋째 횃불을 `_dyn` 아래로 옮겼다(값에 물리니 고정 소품이 아니다).
 ##
 ## 대(기단)+누각(망루)+담장은 고정(전 세션에 지음, 안 바꿨다). 이 디오라마
 ## 링만 원작 `city3d.js` `build()`의 sig() 비교 방식(값이 바뀔 때만 다시
@@ -60,8 +63,8 @@ func _process(_delta: float) -> void:
 ## city3d.js sig()/render() 그대로 — 성이 다르거나 숫자가 바뀌었을 때만
 ## 다시 짓는다(매 프레임 재생성 방지).
 func _rebuild_if_changed() -> void:
-	var sig := "%d:%d:%d:%s" % [
-		RealmSaveState.agri, RealmSaveState.comm, RealmSaveState.food,
+	var sig := "%d:%d:%d:%d:%s" % [
+		RealmSaveState.agri, RealmSaveState.comm, RealmSaveState.food, RealmSaveState.sec,
 		",".join(RealmSaveState.roster)]
 	if sig == _last_sig:
 		return
@@ -73,6 +76,7 @@ func _rebuild_if_changed() -> void:
 	_build_markets()
 	_build_granary()
 	_build_roster_banners()
+	_build_sec_torch()
 
 
 func _build_base() -> void:
@@ -124,12 +128,13 @@ func _build_walls() -> void:
 		add_child(mi)
 
 
-## city3d.js build() 끝자락 "우물·횃불 — 늘 있는 살림"을 그대로 — 값에
-## 안 물려 한 번만 짓는다(치안 명령이 없어 "횃불 하나 더" 조건은 못 옮김).
+## city3d.js build() 끝자락 "우물·횃불 — 늘 있는 살림"을 그대로 — 이 둘은
+## 값에 안 물려 한 번만 짓는다. 셋째 횃불(치안 조건부)은 `_build_sec_torch()`
+## 로 따로 뺐다 — `_dyn`에 물려 값이 바뀔 때만 다시 짓는다.
 func _build_fixtures() -> void:
 	_well(Vector3(4.0, 0, -2.2))
-	_torch(Vector3(2.4, 0, 3.8))
-	_torch(Vector3(-2.4, 0, 3.8))
+	_torch(self, Vector3(2.4, 0, 3.8))
+	_torch(self, Vector3(-2.4, 0, 3.8))
 
 
 func _well(pos: Vector3) -> void:
@@ -144,7 +149,7 @@ func _well(pos: Vector3) -> void:
 	add_child(mi)
 
 
-func _torch(pos: Vector3) -> void:
+func _torch(parent: Node3D, pos: Vector3) -> void:
 	var pole := MeshInstance3D.new()
 	var pole_mesh := CylinderMesh.new()
 	pole_mesh.top_radius = 0.05
@@ -153,7 +158,7 @@ func _torch(pos: Vector3) -> void:
 	pole.mesh = pole_mesh
 	pole.position = pos + Vector3(0, 0.55, 0)
 	pole.material_override = _mat(COLOR_TORCH_POLE)
-	add_child(pole)
+	parent.add_child(pole)
 
 	var flame := MeshInstance3D.new()
 	var flame_mesh := SphereMesh.new()
@@ -162,7 +167,13 @@ func _torch(pos: Vector3) -> void:
 	flame.mesh = flame_mesh
 	flame.position = pos + Vector3(0, 1.18, 0)
 	flame.material_override = _mat(COLOR_TORCH_FLAME)
-	add_child(flame)
+	parent.add_child(flame)
+
+
+## city3d.js "치안이 높으면 횃불 하나가 더 선다"(sec>=80) 그대로.
+func _build_sec_torch() -> void:
+	if RealmSaveState.sec >= 80:
+		_torch(_dyn, Vector3(0, 0, -4.6))
 
 
 ## 밭 — 개간(agri). city3d.js: clamp(round(agri/90), 2, 6).

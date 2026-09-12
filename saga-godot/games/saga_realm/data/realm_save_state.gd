@@ -39,6 +39,7 @@ var gold := 2400
 var food := 11200
 var agri := 400
 var comm := 360
+var sec := RealmOrders.SEC_START  # rtk.js setup() sec 시작값(60)
 
 var roster: Array = [RealmOfficerPool.STARTING_OFFICER]
 var found: Array = []               # 수색으로 찾아냈지만 아직 등용 전
@@ -77,21 +78,20 @@ func execute_order(key: String) -> Dictionary:
 	return _do_devel(key, o, officer_id)
 
 
+## agri/comm/sec 셋 다 같은 모양(cap까지 채우고 남은 만큼만 는다)이라
+## `get()`/`set()`(Object 리플렉션)으로 한 벌만 쓴다 — 세 번째(sec)가
+## 들어오며 if/else 두 갈래를 늘리는 대신 이렇게 합쳤다.
 func _do_devel(key: String, o: Dictionary, officer_id: String) -> Dictionary:
 	var h = Characters.find(officer_id)
 	var stat_val: float = float(h.stats.get(String(o.stat), 0))
 	var crit := _rng.randf() < clampf(stat_val / 400.0, 0.03, 0.28)
 	var amount := roundi((float(o.base) + stat_val * float(o.per)) * (1.5 if crit else 1.0))
 
-	var before: int
-	if key == "agri":
-		before = agri
-		agri = mini(RealmOrders.CAP_AGRI, agri + amount)
-		amount = agri - before
-	else:
-		before = comm
-		comm = mini(RealmOrders.CAP_COMM, comm + amount)
-		amount = comm - before
+	var cap := RealmOrders.cap_of(key)
+	var before: int = int(get(key))
+	var after: int = mini(cap, before + amount)
+	set(key, after)
+	amount = after - before
 
 	return {"ok": true, "officer": officer_id, "amount": amount, "crit": crit}
 
@@ -152,12 +152,16 @@ func next_month() -> void:
 		var h = Characters.find(gov_id)
 		mul = RealmOrders.gov_mul(float(h.stats.get("wisdom", 0)), float(h.stats.get("command", 0)))
 
-	var income := RealmOrders.gold_income(comm, mul)
+	var income := RealmOrders.gold_income(comm, mul, sec)
 	var upkeep := roster.size() * RealmOrders.UPKEEP_PER_OFFICER
 	gold = maxi(0, gold + income - upkeep)
 
 	if month in RealmOrders.HARVEST_MONTHS:
-		food += RealmOrders.food_income(agri, mul)
+		food += RealmOrders.food_income(agri, mul, sec)
+
+	## rtk.js settleMonth() "치안은 가만두면 내려간다" — 그대로 이식.
+	## 인구·성벽 연동 줄은 그 값 자체가 없어(3·4절 "제외") 안 옮겼다.
+	sec = clampi(sec - 1, 0, 100)
 
 	month += 1
 	if month > 12:
@@ -203,7 +207,7 @@ func save() -> bool:
 		"version": SAVE_VERSION,
 		"year": year, "month": month,
 		"gold": gold, "food": food,
-		"agri": agri, "comm": comm,
+		"agri": agri, "comm": comm, "sec": sec,
 		"roster": roster, "found": found,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -232,6 +236,7 @@ func try_load() -> bool:
 	food = int(data.get("food", 11200))
 	agri = int(data.get("agri", 400))
 	comm = int(data.get("comm", 360))
+	sec = int(data.get("sec", RealmOrders.SEC_START))
 	roster = data.get("roster", [RealmOfficerPool.STARTING_OFFICER])
 	found = data.get("found", [])
 	_done_this_month.clear()
