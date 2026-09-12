@@ -40,6 +40,11 @@ var museum_donated := 0     # 사고에 기증한 누적 개수(종 수가 아�
                              # 이 슬라이스엔 종 카탈로그가 없어 단순화, 근거는
                              # museum.gd 상단 주석)
 
+## 5번째 확장(제외 목록 5번 — 순무 시세) — 역시 순수 추가. 가진 것만
+## 남긴다는 웹판 turnip.js 원칙 그대로: {n, buy, week} 셋뿐, 시세는
+## ForestTurnip이 주 번호에서 다시 계산한다(저장 안 함).
+var turnip: Dictionary = {}  # {"n": int, "buy": int, "week": int} 또는 빈 딕셔너리(없음)
+
 
 func can_gather(prop_id: String) -> bool:
 	return int(used.get(prop_id, -1)) != ForestDay.today_key()
@@ -117,6 +122,64 @@ func donate_to_museum(item_label: String) -> bool:
 	return true
 
 
+func has_turnip() -> bool:
+	return int(turnip.get("n", 0)) > 0
+
+
+## 산 주가 지나면 썩는다(웹판 rotten()) — 다음 일요일이 오면 값이
+## ROT_PRICE(10)로 뚝 떨어진다.
+func turnip_rotten() -> bool:
+	return has_turnip() and int(turnip.get("week", -1)) != ForestTurnip.week()
+
+
+func turnip_now_price() -> int:
+	return ForestTurnip.ROT_PRICE if turnip_rotten() else ForestTurnip.sell_price()
+
+
+## 웹판 turnip.js::buy()를 그대로 옮김 — 실패 이유를 문자열로 돌려주고
+## (성공하면 빈 문자열), 실제 거래(골드 차감·turnip 갱신)는 여기서 한다.
+## n은 열 개 단위로 내림한다(웹판 UNIT).
+func buy_turnip(n: int) -> String:
+	if not ForestTurnip.market_open():
+		return "순무 장은 일요일 오전에만 섭니다"
+	var buy_n: int = int(floor(float(n) / ForestTurnip.UNIT)) * ForestTurnip.UNIT
+	if buy_n <= 0:
+		return "열 개 단위로만 살 수 있다"
+	if turnip_rotten():
+		return "썩은 순무가 남아 있다 — 먼저 처분하게"
+	var already: int = int(turnip.get("n", 0))
+	if already + buy_n > ForestTurnip.MAX_BUY:
+		return "한 주에 %d개까지다(지금 %d)" % [ForestTurnip.MAX_BUY, already]
+	var price: int = ForestTurnip.buy_price()
+	var cost: int = price * buy_n
+	if gold < cost:
+		return "골드가 모자란다 (🪙%d 필요)" % cost
+	gold -= cost
+	var total_cost: int = int(turnip.get("buy", 0)) * already + cost
+	var total_n: int = already + buy_n
+	turnip = {"n": total_n, "buy": int(round(float(total_cost) / float(total_n))), "week": ForestTurnip.week()}
+	return ""
+
+
+## 가진 것을 다 판다(웹판 sellAll()). 실패 이유 또는 결과 설명을 그대로
+## 돌려준다(다르게 성공/실패를 나누는 대신, 호출부가 has_turnip()으로
+## 성공 여부를 먼저 확인하고 이 문자열을 토스트로 보여준다).
+func sell_turnip() -> String:
+	if not has_turnip():
+		return "가진 순무가 없다"
+	if ForestTurnip.dow() == 0 and not turnip_rotten():
+		return "일요일에는 전방이 순무를 받지 않는다"
+	var price: int = turnip_now_price()
+	var n: int = int(turnip.get("n", 0))
+	var revenue: int = price * n
+	var cost: int = int(turnip.get("buy", 0)) * n
+	var profit: int = revenue - cost
+	gold += revenue
+	turnip = {}
+	return "🥬 순무 %d개를 팔았다 (개당 🪙%d) — %s%d" % \
+		[n, price, "이문 🪙+" if profit >= 0 else "밑진 것 🪙", absi(profit)]
+
+
 func save() -> bool:
 	var player := _find_player()
 	if player == null:
@@ -133,6 +196,7 @@ func save() -> bool:
 		"affinity": affinity,
 		"tools": tools,
 		"museum_donated": museum_donated,
+		"turnip": turnip,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -172,6 +236,8 @@ func try_load() -> bool:
 	var loaded_tools: Variant = data.get("tools", {})
 	tools = loaded_tools if typeof(loaded_tools) == TYPE_DICTIONARY else {}
 	museum_donated = int(data.get("museum_donated", 0))
+	var loaded_turnip: Variant = data.get("turnip", {})
+	turnip = loaded_turnip if typeof(loaded_turnip) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:

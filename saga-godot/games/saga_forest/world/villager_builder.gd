@@ -194,10 +194,10 @@ func _process(_delta: float) -> void:
 			_open_interact_menu(v)
 
 
-## G를 누르면 선물(+상인만 도구 구매)을 고르는 메뉴 — 부탁은 자동으로
-## 진행되니(위 _talk()) 여기엔 안 나온다. 선물은 사람마다 하루 한 번,
-## 좋아하는 갈래를 맞히면 친밀도가 더 는다(웹판 giveGift()와 같은 배율:
-## 3배 아니면 1배).
+## G를 누르면 선물(+상인만 도구 구매·순무 사고팔기)을 고르는 메뉴 —
+## 부탁은 자동으로 진행되니(위 _talk()) 여기엔 안 나온다. 선물은 사람마다
+## 하루 한 번, 좋아하는 갈래를 맞히면 친밀도가 더 는다(웹판 giveGift()와
+## 같은 배율: 3배 아니면 1배).
 func _open_interact_menu(v: Dictionary) -> void:
 	var layer_box := {}
 	var choices: Array = []
@@ -208,6 +208,26 @@ func _open_interact_menu(v: Dictionary) -> void:
 			choices.append({
 				"label": "%s 사기 (🪙%d)" % [tool.name, tool.price],
 				"cb": func() -> void: _buy_tool(v, tool, layer_box),
+			})
+
+	## 제외 목록 5번(순무 시세) — 웹판의 "전방"(순무를 사고파는 자리)을
+	## 새 사물 없이 상인에게 얹었다(도구 판매와 같은 이유). 사는 건 열 개
+	## 단위 한 번뿐(웹판은 900개까지 원하는 대로 사지만, 이 슬라이스는
+	## 수량 선택 UI를 안 만든다 — 여러 번 눌러 더 살 수 있다), 파는 건
+	## 가진 것을 한 번에 다 판다(웹판 sellAll() 그대로).
+	if v.id == "npc_merchant":
+		if ForestTurnip.market_open():
+			var buy_price: int = ForestTurnip.buy_price()
+			choices.append({
+				"label": "🥬 순무 %d개 사기 (🪙%d)" % [ForestTurnip.UNIT, buy_price * ForestTurnip.UNIT],
+				"cb": func() -> void: _trade_turnip(v, true, layer_box),
+			})
+		if ForestSaveState.has_turnip():
+			var n: int = int(ForestSaveState.turnip.get("n", 0))
+			var price: int = ForestSaveState.turnip_now_price()
+			choices.append({
+				"label": "🥬 순무 팔기 (%d개, 개당 🪙%d)" % [n, price],
+				"cb": func() -> void: _trade_turnip(v, false, layer_box),
 			})
 
 	if not ForestSaveState.gifted_today(v.id):
@@ -235,6 +255,20 @@ func _buy_tool(v: Dictionary, tool: Dictionary, layer_box: Dictionary) -> void:
 		Toast.show(self, "%s 에게서 %s 을(를) 샀다." % [v.name, tool.name], LINE_SHOW_SEC)
 	else:
 		Toast.show(self, "골드가 모자란다 (🪙%d 필요)" % int(tool.price), 2.5)
+
+
+func _trade_turnip(v: Dictionary, buying: bool, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if buying:
+		var price := ForestTurnip.buy_price()
+		var err := ForestSaveState.buy_turnip(ForestTurnip.UNIT)
+		if err.is_empty():
+			Toast.show(self, "🥬 순무 %d개를 샀다 (개당 🪙%d · 모두 🪙%d)" %
+				[ForestTurnip.UNIT, price, price * ForestTurnip.UNIT], LINE_SHOW_SEC)
+		else:
+			Toast.show(self, "%s — %s" % [v.name, err], 2.5)
+	else:
+		Toast.show(self, ForestSaveState.sell_turnip(), LINE_SHOW_SEC)
 
 
 func _give_gift(v: Dictionary, cat: String, layer_box: Dictionary) -> void:

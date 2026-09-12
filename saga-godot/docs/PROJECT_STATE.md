@@ -3053,3 +3053,50 @@ saga-godot 트랙에도 확장한다. PLAN.md 5장 "역사 인물로 노는" 정
   - **GUI 실기 확인은 아직 안 함**(새 채집 자리 셋·박물관 배치가 자연스러운지,
     도구 구매 메뉴가 잘 뜨는지) — 사용자가 알아서 몰아서 확인할 것.
   - **다음 이어질 것** — "제외" 목록 5번(순무 시세 — 경제 시스템)부터.
+
+## 완료 단계 (추가, 2026-09-12㉜) — FOREST "제외" 목록 5번: 순무 시세(카부)
+
+- **웹판 js/turnip.js 조사 결과 — "원작에서 유일하게 값이 오르내리는
+  축"이라고 그 파일 자신이 적어 둔 시스템이다.** 공식·문턱을 상수 하나
+  안 바꾸고 그대로 옮겼다(파는 값 공식의 네 무늬 — 파동/내림/급등/폭등,
+  살 값 90~110, 하루 두 번 바뀜, 다음 일요일에 썩음, 한 주 900개 한도).
+  - `games/saga_forest/data/forest_day.gd` — `epoch_day_index()`(1970-
+    01-01부터 며칠째, force도 별도로 둠) 추가. 기존 `today_key()`(년월일
+    숫자, 동등 비교 전용)와 다른 계산이라 분리했다 — 요일·주 번호는
+    산술이 되는 정수가 필요하다.
+  - `games/saga_forest/data/forest_turnip.gd`(신규, `class_name
+    ForestTurnip`) — 순수 계산만 한다(dow/week/market_open/buy_price/
+    pattern/sell_price). 웹판 `core.hash2(x,y)`를 Godot로 포트한
+    `_hash2()`를 자체적으로 둠(forest_vegetation_builder.gd의 `_hash()`
+    는 인자 세 개짜리 다른 조합이라 재사용 안 함, 값이 JS와 똑같이 나올
+    필요는 없다 — 이 프로젝트 안에서만 결정적이면 된다).
+  - `games/saga_forest/data/forest_save_state.gd` — `turnip`
+    Dictionary(`{n, buy, week}` 또는 빈 값) 추가 + 실제 거래 로직
+    (`buy_turnip()`/`sell_turnip()`/`turnip_rotten()`/`turnip_now_price()`)
+    — 계산(ForestTurnip)과 상태·트랜잭션(ForestSaveState)을 분리한
+    GO의 TimeOfDay.gd/season.gd와 같은 경계. 순수 추가라 버전 안 올림.
+  - `games/saga_forest/world/villager_builder.gd` — 웹판의 "전방"(순무
+    사고파는 자리)을 새 사물 없이 상인(npc_merchant)에게 얹었다(도구
+    판매와 같은 이유). **재해석한 부분** — 웹판은 한 번에 최대 900개까지
+    원하는 수량을 사지만, 이 슬라이스는 수량 선택 UI를 안 만들어서
+    "열 개 사기" 한 번뿐인 버튼이다(여러 번 눌러 더 살 수 있다). 파는
+    건 가진 것을 한 번에 다 판다(웹판 sellAll() 그대로).
+  - **검증(헤드리스, 값 자체까지)** — `--headless --editor --quit` 임포트
+    확인(`ForestTurnip` 전역 클래스 인식) → `TestVillageForest.tscn`
+    `--quit-after 5 --verbose` 세 번 연속 exit 0·오류 0건. **임시
+    디버그로 day_index를 강제해 여섯 갈래 확인**: 일요일(day_index=3)
+    dow=0·week=1 ✓, 장 열림(일요일 오전=true·오후=false·월요일=false) ✓,
+    구매(살 값 110×10=1100, 골드 5000→3900, holding 정확히 기록) ✓,
+    판매(다음 날로 이동해 판매가 105로 팔아 밑짐 50 — 메시지·골드
+    3900→4950 정확히 일치) ✓, 썩음(7일 뒤로 건너뛰어 week가 바뀌자
+    `turnip_rotten()=true`·가격이 ROT_PRICE(10)로 떨어짐) ✓, 900개
+    한도(이미 900개 든 채로 추가 구매 시도 → 정확한 문구로 거부) ✓.
+    **저장/불러오기도 `turnip` 필드를 완전히 분리된 두 프로세스로
+    왕복 확인**. 전부 검증 뒤 디버그 코드 원상복구(diff 0), 테스트
+    세이브 삭제. GO·DUNGEON 회귀 없음 재확인.
+  - **GUI 실기 확인은 아직 안 함**(상인 메뉴에 순무 항목이 자연스럽게
+    뜨는지) — 사용자가 알아서 몰아서 확인할 것.
+  - **다음 이어질 것** — "제외" 목록 6번(벽지/장판, 꽃 교배, 계절행사
+    8일, 옷)부터. 이 넷은 서로 성격이 많이 달라(집 꾸미기·생물 육종·
+    달력 이벤트·의상) 다음 세션엔 이 중 어디부터 먼저 볼지 정하는 것부터
+    시작할 것.
