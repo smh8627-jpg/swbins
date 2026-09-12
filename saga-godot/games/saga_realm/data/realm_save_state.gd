@@ -47,7 +47,7 @@ const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 8  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답)
+const SAVE_VERSION := 9  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -89,6 +89,14 @@ var _done_this_month: Dictionary = {}  # officer_id -> bool
 ## 값으로 덮어쓴다) — cities와 같은 패턴. next_month()는 이 값을 안 건드린다
 ## (적 AI가 없어 매달 그대로다 — attack()으로 싸울 때만 바뀐다).
 var enemies: Dictionary = {}
+
+## **2026-09-12 추가 — 이간·매수(적 수비 무장의 충성).** officer_id ->
+## int(0~100). `officer_loyal`과 같은 모양이지만 남의 로스터라 따로
+## 둔다(우리 쪽 `_check_defection()`이 실수로 적 무장을 훑지 않도록).
+## `_init_enemies()`가 `ENEMY_CITIES[].officers`마다 `RealmDiplo.
+## base_loyal(id, 그 성 lord)`로 채운다. 매수·이간으로 빠져나가면
+## (`enemies[eid].officers`에서 지워질 때) 여기서도 같이 지운다.
+var enemy_officer_loyal: Dictionary = {}
 
 ## **2026-09-12 추가 — 외교(realm_diplo.gd).** force_id("bei") -> {relation,
 ## truce_months}. diplo.js relKey()가 세력 둘을 한 쌍으로 묶는 것과 달리
@@ -137,15 +145,25 @@ func _init_cities() -> void:
 ## 전투에만 쓰는 값만 있었다. sec는 `RealmOrders.SEC_START`(우리 성 시작값과
 ## 같은 기준, 적 태수 정보가 없어 새 값을 안 지어냈다), food는 `_init_cities()`
 ## 와 같은 공식(`RealmCities.food_start()`).
+## **2026-09-12 추가 — officers.** 이간·매수 대상(`realm_diplo.gd` 머리말
+## 참고) — 정적 정의(`ENEMY_CITIES[].officers`)를 그대로 복사해 실행 중
+## 지워질 수 있는 배열로 든다(`cities`가 정적 시작값을 복사해 실행 중
+## 값으로 쓰는 것과 같은 패턴). `enemy_officer_loyal`도 여기서 같이 채운다.
 func _init_enemies() -> void:
 	for def: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid: String = String(def.id)
+		var def_officers: Array = (def.get("officers", []) as Array).duplicate()
 		enemies[eid] = {
 			"troops": int(def.troops_start), "wall": int(def.wall_start),
 			"max_wall": int(def.wall_start), "train": int(def.train_start),
 			"tech": int(def.tech_start), "captured": false,
 			"sec": RealmOrders.SEC_START, "food": RealmCities.food_start(eid),
+			"officers": def_officers,
 		}
+		var lord_id: String = String(def.get("lord", ""))
+		for oid: String in def_officers:
+			if not enemy_officer_loyal.has(oid):
+				enemy_officer_loyal[oid] = RealmDiplo.base_loyal(oid, lord_id)
 
 
 ## ENEMY_CITIES의 force마다 우호 기본값(40)을 채운다 — 세력이 같은
@@ -365,9 +383,9 @@ func next_month() -> void:
 func _check_defection() -> void:
 	var leaving: Array = []
 	for id: String in roster:
-		if int(officer_loyal.get(id, 50)) > 12:
+		if int(officer_loyal.get(id, 50)) > RealmDiplo.DEFECT_LOYAL_FLOOR:
 			continue
-		if _rng.randf() > 0.35:
+		if _rng.randf() > RealmDiplo.DEFECT_CHANCE:
 			continue
 		leaving.append(id)
 	for id: String in leaving:
@@ -453,9 +471,22 @@ func attack(enemy_id: String) -> Dictionary:
 		"best_command": float(h.stats.get("command", 0)), "best_might": float(h.stats.get("might", 0)),
 		"officer_count": 1,
 	}
+	## **2026-09-12 갱신 — 이간·매수로 이름 있는 수비 무장이 생겼다.**
+	## `e.officers`(비면 예전처럼 0)를 그대로 반영한다 — 매수·이간으로
+	## 미리 빼내면 그만큼 수비가 약해진다(officer_count·best_command·
+	## best_might가 실제로 준다).
+	var def_officers: Array = e.get("officers", [])
+	var def_best_command := 0.0
+	var def_best_might := 0.0
+	for oid: String in def_officers:
+		var dh = Characters.find(oid)
+		if dh == null:
+			continue
+		def_best_command = maxf(def_best_command, float(dh.stats.get("command", 0)))
+		def_best_might = maxf(def_best_might, float(dh.stats.get("might", 0)))
 	var def_army := {
 		"troops": int(e.troops), "start": int(e.troops), "train": int(e.train), "tech": int(e.tech),
-		"best_command": 0.0, "best_might": 0.0, "officer_count": 0,  # 이름 있는 수비 장수가 없다
+		"best_command": def_best_command, "best_might": def_best_might, "officer_count": def_officers.size(),
 	}
 	var wall := {"wall": int(e.wall), "max_wall": int(e.max_wall)}
 	var land: String = String(enemy_def.get("land", "plain"))
@@ -467,6 +498,16 @@ func attack(enemy_id: String) -> Dictionary:
 	if rep.won:
 		e.captured = true
 		e.troops = 0
+		## war.js capture() "사로잡힌다" — 소패는 몸 붙일 이웃 성이 없어
+		## (refuge 없음, `bei`가 소패 하나뿐) 원작에서도 전부 사로잡히는
+		## 경로만 탄다. 사로잡힌 무장은 그 성(이제 우리 성)의 재야가
+		## 된다(`off.rec(id).found=true`와 같은 결) — 매수·이간으로 미리
+		## 빼낸 이는 이미 e.officers에서 빠져 여기 안 걸린다.
+		for oid: String in (def_officers as Array).duplicate():
+			if not (oid in found) and not (oid in roster):
+				found.append(oid)
+			enemy_officer_loyal.erase(oid)
+		e.officers = []
 		_annex_city(enemy_id, enemy_def, int(rep.atk_troops_left), int(c.train))
 	else:
 		## war.js finishMarch() routed 분기 — 치중(baggage)은 need에서 이 달
@@ -486,14 +527,16 @@ func attack(enemy_id: String) -> Dictionary:
 
 ## war.js capture()를 좁혀 옮긴 것(2026-09-12, "1,2,3 순서대로 다해" —
 ## 3·4절이 "함락 뒤처리" 통째로 미뤄 둔 나머지 절반). attack()이 이겼을
-## 때만 부른다. **재해석 — 옮기지 않은 부분.** 원작 capture()는 수비
-## 무장을 달아나게/사로잡게 하고(fled/caught) 보스전 보상을 얹는데,
-## `realm_war.gd` 머리말대로 이 슬라이스의 적 쪽은 "이름 있는 수비
-## 장수가 없다"(officer_count=0) — 옮길 대상 자체가 없다. 세력 멸망
-## 판정도 안 옮겼다 — `bei`가 소패 하나만 들고 있다는 걸 `enemies`
-## Dictionary가 몰라(정적 수치일 뿐 성 목록을 세력별로 묶지 않는다),
-## "세력의 마지막 성을 뺏었는가"를 새로 판정하는 대신 다음에 볼 자리로
-## 남긴다.
+## 때만 부른다. **2026-09-12 갱신 — 사로잡힌 수비 무장.** 이간·매수
+## 슬라이스가 소패에 이름 있는 수비 무장(sg_guanyu·sg_zhangfei)을
+## 들이면서, 그때까지 안 빠져나간 이들을 위(`attack()`)에서 `found[]`로
+## 옮기는 것까지 옮겼다(war.js capture()의 caught 분기 — 소패는 몸 붙일
+## 이웃 성이 없어 fled 분기는 원작에서도 안 탄다). **보스전 보상은
+## 여전히 안 옮겼다** — `def.officers`에 `boss:true`인 사람이 없다(이
+## 슬라이스가 들인 둘은 보스가 아니다). 세력 멸망 판정도 안 옮겼다 —
+## `bei`가 소패 하나만 들고 있다는 걸 `enemies` Dictionary가 몰라(정적
+## 수치일 뿐 성 목록을 세력별로 묶지 않는다), "세력의 마지막 성을
+## 뺏었는가"를 새로 판정하는 대신 다음에 볼 자리로 남긴다.
 ## **옮긴 부분**: `to.force`(정복 자체) · `to.troops = atk.troops`(살아남은
 ## 원정군이 그대로 수비대가 된다) · `to.train = atk.train`(원정군의
 ## 훈련도를 물려받는다) · `to.sec = max(10, round(그 성 sec*0.5))`("갓
@@ -584,10 +627,11 @@ func envoy_tribute(enemy_id: String) -> Dictionary:
 	return {"ok": true, "up": up, "relation": int(dip.relation)}
 
 
-## diplo.js plot() 중 성 자체가 대상인 rumor/fire만 옮긴 것(2026-09-12,
-## "1,2,3 순서대로 다해" 두 번째 — `realm_diplo.gd` 머리말 "재해석" 참고).
-## 화친 체크가 없는 것도 원작 그대로(plot()은 `attack()`과 달리 diplo.
-## blocked()를 안 본다 — 첩보전은 정식 화친과 별개다).
+## diplo.js plot() — 처음엔 성 자체가 대상인 rumor/fire만 옮겼다가
+## (2026-09-12, "1,2,3 순서대로 다해" 두 번째), 이번에 이간(discord)·
+## 매수(bribe)를 마저 옮겼다(같은 지시의 세 번째, 이번 절). 화친 체크가
+## 없는 것도 원작 그대로(plot()은 `attack()`과 달리 diplo.blocked()를
+## 안 본다 — 첩보전은 정식 화친과 별개다).
 func plot(kind: String, enemy_id: String) -> Dictionary:
 	var chk := _plot_check(kind, enemy_id)
 	if not bool(chk.get("ok", false)):
@@ -614,12 +658,43 @@ func plot(kind: String, enemy_id: String) -> Dictionary:
 		e.sec = maxi(0, before_sec - roundi(RealmDiplo.SEC_HIT_BASE + _rng.randf() * RealmDiplo.SEC_HIT_RANGE))
 		result["sec_from"] = before_sec
 		result["sec_to"] = int(e.sec)
+		enemies[enemy_id] = e
 	elif kind == "fire":
 		var burned := roundi(float(e.food) * (RealmDiplo.FOOD_BURN_BASE + _rng.randf() * RealmDiplo.FOOD_BURN_RANGE))
 		e.food = maxi(0, int(e.food) - burned)
 		result["burned"] = burned
+		enemies[enemy_id] = e
+	elif kind == "discord":
+		var target_id: String = String(chk.target_id)
+		var before_loyal := int(enemy_officer_loyal.get(target_id, 50))
+		var hit := RealmDiplo.DISCORD_HIT_BASE + floori(_rng.randf() * RealmDiplo.DISCORD_HIT_RANGE)
+		var after_loyal := clampi(before_loyal - hit, 0, 100)
+		enemy_officer_loyal[target_id] = after_loyal
+		result["target"] = target_id
+		result["loyal_from"] = before_loyal
+		result["loyal_to"] = after_loyal
+		result["defected"] = false
+		## **재해석 — 원작은 월말 checkDefection()이 12 이하를 35% 확률로
+		## 몰아낸다. 이 슬라이스는 적 로스터를 매달 훑는 자리가 없어, 이간이
+		## 방금 만든 결과에 대해 그 자리에서 같은 굴림을 한 번 돈다.**
+		if after_loyal <= RealmDiplo.DEFECT_LOYAL_FLOOR and _rng.randf() <= RealmDiplo.DEFECT_CHANCE:
+			(e.officers as Array).erase(target_id)
+			enemy_officer_loyal.erase(target_id)
+			if not (target_id in found) and not (target_id in roster):
+				found.append(target_id)
+			result["defected"] = true
+			enemies[enemy_id] = e
+	elif kind == "bribe":
+		var target_id: String = String(chk.target_id)
+		(e.officers as Array).erase(target_id)
+		enemy_officer_loyal.erase(target_id)
+		enemies[enemy_id] = e
+		roster.append(target_id)
+		officer_city[target_id] = RealmCities.DEFAULT_CITY
+		officer_loyal[target_id] = RealmDiplo.BRIBE_LOYAL_SET
+		result["target"] = target_id
+		result["home_city"] = RealmCities.DEFAULT_CITY
 
-	enemies[enemy_id] = e
 	diplomacy[force_id] = dip
 	return result
 
@@ -629,6 +704,36 @@ func plot(kind: String, enemy_id: String) -> Dictionary:
 ## 띄우기 전에 부른다.
 func plot_preview(kind: String, enemy_id: String) -> Dictionary:
 	return _plot_check(kind, enemy_id)
+
+
+## 현재 `enemies[eid].officers` 중 지력 최댓값 — "태수"(guard) 역할.
+## 아무도 안 남았으면(다 매수·이간으로 빠지거나 함락 전이라도 애초에
+## 없으면) `RealmDiplo.PLOT_GUARD_WISDOM`(30) 기본값으로 돌아간다.
+func _enemy_guard_wisdom(enemy_id: String) -> float:
+	var e: Dictionary = enemies.get(enemy_id, {})
+	var best := -1.0
+	for oid: String in (e.get("officers", []) as Array):
+		var h = Characters.find(oid)
+		if h == null:
+			continue
+		best = maxf(best, float(h.stats.get("wisdom", 0)))
+	return best if best >= 0.0 else float(RealmDiplo.PLOT_GUARD_WISDOM)
+
+
+## diplo.js plot()의 "targetId 없으면 자동으로 고른다" — 충성이 가장
+## 낮은 사람이 가장 잘 흔들린다(cands.sort by loyalOf asc). 군주는
+## `ENEMY_CITIES[].officers`에 애초에 안 들어 있어(realm_cities.gd
+## 머리말 참고) 따로 걸러낼 필요가 없다.
+func _pick_plot_target(enemy_id: String) -> String:
+	var e: Dictionary = enemies.get(enemy_id, {})
+	var best_id := ""
+	var best_loyal := 101
+	for oid: String in (e.get("officers", []) as Array):
+		var lv: int = int(enemy_officer_loyal.get(oid, 50))
+		if lv < best_loyal:
+			best_loyal = lv
+			best_id = oid
+	return best_id
 
 
 func _plot_check(kind: String, enemy_id: String) -> Dictionary:
@@ -660,15 +765,37 @@ func _plot_check(kind: String, enemy_id: String) -> Dictionary:
 	if _done_this_month.get(officer_id, false):
 		return {"ok": false, "why": "이 달에 이미 명령을 썼습니다"}
 
+	## 이간·매수는 대상 무장이 있어야 한다 — 없으면(다 빠져나갔거나 원래
+	## 없으면) "홀릴 사람이 없습니다"(diplo.js plot() 그대로).
+	var target_id := ""
+	if kind == "discord" or kind == "bribe":
+		target_id = _pick_plot_target(enemy_id)
+		if target_id.is_empty():
+			return {"ok": false, "why": "홀릴 사람이 없습니다"}
+
 	var force_id: String = String(enemy_def.get("force", ""))
 	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
 	var h = Characters.find(officer_id)
-	var chance := RealmDiplo.plot_chance(
-		float(h.stats.get("wisdom", 0)), float(RealmDiplo.PLOT_GUARD_WISDOM), int(e.get("sec", 50)))
+	var mine_wisdom := float(h.stats.get("wisdom", 0))
+	var guard_wisdom := _enemy_guard_wisdom(enemy_id)
+	var sec := int(e.get("sec", 50))
+
+	var chance: float
+	match kind:
+		"discord":
+			var target_loyal := int(enemy_officer_loyal.get(target_id, 50))
+			chance = RealmDiplo.discord_chance(mine_wisdom, guard_wisdom, sec, target_loyal)
+		"bribe":
+			var target_loyal2 := int(enemy_officer_loyal.get(target_id, 50))
+			var th = Characters.find(target_id)
+			var target_rarity := int(th.rarity) if th != null else 3
+			chance = RealmDiplo.bribe_chance(mine_wisdom, guard_wisdom, sec, target_loyal2, target_rarity)
+		_:
+			chance = RealmDiplo.plot_chance(mine_wisdom, guard_wisdom, sec)
 
 	return {
 		"ok": true, "officer_id": officer_id, "force_id": force_id,
-		"e": e, "dip": dip, "chance": chance,
+		"e": e, "dip": dip, "chance": chance, "target_id": target_id,
 	}
 
 
@@ -869,6 +996,7 @@ func save() -> bool:
 		"officer_city": officer_city,
 		"officer_loyal": officer_loyal,
 		"enemies": enemies,
+		"enemy_officer_loyal": enemy_officer_loyal,
 		"diplomacy": diplomacy,
 		"quiz": quiz,
 	}
@@ -910,6 +1038,9 @@ func try_load() -> bool:
 	var loaded_enemies: Variant = data.get("enemies", {})
 	if typeof(loaded_enemies) == TYPE_DICTIONARY and not loaded_enemies.is_empty():
 		enemies = loaded_enemies
+	var loaded_enemy_officer_loyal: Variant = data.get("enemy_officer_loyal", {})
+	if typeof(loaded_enemy_officer_loyal) == TYPE_DICTIONARY and not loaded_enemy_officer_loyal.is_empty():
+		enemy_officer_loyal = loaded_enemy_officer_loyal
 	var loaded_diplomacy: Variant = data.get("diplomacy", {})
 	if typeof(loaded_diplomacy) == TYPE_DICTIONARY and not loaded_diplomacy.is_empty():
 		diplomacy = loaded_diplomacy

@@ -110,11 +110,17 @@ static func map_center() -> Vector2:
 ## y 43)에서 마저 가져왔다 — 함락하면 `realm_save_state.gd _annex_city()`
 ## 가 이 값들로 `cities[xiaopei]`를 채워 CITIES 성 셋과 동격으로 만든다
 ## (지도 좌표가 있어야 realm_worldmap.gd가 마커를 세울 수 있다).
+## **2026-09-12 추가 — 이간·매수용 수비 무장(`officers`).** data-force.js
+## force('bei').officers = [sg_guanyu, sg_zhangfei, rf_mizhu, rf_jianyong]
+## 중 saga_core characters.gd에 이미 있는 둘만(rf_* 둘은 REALM 전용
+## 데이터라 아직 없다, `realm_diplo.gd` 머리말 참고). **군주(`lord`)는 이
+## 목록에 안 넣는다** — diplo.js plot() "매수 후보에서 군주는 뺀다"를
+## 자료 단계에서부터 지킨다(필터링 코드로 매번 걸러내지 않아도 된다).
 const ENEMY_CITIES := [
 	{"id": "xiaopei", "name": "소패", "hanja": "小沛", "land": "plain", "from_city": "xuchang",
 	 "x": 70, "y": 43, "agri_start": 220, "comm_start": 200, "pop_start": 120000,
 	 "wall_start": 3600, "troops_start": 800, "train_start": 40, "tech_start": 100,
-	 "force": "bei", "lord": "sg_liubei",
+	 "force": "bei", "lord": "sg_liubei", "officers": ["sg_guanyu", "sg_zhangfei"],
 	 "desc": "서주의 작은 성. 허창과 맞닿아 있다."},
 ]
 

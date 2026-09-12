@@ -999,3 +999,88 @@ texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전
 
 **다음 이어질 것** — 이간·매수(적 쪽 이름 있는 무장 들이기), 그다음
 서고(learnedList) UI.
+
+
+## 9. 이간·매수 — 적 쪽에 이름 있는 무장 들이기 (2026-09-12)
+
+**사용자 지시 "1,2,3 다해줘"** — 8절 끝에 남은 세 후보 중 두 번째.
+data-force.js 시나리오 194 `force('bei').officers` = [sg_guanyu·
+sg_zhangfei·rf_mizhu·rf_jianyong] 중 **saga_core characters.gd에
+이미 있는 둘만**(sg_guanyu·sg_zhangfei) 소패 수비 무장으로 들였다 —
+rf_* 둘은 REALM 전용 데이터(130명+)라 아직 saga_core에 없다(다음에
+볼 자리).
+
+**포함**: `officer.js baseLoyal()`을 **군주를 인자로 받게 일반화**해서
+(기본값 유지로 기존 호출은 그대로) 소패 무장의 충성 바닥값을 그들의
+군주(`sg_liubei`) 기준으로 계산했다. `diplo.js plotChance()`의 이간·
+매수 전용 공식(이간: 공통항+(60-대상충성)/300, 매수: 0.15+(70-대상충성)
+/100-(대상rarity-3)*0.06+(내지력-태수지력)/400+(60-치안)/400) 그대로.
+대상 자동 선택(충성이 가장 낮은 쪽, 군주 제외)도 diplo.js 그대로 —
+**군주는 데이터 단계에서부터 `officers` 배열에 안 넣어** 매번 걸러낼
+필요가 없게 했다.
+
+**재해석**:
+- **이간 성공 시 즉시 이탈 판정.** 원작은 월말 `checkDefection()`이
+  12 이하인 사람을 35% 확률로 몰아내는데, 적 로스터엔 월말 정산 자리가
+  없다(next_month()는 우리 로스터만 돈다) — 그래서 **이간이 충성을
+  12 이하로 떨어뜨리는 순간 같은 굴림(35%)을 그 자리에서 한 번 돈다.**
+  판정 확률 자체는 안 바꿨다. 떠나면 `found[]`로 간다(원작 `r.found=true`
+  와 같다 — 등용 대상이 된다).
+- **매수 성공 시 즉시 합류.** 원작 bribe()가 바로 배치하는 것과 같다 —
+  `roster`에 곧장 들어가고(수색·등용 두 단계 생략) `officer_loyal`=40
+  (원작 그대로)으로 시작, 위치는 `RealmCities.DEFAULT_CITY`(허창).
+- **태수(guard) 지력을 실제 값으로.** 지금까지 rumor·fire는 `PLOT_
+  GUARD_WISDOM`(30) 고정값을 썼다(적 태수 정보가 없어서) — 이제 넷 다
+  `enemies[eid].officers` 중 지력 최댓값을 쓴다(`_enemy_guard_wisdom()`).
+  수비 무장이 남아 있는 동안은 계략이 더 어렵고, 매수·이간으로 다
+  빼내면 원래(30)로 돌아간다.
+- **전투도 갱신 — `attack()`의 `def_army`가 이제 `enemies[eid].officers`
+  를 그대로 반영한다**(officer_count·best_command·best_might). 이름
+  있는 수비 무장이 남아 있으면 방어가 실제로 세진다 — 매수·이간으로
+  미리 빼내는 것이 전쟁 준비로도 뜻이 생겼다(계략·전쟁 두 슬라이스가
+  이번에 실제로 맞물렸다).
+- **함락 시 남은 수비 무장은 사로잡혀 재야가 된다** — war.js capture()
+  의 caught 분기(소패는 몸 붙일 이웃 성이 없어 fled 분기가 원작에서도
+  안 탄다). 매수·이간으로 미리 안 빠진 사람만 이 대상이다.
+- **보스전 보상·세력 멸망 판정은 여전히 안 옮겼다** — 옮긴 둘 다 보스가
+  아니고, `bei`가 성을 몇 개 들고 있는지 `enemies`가 안 따진다.
+
+**구현**:
+- `realm_cities.gd`: `ENEMY_CITIES[xiaopei]`에 `officers: [sg_guanyu,
+  sg_zhangfei]` 추가(군주는 안 넣음).
+- `realm_diplo.gd`: `base_loyal(officer_id, lord_id=LORD_ID)` 일반화.
+  `PLOTS`를 원작 순서(이간·유언비어·매수·화계) 그대로 넷으로. `discord_
+  chance()`/`bribe_chance()` 신규. `DISCORD_HIT_*`·`DEFECT_LOYAL_FLOOR`
+  ·`DEFECT_CHANCE`·`BRIBE_LOYAL_SET` 신규 — `DEFECT_LOYAL_FLOOR`/
+  `DEFECT_CHANCE`는 기존 `_check_defection()`의 하드코딩값(12·0.35)도
+  이참에 이 상수를 쓰게 바꿨다(재사용).
+- `realm_save_state.gd`: `enemy_officer_loyal: Dictionary`(신설) +
+  `_init_enemies()`가 `officers` 배열도 실행 중 값으로 복사해 채운다.
+  `_enemy_guard_wisdom()`/`_pick_plot_target()` 신규. `_plot_check()`가
+  이간·매수의 대상 선택·확률 계산을 추가로 맡는다. `plot()`이 이간·
+  매수 실행 분기를 얻는다. `attack()`의 `def_army`가 `e.officers`를
+  반영, 함락 시 남은 수비 무장을 `found[]`로 옮긴다. SAVE_VERSION 8→9.
+- `realm_plot_button.gd`: 메뉴에 이간·매수 대상 이름·성공률 표시,
+  실행 결과 토스트(충성 변화·이탈·합류) 추가.
+- `realm_war.gd`: 머리말만 갱신(판정식 자체는 안 바꿨다 — 애초에
+  officer_count>0 분기도 다루는 일반식이었다).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 재발생해 되돌림) → 다섯 씬 전부 `--quit-after 5`
+세 번 연속 exit 0·로그 완전 무결. **임시 디버그로 실제 값 확인**:
+`enemy_officer_loyal` 시작값 — 관우 52(rarity5·trait일치+12-12벌점=
+상쇄), 장비 46(52-6, trait 불일치) 전부 손 계산과 정확히 일치.
+`guard_wisdom`=75(관우 지력, 손 계산과 일치). `bribe_chance`=0.3925,
+`discord_chance`=0.47166667 — 공식 그대로 재계산해 소수점까지 정확히
+일치. `army_power`(관우·장비 있음)=751.333 vs (없음)=257.6 — 손 계산과
+정확히 일치(수비력이 약 3배 차이, 의도한 재균형). 매수 시도(실패,
+gold -600 정확) → 이간 10회 반복(대상이 장비→관우로 자동 전환되는 것,
+매 시도마다 재계산되는 chance가 손 계산과 전부 일치, 충성 12 이하에서
+이탈 판정이 정확히 걸리는 것과 장비가 실제로 이탈해 `found[]`로 가는
+것)까지 전부 확인. 디버그 원상복구(diff 0).
+
+**GUI 실기 확인은 아직 안 함** — 계략 메뉴에 대상 이름이 잘 보이는지는
+눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 서고(learnedList) UI. rf_mizhu·rf_jianyong을
+saga_core에 들이는 것도 후보로 남는다(승인 후).

@@ -42,6 +42,41 @@ const Characters := preload("res://saga_core/data/characters.gd")
 ## 본다(diplo.js 원문에 그 체크가 없다) — 첩보전은 정식 화친과 별개라는
 ## 뜻으로 그대로 옮겼다(`attack()`의 화친 체크와 다른 자리라 헷갈리지
 ## 않게 여기 적어 둔다).
+##
+## **2026-09-12 추가 — 이간·매수(적 쪽에 이름 있는 무장 들이기).** "1,2,3
+## 다해줘"의 두 번째. data-force.js 시나리오 194 force('bei').officers
+## = [sg_guanyu, sg_zhangfei, rf_mizhu, rf_jianyong] 중 **saga_core
+## characters.gd에 이미 있는 둘만**(sg_guanyu·sg_zhangfei) 소패 수비
+## 무장으로 들였다 — rf_* 둘은 REALM 전용 데이터(130명+)라 saga_core에
+## 아직 없다(다음에 볼 자리). `base_loyal()`을 **군주를 인자로 받게**
+## 일반화했다(기본값 LORD_ID로 기존 호출은 그대로) — 소패 수비 무장의
+## 충성 바닥값은 그들의 군주(`sg_liubei`) 기준으로 재야만큼 계산해야
+## 해서다. **매수 후보에서 군주는 뺀다**(diplo.js plot() "cands.filter
+## (h.id !== lord)" 그대로) — 군주는 안 판다.
+##
+## **재해석 — 이간 성공 시 즉시 이탈 판정.** 원작은 이간으로 충성이
+## 바닥나도 그 자체로는 아무 일도 안 하고, `officer.js checkDefection()`
+## (월말 정산)이 12 이하인 사람을 35% 확률로 몰아낸다. 이 슬라이스는
+## 적 로스터에 월말 정산을 도는 자리가 없어(`next_month()`는 우리
+## 로스터만 돈다), **이간이 성공해 충성이 12 이하로 떨어지면 그 자리에서
+## 같은 35% 굴림을 한 번 돌린다** — "적이 흔들릴 때까지 기다렸다가 우연히
+## 떠나는 걸 지켜본다"를 "우리가 흔든 순간 결판난다"로 좁힌 재해석이다
+## (판정 확률 자체는 안 바꿨다). 떠나면 `RealmSaveState.found`로 간다
+## (재야, 원작 `r.found=true`와 같다 — 등용 대상이 된다).
+##
+## **재해석 — 매수 성공 시 즉시 합류.** 원작 bribe()는 `off.placeAt`으로
+## 바로 우리 성에 배치하는데(사로잡는 게 아니라 넘어오는 것), 이 슬라이스도
+## 그대로 — `roster`에 바로 들어가고(수색·등용 두 단계를 안 거친다)
+## `officer_loyal`=40(원작 그대로)으로 시작한다.
+##
+## **재해석 — 태수(guard) 지력.** 지금까지 rumor·fire는 `PLOT_GUARD_
+## WISDOM`(30) 고정값을 썼다 — 적 태수 정보가 없어서였다. 이제 소패에
+## 이름 있는 수비 무장이 생겼으니 **넷 다** 그중 지력 최댓값을 태수로
+## 쓴다(`RealmSaveState._enemy_guard_wisdom()`) — 수비 무장이 남아있는
+## 동안은 계략이 더 어려워지고, 매수·이간으로 다 빼내면 원래대로 쉬워진다.
+## rumor·fire의 예전 검증 수치(태수=30 고정)는 이 변경으로 다시 계산해야
+## 한다(6·7절 검증은 그 시점 기준으로 여전히 맞다 — 그때는 수비 무장이
+## 없었다).
 
 const TRUCE_MONTHS := 8            # diplo.js TRUCE_MONTHS
 const DEFAULT_RELATION := 40       # diplo.js relation() 기본값
@@ -52,21 +87,31 @@ const ENVOY_FEE := 100             # diplo.js envoy() "gold+100"의 고정 수�
 
 const LORD_ID := "sg_caocao"       # data-force.js force('cao').lord
 
-## officer.js PLOTS 중 성 자체가 대상인 둘만 — 위 머리말 "재해석" 참고.
+## officer.js PLOTS 전부 — diplo.js 원래 순서(이간·유언비어·매수·화계) 그대로.
 const PLOTS := [
+	{"key": "discord", "name": "이간", "emoji": "🕸️", "gold": 200,
+	 "desc": "적 무장을 헐뜯어 충성을 깎는다. 바닥나면 스스로 떠난다."},
 	{"key": "rumor", "name": "유언비어", "emoji": "🗣️", "gold": 150,
 	 "desc": "적 성에 뜬소문을 놓아 치안을 깎는다."},
+	{"key": "bribe", "name": "매수", "emoji": "💰", "gold": 600,
+	 "desc": "충성이 낮은 적 무장을 금으로 부른다."},
 	{"key": "fire", "name": "화계", "emoji": "🔥", "gold": 300,
 	 "desc": "적 성의 군량에 불을 놓는다. 원정 나온 군대가 굶는다."},
 ]
 const PLOT_RELATION_HIT := -4      # diplo.js plot() "걸기만 해도" 우호 하락
 const PLOT_FAIL_RELATION_HIT := -6 # diplo.js plot() 들통났을 때 추가 하락
 const PLOT_GUARD_WISDOM := 30      # diplo.js plotChance() "태수가 비어 있으면" 기본값
-                                    # — 이 슬라이스는 적 태수를 안 다뤄 늘 이 값
+                                    # — 수비 무장이 전부 없어지면(매수·이간으로
+                                    # 다 뺏기면) 이 값으로 돌아간다.
 const SEC_HIT_BASE := 10           # diplo.js plot() 'rumor': 10 + rand*12
 const SEC_HIT_RANGE := 12
 const FOOD_BURN_BASE := 0.25       # diplo.js plot() 'fire': round(food*(0.25+rand*0.3))
 const FOOD_BURN_RANGE := 0.3
+const DISCORD_HIT_BASE := 12       # diplo.js plot() 'discord': -(12 + floor(rand*14))
+const DISCORD_HIT_RANGE := 14
+const DEFECT_LOYAL_FLOOR := 12     # officer.js checkDefection() "12 이하"
+const DEFECT_CHANCE := 0.35        # officer.js checkDefection() "35% 확률"
+const BRIBE_LOYAL_SET := 40        # diplo.js plot() 'bribe': "off.rec(targetId).loyal = 40"
 
 
 static func plot_by_key(key: String) -> Dictionary:
@@ -76,11 +121,14 @@ static func plot_by_key(key: String) -> Dictionary:
 	return {}
 
 
-## officer.js baseLoyal() — 군주(LORD_ID)와 trait이 같으면 +12, 귀할수록
-## (rarity 클수록) -6씩, 삼국지 사람이 아니면(재야에서 온 이방인) -4.
-static func base_loyal(officer_id: String) -> int:
+## officer.js baseLoyal() — 군주(lord_id, 기본 LORD_ID=우리 군주)와 trait이
+## 같으면 +12, 귀할수록(rarity 클수록) -6씩, 삼국지 사람이 아니면(재야에서
+## 온 이방인) -4. **2026-09-12 일반화** — 소패 수비 무장은 자기 군주
+## (sg_liubei)를 기준으로 계산해야 해서 `lord_id`를 인자로 받는다(기본값
+## 유지로 기존 호출은 그대로).
+static func base_loyal(officer_id: String, lord_id: String = LORD_ID) -> int:
 	var h = Characters.find(officer_id)
-	var lord = Characters.find(LORD_ID)
+	var lord = Characters.find(lord_id)
 	if h == null:
 		return 50
 	var v := 52
@@ -92,11 +140,29 @@ static func base_loyal(officer_id: String) -> int:
 	return clampi(v, 25, 85)
 
 
-## diplo.js plotChance() — 이간/매수(무장 대상) 항은 뺐다(이 슬라이스가
-## 안 옮긴 두 계략용이라 여기 있을 이유가 없다). 남은 rumor/fire 공통
-## 항만: 기본 0.30 + (내 지력-태수 지력)/200 + (60-치안)/400.
+## diplo.js plotChance() 공통 항(rumor/fire) — 기본 0.30 + (내 지력-태수
+## 지력)/200 + (60-치안)/400.
 static func plot_chance(mine_wisdom: float, guard_wisdom: float, sec: int) -> float:
 	var p := 0.30 + (mine_wisdom - guard_wisdom) / 200.0
+	p += (60.0 - float(sec)) / 400.0
+	return clampf(p, 0.05, 0.9)
+
+
+## diplo.js plotChance(kind==='discord') — plot_chance()의 항에 "(60-대상
+## 충성)/300"을 더한다.
+static func discord_chance(mine_wisdom: float, guard_wisdom: float, sec: int, target_loyal: int) -> float:
+	var p := plot_chance(mine_wisdom, guard_wisdom, sec)
+	p += (60.0 - float(target_loyal)) / 300.0
+	return clampf(p, 0.05, 0.9)
+
+
+## diplo.js plotChance(kind==='bribe') — 공통 항을 안 쓰고 통째로 새 공식:
+## 0.15 + (70-대상 충성)/100 - (대상 rarity-3)*0.06 + (내 지력-태수 지력)/400
+## + (60-치안)/400(성 항은 여전히 더한다, 원작 그대로).
+static func bribe_chance(mine_wisdom: float, guard_wisdom: float, sec: int,
+		target_loyal: int, target_rarity: int) -> float:
+	var p := 0.15 + (70.0 - float(target_loyal)) / 100.0 - (float(target_rarity) - 3.0) * 0.06
+	p += (mine_wisdom - guard_wisdom) / 400.0
 	p += (60.0 - float(sec)) / 400.0
 	return clampf(p, 0.05, 0.9)
 

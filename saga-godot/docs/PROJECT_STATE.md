@@ -4166,3 +4166,35 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 이간·매수(적 쪽 이름 있는 무장 들이기), 그다음
     서고(learnedList) UI.
+
+
+## REALM 이간·매수 — 적 쪽에 이름 있는 무장 들이기 (2026-09-12)
+
+- **사용자 지시 "1,2,3 다해줘"** — 세 후보 중 두 번째. 소패에 수비
+  무장 둘(sg_guanyu·sg_zhangfei, data-force.js force('bei').officers
+  중 saga_core에 있는 둘만)을 들여 이간·매수를 마저 옮겼다.
+  - `realm_cities.gd`: ENEMY_CITIES[xiaopei]에 `officers` 추가(군주
+    제외).
+  - `realm_diplo.gd`: `base_loyal()`이 군주를 인자로 받게 일반화.
+    `PLOTS` 넷 전부(이간·유언비어·매수·화계). `discord_chance()`/
+    `bribe_chance()` 신규. 기존 `_check_defection()`의 하드코딩(12·
+    0.35)도 새 상수로 재사용.
+  - `realm_save_state.gd`: `enemy_officer_loyal`(신설). `_enemy_
+    guard_wisdom()`/`_pick_plot_target()` 신규 — **rumor·fire도 이제
+    실제 태수 지력을 쓴다**(전엔 30 고정). `attack()`의 `def_army`가
+    `e.officers`를 반영해 **수비 무장이 남아 있으면 실제로 세진다**
+    (army_power 약 3배 차이, 재계산해 확인). 함락 시 남은 수비 무장은
+    `found[]`로(사로잡힘). 이간 성공으로 충성이 12 이하가 되면 그
+    자리에서 이탈 판정(35%)까지 돈다(월말 정산이 없어서의 재해석).
+    매수 성공 시 바로 `roster`에 합류. SAVE_VERSION 8→9.
+  - `realm_plot_button.gd`: 메뉴에 대상 이름·성공률, 결과 토스트 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 9절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(변경 없음) → 다섯 씬
+    세 번 연속 exit 0·로그 무결. 임시 디버그로 enemy_officer_loyal
+    시작값(관우52·장비46)·guard_wisdom(75)·bribe_chance(0.3925)·
+    discord_chance(0.47166667) 전부 공식과 정확히 일치. army_power
+    751.3(관우·장비 있음) vs 257.6(없음) 정확. 매수 실패(gold -600)→
+    이간 10회(대상 자동 전환, chance 매번 재계산 일치, 충성 12 이하
+    이탈 정확 발동, found[]로 이동)까지 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 서고(learnedList) UI.

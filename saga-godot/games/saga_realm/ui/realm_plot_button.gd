@@ -1,16 +1,19 @@
 extends Button
 
-## "계략" 버튼 — diplo.js PLOTS 중 성 자체가 대상인 유언비어(치안)·화계
-## (군량) 둘만 옮긴 첫 슬라이스(2026-09-12, "1,2,3 순서대로 다해" 두 번째).
-## 이간·매수(적 무장 대상)는 소패에 이름 있는 수비 장수가 없어 다음에 볼
-## 자리(`realm_diplo.gd` 머리말 참고). realm_diplo_button.gd와 같은
-## ChoicePrompt 패턴이되, "계략은 성공률을 숨기지 않는다"(diplo.js 머리말)
-## 는 원칙대로 메뉴에 성공률을 미리 계산해 보여 준다.
+## "계략" 버튼 — diplo.js PLOTS 넷(이간·유언비어·매수·화계)을 다 옮긴
+## 것(2026-09-12, "1,2,3 순서대로 다해"). 유언비어·화계(성 자체가 대상)는
+## 먼저 옮겼고(이 지시의 두 번째), 이간·매수(적 무장 대상)를 이번에
+## 마저 옮겼다(세 번째) — 소패에 이름 있는 수비 무장(sg_guanyu·
+## sg_zhangfei)이 생기면서 대상이 실제로 있어졌다(`realm_cities.gd`
+## ENEMY_CITIES 참고). realm_diplo_button.gd와 같은 ChoicePrompt
+## 패턴이되, "계략은 성공률을 숨기지 않는다"(diplo.js 머리말)는 원칙대로
+## 메뉴에 성공률(+이간·매수는 대상 이름)을 미리 계산해 보여 준다.
 
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
+const Characters := preload("res://saga_core/data/characters.gd")
 
 const TARGET := "xiaopei"
 const TOAST_SEC := 3.5
@@ -25,6 +28,11 @@ func _target_name() -> String:
 	return String(RealmCities.enemy_by_id(TARGET).get("name", "상대"))
 
 
+func _officer_name(id: String) -> String:
+	var h = Characters.find(id)
+	return String(h.name) if h != null else id
+
+
 func _on_pressed() -> void:
 	var layer_box := {}
 	var choices: Array = []
@@ -33,8 +41,12 @@ func _on_pressed() -> void:
 		var preview := RealmSaveState.plot_preview(key, TARGET)
 		var label: String
 		if bool(preview.get("ok", false)):
-			label = "%s %s (🪙%d, 성공률 %d%%) — %s" % [
-				String(p.emoji), String(p.name), int(p.gold),
+			var who := ""
+			var target_id: String = String(preview.get("target_id", ""))
+			if not target_id.is_empty():
+				who = " — %s" % _officer_name(target_id)
+			label = "%s %s%s (🪙%d, 성공률 %d%%) — %s" % [
+				String(p.emoji), String(p.name), who, int(p.gold),
 				roundi(float(preview.get("chance", 0.0)) * 100.0), String(p.desc)]
 		else:
 			label = "%s %s — %s" % [String(p.emoji), String(p.name), String(preview.get("why", "실패"))]
@@ -61,6 +73,13 @@ func _run(kind: String, name_: String, layer_box: Dictionary) -> void:
 		msg = "🗣️ %s — 치안 %d → %d" % [name_, int(r.sec_from), int(r.sec_to)]
 	elif kind == "fire":
 		msg = "🔥 %s — 군량 %d 이(가) 탔다" % [name_, int(r.burned)]
+	elif kind == "discord":
+		var who := _officer_name(String(r.target))
+		msg = "🕸️ %s — %s 의 충성 %d → %d" % [name_, who, int(r.loyal_from), int(r.loyal_to)]
+		if bool(r.defected):
+			msg += " · 🚪 %s 이(가) 흔들려 재야로 흩어졌다!" % who
+	elif kind == "bribe":
+		msg = "💰 %s — %s 이(가) 우리 쪽으로 넘어왔다!" % [name_, _officer_name(String(r.target))]
 	else:
 		msg = "%s 성공" % name_
 	Toast.show(self, msg, TOAST_SEC)

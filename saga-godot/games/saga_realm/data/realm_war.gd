@@ -13,8 +13,13 @@ extends RefCounted
 ##   진영 시스템이 없어 **routed와 같이 취급**한다(살아남은 병력이 그냥
 ##   돌아간다) — `realm_save_state.gd attack()`이 이 재해석을 적용한다.
 ##
-## 적 쪽(수비)은 이름 있는 장수가 없다 — armyPower()의 "장수 없는 부대"
-## 분기(`officer_count<=0` → lead=0.6)를 그대로 쓴다.
+## 적 쪽(수비)은 처음엔 이름 있는 장수가 없었다 — armyPower()의 "장수
+## 없는 부대" 분기(`officer_count<=0` → lead=0.6)를 그대로 썼다.
+## **2026-09-12 갱신 — 이간·매수 슬라이스가 소패에 수비 무장(sg_guanyu·
+## sg_zhangfei)을 들이면서 이 분기가 실제로 갈리게 됐다** —
+## `realm_save_state.gd attack()`이 `enemies[eid].officers`(매수·이간·
+## 함락으로 줄어든다)를 그대로 넘긴다. 함수 자체는 안 바뀌었다 — 애초에
+## officer_count가 0이 아닌 경우도 다뤘던 일반식이라 새로 손댈 게 없다.
 
 const ROUNDS := 10   # war.js ROUNDS — 한 달에 붙는 횟수
 const ROUT := 0.35   # war.js ROUT — 처음 병력의 이만큼까지 줄면 물러난다
