@@ -5,6 +5,39 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **FOREST — 집 들어가기/나가기 CharacterController 순간이동 결함 수정 +
+  자동 검증 도구 (2026-09-12, 열한 번째 세션, DUNGEON 실기 확인 "문제
+  없어 보여" 이후 "더 진행해줘"로 계속).** 사용자가 다음 방향을 물어
+  FOREST 실기 확인(첫 커스텀 셰이더라 리스크 큼)을 추천했으나 사용자가
+  "더 진행해줘"로 답해, 그 실기 확인은 사용자 몫으로 남겨두고 코드
+  검토를 이어갔다 — 바로 위 DUNGEON 세션에서 배운 패턴(`CharacterController`
+  가 켜진 채 `transform.position`을 그냥 대입하면 Unity가 다음 프레임에
+  조용히 되돌린다)을 다른 트랙에도 있는지 훑어보니, **`ForestHouse.cs`가
+  집 들어가기/나가기 때 똑같은 방식으로 플레이어를 옮기고 있었다** —
+  아직 사람이 실기로 확인 안 한 코드라 아무도 못 밟았을 실제 결함
+  (문에 다가가도 안 들어가지거나, 들어간 것처럼 보였다가 바로 튕겨
+  나오는 것처럼 보일 뻔했다). `SaveState.cs`류(GO/DUNGEON/FOREST 전부)의
+  위치 복원은 `Start()` 이전(첫 물리 스텝 전)이라 이 문제를 안 밟는다는
+  것도 다시 확인 — 셋 다 그대로 둠.
+  - `ForestHouse.TeleportPlayer()` 신규 — 대입 전후로
+    `CharacterController.enabled`를 껐다 켠다. 들어가기·나가기 두 호출부
+    모두 이걸로 교체.
+  - 신규 `Editor/PlaytestForestHouseTransition.cs` — `PlaytestDungeonFloorProgression
+    .cs`와 같은 결. Play 모드에서 플레이어를 문 앞/실내 출구 앞으로
+    순간이동시켜(테스트 하니스 쪽도 같은 CC 토글 필요) `_isInside` 플래그가
+    실제로 뒤집히는지, 착지 위치가 몇 프레임이 지나도 안 되돌아가는지까지
+    확인한다.
+  - 재검증 — `[PlaytestForestHouseTransition] OK - entered and exited the
+    house, position held across frames, no errors`. 회귀로
+    `PlaytestForestHeadless`(`OK - 10 frames, no errors`)도 재확인.
+  - **부수 확인** — Play 모드 진입/종료 중 Unity가 `TestVillageForest.unity`를
+    내용 변경 없이 fileID만 재배정해 다시 저장하는 걸 발견(오브젝트 28개·
+    이름 전부 diff 0) — 의도한 변경이 아니라 커밋 전 `git checkout`으로
+    되돌림(루트 CLAUDE.md급 습관, saga-godot CLAUDE.md의 "에디터가 project.godot을
+    조용히 고쳐 쓴다"와 같은 종류의 부작용).
+  - **여전히 사람의 GUI 확인이 필요한 것**(이번 수정과 무관, 원래부터
+    대기 중) — 구면 투영이 실제로 휘어 보이는지, 집 안 곡률이 꺼지는지
+    등 `docs/VERTICAL_SLICE_FOREST.md` "검증" 절 참고.
 - **DUNGEON — 절차적 층 진행 실제 GameObject 경로 자동 검증 + 발견한
   진짜 결함 수정 (2026-09-12, 열한 번째 세션).** 지난 세션이 "다음
   세션이 가장 먼저 할 만한 일"로 남긴 빈틈 — `PlaytestDungeonHeadless`
@@ -1581,6 +1614,22 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     (2) 없으면 door UI를 더 다듬을지/100층 이후로 늘릴지/다른 게임
     (STORY 등, 51~65장 확장 순서)으로 넘어갈지 사용자와 상의 — 이건
     코드 판단이 아니라 방향 결정이라 세션이 임의로 고르지 않는다.
+- **사용자가 DUNGEON을 유니티 에디터로 직접 실기 확인 — "문제 없어
+  보여"로 답함(2026-09-12, 열한 번째 세션 이어서).** 다음 방향을
+  묻길래 "FOREST 실기 확인부터(첫 커스텀 셰이더라 리스크 큼)"를
+  추천했는데, 사용자가 "더 진행해줘"로 답해 — FOREST 실기 확인은
+  사용자 몫으로 남겨 두고, DUNGEON에서 배운 CharacterController 순간
+  이동 패턴이 다른 트랙에도 있는지 코드로 훑어 `ForestHouse.cs`에서
+  같은 결함을 찾아 고쳤다(위 "완료 단계" 맨 위 항목 참고).
+  - **다음 세션이 볼 것** — (1) 사람이 FOREST를 실기로 확인한 피드백
+    (구면 투영이 실제로 휘어 보이는지, 집 들어가기/나가기가 이번 수정
+    이후 실제로 자연스러운지)이 있으면 그것부터, (2) 없으면 saga-godot
+    FOREST 트랙이 이미 검증해 둔 다음 콘텐츠 순서(가구/집 꾸미기 →
+    몬스터·퓨전 콘텐츠, `saga-godot/docs/PROJECT_STATE.md` "FOREST
+    콘텐츠 확장" 절 참고 — 코드는 안 베끼고 개념만) 중 가구부터 이어가는
+    쪽이 자연스럽다(같은 이유로 godot도 이 순서를 골랐다: 이미 있는
+    ForestHouse 실내 위에 바로 이어붙일 수 있어 범위가 작고 확실함),
+    (3) 또는 DUNGEON/다른 게임 착수 — 방향 결정은 사용자와 상의할 것.
 - **사용자가 "1,2 순서대로"로 두 방향을 확정했다 — (1) FOREST 착수
   (완료, 위 "완료 단계" 참고) → (2) DUNGEON을 진짜 오픈월드로 확장
   (아직 착수 전).** 다음 세션은 (2)부터 시작한다 — 방 넷짜리 선형
@@ -2186,3 +2235,7 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   errors`(roomIndex 매번 정확히 1씩 증가, floor 2→3→4, cave·fight·
   well·forage·stair 등 실제 GameObject 경로로 확인). 회귀로
   `PlaytestDungeonHeadless`(`OK - 10 frames, no errors`)도 재확인.
+- `PlaytestForestHouseTransition.cs`(신규, 열한 번째 세션) — `ForestHouse
+  .cs`의 CharacterController 순간이동 결함 수정 뒤 `OK - entered and
+  exited the house, position held across frames, no errors`. 회귀로
+  `PlaytestForestHeadless`(`OK - 10 frames, no errors`)도 재확인.

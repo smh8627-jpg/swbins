@@ -36,6 +36,7 @@ namespace Saga.Forest.World
         private Vector3 _exitTriggerPosIndoor;  // 실내 — 반대편, 여기 다가가면 나간다.
 
         private Transform _player;
+        private CharacterController _playerController;
         private bool _isInside;
 
         private void Awake()
@@ -55,6 +56,20 @@ namespace Saga.Forest.World
 
             var playerGo = GameObject.FindWithTag("Player");
             _player = playerGo != null ? playerGo.transform : null;
+            _playerController = playerGo != null ? playerGo.GetComponent<CharacterController>() : null;
+        }
+
+        /// <summary>saga-unity DUNGEON `DungeonFloorRunner.RepositionPlayerToEntry()`
+        /// 슬라이스(2026-09-12, 열한 번째 세션)가 실제 검증 도구로 잡아낸 것과 같은
+        /// 문제 — `CharacterController`가 켜진 채 `transform.position`을 그냥 대입하면
+        /// Unity가 다음 프레임에 조용히 원래 자리로 되돌린다. 이 메서드는 그때 이후로
+        /// 발견된 같은 패턴이라 코드 검토로 미리 고쳤다(사람이 실기로 "문이 안 열린다"
+        /// 를 겪기 전에).</summary>
+        private void TeleportPlayer(Vector3 position)
+        {
+            if (_playerController != null) _playerController.enabled = false;
+            _player.position = position;
+            if (_playerController != null) _playerController.enabled = true;
         }
 
         /// <summary>4m×2.5m 벽 셋(남쪽만 비워 문으로 삼는다) + 지붕. 실제
@@ -128,7 +143,7 @@ namespace Saga.Forest.World
                 if (Vector3.Distance(_player.position, _entryTriggerPos) <= TriggerRadius)
                 {
                     _isInside = true;
-                    _player.position = _entryLandingPosIndoor;
+                    TeleportPlayer(_entryLandingPosIndoor);
                     DialogueLabel.Instance?.Show("집 안으로 들어왔다 — 화면이 더는 휘지 않는다.", ToastSec);
                 }
             }
@@ -137,7 +152,7 @@ namespace Saga.Forest.World
                 if (Vector3.Distance(_player.position, _exitTriggerPosIndoor) <= TriggerRadius)
                 {
                     _isInside = false;
-                    _player.position = _exitLandingPos;
+                    TeleportPlayer(_exitLandingPos);
                     DialogueLabel.Instance?.Show("밖으로 나왔다 — 다시 마을이 휘어 보인다.", ToastSec);
                 }
             }
