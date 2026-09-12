@@ -602,3 +602,102 @@ cannot로 훑어 한 줄도 없음. **임시 디버그로 실제 값 확인**: �
 **다음 이어질 것** — 전쟁/외교(war.js/diplo.js)·문답(quiz.js) — 성표
 탭까지 갖췄으니 realm3d.js식 월드맵 슬라이스는 이걸로 일단락, 다음은
 완전히 새 시스템 쪽. 승인 후.
+
+
+## 3. 전쟁 — 첫 전투 슬라이스: 소패 공략 (2026-09-12)
+
+**사용자 지시 "전쟁 외교 이어해"** — 착수 전에 `war.js`(armyPower/
+stepRound/fight)·`diplo.js`(relation/pact)·`rtk-ai.js`·`data-force.js`
+시나리오 194를 먼저 조사했다(fork 리서치). 결론:
+
+- `fight(atk, def, wallRef, toId, land, dry)`가 이미 "한 번 부르면
+  최대 10합을 굴려 승부를 낸다"는, REALM의 다른 명령들과 같은 "한
+  명령 → 한 결과" 모양이다 — 새 판정 구조를 안 만들어도 그대로 옮겨
+  붙는다.
+- `diplo.js`는 얕지만(relation 스칼라 + envoy() 단발 확률) **이번엔
+  안 옮겼다** — 전쟁 쪽이 이미 이번 세션 분량으로 충분해 "전쟁"과
+  "외교" 중 하나만 골랐다(사용자 지시가 둘 다였지만, 한 세션에 하나씩
+  이라는 이 프로젝트의 관례를 지켰다). 외교는 다음 세션 후보로 남는다.
+- `rtk-ai.js`(AI 턴)는 필요 없다 — `forecast()`가 이미 "AI 없이 정적인
+  성 수치로 fight()를 그대로 굴려 승산만 재는" 선례라, 첫 공격 목표를
+  AI가 움직이지 않는 **고정 수치의 적 성**으로 두면 된다.
+- 시나리오 194에서 조조 성 셋에 맞닿은 실제 이웃(data-city.js ADJ)
+  중 뭍길·평지라 배(ships)가 안 걸리는 건 허창↔소패(유비령)·허창↔여남
+  (원술령)·허창↔완(유표령)·진류↔낙양(이각령) 넷 — 그중 **소패**를
+  골랐다(허창과 맞닿았고, `capture()`의 세력 멸망·보스전·랜드마크 같은
+  부수 효과가 없는 평범한 소성).
+
+**포함**: `army_power()`/`step_round()`/`fight()` 판정식 그대로(계수
+0.055·0.85+0.3·ROUT=0.35·성벽 배율 0.9·공성 배율 0.045 전부 원작 값,
+새로 안 지어냈다). 야전/공성 갈림(`sortie = def.troops > atk.troops*
+0.85`)도 그대로 — AI 결정이 아니라 그냥 문턱값이라 포함해도 스코프가
+안 늘어난다. 승리하면 `captured` 깃발.
+
+**뺀 것(재해석)**:
+- 진형·일기토 — 능력치 문턱·확률이 따로 있어 mul=1 고정과 같은 결로
+  건너뜀.
+- 수전·화공·배 — 소패가 뭍길이라 안 걸림.
+- 진영(camp, 여러 달에 걸치는 원정) — 승부가 안 갈리면(stalemate)
+  이 슬라이스엔 진영 시스템이 없어 **routed와 같이 취급**(살아남은
+  병력이 그냥 돌아간다).
+- 함락 뒤처리(무장 배치·태수·치안 반토막·세력 멸망·랜드마크·보스전) —
+  이 슬라이스는 정복한 성을 아직 플레이 가능한 성으로 안 들인다(다음에
+  볼 자리) — `captured` 깃발만 세운다.
+- 수량 선택 UI — `xuchang`(소패와 맞닿은 유일한 우리 성)에 있는
+  **전군**을 보낸다. 이 판 다른 명령들처럼 버튼 하나로 결과만 본다.
+- **재해석 — 소패 수비 병력(troops_start).** 원작 rtk.js는 모든 성이
+  troops=0에서 시작해 AI가 여러 달에 걸쳐 채우는데, 이 슬라이스엔
+  적 AI가 없어(그대로 두면 언제 쳐도 병력 없는 성을 시시하게 이기기만
+  하는 자리가 된다) 우리 성 셋이 몇 달 굴러 도달할 법한 중간 규모
+  (800)를 정적으로 채워 뒀다 — 복양이 처음부터 배 60척을 갖고 시작하는
+  것과 같은 결의 재해석("안 그러면 판이 시시해진다").
+
+**구현**:
+- `realm_war.gd`(신규, RefCounted) — `army_power()`/`step_round()`/
+  `fight()`. atk/def/wall은 Dictionary를 그대로 고쳐 쓴다(war.js가
+  `atk.troops -= lossA`로 직접 고치던 것과 같은 결 — GDScript
+  Dictionary도 참조 전달이라 그대로 옮겨진다). rng는
+  `RealmSaveState._rng`(고정 시드)를 받아 진단 결정성을 지킨다.
+- `realm_cities.gd` — `ENEMY_CITIES`(소패 하나, data-city.js 그대로:
+  wall_start=3600, land=plain, from_city="xuchang"), `LAND_DEF`/
+  `LAND_SIEGE`(data-city.js LAND_TYPES 표 전체 — 하나만 골라 옮기면
+  "왜 이건 빼고 저건 옮겼나"는 새 판단이 끼는 셈이라 LAND_AGRI_CAP/
+  LAND_COMM_CAP처럼 표 전체를 그대로 들였다), `enemy_by_id()`/
+  `land_def()`/`land_siege()`.
+- `realm_save_state.gd` — `enemies: Dictionary`(신설, enemy_id→
+  {troops,wall,max_wall,train,tech,captured}) + `_init_enemies()`.
+  `attack(enemy_id)` — war.js setupMarch()/finishMarch()의 "출진 준비
+  → fight() 호출 → 뒤처리"를 좁혀 옮겼다: 전제조건(500명 이상·군량
+  2배월치·이 성 소속 무장·이 달 명령 안 씀) → 전군 출진(troops=0,
+  food -= need) → `RealmWar.fight()` 호출 → 승리면 captured=true,
+  패배/무승부면 생존 병력·치중(baggage=food_upkeep(troops), need의
+  정확히 절반)을 원래 성으로 반환. `enemies["xiaopei"]`는 공격할
+  때마다 병력·성벽이 그대로 이어진다(재도전이 의미 있게).
+  `next_month()`는 enemies를 안 건드린다(적 AI가 없어 매달 그대로).
+  SAVE_VERSION 3→4(enemies 추가).
+- `realm_attack_button.gd`(신규) + `RealmHUD.tscn`에 "공격" 버튼
+  (전임 버튼 바로 위).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전부
+`--quit-after 5` 세 번 연속 exit 0, 로그를 error/warn/missing/invalid/
+cannot로 훑어 한 줄도 없음. **임시 디버그로 실제 값 확인**:
+`army_power(1000,40,100,0,0,0)`=322.0, `army_power(1000,40,100,80,90,1)`
+=872.083... 둘 다 손 계산과 정확히 일치. 전제조건 넷(병력 부족·군량
+부족·무장 없음·병력<500) 각각 정확한 실패 사유 확인. 실제 전투: 600명
+(허창)으로 소패(800명, 성벽 3600) 공격 → `sortie=true`(800>600*0.85)
+로 야전 갈림 정확, 무승부(날이 저묾) → 생존 482명·군량 99994(need=12,
+baggage=6, 손 계산과 정확히 일치)로 귀환, 소패는 549명으로 줄어든 채
+성벽은 그대로(야전이라 공성 피해 없음 — 정확). 이어서 10만 명으로
+재공격 → 압도적 물량에 공성 갈림(sortie=false)으로 성벽이 한 합만에
+0으로 무너지고(10만×0.045=4500>3600) 소패 함락(`captured=true`).
+그 뒤 세 번째 공격 시도 → "이미 함락한 성입니다"로 정확히 막힘.
+**병력·성벽이 두 번의 공격에 걸쳐 정확히 이어진 것까지 확인** — 재도전
+설계가 의도대로 작동한다. 디버그 원상복구(diff 0), 테스트 세이브 없음.
+
+**GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 외교(diplo.js, relation/envoy 단발 확률), 함락한
+성을 플레이 가능한 성으로 들이는 나머지 절반(다음 목표를 더 늘리려면
+`ENEMY_CITIES`에 항목만 추가하면 되는 구조로 짜 뒀다), 또는 문답
+(quiz.js) — 어느 쪽이든 승인 후.

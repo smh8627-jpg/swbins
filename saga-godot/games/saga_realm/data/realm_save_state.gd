@@ -42,9 +42,10 @@ const Characters := preload("res://saga_core/data/characters.gd")
 const RealmOrders := preload("res://games/saga_realm/data/realm_orders.gd")
 const RealmOfficerPool := preload("res://games/saga_realm/data/realm_officer_pool.gd")
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
+const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 3  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city 추가)
+const SAVE_VERSION := 4  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city 추가) → 4(enemies 추가)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -73,12 +74,20 @@ var found: Array = []               # 수색으로 찾아냈지만 아직 등용
 var officer_city: Dictionary = {RealmOfficerPool.STARTING_OFFICER: RealmCities.DEFAULT_CITY}
 var _done_this_month: Dictionary = {}  # officer_id -> bool
 
+## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).**
+## enemy_id -> {troops, wall, max_wall, train, tech, captured}. _init_enemies()
+## 가 RealmCities.ENEMY_CITIES 기본값으로 채운다(try_load()가 있으면 그
+## 값으로 덮어쓴다) — cities와 같은 패턴. next_month()는 이 값을 안 건드린다
+## (적 AI가 없어 매달 그대로다 — attack()으로 싸울 때만 바뀐다).
+var enemies: Dictionary = {}
+
 var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	_rng.seed = RNG_SEED
 	_init_cities()
+	_init_enemies()
 
 
 ## rtk.js setup()의 도시 초기화 — RealmCities.CITIES 정의 그대로.
@@ -92,6 +101,17 @@ func _init_cities() -> void:
 			"pop": int(def.pop_start), "troops": 0,
 			"food": RealmCities.food_start(cid),
 			"ships": RealmCities.ships_start(cid),
+		}
+
+
+## RealmCities.ENEMY_CITIES 기본값으로 채운다 — _init_cities()와 같은 패턴.
+func _init_enemies() -> void:
+	for def: Dictionary in RealmCities.ENEMY_CITIES:
+		var eid: String = String(def.id)
+		enemies[eid] = {
+			"troops": int(def.troops_start), "wall": int(def.wall_start),
+			"max_wall": int(def.wall_start), "train": int(def.train_start),
+			"tech": int(def.tech_start), "captured": false,
 		}
 
 
@@ -298,6 +318,86 @@ func transfer_officer(officer_id: String, to_city_id: String) -> Dictionary:
 	return {"ok": true}
 
 
+## war.js march()+fight()+finishMarch()를 좁혀 옮긴 것(2026-09-12, "전쟁
+## 외교 이어해") — `realm_war.gd`가 판정 자체(armyPower/stepRound/fight)를
+## 맡고, 여기는 원작 setupMarch()/finishMarch()가 하던 "출진 준비 → 판정
+## 호출 → 뒤처리"만 좁혀서 한다. **재해석**:
+## - 수량 선택 UI가 없다 — `from_city`에 있는 **전군**을 보낸다(이 판
+##   다른 명령들처럼 버튼 하나로 결과만 보는 것과 같은 결).
+## - 원정 준비(setupMarch)의 구원군(reinforce)·개입형 진행(marchInteractive)
+##   은 안 옮겼다 — 적이 하나뿐이고 이웃 성도 없어 구원군 자체가 없다.
+## - 승부가 안 갈리면(stalemate) 원작은 진(camp)을 쳐 다음 달로 넘기는데,
+##   이 슬라이스엔 진영 시스템이 없어(realm_war.gd 머리말 참고) **routed와
+##   같이 취급** — 살아남은 병력이 그냥 돌아간다.
+## - 이기면(capture) 원작의 관리 인계(무장 배치·태수·치안 반토막 등)는
+##   옮기지 않았다 — 이 슬라이스는 아직 정복한 성을 플레이 가능한 성으로
+##   안 들인다(다음에 볼 자리, `captured` 깃발만 세운다).
+func attack(enemy_id: String) -> Dictionary:
+	var enemy_def := RealmCities.enemy_by_id(enemy_id)
+	if enemy_def.is_empty():
+		return {"ok": false, "why": "없는 목표"}
+	var e: Dictionary = enemies.get(enemy_id, {})
+	if bool(e.get("captured", false)):
+		return {"ok": false, "why": "이미 함락한 성입니다"}
+
+	var from_city: String = String(enemy_def.get("from_city", ""))
+	if not cities.has(from_city):
+		return {"ok": false, "why": "없는 출진 성"}
+	var c: Dictionary = cities[from_city]
+	var troops: int = int(c.troops)
+	if troops < 500:
+		return {"ok": false, "why": "오백은 넘겨야 군대라 하지요"}  # war.js canMarch()와 같은 문구
+
+	var officer_id := _best_officer_for("might", from_city)
+	if officer_id.is_empty():
+		return {"ok": false, "why": "데려갈 장수가 없습니다"}
+	if _done_this_month.get(officer_id, false):
+		return {"ok": false, "why": "이 달에 이미 명령을 썼습니다"}
+
+	## war.js canMarch() "원정 군량 — 병력의 한 달치는 들고 가야 한다"(×2).
+	var need := RealmOrders.food_upkeep(troops) * 2
+	if int(c.food) < need:
+		return {"ok": false, "why": "군량이 모자랍니다"}
+
+	c.troops = 0
+	c.food = int(c.food) - need
+
+	var h = Characters.find(officer_id)
+	var atk := {
+		"troops": troops, "start": troops, "train": int(c.train), "tech": int(c.tech),
+		"best_command": float(h.stats.get("command", 0)), "best_might": float(h.stats.get("might", 0)),
+		"officer_count": 1,
+	}
+	var def_army := {
+		"troops": int(e.troops), "start": int(e.troops), "train": int(e.train), "tech": int(e.tech),
+		"best_command": 0.0, "best_might": 0.0, "officer_count": 0,  # 이름 있는 수비 장수가 없다
+	}
+	var wall := {"wall": int(e.wall), "max_wall": int(e.max_wall)}
+	var land: String = String(enemy_def.get("land", "plain"))
+
+	var rep := RealmWar.fight(atk, def_army, wall, RealmCities.land_def(land), RealmCities.land_siege(land), _rng)
+	_done_this_month[officer_id] = true
+
+	e.wall = wall.wall
+	if rep.won:
+		e.captured = true
+		e.troops = 0
+	else:
+		## war.js finishMarch() routed 분기 — 치중(baggage)은 need에서 이 달
+		## 먹은 몫(food_upkeep(troops), 정확히 need의 절반)을 뺀 나머지다.
+		var baggage := RealmOrders.food_upkeep(troops)
+		c.troops = int(c.troops) + int(rep.atk_troops_left)
+		c.food = int(c.food) + baggage
+		e.troops = int(rep.def_troops_left)
+	enemies[enemy_id] = e
+
+	return {
+		"ok": true, "won": rep.won, "routed": rep.routed, "sortie": rep.sortie,
+		"loss_a": rep.loss_a, "loss_d": rep.loss_d,
+		"wall_from": rep.wall_from, "wall_to": rep.wall_to,
+	}
+
+
 ## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제
 ## officer_city로 실제 배치를 아니까, 그 성에 배치된 무장 중에서만 고른다.
 func _governor_at(city_id: String) -> String:
@@ -345,6 +445,7 @@ func save() -> bool:
 		"current_city": current_city,
 		"roster": roster, "found": found,
 		"officer_city": officer_city,
+		"enemies": enemies,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -378,5 +479,8 @@ func try_load() -> bool:
 	var loaded_officer_city: Variant = data.get("officer_city", {})
 	if typeof(loaded_officer_city) == TYPE_DICTIONARY and not loaded_officer_city.is_empty():
 		officer_city = loaded_officer_city
+	var loaded_enemies: Variant = data.get("enemies", {})
+	if typeof(loaded_enemies) == TYPE_DICTIONARY and not loaded_enemies.is_empty():
+		enemies = loaded_enemies
 	_done_this_month.clear()
 	return true

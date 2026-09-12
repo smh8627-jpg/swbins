@@ -75,6 +75,49 @@ static func map_center() -> Vector2:
 	return Vector2(sx / CITIES.size(), sy / CITIES.size())
 
 
+## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).** data-
+## city.js 그대로: 소패(小沛, xiaopei) — 허창(xuchang)과 맞닿은 plain
+## 성, 시나리오 194엔 유비(`sg_liubei`)령이다. `wall_start`도 data-
+## city.js 그대로(3600). **재해석 — troops_start.** 원작 rtk.js
+## setup()은 모든 성이 troops=0에서 시작해 AI가 여러 달에 걸쳐 징병으로
+## 채우는데, 이 슬라이스엔 적 AI가 없어(3·4절 "제외") 0 그대로 두면
+## 늘 병력 없는 성을 시시하게 이기기만 하는 자리가 된다 — 그래서 갓
+## 지은 우리 성 셋이 몇 달 굴러 도달할 법한 중간 규모 병력(800)을
+## 정적으로 채워 뒀다(복양이 처음부터 배 60척을 갖고 시작하는 것과
+## 같은 이유의 재해석 — "안 그러면 판이 그 자리에서 언다"). train·
+## tech는 `RealmOrders.TRAIN_START`/`TECH_START`와 같은 rtk.js 기본값
+## (새로 안 지어냈다). `from_city` — 이 슬라이스는 조조 쪽 성 중 소패와
+## 맞닿은 게 허창뿐이라(ADJ에는 안 넣었다 — 저건 "우리 성끼리"만 다루는
+## `is_adjacent()`용) 출진 성을 고정했다.
+const ENEMY_CITIES := [
+	{"id": "xiaopei", "name": "소패", "hanja": "小沛", "land": "plain", "from_city": "xuchang",
+	 "wall_start": 3600, "troops_start": 800, "train_start": 40, "tech_start": 100,
+	 "desc": "서주의 작은 성. 유비령 — 허창과 맞닿아 있다."},
+]
+
+## rtk.js data-city.js LAND_TYPES의 def·siege — capOf류와 달리 아직 안
+## 옮겨 둔 두 값. 성 셋이 plain·river뿐이라도 원작 표를 통째로 옮겼다
+## (하나만 골라 옮기면 "왜 이건 빼고 저건 옮겼나"는 판단이 새로 끼는
+## 셈이라, LAND_AGRI_CAP·LAND_COMM_CAP처럼 표 전체를 그대로 든다).
+const LAND_DEF := {"plain": 1.0, "river": 1.1, "hill": 1.15, "mount": 1.3}
+const LAND_SIEGE := {"plain": 1.0, "river": 0.95, "hill": 0.9, "mount": 0.75}
+
+
+static func enemy_by_id(id: String) -> Dictionary:
+	for c: Dictionary in ENEMY_CITIES:
+		if c.id == id:
+			return c
+	return {}
+
+
+static func land_def(land: String) -> float:
+	return float(LAND_DEF.get(land, 1.0))
+
+
+static func land_siege(land: String) -> float:
+	return float(LAND_SIEGE.get(land, 1.0))
+
+
 static func _land(id: String) -> String:
 	return String(by_id(id).get("land", "plain"))
 
