@@ -34,6 +34,11 @@ namespace Saga.Dungeon.Data
             // 범위 밖 — VERTICAL_SLICE_DUNGEON.md "제외" 참고, 그래도
             // 임의 수치 대신 기존 공식의 배율을 재사용).
             ["wp_glaive"] = new ItemData("wp_glaive", "귀두도", 26f),
+            // 행상(World/DungeonMerchant.cs, "방 종류 나머지" 슬라이스) 전용
+            // 판매 아이템 — wp_axe(12)와 wp_glaive(26) 사이 중간 티어로
+            // 잡았다(웹판 행상의 절차적 재고 굴리기는 범위 밖, GO
+            // ShopState.cs와 같은 "고정 물건 하나" 단순화).
+            ["wp_saber"] = new ItemData("wp_saber", "환도", 18f),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;

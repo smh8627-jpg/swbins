@@ -12,7 +12,8 @@ namespace Saga.Dungeon.World
     /// UI·밸런스 표가 필요한 큰 손질)이라 GO의 `MountainShrine.cs`가 이미
     /// 쓴 단순화(가호 = 경험치+돈 확정 지급)를 그대로 재사용했다 — 선택할
     /// 게 하나뿐이니 화면도 필요 없다. `DungeonTrove.cs`와 같은 이유로
-    /// `room.cleared` 대신 `DungeonEnemy.Active.Count == 0`을 씀.
+    /// `room.cleared` 대신 `DungeonEnemy.CountAliveInRoom(roomId) == 0`을
+    /// 씀(2026-09-12 "방 종류 나머지" 슬라이스에서 방별로 갈랐다).
     /// </summary>
     public class DungeonShrine : MonoBehaviour
     {
@@ -20,6 +21,8 @@ namespace Saga.Dungeon.World
         private const int RewardExp = 30; // GO MountainShrine.cs와 같은 단순화 값
         private const int RewardGold = 20;
         private const float ToastSec = 4f;
+
+        [SerializeField] private string roomId = "room1";
 
         private static readonly Color ShrineColor = new Color(0.5f, 0.3f, 0.6f);
 
@@ -51,7 +54,7 @@ namespace Saga.Dungeon.World
         private void Update()
         {
             if (_used || _player == null) return;
-            if (DungeonEnemy.Active.Count > 0) return; // 웹판 room.cleared와 같은 뜻.
+            if (DungeonEnemy.CountAliveInRoom(roomId) > 0) return; // 웹판 room.cleared와 같은 뜻.
             if (Vector3.Distance(transform.position, _player.position) > TriggerRadius) return;
 
             _used = true;
