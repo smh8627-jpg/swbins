@@ -222,6 +222,28 @@ namespace Saga.EditorTools
         private static readonly Vector3 TownCorridorEastCenter = new Vector3(15f, 0f, 0f);
         private static readonly Vector3 Town4Center = new Vector3(30f, 0f, 0f);
 
+        // "위성↔위성 지름길" (2026-09-12) — saga-dungeon 웹판 PLAN.md §28-3
+        // "위성↔위성 통로"를 개념만 참고했다(코드 없음 — 웹판은 화면이 서로
+        // 분리된 2D 포털이라 "출구 방향"이 실제 기하학적 방향과 안 맞아도
+        // 됐지만, 이 프로젝트는 처음부터 하나의 연속 좌표계라 그 트릭 자체가
+        // 필요 없다). §28-3이 "인접 사분면끼리만 잇는다, 정반대(자작재-
+        // 소금벌, N-S)는 뺀다"고 정한 것과 같은 논리로 — Town3(서)와
+        // Town4(동)는 정반대라 빼고, **인접한 Town2(남)↔Town3(서)** 하나만
+        // 첫 지름길로 잇는다(Town2↔Town4(동)는 후속 후보로 남김, §28-3도
+        // "갈대나루↔소금벌은 후속"이라 미뤄 뒀던 것과 같은 절제).
+        // **거리 자체는 안 줄어든다**(Crossroads까지 30+Town2까지 30=60,
+        // Room1을 거치는 것과 정확히 같다 — 이 던전이 사방 30 단위 격자라
+        // 축 정렬 통로로는 원래 어느 경로를 골라도 모루골이 이미 최단
+        // 경유지다) — 그래도 §28-3 원문 취지("모루골을 안 거치고 옆
+        // 사분면으로 바로 질러간다")대로 **Room1 내부(적·POI)를 다시 안
+        // 지나도 되는 우회로**로서 가치가 있다고 보고 넣는다. Crossroads
+        // 방 자체는 새 축(-30,-30)에 세우고, 기존 방식 그대로 Town3
+        // 남쪽 문→복도→Crossroads 북쪽 문(N-S, 회전 없음), Crossroads
+        // 동쪽 문→복도→Town2 서쪽 문(E-W, Y축 90도 회전)으로 잇는다.
+        private static readonly Vector3 ShortcutCorridorNorthCenter = new Vector3(-30f, 0f, -15f);
+        private static readonly Vector3 CrossroadsCenter = new Vector3(-30f, 0f, -30f);
+        private static readonly Vector3 ShortcutCorridorEastCenter = new Vector3(-15f, 0f, -30f);
+
         // "마을 장식 보강" 슬라이스 — 마을 셋(Town2·3·4) 정주 촌민에 공통으로
         // 쓰는 옷 색(따뜻한 베이지) — 전투원(잡졸=황건, 두목=적갈)과 겹치지
         // 않는 톤으로 "민간인"임을 색으로도 가른다.
@@ -245,6 +267,7 @@ namespace Saga.EditorTools
             BuildCorridorAndTown2();
             BuildCorridorAndTown3();
             BuildCorridorAndTown4();
+            BuildShortcutCrossroads();
             BuildCorridorAndRoom2();
             BuildCorridorAndRoom3();
             BuildCorridorAndRoom4();
@@ -350,7 +373,8 @@ namespace Saga.EditorTools
             SetPrivateField(town2Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
             SetPrivateField(town2Builder, "roomModel", _roomGlb); // "방 셸 GLB"
             town2Builder.Build();
-            town2Builder.OpenNorthDoor(RoomDoorWidth); // 복도 쪽(Room1 방향) 문 하나뿐 — 이번 슬라이스는 막다른 마을.
+            town2Builder.OpenNorthDoor(RoomDoorWidth); // 복도 쪽(Room1 방향).
+            town2Builder.OpenWestDoor(RoomDoorWidth); // "위성↔위성 지름길" — Crossroads를 거쳐 Town3와 잇는다.
 
             var merchantGo = new GameObject("TownMerchant");
             merchantGo.transform.position = Town2Center + new Vector3(3f, 0f, 0f);
@@ -394,7 +418,8 @@ namespace Saga.EditorTools
             SetPrivateField(town3Builder, "gateModel", _gateGlb);
             SetPrivateField(town3Builder, "roomModel", _roomGlb);
             town3Builder.Build();
-            town3Builder.OpenEastDoor(RoomDoorWidth); // 복도 쪽(Room1 방향) 문 하나뿐 — 막다른 마을.
+            town3Builder.OpenEastDoor(RoomDoorWidth); // 복도 쪽(Room1 방향).
+            town3Builder.OpenSouthDoor(RoomDoorWidth); // "위성↔위성 지름길" — Crossroads를 거쳐 Town2와 잇는다.
 
             var merchantGo = new GameObject("Town3Merchant");
             merchantGo.transform.position = Town3Center + new Vector3(6f, 0f, 0f);
@@ -444,6 +469,41 @@ namespace Saga.EditorTools
             BuildTownDecor(Town4Center, new Vector3(5f, 0f, 6f), new Vector3(5f, 0f, -6f),
                 new Vector3(-2f, 0f, 6f), new Vector3(-2f, 0f, -6f), VillagerTint);
             BuildFieldAmbush(TownCorridorEastCenter, "east");
+        }
+
+        /// <summary>"위성↔위성 지름길" 슬라이스 — Town3 남쪽 문→복도(회전
+        /// 없음, N-S)→Crossroads→복도(Y축 90도, E-W)→Town2 서쪽 문.
+        /// Crossroads는 새 콘텐츠 없이 순수 경유지(문 둘만, 장식도
+        /// 최소한만) — 이 슬라이스의 목적은 "우회로가 뚫린다" 자체를
+        /// 증명하는 것이지 세 번째 콘텐츠 마을을 만드는 게 아니다.</summary>
+        private static void BuildShortcutCrossroads()
+        {
+            var corridorNorthGo = new GameObject("ShortcutCorridorNorth");
+            corridorNorthGo.transform.position = ShortcutCorridorNorthCenter;
+            var corridorNorthBuilder = corridorNorthGo.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridorNorthBuilder, "corridorModel", _corridorGlb);
+            corridorNorthBuilder.Build();
+
+            var crossroadsGo = new GameObject("Crossroads");
+            crossroadsGo.transform.position = CrossroadsCenter;
+            var crossroadsBuilder = crossroadsGo.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(crossroadsBuilder, "gateModel", _gateGlb);
+            SetPrivateField(crossroadsBuilder, "roomModel", _roomGlb);
+            crossroadsBuilder.Build();
+            crossroadsBuilder.OpenNorthDoor(RoomDoorWidth); // Town3 방향.
+            crossroadsBuilder.OpenEastDoor(RoomDoorWidth); // Town2 방향.
+
+            var corridorEastGo = new GameObject("ShortcutCorridorEast");
+            corridorEastGo.transform.position = ShortcutCorridorEastCenter;
+            corridorEastGo.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            var corridorEastBuilder = corridorEastGo.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridorEastBuilder, "corridorModel", _corridorGlb);
+            corridorEastBuilder.Build();
+
+            // 순수 경유지 표시 — 마을(황금빛)도 야생 바이옴도 아닌 중립
+            // 이정표 색 하나만 세운다(BuildTownLantern 재사용, 촌민·궤짝
+            // 없이 등불 하나로 "여기가 갈림길"이라는 것만 표시).
+            BuildTownLantern(CrossroadsCenter);
         }
 
         /// <summary>"마을 장식 보강" 슬라이스 — 방 셸+행상 하나뿐이라 휑해
@@ -1043,6 +1103,8 @@ namespace Saga.EditorTools
             // "마을 여러 개 — 셋째·넷째" — 같은 "문명/안전지대" 황금빛.
             BuildMinimapDot(areaRect, Town3Center, new Color(0.75f, 0.65f, 0.35f), 14f); // Town3 — 마을
             BuildMinimapDot(areaRect, Town4Center, new Color(0.75f, 0.65f, 0.35f), 14f); // Town4 — 마을
+            // "위성↔위성 지름길" — 마을도 야생도 아닌 순수 경유지, 회색.
+            BuildMinimapDot(areaRect, CrossroadsCenter, new Color(0.5f, 0.5f, 0.5f), 10f);
             BuildMinimapDot(areaRect, Room2Center, new Color(0.35f, 0.45f, 0.3f), 14f); // Room2 — 늪
             BuildMinimapDot(areaRect, Room3Center, new Color(0.55f, 0.5f, 0.45f), 14f); // Room3 — 산
             BuildMinimapDot(areaRect, Room4Center, new Color(0.6f, 0.35f, 0.2f), 14f);  // Room4 — 사당
