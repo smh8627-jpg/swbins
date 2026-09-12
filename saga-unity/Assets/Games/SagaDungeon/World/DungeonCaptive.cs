@@ -65,6 +65,7 @@ namespace Saga.Dungeon.World
             string msg = $"구출 · 은혜를 갚는다 — 경험치 +{RewardExp} · 돈 +{RewardGold}냥";
             if (HeroState.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {HeroState.Level})";
             DialogueLabel.Instance?.Show(msg, ToastSec);
+            QuestState.MarkCaptiveFreed(); // "퀘스트 시스템" 슬라이스 — 메인 퀘스트 마지막 단계.
         }
     }
 }

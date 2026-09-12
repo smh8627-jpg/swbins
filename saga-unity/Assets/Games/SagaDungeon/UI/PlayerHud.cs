@@ -35,7 +35,8 @@ namespace Saga.Dungeon.UI
             string weapon = HeroState.EquippedWeapon?.Name ?? "맨손";
             label.text = $"Lv.{HeroState.Level}  체력 {HeroState.Hp}/{HeroState.HpMax}  " +
                          $"(경험치 {HeroState.Exp}/{HeroState.ExpToNext})  돈 {HeroState.Gold}냥\n" +
-                         $"{weapon} (공격력 {HeroState.Atk:0})";
+                         $"{weapon} (공격력 {HeroState.Atk:0})\n" +
+                         $"{QuestState.ObjectiveText}"; // "퀘스트 시스템" 슬라이스
         }
     }
 }

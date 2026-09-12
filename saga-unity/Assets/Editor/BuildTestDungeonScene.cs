@@ -183,6 +183,7 @@ namespace Saga.EditorTools
             BuildEventSystem();
             BuildDialogueUi();
             BuildPlayerHud();
+            BuildMinimap();
             BuildSaveButton();
             BuildAttackButton(playerCombat);
             BuildHeavyAttackButton(playerCombat);
@@ -623,7 +624,7 @@ namespace Saga.EditorTools
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(20f, -20f);
-            rect.sizeDelta = new Vector2(600f, 100f);
+            rect.sizeDelta = new Vector2(700f, 140f); // "퀘스트 시스템" 슬라이스 — 퀘스트 목표 줄 추가로 100→140
 
             var text = textGo.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -634,6 +635,62 @@ namespace Saga.EditorTools
 
             var hud = canvasGo.AddComponent<PlayerHud>();
             SetPrivateField(hud, "label", text);
+        }
+
+        /// <summary>"미니맵" 슬라이스 — 방1~4 중심을 고정 점으로 찍고
+        /// 플레이어 위치만 매 프레임 갱신하는 개략도(Minimap.cs 참고,
+        /// 렌더텍스처용 카메라 없음). SaveButton(top-right, y=-30~-110)과
+        /// 안 겹치게 그 아래에 둔다.</summary>
+        private static void BuildMinimap()
+        {
+            var canvasGo = new GameObject("MinimapUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var areaGo = new GameObject("MapArea", typeof(RectTransform));
+            areaGo.transform.SetParent(canvasGo.transform, false);
+            var areaRect = (RectTransform)areaGo.transform;
+            areaRect.anchorMin = new Vector2(1f, 1f);
+            areaRect.anchorMax = new Vector2(1f, 1f);
+            areaRect.pivot = new Vector2(1f, 1f);
+            areaRect.anchoredPosition = new Vector2(-30f, -130f); // SaveButton(-30,-30, 160x80) 바로 아래.
+            areaRect.sizeDelta = new Vector2(140f, 220f);
+
+            var bgImg = areaGo.AddComponent<Image>();
+            bgImg.color = new Color(0f, 0f, 0f, 0.35f);
+
+            var minimap = areaGo.AddComponent<Minimap>();
+            SetPrivateField(minimap, "mapArea", areaRect);
+
+            // 방 넷 중심 — 정적 점(색으로만 구분: 숲/늪/산/사당 바이옴과
+            // 같은 색조를 재사용해 방 종류를 굳이 새로 안 만든다).
+            BuildMinimapDot(areaRect, Vector3.zero, new Color(0.3f, 0.55f, 0.3f), 14f); // Room1 — 숲
+            BuildMinimapDot(areaRect, Room2Center, new Color(0.35f, 0.45f, 0.3f), 14f); // Room2 — 늪
+            BuildMinimapDot(areaRect, Room3Center, new Color(0.55f, 0.5f, 0.45f), 14f); // Room3 — 산
+            BuildMinimapDot(areaRect, Room4Center, new Color(0.6f, 0.35f, 0.2f), 14f);  // Room4 — 사당
+
+            var dotGo = new GameObject("PlayerDot", typeof(RectTransform));
+            dotGo.transform.SetParent(areaRect, false);
+            var dotRect = (RectTransform)dotGo.transform;
+            dotRect.sizeDelta = new Vector2(10f, 10f);
+            var dotImg = dotGo.AddComponent<Image>();
+            dotImg.color = Color.white;
+            SetPrivateField(minimap, "playerDot", dotRect);
+        }
+
+        private static void BuildMinimapDot(RectTransform mapArea, Vector3 worldPos, Color color, float size)
+        {
+            var go = new GameObject("RoomMark", typeof(RectTransform));
+            go.transform.SetParent(mapArea, false);
+            var rect = (RectTransform)go.transform;
+            rect.sizeDelta = new Vector2(size, size);
+            rect.anchoredPosition = Minimap.ProjectToMap(worldPos, mapArea.rect.size);
+            var img = go.AddComponent<Image>();
+            img.color = color;
         }
 
         private static void BuildSaveButton()
