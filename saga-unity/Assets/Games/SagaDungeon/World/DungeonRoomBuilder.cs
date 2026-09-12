@@ -6,12 +6,11 @@ namespace Saga.Dungeon.World
     /// VERTICAL_SLICE_DUNGEON.md "방 크기" — saga-dungeon 웹판
     /// `ROOM_W=560, ROOM_H=360`(논리 픽셀, 플레이어 반지름 13px 기준)와
     /// 같은 비율을 Unity 미터로 옮겼다(CharacterController 반지름 0.4m
-    /// 기준 20m×14m). primitive Cube뿐(GLB는 다음 슬라이스, Modular
-    /// Dungeon Kit 후보). **다음 슬라이스 "오픈월드/필드"부터 door를
-    /// 지원한다** — `Build()`는 여전히 완전히 막힌 방을 짓고,
-    /// `OpenNorthDoor()`/`OpenSouthDoor()`를 따로 불러야 그 방향 벽에
-    /// 문이 뚫린다(기본 동작은 안 바뀜 — 기존 첫 방처럼 문이 필요 없는
-    /// 호출부는 그대로 완전히 막힌 방을 받는다).
+    /// 기준 20m×14m 출발). **"오픈월드/필드"부터 door를 지원한다** —
+    /// `Build()`는 여전히 완전히 막힌 방을 짓고, `OpenNorthDoor()`/
+    /// `OpenSouthDoor()`를 따로 불러야 그 방향 벽에 문이 뚫린다(기본
+    /// 동작은 안 바뀜 — 기존 첫 방처럼 문이 필요 없는 호출부는 그대로
+    /// 완전히 막힌 방을 받는다).
     ///
     /// "바이옴 5종" 슬라이스 — `SagaBiome.cs` 참고. `biome`이
     /// `SagaBiome.None`(기본값)이면 예전 색 그대로(회귀 없음), 채워져
@@ -21,19 +20,34 @@ namespace Saga.Dungeon.World
     /// 콘텐츠와 어울리게 고른 배정, 근거는 그 파일 주석 참고).
     ///
     /// "환경/건물 GLB" 슬라이스 — 문(OpenNorthDoor/OpenSouthDoor)이
-    /// 뚫릴 때 `gateModel`(CC0 Kenney Modular Cave Kit `gate.glb`,
-    /// SagaGo가 이미 쓰는 킷 재사용, 실측 4.4×4.4×1.4 바닥 중앙 피벗)이
-    /// 채워져 있으면 그 문 폭(3m)에 맞춰 X만 축소(3/4.4=0.682)해 아치를
+    /// 뚫릴 때 `gateModel`(CC0 Kenney Modular Cave Kit `gate.glb`, 실측
+    /// 4.4×4.4×1.4 바닥 중앙 피벗)이 채워져 있으면 문 폭에 맞춰 아치를
     /// 세운다 — "아치는 앞뒤 대칭이라 방향 안 따짐"(saga-godot
     /// `test_room.gd` 주석과 같은 결). 문은 실제로 지나다니는 자리라
-    /// 콜라이더는 안 붙인다(반대로 `DungeonCorridorBuilder.cs`의
-    /// `corridorModel`처럼 방 몸체(room-small.glb)는 이번 슬라이스에서
-    /// 안 씀 — 그 파일 클래스 주석에 이유 적어 둠).
+    /// 콜라이더는 안 붙인다. **이 슬라이스에선 room-small.glb(방 셸)를
+    /// 안 썼다** — 실측 12×4.4×12가 그때 방 치수(20×14×4)와 비율이
+    /// 축마다 달라(비균등 스케일) 벽 질감이 뒤틀릴 걸로 봤었다.
+    ///
+    /// "방 셸 GLB" 슬라이스(뒤이음) — **비균등 스케일 문제를 "방을
+    /// room-small.glb 원본 비율(정사각형)에 맞추고, 기존 20m 폭은 그대로
+    /// 지키는 균일 스케일"로 풀었다.** room-small.glb는 정사각(12×12)
+    /// 이라 X만 20으로 늘리면 Z도 저절로 20이 된다(균일 스케일 =
+    /// 20/12 = 5/3, 왜곡 없음) — `RoomDepth`를 14→20으로 올린 게
+    /// 그래서다(폭은 그대로 20, 기존 스폰 좌표는 전부 X 기준이라 안
+    /// 건드림, 깊이만 넉넉해짐). `roomModel`이 채워져 있으면 이 균일
+    /// 배율(`RoomScale`)로 셸을 세우고 기존 primitive Floor/Wall은
+    /// `MeshRenderer.enabled=false`로 안 보이는 충돌체로만 남긴다
+    /// (`DungeonCorridorBuilder.cs`의 `corridorModel`과 같은 결). 문 폭
+    /// (`RoomDoorWidth`, `BuildTestDungeonScene.cs`)도 이 배율을 그대로
+    /// 따라 `gateModel`(4.4)×5/3 ≈ 7.33으로 넓어졌다 — **셸의 문 구멍이
+    /// 실제로 이 폭인지는 사람이 직접 봐야 확인됨**(saga-godot
+    /// `test_room.gd`의 `GATE_HALF_WIDTH`가 room-small.glb의 실제 문
+    /// 구멍 폭과 같다고 가정한 추론, 메시를 직접 열어 본 게 아니다).
     /// </summary>
     public class DungeonRoomBuilder : MonoBehaviour
     {
         public const float RoomWidth = 20f;
-        public const float RoomDepth = 14f;
+        public const float RoomDepth = 20f; // "방 셸 GLB" — room-small.glb 정사각 비율을 지키려 14→20.
         private const float WallHeight = 4f;
         private const float WallThickness = 1f;
 
@@ -49,7 +63,14 @@ namespace Saga.Dungeon.World
         // gate.glb — 실측 4.4×4.4×1.4(바닥 중앙 피벗), BuildTestDungeonScene.cs가
         // AssetDatabase로 채워 준다(런타임 Awake()는 그 API를 못 씀).
         [SerializeField] private GameObject gateModel;
-        private const float GateModelWidth = 4.4f;
+        public const float GateModelWidth = 4.4f;
+
+        // room-small.glb — 실측 12×4.4×12(바닥 중앙 피벗), 정사각형이라
+        // RoomWidth(20)/원본(12) 배율(5/3)을 X·Y·Z에 똑같이 적용하면
+        // 왜곡 없이 20×20(=RoomWidth×RoomDepth)이 나온다.
+        [SerializeField] private GameObject roomModel;
+        private const float RoomModelNativeSize = 12f;
+        public const float RoomScale = RoomWidth / RoomModelNativeSize; // 20/12 ≈ 1.667
 
         private void Awake()
         {
@@ -66,8 +87,22 @@ namespace Saga.Dungeon.World
         {
             BuildFloor();
             BuildWalls();
+            BuildRoomVisualModel();
             BuildDecor();
             MarkStatic();
+        }
+
+        /// <summary>"방 셸 GLB" — room-small.glb를 균일 배율(`RoomScale`)로
+        /// 세운다. 비어 있으면(다른 PC에 에셋이 아직 없는 경우) 아무 것도
+        /// 안 함 — Floor/Wall이 이미 예전 색을 보여주고 있다(씬이 안 깨짐).</summary>
+        private void BuildRoomVisualModel()
+        {
+            if (roomModel == null) return;
+
+            var shell = Object.Instantiate(roomModel, transform, false);
+            shell.name = "Shell";
+            shell.transform.localScale = Vector3.one * RoomScale;
+            CharacterVisual.Tint(shell, Colors().wall);
         }
 
         private (Color floor, Color wall) Colors() => biome switch
@@ -103,7 +138,9 @@ namespace Saga.Dungeon.World
             floor.transform.SetParent(transform, false);
             floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             floor.transform.localScale = new Vector3(RoomWidth, 1f, RoomDepth);
-            floor.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(Colors().floor);
+            var renderer = floor.GetComponent<MeshRenderer>();
+            if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김.
+            else renderer.sharedMaterial = MakeMaterial(Colors().floor);
         }
 
         private void BuildWalls()
@@ -276,7 +313,11 @@ namespace Saga.Dungeon.World
             var gate = Object.Instantiate(gateModel, transform, false);
             gate.name = wallName + "_Gate";
             gate.transform.localPosition = doorFloorPos;
-            gate.transform.localScale = new Vector3(doorWidth / GateModelWidth, 1f, 1f);
+            // 문 폭이 곧 RoomScale×GateModelWidth로 설계돼(BuildTestDungeonScene.cs
+            // RoomDoorWidth) 이 나눗셈이 자동으로 RoomScale과 같아진다 — 균일
+            // 스케일, 왜곡 없음(방 셸 GLB 슬라이스 전엔 X만 줄이는 비균등이었음).
+            float scale = doorWidth / GateModelWidth;
+            gate.transform.localScale = Vector3.one * scale;
         }
 
         private void SpawnWall(string name, Vector3 pos, Vector3 size, Color color)
@@ -286,7 +327,9 @@ namespace Saga.Dungeon.World
             wall.transform.SetParent(transform, false);
             wall.transform.localPosition = pos;
             wall.transform.localScale = size;
-            wall.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(color);
+            var renderer = wall.GetComponent<MeshRenderer>();
+            if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김(문 갈라짐 후 재생성분도 포함).
+            else renderer.sharedMaterial = MakeMaterial(color);
         }
 
         private static Material MakeMaterial(Color color)

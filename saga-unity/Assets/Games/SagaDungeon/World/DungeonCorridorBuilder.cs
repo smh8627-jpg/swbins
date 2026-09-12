@@ -23,26 +23,27 @@ namespace Saga.Dungeon.World
     /// 복사, `docs/ASSET_GUIDE.md` 실측 4.0×4.05×4.0, 바닥 중앙 피벗)를
     /// `corridorModel`이 채워져 있으면 순수 시각용으로 두 장 이어 붙인다
     /// (`Length`(8)가 타일 깊이(4.0)의 정확히 2배라 Z축은 전혀 안
-    /// 늘림 — 폭만 DoorWidth(3)/4.0=0.75로 살짝 줄임, `LandmarksBuilder
-    /// .cs`의 "굴곡 있는 조각은 균일 스케일만" 원칙과 달리 이 타일은
-    /// 밋밋한 통로 박스라 축소 정도의 비균등 스케일은 감수). **GLB
-    /// 자체엔 콜라이더가 없다**(saga-godot `test_room.gd` 주석과 같은
-    /// 이유) — 기존 primitive Floor/SideWalls를 그대로 두고 렌더러만
-    /// 꺼서 보이지 않는 충돌체로 남긴다(saga-godot의 StaticBody3D 분리
-    /// 방식과 같은 결). `corridorModel`이 없으면(다른 PC에 에셋이 아직
-    /// 없는 경우) 예전처럼 primitive 색상 그대로 보인다 — 씬이 안 깨짐.
-    /// **room-small.glb(방 셸)는 이번 슬라이스에서 안 씀** — 실측
-    /// 12×4.4×12가 이 프로젝트 방 크기(20×14×4)와 비율이 많이 달라
-    /// (X 1.667배·Z 1.167배·Y 0.909배로 축이 제각각) 비균등 스케일 시
-    /// 벽 질감이 뚜렷하게 뒤틀릴 걸로 보임 — 방 치수를 GLB에 맞추는
-    /// 재설계(saga-godot `test_room.gd`가 택한 길, 스케일 없이 12×12
-    /// 그대로 씀)는 이미 있는 방 넷의 모든 스폰 좌표를 다시 잡아야
-    /// 하는 파급 큰 작업이라 다음 슬라이스로 미룸(VERTICAL_SLICE_DUNGEON
-    /// .md "다음 슬라이스 후보" 갱신 참고).
+    /// 늘림). **GLB 자체엔 콜라이더가 없다**(saga-godot `test_room.gd`
+    /// 주석과 같은 이유) — 기존 primitive Floor/SideWalls를 그대로 두고
+    /// 렌더러만 꺼서 보이지 않는 충돌체로 남긴다(saga-godot의
+    /// StaticBody3D 분리 방식과 같은 결). `corridorModel`이 없으면(다른
+    /// PC에 에셋이 아직 없는 경우) 예전처럼 primitive 색상 그대로 보인다
+    /// — 씬이 안 깨짐.
+    ///
+    /// "방 셸 GLB" 슬라이스(뒤이음) — `DoorWidth`를 3→4.0으로 올려
+    /// `corridor.glb` 실측 폭(4.0)과 **정확히** 일치시켰다 — 이제 X도
+    /// 전혀 안 늘어나 완전히 무왜곡(균일 스케일 1)이 됐다. saga-godot
+    /// `test_room.gd`의 `CORRIDOR_HALF_WIDTH`(2.0, 폭 4.0)와 같은 값 —
+    /// 다만 방의 문 폭(`RoomDoorWidth`, `BuildTestDungeonScene.cs`,
+    /// room-small.glb 배율을 따라 ≈7.33)보다는 좁다. saga-godot도
+    /// `gate.glb`(4.4)와 `corridor.glb`(4.0) 사이에 같은 차이를 그대로
+    /// 두고 "복도가 문보다 살짝 좁아 생기는 턱"으로 문서화해 뒀다 — 이
+    /// 프로젝트도 같은 차이를 그대로 받아들인다(문턱에서 폭이 확
+    /// 좁아지는 느낌이 심하면 다음에 조정).
     /// </summary>
     public class DungeonCorridorBuilder : MonoBehaviour
     {
-        public const float DoorWidth = 3f;
+        public const float DoorWidth = 4.0f; // "방 셸 GLB" — corridor.glb 실측 폭과 정확히 일치(3→4.0)
         private const float WallHeight = 4f;
         private const float WallThickness = 1f;
 
@@ -57,8 +58,6 @@ namespace Saga.Dungeon.World
         // corridor.glb — 실측 4.0×4.05×4.0(바닥 중앙 피벗), BuildTestDungeonScene.cs가
         // AssetDatabase로 채워 준다(런타임 Awake()는 그 API를 못 씀).
         [SerializeField] private GameObject corridorModel;
-        private const float CorridorModelWidth = 4.0f;
-        private const float CorridorModelHeight = 4.05f;
         private const float CorridorModelDepth = 4.0f;
 
         /// <summary>복도 길이(z축) — 두 방의 벽 바깥면 사이 거리는
@@ -126,15 +125,14 @@ namespace Saga.Dungeon.World
         }
 
         /// <summary>corridor.glb 타일 두 장을 이어 붙인다(위 클래스 주석 —
-        /// Length(8)가 타일 깊이(4.0)의 정확히 2배). 비어 있으면 아무 것도
-        /// 안 함(위 BuildFloor/BuildSideWalls가 이미 예전 색을 보여줌).</summary>
+        /// Length(8)가 타일 깊이(4.0)의 정확히 2배, DoorWidth(4.0)도 타일
+        /// 실측 폭과 정확히 같아 스케일이 전혀 필요 없다). 비어 있으면
+        /// 아무 것도 안 함(위 BuildFloor/BuildSideWalls가 이미 예전 색을
+        /// 보여줌).</summary>
         private void BuildVisualModel()
         {
             if (corridorModel == null) return;
 
-            float scaleX = DoorWidth / CorridorModelWidth;
-            float scaleY = WallHeight / CorridorModelHeight;
-            var scale = new Vector3(scaleX, scaleY, 1f); // Z는 타일 원본 그대로(늘리지 않음)
             var tint = Colors().wall; // 통로 전체를 한 톤으로(폐허 색, 방과 달리 성격 하나뿐)
 
             for (int i = 0; i < 2; i++)
@@ -143,7 +141,6 @@ namespace Saga.Dungeon.World
                 var tile = Object.Instantiate(corridorModel, transform, false);
                 tile.name = $"Tile_{i + 1}";
                 tile.transform.localPosition = new Vector3(0f, 0f, tileCenterZ);
-                tile.transform.localScale = scale;
                 CharacterVisual.Tint(tile, tint);
             }
         }
