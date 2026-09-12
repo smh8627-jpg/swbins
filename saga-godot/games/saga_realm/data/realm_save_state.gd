@@ -890,7 +890,13 @@ func quiz_answer(p: Dictionary, choice_idx: int) -> Dictionary:
 			quiz.best_streak = quiz.streak
 
 		if first:
-			quiz.learned[qid] = true
+			## **2026-09-12 추가 — 서고(learnedList).** 원작은 `Date.now()`로
+			## "언제 익혔는지"를 남겨 서고를 최근순으로 보여준다. 이 슬라이스는
+			## 그 대신 `quiz.total`(그 시점까지 누적 시도 횟수, 항상 증가)을
+			## 쓴다 — 실제 시각을 쓰면 헤드리스 검증의 "세 번 돌려도 같은 결과"
+			## 요건이 깨진다(루트 CLAUDE.md 검증 습관). 값 자체는 안 보여주고
+			## 정렬(내림차순 = 최근 익힌 순)에만 쓴다.
+			quiz.learned[qid] = quiz.total
 			reward.gold = int(rw.gold)
 			## rtk.js study() — 학식이 LORE_PER_FIND만큼 쌓일 때마다 재야
 			## 하나가 저절로 드러난다(수색 없이, 지력 판정도 없이).
@@ -945,6 +951,33 @@ func quiz_progress() -> Dictionary:
 		"answered": int(quiz.total), "correct": int(quiz.correct),
 		"streak": int(quiz.streak), "best_streak": int(quiz.best_streak),
 	}
+
+
+## quiz.js learnedList() — 익힌 지식 목록(서고), 최근에 익힌 것부터.
+## **2026-09-12 추가("1,2,3 다해줘" 세 번째)** — `quiz.learned[qid]`가
+## 이제 `quiz.total`(익힌 시점의 누적 시도 횟수) 값을 담고 있어(위
+## `quiz_answer()` 참고) 그 값 내림차순 정렬이 곧 "최근 익힌 순"이다.
+## `limit`(기본 20) — `ChoicePrompt.build()`가 choices 수만큼 패널
+## 높이를 늘리기만 하고 스크롤이 없어서(games/saga_go/ui/choice_
+## prompt.gd), 학습이 쌓여도 화면이 안 넘치게 최근 것만 자른다(전체
+## 목록·페이지네이션은 다음에 볼 자리).
+func quiz_learned_list(cat_key: String = "", limit: int = 20) -> Array:
+	var out: Array = []
+	for ref: Dictionary in RealmQuizData.BANK:
+		var qid: String = String(ref.id)
+		if not quiz.learned.has(qid):
+			continue
+		if not cat_key.is_empty() and String(ref.cat) != cat_key:
+			continue
+		out.append({
+			"id": qid, "cat": String(ref.cat), "cat_name": RealmQuizData.cat_name(String(ref.cat)),
+			"lv": RealmQuizData.lv_of(ref), "lv_name": String(RealmQuizData.LV_NAME[RealmQuizData.lv_of(ref)]),
+			"q": String(ref.q), "answer": String(ref.c[int(ref.a)]), "why": String(ref.why),
+			"at": int(quiz.learned[qid]),
+		})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.at) > int(b.at))
+	return out.slice(0, mini(limit, out.size()))
 
 
 ## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제

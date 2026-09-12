@@ -4198,3 +4198,29 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
     이탈 정확 발동, found[]로 이동)까지 확인. 디버그 원상복구(diff 0).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 서고(learnedList) UI.
+
+
+## REALM 서고(learnedList) UI (2026-09-12)
+
+- **사용자 지시 "1,2,3 다해줘"** — 세 후보 중 마지막. quiz.js
+  learnedList()를 옮겼다. 원작은 `Date.now()`로 "최근 순"을 매기는데,
+  실제 시각을 쓰면 헤드리스 검증의 "세 번 돌려도 같은 결과"가 깨져서
+  `quiz.total`(누적 시도 횟수, 항상 증가)을 정렬 키로 대신 썼다 —
+  결정적이면서 "언제 익혔는가" 순서는 그대로 보존된다.
+  - `realm_quiz_data.gd`: `cat_name()`/`short_q()` 신규.
+  - `realm_save_state.gd`: `quiz.learned[qid]`에 이제 `true` 대신
+    `quiz.total` 값을 저장. `quiz_learned_list(cat_key="", limit=20)`
+    신규 — 최근 20개만(ChoicePrompt가 스크롤이 없어 패널이 안 넘치게).
+  - `realm_archive_button.gd`(신규) + `RealmHUD.tscn` "서고" 버튼(맨 위).
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 10절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(변경 없음) → 다섯 씬
+    세 번 연속 exit 0·로그 무결. 25문항 학습 순서를 손으로 기록해
+    `quiz_learned_list()` 결과와 완전히 일치(뒤집은 순서의 앞 20개)
+    확인. size=20(제한 정확), short_q/cat_name 예시 정확. 디버그
+    원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 버튼 열한 개가 화면에 다 들어가는지
+    포함해 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 사용자가 지정한 세 후보(문답 문항 늘리기·
+    이간·매수·서고 UI)를 이걸로 전부 마쳤다. 다음 후보: 전체 서고·
+    분야 필터 UI, rf_mizhu·rf_jianyong을 saga_core에 들이는 것, 또는
+    REALM 밖의 다른 판 작업 — 승인 후.

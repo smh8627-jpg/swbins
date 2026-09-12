@@ -326,3 +326,16 @@ static func by_id(id: String) -> Dictionary:
 		if r.id == id:
 			return r
 	return {}
+
+
+## 서고(realm_save_state.gd quiz_learned_list())가 분야 이름을 표시할 때 쓴다.
+static func cat_name(cat_key: String) -> String:
+	for c: Dictionary in CATS:
+		if c.key == cat_key:
+			return String(c.name)
+	return cat_key
+
+
+## quiz.js shortQ() — 목록에 다 넣기엔 긴 문제를 줄인다.
+static func short_q(q: String) -> String:
+	return (q.substr(0, 25) + "…") if q.length() > 26 else q

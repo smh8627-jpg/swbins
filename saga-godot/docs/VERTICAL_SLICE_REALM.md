@@ -1084,3 +1084,60 @@ gold -600 정확) → 이간 10회 반복(대상이 장비→관우로 자동 �
 
 **다음 이어질 것** — 서고(learnedList) UI. rf_mizhu·rf_jianyong을
 saga_core에 들이는 것도 후보로 남는다(승인 후).
+
+
+## 10. 서고(learnedList) UI (2026-09-12)
+
+**사용자 지시 "1,2,3 다해줘"** — 9절 끝에 남은 세 후보 중 마지막.
+quiz.js `learnedList()`(익힌 지식을 최근 순으로 다시 보는 화면)를 옮겼다.
+
+**재해석 — "최근 순"을 시각이 아니라 순번으로.** 원작은 `Date.now()`로
+"언제 익혔는지"를 남기는데, 이 슬라이스가 실제 시각을 쓰면 헤드리스
+검증의 "세 번 돌려도 같은 결과"가 깨진다(루트 CLAUDE.md 검증 습관 —
+시각은 돌린 순간마다 달라진다). 대신 `quiz.total`(그 시점까지 누적
+시도 횟수, 항상 증가)을 `quiz.learned[qid]`에 저장해 정렬 키로 쓴다 —
+"몇 번째 시도에서 익혔는가"가 곧 "언제 익혔는가"의 순서를 그대로
+보존한다(결정적이면서 원작의 "최근 순"과 같은 뜻).
+
+**포함**: 목록 항목마다 분야·등급·문제·정답·해설까지 원작 그대로 다시
+보여준다(quiz.js `shortQ()`도 옮겨 메뉴 한 줄엔 줄인 문제만, 고르면
+전체를 토스트로).
+
+**뺀 것(재해석)**: `ChoicePrompt.build()`(games/saga_go/ui/choice_
+prompt.gd)가 choices 수만큼 패널 높이를 늘리기만 하고 스크롤이 없다 —
+학습이 쌓이면(최대 90개) 화면 밖으로 넘치는 패널이 생긴다. 그래서
+`quiz_learned_list()`에 `limit`(기본 20)을 둬 **최근 20개까지만**
+보여준다. 전체 목록·페이지네이션·분야별 필터 UI는 다음에 볼 자리
+(`quiz_learned_list(cat_key, limit)`는 이미 분야 필터 인자를 받게
+짜 놨다 — 다음에 UI만 얹으면 된다).
+
+**구현**:
+- `realm_quiz_data.gd`: `cat_name()`(분야 key→표시 이름)·`short_q()`
+  (26자 넘으면 줄이기, quiz.js 그대로) 신규.
+- `realm_save_state.gd`: `quiz_answer()`의 `quiz.learned[qid] = true`
+  를 `quiz.learned[qid] = quiz.total`로 바꿨다(위 재해석). `quiz_
+  learned_list(cat_key="", limit=20)` 신규 — BANK를 돌며 익힌 것만
+  골라 `at`(=quiz.total 당시 값) 내림차순 정렬 후 자른다.
+- `realm_archive_button.gd`(신규) + `RealmHUD.tscn` "서고" 버튼(맨 위,
+  문답 버튼보다도 위) — ChoicePrompt로 목록을 띄우고 고르면 문제·정답·
+  해설을 토스트로.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 재발생해 되돌림) → 다섯 씬 전부 `--quit-after 5`
+세 번 연속 exit 0·로그 완전 무결. **임시 디버그로 실제 값 확인**:
+학습 전 `quiz_learned_list()`=[]. 25문항을 순서대로 학습시키고(전부
+"첫 정답") 실제 학습 순서를 손으로 기록 → `quiz_learned_list()`가
+정확히 그 순서를 뒤집은 것의 앞 20개와 **완전히 일치**(`got == expect`
+비교 결과 true). `size()`=20(제한 정확히 적용). `short_q`/`cat_name`
+예시 값도 정확. 디버그 원상복구(diff 0), 테스트 세이브 없음.
+
+**GUI 실기 확인은 아직 안 함** — 버튼 열한 개(서고·문답·계략·외교·
+공격·지도·전임·성·명령·다음 달·저장, 화면 세로 780px 분량)가 화면에
+다 들어가는지, 서고 목록이 읽기 좋은지는 눈으로 볼 것. 계속 몰아서
+받을 것.
+
+**다음 이어질 것** — 사용자가 지정한 세 후보(문답 문항 늘리기·이간·
+매수·서고 UI)를 이걸로 전부 마쳤다. 다음 후보: 전체 서고·분야 필터
+UI, rf_mizhu·rf_jianyong을 saga_core에 들여 소패 수비를 완전하게
+하는 것, 또는 REALM 밖의 다른 판(GO/DUNGEON/FOREST/STORY) 작업 —
+어느 쪽이든 승인 후.
