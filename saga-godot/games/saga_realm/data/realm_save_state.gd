@@ -46,7 +46,7 @@ const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 5  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy)
+const SAVE_VERSION := 6  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -415,6 +415,7 @@ func attack(enemy_id: String) -> Dictionary:
 	if rep.won:
 		e.captured = true
 		e.troops = 0
+		_annex_city(enemy_id, enemy_def, int(rep.atk_troops_left), int(c.train))
 	else:
 		## war.js finishMarch() routed 분기 — 치중(baggage)은 need에서 이 달
 		## 먹은 몫(food_upkeep(troops), 정확히 need의 절반)을 뺀 나머지다.
@@ -428,6 +429,37 @@ func attack(enemy_id: String) -> Dictionary:
 		"ok": true, "won": rep.won, "routed": rep.routed, "sortie": rep.sortie,
 		"loss_a": rep.loss_a, "loss_d": rep.loss_d,
 		"wall_from": rep.wall_from, "wall_to": rep.wall_to,
+	}
+
+
+## war.js capture()를 좁혀 옮긴 것(2026-09-12, "1,2,3 순서대로 다해" —
+## 3·4절이 "함락 뒤처리" 통째로 미뤄 둔 나머지 절반). attack()이 이겼을
+## 때만 부른다. **재해석 — 옮기지 않은 부분.** 원작 capture()는 수비
+## 무장을 달아나게/사로잡게 하고(fled/caught) 보스전 보상을 얹는데,
+## `realm_war.gd` 머리말대로 이 슬라이스의 적 쪽은 "이름 있는 수비
+## 장수가 없다"(officer_count=0) — 옮길 대상 자체가 없다. 세력 멸망
+## 판정도 안 옮겼다 — `bei`가 소패 하나만 들고 있다는 걸 `enemies`
+## Dictionary가 몰라(정적 수치일 뿐 성 목록을 세력별로 묶지 않는다),
+## "세력의 마지막 성을 뺏었는가"를 새로 판정하는 대신 다음에 볼 자리로
+## 남긴다.
+## **옮긴 부분**: `to.force`(정복 자체) · `to.troops = atk.troops`(살아남은
+## 원정군이 그대로 수비대가 된다) · `to.train = atk.train`(원정군의
+## 훈련도를 물려받는다) · `to.sec = max(10, round(그 성 sec*0.5))`("갓
+## 뺏은 성은 어수선하다" — 이 성은 sec 기록이 없던 적 성이라 기준값을
+## `RealmOrders.SEC_START`로 삼는다) 전부 war.js 원문 그대로. `agri`·
+## `comm`·`pop`은 `ENEMY_CITIES`에 새로 들인 `*_start`(data-city.js
+## 원문)로 채우고, `food`·`ships`는 `_init_cities()`가 새 성에 쓰는
+## 것과 같은 공식(`RealmCities.food_start()`/`ships_start()`)을 그대로
+## 쓴다 — 새 성이 늘 때와 같은 절차라 특수 케이스를 안 만든다.
+func _annex_city(city_id: String, enemy_def: Dictionary, garrison: int, train_val: int) -> void:
+	cities[city_id] = {
+		"agri": int(enemy_def.get("agri_start", 0)), "comm": int(enemy_def.get("comm_start", 0)),
+		"sec": maxi(10, roundi(float(RealmOrders.SEC_START) * 0.5)),
+		"tech": int(enemies[city_id].tech),
+		"wall": int(enemies[city_id].wall), "train": train_val,
+		"pop": int(enemy_def.get("pop_start", 0)), "troops": garrison,
+		"food": RealmCities.food_start(city_id),
+		"ships": RealmCities.ships_start(city_id),
 	}
 
 

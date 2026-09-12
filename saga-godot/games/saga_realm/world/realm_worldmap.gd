@@ -27,8 +27,14 @@ extends Node3D
 ## 안 겹친다 — 그래도 숨어 있는 동안은 `input_ray_pickable`을 꺼서
 ## 확실히 막는다.
 ##
-## **하지 않은 것(다음에 볼 자리)** — 지형 기복·해협, 드래그 궤도 카메라
-## (지금은 realm_worldmap_camera.gd가 realm_camera.gd와 같은 WASD 재사용).
+## **하지 않은 것(다음에 볼 자리)** — 지형 기복·해협
+## (드래그 궤도 카메라는 realm_worldmap_camera.gd에서 옮겼다).
+##
+## **2026-09-12 추가 — 정복 성 편입.** 소패를 함락하면(`RealmSaveState.
+## enemies.xiaopei.captured`) `_process()`가 그걸 보고 마커를 하나 더
+## 짓는다 — `_ready()`가 CITIES 셋만 짓고 끝나던 것을 매 프레임 가볍게
+## 폴링해 보완한다(FOREST gather_label.gd와 같은 폴링 결). 좌표·색은
+## `ENEMY_CITIES`에 새로 들인 x·y·land로 CITIES 마커와 똑같이 잡힌다.
 
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
@@ -61,6 +67,7 @@ func _ready() -> void:
 ## 폴링한다(FOREST gather_label.gd 폴링 패턴과 같은 결) — 숨어 있는 동안은
 ## 강조 갱신도, 탭 판정도 건너뛴다.
 func _process(_delta: float) -> void:
+	_check_annexed()
 	visible = RealmSaveState.viewing_map
 	if visible != _last_visible:
 		_last_visible = visible
@@ -90,13 +97,27 @@ func _on_marker_input(_camera: Node, event: InputEvent, _pos: Vector3, _normal: 
 	if not pressed:
 		return
 	RealmSaveState.current_city = city_id
-	var city_def := RealmCities.by_id(city_id)
+	var city_def := RealmCities.any_by_id(city_id)
 	Toast.show(self, "%s 조망" % String(city_def.get("name", "")), TOAST_SEC)
 
 
 func _land_color(city_id: String) -> Color:
-	var land := String(RealmCities.by_id(city_id).get("land", "plain"))
+	var land := String(RealmCities.any_by_id(city_id).get("land", "plain"))
 	return LAND_COLOR.get(land, LAND_COLOR["plain"])
+
+
+## 정복 성 편입 — 함락된 적 성마다 마커를 하나씩 세운다(한 번 세우면
+## `_markers`에 남아 다시 안 짓는다). 갓 지은 마커의 탭 판정은 지금
+## `visible` 상태에 맞춰 바로 켜 둔다 — 다음 가시성 전환을 기다리지 않는다.
+func _check_annexed() -> void:
+	for e: Dictionary in RealmCities.ENEMY_CITIES:
+		var eid := String(e.id)
+		if _markers.has(eid):
+			continue
+		if not bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
+			continue
+		_build_marker(RealmCities.any_by_id(eid))
+		(_areas[eid] as Area3D).input_ray_pickable = visible
 
 
 func _world_pos(c: Dictionary) -> Vector3:

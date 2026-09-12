@@ -12,7 +12,7 @@ const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 
 func _process(_delta: float) -> void:
 	var c: Dictionary = RealmSaveState.cities.get(RealmSaveState.current_city, {})
-	var city_def := RealmCities.by_id(RealmSaveState.current_city)
+	var city_def := RealmCities.any_by_id(RealmSaveState.current_city)
 	text = "%s · %d년 %d월 · 🪙 %d · 🌾 %d · 🏪 %d · 🪧 %d · 🪖 %d · 재야 %d" % [
 		String(city_def.get("name", "")),
 		RealmSaveState.year, RealmSaveState.month,

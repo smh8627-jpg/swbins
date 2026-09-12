@@ -4049,3 +4049,43 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 무장 충성(loyal) 값을 들여 계략(plot)의 문을
     여는 것, 함락한 성을 플레이 가능한 성으로 들이는 나머지 절반, 또는
     문답(quiz.js) — 어느 쪽이든 승인 후.
+
+
+## REALM 정복 성 편입 — 소패를 플레이 가능한 성으로 (2026-09-12)
+
+- **사용자 지시 "1,2,3 순서대로 다해"** — 외교 절이 남긴 세 후보 중
+  사용자가 순서를 직접 정했다. 그 첫 번째 — war.js `capture()`를 다시
+  읽어 이 슬라이스가 쓸 수 있는 부분(정복 자체·생존 수비대·훈련도
+  계승·치안 반토막)만 옮겼다. 수비 무장 달아남/사로잡힘·보스전 보상·
+  세력 멸망 판정은 소패에 이름 있는 수비 장수도 세력 전체 모델도 없어
+  옮길 대상이 없다(다음에 볼 자리로 남김).
+  - `realm_cities.gd`: `ENEMY_CITIES[xiaopei]`에 x·y·agri_start·
+    comm_start·pop_start를 data-city.js 원문에서 마저 채웠다.
+    `any_by_id()`(신규, CITIES∪ENEMY_CITIES 통합 조회) — `_land()`·
+    `wall_cap()`·`food_start()`가 이걸 타게 해 정복한 성도 새 특수
+    케이스 없이 같은 공식을 쓴다. `playable_ids()`(신규) — 시작 성 셋 +
+    `RealmSaveState.cities`에 편입된 성. `is_adjacent()`가
+    `ENEMY_CITIES[].from_city` 간선을 재사용(새 표 안 만듦).
+  - `realm_save_state.gd`: `attack()` 승리 시 `_annex_city()`(신규)가
+    `cities[xiaopei]`를 채운다 — agri/comm/pop은 `*_start`, sec는
+    max(10,round(SEC_START*0.5)), tech는 `enemies[].tech`(전투로 안
+    바뀜), wall은 공성 끝난 값, food/ships는 `_init_cities()`와 같은
+    공식. SAVE_VERSION 5→6.
+  - `realm_city_button.gd`/`realm_transfer_button.gd`/
+    `realm_status_label.gd`/`realm_worldmap.gd`: `CITIES`/`ids()`/
+    `by_id()` 쓰던 자리를 `playable_ids()`/`any_by_id()`로 바꿔 정복한
+    성이 "성" 선택지·전임 목적지·상태 표시줄·월드맵에 그대로 나타나게
+    했다. 월드맵은 `_process()`가 매 프레임 `captured` 깃발을 폴링해
+    함락되는 순간 마커를 하나 더 짓는다.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 5절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경
+    없음) → 다섯 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전
+    무결. 임시 디버그로 함락 전 agri_cap/comm_cap/wall_cap/ships_cap
+    공식 확인 → 10만 병력으로 재공격·함락 → `cities.xiaopei` 아홉 값
+    (agri 220·comm 200·sec 30·tech 100·wall 0·train 40·pop 120000·
+    troops 99972·food 9760) 전부 손 계산과 정확히 일치. `playable_ids()`
+    ·`is_adjacent()`·`transfer_officer(허창→소패)` 모두 정확히 갱신됨
+    확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 사용자가 이미 순서를 정했다: 무장 충성(loyal)
+    값을 들여 계략(plot)의 문을 여는 것 → 문답(quiz.js).

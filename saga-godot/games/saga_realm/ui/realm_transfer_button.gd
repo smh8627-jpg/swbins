@@ -22,7 +22,7 @@ func _on_pressed() -> void:
 	var choices: Array = []
 	for id: String in RealmSaveState.roster:
 		var city_id: String = RealmSaveState.officer_city.get(id, "")
-		var city_name := String(RealmCities.by_id(city_id).get("name", city_id))
+		var city_name := String(RealmCities.any_by_id(city_id).get("name", city_id))
 		var h = Characters.find(id)
 		choices.append({
 			"label": "%s (%s)" % [String(h.name), city_name],
@@ -35,10 +35,10 @@ func _pick_destination(officer_id: String, from_city: String, layer_box: Diction
 	(layer_box["layer"] as CanvasLayer).queue_free()
 	var dest_box := {}
 	var choices: Array = []
-	for city_id: String in RealmCities.ids():
+	for city_id: String in RealmCities.playable_ids():
 		if city_id == from_city or not RealmCities.is_adjacent(from_city, city_id):
 			continue
-		var name_ := String(RealmCities.by_id(city_id).get("name", city_id))
+		var name_ := String(RealmCities.any_by_id(city_id).get("name", city_id))
 		choices.append({
 			"label": name_,
 			"cb": func() -> void: _run(officer_id, city_id, dest_box),
@@ -56,5 +56,5 @@ func _run(officer_id: String, to_city_id: String, layer_box: Dictionary) -> void
 		Toast.show(self, "전임 — %s" % r.get("why", "실패"), TOAST_SEC)
 		return
 	var h = Characters.find(officer_id)
-	var name_ := String(RealmCities.by_id(to_city_id).get("name", to_city_id))
+	var name_ := String(RealmCities.any_by_id(to_city_id).get("name", to_city_id))
 	Toast.show(self, "%s 이(가) %s(으)로 갔다." % [String(h.name), name_], TOAST_SEC)

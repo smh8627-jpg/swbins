@@ -769,3 +769,73 @@ cannot로 훑어 한 줄도 없음. **임시 디버그로 실제 값 확인**:
 **다음 이어질 것** — 무장 충성(loyal) 값을 들여 계략(plot)의 문을 여는
 것, 함락한 성을 플레이 가능한 성으로 들이는 나머지 절반, 또는 문답
 (quiz.js) — 어느 쪽이든 승인 후.
+
+
+## 5. 정복 성 편입 — 소패를 플레이 가능한 성으로 (2026-09-12)
+
+**사용자 지시 "1,2,3 순서대로 다해"** — 4절(외교) 끝에 남은 세 후보
+(정복 성 편입/무장 충성+계략/문답) 중 사용자가 순서를 직접 정했다.
+그중 첫 번째. 3절이 `captured` 깃발만 세우고 미뤄 둔 "함락 뒤처리
+나머지 절반" — war.js `capture()`를 다시 읽어 이 슬라이스가 실제로
+쓸 수 있는 부분만 옮겼다.
+
+**포함**: `to.force`(정복 자체, 이제 `cities` Dictionary에 들어가는 것으로
+표현) · `to.troops = atk.troops`(원정군 생존 병력이 그대로 수비대) ·
+`to.train = atk.train` · `to.sec = max(10, round(sec*0.5))`("갓 뺏은
+성은 어수선하다") 계수 그대로.
+
+**뺀 것(재해석)**:
+- 수비 무장 달아남/사로잡힘(`fled`/`caught`) — 소패엔 이름 있는 수비
+  장수가 없어(`realm_war.gd` 머리말, officer_count=0) 옮길 대상 자체가
+  없다.
+- 보스전 보상 — 같은 이유(`bossBeaten` 판정 대상이 없다).
+- 세력 멸망 판정 — `enemies` Dictionary가 성을 세력별로 묶지 않아서
+  "그 세력의 마지막 성을 뺏었는가"를 새로 판정해야 하는데, 상대(`bei`)가
+  애초에 소패 하나만 정적으로 들고 있어 이 슬라이스 범위 밖(다음에 볼
+  자리).
+- 재야 풀(`HIDDEN_POOL_BY_CITY`) — 소패용 항목을 새로 안 만들었다.
+  수색하면 "더 찾을 사람이 없다"로 정직하게 끝난다(스코프 확장이 아니라
+  "편입" 자체에 집중).
+
+**구현**:
+- `realm_cities.gd` — `ENEMY_CITIES[xiaopei]`에 `x`(70)·`y`(43)·
+  `agri_start`(220)·`comm_start`(200)·`pop_start`(120000)를 data-city.js
+  원문에서 마저 가져왔다(지금까지는 전투에 쓰는 값만 옮겨 뒀었다).
+  `any_by_id()`(신규) — CITIES든 ENEMY_CITIES든 정의를 하나로 찾아
+  `_land()`/`wall_cap()`/`food_start()`가 정복한 성도 같은 공식을 타게
+  했다("재사용" 원칙 — 새 특수 케이스를 안 만든다). `playable_ids()`
+  (신규) — 시작 성 셋 + `RealmSaveState.cities`에 편입된 성. `is_adjacent()`
+  확장 — `ENEMY_CITIES[].from_city` 간선을 그대로 재사용(새 표 안 만듦).
+- `realm_save_state.gd` — `attack()`이 이기면 `_annex_city()`(신규)를
+  불러 `cities[xiaopei]`를 채운다. `agri`/`comm`/`pop`은 위 `*_start`,
+  `sec`은 위 공식, `tech`는 `enemies[xiaopei].tech`(전투로 안 바뀜),
+  `wall`은 공성 끝난 값, `food`/`ships`는 `_init_cities()`가 새 성에
+  쓰는 것과 같은 공식(`RealmCities.food_start()`/`ships_start()`).
+  SAVE_VERSION 5→6.
+- `realm_city_button.gd`/`realm_transfer_button.gd`/`realm_status_label.gd`/
+  `realm_worldmap.gd` — `RealmCities.CITIES`/`ids()`/`by_id()`를 쓰던
+  자리를 `playable_ids()`/`any_by_id()`로 바꿔 정복한 성이 "성" 선택지·
+  전임 목적지·상태 표시줄·월드맵에 그대로 나타나게 했다. 월드맵은
+  `_process()`가 매 프레임 `enemies[].captured`를 폴링해(FOREST
+  gather_label.gd와 같은 결) 소패가 함락되는 순간 마커를 하나 더 짓는다
+  (좌표·색은 새로 들인 x·y·land로 CITIES 마커와 동일하게 잡힌다).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전부
+`--quit-after 5` 세 번 연속 exit 0·로그 완전 무결(error/warn/missing/
+invalid/cannot 전부 0건). **임시 디버그로 실제 값 확인**: 함락 전
+`agri_cap(xiaopei)`=900·`comm_cap`=900·`wall_cap`=7200·`ships_cap`=0
+(plain 공식과 정확히 일치), `is_adjacent(xuchang,xiaopei)`=true. 허창
+병력 10만으로 재공격 → 함락(`wall 3600→0`) → `cities.xiaopei`=
+{agri:220, comm:200, sec:30, tech:100, wall:0, train:40, pop:120000,
+troops:99972, food:9760, ships:0} — **전부 손 계산과 정확히 일치**
+(sec=max(10,round(60*0.5))=30, food=8000+220*8=9760, troops=100000-
+loss_a(28)=99972). `playable_ids()`가 함락 후 `xiaopei`를 포함하는 것,
+`transfer_officer`가 이제 허창↔소패를 맞닿음으로 인정하는 것까지 확인.
+디버그 원상복구(diff 0), 테스트 세이브 없음.
+
+**GUI 실기 확인은 아직 안 함** — 월드맵에 새 마커가 실제로 자연스럽게
+나타나는지, 성 전환이 매끄러운지는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 사용자가 이미 순서를 정했다: 다음은 무장 충성
+(loyal) 값을 들여 계략(plot)의 문을 여는 것, 그다음은 문답(quiz.js).

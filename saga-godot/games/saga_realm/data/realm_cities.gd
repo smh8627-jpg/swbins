@@ -43,9 +43,18 @@ const ADJ := [
 ]
 
 
+## **2026-09-12 확장 — 정복 성 편입.** `ADJ`(우리 성끼리)만으로는 소패가
+## 어디와도 안 맞닿는다 — `ENEMY_CITIES[].from_city`가 이미 "허창과
+## 맞닿아 있다"는 사실을 들고 있어(공격·전임 둘 다 이 사실이 필요하다)
+## 새 표를 안 만들고 그걸 그대로 간선으로도 썼다.
 static func is_adjacent(a: String, b: String) -> bool:
 	for pair: Array in ADJ:
 		if (pair[0] == a and pair[1] == b) or (pair[0] == b and pair[1] == a):
+			return true
+	for e: Dictionary in ENEMY_CITIES:
+		var eid := String(e.id)
+		var from_city := String(e.get("from_city", ""))
+		if (a == eid and b == from_city) or (b == eid and a == from_city):
 			return true
 	return false
 
@@ -96,8 +105,14 @@ static func map_center() -> Vector2:
 ## `name`(sg_liubei → "인형")을 쓴다. `force`("bei")는 화면에 안 보이는
 ## 내부 키일 뿐이라 실명이어도 무방(이름 정책은 **표시되는 글자**에만
 ## 적용된다, 루트 CLAUDE.md 이름 정책 문단).
+## **2026-09-12 추가 — 정복 성 편입.** `x`·`y`·`agri_start`·`comm_start`·
+## `pop_start`를 data-city.js 원문(agri 220·comm 200·pop 120000·x 70·
+## y 43)에서 마저 가져왔다 — 함락하면 `realm_save_state.gd _annex_city()`
+## 가 이 값들로 `cities[xiaopei]`를 채워 CITIES 성 셋과 동격으로 만든다
+## (지도 좌표가 있어야 realm_worldmap.gd가 마커를 세울 수 있다).
 const ENEMY_CITIES := [
 	{"id": "xiaopei", "name": "소패", "hanja": "小沛", "land": "plain", "from_city": "xuchang",
+	 "x": 70, "y": 43, "agri_start": 220, "comm_start": 200, "pop_start": 120000,
 	 "wall_start": 3600, "troops_start": 800, "train_start": 40, "tech_start": 100,
 	 "force": "bei", "lord": "sg_liubei",
 	 "desc": "서주의 작은 성. 허창과 맞닿아 있다."},
@@ -118,6 +133,29 @@ static func enemy_by_id(id: String) -> Dictionary:
 	return {}
 
 
+## **2026-09-12 추가 — 정복 성 편입.** CITIES(시작 성 셋)든 ENEMY_CITIES
+## (함락해 편입된 성)든 정의를 하나로 찾는다 — `_land()`·`wall_cap()`·
+## `food_start()`가 이걸 거치면 정복한 성도 따로 손 안 대고 같은 공식을
+## 그대로 탄다("재사용" 원칙, 새 특수 케이스를 안 만든다).
+static func any_by_id(id: String) -> Dictionary:
+	var c := by_id(id)
+	if not c.is_empty():
+		return c
+	return enemy_by_id(id)
+
+
+## **2026-09-12 추가 — 정복 성 편입.** "성" 버튼·전임 목적지·월드맵이 다룰
+## 수 있는 성 전부 — 시작 성 셋(`ids()`) + 함락해 `RealmSaveState.cities`에
+## 들어간 적 성. CITIES에 안 넣은 이유는 정복 여부가 세이브 상태에 달려
+## 있어 상수로 못 박을 수 없어서다.
+static func playable_ids() -> Array:
+	var out := ids()
+	for cid: String in RealmSaveState.cities:
+		if not (cid in out):
+			out.append(cid)
+	return out
+
+
 static func land_def(land: String) -> float:
 	return float(LAND_DEF.get(land, 1.0))
 
@@ -127,7 +165,7 @@ static func land_siege(land: String) -> float:
 
 
 static func _land(id: String) -> String:
-	return String(by_id(id).get("land", "plain"))
+	return String(any_by_id(id).get("land", "plain"))
 
 
 ## rtk.js capOf('agri'): round(900 * land.agriCap)
@@ -142,7 +180,7 @@ static func comm_cap(id: String) -> int:
 
 ## rtk.js capOf('wall'): round(d.wall * 2)
 static func wall_cap(id: String) -> int:
-	return roundi(float(by_id(id).get("wall_start", 4000)) * 2.0)
+	return roundi(float(any_by_id(id).get("wall_start", 4000)) * 2.0)
 
 
 ## rtk.js capOf('ships'): 강가 성만 300, 나머지 0
@@ -159,4 +197,4 @@ static func ships_start(id: String) -> int:
 ## rtk.js setup(): "food = 8000 + agri*8" — 모든 성에 성 하나짜리 슬라이스가
 ## 이미 쓰던 것과 같은 공식(허창 400→11200).
 static func food_start(id: String) -> int:
-	return 8000 + int(by_id(id).get("agri_start", 0)) * 8
+	return 8000 + int(any_by_id(id).get("agri_start", 0)) * 8
