@@ -25,6 +25,11 @@ extends CharacterBody3D
 ##   달리해 "장식이 아니라 살아 움직이는 것"이 한눈에 갈리게 했다. 셋 중
 ##   가장 재빠르고(speed·flee_speed가 가장 높다) 대신 아주 가까이 가야만
 ##   놀란다(flee_radius가 가장 좁다) — 붙임성 있는 인상.
+## - "kkot"(꽃정령, 꽃밭, 2026-09-12 추가) — 구 몸통+토러스(고리) 꽃관, 분홍.
+##   네 바이옴 중 마지막으로 비워 뒀던 꽃밭을 채운다. 꽃밭이 이 마을에서
+##   가장 밝고 트인 곳이라는 인상에 맞춰 넷 중 가장 넓게 돌아다니게
+##   (wander_m 최댓값) 잡았다 — 앞선 셋(어둡거나 좁은 바이옴)과는 다른
+##   축으로 갈랐다.
 ##
 ## 시각은 전부 primitive — 이 판의 몬스터 전용 GLB가 없다(버섯·가구가 이미
 ## 쓴 예외와 같은 이유). WorldCurveMaterial을 쓴다 — 이동하는 오브젝트도
@@ -39,6 +44,8 @@ const COLOR_DOKKAEBI := Color(0.22, 0.12, 0.28)  # 신규 창작색 — 어둑�
 const COLOR_BAWI := Color(0.42, 0.38, 0.33)      # 신규 창작색 — 바위 지대 톤에 맞춘 돌빛 회갈색
 const COLOR_BEOSEOT_STEM := Color(0.88, 0.85, 0.74)  # forest_biome_scatter.gd 장식 버섯 줄기와 같은 톤
 const COLOR_BEOSEOT_CAP := Color(0.22, 0.55, 0.5)    # 장식 버섯(살구색 갓)과 갈리는 청록빛 신규 창작색
+const COLOR_KKOT_BODY := Color(0.95, 0.93, 0.85)     # 신규 창작색 — 꽃받침을 연상시키는 아이보리
+const COLOR_KKOT_CROWN := Color(0.86, 0.42, 0.55)    # 신규 창작색 — 꽃밭 톤에 맞춘 분홍
 const IDLE_TIME_MIN := 1.5
 const IDLE_TIME_MAX := 3.5
 const FLEE_TIME := 2.5
@@ -86,6 +93,8 @@ func _spawn_visual() -> void:
 			_spawn_visual_bawi()
 		"beoseot":
 			_spawn_visual_beoseot()
+		"kkot":
+			_spawn_visual_kkot()
 		_:
 			_spawn_visual_dokkaebi()
 
@@ -186,6 +195,40 @@ func _spawn_visual_beoseot() -> void:
 	var shape := SphereShape3D.new()
 	shape.radius = 0.22
 	cs.position = Vector3(0, 0.24, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 꽃정령 — 구 몸통 위에 토러스(고리) 하나를 꽃관처럼 얹는다. 앞선 셋
+## (구+원뿔·상자+상자·원기둥+구)과 겹치지 않는 새 조합.
+func _spawn_visual_kkot() -> void:
+	var body_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.7, COLOR_KKOT_BODY)
+	var crown_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.5, COLOR_KKOT_CROWN)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := SphereMesh.new()
+	body_mesh.radius = 0.26
+	body_mesh.height = 0.48
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.26, 0)
+	body.material_override = body_mat
+	add_child(body)
+
+	var crown := MeshInstance3D.new()
+	var crown_mesh := TorusMesh.new()
+	crown_mesh.inner_radius = 0.08
+	crown_mesh.outer_radius = 0.22
+	crown.mesh = crown_mesh
+	crown.position = Vector3(0, 0.5, 0)
+	crown.material_override = crown_mat
+	add_child(crown)
+
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.26
+	cs.position = Vector3(0, 0.26, 0)
 	cs.shape = shape
 	add_child(cs)
 
