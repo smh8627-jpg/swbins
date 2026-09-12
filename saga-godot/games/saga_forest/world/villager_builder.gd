@@ -60,7 +60,11 @@ const VILLAGERS := [
 	 "grid": Vector2i(5, 14), "glb": "res://assets/characters/character-d.glb",
 	 "gift_like": "꽃",
 	 "quest": {"title": "꽃 다섯 송이", "type": "bagcat", "item_label": "꽃", "count": 5, "reward": 300,
-		"desc": "꽃 다섯 송이만 모아다 주게 — 팔 데가 있어"}},
+		"desc": "꽃 다섯 송이만 모아다 주게 — 팔 데가 있어"},
+	 ## 제외 목록 4번(화석 채집엔 삽이 있어야 한다, gatherable_builder.gd
+	 ## 참고) — 웹판 buyTool()의 삽(700G)을 상인이 판다. 새 NPC를 안
+	 ## 만들고 이미 있는 "상인"에게 얹었다.
+	 "sells_tool": {"key": "spade", "name": "삽", "price": 700}},
 	{"id": "npc_explorer", "name": "탐험가", "line": "이 폭포 너머에 뭐가 있는지 아직 아무도 몰라",
 	 "grid": Vector2i(25, 8), "glb": "res://assets/characters/character-b.glb",
 	 "gift_like": "광석",
@@ -187,37 +191,50 @@ func _quest_progress(q: Dictionary) -> Dictionary:
 func _process(_delta: float) -> void:
 	for v: Dictionary in VILLAGERS:
 		if _in_range.get(v.id, false) and Input.is_action_just_pressed("forest_gather"):
-			_open_gift_menu(v)
+			_open_interact_menu(v)
 
 
-## 선물 — 부탁과 달리 내가 골라서 준다. 사람마다 하루 한 번, 좋아하는
-## 갈래를 맞히면 친밀도가 더 는다(웹판 giveGift()와 같은 배율: 3배 아니면
-## 1배).
-func _open_gift_menu(v: Dictionary) -> void:
-	if ForestSaveState.gifted_today(v.id):
-		Toast.show(self, "%s — 오늘은 이미 선물을 건넸다." % v.name, 2.0)
-		return
+## G를 누르면 선물(+상인만 도구 구매)을 고르는 메뉴 — 부탁은 자동으로
+## 진행되니(위 _talk()) 여기엔 안 나온다. 선물은 사람마다 하루 한 번,
+## 좋아하는 갈래를 맞히면 친밀도가 더 는다(웹판 giveGift()와 같은 배율:
+## 3배 아니면 1배).
+func _open_interact_menu(v: Dictionary) -> void:
+	var layer_box := {}
+	var choices: Array = []
 
-	var available: Array = []
-	for cat in GIFT_CATS:
-		if ForestSaveState.item_count(cat) > 0:
-			available.append(cat)
-	if available.is_empty():
-		Toast.show(self, "%s — 줄 만한 채집물이 없다." % v.name, 2.0)
+	if v.has("sells_tool"):
+		var tool: Dictionary = v.sells_tool
+		if not ForestSaveState.has_tool(tool.key):
+			choices.append({
+				"label": "%s 사기 (🪙%d)" % [tool.name, tool.price],
+				"cb": func() -> void: _buy_tool(v, tool, layer_box),
+			})
+
+	if not ForestSaveState.gifted_today(v.id):
+		for cat in GIFT_CATS:
+			if ForestSaveState.item_count(cat) > 0:
+				choices.append({
+					"label": "%s 주기 (%d개 있음)" % [cat, ForestSaveState.item_count(cat)],
+					"cb": func() -> void: _give_gift(v, cat, layer_box),
+				})
+
+	if choices.is_empty():
+		Toast.show(self, "%s — 지금은 딱히 할 게 없다." % v.name, 2.0)
 		return
 
 	## GDScript 람다는 바깥 지역 변수를 "생성 시점 값"으로 캡처한다 —
 	## test_room.gd의 은사 선택지·npc_builder.gd의 사명 제안과 같은
 	## layer_box 우회(ChoicePrompt.build() 호출 전에 만든 콜백이 그 결과를
 	## 미리 참조할 수 없어서다).
-	var layer_box := {}
-	var choices: Array = []
-	for cat in available:
-		choices.append({
-			"label": "%s 주기 (%d개 있음)" % [cat, ForestSaveState.item_count(cat)],
-			"cb": func() -> void: _give_gift(v, cat, layer_box),
-		})
-	layer_box["layer"] = ChoicePrompt.build(self, "🎁 %s 에게 선물하기" % v.name, choices)
+	layer_box["layer"] = ChoicePrompt.build(self, "%s" % v.name, choices)
+
+
+func _buy_tool(v: Dictionary, tool: Dictionary, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if ForestSaveState.buy_tool(tool.key, int(tool.price)):
+		Toast.show(self, "%s 에게서 %s 을(를) 샀다." % [v.name, tool.name], LINE_SHOW_SEC)
+	else:
+		Toast.show(self, "골드가 모자란다 (🪙%d 필요)" % int(tool.price), 2.5)
 
 
 func _give_gift(v: Dictionary, cat: String, layer_box: Dictionary) -> void:

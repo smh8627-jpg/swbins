@@ -19,6 +19,12 @@ extends Node3D
 ## 2026-09-12 — 제외 목록 3번(주민 5명)에서 6명으로 늘어난 NPC 대화 반경
 ## (5m)과 겹치지 않게 나무 자리를 (19,7)→(24,3)으로 옮겼다(캐릭터
 ## 무게중심은 그대로, 격자 자리만 이동 — id·저장 데이터는 안 바뀐다).
+##
+## 2026-09-12② — 제외 목록 4번(곤충/화석/조개) 착수 — 셋 다 웹판
+## PROPS처럼 reset:1(하루 1회)이라 이 파일에 그대로 얹었다. 화석("갈라진
+## 자리")만 웹판처럼 도구(삽)가 있어야 한다 — `tool` 필드가 채워진
+## DEFS는 `ForestSaveState.has_tool()`을 먼저 본다. 삽은 상인(villager_
+## builder.gd의 npc_merchant)에게서 산다.
 
 const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
 const TerrainBuilder := preload("res://games/saga_forest/world/forest_terrain_builder.gd")
@@ -29,19 +35,30 @@ const Toast := preload("res://saga_core/ui/toast.gd")
 const CURVE_AMOUNT := 0.004
 const GATHER_RADIUS := 3.5
 
+const TOOL_NAMES := {"spade": "삽"}
+
 const DEFS := [
 	{"id": "gather_tree", "name": "나무", "hint": "흔든다", "item_label": "과일",
 	 "grid": Vector2i(24, 3), "glb": "res://assets/vegetation/tree_oak.glb",
-	 "scale": 4.5, "tint": Color(1, 1, 1), "trunk_radius": 0.4, "trunk_height": 3.0},
+	 "scale": 4.5, "tint": Color(1, 1, 1), "trunk_radius": 0.4, "trunk_height": 3.0, "tool": ""},
 	{"id": "gather_pine", "name": "소나무", "hint": "흔든다", "item_label": "솔방울",
 	 "grid": Vector2i(9, 12), "glb": "res://assets/vegetation/tree_oak.glb",
-	 "scale": 3.6, "tint": Color(0.72, 0.84, 0.95), "trunk_radius": 0.4, "trunk_height": 3.0},
+	 "scale": 3.6, "tint": Color(0.72, 0.84, 0.95), "trunk_radius": 0.4, "trunk_height": 3.0, "tool": ""},
 	{"id": "gather_rock", "name": "바위", "hint": "캔다", "item_label": "광석",
 	 "grid": Vector2i(22, 12), "glb": "res://assets/rocks/rock_largeA.glb",
-	 "scale": 3.0, "tint": Color(1, 1, 1), "trunk_radius": 0.0, "trunk_height": 0.0},
+	 "scale": 3.0, "tint": Color(1, 1, 1), "trunk_radius": 0.0, "trunk_height": 0.0, "tool": ""},
 	{"id": "gather_flower", "name": "꽃", "hint": "꺾는다", "item_label": "꽃",
 	 "grid": Vector2i(9, 5), "glb": "", "scale": 1.0,
-	 "tint": Color(1, 0.55, 0.72), "trunk_radius": 0.0, "trunk_height": 0.0},
+	 "tint": Color(1, 0.55, 0.72), "trunk_radius": 0.0, "trunk_height": 0.0, "tool": ""},
+	{"id": "gather_bug", "name": "풀숲", "hint": "잡는다", "item_label": "곤충",
+	 "grid": Vector2i(14, 4), "glb": "", "scale": 1.0,
+	 "tint": Color(0.85, 0.75, 0.25), "trunk_radius": 0.0, "trunk_height": 0.0, "tool": ""},
+	{"id": "gather_shell", "name": "조개", "hint": "줍는다", "item_label": "조개",
+	 "grid": Vector2i(18, 13), "glb": "", "scale": 1.0,
+	 "tint": Color(0.92, 0.88, 0.8), "trunk_radius": 0.0, "trunk_height": 0.0, "tool": ""},
+	{"id": "gather_fossil", "name": "갈라진 자리", "hint": "판다", "item_label": "화석",
+	 "grid": Vector2i(6, 11), "glb": "", "scale": 1.0,
+	 "tint": Color(0.45, 0.38, 0.3), "trunk_radius": 0.0, "trunk_height": 0.0, "tool": "spade"},
 ]
 
 var _in_range: Dictionary = {}  # id(String) -> bool
@@ -111,6 +128,9 @@ func _on_entered(body: Node3D, d: Dictionary) -> void:
 	if not body.is_in_group("player"):
 		return
 	_in_range[d.id] = true
+	if d.tool != "" and not ForestSaveState.has_tool(d.tool):
+		Toast.show(self, "%s — %s이(가) 있어야 한다." % [d.name, TOOL_NAMES.get(d.tool, d.tool)], 2.5)
+		return
 	if ForestSaveState.can_gather(d.id):
 		Toast.show(self, "[G] %s를 %s" % [d.name, d.hint], 2.0)
 	else:
@@ -123,6 +143,9 @@ func _on_exited(body: Node3D, d: Dictionary) -> void:
 
 
 func _gather(d: Dictionary) -> void:
+	if d.tool != "" and not ForestSaveState.has_tool(d.tool):
+		Toast.show(self, "%s — %s이(가) 있어야 한다." % [d.name, TOOL_NAMES.get(d.tool, d.tool)], 2.5)
+		return
 	if not ForestSaveState.can_gather(d.id):
 		Toast.show(self, "%s — 오늘 몫은 이미 다 썼다." % d.name, 2.0)
 		return

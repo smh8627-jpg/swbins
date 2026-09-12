@@ -3013,3 +3013,43 @@ saga-godot 트랙에도 확장한다. PLAN.md 5장 "역사 인물로 노는" 정
   - **다음 이어질 것** — "제외" 목록 4번(곤충/화석/조개 채집도감, 박물관)부터.
     편지(마을 이사·주민 시뮬레이션)는 이번에 범위 밖으로 재조정됐으니
     다음에 순서를 다시 정할 때 이 사실을 참고할 것.
+
+## 완료 단계 (추가, 2026-09-12㉛) — FOREST "제외" 목록 4번: 곤충/화석/조개 + 박물관(사고)
+
+- **웹판 data-village.js MUSEUM_GRADES/MUSEUM_CATS·TOOLS 조사 결과,
+  박물관은 "기증한 종 수"로 등급을 매기지만 이 슬라이스엔 종 카탈로그
+  자체가 없다**(곤충/화석/조개 다 갈래당 아이템 하나뿐, 44장 "에셋은
+  무작정 많이 넣지 않는다") — 그래서 **누적 기증 개수**로 단순화했다.
+  등급 이름·문턱 수치(0/5/12/22/32)는 웹판 그대로.
+  - `games/saga_forest/world/gatherable_builder.gd` — 곤충("풀숲")·
+    조개·화석("갈라진 자리") 셋을 DEFS에 추가(전부 채집물 다섯과 같은
+    reset:1 day 리셋 — gatherable_builder.gd·ForestDay 그대로 재사용).
+    화석만 웹판처럼 **도구(삽)가 있어야 한다** — 모든 DEFS에 `tool`
+    필드를 추가하고(대부분 `""`), `_on_entered()`/`_gather()`가 먼저
+    `ForestSaveState.has_tool()`을 본다.
+  - `games/saga_forest/world/villager_builder.gd` — 상인(npc_merchant)
+    에게 `sells_tool`(삽, 700G) 필드를 얹었다. G키 메뉴를 "선물만"에서
+    "도구 구매(해당하면) + 선물"로 합쳐(`_open_interact_menu`, 옛
+    `_open_gift_menu`를 대체) 새 NPC를 안 만들고 이미 있는 상인에게
+    끼워 넣었다.
+  - `games/saga_forest/world/museum.gd`(신규) — primitive 건물 하나
+    (어울리는 CC0 조각이 없어 gatherable의 꽃·곤충·조개와 같은 결) +
+    Area3D. 들어가면 등급·누적 기증 수를 안내하고, G를 누르면
+    ChoicePrompt(GO 재사용)로 가진 곤충/물고기/화석/조개 중 하나를
+    골라 기증한다.
+  - `games/saga_forest/data/forest_save_state.gd` — `tools`·
+    `museum_donated` 두 필드 추가(순수 추가, 버전 안 올림).
+  - **검증(헤드리스, 값 자체까지)** — `--headless --editor --quit` 임포트
+    확인 → `TestVillageForest.tscn` `--quit-after 5 --verbose` 세 번
+    연속 exit 0·오류 0건. **임시 디버그로 실제 함수를 호출해 세 갈래
+    확인**: 도구 구매(골드 부족→실패·충분→성공(gold 300 남음, has=true)
+    ·중복 구매→다시 실패), 화석 채집(도구 없음→개수 안 늚·도구 있음→
+    +1), 박물관 기증(곤충 3개 중 1개 기증→누적1·남은 2개·등급 "빈
+    사고"(문턱 5 미달이라 그대로)) — 전부 기대값과 일치. **저장/
+    불러오기도 새 필드 두 개를 완전히 분리된 두 프로세스로 왕복 확인**
+    (`tools={"spade":true}`·`museum_donated=9` 그대로 복원). 전부 검증
+    뒤 디버그 코드 원상복구(diff 0), 테스트 세이브 삭제. GO·DUNGEON
+    회귀 없음 재확인.
+  - **GUI 실기 확인은 아직 안 함**(새 채집 자리 셋·박물관 배치가 자연스러운지,
+    도구 구매 메뉴가 잘 뜨는지) — 사용자가 알아서 몰아서 확인할 것.
+  - **다음 이어질 것** — "제외" 목록 5번(순무 시세 — 경제 시스템)부터.

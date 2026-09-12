@@ -34,6 +34,12 @@ var quests_done: Dictionary = {}  # npc_id(String) -> true(부탁을 마침)
 var gifted: Dictionary = {}       # npc_id(String) -> day_key(마지막으로 선물한 날)
 var affinity: Dictionary = {}     # npc_id(String) -> int(친밀도)
 
+## 4번째 확장(제외 목록 4번 — 곤충/화석/조개 + 박물관) — 역시 순수 추가.
+var tools: Dictionary = {}  # tool_key(String) -> true(예: "spade")
+var museum_donated := 0     # 사고에 기증한 누적 개수(종 수가 아니라 총합 —
+                             # 이 슬라이스엔 종 카탈로그가 없어 단순화, 근거는
+                             # museum.gd 상단 주석)
+
 
 func can_gather(prop_id: String) -> bool:
 	return int(used.get(prop_id, -1)) != ForestDay.today_key()
@@ -90,6 +96,27 @@ func add_affinity(npc_id: String, amount: int) -> void:
 	affinity[npc_id] = int(affinity.get(npc_id, 0)) + amount
 
 
+func has_tool(tool_key: String) -> bool:
+	return bool(tools.get(tool_key, false))
+
+
+## gold가 모자라거나 이미 갖고 있으면 아무것도 안 하고 false.
+func buy_tool(tool_key: String, price: int) -> bool:
+	if has_tool(tool_key) or gold < price:
+		return false
+	gold -= price
+	tools[tool_key] = true
+	return true
+
+
+func donate_to_museum(item_label: String) -> bool:
+	if item_count(item_label) <= 0:
+		return false
+	items[item_label] = item_count(item_label) - 1
+	museum_donated += 1
+	return true
+
+
 func save() -> bool:
 	var player := _find_player()
 	if player == null:
@@ -104,6 +131,8 @@ func save() -> bool:
 		"quests_done": quests_done,
 		"gifted": gifted,
 		"affinity": affinity,
+		"tools": tools,
+		"museum_donated": museum_donated,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -140,6 +169,9 @@ func try_load() -> bool:
 	gifted = loaded_gifted if typeof(loaded_gifted) == TYPE_DICTIONARY else {}
 	var loaded_affinity: Variant = data.get("affinity", {})
 	affinity = loaded_affinity if typeof(loaded_affinity) == TYPE_DICTIONARY else {}
+	var loaded_tools: Variant = data.get("tools", {})
+	tools = loaded_tools if typeof(loaded_tools) == TYPE_DICTIONARY else {}
+	museum_donated = int(data.get("museum_donated", 0))
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:
