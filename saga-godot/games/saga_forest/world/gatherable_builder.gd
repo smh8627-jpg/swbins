@@ -15,6 +15,10 @@ extends Node3D
 ## 않는다") — 바위는 GO가 이미 쓰는 rock_largeA.glb를 그대로. 꽃은 어울리는
 ## CC0 GLB가 없어 primitive(작은 구)로 표시한다(waterfall 물웅덩이 등
 ## 이 저장소가 이미 쓰는 "적당한 에셋이 없으면 primitive" 예외와 같은 결).
+##
+## 2026-09-12 — 제외 목록 3번(주민 5명)에서 6명으로 늘어난 NPC 대화 반경
+## (5m)과 겹치지 않게 나무 자리를 (19,7)→(24,3)으로 옮겼다(캐릭터
+## 무게중심은 그대로, 격자 자리만 이동 — id·저장 데이터는 안 바뀐다).
 
 const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
 const TerrainBuilder := preload("res://games/saga_forest/world/forest_terrain_builder.gd")
@@ -27,7 +31,7 @@ const GATHER_RADIUS := 3.5
 
 const DEFS := [
 	{"id": "gather_tree", "name": "나무", "hint": "흔든다", "item_label": "과일",
-	 "grid": Vector2i(19, 7), "glb": "res://assets/vegetation/tree_oak.glb",
+	 "grid": Vector2i(24, 3), "glb": "res://assets/vegetation/tree_oak.glb",
 	 "scale": 4.5, "tint": Color(1, 1, 1), "trunk_radius": 0.4, "trunk_height": 3.0},
 	{"id": "gather_pine", "name": "소나무", "hint": "흔든다", "item_label": "솔방울",
 	 "grid": Vector2i(9, 12), "glb": "res://assets/vegetation/tree_oak.glb",

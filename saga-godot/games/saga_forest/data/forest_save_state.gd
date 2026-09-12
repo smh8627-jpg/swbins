@@ -25,6 +25,15 @@ var items: Dictionary = {}  # item_label(String) -> count(int)
 ## village.js의 st().used와 같은 뜻 — "이 채집 대상을 마지막으로 쓴 날".
 var used: Dictionary = {}
 
+## 3번째 확장(제외 목록 3번 — 주민 5명 전체 + 부탁·선물) — 전부 순수
+## 추가 필드다(모양이 바뀌는 게 아니라 새 키가 느는 것뿐, GO save_state.gd
+## 기준으로 버전을 안 올려도 되는 경우). 없으면 빈 값으로 안전하게 채워짐.
+var gold := 0
+var met: Dictionary = {}          # npc_id(String) -> true(만난 적 있음)
+var quests_done: Dictionary = {}  # npc_id(String) -> true(부탁을 마침)
+var gifted: Dictionary = {}       # npc_id(String) -> day_key(마지막으로 선물한 날)
+var affinity: Dictionary = {}     # npc_id(String) -> int(친밀도)
+
 
 func can_gather(prop_id: String) -> bool:
 	return int(used.get(prop_id, -1)) != ForestDay.today_key()
@@ -38,11 +47,47 @@ func add_item(item_label: String, amount: int) -> void:
 	items[item_label] = int(items.get(item_label, 0)) + amount
 
 
+func item_count(item_label: String) -> int:
+	return int(items.get(item_label, 0))
+
+
 func total_items() -> int:
 	var total := 0
 	for v in items.values():
 		total += int(v)
 	return total
+
+
+func mark_met(npc_id: String) -> void:
+	met[npc_id] = true
+
+
+func met_count() -> int:
+	return met.size()
+
+
+func is_quest_done(npc_id: String) -> bool:
+	return bool(quests_done.get(npc_id, false))
+
+
+func mark_quest_done(npc_id: String) -> void:
+	quests_done[npc_id] = true
+
+
+func add_gold(amount: int) -> void:
+	gold += amount
+
+
+func gifted_today(npc_id: String) -> bool:
+	return int(gifted.get(npc_id, -1)) == ForestDay.today_key()
+
+
+func mark_gifted(npc_id: String) -> void:
+	gifted[npc_id] = ForestDay.today_key()
+
+
+func add_affinity(npc_id: String, amount: int) -> void:
+	affinity[npc_id] = int(affinity.get(npc_id, 0)) + amount
 
 
 func save() -> bool:
@@ -54,6 +99,11 @@ func save() -> bool:
 		"player_pos": [player.global_position.x, player.global_position.y, player.global_position.z],
 		"items": items,
 		"used": used,
+		"gold": gold,
+		"met": met,
+		"quests_done": quests_done,
+		"gifted": gifted,
+		"affinity": affinity,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -80,6 +130,16 @@ func try_load() -> bool:
 	items = loaded_items if typeof(loaded_items) == TYPE_DICTIONARY else {}
 	var loaded_used: Variant = data.get("used", {})
 	used = loaded_used if typeof(loaded_used) == TYPE_DICTIONARY else {}
+
+	gold = int(data.get("gold", 0))
+	var loaded_met: Variant = data.get("met", {})
+	met = loaded_met if typeof(loaded_met) == TYPE_DICTIONARY else {}
+	var loaded_quests_done: Variant = data.get("quests_done", {})
+	quests_done = loaded_quests_done if typeof(loaded_quests_done) == TYPE_DICTIONARY else {}
+	var loaded_gifted: Variant = data.get("gifted", {})
+	gifted = loaded_gifted if typeof(loaded_gifted) == TYPE_DICTIONARY else {}
+	var loaded_affinity: Variant = data.get("affinity", {})
+	affinity = loaded_affinity if typeof(loaded_affinity) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:
