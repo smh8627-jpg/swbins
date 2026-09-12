@@ -37,6 +37,12 @@ namespace Saga.Go.World
                 Destroy(gameObject);
                 return;
             }
+            // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
+            // 또 돌리는데, 편집기 빌드 스크립트가 이미 자식을 만들어 둔
+            // 뒤라 그대로 두면 보물 구슬이 두 벌씩 겹쳐 생긴다 —
+            // NpcBuilder.cs와 같은 방어(2026-09-12 GLB 교체 때 같이 발견한
+            // 패턴, 여기 뒤늦게 적용).
+            if (transform.childCount > 0) return;
             Build();
         }
 

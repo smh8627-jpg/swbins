@@ -67,6 +67,25 @@ namespace Saga.Go.World
                 Destroy(gameObject);
                 return;
             }
+            // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
+            // 또 돌리는데, 편집기 빌드 스크립트가 이미 자식(시각·UI)을 만들어
+            // 둔 뒤라 그대로 두면 두 벌씩 겹쳐 생긴다. NpcBuilder.cs 등은
+            // "이미 있으면 건너뛴다"로 막지만, 이 클래스는 Update()가 쓰는
+            // _promptRoot/_combatRoot/_hpFill 같은 필드를 Build() 안에서만
+            // 채우므로 그냥 건너뛰면 이번 Play 세션 내내 그 필드들이 null로
+            // 남아 늑대에게 다가가는 순간 NullReferenceException이 났을
+            // 것이다(2026-09-12 발견 — BanditEncounter.cs도 같은 결함이 있어
+            // 같이 고침). 대신 기존 자식을 전부 지우고 Build()를 다시 통째로
+            // 돌려 모든 필드를 확실히 채운다. (UI 캔버스는 EncounterUiKit
+            // .NewCanvas가 루트에 만들어 이 transform의 자식이 아니다 —
+            // 이 loop로는 못 지우고 편집기 빌드 때 만든 옛 캔버스 두 개가
+            // 비활성 상태로 씬에 고아처럼 남는다. 새로 만든 캔버스가 실제
+            // 동작을 맡으니 기능은 정상이고, 남는 건 화면에 안 보이는
+            // 미사용 GameObject 두 개뿐이라 이번엔 감수한다.)
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                DestroyImmediate(transform.GetChild(i).gameObject);
+            }
             Build();
         }
 

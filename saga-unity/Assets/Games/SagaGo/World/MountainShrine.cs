@@ -31,6 +31,12 @@ namespace Saga.Go.World
             Build();
         }
 
+        // 다른 발견형 콘텐츠(HiddenTreasure 등)와 달리 이 컴포넌트는 자식
+        // GameObject를 하나도 안 만든다(transform.position·collider 설정
+        // 뿐) — 그래서 Awake가 다시 불려 Build()가 또 돌아도 결과가 그대로
+        // 덮어써질 뿐 두 벌로 겹칠 게 없다. NpcBuilder.cs 등에 넣은
+        // "childCount>0이면 건너뛰기" 방어가 여기는 필요 없다(2026-09-12
+        // 점검 후 확인, 일부러 안 넣은 것).
         public void Build()
         {
             float ground = TestMapData.Legend[TestMapData.TileAt(Gx, Gy)].Height;

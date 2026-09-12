@@ -1,0 +1,208 @@
+# ASSET_GUIDE
+
+PLAN.md 34장에서 만들기로 해 놓고 안 만들었던 문서 — 2026-09-12, 첫 GLB
+에셋(캐릭터 4종) 교체를 하면서 같이 만들었다. saga-godot의 같은 이름
+문서와 형식을 맞춘다 — **무엇을 왜 골랐는지**만 짧게 적는다.
+
+## 출처 — Kenney.nl, CC0, saga-godot 트랙과 같은 파일 재사용
+
+루트 CLAUDE.md "하지 말 것"의 "원작사의 실제 에셋 가져다 넣기" 금지는
+포켓몬GO·디아블로 같은 원작 IP의 실제 리소스를 뜻한다. Kenney의
+CC0(퍼블릭 도메인) 킷은 그 원작들과 무관한 제3자 소재라 해당하지
+않는다(PLAN.md 8장·`saga-godot/docs/ASSET_GUIDE.md`와 같은 근거).
+
+**두 트랙이 같은 파일을 그대로 재사용한다** — PLAN.md 0장 "기획만 같이
+본다"는 코드 얘기고, CC0 소재는 라이선스가 같으니 새로 받을 이유가 없다
+(PLAN.md 8장이 이미 그렇게 정해 둠). `saga-godot/assets/characters/*.glb`
+4개(character-a~d) + `Textures/texture-{a,b,c,d}.png`를 그대로 복사해
+`Assets/Art/Characters/`에 넣었다.
+
+| 킷 | 받은 날(saga-godot 기준) | saga-unity 도입일 | 용도 |
+|---|---|---|---|
+| [Blocky Characters](https://kenney.nl/assets/blocky-characters) 2.0 | 2026-09-11 | 2026-09-12 | 플레이어·NPC·산적 |
+| [Nature Kit](https://kenney.nl/assets/nature-kit) 2.1 | 2026-09-11 | 2026-09-12 | 나무·바위 |
+| [Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit) 2.0 | 2026-09-11 | 2026-09-12 | 마을집 벽/지붕·폐허 기둥·다리 |
+| [Modular Cave Kit](https://kenney.nl/assets/modular-cave-kit) 1.0 | 2026-09-11 | 2026-09-12 | 굴 입구 |
+
+라이선스: CC0 — 출처 표시 의무 없음.
+
+## Unity에 GLB를 불러오려면 패키지가 하나 더 필요하다
+
+PLAN.md 8장은 "FBX, GLB/GLTF (Unity 임포터가 직접 지원)"이라고 적어
+뒀는데 이건 **틀린 전제였다** — Unity 6000.3.23f1 기본 설치엔 glTF
+임포터가 없다(`Packages/manifest.json`에 아무 것도 없었음, `.glb` 파일을
+Assets에 넣어도 그냥 무시된다). Unity 공식 패키지
+`com.unity.cloud.gltfast`(6.9.0)를 `manifest.json`에 추가해 해결했다 —
+URP를 기본으로 지원하고(머티리얼이 자동으로 `Universal Render
+Pipeline/Lit`로 들어옴), Unity 공식 레지스트리에서 바로 받아진다(추가
+scoped registry 불필요). 다음에 FBX가 아니라 GLB 에셋을 새로 받을 때
+"임포터가 없어서 안 된다" 싶으면 이 패키지가 실제로 있는지부터 확인할 것
+(saga-godot의 URP Sky/Fog 오판과 같은 종류의 실수 — PLAN.md 문서의 가정을
+실제로 확인 없이 믿지 말 것).
+
+## 실측값 (MeasureCharacterGlb.cs로 확인 후 삭제 — 일회성 도구)
+
+`Renderer.bounds`를 인스턴스화해 직접 실측했다(추측 아님, saga-godot의
+`get_aabb()` 실측과 같은 방법):
+
+| 파일 | 실측 크기(m) | 피벗 |
+|---|---|---|
+| `character-{a,b,c,d}.glb` (넷 다 같은 골격) | 1.6 × 2.7 × 0.8 | 바닥(발밑, min.y=0) |
+
+saga-godot의 실측(1.6×2.7×0.8)과 정확히 일치 — 같은 파일이니 당연하다.
+**피벗이 바닥**이라 primitive capsule(중앙 피벗이라 `height*0.5`만큼
+띄워야 했음)과 달리 위치 계산에 y 오프셋이 필요 없다.
+
+## 스케일·배치 — `CharacterVisual.cs`(공용 로직)
+
+기존 primitive capsule 시절 목표 높이(`CharacterController.height`=3.4,
+Player·NPC·산적 전부 동일)에 맞춰 `targetHeight / NativeHeight`
+(3.4/2.7 ≈ 1.259)로 균일 스케일한다. 색조는 URP Lit의 `_BaseColor`를
+`MaterialPropertyBlock`으로 덮어써(공유 머티리얼 자체는 안 건드림) 같은
+모델을 여러 배역에 색만 다르게 재사용한다 — 킷을 4종만 받아서 배역은
+5개(플레이어·촌장·상인·나그네·산적)라 나그네는 상인과 같은 모델
+(character-c)을 색조만 다르게 재사용한다.
+
+| 배역 | 모델 | 색조 |
+|---|---|---|
+| 플레이어 | character-a | 없음(원본 텍스처 그대로) |
+| 마을 촌장 | character-b | 파랑 계열 |
+| 떠돌이 상인 | character-c | 갈색 계열 |
+| 나그네 | character-c (상인과 모델 재사용) | 회색 계열 |
+| 산적 | character-d | 어두운 빨강(전투 텔레그래프 때 주황으로 덮어씀) |
+
+## GLB 에셋이 없을 때의 대비 — 폴백
+
+다른 PC에 이 GLB 파일들이 아직 없는 상태로 `BuildTestVillageScene.Build()`
+를 돌리면(예: 새 클론 직후, 또는 나중에 다른 배역용 GLB를 깜빡 안 받아온
+경우) `CharacterVisual.SpawnFallbackCapsule()`이 예전 primitive capsule로
+대신 채워 씬 빌드 자체는 안 깨지게 한다 — saga-godot의 "동굴 입구 GLB
+못 받아 오면 이전 박스로 대체" 관례와 같다.
+
+## 환경/건물 GLB (2026-09-12, 캐릭터 다음 조각)
+
+`VegetationBuilder.cs`(나무·바위)·`LandmarksBuilder.cs`(굴 입구·마을집·
+폐허·다리)에 Kenney Nature/Fantasy Town/Modular Cave Kit GLB를 넣었다.
+saga-godot 실측표(위 표와 같은 파일)를 그대로 신뢰해 재실측 없이 스케일을
+가져다 썼다(같은 TileSize=48 세계 축척이라 유효) — `MeasureCharacterGlb.cs`
+로 한 번 더 재확인만 하고(값 100% 일치) 지웠다.
+
+| 파일 | 실측 크기(m) | 스케일 | 쓰는 곳 |
+|---|---|---|---|
+| `vegetation/tree_oak.glb` | 0.64×1.23×0.74 | ×4.5×(개체별 0.7~1.3) | 숲 타일, 타일당 3그루 |
+| `rocks/rock_largeA.glb` | 0.78×0.26×1.02 | ×2.6×(개체별 변주) | 산 타일 절반 |
+| `rocks/rock_smallA.glb` | 0.36×0.19×0.36 | ×3.5×(개체별 변주) | 산 타일 나머지 절반 |
+| `buildings/wall-block.glb` | 1×1×1 | 비균등=bodySize(10,4,10) 그대로 | 마을집 벽 |
+| `buildings/roof-gable.glb` | 1.1×0.57×1.07 | 균일 ×10 | 마을집 지붕(콜라이더 없음) |
+| `buildings/pillar-stone.glb` | 0.16×1.0×0.16 | 균일=목표 높이 | 폐허 기둥 3개 |
+| `buildings/planks.glb` | 1×0.06×1 | 비균등(폭 6, 길이는 44개 등분) | 다리 덱 |
+| `dungeon/gate-rock.glb` | 4.00×4.05×2.45 | 균일 ×1.48(목표 높이 6m) | 굴 입구 |
+| `shrine/altar-stone.glb` | 1.04×0.49×0.65 | 균일 ×2.5(목표 높이 약 1.23m) | 산신당 제단(재설계, 아래 절 참고) |
+
+**GLB엔 물리 콜라이더가 없다** — glTF 포맷 자체가 충돌체를 안 담는다.
+굴 입구·마을집 벽·기둥류는 실측 로컬 AABB(위 표) 그대로
+`BoxCollider`/`CapsuleCollider`를 코드로 직접 얹었다(캐릭터는 트리거
+판정만 있어 콜라이더가 없어도 됐지만, 이 랜드마크들은 "지나갈 수 없는
+장애물"이라 필요) — 지붕·다리 덱은 원래도 콜라이더가 없던 자리라 그대로
+안 얹었다(지붕은 밟는 자리가 아니고, 다리는 TerrainBuilder가 'B' 타일에
+이미 별도로 막아 뒀다, 두 곳이 각자 만들면 겹친다는 기존 원칙 그대로).
+
+## 산신당 재설계 (2026-09-12, 환경/건물 GLB 다음 후속 조각)
+
+**산신당('S' 타일, `LandmarksBuilder.BuildShrine()`)은 그때(위 절) "형태가
+많이 달라 재설계 필요"로 미뤄 뒀다가 같은 날 처리했다.** 예전 구조(받침대
+박스 5×0.6×5 + `pillar-stone.glb` 기둥 4개)를 통째로 걷어내고,
+saga-godot `landmarks_builder.gd`의 `SHRINE_SIZE`(1.04×0.49×0.65)·
+`SHRINE_SCALE`(2.5, 균일)을 그대로 옮겨 **`shrine/altar-stone.glb`
+제단 하나**로 바꿨다 — saga-godot도 옛 사당을 이 파일 하나로만 짓는다
+(같은 이유: 실제 돌 표면 굴곡이 있는 조각이라 gate-rock.glb처럼 균일
+스케일만 쓴다). 최종 크기 약 2.6×1.23×1.63m, 바닥 중앙 피벗이라
+`gate-rock.glb`·`altar-stone.glb`처럼 위치 계산에 y 오프셋이 필요 없다.
+`shrine/altar-stone.glb` + `shrine/Textures/colormap.png`를
+saga-godot에서 그대로 복사(다른 GLB들과 같은 재사용 원칙). GLB가 없을 때의
+폴백도 예전 받침대+기둥 구조 대신 이 크기 그대로의 단일 박스로 바꿨다.
+`MountainShrine.cs`(트리거·보상 로직)는 안 건드림 — 이건 순전히
+`LandmarksBuilder.cs`의 시각 담당 쪽 변경이다.
+
+## Props 도입 (2026-09-12, 산신당 재설계 다음 후속 조각)
+
+PLAN.md 44~49장 우선순위(Player→주요 Enemy→Boss→Environment→Building→
+Vegetation→**Props**→Animals→VFX)의 다음 칸. 새 킷을 찾지 않고 이미 쓰고
+있는 `Fantasy Town Kit 2.0`(CC0, `LandmarksBuilder.cs`가 wall-block·
+roof-gable 등에 쓰는 그 킷)에서 그때 안 받았던 파일 세 개만 추가로
+받았다 — 이 킷 하나에 160개가 넘는 모듈이 들었는데 처음엔 건물에 필요한
+4개만 골라 왔었다(zip을 `opengameart.org`의 미러 링크로 다시 받아
+`Models/GLB format/` 안에서 골랐다 — Kenney 공식 페이지는 다운로드
+버튼이 JS라 직접 URL을 못 뽑았다). 텍스처는 새로 안 받고 기존
+`Assets/Art/Buildings/Textures/colormap.png`와 바이트가 100% 같은 걸
+md5로 확인했다(같은 킷·같은 아틀라스라 당연) — 그래도 `Buildings/`와
+분리해 관리하려고 `Assets/Art/Props/Textures/`에 한 벌 더 뒀다(PLAN.md
+8장이 나열한 `Art/Props/` 카테고리를 그대로 따름, `Dungeon/`·`Shrine/`도
+각자 텍스처를 따로 갖고 있는 것과 같은 결 — 바이트 중복보다 "무엇이
+어떤 자산에 속하는지" 폴더로 바로 보이는 쪽을 택함).
+
+| 파일 | 실측 크기(m) | 스케일 | 쓰는 곳 |
+|---|---|---|---|
+| `props/lantern.glb` | 0.216×1.556×0.224 | ×1(그대로) | 마을집 두 채 사이 가로등 2개 |
+| `props/stall-red.glb` | 1×1.237×1 | 균일 ×2 | 떠돌이 상인 옆 시장 좌판 |
+| `props/fence.glb` | 0.075×0.38×1(비중앙 피벗, x∈[0.425,0.5]) | 균일 ×2 | 논밭 소 옆 울타리 3칸 |
+| `props/fence-gate.glb` | 0.519×0.55×1 | 균일 ×2 | 위 울타리 줄 가운데 문 1칸 |
+
+**소품 셋을 기존 콘텐츠 옆에 붙였다** — 새 자리를 만들지 않고 이미 있는
+곳을 꾸미는 것만으로 "허전함"을 줄인다는 PLAN.md 9~10장 원칙:
+- 가로등 2개 — 마을집(격자 2,3·3,3) 사이 공터를 마주 보게.
+- 시장 좌판 1개 — 떠돌이 상인(격자 4,3) 옆, 거래 자리처럼 보이게.
+- 울타리 3칸+문 1칸 — 논밭 소(cow_1, 격자 3,9) 옆에 한 줄로. **실제로
+  소를 가두지는 않는다** — `WanderingAnimal`의 24유닛 배회 반경을 다
+  두르려면 수십 칸이 필요해 장식 목적과 안 맞다(PLAN.md 3장 "테스트 안
+  된 추측성 변경" 회피) — "목장 한구석" 느낌만 준다. 콜라이더도 일부러
+  안 둠(반 토막짜리 줄을 막아 버리면 오히려 걸린 것처럼 보인다).
+
+`PropsBuilder.cs`(신규) — `LandmarksBuilder.cs`와 같은 결(자리마다 상수,
+GLB 없으면 primitive로 대체, `childCount>0`이면 `Awake()`에서 다시 안
+지음). `BuildTestVillageScene.cs`에 `BuildProps()` 훅 추가(Landmarks
+다음, Animals 전).
+
+## 동물 GLB — 2026-09-12 조사 결과 (아직 도입 안 함)
+
+saga-godot도 "어울리는 동물 GLB가 없다"고 남겨 둔 항목이라 다시
+찾아봤다. **결론: CC0 소스는 찾았지만 자동으로 받을 수 없어 사람의 확인이
+필요하다.**
+
+- **Kenney**엔 사슴·소·늑대를 갖춘 3D 킷이 없다 — "Animal Pack"·"Animal
+  Pack Redux" 둘 다 **2D 스프라이트**였다(직접 opengameart.org 미러로
+  확인).
+- **Quaternius**(PLAN.md 8장이 이미 허용해 둔 소스)의 "Animated Animal
+  Pack"(poly.pizza 번들 `Animated-Animal-Pack-ILAPXeUYiS`)이 정확히
+  **Cow·Deer·Wolf**를 포함한다(+ Donkey·Alpaca·Bull·Fox·Shiba Inu·
+  Stag·Husky·Horse 등 12종, 걷기·달리기 등 애니메이션 포함, CC0,
+  glTF/FBX). **다만 poly.pizza는 개별 모델 다운로드에 계정/API 키가
+  필요하고, quaternius.com 원본 페이지는 Discord `#pack-claim`·Patreon
+  클레임 절차를 거치게 돼 있어 — 계정 생성·로그인은 대신 해 줄 수 없는
+  영역이라 파일을 직접 못 받아 왔다.**
+- 로그인 없이 바로 받아지는 대안(`quaternius.itch.io/lowpoly-animated-
+  animals`, CC0, "Name your own price" 무료)도 있지만 Cow·Horse·Llama·
+  Pig·Pug뿐이라 **사슴·늑대가 빠진다** — 지금 갖춘 세 종(사슴·소·늑대)을
+  다 못 채운다.
+
+**다음 세션이 이어갈 것**: 사용자가 직접 poly.pizza 계정을 만들거나
+Quaternius Discord/Patreon 클레임으로 위 팩을 받아 스크래치패드나
+저장소 어딘가에 놔두면, 그 다음부터는 지금까지와 같은 방식(실측→
+`AnimalBuilder.cs`에 스케일·콜라이더 반영→md5 확인)으로 이어받을 수
+있다. 그때까지는 사슴·소·흰 늑대 모두 primitive로 남는다.
+
+## 이번에 발견해 같이 고친 것 — Awake() 중복 생성
+
+`NpcBuilder.cs`·`BanditEncounter.cs`가 `Awake()`에서 조건 없이
+`Build()`를 다시 불러서, 편집기 빌드 스크립트가 이미 저장해 둔 씬을 실제
+Play(헤드리스든 사람이 직접 하든)로 열면 시각·UI가 두 벌씩 겹쳐 생기는
+잠재 버그였다(`Gatherable.cs`·`HiddenTreasure.cs` 등은 이미 방어가
+있었는데 이 둘만 빠져 있었음). 캐릭터 GLB로 바꾸며 두 파일을 어차피
+손대는 김에 `transform.Find("Visual") != null`이면 다시 안 짓게 방어를
+넣었다. 환경/건물 GLB 조각(`VegetationBuilder.cs`·`LandmarksBuilder.cs`)도
+어차피 다시 쓰는 김에 `transform.childCount > 0`이면 건너뛰는 같은 방어를
+추가해 뒀다. 나머지 `AnimalBuilder.cs`·`RareWolfEncounter.cs`·
+`HiddenTreasure.cs`·`MountainShrine.cs`·`EastGroveRelic.cs`·
+`LuckyCairn.cs` 여섯 곳은 **후속 세션(2026-09-12)이 정리했다** —
+자세한 내용(그 중 `RareWolfEncounter`·`BanditEncounter`에서 찾은 더 깊은
+NRE 버그 포함)은 `docs/PROJECT_STATE.md` 참고.

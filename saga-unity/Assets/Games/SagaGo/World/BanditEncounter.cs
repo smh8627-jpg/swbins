@@ -49,7 +49,12 @@ namespace Saga.Go.World
         private float _cooldownLeft;
         private bool _playerInRange;
 
-        private Material _visualMat;
+        // 편집기 빌드 스크립트가 Init()으로 채워 준다 — NpcBuilder.cs·
+        // Gatherable.cs와 같은 이유(런타임 Awake()는 AssetDatabase를 못 쓴다).
+        [SerializeField] private GameObject model;
+
+        private Transform _visual;
+        private Vector3 _visualBaseScale;
 
         private GameObject _promptRoot;
         private GameObject _combatRoot;
@@ -62,6 +67,8 @@ namespace Saga.Go.World
 
         private Coroutine _flashRoutine;
         private Coroutine _pulseRoutine;
+
+        public void Init(GameObject modelIn) => model = modelIn;
 
         private void Awake()
         {
@@ -77,6 +84,26 @@ namespace Saga.Go.World
                     Destroy(gameObject);
                     return;
                 }
+            }
+            // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
+            // 또 돌리는데, 편집기 빌드 스크립트가 이미 자식(시각·UI)을 만들어
+            // 둔 뒤라 그대로 두면 두 벌씩 겹쳐 생긴다. 예전엔(2026-09-12 GLB
+            // 교체 때) "Visual" 자식이 있으면 그냥 건너뛰고 PulseVisual()이
+            // 쓸 _visual/_visualBaseScale만 복원했는데, 그러면 Update()가
+            // 쓰는 _promptRoot/_combatRoot/_hpFill 같은 나머지 UI 필드는
+            // 이번 Play 세션 내내 null로 남아 도적에게 다가가는 순간
+            // NullReferenceException이 났을 것이다(2026-09-12 뒤늦게 발견 —
+            // RareWolfEncounter.cs도 같은 결함이 있어 같이 고침). 대신 기존
+            // 자식을 전부 지우고 Build()를 다시 통째로 돌려 모든 필드를
+            // 확실히 채운다. (UI 캔버스는 EncounterUiKit.NewCanvas가 루트에
+            // 만들어 이 transform의 자식이 아니라 이 loop로는 못 지우고
+            // 편집기 빌드 때 만든 옛 캔버스 두 개가 비활성 상태로 씬에
+            // 고아처럼 남는다 — 새로 만든 캔버스가 실제 동작을 맡으니
+            // 기능은 정상이고, 남는 건 화면에 안 보이는 미사용 GameObject
+            // 두 개뿐이라 이번엔 감수한다.)
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                DestroyImmediate(transform.GetChild(i).gameObject);
             }
             Build();
         }
@@ -146,18 +173,12 @@ namespace Saga.Go.World
             float ground = TestMapData.Legend[tile].Height;
             transform.position = TestMapData.WorldPos(Gx, Gy) + new Vector3(0, ground, 0);
 
-            // 아직 GLB가 없어 primitive Capsule(PLAN.md 8장) — 플레이어·주민과
-            // 같은 크기, 옷 색만 달라 구별된다.
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visual.name = "Visual";
-            Object.DestroyImmediate(visual.GetComponent<Collider>());
-            visual.transform.SetParent(transform, false);
-            visual.transform.localScale = new Vector3(1.8f, 1.7f, 1.8f);
-            visual.transform.localPosition = new Vector3(0f, 1.7f, 0f);
-
-            _visualMat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Bandit (generated)" };
-            _visualMat.color = BaseColor;
-            visual.GetComponent<MeshRenderer>().sharedMaterial = _visualMat;
+            // Kenney Blocky Characters character-d.glb(PLAN.md 8장) — 플레이어·
+            // 주민과 같은 모델 골격, 옷 색조(BaseColor)만 달라 구별된다.
+            _visual = model != null
+                ? CharacterVisual.Spawn(model, transform, CharacterVisual.HumanHeight, BaseColor)
+                : CharacterVisual.SpawnFallbackCapsule(transform, BaseColor);
+            _visualBaseScale = _visual.localScale;
         }
 
         private void SpawnArea()
@@ -291,10 +312,10 @@ namespace Saga.Go.World
             {
                 case "tell":
                     Toast("강타가 온다 — 피하라!");
-                    _visualMat.color = TellColor;
+                    CharacterVisual.Tint(_visual.gameObject, TellColor);
                     break;
                 case "heavy":
-                    _visualMat.color = BaseColor;
+                    CharacterVisual.Tint(_visual.gameObject, BaseColor);
                     ScreenFlash(e.Dodged ? new Color(0.2f, 1.0f, 0.4f, 0.35f) : new Color(1.0f, 0.15f, 0.15f, 0.45f));
                     break;
                 case "hit":
@@ -391,10 +412,10 @@ namespace Saga.Go.World
 
         private IEnumerator PulseRoutine(float scaleTo)
         {
-            Transform visual = transform.Find("Visual");
+            Transform visual = _visual != null ? _visual : transform.Find("Visual");
             if (visual == null) yield break;
 
-            Vector3 baseScale = new Vector3(1.8f, 1.7f, 1.8f);
+            Vector3 baseScale = _visualBaseScale;
             Vector3 peakScale = baseScale * scaleTo;
 
             float t = 0f;

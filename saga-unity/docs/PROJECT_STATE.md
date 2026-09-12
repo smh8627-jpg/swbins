@@ -5,6 +5,352 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON 다음 슬라이스 후보 — 오픈월드/필드 (2026-09-12, 사용자가
+  지시한 "1,2,3,4" 네 후보 중 마지막).** 회피 다음으로 이어서(같은
+  세션) — 방 하나짜리 구조를 벗어나는 **가장 작은 단위**만 짰다(웹판
+  전체 필드/바이옴 5종을 옮기는 건 파급이 큰 작업이라 범위 밖 유지,
+  VERTICAL_SLICE_DUNGEON.md "다음 슬라이스 후보" 참고). `DungeonRoomBuilder
+  .cs`에 `OpenNorthDoor()`/`OpenSouthDoor()` 신규 — `Build()`가 지은
+  완전히 막힌 벽 하나를 문 폭(3m)만큼 갈라 둘로 나눈다(기존 호출부는
+  손 안 대 그대로 막힌 방을 받음, 새 메서드를 따로 불러야만 문이
+  뚫림). 신규 `World/DungeonCorridorBuilder.cs`(`DungeonRoomBuilder.cs`와
+  같은 결 — primitive, Awake 방어, MarkStatic)로 두 방을 8m 복도로
+  이었다. 좌표는 기하로 산출(Room1 북쪽 벽 바깥면 z=8 → 복도 8m →
+  Room2 남쪽 벽 바깥면 z=16 → Room2 중심 z=24, 복도 중심 z=12) —
+  기존 Room1의 몬스터·POI 좌표는 전혀 안 건드림(문은 북쪽에만 뚫려
+  기존 동쪽 몬스터 무리·서쪽 POI와 안 겹침). Room2엔 잡졸 둘(기본값
+  그대로, "다음 구역에도 콘텐츠가 있다"를 보여주는 최소 단위 — 새
+  콘텐츠 종류는 안 늘림, 바이옴·방 kind 다양화는 여전히 범위 밖).
+  컴파일·씬 재빌드(`room childCount=5→6`, 북쪽 벽이 둘로 갈라진 만큼
+  정확히 +1)·PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부
+  통과 — **문이 실제로 통과 가능한 폭인지, 복도를 걸어 Room2까지 실제로
+  갈 수 있는지, Room2의 잡졸 둘이 정상 동작하는지는 사람이 직접
+  걸어가 봐야 확인됨**(헤드리스 플레이어는 안 움직여 문 통과 자체가
+  검증 밖).
+- **DUNGEON 다음 슬라이스 후보 — 회피(구르기) (2026-09-12).** 방 종류
+  다양화 다음으로 이어서(같은 세션, "1,2,3,4 순서대로 다해" 중 3번) —
+  웹판 `js/dungeon.js:2510` `doDodge()`의 실제 상수(`DODGE_CD=0.9`·
+  `DODGE_SEC=0.16`·`DODGE_INVULN=0.22`, 전부 시간 단위라 변환 없이
+  그대로)를 옮겼다. **`DODGE_SPD=520`(px/초)만 물리 거리라** 이미
+  `DungeonRoomBuilder.cs`가 쓴 px→m 환산(ROOM_W 560px=20m, 28px/m)을
+  그대로 적용해 이동 거리 ≈2.97m→3m으로 잡고, 속도는 `거리÷지속시간`
+  으로 역산(≈18.75m/s). `Player/PlayerController.cs`(GO에서 그대로
+  복사해 온 파일)에 **DUNGEON 고유 로직으로 처음** 손을 댔다 — 회피 중엔
+  일반 이동·회전을 건너뛰고 저장해 둔 방향으로 CharacterController를
+  직접 미는 분기 추가, 방향은 현재 입력 방향(없으면 마지막 바라보는
+  방향)을 씀(웹판 `p.dirX||p.facing`과 같은 우선순위). 무적은
+  `HeroState.Invulnerable`(신규 정적 플래그)로 노출해 `TakeDamage`
+  맨 앞에서 막는다 — `DungeonEnemy.cs`는 이 플래그를 몰라도 된다(정적
+  클래스 하나만 보면 됨). 데스크톱은 Left Ctrl 직접 읽기(PlayerCombat.cs
+  가 이미 쓴 "Attack 액션 대신 Keyboard.current 직접 읽기" 관례를
+  그대로 따름 — Move/Sprint 액션과 안 겹치게), 모바일은 공격 버튼
+  왼쪽에 새 "회피" 버튼(`BuildDodgeButton`, `BuildAttackButton`과 같은
+  결). 컴파일·씬 재빌드(`room childCount=5` 그대로)·
+  PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부 통과 —
+  **회피 중 실제로 3m가량 미끄러지는 느낌인지, 그동안 몬스터 공격이
+  실제로 안 박히는지, 쿨다운 0.9초가 손에 잡히는 리듬인지는 사람이
+  직접 눌러 봐야 확인됨**(헤드리스는 키 입력을 안 보내 회피 발동 자체가
+  검증 밖).
+- **DUNGEON 다음 슬라이스 후보 — 방 종류 다양화 (2026-09-12).** 엘리트/
+  보스 다음으로 이어서(같은 세션, "1,2,3,4 순서대로 다해" 중 2번) —
+  웹판 `room.well`/`room.chest`/`room.shrine`(dungeon.js:336-341,
+  2141-2162)을 옮겼다. 웹판은 각각 다른 kind의 방인데 이 슬라이스는
+  방이 하나뿐이라 **세 POI를 한 방 안에 같이** 뒀다(몬스터 무리·보스는
+  동쪽 x=3~9, 세 POI는 서쪽 플레이어 스폰 주변에 흩어 안 겹침). 신규
+  `World/DungeonWell.cs`(체력 40% 회복, 웹판처럼 방 클리어 불문 — 원통
+  primitive, 청록)·`DungeonTrove.cs`(돈 +24 = 잡졸 보상 8 × 웹판
+  dropGold 배율 3 — 정육면체, 갈색)·`DungeonShrine.cs`(경험치+30·돈+20 —
+  웹판의 `shrineBoon()` 선택 UI 대신 GO `MountainShrine.cs`가 이미 쓴
+  단순화를 재사용, 고를 은사가 하나뿐이라 화면 불필요 — 원통, 보라).
+  트로브·성소는 웹판 `room.cleared`를 `DungeonEnemy.Active.Count == 0`
+  (씬에 살아있는 몬스터가 하나도 없음)으로 대체 — 방이 하나라 이 둘이
+  동치. `HeroState.cs`에 `HealBy(int)` 신규(기존엔 `FullHeal()`만 있어
+  일부 회복 API가 없었음). 절차적 아이템 드랍(웹판 트로브의 quality 22)·
+  광맥·행상·퍼즐 등 나머지 room kind는 이번엔 안 함(세공·희귀도·행상
+  재고 굴리기 등 더 큰 시스템이 필요해 VERTICAL_SLICE_DUNGEON.md
+  "제외" 범위 유지). 세 POI 다 SaveState에 진행 상태를 안 남긴다 —
+  몬스터와 같은 결(이 슬라이스의 세이브는 플레이어 스탯·위치만 다룸,
+  다시 켜면 셋 다 새로 씀). 컴파일·씬 재빌드(`room childCount=5`
+  그대로)·PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부
+  통과 — **세 표지가 실제로 구분돼 보이는지, 우물 회복량·상자/성소가
+  몬스터를 다 잡아야만 열리는지는 사람이 직접 가 봐야 확인됨.**
+- **DUNGEON 다음 슬라이스 후보 — 엘리트/보스 (2026-09-12).** 몬스터 무리
+  다음으로 이어서(같은 세션, 사용자가 남은 네 후보 "1,2,3,4 순서대로
+  다해"로 한 번에 지시 — 엘리트/보스→방 종류 다양화→회피→오픈월드/
+  필드 순). 웹판 `makeRoom('boss', ...)`(dungeon.js:327-330) 구성을
+  그대로 옮겼다 — 두목 1 + 부하 2(floor=1 공식 `min(6, 2+floor(1/5))`
+  =2명). **`DungeonEnemy.cs`의 상수(hp·dmg·보상·색상 등)를 전부
+  `[SerializeField]`로 바꿔** 두목 변형을 새 클래스 없이 한 컴포넌트로
+  같이 받게 했다(GO `Gatherable.cs`와 같은 이유 — 자리마다 값이 다른
+  재사용 컴포넌트는 상수로 못 박지 못한다). 두목 수치는 잡졸과 같은
+  공식의 boss 배율을 그대로 적용: HP=168(24×7), 공격력=11(round(5×2.2)),
+  보상은 dungeon.js의 dropGold boss 배율(5배)을 exp·gold에 재사용해
+  경험치 100·돈 40냥, 확정 드랍은 신규 `ItemData` "귀두도"(AtkBonus
+  26 — wp_axe(12)에 같은 boss dmg 배율 2.2배를 재사용해 정함, 웹판의
+  실제 절차적 보스 희귀도 시스템은 이번 슬라이스 범위 밖). 두목은
+  덩치(1.6배 스케일)·색(짙은 적갈, 잡졸의 누런 두건과 구분)으로만
+  구별 — AI·사거리·공격 간격은 잡졸과 동일(과설계 방지, 이번 증분의
+  본질은 "체력·보상이 큰 정점 하나"). 잡졸 무리(기존 4마리)보다 방
+  안쪽(동쪽 벽 가까이, 격자 x=8~9)에 둬 방을 가로질러야 만나는 자리로
+  삼음 — 부하 2명은 잡졸과 완전히 같은 기본값(웹판도 boss room 부하는
+  일반 spawnEnemy). 컴파일·씬 재빌드(`room childCount=5` 그대로)·
+  PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부 통과 —
+  **두목의 덩치·색이 실제로 위협적으로 보이는지, 168 HP를 실제로 다
+  깎는 데 걸리는 시간이 지루하지 않은지는 사람이 직접 싸워 봐야
+  확인됨.**
+- **DUNGEON 다음 슬라이스 후보 — 몬스터 무리 (2026-09-12).** 지난 세션이
+  사람이 TestDungeon을 직접 플레이해 "특별한 문제 없음"으로 확인해 준
+  뒤(이번 세션 "이어해"에서 먼저 확인), `docs/VERTICAL_SLICE_DUNGEON.md`
+  "다음 슬라이스 후보" 중 사용자가 "몬스터 무리"를 골라 진행. 지금까지
+  방 하나에 황건적 한 마리뿐이었는데(웹판은 방 하나에 4~12마리, 첫
+  슬라이스가 GO처럼 가장 작은 단위로 시작해 1마리로 줄여 뒀던 것), 웹판
+  `js/dungeon.js:333`의 실제 방 생성 공식(`makeRoom('fight', ...)`,
+  floor=1 기준 `min(12, 4 + rand(0~3))` = 4~7마리)에서 **무작위 롤 없이
+  최소값 4마리를 결정적으로** 써서 늘렸다 — 이 프로젝트 테스트 씬은
+  전부 고정 좌표라 무작위를 새로 안 들인다는 기존 관례를 그대로 따름.
+  `DungeonEnemy.cs`는 이미 인스턴스 하나가 몬스터 한 마리라 개수 확장에
+  로직 변경이 필요 없었다(정적 `Active` 리스트가 이미 여러 마리를
+  다룰 수 있게 짜여 있었음) — 주석만 갱신. `BuildTestDungeonScene.cs`의
+  `EnemySpawn`(단일 Vector3)을 `EnemySpawns`(배열 4개)로 바꾸고
+  `BuildEnemy()`를 루프로 바꿨다 — 방(20m×14m) 안에서 플레이어 스폰
+  (-6,0,0) 반대편에 부채꼴로 흩어 서로 안 겹치게 배치. 죽음 페널티가
+  이미 없는 슬라이스라(전멸돼도 바로 회복) 몰이 전투 난이도를 따로
+  손보지 않았다 — 4마리가 한꺼번에 붙어도 그냥 다시 서면 된다는 기존
+  설계를 그대로 신뢰. 컴파일·씬 재빌드(`room childCount=5` 그대로 —
+  방 자체는 안 바뀜, 몬스터는 Room의 자식이 아니라 씬 루트)·
+  PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부 통과 —
+  **4마리가 동시에 쫓아와도 실제로 카메라·조작이 안 밀리는지, 여럿에게
+  둘러싸였을 때 손맛이 괜찮은지는 사람이 직접 싸워 봐야 확인됨**
+  (헤드리스 플레이어는 안 움직여 Chase 전이 자체가 이번에도 검증 밖).
+- **PLAN.md 51~65장 "확장 순서" — DUNGEON 착수, 첫 버티컬 슬라이스
+  (2026-09-12).** Props 도입 다음으로 이어서(같은 세션, 사용자가 "남은
+  후보 진행해줘"에 "1,2번 진행해"로 답해 기획 문서부터 쓰고 곧바로
+  구현까지 진행) — GO 다음 게임(사가블로) 착수. saga-godot도 아직 손
+  안 댄 첫 시도라 `docs/VERTICAL_SLICE_DUNGEON.md`(신규)를 먼저 써서
+  범위를 정했다: **웹판 `saga-dungeon`(오픈월드·바이옴·엘리트/보스·
+  세공·행상까지 갖춘 이미 아주 깊은 게임)를 통째로 옮기지 않고, GO의
+  첫 슬라이스와 같은 크기로 "방 하나·몬스터 한 마리·실시간 전투·장비
+  보상 하나"만 재현했다.** 몬스터 체력·피해량은 웹판 `js/dungeon.js`의
+  실제 공식(`enemyHp`/`enemyDmg`, 1층·잡졸·평 난이도)에서 그대로 가져옴
+  — HP=24, 공격력=5. **GO의 턴제 선택지 화면과 다르게 실제 이동+거리
+  판정 실시간 전투로 짰다** — DUNGEON 정체성 자체가 실시간 액션이라
+  GO의 DuelRules.cs 방식을 안 베꼈다(문서의 "왜 GO와 다르게 설계하는가"
+  참고). 상세 범위·수치 근거·재사용 표는 그 문서 참고, 여기는 요약만.
+  - **새 폴더 `Assets/Games/SagaDungeon/`**(`SagaDungeon.asmdef`,
+    `Saga.Dungeon` 루트 네임스페이스) — **SagaGo 코드를 참조하지
+    않는다**(루트 CLAUDE.md "다섯 판은 다섯 벌 복사" 원칙을 이 Unity
+    트랙에도 적용, SagaCore가 아직 비어 있어 공유할 기반도 없다).
+    엔진 무관 로직(`PlayerController.cs`·`CameraRig.cs`·
+    `VirtualJoystick.cs`·`DialogueLabel.cs`)은 SagaGo에서 그대로
+    복사(네임스페이스만 변경) — `CameraRig`만 기본 피치·줌을 더
+    내려다보게 튜닝(GO 35°→DUNGEON 55°, "디아블로 감각").
+  - **새로 짠 것**: `Data/HeroState.cs`(단일 캐릭터 체력·레벨·경험치·
+    돈·장비 — GO처럼 PartyState/PlayerStats/Inventory로 안 쪼갬,
+    DUNGEON엔 부대가 없다) + `Data/ItemData.cs`(무기 2종) +
+    `Data/SaveState.cs`(별도 파일 `save_dungeon.json` — GO의
+    `save.json`과 안 겹침) + `World/DungeonRoomBuilder.cs`(20×14m
+    방 하나, primitive) + `World/DungeonEnemy.cs`(Idle→Chase→Attack
+    실시간 AI, 죽으면 경험치·돈·무기 확정 드랍) +
+    `Player/PlayerCombat.cs`(스페이스바 또는 화면 "공격" 버튼).
+  - **`PlayerCombat.cs`는 프로젝트 기본 InputActions의 "Attack"
+    액션을 일부러 안 썼다** — 그 액션이 마우스 왼쪽 버튼에도 물려
+    있어 `CameraRig.cs`의 드래그 판정(마우스 왼쪽 버튼을 직접 읽음)과
+    같은 프레임에 겹칠 수 있어서다. 대신 `Keyboard.current`로 스페이스
+    바를 직접 읽고, 모바일은 화면 버튼이 `TriggerAttack()`을 직접
+    부른다. **이 우회가 실제로 카메라 조작과 안 겹치는지는 사람이
+    확인 전이다**(아래 GUI 확인 목록 참고).
+  - `Editor/BuildTestDungeonScene.cs`(신규, `BuildTestVillageScene.cs`
+    와 같은 결이지만 훨씬 짧다) + `Editor/PlaytestDungeonHeadless.cs`
+    (신규, `PlaytestHeadless.cs`와 같은 결 — 씬 경로만 다름).
+  - 컴파일(`SagaDungeon.dll` 정상 생성)·씬 저장(`Assets/Scenes/
+    TestDungeon.unity`, room childCount=5 — 바닥+벽 4개와 정확히
+    일치)·PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 전부
+    통과. **플레이어가 안 움직이는 헤드리스라 몬스터의 Chase/Attack
+    상태(AggroRadius=8m, 스폰 거리 11m라 우연히 밖)는 이 검증으론 실제로
+    안 도는 걸 확인 못했다** — 사람이 직접 다가가 싸워 봐야
+    Idle→Chase→Attack 전이·플레이어 공격·보상까지 전부 확인된다.
+- **PLAN.md 8장 "실제 3D 에셋" — Props 도입 (2026-09-12).** 산신당
+  재설계 다음으로 이어서(같은 세션, 사용자가 "남은 후보 진행해줘"에
+  "2,3,1번 순으로"로 답해 동물 GLB 조사(2번)·Props 대상 정하기(3번)·
+  DUNGEON 착수(1번) 순으로 진행 중) — 새 킷을 찾지 않고 이미 쓰는
+  Fantasy Town Kit에서 안 받았던 파일 세 개(가로등·시장 좌판·울타리+문)
+  만 추가로 받아 기존 콘텐츠 옆에 붙였다: 가로등 2개(마을집 두 채
+  사이), 시장 좌판 1개(떠돌이 상인 옆), 울타리 3칸+문 1칸(논밭 소 옆,
+  실제로 가두지는 않는 장식). `PropsBuilder.cs`(신규, LandmarksBuilder.cs
+  와 같은 결) + `BuildTestVillageScene.cs`에 `BuildProps()` 훅. 자세한
+  실측·스케일·좌표 근거는 `docs/ASSET_GUIDE.md` "Props 도입" 절 참고.
+  컴파일·씬 재빌드(`groundVerts=6336` 그대로)·PlaytestHeadless(`OK - 10
+  frames, no errors`) 전부 통과 — 실제로 세 소품이 자연스러워 보이는지는
+  사람이 직접 봐야 확인됨.
+  - **덤으로 동물 GLB(사슴·소·흰 늑대)도 조사했지만 도입은 못 했다** —
+    Kenney엔 맞는 3D 킷이 없고, Quaternius의 CC0 "Animated Animal Pack"
+    (poly.pizza)이 정확히 Cow·Deer·Wolf를 갖췄지만 poly.pizza 계정이나
+    Quaternius Discord/Patreon 클레임이 있어야 받을 수 있어(로그인·계정
+    생성은 대신 못 함) 자동으로 못 받아 왔다. 로그인 없이 바로 받아지는
+    대안 팩은 Cow만 있고 Deer·Wolf가 빠져 있다. 자세한 내용은
+    `docs/ASSET_GUIDE.md` "동물 GLB — 조사 결과" 절 참고 — **사용자가
+    직접 받아 어딘가에 놔두면 다음 세션이 이어받을 수 있다.**
+- **PLAN.md 8장 "실제 3D 에셋" — 산신당 재설계 (2026-09-12).** Awake()
+  중복 생성 정리 다음으로 이어서(같은 세션, 사용자가 "산신당 재설계부터
+  진행해"로 지목) — 환경/건물 GLB 조각이 "형태가 많이 달라 다음 조각으로
+  미룬다"고 남겨 둔 항목을 처리했다. 예전 구조(받침대 박스 5×0.6×5 +
+  `pillar-stone.glb` 기둥 4개)를 통째로 걷어내고, saga-godot
+  `landmarks_builder.gd`의 `SHRINE_SIZE`(1.04×0.49×0.65)·
+  `SHRINE_SCALE`(2.5, 균일)을 그대로 옮겨 **`shrine/altar-stone.glb`
+  제단 하나**로 바꿨다(saga-godot도 옛 사당을 이 파일 하나로만 지음 —
+  같은 이유로 균일 스케일만 씀, 실제 돌 표면 굴곡이 있는 조각).
+  `shrine/altar-stone.glb` + `shrine/Textures/colormap.png`를
+  saga-godot에서 그대로 복사해 `Assets/Art/Shrine/`에 신규 도입(다른
+  GLB들과 같은 재사용 원칙, PLAN.md 0장). `LandmarksBuilder.cs`에
+  `shrineModel` 필드 추가로 `Init()` 시그니처가 5개→6개 인자로 늘어
+  `BuildTestVillageScene.cs` 호출부도 같이 고쳤다. GLB가 없을 때의
+  폴백도 예전 받침대+기둥 구조 대신 최종 크기(약 2.6×1.23×1.63m) 그대로의
+  단일 박스로 바꿨다. 덤으로 `SpawnPillar()`의 `addToRoot` 매개변수가
+  (산신당 기둥 호출이 없어지며) 완전히 죽은 코드가 돼 같이 지웠다.
+  `MountainShrine.cs`(트리거·보상 로직)는 안 건드림 — 순전히
+  `LandmarksBuilder.cs`의 시각 담당 쪽 변경. 컴파일·씬 재빌드
+  (`groundVerts=6336` 그대로 — 땅은 안 바뀜)·PlaytestHeadless(`OK - 10
+  frames, no errors`) 전부 통과 — **실제로 제단이 자연스러워 보이는지
+  (텍스처 이음새, 예전보다 훨씬 작아진 크기감, 숲 사이에서 눈에 띄는지)는
+  사람이 직접 봐야 확인됨.**
+- **기술부채 정리 — Awake() 중복 생성 방어를 나머지 6곳에 적용
+  (2026-09-12).** 캐릭터/환경 GLB 세션이 "다음 작업"에 남겨 둔 항목 —
+  `AnimalBuilder.cs`·`HiddenTreasure.cs`·`EastGroveRelic.cs`·
+  `LuckyCairn.cs`·`MountainShrine.cs`·`RareWolfEncounter.cs` 여섯 곳을
+  훑었다.
+  - `AnimalBuilder`·`HiddenTreasure`·`EastGroveRelic`·`LuckyCairn`은
+    NpcBuilder.cs와 같은 `if (transform.childCount > 0) return;` 한
+    줄로 충분(자식 생성 뒤 별도로 기억해 둬야 할 필드가 없다).
+  - `MountainShrine`은 살펴보니 애초에 자식 GameObject를 하나도 안
+    만든다(transform·collider 설정만) — Build()가 몇 번 다시 돌아도
+    그대로 덮어써질 뿐이라 방어가 필요 없다는 걸 확인하고 주석만 남김
+    (방어를 "빠뜨린" 게 아니라 원래 안 필요했던 경우).
+  - **`RareWolfEncounter.cs`를 고치다가 `BanditEncounter.cs`에도 같은
+    미완결 버그가 있는 걸 발견했다.** 두 컴포넌트 다 이전 세션이
+    "Visual 자식이 있으면 Build() 건너뛰고 PulseVisual()이 쓸
+    `_visual`/`_visualBaseScale`만 복원"으로 고쳤다고 기록했는데,
+    Update()가 실제로 쓰는 `_promptRoot`/`_combatRoot`/`_hpFill` 등
+    나머지 UI 필드는 그 복원 목록에 없었다 — 즉 세이브 로드 후 진짜
+    Play가 시작될 때(이 프로젝트 구조상 Awake는 그 한 번만 불린다)
+    저 필드들은 세션 내내 null로 남고, 도적/흰 늑대에게 실제로 다가가
+    Update()의 Idle 분기가 `_promptRoot.SetActive(true)`를 부르는 순간
+    NullReferenceException이 났을 것이다(아직 사람이 실제로 걸어가 본
+    적이 없어 안 걸렸던 잠재 버그). 두 파일 다 "Visual 자식이 있으면
+    복원"이 아니라 **기존 자식을 전부 지우고 Build()를 처음부터 다시
+    돌리는 방식**으로 바꿔 모든 필드가 항상 새로 채워지게 했다. 단,
+    `EncounterUiKit.NewCanvas()`가 만드는 UI 캔버스는 씬 루트에 생겨(이
+    컴포넌트의 자식이 아니다) 이 방식으로는 못 지운다 — 편집기 빌드가
+    만들어 둔 옛 캔버스 두 개(비활성 상태)가 고아로 남지만, 새로 만든
+    캔버스가 실제 동작을 맡으니 기능엔 지장 없다(감수한 트레이드오프,
+    각 파일 Awake() 주석에 남겨 둠).
+  - 컴파일·씬 재빌드(`groundVerts=6336` 그대로 — 땅은 안 바뀜)·
+    PlaytestHeadless(`OK - 10 frames, no errors`) 전부 통과. **주의—
+    헤드리스 플레이어는 안 움직여 도적/늑대 트리거 반경에 실제로 안
+    들어간다**, 그래서 이번에 고친 NRE 경로 자체(Update의 Idle 분기)는
+    이 자동 검증으로는 직접 재현 못 한다 — 코드 검토로 원인을 확인하고
+    고친 것이고, 실제로 다가가도 더 이상 죽지 않는지는 사람이 GUI로
+    확인해야 완전히 닫힌다(아래 "다음 작업" GUI 확인 목록에 추가).
+- **PLAN.md 8장 "실제 3D 에셋" 둘째 조각 — 환경/건물 GLB 도입 (2026-09-12).**
+  캐릭터 GLB 다음으로 이어서(같은 세션, 사용자 "이어서 환경/건물 GLB도
+  진행해") — 44~49장 자산 우선순위(Player→주요 Enemy→Boss→Environment→
+  Building→...)대로 다음 칸을 채웠다. 자세한 표는 `docs/ASSET_GUIDE.md`
+  참고, 여기는 요약만.
+  - saga-godot이 이미 받아 둔 Kenney Nature Kit(나무·바위)·Fantasy Town
+    Kit(마을집 벽/지붕·폐허 기둥·다리)·Modular Cave Kit(굴 입구)를 그대로
+    재사용. saga-godot의 실측표를 신뢰해 재실측 없이 스케일을 그대로
+    가져다 썼다(같은 TileSize=48이라 유효) — 도입 후 한 번 재확인만 함
+    (100% 일치).
+  - `VegetationBuilder.cs` — 예전엔 나무·바위를 정점 단위로 직접 베이크해
+    하나의 결합 메시로 묶었는데(draw call 절약 목적), 이번에 진짜 GLB
+    개체를 하나씩 인스턴스화하는 방식으로 바꿨다 — 이미 있는
+    `GameBootstrap.CombineStaticBatches()`(PLAN.md 76장, static 오브젝트를
+    같은 머티리얼끼리 자동으로 묶는 Unity 표준 기능)가 그대로 이 역할을
+    대신해 줘서, 손으로 정점을 합칠 필요가 없어졌다(UV·텍스처도 그대로
+    산다는 덤). GLB를 못 찾으면 예전 결합 메시 방식 그대로 폴백 —
+    두 경로 다 같은 파일 안에 남겨 뒀다.
+  - `LandmarksBuilder.cs` — 굴 입구(gate-rock)·마을집 벽(wall-block)·
+    지붕(roof-gable)·폐허 기둥 3개(pillar-stone)·다리 널판 44개(planks)
+    교체. **산신당('S' 타일)은 이번엔 안 바꿨다** — 기둥 4개만
+    pillar-stone으로 바꾸고 받침대는 primitive로 남김(altar-stone.glb는
+    지금 구조와 형태가 많이 달라 다시 설계해야 함, ASSET_GUIDE.md 참고).
+  - **GLB엔 물리 콜라이더가 없어서**(glTF 포맷 자체가 안 담음) 굴 입구·
+    마을집 벽·기둥류는 실측 로컬 AABB 그대로 BoxCollider/CapsuleCollider를
+    코드로 직접 얹었다.
+  - 두 파일 다 어차피 다시 쓰는 김에 `transform.childCount > 0`이면
+    건너뛰는 Awake 중복 생성 방어(캐릭터 GLB 때 발견한 것과 같은 패턴)를
+    추가했다.
+  - **검증** — 씬 재빌드 후 오브젝트 개수를 지도 데이터에서 직접 셈해
+    맞춰 봤다: 숲 'T' 타일 15개×3그루=나무 45그루, 산 '^' 타일 48개×1=
+    바위 48개, 다리 44m/1m=널판 44개, 굴 입구 1개·벽 2채·지붕 2채·폐허
+    기둥 3개·산신당 기둥 4개 — 전부 씬 파일에서 정확히 일치 확인(추측이
+    아니라 실제로 셈). 컴파일·씬 재빌드(`groundVerts=6336` 그대로 — 땅은
+    안 바뀜)·PlaytestHeadless(`OK - 10 frames, no errors`, static 배칭
+    호출도 에러 없이 통과) 전부 통과. **실제로 화면에서 자연스러워
+    보이는지(텍스처 이음새, 다리 널판 사이 틈, 지붕 비례, 바위 크기감)는
+    사람이 직접 봐야 확인됨.**
+- **PLAN.md 8장 "실제 3D 에셋" 첫 조각 — 캐릭터 GLB 도입 (2026-09-12).**
+  소(cow) 다음으로 이어서(같은 세션, 사용자가 "캐릭터 디자인은 아직이지?"
+  로 확인 후 "플랜 순서대로 다 진행해"로 지시) — 지금까지 플레이어·NPC·
+  산적이 전부 primitive capsule이었던 걸 실제 3D 모델로 바꾼 첫 조각.
+  자세한 내용은 신규 `docs/ASSET_GUIDE.md` 참고, 여기는 요약만.
+  - Unity 6000.3.23f1엔 GLB 임포터가 기본으로 없다(PLAN.md 8장의 전제가
+    틀렸다 — URP Sky/Fog 오판과 같은 종류) — `com.unity.cloud.gltfast`
+    패키지를 `manifest.json`에 추가해 해결.
+  - saga-godot이 이미 받아 둔 Kenney "Blocky Characters"(CC0)
+    character-{a,b,c,d}.glb + 텍스처를 그대로 복사해
+    `Assets/Art/Characters/`에 도입(PLAN.md 8장·0장이 트랙 간 재사용을
+    이미 허용해 둠). 실측(1.6×2.7×0.8, 바닥 피벗) 후 삭제하는 일회성
+    도구 `MeasureCharacterGlb.cs`로 확인.
+  - `World/CharacterVisual.cs`(신규, 공용 로직) — 목표 높이에 맞춘 균일
+    스케일 + `MaterialPropertyBlock`으로 `_BaseColor` 색조 입히기(공유
+    머티리얼은 안 건드림) + GLB를 못 찾을 때의 primitive capsule 폴백.
+  - 플레이어=character-a(색조 없음), 촌장=character-b(파랑),
+    상인=character-c(갈색), 나그네=character-c 재사용(회색, 킷을 4종만
+    받아서 5번째 배역은 모델 재사용), 산적=character-d(어두운 빨강,
+    전투 텔레그래프 때 주황으로 덮어씀 — 기존 단일 머티리얼 방식을
+    `CharacterVisual.Tint()`로 다중 Renderer 대응으로 바꿈).
+  - **런타임 AssetDatabase 제약 발견** — `NpcBuilder.cs`·
+    `BanditEncounter.cs`의 `Awake()`는 실제 Play 때도 도는 진짜 런타임
+    코드라 `AssetDatabase.LoadAssetAtPath`를 못 쓴다(에디터 전용 API).
+    `Gatherable.cs`가 이미 쓰던 패턴대로 `[SerializeField] GameObject`
+    필드 + `Init()`을 추가해 편집기 빌드 스크립트가 값을 채워 씬에
+    직렬화해 두는 방식으로 풀었다.
+  - **덤으로 발견해 같이 고친 버그** — `NpcBuilder`·`BanditEncounter`
+    둘 다 `Awake()`가 조건 없이 `Build()`를 다시 불러서, 이미 저장된
+    씬을 실제 Play로 열면 시각·UI가 두 벌씩 겹쳐 생기는 잠재 버그였다.
+    `transform.Find("Visual") != null`이면 다시 안 짓게 방어 추가(단,
+    `BanditEncounter`는 `_visual`/`_visualBaseScale`을 그 경로에서도
+    다시 채워야 `PulseVisual()`이 안 깨진다 — 완전히 건너뛰지 않고
+    기존 자식을 찾아 필드만 복원). **같은 패턴(무조건 `Build()`)이
+    `AnimalBuilder.cs`·`RareWolfEncounter.cs`·`HiddenTreasure.cs`·
+    `MountainShrine.cs`·`EastGroveRelic.cs`·`LuckyCairn.cs`에도 있어
+    이론상 같은 버그가 있을 수 있다 — 이번엔 GLB 교체 범위 밖이라 손
+    안 댐, 아래 "다음 작업" 참고.**
+  - `BanditEncounter.PulseVisual()`의 강타 스케일 애니메이션이 예전
+    capsule 스케일(1.8,1.7,1.8)을 상수로 박아 뒀던 걸, 실제 스폰 시점의
+    스케일(`_visualBaseScale`, GLB 기준 ≈1.259 균일)을 쓰도록 고쳤다 —
+    안 고쳤으면 강타 연출 때 캐릭터가 잘못된 비율로 찌그러졌을 것.
+  - 컴파일·씬 재빌드(`groundVerts=6336` 그대로 — 땅은 안 바뀜)·
+    PlaytestHeadless(`OK - 10 frames, no errors`, Awake 중복 방지
+    분기도 이 경로로 실제로 한 번 지나갔다) 전부 통과. **실제로 캐릭터가
+    화면에 제대로 보이는지(텍스처·비율·정면 방향), 산적 텔레그래프
+    색조가 실제로 도는지는 사람이 직접 봐야 확인됨** — 특히 GLB
+    모델의 "정면"이 Unity +Z와 맞는지는 확신 없음(CameraRig 드래그
+    방향처럼 실측이 아니라 관례로 가정한 부분).
+- **PLAN.md 24~27장 "동물" 셋째 조각 — 첫 farmland 종, 소 (2026-09-12).**
+  성황당 돌무더기 다음으로 이어서(같은 세션, 사용자 "응 계속 진행해") —
+  지금까지 사슴 세 마리뿐이던 동물이 전부 숲/들판(forest/plains) 출신이고,
+  2026-09-12 남쪽 확장으로 처음 생긴 논밭('F') 타일(row9)엔 아직 아무
+  생물도 없었다. `AnimalBuilder.cs`의 `AnimalDef`에 `Species`/`Scale`/
+  `Color` 필드를 넣어(이전엔 전부 "Deer" 하드코딩) 종별로 다르게 꾸밀 수
+  있게 일반화하고, 그 첫 사용으로 `cow_1`(격자 (3,9), 논밭 타일 정중앙)을
+  추가 — 사슴보다 크고(1.0/0.75/1.0 스케일) 옅은 크림색, 혼자 배회(무리
+  자리 아님). `WanderingAnimal.cs`는 애초에 종 이름을 몰라도 되게 짜여
+  있어(자막도 "동물이 놀라 달아난다"로 이미 종 불문) **한 줄도 안 고쳤다**
+  — Idle/Wander/Flee/Group/Interaction 전부 그대로 상속. 씬에 GameObject가
+  늘어 `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 —
+  땅은 안 바뀜). 컴파일·씬 재빌드·PlaytestHeadless 전부 통과 — 논밭 위에
+  실제로 소가 서 있는지·크기가 사슴과 구별되는지는 사람이 직접 봐야 확인됨.
 - **PLAN.md 24~27장 "랜덤 이벤트" 첫 콘텐츠 — 성황당 돌무더기 (2026-09-12).**
   나그네 NPC 다음으로 이어서(새 세션, "이어해") — "다음 작업"이 콕 집어 둔
   빈자리("지역/시간/랜덤 이벤트"는 아직 하나도 없다)를 채웠다.
@@ -526,6 +872,18 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
+- **DUNGEON 다음 슬라이스 후보** (`docs/VERTICAL_SLICE_DUNGEON.md`
+  "다음 슬라이스 후보" 절 참고) — 2026-09-12 하루 동안 몬스터 무리·
+  엘리트/보스·방 종류 다양화(우물·상자·성소)·회피(구르기)·오픈월드/필드
+  (방 두 개+복도, 최소 단위) 다섯을 전부 끝냈다(사용자가 "1,2,3,4
+  순서대로 다해"로 한 번에 지시, 위 "완료 단계" 각 항목 참고). **아직
+  사람이 GUI로 하나도 확인 안 함** — 이번엔 매 조각마다 컴파일·씬
+  재빌드·PlaytestDungeonHeadless만 통과시키고 바로 다음 조각으로
+  넘어갔다(아래 GUI 확인 목록에 다섯 항목이 새로 쌓임). 남은 후보:
+  바이옴 5종, 방 종류 나머지(정예 소굴·채광방·행상방·퍼즐방 등),
+  부대(다중 영웅) 시스템, 세공·행상 재고 굴리기·도감, GLB 자산
+  (Modular Dungeon Kit 후보), 스킬 다양화(지금은 기본 공격+회피뿐) —
+  saga-dungeon 웹판 PLAN.md 챕터 순서를 참고해 사용자가 고르는 대로.
 - **지도 크기는 9×11에서 일단 멈췄다** — 남쪽 4줄+동쪽 2칸을 늘리고
   각 공터에 콘텐츠도 심은 뒤, 같은 확장 패턴이 세 번 반복되자 사용자가
   "GO 콘텐츠 다양화"로 방향을 정했다(위 "완료 단계" 참고 — 동물 Group
@@ -537,6 +895,25 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   ExponentialSquared 밀도 방식이라(아래 병합 정리 항목 참고) "거리"
   숫자가 아니라 밀도가 새 지도 크기에 맞는지를 사람이 GUI 확인할 때
   같이 볼 것.
+- **Awake() 중복 생성 의심 — 나머지 6곳 (2026-09-12에 해결됨, 위 "완료
+  단계" 참고).** `AnimalBuilder`·`HiddenTreasure`·`EastGroveRelic`·
+  `LuckyCairn`엔 방어를 추가, `MountainShrine`은 원래 방어가 필요 없음을
+  확인, `RareWolfEncounter`·`BanditEncounter` 둘은 더 깊은 버그(UI 필드
+  미복원으로 인한 잠재 NRE)를 찾아 "기존 자식 삭제 후 Build() 재실행"
+  방식으로 고쳤다. **사람이 GUI로 확인할 것**: 도적/흰 늑대에게 세이브를
+  불러온 상태에서 실제로 다가가도 더 이상 죽지 않는지(고친 NRE 경로
+  자체는 헤드리스로 재현 못 함), 그리고 동물·보물·산신당 등이 여전히
+  한 벌로만 보이는지.
+- **PLAN.md 8장 에셋 도입 다음 후보(우선순위 44~49장: Player→주요
+  Enemy→Boss→Environment→Building→Vegetation→Props→Animals→VFX).**
+  캐릭터(완료)·Environment/Building(완료, 위 "완료 단계" 참고) 다음은
+  Animals(사슴·소·흰 늑대, 지금 전부 primitive) — 다만 saga-godot도
+  어울리는 동물 GLB가 없어 동물류는 전부 primitive로 남겨 뒀다
+  (`saga-godot/docs/ASSET_GUIDE.md` "이번에 안 바꾼 것" 참고, CC0 동물
+  킷을 새로 받아야 함 — 2026-09-12에 Quaternius 후보를 찾았지만 계정
+  없이 못 받아 옴, 위 "완료 단계"·`docs/ASSET_GUIDE.md` 참고). **산신당
+  재설계·Props는 2026-09-12에 끝냈다**(위 "완료 단계" 참고). 남은 것은
+  VFX(아직 대상 없음)뿐.
 - **GO 콘텐츠 다양화 다음 후보.** PLAN.md 24~27장 이벤트 종류 중 "랜덤
   이벤트"는 성황당 돌무더기(LuckyCairn, 위 "완료 단계")로 채웠다 —
   **"시간" 이벤트(특정 시간대에만 나오는 것)는 아직 없다**(하루 일과·
@@ -576,7 +953,10 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     자막 표시 — 헤드리스로는 트리거가 실제로 발동하는지 확인 불가)
   - **도적의 습격이 실제로 되는지**(조우 트리거 → 선택지 → 전투 →
     등용까지 12단계 루프 전체가 헤드리스 검증 밖 — 사람이 직접
-    "맞선다"를 눌러 승리까지 가 봐야 한다)
+    "맞선다"를 눌러 승리까지 가 봐야 한다). **특히 세이브를 불러온 채로
+    다가갈 때 더는 안 죽는지**(2026-09-12에 고친 잠재 NRE 경로 — 위
+    "완료 단계" 참고, 코드 검토로만 확인했고 실제 재현·회귀 확인은
+    아직 안 됨)
   - **저장·재시작이 실제로 되는지**(저장 버튼 → 에디터에서 Play를
     끄고 다시 켬 → 위치·부대가 돌아오는지)
   - **정적 배칭이 실제로 드로우콜을 줄였는지**(Game 뷰 Stats 창,
@@ -612,7 +992,8 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   - **흰 늑대(희귀 몬스터)가 실제로 도는지**(격자 (0,3) 숲에서 조우
     프롬프트가 뜨는지, "맞선다"/"피한다" 둘뿐인지, 이겼을 때 경험치
     150·돈 50냥·"늑대 가죽 갑주"를 확정으로 받는지, 다시 그 자리를
-    지나도 재등장 안 하는지)
+    지나도 재등장 안 하는지). **세이브를 불러온 채로 다가갈 때 더는
+    안 죽는지도 같이**(2026-09-12에 고친 잠재 NRE 경로, 도적과 같은 결)
   - **도적을 이긴 뒤 저장→재시작해도 다시 안 나오는지**(이번에 고친
     버그 — `Awake()`가 `PartyState.MemberIds`를 확인하게 바꿨다,
     재현하려면 도적을 이기고 저장한 뒤 Play를 끄고 다시 켜서 확인)
@@ -643,6 +1024,74 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
     뜨는지, 돈이 3냥 미만이면 안 빠지고 거절 문구만 뜨는지, 20초 안에
     다시 들어가면 아무 반응이 없는지, 20초 뒤엔 다시 굴려지는지 —
     가중치 룰렛이라 결과가 매번 다를 수 있음을 감안하고 여러 번 볼 것)
+  - **소(cow_1, 격자 (3,9) 논밭)가 실제로 보이고 자연스러운지**(사슴보다
+    크고 옅은 색으로 구별되는지, 논밭 타일 위에서 배회하는지, 다가가면
+    사슴과 똑같이 놀라 달아나는지)
+  - **캐릭터 GLB(플레이어·촌장·상인·나그네·산적)가 실제로 제대로
+    보이는지** — 텍스처가 깨지지 않았는지, 걸을 때 이동 방향으로 실제로
+    정면을 향하는지(글TF "정면"이 Unity +Z와 맞는지 확신 없음), 다섯
+    배역이 색조로 구별되는지(상인·나그네는 같은 모델이라 색만 다름),
+    산적 강타 텔레그래프 때 주황으로 물들었다 원래 색으로 돌아오는지,
+    강타 스케일 연출 때 비율이 안 찌그러지는지
+  - **환경/건물 GLB(나무·바위·굴 입구·마을집·폐허 기둥·다리)가 실제로
+    자연스러운지** — 나무·바위가 텍스처와 함께 제대로 보이는지(폴백
+    단색 primitive가 아니라 실제 GLB로 나온다는 뜻), 마을집 벽·지붕
+    비례가 어색하지 않은지(지붕이 균일 ×10이라 뾰족하게 커 보일 수
+    있음 — 실제로 봤을 때 너무 크면 스케일 조정 필요), 다리 널판
+    44개가 이음새 없이 이어져 보이는지, 폐허 기둥이 가늘어 보이지
+    않는지(pillar-stone은 원래 얇은 기둥이라 의도된 모습일 수 있음).
+    **산신당은 2026-09-12 재설계로 기둥이 없어졌다** — 아래 별도 항목 참고
+  - **산신당 제단(altar-stone.glb, 격자 5,1)이 자연스러운지**(2026-09-12
+    재설계) — 예전 받침대+기둥 4개보다 훨씬 작아진 크기감(약
+    2.6×1.23×1.63m)이 숲 사이에서 눈에 띄는지, 텍스처 이음새가 안 보이는지
+  - **Props 셋(가로등·시장 좌판·울타리+문, 2026-09-12 도입)이 자연스러운지**
+    — 마을집 두 채 사이 가로등 2개가 서로 마주 보고 서 있는지, 떠돌이
+    상인 옆 시장 좌판이 거래 자리처럼 보이는지, 논밭 소 옆 울타리 3칸+
+    문 1칸이 "목장 한구석" 느낌을 주는지(소를 실제로 가두진 않아 소가
+    울타리를 넘나들어도 정상 동작임)
+  - **DUNGEON 첫 슬라이스(`TestDungeon.unity`, 2026-09-12 신규, 사람이
+    이미 한 번 플레이해 "특별한 문제 없음"으로 확인함)가 실제로
+    도는지** — `Saga/Build TestDungeon Scene` 메뉴로 씬을 열어 Play:
+    카메라가 GO보다 더 내려다보는 각도(디아블로 감각)로 시작하는지,
+    이동·오빗 카메라가 자연스러운지, 몬스터(황건적)에게 다가가면
+    Idle→Chase로 바뀌어 쫓아오는지, 사거리 안에서 스페이스바(또는 화면
+    오른쪽 아래 "공격" 버튼)로 때리면 몬스터 체력이 줄고 몬스터도
+    반격하는지, **화면 "공격" 버튼을 눌렀을 때 `CameraRig`의 마우스
+    왼쪽 버튼 드래그 판정과 안 겹치는지**(코드는 안 겹치게 짰지만
+    실제 클릭 동작으로 확인 안 됨), 몬스터를 처치하면 경험치·돈·
+    "쇠도끼"를 얻고 왼쪽 위 HUD의 공격력 숫자가 오르는지, 저장 버튼→
+    Play 재시작으로 위치·레벨·장비가 이어지는지, 체력이 0이 되면
+    바로 회복되고 토스트가 뜨는지(이번 슬라이스는 죽음 페널티 없음,
+    의도된 동작)
+  - **몬스터 무리(2026-09-12, 4마리로 늘림)가 실제로 자연스러운지** —
+    방에 들어서면 황건적 4마리가 눈에 보이는지(1마리일 때와 달리 무리
+    느낌이 나는지), 가까이 가면 여럿이 동시에 Chase로 바뀌어 몰려오는지,
+    몰려온 채로 둘러싸여도 조작이 안 밀리고 한 마리씩 처치할 수 있는지,
+    한꺼번에 맞아 체력이 빠르게 줄 때의 손맛이 괜찮은지(죽음 페널티가
+    없어 전멸돼도 바로 회복되긴 하지만, 그 전에 "위험하다"는 긴장감이
+    드는지)
+  - **황건적 두목(2026-09-12, 엘리트/보스)이 실제로 위협적으로
+    보이는지** — 잡졸 무리보다 방 안쪽(동쪽 벽 가까이)에서 덩치(1.6배)·
+    색(짙은 적갈)으로 구분되는지, 부하 둘과 함께 나오는지, HP 168을 다
+    깎는 데 걸리는 시간이 지루하지 않은지, 쓰러뜨리면 "귀두도"를 확정
+    으로 얻고 공격력이 크게 오르는지(쇠도끼 12→귀두도 26)
+  - **우물·보물상자·성소(2026-09-12, 방 종류 다양화)가 실제로 구분돼
+    보이고 도는지** — 서쪽 플레이어 스폰 주변에서 세 표지(청록 원통·
+    갈색 상자·보라 원통)가 눈에 띄는지, 우물은 몬스터를 안 잡고도 바로
+    체력 40%를 회복해 주는지, 상자·성소는 방의 몬스터(잡졸 4+두목+부하
+    2)를 **다 잡아야만** 반응하는지(그 전엔 다가가도 아무 일 없어야
+    정상), 셋 다 한 번 쓰면 다시 안 되는지
+  - **회피(2026-09-12)가 실제로 손에 잡히는지** — 데스크톱은 Left
+    Ctrl, 모바일은 공격 버튼 왼쪽의 새 "회피" 버튼을 눌렀을 때 이동
+    입력 방향(가만히 있으면 마지막 바라보는 방향)으로 짧게(약 3m)
+    미끄러지는지, 그동안 몬스터 공격이 실제로 안 박히는지(무적),
+    쿨다운 0.9초가 남발을 막을 만큼 적당한지, 회피 버튼이 화면에서
+    공격 버튼과 안 겹치는지
+  - **복도+Room2(2026-09-12, 오픈월드/필드)가 실제로 이어지는지** —
+    Room(방1)의 몬스터 무리를 넘어 북쪽 벽에 문(3m 폭)이 뚫려 있는지,
+    복도를 따라 걸으면 막히지 않고 Room2까지 닿는지, Room2에 잡졸
+    둘이 있고 정상적으로 Idle→Chase→전투가 도는지, 문 폭이 실제로
+    걸어서 통과하기에 좁지 않은지
 - **VERTICAL_SLICE.md 완료 조건(12단계 루프) + Phase 6(59~67단계 Stats/
   EXP/Item/Inventory/Equipment/Reward/Loot) + Phase 7(70~73단계 Quest/
   World Event/Hidden Area) + 골드 경제/상인 거래/PlayerHud + PLAN.md
@@ -669,6 +1118,41 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   중 사용자가 고르는 대로 이어가거나, 여기까지 쌓인 걸 사람이 먼저
   직접 플레이해 GUI 확인 목록을 하나씩 지워 나갈 수도 있다 — 둘 다
   유효한 다음 수, PLAN.md를 다시 훑어 정할 것.
+- **2026-09-12 후속 세션(같은 날, 사용자가 "이어해"로 계속) — 여기서
+  멈췄다.** 위 항목 이후로 GO 콘텐츠 다양화(동물 Group 재배치·나그네
+  NPC)까지 마친 다른 세션 뒤를 이어, 이번 세션은 캐릭터 디자인 여부를
+  사용자가 물어본 걸 계기로 **PLAN.md 8장 "실제 3D 에셋" 도입**을
+  시작했다 — 캐릭터 GLB(플레이어·촌장·상인·나그네·산적) + 환경/건물
+  GLB(나무·바위·굴 입구·마을집·폐허·다리)까지 두 조각을 끝냈다(위
+  "완료 단계" 참고). 사용자가 "완료하면 새 세션에서 이어하자"로 끊어
+  여기서 멈춘다. **다음 세션이 볼 것**: (1) 이번에 쌓인 GUI 확인
+  목록(캐릭터·환경/건물 항목이 새로 늘었다, 위 체크리스트 참고) —
+  사람이 직접 플레이해 눈으로 확인하는 게 제일 먼저 할 만한 일,
+  (2) Awake() 중복 생성 의심 나머지 4곳 정리(위 "다음 작업" 참고),
+  (3) 산신당 재설계(altar-stone.glb), (4) 남은 자산 우선순위(Animals·
+  Props·VFX) 또는 51~65장 다음 게임(DUNGEON) 착수 — PLAN.md를 다시
+  훑어 정할 것.
+- **2026-09-12 세 번째 후속 세션(같은 날, 사용자가 "이어해"로 계속) —
+  여기서 멈췄다.** 위 항목이 남긴 네 후보 중 (1) Awake() 중복 생성
+  나머지 6곳, (3) 산신당 재설계, (4) Props 도입·DUNGEON 착수를 전부
+  순서대로 끝냈다(사용자가 "세 후보 중 어느 것부터?" 질문에 "2,3,1번
+  순으로"로 답해 동물 GLB 조사→Props→DUNGEON 착수 순, DUNGEON은 범위
+  확인 질문에 "1,2번"으로 답해 기획 문서+실제 구현까지 진행). 자세한
+  내용은 위 "완료 단계"의 각 항목·`docs/ASSET_GUIDE.md`·`docs/
+  VERTICAL_SLICE_DUNGEON.md` 참고, 여기는 커밋만 나열한다 — 이번
+  세션에서 나간 커밋: `a3d783e`(Awake 6곳 정리)·`e5bc9ef`(산신당
+  재설계)·`1123711`(Props 도입)·`f6ff059`(DUNGEON 첫 슬라이스). 전부
+  컴파일·씬 재빌드·PlaytestHeadless 통과 확인 후 그때그때 커밋·푸시.
+  **사용자가 "유니티 에디터 열어서 직접 플레이해볼게"로 TestDungeon을
+  직접 확인하러 간 뒤 "새로운 세션에서 다음꺼 이어 하자"로 끊어 여기서
+  멈춘다.** **다음 세션이 볼 것**: (1) 이번 세션에 사람이 TestDungeon을
+  직접 플레이해 본 소감/버그 리포트(카메라 각도·공격 버튼과 CameraRig
+  드래그 판정이 실제로 안 겹치는지가 특히 코드 검토로만 확인하고 실제
+  클릭 동작으로는 아직 확인 안 된 부분, 위 GUI 확인 목록 "DUNGEON 첫
+  슬라이스" 항목 참고) — 있으면 그것부터, (2) 없으면 `docs/
+  VERTICAL_SLICE_DUNGEON.md` "다음 슬라이스 후보" 절(오픈월드/바이옴·
+  방 종류 다양화·엘리트/보스·부대 시스템 등) 중 다음 조각 — PLAN.md를
+  다시 훑어 정할 것.
 
 ## 알려진 오류
 
@@ -809,3 +1293,21 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   룰렛만) 추가 후 컴파일 통과, 씬에 GameObject가 늘어
   `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 — 땅은
   안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.
+- 소(AnimalDef를 Species/Scale/Color로 일반화 + cow_1 추가, WanderingAnimal.cs
+  무변경) 추가 후 컴파일 통과, 씬에 GameObject가 늘어
+  `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 — 땅은
+  안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과.
+- 캐릭터 GLB 도입(com.unity.cloud.gltfast 패키지 추가 + CharacterVisual.cs
+  신규 + Player/NpcBuilder/BanditEncounter를 capsule→GLB로 교체 + Awake
+  중복 생성 방어 추가) 후 컴파일 통과, 씬에 실제 3D 모델이 들어가
+  `BuildTestVillageScene.Build()` 재실행(`groundVerts=6336` 그대로 — 땅은
+  안 바뀜), PlaytestHeadless(`OK - 10 frames, no errors`)도 통과 — 이번엔
+  Awake 가드 분기(`transform.Find("Visual") != null`)가 실제 Play
+  진입으로 한 번 지나가는 것까지 확인됨.
+- 환경/건물 GLB 도입(VegetationBuilder.cs를 결합 메시 베이크→GLB
+  인스턴스화로 재작성 + LandmarksBuilder.cs의 굴 입구/벽/지붕/폐허 기둥/
+  다리 교체 + 콜라이더 수동 추가 + Awake 중복 생성 방어) 후 컴파일 통과,
+  씬 재빌드(`groundVerts=6336` 그대로 — 땅은 안 바뀜)에서 나무 45·바위
+  48·다리 널판 44·굴 입구 1·벽 2·지붕 2·폐허 기둥 3·산신당 기둥 4를
+  지도 데이터에서 직접 셈한 값과 정확히 대조해 확인, PlaytestHeadless
+  (`OK - 10 frames, no errors`, static 배칭 호출도 에러 없음)도 통과.

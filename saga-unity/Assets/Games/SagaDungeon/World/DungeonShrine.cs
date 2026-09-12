@@ -1,0 +1,66 @@
+using UnityEngine;
+using Saga.Dungeon.Data;
+using Saga.Dungeon.UI;
+
+namespace Saga.Dungeon.World
+{
+    /// <summary>
+    /// VERTICAL_SLICE_DUNGEON.md 다음 슬라이스 "방 종류 다양화" — saga-dungeon
+    /// 웹판 `room.shrine`(js/dungeon.js:340, 2157-2162)을 옮겼다. 웹판은
+    /// `shrineBoon()`으로 여러 은사 중 하나를 사람이 직접 고르는 선택
+    /// UI인데, 그 선택 화면·은사 목록 전체는 이번 슬라이스 범위 밖(신규
+    /// UI·밸런스 표가 필요한 큰 손질)이라 GO의 `MountainShrine.cs`가 이미
+    /// 쓴 단순화(가호 = 경험치+돈 확정 지급)를 그대로 재사용했다 — 선택할
+    /// 게 하나뿐이니 화면도 필요 없다. `DungeonTrove.cs`와 같은 이유로
+    /// `room.cleared` 대신 `DungeonEnemy.Active.Count == 0`을 씀.
+    /// </summary>
+    public class DungeonShrine : MonoBehaviour
+    {
+        private const float TriggerRadius = 2.0f;
+        private const int RewardExp = 30; // GO MountainShrine.cs와 같은 단순화 값
+        private const int RewardGold = 20;
+        private const float ToastSec = 4f;
+
+        private static readonly Color ShrineColor = new Color(0.5f, 0.3f, 0.6f);
+
+        private bool _used;
+        private Transform _player;
+
+        private void Awake()
+        {
+            if (transform.childCount == 0) BuildVisual();
+            var playerGo = GameObject.FindWithTag("Player");
+            _player = playerGo != null ? playerGo.transform : null;
+        }
+
+        private void BuildVisual()
+        {
+            var visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            visual.name = "Visual";
+            visual.transform.SetParent(transform, false);
+            visual.transform.localScale = new Vector3(0.8f, 1.0f, 0.8f);
+            visual.transform.localPosition = new Vector3(0f, 1.0f, 0f);
+
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "DungeonShrine (generated)" };
+            mat.color = ShrineColor;
+            visual.GetComponent<MeshRenderer>().sharedMaterial = mat;
+
+            Object.Destroy(visual.GetComponent<Collider>());
+        }
+
+        private void Update()
+        {
+            if (_used || _player == null) return;
+            if (DungeonEnemy.Active.Count > 0) return; // 웹판 room.cleared와 같은 뜻.
+            if (Vector3.Distance(transform.position, _player.position) > TriggerRadius) return;
+
+            _used = true;
+            int levelBefore = HeroState.Level;
+            HeroState.AddExp(RewardExp);
+            HeroState.AddGold(RewardGold);
+            string msg = $"성소 · 가호를 받았다 — 경험치 +{RewardExp} · 돈 +{RewardGold}냥";
+            if (HeroState.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {HeroState.Level})";
+            DialogueLabel.Instance?.Show(msg, ToastSec);
+        }
+    }
+}

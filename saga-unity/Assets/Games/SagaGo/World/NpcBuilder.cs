@@ -110,8 +110,27 @@ namespace Saga.Go.World
                    $"경험치 +{TravelerRewardExp} · 돈 +{TravelerRewardGold}냥";
         }
 
+        // 편집기 빌드 스크립트가 Init()으로 채워 준다 — Gatherable.cs와 같은
+        // 이유(런타임 Awake()는 AssetDatabase를 못 써 GLB를 직접 못 불러온다,
+        // 씬에 이미 저장된 참조를 그대로 쓴다).
+        [SerializeField] private GameObject elderModel;
+        [SerializeField] private GameObject merchantModel;
+        [SerializeField] private GameObject travelerModel;
+
+        public void Init(GameObject elder, GameObject merchant, GameObject traveler)
+        {
+            elderModel = elder;
+            merchantModel = merchant;
+            travelerModel = traveler;
+        }
+
         private void Awake()
         {
+            // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
+            // 또 돌리는데, 편집기 빌드 스크립트가 이미 자식들을 만들어 둔
+            // 뒤라 그대로 두면 주민이 두 벌씩 겹쳐 생긴다 — Gatherable.cs가
+            // 쓰는 것과 같은 방어.
+            if (transform.childCount > 0) return;
             Build();
         }
 
@@ -120,6 +139,17 @@ namespace Saga.Go.World
             foreach (var v in Villagers)
             {
                 Spawn(v);
+            }
+        }
+
+        private GameObject ModelFor(string id)
+        {
+            switch (id)
+            {
+                case "npc_elder": return elderModel;
+                case "npc_merchant": return merchantModel;
+                case "npc_traveler": return travelerModel;
+                default: return null;
             }
         }
 
@@ -133,14 +163,9 @@ namespace Saga.Go.World
             root.transform.SetParent(transform, false);
             root.transform.position = pos;
 
-            // Player.Visual과 같은 크기의 capsule(PlayerController 기준).
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visual.name = "Visual";
-            UnityEngine.Object.DestroyImmediate(visual.GetComponent<Collider>());
-            visual.transform.SetParent(root.transform, false);
-            visual.transform.localScale = new Vector3(1.8f, 1.7f, 1.8f);
-            visual.transform.localPosition = new Vector3(0f, 1.7f, 0f);
-            visual.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(v.Color);
+            var model = ModelFor(v.Id);
+            if (model != null) CharacterVisual.Spawn(model, root.transform, CharacterVisual.HumanHeight, v.Color);
+            else CharacterVisual.SpawnFallbackCapsule(root.transform, v.Color);
 
             var talkGo = new GameObject("TalkArea");
             talkGo.transform.SetParent(root.transform, false);
@@ -150,13 +175,6 @@ namespace Saga.Go.World
 
             var talk = talkGo.AddComponent<VillagerTalk>();
             talk.Init(v.Name, v.LineFn);
-        }
-
-        private static Material MakeMaterial(Color color)
-        {
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Villager (generated)" };
-            mat.color = color;
-            return mat;
         }
     }
 }
