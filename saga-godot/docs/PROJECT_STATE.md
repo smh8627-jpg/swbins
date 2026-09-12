@@ -3909,3 +3909,38 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
     전환이 매끄러운지는 눈으로 볼 것. 계속 몰아서 받을 것.
   - **다음 이어질 것** — 성표 탭으로 조망 대상 바꾸기, 또는 전쟁/외교
     (war.js/diplo.js)·문답(quiz.js) — 어느 쪽이든 승인 후.
+
+
+## REALM 성표 탭으로 조망 대상 바꾸기 (2026-09-12)
+
+- **사용자 지시 "성표 탭으로 조망 대상 바꾸는 것도 이어해"** — 2-8절이
+  미뤄 둔 realm3d.js 핵심 상호작용을 옮겼다. `ui.openCity()` 대신 이
+  슬라이스가 가진 `current_city` 전환을 부르는 재해석 — "성" 버튼과
+  결과는 같고 지도 위에서 직접 눌러도 된다.
+  - `realm_worldmap.gd`: 성표마다 `Area3D`(CylinderShape3D, 탭 판정용
+    넉넉한 반경)를 얹고 `input_event`를 성 id로 bind. `get_viewport().
+    physics_object_picking = true`로 물리 피킹을 켰다 — **이 프로젝트에
+    3D 오브젝트 탭 판정이 처음**(다른 네 판은 전부 이동+충돌이지 탭
+    선택이 아니었다), project.godot에 새 입력 액션·물리 레이어를 안
+    늘리는 길이라 골랐다. 마우스 왼쪽 클릭·터치(index 0)를
+    `camera_rig.gd`(GO)와 같은 요령으로 갈라 받는다.
+  - `viewing_map`이 꺼지면 각 Area3D의 `input_ray_pickable`도 같이
+    꺼서 숨어 있는 동안 탭이 안 먹게 했다.
+  - **검증 중 잡은 실수** — 처음 쓴 한 줄짜리 `event is X and
+    event.pressed` 식이 GDScript 정적 타입 추론에 걸려 파싱 자체가
+    실패했다(2-7절 `realm_month_button.gd` 버그와 같은 함정) —
+    `camera_rig.gd`처럼 `if event is X: var y := event as X`로 갈라
+    고쳤다. 헤드리스 로그를 exit 코드 말고 error 문자열까지 훑는
+    습관(2-7절 이후 유지 중) 덕에 커밋 전에 바로 잡았다.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 2-9절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경
+    없음) → 다섯 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그
+    완전 무결. 임시 디버그로 viewing_map on/off에 따른
+    input_ray_pickable 전환, 가짜 InputEventMouseButton(눌림에만 반응,
+    뗌은 무시)·InputEventScreenTouch로 각각 성 전환까지 전부 정확히
+    확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 실제 클릭·탭 감각(판정 반경이
+    적당한지)은 눈으로 볼 것. 계속 몰아서 받을 것.
+  - **다음 이어질 것** — realm3d.js 나머지(지형 기복·해협·드래그 궤도
+    카메라), 또는 전쟁/외교(war.js/diplo.js)·문답(quiz.js) — 어느
+    쪽이든 승인 후.

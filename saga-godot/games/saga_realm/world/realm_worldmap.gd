@@ -15,15 +15,24 @@ extends Node3D
 ## 지도 전체에 퍼진 걸 가정한 값이라 그대로 쓰면 마커 셋이 한 덩어리로
 ## 겹친다).
 ##
-## **하지 않은 것(다음에 볼 자리)** — 마커를 탭해 성을 바꾸는 것(원작
-## realm3d.js의 핵심 상호작용, `ui.openCity()`를 그대로 부르는 것과 같은
-## 결로 다음에 볼 것), 지형 기복·해협, 드래그 궤도 카메라(지금은
-## realm_worldmap_camera.gd가 realm_camera.gd와 같은 WASD 재사용). 지금은
-## "성" 버튼(ChoicePrompt, realm_city_button.gd)으로만 조망 대상을 바꾸고
-## 이 지도는 순전히 개관용이다.
+## **2026-09-12 추가 — 성표 탭으로 조망 대상 바꾸기.** realm3d.js의
+## "성을 탭하면 그 성을 연다"는 핵심 상호작용을 옮겼다(`ui.openCity()`
+## 대신 이 슬라이스가 가진 것 — `current_city`를 바꾸는 것 — 을 부른다,
+## 재해석). Area3D 물리 피킹(`get_viewport().physics_object_picking`)을
+## 쓴다 — 이 프로젝트에 3D 오브젝트 탭 판정이 처음이라 새 패턴이지만,
+## project.godot에 새 입력 액션·물리 레이어를 안 늘려도 되는 가장 가벼운
+## 길이다(마우스·터치 둘 다 커버 — Godot 기본값이 터치를 마우스로도
+## 흉내 낸다). 성 하나뿐인 디오라마 화면(realm_city.gd)에도 같은 좌표계
+## 공간이 있지만 그 카메라의 시야가 원점 근처(반경 6~16)뿐이라 실수로
+## 안 겹친다 — 그래도 숨어 있는 동안은 `input_ray_pickable`을 꺼서
+## 확실히 막는다.
+##
+## **하지 않은 것(다음에 볼 자리)** — 지형 기복·해협, 드래그 궤도 카메라
+## (지금은 realm_worldmap_camera.gd가 realm_camera.gd와 같은 WASD 재사용).
 
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 
 const WORLD_SCALE := 14.0
 const GROUND_SPAN := 260.0  # 성 셋의 실측 좌표가 대각선으로 최대 240 정도 벌어져(허창-복양) 220으론 가장자리가 빠듯했다
@@ -31,12 +40,18 @@ const COLOR_GROUND := Color(0.42, 0.48, 0.32)
 const COLOR_FLAG := Color(0.85, 0.8, 0.7)
 const COLOR_CURRENT := Color(0.95, 0.75, 0.2)
 const LAND_COLOR := {"plain": Color(0.74, 0.62, 0.4), "river": Color(0.42, 0.58, 0.66)}
+const TOAST_SEC := 2.0
+const TAP_RADIUS := 2.6  # 기둥(반경 0.7)보다 훨씬 넉넉하게 — 손가락 탭 판정
+const TAP_HEIGHT := 4.5
 
 var _markers: Dictionary = {}  # city_id -> MeshInstance3D(성표(城標) 기둥, 강조 대상)
+var _areas: Dictionary = {}    # city_id -> Area3D(탭 판정)
 var _last_current := ""
+var _last_visible := false
 
 
 func _ready() -> void:
+	get_viewport().physics_object_picking = true
 	_build_ground()
 	for c: Dictionary in RealmCities.CITIES:
 		_build_marker(c)
@@ -44,9 +59,13 @@ func _ready() -> void:
 
 ## realm_city.gd/realm_camera.gd와 같은 손잡이(RealmSaveState.viewing_map)를
 ## 폴링한다(FOREST gather_label.gd 폴링 패턴과 같은 결) — 숨어 있는 동안은
-## 강조 갱신도 건너뛴다.
+## 강조 갱신도, 탭 판정도 건너뛴다.
 func _process(_delta: float) -> void:
 	visible = RealmSaveState.viewing_map
+	if visible != _last_visible:
+		_last_visible = visible
+		for city_id: String in _areas:
+			(_areas[city_id] as Area3D).input_ray_pickable = visible
 	if not visible:
 		return
 
@@ -57,6 +76,22 @@ func _process(_delta: float) -> void:
 	for city_id: String in _markers:
 		var marker: MeshInstance3D = _markers[city_id]
 		marker.material_override = _mat(COLOR_CURRENT if city_id == cur else _land_color(city_id))
+
+
+func _on_marker_input(_camera: Node, event: InputEvent, _pos: Vector3, _normal: Vector3,
+		_shape_idx: int, city_id: String) -> void:
+	var pressed := false
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		pressed = mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT
+	elif event is InputEventScreenTouch:
+		var st := event as InputEventScreenTouch
+		pressed = st.pressed and st.index == 0
+	if not pressed:
+		return
+	RealmSaveState.current_city = city_id
+	var city_def := RealmCities.by_id(city_id)
+	Toast.show(self, "%s 조망" % String(city_def.get("name", "")), TOAST_SEC)
 
 
 func _land_color(city_id: String) -> Color:
@@ -104,6 +139,20 @@ func _build_marker(c: Dictionary) -> void:
 	flag.position = pos + Vector3(0.9, 2.6, 0)
 	flag.material_override = _mat(COLOR_FLAG)
 	add_child(flag)
+
+	var city_id := String(c.id)
+	var area := Area3D.new()
+	area.input_ray_pickable = false  # 처음엔 숨김 상태 — _process()가 보일 때 켠다
+	area.position = pos + Vector3(0, TAP_HEIGHT * 0.5, 0)
+	var shape := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = TAP_RADIUS
+	cyl.height = TAP_HEIGHT
+	shape.shape = cyl
+	area.add_child(shape)
+	area.input_event.connect(_on_marker_input.bind(city_id))
+	add_child(area)
+	_areas[city_id] = area
 
 
 func _mat(color: Color) -> ShaderMaterial:

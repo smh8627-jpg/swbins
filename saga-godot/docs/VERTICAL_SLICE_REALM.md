@@ -497,3 +497,61 @@ error/warn/missing/invalid/cannot로 훑어 한 줄도 없음(2-7절에서 정�
 
 **다음 이어질 것** — 성표 탭으로 조망 대상 바꾸기, 또는 전쟁/외교
 (war.js/diplo.js)·문답(quiz.js) — 어느 쪽이든 승인 후.
+
+
+## 2-9. 성표 탭으로 조망 대상 바꾸기 (2026-09-12)
+
+**사용자 지시 "성표 탭으로 조망 대상 바꾸는 것도 이어해"** — 2-8절이
+"다음에 볼 자리"로 미뤄 둔 realm3d.js의 핵심 상호작용("성을 탭하면
+그 성을 연다")을 옮겼다. 이 슬라이스엔 `ui.openCity()`(성 시트를 여는
+것) 자체가 없으니, 대신 이 슬라이스가 실제로 가진 것 — `current_city`를
+바꾸는 것 — 을 부르는 것으로 재해석했다. "성" 버튼(ChoicePrompt)이
+하던 일과 결과는 같고, 이제 지도 위에서 직접 눌러도 된다.
+
+- `realm_worldmap.gd` — 성표마다 `Area3D`+`CollisionShape3D`
+  (`CylinderShape3D`, 반경 2.6·높이 4.5 — 기둥 반경 0.7보다 훨씬 넉넉하게
+  손가락 탭을 봐준다)를 얹고 `input_event`를 성 id로 `bind()`해 연결.
+  `_ready()`에서 `get_viewport().physics_object_picking = true`로
+  물리 피킹을 켠다 — **이 프로젝트에 3D 오브젝트 탭 판정이 처음 등장**
+  (GO/DUNGEON/FOREST/STORY는 전부 이동+충돌이지 탭 선택이 아니었다).
+  `project.godot`에 새 입력 액션이나 물리 레이어를 하나도 안 늘려도
+  되는 길이라 골랐다 — 마우스 왼쪽 클릭·터치(index 0) 둘 다
+  `InputEventMouseButton`/`InputEventScreenTouch`를 직접 갈라 받는다
+  (`games/saga_go/player/camera_rig.gd`가 마우스·터치를 나눠 받던 것과
+  같은 요령, `camera_rig.gd`는 드래그 회전이라 문지방(threshold)이
+  있었지만 이건 탭 하나뿐이라 필요 없다). 마우스·터치 에뮬레이션은
+  Godot 기본값(`emulate_mouse_from_touch`)에 기댄다 — project.godot에
+  따로 켠 줄 없음, 4.x 기본이 이미 켜져 있다.
+  - `_process()`에서 `viewing_map`이 꺼지면 각 Area3D의
+    `input_ray_pickable`도 같이 끈다(성 하나짜리 디오라마 화면의 카메라는
+    시야가 원점 근처뿐이라 실수로 겹칠 일은 거의 없지만, 숨어 있는 동안
+    탭이 먹히면 안 되니 확실히 막았다).
+- **검증 중 잡은 실수** — 처음엔 `InputEventMouseButton`/
+  `InputEventScreenTouch` 두 타입 검사를 `event is X and event.pressed`
+  한 줄짜리 불리언 식으로 짧게 썼다가, GDScript 정적 타입 추론이
+  베이스 타입(`InputEvent`)엔 `pressed`/`button_index`/`index` 프로퍼티가
+  없어 **파싱 자체가 실패**했다(2-7절에서 잡은 `realm_month_button.gd`
+  버그와 똑같은 함정 — 이번엔 헤드리스 검증에서 exit 코드뿐 아니라 로그도
+  같이 훑는 습관 덕에 커밋 전에 바로 잡았다). `camera_rig.gd`처럼
+  `if event is X: var y := event as X` 형태로 갈라 고쳤다.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전부
+`--quit-after 5` 세 번 연속 exit 0, 로그를 error/warn/missing/invalid/
+cannot로 훑어 한 줄도 없음(위 파싱 버그를 이 방식으로 커밋 전에 잡았다).
+**임시 디버그로 실제 값 확인**(`_ready()`에서 `call_deferred`로 한 번
+불렀다 뺐다, diff 0 확인): `viewing_map` 끈 상태에서 `input_ray_pickable`
+false → 켠 뒤 true로 정확히 바뀜. 가짜 `InputEventMouseButton`
+(pressed=true, LEFT)으로 진류 탭 → `current_city`가 정확히 `chenliu`로
+바뀜. 같은 이벤트의 release(pressed=false)로 복양을 탭해도 **바뀌지
+않음**(눌림만 반응, 뗌은 무시 — 의도대로). 가짜 `InputEventScreenTouch`
+(pressed=true, index=0)로 허창 탭 → `current_city`가 정확히 `xuchang`
+으로 바뀜. 디버그 원상복구(diff 0), 테스트 세이브 없음.
+
+**GUI 실기 확인은 아직 안 함** — 실제 마우스 클릭·손가락 탭으로 성표가
+눌리는 느낌(탭 판정 반경이 너무 넓거나 좁지 않은지)은 눈으로 볼 것.
+계속 몰아서 받을 것.
+
+**다음 이어질 것** — 지형 기복·해협·드래그 궤도 카메라(realm3d.js의
+나머지), 또는 전쟁/외교(war.js/diplo.js)·문답(quiz.js) — 어느 쪽이든
+승인 후.
