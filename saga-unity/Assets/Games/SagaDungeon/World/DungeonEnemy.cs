@@ -41,6 +41,14 @@ namespace Saga.Dungeon.World
         [SerializeField] private Color bodyColor = new Color(0.72f, 0.64f, 0.3f); // 황건 — 누런 두건.
         [SerializeField] private float visualScale = 1f;
 
+        // "방 종류 나머지" 슬라이스 — 오픈월드/필드로 방이 둘이 된 뒤
+        // `DungeonTrove.cs`/`DungeonShrine.cs`가 "방 클리어"를 판정할 때
+        // 이 방 저 방 몬스터를 다 합쳐서 세던 걸 방별로 가르려고 추가
+        // (Room2 필드 잡졸이 살아 있으면 Room1 상자가 안 열리던 잠재
+        // 버그를 여기서 같이 고쳤다). 기본값 "room1" — Room1 스폰은 안
+        // 건드리고 Room2 스폰만 BuildTestDungeonScene.cs가 덮어쓴다.
+        [SerializeField] private string roomId = "room1";
+
         private const float ToastSec = 5f;
 
         public static readonly List<DungeonEnemy> Active = new List<DungeonEnemy>();
@@ -138,6 +146,20 @@ namespace Saga.Dungeon.World
                 }
             }
             return best;
+        }
+
+        /// <summary>방 종류 POI(`DungeonTrove.cs`·`DungeonShrine.cs`·
+        /// `DungeonMerchant.cs`)가 "이 방 몬스터를 다 잡았는지"를 물을 때
+        /// 쓴다 — `Active`는 씬 전체를 합친 목록이라 방이 여럿이 되면
+        /// 그대로 못 쓴다.</summary>
+        public static int CountAliveInRoom(string roomId)
+        {
+            int count = 0;
+            foreach (var e in Active)
+            {
+                if (e._state != State.Dead && e.roomId == roomId) count++;
+            }
+            return count;
         }
 
         public void TakeDamage(float amount)

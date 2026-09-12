@@ -5,6 +5,34 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON 다음 슬라이스 후보 — 방 종류 나머지(행상) (2026-09-12,
+  두 번째 "1,2,3,4" 네 후보 중 두 번째).** 스킬 다양화 다음으로
+  이어서(같은 세션) — 웹판 `room.merchant`(dungeon.js:359-365,
+  2173-2178)를 옮겼다. 절차적 재고 굴리기(`rollMerchantStock`)는
+  범위 밖이라 GO `Data/ShopState.cs`의 단순화("고정 물건 하나를 돈이
+  있으면 산다")를 재사용 — 신규 `World/DungeonMerchant.cs`, Room2에서
+  잡졸 둘을 잡아야 열리고 45냥에 신규 `ItemData` "환도"(AtkBonus 18,
+  wp_axe 12와 wp_glaive 26 사이 중간 티어)를 판다. GO와 달리 **돈이
+  모자라면 "다 팔았다" 처리 없이 다시 시도 가능**하게 뒀다(웹판도
+  `room.merchant.used`만 보고 돈은 안 깎지만, 이 슬라이스는 GoldState가
+  있어 "돈 있어야 산다" 규칙을 넣음) — 대신 거절마다 매 프레임 토스트가
+  안 뜨게 3초 쿨다운을 넣었다.
+  - **곁다리로 실제 버그를 하나 고쳤다** — Room2가 생기며 `DungeonTrove
+    .cs`/`DungeonShrine.cs`가 "방 클리어"를 판정할 때 쓰던
+    `DungeonEnemy.Active.Count`가 **씬 전체 몬스터를 합친 값**이라,
+    Room2 잡졸이 살아 있는 동안엔 Room1의 상자·성소가 절대 안 열리는
+    잠재 버그가 있었다(오픈월드/필드 슬라이스가 만든 회귀, 아직 사람이
+    발견하기 전에 이번에 코드 검토로 잡음). `DungeonEnemy.cs`에
+    `roomId`([SerializeField], 기본값 "room1") + `CountAliveInRoom
+    (roomId)` 정적 헬퍼를 추가해 상자·성소·행상이 자기 방 몬스터만
+    보게 갈랐다 — Room1 스폰은 기본값 그대로 안 건드리고 Room2 스폰
+    (필드 잡졸 둘)만 `roomId="room2"`로 덮어씀.
+  - 컴파일·씬 재빌드(`room childCount=6` 그대로)·PlaytestDungeonHeadless
+    (`OK - 10 frames, no errors`) 전부 통과 — **행상 좌판이 실제로
+    구분돼 보이는지, Room2 잡졸을 잡아야만 반응하는지, 돈이 부족할 때
+    거절 문구가 스팸 안 되는지, 방금 고친 상자/성소 버그가 실제로도
+    풀렸는지(Room2를 안 건드리고 Room1 상자만 먼저 열어도 되는지)는
+    사람이 직접 가 봐야 확인됨.**
 - **DUNGEON 다음 슬라이스 후보 — 스킬 다양화(강공격) (2026-09-12,
   사용자가 지시한 두 번째 "1,2,3,4" 네 후보 중 첫 번째).** 오픈월드/
   필드 다음으로 이어서(같은 세션) — 웹판 `js/dungeon.js:2509`

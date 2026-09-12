@@ -144,8 +144,22 @@ namespace Saga.EditorTools
             {
                 var go = new GameObject($"Enemy_HwangGeon_Field_{i + 1}");
                 go.transform.position = FieldEnemySpawns[i];
-                go.AddComponent<DungeonEnemy>();
+                var enemy = go.AddComponent<DungeonEnemy>();
+                SetPrivateField(enemy, "roomId", "room2"); // "방 종류 나머지" — Room2 행상이 이 방만 보고 클리어를 판정.
             }
+
+            BuildMerchant();
+        }
+
+        /// <summary>"방 종류 나머지" 슬라이스 — Room2 잡졸 둘을 다 잡아야
+        /// 여는 행상 좌판. 웹판 room.merchant를 GO ShopState.cs 방식으로
+        /// 단순화(DungeonMerchant.cs 참고).</summary>
+        private static void BuildMerchant()
+        {
+            var merchantGo = new GameObject("Merchant");
+            merchantGo.transform.position = Room2Center + new Vector3(3f, 0f, -3f);
+            var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            SetPrivateField(merchant, "roomId", "room2");
         }
 
         private static void BuildEnemy()
