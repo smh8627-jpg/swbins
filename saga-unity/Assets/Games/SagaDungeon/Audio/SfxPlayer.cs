@@ -27,6 +27,7 @@ namespace Saga.Dungeon.Audio
         public static void PlayHeavyHit() => Play("heavy", 260f, 0.1f, 0.7f); // "critical effect" 대용 — 새 크리티컬 확률 시스템 없이 강공격 자체를 그 신호로 재사용.
         public static void PlayEnemyDeath() => Play("death", 180f, 0.22f, 0.6f, descend: true);
         public static void PlayLevelUp() => Play("levelup", 660f, 0.28f, 0.5f, ascend: true);
+        public static void PlayDiscovery() => Play("discovery", 440f, 0.35f, 0.45f, ascend: true); // "Secret Area" 슬라이스 — 레벨업과 다른 낮고 긴 종소리로 구분.
 
         private static void Play(string key, float freq, float duration, float volume, bool descend = false, bool ascend = false)
         {

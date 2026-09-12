@@ -160,6 +160,11 @@ namespace Saga.EditorTools
         // GLB" 슬라이스로 7→10)에서 4.5m 여유를 둔다.
         private static readonly Vector3 ForageAnchor = Room4Center + new Vector3(-2f, 0f, 2f);
 
+        // "Secret Area" 슬라이스 — 구출(6,0)·호위(5,±2.5)·퍼즐(-5,0)·채집
+        // (-2,2)·사당 소품(-8,-5)과 다 떨어진 SE 빈 구석. 방 클리어·문
+        // 진행에 필요 없는 완전히 선택적인 자리.
+        private static readonly Vector3 SecretStashSpawn = Room4Center + new Vector3(8f, 0f, -8f);
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
@@ -451,6 +456,10 @@ namespace Saga.EditorTools
             forageGo.transform.position = ForageAnchor;
             var forage = forageGo.AddComponent<DungeonForage>();
             SetPrivateField(forage, "roomId", "room4");
+
+            var secretGo = new GameObject("SecretStash");
+            secretGo.transform.position = SecretStashSpawn;
+            secretGo.AddComponent<DungeonSecretStash>();
         }
 
         /// <summary>이벤트방(구출, js/dungeon.js:383-393) — 지키는 잡졸
