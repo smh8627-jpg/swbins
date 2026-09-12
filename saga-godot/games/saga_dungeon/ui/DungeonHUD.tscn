@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/potion_label.gd" id="8"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/vendor_button.gd" id="9"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/forge_button.gd" id="10"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/party_label.gd" id="11"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -124,6 +125,20 @@ theme_override_colors/font_color = Color(1, 0.6, 0.55, 0.95)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
 script = ExtResource("8")
+
+[node name="PartyLabel" type="Label" parent="."]
+anchor_left = 0.0
+anchor_right = 0.0
+offset_left = 40.0
+offset_top = 260.0
+offset_right = 340.0
+offset_bottom = 300.0
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.6, 0.85, 1, 0.95)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+autowrap_mode = 3
+script = ExtResource("11")
 
 [node name="AttackButton" type="Button" parent="."]
 anchor_left = 1.0

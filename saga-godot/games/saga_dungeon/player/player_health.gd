@@ -32,6 +32,9 @@ func _ready() -> void:
 	## 쏜다 — dungeon_equipment_state.gd::wear_all() 참고).
 	DungeonEquipmentState.weapon_changed.connect(recalc_max_hp)
 	DungeonEquipmentState.charm_changed.connect(recalc_max_hp)
+	## "제외" 목록 5번(인물 등용) — DungeonPartyState도 hpPct를 보태므로
+	## (dungeon_run_state.gd::_sum_eff 참고) 인원이 늘 때도 다시 계산한다.
+	DungeonPartyState.party_changed.connect(recalc_max_hp)
 	recalc_max_hp()
 
 

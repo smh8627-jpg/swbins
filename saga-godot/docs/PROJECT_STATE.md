@@ -2270,6 +2270,77 @@ GUI 실기 확인은 다른 항목들과 함께 몰아서 나중에 확인한다
 - **다음은 "제외" 목록의 마지막 셋 — 5번(인물 등용)·6번(결사)·7번(보스층)**
   (창고·4번은 이번에 끝남). 순서는 2026-09-12⑲가 정해 둔 그대로.
 
+## 완료 단계 (추가, 2026-09-12㉔) — 위 목록 5번: 인물 등용
+
+**사용자가 "5번 인물 등용 이어해"로 지시.** 조사해 보니 두 정본 문서가
+서로 다른 방식을 가리키고 있었다 — `VERTICAL_SLICE_DUNGEON.md`는 "GO에서
+이미 구현된 saga_core 인물 데이터·PartyState 패턴을 참고"라고만 적어
+GO의 3라운드 설득 조우를 시사했지만, `LEGACY_FEATURE_AUDIT.md`의 KEEP
+분류는 웹판 실제 방식이 "출사표3(시작 인물 3명 고르기)+보스층 합류(보스
+층 클리어 후 자동 합류)"라고 명시했다. 보스층 자체가 아직 없어(7번,
+미착수) 후자의 절반은 지금 못 만든다는 점을 사용자에게 알리고 확인—
+**"둘 다(출사표 + 방 안 설득 조우)"** 로 확정. 보스층 합류는 7번이 생긴
+뒤로 미룬다.
+
+- **`dungeon_party_state.gd`(신규 autoload `DungeonPartyState`)** — GO의
+  `party_state.gd`(등용 인원 수만큼 flat 60/35 스탯이 오르는 모델)를 그대로
+  옮기지 않았다. DUNGEON은 이미 장비 기반 전투 채널(`DungeonEquipmentState`
+  의 flat/pct)이 있어 GO식 스탯 체계를 새로 만드는 대신, `dungeon_run_state.gd`
+  가 이미 쓰는 world eff 어휘(atkPct·hpPct)로 인원 수만큼 보탠다
+  (`ATK_PCT_PER_MEMBER=4.0`·`HP_PCT_PER_MEMBER=5.0`, 원작에 없는 값 — 장비
+  world 접사의 2~7% 범위와 비슷한 무게로 직접 정함). `_sum_eff()`에 boons·
+  장비 옆 세 번째 자리로 한 줄만 추가했더니 `melee_attack.gd`·
+  `player_health.gd`는 손 안 대고도 자동으로 반영됐다(atk_mult()/hp_mult()
+  를 이미 쓰고 있었으므로) — `player_health.gd`는 `party_changed` 신호
+  구독 한 줄만 추가해 인원이 늘 때 max_hp를 다시 계산하게 했다.
+- **`games/saga_dungeon/world/dungeon_hero_encounter.gd`(신규)** — GO의
+  `hero_encounter.gd`+`persuade_rules.gd`(3라운드 설득, 무/지/덕 어필,
+  rarity 4+는 "기질 불명 ❓")를 판정 층까지 그대로 따른다(`PersuadeRules`는
+  class_name으로 전역 등록돼 있어 다시 만들지 않고 그대로 재사용). 갈아
+  낀 것 셋: ①등용 성공 시 GO의 `PartyState.recruit()` 대신
+  `DungeonPartyState.recruit()` ②exp 보상 없음(DUNGEON엔 레벨 개념이 없다)
+  ③해결 여부는 GO의 `EventState`(노드 이름 키) 대신
+  `DungeonSaveState.mark_hero_resolved(room_index)`로 남김(세이브 스키마를
+  GO와 안 섞는다는 기존 원칙 그대로). "물러난다"는 GO와 같이 조우를 안
+  지운다 — 트리거를 다시 들어오면 처음부터 다시 설득해 볼 수 있다.
+- **`test_room.gd`** — 방마다 saga_core 105명 중 둘(`sg_zhaoyun`=은창·
+  `sg_zhugeliang`=현책, 둘 다 rarity 5라 "기질 불명" 경로도 같이 검증됨,
+  GO가 이미 쓰는 `kr_yisunsin`과는 안 겹치게 새로 골랐다)을 배치 —
+  잡졸(방 중심에서 북쪽/출구 쪽)과 안 겹치게 남쪽/입구 쪽에 옆으로
+  비켜(x=±3.5) 세운다. **출사표**(`_maybe_show_starter_pick()`) — 새
+  저장(불러온 게 없을 때)에만, 웹판 starter.js의 희귀도 문턱(rarity≤3)
+  후보 다섯 중 셋을 순서대로 고르게 한다(원작처럼 정해진 셋을 주는 대신
+  직접 고르게 한 것은 "누구를 등용했는가"가 이 시리즈의 핵심이라는 루트
+  CLAUDE.md 첫 줄에 맞춘 선택 — 새 UI가 아니라 기존 ChoicePrompt 재사용).
+- **`dungeon_save_state.gd`** — `hero_resolved: Array[bool]`(rooms_cleared와
+  같은 모양)·`party_members`를 순수 추가 필드로(SAVE_VERSION 안 올림).
+- **`project.godot`** — `[autoload]`에 `DungeonPartyState` 등록.
+- **`games/saga_dungeon/ui/party_label.gd`(신규)+`DungeonHUD.tscn`의
+  `PartyLabel`** — GO의 `party_label.gd`처럼 등용한 인물 이름을
+  saga_core에서 찾아 같이 보여준다("🛡️ 부대 N명 (이름·이름)") — GO와
+  달리 "전투력"·"Lv." 표기는 없다(그 개념 자체가 없다, 대신 atk/hpPct
+  보탬으로만 반영).
+- **검증(헤드리스) — 새 통합 지점만 실측**(PersuadeRules·Characters
+  자체는 GO에서 이미 검증된 기존 코드라 재검증 안 함): `test_room.gd::
+  _ready()`에 임시 디버그를 넣어 ①인물 둘 등용 후 `atk_mult()`가 정확히
+  1.08, `hp_mult()`가 정확히 1.10(4%·5%×2명) ②`player_health`가
+  `party_changed`를 구독해 인물을 더 등용하면 max_hp가 실제로 오르는 것
+  (66→69) ③`mark_hero_resolved(0)`+`DungeonPartyState`에 셋 등용한 뒤
+  저장 — **완전히 새 프로세스로 재실행**해 `DungeonPartyState.members`
+  셋·`hero_resolved=[true]`가 정확히 복원되는 것까지 확인. 검증 뒤
+  디버그 코드는 원상복구(diff는 의도된 기능 추가만 남음), `user://
+  save_dungeon.json`도 지웠다. `--headless --editor --quit`(임포트)·
+  `--headless --quit-after 3`을 DUNGEON 3연속(매번 새 저장으로 출사표
+  경로도 매번 탐) + GO 1회 — 전부 exit 0, error/warn/missing/invalid/
+  cannot 0건.
+- **GUI 실기 확인은 아직 안 함** — 출사표 패널이 게임 시작하자마자 자연
+  스럽게 뜨는지(3라운드 연속), 방 안의 두 인물이 잡졸과 안 붐비는지,
+  기질 불명 인물에게 처음 말을 걸었을 때(둘 다 rarity 5라 항상 가려진
+  채 시작) 자연스러운지, PartyLabel이 이름이 늘어도 화면 폭 안에서
+  줄바꿈되는지(autowrap 켜 둠). 아래 "다음에 이어질 것" 목록에 추가.
+- **다음은 "제외" 목록의 마지막 둘 — 6번(결사)·7번(보스층)**. 7번이
+  생기면 위에서 미뤄 둔 "보스층 합류" 등용 경로도 이어서 채울 수 있다.
+
 ## 다음에 이어질 것
 
 **VERTICAL_SLICE.md 12단계 완료 조건 — 전부 코드로는 채워졌고, Phase 9
@@ -2283,6 +2354,11 @@ Data Versioning·Mobile Performance Pass(코드 단위)도 채웠다.** 남은 �
 필요 없다(기록만 남김). 이 시점 이후 새로 생긴 미확인 항목만 이 절
 맨 위에 쌓는다:
 
+- **(2026-09-12㉔ 신규, DUNGEON) 출사표 패널이 게임 시작하자마자
+  자연스럽게 뜨는지(3라운드 연속), 방 안의 두 역사 인물이 잡졸과 안
+  붐비는지, 기질 불명(rarity 5) 인물에게 처음 말을 걸었을 때 패널이
+  자연스러운지, PartyLabel이 이름이 늘어도 화면 폭 안에서 줄바꿈되는지.**
+  위 "완료 단계 (추가, 2026-09-12㉔)" 참고.
 - **(2026-09-12㉓ 신규, DUNGEON) 소켓 목록에서 보석·주옥이 룬과 나란히
   잘 보이는지, 보석/주옥 노획 시 색이 다른 구슬로 자연스럽게 뜨는지,
   연단 목록에 보석 조합이 뜨는지, MaterialsLabel("🔩·💎·◈" 세 숫자)이
