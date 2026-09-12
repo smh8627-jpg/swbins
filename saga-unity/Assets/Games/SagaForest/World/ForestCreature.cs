@@ -10,7 +10,9 @@ namespace Saga.Forest.World
     /// 적용한 것 — saga-godot FOREST 트랙이 이미 네 종(숲도깨비·바위도깨비·
     /// 버섯정령·꽃정령, `forest_creature.gd`)으로 검증해 둔 걸 개념만
     /// 참고해 Unity로 새로 짰다(코드는 안 베낀다, 다섯 판/두 엔진 트랙 공통
-    /// 원칙).
+    /// 원칙). **2026-09-12, 두 종(포자괴물·안개유령) 추가** — saga-godot에
+    /// 없던 종이라 이번엔 saga-forest 웹판 `data-village.js`(ANIMALS.mushnub)·
+    /// 한국 설화 모티프(도깨비불)만 참고해 saga-unity가 처음 짰다.
     ///
     /// **전투·포획·HP는 이번에도 안 만든다** — 이 판의 핵심 루프는 "돌아다니면
     /// 재미있다"이지 전투가 아니다(`saga-godot/docs/LEGACY_FEATURE_AUDIT.md`
@@ -63,6 +65,20 @@ namespace Saga.Forest.World
                 case "kkot":
                     _moveSpeed = 1.2f; _fleeSpeed = 3.0f; _fleeRadius = 5.0f; _wanderRadius = 5.0f;
                     SpawnVisualKkot();
+                    break;
+                case "pojagoemul":
+                    // 다섯째 종(2026-09-12) — 넷 중 가장 좁게 돈다(새 초과, 기존
+                    // 넷의 "가장 ~함" 주장과 안 겹치는 축).
+                    _moveSpeed = 1.1f; _fleeSpeed = 2.8f; _fleeRadius = 4.5f; _wanderRadius = 1.8f;
+                    SpawnVisualPojagoemul();
+                    break;
+                case "angaeyuryeong":
+                    // 여섯째 종(2026-09-12) — 넷 중 가장 쉽게 놀란다(fleeRadius
+                    // 최댓값, 새 초과). 땅에 안 붙어 사는 유일한 종 — Den의 y가
+                    // 1.0이라 배회 내내 그 높이를 유지한다(MoveToward가 y는
+                    // 안 건드리므로).
+                    _moveSpeed = 1.8f; _fleeSpeed = 4.0f; _fleeRadius = 7.5f; _wanderRadius = 4.2f;
+                    SpawnVisualAngaeyuryeong();
                     break;
                 default: // "dokkaebi" — 첫 종, 기본값.
                     _moveSpeed = 1.5f; _fleeSpeed = 3.5f; _fleeRadius = 6.0f; _wanderRadius = 4.0f;
@@ -169,8 +185,8 @@ namespace Saga.Forest.World
         // ── 종별 시각 — 전부 primitive 조합(GLB 없음, PLAN.md 8장 placeholder),
         // `Saga/ForestWorldCurve` 머티리얼을 물려 땅과 같이 휘게 한다(안 그러면
         // 공중에 뜬 것처럼 보인다 — 셰이더 클래스 주석 "땅·나무·NPC 등" 참고).
-        // 네 종 다 primitive 조합이 겹치지 않게 짰다(구+원기둥 / 상자+상자 /
-        // 원기둥+구 / 구+납작구).
+        // 여섯 종 다 primitive 조합이 겹치지 않게 짰다(구+원기둥 / 상자+상자 /
+        // 원기둥+구 / 구+납작구 / 구+작은구 셋 / 구+구).
 
         private Material CurveMat(string name, Color color)
         {
@@ -230,6 +246,39 @@ namespace Saga.Forest.World
             var crownMat = CurveMat("KkotCrown (generated)", new Color(0.92f, 0.55f, 0.68f));
             Primitive(transform, PrimitiveType.Sphere, "Body", new Vector3(0f, 0.5f, 0f), Vector3.one * 0.85f, bodyMat);
             Primitive(transform, PrimitiveType.Sphere, "Crown", new Vector3(0f, 1.0f, 0f), new Vector3(0.9f, 0.18f, 0.9f), crownMat);
+        }
+
+        // 포자괴물 — 다섯째 종(2026-09-12). 웹판 saga-forest `data-village.js`
+        // ANIMALS.mushnub("포자괴물", 버섯숲 한정 몬스터)를 개념만 참고 —
+        // saga-godot에도 없던 종을 saga-unity에서 처음 짠다(코드가 없으니
+        // "베낀다"는 문제 자체가 없음). 버섯정령(줄기+갓, 청록)과 실루엣이
+        // 안 겹치게 "찌그러진 몸통 + 삐죽한 포자 혹 셋"으로 짰다 — 병적인
+        // 노란빛-녹색.
+        private void SpawnVisualPojagoemul()
+        {
+            var bodyMat = CurveMat("Pojagoemul (generated)", new Color(0.62f, 0.72f, 0.22f));
+            var spikeMat = CurveMat("PojagoemulSpike (generated)", new Color(0.4f, 0.42f, 0.15f));
+            Primitive(transform, PrimitiveType.Sphere, "Body", new Vector3(0f, 0.42f, 0f), new Vector3(0.9f, 0.6f, 0.9f), bodyMat);
+            for (int i = 0; i < 3; i++)
+            {
+                float ang = i * 120f * Mathf.Deg2Rad;
+                var spike = Primitive(transform, PrimitiveType.Sphere, $"Spore{i}",
+                    new Vector3(Mathf.Cos(ang) * 0.4f, 0.55f, Mathf.Sin(ang) * 0.4f),
+                    Vector3.one * 0.28f, spikeMat);
+                spike.transform.localRotation = Quaternion.identity;
+            }
+        }
+
+        // 안개유령 — 여섯째 종(2026-09-12). 도깨비불(will-o'-the-wisp) 모티프 —
+        // 땅에 안 붙어 사는 유일한 종(Den y=1.0, 위 Setup 주석 참고). 창백한
+        // 겉불꽃 구 + 안쪽의 밝은 속불꽃 구로 "빛이 흔들린다"는 인상만 정적으로
+        // 흉내(애니메이션 없음 — 이 슬라이스 범위 밖).
+        private void SpawnVisualAngaeyuryeong()
+        {
+            var outerMat = CurveMat("AngaeyuryeongOuter (generated)", new Color(0.78f, 0.86f, 0.9f));
+            var coreMat = CurveMat("AngaeyuryeongCore (generated)", new Color(0.95f, 0.9f, 0.55f));
+            Primitive(transform, PrimitiveType.Sphere, "Body", Vector3.zero, Vector3.one * 0.7f, outerMat);
+            Primitive(transform, PrimitiveType.Sphere, "Core", new Vector3(0.08f, 0.05f, 0f), Vector3.one * 0.32f, coreMat);
         }
     }
 }
