@@ -165,6 +165,42 @@ namespace Saga.EditorTools
         // 진행에 필요 없는 완전히 선택적인 자리.
         private static readonly Vector3 SecretStashSpawn = Room4Center + new Vector3(8f, 0f, -8f);
 
+        // "DUNGEON 오픈월드 확장" — 사용자가 "물리적 확장 계속(Room5,6...)"을
+        // 골랐다(saga-dungeon 웹판을 실제로 훑어 보니 원작의 "오픈월드"는
+        // 방을 물리적으로 여럿 잇는 게 아니라 "방 하나를 갈아치우며 문 2~3개
+        // 중 다음 방 종류를 고르는" 로그라이크식 진행이라, 이 프로젝트의
+        // "테스트 씬은 전부 고정 좌표" 원칙과는 안 맞아 지금까지의 물리적
+        // 연결 방식을 그대로 연장하기로 함). Room4는 막다른 방이었는데 여기서
+        // 북쪽 문을 새로 뚫어 **층 2**(js/dungeon.js의 `run.floor`)의 첫
+        // 조각으로 잇는다 — Room5(층2 필드 잡졸)·Room6(층2 두목, 새 막다른
+        // 방). 좌표 산출은 기존 공식 그대로 이어감(Room4Center 90 기준
+        // +30씩): Corridor4=105, Room5=120, Corridor5=135, Room6=150.
+        private static readonly Vector3 Corridor4Center = new Vector3(0f, 0f, 105f);
+        private static readonly Vector3 Room5Center = new Vector3(0f, 0f, 120f);
+        private static readonly Vector3 Corridor5Center = new Vector3(0f, 0f, 135f);
+        private static readonly Vector3 Room6Center = new Vector3(0f, 0f, 150f);
+
+        // Room5 "층2 필드 잡졸" — js/dungeon.js `enemyHp`/`enemyDmg` 공식을
+        // floor=2로 계산: hp=round(24*1.26^1)=30, dmg=round(5*1.20^1)=6
+        // (Room1·Room2와 같은 수만큼, 무작위 롤 없이 결정적으로 4마리).
+        private static readonly Vector3[] Floor2EnemySpawns =
+        {
+            Room5Center + new Vector3(0f, 0f, 2f),
+            Room5Center + new Vector3(-4f, 0f, -2f),
+            Room5Center + new Vector3(4f, 0f, 3f),
+            Room5Center + new Vector3(-3f, 0f, 4f),
+        };
+
+        // Room6 "층2 두목" — enemyHp(2,boss)=round(24*7*1.26)=212,
+        // enemyDmg(2,boss)=round(5*2.2*1.20)=13. 부하 둘은 층2 잡졸 기본값
+        // (Floor2EnemySpawns와 같은 hp/dmg, BuildBossFloor2()가 채운다).
+        private static readonly Vector3 BossFloor2Spawn = Room6Center + new Vector3(9f, 0f, 0f);
+        private static readonly Vector3[] BossFloor2EscortSpawns =
+        {
+            Room6Center + new Vector3(8f, 0f, 2.5f),
+            Room6Center + new Vector3(8f, 0f, -2.5f),
+        };
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
@@ -183,6 +219,8 @@ namespace Saga.EditorTools
             BuildCorridorAndRoom2();
             BuildCorridorAndRoom3();
             BuildCorridorAndRoom4();
+            BuildCorridorAndRoom5();
+            BuildCorridorAndRoom6();
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();
             BuildEventSystem();
@@ -445,6 +483,7 @@ namespace Saga.EditorTools
             SetPrivateField(room4Builder, "roomModel", _roomGlb); // "방 셸 GLB"
             room4Builder.Build();
             room4Builder.OpenSouthDoor(RoomDoorWidth);
+            room4Builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드 확장" — 복도4로 Room5(층2)와 잇는다. Room4는 더는 막다른 방이 아니다.
 
             BuildCaptive();
 
@@ -460,6 +499,103 @@ namespace Saga.EditorTools
             var secretGo = new GameObject("SecretStash");
             secretGo.transform.position = SecretStashSpawn;
             secretGo.AddComponent<DungeonSecretStash>();
+        }
+
+        /// <summary>"오픈월드 확장" 슬라이스 — Room4 북쪽에서 복도4를 지나
+        /// Room5(층2 필드 잡졸)로 이어진다. 웹판의 `run.floor` 개념을 처음
+        /// 도입 — 지금까지는 전부 층1(floor=1) 수치였다. Ruins 바이옴을
+        /// 방에도 처음 써서 "복도 폐허가 방까지 삼켰다"는 인상을 준다
+        /// (지금까진 복도만 폐허, 방 넷은 다른 바이옴).</summary>
+        private static void BuildCorridorAndRoom5()
+        {
+            var corridor4Go = new GameObject("Corridor4");
+            corridor4Go.transform.position = Corridor4Center;
+            var corridor4Builder = corridor4Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor4Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(corridor4Builder, "corridorModel", _corridorGlb);
+            corridor4Builder.Build();
+
+            var room5Go = new GameObject("Room5");
+            room5Go.transform.position = Room5Center;
+            var room5Builder = room5Go.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(room5Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(room5Builder, "decorOffset", new Vector3(-8f, 0f, 5f));
+            SetPrivateField(room5Builder, "gateModel", _gateGlb);
+            SetPrivateField(room5Builder, "roomModel", _roomGlb);
+            room5Builder.Build();
+            room5Builder.OpenSouthDoor(RoomDoorWidth);
+            room5Builder.OpenNorthDoor(RoomDoorWidth); // 복도5로 Room6(층2 두목)과 잇는다.
+
+            for (int i = 0; i < Floor2EnemySpawns.Length; i++)
+            {
+                var go = new GameObject($"Enemy_HwangGeon_Floor2_{i + 1}");
+                go.transform.position = Floor2EnemySpawns[i];
+                var enemy = go.AddComponent<DungeonEnemy>();
+                SetPrivateField(enemy, "roomId", "room5");
+                SetPrivateField(enemy, "modelPrefab", _characterD);
+                SetPrivateField(enemy, "hp", 30f);          // enemyHp(2,false) = round(24*1.26)
+                SetPrivateField(enemy, "dmg", 6f);          // enemyDmg(2,false) = round(5*1.20)
+                SetPrivateField(enemy, "rewardExp", 25);    // 층1 잡졸(20)의 약 1.25배 — hp 성장률(1.26)에 맞춰 반올림
+                SetPrivateField(enemy, "rewardGold", 10);   // 층1 잡졸(8)의 약 1.25배, 같은 이유
+            }
+        }
+
+        /// <summary>"오픈월드 확장" 슬라이스 — Room5 북쪽에서 복도5를 지나
+        /// Room6(층2 두목, 새 막다른 방)으로 이어진다.</summary>
+        private static void BuildCorridorAndRoom6()
+        {
+            var corridor5Go = new GameObject("Corridor5");
+            corridor5Go.transform.position = Corridor5Center;
+            var corridor5Builder = corridor5Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor5Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(corridor5Builder, "corridorModel", _corridorGlb);
+            corridor5Builder.Build();
+
+            var room6Go = new GameObject("Room6");
+            room6Go.transform.position = Room6Center;
+            var room6Builder = room6Go.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(room6Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(room6Builder, "decorOffset", new Vector3(-8f, 0f, 5f));
+            SetPrivateField(room6Builder, "gateModel", _gateGlb);
+            SetPrivateField(room6Builder, "roomModel", _roomGlb);
+            room6Builder.Build();
+            room6Builder.OpenSouthDoor(RoomDoorWidth);
+
+            BuildBossFloor2();
+        }
+
+        /// <summary>층2 두목 — 층1 두목(3.2m 짙은 적갈)·미니보스(3.6m
+        /// 자보라)보다 더 크게(4.0m) 잡아 "더 깊이 들어갈수록 더 위협적"
+        /// 흐름을 이어간다(2026-09-12 미니보스 실기 확인으로 이미 검증된
+        /// 원칙 재사용). 색은 Ruins 바이옴(회갈색)과 뚜렷이 구별되는 짙은
+        /// 남색으로 새로 잡음 — 지금까지 안 쓴 색조.</summary>
+        private static void BuildBossFloor2()
+        {
+            var bossGo = new GameObject("Enemy_HwangGeon_Floor2Boss");
+            bossGo.transform.position = BossFloor2Spawn;
+            var boss = bossGo.AddComponent<DungeonEnemy>();
+            SetPrivateField(boss, "roomId", "room6");
+            SetPrivateField(boss, "hp", 212f);           // enemyHp(2,boss=true) = round(24*7*1.26)
+            SetPrivateField(boss, "dmg", 13f);           // enemyDmg(2,boss=true) = round(5*2.2*1.20)
+            SetPrivateField(boss, "rewardExp", 125);     // 층2 잡졸(25)의 5배 — 층1 두목과 같은 "잡졸의 5배" 규칙 재사용
+            SetPrivateField(boss, "rewardGold", 50);     // 층2 잡졸(10)의 5배, 같은 이유
+            SetPrivateField(boss, "rewardItemId", "wp_greatblade");
+            SetPrivateField(boss, "isBoss", true);
+            SetPrivateField(boss, "displayName", "황건적 거두");
+            SetPrivateField(boss, "bodyColor", new Color(0.10f, 0.12f, 0.28f)); // 짙은 남색 — Ruins 회갈색과 대비, 기존 두목(적갈)·미니보스(자보라)와도 구별
+            SetPrivateField(boss, "visualScale", 2.0f);
+            SetPrivateField(boss, "modelPrefab", _characterC);
+
+            for (int i = 0; i < BossFloor2EscortSpawns.Length; i++)
+            {
+                var go = new GameObject($"Enemy_HwangGeon_Floor2Escort_{i + 1}");
+                go.transform.position = BossFloor2EscortSpawns[i];
+                var escort = go.AddComponent<DungeonEnemy>();
+                SetPrivateField(escort, "roomId", "room6");
+                SetPrivateField(escort, "modelPrefab", _characterD);
+                SetPrivateField(escort, "hp", 30f);
+                SetPrivateField(escort, "dmg", 6f);
+            }
         }
 
         /// <summary>이벤트방(구출, js/dungeon.js:383-393) — 지키는 잡졸
@@ -728,6 +864,8 @@ namespace Saga.EditorTools
             BuildMinimapDot(areaRect, Room2Center, new Color(0.35f, 0.45f, 0.3f), 14f); // Room2 — 늪
             BuildMinimapDot(areaRect, Room3Center, new Color(0.55f, 0.5f, 0.45f), 14f); // Room3 — 산
             BuildMinimapDot(areaRect, Room4Center, new Color(0.6f, 0.35f, 0.2f), 14f);  // Room4 — 사당
+            BuildMinimapDot(areaRect, Room5Center, new Color(0.35f, 0.32f, 0.28f), 14f); // Room5 — 폐허(층2)
+            BuildMinimapDot(areaRect, Room6Center, new Color(0.15f, 0.17f, 0.35f), 16f); // Room6 — 층2 두목(짙은 남색으로 더 강조)
 
             var dotGo = new GameObject("PlayerDot", typeof(RectTransform));
             dotGo.transform.SetParent(areaRect, false);
