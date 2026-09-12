@@ -4013,3 +4013,39 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 외교(diplo.js), 함락한 성을 플레이 가능한
     성으로 들이는 나머지 절반, 또는 문답(quiz.js) — 어느 쪽이든 승인
     후.
+
+
+## REALM 외교 첫 슬라이스 — 조공·화친 (2026-09-12)
+
+- **사용자 지시 "외교도 이어해"** — 전쟁 절이 남긴 첫 후보. diplo.js를
+  다시 읽어 동맹(ally)·국력 차/공동의 적 보정·계략(plot 전체)은 안
+  옮겼다 — 세력이 우리·유비령 둘뿐이라 동맹이 뜻이 없고, 계략은 REALM
+  로스터에 아직 없는 충성(loyal) 값을 다뤄서다.
+  - `realm_diplo.gd`(신규): `truce_chance()`(0.30+지력/320+우호/260+
+    금/12000)·`tribute_up()`(round(gold/120), 1~30) — 계수 원작 그대로.
+  - `realm_cities.gd`: ENEMY_CITIES에 `force`("bei", 내부 키)·`lord`
+    ("sg_liubei") 추가 — **화면엔 실명을 안 쓴다**, `Characters.find
+    (lord).name`으로 이미 가명이 된 이름을 쓴다(data-force.js 원문이
+    세력명에 실명을 그대로 쓰는 건 웹판 자신의 흠이지 새로 만드는
+    saga-godot이 따를 이유가 아니라고 판단).
+  - `realm_save_state.gd`: `diplomacy` Dictionary(신설) +
+    `_init_diplomacy()`, `envoy_truce()`/`envoy_tribute()`(사자는 지력
+    으뜸 무장, 위치 무관 — 원작대로). `attack()`에 `diplo.blocked()`
+    체크 추가(화친 중이면 "맹약이 있어 칠 수 없습니다"로 막힘 — 원작
+    문구 그대로). `next_month()`가 매달 truce_months를 깎는다.
+    SAVE_VERSION 4→5.
+  - `realm_diplo_button.gd`(신규) + "외교" 버튼(ChoicePrompt 2지 —
+    조공/화친).
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 4절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경
+    없음) → 다섯 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전
+    무결. 임시 디버그로 truce_chance·tribute_up 공식 손 계산과 소수점
+    까지 정확히 일치, 조공(우호 40→45, 금 700 지출)·화친(우호 45→57·
+    truce_months=8·금 400 지출) 확인. **화친 중 공격 시도가 정확히
+    막히는 것**(전쟁·외교 통합 지점) 확인. next_month() 10번으로
+    truce_months가 0까지 정확히 깎이고 안 내려가는 것 확인. 디버그
+    원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 무장 충성(loyal) 값을 들여 계략(plot)의 문을
+    여는 것, 함락한 성을 플레이 가능한 성으로 들이는 나머지 절반, 또는
+    문답(quiz.js) — 어느 쪽이든 승인 후.

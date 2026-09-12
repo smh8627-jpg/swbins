@@ -89,10 +89,18 @@ static func map_center() -> Vector2:
 ## (새로 안 지어냈다). `from_city` — 이 슬라이스는 조조 쪽 성 중 소패와
 ## 맞닿은 게 허창뿐이라(ADJ에는 안 넣었다 — 저건 "우리 성끼리"만 다루는
 ## `is_adjacent()`용) 출진 성을 고정했다.
+## `force`·`lord` — 2026-09-12 외교 슬라이스가 우호(relation)를 세력
+## 단위로 묶는 데 쓴다(diplo.js relKey()가 세력 id로 묶는 것과 같은
+## 결). **`lord`는 `saga_core/data/characters.gd`의 캐릭터 id** — 화면에
+## 뭔가를 보일 땐 이 id로 `Characters.find()`를 거쳐 이미 가명이 된
+## `name`(sg_liubei → "인형")을 쓴다. `force`("bei")는 화면에 안 보이는
+## 내부 키일 뿐이라 실명이어도 무방(이름 정책은 **표시되는 글자**에만
+## 적용된다, 루트 CLAUDE.md 이름 정책 문단).
 const ENEMY_CITIES := [
 	{"id": "xiaopei", "name": "소패", "hanja": "小沛", "land": "plain", "from_city": "xuchang",
 	 "wall_start": 3600, "troops_start": 800, "train_start": 40, "tech_start": 100,
-	 "desc": "서주의 작은 성. 유비령 — 허창과 맞닿아 있다."},
+	 "force": "bei", "lord": "sg_liubei",
+	 "desc": "서주의 작은 성. 허창과 맞닿아 있다."},
 ]
 
 ## rtk.js data-city.js LAND_TYPES의 def·siege — capOf류와 달리 아직 안

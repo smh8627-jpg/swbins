@@ -701,3 +701,71 @@ baggage=6, 손 계산과 정확히 일치)로 귀환, 소패는 549명으로 줄
 성을 플레이 가능한 성으로 들이는 나머지 절반(다음 목표를 더 늘리려면
 `ENEMY_CITIES`에 항목만 추가하면 되는 구조로 짜 뒀다), 또는 문답
 (quiz.js) — 어느 쪽이든 승인 후.
+
+
+## 4. 외교 — 조공·화친 (2026-09-12)
+
+**사용자 지시 "외교도 이어해"** — 3절(전쟁)이 남긴 첫 후보. diplo.js를
+다시 읽고 셋 다 좁혔다:
+
+- **동맹(ally)은 안 옮겼다** — 이 슬라이스는 세력이 우리(조조)와 소패
+  주인(유비령, 내부 id `bei`) 둘뿐이라 "함께 칠 셋째 세력"이 없다.
+  화친(truce, "칠 수 없다")만으로 diplo.js 머리말의 "외교는 시간을
+  산다"는 목적이 이미 채워진다.
+- **`envoyChance()`의 국력 차(edge)·공동의 적(commonEnemy) 보정도 안
+  옮겼다** — `R.summary(force).cities`·`R.ranking()`처럼 세력 여럿의
+  성 수·순위를 비교하는데, 이 슬라이스는 `bei`를 온전한 세력으로 안
+  굴려서(소패는 정적 수치일 뿐) 그 비교가 성립하지 않는다. 두 항 다
+  원래 작은 보정이라 빼도 공식이 안 망가진다.
+- **계략(plot: 이간·유언비어·매수·화계)은 통째로 안 옮겼다** — 무장
+  충성(loyal) 값을 다루는데, REALM의 로스터엔 그 값 자체가 아직 없다
+  (다음에 볼 자리 — loyal을 먼저 들여야 할 자리).
+
+**포함**: `relation`(우호, 0~100 기본 40)·`envoy(kind='tribute')`(round
+(gold/120), 1~30, 굴림 없이 확정)·`envoy(kind='truce')`(확률 0.30+지력/
+320+우호/260+금/12000, 성공 시 우호+12·8개월 화친, 실패해도 우호+2)를
+계수 그대로 옮겼다. `war.js canMarch()`의 `diplo.blocked()` 체크도
+`attack()`에 그대로 심어 **화친 중이면 공격이 막힌다** — 원작 문구
+"맹약이 있어 칠 수 없습니다"까지 그대로.
+
+**구현**:
+- `realm_diplo.gd`(신규, RefCounted) — `truce_chance()`/`tribute_up()`
+  순수 함수. 위 "안 옮긴 것" 셋을 머리말에 남겨 다음에 손댈 때 참고할
+  수 있게 했다.
+- `realm_cities.gd` — `ENEMY_CITIES[0]`에 `force`("bei", 화면에 안
+  보이는 내부 키)·`lord`("sg_liubei") 추가. **`force_name`처럼 실명을
+  박아 두지 않았다** — 화면에 뭔가 보일 땐 `Characters.find(lord).name`
+  으로 이미 가명이 된 이름("인형")을 쓴다(루트 CLAUDE.md 이름 정책 —
+  data-force.js 원문은 세력 `name`에 "유비"를 그대로 쓰지만, 그건 웹판
+  자신도 아직 못 고친 흠이지 saga-godot이 새로 만들 자리에서 따라 할
+  이유가 아니다).
+- `realm_save_state.gd` — `diplomacy: Dictionary`(force_id→{relation,
+  truce_months}) + `_init_diplomacy()`. `envoy_truce()`/`envoy_tribute()`
+  — 사자(지력 으뜸 무장, **위치 무관** — 원작도 성 소속을 안 따진다)를
+  보낸다. 수량 선택 UI가 없어 `ENVOY_GOLD`(300)·`TRIBUTE_GOLD`(600)
+  고정값(전임·전군출진과 같은 결). `attack()`에 화친 체크 추가.
+  `next_month()`가 매달 `truce_months`를 하나씩 깎는다(0에서 멈춘다 —
+  원작처럼 키를 지우지 않는 쪽이 `attack()`의 `get(...,0)` 체크와 더
+  맞는다). SAVE_VERSION 4→5.
+- `realm_diplo_button.gd`(신규) + `RealmHUD.tscn`에 "외교" 버튼(공격
+  버튼 바로 위) — `ChoicePrompt` 2지 선택(조공/화친).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전부
+`--quit-after 5` 세 번 연속 exit 0, 로그를 error/warn/missing/invalid/
+cannot로 훑어 한 줄도 없음. **임시 디버그로 실제 값 확인**:
+`truce_chance(70,40,300)`=0.69759615384615, `tribute_up(600)`=5 둘 다
+손 계산과 정확히 일치. 조공 실행 → 우호 40→45(gold 3200→2500, 정확히
+700 지출) 확인. 화친 실행 → 확률식이 그 시점 우호(45)·사자 지력(100,
+현책)으로 0.81057692307692까지 소수점 그대로 일치, 성공 시 우호
+45→57·`truce_months=8`·금 정확히 400 지출 확인. **화친 중 10만 병력
+공격 시도 → "맹약이 있어 칠 수 없습니다"로 정확히 막힘**(핵심 통합
+지점 검증). 그 뒤 `next_month()` 10번 → `truce_months` 8에서 0까지
+정확히 깎이고 그 아래로는 안 내려감, `relation`은 그대로(57) 확인.
+디버그 원상복구(diff 0).
+
+**GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 무장 충성(loyal) 값을 들여 계략(plot)의 문을 여는
+것, 함락한 성을 플레이 가능한 성으로 들이는 나머지 절반, 또는 문답
+(quiz.js) — 어느 쪽이든 승인 후.

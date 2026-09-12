@@ -43,9 +43,10 @@ const RealmOrders := preload("res://games/saga_realm/data/realm_orders.gd")
 const RealmOfficerPool := preload("res://games/saga_realm/data/realm_officer_pool.gd")
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
+const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 4  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city 추가) → 4(enemies 추가)
+const SAVE_VERSION := 5  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -81,6 +82,14 @@ var _done_this_month: Dictionary = {}  # officer_id -> bool
 ## (적 AI가 없어 매달 그대로다 — attack()으로 싸울 때만 바뀐다).
 var enemies: Dictionary = {}
 
+## **2026-09-12 추가 — 외교(realm_diplo.gd).** force_id("bei") -> {relation,
+## truce_months}. diplo.js relKey()가 세력 둘을 한 쌍으로 묶는 것과 달리
+## 이 슬라이스는 상대가 하나뿐이라 force_id 하나로 바로 찾는다. 화친 중
+## (truce_months>0)이면 attack()이 막힌다(war.js canMarch()의 `diplo.
+## blocked()` 체크와 같은 자리). next_month()가 매달 truce_months를
+## 하나씩 깎는다(diplo.js monthly()).
+var diplomacy: Dictionary = {}
+
 var _rng := RandomNumberGenerator.new()
 
 
@@ -88,6 +97,7 @@ func _ready() -> void:
 	_rng.seed = RNG_SEED
 	_init_cities()
 	_init_enemies()
+	_init_diplomacy()
 
 
 ## rtk.js setup()의 도시 초기화 — RealmCities.CITIES 정의 그대로.
@@ -113,6 +123,16 @@ func _init_enemies() -> void:
 			"max_wall": int(def.wall_start), "train": int(def.train_start),
 			"tech": int(def.tech_start), "captured": false,
 		}
+
+
+## ENEMY_CITIES의 force마다 우호 기본값(40)을 채운다 — 세력이 같은
+## enemy_id 여럿을 가리켜도(지금은 xiaopei→bei 하나뿐) 세력당 한 번만.
+func _init_diplomacy() -> void:
+	for def: Dictionary in RealmCities.ENEMY_CITIES:
+		var fid: String = String(def.get("force", ""))
+		if fid.is_empty() or diplomacy.has(fid):
+			continue
+		diplomacy[fid] = {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0}
 
 
 ## 명령을 실행한다 — rtk.js order()를 current_city 하나에 적용하는 축약.
@@ -290,6 +310,13 @@ func next_month() -> void:
 	var upkeep := roster.size() * RealmOrders.UPKEEP_PER_OFFICER
 	gold = maxi(0, gold + income - upkeep)
 
+	## diplo.js monthly() — 화친이 달마다 한 달씩 닳는다. 0에서 멈춘다(원작은
+	## 다 닳으면 키 자체를 지우는데, 이 슬라이스는 항상 값이 있는 Dictionary로
+	## 두는 쪽이 `attack()`의 `dip.get("truce_months",0)` 체크와 더 맞는다).
+	for force_id: String in diplomacy.keys():
+		var dip: Dictionary = diplomacy[force_id]
+		dip.truce_months = maxi(0, int(dip.truce_months) - 1)
+
 	month += 1
 	if month > 12:
 		month = 1
@@ -339,6 +366,12 @@ func attack(enemy_id: String) -> Dictionary:
 	var e: Dictionary = enemies.get(enemy_id, {})
 	if bool(e.get("captured", false)):
 		return {"ok": false, "why": "이미 함락한 성입니다"}
+	## war.js canMarch() "diplo.blocked()" 체크와 같은 자리 — 화친 중이면
+	## 못 친다(2026-09-12 외교 슬라이스, `realm_diplo.gd` 머리말 참고).
+	var force_id: String = String(enemy_def.get("force", ""))
+	var dip: Dictionary = diplomacy.get(force_id, {})
+	if int(dip.get("truce_months", 0)) > 0:
+		return {"ok": false, "why": "맹약이 있어 칠 수 없습니다"}
 
 	var from_city: String = String(enemy_def.get("from_city", ""))
 	if not cities.has(from_city):
@@ -398,6 +431,75 @@ func attack(enemy_id: String) -> Dictionary:
 	}
 
 
+const ENVOY_GOLD := 300     # diplo.js envoy()의 "gold" 매개변수 — 수량 선택
+                             # UI가 없어 고정값(전임·전군출진과 같은 결)
+const ENVOY_FEE := RealmDiplo.ENVOY_FEE
+const TRIBUTE_GOLD := 600   # 조공에 실어 보내는 금 — 위와 같은 이유로 고정
+
+
+## diplo.js envoy(kind==='truce') — 사자(지력 으뜸 무장, 위치 무관 — 로스터
+## 전체에서 고른다, 원작도 성 소속을 안 따진다)를 보내 정전을 청한다.
+## 성공하면 `RealmDiplo.TRUCE_MONTHS`간 `attack()`이 막힌다.
+func envoy_truce(enemy_id: String) -> Dictionary:
+	var enemy_def := RealmCities.enemy_by_id(enemy_id)
+	if enemy_def.is_empty():
+		return {"ok": false, "why": "없는 상대"}
+	var force_id: String = String(enemy_def.get("force", ""))
+	var cost := ENVOY_GOLD + ENVOY_FEE
+	if gold < cost:
+		return {"ok": false, "why": "금이 모자랍니다"}
+
+	var officer_id := _best_officer_for("wisdom")
+	if officer_id.is_empty():
+		return {"ok": false, "why": "보낼 사자가 없습니다"}
+	if _done_this_month.get(officer_id, false):
+		return {"ok": false, "why": "이 달에 이미 명령을 썼습니다"}
+
+	gold -= cost
+	_done_this_month[officer_id] = true
+
+	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
+	var h = Characters.find(officer_id)
+	var chance := RealmDiplo.truce_chance(float(h.stats.get("wisdom", 0)), int(dip.relation), ENVOY_GOLD)
+
+	var accepted := _rng.randf() <= chance
+	if accepted:
+		dip.truce_months = RealmDiplo.TRUCE_MONTHS
+		dip.relation = RealmDiplo.clamp_relation(int(dip.relation) + RealmDiplo.TRUCE_SUCCESS_BONUS)
+	else:
+		dip.relation = RealmDiplo.clamp_relation(int(dip.relation) + RealmDiplo.TRUCE_FAIL_BONUS)
+	diplomacy[force_id] = dip
+
+	return {"ok": true, "accepted": accepted, "chance": chance, "relation": int(dip.relation)}
+
+
+## diplo.js envoy(kind==='tribute') — 굴림 없이 확정으로 우호를 올린다.
+func envoy_tribute(enemy_id: String) -> Dictionary:
+	var enemy_def := RealmCities.enemy_by_id(enemy_id)
+	if enemy_def.is_empty():
+		return {"ok": false, "why": "없는 상대"}
+	var force_id: String = String(enemy_def.get("force", ""))
+	var cost := TRIBUTE_GOLD + ENVOY_FEE
+	if gold < cost:
+		return {"ok": false, "why": "금이 모자랍니다"}
+
+	var officer_id := _best_officer_for("wisdom")
+	if officer_id.is_empty():
+		return {"ok": false, "why": "보낼 사자가 없습니다"}
+	if _done_this_month.get(officer_id, false):
+		return {"ok": false, "why": "이 달에 이미 명령을 썼습니다"}
+
+	gold -= cost
+	_done_this_month[officer_id] = true
+
+	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
+	var up := RealmDiplo.tribute_up(TRIBUTE_GOLD)
+	dip.relation = RealmDiplo.clamp_relation(int(dip.relation) + up)
+	diplomacy[force_id] = dip
+
+	return {"ok": true, "up": up, "relation": int(dip.relation)}
+
+
 ## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제
 ## officer_city로 실제 배치를 아니까, 그 성에 배치된 무장 중에서만 고른다.
 func _governor_at(city_id: String) -> String:
@@ -446,6 +548,7 @@ func save() -> bool:
 		"roster": roster, "found": found,
 		"officer_city": officer_city,
 		"enemies": enemies,
+		"diplomacy": diplomacy,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -482,5 +585,8 @@ func try_load() -> bool:
 	var loaded_enemies: Variant = data.get("enemies", {})
 	if typeof(loaded_enemies) == TYPE_DICTIONARY and not loaded_enemies.is_empty():
 		enemies = loaded_enemies
+	var loaded_diplomacy: Variant = data.get("diplomacy", {})
+	if typeof(loaded_diplomacy) == TYPE_DICTIONARY and not loaded_diplomacy.is_empty():
+		diplomacy = loaded_diplomacy
 	_done_this_month.clear()
 	return true
