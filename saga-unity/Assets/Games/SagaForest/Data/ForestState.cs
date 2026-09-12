@@ -16,6 +16,17 @@ namespace Saga.Forest.Data
             if (amount > 0) FruitCount += amount;
         }
 
+        /// <summary>FOREST "집 꾸미기(가구)" 슬라이스(2026-09-12) — 이 트랙엔 아직
+        /// 금 경제가 없어(HeroState.Gold 같은 것 없음) 채집한 과일을 그대로
+        /// 가구 구매 통화로 재해석했다. 모자라면 false, 성공하면 즉시 차감.</summary>
+        public static bool SpendFruit(int amount)
+        {
+            if (amount <= 0) return true;
+            if (FruitCount < amount) return false;
+            FruitCount -= amount;
+            return true;
+        }
+
         public static void Restore(int fruitCount)
         {
             FruitCount = fruitCount < 0 ? 0 : fruitCount;

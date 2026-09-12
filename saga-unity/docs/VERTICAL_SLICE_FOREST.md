@@ -98,3 +98,25 @@ CLAUDE.md "다섯 판은 다섯 벌 복사" 원칙).
   `curve_amount=0.004`가 90×60m 규모에 적당한지. 집 안 들어가기(곡률
   꺼짐)·나오기(켜짐)·나무 채집·주민 대화·저장/재시작도 전부 사람이
   직접 봐야 확인됨.
+
+## 집 꾸미기(가구) 슬라이스 (2026-09-12, 열한 번째 세션)
+
+`docs/PROJECT_STATE.md` "완료 단계"에 자세한 내용 — 요약만.
+
+- 웹판 `js/data-village.js`(FURNITURE 14종·4계열)·`js/home.js`(score
+  공식)를 그대로 옮기되, **금 경제 없음 → 과일(`ForestState.FruitCount`)을
+  구매 통화로 재해석**, **자유 배치 없음 → 고정 자리 여섯**(이 트랙에
+  "놓기" 입력 자체가 없어서), **날짜별 진열 없음 → 상시 룰렛**(day 시스템이
+  없어서)으로 세 군데 단순화했다 — 벽지/장판·집 증축(HOME_TIERS)은 이번에도
+  범위 밖(godot도 같은 결정).
+- `Data/ForestHomeData.cs`(카탈로그·등급표)·`Data/ForestHomeState.cs`
+  (창고·자리·점수)·`World/ForestFurnitureStall.cs`(구매)·`World/
+  ForestFurnitureAnchor.cs`(놓기/거두기). `ForestSaveState` v1→v2.
+- `ForestHouse.Build()`를 공개 메서드로 뺐다 — Awake()는 edit-time
+  씬 조립에서 안 불린다는 걸 이번에 처음 발견(DUNGEON류는 처음부터
+  공개 Build()를 쓰는 관례였다).
+- 검증: 컴파일·씬 재빌드·`PlaytestForestFurniture.cs`(신규, 구매→배치→
+  점수→쿨다운 후 거두기까지 실제 Play로 확인) + 회귀
+  `PlaytestForestHeadless`·`PlaytestForestHouseTransition` 전부 `OK`.
+- **GUI 실기 확인 아직 안 함** — 고정 자리 여섯이 방 안에서 안 겹쳐
+  보이는지, 가구 primitive가 놓였을 때 그럴듯한지.

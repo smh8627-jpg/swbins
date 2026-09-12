@@ -49,7 +49,8 @@ namespace Saga.EditorTools
             var groundGo = BuildGround();
             BuildFruitTree();
             BuildVillager();
-            BuildHouse();
+            var houseGo = BuildHouse();
+            BuildHomeFurniture(houseGo);
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
             BuildEventSystem();
@@ -110,11 +111,51 @@ namespace Saga.EditorTools
             SetPrivateField(villager, "modelPrefab", _villagerGlb);
         }
 
-        private static void BuildHouse()
+        private static GameObject BuildHouse()
         {
             var go = new GameObject("House");
             go.transform.position = HouseSpawn;
-            go.AddComponent<ForestHouse>();
+            var house = go.AddComponent<ForestHouse>();
+            house.Build(); // Awake()는 Play 모드에서만 저절로 불려 edit-time엔 명시로 불러야 한다.
+            return go;
+        }
+
+        // "집 꾸미기(가구)" 슬라이스 — IndoorRoom(ForestHouse.Awake()가 이미 지어
+        // 둔 실내, +500m 포켓) 안에 좌판 하나 + 고정 자리 여섯을 놓는다. 방이
+        // 6x6m뿐이라 자리마다 반지름을 좁게 잡았다(ForestFurnitureAnchor 0.6m·
+        // ForestFurnitureStall 0.8m) — 그래도 서로, 그리고 ForestHouse의 실내
+        // 출구 트리거(로컬 (0,0,-2), 반지름 1.4m)와 안 겹치게 아래 좌표를 손으로
+        // 맞췄다(최소 간격 1.2~2m 확보, 정확한 계산 근거는 이 파일 히스토리 참고).
+        private static readonly Vector3[] FurnitureAnchorOffsets =
+        {
+            new Vector3(-1.8f, 0f, 1.7f), new Vector3(1.8f, 0f, 1.7f),
+            new Vector3(-1.8f, 0f, 0.4f), new Vector3(1.8f, 0f, 0.4f),
+            new Vector3(-1.8f, 0f, -0.9f), new Vector3(1.8f, 0f, -0.9f),
+        };
+        private static readonly Vector3 FurnitureStallOffset = new Vector3(0f, 0f, 2.6f);
+
+        private static void BuildHomeFurniture(GameObject houseGo)
+        {
+            var indoorRoom = houseGo.transform.Find("IndoorRoom");
+            if (indoorRoom == null)
+            {
+                Debug.LogError("[BuildTestVillageForestScene] House 안에 IndoorRoom을 못 찾음 — ForestHouse.Awake() 순서 확인 필요.");
+                return;
+            }
+
+            var stallGo = new GameObject("FurnitureStall");
+            stallGo.transform.SetParent(indoorRoom, false);
+            stallGo.transform.localPosition = FurnitureStallOffset;
+            stallGo.AddComponent<ForestFurnitureStall>();
+
+            for (int i = 0; i < FurnitureAnchorOffsets.Length; i++)
+            {
+                var anchorGo = new GameObject($"FurnitureAnchor_{i}");
+                anchorGo.transform.SetParent(indoorRoom, false);
+                anchorGo.transform.localPosition = FurnitureAnchorOffsets[i];
+                var anchor = anchorGo.AddComponent<ForestFurnitureAnchor>();
+                anchor.SetIndex(i);
+            }
         }
 
         private static (GameObject playerGo, Transform playerTransform) BuildPlayer()

@@ -12,7 +12,7 @@ namespace Saga.Forest.Data
     /// </summary>
     public static class ForestSaveState
     {
-        private const int SaveVersion = 1;
+        private const int SaveVersion = 2; // v2 — "집 꾸미기(가구)" 슬라이스, homeStock*/homeAnchors 추가.
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_forest.json");
 
@@ -22,6 +22,9 @@ namespace Saga.Forest.Data
             public int version;
             public float[] playerPos;
             public int fruitCount;
+            public string[] homeStockKeys;
+            public int[] homeStockCounts;
+            public string[] homeAnchors;
         }
 
         public static bool Save()
@@ -29,11 +32,15 @@ namespace Saga.Forest.Data
             Transform player = FindPlayer();
             if (player == null) return false;
 
+            var (stockKeys, stockCounts) = ForestHomeState.SnapshotStock();
             var data = new SaveData
             {
                 version = SaveVersion,
                 playerPos = new[] { player.position.x, player.position.y, player.position.z },
                 fruitCount = ForestState.FruitCount,
+                homeStockKeys = stockKeys,
+                homeStockCounts = stockCounts,
+                homeAnchors = ForestHomeState.SnapshotAnchors(),
             };
 
             try
@@ -66,6 +73,11 @@ namespace Saga.Forest.Data
             if (data.version > SaveVersion) return false;
 
             ForestState.Restore(data.fruitCount);
+            if (data.version >= 2)
+            {
+                ForestHomeState.RestoreStock(data.homeStockKeys, data.homeStockCounts);
+                ForestHomeState.RestoreAnchors(data.homeAnchors);
+            }
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

@@ -5,6 +5,58 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **FOREST — 집 꾸미기(가구) 슬라이스 (2026-09-12, 열한 번째 세션 이어서,
+  "가구부터 진행해줘"로 착수).** saga-godot FOREST 트랙이 이미 검증해 둔
+  다음 콘텐츠 순서(가구 → 몬스터·퓨전)를 참고해 시작 — 코드는 안 베끼고
+  saga-forest 웹판 `js/data-village.js`(FURNITURE 14종·FURN_SETS 4계열·
+  HOME_GRADES 6단)·`js/home.js`(score 공식)를 원본 삼아 Unity로 새로 짰다.
+  - **재해석 둘, 문서화됨** — (1) FOREST엔 아직 금 경제가 없어(HeroState.Gold
+    대응 없음) 채집한 과일(`ForestState.FruitCount`)을 구매 통화로 재해석
+    (`ForestState.SpendFruit()` 신규). 집 평가 점수 계산은 웹판 '냥' 값
+    그대로 써서 `HOME_GRADES` 문턱이 원작과 그대로 맞아떨어진다(`FurnitureItem
+    .Value` vs `.FruitCost` 분리). (2) 원작의 "날짜 해시로 매일 4점만 진열"은
+    day/시간 시스템 자체가 없어 GO `LuckyCairn.cs` 패턴(상시 룰렛+쿨다운)으로
+    대신했다.
+  - **자유 배치 대신 고정 자리 여섯** — 원작은 "선 자리에 놓는다"(임의 좌표)
+    지만 FOREST 트랙엔 아직 "놓기" 같은 상호작용 입력 자체가 없어(이동뿐인
+    GO판 컨트롤러 재사용), 이 트랙 기존 관례(나무·주민·집 문처럼 "다가가면
+    반응")를 그대로 따라 여섯 개 고정 자리로 단순화(`ForestFurnitureAnchor.cs`
+    신규) — 비면 창고에서 가장 값진 것을 놓고, 있으면 되거둔다.
+  - 신규 `Data/ForestHomeData.cs`(카탈로그·등급표)·`Data/ForestHomeState.cs`
+    (창고·자리·점수, `BestiaryState`류와 같은 정적 상태 클래스 결)·
+    `World/ForestFurnitureStall.cs`(구매)·`World/ForestFurnitureAnchor.cs`
+    (놓기/거두기). `ForestSaveState` v1→v2(`homeStockKeys/Counts`·
+    `homeAnchors`).
+  - **세이브 로드 시점 문제를 미리 피함** — `ForestFurnitureAnchor`의 자식
+    Awake가 `GameBootstrap.Start()`의 `ForestSaveState.TryLoad()`보다 먼저
+    돌아 시각화가 로드 전 상태로 굳을 뻔한 걸(saga-godot `forest_house.gd`가
+    이미 겪은 것과 같은 순서 문제) 코드 작성 중에 미리 알아채, 첫 `Update()`
+    프레임에 한 번만 동기화하는 `_synced` 플래그로 고쳤다(godot의 해법과
+    같은 결).
+  - **에디터 스크립트 쪽 실제 버그 하나 발견·수정** — `BuildTestVillageForestScene
+    .cs`가 방금 지은 `IndoorRoom`을 찾으려다 못 찾는 실제 오류가 났다.
+    원인: `ForestHouse`가 지금까지 `Awake()`에서만 실내를 지었는데, **Awake()는
+    Play 모드에서만 저절로 불리고 에디터가 씬을 조립하는 edit-time에는
+    안 불린다**(DUNGEON류 빌더가 진작부터 공개 `Build()`를 명시로 부르는
+    것과 다른 패턴이었다 — `ForestGroundBuilder`도 같은 잠재 결함을 안고
+    있었지만 이번엔 안 건드림). `ForestHouse.Build()`를 공개 메서드로
+    빼 에디터 스크립트가 명시로 부르도록 고쳤다 — 이 결함이 있었어도
+    지금까지의 헤드리스 테스트(Play 모드로 씬을 다시 여는 방식)는 우연히
+    다 통과해 왔다(edit-time 조립 직후 상태를 검사한 적이 없어서).
+  - 신규 `Editor/PlaytestForestFurniture.cs` — Play 모드에서 과일을 채우고
+    좌판·자리를 실제로 오가며 구매→배치→점수→쿨다운 후 거두기까지
+    GameObject 경로로 검증. 처음엔 거두기 검증이 실패했는데(프레임 2장만
+    기다림), 배치 모드가 실시간보다 훨씬 빠르게(약 초당 5700프레임) 도는
+    걸 알아채고 `Time.time` 기준 대기로 고침(프레임 수 기준 대기가 실제
+    쿨다운 경과와 다르다는 걸 이번에 처음 확인) — `OK - bought, placed and
+    picked up furniture, score changed as expected, no errors`.
+  - 회귀 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+    `PlaytestDungeonHeadless`·`PlaytestDungeonFloorProgression` 전부 재확인
+    (`OK`, 다른 트랙 무관 확인).
+  - **사람의 GUI 확인 필요**(아직 안 됨) — 고정 자리 여섯이 방 안에서 실제로
+    서로 안 겹쳐 보이는지, 좌판/자리에 다가갈 때 반응이 자연스러운지,
+    가구 primitive(원기둥/상자, 계열별 색)가 놓였을 때 과하게 초라해
+    보이지 않는지.
 - **FOREST — 집 들어가기/나가기 CharacterController 순간이동 결함 수정 +
   자동 검증 도구 (2026-09-12, 열한 번째 세션, DUNGEON 실기 확인 "문제
   없어 보여" 이후 "더 진행해줘"로 계속).** 사용자가 다음 방향을 물어
@@ -1621,15 +1673,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   사용자 몫으로 남겨 두고, DUNGEON에서 배운 CharacterController 순간
   이동 패턴이 다른 트랙에도 있는지 코드로 훑어 `ForestHouse.cs`에서
   같은 결함을 찾아 고쳤다(위 "완료 단계" 맨 위 항목 참고).
+  - **가구 슬라이스는 이 세션이 끝냈다**(사용자가 "가구부터 진행해줘"로
+    확정, 위 "완료 단계" 맨 위 항목 참고).
   - **다음 세션이 볼 것** — (1) 사람이 FOREST를 실기로 확인한 피드백
-    (구면 투영이 실제로 휘어 보이는지, 집 들어가기/나가기가 이번 수정
-    이후 실제로 자연스러운지)이 있으면 그것부터, (2) 없으면 saga-godot
-    FOREST 트랙이 이미 검증해 둔 다음 콘텐츠 순서(가구/집 꾸미기 →
-    몬스터·퓨전 콘텐츠, `saga-godot/docs/PROJECT_STATE.md` "FOREST
-    콘텐츠 확장" 절 참고 — 코드는 안 베끼고 개념만) 중 가구부터 이어가는
-    쪽이 자연스럽다(같은 이유로 godot도 이 순서를 골랐다: 이미 있는
-    ForestHouse 실내 위에 바로 이어붙일 수 있어 범위가 작고 확실함),
-    (3) 또는 DUNGEON/다른 게임 착수 — 방향 결정은 사용자와 상의할 것.
+    (구면 투영이 실제로 휘어 보이는지, 집 들어가기/나가기·가구 여섯 자리가
+    실제로 자연스러운지)이 있으면 그것부터, (2) 없으면 saga-godot FOREST
+    트랙의 다음 순서(몬스터·퓨전 콘텐츠, `saga-godot/docs/PROJECT_STATE.md`
+    "FOREST 몬스터·퓨전 콘텐츠" 절 참고 — 코드는 안 베끼고 개념만) 또는
+    자유 배치·벽지/장판처럼 이번에 단순화해 둔 것을 채우는 쪽, (3) 또는
+    DUNGEON/다른 게임 착수 — 방향 결정은 사용자와 상의할 것.
 - **사용자가 "1,2 순서대로"로 두 방향을 확정했다 — (1) FOREST 착수
   (완료, 위 "완료 단계" 참고) → (2) DUNGEON을 진짜 오픈월드로 확장
   (아직 착수 전).** 다음 세션은 (2)부터 시작한다 — 방 넷짜리 선형
@@ -2239,3 +2291,12 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   .cs`의 CharacterController 순간이동 결함 수정 뒤 `OK - entered and
   exited the house, position held across frames, no errors`. 회귀로
   `PlaytestForestHeadless`(`OK - 10 frames, no errors`)도 재확인.
+- `PlaytestForestFurniture.cs`(신규, 열한 번째 세션, 가구 슬라이스) —
+  과일을 채우고 좌판→자리를 오가며 구매→배치→점수→쿨다운 후 거두기까지
+  확인, 처음엔 거두기 검증이 프레임 수 기반 대기라 실패(배치 모드가
+  초당 약 5700프레임으로 실시간보다 훨씬 빠르게 돎을 확인) →
+  `Time.time` 기준 대기로 고쳐 `OK - bought, placed and picked up
+  furniture, score changed as expected, no errors`. 회귀로
+  `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+  `PlaytestDungeonHeadless`·`PlaytestDungeonFloorProgression` 전부
+  재확인.
