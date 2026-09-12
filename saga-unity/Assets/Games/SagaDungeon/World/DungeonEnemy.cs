@@ -41,6 +41,13 @@ namespace Saga.Dungeon.World
         [SerializeField] private Color bodyColor = new Color(0.72f, 0.64f, 0.3f); // 황건 — 누런 두건.
         [SerializeField] private float visualScale = 1f;
 
+        // "GLB 자산 도입" 슬라이스 — Awake()는 실제 Play 때도 도는 런타임
+        // 코드라 AssetDatabase를 못 쓴다(에디터 전용 API). SagaGo
+        // NpcBuilder.cs가 이미 쓴 패턴대로 편집기 빌드 스크립트가 이
+        // 필드를 채워 씬에 직렬화해 둔다. null이면(다른 PC에 아직 GLB가
+        // 없는 경우 등) CharacterVisual.SpawnFallbackCapsule()로 대체.
+        [SerializeField] private GameObject modelPrefab;
+
         // "방 종류 나머지" 슬라이스 — 오픈월드/필드로 방이 둘이 된 뒤
         // `DungeonTrove.cs`/`DungeonShrine.cs`가 "방 클리어"를 판정할 때
         // 이 방 저 방 몬스터를 다 합쳐서 세던 걸 방별로 가르려고 추가
@@ -80,18 +87,16 @@ namespace Saga.Dungeon.World
 
         private void BuildVisual()
         {
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visual.name = "Visual";
-            visual.transform.SetParent(transform, false);
-            visual.transform.localPosition = new Vector3(0f, 1f, 0f); // 캡슐 기본 높이 2 — 바닥 기준 중앙.
-            visual.transform.localScale = Vector3.one * visualScale;
+            float targetHeight = 2f * visualScale; // 기존 primitive capsule 기준(높이 2m × visualScale) 그대로 유지.
 
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "DungeonEnemy (generated)" };
-            mat.color = bodyColor;
-            visual.GetComponent<MeshRenderer>().sharedMaterial = mat;
-
-            var col = visual.GetComponent<CapsuleCollider>();
-            col.radius = 0.5f;
+            if (modelPrefab != null)
+            {
+                CharacterVisual.Spawn(modelPrefab, transform, targetHeight, bodyColor);
+            }
+            else
+            {
+                CharacterVisual.SpawnFallbackCapsule(transform, targetHeight, bodyColor);
+            }
         }
 
         private void Update()

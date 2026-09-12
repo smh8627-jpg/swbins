@@ -34,6 +34,11 @@ namespace Saga.Dungeon.World
         private static float HitDamage => Mathf.Max(4f, Atk / 6f); // dungeon.js atkOf()와 같은 공식
 
         private static readonly Color BodyColor = new Color(0.3f, 0.45f, 0.7f); // 동행 — 청색 갑주
+        private const float TargetHeight = 1.7f; // 기존 primitive capsule 기준(높이 2m × 0.85) 그대로 유지.
+
+        // "GLB 자산 도입" 슬라이스 — DungeonEnemy.cs와 같은 이유(Awake는
+        // 런타임에도 돎)로 편집기 빌드 스크립트가 채워 준다.
+        [SerializeField] private GameObject modelPrefab;
 
         private Transform _player;
         private float _attackCooldown;
@@ -47,15 +52,14 @@ namespace Saga.Dungeon.World
 
         private void BuildVisual()
         {
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visual.name = "Visual";
-            visual.transform.SetParent(transform, false);
-            visual.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f); // 플레이어보다 살짝 작게
-            visual.transform.localPosition = new Vector3(0f, 0.85f, 0f);
-
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "AllyFighter (generated)" };
-            mat.color = BodyColor;
-            visual.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            if (modelPrefab != null)
+            {
+                CharacterVisual.Spawn(modelPrefab, transform, TargetHeight, BodyColor);
+            }
+            else
+            {
+                CharacterVisual.SpawnFallbackCapsule(transform, TargetHeight, BodyColor);
+            }
         }
 
         private void Update()

@@ -13,14 +13,24 @@ namespace Saga.EditorTools
 {
     /// <summary>
     /// VERTICAL_SLICE_DUNGEON.md — TestDungeon 씬을 코드로 조립해 저장한다.
-    /// `BuildTestVillageScene.cs`(GO)와 같은 결이지만 방 하나뿐이라 훨씬
-    /// 짧다 — GLB 캐릭터·Sky/Fog·NPC·조이스틱 세부는 이번 슬라이스 범위
-    /// 밖(문서의 "제외" 참고). 멱등 — 다시 실행하면 씬을 통째로 새로 짠다.
+    /// `BuildTestVillageScene.cs`(GO)와 같은 결 — 캐릭터는 2026-09-12
+    /// "GLB 자산 도입" 슬라이스로 SagaGo의 Kenney Blocky Characters를
+    /// 재사용하게 됐지만, Sky/Fog·NPC·조이스틱 세부는 여전히 이번
+    /// 슬라이스 범위 밖(문서의 "제외" 참고). 멱등 — 다시 실행하면 씬을
+    /// 통째로 새로 짠다.
     /// </summary>
     public static class BuildTestDungeonScene
     {
         private const string ScenePath = "Assets/Scenes/TestDungeon.unity";
         private const string InputActionsPath = "Assets/InputSystem_Actions.inputactions";
+
+        // "GLB 자산 도입" 슬라이스 — SagaGo가 이미 쓰는 Kenney Blocky
+        // Characters를 그대로 재사용(CharacterVisual.cs 주석 참고). 배역
+        // 배정: a=플레이어(무색), b=동행(청색), c=두목(적갈), d=잡졸(황건).
+        private const string CharacterAPath = "Assets/Art/Characters/character-a.glb";
+        private const string CharacterBPath = "Assets/Art/Characters/character-b.glb";
+        private const string CharacterCPath = "Assets/Art/Characters/character-c.glb";
+        private const string CharacterDPath = "Assets/Art/Characters/character-d.glb";
 
         private static readonly Vector3 PlayerSpawn = new Vector3(-6f, 0.1f, 0f);
 
@@ -75,11 +85,15 @@ namespace Saga.EditorTools
             Room2Center + new Vector3(-4f, 0f, -2f),
         };
 
+        // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
+        private static GameObject _characterA, _characterB, _characterC, _characterD;
+
         [MenuItem("Saga/Build TestDungeon Scene")]
         public static void Build()
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
+            LoadCharacterModels();
             BuildLighting();
             var roomGo = BuildRoom();
             BuildEnemy();
@@ -100,6 +114,18 @@ namespace Saga.EditorTools
             AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(scene, ScenePath);
             Debug.Log($"[BuildTestDungeonScene] saved to {ScenePath} — room childCount={roomGo.transform.childCount}");
+        }
+
+        private static void LoadCharacterModels()
+        {
+            _characterA = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterAPath);
+            _characterB = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterBPath);
+            _characterC = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterCPath);
+            _characterD = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterDPath);
+            if (_characterA == null || _characterB == null || _characterC == null || _characterD == null)
+            {
+                Debug.LogWarning("[BuildTestDungeonScene] character-{a,b,c,d}.glb 중 일부를 못 찾음 — primitive capsule로 대체됨(CharacterVisual.cs 폴백).");
+            }
         }
 
         private static void BuildLighting()
@@ -147,6 +173,7 @@ namespace Saga.EditorTools
                 go.transform.position = FieldEnemySpawns[i];
                 var enemy = go.AddComponent<DungeonEnemy>();
                 SetPrivateField(enemy, "roomId", "room2"); // "방 종류 나머지" — Room2 행상이 이 방만 보고 클리어를 판정.
+                SetPrivateField(enemy, "modelPrefab", _characterD);
             }
 
             BuildMerchant();
@@ -169,7 +196,8 @@ namespace Saga.EditorTools
             {
                 var go = new GameObject($"Enemy_HwangGeon_{i + 1}");
                 go.transform.position = EnemySpawns[i];
-                go.AddComponent<DungeonEnemy>();
+                var enemy = go.AddComponent<DungeonEnemy>();
+                SetPrivateField(enemy, "modelPrefab", _characterD);
             }
 
             BuildBoss();
@@ -194,12 +222,14 @@ namespace Saga.EditorTools
             SetPrivateField(boss, "displayName", "황건적 두목");
             SetPrivateField(boss, "bodyColor", new Color(0.45f, 0.08f, 0.08f)); // 짙은 적갈 — 잡졸의 누런 두건과 구분
             SetPrivateField(boss, "visualScale", 1.6f);
+            SetPrivateField(boss, "modelPrefab", _characterC); // 잡졸(character-d)과 실루엣도 구분
 
             for (int i = 0; i < BossEscortSpawns.Length; i++)
             {
                 var go = new GameObject($"Enemy_HwangGeon_Escort_{i + 1}");
                 go.transform.position = BossEscortSpawns[i];
-                go.AddComponent<DungeonEnemy>();
+                var escort = go.AddComponent<DungeonEnemy>();
+                SetPrivateField(escort, "modelPrefab", _characterD);
             }
         }
 
@@ -229,15 +259,11 @@ namespace Saga.EditorTools
             controller.height = 1.8f;
             controller.center = new Vector3(0f, 0.9f, 0f);
 
-            // 아직 GLB 전(문서의 "제외" 참고) — primitive capsule.
-            var visualGo = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visualGo.name = "Visual";
-            visualGo.transform.SetParent(playerGo.transform, false);
-            visualGo.transform.localPosition = new Vector3(0f, 0.9f, 0f);
-            Object.DestroyImmediate(visualGo.GetComponent<Collider>());
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "Player (generated)" };
-            mat.color = Color.white;
-            visualGo.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            // "GLB 자산 도입" 슬라이스 — character-a(무색), 못 찾으면 폴백.
+            Transform visual = _characterA != null
+                ? CharacterVisual.Spawn(_characterA, playerGo.transform, 1.8f, Color.white)
+                : CharacterVisual.SpawnFallbackCapsule(playerGo.transform, 1.8f, Color.white);
+            var visualGo = visual.gameObject;
 
             var rigGo = new GameObject("CameraRig");
             rigGo.transform.SetParent(playerGo.transform, false);
@@ -275,7 +301,8 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Ally");
             go.transform.position = PlayerSpawn + new Vector3(1.5f, 0f, 0f);
-            go.AddComponent<AllyFighter>();
+            var ally = go.AddComponent<AllyFighter>();
+            SetPrivateField(ally, "modelPrefab", _characterB);
         }
 
         private static void BuildEventSystem()
