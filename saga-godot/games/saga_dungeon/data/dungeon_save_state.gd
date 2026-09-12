@@ -43,6 +43,8 @@ func save(player: Node3D) -> void:
 		## 필드는 SAVE_VERSION을 안 올린다, 없으면 빈 Dictionary로 안전하게
 		## 채워짐).
 		"boons": DungeonRunState.boons,
+		## §"제외" 3번(장비 등급+접사) — 같은 경계, 순수 추가 필드.
+		"weapon": DungeonEquipmentState.weapon,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -77,6 +79,8 @@ func try_load() -> bool:
 	player_pos = Vector3(p[0], p[1], p[2])
 	var boons: Variant = data.get("boons", {})
 	DungeonRunState.restore(boons if typeof(boons) == TYPE_DICTIONARY else {})
+	var weapon: Variant = data.get("weapon", {})
+	DungeonEquipmentState.restore(weapon if typeof(weapon) == TYPE_DICTIONARY else {})
 	return true
 
 

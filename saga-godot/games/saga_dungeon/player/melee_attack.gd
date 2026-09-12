@@ -4,8 +4,9 @@ extends Node
 ## (턴형 선택지 판정, 화면이 멈추고 버튼을 고른다)와는 완전히 다른 모델이라
 ## 새로 짰다 — 이동하며 버튼 한 번으로 때리는 실시간 액션. 웹판
 ## `dungeon.js`의 BASE_ATK_CD(0.55초)를 그대로 이식했다(새 수치를 만들지
-## 않는다). 데미지(9)는 이번 슬라이스에 장비 시스템이 없어(제외 목록)
-## 직접 정한 값이다 — 잡졸(HP≈24)을 세 대 안에 눕히는 감각을 노렸다.
+## 않는다). 기본 데미지(9)는 맨손 기준으로 직접 정한 값이다(장비 등급+
+## 접사가 없던 시절 — 잡졸(HP≈24)을 세 대 안에 눕히는 감각을 노렸다).
+## 장비를 주우면 아래처럼 이 기본값에 배율·flat이 더 붙는다.
 ##
 ## Player의 자식 컴포넌트로 붙는다(player_health.gd와 같은 경계) — 이
 ## 스크립트가 곧 "공격 입력을 받는 자리"다. HUD의 공격 버튼도 이 노드를
@@ -15,6 +16,11 @@ extends Node
 ## 그대로: 공격력·공격 속도·사거리는 배율, 치명타는 1.85배(crit 확률은
 ## critPct 합), 분신(echoPct)은 같은 대상을 한 번 더 때린다, 흡혈(drainPct)은
 ## 그 타격으로 죽였을 때 최대 체력의 %만큼 회복한다.
+##
+## "제외" 목록 3번(장비 등급+접사) — item.js 주석의 순서(기본치 × 성장배율
+## × (1 + 장비 pct) + 펫 + 장비 flat)를 그대로 따른다: 은사 배율에 장비의
+## might/allPct(atk_pct_bonus)까지 곱한 뒤, 장비의 main+might/allstat
+## flat(atk_flat_bonus)을 마지막에 더한다.
 
 const ATK_COOLDOWN := 0.55 # 웹판 BASE_ATK_CD 그대로
 const ATK_DAMAGE := 9.0
@@ -54,7 +60,8 @@ func try_attack() -> void:
 
 func _strike(enemy: Node) -> void:
 	var was_alive: bool = enemy.hp > 0.0
-	var dmg: float = ATK_DAMAGE * DungeonRunState.atk_mult()
+	var pct_mult: float = DungeonRunState.atk_mult() + DungeonEquipmentState.atk_pct_bonus() / 100.0
+	var dmg: float = ATK_DAMAGE * pct_mult + DungeonEquipmentState.atk_flat_bonus()
 	if randf() * 100.0 < DungeonRunState.crit_chance():
 		dmg *= CRIT_MULT
 	enemy.take_damage(dmg)

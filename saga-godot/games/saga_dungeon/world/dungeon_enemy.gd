@@ -33,12 +33,14 @@ const LootPickup := preload("res://games/saga_dungeon/world/loot_pickup.gd")
 var max_hp: float
 var attack_damage: float
 var hp: float
+var _floor_num: int = 1
 var _attack_cd_left := 0.0
 var _player: Node3D
 var _dead := false
 
 
 func _init(floor_num: int = 1) -> void:
+	_floor_num = floor_num
 	max_hp = roundf(24.0 * pow(1.26, floor_num - 1))
 	attack_damage = roundf(5.0 * pow(1.20, floor_num - 1))
 	hp = max_hp
@@ -102,5 +104,5 @@ func take_damage(amount: float) -> void:
 	if hp <= 0.0:
 		_dead = true
 		died.emit()
-		LootPickup.spawn_at(get_parent(), global_position)
+		LootPickup.spawn_at(get_parent(), global_position, _floor_num)
 		queue_free()

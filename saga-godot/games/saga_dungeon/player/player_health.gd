@@ -24,6 +24,10 @@ var hp := MAX_HP_BASE
 func _ready() -> void:
 	add_to_group("player_health")
 	DungeonRunState.boons_changed.connect(recalc_max_hp)
+	## "제외" 목록 3번(장비 등급+접사) — hp_mult()가 이제 장비의 hpPct
+	## 접사도 같이 더하므로(DungeonRunState._sum_eff 참고), 장비가 바뀔
+	## 때도 다시 계산해야 한다.
+	DungeonEquipmentState.weapon_changed.connect(recalc_max_hp)
 	recalc_max_hp()
 
 
