@@ -5,6 +5,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON — Secret Area 전용 POI (2026-09-12, 아홉 번째 세션 이어서,
+  사용자가 실기 확인 중 "다른거 진행해"로 지시).** 35장 랜덤 이벤트의
+  "Secret Area"를 DungeonAmbush 룰렛 결과 하나로만 얇게 대신했던 걸,
+  진짜 탐험해서 찾는 전용 자리로 뺐다 — 신규 `World/DungeonSecretStash
+  .cs`(GO `HiddenTreasure.cs`의 발광 구슬 재사용, DUNGEON 관례대로
+  Update() 폴링), Room4 SE 빈 구석(경험치+40·돈+30, 성소보다 후하게).
+  `SfxPlayer.PlayDiscovery()` 신규(레벨업 톤 재사용 시 착각할 수 있어
+  분리). 컴파일·씬 재빌드(room childCount=14 그대로)·
+  PlaytestDungeonHeadless 통과, 커밋 `7670c6f`.
 - **DUNGEON — 실기 제보 둘 처리 (2026-09-12, 아홉 번째 세션 이어서).**
   사용자가 유니티 에디터로 직접 플레이해 본 결과 둘을 그때그때 반영.
   (1) "미니보스가 두목보다 안 세 보여" — 웹판 `spawnEnemy(floor, true)`
