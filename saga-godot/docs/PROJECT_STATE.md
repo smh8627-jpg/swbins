@@ -3261,5 +3261,92 @@ GUI 실기 확인은 전 구간 아직 안 함(사용자가 알아서 몰아서 
 직접 확인 — "확인했다 — 문제 없음, 재미도 있음".** GO(2026-09-11⑩)·
 DUNGEON에 이어 FOREST도 같은 방식으로 **승인**됐다 — PLAN.md 39장
 순서(Core → Vertical Slice(GO) → DUNGEON → FOREST → STORY → REALM)의
-세 번째 칸이 끝났다. 다음은 STORY 차례지만, GO 때처럼 "이 판 콘텐츠를
-더 채울지 다음 판으로 넘어갈지"는 사용자에게 물어서 정한다.
+세 번째 칸이 끝났다.
+
+**사용자가 "1,2번 순서대로 진행해"로 STORY 착수 → FOREST 콘텐츠 확장
+순서를 지시(2026-09-12).**
+
+## STORY — 설계(Phase 2~3) + Phase 4 첫 조각 (2026-09-12)
+
+- **`docs/VERTICAL_SLICE_STORY.md`(신규) — LEGACY_FEATURE_AUDIT.md
+  "SAGA STORY" 절 기준 설계.** 웹판(`saga-story`) 조사 결과 감사
+  문서의 "48 무예"·"사냥터 4곳" 요약은 이미 낡아 있었다(실제로는
+  4갈래×tier4(Lv.70)까지·사냥터 9곳) — 이번 설계는 **첫 슬라이스에
+  필요한 부분만** 최신 `js/data-side.js`·`data-job.js`·`data-enemy.js`·
+  `data-quest.js`·`game.js`에서 직접 확인해 반영했다. 핵심 결정:
+  - **카메라·깊이** — 웹판 자신의 절충안("Background/Midground/
+    Foreground + Gameplay Depth", 완전 자유 3D로 안 바꾼다)을 그대로
+    KEEP. 플레이어는 X(가로)·Y(높이) 평면에만 움직이고 Z는 이번
+    슬라이스에서 고정, 카메라는 회전 없이 X만 따라가고 Y만 완만히
+    보간한다(DUNGEON의 "화면 고정"보다 한 걸음 더 — 이쪽은 애초에
+    축 자체가 하나뿐).
+  - **급소+경직(히트스톱)** — `game.js`의 `freeze=0.055`(dt×0.12)를
+    이 판만의 손맛으로 첫 슬라이스부터 넣기로 결정(다른 네 판과
+    구별되는 유일한 축이라 뒤로 미루지 않는다).
+  - **물리 상수 재도출** — 웹 픽셀 값(중력1900·점프760·달리기270)을
+    그대로 못 옮겨(단위가 다르다) **비율만**(정점까지 0.4초) 지켜
+    미터 단위로 다시 잡음(GRAVITY≈36·JUMP≈15·RUN≈6, GO player.gd
+    스케일과 맞춤).
+  - **포함/제외** — 사냥터 1곳(허창 들판)·무명(tier0) 기본 평타
+    하나(연참)·잡졸 하나(황건적)·줄(로프) 하나·사명 하나(q_first,
+    kill 10)만. 나머지 사냥터 8곳·전직 트리·무예 47개·장비/노획·
+    보스·원거리 적은 전부 제외.
+
+- **Phase 4 첫 조각 — `games/saga_story/` 구현.**
+  - `data/field_map.gd`(`FieldMap`) — `data-side.js` STAGES.field를
+    그대로 옮김(발판 5개 좌표·값 안 바꿈), SCALE=0.02(50px≈1m, 점프
+    높이 역산 근거는 파일 주석)로 미터 변환. 줄은 다섯 중 첫째만,
+    사다리·문·채집·보스는 제외.
+  - `data/story_combat.gd`(`StoryCombat`) — critRate 0.15·critMul
+    1.6·히트스톱(Engine.time_scale=0.12, 0.055초) 원문 그대로. 플레이어
+    시작 스탯은 `side.js power()`의 인물 미선택 대체값(might20/
+    wisdom10/command15) 그대로 씀 — 인물 로스터 연동은 이번 슬라이스
+    밖(GO의 "등용"과 같은 급의 콘텐츠 확장 몫).
+  - `data/story_save_state.gd`(autoload `StorySaveState`) — 위치+
+    레벨/경험치+사명(kills) 최소 범위, GO/DUNGEON/FOREST와 같은 정신.
+  - `player/story_player.gd`+`StoryPlayer.tscn` — GO player.gd의
+    GLB·애니메이션(character-a.glb, idle/walk/sprint) 재사용, 이동은
+    X만(move_left/right), 점프는 새 입력 액션 `jump`(Space). 줄
+    오르내리기는 move_forward/back(원래 3D 전후 이동용 축)을 빌려
+    씀 — 옆에서 보는 판이라 그 축이 남는다. 공격(combat_quick, J)은
+    `StoryCombat.roll_damage()`로 판정, 급소면 히트스톱 트리거.
+  - `world/story_enemy.gd`+`story_enemy_spawner.gd` — 잡졸(황건적,
+    DUNGEON dungeon_enemy.gd와 같은 색值 재사용) 셋을 고정 자리에.
+    **재해석** — 추격·반격 없음(제자리에 서서 맞기만 한다), 죽으면
+    `StorySaveState.add_kill()`.
+  - `world/story_terrain_builder.gd` — 바닥·발판 5개·줄(Area3D)·
+    양끝 경계벽(문이 없어 막음)을 FieldMap 데이터로 짓는다. 전부
+    primitive 박스(이 판 전용 GLB 없음, 프로토타입 원칙 그대로).
+  - `world/story_camera.gd` — Camera3D 스크립트, 회전 없이 X만
+    따라가고 Y만 lerp. 플레이어 자식이 아니라 독립 노드(자식으로
+    두면 Y 보간을 못 한다).
+  - `world/story_field.gd`(`TestField.tscn` 루트) — `_ready()`에서
+    `StorySaveState.try_load()`만(구면 투영이 없어 FOREST test_
+    village.gd보다 짧다).
+  - `ui/quest_label.gd`·`ui/story_save_button.gd`+`StoryHUD.tscn` —
+    GO/FOREST와 같은 패턴("dialogue_label" 그룹 재사용).
+  - `project.godot` — `[autoload] StorySaveState` 등록, 입력 액션
+    `jump`(Space) 신규 추가.
+  - **검증(헤드리스, 값 자체까지)** — `--headless --editor --quit`
+    임포트 확인(project.godot 의도치 않은 변경 없음 재확인) →
+    `TestField.tscn` `--quit-after 5 --verbose` 세 번 연속 exit
+    0·오류 0건. **임시 디버그로 실제 값 확인**: FieldMap 스케일
+    (width_m=44.0·plat0={x:6.4,height:2.6,half_w:2.6}·rope={x:6.8,
+    top:2.6,bottom:0} — 손 계산과 정확히 일치), 데미지 2000회 굴려
+    전부 [atk×0.88, atk×1.12×1.6] 범위 안·crit_ratio≈0.158(기대
+    0.15에 근접), 잡졸 3마리 스폰 확인·강제 처치 시 kills 정확히
+    +1, 저장/불러오기 왕복(레벨·경험치·킬수·위치 전부 흩트려 놓은
+    뒤 정확히 복원) 전부 일치. 전부 검증 뒤 디버그 코드 원상복구
+    (diff 0), 테스트 세이브 파일(`user://save_story.json`) 삭제.
+    GO·DUNGEON·FOREST 헤드리스 회귀 없음 재확인.
+  - **GUI 실기 확인은 아직 안 함**(2.5D 카메라가 실제로 옆에서 보는
+    느낌인지, 캐릭터 좌우 회전이 자연스러운지, 줄 타기 감각, 히트
+    스톱이 눈에 보이는지) — 사용자가 알아서 몰아서 확인할 것.
+  - **다음 이어질 것** — VERTICAL_SLICE_STORY.md 완료 조건(달리고
+    점프 → 줄을 탄다 → 잡졸을 벤다 → 사명이 오른다 → 저장/불러오기)을
+    실기로 확인받는 것부터. 그 뒤 STORY도 GO/DUNGEON/FOREST처럼
+    "Vertical Slice 승인" 게이트(PLAN.md 100단계)를 사용자에게 물어
+    통과한다. 승인 전이라도 사용자가 "1,2번" 순서를 지정했으니, 이
+    STORY 조각이 일단락되면 **다음은 2번(FOREST 콘텐츠 더 채우기)**
+    차례다 — FOREST는 이미 승인까지 끝난 판이라 STORY의 게이트
+    통과를 기다릴 필요 없이 바로 넘어가도 된다.
