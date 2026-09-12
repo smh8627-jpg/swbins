@@ -3569,3 +3569,65 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — Phase 1(`games/saga_realm/` 폴더 생성) 착수
     여부를 사용자에게 확인받거나, 다음 세션에서 `city3d.js`/`realm3d.js`
     실측부터 이어간다.
+
+## REALM Phase 1 착수 — games/saga_realm/ 첫 코드 (2026-09-12)
+
+- **사용자 지시 "games/saga_realm 폴더 만들어서 착수해줘"** — VERTICAL_
+  SLICE_REALM.md 1~5절 설계를 그대로 코드로 옮겼다. GO/DUNGEON/FOREST/
+  STORY와 달리 REALM은 플레이어 아바타가 없다(1절 결정 — "성 조망"이
+  유일한 시점).
+  - `saga_core/data/characters.gd`(2026-08-31에 이미 있던 105명 가명
+    HEROES)를 그대로 재사용 — REALM 전용 무장 데이터(웹판 `data-force.js`)
+    는 **일부러 안 옮겼다**. 확인해 보니 `data-force.js`의 삼국지 무장
+    54명(`OFFICERS` 배열, 하후연·조인 등)은 아직 실명 그대로였다(한국사·
+    일본사 등 비삼국지 "재야"만 이미 가명) — 루트 CLAUDE.md 이름 정책이
+    "사가국지의 세계 각국 인물... 전부 포함"이라 명시하는데, 이 파일은
+    아직 그 정책을 못 지킨 상태(`js/data.js` HEROES가 2026-09-06에 가명화
+    된 것과 별개로 남은 흠으로 보인다 — 다음에 웹판 REALM을 손볼 때 참고
+    할 것). 그래서 이미 가명이 확인된 `characters.gd`에서만 골랐다.
+  - `games/saga_realm/data/realm_officer_pool.gd` — 시작 책사(현책/
+    sg_zhugeliang, wisdom100) + 재야 둘(해장/kr_yisunsin·이도인/jp_musashi).
+  - `games/saga_realm/data/realm_orders.gd` — 웹판 `rtk.js` ORDERS 중
+    개간·상업·수색·등용 4종, capOf()·goldOf()·foodOf()·govMul() 그대로
+    이식(성 허창 하나·sec=60 고정으로 좁힌 상수화, 공식 자체는 원문 그대로).
+  - `games/saga_realm/data/realm_save_state.gd`(신규 autoload
+    `RealmSaveState`) — `rtk.js` order()/doSearch()/doHire()/tryHire()/
+    settleMonth()/endMonth()를 성 하나·무장 1~2명 규모로 옮겼다. **재해석**
+    — 명령마다 쓸 무장을 화면에서 고르지 않고 그 자질이 가장 높은,
+    이번 달에 안 쓴 무장을 자동으로 고른다(`_best_officer_for`). 무작위는
+    고정 시드(20260824, 루트 CLAUDE.md 진단 시드와 같은 값)로 돌려 헤드리스
+    검증이 재현 가능하다(FOREST 몬스터들과 같은 이유).
+  - `games/saga_realm/world/realm_city.gd` — 허창을 primitive(기단+누각+
+    담장 넷)로 짓는다. `WorldCurveMaterial`을 curve_amount=0으로 써서
+    (구면 투영 없음, REALM은 1절에서 이미 "성 조망"으로 결정) 셰이더
+    종류만 다른 네 판과 공유한다.
+  - `games/saga_realm/world/realm_camera.gd` — 플레이어가 없어 GO/DUNGEON/
+    FOREST/STORY가 이미 쓰던 이동 입력 액션(move_left/right/forward/back)을
+    **그대로 재사용**해 카메라를 궤도 회전+줌 한다 — project.godot [input]
+    섹션을 새로 안 늘렸다(헤드리스 에디터가 그 파일을 조용히 고쳐 쓸 수
+    있다는 이 프로젝트의 알려진 흠을 피하려고).
+  - `games/saga_realm/ui/*` — RealmHUD(상태 라벨+명령/다음 달/저장 버튼),
+    GO ChoicePrompt·saga_core Toast를 그대로 재사용(새 UI 패턴을 안
+    만들었다).
+  - `project.godot` [autoload]에 `RealmSaveState` 한 줄 추가.
+  - **검증(헤드리스, 값 자체까지)** — `--headless --editor --quit` 임포트
+    확인(project.godot diff가 그 한 줄뿐임을 확인) → `TestCity.tscn`
+    `--quit-after 5 --verbose` 세 번 연속 exit 0·오류 0건·로그 완전 동일.
+    **임시 디버그로 실제 값 확인**: 개간 명령 amount=9(공식 round(3+100×
+    0.055)=8.5→9와 일치), 다음 달 정산 gold 변화가 gold_income() 공식과
+    소수점까지 일치, 6월에 도달했을 때만 군량이 늘어난 것 확인(harvest
+    month 게이트 확인), 수색으로 해장 발견 → 등용 시도 시 성공률
+    0.39461538461538(공식 0.28+100/260-3×0.09와 정확히 일치), 저장/
+    불러오기 왕복(골드·로스터 둘 다 흩트린 뒤 정확히 복원) 확인. **이
+    과정에서 설계 문서의 실수를 하나 발견** — 무장 한 명은 한 달에 명령
+    하나만 쓸 수 있다는(`rtk.js` 원래 규칙) 걸 빠뜨리고 완료 조건에
+    "개간→상업→..."을 한 턴에 다 되는 것처럼 적어 놨었다. VERTICAL_
+    SLICE_REALM.md 5절에 정정 기록을 남기고 문구를 고쳤다. 디버그 코드
+    원상복구(diff 0), 테스트 세이브(`save_realm.json`) 삭제. GO·DUNGEON·
+    FOREST·STORY 헤드리스 회귀 없음 재확인.
+  - **GUI 실기 확인은 아직 안 함**(카메라 궤도 회전 감각, UI 버튼 배치가
+    실제로 조작하기 편한지) — 사용자가 알아서 몰아서 확인할 것.
+  - **다음 이어질 것** — 웹판 `city3d.js`/`realm3d.js` 실측(지금 성 모형은
+    "성처럼 보이는" 최소 실루엣일 뿐, 원작 3D 렌더 감각을 아직 안
+    참고했다), 또는 VERTICAL_SLICE_REALM.md 4절 "제외" 목록(치안·축성 등
+    나머지 명령, 여러 성, 외교·전쟁, 문답)을 승인 후 확장.

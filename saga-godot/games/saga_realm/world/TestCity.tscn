@@ -1,0 +1,27 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="1"]
+[ext_resource type="Script" path="res://games/saga_go/world/environment_profile.gd" id="2"]
+[ext_resource type="Script" path="res://games/saga_realm/world/realm_city.gd" id="3"]
+[ext_resource type="Script" path="res://games/saga_realm/world/realm_camera.gd" id="4"]
+[ext_resource type="PackedScene" path="res://games/saga_realm/ui/RealmHUD.tscn" id="5"]
+
+[node name="TestCity" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("1")
+script = ExtResource("2")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.8, -0.35, 0.48, 0, 0.807, 0.59, -0.6, -0.472, 0.646, 0, 8, 0)
+light_energy = 1.1
+shadow_enabled = true
+
+[node name="City" type="Node3D" parent="."]
+script = ExtResource("3")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
+script = ExtResource("4")
+
+[node name="RealmHUD" parent="." instance=ExtResource("5")]
