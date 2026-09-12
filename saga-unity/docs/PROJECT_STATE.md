@@ -5,6 +5,15 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON — HUD에 던전 층수 표시 추가 (2026-09-12, 열 번째 세션
+  이어서, "DUNGEON 더 다듬기" 방향으로 계속).** `PlayerHud.cs`를 보니
+  이번 세션에 층 개념(`DungeonFloorRunner`)을 처음 도입했는데 정작
+  화면 어디에도 몇 층인지 안 뜨고 있었다(레벨·체력·경험치·돈·무기·
+  퀘스트 목표만 있었음) — 사람이 발견하기 전에 코드 검토로 잡음.
+  `🕳️ 지하 N층`을 무기·공격력 줄에 추가(`DungeonFloorRunner.Instance
+  ?.CurrentFloor ?? 1` — ProcRoom에 아직 안 닿았으면(Room1~4) 1로
+  대신 표시). 컴파일·PlaytestDungeonHeadless(`OK - 10 frames, no
+  errors`, HUD GameObject 변화 없어 씬 재빌드 생략) 통과.
 - **DUNGEON — 절차적 층 진행이 저장/로드에서 사라지던 결함 수정
   (2026-09-12, 열 번째 세션 이어서, "이어해"로 계속 진행 중 코드
   검토로 발견).** `DungeonFloorRunner`를 만들 때 `SaveState.cs`(v4)에
