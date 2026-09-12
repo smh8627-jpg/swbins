@@ -17,9 +17,15 @@ namespace Saga.Dungeon.UI
     {
         // 방1(z=0)~방4(z=90) + 방 반깊이(10)·복도(4)를 여유 있게 감싸는
         // 고정 범위(BuildTestDungeonScene.cs의 좌표 산출 주석과 같은 값).
+        // "오픈월드 확장 — 마을 여러 개" — Town2(z=-30)가 남쪽에 생기면서
+        // 아래쪽 여유도 그 남쪽에 다시 15(원래 Room1 위쪽에 두던 여유와
+        // 같은 폭)를 더해 -15 → -45로 넓혔다(ProcRoom(z=120)이
+        // WorldZMax(105) 밖에서 가장자리에 눌려 찍히는 것과 같은 기존
+        // 관례를 Town2에도 그대로 적용해도 됐지만, 이번엔 여유가 남아
+        // 정확한 위치로 찍히게 했다).
         private const float WorldXMin = -12f;
         private const float WorldXMax = 12f;
-        private const float WorldZMin = -15f;
+        private const float WorldZMin = -45f;
         private const float WorldZMax = 105f;
 
         [SerializeField] private RectTransform mapArea;

@@ -179,6 +179,36 @@ namespace Saga.EditorTools
         private static readonly Vector3 Corridor4Center = new Vector3(0f, 0f, 105f);
         private static readonly Vector3 ProcRoomCenter = new Vector3(0f, 0f, 120f);
 
+        // "DUNGEON 오픈월드 확장 — 마을 여러 개" (2026-09-12) — saga-dungeon
+        // 웹판 PLAN.md 28장은 "오픈월드"를 두 가지 다른 뜻으로 쓴다: (1) 던전
+        // 층 하나를 클리어마다 갈아치우는 로그라이크식 진행(위 ProcRoom이
+        // 이미 이거다, js/dungeon.js와 일치 확인됨) — (2) **마을이 여럿이고
+        // 마을 밖 들판을 걸어서 다른 마을로 건너가는 구조**(28-1~28-8절,
+        // 원작은 이걸 위해 "위장된 전환"까지 만들었다 — 마을마다 좌표계가
+        // 독립이라 진짜 하나로 이어진 공간이 아니었기 때문). 사용자가
+        // "마을 여러 개 — 걸어서 이어지는 진짜 오픈월드"로 (2)를 확정.
+        // **이 프로젝트는 원작과 달리 처음부터 Room1~ProcRoom이 전부
+        // 하나의 연속 좌표계다** — 원작이 좌표계를 속여야 했던 이유
+        // 자체가 여기엔 없다. 그래서 "마을 두 개를 걸어서 잇는다"는 그냥
+        // Room1처럼 방 하나를 더 짓고 복도로 잇는 것과 똑같다 — 새로운
+        // 이동/좌표 시스템이 필요 없다(세이브도 `SaveState.cs`가 이미
+        // playerPos 세 값을 그대로 저장/복원해 Town2에서 저장해도 별도
+        // "현재 마을" 필드 없이 저절로 맞다).
+        //
+        // **첫 슬라이스 범위 — 4개가 아니라 2개.** 원작은 마을 넷(모루골
+        // +위성 셋)이지만, Vertical Slice First(PLAN.md 3.1)에 따라
+        // "던전 밖으로 나가 다른 마을에 닿는다"는 개념 하나만 먼저
+        // 증명한다 — 오버월드 지도 UI·마을 셋 이상·마을 간 분기는 이번엔
+        // 범위 밖(다음 슬라이스 후보로 남긴다).
+        //
+        // Room1의 **남쪽** 문(지금까지 안 쓰던 벽 — 북쪽은 이미 Room2행
+        // 진행에 씀)을 열어 마을 방향임을 구분한다. 좌표는 북쪽 진행과
+        // 정확히 대칭(부호만 반대) — Room1 남쪽 벽 바깥면 z=-(halfD(10)+
+        // 두께(1))=-11, 복도 길이 8 → Town2 남쪽 벽 바깥면 z=-11-8=-19,
+        // Town2 중심 z=-19-halfD(10)-두께(1)=-30, 복도 중심 z=(-11-19)/2=-15.
+        private static readonly Vector3 TownCorridorCenter = new Vector3(0f, 0f, -15f);
+        private static readonly Vector3 Town2Center = new Vector3(0f, 0f, -30f);
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
@@ -194,6 +224,7 @@ namespace Saga.EditorTools
             var roomGo = BuildRoom();
             BuildEnemy();
             BuildRoomPois();
+            BuildCorridorAndTown2();
             BuildCorridorAndRoom2();
             BuildCorridorAndRoom3();
             BuildCorridorAndRoom4();
@@ -267,7 +298,51 @@ namespace Saga.EditorTools
             SetPrivateField(builder, "roomModel", _roomGlb); // "방 셸 GLB"
             builder.Build();
             builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드/필드" 슬라이스 — 복도로 Room2와 잇는다.
+            builder.OpenSouthDoor(RoomDoorWidth); // "오픈월드 확장 — 마을 여러 개" — 들길로 Town2와 잇는다.
             return go;
+        }
+
+        /// <summary>"오픈월드 확장 — 마을 여러 개" 슬라이스 — Room(방1)의
+        /// 남쪽 문에서 들길(복도 재사용)을 지나 Town2(첫 위성 마을)로
+        /// 이어진다. 전투 없음 — 원작 "필드"와 달리 이번 첫 슬라이스는
+        /// 필드 조우도 범위 밖(다음 슬라이스 후보). 좌표 산출은 위
+        /// `TownCorridorCenter`/`Town2Center` 주석 참고.</summary>
+        private static void BuildCorridorAndTown2()
+        {
+            var townCorridorGo = new GameObject("TownCorridor");
+            townCorridorGo.transform.position = TownCorridorCenter;
+            var townCorridorBuilder = townCorridorGo.AddComponent<DungeonCorridorBuilder>();
+            // biome=None(기본값) — 이 통로만 일부러 "폐허" 톤(SagaBiome.Ruins,
+            // 다른 세 복도)을 안 쓴다. 여기는 무너진 던전 통로가 아니라
+            // 마을로 가는 들길이라는 걸 색으로도 가른다.
+            SetPrivateField(townCorridorBuilder, "corridorModel", _corridorGlb); // "환경/건물 GLB" 자산 재사용
+            townCorridorBuilder.Build();
+
+            var town2Go = new GameObject("Town2");
+            town2Go.transform.position = Town2Center;
+            var town2Builder = town2Go.AddComponent<DungeonRoomBuilder>();
+            // biome=None — 다섯 바이옴(숲·늪·산·사당·폐허)은 전부 이 던전
+            // "야생" 쪽 정체성이라, 마을(문명)은 일부러 그 다섯에 안 낀다
+            // (Colors()의 "예전 색"이 곧 이 방의 고유색이 되는 셈).
+            SetPrivateField(town2Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
+            SetPrivateField(town2Builder, "roomModel", _roomGlb); // "방 셸 GLB"
+            town2Builder.Build();
+            town2Builder.OpenNorthDoor(RoomDoorWidth); // 복도 쪽(Room1 방향) 문 하나뿐 — 이번 슬라이스는 막다른 마을.
+
+            var merchantGo = new GameObject("TownMerchant");
+            merchantGo.transform.position = Town2Center + new Vector3(3f, 0f, 0f);
+            var merchant = merchantGo.AddComponent<DungeonMerchant>();
+            // roomId="town2" — 이 id로 등록되는 적이 아예 없어 CountAliveInRoom이
+            // 항상 0이다(DungeonMerchant.cs Update() 참고) — "방을 다 잡아야
+            // 연다"는 조건 자체가 평화로운 마을엔 안 맞아 자연히 항상 열려 있다.
+            SetPrivateField(merchant, "roomId", "town2");
+            // wp_axe(atk12) — 지금까지 어떤 행상도 안 팔던 재고(Room2=wp_saber18,
+            // Room3=gem_sapphire, Room10=wp_glaive26). wp_start(0)보다는 낫지만
+            // wp_saber(45냥)보다 낮은 티어라 값도 더 싸게 잡았다 — Town2는 Room1
+            // 남쪽 문 바로 너머라 전투 없이도 닿을 수 있어(플레이어가 처음
+            // 얼마 안 되는 돈으로도 살 만한 자리가 필요).
+            SetPrivateField(merchant, "sellItemId", "wp_axe");
+            SetPrivateField(merchant, "price", 20);
         }
 
         /// <summary>"오픈월드/필드" 슬라이스 — Room(방1)의 북쪽 문에서
@@ -770,6 +845,9 @@ namespace Saga.EditorTools
             // 방 넷 중심 — 정적 점(색으로만 구분: 숲/늪/산/사당 바이옴과
             // 같은 색조를 재사용해 방 종류를 굳이 새로 안 만든다).
             BuildMinimapDot(areaRect, Vector3.zero, new Color(0.3f, 0.55f, 0.3f), 14f); // Room1 — 숲
+            // "오픈월드 확장 — 마을 여러 개" — 다섯 바이옴 색과 겹치지 않는
+            // 황금빛으로 "문명/안전지대"임을 표시.
+            BuildMinimapDot(areaRect, Town2Center, new Color(0.75f, 0.65f, 0.35f), 14f); // Town2 — 마을
             BuildMinimapDot(areaRect, Room2Center, new Color(0.35f, 0.45f, 0.3f), 14f); // Room2 — 늪
             BuildMinimapDot(areaRect, Room3Center, new Color(0.55f, 0.5f, 0.45f), 14f); // Room3 — 산
             BuildMinimapDot(areaRect, Room4Center, new Color(0.6f, 0.35f, 0.2f), 14f);  // Room4 — 사당
