@@ -124,6 +124,73 @@ saga-godot에서 그대로 복사(다른 GLB들과 같은 재사용 원칙). GLB
 `MountainShrine.cs`(트리거·보상 로직)는 안 건드림 — 이건 순전히
 `LandmarksBuilder.cs`의 시각 담당 쪽 변경이다.
 
+## Props 도입 (2026-09-12, 산신당 재설계 다음 후속 조각)
+
+PLAN.md 44~49장 우선순위(Player→주요 Enemy→Boss→Environment→Building→
+Vegetation→**Props**→Animals→VFX)의 다음 칸. 새 킷을 찾지 않고 이미 쓰고
+있는 `Fantasy Town Kit 2.0`(CC0, `LandmarksBuilder.cs`가 wall-block·
+roof-gable 등에 쓰는 그 킷)에서 그때 안 받았던 파일 세 개만 추가로
+받았다 — 이 킷 하나에 160개가 넘는 모듈이 들었는데 처음엔 건물에 필요한
+4개만 골라 왔었다(zip을 `opengameart.org`의 미러 링크로 다시 받아
+`Models/GLB format/` 안에서 골랐다 — Kenney 공식 페이지는 다운로드
+버튼이 JS라 직접 URL을 못 뽑았다). 텍스처는 새로 안 받고 기존
+`Assets/Art/Buildings/Textures/colormap.png`와 바이트가 100% 같은 걸
+md5로 확인했다(같은 킷·같은 아틀라스라 당연) — 그래도 `Buildings/`와
+분리해 관리하려고 `Assets/Art/Props/Textures/`에 한 벌 더 뒀다(PLAN.md
+8장이 나열한 `Art/Props/` 카테고리를 그대로 따름, `Dungeon/`·`Shrine/`도
+각자 텍스처를 따로 갖고 있는 것과 같은 결 — 바이트 중복보다 "무엇이
+어떤 자산에 속하는지" 폴더로 바로 보이는 쪽을 택함).
+
+| 파일 | 실측 크기(m) | 스케일 | 쓰는 곳 |
+|---|---|---|---|
+| `props/lantern.glb` | 0.216×1.556×0.224 | ×1(그대로) | 마을집 두 채 사이 가로등 2개 |
+| `props/stall-red.glb` | 1×1.237×1 | 균일 ×2 | 떠돌이 상인 옆 시장 좌판 |
+| `props/fence.glb` | 0.075×0.38×1(비중앙 피벗, x∈[0.425,0.5]) | 균일 ×2 | 논밭 소 옆 울타리 3칸 |
+| `props/fence-gate.glb` | 0.519×0.55×1 | 균일 ×2 | 위 울타리 줄 가운데 문 1칸 |
+
+**소품 셋을 기존 콘텐츠 옆에 붙였다** — 새 자리를 만들지 않고 이미 있는
+곳을 꾸미는 것만으로 "허전함"을 줄인다는 PLAN.md 9~10장 원칙:
+- 가로등 2개 — 마을집(격자 2,3·3,3) 사이 공터를 마주 보게.
+- 시장 좌판 1개 — 떠돌이 상인(격자 4,3) 옆, 거래 자리처럼 보이게.
+- 울타리 3칸+문 1칸 — 논밭 소(cow_1, 격자 3,9) 옆에 한 줄로. **실제로
+  소를 가두지는 않는다** — `WanderingAnimal`의 24유닛 배회 반경을 다
+  두르려면 수십 칸이 필요해 장식 목적과 안 맞다(PLAN.md 3장 "테스트 안
+  된 추측성 변경" 회피) — "목장 한구석" 느낌만 준다. 콜라이더도 일부러
+  안 둠(반 토막짜리 줄을 막아 버리면 오히려 걸린 것처럼 보인다).
+
+`PropsBuilder.cs`(신규) — `LandmarksBuilder.cs`와 같은 결(자리마다 상수,
+GLB 없으면 primitive로 대체, `childCount>0`이면 `Awake()`에서 다시 안
+지음). `BuildTestVillageScene.cs`에 `BuildProps()` 훅 추가(Landmarks
+다음, Animals 전).
+
+## 동물 GLB — 2026-09-12 조사 결과 (아직 도입 안 함)
+
+saga-godot도 "어울리는 동물 GLB가 없다"고 남겨 둔 항목이라 다시
+찾아봤다. **결론: CC0 소스는 찾았지만 자동으로 받을 수 없어 사람의 확인이
+필요하다.**
+
+- **Kenney**엔 사슴·소·늑대를 갖춘 3D 킷이 없다 — "Animal Pack"·"Animal
+  Pack Redux" 둘 다 **2D 스프라이트**였다(직접 opengameart.org 미러로
+  확인).
+- **Quaternius**(PLAN.md 8장이 이미 허용해 둔 소스)의 "Animated Animal
+  Pack"(poly.pizza 번들 `Animated-Animal-Pack-ILAPXeUYiS`)이 정확히
+  **Cow·Deer·Wolf**를 포함한다(+ Donkey·Alpaca·Bull·Fox·Shiba Inu·
+  Stag·Husky·Horse 등 12종, 걷기·달리기 등 애니메이션 포함, CC0,
+  glTF/FBX). **다만 poly.pizza는 개별 모델 다운로드에 계정/API 키가
+  필요하고, quaternius.com 원본 페이지는 Discord `#pack-claim`·Patreon
+  클레임 절차를 거치게 돼 있어 — 계정 생성·로그인은 대신 해 줄 수 없는
+  영역이라 파일을 직접 못 받아 왔다.**
+- 로그인 없이 바로 받아지는 대안(`quaternius.itch.io/lowpoly-animated-
+  animals`, CC0, "Name your own price" 무료)도 있지만 Cow·Horse·Llama·
+  Pig·Pug뿐이라 **사슴·늑대가 빠진다** — 지금 갖춘 세 종(사슴·소·늑대)을
+  다 못 채운다.
+
+**다음 세션이 이어갈 것**: 사용자가 직접 poly.pizza 계정을 만들거나
+Quaternius Discord/Patreon 클레임으로 위 팩을 받아 스크래치패드나
+저장소 어딘가에 놔두면, 그 다음부터는 지금까지와 같은 방식(실측→
+`AnimalBuilder.cs`에 스케일·콜라이더 반영→md5 확인)으로 이어받을 수
+있다. 그때까지는 사슴·소·흰 늑대 모두 primitive로 남는다.
+
 ## 이번에 발견해 같이 고친 것 — Awake() 중복 생성
 
 `NpcBuilder.cs`·`BanditEncounter.cs`가 `Awake()`에서 조건 없이

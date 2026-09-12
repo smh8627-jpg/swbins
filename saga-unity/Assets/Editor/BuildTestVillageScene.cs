@@ -46,6 +46,7 @@ namespace Saga.EditorTools
             var terrainGo = BuildTerrain();
             BuildVegetation();
             BuildLandmarks();
+            BuildProps();
             BuildAnimals();
             BuildNpcs();
             BuildBanditEncounter();
@@ -136,6 +137,18 @@ namespace Saga.EditorTools
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/pillar-stone.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/planks.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Shrine/altar-stone.glb"));
+            builder.Build();
+        }
+
+        private static void BuildProps()
+        {
+            var go = new GameObject("Props");
+            var builder = go.AddComponent<PropsBuilder>();
+            builder.Init(
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/lantern.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/stall-red.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/fence.glb"),
+                AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Props/fence-gate.glb"));
             builder.Build();
         }
 
