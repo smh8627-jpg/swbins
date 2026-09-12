@@ -21,12 +21,17 @@ extends Node
 ## 적용된다. `gold`(세력 금고)·`roster`(무장)·`year`/`month`(달력)는
 ## rtk.js처럼 여전히 세력 전체가 공유한다.
 ##
-## **재해석 — 무장의 "위치"는 안 따진다.** rtk.js는 무장마다 소속 성이
-## 있어 그 성에서만 명령을 쓸 수 있지만, 이 슬라이스는 로스터가 1~2명뿐
-## 이라 "무장을 어느 성에 두는가"라는 시스템 자체를 아직 안 만들었다 —
-## 명령은 current_city가 어디든 로스터 중 자질이 가장 높은 무장이 쓴다.
-## 여러 무장을 여러 성에 나눠 배치하는 건 다음에 볼 자리(이미 2026-09-12
-## 1차 추가 때부터 그렇게 적어 뒀다).
+## **2026-09-12 추가 — 무장의 성 소속(officer_city).** "무장 위치는 안
+## 따진다"던 재해석을 이제 절반 뒤집었다: **개발형 명령(agri~ships·
+## draft)은 그 성에 배치된 무장만 쓸 수 있다** — rtk.js order()의
+## `r.city !== cityId` 체크를 그대로 들였다. 시작 무장(현책)은 허창에
+## 배치돼 있어 허창은 그대로 돌아가지만, 진류·복양은 그 성 소속 무장을
+## 얻기 전까진 개발형 명령을 못 쓴다 — "가서 인재를 심어야 그 성이
+## 자란다"는 의도된 결과다. **수색(search)·등용(hire)만 예외** — 아직
+## 로스터 전체 아무나 실행할 수 있다. 안 그러면 "그 성에 무장이 있어야
+## 수색할 수 있는데 수색해야 무장이 생긴다"는 순환이 막힌다(2-5절에서
+## 이미 이 문제를 피하려고 재야를 성마다 나눠 묻는 것까지만 했었다).
+## 등용에 성공하면 그 무장은 **찾아낸(수색한) 성**에 배치된다.
 ##
 ## 무작위(대성공 판정·수색·등용 성공률)는 FOREST 창작 몬스터들과 같은
 ## 이유로 고정 시드를 쓴다 — 헤드리스 검증이 "몇 번을 돌려도 같은 결과"를
@@ -39,7 +44,7 @@ const RealmOfficerPool := preload("res://games/saga_realm/data/realm_officer_poo
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 2  # 1(성 하나) → 2(성 여러 곳, cities 딕셔너리로 구조 변경)
+const SAVE_VERSION := 3  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city 추가)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -55,6 +60,9 @@ var current_city := RealmCities.DEFAULT_CITY  # "지금 조망 중인 성"
 
 var roster: Array = [RealmOfficerPool.STARTING_OFFICER]
 var found: Array = []               # 수색으로 찾아냈지만 아직 등용 전
+## officer_id -> city_id. 개발형 명령(agri~ships·draft)은 이 배치를 따진다
+## (수색·등용은 예외, "재해석" 문단 참고).
+var officer_city: Dictionary = {RealmOfficerPool.STARTING_OFFICER: RealmCities.DEFAULT_CITY}
 var _done_this_month: Dictionary = {}  # officer_id -> bool
 
 var _rng := RandomNumberGenerator.new()
@@ -97,9 +105,13 @@ func execute_order(key: String) -> Dictionary:
 	if gold < int(o.gold):
 		return {"ok": false, "why": "금이 모자랍니다"}
 
-	var officer_id := _best_officer_for(String(o.stat))
+	## 수색·등용은 로스터 전체 아무나(성 소속 무관), 나머지(개발형·징병)는
+	## current_city에 배치된 무장만 — 위 "재해석" 문단 참고.
+	var location_bound := key != "search" and key != "hire"
+	var officer_id := _best_officer_for(String(o.stat), current_city if location_bound else "")
 	if officer_id.is_empty():
-		return {"ok": false, "why": "명령을 쓸 무장이 없습니다"}
+		var why := "이 성에 배치된 무장이 없습니다" if location_bound else "명령을 쓸 무장이 없습니다"
+		return {"ok": false, "why": why}
 
 	gold -= int(o.gold)
 	_done_this_month[officer_id] = true
@@ -206,6 +218,7 @@ func _do_hire(officer_id: String) -> Dictionary:
 
 	found.erase(target_id)
 	roster.append(target_id)
+	officer_city[target_id] = current_city  # 찾아낸(수색한) 성에 배치된다
 	_done_this_month[target_id] = true  # rtk.js: 들어온 달에는 일하지 않는다
 	return {"ok": true, "hired": target_id, "chance": chance}
 
@@ -214,22 +227,21 @@ func _do_hire(officer_id: String) -> Dictionary:
 ## 합**(rtk.js settleMonth() "세력 금고" 루프 그대로)에서 정산하고, 군량·
 ## 치안·병력은 성마다 따로 정산한다.
 func next_month() -> void:
-	var gov_id := _governor()
-	var mul := 1.0
-	if not gov_id.is_empty():
-		var h = Characters.find(gov_id)
-		mul = RealmOrders.gov_mul(float(h.stats.get("wisdom", 0)), float(h.stats.get("command", 0)))
-
 	var income := 0
-	for city_id: String in cities.keys():
-		var c: Dictionary = cities[city_id]
-		income += RealmOrders.gold_income(int(c.comm), mul, int(c.sec))
-	var upkeep := roster.size() * RealmOrders.UPKEEP_PER_OFFICER
-	gold = maxi(0, gold + income - upkeep)
-
 	var harvest := month in RealmOrders.HARVEST_MONTHS
 	for city_id: String in cities.keys():
 		var c: Dictionary = cities[city_id]
+
+		## rtk.js govMul(cityId) — 그 성에 배치된 무장 중 으뜸(태수)의 자질이
+		## 그 성 살림에만 얹힌다. 배치된 무장이 없으면 mul=1.0(rtk.js: !c.gov
+		## 이면 1을 돌려주는 것과 같다) — 인재를 안 심은 성은 더 못 큰다.
+		var gov_id := _governor_at(city_id)
+		var mul := 1.0
+		if not gov_id.is_empty():
+			var h = Characters.find(gov_id)
+			mul = RealmOrders.gov_mul(float(h.stats.get("wisdom", 0)), float(h.stats.get("command", 0)))
+
+		income += RealmOrders.gold_income(int(c.comm), mul, int(c.sec))
 		if harvest:
 			c.food = int(c.food) + RealmOrders.food_income(int(c.agri), mul, int(c.sec))
 
@@ -247,6 +259,9 @@ func next_month() -> void:
 		## "제외") 안 옮겼다 — pop은 징병으로만 준다.
 		c.sec = clampi(int(c.sec) - 1, 0, 100)
 
+	var upkeep := roster.size() * RealmOrders.UPKEEP_PER_OFFICER
+	gold = maxi(0, gold + income - upkeep)
+
 	month += 1
 	if month > 12:
 		month = 1
@@ -254,13 +269,14 @@ func next_month() -> void:
 	_done_this_month.clear()
 
 
-## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 여러 무장을
-## 성마다 따로 앉히는 대신, 로스터 전체에서 가장 나은 하나를 모든 성의
-## 태수로 재사용한다(위 "무장 위치는 안 따진다" 재해석과 같은 결).
-func _governor() -> String:
+## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제
+## officer_city로 실제 배치를 아니까, 그 성에 배치된 무장 중에서만 고른다.
+func _governor_at(city_id: String) -> String:
 	var best_id := ""
 	var best_val := -1.0
 	for id: String in roster:
+		if officer_city.get(id, "") != city_id:
+			continue
 		var h = Characters.find(id)
 		if h == null:
 			continue
@@ -271,11 +287,15 @@ func _governor() -> String:
 	return best_id
 
 
-func _best_officer_for(stat: String) -> String:
+## city_filter가 비어 있으면(수색·등용) 로스터 전체를 본다. 아니면
+## officer_city[id] == city_filter인 무장만 본다(개발형 명령·징병).
+func _best_officer_for(stat: String, city_filter: String = "") -> String:
 	var best_id := ""
 	var best_val := -1.0
 	for id: String in roster:
 		if _done_this_month.get(id, false):
+			continue
+		if not city_filter.is_empty() and officer_city.get(id, "") != city_filter:
 			continue
 		var h = Characters.find(id)
 		if h == null:
@@ -295,6 +315,7 @@ func save() -> bool:
 		"cities": cities,
 		"current_city": current_city,
 		"roster": roster, "found": found,
+		"officer_city": officer_city,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -325,5 +346,8 @@ func try_load() -> bool:
 	current_city = String(data.get("current_city", RealmCities.DEFAULT_CITY))
 	roster = data.get("roster", [RealmOfficerPool.STARTING_OFFICER])
 	found = data.get("found", [])
+	var loaded_officer_city: Variant = data.get("officer_city", {})
+	if typeof(loaded_officer_city) == TYPE_DICTIONARY and not loaded_officer_city.is_empty():
+		officer_city = loaded_officer_city
 	_done_this_month.clear()
 	return true
