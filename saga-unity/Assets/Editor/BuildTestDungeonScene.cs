@@ -227,6 +227,19 @@ namespace Saga.EditorTools
         // 층별로 안 바뀐다, Room3의 채광방과 같은 값).
         private static readonly Vector3 VeinFloor2Spawn = Room8Center + new Vector3(0f, 0f, 0f);
 
+        // "DUNGEON 오픈월드 확장 세 번째 조각" — 사용자가 계속 "층2 방
+        // 종류 추가"로 이어감. Room8(채광방, 예전엔 막다른 방) 북쪽에
+        // 문을 새로 뚫어 복도8→Room9(층2 퍼즐방, 새 막다른 방). 좌표는
+        // 기존 공식 그대로 연장(Room8Center 210 기준 +30): Corridor8=225,
+        // Room9=240.
+        private static readonly Vector3 Corridor8Center = new Vector3(0f, 0f, 225f);
+        private static readonly Vector3 Room9Center = new Vector3(0f, 0f, 240f);
+
+        // Room9 "층2 퍼즐방"(`DungeonPuzzle.cs` 재사용 — 몬스터와 무관한
+        // POI라 roomId 없음, 보상도 상수라 층별로 안 바뀐다. Room4
+        // 퍼즐과 같은 값). 문(남쪽) 폭 밖 서쪽에 둔다.
+        private static readonly Vector3 PuzzleFloor2Anchor = Room9Center + new Vector3(-3f, 0f, 0f);
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
@@ -249,6 +262,7 @@ namespace Saga.EditorTools
             BuildCorridorAndRoom6();
             BuildCorridorAndRoom7();
             BuildCorridorAndRoom8();
+            BuildCorridorAndRoom9();
             var (playerGo, playerCombat, playerController) = BuildPlayer();
             BuildAlly();
             BuildEventSystem();
@@ -669,11 +683,38 @@ namespace Saga.EditorTools
             SetPrivateField(room8Builder, "roomModel", _roomGlb);
             room8Builder.Build();
             room8Builder.OpenSouthDoor(RoomDoorWidth);
+            room8Builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드 확장 세 번째 조각" — 복도8로 Room9와 잇는다. Room8은 더는 막다른 방이 아니다.
 
             var veinGo = new GameObject("VeinFloor2");
             veinGo.transform.position = VeinFloor2Spawn;
             var vein = veinGo.AddComponent<DungeonVein>();
             SetPrivateField(vein, "roomId", "room8");
+        }
+
+        /// <summary>"오픈월드 확장 세 번째 조각" — Room8 북쪽에서 복도8을
+        /// 지나 Room9(층2 퍼즐방, 새 막다른 방)로 이어진다.</summary>
+        private static void BuildCorridorAndRoom9()
+        {
+            var corridor8Go = new GameObject("Corridor8");
+            corridor8Go.transform.position = Corridor8Center;
+            var corridor8Builder = corridor8Go.AddComponent<DungeonCorridorBuilder>();
+            SetPrivateField(corridor8Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(corridor8Builder, "corridorModel", _corridorGlb);
+            corridor8Builder.Build();
+
+            var room9Go = new GameObject("Room9");
+            room9Go.transform.position = Room9Center;
+            var room9Builder = room9Go.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(room9Builder, "biome", SagaBiome.Ruins);
+            SetPrivateField(room9Builder, "decorOffset", new Vector3(-8f, 0f, 5f));
+            SetPrivateField(room9Builder, "gateModel", _gateGlb);
+            SetPrivateField(room9Builder, "roomModel", _roomGlb);
+            room9Builder.Build();
+            room9Builder.OpenSouthDoor(RoomDoorWidth);
+
+            var puzzleGo = new GameObject("PuzzleFloor2");
+            puzzleGo.transform.position = PuzzleFloor2Anchor;
+            puzzleGo.AddComponent<DungeonPuzzle>();
         }
 
         /// <summary>층2 두목 — 층1 두목(3.2m 짙은 적갈)·미니보스(3.6m
@@ -980,6 +1021,7 @@ namespace Saga.EditorTools
             BuildMinimapDot(areaRect, Room6Center, new Color(0.15f, 0.17f, 0.35f), 16f); // Room6 — 층2 두목(짙은 남색으로 더 강조)
             BuildMinimapDot(areaRect, Room7Center, new Color(0.65f, 0.35f, 0.15f), 14f); // Room7 — 층2 정예(녹슨 주황)
             BuildMinimapDot(areaRect, Room8Center, new Color(0.35f, 0.32f, 0.28f), 14f); // Room8 — 층2 채광방(폐허)
+            BuildMinimapDot(areaRect, Room9Center, new Color(0.42f, 0.35f, 0.10f), 14f); // Room9 — 층2 퍼즐방(제단 금빛과 어울리는 황갈)
 
             var dotGo = new GameObject("PlayerDot", typeof(RectTransform));
             dotGo.transform.SetParent(areaRect, false);
