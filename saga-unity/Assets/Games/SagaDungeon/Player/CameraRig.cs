@@ -33,6 +33,11 @@ namespace Saga.Dungeon.Player
         private Vector2 _dragStart;
         private Vector2 _lastPointerPos;
 
+        // "타격감 1차" 슬라이스(PLAN.md 38장 "camera shake") — 짧고 작은
+        // 흔들림만, 어지럽지 않게 강공격에도 0.12 정도로 제한한다.
+        private float _shakeTimer;
+        private float _shakeMagnitude;
+
         private void Awake()
         {
             if (cam == null) cam = GetComponentInChildren<Camera>();
@@ -44,6 +49,14 @@ namespace Saga.Dungeon.Player
         {
             HandlePointer();
             ApplyZoom();
+        }
+
+        /// <summary>PlayerCombat.cs가 타격 성공 시 부른다 — magnitude는
+        /// 로컬 좌표 오프셋 반경(m), duration은 지속 시간(초).</summary>
+        public void Shake(float magnitude, float duration)
+        {
+            _shakeMagnitude = magnitude;
+            _shakeTimer = duration;
         }
 
         private void HandlePointer()
@@ -120,7 +133,13 @@ namespace Saga.Dungeon.Player
         private void ApplyZoom()
         {
             if (cam == null) return;
-            cam.transform.localPosition = new Vector3(0f, 0f, -_zoom);
+            Vector3 shakeOffset = Vector3.zero;
+            if (_shakeTimer > 0f)
+            {
+                _shakeTimer -= Time.deltaTime;
+                shakeOffset = Random.insideUnitSphere * _shakeMagnitude;
+            }
+            cam.transform.localPosition = new Vector3(0f, 0f, -_zoom) + shakeOffset;
         }
     }
 }

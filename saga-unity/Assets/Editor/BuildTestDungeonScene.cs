@@ -160,6 +160,11 @@ namespace Saga.EditorTools
         // GLB" 슬라이스로 7→10)에서 4.5m 여유를 둔다.
         private static readonly Vector3 ForageAnchor = Room4Center + new Vector3(-2f, 0f, 2f);
 
+        // "Secret Area" 슬라이스 — 구출(6,0)·호위(5,±2.5)·퍼즐(-5,0)·채집
+        // (-2,2)·사당 소품(-8,-5)과 다 떨어진 SE 빈 구석. 방 클리어·문
+        // 진행에 필요 없는 완전히 선택적인 자리.
+        private static readonly Vector3 SecretStashSpawn = Room4Center + new Vector3(8f, 0f, -8f);
+
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
@@ -183,6 +188,7 @@ namespace Saga.EditorTools
             BuildEventSystem();
             BuildDialogueUi();
             BuildPlayerHud();
+            BuildMinimap();
             BuildSaveButton();
             BuildAttackButton(playerCombat);
             BuildHeavyAttackButton(playerCombat);
@@ -284,6 +290,19 @@ namespace Saga.EditorTools
             }
 
             BuildMerchant();
+            BuildAmbush();
+        }
+
+        /// <summary>"랜덤 이벤트" 슬라이스 — 필드 사건 자리(DungeonAmbush.cs).
+        /// 기존 콘텐츠(필드 잡졸(0,2)·(-4,-2), 행상(3,-3), 늪 소품(7,5))와
+        /// 안 겹치는 NW 빈 구석.</summary>
+        private static void BuildAmbush()
+        {
+            var go = new GameObject("Ambush");
+            go.transform.position = Room2Center + new Vector3(-6f, 0f, 6f);
+            var ambush = go.AddComponent<DungeonAmbush>();
+            SetPrivateField(ambush, "roomId", "room2");
+            SetPrivateField(ambush, "enemyModelPrefab", _characterD);
         }
 
         /// <summary>"방 종류 나머지" 슬라이스 — Room2 잡졸 둘을 다 잡아야
@@ -392,8 +411,14 @@ namespace Saga.EditorTools
             SetPrivateField(miniboss, "rewardGemId", "gem_ruby"); // "세공·행상 재고 굴리기·도감" 슬라이스 — GemData.cs 참고
             SetPrivateField(miniboss, "isBoss", true);
             SetPrivateField(miniboss, "displayName", "황건 살수");
-            SetPrivateField(miniboss, "bodyColor", new Color(0.32f, 0.24f, 0.5f)); // 자보라 — 두목의 적갈과 구분
-            SetPrivateField(miniboss, "visualScale", 1.3f);
+            // 사람이 실기로 "두목보다 안 세 보인다"고 제보(2026-09-12) — 웹판
+            // spawnEnemy(floor, true) 공식이 두목과 완전히 같은 HP/공격력이라
+            // 수치는 그대로 두되(웹판 기준 원래 동급), 진행상 더 나중(Room3)에
+            // 만나는 개체가 더 작고 색도 옅어 약해 보였다. 두목(1.6배·3.2m)보다
+            // **더 크게(1.8배·3.6m)**·색도 짙고 채도 높은 자보라로 올려 "더
+            // 깊이 들어갈수록 더 위협적"으로 읽히게 했다.
+            SetPrivateField(miniboss, "bodyColor", new Color(0.24f, 0.04f, 0.4f));
+            SetPrivateField(miniboss, "visualScale", 1.8f);
             SetPrivateField(miniboss, "modelPrefab", _characterC);
         }
 
@@ -431,6 +456,10 @@ namespace Saga.EditorTools
             forageGo.transform.position = ForageAnchor;
             var forage = forageGo.AddComponent<DungeonForage>();
             SetPrivateField(forage, "roomId", "room4");
+
+            var secretGo = new GameObject("SecretStash");
+            secretGo.transform.position = SecretStashSpawn;
+            secretGo.AddComponent<DungeonSecretStash>();
         }
 
         /// <summary>이벤트방(구출, js/dungeon.js:383-393) — 지키는 잡졸
@@ -623,7 +652,7 @@ namespace Saga.EditorTools
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(20f, -20f);
-            rect.sizeDelta = new Vector2(600f, 100f);
+            rect.sizeDelta = new Vector2(700f, 140f); // "퀘스트 시스템" 슬라이스 — 퀘스트 목표 줄 추가로 100→140
 
             var text = textGo.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -634,6 +663,90 @@ namespace Saga.EditorTools
 
             var hud = canvasGo.AddComponent<PlayerHud>();
             SetPrivateField(hud, "label", text);
+
+            // "HUD 개선" 슬라이스 — 텍스트 줄 바로 아래 체력 게이지.
+            var barBgGo = new GameObject("HealthBarBg", typeof(RectTransform));
+            barBgGo.transform.SetParent(canvasGo.transform, false);
+            var barBgRect = (RectTransform)barBgGo.transform;
+            barBgRect.anchorMin = new Vector2(0f, 1f);
+            barBgRect.anchorMax = new Vector2(0f, 1f);
+            barBgRect.pivot = new Vector2(0f, 1f);
+            barBgRect.anchoredPosition = new Vector2(20f, -170f); // Label(y=-20, 높이140) 바로 아래
+            barBgRect.sizeDelta = new Vector2(320f, 22f);
+            var barBgImg = barBgGo.AddComponent<Image>();
+            barBgImg.color = new Color(0f, 0f, 0f, 0.4f);
+
+            var barFillGo = new GameObject("HealthBarFill", typeof(RectTransform));
+            barFillGo.transform.SetParent(barBgGo.transform, false);
+            var barFillRect = (RectTransform)barFillGo.transform;
+            barFillRect.anchorMin = Vector2.zero;
+            barFillRect.anchorMax = Vector2.one;
+            barFillRect.offsetMin = Vector2.zero;
+            barFillRect.offsetMax = Vector2.zero;
+            var barFillImg = barFillGo.AddComponent<Image>();
+            barFillImg.color = new Color(0.75f, 0.15f, 0.15f);
+            barFillImg.type = Image.Type.Filled;
+            barFillImg.fillMethod = Image.FillMethod.Horizontal;
+            barFillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+            barFillImg.fillAmount = 1f;
+
+            SetPrivateField(hud, "healthBarFill", barFillImg);
+        }
+
+        /// <summary>"미니맵" 슬라이스 — 방1~4 중심을 고정 점으로 찍고
+        /// 플레이어 위치만 매 프레임 갱신하는 개략도(Minimap.cs 참고,
+        /// 렌더텍스처용 카메라 없음). SaveButton(top-right, y=-30~-110)과
+        /// 안 겹치게 그 아래에 둔다.</summary>
+        private static void BuildMinimap()
+        {
+            var canvasGo = new GameObject("MinimapUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var areaGo = new GameObject("MapArea", typeof(RectTransform));
+            areaGo.transform.SetParent(canvasGo.transform, false);
+            var areaRect = (RectTransform)areaGo.transform;
+            areaRect.anchorMin = new Vector2(1f, 1f);
+            areaRect.anchorMax = new Vector2(1f, 1f);
+            areaRect.pivot = new Vector2(1f, 1f);
+            areaRect.anchoredPosition = new Vector2(-30f, -130f); // SaveButton(-30,-30, 160x80) 바로 아래.
+            areaRect.sizeDelta = new Vector2(140f, 220f);
+
+            var bgImg = areaGo.AddComponent<Image>();
+            bgImg.color = new Color(0f, 0f, 0f, 0.35f);
+
+            var minimap = areaGo.AddComponent<Minimap>();
+            SetPrivateField(minimap, "mapArea", areaRect);
+
+            // 방 넷 중심 — 정적 점(색으로만 구분: 숲/늪/산/사당 바이옴과
+            // 같은 색조를 재사용해 방 종류를 굳이 새로 안 만든다).
+            BuildMinimapDot(areaRect, Vector3.zero, new Color(0.3f, 0.55f, 0.3f), 14f); // Room1 — 숲
+            BuildMinimapDot(areaRect, Room2Center, new Color(0.35f, 0.45f, 0.3f), 14f); // Room2 — 늪
+            BuildMinimapDot(areaRect, Room3Center, new Color(0.55f, 0.5f, 0.45f), 14f); // Room3 — 산
+            BuildMinimapDot(areaRect, Room4Center, new Color(0.6f, 0.35f, 0.2f), 14f);  // Room4 — 사당
+
+            var dotGo = new GameObject("PlayerDot", typeof(RectTransform));
+            dotGo.transform.SetParent(areaRect, false);
+            var dotRect = (RectTransform)dotGo.transform;
+            dotRect.sizeDelta = new Vector2(10f, 10f);
+            var dotImg = dotGo.AddComponent<Image>();
+            dotImg.color = Color.white;
+            SetPrivateField(minimap, "playerDot", dotRect);
+        }
+
+        private static void BuildMinimapDot(RectTransform mapArea, Vector3 worldPos, Color color, float size)
+        {
+            var go = new GameObject("RoomMark", typeof(RectTransform));
+            go.transform.SetParent(mapArea, false);
+            var rect = (RectTransform)go.transform;
+            rect.sizeDelta = new Vector2(size, size);
+            rect.anchoredPosition = Minimap.ProjectToMap(worldPos, mapArea.rect.size);
+            var img = go.AddComponent<Image>();
+            img.color = color;
         }
 
         private static void BuildSaveButton()

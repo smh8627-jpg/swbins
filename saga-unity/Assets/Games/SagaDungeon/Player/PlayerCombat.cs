@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Saga.Dungeon.Audio;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.World;
 using Saga.Dungeon.UI;
@@ -31,14 +32,23 @@ namespace Saga.Dungeon.Player
         private const float HeavyRangeMul = 1.15f;     // dungeon.js heavyAttack() reach
         private const float HeavyRecoverSec = 0.16f;   // dungeon.js HEAVY_RECOVER
 
+        // "타격감 1차" 슬라이스(PLAN.md 38장 "camera shake") — 강공격이
+        // 평타보다 더 크게 흔들린다.
+        private const float HitShakeMag = 0.05f;
+        private const float HitShakeSec = 0.08f;
+        private const float HeavyShakeMag = 0.12f;
+        private const float HeavyShakeSec = 0.15f;
+
         private float _cooldownLeft;
         private float _heavyCooldownLeft;
         private PlayerController _controller;
+        private CameraRig _cameraRig;
 
         private void Awake()
         {
             HeroState.Died += OnDied;
             _controller = GetComponent<PlayerController>();
+            _cameraRig = GetComponentInChildren<CameraRig>();
         }
 
         private void OnDestroy()
@@ -78,6 +88,8 @@ namespace Saga.Dungeon.Player
 
             _cooldownLeft = AttackCooldown;
             enemy.TakeDamage(HeroState.HitDamage);
+            _cameraRig?.Shake(HitShakeMag, HitShakeSec);
+            SfxPlayer.PlayHit();
         }
 
         private void TryHeavyAttack()
@@ -88,7 +100,9 @@ namespace Saga.Dungeon.Player
 
             _heavyCooldownLeft = HeavyCooldown;
             _cooldownLeft = Mathf.Max(_cooldownLeft, HeavyRecoverSec);
-            enemy.TakeDamage(HeroState.HitDamage * HeavyDamageMul);
+            enemy.TakeDamage(HeroState.HitDamage * HeavyDamageMul, heavy: true);
+            _cameraRig?.Shake(HeavyShakeMag, HeavyShakeSec);
+            SfxPlayer.PlayHeavyHit();
         }
 
         /// <summary>이번 슬라이스는 죽음 화면·페널티 없이 바로 회복한다 —

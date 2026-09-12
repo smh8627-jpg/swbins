@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Saga.Dungeon.Audio;
 using Saga.Dungeon.Data;
 using Saga.Dungeon.UI;
 
@@ -67,10 +69,26 @@ namespace Saga.Dungeon.World
 
         private enum State { Idle, Chase, Dead }
 
+        private const float FlashSec = 0.08f; // "타격감 1차" 슬라이스 — enemy flash.
+
         private State _state = State.Idle;
         private float _curHp;
         private float _attackCooldown;
         private Transform _player;
+        private GameObject _visualGo;
+        private Coroutine _flashRoutine;
+
+        /// <summary>"랜덤 이벤트" 슬라이스 — `DungeonAmbush.cs`처럼 런타임에
+        /// 즉석으로 만든 개체에 값을 채우는 정식 API. 편집기 빌드 스크립트의
+        /// 리플렉션 `SetPrivateField()`와 달리 Play 중에도 동작해야 한다.
+        /// **`Awake()`가 아직 안 돈 상태에서만 의미가 있다** — 호출부가
+        /// GameObject를 비활성 상태로 만들고 이 메서드를 부른 뒤 활성화해야
+        /// `BuildVisual()`이 올바른 모델로 도는 게 보장된다.</summary>
+        public void SetSpawnContext(string newRoomId, GameObject newModelPrefab)
+        {
+            roomId = newRoomId;
+            modelPrefab = newModelPrefab;
+        }
 
         private void Awake()
         {
@@ -94,14 +112,10 @@ namespace Saga.Dungeon.World
         {
             float targetHeight = 2f * visualScale; // 기존 primitive capsule 기준(높이 2m × visualScale) 그대로 유지.
 
-            if (modelPrefab != null)
-            {
-                CharacterVisual.Spawn(modelPrefab, transform, targetHeight, bodyColor);
-            }
-            else
-            {
-                CharacterVisual.SpawnFallbackCapsule(transform, targetHeight, bodyColor);
-            }
+            Transform visual = modelPrefab != null
+                ? CharacterVisual.Spawn(modelPrefab, transform, targetHeight, bodyColor)
+                : CharacterVisual.SpawnFallbackCapsule(transform, targetHeight, bodyColor);
+            _visualGo = visual.gameObject;
         }
 
         private void Update()
@@ -172,16 +186,40 @@ namespace Saga.Dungeon.World
             return count;
         }
 
-        public void TakeDamage(float amount)
+        /// <summary>"타격감 1차" 슬라이스(PLAN.md 38장 "damage popup"·
+        /// "enemy flash") — heavy는 PlayerCombat.TryHeavyAttack()이 넘겨
+        /// 팝업 색·크기만 다르게 한다(새 크리티컬 확률 시스템은 범위 밖,
+        /// 강공격 자체가 이미 있는 "확실히 센 한 방" 신호라 재사용).</summary>
+        public void TakeDamage(float amount, bool heavy = false)
         {
             if (_state == State.Dead) return;
             _curHp -= amount;
+
+            Vector3 popupPos = transform.position + Vector3.up * (2f * visualScale);
+            DamagePopup.Spawn(popupPos, amount, heavy);
+
+            if (_visualGo != null)
+            {
+                if (_flashRoutine != null) StopCoroutine(_flashRoutine);
+                _flashRoutine = StartCoroutine(FlashHit());
+            }
+
             if (_curHp <= 0f) Die();
+        }
+
+        private IEnumerator FlashHit()
+        {
+            CharacterVisual.Tint(_visualGo, Color.white);
+            yield return new WaitForSeconds(FlashSec);
+            // ClearTint()가 아니라 bodyColor로 되돌린다 — 두목·정예처럼
+            // 원래부터 색이 있는 개체는 ClearTint()가 그 색까지 지워 버린다.
+            if (_visualGo != null) CharacterVisual.Tint(_visualGo, bodyColor);
         }
 
         private void Die()
         {
             _state = State.Dead;
+            SfxPlayer.PlayEnemyDeath();
 
             int levelBefore = HeroState.Level;
             HeroState.AddExp(rewardExp);
