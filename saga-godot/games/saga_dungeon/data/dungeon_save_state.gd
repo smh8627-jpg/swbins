@@ -45,6 +45,12 @@ func save(player: Node3D) -> void:
 		"boons": DungeonRunState.boons,
 		## §"제외" 3번(장비 등급+접사) — 같은 경계, 순수 추가 필드.
 		"weapon": DungeonEquipmentState.weapon,
+		## §"제외" 2번(소켓+부문어·투장·내구) — 부적(charm)도 무기와 같은
+		## 경계(순수 추가 필드). 소켓(sock)·내구(dur)·세트(set)는 weapon/
+		## charm 안에 이미 들어 있어 따로 안 적는다(item Dictionary 그대로
+		## 저장). 부문(룬) 주머니는 별도 최상위 필드.
+		"charm": DungeonEquipmentState.charm,
+		"runes": DungeonMaterialsState.rune_counts,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -80,7 +86,12 @@ func try_load() -> bool:
 	var boons: Variant = data.get("boons", {})
 	DungeonRunState.restore(boons if typeof(boons) == TYPE_DICTIONARY else {})
 	var weapon: Variant = data.get("weapon", {})
-	DungeonEquipmentState.restore(weapon if typeof(weapon) == TYPE_DICTIONARY else {})
+	var charm: Variant = data.get("charm", {})
+	DungeonEquipmentState.restore(
+		weapon if typeof(weapon) == TYPE_DICTIONARY else {},
+		charm if typeof(charm) == TYPE_DICTIONARY else {})
+	var runes: Variant = data.get("runes", {})
+	DungeonMaterialsState.restore(runes if typeof(runes) == TYPE_DICTIONARY else {})
 	return true
 
 

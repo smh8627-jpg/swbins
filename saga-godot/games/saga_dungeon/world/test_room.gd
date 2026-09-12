@@ -243,7 +243,18 @@ func _on_boon_picked(key: String, body: Node3D, layer_box: Dictionary, room_inde
 ## 방마다 진행 상황을 저장한다(중간에 그만둬도 이미 클리어한 방은 안
 ## 되풀이된다) — 마지막 방만 "이번 슬라이스는 여기까지" 토스트를 겸한다
 ## (VERTICAL_SLICE_DUNGEON.md 완료 조건 8단계의 마지막 자리).
+##
+## "제외" 목록 2번(내구) — item.js::wearAll(), "층을 내려갈 때마다 1
+## 닳는다"를 그대로 여기(방 출구 = descend)에서 부른다. **수리(修理)는
+## 이번 세션에 안 붙인다** — repairCost()가 price()(물건 값어치)를 필요로
+## 하는데 이 슬라이스엔 아직 골드 시스템이 없다("제외" 목록 3번 몫). 부서진
+## 장비는 그냥 다음 노획으로 갈아 들 때까지 능력치를 못 낸다(원작처럼
+## 사라지지는 않는다).
 func _finish_exit(body: Node3D, room_index: int, is_final: bool) -> void:
+	var broke := DungeonEquipmentState.wear_all(1.0)
+	for slot_name in broke:
+		var it: Dictionary = DungeonEquipmentState.weapon if slot_name == "weapon" else DungeonEquipmentState.charm
+		Toast.show(self, "🔧 %s 이(가) 부서졌다 — 새로 주울 때까지 능력치를 못 낸다." % DungeonItems.item_name(it), 4.0)
 	DungeonSaveState.mark_room_cleared(room_index)
 	DungeonSaveState.save(body)
 	if is_final:

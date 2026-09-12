@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/attack_button.gd" id="3"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/job_label.gd" id="4"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/materials_label.gd" id="5"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/socket_button.gd" id="6"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -80,6 +82,19 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
 script = ExtResource("4")
 
+[node name="MaterialsLabel" type="Label" parent="."]
+anchor_left = 0.0
+anchor_right = 0.0
+offset_left = 40.0
+offset_top = 170.0
+offset_right = 260.0
+offset_bottom = 200.0
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.9, 0.75, 0.4, 0.95)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+script = ExtResource("5")
+
 [node name="AttackButton" type="Button" parent="."]
 anchor_left = 1.0
 anchor_top = 1.0
@@ -92,3 +107,16 @@ offset_bottom = -40.0
 text = "⚔"
 theme_override_font_sizes/font_size = 36
 script = ExtResource("3")
+
+[node name="SocketButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -260.0
+offset_right = -40.0
+offset_bottom = -190.0
+text = "🔨"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("6")
