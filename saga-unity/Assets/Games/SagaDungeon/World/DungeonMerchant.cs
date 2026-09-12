@@ -41,6 +41,17 @@ namespace Saga.Dungeon.World
         // 채워져 있으면 sellItemId 대신 이 보석을 판다(Room3 전용, 위 클래스 주석 참고).
         [SerializeField] private string sellGemId;
 
+        /// <summary>"DUNGEON 오픈월드 확장 — 절차적 층 진행" 슬라이스 —
+        /// `DungeonFloorRunner`가 런타임에 즉석으로 만든 행상에 값을 채우는
+        /// 정식 API. Awake가 아직 안 돈 상태에서만 의미가 있다.</summary>
+        public void Configure(string newRoomId, string newSellItemId, string newSellGemId, int newPrice)
+        {
+            roomId = newRoomId;
+            sellItemId = newSellItemId;
+            sellGemId = newSellGemId;
+            price = newPrice;
+        }
+
         private static readonly Color MerchantColor = new Color(0.15f, 0.5f, 0.25f);
 
         private bool _sold;

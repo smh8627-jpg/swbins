@@ -5,6 +5,48 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **DUNGEON — 오픈월드 확장을 절차적 층 진행 시스템으로 전환, 100층
+  검증 (2026-09-12, 열 번째 세션 이어서).** 사용자가 "100층까지
+  진행해줘"로 요청 — Room5~11처럼 방을 편집기 스크립트로 손으로 이어
+  붙이는 물리적 확장은 100층 규모(방 수백~수천 개)에서 불가능해,
+  saga-dungeon 웹판의 실제 방식(방 하나를 클리어마다 갈아치우며 문
+  2~3개 중 다음 종류를 고르는 로그라이크식 진행)으로 전환할지 사용자
+  에게 먼저 확인받고 착수. **Room5~11은 이제 물리적으로 존재하지
+  않는다** — Room4→복도4→**ProcRoom**(방 하나) 구조로 줄었고,
+  `World/DungeonFloorRunner.cs`(신규)가 이 방 하나를 층2부터 100층
+  까지 계속 갈아치운다.
+  - 신규 `Data/DungeonFormulas.cs` — UnityEngine 의존 없는 순수 C#으로
+    `enemyHp`/`enemyDmg`/`roomsFor`/`isBossFloor`(js/dungeon.js 실제
+    공식)를 그대로 옮기고, 문 종류 가중치 룰렛(`ROOMS`, data-dungeon.js)
+    ·문 2~3개 선택(`makeDoors`)도 포팅. UnityEngine 비의존 덕에 씬
+    없이도 계산만으로 100층까지 미리 검증 가능.
+  - 문 선택은 화면 UI 버튼 대신 이 프로젝트 기존 관례(우물·사당·퍼즐
+    제단처럼 "걸어서 가까이 가면 반응")를 그대로 따름 — 방이 갱신될
+    때마다 문 자리에 원기둥+월드 공간 라벨(`DamagePopup.cs` billboard
+    패턴 재사용)을 세우고, 걸어가면 그 종류로 다음 방이 열린다. 새
+    Canvas/EventSystem 배선 없음.
+  - 런타임에 즉석으로 만드는 POI에 값을 채우는 정식 API를 각 컴포넌트에
+    추가(`DungeonEnemy.SetSpawnContext()`가 이미 쓰던 패턴의 연장) —
+    `DungeonEnemy.ConfigureCombat()`, `DungeonMerchant.Configure()`,
+    `DungeonTrove`/`DungeonShrine`/`DungeonVein`/`DungeonCaptive`/
+    `DungeonForage.SetRoomId()`.
+  - **`SimulateDungeonFloors.cs`(신규 에디터 도구)로 2~100층 전부
+    검증** — 실제로 100층을 사람이 걸어서 확인하는 건 비현실적이라
+    공식만 씬 없이 돌려 예외·NaN·오버플로 없음을 확인. **첫 실행에서
+    실제 버그를 하나 잡았다** — 78층 근처에서 보상 exp/gold가 `int`
+    캐스트 오버플로로 음수가 됐다(층별 1.25배 복리 성장이 int.MaxValue를
+    넘음). `DungeonFormulas.ClampToInt()`로 int.MaxValue에서 눌러 고침
+    (HeroState.AddExp/AddGold가 `int`를 받아 long으로 통째로 바꾸면
+    SaveState·PlayerHud까지 건드리는 큰 손질이라 이 계산 단계에서
+    캡). 고친 뒤 100층까지 방 856개, 예외 없이 통과(`OK - 2층~100층
+    전부 통과`) — 100층 hp는 두목 기준 약 1.45조로 사실상 의미 없는
+    숫자지만, "공식이 100층까지 안 깨진다"는 것 자체가 이번 요청의
+    핵심이라 그대로 둠(밸런스 손질 요청 아님).
+  - 컴파일·씬 재빌드(`room childCount=14` 그대로, GLB 못 찾음 경고
+    없음)·PlaytestDungeonHeadless(`OK - 10 frames, no errors`, ProcRoom
+    첫 방(fight) 스폰까지 실제 Play로 확인) 전부 통과 — **문 선택
+    트리거·방 갈아치우기가 실제로 자연스러운지, 라벨이 잘 보이는지는
+    사람이 직접 가 봐야 확인됨**(아래 GUI 확인 목록에 추가).
 - **DUNGEON — 오픈월드 확장 네 번째 조각: Room10(층2 행상)
   (2026-09-12, 열 번째 세션 이어서).** "층2 방 종류 계속 추가" 방향을
   그대로 이어감 — Room9(퍼즐방, 예전엔 막다른 방) 북쪽에 문을 새로
@@ -1445,18 +1487,18 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- **DUNGEON 오픈월드 확장 — 열 번째 세션에서 네 조각(Room5·6 층2 진입
-  + Room7·8 층2 방 종류 추가 + Room9 층2 퍼즐방 + Room10 층2 행상)을
-  끝냈다(위 "완료 단계" 맨 위 네 항목 참고).** 방향은 "물리적 확장
-  계속" + "같은 층 안에 방 종류 채우기"로 계속 확정 중. 층2에 아직
-  없는 웹판 kind: event(구출)·forage(채집)·miniboss. 다음 조각 후보:
-  (a) 위 남은 kind 중 하나로 Room11 잇기, (b) 이쯤에서 "층3"으로
-  올려 층 개념 자체를 한 번 더 검증하기, (c) 사람이 먼저 Room5~10을
-  실기로 확인한 뒤 피드백으로 다음을 정하기 — **사용자가 "실기는
-  마지막, 다른 작업이 우선"으로 정해 뒀으니 실기 확인을 기다리지 말고
-  (a)나 (b)로 바로 이어가도 된다.** 매 조각 끝날 때마다
-  AskUserQuestion으로 방향을 물어 그때그때 진행 중(이 세션의 패턴).
-  사용자가 "새로운 세션에서 이어 하자"로 끊지 않는 한 계속 진행 가능.
+- **DUNGEON 오픈월드 확장 — 물리적 확장(Room5~11) 네 조각 끝난 뒤
+  사용자가 "100층까지 진행해줘"로 요청, 절차적 층 진행 시스템으로
+  전환해 100층 검증까지 끝냈다(위 "완료 단계" 맨 위 항목 참고).**
+  Room5~11은 이제 존재하지 않는다 — ProcRoom 하나 + `DungeonFloorRunner`
+  가 층2~100까지 다 맡는다. **다음 세션이 볼 것**: (1) ProcRoom의 문
+  선택 트리거·방 갈아치우기·라벨 표시를 사람이 실기로 확인(아직 전혀
+  안 됨 — 이 시스템 전체가 새 방식이라 최우선), (2) 확인 결과에 따라
+  door UI를 더 다듬을지(예: 라벨이 안 보이거나 트리거가 안 먹으면),
+  (3) 100층 이후(200층 등)로 더 늘릴지, 아니면 다른 게임(FOREST 등)
+  으로 넘어갈지 — **사용자가 "실기는 마지막, 다른 작업이 우선"으로
+  정해 뒀으니 실기 확인을 기다리지 말고 (2)나 (3) 방향을 먼저 물어도
+  된다.**
 - **사용자가 "1,2 순서대로"로 두 방향을 확정했다 — (1) FOREST 착수
   (완료, 위 "완료 단계" 참고) → (2) DUNGEON을 진짜 오픈월드로 확장
   (아직 착수 전).** 다음 세션은 (2)부터 시작한다 — 방 넷짜리 선형
@@ -2047,3 +2089,11 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   재사용) 후 컴파일 통과(`error CS` 0건), 씬 재빌드(`room childCount=14`
   그대로, GLB 못 찾음 경고 0건), PlaytestDungeonHeadless(`OK - 10
   frames, no errors`)도 통과.
+- DUNGEON 절차적 층 진행 전환(Room5~11 제거 → ProcRoom +
+  `DungeonFloorRunner`, `DungeonFormulas.cs` 신규) 후 컴파일 통과,
+  씬 재빌드(`room childCount=14` 그대로, GLB 못 찾음 경고 0건),
+  PlaytestDungeonHeadless(`OK - 10 frames, no errors`) 통과.
+  `SimulateDungeonFloors.cs`(신규, 씬 불필요) 첫 실행에서 78층 근처
+  보상 int 오버플로(exp/gold가 음수로 뒤집힘) 발견 → `ClampToInt()`로
+  고침 → 재실행 결과 `OK - 2층~100층 전부 통과, 방 856개 방문, 예외·
+  NaN 없음`.
