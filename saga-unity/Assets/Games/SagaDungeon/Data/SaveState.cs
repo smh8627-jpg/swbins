@@ -13,11 +13,13 @@ namespace Saga.Dungeon.Data
     /// </summary>
     public static class SaveState
     {
-        // v3("퀘스트 시스템" 슬라이스) — questStage 추가. 구 v1/v2 세이브는
-        // JsonUtility가 int 기본값(0=Stage.HuntBoss)으로 채워 그대로
-        // 로드된다(PLAN.md 75장 "Data Versioning") — 처음부터 다시 하는
-        // 셈이라 자연스럽다(예전 세이브엔 퀘스트 진행 개념 자체가 없었다).
-        private const int SaveVersion = 3;
+        // v4(QuestState 순서 무관 플래그로 재설계) — questStage(단일
+        // 정수) 대신 bossDead/minibossDead/captiveFreed 세 플래그로
+        // 저장한다(QuestState.cs 클래스 주석 "결함" 참고). v3 세이브는
+        // 옛 questStage 필드가 JsonUtility로 그대로 읽혀 `RestoreLegacyStage()`
+        // 로 등가 환산되고, v1/v2는 questStage 자체가 없어 int 기본값 0
+        // (아직 아무 것도 안 끝남)으로 채워져 그대로 맞다.
+        private const int SaveVersion = 4;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -33,7 +35,10 @@ namespace Saga.Dungeon.Data
             public string weaponId;
             public string gemId;
             public string[] discovered;
-            public int questStage;
+            public int questStage; // v3 이하 호환용 — v4부터는 아래 세 플래그가 정본.
+            public bool bossDead;
+            public bool minibossDead;
+            public bool captiveFreed;
         }
 
         public static bool Save()
@@ -52,7 +57,9 @@ namespace Saga.Dungeon.Data
                 weaponId = HeroState.EquippedWeaponId,
                 gemId = HeroState.SocketedGemId,
                 discovered = BestiaryState.Snapshot(),
-                questStage = (int)QuestState.Current,
+                bossDead = QuestState.BossDead,
+                minibossDead = QuestState.MinibossDead,
+                captiveFreed = QuestState.CaptiveFreed,
             };
 
             try
@@ -90,7 +97,14 @@ namespace Saga.Dungeon.Data
 
             HeroState.Restore(data.level, data.exp, data.hp, data.gold, data.weaponId, data.gemId);
             BestiaryState.Restore(data.discovered);
-            QuestState.Restore(data.questStage);
+            if (data.version >= 4)
+            {
+                QuestState.Restore(data.bossDead, data.minibossDead, data.captiveFreed);
+            }
+            else
+            {
+                QuestState.RestoreLegacyStage(data.questStage);
+            }
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
