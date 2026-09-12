@@ -180,3 +180,41 @@ func socket_rune(slot_name: String, rune_key: String) -> Dictionary:
 		charm_changed.emit()
 	var b := DungeonItems.base_by_key(str(it.get("base", "")))
 	return DungeonItems.word_of(sock, str(b.get("slot", "")))
+
+
+## "제외" 목록 3번(감정) — 미확인 표시를 끈다. 재료(감정서)는 호출 쪽
+## (vendor_button.gd)이 이미 DungeonMaterialsState에서 있는지 확인하고
+## 불렀다고 본다(socket_rune()과 같은 경계). 이미 확인된 물건이면 false.
+func identify(slot_name: String) -> bool:
+	var it: Dictionary = weapon if slot_name == "weapon" else charm
+	if it.is_empty() or not bool(it.get("unid", false)):
+		return false
+	it["unid"] = false
+	if slot_name == "weapon":
+		weapon_changed.emit()
+	else:
+		charm_changed.emit()
+	return true
+
+
+## "제외" 목록 3번(수리) — item.js::repairCost()의 합. 0이면 수리할 게 없다.
+func repair_all_cost() -> int:
+	var total := 0
+	for it: Dictionary in [weapon, charm]:
+		if not it.is_empty():
+			total += DungeonItems.repair_cost(it)
+	return total
+
+
+## 무기·부적을 모두 최대 내구까지 고친다 — 비용은 호출 쪽이 이미
+## repair_all_cost()로 확인하고 금을 뗐다고 본다.
+func repair_all() -> void:
+	for slot_name in ["weapon", "charm"]:
+		var it: Dictionary = weapon if slot_name == "weapon" else charm
+		if it.is_empty():
+			continue
+		var max_d := DungeonItems.dur_max_of(it)
+		if max_d > 0.0:
+			it["dur"] = max_d
+	weapon_changed.emit()
+	charm_changed.emit()

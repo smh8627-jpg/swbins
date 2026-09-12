@@ -1,0 +1,40 @@
+extends Button
+
+## "제외" 목록 3번(연단) — forge.js의 조합 넷 중 **부문 셋→다음 글자**만
+## 옮겼다(dungeon_materials_state.gd::combine_rune() 헤더에 이유 있음).
+## socket_button.gd와 같은 경계(HUD 버튼 하나가 ChoicePrompt를 연다).
+
+const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
+
+
+func _ready() -> void:
+	pressed.connect(_on_pressed)
+
+
+func _on_pressed() -> void:
+	var choices: Array = []
+	for r: Dictionary in DungeonItems.RUNES:
+		var key := str(r.key)
+		if DungeonMaterialsState.count(key) < 3:
+			continue
+		var next_key := DungeonItems.next_rune_key(key)
+		if next_key == "":
+			continue
+		var nr := DungeonItems.rune_by_key(next_key)
+		choices.append({
+			"label": "%s(%s) ×3 → %s(%s) ×1" % [r.glyph, r.name, nr.glyph, nr.name],
+			"cb": func() -> void: _combine(key),
+		})
+	if choices.is_empty():
+		Toast.show(self, "지금 태울 수 있는 부문이 없다(같은 글자 3개 필요).", 2.5)
+		return
+	ChoicePrompt.build(get_tree().current_scene, "⚗️ 연단", choices)
+
+
+func _combine(key: String) -> void:
+	var r := DungeonMaterialsState.combine_rune(key)
+	if not bool(r.get("ok", false)):
+		return
+	var nr := DungeonItems.rune_by_key(str(r.next_key))
+	Toast.show(self, "⚗️ 연단 · 부문 %s(%s) 이 나왔다." % [nr.glyph, nr.name], 3.0)

@@ -111,3 +111,10 @@ func drain_pct() -> float:
 
 func echo_pct() -> float:
 	return _sum_eff("echoPct")
+
+
+## "제외" 목록 3번(행상 등) — dungeon.js dropGold()의 `(1+boonVal('goldPct')/100)
+## *(1+core.effect('goldPct')/100)` 두 배율을 여기 하나로 합친다(은사+장비가
+## 이미 _sum_eff 한 곳에서 더해진다 — atk_mult()와 같은 경계).
+func gold_mult() -> float:
+	return 1.0 + _sum_eff("goldPct") / 100.0

@@ -21,6 +21,19 @@ class_name DungeonItems
 ## "2점" 문턱까지만 시험할 수 있다 — 3점(무기+갑주+부적) 완성은 갑주
 ## 슬롯이 생겨야 가능하다(그때까지 세트 10벌 중 갑주만 걸치는 조각이
 ## 낀 것들은 계속 미완성으로 남는다 — 새 세트를 상상해 채우지 않는다).
+##
+## "제외" 목록 3번(행상/투전/연단·단약/요대·감정·창고) — `vendor.js`의
+## 투전(GAMBLE_W) 표·`item.js`의 값어치(price)·수리 공식, **감정(unid)**을
+## 여기 이어 옮겼다. 감정은 원작과 다르게 지킨다: 원작은 "미확인은 장착
+## 자체가 안 된다"(가방에 넣어 두고 감정서를 쓸 때까지 기다린다)인데, 이
+## 슬라이스엔 가방이 없어 주우면 무조건 즉시 장착된다는 원칙이 이미
+## 있었다 — 그 원칙과 충돌하지 않게 **미확인이어도 그대로 장착되지만
+## 이름·옵션 표시만 잠근다**("《무엇을 손에 쥐었는지는 알지만 옵션은
+## 감정해야 보인다》"). 능력치 자체는 그대로 적용된다(원작처럼 완전히
+## 막지 않는다) — 대신 감정 전엔 **무엇이 붙었는지 모른 채** 쓰는 셈이라
+## "감정해서 확인하고 싶다"는 동기만은 살아 있다. 창고(倉庫)는 여전히
+## 이 슬라이스 밖 — 지킬 가방/인벤토리 자체가 없다(창고는 "가방에 있는
+## 것"과 "창고에 있는 것"을 가르는 장치인데 우리는 애초에 가방이 없다).
 
 const TIERS: Array[Dictionary] = [
 	{ "key": 0, "name": "상품", "hanja": "常品", "color": "#d0c8b8", "mul": 1.00, "affix": 0, "weight": 100.0 },
@@ -194,6 +207,10 @@ const SETS: Array[Dictionary] = [
 const SET_TIER := 3 # 보물(寶物) 등급에만 붙는다
 const SET_CHANCE := 0.55
 
+## vendor.js GAMBLE_W 그대로 — 던전 드랍(100/52/22/7/1.6)보다 위쪽이 훨씬
+## 두껍다. 투전이 비싼 대신 좋은 등급이 잘 나오는 이유.
+const GAMBLE_W: Array[float] = [10.0, 44.0, 30.0, 13.0, 3.0]
+
 
 static func base_by_key(k: String) -> Dictionary:
 	for b: Dictionary in BASES:
@@ -214,6 +231,15 @@ static func rune_by_key(k: String) -> Dictionary:
 		if r.key == k:
 			return r
 	return {}
+
+
+## forge.js nextRune() — RUNES는 tier 순으로 늘어서 있어 "다음 글자"는
+## 그냥 다음 칸이다. 마지막 글자(王)면 "".
+static func next_rune_key(key: String) -> String:
+	for i in range(RUNES.size()):
+		if RUNES[i].key == key:
+			return str(RUNES[i + 1].key) if i + 1 < RUNES.size() else ""
+	return ""
 
 
 static func set_by_key(k: String) -> Dictionary:
@@ -309,6 +335,36 @@ static func is_broken(it: Dictionary) -> bool:
 	return float(it.get("dur", max_d)) <= 0.0
 
 
+## item.js::price(it) — 등급·수준만 본다(접사는 안 본다, power()와는 다른
+## 함수다). 행상 매입값·투전값·수리값이 전부 이 값 하나에서 갈라진다.
+static func price(it: Dictionary) -> int:
+	if it.is_empty():
+		return 0
+	return int(roundf(18.0 * pow(float(it.get("tier", 0)) + 1.0, 1.7) * (1.0 + float(it.get("ilvl", 1)) * 0.12)))
+
+
+## item.js::repairCost(it) — 닳은 만큼만 낸다(가득 차 있으면 0).
+static func repair_cost(it: Dictionary) -> int:
+	var max_d := dur_max_of(it)
+	if max_d <= 0.0:
+		return 0
+	var lost: float = max_d - float(it.get("dur", max_d))
+	if lost <= 0.0:
+		return 0
+	return maxi(1, int(roundf(float(price(it)) * 0.4 * (lost / max_d))))
+
+
+## vendor.js gamblePrice(slot, lv) 그대로.
+static func gamble_price(slot: String, lv: int) -> int:
+	var base: float = 120.0 if slot == "charm" else 150.0
+	return int(roundf(base * (1.0 + float(lv) * 0.55)))
+
+
+## vendor.js scrollPrice() 그대로 — "막는 관문이 아니라 거쳐 가는 자리".
+static func scroll_price(lv: int) -> int:
+	return 30 + int(roundf(float(lv) * 4.0))
+
+
 ## dungeon.js::dropMat()의 부문(룬) 갈래만 옮겼다(보석·주옥 갈래는 이
 ## 슬라이스 밖 — 위 헤더 참고). "층이 감당하는 등급까지만"(maxTier) ·
 ## 낮은 등급일수록 잘 나온다(가중치 1/tier) 둘 다 원작 공식 그대로.
@@ -383,12 +439,16 @@ static func socket_effects(it: Dictionary) -> Array[Dictionary]:
 	return out
 
 
-## item.js::roll(ilvl, {slot}) — sock·set·dur을 여기서 같이 굴린다.
-## 감정(unid)·고유(uniq)는 이 슬라이스 밖이라 안 붙인다.
+## item.js::roll(ilvl, {slot, tier, unid}) — sock·set·dur·unid를 여기서
+## 같이 굴린다. 고유(유니크)는 이 슬라이스 밖이라 안 붙인다.
 ## slot을 안 주면(기본값 "") **웹판 dropItem()과 같은 방식**으로 무기·
 ## 부적을 안 가리고 전체 BASES에서 고른다 — 노획이 어느 부위가 나올지도
 ## 굴림의 일부다(호출 쪽이 base.slot을 보고 어디에 장착할지 정한다).
-static func roll(ilvl: int, slot: String = "") -> Dictionary:
+## forced_tier(0 이상)를 주면 등급 추첨 대신 그 등급으로 고정한다(투전이
+## GAMBLE_W로 직접 고른 등급을 여기 넣는 자리). force_identified가 참이면
+## 등급과 상관없이 확인된 채로 나온다(행상·투전에서 산 것은 원작도 확인된
+## 채로 온다 — item.js roll()의 `unid: opts.unid===false?false:t>=1`과 같음).
+static func roll(ilvl: int, slot: String = "", forced_tier: int = -1, force_identified: bool = false) -> Dictionary:
 	ilvl = maxi(1, ilvl)
 	var pool: Array[Dictionary] = []
 	for b: Dictionary in BASES:
@@ -397,7 +457,7 @@ static func roll(ilvl: int, slot: String = "") -> Dictionary:
 	if pool.is_empty():
 		pool = BASES
 	var base: Dictionary = pool[randi() % pool.size()]
-	var t: int = roll_tier()
+	var t: int = forced_tier if forced_tier >= 0 else roll_tier()
 	var tier: Dictionary = TIERS[t]
 
 	var aff: Array[Dictionary] = []
@@ -422,17 +482,35 @@ static func roll(ilvl: int, slot: String = "") -> Dictionary:
 		"aff": aff,
 		"sock": roll_sockets(base.slot, t),
 		"set": roll_set(base, t),
+		"unid": false if force_identified else t >= 1,
 	}
 	it["dur"] = dur_max_of(it)
 	return it
 
 
-## item.js::name() — 부문어·투장이 이루어졌으면 그 이름이 앞선다(원작과
-## 같은 순서). 감정(unid)·고유(uniq)는 이 슬라이스에 없어 그 분기는 뺐다.
+## vendor.js pickW(GAMBLE_W) — 투전 전용 등급 추첨(TIERS.weight보다 위쪽이
+## 훨씬 두껍다).
+static func roll_tier_gamble() -> int:
+	var total := 0.0
+	for w in GAMBLE_W:
+		total += w
+	var r := randf() * total
+	for i in range(GAMBLE_W.size()):
+		r -= GAMBLE_W[i]
+		if r <= 0.0:
+			return i
+	return 0
+
+
+## item.js::name() — 미확인이면 밑감 이름만(원작처럼 접사·부문어·투장이
+## 안 새어 나간다), 그 외엔 부문어·투장이 이루어졌을 때 그 이름이 앞선다
+## (원작과 같은 순서). 고유(uniq)는 이 슬라이스에 없어 그 분기는 뺐다.
 static func item_name(it: Dictionary) -> String:
 	var b := base_by_key(str(it.get("base", "")))
 	if b.is_empty():
 		return "?"
+	if bool(it.get("unid", false)):
+		return b.name
 	var sock: Array = it.get("sock", [])
 	var word := word_of(sock, str(b.get("slot", "")))
 	if not word.is_empty():
@@ -456,9 +534,13 @@ static func item_name(it: Dictionary) -> String:
 	return prefix + pre + b.name + post
 
 
-## item.js::lines() — 주 능력치 · 접사 · 소켓(또는 부문어) · 내구 순.
-## 감정(unid)·고유(uniq) 분기는 이 슬라이스에 없어 뺐다.
+## item.js::lines() — 미확인이면 원작 문구("미확인 — 감정해야 옵션이
+## 보입니다") 한 줄만(내구조차 안 보여준다, 원작과 같은 경계). 그 외엔
+## 주 능력치 · 접사 · 소켓(또는 부문어) · 내구 순. 고유(uniq) 분기는 이
+## 슬라이스에 없어 뺐다.
 static func item_lines(it: Dictionary) -> Array[String]:
+	if bool(it.get("unid", false)):
+		return ["미확인 — 감정해야 옵션이 보입니다"]
 	var b := base_by_key(str(it.get("base", "")))
 	var out: Array[String] = []
 	if not b.is_empty():

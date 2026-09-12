@@ -51,6 +51,11 @@ func save(player: Node3D) -> void:
 		## 저장). 부문(룬) 주머니는 별도 최상위 필드.
 		"charm": DungeonEquipmentState.charm,
 		"runes": DungeonMaterialsState.rune_counts,
+		## §"제외" 3번(행상/투전/연단·단약/요대·감정·창고) — 전부 순수
+		## 추가 필드(창고는 안 만들었으니 저장할 것도 없다).
+		"scrolls": DungeonMaterialsState.scrolls,
+		"gold": DungeonGoldState.gold,
+		"belt": DungeonPotionState.belt,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -91,7 +96,14 @@ func try_load() -> bool:
 		weapon if typeof(weapon) == TYPE_DICTIONARY else {},
 		charm if typeof(charm) == TYPE_DICTIONARY else {})
 	var runes: Variant = data.get("runes", {})
-	DungeonMaterialsState.restore(runes if typeof(runes) == TYPE_DICTIONARY else {})
+	var scrolls: Variant = data.get("scrolls", 0)
+	DungeonMaterialsState.restore(
+		runes if typeof(runes) == TYPE_DICTIONARY else {},
+		int(scrolls) if (typeof(scrolls) == TYPE_INT or typeof(scrolls) == TYPE_FLOAT) else 0)
+	var gold: Variant = data.get("gold", 0)
+	DungeonGoldState.restore(int(gold) if (typeof(gold) == TYPE_INT or typeof(gold) == TYPE_FLOAT) else 0)
+	var belt: Variant = data.get("belt", [])
+	DungeonPotionState.restore(belt if belt is Array else [])
 	return true
 
 
