@@ -12,6 +12,9 @@ namespace Saga.EditorTools
     /// 지오메트리라 씬 재빌드 로그의 "문 폭" 경고 부재로 이미 확인됨 —
     /// 여기서는 Crossroads가 실제로 존재하고 그 위에 서도 예외가 없는지만
     /// 순간이동으로 확인한다).
+    ///
+    /// "위성↔위성 지름길 후속: Town2↔Town4"(2026-09-13) — Crossroads2 경로도
+    /// 같은 방식으로 이어서 확인한다(새 Phase 둘만 추가, 패턴은 동일).
     /// </summary>
     public static class PlaytestDungeonShortcut
     {
@@ -22,13 +25,13 @@ namespace Saga.EditorTools
         private static bool _origEnterPlayModeOptionsEnabled;
         private static EnterPlayModeOptions _origEnterPlayModeOptions;
 
-        private enum Phase { Init, AtCrossroads, AtTown2ViaShortcut, Done }
+        private enum Phase { Init, AtCrossroads, AtTown2ViaShortcut, AtCrossroads2, AtTown4ViaShortcut, Done }
         private static Phase _phase = Phase.Init;
         private static int _waitFramesLeft;
 
         private static Transform _player;
         private static CharacterController _playerController;
-        private static GameObject _crossroadsGo, _town2Go;
+        private static GameObject _crossroadsGo, _town2Go, _crossroads2Go, _town4Go;
 
         [MenuItem("Saga/Playtest Dungeon Shortcut (Headless)")]
         public static void Run()
@@ -48,6 +51,8 @@ namespace Saga.EditorTools
             _playerController = null;
             _crossroadsGo = null;
             _town2Go = null;
+            _crossroads2Go = null;
+            _town4Go = null;
 
             Application.logMessageReceived += OnLog;
             EditorApplication.playModeStateChanged += OnStateChanged;
@@ -78,7 +83,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestDungeonShortcut] OK - walked Town3->Crossroads->Town2 shortcut, no errors"
+                    ? "[PlaytestDungeonShortcut] OK - walked Town3->Crossroads->Town2 and Town2->Crossroads2->Town4 shortcuts, no errors"
                     : $"[PlaytestDungeonShortcut] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -102,9 +107,11 @@ namespace Saga.EditorTools
                     _playerController = playerGo != null ? playerGo.GetComponent<CharacterController>() : null;
                     _crossroadsGo = GameObject.Find("Crossroads");
                     _town2Go = GameObject.Find("Town2");
-                    if (_player == null || _crossroadsGo == null || _town2Go == null)
+                    _crossroads2Go = GameObject.Find("Crossroads2");
+                    _town4Go = GameObject.Find("Town4");
+                    if (_player == null || _crossroadsGo == null || _town2Go == null || _crossroads2Go == null || _town4Go == null)
                     {
-                        Debug.LogError("[PlaytestDungeonShortcut] Player/Crossroads/Town2를 씬에서 못 찾음");
+                        Debug.LogError("[PlaytestDungeonShortcut] Player/Crossroads/Town2/Crossroads2/Town4를 씬에서 못 찾음");
                         Fail();
                         return;
                     }
@@ -122,7 +129,21 @@ namespace Saga.EditorTools
 
                 case Phase.AtTown2ViaShortcut:
                     if (_waitFramesLeft-- > 0) return;
-                    Debug.Log("[PlaytestDungeonShortcut] visited Crossroads and Town2 via shortcut path, no errors");
+                    TeleportPlayer(_crossroads2Go.transform.position);
+                    _waitFramesLeft = 2;
+                    _phase = Phase.AtCrossroads2;
+                    break;
+
+                case Phase.AtCrossroads2:
+                    if (_waitFramesLeft-- > 0) return;
+                    TeleportPlayer(_town4Go.transform.position);
+                    _waitFramesLeft = 2;
+                    _phase = Phase.AtTown4ViaShortcut;
+                    break;
+
+                case Phase.AtTown4ViaShortcut:
+                    if (_waitFramesLeft-- > 0) return;
+                    Debug.Log("[PlaytestDungeonShortcut] visited Crossroads/Town2 and Crossroads2/Town4 via shortcut paths, no errors");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;

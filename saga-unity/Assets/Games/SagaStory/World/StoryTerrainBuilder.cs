@@ -15,6 +15,18 @@ namespace Saga.Story.World
     {
         private const float PlatformDepth = 4f;
         private const float PlatformThickness = 0.4f;
+
+        /// <summary>발판 밑을 지나는 로프 좌우로 남기는 틈(반폭) —
+        /// 2026-09-12 "STORY 콘텐츠 확장" 발견·수정. Platform[0](X 3.8~9.0)
+        /// 이 하필 로프(X=6.8) 바로 위를 지나(PROJECT_STATE.md 열다섯 번째
+        /// 세션 기록) 로프 위쪽 절반을 오르면 CharacterController가 발판
+        /// 밑면(Y 2.2)에 박혔다. 로프가 원래 발판 높이(Y 2.6)까지 그대로
+        /// 오르게 설계돼 있어(Top==platform Height) 로프를 옮기거나
+        /// 짧게 자르는 대신, **발판 쪽에 로프가 지나갈 틈을 낸다** — 오르는
+        /// 높이는 그대로 두고 발판 두 조각 사이로 통과시킨다. 반폭은
+        /// 플레이어 CharacterController 반지름(0.4, BuildPlayer() 참고)
+        /// +여유 0.1.</summary>
+        private const float RopeGapHalfWidth = 0.5f;
         private static readonly Color GroundColor = new Color(0.435f, 0.686f, 0.333f); // data-side.js field.ground '#6faf55'
         private static readonly Color PlatColor = new Color(0.55f, 0.42f, 0.28f);
         private static readonly Color RopeColor = new Color(0.6f, 0.5f, 0.35f);
@@ -42,7 +54,29 @@ namespace Saga.Story.World
 
         private void BuildPlatform(FieldMapData.Platform p)
         {
-            BuildBox(p.X, p.Height - PlatformThickness * 0.5f, p.HalfWidth * 2f, PlatformThickness, PlatColor, "Platform");
+            var rope = FieldMapData.Rope();
+            float left = p.X - p.HalfWidth;
+            float right = p.X + p.HalfWidth;
+            bool ropePassesUnder = rope.X > left && rope.X < right;
+
+            if (!ropePassesUnder)
+            {
+                BuildBox(p.X, p.Height - PlatformThickness * 0.5f, p.HalfWidth * 2f, PlatformThickness, PlatColor, "Platform");
+                return;
+            }
+
+            // 위 RopeGapHalfWidth 주석 참고 — 발판을 로프 좌우 두 조각으로 쪼갠다.
+            float gapLeft = rope.X - RopeGapHalfWidth;
+            float gapRight = rope.X + RopeGapHalfWidth;
+            if (gapLeft > left) BuildPlatformSpan(left, gapLeft, p.Height);
+            if (gapRight < right) BuildPlatformSpan(gapRight, right, p.Height);
+        }
+
+        private void BuildPlatformSpan(float left, float right, float height)
+        {
+            float width = right - left;
+            if (width <= 0f) return;
+            BuildBox((left + right) * 0.5f, height - PlatformThickness * 0.5f, width, PlatformThickness, PlatColor, "Platform");
         }
 
         private void BuildBox(float centerX, float centerY, float width, float thickness, Color color, string boxName)

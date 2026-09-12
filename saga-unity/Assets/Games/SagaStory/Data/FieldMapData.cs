@@ -15,12 +15,13 @@ namespace Saga.Story.Data
     ///
     /// **재해석(1절 "제외" 목록)** — 사다리·문·채집·보스는 이번 슬라이스에
     /// 안 옮긴다. 줄(rope)은 다섯 중 첫째 하나만. 잡졸 스폰은 원작의
-    /// "spawn:7"(전투 중 무작위 보충)이 아니라 **고정된 자리 셋**으로
-    /// 단순화했다 — day/파도 시스템 자체가 범위 밖.
+    /// "spawn:7"(전투 중 무작위 보충)이 아니라 **고정된 자리**로
+    /// 단순화했다 — day/파도 시스템 자체가 범위 밖(자리 수는 2026-09-12
+    /// "STORY 콘텐츠 확장"에서 KillGoal과 맞춰 셋→열로 늘림, 아래 참고).
     /// </summary>
     public static class FieldMapData
     {
-        private const float Scale = 0.02f;
+        public const float ScaleMPerPx = 0.02f;
         private const float WidthPx = 2200f;
         private const float FloorPx = 560f;
 
@@ -39,14 +40,23 @@ namespace Saga.Story.Data
         private const float RopeBottomPx = 560f;
         private const float RopeXPx = 340f;
 
-        // 잡졸 스폰 자리(고정 셋, 위 "재해석" 참고) — 발판 사이 평지 위주.
-        private static readonly float[] EnemyXPx = { 520f, 1000f, 1500f };
+        /// <summary>잡졸 스폰 자리(고정 열, "STORY 콘텐츠 확장" 슬라이스
+        /// 2026-09-12 — 원래 셋뿐이라 사명("첫 사냥" kill 10)이 3/10에서
+        /// 멈췄던 것을 KillGoal(10)과 정확히 맞춰 열 자리로 늘렸다. 원작
+        /// data-side.js는 전투 중 무작위로 더 스폰하지만(day/파도 시스템,
+        /// 범위 밖) 이 슬라이스는 여전히 "고정 자리" 단순화를 유지한다 —
+        /// 그냥 자리 수만 늘렸다. 들판 폭(44m) 위에 고르게 흩뿌림, 로프
+        /// (6.8m)·발판 다섯 자리와 안 겹치게 지상 배치만.</summary>
+        private static readonly float[] EnemyXPx =
+        {
+            150f, 400f, 650f, 900f, 1150f, 1400f, 1650f, 1850f, 2000f, 2120f,
+        };
 
-        public static float WidthM => WidthPx * Scale;
+        public static float WidthM => WidthPx * ScaleMPerPx;
 
         /// <summary>바닥(floor_px) 기준 높이(m) — 값이 클수록 위(웹은 y가
         /// 작을수록 위라 뒤집는다).</summary>
-        public static float HeightOfPx(float yPx) => (FloorPx - yPx) * Scale;
+        public static float HeightOfPx(float yPx) => (FloorPx - yPx) * ScaleMPerPx;
 
         public struct Platform
         {
@@ -63,9 +73,9 @@ namespace Saga.Story.Data
             {
                 result[i] = new Platform
                 {
-                    X = PlatsPx[i, 0] * Scale,
+                    X = PlatsPx[i, 0] * ScaleMPerPx,
                     Height = HeightOfPx(PlatsPx[i, 1]),
-                    HalfWidth = PlatsPx[i, 2] * Scale * 0.5f,
+                    HalfWidth = PlatsPx[i, 2] * ScaleMPerPx * 0.5f,
                 };
             }
             return result;
@@ -80,7 +90,7 @@ namespace Saga.Story.Data
 
         public static RopeDef Rope() => new RopeDef
         {
-            X = RopeXPx * Scale,
+            X = RopeXPx * ScaleMPerPx,
             Top = HeightOfPx(RopeTopPx),
             Bottom = HeightOfPx(RopeBottomPx), // = 0(바닥)
         };
@@ -88,7 +98,7 @@ namespace Saga.Story.Data
         public static float[] EnemyPositionsM()
         {
             var result = new float[EnemyXPx.Length];
-            for (int i = 0; i < result.Length; i++) result[i] = EnemyXPx[i] * Scale;
+            for (int i = 0; i < result.Length; i++) result[i] = EnemyXPx[i] * ScaleMPerPx;
             return result;
         }
     }

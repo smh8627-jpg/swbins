@@ -16,21 +16,31 @@ namespace Saga.EditorTools
     /// 없어(다른 Playtest들도 전부 순간이동+직접 호출 방식) 이동감·점프
     /// 궤적·로프 키 조작 자체는 사람이 GUI로 확인해야 한다 — 여기서는
     /// **로직 경로**(트리거 배선, 전투 판정, 저장/로드)만 검증한다:
-    /// (1) 잡졸 셋에게 다가가 실제로 때려서 죽이고 사명 카운트가 오르는지,
-    /// (2) 점프 버튼이 수직 속도를 실제로 올리는지,
-    /// (3) 로프 트리거 진입/이탈이 실제로 배선되는지,
-    /// (4) 저장 후 상태를 지웠다가 불러오면 그대로 돌아오는지.
+    /// (1) 잡졸 열에게 다가가 실제로 때려서 죽이고 사명(kill 10) 카운트가
+    /// 오르고 완료되는지,
+    /// (2) 무예 나머지 셋(횡소·기탄·기합, "STORY 콘텐츠 확장" 2026-09-12)이
+    /// 실제로 적을 때리고 MP를 깎는지,
+    /// (3) 점프 버튼이 수직 속도를 실제로 올리는지,
+    /// (4) 로프 트리거 진입/이탈이 실제로 배선되고, 로프 위쪽 끝(Platform[0]
+    /// 밑을 지나는 구간, 위 StoryTerrainBuilder.RopeGapHalfWidth 참고)에서
+    /// CharacterController가 안 끼는지,
+    /// (5) 저장 후 상태를 지웠다가 불러오면 그대로 돌아오는지.
     /// </summary>
     public static class PlaytestStorySlice
     {
         private const string ScenePath = "Assets/Scenes/TestField.unity";
+        private const int ExpectedEnemyCount = 10; // FieldMapData.EnemyPositionsM() 자리 수 = StoryQuestState.KillGoal
 
         private static bool _hadError;
         private static int _framesSeen;
         private static bool _origEnterPlayModeOptionsEnabled;
         private static EnterPlayModeOptions _origEnterPlayModeOptions;
 
-        private enum Phase { Init, KillEnemies, LandBeforeJump, EnterRope, ExitRope, SaveLoad, Done }
+        private enum Phase
+        {
+            Init, KillEnemies, SweepTest, BoltCast, BoltWait, BraceTest,
+            LandBeforeJump, EnterRope, RopeTopClearance, RopeDescend, ExitRope, SaveLoad, Done,
+        }
         private static Phase _phase = Phase.Init;
         private static float _waitUntilRealTime;
         private static int _enemyIndex;
@@ -40,6 +50,10 @@ namespace Saga.EditorTools
         private static StoryPlayerController _storyController;
         private static GameObject _ropeGo;
         private static StoryRope _rope;
+        private static FieldMapData.RopeDef _ropeDef;
+        private static StoryEnemy _sweepDummy;
+        private static StoryEnemy _boltNearDummy;
+        private static StoryEnemy _boltFarDummy;
 
         [MenuItem("Saga/Playtest Story Slice (Headless)")]
         public static void Run()
@@ -62,6 +76,9 @@ namespace Saga.EditorTools
             _storyController = null;
             _ropeGo = null;
             _rope = null;
+            _sweepDummy = null;
+            _boltNearDummy = null;
+            _boltFarDummy = null;
 
             Application.logMessageReceived += OnLog;
             EditorApplication.playModeStateChanged += OnStateChanged;
@@ -92,7 +109,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestStorySlice] OK - killed 3 grunts, jump/rope/save-load all verified, no errors"
+                    ? "[PlaytestStorySlice] OK - killed 10 grunts (quest done), sweep/bolt/brace/jump/rope/save-load all verified, no errors"
                     : $"[PlaytestStorySlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -122,33 +139,32 @@ namespace Saga.EditorTools
                     _ropeGo = GameObject.Find("Rope");
                     _rope = _ropeGo != null ? _ropeGo.GetComponent<StoryRope>() : null;
 
-                    if (_player == null || _storyController == null || _rope == null || StoryEnemy.All.Count != 3)
+                    if (_player == null || _storyController == null || _rope == null || StoryEnemy.All.Count != ExpectedEnemyCount)
                     {
-                        Debug.LogError($"[PlaytestStorySlice] 씬 구성 못 찾음 — player={_player != null} controller={_storyController != null} rope={_rope != null} enemies={StoryEnemy.All.Count}");
+                        Debug.LogError($"[PlaytestStorySlice] 씬 구성 못 찾음 — player={_player != null} controller={_storyController != null} rope={_rope != null} enemies={StoryEnemy.All.Count}(기대={ExpectedEnemyCount})");
                         Fail();
                         return;
                     }
-                    if (StoryQuestState.Kills != 0)
-                    {
-                        Debug.LogError($"[PlaytestStorySlice] 시작 kills가 0이 아님 — {StoryQuestState.Kills}");
-                        Fail();
-                        return;
-                    }
+                    // GameBootstrap.Start()가 이전 실행이 남긴 save_story.json을
+                    // 이미 불러왔을 수 있다(예: 이 테스트 자신의 지난 SaveLoad
+                    // 단계가 디스크에 남긴 파일 — 실제로 겪음). 존재를 가정하지
+                    // 않고 이 테스트가 스스로 시작 상태를 못박는다.
+                    StoryQuestState.Restore(0);
                     _enemyIndex = 0;
                     _phase = Phase.KillEnemies;
                     break;
 
                 case Phase.KillEnemies:
-                    if (_enemyIndex >= 3)
+                    if (_enemyIndex >= ExpectedEnemyCount)
                     {
-                        if (StoryQuestState.Kills != 3)
+                        if (StoryQuestState.Kills != ExpectedEnemyCount || !StoryQuestState.QuestDone)
                         {
-                            Debug.LogError($"[PlaytestStorySlice] 잡졸 셋을 다 죽였는데 kills={StoryQuestState.Kills}(기대=3)");
+                            Debug.LogError($"[PlaytestStorySlice] 잡졸 열을 다 죽였는데 kills={StoryQuestState.Kills} done={StoryQuestState.QuestDone}(기대={ExpectedEnemyCount}/true)");
                             Fail();
                             return;
                         }
-                        Debug.Log($"[PlaytestStorySlice] killed 3 grunts, kills={StoryQuestState.Kills}");
-                        _phase = Phase.LandBeforeJump;
+                        Debug.Log($"[PlaytestStorySlice] killed {ExpectedEnemyCount} grunts, quest done, kills={StoryQuestState.Kills}");
+                        _phase = Phase.SweepTest;
                         break;
                     }
 
@@ -171,6 +187,87 @@ namespace Saga.EditorTools
                         return;
                     }
                     _enemyIndex++;
+                    break;
+
+                case Phase.SweepTest:
+                    // 실제 잡졸은 다 죽었으니(위 KillEnemies) 스킬 전용 더미를
+                    // 직접 세운다 — StoryEnemySpawner의 고정 자리와 무관.
+                    TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+                    _sweepDummy = SpawnDummyEnemy(new Vector3(5.8f, 0.1f, 0f));
+                    StoryCombat.RestoreMp(StoryCombat.MpMax);
+                    SetPrivate(_storyController, "_sweepCooldownLeft", 0f);
+                    _storyController.TriggerSweep();
+
+                    if (!_sweepDummy.IsDead)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 횡소(TriggerSweep) 뒤에도 반경 안 더미가 안 죽음");
+                        Fail();
+                        return;
+                    }
+                    if (!Mathf.Approximately(StoryCombat.Mp, StoryCombat.MpMax - StoryCombat.SweepCost))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 횡소 MP 차감 이상 — mp={StoryCombat.Mp}(기대={StoryCombat.MpMax - StoryCombat.SweepCost})");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log("[PlaytestStorySlice] sweep OK - dummy killed, mp deducted");
+                    _phase = Phase.BoltCast;
+                    break;
+
+                case Phase.BoltCast:
+                    // facing은 이 테스트 내내 초기값(+1, 오른쪽)에서 안 바뀐다(가상
+                    // 키 입력을 안 걸어서) — 그러니 더미 둘을 플레이어 오른쪽에 둔다.
+                    TeleportPlayer(new Vector3(5f, 0.1f, 0f));
+                    _boltNearDummy = SpawnDummyEnemy(new Vector3(7f, 0.1f, 0f));
+                    _boltFarDummy = SpawnDummyEnemy(new Vector3(9.5f, 0.1f, 0f));
+                    StoryCombat.RestoreMp(StoryCombat.MpMax);
+                    SetPrivate(_storyController, "_boltCooldownLeft", 0f);
+                    _storyController.TriggerBolt();
+                    // MP 차감은 기다리기 전에 바로 확인 — 대기하는 동안에도
+                    // MP 자연 회복(TickMpRegen, 8/초)이 계속 돌아 나중엔 수치가
+                    // 이미 불어나 있다(실제로 겪음 — 0.5초 뒤 79.7 vs 기대 76).
+                    if (!Mathf.Approximately(StoryCombat.Mp, StoryCombat.MpMax - StoryCombat.BoltCost))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 기탄 MP 차감 이상 — mp={StoryCombat.Mp}(기대={StoryCombat.MpMax - StoryCombat.BoltCost})");
+                        Fail();
+                        return;
+                    }
+                    _waitUntilRealTime = Time.realtimeSinceStartup + 0.5f; // BoltSpeed(≈10.4m/s)로 4.5m 도달 여유.
+                    _phase = Phase.BoltWait;
+                    break;
+
+                case Phase.BoltWait:
+                    if (Time.realtimeSinceStartup < _waitUntilRealTime) return;
+                    if (!_boltNearDummy.IsDead || !_boltFarDummy.IsDead)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 기탄(관통) 뒤에도 더미가 안 죽음 — near={_boltNearDummy.IsDead} far={_boltFarDummy.IsDead}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log("[PlaytestStorySlice] bolt OK - pierced both dummies, mp deducted");
+                    _phase = Phase.BraceTest;
+                    break;
+
+                case Phase.BraceTest:
+                    StoryCombat.RestoreMp(StoryCombat.MpMax);
+                    SetPrivate(_storyController, "_braceCooldownLeft", 0f);
+                    _storyController.TriggerBrace();
+
+                    var buffUntil = (float)GetPrivate(_storyController, "_buffUntilTime");
+                    if (buffUntil < Time.time + StoryCombat.BraceSeconds - 0.5f)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 기합(TriggerBrace) 뒤 buffUntil 이상 — {buffUntil}(now={Time.time})");
+                        Fail();
+                        return;
+                    }
+                    if (!Mathf.Approximately(StoryCombat.Mp, StoryCombat.MpMax - StoryCombat.BraceCost))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 기합 MP 차감 이상 — mp={StoryCombat.Mp}(기대={StoryCombat.MpMax - StoryCombat.BraceCost})");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log("[PlaytestStorySlice] brace OK - buff window set, mp deducted");
+                    _phase = Phase.LandBeforeJump;
                     break;
 
                 case Phase.LandBeforeJump:
@@ -214,9 +311,48 @@ namespace Saga.EditorTools
                     // Enter 직후 곧바로 Exit, y=1.41→2.69로 튀어 오름). 바닥에서
                     // 걸어와 오르기 시작하는 자리(로프 밑동 근처)로 대신 선다 —
                     // 발판과 안 겹치는 진짜 진입 지점.
-                    var ropeDef = FieldMapData.Rope();
-                    float entryY = ropeDef.Bottom + 0.3f;
-                    TeleportPlayer(new Vector3(ropeDef.X, entryY, 0f));
+                    _ropeDef = FieldMapData.Rope();
+                    float entryY = _ropeDef.Bottom + 0.3f;
+                    TeleportPlayer(new Vector3(_ropeDef.X, entryY, 0f));
+                    _waitUntilRealTime = Time.realtimeSinceStartup + 0.2f;
+                    _phase = Phase.RopeTopClearance;
+                    break;
+
+                case Phase.RopeTopClearance:
+                    // "STORY 콘텐츠 확장"(2026-09-12)이 고친 결함의 회귀 확인 —
+                    // 로프 위쪽 끝(Platform[0] 밑을 지나는 구간)에서
+                    // CharacterController가 안 낀다. StoryTerrainBuilder.cs의
+                    // RopeGapHalfWidth 참고.
+                    if (Time.realtimeSinceStartup < _waitUntilRealTime) return;
+                    float nearTopY = _ropeDef.Top - 0.05f;
+                    TeleportPlayer(new Vector3(_ropeDef.X, nearTopY, 0f));
+                    _playerController.Move(Vector3.zero); // 겹침이 있으면 이 한 번으로 밀려난다.
+                    if (Mathf.Abs(_player.position.y - nearTopY) > 0.15f)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 로프 위쪽 끝에서 발판과 낌 — y={_player.position.y}(기대≈{nearTopY})");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log("[PlaytestStorySlice] rope-top clearance OK - no platform snag");
+                    // 아래 ExitRope의 가로 이탈 이동(Move(10,0,0))은 원래 로프
+                    // 밑동 높이에서만 검증하던 것 — 방금 올라간 꼭대기 높이엔
+                    // 발판 두 조각(RopeGapHalfWidth) 사이 좁은 틈이라 가로로
+                    // 10m를 밀면 그 발판 조각에 막혀 트리거를 못 벗어난다.
+                    // 검증 목적이 다르니(이탈 배선 vs 꼭대기 겹침) 밑동으로
+                    // 되돌려 놓는다 — **단, 같은 프레임에 바로 하지 않는다.**
+                    // TeleportPlayer()를 한 프레임 안에서 두 번 연달아 부르면
+                    // (방금 위로, 곧바로 아래로) CharacterController가 물리
+                    // 스텝 한 번 없이 enable/disable을 거푸 겪어 트리거
+                    // 겹침 추적이 꼬인다(실제로 겪음 — 나중 ExitRope의
+                    // Move(10,0,0)가 OnTriggerExit를 아예 안 보냄). 이 실시간
+                    // 대기가 그 사이에 최소 한 번은 물리 스텝이 돌게 해 준다.
+                    _waitUntilRealTime = Time.realtimeSinceStartup + 0.2f;
+                    _phase = Phase.RopeDescend;
+                    break;
+
+                case Phase.RopeDescend:
+                    if (Time.realtimeSinceStartup < _waitUntilRealTime) return;
+                    TeleportPlayer(new Vector3(_ropeDef.X, _ropeDef.Bottom + 0.3f, 0f));
                     _waitUntilRealTime = Time.realtimeSinceStartup + 0.2f;
                     _phase = Phase.ExitRope;
                     break;
@@ -253,6 +389,11 @@ namespace Saga.EditorTools
 
                     Vector3 posBeforeSave = new Vector3(7.5f, 0.1f, 0f);
                     TeleportPlayer(posBeforeSave);
+                    // 실제 잡졸 10 + 스킬 테스트용 더미 셋(횡소1·기탄2) = 13 —
+                    // StoryEnemy.Die()는 더미든 실제든 안 가리고 AddKill()을
+                    // 부른다(의도된 단순함, 사명 카운트가 더미까지 세는 건
+                    // 무해하다). 하드코딩된 3 대신 실제 값을 저장 직전에 읽는다.
+                    int killsBeforeSave = StoryQuestState.Kills;
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -269,9 +410,9 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
-                    if (StoryQuestState.Kills != 3)
+                    if (StoryQuestState.Kills != killsBeforeSave)
                     {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 kills={StoryQuestState.Kills}(기대=3)");
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 kills={StoryQuestState.Kills}(기대={killsBeforeSave})");
                         Fail();
                         return;
                     }
@@ -306,6 +447,16 @@ namespace Saga.EditorTools
         }
 
         private static bool IsDestroyed(StoryEnemy enemy) => enemy == null;
+
+        /// <summary>스킬 전용 더미 — StoryEnemySpawner 고정 자리와 무관하게
+        /// 하나씩 즉석에서 세운다(modelPrefab 없이 CharacterVisual 폴백
+        /// 캡슐로 충분, 시각 확인 대상이 아니다).</summary>
+        private static StoryEnemy SpawnDummyEnemy(Vector3 position)
+        {
+            var go = new GameObject("TestDummyEnemy");
+            go.transform.position = position;
+            return go.AddComponent<StoryEnemy>();
+        }
 
         private static void Fail()
         {

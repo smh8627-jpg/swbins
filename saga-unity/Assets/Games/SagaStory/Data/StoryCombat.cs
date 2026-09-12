@@ -35,6 +35,52 @@ namespace Saga.Story.Data
         public const float EnemyHp = 18f;  // round(18*1.22^0)
         public const float EnemyDmg = 6f;  // round(4+1*1.6, 이 슬라이스는 미사용 — 잡졸이 반격하지 않음)
 
+        /// <summary>
+        /// "STORY 콘텐츠 확장" (2026-09-12) — 무예 나머지 셋(횡소·기탄·기합,
+        /// 1절 "제외" 목록)을 더한다. 값은 `js/data-job.js` SKILLS[0..3]
+        /// (job:'none' 넷)과 `js/side.js` castSkill()/MP_MAX/MP_REGEN 그대로
+        /// (원문 상수 안 바꿈), r·dist·speed 같은 픽셀 값만
+        /// FieldMapData.ScaleMPerPx로 미터 환산.
+        /// </summary>
+        public const float MpMax = 100f;
+        public const float MpRegenPerSec = 8f; // side.js MP_REGEN = core.tuned('side.mpRegen', 8)
+
+        public const float SweepCost = 18f;
+        public const float SweepCooldown = 4f;
+        public const float SweepMul = 1.8f;
+        public const float SweepRadius = 117f * FieldMapData.ScaleMPerPx; // data-job.js sweep r=117px ≈2.34m
+
+        public const float BoltCost = 24f;
+        public const float BoltCooldown = 6f;
+        public const float BoltMul = 2.1f;
+        public const float BoltSpeed = 520f * FieldMapData.ScaleMPerPx; // side.js castSkill() bolt spd=520px/s ≈10.4m/s
+        public const float BoltLife = 1.2f; // side.js shots life
+
+        public const float BraceCost = 30f;
+        public const float BraceCooldown = 14f;
+        public const float BraceSeconds = 8f;
+        public const float BraceAtkMul = 1.35f;
+        public const float BraceSpeedMul = 1.2f;
+
+        /// <summary>인물 로스터를 아직 안 붙인 것과 같은 이유로(위 StartAtk
+        /// 주석) MP도 "항상 가득 찬 상태로 시작"만 흉내낸다 — 세이브에
+        /// 안 넣는다(1절 "이 슬라이스엔 레벨업·장비가 없다"와 같은 결,
+        /// StorySaveState.cs 참고, 다음 켤 때도 금방 다시 차므로 무해).</summary>
+        public static float Mp { get; private set; } = MpMax;
+
+        public static void TickMpRegen(float dt) => Mp = Mathf.Min(MpMax, Mp + MpRegenPerSec * dt);
+
+        public static bool TrySpendMp(float cost)
+        {
+            if (Mp < cost) return false;
+            Mp -= cost;
+            return true;
+        }
+
+        /// <summary>PlaytestStorySlice.cs가 스킬 하나씩 독립으로 검증하려고
+        /// 매번 MP를 채워 두는 용도(테스트 전용 공개 API — 리플렉션 대신).</summary>
+        public static void RestoreMp(float mp) => Mp = Mathf.Clamp(mp, 0f, MpMax);
+
         private static bool _hitstopActive;
 
         /// <summary>side.js hit(): atk*(mul||1)*(0.88~1.12)*(crit?1.6:1).</summary>
