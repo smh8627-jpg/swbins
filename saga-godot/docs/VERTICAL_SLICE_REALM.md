@@ -907,3 +907,74 @@ texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전
 
 **다음 이어질 것** — 사용자가 이미 순서를 정했다: 마지막으로 문답
 (quiz.js).
+
+
+## 7. 문답(quiz.js) 첫 슬라이스 (2026-09-12)
+
+**사용자 지시 "1,2,3 순서대로 다해"** — 마지막, 완전히 새로운 시스템.
+`quiz.js`(출제·채점·보상)와 `data-quiz.js`(문제 260개, 6분야)를 읽었다.
+
+**포함**: `data-quiz.js` BANK 중 **분야마다 다섯 문항**(hist·idiom·
+sense·mz·world·proverb, id 앞자리 h~p 01~05, 총 30문항) — id·q·c(보기)·
+a(정답)·why(해설) 전부 원문 그대로, 새 문제를 안 지어냈다. 출제
+순서(안 익힌 문제 → 쉬운 등급부터, 다 익히면 틀린 것 위주 복습)·
+보기 섞기(Fisher-Yates)·채점(첫 정답/복습 구분, 연속 정답)까지 quiz.js
+그대로. `rtk.js study()`의 "학식(lore)이 LORE_PER_FIND(6)만큼 쌓이면
+재야 하나가 저절로 드러난다"도 그대로 옮겨 **REALM 기존 등용 루프에
+바로 연결**했다 — `HIDDEN_POOL_BY_CITY`(재야 두 명, `RealmOfficerPool`)
+중 아직 안 드러난 사람을 rarity 순으로 `found[]`에 밀어 넣는다(수색
+없이, 지력 판정 없이 — 원작 `revealFree()`와 같다).
+
+**뺀 것(재해석)**:
+- **feat·fame·scroll 보상** — 원작은 첫 정답에 공적(feat)·명성(fame)도
+  주고 연속 5마다 등용서(scroll) 아이템도 주는데, 이 슬라이스(REALM)엔
+  그 축 자체가 없다(player.fame·items.scroll 같은 게 없다). 첫 정답
+  보상은 **세력 금고(gold, `rtk.js study()`가 하던 일)와 학식→재야
+  공개**만 남겼다.
+- **서고(learnedList, 익힌 날짜순 목록)** — UI가 늘어나는 기능이라
+  스코프 밖. `quiz.learned`엔 값(true)만 있고 원작처럼 타임스탬프는
+  안 남긴다.
+- **분야·등급별 진행 현황(progress()의 per/byLv)** — `quiz_progress()`
+  는 학습 수·정답률·streak만 축약해 돌려준다. 세부 대시보드는 다음에
+  볼 자리.
+
+**구현**:
+- `realm_quiz_data.gd`(신규) — `CATS`·`BANK`(30문항)·`LV_NAME`·
+  `LV_REWARD`(gold/rgold만, feat/fame/scroll 뺌)·`LORE_PER_FIND`·
+  `lv_of()`/`by_id()`.
+- `realm_save_state.gd` — `quiz: Dictionary`(신설, qstate()와 같은 모양:
+  learned·wrongs·total·correct·streak·best_streak·lore) + `_init_quiz()`.
+  `quiz_draw()`(안 익힌 문제 우선, 쉬운 등급부터 — 다 익혔으면 틀린
+  횟수 내림차순 상위 1/4에서) → `_present()`(보기 섞기) → `quiz_answer()`
+  (채점·보상·오답노트 갱신·lore 누적→`_reveal_free()`). `quiz_progress()`
+  축약. SAVE_VERSION 7→8.
+- `realm_quiz_button.gd`(신규) + `RealmHUD.tscn` "문답" 버튼(계략 버튼
+  위, 맨 위) — ChoicePrompt로 문제·보기 넷을 띄우고 고르면 채점 결과를
+  토스트로.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경 없음,
+texture-a.png.import만 늘 그렇듯 재발생해 되돌림) → 다섯 씬 전부
+`--quit-after 5` 세 번 연속 exit 0·로그 완전 무결. **임시 디버그로
+실제 값 확인**: 30문항 전부 학습될 때까지(첫 문제는 일부러 오답 처리
+후 재도전) 40회 출제·채점 → `learned`=30(=BANK 전체)·`answered`=40·
+`correct`=39(오답 1회 제외)·`wrongs`={}(틀렸던 문제도 맞히면 지워짐)
+전부 정확. `lore`=5 — lv1×20+lv2×9+lv3×1의 학식 합(41)을 6으로 나눈
+나머지(41 mod 6=5)와 정확히 일치, 이 과정에서 `_reveal_free()`가
+정확히 6번 불려 재야 풀의 전부(kr_yisunsin·jp_musashi 둘)를 소진하고
+이후는 조용히 no-op(원작 그대로). `gold` 증분(1532)도 분해해 보니
+"첫 정답 30회분 고정 1430" + "복습 정답 9회분 102" — 102는 8×10(lv1
+복습)+1×22(lv3 복습)로 정확히 맞아떨어짐(Godot `sort_custom`이 JS
+`Array.sort`와 달리 동순위 안정성을 보장하지 않아 quiz.js 손 계산과
+"어느 문제가 복습권에 드는지"는 갈릴 수 있지만, 보상 공식 자체는
+어느 조합으로도 정확히 들어맞는다 — 코드 결함이 아니라 동순위 처리
+차이). 모두 익힌 뒤 재출제 → `review: true`로 정확히 전환됨 확인.
+디버그 원상복구(diff 0), 테스트 세이브 없음.
+
+**GUI 실기 확인은 아직 안 함** — 문답 버튼이 다른 다섯 버튼과 함께
+화면에 다 들어가는지, 보기 넷 고르는 느낌이 자연스러운지는 눈으로
+볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 사용자가 지정한 세 가지(정복 성 편입·충성+계략·
+문답)를 이걸로 전부 마쳤다. 다음 후보: quiz.js 분야당 문항 더 늘리기,
+이간·매수(적 쪽에 이름 있는 무장 들이기 먼저), 서고(learnedList) UI —
+어느 쪽이든 승인 후.

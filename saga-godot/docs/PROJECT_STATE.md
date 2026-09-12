@@ -4120,3 +4120,34 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 사용자가 이미 순서를 정했다: 마지막으로 문답
     (quiz.js).
+
+
+## REALM 문답(quiz.js) 첫 슬라이스 (2026-09-12)
+
+- **사용자 지시 "1,2,3 순서대로 다해"** — 세 번째이자 마지막, 완전히
+  새로운 시스템. data-quiz.js BANK 중 6분야×5문항(30문항, id·q·c·a·why
+  원문 그대로)만 옮겼다. 출제(안 익힌 문제→쉬운 등급부터, 다 익히면
+  틀린 것 복습)·보기 섞기·채점은 quiz.js 그대로. `rtk.js study()`의
+  "학식이 쌓이면 재야가 저절로 드러난다"도 옮겨 기존 등용 루프에
+  연결했다(`HIDDEN_POOL_BY_CITY`). feat/fame/scroll은 REALM에 그 축이
+  없어 뺐다 — 첫 정답 보상은 gold(세력 금고)+재야 공개뿐.
+  - `realm_quiz_data.gd`(신규): CATS·BANK(30)·LV_NAME·LV_REWARD·
+    LORE_PER_FIND·lv_of()/by_id().
+  - `realm_save_state.gd`: `quiz: Dictionary`(신설) + `_init_quiz()`.
+    `quiz_draw()`→`_present()`→`quiz_answer()`(채점·오답노트·lore→
+    `_reveal_free()`). `quiz_progress()`. SAVE_VERSION 7→8.
+  - `realm_quiz_button.gd`(신규) + `RealmHUD.tscn` "문답" 버튼(맨 위).
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_REALM.md` 7절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(project.godot 변경
+    없음) → 다섯 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전
+    무결. 임시 디버그로 30문항 전부 학습될 때까지 40회 출제·채점 →
+    learned=30·answered=40·correct=39·wrongs={} 정확. lore=5(41 mod
+    6, lv1×20+lv2×9+lv3×1의 합)·found=[재야 둘 전부] 정확. gold 증분
+    1532 = 첫정답 1430(고정) + 복습 9회분 102(8×10+1×22로 정확히
+    분해) — Godot sort_custom의 동순위 비결정성 때문에 "어느 문제가
+    복습되는지"는 갈려도 보상 공식은 항상 맞아떨어짐 확인. 디버그
+    원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 사용자가 지정한 셋(정복 성 편입·충성+계략·
+    문답)을 이걸로 전부 마쳤다. 다음 후보: 문답 문항 더 늘리기, 이간·
+    매수(적 쪽 이름 있는 무장 먼저), 서고(learnedList) UI — 승인 후.

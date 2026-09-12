@@ -44,9 +44,10 @@ const RealmOfficerPool := preload("res://games/saga_realm/data/realm_officer_poo
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
+const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 7  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략)
+const SAVE_VERSION := 8  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -97,6 +98,15 @@ var enemies: Dictionary = {}
 ## 하나씩 깎는다(diplo.js monthly()).
 var diplomacy: Dictionary = {}
 
+## **2026-09-12 추가 — 문답(quiz.js, "1,2,3 순서대로 다해" 세 번째).**
+## quiz.js `qstate()`와 같은 모양 — learned(id→true)·wrongs(id→틀린
+## 횟수)·total·correct·streak·best_streak·lore(학식, `LORE_PER_FIND`가
+## 차면 `_reveal_free()`로 재야 하나가 저절로 드러난다). feat/fame/scroll
+## 은 이 슬라이스에 그 축 자체가 없어(REALM엔 player.fame 같은 게 없다)
+## 뺐다 — 첫 정답 보상은 세력 금고(gold)와 학식뿐이다(`quiz_answer()`
+## 참고).
+var quiz: Dictionary = {}
+
 var _rng := RandomNumberGenerator.new()
 
 
@@ -105,6 +115,7 @@ func _ready() -> void:
 	_init_cities()
 	_init_enemies()
 	_init_diplomacy()
+	_init_quiz()
 
 
 ## rtk.js setup()의 도시 초기화 — RealmCities.CITIES 정의 그대로.
@@ -145,6 +156,14 @@ func _init_diplomacy() -> void:
 		if fid.is_empty() or diplomacy.has(fid):
 			continue
 		diplomacy[fid] = {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0}
+
+
+## quiz.js qstate()의 기본값 그대로(best_streak는 camelCase→snake_case만).
+func _init_quiz() -> void:
+	quiz = {
+		"learned": {}, "wrongs": {}, "total": 0, "correct": 0,
+		"streak": 0, "best_streak": 0, "lore": 0,
+	}
 
 
 ## 명령을 실행한다 — rtk.js order()를 current_city 하나에 적용하는 축약.
@@ -653,6 +672,154 @@ func _plot_check(kind: String, enemy_id: String) -> Dictionary:
 	}
 
 
+## quiz.js draw() — 안 익힌 문제 우선(그 안에서는 쉬운 등급부터), 다
+## 익혔으면 틀린 것 위주로 복습. 보기 순서는 낼 때마다 섞는다(_present()).
+## 무작위(등급 안에서 고르기·복습 후보 중 고르기·보기 섞기)는 모두
+## `_rng`(고정 시드)를 써 헤드리스 검증이 재현 가능하다.
+func quiz_draw() -> Dictionary:
+	var pool := RealmQuizData.BANK
+	if pool.is_empty():
+		return {}
+
+	var fresh: Array = []
+	for ref: Dictionary in pool:
+		if not quiz.learned.has(String(ref.id)):
+			fresh.append(ref)
+
+	var chosen: Dictionary
+	if not fresh.is_empty():
+		var low := 3
+		for ref: Dictionary in fresh:
+			low = mini(low, RealmQuizData.lv_of(ref))
+		var tier: Array = []
+		for ref: Dictionary in fresh:
+			if RealmQuizData.lv_of(ref) == low:
+				tier.append(ref)
+		chosen = tier[_rng.randi_range(0, tier.size() - 1)]
+	else:
+		## 전부 익혔다 — 틀린 횟수 내림차순 정렬 후 상위 1/4(최소 4)에서 고른다.
+		var review: Array = pool.duplicate()
+		review.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return int(quiz.wrongs.get(String(a.id), 0)) > int(quiz.wrongs.get(String(b.id), 0)))
+		var top_n := maxi(4, ceili(float(review.size()) / 4.0))
+		top_n = mini(top_n, review.size())
+		var top: Array = review.slice(0, top_n)
+		chosen = top[_rng.randi_range(0, top.size() - 1)]
+
+	return _present(chosen)
+
+
+## quiz.js present() — 보기 넷을 Fisher-Yates로 섞는다. `order[i]`는
+## "i번째로 보여줄 보기가 원래 몇 번(정답 인덱스 기준)이었는가".
+func _present(ref: Dictionary) -> Dictionary:
+	var order: Array = [0, 1, 2, 3]
+	for i in range(order.size() - 1, 0, -1):
+		var j := _rng.randi_range(0, i)
+		var t: int = order[i]
+		order[i] = order[j]
+		order[j] = t
+
+	var choices: Array = []
+	for idx: int in order:
+		choices.append(String(ref.c[idx]))
+
+	var lv := RealmQuizData.lv_of(ref)
+	return {
+		"id": String(ref.id), "cat": String(ref.cat), "lv": lv,
+		"lv_name": String(RealmQuizData.LV_NAME[lv]),
+		"q": String(ref.q), "choices": choices, "order": order,
+		"review": quiz.learned.has(String(ref.id)),
+	}
+
+
+## quiz.js answer() — `p`는 quiz_draw()가 준 문제, choice_idx는 화면에
+## 보인 보기 번호(섞인 순서 기준). **REALM 재해석 — 보상 축소.** 원작
+## reward는 feat/fame/scroll까지 주는데, 이 슬라이스엔 그 값 자체가
+## 없어(REALM엔 player.fame·items.scroll이 없다) gold(세력 금고, rtk.js
+## study()가 하던 일)와 lore→재야 공개만 남겼다.
+func quiz_answer(p: Dictionary, choice_idx: int) -> Dictionary:
+	var ref := RealmQuizData.by_id(String(p.get("id", "")))
+	if ref.is_empty():
+		return {"ok": false}
+
+	var qid: String = String(ref.id)
+	var order: Array = p.order
+	var correct: bool = int(order[choice_idx]) == int(ref.a)
+	var first: bool = correct and not quiz.learned.has(qid)
+	quiz.total = int(quiz.total) + 1
+
+	var lv := RealmQuizData.lv_of(ref)
+	var rw: Dictionary = RealmQuizData.LV_REWARD[lv]
+	var reward := {"gold": 0, "lv": lv, "found": ""}
+
+	if correct:
+		quiz.correct = int(quiz.correct) + 1
+		quiz.streak = int(quiz.streak) + 1
+		if int(quiz.wrongs.get(qid, 0)) > 0:
+			quiz.wrongs[qid] = maxi(0, int(quiz.wrongs[qid]) - 1)
+			if int(quiz.wrongs[qid]) == 0:
+				quiz.wrongs.erase(qid)
+		if int(quiz.streak) > int(quiz.best_streak):
+			quiz.best_streak = quiz.streak
+
+		if first:
+			quiz.learned[qid] = true
+			reward.gold = int(rw.gold)
+			## rtk.js study() — 학식이 LORE_PER_FIND만큼 쌓일 때마다 재야
+			## 하나가 저절로 드러난다(수색 없이, 지력 판정도 없이).
+			quiz.lore = int(quiz.lore) + maxi(1, lv)
+			while int(quiz.lore) >= RealmQuizData.LORE_PER_FIND:
+				quiz.lore = int(quiz.lore) - RealmQuizData.LORE_PER_FIND
+				var got := _reveal_free()
+				if not got.is_empty():
+					reward.found = got
+		else:
+			reward.gold = int(rw.rgold)
+
+		gold += int(reward.gold)
+	else:
+		quiz.streak = 0
+		quiz.wrongs[qid] = int(quiz.wrongs.get(qid, 0)) + 1
+
+	return {
+		"ok": true, "correct": correct, "first": first, "why": String(ref.why),
+		"answer_text": String(ref.c[int(ref.a)]),
+		"lv": lv, "lv_name": String(RealmQuizData.LV_NAME[lv]),
+		"streak": int(quiz.streak), "reward": reward,
+	}
+
+
+## rtk.js revealFree() — 우리 성(playable_ids())에 묻힌 재야 중 아직
+## 안 드러난(found·roster 어디에도 없는) 사람을 rarity 내림차순으로
+## 하나 고른다. `_do_search()`(지력 판정 있음)와 달리 판정이 없다 —
+## 원작도 study()가 부를 땐 그냥 가장 귀한 사람을 바로 준다.
+func _reveal_free() -> String:
+	var pool: Array = []
+	for city_id: String in RealmCities.playable_ids():
+		for oid: String in RealmOfficerPool.HIDDEN_POOL_BY_CITY.get(city_id, []):
+			if oid in found or oid in roster:
+				continue
+			pool.append(oid)
+	if pool.is_empty():
+		return ""
+
+	pool.sort_custom(func(a: String, b: String) -> bool:
+		return int(Characters.find(a).rarity) > int(Characters.find(b).rarity))
+	var got: String = pool[0]
+	found.append(got)
+	return got
+
+
+## quiz.js progress() 축약 — 분야·등급별 세부는 이 슬라이스가 아직
+## 안 보여준다(다음에 볼 자리, UI가 더 필요해지면).
+func quiz_progress() -> Dictionary:
+	return {
+		"learned": quiz.learned.size(), "total": RealmQuizData.BANK.size(),
+		"answered": int(quiz.total), "correct": int(quiz.correct),
+		"streak": int(quiz.streak), "best_streak": int(quiz.best_streak),
+	}
+
+
 ## rtk.js "태수는 그 성의 으뜸 무장"(지력*0.6+통솔*0.4 최댓값) — 이제
 ## officer_city로 실제 배치를 아니까, 그 성에 배치된 무장 중에서만 고른다.
 func _governor_at(city_id: String) -> String:
@@ -703,6 +870,7 @@ func save() -> bool:
 		"officer_loyal": officer_loyal,
 		"enemies": enemies,
 		"diplomacy": diplomacy,
+		"quiz": quiz,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -745,5 +913,8 @@ func try_load() -> bool:
 	var loaded_diplomacy: Variant = data.get("diplomacy", {})
 	if typeof(loaded_diplomacy) == TYPE_DICTIONARY and not loaded_diplomacy.is_empty():
 		diplomacy = loaded_diplomacy
+	var loaded_quiz: Variant = data.get("quiz", {})
+	if typeof(loaded_quiz) == TYPE_DICTIONARY and not loaded_quiz.is_empty():
+		quiz = loaded_quiz
 	_done_this_month.clear()
 	return true
