@@ -1628,6 +1628,59 @@ count(5→6, "0/5"→"0/6") 넷도 맞춰 고쳤다. `node -c`로 손댄 다섯 
 
 ---
 
+# 46-3. 배달원(courier)에게 우주비행사 외형 — §46 "다음에 이어갈 것" 셋째 항목 (2026-09-14)
+
+§46이 세 가지 남은 일 중 마지막(현대 목적지·Space Kit 나머지·배달원 외형)을
+채웠다. 다른 둘(현대 목적지·건물/로버/메카 확충)은 여전히 새 CC0 자산을
+찾아야 해 이번엔 손대지 않았다 — §46-2가 이미 확인한 대로 이 환경에선
+poly.pizza 등 외부 다운로드가 SSL 문제로 막혀 있어, **이미 저장소 안에
+있는 자산만** 옮겼다.
+
+## 지은 것
+
+- **`assets/models/people/space/Astronaut1.glb`** — `saga-dungeon`이
+  "캐릭터 5차분"(2026-09-09)에서 이미 CC0 확인해 둔 Ultimate Space Kit
+  우주비행사 3벌 중 1벌을 그대로 복사(md5 동일, 213KB). 새로 받지 않았다.
+- **`js/asset3d.js`**: `PEOPLE_SPACE`/`HERO_RECIPE_COURIER` 신설,
+  `DEFAULTS['hero:npc_courier']`로 등록. `village.js`의
+  `npcAt('courier', ...)`가 주는 `id: 'npc_courier'`를 `keysFor()`가
+  `'hero'`보다 먼저 찾아 이 좁은 키가 걸린다 — 배달원만 이 몸을 입고
+  나머지 여섯 NPC·다섯 주민·플레이어는 그대로 `HERO_RECIPES`(QRPG·MPFB
+  섞음) 해시를 탄다. **판정·상호작용 코드는 한 줄도 안 건드렸다**(순전히
+  외형 한 줄 등록). Astronaut1.glb는 saga-dungeon 쪽 주석대로
+  `CharacterArmature|*` 제 클립(idle·walk 포함)을 갖고 있어 body/anim을
+  같은 파일로 주는 것만으로 `mapClips()`가 그대로 찾는다 — retarget 불필요.
+  `EXT_meshopt_compression`로 압축돼 있는데 `asset3d.js`가 2026-09-09부터
+  `GLTFLoader`에 `MeshoptDecoder`를 이미 물려 둔 상태라 추가 작업 없이 풀린다.
+- **`assets/ASSET_LICENSES.md`**: 새 절 추가(출처·라이선스, saga-dungeon
+  쪽 원출처 절 참고 링크).
+
+## 검증
+
+Node로 `asset3d.js`를 직접 실행해 `heroRecipe({id:'npc_courier'})`가
+`space_astronaut1`(Astronaut1.glb)을 돌려주고, 다른 npc id(`npc_keeper`·
+`npc_herbalist`)는 여전히 기존 MPFB 해시를 그대로 타는 것을 확인했다
+(courier만 예외로 갈라짐). `node -c`로 구문 확인.
+
+`_test.html` 헤드리스 자가진단 — **261/265, 세 번 동일**(수정 전 기준선도
+동일하게 261/265 — "공사"(지형 개조) 테스트 넷은 이 변경과 무관한 기존
+실패로 확인, 회귀 없음). 새 REG 키(`hero:npc_courier`) 하나가 늘었지만
+기존 "27개 키 다 참 · 등록 55개" 검사는 특정 kind 어휘 목록만 세므로
+영향 없다.
+
+## 실기 확인 전
+
+배달원이 실제로 우주비행사 모습으로 서는지, 다른 NPC와 실루엣이 뚜렷이
+구별되는지는 사용자가 3D 화면에서 직접 봐야 한다.
+
+## 다음에 이어갈 것 (§45 표 갱신)
+
+- 현대(도시) 목적지 — 여전히 CC0 자산 미확보
+- Ultimate Space Kit 나머지(건물·로버·메카) — 실물 GLB를 poly.pizza에서
+  아직 못 받음(SSL 문제, §46-2 참고). 외부 다운로드가 뚫리는 세션에서 이어갈 것
+
+---
+
 # Claude Code 최종 작업 원칙
 
 **실기(실제 기기) 확인은 배치 끝에 한 번만 — 매 기능마다 따로 챙기지

@@ -1607,3 +1607,61 @@ RecieveHit·Shoot_OneHanded·SitDown·StandUp·Victory·Walk·Walk_Carry`),
 
 이걸로 `Ultimate Animated Character Pack`의 사람형(좀비·고블린 제외)
 42벌을 전부 썼다. 좀비 2·고블린 2는 몬스터 트랙 후보로 남겨 둠.
+
+## Quaternius — Animated Dinosaur Pack (2026-09-14, `models/monsters/quaternius_dino/`)
+
+PLAN "3안"(새 CC0 몬스터 에셋 조사, 2안에서 확정된 다음 순서)을 이어감.
+2안(위 "몬스터 로스터 확장")은 **기존 몸 재활용**이었는데, 이번엔 실제로
+새 GLB 를 받아 왔다.
+
+| | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | CC0 1.0 — `quaternius.itch.io/animated-lowpoly-dinosaurs` 페이지에 "CC0" 명시 |
+| **받은 곳** | GitHub `trebeljahr/quaternius-showcase`(이 판이 Frog·Wolf·Cow·Deer 등을 이미 받아 온 그 미러) `public/glb/dinosaurs_pack/` — 파일 크기를 원본과 대조해 확인 |
+| **파일** | `Apatosaurus.glb`·`Parasaurolophus.glb`·`Stegosaurus.glb`·`Trex.glb`·`Triceratops.glb`·`Velociraptor.glb`(6종, 전부 idle·walk·run·attack·death·jump 클립 내장) |
+
+**Quaternius 최신 팩 상당수가 QAL(Quaternius Asset License)로 바뀌어
+있었다** — "Bestiary - Dungeon Monsters Kit"처럼 매력적인 후보를 찾아도
+`quaternius.com/license.html`을 직접 읽어 보니 "스탠드얼론 에셋으로
+재배포 금지" 조항이 있어(공개 저장소에 GLB 원본을 커밋하는 것 자체가
+재배포에 해당) **못 썼다** — CC0(Easy Enemy Pack·Animated Dinosaur Pack
+등, 아직 CC0로 남은 옛 팩)만 후보로 남는다. 팩 이름만 보고 받지 말고
+**팩 페이지에서 라이선스를 낱개로 확인할 것**(quaternius.com 홈의 팩
+목록에 CC0/QAL 이 안 적혀 있다 — 각 팩 상세 페이지를 열어야 보인다).
+
+`tools/glb-compress`로 재압축(6개, 1.9MB→0.7MB). `js/asset3d.js`
+`monster:dino_apato`·`dino_para`·`dino_stego`·`dino_trex`·`dino_tri`·
+`dino_raptor`로 등록, `js/data-enemy.js`에 여섯(쾌조룡·볏공룡·판갑룡·
+폭룡·삼각뿔룡·장경룡, tier 2~4)을 새로 얹었다. 기존 `monster:dino`
+(Ultimate Monsters 소속, '뿔공룡'/'왕뿔공룡'이 쓰던 그 하나뿐인 공룡)와는
+다른 개체라 안 건드렸다.
+
+### 같이 잡은 진짜 버그 — `monster:` 네임스페이스가 통째로 안 이어져 있었다
+
+이번 여섯을 실제로 연결하려고 기존 파이프라인을 따라가 보니, "몬스터
+100개" 확장(2026-09-07~11)이 `js/asset3d.js` DEFAULTS 에 채운 58종
+(KayKit Skeletons·Ultimate Monsters·Animated Enemies 등, 전부
+`monster:이름` 접두 키)을 `js/data-enemy.js`의 `body` 필드는 접두어 없이
+맨 이름(`'skeleton_minion'`·`'ghost'`·`'dragon_evolved'` 등)으로 적어
+왔는데, `dungeon3d.js`가 `body` 값을 그대로 `AS3.build()`에 넘기는
+자리엔 그 접두어를 붙이는 코드가 없었다 — `REG[kind]`가 늘 undefined 라
+GLB 를 하나도 못 받고 **조용히 상자(fallback shape)로만 그려지고
+있었다**(예외가 안 나 자가진단·"500회 스폰" 구조 검사 어느 것도 못 잡는
+자리 — 둘 다 "구조가 맞는지"만 보지 "GLB 가 실제로 붙는지"는 안 봤다).
+Node `vm`으로 `asset3d.js`+`data-enemy.js`를 그대로 불러 `REG` 대조를
+직접 해 보니 짐승형 94개 중 **88개**, 보스 '천룡'(`dragon_evolved`)까지
+걸려 있었다.
+
+**고침** — `js/asset3d.js`의 `lookup(kind)`가 맨 이름이 REG 에 없으면
+`monster:`를 붙여 한 번 더 찾도록 두 줄 보탰다(REG·DEFAULTS·
+data-enemy.js 는 한 글자도 안 건드렸다 — 2026-09-11 주석이 적어 둔 "여기는
+안 건드리고 표만 고치면 된다"의 그 "표를 잇는 다리" 쪽이 빠져 있던
+것뿐이었다). 고친 뒤 Node `vm`으로 재확인 — 짐승형 94개+보스 11개 전부
+`AS3.lookup()`이 성공. 이 여섯 다이노도 이 다리를 그대로 탄다(등록만
+해 두면 바로 붙는다는 뜻 — 새로 확인해야 할 건 실기기 렌더뿐).
+
+**아직 확인 못 한 것** — 이번 고침으로 몬스터 88종이 처음으로 실제 GLB
+를 받게 되므로, 다음 실기기 확인 때 지금까지 상자로만 보이던 자리들이
+실제 모델로 바뀌는지 볼 것(개발 중 헤드리스 스크린샷은 안 찍었다 —
+`_test.html` 296/296 3회 동일로만 회귀 확인).

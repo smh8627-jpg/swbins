@@ -681,3 +681,34 @@ ASSET_LICENSES.md`의 "MPFB2 + makehuman_system_assets" 절 참고).
 자산 중에 SF/미래풍 폐허가 없다(다섯 판 다 사극·판타지·현대 배경이라
 그런 자산을 받은 적이 없다). 다음에 그런 CC0 자산을 찾으면 같은 `ruinSpot()`
 자리에 더 얹거나 새 자리를 열면 된다.
+
+---
+
+## Quaternius "Ultimate Space Kit" — 배달원 우주복 (2026-09-14, `saga-dungeon`에서 옮김)
+
+PLAN §46 "다음에 이어갈 것" 셋째 항목(배달원에게 우주비행사 외형을 입혀
+다른 여섯 NPC와 다른 실루엣으로 보이게 하기)을 채웠다. 새로 받지 않고
+`saga-dungeon`이 "캐릭터 5차분"(2026-09-09)에서 이미 CC0 확인해 둔
+Astronaut 3벌 중 1벌만 옮겼다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 저작자 표시 필요 없다, 재배포 허용된다 |
+| **받은 곳** | `poly.pizza/m/0D54W8yfrA` → `static.poly.pizza/f06659f2-e505-43df-a3db-84faec811a57.glb` —
+  원 출처·라이선스 확인 근거는 `../../saga-dungeon/assets/ASSET_LICENSES.md`의
+  "캐릭터 5차분 — Ultimate Space Kit 우주비행사 3벌" 절 참고 |
+| **파일** | `assets/models/people/space/Astronaut1.glb`(208KB, md5
+  `saga-dungeon/assets/models/people/polypizza_space/Astronaut1.glb` 쪽과 동일 —
+  그대로 복사만 했다) |
+
+셋 다 같은 뼈대·`CharacterArmature|*` 클립(색·소재 텍스처만 다른 변형)이라
+1벌만으로 충분 — 이 판은 우주비행사 역할이 배달원 하나뿐이다. `EXT_meshopt_compression`
+확장으로 압축돼 있는데 `asset3d.js`가 2026-09-09부터 `GLTFLoader`에
+`MeshoptDecoder`를 이미 물려 둔 상태라 별도 작업 없이 그대로 풀린다.
+
+`js/asset3d.js`의 `DEFAULTS['hero:npc_courier']`로 등록 — `village.js`의
+`npcAt('courier', ...)`가 주는 `id: 'npc_courier'`를 `keysFor()`가 `'hero'`보다
+먼저 찾아 이 좁은 키가 걸린다. 다른 NPC·마을 주민·플레이어는 그대로
+`HERO_RECIPES`(QRPG·MPFB 섞음) 해시를 탄다 — 배달원만 예외로 갈랐다. 새
+상호작용·판정은 안 건드렸다(순전히 외형).

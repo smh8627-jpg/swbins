@@ -50,9 +50,21 @@
     return isNaN(n) ? def : n;
   }
 
-  /** 3D 모델이 있는 펫만 여기 올린다 — 나머지 62종은 2D 도감 그림 그대로
-   *  (사슴·구미호만 실제 GLB(Deer.glb·Fox.glb)와 정확히 맞는다, 2026-09-11 결정) */
-  var PET_MAP = { pt_deer: 'critter:deer', pt_gumiho: 'critter:fox' };
+  /** 3D 모델이 있는 펫만 여기 올린다 — 나머지는 2D 도감 그림 그대로
+   *  (사슴·구미호만 실제 GLB(Deer.glb·Fox.glb)와 정확히 맞는다는 2026-09-11
+   *  결정을 그대로 잇는다. **2026-09-14** — 같은 집안(사슴·여우·소)의 펫을
+   *  더 찾아 넓혔다: 큰사슴(pt_stag)은 사슴과 같은 몸(뿔 크기 차이는
+   *  그림으로만 남는다), 여우(pt_fox)는 구미호보다 오히려 더 정확한
+   *  실제 여우 매칭, 들소·젖소·황소(pt_cow·pt_cow_farm·pt_bull)는 셋 다
+   *  소과라 Cow.glb 하나로 같이 묶었다(PLAN §4 "하나의 에셋을 여러 자리에
+   *  재사용"과 같은 결). 새 GLB는 하나도 안 늘렸다 — 이미 있는 넷
+   *  (Deer·Fox·Cow·Wolf 중 Wolf는 짝이 되는 펫이 없어 그대로 둔다)만 더
+   *  넓게 물렸다. */
+  var PET_MAP = {
+    pt_deer: 'critter:deer', pt_stag: 'critter:deer',
+    pt_gumiho: 'critter:fox', pt_fox: 'critter:fox',
+    pt_cow: 'critter:cow', pt_cow_farm: 'critter:cow', pt_bull: 'critter:cow'
+  };
   function petKeyOf(id) { return PET_MAP[id] || null; }
 
   /** 이 kind·ref 조합을 3D 로 구울 수 있나 — hero 는 다 되고, pet 은 PET_MAP 에

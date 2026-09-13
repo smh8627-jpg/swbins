@@ -578,9 +578,10 @@ PLAN 20절이 콕 집은 **02:00 Deep Night** 을 더해 여섯이 됐다 — �
 - **번개** — 비 오는 날에만 6~18초마다 한 번, 화면이 번쩍인다. 새 CSS 없이
   `duel.js`가 이미 쓰는 `.flash`(`dflash` 애니메이션)를 3D 캔버스(`#map3d`)에
   그대로 입혔다. 판정에는 안 닿고, 소리 낼 자리만 이벤트(`sky:thunder`)로
-  열어 뒀다 — **아직 천둥 CC0 음원이 없어 소리는 없다**(다음에 구하면 `audio.js`가
-  엿듣기만 하면 된다). 손잡이 `sky3d.lightning`·`sky3d.lightningMinS`·
-  `sky3d.lightningMaxS`
+  열어 뒀다 — **2026-09-14, 천둥소리를 마저 붙였다**(OpenGameArt "100 CC0
+  SFX #2", CC0, 아래 '소리' 절 참고). `js/audio.js`가 `sky:thunder`를
+  엿듣기만 해서 붙었고, 이 파일은 여전히 신호만 던질 뿐 소리를 모른다.
+  손잡이 `sky3d.lightning`·`sky3d.lightningMinS`·`sky3d.lightningMaxS`
 - 구름은 이미 있었다(PLAN 44절, 위 목록엔 없었지만 `sky3d.js`에 진작 있던 것 —
   플레이어 반경 260m를 흐르는 상자 7장)
 
@@ -786,10 +787,17 @@ setTransform` 미지원)에는 옛 색칠로 물러난다 — 화면이 안 빈�
 OpenGameArt "RPG Sound Pack"(artisticdude, **CC0**)에서 짧은 다섯 조각을
 mp3(모노 96kbps)로 옮겼다 — 출처는 `assets/ASSET_LICENSES.md`.
 
+**2026-09-14 — 천둥을 여섯째로 더했다.** `sky3d.js`(위 '하늘' 절)가
+비 오는 날 번개마다 `sky:thunder`를 던지고 있었는데 CC0 천둥 음원이
+없어 소리가 안 났다. OpenGameArt "100 CC0 SFX #2"(rubberduck, **CC0**)의
+`sfx100v2_thunder_01.ogg`를 같은 규격(모노 44.1kHz 96kbps mp3)으로
+옮겨 `thunder.mp3`로 넣었다.
+
 - **새 판정을 만들지 않았다.** 이미 도는 이벤트버스(`core.on`/`emit`)를
   엿듣기만 한다 — `codex`(발견)→discover · `dex:new`(등용·포획 성공)→catch ·
   `duel:fx`(타격)→hit · `feat`(공적 획득)→reward · `duel:open`·`*:request`
-  (카드/무대 열림)→open. 어느 게임 로직 파일도 안 고쳤다
+  (카드/무대 열림)→open · `sky:thunder`(비 오는 날 번개)→thunder.
+  어느 게임 로직 파일도 안 고쳤다
 - **손잡이 `audio.on`(0이면 무음) · `audio.vol`(0~1, 기본 0.6)** — `_admin.html`에도 있다
 - **지연 로딩** — `preload="none"`, 처음 그 소리를 낼 때만 받는다(7절).
   클립마다 셋씩 풀(pool)로 돌려 써서 짧게 겹쳐도(연속 필살 등) 안 끊긴다
