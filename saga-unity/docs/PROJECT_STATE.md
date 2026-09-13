@@ -4091,3 +4091,66 @@ Maria가 없으면 기존 Kenney로 자동 폴백. ③ Dungeon **주요 Enemy**(
   하려면 이 문서의 패턴(플레이어를 대상 옆으로 텔레포트해 카메라가
   따라오게, `CharacterController` 끄고 옮기고 다시 켜기)을 참고해 새로
   짤 것.
+
+## 44장 "Environment→Building" + 다른 판 "Player"·"주요 Enemy" 일괄 진행 (2026-09-14)
+
+사용자가 "사가유니티 이어해" → 지난 세션 인수인계가 물었던 두 갈래
+질문(Dungeon Environment→Building이냐, 다른 네 판 Player부터냐)에 대해
+"Dungeon Environment→Building" 선택 → "순서대로 다해"·"묻지말고 최대한
+진행해"로 뒤이어 확장 지시. 이번 세션 요약(전부 커밋·푸시 완료):
+
+1. **Dungeon "Environment"** — room-small.glb/corridor.glb(Kenney 단색
+   아틀라스) 대신 66-2장 ⑥이 미리 구워 둔 Poly Haven PBR 재질
+   (cobblestone_floor_01·castle_wall_slates)을 실제 바닥/벽 primitive에
+   씌운다(`EnvironmentMaterial.cs` 신규 — 표면 크기에 맞춘 타일 반복수로
+   인스턴스 재질 생성). 셸이 바닥+벽+천장 한 메시라 부분 교체가 안 돼
+   PBR 경로에서는 셸/corridor 타일을 건너뛰고 천장만 새 primitive로
+   닫는다(BuildCeiling, 콜라이더 없음). 재질이 없으면 기존 셸/색상 경로로
+   조용히 폴백.
+2. **Dungeon "Building"** — gate.glb 문 아치도 PBR 경로에서 벽과 같은
+   castle_wall_slates로 덮는다. Dungeon엔 이 아치 말고 다른 "건물"이
+   없어(지하 던전) 44장 Building은 이걸로 마무리, Vegetation/Props/
+   Animals/VFX(방 소품)는 이번 슬라이스에서 급하지 않다고 보고 보류.
+3. **GO/Forest/Story "Player"** — 셋 다 Dungeon이 이미 리깅해 둔 Maria를
+   재사용(SAGA 세계관 같은 주인공, CharactersRealistic/는 .gitignore
+   대상이라 없으면 character-a로 조용히 폴백). 게임마다 세계 스케일이
+   달라(GO=3.4m, Forest/Story=1.8m) Maria 실측 높이(1.83m, 임시 측정
+   스크립트로 재고 바로 삭제)를 기준으로 배율을 다시 계산했다. GO/Forest
+   PlayerController엔 Speed(Idle↔Walk↔Run)만, Story엔 Speed+Attack(연참/
+   횡소/기탄 셋 다 같은 트리거)까지 추가 — 세 게임 다 플레이어가 피격
+   당하지 않아 Hit/Death는 배선 안 함. **Realm은 실시간 플레이어 캐릭터가
+   없어(경영/전략 게임) Player 우선순위가 아예 적용 안 됨** — 지난
+   세션이 이미 지적한 그대로.
+4. **GO "주요 Enemy"** — 산적(BanditEncounter)이 Dungeon 잡졸(황건적)과
+   같은 배역이라 Abe(AbeAnimated.prefab)를 재사용. 리깅된 모델은
+   DungeonEnemy.cs와 같은 결로 실제 스케일 그대로 쓰고 색조를 안 입힌다
+   (실측 1.94m 기준 HumanHeight 배율). "강타 예고" 텔레그래프의 복귀색을
+   BaseColor 대신 흰색(_restTint)으로 갈라 곱색 오염을 막았다.
+
+**검증 방식(모든 항목 공통)** — 배치 모드 컴파일 통과 → 각 게임의
+BuildTest*Scene.Build 재실행(경고 로그로 폴백 여부 확인) → 각 게임의
+headless playtest(PlaytestHeadless/PlaytestForestHeadless/
+PlaytestStorySlice, Story는 연참/횡소/기탄/브레이스/점프/로프/저장까지
+전부 재확인) 무오류 통과 → `git status`로 ProjectSettings/Packages
+부작용 확인. 한 번은 임시 확인 스크립트(TempCheckBanditVisual)가
+`EditorSettings.enterPlayModeOptions`를 안 되돌려 놓아 커밋 직전
+`git checkout`으로 되돌린 적이 있다 — **임시 스크립트를 새로 짤 때
+PlaytestHeadless.cs처럼 EditorSettings 원복 코드를 꼭 넣을 것**(이번엔
+스크립트 자체를 확인 직후 삭제하는 걸로 대신 때웠다).
+
+**다음에 할 일**:
+- **Forest "주요 Enemy"는 적용 대상이 없다** — 이 판 첫 슬라이스엔 적대
+  개체가 없다(ForestCreature는 비적대 동물). 새로 넣으려면 콘텐츠
+  설계(적 도입 여부)부터 사용자 확인이 필요 — 자산 교체 범위를 넘어선다.
+- **Story는 이미 적(잡졸)이 있다**(PlaytestStorySlice가 "10 grunts"를
+  잡는 걸로 확인) — 어떤 모델을 쓰는지, Abe/Brute로 바꿀 수 있는지는
+  다음에 StoryEnemy.cs·BuildTestStoryScene.cs의 적 스폰 부분을 볼 것
+  (이번 세션엔 Player만 손댔다).
+- **GO/Forest/Story/Realm의 Environment→Building**은 이번 세션에
+  손 안 댔다 — Dungeon 패턴(EnvironmentMaterial.cs, PBR 재질 인스턴스
+  타일링)을 참고할 수 있지만 각 게임 지형 빌더(TerrainBuilder 등) 구조가
+  전부 달라 게임별로 새로 봐야 한다.
+- **Realm은 Player/Enemy 우선순위 자체가 안 맞는다** — 경영/전략
+  게임이라 실시간 캐릭터가 없다. 44장 우선순위를 그대로 적용하려 하지
+  말고, 이 판에 맞는 자산 우선순위(도시/건물/지도 아이콘 등)를 다음에
+  따로 정할 것.
