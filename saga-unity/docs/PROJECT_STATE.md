@@ -3919,3 +3919,43 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 - **다음에 할 일**: 44장 우선순위대로 Kenney/VRoid 플레이스홀더를
   Player → 주요 Enemy → Boss → Environment → Building 순서로 실제
   사실적 에셋(Maria 캐릭터·⑤ 셰이더·⑥ PBR 재질)으로 교체 시작.
+
+## 44장 "Player" 교체 — Dungeon (2026-09-13, 새 세션 이어서)
+
+- 사용자가 "Dungeon만 먼저"로 범위 확정(다른 네 판은 Player 없음/2.5D/
+  전투 없음이라 Maria 사용 시나리오가 안 맞거나 다음에 따로 판단).
+- `BuildTestDungeonScene.BuildPlayer()`가 Kenney `character-a.glb`
+  대신 Maria(⑦ 리깅+⑧ Animator Controller)를 쓰게 바꿨다 — 새 헬퍼
+  `BuildPlayerVisual()`: Maria FBX 찾으면 인스턴스화+Animator 부착+
+  `BuildTestCharacterRealisticScene.ApplySkinSplit()` 재사용(그 메서드를
+  `internal`로 열어 재사용, 새 유틸 클래스로 안 뽑음 — 지금은 소비자가
+  하나뿐이라 32장 "최소 변경" 원칙), 로컬에 Maria 자산이 없으면(라이선스로
+  `.gitignore` 대상) character-a로, 그마저 없으면 capsule로 순서대로
+  폴백(기존 관례 그대로).
+- `PlayerController.cs`(Dungeon 전용 복사본만, 다른 판은 안 건드림)에
+  `animator` 필드 추가 — **Maria가 배정되면**(non-null) 이동은 `Speed`
+  파라미터로 Idle/Walk/Run 블렌드, 회피는 기존 절차적 X축 360도 롤
+  대신 `Dodge` 트리거(방향만 맞추고 회전 자체는 클립에 맡김). **Maria가
+  없어 character-a 폴백이면**(animator null) 예전 절차적 롤이 그대로
+  유지된다 — 분기 유지, 기존 동작 안 깨짐. `PlayerCombat.cs`는 평타·
+  강공격에 `Attack` 트리거(강공격도 같은 클립 재사용 — 전용 클립 없음,
+  다음 과제), 사망에 `Death` 트리거 추가. "Hit"(피격) 트리거는 안 걸었다
+  — `HeroState`에 데미지 이벤트가 없어(죽음 이벤트만 있음) 새 이벤트
+  배선이 필요한데 이번 범위(캐릭터 교체)를 넘는 확장이라 남겨 둠.
+- 검증: 컴파일 통과 → `BuildTestDungeonScene.Build` 재실행(Maria 정상
+  로드, 폴백 경고 없음) → `PlaytestDungeonHeadless` 재확인 통과(`OK -
+  10 frames, no errors`) → GUI로 Player의 `Animator`를 직접 구동해
+  idle→walk→attack→dodge 네 포즈 스크린샷 확인(1회용
+  `TempShotDungeonPlayer.cs`, 실제 입력 대신 `SetFloat`/`SetTrigger`
+  직접 호출 — 확인 후 삭제). **포즈 전환 자체는 뚜렷이 다른 실루엣으로
+  잘 확인됨**(서 있기/베기 웅크림/구르기 준비 자세가 또렷이 갈림) —
+  리깅·Animator 배선은 성공.
+  **다만 관찰한 것 하나** — 이 어두운 던전 조명(부족장 조명 0.9 +
+  차가운 RimLight)에서 Maria가 전체적으로 균일한 하늘색/청록색
+  실루엣으로 보인다(살구색 피부·갈색 옷 색조가 거의 안 드러남). 이전
+  Kenney 캐릭터는 같은 조명에서도 색이 또렷했다(00_dungeon.png 참고) —
+  Maria의 재질(스킨 스플릿 근사 셰이더)이 이 RimLight/저조도 조합에
+  더 민감하게 반응하는 것으로 보인다. **버그인지 의도한 실루엣 강조
+  효과인지는 판단이 필요해 이번엔 손대지 않았다** — 다음에 사용자가
+  실기로 보고 재질/조명 중 어느 쪽을 조정할지 정할 것.
+- `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음 확인.

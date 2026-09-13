@@ -90,6 +90,7 @@ namespace Saga.Dungeon.Player
             enemy.TakeDamage(HeroState.HitDamage);
             _cameraRig?.Shake(HitShakeMag, HitShakeSec);
             SfxPlayer.PlayHit();
+            _controller.Animator?.SetTrigger("Attack");
         }
 
         private void TryHeavyAttack()
@@ -103,12 +104,16 @@ namespace Saga.Dungeon.Player
             enemy.TakeDamage(HeroState.HitDamage * HeavyDamageMul, heavy: true);
             _cameraRig?.Shake(HeavyShakeMag, HeavyShakeSec);
             SfxPlayer.PlayHeavyHit();
+            // Maria.controller엔 슬래시 클립이 하나뿐이라 강공격도 같은
+            // "Attack" 트리거를 쓴다 — 전용 클립은 다음에 받을 몫.
+            _controller.Animator?.SetTrigger("Attack");
         }
 
         /// <summary>이번 슬라이스는 죽음 화면·페널티 없이 바로 회복한다 —
         /// 다음 슬라이스가 실제 죽음 처리(귀환·손실 등)를 다룰 몫.</summary>
         private void OnDied()
         {
+            _controller.Animator?.SetTrigger("Death");
             HeroState.FullHeal();
             DialogueLabel.Instance?.Show("쓰러졌다가 정신을 차렸다.", 3f);
         }

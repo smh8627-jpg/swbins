@@ -18,20 +18,25 @@ namespace Saga.Dungeon.Player
     /// `DungeonRoomBuilder.cs`가 이미 쓴 px→m 환산(ROOM_W 560px = 20m,
     /// 28px/m)을 그대로 적용해 이동 거리 ≈2.97m→3m으로 잡았다.
     ///
-    /// "회피 애니메이션·이펙트" 슬라이스 — 이 프로젝트엔 아직 Animator/
-    /// 스켈레톤 애니메이션 재생 파이프라인이 전혀 없다(캐릭터 GLB는
-    /// `CharacterVisual.Spawn()`으로 정적으로 세울 뿐, saga-godot의
-    /// `assets/characters/*`엔 AnimationPlayer가 딸려 있어도 이쪽에서
-    /// 아직 그 클립을 재생하지 않음). 그 파이프라인을 새로 놓는 건 이
-    /// 조각 하나 몫을 훨씬 넘는 일이라, `BanditEncounter.cs`가 이미 쓰는
-    /// 절차적 연출 방식(Tint·Coroutine 스케일 펄스)과 같은 결로 세
-    /// 가지를 코드로 직접 만든다: **회전 애니메이션**(구르는 동작 —
+    /// "회피 애니메이션·이펙트" 슬라이스 — 당시엔 Animator/스켈레톤
+    /// 애니메이션 재생 파이프라인이 전혀 없어서(캐릭터 GLB는
+    /// `CharacterVisual.Spawn()`으로 정적으로 세울 뿐) `BanditEncounter.cs`가
+    /// 이미 쓰는 절차적 연출 방식(Tint·Coroutine 스케일 펄스)과 같은 결로
+    /// 세 가지를 코드로 직접 만들었다: **회전 애니메이션**(구르는 동작 —
     /// `visual`을 회피 방향으로 향하게 한 뒤 로컬 X축으로 360도 굴림,
     /// 정확히 한 바퀴라 끝나면 자동으로 다시 똑바로 섬), **잔상 이펙트**
     /// (`TrailRenderer`, 새 셰이더 없이 어디서나 되는 `Sprites/Default`),
     /// **무적 틴트**(`CharacterVisual.Tint()` 재사용 — 회피 대시(0.16초)
     /// 보다 긴 무적 시간(0.22초) 내내 옅은 하늘색으로 덮어써 "지금 안
     /// 맞는다"를 눈으로 알 수 있게).
+    ///
+    /// **44장 "Player" 교체(2026-09-13)** — Maria(Humanoid Animator,
+    /// `BuildTestDungeonScene.BuildPlayerVisual` 참고)가 배정되면 `animator`가
+    /// 채워진다. 그 경우 이동은 `Speed` 파라미터로 Idle/Walk/Run을 블렌드,
+    /// 회피는 위 절차적 X축 롤 대신 `Dodge` 트리거(Maria의 실제 구르기
+    /// 클립)를 쓴다 — 얼굴 방향만 맞추고 회전 자체는 클립에 맡긴다. Maria가
+    /// 없어(로컬 전용 자산 미다운로드) character-a 폴백이 배정되면
+    /// `animator`가 null이라 예전 절차적 롤이 그대로 쓰인다.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public class PlayerController : MonoBehaviour
@@ -51,6 +56,7 @@ namespace Saga.Dungeon.Player
         private static readonly Color DodgeTintColor = new Color(0.75f, 0.92f, 1f); // 무적 동안 옅은 하늘색
 
         [SerializeField] private Transform visual;
+        [SerializeField] private Animator animator;
         [SerializeField] private CameraRig cameraRig;
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private VirtualJoystick joystick;
@@ -68,6 +74,10 @@ namespace Saga.Dungeon.Player
         private bool _wasInvulnerable;
 
         public Transform Visual => visual;
+
+        /// <summary>Maria 배정 때만 non-null(위 클래스 주석 참고) — null이면
+        /// 리깅 안 된 캐릭터라 PlayerCombat이 Attack/Death 트리거를 건너뛴다.</summary>
+        public Animator Animator => animator;
 
         /// <summary>강공격(Player/PlayerCombat.cs)이 참고 — 웹판 heavyAttack()도
         /// `p.dodge`(회피 중) 동안엔 강공격을 막는다.</summary>
@@ -91,6 +101,11 @@ namespace Saga.Dungeon.Player
             if (joystick == null)
             {
                 joystick = Object.FindFirstObjectByType<VirtualJoystick>();
+            }
+
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
             }
 
             _dodgeTrail = BuildDodgeTrail();
@@ -151,12 +166,21 @@ namespace Saga.Dungeon.Player
 
                 if (visual != null)
                 {
-                    // 회피 방향을 향해 정확히 한 바퀴(360도) 구른다 — 끝나는
-                    // 시점(progress=1)에 각도가 360도라 별도 복구 없이 저절로
-                    // 다시 똑바로 선다.
-                    float rollProgress = 1f - Mathf.Clamp01(_dodgeTimeLeft / DodgeDurationSec);
                     float yaw = Mathf.Atan2(_dodgeDir.x, _dodgeDir.z) * Mathf.Rad2Deg;
-                    visual.rotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(rollProgress * 360f, 0f, 0f);
+                    if (animator != null)
+                    {
+                        // Maria의 "Dodge" 클립이 구르는 동작 자체를 담당 —
+                        // 여기선 방향만 맞춘다(절차적 X축 롤과 안 겹치게).
+                        visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+                    }
+                    else
+                    {
+                        // 회피 방향을 향해 정확히 한 바퀴(360도) 구른다 —
+                        // 끝나는 시점(progress=1)에 각도가 360도라 별도 복구
+                        // 없이 저절로 다시 똑바로 선다.
+                        float rollProgress = 1f - Mathf.Clamp01(_dodgeTimeLeft / DodgeDurationSec);
+                        visual.rotation = Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(rollProgress * 360f, 0f, 0f);
+                    }
                 }
                 if (_dodgeTimeLeft <= 0f && _dodgeTrail != null)
                 {
@@ -171,6 +195,14 @@ namespace Saga.Dungeon.Player
 
             Vector3 horizontal = moveDir * speed;
             _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
+
+            if (animator != null)
+            {
+                // Maria.controller의 Idle→Walk(>0.1)→Run(>0.6) 문턱과
+                // 겹치지 않게 0/0.5/1로 확실히 갈라 준다.
+                bool moving = moveDir.sqrMagnitude > 0.05f * 0.05f;
+                animator.SetFloat("Speed", moving ? (running ? 1f : 0.5f) : 0f);
+            }
 
             if (moveDir.sqrMagnitude > 0.05f * 0.05f && visual != null)
             {
@@ -199,6 +231,8 @@ namespace Saga.Dungeon.Player
             _dodgeTimeLeft = DodgeDurationSec;
             _dodgeCooldownLeft = DodgeCooldownSec;
             _invulnTimeLeft = DodgeInvulnSec;
+
+            animator?.SetTrigger("Dodge");
 
             if (_dodgeTrail != null)
             {
