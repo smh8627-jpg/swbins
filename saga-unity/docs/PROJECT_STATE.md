@@ -4154,3 +4154,29 @@ PlaytestHeadless.cs처럼 EditorSettings 원복 코드를 꼭 넣을 것**(이�
   게임이라 실시간 캐릭터가 없다. 44장 우선순위를 그대로 적용하려 하지
   말고, 이 판에 맞는 자산 우선순위(도시/건물/지도 아이콘 등)를 다음에
   따로 정할 것.
+
+**같은 세션 이어서 — Story "주요 Enemy"·"Boss"까지 마저 함.** 위
+"다음에 할 일"이 적어 둔 대로 StoryEnemy.cs·BuildTestStoryScene.cs의
+적 스폰부를 봤더니 GO 산적과 똑같이 character-d(황건적)를 쓰고
+있었다 — Abe(잡졸)·Brute(두목)로 교체(`StoryEnemy.cs`에
+`bossModelPrefab`/`riggedVisualScale`/`riggedBossVisualScale` 세 필드
+신규, `StoryEnemySpawner.cs`가 잡졸/두목에 각각 배선). 검증은
+`PlaytestStorySlice`(잡졸 10킬+보스킬+sweep/bolt/brace/jump/rope/
+save-load 전체) 무오류 통과. **이걸로 Story는 Dungeon과 같은 수준
+(Player→주요 Enemy→Boss 세 단계)까지 마쳤다.**
+
+**세션 종료 시점 정리(2026-09-14)** — 44장 우선순위 완료 현황:
+
+| 게임 | Player | 주요 Enemy | Boss | Environment | Building |
+|---|---|---|---|---|---|
+| Dungeon | Maria | Abe | Brute | PBR 완료 | PBR 완료(아치) |
+| GO | Maria | Abe | (해당 사건 없음) | 미착수 | 미착수 |
+| Forest | Maria | (적대 개체 없음) | — | 미착수 | 미착수 |
+| Story | Maria | Abe | Brute | 미착수 | 미착수 |
+| Realm | 해당 없음(경영게임) | — | — | 미착수 | 미착수 |
+
+다음 세션이 이어갈 만한 후보(우선순위 순서는 사용자가 다시 정할 것):
+GO/Story의 Environment→Building(각 게임 지형 빌더가 Dungeon과 구조가
+달라 EnvironmentMaterial.cs 패턴을 그대로 못 옮기고 게임별로 새로
+봐야 함), 또는 Forest에 적대 개체를 새로 넣을지(콘텐츠 설계 결정 필요),
+또는 Realm의 자산 우선순위를 별도로 정하는 것.
