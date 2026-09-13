@@ -3,6 +3,9 @@ Poly Haven (https://polyhaven.com) — all assets are CC0 1.0 Universal
 
 - cobblestone_floor_01 by Rob Tuytel — https://polyhaven.com/a/cobblestone_floor_01
 - castle_wall_slates — https://polyhaven.com/a/castle_wall_slates
+- grass_path_2 (흙길) — https://polyhaven.com/a/grass_path_2
+- leafy_grass (초목 바닥) — https://polyhaven.com/a/leafy_grass
+- dark_wooden_planks (목재) — https://polyhaven.com/a/dark_wooden_planks
 
 Downloaded as 1k JPG (diffuse/nor_gl/roughness/AO) via the public
 Poly Haven API (https://api.polyhaven.com) — see PLAN.md 66-2장 and

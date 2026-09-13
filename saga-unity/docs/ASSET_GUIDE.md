@@ -368,3 +368,12 @@ CC0-1.0) 후 실제로 `git clone`해 받았다. 아직 후보일 뿐 — 캐릭
 서브그래프만 가져오고 원본 데모 그래프는 뺐다(이 프로젝트 Unity
 6000.3 Shader Graph 패키지에서 임포트 오류) — 자세한 내용은
 `CharacterShaders_candidates/LICENSE.txt`·`PLAN.md` 66-2장 ④/⑤ 참고.
+
+## 2026-09-13 — Poly Haven PBR 텍스처 추가 세 벌 (66-2장 ⑥)
+
+`Assets/Art/EnvironmentPBR_candidates/`에 `PolyHaven_GrassPath2/`(흙길)·
+`PolyHaven_LeafyGrass/`(초목 바닥)·`PolyHaven_DarkWoodenPlanks/`(목재)
+세 벌을 추가로 받았다(전부 CC0, 1k JPG 네 맵). 위 "Poly Haven PBR
+텍스처 후보" 항목이 대표 둘(바닥·벽)만 확인한 것에 이어 44장 우선순위
+대로 넓힌 것 — 출처는 `LICENSE.txt`, 자세한 내용은 `PLAN.md` 66-2장
+⑥ 참고. 여전히 후보일 뿐, 어느 씬에도 안 물렸다.

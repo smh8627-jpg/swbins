@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: cobblestone_floor_01_URPLit
+  m_Name: grass_path_2_URPLit
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -29,11 +29,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 81271ec9aa9fc8e47a4efd6e99630d14, type: 3}
+        m_Texture: {fileID: 2800000, guid: a4438998c863fc84fa9988bd723b47ab, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 0aa723a2a6c689a48b71e7ee8bdd495e, type: 3}
+        m_Texture: {fileID: 2800000, guid: 679b2f908e00b0844a3aa82f38011193, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -53,15 +53,15 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 81271ec9aa9fc8e47a4efd6e99630d14, type: 3}
+        m_Texture: {fileID: 2800000, guid: a4438998c863fc84fa9988bd723b47ab, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
-        m_Texture: {fileID: 2800000, guid: 9cf0736b05b99ad439e94d89d341d503, type: 3}
+        m_Texture: {fileID: 2800000, guid: 86ad19f06e9353a4eaf0bd61a2fc497c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
-        m_Texture: {fileID: 2800000, guid: 4d792a0e99603aa46abdbf710d85e861, type: 3}
+        m_Texture: {fileID: 2800000, guid: 608422e7572930846973777287faf425, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
@@ -125,7 +125,7 @@ Material:
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &2382164069496320530
+--- !u!114 &1050284737174925181
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

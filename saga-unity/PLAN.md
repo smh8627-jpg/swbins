@@ -1149,6 +1149,22 @@ Assets/Settings/
   후 재확인, `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음
   확인.
 
+## ⑥ Poly Haven 재질 추가 조사 — 흙길·초목·목재 세 벌 (2026-09-13, 이어서)
+
+- ②가 대표 둘(바닥·벽)만 확인했던 것에 이어 **44장 우선순위대로 셋을
+  더 받았다** — 전부 CC0, Poly Haven 공개 API로:
+  - **`grass_path_2`**(흙길) — `Assets/Art/EnvironmentPBR_candidates/
+    PolyHaven_GrassPath2/`
+  - **`leafy_grass`**(초목 바닥) — `.../PolyHaven_LeafyGrass/`
+  - **`dark_wooden_planks`**(목재) — `.../PolyHaven_DarkWoodenPlanks/`
+  - 셋 다 diffuse·normal(OpenGL)·roughness·AO 네 맵(1k JPG) 전부.
+- `BuildEnvironmentPbrSample.cs`에 세 재질을 추가해(기존
+  `BuildMetallicSmoothnessMap()` 그대로 재사용 — ④에서 이미 채널 팩킹을
+  풀어 둔 덕에 새 재질도 별도 작업 없이 바로 적용됨) 총 다섯 개 URP Lit
+  머티리얼을 만든다. 배치 모드로 컴파일 오류 0건·머티리얼 5개 생성
+  확인, `ProjectSettings/`·`Packages/` 부작용 없음.
+- **아직 후보일 뿐 — 어느 씬에도 안 물렸다**(위 ②와 같은 성격).
+
 ## 다음에 할 일 (아직 착수 전)
 
 - **사람이 mixamo.com에서 캐릭터+애니메이션을 받아 `Assets/Art/
@@ -1156,11 +1172,9 @@ Assets/Settings/
   캐릭터 교체를 시작할 수 있다(여전히 유일하게 남은, 사람 GUI 조작이
   필요한 단계) — ⑤로 셰이더는 이미 프로젝트 안에 들어와 있으니, 캐릭터만
   들어오면 바로 붙여 볼 수 있다.
-- Poly Haven에서 추가 재질(흙길·초목 바닥·목재 등) 더 조사 — 이번엔
-  대표 둘(바닥·벽)만 확인, 44장 우선순위대로 더 넓힐 것.
-- Kenney·VRoid 플레이스홀더를 위 순서로 실제 사실적 에셋으로 순차
-  교체(44장 우선순위: Player → 주요 Enemy → Boss → Environment →
-  Building → … 와 교차 적용).
+- Kenney·VRoid 플레이스홀더를 위 다섯 환경 재질/⑤ 캐릭터 셰이더로 실제
+  사실적 에셋으로 순차 교체(44장 우선순위: Player → 주요 Enemy → Boss →
+  Environment → Building → … 와 교차 적용).
 - 66-1장 PC/Mobile 두 프로파일이 실제 사실적 에셋으로도 성능·화질
   균형이 맞는지 확인(카툰 방향보다 텍스처·라이팅 비용이 커질 수 있어
   45장 모바일 목표와 자주 대조할 것 — 특히 SSS 스킨 셰이더·DoF는 모바일
