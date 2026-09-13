@@ -493,6 +493,7 @@ func next_month() -> void:
 		dip.truce_months = maxi(0, int(dip.truce_months) - 1)
 
 	_check_defection()
+	_run_enemy_ai()
 	_roll_disasters()
 
 	month += 1
@@ -551,6 +552,127 @@ func _check_defection() -> void:
 		roster.erase(id)
 		officer_city.erase(id)
 		officer_loyal.erase(id)
+
+
+const AI_MARCH_CHANCE := 0.20  # 재해석 — 아래 _run_enemy_ai() 머리말 참고
+const AI_TROOPS_FLOOR := 500   # attack()의 "오백은 넘겨야 군대라 하지요"와 같은 문턱
+
+
+## rtk-ai.js의 "사람이 다음 달을 누르면 나머지 세력이 제 명령을 쓴다"를
+## 좁혀 옮긴 것(2026-09-14, 4절 "제외" 타 세력 AI 첫 슬라이스, "묻지말고
+## 이어해"). **재해석 — 셋.**
+## - **creed(성향) 차등을 아직 안 옮겼다.** rtk-ai.js는 aggressive/
+##   balanced/turtle마다 손실 허용치·계략/사자 빈도가 다른데, 그 표
+##   (`CREED`, data-force.js `force.creed`)를 이 슬라이스가 아직 안
+##   가져서(REALM 게임데이터에 force 자체가 없다 — `enemies[].force`는
+##   이름표일 뿐) `AI_MARCH_CHANCE` 하나로 "친다/안 친다"만 가른다.
+##   경제 성장 AI(pickOrder)를 옮길 때 creed 표도 같이 볼 것.
+## - **AI가 이겨도 성을 뺏지 않는다.** 세력 멸망/패배 판정이 이
+##   슬라이스에 없어(attack() 머리말·4절 "제외" 참고) 플레이어가 성을
+##   전부 잃는 막다른 상태를 만들 수 있으면 안 된다 — 병력·성벽 손실만
+##   입힌다. 승패 판정 자체(war.js와 같은 공식)는 그대로 굴린다 —
+##   그 결과로 만들어진 troops/wall 변화만 실제로 반영한다.
+## - **주인 없는 성(재야 수비대, force가 빈 문자열)은 움직이지 않는다**
+##   — diplo.js의 "주인 없는 성은 계략 대상이 아니다"와 같은 결(
+##   `realm_diplo_button.gd`/`realm_plot_button.gd`가 이미 이 가드를
+##   쓴다). 화친 중(`diplomacy[].truce_months>0`)이면 마찬가지로 쉰다
+##   (war.js canMarch()의 diplo.blocked() 체크와 같은 자리).
+func _run_enemy_ai() -> Array:
+	var messages: Array = []
+	for enemy_id: String in enemies.keys():
+		var e: Dictionary = enemies[enemy_id]
+		if bool(e.get("captured", false)):
+			continue
+		var enemy_def := RealmCities.enemy_by_id(enemy_id)
+		var force_id := String(enemy_def.get("force", ""))
+		if force_id.is_empty():
+			continue
+		var dip: Dictionary = diplomacy.get(force_id, {})
+		if int(dip.get("truce_months", 0)) > 0:
+			continue
+		if int(e.troops) < AI_TROOPS_FLOOR:
+			continue
+		var target_id := _weakest_adjacent_playable(enemy_id)
+		if target_id.is_empty():
+			continue
+		if _rng.randf() > AI_MARCH_CHANCE:
+			continue
+		var msg := _enemy_attack(enemy_id, e, target_id)
+		if not msg.is_empty():
+			messages.append(msg)
+	if not messages.is_empty():
+		Toast.show(self, "\n".join(messages), 3.0 + float(messages.size()))
+	return messages
+
+
+## 이 적 성과 맞닿은 우리 성(playable_ids가 아니라 cities — 정복 여부와
+## 무관하게 실제 우리 살림이 있는 성만 노린다) 중 병력이 가장 적은 곳.
+func _weakest_adjacent_playable(enemy_id: String) -> String:
+	var best_id := ""
+	var best_troops := -1
+	for city_id: String in cities.keys():
+		if not RealmCities.is_adjacent(enemy_id, city_id):
+			continue
+		var t := int(cities[city_id].troops)
+		if best_id.is_empty() or t < best_troops:
+			best_id = city_id
+			best_troops = t
+	return best_id
+
+
+## war.js march()+fight()를 적 쪽 시점으로 좁혀 옮긴 것 — attack()과
+## 판정식은 완전히 같다(RealmWar.fight 그대로), 공격/수비 배역만 뒤집힌다.
+## 수비 측(우리) 병력은 그 성의 troops 전부, 장수는 officer_city로 배치된
+## 사람 **전원**(off.atCity()와 같은 뜻) — player attack()이 공격 측에서
+## 하나만 데려가는 것과 다르다(수비는 원래도 그 성에 있는 사람 전부가
+## 함께 막는다).
+func _enemy_attack(enemy_id: String, e: Dictionary, target_id: String) -> String:
+	var enemy_def := RealmCities.enemy_by_id(enemy_id)
+	var c: Dictionary = cities[target_id]
+
+	var def_officers: Array = []
+	for id: String in roster:
+		if officer_city.get(id, "") == target_id:
+			def_officers.append(id)
+	var def_best_command := 0.0
+	var def_best_might := 0.0
+	for oid: String in def_officers:
+		def_best_command = maxf(def_best_command, _effective_stat(oid, "command"))
+		def_best_might = maxf(def_best_might, _effective_stat(oid, "might"))
+	var def_army := {
+		"troops": int(c.troops), "start": int(c.troops), "train": int(c.train), "tech": int(c.tech),
+		"best_command": def_best_command, "best_might": def_best_might, "officer_count": def_officers.size(),
+	}
+
+	var atk_officers: Array = e.get("officers", [])
+	var atk_best_command := 0.0
+	var atk_best_might := 0.0
+	for oid: String in atk_officers:
+		if Characters.find(oid) == null:
+			continue
+		atk_best_command = maxf(atk_best_command, _effective_stat(oid, "command"))
+		atk_best_might = maxf(atk_best_might, _effective_stat(oid, "might"))
+	var atk_army := {
+		"troops": int(e.troops), "start": int(e.troops), "train": int(e.train), "tech": int(e.tech),
+		"best_command": atk_best_command, "best_might": atk_best_might, "officer_count": atk_officers.size(),
+	}
+
+	var wall := {"wall": int(c.wall), "max_wall": RealmCities.wall_cap(target_id)}
+	var land: String = String(RealmCities.any_by_id(target_id).get("land", "plain"))
+	var rep := RealmWar.fight(atk_army, def_army, wall, RealmCities.land_def(land), RealmCities.land_siege(land), _rng)
+
+	c.wall = wall.wall
+	c.troops = rep.def_troops_left
+	e.troops = rep.atk_troops_left
+	enemies[enemy_id] = e
+
+	var enemy_name := String(enemy_def.get("name", enemy_id))
+	var city_name := String(RealmCities.any_by_id(target_id).get("name", target_id))
+	if rep.won:
+		return "⚔️ %s 이(가) %s 을(를) 쳐 성이 크게 흔들렸다 (아군 손실 %d · 적 손실 %d)" % \
+			[enemy_name, city_name, int(rep.loss_d), int(rep.loss_a)]
+	return "⚔️ %s 이(가) %s 을(를) 쳤으나 물리쳤다 (아군 손실 %d · 적 손실 %d)" % \
+		[enemy_name, city_name, int(rep.loss_d), int(rep.loss_a)]
 
 
 ## rtk.js war.js moveOfficer() — 무장을 맞닿은 성으로 옮긴다(그 달의 명령을
