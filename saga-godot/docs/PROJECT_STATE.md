@@ -5456,3 +5456,25 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - **다음에 할 일**: q_talk1(대화 NPC 새 시스템 필요)·반복 사명 5개·
   일일 사명 2개 중 아무거나, 또는 STORY 밖(다른 네 판·saga-unity
   트랙)으로.
+
+## STORY q_talk1(대화 전용 NPC 첫 걸음) (2026-09-13, "이어해" 지시로 계속)
+
+- 위가 남긴 것 중 talk을 옮겼다 — 사명이 12→13개. `story_talk_npc.gd`
+  신규(story_job_trainer.gd와 같은 Area3D 폴링, `@export npc_key`로
+  NPC_TALK 어느 항목이든 재사용 가능) — **원작 heodo.npcs에 실제로
+  있던 파수병(guard) 하나**를 HeodoField.tscn(x=17m)에 처음 세웠다.
+  `story_combat.gd`에 NPC_TALK(elder/guard/healer/wanderer, merchant는
+  story_merchant.gd가 이미 맡아 제외) 신규. `story_save_state.gd`에
+  `talks`(누적, visit과 달리 집합 아님)·`add_talk()` 신규.
+  SAVE_VERSION 12→13. 자세한 내용은 `docs/VERTICAL_SLICE_STORY.md`
+  "q_talk1" 절 참고.
+- 검증: 헤드리스 임포트 오류 0건, HeodoField·TestField·
+  ForestHuntGround 각각 `--quit-after 6` 스크립트 오류 0건. 임시
+  씬(q_explore1 때 확립한 방식)으로 대사 4줄 확인·다섯 번째 말 걸기에
+  완수+gold 450·완수 후 중복 지급 없음까지 손계산과 일치 확인 후 임시
+  파일 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
+  확인은 아직(몰아서 받을 것) — 파수병 앞 토스트가 실제로 뜨는지는
+  이번에 눈으로 확인 안 함.
+- **다음에 할 일**: r_*(반복 사명 5개)·d_*(일일 사명 2개) — "바친 뒤
+  다시 받는다"에 필요한 받기/반납 상태가 아직 없어 하나로 묶어 다음에
+  볼 것. 그 밖엔 STORY 밖(다른 네 판·saga-unity 트랙)으로.

@@ -2250,6 +2250,44 @@ story_job_trainer.gd는 기능형일 뿐, 원작 elder/guard/healer/wanderer
   5개·일일 사명 2개 중 아무거나, 또는 STORY 밖(다른 네 판·saga-unity
   트랙)으로.
 
+## q_talk1 — 대화 전용 NPC 첫 걸음 (2026-09-13, "이어해" 지시로 계속)
+
+바로 위가 남긴 셋 중 **talk**(q_talk1, "민심을 살핀다")을 옮겼다 —
+사명이 12→13개. data-side.js NPC_TALK(elder/merchant/guard/healer/
+wanderer)에서 merchant를 뺀 넷(story_merchant.gd가 이미 상점으로 맡고
+있어 "대사만 있는" 표엔 안 넣는다)을 `story_combat.gd` `NPC_TALK`로
+옮기고, **처음으로 대사만 있는 NPC 하나**(허도의 파수병 — 원작
+heodo.npcs에 실제로 있던 자리)를 `HeodoField.tscn`에 세웠다.
+
+- **새 스크립트**: `story_talk_npc.gd`(신규) — story_job_trainer.gd와
+  같은 Area3D 폴링(진입 시 안내 토스트, `story_interact`를 실제로
+  누른 순간에만 무작위 대사 한 줄 + `StorySaveState.add_talk()`).
+  `@export var npc_key`로 NPC_TALK 어느 항목이든 재사용 가능(이번엔
+  "guard" 하나만 배치).
+- **새 카운터**: `story_save_state.gd`에 `talks`(누적 카운트, visit과
+  달리 집합이 아니라 매번 는다 — quest.js onTalk() 그대로)·
+  `add_talk()` 신규. `_quest_value(q)`에 `"talk"` 분기 추가.
+  SAVE_VERSION 12→13.
+- **QUESTS 추가**: `q_talk1`(need 3, goal_type "talk", n 5, 보상 exp
+  160·gold 450, scroll 없음) — data-quest.js 그대로.
+- **배치**: HeodoField.tscn에 `GuardNpc`(x=17m) — Merchant(4.4m)·
+  JobTrainer(10m, RANGE_RADIUS 1.8)·PortalToField(26.6m) 사이 빈 자리,
+  겹치지 않게 간격 확보.
+- **검증** — import 확인(vroid 텍스처류 `.import` 잡음만 재발생,
+  되돌림) → HeodoField·TestField·ForestHuntGround 각각 `--quit-after
+  6` 스크립트 오류 0건. **임시 씬(`_verify_talk1.tscn/.gd`, q_explore1
+  때와 같은 방식)**으로: NPC_TALK.guard 대사 4줄 확인 → `add_talk()`
+  네 번까진 미완수 → 다섯 번째에 q_talk1 완수 + gold+450 반영 →
+  완수 뒤 더 말 걸어도 talks만 늘고 보상 중복 지급 없음까지 손계산과
+  일치 확인 후 두 파일 삭제, 재검증까지 마쳤다. `.import` 잡음만
+  되돌림. GUI 실기 확인은 아직(몰아서 받을 것) — 특히 파수병 앞에서
+  `story_interact`(현재 배정 키) 눌렀을 때 토스트가 정상 뜨는지는
+  이번에 눈으로 확인 안 함.
+- **다음에 할 일**: r_*(반복 사명 5개)·d_*(일일 사명 2개) — 전부
+  "바친 뒤 다시 받는다"에 필요한 받기/반납 상태(quest.js `take()`/
+  `turnIn()`)가 아직 없어 하나로 묶어 다음에 볼 것. 그 밖엔 STORY
+  밖(다른 네 판·saga-unity 트랙)으로.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
