@@ -4018,5 +4018,28 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   한 번 쓰러졌다 회복하는 것까지 확인(테스트 부작용, 버그 아님 —
   텔레포트로 몰려있는 무리 한복판에 넣어서 생긴 일). **Abe 통합 육안
   확인 완료로 마무리.**
-- **다음에 할 일**: 44장 "Boss" 우선순위(character-c 미니보스/두목
-  교체) 또는 다른 판으로 이동.
+## 44장 "Boss" 교체 — Dungeon 미니보스/두목 (2026-09-13, 새 세션 이어서)
+
+- Abe와 같은 흐름 — mixamo.com에서 **Brute**(근육질 반라 전사, 칼 무기
+  기본 장착)를 골라 애니메이션 5개(Idle=Action Idle To Fight Idle·
+  Walking·Slash Advance·Hit Reaction·Dying)와 함께 받음. Abe 때와 달리
+  이번엔 다운로드 도중 Chrome 확장이 한 번 끊겼다 재연결됐다(사용자가
+  크롬을 다시 연 것으로 보임) — 재연결 뒤 그대로 이어감.
+- `SetupBruteCharacterImport.cs` 신규(`MixamoRigUtil` 재사용, Abe와
+  판박이 구조) — `BruteAnimated.prefab` 생성. `BuildTestDungeonScene`의
+  `_characterC`(미니보스/두목 슬롯)가 이 프리팹을 먼저 찾고 없으면
+  기존 `character-c.glb`로 폴백 — 호출부(`BuildElite`는 실은
+  `_characterD` 씀, `BuildMiniboss`·`BuildBoss` 두 곳만 `_characterC`)
+  안 건드림. `DungeonEnemy.cs`는 Abe 때 이미 만든 "Animator 유무로 리깅
+  판단" 로직을 그대로 타 코드 변경 없음 — visualScale(두목 1.6·미니보스
+  1.8)도 그대로 실제 스케일에 곱해져 몸집 차이가 유지됨.
+- 검증: 컴파일 통과 → 재빌드(경고 없이 Brute 로드 확인) →
+  `PlaytestDungeonHeadless`·`PlaytestDungeonFloorProgression`(12방,
+  층 2→4) 둘 다 에러 0건 → GUI로 플레이어를 두목 옆에 텔레포트해
+  확인(`TempShotDungeonEnemy2.cs`와 같은 패턴, 이번엔 이름으로
+  `Enemy_HwangGeon_Boss`를 콕 집어 찾음) — 실제 전투가 벌어져
+  플레이어가 두목에게 맞아 쓰러졌다 회복하는 것까지 확인, 자세 전환도
+  뚜렷함. 확인용 스크립트는 삭제.
+- **다음에 할 일**: 44장 나머지(Environment→Building) 또는 다른 판
+  (GO/Forest/Story/Realm)의 Player→Enemy→Boss로 이동. Dungeon은 이제
+  Player·주요 Enemy·Boss 세 우선순위를 다 마쳤다.
