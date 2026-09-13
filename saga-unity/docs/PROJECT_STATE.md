@@ -3852,3 +3852,43 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   직접 보진 않았다(Inspector 값 확인·헤드리스만). 던전의 "무드 유지
   목적으로 밝기 그대로" 판단이 실제로 어때 보이는지, Forest/Realm도
   GO처럼 팔레트를 더 데워야 할지는 다음에 GUI로 마저 훑어야 한다.
+
+## GUI 실기 확인 — Dungeon/Forest/Realm 마저 훑기 (2026-09-13, 새 세션 이어서)
+
+- 위 "아직 남은 것"을 이어서 처리. `TempOpenSceneForScreenshot.cs`를
+  다시 만들어(GO 확인 때와 같은 패턴 — Play 모드 120프레임 정착 후
+  `ScreenCapture.CaptureScreenshot`, 세 씬을 순서대로) TestDungeon→
+  TestVillageForest→TestCity 세 씬을 스크린샷으로 확인, 끝나자마자
+  삭제(커밋 안 함).
+- **새로 겪은 문제 — Unity GUI가 "Administrator Privileges Detected"
+  모달로 멈췄다.** 이 세션의 터미널이 관리자 권한이라 그런 것으로
+  보인다(이전 GO 확인 세션은 안 겪었음 — 터미널 권한 차이로 추정,
+  확증은 못 함). `-batchmode` 없는 GUI 실행이 이 다이얼로그에서
+  무한 대기했다(메모리 사용량이 52MB에서 안 늘고 멈춤으로 확인). PID로
+  `AppActivate` + `SendKeys::SendWait("{ENTER}")`(PowerShell,
+  `System.Windows.Forms`)로 다이얼로그를 넘겨 정상 진행시켰다 — **다음에
+  이 세션(관리자 권한 터미널)에서 Unity GUI를 또 띄울 일이 있으면 이
+  패턴을 먼저 시도할 것**, 아니면 그냥 멈춘 것으로 오판해 강제 종료하기
+  쉽다.
+- **결과**:
+  - **Dungeon** — 화면이 꽤 어둡다(intensity 0.9 그대로). 의도한 "무드
+    유지"와 일치 — HUD(체력바·공격/회피 버튼)는 잘 보이고 캐릭터
+    실루엣도 식별 가능해 플레이에 지장은 없어 보인다. **현재 값 유지로
+    판단, 추가 조정 불필요.**
+  - **Realm** — 성 내부(TestCity)가 이미 따뜻한 주황/황토 톤으로 잘
+    나온다(성벽·다리·건물 재질 자체가 원래 warm-toned라 별도 fog 보정
+    없이도 golden-hour 인상이 남). **추가 조정 불필요로 판단.**
+  - **Forest** — 여전히 밋밋한 채도 높은 초록 평면(SkyFogBuilder가
+    없어 지면·앰비언트가 안 데워짐, RimLight 그림자는 길게 잘 떨어져
+    낮은 태양각 자체는 반영됨). GO처럼 fog/ambient 보정을 추가하면
+    더 나아질 여지가 있어 보이나, **이번 세션은 확인만 하고 손대지
+    않았다** — 판단만 필요하면 사용자에게 GO 수준으로 데울지 물어볼 것.
+  - 스크린샷은 세션 스크래치패드에만 저장(리포지토리에 커밋 안 함).
+- 검증: 스크린샷 찍기 전 `-batchmode -nographics -quit` 컴파일
+  확인(`ExtractTextures()` 추가분 포함) 통과, 확인 후 Unity.exe는 자체
+  `EditorApplication.Exit(0)`로 종료(추가로 taskkill 안 씀 — 스스로
+  끝난 것 확인), `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음
+  (`git status`로 훑음).
+- **다음에 할 일**: Forest를 GO 수준으로 데울지 결정 → 그 다음 44장
+  우선순위대로 Kenney/VRoid 플레이스홀더 실제 씬 교체(⑪이 남긴 다음
+  과제, 아직 미착수).
