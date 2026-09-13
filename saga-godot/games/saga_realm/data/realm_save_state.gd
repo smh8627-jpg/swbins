@@ -45,9 +45,10 @@ const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 9  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수)
+const SAVE_VERSION := 10  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -137,6 +138,7 @@ func _init_cities() -> void:
 			"pop": int(def.pop_start), "troops": 0,
 			"food": RealmCities.food_start(cid),
 			"ships": RealmCities.ships_start(cid),
+			"disaster": "", "d_left": 0,
 		}
 
 
@@ -324,6 +326,13 @@ func _do_hire(officer_id: String) -> Dictionary:
 ## rtk.js settleMonth()+endMonth()의 축약 — 세력 금고는 **성 전부의 소득
 ## 합**(rtk.js settleMonth() "세력 금고" 루프 그대로)에서 정산하고, 군량·
 ## 치안·병력은 성마다 따로 정산한다.
+##
+## **2026-09-13 추가 — 인구 자연 증감 + 재해(disaster).** 3·4절 "제외"에
+## 남아 있던 마지막 자동 시스템 — 그동안 "pop은 징병으로만 준다"던 것을
+## rtk.js settleMonth() 공식 그대로 되살렸다. 재해는 harvestMul(세수·수확
+## 배율)·troops·wall에 매달(지속되는 동안 매번) 영향을 준다 — 원작처럼
+## 시작 달에 한 번만이 아니라 `c.disaster`가 남아 있는 한 매달 다시
+## 적용된다(플레그 3개월이면 병력이 매달 5%씩 세 번 준다).
 func next_month() -> void:
 	var income := 0
 	var harvest := month in RealmOrders.HARVEST_MONTHS
@@ -339,9 +348,12 @@ func next_month() -> void:
 			var h = Characters.find(gov_id)
 			mul = RealmOrders.gov_mul(float(h.stats.get("wisdom", 0)), float(h.stats.get("command", 0)))
 
-		income += RealmOrders.gold_income(int(c.comm), mul, int(c.sec))
+		var dz: Dictionary = RealmOrders.disaster_by_key(String(c.get("disaster", "")))
+		var harvest_mul: float = float(dz.get("harvest", 1.0)) if not dz.is_empty() else 1.0
+
+		income += RealmOrders.gold_income(int(c.comm), mul, int(c.sec), harvest_mul)
 		if harvest:
-			c.food = int(c.food) + RealmOrders.food_income(int(c.agri), mul, int(c.sec))
+			c.food = int(c.food) + RealmOrders.food_income(int(c.agri), mul, int(c.sec), harvest_mul)
 
 		## rtk.js settleMonth() "군량이 떨어지면 병사가 흩어진다" — 병력이
 		## 생긴 이상(징병) 매달 군량을 먹는다는 것까지는 옮겨야 징병이 군량과
@@ -353,9 +365,28 @@ func next_month() -> void:
 			c.food = 0
 
 		## rtk.js settleMonth() "치안은 가만두면 내려간다" — 그대로 이식.
-		## 인구 증감(치안·개간 연동 성장 공식)은 그 값 자체가 없어(4절
-		## "제외") 안 옮겼다 — pop은 징병으로만 준다.
 		c.sec = clampi(int(c.sec) - 1, 0, 100)
+
+		## 인구 자연 증감 — RealmOrders.pop_growth_delta() 참고.
+		var disaster_pop_mul: float = float(dz.get("pop", 0.0)) if not dz.is_empty() else 0.0
+		var grow := RealmOrders.pop_growth_delta(int(c.pop), int(c.agri), int(c.sec), disaster_pop_mul)
+		c.pop = maxi(RealmOrders.POP_FLOOR, roundi(float(c.pop) + grow))
+
+		## 재해의 병력·성벽 피해 — 지속되는 동안 매달 다시 적용된다(위 머리말).
+		if dz.has("troops"):
+			c.troops = maxi(0, roundi(float(c.troops) * (1.0 + float(dz.troops))))
+		if dz.has("wall"):
+			c.wall = maxi(200, int(c.wall) + int(dz.wall))
+
+		## 재해가 지나간다.
+		if not String(c.get("disaster", "")).is_empty():
+			c.d_left = int(c.d_left) - 1
+			if int(c.d_left) <= 0:
+				Toast.show(self, "%s %s — %s 이(가) 지나갔다" % [
+					String(dz.get("emoji", "☀️")), String(RealmCities.any_by_id(city_id).get("name", city_id)), String(dz.get("name", "")),
+				], 3.0)
+				c.disaster = ""
+				c.d_left = 0
 
 	var upkeep := roster.size() * RealmOrders.UPKEEP_PER_OFFICER
 	gold = maxi(0, gold + income - upkeep)
@@ -368,12 +399,46 @@ func next_month() -> void:
 		dip.truce_months = maxi(0, int(dip.truce_months) - 1)
 
 	_check_defection()
+	_roll_disasters()
 
 	month += 1
 	if month > 12:
 		month = 1
 		year += 1
 	_done_this_month.clear()
+
+
+## rtk.js rollDisasters() 그대로 — 달마다 한 번, DISASTER_CHANCE 확률로
+## 성 하나를 골라 재해(또는 풍년)를 새로 건다. 이미 재해가 있거나 우리
+## 성이 아니면(이 슬라이스는 성 셋 다 우리 것이라 사실상 늘 통과) 무시.
+## 치안이 낮을수록 "나쁜" 재해(good=false) 쪽으로 기운다(rtk.js
+## `0.55 + (60-sec)/200` 그대로, 0.3~0.9로 clamp).
+func _roll_disasters() -> void:
+	if _rng.randf() > RealmOrders.DISASTER_CHANCE:
+		return
+	var ids := cities.keys()
+	if ids.is_empty():
+		return
+	var target_id: String = ids[_rng.randi_range(0, ids.size() - 1)]
+	var c: Dictionary = cities[target_id]
+	if not String(c.get("disaster", "")).is_empty():
+		return
+	var bad_chance := clampf(0.55 + (60.0 - float(c.sec)) / 200.0, 0.3, 0.9)
+	var want_bad := _rng.randf() < bad_chance
+	var pool: Array[String] = []
+	for key: String in RealmOrders.DISASTERS:
+		var d: Dictionary = RealmOrders.DISASTERS[key]
+		if bool(d.get("good", false)) != want_bad:
+			pool.append(key)
+	if pool.is_empty():
+		return
+	var picked: String = pool[_rng.randi_range(0, pool.size() - 1)]
+	var d: Dictionary = RealmOrders.DISASTERS[picked]
+	c.disaster = picked
+	c.d_left = int(d.months)
+	Toast.show(self, "%s %s — %s" % [
+		String(d.get("emoji", "")), String(RealmCities.any_by_id(target_id).get("name", target_id)), String(d.get("text", "")),
+	], 3.0)
 
 
 ## officer.js checkDefection() — 충성이 12 이하면 35% 확률로 스스로
@@ -555,6 +620,7 @@ func _annex_city(city_id: String, enemy_def: Dictionary, garrison: int, train_va
 		"pop": int(enemy_def.get("pop_start", 0)), "troops": garrison,
 		"food": RealmCities.food_start(city_id),
 		"ships": RealmCities.ships_start(city_id),
+		"disaster": "", "d_left": 0,
 	}
 
 
