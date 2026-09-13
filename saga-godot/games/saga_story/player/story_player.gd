@@ -37,6 +37,19 @@ var _cd_bolt := 0.0
 var _cd_brace := 0.0
 var _buff_time_left := 0.0  # 기합(brace) 남은 시간 — atk·speed 배율에 쓴다
 
+## **2026-09-13 추가(같은 날 더) — 전직 다음 걸음: 무사(warrior) 무예 넷.**
+## job이 'warrior'일 때만 실제로 쓰인다(story_combat.gd JOB_CHANGE_LEVEL
+## 머리말 참고) — 다른 직업(궁수·협객·방사)은 아직 전용 무예가 없어
+## 이 넷을 조용히 무시한다. 철갑(iron)의 버프는 기합(brace)과 **별도
+## 타이머**로 둔다 — 둘 다 tier0/전직 넷으로 서로 다른 자리라 동시에
+## 걸릴 수 있고(원작이 막지 않는다), _effective_atk()가 두 배율을
+## 곱해서 적용한다.
+var _cd_warrior_cut := 0.0
+var _cd_warrior_whirl := 0.0
+var _cd_warrior_rush := 0.0
+var _cd_warrior_iron := 0.0
+var _job_buff_time_left := 0.0
+
 ## **2026-09-13 추가 — 플레이어 체력(잡졸 반격).** story_enemy.gd 머리말이
 ## "추격·원거리 반격이 없다"고 적어 둔 것 중 반격(겹치면 맞는다, side.js
 ## overlap()+hurtMe())만 이번에 채운다 — 추격(쫓아오기)은 여전히 없다
@@ -67,13 +80,16 @@ var max_mp: float:
 
 
 ## side.js hurtMe()의 gear.cut(power().def) 그대로 — 방어구 def 합으로
-## 받는 피해를 줄인다(story_combat.gd damage_cut() 참고).
+## 받는 피해를 줄인다(story_combat.gd damage_cut() 참고). 철갑(iron)이
+## 걸려 있으면 그 위에 guard(0.35)만큼 한 번 더 줄인다(방어구 컷과는
+## 별개의 곱 — "9초간 덜 맞는다"는 원문 buff.guard를 그대로 얹은 것).
 func take_damage(amount: float) -> void:
 	if amount <= 0.0:
 		return
 	var def: float = float(StorySaveState.gear_totals().def)
 	var cut: float = StoryCombat.damage_cut(def)
-	hp = clampf(hp - amount * (1.0 - cut), 0.0, max_hp)
+	var guard_mul: float = (1.0 - StoryCombat.WARRIOR_IRON_GUARD) if _job_buff_time_left > 0.0 else 1.0
+	hp = clampf(hp - amount * (1.0 - cut) * guard_mul, 0.0, max_hp)
 
 
 func _ready() -> void:
@@ -87,6 +103,11 @@ func _physics_process(delta: float) -> void:
 	_cd_bolt = maxf(0.0, _cd_bolt - delta)
 	_cd_brace = maxf(0.0, _cd_brace - delta)
 	_buff_time_left = maxf(0.0, _buff_time_left - delta)
+	_cd_warrior_cut = maxf(0.0, _cd_warrior_cut - delta)
+	_cd_warrior_whirl = maxf(0.0, _cd_warrior_whirl - delta)
+	_cd_warrior_rush = maxf(0.0, _cd_warrior_rush - delta)
+	_cd_warrior_iron = maxf(0.0, _cd_warrior_iron - delta)
+	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
 	mp = minf(max_mp, mp + StoryCombat.MP_REGEN * delta)
 	_check_rope()
 
@@ -110,6 +131,15 @@ func _physics_process(delta: float) -> void:
 		_cast_bolt()
 	if Input.is_action_just_pressed("story_skill_brace"):
 		_cast_brace()
+	if StorySaveState.job == "warrior":
+		if Input.is_action_just_pressed("story_job_skill_1"):
+			_cast_warrior_cut()
+		if Input.is_action_just_pressed("story_job_skill_2"):
+			_cast_warrior_whirl()
+		if Input.is_action_just_pressed("story_job_skill_3"):
+			_cast_warrior_rush()
+		if Input.is_action_just_pressed("story_job_skill_4"):
+			_cast_warrior_iron()
 
 
 func _walk(delta: float) -> void:
@@ -191,7 +221,9 @@ func clear_rope_area(area: Area3D) -> void:
 ## 스킬마다 따로 배율을 안 곱한다).
 func _effective_atk() -> float:
 	var atk := StoryCombat.START_ATK + float(StorySaveState.gear_totals().atk) + float(StorySaveState.job_grow().atk)
-	return atk * (StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0)
+	atk *= StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0
+	atk *= StoryCombat.WARRIOR_IRON_ATK_MUL if _job_buff_time_left > 0.0 else 1.0
+	return atk
 
 
 ## 정면 판정 공용 — 연참(reach)·기탄(reach*2)이 같이 쓴다. mul은 무예별
@@ -260,6 +292,64 @@ func _cast_brace() -> void:
 	_cd_brace = StoryCombat.BRACE_CD
 	mp -= StoryCombat.BRACE_COST
 	_buff_time_left = StoryCombat.BRACE_SEC
+
+
+## 참격(w_cut) — 연참과 같은 정면 판정, 사거리도 같다(원문에 별도
+## 사거리가 없다). mul만 다르다(FIXED_SKILL_LEVEL=5에서 1.6).
+func _cast_warrior_cut() -> void:
+	if _cd_warrior_cut > 0.0 or mp < StoryCombat.WARRIOR_CUT_COST:
+		return
+	_cd_warrior_cut = StoryCombat.WARRIOR_CUT_CD
+	mp -= StoryCombat.WARRIOR_CUT_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.WARRIOR_CUT_MUL)
+
+
+## 선풍(w_whirl) — aoe, 횡소(_cast_sweep)와 같은 360도 판정 구조.
+func _cast_warrior_whirl() -> void:
+	if _cd_warrior_whirl > 0.0 or mp < StoryCombat.WARRIOR_WHIRL_COST:
+		return
+	_cd_warrior_whirl = StoryCombat.WARRIOR_WHIRL_CD
+	mp -= StoryCombat.WARRIOR_WHIRL_COST
+	_play_anim("sprint")
+	var range_m := ATTACK_RANGE * StoryCombat.WARRIOR_WHIRL_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), StoryCombat.WARRIOR_WHIRL_MUL)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 돌진(w_rush) — dash. 이 슬라이스엔 원문처럼 부드러운 이동 애니메이션을
+## 새로 안 짜고(재해석), **먼저 이동 경로 위 적을 때린 뒤 그 자리로
+## 순간이동**한다(때리고 지나간 결과만 재현 — 다치는 적 판정이 이동
+## 전/후로 갈리는 걸 피하려고 이 순서를 골랐다). 벽·구덩이 충돌은 이번
+## 슬라이스에서 확인하지 않는다(다음에 볼 자리).
+func _cast_warrior_rush() -> void:
+	if _cd_warrior_rush > 0.0 or mp < StoryCombat.WARRIOR_RUSH_COST:
+		return
+	_cd_warrior_rush = StoryCombat.WARRIOR_RUSH_CD
+	mp -= StoryCombat.WARRIOR_RUSH_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.warrior_rush_dist_m()
+	_melee_hit(dist_m, StoryCombat.WARRIOR_RUSH_MUL)
+	global_position.x += dist_m * _facing
+
+
+## 철갑(w_iron) — buff, 대미지 없음. 기합(brace)과 별개 타이머(위 변수
+## 선언부 참고) — _effective_atk()가 곱하고, take_damage()가 guard를 뺀다.
+func _cast_warrior_iron() -> void:
+	if _cd_warrior_iron > 0.0 or mp < StoryCombat.WARRIOR_IRON_COST:
+		return
+	_cd_warrior_iron = StoryCombat.WARRIOR_IRON_CD
+	mp -= StoryCombat.WARRIOR_IRON_COST
+	_job_buff_time_left = StoryCombat.WARRIOR_IRON_SEC
 
 
 func _play_anim(anim_name: String) -> void:

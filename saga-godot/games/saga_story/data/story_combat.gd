@@ -187,6 +187,44 @@ const JOBS_TIER1 := {
 }
 const JOB_CHANGE_LEVEL := 10
 
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 무사(warrior)
+## 무예 넷.** data-job.js SKILLS job:'warrior' 넷(w_cut/w_whirl/w_rush/
+## w_iron) — 아직 SP(무예 점수) 투자 시스템이 없어(레벨마다 3점을 찍어
+## 무예를 0~10으로 올리는 것, data-job.js 머리말) `FIXED_SKILL_LEVEL`
+## (5, 임의의 중간값)로 **고정**해 mul을 미리 계산해 둔다 — SP 배분
+## UI는 다음에 볼 자리. 궁수·협객·방사 셋은 아직 범위 밖(이 넷과 같은
+## 패턴으로 이어갈 수 있다).
+##
+## w_whirl의 r:128px는 SWEEP_RANGE_MUL(117/78=1.5)과 같은 방식으로
+## REACH(78px, story_player.gd ATTACK_RANGE 자리)비로 옮긴다: 128/78.
+## w_rush의 dist:210px는 SCALE(field_map.gd와 같은 0.02)로 미터 환산.
+const FIXED_SKILL_LEVEL := 5
+
+const WARRIOR_CUT_COST := 6.0
+const WARRIOR_CUT_CD := 0.5
+const WARRIOR_CUT_MUL := 1.15 + 0.09 * FIXED_SKILL_LEVEL  # 1.6
+
+const WARRIOR_WHIRL_COST := 20.0
+const WARRIOR_WHIRL_CD := 3.6
+const WARRIOR_WHIRL_MUL := 1.6 + 0.14 * FIXED_SKILL_LEVEL  # 2.3
+const WARRIOR_WHIRL_RANGE_MUL := 128.0 / 78.0
+
+const WARRIOR_RUSH_COST := 24.0
+const WARRIOR_RUSH_CD := 6.0
+const WARRIOR_RUSH_MUL := 1.8 + 0.16 * FIXED_SKILL_LEVEL  # 2.6
+const WARRIOR_RUSH_DIST_PX := 210.0
+const WARRIOR_RUSH_SCALE := 0.02  # field_map.gd SCALE과 같다
+
+const WARRIOR_IRON_COST := 28.0
+const WARRIOR_IRON_CD := 16.0
+const WARRIOR_IRON_SEC := 9.0
+const WARRIOR_IRON_ATK_MUL := 1.2
+const WARRIOR_IRON_GUARD := 0.35
+
+
+static func warrior_rush_dist_m() -> float:
+	return WARRIOR_RUSH_DIST_PX * WARRIOR_RUSH_SCALE
+
 
 static var _hitstop_active := false
 

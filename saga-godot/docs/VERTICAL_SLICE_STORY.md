@@ -790,6 +790,61 @@ preload해 이 사냥터 전용이었던 것을, `map_path`(export) + `ground_co
   16개, 2~4차 전직(레벨 25/45/70), 나머지 일곱 사냥터+신야성 — 다음
   "saga-godot 이어 해"에서 이어간다.
 
+## 17. 전직 무예 첫 걸음 — 무사(warrior) 넷 (2026-09-13)
+
+**사용자 지시 "커밋하고 saga-godot 이어 해"** — 16절이 남긴 "1차 전직
+갈래별 무예 16개(4갈래×4개)"의 첫 갈래만 잘랐다: **무사(warrior)** 넷
+(참격·선풍·돌진·철갑). 궁수·협객·방사 셋은 같은 패턴으로 이어갈 수
+있게 남겨 뒀다.
+
+**SP(무예 점수) 투자 시스템은 아직 없다** — 원작은 레벨마다 3점을 찍어
+무예를 0~10으로 올리는데(`data-job.js` 머리말), 그 배분 UI 없이 무예
+자체를 먼저 검증하려고 **`FIXED_SKILL_LEVEL`(5, 임의의 중간값)로 mul을
+고정**했다 — DUNGEON이 "이름만 있는 장비"로 먼저 좁혔던 것과 같은 결의
+의도적 축소(다음에 SP UI를 볼 때 이 상수를 실제 투자값으로 바꾼다).
+
+**넷 다 원문 그대로**(cost·cd·mul·r·dist·buff 안 바꿈, `data-job.js`
+SKILLS job:'warrior'):
+- **참격(w_cut)** — melee. 연참과 같은 정면 판정·사거리, mul만 다르다
+  (레벨5에서 1.6).
+- **선풍(w_whirl)** — aoe. 횡소(4절)와 같은 360도 판정 구조, r:128px를
+  REACH(78px)비로 옮겨 사거리 결정(mul 2.3).
+- **돌진(w_rush)** — dash. **재해석** — 부드러운 이동 애니메이션 대신
+  "이동 경로 위 적을 먼저 때린 뒤 그 자리로 순간이동"으로 단순화(다치는
+  적 판정이 이동 전/후로 갈리는 걸 피했다). dist:210px를 SCALE(0.02)로
+  4.2m 환산. 벽·구덩이 충돌은 확인 안 함(다음에 볼 자리).
+- **철갑(w_iron)** — buff, sec9·atk×1.2·guard0.35 그대로. 기합(brace,
+  tier0)과 **별도 타이머**로 둔다(둘 다 걸릴 수 있다, 원작이 안 막는다) —
+  `_effective_atk()`가 둘의 배율을 곱하고, `take_damage()`가 guard를
+  방어구 컷과 별개로 한 번 더 곱한다.
+
+**job=='warrior'일 때만** 실제로 쓰인다 — 입력 배선 자체가 그 조건
+안에 있어(story_player.gd `_physics_process()`), 다른 직업(또는 무명)은
+새 입력 액션 넷(Z/X/C/V, `story_job_skill_1~4`)을 눌러도 아무 일도
+안 일어난다.
+
+- `story_combat.gd`: `FIXED_SKILL_LEVEL`(5) + `WARRIOR_CUT_*`/
+  `WARRIOR_WHIRL_*`/`WARRIOR_RUSH_*`/`WARRIOR_IRON_*` 상수 + `warrior_
+  rush_dist_m()` 신규.
+- `story_player.gd`: 쿨다운 넷(`_cd_warrior_cut/whirl/rush/iron`) +
+  `_job_buff_time_left`(철갑 전용) 신규. `_cast_warrior_cut/whirl/
+  rush/iron()` 신규. `_effective_atk()`가 철갑 배율도 곱하도록, `take_
+  damage()`가 guard도 반영하도록 수정.
+- `project.godot`: `story_job_skill_1~4`(Z/X/C/V) 입력 액션 신규.
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 여섯 씬 세 번 연속 exit 0·로그 무결. 임시 디버그로: 세 mul(1.6·
+  2.3·2.6) 정확, `roll_damage` 500회 표본이 손계산 범위(무크리 29.58~
+  크리 60.21) 안, 참격 실제 시전으로 mp 100→94(−6)·쿨다운 0→0.5·적
+  hp 실제로 깎임 확인, 돌진으로 플레이어가 정확히 4.2m 이동, 철갑으로
+  `_effective_atk()`가 정확히 ×1.2, `take_damage(100)`이 철갑 있을 때
+  65(=100×0.65)·없을 때 100으로 정확히 갈림(guard 0.35 확인)까지 전부
+  예측과 일치. 디버그 원상복구(`story_field.gd` diff 0).
+- **GUI 실기 확인은 아직 안 함** — 네 무예의 타격감·돌진의 순간이동이
+  어색하지 않은지는 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 궁수·협객·방사 무예 넷씩(같은 패턴), SP 투자
+  UI, 2~4차 전직, 나머지 일곱 사냥터+신야성 — 다음 "saga-godot 이어
+  해"에서 이어간다.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
