@@ -334,7 +334,12 @@
     /* 택배 접수대(PLAN 45절) — 마을 안 물건, mail(우편함)과 같은 파일을
        그대로 빌린다. courierPost는 deco:true가 아니라 syncScatter()가
        mail·shop 같은 마을 건물과 나란히 세운다 */
-    courierPost: 'building:mail'
+    courierPost: 'building:mail',
+    /* 우주기지 확충(2026-09-14, PLAN 46-3절 "다음에 이어갈 것" — asset3d.js
+       의 BLD_SPACE 주석 참고). 이 팩 자체의 건물·로버·메카를 처음 세운다 */
+    spaceBase: 'building:spaceBase', spaceHouse: 'building:spaceHouse',
+    spaceDome: 'building:spaceDome', solarPanel: 'solarPanel',
+    rover: 'rover', mech: 'mech'
   };
   /** 2026-09-10 "움직이는 모션을 더 자연스럽게" — 이 표에 있는 kind만
    *  `syncScatter()`가 이동 방향으로 몸을 튼다. 나무·건물처럼 안 움직이는
@@ -384,7 +389,14 @@
        사이 소품 눈대중 */
     crate: 0.9, fence: 1.1, cart: 0.9,
     /* 택배 접수대 — mail 과 같은 파일이니 같은 눈대중(0.9) */
-    courierPost: 0.9
+    courierPost: 0.9,
+    /* 우주기지 확충(2026-09-14, PLAN 46-3절) — 전부 정규화(키 1) 기준
+       눈대중. spaceBase(본관)는 마을 건물(3.0~3.4)보다 조금 더 존재감
+       있게, spaceHouse(오두막)는 캠프 오두막(2.1~2.4)과 비슷하게,
+       spaceDome(측지돔)은 그 중간, solarPanel·rover는 낮은 소품·차량,
+       mech는 사람 키보다 한 단 큰 로봇으로 잡았다 */
+    spaceBase: 3.6, spaceHouse: 2.1, spaceDome: 2.6,
+    solarPanel: 1.3, rover: 1.1, mech: 2.1
   };
 
   /**

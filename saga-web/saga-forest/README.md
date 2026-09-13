@@ -7,6 +7,23 @@
 **장기 지향점**: 마을 안에서 끝나지 않고 숲·호수·동굴까지 끊김 없이 걸어 나가는
 오픈월드를 목표로 한다.
 
+**2026-09-14 — 우주기지에 이 팩 자체의 건물·로버·메카 (PLAN 46-4절).** §46-3이
+남긴 마지막 항목(현대 목적지·Space Kit 건물/로버/메카 중 후자)을 채웠다 —
+지금까지 우주기지는 이 팩과 무관한 fence·cart·crate·lantern(다른 자리에서
+빌린 소품)로만 채워져 있었다. §46-2가 "poly.pizza가 SSL로 막혀 있다"고
+적어 둔 것을 다시 확인해 보니 이번 세션엔 `poly.pizza`·`static.poly.pizza`
+모두 200으로 응답했지만, 이 저장소가 이미 써 온 GitHub 미러
+(`trebeljahr/quaternius-showcase`)로 그대로 받았다(배달원 우주복과 같은
+Ultimate Space Kit 팩, Quaternius CC0). 새로 받은 여섯 — 본관(Base_Large)·
+숙소(House_Single)·측지돔(GeodesicDome)·태양광판(SolarPanel_Ground)·
+탐사차(Rover_1)·메카(Mech_FinnTheFrog, 합쳐도 240KB 남짓) — 를
+`asset3d.js`에 등록하고 `village.js`의 우주기지 자리에 전부 `deco:true`
+(순전히 장식, 새 상호작용 없음)로 놓았다. `village-view3d.js`의
+SCATTER_KIND/SCATTER_H, `data-village.js`의 2D 대체 이모지도 짝을 맞췄다.
+우주기지 deco 소품 수를 세던 기존 테스트를 5→11개로 고쳤다. 자가진단
+**261/265(세 번 동일, §46-3과 같은 기준선 — 공사 테스트 넷은 무관한 기존
+실패)**. 자세한 것은 `PLAN.md` §46-4. **실기 확인 전.**
+
 **2026-09-14 — 배달원(courier)에게 우주비행사 외형 (PLAN 46-3절).** §46이 남긴
 셋 중 마지막 하나를 채웠다 — 나머지 둘(현대 목적지·Space Kit 건물/로버/메카)은
 여전히 새 CC0 자산이 필요해 이번엔 안 건드렸다. `saga-dungeon`이 이미 CC0

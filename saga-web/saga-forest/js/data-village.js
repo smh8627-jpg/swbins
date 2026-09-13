@@ -115,7 +115,17 @@
        받음), gazebo는 asset3d.js에 등록만 되고 여태 안 쓰이던 정자 —
        "폐허를 발견한 나그네가 잠시 쉬어 가는" 자리로 곁들였다 */
     ruinTower: { name: '무너진 탑성', emoji: '🏰', gather: null, reset: 0, hint: '올려다본다' },
-    gazebo: { name: '정자', emoji: '🏯', gather: null, reset: 0, hint: '앉아 쉰다' }
+    gazebo: { name: '정자', emoji: '🏯', gather: null, reset: 0, hint: '앉아 쉰다' },
+    /* 우주기지 확충(PLAN 46-3절, 2026-09-14) — 위 crate·fence·cart 는 다른
+       자리에서 빌린 소품이었고, 이번엔 이 팩 자체의 건물·로버·메카를 처음
+       받았다(전부 순전한 장식, deco:true — 2D 는 3D 가 못 뜨는 자리를 위한
+       되돌림이라 emoji 도 함께 채운다) */
+    spaceBase: { name: '우주기지 본관', emoji: '🏢', gather: null, reset: 0, hint: '올려다본다' },
+    spaceHouse: { name: '기지 숙소', emoji: '🛰️', gather: null, reset: 0, hint: '들여다본다' },
+    spaceDome: { name: '측지돔', emoji: '⛺', gather: null, reset: 0, hint: '들여다본다' },
+    solarPanel: { name: '태양광판', emoji: '🔋', gather: null, reset: 0, hint: '살펴본다' },
+    rover: { name: '탐사차', emoji: '🚙', gather: null, reset: 0, hint: '살펴본다' },
+    mech: { name: '메카', emoji: '🤖', gather: null, reset: 0, hint: '올려다본다' }
   };
 
   /* ── 옷 ──────────────────────────────────────────────────

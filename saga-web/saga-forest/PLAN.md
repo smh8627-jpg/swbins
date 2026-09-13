@@ -1681,6 +1681,73 @@ Node로 `asset3d.js`를 직접 실행해 `heroRecipe({id:'npc_courier'})`가
 
 ---
 
+# 46-4. 우주기지에 이 팩 자체의 건물·로버·메카 — §46-3 "다음에 이어갈 것" 마지막 항목 (2026-09-14)
+
+§46-3이 셋 중 배달원 외형만 채우고 남긴 마지막 항목("Ultimate Space Kit
+나머지(건물·로버·메카) — poly.pizza SSL 문제로 못 받음")을 이번에 채웠다.
+**§46-2가 적어 둔 "poly.pizza가 이 환경에서 SSL로 막혀 있다"를 이번에
+다시 확인해 보니, 실제로는 `poly.pizza`·`static.poly.pizza` 모두 이번
+세션엔 200으로 응답했다** — 막혔던 것이 상시가 아니라 그때그때 환경
+사정이었던 듯하다. 그래도 이 저장소가 이미 Frog.glb 등에 써 온
+GitHub 미러(`trebeljahr/quaternius-showcase`)로 그대로 받았다 — 배달원
+우주복(§46-3)과 같은 Ultimate Space Kit 팩(Quaternius, CC0)이라 출처
+확인은 이미 서 있다.
+
+## 지은 것
+
+지금까지 우주기지(spaceBaseSpot)는 **이 팩과 무관한 다섯 소품**(fence·
+cart·crate·lantern, 다른 자리에서 빌린 것)로만 채워져 있었다 — "우주기지"
+라면서 정작 우주기지 팩 자체의 건물이 하나도 없었다. 이번에 여섯을
+새로 받았다: 본관(Base_Large)·숙소(House_Single)·측지돔(GeodesicDome)·
+태양광판(SolarPanel_Ground)·탐사차(Rover_1)·메카(Mech_FinnTheFrog) —
+합쳐도 240KB 남짓(PLAN 31절 "적은 수의 좋은 에셋" 그대로).
+
+- **`js/asset3d.js`**: `BLD_SPACE`(`assets/models/buildings/space/`)·
+  `PROP_SPACE`(`assets/models/props/space/`) 신설, `DEFAULTS`에
+  `building:spaceBase`·`building:spaceHouse`·`building:spaceDome`·
+  `rover`·`solarPanel`·`mech` 여섯 키로 등록.
+- **`js/village.js`**: `buildProps()`의 우주기지 블록(§45~46)에 이어
+  여섯 줄을 더했다 — 전부 `deco:true`(순전히 장식, 새 상호작용 없음),
+  기존 다섯 소품·배달원(courier) 자리와 안 겹치게 7×7 자리(`inSpaceBase`)
+  안에서 나눠 잡았다.
+- **`js/village-view3d.js`**: `SCATTER_KIND`(3D 렌더용 asset3d 키 매핑)·
+  `SCATTER_H`(정규화 기준 눈대중 높이)에 여섯 줄씩 추가.
+- **`js/data-village.js`**: `VD.PROPS`에 여섯 항목 추가(이름·이모지 —
+  3D가 꺼진 기기·프로필을 위한 2D 대체 그림, 다른 deco 소품과 같은 결).
+- **`_test.html`**: 우주기지 deco 소품 수를 세던 기존 테스트(5개 →
+  crateA·crateB·fence·cart·lantern)를 11개로 고치고, 새 여섯 kind가
+  실제로 섞여 있는지 확인하는 조건을 더했다.
+
+새 상호작용·판정 코드는 하나도 없다 — 순전히 장식 확충이다(메카는 PLAN
+45절 표가 미리 적어 둔 "세워 두고 살펴보는 장식", 새 탈것·전투 시스템
+불필요 그대로).
+
+## 검증
+
+`node -c`로 손댄 네 스크립트 파일(asset3d.js·village.js·
+village-view3d.js·data-village.js) 전부 구문 확인, `_test.html`의 인라인
+스크립트 두 블록도 마찬가지. 헤드리스 자가진단 — **261/265, 세 번
+동일**(§46-3과 같은 기준선 — 공사(工事) 테스트 넷은 이 변경과 무관한
+기존 실패, 회귀 없음). "흩뿌릴 kind는 전부 asset3d 표에 실제로 있다"
+테스트가 새 여섯 종을 포함해 그대로 통과, 우주기지 소품 수 테스트도
+11개로 통과 확인.
+
+## 실기 확인 전
+
+우주기지가 실제로 그 자리에 서는지, 3D 화면에서 본관·숙소·돔·태양광판·
+탐사차·메카가 서로 겹치지 않고 자연스럽게 보이는지, 규모(눈대중으로만
+잡은 SCATTER_H 수치)가 어색하지 않은지는 사용자가 직접 봐야 한다.
+
+## 다음에 이어갈 것
+
+- 현대(도시) 목적지 — 여전히 CC0 자산 미확보(다음 WebSearch 되는 세션 몫)
+- 이 팩에 남은 조각 — Connector·Roof_*·MetalSupport·Stairs·Ramp(결합용
+  소품, 본관 하나로도 "기지" 느낌은 나서 이번엔 안 받았다), Enemy_*(포자괴물과
+  같은 결의 우주기지 전용 희귀 몬스터 후보), Pickup_*(택배 소포 모양을
+  상자 대신 이걸로 바꾸는 안) — PLAN §45 표 참고
+
+---
+
 # Claude Code 최종 작업 원칙
 
 **실기(실제 기기) 확인은 배치 끝에 한 번만 — 매 기능마다 따로 챙기지
