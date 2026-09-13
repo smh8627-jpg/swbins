@@ -24,6 +24,15 @@ namespace Saga.Go.World
         [Tooltip("비워 두면 Awake에서 VertexColorLit 셰이더로 직접 만든다.")]
         [SerializeField] private Material groundMaterialOverride;
 
+        // 44장 "Environment" 디테일 오버레이 — VertexColorLit.shader의
+        // _DetailTex/_DetailTiling/_DetailStrength에 그대로 물린다.
+        // 런타임 스크립트라 AssetDatabase를 못 써 편집기 빌드 스크립트
+        // (BuildTestVillageScene.BuildTerrain)가 채워 준다 — 비어 있으면
+        // 셰이더 기본값(흰 텍스처, 곱해도 무변화)이라 씬이 안 깨진다.
+        [SerializeField] private Texture2D detailTexture;
+        [SerializeField] private float detailTiling = 2f;
+        [SerializeField] private float detailStrength = 0.6f;
+
         private void Awake()
         {
             Build();
@@ -59,6 +68,7 @@ namespace Saga.Go.World
             var verts = new List<Vector3>();
             var colors = new List<Color>();
             var normals = new List<Vector3>();
+            var uvs = new List<Vector2>();
             var tris = new List<int>();
 
             float half = TestMapData.TileSize * 0.5f;
@@ -82,7 +92,7 @@ namespace Saga.Go.World
                     Color col01 = CornerColor(x, y + 1);
                     Color col11 = CornerColor(x + 1, y + 1);
 
-                    AddTileQuads(verts, colors, normals, tris, center, half, own, col00, col10, col01, col11);
+                    AddTileQuads(verts, colors, normals, uvs, tris, center, half, own, col00, col10, col01, col11);
                 }
             }
 
@@ -91,19 +101,34 @@ namespace Saga.Go.World
             mesh.SetVertices(verts);
             mesh.SetColors(colors);
             mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
 
             GetComponent<MeshFilter>().sharedMesh = mesh;
 
             var mr = GetComponent<MeshRenderer>();
-            mr.sharedMaterial = groundMaterialOverride != null
-                ? groundMaterialOverride
-                : new Material(Shader.Find("Saga/VertexColorLit")) { name = "Ground (generated)" };
+            if (groundMaterialOverride != null)
+            {
+                mr.sharedMaterial = groundMaterialOverride;
+            }
+            else
+            {
+                var mat = new Material(Shader.Find("Saga/VertexColorLit")) { name = "Ground (generated)" };
+                if (detailTexture != null)
+                {
+                    mat.SetTexture("_DetailTex", detailTexture);
+                    mat.SetFloat("_DetailTiling", detailTiling);
+                    mat.SetFloat("_DetailStrength", detailStrength);
+                }
+                mr.sharedMaterial = mat;
+            }
         }
 
-        /// <summary>칸 하나를 Sub x Sub 조각으로 나눠 넣는다. (u,v)는 칸 안의 상대 위치.</summary>
-        private static void AddTileQuads(List<Vector3> verts, List<Color> colors, List<Vector3> normals, List<int> tris,
+        /// <summary>칸 하나를 Sub x Sub 조각으로 나눠 넣는다. (u,v)는 칸 안의 상대 위치.
+        /// 44장 "Environment" 디테일 오버레이 — uv는 월드 XZ 그대로 담는다
+        /// (셰이더가 타일링 배율을 곱한다, 정점색 블렌딩과는 무관한 별도 채널).</summary>
+        private static void AddTileQuads(List<Vector3> verts, List<Color> colors, List<Vector3> normals, List<Vector2> uvs, List<int> tris,
             Vector3 center, float half, Color own, Color col00, Color col10, Color col01, Color col11)
         {
             for (int j = 0; j < Sub; j++)
@@ -126,10 +151,10 @@ namespace Saga.Go.World
                     Color cc01 = TileVertexColor(own, col00, col10, col01, col11, u0, v1);
 
                     int b = verts.Count;
-                    verts.Add(p00); colors.Add(cc00); normals.Add(Vector3.up);
-                    verts.Add(p10); colors.Add(cc10); normals.Add(Vector3.up);
-                    verts.Add(p11); colors.Add(cc11); normals.Add(Vector3.up);
-                    verts.Add(p01); colors.Add(cc01); normals.Add(Vector3.up);
+                    verts.Add(p00); colors.Add(cc00); normals.Add(Vector3.up); uvs.Add(new Vector2(p00.x, p00.z));
+                    verts.Add(p10); colors.Add(cc10); normals.Add(Vector3.up); uvs.Add(new Vector2(p10.x, p10.z));
+                    verts.Add(p11); colors.Add(cc11); normals.Add(Vector3.up); uvs.Add(new Vector2(p11.x, p11.z));
+                    verts.Add(p01); colors.Add(cc01); normals.Add(Vector3.up); uvs.Add(new Vector2(p01.x, p01.z));
 
                     // 노멀을 명시로 주고 셰이더가 Cull Off라 감김 방향은 안 가린다
                     // (Godot 쪽에서 겪은 외적 부호 계산 문제를 여기선 안 밟는다).

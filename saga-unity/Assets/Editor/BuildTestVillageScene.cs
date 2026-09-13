@@ -135,10 +135,28 @@ namespace Saga.EditorTools
             go.AddComponent<SkyFogBuilder>().Build();
         }
 
+        // 44장 "Environment" 디테일 오버레이 — 사용자가 "간단한 디테일
+        // 오버레이만"을 선택(9종 지형 전체를 다른 PBR 재질로 스플랫팅하는
+        // 건 범위 밖). 이미 받아 둔 Poly Haven cobblestone_floor_01의 AO
+        // 맵(밝은 회색조라 곱해도 크게 어두워지지 않는다)을 정점색 위에
+        // 옅게 곱해 미세한 질감만 더한다.
+        private const string TerrainDetailTexPath =
+            "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CobblestoneFloor01/cobblestone_floor_01_ao_1k.jpg";
+
         private static GameObject BuildTerrain()
         {
             var terrainGo = new GameObject("Terrain");
             var terrainBuilder = terrainGo.AddComponent<TerrainBuilder>();
+
+            var detailTex = AssetDatabase.LoadAssetAtPath<Texture2D>(TerrainDetailTexPath);
+            if (detailTex != null)
+            {
+                SetPrivateField(terrainBuilder, "detailTexture", detailTex);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestVillageScene] {TerrainDetailTexPath} 를 못 찾음 — 지형이 예전처럼 정점색만으로 칠해짐.");
+            }
             terrainBuilder.Build();
             return terrainGo;
         }
