@@ -374,6 +374,20 @@ namespace Saga.Dungeon.World
             // 스케일, 왜곡 없음(방 셸 GLB 슬라이스 전엔 X만 줄이는 비균등이었음).
             float scale = doorWidth / GateModelWidth;
             gate.transform.localScale = Vector3.one * scale;
+
+            // 44장 "Building" 교체 — PBR 경로에서는 Kenney 아치의 단색
+            // 아틀라스(colormap.png) 대신 벽과 같은 PBR 재질을 씌운다(실측
+            // 4.4×4.4 기준 타일 — DungeonRoomBuilder 클래스 주석의 gate.glb
+            // 실측값). 메시 UV가 아틀라스 전용이라 결과가 정확한 스톤
+            // 텍스처는 아니지만, 최소한 밋밋한 단색 아치보다는 낫다.
+            if (UsePbrEnvironment)
+            {
+                var archMat = EnvironmentMaterial.MakeTiled(wallMaterial, GateModelWidth, GateModelWidth);
+                foreach (var r in gate.GetComponentsInChildren<Renderer>())
+                {
+                    r.sharedMaterial = archMat;
+                }
+            }
         }
 
         private void SpawnWall(string name, Vector3 pos, Vector3 size, Color color)
