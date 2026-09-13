@@ -1665,3 +1665,57 @@ data-enemy.js 는 한 글자도 안 건드렸다 — 2026-09-11 주석이 적어
 를 받게 되므로, 다음 실기기 확인 때 지금까지 상자로만 보이던 자리들이
 실제 모델로 바뀌는지 볼 것(개발 중 헤드리스 스크린샷은 안 찍었다 —
 `_test.html` 296/296 3회 동일로만 회귀 확인).
+
+## Quaternius — Cute Animated Monsters (2026-09-14, 같은 세션 이어서, `models/monsters/quaternius_cute/`)
+
+PLAN "3안"을 계속 — 위 공룡 6종에 이어 다섯을 더 받았다.
+
+| | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | CC0 1.0 — `quaternius.com/packs/animatedmonster.html` 페이지에 `creativecommons.org/publicdomain/zero/1.0/` 링크로 명시(itch.io `lowpoly-animated-monsters` 페이지도 CC0로 동일 표시) |
+| **받은 곳** | `opengameart.org/content/lowpoly-animated-monsters` → `Animated Monster Pack by @Quaternius.zip`(OGA 미러 — itch.io 원본은 무료 항목도 결제 흐름을 타 curl로 못 받는다, 아래 "안 쓴 것" 참고) |
+| **파일** | FBX만 제공(GLTF 없음) — `Cyclops.fbx`·`Crab.fbx`·`Cthulhu.fbx`·`Tree.fbx`·`GreenDemon.fbx` 다섯만 골라 `fbx2gltf`(npm, 세션 스크래치, 저장소엔 미커밋 — "캐릭터 12차분" 절과 같은 도구)로 변환 |
+
+**21종 중 다섯만 골랐다.** 나머지는:
+- **Demon·Yeti·Cactus·Mushroom·Skull** — 이미 `PEOPLE_MONSTERS_Q`(Ultimate
+  Monsters) 쪽에 같은 개체 콘셉트가 있다(`monster:demon`·`monster:yeti`·
+  `monster:cactoro`·`monster:mushnub` 등). 다이노처럼 "다른 팩의 다른
+  개체"로 또 얹을 수도 있었지만, 이번엔 로스터에 진짜 빈자리(외눈거인·
+  게·나무정령·이 판에 없던 결의 악마·촉수 괴물)부터 채우는 쪽을 골랐다.
+- **Alien·Alien_Tall** — 2026-09-11 "몬스터 로스터 확장" 주석과 같은
+  이유로 제외(이름 정책·SF풍이 이 판 결에 안 맞는다는 그 결정을 그대로
+  따랐다 — `monster:alien`도 이미 REG에 등록만 되고 `data-enemy.js`에는
+  안 쓰인 채로 남아 있다).
+- **Bat·Bee·Chicken·Deer·Panda·Penguin·Pig** — 순한 동물/새라 "괴물"보다는
+  마을 가축 쪽 결이라 이번 범위 밖.
+
+**itch.io "Monster Pack Animated by Quaternius"(위 "캐릭터 2차분" 절에서
+이미 검토했던 그 팩, Bat·Dragon·Skeleton·Slime 4종)는 여전히 안 썼다** —
+Dragon·Skeleton·Slime은 이번에도 다른 소스로 이미 있고, Bat 하나만 새로울
+사정이 그대로라 이번에도 보류(그 절의 판단이 여전히 유효했다).
+
+**애니메이션** — 다섯 모두 같은 리그(`MonsterArmature|*`), 클립 10개
+(Idle·Walk·Death·HitRecieve·Bite_Front·Bite_InPlace·Jump·Dance·Yes·No).
+`mapClips()` 낱말표에 "bite"가 없어 **attack 슬롯은 idle로 대체**된다
+(2026-09-09 "Wizard.glb" 절과 같은 자리 — 그때도 낱말표를 안 건드리고
+그대로 받아들였다, 이번에도 공용 엔진 코드는 한 글자도 안 건드렸다).
+idle·walk·death·hit 넷은 정확히 잡힌다.
+
+`tools/glb-compress`로 재압축(5개, 0.6MB→0.2MB). `js/asset3d.js`
+DEFAULTS에 `monster:cyclops`·`monster:crab`·`monster:cthulhu`·
+`monster:treant`·`monster:demon_green`으로 등록, `js/data-enemy.js`에
+다섯(풋귀·집게괴·고목정·외눈귀·심연촉수귀, tier 1~4)을 얹었다 — 표시
+이름은 전부 새로 지은 민담풍 낱말이라(크툴루 신화의 그 이름은 내부
+`body` 식별자에만 남는다) 이름 정책에 걸리지 않는다.
+
+**검증** — Node `vm`으로 `asset3d.js`+`data-enemy.js`를 그대로 불러(1)
+적+보스 135개 전부 `lookup(e.body)` 성공(신규 5종 포함, 0 누락), (2) 이름
+135개 중복 없음, (3) tier 1~4 유효성, (4) `poolFor()`로 층 1·4·8·15·30
+전부 빈 풀 없음 확인. `_test.html`(헤드리스 크롬)은 3회 연속 동일
+결과로 회귀만 확인(개수는 안 늘었다 — 이 판의 몬스터 구조 검사는
+`_test.html`이 아니라 위 Node 검증으로 한다는 게 2026-09-11부터의
+관례). **실기기 확인 전** — 다섯 다 새 몸이라 실제로 붙는 자리(외눈귀는
+`form:'ogre'`라 사람 크기 스케일로 나올 텐데 실제 '거인'다운 위압감이
+나는지, 게(`crab`)는 `form:'quad'`로 근사했는데 실루엣이 어색하지
+않은지)는 사용자가 봐야 한다.
