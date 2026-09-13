@@ -96,6 +96,10 @@
        이미 받아 둔 사슴·여우 GLB(같은 Quaternius Animals Pack)를 재사용한다 */
     'critter:deer': ANIMALS + 'Deer.glb',
     'critter:fox': ANIMALS + 'Fox.glb',
+    /* 도감 초상 3D화 확장(2026-09-14) — 사슴·여우와 같은 집안(소)의 펫 셋
+       (들소·젖소·황소)도 이미 있는 Cow.glb 를 그대로 재사용한다. 새 GLB
+       없이 등록만 하면 된다는 게 portrait3d.js 의 사슴·구미호 판단과 같다 */
+    'critter:cow': ANIMALS + 'Cow.glb',
     /* 랜덤 이벤트(PLAN 11절, 2026-09-09) — saga-dungeon 이 이미 받아 둔 KayKit
        상자를 그대로 재사용한다 */
     'chest': PROPS + 'Chest.glb'
