@@ -14,7 +14,7 @@
  * instance 는 전부 꺼서 모양·구조를 안 건드린다.
  *
  * 사용법: node compress.mjs <대상 폴더> [--dry] [--force]
- *   대상 폴더    예: ../../saga-dungeon/assets/models
+ *   대상 폴더    예: ../../saga-web/saga-dungeon/assets/models
  *   --dry        실제로 바꾸지 않고 크기 변화만 미리 본다
  *   --force      이미 처리 표시(manifest)가 있어도 다시 돌린다
  *

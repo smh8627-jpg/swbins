@@ -9,7 +9,10 @@
 옮겨져 있었어서 겹치지 않는다.
 
 **다섯 웹 판(saga-go·saga-dungeon·saga-forest·saga-story·saga-realm)은
-각자 폴더의 `PLAN.md`가 그대로 정본이다.** 그 다섯과 완전히 별개로,
+각자 폴더의 `PLAN.md`가 그대로 정본이다.** **2026-09-13, 이 다섯 폴더를
+저장소 루트에서 `saga-web/` 밑으로 옮겼다**(`saga-web/saga-go` 처럼) —
+관리 편의 목적, git 이력은 rename 으로 보존됐다. 세이브 키·id 는 이 이동과
+무관하게 그대로다(애초에 폴더 이름과 다르다). 그 다섯과 완전히 별개로,
 같은 다섯 게임을 3D로 새로 짓는 프로젝트가 **둘** 있다 —
 `saga-godot/`(Godot 4.x, 2026-08-31 착수)과 `saga-unity/`(Unity 6,
 2026-09-11 착수, saga-godot과 나란히 가는 병행 트랙 — saga-godot을
@@ -23,13 +26,13 @@
 
 | 게임 | 폴더 | 포트 | 원작 | 세이브 키 |
 |---|---|---|---|---|
-| **사가고** | `saga-go` | 8791 | 포켓몬GO | `deungyong-go/save/<프로필>` |
-| **사가블로** | `saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/<프로필>` |
-| **사가의숲** | `saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/<프로필>` |
-| **사가스토리** | `saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/<프로필>` |
-| **사가국지** | `saga-realm` | 8795 | 코에이 삼국지 | `saga-realm/save/<프로필>` |
+| **사가고** | `saga-web/saga-go` | 8791 | 포켓몬GO | `deungyong-go/save/<프로필>` |
+| **사가블로** | `saga-web/saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/<프로필>` |
+| **사가의숲** | `saga-web/saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/<프로필>` |
+| **사가스토리** | `saga-web/saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/<프로필>` |
+| **사가국지** | `saga-web/saga-realm` | 8795 | 코에이 삼국지 | `saga-realm/save/<프로필>` |
 
-`saga-pc` 는 다섯을 파일 하나씩으로 묶는 빌드다.
+`saga-web/saga-pc` 는 다섯을 파일 하나씩으로 묶는 빌드다.
 
 - **세이브 키는 폴더 이름과 다르다.** 폴더 이름에 맞추려고 바꾸면 진행이 통째로 사라진다.
 - 다섯 판은 `data.js`·`sprite.js`·`core.js`·`hero.js` 를 **다섯 벌 복사**해 나눠 든다.
@@ -40,9 +43,13 @@
 
 - 로컬: 각 폴더 `run.bat`(브라우저까지 열림) · `start_server.bat`(허브가 부르는 쪽)
 - 허브 카드: <http://이-PC이름/> — `C:\swbins2\services.json` 이 이 폴더를 가리킨다.
-  **경로를 옮기면 그쪽도 같이 고쳐야 한다**(단, 그 파일은 커밋하지 않는다)
+  **경로를 옮기면 그쪽도 같이 고쳐야 한다**(단, 그 파일은 커밋하지 않는다).
+  **2026-09-13, 다섯 폴더가 `saga-web/` 밑으로 옮겨졌으니 그 파일의 경로도
+  `saga-web/saga-go` 식으로 맞춰야 한다** — 이 저장소(`C:\swbins`) 세션에선 그
+  파일이 안 보일 수 있다(별개 저장소), `C:\swbins2` 세션에서 확인할 것
 - 공개: <https://smh8627-jpg.github.io/swbins/> — GitHub Pages.
-  각 판은 `/swbins/saga-go/` 처럼 하위 경로로 열린다
+  각 판은 `/swbins/saga-web/saga-go/` 처럼 하위 경로로 열린다
+  (2026-09-13 이전엔 `/swbins/saga-go/` 였다 — 옛 북마크는 깨진다)
 - 폰에서 사가고를 열 때는 `run-phone.bat`(0.0.0.0 + HTTPS). 아이폰 사파리가
   비보안 출처의 위치 API 를 막는다
 
@@ -50,7 +57,7 @@
 
 리모트가 **있다** — `origin` = <https://github.com/smh8627-jpg/swbins> (공개).
 
-- **`saga-go/server/certs/` 는 절대 커밋하지 않는다.** 자체 서명 CA 의 개인키가 들어 있고,
+- **`saga-web/saga-go/server/certs/` 는 절대 커밋하지 않는다.** 자체 서명 CA 의 개인키가 들어 있고,
   `run-phone.bat` 이 폰에 그 CA 를 신뢰하도록 설치하라고 안내한다. 공개되면 그 기기가
   신뢰하는 인증서를 누구나 위조할 수 있다. `.gitignore` 가 막고 있으니 풀지 말 것
 - **`.nojekyll` 을 지우지 않는다.** Pages 의 기본 Jekyll 이 `_` 로 시작하는 것을 빼 버린다 —
@@ -87,7 +94,7 @@
   2026-09-10 항목에 적어 뒀다. 다음에 손댈 때 참고할 것
 - 원작 개체값(IV)·CP 도입 — 이 판의 펫은 개체가 아니라 **종**이다
 - 다섯 게임의 공용 파일을 하나로 합치자고 제안하기
-- 경영·문답을 `saga-realm` 밖으로 퍼뜨리기
+- 경영·문답을 `saga-web/saga-realm` 밖으로 퍼뜨리기
 - 사가의숲의 **구면 투영**을 평평한 탑다운으로 되돌리기 (집 안만은 일부러 안 휜다)
 - 원작사의 실제 에셋(그림·소리·데이터) 가져다 넣기 — 문법만 따르고 그림은 코드가 그린다
 
@@ -99,7 +106,7 @@
               http://127.0.0.1:<포트>/_test.html   → RESULT n/n
 데모        _demo.html#<장면>  (정지 화면)
 어드민      _admin.html  (세이브·균형 손잡이·QA 프리셋)
-PC 묶음     saga-pc/build-all.bat
+PC 묶음     saga-web/saga-pc/build-all.bat
 ```
 
 - 진단의 무작위는 씨앗(mulberry32, 20260824)으로 고정돼 있다. **세 번 돌려 출력이 한 줄도
@@ -137,6 +144,6 @@ PC 묶음     saga-pc/build-all.bat
 
 ## 알려진 흠
 
-(2026-08-29: `saga-go/_autoprobe.html` 이 죽어 있던 건 고쳤다 — 네 판으로 가르기 전
+(2026-08-29: `saga-web/saga-go/_autoprobe.html`(2026-09-13 이전엔 `saga-go/_autoprobe.html`) 이 죽어 있던 건 고쳤다 — 네 판으로 가르기 전
 스크립트 목록을 그대로 부르고 있었다. 지금 스크립트 구성·세이브 스키마에 맞춰
 다시 짰고, `?sim=600&party=3` 로 자동 순행 600초를 헤드리스에서 실제로 돌려 확인했다)

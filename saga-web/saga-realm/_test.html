@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<title>사가국지 자가진단</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { overflow: auto; }
+  #report { padding: 16px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.8;
+            position: relative; z-index: 50; background: rgba(10,12,16,.92); }
+  .pass { color: #5ec26a; } .fail { color: #e06565; }
+</style>
+</head>
+<body>
+<div id="camp-bg"></div><div id="vignette"></div>
+<div id="top">
+  <div class="glass profile" id="profile"></div>
+  <div class="tools">
+    <button class="icon-btn" id="btn-help">h</button>
+    <button class="icon-btn" id="btn-reset">r</button>
+  </div>
+  <div class="glass wallet" id="wallet"></div>
+</div>
+<div id="realm"></div>
+<nav id="dock">
+  <button data-sheet="city"><span>c</span><small>c</small></button>
+  <button data-sheet="officers"><span>o</span><small>o</small></button>
+  <button data-sheet="camp"><span>p</span><small>p</small></button>
+  <button data-sheet="diplo"><span>d</span><small>d</small></button>
+  <button data-sheet="school"><span>s</span><small>s</small></button>
+  <button data-sheet="log"><span>l</span><small>l</small></button>
+</nav>
+<div id="scrim"></div>
+<aside id="sheet">
+  <div class="sheet-head"><div class="grip"></div><h3 id="sheet-title"></h3>
+    <button class="icon-btn sm" id="sheet-map">m</button>
+    <button class="icon-btn sm" id="sheet-close">x</button></div>
+  <div id="sheet-body"></div>
+</aside>
+<div id="encounter"></div><div id="detail"></div><div id="toast"></div>
+
+<div id="report">진단 중…</div>
+
+<script>
+window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
+
+/* 무작위 고정 — 진단이 굴릴 때마다 달라지면 판정이 흔들린다.
+   게임 스크립트보다 **먼저** 갈아 둬야 부트에서 쓰는 난수까지 잡힌다.
+   (실제 플레이는 그대로다 — 이 파일 안에서만 바꾼다)
+   mulberry32: 짧고 분포가 고르며 같은 씨앗이면 같은 수열이 나온다. */
+(function (seed) {
+  var s = seed >>> 0;
+  Math.random = function () {
+    s = (s + 0x6D2B79F5) >>> 0;
+    var t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  window.DG_SEED = seed;
+})(20260824);
+</script>
+<script src="js/data.js"></script>
+<script src="js/data-city.js"></script>
+<script src="js/data-force.js"></script>
+<script src="js/data-item.js"></script>
+<script src="js/data-quiz.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/core.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/account.js"></script>
+<script src="js/hero.js"></script>
+<script src="js/officer.js"></script>
+<script src="js/rtk.js"></script>
+<script src="js/war.js"></script>
+<script src="js/diplo.js"></script>
+<script src="js/rtk-ai.js"></script>
+<script src="js/quiz.js"></script>
+<script src="js/net.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui-rtk.js"></script>
+<script src="js/game.js"></script>
+<script>
+(function () {
+  var out = [], errors = [];
+  window.addEventListener('error', function (e) { errors.push(e.message); });
+
+  function t(name, fn) {
+    try {
+      var r = fn();
+      out.push((r ? '<span class="pass">PASS</span> ' : '<span class="fail">FAIL</span> ') +
+        name + (typeof r === 'string' ? ' — ' + r : ''));
+      return !!r;
+    } catch (e) {
+      out.push('<span class="fail">FAIL</span> ' + name + ' — 예외: ' + e.message);
+      return false;
+    }
+  }
+
+  setTimeout(function () {
+    var C = DG.core, R = DG.rtk, CD = DG.cityData, FD = DG.forceData,
+        off = DG.off, W = DG.war, D = DG.diplo, AI = DG.rtkAI, Q = DG.quiz, QD = DG.quizData;
+
+    /**
+     * 판을 깨끗하게 다시 세운다.
+     * **항목은 자기가 쓸 상태를 스스로 만든다** — 앞 항목이 남긴 성·충성·맹약이
+     * 다음 항목으로 흘러 들어가면 통과와 실패가 순서에 달리게 된다.
+     */
+    function fresh(meId, scen) {
+      /* 무장 성장(`save.heroes`)은 setup 이 건드리지 않는다 — 세이브 공용 칸이라
+         일부러 그렇게 두었다. 진단에서는 **함께 비운다**. 안 비우면 앞 항목이
+         올려 놓은 레벨이 뒤 항목의 능력치로 흘러 들어가 수치가 순서에 달린다 */
+      C.save.heroes = {};
+      R.setup(meId || 'cao', scen);
+      return R.state();
+    }
+
+    /** 그 성의 장수를 모두 성하게(명령 안 쓴 상태로) 만든다 */
+    function freeUp(cityId) {
+      var list = off.atCity(cityId, R.city(cityId).force);
+      for (var i = 0; i < list.length; i++) {
+        var r = off.rec(list[i].id); r.done = false; r.hurt = 0;
+      }
+      return list;
+    }
+
+    /**
+     * 재야(在野)는 이름 해시로 `CD.CITIES.length` 를 나눠 결정적으로 흩는다
+     * (`rtk.scatterFree`) — 성을 늘릴 때마다(지역 확장) 나눗셈이 바뀌어 어느
+     * 성에 숨은 사람이 걸리는지도 통째로 바뀐다. 대개는 내 세력(cao)의 몇
+     * 안 되는 시작 성 어딘가에 우연히 걸리지만, **2026-09-10 균열(아홉째)
+     * 확장에서 실제로 셋 다 빗나가 세 항목이 한꺼번에 깨졌다** — 성 수가
+     * 93 이 되면서 하필 cao 의 세 시작 성(진류·복양·허창) 모두에 숨은 재야가
+     * 하나도 안 떨어졌다. 자연스러운 산포 운에 기대는 대신, 아무 데나 숨어
+     * 있는 재야 하나를 내 세력 성으로 직접 옮겨 확실하게 만든다 — 시험하려는
+     * 것("수색 전엔 등용 못 한다", "학식·세작이 재야를 드러낸다")은 그대로다,
+     * 산포 자체의 운을 시험하는 게 아니다. */
+    function ensureHiddenAtMine() {
+      var mine = R.citiesOf('cao'), i;
+      for (i = 0; i < mine.length; i++) {
+        if (off.freeAt(mine[i], false).length) { return mine[i]; }
+      }
+      for (i = 0; i < CD.CITIES.length; i++) {
+        var hidden = off.freeAt(CD.CITIES[i].id, false)[0];
+        if (hidden) {
+          off.placeAt(hidden.id, mine[0], null);
+          off.rec(hidden.id).found = false;
+          return mine[0];
+        }
+      }
+      return null;
+    }
+
+    /**
+     * 낙양 앞에 진(陣)을 하나 세운다.
+     * **배수를 올려 가며 진영이 설 때까지** 해 본다 — 한 배수에 못을 박아 두면
+     * 앞 항목이 난수를 얼마나 썼느냐에 따라 함락이 되거나 퇴각이 되어 흔들린다.
+     */
+    function campSet() {
+      var ms = [1, 1.2, 1.5, 1.8, 2.2], i;
+      for (i = 0; i < ms.length; i++) {
+        fresh('cao');
+        var from = R.city('chenliu'), to = R.city('luoyang');
+        from.troops = Math.round(to.troops * ms[i]); from.food = 999999;
+        var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+        var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+        var cp = W.campsOf('cao')[0];
+        if (cp) { return { rep: rep, cp: cp, lead: lead, mult: ms[i] }; }
+      }
+      return null;
+    }
+
+    function countFound() {
+      var n = 0, m = R.state().officers, k;
+      for (k in m) { if (!m[k].force && m[k].found) { n++; } }
+      return n;
+    }
+
+    /* ── 골격 ────────────────────────────────────────── */
+
+    t('옛 경영 모듈은 걷어냈다', function () {
+      var gone = ['land', 'territory', 'build', 'buildData', 'incident', 'auto'];
+      var left = gone.filter(function (k) { return !!DG[k]; });
+      return left.length === 0 && '강역·특산·건설·사변·자동 없음 (성이 그 자리를 맡는다)';
+    });
+
+    t('삼국지 모듈이 다 실려 있다', function () {
+      var here = ['cityData', 'forceData', 'off', 'rtk', 'war', 'diplo', 'rtkAI', 'quiz'];
+      var miss = here.filter(function (k) { return !DG[k]; });
+      return miss.length === 0 &&
+        ('성 ' + CD.CITIES.length + ' · 세력 ' + FD.FORCES.length +
+         ' · 명령 ' + R.ORDERS.length + ' · 계략 ' + D.PLOTS.length +
+         ' · 문답 ' + QD.BANK.length);
+    });
+
+    t('지도에 외딴 성이 없다', function () {
+      /* 한 곳이라도 길이 끊기면 그 성은 영영 못 뺏고 못 빼앗긴다 */
+      var lonely = CD.CITIES.filter(function (c) { return !c.adj.length; });
+      var far = CD.CITIES.filter(function (c) { return CD.hops('luoyang', c.id) < 0; });
+      return lonely.length === 0 && far.length === 0 && CD._dropped.length === 0 &&
+        ('서른 성이 다 이어져 있다 · 낙양→성도 ' + CD.hops('luoyang', 'chengdu') +
+         '성 · 계→회계 ' + CD.hops('jixian', 'kuaiji') + '성');
+    });
+
+    t('길은 양쪽으로 이어진다', function () {
+      /* 한쪽만 이어져 있으면 "칠 수는 있는데 되받아칠 수 없는" 성이 생긴다 */
+      var bad = [];
+      for (var i = 0; i < CD.CITIES.length; i++) {
+        var a = CD.CITIES[i];
+        for (var j = 0; j < a.adj.length; j++) {
+          if (CD.find(a.adj[j]).adj.indexOf(a.id) < 0) { bad.push(a.id + '→' + a.adj[j]); }
+        }
+      }
+      return bad.length === 0 && '한쪽만 난 길 없음';
+    });
+
+    t('무장 명부는 data.js 를 건드리지 않고 늘어난다', function () {
+      /* data.js 는 다섯 판이 바이트까지 같은 복사본이다. 얹기만 한다 */
+      var n = off.all().length;
+      var three = off.all().filter(function (h) { return h.era === '삼국지'; }).length;
+      /* 2026-09-10 — data.js 쪽 인물 수는 다른 세션(HEROES 가명화 후속)이 같은
+         시각에 늘리고 있어(현재 삼국지22·한국사26·일본사20·세계사37 = 105)
+         고정 매직넘버로 두면 그쪽이 또 늘 때마다 이 진단이 헛되이 깨진다.
+         그래서 이 판이 보탠 무장(FD.OFFICERS + 확장 지역 8곳)만 id로 골라내
+         "보탠 개수"를 세고, 나머지(=data.js 쪽)는 거꾸로 계산한다 — data.js
+         를 안 건드리고 늘었다는 것만 확인하면 되는 테스트라 이걸로 충분하다 */
+      var added = FD.OFFICERS.concat(
+        FD.KOREA_OFFICERS, FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS);
+      var addedIds = {};
+      added.forEach(function (o) { addedIds[o.id] = true; });
+      var dataHeroBase = off.all().filter(function (h) { return !addedIds[h.id]; }).length;
+      return n === dataHeroBase + added.length && three === 76 &&
+        !!DG.data.find('rf_guojia') && !!DG.data.find('sg_caocao') &&
+        ('인물(data.js) ' + dataHeroBase + ' + 이 판이 보탠 무장 ' + added.length + ' = ' + n +
+         ' · 삼국지 ' + three + ' · 재야 후보 ' + (n - three));
+    });
+
+    t('세력 표의 무장이 모두 명부에 있다', function () {
+      var miss = [];
+      for (var i = 0; i < FD.FORCES.length; i++) {
+        var ids = FD.roster(FD.FORCES[i].id);
+        for (var j = 0; j < ids.length; j++) { if (!off.find(ids[j])) { miss.push(ids[j]); } }
+      }
+      return miss.length === 0 && '군주 13 · 부하 전원 확인';
+    });
+
+    /* ── 판 세우기 ───────────────────────────────────── */
+
+    t('194년 판이 선다 — 서른 성에 주인이 다 있다(여덟 확장 지역 쉰여섯은 주인 없이 시작)', function () {
+      var st = fresh('cao');
+      var keys = Object.keys(st.cities);
+      /* 한국·일본·교주·서역·남중·천축·막북·임읍 지역(garrison 필드가 있는 성)은
+         처음부터 일부러 주인이 없다 — 정복 대상이다. 그 쉰여섯을 빼고서
+         나머지가 다 주인 있는지만 잰다 */
+      var noOwner = keys.filter(function (k) {
+        return !st.cities[k].force && !CD.find(k).garrison;
+      });
+      var total = 0;
+      for (var i = 0; i < FD.FORCES.length; i++) { total += FD.FORCES[i].cities.length; }
+      return keys.length === CD.CITIES.length && noOwner.length === 0 && total === 30 &&
+        (st.year + '년 ' + st.month + '월 · 내 세력 ' + R.forceName(st.me));
+    });
+
+    t('재야는 삼국지 사람이 아닌 인물들이다', function () {
+      fresh('cao');
+      var free = off.all().filter(function (h) { return h.stats && !off.rec(h.id).force; });
+      var nonThree = free.filter(function (h) { return h.era !== '삼국지'; }).length;
+      /* 여덟 확장 지역 수비 무장 72인도 force:null 이라 이 정의로는 재야에
+         든다. data.js 쪽 비삼국지 인물 수는 다른 세션이 같이 늘리고 있어
+         고정 매직넘버를 안 쓴다(위 "무장 명부는…" 테스트와 같은 이유) —
+         "이 판이 보탠 비삼국지 무장 72인이 전부 재야에 잡히는지"만 확인한다.
+         (2026-09-10 — 이 수치는 원래 남중까지도 반영이 안 돼 있었다(84),
+         남중 이후 node·chrome이 없어 직접 못 돌려 본 채 남아 있던 것도
+         이번에 같이 바로잡았다) */
+      var addedNonThree = FD.KOREA_OFFICERS.concat(
+        FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS).length;
+      var freeIds = {};
+      free.forEach(function (h) { freeIds[h.id] = true; });
+      var addedFreeOk = FD.KOREA_OFFICERS.concat(
+        FD.JAPAN_OFFICERS, FD.JIAOZHOU_OFFICERS, FD.XIYU_OFFICERS,
+        FD.NANZHONG_OFFICERS, FD.TIANZHU_OFFICERS, FD.MOBEI_OFFICERS, FD.LINYI_OFFICERS)
+        .every(function (o) { return freeIds[o.id]; });
+      return addedFreeOk && nonThree >= addedNonThree &&
+        ('재야 ' + free.length + ' (여덟 확장 지역 ' + addedNonThree + '인 전원 포함, 비삼국지 계 ' +
+         nonThree + ' + 삼국지 재야 ' + (free.length - nonThree) + ')');
+    });
+
+    t('재야는 늘 같은 성에 있다 (난수를 얼마나 썼든)', function () {
+      /* 무작위로 흩으면 진단이 실행마다 다른 성을 짚는다 — 이름 해시로 흩는다 */
+      fresh('cao');
+      var a = off.rec('kr_yisunsin').city;
+      for (var i = 0; i < 30; i++) { Math.random(); }
+      fresh('bei');
+      var b = off.rec('kr_yisunsin').city;
+      return a === b && ('이순신은 두 번 다 ' + CD.find(a).name);
+    });
+
+    t('수색 전에는 재야가 보이지 않는다', function () {
+      /* 특정 인물을 못 박으면 그 사람이 (이름 해시로) 떨어지는 성이 성이
+         늘 때마다 바뀐다 — 하필 수비 무장이 있는 성(이미 found:true 인
+         사람이 있어 seen이 0이 아닌 성)에 떨어지면 헛되이 깨진다. 그래서
+         "묻힌 사람은 있는데 보이는 사람은 없는 성"을 직접 찾는다(위
+         "수색해야 등용할 수 있다" 테스트와 같은 방식) */
+      fresh('cao');
+      var target = null, all = 0;
+      for (var i = 0; i < CD.CITIES.length; i++) {
+        var cid = CD.CITIES[i].id;
+        var a = off.freeAt(cid, false).length;
+        var s = off.freeAt(cid, true).length;
+        if (a > 0 && s === 0) { target = cid; all = a; break; }
+      }
+      if (!target) { return false; }
+      return ('그 성(' + target + ')에 ' + all + '명이 묻혀 있고 보이는 사람은 0');
+    });
+
+    /* ── 내정 ────────────────────────────────────────── */
+
+    t('명령은 자질만큼 성과를 낸다', function () {
+      fresh('cao');
+      freeUp('xuchang');
+      var here = off.atCity('xuchang', 'cao');
+      /* 지력이 가장 높은 사람과 가장 낮은 사람 — 차이가 드러나는 구간에 세운다 */
+      here.sort(function (a, b) { return off.stats(b.id).wisdom - off.stats(a.id).wisdom; });
+      var smart = here[0], dull = here[here.length - 1];
+      var c = R.city('xuchang');
+      var v0 = c.agri;
+      R.order('xuchang', smart.id, 'agri');
+      var gainSmart = c.agri - v0;
+      v0 = c.agri;
+      R.order('xuchang', dull.id, 'agri');
+      var gainDull = c.agri - v0;
+      return gainSmart > gainDull &&
+        (smart.name + '(지 ' + off.stats(smart.id).wisdom + ') +' + gainSmart + ' vs ' +
+         dull.name + '(지 ' + off.stats(dull.id).wisdom + ') +' + gainDull);
+    });
+
+    t('한 사람은 한 달에 한 번만 명령한다', function () {
+      fresh('cao');
+      freeUp('xuchang');
+      var who = R.readyAt('xuchang')[0];
+      var a = R.order('xuchang', who.id, 'comm');
+      var b = R.order('xuchang', who.id, 'comm');
+      return a.ok && !b.ok && b.why.indexOf('이미') >= 0 && ('두 번째: ' + b.why);
+    });
+
+    t('명령에는 금이 든다 — 금고가 비면 못 한다', function () {
+      fresh('cao');
+      freeUp('xuchang');
+      R.force('cao').gold = 10;
+      var who = R.readyAt('xuchang')[0];
+      var r = R.order('xuchang', who.id, 'wall');
+      return !r.ok && r.why.indexOf('금') >= 0 && (r.why);
+    });
+
+    t('지형이 내정 상한을 가른다', function () {
+      /* 산성(한중)은 논밭이 좁고, 강가(건업)는 저자가 크다 */
+      var mount = R.capOf('hanzhong', 'agri');
+      var plain = R.capOf('xuchang', 'agri');
+      var river = R.capOf('jianye', 'comm');
+      return mount < plain && river > plain &&
+        ('한중(산) 농 ' + mount + ' < 허창(평야) ' + plain + ' · 건업(강) 상 ' + river);
+    });
+
+    t('징병은 인구를 깎는다', function () {
+      fresh('cao');
+      freeUp('xuchang');
+      var c = R.city('xuchang');
+      var p0 = c.pop, t0 = c.troops;
+      var who = R.readyAt('xuchang')[0];
+      var r = R.order('xuchang', who.id, 'draft');
+      return r.ok && c.troops > t0 && c.pop === p0 - (c.troops - t0) &&
+        ('병 +' + (c.troops - t0) + ' · 인구 ' + (c.pop - p0));
+    });
+
+    t('태수의 자질이 그 성의 수입에 곱해진다', function () {
+      fresh('cao');
+      R.setGov('xuchang', null);
+      var bare = R.goldOf('xuchang');
+      var here = off.atCity('xuchang', 'cao');
+      here.sort(function (a, b) { return off.stats(b.id).wisdom - off.stats(a.id).wisdom; });
+      R.setGov('xuchang', here[0].id);
+      var withGov = R.goldOf('xuchang');
+      return withGov > bare && R.govMul('xuchang') > 1 &&
+        ('태수 없이 ' + bare + ' → ' + here[0].name + ' 를 앉혀 ' + withGov +
+         ' (×' + R.govMul('xuchang').toFixed(2) + ')');
+    });
+
+    /* ── 살림 정산 ───────────────────────────────────── */
+
+    t('군량은 6·10월에만 들어온다', function () {
+      fresh('cao');
+      var st = R.state();
+      var c = R.city('xuchang');
+      /* 재지 않는 축은 붙들어 둔다 — 재해가 끼거나 병사가 먹으면 수확이 가려진다 */
+      c.disaster = null; c.troops = 0;
+      st.month = 3;
+      var f0 = c.food; R.settleMonth();
+      var q = c.food - f0;
+      c.disaster = null;
+      st.month = 6;
+      f0 = c.food; R.settleMonth();
+      var h = c.food - f0;
+      return q === 0 && h > 0 && ('3월 +' + q + ' · 6월 +' + h);
+    });
+
+    t('군량이 떨어지면 병사가 흩어진다', function () {
+      fresh('cao');
+      var st = R.state();
+      var c = R.city('xuchang');
+      c.food = 0; c.troops = 20000; st.month = 2;
+      R.settleMonth();
+      return c.troops < 20000 && c.food === 0 && ('병 20,000 → ' + C.fmt(c.troops));
+    });
+
+    t('치안이 낮으면 수입이 준다', function () {
+      fresh('cao');
+      var c = R.city('xuchang');
+      R.setGov('xuchang', null);                 // 재지 않는 축(태수)을 붙들어 둔다
+      c.disaster = null;
+      c.sec = 100; var hi = R.goldOf('xuchang');
+      c.sec = 0;   var lo = R.goldOf('xuchang');
+      return hi > lo && Math.abs(hi / lo - 2) < 0.02 &&
+        ('치안 100 → ' + hi + ' · 치안 0 → ' + lo + ' (딱 두 배)');
+    });
+
+    t('재해는 수확을 깎고 풍년은 늘린다', function () {
+      fresh('cao');
+      var c = R.city('xuchang');
+      c.disaster = null; var base = R.foodOf('xuchang');
+      c.disaster = 'locust'; var bad = R.foodOf('xuchang');
+      c.disaster = 'bumper'; var good = R.foodOf('xuchang');
+      c.disaster = null;
+      return bad < base && good > base &&
+        ('보통 ' + base + ' · 황충 ' + bad + ' · 풍년 ' + good);
+    });
+
+    t('시장 — 저자가 클수록 환율이 후하고, 판 만큼 정확히 오간다', function () {
+      fresh('cao');
+      var c = R.city('xuchang'), f = R.force('cao');
+      c.food = 5000; f.gold = 1000;
+      c.comm = 100; var lowRate = R.marketRate('xuchang');
+      c.comm = 800; var hiRate = R.marketRate('xuchang');
+      var r1 = R.trade('xuchang', 'sell', 1000);
+      var goldAfter = f.gold, foodAfter = c.food;
+      var r2 = R.trade('xuchang', 'buy', 500);
+      return hiRate > lowRate &&
+        r1.ok && r1.gold === Math.round(1000 * hiRate) && goldAfter === 1000 + r1.gold &&
+        foodAfter === 4000 &&
+        r2.ok && foodAfter + r2.food === c.food && f.gold === goldAfter - Math.round(500 / hiRate) &&
+        ('상업 100 환율 ' + lowRate.toFixed(2) + ' · 상업 800 환율 ' + hiRate.toFixed(2) +
+         ' · 군량 1000 팔아 금 ' + r1.gold);
+    });
+
+    t('시장 — 없는 만큼은 못 판다·못 산다', function () {
+      fresh('cao');
+      var c = R.city('xuchang'), f = R.force('cao');
+      c.food = 100; f.gold = 10;
+      var over1 = R.trade('xuchang', 'sell', 999999);
+      var over2 = R.trade('xuchang', 'buy', 999999);
+      return !over1.ok && over1.why.indexOf('군량') >= 0 &&
+        !over2.ok && over2.why.indexOf('금') >= 0 &&
+        ('군량 초과 → "' + over1.why + '" · 금 초과 → "' + over2.why + '"');
+    });
+
+    /* ── 무장 · 충성 ─────────────────────────────────── */
+
+    t('군주의 충성은 100에서 움직이지 않는다', function () {
+      fresh('cao');
+      off.rec('sg_caocao').loyal = 3;
+      R.driftLoyalty();
+      return off.rec('sg_caocao').loyal === 100 && '군주는 스스로를 떠나지 않는다';
+    });
+
+    t('충성은 인연 쪽으로 끌려간다 (위로도, 아래로도)', function () {
+      fresh('cao');
+      var id = 'rf_guojia';
+      var base = off.baseLoyal(id, 'cao');
+      off.rec(id).loyal = 0;
+      R.driftLoyalty();
+      var up = off.rec(id).loyal;
+      off.rec(id).loyal = 100;
+      R.driftLoyalty();
+      var down = off.rec(id).loyal;
+      return up > 0 && down < 100 && ('인연 ' + base + ' · 0→' + up + ' · 100→' + down);
+    });
+
+    t('충성이 바닥나면 떠난다', function () {
+      fresh('cao');
+      var ids = off.ofForce('cao').map(function (h) { return h.id; });
+      for (var i = 0; i < ids.length; i++) { off.rec(ids[i]).loyal = 1; }
+      var before = off.ofForce('cao').length;
+      for (var n = 0; n < 8; n++) { D.checkDefection(); }
+      var after = off.ofForce('cao').length;
+      return after < before && off.rec('sg_caocao').force === 'cao' &&
+        ('무장 ' + before + ' → ' + after + ' (군주는 남는다)');
+    });
+
+    t('상을 내리면 충성이 오르고 금이 준다', function () {
+      fresh('cao');
+      var f = R.force('cao');
+      off.rec('rf_guojia').loyal = 40;
+      var g0 = f.gold;
+      var r = R.reward('rf_guojia', 400);
+      return r.ok && off.rec('rf_guojia').loyal > 40 && f.gold === g0 - 400 &&
+        ('충성 40 → ' + r.loyal + ' · 금 -400');
+    });
+
+    /* ── 등용 ────────────────────────────────────────── */
+
+    /* ── 무장 성장 (경험과 승진) ─────────────────────── */
+
+    t('일을 시키면 경험이 붙는다', function () {
+      fresh('cao');
+      var who = R.readyAt('xuchang')[0];
+      var g0 = off.grow(who.id).exp;
+      R.order('xuchang', who.id, 'agri');
+      var g1 = off.grow(who.id).exp;
+      /* 태수로 앉아 한 달을 나도 는다 */
+      var gov = R.city('xuchang').gov;
+      var e0 = off.grow(gov).exp;
+      R.settleMonth();
+      return g1 === g0 + off.EXP.order && off.grow(gov).exp > e0 &&
+        ('명령 +' + off.EXP.order + ' · 태수로 한 달 +' + off.EXP.gov);
+    });
+
+    t('싸우면 더 크게 붙는다', function () {
+      fresh('cao');
+      var from = R.city('chenliu'), to = R.city('luoyang');
+      from.troops = to.troops * 6; from.food = 999999;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+      var e0 = off.grow(lead[0]).exp + 0;
+      var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+      var got = off.grow(lead[0]).lv > 1 ? '레벨이 올랐다' :
+        (off.grow(lead[0]).exp - e0) + '';
+      return rep.won && off.EXP.win > off.EXP.order &&
+        (off.grow(lead[0]).exp !== e0 || off.grow(lead[0]).lv > 1) &&
+        ('출진 +' + off.EXP.march + ' · 함락 +' + off.EXP.win + ' → ' + got);
+    });
+
+    t('레벨과 관직이 능력치로 이어진다 (판정 한 곳을 지난다)', function () {
+      /* 성장이 전투에 듣는 것은 armyPower 가 같은 off.stats 를 읽기 때문이지,
+         전투에 따로 붙인 보정이 아니다 */
+      fresh('cao');
+      var id = 'sg_xiahoudun';
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      var base = off.stats(id).might;
+      var p0 = W.armyPower({ troops: 10000, train: 60, tech: 300, morale: 1, officers: [id] });
+      C.save.heroes[id] = { lv: 11, exp: 0, rank: 0 };
+      var lv11 = off.stats(id).might;
+      C.save.heroes[id] = { lv: 11, exp: 0, rank: 3 };
+      var ranked = off.stats(id).might;
+      var p1 = W.armyPower({ troops: 10000, train: 60, tech: 300, morale: 1, officers: [id] });
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      return lv11 > base && ranked > lv11 && p1 > p0 &&
+        ('하후돈 무력 ' + base + ' → Lv.11 ' + lv11 + ' → ★3 ' + ranked +
+         ' · 부대 힘 ' + Math.round(p0) + ' → ' + Math.round(p1));
+    });
+
+    /* ── 진형 (2026-09-09, PLAN §16 "여덟 축" 중 하나) ────── */
+
+    t('진형 표 — 세 종, 저마다 문턱·배율이 있다', function () {
+      var fs = W.FORMATIONS;
+      var ok = fs.length === 3 &&
+        fs.every(function (f) { return f.key && f.name && f.emoji && f.reqStat && f.req > 0 && f.mul > 1; });
+      return ok && ('진형 ' + fs.length + '종 — ' + fs.map(function (f) { return f.emoji + f.name; }).join(' '));
+    });
+
+    t('formationOf — 무력 75 이상인 장수를 데려가면 추행진이 자동으로 선다(고르는 화면 없음)', function () {
+      fresh('cao');
+      var strong = off.all().filter(function (h) { return h.stats && off.stats(h.id).might >= 75; })[0];
+      if (!strong) { return false; }
+      var f = W.formationOf([strong.id]);
+      return !!f && f.key === 'chukyi' &&
+        ('무력 ' + off.stats(strong.id).might + ' (' + strong.name + ') → ' + f.emoji + f.name +
+         ' ×' + f.mul);
+    });
+
+    t('formationOf — 세 능력치 다 문턱을 못 넘으면 진형이 안 선다', function () {
+      fresh('cao');
+      var weak = off.all().filter(function (h) { return h.stats; }).sort(function (a, b) {
+        var sa = off.stats(a.id), sb = off.stats(b.id);
+        return (sa.might + sa.wisdom + sa.command) - (sb.might + sb.wisdom + sb.command);
+      })[0];
+      if (!weak) { return false; }
+      var s = off.stats(weak.id);
+      if (s.might >= 75 || s.wisdom >= 75 || s.command >= 75) { return false; }
+      var f = W.formationOf([weak.id]);
+      return f === null &&
+        ('가장 약한 ' + weak.name + '(무' + s.might + '·지' + s.wisdom + '·통' + s.command + ')로는 안 선다');
+    });
+
+    t('armyPower — 진형 배율이 실제로 부대 전투력에 곱해진다', function () {
+      /* 2026-09-10 — 능력치가 고른 장수(예: 관우 무97·지75·통95)는 세 진형
+         요건을 다 넘는다. 그런 사람은 "선 진형" 하나의 mul만 1로 죽여도
+         formationOf() 가 다음으로 센 진형(예: 학익진 ×1.10)을 대신 골라
+         버려 ratio가 origMul과 안 맞았다 — **세 진형을 전부** 꺼야 "진형이
+         아예 안 선 값"이 나온다(하나만 못 박는 예전 방식은 여러 진형
+         요건을 겹쳐 넘는 장수에게는 안 통하는 시험이었다). */
+      fresh('cao');
+      var strong = off.all().filter(function (h) { return h.stats && off.stats(h.id).might >= 75; })[0];
+      if (!strong) { return false; }
+      var f = W.formationOf([strong.id]);
+      if (!f) { return false; }
+      var army = { troops: 10000, train: 60, tech: 300, morale: 1, officers: [strong.id], water: false };
+      var withMul = W.armyPower(army);
+      var origMuls = W.FORMATIONS.map(function (x) { return x.mul; });
+      W.FORMATIONS.forEach(function (x) { x.mul = 1; });   // 진형 배율을 전부 잠깐 꺼서 비교
+      var withoutMul = W.armyPower(army);
+      W.FORMATIONS.forEach(function (x, i) { x.mul = origMuls[i]; });   // 되돌린다
+      var ratio = withMul / withoutMul;
+      return Math.abs(ratio - f.mul) < 0.001 &&
+        (f.emoji + f.name + ' ×' + f.mul + ' 확인 — ' + Math.round(withoutMul) + ' → ' + Math.round(withMul));
+    });
+
+    /* ── 나이 (2026-09-10, README "다음에 채울 것" 마지막 항목) ────── */
+
+    t('birthYear·age — id마다 결정적, 시나리오를 바꾸면 나이만 그만큼 변한다', function () {
+      var id = 'sg_xiahoudun';
+      var b1 = off.birthYear(id), b2 = off.birthYear(id);
+      fresh('cao', '194');
+      var a194 = off.age(id);
+      fresh('cao', '208');
+      var a208 = off.age(id);
+      return b1 === b2 && off.birthYear(id) === b1 && (a208 - a194) === 14 &&
+        (id + ' 생년 ' + b1 + ' — 194년 ' + a194 + '세 → 208년 ' + a208 + '세');
+    });
+
+    t('agingMul — 60세까지 그대로, 이후 서서히 줄어 90세에서 바닥(0.55)', function () {
+      var m40 = off.agingMul(40), m60 = off.agingMul(60);
+      var m75 = off.agingMul(75), m90 = off.agingMul(90), m120 = off.agingMul(120);
+      return m40 === 1 && m60 === 1 && m75 < 1 && m75 > m90 && m90 === 0.55 && m120 === 0.55 &&
+        ('40세 ×' + m40 + ' · 60세 ×' + m60 + ' · 75세 ×' + m75 + ' · 90세 ×' + m90);
+    });
+
+    t('stats() — 늙으면 준다(hero.js 는 그대로, off.stats() 한 곳에서만 곱한다)', function () {
+      fresh('cao');
+      var id = 'sg_xiahoudun';
+      var raw = DG.hero.stats(id);
+      R.state().year = off.birthYear(id) + 95;   // 확실히 90세를 넘겨 바닥(0.55)을 보게 한다
+      var aged = off.stats(id);
+      var expect = Math.max(1, Math.round(raw.might * 0.55));
+      return aged.might < raw.might && aged.might === expect &&
+        ('무력 ' + raw.might + ' → ' + aged.might + '(향년 ' + off.age(id) + '세)');
+    });
+
+    t('rollAging — 군주는 안 죽는다, 늙은 부하는 죽을 수 있고 태수 자리도 비운다', function () {
+      fresh('cao');
+      var lordId = FD.force('cao').lord;
+      var id = 'sg_xiahoudun';
+      var cityId = off.rec(id).city;
+      R.city(cityId).gov = id;
+      R.state().year = off.birthYear(id) + 500;   // 사망 확률이 상한(연 60%)에 닿도록
+      /* 이 나이에선 명부 전체가 걸려 rollAging() 한 번에 Math.random() 을
+         수백 번 끌어 쓴다 — 진단 전체가 공유하는 고정 씨앗 순번이 이
+         항목 때문에 밀리면 뒤따르는 다른 항목이 죄다 흔들린다. 여기서만
+         잠깐 딴 발생기를 끼우고 끝나면 반드시 원래 것으로 되돌린다. */
+      var savedRandom = Math.random, seed = 0xC0FFEE;
+      Math.random = function () {
+        seed = (seed + 0x6D2B79F5) >>> 0;
+        var x = seed;
+        x = Math.imul(x ^ (x >>> 15), x | 1);
+        x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+      };
+      var died = false, tries = 0;
+      for (; tries < 500 && !died; tries++) {
+        off.rollAging();
+        died = off.isDead(id);
+      }
+      Math.random = savedRandom;
+      return died && !off.isDead(lordId) && R.city(cityId).gov === null &&
+        off.atCity(cityId, 'cao').every(function (h) { return h.id !== id; }) &&
+        (id + ' 이(가) ' + tries + '번째 굴림에 별세 — 군주 ' + off.find(lordId).name + ' 는 그대로');
+    });
+
+    t('공이 쌓여야 승진한다 — 올리면 충성이 오른다', function () {
+      fresh('cao');
+      var id = 'sg_xiahoudun';
+      C.save.heroes[id] = { lv: 1, exp: 0, rank: 0 };
+      var r = off.rec(id);
+      r.feats = 0; r.loyal = 50;
+      var no = off.promoteCheck(id);
+      var cost = off.promoteCost(0);
+      r.feats = cost.feats;
+      R.force('cao').gold = cost.gold + 10;
+      var res = off.promote(id);
+      var after = off.rec(id);
+      return !no.ok && no.why.indexOf('공이 모자') >= 0 && res.ok && res.rank === 1 &&
+        after.loyal > 50 && after.feats === 0 && R.force('cao').gold === 10 &&
+        ('공 ' + cost.feats + ' · 금 ' + cost.gold + ' → ' + res.name +
+         ' · 충성 50 → ' + after.loyal);
+    });
+
+    t('재야는 승진시킬 수 없다', function () {
+      fresh('cao');
+      var free = off.freeAt(off.rec('kr_yisunsin').city, false)[0] || { id: 'kr_yisunsin' };
+      var chk = off.promoteCheck('kr_yisunsin');
+      return !chk.ok && chk.why.indexOf('재야') >= 0 && (chk.why);
+    });
+
+    t('AI 도 공이 쌓인 사람을 올린다', function () {
+      /* 이게 없으면 사람 쪽만 관직 배수를 받아 판이 한쪽으로 기운다 */
+      fresh('cao');
+      var list = off.ofForce('shao'), i;
+      for (i = 0; i < list.length; i++) {
+        off.rec(list[i].id).feats = 60;
+        C.save.heroes[list[i].id] = { lv: 1, exp: 0, rank: 0 };
+      }
+      off.rec(list[0].id).loyal = 20;              // 가장 흔들리는 사람
+      R.force('shao').gold = 99999;
+      var res = AI.tryPromote('shao', AI.CREED.balanced);
+      return !!res && off.grow(res.id).rank === 1 && res.id === list[0].id &&
+        ('충성이 가장 낮던 ' + off.find(res.id).name + ' 을(를) ' +
+         off.rankName(res.id) + ' 로 올렸다');
+    });
+
+    t('수색해야 등용할 수 있다', function () {
+      fresh('cao');
+      var cityId = ensureHiddenAtMine();
+      if (!cityId) { return false; }
+      freeUp(cityId);
+      var r1 = R.order(cityId, R.readyAt(cityId)[0].id, 'hire');   // 아직 못 찾았다
+      freeUp(cityId);
+      var r2 = R.order(cityId, R.readyAt(cityId)[0].id, 'search');
+      return r1.ok && r1.amount === 0 && r2.ok && r2.found &&
+        ('[' + cityId + '] 먼저 등용 → "' + r1.text + '" · 수색 → ' + r2.found.name + ' 을(를) 찾았다');
+    });
+
+    t('등용하면 그 세력의 무장이 된다', function () {
+      fresh('cao');
+      /* 항목이 쓸 상태는 스스로 만든다 — 재야가 있는 성을 우리 것으로 하고 부를 사람을 세운다 */
+      var city = off.rec('kr_yisunsin').city;
+      var target = off.freeAt(city, false)[0];
+      R.city(city).force = 'cao';
+      off.placeAt('rf_guojia', city, 'cao');
+      off.rec('rf_guojia').done = false;
+      off.rec(target.id).found = true;
+      var tries = 0, r;
+      do { r = R.tryHire(city, 'rf_guojia', target.id); tries++; } while (!r.hired && tries < 60);
+      return !!r.hired && off.rec(target.id).force === 'cao' &&
+        (target.name + ' 합류 (' + tries + '번째 청에)');
+    });
+
+    /* ── 전투 ────────────────────────────────────────── */
+
+    t('맞닿지 않은 성에는 출진할 수 없다', function () {
+      fresh('cao');
+      var r = W.canMarch('xuchang', 'chengdu', 1000);
+      return !r.ok && r.why.indexOf('맞닿') >= 0 && (r.why);
+    });
+
+    t('군량 없이는 출진할 수 없다', function () {
+      fresh('cao');
+      R.city('chenliu').food = 0;
+      var r = W.canMarch('chenliu', 'luoyang', 5000);
+      return !r.ok && r.why.indexOf('군량') >= 0 && (r.why);
+    });
+
+    t('병력이 셀수록 이긴다 (배수를 올려 가며)', function () {
+      /* 배수·확률을 재는 항목은 **차이가 드러나는 구간**에 세운다 */
+      var line = [];
+      [1, 2, 3, 5].forEach(function (m) {
+        fresh('cao');
+        var from = R.city('chenliu'), to = R.city('luoyang');
+        from.troops = Math.round(to.troops * m); from.food = 999999;
+        var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+        var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+        line.push('×' + m + ' ' + (rep.won ? '함락' : (rep.routed ? '퇴각' : '무승부')));
+      });
+      return line[0].indexOf('함락') < 0 &&
+        line[line.length - 1].indexOf('함락') >= 0 && line.join(' · ');
+    });
+
+    t('수비는 이웃한 제 성에서 구원군을 부른다', function () {
+      fresh('cao');
+      /* 낙양(이각)에는 장안이라는 이웃이 있다 */
+      R.city('changan').troops = 20000;
+      var got = W.reliefOf('luoyang');
+      var before = R.city('luoyang').troops;
+      var moved = W.reinforce('luoyang');
+      return got > 0 && moved === got && R.city('luoyang').troops === before + moved &&
+        ('장안에서 ' + C.fmt(moved) + ' 이 달려왔다');
+    });
+
+    t('성벽은 수비를 세게 한다', function () {
+      /* 재지 않는 축(병력·장수)은 붙들어 두고 성벽만 갈아 끼운다 */
+      function run(wallLeft) {
+        fresh('cao');
+        var from = R.city('chenliu'), to = R.city('luoyang');
+        from.troops = Math.round(to.troops * 2); from.food = 999999;
+        to.wall = Math.round(to.maxWall * wallLeft);
+        var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+        return W.march('chenliu', 'luoyang', lead, from.troops - 1).lossA;
+      }
+      var full = run(1), broken = run(0.05);
+      return full > broken &&
+        ('성벽 온전 → 공격 손실 ' + C.fmt(full) + ' · 무너진 성 → ' + C.fmt(broken));
+    });
+
+    t('성을 뺏으면 깃발과 태수가 바뀐다', function () {
+      fresh('cao');
+      var from = R.city('chenliu'), to = R.city('luoyang');
+      from.troops = to.troops * 6; from.food = 999999;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+      var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+      var now = R.city('luoyang');
+      return rep.won && now.force === 'cao' && now.gov && off.rec(now.gov).force === 'cao' &&
+        now.sec < 60 &&
+        (R.forceName(now.force) + ' 의 깃발 · 태수 ' + off.find(now.gov).name +
+         ' · 치안 ' + now.sec + ' (갓 뺏은 성은 어수선하다)');
+    });
+
+    t('진 쪽 장수는 달아나거나 사로잡힌다 (사라지지 않는다)', function () {
+      fresh('cao');
+      var was = off.atCity('luoyang', 'jue').map(function (h) { return h.id; });
+      var from = R.city('chenliu'), to = R.city('luoyang');
+      from.troops = to.troops * 6; from.food = 999999;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+      var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+      var accounted = was.every(function (id) {
+        return off.rec(id).force === 'jue' || !!R.state().captives[id];
+      });
+      return rep.won && was.length > 0 && accounted &&
+        ('달아남 ' + rep.fled.length + ' · 사로잡음 ' + rep.caught.length +
+         ' (' + was.length + '명 전원)');
+    });
+
+    t('일기토는 무력이 엇비슷할 때만 붙는다', function () {
+      fresh('cao');
+      /* 여포(무 100) 대 순욱(무 30) — 차가 크면 아무도 안 나온다 */
+      var far = 0, near = 0, i;
+      for (i = 0; i < 200; i++) { if (W.duel('sg_lubu', 'sg_xunyu')) { far++; } }
+      for (i = 0; i < 200; i++) {
+        if (W.duel('sg_guanyu', 'sg_zhangfei')) { near++; }
+        off.rec('sg_guanyu').hurt = 0; off.rec('sg_zhangfei').hurt = 0;
+      }
+      return far === 0 && near > 0 &&
+        ('여포 vs 순욱 ' + far + '회 · 관우 vs 장비 ' + near + '/200회');
+    });
+
+    t('leadA/leadD — 일기토가 안 붙어도 양쪽 우두머리 장수 이름표는 남는다("인물 추가")', function () {
+      /* battle3d.js 의 setupDuel() 이 이 값으로 "지휘관 둘이 서 있는" 실제
+         캐릭터를 세운다(idle 뿐, 공격·피격 없음) — 여기선 3D 를 안 실어
+         (_test.html 이 battle3d.js/asset3d.js 를 안 불러온다) war.js 가
+         이름표를 빠짐없이 남기는지만 본다 */
+      fresh('cao');
+      var from = R.city('chenliu'), to = R.city('luoyang');
+      from.troops = 20000; from.food = 999999;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 2).map(function (h) { return h.id; });
+      var defOff = off.atCity('luoyang', to.force).map(function (h) { return h.id; });
+      var expectA = W.topBy(lead, 'might'), expectD = W.topBy(defOff, 'might');
+      var rep = W.march('chenliu', 'luoyang', lead, from.troops - 1);
+      return !!rep.leadA && !!rep.leadD && rep.leadA === expectA && rep.leadD === expectD &&
+        (off.find(rep.leadA).name + ' vs ' + off.find(rep.leadD).name +
+         (rep.duel ? ' (일기토도 실제로 붙었다)' : ' (일기토는 안 붙었지만 이름표는 남았다)'));
+    });
+
+    /* ── 여러 달에 걸치는 원정 ───────────────────────── */
+
+    t('한 달에 못 떨어뜨리면 물러나지 않고 진을 친다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var home = R.city('chenliu');
+      return !s.rep.won && !s.rep.routed && s.cp.to === 'luoyang' && s.cp.force === 'cao' &&
+        s.cp.months === 1 && s.cp.troops > 0 && home.troops === 1 &&
+        ('×' + s.mult + ' → 병력 ' + C.fmt(s.cp.troops) + ' 이 성 밖에 남았다 · 치중 ' +
+         C.fmt(s.cp.food) + ' (' + W.monthsLeft(s.cp) + '달치)');
+    });
+
+    t('원정 나간 장수는 성에 없다 (봉급은 그대로 나간다)', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var ids = s.cp.officers;
+      var atFrom = off.atCity('chenliu', 'cao').map(function (h) { return h.id; });
+      var ready = R.readyAt('chenliu').map(function (h) { return h.id; });
+      var gone = ids.every(function (id) {
+        return atFrom.indexOf(id) < 0 && ready.indexOf(id) < 0 && off.rec(id).camp === s.cp.id;
+      });
+      var paid = off.ofForce('cao').filter(function (h) { return ids.indexOf(h.id) >= 0; }).length;
+      return gone && paid === ids.length &&
+        ('진중 ' + ids.length + '명 — 성 명부에서 빠지고 봉급은 그대로 ' + paid + '명분');
+    });
+
+    t('진영은 달마다 한 번씩 더 친다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      s.cp.food = 99999;                     // 재지 않는 축(치중)은 붙들어 둔다
+      var wall0 = R.city('luoyang').wall;
+      var rep = W.resolveCamp(s.cp);
+      var fought = !!rep && rep.siege === true && (rep.lossA > 0 || rep.lossD > 0);
+      var moved = W.campById(s.cp.id) ? s.cp.months === 2 : true;
+      return fought && moved &&
+        ('두 달째 — 잃은 병력 공 ' + C.fmt(rep.lossA) + ' · 수 ' + C.fmt(rep.lossD) +
+         ' · 성벽 ' + C.fmt(wall0) + ' → ' + C.fmt(R.city('luoyang').wall));
+    });
+
+    t('치중이 바닥나면 스스로 물러난다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var before = R.city('chenliu').troops;
+      s.cp.food = 0;
+      var res = W.resolveCamp(s.cp);
+      return !!res && res.kind === 'retreat' && res.why.indexOf('군량') >= 0 &&
+        W.campsOf('cao').length === 0 && R.city('chenliu').troops > before &&
+        s.cp.officers.every(function (id) { return off.rec(id).city === 'chenliu'; }) &&
+        ('군량이 떨어져 ' + C.fmt(R.city('chenliu').troops - before) + ' 이 진류로 돌아왔다');
+    });
+
+    t('사기가 꺾이면 군이 지쳐 물러난다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      s.cp.food = 99999;                     // 군량 탓이 아님을 못 박는다
+      s.cp.morale = W.CAMP_QUIT;             // 한 달만 더 지나면 문턱 아래로 내려간다
+      var res = W.resolveCamp(s.cp);
+      return !!res && res.kind === 'retreat' && res.why.indexOf('지쳐') >= 0 &&
+        W.campsOf('cao').length === 0 &&
+        ('사기 ' + Math.round(W.CAMP_QUIT * 100) + ' × ' + W.CAMP_DECAY + ' → 물러났다');
+    });
+
+    t('보급하면 원정이 길어진다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var before = W.monthsLeft(s.cp);
+      R.city('chenliu').food = 50000;
+      var res = W.supply(s.cp.id, 0, 20000, 'chenliu');
+      /* 남의 성에서는 못 보낸다 (장안은 이각 것이다) */
+      var theirs = W.supply(s.cp.id, 0, 100, 'changan');
+      /* 맞닿지 않은 우리 성에서도 못 보낸다 (복양은 낙양과 길이 없다) */
+      R.city('puyang').force = 'cao'; R.city('puyang').food = 5000;
+      var far = W.supply(s.cp.id, 0, 100, 'puyang');
+      return res.ok && W.monthsLeft(s.cp) > before && !theirs.ok && !far.ok &&
+        ('치중 ' + before + '달치 → ' + W.monthsLeft(s.cp) +
+         '달치 · 남의 성(' + theirs.why + ') · 먼 성(' + far.why + ')');
+    });
+
+    t('이미 진을 친 성에는 새로 출진하지 않는다', function () {
+      /* 이 줄이 없으면 AI 가 달마다 새 진영을 세워 같은 성 앞에 군대가 쌓인다 */
+      var s = campSet();
+      if (!s) { return false; }
+      R.city('chenliu').troops = 30000; R.city('chenliu').food = 999999;
+      var r = W.canMarch('chenliu', 'luoyang', 20000);
+      return !r.ok && r.why.indexOf('진을 치고') >= 0 && (r.why);
+    });
+
+    t('에워싸인 성은 수확을 거두지 못한다', function () {
+      /* 재지 않는 축(재해·인구)은 붙들어 두고 포위만 갈아 끼운다 */
+      function run(siege) {
+        fresh('cao');
+        var st = R.state();
+        st.month = 6;                        // 거두는 달
+        var c = R.city('luoyang');
+        c.disaster = null; c.dLeft = 0;
+        if (siege) {
+          st.camps.push({ id: 'x', force: 'cao', from: 'chenliu', to: 'luoyang',
+            troops: 1000, officers: [], train: 40, tech: 100, morale: 1, food: 999, months: 1 });
+        }
+        var f0 = c.food;
+        R.settleMonth();
+        return R.city('luoyang').food - f0;
+      }
+      var open = run(false), shut = run(true);
+      return open > shut &&
+        ('열린 성 ' + C.fmt(open) + ' · 에워싸인 성 ' + C.fmt(shut) + ' (거두지 못한다)');
+    });
+
+    t('포위 끝에 함락하면 진영이 걷히고 치중이 성으로 들어간다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var f0 = R.city('luoyang').food;
+      s.cp.food = 30000; s.cp.troops = 200000;
+      R.city('luoyang').wall = 1;
+      var res = W.resolveCamp(s.cp);
+      var clean = s.cp.officers.every(function (id) { return !off.rec(id).camp; });
+      return !!res && res.won && R.city('luoyang').force === 'cao' && W.camps().length === 0 &&
+        clean && R.city('luoyang').food >= f0 + 20000 &&
+        ('함락 · 치중이 성으로 들어갔다 (군량 ' + C.fmt(f0) + ' → ' +
+         C.fmt(R.city('luoyang').food) + ') · 남은 진영 0');
+    });
+
+    t('나라를 잃은 원정군은 그 자리에서 사로잡힌다', function () {
+      /* 그냥 지우면 판에서 사람이 조용히 사라져 등용할 거리가 준다 */
+      var s = campSet();
+      if (!s) { return false; }
+      var ids = s.cp.officers.slice();
+      var mine = R.citiesOf('cao'), i;
+      for (i = 0; i < mine.length; i++) { R.city(mine[i]).force = 'jue'; }
+      var res = W.resolveCamp(s.cp);
+      var caught = ids.every(function (id) { return R.state().captives[id] === 'luoyang'; });
+      return !!res && res.kind === 'disband' && caught && W.camps().length === 0 &&
+        ('돌아갈 성이 없어져 장수 ' + ids.length + '명이 낙양 앞에서 사로잡혔다');
+    });
+
+    /* ── 원정 (여러 달에 걸친 실시간 이동, 2026-09-04) ──────────
+     * 194년 시나리오의 '공손찬'(zan)은 계·북평(beiping)을 쥔다 — 북평이
+     * 한국 지역(전부 force:null 인 채로 시작)의 관문이라, 이 세력으로
+     * `CD.path`/원정을 시험하기 딱 좋다.
+     */
+
+    t('CD.path — 한국 지역처럼 실제 여러 홉을 지나는 경로를 정확히 찾는다', function () {
+      fresh('zan');
+      var passable = function (cid) {
+        var c = R.city(cid);
+        return !!c && (c.force === 'zan' || c.force === null);
+      };
+      var p = CD.path('beiping', 'wirye', passable);
+      var months = p ? CD.pathMonths(p) : -1;
+      /* 장안까지는 원소(nanpi)의 땅에 막혀 못 간다 — 남의 땅은 안 거친다 */
+      var blocked = CD.path('beiping', 'changan', passable);
+      return !!p && p[0] === 'beiping' && p[p.length - 1] === 'wirye' && p.length >= 5 &&
+        months > 0 && blocked === null &&
+        ('경로 ' + p.join('→') + ' (' + months + '달) · 막힌 길 null 확인');
+    });
+
+    t('startJourney — 병력·군량을 깎고 장수를 원정 중으로 표시한다', function () {
+      fresh('zan');
+      var from = R.city('beiping');
+      from.troops = 20000; from.food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var beforeTroops = from.troops, beforeFood = from.food;
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      var marked = lead.every(function (id) { return off.rec(id).journey === res.id; });
+      var stillHome = off.atCity('beiping', 'zan').some(function (h) { return lead.indexOf(h.id) >= 0; });
+      return !!res.ok && from.troops === beforeTroops - 8000 && from.food < beforeFood &&
+        marked && !stillHome && W.journeys().length === 1 &&
+        ('원정 시작 — 병력 ' + C.fmt(beforeTroops) + '→' + C.fmt(from.troops) +
+         ' · ' + res.months + '달 예상 · 장수 ' + lead.length + '명 표시');
+    });
+
+    t('off.atCity — 원정 가는 중인 장수는 성에 없는 사람으로 뺀다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var before = off.atCity('beiping', 'zan').map(function (h) { return h.id; });
+      var lead = before.slice(0, 2);
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      var after = off.atCity('beiping', 'zan').map(function (h) { return h.id; });
+      var excluded = lead.every(function (id) { return after.indexOf(id) < 0; });
+      return !!res.ok && excluded && after.length === before.length - lead.length &&
+        ('원정 보낸 장수 ' + lead.length + '명이 atCity 목록에서 빠졌다');
+    });
+
+    t('resolveJourneys — 다 가면 목적지에서 실제로 붙고 목록에서 빠진다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var defBefore = R.city('wirye').troops;
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      for (var i = 0; i < res.months; i++) { W.resolveJourneys(); }
+      var gone = W.journeyById(res.id) === null;
+      var freedOfficers = lead.every(function (id) { return !off.rec(id).journey; });
+      var wirye = R.city('wirye');
+      /* **경로의 마지막 통과 칸(거점)이 주인 없는 땅이어도 실제로 붙어야
+         한다** — 한 번 그렇게 짜서(march() 를 거점에서 부르려다 거점이 내
+         성이 아니면 그냥 조용히 되돌아가 버리는) 싸움 한 번 없이 원정이
+         사라지는 결함을 냈다(2026-09-04, 실제 브라우저로 켜 보다 발견).
+         승패 어느 쪽이든 — **수비 병력이 원래 수(defBefore)에서 실제로
+         움직였는지**로 "진짜 붙었는지"를 잰다 */
+      var reallyFought = wirye.troops !== defBefore || wirye.force === 'zan' || !!W.campAt('wirye');
+      return gone && freedOfficers && reallyFought &&
+        ('원정 ' + res.months + '달 뒤 도착 — ' + CD.find('wirye').name + ' 수비 ' +
+         C.fmt(defBefore) + '→' + C.fmt(wirye.troops) + ' · 지금 세력 ' +
+         R.forceName(wirye.force) + (W.campAt('wirye') ? ' · 진 치는 중' : ''));
+    });
+
+    t('resolveJourneys — 국경 거점이 주인 없는 땅이어도 march() 없이 곧바로 붙는다', function () {
+      /* 위 항목의 재발 방지용 — 굳이 목적지를 짧은 원정(경로가 beiping→
+         yangping→guknae, 거점 yangping 이 늘 주인 없는 땅)으로 좁혀 정확히
+         그 경로를 짚는다 */
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'guknae', lead, 8000);
+      if (!res.ok) { return false; }
+      var path = W.journeyById(res.id).path;
+      var beachId = path[path.length - 2];
+      var beachIsFree = R.city(beachId).force === null;
+      var defBefore = R.city('guknae').troops;
+      for (var i = 0; i < res.months; i++) { W.resolveJourneys(); }
+      var guknae = R.city('guknae');
+      var reallyFought = guknae.troops !== defBefore || guknae.force === 'zan' || !!W.campAt('guknae');
+      return beachIsFree && reallyFought &&
+        ('거점(' + CD.find(beachId).name + ')은 주인 없는 땅인데도 실제로 붙었다 — 수비 ' +
+         C.fmt(defBefore) + '→' + C.fmt(guknae.troops));
+    });
+
+    t('resolveJourneys — 중간 성이 함락되면 원정이 그 자리에서 되돌아간다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      /* 경로 가운데 한 성(국내성)을 남의 손에 넘긴다 — 다음 정산에서 끊긴다 */
+      R.city('guknae').force = 'shao';
+      W.resolveJourneys();
+      var back = off.rec(lead[0]).journey === null && R.city('beiping').troops >= 8000;
+      return W.journeyById(res.id) === null && back &&
+        ('길이 끊겨 ' + CD.find('beiping').name + ' 로 되돌아갔다 (병력 ' +
+         C.fmt(R.city('beiping').troops) + ')');
+    });
+
+    /* ── 원정 중 사건 (2026-09-09, PLAN §16 랜덤 이벤트) ────── */
+
+    t('원정 사건 표 — 일곱 종, 저마다 이름·문구가 있다', function () {
+      var es = W.JOURNEY_EVENTS;
+      var ok = es.length === 7 && es.every(function (e) { return e.key && e.name && e.emoji && e.text; });
+      return ok && ('사건 ' + es.length + '종 — ' + es.map(function (e) { return e.emoji + e.name; }).join(' '));
+    });
+
+    t('원정 사건 — "유물 발견" 은 원정 간 장수 하나에게 보물을 곧바로 씌우고, hero.js 장비 계약(global.DG.item.statBonus)을 타고 스탯이 실제로 오른다', function () {
+      /* 2026-09-10 — 이 진단 전체가 씨앗 하나(mulberry32, 20260824)를 처음부터
+         끝까지 공유한다. 앞쪽에 테스트를 새로 끼우거나(지역 확장 등) 데이터
+         크기가 바뀌면 Math.random() 이 몇 번 불렸는지가 달라져, 이 시험이
+         실행되는 시점의 난수 스트림 위치도 함께 밀린다. 원정 한 번(약 6달)에
+         "유물 발견"(6종 중 하나) 이 꼭 걸린다는 보장은 원래 없었다 — 밀린
+         위치에서는 그 한 번 안에 안 걸릴 수 있다(실제로 이번에 그랬다).
+         그래서 **원정을 여러 번 새로 보낸다**(최대 10회, 매번 새로 자유로운
+         장수를 골라서) — 씨앗은 그대로 두고 시도 횟수만 넉넉히 늘렸다 */
+      fresh('zan');
+      var before = C.tuned('war.journeyEventChance', 0.16);
+      C.setTune('war.journeyEventChance', 1);
+      R.city('beiping').troops = 999999; R.city('beiping').food = 9999999;
+      var got = null, baseline = null, tries = 0;
+      while (!got && tries < 10) {
+        tries++;
+        var lead = off.atCity('beiping', 'zan').filter(function (h) { return !h.journey; })
+          .slice(0, 2).map(function (h) { return h.id; });
+        if (!lead.length) { break; }
+        var base = {};
+        lead.forEach(function (id) { base[id] = off.stats(id); });
+        var res = W.startJourney('beiping', 'wirye', lead, 1000);
+        if (!res.ok) { continue; }
+        var guard = 0, j;
+        while ((j = W.journeyById(res.id)) && guard < 30 && !got) {
+          guard++;
+          W.resolveJourneys();
+          var equipped = lead.filter(function (id) { return off.rec(id).item; });
+          if (equipped.length) { got = equipped[0]; baseline = base; }
+        }
+      }
+      C.setTune('war.journeyEventChance', before);
+      var s = got ? off.stats(got) : null;
+      var b = got ? baseline[got] : null;
+      return !!got && !!s && !!b &&
+        (s.might > b.might || s.wisdom > b.wisdom || s.command > b.command) &&
+        ('장수 ' + off.find(got).name + ' 이(가) 보물 착용(원정 ' + tries + '회째) — 무 ' + b.might + '→' + s.might +
+         ' · 지 ' + b.wisdom + '→' + s.wisdom + ' · 통 ' + b.command + '→' + s.command);
+    });
+
+    t('원정 도중 사건 — 손잡이를 100%로 잡으면 가는 달마다 실제로 붙고, 도착 전투 판정은 그대로다', function () {
+      fresh('zan');
+      var before = C.tuned('war.journeyEventChance', 0.16);
+      C.setTune('war.journeyEventChance', 1);
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var f = R.force('zan'); f.gold = 5000;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { C.setTune('war.journeyEventChance', before); return false; }
+      var events = 0, minTroops = 1e9, guard = 0, j;
+      while ((j = W.journeyById(res.id)) && guard < 30) {
+        guard++;
+        W.resolveJourneys();
+        var j2 = W.journeyById(res.id);
+        if (j2) {
+          if (j2.lastEvent) { events++; }
+          minTroops = Math.min(minTroops, j2.troops);
+        }
+      }
+      C.setTune('war.journeyEventChance', before);
+      /* 도착했는지는(fight() 가 그대로 붙었는지) 위의 다른 원정 시험들이 이미
+         잰다 — 여긴 사건이 그 판정을 안 건드리고 guard 안에서 끝나는지만 잰다 */
+      return events > 0 && guard < 30 && minTroops >= 1 && f.gold >= 0 &&
+        ('사건 ' + events + '번 · 병력 최소 ' + C.fmt(minTroops) + ' · 금 ' + C.fmt(f.gold) +
+         ' · ' + guard + '달만에 도착');
+    });
+
+    /* ── 여덟 축 중 남은 넷 (2026-09-10, README 로드맵) ────── */
+
+    t('역사 분기 — 관도대전은 조조·원소의 첫 충돌에서 한 번만 갈린다', function () {
+      fresh('cao');
+      R.state().history = {};
+      var f = R.force('cao'), goldBefore = f.gold;
+      var rep1 = { won: true, force: 'cao', defForce: 'shao', log: [] };
+      W.checkHistoryBranch(rep1);
+      var rep2 = { won: true, force: 'cao', defForce: 'shao', log: [] };
+      W.checkHistoryBranch(rep2);   // 같은 두 세력, 두 번째는 다시 안 뜬다
+      return !!R.state().history.guandu && f.gold === goldBefore + 800 &&
+        rep1.log.length === 1 && rep1.log[0].indexOf('관도대전') >= 0 && rep2.log.length === 0 &&
+        ('1차: ' + rep1.log[0] + ' · 2차는 조용함');
+    });
+
+    t('탐험·보스전 — 랜드마크 성을 처음 함락하면 발견 보상이, boss 수비 무장을 꺾으면 처치 보상이 함께 붙는다', function () {
+      /* 신독(천축 관문 다음 성)은 이 세션이 추가한 landmark 이자 boss(번왕)가
+         지키는 성이라 한 번의 함락으로 "탐험"·"보스전" 둘 다 확인된다 */
+      fresh('cao');
+      var lord = FD.force('cao').lord;
+      R.city('yongchang').force = 'cao';
+      R.city('yongchang').troops = 30000; R.city('yongchang').food = 999999;
+      off.placeAt(lord, 'yongchang', 'cao');
+      var f = R.force('cao'), goldBefore = f.gold;
+      var rep = W.march('yongchang', 'shendu', [lord], 25000);
+      if (!rep.ok || !rep.won) { return false; }
+      var landmarkLine = rep.log.some(function (l) { return l.indexOf('처음 밟는') >= 0; });
+      var bossLine = rep.log.some(function (l) { return l.indexOf('번왕') >= 0; });
+      return landmarkLine && bossLine && R.state().discovered.shendu === true &&
+        f.gold === goldBefore + 600 + 1000 &&
+        ('금 ' + goldBefore + '→' + f.gold + ' (보스 600 + 발견 1,000)');
+    });
+
+    t('무장 수집 — 세작 손잡이를 100%로 잡으면 문답 없이도 매달 재야가 드러난다', function () {
+      fresh('cao');
+      ensureHiddenAtMine();
+      var before = C.tuned('rtk.scoutChance', 0.12);
+      C.setTune('rtk.scoutChance', 1);
+      var got = R.rollScouting();
+      C.setTune('rtk.scoutChance', before);
+      return !!got && off.rec(got.id).found === true &&
+        ('세작이 ' + got.name + ' 의 소문을 물어왔다');
+    });
+
+    /* ── 수군 (물길 · 배 · 수전) ─────────────────────── */
+
+    t('물길은 양쪽이 다 강일 때만 난다', function () {
+      /* 물길 목록을 따로 안 둔 까닭이다 — 지형 한 글자만 고치면 따라 움직인다 */
+      var w = CD.WATERWAYS;
+      var bad = w.filter(function (p) {
+        return CD.find(p[0]).land !== 'river' || CD.find(p[1]).land !== 'river';
+      });
+      return w.length > 0 && bad.length === 0 &&
+        CD.isWater('chaisang', 'jiangxia') && CD.isWater('jiangxia', 'chaisang') &&
+        !CD.isWater('chenliu', 'luoyang') && !CD.isWater('chaisang', 'chengdu') &&
+        ('물길 ' + w.length + ' — ' + w.map(function (p) {
+          return CD.find(p[0]).name + '↔' + CD.find(p[1]).name;
+        }).join(' · '));
+    });
+
+    t('배 없이는 물길을 못 건넌다', function () {
+      fresh('ce');
+      var from = R.city('chaisang');
+      from.food = 999999; from.troops = 30000;
+      from.ships = 0;
+      var r0 = W.canMarch('chaisang', 'jiangxia', 5000);
+      from.ships = 10;
+      var r1 = W.canMarch('chaisang', 'jiangxia', 5000);
+      var r2 = W.canMarch('chaisang', 'jiangxia', 900);
+      return !r0.ok && r0.why.indexOf('배가 없') >= 0 &&
+        !r1.ok && r1.why.indexOf('모자랍') >= 0 &&
+        r2.ok && r2.water === true && r2.ships === 9 &&
+        ('배 0척 → "' + r0.why + '" · 10척에 5,000명 → "' + r1.why + '" · 900명 → 9척');
+    });
+
+    t('수전은 성벽을 쓰지 않는다', function () {
+      /* 배로는 성벽을 못 깎는다 — 대신 성벽 뒤에 숨지도 못한다 */
+      fresh('ce');
+      var from = R.city('chaisang'), to = R.city('jiangxia');
+      from.troops = 20000; from.food = 999999; from.ships = 300;
+      var w0 = to.wall;
+      var lead = off.atCity('chaisang', 'ce').slice(0, 3).map(function (h) { return h.id; });
+      var rep = W.march('chaisang', 'jiangxia', lead, 20000);
+      var said = rep.log.join(' ');
+      return rep.water === true && rep.sortie === false && R.city('jiangxia').wall === w0 &&
+        said.indexOf('수전') >= 0 && said.indexOf('성벽') >= 0 &&
+        ('성벽 ' + C.fmt(w0) + ' 그대로 · ' + (rep.won ? '함락' : rep.routed ? '퇴각' : '수채'));
+    });
+
+    t('수전에 능한 장수가 물에서 더 세다', function () {
+      /* 난수를 타지 않는 자리(부대 힘)에서 잰다 — 전투를 두 번 굴리면 씨앗이 흘러간다 */
+      function pw(id, water) {
+        return W.armyPower({ troops: 10000, train: 60, tech: 300, morale: 1,
+                             officers: [id], water: water });
+      }
+      var zLand = pw('sg_zhouyu', false), zSea = pw('sg_zhouyu', true);
+      var dLand = pw('rf_dianwei', false), dSea = pw('rf_dianwei', true);
+      var yi = pw('kr_yisunsin', true) / pw('kr_yisunsin', false);
+      return Math.abs(zSea / zLand - FD.navyOf('sg_zhouyu')) < 1e-9 &&
+        dSea === dLand && Math.abs(yi - 1.4) < 1e-9 &&
+        ('주유 물에서 ×' + (zSea / zLand).toFixed(2) + ' · 전위 ×' + (dSea / dLand).toFixed(2) +
+         ' · 이순신 ×' + yi.toFixed(2));
+    });
+
+    t('화공은 지력이 받쳐야 터진다', function () {
+      var hot = 0, cold = 0, i, tgt;
+      for (i = 0; i < 400; i++) {
+        tgt = { troops: 10000, ships: 100, morale: 1, officers: ['rf_dianwei'] };
+        if (W.fireRoll({ officers: ['sg_zhouyu'] }, tgt)) { hot++; }
+      }
+      for (i = 0; i < 400; i++) {
+        tgt = { troops: 10000, ships: 100, morale: 1, officers: ['sg_zhouyu'] };
+        if (W.fireRoll({ officers: ['rf_dianwei'] }, tgt)) { cold++; }
+      }
+      /* 한 번 터지면 배가 타고 병사가 물에 빠진다 */
+      var t2 = { troops: 10000, ships: 100, morale: 1, officers: [] };
+      var n = 0;
+      while (n < 500 && !W.fireRoll({ officers: ['sg_zhouyu'] }, t2)) { n++; }
+      return hot > 0 && cold === 0 && t2.troops < 10000 && t2.ships < 100 &&
+        ('주유 ' + hot + '/400 · 전위(지력 34) ' + cold + '/400 · 한 번에 병력 ' +
+         C.fmt(10000 - t2.troops) + ' · 배 ' + (100 - t2.ships) + '척');
+    });
+
+    t('조선은 강을 낀 성에서만 한다', function () {
+      fresh('cao');
+      var dryMan = R.readyAt('xuchang')[0];          // 허창 — 평야
+      var wetMan = R.readyAt('puyang')[0];           // 복양 — 강
+      var g0 = R.force('cao').gold;
+      var r1 = R.order('xuchang', dryMan.id, 'ships');
+      var noCost = R.force('cao').gold === g0;      // 막힌 명령은 금도 안 쓴다
+      var s0 = R.city('puyang').ships;
+      var r2 = R.order('puyang', wetMan.id, 'ships');
+      return !r1.ok && r1.why.indexOf('물길') >= 0 && noCost &&
+        r2.ok && R.city('puyang').ships > s0 &&
+        R.capOf('xuchang', 'ships') === 0 && R.capOf('puyang', 'ships') === 300 &&
+        ('허창 — "' + r1.why + '"(금도 안 나갔다) · 복양 ' + s0 + ' → ' +
+         R.city('puyang').ships + '척');
+    });
+
+    t('수전에서 배가 가라앉고, 이기면 성으로 들어간다', function () {
+      fresh('ce');
+      var from = R.city('chaisang'), to = R.city('jiangxia');
+      from.troops = 60000; from.food = 999999; from.ships = 800;
+      to.wall = 1;
+      var toShips = to.ships;
+      var lead = off.atCity('chaisang', 'ce').slice(0, 3).map(function (h) { return h.id; });
+      var sent = Math.ceil(60000 / W.SHIP_CREW);
+      var rep = W.march('chaisang', 'jiangxia', lead, 60000);
+      var left = R.city('jiangxia').ships;
+      return rep.won && R.city('chaisang').ships === 800 - sent &&
+        left > 0 && left < toShips + sent &&
+        ('실어 보낸 배 ' + sent + '척 · 시상에 남은 배 ' + R.city('chaisang').ships +
+         '척 · 함락 뒤 강하의 배 ' + left + '척 (가라앉은 만큼 준다)');
+    });
+
+    t('수군 명부는 data.js 를 건드리지 않고 정한다', function () {
+      /* 자질을 넷째로 늘리면 다섯 판의 data.js 를 다 고쳐야 한다. 그래서 목록으로 둔다 */
+      var ids = Object.keys(FD.NAVY);
+      var miss = ids.filter(function (id) { return !off.find(id); });
+      var clean = ids.every(function (id) {
+        var h = DG.data.find(id);
+        return !h || h.navy === undefined;
+      });
+      return miss.length === 0 && clean && ids.length >= 12 &&
+        FD.navyOf('kr_yisunsin') > FD.navyOf('sg_zhouyu') && FD.navyOf('rf_dianwei') === 1 &&
+        ('수전 무장 ' + ids.length + '인 · 이순신 ×' + FD.navyOf('kr_yisunsin') +
+         ' · 주유 ×' + FD.navyOf('sg_zhouyu') + ' · data.js 는 한 줄도 안 늘었다');
+    });
+
+    t('AI 는 배 없이 물길을 고르지 않는다', function () {
+      /* AI 전용 판정을 만들지 않는다 — 사람을 막는 canMarch 가 AI 도 그대로 막는다 */
+      fresh('ce');
+      var st = R.state(), k;
+      for (k in st.cities) { st.cities[k].ships = 0; }
+      st.cities['chaisang'].troops = 120000; st.cities['chaisang'].food = 999999;
+      var dryPick = AI.tryWar('ce', AI.CREED.aggressive);
+      var wentWet = !!dryPick && CD.isWater(dryPick.from, dryPick.to);
+      return !wentWet &&
+        ('배를 다 없애니 ' + (dryPick
+          ? CD.find(dryPick.from).name + '→' + CD.find(dryPick.to).name + ' (뭍길)'
+          : '아무 데도 못 쳤다'));
+    });
+
+    /* ── 외교 · 계략 ─────────────────────────────────── */
+
+    t('맹약이 있으면 칠 수 없다', function () {
+      fresh('cao');
+      var before = W.canMarch('chenliu', 'luoyang', 1000);
+      D.setPact('cao', 'jue', 'ally', 12);
+      var after = W.canMarch('chenliu', 'luoyang', 1000);
+      return before.ok && !after.ok && after.why.indexOf('맹약') >= 0 &&
+        ('동맹 전 출진 가능 → 동맹 뒤 "' + after.why + '"');
+    });
+
+    t('맹약은 달마다 닳아 없어진다', function () {
+      fresh('cao');
+      D.setPact('cao', 'jue', 'truce', 2);
+      D.monthly();
+      var mid = D.trucedWith('cao', 'jue');
+      D.monthly();
+      return mid && !D.trucedWith('cao', 'jue') && '2개월 화친이 두 달 뒤에 풀렸다';
+    });
+
+    t('조공은 우호를 올린다', function () {
+      fresh('cao');
+      freeUp('xuchang');
+      var r0 = D.relation('cao', 'jue');
+      var r = D.envoy('tribute', 'jue', R.readyAt('xuchang')[0].id, 1200);
+      return r.ok && D.relation('cao', 'jue') > r0 &&
+        ('우호 ' + r0 + ' → ' + D.relation('cao', 'jue'));
+    });
+
+    t('태수가 비면 계략이 잘 통한다', function () {
+      /* 계략을 막는 것은 그 성 태수의 지력이다 — 태수를 앉힐 까닭 하나가 더 는다 */
+      fresh('cao');
+      freeUp('xuchang');
+      var by = off.sortByPower(R.readyAt('xuchang'))[0];
+      R.city('luoyang').gov = null;
+      var open = D.plotChance('rumor', by.id, 'luoyang', null);
+      var smart = off.atCity('luoyang', 'jue').slice().sort(function (a, b) {
+        return off.stats(b.id).wisdom - off.stats(a.id).wisdom;
+      })[0];
+      R.city('luoyang').gov = smart.id;
+      var guarded = D.plotChance('rumor', by.id, 'luoyang', null);
+      return open > guarded &&
+        ('태수 없음 ' + Math.round(open * 100) + '% · ' + smart.name + '(지 ' +
+         off.stats(smart.id).wisdom + ') 이 지키면 ' + Math.round(guarded * 100) + '%');
+    });
+
+    t('유언비어는 치안을 깎는다', function () {
+      fresh('cao');
+      R.city('luoyang').gov = null;             // 재지 않는 축을 붙든다 (성공률 확보)
+      R.force('cao').gold = 99999;
+      var before = R.city('luoyang').sec;
+      var tries = 0, r;
+      do {
+        freeUp('xuchang');
+        r = D.plot('rumor', R.readyAt('xuchang')[0].id, 'luoyang', null);
+        tries++;
+      } while (!r.done && tries < 60);
+      return r.done && R.city('luoyang').sec < before &&
+        ('치안 ' + before + ' → ' + R.city('luoyang').sec + ' (' + tries + '번째에 통했다)');
+    });
+
+    t('손이 닿지 않는 성에는 계략을 걸 수 없다', function () {
+      fresh('cao');
+      freeUp('xuchang');
+      var r = D.plot('rumor', R.readyAt('xuchang')[0].id, 'chengdu', null);
+      return !r.ok && r.why.indexOf('손이 닿지') >= 0 && (r.why);
+    });
+
+    /* ── AI ──────────────────────────────────────────── */
+
+    t('AI 의 가늠은 판을 건드리지 않는다 (forecast)', function () {
+      fresh('cao');
+      var to = R.city('luoyang');
+      var wallBefore = to.wall, troopsBefore = to.troops;
+      var lead = off.atCity('chenliu', 'cao').slice(0, 3).map(function (h) { return h.id; });
+      var f = W.forecast('chenliu', 'luoyang', lead, 40000);
+      var hurtNone = lead.every(function (id) { return !off.rec(id).hurt; });
+      return f && typeof f.won === 'boolean' &&
+        to.wall === wallBefore && to.troops === troopsBefore && hurtNone &&
+        ('가늠: ' + (f.won ? '이긴다' : '못 이긴다') + ' · 공손실 ' + C.fmt(f.lossA) +
+         ' — 성벽·병력·장수는 그대로');
+    });
+
+    t('AI 는 아쉬운 것부터 명령한다', function () {
+      fresh('cao');
+      var c = R.city('xuchang');
+      c.sec = 10;
+      var low = AI.pickOrder('xuchang', 'cao');
+      c.sec = 90; c.food = 999999; c.wall = c.maxWall; c.train = 90;
+      c.agri = R.capOf('xuchang', 'agri'); c.comm = R.capOf('xuchang', 'comm');
+      c.tech = 900;
+      R.force('cao').gold = 99999;
+      var full = AI.pickOrder('xuchang', 'cao');
+      return low === 'sec' && full !== 'sec' && ('치안 10 → ' + low + ' · 다 채우면 → ' + full);
+    });
+
+    t('AI 는 이웃 성에서 병력을 끌어모은다', function () {
+      fresh('cao');
+      var g = AI.gatherable('cao', 'xuchang');
+      var before = R.city('xuchang').troops;
+      var moved = AI.gather('cao', 'xuchang');
+      return g > 0 && moved > 0 && R.city('xuchang').troops === before + moved &&
+        ('이웃 성에서 ' + C.fmt(moved) + ' 이 모였다');
+    });
+
+    t('열두 달을 굴려도 판이 성립한다', function () {
+      /* 재려는 것은 "달이 흘러도 판이 깨지지 않는가" 다.
+         **누가 살아남는가는 재지 않는 축**이라 붙들어 둔다 — 내 세력이 무너지면
+         endMonth 가 멈춰서 열두 달을 굴려 보지도 못하고 넘어진다(그렇게 한 번 넘어졌다).
+         구경꾼처럼 result 를 지우며 굴린다. */
+      fresh('biao');
+      var st = R.state();
+      for (var i = 0; i < 12; i++) { st.result = null; R.endMonth(); }
+      st.result = null;
+      var owned = 0, negative = [], k;
+      for (k in st.cities) {
+        var c = st.cities[k];
+        if (c.force) { owned++; }
+        if (c.troops < 0 || c.food < 0 || c.pop < 0 || c.wall < 0 || c.sec < 0) { negative.push(k); }
+      }
+      return owned === 30 && negative.length === 0 &&
+        st.year === R.START_YEAR + 1 && st.month === 1 &&
+        (st.year + '년 ' + st.month + '월 · 세력 ' + R.liveForces().length +
+         ' · 성 30 곳 다 주인 있음 · 음수인 칸 없음');
+    });
+
+    /* ── 학당 (곁가지) ───────────────────────────────── */
+
+    t('문답 상금은 세력 금고로 들어간다', function () {
+      fresh('cao');
+      var f = R.force('cao');
+      var g0 = f.gold, p0 = C.save.player.gold;
+      for (var i = 0; i < 12; i++) {
+        var p = Q.draw(null);
+        if (!p) { break; }
+        var ref = QD.byId(p.id), idx = -1;
+        for (var j = 0; j < p.order.length; j++) { if (p.order[j] === ref.a) { idx = j; } }
+        Q.answer(p, idx);
+      }
+      return f.gold > g0 && C.save.player.gold === p0 &&
+        ('금고 ' + g0 + ' → ' + f.gold + ' · 개인 지갑은 그대로 ' + p0);
+    });
+
+    t('학식이 차면 재야가 저절로 드러난다', function () {
+      fresh('cao');
+      ensureHiddenAtMine();
+      R.state().lore = 0;
+      var before = countFound();
+      var guard = 0;
+      while (countFound() === before && guard++ < 40) { R.study(3, 0, true); }
+      return countFound() > before &&
+        ('학식 ' + (guard * 3) + ' 만에 ' + (countFound() - before) + '명이 드러났다');
+    });
+
+    /* ── 화면 ────────────────────────────────────────── */
+
+    t('화면이 서고 지도가 그려진다', function () {
+      fresh('cao');
+      DG.ui.renderTop(); DG.ui.renderMap();
+      var svg = document.querySelector('#realm .rmap');
+      var cities = svg ? svg.querySelectorAll('[data-city]').length : 0;
+      var links = svg ? svg.querySelectorAll('.rlink').length : 0;
+      return cities === CD.CITIES.length && links > 30 && ('성 ' + cities + ' 점 · 길 ' + links + ' 줄');
+    });
+
+    t('성을 열면 명령표가 뜬다', function () {
+      fresh('cao');
+      freeUp('xuchang');
+      DG.ui.openCity('xuchang');
+      var body = document.getElementById('sheet-body').innerHTML;
+      var orders = document.querySelectorAll('#sheet-body .ordbtn').length;
+      DG.ui.closeSheet();
+      return orders === R.ORDERS.length && body.indexOf('허창') >= 0 && ('명령 ' + orders + '칸');
+    });
+
+    t('남의 성을 열면 계략과 출진이 뜬다', function () {
+      fresh('cao');
+      freeUp('chenliu');
+      DG.ui.openCity('luoyang');
+      var plots = document.querySelectorAll('#sheet-body [data-act="plot"]').length;
+      var march = document.querySelectorAll('#sheet-body [data-act="march"]').length;
+      DG.ui.closeSheet();
+      return plots === D.PLOTS.length && march > 0 &&
+        ('계략 ' + plots + ' · 출진할 성 ' + march);
+    });
+
+    t('무장 칸에 열전과 충성이 보인다', function () {
+      fresh('cao');
+      DG.ui.openSheet('officers');
+      var body = document.getElementById('sheet-body').innerHTML;
+      DG.ui.closeSheet();
+      var bio = DG.data.bio('sg_caocao');
+      return body.indexOf('조조') >= 0 && body.indexOf('충성') >= 0 &&
+        bio.length > 0 && body.indexOf(bio.slice(0, 10)) >= 0 &&
+        ('열전이 붙는다 — "' + bio.slice(0, 18) + '…"');
+    });
+
+    t('진영 칸이 나가 있는 원정을 보여 준다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      DG.ui.openSheet('camp');
+      var body = document.getElementById('sheet-body').innerHTML;
+      var acts = document.querySelectorAll('#sheet-body [data-act^="camp-"]').length;
+      var badge = document.querySelector('#dock [data-sheet="camp"] i.badge');
+      DG.ui.closeSheet();
+      return body.indexOf('낙양') >= 0 && acts === 3 && !!badge && badge.textContent === '1' &&
+        ('낙양 포위가 뜨고 손잡이 ' + acts + '개 · 독 배지 ' + badge.textContent);
+    });
+
+    t('성 칸에 먼 성으로 가는 원정 손잡이가 뜬다', function () {
+      fresh('zan');
+      freeUp('beiping');
+      DG.ui.openCity('beiping');
+      var body = document.getElementById('sheet-body').innerHTML;
+      var acts = document.querySelectorAll('#sheet-body [data-act="journey"]').length;
+      DG.ui.closeSheet();
+      return acts > 0 && body.indexOf('원정') >= 0 && ('원정 목적지 ' + acts + '곳');
+    });
+
+    t('진·원정 칸이 가고 있는 원정을 보여 준다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      DG.ui.openSheet('camp');
+      var body = document.getElementById('sheet-body').innerHTML;
+      var badge = document.querySelector('#dock [data-sheet="camp"] i.badge');
+      DG.ui.closeSheet();
+      return body.indexOf('가고 있는 원정') >= 0 && body.indexOf(CD.find('wirye').name) >= 0 &&
+        !!badge && badge.textContent === '1' &&
+        ('원정 카드가 뜨고 독 배지 ' + badge.textContent);
+    });
+
+    t('지도에 가고 있는 원정 깃발이 뜬다', function () {
+      fresh('zan');
+      R.city('beiping').troops = 20000; R.city('beiping').food = 999999;
+      var lead = off.atCity('beiping', 'zan').slice(0, 2).map(function (h) { return h.id; });
+      var res = W.startJourney('beiping', 'wirye', lead, 8000);
+      if (!res.ok) { return false; }
+      DG.ui.renderMap();
+      var flags = document.querySelectorAll('#realm .rjourney').length;
+      return flags === 1 && ('지도 위 원정 깃발 ' + flags + '개');
+    });
+
+    t('세력 고르기 화면에 열세 깃발이 뜬다', function () {
+      DG.ui.showForcePick();
+      var n = document.querySelectorAll('#encounter [data-act="pick-force"]').length;
+      DG.ui.closeEnc();
+      return n === FD.FORCES.length && (n + '개 세력');
+    });
+
+    /* ── 시나리오 ────────────────────────────────────── */
+
+    t('시나리오마다 서른 성이 빠짐없이, 겹치지 않게 나뉜다', function () {
+      /* 하나만 빠뜨려도 주인 없는 성이 생겨 아무도 못 치고 못 뺏긴다 */
+      var bad = [], line = [];
+      for (var s = 0; s < FD.SCENARIOS.length; s++) {
+        var sc = FD.SCENARIOS[s], seen = {}, n = 0, i, j;
+        for (i = 0; i < sc.forces.length; i++) {
+          var f = sc.forces[i];
+          for (j = 0; j < f.cities.length; j++) {
+            if (seen[f.cities[j]]) { bad.push(sc.id + ':' + f.cities[j] + ' 겹침'); }
+            if (!CD.find(f.cities[j])) { bad.push(sc.id + ':' + f.cities[j] + ' 없는 성'); }
+            seen[f.cities[j]] = true; n++;
+          }
+          if (!off.find(f.lord)) { bad.push(sc.id + ':' + f.lord + ' 없는 군주'); }
+          if (f.officers.indexOf(f.lord) >= 0) { bad.push(sc.id + ':' + f.lord + ' 군주가 두 번'); }
+          for (j = 0; j < f.officers.length; j++) {
+            if (!off.find(f.officers[j])) { bad.push(sc.id + ':' + f.officers[j] + ' 없는 무장'); }
+          }
+        }
+        if (n !== 30) { bad.push(sc.id + '년 성 ' + n + '곳'); }
+        line.push(sc.year + '년 ' + sc.name + ' 세력 ' + sc.forces.length);
+      }
+      return bad.length === 0 && FD.SCENARIOS.length === 3 && (line.join(' · '));
+    });
+
+    t('시나리오를 고르면 그 해, 그 판에서 시작한다', function () {
+      /* state() 는 늘 **같은 객체**를 준다 — 값을 그때그때 베껴 둬야 한다
+         (베끼지 않고 잡아 두면 다음 setup 이 그 객체를 덮어써서 다 같은 해가 된다) */
+      R.setup('cao', '200');
+      var y200 = R.state().year, n200 = R.liveForces().length;
+      R.setup('quan', '208');
+      var y208 = R.state().year, s208 = R.state().scen;
+      var caoCities = R.citiesOf('cao').length;
+      R.setup('cao');                               // 안 적으면 194년
+      return y200 === 200 && n200 === 8 && y208 === 208 &&
+        s208 === '208' && caoCities === 19 && R.state().year === 194 &&
+        R.liveForces().length === 13 &&
+        ('200년 세력 ' + n200 + ' · 208년 조조 ' + caoCities + '성 · 안 적으면 194년 세력 13');
+    });
+
+    t('어느 표에도 없는 사람은 재야가 된다', function () {
+      /* 200·208년의 여포·이각을 지우지 않고 재야로 남긴다 —
+         죽은 사람을 판에서 없애면 등용할 거리가 그만큼 준다 */
+      R.setup('cao', '200');
+      var gone = ['sg_lubu', 'rf_lijue', 'rf_yuanshu', 'rf_gongsunzan', 'rf_kongrong'];
+      var free = gone.every(function (id) { return off.rec(id).force === null; });
+      var placed = off.rec('sg_zhangliao').force === 'cao' &&   // 여포가 없으니 조조에게
+                   off.rec('sg_zhaoyun').force === 'bei';        // 공손찬이 없으니 유비에게
+      R.setup('cao');
+      return free && placed &&
+        ('200년 — 여포·이각·원술·공손찬·공융은 재야 · 장료는 조조에게 · 조운은 유비에게');
+    });
+
+    t('적벽은 손권과 유비가 손을 잡고 시작한다', function () {
+      R.setup('quan', '208');
+      var allied = D.alliedWith('quan', 'bei') && D.alliedWith('bei', 'quan');
+      var cantHit = W.canMarch('chaisang', 'jiangxia', 1000);
+      var r194 = (R.setup('cao'), D.alliedWith('cao', 'bei'));
+      return allied && !cantHit.ok && cantHit.why.indexOf('맹약') >= 0 && !r194 &&
+        ('손·유 동맹 — "' + cantHit.why + '" · 194년에는 맹약이 없다');
+    });
+
+    t('시나리오는 세이브에 남아 되살아난다', function () {
+      /* 이게 없으면 208년 판을 열어 두고 새로고침했을 때 194년 표로 읽혀
+         세력 이름과 색이 통째로 어긋난다 */
+      R.setup('quan', '208');
+      R.city('jianye').agri = 555;
+      C.persist();
+      C.load();
+      var st = R.state();
+      var ok = st.scen === '208' && FD.current().id === '208' &&
+        FD.FORCES.length === 6 && !!FD.force('chao') && !FD.force('ce');
+      R.setup('cao');
+      return ok && ('208년으로 되살아난다 — 세력 6 · 마초 있음 · 손책 없음');
+    });
+
+    t('시나리오를 고르는 화면이 먼저 뜬다', function () {
+      DG.ui.showScenPick();
+      var scen = document.querySelectorAll('#encounter [data-act="pick-scen"]').length;
+      DG.ui._act('pick-scen', { getAttribute: function () { return '208'; } });
+      var flags = document.querySelectorAll('#encounter [data-act="pick-force"]').length;
+      var back = document.querySelectorAll('#encounter [data-act="back-scen"]').length;
+      DG.ui.closeEnc();
+      FD.use('194');
+      return scen === FD.SCENARIOS.length && flags === 6 && back === 1 &&
+        ('판 ' + scen + '개 → 적벽을 고르면 깃발 ' + flags + '개 (되돌아가는 길도 있다)');
+    });
+
+    t('세 판 다 열두 달을 굴려도 성립한다', function () {
+      /* 배치를 잘못 적으면 첫 달에 넘어진다 — 서른 성이 다 주인이 있는지, 음수가 없는지 */
+      var line = [], bad = [];
+      ['194', '200', '208'].forEach(function (id) {
+        R.setup('zhang', id);                    // 유장은 세 판에 다 있다
+        var st = R.state(), i, k;
+        for (i = 0; i < 12; i++) { st.result = null; R.endMonth(); }
+        st.result = null;
+        var owned = 0;
+        for (k in st.cities) {
+          var c = st.cities[k];
+          if (c.force) { owned++; }
+          if (c.troops < 0 || c.food < 0 || c.pop < 0 || c.wall < 0 || c.ships < 0) {
+            bad.push(id + ':' + k);
+          }
+        }
+        if (owned !== 30) { bad.push(id + ' 주인 없는 성 ' + (30 - owned)); }
+        line.push(FD.scenario(id).name + ' ' + st.year + '년 세력 ' + R.liveForces().length);
+      });
+      R.setup('cao');
+      return bad.length === 0 && (line.join(' · '));
+    });
+
+    /* ── 폰에서 손이 닿는가 ──────────────────────────── */
+
+    t('출진은 카드로 묻는다 — prompt 를 쓰지 않는다', function () {
+      /* 폰에서 prompt() 는 글자판을 띄우고, 홈 화면에 담아 띄운 앱에서는
+         아예 안 뜨는 기기가 있다. 출진은 이 판에서 가장 자주 누르는 자리다 */
+      fresh('cao');
+      R.city('chenliu').troops = 20000; R.city('chenliu').food = 999999;
+      var asked = 0, realPrompt = window.prompt;
+      window.prompt = function () { asked++; return null; };
+      DG.ui._act('march', { getAttribute: function (k) {
+        return k === 'data-from' ? 'chenliu' : 'luoyang';
+      } });
+      var rg = document.getElementById('askrange');
+      var ok1 = !!rg && parseInt(rg.max, 10) === 20000;
+      /* ¼ 을 누르면 그만큼으로 준다 */
+      DG.ui._act('ask-part', { getAttribute: function () { return '0.25'; } });
+      var quarter = parseInt(document.getElementById('askrange').value, 10);
+      /* 확인을 누르면 실제로 나간다 — 이기고 지고는 여기서 재지 않는다
+         (물러나면 병력이 되돌아오므로 성의 병력 차로는 못 잰다) */
+      var ready0 = R.readyAt('chenliu').length;
+      DG.ui._act('ask-ok', { getAttribute: function () { return null; } });
+      var used = ready0 - R.readyAt('chenliu').length;
+      var battle = document.getElementById('encounter').innerHTML.indexOf('전황') >= 0;
+      window.prompt = realPrompt;
+      DG.ui.closeEnc();
+      return asked === 0 && ok1 && quarter === 5000 && used >= 1 && battle &&
+        !document.getElementById('askrange') &&
+        ('prompt 를 한 번도 안 불렀다 · ¼ → ' + C.fmt(quarter) +
+         ' · 장수 ' + used + '명이 나가고 전황이 떴다');
+    });
+
+    t('보급도 병력 보내기도 같은 카드를 쓴다', function () {
+      var s = campSet();
+      if (!s) { return false; }
+      var asked = 0, realPrompt = window.prompt;
+      window.prompt = function () { asked++; return null; };
+      R.city('chenliu').food = 50000;
+      DG.ui.openSheet('camp');
+      DG.ui._act('camp-food', { getAttribute: function () { return s.cp.id; } });
+      var a1 = !!document.getElementById('askrange');
+      DG.ui._act('ask-no', { getAttribute: function () { return null; } });
+      DG.ui.openCity('chenliu');
+      DG.ui._act('send-troops', { getAttribute: function () { return 'xuchang'; } });
+      var a2 = !!document.getElementById('askrange');
+      DG.ui._act('ask-no', { getAttribute: function () { return null; } });
+      window.prompt = realPrompt;
+      DG.ui.closeSheet(); DG.ui.closeEnc();
+      return asked === 0 && a1 && a2 && ('보급 · 병력 보내기 둘 다 카드로 묻는다');
+    });
+
+    t('지도의 성마다 손가락이 닿는 목표가 있다', function () {
+      /* 성 점은 화면에서 8px 남짓이다 — 폰에서는 그대로면 못 누른다 */
+      fresh('cao');
+      DG.ui.renderMap();
+      var hits = document.querySelectorAll('#realm .rcity .rhit');
+      var small = 0;
+      for (var i = 0; i < hits.length; i++) {
+        if (parseFloat(hits[i].getAttribute('r')) < 3.5) { small++; }
+      }
+      return hits.length === CD.CITIES.length && small === 0 &&
+        ('성 ' + hits.length + '곳에 반지름 ' + hits[0].getAttribute('r') + ' 의 목표');
+    });
+
+    /* ── 세이브 ──────────────────────────────────────── */
+
+    t('세이브 키는 그대로다 (진행이 사라지지 않는다)', function () {
+      /* 삼국지로 갈아엎어도 키를 바꾸지 않는다 — 바꾸면 지금까지가 통째로 날아간다 */
+      return C.SAVE_BASE === 'saga-realm/save' &&
+        C.SAVE_KEY.indexOf('saga-realm/save/') === 0 && (C.SAVE_BASE + '/<프로필>');
+    });
+
+    t('삼국지 판이 저장되고 되살아난다', function () {
+      fresh('cao');
+      R.endMonth();
+      var y = R.state().year, m = R.state().month;
+      R.city('xuchang').agri = 777;
+      C.persist();
+      C.load();
+      return R.state().year === y && R.state().month === m &&
+        R.city('xuchang').agri === 777 && R.state().me === 'cao' &&
+        (y + '년 ' + m + '월 · 허창 농 777 이 그대로');
+    });
+
+    t('옛 세이브도 열린다 (삼국지 칸이 없어도)', function () {
+      var key = C.SAVE_BASE + '/oldtest';
+      localStorage.setItem(key, JSON.stringify({
+        v: 1, player: { level: 5, gold: 900 },
+        quiz: { learned: { a: 1 }, wrongs: {}, total: 3, correct: 2, streak: 0, bestStreak: 2 }
+      }));
+      var was = C.SAVE_KEY;
+      C.setSaveKey(key);
+      var ok = C.load();
+      var lv = C.save.player.level, started = R.state().started;
+      localStorage.removeItem(key);
+      C.setSaveKey(was);
+      C.load();
+      return ok && lv === 5 && started === false &&
+        '옛 진행(Lv.5·지식)은 남고 삼국지는 아직 안 선 상태로 열린다';
+    });
+
+    /* ── 가입 ────────────────────────────────────────── */
+
+    t('가입 — 프로필마다 진행이 갈린다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      var a = A.create('갑', false), b = A.create('을', false);
+      C.setSaveKey(A.keyOf(a.id));
+      C.save.player.gold = 100; C.persist();
+      C.setSaveKey(A.keyOf(b.id));
+      C.save.player.gold = 999; C.persist();
+      var ga = JSON.parse(localStorage.getItem(A.keyOf(a.id))).player.gold;
+      var gb = JSON.parse(localStorage.getItem(A.keyOf(b.id))).player.gold;
+      localStorage.removeItem(A.keyOf(a.id));
+      localStorage.removeItem(A.keyOf(b.id));
+      return ga === 100 && gb === 999 && A.list().length === 2 &&
+        ('갑 ' + ga + ' · 을 ' + gb + ' (서로 안 섞인다)');
+    });
+
+    t('가입 — 옛 세이브를 첫 프로필로 이어받는다', function () {
+      var A = DG.account;
+      localStorage.removeItem(A._store);
+      localStorage.setItem(A._legacy, JSON.stringify({ v: 1, player: { level: 7, gold: 777 } }));
+      var acc = A.create('이어받기', true);
+      var moved = JSON.parse(localStorage.getItem(A.keyOf(acc.id)));
+      localStorage.removeItem(A._legacy);
+      localStorage.removeItem(A.keyOf(acc.id));
+      return A.hasLegacy() === false && moved && moved.player.gold === 777 &&
+        ('Lv.' + moved.player.level + ' · 금 ' + moved.player.gold + ' 이 옮겨졌다');
+    });
+
+    t('가입 — 진단에서는 가입 화면을 띄우지 않는다', function () {
+      return window.DG_NO_ACCOUNT === true && !document.getElementById('acc-host') &&
+        '진단 우회 동작';
+    });
+
+    t('진단의 무작위는 씨앗으로 고정된다', function () {
+      return window.DG_SEED === 20260824 &&
+        Math.random() >= 0 && Math.random() < 1 && ('씨앗 ' + window.DG_SEED);
+    });
+
+    /* ── 소리(音) — WebAudio 로 그 자리에서 만든다 (2026-09-10) ────── */
+
+    t('소리표에 전투·무장·세계·시간·원정·학당·외교/재해 갈래가 다 있다', function () {
+      var S = DG.sfx;
+      var need = ['battle_win', 'battle_routed', 'battle_dusk', 'duel',
+                  'grow', 'promote', 'history', 'discover', 'fallen', 'victory', 'defeat',
+                  'month', 'newyear', 'march', 'journey_good', 'journey_bad', 'camp_retreat',
+                  'quiz_ok', 'quiz_miss',
+                  'omen', 'friendly', 'defect', 'disaster_good', 'disaster_bad'];
+      var miss = [], i;
+      for (i = 0; i < need.length; i++) { if (!S.CUES[need[i]]) { miss.push(need[i]); } }
+      var keys = Object.keys(S.CUES);
+      return miss.length === 0 && ('소리 ' + keys.length + '가지 · 빠진 것 없음');
+    });
+
+    t('첫 눌림 전에는 소리가 안 난다 (브라우저 규칙)', function () {
+      var S = DG.sfx;
+      return S.ready() === false && S.play('battle_win') === false &&
+        '깨우기 전에는 play() 가 false';
+    });
+
+    t('소리는 꺼져 있어도 요청을 남긴다 (판정 층과 소리 층이 갈렸다)', function () {
+      var S = DG.sfx;
+      S._clear();
+      S.play('battle_win'); S.play('victory');
+      var tail = S._tail(2);
+      return tail.length === 2 && tail[0] === 'battle_win' && tail[1] === 'victory' &&
+        '소리가 안 나도 기록은 남는다';
+    });
+
+    t('없는 소리를 불러도 안 죽는다', function () {
+      var S = DG.sfx;
+      S._clear();
+      var r = S.play('그런소리없음');
+      return r === false && S._tail(1)[0] === '그런소리없음' &&
+        '모르는 키는 조용히 흘린다';
+    });
+
+    t('rtk:battle — 내 세력이 관여하지 않은 싸움은 조용하다 (war.js 는 안 건드렸다)', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var others = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; });
+      S._clear();
+      C.emit('rtk:battle', { force: others[0], defForce: others[1], won: true, duel: false });
+      return S._tail(5).length === 0 && 'AI 끼리의 싸움은 안 울린다';
+    });
+
+    t('rtk:battle — 내가 친(공격) 싸움은 결과대로 울리고, 일기토는 따로 겹친다', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var other = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; })[0];
+      S._clear();
+      C.emit('rtk:battle', { force: 'cao', defForce: other, won: true, duel: true });
+      var tail = S._tail(2);
+      return tail[0] === 'duel' && tail[1] === 'battle_win' && (tail.join(' · '));
+    });
+
+    t('rtk:battle — 내가 맞은(수비) 싸움도 듣는다', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var other = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; })[0];
+      S._clear();
+      C.emit('rtk:battle', { force: other, defForce: 'cao', won: false, routed: true, duel: false });
+      return S._tail(1)[0] === 'battle_routed' && '수비 쪽이어도 듣는다';
+    });
+
+    t('rtk:grew·rtk:promote — 남의 무장이 크는 것은 조용하고, 내 무장만 듣는다', function () {
+      var S = DG.sfx, st = fresh('cao');
+      var mineId = off.ofForce('cao')[0].id;
+      var otherForce = Object.keys(st.forces).filter(function (f) { return f !== 'cao'; })[0];
+      var otherId = off.ofForce(otherForce)[0].id;
+      S._clear();
+      C.emit('rtk:grew', { id: otherId, lv: 5, levels: 1 });
+      var otherSilent = S._tail(5).length === 0;
+      S._clear();
+      C.emit('rtk:grew', { id: mineId, lv: 5, levels: 1 });
+      var mineGrows = S._tail(1)[0] === 'grow';
+      S._clear();
+      C.emit('rtk:promote', { id: otherId, rank: 1 });
+      var promOtherSilent = S._tail(5).length === 0;
+      S._clear();
+      C.emit('rtk:promote', { id: mineId, rank: 1 });
+      var minePromotes = S._tail(1)[0] === 'promote';
+      return otherSilent && mineGrows && promOtherSilent && minePromotes &&
+        '내 세력 문턱이 grew·promote 둘 다에 걸려 있다';
+    });
+
+    t('rtk:end · rtk:month — 승패와 새해/평달을 가른다', function () {
+      var S = DG.sfx;
+      S._clear(); C.emit('rtk:end', 'win'); var v = S._tail(1)[0] === 'victory';
+      S._clear(); C.emit('rtk:end', 'lose'); var d = S._tail(1)[0] === 'defeat';
+      S._clear(); C.emit('rtk:month', { year: 200, month: 1 }); var ny = S._tail(1)[0] === 'newyear';
+      S._clear(); C.emit('rtk:month', { year: 200, month: 5 }); var mo = S._tail(1)[0] === 'month';
+      return v && d && ny && mo && '넷 다 맞다';
+    });
+
+    t('quiz:answered — 정답/오답을 가른다', function () {
+      var S = DG.sfx;
+      S._clear(); C.emit('quiz:answered', { id: 'x', ok: true }); var ok1 = S._tail(1)[0] === 'quiz_ok';
+      S._clear(); C.emit('quiz:answered', { id: 'x', ok: false }); var ok2 = S._tail(1)[0] === 'quiz_miss';
+      return ok1 && ok2 && '학당 정오답';
+    });
+
+    t('toast 머리 이모지로만 갈래를 가른다 (천기·동맹/합류·귀순·발견·재해) — 판정 파일은 안 건드렸다', function () {
+      var S = DG.sfx;
+      S._clear(); C.emit('toast', '🔮 길조 · 시험'); var om = S._tail(1)[0] === 'omen';
+      S._clear(); C.emit('toast', '🤝 아무개 합류!'); var fr = S._tail(1)[0] === 'friendly';
+      S._clear(); C.emit('toast', '💰 아무개 이(가) 넘어왔다'); var de = S._tail(1)[0] === 'defect';
+      S._clear(); C.emit('toast', '🔍 아무개 을(를) 찾았다'); var di = S._tail(1)[0] === 'discover';
+      S._clear(); C.emit('toast', '🌻 낙양 풍년'); var gg = S._tail(1)[0] === 'disaster_good';
+      S._clear(); C.emit('toast', '🌊 낙양 수해'); var bb = S._tail(1)[0] === 'disaster_bad';
+      return om && fr && de && di && gg && bb && '여섯 갈래 다 맞다';
+    });
+
+    t('승진("✨")·사관 오류("⚠️") 토스트는 따로 안 듣는다 (rtk:promote 로 이미 울렸다 — 중복 방지)', function () {
+      var S = DG.sfx;
+      S._clear();
+      C.emit('toast', '✨ 아무개 승급 ★1');
+      C.emit('toast', '⚠️ 오류');
+      return S._tail(5).length === 0 && '두 갈래는 toast 표에 없다 (중복 방지)';
+    });
+
+    t('가명 정책 — BIOS·PETS·quote에 실제 역사 인물의 실명이 없다', function () {
+      /* 2026-09-10 발견된 구멍(SAGA-HANDOFF 참고): name/hanja만 가명으로 바꾸고
+         BIOS·PETS의 name/desc·HEROES의 quote에는 실명·실제 사건명이 그대로
+         남아 있었다. 같은 구멍이 다시 안 생기게 알려진 실명 몇 개만이라도
+         박아 둔다(전수 검사는 아니다 — 새 인물을 추가할 때 사람이 한 번 더
+         눈으로 훑어야 한다). */
+      var BLACK = ['유비', '관우', '조조', '사마의', '하후돈', '장료', '순욱', '손권', '주유',
+        '육손', '태사자', '감녕', '여포', '초선', '방통', '화타', '맹획', '봉추',
+        '이순신', '을지문덕', '강감찬', '김유신', '계백', '연개소문', '광개토대왕', '세종대왕',
+        '장영실', '최무선', '대조영', '왕건', '정약용', '허준', '신사임당',
+        '안중근', '이토 히로부미', '히로부미', '하얼빈', '뤼순', '유관순', '아우내', '서대문',
+        '김구', '백범', '원효', '김정호', '곽재우', '논개', '이황', '황희', '정몽주', '선죽교',
+        '히미코', '노부나가', '히데요시', '이에야스', '다케다 신겐', '우에스기 겐신',
+        '마사무네', '유키무라', '미야모토 무사시', '핫토리 한조',
+        '카이사르', '시저', '알렉산더', '한니발', '샤를마뉴', '잔다르크', '나폴레옹', '다빈치',
+        '레오니다스', '엘리자베스', '넬슨', '마키아벨리', '뉴턴', '미켈란젤로',
+        '칭기즈칸', '징기스칸', '쿠빌라이', '만사무사', '샤카', '클레오파트라',
+        '함무라비', '아틸라', '적토마', '절영'];
+      var Dx = DG.data, hit = [], i, j, text;
+      for (i = 0; i < Dx.heroes.length; i++) {
+        text = Dx.bio(Dx.heroes[i].id) + ' ' + Dx.heroes[i].quote;
+        for (j = 0; j < BLACK.length; j++) {
+          if (text.indexOf(BLACK[j]) >= 0) { hit.push(Dx.heroes[i].id + '←' + BLACK[j]); }
+        }
+      }
+      for (i = 0; i < Dx.pets.length; i++) {
+        text = Dx.pets[i].name + ' ' + Dx.pets[i].desc;
+        for (j = 0; j < BLACK.length; j++) {
+          if (text.indexOf(BLACK[j]) >= 0) { hit.push(Dx.pets[i].id + '←' + BLACK[j]); }
+        }
+      }
+      return hit.length === 0 &&
+        (Dx.heroes.length + '명 BIOS·quote + ' + Dx.pets.length + '개 PETS 검사, 걸린 실명 없음');
+    });
+
+    t('런타임 에러 없음', function () {
+      return errors.length === 0 || ('에러 ' + errors.length + '건: ' + errors.join(' | ')) === '';
+    });
+
+    var failCount = out.filter(function (s) { return s.indexOf('FAIL') >= 0; }).length;
+    document.getElementById('report').innerHTML =
+      '<h3>사가국지(삼국지) 자가진단 — ' + (out.length - failCount) + '/' + out.length + ' 통과</h3>' +
+      out.join('<br>') +
+      (errors.length ? '<br><br><b class="fail">런타임 에러</b><br>' + errors.join('<br>') : '');
+    document.title = 'RESULT ' + (out.length - failCount) + '/' + out.length;
+    localStorage.removeItem(C.SAVE_KEY);
+  }, 500);
+})();
+</script>
+</body>
+</html>
