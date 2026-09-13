@@ -5818,7 +5818,24 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   불변)·화친 중인 세력은 50개 시드 전부에서 안 움직임까지 확인 후
   임시 파일 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
   확인은 아직(몰아서 받을 것).
-- **다음에 할 일**: 시나리오 200/208년·3D 몬스터 자산·creed 차등 경제
-  AI·세력 멸망 판정이 남는다. 둘 다(시나리오·3D 몬스터) 여전히 큰
-  재설계가 필요해 범위를 먼저 좁혀야 한다. 그 밖엔 REALM 밖(다른 네
-  판·saga-unity 트랙)으로.
+- **다음에 할 일(당시 예상)**: creed 차등 경제 AI가 남는다고 적었으나,
+  전투 쪽 creed 차등(공격 빈도)부터 마저 끝냈다 — 아래 항목.
+
+## REALM 타 세력 AI — creed(성향) 차등 (2026-09-14, 같은 날 이어서, "묻지말고 이어해" 두 번째)
+
+- 직전 항목이 균일 확률로 미뤄 둔 부분 — `realm_cities.gd`에 `CREED`
+  (force_id→aggressive/balanced/turtle, FORCES_194 그대로)·
+  `creed_chance_mul()`(aggressive 1.5배·balanced 1.0배·turtle 0.35배)을
+  추가하고 `_run_enemy_ai()`가 이 배율을 `AI_MARCH_CHANCE`에 곱해 쓰게
+  했다. 재해석: rtk-ai.js 자체엔 확률표가 없다(war.forecast()로 매번
+  다시 계산) — creed를 "공격 빈도"로 옮긴 단순화. 자세한 내용은
+  `docs/VERTICAL_SLICE_REALM.md` 23절 참고.
+- 검증: 헤드리스 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 오류
+  0건. 임시 씬으로 creed_of/creed_chance_mul 손계산 일치·300회 시드
+  구간에서 aggressive가 turtle보다 실제로 더 자주 성공(86 vs 19)함을
+  확인 후 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
+  확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 시나리오 200/208년·3D 몬스터 자산·economy pickOrder
+  AI(같은 CREED 표를 lossCap/keepGold 축으로 다시 씀)·세력 멸망 판정이
+  남는다. 앞 둘은 여전히 큰 재설계가 필요하다. 그 밖엔 REALM 밖(다른
+  네 판·saga-unity 트랙)으로.

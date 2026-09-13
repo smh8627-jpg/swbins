@@ -848,6 +848,32 @@ const ENEMY_CITIES := [
 const LAND_DEF := {"plain": 1.0, "river": 1.1, "hill": 1.15, "mount": 1.3}
 const LAND_SIEGE := {"plain": 1.0, "river": 0.95, "hill": 0.9, "mount": 0.75}
 
+## rtk-ai.js CREED — 성향(2026-09-14, "타 세력 AI" 22절이 균일 확률로
+## 미뤄 둔 "creed 차등"을 여기서 옮긴다). `js/data-force.js FORCES_194`의
+## `creed` 필드 그대로 — cao(조조, 우리 자신)는 뺐다. force가 빈 문자열인
+## 77개 재야 성은 애초에 AI 행동 주체가 아니라(realm_save_state.gd
+## `_run_enemy_ai()`) 이 표에 없어도 된다.
+const CREED := {
+	"shao": "balanced", "zan": "aggressive", "rong": "turtle",
+	"bei": "balanced", "bu": "aggressive", "shu": "aggressive",
+	"ce": "aggressive", "biao": "turtle", "jue": "balanced",
+	"teng": "balanced", "lu": "turtle", "zhang": "turtle",
+}
+
+static func creed_of(force_id: String) -> String:
+	return String(CREED.get(force_id, "balanced"))
+
+
+## **재해석 — rtk-ai.js는 creed마다 손실 허용치(lossCap)가 다를 뿐, "친다/
+## 안 친다" 확률표 자체는 없다**(실제 판단은 war.forecast()로 매번 다시
+## 계산한다). 이 슬라이스엔 그 예측 판정이 없어(realm_save_state.gd
+## `_run_enemy_ai()` 머리말 참고) creed를 "얼마나 자주 치려 드는가"로
+## 옮겨 놓은 단순화다 — aggressive가 더 자주, turtle이 훨씬 뜸하게.
+const CREED_CHANCE_MUL := {"aggressive": 1.5, "balanced": 1.0, "turtle": 0.35}
+
+static func creed_chance_mul(force_id: String) -> float:
+	return float(CREED_CHANCE_MUL.get(creed_of(force_id), 1.0))
+
 
 static func enemy_by_id(id: String) -> Dictionary:
 	for c: Dictionary in ENEMY_CITIES:

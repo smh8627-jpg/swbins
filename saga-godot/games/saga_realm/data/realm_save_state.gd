@@ -560,13 +560,15 @@ const AI_TROOPS_FLOOR := 500   # attack()의 "오백은 넘겨야 군대라 하�
 
 ## rtk-ai.js의 "사람이 다음 달을 누르면 나머지 세력이 제 명령을 쓴다"를
 ## 좁혀 옮긴 것(2026-09-14, 4절 "제외" 타 세력 AI 첫 슬라이스, "묻지말고
-## 이어해"). **재해석 — 셋.**
-## - **creed(성향) 차등을 아직 안 옮겼다.** rtk-ai.js는 aggressive/
-##   balanced/turtle마다 손실 허용치·계략/사자 빈도가 다른데, 그 표
-##   (`CREED`, data-force.js `force.creed`)를 이 슬라이스가 아직 안
-##   가져서(REALM 게임데이터에 force 자체가 없다 — `enemies[].force`는
-##   이름표일 뿐) `AI_MARCH_CHANCE` 하나로 "친다/안 친다"만 가른다.
-##   경제 성장 AI(pickOrder)를 옮길 때 creed 표도 같이 볼 것.
+## 이어해" → 같은 날 이어서 "묻지말고 이어해" 두 번째로 creed 차등 추가).
+## **재해석 — 셋.**
+## - **creed(성향) 차등 — `RealmCities.CREED`/`creed_chance_mul()`로
+##   옮겼다.** 단, rtk-ai.js 자체엔 "친다/안 친다" 확률표가 없다(실제
+##   판단은 매번 war.forecast()로 다시 계산한다) — 이 슬라이스엔 그
+##   예측 판정이 없어, creed를 "얼마나 자주 치려 드는가"(`AI_MARCH_
+##   CHANCE * creed_chance_mul()`, aggressive 1.5배·turtle 0.35배)로
+##   옮겨 놓은 단순화다. 경제 성장 AI(pickOrder)를 옮길 때 이 표를
+##   다시 쓸 것(같은 CREED, 다른 쓰임).
 ## - **AI가 이겨도 성을 뺏지 않는다.** 세력 멸망/패배 판정이 이
 ##   슬라이스에 없어(attack() 머리말·4절 "제외" 참고) 플레이어가 성을
 ##   전부 잃는 막다른 상태를 만들 수 있으면 안 된다 — 병력·성벽 손실만
@@ -595,7 +597,8 @@ func _run_enemy_ai() -> Array:
 		var target_id := _weakest_adjacent_playable(enemy_id)
 		if target_id.is_empty():
 			continue
-		if _rng.randf() > AI_MARCH_CHANCE:
+		var chance := AI_MARCH_CHANCE * RealmCities.creed_chance_mul(force_id)
+		if _rng.randf() > chance:
 			continue
 		var msg := _enemy_attack(enemy_id, e, target_id)
 		if not msg.is_empty():

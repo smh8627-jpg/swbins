@@ -1870,3 +1870,34 @@ AI·3D 몬스터 자산(균열/폐허/묘역)만 남는다. 셋 다 위에서 �
 재설계가 필요해 범위를 먼저 좁혀야 한다. 3D 몬스터 자산도 마찬가지
 (REALM엔 몬스터를 보여줄 장면 자체가 없다). 그 밖엔 REALM 밖(다른 네
 판·saga-unity 트랙)으로.
+
+## 23. 타 세력 AI — creed(성향) 차등 (2026-09-14, 같은 날 이어서, "묻지말고 이어해" 두 번째)
+
+22절이 균일 확률(`AI_MARCH_CHANCE` 하나)로 미뤄 둔 "creed 차등"을
+마저 옮겼다 — 완전히 새 항목을 벌이는 대신, 방금 만든 22절 기능을
+더 다듬는 자연스러운 다음 조각이라 우선순위를 이걸로 잡았다(시나리오
+200/208년·3D 몬스터 자산은 여전히 범위부터 좁혀야 하는 큰 재설계라
+보류).
+
+`realm_cities.gd`에 `CREED`(force_id→'aggressive'/'balanced'/'turtle',
+`js/data-force.js FORCES_194`의 `creed` 필드 그대로, cao 제외 12개
+세력)와 `creed_of()`/`creed_chance_mul()`을 추가했다. **재해석 —
+rtk-ai.js 자체엔 "친다/안 친다" 확률표가 없다**(실제 판단은 매번
+`war.forecast()`로 다시 계산한다, 이 슬라이스엔 그 예측 판정이 없다) —
+creed를 "얼마나 자주 치려 드는가"로 옮긴 단순화다: aggressive
+1.5배·balanced 1.0배·turtle 0.35배를 `AI_MARCH_CHANCE`에 곱한다.
+`_run_enemy_ai()`가 이 배율을 실제로 곱해 쓰도록 한 줄만 바꿨다.
+
+검증(헤드리스): 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 오류
+0건, TestCity 세 번 연속 로그 완전 동일. 임시 씬으로 `creed_of()`/
+`creed_chance_mul()` 손계산 일치(bu=aggressive×1.5, biao=turtle×0.35,
+shao=balanced×1.0, 없는 force_id는 balanced 기본값)와, 같은 시드
+구간(300회)에서 aggressive 쪽 성공 횟수가 turtle 쪽보다 실제로 많이
+나옴(86 vs 19, 기댓값 0.30 vs 0.07과 부합)까지 확인 후 임시 파일 삭제,
+재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은 아직
+(몰아서 받을 것).
+
+**다음에 할 일** — REALM 4절 "제외"엔 이제 시나리오 200/208년·3D
+몬스터 자산·(economy) pickOrder AI(같은 CREED 표를 lossCap/keepGold
+축으로 다시 쓸 자리)·세력 멸망 판정이 남는다. 앞 둘은 여전히 큰
+재설계가 필요하다. 그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.
