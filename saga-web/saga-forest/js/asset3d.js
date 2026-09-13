@@ -105,6 +105,24 @@
     .map(function (n) { return { key: 'mpfb_' + n, body: PEOPLE_MPFB + n + '.glb' }; });
   HERO_RECIPES = HERO_RECIPES.concat(HERO_RECIPES_MPFB);
 
+  /* 2026-09-14 — PLAN §46 "다음에 이어갈 것" 셋째 항목: 배달원(courier)에게
+   * 우주비행사 GLB를 입혀 다른 여섯 NPC와 다른 실루엣으로 보이게 한다. 새로
+   * 받지 않고 `saga-dungeon`이 이미 CC0 확인해 둔 "Ultimate Space Kit"
+   * Astronaut1.glb 를 그대로 복사했다(md5 동일, 출처는 `assets/ASSET_LICENSES.md`
+   * "Quaternius Ultimate Space Kit — 배달원 우주복" 절). 이 GLB는 saga-dungeon
+   * 쪽 asset3d.js 주석대로 `CharacterArmature|*` 제 클립을 갖고 있어(같은
+   * Quaternius UAL 계열 뼈대) body/anim 을 같은 파일로 주면 retarget 없이 그대로
+   * mapClips() 가 idle/walk 를 찾는다 — 다른 QRPG 레시피와 같은 결.
+   * `village.js`의 `npcAt('courier', ...)` 가 `id: 'npc_courier'` 를 주므로
+   * `keysFor('hero', {id:'npc_courier'})` 가 'hero:npc_courier' 를 먼저 찾는다
+   * — 이 한 줄만으로 배달원만 이 몸을 입고 나머지 npc/주민은 그대로
+   * HERO_RECIPES 해시를 탄다. 배열로 감싼 것은 `oneOf()`가 `.length` 없는
+   * 객체를 바로 null 처리하기 때문(다른 단일 갈래도 다 배열로 감싼다). */
+  var PEOPLE_SPACE = 'assets/models/people/space/';
+  var HERO_RECIPE_COURIER = [
+    { key: 'space_astronaut1', body: PEOPLE_SPACE + 'Astronaut1.glb', anim: PEOPLE_SPACE + 'Astronaut1.glb' }
+  ];
+
   /** 되돌림 자리 — 실사 바위가 안 맞으면 이 값으로 register() 두 줄이면 돌아간다:
    *    asset3d.register('rock', ROCK_STYLIZED.rock);
    *    asset3d.register('rock:moss', ROCK_STYLIZED['rock:moss']);
@@ -136,6 +154,10 @@
    */
   var DEFAULTS = {
     'hero': HERO_RECIPES,
+    /* 배달원(courier) 전용 — npc.id === 'npc_courier' 일 때만 이 좁은 키가
+       먼저 걸린다(keysFor() 순서, 위 주석 참고). 나머지 NPC·주민·플레이어는
+       그대로 'hero' 로 떨어져 HERO_RECIPES 해시를 탄다. */
+    'hero:npc_courier': HERO_RECIPE_COURIER,
 
     /* 나무 — 계절은 season.js 가 정한 값을 ref.season 으로 넘기는 쪽(부르는 쪽)이 맡는다.
        2026-09-03 에 tree:common(봄·여름) 을 먼저 실사로 갈아 끼웠고, **이어서**
