@@ -398,3 +398,18 @@ Mixer로 분리하는 것)은 에디터 GUI로 사람이 노드를 잇는 방식
 모드로 못 만들어서, 이번엔 코드로 볼륨만 곱해 흉내 냈다(자세한 내용은
 `ForestAudio.cs` 클래스 주석). FOREST 하나에만 만들었다 — 다른 네 판은
 필요해질 때 각자 복사해 붙일 것.
+
+## 2026-09-14 — GO "사운드"도 착수 — 같은 chop.ogg 재사용
+
+`BanditEncounter.cs`의 강타/피격 화면 플래시에 위 `Kenney_RPGSounds/
+chop.ogg`를 그대로 재사용(새 다운로드 없음 — `Assets/Art/Audio`는
+`Characters/`·`Buildings/`처럼 다섯 판이 공유하는 원본 자산 트리라
+그대로 참조한다). `Saga.Go.Audio.GoAudio`(신규, `ForestAudio.cs`와 같은
+결)가 재생 담당. **승리/패배 음악(징글)은 일부러 안 붙였다** —
+Kenney "Short jingles" 팩(`jingles_HIT/NES/PIZZA/SAX/STEEL`, 각 17개)을
+받아는 봤지만 어느 인덱스가 "이김"이고 어느 게 "짐"인지 파일 이름만으론
+구분이 안 되고, 이 세션은 소리를 직접 들을 방법이 없어 잘못 고르면
+승리 장면에 패배 음악이 깔리는 사고가 날 수 있다 — **사람이 직접 들어
+보고 골라야 하는 몫**으로 남겨 뒀다(받아 둔 zip은 커밋 안 함, 필요하면
+다음에 같은 URL로 다시 받을 것: `https://opengameart.org/sites/default/files/jingleSounds_Kenney.zip`,
+CC0).

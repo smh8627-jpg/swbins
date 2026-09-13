@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Data;
 using Saga.Go.UI;
+using Saga.Go.Audio;
 
 namespace Saga.Go.World
 {
@@ -48,6 +49,10 @@ namespace Saga.Go.World
         private DuelRules _duel;
         private float _cooldownLeft;
         private bool _playerInRange;
+
+        // 67장 "사운드"(2026-09-14) — 강타/피격 화면 플래시에 맞춰 타격감
+        // SFX. GoAudio.cs 클래스 주석 참고 — 승리/패배 음악은 아직 없다.
+        [SerializeField] private AudioClip hitClip;
 
         // 편집기 빌드 스크립트가 Init()으로 채워 준다 — NpcBuilder.cs·
         // Gatherable.cs와 같은 이유(런타임 Awake()는 AssetDatabase를 못 쓴다).
@@ -351,9 +356,11 @@ namespace Saga.Go.World
                 case "heavy":
                     CharacterVisual.Tint(_visual.gameObject, _restTint);
                     ScreenFlash(e.Dodged ? new Color(0.2f, 1.0f, 0.4f, 0.35f) : new Color(1.0f, 0.15f, 0.15f, 0.45f));
+                    if (!e.Dodged) GoAudio.PlaySfx(hitClip);
                     break;
                 case "hit":
                     ScreenFlash(new Color(1.0f, 0.15f, 0.15f, 0.3f));
+                    GoAudio.PlaySfx(hitClip, 0.7f);
                     break;
             }
         }
