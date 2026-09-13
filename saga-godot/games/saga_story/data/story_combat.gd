@@ -360,17 +360,12 @@ const ACHIEVES := {
 
 ## **2026-09-13 추가 — 사명(퀘스트) 게시판.** data-quest.js QUESTS 20개 중
 ## **처음엔 8개, 사냥터별 킬 수 셋(q_field/q_forest/q_cave)을 더해 11개,
-## 이번에 q_explore1을 더해 12개**가 됐다 — 이 슬라이스가 이미 가진
-## 누적값(kill/gather/gear/boss/skill/gold/stage_kills, +이번에
-## visited_stages)만으로 바로 판정 가능한 것만 골랐다. 나머지 여덟은
-## 새 시스템이 필요해 다음으로 미룬다:
-##   - q_talk1(goal.type:'talk') — "말 건 횟수" 추적이 없다(대화
-##     가능한 마을 NPC 자체가 없다 — story_merchant.gd/story_job_
-##     trainer.gd는 기능형 NPC일 뿐, 원작 elder/guard/healer/wanderer
-##     같은 대사만 있는 NPC가 아직 없다)
-##   - r_*(반복 5개)·d_*(일일 2개) — "바친 뒤 다시 받는다"에 필요한
-##     받기/반납 상태 자체가 없다(achieve.js 식 "한 번만"과 안 맞는다)
-## reward의 `potion`(탕약)은 전부 뺐다 — 이 포트엔 그 시스템 자체가
+## q_explore1을 더해 12개, q_talk1을 더해 13개**가 됐다 — 이 슬라이스가
+## 이미 가진 누적값(kill/gather/gear/boss/skill/gold/stage_kills/
+## visited_stages/talks)만으로 바로 판정 가능한 것만 골랐다. 나머지
+## 일곱(반복 5개·일일 2개)은 **한 번만 완수하는 이 QUESTS와 판정 방식이
+## 달라 REPEAT_QUESTS(아래)로 따로 뒀다** — 자세한 재해석은 그쪽 머리말
+## 참고. reward의 `potion`(탕약)은 전부 뺐다 — 이 포트엔 그 시스템 자체가
 ## 없다(RANGED_WEAPON.staff와 같은 결, 값이 생기면 채운다). `scroll`은
 ## 있는 그대로 옮겼다(story_save_state.gd `_grant_quest_scroll()` 참고).
 ## `stage`가 있으면(q_field 등) `_quest_value()`가 전체 kills 대신
@@ -382,6 +377,13 @@ const ACHIEVES := {
 ## visited_stages(Dictionary, 밟은 stage_key 집합) 참고. 원작 STAGES에
 ## 사냥터가 field/forest/cave/gorge 넷뿐이라(마을은 STAGES 밖) n:4는
 ## "네 사냥터를 다 밟으면 끝"과 정확히 같다.
+##
+## **2026-09-13 추가(같은 날 더 더, q_talk1) — "talk".** data-quest.js
+## goal.type:'talk'은 "말 건 횟수"를 그냥 누적한다(원작 onTalk()도 같은
+## NPC에게 반복해 말해도 매번 센다 — visit과 달리 집합이 아니다).
+## story_save_state.gd talks(누적 카운트)·add_talk() 참고. 이 슬라이스는
+## 아직 대화 NPC가 허도의 파수병(story_talk_npc.gd) 하나뿐이라, 그
+## 하나에게 다섯 번 말을 걸어도 원작과 똑같이 완수된다.
 const QUESTS := {
 	"q_first":    {"name": "첫 사냥",       "need": 1,  "goal_type": "kill",   "n": 10,   "exp": 60,   "gold": 200,  "scroll": ""},
 	"q_gather1":  {"name": "약초 캐기",     "need": 2,  "goal_type": "gather", "n": 15,   "exp": 140,  "gold": 400,  "scroll": ""},
@@ -390,11 +392,76 @@ const QUESTS := {
 	"q_boss1":    {"name": "두목의 목",     "need": 5,  "goal_type": "boss",   "n": 1,    "exp": 400,  "gold": 1200, "scroll": "atk60"},
 	"q_forest":   {"name": "오림의 그늘",   "need": 6,  "goal_type": "kill",   "n": 60,   "stage": "forest", "exp": 700,  "gold": 2000, "scroll": ""},
 	"q_explore1": {"name": "길을 넓힌다",   "need": 7,  "goal_type": "visit",  "n": 4,    "exp": 320,  "gold": 900,  "scroll": "hp60"},
+	"q_talk1":    {"name": "민심을 살핀다", "need": 3,  "goal_type": "talk",   "n": 5,    "exp": 160,  "gold": 450,  "scroll": ""},
 	"q_job":      {"name": "길을 정한다",   "need": 10, "goal_type": "skill",  "n": 1,    "exp": 500,  "gold": 1500, "scroll": "hp60"},
 	"q_gold1":    {"name": "군자금",        "need": 8,  "goal_type": "gold",   "n": 8000, "exp": 600,  "gold": 0,    "scroll": "atk10"},
 	"q_cave":     {"name": "굴혈로",        "need": 12, "goal_type": "kill",   "n": 90,   "stage": "cave",   "exp": 1800, "gold": 5000, "scroll": "def60"},
 	"q_gear2":    {"name": "온몸을 갖춘다", "need": 14, "goal_type": "gear",   "n": 7,    "exp": 2200, "gold": 6000, "scroll": "hp10"},
 	"q_master":   {"name": "무예를 익힌다", "need": 18, "goal_type": "skill",  "n": 20,   "exp": 3000, "gold": 8000, "scroll": "atk10"},
+}
+
+
+## **2026-09-13 추가(같은 날 더 더 더) — 반복/일일 사명.** data-quest.js
+## 나머지 일곱(r_*(반복 다섯)·d_*(일일 둘)) 중 **여섯**을 옮긴다.
+## **재해석** — 원작은 게시판에서 "받기"를 누르고, 조건을 채운 뒤
+## "바치기"를 눌러야 보상을 받고 다시 받을 수 있게 된다(quest.js
+## take()/turnIn()). 이 포트엔 그 게시판 UI가 없어(위 QUESTS 머리말과
+## 같은 이유) 대신 **"지난 완수 이후로 그 값이 n만큼 늘 때마다 자동으로
+## 다시 완수하는 반복 문턱"**으로 좁혔다 — story_save_state.gd
+## `repeat_progress`(key→마지막 완수 시점 스냅샷)가 그 기준선이고,
+## `_check_repeat_quests()`가 `_quest_value(q) - baseline >= n`이 되는
+## 순간마다 보상을 주고 baseline을 그 시점 값으로 다시 올린다(원작
+## `turnIn()`이 `r.n`을 0으로 되돌리는 것과 같은 효과 — n을 넘은
+## 나머지는 다음 판으로 안 넘어간다). `daily:true` 둘은
+## `daily_done_day`(key→day index)로 하루 한 번만 걸러진다.
+##
+## **`r_purse`(goal.type:'gold', "금 4000 이상을 보여라 — 바쳐도 줄지
+## 않는다")는 뺐다.** kill/boss/gather/talk과 달리 gold는 오르내릴 수
+## 있는 **스냅샷** 조건이라 "지난 완수 이후 늘어난 양"으로 볼 수가
+## 없다 — gold가 한 번 4000을 넘으면 그 뒤로 내려가지 않는 한 이
+## 포트의 자동 판정(상태가 바뀔 때마다 check_quests() 호출)이 호출될
+## 때마다 매번 다시 완수돼 버린다(원작은 플레이어가 매번 직접 "바치기"를
+## 눌러야 하니 이 문제가 없다). 받기/바치기 UI가 생기기 전까진 보류.
+const REPEAT_QUESTS := {
+	"r_hunt":   {"name": "토벌령(討伐令)", "need": 3, "goal_type": "kill",   "n": 30, "exp": 260, "gold": 900,  "scroll": "",      "daily": false},
+	"r_boss":   {"name": "수급(首級)",     "need": 7, "goal_type": "boss",   "n": 2,  "exp": 900, "gold": 2600, "scroll": "def60", "daily": false},
+	"r_forage": {"name": "약재 상납",      "need": 4, "goal_type": "gather", "n": 20, "exp": 240, "gold": 500,  "scroll": "",      "daily": false},
+	"r_talk":   {"name": "민심 순회",      "need": 6, "goal_type": "talk",   "n": 8,  "exp": 300, "gold": 600,  "scroll": "",      "daily": false},
+	"d_hunt":   {"name": "일일 토벌",      "need": 2, "goal_type": "kill",   "n": 20, "exp": 500, "gold": 1500, "scroll": "",      "daily": true},
+	"d_gather": {"name": "일일 채집",      "need": 2, "goal_type": "gather", "n": 12, "exp": 350, "gold": 800,  "scroll": "",      "daily": true},
+}
+
+
+## **2026-09-13 추가(같은 날 더 더, q_talk1) — 대화 전용 NPC 대사.**
+## data-side.js NPC_TALK 그대로 옮긴다(merchant는 뺐다 — 그건
+## story_merchant.gd가 이미 상점 기능으로 맡고 있어 "대사만 있는" 이
+## 표엔 안 넣는다). story_talk_npc.gd가 npc_key로 조회해 무작위로 한
+## 줄 보여 준다.
+const NPC_TALK := {
+	"elder": {"name": "촌로", "emoji": "🧓", "lines": [
+		"난리 통에도 사람 사는 꼴은 여전하구먼.",
+		"젊은이, 무예를 부지런히 닦게. 몸이 그 값을 한다네.",
+		"이 근방 사냥터마다 우두머리가 하나씩 있다고 들었네 — 조심하시게.",
+		"들판에 나가면 캐 갈 것이 제법 있을 걸세.",
+	]},
+	"guard": {"name": "파수병", "emoji": "🛡️", "lines": [
+		"앞쪽 사냥터는 만만치 않네. 채비는 갖췄는가?",
+		"두목급은 한동안 다시 안 나온다니, 잡았으면 다른 곳부터 도시게.",
+		"이 성 안에서는 걱정 말게, 아무도 안 덤빈다네.",
+		"전직할 뜻이 있으면 서두르게. 무예는 일찍 닦을수록 낫네.",
+	]},
+	"healer": {"name": "의원", "emoji": "⚕️", "lines": [
+		"체력이 다하기 전에 탕약부터 찾으시게.",
+		"몸을 갖추는 것도 중요하지만 쉬어 가는 것도 중요하네.",
+		"앉아 쉬면 체력과 기력이 차네 — 곁에 아무도 없을 때 말일세.",
+		"다치는 건 순간이나 낫는 건 더디니 조심하시게.",
+	]},
+	"wanderer": {"name": "나그네", "emoji": "🥾", "lines": [
+		"이곳저곳 떠돌다 보니 별별 것을 다 보네.",
+		"드물게 희귀한 것들이 나온다더군 — 운이 좋으면 마주칠 걸세.",
+		"보물상자를 봤다는 소문이 있던데, 사실인지는 모르겠네.",
+		"길을 넓히려면 여러 곳을 밟아 봐야 하는 법이지.",
+	]},
 }
 
 

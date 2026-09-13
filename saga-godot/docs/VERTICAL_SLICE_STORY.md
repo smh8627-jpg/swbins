@@ -2250,6 +2250,100 @@ story_job_trainer.gd는 기능형일 뿐, 원작 elder/guard/healer/wanderer
   5개·일일 사명 2개 중 아무거나, 또는 STORY 밖(다른 네 판·saga-unity
   트랙)으로.
 
+## q_talk1 — 대화 전용 NPC 첫 걸음 (2026-09-13, "이어해" 지시로 계속)
+
+바로 위가 남긴 셋 중 **talk**(q_talk1, "민심을 살핀다")을 옮겼다 —
+사명이 12→13개. data-side.js NPC_TALK(elder/merchant/guard/healer/
+wanderer)에서 merchant를 뺀 넷(story_merchant.gd가 이미 상점으로 맡고
+있어 "대사만 있는" 표엔 안 넣는다)을 `story_combat.gd` `NPC_TALK`로
+옮기고, **처음으로 대사만 있는 NPC 하나**(허도의 파수병 — 원작
+heodo.npcs에 실제로 있던 자리)를 `HeodoField.tscn`에 세웠다.
+
+- **새 스크립트**: `story_talk_npc.gd`(신규) — story_job_trainer.gd와
+  같은 Area3D 폴링(진입 시 안내 토스트, `story_interact`를 실제로
+  누른 순간에만 무작위 대사 한 줄 + `StorySaveState.add_talk()`).
+  `@export var npc_key`로 NPC_TALK 어느 항목이든 재사용 가능(이번엔
+  "guard" 하나만 배치).
+- **새 카운터**: `story_save_state.gd`에 `talks`(누적 카운트, visit과
+  달리 집합이 아니라 매번 는다 — quest.js onTalk() 그대로)·
+  `add_talk()` 신규. `_quest_value(q)`에 `"talk"` 분기 추가.
+  SAVE_VERSION 12→13.
+- **QUESTS 추가**: `q_talk1`(need 3, goal_type "talk", n 5, 보상 exp
+  160·gold 450, scroll 없음) — data-quest.js 그대로.
+- **배치**: HeodoField.tscn에 `GuardNpc`(x=17m) — Merchant(4.4m)·
+  JobTrainer(10m, RANGE_RADIUS 1.8)·PortalToField(26.6m) 사이 빈 자리,
+  겹치지 않게 간격 확보.
+- **검증** — import 확인(vroid 텍스처류 `.import` 잡음만 재발생,
+  되돌림) → HeodoField·TestField·ForestHuntGround 각각 `--quit-after
+  6` 스크립트 오류 0건. **임시 씬(`_verify_talk1.tscn/.gd`, q_explore1
+  때와 같은 방식)**으로: NPC_TALK.guard 대사 4줄 확인 → `add_talk()`
+  네 번까진 미완수 → 다섯 번째에 q_talk1 완수 + gold+450 반영 →
+  완수 뒤 더 말 걸어도 talks만 늘고 보상 중복 지급 없음까지 손계산과
+  일치 확인 후 두 파일 삭제, 재검증까지 마쳤다. `.import` 잡음만
+  되돌림. GUI 실기 확인은 아직(몰아서 받을 것) — 특히 파수병 앞에서
+  `story_interact`(현재 배정 키) 눌렀을 때 토스트가 정상 뜨는지는
+  이번에 눈으로 확인 안 함.
+- **다음에 할 일**: r_*(반복 사명 5개)·d_*(일일 사명 2개) — 전부
+  "바친 뒤 다시 받는다"에 필요한 받기/반납 상태(quest.js `take()`/
+  `turnIn()`)가 아직 없어 하나로 묶어 다음에 볼 것. 그 밖엔 STORY
+  밖(다른 네 판·saga-unity 트랙)으로.
+
+## 반복/일일 사명 6개 (2026-09-13, "이어해" 지시로 계속)
+
+바로 위가 남긴 마지막 STORY 사명 뭉치 — data-quest.js 나머지 일곱
+(r_hunt·r_boss·r_purse·r_forage·r_talk·d_hunt·d_gather) 중 **여섯**을
+옮겼다. 20개 전체 중 남는 건 `r_purse` 하나뿐이다.
+
+- **재해석** — 원작은 게시판에서 "받기"(take)를 누르고, 조건을 채운
+  뒤 "바치기"(turnIn)를 눌러야 보상을 받고 다시 받을 수 있다. 이
+  포트엔 그 게시판 UI가 없어(위 STORY 사명들과 같은 이유) 대신
+  **"지난 완수 이후로 그 값이 n만큼 늘 때마다 자동으로 다시 완수하는
+  반복 문턱"**으로 좁혔다 — `story_save_state.gd`
+  `repeat_progress`(key→마지막 완수 시점의 `_quest_value()` 스냅샷)가
+  기준선, `_check_repeat_quests()`가 `현재값 - 기준선 >= n`이 되는
+  순간마다 보상을 주고 기준선을 그 시점 값으로 올린다(원작 `turnIn()`이
+  `r.n`을 0으로 되돌리는 것과 같은 효과 — n을 넘은 나머지는 다음
+  판으로 안 넘어간다). `check_quests()` 끝에서 한 번 더 부르므로
+  기존 열세 개 사명이 부르던 모든 지점(킬·보스·채집·골드·장비·SP·방문·
+  대화)에서 반복 사명도 같이 확인된다.
+- **일일 게이트** — `daily_done_day`(key→day index,
+  `Time.get_unix_time_from_system()/86400`으로 계산, 실제 자정과
+  정확히 안 맞을 수 있지만 "달력 하루에 한 번"이라는 원작 `todayKey()`
+  정신은 지킨다)로 `d_hunt`·`d_gather`가 하루에 한 번만 걸리게 막는다
+  — 오늘 이미 완수됐으면 kills/mats가 아무리 더 쌓여도 다음날까지는
+  다시 안 터진다(다음날엔 그 시점까지 쌓인 값 기준으로 바로 완수될 수
+  있다 — 원작의 "매일 다시 받아야" 만큼 엄격하진 않지만, 받기/바치기
+  UI가 없는 이 포트에서 합리적인 근사).
+- **`r_purse`만 뺐다** — goal.type:'gold'로 "금 4000 이상을 **보여라**
+  (바쳐도 줄지 않는다)"는 **스냅샷** 조건이라, kill/boss/gather/talk과
+  달리 "지난 완수 이후 늘어난 양"으로 볼 수가 없다. gold가 한 번
+  4000을 넘으면 그 뒤로 내려가지 않는 한, 상태가 바뀔 때마다
+  `check_quests()`를 부르는 이 포트의 자동 판정이 호출될 때마다 매번
+  다시 완수돼 버린다(원작은 플레이어가 매번 직접 "바치기"를 눌러야
+  하니 이 문제가 없다). 받기/바치기 UI가 생기기 전까진 계속 보류 —
+  STORY 20개 사명 전체 중 유일하게 남는 것.
+- **QUESTS와 분리** — `story_combat.gd`에 `REPEAT_QUESTS`(신규, QUESTS와
+  같은 모양 + `daily` 필드) — 한 번만 완수하는 QUESTS(`quests_done`)와
+  판정 방식이 달라 dict 자체를 나눴다.
+- 검증 — import 확인(vroid 텍스처류 `.import` 잡음만 재발생, 되돌림)
+  → TestField·HeodoField·ForestHuntGround 각각 `--quit-after 6`
+  스크립트 오류 0건. **임시 씬(`_verify_repeat.tscn/.gd`, 앞선 두
+  절과 같은 방식)**으로: r_hunt(kill 30) 29킬 미완수 → 30킬째 완수 +
+  기준선 30 스냅샷 → 다시 29킬(합 59) 미완수 → 60킬째 두 번째 완수
+  + 기준선 60 → d_hunt(kill 20, daily)는 같은 kills를 보고도 별도
+  daily_done_day로 하루 한 번만 걸림(그날 25킬 더 쌓아도 재완수 안
+  됨) → daily_done_day를 어제로 되돌리면 다음 add_kill에서 바로
+  재완수 + 오늘 날짜로 갱신 → r_boss(boss 2) 1킬 미완수·2킬째 완수 →
+  d_gather(gather 12)가 r_forage(gather 20)보다 먼저 걸리고 둘 다
+  각자 문턱에서 정확히 완수 → r_talk(talk 8) 7번 미완수·8번째 완수 →
+  `REPEAT_QUESTS`에 `r_purse` 없음(의도적 제외) 확인까지 손계산과
+  일치 확인 후 두 파일 삭제, 재검증까지 마쳤다. `.import` 잡음만
+  되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일** — STORY 1절 "제외" 목록에 남은 건 사실상 `r_purse`
+  하나뿐(받기/바치기 UI가 생겨야 풀린다). STORY 안에 새로 옮길 만한
+  굵직한 사명·업적은 이제 거의 없다 — 다음은 STORY 밖(다른 네 판·
+  saga-unity 트랙)으로 옮겨 가는 쪽을 더 진지하게 고려할 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

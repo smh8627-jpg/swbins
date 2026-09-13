@@ -5456,3 +5456,90 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - **다음에 할 일**: q_talk1(대화 NPC 새 시스템 필요)·반복 사명 5개·
   일일 사명 2개 중 아무거나, 또는 STORY 밖(다른 네 판·saga-unity
   트랙)으로.
+
+## STORY q_talk1(대화 전용 NPC 첫 걸음) (2026-09-13, "이어해" 지시로 계속)
+
+- 위가 남긴 것 중 talk을 옮겼다 — 사명이 12→13개. `story_talk_npc.gd`
+  신규(story_job_trainer.gd와 같은 Area3D 폴링, `@export npc_key`로
+  NPC_TALK 어느 항목이든 재사용 가능) — **원작 heodo.npcs에 실제로
+  있던 파수병(guard) 하나**를 HeodoField.tscn(x=17m)에 처음 세웠다.
+  `story_combat.gd`에 NPC_TALK(elder/guard/healer/wanderer, merchant는
+  story_merchant.gd가 이미 맡아 제외) 신규. `story_save_state.gd`에
+  `talks`(누적, visit과 달리 집합 아님)·`add_talk()` 신규.
+  SAVE_VERSION 12→13. 자세한 내용은 `docs/VERTICAL_SLICE_STORY.md`
+  "q_talk1" 절 참고.
+- 검증: 헤드리스 임포트 오류 0건, HeodoField·TestField·
+  ForestHuntGround 각각 `--quit-after 6` 스크립트 오류 0건. 임시
+  씬(q_explore1 때 확립한 방식)으로 대사 4줄 확인·다섯 번째 말 걸기에
+  완수+gold 450·완수 후 중복 지급 없음까지 손계산과 일치 확인 후 임시
+  파일 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
+  확인은 아직(몰아서 받을 것) — 파수병 앞 토스트가 실제로 뜨는지는
+  이번에 눈으로 확인 안 함.
+- **다음에 할 일**: r_*(반복 사명 5개)·d_*(일일 사명 2개) — "바친 뒤
+  다시 받는다"에 필요한 받기/반납 상태가 아직 없어 하나로 묶어 다음에
+  볼 것. 그 밖엔 STORY 밖(다른 네 판·saga-unity 트랙)으로.
+
+## STORY 반복/일일 사명 6개 (2026-09-13, "이어해" 지시로 계속)
+
+- 위가 남긴 마지막 사명 뭉치 — data-quest.js 나머지 일곱 중 여섯
+  (r_hunt·r_boss·r_forage·r_talk·d_hunt·d_gather)을 옮겼다. **받기/
+  바치기 UI가 없어** "지난 완수 이후 그 값이 n만큼 늘 때마다 자동으로
+  다시 완수" 방식으로 재해석 — `story_save_state.gd`
+  `repeat_progress`(완수 시점 스냅샷)·`daily_done_day`(하루 게이트)
+  신규, `check_quests()` 끝에서 `_check_repeat_quests()`를 같이 부른다.
+  `story_combat.gd`에 `REPEAT_QUESTS`(QUESTS와 분리) 신규.
+  SAVE_VERSION 13→14. **`r_purse`(gold 스냅샷 조건)만 뺐다** — gold는
+  줄지 않는 한 상태 변화마다 도는 이 포트의 자동 판정에서 매번
+  재완수돼 버려(kill/boss/gather/talk과 달리 "늘어난 양"으로 못 봄)
+  받기/바치기 UI가 생기기 전엔 못 옮긴다 — STORY 20개 사명 중 유일한
+  잔여. 자세한 내용은 `docs/VERTICAL_SLICE_STORY.md` "반복/일일 사명
+  6개" 절 참고.
+- 검증: 헤드리스 임포트 오류 0건, TestField·HeodoField·
+  ForestHuntGround 각각 `--quit-after 6` 스크립트 오류 0건. 임시
+  씬(앞선 두 절과 같은 방식)으로 r_hunt 30킬 문턱 두 판 연속(기준선
+  30→60)·d_hunt daily 게이트(같은 날 재완수 안 됨, 날짜를 어제로
+  돌리면 즉시 재완수)·r_boss·d_gather/r_forage 문턱 순서·r_talk까지
+  손계산과 일치 확인 후 임시 파일 삭제, 재검증까지 마쳤다. `.import`
+  잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: STORY 안엔 `r_purse`(받기/바치기 UI 필요) 하나만
+  남아 새로 옮길 굵직한 사명·업적이 거의 없다 — 다음은 STORY 밖(다른
+  네 판·saga-unity 트랙)으로 옮겨 가는 쪽을 진지하게 고려할 자리.
+
+## REALM 인구 자연 증감 + 재해(disaster) (2026-09-13, "saga-godot 이어해")
+
+- **판을 골라야 했다** — STORY가 위 항목까지로 사실상 채울 굵직한 게
+  없어졌고(19/20 사명·업적·전직·장비·주문서·원거리 적 전부), GO·
+  DUNGEON·FOREST도 각자 "제외" 목록을 이미 다 채워 09-12에 손을 뗐다
+  (실기 확인만 남기고 코드로 할 일이 없는 상태) — REALM만 4절 "제외"에
+  "성벽 파손율·재해·인구 자연 증감"을 마지막으로 남겨 두고 있어 이걸
+  골랐다.
+- rtk.js `settleMonth()`/`rollDisasters()` 그대로: 인구는
+  `pop*0.006*(agri/320)*(secMul*2-0.8)` 성장에 재해 보정·sec<35 페널티가
+  더해지고(`realm_orders.gd` `pop_growth_delta()` 신규), 재해 5종(가뭄·
+  수해·역병·황충·풍년, `DISASTERS` 신규)이 매달 42% 확률로 성 하나에
+  걸려 harvestMul(세수·수확 배율)·troops·wall에 **지속되는 동안 매달**
+  영향을 준다. `gold_income()`/`food_income()`에 `harvest_mul` 매개변수
+  추가. `realm_save_state.gd` 도시 dict에 `disaster`/`d_left` 신규,
+  `next_month()`가 인구 증감+재해 정산을 같이 하고 끝에서
+  `_roll_disasters()`(신규)를 부른다. **성벽 파손율(비율 표시값)만
+  뺐다** — 디오라마가 담장을 늘 꽉 찬 것으로 그려 보여줄 UI가 없다.
+  SAVE_VERSION 9→10. 자세한 내용은 `docs/VERTICAL_SLICE_REALM.md`
+  13절 참고.
+- **원작과 똑같이 재현된 동작 하나** — 재해 해제(`d_left`가 0이 됨)와
+  새 재해 배정(`_roll_disasters()`)이 `next_month()` 한 호출 안에서
+  순서대로 일어나, 방금 풀린 성에 같은 달 바로 새 재해가 걸릴 수
+  있다(원작 rtk.js도 같은 순서라 원래 있는 특성 — 검증 중 실제로 이
+  스트림에서 관찰해 알았다. 처음엔 버그로 의심했다가 원문을 다시 읽고
+  같은 순서임을 확인).
+- 검증: 헤드리스 임포트 오류 0건, 다섯 씬(GO·DUNGEON·FOREST·STORY·
+  REALM 각 대표 씬) 각각 `--quit-after 5` 오류 0건. 임시 씬(STORY가
+  확립한 방식)으로 `pop_growth_delta()` 손 계산 세 경우(고치안 성장·
+  저치안 페널티·재해 보정)·harvest_mul 곱셈·역병 3개월(병력 매달 5%씩
+  세 번 감소, round(902.5)=903 확인)·수해 wall -400까지 손계산과 일치
+  확인 후 임시 파일 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림.
+  GUI 실기 확인은 아직(몰아서 받을 것) — 재해 토스트가 "다음 달" 버튼
+  화면에서 자연스러운지 특히 볼 것.
+- **다음에 할 일**: REALM엔 성벽 파손율 표시값·승진/관직 5단·전체
+  107개 성·시나리오 200/208년·타 세력 AI 정도가 남았는데 전부 새
+  UI/시스템이 크게 필요하다 — 다음 세션에서 우선순위를 다시 볼 것.
+  그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.

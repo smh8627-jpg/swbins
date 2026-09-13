@@ -1244,3 +1244,80 @@ command95·might98)=**777.09**(officer_count 보정 (4-1)×0.03=0.09 추가,
 (3절 참고 아님 — `docs/PROJECT_STATE.md` STORY 항목) — STORY의 "제외"
 목록(사냥터 8곳·전직 트리·무예 47개·장비/노획·보스·원거리 적)을
 DUNGEON·FOREST가 했던 것과 같은 방식으로 하나씩 채우는 쪽이 유력.
+
+## 13. 인구 자연 증감 + 재해(disaster) (2026-09-13, "saga-godot 이어해")
+
+**사용자 지시 "saga-godot 이어해"** — STORY가 12절(rf_mizhu·rf_jianyong)
+이후 여러 세션에 걸쳐 20개 사명 중 19개(r_purse 제외)·업적·전직 트리·
+장비/주문서/원거리 적 전부를 채워 더는 STORY 안에 새로 옮길 굵직한
+항목이 없어졌다(`docs/PROJECT_STATE.md` STORY 마지막 항목 참고) — GO·
+DUNGEON·FOREST도 이미 각자 "제외" 목록을 다 채운 상태라, 4절 "제외"에
+남아 있던 REALM 자신의 마지막 항목("성벽 파손율·재해·인구 자연 증감")
+으로 돌아왔다.
+
+**구현 범위 — 셋 중 둘.** 재해(disaster)와 인구 자연 증감을 옮기고,
+성벽 파손율(wall/maxWall 비율 **표시값**)은 뺐다 — 디오라마가 담장을
+늘 꽉 찬 것으로만 그려 그 비율을 보여줄 곳이 없고, 재해(수해)가 wall을
+실제로 깎는 효과 자체는 이미 옮겨져 있어 "파손"이라는 현상은 결과로
+드러난다(비율 게이지만 없을 뿐).
+
+**공식 — rtk.js settleMonth()/rollDisasters() 그대로**:
+```text
+grow = pop*0.006*(agri/320)*(secMul(sec)*2-0.8)
+  + (재해.pop이 있으면 pop*재해.pop)
+  - (sec<35면 pop*0.008)
+pop = max(5000, round(pop+grow))
+재해 지속 중이면 매달: troops = max(0, round(troops*(1+재해.troops)))
+                      wall = max(200, wall+재해.wall)
+harvestMul(재해.harvest, 기본 1.0) — goldOf/foodOf 둘 다에 곱해진다
+매달 42% 확률로 성 하나(무작위)를 골라 재해가 없으면 새로 건다 —
+  치안이 낮을수록(0.55+(60-sec)/200, 0.3~0.9 clamp) "나쁜" 재해 쪽으로
+```
+5종(가뭄·수해·역병·황충·풍년) 수치 전부 원문 그대로 — `realm_orders.gd`
+`DISASTERS`.
+
+**재해석 — "지속되는 동안 매달 다시 적용"은 원작 그대로다.** 처음엔
+"시작 달에 한 번만"으로 잘못 짤 뻔했는데, 원작 `settleMonth()`를 다시
+읽어 `dz`(disasterByKey)가 **매달 c.disaster로부터 다시 계산**되고
+troops/wall 갱신이 매달 같은 루프 안에 있는 것을 확인 — 역병(3개월)은
+병력이 매달 5%씩 세 번 준다, 수해(2개월)는 성벽이 두 번(-800) 깎인다.
+
+**구현**:
+- `realm_orders.gd` — `DISASTERS`(신규, rtk.js 원문 5종)·`DISASTER_CHANCE`
+  (0.42)·`disaster_by_key()`·`POP_GROWTH_*` 상수 넷·`pop_growth_delta()`
+  신규. `gold_income()`/`food_income()`에 `harvest_mul` 매개변수(기본
+  1.0) 추가 — 기존 호출부는 안 건드려도 그대로 1.0으로 동작.
+- `realm_save_state.gd` — 도시 dict에 `disaster`(String, 기본 "")·
+  `d_left`(int, 기본 0) 신규(`_init_cities()`·`_annex_city()` 둘 다).
+  `next_month()`: 재해 조회(dz) → harvest_mul 반영한 gold/food 수입 →
+  기존 굶주림/치안 로직 그대로 → 인구 증감 → 재해 troops/wall 효과 →
+  재해 지속시간 감소, 0 되면 해제+Toast. 끝에서 `_roll_disasters()`
+  신규(새 재해 배정, 성 선택·good/bad 풀 필터·Toast). `Toast` preload
+  신규(이 파일이 처음으로 직접 토스트를 띄운다 — 지금까지는 UI 버튼이
+  before/after 값을 diff해 스스로 토스트를 만들었지만, 재해는 "지금
+  조망 중인 성"이 아닌 임의의 성에서 일어날 수 있어 버튼의 diff 방식이
+  안 맞는다). SAVE_VERSION 9→10(`cities`는 통째로 저장/로드되는 dict라
+  구버전 세이브를 로드해도 새 키가 없을 뿐 안 깨지지만, 이 저장소
+  관례대로 값이 늘 때마다 버전을 올린다 — 구버전은 그냥 버려진다).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+  재발생, 되돌림) → 다섯 씬 `--quit-after 5` 세 번 연속 exit 0·로그
+  무결. **임시 씬(`_verify_disaster.tscn/.gd`, STORY가 확립한 "임시
+  .tscn+.gd로 autoload 태우기" 방식 그대로)**으로: sec=80·agri=400일 때
+  `pop_growth_delta()`가 손 계산과 일치(양의 성장) → sec=20(35 미만
+  페널티 포함)일 때 음의 성장으로 뒤집힘 → `_roll_disasters()`를 반복
+  호출해(`_rng` 고정 시드) 42% 근처 빈도로 재해가 걸리는지, sec 낮은
+  성엔 실제로 "나쁜" 재해가 더 자주 걸리는지 표본으로 확인 → 역병을
+  직접 걸어(`c.disaster="plague"`, `d_left=3`) `next_month()` 세 번
+  호출 → troops가 매달 5%씩 정확히 세 번 줄고 세 번째 달에 `d_left`가
+  0이 되며 disaster가 해제되는 것까지 손 계산과 일치. 수해도 같은
+  방식으로 wall이 두 번 -400(계 -800)씩 깎이는 것 확인. 인구는 5000
+  바닥(POP_FLOOR) 아래로 안 내려가는 것도 극단값(pop=100, 나쁜 재해)
+  으로 확인. 임시 파일 삭제, 재검증까지 마쳤다. `.import` 잡음만
+  되돌림. GUI 실기 확인은 아직(몰아서 받을 것) — 재해 토스트가 "다음
+  달" 버튼을 누른 화면에서 자연스러운 타이밍에 뜨는지 특히 볼 것.
+- **다음에 할 일** — REALM 4절 "제외" 목록엔 이제 성벽 파손율 표시값
+  (위 "구현 범위"에서 뺀 이유 참고, 디오라마가 비율을 보여줄 UI가
+  없어 굳이 새로 만들 우선순위는 낮다)과 승진/관직 5단·전체 107개 성·
+  시나리오 200/208년·타 세력 AI 정도가 남는다 — 전부 새 UI/시스템이
+  크게 필요한 항목들이라 다음 세션에서 우선순위를 다시 볼 것. 그 밖엔
+  REALM 밖(다른 네 판·saga-unity 트랙)으로.
