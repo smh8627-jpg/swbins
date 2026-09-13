@@ -3746,6 +3746,29 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   확인됨: 단일 `MariaMat`을 몸+검 서브메시 둘이 공유(부위별 셰이더를
   따로 물리려면 먼저 머티리얼 분리 필요).
 
+## 66-2장 "다음에 할 일" ⑪ 피부/기타 서브메시 분리 + 값싼 스킨 근사 (2026-09-13, 이어서)
+
+- **Shader Graph는 AnimatorController와 달리 코드로 노드를 조립할 API가
+  없다** — ⑤가 받아 둔 `FakeSSS.shadersubgraph`를 직접 코드로 연결하는
+  건 접었다(GUI 필요, 내부 API 리플렉션은 위험한 지름길).
+- 대신 `BuildMariaSkinSplit.cs` 신규 — Maria 몸의 단일 서브메시(14566
+  삼각형)를 삼각형별 UV 중심점의 디퓨즈 색(HSV 근사)으로 피부
+  2642개·기타 11924개로 나눠 서브메시 둘짜리 메시(`Maria_Split`)를
+  만든다. 피부엔 살짝 따뜻한 톤+낮은 광택의 URP Lit 근사(`MariaSkin`,
+  진짜 wrap-lighting SSS 아님, 45장 모바일 목표에 더 맞는 값싼 근사)를
+  물리고 나머진 `MariaRest`. 결과물은 Mixamo 지오메트리를 담아
+  `Assets/Art/CharactersRealistic/Generated/`(이미 gitignore 대상)
+  에만 저장. `BuildTestCharacterRealisticScene.cs`가 있으면 자동
+  적용(`ApplySkinSplit()`), 없으면 조용히 원본으로 건너뜀.
+  배치+GUI 스크린샷으로 메시 손상 없음 확인, 씬 YAML로 오버라이드된
+  `m_Mesh`+두 머티리얼 슬롯도 직접 확인. 자세한 내용은 `PLAN.md`
+  66-2장 ⑪ 참고.
+- **헤어는 이번에 손 안 댔다** — 금발과 갑옷 금장식이 색상적으로 너무
+  가까워 같은 방식으로는 오분류 위험이 크다.
+- **다음에 할 일**: 헤어카드/진짜 SSS를 실제로 쓰려면 Shader Graph를
+  사람이 GUI로 연결해야 함(다음 세션·사용자 몫) → 그 다음 44장
+  우선순위대로 Kenney/VRoid 플레이스홀더 실제 씬 교체.
+
 ## GUI 실기 확인 + 라이팅 재조정 — 다섯 판 전부 (2026-09-13, 이어서)
 
 - **사용자 지시 "Unity 에디터로 직접 열어서 화면 톤 확인해줘"** — 위
