@@ -2082,9 +2082,82 @@ REALM(`realm_archive_button.gd` 등)에서 두루 재활용되는 공용 선택�
 실제로 뜨는지, 버튼을 눌러 사는 손맛, 연타해도 패널이 안 겹치는지
 눈으로 볼 것. 계속 몰아서 받을 것.
 
-**다음 이어질 것** — STORY 1절 "제외" 목록의 굵직한 항목은 몬스터
-도감 정도만 남았다. 그 밖엔 STORY 밖(다른 네 판, saga-unity 트랙)으로
-옮겨 갈 자리.
+**다음 이어질 것** — STORY 1절 "제외" 목록의 굵직한 항목은 "사명
+나머지"(20개 중 8개만 옮김, 아래 절 참고) 정도만 남았다. 그 밖엔
+STORY 밖(다른 네 판, saga-unity 트랙)으로 옮겨 갈 자리.
+
+**정정(다음 절 작업 중 발견)** — 바로 위에서 "몬스터 도감"이라고 적은
+건 틀렸다. `a_dex20`은 도감이 아니라 **인물·펫 등용 로스터**(`core.save.
+dex.heroes`/`dex.pets`, GO의 "등용"과 같은 개념)의 등록 수를 본다 —
+이 슬라이스엔 몬스터 도감도 인물 로스터도 둘 다 없지만, 정확한 이름은
+"인물·펫 등용 로스터"다. 몬스터 종류 자체는 이미 8개(잡졸 4·보스 4,
+사냥터당 하나씩 고정)로 사냥터 수만큼만 존재해 별도 "도감"을 만들
+동기 자체가 약하다.
+
+## 사명(퀘스트) — 20개 중 8개 (2026-09-13, "이어해" 지시로 계속)
+
+STORY 1절 "제외" 목록의 "사명 나머지"를 처음으로 다뤘다. 지금까지
+q_first("첫 사냥")·q_gather1("약초 캐기") 둘은 **관찰형**(HUD에 진행도만
+보여줄 뿐 "받기·바치기"도, 보상도 없었다)이었는데, 이번에 나머지
+여섯을 더해 여덟 개 전부 **완수하면 자동으로 보상까지 준다**로
+승격시켰다.
+
+- **data-quest.js QUESTS 20개 중 8개만.** 이 슬라이스가 이미 갖고
+  있는 누적값(kill·gather·gear·boss·skill·gold)만으로 바로 판정
+  가능한 것만 골랐다. 나머지 열둘(사냥터별 킬 수 3개·visit·talk·
+  반복 5개·일일 2개)은 새 상태·시스템이 필요해 다음으로 미룬다 —
+  자세한 사유는 `story_combat.gd` `QUESTS` 머리말 참고.
+- **재해석 — "받기" 단계가 없다.** 원작은 quest.js `take()`로 먼저
+  받아야 진행이 세어지지만, 옮긴 여덟 개는 전부 이미 세이브에 있는
+  누적값(achieve.js valueOf()와 같은 결)을 보므로, achieve.js
+  checkAll()과 똑같이 **문턱을 넘는 순간 자동으로 완수**한다 — 목록
+  UI 자체가 없다(상점·업적과 달리 "무엇을 고를지" 선택지가 없어
+  ChoicePrompt가 필요 없다).
+- **reward의 `potion`(탕약)은 전부 뺐다** — 이 포트에 그 시스템
+  자체가 없다(RANGED_WEAPON.staff와 같은 결). `scroll`은 있는 그대로
+  옮겨 상점과 같은 "사는 즉시 적용" 재해석으로 준다(적용할 슬롯이
+  없으면 조용히 건너뛴다 — 대체 보상을 상상하지 않는다).
+- `story_combat.gd` `QUESTS`(8개: name/need/goal_type/n/exp/gold/
+  scroll) 신규.
+- `story_save_state.gd` — `quests_done`(Dictionary, key→true) 신규,
+  SAVE_VERSION 9→10. `check_quests()`(achieve.js checkAll()과 같은
+  구조)·`_quest_value(goal_type)`(achieve.js valueOf()와 같은 결,
+  goal_type 이름은 원작 그대로 써서 따로 둠)·`_grant_quest_scroll()`/
+  `_pick_scrollable_armor_slot()`(story_merchant.gd `_on_scroll_
+  picked()`와 같은 모양, 코드 공유 없이 각자 둠 — 데이터/UI 경계를
+  안 섞으려고) 신규. `add_kill()`·`add_boss_kill()`·`add_mat()`·
+  `add_gold()`·`equip_gear()`·`raise_skill()` 끝에서 `check_quests()`를
+  부른다.
+- **되먹임 주의 — `_checking_quests` 잠금.** `check_quests()`가 보상으로
+  `add_gold()`를 부르는데 `add_gold()`도 끝에서 `check_quests()`를
+  부르므로 그대로 두면 재귀가 생긴다. 재검증 중 실제로 두 사명이
+  같은 호출 안에서 함께 완수되는 경우(레벨·스킬 조건은 이미 갖춰
+  놨는데 그사이 `check_quests()`를 부르는 다른 액션이 없어 뒤늦게
+  같이 걸리는 경우)를 직접 관찰했다 — 잠금이 없었다면 무한 재귀였을
+  자리, 잠금 덕에 안전하게 끝까지 처리된다.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  CRLF 잡음만 재발생, 되돌림) → `TestField.tscn`·`HeodoField.tscn`·
+  `ForestHuntGround.tscn` 각각 `--quit-after 6 --verbose` 스크립트
+  오류 0건. **임시 검증 스크립트**(지난 절에서 확립한 "스크립트
+  preload 대신 씬 instantiate" 방법 재사용, `--quit-after` 안전망도
+  같이) — kill 10회 → q_first 완수(exp+60→레벨업으로 exp=10·gold+200)
+  → 레벨2에서 gather 15 → q_gather1 완수 → 레벨20에서 장비 3개 →
+  q_gear1 완수 → 보스킬 1회 → q_boss1 완수 → skills 직접 세팅 후
+  gold 7999→8000(`add_gold(1)`) → **그 한 번의 `check_quests()` 안에서
+  q_gold1과 q_job이 함께 완수**(gold=8000+q_job의 1500 보상=9500,
+  손으로 재구성해 정확히 일치 확인) → 장비 7개로 q_gear2 완수 →
+  skills 스킬합 20으로 마지막 `check_quests()` 직접 호출로 q_master
+  완수 → 8개 전부 완수 후 두 번 더 `check_quests()`를 불러도 gold/exp/
+  레벨/완수 개수가 전혀 안 변함(멱등성) 확인. 검증 스크립트 삭제 후
+  재검증까지 마쳤다. `.import` 잡음만 되돌림.
+
+**GUI 실기 확인은 아직 안 함** — 사냥·채집·레벨업 중 "📜 사명 완수"
+토스트가 자연스럽게 뜨는지 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — STORY 1절 "제외" 목록에 남은 건 사냥터별 킬 수
+사명 3개(새 카운터 필요)·visit·talk 사명 2개(새 추적 필요)·반복/일일
+사명 7개(받기/반납 상태 필요) 정도. 이 중 아무거나 골라도 되고, STORY
+밖(다른 네 판·saga-unity 트랙)으로 옮겨 가도 된다.
 
 ## FINAL RULE (이 문서에도 동일 적용)
 

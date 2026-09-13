@@ -5379,5 +5379,33 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   레벨업에 따른 후보 교체·구매 시 골드 차감·주문서 적용까지 손계산과
   일치 확인 후 스크립트 삭제, 재검증까지 마쳤다. `.import` 잡음만
   되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
-- **다음에 할 일**: STORY 남은 굵직한 후보는 몬스터 도감 정도. 그 밖엔
-  다른 네 판·saga-unity 트랙으로 옮겨 갈 자리.
+- **다음에 할 일**: STORY 남은 굵직한 후보는 "사명 나머지"(아래 절
+  참고). 그 밖엔 다른 네 판·saga-unity 트랙으로 옮겨 갈 자리.
+- **정정**: 원문에서 "몬스터 도감"이라고 적은 건 틀렸다 — a_dex20은
+  몬스터 도감이 아니라 인물·펫 등용 로스터(GO "등용"과 같은 개념)의
+  등록 수다. 자세한 내용은 `docs/VERTICAL_SLICE_STORY.md` "사명(퀘스트)"
+  절 정정 참고.
+
+## STORY 사명(퀘스트) 8개 (2026-09-13, "이어해" 지시로 계속)
+
+- data-quest.js QUESTS 20개 중 8개(q_first·q_gather1·q_gear1·q_boss1·
+  q_job·q_gold1·q_gear2·q_master)를 achieve.js식(문턱 넘으면 자동
+  완수+보상, "받기" 단계 없음)으로 옮겼다. 나머지 열둘은 사냥터별
+  킬 수·visit·talk·반복/일일에 필요한 새 상태가 없어 다음으로 미룸.
+  `story_combat.gd` `QUESTS` 신규, `story_save_state.gd`에
+  `quests_done`·`check_quests()`/`_quest_value()`/`_grant_quest_
+  scroll()` 신규, SAVE_VERSION 9→10. 자세한 내용은 `docs/
+  VERTICAL_SLICE_STORY.md` "사명(퀘스트)" 절 참고.
+- **되먹임 잠금 필요했음** — `check_quests()`가 보상으로 `add_gold()`를
+  부르는데 `add_gold()`도 끝에서 `check_quests()`를 부른다 —
+  `_checking_quests` 잠금으로 막았다. 실제로 두 사명이 같은 호출에서
+  함께 완수되는 경우(gold=8000+q_job 보상 1500=9500)를 검증 중
+  관찰해 정확히 확인했다.
+- 검증: 헤드리스 임포트 오류 0건, 세 씬 각각 `--quit-after 6`
+  스크립트 오류 0건. 임시 씬-instantiate 검증 스크립트로 8개 전부
+  완수·보상 정확·멱등성(재확인해도 중복 지급 없음)까지 손계산과
+  일치 확인 후 스크립트 삭제, 재검증까지 마쳤다. `.import` 잡음만
+  되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 사냥터별 킬 수 사명 3개·visit·talk 사명 2개·
+  반복/일일 사명 7개 중 아무거나, 또는 STORY 밖(다른 네 판·
+  saga-unity 트랙)으로.

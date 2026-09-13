@@ -15,7 +15,7 @@ const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 9  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적)
+const SAVE_VERSION := 10  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명)
 
 var level := 1
 var exp := 0
@@ -23,6 +23,8 @@ var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
 var bosses := 0  # side.js s.bosses 그대로 — a_boss5 업적의 진행 카운트
 var feat := 0  # core.js player.feat(공적) — 이 슬라이스엔 칭호가 없어 그냥 누적값만
 var achievements: Dictionary = {}  # key(String) -> true, achieve.js st() 그대로(한 번 달성하면 안 없어짐)
+var quests_done: Dictionary = {}  # key(String) -> true, quest.js 완료 기록의 이 포트 버전(전부 repeat:false 8개뿐이라 achievements와 같은 모양)
+var _checking_quests := false  # check_quests()가 보상으로 add_gold()를 부르고, add_gold()가 다시 check_quests()를 부르는 되먹임을 막는 잠금
 var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
 var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.item_def() 참고(밑감·고유 둘 다)
 var gold := 0  # side.js core.save.player.gold 그대로 — 상인(story_merchant.gd)이 쓴다
@@ -70,15 +72,18 @@ func consume_pending_spawn() -> float:
 func add_kill() -> void:
 	kills += 1
 	check_achievements()
+	check_quests()
 
 
 func add_boss_kill() -> void:
 	bosses += 1
 	check_achievements()
+	check_quests()
 
 
 func add_mat(kind: String, amount: int = 1) -> void:
 	mats[kind] = int(mats.get(kind, 0)) + amount
+	check_quests()
 
 
 ## data-quest.js q_gather1("약초 캐기", goal.type:'gather', n:15)의 진행도.
@@ -100,6 +105,7 @@ func add_gold(n: int) -> void:
 		return
 	gold = maxi(0, gold + n)
 	check_achievements()
+	check_quests()
 
 
 ## 모자라면 아무것도 안 하고 false — DUNGEON DungeonGoldState.spend()와 같은 계약.
@@ -137,6 +143,7 @@ func equip_gear(key: String) -> bool:
 	scroll_bonus.erase(slot)
 	scroll_left[slot] = int(it.get("up", 0))
 	check_achievements()
+	check_quests()
 	return true
 
 
@@ -221,6 +228,83 @@ func _achieve_value(key: String) -> float:
 			return float(equipped.size())
 		_:
 			return 0.0
+
+
+## quest.js turnIn() 판정 그대로 — need(레벨)를 넘고 goal.n을 채운 사명을
+## 한 번씩 자동으로 바친다. **재해석** — 원작은 "받기"(take)를 먼저 눌러야
+## 진행이 세어지지만, 이 여덟 개는 전부 이미 세이브에 있는 누적값(achieve.js
+## valueOf()와 같은 결)을 보는 거라 "받기" 단계 없이 achieve.js checkAll()
+## 처럼 문턱을 넘는 순간 바로 완수한다 — 물목 화면·업적과 달리 이 여덟
+## 개는 목록 UI가 없다(story_combat.gd QUESTS 머리말 참고).
+func check_quests() -> void:
+	if _checking_quests:
+		return
+	_checking_quests = true
+	for key: String in StoryCombat.QUESTS:
+		if quests_done.get(key, false):
+			continue
+		var q: Dictionary = StoryCombat.QUESTS[key]
+		if level < int(q.need):
+			continue
+		if _quest_value(String(q.goal_type)) < float(q.n):
+			continue
+		quests_done[key] = true
+		var exp_reward := int(q.get("exp", 0))
+		if exp_reward > 0:
+			add_exp(exp_reward)
+		var gold_reward := int(q.get("gold", 0))
+		if gold_reward > 0:
+			add_gold(gold_reward)
+		var scroll_key := String(q.get("scroll", ""))
+		if not scroll_key.is_empty():
+			_grant_quest_scroll(scroll_key)
+		Toast.show(self, "📜 사명 완수 · %s" % String(q.name), 3.0)
+	_checking_quests = false
+
+
+## quest.js look()의 이 포트 버전 — goal.type마다 다른 누적값을 본다.
+## achieve.js valueOf()와 겹치는 칸(kills/bosses/equipped.size())이
+## 있지만, 사명 쪽은 goal_type 이름이 원작 그대로라 따로 둔다.
+func _quest_value(goal_type: String) -> float:
+	match goal_type:
+		"kill":
+			return float(kills)
+		"gather":
+			return float(gathered_total())
+		"gear":
+			return float(equipped.size())
+		"boss":
+			return float(bosses)
+		"skill":
+			return float(sp_spent())
+		"gold":
+			return float(gold)
+		_:
+			return 0.0
+
+
+## 사명 보상 주문서 — story_merchant.gd `_on_scroll_picked()`와 같은
+## "사는 즉시 적용" 재해석(가방이 없어 원작처럼 물건으로 안 준다). 적용할
+## 슬롯이 없으면(무기라면 애초에 안 껴서, 방어구라면 낀 것 중 업횟 남은
+## 곳이 하나도 없어서) 조용히 건너뛴다 — 대체 보상을 상상하지 않는다.
+func _grant_quest_scroll(scroll_key: String) -> void:
+	var sc: Dictionary = StoryCombat.SCROLLS.get(scroll_key, {})
+	if sc.is_empty():
+		return
+	var target_slot: String = "weapon" if String(sc.get("for", "")) == "weapon" else _pick_scrollable_armor_slot()
+	if target_slot.is_empty() or not can_scroll(target_slot):
+		return
+	apply_scroll(target_slot, sc)
+
+
+func _pick_scrollable_armor_slot() -> String:
+	var candidates: Array[String] = []
+	for slot: String in StoryCombat.ARMOR_SLOTS:
+		if can_scroll(slot):
+			candidates.append(slot)
+	if candidates.is_empty():
+		return ""
+	return candidates[randi() % candidates.size()]
 
 
 func can_change_job() -> bool:
@@ -314,6 +398,7 @@ func raise_skill(key: String) -> bool:
 	if not can_raise_skill(key):
 		return false
 	skills[key] = skill_level(key) + 1
+	check_quests()
 	return true
 
 
@@ -330,6 +415,7 @@ func save() -> bool:
 		"bosses": bosses,
 		"feat": feat,
 		"achievements": achievements,
+		"quests_done": quests_done,
 		"mats": mats,
 		"equipped": equipped,
 		"gold": gold,
@@ -365,6 +451,8 @@ func try_load() -> bool:
 	feat = int(data.get("feat", 0))
 	var loaded_achievements: Variant = data.get("achievements", {})
 	achievements = loaded_achievements if typeof(loaded_achievements) == TYPE_DICTIONARY else {}
+	var loaded_quests_done: Variant = data.get("quests_done", {})
+	quests_done = loaded_quests_done if typeof(loaded_quests_done) == TYPE_DICTIONARY else {}
 	var loaded_mats: Variant = data.get("mats", {})
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
 	var loaded_equipped: Variant = data.get("equipped", {})

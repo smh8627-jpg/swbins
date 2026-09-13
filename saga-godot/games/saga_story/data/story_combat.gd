@@ -355,6 +355,31 @@ const ACHIEVES := {
 }
 
 
+## **2026-09-13 추가 — 사명(퀘스트) 게시판.** data-quest.js QUESTS 20개 중
+## **8개만** 옮겼다 — 이 슬라이스가 이미 가진 누적값(kill/gather/gear/
+## boss/skill/gold)만으로 바로 판정 가능한 것만 골랐다. 나머지 열둘은
+## 새 시스템이 필요해 다음으로 미룬다:
+##   - q_field/q_forest/q_cave(사냥터별 킬 수) — `kills`는 전체 합산
+##     하나뿐, 사냥터별 카운트가 없다
+##   - q_explore1(goal.type:'visit')·q_talk1('talk') — "밟은 사냥터
+##     집합"·"말 건 횟수" 추적이 없다(대화 가능한 마을 NPC 자체가 없다)
+##   - r_*(반복 5개)·d_*(일일 2개) — "바친 뒤 다시 받는다"에 필요한
+##     받기/반납 상태 자체가 없다(achieve.js 식 "한 번만"과 안 맞는다)
+## reward의 `potion`(탕약)은 전부 뺐다 — 이 포트엔 그 시스템 자체가
+## 없다(RANGED_WEAPON.staff와 같은 결, 값이 생기면 채운다). `scroll`은
+## 있는 그대로 옮겼다(story_save_state.gd `_grant_quest_scroll()` 참고).
+const QUESTS := {
+	"q_first":   {"name": "첫 사냥",       "need": 1,  "goal_type": "kill",   "n": 10,   "exp": 60,   "gold": 200,  "scroll": ""},
+	"q_gather1": {"name": "약초 캐기",     "need": 2,  "goal_type": "gather", "n": 15,   "exp": 140,  "gold": 400,  "scroll": ""},
+	"q_gear1":   {"name": "몸을 갖춘다",   "need": 4,  "goal_type": "gear",   "n": 3,    "exp": 180,  "gold": 600,  "scroll": ""},
+	"q_boss1":   {"name": "두목의 목",     "need": 5,  "goal_type": "boss",   "n": 1,    "exp": 400,  "gold": 1200, "scroll": "atk60"},
+	"q_job":     {"name": "길을 정한다",   "need": 10, "goal_type": "skill",  "n": 1,    "exp": 500,  "gold": 1500, "scroll": "hp60"},
+	"q_gold1":   {"name": "군자금",        "need": 8,  "goal_type": "gold",   "n": 8000, "exp": 600,  "gold": 0,    "scroll": "atk10"},
+	"q_gear2":   {"name": "온몸을 갖춘다", "need": 14, "goal_type": "gear",   "n": 7,    "exp": 2200, "gold": 6000, "scroll": "hp10"},
+	"q_master":  {"name": "무예를 익힌다", "need": 18, "goal_type": "skill",  "n": 20,   "exp": 3000, "gold": 8000, "scroll": "atk10"},
+}
+
+
 ## **2026-09-13 추가 — 상점(1절 "제외" 목록 "장비 나머지"의 첫 걸음).**
 ## side.js kill()의 금 계산 그대로: gold = round((6+lv*3)*(0.8~1.4)*mul*
 ## GAIN_GOLD). GAIN_GOLD(core.tuned 기본 배수)는 1.0 그대로(손잡이 자체를
