@@ -23,7 +23,11 @@ namespace Saga.Realm.Data
         {
             public readonly bool Ok;
             public readonly string Message;
-            public AttackResult(bool ok, string message) { Ok = ok; Message = message; }
+            // 유효한 출진이었는지(Ok)와 별개로 실제 전투 결과(승/패)까지
+            // UI가 사운드를 고를 수 있게 알려준다 — Ok=false(출진 자체가
+            // 무효)일 땐 의미 없어 기본값 false로 둔다.
+            public readonly bool Won;
+            public AttackResult(bool ok, string message, bool won = false) { Ok = ok; Message = message; Won = won; }
         }
 
         /// <summary>출진할 수 있는가 — war.js canMarch()를 이 슬라이스
@@ -88,7 +92,7 @@ namespace Saga.Realm.Data
             }
 
             Changed?.Invoke();
-            return new AttackResult(true, message);
+            return new AttackResult(true, message, result.Won);
         }
 
         public readonly struct PlotResult

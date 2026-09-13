@@ -20,6 +20,9 @@ namespace Saga.Story.World
         [SerializeField] private GameObject bossModelPrefab;
         [SerializeField] private float riggedVisualScale = 1f;
         [SerializeField] private float riggedBossVisualScale = 1f;
+        // 2026-09-14 "사운드" — StoryEnemy.cs로 그대로 넘길 뿐, 여긴 안 쓴다.
+        [SerializeField] private AudioClip hitClip;
+        [SerializeField] private AudioClip deathClip;
 
         private void Awake()
         {
@@ -37,6 +40,8 @@ namespace Saga.Story.World
                 var enemy = go.AddComponent<StoryEnemy>();
                 SetPrivateField(enemy, "modelPrefab", enemyModelPrefab);
                 SetPrivateField(enemy, "riggedVisualScale", riggedVisualScale);
+                SetPrivateField(enemy, "hitClip", hitClip);
+                SetPrivateField(enemy, "deathClip", deathClip);
             }
 
             var bossGo = new GameObject("Boss_HwangGeon");
@@ -47,6 +52,8 @@ namespace Saga.Story.World
             SetPrivateField(boss, "modelPrefab", enemyModelPrefab);
             SetPrivateField(boss, "bossModelPrefab", bossModelPrefab);
             SetPrivateField(boss, "riggedBossVisualScale", riggedBossVisualScale);
+            SetPrivateField(boss, "hitClip", hitClip);
+            SetPrivateField(boss, "deathClip", deathClip);
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

@@ -136,10 +136,20 @@ namespace Saga.EditorTools
         private const float GruntTargetHeight = 1.6f;
         private const float BossTargetHeight = 1.6f * 1.4f;
 
+        // 2026-09-14 "사운드" — GO/FOREST/REALM과 같은 Kenney CC0 자산
+        // 트리(Assets/Art/Audio, 다섯 판 공유 원본) 재사용, 새 다운로드 없음.
+        private const string HitClipPath = "Assets/Art/Audio/Kenney_RPGSounds/chop.ogg";
+        private const string DeathClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_001.ogg";
+
         private static void BuildEnemies()
         {
             var go = new GameObject("Enemies");
             var spawner = go.AddComponent<StoryEnemySpawner>();
+
+            var hitClip = AssetDatabase.LoadAssetAtPath<AudioClip>(HitClipPath);
+            var deathClip = AssetDatabase.LoadAssetAtPath<AudioClip>(DeathClipPath);
+            if (hitClip != null) SetPrivateField(spawner, "hitClip", hitClip);
+            if (deathClip != null) SetPrivateField(spawner, "deathClip", deathClip);
 
             var abe = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath);
             var brute = AssetDatabase.LoadAssetAtPath<GameObject>(BruteAnimatedPrefabPath);

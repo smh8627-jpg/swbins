@@ -4398,3 +4398,49 @@ Realm에 사운드 넣는 건 아직 미착수 — 넣는다면 같은 패턴(�
 직접 다운로드) — 앞으로 CC0 에셋이 더 필요하면 같은 방식으로 받을 수
 있다(단, 오디오는 내용을 들어 확인 못 하니 감정가 있는 선곡(승리/패배 등)
 은 항상 사람 확인이 필요하다는 걸 유의).
+
+## 같은 날 후속 — 사운드를 REALM·STORY로 확장 (2026-09-14)
+
+"이어해 묻지 말고 다해"로 계속 진행 — 위에서 "미착수"라 적어 둔 네 판
+(Dungeon/Story/Realm) 중 둘을 마저 붙였다. 착수 전 먼저 훑어 보니
+**Dungeon은 이미 사운드가 있었다** — `SfxPlayer.cs`가 GO/FOREST의 Kenney
+CC0 방식과 달리(그때는 이 세션이 인터넷에서 CC0를 받을 수 있다는 걸
+몰랐던 시기) 파형을 코드로 합성한 절차적 톤을 쓰고 있었다. 원작 에셋
+금지 원칙을 지키는 또 다른 정공법이라 손 안 대고 그대로 뒀다 — PROJECT_STATE
+윗줄의 "미착수" 언급은 이 부분만 스테일이었던 것.
+
+- **STORY** — `Saga.Story.Audio.StoryAudio`(신규, ForestAudio/GoAudio와
+  같은 결). 잡졸·두목 공용 컴포넌트인 `StoryEnemy.cs`의 `TakeDamage()`/
+  `Die()`에 `chop.ogg`/`confirmation_001.ogg`(둘 다 재사용, 새 다운로드
+  없음)를 붙였다 — `StoryPlayerController.cs`·`StoryBolt.cs` 세 군데
+  공격 경로 전부 `enemy.TakeDamage()`를 거쳐 이 한 곳만 고치면 됐다.
+- **REALM** — `Saga.Realm.Audio.RealmAudio`(신규). 전투 타격감이 아니라
+  명령·문답·공격·계략 네 판정 결과가 중심이라 confirm/error 두 갈래로만
+  나눴다 — `RealmWarState.AttackResult`에 `Won` 필드를 새로 노출해(원래
+  `Ok`만 있어 "출진이 유효했나"와 "이겼나"를 못 갈랐다) 소패 함락(승)은
+  confirm, 퇴각(패)은 error로 갈랐다. `error_001.ogg`(Interface Sounds
+  킷에서 새로 추가, 자세한 판단 기준은 `docs/ASSET_GUIDE.md` 2026-09-14
+  항목 — "감정가 없는 UI blip"은 이름만 보고 사람 확인 없이 골라도
+  된다는 새 기준을 세웠다)를 이번에 처음 받았다.
+
+**테스트 공백 하나 발견·메움** — `PlaytestRealmSlice.cs`는 REALM 판정
+로직을 UI 버튼 클릭이 아니라 정적 API를 직접 불러 검증하는 방식이라
+(클래스 주석에 이미 그렇게 적혀 있었다), `RealmCommandUi.PlayOutcomeSfx()`
+가 이 테스트 경로에서 전혀 안 돈다 — 신설 오디오 배선이 스모크조차 없이
+남을 뻔했다. GO `PlaytestHeadless`가 `GoAudio.PlaySfx`를 직접 부르는
+스모크를 넣은 선례를 따라, Init 단계에 `RealmCommandUi`의 confirm/error
+클립이 실제로 배선됐는지 리플렉션으로 확인하고 `RealmAudio.PlaySfx`를
+헤드리스에서 직접 한 번씩 불러 예외가 없는지 보는 단계를 추가했다.
+
+검증: 배치 모드 컴파일 → `BuildTestStoryScene`·`BuildTestCityScene` 씬
+재빌드 → `PlaytestStorySlice`(전투 경로가 실제 SFX 호출을 통과) 3연속
+통과 → `PlaytestRealmSlice`(새 오디오 스모크 포함) 3연속 통과 → 회귀
+확인으로 GO `PlaytestHeadless`·FOREST `PlaytestForestCreatures` 1회씩
+재확인(무관함 확인). 배치 모드가 `ProjectSettings/EditorSettings.asset`을
+diff로 띄웠으나 CRLF/LF 차이뿐이라 되돌렸다(루트 CLAUDE.md 경고 그대로).
+커밋·푸시 완료.
+
+**다음에 볼 것**: DUNGEON에 사운드를 넣는다면 이미 있는 `SfxPlayer.cs`
+(절차적 합성) 방식을 유지할지, 지금은 인터넷에서 CC0를 받을 수 있다는 걸
+아니 다른 네 판처럼 Kenney 실제 클립으로 바꿀지는 아직 안 정했다 —
+사용자가 다음에 정할 것. REALM/STORY 둘 다 BGM은 여전히 없다.
