@@ -2344,6 +2344,46 @@ heodo.npcs에 실제로 있던 자리)를 `HeodoField.tscn`에 세웠다.
   굵직한 사명·업적은 이제 거의 없다 — 다음은 STORY 밖(다른 네 판·
   saga-unity 트랙)으로 옮겨 가는 쪽을 더 진지하게 고려할 자리.
 
+## r_purse 정정 + 사명 20/20 완성 (2026-09-13, "saga-godot 이어해")
+
+**REALM 쪽(성벽 파손율)을 채운 다음 세션이 saga-godot의 남은 일을
+훑다가, 바로 위 문단의 "`r_purse`는 gold가 스냅샷이라 못 옮긴다"는
+근거 자체가 틀렸다는 걸 발견했다.**
+
+**정정 — 왜 틀렸나.** 그 근거는 "gold가 한 번 4000을 넘으면 그 뒤로
+안 내려가는 한 매번 다시 완수돼 버린다"였는데, 이는 `baseline`을 0에
+고정해 두고 "지금 gold>=n인가"만 매번 다시 보는 **잘못된 구현을
+가정한** 걱정이었다. 실제로 짠 `_check_repeat_quests()`는 완수할
+때마다 `repeat_progress[key]`를 **그 순간의 현재값**으로 다시
+스냅샷한다(r_hunt·r_boss·r_forage·r_talk에서 이미 그렇게 동작하고
+있었다) — 그러면 gold처럼 오르내리는 값이라도 다음 판정은 항상
+"마지막 완수 이후 n만큼 더 늘었는가"를 보게 되어, 같은 절대값으로
+돌아와도(예: 다 쓰고 다시 정확히 4000까지 벌어도) 재완수되지 않는다.
+kill/boss/gather/talk과 다를 게 전혀 없었다 — gold만 유독 못 옮길
+이유가 없었다.
+
+**구현** — `story_combat.gd` `REPEAT_QUESTS`에 `r_purse`(need 9,
+goal_type "gold", n 4000, 보상 exp 700·gold 0, scroll 없음 — data-
+quest.js 그대로) 추가. 다른 코드는 안 건드림 — 기존
+`_check_repeat_quests()`/`_quest_value()`("gold" 분기는 이미 있었다,
+q_gold1이 먼저 썼다)를 그대로 재사용한다. **이걸로 data-quest.js
+20개 사명 전부가 이 포트에 옮겨졌다** — STORY 사명 게시판은 여기서
+끝.
+
+**검증** — 헤드리스 임포트 오류 0건, STORY 네 씬(TestField·HeodoField·
+ForestHuntGround·CaveHuntGround) 각각 `--quit-after 5` 오류 0건.
+**임시 씬(`_verify_purse.tscn/.gd`)**으로 핵심 반례 하나를 직접
+확인했다 — gold를 4000까지 모아 완수(baseline=4000) → 곧바로 재확인
+(델타 0) 재완수 안 됨 → **전부 쓰고(0) 다시 정확히 4000까지 벌어도
+(baseline과 같은 절대값으로 복귀) 재완수 안 됨**(이게 "정정"의 핵심
+증거 — "지금 gold≥4000"이 아니라 델타를 본다는 뜻) → 거기서 진짜로
+3999+1을 더 벌어(총 8000) 델타가 4000에 닿는 순간에야 재완수 + 새
+스냅샷(8000)까지 손계산과 일치. 임시 파일 삭제, 재검증까지 마쳤다.
+`.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일** — STORY 20개 사명 전부 옮겨졌고, 업적·전직·장비·
+  주문서·원거리 적도 이미 채워져 있어 STORY 안엔 이제 새로 옮길
+  굵직한 항목이 없다. 다음은 STORY 밖(다른 네 판·saga-unity 트랙)으로.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
