@@ -118,6 +118,28 @@ static func map_center() -> Vector2:
 ## 마저 채웠다(characters.gd 머리말 2026-09-12 항목 참고). **군주(`lord`)는
 ## 이 목록에 안 넣는다** — diplo.js plot() "매수 후보에서 군주는 뺀다"를
 ## 자료 단계에서부터 지킨다(필터링 코드로 매번 걸러내지 않아도 된다).
+## **2026-09-13 추가 — 둘째 목표(하비/下邳, xiapi).** data-city.js 그대로:
+## agri 320·comm 300·wall 5200·pop 220000·land river(강 성이라 함락
+## 전엔 조선 명령이 안 통한다, `RealmOrders` "조선" 재해석 그대로).
+## `from_city`를 "xiaopei"로 잡았다 — 소패를 먼저 함락해야(playable_ids()
+## 에 편입돼야) `is_adjacent("xiapi","xiaopei")`가 참이 되고 `attack()`의
+## `cities.has(from_city)` 검사를 통과한다(둘 다 코드 변경 없이 이
+## 데이터 하나로 자연히 작동 — `is_adjacent()`가 ENEMY_CITIES의
+## `from_city`를 간선으로도 재사용하는 걸 그대로 이용). **소패를 먼저
+## 정복해야 열리는 "둘째 단계"**로 의도한 배치다(원작 지리도 소패보다
+## 안쪽 — 서주의 치소).
+## **troops_start — 소패와 같은 재해석, 값만 스케일.** 원작 rtk.js
+## troops=3000+round(pop/90) 공식을 쓰면 5444가 나오는데, 소패(800)도
+## 이 공식을 안 쓰고 "우리 성이 몇 달 굴러 도달할 중간 규모"로 정적으로
+## 잡았었다 — 하비는 그보다 한 단계 센 둘째 목표로 두려고 소패 대비
+## 인구비(220000/120000≈1.83)만큼 올린 1500으로 잡았다(공식값 5444는
+## 이 슬라이스 규모에 비해 너무 크다). train·tech는 소패와 같은 이유로
+## `RealmOrders.TRAIN_START`/`TECH_START` 그대로.
+## **officers — 여포군(data-force.js force('bu').officers) 그대로.**
+## `sg_lubu`(여포, 기존 105인에 이미 있음)는 이간·매수 후보에서 빼는
+## 관례(군주 제외) 그대로 목록엔 안 넣는다 — `lord`로만 둔다.
+## `rf_chengong`(진궁→가명 현모)·`rf_gaoshun`(고순→가명 진위)은
+## `characters.gd`에 이번에 새로 들였다(머리말 2026-09-13 항목 참고).
 const ENEMY_CITIES := [
 	{"id": "xiaopei", "name": "소패", "hanja": "小沛", "land": "plain", "from_city": "xuchang",
 	 "x": 70, "y": 43, "agri_start": 220, "comm_start": 200, "pop_start": 120000,
@@ -125,6 +147,12 @@ const ENEMY_CITIES := [
 	 "force": "bei", "lord": "sg_liubei",
 	 "officers": ["sg_guanyu", "sg_zhangfei", "rf_mizhu", "rf_jianyong"],
 	 "desc": "서주의 작은 성. 허창과 맞닿아 있다."},
+	{"id": "xiapi", "name": "하비", "hanja": "下邳", "land": "river", "from_city": "xiaopei",
+	 "x": 79, "y": 40, "agri_start": 320, "comm_start": 300, "pop_start": 220000,
+	 "wall_start": 5200, "troops_start": 1500, "train_start": 40, "tech_start": 100,
+	 "force": "bu", "lord": "sg_lubu",
+	 "officers": ["rf_chengong", "rf_gaoshun"],
+	 "desc": "서주의 치소. 사수(泗水)가 성을 두른다."},
 ]
 
 ## rtk.js data-city.js LAND_TYPES의 def·siege — capOf류와 달리 아직 안

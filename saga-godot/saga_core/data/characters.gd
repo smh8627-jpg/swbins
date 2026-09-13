@@ -7,7 +7,8 @@ extends RefCounted
 ## 그 한 벌에서 그대로 가져온 것 — 새 id 체계를 만들지 않았다).
 ##
 ## 2026-09-11 시점 105명(삼국지 22·한국사 26·일본사 20·세계사 37,
-## 2026-09-12 rf_mizhu·rf_jianyong 추가로 107명·삼국지 24). REALM
+## 2026-09-12 rf_mizhu·rf_jianyong 추가로 107명·삼국지 24,
+## 2026-09-13 rf_chengong·rf_gaoshun 추가로 109명·삼국지 26). REALM
 ## 전용 무장(js/data-force.js, 130명+)은 이번에 포함하지 않았다 — LEGACY_
 ## FEATURE_AUDIT.md는 REALM 것도 통합하기로 했지만, REALM Godot 포트는
 ## 39장 순서상(Core→Vertical Slice→GO→DUNGEON→FOREST→STORY→REALM) 아직
@@ -28,6 +29,14 @@ extends RefCounted
 ## emoji·quote는 원본 그대로(quote는 이름을 드러내지 않아 정책에 안
 ## 걸린다). 나중에 REALM 무장 전체를 옮길 때 이 둘도 다시 마주칠 텐데,
 ## 그때 다른 이름으로 또 바뀌지 않도록 이 가명을 그대로 이어 쓸 것.
+##
+## **2026-09-13 추가 — rf_chengong·rf_gaoshun(같은 이유, 하비/여포군
+## 성 추가 목적).** 원본(진궁/陳宮·고순/高順) 역시 가명화가 안 된
+## 실명 상태였다 — 이번에 새로 가명을 지었다: 진궁→**현모(玄謀)**,
+## 고순→**진위(陣威)**. faction은 위/오/촉 어디에도 안 속하는 여포
+## 세력이라 이미 있던 "군웅"(원소·원술 등이 쓰던 값)을 그대로 썼다.
+## era·rarity·trait·stats·emoji·quote는 원본 그대로(고순 quote의
+## "함진영"은 부대 이름이지 인물 실명이 아니라 정책에 안 걸린다).
 ##
 ## 필드: id(불변 고유키) · name(표시 이름, 가명) · era(시대 그룹) ·
 ## faction(세력) · rarity(1~5) · trait(might/wisdom/virtue, 설득 어필 방향) ·
@@ -419,6 +428,38 @@ const HEROES := [
 		"hanja": "言柔",
 		"emoji": "🗣️",
 		"quote": "말로 푸는 일이라면 제가 가지요."
+	},
+	{
+		"id": "rf_chengong",
+		"name": "현모",
+		"era": "삼국지",
+		"faction": "군웅",
+		"rarity": 4,
+		"trait": "wisdom",
+		"stats": {
+			"might": 45,
+			"wisdom": 92,
+			"command": 80
+		},
+		"hanja": "玄謀",
+		"emoji": "🕳️",
+		"quote": "제 계책을 들었다면 이리 되지 않았습니다."
+	},
+	{
+		"id": "rf_gaoshun",
+		"name": "진위",
+		"era": "삼국지",
+		"faction": "군웅",
+		"rarity": 4,
+		"trait": "command",
+		"stats": {
+			"might": 87,
+			"wisdom": 66,
+			"command": 90
+		},
+		"hanja": "陣威",
+		"emoji": "🪖",
+		"quote": "함진영(陷陣營)은 물러선 적이 없습니다."
 	},
 	{
 		"id": "kr_yisunsin",

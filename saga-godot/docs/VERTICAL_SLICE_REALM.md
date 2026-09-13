@@ -1360,3 +1360,71 @@ autoload 태우기"의 REALM 버전)**으로: wall을 wall_cap의 50%로 맞추�
 5단이면 "무장 레벨/경험치부터"인지 "관직 자체만 먼저 만들고 레벨은
 다음"인지)이 필요하다 — 다음 세션에서 그 결정부터. 그 밖엔 REALM
 밖(다른 네 판·saga-unity 트랙)으로.
+
+## 15. 둘째 정복 목표 — 하비(下邳, 여포령) (2026-09-13, "saga-godot 이어해")
+
+**"전체 107개 성" 항목을 범위를 정해 조금 옮겼다.** 승진/관직 5단·
+시나리오 200/208년·타 세력 AI는 새 하부구조(레벨/경험치/공, 새 지도
+데이터, AI 판단 로직)가 통째로 없어 결정부터 필요한 반면, "전체 107개
+성"은 이미 있는 `ENEMY_CITIES`(소패 하나뿐이었다) 패턴에 **성 하나를
+더 얹는 것**만으로 실제 콘텐츠가 늘어난다 — 새 시스템 없이 데이터
+추가만으로 되는 가장 작은 조각이라 이걸 골랐다.
+
+**목표 — 하비(下邳, xiapi), 여포(`sg_lubu`, 기존 105인에 있음)령.**
+data-city.js 원문 그대로(agri 320·comm 300·wall 5200·pop 220000·land
+river). **`from_city`를 "xiaopei"로 잡아 "소패를 먼저 정복해야 열리는
+둘째 단계"로 의도했다** — `realm_cities.gd is_adjacent()`가
+`ENEMY_CITIES[].from_city`를 간선으로도 재사용하는 기존 메커니즘을
+그대로 이용해(코드 변경 없음), 소패가 `cities`(플레이 가능 성 목록)에
+편입돼야만 `attack("xiapi")`의 `cities.has(from_city)` 검사가 통과한다.
+
+**troops_start(1500) — 소패(800)와 같은 재해석, 값만 스케일.** 원작
+rtk.js `troops=3000+round(pop/90)` 공식을 쓰면 5444가 나오는데, 소패도
+이 공식을 안 쓰고 "우리 성이 몇 달 굴러 도달할 중간 규모"로 정적으로
+잡았었다(13절 이전, 2-4절 머리말 참고) — 하비는 인구비(220000/
+120000≈1.83)만큼만 올려 둘째 목표다운 난이도 상승만 반영했다.
+
+**officers — 진궁(rf_chengong)·고순(rf_gaoshun) saga_core 신규 편입.**
+data-force.js 여포군 그대로(진궁 wisdom92·고순 command90, 둘 다
+rarity4). 원본이 실명 상태라(rf_mizhu·rf_jianyong 때와 같은 사정)
+이번에 처음 가명을 지었다 — 진궁→**현모(玄謀)**, 고순→**진위(陣威)**.
+faction은 위/오/촉 어디에도 안 속해 이미 있던 "군웅"(원소·원술 등)을
+그대로 썼다. 여포(`sg_lubu`)는 군주라 이간·매수 후보 목록엔 안 넣는다
+(diplo.js "매수 후보에서 군주는 뺀다" 원칙, 소패 때와 같음).
+`saga_core/data/characters.gd` 105→109명(삼국지 24→26).
+
+**UI 일반화 — 목표가 하나에서 둘로 늘며 세 버튼을 전부 고쳤다.**
+`realm_attack_button.gd`·`realm_diplo_button.gd`·`realm_plot_button.gd`
+셋 다 지금까지 `const TARGET := "xiaopei"`로 목표가 고정돼 있었는데,
+`realm_city_button.gd`·`realm_transfer_button.gd`와 같은 ChoicePrompt
+목록 패턴(공격·외교는 대상 고르기 1단 추가, 계략은 이미 있던 "계략
+종류 고르기" 앞에 "대상 고르기" 1단을 더해 2단)으로 바꿨다 — 목표가
+셋째로 늘어도 이 파일들은 다시 안 고쳐도 된다(ENEMY_CITIES 데이터만
+늘리면 됨). 함락한 곳은 목록에서 뺀다. `realm_save_state.gd`의
+`attack()`/`envoy_tribute()`/`envoy_truce()`/`plot()`/`plot_preview()`
+전부 이미 `enemy_id`/`target_id`를 매개변수로 받는 일반식이라(9절
+rf_mizhu·rf_jianyong 검증 때 확인된 그대로) 코드 변경 없이 그대로
+재사용됐다.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(vroid 텍스처류 `.import`
+잡음만 재발생, 되돌림) → 다섯 씬(GO·DUNGEON·FOREST·STORY·REALM 각
+대표 씬) `--quit-after 5` 오류 0건. **임시 씬(`_verify_xiapi.tscn/
+.gd`)**으로: `ENEMY_CITIES.size()==2`·하비 `from_city`="xiaopei"·
+troops_start=1500 확인 → `Characters.find("rf_chengong").name`이
+"진궁"이 아니라 "현모"(고순도 마찬가지) 확인 → 소패 정복 전엔
+`attack("xiapi")`가 정확히 "없는 출진 성"으로 실패 → `is_adjacent
+("xiapi","xiaopei")`는 참, `is_adjacent("xiapi","xuchang")`는 거짓 →
+`_annex_city()`로 소패를 강제 정복(검증 전용 직접 호출)한 뒤 병력·
+군량·소패 배치 장수를 채우면 `attack("xiapi")`가 성공 → `plot_preview
+("rumor","xiapi")`도 오류 없이 값을 준다까지 확인 후 임시 파일 삭제,
+재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은 아직
+(몰아서 받을 것) — 특히 외교/계략 버튼의 새 "대상 고르기" 1단이
+자연스러운지, 하비가 실제로 소패를 정복하기 전엔 공격 목록에 있어도
+눌렀을 때 "없는 출진 성" 토스트가 자연스러운지 볼 것.
+
+**다음에 할 일** — REALM 4절 "제외"엔 이제 승진/관직 5단·전체 107개
+성 중 하비를 뺀 나머지·시나리오 200/208년·타 세력 AI가 남는다. "전체
+107개"는 이런 식으로 하나씩 더 늘릴 수 있지만(다음 후보는 하비와
+맞닿은 수춘/壽春(원술령) 등), 승진/관직 5단·타 세력 AI 쪽이 게임성
+측면에선 더 묵직한 다음 걸음이다 — 다음 세션에서 우선순위 결정.
+그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.
