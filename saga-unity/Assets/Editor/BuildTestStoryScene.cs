@@ -28,6 +28,14 @@ namespace Saga.EditorTools
         private const string CharacterAPath = "Assets/Art/Characters/character-a.glb";
         private const string CharacterDPath = "Assets/Art/Characters/character-d.glb";
 
+        // 44장 "Player" 교체 — Dungeon/GO/Forest가 이미 쓰는 Maria 재사용
+        // (BuildTestVillageScene.cs와 같은 결). STORY도 1.8m 실측 스케일이라
+        // Maria 실측 높이(1.83m)와 거의 그대로 맞는다.
+        private const string MariaBodyFbxPath = "Assets/Art/CharactersRealistic/Maria WProp J J Ong.fbx";
+        private const string MariaControllerPath = "Assets/Animators/Maria.controller";
+        private const float MariaNativeHeight = 1.83f;
+        private const float PlayerTargetHeight = 1.8f;
+
         private static readonly Color SkyColor = new Color(0.55f, 0.75f, 0.92f); // data-side.js field.mood='sky'
 
         private static GameObject _characterA, _characterD;
@@ -116,14 +124,52 @@ namespace Saga.EditorTools
             controller.height = 1.8f;
             controller.center = new Vector3(0f, 0.9f, 0f);
 
-            Transform visual = _characterA != null
-                ? Saga.Story.World.CharacterVisual.Spawn(_characterA, playerGo.transform, 1.8f, Color.white)
-                : Saga.Story.World.CharacterVisual.SpawnFallbackCapsule(playerGo.transform, 1.8f, Color.white);
+            Animator playerAnimator;
+            Transform visual = BuildPlayerVisual(playerGo.transform, out playerAnimator);
 
             var storyController = playerGo.AddComponent<StoryPlayerController>();
             SetPrivateField(storyController, "visual", visual);
+            SetPrivateField(storyController, "animator", playerAnimator);
 
             return (playerGo, storyController);
+        }
+
+        /// <summary>Maria(Humanoid, Animator 포함) → 실패 시 character-a →
+        /// 실패 시 primitive capsule 순으로 폴백(BuildTestVillageScene.cs와
+        /// 같은 결). Speed+Attack 트리거만 쓴다(StoryPlayerController.cs 참고).</summary>
+        private static Transform BuildPlayerVisual(Transform parent, out Animator animator)
+        {
+            animator = null;
+
+            var mariaBody = AssetDatabase.LoadAssetAtPath<GameObject>(MariaBodyFbxPath);
+            if (mariaBody != null)
+            {
+                var maria = (GameObject)PrefabUtility.InstantiatePrefab(mariaBody, parent);
+                maria.name = "Visual";
+                maria.transform.localPosition = Vector3.zero;
+                maria.transform.localRotation = Quaternion.identity;
+                maria.transform.localScale = Vector3.one * (PlayerTargetHeight / MariaNativeHeight);
+
+                animator = maria.GetComponent<Animator>();
+                if (animator == null)
+                {
+                    animator = maria.AddComponent<Animator>();
+                }
+                var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(MariaControllerPath);
+                if (controller == null)
+                {
+                    Debug.LogWarning($"[BuildTestStoryScene] {MariaControllerPath} 를 못 찾음 — Maria 시각화는 되지만 애니메이션이 안 돎.");
+                }
+                animator.runtimeAnimatorController = controller;
+
+                BuildTestCharacterRealisticScene.ApplySkinSplit(maria);
+                return maria.transform;
+            }
+
+            Debug.LogWarning($"[BuildTestStoryScene] {MariaBodyFbxPath} 를 못 찾음(로컬 전용 자산, mixamo.com에서 받아야 함) — character-a로 폴백.");
+            return _characterA != null
+                ? Saga.Story.World.CharacterVisual.Spawn(_characterA, parent, PlayerTargetHeight, Color.white)
+                : Saga.Story.World.CharacterVisual.SpawnFallbackCapsule(parent, PlayerTargetHeight, Color.white);
         }
 
         /// <summary>2절 — 카메라는 플레이어의 자식이 아니라 독립 오브젝트
