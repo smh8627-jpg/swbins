@@ -46,6 +46,11 @@ namespace Saga.Realm.UI
             RealmUiKit.NewButton(canvas.transform, "문답", new Vector2(1f, 1f), new Vector2(-110f, -90f),
                 new Vector2(180f, 110f), ToggleQuizPanel);
 
+            // 월드맵(2-8절) — 문답과 같은 구석, 그 바로 아래에 둔다(명령/성/
+            // 계략/공격/다음달 행과도, HUD 라벨과도 안 겹치는 유일한 빈 자리).
+            RealmUiKit.NewButton(canvas.transform, "지도", new Vector2(1f, 1f), new Vector2(-110f, -210f),
+                new Vector2(180f, 110f), ToggleMap);
+
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
             BuildPlotPanel(canvas.transform);
@@ -283,6 +288,21 @@ namespace Saga.Realm.UI
             bool open = !_quizPanel.activeSelf;
             _quizPanel.SetActive(open);
             if (open) RefreshQuizPanel();
+        }
+
+        /// <summary>월드맵을 열 때는 명령 계열 패널이 지도 위에 뜨는 게
+        /// 어색해 미리 닫는다 — 닫는 쪽(지도→디오라마)은 패널과 무관해
+        /// 그냥 토글만.</summary>
+        private void ToggleMap()
+        {
+            if (!RealmMapState.ViewingMap)
+            {
+                _orderPanel.SetActive(false);
+                _cityPanel.SetActive(false);
+                _plotPanel.SetActive(false);
+                _quizPanel.SetActive(false);
+            }
+            RealmMapState.Toggle();
         }
 
         private void ChooseOrder(string key)

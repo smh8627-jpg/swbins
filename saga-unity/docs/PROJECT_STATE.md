@@ -5,6 +5,50 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **REALM — 월드맵 첫 슬라이스 (2026-09-13, 스물한 번째 세션, "1,2,3
+  순서대로 다 진행해줘 묻지 말고"의 (1)).** `saga-godot/docs/
+  VERTICAL_SLICE_REALM.md` 2-8~2-10절(성표 셋을 한 지도로·탭으로 조망
+  대상 바꾸기·드래그 궤도 카메라)을 개념만 참고해 한 슬라이스로 합쳐
+  옮겼다(godot은 세 절로 나눴지만 여기선 드래그 판정 하나가 회전과
+  탭을 같이 가르는 게 자연스러워 합쳤다).
+  - 신규 — `Data/RealmMapState.cs`(ViewingMap 플래그, **저장 안 함**,
+    godot의 viewing_map과 같은 결)·`World/{RealmWorldMap,
+    RealmCityMarkerId,RealmMapViewSwitcher}.cs`·`Player/
+    RealmWorldMapCamera.cs`(드래그 궤도+탭 선택 한 컴포넌트). `RealmCityData
+    .cs`에 성 셋+소패의 지도 좌표(js/data-city.js 그대로) 추가.
+    `RealmCommandUi.cs`에 "지도" 토글 버튼(문답 버튼 바로 아래), `BuildTestCityScene
+    .cs`에 WorldMap+WorldMapCameraRig+RealmMapViewSwitcher 배선.
+  - **디오라마↔지도 전환은 두 GameObject 묶음을 통째로 켜고 끄는
+    것으로**(RealmMapViewSwitcher.cs) — RealmCityBuilder.cs의 "없는 값은
+    안 그린다"와 같은 결로 지형 기복·해협은 안 옮겼다(성 넷 모두 평지에
+    가깝다, godot 2-10절과 같은 재해석).
+  - **버그 하나 잡음 — 한 .cs 파일에 MonoBehaviour 클래스를 두 개
+    (RealmWorldMap+RealmCityMarkerId) 넣었더니, 씬 저장 시 두 번째
+    클래스의 스크립트 참조가 guid 없는 "클래스명 폴백"으로 직렬화되며
+    다른 프로세스에서 씬을 열면 `GetComponent<RealmCityMarkerId>()`가
+    조용히 null을 반환했다**(raycast는 콜라이더를 정확히 맞히는데 탭
+    선택만 항상 실패 — PlaytestRealmSlice에 임시 디버그 로그를 넣어
+    원인을 좁혔다). `RealmCityMarkerId`를 별도 파일로 빼서(이 프로젝트의
+    다른 모든 MonoBehaviour와 같이 파일당 클래스 하나 원칙) 고쳤다 —
+    **앞으로 새 마커/꼬리표 컴포넌트를 만들 때 기존 파일에 얹지 말고
+    처음부터 별도 파일로 뺄 것.**
+  - **검증** — 컴파일(오류 없음)·씬 재빌드(`BuildTestCityScene`,
+    "saved to TestCity.unity")·`PlaytestRealmSlice`(월드맵 phase 신규
+    추가 — 초기 상태(디오라마만 활성)·토글·성표 위치(중심 (63,39.667)
+    손 계산과 정확히 일치)·탭 선택(진류 탭 → currentCity 정확히 chenliu로
+    전환)·드래그 회전 공식(문지방 10px 미만은 안 잠기고, 넘는 이동은
+    yaw+=dx×0.006, pitch+=dy×0.006(클램프 0.35~1.3)와 정확히 일치)·확정된
+    드래그 뒤 손떼기는 탭으로 오판 안 함·지도 되돌리기까지 전부 확인)
+    `OK - world-map/location gate/ships gate/orders(10)/draft/search/
+    hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/
+    quiz/save-load all verified, no errors`. 회귀
+    `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·
+    `PlaytestStorySlice` 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — "지도" 버튼을 눌렀을 때 실제로
+    전환이 매끄러운지, 성표 셋(+함락 후 넷)이 서로 안 겹치고 잘 보이는지,
+    드래그 감도·줌 범위가 손가락/마우스로 자연스러운지, 탭 판정 반경이
+    너무 넓거나 좁지 않은지.
+
 - **FOREST — 벽지/장판 (2026-09-13, 스무 번째 세션, "1,2,3,4 순서대로
   다 진행해 묻지말고"의 (4), "다른 판 콘텐츠 확장" 방향으로 세션이
   직접 골랐다).** PROJECT_STATE.md에 오래전부터 "가구 자유 배치" ·
@@ -2499,7 +2543,12 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- **스무 번째 세션은 여기서 멈췄다(2026-09-13, 사용자가 "현재 작업
+- **스물한 번째 세션 진행 중(2026-09-13) — "1,2,3 순서대로 다 진행해줘
+  묻지 말고"의 (1) REALM 월드맵을 방금 끝냈다(위 "완료 단계" 맨 위
+  참고).** 이어서 (2) FOREST 가구 자유 배치, (3) 다른 판 콘텐츠 확장을
+  같은 세션이 계속 순서대로 진행한다 — 이 항목은 (2)·(3)이 끝나면
+  "세션 마무리" 기록으로 덮어쓸 것.
+- **(과거) 스무 번째 세션은 여기서 멈췄다(2026-09-13, 사용자가 "현재 작업
   완료 하고 새로운 세션에서 다시하자"로 끝) — "1,2,3,4 순서대로 다
   진행해 묻지말고"로 네 조각을 전부 세션이 직접 순서대로 끝냈다: (1)
   REALM 외교 절반(계략: 유언비어·화계), (2) REALM 함락한 성 편입,
