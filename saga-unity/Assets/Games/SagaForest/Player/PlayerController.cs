@@ -26,6 +26,9 @@ namespace Saga.Forest.Player
         [SerializeField] private CameraRig cameraRig;
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private VirtualJoystick joystick;
+        // 44장 "Player" 교체 — GO PlayerController.cs와 같은 결(Maria가
+        // 배정되면 채워짐, 이 게임엔 전투가 없어 Speed만 씀).
+        [SerializeField] private Animator animator;
 
         private CharacterController _controller;
         private InputAction _moveAction;
@@ -72,11 +75,17 @@ namespace Saga.Forest.Player
             Vector3 horizontal = moveDir * speed;
             _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
 
-            if (moveDir.sqrMagnitude > 0.05f * 0.05f && visual != null)
+            bool moving = moveDir.sqrMagnitude > 0.05f * 0.05f;
+            if (moving && visual != null)
             {
                 float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
                 float yaw = Mathf.LerpAngle(visual.eulerAngles.y, targetYaw, TurnRate * dt);
                 visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", moving ? (running ? 1f : 0.5f) : 0f);
             }
         }
 
