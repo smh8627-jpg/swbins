@@ -3242,12 +3242,16 @@ window.DG_NO_TUNE = true;
       var inside = V.inSpaceBase(sb.tx + 1, sb.ty - 1), outside = V.inSpaceBase(sb.tx + 10, sb.ty);
       V.buildProps();
       var raw = V.raw();
-      var decoOk = raw.props.filter(function (p) {
-        return p.id.indexOf('space') === 0 && p.deco === true;
-      }).length === 5;                                  // crateA·crateB·fence·cart·lantern
+      var spaceProps = raw.props.filter(function (p) { return p.id.indexOf('space') === 0; });
+      var decoOk = spaceProps.filter(function (p) { return p.deco === true; }).length === 11;
+      /* 2026-09-14, PLAN 46-3절 — crateA·crateB·fence·cart·lantern(다섯,
+         다른 자리에서 빌림) + spaceBase·spaceHouse·spaceDome·spaceSolar·
+         spaceRover·spaceMech(여섯, 이번에 처음 받은 팩 자체) = 11 */
+      var kindsOk = ['spaceBase', 'spaceHouse', 'spaceDome', 'solarPanel', 'rover', 'mech']
+        .every(function (k) { return spaceProps.some(function (p) { return p.kind === k; }); });
       var post = raw.props.filter(function (p) { return p.kind === 'courierPost'; })[0];
-      return ground === 'sand' && inside && !outside && decoOk && !!post && !post.deco &&
-        '땅 sand · 장식 5개 deco · courierPost 는 손이 닿음';
+      return ground === 'sand' && inside && !outside && decoOk && kindsOk && !!post && !post.deco &&
+        '땅 sand · 장식 11개 deco(건물·로버·메카 포함) · courierPost 는 손이 닿음';
     });
 
     t('배달 — 접수대 → 배달원 왕복이 무제한 반복된다(소포 없인 못 받고, 들고는 하나만)', function () {
