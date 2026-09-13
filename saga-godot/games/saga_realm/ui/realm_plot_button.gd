@@ -11,6 +11,10 @@ extends Button
 ##
 ## **2026-09-13 추가 — 하비(xiapi) 목표 추가.** realm_diplo_button.gd와
 ## 같은 이유로 대상 고르기(1단) → 계략 종류 고르기(2단)로 일반화했다.
+##
+## **2026-09-14 추가 — 주인 없는 성(77개) 목록에서 제외.**
+## realm_diplo_button.gd와 같은 이유(diplo.js "주인 없는 성입니다") —
+## 자세한 근거는 그쪽 머리말 참고, 여기서 반복하지 않는다.
 
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
@@ -41,6 +45,8 @@ func _on_pressed() -> void:
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
 		if bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
+			continue
+		if String(e.get("force", "")).is_empty():
 			continue
 		choices.append({
 			"label": String(e.get("name", eid)),
