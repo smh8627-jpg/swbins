@@ -99,6 +99,27 @@ var _cd_sage_quake := 0.0
 var _cd_sage_beam := 0.0
 var _cd_sage_ward := 0.0
 
+## **2026-09-13 추가(같은 날 더 더 더) — tier1 다섯째·여섯째 무예
+## 여덟(파공검·생기결 등) + 그 여덟이 여는 tier2 나머지 여덟(벽공검
+## 등, story_combat.gd SKILL_NEED 머리말 참고).** 입력은 tier1이
+## story_job_skill_5~6, tier2가 story_job_skill2_4~5.
+var _cd_warrior_edge := 0.0
+var _cd_warrior_vital := 0.0
+var _cd_archer_retreat := 0.0
+var _cd_archer_burst := 0.0
+var _cd_rogue_whirl := 0.0
+var _cd_rogue_dart := 0.0
+var _cd_mage_step := 0.0
+var _cd_mage_orb := 0.0
+var _cd_general_edge := 0.0
+var _cd_general_vital := 0.0
+var _cd_sniper_retreat := 0.0
+var _cd_sniper_burst := 0.0
+var _cd_assassin_whirl := 0.0
+var _cd_assassin_dart := 0.0
+var _cd_sage_step := 0.0
+var _cd_sage_orb := 0.0
+
 ## **2026-09-13 추가(같은 날 더 더) — job 버프 배율을 캐스팅 시점에
 ## 저장한다.** 지금까지 `_effective_atk()`/`take_damage()`가 매 프레임
 ## `job`에서 배율을 다시 골라 왔는데(철갑=WARRIOR_IRON_ATK_MUL 등),
@@ -199,6 +220,22 @@ func _physics_process(delta: float) -> void:
 	_cd_sage_quake = maxf(0.0, _cd_sage_quake - delta)
 	_cd_sage_beam = maxf(0.0, _cd_sage_beam - delta)
 	_cd_sage_ward = maxf(0.0, _cd_sage_ward - delta)
+	_cd_warrior_edge = maxf(0.0, _cd_warrior_edge - delta)
+	_cd_warrior_vital = maxf(0.0, _cd_warrior_vital - delta)
+	_cd_archer_retreat = maxf(0.0, _cd_archer_retreat - delta)
+	_cd_archer_burst = maxf(0.0, _cd_archer_burst - delta)
+	_cd_rogue_whirl = maxf(0.0, _cd_rogue_whirl - delta)
+	_cd_rogue_dart = maxf(0.0, _cd_rogue_dart - delta)
+	_cd_mage_step = maxf(0.0, _cd_mage_step - delta)
+	_cd_mage_orb = maxf(0.0, _cd_mage_orb - delta)
+	_cd_general_edge = maxf(0.0, _cd_general_edge - delta)
+	_cd_general_vital = maxf(0.0, _cd_general_vital - delta)
+	_cd_sniper_retreat = maxf(0.0, _cd_sniper_retreat - delta)
+	_cd_sniper_burst = maxf(0.0, _cd_sniper_burst - delta)
+	_cd_assassin_whirl = maxf(0.0, _cd_assassin_whirl - delta)
+	_cd_assassin_dart = maxf(0.0, _cd_assassin_dart - delta)
+	_cd_sage_step = maxf(0.0, _cd_sage_step - delta)
+	_cd_sage_orb = maxf(0.0, _cd_sage_orb - delta)
 	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
 	## m_talis(부적)·p_ward(호신부)가 걸려 있으면 mp 회복이 배로 빨라진다
 	## (side.js MP_REGEN*bf.regen과 같은 자리) — 다른 job 버프는 regen이
@@ -244,6 +281,10 @@ func _physics_process(delta: float) -> void:
 			_cast_warrior_rush()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_warrior_iron()
+		if Input.is_action_just_pressed("story_job_skill_5"):
+			_cast_warrior_edge()
+		if Input.is_action_just_pressed("story_job_skill_6"):
+			_cast_warrior_vital()
 	elif chain.has("archer"):
 		if Input.is_action_just_pressed("story_job_skill_1"):
 			_cast_archer_shot()
@@ -253,6 +294,10 @@ func _physics_process(delta: float) -> void:
 			_cast_archer_pierce()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_archer_eye()
+		if Input.is_action_just_pressed("story_job_skill_5"):
+			_cast_archer_retreat()
+		if Input.is_action_just_pressed("story_job_skill_6"):
+			_cast_archer_burst()
 	elif chain.has("rogue"):
 		if Input.is_action_just_pressed("story_job_skill_1"):
 			_cast_rogue_twin()
@@ -262,6 +307,10 @@ func _physics_process(delta: float) -> void:
 			_cast_rogue_step()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_rogue_vital()
+		if Input.is_action_just_pressed("story_job_skill_5"):
+			_cast_rogue_whirl()
+		if Input.is_action_just_pressed("story_job_skill_6"):
+			_cast_rogue_dart()
 	elif chain.has("mage"):
 		if Input.is_action_just_pressed("story_job_skill_1"):
 			_cast_mage_fire()
@@ -271,6 +320,10 @@ func _physics_process(delta: float) -> void:
 			_cast_mage_heal()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_mage_talis()
+		if Input.is_action_just_pressed("story_job_skill_5"):
+			_cast_mage_step()
+		if Input.is_action_just_pressed("story_job_skill_6"):
+			_cast_mage_orb()
 
 	## **2026-09-13 추가(같은 날 더 더) — tier2 무예 열둘.** 위 tier1
 	## 분기와 별개 입력 액션(story_job_skill2_1~3, 갈래마다 셋뿐이라
@@ -284,6 +337,10 @@ func _physics_process(delta: float) -> void:
 			_cast_general_roar()
 		if Input.is_action_just_pressed("story_job_skill2_3"):
 			_cast_general_wall()
+		if Input.is_action_just_pressed("story_job_skill2_4"):
+			_cast_general_edge()
+		if Input.is_action_just_pressed("story_job_skill2_5"):
+			_cast_general_vital()
 	elif chain.has("sniper"):
 		if Input.is_action_just_pressed("story_job_skill2_1"):
 			_cast_sniper_rain()
@@ -291,6 +348,10 @@ func _physics_process(delta: float) -> void:
 			_cast_sniper_snipe()
 		if Input.is_action_just_pressed("story_job_skill2_3"):
 			_cast_sniper_split()
+		if Input.is_action_just_pressed("story_job_skill2_4"):
+			_cast_sniper_retreat()
+		if Input.is_action_just_pressed("story_job_skill2_5"):
+			_cast_sniper_burst()
 	elif chain.has("assassin"):
 		if Input.is_action_just_pressed("story_job_skill2_1"):
 			_cast_assassin_storm()
@@ -298,6 +359,10 @@ func _physics_process(delta: float) -> void:
 			_cast_assassin_fan()
 		if Input.is_action_just_pressed("story_job_skill2_3"):
 			_cast_assassin_shadow()
+		if Input.is_action_just_pressed("story_job_skill2_4"):
+			_cast_assassin_whirl()
+		if Input.is_action_just_pressed("story_job_skill2_5"):
+			_cast_assassin_dart()
 	elif chain.has("sage"):
 		if Input.is_action_just_pressed("story_job_skill2_1"):
 			_cast_sage_quake()
@@ -305,6 +370,10 @@ func _physics_process(delta: float) -> void:
 			_cast_sage_beam()
 		if Input.is_action_just_pressed("story_job_skill2_3"):
 			_cast_sage_ward()
+		if Input.is_action_just_pressed("story_job_skill2_4"):
+			_cast_sage_step()
+		if Input.is_action_just_pressed("story_job_skill2_5"):
+			_cast_sage_orb()
 
 
 func _walk(delta: float) -> void:
@@ -531,6 +600,29 @@ func _cast_warrior_iron() -> void:
 	_job_buff_regen_mul = 1.0
 
 
+## 파공검(w_edge) — bolt. 기탄과 같은 재해석(사거리 2배).
+func _cast_warrior_edge() -> void:
+	var lv := StorySaveState.skill_level("w_edge")
+	if lv <= 0 or _cd_warrior_edge > 0.0 or mp < StoryCombat.WARRIOR_EDGE_COST:
+		return
+	_cd_warrior_edge = StoryCombat.WARRIOR_EDGE_CD
+	mp -= StoryCombat.WARRIOR_EDGE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WARRIOR_EDGE_BASE, StoryCombat.WARRIOR_EDGE_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.WARRIOR_EDGE_RANGE_MUL, mul)
+
+
+## 생기결(w_vital) — heal. 치유(m_heal)와 같은 공식.
+func _cast_warrior_vital() -> void:
+	var lv := StorySaveState.skill_level("w_vital")
+	if lv <= 0 or _cd_warrior_vital > 0.0 or mp < StoryCombat.WARRIOR_VITAL_COST:
+		return
+	_cd_warrior_vital = StoryCombat.WARRIOR_VITAL_CD
+	mp -= StoryCombat.WARRIOR_VITAL_COST
+	var pct := StoryCombat.skill_mul(StoryCombat.WARRIOR_VITAL_BASE, StoryCombat.WARRIOR_VITAL_PER, lv)
+	hp = clampf(hp + max_hp * pct, 0.0, max_hp)
+
+
 ## 사격(a_shot) — arrow. 참격(w_cut)과 같은 정면 판정·사거리(원문에 별도
 ## 사거리가 없다, story_combat.gd 머리말) — mul만 다르다.
 func _cast_archer_shot() -> void:
@@ -580,6 +672,43 @@ func _cast_archer_eye() -> void:
 	_job_buff_atk_mul = StoryCombat.ARCHER_EYE_ATK_MUL
 	_job_buff_guard = 0.0
 	_job_buff_regen_mul = 1.0
+
+
+## 퇴보사(a_retreat) — dash, 원문 그대로 **뒤로** 물러나며 쏜다(다른
+## dash류는 전부 전진 — 이 무예만 이동 방향을 반대로 뒤집는다).
+func _cast_archer_retreat() -> void:
+	var lv := StorySaveState.skill_level("a_retreat")
+	if lv <= 0 or _cd_archer_retreat > 0.0 or mp < StoryCombat.ARCHER_RETREAT_COST:
+		return
+	_cd_archer_retreat = StoryCombat.ARCHER_RETREAT_CD
+	mp -= StoryCombat.ARCHER_RETREAT_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.archer_retreat_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.ARCHER_RETREAT_BASE, StoryCombat.ARCHER_RETREAT_PER, lv))
+	global_position.x -= dist_m * _facing
+
+
+## 환시(a_burst) — aoe, r:110px. 선풍과 같은 360도 판정 구조.
+func _cast_archer_burst() -> void:
+	var lv := StorySaveState.skill_level("a_burst")
+	if lv <= 0 or _cd_archer_burst > 0.0 or mp < StoryCombat.ARCHER_BURST_COST:
+		return
+	_cd_archer_burst = StoryCombat.ARCHER_BURST_CD
+	mp -= StoryCombat.ARCHER_BURST_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ARCHER_BURST_BASE, StoryCombat.ARCHER_BURST_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.ARCHER_BURST_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
 
 
 ## 쌍참(r_twin) — melee, hits:2. 연사(a_double)와 같은 재해석(정면 판정을
@@ -634,6 +763,41 @@ func _cast_rogue_vital() -> void:
 	_job_buff_atk_mul = StoryCombat.ROGUE_VITAL_ATK_MUL
 	_job_buff_guard = 0.0
 	_job_buff_regen_mul = 1.0
+
+
+## 선풍각(r_whirl) — aoe, r:110px. 선풍과 같은 360도 판정 구조.
+func _cast_rogue_whirl() -> void:
+	var lv := StorySaveState.skill_level("r_whirl")
+	if lv <= 0 or _cd_rogue_whirl > 0.0 or mp < StoryCombat.ROGUE_WHIRL_COST:
+		return
+	_cd_rogue_whirl = StoryCombat.ROGUE_WHIRL_CD
+	mp -= StoryCombat.ROGUE_WHIRL_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ROGUE_WHIRL_BASE, StoryCombat.ROGUE_WHIRL_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.ROGUE_WHIRL_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 관통표(r_dart) — bolt. 기탄과 같은 재해석(사거리 2배).
+func _cast_rogue_dart() -> void:
+	var lv := StorySaveState.skill_level("r_dart")
+	if lv <= 0 or _cd_rogue_dart > 0.0 or mp < StoryCombat.ROGUE_DART_COST:
+		return
+	_cd_rogue_dart = StoryCombat.ROGUE_DART_CD
+	mp -= StoryCombat.ROGUE_DART_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ROGUE_DART_BASE, StoryCombat.ROGUE_DART_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.ROGUE_DART_RANGE_MUL, mul)
 
 
 ## 화구(m_fire) — bolt. 기탄·관통시와 같은 재해석(사거리 2배).
@@ -698,6 +862,33 @@ func _cast_mage_talis() -> void:
 	_job_buff_regen_mul = StoryCombat.MAGE_TALIS_REGEN_MUL
 
 
+## 축지(m_step) — dash + invuln:0.5. 은신보와 같은 순서.
+func _cast_mage_step() -> void:
+	var lv := StorySaveState.skill_level("m_step")
+	if lv <= 0 or _cd_mage_step > 0.0 or mp < StoryCombat.MAGE_STEP_COST:
+		return
+	_cd_mage_step = StoryCombat.MAGE_STEP_CD
+	mp -= StoryCombat.MAGE_STEP_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.mage_step_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.MAGE_STEP_BASE, StoryCombat.MAGE_STEP_PER, lv))
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.MAGE_STEP_INVULN_SEC)
+
+
+## 마탄(m_orb) — volley(shots:3). 연사와 같은 재해석.
+func _cast_mage_orb() -> void:
+	var lv := StorySaveState.skill_level("m_orb")
+	if lv <= 0 or _cd_mage_orb > 0.0 or mp < StoryCombat.MAGE_ORB_COST:
+		return
+	_cd_mage_orb = StoryCombat.MAGE_ORB_CD
+	mp -= StoryCombat.MAGE_ORB_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.MAGE_ORB_BASE, StoryCombat.MAGE_ORB_PER, lv)
+	for i in StoryCombat.MAGE_ORB_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
 ## 패왕격(g_smash) — melee, hits:2. 참격(w_cut)과 같은 정면 판정.
 func _cast_general_smash() -> void:
 	var lv := StorySaveState.skill_level("g_smash")
@@ -746,6 +937,29 @@ func _cast_general_wall() -> void:
 	_job_buff_regen_mul = 1.0
 
 
+## 벽공검(g_edge) — bolt. 파공검과 같은 재해석(사거리 2배).
+func _cast_general_edge() -> void:
+	var lv := StorySaveState.skill_level("g_edge")
+	if lv <= 0 or _cd_general_edge > 0.0 or mp < StoryCombat.GENERAL_EDGE_COST:
+		return
+	_cd_general_edge = StoryCombat.GENERAL_EDGE_CD
+	mp -= StoryCombat.GENERAL_EDGE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.GENERAL_EDGE_BASE, StoryCombat.GENERAL_EDGE_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.GENERAL_EDGE_RANGE_MUL, mul)
+
+
+## 회천결(g_vital) — heal. 생기결과 같은 공식.
+func _cast_general_vital() -> void:
+	var lv := StorySaveState.skill_level("g_vital")
+	if lv <= 0 or _cd_general_vital > 0.0 or mp < StoryCombat.GENERAL_VITAL_COST:
+		return
+	_cd_general_vital = StoryCombat.GENERAL_VITAL_CD
+	mp -= StoryCombat.GENERAL_VITAL_COST
+	var pct := StoryCombat.skill_mul(StoryCombat.GENERAL_VITAL_BASE, StoryCombat.GENERAL_VITAL_PER, lv)
+	hp = clampf(hp + max_hp * pct, 0.0, max_hp)
+
+
 ## 전우(s_rain) — 원문 effect:'rain', 사격(a_shot)과 같은 단순 정면 재해석.
 func _cast_sniper_rain() -> void:
 	var lv := StorySaveState.skill_level("s_rain")
@@ -780,6 +994,42 @@ func _cast_sniper_split() -> void:
 	var mul := StoryCombat.skill_mul(StoryCombat.SNIPER_SPLIT_BASE, StoryCombat.SNIPER_SPLIT_PER, lv)
 	for i in StoryCombat.SNIPER_SPLIT_SHOTS:
 		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 활보사(s_retreat) — dash, 퇴보사와 같은 재해석(뒤로 물러난다).
+func _cast_sniper_retreat() -> void:
+	var lv := StorySaveState.skill_level("s_retreat")
+	if lv <= 0 or _cd_sniper_retreat > 0.0 or mp < StoryCombat.SNIPER_RETREAT_COST:
+		return
+	_cd_sniper_retreat = StoryCombat.SNIPER_RETREAT_CD
+	mp -= StoryCombat.SNIPER_RETREAT_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.sniper_retreat_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.SNIPER_RETREAT_BASE, StoryCombat.SNIPER_RETREAT_PER, lv))
+	global_position.x -= dist_m * _facing
+
+
+## 광환시(s_burst) — aoe, r:140px.
+func _cast_sniper_burst() -> void:
+	var lv := StorySaveState.skill_level("s_burst")
+	if lv <= 0 or _cd_sniper_burst > 0.0 or mp < StoryCombat.SNIPER_BURST_COST:
+		return
+	_cd_sniper_burst = StoryCombat.SNIPER_BURST_CD
+	mp -= StoryCombat.SNIPER_BURST_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.SNIPER_BURST_BASE, StoryCombat.SNIPER_BURST_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.SNIPER_BURST_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
 
 
 ## 난무(x_storm) — melee, hits:4.
@@ -820,6 +1070,41 @@ func _cast_assassin_shadow() -> void:
 	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.ASSASSIN_SHADOW_BASE, StoryCombat.ASSASSIN_SHADOW_PER, lv))
 	global_position.x += dist_m * _facing
 	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.ASSASSIN_SHADOW_INVULN_SEC)
+
+
+## 질풍각(x_whirl) — aoe, r:140px.
+func _cast_assassin_whirl() -> void:
+	var lv := StorySaveState.skill_level("x_whirl")
+	if lv <= 0 or _cd_assassin_whirl > 0.0 or mp < StoryCombat.ASSASSIN_WHIRL_COST:
+		return
+	_cd_assassin_whirl = StoryCombat.ASSASSIN_WHIRL_CD
+	mp -= StoryCombat.ASSASSIN_WHIRL_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ASSASSIN_WHIRL_BASE, StoryCombat.ASSASSIN_WHIRL_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.ASSASSIN_WHIRL_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 암습표(x_dart) — bolt. 관통표와 같은 재해석(사거리 2배).
+func _cast_assassin_dart() -> void:
+	var lv := StorySaveState.skill_level("x_dart")
+	if lv <= 0 or _cd_assassin_dart > 0.0 or mp < StoryCombat.ASSASSIN_DART_COST:
+		return
+	_cd_assassin_dart = StoryCombat.ASSASSIN_DART_CD
+	mp -= StoryCombat.ASSASSIN_DART_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ASSASSIN_DART_BASE, StoryCombat.ASSASSIN_DART_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.ASSASSIN_DART_RANGE_MUL, mul)
 
 
 ## 지진(p_quake) — aoe, r:230px.
@@ -866,6 +1151,33 @@ func _cast_sage_ward() -> void:
 	_job_buff_atk_mul = StoryCombat.SAGE_WARD_ATK_MUL
 	_job_buff_guard = StoryCombat.SAGE_WARD_GUARD
 	_job_buff_regen_mul = StoryCombat.SAGE_WARD_REGEN_MUL
+
+
+## 축지술(p_step) — dash + invuln:0.7. 축지와 같은 재해석(더 크게 나아간다).
+func _cast_sage_step() -> void:
+	var lv := StorySaveState.skill_level("p_step")
+	if lv <= 0 or _cd_sage_step > 0.0 or mp < StoryCombat.SAGE_STEP_COST:
+		return
+	_cd_sage_step = StoryCombat.SAGE_STEP_CD
+	mp -= StoryCombat.SAGE_STEP_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.sage_step_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.SAGE_STEP_BASE, StoryCombat.SAGE_STEP_PER, lv))
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.SAGE_STEP_INVULN_SEC)
+
+
+## 연환탄(p_orb) — volley(shots:4). 마탄과 같은 재해석.
+func _cast_sage_orb() -> void:
+	var lv := StorySaveState.skill_level("p_orb")
+	if lv <= 0 or _cd_sage_orb > 0.0 or mp < StoryCombat.SAGE_ORB_COST:
+		return
+	_cd_sage_orb = StoryCombat.SAGE_ORB_CD
+	mp -= StoryCombat.SAGE_ORB_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.SAGE_ORB_BASE, StoryCombat.SAGE_ORB_PER, lv)
+	for i in StoryCombat.SAGE_ORB_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
 
 
 func _play_anim(anim_name: String) -> void:

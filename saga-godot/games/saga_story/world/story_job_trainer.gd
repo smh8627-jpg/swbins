@@ -130,6 +130,12 @@ func _process(_delta: float) -> void:
 		_raise(1)
 		_raise(2)
 		_raise(3)
+		## **2026-09-13 추가(같은 날 더 더 더) — tier1 다섯째·여섯째 무예.**
+		## story_job_5/6(물리키 5·6) — tier2(다섯 자리뿐)는 _raise()가
+		## idx>=keys.size()면 조용히 넘어가므로 6번째(story_job_6)는
+		## 자연히 안 쓰인다.
+		_raise(4)
+		_raise(5)
 		return
 	for i in JOB_ORDER.size():
 		if Input.is_action_just_pressed("story_job_%d" % (i + 1)):

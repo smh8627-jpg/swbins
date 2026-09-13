@@ -1561,6 +1561,71 @@ marshal 진급 불가, Lv8부터 가능(job_advance_skill_gate=8 회귀 확인,
 그 전까지는 STORY 밖(다른 판)으로 옮겨 가거나, 이 포트가 아직 안 건드린
 다른 굵직한 후보(가방·상점 확장 등)를 볼 자리.
 
+
+## 29. tier1 다섯째·여섯째 무예 + tier2 완주 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해 묻지말고"** — 28절이 남긴 "다음
+이어질 것"을 채웠다. data-job.js SKILLS job:'warrior' 등 tier1
+갈래마다 실제로는 여섯 개인데(다섯째·여섯째는 이 포트가 각각
+2026-09-10/11에 원문 데이터로만 존재를 적어 뒀을 뿐, `story_player.gd`
+입력·`story_combat.gd` 상수는 여태 넷뿐이었다) — 이번에 그 나머지
+여덟(파공검·생기결/퇴보사·환시/선풍각·관통표/축지·마탄)을 채웠다.
+그러면서 28절이 "다섯째·여섯째가 옮겨지면 같이 열린다"고 적어 둔 tier2
+나머지 여덟(벽공검·회천결/활보사·광환시/질풍각·암습표/축지술·연환탄)도
+**같이** 채워, data-job.js tier2 스물(4갈래×5개)이 이걸로 전부 이
+포트에 옮겨졌다. 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md`
+(이 절) — PROJECT_STATE.md에도 요약.
+
+**재해석은 전부 기존 관례 재사용** — 새 effect·새 환산 규칙을 하나도
+안 만들었다: retreat류(퇴보사·활보사)는 dash를 반대 방향으로(다른
+dash는 전부 전진), heal류(생기결·회천결)는 치유(m_heal) 공식 그대로,
+aoe/bolt/volley류는 각각 REACH비·BOLT_RANGE_MUL(2.0)·반복 melee_hit
+패턴을 그대로 따랐다.
+
+**입력** — tier1은 `story_job_skill_5~6`(물리키 R·T), tier2는
+`story_job_skill2_4~5`(물리키 Y·Q) 신규. SP 투자는
+`story_job_trainer.gd _raise()`에 `_raise(4)`/`_raise(5)` 두 줄만
+추가(새 물리키 `story_job_5`=5, `story_job_6`=6)했다 — tier2(다섯
+자리뿐)는 idx>=keys.size()로 6번째가 자연히 안 쓰인다.
+
+- `story_combat.gd`: `SKILL_JOB`·`JOB_SKILL_KEYS`(tier1 넷→여섯,
+  tier2 넷→다섯)·`SKILL_NEED`(tier2 나머지 여덟) 확장. 열여섯 스킬의
+  cost/cd/mul 상수, `archer_retreat_dist_m()`/`mage_step_dist_m()`/
+  `sniper_retreat_dist_m()`/`sage_step_dist_m()` 신규.
+- `story_player.gd`: cd 변수 열여섯, 입력 분기(`story_job_skill_5~6`·
+  `story_job_skill2_4~5`) 신규, 캐스트 함수 열여섯 신규(retreat류는
+  `global_position.x -=`로 이동 방향을 반대로).
+- `story_job_trainer.gd`: `_raise(4)`/`_raise(5)` 추가.
+- `project.godot`: `story_job_5~6`(물리키 5·6)·`story_job_skill_5~6`
+  (물리키 R·T)·`story_job_skill2_4~5`(물리키 Y·Q) 여섯 개 신규 — 기존
+  입력이 안 쓰던 키 확인 후 골랐다.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → `project.godot` diff가 입력 액션 30줄뿐인지 확인 →
+STORY 필드 씬 아홉 개 + 기본 씬 각 세 번씩, 전부 exit 0·로그 완전
+동일(다섯 판 회귀 포함). **임시 검증 스크립트**(28절과 같은 방식,
+`--script`로 StorySaveState 직접 preload)로: 네 tier1 job이 정확히
+6개·네 tier2 job이 정확히 5개(SKILL_JOB/SKILL_NEED 정합 포함) →
+tier1 다섯째·여섯째는 SKILL_NEED가 아예 없어야 함(확인) → w_edge는
+선행 없이 SP만 있으면 즉시 투자 가능 → g_edge/g_vital/s_retreat/
+s_burst/x_whirl/x_dart/p_step/p_orb 여덟 전부 각자의 선행(w_edge 등)
+Lv5 게이트가 정확히 걸림 → skill_mul 네 표본(파공검·마탄·벽공검·연환탄)
+손계산과 일치 → range/dist 환산 상수(환시·귀영 그림자밟기·도사 축지술·
+방사 축지·궁수 퇴보사·신궁 활보사) 전부 손계산과 일치 → marshal 진급
+회귀(27·28절 로직) 그대로 살아 있음 확인 — 전부 예측과 정확히 일치.
+검증 스크립트 삭제 후 재검증(diff 0)까지 마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — R·T·Y·Q키로 실제 무예가 나가는지,
+퇴보사/활보사가 진짜 뒤로 물러나는 손맛은 눈으로 볼 것. 계속 몰아서
+받을 것.
+
+**다음 이어질 것** — data-job.js SKILLS의 tier1·tier2는 이걸로 전부
+이 포트에 옮겨졌다(무명 넷 포함 총 24+20=44개 중 실제 캐스팅 가능한
+전부). 남은 굵직한 후보는 **tier3(marshal 등, 6개씩×4갈래=24개)**·
+**tier4(warlord 등, 6개씩×4갈래=24개)** — 진급 자체(`advance_job`)는
+이미 사슬·게이트까지 되어 있어 무예만 채우면 tier4 진급 문까지 열린다.
+그 밖엔 STORY 밖(다른 판)이거나 가방·상점 확장 등 다른 후보.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

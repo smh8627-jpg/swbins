@@ -373,38 +373,53 @@ const SKILL_JOB := {
 	"s_rain": "sniper", "s_snipe": "sniper", "s_split": "sniper",
 	"x_storm": "assassin", "x_fan": "assassin", "x_shadow": "assassin",
 	"p_quake": "sage", "p_beam": "sage", "p_ward": "sage",
+	## **2026-09-13 추가(같은 날 더 더 더) — tier1 다섯째·여섯째 여덟.**
+	## 아래 JOB_SKILL_KEYS 머리말 참고.
+	"w_edge": "warrior", "w_vital": "warrior",
+	"a_retreat": "archer", "a_burst": "archer",
+	"r_whirl": "rogue", "r_dart": "rogue",
+	"m_step": "mage", "m_orb": "mage",
+	## 그 다섯째·여섯째가 열어 주는 tier2 나머지 여덟(SKILL_NEED 참고).
+	"g_edge": "general", "g_vital": "general",
+	"s_retreat": "sniper", "s_burst": "sniper",
+	"x_whirl": "assassin", "x_dart": "assassin",
+	"p_step": "sage", "p_orb": "sage",
 }
 
-## job → 그 직업 무예 넷의 key(입력 액션 story_job_skill_1~4·story_job_1~4
-## 순서와 정확히 같다) — story_job_trainer.gd의 SP 투자 배선이 쓴다.
+## job → 그 직업 무예 key 목록. tier1(여섯)은 data-job.js SKILLS 등장
+## 순서 그대로(cut/whirl/rush/iron/edge/vital 등) — 입력 액션
+## story_job_skill_1~6·SP 투자 story_job_1~6과 정확히 같은 순서.
+## tier2(다섯)도 마찬가지로 story_job_skill2_1~5·같은 story_job_1~5.
+## story_job_trainer.gd의 SP 투자 배선이 이 순서를 그대로 쓴다.
 const JOB_SKILL_KEYS := {
-	"warrior": ["w_cut", "w_whirl", "w_rush", "w_iron"],
-	"archer": ["a_shot", "a_double", "a_pierce", "a_eye"],
-	"rogue": ["r_twin", "r_knife", "r_step", "r_vital"],
-	"mage": ["m_fire", "m_bolt", "m_heal", "m_talis"],
-	## tier2는 갈래마다 셋뿐이다(아래 SKILL_NEED 머리말 참고) — story_job_
-	## trainer.gd `_raise()`가 idx>=keys.size()면 조용히 넘어가므로 넷째
-	## 자리(물리키 4)는 그냥 안 쓰인다.
-	"general": ["g_smash", "g_roar", "g_wall"],
-	"sniper": ["s_rain", "s_snipe", "s_split"],
-	"assassin": ["x_storm", "x_fan", "x_shadow"],
-	"sage": ["p_quake", "p_beam", "p_ward"],
+	"warrior": ["w_cut", "w_whirl", "w_rush", "w_iron", "w_edge", "w_vital"],
+	"archer": ["a_shot", "a_double", "a_pierce", "a_eye", "a_retreat", "a_burst"],
+	"rogue": ["r_twin", "r_knife", "r_step", "r_vital", "r_whirl", "r_dart"],
+	"mage": ["m_fire", "m_bolt", "m_heal", "m_talis", "m_step", "m_orb"],
+	## story_job_trainer.gd `_raise()`가 idx>=keys.size()면 조용히
+	## 넘어가므로 tier1의 6번째 자리(물리키 6)는 tier2에서 그냥 안 쓰인다.
+	"general": ["g_smash", "g_roar", "g_wall", "g_edge", "g_vital"],
+	"sniper": ["s_rain", "s_snipe", "s_split", "s_retreat", "s_burst"],
+	"assassin": ["x_storm", "x_fan", "x_shadow", "x_whirl", "x_dart"],
+	"sage": ["p_quake", "p_beam", "p_ward", "p_step", "p_orb"],
 }
 
 ## **2026-09-13 추가(같은 날 더 더) — 2~4차 전직 다음 걸음: tier2 무예
 ## 열둘.** data-job.js SKILLS의 tier2 스물(4갈래×5개) 중, 이 포트가 옮긴
 ## tier1 넷(cut/whirl/rush/iron 등) 안에 실제로 `need`가 걸리는 것만
-## 골랐다 — 갈래마다 정확히 셋(장군·신궁·자객·도사 각 3개=12개). 나머지
-## (g_edge/g_vital·s_retreat/s_burst·x_whirl/x_dart·p_step/p_orb)는 그
-## 다섯째·여섯째 tier1 무예(w_edge 등, data-job.js에는 있지만 이 포트는
-## 아직 안 옮겼다)가 없어 자연히 범위 밖 — 다음에 그 tier1 넷을 채우면
-## 같이 열린다. 돌진(w_rush)·응안(a_eye)·급소(r_vital)·치유(m_heal)는
-## 원문 자체에 tier2 대응이 없다(임의로 건너뛴 게 아니라 데이터가 그렇다
-## — 3차에서 바로 이어진다, JOB_FROM 위 다른 갈래도 같은 결).
+## 골랐다 — 갈래마다 정확히 셋(장군·신궁·자객·도사 각 3개=12개).
 ##
 ## **`need`(선행 무예 lv5 이상) 게이트를 이번에 처음 실제로 켠다** —
 ## tier1엔 need가 없어 이 조건 자체가 없었지만, tier2부터는 원문에
 ## 실존하는 규칙이라 `StorySaveState.can_raise_skill()`이 이제 확인한다.
+##
+## **2026-09-13 추가(같은 날 더 더 더) — tier1 다섯째·여섯째(파공검·
+## 생기결 등 여덟)를 마저 채우면서, 그 여덟에 need가 걸린 tier2 나머지
+## 여덟(g_edge/g_vital·s_retreat/s_burst·x_whirl/x_dart·p_step/p_orb)도
+## 이번에 같이 채웠다** — 28절이 "다섯째·여섯째 tier1이 옮겨지면 같이
+## 열린다"고 적어 둔 그대로, 이걸로 data-job.js tier2 스물(4갈래×5개)이
+## 전부 옮겨졌다. 돌진(w_rush)·응안(a_eye)·급소(r_vital)·치유(m_heal)만
+## 여전히 tier2 대응이 없다(원문 자체가 그렇다 — 3차에서 바로 이어진다).
 const SKILL_NEED := {
 	"g_smash": {"key": "w_cut", "lv": 5},
 	"g_roar": {"key": "w_whirl", "lv": 5},
@@ -418,6 +433,14 @@ const SKILL_NEED := {
 	"p_quake": {"key": "m_bolt", "lv": 5},
 	"p_beam": {"key": "m_fire", "lv": 5},
 	"p_ward": {"key": "m_talis", "lv": 5},
+	"g_edge": {"key": "w_edge", "lv": 5},
+	"g_vital": {"key": "w_vital", "lv": 5},
+	"s_retreat": {"key": "a_retreat", "lv": 5},
+	"s_burst": {"key": "a_burst", "lv": 5},
+	"x_whirl": {"key": "r_whirl", "lv": 5},
+	"x_dart": {"key": "r_dart", "lv": 5},
+	"p_step": {"key": "m_step", "lv": 5},
+	"p_orb": {"key": "m_orb", "lv": 5},
 }
 
 
@@ -454,6 +477,23 @@ const WARRIOR_IRON_GUARD := 0.35
 
 static func warrior_rush_dist_m() -> float:
 	return WARRIOR_RUSH_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## **2026-09-13 추가(같은 날 더 더 더) — 무사 다섯째·여섯째 무예
+## (파공검·생기결).** data-job.js SKILLS job:'warrior' 나머지 둘 —
+## w_edge는 원문 effect가 이미 'bolt'(기탄과 같은 재해석, 사거리 2배).
+## w_vital은 이 포트에 tier1 최초의 heal(치유는 mage 몫이었는데, 무사도
+## 자가 치유를 갖는다 — mage m_heal과 같은 공식을 그대로 재사용).
+const WARRIOR_EDGE_COST := 18.0
+const WARRIOR_EDGE_CD := 5.0
+const WARRIOR_EDGE_BASE := 1.6
+const WARRIOR_EDGE_PER := 0.14
+const WARRIOR_EDGE_RANGE_MUL := 2.0  # BOLT_RANGE_MUL과 같은 재해석, warrior 몫
+
+const WARRIOR_VITAL_COST := 24.0
+const WARRIOR_VITAL_CD := 18.0
+const WARRIOR_VITAL_BASE := 0.14
+const WARRIOR_VITAL_PER := 0.016
 
 
 ## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 궁수(archer)
@@ -496,6 +536,27 @@ const ARCHER_EYE_SEC := 9.0
 const ARCHER_EYE_ATK_MUL := 1.4
 
 
+## **2026-09-13 추가(같은 날 더 더 더) — 궁수 다섯째·여섯째 무예
+## (퇴보사·환시).** a_retreat는 dash지만 원문 자체가 "뒤로 물러나며"라
+## _cast_archer_retreat()가 이동 방향을 반대로 뒤집는다(다른 dash류는
+## 전부 전진). a_burst는 원문 effect가 이미 'aoe'(선풍각과 같은 재해석).
+const ARCHER_RETREAT_COST := 20.0
+const ARCHER_RETREAT_CD := 6.0
+const ARCHER_RETREAT_BASE := 1.3
+const ARCHER_RETREAT_PER := 0.11
+const ARCHER_RETREAT_DIST_PX := 180.0
+
+const ARCHER_BURST_COST := 20.0
+const ARCHER_BURST_CD := 5.0
+const ARCHER_BURST_BASE := 1.4
+const ARCHER_BURST_PER := 0.12
+const ARCHER_BURST_RANGE_MUL := 110.0 / 78.0
+
+
+static func archer_retreat_dist_m() -> float:
+	return ARCHER_RETREAT_DIST_PX * WARRIOR_RUSH_SCALE
+
+
 ## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 협객(rogue)
 ## 무예 넷.** data-job.js SKILLS job:'rogue' 넷(r_twin/r_knife/r_step/
 ## r_vital) — 같은 FIXED_SKILL_LEVEL(5).
@@ -532,6 +593,22 @@ const ROGUE_VITAL_COST := 26.0
 const ROGUE_VITAL_CD := 15.0
 const ROGUE_VITAL_SEC := 8.0
 const ROGUE_VITAL_ATK_MUL := 1.55
+
+
+## **2026-09-13 추가(같은 날 더 더 더) — 협객 다섯째·여섯째 무예
+## (선풍각·관통표).** r_whirl은 원문 effect가 이미 'aoe'(선풍과 같은
+## 재해석), r_dart는 이미 'bolt'(기탄과 같은 재해석, 사거리 2배).
+const ROGUE_WHIRL_COST := 20.0
+const ROGUE_WHIRL_CD := 5.0
+const ROGUE_WHIRL_BASE := 1.4
+const ROGUE_WHIRL_PER := 0.12
+const ROGUE_WHIRL_RANGE_MUL := 110.0 / 78.0
+
+const ROGUE_DART_COST := 18.0
+const ROGUE_DART_CD := 5.0
+const ROGUE_DART_BASE := 1.6
+const ROGUE_DART_PER := 0.14
+const ROGUE_DART_RANGE_MUL := 2.0  # BOLT_RANGE_MUL과 같은 재해석, rogue 몫
 
 
 static func rogue_step_dist_m() -> float:
@@ -574,6 +651,27 @@ const MAGE_TALIS_CD := 16.0
 const MAGE_TALIS_SEC := 10.0
 const MAGE_TALIS_ATK_MUL := 1.25
 const MAGE_TALIS_REGEN_MUL := 2.6
+
+
+## **2026-09-13 추가(같은 날 더 더 더) — 방사 다섯째·여섯째 무예
+## (축지·마탄).** m_step은 dash+invuln:0.5(은신보와 같은 구조). m_orb는
+## 원문 effect가 이미 'volley'(연사와 같은 재해석).
+const MAGE_STEP_COST := 22.0
+const MAGE_STEP_CD := 7.0
+const MAGE_STEP_BASE := 1.2
+const MAGE_STEP_PER := 0.1
+const MAGE_STEP_DIST_PX := 220.0
+const MAGE_STEP_INVULN_SEC := 0.5
+
+const MAGE_ORB_COST := 22.0
+const MAGE_ORB_CD := 3.4
+const MAGE_ORB_BASE := 1.1
+const MAGE_ORB_PER := 0.08
+const MAGE_ORB_SHOTS := 3
+
+
+static func mage_step_dist_m() -> float:
+	return MAGE_STEP_DIST_PX * WARRIOR_RUSH_SCALE
 
 
 ## **2026-09-13 추가(같은 날 더 더) — tier2 무예 열둘.** SKILL_NEED 머리말
@@ -673,6 +771,79 @@ const SAGE_WARD_SEC := 12.0
 const SAGE_WARD_ATK_MUL := 1.1
 const SAGE_WARD_GUARD := 0.4
 const SAGE_WARD_REGEN_MUL := 3.2
+
+
+## **2026-09-13 추가(같은 날 더 더 더) — tier2 나머지 여덟(SKILL_NEED
+## 머리말 참고).** 이걸로 data-job.js tier2 스물(4갈래×5개)이 전부
+## 옮겨졌다.
+
+## 벽공검(g_edge) — bolt. 파공검(w_edge)과 같은 재해석(사거리 2배).
+const GENERAL_EDGE_COST := 32.0
+const GENERAL_EDGE_CD := 7.0
+const GENERAL_EDGE_BASE := 2.8
+const GENERAL_EDGE_PER := 0.24
+const GENERAL_EDGE_RANGE_MUL := 2.0
+
+## 회천결(g_vital) — heal. 생기결(w_vital)과 같은 공식.
+const GENERAL_VITAL_COST := 36.0
+const GENERAL_VITAL_CD := 20.0
+const GENERAL_VITAL_BASE := 0.26
+const GENERAL_VITAL_PER := 0.024
+
+## 활보사(s_retreat) — dash, dist:240px. 퇴보사(a_retreat)와 같은
+## 재해석(뒤로 물러난다).
+const SNIPER_RETREAT_COST := 34.0
+const SNIPER_RETREAT_CD := 7.0
+const SNIPER_RETREAT_BASE := 2.3
+const SNIPER_RETREAT_PER := 0.2
+const SNIPER_RETREAT_DIST_PX := 240.0
+
+
+static func sniper_retreat_dist_m() -> float:
+	return SNIPER_RETREAT_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 광환시(s_burst) — aoe, r:140px. 환시(a_burst)와 같은 재해석.
+const SNIPER_BURST_COST := 34.0
+const SNIPER_BURST_CD := 6.0
+const SNIPER_BURST_BASE := 2.4
+const SNIPER_BURST_PER := 0.21
+const SNIPER_BURST_RANGE_MUL := 140.0 / 78.0
+
+## 질풍각(x_whirl) — aoe, r:140px. 선풍각(r_whirl)과 같은 재해석.
+const ASSASSIN_WHIRL_COST := 34.0
+const ASSASSIN_WHIRL_CD := 6.0
+const ASSASSIN_WHIRL_BASE := 2.4
+const ASSASSIN_WHIRL_PER := 0.21
+const ASSASSIN_WHIRL_RANGE_MUL := 140.0 / 78.0
+
+## 암습표(x_dart) — bolt. 관통표(r_dart)와 같은 재해석(사거리 2배).
+const ASSASSIN_DART_COST := 32.0
+const ASSASSIN_DART_CD := 7.0
+const ASSASSIN_DART_BASE := 2.8
+const ASSASSIN_DART_PER := 0.24
+const ASSASSIN_DART_RANGE_MUL := 2.0
+
+## 축지술(p_step) — dash, dist:280px + invuln:0.7. 축지(m_step)와 같은
+## 재해석(더 크게 나아간다).
+const SAGE_STEP_COST := 36.0
+const SAGE_STEP_CD := 8.0
+const SAGE_STEP_BASE := 2.0
+const SAGE_STEP_PER := 0.17
+const SAGE_STEP_DIST_PX := 280.0
+const SAGE_STEP_INVULN_SEC := 0.7
+
+
+static func sage_step_dist_m() -> float:
+	return SAGE_STEP_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 연환탄(p_orb) — volley(shots:4). 마탄(m_orb)과 같은 재해석.
+const SAGE_ORB_COST := 34.0
+const SAGE_ORB_CD := 5.0
+const SAGE_ORB_BASE := 1.5
+const SAGE_ORB_PER := 0.12
+const SAGE_ORB_SHOTS := 4
 
 
 static var _hitstop_active := false
