@@ -20,7 +20,7 @@ var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
 var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
-var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.GEAR_ITEMS 참고
+var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.item_def() 참고(밑감·고유 둘 다)
 var gold := 0  # side.js core.save.player.gold 그대로 — 상인(story_merchant.gd)이 쓴다
 var job := "none"  # data-job.js JOBS key — StoryCombat.JOBS_TIER1 참고, 한 번 정하면 안 바뀐다(전직 트리 첫 걸음)
 
@@ -87,7 +87,7 @@ func spend_gold(n: int) -> bool:
 	return true
 
 
-## 부위는 StoryCombat.GEAR_ITEMS[key].slot에서 뽑는다 — 호출 쪽이 슬롯을
+## 부위는 StoryCombat.item_def(key).slot에서 뽑는다 — 호출 쪽이 슬롯을
 ## 따로 안 넘겨도 된다(story_enemy.gd가 드롭 풀을 고를 때 이미 이 표를
 ## 훑으므로 중복 데이터가 안 생긴다).
 ##
@@ -95,8 +95,12 @@ func spend_gold(n: int) -> bool:
 ## `equip()` 그대로: `level`이 그 물건의 `need`에 못 미치면 거절(레벨은
 ## 내려가지 않으니, 한 번 낀 물건이 나중에 다시 거절되는 web의 "승급 전
 ## 세이브" 예외는 이 포트에선 안 생긴다 — bonus 쪽에 그 검사를 안 옮긴 이유).
+##
+## **2026-09-13 추가(같은 날 더 더, 고유) — GEAR_ITEMS 대신 item_def()로
+## 조회한다.** 고유(UNIQUE_ITEMS) key도 이 함수 하나로 낄 수 있어야
+## story_enemy.gd/story_gear_pickup.gd가 밑감과 고유를 구분 없이 넘길 수 있다.
 func equip_gear(key: String) -> bool:
-	var it: Dictionary = StoryCombat.GEAR_ITEMS.get(key, {})
+	var it: Dictionary = StoryCombat.item_def(key)
 	if it.is_empty():
 		return false
 	if level < int(it.get("need", 1)):

@@ -5220,3 +5220,21 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   (상인 있는 유일한 씬) 각각 `--quit-after 5` 스크립트 오류 0건.
   `project.godot`·`*.import` 확인 — 무관한 `.import` 줄바꿈 잡음만
   되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+
+## STORY 고유(固有) 장비 (2026-09-13, "이어해" 지시로 계속)
+
+- 위 세 항목(주문서·고유·상점 UI) 중 가방 없이도 되는 **고유**부터.
+  `story_combat.gd`에 `UNIQUE_ITEMS`(10개, data-unique.js 그대로) +
+  `item_def(key)`(고유 우선 조회, gear.js findDef() 포트) +
+  `unique_for_base()` 신규 — GEAR_ITEMS와 분리해 일반 드롭 풀에 안
+  섞인다. `gear_totals()`·`equip_gear()`·`story_gear_pickup.gd`가
+  item_def()로 갈아타 고유도 같은 경로로 낀다(금빛 발광+"★ " 표시).
+  `story_enemy.gd`가 보스 드롭 시 tier4 밑감을 16% 확률로 고유로
+  바꿔치기(gear.js rollDrop() 그대로). 자세한 내용·검증 스크립트 결과는
+  `docs/VERTICAL_SLICE_STORY.md` "고유(固有) 장비" 절 참고.
+  안 옮긴 것 — 주문서·상점 UI, 여전히 다음 걸음.
+- 검증: 헤드리스 임포트 오류 0건, 두 씬 스크립트 오류 0건. 임시
+  SceneTree 검증 스크립트로 item_def·unique_for_base·gear_totals·
+  gear_pool_for 값 전부 손계산과 일치 확인 후 스크립트 삭제, 재검증까지
+  마쳤다. `.import` 줄바꿈 잡음만 되돌림. GUI 실기 확인은 아직(몰아서
+  받을 것).

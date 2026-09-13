@@ -1793,6 +1793,54 @@ CRLF 잡음만 재발생, 되돌림) → 코드 변경 없는 `project.godot` �
 레벨이 올라 tier2를 사는 순간, 잡졸이 이미 낀 부위의 다른 tier를
 떨구는 순간을 눈으로 볼 것. 계속 몰아서 받을 것.
 
+## 고유(固有) 장비 (2026-09-13, "이어해" 지시로 계속)
+
+tier2~4 다음 걸음 — 안 옮긴 것 목록의 셋(주문서·고유·상점 UI) 중
+**주문서 없이도 되는 고유부터** 처리했다(주문서는 물건 인스턴스별
+`up`/`left` 상태가 필요해 가방 없인 안 되지만, 고유는 이 포트의
+"키 하나 = 고정값" 장비 모델 그대로 얹을 수 있다 — `data-unique.js`
+UNIQUES 자체가 접사 없이 "표에 적힌 값 그대로"인 물건이라서다).
+
+- `story_combat.gd`에 `UNIQUE_ITEMS`(10개, 부위마다 하나, `data-unique.js`
+  그대로) + `UNIQUE_CHANCE`(0.16) 신규. **GEAR_ITEMS와 분리**했다 —
+  섞으면 `gear_pool_for()`가 일반 드롭 풀에 고유를 끼워 넣어 버린다
+  (원문은 "보스가 tier4 밑감을 떨굴 때만" 대체하는 구조라 독립 풀이
+  아니다). 대신 `item_def(key)`(gear.js `findDef()`처럼 고유 먼저 찾고
+  없으면 GEAR_ITEMS)로 두 표를 하나처럼 읽는다.
+- `item_def()`를 쓰도록 바꾼 곳 — `gear_totals()`(고유 낀 채로도 합산),
+  `story_save_state.gd equip_gear()`(고유도 같은 레벨 게이트로 낀다),
+  `story_gear_pickup.gd spawn_at()`(고유는 금빛 발광 + "★ " 이름 접두 +
+  "⭐" 토스트 아이콘, side.js "고유는 다르게 알린다"를 이 포트는 소리
+  대신 색으로 옮긴다 — sfx 자체가 없다). **`gear_pool_for()`·상점은
+  그대로 GEAR_ITEMS만 본다** — gear.js `rollDrop()`도 uniqueData를
+  일반 드롭 풀엔 안 섞고, `shopList()`도 GD.GEAR만 판다(고유는 사고
+  못 판다, 보스만 떨군다).
+- `story_enemy.gd _maybe_drop_gear()` — 픽 뽑은 뒤, `is_boss`면서
+  뽑힌 물건의 `need==20`(tier4 밑감)이면 `UNIQUE_CHANCE`로
+  `unique_for_base()`를 굴려 있으면 그 키로 바꿔치기(gear.js
+  `rollDrop()`의 `boss && picked.need===20 && Math.random()<UNIQUE_CHANCE`
+  그대로).
+- 안 옮긴 것(여전히 범위 밖) — **주문서**(가방 필요)·**상점 UI**(여전히
+  "다가가면 자동 구매"뿐, 고유는 상점에 안 뜬다 — 원작도 그렇다).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(vroid·texture-a.png.import
+CRLF 잡음만 재발생, 되돌림) → `TestField.tscn`·`HeodoField.tscn` 각각
+`--quit-after 5 --verbose` 스크립트 오류 0건. **임시 검증 스크립트**
+(`_verify_gear_tmp.gd`, SceneTree 기반)로: `item_def("sword4")`/
+`item_def("u_sword")` 둘 다 정확한 값(atk 38/56 등) → `item_def("nope")`
+빈 Dictionary → `unique_for_base("sword4")`="u_sword"·`unique_for_base(
+"hat1"/"sword1")`=""(각각 tier2 밑감·tier1 밑감이라 고유 없음, 정확)
+→ `gear_totals(["u_sword","hat1"])`=atk56/def4/hp6(u_sword atk56·def2 +
+hat1 def2·hp6, 손계산과 일치) → `gear_pool_for(1)`=정확히 tier1 10개
+(need<=4)·`gear_pool_for(20)`=40개 전부(need<=23) → UNIQUE_ITEMS 10개가
+전부 자기 밑감의 need==20을 정확히 가리킴, 부위 10종 중복 없이 다 덮음
+— 전부 예측과 일치. 검증 스크립트 삭제 후 재검증(임포트+두 씬)까지
+마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — 보스를 잡아 고유가 실제로 금빛으로
+빛나 보이는지, "★ " 이름이 자연스러운지는 눈으로 볼 것. 계속 몰아서
+받을 것.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

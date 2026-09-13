@@ -141,4 +141,12 @@ func _maybe_drop_gear() -> void:
 	var chance: float = StoryCombat.GEAR_DROP_CHANCE_BOSS if is_boss else StoryCombat.GEAR_DROP_CHANCE_GRUNT
 	if randf() < chance:
 		var picked: String = pool[randi() % pool.size()]
+		## **2026-09-13 추가(같은 날 더 더, 고유) — gear.js rollDrop() 그대로:
+		## 보스가 tier4 밑감(need==20)을 떨굴 때만, 그것도 UNIQUE_CHANCE(16%)
+		## 로 이름 있는 물건으로 바뀐다. 그 부위에 고유가 없으면(UNIQUE_ITEMS에
+		## 항목이 없으면) unique_for_base()가 ""를 줘 그냥 밑감 그대로 나간다.
+		if is_boss and int(StoryCombat.GEAR_ITEMS[picked].need) == 20 and randf() < StoryCombat.UNIQUE_CHANCE:
+			var uniq: String = StoryCombat.unique_for_base(picked)
+			if uniq != "":
+				picked = uniq
 		StoryGearPickup.spawn_at(get_parent(), global_position, picked)

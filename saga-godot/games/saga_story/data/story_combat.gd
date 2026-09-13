@@ -211,6 +211,55 @@ static func gear_pool_for(lv: float) -> Array:
 			out.append(key)
 	return out
 
+
+## **2026-09-13 추가(같은 날 더, "가방 확장" 다음 걸음) — 고유(固有).**
+## `data-unique.js` UNIQUES 열 개 그대로: 부위마다 하나씩, tier4 밑감
+## (need 20) 위에 얹는 **정해진 물건**(접사를 굴리지 않는다 — 이 판엔
+## 접사 자체가 없다, 표에 적힌 값이 최종값). `base`가 그 밑감의
+## GEAR_ITEMS 키 — 밑감이 그 부위의 마지막 단일 때만 고유로 바뀔 수
+## 있다(원문 그대로, 낮은 단이 고유가 되면 표의 마지막 물건보다 세져
+## 어색해진다는 이유). `up`(업횟 상한)은 주문서를 아직 안 옮겨 안 쓴다
+## (다음에 주문서를 들이면 밑감처럼 이 값을 그때 쓴다).
+##
+## `GEAR_ITEMS`와 분리한 이유 — 여기 섞으면 `gear_pool_for()`가 일반
+## 사냥터 드롭 풀에 고유를 끼워 넣어 버린다(원문은 "보스가 tier4 밑감을
+## 떨굴 때만, 그것도 드물게" 대체하는 구조라 애초에 독립 풀이 아니다).
+## 대신 `item_def(key)`로 두 표를 하나처럼 읽게 해 `equip_gear()`·
+## `gear_totals()`·`story_gear_pickup.gd` 같은 소비 쪽은 GEAR_ITEMS와
+## UNIQUE_ITEMS를 구분할 필요가 없다(gear.js `findDef()`와 같은 정신 —
+## 고유가 먼저다, 밑감과 키가 겹칠 일은 없어 순서 자체는 중요하지 않다).
+const UNIQUE_CHANCE := 0.16  # gear.js UNIQUE_CHANCE — 보스가 tier4 밑감을 떨굴 때 고유로 바뀔 확률
+
+const UNIQUE_ITEMS := {
+	"u_sword": {"slot": "weapon", "base": "sword4", "name": "진룡도(震龍刀)", "need": 20, "atk": 56.0, "def": 2.0, "hp": 0.0, "price": 42000},
+	"u_hat": {"slot": "hat", "base": "hat4", "name": "봉황관(鳳凰冠)", "need": 20, "atk": 2.0, "def": 22.0, "hp": 70.0, "price": 32000},
+	"u_top": {"slot": "top", "base": "top4", "name": "현무갑(玄武甲)", "need": 20, "atk": 2.0, "def": 28.0, "hp": 100.0, "price": 36000},
+	"u_bottom": {"slot": "bottom", "base": "bot4", "name": "천리군(千里裙)", "need": 20, "atk": 0.0, "def": 20.0, "hp": 75.0, "price": 30000},
+	"u_shoes": {"slot": "shoes", "base": "shoe4", "name": "분마화(奔馬靴)", "need": 20, "atk": 2.0, "def": 16.0, "hp": 50.0, "price": 26000},
+	"u_glove": {"slot": "glove", "base": "glv4", "name": "호랑수갑(虎狼手甲)", "need": 20, "atk": 18.0, "def": 12.0, "hp": 30.0, "price": 34000},
+	"u_cape": {"slot": "cape", "base": "cap4", "name": "봉래포(蓬萊袍)", "need": 20, "atk": 3.0, "def": 16.0, "hp": 80.0, "price": 28000},
+	"u_ring": {"slot": "ring", "base": "ring4", "name": "구룡지환(九龍指環)", "need": 20, "atk": 26.0, "def": 3.0, "hp": 34.0, "price": 24000},
+	"u_necklace": {"slot": "necklace", "base": "neck4", "name": "영롱주(玲瓏珠)", "need": 20, "atk": 2.0, "def": 10.0, "hp": 78.0, "price": 22000},
+	"u_earring": {"slot": "earring", "base": "ear4", "name": "월아환(月牙環)", "need": 20, "atk": 13.0, "def": 13.0, "hp": 24.0, "price": 22000},
+}
+
+
+## GEAR_ITEMS와 UNIQUE_ITEMS를 하나처럼 읽는다 — gear.js findDef() 그대로,
+## 고유가 먼저다(밑감과 키가 겹칠 일은 없어 순서는 사실 중요하지 않다).
+static func item_def(key: String) -> Dictionary:
+	if UNIQUE_ITEMS.has(key):
+		return UNIQUE_ITEMS[key]
+	return GEAR_ITEMS.get(key, {})
+
+
+## 이 밑감(tier4 물건)이 고유로 바뀔 수 있다면 그 고유 key를, 없으면 ""를 준다.
+static func unique_for_base(base_key: String) -> String:
+	for key: String in UNIQUE_ITEMS:
+		if String(UNIQUE_ITEMS[key].base) == base_key:
+			return key
+	return ""
+
+
 ## **2026-09-13 추가 — 상점(1절 "제외" 목록 "장비 나머지"의 첫 걸음).**
 ## side.js kill()의 금 계산 그대로: gold = round((6+lv*3)*(0.8~1.4)*mul*
 ## GAIN_GOLD). GAIN_GOLD(core.tuned 기본 배수)는 1.0 그대로(손잡이 자체를
@@ -235,13 +284,14 @@ static func damage_cut(def: float) -> float:
 
 ## 낀 물건 키 목록(equipped.values())에서 atk/def/hp 합을 뽑는다 —
 ## power()의 gearBonus()와 같은 자리(story_player.gd·story_save_state.gd
-## 둘 다 이 셋을 쓴다).
+## 둘 다 이 셋을 쓴다). item_def()라 고유(UNIQUE_ITEMS) 키가 껴 있어도
+## 그대로 잡힌다.
 static func gear_totals(equipped_keys: Array) -> Dictionary:
 	var atk := 0.0
 	var def := 0.0
 	var hp := 0.0
 	for key: String in equipped_keys:
-		var it: Dictionary = GEAR_ITEMS.get(key, {})
+		var it: Dictionary = item_def(key)
 		atk += float(it.get("atk", 0.0))
 		def += float(it.get("def", 0.0))
 		hp += float(it.get("hp", 0.0))
