@@ -1154,6 +1154,66 @@ field_map.gd — TestField.tscn은 손 안 대도 그대로 돈다)으로 공용
   다섯), 몬스터 도감(사냥터별 다른 적), 2~4차 전직(job 체인 재설계
   필요 — 별도로 신중히).
 
+## 23. 나머지 사냥터 — 남은 다섯 전부 + 세계 완주 (2026-09-13)
+
+**사용자 지시 "계속 이어해 묻지말고"** — 21·22절이 하나씩 잇던 "나머지
+사냥터 8곳"을 이번엔 **한 번에 마저 끝냈다**: 신야성·남정성·한중 굴혈·
+기산채·호로곡 다섯 + 허도↔신야성·오림숲↔남정성 두 문. 이걸로 웹판
+`data-side.js` STAGES 아홉 자리(신야성→허도→허창들판→강릉진→오림숲→
+남정성→한중굴혈→기산채→호로곡)가 **전부** 이어졌다.
+
+**작은 발견 하나(먼저 바로잡음)** — 21절에서 GATHER_INFO에 berry를
+추가할 때 원문 `data-side.js GATHERS` 표를 안 보고 emoji/이름을
+새로 지어냈다("산딸기"🍓) — 이번에 원문(`덤불 열매`🍇)을 확인하고
+바로잡았다. ore(`이끼 광물`⛏️)·cinder(`그은 돌`🪨)는 처음부터 원문대로 넣었다.
+
+**패턴은 21·22절과 완전히 같다** — town 셋(신야성·남정성·기산채)은
+heodo_map.gd 모양(발판·줄만), 전투 사냥터 둘(한중 굴혈·호로곡)은
+forest_map.gd 모양(+잡졸 고정 셋·채집·보스, 몬스터 종류는 여전히
+잡졸 하나·보스 배율은 field 상수 재사용 — "몬스터 도감은 범위 밖"
+재해석을 그대로 유지). 호로곡은 원작에서 "갈래의 끝"이라 동쪽 문 자체가
+없다(문이 없어도 경계벽은 그대로).
+
+**사냥터 스포너 공용화가 하나 더 필요했다** — story_background.gd
+(배경 나무·언덕)가 `FieldMap.width_m()`을 상수로 preload해 여전히
+field 전용이었다(22절이 놓친 넷째 스포너) — 오림 숲·한중 굴혈이 field
+보다 넓은데 배경 폭이 field 만큼만 깔려 뒷부분이 비는 걸 발견해 같이
+공용화했다(`map_path` export, 나머지 셋과 같은 방식).
+
+**보스-도착지 안전 거리** — field/forest에 이어 이번엔 문제가 안
+생겼다(cave·gorge 둘 다 표준 -80px 관례로 잡아도 발명한 보스 자리와
+충분히 멀었다) — field가 처음 밟았던 함정을 이후로는 설계 단계에서
+미리 피해 가게 됐다.
+
+- `games/saga_story/data/{sinya,namjeongseong,cave,gisanchae,gorge}_map.gd`
+  신규(다섯).
+- `heodo_map.gd`: 서쪽 문(sinya) 개통. `forest_map.gd`: 동쪽 문
+  (namjeongseong) 개통(보스와 1.2m 간격, 21절과 같은 회피).
+- `story_combat.gd`: GATHER_INFO berry 정정 + ore/cinder 추가.
+- `story_background.gd`: `map_path` export로 공용화(넷째 스포너).
+- `games/saga_story/world/{SinyaField,NamjeongseongField,GisanchaeField}.
+  tscn`(town, 문 각 하나~둘) + `{CaveHuntGround,GorgeHuntGround}.tscn`
+  (전투 사냥터, 스포너 넷) 신규. `HeodoField.tscn`에 PortalToSinya,
+  `ForestHuntGround.tscn`에 PortalToNamjeongseong·Background map_path
+  수정.
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → **열세 씬**(신규 다섯 포함) 세 번 연속 exit 0·로그 무결(다섯 판
+  전부 회귀 포함). 임시 디버그로 새 지도 다섯의 문·도착·지형·잡졸·채집·
+  보스 좌표 전부 손계산과 일치 확인 + **`SinyaField.tscn`을 시작 씬으로
+  줘서 신야성→허도→허창들판→강릉진→오림숲→남정성→한중굴혈→기산채→
+  호로곡까지 문 여덟 개를 실제로 연쇄 실행**(`change_scene_to_file()`을
+  각 씬 `_ready()`에서 이어 부르는 방식, 15·21·22절과 같은 도구) —
+  아홉 자리 전부 정확한 도착 x(전부 3.0m, +80px 관례가 일관되게 같은
+  값으로 떨어진다)에 도착함을 확인. 디버그 원상복구(`story_field.gd`·
+  `story_town.gd` diff 0).
+- **GUI 실기 확인은 아직 안 함** — 아홉 자리를 실제로 걸어서 이어 보는
+  느낌(문마다 로딩 체감, 각 사냥터 분위기 차이)은 눈으로 볼 것. 계속
+  몰아서 받을 것.
+- **다음 이어질 것** — 몬스터 도감(사냥터마다 다른 적), 사냥터별 보스
+  배율, 마을 배경(mood별 하늘 색), 2~4차 전직(job 체인 재설계 필요).
+  나머지 사냥터라는 "굵직한 후보"는 이걸로 완료 — PLAN.md 79·80장이
+  가리키던 항목이 다 채워졌다.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

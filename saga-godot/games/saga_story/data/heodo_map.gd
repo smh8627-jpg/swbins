@@ -6,11 +6,9 @@ extends RefCounted
 ## 없다) 그대로: field_map.gd와 같은 SCALE(0.02)·좌표 변환 방식으로
 ## 발판·줄만 옮긴다.
 ##
-## **재해석** — 원작 portals는 [[70,'sinya'],[1330,'field']] 둘이지만,
-## 신야성(sinya)은 이 슬라이스 범위 밖(나머지 사냥터 8곳과 함께 남은
-## 항목)이라 서쪽 문은 안 옮긴다 — 그 자리는 경계벽만 있는 막다른
-## 길로 남는다(story_terrain_builder.gd가 어느 쪽이든 경계벽을 짓는다,
-## 문이 있어도 벽은 그대로 둔다).
+## **2026-09-13 추가(같은 날 더, 23절) — 서쪽 문(sinya) 개통.** 나머지
+## 사냥터 8곳의 마지막인 신야성이 생겨서 원작 portals[0]([70,'sinya'])도
+## 마저 옮긴다 — 동쪽 문(field)과 같은 구조.
 ##
 ## **재해석(상점)** — 14절이 "마을이 없어" field 안에 임시로 세웠던
 ## 상인(story_merchant.gd)을 이 절에서 원래 자리인 여기로 옮긴다
@@ -33,11 +31,15 @@ const ROPES_PX: Array = [
 	[920.0, 380.0, 560.0, "rope"],
 ]
 
-## data-side.js heodo.portals[1] — [1330,'field']. portals[0]([70,'sinya'])은
-## 위 머리말 참고, 안 옮긴다.
+## data-side.js heodo.portals[1] — [1330,'field'].
 const PORTAL_EAST_X_PX := 1330.0
 ## field에서 건너올 때 도착하는 자리 — 문 한 걸음 안쪽.
 const ARRIVAL_FROM_FIELD_X_PX := 1250.0
+
+## data-side.js heodo.portals[0] — [70,'sinya'].
+const PORTAL_WEST_X_PX := 70.0
+## 신야성에서 건너올 때 도착하는 자리 — +80px 관례.
+const ARRIVAL_FROM_SINYA_X_PX := 150.0
 
 ## data-side.js heodo.npcs의 'merchant' 항목 — 자리(x)는 원작에 없어
 ## (npcs 배열이 [x, key] 쌍인데 원문 그대로 옮기면 220px, 첫 NPC 자리에
@@ -83,6 +85,14 @@ static func portal_east_m() -> float:
 
 static func arrival_from_field_m() -> float:
 	return ARRIVAL_FROM_FIELD_X_PX * SCALE
+
+
+static func portal_west_m() -> float:
+	return PORTAL_WEST_X_PX * SCALE
+
+
+static func arrival_from_sinya_m() -> float:
+	return ARRIVAL_FROM_SINYA_X_PX * SCALE
 
 
 static func merchant_position_m() -> float:

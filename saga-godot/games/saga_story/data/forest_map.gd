@@ -72,6 +72,14 @@ const PORTAL_WEST_X_PX := 70.0
 ## +80px 관례.
 const ARRIVAL_FROM_GANGNEUNGJIN_X_PX := 150.0
 
+## **2026-09-13 추가(같은 날 더, 23절) — 동쪽 문(namjeongseong) 개통.**
+## 남정성이 생겨서 원작 portals[1]([2530,'namjeongseong'])도 마저 옮긴다.
+## -80px 관례(2450px)를 그대로 따르면 BOSS_X_PX와 정확히 겹친다(21절이
+## field 동쪽 문에서 밟았던 것과 같은 함정) — 그때와 같은 회피(문 쪽으로
+## 20px 더 붙여 보스와 1.2m 이상 간격)를 여기도 적용한다.
+const PORTAL_EAST_X_PX := 2530.0
+const ARRIVAL_FROM_NAMJEONGSEONG_X_PX := 2510.0
+
 
 static func width_m() -> float:
 	return WIDTH_PX * SCALE
@@ -128,3 +136,11 @@ static func portal_west_m() -> float:
 
 static func arrival_from_gangneungjin_m() -> float:
 	return ARRIVAL_FROM_GANGNEUNGJIN_X_PX * SCALE
+
+
+static func portal_east_m() -> float:
+	return PORTAL_EAST_X_PX * SCALE
+
+
+static func arrival_from_namjeongseong_m() -> float:
+	return ARRIVAL_FROM_NAMJEONGSEONG_X_PX * SCALE

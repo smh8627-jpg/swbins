@@ -69,12 +69,16 @@ const GATHER_RADIUS_M := 1.0  # 50px * 0.02
 const GATHER_RESPAWN_SEC := 45.0
 
 ## data-side.js GATHERS 표 — 이 슬라이스는 field.gathers가 전부 herb라
-## 이 하나만 옮긴다(다른 사냥터가 늘어나면 berry/ore/cinder도 추가).
-## **2026-09-13 추가(같은 날 더, 21절 다음 걸음) — 오림 숲(berry).**
-## GATHER_INFO 머리말이 예고한 "다른 채집물이 늘어나면" 첫 사례.
+## 이 하나만 옮겼었다(다른 사냥터가 늘어나면 berry/ore/cinder도 추가).
+## **2026-09-13 추가(같은 날 더, 21절 다음 걸음) — 오림 숲(berry) 추가
+## 당시 emoji/name을 원문(GATHERS.berry: '덤불 열매'🍇)을 안 보고 새로
+## 지어냈었다("산딸기"🍓) — **같은 날 더 더(23절), 나머지 사냥터를
+## 이어 지으며 발견해 바로잡는다.** ore·cinder도 이번에 원문 그대로 채움.
 const GATHER_INFO := {
 	"herb": {"name": "들꽃", "emoji": "🌼"},
-	"berry": {"name": "산딸기", "emoji": "🍓"},
+	"berry": {"name": "덤불 열매", "emoji": "🍇"},
+	"ore": {"name": "이끼 광물", "emoji": "⛏️"},
+	"cinder": {"name": "그은 돌", "emoji": "🪨"},
 }
 
 ## data-side.js field.boss(황건 두목) — hpMul 12·dmgMul 2.0·cool 15(분) 그대로.

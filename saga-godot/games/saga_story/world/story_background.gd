@@ -12,7 +12,13 @@ extends Node3D
 ## 으로 덮어 쓴다. 충돌은 안 만든다(MultiMeshInstance3D 자체가 충돌이
 ## 없다 — vegetation_builder.gd처럼 따로 StaticBody를 안 붙인다).
 
-const FieldMap := preload("res://games/saga_story/data/field_map.gd")
+## **2026-09-13 추가(같은 날 더, 23절) — 사냥터 공용화.** field 전용으로
+## FieldMap.width_m()을 상수 preload해 쓰던 것을 `map_path` export로
+## 바꿨다(story_enemy_spawner.gd 등과 같은 이유) — 안 바꾸면 오림 숲·
+## 한중 굴혈처럼 field보다 넓은 사냥터에서 배경 나무·언덕이 field 너비
+## (44m)만큼만 깔려 뒷부분이 빈 채로 남는다.
+@export var map_path: String = "res://games/saga_story/data/field_map.gd"
+
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 
 const TREE_GLB := "res://assets/vegetation/tree_oak.glb"
@@ -28,7 +34,11 @@ const TREE_COLOR := Color(0.36, 0.44, 0.4)
 const HILL_COLOR := Color(0.3, 0.36, 0.42)
 
 
+var _map: RefCounted
+
+
 func _ready() -> void:
+	_map = (load(map_path) as GDScript).new()
 	_build_layer(TREE_GLB, TREE_COUNT, TREE_SCALE, TREE_Z, TREE_COLOR, "BackgroundTrees")
 	_build_layer(HILL_GLB, HILL_COUNT, HILL_SCALE, HILL_Z, HILL_COLOR, "BackgroundHills")
 
@@ -42,7 +52,7 @@ func _build_layer(glb_path: String, count: int, base_scale: float, z: float, col
 	if mesh == null:
 		return
 
-	var width: float = FieldMap.width_m()
+	var width: float = _map.width_m()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = mesh
