@@ -38,6 +38,17 @@ namespace Saga.Go.World
         [SerializeField] private GameObject plankModel;   // planks.glb, 실측 1×0.06×1, 44개 이어 붙임
         [SerializeField] private GameObject shrineModel;  // altar-stone.glb, 실측 1.04×0.49×0.65, ×2.5(균일)
 
+        // 44장 "Building" 교체(2026-09-14) — Kenney wall-block.glb·roof-gable.glb는
+        // 공유 아틀라스(colormap.png) UV라 DUNGEON room-small.glb 셸처럼 "부분
+        // 교체 불가"였는데, DUNGEON이 gate.glb 아치에 이미 쓴 것과 같은 방식
+        // (기존 아틀라스 UV 위에 EnvironmentMaterial.MakeTiled로 다시 구운 재질을
+        // 그냥 덮어씀 — DungeonRoomBuilder.BuildGateArch와 동일 패턴)을 그대로
+        // 옮겼다. 벽=dark_wooden_planks(집 느낌), 지붕=castle_wall_slates(슬레이트
+        // 지붕 느낌) — 둘 다 66-2장이 미리 구워 둔 다섯 후보 중 재사용, 새 텍스처는
+        // 안 받았다. 둘 다 없으면(다른 PC 등) 기존 GLB 원본 재질 그대로 폴백.
+        [SerializeField] private Material wallMaterial;
+        [SerializeField] private Material roofMaterial;
+
         public void Init(GameObject cave, GameObject wall, GameObject roof, GameObject pillar, GameObject plank, GameObject shrine)
         {
             caveModel = cave;
@@ -134,6 +145,10 @@ namespace Saga.Go.World
                     var col = wall.AddComponent<BoxCollider>();
                     col.center = new Vector3(0f, 0.5f, 0f);
                     col.size = Vector3.one;
+                    if (wallMaterial != null)
+                    {
+                        ApplyPbrToRenderers(wall, EnvironmentMaterial.MakeTiled(wallMaterial, bodySize.x, bodySize.z));
+                    }
                 }
                 else
                 {
@@ -149,6 +164,10 @@ namespace Saga.Go.World
                     roof.name = "Roof";
                     roof.transform.localPosition = new Vector3(0f, bodySize.y, 0f);
                     roof.transform.localScale = Vector3.one * 10f;
+                    if (roofMaterial != null)
+                    {
+                        ApplyPbrToRenderers(roof, EnvironmentMaterial.MakeTiled(roofMaterial, roofSize.x, roofSize.z));
+                    }
                 }
                 else
                 {
@@ -303,6 +322,16 @@ namespace Saga.Go.World
             go.transform.localScale = new Vector3(radius * 2f, height * 0.5f, radius * 2f);
             go.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(color);
             return go;
+        }
+
+        /// <summary>GLB 하나에 렌더러가 여럿(부품별 서브메시)일 수 있어 전부에
+        /// 같은 재질을 씌운다 — DungeonRoomBuilder.BuildGateArch와 같은 결.</summary>
+        private static void ApplyPbrToRenderers(GameObject root, Material mat)
+        {
+            foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                renderer.sharedMaterial = mat;
+            }
         }
 
         private static Material MakeMaterial(Color color)
