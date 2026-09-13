@@ -67,6 +67,11 @@ namespace Saga.Realm.Data
 
         public static bool IsOfficerDone(string officerId) => _doneThisMonth.Contains(officerId);
 
+        /// <summary>RealmWarState.Attack()이 출진시킨 무장들을 이 달 명령
+        /// 소진으로 표시할 때 쓴다 — ExecuteOrder()가 내부에서 쓰는 것과
+        /// 같은 자리를 밖에 하나 튼 것뿐이다.</summary>
+        public static void MarkOfficerDone(string officerId) => _doneThisMonth.Add(officerId);
+
         public static string OfficerCityId(string officerId) => _officerCity.TryGetValue(officerId, out var c) ? c : null;
 
         public static void SetCurrentCity(string cityId)

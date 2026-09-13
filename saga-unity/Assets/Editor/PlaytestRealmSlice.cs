@@ -10,10 +10,11 @@ using Saga.Realm.UI;
 namespace Saga.EditorTools
 {
     /// <summary>
-    /// VERTICAL_SLICE_REALM.md 5절 완료 조건 + REALM 다음 조각 셋(명령
-    /// 나머지 6종·여러 성 확장·무장 로스터/성 소속)을 실제 Play 모드에서
-    /// 확인한다(`PlaytestStorySlice.cs`와 같은 결 — 컴포넌트/정적 API를
-    /// 직접 불러 판정 경로만 본다, UI 버튼 클릭 시뮬레이션은 안 함).
+    /// VERTICAL_SLICE_REALM.md 5절 완료 조건 + REALM 다음 조각 넷(명령
+    /// 나머지 6종·여러 성 확장·무장 로스터/성 소속·전쟁 첫 슬라이스)을
+    /// 실제 Play 모드에서 확인한다(`PlaytestStorySlice.cs`와 같은 결 —
+    /// 컴포넌트/정적 API를 직접 불러 판정 경로만 본다, UI 버튼 클릭
+    /// 시뮬레이션은 안 함).
     /// (1) 성 소속 게이트 — 무장이 없는 성에서 개발형 명령이 막히는지,
     /// (2) 조선 물길 게이트 — 뭍길 성에서 막히는지(게이트 실패는 그 달
     /// 명령 소진을 안 시키는지도 같이),
@@ -22,7 +23,9 @@ namespace Saga.EditorTools
     /// (5) 징병 — 병력이 늘고 인구가 주는지,
     /// (6) 수색·등용 — 성마다 다른 재야, 등용된 무장이 그 성에 배치되는지,
     /// (7) 새로 배치된 무장이 그 성에서 개발형 명령을 실제로 쓸 수 있는지,
-    /// (8) 저장/불러오기 — 성 셋 전부·로스터·성 소속까지 왕복.
+    /// (8) 전쟁 — 잘못된 성/병력 부족 전제조건, 약한 군대는 못 뺏고
+    /// 돌아오는지, 압도적 물량은 함락시키는지, 함락한 성 재공격이 막히는지,
+    /// (9) 저장/불러오기 — 성 셋·로스터·성 소속·소패 전황까지 왕복.
     /// </summary>
     public static class PlaytestRealmSlice
     {
@@ -38,7 +41,9 @@ namespace Saga.EditorTools
         {
             Init, LocationGate, ShipsGate, Agri, SettleAfterAgri, Comm, SettleAfterComm,
             Tech, Sec, Wall, Train, Draft, SettleAfterDraft,
-            SearchAtChenliu, Hire, AgriByNewOfficer, SaveLoad, Done,
+            SearchAtChenliu, Hire, AgriByNewOfficer,
+            AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm, AttackAgainBlocked,
+            SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
         private static int _hireAttempts;
@@ -90,7 +95,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -395,6 +400,92 @@ namespace Saga.EditorTools
                     }
                     Debug.Log($"[PlaytestRealmSlice] new-officer agri OK - {result.Message}");
                     RealmCityState.SetCurrentCity("xuchang");
+                    RealmCityState.NextMonth(); // 전쟁 테스트를 위해 무장 done을 깨끗이 비운다.
+                    _phase = Phase.AttackWrongCity;
+                    break;
+                }
+
+                case Phase.AttackWrongCity:
+                {
+                    var result = RealmWarState.Attack("chenliu");
+                    if (result.Ok || RealmWarState.Xiaopei.Captured)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 성 밖 공격 게이트 실패 — ok={result.Ok} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] wrong-city attack gate OK - {result.Message}");
+                    _phase = Phase.AttackTooFewTroops;
+                    break;
+                }
+
+                case Phase.AttackTooFewTroops:
+                {
+                    // 병력 전제조건만 격리해서 본다 — 조작한 값이라 실제
+                    // 징병 결과와 무관.
+                    var xuchang = RealmCityState.CityRecord("xuchang");
+                    xuchang.Troops = 100;
+                    xuchang.Food = 1000;
+                    var result = RealmWarState.Attack("xuchang");
+                    if (result.Ok || xuchang.Troops != 100)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 병력 부족 게이트 실패 — ok={result.Ok} troops={xuchang.Troops}(기대=100) msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] too-few-troops attack gate OK - {result.Message}");
+                    _phase = Phase.AttackWeak;
+                    break;
+                }
+
+                case Phase.AttackWeak:
+                {
+                    // 소패(800명, 성벽 3600)에 한참 못 미치는 약한 군대 —
+                    // 함락은 못 하고 살아남은 병력이 돌아와야 한다.
+                    var xuchang = RealmCityState.CityRecord("xuchang");
+                    xuchang.Troops = 600;
+                    xuchang.Food = 1000;
+                    var result = RealmWarState.Attack("xuchang");
+                    if (!result.Ok || RealmWarState.Xiaopei.Captured || xuchang.Troops <= 0)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 약한 공격 실패 — ok={result.Ok} captured={RealmWarState.Xiaopei.Captured} troops={xuchang.Troops} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] weak attack OK - {result.Message} (troops back={xuchang.Troops}, xiaopei troops={RealmWarState.Xiaopei.Troops})");
+                    RealmCityState.NextMonth(); // 다음 공격을 위해 무장 done을 다시 비운다.
+                    _phase = Phase.AttackOverwhelm;
+                    break;
+                }
+
+                case Phase.AttackOverwhelm:
+                {
+                    // 압도적 물량 — 확실히 함락시킨다.
+                    var xuchang = RealmCityState.CityRecord("xuchang");
+                    xuchang.Troops = 100000;
+                    xuchang.Food = 100000;
+                    var result = RealmWarState.Attack("xuchang");
+                    if (!result.Ok || !RealmWarState.Xiaopei.Captured)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 압도적 공격 실패 — ok={result.Ok} captured={RealmWarState.Xiaopei.Captured} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] overwhelm attack OK - {result.Message}");
+                    _phase = Phase.AttackAgainBlocked;
+                    break;
+                }
+
+                case Phase.AttackAgainBlocked:
+                {
+                    var result = RealmWarState.Attack("xuchang");
+                    if (result.Ok)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 함락한 성 재공격이 안 막힘 — msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] re-attack blocked OK - {result.Message}");
                     _phase = Phase.SaveLoad;
                     break;
                 }
@@ -412,6 +503,7 @@ namespace Saga.EditorTools
                     int chenliuAgriBefore = RealmCityState.CityRecord("chenliu").Agri;
                     int puyangWallBefore = RealmCityState.CityRecord("puyang").Wall;
                     string musashiCityBefore = RealmCityState.OfficerCityId("jp_musashi");
+                    var xiaopeiBefore = RealmWarState.Snapshot();
 
                     if (!RealmSaveState.Save())
                     {
@@ -435,6 +527,7 @@ namespace Saga.EditorTools
                         new List<string> { "sg_zhugeliang" }, null, null,
                         new List<string> { "sg_zhugeliang" }, new List<string> { "xuchang" },
                         dummyCities);
+                    RealmWarState.Restore(1, 1, 1, 1, 1, false);
 
                     if (!RealmSaveState.TryLoad())
                     {
@@ -452,10 +545,11 @@ namespace Saga.EditorTools
                         RealmCityState.CityRecord("xuchang").Troops != xuchangTroopsBefore ||
                         RealmCityState.CityRecord("chenliu").Agri != chenliuAgriBefore ||
                         RealmCityState.CityRecord("puyang").Wall != puyangWallBefore ||
-                        RealmCityState.OfficerCityId("jp_musashi") != musashiCityBefore;
+                        RealmCityState.OfficerCityId("jp_musashi") != musashiCityBefore ||
+                        RealmWarState.Snapshot() != xiaopeiBefore;
                     if (mismatch)
                     {
-                        Debug.LogError("[PlaytestRealmSlice] 로드 후 불일치 발생 (성 셋/로스터/성 소속 중 하나)");
+                        Debug.LogError("[PlaytestRealmSlice] 로드 후 불일치 발생 (성 셋/로스터/성 소속/소패 전황 중 하나)");
                         Fail();
                         return;
                     }

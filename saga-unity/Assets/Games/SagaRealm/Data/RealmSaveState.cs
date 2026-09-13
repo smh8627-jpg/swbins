@@ -8,14 +8,15 @@ namespace Saga.Realm.Data
     /// <summary>
     /// VERTICAL_SLICE_REALM.md 5절 "저장한다 → 다시 켜서 이어진다" —
     /// 여러 성 확장(2-4절 참고, 개념만) 이후로는 성마다의 아홉 필드도
-    /// 함께 저장한다. `SaveVersion`을 1→2로 올렸다(성 하나 전제였던
-    /// v1 세이브는 구조가 달라 자동 무시되고 새 게임으로 시작한다 —
-    /// PLAN.md 28장 "Version 필드" 대비 그대로, 첫 슬라이스라 마이그레이션
-    /// 경로를 따로 안 만든다).
+    /// 함께 저장한다. 3절(전쟁) 이후로는 소패 상태(성벽·병력·함락 여부)도
+    /// 같이 저장 — 병력·성벽이 두 번의 공격에 걸쳐 이어지려면 필요하다.
+    /// `SaveVersion`을 2→3으로 올렸다(구조가 달라 옛 버전 세이브는 자동
+    /// 무시되고 새 게임으로 시작한다 — PLAN.md 28장 "Version 필드" 대비
+    /// 그대로, 첫 슬라이스라 마이그레이션 경로를 따로 안 만든다).
     /// </summary>
     public static class RealmSaveState
     {
-        private const int SaveVersion = 2;
+        private const int SaveVersion = 3;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_realm.json");
 
@@ -40,6 +41,8 @@ namespace Saga.Realm.Data
             public List<string> officerCityIds;
             public List<string> officerCityCities;
             public List<CitySave> cities;
+            public int xiaopeiWall, xiaopeiMaxWall, xiaopeiTroops, xiaopeiTrain, xiaopeiTech;
+            public bool xiaopeiCaptured;
         }
 
         public static bool Save()
@@ -62,6 +65,8 @@ namespace Saga.Realm.Data
                 officerCityCities.Add(RealmCityState.OfficerCityId(id));
             }
 
+            var xiaopei = RealmWarState.Snapshot();
+
             var data = new SaveData
             {
                 version = SaveVersion,
@@ -75,6 +80,12 @@ namespace Saga.Realm.Data
                 officerCityIds = officerCityIds,
                 officerCityCities = officerCityCities,
                 cities = cities,
+                xiaopeiWall = xiaopei.wall,
+                xiaopeiMaxWall = xiaopei.maxWall,
+                xiaopeiTroops = xiaopei.troops,
+                xiaopeiTrain = xiaopei.train,
+                xiaopeiTech = xiaopei.tech,
+                xiaopeiCaptured = xiaopei.captured,
             };
 
             try
@@ -120,6 +131,8 @@ namespace Saga.Realm.Data
 
             RealmCityState.Restore(data.gold, data.year, data.month, data.currentCity,
                 data.roster, data.done, data.found, data.officerCityIds, data.officerCityCities, cities);
+            RealmWarState.Restore(data.xiaopeiWall, data.xiaopeiMaxWall, data.xiaopeiTroops,
+                data.xiaopeiTrain, data.xiaopeiTech, data.xiaopeiCaptured);
             return true;
         }
 

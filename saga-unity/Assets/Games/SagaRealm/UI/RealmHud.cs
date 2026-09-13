@@ -7,10 +7,10 @@ namespace Saga.Realm.UI
 {
     /// <summary>화면 위 상태 줄 — 현재 성 이름과 그 성의 아홉 값(개간·
     /// 상업·기술·치안·축성·훈련·조선·인구·병력·군량), 세력 금고·연월·
-    /// 로스터(이름+배치 성). RealmCityState.Changed를 구독해 명령·
-    /// 다음 달 정산·성 전환 직후 바로 갱신한다. RealmCityBuilder.cs와
-    /// 같은 이유로 로드 순서 경합을 피하려 첫 Update 프레임에 한 번
-    /// 더 강제 갱신한다.</summary>
+    /// 로스터(이름+배치 성)·소패 전황(3절). RealmCityState.Changed·
+    /// RealmWarState.Changed를 구독해 명령·다음 달 정산·성 전환·공격
+    /// 직후 바로 갱신한다. RealmCityBuilder.cs와 같은 이유로 로드 순서
+    /// 경합을 피하려 첫 Update 프레임에 한 번 더 강제 갱신한다.</summary>
     public class RealmHud : MonoBehaviour
     {
         [SerializeField] private Text label;
@@ -20,6 +20,7 @@ namespace Saga.Realm.UI
         private void Awake()
         {
             RealmCityState.Changed += Refresh;
+            RealmWarState.Changed += Refresh;
         }
 
         private void Update()
@@ -32,6 +33,7 @@ namespace Saga.Realm.UI
         private void OnDestroy()
         {
             RealmCityState.Changed -= Refresh;
+            RealmWarState.Changed -= Refresh;
         }
 
         private void Refresh()
@@ -62,6 +64,9 @@ namespace Saga.Realm.UI
                 sb.Append(officer != null ? officer.Name : id);
                 if (atCity != null) sb.Append('(').Append(atCity.Name).Append(')');
             }
+            sb.Append('\n');
+            var xiaopei = RealmWarState.Xiaopei;
+            sb.Append("소패 — ").Append(xiaopei.Captured ? "함락됨" : $"병력 {xiaopei.Troops} · 성벽 {xiaopei.Wall}");
             label.text = sb.ToString();
         }
     }

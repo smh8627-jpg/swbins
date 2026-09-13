@@ -4,9 +4,9 @@ using Saga.Realm.Data;
 namespace Saga.Realm.UI
 {
     /// <summary>
-    /// VERTICAL_SLICE_REALM.md 1·2-3·2-4절 — "명령"(10종, 두 열)·"성"
-    /// (조망·명령 대상 전환)·"다음 달" 버튼. SagaGo `World/BanditEncounter.cs`
-    /// 처럼 자기 UI를 스스로 짓는 컴포넌트.
+    /// VERTICAL_SLICE_REALM.md 1·2-3·2-4·3절 — "명령"(10종, 두 열)·"성"
+    /// (조망·명령 대상 전환)·"공격"(소패 공략)·"다음 달" 버튼. SagaGo
+    /// `World/BanditEncounter.cs`처럼 자기 UI를 스스로 짓는 컴포넌트.
     /// </summary>
     public class RealmCommandUi : MonoBehaviour
     {
@@ -18,12 +18,14 @@ namespace Saga.Realm.UI
             var canvas = RealmUiKit.NewCanvas("RealmCommandUI");
             canvas.transform.SetParent(transform, false);
 
-            RealmUiKit.NewButton(canvas.transform, "명령", new Vector2(0f, 0f), new Vector2(150f, 100f),
-                new Vector2(220f, 110f), ToggleOrderPanel);
-            RealmUiKit.NewButton(canvas.transform, "성", new Vector2(0.5f, 0f), new Vector2(0f, 100f),
-                new Vector2(220f, 110f), ToggleCityPanel);
-            RealmUiKit.NewButton(canvas.transform, "다음 달", new Vector2(1f, 0f), new Vector2(-150f, 100f),
-                new Vector2(220f, 110f), ExecuteNextMonth);
+            RealmUiKit.NewButton(canvas.transform, "명령", new Vector2(0.5f, 0f), new Vector2(-405f, 100f),
+                new Vector2(190f, 110f), ToggleOrderPanel);
+            RealmUiKit.NewButton(canvas.transform, "성", new Vector2(0.5f, 0f), new Vector2(-135f, 100f),
+                new Vector2(190f, 110f), ToggleCityPanel);
+            RealmUiKit.NewButton(canvas.transform, "공격", new Vector2(0.5f, 0f), new Vector2(135f, 100f),
+                new Vector2(190f, 110f), ExecuteAttack);
+            RealmUiKit.NewButton(canvas.transform, "다음 달", new Vector2(0.5f, 0f), new Vector2(405f, 100f),
+                new Vector2(190f, 110f), ExecuteNextMonth);
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
@@ -111,6 +113,12 @@ namespace Saga.Realm.UI
         {
             string summary = RealmCityState.NextMonth();
             RealmToast.Instance?.Show(summary, 5f);
+        }
+
+        private void ExecuteAttack()
+        {
+            var result = RealmWarState.Attack(RealmCityState.CurrentCity);
+            RealmToast.Instance?.Show(result.Message, 6f);
         }
     }
 }

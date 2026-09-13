@@ -52,5 +52,10 @@ namespace Saga.Realm.Data
         // rtk.js LANDS: plain{agriCap:1.0,commCap:1.0}, river{agriCap:1.0,commCap:1.15}.
         public static float AgriCapMul(RealmLand land) => 1.0f;
         public static float CommCapMul(RealmLand land) => land == RealmLand.River ? 1.15f : 1.0f;
+
+        // rtk.js LANDS: plain{def:1.0,siege:1.0}, river{def:1.1,siege:0.95}(3절 전쟁
+        // 슬라이스가 처음 쓴다 — hill/mount는 우리 성·소패 어디도 안 써서 안 옮김).
+        public static float DefMul(RealmLand land) => land == RealmLand.River ? 1.1f : 1.0f;
+        public static float SiegeMul(RealmLand land) => land == RealmLand.River ? 0.95f : 1.0f;
     }
 }
