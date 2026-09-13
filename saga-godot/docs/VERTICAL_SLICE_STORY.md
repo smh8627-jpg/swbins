@@ -1036,6 +1036,57 @@ SP 1점**을 찍는다. 새 입력 액션을 안 늘렸다. 근처에 서 있으
   레벨업 시 "몇 점 남았다"는 알림(현재는 허도에 가야만 보인다)도 다음에
   볼 만하다.
 
+## 21. 나머지 사냥터 — 둘째: 강릉진(중계 마을) (2026-09-13)
+
+**사용자 지시 "계속 이어해 묻지말고"** — 15절이 첫걸음을 뗀 "나머지
+사냥터 8곳(문 포함)" 중 둘째로 **강릉진(江陵鎭)**을 지었다. `data-side.
+js` STAGES 'gangneungjin' 항목 그대로 — heodo_map.gd와 같은 패턴
+(town:true, 발판 둘·줄 둘만 있는 중계 마을).
+
+**재해석** — 원작 npcs(guard/elder/merchant)는 옮기지 않는다. 상점·
+전직 기능은 14·15절 결정대로 허도 하나에만 몰아 뒀다(마을이 늘어도
+기능까지 늘리지 않는다) — 강릉진은 field↔forest 사이 순수 중계지다.
+원작 동쪽 문([1230,'forest'])도 오림 숲이 아직 없어 heodo_map.gd가
+신야성 문을 미룬 것과 같은 이유로 안 옮긴다.
+
+**field의 동쪽 문을 마저 열었다** — 15절이 "그 사냥터가 아직 없어
+안 옮긴다"고 미뤄 뒀던 `field.portals[1]`([2130,'gangneungjin'])을
+이번에 채운다. **주의할 점 하나 발견** — 서쪽 문과 같은 "한 걸음
+안쪽(+80px)" 관례를 그대로 따르면 도착 자리가 2050px인데, 그 값이
+`BOSS_X_PX`(원작에 없어 이 포트가 새로 정한 보스 자리)와 정확히
+겹친다. `story_enemy.gd`의 보스 접촉 판정 반경(OVERLAP_RANGE 0.6m ×
+BOSS_VISUAL_SCALE 1.6 = 0.96m)보다 확실히 먼 간격을 두려고 문 쪽으로
+20px 더 붙여 **2110px**로 잡았다(보스와 1.2m 차이 — 도착하자마자
+겹쳐 맞는 사고를 피한다).
+
+- `games/saga_story/data/gangneungjin_map.gd` 신규(heodo_map.gd와
+  같은 모양 — width_m/plats_m/ropes_m/portal_west_m/arrival_from_field_m).
+- `field_map.gd`: `PORTAL_EAST_X_PX`(2130)·`ARRIVAL_FROM_GANGNEUNGJIN_
+  X_PX`(2110, 위 보스 회피 설명 참고)·`portal_east_m()`/`arrival_from_
+  gangneungjin_m()` 신규.
+- `games/saga_story/world/GangneungjinField.tscn` 신규(story_town.gd
+  재사용, Terrain의 `map_path`만 gangneungjin_map.gd로 — story_terrain_
+  builder.gd 공용화(15절) 덕에 이 파일 하나 추가로 끝났다). 서쪽 문
+  (PortalToField)만 배선 — 동쪽 문은 위 "재해석" 참고.
+- `TestField.tscn`: `PortalToGangneungjin` 노드 신규(x=42.6m, arrival
+  3.0m — heodo 방향 문과 같은 패턴).
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 이제 **일곱 씬**(신규 GangneungjinField 포함) 세 번 연속 exit 0·
+  로그 무결(다섯 판 전부 회귀 포함). 임시 디버그로 field portal_east_m
+  =42.6·arrival_from_gangneungjin_m=42.2·보스와의 간격 1.2(>0.96,
+  안전 확인)·gangneungjin width_m=26.0·arrival_from_field_m=3.0·발판
+  둘/줄 둘 좌표 전부 손계산과 일치, **문을 실제로 실행**(`change_scene_
+  to_file()` 직접 호출, 15절과 같은 방식)해 130프레임 뒤 GangneungjinField로
+  실제 전환되고 플레이어가 정확히 x=3.0에 도착함까지 확인. 디버그
+  원상복구(`story_field.gd`·`story_town.gd` diff 0).
+- **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+- **다음 이어질 것** — 오림 숲(forest, 첫 진짜 사냥터 — 잡졸·채집·보스가
+  다시 나오는 자리, field 이후 둘째 전투 사냥터)·남정성·한중 굴혈·
+  기산채·호로곡·신야성(나머지 여섯), 그리고 2~4차 전직(이쪽은 `job`
+  필드를 덮어쓰는 원작 방식이 이 포트의 여러 `job=="warrior"` 분기와
+  부딪혀 — job 체인 전체를 다시 설계해야 하는 더 큰 작업, 다음 세션에서
+  신중히 볼 자리).
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
