@@ -482,17 +482,41 @@ EverFace).
 | `reward.mp3` | `inventory/coin.wav` | `feat` — 공적 획득 |
 | `panel_open.mp3` | `world/door.wav` | `duel:open`·`station:request`·`encounter:request`·`fort:request` — 카드/무대가 열릴 때 |
 
-**한 팩에서만 골랐다**(10절 "에셋 스타일 통일"). 원본 팩에는 이 다섯 말고도
-UI 클릭음(`interface/interface1~6.wav`) · 갑옷·금속·병 소리(`inventory/`) ·
-NPC·몬스터 울음(`NPC/`) 등이 더 있다 — 다음 단계(일반 버튼 탭, 사건 보상 세분화,
-전투 시작 신호음 등)에서 더 고를 수 있다. **아직 안 걸었으면 여기 안 넣는다**는
-이 문서 맨 위 규칙대로, 이번에 실제로 안 쓰는 조각(`interface2`·`interface4` 등으로
-떠 봤던 UI 탭음)은 커밋하지 않았다.
+**이 다섯은 한 팩에서만 골랐다**(10절 "에셋 스타일 통일"). 원본 팩에는 이
+다섯 말고도 UI 클릭음(`interface/interface1~6.wav`) · 갑옷·금속·병 소리
+(`inventory/`) · NPC·몬스터 울음(`NPC/`) 등이 더 있다 — 다음 단계(일반 버튼
+탭, 사건 보상 세분화, 전투 시작 신호음 등)에서 더 고를 수 있다. **아직 안
+걸었으면 여기 안 넣는다**는 이 문서 맨 위 규칙대로, 이번에 실제로 안 쓰는
+조각(`interface2`·`interface4` 등으로 떠 봤던 UI 탭음)은 커밋하지 않았다.
 
 `js/audio.js` 는 새 판정을 만들지 않았다 — 이미 도는 이벤트버스(`core.on`/`emit`)를
 엿듣기만 한다. 손잡이 `audio.on`(0이면 무음) · `audio.vol`(0~1, 기본 0.6). 클립은
 `preload="none"`으로 처음 낼 때만 받고(7절), 셋씩 풀로 돌려 써서 짧게 겹쳐도
 안 끊긴다.
+
+---
+
+## OpenGameArt "100 CC0 SFX #2" — 천둥 (`assets/audio/sfx/thunder.mp3`)
+
+**2026-09-14.** `js/sky3d.js`가 비 오는 날 번개가 칠 때마다 `sky:thunder`
+이벤트를 던지고 있었는데(2026-09-10 "천둥번개도 보이고" 요청 때 넣은 것),
+그때는 CC0 천둥 음원을 못 찾아 소리 내는 쪽이 없었다(`js/sky3d.js` 주석에
+"아직 천둥 CC0 음원이 없어 소리는 없다"로 남겨 뒀던 자리).
+
+| 항목 | |
+|---|---|
+| **만든 이** | rubberduck |
+| **라이선스** | **CC0** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | <https://opengameart.org/content/100-cc0-sfx-2> — `sfx_100_v2.zip` 의 `sfx100v2_thunder_01.ogg` |
+
+원본은 48kHz 스테레오 ogg(5.26초)다. 위 RPG Sound Pack 다섯 조각과 같은
+규격(모노 44.1kHz 96kbps mp3)으로 옮겨 `thunder.mp3`로 넣었다 — `assets/`에
+ffmpeg 변환 스크립트를 따로 두지 않고 이번 변환에만 썼다(8절 "필요하지 않은
+dependency 를 설치하지 않는다"와 같은 결로, 저장소에 도구를 남기지 않았다).
+`js/audio.js`의 `CLIPS.thunder`가 이 파일을 가리키고 `sky:thunder`를
+엿듣는다 — 새 판정은 없다.
 
 ---
 
