@@ -4278,8 +4278,15 @@ origin/main에 푸시 완료.
 | Realm | 해당 없음(경영게임) | 해당 없음 | 해당 없음 | PBR 완료(바닥/성벽) | PBR 완료(천수각 몸통) |
 
 **남은 후보(우선순위는 사용자가 다시 정할 것):**
-- GO의 굴 입구·폐허·다리·산신당, Realm의 농장/저잣거리/곳간/깃발/천수각
-  지붕처럼 이번에 "범위 밖"으로 보류한 소품들 — 필요하면 다음에 이어서.
+- ~~GO의 굴 입구·폐허·다리·산신당, Realm의 농장/저잣거리/곳간~~ —
+  "이어해"로 바로 이어서 처리(같은 날 후속). GO는 woodMaterial/
+  stoneMaterial로 필드 이름을 재질 성질 기준으로 바꾸고 넷 다 확장,
+  Realm은 farmMaterial(leafy_grass)·marketMaterial(dark_wooden_planks)
+  신규 + 곳간은 기존 wallMaterial 재사용. 깃발·천수각 지붕만 색상 소품으로
+  남겨 뒀다(표면이 작거나 벽과 재질이 겹쳐 실루엣이 안 갈림). 검증은 같은
+  절차(컴파일→씬 재빌드→PlaytestHeadless/PlaytestRealmSlice) 통과, 커밋·
+  푸시 완료. **이걸로 다섯 판의 44장(또는 그에 준하는) 자산 우선순위 작업은
+  일단 다 마쳤다** — 남은 건 아래 두 항목뿐.
 - **`RealmQuizData.cs` 발견 — 이번 PlaytestRealmSlice 로그에 "세종대왕이
   1443년 훈민정음을 창제하고..." 같은 실존 역사 인물 실명이 그대로
   찍혔다.** 루트 CLAUDE.md "이름 정책"(원작 인물 실명 금지, 표시 이름은
