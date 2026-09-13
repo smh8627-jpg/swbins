@@ -1546,12 +1546,26 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
     });
 
     t('무장 칸에 열전과 충성이 보인다', function () {
+      /* 2026-09-14 고침 — 옛 버전은 fresh('cao')로 연 사람(군주 '조조',
+         data-force.js 소속이라 열전이 없다)과, 검사하는 'sg_caocao'(data.js
+         HEROES 쪽 별개 인물, 열전이 있다)가 서로 다른 인물인 걸 놓치고
+         있었다. 2026-09-06 가명 정책으로 'sg_caocao'의 표시 이름이 '조조'에서
+         '패헌'으로 바뀌자(id는 그대로, name만) `body.indexOf('조조')` 우연히
+         맞아떨어지던 게 깨져서야 드러났다 — 실은 처음부터 '조조' 부분과
+         '열전' 부분이 같은 인물을 보고 있지 않았다. data-force.js 쪽 핵심
+         장수(조조 등 258명 대다수)는 아직 열전(BIOS) 텍스트가 없다(알려진
+         흠 — README "다음에 채울 것" 참고). 열전이 실제로 붙는 data.js 인물을
+         내 세력에 직접 앉혀(다른 항목의 off.placeAt 패턴과 같다) 그 기능
+         자체를 잰다. */
       fresh('cao');
+      var hid = 'sg_caocao';
+      var h = DG.data.find(hid);
+      off.placeAt(hid, R.citiesOf('cao')[0], 'cao');
       DG.ui.openSheet('officers');
       var body = document.getElementById('sheet-body').innerHTML;
       DG.ui.closeSheet();
-      var bio = DG.data.bio('sg_caocao');
-      return body.indexOf('조조') >= 0 && body.indexOf('충성') >= 0 &&
+      var bio = DG.data.bio(hid);
+      return body.indexOf(h.name) >= 0 && body.indexOf('충성') >= 0 &&
         bio.length > 0 && body.indexOf(bio.slice(0, 10)) >= 0 &&
         ('열전이 붙는다 — "' + bio.slice(0, 18) + '…"');
     });
