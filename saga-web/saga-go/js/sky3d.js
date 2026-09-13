@@ -533,8 +533,9 @@
    * 비 오는 날에만, 6~18초마다 한 번 화면이 번쩍인다 — 새 CSS를 안 만들고
    * `duel.js`가 이미 쓰는 `.flash`(`css/style.css`의 `dflash`, brightness
    * 애니메이션)를 3D 캔버스(`#map3d`)에 그대로 입힌다. **판정에는 안
-   * 닿는다** — 소리를 낼 자리만 이벤트로 열어 둔다(`sky:thunder`, 지금은
-   * 듣는 쪽이 없다 — 이 판엔 아직 천둥 CC0 음원이 없다).
+   * 닿는다** — 소리 나는 쪽은 `js/audio.js`가 `sky:thunder`를 엿듣는다
+   * (2026-09-14, CC0 천둥 음원을 구해 붙였다). 이 파일은 여전히 신호만
+   * 던질 뿐 소리를 모른다.
    */
   function LIGHTNING_ON() { return core.tuned('sky3d.lightning', 1) ? true : false; }
   function LIGHTNING_MIN() { return core.tuned('sky3d.lightningMinS', 6); }

@@ -6,6 +6,13 @@
  * (artisticdude, **CC0**)에서 짧은 조각 다섯을 골라 mp3(모노 96kbps)로
  * 옮겼다 — 출처는 `assets/ASSET_LICENSES.md`.
  *
+ * **2026-09-14 — 천둥(`thunder`)을 더했다.** `js/sky3d.js`가 비 오는 날
+ * 번개가 칠 때마다 `sky:thunder`를 던지고 있었는데(2026-09-10) 그때는
+ * CC0 천둥 음원이 없어 듣는 쪽이 없었다. OpenGameArt "100 CC0 SFX #2"
+ * (rubberduck, **CC0**)에서 `sfx100v2_thunder_01.ogg` 하나를 받아 같은
+ * 규격(모노 44.1kHz 96kbps mp3)으로 옮겨 넣었다 — 출처는
+ * `assets/ASSET_LICENSES.md`.
+ *
  * **새 판정을 만들지 않는다.** 이미 도는 이벤트버스(`core.on`/`emit`)를
  * 엿듣기만 한다 — 어느 게임 로직 파일도 고치지 않았다:
  *
@@ -16,6 +23,7 @@
  *   duel:open      교전 무대가 열린다                        → open
  *   station:request / encounter:request / fort:request
  *                  역참·조우·성채 카드가 열린다               → open
+ *   sky:thunder    비 오는 날 번개가 친다                    → thunder
  *
  * **손잡이** `audio.on`(0이면 전부 무음, 기본 1) · `audio.vol`(0~1, 기본 0.6).
  * **자동재생 정책** — 모바일은 첫 사용자 제스처 전엔 재생을 막는다.
@@ -44,7 +52,8 @@
     catch: 'encounter_win.mp3',
     hit: 'hit.mp3',
     reward: 'reward.mp3',
-    open: 'panel_open.mp3'
+    open: 'panel_open.mp3',
+    thunder: 'thunder.mp3'
   };
   var POOL_N = 3;   // 동시에 겹쳐도 서로 안 끊기게
 
@@ -90,6 +99,7 @@
     c.on('station:request', function () { play('open'); });
     c.on('encounter:request', function () { play('open'); });
     c.on('fort:request', function () { play('open'); });
+    c.on('sky:thunder', function () { play('thunder'); });
   }
 
   function stats() { return { on: ON(), vol: VOL(), clips: Object.keys(CLIPS).length }; }
