@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using Saga.Realm.Data;
 
 namespace Saga.Realm.UI
@@ -13,8 +14,13 @@ namespace Saga.Realm.UI
         private GameObject _orderPanel;
         private GameObject _cityPanel;
         private GameObject _plotPanel;
+        private GameObject _quizPanel;
         private Transform _cityButtonsRoot;
         private Transform _plotButtonsRoot;
+        private Transform _quizButtonsRoot;
+        private Text _quizQuestionText;
+        private Text _quizProgressText;
+        private RealmQuizState.Presented? _currentQuiz;
 
         public void Build()
         {
@@ -34,9 +40,16 @@ namespace Saga.Realm.UI
             RealmUiKit.NewButton(canvas.transform, "다음 달", new Vector2(0.5f, 0f), new Vector2(420f, 100f),
                 new Vector2(180f, 110f), ExecuteNextMonth);
 
+            // 문답(REALM 다음 조각 (3))은 명령/전쟁과 달리 턴·성·무장과
+            // 무관한 개인 미니게임이라 아래 다섯 버튼 행에 안 끼우고
+            // 화면 오른쪽 위 구석에 따로 뒀다(HUD가 왼쪽 위를 쓰니 안 겹침).
+            RealmUiKit.NewButton(canvas.transform, "문답", new Vector2(1f, 1f), new Vector2(-110f, -90f),
+                new Vector2(180f, 110f), ToggleQuizPanel);
+
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
             BuildPlotPanel(canvas.transform);
+            BuildQuizPanel(canvas.transform);
         }
 
         /// <summary>명령 10종 — rtk.js ORDERS 순서, 두 열(왼쪽 5·오른쪽 5)로
@@ -159,10 +172,86 @@ namespace Saga.Realm.UI
             }
         }
 
+        /// <summary>문답 — quiz.js draw()/answer() 그대로(RealmQuizState.cs
+        /// 참고). 명령/계략과 달리 무장·턴을 안 쓰는 개인 미니게임이라
+        /// 답하면 바로 다음 문제를 이어 낸다(닫을 때까지 계속 풀 수 있게).</summary>
+        private void BuildQuizPanel(Transform parent)
+        {
+            _quizPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(760f, 800f),
+                new Color(0f, 0f, 0f, 0.82f));
+            _quizPanel.SetActive(false);
+
+            // 전부 위(anchor top) 기준으로 순서대로 쌓는다 — 아래(닫는다
+            // 버튼)만 따로 아래 기준을 쓰면 문제 텍스트 줄 수에 따라
+            // 겹칠 수 있어 통일했다.
+            RealmUiKit.NewText(_quizPanel.transform, "문답", new Vector2(0.5f, 1f), new Vector2(0f, -50f),
+                new Vector2(600f, 50f), 30);
+            _quizProgressText = RealmUiKit.NewText(_quizPanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -115f),
+                new Vector2(680f, 36f), 22);
+            _quizQuestionText = RealmUiKit.NewText(_quizPanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -230f),
+                new Vector2(680f, 160f), 26);
+
+            var root = new GameObject("QuizButtons", typeof(RectTransform));
+            root.transform.SetParent(_quizPanel.transform, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            rootRect.anchoredPosition = Vector2.zero;
+            _quizButtonsRoot = root.transform;
+
+            RealmUiKit.NewButton(_quizPanel.transform, "닫는다", new Vector2(0.5f, 1f), new Vector2(0f, -740f),
+                new Vector2(300f, 70f), () => _quizPanel.SetActive(false));
+        }
+
+        /// <summary>새 문제를 뽑아 화면을 다시 채운다 — 열 때·정답을
+        /// 고를 때마다 부른다.</summary>
+        private void RefreshQuizPanel()
+        {
+            for (int i = _quizButtonsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_quizButtonsRoot.GetChild(i).gameObject);
+            }
+
+            var progress = RealmQuizState.GetProgress();
+            _quizProgressText.text = $"학습 {progress.Learned}/{progress.Total} · 정답 {progress.Correct}/{progress.Answered} · 연속 {progress.Streak}(최고 {progress.BestStreak})";
+
+            var drawn = RealmQuizState.Draw();
+            _currentQuiz = drawn;
+            if (drawn == null)
+            {
+                _quizQuestionText.text = "낼 문제가 없다.";
+                return;
+            }
+            var p = drawn.Value;
+            _quizQuestionText.text = $"[{RealmQuizData.CatName(p.Cat)} · Lv{p.Lv}{(p.Review ? " · 복습" : "")}]\n{p.Q}";
+
+            float y = -360f;
+            for (int i = 0; i < p.Choices.Length; i++)
+            {
+                int idx = i;
+                RealmUiKit.NewButton(_quizButtonsRoot, p.Choices[i], new Vector2(0.5f, 1f), new Vector2(0f, y),
+                    new Vector2(660f, 84f), () => ChooseQuizAnswer(idx));
+                y -= 100f;
+            }
+        }
+
+        private void ChooseQuizAnswer(int choiceIdx)
+        {
+            if (_currentQuiz == null) return;
+            var result = RealmQuizState.Answer(_currentQuiz.Value, choiceIdx);
+            string msg = result.Ok
+                ? $"⭕ 정답! {result.Why}" + (result.Gold > 0 ? $" (+{result.Gold}냥)" : "")
+                : $"❌ 오답 — 정답은 \"{result.AnswerText}\". {result.Why}";
+            RealmToast.Instance?.Show(msg, 7f);
+            RefreshQuizPanel();
+        }
+
         private void ToggleOrderPanel()
         {
             _cityPanel.SetActive(false);
             _plotPanel.SetActive(false);
+            _quizPanel.SetActive(false);
             _orderPanel.SetActive(!_orderPanel.activeSelf);
         }
 
@@ -170,6 +259,7 @@ namespace Saga.Realm.UI
         {
             _orderPanel.SetActive(false);
             _plotPanel.SetActive(false);
+            _quizPanel.SetActive(false);
             bool open = !_cityPanel.activeSelf;
             _cityPanel.SetActive(open);
             if (open) RefreshCityPanel();
@@ -179,9 +269,20 @@ namespace Saga.Realm.UI
         {
             _orderPanel.SetActive(false);
             _cityPanel.SetActive(false);
+            _quizPanel.SetActive(false);
             bool open = !_plotPanel.activeSelf;
             _plotPanel.SetActive(open);
             if (open) RefreshPlotPanel();
+        }
+
+        private void ToggleQuizPanel()
+        {
+            _orderPanel.SetActive(false);
+            _cityPanel.SetActive(false);
+            _plotPanel.SetActive(false);
+            bool open = !_quizPanel.activeSelf;
+            _quizPanel.SetActive(open);
+            if (open) RefreshQuizPanel();
         }
 
         private void ChooseOrder(string key)

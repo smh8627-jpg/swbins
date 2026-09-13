@@ -43,6 +43,14 @@ namespace Saga.Realm.Data
             public List<CitySave> cities;
             public int xiaopeiWall, xiaopeiMaxWall, xiaopeiTroops, xiaopeiTrain, xiaopeiTech;
             public bool xiaopeiCaptured;
+            // REALM 다음 조각 (3) 문답 — 세이브 버전은 안 올렸다(JsonUtility는
+            // 없는 필드를 기본값/null로 채워 읽으니, 옛 v3 세이브를 불러와도
+            // RealmQuizState.Restore(null,...)이 그냥 빈 상태로 시작할 뿐 깨지지
+            // 않는다).
+            public List<string> quizLearned;
+            public List<string> quizWrongIds;
+            public List<int> quizWrongCounts;
+            public int quizTotal, quizCorrect, quizStreak, quizBestStreak;
         }
 
         /// <summary>PlaytestRealmSlice.cs 전용 — GameBootstrap.Awake()가
@@ -98,6 +106,13 @@ namespace Saga.Realm.Data
                 xiaopeiTrain = xiaopei.train,
                 xiaopeiTech = xiaopei.tech,
                 xiaopeiCaptured = xiaopei.captured,
+                quizLearned = RealmQuizState.SnapshotLearned(),
+                quizWrongIds = RealmQuizState.SnapshotWrongIds(),
+                quizWrongCounts = RealmQuizState.SnapshotWrongCounts(),
+                quizTotal = RealmQuizState.GetProgress().Answered,
+                quizCorrect = RealmQuizState.GetProgress().Correct,
+                quizStreak = RealmQuizState.GetProgress().Streak,
+                quizBestStreak = RealmQuizState.GetProgress().BestStreak,
             };
 
             try
@@ -145,6 +160,8 @@ namespace Saga.Realm.Data
                 data.roster, data.done, data.found, data.officerCityIds, data.officerCityCities, cities);
             RealmWarState.Restore(data.xiaopeiWall, data.xiaopeiMaxWall, data.xiaopeiTroops,
                 data.xiaopeiTrain, data.xiaopeiTech, data.xiaopeiCaptured);
+            RealmQuizState.Restore(data.quizLearned, data.quizWrongIds, data.quizWrongCounts,
+                data.quizTotal, data.quizCorrect, data.quizStreak, data.quizBestStreak);
             return true;
         }
 

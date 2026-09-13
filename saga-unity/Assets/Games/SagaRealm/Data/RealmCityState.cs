@@ -91,6 +91,15 @@ namespace Saga.Realm.Data
             return true;
         }
 
+        /// <summary>RealmQuizState.Answer() 등 외부가 금고에 보태 넣을 때 —
+        /// TrySpendGold()의 반대쪽.</summary>
+        public static void AddGold(int amount)
+        {
+            if (amount <= 0) return;
+            Gold += amount;
+            Changed?.Invoke();
+        }
+
         /// <summary>REALM 다음 조각 (2) "함락한 성을 플레이 가능한 성으로
         /// 들인다" — RealmWarState.Attack()이 소패를 함락한 직후 부른다.
         /// 전후 성벽·병력·훈련·기술은 그 전투가 실제로 남긴 값을 그대로

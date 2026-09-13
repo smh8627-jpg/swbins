@@ -25,7 +25,12 @@ namespace Saga.EditorTools
     /// (7) 새로 배치된 무장이 그 성에서 개발형 명령을 실제로 쓸 수 있는지,
     /// (8) 전쟁 — 잘못된 성/병력 부족 전제조건, 약한 군대는 못 뺏고
     /// 돌아오는지, 압도적 물량은 함락시키는지, 함락한 성 재공격이 막히는지,
-    /// (9) 저장/불러오기 — 성 셋·로스터·성 소속·소패 전황까지 왕복.
+    /// (9) 계략(유언비어·화계) — 허창 밖 게이트, 성공 시 소패 훈련도/병력
+    /// 실제 하락,
+    /// (10) 함락한 성 편입 — 함락 즉시 네 번째 성으로 들어가는지, 무장
+    /// 없이는 명령이 막히는지,
+    /// (11) 문답 — 정답/오답 채점·금 보상·학습 기록,
+    /// (12) 저장/불러오기 — 성 넷·로스터·성 소속·소패 전황·문답 진행까지 왕복.
     /// </summary>
     public static class PlaytestRealmSlice
     {
@@ -45,6 +50,7 @@ namespace Saga.EditorTools
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
             CapturedCityDevelop, AttackAgainBlocked,
+            QuizCorrect, QuizWrong,
             SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -104,7 +110,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -651,6 +657,54 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestRealmSlice] re-attack blocked OK - {result.Message}");
+                    _phase = Phase.QuizCorrect;
+                    break;
+                }
+
+                case Phase.QuizCorrect:
+                {
+                    var drawn = RealmQuizState.Draw();
+                    if (drawn == null)
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] 문답 출제 실패 — 문제은행이 비었나");
+                        Fail();
+                        return;
+                    }
+                    var p = drawn.Value;
+                    int goldBefore = RealmCityState.Gold;
+                    var result = RealmQuizState.Answer(p, p.CorrectIndex);
+                    if (!result.Ok || !result.First || result.Gold <= 0 || RealmCityState.Gold != goldBefore + result.Gold)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 문답 정답 처리 이상 — ok={result.Ok} first={result.First} gold={result.Gold} 금고={RealmCityState.Gold}(기대={goldBefore + result.Gold})");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] quiz correct OK - {p.Q} (+{result.Gold}냥, {result.Why})");
+                    _phase = Phase.QuizWrong;
+                    break;
+                }
+
+                case Phase.QuizWrong:
+                {
+                    var drawn = RealmQuizState.Draw();
+                    if (drawn == null)
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] 문답 출제 실패(2)");
+                        Fail();
+                        return;
+                    }
+                    var p = drawn.Value;
+                    int wrongIdx = (p.CorrectIndex + 1) % p.Choices.Length;
+                    int goldBefore = RealmCityState.Gold;
+                    var result = RealmQuizState.Answer(p, wrongIdx);
+                    var progress = RealmQuizState.GetProgress();
+                    if (result.Ok || RealmCityState.Gold != goldBefore || progress.Learned < 1 || progress.Answered < 2)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 문답 오답 처리 이상 — ok={result.Ok} gold={RealmCityState.Gold}(기대={goldBefore}) learned={progress.Learned} answered={progress.Answered}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] quiz wrong OK - {p.Q} (정답은 \"{result.AnswerText}\") learned={progress.Learned}/{progress.Total}");
                     _phase = Phase.SaveLoad;
                     break;
                 }
@@ -671,6 +725,7 @@ namespace Saga.EditorTools
                     string startOfficerCityBefore = RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId);
                     int xiaopeiAgriBefore = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri;
                     var xiaopeiBefore = RealmWarState.Snapshot();
+                    var quizBefore = RealmQuizState.GetProgress();
 
                     if (!RealmSaveState.Save())
                     {
@@ -695,6 +750,7 @@ namespace Saga.EditorTools
                         new List<string> { "sg_zhugeliang" }, new List<string> { "xuchang" },
                         dummyCities);
                     RealmWarState.Restore(1, 1, 1, 1, 1, false);
+                    RealmQuizState.Restore(new List<string>(), null, null, 0, 0, 0, 0);
 
                     if (!RealmSaveState.TryLoad())
                     {
@@ -717,14 +773,18 @@ namespace Saga.EditorTools
                         !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.XiaopeiId) ||
                         RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri != xiaopeiAgriBefore ||
                         RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId) != startOfficerCityBefore;
-                    if (mismatch)
+                    var quizAfter = RealmQuizState.GetProgress();
+                    bool quizMismatch = quizAfter.Learned != quizBefore.Learned || quizAfter.Answered != quizBefore.Answered ||
+                        quizAfter.Correct != quizBefore.Correct || quizAfter.Streak != quizBefore.Streak ||
+                        quizAfter.BestStreak != quizBefore.BestStreak;
+                    if (mismatch || quizMismatch)
                     {
-                        Debug.LogError("[PlaytestRealmSlice] 로드 후 불일치 발생 (성 넷/로스터/성 소속/소패 전황 중 하나)");
+                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 넷/로스터/성 소속/소패 전황/문답 중 하나) — quizMismatch={quizMismatch}");
                         Fail();
                         return;
                     }
 
-                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (4 cities incl. captured xiaopei + roster + officer city assignment)");
+                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (4 cities incl. captured xiaopei + roster + officer city assignment + quiz progress)");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;
