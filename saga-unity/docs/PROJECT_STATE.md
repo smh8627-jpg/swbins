@@ -3482,3 +3482,61 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   이 프로젝트의 제약 때문).
 - 이번에도 **문서만 수정, 실제 셰이더/에셋 작업은 안 함** — 헤드리스
   검증 없음(PLAN.md·이 파일 텍스트만 변경).
+
+## 66-2장 "다음에 할 일" ① 라이팅/색보정/후처리 셋업 — 다섯 판 전부 (2026-09-13, 이어서)
+
+- **"이어해" 요청으로 66-2장이 우선순위 1번으로 적어 둔 항목(에셋 불필요,
+  라이팅/색보정부터)을 실제로 구현했다.** `Assets/Editor/
+  BuildFF16VolumeProfiles.cs`(신규, `Saga/Build FF16 Volume Profiles`
+  메뉴) — 66-1장의 PC_RPAsset/Mobile_RPAsset과 같은 결로 **공유 VolumeProfile
+  자산 둘**(`Assets/Settings/FF16Volume_{PC,Mobile}.asset`)을 짓는다.
+  공통: Bloom(따뜻한 tint)·ColorAdjustments(대비+12·채도-8·필터
+  살짝 따뜻하게)·Tonemapping(ACES)·Vignette. PC 전용: ChromaticAberration·
+  FilmGrain(둘 다 미세하게) — 45장 모바일 목표로 Mobile엔 안 넣음. DoF·
+  Motion Blur는 이번 범위 밖(대화/연출 토글 시스템이 없어 지금 넣으면
+  평소 플레이 중에도 항상 흐려짐 — 66-2장에 이미 적어 둔 유보).
+- **막혔던 것 — `VolumeProfile.Add<T>()`는 컴포넌트를 메모리에만 만들고
+  자산에 안 끼운다.** 처음 실행했더니 `.asset` 파일의 `components` 리스트가
+  전부 `{fileID: 0}`(빈 참조)로 저장됨 — `AssetDatabase.AddObjectToAsset()`을
+  각 컴포넌트마다 명시로 불러야 서브에셋으로 실제 저장된다는 걸 발견,
+  `AddOverride<T>()` 헬퍼로 고쳐 재실행 후 `components`에 실제 fileID
+  6개(PC)/4개(Mobile) 들어간 것 확인.
+  - **막혔던 것 2 — `Volume.profile = x`는 씬에 저장되지 않는다.**
+    `Volume.cs`를 읽어 확인 — `.profile` 프로퍼티는 런타임 전용 복사본
+    (`m_InternalProfile`)만 건드리고, 실제로 직렬화되는 필드는
+    `.sharedProfile`이다. 에디터 빌드 스크립트(다섯 판 전부)가 처음엔
+    `.profile`을 썼다가 씬 저장 후 `sharedProfile: {fileID: 0}`으로
+    비어 있는 걸 발견해 `.sharedProfile`로 고침. **런타임 스크립트
+    (`PlatformVolumeProfile.cs`)는 반대로 `.profile`이 맞다** — Awake()
+    시점에 플랫폼별로 갈아 끼우는 용도라 원본 자산을 안 건드리는 쪽이
+    맞기 때문(둘의 의미가 다르다는 걸 이번에 정확히 파악).
+- **컴파일 막혔던 것 — SagaGo·SagaDungeon·SagaForest 세 판만 `.asmdef`가
+  따로 있다(SagaStory·SagaRealm은 기본 어셈블리).** `Volume`/`VolumeProfile`
+  타입은 UnityEngine 코어가 아니라 URP Core 패키지 어셈블리(`Unity.
+  RenderPipelines.Core.Runtime`) 소속이라, 패키지의 `autoReferenced:
+  true`는 **기본 어셈블리(Assembly-CSharp)에만 자동 적용되고 커스텀
+  asmdef엔 안 먹는다** — 세 `.asmdef`의 `references`에 그 이름을 명시로
+  추가해야 컴파일됐다(SagaStory·SagaRealm은 기본 어셈블리라 애초에
+  문제없었음). 다음에 이 세 판에 패키지 타입(URP·Input System 등)을
+  새로 쓸 때 이 함정을 기억할 것 — 에러 메시지는 "타입을 못 찾음"으로만
+  뜨고 asmdef 얘기는 안 나온다.
+  런타임(`PlatformVolumeProfile.cs`, 다섯 판 각자 World/ 폴더에 복사 —
+  코드는 5벌이 이 프로젝트 관례)이 `Application.isMobilePlatform`으로
+  둘 중 하나를 골라 `Volume.profile`에 꽂는다. 각 `BuildXxxScene.cs`에
+  `BuildPostProcessingVolume()` 추가(GlobalVolume 오브젝트 + 두 프로파일
+  참조 전달) + 메인 카메라마다 `UniversalAdditionalCameraData
+  .renderPostProcessing = true` 추가(이게 없으면 Volume을 꽂아도 화면에
+  아무 효과가 안 나온다 — URP 카메라 기본값이 꺼짐).
+- **검증** — `BuildFF16VolumeProfiles.Build`(컴파일 통과, 두 자산 저장,
+  `components` fileID 확인)·다섯 `BuildXxxScene.Build()`(전부 재저장,
+  groundVerts/room childCount 등 기존 값 그대로 — 씬 하이어라키 내용
+  자체는 안 바뀜, GlobalVolume만 추가) 후, 회귀로 `PlaytestHeadless`·
+  `PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·
+  `PlaytestRealmSlice` 다섯 전부 재확인 — `error CS` 0건, 전부 기존
+  OK 문구 그대로 통과. `ProjectSettings/`·`Packages/`에 배치 모드
+  부작용(버전 자동 갱신) 없음 확인(`git status`로 훑음).
+  **실제 화면(GUI)으로 톤을 확인하는 건 아직 안 함** — 66-2장 "적용
+  순서"가 셰이더/에셋 작업 이후로 미뤄 둔 항목이라, 이번엔 값이 실제로
+  씬에 저장되고 컴파일·헤드리스가 깨지지 않는지까지만 확인했다. 다음에
+  사람이 Unity 에디터로 직접 열어 Bloom/색감이 기대한 방향인지 봐야
+  한다(66-2장 "검증" 절 그대로).

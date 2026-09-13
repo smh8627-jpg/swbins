@@ -34,6 +34,7 @@ namespace Saga.EditorTools
             var dioramaRig = BuildCamera();
             var worldMapGo = BuildWorldMap();
             var mapCameraRig = BuildWorldMapCamera();
+            BuildPostProcessingVolume();
             BuildEventSystem();
             BuildHudAndCommands();
             BuildBootstrap();
@@ -80,6 +81,8 @@ namespace Saga.EditorTools
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = SkyColor;
             camGo.AddComponent<AudioListener>();
+            camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
+                .renderPostProcessing = true;
 
             SetPrivateField(orbitCam, "cam", cam);
             return rigGo;
@@ -115,10 +118,39 @@ namespace Saga.EditorTools
             cam.backgroundColor = SkyColor;
             cam.farClipPlane = 2000f; // 지도 반경(최대 420)이 디오라마보다 훨씬 커서 기본 1000으로도 충분하지만 여유를 둔다.
             camGo.AddComponent<AudioListener>();
+            camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
+                .renderPostProcessing = true;
 
             SetPrivateField(mapCam, "cam", cam);
             rigGo.SetActive(false);
             return rigGo;
+        }
+
+        /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) "다음에 할 일"
+        /// ① 라이팅/색보정/후처리 — BuildFF16VolumeProfiles.cs가 지어 둔
+        /// 공유 자산(PC/Mobile) 중 플랫폼에 맞는 쪽을 PlatformVolumeProfile이
+        /// 골라 낀다. 에디터 프리뷰는 기본으로 PC 프로파일을 미리 꽂아 둔다.</summary>
+        private static void BuildPostProcessingVolume()
+        {
+            var go = new GameObject("GlobalVolume");
+            var volume = go.AddComponent<UnityEngine.Rendering.Volume>();
+            volume.isGlobal = true;
+            volume.weight = 1f;
+
+            var pcProfile = AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.VolumeProfile>(
+                BuildFF16VolumeProfiles.PcProfilePath);
+            var mobileProfile = AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.VolumeProfile>(
+                BuildFF16VolumeProfiles.MobileProfilePath);
+            if (pcProfile == null)
+            {
+                Debug.LogWarning("[BuildTestCityScene] FF16Volume_PC.asset 을 못 찾음 — " +
+                                  "Saga > Build FF16 Volume Profiles 를 먼저 돌릴 것.");
+            }
+
+            var platform = go.AddComponent<PlatformVolumeProfile>();
+            platform.pcProfile = pcProfile;
+            platform.mobileProfile = mobileProfile;
+            volume.sharedProfile = pcProfile; // .profile은 씬에 저장 안 되는 런타임 복사본용(Volume.cs 참고)
         }
 
         private static void BuildMapViewSwitcher(GameObject dioramaRoot, GameObject dioramaCameraRig,

@@ -3,7 +3,8 @@
     "rootNamespace": "Saga.Forest",
     "references": [
         "SagaCore",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Core.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
