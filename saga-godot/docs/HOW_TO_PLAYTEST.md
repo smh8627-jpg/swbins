@@ -65,7 +65,7 @@
 | 사가의숲 (FOREST) | `games/saga_forest/world/TestVillageForest.tscn` | |
 | 사가스토리 (STORY) | `games/saga_story/world/SinyaField.tscn` | 세계 첫 자리(신야성)부터 — 아홉 사냥터를 문으로 이어서 볼 때 |
 | 사가스토리 (STORY) | `games/saga_story/world/HeodoField.tscn` | **전직·SP 투자·승급**만 바로 보고 싶을 때 — 전직 트레이너가 이 마을에 있다 |
-| 사가스토리 (STORY) | `games/saga_story/world/TestField.tscn` | 문 없는 단독 테스트방(전투·채집만) |
+| 사가스토리 (STORY) | `games/saga_story/world/TestField.tscn` | 최초 슬라이스 자리(허창 들판) — 전투·채집이 다 갖춰져 있고, 이제(2026-09-13) 문으로 허도·강릉진과도 이어진다(단독 테스트방이라는 옛 설명은 정정) |
 | 사가국지 (REALM) | `games/saga_realm/world/TestCity.tscn` | |
 
 ---
@@ -173,7 +173,57 @@ JS 판들의 `_admin.html` 같은 치트/디버그 도구가 없다 — 대신 �
 
 ---
 
-## 8. 확인 끝나면
+## 8. 에디터 없이 그냥 실행할 파일 만들기 (PC 빌드)
+
+에디터를 켜지 않고 더블클릭 한 번으로 켜지는 `.exe`가 필요하면(2026-09-13,
+"실행 파일 만들어 줄 수 있어?" 요청으로 처음 만듦):
+
+1. **내보내기 템플릿**이 있어야 한다(에디터 자체와 별개, ~1.3GB) — 없으면
+   `%APPDATA%/Godot/export_templates/4.7.2.stable/`가 비어 있다. 받는 법:
+   ```
+   curl -sSL -o export_templates.tpz \
+     "https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz"
+   # .tpz는 사실 zip이다. 풀면 templates/ 폴더가 나온다.
+   unzip -o -q export_templates.tpz -d extracted
+   # version.txt가 "4.7.2.stable"인지 확인한 뒤, 그 내용물을 아래 폴더로 복사
+   cp -r extracted/templates/. "$APPDATA/Godot/export_templates/4.7.2.stable/"
+   ```
+   받은 `.tpz`·풀어 둔 `extracted/`는 스크래치패드에서 지워도 된다(설치
+   폴더에 복사만 되면 끝).
+2. **`export_presets.cfg`**(저장소 루트에 있음, `.gitignore` 대상이라
+   커밋 안 됨)에 다섯 판 각각의 프리셋("saga-go"·"saga-dungeon"·
+   "saga-forest"·"saga-story"·"saga-realm", 전부 Windows Desktop
+   x86_64·`embed_pck=true`로 파일 하나에 다 담음)이 이미 정의돼 있다.
+   **주의 — export_presets.cfg에는 게임마다 다른 main_scene을 지정하는
+   자리가 없다**(그건 `project.godot`의 프로젝트 전역 설정이다). 그래서
+   내보내기 직전에 `project.godot`의 `run/main_scene` 한 줄을 그 게임의
+   씬으로 잠깐 바꾸고, 내보낸 뒤 바로 되돌린다:
+   ```bash
+   GODOT=<콘솔 실행 파일 경로>
+   # project.godot의 run/main_scene을 그 게임 씬으로 바꾼 뒤(Edit 툴 등으로)
+   "$GODOT" --headless --path . --export-release "saga-dungeon" \
+     "builds/saga-dungeon/saga-dungeon.exe"
+   # 그 직후 run/main_scene을 원래 값(saga_go TestVillage)으로 되돌린다
+   ```
+   **`python`으로 이 치환을 자동화하려 하지 말 것** — 이 PC의 `python`은
+   Microsoft Store 스텁이라(2026-09-13 발견) 아무것도 안 하고 조용히
+   성공한 것처럼 종료해, 다섯 판을 다 saga_go 씬으로 잘못 내보낸 적이
+   있다(파일 크기·exit code만으로는 안 걸린다 — 반드시 아래 3번처럼
+   실제로 확인해야 한다). **Edit 툴로 직접 바꾸고 git status로 확인**
+   하는 쪽이 안전하다.
+3. **내보낸 뒤 반드시 실제로 확인** — 헤드리스로 몇 초 돌려 로그에서
+   그 게임의 씬이 실제로 로드됐는지 본다(2번의 사고를 여기서 잡았다):
+   ```bash
+   "builds/saga-dungeon/saga-dungeon.exe" --headless --quit-after 2 --verbose \
+     2>&1 | grep -i "Completed load for.*Test"
+   # → res://games/saga_dungeon/world/TestRoom.tscn 이 나와야 한다
+   ```
+4. 다섯 판을 다 내보낸 뒤 `git status`로 `project.godot`이 원래 값(saga_go)
+   그대로인지, `*.import`에 무관한 잡음만 있는지 확인하고 되돌린다.
+   `export_presets.cfg`·`builds/`는 둘 다 `.gitignore` 대상이라 커밋되지
+   않는다 — 결과물(`.exe`, 각 147MB 안팎)은 로컬에만 남는다.
+
+## 9. 확인 끝나면
 
 - 게임 창·에디터를 닫는다(작업관리자에 `Godot_v4.7...exe`가 남아 있으면
   그것도 종료 — 여러 인스턴스를 띄운 채로 두면 다음에 헷갈린다)

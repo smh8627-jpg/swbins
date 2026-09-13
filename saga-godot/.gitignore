@@ -5,6 +5,7 @@
 # Export builds
 export.cfg
 export_presets.cfg
+builds/
 android/
 ios/
 

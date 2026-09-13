@@ -5280,3 +5280,50 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   시점엔 노드가 실제로 트리에 안 들어가 `global_position` 접근이 조기
   실패해 포기, 대신 네 씬의 헤드리스 실행(오류 0건)으로 대체했다.
   `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+
+## PC 실행 파일(다섯 판 전부) 첫 빌드 (2026-09-13, 사용자 요청)
+
+**사용자 지시 "현재 작업 모두 완료 후 피시에서 실행 할수 있게 실행
+파일 만들어 줄수 있어? 다섯판 모두"** — 원거리 적 걸음이 끝난 뒤 이어서
+처리. 지금까지 이 프로젝트엔 export_presets.cfg 자체가 없어(export
+자체를 한 번도 안 해 봤다) 처음부터 갖췄다.
+
+- **내보내기 템플릿 설치** — `%APPDATA%/Godot/export_templates/`가
+  비어 있어 GitHub 릴리스에서 `Godot_v4.7.2-stable_export_templates.tpz`
+  (~1.3GB, project.godot의 config/features "4.7"과 실제로 쓰던 에디터
+  4.7.2와 맞춤)를 받아 `.tpz`(사실 zip)를 풀고 `4.7.2.stable/`에 설치.
+  스크래치패드의 다운로드·압축 해제 산출물은 설치 후 바로 지웠다.
+- **`export_presets.cfg`** 신규(저장소 루트, `.gitignore` 대상이라
+  커밋 안 됨 — 원래도 그렇게 무시돼 있었다) — 다섯 프리셋(게임마다
+  하나), 전부 Windows Desktop x86_64·`embed_pck=true`(에셋까지 파일
+  하나에 다 담아 그냥 복사해 두면 도는 단일 exe).
+- **사고 하나, 그 자리에서 잡음** — export_presets.cfg에는 프리셋마다
+  다른 main_scene을 지정하는 자리가 없어(그건 project.godot의 전역
+  설정), 내보내기 직전마다 `run/main_scene`을 그 게임 씬으로 바꾸고
+  내보낸 뒤 되돌리는 방식을 썼다. **처음엔 이 치환을 `python -c` 스크립트로
+  자동화하려 했는데, 이 PC의 `python`이 Microsoft Store 스텁(진짜
+  인터프리터가 아니다)이라 아무 것도 안 하고 조용히 성공 종료 —
+  다섯 판 전부 `run/main_scene`이 그대로(saga_go TestVillage)인 채로
+  내보내져 버렸다.** exit code 0·정상적인 파일 크기(147MB)만 봐서는
+  이 사고가 전혀 안 드러났다 — 각 exe를 헤드리스로 실행해 로그에서
+  실제로 로드된 씬 경로를 `grep`으로 확인하고서야 다섯 개 다 "TestVillage"
+  하나로 나오는 걸 발견했다. **Edit 툴로 직접 project.godot을 고치고
+  git status로 확인하는 방식**으로 바꿔 다섯 판 전부 다시 내보냈고,
+  이번엔 각 exe가 자기 게임의 씬을 정확히 로드하는지 개별 확인까지
+  마쳤다. 자세한 재발 방지 절차는 `docs/HOW_TO_PLAYTEST.md` 8절에
+  적어 뒀다 — 다음에 다시 빌드할 일이 있으면 그 절차 그대로 따를 것.
+- **각 게임의 main_scene**: saga-go=`TestVillage.tscn`(원래 프로젝트
+  기본값)·saga-dungeon=`TestRoom.tscn`·saga-forest=`TestVillageForest.
+  tscn`·saga-story=`TestField.tscn`(문으로 허도·강릉진과 이어짐, HOW_TO_
+  PLAYTEST.md의 "단독 테스트방" 옛 설명은 이 김에 정정)·saga-realm=
+  `TestCity.tscn`.
+- 결과물은 `builds/<게임>/<게임>.exe`(다섯 개, 각 ~147MB) — `builds/`도
+  `.gitignore`에 추가해 커밋 안 되게 했다. **로컬 산출물이라 이 세션의
+  PC에만 있다** — 다른 PC·세션에서 그대로 쓸 수 있는 게 아니라, 필요하면
+  HOW_TO_PLAYTEST.md 8절 절차로 그 PC에서 다시 빌드해야 한다.
+- 검증: 다섯 exe 전부 `--headless --quit-after 2~3 --verbose` 오류 0건 +
+  각자 자기 게임 씬을 정확히 로드하는지 로그로 확인(문서에 적은 사고를
+  이 확인 단계에서 실제로 잡았다). **GUI로 직접 띄워 보진 않았다** —
+  창을 띄우는 확인은 사용자가 실기에서 직접 하는 몫(루트 CLAUDE.md
+  "2026-09-09 정정"). `project.godot`은 매 내보내기 뒤 원래 값으로
+  정확히 복원됨을 매번 git status로 확인, `*.import` 잡음만 되돌림.
