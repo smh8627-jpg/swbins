@@ -1335,10 +1335,11 @@ Assets/Settings/
 
 ## 다음에 할 일 (아직 착수 전)
 
-- **Mixamo 캐릭터를 새로 받을 때마다 `ModelImporter.ExtractTextures()`를
-  표준 절차에 포함시키기** — `SetupMixamoCharacterImport.cs`에 이
-  단계를 넣어 리깅과 한 번에 처리하도록 다음에 정리할 것(이번엔 급한
-  대로 별도 진단 스크립트로 처리했다).
+- ~~Mixamo 캐릭터를 새로 받을 때마다 `ModelImporter.ExtractTextures()`를
+  표준 절차에 포함시키기~~ — 이미 됐다. `MixamoRigUtil.RigCharacter()`
+  (Maria·Abe 공용 리깅 함수) 안에 `bodyImporter.ExtractTextures(...)`가
+  들어 있다(2026-09-14 확인, "이어해" 후속 세션에서 이 항목이 스테일임을
+  발견) — 다음에 새 Mixamo 캐릭터를 추가해도 이 함수를 쓰기만 하면 자동.
 - ⑤가 받아 둔 헤어카드(이방성)·진짜 SSS(`FakeSSS.shadersubgraph`)를
   실제로 쓰려면 **Shader Graph 노드 연결을 사람이 GUI로 해야 한다**
   (⑪에서 확인한 제약) — 다음 세션 또는 사용자가 직접 Unity 에디터를

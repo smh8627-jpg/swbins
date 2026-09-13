@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using Saga.Forest.Data;
 using Saga.Forest.World;
+using Saga.Forest.UI;
 
 namespace Saga.EditorTools
 {
@@ -29,7 +30,12 @@ namespace Saga.EditorTools
         private static bool _origEnterPlayModeOptionsEnabled;
         private static EnterPlayModeOptions _origEnterPlayModeOptions;
 
-        private enum Phase { Init, WaitWander, CheckWander, ApproachFlee, WaitFlee, CheckFlee, Done }
+        private enum Phase
+        {
+            Init, WaitWander, CheckWander, ApproachFlee, WaitFlee, CheckFlee,
+            ApproachHostile, WaitAggro, CheckAggro, ApproachContact, WaitEncounter, CheckEncounter,
+            ResolveEncounter, WaitResolved, CheckResolved, Done,
+        }
         private static Phase _phase = Phase.Init;
         private static int _initFramesLeft;
         private static float _waitUntilTime;
@@ -39,6 +45,10 @@ namespace Saga.EditorTools
         private static readonly Dictionary<string, Transform> _creatures = new Dictionary<string, Transform>();
         private static readonly Dictionary<string, Vector3> _startPos = new Dictionary<string, Vector3>();
         private static Vector3 _fleePosBefore;
+
+        // 2026-09-14 "전투 콘텐츠" 추가분 — pojagoemul(포자괴물) 하나만 적대.
+        private static ForestCreature _hostileCreature;
+        private static Vector3 _aggroPosBefore;
 
         [MenuItem("Saga/Playtest Forest Creatures (Headless)")]
         public static void Run()
@@ -90,7 +100,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestForestCreatures] OK - all eight creatures wandered and fled correctly, no errors"
+                    ? "[PlaytestForestCreatures] OK - all eight creatures wandered/fled + pojagoemul hostile aggro/encounter/retreat, no errors"
                     : $"[PlaytestForestCreatures] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -184,6 +194,111 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    _phase = Phase.ApproachHostile;
+                    break;
+                }
+
+                // ── 2026-09-14 "전투 콘텐츠" — pojagoemul만 적대: 도주 대신 추격,
+                // 접촉하면 대치(Encounter) → 밀어내기 미니게임 → 물러남까지 확인.
+                case Phase.ApproachHostile:
+                {
+                    var target = _creatures["pojagoemul"];
+                    _hostileCreature = target.GetComponent<ForestCreature>();
+                    if (_hostileCreature == null || !_hostileCreature.IsHostile)
+                    {
+                        Debug.LogError("[PlaytestForestCreatures] pojagoemul이 Hostile로 설정돼 있지 않음");
+                        Fail();
+                        return;
+                    }
+                    _aggroPosBefore = target.position;
+                    // fleeRadius(4.5) 안, 접촉 거리(1.1) 밖에 순간이동 — 추격 시작만
+                    // 보고 싶어 접촉 직전 거리(2.5m)로 잡는다.
+                    TeleportPlayer(target.position + new Vector3(2.5f, 0f, 0f));
+                    _waitUntilTime = Time.time + 1.0f;
+                    _phase = Phase.WaitAggro;
+                    break;
+                }
+
+                case Phase.WaitAggro:
+                    if (Time.time < _waitUntilTime) return;
+                    _phase = Phase.CheckAggro;
+                    break;
+
+                case Phase.CheckAggro:
+                {
+                    var target = _creatures["pojagoemul"];
+                    float distBefore = Vector3.Distance(_aggroPosBefore, _player.position);
+                    float distAfter = Vector3.Distance(target.position, _player.position);
+                    Debug.Log($"[PlaytestForestCreatures] pojagoemul aggro check — state={_hostileCreature.DebugStateName} distBefore={distBefore:F2} distAfter={distAfter:F2}");
+                    // fleeSpeed(2.8)로 2.5m 접촉거리(1.1)까지 좁히는 데 1초도 안
+                    // 걸려서, 1초 대기 뒤엔 이미 Encounter로 넘어가 있을 수도
+                    // 있다 — 그것도 "제대로 쫓아왔다"는 증거라 둘 다 인정한다.
+                    if ((_hostileCreature.DebugStateName != "Aggro" && _hostileCreature.DebugStateName != "Encounter")
+                        || distAfter >= distBefore - 0.05f)
+                    {
+                        Debug.LogError("[PlaytestForestCreatures] 적대 종이 플레이어에게 다가오지 않음(도주와 반대 방향이어야 함)");
+                        Fail();
+                        return;
+                    }
+                    _phase = Phase.ApproachContact;
+                    break;
+                }
+
+                case Phase.ApproachContact:
+                {
+                    // 접촉 거리(1.1) 안까지 바로 순간이동시켜 Encounter 진입을 확정한다
+                    // (추격 이동 자체는 위에서 이미 확인했다).
+                    var target = _creatures["pojagoemul"];
+                    TeleportPlayer(target.position + new Vector3(0.5f, 0f, 0f));
+                    _waitUntilTime = Time.time + 0.5f;
+                    _phase = Phase.WaitEncounter;
+                    break;
+                }
+
+                case Phase.WaitEncounter:
+                    if (Time.time < _waitUntilTime) return;
+                    _phase = Phase.CheckEncounter;
+                    break;
+
+                case Phase.CheckEncounter:
+                {
+                    var ui = ForestHostileEncounterUi.Instance;
+                    if (_hostileCreature.DebugStateName != "Encounter" || ui == null || !ui.IsActive)
+                    {
+                        Debug.LogError($"[PlaytestForestCreatures] 접촉했는데 Encounter로 안 바뀜(state={_hostileCreature.DebugStateName}, uiActive={ui != null && ui.IsActive})");
+                        Fail();
+                        return;
+                    }
+                    _phase = Phase.ResolveEncounter;
+                    break;
+                }
+
+                case Phase.ResolveEncounter:
+                {
+                    // 실제 버튼 클릭 없이 같은 효과 — DebugPress 6번(PressesToWin)이면
+                    // 이긴 것으로 해소돼야 한다.
+                    var ui = ForestHostileEncounterUi.Instance;
+                    for (int i = 0; i < 6; i++) ui.DebugPress();
+                    _waitUntilTime = Time.time + 0.5f;
+                    _phase = Phase.WaitResolved;
+                    break;
+                }
+
+                case Phase.WaitResolved:
+                    if (Time.time < _waitUntilTime) return;
+                    _phase = Phase.CheckResolved;
+                    break;
+
+                case Phase.CheckResolved:
+                {
+                    var ui = ForestHostileEncounterUi.Instance;
+                    if (ui.IsActive || _hostileCreature.DebugStateName != "Flee")
+                    {
+                        Debug.LogError($"[PlaytestForestCreatures] 밀어내기 성공 후에도 안 물러남(state={_hostileCreature.DebugStateName}, uiActive={ui.IsActive})");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log("[PlaytestForestCreatures] pojagoemul hostile encounter OK - aggro/contact/push-out/retreat all verified");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Forest.UI;
 
 namespace Saga.Forest.World
 {
@@ -16,21 +17,32 @@ namespace Saga.Forest.World
     /// 처음 짰다. 여덟 종이 네 바이옴에 둘씩(`ForestBiomeData.Zones`
     /// 참고).
     ///
-    /// **전투·포획·HP는 이번에도 안 만든다** — 이 판의 핵심 루프는 "돌아다니면
-    /// 재미있다"이지 전투가 아니다(`saga-godot/docs/LEGACY_FEATURE_AUDIT.md`
-    /// 문장 그대로, GO `WanderingAnimal.cs`가 이미 같은 결정을 내린 것과도
-    /// 같은 결). 상태기계(Idle→Wander→Flee)도 GO `WanderingAnimal.cs`와
-    /// 같은 구조지만 **Group(무리 전파)는 없다** — godot 쪽 원본 설계에
-    /// 없던 걸 새로 얹지 않는다. FOREST엔 GO의 타일 맵 같은 보행 가능
-    /// 판정 데이터가 없어(단일 평면) 걸을 수 있는 자리 검사도 생략했다.
+    /// 상태기계(Idle→Wander→Flee)도 GO `WanderingAnimal.cs`와 같은 구조지만
+    /// **Group(무리 전파)는 없다** — godot 쪽 원본 설계에 없던 걸 새로 얹지
+    /// 않는다. FOREST엔 GO의 타일 맵 같은 보행 가능 판정 데이터가 없어(단일
+    /// 평면) 걸을 수 있는 자리 검사도 생략했다.
+    ///
+    /// **전투 콘텐츠 추가(2026-09-14)** — 위 "전투·포획·HP는 안 만든다"는
+    /// 결정을 사용자가 명시적으로 뒤집었다("Forest 전투 콘텐츠 설계부터
+    /// 시작"). 다만 GO/DUNGEON의 DuelRules(스탯·수식·파티·골드) 같은 무거운
+    /// 인프라를 새로 짓지는 않았다 — FOREST는 순수 라이프심이라 그런
+    /// 시스템 자체가 없고, 지금 지으면 "전투"가 아니라 "새 RPG 경제"가
+    /// 된다. 대신 여덟 종 중 포자괴물(pojagoemul) 하나만 적대(Hostile)로
+    /// 바꿔 대치하면 `Saga.Forest.UI.ForestHostileEncounterUi`가 뜨는 아주
+    /// 가벼운 "밀어내기" 미니게임(연타로 게이지를 비움)을 겪게 한다.
+    /// 결과와 무관하게 창조물은 물러난다(처벌 없음) — 원작(동물의 숲)의
+    /// 비폭력 톤은 유지하면서 "적대 개체와 마주친다"는 손맛만 더한 것.
+    /// 다른 일곱 종은 그대로 도주만 한다.
     /// </summary>
     public class ForestCreature : MonoBehaviour
     {
         private const float ArriveDist = 0.4f;
         private const float MinIdleSec = 1.5f;
         private const float MaxIdleSec = 3.5f;
+        private const float ContactDist = 1.1f;    // 이 안이면 대치(Encounter) 시작.
+        private const float AggroCooldownSec = 12f; // 대치가 끝난 뒤 다시 노려보기까지.
 
-        private enum State { Idle, Wander, Flee }
+        private enum State { Idle, Wander, Flee, Aggro, Encounter }
 
         private Vector3 _origin;
         private Vector3 _target;
@@ -39,12 +51,20 @@ namespace Saga.Forest.World
 
         private float _moveSpeed;
         private float _fleeSpeed;
-        private float _fleeRadius;      // 이 안에 플레이어가 들어오면 놀라 달아난다.
+        private float _fleeRadius;      // 이 안에 플레이어가 들어오면 놀라 달아난다(적대 종은 대신 다가온다).
         private float _fleeStopRadius;  // 이만큼 멀어져야 진정한다(히스테리시스).
         private float _wanderRadius;
         private float _fleeStepRadius;
+        private bool _hostile;          // true면 pojagoemul — fleeRadius 안에서 도주 대신 추격.
+        private float _aggroCooldownUntil;
 
         private Transform _player;
+
+        public bool IsHostile => _hostile;
+
+        /// <summary>PlaytestForestCreatures.cs가 상태 전이를 확인하려고 쓴다 —
+        /// private State를 그대로 노출하지 않고 이름만 문자열로 준다.</summary>
+        public string DebugStateName => _state.ToString();
 
         /// <summary>씬 빌더가 스폰 직후 한 번 부른다 — `kind`가 시각과 능력치를
         /// 함께 정한다(species별로 다른 primitive 조합·속도·경계심).</summary>
@@ -70,8 +90,12 @@ namespace Saga.Forest.World
                     break;
                 case "pojagoemul":
                     // 다섯째 종(2026-09-12) — 넷 중 가장 좁게 돈다(새 초과, 기존
-                    // 넷의 "가장 ~함" 주장과 안 겹치는 축).
+                    // 넷의 "가장 ~함" 주장과 안 겹치는 축). 2026-09-14 —
+                    // 여덟 종 중 유일하게 적대(Hostile)로 바뀌었다(클래스
+                    // 주석 "전투 콘텐츠 추가" 참고) — fleeRadius는 이제
+                    // "노려보기 시작 거리"로 재해석된다.
                     _moveSpeed = 1.1f; _fleeSpeed = 2.8f; _fleeRadius = 4.5f; _wanderRadius = 1.8f;
+                    _hostile = true;
                     SpawnVisualPojagoemul();
                     break;
                 case "angaeyuryeong":
@@ -113,16 +137,26 @@ namespace Saga.Forest.World
         {
             if (_player == null) return;
 
+            // Encounter 중엔 UI(ForestHostileEncounterUi)가 결과를 정할 때까지
+            // 제자리에 멈춘다 — OnEncounterResolved가 다음 상태를 정한다.
+            if (_state == State.Encounter) return;
+
             if (_state == State.Flee)
             {
                 UpdateFlee();
                 return;
             }
 
-            float distSqr = FlatDistSqr(transform.position, _player.position);
-            if (distSqr <= _fleeRadius * _fleeRadius)
+            if (_state == State.Aggro)
             {
-                StartFlee();
+                UpdateAggro();
+                return;
+            }
+
+            float distSqr = FlatDistSqr(transform.position, _player.position);
+            if (distSqr <= _fleeRadius * _fleeRadius && Time.time >= _aggroCooldownUntil)
+            {
+                if (_hostile) StartAggro(); else StartFlee();
                 return;
             }
 
@@ -148,11 +182,70 @@ namespace Saga.Forest.World
             if (FlatDistSqr(transform.position, _target) <= ArriveDist * ArriveDist) PickFleeTarget();
         }
 
+        /// <summary>도주(UpdateFlee)의 반대 방향 — fleeSpeed로 플레이어에게
+        /// 곧장 다가간다(위협감을 주려고 wander보다 빠른 속도 그대로 재사용).
+        /// 접촉 거리 안이면 대치를 시작하고, 플레이어가 fleeStopRadius
+        /// 밖으로 빠지면 추격을 포기한다(도주 히스테리시스와 대칭).</summary>
+        private void UpdateAggro()
+        {
+            float distSqr = FlatDistSqr(transform.position, _player.position);
+            if (distSqr <= ContactDist * ContactDist)
+            {
+                BeginEncounter();
+                return;
+            }
+            if (distSqr > _fleeStopRadius * _fleeStopRadius)
+            {
+                PickIdle();
+                return;
+            }
+
+            Vector3 toPlayer = _player.position - transform.position;
+            toPlayer.y = 0f;
+            if (toPlayer.sqrMagnitude > 0.0001f)
+            {
+                Vector3 dir = toPlayer.normalized;
+                transform.position += dir * (_fleeSpeed * Time.deltaTime);
+                transform.rotation = Quaternion.LookRotation(dir);
+            }
+        }
+
         private void StartFlee()
         {
             if (_state == State.Flee) return;
             _state = State.Flee;
             PickFleeTarget();
+        }
+
+        private void StartAggro()
+        {
+            if (_state == State.Aggro) return;
+            _state = State.Aggro;
+        }
+
+        /// <summary>포자괴물이 접촉 거리 안까지 다가왔다 — 밀어내기 미니게임을
+        /// 띄운다. UI가 없는 상황(씬에 `ForestHostileEncounterUi`가 아직 없는
+        /// 다른 테스트 등)이면 곧바로 물러난 것으로 처리해 멈춰 있지 않게 한다.</summary>
+        private void BeginEncounter()
+        {
+            _state = State.Encounter;
+            var ui = ForestHostileEncounterUi.Instance;
+            if (ui != null)
+            {
+                ui.StartEncounter(OnEncounterResolved);
+            }
+            else
+            {
+                OnEncounterResolved(true);
+            }
+        }
+
+        private void OnEncounterResolved(bool won)
+        {
+            _aggroCooldownUntil = Time.time + AggroCooldownSec;
+            DialogueLabel.Instance?.Show(
+                won ? "포자괴물을 몰아냈다!" : "포자괴물이 슬그머니 물러갔다.", 3f);
+            StartFlee(); // 승패와 무관하게 물러난다 — 처벌 없음(클래스 주석 참고).
         }
 
         private void PickIdle()
