@@ -357,3 +357,14 @@ Lit의 Metallic 워크플로가 Smoothness를 별도 슬롯이 아니라 Metalli
 — 받은 FBX를 폴더에 넣고 Rig 탭에서 Humanoid로 지정하기만 하면 된다.
 자세한 받는 절차·헤어카드/SSS 셰이더 조사 결과는 `PLAN.md` 66-2장
 "③ 캐릭터 에셋 조사" 참고, 여기서 반복하지 않는다.
+
+## 2026-09-13 — 캐릭터 셰이더 후보 세 벌 반입 (66-2장 ④/⑤)
+
+`Assets/Art/CharacterShaders_candidates/`(`SSS_CiaranSimpson/`·
+`AnisoHair_cathyhlshih/`·`HairCards_itsFulcrum/`) — 위 ③이 조사만 해
+뒀던 URP 헤어카드(이방성)·SSS 스킨 셰이더를 라이선스 확인(MIT/MIT/
+CC0-1.0) 후 실제로 `git clone`해 받았다. 아직 후보일 뿐 — 캐릭터가
+없어 어느 머티리얼/씬에도 안 물렸다. `SSS_CiaranSimpson`은 재사용
+서브그래프만 가져오고 원본 데모 그래프는 뺐다(이 프로젝트 Unity
+6000.3 Shader Graph 패키지에서 임포트 오류) — 자세한 내용은
+`CharacterShaders_candidates/LICENSE.txt`·`PLAN.md` 66-2장 ④/⑤ 참고.
