@@ -397,6 +397,8 @@
     hitMeshes = [];
     pulseRings = [];
     floaters = [];
+    shadowInst = null;
+    shadowCount = 0;
   }
 
   /** 재해 그림문자 — 캔버스에 이모지를 한 번 찍어 텍스처로 굳힌다(문자마다 캐시) */
@@ -419,8 +421,18 @@
 
   /** 발밑 그림자 — 실제 shadow map 대신 값싼 원 데칼을 깐다. 궤도 카메라로
    *  국토 전체를 내려다보는 화면이라(멀리서도 항상 선명해야 한다) 진짜
-   *  그림자맵보다 이 편이 싸고 확실하다(saga-go 배우 그림자와 같은 요령) */
+   *  그림자맵보다 이 편이 싸고 확실하다(saga-go 배우 그림자와 같은 요령).
+   *
+   *  2026-09-14 — 성능 최적화(PLAN.md 27절). 지역이 열한 곳(성 100여 곳 +
+   *  scatterField 소품 1천여 개)으로 늘면서, 소품마다 하나씩 찍던 이 데칼이
+   *  달마다(rebuild) 개별 Mesh 수천 개 = 드로우콜 수천 개로 쌓였다. 안
+   *  움직이고 서로 안 겹쳐도 되는 정적 원판이라, 하나의 InstancedMesh 에
+   *  인스턴스로 눕혀 드로우콜 하나로 합친다 — 지오메트리·머티리얼은 그대로
+   *  공유하던 것을 이어 쓴다(눈에 보이는 그림은 그대로, 그리는 방식만
+   *  바뀐다). `clearDyn()`이 달마다 `shadowInst`를 비워 다시 짓는다. */
   var blobGeo = null, blobMat = null;
+  var shadowInst = null, shadowCount = 0, shadowDummy = null;
+  var SHADOW_MAX = 6000;
   function addShadow(x, z, r) {
     var t = three();
     if (!t || !dyn) { return; }
@@ -428,11 +440,22 @@
       blobGeo = new t.CircleGeometry(1, 16);
       blobMat = new t.MeshBasicMaterial({ color: 0x14140c, transparent: true, opacity: 0.3, depthWrite: false });
     }
-    var m = new t.Mesh(blobGeo, blobMat);
-    m.rotation.x = -Math.PI / 2;
-    m.position.set(x, elevAt(x, z) + 0.015, z);
-    m.scale.setScalar(Math.max(0.4, r));
-    dyn.add(m);
+    if (!shadowInst) {
+      shadowInst = new t.InstancedMesh(blobGeo, blobMat, SHADOW_MAX);
+      shadowInst.count = 0;
+      shadowCount = 0;
+      dyn.add(shadowInst);
+    }
+    if (shadowCount >= SHADOW_MAX) { return; }   // 안전판 — 넘치면 조용히 그만둔다(그림자 몇 개 없어도 안 티난다)
+    if (!shadowDummy) { shadowDummy = new t.Object3D(); }
+    shadowDummy.position.set(x, elevAt(x, z) + 0.015, z);
+    shadowDummy.rotation.set(-Math.PI / 2, 0, 0);
+    shadowDummy.scale.setScalar(Math.max(0.4, r));
+    shadowDummy.updateMatrix();
+    shadowInst.setMatrixAt(shadowCount, shadowDummy.matrix);
+    shadowCount++;
+    shadowInst.count = shadowCount;
+    shadowInst.instanceMatrix.needsUpdate = true;
   }
 
   /** GLB 소품 하나를 세운다(비동기) — cityDressing·scatterSmall·riverPond 가 같이 쓴다.
