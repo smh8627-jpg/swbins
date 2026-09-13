@@ -11,12 +11,14 @@ namespace Saga.Forest.World
     /// (GO)가 이미 쓴 "다가가면 쿨다운 걸고 룰렛 하나" 패턴으로, 14종
     /// 전체를 상시 룰렛에 걸었다(오늘만 4점이 아니라 매번 무작위 1점).
     /// 산 것은 바로 놓이지 않고 창고(`ForestHomeState.Stock`)에 쌓인다 —
-    /// `ForestFurnitureAnchor`의 빈 자리에 다가가면 창고에서 놓인다.
+    /// 방 안 격자 빈 칸에 다가가면 `World/ForestFurniturePlacer.cs`가
+    /// 창고에서 꺼내 놓는다(2026-09-13, 고정 자리 여섯→자유 배치로 재설계).
     /// </summary>
     public class ForestFurnitureStall : MonoBehaviour
     {
-        // ForestFurnitureAnchor(0.6m)와 겹치지 않게 좁게 잡음(`Editor/
-        // BuildTestVillageForestScene.cs`의 좌표 배치와 함께 맞춘 값).
+        // 격자 칸(1m)과 안 겹치게 좁게 잡음 — 좌판 자체는 `ForestHomeState
+        // .StallLocalPos`에 놓이고, 그 자리 반경 안(StallKeepClear)은 애초에
+        // 무효 칸이라 격자 배치와 물리적으로 안 겹친다.
         private const float InteractRadius = 0.8f;
         private const float CooldownSec = 6f; // GO 성황당(20초)보다 짧게 — 여러 번 사야 완성되는 수집 루프라서.
         private const float ToastSec = 3.5f;
