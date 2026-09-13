@@ -5,11 +5,13 @@ extends Node3D
 ## 이미 같은 색으로 옮겨 둔 값과 같다). HP=18·DMG=6은 side.js
 ## spawnEnemy()의 lv=1 공식(story_combat.gd 상단 참고).
 ##
-## **재해석** — 이번 슬라이스는 추격·원거리 반격이 없다(1·3절 "제외" —
-## "때린다→쓰러진다" 감각부터 검증한다). DUNGEON dungeon_enemy.gd처럼
-## 플레이어를 쫓아오지 않고 **제자리에 서서 맞기만 한다** — 넉백조차
-## 이번엔 안 넣었다(시각 반응 없이 HP만 깎인다, 다음 콘텐츠 확장 때
-## dungeon_enemy.gd 패턴을 참고해 추격·반격을 붙이면 된다).
+## **재해석** — 추격은 여전히 없다(1·3절 "제외" — 잡졸은 제자리에 서
+## 있다, 넉백도 없음). **2026-09-13 추가 — 반격만 채운다**: side.js
+## `overlap(p, e) && e.cd<=0`이면 `hurtMe(e.dmg)` 그대로 — 플레이어가
+## 닿으면(추격 없이) 맞는다. 원문 `e.cd=1.0`(1초 쿨다운) 그대로. 겹침
+## 판정 반경은 `P_W`(26px)/2 + 잡졸 `w`(34px)/2 = 30px×0.02=0.6m로
+## 역산(원문은 AABB 겹침이지만 이 포트는 X축 거리 하나로 충분히
+## 재현한다 — story_player.gd `_melee_hit()`도 같은 방식).
 ##
 ## **2026-09-13 추가 — 보스(황건 두목, is_boss).** story_boss_spawner.gd가
 ## add_child 전에 `is_boss=true`를 세팅한다(story_gather.gd의 kind와 같은
@@ -25,10 +27,13 @@ signal died
 
 const COLOR := Color(0.788, 0.659, 0.227)  # data-enemy.js 황건적 color '#c9a83a'
 const BOSS_VISUAL_SCALE := 1.6
+const OVERLAP_RANGE := 0.6  # (P_W/2 + enemy_w/2)px * SCALE = (13+17)*0.02
+const ATTACK_COOLDOWN := 1.0  # side.js e.cd = 1.0 그대로
 
 var is_boss := false
 var hp := StoryCombat.ENEMY_HP
 var _dead := false
+var _attack_cd_left := 0.0
 
 
 func _ready() -> void:
@@ -59,6 +64,24 @@ func _spawn_visual() -> void:
 	cs.position = Vector3(0, 0.8 * scale_mul, 0)
 	cs.shape = shape
 	add_child(cs)
+
+
+func _physics_process(delta: float) -> void:
+	if _dead:
+		return
+	_attack_cd_left = maxf(0.0, _attack_cd_left - delta)
+	if _attack_cd_left > 0.0:
+		return
+	var player := get_tree().get_first_node_in_group("player")
+	if player == null or not player.has_method("take_damage"):
+		return
+	var scale_mul: float = BOSS_VISUAL_SCALE if is_boss else 1.0
+	var dx: float = player.global_position.x - global_position.x
+	if absf(dx) > OVERLAP_RANGE * scale_mul:
+		return
+	_attack_cd_left = ATTACK_COOLDOWN
+	var dmg: float = StoryCombat.ENEMY_DMG * (StoryCombat.BOSS_DMG_MUL if is_boss else 1.0)
+	player.take_damage(dmg)
 
 
 func take_damage(amount: float) -> void:

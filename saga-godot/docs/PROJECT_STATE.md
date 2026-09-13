@@ -4440,3 +4440,30 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
     8곳(문 포함)·전직 트리·장비 나머지(방어구·장신구·주문서·고유·
     상점), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 잡졸 반격 — 플레이어 체력 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — story_enemy.gd 머리말의
+  "추격·원거리 반격이 없다" 중 반격만 채웠다(추격은 여전히 없음).
+  side.js overlap()+e.cd=1.0+hurtMe(e.dmg) 그대로, 판정 반경은
+  P_W/enemy_w 픽셀합을 역산(0.6m). ENEMY_DMG(6)·BOSS_DMG_MUL(2.0,
+  이미 있었지만 이번에 처음 실제로 쓰임). 플레이어 죽음은 DUNGEON
+  player_health.gd와 같이 이번에도 범위 밖(hp 0에서 멈춤).
+  - `story_player.gd`: hp·max_hp+take_damage() 신규(mp와 같이 직접
+    얹음). `story_enemy.gd`: OVERLAP_RANGE·ATTACK_COOLDOWN+
+    `_physics_process()` 신규(이 스크립트 첫 매프레임 로직). `hp_bar.
+    gd`(신규, mp_bar.gd 패턴) + `StoryHUD.tscn`에 HpLabel/HpBar 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 11절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그로 원거리 무피해·접촉 시 -6·
+    1초 쿨다운 확인·재접촉 시 추가 -6·take_damage(99999)로도 0에서
+    멈춤·보스 접촉 시 -12(6×2.0) 전부 확인. 첫 시도에 "멀리서도 맞는다"
+    는 결과가 나와 조사했더니 테스트 좌표가 다른 그룬트와 우연히
+    겹친 테스트 자체의 오류였다(게임 로직은 정상) — 좌표 다시 골라
+    재확인.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
+    8곳(문 포함)·전직 트리·장비 나머지(방어구·장신구·주문서·고유·
+    상점), 또는 다른 판 작업 — 승인 후.

@@ -37,6 +37,25 @@ var _cd_bolt := 0.0
 var _cd_brace := 0.0
 var _buff_time_left := 0.0  # 기합(brace) 남은 시간 — atk·speed 배율에 쓴다
 
+## **2026-09-13 추가 — 플레이어 체력(잡졸 반격).** story_enemy.gd 머리말이
+## "추격·원거리 반격이 없다"고 적어 둔 것 중 반격(겹치면 맞는다, side.js
+## overlap()+hurtMe())만 이번에 채운다 — 추격(쫓아오기)은 여전히 없다
+## (잡졸은 제자리, 플레이어가 닿으면 맞는다). DUNGEON player_health.gd와
+## 같은 정신으로 **죽음은 이번에도 범위 밖** — hp가 0 밑으로 안 내려가고
+## 그냥 멈춘다(부활·게임오버 없음). mp처럼 세이브에 안 넣는다.
+## side.js의 전역 피격무적(`p.invuln`, HIT_COOL)은 옮기지 않았다 — 잡졸이
+## 하나(story_enemy.gd `_attack_cd_left`, 1초)뿐이라 같은 적이 연타하는
+## 건 이미 막히고, 여러 적이 동시에 겹쳐 때리는 경우는 이번 슬라이스
+## (그룬트 셋+보스 하나) 규모에선 드물다고 보고 좁혔다.
+var hp := StoryCombat.START_HP
+var max_hp := StoryCombat.START_HP
+
+
+func take_damage(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	hp = maxf(0.0, hp - amount)
+
 
 func _ready() -> void:
 	visual.rotation.y = PI * 0.5  # 오른쪽(+X)을 보고 시작 — StoryPlayer.tscn 참고
