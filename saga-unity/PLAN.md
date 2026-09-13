@@ -1194,10 +1194,38 @@ Assets/Settings/
   머티리얼이 어떤 셰이더인지, 헤어 메시가 몸과 분리돼 있는지 등은 다음에
   확인). 이번엔 리깅까지만.
 
+## ⑧ Animator Controller + 확인용 씬 배치 (2026-09-13, 이어서)
+
+- **`BuildTestCharacterRealisticScene.cs`(신규, `Saga/Build Test
+  Character Realistic Scene` 메뉴)** — 두 가지를 한 번에 한다:
+  1. `Assets/Animators/Maria.controller`(신규 폴더, 커밋 대상 —
+     Mixamo 원본 데이터를 담지 않고 클립 이름/전이 구조만 있는 순수
+     제작물이라 `CharactersRealistic/`처럼 gitignore할 이유가 없다)에
+     8개 클립을 전부 연결한 Animator Controller를 코드로 짓는다.
+     파라미터는 `Speed`(float, Idle↔Walk↔Run 블렌드: >0.1 걷기,
+     >0.6 뛰기)+`Attack`·`Hit`·`Dodge`·`Death`·`Interact`(전부
+     Trigger, Any State에서 즉시 전이). 액션 클립은 재생이 끝나면
+     Idle로 자동 복귀하되(exitTime 0.9), **Death만 복귀시키지 않는다**
+     (죽었다가 자동으로 살아나면 부자연스럽다 — 실제 게임 사망 처리와
+     같은 관례, 다시 보려면 Play 모드를 재시작).
+  2. **`Assets/Scenes/TestCharacterRealistic.unity`(신규)** — 어느
+     게임에도 속하지 않는 독립 리그 검증 씬(조명 하나+바닥 Plane+
+     카메라, 66-2장 FF16 아트 패스는 일부러 안 걸었다 — 그건 각 게임
+     씬의 몫이고 여긴 리그 확인만). Maria FBX를 `PrefabUtility.
+     InstantiatePrefab`으로 배치하고 `Animator.runtimeAnimatorController`
+     에 위 컨트롤러를 물렸다.
+  - 배치 모드로 실행 — 컨트롤러의 8개 상태 전부 `m_Motion`이 non-null
+    (클립이 실제로 물렸다는 뜻), 씬의 Animator가 정확한 컨트롤러 GUID를
+    참조하는 것까지 직접 확인. 컴파일 오류 0건, `ProjectSettings/`·
+    `Packages/` 부작용 없음.
+  - **아직 사람이 GUI로 Play를 눌러 실제로 재생해 보진 않았다** — 다음
+    세션 또는 사용자가 에디터로 열어 Speed 슬라이더·트리거 버튼을
+    Animator 창에서 눌러 직접 확인할 차례.
+
 ## 다음에 할 일 (아직 착수 전)
 
-- Animator Controller를 만들어 위 8개 클립(idle/walk/run/attack/hit/
-  dodge/death/interaction)을 연결하고 실제 씬에 캐릭터를 배치해 본다.
+- 사람이 에디터로 `TestCharacterRealistic.unity`를 열어 Play 모드에서
+  Animator 파라미터를 직접 조작해 8개 클립이 실제로 잘 도는지 확인.
 - ⑤의 헤어카드(이방성)·SSS 스킨 셰이더 후보를 Maria의 실제 머티리얼에
   붙여 본다 — 먼저 Maria FBX 안 머티리얼 슬롯 구성(피부/헤어/의상이
   몇 개 서브메시·머티리얼로 나뉘는지)부터 확인.

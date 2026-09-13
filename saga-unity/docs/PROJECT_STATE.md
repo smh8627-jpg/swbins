@@ -3686,6 +3686,21 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   스킨 셰이더를 Maria 실제 머티리얼에 붙이기(머티리얼 슬롯 구성부터
   확인 필요), 이후 44장 우선순위대로 실제 씬 순차 교체.
 
+## 66-2장 "다음에 할 일" ⑧ Animator Controller + 확인용 씬 배치 (2026-09-13, 이어서)
+
+- `BuildTestCharacterRealisticScene.cs` 신규 — `Assets/Animators/
+  Maria.controller`(커밋 대상, Mixamo 데이터 없이 클립 이름/전이만
+  있음)에 8개 클립 전부 연결(Speed 블렌드로 Idle/Walk/Run, 나머지
+  다섯은 Any State 트리거로 즉시 전이 후 Idle 복귀 — Death만 복귀
+  안 시킴), `Assets/Scenes/TestCharacterRealistic.unity`(신규, 어느
+  게임에도 안 속하는 독립 리그 검증 씬)에 Maria를 배치하고 Animator에
+  물렸다. 배치 모드로 8개 상태 전부 클립이 실제로 물린 것·씬의
+  Animator가 정확한 컨트롤러를 참조하는 것 확인, 컴파일 오류 0건,
+  `ProjectSettings/`·`Packages/` 부작용 없음. 자세한 내용은 `PLAN.md`
+  66-2장 ⑧ 참고.
+- **다음에 할 일**: 사람이 에디터로 이 씬을 열어 Play 모드에서 직접
+  확인 → ⑤ 헤어/스킨 셰이더를 Maria 머티리얼에 붙이기.
+
 ## GUI 실기 확인 + 라이팅 재조정 — 다섯 판 전부 (2026-09-13, 이어서)
 
 - **사용자 지시 "Unity 에디터로 직접 열어서 화면 톤 확인해줘"** — 위
