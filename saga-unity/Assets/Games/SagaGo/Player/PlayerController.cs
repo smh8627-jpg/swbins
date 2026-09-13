@@ -27,6 +27,11 @@ namespace Saga.Go.Player
         [SerializeField] private CameraRig cameraRig;
         [SerializeField] private InputActionAsset inputActions;
         [SerializeField] private VirtualJoystick joystick;
+        // 44장 "Player" 교체 — Maria(리깅+Animator)가 배정되면 채워진다
+        // (BuildTestVillageScene.BuildPlayerVisual 참고). null이면(character-a
+        // 폴백 등) 예전처럼 몸통 회전만 하고 애니메이션은 안 돈다 — 씬이 안 깨짐
+        // (Saga.Dungeon.Player.PlayerController와 같은 결).
+        [SerializeField] private Animator animator;
 
         private CharacterController _controller;
         private InputAction _moveAction;
@@ -73,11 +78,20 @@ namespace Saga.Go.Player
             Vector3 horizontal = moveDir * speed;
             _controller.Move(new Vector3(horizontal.x, _verticalVelocity, horizontal.z) * dt);
 
-            if (moveDir.sqrMagnitude > 0.05f * 0.05f && visual != null)
+            bool moving = moveDir.sqrMagnitude > 0.05f * 0.05f;
+            if (moving && visual != null)
             {
                 float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
                 float yaw = Mathf.LerpAngle(visual.eulerAngles.y, targetYaw, TurnRate * dt);
                 visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+
+            // Maria.controller의 Speed 파라미터(Idle↔Walk↔Run 블렌드,
+            // Saga.Dungeon.Player.PlayerController와 같은 관례 — >0.1 걷기,
+            // >0.6 뛰기 임계값은 Animator Controller 쪽에 있다).
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", moving ? (running ? 1f : 0.5f) : 0f);
             }
         }
 
