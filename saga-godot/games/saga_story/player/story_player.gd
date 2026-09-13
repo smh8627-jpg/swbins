@@ -60,6 +60,26 @@ var _cd_archer_double := 0.0
 var _cd_archer_pierce := 0.0
 var _cd_archer_eye := 0.0
 
+## **2026-09-13 추가(같은 날 더) — 전직 다음 걸음: 협객(rogue) 무예 넷.**
+## `_invuln_time_left`는 은신보(rogue) 전용으로 새로 늘렸다(축지·mage
+## 몫은 다음에 m_step을 옮길 때 이 변수를 그대로 재사용할 수 있다) —
+## side.js `p.invuln`과 같은 자리, take_damage()가 이 값이 0보다 크면
+## 피해 자체를 무시한다(방어 컷보다 앞서 확인).
+var _cd_rogue_twin := 0.0
+var _cd_rogue_knife := 0.0
+var _cd_rogue_step := 0.0
+var _cd_rogue_vital := 0.0
+var _invuln_time_left := 0.0
+
+## **2026-09-13 추가(같은 날 더) — 전직 다음 걸음: 방사(mage) 무예 넷.**
+## `_job_buff_time_left`를 부적(m_talis)도 같이 쓴다(archer/warrior와
+## 같은 공유 규칙). regen 배율은 mp 회복 줄(`_physics_process()`)이
+## job=='mage'일 때만 곱한다.
+var _cd_mage_fire := 0.0
+var _cd_mage_bolt := 0.0
+var _cd_mage_heal := 0.0
+var _cd_mage_talis := 0.0
+
 ## **2026-09-13 추가 — 플레이어 체력(잡졸 반격).** story_enemy.gd 머리말이
 ## "추격·원거리 반격이 없다"고 적어 둔 것 중 반격(겹치면 맞는다, side.js
 ## overlap()+hurtMe())만 이번에 채운다 — 추격(쫓아오기)은 여전히 없다
@@ -96,6 +116,8 @@ var max_mp: float:
 func take_damage(amount: float) -> void:
 	if amount <= 0.0:
 		return
+	if _invuln_time_left > 0.0:
+		return
 	var def: float = float(StorySaveState.gear_totals().def)
 	var cut: float = StoryCombat.damage_cut(def)
 	var guard_mul: float = (1.0 - StoryCombat.WARRIOR_IRON_GUARD) if (_job_buff_time_left > 0.0 and StorySaveState.job == "warrior") else 1.0
@@ -121,8 +143,20 @@ func _physics_process(delta: float) -> void:
 	_cd_archer_double = maxf(0.0, _cd_archer_double - delta)
 	_cd_archer_pierce = maxf(0.0, _cd_archer_pierce - delta)
 	_cd_archer_eye = maxf(0.0, _cd_archer_eye - delta)
+	_cd_rogue_twin = maxf(0.0, _cd_rogue_twin - delta)
+	_cd_rogue_knife = maxf(0.0, _cd_rogue_knife - delta)
+	_cd_rogue_step = maxf(0.0, _cd_rogue_step - delta)
+	_cd_rogue_vital = maxf(0.0, _cd_rogue_vital - delta)
+	_invuln_time_left = maxf(0.0, _invuln_time_left - delta)
+	_cd_mage_fire = maxf(0.0, _cd_mage_fire - delta)
+	_cd_mage_bolt = maxf(0.0, _cd_mage_bolt - delta)
+	_cd_mage_heal = maxf(0.0, _cd_mage_heal - delta)
+	_cd_mage_talis = maxf(0.0, _cd_mage_talis - delta)
 	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
-	mp = minf(max_mp, mp + StoryCombat.MP_REGEN * delta)
+	## m_talis(부적)가 걸려 있으면 mp 회복이 MAGE_TALIS_REGEN_MUL배 빨라진다
+	## (side.js MP_REGEN*bf.regen과 같은 자리) — 다른 job 버프는 regen이 없다.
+	var regen_mul: float = StoryCombat.MAGE_TALIS_REGEN_MUL if (_job_buff_time_left > 0.0 and StorySaveState.job == "mage") else 1.0
+	mp = minf(max_mp, mp + StoryCombat.MP_REGEN * regen_mul * delta)
 	_check_rope()
 
 	if _on_rope and _rope_area != null:
@@ -163,6 +197,24 @@ func _physics_process(delta: float) -> void:
 			_cast_archer_pierce()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_archer_eye()
+	elif StorySaveState.job == "rogue":
+		if Input.is_action_just_pressed("story_job_skill_1"):
+			_cast_rogue_twin()
+		if Input.is_action_just_pressed("story_job_skill_2"):
+			_cast_rogue_knife()
+		if Input.is_action_just_pressed("story_job_skill_3"):
+			_cast_rogue_step()
+		if Input.is_action_just_pressed("story_job_skill_4"):
+			_cast_rogue_vital()
+	elif StorySaveState.job == "mage":
+		if Input.is_action_just_pressed("story_job_skill_1"):
+			_cast_mage_fire()
+		if Input.is_action_just_pressed("story_job_skill_2"):
+			_cast_mage_bolt()
+		if Input.is_action_just_pressed("story_job_skill_3"):
+			_cast_mage_heal()
+		if Input.is_action_just_pressed("story_job_skill_4"):
+			_cast_mage_talis()
 
 
 func _walk(delta: float) -> void:
@@ -250,6 +302,10 @@ func _effective_atk() -> float:
 			atk *= StoryCombat.WARRIOR_IRON_ATK_MUL
 		elif StorySaveState.job == "archer":
 			atk *= StoryCombat.ARCHER_EYE_ATK_MUL
+		elif StorySaveState.job == "rogue":
+			atk *= StoryCombat.ROGUE_VITAL_ATK_MUL
+		elif StorySaveState.job == "mage":
+			atk *= StoryCombat.MAGE_TALIS_ATK_MUL
 	return atk
 
 
@@ -420,6 +476,104 @@ func _cast_archer_eye() -> void:
 	_cd_archer_eye = StoryCombat.ARCHER_EYE_CD
 	mp -= StoryCombat.ARCHER_EYE_COST
 	_job_buff_time_left = StoryCombat.ARCHER_EYE_SEC
+
+
+## 쌍참(r_twin) — melee, hits:2. 연사(a_double)와 같은 재해석(정면 판정을
+## 그 횟수만큼 잇달아 적용).
+func _cast_rogue_twin() -> void:
+	if _cd_rogue_twin > 0.0 or mp < StoryCombat.ROGUE_TWIN_COST:
+		return
+	_cd_rogue_twin = StoryCombat.ROGUE_TWIN_CD
+	mp -= StoryCombat.ROGUE_TWIN_COST
+	_play_anim("sprint")
+	for i in StoryCombat.ROGUE_TWIN_HITS:
+		_melee_hit(ATTACK_RANGE, StoryCombat.ROGUE_TWIN_MUL)
+
+
+## 비도(r_knife) — volley(shots:2). 연사와 같은 재해석.
+func _cast_rogue_knife() -> void:
+	if _cd_rogue_knife > 0.0 or mp < StoryCombat.ROGUE_KNIFE_COST:
+		return
+	_cd_rogue_knife = StoryCombat.ROGUE_KNIFE_CD
+	mp -= StoryCombat.ROGUE_KNIFE_COST
+	_play_anim("sprint")
+	for i in StoryCombat.ROGUE_KNIFE_SHOTS:
+		_melee_hit(ATTACK_RANGE, StoryCombat.ROGUE_KNIFE_MUL)
+
+
+## 은신보(r_step) — dash + invuln:0.7(이 포트에 처음 등장). 돌진(w_rush)과
+## 같은 순서(경로 판정 → 순간이동)에 무적 시간만 더한다.
+func _cast_rogue_step() -> void:
+	if _cd_rogue_step > 0.0 or mp < StoryCombat.ROGUE_STEP_COST:
+		return
+	_cd_rogue_step = StoryCombat.ROGUE_STEP_CD
+	mp -= StoryCombat.ROGUE_STEP_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.rogue_step_dist_m()
+	_melee_hit(dist_m, StoryCombat.ROGUE_STEP_MUL)
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.ROGUE_STEP_INVULN_SEC)
+
+
+## 급소(r_vital) — buff, 대미지 없음. 철갑·응안과 같은 `_job_buff_time_left`.
+func _cast_rogue_vital() -> void:
+	if _cd_rogue_vital > 0.0 or mp < StoryCombat.ROGUE_VITAL_COST:
+		return
+	_cd_rogue_vital = StoryCombat.ROGUE_VITAL_CD
+	mp -= StoryCombat.ROGUE_VITAL_COST
+	_job_buff_time_left = StoryCombat.ROGUE_VITAL_SEC
+
+
+## 화구(m_fire) — bolt. 기탄·관통시와 같은 재해석(사거리 2배).
+func _cast_mage_fire() -> void:
+	if _cd_mage_fire > 0.0 or mp < StoryCombat.MAGE_FIRE_COST:
+		return
+	_cd_mage_fire = StoryCombat.MAGE_FIRE_CD
+	mp -= StoryCombat.MAGE_FIRE_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE * StoryCombat.MAGE_FIRE_RANGE_MUL, StoryCombat.MAGE_FIRE_MUL)
+
+
+## 뇌전(m_bolt) — aoe. 선풍·횡소와 같은 360도 판정 구조.
+func _cast_mage_bolt() -> void:
+	if _cd_mage_bolt > 0.0 or mp < StoryCombat.MAGE_BOLT_COST:
+		return
+	_cd_mage_bolt = StoryCombat.MAGE_BOLT_CD
+	mp -= StoryCombat.MAGE_BOLT_COST
+	_play_anim("sprint")
+	var range_m := ATTACK_RANGE * StoryCombat.MAGE_BOLT_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), StoryCombat.MAGE_BOLT_MUL)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 치유(m_heal) — **이 포트에 처음 등장하는 effect:'heal'.** 적 판정이
+## 없다 — max_hp의 MAGE_HEAL_PCT만큼 채운다(story_combat.gd 머리말 참고).
+func _cast_mage_heal() -> void:
+	if _cd_mage_heal > 0.0 or mp < StoryCombat.MAGE_HEAL_COST:
+		return
+	_cd_mage_heal = StoryCombat.MAGE_HEAL_CD
+	mp -= StoryCombat.MAGE_HEAL_COST
+	hp = clampf(hp + max_hp * StoryCombat.MAGE_HEAL_PCT, 0.0, max_hp)
+
+
+## 부적(m_talis) — buff, 대미지 없음. atk 배율은 다른 job 버프와 같은
+## `_job_buff_time_left`, regen 배율은 mp 회복 줄(`_physics_process()`)이
+## 따로 적용한다.
+func _cast_mage_talis() -> void:
+	if _cd_mage_talis > 0.0 or mp < StoryCombat.MAGE_TALIS_COST:
+		return
+	_cd_mage_talis = StoryCombat.MAGE_TALIS_CD
+	mp -= StoryCombat.MAGE_TALIS_COST
+	_job_buff_time_left = StoryCombat.MAGE_TALIS_SEC
 
 
 func _play_anim(anim_name: String) -> void:

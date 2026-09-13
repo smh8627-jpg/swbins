@@ -263,6 +263,82 @@ const ARCHER_EYE_SEC := 9.0
 const ARCHER_EYE_ATK_MUL := 1.4
 
 
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 협객(rogue)
+## 무예 넷.** data-job.js SKILLS job:'rogue' 넷(r_twin/r_knife/r_step/
+## r_vital) — 같은 FIXED_SKILL_LEVEL(5).
+##
+## r_twin은 원문 effect가 이미 'melee'에 hits:2 — a_double(volley)과
+## 같은 재해석(정면 판정을 그 횟수만큼 잇달아 적용)을 그대로 재사용,
+## 새 효과를 안 만든다.
+const ROGUE_TWIN_COST := 7.0
+const ROGUE_TWIN_CD := 0.42
+const ROGUE_TWIN_MUL := 0.72 + 0.06 * FIXED_SKILL_LEVEL  # 1.02
+const ROGUE_TWIN_HITS := 2
+
+const ROGUE_KNIFE_COST := 18.0
+const ROGUE_KNIFE_CD := 2.6
+const ROGUE_KNIFE_MUL := 1.0 + 0.09 * FIXED_SKILL_LEVEL  # 1.45
+const ROGUE_KNIFE_SHOTS := 2
+
+## r_step(은신보) — dash, dist:260px + **invuln:0.7(이 포트에 처음
+## 등장)**. side.js dash 처리(`p.invuln = Math.max(p.invuln, sk.invuln)`,
+## hurtMe()가 invuln>0이면 피해를 통째로 무시)를 story_player.gd의 공용
+## `_invuln_time_left`로 옮긴다 — take_damage()가 그 값이 0보다 크면
+## 방어 컷 계산 전에 그냥 무시한다. dist는 WARRIOR_RUSH_SCALE(0.02, 같은
+## field_map.gd SCALE)로 미터 환산.
+const ROGUE_STEP_COST := 22.0
+const ROGUE_STEP_CD := 7.0
+const ROGUE_STEP_MUL := 1.2 + 0.1 * FIXED_SKILL_LEVEL  # 1.7
+const ROGUE_STEP_DIST_PX := 260.0
+const ROGUE_STEP_INVULN_SEC := 0.7
+
+const ROGUE_VITAL_COST := 26.0
+const ROGUE_VITAL_CD := 15.0
+const ROGUE_VITAL_SEC := 8.0
+const ROGUE_VITAL_ATK_MUL := 1.55
+
+
+static func rogue_step_dist_m() -> float:
+	return ROGUE_STEP_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 방사(mage)
+## 무예 넷.** data-job.js SKILLS job:'mage' 넷(m_fire/m_bolt/m_heal/
+## m_talis) — 같은 FIXED_SKILL_LEVEL(5).
+##
+## m_fire는 원문 effect가 이미 'bolt' — 기탄·관통시와 같은 재해석(사거리
+## 2배). m_bolt(aoe, r:165px)는 선풍(w_whirl)과 같은 결로 REACH(78px)비를
+## 옮긴다(165/78).
+const MAGE_FIRE_COST := 12.0
+const MAGE_FIRE_CD := 0.9
+const MAGE_FIRE_MUL := 1.5 + 0.13 * FIXED_SKILL_LEVEL  # 2.15
+const MAGE_FIRE_RANGE_MUL := 2.0  # BOLT_RANGE_MUL과 같은 재해석, mage 몫
+
+const MAGE_BOLT_COST := 26.0
+const MAGE_BOLT_CD := 4.0
+const MAGE_BOLT_MUL := 1.9 + 0.17 * FIXED_SKILL_LEVEL  # 2.75
+const MAGE_BOLT_RANGE_MUL := 165.0 / 78.0
+
+## m_heal(치유) — **이 포트에 처음 등장하는 effect:'heal'.** side.js
+## heal 처리(`pct = heal[0] + heal[1]*max(0,lv-1); hp = min(hpMax, hp +
+## round(hpMax*pct))`) 그대로 옮기되, mul과 같은 결로 FIXED_SKILL_LEVEL을
+## 그대로 곱한다(이 포트의 mul 공식이 이미 (lv-1)이 아니라 lv를 직접
+## 곱하는 재해석이라 — story_combat.gd 17절 머리말, WARRIOR_CUT_MUL 등 —
+## heal도 같은 결로 맞춘다, 새 규칙을 따로 안 만든다).
+const MAGE_HEAL_COST := 34.0
+const MAGE_HEAL_CD := 11.0
+const MAGE_HEAL_PCT := 0.18 + 0.022 * FIXED_SKILL_LEVEL  # 0.29
+
+## m_talis(부적) — buff, sec:10·atk×1.25·**regen:2.6(이 포트에 처음
+## 등장 — MP 회복 속도 배율)** 원문 그대로. side.js MP_REGEN*bf.regen과
+## 같은 자리를 story_player.gd `_physics_process()`의 mp 회복 줄에 얹는다.
+const MAGE_TALIS_COST := 30.0
+const MAGE_TALIS_CD := 16.0
+const MAGE_TALIS_SEC := 10.0
+const MAGE_TALIS_ATK_MUL := 1.25
+const MAGE_TALIS_REGEN_MUL := 2.6
+
+
 static var _hitstop_active := false
 
 

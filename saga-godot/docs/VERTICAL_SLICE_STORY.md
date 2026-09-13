@@ -901,6 +901,74 @@ skill_1~4`)을 job에 따라 다른 무예로 배선했다(warrior 분기 옆에
   2~4차 전직, 나머지 일곱 사냥터+신야성 — 다음 "saga-godot 이어 해"에서
   이어간다.
 
+## 19. 전직 무예 마지막 걸음 — 협객(rogue)·방사(mage) 넷씩 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 하고 묻지말고 최대한 다해줘"** — 17·18절이
+남긴 "궁수·협객·방사 무예 넷씩" 중 나머지 둘(협객·방사)을 한 번에
+끝냈다. 이걸로 1차 전직 4갈래(무사·궁수·협객·방사) 무예 넷씩(총 16개)이
+전부 채워졌다. FIXED_SKILL_LEVEL(5) 그대로 재사용.
+
+**협객(rogue) 넷** (`data-job.js` SKILLS job:'rogue', cost·cd·mul·dist
+안 바꿈):
+- **쌍참(r_twin)** — 원문 effect가 이미 'melee'에 hits:2. 연사(18절)와
+  같은 재해석(정면 판정을 그 횟수만큼 잇달아 적용), mul 1.02.
+- **비도(r_knife)** — volley(shots:2), 같은 재해석, mul 1.45.
+- **은신보(r_step)** — dash, dist:260px(5.2m로 환산) + **invuln:0.7
+  (이 포트에 처음 등장하는 필드)**. 돌진(w_rush)과 같은 순서(경로
+  판정 → 순간이동)에 무적 시간만 더했다 — side.js `p.invuln`을
+  `_invuln_time_left`(공용, story_player.gd 신규)로 옮기고,
+  `take_damage()` 맨 앞에서 이 값이 0보다 크면 방어 컷 계산 전에
+  피해 자체를 무시하도록 했다(원문 hurtMe()의 `if (p.invuln>0) return`
+  그대로).
+- **급소(r_vital)** — buff, sec8·atk×1.55 원문 그대로. 철갑·응안과 같은
+  `_job_buff_time_left`를 공유.
+
+**방사(mage) 넷**:
+- **화구(m_fire)** — 원문 effect가 이미 'bolt'. 기탄·관통시와 같은
+  재해석(사거리 2배), mul 2.15.
+- **뇌전(m_bolt)** — aoe(r:165px). 선풍·횡소와 같은 360도 판정 구조,
+  REACH(78px)비로 사거리 환산(165/78), mul 2.75.
+- **치유(m_heal)** — **이 포트에 처음 등장하는 effect:'heal'.** side.js
+  heal 처리(`pct = heal[0]+heal[1]*max(0,lv-1); hp = min(hpMax, hp +
+  round(hpMax*pct))`)를 옮기되, FIXED_SKILL_LEVEL을 mul과 같은 결로
+  직접 곱한다(이 포트의 mul 공식 자체가 이미 (lv-1)이 아니라 lv를
+  그대로 곱하는 재해석이라 — 17절 머리말 — heal도 그 관례를 따랐다,
+  0.18+0.022×5=0.29). 적 판정 없이 `max_hp * MAGE_HEAL_PCT`만큼 채운다.
+- **부적(m_talis)** — buff, sec10·atk×1.25·**regen:2.6(이 포트에 처음
+  등장 — MP 회복 속도 배율)** 원문 그대로. atk 배율은 다른 job 버프와
+  같은 `_job_buff_time_left`를 공유하지만, regen 배율은 `_physics_
+  process()`의 mp 회복 줄이 `job=='mage'`일 때만 따로 곱한다(다른
+  job 버프엔 regen 성분이 없다).
+
+`job=='rogue'`/`'mage'`일 때만 실제로 쓰인다 — 같은 입력 액션 넷
+(`story_job_skill_1~4`)에 두 분기를 더 얹었다(warrior/archer 옆에
+elif로, 새 입력 액션은 안 늘렸다).
+
+- `story_combat.gd`: `ROGUE_TWIN_*`/`ROGUE_KNIFE_*`/`ROGUE_STEP_*`
+  (+`rogue_step_dist_m()`)/`ROGUE_VITAL_*`/`MAGE_FIRE_*`/`MAGE_BOLT_*`/
+  `MAGE_HEAL_*`/`MAGE_TALIS_*` 상수 신규.
+- `story_player.gd`: 쿨다운 여덟(`_cd_rogue_*`·`_cd_mage_*`) +
+  `_invuln_time_left` 신규. `_cast_rogue_twin/knife/step/vital()`·
+  `_cast_mage_fire/bolt/heal/talis()` 신규. `take_damage()`가 맨 앞에서
+  invuln을 확인하도록, `_effective_atk()`가 rogue/mage 배율도 고르도록,
+  `_physics_process()`의 mp 회복 줄이 부적 regen 배율을 곱하도록 수정.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생 노이즈, 되돌림) → 여섯 씬 세 번 연속 exit 0·로그 무결(다섯 판
+  전부 회귀 확인 포함). 임시 디버그(`story_field.gd`에 더미 적+강제
+  job 전환)로: 여덟 mul(1.02·1.45·1.7·1.55·2.15·2.75·0.29·1.25) 정확,
+  쌍참/비도/은신보/화구/뇌전 실제 시전으로 mp·쿨다운·데미지 전부
+  손계산 범위와 일치, 은신보 이동거리 정확히 5.2m, 무적 확인(invuln
+  걸린 동안 `take_damage(50)` 완전 무시 → 0 만든 뒤 재시도하면 정확히
+  −50), 급소 atk×1.55·부적 atk×1.25 정확, 치유가 hp를 정확히
+  `max_hp*0.29`만큼 채움(87→137.46, max_hp 174), 부적 regen으로 1초당
+  mp 회복이 정확히 MP_REGEN(8)×2.6=20.8 늘어남까지 전부 예측과 일치.
+  디버그 원상복구(`story_field.gd` diff 0).
+- **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+- **다음 이어질 것** — 1차 전직 무예 16개가 다 채워졌다. 다음 굵직한
+  후보: SP(무예 점수) 투자 시스템(지금은 FIXED_SKILL_LEVEL로 고정) UI,
+  2~4차 전직, 나머지 일곱 사냥터+신야성(15절이 첫 걸음만 뗀 것) — 다음
+  "saga-godot 이어 해"에서 이어간다.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
