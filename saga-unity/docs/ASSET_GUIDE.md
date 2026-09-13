@@ -341,3 +341,19 @@ Lit의 Metallic 워크플로가 Smoothness를 별도 슬롯이 아니라 Metalli
 배치 모드 실행 후 `ProjectSettings/`·`Packages/` 버전 자동 갱신
 부작용(위 항목과 같은 함정, 2026-09-13 두 번째 발생) 확인 후
 `git checkout`으로 되돌림.
+
+## 2026-09-13 — 캐릭터 에셋 조사(66-2장 ③): Mixamo가 선례다
+
+새로 조사하지 않고 4장 원칙대로 웹 판 기록을 재사용했다 —
+`saga-web/saga-forest/assets/ASSET_LICENSES.md` "Mixamo (Adobe)" 절이
+이미 2026-09-02에 같은 문제(사실적 사람 소스)를 풀어 뒀다. 결론:
+**Mixamo(무료 Adobe 계정)가 최선**이지만 (1) mixamo.com에 공개 API가
+없어 사람이 직접 브라우저로 캐릭터·애니메이션을 골라 받아야 하고
+(2) 약관상 원본 재배포 금지라 **변환 결과물을 이 공개 저장소에
+커밋하지 않는다** — `Assets/Art/CharactersRealistic/`를 `.gitignore`에
+미리 추가해 뒀다(폴더 자체는 아직 없음). Unity는 FBX를 네이티브로
+읽고 Mixamo 표준 리그를 Humanoid Avatar로 바로 매핑하므로, 웹 판이
+필요로 했던 `FBX2glTF`+`gltf-transform` 변환 파이프라인은 **필요 없다**
+— 받은 FBX를 폴더에 넣고 Rig 탭에서 Humanoid로 지정하기만 하면 된다.
+자세한 받는 절차·헤어카드/SSS 셰이더 조사 결과는 `PLAN.md` 66-2장
+"③ 캐릭터 에셋 조사" 참고, 여기서 반복하지 않는다.

@@ -1017,13 +1017,84 @@ Assets/Settings/
   재질 자체 화질은 실제로 AAA급이고 CC0라 비용도 없다 — 남은 건
   채널 팩킹(위)과 실제 지형 메시에 UV 스케일 맞춰 붙이는 작업뿐.
 
-## 다음에 할 일 (③부터, 아직 착수 전)
+## ③ 캐릭터 에셋 조사 — Mixamo가 이 저장소의 기존 선례다 (2026-09-13, 이어서)
 
-- **③ 캐릭터 에셋 조사** — 사실적 인체 비율, 헤어카드+SSS 셰이더 적용
-  가능한 소스(포토그래메트리 기반 무료/저가 킷). ①·②와 달리 아직
-  후보조차 안 정했다.
-- 위 채널 팩킹 문제를 실제로 풀 커스텀 URP Shader Graph(ORM 언팩) —
-  ②가 발견만 해 두고 미룬 것.
+- **레거시 감사 결과 재확인(4장 원칙 — 새로 안 하고 웹 판 기록을 그대로
+  가져다 씀)**: 웹 판 **사가의숲**이 2026-09-02에 이미 "사실적 사람"
+  문제를 풀어 봤다(`saga-web/saga-forest/assets/ASSET_LICENSES.md`
+  "Mixamo (Adobe)" 절). 결론과 제약이 이 프로젝트에도 그대로 적용된다:
+  - **Mixamo(mixamo.com, 무료 Adobe 계정)가 실사 인체·리깅·애니메이션
+    소스로는 최선이다** — 포토그래메트리는 아니지만 실사 비율 스캔
+    기반 캐릭터+수백 종 애니메이션을 무료로 제공한다.
+  - **자동화 불가** — mixamo.com은 공개 API가 없고 캐릭터 선택·
+    포맷·다운로드가 전부 로그인 후 GUI 조작이다(VRoid Studio와 같은
+    종류의 "사람이 직접 열어야 하는" 지점).
+  - **약관상 재배포 금지 — 변환 결과물을 이 공개 저장소에 커밋하지
+    않는다.** "원본 캐릭터·애니메이션을 독립 에셋으로 재배포"가
+    금지라(Adobe 커뮤니티 공지 다수가 일관되게 확인), 사가의숲도 받은
+    걸 `.gitignore`로 막고 로컬에만 뒀다. 이 프로젝트도 같은 원칙 —
+    **`.gitignore`에 `Assets/Art/CharactersRealistic/`을 미리 추가해
+    뒀다**(아직 폴더 자체는 없음, 받을 때를 대비한 선점).
+  - saga-go 세션이 별도로 "자동화까지 하고 싶다"며 시도했던 대안들
+    (Vitruvian Project 등)은 전부 막다른 길로 확정됐던 것도 그대로
+    유효 — 다시 조사하지 않는다.
+- **Unity는 웹 판보다 오히려 쉽다.** 웹(three.js)은 Mixamo FBX를
+  `FBX2glTF`+`gltf-transform`으로 glTF로 변환하는 파이프라인이
+  따로 필요했는데, **Unity는 FBX를 기본 임포터로 직접 읽는다**(glTF
+  변환 불필요, Mixamo 표준 휴머노이드 리그도 Unity의 Humanoid
+  Avatar로 바로 매핑된다) — 웹 판의 `tools/mixamo/slim_anim.js` 류
+  후처리 스크립트도 필요 없다.
+- **사람이 할 일(다음 세션 또는 사용자가 직접)** — 사가의숲 레시피를
+  Unity용으로 옮기면:
+  1. mixamo.com에서 캐릭터 하나 고르기(사가의숲처럼 아예 처음부터
+     하려면 **Maria** 재사용도 가능 — 이미 라이선스·평판 확인된 선택)
+     → Download, Format **FBX for Unity(Skin)** 로 몸 1회
+  2. 필요한 애니메이션(이동·전투 등, PLAN.md 게임별 요구 액션에 맞춰
+     선정 — 사가의숲의 여덟 개 목록을 참고 출발점으로 삼되 이 프로젝트
+     액션에 맞게 조정) 각각 Format FBX(Without Skin)로 받기
+  3. `Assets/Art/CharactersRealistic/`(신규, `.gitignore` 대상)에
+     그대로 넣기만 하면 Unity가 FBX를 직접 임포트 — 웹 판 같은 변환
+     스크립트 불필요
+  4. Rig 탭에서 Animation Type을 **Humanoid**로, Avatar Definition을
+     "Create From This Model"로 지정 — 이후 다른 Mixamo 애니메이션도
+     같은 Avatar를 공유해 재사용 가능(Unity Humanoid 리타게팅)
+- **헤어카드·URP SSS 스킨 셰이더 — 조사 결과(2026-09-13)**. Mixamo
+  캐릭터는 헤어가 보통 메시에 통합돼 있어 "여러 겹 헤어카드"까지는
+  기본 제공이 아니고, URP는 HDRP와 달리 전용 Skin/Hair 마스터 노드가
+  없다(HDRP의 Hair 마스터 노드·`com.unity.demoteam.digital-human`
+  둘 다 HDRP 전용, URP로 그대로 못 옮긴다). 다만 **"직접 처음부터
+  짜야 한다"는 아니다** — 공개(GitHub) URP 전용 Shader Graph 구현이
+  이미 있다:
+  - **스킨(SSS 근사)**: `CiaranSimpson/Subsurface-Scattering-for-
+    Unity-URP`(모바일 지향 wrap-lighting 근사, 즉시 쓸 수 있는 수준) —
+    더 사실적으로 가려면 Eric Penner의 pre-integrated skin(곡률 기반
+    diffuse lookup + thickness map, HDRP·유료 에셋들이 실제로 쓰는
+    기법)을 Custom Function 노드로 직접 옮겨야 한다(URP Shader Graph에
+    로우레벨 라이팅 데이터를 노출하는 내장 노드가 없어서 이 부분만은
+    피할 수 없다).
+  - **헤어카드(이방성 하이라이트)**: `cathyhlshih/
+    UnityURPAnisoHighlightHairShader`·`itsFulcrum/Unity-URP-Hair-
+    Shader`(둘 다 URP Shader Graph, Kajiya-Kay류 이방성 + 알파클립
+    카드 처리) — Unity 공식 `Unity-Technologies/URP-Defender-
+    Character-Demo` 레포에도 참고용 이방성 헤어 Shader Graph가 있다.
+  - **결론**: 완전히 무료·즉시 쓸 수 있는 뼈대가 다 있다 — 다음에
+    실제로 캐릭터에 붙일 세션은 "새로 설계"가 아니라 "위 공개 구현을
+    가져와 이 프로젝트 텍스처·머티리얼 슬롯에 맞게 손보는" 일이 된다.
+    단, 그 GitHub 저장소들 각각의 라이선스(MIT/CC 등)를 가져다 쓰기
+    전에 한 번 확인할 것 — 아직 안 함(이번엔 존재 확인까지만).
+- 이번 세션은 **문서 조사만** — 실제로 mixamo.com에서 캐릭터를 받는
+  것도, `Assets/Art/CharactersRealistic/` 폴더를 실제로 만드는 것도,
+  위 GitHub 셰이더를 실제로 받아 붙이는 것도 아직 안 함(66-1/66-2장이
+  이미 여러 번 짚은 "GUI 전용 자동화 불가" 지점과 같은 종류거나, 다음
+  단계에서 실제 코드로 옮길 일).
+
+## 다음에 할 일 (아직 착수 전)
+
+- **사람이 mixamo.com에서 캐릭터+애니메이션을 받아 `Assets/Art/
+  CharactersRealistic/`에 넣기** — 위 ③ 레시피대로. 이게 되어야 실제
+  캐릭터 교체를 시작할 수 있다.
+- 헤어카드·URP SSS 스킨 셰이더 구체 기법 조사 마무리(위 ③ 마지막 항목).
+- 위 ②의 채널 팩킹 문제를 실제로 풀 커스텀 URP Shader Graph(ORM 언팩).
 - Poly Haven에서 추가 재질(흙길·초목 바닥·목재 등) 더 조사 — 이번엔
   대표 둘(바닥·벽)만 확인, 44장 우선순위대로 더 넓힐 것.
 - Kenney·VRoid 플레이스홀더를 위 순서로 실제 사실적 에셋으로 순차

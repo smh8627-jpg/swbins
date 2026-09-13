@@ -3564,3 +3564,32 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 - **다음에 할 일**: ③ 캐릭터 에셋 조사(아직 후보 없음), 위 채널 팩킹을
   실제로 풀 Shader Graph, Poly Haven에서 재질 더 조사(흙길·초목·목재),
   그 다음에야 실제 씬 교체.
+
+## 66-2장 "다음에 할 일" ③ 캐릭터 에셋 조사 — Mixamo 선례 확인 (2026-09-13, 이어서)
+
+- **레거시 재사용(4장)** — 웹 판 사가의숲이 2026-09-02에 이미 "사실적
+  사람" 문제를 Mixamo로 풀었던 기록(`saga-web/saga-forest/assets/
+  ASSET_LICENSES.md`)을 그대로 가져다 썼다. 결론: Mixamo가 최선이나
+  (1) 공개 API 없어 사람이 직접 받아야 함(VRoid Studio와 같은 종류의
+  자동화 한계) (2) 약관상 재배포 금지라 변환물을 커밋 안 함 — 사가의숲도
+  같은 이유로 로컬 전용이었다. **Unity는 FBX 네이티브 임포트+Humanoid
+  Avatar 매핑이라 웹 판의 FBX2glTF 변환 파이프라인이 통째로 필요 없다**
+  — 이 프로젝트가 웹 판보다 오히려 쉬운 지점.
+- `.gitignore`에 `Assets/Art/CharactersRealistic/` 추가(선점, 폴더
+  자체는 아직 없음).
+- **헤어카드·URP SSS 스킨 셰이더 조사(서브에이전트로 웹 검색)** — 완전
+  새로 짜야 하는 게 아니라 공개 GitHub URP Shader Graph 구현이 이미
+  있다는 걸 확인: 스킨은 `CiaranSimpson/Subsurface-Scattering-for-
+  Unity-URP`(wrap-lighting 근사, 모바일 지향), 헤어는
+  `cathyhlshih/UnityURPAnisoHighlightHairShader`·`itsFulcrum/
+  Unity-URP-Hair-Shader`(Kajiya-Kay류 이방성 + 알파클립 카드),
+  Unity 공식 `URP-Defender-Character-Demo`도 참고용 이방성 헤어
+  Shader Graph를 갖고 있다. 더 사실적인 스킨을 원하면 Eric Penner의
+  pre-integrated skin(곡률 기반)을 Custom Function 노드로 직접 옮겨야
+  한다는 것도 확인(URP엔 로우레벨 라이팅을 노출하는 내장 노드가 없어
+  이 부분만은 못 피함). **각 GitHub 저장소의 라이선스는 아직 개별
+  확인 안 함** — 실제로 가져다 쓰기 전에 확인할 것.
+- 이번엔 문서 조사만 — mixamo.com에서 실제로 받는 것도, 위 셰이더를
+  실제로 받아 붙이는 것도 다음 단계(사람 개입 또는 실제 통합 작업).
+  코드 변경 없어 헤드리스 검증 없음(PLAN.md·ASSET_GUIDE.md·.gitignore만
+  수정).
