@@ -1088,13 +1088,52 @@ Assets/Settings/
   이미 여러 번 짚은 "GUI 전용 자동화 불가" 지점과 같은 종류거나, 다음
   단계에서 실제 코드로 옮길 일).
 
+## ④ 캐릭터 셰이더 라이선스 확인 + ②의 채널 팩킹 실제 해결 (2026-09-13, 이어서)
+
+- **③이 조사만 해 둔 GitHub 셰이더 세 곳의 라이선스를 실제로 확인했다**
+  (GitHub API로 `license.spdx_id` 조회) — 전부 문제없이 쓸 수 있다:
+  - `CiaranSimpson/Subsurface-Scattering-for-Unity-URP` → **MIT**
+  - `cathyhlshih/UnityURPAnisoHighlightHairShader` → **MIT**
+  - `itsFulcrum/Unity-URP-Hair-Shader` → **CC0-1.0**
+  - 참고로만 언급했던 `Unity-Technologies/URP-Defender-Character-Demo`는
+    **저장소를 찾지 못함(404, 검색해도 없음)** — 이름이 바뀌었거나
+    비공개/삭제된 것으로 보인다. 실사용 대상이 아니었으니 그냥 목록에서
+    뺀다, 다시 찾으려 하지 않는다.
+- **②에서 미뤄 뒀던 채널 팩킹 문제를 실제로 풀었다** — 처음 계획은
+  "커스텀 Shader Graph로 ORM 언팩"이었지만, 더 간단한 방법으로 갔다:
+  `BuildEnvironmentPbrSample.cs`에 `BuildMetallicSmoothnessMap()`을
+  추가해 Poly Haven의 Roughness 원본(`_rough_1k.jpg`)을 에디터에서
+  픽셀 단위로 읽어(`GetPixels32`) RGB=0(비금속)·A=255-Roughness로 다시
+  구운 `_metallicsmoothness_1k.png`를 만들고, 머티리얼의
+  `_MetallicGlossMap`에 물려 `_METALLICSPECGLOSSMAP` 키워드를 켠다
+  (`_Smoothness`는 1로 둬 알파값이 그대로 통과하게). 결과는 표준 URP
+  Lit Metallic 워크플로 그대로라 커스텀 셰이더가 아예 필요 없다 — 왜
+  Shader Graph보다 이쪽이 나은지: 텍스트로 손으로 짤 수 없는
+  `.shadergraph` JSON 자산을 새로 안 만들어도 되고, 결과 머티리얼이
+  표준 URP Lit이라 향후 유지보수·다른 재질과의 호환이 더 쉽다.
+  - 배치 모드(`-executeMethod
+    Saga.EditorTools.BuildEnvironmentPbrSample.Build`)로 실행,
+    컴파일 오류 0건·`cobblestone_floor_01`·`castle_wall_slates`
+    양쪽 다 `_metallicsmoothness_1k.png`+`.mat` 정상 생성 확인.
+  - 배치 모드 부작용(`ProjectSettings/`·`Packages/` 버전 자동 변경)도
+    이번엔 재확인 결과 없었음(`git diff -- ProjectSettings/
+    Packages/`로 확인) — CLAUDE.md의 함정이 매번 발생하는 건 아니고
+    프로젝트 고정 버전과 로컬 Unity 버전이 이미 일치하면 안 일어난다.
+  - 부작용으로 `_rough_1k.jpg` 원본 두 장의 텍스처 임포터 설정이
+    `isReadable=true`·`Uncompressed`로 바뀌었다(픽셀을 읽으려면
+    필요) — 이 원본은 어느 씬·머티리얼도 참조하지 않아(구운 PNG만
+    참조됨) 빌드에는 포함되지 않으니 문제없다.
+
 ## 다음에 할 일 (아직 착수 전)
 
 - **사람이 mixamo.com에서 캐릭터+애니메이션을 받아 `Assets/Art/
   CharactersRealistic/`에 넣기** — 위 ③ 레시피대로. 이게 되어야 실제
-  캐릭터 교체를 시작할 수 있다.
-- 헤어카드·URP SSS 스킨 셰이더 구체 기법 조사 마무리(위 ③ 마지막 항목).
-- 위 ②의 채널 팩킹 문제를 실제로 풀 커스텀 URP Shader Graph(ORM 언팩).
+  캐릭터 교체를 시작할 수 있다(여전히 유일하게 남은, 사람 GUI 조작이
+  필요한 단계).
+- 위 ④에서 라이선스 확인까지 끝난 헤어카드(이방성)·스킨(SSS) 셰이더
+  세 개를 실제로 받아 프로젝트에 붙이고 손보기 — 캐릭터 에셋이 아직
+  없어 실제 확인은 캐릭터가 들어온 뒤에나 가능하지만, 셰이더 자체를
+  미리 받아 Assets에 넣어 두는 건 지금도 가능.
 - Poly Haven에서 추가 재질(흙길·초목 바닥·목재 등) 더 조사 — 이번엔
   대표 둘(바닥·벽)만 확인, 44장 우선순위대로 더 넓힐 것.
 - Kenney·VRoid 플레이스홀더를 위 순서로 실제 사실적 에셋으로 순차

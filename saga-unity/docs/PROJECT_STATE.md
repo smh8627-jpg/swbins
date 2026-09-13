@@ -3616,6 +3616,30 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   코드 변경 없어 헤드리스 검증 없음(PLAN.md·ASSET_GUIDE.md·.gitignore만
   수정).
 
+## 66-2장 "다음에 할 일" ④ 캐릭터 셰이더 라이선스 확인 + 채널 팩킹 실제 해결 (2026-09-13, 이어서)
+
+- **③이 미뤄 둔 라이선스 확인** — GitHub API로 세 저장소 전부 확인:
+  `CiaranSimpson/Subsurface-Scattering-for-Unity-URP`(MIT),
+  `cathyhlshih/UnityURPAnisoHighlightHairShader`(MIT),
+  `itsFulcrum/Unity-URP-Hair-Shader`(CC0-1.0) — 전부 문제없이 쓸 수
+  있다. 참고용으로만 적어 뒀던 `Unity-Technologies/
+  URP-Defender-Character-Demo`는 저장소가 404(검색해도 없음) — 실사용
+  대상이 아니었으니 목록에서 뺐다.
+- **②가 남겨 둔 채널 팩킹(Roughness→Smoothness) 문제를 실제로 풀었다.**
+  당초 계획은 커스텀 Shader Graph였지만, 더 간단한 대안으로 갔다 —
+  `BuildEnvironmentPbrSample.cs`에 `BuildMetallicSmoothnessMap()`을
+  추가해 Poly Haven의 `_rough_1k.jpg`를 에디터에서 픽셀 단위로 읽어
+  RGB=0(비금속)·A=255-Roughness로 구운 `_metallicsmoothness_1k.png`를
+  만들고 `_MetallicGlossMap`+`_METALLICSPECGLOSSMAP`으로 물렸다(표준
+  URP Lit Metallic 워크플로 그대로, 커스텀 셰이더 불필요). 배치 모드로
+  실행해 컴파일 오류 0건·`cobblestone_floor_01`·`castle_wall_slates`
+  양쪽 PNG+머티리얼 정상 생성 확인, `ProjectSettings/`·`Packages/`
+  배치 모드 부작용도 이번엔 없었음(`git diff`로 확인). 자세한 내용은
+  `PLAN.md` 66-2장 ④ 참고.
+- **다음에 할 일**: 사람이 mixamo.com에서 캐릭터+애니메이션 받기(유일하게
+  남은 사람 GUI 단계), 라이선스 확인 끝난 셰이더 세 개를 실제로 받아
+  프로젝트에 넣기, Poly Haven 재질 추가 조사.
+
 ## GUI 실기 확인 + 라이팅 재조정 — 다섯 판 전부 (2026-09-13, 이어서)
 
 - **사용자 지시 "Unity 에디터로 직접 열어서 화면 톤 확인해줘"** — 위

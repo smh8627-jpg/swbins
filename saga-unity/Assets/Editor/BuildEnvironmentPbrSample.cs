@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,13 +12,13 @@ namespace Saga.EditorTools
     /// 쓴다 — 66-2장 "적용 순서" ③(순차 교체) 단계에서 실제 지형/건물에
     /// 붙인다.
     ///
-    /// 채널 팩킹 주의 — Poly Haven의 Roughness 맵은 별도 텍스처인데, URP
-    /// Lit의 Metallic 워크플로는 Smoothness를 Metallic맵의 알파 채널이나
-    /// 알베도 알파로만 받는다(별도 Roughness 슬롯이 없다). 지금은
-    /// Smoothness를 상수(러프니스 실측 평균의 반전 근사)로 두고, 실제
-    /// 교체 때는 커스텀 Shader Graph로 Poly Haven의 arm(ORM 팩) 텍스처를
-    /// 풀어 쓰거나 Roughness→Smoothness 반전 텍스처를 미리 구워야 한다 —
-    /// 지금은 "PBR 텍스처가 실제로 이 정도 화질로 들어오는지" 확인이 목적.
+    /// 채널 팩킹 해결(2026-09-13) — Poly Haven의 Roughness는 별도
+    /// 텍스처인데 URP Lit의 Metallic 워크플로는 Smoothness를
+    /// _MetallicGlossMap의 알파 채널로만 받는다. Shader Graph를 새로
+    /// 짜는 대신, 에디터에서 Roughness 원본을 픽셀 단위로 읽어
+    /// (RGB=0 비금속, A=255-Roughness) 구운 MetallicSmoothness PNG를
+    /// 만들어 붙인다 — 결과는 표준 URP Lit Metallic 워크플로 그대로라
+    /// 커스텀 셰이더가 필요 없다.
     /// </summary>
     public static class BuildEnvironmentPbrSample
     {
@@ -27,17 +28,18 @@ namespace Saga.EditorTools
         [MenuItem("Saga/Build Environment PBR Sample Materials")]
         public static void Build()
         {
-            BuildMaterial("cobblestone_floor_01", CobblestoneDir, 0.35f);
-            BuildMaterial("castle_wall_slates", CastleWallDir, 0.3f);
+            BuildMaterial("cobblestone_floor_01", CobblestoneDir);
+            BuildMaterial("castle_wall_slates", CastleWallDir);
             AssetDatabase.SaveAssets();
             Debug.Log("[BuildEnvironmentPbrSample] built PBR sample materials");
         }
 
-        private static void BuildMaterial(string baseName, string dir, float smoothness)
+        private static void BuildMaterial(string baseName, string dir)
         {
             var diff = LoadTexture(dir + baseName + "_diff_1k.jpg");
             var normal = LoadNormalTexture(dir + baseName + "_nor_gl_1k.jpg");
             var ao = LoadTexture(dir + baseName + "_ao_1k.jpg");
+            var metallicSmoothness = BuildMetallicSmoothnessMap(dir, baseName);
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             var mat = new Material(shader) { name = baseName };
@@ -52,7 +54,14 @@ namespace Saga.EditorTools
                 mat.SetTexture("_OcclusionMap", ao);
                 mat.EnableKeyword("_OCCLUSIONMAP");
             }
-            mat.SetFloat("_Smoothness", smoothness);
+            if (metallicSmoothness != null)
+            {
+                mat.SetTexture("_MetallicGlossMap", metallicSmoothness);
+                mat.EnableKeyword("_METALLICSPECGLOSSMAP");
+                // URP LitInput.hlsl: specGloss.a *= _Smoothness — 1로 두면
+                // 구운 알파(진짜 Roughness 반전값)가 그대로 통과한다.
+                mat.SetFloat("_Smoothness", 1f);
+            }
 
             var path = $"Assets/Art/EnvironmentPBR_candidates/{baseName}_URPLit.mat";
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -61,6 +70,77 @@ namespace Saga.EditorTools
                 AssetDatabase.DeleteAsset(path);
             }
             AssetDatabase.CreateAsset(mat, path);
+        }
+
+        /// <summary>
+        /// Poly Haven의 별도 Roughness 텍스처를 읽어 URP Metallic 워크플로가
+        /// 기대하는 팩(RGB=Metallic, A=Smoothness) PNG로 구워 낸다. 대상
+        /// 재질이 전부 비금속(돌바닥·석벽)이라 Metallic RGB는 0으로 고정.
+        /// </summary>
+        private static Texture2D BuildMetallicSmoothnessMap(string dir, string baseName)
+        {
+            var roughPath = dir + baseName + "_rough_1k.jpg";
+            var roughSource = ForceReadableUncompressed(roughPath);
+            if (roughSource == null)
+            {
+                Debug.LogWarning($"[BuildEnvironmentPbrSample] roughness map not found: {roughPath}");
+                return null;
+            }
+
+            var src = roughSource.GetPixels32();
+            var packed = new Color32[src.Length];
+            for (var i = 0; i < src.Length; i++)
+            {
+                byte smoothness = (byte)(255 - src[i].r);
+                packed[i] = new Color32(0, 0, 0, smoothness);
+            }
+
+            var packedTex = new Texture2D(roughSource.width, roughSource.height, TextureFormat.RGBA32, false);
+            packedTex.SetPixels32(packed);
+            packedTex.Apply();
+            var pngBytes = packedTex.EncodeToPNG();
+            Object.DestroyImmediate(packedTex);
+
+            var outPath = dir + baseName + "_metallicsmoothness_1k.png";
+            File.WriteAllBytes(outPath, pngBytes);
+            AssetDatabase.ImportAsset(outPath, ImportAssetOptions.ForceUpdate);
+
+            var outImporter = AssetImporter.GetAtPath(outPath) as TextureImporter;
+            if (outImporter != null)
+            {
+                outImporter.sRGBTexture = false;
+                outImporter.textureType = TextureImporterType.Default;
+                outImporter.alphaSource = TextureImporterAlphaSource.FromInput;
+                outImporter.alphaIsTransparency = false;
+                outImporter.SaveAndReimport();
+            }
+
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(outPath);
+        }
+
+        private static Texture2D ForceReadableUncompressed(string path)
+        {
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                return null;
+            }
+            var changed = false;
+            if (!importer.isReadable)
+            {
+                importer.isReadable = true;
+                changed = true;
+            }
+            if (importer.textureCompression != TextureImporterCompression.Uncompressed)
+            {
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                changed = true;
+            }
+            if (changed)
+            {
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
         private static Texture2D LoadTexture(string path) =>
