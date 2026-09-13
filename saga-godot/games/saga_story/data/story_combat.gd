@@ -395,6 +395,17 @@ const SKILL_JOB := {
 	"v_mark": "wraith", "v_whirl": "wraith", "v_dart": "wraith",
 	"i_meteor": "immortal", "i_abyss": "immortal", "i_mend": "immortal",
 	"i_tao": "immortal", "i_step": "immortal", "i_orb": "immortal",
+	## **2026-09-13 추가(같은 날 더×5) — tier4 무예 스물넷(전신·궁성·
+	## 명왕·천존 각 여섯, 갈래의 끝).** 아래 SKILL_NEED 머리말 참고 —
+	## tier3가 전부 있어 갈래마다 여섯 개 전부 채웠다.
+	"o_ruin": "warlord", "o_tremor": "warlord", "o_smite": "warlord",
+	"o_conquer": "warlord", "o_edge": "warlord", "o_vital": "warlord",
+	"h_tempest": "falcon", "h_ray": "falcon", "h_swarm": "falcon",
+	"h_zenith": "falcon", "h_retreat": "falcon", "h_burst": "falcon",
+	"d_carve": "reaper", "d_bloom": "reaper", "d_veil": "reaper",
+	"d_curse": "reaper", "d_whirl": "reaper", "d_dart": "reaper",
+	"z_starfall": "ascendant", "z_collapse": "ascendant", "z_rebirth": "ascendant",
+	"z_eternity": "ascendant", "z_step": "ascendant", "z_orb": "ascendant",
 }
 
 ## job → 그 직업 무예 key 목록. tier1(여섯)은 data-job.js SKILLS 등장
@@ -419,6 +430,12 @@ const JOB_SKILL_KEYS := {
 	"flier": ["f_storm", "f_pierce", "f_volley", "f_focus", "f_retreat", "f_burst"],
 	"wraith": ["v_blur", "v_petal", "v_void", "v_mark", "v_whirl", "v_dart"],
 	"immortal": ["i_meteor", "i_abyss", "i_mend", "i_tao", "i_step", "i_orb"],
+	## tier4(여섯, 갈래의 끝)는 입력 story_job_skill4_1~6·SP 투자
+	## story_job_1~6(이미 6자리까지 늘려 뒀다)을 그대로 쓴다.
+	"warlord": ["o_ruin", "o_tremor", "o_smite", "o_conquer", "o_edge", "o_vital"],
+	"falcon": ["h_tempest", "h_ray", "h_swarm", "h_zenith", "h_retreat", "h_burst"],
+	"reaper": ["d_carve", "d_bloom", "d_veil", "d_curse", "d_whirl", "d_dart"],
+	"ascendant": ["z_starfall", "z_collapse", "z_rebirth", "z_eternity", "z_step", "z_orb"],
 }
 
 ## **2026-09-13 추가(같은 날 더 더) — 2~4차 전직 다음 걸음: tier2 무예
@@ -487,6 +504,33 @@ const SKILL_NEED := {
 	"i_tao": {"key": "p_ward", "lv": 5},
 	"i_step": {"key": "p_step", "lv": 5},
 	"i_orb": {"key": "p_orb", "lv": 5},
+	## **2026-09-13 추가(같은 날 더×5) — tier4 무예 스물넷(갈래의 끝).**
+	## 전부 바로 아래 tier3을 가리킨다(원문에 tier4는 tier2를 건너뛰는
+	## 경우가 없다) — 원문 그대로.
+	"o_ruin": {"key": "n_heaven", "lv": 5},
+	"o_tremor": {"key": "n_quake", "lv": 5},
+	"o_smite": {"key": "n_charge", "lv": 5},
+	"o_conquer": {"key": "n_banner", "lv": 5},
+	"o_edge": {"key": "n_edge", "lv": 5},
+	"o_vital": {"key": "n_vital", "lv": 5},
+	"h_tempest": {"key": "f_storm", "lv": 5},
+	"h_ray": {"key": "f_pierce", "lv": 5},
+	"h_swarm": {"key": "f_volley", "lv": 5},
+	"h_zenith": {"key": "f_focus", "lv": 5},
+	"h_retreat": {"key": "f_retreat", "lv": 5},
+	"h_burst": {"key": "f_burst", "lv": 5},
+	"d_carve": {"key": "v_blur", "lv": 5},
+	"d_bloom": {"key": "v_petal", "lv": 5},
+	"d_veil": {"key": "v_void", "lv": 5},
+	"d_curse": {"key": "v_mark", "lv": 5},
+	"d_whirl": {"key": "v_whirl", "lv": 5},
+	"d_dart": {"key": "v_dart", "lv": 5},
+	"z_starfall": {"key": "i_meteor", "lv": 5},
+	"z_collapse": {"key": "i_abyss", "lv": 5},
+	"z_rebirth": {"key": "i_mend", "lv": 5},
+	"z_eternity": {"key": "i_tao", "lv": 5},
+	"z_step": {"key": "i_step", "lv": 5},
+	"z_orb": {"key": "i_orb", "lv": 5},
 }
 
 
@@ -1089,6 +1133,205 @@ const IMMORTAL_ORB_CD := 7.0
 const IMMORTAL_ORB_BASE := 1.9
 const IMMORTAL_ORB_PER := 0.16
 const IMMORTAL_ORB_SHOTS := 6
+
+
+## **2026-09-13 추가(같은 날 더×5) — tier4 무예 스물넷(전신·궁성·명왕·
+## 천존 각 여섯, 갈래의 끝).** SKILL_NEED 머리말 참고 — 전부 바로 아래
+## tier3을 가리켜(원문에 예외가 없다) 모두 갈래마다 여섯 개 전부 채웠다.
+## h_zenith(원문 speed:1.2)가 f_focus에 이어 두 번째로 이동속도 배율을
+## 갖는 job 버프다.
+
+## 파멸격(o_ruin) — melee, hits:4.
+const WARLORD_RUIN_COST := 62.0
+const WARLORD_RUIN_CD := 12.0
+const WARLORD_RUIN_BASE := 6.2
+const WARLORD_RUIN_PER := 0.57
+const WARLORD_RUIN_HITS := 4
+
+## 지열(o_tremor) — aoe, r:340px.
+const WARLORD_TREMOR_COST := 58.0
+const WARLORD_TREMOR_CD := 14.0
+const WARLORD_TREMOR_BASE := 4.9
+const WARLORD_TREMOR_PER := 0.44
+const WARLORD_TREMOR_RANGE_MUL := 340.0 / 78.0
+
+## 벽력돌(o_smite) — dash, dist:410px.
+const WARLORD_SMITE_COST := 54.0
+const WARLORD_SMITE_CD := 10.0
+const WARLORD_SMITE_BASE := 4.5
+const WARLORD_SMITE_PER := 0.4
+const WARLORD_SMITE_DIST_PX := 410.0
+
+
+static func warlord_smite_dist_m() -> float:
+	return WARLORD_SMITE_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 패천기(o_conquer) — buff. sec:15·atk×1.8·guard0.5·regen2.4 원문 그대로.
+const WARLORD_CONQUER_COST := 62.0
+const WARLORD_CONQUER_CD := 26.0
+const WARLORD_CONQUER_SEC := 15.0
+const WARLORD_CONQUER_ATK_MUL := 1.8
+const WARLORD_CONQUER_GUARD := 0.5
+const WARLORD_CONQUER_REGEN_MUL := 2.4
+
+## 파천검(o_edge) — bolt. 천단검(n_edge)과 같은 재해석(사거리 2배).
+const WARLORD_EDGE_COST := 58.0
+const WARLORD_EDGE_CD := 11.0
+const WARLORD_EDGE_BASE := 5.6
+const WARLORD_EDGE_PER := 0.5
+const WARLORD_EDGE_RANGE_MUL := 2.0
+
+## 재생결(o_vital) — heal.
+const WARLORD_VITAL_COST := 60.0
+const WARLORD_VITAL_CD := 24.0
+const WARLORD_VITAL_BASE := 0.58
+const WARLORD_VITAL_PER := 0.048
+
+## 천사우(h_tempest) — 원문 effect:'rain', 시우(f_storm)와 같은 단순
+## 정면 재해석.
+const FALCON_TEMPEST_COST := 66.0
+const FALCON_TEMPEST_CD := 13.0
+const FALCON_TEMPEST_BASE := 5.6
+const FALCON_TEMPEST_PER := 0.5
+
+## 광시(h_ray) — bolt. 파천시(f_pierce)와 같은 재해석(사거리 2배).
+const FALCON_RAY_COST := 60.0
+const FALCON_RAY_CD := 10.0
+const FALCON_RAY_BASE := 8.4
+const FALCON_RAY_PER := 0.7
+const FALCON_RAY_RANGE_MUL := 2.0
+
+## 십이시(h_swarm) — volley(shots:12). 만시(f_volley)와 같은 재해석.
+const FALCON_SWARM_COST := 56.0
+const FALCON_SWARM_CD := 8.0
+const FALCON_SWARM_BASE := 2.4
+const FALCON_SWARM_PER := 0.2
+const FALCON_SWARM_SHOTS := 12
+
+## 궁천합(h_zenith) — buff. sec:14·atk×2.0·**speed×1.2** 원문 그대로.
+const FALCON_ZENITH_COST := 52.0
+const FALCON_ZENITH_CD := 24.0
+const FALCON_ZENITH_SEC := 14.0
+const FALCON_ZENITH_ATK_MUL := 2.0
+const FALCON_ZENITH_SPEED_MUL := 1.2
+
+## 익보사(h_retreat) — dash, dist:360px. 답공사(f_retreat)와 같은
+## 재해석(뒤로 물러난다).
+const FALCON_RETREAT_COST := 58.0
+const FALCON_RETREAT_CD := 9.0
+const FALCON_RETREAT_BASE := 5.0
+const FALCON_RETREAT_PER := 0.44
+const FALCON_RETREAT_DIST_PX := 360.0
+
+
+static func falcon_retreat_dist_m() -> float:
+	return FALCON_RETREAT_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 극환시(h_burst) — aoe, r:210px. 천환시(f_burst)와 같은 재해석.
+const FALCON_BURST_COST := 58.0
+const FALCON_BURST_CD := 8.0
+const FALCON_BURST_BASE := 5.2
+const FALCON_BURST_PER := 0.44
+const FALCON_BURST_RANGE_MUL := 210.0 / 78.0
+
+## 팔도(d_carve) — melee, hits:8.
+const REAPER_CARVE_COST := 60.0
+const REAPER_CARVE_CD := 9.0
+const REAPER_CARVE_BASE := 3.0
+const REAPER_CARVE_PER := 0.26
+const REAPER_CARVE_HITS := 8
+
+## 구화만개(d_bloom) — volley(shots:9). 낙화(v_petal)와 같은 재해석.
+const REAPER_BLOOM_COST := 62.0
+const REAPER_BLOOM_CD := 10.0
+const REAPER_BLOOM_BASE := 2.2
+const REAPER_BLOOM_PER := 0.18
+const REAPER_BLOOM_SHOTS := 9
+
+## 명계보(d_veil) — dash, dist:420px + invuln:1.5. 허공답보(v_void)와
+## 같은 재해석(가장 크게 나아가고 무적도 가장 길다).
+const REAPER_VEIL_COST := 50.0
+const REAPER_VEIL_CD := 8.0
+const REAPER_VEIL_BASE := 3.8
+const REAPER_VEIL_PER := 0.32
+const REAPER_VEIL_DIST_PX := 420.0
+const REAPER_VEIL_INVULN_SEC := 1.5
+
+
+static func reaper_veil_dist_m() -> float:
+	return REAPER_VEIL_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 명왕부(d_curse) — buff. sec:12·atk×2.3 원문 그대로.
+const REAPER_CURSE_COST := 56.0
+const REAPER_CURSE_CD := 22.0
+const REAPER_CURSE_SEC := 12.0
+const REAPER_CURSE_ATK_MUL := 2.3
+
+## 절명풍(d_whirl) — aoe, r:210px. 광풍각(v_whirl)과 같은 재해석.
+const REAPER_WHIRL_COST := 58.0
+const REAPER_WHIRL_CD := 8.0
+const REAPER_WHIRL_BASE := 5.2
+const REAPER_WHIRL_PER := 0.44
+const REAPER_WHIRL_RANGE_MUL := 210.0 / 78.0
+
+## 명표(d_dart) — bolt. 귀표(v_dart)와 같은 재해석(사거리 2배).
+const REAPER_DART_COST := 58.0
+const REAPER_DART_CD := 11.0
+const REAPER_DART_BASE := 5.6
+const REAPER_DART_PER := 0.5
+const REAPER_DART_RANGE_MUL := 2.0
+
+## 낙성우(z_starfall) — 원문 effect:'rain', 유성(i_meteor)과 같은 단순
+## 정면 재해석.
+const ASCENDANT_STARFALL_COST := 70.0
+const ASCENDANT_STARFALL_CD := 13.0
+const ASCENDANT_STARFALL_BASE := 6.5
+const ASCENDANT_STARFALL_PER := 0.56
+
+## 건곤붕(z_collapse) — aoe, r:330px. 천붕지열(i_abyss)과 같은 재해석.
+const ASCENDANT_COLLAPSE_COST := 74.0
+const ASCENDANT_COLLAPSE_CD := 15.0
+const ASCENDANT_COLLAPSE_BASE := 6.8
+const ASCENDANT_COLLAPSE_PER := 0.58
+const ASCENDANT_COLLAPSE_RANGE_MUL := 330.0 / 78.0
+
+## 환생(z_rebirth) — heal. 회춘(i_mend)과 같은 공식.
+const ASCENDANT_REBIRTH_COST := 58.0
+const ASCENDANT_REBIRTH_CD := 14.0
+const ASCENDANT_REBIRTH_BASE := 0.65
+const ASCENDANT_REBIRTH_PER := 0.05
+
+## 무극(z_eternity) — buff. sec:16·atk×1.65·guard0.35·regen4.8 원문 그대로.
+const ASCENDANT_ETERNITY_COST := 64.0
+const ASCENDANT_ETERNITY_CD := 24.0
+const ASCENDANT_ETERNITY_SEC := 16.0
+const ASCENDANT_ETERNITY_ATK_MUL := 1.65
+const ASCENDANT_ETERNITY_GUARD := 0.35
+const ASCENDANT_ETERNITY_REGEN_MUL := 4.8
+
+## 신행보(z_step) — dash, dist:400px + invuln:1.1. 이형보(i_step)와 같은
+## 재해석(더 크게 나아간다).
+const ASCENDANT_STEP_COST := 62.0
+const ASCENDANT_STEP_CD := 10.0
+const ASCENDANT_STEP_BASE := 4.2
+const ASCENDANT_STEP_PER := 0.36
+const ASCENDANT_STEP_DIST_PX := 400.0
+const ASCENDANT_STEP_INVULN_SEC := 1.1
+
+
+static func ascendant_step_dist_m() -> float:
+	return ASCENDANT_STEP_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 성라탄(z_orb) — volley(shots:8). 유성탄(i_orb)과 같은 재해석.
+const ASCENDANT_ORB_COST := 56.0
+const ASCENDANT_ORB_CD := 8.0
+const ASCENDANT_ORB_BASE := 2.4
+const ASCENDANT_ORB_PER := 0.2
+const ASCENDANT_ORB_SHOTS := 8
 
 
 static var _hitstop_active := false

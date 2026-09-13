@@ -147,6 +147,33 @@ var _cd_immortal_tao := 0.0
 var _cd_immortal_step := 0.0
 var _cd_immortal_orb := 0.0
 
+## **2026-09-13 추가(같은 날 더×5) — tier4 무예 스물넷(전신·궁성·명왕·
+## 천존 각 여섯, 갈래의 끝). 입력은 story_job_skill4_1~6.**
+var _cd_warlord_ruin := 0.0
+var _cd_warlord_tremor := 0.0
+var _cd_warlord_smite := 0.0
+var _cd_warlord_conquer := 0.0
+var _cd_warlord_edge := 0.0
+var _cd_warlord_vital := 0.0
+var _cd_falcon_tempest := 0.0
+var _cd_falcon_ray := 0.0
+var _cd_falcon_swarm := 0.0
+var _cd_falcon_zenith := 0.0
+var _cd_falcon_retreat := 0.0
+var _cd_falcon_burst := 0.0
+var _cd_reaper_carve := 0.0
+var _cd_reaper_bloom := 0.0
+var _cd_reaper_veil := 0.0
+var _cd_reaper_curse := 0.0
+var _cd_reaper_whirl := 0.0
+var _cd_reaper_dart := 0.0
+var _cd_ascendant_starfall := 0.0
+var _cd_ascendant_collapse := 0.0
+var _cd_ascendant_rebirth := 0.0
+var _cd_ascendant_eternity := 0.0
+var _cd_ascendant_step := 0.0
+var _cd_ascendant_orb := 0.0
+
 ## **2026-09-13 추가(같은 날 더 더) — job 버프 배율을 캐스팅 시점에
 ## 저장한다.** 지금까지 `_effective_atk()`/`take_damage()`가 매 프레임
 ## `job`에서 배율을 다시 골라 왔는데(철갑=WARRIOR_IRON_ATK_MUL 등),
@@ -292,6 +319,30 @@ func _physics_process(delta: float) -> void:
 	_cd_immortal_tao = maxf(0.0, _cd_immortal_tao - delta)
 	_cd_immortal_step = maxf(0.0, _cd_immortal_step - delta)
 	_cd_immortal_orb = maxf(0.0, _cd_immortal_orb - delta)
+	_cd_warlord_ruin = maxf(0.0, _cd_warlord_ruin - delta)
+	_cd_warlord_tremor = maxf(0.0, _cd_warlord_tremor - delta)
+	_cd_warlord_smite = maxf(0.0, _cd_warlord_smite - delta)
+	_cd_warlord_conquer = maxf(0.0, _cd_warlord_conquer - delta)
+	_cd_warlord_edge = maxf(0.0, _cd_warlord_edge - delta)
+	_cd_warlord_vital = maxf(0.0, _cd_warlord_vital - delta)
+	_cd_falcon_tempest = maxf(0.0, _cd_falcon_tempest - delta)
+	_cd_falcon_ray = maxf(0.0, _cd_falcon_ray - delta)
+	_cd_falcon_swarm = maxf(0.0, _cd_falcon_swarm - delta)
+	_cd_falcon_zenith = maxf(0.0, _cd_falcon_zenith - delta)
+	_cd_falcon_retreat = maxf(0.0, _cd_falcon_retreat - delta)
+	_cd_falcon_burst = maxf(0.0, _cd_falcon_burst - delta)
+	_cd_reaper_carve = maxf(0.0, _cd_reaper_carve - delta)
+	_cd_reaper_bloom = maxf(0.0, _cd_reaper_bloom - delta)
+	_cd_reaper_veil = maxf(0.0, _cd_reaper_veil - delta)
+	_cd_reaper_curse = maxf(0.0, _cd_reaper_curse - delta)
+	_cd_reaper_whirl = maxf(0.0, _cd_reaper_whirl - delta)
+	_cd_reaper_dart = maxf(0.0, _cd_reaper_dart - delta)
+	_cd_ascendant_starfall = maxf(0.0, _cd_ascendant_starfall - delta)
+	_cd_ascendant_collapse = maxf(0.0, _cd_ascendant_collapse - delta)
+	_cd_ascendant_rebirth = maxf(0.0, _cd_ascendant_rebirth - delta)
+	_cd_ascendant_eternity = maxf(0.0, _cd_ascendant_eternity - delta)
+	_cd_ascendant_step = maxf(0.0, _cd_ascendant_step - delta)
+	_cd_ascendant_orb = maxf(0.0, _cd_ascendant_orb - delta)
 	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
 	## m_talis(부적)·p_ward(호신부)가 걸려 있으면 mp 회복이 배로 빨라진다
 	## (side.js MP_REGEN*bf.regen과 같은 자리) — 다른 job 버프는 regen이
@@ -488,6 +539,63 @@ func _physics_process(delta: float) -> void:
 			_cast_immortal_step()
 		if Input.is_action_just_pressed("story_job_skill3_6"):
 			_cast_immortal_orb()
+
+	## **2026-09-13 추가(같은 날 더×5) — tier4 무예 스물넷(갈래의 끝).**
+	## 위 tier1·tier2·tier3 분기와 별개 입력(story_job_skill4_1~6)이라
+	## elif로 안 묶는다 — chain에 아래 세 tier도 항상 같이 들어 있다
+	## (예: job=warlord이면 chain=[warlord,marshal,general,warrior]).
+	if chain.has("warlord"):
+		if Input.is_action_just_pressed("story_job_skill4_1"):
+			_cast_warlord_ruin()
+		if Input.is_action_just_pressed("story_job_skill4_2"):
+			_cast_warlord_tremor()
+		if Input.is_action_just_pressed("story_job_skill4_3"):
+			_cast_warlord_smite()
+		if Input.is_action_just_pressed("story_job_skill4_4"):
+			_cast_warlord_conquer()
+		if Input.is_action_just_pressed("story_job_skill4_5"):
+			_cast_warlord_edge()
+		if Input.is_action_just_pressed("story_job_skill4_6"):
+			_cast_warlord_vital()
+	elif chain.has("falcon"):
+		if Input.is_action_just_pressed("story_job_skill4_1"):
+			_cast_falcon_tempest()
+		if Input.is_action_just_pressed("story_job_skill4_2"):
+			_cast_falcon_ray()
+		if Input.is_action_just_pressed("story_job_skill4_3"):
+			_cast_falcon_swarm()
+		if Input.is_action_just_pressed("story_job_skill4_4"):
+			_cast_falcon_zenith()
+		if Input.is_action_just_pressed("story_job_skill4_5"):
+			_cast_falcon_retreat()
+		if Input.is_action_just_pressed("story_job_skill4_6"):
+			_cast_falcon_burst()
+	elif chain.has("reaper"):
+		if Input.is_action_just_pressed("story_job_skill4_1"):
+			_cast_reaper_carve()
+		if Input.is_action_just_pressed("story_job_skill4_2"):
+			_cast_reaper_bloom()
+		if Input.is_action_just_pressed("story_job_skill4_3"):
+			_cast_reaper_veil()
+		if Input.is_action_just_pressed("story_job_skill4_4"):
+			_cast_reaper_curse()
+		if Input.is_action_just_pressed("story_job_skill4_5"):
+			_cast_reaper_whirl()
+		if Input.is_action_just_pressed("story_job_skill4_6"):
+			_cast_reaper_dart()
+	elif chain.has("ascendant"):
+		if Input.is_action_just_pressed("story_job_skill4_1"):
+			_cast_ascendant_starfall()
+		if Input.is_action_just_pressed("story_job_skill4_2"):
+			_cast_ascendant_collapse()
+		if Input.is_action_just_pressed("story_job_skill4_3"):
+			_cast_ascendant_rebirth()
+		if Input.is_action_just_pressed("story_job_skill4_4"):
+			_cast_ascendant_eternity()
+		if Input.is_action_just_pressed("story_job_skill4_5"):
+			_cast_ascendant_step()
+		if Input.is_action_just_pressed("story_job_skill4_6"):
+			_cast_ascendant_orb()
 
 
 func _walk(delta: float) -> void:
@@ -1644,6 +1752,350 @@ func _cast_immortal_orb() -> void:
 	_play_anim("sprint")
 	var mul := StoryCombat.skill_mul(StoryCombat.IMMORTAL_ORB_BASE, StoryCombat.IMMORTAL_ORB_PER, lv)
 	for i in StoryCombat.IMMORTAL_ORB_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 파멸격(o_ruin) — melee, hits:4.
+func _cast_warlord_ruin() -> void:
+	var lv := StorySaveState.skill_level("o_ruin")
+	if lv <= 0 or _cd_warlord_ruin > 0.0 or mp < StoryCombat.WARLORD_RUIN_COST:
+		return
+	_cd_warlord_ruin = StoryCombat.WARLORD_RUIN_CD
+	mp -= StoryCombat.WARLORD_RUIN_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WARLORD_RUIN_BASE, StoryCombat.WARLORD_RUIN_PER, lv)
+	for i in StoryCombat.WARLORD_RUIN_HITS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 지열(o_tremor) — aoe, r:340px.
+func _cast_warlord_tremor() -> void:
+	var lv := StorySaveState.skill_level("o_tremor")
+	if lv <= 0 or _cd_warlord_tremor > 0.0 or mp < StoryCombat.WARLORD_TREMOR_COST:
+		return
+	_cd_warlord_tremor = StoryCombat.WARLORD_TREMOR_CD
+	mp -= StoryCombat.WARLORD_TREMOR_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WARLORD_TREMOR_BASE, StoryCombat.WARLORD_TREMOR_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.WARLORD_TREMOR_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 벽력돌(o_smite) — dash, dist:410px.
+func _cast_warlord_smite() -> void:
+	var lv := StorySaveState.skill_level("o_smite")
+	if lv <= 0 or _cd_warlord_smite > 0.0 or mp < StoryCombat.WARLORD_SMITE_COST:
+		return
+	_cd_warlord_smite = StoryCombat.WARLORD_SMITE_CD
+	mp -= StoryCombat.WARLORD_SMITE_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.warlord_smite_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.WARLORD_SMITE_BASE, StoryCombat.WARLORD_SMITE_PER, lv))
+	global_position.x += dist_m * _facing
+
+
+## 패천기(o_conquer) — buff, 대미지 없음.
+func _cast_warlord_conquer() -> void:
+	if StorySaveState.skill_level("o_conquer") <= 0 or _cd_warlord_conquer > 0.0 or mp < StoryCombat.WARLORD_CONQUER_COST:
+		return
+	_cd_warlord_conquer = StoryCombat.WARLORD_CONQUER_CD
+	mp -= StoryCombat.WARLORD_CONQUER_COST
+	_job_buff_time_left = StoryCombat.WARLORD_CONQUER_SEC
+	_job_buff_atk_mul = StoryCombat.WARLORD_CONQUER_ATK_MUL
+	_job_buff_guard = StoryCombat.WARLORD_CONQUER_GUARD
+	_job_buff_regen_mul = StoryCombat.WARLORD_CONQUER_REGEN_MUL
+	_job_buff_speed_mul = 1.0
+
+
+## 파천검(o_edge) — bolt. 천단검과 같은 재해석(사거리 2배).
+func _cast_warlord_edge() -> void:
+	var lv := StorySaveState.skill_level("o_edge")
+	if lv <= 0 or _cd_warlord_edge > 0.0 or mp < StoryCombat.WARLORD_EDGE_COST:
+		return
+	_cd_warlord_edge = StoryCombat.WARLORD_EDGE_CD
+	mp -= StoryCombat.WARLORD_EDGE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WARLORD_EDGE_BASE, StoryCombat.WARLORD_EDGE_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.WARLORD_EDGE_RANGE_MUL, mul)
+
+
+## 재생결(o_vital) — heal.
+func _cast_warlord_vital() -> void:
+	var lv := StorySaveState.skill_level("o_vital")
+	if lv <= 0 or _cd_warlord_vital > 0.0 or mp < StoryCombat.WARLORD_VITAL_COST:
+		return
+	_cd_warlord_vital = StoryCombat.WARLORD_VITAL_CD
+	mp -= StoryCombat.WARLORD_VITAL_COST
+	var pct := StoryCombat.skill_mul(StoryCombat.WARLORD_VITAL_BASE, StoryCombat.WARLORD_VITAL_PER, lv)
+	hp = clampf(hp + max_hp * pct, 0.0, max_hp)
+
+
+## 천사우(h_tempest) — 원문 effect:'rain', 시우와 같은 단순 정면 재해석.
+func _cast_falcon_tempest() -> void:
+	var lv := StorySaveState.skill_level("h_tempest")
+	if lv <= 0 or _cd_falcon_tempest > 0.0 or mp < StoryCombat.FALCON_TEMPEST_COST:
+		return
+	_cd_falcon_tempest = StoryCombat.FALCON_TEMPEST_CD
+	mp -= StoryCombat.FALCON_TEMPEST_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.skill_mul(StoryCombat.FALCON_TEMPEST_BASE, StoryCombat.FALCON_TEMPEST_PER, lv))
+
+
+## 광시(h_ray) — bolt. 파천시와 같은 재해석(사거리 2배).
+func _cast_falcon_ray() -> void:
+	var lv := StorySaveState.skill_level("h_ray")
+	if lv <= 0 or _cd_falcon_ray > 0.0 or mp < StoryCombat.FALCON_RAY_COST:
+		return
+	_cd_falcon_ray = StoryCombat.FALCON_RAY_CD
+	mp -= StoryCombat.FALCON_RAY_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.FALCON_RAY_BASE, StoryCombat.FALCON_RAY_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.FALCON_RAY_RANGE_MUL, mul)
+
+
+## 십이시(h_swarm) — volley(shots:12). 만시와 같은 재해석.
+func _cast_falcon_swarm() -> void:
+	var lv := StorySaveState.skill_level("h_swarm")
+	if lv <= 0 or _cd_falcon_swarm > 0.0 or mp < StoryCombat.FALCON_SWARM_COST:
+		return
+	_cd_falcon_swarm = StoryCombat.FALCON_SWARM_CD
+	mp -= StoryCombat.FALCON_SWARM_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.FALCON_SWARM_BASE, StoryCombat.FALCON_SWARM_PER, lv)
+	for i in StoryCombat.FALCON_SWARM_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 궁천합(h_zenith) — buff, 대미지 없음. 정심에 이어 두 번째로 이동속도
+## 배율(_job_buff_speed_mul)도 함께 채운다.
+func _cast_falcon_zenith() -> void:
+	if StorySaveState.skill_level("h_zenith") <= 0 or _cd_falcon_zenith > 0.0 or mp < StoryCombat.FALCON_ZENITH_COST:
+		return
+	_cd_falcon_zenith = StoryCombat.FALCON_ZENITH_CD
+	mp -= StoryCombat.FALCON_ZENITH_COST
+	_job_buff_time_left = StoryCombat.FALCON_ZENITH_SEC
+	_job_buff_atk_mul = StoryCombat.FALCON_ZENITH_ATK_MUL
+	_job_buff_guard = 0.0
+	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = StoryCombat.FALCON_ZENITH_SPEED_MUL
+
+
+## 익보사(h_retreat) — dash, 답공사와 같은 재해석(뒤로 물러난다).
+func _cast_falcon_retreat() -> void:
+	var lv := StorySaveState.skill_level("h_retreat")
+	if lv <= 0 or _cd_falcon_retreat > 0.0 or mp < StoryCombat.FALCON_RETREAT_COST:
+		return
+	_cd_falcon_retreat = StoryCombat.FALCON_RETREAT_CD
+	mp -= StoryCombat.FALCON_RETREAT_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.falcon_retreat_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.FALCON_RETREAT_BASE, StoryCombat.FALCON_RETREAT_PER, lv))
+	global_position.x -= dist_m * _facing
+
+
+## 극환시(h_burst) — aoe, r:210px.
+func _cast_falcon_burst() -> void:
+	var lv := StorySaveState.skill_level("h_burst")
+	if lv <= 0 or _cd_falcon_burst > 0.0 or mp < StoryCombat.FALCON_BURST_COST:
+		return
+	_cd_falcon_burst = StoryCombat.FALCON_BURST_CD
+	mp -= StoryCombat.FALCON_BURST_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.FALCON_BURST_BASE, StoryCombat.FALCON_BURST_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.FALCON_BURST_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 팔도(d_carve) — melee, hits:8.
+func _cast_reaper_carve() -> void:
+	var lv := StorySaveState.skill_level("d_carve")
+	if lv <= 0 or _cd_reaper_carve > 0.0 or mp < StoryCombat.REAPER_CARVE_COST:
+		return
+	_cd_reaper_carve = StoryCombat.REAPER_CARVE_CD
+	mp -= StoryCombat.REAPER_CARVE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.REAPER_CARVE_BASE, StoryCombat.REAPER_CARVE_PER, lv)
+	for i in StoryCombat.REAPER_CARVE_HITS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 구화만개(d_bloom) — volley(shots:9). 낙화와 같은 재해석.
+func _cast_reaper_bloom() -> void:
+	var lv := StorySaveState.skill_level("d_bloom")
+	if lv <= 0 or _cd_reaper_bloom > 0.0 or mp < StoryCombat.REAPER_BLOOM_COST:
+		return
+	_cd_reaper_bloom = StoryCombat.REAPER_BLOOM_CD
+	mp -= StoryCombat.REAPER_BLOOM_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.REAPER_BLOOM_BASE, StoryCombat.REAPER_BLOOM_PER, lv)
+	for i in StoryCombat.REAPER_BLOOM_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 명계보(d_veil) — dash + invuln:1.5. 허공답보와 같은 재해석.
+func _cast_reaper_veil() -> void:
+	var lv := StorySaveState.skill_level("d_veil")
+	if lv <= 0 or _cd_reaper_veil > 0.0 or mp < StoryCombat.REAPER_VEIL_COST:
+		return
+	_cd_reaper_veil = StoryCombat.REAPER_VEIL_CD
+	mp -= StoryCombat.REAPER_VEIL_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.reaper_veil_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.REAPER_VEIL_BASE, StoryCombat.REAPER_VEIL_PER, lv))
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.REAPER_VEIL_INVULN_SEC)
+
+
+## 명왕부(d_curse) — buff, 대미지 없음.
+func _cast_reaper_curse() -> void:
+	if StorySaveState.skill_level("d_curse") <= 0 or _cd_reaper_curse > 0.0 or mp < StoryCombat.REAPER_CURSE_COST:
+		return
+	_cd_reaper_curse = StoryCombat.REAPER_CURSE_CD
+	mp -= StoryCombat.REAPER_CURSE_COST
+	_job_buff_time_left = StoryCombat.REAPER_CURSE_SEC
+	_job_buff_atk_mul = StoryCombat.REAPER_CURSE_ATK_MUL
+	_job_buff_guard = 0.0
+	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = 1.0
+
+
+## 절명풍(d_whirl) — aoe, r:210px.
+func _cast_reaper_whirl() -> void:
+	var lv := StorySaveState.skill_level("d_whirl")
+	if lv <= 0 or _cd_reaper_whirl > 0.0 or mp < StoryCombat.REAPER_WHIRL_COST:
+		return
+	_cd_reaper_whirl = StoryCombat.REAPER_WHIRL_CD
+	mp -= StoryCombat.REAPER_WHIRL_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.REAPER_WHIRL_BASE, StoryCombat.REAPER_WHIRL_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.REAPER_WHIRL_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 명표(d_dart) — bolt. 귀표와 같은 재해석(사거리 2배).
+func _cast_reaper_dart() -> void:
+	var lv := StorySaveState.skill_level("d_dart")
+	if lv <= 0 or _cd_reaper_dart > 0.0 or mp < StoryCombat.REAPER_DART_COST:
+		return
+	_cd_reaper_dart = StoryCombat.REAPER_DART_CD
+	mp -= StoryCombat.REAPER_DART_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.REAPER_DART_BASE, StoryCombat.REAPER_DART_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.REAPER_DART_RANGE_MUL, mul)
+
+
+## 낙성우(z_starfall) — 원문 effect:'rain', 유성과 같은 단순 정면 재해석.
+func _cast_ascendant_starfall() -> void:
+	var lv := StorySaveState.skill_level("z_starfall")
+	if lv <= 0 or _cd_ascendant_starfall > 0.0 or mp < StoryCombat.ASCENDANT_STARFALL_COST:
+		return
+	_cd_ascendant_starfall = StoryCombat.ASCENDANT_STARFALL_CD
+	mp -= StoryCombat.ASCENDANT_STARFALL_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.skill_mul(StoryCombat.ASCENDANT_STARFALL_BASE, StoryCombat.ASCENDANT_STARFALL_PER, lv))
+
+
+## 건곤붕(z_collapse) — aoe, r:330px.
+func _cast_ascendant_collapse() -> void:
+	var lv := StorySaveState.skill_level("z_collapse")
+	if lv <= 0 or _cd_ascendant_collapse > 0.0 or mp < StoryCombat.ASCENDANT_COLLAPSE_COST:
+		return
+	_cd_ascendant_collapse = StoryCombat.ASCENDANT_COLLAPSE_CD
+	mp -= StoryCombat.ASCENDANT_COLLAPSE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ASCENDANT_COLLAPSE_BASE, StoryCombat.ASCENDANT_COLLAPSE_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.ASCENDANT_COLLAPSE_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 환생(z_rebirth) — heal.
+func _cast_ascendant_rebirth() -> void:
+	var lv := StorySaveState.skill_level("z_rebirth")
+	if lv <= 0 or _cd_ascendant_rebirth > 0.0 or mp < StoryCombat.ASCENDANT_REBIRTH_COST:
+		return
+	_cd_ascendant_rebirth = StoryCombat.ASCENDANT_REBIRTH_CD
+	mp -= StoryCombat.ASCENDANT_REBIRTH_COST
+	var pct := StoryCombat.skill_mul(StoryCombat.ASCENDANT_REBIRTH_BASE, StoryCombat.ASCENDANT_REBIRTH_PER, lv)
+	hp = clampf(hp + max_hp * pct, 0.0, max_hp)
+
+
+## 무극(z_eternity) — buff, 대미지 없음.
+func _cast_ascendant_eternity() -> void:
+	if StorySaveState.skill_level("z_eternity") <= 0 or _cd_ascendant_eternity > 0.0 or mp < StoryCombat.ASCENDANT_ETERNITY_COST:
+		return
+	_cd_ascendant_eternity = StoryCombat.ASCENDANT_ETERNITY_CD
+	mp -= StoryCombat.ASCENDANT_ETERNITY_COST
+	_job_buff_time_left = StoryCombat.ASCENDANT_ETERNITY_SEC
+	_job_buff_atk_mul = StoryCombat.ASCENDANT_ETERNITY_ATK_MUL
+	_job_buff_guard = StoryCombat.ASCENDANT_ETERNITY_GUARD
+	_job_buff_regen_mul = StoryCombat.ASCENDANT_ETERNITY_REGEN_MUL
+	_job_buff_speed_mul = 1.0
+
+
+## 신행보(z_step) — dash + invuln:1.1. 이형보와 같은 재해석.
+func _cast_ascendant_step() -> void:
+	var lv := StorySaveState.skill_level("z_step")
+	if lv <= 0 or _cd_ascendant_step > 0.0 or mp < StoryCombat.ASCENDANT_STEP_COST:
+		return
+	_cd_ascendant_step = StoryCombat.ASCENDANT_STEP_CD
+	mp -= StoryCombat.ASCENDANT_STEP_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.ascendant_step_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.ASCENDANT_STEP_BASE, StoryCombat.ASCENDANT_STEP_PER, lv))
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.ASCENDANT_STEP_INVULN_SEC)
+
+
+## 성라탄(z_orb) — volley(shots:8). 유성탄과 같은 재해석.
+func _cast_ascendant_orb() -> void:
+	var lv := StorySaveState.skill_level("z_orb")
+	if lv <= 0 or _cd_ascendant_orb > 0.0 or mp < StoryCombat.ASCENDANT_ORB_COST:
+		return
+	_cd_ascendant_orb = StoryCombat.ASCENDANT_ORB_CD
+	mp -= StoryCombat.ASCENDANT_ORB_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ASCENDANT_ORB_BASE, StoryCombat.ASCENDANT_ORB_PER, lv)
+	for i in StoryCombat.ASCENDANT_ORB_SHOTS:
 		_melee_hit(ATTACK_RANGE, mul)
 
 

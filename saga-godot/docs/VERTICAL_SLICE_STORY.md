@@ -1687,6 +1687,63 @@ tier3 전부(4갈래×22개+무명4=92개) 이 포트에 옮겨졌다. 남은 �
 전직 트리 전체(무명→1차→2차→3차→4차)가 완주된다. 그 다음은 STORY
 밖(다른 판)이거나 가방·상점 확장 등 다른 후보.
 
+
+## 31. tier4 무예 스물넷 — 전신·궁성·명왕·천존 각 여섯, 전직 트리 완주 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해 묻지말고"** — 30절이 남긴 "다음
+이어질 것", 이 전직 트리 확장의 마지막 걸음을 채웠다. tier3가 전부
+있어 tier4(전신·궁성·명왕·천존, 갈래의 끝)도 갈래마다 여섯 개 전부를
+한 번에 채웠다. data-job.js의 `need`가 tier4에서는 예외 없이 전부
+바로 아래 tier3을 가리킨다(tier3처럼 tier1을 직접 잇는 경우가 없다) —
+원문 그대로 옮겼다.
+
+**h_zenith(궁천합)에 이어 job 버프 중 두 번째로 이동속도 배율**
+(speed×1.2)을 가진 버프가 나왔다 — `_job_buff_speed_mul` 필드를
+그대로 재사용(30절에서 이미 만들어 둔 자리).
+
+**입력** — 알파벳(A-Z)·숫자 1~6·기존 구두점 다섯 개(,.​/;')를 이미 다
+써서, 이번엔 남은 숫자 줄(7·8·9·0)과 `-`·`=`로 `story_job_skill4_1~6`
+여섯 개를 잡았다. SP 투자는 여전히 새 입력 없이 기존 `_raise(0..5)`
+재사용.
+
+- `story_combat.gd`: `SKILL_JOB`·`JOB_SKILL_KEYS`·`SKILL_NEED` tier4
+  확장. 스물네 스킬의 cost/cd/mul 상수, `warlord_smite_dist_m()`/
+  `falcon_retreat_dist_m()`/`reaper_veil_dist_m()`/`ascendant_step_
+  dist_m()` 신규.
+- `story_player.gd`: cd 변수 스물넷, 입력 분기(`story_job_skill4_1~6`,
+  위 세 tier 분기와 elif로 안 묶음 — chain에 전부 같이 들어 있다),
+  캐스트 함수 스물넷 신규.
+- `project.godot`: `story_job_skill4_1~6`(물리키 55·56·57·48·45·61)
+  여섯 개 신규.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → `project.godot` diff가 입력 액션 30줄뿐인지 확인 →
+STORY 필드 씬 아홉 개+기본 씬 각 세 번씩 exit 0·로그 완전 동일(다섯
+판 회귀 포함). **임시 검증 스크립트**(28~30절과 같은 방식)로: 네
+tier4 job 정확히 6개씩·SKILL_JOB 정합·모든 tier4 need가 예외 없이
+tier3을 가리킴(회귀 없는 순수 tier3→tier4 체인 확인) → need 게이트
+표본 둘(o_ruin<-n_heaven, z_eternity<-i_tao) 정확히 걸림 → warlord
+여도 warrior·general·marshal 무예 계속 투자 가능(4단 chain 소속) →
+skill_mul 네 표본 손계산과 일치 → range/dist 환산 여섯 개 손계산과
+일치 → `job_grow_chain("warlord")`=hp640(40+110+190+300)/atk42
+(2+7+13+20), 4단 사슬 합산 정확 → `job_next("warlord")`가 빈 문자열
+(갈래의 끝 확인) — 전부 예측과 정확히 일치. 검증 스크립트 삭제 후
+재검증까지 마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — 숫자 7·8·9·0·-·=키로 실제 tier4
+무예가 나가는 손맛, 궁천합의 이동속도 체감은 눈으로 볼 것. 계속
+몰아서 받을 것.
+
+**전직 트리 완주.** data-job.js SKILLS(무명 넷+tier1~4 각 4갈래×22개
+=92개, 총 96개)가 이걸로 전부 이 포트에 옮겨졌다 — 21절이 "2~4차
+전직(job 체인 재설계 필요)"이라고 미뤄 뒀던 것에서 시작해 27절(사슬
+재설계)→28절(tier2 열둘)→29절(tier1 나머지+tier2 완주)→30절(tier3
+스물넷)→이 절(tier4 스물넷)까지 한 세션 안에서 이어진 하나의 큰
+줄기가 여기서 끝난다. **다음 이어질 것** — STORY 판의 굵직한 후보는
+가방(현재 10부위 tier1 고정 장비 하나씩뿐, 나머지 티어·주문서·고유·
+상점 확장) 정도가 남았다. 그 밖엔 STORY 밖(다른 네 판, saga-unity
+트랙 등)으로 옮겨 갈 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
