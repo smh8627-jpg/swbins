@@ -5327,3 +5327,25 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   창을 띄우는 확인은 사용자가 실기에서 직접 하는 몫(루트 CLAUDE.md
   "2026-09-09 정정"). `project.godot`은 매 내보내기 뒤 원래 값으로
   정확히 복원됨을 매번 git status로 확인, `*.import` 잡음만 되돌림.
+
+## STORY 업적 (2026-09-13, "이어해" 지시로 계속)
+
+- PC 실행 파일 빌드(사용자 요청) 이후 STORY 1절 "제외" 목록으로 복귀.
+  상점 UI(물목 화면)는 이 프로젝트 전체에 인터랙티브 메뉴/리스트 UI
+  프레임워크가 아직 없어 보류하고, 자동화로 끝낼 수 있는 **업적**
+  (data-achieve.js 9개)을 먼저 옮겼다. 9개 중 **7개만** — `a_dex20`
+  (도감)·`a_quest10`(사명 누적 완료)은 그 값 자체가 이 슬라이스에 없어
+  `story_combat.gd` ACHIEVES 상수에서 아예 뺐다(값이 생기면 채울 자리).
+  `story_save_state.gd`에 `bosses`·`feat`·`achievements`·
+  `check_achievements()`/`_achieve_value()`/`add_boss_kill()` 신규,
+  SAVE_VERSION 8→9. 자세한 내용은 `docs/VERTICAL_SLICE_STORY.md`
+  "업적" 절 참고.
+- 검증: 헤드리스 임포트 오류 0건, 세 씬(TestField·HeodoField·
+  ForestHuntGround) 각각 `--quit-after 6` 스크립트 오류 0건. 임시
+  SceneTree 검증 스크립트로 kill100/lv10/gold5000/gear7/boss5 다섯
+  업적의 문턱·feat 누적(105)·중복 지급 방지까지 손계산과 일치 확인 후
+  스크립트 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
+  확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: STORY 남은 굵직한 후보는 상점 UI(메뉴 프레임워크
+  신규 필요)·몬스터 도감 정도. 그 밖엔 다른 네 판·saga-unity 트랙으로
+  옮겨 갈 자리.

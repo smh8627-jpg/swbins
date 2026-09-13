@@ -317,6 +317,29 @@ const SCROLLS := {
 }
 
 
+## **2026-09-13 추가 — 업적(data-achieve.js 그대로, "반복 플레이 요소").**
+## `feat`(공적)는 원작에서 칭호 시스템의 연료지만 이 슬라이스엔 칭호가
+## 없다 — admin.js 표시값과 같은 정신으로 그냥 누적 숫자만 저장한다
+## (StorySaveState.feat, 다음에 칭호를 붙일 자리를 위해 값 자체는 쌓아 둔다).
+##
+## **9개 중 7개만 옮겼다** — 나머지 둘은 이 슬라이스에 그 값 자체가
+## 없다: `a_dex20`(도감 등록 수 — 몬스터 도감 자체가 아직 없다,
+## VERTICAL_SLICE_STORY.md "다음 이어질 것" 목록 참고)과 `a_quest10`
+## (사명 완료 "누적 횟수" — 이 슬라이스의 사명 둘(q_first·q_gather1)은
+## 반복 완료가 아니라 관찰형 진행도 하나뿐이라 "10번 마쳤다"에 대응하는
+## 값이 없다, 1절 "사명 나머지" 제외 항목과 같은 사유). RANGED_WEAPON.staff를
+## 안 옮긴 것과 같은 결 — 값 자체가 생기면 그때 채운다.
+const ACHIEVES := {
+	"a_kill100":  {"name": "백부장", "need": 100, "feat": 15, "emoji": "⚔️"},
+	"a_kill500":  {"name": "살성(殺星)", "need": 500, "feat": 40, "emoji": "💀"},
+	"a_boss5":    {"name": "토벌장", "need": 5, "feat": 30, "emoji": "👺"},
+	"a_lv10":     {"name": "한 사람 몫", "need": 10, "feat": 15, "emoji": "🌱"},
+	"a_lv30":     {"name": "노련한 몸", "need": 30, "feat": 50, "emoji": "🌳"},
+	"a_gold5000": {"name": "군자금", "need": 5000, "feat": 20, "emoji": "🪙"},
+	"a_gear7":    {"name": "온몸 무장", "need": 7, "feat": 25, "emoji": "🛡️"},
+}
+
+
 ## **2026-09-13 추가 — 상점(1절 "제외" 목록 "장비 나머지"의 첫 걸음).**
 ## side.js kill()의 금 계산 그대로: gold = round((6+lv*3)*(0.8~1.4)*mul*
 ## GAIN_GOLD). GAIN_GOLD(core.tuned 기본 배수)는 1.0 그대로(손잡이 자체를

@@ -12,13 +12,17 @@ extends Node
 ## 애초에 저장할 상태 자체가 없다).
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 8  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서)
+const SAVE_VERSION := 9  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적)
 
 var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
+var bosses := 0  # side.js s.bosses 그대로 — a_boss5 업적의 진행 카운트
+var feat := 0  # core.js player.feat(공적) — 이 슬라이스엔 칭호가 없어 그냥 누적값만
+var achievements: Dictionary = {}  # key(String) -> true, achieve.js st() 그대로(한 번 달성하면 안 없어짐)
 var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
 var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.item_def() 참고(밑감·고유 둘 다)
 var gold := 0  # side.js core.save.player.gold 그대로 — 상인(story_merchant.gd)이 쓴다
@@ -65,6 +69,12 @@ func consume_pending_spawn() -> float:
 
 func add_kill() -> void:
 	kills += 1
+	check_achievements()
+
+
+func add_boss_kill() -> void:
+	bosses += 1
+	check_achievements()
 
 
 func add_mat(kind: String, amount: int = 1) -> void:
@@ -89,6 +99,7 @@ func add_gold(n: int) -> void:
 	if n == 0:
 		return
 	gold = maxi(0, gold + n)
+	check_achievements()
 
 
 ## 모자라면 아무것도 안 하고 false — DUNGEON DungeonGoldState.spend()와 같은 계약.
@@ -125,6 +136,7 @@ func equip_gear(key: String) -> bool:
 	equipped[slot] = key
 	scroll_bonus.erase(slot)
 	scroll_left[slot] = int(it.get("up", 0))
+	check_achievements()
 	return true
 
 
@@ -176,6 +188,39 @@ func add_exp(amount: int) -> void:
 		exp -= need
 		level += 1
 		need = StoryCombat.exp_need(level)
+	check_achievements()
+
+
+## achieve.js checkAll() 그대로 — 이미 달성한 건 다시 안 재고, 새로 문턱을
+## 넘은 것만 한 번 터뜨린다(feat 지급 + 토스트). ACHIEVES에 없는 둘
+## (a_dex20·a_quest10)은 story_combat.gd 머리말 참고 — 값 자체가 없어
+## 애초에 표에서 뺐다.
+func check_achievements() -> void:
+	for key: String in StoryCombat.ACHIEVES:
+		if achievements.get(key, false):
+			continue
+		var d: Dictionary = StoryCombat.ACHIEVES[key]
+		if _achieve_value(key) >= float(d.need):
+			achievements[key] = true
+			feat += int(d.feat)
+			Toast.show(self, "%s 업적 · %s" % [String(d.emoji), String(d.name)], 3.0)
+
+
+## achieve.js valueOf() 그대로 — 업적마다 다른 칸을 본다.
+func _achieve_value(key: String) -> float:
+	match key:
+		"a_kill100", "a_kill500":
+			return float(kills)
+		"a_boss5":
+			return float(bosses)
+		"a_lv10", "a_lv30":
+			return float(level)
+		"a_gold5000":
+			return float(gold)
+		"a_gear7":
+			return float(equipped.size())
+		_:
+			return 0.0
 
 
 func can_change_job() -> bool:
@@ -282,6 +327,9 @@ func save() -> bool:
 		"level": level,
 		"exp": exp,
 		"kills": kills,
+		"bosses": bosses,
+		"feat": feat,
+		"achievements": achievements,
 		"mats": mats,
 		"equipped": equipped,
 		"gold": gold,
@@ -313,6 +361,10 @@ func try_load() -> bool:
 	level = int(data.get("level", 1))
 	exp = int(data.get("exp", 0))
 	kills = int(data.get("kills", 0))
+	bosses = int(data.get("bosses", 0))
+	feat = int(data.get("feat", 0))
+	var loaded_achievements: Variant = data.get("achievements", {})
+	achievements = loaded_achievements if typeof(loaded_achievements) == TYPE_DICTIONARY else {}
 	var loaded_mats: Variant = data.get("mats", {})
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
 	var loaded_equipped: Variant = data.get("equipped", {})

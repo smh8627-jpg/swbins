@@ -1954,6 +1954,58 @@ SceneTree `_initialize()` 시점엔 노드가 실제로 트리에 들어가지 �
 쏘는지, 사거리 밖에선 안 쏘는지, 근접 접촉 피해와 안 겹치는지 눈으로
 볼 것. 계속 몰아서 받을 것.
 
+## 업적 (2026-09-13, "이어해" 지시로 계속)
+
+원거리 적 이후 STORY "제외" 목록에 그대로 남아 있던 마지막 후보 —
+**업적**(data-achieve.js, 9개, "한 번만 터지는 배지"). 상점 UI(물목을
+고르는 화면)는 이 프로젝트 전체에 아직 인터랙티브 메뉴/리스트 UI
+자체가 없어(HUD 라벨·바·Toast뿐) 더 큰 설계 결정이 필요해 보류하고,
+자동화로 바로 끝낼 수 있는 이 항목을 먼저 집었다.
+
+- **9개 중 7개만 옮겼다.** `a_dex20`(도감 등록 수)·`a_quest10`(사명
+  누적 완료 횟수)은 그 값 자체가 이 슬라이스에 없다 — 몬스터 도감도,
+  반복 완료되는 사명도 아직 없다(사명은 q_first·q_gather1 둘 다
+  관찰형 진행도 하나뿐). RANGED_WEAPON.staff를 안 옮긴 것과 같은 결로
+  `story_combat.gd` ACHIEVES 상수 자체에서 뺐다(값이 생기면 그때 채울
+  자리, 표에 "가짜 항목"으로 남겨 두지 않는다).
+- `story_combat.gd` `ACHIEVES` 신규(7개, name/need/feat/emoji) —
+  achieve.js `AD.ACHIEVES`에서 판정 가능한 것만.
+- `story_save_state.gd` — `bosses`(a_boss5 진행)·`feat`(공적, achieve.js
+  보상 — 이 슬라이스엔 칭호가 없어 그냥 누적값)·`achievements`(달성
+  기록) 신규, SAVE_VERSION 8→9. `check_achievements()`(achieve.js
+  checkAll() 그대로 — 이미 달성한 건 재판정 안 함)·`_achieve_value(key)`
+  (achieve.js valueOf() 그대로, 7개 분기)·`add_boss_kill()` 신규.
+  `add_kill()`·`add_exp()`(레벨업 루프 뒤)·`add_gold()`·`equip_gear()`
+  (성공 시) 끝에서 `check_achievements()`를 부른다 — 웹판의
+  `core.on('changed', checkAll)`(모든 변경에 얹혀 훑는 것)와 같은 정신,
+  이 포트엔 공용 이벤트 버스가 없어 각 mutator 끝에 직접 건다.
+- `story_enemy.gd` `_die()` — `is_boss`면 `add_boss_kill()` 추가 호출
+  (`add_kill()` 바로 다음).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(vroid·texture-a.png.import
+CRLF 잡음만 재발생, 되돌림) → `TestField.tscn`·`HeodoField.tscn`·
+`ForestHuntGround.tscn` 각각 `--quit-after 6 --verbose` exit 0·스크립트
+오류 0건. **임시 검증 스크립트**(`_verify_achieve_tmp.gd`, 이번엔
+`_initialize()`에서 `StorySaveState` 전역 식별자가 `--script` 단독
+실행 모드에선 컴파일 타임에 안 잡혀(다른 씬 없이 이 스크립트 자체가
+SceneTree 루트라 그런 듯) `get_node("/root/StorySaveState")`로 바꿔
+우회 — 다음에 같은 방식을 쓸 때 참고)로: ACHIEVES에 a_dex20/a_quest10이
+없고 정확히 7개인지 → kills 99→100 문턱에서 정확히 그 순간만 달성
+(+feat 15) → level=10 즉시 a_lv10 달성(+15) → gold 4999→5000 문턱에서
+a_gold5000 달성(+20) → equipped 7부위 채우자 a_gear7 달성(+25) →
+add_boss_kill 5번에 a_boss5 달성(+30) → 이미 달성한 걸 재확인해도
+feat이 중복 지급되지 않음 — 전부 손계산(합 105, achievements 5개)과
+정확히 일치. 검증 스크립트 삭제 후 재검증까지 마쳤다. `git status`로
+`project.godot`·`*.import` 확인 — 무관한 잡음만 되돌림.
+
+**GUI 실기 확인은 아직 안 함** — 실제 플레이로 100마리를 잡거나 레벨을
+올려 업적 토스트가 뜨는 느낌을 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 이걸로 STORY 1절 "제외" 목록의 굵직한 항목은
+상점 UI(물목 화면, 인터랙티브 메뉴 프레임워크 자체가 새로 필요)·
+몬스터 도감·2~4차 전직 재설계 확인 정도만 남았다. 그 밖엔 STORY 밖
+(다른 네 판, saga-unity 트랙)으로 옮겨 갈 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
