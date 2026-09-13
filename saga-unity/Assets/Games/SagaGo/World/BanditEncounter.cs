@@ -53,8 +53,15 @@ namespace Saga.Go.World
         // Gatherable.cs와 같은 이유(런타임 Awake()는 AssetDatabase를 못 쓴다).
         [SerializeField] private GameObject model;
 
+        // 44장 "주요 Enemy" 교체 — model이 리깅된 캐릭터(Animator 포함,
+        // 예: Abe)일 때 쓸 스케일. BuildTestVillageScene.cs가 실측 높이
+        // 기준으로 계산해 넘긴다(DungeonEnemy.ConfigureCombat의 visualScale과
+        // 같은 결 — 실측값을 여기 하드코딩하지 않는다).
+        [SerializeField] private float riggedVisualScale = 1f;
+
         private Transform _visual;
         private Vector3 _visualBaseScale;
+        private Color _restTint = BaseColor;
 
         private GameObject _promptRoot;
         private GameObject _combatRoot;
@@ -69,6 +76,14 @@ namespace Saga.Go.World
         private Coroutine _pulseRoutine;
 
         public void Init(GameObject modelIn) => model = modelIn;
+
+        /// <summary>44장 "주요 Enemy" 교체 — 리깅된 모델(Animator 포함)을
+        /// 쓸 때 스케일까지 같이 넘긴다.</summary>
+        public void Init(GameObject modelIn, float riggedVisualScaleIn)
+        {
+            model = modelIn;
+            riggedVisualScale = riggedVisualScaleIn;
+        }
 
         private void Awake()
         {
@@ -173,11 +188,30 @@ namespace Saga.Go.World
             float ground = TestMapData.Legend[tile].Height;
             transform.position = TestMapData.WorldPos(Gx, Gy) + new Vector3(0, ground, 0);
 
-            // Kenney Blocky Characters character-d.glb(PLAN.md 8장) — 플레이어·
-            // 주민과 같은 모델 골격, 옷 색조(BaseColor)만 달라 구별된다.
-            _visual = model != null
-                ? CharacterVisual.Spawn(model, transform, CharacterVisual.HumanHeight, BaseColor)
-                : CharacterVisual.SpawnFallbackCapsule(transform, BaseColor);
+            // 44장 "주요 Enemy" 교체 — model에 Animator가 이미 붙어 있으면
+            // (Abe처럼 SetupAbeCharacterImport.cs가 구운 AbeAnimated.prefab)
+            // 리깅된 캐릭터로 보고 실제 스케일(riggedVisualScale)로
+            // Instantiate, 색조는 안 입힌다(실제 피부/옷 텍스처가 있어
+            // 곱색하면 오염된다 — DungeonEnemy.cs와 같은 결). 그 외(Kenney
+            // GLB·null)는 기존 CharacterVisual(NativeHeight 기준 스케일+
+            // BaseColor 곱색) 경로 그대로.
+            if (model != null && model.GetComponent<Animator>() != null)
+            {
+                var inst = Instantiate(model, transform, false);
+                inst.name = "Visual";
+                inst.transform.localScale = Vector3.one * riggedVisualScale;
+                inst.transform.localPosition = Vector3.zero;
+                inst.transform.localRotation = Quaternion.identity;
+                _visual = inst.transform;
+                _restTint = Color.white;
+            }
+            else
+            {
+                _visual = model != null
+                    ? CharacterVisual.Spawn(model, transform, CharacterVisual.HumanHeight, BaseColor)
+                    : CharacterVisual.SpawnFallbackCapsule(transform, BaseColor);
+                _restTint = BaseColor;
+            }
             _visualBaseScale = _visual.localScale;
         }
 
@@ -315,7 +349,7 @@ namespace Saga.Go.World
                     CharacterVisual.Tint(_visual.gameObject, TellColor);
                     break;
                 case "heavy":
-                    CharacterVisual.Tint(_visual.gameObject, BaseColor);
+                    CharacterVisual.Tint(_visual.gameObject, _restTint);
                     ScreenFlash(e.Dodged ? new Color(0.2f, 1.0f, 0.4f, 0.35f) : new Color(1.0f, 0.15f, 0.15f, 0.45f));
                     break;
                 case "hit":

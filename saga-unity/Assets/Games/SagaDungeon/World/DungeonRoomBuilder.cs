@@ -77,6 +77,14 @@ namespace Saga.Dungeon.World
         private const float RoomModelNativeSize = 12f;
         public const float RoomScale = RoomWidth / RoomModelNativeSize; // 20/12 ≈ 1.667
 
+        // 44장 "Environment" 교체 — 채워져 있으면 room-small.glb 셸(Kenney
+        // 단색 아틀라스)과 primitive 색상 둘 다 대신 실제 PBR 재질(Poly Haven,
+        // EnvironmentMaterial.cs)을 바닥·벽에 씌운다. gateModel(문 아치)은
+        // 이번 슬라이스 범위 밖 — 별도 소품이라 그대로 둔다.
+        [SerializeField] private Material floorMaterial;
+        [SerializeField] private Material wallMaterial;
+        private bool UsePbrEnvironment => floorMaterial != null && wallMaterial != null;
+
         private void Awake()
         {
             // 이미 저장된 씬을 실제 Play로 열면 Awake가 다시 불려 Build()를
@@ -102,12 +110,36 @@ namespace Saga.Dungeon.World
         /// 안 함 — Floor/Wall이 이미 예전 색을 보여주고 있다(씬이 안 깨짐).</summary>
         private void BuildRoomVisualModel()
         {
+            // "Environment" PBR 경로 — 바닥·벽이 이미 실제 재질로 덮였으니
+            // Kenney 셸 대신 천장만 마저 닫는다(셸은 바닥+벽+천장이 한
+            // 메시라 부분적으로 못 끈다 — 통째로 대체).
+            if (UsePbrEnvironment)
+            {
+                BuildCeiling();
+                return;
+            }
+
             if (roomModel == null) return;
 
             var shell = Object.Instantiate(roomModel, transform, false);
             shell.name = "Shell";
             shell.transform.localScale = Vector3.one * RoomScale;
             CharacterVisual.Tint(shell, Colors().wall);
+        }
+
+        /// <summary>PBR 환경 경로 전용 — 셸이 없으니 천장을 별도 primitive로
+        /// 닫는다. 시각용일 뿐 콜라이더는 안 둔다(카메라가 방 안에서만
+        /// 도니 막을 이유가 없다 — corridor.glb가 콜라이더 없는 것과 같은 결).</summary>
+        private void BuildCeiling()
+        {
+            var ceiling = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ceiling.name = "Ceiling";
+            ceiling.transform.SetParent(transform, false);
+            ceiling.transform.localPosition = new Vector3(0f, WallHeight, 0f);
+            ceiling.transform.localScale = new Vector3(RoomWidth, 1f, RoomDepth);
+            ceiling.GetComponent<MeshRenderer>().sharedMaterial =
+                EnvironmentMaterial.MakeTiled(wallMaterial, RoomWidth, RoomDepth);
+            Object.DestroyImmediate(ceiling.GetComponent<Collider>());
         }
 
         private (Color floor, Color wall) Colors() => biome switch
@@ -144,7 +176,8 @@ namespace Saga.Dungeon.World
             floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             floor.transform.localScale = new Vector3(RoomWidth, 1f, RoomDepth);
             var renderer = floor.GetComponent<MeshRenderer>();
-            if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김.
+            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(floorMaterial, RoomWidth, RoomDepth);
+            else if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김.
             else renderer.sharedMaterial = MakeMaterial(Colors().floor);
         }
 
@@ -341,6 +374,20 @@ namespace Saga.Dungeon.World
             // 스케일, 왜곡 없음(방 셸 GLB 슬라이스 전엔 X만 줄이는 비균등이었음).
             float scale = doorWidth / GateModelWidth;
             gate.transform.localScale = Vector3.one * scale;
+
+            // 44장 "Building" 교체 — PBR 경로에서는 Kenney 아치의 단색
+            // 아틀라스(colormap.png) 대신 벽과 같은 PBR 재질을 씌운다(실측
+            // 4.4×4.4 기준 타일 — DungeonRoomBuilder 클래스 주석의 gate.glb
+            // 실측값). 메시 UV가 아틀라스 전용이라 결과가 정확한 스톤
+            // 텍스처는 아니지만, 최소한 밋밋한 단색 아치보다는 낫다.
+            if (UsePbrEnvironment)
+            {
+                var archMat = EnvironmentMaterial.MakeTiled(wallMaterial, GateModelWidth, GateModelWidth);
+                foreach (var r in gate.GetComponentsInChildren<Renderer>())
+                {
+                    r.sharedMaterial = archMat;
+                }
+            }
         }
 
         private void SpawnWall(string name, Vector3 pos, Vector3 size, Color color)
@@ -351,7 +398,8 @@ namespace Saga.Dungeon.World
             wall.transform.localPosition = pos;
             wall.transform.localScale = size;
             var renderer = wall.GetComponent<MeshRenderer>();
-            if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김(문 갈라짐 후 재생성분도 포함).
+            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(wallMaterial, Mathf.Max(size.x, size.z), size.y);
+            else if (roomModel != null) renderer.enabled = false; // 셸이 보여줄 자리 — 콜라이더만 남김(문 갈라짐 후 재생성분도 포함).
             else renderer.sharedMaterial = MakeMaterial(color);
         }
 

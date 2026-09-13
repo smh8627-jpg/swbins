@@ -16,6 +16,10 @@ namespace Saga.Story.World
         private const float GroundY = 0f;
 
         [SerializeField] private GameObject enemyModelPrefab;
+        // 44장 "Boss" 교체 — 비어 있으면 잡졸과 같은 모델을 쓴다(예전 동작).
+        [SerializeField] private GameObject bossModelPrefab;
+        [SerializeField] private float riggedVisualScale = 1f;
+        [SerializeField] private float riggedBossVisualScale = 1f;
 
         private void Awake()
         {
@@ -32,6 +36,7 @@ namespace Saga.Story.World
                 go.transform.localPosition = new Vector3(x, GroundY, 0f);
                 var enemy = go.AddComponent<StoryEnemy>();
                 SetPrivateField(enemy, "modelPrefab", enemyModelPrefab);
+                SetPrivateField(enemy, "riggedVisualScale", riggedVisualScale);
             }
 
             var bossGo = new GameObject("Boss_HwangGeon");
@@ -40,6 +45,8 @@ namespace Saga.Story.World
             var boss = bossGo.AddComponent<StoryEnemy>();
             boss.SetBoss(true);
             SetPrivateField(boss, "modelPrefab", enemyModelPrefab);
+            SetPrivateField(boss, "bossModelPrefab", bossModelPrefab);
+            SetPrivateField(boss, "riggedBossVisualScale", riggedBossVisualScale);
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

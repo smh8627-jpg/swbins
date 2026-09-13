@@ -28,6 +28,10 @@ namespace Saga.Story.Player
         private const float AttackCooldown = 0.36f; // 무예 연참(連斬) cd 0.36(js/data-job.js)
 
         [SerializeField] private Transform visual;
+        // 44장 "Player" 교체 — Maria가 배정되면 채워짐(BuildTestStoryScene.
+        // BuildPlayerVisual 참고). 이 판은 플레이어가 피격당하지 않아(Hit/
+        // Death 트리거 대상이 없음) Speed+Attack만 쓴다.
+        [SerializeField] private Animator animator;
         [SerializeField] private HoldButton leftButton;
         [SerializeField] private HoldButton rightButton;
         [SerializeField] private HoldButton climbUpButton;
@@ -113,6 +117,7 @@ namespace Saga.Story.Player
         {
             if (_attackCooldownLeft > 0f) return;
             _attackCooldownLeft = AttackCooldown;
+            PlayAttackAnim();
 
             foreach (var enemy in StoryEnemy.All)
             {
@@ -133,6 +138,7 @@ namespace Saga.Story.Player
         {
             if (_sweepCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.SweepCost)) return;
             _sweepCooldownLeft = StoryCombat.SweepCooldown;
+            PlayAttackAnim();
 
             Vector2 origin = new Vector2(transform.position.x, transform.position.y);
             foreach (var enemy in StoryEnemy.All)
@@ -153,6 +159,7 @@ namespace Saga.Story.Player
         {
             if (_boltCooldownLeft > 0f || !StoryCombat.TrySpendMp(StoryCombat.BoltCost)) return;
             _boltCooldownLeft = StoryCombat.BoltCooldown;
+            PlayAttackAnim();
 
             var go = new GameObject("StoryBolt");
             go.transform.position = transform.position + new Vector3(_facing * 0.6f, 1f, 0f);
@@ -190,7 +197,17 @@ namespace Saga.Story.Player
             float runSpeed = RunSpeed * (BuffActive ? StoryCombat.BraceSpeedMul : 1f);
             var move = new Vector3(axis * runSpeed, _verticalVelocity, 0f);
             _controller.Move(move * dt);
+
+            if (animator != null)
+            {
+                animator.SetFloat("Speed", Mathf.Abs(axis) > 0.05f ? 1f : 0f);
+            }
         }
+
+        /// <summary>연참·횡소·기탄·기합 넷 다 검을 쓰는 동작이라 Maria.controller의
+        /// 단일 "Attack" 트리거 하나로 같이 재생한다(무기별로 다른 클립을
+        /// 만드는 건 이번 슬라이스 범위 밖).</summary>
+        private void PlayAttackAnim() => animator?.SetTrigger("Attack");
 
         /// <summary>줄 안에서는 중력이 없다 — 세로 입력을 오르내리기 전용으로
         /// 빌려 쓴다. 가로 입력이 세게 들어오면(> 0.3) 손을 놓은 것으로

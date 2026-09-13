@@ -28,6 +28,17 @@ namespace Saga.EditorTools
         // c=떠돌이 상인·나그네(모델 재사용, 색조로만 구분), d=산적.
         private const string PlayerModelPath = "Assets/Art/Characters/character-a.glb";
 
+        // 44장 "Player" 교체 — Dungeon(BuildTestDungeonScene.cs)이 이미
+        // 리깅해 둔 Maria를 그대로 재사용(SAGA 세계관의 같은 주인공 —
+        // CharactersRealistic/은 .gitignore 대상이라 없으면 character-a로
+        // 조용히 폴백). GO 세계는 실측(HumanHeight=3.4)보다 큰 스케일이라
+        // Maria의 실제 메시 높이(TempMeasureMaria로 측정, 1.83m)를 기준으로
+        // 다시 늘려야 다른 마을 요소(집·NPC)와 비례가 맞는다 — Dungeon처럼
+        // 그대로(스케일 1) 두면 반토막 크기로 보인다.
+        private const string MariaBodyFbxPath = "Assets/Art/CharactersRealistic/Maria WProp J J Ong.fbx";
+        private const string MariaControllerPath = "Assets/Animators/Maria.controller";
+        private const float MariaNativeHeight = 1.83f;
+
         // saga-godot TestVillage.tscn의 마을 중심 스폰 자리와 동일 — 마을 집 두 칸
         // (2,3)·(3,3) 사이 중앙. 예전엔 WorldPos(2.5,3)의 계산 결과를 상수로 박아
         // 뒀었는데(-48,0.1,-24), 그러면 TestMapData.Rows의 칸 수가 바뀔 때(지도
@@ -189,11 +200,28 @@ namespace Saga.EditorTools
             builder.Build();
         }
 
+        // 44장 "주요 Enemy" 교체 — Dungeon 잡졸(황건적)과 같은 배역(도적)
+        // 이라 Abe를 그대로 재사용(SetupAbeCharacterImport.cs가 구운
+        // AbeAnimated.prefab). 실측 높이(1.94m, TempMeasureAbeBrute로 측정)
+        // 기준 HumanHeight(3.4) 배율.
+        private const string AbeAnimatedPrefabPath = "Assets/Art/CharactersRealistic/Abe/AbeAnimated.prefab";
+        private const float AbeNativeHeight = 1.94f;
+
         private static void BuildBanditEncounter()
         {
             var go = new GameObject("BanditEncounter");
             var encounter = go.AddComponent<BanditEncounter>();
-            encounter.Init(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-d.glb"));
+
+            var abe = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath);
+            if (abe != null)
+            {
+                encounter.Init(abe, CharacterVisual.HumanHeight / AbeNativeHeight);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestVillageScene] {AbeAnimatedPrefabPath} 를 못 찾음(로컬 전용 자산) — character-d로 폴백.");
+                encounter.Init(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-d.glb"));
+            }
             encounter.Build();
         }
 
@@ -428,13 +456,11 @@ namespace Saga.EditorTools
             controller.height = 3.4f;
             controller.center = new Vector3(0f, 1.7f, 0f);
 
-            // Visual — Kenney Blocky Characters character-a.glb(PLAN.md 8장,
-            // docs/ASSET_GUIDE.md 참고 — saga-godot 트랙과 같은 CC0 파일 재사용).
-            // GLB 피벗이 발밑이라 primitive capsule과 달리 y 오프셋이 필요 없다.
-            var playerModel = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerModelPath);
-            Transform visual = playerModel != null
-                ? CharacterVisual.Spawn(playerModel, playerGo.transform, CharacterVisual.HumanHeight, Color.white)
-                : CharacterVisual.SpawnFallbackCapsule(playerGo.transform, Color.white);
+            // 44장 "Player" 교체 — Maria(리깅+Animator)를 먼저 시도, 없으면
+            // character-a → 그마저 없으면 primitive capsule 순으로 폴백
+            // (BuildTestDungeonScene.BuildPlayerVisual과 같은 순서).
+            Animator playerAnimator;
+            Transform visual = BuildPlayerVisual(playerGo.transform, out playerAnimator);
 
             // CameraRig — Player 자식, capsule 중심 높이(1.7)에서 시작.
             var rigGo = new GameObject("CameraRig");
@@ -460,10 +486,51 @@ namespace Saga.EditorTools
 
             var pc = playerGo.AddComponent<PlayerController>();
             SetPrivateField(pc, "visual", visual);
+            SetPrivateField(pc, "animator", playerAnimator);
             SetPrivateField(pc, "cameraRig", cameraRig);
             SetPrivateField(pc, "inputActions", inputActions);
 
             return (playerGo, cameraRig);
+        }
+
+        /// <summary>Maria(Humanoid, Animator 포함) → 실패 시 character-a →
+        /// 실패 시 primitive capsule 순으로 폴백. Maria를 쓸 때만
+        /// `animator`가 채워진다(BuildTestDungeonScene.BuildPlayerVisual과
+        /// 같은 결 — 이 게임 고유의 combat/dodge 트리거가 없어 Speed만 쓴다).</summary>
+        private static Transform BuildPlayerVisual(Transform parent, out Animator animator)
+        {
+            animator = null;
+
+            var mariaBody = AssetDatabase.LoadAssetAtPath<GameObject>(MariaBodyFbxPath);
+            if (mariaBody != null)
+            {
+                var maria = (GameObject)PrefabUtility.InstantiatePrefab(mariaBody, parent);
+                maria.name = "Visual";
+                maria.transform.localPosition = Vector3.zero;
+                maria.transform.localRotation = Quaternion.identity;
+                maria.transform.localScale = Vector3.one * (CharacterVisual.HumanHeight / MariaNativeHeight);
+
+                animator = maria.GetComponent<Animator>();
+                if (animator == null)
+                {
+                    animator = maria.AddComponent<Animator>();
+                }
+                var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(MariaControllerPath);
+                if (controller == null)
+                {
+                    Debug.LogWarning($"[BuildTestVillageScene] {MariaControllerPath} 를 못 찾음 — Maria 시각화는 되지만 애니메이션이 안 돎.");
+                }
+                animator.runtimeAnimatorController = controller;
+
+                BuildTestCharacterRealisticScene.ApplySkinSplit(maria);
+                return maria.transform;
+            }
+
+            Debug.LogWarning($"[BuildTestVillageScene] {MariaBodyFbxPath} 를 못 찾음(로컬 전용 자산, mixamo.com에서 받아야 함) — character-a로 폴백.");
+            var playerModel = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerModelPath);
+            return playerModel != null
+                ? CharacterVisual.Spawn(playerModel, parent, CharacterVisual.HumanHeight, Color.white)
+                : CharacterVisual.SpawnFallbackCapsule(parent, Color.white);
         }
 
         /// <summary>

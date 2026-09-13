@@ -31,7 +31,16 @@ namespace Saga.Story.World
         private static readonly Color BodyColor = new Color(0.788f, 0.659f, 0.227f);
         private const float BossVisualScaleMul = 1.4f;
 
-        [SerializeField] private GameObject modelPrefab; // BuildTestStoryScene.cs가 character-d를 채운다.
+        [SerializeField] private GameObject modelPrefab; // 잡졸 — BuildTestStoryScene.cs가 채운다(44장 이후 Abe).
+        // 44장 "Boss" 교체 — 비어 있으면 잡졸과 같은 modelPrefab을 그대로
+        // 쓴다(예전 동작). Dungeon처럼 두목만 다른 모델(Brute)을 쓰고
+        // 싶을 때 채운다.
+        [SerializeField] private GameObject bossModelPrefab;
+        // modelPrefab/bossModelPrefab에 Animator가 붙어 있을 때(리깅된
+        // 캐릭터) 쓸 실제 스케일 — DungeonEnemy.ConfigureCombat의
+        // visualScale과 같은 결(실측값을 이 클래스에 하드코딩하지 않는다).
+        [SerializeField] private float riggedVisualScale = 1f;
+        [SerializeField] private float riggedBossVisualScale = 1f;
         [SerializeField] private bool isBoss;
 
         private float _hp;
@@ -61,8 +70,30 @@ namespace Saga.Story.World
         private void BuildVisual()
         {
             float height = isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
-            if (modelPrefab != null) CharacterVisual.Spawn(modelPrefab, transform, height, BodyColor);
-            else CharacterVisual.SpawnFallbackCapsule(transform, height, BodyColor);
+            bool useBossModel = isBoss && bossModelPrefab != null;
+            GameObject effectiveModel = useBossModel ? bossModelPrefab : modelPrefab;
+            float effectiveRiggedScale = useBossModel ? riggedBossVisualScale : riggedVisualScale;
+
+            // 44장 "주요 Enemy"/"Boss" 교체 — 리깅된 캐릭터(Animator 포함,
+            // 예: Abe/Brute)면 DungeonEnemy.cs와 같은 결로 실제 스케일
+            // 그대로 쓰고 색조는 안 입힌다(실제 텍스처를 곱색으로 오염시키지
+            // 않으려고). 그 외(Kenney GLB·null)는 기존 경로 그대로.
+            if (effectiveModel != null && effectiveModel.GetComponent<Animator>() != null)
+            {
+                var inst = Instantiate(effectiveModel, transform, false);
+                inst.name = "Visual";
+                inst.transform.localScale = Vector3.one * effectiveRiggedScale;
+                inst.transform.localPosition = Vector3.zero;
+                inst.transform.localRotation = Quaternion.identity;
+            }
+            else if (effectiveModel != null)
+            {
+                CharacterVisual.Spawn(effectiveModel, transform, height, BodyColor);
+            }
+            else
+            {
+                CharacterVisual.SpawnFallbackCapsule(transform, height, BodyColor);
+            }
         }
 
         public void TakeDamage(float amount)
