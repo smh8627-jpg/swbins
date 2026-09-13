@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Saga.Go.Audio;
 
 namespace Saga.EditorTools
 {
@@ -97,6 +98,14 @@ namespace Saga.EditorTools
         private static void CountFrames()
         {
             _framesSeen++;
+            // 67장 "사운드"(2026-09-14) — GoAudio.PlaySfx가 헤드리스(-nographics,
+            // 오디오 장치 없을 수 있음)에서도 예외 없이 도는지 한 번 확인한다.
+            // BanditEncounter.cs가 실제로 쓰는 것과 같은 클립.
+            if (_framesSeen == 3)
+            {
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Audio/Kenney_RPGSounds/chop.ogg");
+                GoAudio.PlaySfx(clip);
+            }
             if (_framesSeen >= FramesToRun)
             {
                 EditorApplication.update -= CountFrames;

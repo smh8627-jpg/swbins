@@ -353,6 +353,11 @@ namespace Saga.EditorTools
             textGo.SetActive(false);
         }
 
+        // 67장 "사운드" 첫 슬라이스(2026-09-14, ForestAudio.cs 참고) — Kenney
+        // Interface Sounds(누름)·RPG Sounds(해소) CC0, docs/ASSET_GUIDE.md 참고.
+        private const string PressClipPath = "Assets/Art/Audio/Kenney_RPGSounds/chop.ogg";
+        private const string ResolveClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_001.ogg";
+
         /// <summary>44장 "전투 콘텐츠"(2026-09-14) — 포자괴물과 대치했을 때
         /// 뜨는 "밀어내기" 미니게임 UI. BuildDialogueUi()와 같은 패턴(자체
         /// Canvas 하나).</summary>
@@ -366,8 +371,15 @@ namespace Saga.EditorTools
             scaler.referenceResolution = new Vector2(1080, 1920);
             canvasGo.AddComponent<GraphicRaycaster>();
 
+            var pressClip = AssetDatabase.LoadAssetAtPath<AudioClip>(PressClipPath);
+            var resolveClip = AssetDatabase.LoadAssetAtPath<AudioClip>(ResolveClipPath);
+            if (pressClip == null || resolveClip == null)
+            {
+                Debug.LogWarning("[BuildTestVillageForestScene] 밀어내기 SFX 클립을 못 찾음 — 소리 없이 동작.");
+            }
+
             var ui = canvasGo.AddComponent<ForestHostileEncounterUi>();
-            ui.Build(canvasGo.transform);
+            ui.Build(canvasGo.transform, pressClip, resolveClip);
         }
 
         private static void BuildSaveButton()
