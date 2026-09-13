@@ -1260,6 +1260,60 @@ hp가 `ENEMY_HP(18) × hp_mul` = 216/252/306/360으로 넷 다 손계산과
 **다음 이어질 것** — 몬스터 도감(사냥터마다 다른 적), 마을 배경(mood별
 하늘 색), 2~4차 전직(job 체인 재설계 필요).
 
+## 25. 마을 배경 — 사냥터별 하늘 색 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해 묻지말고"** — 24절이 남긴 "다음 이어질
+것" 중 하나(마을 배경, mood별 하늘 색)를 채웠다. 지금까지 아홉 사냥터가
+전부 `env_pc.tres`/`env_mobile.tres`의 하늘색 하나(파란 하늘, field
+기준)를 그대로 썼다 — `data-side.js` STAGES는 자리마다 다른
+`sky: [top, horizon]`을 갖고 있는데(신야성 노을빛 베이지부터 호로곡의
+불타는 붉은빛까지) 그 차이가 3D 포트엔 하나도 안 넘어와 있었다.
+
+**설계 — 공용 리소스는 안 건드린다.** `env_pc.tres`/`env_mobile.tres`는
+GO/DUNGEON/FOREST/STORY/REALM 다섯 판이 전부 같이 쓰는 파일이라(66-1장
+원칙, `season_weather_visual.gd` 머리말과 같은 이유) 값을 직접 못
+고친다. 그 대신 새 `story_sky.gd`가 `WorldEnvironment.environment`를
+`duplicate(true)`로 이 씬 전용 사본으로 갈아 끼운 뒤 그 사본의
+`ProceduralSkyMaterial.sky_top_color`/`sky_horizon_color`만 덮어쓴다 —
+원본 `.tres`는 메모리에서도 손 안 대므로 다른 네 판에 절대 안 물든다
+(`season_weather_visual.gd`는 공용 인스턴스를 직접 고쳐 이론상 같은
+프로세스 안에서 다른 판에 새어 나갈 수 있는데, 그건 이미 있던 패턴이라
+이번 범위 밖으로 남겨 뒀다 — 이 절이 그 문제를 새로 만들진 않는다).
+
+- `world/story_sky.gd`(신규) — `sky_top_color`/`sky_horizon_color` export
+  (기본값 field), `world_environment_path` export(`../WorldEnvironment`,
+  `season_weather_visual.gd`와 같은 형제-순서 규칙). `story_terrain_
+  builder.gd`의 `ground_color` export와 같은 패턴 — 씬마다 값만 다르게
+  얹는다. 원본 hex 아홉 자리는 이 스크립트 머리말 주석에 모아 뒀다.
+- 아홉 씬(`TestField`·`SinyaField`·`HeodoField`·`GangneungjinField`·
+  `ForestHuntGround`·`NamjeongseongField`·`CaveHuntGround`·
+  `GisanchaeField`·`GorgeHuntGround`) 전부에 `StorySky` 노드를
+  `WorldEnvironment` 바로 다음 자리에 추가. `TestField`는 기본값(field)
+  그대로라 export 값을 안 얹었다(`ground_color`가 field에서 생략된 것과
+  같은 관례).
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림, `story_sky.gd.uid` 정상 생성) → `project.godot`/`*.import`
+diff 없음 → 열세 씬 전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전
+동일(다섯 판 회귀 포함). **임시 디버그**(`story_sky.gd` `_ready()` 끝에
+print 한 줄)로 아홉 씬 각각 실제 적용된 `sky_top_color`/`sky_horizon_
+color`를 확인 — 전부 hex 원문을 손으로 환산한 값과 정확히 일치(예:
+gorge (0.2275,0.0784,0.0627)/(0.5608,0.2275,0.1098) = `#3a1410`/`#8f3a1c`).
+디버그 원상복구(print 한 줄만 제거) 후 재검증(3회 반복, exit 0·로그
+동일·project.godot/.import diff 없음)까지 마쳤다. `env_pc.tres`/
+`env_mobile.tres` 자체는 git diff 없음(디스크상 원본 불변) 확인.
+
+**GUI 실기 확인은 아직 안 함** — 사냥터를 걸어 넘나들 때 하늘색이 실제로
+바뀌는 느낌(신야성의 노을빛 → 허도의 금빛 → 허창들판의 파란 하늘 →
+강릉진의 짙은 청록 → 오림숲의 초록빛 → 남정성의 잿빛 → 한중굴혈의 어두운
+동굴 → 기산채의 붉은 노을 → 호로곡의 불타는 하늘)은 눈으로 볼 것. 계속
+몰아서 받을 것.
+
+**다음 이어질 것** — 몬스터 도감(사냥터마다 다른 적), 2~4차 전직(job 체인
+재설계 필요). 배경의 나무·언덕 실루엣(story_background.gd)이 마을
+전용 장식(성벽·깃발 등)까지 mood별로 갈리길 원하면 그건 이 절의 범위
+밖(색만 다룸)이라 별도로 볼 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

@@ -4800,3 +4800,29 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 몬스터 도감(사냥터마다 다른 적), 마을 배경
     (mood별 하늘 색), 2~4차 전직(job 체인 재설계 필요).
+
+
+## STORY 마을 배경 — 사냥터별 하늘 색 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어해 묻지말고"** — 바로 위 항목이 남긴
+  "다음 이어질 것" 중 하나. 아홉 사냥터가 전부 공용 `env_pc.tres`의
+  파란 하늘(field 기준) 하나를 같이 쓰던 것을, `data-side.js` STAGES의
+  자리별 `sky:[top,horizon]`(아홉 다 다르다)으로 갈랐다. 자세한 기록·
+  수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 25절.
+  - 공용 리소스(`env_pc.tres`/`env_mobile.tres`, 다섯 판이 같이 쓴다)는
+    안 건드리고, 새 `story_sky.gd`가 `WorldEnvironment.environment`를
+    `duplicate(true)`로 씬 전용 사본으로 갈아 끼운 뒤 그 사본의
+    `ProceduralSkyMaterial` 색만 덮어쓴다 — 원본은 메모리에서도 불변,
+    다른 네 판(GO/DUNGEON/FOREST/REALM)에 절대 안 물든다.
+  - `ground_color`(story_terrain_builder.gd)와 같은 패턴 — 씬마다 export
+    값만 다르게 얹는다. 아홉 씬 전부에 `StorySky` 노드 추가(TestField는
+    field 기본값이라 값 생략, ground_color 관례와 같음).
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림,
+    `story_sky.gd.uid` 정상 생성) → 열세 씬 세 번 연속 exit 0·로그
+    완전 동일(다섯 판 회귀 포함). 임시 디버그로 아홉 씬 전부 실제 적용된
+    하늘색이 hex 원문 환산값과 정확히 일치 확인(예: 호로곡 (0.2275,
+    0.0784,0.0627)=`#3a1410`). 디버그 원상복구, 재검증까지 마침.
+    `env_pc.tres`/`env_mobile.tres`는 git diff 없음(원본 불변) 확인.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 몬스터 도감(사냥터마다 다른 적), 2~4차 전직
+    (job 체인 재설계 필요).
