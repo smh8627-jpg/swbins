@@ -26,6 +26,15 @@ extends RefCounted
 ## 렌더링에만 쓰고 등반 로직은 rope/ladder를 안 가른다(같은 Area3D
 ## 판정, story_player.gd 변경 없음) — story_terrain_builder.gd가 시각만
 ## 다르게 그린다(사다리는 세로 기둥 둘+가로대, 줄은 원통 하나).
+##
+## **2026-09-13 추가 — 필드 채집(gathers).** field_map.gd 머리말이
+## "문(portal)·채집·보스는 이번 슬라이스에 안 옮긴다"고 적어 뒀던 셋 중
+## 하나를 채운다 — data-side.js field.gathers 셋(전부 herb) 그대로.
+##
+## **2026-09-13 추가(같은 날 더) — 보스(황건 두목).** 위 셋 중 남은 하나.
+## data-side.js field.boss엔 자리(x) 데이터가 없다(사냥터 오른쪽 끝을
+## 지킨다는 설명뿐) — 마지막 발판(1900px)과 문(2130px, 아직 안 옮김)
+## 사이로 새로 정했다. hpMul·dmgMul·cool은 원문 그대로(story_combat.gd).
 
 const SCALE := 0.02
 
@@ -52,6 +61,26 @@ const ROPES_PX: Array = [
 
 ## 잡졸 스폰 자리(고정 셋, 위 "재해석" 참고) — 발판 사이 평지 위주로 골랐다.
 const ENEMY_X_PX: Array = [520.0, 1000.0, 1500.0]
+
+## data-side.js FIELDS.field.gathers 그대로 — [x, kind] 셋, 전부 herb(들꽃).
+const GATHERS_PX: Array = [
+	[480.0, "herb"],
+	[1050.0, "herb"],
+	[1750.0, "herb"],
+]
+
+## data-side.js field.boss.name 그대로. 자리(x)는 원작에 없어 새로 정함(위 참고).
+const BOSS_NAME := "황건 두목"
+const BOSS_X_PX := 2050.0
+
+## **2026-09-13 추가 — 문(portal, 15절).** data-side.js field.portals[0]
+## ([70,'heodo']) 그대로. portals[1]([2130,'gangneungjin'])은 그 사냥터가
+## 아직 없어 안 옮긴다(나머지 사냥터 8곳과 함께 남은 항목 — 그 자리는
+## 여전히 경계벽만 있는 막다른 길이다).
+const PORTAL_WEST_X_PX := 70.0
+## 허도에서 건너올 때 도착하는 자리 — 문 바로 앞이 아니라 한 걸음
+## 안쪽으로 잡아 도착하자마자 다시 경계벽에 닿지 않게 여유를 둔다.
+const ARRIVAL_FROM_HEODO_X_PX := 150.0
 
 
 static func width_m() -> float:
@@ -91,3 +120,22 @@ static func enemy_positions_m() -> Array:
 	for x: float in ENEMY_X_PX:
 		out.append(x * SCALE)
 	return out
+
+
+static func gather_positions_m() -> Array:
+	var out: Array = []
+	for g: Array in GATHERS_PX:
+		out.append({"x": float(g[0]) * SCALE, "kind": String(g[1])})
+	return out
+
+
+static func boss_position_m() -> float:
+	return BOSS_X_PX * SCALE
+
+
+static func portal_west_m() -> float:
+	return PORTAL_WEST_X_PX * SCALE
+
+
+static func arrival_from_heodo_m() -> float:
+	return ARRIVAL_FROM_HEODO_X_PX * SCALE

@@ -63,6 +63,169 @@ const BRACE_SEC := 8.0
 const BRACE_ATK_MUL := 1.35
 const BRACE_SPEED_MUL := 1.2
 
+## side.js GATHER_R=50px·GATHER_RESPAWN=45초(§136-137) 그대로 — field_map.gd
+## SCALE(0.02)로 미터 환산. 필드 채집(허브 등) 판정 반경·되돋는 시간.
+const GATHER_RADIUS_M := 1.0  # 50px * 0.02
+const GATHER_RESPAWN_SEC := 45.0
+
+## data-side.js GATHERS 표 — 이 슬라이스는 field.gathers가 전부 herb라
+## 이 하나만 옮긴다(다른 사냥터가 늘어나면 berry/ore/cinder도 추가).
+const GATHER_INFO := {
+	"herb": {"name": "들꽃", "emoji": "🌼"},
+}
+
+## data-side.js field.boss(황건 두목) — hpMul 12·dmgMul 2.0·cool 15(분) 그대로.
+## DMG_MUL은 2026-09-13(반격 추가)부터 실제로 쓰인다(story_enemy.gd
+## `_physics_process()` — ENEMY_DMG에 곱한다).
+const BOSS_HP_MUL := 12.0
+const BOSS_DMG_MUL := 2.0
+const BOSS_COOL_SEC := 900.0  # 15분 * 60초
+
+## **2026-09-13 추가 — 장비(1절 "제외" 목록의 "장비/노획").** 처음엔
+## 무기 한 자리(목검)만 옮겼다가, 같은 날 이어서 **10부위 tier1 전부**로
+## 넓혔다 — data-gear.js RAW에서 need:1인 물건 정확히 열 개(부위마다
+## 하나씩). 이 슬라이스는 `field`(lv1) 하나뿐이라 need>1인 물건은
+## 애초에 못 낀다 — tier2~4·주문서·고유(unique)·상점은 여전히 범위
+## 밖(그 부분만 남은 "장비 나머지"). gear.js `rollDrop()`의 gearRate
+## (잡졸 0.035·보스 0.9)도 그대로.
+##
+## 가방이 없어 DUNGEON loot_pickup.gd처럼 **줍는 즉시 장착** — 부위별로
+## 하나씩만 낄 수 있어(이미 그 부위를 꼈으면 같은 물건이 다시 안 뜬다)
+## 드롭 풀은 "아직 안 낀 부위"로만 좁힌다(원작은 가방+판매가 있어 중복을
+## 허용하지만, 단일 슬롯 포트에선 의미가 없어 새로 정한 규칙).
+## price는 data-gear.js RAW의 7번째 칸(그 물건 하나뿐이라 gear.js priceMul()
+## 같은 배수는 안 건드림) — story_merchant.gd가 그대로 읽는다.
+const GEAR_ITEMS := {
+	"sword1": {"slot": "weapon",   "name": "목검(木劍)",   "atk": 4.0, "def": 0.0, "hp": 0.0, "price": 240},
+	"hat1":   {"slot": "hat",      "name": "가죽 두건",    "atk": 0.0, "def": 2.0, "hp": 6.0, "price": 180},
+	"top1":   {"slot": "top",      "name": "무명 저고리",  "atk": 0.0, "def": 3.0, "hp": 10.0, "price": 220},
+	"bot1":   {"slot": "bottom",   "name": "무명 바지",    "atk": 0.0, "def": 2.0, "hp": 8.0, "price": 160},
+	"shoe1":  {"slot": "shoes",    "name": "짚신",         "atk": 0.0, "def": 1.0, "hp": 4.0, "price": 120},
+	"glv1":   {"slot": "glove",    "name": "무명 팔찌",    "atk": 1.0, "def": 1.0, "hp": 2.0, "price": 200},
+	"cap1":   {"slot": "cape",     "name": "베 망토",      "atk": 0.0, "def": 1.0, "hp": 8.0, "price": 150},
+	"ring1":  {"slot": "ring",     "name": "무명 지환",    "atk": 2.0, "def": 0.0, "hp": 3.0, "price": 160},
+	"neck1":  {"slot": "necklace", "name": "나무 목걸이",  "atk": 0.0, "def": 1.0, "hp": 6.0, "price": 150},
+	"ear1":   {"slot": "earring",  "name": "나무 귀걸이",  "atk": 1.0, "def": 1.0, "hp": 2.0, "price": 150},
+}
+const GEAR_DROP_CHANCE_GRUNT := 0.035
+const GEAR_DROP_CHANCE_BOSS := 0.9
+
+## **2026-09-13 추가 — 상점(1절 "제외" 목록 "장비 나머지"의 첫 걸음).**
+## side.js kill()의 금 계산 그대로: gold = round((6+lv*3)*(0.8~1.4)*mul*
+## GAIN_GOLD). lv는 이 슬라이스가 늘 1(field.enemyLv, ENEMY_HP/DMG와 같은
+## 전제) · GAIN_GOLD(core.tuned 기본 배수)는 1.0 그대로(손잡이 자체를 아직
+## 안 옮겼다). mul은 보스 12·그 외 1.
+const ENEMY_GOLD_BASE := 6.0
+const ENEMY_GOLD_PER_LV := 3.0
+const ENEMY_LV := 1.0
+const BOSS_GOLD_MUL := 12.0
+const GAIN_GOLD := 1.0
+
+## side.js hurtMe()가 쓰는 gear.js cut(def) 그대로: min(0.6, def/(def+40)).
+## amount *= (1 - cut) 형태로 적용한다 — story_player.gd take_damage() 참고.
+static func damage_cut(def: float) -> float:
+	if def <= 0.0:
+		return 0.0
+	return minf(0.6, def / (def + 40.0))
+
+
+## 낀 물건 키 목록(equipped.values())에서 atk/def/hp 합을 뽑는다 —
+## power()의 gearBonus()와 같은 자리(story_player.gd·story_save_state.gd
+## 둘 다 이 셋을 쓴다).
+static func gear_totals(equipped_keys: Array) -> Dictionary:
+	var atk := 0.0
+	var def := 0.0
+	var hp := 0.0
+	for key: String in equipped_keys:
+		var it: Dictionary = GEAR_ITEMS.get(key, {})
+		atk += float(it.get("atk", 0.0))
+		def += float(it.get("def", 0.0))
+		hp += float(it.get("hp", 0.0))
+	return {"atk": atk, "def": def, "hp": hp}
+
+
+## side.js kill()의 gold 계산 그대로(위 상수 참고) — Math.round와 같게
+## roundi를 쓴다.
+static func roll_gold(is_boss: bool) -> int:
+	var mul: float = BOSS_GOLD_MUL if is_boss else 1.0
+	var variance: float = 0.8 + randf() * 0.6
+	return roundi((ENEMY_GOLD_BASE + ENEMY_LV * ENEMY_GOLD_PER_LV) * variance * mul * GAIN_GOLD)
+
+
+## **2026-09-13 추가 — 전직 트리(4절 "제외" 목록)의 첫 걸음: 레벨/경험치.**
+## 원작(`data-job.js`)의 전직은 레벨 문턱(1차 Lv.10)에 걸려 있는데, 이
+## 슬라이스는 지금까지 레벨이 늘 1로 고정이었다(story_save_state.gd의
+## `level`/`exp` 필드는 세이브 스키마에만 있고 아무도 안 채웠다) — 그래서
+## 전직 자체보다 먼저 이 밑바탕을 채운다. `core.js` `gainExp()`/`expNeed()`
+## 그대로: 경험치는 랜덤 없이 결정적(금과 달리 variance가 없다).
+const EXP_BASE := 50.0
+const EXP_GROWTH := 1.28
+const ENEMY_EXP_BASE := 6.0
+const ENEMY_EXP_PER_LV := 4.0
+const BOSS_EXP_MUL := 15.0
+const GAIN_EXP := 1.0
+
+## core.js expNeed(level) = round(50 * 1.28^(level-1)) 그대로.
+static func exp_need(level: int) -> int:
+	return roundi(EXP_BASE * pow(EXP_GROWTH, float(level - 1)))
+
+
+## core.js kill()의 gainExp 호출 인자 그대로: (6+lv*4)*(boss?15:1)*GAIN_EXP.
+static func enemy_exp(is_boss: bool) -> int:
+	var mul: float = BOSS_EXP_MUL if is_boss else 1.0
+	return roundi((ENEMY_EXP_BASE + ENEMY_LV * ENEMY_EXP_PER_LV) * mul * GAIN_EXP)
+
+
+## **1차 전직(Lv.10) 넷** — data-job.js JOBS tier:1 그대로(grow만 옮긴다,
+## 그 자리에서 새로 열리는 무예 넷씩(총 16개)은 범위 밖 — 다음 걸음).
+## key: {name, grow:{hp,atk,mp}}.
+const JOBS_TIER1 := {
+	"warrior": {"name": "무사(武士)", "hp": 40.0, "atk": 2.0, "mp": 0.0},
+	"archer":  {"name": "궁수(弓手)", "hp": 10.0, "atk": 5.0, "mp": 0.0},
+	"rogue":   {"name": "협객(俠客)", "hp": 18.0, "atk": 4.0, "mp": 0.0},
+	"mage":    {"name": "방사(方士)", "hp": 12.0, "atk": 3.0, "mp": 40.0},
+}
+const JOB_CHANGE_LEVEL := 10
+
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 무사(warrior)
+## 무예 넷.** data-job.js SKILLS job:'warrior' 넷(w_cut/w_whirl/w_rush/
+## w_iron) — 아직 SP(무예 점수) 투자 시스템이 없어(레벨마다 3점을 찍어
+## 무예를 0~10으로 올리는 것, data-job.js 머리말) `FIXED_SKILL_LEVEL`
+## (5, 임의의 중간값)로 **고정**해 mul을 미리 계산해 둔다 — SP 배분
+## UI는 다음에 볼 자리. 궁수·협객·방사 셋은 아직 범위 밖(이 넷과 같은
+## 패턴으로 이어갈 수 있다).
+##
+## w_whirl의 r:128px는 SWEEP_RANGE_MUL(117/78=1.5)과 같은 방식으로
+## REACH(78px, story_player.gd ATTACK_RANGE 자리)비로 옮긴다: 128/78.
+## w_rush의 dist:210px는 SCALE(field_map.gd와 같은 0.02)로 미터 환산.
+const FIXED_SKILL_LEVEL := 5
+
+const WARRIOR_CUT_COST := 6.0
+const WARRIOR_CUT_CD := 0.5
+const WARRIOR_CUT_MUL := 1.15 + 0.09 * FIXED_SKILL_LEVEL  # 1.6
+
+const WARRIOR_WHIRL_COST := 20.0
+const WARRIOR_WHIRL_CD := 3.6
+const WARRIOR_WHIRL_MUL := 1.6 + 0.14 * FIXED_SKILL_LEVEL  # 2.3
+const WARRIOR_WHIRL_RANGE_MUL := 128.0 / 78.0
+
+const WARRIOR_RUSH_COST := 24.0
+const WARRIOR_RUSH_CD := 6.0
+const WARRIOR_RUSH_MUL := 1.8 + 0.16 * FIXED_SKILL_LEVEL  # 2.6
+const WARRIOR_RUSH_DIST_PX := 210.0
+const WARRIOR_RUSH_SCALE := 0.02  # field_map.gd SCALE과 같다
+
+const WARRIOR_IRON_COST := 28.0
+const WARRIOR_IRON_CD := 16.0
+const WARRIOR_IRON_SEC := 9.0
+const WARRIOR_IRON_ATK_MUL := 1.2
+const WARRIOR_IRON_GUARD := 0.35
+
+
+static func warrior_rush_dist_m() -> float:
+	return WARRIOR_RUSH_DIST_PX * WARRIOR_RUSH_SCALE
+
+
 static var _hitstop_active := false
 
 

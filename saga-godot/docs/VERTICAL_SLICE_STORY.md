@@ -271,9 +271,579 @@ SCALE(0.02)로 정확히 옮긴 값과 일치(예: x=38.6m=1930px×0.02, kind
 발판을 실제로 오르내리는 느낌이 자연스러운지는 눈으로 볼 것. 계속
 몰아서 받을 것.
 
-**다음 이어질 것** — 1절 "제외" 목록의 나머지(Gameplay Depth 실제
-Z축 이동·나머지 사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판
-작업 — 승인 후.
+**다음 이어질 것** — ~~1절 "제외" 목록의 나머지~~(7절에서 채집 완료),
+남은 것: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳·전직 트리·
+장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+## 7. 필드 채집(gathers) — 들꽃 셋 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. field_map.gd 머리말이 "문(portal)·
+채집(gathers)·보스는 이번 슬라이스에 안 옮긴다"고 적어 뒀던 셋 중
+채집을 채웠다 — data-side.js `field.gathers` 셋(전부 herb/들꽃) 그대로,
+side.js `GATHER_R=50px`·`GATHER_RESPAWN=45초` 그대로(§136-137, SCALE로
+미터 환산: 반경 1.0m). 원작은 `s.mats[kind]` 누적 카운터(칸 제한
+없음) — 그대로 옮겼다.
+
+- `field_map.gd`: `GATHERS_PX`(신규) + `gather_positions_m()`.
+- `story_combat.gd`: `GATHER_RADIUS_M`·`GATHER_RESPAWN_SEC`·`GATHER_INFO`
+  (herb만, 다른 사냥터가 늘면 berry/ore/cinder 추가) 신규.
+- `story_save_state.gd`: `mats: Dictionary`(신규) + `add_mat()`. 세이브에
+  포함, SAVE_VERSION 1→2(마이그레이션 체인 없이 그냥 재시작 — 기존
+  규칙 그대로).
+- `story_gather.gd`(신규) — Area3D 트리거(loot_pickup.gd와 같은 뼈대),
+  밟으면 사라지고 Toast로 알림 + `GATHER_RESPAWN_SEC` 뒤 같은 자리에
+  다시 돋는다. `story_gather_spawner.gd`(신규) — story_enemy_spawner.gd와
+  같은 패턴으로 `gather_positions_m()`의 고정 자리 셋에 하나씩 세운다.
+  `TestField.tscn`에 `GatherSpawner` 노드 추가.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림 — 나머지 project.godot/*.import 변경 없음) → 다섯 씬
+  세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST 회귀 확인 포함). 임시
+  디버그(`GATHER_RESPAWN_SEC`를 3.0으로 잠깐 낮춤)로: 세 자리 좌표가
+  480/1050/1750px×0.02=9.6/21.0/35.0m와 정확히 일치, 첫 접촉 시
+  `mats.herb`가 1로 늘고 시각·판정이 꺼짐, 안 살아있는 동안 다시
+  밟아도 안 늘어남(같은 자리 반복 접촉해도 1 유지), respawn 뒤
+  다시 밟으면 2로 늘어남(재획득 가능) 확인. 디버그 원상복구
+  (`GATHER_RESPAWN_SEC` 45.0로, diff 0).
+- **GUI 실기 확인은 아직 안 함** — 들꽃이 실제로 눈에 띄는 크기·색인지,
+  줍는 손맛(사라짐+토스트)이 자연스러운지는 눈으로 볼 것. 계속 몰아서
+  받을 것.
+- **다음 이어질 것** — ~~1절 "제외" 목록의 나머지~~(8절에서 보스 완료),
+  남은 것: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳·전직 트리·
+  장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+## 8. 보스 — 황건 두목 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. field_map.gd 머리말의 세 미완성
+(문·채집·보스) 중 둘째(채집은 7절에서 먼저 끝냈다) — 문(portal)은
+아직 남아 있다(아래 "다음 이어질 것" 참고). data-side.js `field.boss`
+(`{name:'황건 두목', cool:15, hpMul:12, dmgMul:2.0}`) 그대로 — 원작에
+자리(x) 데이터가 없어(사냥터 오른쪽 끝을 지킨다는 설명뿐) 마지막
+발판(1900px)과 문(2130px, 아직 안 옮김) 사이 2050px로 새로 정했다.
+잡으면 `BOSS_COOL_SEC`(15분) 뒤 같은 자리에 다시 선다 — story_gather.gd
+respawn과 같은 결이지만 대상이 하나뿐이라 `died` 시그널로 다음 스폰을
+잇는 방식(DUNGEON처럼 한 번 잡으면 끝나는 게 아니라, 필드형 사냥터의
+"계속 도는" 보스 — 원작 cool 필드 자체가 그 뜻이다).
+
+- `field_map.gd`: `BOSS_NAME`·`BOSS_X_PX`+`boss_position_m()` 신규.
+- `story_combat.gd`: `BOSS_HP_MUL`(12.0)·`BOSS_DMG_MUL`(2.0, ENEMY_DMG와
+  같은 이유로 미사용)·`BOSS_COOL_SEC`(900초) 신규.
+- `story_enemy.gd`: `is_boss`(신규, story_gather.gd의 `kind`와 같은
+  배선 — add_child 전에 세팅) — HP×12, 시각 몸집×1.6(원작에 없는 값,
+  DUNGEON dungeon_enemy.gd의 `r=boss?22:13`≈1.7배와 같은 결로 새로
+  정함, 색은 그대로). `story_boss` 그룹 추가.
+- `story_boss_spawner.gd`(신규) — 스폰 → `died` 연결 → 죽으면
+  `BOSS_COOL_SEC` 타이머 뒤 재스폰. `TestField.tscn`에 `BossSpawner`
+  노드 추가.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림 — 나머지 project.godot/*.import 변경 없음) → 다섯 씬
+  세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST 회귀 확인 포함). 임시
+  디버그(`BOSS_COOL_SEC`를 3.0으로 잠깐 낮춤)로: 위치 41.0m(2050px×
+  0.02) 정확, HP 216(18×12) 정확, `story_boss` 그룹 소속 확인,
+  `take_damage(9999)`로 죽이면 `StorySaveState.kills`가 +1(잡졸과 같은
+  카운트, "첫 사냥" 사명에 기여), 스포너 자식이 0개로 줄었다가 대기
+  뒤 다시 1개(같은 위치·HP·is_boss)로 재생성 확인. 디버그 원상복구
+  (`BOSS_COOL_SEC` 900.0로, diff 0).
+- **GUI 실기 확인은 아직 안 함** — 몸집이 눈에 띄게 커 보이는지, 15분
+  대기가 실제 플레이 리듬에 맞는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — field_map.gd의 채집·보스는 채웠고, 문(portal)은
+  아직이다(다른 사냥터로 나가는 통로라 혼자 못 만들고 "나머지 사냥터
+  8곳"과 함께 묶여 있다). 남은 후보: Gameplay Depth 실제 Z축 이동·
+  나머지 사냥터 8곳(강릉진·오림숲 등, 문 포함)·전직 트리·
+  장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+## 9. Background 레이어 — 나무·산 실루엣 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. 2절이 설계해 둔 세 겹(Background/
+Midground/Foreground) 중 지금까지 **Midground(바닥·발판, Z=0)만**
+지어져 있었다 — "카메라는 깊이감을 보여만 준다"(1절 "제외" 목록의
+괄호 설명)는 원래 포함 범위였는데 실제로는 빠져 있던 부분을 채웠다
+(Foreground는 여전히 생략 — 2절 "있으면 좋고 없어도 완료 조건에 안
+걸린다").
+
+새 GLB를 받지 않고(PLAN.md 44장) 이미 있는 GO/FOREST 에셋(tree_oak.glb·
+rock_largeA.glb)을 재활용 — 원래 텍스처 대신 짙은 단색(UNSHADED)으로
+덮어 "실루엣"으로만 쓴다. 나무 레이어(Z=-30)·산 레이어(Z=-45, 대기
+원근으로 더 파르스름) 둘, 사냥터 너비에 고르게 퍼뜨리고 인덱스 홀짝
+으로 크기만 살짝 변주(`randf()` 안 씀 — vegetation_builder.gd의 "매번
+같은 자리" 원칙과 같은 정신, 다만 격자가 없어 인덱스 기반으로 단순화).
+MultiMeshInstance3D라 충돌은 원래 없다(따로 안 막음).
+
+- `story_background.gd`(신규) — `_build_layer()` 하나가 나무·산 둘 다
+  만든다(GLBUtils.extract_mesh() 재사용, games/saga_go/world/의 것을
+  그대로 preload — 이미 GO 소품 다른 파일도 STORY가 preload하고 있던
+  전례와 같다, environment_profile.gd). `TestField.tscn`에 `Background`
+  노드 추가(Terrain보다 먼저 — 그리기 순서는 상관없지만 "배경이 먼저"
+  가 읽기 순서상 자연스럽다).
+- **검증(헤드리스)** — import 확인(texture-a.png.import 재발생, 되돌림)
+  → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST 회귀 확인
+  포함). 임시 디버그로 `Background` 자식 2개(BackgroundTrees·
+  BackgroundHills), MultiMesh instance_count가 각각 14·5(상수와 일치),
+  mesh가 둘 다 null 아님(GLB 로드 성공) 확인.
+  **한계** — MultiMesh 개별 인스턴스의 실제 좌표(x·scale)는 `--headless`
+  더미 렌더러에서 `get_instance_transform()`이 항등행렬만 돌려줘 엔진
+  쪽에서 값 자체를 재확인하지 못했다(루트 CLAUDE.md가 이미 적어 둔
+  "헤드리스는 디스플레이 서버 없이 더미 렌더러로 돈다"는 한계가
+  MultiMesh 트랜스폼 버퍼에도 적용되는 걸 이번에 처음 확인). 좌표
+  공식 자체는 단순 산술(등간격+인덱스 홀짝 배율)이라 코드 리뷰로
+  갈음 — 실제로 자리가 맞는지는 GUI 실기 확인 몫으로 넘긴다.
+- **GUI 실기 확인은 아직 안 함** — 나무·산 실루엣이 실제로 "먼 배경"
+  으로 읽히는지(크기·색·거리감), 미드그라운드와 안 겹치는지는 눈으로
+  볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 2절 설계(Background/Midground/Foreground) 중
+  Foreground만 남았지만 완료 조건에 안 걸린다(선택 사항). 남은 굵직한
+  후보: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳(이제 문까지
+  필요)·전직 트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+## 10. 장비 — 무기 한 자리(목검) (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. 1절 "제외" 목록의 "장비/노획"
+(data-gear.js·data-unique.js) 중 **첫 컷**만 — data-gear.js sword1
+(무기 슬롯 tier1, need:1·atk:4) 하나만 옮겼다. 이 슬라이스는 `field`
+(lv1) 하나뿐이라 need>1인 물건은 애초에 못 낀다(다른 아홉 슬롯·
+tier2~4·주문서·고유(unique)·상점은 자연히 범위 밖) — DUNGEON 첫
+슬라이스("이름만 있는 장비")보다도 더 좁힌, field_map.gd 머리말이
+이미 정해 둔 경계 그대로.
+
+`gear.js` `rollDrop()`의 드롭률(잡졸 0.035·보스 0.9)도 그대로 옮겼다.
+가방이 없어 DUNGEON `loot_pickup.gd`와 같이 **줍는 즉시 장착** — 다만
+이 슬라이스는 물건이 하나뿐이라 이미 꼈으면 다시 안 굴린다(원작은
+가방+판매가 있어 중복을 허용하지만, 단일 bool 슬롯에선 의미가 없어
+새로 정한 규칙). 무기 공격력은 `side.js power()`의 `atk = base + gear.
+atk` 그대로 `_effective_atk()`에 얹었다 — 기합(brace) 배율은 그 합계
+전체에 곱한다(원문이 pw.atk 자체를 buff로 올리는 것과 같은 결).
+
+- `story_combat.gd`: `WEAPON_NAME`·`WEAPON_ATK`(4.0)·
+  `GEAR_DROP_CHANCE_GRUNT`(0.035)·`GEAR_DROP_CHANCE_BOSS`(0.9) 신규.
+- `story_save_state.gd`: `has_weapon: bool`(신규)+`equip_weapon()`,
+  세이브 포함, SAVE_VERSION 2→3.
+- `story_player.gd`: `_effective_atk()`가 `has_weapon`이면 WEAPON_ATK를
+  더한 뒤 기합 배율을 곱하도록 수정(이전엔 START_ATK만 배율 대상).
+- `story_weapon_pickup.gd`(신규) — loot_pickup.gd와 같은 Area3D 뼈대,
+  물건이 하나뿐이라 등급·부위 분기 없음. `story_enemy.gd`: `_die()`에
+  `_maybe_drop_weapon()` 추가(이미 꼈으면 스킵 → 잡졸/보스 확률로
+  굴림 → 맞으면 `get_parent()`에 픽업 스폰, queue_free() 전에 호출해
+  parent가 아직 유효할 때 처리).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+  FOREST 회귀 확인 포함). 임시 디버그(`GEAR_DROP_CHANCE_BOSS`를 1.0으로
+  잠깐 올림 — 결정적 확인을 위해)로: 무기 없을 때 atk=21.0·있을 때
+  atk=25.0(21+4) 정확, 그룬트 드롭률 2만 회 표본 3.39~3.57%(기대
+  3.5%와 합치), 보스 킬 시 `WeaponPickup` 실제 스폰·접촉 시
+  `has_weapon=true`+atk 갱신 확인, 이미 낀 채로 그룬트를 죽여도
+  새 픽업이 안 뜨는 중복 방지 확인, `save()`→`has_weapon` 리셋→
+  `try_load()` 왕복으로 세이브 영속 확인. 디버그 원상복구
+  (`GEAR_DROP_CHANCE_BOSS` 0.9로, diff 0) — 디버그가 실제로 써 버린
+  테스트용 `user://save_story.json`도 삭제해 다음 실기 확인이 깨끗한
+  상태에서 시작하도록 정리했다.
+- **GUI 실기 확인은 아직 안 함** — 목검을 주웠을 때 손맛(타격감 차이가
+  체감되는지)은 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 1절 "제외" 목록의 남은 굵직한 후보: Gameplay
+  Depth 실제 Z축 이동·나머지 사냥터 8곳(문 포함)·전직 트리·장비 나머지
+  (방어구·장신구·주문서·고유·상점), 또는 다른 판 작업 — 승인 후.
+
+## 11. 잡졸 반격 — 플레이어 체력 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. story_enemy.gd 머리말이 "추격·
+원거리 반격이 없다"고 적어 뒀던 것 중 **반격만** 채웠다(추격은 여전히
+없음 — 잡졸은 제자리에 서 있고, 플레이어가 닿으면 맞는다). side.js
+`overlap(p, e) && e.cd<=0` → `hurtMe(e.dmg)` 그대로: 겹침 쿨다운
+`e.cd=1.0`(1초) 원문 그대로, 판정 반경은 `P_W`(26px)/2 + 잡졸 `w`
+(34px)/2 = 30px×0.02=0.6m로 역산(원문은 AABB, 이 포트는 X축 거리
+하나로 충분 — story_player.gd `_melee_hit()`와 같은 방식). 피해량은
+`ENEMY_DMG`(6.0)·보스는 `BOSS_DMG_MUL`(2.0) — 둘 다 이미 있었지만
+지금까지 아무도 안 읽던 값이라 이번에 처음 실제로 쓰인다.
+
+플레이어 체력은 DUNGEON `player_health.gd`와 같은 원칙 — **죽음은
+이번에도 범위 밖**(완료 조건에 없음), hp가 0 밑으로 안 내려가고 그냥
+멈춘다(부활·게임오버 없음). `START_HP`(162.0, story_combat.gd에 이미
+있던 값)를 그대로 최대체력으로 쓴다. side.js의 전역 피격무적
+(`p.invuln`/`HIT_COOL`)은 옮기지 않았다 — 이 슬라이스는 잡졸 셋+보스
+하나뿐이라 여러 적이 동시에 겹쳐 때리는 경우가 드물다고 보고 좁혔다
+(DUNGEON도 아직 안 가진 것과 같은 결의 의도적 축소).
+
+- `story_player.gd`: `hp`·`max_hp`(신규)+`take_damage()` — mp와 같이
+  플레이어 스크립트에 직접 얹었다(DUNGEON처럼 별도 컴포넌트 노드로
+  안 뺐다 — 이 판은 mp도 이미 플레이어 스크립트에 직접 있다, 기존
+  결과 맞춘 선택).
+- `story_enemy.gd`: `OVERLAP_RANGE`(0.6m)·`ATTACK_COOLDOWN`(1.0초)
+  신규, `_attack_cd_left` + `_physics_process()`(신규 — 지금까지 이
+  스크립트엔 매 프레임 로직이 전혀 없었다) 추가. 보스는 `BOSS_
+  VISUAL_SCALE`만큼 겹침 반경도 같이 커진다(몸집이 큰 만큼 더 멀리서도
+  닿는다는 뜻 — DUNGEON dungeon_enemy.gd의 ATTACK_RANGE*scale_mul과
+  같은 방식).
+- `story_combat.gd`: `BOSS_DMG_MUL` 주석을 "안 쓰인다"에서 "실제로
+  쓰인다"로 정정.
+- `hp_bar.gd`(신규, mp_bar.gd와 같은 폴링 패턴) + `StoryHUD.tscn`에
+  `HpLabel`+`HpBar`(MP 위, 붉은 톤) 추가 — MP 행은 28px 아래로 밀림.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+  FOREST 회귀 확인 포함). 임시 디버그로: 다른 그룬트·보스와 안 겹치는
+  자리에서 hp 불변(162 유지), 그룬트에 닿으면 6 감소(162→156), 1초
+  안에 다시 접촉해도 쿨다운 중이라 안 깎임, 1.2초 뒤 다시 접촉하면
+  또 6 감소(156→150), `take_damage(99999)`로도 0 밑으로 안 내려감
+  (플로어 확인), 보스와 겹치면 12(6×2.0) 감소까지 전부 확인. 첫
+  시도에서 "멀리 있는데도 맞는다"는 결과가 나와 조사했더니 테스트가
+  고른 좌표가 실은 **다른 그룬트**(고정 스폰 셋 중 하나)와 우연히
+  겹쳐 있었던 테스트 자체의 오류였다(게임 로직 버그 아님) — 안 겹치는
+  좌표로 다시 골라 재확인. 디버그 코드는 원래 파일에 남기지 않고
+  스크래치패드 스크립트로만 실행했다(diff 0).
+- **GUI 실기 확인은 아직 안 함** — HP 바가 실제로 줄어드는 게 보이는지,
+  6/12 데미지 감각이 적절한지는 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — ~~1절 "제외" 목록의 남은 굵직한 후보~~(장비는
+  12절에서 10부위로 마무리), 남은 것: Gameplay Depth 실제 Z축 이동·
+  나머지 사냥터 8곳(문 포함)·전직 트리·장비 나머지(tier2~4·주문서·
+  고유·상점), 또는 다른 판 작업 — 승인 후.
+
+## 12. 장비 — 10부위 tier1 전부로 확장 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. 10절이 무기 한 자리만 좁혔던
+것을 같은 날 이어서 **10부위 tier1 전부**로 넓혔다 — data-gear.js
+RAW에서 need:1인 물건 정확히 열 개(부위마다 하나씩): 목검(무기)·
+가죽 두건(투구)·무명 저고리(갑옷)·무명 바지(하의)·짚신(신)·무명
+팔찌(수갑)·베 망토(망토)·무명 지환(반지)·나무 목걸이(목걸이)·나무
+귀걸이(귀걸이). tier2~4·주문서·고유(unique)·상점은 여전히 범위 밖 —
+`field`(lv1) 하나뿐이라 need>1 물건은 애초에 못 낀다.
+
+**리팩터링 방향** — 처음 무기만 있을 때 `WEAPON_NAME`/`WEAPON_ATK`
+같은 개별 상수로 하드코딩했던 것을, PLAN.md 7절("콘텐츠 추가를 위해
+핵심 코드를 수정하지 않아도 되도록 한다")에 맞춰 `GEAR_ITEMS`
+Dictionary 표 하나로 바꿨다 — 다음에 tier2를 추가할 때도 표에 줄만
+더하면 되고 드롭·장착·스탯 계산 코드는 안 건드려도 된다. `equipped:
+Dictionary`(slot→key)로 부위마다 하나씩 낀다(원작과 같음). 가방이
+없어 여전히 **줍는 즉시 장착**하고, 이미 그 부위를 꼈으면 드롭 풀에서
+빠진다(전부 꼈으면 드롭 자체가 없음).
+
+**방어력이 이번에 처음 의미가 생겼다** — side.js `gear.cut(def)` =
+`min(0.6, def/(def+40))` 그대로 옮겨 `take_damage()`에 적용(11절이
+반격을 넣기 전까진 방어 스탯이 있어도 쓰일 데가 없었다). 체력도
+`max_hp = START_HP + gear.hp`로 늘어난다(`power()`의 hp 공식과 같은
+자리, jobGrow는 이 슬라이스에 없어 제외) — `max_hp`를 저장 필드가
+아니라 **계산 프로퍼티(get)** 로 바꿔 장비가 바뀔 때마다 자동으로
+맞다.
+
+- `story_combat.gd`: `WEAPON_NAME`/`WEAPON_ATK` 제거 →
+  `GEAR_ITEMS`(10개) + `damage_cut(def)` + `gear_totals(keys)` 신규.
+- `story_save_state.gd`: `has_weapon` 제거 → `equipped: Dictionary` +
+  `equip_gear(key)`·`has_slot(slot)`·`gear_totals()` 신규.
+  SAVE_VERSION 3→4. `try_load()`가 로드 직후 `player.hp = player.
+  max_hp`로 채워 준다(mp와 달리 equipped는 세이브에 남아 있어서,
+  안 그러면 이전 세션 장비 보너스가 반영되기 전 기본치로 잠깐
+  어긋난다).
+- `story_player.gd`: `max_hp`를 계산 프로퍼티로, `take_damage()`에
+  `damage_cut()` 적용, `_effective_atk()`가 `gear_totals().atk` 사용.
+- `story_enemy.gd`: `_maybe_drop_weapon()` → `_maybe_drop_gear()`
+  (아직 안 낀 부위만 드롭 풀에 넣고 그중 하나를 무작위로 고른다).
+- `story_weapon_pickup.gd` 삭제 → `story_gear_pickup.gd`(신규, 물건
+  키 하나만 받아 어떤 부위든 처리 — 상자 색을 무기/방어구/장신구
+  셋으로만 가볍게 구분, 원작에 없는 장식용 값).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+  FOREST 회귀 확인 포함). 임시 디버그(GEAR_DROP_CHANCE_GRUNT를 1.0으로
+  올림)로: GEAR_ITEMS 10개, 기본 atk 21·max_hp 162, sword1+top1
+  장착 후 atk 25·max_hp 172·totals{atk4,def3,hp10} 전부 정확, 방어
+  컷 데미지(10 피해 → 162.70, `10×(1-3/43)` 손계산과 일치), 그룬트
+  킬 시 드롭 스폰, 나머지 8부위까지 전부 채운 뒤엔 드롭이 안 나옴,
+  세이브→리셋→로드 왕복으로 10부위 전부 복원+hp가 새 max(211=162+
+  49)로 채워짐까지 확인. 디버그 원상복구(diff 0) + 테스트 세이브
+  파일 삭제.
+- **GUI 실기 확인은 아직 안 함** — 열 가지 물건이 실제로 눈에 띄게
+  다른지(상자 색 세 갈래로만 구분돼 혼동될 수 있음), 방어력 체감이
+  있는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 남은 굵직한 후보: Gameplay Depth 실제 Z축
+  이동·나머지 사냥터 8곳(문 포함)·전직 트리·장비 나머지(tier2~4·
+  주문서·고유·상점), 또는 다른 판 작업 — 승인 후.
+
+## 13. 사명 확장 — 약초 캐기 (2026-09-13)
+
+**사용자 지시 "1,2,3,4 순서대로 다 진행해"**(굵직한 후보 넷 중 순서를
+직접 골라 달라는 물음에 대한 답 — 사명 확장→상점→나머지 사냥터 8곳
+(문 포함)→전직 트리 순). 넷 중 가장 작은 것부터: data-quest.js
+`q_gather1`("약초 캐기", `goal.type:'gather', n:15`)을 `q_first`(첫
+사냥) 옆에 나란히 추가했다. 원작은 `need:2`(레벨2 필요)가 걸려 있지만
+이 슬라이스엔 레벨링 자체가 없어(항상 레벨1 고정, `story_combat.gd`
+`START_HP` 주석) need를 가릴 방법이 없다 — `q_first`처럼 처음부터
+진행되는 것으로 재해석했다. 채집물이 herb 하나뿐이라 `mats` 전체
+합(`gathered_total()`)으로 뽑아, 나중에 다른 채집물이 늘어도 이 사명이
+그대로 맞게 했다.
+
+- `story_save_state.gd`: `gathered_total()`·`gather_quest_done()`
+  신규(저장 스키마 변경 없음 — 이미 있는 `mats`를 그대로 읽는다).
+- `quest_label.gd`: 두 줄(🗡️ 첫 사냥·🌼 약초 캐기)로 확장.
+  `StoryHUD.tscn`: `QuestLabel` 높이를 두 줄만큼 늘리고 HP/MP 행을
+  28px씩 아래로 밀었다.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+  FOREST 회귀 확인 포함). 임시 디버그로 `mats.herb`를 14→15로 올려
+  `gather_quest_done()`이 false→true로 정확히 바뀌는 것 확인. 디버그
+  원상복구(diff 0).
+- **GUI 실기 확인은 아직 안 함** — 두 줄 사명 표시가 화면에서 겹치거나
+  잘리지 않는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 14절(상점) 이어서 바로 진행.
+
+## 14. 상점 — 필드 상인 (2026-09-13)
+
+**사용자 지시(위 13절과 같은 승인 묶음)** — 넷 중 둘째, "장비 나머지"의
+첫 걸음. 원작(`js/ui.js` 'talk-shop')은 마을(허도) NPC 'merchant'와
+대화해 여는 물목 화면(가방에 담고 따로 장착)이지만, 이 슬라이스는
+아직 마을이 없다(허도·나머지 사냥터 8곳·문(portal)은 15절에서 다룰
+셋째 항목과 함께 묶여 있다) — 그래서 **상인을 이 사냥터 안에 하나
+세우는 것으로 재해석**했다. 가방도 없어(줍는 즉시 장착하는 이 포트의
+기존 규칙) 물목을 고르는 화면 대신, 다가가 `K`를 누르면 **아직 안
+낀 부위 중 가장 싼 것을 즉시 사서 장착**한다. "이동 상인"(할인 버프)은
+이번에도 안 옮겼다 — 상점 자체가 없던 채였으니 기본 매매부터
+검증한다.
+
+**금(gold) 도입** — `side.js` `kill()`의 계산 그대로: `gold =
+round((6+lv*3)*(0.8~1.4)*mul*GAIN_GOLD)`, `lv`는 이 슬라이스가 늘
+1(`ENEMY_HP`/`ENEMY_DMG`와 같은 전제), `mul`은 보스 12·그 외 1,
+`GAIN_GOLD`는 손잡이를 아직 안 옮겨 1.0 그대로. 잡졸/보스가 죽을 때
+DUNGEON `loot_pickup.gd`의 `_spawn_gold()`와 같은 뼈대(물리 픽업,
+닿으면 즉시 지갑에)로 떨어뜨린다. **가격표는 data-gear.js RAW의
+price 칸을 그대로 `GEAR_ITEMS`에 얹었다**(새 숫자를 안 만든다,
+PLAN.md 7장) — 목검240·가죽 두건180·무명 저고리220·무명 바지160·
+짚신120·무명 팔찌200·베 망토150·무명 지환160·나무 목걸이150·나무
+귀걸이150.
+
+- `story_combat.gd`: `GEAR_ITEMS` 각 항목에 `price` 필드 추가.
+  `ENEMY_GOLD_BASE`(6)·`ENEMY_GOLD_PER_LV`(3)·`ENEMY_LV`(1)·
+  `BOSS_GOLD_MUL`(12)·`GAIN_GOLD`(1) + `roll_gold(is_boss)` 신규.
+- `story_save_state.gd`: `gold: int` + `add_gold()`/`spend_gold()`
+  신규(DUNGEON `DungeonGoldState`와 같은 계약 — 모자라면 아무것도
+  안 하고 false), 세이브 포함, SAVE_VERSION 4→5.
+- `story_gold_pickup.gd`(신규, DUNGEON `loot_pickup.gd`의 `_spawn_
+  gold()`와 같은 뼈대를 이 판 전용 파일로 — 다섯 판 공용 파일을
+  하나로 합치지 않는다는 저장소 규칙). `story_enemy.gd`: `_die()`에
+  금 드롭 추가.
+- `story_merchant.gd`(신규) — Area3D 두 겹(몸통 충돌+상호작용 범위).
+  범위 안에서 `story_interact`(K) 누르면 `GEAR_ITEMS` 중 안 낀 부위의
+  최저가를 사서 장착. `TestField.tscn`에 `Merchant` 노드(x=3.6m, 발판·
+  적·채집물과 안 겹치는 빈자리) 추가. `project.godot`: `story_interact`
+  입력 액션(K) 신규.
+- `ui/gold_label.gd`(신규, 폴링 패턴) + `StoryHUD.tscn`에 `GoldLabel`
+  추가(MP 아래, 28px).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+  FOREST 회귀 확인 포함). 임시 디버그로: `roll_gold(false)`/`roll_
+  gold(true)` 500회 표본이 각각 7~13·86~151 안(기대 범위와 합치),
+  가격표 네 값(목검240·가죽두건180·짚신120·베망토150) 정확, 금 0일 때
+  구매 시도 시 아무 일도 안 일어남(장비·금 그대로), 금 1000일 때
+  첫 구매가 최저가(짚신120) → 장착+금 880 정확, 둘째 구매가 그다음
+  최저가(베망토150, 동가 중 표 순서상 먼저 오는 것) → 장착+금 730까지
+  전부 예측과 일치. 디버그 원상복구(`story_field.gd` diff 0).
+- **GUI 실기 확인은 아직 안 함** — 필드 한복판에 서 있는 상인이 자연
+  스러운지, K 상호작용 안내가 잘 보이는지는 눈으로 볼 것. 계속 몰아서
+  받을 것.
+- **다음 이어질 것** — 사용자가 고른 순서의 셋째: 나머지 사냥터 8곳
+  (허도 마을+문(portal) 포함, 큰 항목이라 별도 세션에서 이어간다),
+  넷째: 전직 트리 — 승인된 순서이니 "이어 해"로 계속.
+
+## 15. 나머지 사냥터 8곳(문 포함) — 첫 걸음: 허도+문 (2026-09-13)
+
+**사용자 지시(13·14절과 같은 승인 묶음)** — 넷 중 셋째. 원작은 사냥터가
+아홉 곳(마을 둘: 신야성·허도 + 실제 사냥터 일곱)이지만, **이 전부를
+한 세션에 짓는 건 PLAN.md 79·80장("한 Step은 하나의 명확한 결과물",
+"실패한 상태에서 계속 쌓지 않는다")에 어긋난다** — 그래서 이 절은
+"나머지 사냥터 8곳"의 **첫 걸음**만 자른다: `field`(허창 들판)의
+문(portal)이 실제로 여는 곳인 **허도(heodo, 마을)** 하나만 짓고, 문
+자체를 처음으로 동작하게 만든다. 강릉진 등 나머지 일곱 사냥터·신야성은
+여전히 범위 밖(막다른 경계벽으로 남는다).
+
+**문(portal) 재해석** — 원작(`js/side.js`)은 "문 앞에서 ↑를 누르면
+건너간다"이지만, 이 포트는 새 입력 액션을 늘리지 않고 14절 상점과
+같은 상호작용 키(K, `story_interact`)로 통일했다. 벽(경계벽)은 문이
+있는 쪽도 그대로 남아 있다 — 그냥 걸어서는 못 나가고 반드시 K를
+눌러야 넘어간다(잘못 걸어가다 세계 밖으로 떨어지는 사고를 막는다).
+
+**공용화** — `story_terrain_builder.gd`가 지금까지 `FieldMap`을 상수로
+preload해 이 사냥터 전용이었던 것을, `map_path`(export) + `ground_color`
+(export)로 바꿨다 — 새 사냥터/마을을 추가할 때 이 파일을 복제하지
+않고 같은 모양(`width_m`/`plats_m`/`ropes_m`)의 데이터 파일만 새로
+만들면 된다(PLAN.md 76장). 반대로 `EnemySpawner`/`GatherSpawner`/
+`BossSpawner`는 그대로 뒀다 — 허도는 `town:true`(spawn:0, 적 없음)라
+씬에 그 세 노드를 아예 안 넣는 것만으로 충분했다(공용화가 불필요).
+
+**상점 위치 정정** — 14절이 "마을이 없어" `field` 안에 임시로 세웠던
+상인(`story_merchant.gd`)을 원래 자리인 **허도**로 옮겼다(원작
+`data-side.js` heodo.npcs의 'merchant', x=220px). field의 `Merchant`
+노드는 지우고 그 자리에 문(`PortalToHeodo`)을 놨다.
+
+- `heodo_map.gd`(신규) — `field_map.gd`와 같은 모양의 데이터 파일.
+  허도 발판 둘(300/900px)·줄 둘(사다리+로프)·동쪽 문(1330px→field)·
+  상인 자리(220px). 서쪽 문(70px→신야성)은 신야성이 범위 밖이라 안
+  옮긴다(문 없이 경계벽만).
+- `field_map.gd`: `PORTAL_WEST_X_PX`(70)·`ARRIVAL_FROM_HEODO_X_PX`(150)
+  + `portal_west_m()`·`arrival_from_heodo_m()` 신규. 동쪽 문(2130px→
+  gangneungjin)은 그 사냥터가 없어 안 옮긴다.
+- `story_terrain_builder.gd`: `const FieldMap`을 `@export map_path`+
+  `@export ground_color`로 일반화(위 "공용화" 참고).
+- `story_portal.gd`(신규) — Area3D 범위+K 상호작용으로 `target_scene`에
+  `arrival_x_m` 자리로 건너간다(`get_tree().change_scene_to_file()`).
+- `story_save_state.gd`: `pending_spawn_x`/`has_pending_spawn`+
+  `set_pending_spawn()`/`consume_pending_spawn()` 신규 — 문으로 건너온
+  씬은 세이브를 안 불러오고(불러오면 문 도착 자리를 덮어쓴다) 이 값만
+  한 번 읽는다. 세이브 파일에는 안 담는다(씬 진입 한 번만을 위한 신호).
+- `story_field.gd`/`story_town.gd`(신규) — 위 규칙을 각 씬 루트에
+  적용. **알려진 한계** — 세이브는 여전히 위치 하나만 기록해 "어느
+  씬인지"를 모른다. 허도에서 저장한 뒤 field를 직접 열면(지금은
+  main_scene이 아니라 편집기에서 씬을 직접 여는 방식이라 실제로는
+  항상 field로 재접속한다) x값이 field 좌표계로 잘못 해석된다 —
+  여러 사냥터를 아우르는 세이브 스키마는 나머지 일곱 사냥터를 더 지을
+  때 같이 볼 자리.
+- `story_merchant.gd`: 몸통 `StaticBody3D`(원래 있었다)를 제거 — 이
+  판의 다른 모든 상호작용 오브젝트(채집·픽업·잡졸)처럼 순수 Area3D+
+  시각만 남겼다(물리 차단은 이 판의 관례가 아니다). `_unhandled_input`
+  이벤트 콜백 대신 `story_player.gd`와 같은 폴링(`_process`에서
+  `Input.is_action_just_pressed`)으로 바꿨다(`story_portal.gd`도 같은
+  방식) — 이 판의 기존 관례에 맞춘 것.
+- `HeodoField.tscn`(신규) — WorldEnvironment/Sun(field와 동일)·Terrain
+  (`map_path=heodo_map.gd`)·FieldCamera·Player·StoryHUD·Merchant(4.4m)·
+  PortalToField(26.6m). `TestField.tscn`은 `Merchant` 노드를 지우고
+  `PortalToHeodo`(1.4m, 도착 자리 25.0m)로 바꿨다.
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → **여섯 씬**(GO/DUNGEON/FOREST/field/**HeodoField
+  (신규)**/REALM) 세 번 연속 exit 0·로그 무결. 임시 디버그로: HeodoMap
+  각 함수(width 28.0·plats [6.0/2.6/2.4, 18.0/3.6/2.6]·ropes[사다리·
+  로프]·portal_east 26.6·arrival_from_field 25.0·merchant 4.4) 전부
+  손계산과 일치, Terrain 자식 수 9(바닥1+발판2+(줄+영역)×2+경계벽2)
+  정확, Merchant/Portal 노드 실제 global_position.x 정확, `set_pending_
+  spawn`/`consume_pending_spawn` 왕복 정확. **문 동작 자체를 실제로
+  실행**(`get_tree().change_scene_to_file()`를 디버그로 직접 호출) —
+  호출 자체가 에러 없이 성공(err=0), 120프레임 뒤 확인한 `current_
+  scene.name`이 실제로 `HeodoField`로 바뀌어 있었고 플레이어가 정확히
+  x=25.0(요청한 도착 자리)에 서 있음까지 확인. 이 과정에서 `--quit-
+  after`가 **초가 아니라 프레임 수**라는 점을 새로 확인했다(짧은
+  프레임 수로는 0.3초짜리 타이머가 못 fire, 120프레임으로 늘려 확인
+  — 지금까지의 "세 번 연속 exit 0" 검증은 애초에 프레임 몇 개짜리라
+  대부분 즉시 종료였던 셈, 결과 자체는 바뀌지 않는다). 디버그 원상복구
+  (`story_field.gd`/`story_town.gd`/`story_save_state.gd` 전부 diff 0).
+- **GUI 실기 확인은 아직 안 함** — 문 앞에서 K를 눌러 실제로 화면이
+  넘어가는지, 허도의 갈색 땅·상인 위치가 자연스러운지는 눈으로 볼 것.
+  계속 몰아서 받을 것.
+- **다음 이어질 것** — 나머지 일곱 사냥터(강릉진·오림숲·남정성·
+  한중굴혈·기산채·호로곡 등, tier2~4)와 신야성은 여전히 남아 있다 —
+  각각 이 절과 같은 패턴(맵 데이터 파일 + 문 + 필요시 스폰류)으로
+  하나씩 이어갈 수 있다. 승인된 순서의 넷째(전직 트리)로 계속.
+
+## 16. 전직 트리 — 첫 걸음: 레벨/경험치 + 1차 전직 넷 (2026-09-13)
+
+**사용자 지시(13·14·15절과 같은 승인 묶음)** — 넷 중 마지막. 원작
+전직(`data-job.js`)은 갈래 넷×단 넷(1~4차, Lv.10/25/45/70)에 각 자리마다
+새 무예 넷씩(총 48개)이 열리는 큰 트리다. **이걸 한 번에 옮기는 건
+불가능에 가깝고 PLAN.md 79·80장에도 어긋난다** — 그래서 이 절은 진짜
+첫 걸음만 자른다: **1차 전직(Lv.10, 갈래 넷 중 하나를 고른다) + 그
+직업의 grow(hp/atk/mp) 스탯만.** 그 자리에서 새로 열리는 무예 넷씩
+(총 16개, `w_cut`/`w_whirl`/`w_rush`/`w_iron` 등)은 범위 밖 — 다음 걸음.
+
+**레벨/경험치가 먼저 필요했다** — 전직은 레벨 문턱에 걸려 있는데, 이
+슬라이스는 지금까지 레벨이 늘 1로 고정이었다(`story_save_state.gd`의
+`level`/`exp` 필드는 세이브 스키마에만 있고 아무도 안 채웠다). `core.js`
+`gainExp()`/`expNeed()` 그대로 옮겼다: `expNeed(level) = round(50 ×
+1.28^(level-1))`, 경험치는 금(gold)과 달리 **랜덤 없이 결정적**이다.
+잡졸 킬 exp = `(6+lv×4)×GAIN_EXP` = 10(lv=1 고정), 보스는 ×15 = 150.
+
+**1차 전직 선택** — 원작은 상시 열린 "무예" 탭에서 고르지만(가방·상점과
+같은 이유로 이 슬라이스엔 탭 UI가 없다), 상점(14절)처럼 자동으로 대신
+골라 주지는 않았다 — **전직은 "되돌릴 수 없다"는 영구적 결정**이라
+자동 선택은 그 의미를 지워 버린다. 그래서 **허도(마을)에 전직 담당
+자리를 새로 하나 두고**, 범위 안에서 숫자 1~4(무사·궁수·협객·방사,
+`data-job.js` JOBS tier:1 순서 그대로)로 직접 고르게 했다 — 새 입력
+액션 넷(`story_job_1~4`)을 추가했다(potion_1~4와 물리 키는 같지만
+다른 액션 이름이라 겹치지 않는다).
+
+- `story_combat.gd`: `EXP_BASE`(50)·`EXP_GROWTH`(1.28)·`ENEMY_EXP_BASE`
+  (6)·`ENEMY_EXP_PER_LV`(4)·`BOSS_EXP_MUL`(15)·`GAIN_EXP`(1) +
+  `exp_need(level)`·`enemy_exp(is_boss)` 신규. `JOBS_TIER1`(넷, data-
+  job.js grow만) + `JOB_CHANGE_LEVEL`(10) 신규.
+- `story_save_state.gd`: `job: String`("none" 기본) 신규, 세이브 포함
+  (SAVE_VERSION 5→6). `add_exp(amount)`(while 루프로 한 번에 여러
+  레벨도 오른다, 원문과 같다) + `can_change_job()`/`choose_job(key)`
+  (이미 정했으면 무시 — "되돌릴 수 없다")/`job_grow()` 신규.
+- `story_enemy.gd`: `_die()`에 `StorySaveState.add_exp(StoryCombat.
+  enemy_exp(is_boss))` 추가.
+- `story_player.gd`: `max_hp`·`_effective_atk()`에 `job_grow().hp`/
+  `.atk` 추가(머리말이 전에 "jobGrow는 없어 뺌"이라 적어 뒀던 자리를
+  이번에 채웠다). `max_mp`(신규, 계산 프로퍼티 — 방사의 jb.mp+40 반영)
+  + mp 회복 클램프가 `MP_MAX` 대신 이 값을 쓰도록 수정.
+- `mp_bar.gd`: `max_value`를 상수 대신 `player.max_mp`를 매프레임
+  따라가도록(`hp_bar.gd`가 `max_hp`를 따라가는 것과 같은 결).
+- `story_job_trainer.gd`(신규) — Area3D 범위+K로 상태 안내(전직 가능
+  여부/이미 정한 직업), 범위 안에서 1~4로 확정. `level_label.gd`(신규,
+  폴링) + `StoryHUD.tscn`에 `LevelLabel` 추가(⭐ Lv.n (exp/need)).
+  `HeodoField.tscn`에 `JobTrainer` 노드(10.0m, 상인·문과 안 겹치는
+  빈자리).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → 여섯 씬 세 번 연속 exit 0·로그 무결. 임시 디버그로:
+  `exp_need(1)`=50·`exp_need(2)`=64(손계산과 일치), `enemy_exp`
+  10/150, `add_exp()`로 9(안 오름)→+50(레벨2, exp9)→+1000(한 번에
+  레벨8까지, exp232 — 여섯 단계 while 루프를 손으로 합산해 정확히
+  일치 확인), `can_change_job()`이 Lv5 false·Lv10 true, `choose_job
+  ("mage")`가 성공하며 atk 21→24(+3)·max_hp 162→174(+12)·max_mp
+  100→140(+40) 정확 반영, 그 뒤 `choose_job("warrior")` 재시도는
+  차단되고 job이 그대로 mage(되돌릴 수 없다 확인)까지 전부 예측과
+  일치. 디버그 원상복구(`story_town.gd` diff 0, 새 파일이라 git status로
+  DBG 잔재 없음 확인).
+- **GUI 실기 확인은 아직 안 함** — 허도에서 전직 담당과 상인이 한눈에
+  구분되는지(파란 톤 vs 붉은 톤), 전직 후 스탯이 체감되는지는 눈으로
+  볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 사용자가 지정한 순서(1~4) 전부 이번 세션에서
+  최소 한 걸음씩은 진행했다. 남은 큰 덩어리: 1차 전직 갈래별 무예
+  16개, 2~4차 전직(레벨 25/45/70), 나머지 일곱 사냥터+신야성 — 다음
+  "saga-godot 이어 해"에서 이어간다.
+
+## 17. 전직 무예 첫 걸음 — 무사(warrior) 넷 (2026-09-13)
+
+**사용자 지시 "커밋하고 saga-godot 이어 해"** — 16절이 남긴 "1차 전직
+갈래별 무예 16개(4갈래×4개)"의 첫 갈래만 잘랐다: **무사(warrior)** 넷
+(참격·선풍·돌진·철갑). 궁수·협객·방사 셋은 같은 패턴으로 이어갈 수
+있게 남겨 뒀다.
+
+**SP(무예 점수) 투자 시스템은 아직 없다** — 원작은 레벨마다 3점을 찍어
+무예를 0~10으로 올리는데(`data-job.js` 머리말), 그 배분 UI 없이 무예
+자체를 먼저 검증하려고 **`FIXED_SKILL_LEVEL`(5, 임의의 중간값)로 mul을
+고정**했다 — DUNGEON이 "이름만 있는 장비"로 먼저 좁혔던 것과 같은 결의
+의도적 축소(다음에 SP UI를 볼 때 이 상수를 실제 투자값으로 바꾼다).
+
+**넷 다 원문 그대로**(cost·cd·mul·r·dist·buff 안 바꿈, `data-job.js`
+SKILLS job:'warrior'):
+- **참격(w_cut)** — melee. 연참과 같은 정면 판정·사거리, mul만 다르다
+  (레벨5에서 1.6).
+- **선풍(w_whirl)** — aoe. 횡소(4절)와 같은 360도 판정 구조, r:128px를
+  REACH(78px)비로 옮겨 사거리 결정(mul 2.3).
+- **돌진(w_rush)** — dash. **재해석** — 부드러운 이동 애니메이션 대신
+  "이동 경로 위 적을 먼저 때린 뒤 그 자리로 순간이동"으로 단순화(다치는
+  적 판정이 이동 전/후로 갈리는 걸 피했다). dist:210px를 SCALE(0.02)로
+  4.2m 환산. 벽·구덩이 충돌은 확인 안 함(다음에 볼 자리).
+- **철갑(w_iron)** — buff, sec9·atk×1.2·guard0.35 그대로. 기합(brace,
+  tier0)과 **별도 타이머**로 둔다(둘 다 걸릴 수 있다, 원작이 안 막는다) —
+  `_effective_atk()`가 둘의 배율을 곱하고, `take_damage()`가 guard를
+  방어구 컷과 별개로 한 번 더 곱한다.
+
+**job=='warrior'일 때만** 실제로 쓰인다 — 입력 배선 자체가 그 조건
+안에 있어(story_player.gd `_physics_process()`), 다른 직업(또는 무명)은
+새 입력 액션 넷(Z/X/C/V, `story_job_skill_1~4`)을 눌러도 아무 일도
+안 일어난다.
+
+- `story_combat.gd`: `FIXED_SKILL_LEVEL`(5) + `WARRIOR_CUT_*`/
+  `WARRIOR_WHIRL_*`/`WARRIOR_RUSH_*`/`WARRIOR_IRON_*` 상수 + `warrior_
+  rush_dist_m()` 신규.
+- `story_player.gd`: 쿨다운 넷(`_cd_warrior_cut/whirl/rush/iron`) +
+  `_job_buff_time_left`(철갑 전용) 신규. `_cast_warrior_cut/whirl/
+  rush/iron()` 신규. `_effective_atk()`가 철갑 배율도 곱하도록, `take_
+  damage()`가 guard도 반영하도록 수정.
+- `project.godot`: `story_job_skill_1~4`(Z/X/C/V) 입력 액션 신규.
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 여섯 씬 세 번 연속 exit 0·로그 무결. 임시 디버그로: 세 mul(1.6·
+  2.3·2.6) 정확, `roll_damage` 500회 표본이 손계산 범위(무크리 29.58~
+  크리 60.21) 안, 참격 실제 시전으로 mp 100→94(−6)·쿨다운 0→0.5·적
+  hp 실제로 깎임 확인, 돌진으로 플레이어가 정확히 4.2m 이동, 철갑으로
+  `_effective_atk()`가 정확히 ×1.2, `take_damage(100)`이 철갑 있을 때
+  65(=100×0.65)·없을 때 100으로 정확히 갈림(guard 0.35 확인)까지 전부
+  예측과 일치. 디버그 원상복구(`story_field.gd` diff 0).
+- **GUI 실기 확인은 아직 안 함** — 네 무예의 타격감·돌진의 순간이동이
+  어색하지 않은지는 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 궁수·협객·방사 무예 넷씩(같은 패턴), SP 투자
+  UI, 2~4차 전직, 나머지 일곱 사냥터+신야성 — 다음 "saga-godot 이어
+  해"에서 이어간다.
 
 ## FINAL RULE (이 문서에도 동일 적용)
 

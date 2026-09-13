@@ -4339,3 +4339,267 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — 1절 "제외" 목록의 나머지(Z축 깊이·나머지
     사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 필드 채집 — 들꽃 셋 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 1절 "제외" 목록이 아니라
+  field_map.gd 자체 머리말이 남겨 둔 세 미완성(문·채집·보스) 중
+  채집을 채웠다. data-side.js field.gathers 셋(전부 herb) + side.js
+  GATHER_R(50px)·GATHER_RESPAWN(45초) 그대로, s.mats[kind] 누적
+  카운터 방식도 그대로.
+  - `field_map.gd`: `GATHERS_PX`+`gather_positions_m()` 신규.
+    `story_combat.gd`: `GATHER_RADIUS_M`·`GATHER_RESPAWN_SEC`·
+    `GATHER_INFO`(herb만) 신규. `story_save_state.gd`: `mats`
+    Dictionary+`add_mat()`, SAVE_VERSION 1→2. `story_gather.gd`+
+    `story_gather_spawner.gd`(신규, loot_pickup.gd·story_enemy_
+    spawner.gd 패턴 재사용) + `TestField.tscn`에 GatherSpawner 노드.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 7절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(GATHER_RESPAWN_SEC 3.0으로
+    잠깐 낮춤)로 좌표 셋(9.6/21.0/35.0m) 정확, 첫 접촉 시 mats.herb=1·
+    시각/판정 꺼짐, 안 살아있는 동안 반복 접촉해도 안 늘어남, respawn
+    뒤 재접촉 시 2로 늘어남까지 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 1절 "제외" 목록의 나머지(Z축 깊이·나머지
+    사냥터 8곳·전직 트리·장비/노획 등), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 보스 — 황건 두목 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — field_map.gd 머리말이 남긴
+  세 미완성(문·채집·보스) 중 둘째(채집은 앞서 채웠다)를 채웠다. 문
+  (portal)은 아직 남아 있다. data-side.js field.boss
+  (hpMul12·dmgMul2.0·cool15분) 그대로, 자리(x)만 새로 정함(2050px,
+  마지막 발판과 문 사이).
+  - `field_map.gd`: BOSS_NAME·BOSS_X_PX+boss_position_m() 신규.
+    `story_combat.gd`: BOSS_HP_MUL·BOSS_DMG_MUL·BOSS_COOL_SEC 신규.
+    `story_enemy.gd`: is_boss(신규, HP×12·시각×1.6, story_boss 그룹).
+    `story_boss_spawner.gd`(신규, died 시그널로 15분 뒤 재스폰) +
+    `TestField.tscn`에 BossSpawner 노드.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 8절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(BOSS_COOL_SEC 3.0으로 낮춤)로
+    위치 41.0m·HP 216 정확, 킬 시 StorySaveState.kills +1(사명 기여),
+    스포너 자식 0→대기 후 1(재스폰, 같은 위치·HP) 확인. 디버그
+    원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — field_map.gd의 채집·보스는 채웠고 문(portal)은
+    아직이다(나머지 사냥터 8곳과 함께 묶여 있다). 남은 후보: Z축 깊이·
+    나머지 사냥터 8곳(문 포함)·전직 트리·장비/노획 등, 또는 다른 판
+    작업 — 승인 후.
+
+
+## STORY Background 레이어 — 나무·산 실루엣 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 2절이 설계해 둔 세 겹
+  (Background/Midground/Foreground) 중 Midground(바닥·발판)만
+  지어져 있던 걸 채웠다. 새 GLB 없이 GO/FOREST 에셋(tree_oak.glb·
+  rock_largeA.glb)을 단색 실루엣으로 재활용.
+  - `story_background.gd`(신규) — 나무(Z=-30)·산(Z=-45) 두 겹,
+    MultiMeshInstance3D(충돌 없음), `TestField.tscn`에 `Background`
+    노드 추가.
+  - 자세한 기록은 `docs/VERTICAL_SLICE_STORY.md` 9절.
+  - **검증(헤드리스)** — import 확인(texture-a.png.import 재발생,
+    되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST
+    회귀 확인 포함). 임시 디버그로 자식 2개·instance_count 14/5·mesh
+    로드 성공 확인. **한계 기록** — MultiMesh 개별 좌표는 헤드리스
+    더미 렌더러에서 get_instance_transform()이 항등행렬만 돌려줘
+    재확인 불가(공식 자체는 단순 등간격 산술, 코드 리뷰로 갈음).
+  - **GUI 실기 확인은 아직 안 함** — 실루엣이 실제로 "먼 배경"으로
+    읽히는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 2절 설계 중 Foreground만 남았지만 선택
+    사항(완료 조건 무관). 굵직한 후보: Z축 깊이·나머지 사냥터 8곳·
+    전직 트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 장비 — 무기 한 자리(목검) (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 1절 "제외" 목록 "장비/노획"
+  의 첫 컷. data-gear.js sword1(무기 tier1, atk4) 하나만 — 이
+  슬라이스는 field(lv1)뿐이라 다른 슬롯·상위 tier·주문서·고유는
+  자연히 범위 밖. gear.js rollDrop() 드롭률(잡졸 0.035·보스 0.9)
+  그대로, 가방 없이 즉시 장착(DUNGEON loot_pickup.gd 방식), 이미
+  꼈으면 재드롭 안 함.
+  - `story_combat.gd`: WEAPON_NAME·WEAPON_ATK·GEAR_DROP_CHANCE_
+    GRUNT/BOSS 신규. `story_save_state.gd`: has_weapon+equip_
+    weapon(), SAVE_VERSION 2→3. `story_player.gd`: _effective_atk()에
+    무기 보너스 반영. `story_weapon_pickup.gd`(신규, loot_pickup.gd
+    패턴) + `story_enemy.gd`의 `_die()`에 드롭 롤 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 10절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(GEAR_DROP_CHANCE_BOSS 1.0으로
+    올림)로 atk 21→25(무기 유무) 정확, 그룬트 드롭률 2만 회 표본
+    3.5% 근사, 보스 킬 시 픽업 스폰·접촉 시 장착·재드롭 방지·세이브
+    영속까지 확인. 디버그 원상복구(diff 0) + 테스트로 생긴
+    user://save_story.json 삭제(다음 실기 확인이 깨끗하게 시작하도록).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
+    8곳(문 포함)·전직 트리·장비 나머지(방어구·장신구·주문서·고유·
+    상점), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 잡졸 반격 — 플레이어 체력 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — story_enemy.gd 머리말의
+  "추격·원거리 반격이 없다" 중 반격만 채웠다(추격은 여전히 없음).
+  side.js overlap()+e.cd=1.0+hurtMe(e.dmg) 그대로, 판정 반경은
+  P_W/enemy_w 픽셀합을 역산(0.6m). ENEMY_DMG(6)·BOSS_DMG_MUL(2.0,
+  이미 있었지만 이번에 처음 실제로 쓰임). 플레이어 죽음은 DUNGEON
+  player_health.gd와 같이 이번에도 범위 밖(hp 0에서 멈춤).
+  - `story_player.gd`: hp·max_hp+take_damage() 신규(mp와 같이 직접
+    얹음). `story_enemy.gd`: OVERLAP_RANGE·ATTACK_COOLDOWN+
+    `_physics_process()` 신규(이 스크립트 첫 매프레임 로직). `hp_bar.
+    gd`(신규, mp_bar.gd 패턴) + `StoryHUD.tscn`에 HpLabel/HpBar 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 11절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그로 원거리 무피해·접촉 시 -6·
+    1초 쿨다운 확인·재접촉 시 추가 -6·take_damage(99999)로도 0에서
+    멈춤·보스 접촉 시 -12(6×2.0) 전부 확인. 첫 시도에 "멀리서도 맞는다"
+    는 결과가 나와 조사했더니 테스트 좌표가 다른 그룬트와 우연히
+    겹친 테스트 자체의 오류였다(게임 로직은 정상) — 좌표 다시 골라
+    재확인.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
+    8곳(문 포함)·전직 트리·장비 나머지(방어구·장신구·주문서·고유·
+    상점), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 장비 — 10부위 tier1 전부로 확장 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 무기 한 자리만 있던 것을
+  같은 날 이어서 data-gear.js need:1 전체(부위마다 하나씩, 10개)로
+  넓혔다. tier2~4·주문서·고유·상점은 여전히 범위 밖(field=lv1이라
+  애초에 못 낌). 개별 상수 대신 `GEAR_ITEMS` Dictionary 표로
+  리팩터링(PLAN.md 7절 데이터 기반 설계) — 다음 tier 추가 시 표만
+  늘리면 된다. 방어력이 이번에 처음 의미가 생김(gear.cut(def) 그대로,
+  11절 반격 없이는 방어 스탯이 무의미했다). max_hp도 gear.hp만큼
+  늘어난다(계산 프로퍼티로 전환).
+  - `story_combat.gd`: GEAR_ITEMS(10)+damage_cut()+gear_totals()
+    신규(WEAPON_NAME/ATK 제거). `story_save_state.gd`: equipped
+    Dictionary+equip_gear()/has_slot()/gear_totals() 신규(has_weapon
+    제거), SAVE_VERSION 3→4, try_load()가 hp를 새 max로 채움.
+    `story_player.gd`: max_hp 계산 프로퍼티화, take_damage()에 방어
+    컷 적용. `story_enemy.gd`: _maybe_drop_gear()(안 낀 부위만 풀).
+    `story_weapon_pickup.gd` 삭제 → `story_gear_pickup.gd`(신규,
+    범용).
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 12절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(GEAR_DROP_CHANCE_GRUNT 1.0)로
+    10개 표 확인, sword1+top1 장착 시 atk25·maxhp172·totals 정확,
+    방어 컷 데미지 손계산과 일치, 전부 채우면 드롭 중단, 세이브
+    왕복으로 10부위 복원+hp가 새 max(211)로 채워짐까지 확인. 디버그
+    원상복구(diff 0) + 테스트 세이브 삭제.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
+    8곳(문 포함)·전직 트리·장비 나머지(tier2~4·주문서·고유·상점),
+    또는 다른 판 작업 — 승인 후.
+
+
+## STORY 굵직한 후보 넷 — 순서 확정 + 사명·상점 (2026-09-13)
+
+- **사용자 지시** — 위 항목이 나열한 "굵직한 후보 넷"(Z축 깊이·나머지
+  사냥터 8곳(문 포함)·전직 트리·장비 나머지) 중 어느 것을 이을지
+  물었더니 "1,2,3,4 순서대로 다 진행하고 진행사항 한국어로 번역하고
+  저장해서 계속 세션들에서 유지하게 해줘"로 답함 — 질문에 쓴 번호
+  순서(사명 확장→상점→나머지 사냥터 8곳→전직 트리)를 그대로 승인한
+  것. 이 넷은 전부 이전 항목들과 달리 새 시스템(레벨링·경제·마을+
+  포탈·물리)을 필요로 해 "승인 후"로 못박아 뒀던 것이라 미리 여쭤
+  봤다 — 물어본 뒤에는 매번 다시 안 여쭙고 순서대로 이어간다.
+  - **1(사명 확장)·2(상점)를 이번 세션에서 끝냈다.** 자세한 기록·
+    수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 13·14절.
+    - 13절: `q_gather1`(약초 캐기, gather 15) 추가 — 기존 `mats`
+      시스템을 그대로 읽어 새 저장 스키마 없이 끝남.
+    - 14절: 금(gold) 경제 도입(적 킬 시 드롭, DUNGEON과 같은 공식) +
+      필드 안 상인 하나(K로 최저가 미착용 부위 구매) — **원작은 마을
+      (허도) NPC와 대화해 여는 상점이지만 이 슬라이스는 아직 마을이
+      없어 필드 안으로 재해석**했다(3번 항목이 마을을 지을 때 정식
+      위치로 옮길 수 있다).
+  - **검증(헤드리스, 값 자체까지, 둘 다)** — import 확인(texture-a.
+    png.import 재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그
+    무결(GO/DUNGEON/FOREST 회귀 확인 포함). 임시 디버그로 사명 진행
+    (14→15 전환)·금 굴림 범위(그룬트 7~13·보스 86~151, 500회 표본)·
+    가격표 네 값·구매 로직(무자금 거부→고액 지급 후 최저가 두 번
+    순서대로 구매) 전부 예측과 일치 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 승인된 순서의 3(나머지 사냥터 8곳, 허도
+    마을+문(portal) 포함 — 이 자체가 크므로 별도 세션에서 이어간다),
+    4(전직 트리). "saga-godot 이어 해"로 계속 진행.
+
+
+## STORY 나머지 사냥터 8곳 — 첫 걸음: 허도+문 (2026-09-13)
+
+- **같은 승인 묶음의 셋째** — 여덟 곳을 한 번에 짓지 않고(PLAN.md
+  79·80장) **field의 문이 실제로 여는 허도(마을) 하나 + 문 자체가
+  동작하는 것**까지만 잘랐다. 자세한 기록·수치 검증은
+  `docs/VERTICAL_SLICE_STORY.md` 15절.
+  - `story_terrain_builder.gd`를 `FieldMap` 전용에서 `map_path`
+    export로 일반화(다음 사냥터부터는 데이터 파일만 추가하면 된다).
+  - 14절이 field 안에 임시로 뒀던 상인을 원래 자리(허도)로 옮겼다.
+  - 문(portal)은 원작의 ↑ 대신 14절 상점과 같은 상호작용 키(K)로
+    통일 — 새 입력 액션을 안 늘렸다.
+  - **세이브의 알려진 한계** — 씬(어느 사냥터인지)을 안 가리고 위치만
+    기록한다. 나머지 일곱 사냥터를 더 지을 때 같이 볼 자리.
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 여섯 씬(신규 HeodoField 포함) 세 번 연속 exit 0·로그 무결. 데이터
+  함수·Terrain 자식 수·노드 위치 전부 손계산과 일치 확인. **문 자체를
+  디버그로 실제 실행**(`change_scene_to_file()` 직접 호출) — 성공,
+  120프레임 뒤 씬이 실제로 HeodoField로 바뀌고 플레이어가 도착 자리에
+  정확히 서 있음까지 확인. 이 과정에서 `--quit-after`가 초가 아니라
+  **프레임 수**라는 걸 새로 확인했다(참고용 — 지금까지의 검증 결론
+  자체는 안 바뀐다). 디버그 원상복구(diff 0).
+- **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+- **다음 이어질 것** — 나머지 일곱 사냥터·신야성(이 절과 같은 패턴으로
+  하나씩), 그리고 승인된 순서의 넷째(전직 트리)로 계속.
+
+
+## STORY 전직 트리 — 첫 걸음: 레벨/경험치 + 1차 전직 넷 (2026-09-13)
+
+- **같은 승인 묶음의 넷째(마지막)** — 전직 트리 전체(4갈래×4단, 48개
+  무예)를 한 번에 옮기지 않고, **레벨/경험치 시스템(이 슬라이스가
+  지금까지 안 갖고 있던 것) + 1차 전직 넷(레벨10, grow 스탯만)** 까지만
+  잘랐다. 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 16절.
+  - `core.js`의 `gainExp()`/`expNeed()` 공식 그대로(GO party_state.gd가
+    썼던 단순화된 EXP_PER_LEVEL 방식이 아니라, 이 판의 다른 모든 수치와
+    같은 결로 원문 공식을 그대로 옮겼다).
+  - 전직은 상점처럼 자동으로 안 고르고 **허도에 새 자리(전직 담당,
+    파란 톤)를 두어 숫자 1~4로 직접 고르게** 했다 — "되돌릴 수 없다"는
+    원작의 영구적 결정을 자동화로 지워 버리지 않기 위해서다.
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 여섯 씬 세 번 연속 exit 0·로그 무결. exp 공식·레벨업(한 번에 여러
+  레벨 포함)·전직 가능 여부·전직 후 atk/max_hp/max_mp 반영·재전직
+  차단까지 전부 손계산과 일치 확인. 디버그 원상복구.
+- **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+- **오늘 세션 요약** — 사용자가 지정한 굵직한 후보 넷(1 사명 확장·2
+  상점·3 나머지 사냥터 8곳 첫 걸음·4 전직 트리 첫 걸음)을 순서대로
+  전부 최소 한 걸음씩 진행했다. 각 걸음의 "다음 이어질 것"에 남은
+  더 큰 확장(나머지 일곱 사냥터·2~4차 전직·무예 16개 등)은 이후
+  "saga-godot 이어 해"에서 하나씩 이어간다.
+
+
+## STORY 전직 무예 첫 걸음 — 무사(warrior) 넷 (2026-09-13)
+
+- **사용자 지시 "커밋하고 saga-godot 이어 해"** — 이전 커밋을 만든 뒤
+  바로 이어서, 16절이 남긴 "1차 전직 갈래별 무예 16개"의 첫 갈래
+  (무사) 넷(참격·선풍·돌진·철갑)을 채웠다. 자세한 기록·수치 검증은
+  `docs/VERTICAL_SLICE_STORY.md` 17절.
+  - SP(무예 점수) 투자 시스템은 아직 없어 `FIXED_SKILL_LEVEL`(5)로
+    mul을 고정 — DUNGEON의 "이름만 있는 장비"와 같은 의도적 축소.
+  - 돌진(dash)은 "이동 경로 위 적을 먼저 때리고 그 자리로 순간이동"
+    으로 재해석(부드러운 이동 애니메이션 없음).
+  - 철갑(buff)은 기합과 별도 타이머 — 둘 다 동시에 걸릴 수 있다.
+  - job=='warrior'가 아니면 새 입력 액션 넷(Z/X/C/V)을 눌러도 아무
+    일도 안 일어난다(입력 배선 자체가 그 조건 안에 있다).
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 여섯 씬 세 번 연속 exit 0·로그 무결. 세 mul 정확, roll_damage
+  표본이 손계산 범위 안, 실제 시전으로 mp/쿨다운/피해·돌진 이동거리
+  (4.2m 정확)·철갑 atk 배율(×1.2)·guard 감쇄(65 vs 100, 0.65 정확)까지
+  전부 예측과 일치. 디버그 원상복구(diff 0).
+- **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+- **다음 이어질 것** — 궁수·협객·방사 무예 넷씩(같은 패턴), SP 투자
+  UI, 2~4차 전직, 나머지 일곱 사냥터+신야성.
