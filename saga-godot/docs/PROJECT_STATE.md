@@ -5428,3 +5428,31 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   (몰아서 받을 것).
 - **다음에 할 일**: visit·talk 사명 2개·반복/일일 사명 7개 중
   아무거나, 또는 STORY 밖(다른 네 판·saga-unity 트랙)으로.
+
+## STORY q_explore1(사냥터 넷 밟기) (2026-09-13, "이어해" 지시로 계속)
+
+- 위가 남긴 둘(visit·talk) 중 visit만 옮겼다 — 사명이 11→12개. talk은
+  대화 전용 마을 NPC 자체가 없어 여전히 보류(story_merchant.gd·
+  story_job_trainer.gd는 기능형 NPC일 뿐). `story_save_state.gd`에
+  `visited_stages`(Dictionary)·`visit_stage()` 신규, `story_terrain_
+  builder.gd` `_ready()`가 `_map.has_method("stage_key")`일 때만
+  (사냥터 넷, 마을 지도 셋은 자동으로 걸러짐) 호출 — 공용 빌더 한
+  곳만 고쳐 네 맵 파일은 안 건드림. SAVE_VERSION 11→12. 자세한 내용은
+  `docs/VERTICAL_SLICE_STORY.md` "q_explore1" 절 참고.
+- **검증 방법 갱신** — `--script` 단독 실행은 프로젝트 autoload 자체가
+  등록 안 돼(`story_field.gd` 등 StorySaveState를 쓰는 스크립트부터
+  "Identifier not found: StorySaveState" 컴파일 실패) 이번엔 안 통했다.
+  대신 임시 씬(Node 하나 + 검증 스크립트, `.tscn`/`.gd` 둘 다 새로
+  만들어 프로젝트 안에 잠깐 둠)을 정식 씬 인자로 넘겨(`--headless
+  --path . <임시씬>.tscn --quit-after N`) 정상적인 엔진 부팅 경로를
+  타게 하니 autoload가 잡혔다 — 앞으로 StorySaveState류 autoload를
+  건드리는 로직을 검증할 땐 `--script` 대신 이 방식(임시 .tscn+.gd,
+  확인 후 둘 다 삭제)부터 쓸 것.
+- 검증: 헤드리스 임포트 오류 0건, 네 사냥터 씬 각각 `--quit-after 6`
+  스크립트 오류 0건. 위 방식으로 field 첫 방문·중복 방문 무시·넷
+  다 밟으면 완수+보상 골드 900까지 손계산과 일치 확인 후 임시 파일
+  삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은
+  아직(몰아서 받을 것).
+- **다음에 할 일**: q_talk1(대화 NPC 새 시스템 필요)·반복 사명 5개·
+  일일 사명 2개 중 아무거나, 또는 STORY 밖(다른 네 판·saga-unity
+  트랙)으로.

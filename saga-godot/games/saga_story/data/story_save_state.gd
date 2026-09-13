@@ -15,12 +15,13 @@ const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 11  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명)
+const SAVE_VERSION := 12  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1)
 
 var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
 var stage_kills: Dictionary = {}  # stage_key(String) -> int, data-quest.js q_field/q_forest/q_cave goal.stage 필터의 이 포트 버전
+var visited_stages: Dictionary = {}  # stage_key(String) -> true, data-quest.js q_explore1(goal.type:'visit') 진행 집합 — quest.js onStage()의 이 포트 버전
 var bosses := 0  # side.js s.bosses 그대로 — a_boss5 업적의 진행 카운트
 var feat := 0  # core.js player.feat(공적) — 이 슬라이스엔 칭호가 없어 그냥 누적값만
 var achievements: Dictionary = {}  # key(String) -> true, achieve.js st() 그대로(한 번 달성하면 안 없어짐)
@@ -83,6 +84,16 @@ func add_kill(stage_key: String = "") -> void:
 func add_boss_kill() -> void:
 	bosses += 1
 	check_achievements()
+	check_quests()
+
+
+## quest.js onStage() 그대로 — 처음 밟는 사냥터만 집합에 넣는다(같은 곳을
+## 몇 번 다시 밟아도 안 늘어난다). story_terrain_builder.gd가 그 씬의
+## 지도 데이터에 stage_key()가 있을 때만(사냥터 넷, 마을은 없음) 부른다.
+func visit_stage(stage_key: String) -> void:
+	if stage_key.is_empty() or visited_stages.get(stage_key, false):
+		return
+	visited_stages[stage_key] = true
 	check_quests()
 
 
@@ -295,6 +306,8 @@ func _quest_value(q: Dictionary) -> float:
 			return float(sp_spent())
 		"gold":
 			return float(gold)
+		"visit":
+			return float(visited_stages.size())
 		_:
 			return 0.0
 
@@ -429,6 +442,7 @@ func save() -> bool:
 		"exp": exp,
 		"kills": kills,
 		"stage_kills": stage_kills,
+		"visited_stages": visited_stages,
 		"bosses": bosses,
 		"feat": feat,
 		"achievements": achievements,
@@ -466,6 +480,8 @@ func try_load() -> bool:
 	kills = int(data.get("kills", 0))
 	var loaded_stage_kills: Variant = data.get("stage_kills", {})
 	stage_kills = loaded_stage_kills if typeof(loaded_stage_kills) == TYPE_DICTIONARY else {}
+	var loaded_visited_stages: Variant = data.get("visited_stages", {})
+	visited_stages = loaded_visited_stages if typeof(loaded_visited_stages) == TYPE_DICTIONARY else {}
 	bosses = int(data.get("bosses", 0))
 	feat = int(data.get("feat", 0))
 	var loaded_achievements: Variant = data.get("achievements", {})

@@ -15,6 +15,10 @@ extends Node3D
 ## 새로 만들면 된다. `ground_color`도 데이터마다 다르게 칠할 수 있게 뺐다
 ## (허도 '#7a5a30' vs 들판 '#6faf55').
 
+## **2026-09-13 추가 — q_explore1(사명, goal.type:'visit').** `_map`에
+## `stage_key()`가 있으면(사냥터 넷만 해당, 마을 지도 셋은 없음) 이 씬에
+## 들어올 때마다 StorySaveState.visit_stage()를 부른다 — 그 함수가
+## 중복은 알아서 거른다(quest.js onStage()와 같은 결).
 @export var map_path: String = "res://games/saga_story/data/field_map.gd"
 @export var ground_color := Color(0.435, 0.686, 0.333)  # data-side.js field.ground '#6faf55'
 
@@ -30,6 +34,8 @@ var _map: RefCounted
 
 func _ready() -> void:
 	_map = (load(map_path) as GDScript).new()
+	if _map.has_method("stage_key"):
+		StorySaveState.visit_stage(_map.stage_key())
 	_build_ground()
 	for p: Dictionary in _map.plats_m():
 		_build_platform(p)

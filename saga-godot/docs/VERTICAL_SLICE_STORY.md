@@ -2211,6 +2211,45 @@ q_first("첫 사냥")·q_gather1("약초 캐기") 둘은 **관찰형**(HUD에 �
 중 아무거나 골라도 되고, STORY 밖(다른 네 판·saga-unity 트랙)으로
 옮겨 가도 된다.
 
+## q_explore1 — 사냥터 넷 밟기 사명 (2026-09-13, "이어해" 지시로 계속)
+
+바로 위가 남긴 "visit·talk 사명 2개" 중 **visit**(q_explore1, "길을
+넓힌다")을 옮겼다 — 사명이 11→12개. **talk**은 이번에도 안 옮겼다 —
+data-side.js STAGES(field/forest/cave/gorge, 마을은 STAGES 밖)엔
+"밟은 사냥터 집합"이 이미 이 포트의 stage_key() 넷으로 충분히 대응되는
+반면, "말 건 횟수"는 대화 가능한 마을 NPC 자체가 없어(story_merchant.gd·
+story_job_trainer.gd는 기능형일 뿐, 원작 elder/guard/healer/wanderer
+같은 대사 전용 NPC가 없다) 여전히 새 시스템이 필요하다.
+
+- **새 카운터**: `story_save_state.gd`에 `visited_stages`(Dictionary,
+  stage_key→true) 신규, `visit_stage(stage_key)`(quest.js `onStage()`의
+  이 포트 버전 — 이미 밟은 곳이면 조용히 무시, 새 곳이면 넣고
+  `check_quests()`) 신규. `_quest_value(q)`에 `"visit"` 분기 추가 —
+  `visited_stages.size()`.
+- **배선**: `story_terrain_builder.gd`(사냥터/마을 공용 지형 빌더)
+  `_ready()`에서 `_map.has_method("stage_key")`면(사냥터 넷만 해당,
+  마을 지도 셋(HeodoMap·GangneungjinMap·SinyaMap)엔 그 메서드가 없어
+  자동으로 걸러진다) `StorySaveState.visit_stage(_map.stage_key())`를
+  부른다 — 스포너처럼 매 맵 파일을 따로 손 안 대고 공용 빌더 한 곳만
+  고쳤다. SAVE_VERSION 11→12.
+- **QUESTS 추가**: `q_explore1`(need 7, goal_type "visit", n 4, 보상
+  exp 320·gold 900·주문서 hp60) — data-quest.js 그대로.
+- **검증** — import 확인(vroid 텍스처류 `.import` 잡음만 재발생,
+  되돌림) → 네 사냥터 씬(TestField·ForestHuntGround·CaveHuntGround·
+  GorgeHuntGround) 각각 `--quit-after 6` 스크립트 오류 0건. **임시
+  씬(놋 하나 + 검증 스크립트, `_verify_explore1.tscn/.gd`, `--script`
+  단독이 아니라 정식 씬으로 넣어야 autoload가 잡힌다 — `--script`
+  단독 실행은 프로젝트 autoload 자체가 등록 안 돼 `StorySaveState`
+  식별자부터 컴파일 실패한다는 걸 이번에 새로 확인)**로: field 첫
+  방문 → visited_stages 1, 아직 미완수 → field 재방문 → 그대로 1(중복
+  안 늠) → forest·cave 추가 → 3, 아직 미완수 → gorge 추가 → 4,
+  q_explore1 완수 + gold 900 반영까지 손계산과 일치 확인 후 두 파일
+  삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은
+  아직(몰아서 받을 것).
+- **다음에 할 일**: q_talk1(대화 NPC 필요, 새 시스템)·반복 사명
+  5개·일일 사명 2개 중 아무거나, 또는 STORY 밖(다른 네 판·saga-unity
+  트랙)으로.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

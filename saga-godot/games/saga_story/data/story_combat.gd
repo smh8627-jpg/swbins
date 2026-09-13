@@ -359,12 +359,15 @@ const ACHIEVES := {
 
 
 ## **2026-09-13 추가 — 사명(퀘스트) 게시판.** data-quest.js QUESTS 20개 중
-## **처음엔 8개, 이번에 사냥터별 킬 수 셋(q_field/q_forest/q_cave)을
-## 더해 11개**가 됐다 — 이 슬라이스가 이미 가진 누적값(kill/gather/
-## gear/boss/skill/gold, +이번에 stage_kills)만으로 바로 판정 가능한
-## 것만 골랐다. 나머지 아홉은 새 시스템이 필요해 다음으로 미룬다:
-##   - q_explore1(goal.type:'visit')·q_talk1('talk') — "밟은 사냥터
-##     집합"·"말 건 횟수" 추적이 없다(대화 가능한 마을 NPC 자체가 없다)
+## **처음엔 8개, 사냥터별 킬 수 셋(q_field/q_forest/q_cave)을 더해 11개,
+## 이번에 q_explore1을 더해 12개**가 됐다 — 이 슬라이스가 이미 가진
+## 누적값(kill/gather/gear/boss/skill/gold/stage_kills, +이번에
+## visited_stages)만으로 바로 판정 가능한 것만 골랐다. 나머지 여덟은
+## 새 시스템이 필요해 다음으로 미룬다:
+##   - q_talk1(goal.type:'talk') — "말 건 횟수" 추적이 없다(대화
+##     가능한 마을 NPC 자체가 없다 — story_merchant.gd/story_job_
+##     trainer.gd는 기능형 NPC일 뿐, 원작 elder/guard/healer/wanderer
+##     같은 대사만 있는 NPC가 아직 없다)
 ##   - r_*(반복 5개)·d_*(일일 2개) — "바친 뒤 다시 받는다"에 필요한
 ##     받기/반납 상태 자체가 없다(achieve.js 식 "한 번만"과 안 맞는다)
 ## reward의 `potion`(탕약)은 전부 뺐다 — 이 포트엔 그 시스템 자체가
@@ -372,18 +375,26 @@ const ACHIEVES := {
 ## 있는 그대로 옮겼다(story_save_state.gd `_grant_quest_scroll()` 참고).
 ## `stage`가 있으면(q_field 등) `_quest_value()`가 전체 kills 대신
 ## stage_kills[stage]를 본다(각 맵의 `stage_key()` 참고).
+##
+## **2026-09-13 추가(같은 날 더, q_explore1) — "visit".** data-quest.js
+## goal.type:'visit'은 "서로 다른 사냥터를 밟은 집합의 크기"를 본다(같은
+## 곳을 몇 번 다시 밟아도 안 늘어난다) — story_save_state.gd
+## visited_stages(Dictionary, 밟은 stage_key 집합) 참고. 원작 STAGES에
+## 사냥터가 field/forest/cave/gorge 넷뿐이라(마을은 STAGES 밖) n:4는
+## "네 사냥터를 다 밟으면 끝"과 정확히 같다.
 const QUESTS := {
-	"q_first":   {"name": "첫 사냥",       "need": 1,  "goal_type": "kill",   "n": 10,   "exp": 60,   "gold": 200,  "scroll": ""},
-	"q_gather1": {"name": "약초 캐기",     "need": 2,  "goal_type": "gather", "n": 15,   "exp": 140,  "gold": 400,  "scroll": ""},
-	"q_field":   {"name": "들판을 비운다", "need": 3,  "goal_type": "kill",   "n": 40,   "stage": "field",  "exp": 220,  "gold": 700,  "scroll": "def100"},
-	"q_gear1":   {"name": "몸을 갖춘다",   "need": 4,  "goal_type": "gear",   "n": 3,    "exp": 180,  "gold": 600,  "scroll": ""},
-	"q_boss1":   {"name": "두목의 목",     "need": 5,  "goal_type": "boss",   "n": 1,    "exp": 400,  "gold": 1200, "scroll": "atk60"},
-	"q_forest":  {"name": "오림의 그늘",   "need": 6,  "goal_type": "kill",   "n": 60,   "stage": "forest", "exp": 700,  "gold": 2000, "scroll": ""},
-	"q_job":     {"name": "길을 정한다",   "need": 10, "goal_type": "skill",  "n": 1,    "exp": 500,  "gold": 1500, "scroll": "hp60"},
-	"q_gold1":   {"name": "군자금",        "need": 8,  "goal_type": "gold",   "n": 8000, "exp": 600,  "gold": 0,    "scroll": "atk10"},
-	"q_cave":    {"name": "굴혈로",        "need": 12, "goal_type": "kill",   "n": 90,   "stage": "cave",   "exp": 1800, "gold": 5000, "scroll": "def60"},
-	"q_gear2":   {"name": "온몸을 갖춘다", "need": 14, "goal_type": "gear",   "n": 7,    "exp": 2200, "gold": 6000, "scroll": "hp10"},
-	"q_master":  {"name": "무예를 익힌다", "need": 18, "goal_type": "skill",  "n": 20,   "exp": 3000, "gold": 8000, "scroll": "atk10"},
+	"q_first":    {"name": "첫 사냥",       "need": 1,  "goal_type": "kill",   "n": 10,   "exp": 60,   "gold": 200,  "scroll": ""},
+	"q_gather1":  {"name": "약초 캐기",     "need": 2,  "goal_type": "gather", "n": 15,   "exp": 140,  "gold": 400,  "scroll": ""},
+	"q_field":    {"name": "들판을 비운다", "need": 3,  "goal_type": "kill",   "n": 40,   "stage": "field",  "exp": 220,  "gold": 700,  "scroll": "def100"},
+	"q_gear1":    {"name": "몸을 갖춘다",   "need": 4,  "goal_type": "gear",   "n": 3,    "exp": 180,  "gold": 600,  "scroll": ""},
+	"q_boss1":    {"name": "두목의 목",     "need": 5,  "goal_type": "boss",   "n": 1,    "exp": 400,  "gold": 1200, "scroll": "atk60"},
+	"q_forest":   {"name": "오림의 그늘",   "need": 6,  "goal_type": "kill",   "n": 60,   "stage": "forest", "exp": 700,  "gold": 2000, "scroll": ""},
+	"q_explore1": {"name": "길을 넓힌다",   "need": 7,  "goal_type": "visit",  "n": 4,    "exp": 320,  "gold": 900,  "scroll": "hp60"},
+	"q_job":      {"name": "길을 정한다",   "need": 10, "goal_type": "skill",  "n": 1,    "exp": 500,  "gold": 1500, "scroll": "hp60"},
+	"q_gold1":    {"name": "군자금",        "need": 8,  "goal_type": "gold",   "n": 8000, "exp": 600,  "gold": 0,    "scroll": "atk10"},
+	"q_cave":     {"name": "굴혈로",        "need": 12, "goal_type": "kill",   "n": 90,   "stage": "cave",   "exp": 1800, "gold": 5000, "scroll": "def60"},
+	"q_gear2":    {"name": "온몸을 갖춘다", "need": 14, "goal_type": "gear",   "n": 7,    "exp": 2200, "gold": 6000, "scroll": "hp10"},
+	"q_master":   {"name": "무예를 익힌다", "need": 18, "goal_type": "skill",  "n": 20,   "exp": 3000, "gold": 8000, "scroll": "atk10"},
 }
 
 
