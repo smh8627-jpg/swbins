@@ -24,12 +24,18 @@ namespace Saga.EditorTools
     {
         private const string CobblestoneDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CobblestoneFloor01/";
         private const string CastleWallDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CastleWallSlates/";
+        private const string GrassPathDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_GrassPath2/";
+        private const string LeafyGrassDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_LeafyGrass/";
+        private const string DarkWoodenPlanksDir = "Assets/Art/EnvironmentPBR_candidates/PolyHaven_DarkWoodenPlanks/";
 
         [MenuItem("Saga/Build Environment PBR Sample Materials")]
         public static void Build()
         {
             BuildMaterial("cobblestone_floor_01", CobblestoneDir);
             BuildMaterial("castle_wall_slates", CastleWallDir);
+            BuildMaterial("grass_path_2", GrassPathDir);
+            BuildMaterial("leafy_grass", LeafyGrassDir);
+            BuildMaterial("dark_wooden_planks", DarkWoodenPlanksDir);
             AssetDatabase.SaveAssets();
             Debug.Log("[BuildEnvironmentPbrSample] built PBR sample materials");
         }

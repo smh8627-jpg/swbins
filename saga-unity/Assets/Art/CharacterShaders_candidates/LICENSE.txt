@@ -1,0 +1,27 @@
+캐릭터 셰이더 후보 — 66-2장 ③/④ (2026-09-13)
+
+PLAN.md 66-2장이 조사해 둔 URP 전용 헤어카드(이방성)·SSS 스킨 셰이더
+공개 구현 세 벌을 실제로 받아 온 것. 아직 어느 캐릭터/씬에도 안 물렸다
+— 다음 세션이 Mixamo 캐릭터가 들어온 뒤 실제로 붙여 볼 후보다.
+
+- SSS_CiaranSimpson/ — https://github.com/CiaranSimpson/Subsurface-Scattering-for-Unity-URP
+  License: MIT (동봉 LICENSE 참고)
+  FakeSSS.shadersubgraph만 가져옴 — 원본 저장소의 데모용
+  "Subsurface Shader.shadergraph"는 이 프로젝트 Unity 6000.3
+  Shader Graph 패키지에서 임포트 시 NullReferenceException으로 깨져서
+  뺐다(원본 저장소가 더 오래된 Shader Graph 버전으로 저장된 그래프라
+  보임). 재사용 가능한 서브그래프 노드 자체는 정상 임포트됨 — 앞으로
+  이 노드를 우리 캐릭터 셰이더 그래프 안에 직접 넣어 쓰면 된다.
+
+- AnisoHair_cathyhlshih/ — https://github.com/cathyhlshih/UnityURPAnisoHighlightHairShader
+  License: MIT (동봉 LICENSE 참고)
+  UnityURPAnisoHighlightHair/ 전체(셰이더 그래프+서브그래프+예시
+  머티리얼) 그대로 가져옴, README 데모 이미지(Images/)만 뺐다.
+
+- HairCards_itsFulcrum/ — https://github.com/itsFulcrum/Unity-URP-Hair-Shader
+  License: CC0-1.0 (동봉 LICENSE 참고, 출처 표시 의무 없음)
+  FulcrumHairShader/(HLSL 기반 커스텀 URP 셰이더)+Textures/ 그대로
+  가져옴.
+
+라이선스 확인 근거는 PLAN.md 66-2장 ④ 참고 — GitHub API로
+`license.spdx_id` 직접 조회했다.

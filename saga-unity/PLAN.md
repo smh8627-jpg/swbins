@@ -1124,21 +1124,57 @@ Assets/Settings/
     필요) — 이 원본은 어느 씬·머티리얼도 참조하지 않아(구운 PNG만
     참조됨) 빌드에는 포함되지 않으니 문제없다.
 
+## ⑤ 캐릭터 셰이더 세 벌 실제 반입 (2026-09-13, 이어서)
+
+- **④에서 라이선스 확인까지 끝난 세 저장소를 `git clone`으로 실제
+  받아 `Assets/Art/CharacterShaders_candidates/`에 넣었다** — 아직
+  캐릭터가 없어(Mixamo 반입 전) 어느 머티리얼/씬에도 안 물렸다, 순수
+  후보 반입.
+  - `SSS_CiaranSimpson/` — `FakeSSS.shadersubgraph`만 가져옴.
+    **원본 저장소의 데모용 "Subsurface Shader.shadergraph"는 이
+    프로젝트의 Unity 6000.3 Shader Graph 패키지로 임포트하면
+    `NullReferenceException`으로 깨져서 뺐다**(원본이 더 오래된
+    Shader Graph 버전으로 저장된 그래프로 보임 — 재사용 대상인
+    서브그래프 노드 자체는 정상 임포트됨, 다음에 우리 캐릭터 셰이더
+    그래프 안에 이 노드를 직접 넣어 쓰면 된다).
+  - `AnisoHair_cathyhlshih/` — `UnityURPAnisoHighlightHair/` 전체
+    (셰이더 그래프+서브그래프+예시 머티리얼) 그대로, README 데모
+    이미지(`Images/`)만 제외.
+  - `HairCards_itsFulcrum/` — `FulcrumHairShader/`(HLSL 커스텀 URP
+    셰이더)+`Textures/` 그대로.
+  - 각 폴더에 원본 `LICENSE` 파일 동봉 + 상위에 출처·제외 이유 정리한
+    `LICENSE.txt`(Poly Haven 후보 폴더와 같은 관례).
+- 배치 모드(`-batchmode -nographics -quit`, `-executeMethod` 없이
+  순수 임포트)로 두 번 실행해 컴파일 오류 0건·깨진 셰이더그래프 제거
+  후 재확인, `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음
+  확인.
+
+## ⑥ Poly Haven 재질 추가 조사 — 흙길·초목·목재 세 벌 (2026-09-13, 이어서)
+
+- ②가 대표 둘(바닥·벽)만 확인했던 것에 이어 **44장 우선순위대로 셋을
+  더 받았다** — 전부 CC0, Poly Haven 공개 API로:
+  - **`grass_path_2`**(흙길) — `Assets/Art/EnvironmentPBR_candidates/
+    PolyHaven_GrassPath2/`
+  - **`leafy_grass`**(초목 바닥) — `.../PolyHaven_LeafyGrass/`
+  - **`dark_wooden_planks`**(목재) — `.../PolyHaven_DarkWoodenPlanks/`
+  - 셋 다 diffuse·normal(OpenGL)·roughness·AO 네 맵(1k JPG) 전부.
+- `BuildEnvironmentPbrSample.cs`에 세 재질을 추가해(기존
+  `BuildMetallicSmoothnessMap()` 그대로 재사용 — ④에서 이미 채널 팩킹을
+  풀어 둔 덕에 새 재질도 별도 작업 없이 바로 적용됨) 총 다섯 개 URP Lit
+  머티리얼을 만든다. 배치 모드로 컴파일 오류 0건·머티리얼 5개 생성
+  확인, `ProjectSettings/`·`Packages/` 부작용 없음.
+- **아직 후보일 뿐 — 어느 씬에도 안 물렸다**(위 ②와 같은 성격).
+
 ## 다음에 할 일 (아직 착수 전)
 
 - **사람이 mixamo.com에서 캐릭터+애니메이션을 받아 `Assets/Art/
   CharactersRealistic/`에 넣기** — 위 ③ 레시피대로. 이게 되어야 실제
   캐릭터 교체를 시작할 수 있다(여전히 유일하게 남은, 사람 GUI 조작이
-  필요한 단계).
-- 위 ④에서 라이선스 확인까지 끝난 헤어카드(이방성)·스킨(SSS) 셰이더
-  세 개를 실제로 받아 프로젝트에 붙이고 손보기 — 캐릭터 에셋이 아직
-  없어 실제 확인은 캐릭터가 들어온 뒤에나 가능하지만, 셰이더 자체를
-  미리 받아 Assets에 넣어 두는 건 지금도 가능.
-- Poly Haven에서 추가 재질(흙길·초목 바닥·목재 등) 더 조사 — 이번엔
-  대표 둘(바닥·벽)만 확인, 44장 우선순위대로 더 넓힐 것.
-- Kenney·VRoid 플레이스홀더를 위 순서로 실제 사실적 에셋으로 순차
-  교체(44장 우선순위: Player → 주요 Enemy → Boss → Environment →
-  Building → … 와 교차 적용).
+  필요한 단계) — ⑤로 셰이더는 이미 프로젝트 안에 들어와 있으니, 캐릭터만
+  들어오면 바로 붙여 볼 수 있다.
+- Kenney·VRoid 플레이스홀더를 위 다섯 환경 재질/⑤ 캐릭터 셰이더로 실제
+  사실적 에셋으로 순차 교체(44장 우선순위: Player → 주요 Enemy → Boss →
+  Environment → Building → … 와 교차 적용).
 - 66-1장 PC/Mobile 두 프로파일이 실제 사실적 에셋으로도 성능·화질
   균형이 맞는지 확인(카툰 방향보다 텍스처·라이팅 비용이 커질 수 있어
   45장 모바일 목표와 자주 대조할 것 — 특히 SSS 스킨 셰이더·DoF는 모바일

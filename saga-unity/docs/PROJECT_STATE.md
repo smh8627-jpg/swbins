@@ -3637,8 +3637,37 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   배치 모드 부작용도 이번엔 없었음(`git diff`로 확인). 자세한 내용은
   `PLAN.md` 66-2장 ④ 참고.
 - **다음에 할 일**: 사람이 mixamo.com에서 캐릭터+애니메이션 받기(유일하게
-  남은 사람 GUI 단계), 라이선스 확인 끝난 셰이더 세 개를 실제로 받아
-  프로젝트에 넣기, Poly Haven 재질 추가 조사.
+  남은 사람 GUI 단계), Poly Haven 재질 추가 조사.
+
+## 66-2장 "다음에 할 일" ⑤ 캐릭터 셰이더 세 벌 실제 반입 (2026-09-13, 이어서)
+
+- ④에서 라이선스 확인까지 끝난 세 저장소를 `git clone`으로 받아
+  `Assets/Art/CharacterShaders_candidates/`에 넣었다(아직 캐릭터가
+  없어 어느 머티리얼/씬에도 안 물림, 순수 반입). `SSS_CiaranSimpson`은
+  재사용 서브그래프(`FakeSSS.shadersubgraph`)만 가져왔다 — 원본의 데모
+  마스터 그래프는 이 프로젝트의 Unity 6000.3 Shader Graph 패키지로
+  임포트하면 `NullReferenceException`으로 깨져서 뺐다(버전 차이로
+  보임, 서브그래프 노드 자체는 정상). 나머지 둘(이방성 헤어·헤어카드)은
+  README 데모 이미지만 빼고 그대로. 배치 모드 임포트 두 번으로 컴파일
+  오류 0건 확인, `ProjectSettings/`·`Packages/` 부작용 없음. 자세한
+  내용은 `PLAN.md` 66-2장 ⑤ 참고.
+- **다음에 할 일**: 사람이 mixamo.com에서 캐릭터+애니메이션 받기(이제
+  유일하게 남은 단계) → 셰이더 세 벌을 실제 캐릭터에 붙여 확인.
+
+## 66-2장 "다음에 할 일" ⑥ Poly Haven 재질 추가 — 흙길·초목·목재 (2026-09-13, 이어서)
+
+- ②가 대표 둘(바닥·벽)만 확인한 데 이어 `grass_path_2`(흙길)·
+  `leafy_grass`(초목 바닥)·`dark_wooden_planks`(목재) 세 재질을 Poly
+  Haven 공개 API로 추가 반입(전부 CC0, 1k JPG diffuse/nor_gl/rough/
+  ao). `BuildEnvironmentPbrSample.cs`에 세 항목을 추가해 기존
+  `BuildMetallicSmoothnessMap()`을 그대로 재사용(④의 채널 팩킹 해법이
+  새 재질에도 바로 적용됨) — 배치 모드로 머티리얼 5개(기존 2+신규 3)
+  생성 확인, 컴파일 오류 0건·`ProjectSettings/`/`Packages/` 부작용
+  없음. 아직 어느 씬에도 안 물린 후보. 자세한 내용은 `PLAN.md` 66-2장
+  ⑥ 참고.
+- **다음에 할 일**: 사람이 mixamo.com에서 캐릭터+애니메이션 받기(유일한
+  남은 단계) → 이후 44장 우선순위대로 Kenney/VRoid 플레이스홀더를
+  실제 씬에 순차 교체.
 
 ## GUI 실기 확인 + 라이팅 재조정 — 다섯 판 전부 (2026-09-13, 이어서)
 
