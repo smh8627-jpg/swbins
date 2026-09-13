@@ -26,6 +26,14 @@ extends Node3D
 ## 순서) 중 하나에 SP 1점을 투자**하는 것으로 바뀐다 — 새 입력 액션을
 ## 안 늘리고 같은 넷을 "고르기 전/후" 두 자리로 재사용한다(허도 안에
 ## 탭 UI가 없어 이 자리 하나로 both를 겸한다).
+##
+## **2026-09-13 추가(같은 날 더 더) — 2~4차 전직.** SP 투자(숫자 1~4)와는
+## 달리 진급은 "되돌릴 수 없다"는 의미가 더 무거운 결정이라 숫자 키와
+## 안 겹치는 새 입력 액션(`story_job_advance`, P)을 하나 늘렸다 — 상점의
+## K(구매)·전직 전의 숫자(갈래 선택)와 마찬가지로 이번에도 자동으로
+## 대신 골라 주지 않는다(스스로 눌러야 진급한다). 갈래가 안 갈리므로
+## (StoryCombat.job_next()) 지금 job에서 갈 수 있는 다음 자리는 항상
+## 최대 하나뿐이라 "어느 걸 고를지" UI가 필요 없다.
 
 const Toast := preload("res://saga_core/ui/toast.gd")
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
@@ -86,12 +94,22 @@ func _on_range_exited(body: Node3D) -> void:
 
 func _status_text() -> String:
 	if StorySaveState.job != "none":
-		var name_: String = String(StoryCombat.JOBS_TIER1.get(StorySaveState.job, {}).get("name", StorySaveState.job))
+		var name_: String = String(StoryCombat.job_info(StorySaveState.job).get("name", StorySaveState.job))
 		var keys: Array = StoryCombat.JOB_SKILL_KEYS.get(StorySaveState.job, [])
 		var levels := ""
 		for i in keys.size():
 			levels += "%d:%s(Lv%d) " % [i + 1, String(keys[i]), StorySaveState.skill_level(String(keys[i]))]
-		return "🎖️ %s — SP %d/%d 남음 — %s" % [name_, StorySaveState.sp_left(), StorySaveState.sp_total(), levels]
+		var text := "🎖️ %s — SP %d/%d 남음 — %s" % [name_, StorySaveState.sp_left(), StorySaveState.sp_total(), levels]
+		var next_key := StoryCombat.job_next(StorySaveState.job)
+		if next_key != "":
+			var next_name: String = String(StoryCombat.job_info(next_key).get("name", next_key))
+			if StorySaveState.can_advance_job(next_key):
+				text += "— P키로 %s 승급 가능!" % next_name
+			else:
+				text += "— 다음: %s(Lv.%d, 지금 무예 하나를 Lv.%d 이상으로)" % [
+					next_name, StoryCombat.job_level_need(next_key), StoryCombat.job_advance_skill_gate(next_key),
+				]
+		return text
 	if StorySaveState.level < StoryCombat.JOB_CHANGE_LEVEL:
 		return "🎖️ 전직은 Lv.%d부터(현재 Lv.%d) — 1:무사 2:궁수 3:협객 4:방사" % [StoryCombat.JOB_CHANGE_LEVEL, StorySaveState.level]
 	return "🎖️ 전직할 수 있다 — 1:무사 2:궁수 3:협객 4:방사"
@@ -105,6 +123,9 @@ func _process(_delta: float) -> void:
 		Toast.show(self, _status_text(), 2.5)
 		return
 	if StorySaveState.job != "none":
+		if Input.is_action_just_pressed("story_job_advance"):
+			_advance()
+			return
 		_raise(0)
 		_raise(1)
 		_raise(2)
@@ -122,6 +143,21 @@ func _choose(key: String) -> void:
 		return
 	var it: Dictionary = StoryCombat.JOBS_TIER1[key]
 	Toast.show(self, "🎖️ %s로 전직! 체력+%d 공격+%d%s" % [
+		String(it.name), int(it.hp), int(it.atk),
+		(" 기력+%d" % int(it.mp)) if float(it.mp) > 0.0 else "",
+	], 3.0)
+
+
+## 2~4차 전직 — job.js join() 그대로: 진급하면 job이 다음 자리로
+## 덮어써진다(사슬은 story_combat.gd JOB_FROM이 데이터로 갖고 있으니
+## 하위 무예·grow는 그대로 다 유지된다 — 잃는 게 없다).
+func _advance() -> void:
+	var next_key := StoryCombat.job_next(StorySaveState.job)
+	if next_key == "" or not StorySaveState.advance_job(next_key):
+		Toast.show(self, _status_text(), 2.5)
+		return
+	var it: Dictionary = StoryCombat.job_info(next_key)
+	Toast.show(self, "🎖️ %s로 승급! 체력+%d 공격+%d%s" % [
 		String(it.name), int(it.hp), int(it.atk),
 		(" 기력+%d" % int(it.mp)) if float(it.mp) > 0.0 else "",
 	], 3.0)

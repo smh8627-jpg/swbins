@@ -215,6 +215,130 @@ const JOBS_TIER1 := {
 }
 const JOB_CHANGE_LEVEL := 10
 
+## **2026-09-13 추가 — 2~4차 전직(job 체인 재설계).** data-job.js JOBS는
+## 실제로 갈래마다(무사→장군→원수→전신 등) `from`으로 이어지는 사슬 넷
+## (서로 안 섞인다)이다. `job`은 여전히 문자열 하나뿐이고(전과 같다 —
+## 원작 `job.js join()`도 그냥 덮어쓴다) 대신 이 사슬 정보를 데이터로
+## 들여, `job_chain()`이 "이 job이 어느 사슬 위에 있는지"를 훑을 수 있게
+## 한다 — story_player.gd의 여러 `job=="warrior"` 분기가 이제 이 사슬
+## 소속 여부로 바뀐다(전직해도 하위 무예를 잃지 않는다, data-job.js
+## skillsOf()의 chain-walk과 같은 정신).
+##
+## **무예 자체(6개씩×3단×4갈래=72개)는 이번 걸음 밖** — 그래서 tier2
+## (장군 등)는 실제로 진급까지 열리지만, tier3·4는 `job.js canJoin()`의
+## "하위 무예가 lv5/8/10 이상 하나 있어야 한다"(JOB_SKILL_LEVEL_GATE)
+## 조건이 `JOB_SKILL_KEYS`에 tier2+ 항목이 아직 없어 자연히 못 채워진다
+## (거짓으로 막지 않고 데이터가 없어 그냥 안 열린다) — tier2 무예가
+## 생기기 전까지는 tier3 진급이 정직하게 막혀 있다.
+const JOB_FROM := {
+	"general": "warrior", "sniper": "archer", "assassin": "rogue", "sage": "mage",
+	"marshal": "general", "flier": "sniper", "wraith": "assassin", "immortal": "sage",
+	"warlord": "marshal", "falcon": "flier", "reaper": "wraith", "ascendant": "immortal",
+}
+const JOB_TIER := {
+	"none": 0,
+	"warrior": 1, "archer": 1, "rogue": 1, "mage": 1,
+	"general": 2, "sniper": 2, "assassin": 2, "sage": 2,
+	"marshal": 3, "flier": 3, "wraith": 3, "immortal": 3,
+	"warlord": 4, "falcon": 4, "reaper": 4, "ascendant": 4,
+}
+const JOB_LEVEL_NEED := {
+	"general": 25, "sniper": 25, "assassin": 25, "sage": 25,
+	"marshal": 45, "flier": 45, "wraith": 45, "immortal": 45,
+	"warlord": 70, "falcon": 70, "reaper": 70, "ascendant": 70,
+}
+
+## data-job.js JOBS의 tier2~4 grow(hp/atk/mp) 그대로 — JOBS_TIER1과 같은
+## {name, hp, atk, mp} 모양.
+const JOBS_TIER2 := {
+	"general":  {"name": "장군(將軍)", "hp": 110.0, "atk": 7.0, "mp": 0.0},
+	"sniper":   {"name": "신궁(神弓)", "hp": 40.0, "atk": 14.0, "mp": 0.0},
+	"assassin": {"name": "자객(刺客)", "hp": 55.0, "atk": 11.0, "mp": 0.0},
+	"sage":     {"name": "도사(道士)", "hp": 45.0, "atk": 9.0, "mp": 90.0},
+}
+const JOBS_TIER3 := {
+	"marshal":  {"name": "원수(元帥)", "hp": 190.0, "atk": 13.0, "mp": 0.0},
+	"flier":    {"name": "비장(飛將)", "hp": 70.0, "atk": 26.0, "mp": 0.0},
+	"wraith":   {"name": "귀영(鬼影)", "hp": 95.0, "atk": 20.0, "mp": 0.0},
+	"immortal": {"name": "진인(眞人)", "hp": 80.0, "atk": 17.0, "mp": 160.0},
+}
+const JOBS_TIER4 := {
+	"warlord":   {"name": "전신(戰神)", "hp": 300.0, "atk": 20.0, "mp": 0.0},
+	"falcon":    {"name": "궁성(弓聖)", "hp": 115.0, "atk": 39.0, "mp": 0.0},
+	"reaper":    {"name": "명왕(冥王)", "hp": 155.0, "atk": 30.0, "mp": 0.0},
+	"ascendant": {"name": "천존(天尊)", "hp": 130.0, "atk": 26.0, "mp": 260.0},
+}
+
+## job.js canJoin()의 tier별 무예 레벨 문턱(하위 무예 하나가 이 이상이어야
+## 그 tier로 진급 가능) — tier2:5, tier3:8, tier4:10 그대로.
+const JOB_SKILL_LEVEL_GATE := {2: 5, 3: 8, 4: 10}
+
+
+static func job_tier(key: String) -> int:
+	return int(JOB_TIER.get(key, 0))
+
+
+static func job_info(key: String) -> Dictionary:
+	if JOBS_TIER1.has(key):
+		return JOBS_TIER1[key]
+	if JOBS_TIER2.has(key):
+		return JOBS_TIER2[key]
+	if JOBS_TIER3.has(key):
+		return JOBS_TIER3[key]
+	if JOBS_TIER4.has(key):
+		return JOBS_TIER4[key]
+	return {"name": key, "hp": 0.0, "atk": 0.0, "mp": 0.0}
+
+
+## key(자기 포함)에서 'none'까지 이어지는 사슬 — data-job.js skillsOf()의
+## chain-walk 그대로(tier1은 JOB_FROM에 없어 get()의 기본값 "none"으로
+## 바로 끊긴다).
+static func job_chain(key: String) -> Array:
+	var out: Array = []
+	var cur := key
+	while cur != "" and cur != "none":
+		out.append(cur)
+		cur = String(JOB_FROM.get(cur, "none"))
+	return out
+
+
+## job.js grow()의 chain-sum 그대로 — 사슬 위 모든 tier의 grow를 더한다.
+static func job_grow_chain(key: String) -> Dictionary:
+	var hp := 0.0
+	var atk := 0.0
+	var mp := 0.0
+	for k: String in job_chain(key):
+		var it: Dictionary = job_info(k)
+		hp += float(it.get("hp", 0.0))
+		atk += float(it.get("atk", 0.0))
+		mp += float(it.get("mp", 0.0))
+	return {"hp": hp, "atk": atk, "mp": mp}
+
+
+## job.js canJoin()의 `j.from === core.save.job` 그대로 — key로 진급하려면
+## 지금 이 job이어야 한다.
+static func job_prereq(key: String) -> String:
+	return String(JOB_FROM.get(key, "none"))
+
+
+static func job_level_need(key: String) -> int:
+	if JOBS_TIER1.has(key):
+		return JOB_CHANGE_LEVEL
+	return int(JOB_LEVEL_NEED.get(key, 999999))
+
+
+static func job_advance_skill_gate(key: String) -> int:
+	return int(JOB_SKILL_LEVEL_GATE.get(job_tier(key), 0))
+
+
+## key에서 바로 다음(한 단계 위) job — 갈래가 안 갈리므로 항상 최대 하나.
+## 없으면(예: tier4 극) 빈 문자열.
+static func job_next(key: String) -> String:
+	for k: String in JOB_FROM:
+		if String(JOB_FROM[k]) == key:
+			return k
+	return ""
+
 ## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 무사(warrior)
 ## 무예 넷.** data-job.js SKILLS job:'warrior' 넷(w_cut/w_whirl/w_rush/
 ## w_iron).

@@ -120,7 +120,10 @@ func take_damage(amount: float) -> void:
 		return
 	var def: float = float(StorySaveState.gear_totals().def)
 	var cut: float = StoryCombat.damage_cut(def)
-	var guard_mul: float = (1.0 - StoryCombat.WARRIOR_IRON_GUARD) if (_job_buff_time_left > 0.0 and StorySaveState.job == "warrior") else 1.0
+	## **2026-09-13 추가 — 2~4차 전직**: `job == "warrior"` 정확 일치 대신
+	## 사슬 소속(장군으로 전직해도 무사 철갑을 잃지 않는다)으로 바꿨다.
+	var job_chain: Array = StoryCombat.job_chain(StorySaveState.job)
+	var guard_mul: float = (1.0 - StoryCombat.WARRIOR_IRON_GUARD) if (_job_buff_time_left > 0.0 and job_chain.has("warrior")) else 1.0
 	hp = clampf(hp - amount * (1.0 - cut) * guard_mul, 0.0, max_hp)
 
 
@@ -155,7 +158,8 @@ func _physics_process(delta: float) -> void:
 	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
 	## m_talis(부적)가 걸려 있으면 mp 회복이 MAGE_TALIS_REGEN_MUL배 빨라진다
 	## (side.js MP_REGEN*bf.regen과 같은 자리) — 다른 job 버프는 regen이 없다.
-	var regen_mul: float = StoryCombat.MAGE_TALIS_REGEN_MUL if (_job_buff_time_left > 0.0 and StorySaveState.job == "mage") else 1.0
+	## 2026-09-13 추가(2~4차 전직) — 사슬 소속으로 확인(도사로 전직해도 유지).
+	var regen_mul: float = StoryCombat.MAGE_TALIS_REGEN_MUL if (_job_buff_time_left > 0.0 and StoryCombat.job_chain(StorySaveState.job).has("mage")) else 1.0
 	mp = minf(max_mp, mp + StoryCombat.MP_REGEN * regen_mul * delta)
 	_check_rope()
 
@@ -179,7 +183,13 @@ func _physics_process(delta: float) -> void:
 		_cast_bolt()
 	if Input.is_action_just_pressed("story_skill_brace"):
 		_cast_brace()
-	if StorySaveState.job == "warrior":
+	## **2026-09-13 추가 — 2~4차 전직**: `job` 문자열과의 정확 일치 대신
+	## 사슬 소속(네 갈래는 서로 안 섞이므로 여전히 최대 하나만 걸린다)으로
+	## 바꿨다 — 장군(general)으로 전직해도 무사 무예 넷(w_cut 등)을 계속
+	## 쓸 수 있어야 한다(원작 skillsOf()의 누적 정신, story_combat.gd
+	## JOB_FROM 머리말 참고).
+	var chain: Array = StoryCombat.job_chain(StorySaveState.job)
+	if chain.has("warrior"):
 		if Input.is_action_just_pressed("story_job_skill_1"):
 			_cast_warrior_cut()
 		if Input.is_action_just_pressed("story_job_skill_2"):
@@ -188,7 +198,7 @@ func _physics_process(delta: float) -> void:
 			_cast_warrior_rush()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_warrior_iron()
-	elif StorySaveState.job == "archer":
+	elif chain.has("archer"):
 		if Input.is_action_just_pressed("story_job_skill_1"):
 			_cast_archer_shot()
 		if Input.is_action_just_pressed("story_job_skill_2"):
@@ -197,7 +207,7 @@ func _physics_process(delta: float) -> void:
 			_cast_archer_pierce()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_archer_eye()
-	elif StorySaveState.job == "rogue":
+	elif chain.has("rogue"):
 		if Input.is_action_just_pressed("story_job_skill_1"):
 			_cast_rogue_twin()
 		if Input.is_action_just_pressed("story_job_skill_2"):
@@ -206,7 +216,7 @@ func _physics_process(delta: float) -> void:
 			_cast_rogue_step()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_rogue_vital()
-	elif StorySaveState.job == "mage":
+	elif chain.has("mage"):
 		if Input.is_action_just_pressed("story_job_skill_1"):
 			_cast_mage_fire()
 		if Input.is_action_just_pressed("story_job_skill_2"):
@@ -298,13 +308,15 @@ func _effective_atk() -> float:
 	var atk := StoryCombat.START_ATK + float(StorySaveState.gear_totals().atk) + float(StorySaveState.job_grow().atk)
 	atk *= StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0
 	if _job_buff_time_left > 0.0:
-		if StorySaveState.job == "warrior":
+		## 2026-09-13 추가(2~4차 전직) — 사슬 소속으로 확인(전직 후에도 유지).
+		var chain: Array = StoryCombat.job_chain(StorySaveState.job)
+		if chain.has("warrior"):
 			atk *= StoryCombat.WARRIOR_IRON_ATK_MUL
-		elif StorySaveState.job == "archer":
+		elif chain.has("archer"):
 			atk *= StoryCombat.ARCHER_EYE_ATK_MUL
-		elif StorySaveState.job == "rogue":
+		elif chain.has("rogue"):
 			atk *= StoryCombat.ROGUE_VITAL_ATK_MUL
-		elif StorySaveState.job == "mage":
+		elif chain.has("mage"):
 			atk *= StoryCombat.MAGE_TALIS_ATK_MUL
 	return atk
 

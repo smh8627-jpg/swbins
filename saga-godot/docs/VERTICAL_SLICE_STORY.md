@@ -1379,6 +1379,96 @@ git diff 0(추가·제거가 정확히 상쇄), 나머지 넷은 print 한 줄�
 고르기)으로 늘리는 건 이 절의 범위 밖(사냥터당 하나로 좁혔다) — 원하면
 별도로 볼 자리.
 
+## 27. 2~4차 전직 — job 체인 재설계 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해 묻지말고"** — 21절부터 "2~4차 전직(job
+체인 재설계 필요)"으로 계속 미뤄 둔 마지막 큰 후보를 채웠다. 21절이
+남긴 경고 그대로였다: `job`이 "한 번 정하면 안 바뀐다"는 전제로 tier1
+넷뿐이었고, `story_player.gd`에 `StorySaveState.job == "warrior"` 식
+정확 일치 분기가 열 곳(guard_mul·regen_mul·입력 배선 넷×4·`_effective_
+atk()` 넷)이나 있어, 그대로 두고 `job`을 `"general"`처럼 새 문자열로
+덮어썼다면 그 열 곳이 전부 조용히 안 걸려 무사 무예 넷(입력까지)이
+통째로 죽었을 것이다.
+
+**설계 — data-job.js의 실제 구조를 그대로 옮겼다.** JOBS는 갈래마다
+(무사→장군→원수→전신 등) `from`으로 이어지는 사슬 넷(서로 안 섞인다)
+이다. `job` 자체는 여전히 문자열 하나뿐(원작 `job.js join()`도 그냥
+덮어쓴다, 재설계는 저장 방식이 아니라 **읽는 쪽**이다) — 대신
+`story_combat.gd`에 `JOB_FROM`(사슬)·`JOB_TIER`·`JOB_LEVEL_NEED`·
+`JOBS_TIER2/3/4`(data-job.js grow 그대로)·`JOB_SKILL_LEVEL_GATE`(tier
+2/3/4 진급에 필요한 하위 무예 레벨 5/8/10)를 데이터로 들이고,
+`job_chain(key)`(사슬 훑기)·`job_grow_chain(key)`(사슬 전체 grow 합,
+data-job.js `grow()`의 chain-sum 그대로)·`job_next(key)`(다음 자리,
+갈래가 안 갈리므로 항상 최대 하나) 함수를 추가했다.
+
+**`story_player.gd`의 열 곳을 전부 사슬 소속 검사로 바꿨다** —
+`StorySaveState.job == "warrior"` → `StoryCombat.job_chain(StorySaveState.
+job).has("warrior")`. 이러면 장군으로 전직해도 사슬에 "warrior"가
+그대로 남아 있어(`["general","warrior"]`) 무사 무예 넷·철갑 버프·
+`_effective_atk()` 배율이 전부 그대로 유지된다 — data-job.js
+`skillsOf()`의 "전직해도 하위 무예를 잃지 않는다"는 누적 정신 그대로.
+
+**`story_save_state.gd`**: `job_grow()`가 이제 `job_grow_chain()`을
+호출(사슬 합산 — tier1만 있던 캐릭터는 사슬이 자기 하나뿐이라 값이
+안 바뀐다, 회귀 안전). `can_raise_skill()`도 `job == 그 무예의 job`
+정확 일치 대신 `job_chain(job).has(그 무예의 job)`으로 바꿔, 전직 후에도
+하위 무예에 계속 SP를 투자할 수 있다. 신규 `can_advance_job(key)`/
+`advance_job(key)` — job.js `canJoin()`/`join()` 그대로(사슬상 바로
+아래 자리인지·레벨 문턱·하위 무예 레벨 게이트 셋 다 확인).
+
+**tier2까지만 실제로 열린다 — 정직한 제약.** `JOB_SKILL_KEYS`에 아직
+tier2+ 무예가 없어(6개씩×3단×4갈래=72개는 이번 걸음 밖), tier3 진급
+조건("하위(tier2) 무예 하나가 Lv.8 이상")을 채울 무예 자체가 없다 —
+거짓으로 막은 게 아니라 데이터가 없어 자연히 안 열린다. tier2 무예가
+생기기 전까지는 정확히 이 상태로 남는다.
+
+**`story_job_trainer.gd`**: 새 입력 액션 `story_job_advance`(P) 신규 —
+SP 투자(숫자 1~4)와 겹치지 않는 별도 키(진급은 "되돌릴 수 없다"는
+무거운 결정이라 자동 선택 없이 직접 누르게). 갈래가 안 갈리므로
+`job_next()`가 항상 최대 하나만 준다 — "어느 걸 고를지" UI가 필요
+없다. 상태 문구에 다음 자리 이름·진급 가능 여부(레벨/무예 레벨 부족
+안내 포함)를 추가.
+
+- `project.godot`: `story_job_advance` 입력 액션(P, physical_keycode 80)
+  신규 — 프로젝트 전체에서 안 쓰던 키 확인 후 골랐다.
+- `story_combat.gd`: `JOB_FROM`/`JOB_TIER`/`JOB_LEVEL_NEED`/
+  `JOBS_TIER2`/`JOBS_TIER3`/`JOBS_TIER4`/`JOB_SKILL_LEVEL_GATE` 신규,
+  `job_tier`/`job_info`/`job_chain`/`job_grow_chain`/`job_prereq`/
+  `job_level_need`/`job_advance_skill_gate`/`job_next` 신규.
+- `story_save_state.gd`: `job_grow()` 재구현(chain-sum), `can_raise_skill()`
+  사슬 검사로 변경, `can_advance_job()`/`advance_job()` 신규.
+- `story_player.gd`: `job ==` 정확 일치 열 곳을 `job_chain(...).has(...)`
+  로 교체(guard_mul·regen_mul·입력 배선·`_effective_atk()`).
+- `story_job_trainer.gd`: `job_info()` 사용으로 이름 조회 일반화, 진급
+  입력·`_advance()` 신규, 상태 문구에 다음 자리 안내 추가.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → `project.godot` diff가 의도한 입력 액션 한 줄만인지
+확인(에디터가 값을 안 지웠다) → 열세 씬 세 번 연속 exit 0·로그 완전
+동일(다섯 판 회귀 포함). **임시 디버그**(`story_field.gd` `_ready()`에
+잠깐 추가)로 실제 진급 흐름 확인: 무사(job="warrior")·Lv25·w_cut
+Lv5 상태에서 `job_chain("warrior")=["warrior"]`·`job_grow()`=hp40/
+atk2/mp0 확인 → `can_advance_job("general")`=true → `advance_job`
+성공 → `job_chain("general")=["general","warrior"]`(사슬 유지 확인)
+→ `job_grow()`=hp150(110+40)/atk9(7+2)/mp0(사슬 합산 정확) →
+`can_raise_skill("w_cut")`=true(전직 후에도 하위 무예 투자 가능
+확인) → `can_advance_job("marshal")`=false(Lv25<45, 레벨 게이트 확인)
+→ Lv50으로 올려도 general 무예가 아직 없어 여전히 false(tier3가
+정직하게 막혀 있음 확인) — 전부 예측과 정확히 일치. 디버그
+원상복구(`story_field.gd` diff 0). 재검증(3회 반복, exit 0·로그
+동일·import diff 없음)까지 마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — 허도에서 P키로 실제 승급하는 손맛,
+승급 후에도 무사 무예 넷이 여전히 눌리는지는 눈으로 볼 것. 계속
+몰아서 받을 것.
+
+**다음 이어질 것** — tier2 무예(6개씩×4갈래=24개, 장군·신궁·자객·도사)를
+채우면 tier3 진급 문이 자연히 열린다. STORY 판의 "굵직한 후보"는
+21절부터 이어 온 순서(사명 확장→상점→나머지 사냥터→전직 트리→몬스터
+도감→마을 배경→2~4차 전직)가 이걸로 전부 최소 한 걸음씩 완료됐다 —
+다음은 tier2 무예 확장이거나 STORY 밖(다른 판, GO/DUNGEON/FOREST/
+REALM)으로 옮겨 갈 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

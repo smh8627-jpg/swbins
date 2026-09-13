@@ -135,9 +135,35 @@ func choose_job(key: String) -> bool:
 	return true
 
 
-## 1차 전직 grow(hp/atk/mp) — job이 'none'이면 전부 0.
+## **2026-09-13 추가 — 2~4차 전직.** job.js canJoin() 그대로: key가 지금
+## job의 바로 다음 자리여야 하고(사슬, StoryCombat.job_prereq), 레벨
+## 문턱을 넘어야 하고, 지금 job의 무예 중 하나가 그 tier의 레벨 문턱
+## (JOB_SKILL_LEVEL_GATE) 이상이어야 한다. 이 슬라이스는 tier2+ 무예가
+## 아직 없어(JOB_SKILL_KEYS에 항목 없음) 그 목록이 비고, 따라서 tier3+
+## 진급은 자연히 못 연다(거짓으로 막은 게 아니라 채울 무예가 아직 없다).
+func can_advance_job(key: String) -> bool:
+	if StoryCombat.job_prereq(key) != job:
+		return false
+	if level < StoryCombat.job_level_need(key):
+		return false
+	var gate := StoryCombat.job_advance_skill_gate(key)
+	for k: String in StoryCombat.JOB_SKILL_KEYS.get(job, []):
+		if skill_level(String(k)) >= gate:
+			return true
+	return false
+
+
+func advance_job(key: String) -> bool:
+	if not can_advance_job(key):
+		return false
+	job = key
+	return true
+
+
+## 사슬 전체(현재 job + 그 위 모든 tier)의 grow(hp/atk/mp) 합 — job이
+## 'none'이면 전부 0(빈 사슬).
 func job_grow() -> Dictionary:
-	return StoryCombat.JOBS_TIER1.get(job, {"hp": 0.0, "atk": 0.0, "mp": 0.0})
+	return StoryCombat.job_grow_chain(job)
 
 
 ## job.js spTotal()/spSpent()/spLeft() 그대로 — 총점은 (레벨-1)×SP_PER_LEVEL,
@@ -161,11 +187,17 @@ func skill_level(key: String) -> int:
 	return int(skills.get(key, 0))
 
 
-## job.js canRaise() 그대로 — 이 job의 무예가 맞는지·아직 만렙이 아닌지·
-## 남은 점수가 있는지만 본다(원문의 `need`(다음 갈래 연계) 조건은 이
-## 슬라이스가 1차 넷뿐이라 해당 무예가 없어 범위 밖).
+## job.js canRaise() 그대로 — 이 무예가 지금 job의 사슬 안(자기 job이거나
+## 그 아래 tier)에 있는지·아직 만렙이 아닌지·남은 점수가 있는지 본다.
+## **2026-09-13 추가 — 2~4차 전직**: 전에는 `job` 하나와 정확히 같은지만
+## 봤는데(그때는 사슬이 tier1 하나뿐이라 같은 결과), 이제 진급해도 하위
+## 무예(예: 장군이 된 뒤에도 무사 무예)에 계속 투자할 수 있어야 하므로
+## 사슬 소속 여부로 바꿨다(원작 skillsOf()의 chain-walk과 같은 정신).
+## 원문의 `need`(다음 갈래 연계, 한 무예를 올리려면 그 앞 무예가 필요)
+## 조건은 여전히 범위 밖(각 tier 무예 자체가 아직 없다).
 func can_raise_skill(key: String) -> bool:
-	if String(StoryCombat.SKILL_JOB.get(key, "")) != job:
+	var skill_job := String(StoryCombat.SKILL_JOB.get(key, ""))
+	if skill_job == "" or not StoryCombat.job_chain(job).has(skill_job):
 		return false
 	if skill_level(key) >= StoryCombat.SKILL_MAX_LEVEL:
 		return false

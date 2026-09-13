@@ -4855,3 +4855,38 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 2~4차 전직(job 체인 재설계 필요). 몬스터 종류를
     사냥터당 하나 이상(원작처럼 풀에서 무작위)으로 늘리는 건 범위 밖으로
     남겨 뒀다.
+
+
+## STORY 2~4차 전직 — job 체인 재설계 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어해 묻지말고"** — 21절부터 계속 미뤄
+  온 마지막 큰 후보. `job`이 "한 번 정하면 안 바뀐다"는 tier1 전제로
+  `story_player.gd`에 `job=="warrior"` 식 정확 일치 분기가 열 곳 있어,
+  그대로 tier2로 진급했다면 무사 무예 넷(입력 포함)이 통째로 죽었을
+  것 — 그게 이 재설계의 핵심이었다. 자세한 기록·수치 검증은
+  `docs/VERTICAL_SLICE_STORY.md` 27절.
+  - `story_combat.gd`에 data-job.js의 실제 사슬 구조(`JOB_FROM`·
+    `JOBS_TIER2/3/4`·`JOB_SKILL_LEVEL_GATE`)와 `job_chain()`/
+    `job_grow_chain()`(chain-sum)/`job_next()` 신규.
+  - `story_player.gd`의 열 곳 전부 `job == "warrior"` → `job_chain(job).
+    has("warrior")`로 교체 — 전직해도 하위 무예·버프를 안 잃는다.
+  - `story_save_state.gd`: `job_grow()`(chain-sum으로 재구현)·
+    `can_raise_skill()`(사슬 검사)·`can_advance_job()`/`advance_job()`
+    신규. `story_job_trainer.gd`: 새 입력 액션 `story_job_advance`(P)로
+    진급(SP 투자 숫자키와 안 겹침).
+  - **tier2까지만 실제로 열린다** — tier2 무예(72개) 자체가 이번 걸음
+    밖이라, tier3 진급에 필요한 "하위 무예 레벨" 조건을 채울 무예가
+    없어 tier3+는 정직하게 아직 안 열린다(거짓으로 막은 게 아니다).
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+    → `project.godot` diff가 입력 액션 한 줄만인지 확인 → 열세 씬 세 번
+    연속 exit 0·로그 완전 동일(다섯 판 회귀 포함). 임시 디버그로 실제
+    진급 흐름(무사Lv25·w_cutLv5 → 장군 진급 성공 → 사슬 유지 확인 →
+    grow 150/9/0(사슬 합산 정확) → 전직 후에도 w_cut 투자 가능 → 원수
+    진급은 레벨 부족(Lv25<45)·Lv50이어도 general 무예가 없어 여전히
+    막힘)까지 전부 예측과 일치. 디버그 원상복구(diff 0), 재검증까지
+    마쳤다.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — tier2 무예(장군·신궁·자객·도사 6개씩=24개)를
+    채우면 tier3 진급 문이 자연히 열린다. 21절부터 이어 온 STORY
+    "굵직한 후보"(사명 확장→상점→나머지 사냥터→전직 트리→몬스터 도감→
+    마을 배경→2~4차 전직)가 이걸로 전부 최소 한 걸음씩 완료됐다.
