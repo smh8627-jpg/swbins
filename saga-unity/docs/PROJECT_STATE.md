@@ -4180,3 +4180,54 @@ GO/Story의 Environment→Building(각 게임 지형 빌더가 Dungeon과 구조
 달라 EnvironmentMaterial.cs 패턴을 그대로 못 옮기고 게임별로 새로
 봐야 함), 또는 Forest에 적대 개체를 새로 넣을지(콘텐츠 설계 결정 필요),
 또는 Realm의 자산 우선순위를 별도로 정하는 것.
+
+## 같은 세션 이어서 — GO/Story "Environment" 마저 함, 세션 종료 (2026-09-14)
+
+사용자 "모두 다해"·"묻지말고"로 계속 진행 지시. 두 게임의 지형 구조가
+서로 또 Dungeon과도 달라 각각 다르게 접근했다:
+
+- **GO "Environment"** — GO 지형은 primitive가 아니라 9종 지형을 정점색
+  하나로 칠하는 커스텀 셰이더(`VertexColorLit.shader`, UV조차 없었다)라
+  Dungeon 패턴(재질 통째 교체)을 못 옮긴다. **사용자에게 범위를
+  물어**("전체 멀티텍스처 스플랫팅" vs "간단한 디테일 오버레이") →
+  "간단한 디테일 오버레이만"으로 확정. `TerrainBuilder.cs`에 UV(월드
+  XZ) 추가, 셰이더에 `_DetailTex/_DetailTiling/_DetailStrength` 신규 —
+  기존 정점색 블렌딩은 그대로 두고 Poly Haven cobblestone_floor_01의
+  AO 맵을 옅게 곱해 미세 질감만 더했다(9종 지형별 텍스처 매핑은 범위 밖
+  으로 보류). **GO "Building"(마을집)은 손 안 댔다** — 이미 실제
+  Kenney GLB(wall-block/roof-gable)를 쓰고 있고, 이 킷도 Dungeon의
+  room-small.glb처럼 아틀라스 텍스처 하나를 공유해 PBR 타일링 재질을
+  그대로 못 씌운다(같은 제약, 재설계 필요) — "간단한 오버레이만" 승인
+  범위를 넘어서 보류.
+- **Story "Environment"** — STORY는 GLB 없이 primitive 박스뿐이라
+  (`StoryTerrainBuilder.cs`) Dungeon 패턴을 그대로 옮길 수 있었다.
+  바닥=leafy_grass(들판 초록과 톤 맞음), 발판=dark_wooden_planks(갈색
+  발판과 톤 맞음) — 66-2장 ⑥이 받아만 두고 하나도 안 쓰던 후보 둘을
+  처음 실전 배치했다. **Story "Building"은 해당 없음** — 이 슬라이스엔
+  바닥/발판/로프/경계벽뿐, 별도 건물 요소가 없다.
+
+검증은 이전 항목들과 같은 절차(배치 모드 컴파일 → BuildTest*Scene.Build
+재실행 → 각 게임 headless playtest, Story는 전체 기능 테스트까지) 전부
+통과, `ProjectSettings/EditorSettings.asset`이 이 판들의 플레이테스트
+스크립트 자체 습성(원복 누락)으로 두 번 더 바뀌어 매번 `git checkout`
+으로 되돌렸다(반복되는 패턴 — 다음에 시간 나면 PlaytestStorySlice.cs·
+관련 스크립트에 PlaytestHeadless.cs처럼 원복 코드를 넣는 게 근본
+해결책).
+
+**사용자가 "현재 작업 다 완료 되면 새로운 세션에서 이어 할게"로 세션
+종료.** 이번 두 세션 합쳐 총 11개 커밋, 전부 origin/main에 푸시 완료.
+
+**다음 세션이 볼 것** — 위 표(44장 완료 현황)에 GO/Story Environment가
+추가됐다는 점만 갱신해서 참고: Dungeon은 Environment+Building 둘 다
+완료, GO/Story는 Environment만(Building은 구조적 제약으로 보류),
+Forest는 Player만, Realm은 전부 미착수. 남은 후보:
+- Forest에 적대 개체를 새로 넣을지 결정(콘텐츠 설계 — 자산 교체 범위를
+  넘어선다, 다음에 사용자에게 먼저 물을 것)
+- GO/Dungeon의 Kenney 아틀라스 킷(마을집·던전 셸)을 PBR로 바꾸려면
+  UV 재설계나 다른 소스 에셋이 필요 — 이번엔 범위 밖으로 보류한 채로
+  남아 있다
+- Realm의 자산 우선순위를 44장 표와 별개로 새로 정하는 것(경영/전략
+  게임이라 Player/Enemy 개념 자체가 안 맞는다)
+- 전체 다섯 판이 지금 수준(사실적 PBR+Mixamo 캐릭터)에서 실기
+  플레이테스트할 때가 됐는지도 사용자가 판단할 시점 — 루트 CLAUDE.md
+  실기 확인 방침대로 매 단계마다 안 하고 몰아서 할 것.
