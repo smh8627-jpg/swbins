@@ -15,19 +15,33 @@ namespace Saga.Story.World
     /// 같은 결로 **제자리에 서서 맞기만 한다** — 넉백조차 이번엔 안
     /// 넣었다(시각 반응 없이 HP만 깎인다, 다음 콘텐츠 확장 때 DUNGEON
     /// `DungeonEnemy.cs` 패턴을 참고해 추격·반격을 붙이면 된다).
+    ///
+    /// **두목(boss) — "STORY 콘텐츠 확장"(2026-09-13)** — `SetBoss()`로
+    /// 켜면 같은 컴포넌트가 data-enemy.js BOSSES[0]("황건 두목") 값으로
+    /// 돈다: HP만 12배(StoryCombat.BossHp)로 커지고 시각도 1.4배 커진다 —
+    /// 색은 원작처럼 그대로(잡졸과 같은 황건적 계열, 크기·이름·체력으로만
+    /// 구분). 반격은 잡졸과 같은 이유로 여전히 안 넣었다.
     /// </summary>
     public class StoryEnemy : MonoBehaviour
     {
         private static readonly List<StoryEnemy> AllList = new List<StoryEnemy>();
         public static IReadOnlyList<StoryEnemy> All => AllList;
 
-        // data-enemy.js 황건적 color '#c9a83a'.
+        // data-enemy.js 황건적/황건 두목 공통 color '#c9a83a'.
         private static readonly Color BodyColor = new Color(0.788f, 0.659f, 0.227f);
+        private const float BossVisualScaleMul = 1.4f;
 
         [SerializeField] private GameObject modelPrefab; // BuildTestStoryScene.cs가 character-d를 채운다.
+        [SerializeField] private bool isBoss;
 
-        private float _hp = StoryCombat.EnemyHp;
+        private float _hp;
         private bool _dead;
+
+        public bool IsBoss => isBoss;
+
+        /// <summary>StoryEnemySpawner.cs 전용 — Awake() 전(AddComponent
+        /// 직후)에 불러야 한다(BuildVisual()·HP 초기화가 이 값을 본다).</summary>
+        public void SetBoss(bool value) => isBoss = value;
 
         /// <summary>`Destroy()`는 실제 파괴를 프레임 끝으로 미루므로(즉시
         /// null이 안 된다), 같은 프레임 안에서 죽었는지 확인해야 하는
@@ -38,6 +52,7 @@ namespace Saga.Story.World
         private void Awake()
         {
             AllList.Add(this);
+            _hp = isBoss ? StoryCombat.BossHp : StoryCombat.EnemyHp;
             if (transform.Find("Visual") == null) BuildVisual();
         }
 
@@ -45,8 +60,9 @@ namespace Saga.Story.World
 
         private void BuildVisual()
         {
-            if (modelPrefab != null) CharacterVisual.Spawn(modelPrefab, transform, 1.6f, BodyColor);
-            else CharacterVisual.SpawnFallbackCapsule(transform, 1.6f, BodyColor);
+            float height = isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
+            if (modelPrefab != null) CharacterVisual.Spawn(modelPrefab, transform, height, BodyColor);
+            else CharacterVisual.SpawnFallbackCapsule(transform, height, BodyColor);
         }
 
         public void TakeDamage(float amount)
@@ -61,6 +77,7 @@ namespace Saga.Story.World
             if (_dead) return;
             _dead = true;
             StoryQuestState.AddKill();
+            if (isBoss) StoryQuestState.AddBossKill();
             Destroy(gameObject);
         }
     }

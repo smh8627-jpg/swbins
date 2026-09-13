@@ -17,7 +17,9 @@ namespace Saga.EditorTools
     /// 궤적·로프 키 조작 자체는 사람이 GUI로 확인해야 한다 — 여기서는
     /// **로직 경로**(트리거 배선, 전투 판정, 저장/로드)만 검증한다:
     /// (1) 잡졸 열에게 다가가 실제로 때려서 죽이고 사명(kill 10) 카운트가
-    /// 오르고 완료되는지,
+    /// 오르고 완료되는지, (1-1) 두목(황건 두목, "STORY 콘텐츠 확장"
+    /// 2026-09-13)이 잡졸보다 훨씬 단단하고(한 방에 안 죽음) 결국 죽으면
+    /// 두 번째 사명(q_boss1)이 완료되는지,
     /// (2) 무예 나머지 셋(횡소·기탄·기합, "STORY 콘텐츠 확장" 2026-09-12)이
     /// 실제로 적을 때리고 MP를 깎는지,
     /// (3) 점프 버튼이 수직 속도를 실제로 올리는지,
@@ -38,7 +40,7 @@ namespace Saga.EditorTools
 
         private enum Phase
         {
-            Init, KillEnemies, SweepTest, BoltCast, BoltWait, BraceTest,
+            Init, KillEnemies, KillBoss, SweepTest, BoltCast, BoltWait, BraceTest,
             LandBeforeJump, EnterRope, RopeTopClearance, RopeDescend, ExitRope, SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -109,7 +111,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestStorySlice] OK - killed 10 grunts (quest done), sweep/bolt/brace/jump/rope/save-load all verified, no errors"
+                    ? "[PlaytestStorySlice] OK - killed 10 grunts + boss (both quests done), sweep/bolt/brace/jump/rope/save-load all verified, no errors"
                     : $"[PlaytestStorySlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -139,9 +141,9 @@ namespace Saga.EditorTools
                     _ropeGo = GameObject.Find("Rope");
                     _rope = _ropeGo != null ? _ropeGo.GetComponent<StoryRope>() : null;
 
-                    if (_player == null || _storyController == null || _rope == null || StoryEnemy.All.Count != ExpectedEnemyCount)
+                    if (_player == null || _storyController == null || _rope == null || StoryEnemy.All.Count != ExpectedEnemyCount + 1)
                     {
-                        Debug.LogError($"[PlaytestStorySlice] 씬 구성 못 찾음 — player={_player != null} controller={_storyController != null} rope={_rope != null} enemies={StoryEnemy.All.Count}(기대={ExpectedEnemyCount})");
+                        Debug.LogError($"[PlaytestStorySlice] 씬 구성 못 찾음 — player={_player != null} controller={_storyController != null} rope={_rope != null} enemies={StoryEnemy.All.Count}(기대={ExpectedEnemyCount}+두목1)");
                         Fail();
                         return;
                     }
@@ -149,7 +151,7 @@ namespace Saga.EditorTools
                     // 이미 불러왔을 수 있다(예: 이 테스트 자신의 지난 SaveLoad
                     // 단계가 디스크에 남긴 파일 — 실제로 겪음). 존재를 가정하지
                     // 않고 이 테스트가 스스로 시작 상태를 못박는다.
-                    StoryQuestState.Restore(0);
+                    StoryQuestState.Restore(0, 0);
                     _enemyIndex = 0;
                     _phase = Phase.KillEnemies;
                     break;
@@ -164,11 +166,22 @@ namespace Saga.EditorTools
                             return;
                         }
                         Debug.Log($"[PlaytestStorySlice] killed {ExpectedEnemyCount} grunts, quest done, kills={StoryQuestState.Kills}");
-                        _phase = Phase.SweepTest;
+                        _phase = Phase.KillBoss;
                         break;
                     }
 
-                    var enemy = StoryEnemy.All[0]; // 죽을 때마다 리스트에서 빠지므로 항상 [0]이 "다음" 잡졸.
+                    // 잡졸 죽을 때마다 리스트에서 빠지지만, Awake() 호출
+                    // 순서가 하이어라키 순서와 항상 같다는 보장이 없어(실제로
+                    // 두목이 [0]에 온 적이 있었다 — "STORY 콘텐츠 확장"
+                    // 2026-09-13에 발견) 인덱스 대신 IsBoss로 걸러 첫 잡졸을 찾는다.
+                    StoryEnemy enemy = null;
+                    foreach (var e in StoryEnemy.All) { if (!e.IsBoss) { enemy = e; break; } }
+                    if (enemy == null)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 잡졸이 두목만 남기고 이미 다 사라짐(리스트 이상)");
+                        Fail();
+                        return;
+                    }
                     Vector3 enemyPos = enemy.transform.position;
                     TeleportPlayer(enemyPos + new Vector3(-1f, 0f, 0f)); // 왼쪽에 서면 dx>0=facing(+1)과 일치 — 정면 판정 통과.
                     // TryAttack()의 쿨다운(0.36초)은 이 판의 손맛 규칙이지 이 테스트가
@@ -188,6 +201,58 @@ namespace Saga.EditorTools
                     }
                     _enemyIndex++;
                     break;
+
+                case Phase.KillBoss:
+                {
+                    // "STORY 콘텐츠 확장"(2026-09-13) q_boss1 — 잡졸을 다
+                    // 잡고 나면 StoryEnemy.All엔 두목 하나만 남는다.
+                    if (StoryEnemy.All.Count != 1 || !StoryEnemy.All[0].IsBoss)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 두목만 남아야 하는데 count={StoryEnemy.All.Count} isBoss={(StoryEnemy.All.Count > 0 ? StoryEnemy.All[0].IsBoss.ToString() : "-")}");
+                        Fail();
+                        return;
+                    }
+                    var boss = StoryEnemy.All[0];
+                    TeleportPlayer(boss.transform.position + new Vector3(-1f, 0f, 0f));
+
+                    // 잡졸(EnemyHp=18)과 달리 두목은 HP가 12배(216)라 한
+                    // 방(StartAtk≈21)엔 안 죽어야 한다 — 그 자체가 "두목"이
+                    // 다르다는 첫 증거.
+                    SetPrivate(_storyController, "_attackCooldownLeft", 0f);
+                    InvokePrivate(_storyController, "TryAttack");
+                    if (boss.IsDead)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 두목이 한 방에 죽어 버림(BossHp={StoryCombat.BossHp}가 잡졸과 다르지 않은 듯)");
+                        Fail();
+                        return;
+                    }
+
+                    // 남은 체력을 마저 깎는다 — 최대 40번(StartAtk 변동폭
+                    // 0.88~1.12·크리티컬 포함해도 216/(21*0.88)≈12번이면
+                    // 충분하지만 여유 있게 잡았다).
+                    int hits = 1;
+                    while (!boss.IsDead && hits < 40)
+                    {
+                        SetPrivate(_storyController, "_attackCooldownLeft", 0f);
+                        InvokePrivate(_storyController, "TryAttack");
+                        hits++;
+                    }
+                    if (!boss.IsDead)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 두목이 {hits}번 쳐도 안 죽음(BossHp={StoryCombat.BossHp})");
+                        Fail();
+                        return;
+                    }
+                    if (StoryQuestState.BossKills != 1 || !StoryQuestState.QuestBossDone)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 두목 처치 후 사명 미갱신 — bossKills={StoryQuestState.BossKills} done={StoryQuestState.QuestBossDone}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestStorySlice] boss killed in {hits} hits, quest boss done, bossKills={StoryQuestState.BossKills}");
+                    _phase = Phase.SweepTest;
+                    break;
+                }
 
                 case Phase.SweepTest:
                     // 실제 잡졸은 다 죽었으니(위 KillEnemies) 스킬 전용 더미를
@@ -394,6 +459,7 @@ namespace Saga.EditorTools
                     // 부른다(의도된 단순함, 사명 카운트가 더미까지 세는 건
                     // 무해하다). 하드코딩된 3 대신 실제 값을 저장 직전에 읽는다.
                     int killsBeforeSave = StoryQuestState.Kills;
+                    int bossKillsBeforeSave = StoryQuestState.BossKills; // KillBoss phase에서 이미 1.
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -402,7 +468,7 @@ namespace Saga.EditorTools
                     }
 
                     // 상태를 지운 뒤 다시 불러와 그대로 돌아오는지 확인.
-                    StoryQuestState.Restore(0);
+                    StoryQuestState.Restore(0, 0);
                     TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                     if (!StorySaveState.TryLoad())
                     {
@@ -410,9 +476,9 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
-                    if (StoryQuestState.Kills != killsBeforeSave)
+                    if (StoryQuestState.Kills != killsBeforeSave || StoryQuestState.BossKills != bossKillsBeforeSave)
                     {
-                        Debug.LogError($"[PlaytestStorySlice] 로드 후 kills={StoryQuestState.Kills}(기대={killsBeforeSave})");
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 kills={StoryQuestState.Kills}(기대={killsBeforeSave}) bossKills={StoryQuestState.BossKills}(기대={bossKillsBeforeSave})");
                         Fail();
                         return;
                     }
