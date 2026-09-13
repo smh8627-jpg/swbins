@@ -3394,3 +3394,60 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   absorb/quiz/save-load all verified, no errors`. 서고 UI는 런타임에
   짓는 패널이라(`RealmCommandUi.Awake`) 씬 재빌드(`BuildTestCityScene`)
   불필요 — 하이어라키를 안 건드리는 변경.
+
+## 아트 방향 전환 — PLAN.md 수정만, 구현은 아직 (2026-09-13)
+
+- `saga-godot/docs/PROJECT_STATE.md`와 같은 결정·같은 날짜 — 사용자가
+  원신(Genshin Impact) 그래픽 방향을 요청, 캐릭터/환경 에셋 자체를
+  애니메이션풍으로 교체하기로 하고 saga-godot·saga-unity 둘 다에
+  반영하기로 확인받음. `PLAN.md` **66-2장** 신규(Unity 고유 차이만:
+  URP 셰이더는 Godot GDShader와 별도로 직접 짜고, VRM 임포트는 UniVRM
+  경유·gltFast 경유 두 경로 중 아직 안 정함). `docs/ASSET_GUIDE.md`에도
+  같은 날짜로 짧은 포인터 추가(기존 Kenney 기록은 안 지움).
+- **이번엔 문서만 고쳤다 — 코드·에셋(Assets/Art/*)은 아직 그대로다.**
+  saga-godot 쪽에서 파이프라인(VRoid 모델 → 셀셰이더 → 애니메이션)이
+  먼저 검증된 뒤 같은 순서로 이쪽에 옮기기로 함 — 지금 바로 착수하지
+  않는다.
+- 헤드리스 검증 안 함(PLAN.md·docs 텍스트만 수정, 프로젝트 코드 변경
+  없음).
+
+## VRoid 샘플 아바타 — Unity 임포트 검증 (2026-09-13, 이어서)
+
+- saga-godot이 VRoid Studio에서 내보낸 파이프라인 검증용 임시 자산
+  (`AvatarSample_A`, pixiv 기본 샘플 그대로, 커스터마이징 없음 — 경위는
+  saga-godot `docs/PROJECT_STATE.md` 참고)을 `Assets/Art/
+  CharactersVroid/`에 그대로 복사(`.vrm` 원본 + Unity 임포트용 `.glb`
+  사본).
+- Unity 배치 모드(`-batchmode -nographics -quit`)로 임포트 확인 —
+  **`.glb`가 기존 `com.unity.cloud.gltfast` 파이프라인으로 오류 없이
+  임포트됨**(기존 Kenney GLB들과 같은 `ScriptedImporter` 경로). `.vrm`
+  확장자는 Unity가 인식 못 해 `DefaultImporter`로만 잡힘 — 이후 VRM을
+  또 받으면 매번 `.glb` 사본을 같이 둬야 한다.
+  → **66-2장에 미정으로 남겨 뒀던 "UniVRM vs gltFast" 결정 — gltFast로
+  확정.** 이미 있는 패키지고 기존 자산과 경로가 같아서 일관적이다.
+- **부작용 발견 및 원복** — 이 PC의 Unity(6000.3.24f1)가 프로젝트 고정
+  버전(6000.3.23f1)보다 최신이라 배치 모드 실행만으로
+  `ProjectSettings/ProjectVersion.txt`·`Packages/manifest.json`(gltfast
+  6.9.0→6.14.1)·`packages-lock.json`이 자동으로 바뀌었다. 이번 작업과
+  무관해 `git checkout`으로 전부 되돌림 — `CLAUDE.md`에 이 함정을 새로
+  기록해 둠(다음에 배치 모드 돌릴 때 같은 파일들을 또 확인할 것).
+- GUI 안 띄움(배치 모드만 사용), 프로세스는 `-quit`으로 자체 종료 —
+  정리할 것 없음.
+
+## 정정 — 아트 방향, saga-unity는 원신이 아니라 사실적(포토리얼)로 (2026-09-13, 같은 날 다시)
+
+- **사용자 지시 "saga-unity는 원신 스타일이 아니라 사실적인 걸로 변경할게,
+  엔진마다 다른 점이 필요해"** — 위 두 항목("아트 방향 전환"·"VRoid 샘플
+  아바타")에서 saga-godot과 "같은 결정"이라고 적었던 것을 뒤집는다.
+  **saga-godot은 그대로 원신풍 카툰/셀셰이딩**(그 프로젝트 PLAN.md
+  66-2장), **saga-unity는 사실적(포토리얼) PBR**로 — 두 엔진 트랙이
+  이제 의도적으로 다른 그래픽 목표를 갖는다(전에는 "기획은 같이 본다"는
+  원칙 아래 같은 방향이라고 가정했는데, 이번에 사용자가 명시적으로
+  갈라 달라고 함).
+- 자세한 내용은 `PLAN.md` 66-2장(고쳐 씀) 참고 — 여기서 반복하지 않는다.
+- **사용자 지시 "다른 피시에서 작업할거임" + "플랜만 수정임"** — 이번엔
+  PLAN.md·docs만 고치고 실제 구현(셰이더 작성·에셋 교체)은 안 한다.
+  `Assets/Art/CharactersVroid/`(VRoid 샘플, saga-godot과 같은 파일)는
+  **지우지 않고 그대로 둔다** — gltFast 임포트가 되는지 확인한 기술
+  검증 결과는 그래픽 스타일과 무관하게 여전히 유효하고, 실제 최종 에셋
+  교체는 다른 PC의 다음 세션이 사실적 방향에 맞는 소스로 다시 정할 일.

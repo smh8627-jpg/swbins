@@ -270,3 +270,53 @@ Play(헤드리스든 사람이 직접 하든)로 열면 시각·UI가 두 벌씩
 `LuckyCairn.cs` 여섯 곳은 **후속 세션(2026-09-12)이 정리했다** —
 자세한 내용(그 중 `RareWolfEncounter`·`BanditEncounter`에서 찾은 더 깊은
 NRE 버그 포함)은 `docs/PROJECT_STATE.md` 참고.
+
+## 2026-09-13 — 아트 방향 전환, 이 문서의 Kenney 킷들은 순차 교체 대상
+
+`saga-godot/docs/ASSET_GUIDE.md`와 같은 결정 — 원신(Genshin Impact) 같은
+애니메이션 셀셰이딩 그래픽을 목표로, 위 Kenney CC0 킷들은 순차 교체
+대상이 됐다. 세부 사항은 `PLAN.md` **66-2장** 참고(saga-godot 66-2장과
+같은 결정, Unity 고유 차이만 이 프로젝트 66-2장에 따로 적음). 이 문서는
+지우지 않는다 — 교체가 끝나기 전까지는 여전히 유효한 현재 상태 기록이다.
+
+## 2026-09-13 — VRoid 샘플 아바타, Unity 임포트 검증
+
+saga-godot이 VRoid Studio에서 내보낸 파이프라인 검증용 임시 자산(자세한
+경위는 `saga-godot/docs/ASSET_GUIDE.md` 2026-09-13 항목 — 커스터마이징
+없는 pixiv 기본 샘플 `AvatarSample_A`, 라이선스는 상업 이용·재배포·수정
+전부 허용으로 바꿔 내보냄)을 이 프로젝트에도 그대로 미러링했다 —
+`Assets/Art/CharactersVroid/AvatarSample_A.vrm`(원본, 참고용) +
+`.glb`(같은 내용을 복사한 사본).
+
+**gltFast로 바로 확인됨 — 별도 UniVRM 없이도 임포트된다.** `.vrm`
+확장자는 Unity가 `DefaultImporter`(포맷을 모르는 파일용 기본 처리)로
+받아 3D 모델로 인식하지 못했지만, `.glb` 사본은 기존 Kenney GLB들
+(`character-a.glb`·`gate-rock.glb`)과 똑같이 `com.unity.cloud.gltfast`의
+`ScriptedImporter`로 잡혀 정상 임포트됐다(배치 모드 로그 확인, 관련
+오류·예외 없음). 66-2장에 "UniVRM 경유·gltFast 경유 두 경로 중 아직 안
+정함"이라고 적어 뒀던 것 — **gltFast 경로로 정한다.** 이미 프로젝트에
+들어 있는 패키지라 추가 설치가 필요 없고, 지금까지 GLB 자산 전부가 이
+경로를 쓰고 있어 일관성도 있다. UniVRM은 VRM 고유 확장(스프링본·
+휴머노이드 매핑 등)이 필요해지면 그때 다시 검토한다.
+
+**주의 — 배치 모드 실행이 프로젝트 설정을 건드렸다.** 이 PC에 설치된
+Unity 에디터(6000.3.24f1)가 프로젝트가 고정해 둔 버전(6000.3.23f1)보다
+최신이라, 열자마자 `ProjectSettings/ProjectVersion.txt`를 새 버전으로
+덮어썼고 `Packages/manifest.json`의 `com.unity.cloud.gltfast`도
+6.9.0→6.14.1로 자동 갱신됐다(`packages-lock.json`도 같이). 이번 작업과
+무관한 부작용이라 `git checkout`으로 전부 되돌렸다 — saga-godot
+CLAUDE.md가 헤드리스 임포트 뒤 `project.godot`/`*.import`를 확인하라고
+경고하는 것과 같은 종류의 함정이다. **다음에 이 PC에서 Unity 배치
+모드를 돌릴 때도 실행 후 반드시 `git status`/`git diff`로 `ProjectSettings/`·
+`Packages/`를 훑을 것.**
+
+## 정정(2026-09-13, 같은 날 다시) — saga-unity는 원신이 아니라 사실적 방향
+
+바로 위 두 항목("아트 방향 전환"·"VRoid 샘플 아바타")은 "saga-godot과
+같은 결정(원신류 셀셰이딩)"을 전제로 적었는데, 사용자가 "saga-unity는
+사실적인 걸로, 엔진마다 다른 점이 필요해"로 방향을 갈랐다. 자세한 내용은
+`PLAN.md` 66-2장(다시 씀) 참고. **이 문서의 위 두 항목을 지우지 않는
+이유** — VRoid 샘플이 gltFast로 임포트된다는 것·배치 모드가 프로젝트
+설정을 건드릴 수 있다는 것은 그래픽 스타일과 무관한 엔진 사실이라
+여전히 유효하다. 다만 "이 방향(원신)으로 에셋을 채워 간다"는 전제는
+더 이상 맞지 않으니, 그 부분만 걸러서 읽을 것.

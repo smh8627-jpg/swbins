@@ -51,6 +51,17 @@ GUI 에디터를 띄웠다면 그 turn 안에서 반드시 `taskkill //F //IM
 Unity.exe`로 정리한다(다른 세션의 Godot 프로세스까지 잡지 않도록 정확한
 이름만).
 
+**주의 — 배치 모드 실행도 프로젝트 설정을 조용히 고쳐 쓸 수 있다
+(2026-09-13 발견).** 이 PC에 설치된 Unity 버전이 프로젝트가 마지막으로
+저장된 버전보다 최신이면, 열자마자 `ProjectSettings/ProjectVersion.txt`를
+새 버전으로 덮어쓰고 `Packages/manifest.json`·`packages-lock.json`의
+패키지 버전도 자동으로 올릴 수 있다(headless `-batchmode`에서도 발생함,
+GUI 에디터만의 문제가 아니다). saga-godot CLAUDE.md가 헤드리스 임포트
+뒤 `project.godot`/`*.import`를 확인하라고 경고하는 것과 같은 함정 —
+**배치 모드를 돌린 뒤에는 커밋 전에 반드시 `git status`/`git diff --
+ProjectSettings/ Packages/`로 의도하지 않은 변경이 없는지 훑는다.** 있으면
+`git checkout`으로 되돌리고, 실제로 고치려던 파일만 add한다.
+
 **같은 저장소, 여러 세션 동시 작업** — 루트 `CLAUDE.md`의 git 규칙을
 그대로 따른다: `git add` 해 두고 뜸 들이지 않는다, `git commit -F
 <메시지파일> -- <손댄 경로>`로 곧바로. `saga-godot/`을 만지는 다른

@@ -5063,3 +5063,83 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   옮겨 반영할 것.
   코드 변경 없어 헤드리스 검증 없음(문서 두 곳: `PLAN.md`·이 파일).
   - 코드 변경이 없어 헤드리스 검증은 따로 안 돌렸다(문서 파일 하나).
+
+## 아트 방향 전환 — PLAN.md 수정만, 구현은 아직 (2026-09-13)
+
+- **사용자 지시 "원신 같은 그래픽을 원하긴 해 이걸로 계획들 전체를
+  수정해줘"** — 캐릭터/환경 에셋 자체를 애니메이션풍으로 교체하는
+  방향, saga-unity에도 같이 반영하기로 확인받음(AskUserQuestion).
+  `PLAN.md` **66-2장** 신규 — 새 에셋 소스(VRoid Studio 캐릭터·
+  Quaternius/KayKit 환경)·엔진별 셀셰이더 계획·기존 Kenney 자산
+  마이그레이션 순서·금지사항 기록. `docs/ASSET_GUIDE.md`에도 같은
+  날짜로 짧은 포인터 추가(기존 기록은 안 지움 — 교체 전까지는 여전히
+  현재 상태).
+- **이번엔 문서만 고쳤다 — 코드·에셋은 아직 그대로다.** 다음 세션이 할 일
+  (PLAN.md 66-2장 "다음에 할 일"과 동일, 여기 요약만):
+  1. VRoid Studio로 플레이어 캐릭터 1종 실제로 만들기(GUI 작업, 자동화
+     불가 — 사람이 직접 만들거나 사용자에게 요청)
+  2. Quaternius/KayKit에서 환경/건물 후보 다운로드해 지금 Kenney 킷과
+     형태 비교
+  3. Godot 커스텀 셀셰이더(램프 명암 + 외곽선) 프로토타입 1개 작성,
+     헤드리스 임포트로 오류 없는지 검증
+  4. 되는 게 확인되면 44장 우선순위(Player → 주요 Enemy → Boss →
+     Environment → Building → …)로 나머지 순차 교체
+- 헤드리스 검증 안 함(PLAN.md·docs 텍스트만 수정, 프로젝트 실행 코드
+  변경 없음).
+
+## 아트 방향 전환 — VRoid Studio 첫 캐릭터 + Godot 임포트 검증 (2026-09-13, 이어서)
+
+- **사용자 지시 "바로 이어서 진행해줘, VRoid부터 시작해"** — 위 항목의
+  1번(VRoid 캐릭터 제작)을 실제로 진행. VRoid Studio 미설치 확인 →
+  공식 배포 인스톨러(Inno Setup, `/VERYSILENT`) 다운로드·조용히 설치.
+- 캐릭터 외형을 누가 고를지 AskUserQuestion으로 확인 → "기본 프리셋
+  그대로 임시 내보내기"로 답 받음. VRoid Studio가 기본 제공하는 샘플
+  아바타 `AvatarSample_A`를 커스터마이징 없이 그대로 VRM으로 내보냈다.
+- **정정 하나** — PLAN.md 66-2장에 "VRoid는 GUI 전용이라 자동화 불가"로
+  적어 뒀던 게 절반만 맞았다. 실제 조형은 여전히 사람 몫이지만, "샘플
+  열기 → 내보내기 메뉴 → VRM 설정 → 저장"까지는 PowerShell
+  `SetCursorPos`+`mouse_event`(P/Invoke) 좌표 클릭 + 스크린샷 확인으로
+  실제로 자동화됐다. 저장 대화상자에 절대경로를 통째로 타이핑하면
+  "파일 이름이 올바르지 않습니다" 오류가 났던 것도 우회(단순 파일명 →
+  기본 폴더 저장 → 사후 복사)해서 넘겼다. 자세한 경위는 `docs/
+  ASSET_GUIDE.md` 2026-09-13 항목.
+- 내보내기 라이선스는 기본값(비영리·재배포 금지)에서 **상업 이용·재배포·
+  수정 전부 허용**으로 바꿔 저장(나중에 게임에 실제로 넣어 배포할 가능성
+  대비).
+- `assets/characters_vroid/AvatarSample_A.vrm`(+ Godot용 `.glb` 사본)로
+  저장. Godot이 `.vrm` 확장자를 인식하지 않아 `.glb` 사본을 별도로 둠.
+- **Godot 헤드리스 임포트 검증** — `Godot_v4.7.2-stable_win64_console.exe
+  --headless --editor --path . --quit` 1회, **오류·경고 0건**, 씬으로
+  정상 변환 확인(폴리곤 29542·재질 16·본 91). 임포트 후 `project.godot`·
+  `*.import` diff 확인 → 무관한 `texture-a.png.import` 줄바꿈 변경만
+  있어 `git checkout`으로 되돌림.
+- 같은 파일을 `saga-unity/Assets/Art/CharactersVroid/`에도 복사해 Unity
+  쪽 임포트 검증을 이어서 진행 중(백그라운드 배치 모드, 결과는 `saga-
+  unity/docs/PROJECT_STATE.md`에 기록).
+- **다음에 할 일**: 실제 캐릭터 외형(플레이어·NPC) 디자인은 여전히 사람이
+  VRoid Studio를 직접 열어야 하는 부분 — 자동화 안 됨. 그 다음은
+  Quaternius/KayKit 환경 에셋 후보 다운로드, Godot 커스텀 셀셰이더
+  프로토타입.
+- GUI(VRoid Studio) 사용 후 `taskkill`로 프로세스 정리 완료, Godot
+  헤드리스 실행은 `--quit`으로 자체 종료(정리할 프로세스 없음).
+
+## 병합 + 정정 — saga-unity는 결국 사실적 방향으로 갈라섬 (2026-09-13, 마무리)
+
+- 같은 날 다른 세션이 독립적으로 채운 `PLAN.md` 66-2장(카툰/셀셰이딩
+  스펙 — 밴드 셀·아웃라인 범위·painterly 환경 등)과 이 세션의 66-2장
+  (VRoid/Quaternius/KayKit 에셋 소스·실행 기록)을 병합했다 — `git
+  stash`로 로컬 변경을 보관하고 원격을 fast-forward pull한 뒤
+  `stash pop`으로 충돌 해소, 내용 손실 없이 한 장으로 합침(자세한 병합
+  구조는 `PLAN.md` 66-2장 상단 메모 참고).
+- **그 직후 사용자가 "saga-unity는 원신 스타일이 아니라 사실적인
+  걸로 변경할게, 엔진마다 다른 점이 필요해"로 다시 지시** — saga-unity
+  쪽만 사실적(포토리얼) PBR로 갈라섰다(saga-godot은 이 66-2장 그대로
+  카툰/셀셰이딩 유지). 이 저장소에서 두 3D 트랙이 그래픽 목표까지
+  갈라진 첫 사례 — 앞으로 "기획은 같이 본다"는 원칙에서 **그래픽
+  아트 방향은 예외**로 취급할 것. saga-unity 쪽 자세한 내용은 그 프로젝트
+  `docs/PROJECT_STATE.md`의 "정정" 항목 참고.
+- 사용자가 "saga-unity는 다른 피시에서 작업할거임"·"플랜만 수정임"이라고
+  범위를 밝혀, saga-unity 쪽은 PLAN.md·docs 문서만 고치고 실제 구현은
+  안 건드렸다.
+- 병합·정정 마친 뒤 `git add` → `git commit` → `git push`까지 사용자
+  지시로 진행(아래 커밋 참고).
