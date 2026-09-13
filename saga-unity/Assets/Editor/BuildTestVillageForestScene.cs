@@ -103,8 +103,8 @@ namespace Saga.EditorTools
             rim.shadows = LightShadows.None;
             rimGo.transform.rotation = Quaternion.Euler(15f, 150f, 0f);
 
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.35f, 0.38f, 0.3f);
+            var skyFogGo = new GameObject("SkyFog");
+            skyFogGo.AddComponent<ForestSkyFogBuilder>().Build();
         }
 
         private static GameObject BuildGround()
@@ -211,7 +211,7 @@ namespace Saga.EditorTools
             var cam = camGo.AddComponent<Camera>();
             cam.tag = "MainCamera";
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0.55f, 0.72f, 0.85f); // 하늘색 — 던전(검정)과 다르게 야외.
+            cam.backgroundColor = ForestSkyFogBuilder.HorizonColor; // golden-hour 톤 — 던전(검정)과 다르게 야외.
             camGo.AddComponent<AudioListener>();
             camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>()
                 .renderPostProcessing = true;

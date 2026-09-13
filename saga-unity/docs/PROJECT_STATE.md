@@ -3852,3 +3852,110 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   직접 보진 않았다(Inspector 값 확인·헤드리스만). 던전의 "무드 유지
   목적으로 밝기 그대로" 판단이 실제로 어때 보이는지, Forest/Realm도
   GO처럼 팔레트를 더 데워야 할지는 다음에 GUI로 마저 훑어야 한다.
+
+## GUI 실기 확인 — Dungeon/Forest/Realm 마저 훑기 (2026-09-13, 새 세션 이어서)
+
+- 위 "아직 남은 것"을 이어서 처리. `TempOpenSceneForScreenshot.cs`를
+  다시 만들어(GO 확인 때와 같은 패턴 — Play 모드 120프레임 정착 후
+  `ScreenCapture.CaptureScreenshot`, 세 씬을 순서대로) TestDungeon→
+  TestVillageForest→TestCity 세 씬을 스크린샷으로 확인, 끝나자마자
+  삭제(커밋 안 함).
+- **새로 겪은 문제 — Unity GUI가 "Administrator Privileges Detected"
+  모달로 멈췄다.** 이 세션의 터미널이 관리자 권한이라 그런 것으로
+  보인다(이전 GO 확인 세션은 안 겪었음 — 터미널 권한 차이로 추정,
+  확증은 못 함). `-batchmode` 없는 GUI 실행이 이 다이얼로그에서
+  무한 대기했다(메모리 사용량이 52MB에서 안 늘고 멈춤으로 확인). PID로
+  `AppActivate` + `SendKeys::SendWait("{ENTER}")`(PowerShell,
+  `System.Windows.Forms`)로 다이얼로그를 넘겨 정상 진행시켰다 — **다음에
+  이 세션(관리자 권한 터미널)에서 Unity GUI를 또 띄울 일이 있으면 이
+  패턴을 먼저 시도할 것**, 아니면 그냥 멈춘 것으로 오판해 강제 종료하기
+  쉽다.
+- **결과**:
+  - **Dungeon** — 화면이 꽤 어둡다(intensity 0.9 그대로). 의도한 "무드
+    유지"와 일치 — HUD(체력바·공격/회피 버튼)는 잘 보이고 캐릭터
+    실루엣도 식별 가능해 플레이에 지장은 없어 보인다. **현재 값 유지로
+    판단, 추가 조정 불필요.**
+  - **Realm** — 성 내부(TestCity)가 이미 따뜻한 주황/황토 톤으로 잘
+    나온다(성벽·다리·건물 재질 자체가 원래 warm-toned라 별도 fog 보정
+    없이도 golden-hour 인상이 남). **추가 조정 불필요로 판단.**
+  - **Forest** — 여전히 밋밋한 채도 높은 초록 평면(SkyFogBuilder가
+    없어 지면·앰비언트가 안 데워짐, RimLight 그림자는 길게 잘 떨어져
+    낮은 태양각 자체는 반영됨). GO처럼 fog/ambient 보정을 추가하면
+    더 나아질 여지가 있어 보이나, **이번 세션은 확인만 하고 손대지
+    않았다** — 판단만 필요하면 사용자에게 GO 수준으로 데울지 물어볼 것.
+  - 스크린샷은 세션 스크래치패드에만 저장(리포지토리에 커밋 안 함).
+- 검증: 스크린샷 찍기 전 `-batchmode -nographics -quit` 컴파일
+  확인(`ExtractTextures()` 추가분 포함) 통과, 확인 후 Unity.exe는 자체
+  `EditorApplication.Exit(0)`로 종료(추가로 taskkill 안 씀 — 스스로
+  끝난 것 확인), `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음
+  (`git status`로 훑음).
+- **다음에 할 일**: Forest를 GO 수준으로 데울지 결정 → 그 다음 44장
+  우선순위대로 Kenney/VRoid 플레이스홀더 실제 씬 교체(⑪이 남긴 다음
+  과제, 아직 미착수).
+
+## Forest도 GO 수준으로 데움 (2026-09-13, 새 세션 이어서)
+
+- 사용자가 "순서대로 이어해줘"로 확정 — Forest 미결정 항목부터 처리.
+  GO의 `SkyFogBuilder`와 같은 결로 `Saga.Forest.World.ForestSkyFogBuilder`
+  신규(Trilight 앰비언트 + 옅은 안개, 숲마을에 맞게 GroundColor는 GO보다
+  덜 갈색으로). `BuildTestVillageForestScene.BuildLighting()`의 기존
+  Flat 앰비언트 대입을 이 컴포넌트 호출로 교체, 카메라
+  `backgroundColor`도 `ForestSkyFogBuilder.HorizonColor`로 맞춤(기존엔
+  차가운 하늘색 고정값).
+- 검증: 컴파일 통과 → `BuildTestVillageForestScene.Build` 재실행(씬
+  갱신) → `PlaytestForestHeadless` 재확인 통과(`OK - 10 frames, no
+  errors`) → GUI 스크린샷으로 재확인(1회용 `TempShotForest.cs`, 확인
+  후 삭제). **개선 확인** — 구면 지평선 가장자리가 차가운 파란 띠에서
+  따뜻한 주황/황토 톤으로 바뀜. 지면 자체의 초록 채도는 바이옴 정점
+  색(`ForestBiomeData.SampleTint`, 게임플레이 값이라 손 안 댐)이라
+  여전히 진하지만, 이번 목적(하늘/앰비언트 냉색 제거)은 달성.
+  `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음 확인.
+- **2026-09-13 발견 — 이 세션(관리자 권한 터미널)에서는 Unity GUI를 새로
+  띄울 때마다("Administrator Privileges Detected" 모달) 매번 dismiss가
+  필요했다** — 앞 항목("한 번 넘기면 끝")과 달리, 프로세스를 새로
+  실행할 때마다(같은 세션 안에서도) 다시 뜬다. 앞으로 이 세션에서 GUI를
+  또 띄우면 그때마다 `AppActivate(pid)` + `SendKeys::SendWait("{ENTER}")`
+  를 반복해 줄 것 — "한 번 겪었으니 이제 안 뜨겠지"라고 넘겨짚지 말 것.
+- **다음에 할 일**: 44장 우선순위대로 Kenney/VRoid 플레이스홀더를
+  Player → 주요 Enemy → Boss → Environment → Building 순서로 실제
+  사실적 에셋(Maria 캐릭터·⑤ 셰이더·⑥ PBR 재질)으로 교체 시작.
+
+## 44장 "Player" 교체 — Dungeon (2026-09-13, 새 세션 이어서)
+
+- 사용자가 "Dungeon만 먼저"로 범위 확정(다른 네 판은 Player 없음/2.5D/
+  전투 없음이라 Maria 사용 시나리오가 안 맞거나 다음에 따로 판단).
+- `BuildTestDungeonScene.BuildPlayer()`가 Kenney `character-a.glb`
+  대신 Maria(⑦ 리깅+⑧ Animator Controller)를 쓰게 바꿨다 — 새 헬퍼
+  `BuildPlayerVisual()`: Maria FBX 찾으면 인스턴스화+Animator 부착+
+  `BuildTestCharacterRealisticScene.ApplySkinSplit()` 재사용(그 메서드를
+  `internal`로 열어 재사용, 새 유틸 클래스로 안 뽑음 — 지금은 소비자가
+  하나뿐이라 32장 "최소 변경" 원칙), 로컬에 Maria 자산이 없으면(라이선스로
+  `.gitignore` 대상) character-a로, 그마저 없으면 capsule로 순서대로
+  폴백(기존 관례 그대로).
+- `PlayerController.cs`(Dungeon 전용 복사본만, 다른 판은 안 건드림)에
+  `animator` 필드 추가 — **Maria가 배정되면**(non-null) 이동은 `Speed`
+  파라미터로 Idle/Walk/Run 블렌드, 회피는 기존 절차적 X축 360도 롤
+  대신 `Dodge` 트리거(방향만 맞추고 회전 자체는 클립에 맡김). **Maria가
+  없어 character-a 폴백이면**(animator null) 예전 절차적 롤이 그대로
+  유지된다 — 분기 유지, 기존 동작 안 깨짐. `PlayerCombat.cs`는 평타·
+  강공격에 `Attack` 트리거(강공격도 같은 클립 재사용 — 전용 클립 없음,
+  다음 과제), 사망에 `Death` 트리거 추가. "Hit"(피격) 트리거는 안 걸었다
+  — `HeroState`에 데미지 이벤트가 없어(죽음 이벤트만 있음) 새 이벤트
+  배선이 필요한데 이번 범위(캐릭터 교체)를 넘는 확장이라 남겨 둠.
+- 검증: 컴파일 통과 → `BuildTestDungeonScene.Build` 재실행(Maria 정상
+  로드, 폴백 경고 없음) → `PlaytestDungeonHeadless` 재확인 통과(`OK -
+  10 frames, no errors`) → GUI로 Player의 `Animator`를 직접 구동해
+  idle→walk→attack→dodge 네 포즈 스크린샷 확인(1회용
+  `TempShotDungeonPlayer.cs`, 실제 입력 대신 `SetFloat`/`SetTrigger`
+  직접 호출 — 확인 후 삭제). **포즈 전환 자체는 뚜렷이 다른 실루엣으로
+  잘 확인됨**(서 있기/베기 웅크림/구르기 준비 자세가 또렷이 갈림) —
+  리깅·Animator 배선은 성공.
+  **다만 관찰한 것 하나** — 이 어두운 던전 조명(부족장 조명 0.9 +
+  차가운 RimLight)에서 Maria가 전체적으로 균일한 하늘색/청록색
+  실루엣으로 보인다(살구색 피부·갈색 옷 색조가 거의 안 드러남). 이전
+  Kenney 캐릭터는 같은 조명에서도 색이 또렷했다(00_dungeon.png 참고) —
+  Maria의 재질(스킨 스플릿 근사 셰이더)이 이 RimLight/저조도 조합에
+  더 민감하게 반응하는 것으로 보인다. **버그인지 의도한 실루엣 강조
+  효과인지는 판단이 필요해 이번엔 손대지 않았다** — 다음에 사용자가
+  실기로 보고 재질/조명 중 어느 쪽을 조정할지 정할 것.
+- `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음 확인.

@@ -98,9 +98,11 @@ namespace Saga.EditorTools
         /// <summary>
         /// `BuildMariaSkinSplit.cs`가 미리 구워 둔 피부/기타 분리 메시·머티리얼이
         /// 있으면 물린다(66-2장 ⑤ 실제 적용) — 없으면(아직 안 돌렸으면) 원본
-        /// 단일 머티리얼 그대로 둔다(조용히 건너뜀, 에러 아님).
+        /// 단일 머티리얼 그대로 둔다(조용히 건너뜀, 에러 아님). internal —
+        /// 44장 순차 교체로 Maria를 쓰는 다른 Build*Scene.cs도 재사용한다
+        /// (`BuildTestDungeonScene.BuildPlayer` 참고).
         /// </summary>
-        private static void ApplySkinSplit(GameObject maria)
+        internal static void ApplySkinSplit(GameObject maria)
         {
             var splitMesh = AssetDatabase.LoadAssetAtPath<Mesh>(SplitMeshPath);
             var skinMat = AssetDatabase.LoadAssetAtPath<Material>(SkinMatPath);

@@ -32,6 +32,13 @@ namespace Saga.EditorTools
         private const string CharacterCPath = "Assets/Art/Characters/character-c.glb";
         private const string CharacterDPath = "Assets/Art/Characters/character-d.glb";
 
+        // 44장 우선순위 "Player" 교체 — Kenney character-a 대신 66-2장이
+        // 이미 리깅·머티리얼까지 검증한 Maria를 쓴다(BuildTestCharacterRealisticScene
+        // 참고). CharactersRealistic/은 .gitignore 대상(로컬 전용, 라이선스
+        // 때문에 미커밋)이라 못 찾으면 character-a로 조용히 폴백한다.
+        private const string MariaBodyFbxPath = "Assets/Art/CharactersRealistic/Maria WProp J J Ong.fbx";
+        private const string MariaControllerPath = "Assets/Animators/Maria.controller";
+
         // "환경/건물 GLB" 슬라이스 — SagaGo가 이미 쓰는 CC0 Kenney Modular
         // Cave Kit(gate-rock.glb와 같은 킷)에서 문·복도 타일만 마저 뽑아
         // saga-godot의 assets/dungeon/에서 그대로 복사(새 다운로드 없음).
@@ -982,10 +989,11 @@ namespace Saga.EditorTools
             controller.height = 1.8f;
             controller.center = new Vector3(0f, 0.9f, 0f);
 
-            // "GLB 자산 도입" 슬라이스 — character-a(무색), 못 찾으면 폴백.
-            Transform visual = _characterA != null
-                ? CharacterVisual.Spawn(_characterA, playerGo.transform, 1.8f, Color.white)
-                : CharacterVisual.SpawnFallbackCapsule(playerGo.transform, 1.8f, Color.white);
+            // 44장 "Player" 교체 — Maria(리깅+Animator)를 먼저 시도, 로컬에
+            // CharactersRealistic/이 없으면(라이선스로 미커밋) character-a로,
+            // 그마저 없으면 primitive capsule로 순서대로 폴백.
+            Animator playerAnimator;
+            Transform visual = BuildPlayerVisual(playerGo.transform, out playerAnimator);
             var visualGo = visual.gameObject;
 
             var rigGo = new GameObject("CameraRig");
@@ -1011,12 +1019,51 @@ namespace Saga.EditorTools
 
             var pc = playerGo.AddComponent<PlayerController>();
             SetPrivateField(pc, "visual", visualGo.transform);
+            SetPrivateField(pc, "animator", playerAnimator);
             SetPrivateField(pc, "cameraRig", cameraRig);
             SetPrivateField(pc, "inputActions", inputActions);
 
             var combat = playerGo.AddComponent<PlayerCombat>();
 
             return (playerGo, combat, pc);
+        }
+
+        /// <summary>Maria(Humanoid, Animator 포함) → 실패 시 character-a →
+        /// 실패 시 primitive capsule 순으로 폴백. Maria를 쓸 때만
+        /// `animator`가 채워진다(PlayerController가 이 값의 null 여부로
+        /// "리깅된 캐릭터인가"를 판단해 절차적 구르기 폴백과 갈린다).</summary>
+        private static Transform BuildPlayerVisual(Transform parent, out Animator animator)
+        {
+            animator = null;
+
+            var mariaBody = AssetDatabase.LoadAssetAtPath<GameObject>(MariaBodyFbxPath);
+            if (mariaBody != null)
+            {
+                var maria = (GameObject)PrefabUtility.InstantiatePrefab(mariaBody, parent);
+                maria.name = "Visual";
+                maria.transform.localPosition = Vector3.zero;
+                maria.transform.localRotation = Quaternion.identity;
+
+                animator = maria.GetComponent<Animator>();
+                if (animator == null)
+                {
+                    animator = maria.AddComponent<Animator>();
+                }
+                var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(MariaControllerPath);
+                if (controller == null)
+                {
+                    Debug.LogWarning($"[BuildTestDungeonScene] {MariaControllerPath} 를 못 찾음 — Maria 시각화는 되지만 애니메이션이 안 돎. 'Saga/Build Test Character Realistic Scene'을 먼저 한 번 돌릴 것.");
+                }
+                animator.runtimeAnimatorController = controller;
+
+                BuildTestCharacterRealisticScene.ApplySkinSplit(maria);
+                return maria.transform;
+            }
+
+            Debug.LogWarning($"[BuildTestDungeonScene] {MariaBodyFbxPath} 를 못 찾음(로컬 전용 자산, mixamo.com에서 받아야 함) — character-a로 폴백.");
+            return _characterA != null
+                ? CharacterVisual.Spawn(_characterA, parent, 1.8f, Color.white)
+                : CharacterVisual.SpawnFallbackCapsule(parent, 1.8f, Color.white);
         }
 
         /// <summary>"부대(다중 영웅) 시스템" 슬라이스 — 등용 없이 처음부터

@@ -45,6 +45,11 @@ namespace Saga.EditorTools
             bodyImporter.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             bodyImporter.SaveAndReimport();
 
+            // 66-2장 ⑩ — FBX에 임베드된 diffuse/normal/specular는 Unity가
+            // 자동 추출하지 않는다. 명시적으로 추출해야 머티리얼이 실제로
+            // 색을 받는다(에디터 GUI "Extract Textures..." 버튼과 동일).
+            bodyImporter.ExtractTextures(Dir + "Textures/");
+
             var bodyAvatar = AssetDatabase.LoadAllAssetsAtPath(bodyPath).OfType<Avatar>().FirstOrDefault();
             if (bodyAvatar == null || !bodyAvatar.isValid || !bodyAvatar.isHuman)
             {
