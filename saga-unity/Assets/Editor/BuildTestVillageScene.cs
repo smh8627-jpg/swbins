@@ -143,10 +143,11 @@ namespace Saga.EditorTools
         private const string TerrainDetailTexPath =
             "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CobblestoneFloor01/cobblestone_floor_01_ao_1k.jpg";
 
-        // 44장 "Building" 교체 — 마을집 벽/지붕(DUNGEON gate.glb와 같은 방식,
-        // LandmarksBuilder.cs 주석 참고).
-        private const string VillageWallMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
-        private const string VillageRoofMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+        // 44장 "Building" 교체 — 마을집 벽/지붕뿐 아니라 굴 입구·폐허 기둥·
+        // 다리 널판·산신당까지(DUNGEON gate.glb와 같은 방식, LandmarksBuilder.cs
+        // 주석 참고) 이 두 재질을 재사용한다.
+        private const string VillageWoodMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
+        private const string VillageStoneMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
 
         private static GameObject BuildTerrain()
         {
@@ -188,10 +189,10 @@ namespace Saga.EditorTools
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/pillar-stone.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/planks.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Shrine/altar-stone.glb"));
-            var wallMat = AssetDatabase.LoadAssetAtPath<Material>(VillageWallMatPath);
-            var roofMat = AssetDatabase.LoadAssetAtPath<Material>(VillageRoofMatPath);
-            if (wallMat != null) SetPrivateField(builder, "wallMaterial", wallMat);
-            if (roofMat != null) SetPrivateField(builder, "roofMaterial", roofMat);
+            var woodMat = AssetDatabase.LoadAssetAtPath<Material>(VillageWoodMatPath);
+            var stoneMat = AssetDatabase.LoadAssetAtPath<Material>(VillageStoneMatPath);
+            if (woodMat != null) SetPrivateField(builder, "woodMaterial", woodMat);
+            if (stoneMat != null) SetPrivateField(builder, "stoneMaterial", stoneMat);
             builder.Build();
         }
 

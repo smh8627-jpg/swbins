@@ -28,6 +28,9 @@ namespace Saga.EditorTools
         // (REALM은 Player/Enemy 우선순위가 안 맞아 바닥/성벽을 그 자리에 넣었다).
         private const string CityGroundMatPath = "Assets/Art/EnvironmentPBR_candidates/cobblestone_floor_01_URPLit.mat";
         private const string CityWallMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+        // 이어서(2026-09-14 후속) — 농장/저잣거리(곳간은 wallMaterial 재사용).
+        private const string CityFarmMatPath = "Assets/Art/EnvironmentPBR_candidates/leafy_grass_URPLit.mat";
+        private const string CityMarketMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
 
         [MenuItem("Saga/Build TestCity Scene")]
         public static void Build()
@@ -84,6 +87,10 @@ namespace Saga.EditorTools
             var wallMat = AssetDatabase.LoadAssetAtPath<Material>(CityWallMatPath);
             if (groundMat != null) SetPrivateField(builder, "groundMaterial", groundMat);
             if (wallMat != null) SetPrivateField(builder, "wallMaterial", wallMat);
+            var farmMat = AssetDatabase.LoadAssetAtPath<Material>(CityFarmMatPath);
+            var marketMat = AssetDatabase.LoadAssetAtPath<Material>(CityMarketMatPath);
+            if (farmMat != null) SetPrivateField(builder, "farmMaterial", farmMat);
+            if (marketMat != null) SetPrivateField(builder, "marketMaterial", marketMat);
             builder.Rebuild(); // Awake()는 Play 모드에서만 자동으로 도니 edit-time 저장을 위해 직접 부른다.
             return cityGo;
         }

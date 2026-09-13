@@ -43,6 +43,13 @@ namespace Saga.Realm.World
         [SerializeField] private Material groundMaterial;
         [SerializeField] private Material wallMaterial;
 
+        // 이어서(2026-09-14 후속) — 농장/저잣거리/곳간까지 확장. 깃발·천수각
+        // 지붕은 그대로 색상 소품(깃발은 텍스처를 씌울 만한 표면이 아니고,
+        // 천수각 지붕은 벽과 재질이 겹치면 실루엣이 안 갈린다 — 클래스 상단
+        // 주석과 같은 이유로 이번에도 보류).
+        [SerializeField] private Material farmMaterial;    // leafy_grass
+        [SerializeField] private Material marketMaterial;  // dark_wooden_planks
+
         private bool _synced;
 
         private void Awake()
@@ -82,11 +89,11 @@ namespace Saga.Realm.World
             BuildKeep();
             BuildRosterFlags();
             BuildCountedProps("Farm", Mathf.Clamp(record.Agri / 90, 0, MaxFarms), FarmColor,
-                PrimitiveType.Cube, new Vector3(1.4f, 0.3f, 1.4f), radius: 5.5f, y: 0.15f);
+                PrimitiveType.Cube, new Vector3(1.4f, 0.3f, 1.4f), radius: 5.5f, y: 0.15f, pbrMaterial: farmMaterial);
             BuildCountedProps("Market", Mathf.Clamp(record.Comm / 80, 0, MaxMarkets), MarketColor,
-                PrimitiveType.Cube, new Vector3(1.0f, 0.9f, 1.0f), radius: 7.5f, y: 0.45f);
+                PrimitiveType.Cube, new Vector3(1.0f, 0.9f, 1.0f), radius: 7.5f, y: 0.45f, pbrMaterial: marketMaterial);
             BuildCountedProps("Granary", Mathf.Clamp(record.Food / 400, 0, MaxGranaries), GranaryColor,
-                PrimitiveType.Cylinder, new Vector3(1.1f, 1.4f, 1.1f), radius: 9.2f, y: 0.7f);
+                PrimitiveType.Cylinder, new Vector3(1.1f, 1.4f, 1.1f), radius: 9.2f, y: 0.7f, pbrMaterial: wallMaterial);
         }
 
         private static GameObject Spawn(string name, Transform parent, PrimitiveType type, Vector3 localPos,
@@ -185,17 +192,20 @@ namespace Saga.Realm.World
         }
 
         private void BuildCountedProps(string label, int count, Color color, PrimitiveType type, Vector3 scale,
-            float radius, float y)
+            float radius, float y, Material pbrMaterial = null)
         {
             if (count <= 0) return;
             var root = new GameObject($"{label}s");
             root.transform.SetParent(transform, false);
+            // 소품 하나하나가 전부 같은 크기라 재질 인스턴스도 하나만 구워
+            // 공유한다(LandmarksBuilder.BuildBridge와 같은 이유).
+            var tiled = pbrMaterial != null ? EnvironmentMaterial.MakeTiled(pbrMaterial, scale.x, scale.z) : null;
             for (int i = 0; i < count; i++)
             {
                 float angle = (360f / count) * i;
                 Vector3 pos = new Vector3(Mathf.Sin(angle * Mathf.Deg2Rad) * radius, y,
                     Mathf.Cos(angle * Mathf.Deg2Rad) * radius);
-                Spawn($"{label}_{i}", root.transform, type, pos, scale, color);
+                Spawn($"{label}_{i}", root.transform, type, pos, scale, color, tiled);
             }
         }
     }
