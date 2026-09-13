@@ -5143,3 +5143,32 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   안 건드렸다.
 - 병합·정정 마친 뒤 `git add` → `git commit` → `git push`까지 사용자
   지시로 진행(아래 커밋 참고).
+
+## 셀셰이더 프로토타입 1호 (2026-09-13, "이어해" 지시로 계속)
+
+- 66-2장 "다음에 할 일" 3개 항목 중 **자동화 가능한 것부터 처리** —
+  1번(사람이 VRoid로 실제 외형 조형)과 2번(Quaternius/KayKit 다운로드
+  비교)은 그대로 남기고, 3번(Godot 커스텀 셀셰이더 프로토타입)을 먼저
+  끝냈다.
+- 스크래치패드가 아니라 **이전 세션이 남긴 Godot 콘솔 실행 파일**
+  (`%TEMP%/godot_editor/Godot_v4.7.2-stable_win64_console.exe`, 4.7.2)을
+  재사용 — `project.godot`의 `config/features`("4.7")와 일치해 새로 안
+  받았다.
+- `saga_core/shaders/cel_toon.gdshader` 신규(밴드 3단 셀 셰이딩 + rim
+  light, `light()` 커스텀 함수) + `saga_core/shaders/
+  cel_shader_prototype/`(씬+스크립트, `AvatarSample_A.glb`의 모든
+  MeshInstance3D 서피스에 원본 텍스처/틴트를 물려 셰이더 머티리얼로
+  override, HUD에 "cel shader: on (N surfaces)" 디버그 표시). 자세한
+  내용은 `PLAN.md` 66-2장 "셀셰이더 프로토타입 1호" 참고 — 여기서
+  반복하지 않는다.
+- 검증: 헤드리스 에디터 임포트(`--quit`) 오류·경고 0건, 프로토타입 씬만
+  지정해 헤드리스 실행(`--quit-after 5 --verbose`)으로 셰이더 컴파일·
+  스크립트 오류 0건 확인. `git status`로 `project.godot`·`*.import`
+  훑어 무관한 `.import` 줄바꿈 잡음만 `git checkout`으로 되돌림(신규
+  Godot 프로세스는 `--quit`/`--quit-after`로 자체 종료해 `taskkill`
+  대상 없음).
+- **아직 안 한 것** — 실제로 원신 톤이 나오는지는 사람이 직접 GUI로
+  봐야 확정된다(이 결정 자체가 시각 판단이라는 66-2장 예외 조항). 다음
+  세션이 실기 확인 요청을 받으면 `CelShaderPrototype.tscn`을 열어 볼 것
+  — band_count·rim 파라미터는 그때 튜닝. 톤 확정 전까지는 실제
+  Player/Enemy 씬에 이 셰이더를 반영하지 않는다.

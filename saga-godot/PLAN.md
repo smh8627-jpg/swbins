@@ -2439,14 +2439,46 @@ PROJECT_STATE.md` 참고. 요약:
   AskUserQuestion으로 확인받음). 실제 플레이어·NPC 외형은 나중에 따로
   디자인해서 교체한다.
 
+## 셀셰이더 프로토타입 1호 (2026-09-13, 이어서 완료)
+
+**"적용 순서" 3번(셀셰이더 프로토타입 작성)을 먼저 끝냈다** — 순서상
+1번(사람이 VRoid로 실제 외형 조형)보다 자동화 가능한 항목을 먼저 처리.
+
+- `saga_core/shaders/cel_toon.gdshader` 신규 — 텍스처 있는 캐릭터 메시용
+  스팟 셰이더. `light()` 커스텀 함수로 NdotL을 `band_count`(기본 3단)
+  계단으로 끊고(`band_softness`로 경계 부드럽기 조절), rim light
+  (`rim_color`/`rim_power`/`rim_strength`)를 더한다. 아웃라인은 없다 —
+  "적용 순서" 3번(성능 검토 후 별도)이 아직 안 왔다. godotshaders.com류
+  공개 예제 방식을 참고해 직접 짰다(원신 실제 코드 아님, 루트 CLAUDE.md
+  원작 에셋 금지 원칙).
+- `saga_core/shaders/cel_shader_prototype/`(신규) — `AvatarSample_A.glb`를
+  인스턴싱해 모든 `MeshInstance3D`의 서피스마다 원래 텍스처/틴트를 읽어
+  `cel_toon.gdshader` 기반 `ShaderMaterial`로 서피스별 override하는
+  프로토타입 씬+스크립트(`cel_shader_prototype.gd`). 46장 디버그 표시는
+  66-1장(`renderer_debug_label.gd`)과 같은 패턴으로 `HUD/StatusLabel`에
+  "cel shader: on (N surfaces)" 텍스트를 띄운다. **게임 씬이 아니다** —
+  톤 확정 전 시험용, `run/main_scene`은 그대로 `TestVillage.tscn`.
+- 검증: 헤드리스 임포트(`--headless --editor --path . --quit`) 오류·경고
+  0건. 이 씬만 지정해 헤드리스로 실행
+  (`--headless --path . res://saga_core/shaders/cel_shader_prototype/
+  CelShaderPrototype.tscn --quit-after 5 --verbose`) — 셰이더 컴파일
+  오류·스크립트 오류 0건, 텍스처·모델 로드까지 로그로 확인. **실제
+  카툰 톤이 원신처럼 보이는지는 아직 사람이 안 봤다** — 이 결정은
+  시각 판단이라 GUI로 직접 확인해야 확정된다(66-2장 "적용 순서" 1번,
+  saga-godot CLAUDE.md의 "실제 화면 확인" 절차 — Godot 에디터로
+  `CelShaderPrototype.tscn`을 열거나 실행해서 볼 것). `git status`로
+  `project.godot`·`*.import` 의도치 않은 변경 없는지 확인, 무관한
+  `.import` 줄바꿈 잡음만 있어 되돌렸다.
+
 ## 다음에 할 일 (아직 착수 전)
 
+- **사람이 직접 `CelShaderPrototype.tscn`을 열어 카툰 톤을 눈으로 확인**
+  (band_count·rim 값 튜닝은 실기 확인 후 결정) — 자동화 불가 영역
 - 실제 캐릭터 외형(플레이어·촌장·상인·산적 등) 디자인 — 사람이 VRoid
   Studio를 직접 열어 슬라이더로 조형해야 하는 부분(자동화 불가 영역)
 - Quaternius/KayKit에서 마을 건물·자연물 후보 다운로드해 형태 비교
-- Godot 커스텀 셀셰이더 프로토타입 1개 작성(임포트된 `AvatarSample_A.glb`
-  로 바로 테스트 가능) + 46장 디버그 화면 표시 방식은 66-1장과 동일하게
-  확장
+- 톤이 확정되면 `cel_toon.gdshader`를 44장 우선순위대로 실제
+  Player/Enemy/NPC/Boss 씬에 반영, 아웃라인은 그 다음 별도 단계
 - `assets/characters_vroid/AvatarSample_A.vrm` 원본은 참고용으로 남기고,
   실제 씬에서 쓰는 쪽은 `.glb` 사본 — Godot 프로젝트 규칙상 `.vrm`은
   임포트 대상이 아니므로 이후 새 VRM을 추가할 때마다 `.glb`로도 복사해야
