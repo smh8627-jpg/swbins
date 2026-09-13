@@ -66,8 +66,9 @@ namespace Saga.EditorTools
 
             switch (_stage)
             {
-                case 0: // idle 정착 대기
-                    if (_frame >= 60)
+                case 0: // idle 정착 대기 — 첫 프레임들은 셰이더 변형이 아직 컴파일 중이라
+                        // 플랫한 색으로 찍힐 수 있어(2026-09-13 실제로 겪음) 넉넉히 기다린다.
+                    if (_frame >= 120)
                     {
                         ScreenCapture.CaptureScreenshot(ShotDir + "01_idle.png");
                         if (animator != null)

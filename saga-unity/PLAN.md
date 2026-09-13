@@ -1247,32 +1247,64 @@ Assets/Settings/
   SolidColor`로 배경을 명시. 재빌드 후 재확인 — **idle(제자리 파이팅
   자세)·run(달리기, 루트 모션으로 카메라에서 멀어짐)·attack(중간 스윙
   자세) 셋 다 정상적으로 렌더링됨을 스크린샷으로 직접 확인.**
-- **부가 발견 — Maria FBX에 디퓨즈 텍스처가 아예 없다.** 진단 스크립트로
-  확인한 결과 `MariaMat`은 `Universal Render Pipeline/Lit` 셰이더를
-  올바르게 쓰고 있지만(임포터가 자동으로 URP에 맞게 매핑함) `_BaseMap`
-  (`_MainTex` 별칭)이 null, **FBX 안에 임베드된 텍스처가 0개**
-  (`materialImportMode=ImportViaMaterialDescription`,
-  `materialLocation=InPrefab`). 그래서 지금은 흰색 무채색 갑옷으로만
-  보인다(스크린샷 참고) — 메시·리깅·애니메이션 자체는 멀쩡하다. Mixamo가
-  "FBX for Unity" 포맷에서 텍스처를 안 담아 준 것으로 보인다 — 사람이
-  mixamo.com에서 텍스처 포함 여부를 다시 확인하거나 별도로 받아야
-  풀리는 문제라 지금은 손 못 댄다(⑤ 헤어/스킨 셰이더를 붙이는 다음
-  단계에서 실제 색·질감을 보려면 먼저 이 텍스처 문제부터 풀어야 함).
+- **부가 발견(오판, 아래 ⑩에서 정정) — 당시엔 "Maria FBX에 디퓨즈
+  텍스처가 아예 없다"고 적었었다.** `MariaMat`의 `_BaseMap`이 null이고
+  `AssetDatabase.LoadAllAssetsAtPath`로 찾은 `Texture2D` 서브에셋이
+  0개인 것까지는 사실이었지만, "FBX 안에 텍스처 자체가 없다"는 결론은
+  틀렸다 — 실제로는 Unity가 FBX에 임베드된 텍스처를 **자동으로
+  추출해 주지 않을 뿐**이었다. 사람에게 mixamo.com 재확인을 요청했던
+  것도 불필요한 요청이었다 — 자세한 경위는 ⑩ 참고.
 - GUI 실행 후 `Unity.exe` 프로세스가 스스로 완전히 종료된 것도
   `tasklist`로 확인(별도 kill 불필요). `ProjectSettings/`·`Packages/`
   부작용 없음.
 
+## ⑩ 텍스처 문제 정정 — FBX에 이미 임베드돼 있었다, `ExtractTextures()`만 필요했다 (2026-09-13, 이어서)
+
+- **사용자가 "텍스처 있는 걸로 다시 받아둘게"라며 mixamo.com에서
+  `character.fbx`를 새로 받았다.** 진단해 보니 이 파일도 몸은
+  똑같은 Maria(`MariaMat`, 서브메시 `Maria_J_J_Ong`+`Maria_sword`
+  동일)였고, `_BaseMap`도 여전히 null — **재다운로드로도 안 풀렸다.**
+- **원인을 제대로 찾았다** — `character.fbx`를 바이너리로 직접 열어
+  PNG 시그니처(`\x89PNG\r\n\x1a\n`)를 찾아보니 실제로 3개
+  (`maria_diffuse.png`·`maria_normal.png`·`maria_specular.png`)가
+  파일 안에 임베드돼 있었다. **Unity의 `ModelImporter`는 FBX에 임베드된
+  텍스처를 기본적으로 자동 추출하지 않는다** — `ModelImporter.
+  ExtractTextures(destDir)`를 명시적으로 호출해야 실제 텍스처 에셋이
+  생기고 머티리얼이 그걸 가리키게 된다(에디터 GUI의 Materials 탭
+  "Extract Textures..." 버튼과 같은 동작을 코드로 부른 것).
+  `Assets/Art/CharactersRealistic/Textures/`에 세 PNG(2048×2048)가
+  추출됐다.
+- **바로 다음에 처음부터 받았던 `Maria WProp J J Ong.fbx`(리깅
+  완료본)도 똑같이 확인해 보니 3개 PNG가 이미 임베드돼 있었다** —
+  **애초에 재다운로드가 필요 없었다, 처음 받은 파일에 그냥
+  `ExtractTextures()`만 돌렸으면 됐다.** 그래서 새로 받은
+  `character.fbx`는 지우고, 이미 리깅·Animator Controller·씬 배치가
+  다 끝나 있던 원본 `Maria WProp J J Ong.fbx`에 텍스처 추출을 적용해
+  이어갔다(리깅 설정은 재추출 후에도 그대로 살아 있음을 확인 —
+  텍스처 추출은 재임포트만 트리거할 뿐 `animationType`/`avatarSetup`
+  같은 임포터 설정을 안 건드린다).
+- **재확인 — 실제로 옷·갑옷·머리카락 색이 다 입혀진 상태로 idle·run·
+  attack 전부 정상 렌더링됨을 스크린샷으로 확인.** 다만 **씬을 새로
+  빌드하고 GUI Play에 들어간 첫 실행에서 한 번, 셰이더 변형이 아직
+  컴파일 중이었는지 idle 스크린샷이 다시 플랫한 시안색으로 찍힌 적이
+  있었다**(60프레임 대기로는 부족) — 대기를 120프레임으로 늘려 재현
+  없이 안정적으로 텍스처가 입혀진 상태를 캡처하도록
+  `PlaytestCharacterRealisticGui.cs`를 고쳤다.
+- **정정 — 새 파일 반입은 이제 불필요하다.** 앞으로 Mixamo 캐릭터를
+  더 받을 때는 처음부터 body FBX마다 `ExtractTextures()`를 한 번
+  돌리는 걸 표준 절차에 넣는다(다음에 할 일 참고).
+
 ## 다음에 할 일 (아직 착수 전)
 
-- **Maria 디퓨즈 텍스처 확보** — mixamo.com에서 텍스처가 포함된 형식으로
-  다시 받거나(사람 GUI 단계), 별도 텍스처 다운로드 옵션 확인.
+- **Mixamo 캐릭터를 새로 받을 때마다 `ModelImporter.ExtractTextures()`를
+  표준 절차에 포함시키기** — `SetupMixamoCharacterImport.cs`에 이
+  단계를 넣어 리깅과 한 번에 처리하도록 다음에 정리할 것(이번엔 급한
+  대로 별도 진단 스크립트로 처리했다).
 - ⑤의 헤어카드(이방성)·SSS 스킨 셰이더 후보를 Maria의 실제 머티리얼에
-  붙여 본다 — 위 텍스처 문제가 풀려야 색이 있는 상태로 비교 가능(먼저
-  Maria FBX 안 머티리얼 슬롯 구성 — 피부/헤어/의상이 몇 개
-  서브메시·머티리얼로 나뉘는지도 이번에 확인함: **단일 머티리얼
-  `MariaMat` 하나**, 서브메시 둘(`Maria_J_J_Ong` 몸+`Maria_sword` 검)
-  이 그 하나를 공유 — 부위별로 나눠 다른 셰이더를 각각 물리려면 먼저
-  머티리얼을 분리해야 함).
+  붙여 본다 — 이제 색이 있는 상태로 비교 가능. 머티리얼 슬롯 구성도
+  확인됨: **단일 머티리얼 `MariaMat` 하나**, 서브메시 둘
+  (`Maria_J_J_Ong` 몸+`Maria_sword` 검)이 그 하나를 공유 — 부위별로
+  나눠 다른 셰이더를 각각 물리려면 먼저 머티리얼을 분리해야 함.
 - Kenney·VRoid 플레이스홀더를 위 다섯 환경 재질/⑤ 캐릭터 셰이더/⑦
   캐릭터로 실제 사실적 에셋으로 순차 교체(44장 우선순위: Player →
   주요 Enemy → Boss → Environment → Building → … 와 교차 적용).
