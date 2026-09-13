@@ -5172,3 +5172,32 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   세션이 실기 확인 요청을 받으면 `CelShaderPrototype.tscn`을 열어 볼 것
   — band_count·rim 파라미터는 그때 튜닝. 톤 확정 전까지는 실제
   Player/Enemy 씬에 이 셰이더를 반영하지 않는다.
+
+## Quaternius/KayKit 후보 다운로드 + 형태 비교 (2026-09-13, 계속 이어서)
+
+- 66-2장 "다음에 할 일" 중 자동화 가능한 항목(사람 개입 없는 다운로드)을
+  마저 처리 — VRoid·실기 GUI 확인처럼 사람이 해야 하는 항목 2개는
+  그대로 남겨 뒀다.
+- **KayKit Medieval Hexagon Pack**(CC0)은 itch.io를 거치지 않고 공식
+  GitHub 미러(`KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0`)에서
+  `raw.githubusercontent.com`으로 바로 받았다 — 건물 2종(`building_
+  home_A_blue`·`building_tavern_blue`)·자연물 2종(`tree_single_A`·
+  `rock_single_A`)+공유 텍스처를 `assets/_candidates_66-2/
+  kaykit_medieval_hex/`에 두고 헤드리스 임포트로 검증(오류 0건). 아직
+  후보일 뿐 씬에는 안 물렸다.
+- **Quaternius Stylized Nature MegaKit**은 itch.io의 name-your-own-price
+  페이지가 JS 렌더링이라 정적 다운로드 URL을 못 찾았다 — 실제 파일은
+  못 받았고, `quaternius.com`의 정적 프리뷰 이미지만 받아 형태를
+  비교했다(사람이 itch.io에서 한 번 눌러 줘야 하는 지점, VRoid와 같은
+  종류의 자동화 한계).
+- **형태 비교 결론** — KayKit 건물은 지금 쓰는 Kenney Fantasy Town Kit과
+  같은 각진 저폴리 계열이라 메시만 바꿔선 원신 톤에 별 도움이 안 된다
+  (건물은 셰이더+텍스처 톤 보정이 핵심). 반대로 Quaternius 나무는 둥근
+  puffball 실루엣이라 66-2장이 말하는 painterly 방향과 훨씬 잘 맞는다
+  — **자연물 교체가 건물보다 우선순위가 높다**는 게 이번 조사의 실질
+  결론. 자세한 내용은 `PLAN.md` 66-2장·`docs/ASSET_GUIDE.md` 참고,
+  여기서 반복하지 않는다.
+- 헤드리스 임포트 후 `project.godot`·`*.import` 확인, 무관한 줄바꿈
+  잡음만 되돌림. 신규 Godot 프로세스는 `--quit`으로 자체 종료.
+- **다음에 할 일**: 사람이 Quaternius 무료 버전을 itch.io에서 한 번
+  받아 주면 이어서 Godot 임포트·기존 Kenney 나무 교체 검증까지 진행.

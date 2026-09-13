@@ -2470,15 +2470,56 @@ PROJECT_STATE.md` 참고. 요약:
   `project.godot`·`*.import` 의도치 않은 변경 없는지 확인, 무관한
   `.import` 줄바꿈 잡음만 있어 되돌렸다.
 
+## Quaternius/KayKit 후보 다운로드 + 형태 비교 (2026-09-13, 이어서)
+
+- **KayKit Medieval Hexagon Pack**(CC0) — itch.io 페이지 대신 공식 GitHub
+  미러(`github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0`,
+  같은 CC0 라이선스, `LICENSE.txt` 확인)에서 `raw.githubusercontent.com`
+  직접 다운로드가 됐다 — VRoid 때와 달리 **로그인·클릭 자동화가 전혀
+  필요 없다.** 샘플로 건물 2종(`building_home_A_blue`·`building_tavern_
+  blue`) + 자연물 2종(`tree_single_A`·`rock_single_A`) + 공유 텍스처
+  (`hexagons_medieval.png`)를 `.gltf`+`.bin`으로 받아
+  `assets/_candidates_66-2/kaykit_medieval_hex/`에 뒀다(라이선스 텍스트
+  동봉). 헤드리스 임포트로 검증 — 오류 0건. **아직 어느 씬에도 안
+  물렸다** — 이름의 `_candidates` 그대로 비교용 자리 표시자다(폴더명
+  `_` 접두는 기존 `_test.html` 관례와 같은 이유로 Pages `.nojekyll`이
+  이미 커버).
+- **Quaternius Stylized Nature MegaKit**(CC0) — 이쪽은 **자동 다운로드가
+  안 됐다.** itch.io 배포 페이지가 "이름을 붙여 가격 정하기"(name-your-
+  own-price) 방식의 JS 렌더링 SPA라 정적 URL이 없고, 실제 파일을 받으려면
+  사람이 브라우저로 그 버튼을 한 번 눌러야 한다(VRoid 내보내기와 비슷한
+  종류의 자동화 불가 지점 — 로그인은 필요 없다). 대신 `quaternius.com`
+  자체 페이지는 정적이라 **공식 프리뷰 이미지**(`standard.jpg`)는 curl로
+  바로 받아 Read 툴로 직접 봤다.
+- **형태 비교 결론(프리뷰 이미지 기준)**:
+  - KayKit 건물(위 프로모 이미지)은 각진 저폴리·플랫 셰이딩 — 지금 쓰는
+    Kenney Fantasy Town Kit과 같은 계열이다. 셀셰이딩을 입혀도 실루엣
+    자체가 원신처럼 부드러워지지는 않는다 — **건물 쪽은 메시 교체보다
+    셰이더+painterly 텍스처 톤 보정 쪽이 체감 효과가 더 크다**는 뜻.
+  - Quaternius 나무(위 프리뷰)는 뭉게뭉게한 둥근 캐노피(puffball
+    실루엣)로, Kenney/KayKit의 각진 원뿔형 나무와 확연히 다르고 66-2장이
+    말하는 "painterly·원신 필드 느낌"에 훨씬 가깝다. **자연물(나무·덤불)
+    교체는 Quaternius 쪽이 형태만으로도 이득이 크다** — 사람이 itch.io
+    무료 다운로드를 한 번 눌러 주면 그 다음은 이어받을 수 있다.
+- 결과적으로 44장 교체 우선순위와 별개로, **자연물(Vegetation)을 건물보다
+  먼저 Quaternius로 바꾸는 쪽이 비용 대비 효과가 크다**는 게 이번 비교의
+  실질적 결론 — 다음에 사람이 다운로드를 받아 주면 바로 이어갈 것.
+
 ## 다음에 할 일 (아직 착수 전)
 
 - **사람이 직접 `CelShaderPrototype.tscn`을 열어 카툰 톤을 눈으로 확인**
   (band_count·rim 값 튜닝은 실기 확인 후 결정) — 자동화 불가 영역
 - 실제 캐릭터 외형(플레이어·촌장·상인·산적 등) 디자인 — 사람이 VRoid
   Studio를 직접 열어 슬라이더로 조형해야 하는 부분(자동화 불가 영역)
-- Quaternius/KayKit에서 마을 건물·자연물 후보 다운로드해 형태 비교
+- **사람이 Quaternius Stylized Nature MegaKit 무료(Standard) 버전을
+  itch.io에서 한 번 다운로드**(`quaternius.itch.io/stylized-nature-
+  megakit`, name-your-own-price 0원 가능) — 그 다음은 이 세션이 이어서
+  Godot 임포트·기존 Kenney 나무와 교체 검증까지 할 수 있다
 - 톤이 확정되면 `cel_toon.gdshader`를 44장 우선순위대로 실제
   Player/Enemy/NPC/Boss 씬에 반영, 아웃라인은 그 다음 별도 단계
+- `assets/_candidates_66-2/`의 KayKit 샘플은 실제 채택 여부 결정 전까지
+  게임 씬에 물리지 않는다 — 채택하면 정식 `assets/buildings/`류 폴더로
+  옮기고 이 후보 폴더는 지운다
 - `assets/characters_vroid/AvatarSample_A.vrm` 원본은 참고용으로 남기고,
   실제 씬에서 쓰는 쪽은 `.glb` 사본 — Godot 프로젝트 규칙상 `.vrm`은
   임포트 대상이 아니므로 이후 새 VRM을 추가할 때마다 `.glb`로도 복사해야

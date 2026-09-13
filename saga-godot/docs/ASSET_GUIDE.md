@@ -299,3 +299,23 @@ Windows 공용 대화상자가 아님)에 절대경로(예:
 **다음에 이어서**: 실제 셀셰이더를 이 모델에 붙여 보는 것, 그리고
 saga-unity 쪽에서도 같은 `.glb` 사본으로 임포트가 되는지 확인하는 것
 (진행 상황은 `saga-unity/docs/ASSET_GUIDE.md` 참고).
+
+## 2026-09-13 — KayKit/Quaternius 후보, 형태 비교용
+
+`assets/_candidates_66-2/kaykit_medieval_hex/`(건물 2종·자연물 2종) —
+**KayKit Medieval Hexagon Pack**(CC0, Kay Lousberg) 공식 GitHub 미러
+(`github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0`)에서
+`raw.githubusercontent.com` 직접 다운로드. itch.io 페이지를 거치지 않아
+로그인·클릭 자동화가 필요 없었다(VRoid보다 훨씬 수월했다). `LICENSE.txt`
+동봉. 헤드리스 임포트 오류 0건. **아직 후보일 뿐 — 어느 씬에도 안 물려
+있다.** 자세한 형태 비교 결론(건물은 Kenney와 비슷한 각진 저폴리라
+메시 교체 효과가 작고, KayKit 쪽 자연물도 각짐 — Quaternius 나무가
+painterly 목표에 더 맞음)은 `PLAN.md` 66-2장 "Quaternius/KayKit 후보
+다운로드 + 형태 비교" 참고.
+
+**Quaternius Stylized Nature MegaKit**은 이번엔 실제 파일을 못 받았다 —
+itch.io의 name-your-own-price 배포 페이지가 JS 렌더링 SPA라 정적
+다운로드 URL이 없다(버튼을 사람이 브라우저로 눌러야 하는 자동화 불가
+지점, 로그인은 불필요). 대신 `quaternius.com`의 정적 프리뷰 이미지만
+받아 형태 판단에 참고했다 — 실제 모델 파일은 다음에 사람이 itch.io에서
+한 번 받아 주면 이어서 임포트한다.
