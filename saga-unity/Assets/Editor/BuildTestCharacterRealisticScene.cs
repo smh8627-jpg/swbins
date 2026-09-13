@@ -38,20 +38,32 @@ namespace Saga.EditorTools
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var scene = EditorSceneManager.GetActiveScene();
 
+            // 스카이박스/앰비언트 프로브를 변수에서 빼고 평평한 회색 앰비언트로 —
+            // 리그·머티리얼만 순수하게 확인하기 위해서다(66-2장 FF16 무드는 각
+            // 게임 씬의 몫, 여기서는 일부러 안 건드린다).
+            RenderSettings.skybox = null;
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.35f, 0.35f, 0.35f);
+
             var lightGo = new GameObject("Directional Light", typeof(Light));
             var light = lightGo.GetComponent<Light>();
             light.type = LightType.Directional;
+            light.color = Color.white;
             light.intensity = 1.2f;
             lightGo.transform.rotation = Quaternion.Euler(40f, 30f, 0f);
 
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
-            ground.transform.localScale = new Vector3(5f, 1f, 5f);
+            ground.transform.localScale = new Vector3(2f, 1f, 2f);
+            ground.GetComponent<Renderer>().sharedMaterial = CreateSimpleUrpLitMaterial("GroundGray", new Color(0.55f, 0.55f, 0.55f));
 
             var cameraGo = new GameObject("Main Camera", typeof(Camera));
             cameraGo.tag = "MainCamera";
-            cameraGo.transform.position = new Vector3(0f, 1.6f, -3.5f);
-            cameraGo.transform.rotation = Quaternion.Euler(10f, 0f, 0f);
+            var cam = cameraGo.GetComponent<Camera>();
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.5f, 0.6f, 0.7f);
+            cameraGo.transform.position = new Vector3(0f, 1.4f, -3.2f);
+            cameraGo.transform.rotation = Quaternion.Euler(8f, 0f, 0f);
 
             var bodyAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BodyFbx);
             if (bodyAsset == null)
@@ -76,6 +88,15 @@ namespace Saga.EditorTools
             }
             EditorSceneManager.SaveScene(scene, ScenePath);
             Debug.Log($"[BuildTestCharacterRealisticScene] built {ScenePath}");
+        }
+
+        private static Material CreateSimpleUrpLitMaterial(string name, Color color)
+        {
+            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = name };
+            mat.SetColor("_BaseColor", color);
+            mat.SetFloat("_Smoothness", 0.2f);
+            mat.SetFloat("_Metallic", 0f);
+            return mat;
         }
 
         private static AnimatorController BuildController()
