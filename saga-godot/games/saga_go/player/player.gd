@@ -6,6 +6,8 @@ extends CharacterBody3D
 ## (CC0 Kenney Blocky Characters, ASSET_GUIDE.md 참고) — 안에 idle·walk·
 ## sprint 애니메이션이 이미 들어 있어서 그걸 그대로 재생만 한다.
 
+const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
+
 const WALK_SPEED := 6.0
 const RUN_SPEED := 10.0
 const GRAVITY := 20.0
@@ -28,6 +30,7 @@ func _ready() -> void:
 	if found.size() > 0:
 		_joystick = found[0]
 	_play_anim("idle")
+	CelShaderApply.apply_to(visual)
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():

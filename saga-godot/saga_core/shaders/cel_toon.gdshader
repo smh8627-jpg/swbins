@@ -13,10 +13,10 @@ render_mode blend_mix, cull_back, diffuse_burley, specular_disabled;
 uniform sampler2D albedo_texture : source_color;
 uniform vec4 albedo_tint : source_color = vec4(1.0);
 uniform int band_count : hint_range(2, 4) = 3;
-uniform float band_softness : hint_range(0.0, 1.0) = 0.15;
+uniform float band_softness : hint_range(0.0, 1.0) = 0.08;
 uniform vec3 rim_color : source_color = vec3(1.0, 0.95, 0.85);
-uniform float rim_power : hint_range(0.5, 8.0) = 3.0;
-uniform float rim_strength : hint_range(0.0, 2.0) = 0.6;
+uniform float rim_power : hint_range(0.5, 8.0) = 4.5;
+uniform float rim_strength : hint_range(0.0, 2.0) = 0.3;
 
 void fragment() {
 	vec4 tex = texture(albedo_texture, UV);

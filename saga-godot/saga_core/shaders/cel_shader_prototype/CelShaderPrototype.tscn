@@ -13,7 +13,8 @@ status_label = NodePath("HUD/StatusLabel")
 environment = ExtResource("3")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.8, -0.35, 0.48, 0, 0.807, 0.59, -0.6, -0.472, 0.646, 0, 2, 0)
+position = Vector3(0, 2, 0)
+rotation_degrees = Vector3(-45, -35, 0)
 light_energy = 1.1
 shadow_enabled = true
 

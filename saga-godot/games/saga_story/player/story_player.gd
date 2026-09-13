@@ -18,6 +18,7 @@ const ATTACK_RANGE := 2.2
 const ATTACK_COOLDOWN := 0.36  # 무예 연참(連斬) cd 0.36 그대로(js/data-job.js)
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
+const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 
 @onready var visual: Node3D = $Visual
 @onready var _anim: AnimationPlayer = visual.find_child("AnimationPlayer", true, false)
@@ -242,6 +243,7 @@ func take_damage(amount: float) -> void:
 func _ready() -> void:
 	visual.rotation.y = PI * 0.5  # 오른쪽(+X)을 보고 시작 — StoryPlayer.tscn 참고
 	_play_anim("idle")
+	CelShaderApply.apply_to(visual)
 
 
 func _physics_process(delta: float) -> void:
