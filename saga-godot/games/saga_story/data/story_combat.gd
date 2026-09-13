@@ -228,6 +228,21 @@ const ARMOR_SLOTS: Array[String] = ["hat", "top", "bottom", "shoes", "glove", "c
 const GEAR_DROP_CHANCE_GRUNT := 0.035
 const GEAR_DROP_CHANCE_BOSS := 0.9
 
+## **2026-09-13 추가 — 상점 물목 화면.** data-gear.js `SLOTS` 그대로(이름·
+## 이모지) — 열 부위를 이 순서로 늘어놓는다(story_merchant.gd 참고).
+const SLOT_LABEL := {
+	"weapon":   {"name": "무기",       "emoji": "🗡️"},
+	"hat":      {"name": "투구",       "emoji": "🪖"},
+	"top":      {"name": "갑옷",       "emoji": "🥋"},
+	"bottom":   {"name": "전군(戰裙)", "emoji": "👖"},
+	"shoes":    {"name": "전화(戰靴)", "emoji": "👢"},
+	"glove":    {"name": "수갑(手甲)", "emoji": "🧤"},
+	"cape":     {"name": "망토",       "emoji": "🧣"},
+	"ring":     {"name": "반지",       "emoji": "💍"},
+	"necklace": {"name": "목걸이",     "emoji": "📿"},
+	"earring":  {"name": "귀걸이",     "emoji": "💎"},
+}
+
 
 ## data-gear.js poolFor(lv) 그대로 — 그 사냥터 lv+3까지의 물건(부위 안 가림).
 ## 빈 결과가 나올 수 없는 lv(≥-2)면 그럴 일이 없지만, 원문처럼 안전망으로

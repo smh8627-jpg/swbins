@@ -2018,6 +2018,74 @@ REALM(`realm_archive_button.gd` 등)에서 두루 재활용되는 공용 선택�
 재사용한다"를 어기고 새로 만들자고 할 뻔한 실수, 다음 세션은 이
 사실을 먼저 확인하고 시작할 것.
 
+## 상점 물목 화면 (2026-09-13, "이어해" 지시로 계속)
+
+바로 위 정정에서 확인한 대로 `games/saga_go/ui/choice_prompt.gd`
+(ChoicePrompt)를 그대로 갖다 써서, `story_merchant.gd`의
+"다가가면 알아서 가장 싼 걸 산다"(`_buy_cheapest_missing()`/
+`_buy_scroll()`)를 **직접 고르는 물목 화면**으로 바꿨다.
+
+- **목록을 부위당 하나로 좁혔다.** ChoicePrompt엔 스크롤 컨테이너가
+  없어(REALM 서고가 LIST_LIMIT=20으로 자체 상한을 둔 것과 같은 이유)
+  GEAR_ITEMS 마흔 개를 다 늘어놓지 않는다 — 열 부위마다 지금 살 수
+  있는(need<=level) 것 중 **가장 싼 것 하나**만 올린다. 가격이 tier와
+  정비례해 이게 곧 "그 부위의 다음 승급" 하나뿐이다. 주문서 일곱 개는
+  전부 늘어놓는다(원작 `ui.js viewShop()`이 주문서를 부위로 안 좁히던
+  것 그대로) — `can_scroll()`로 못 쓰는 것만 거른다.
+- `story_combat.gd`에 `SLOT_LABEL` 신규(data-gear.js `SLOTS` 그대로,
+  이름·이모지) — 물목 줄에 "🗡️ 환도(環刀)(무기) · 🪙 1100" 식으로 쓴다.
+- `story_merchant.gd` — `_gear_offers()`/`_scroll_offers()`(후보 계산,
+  순수 함수) · `_open_shop()`(ChoicePrompt.build 호출) ·
+  `_close_shop()`/`_on_gear_picked()`/`_on_scroll_picked()` 신규.
+  `_shop_open` 플래그로 패널이 열려 있는 동안 다시 안 연다 —
+  ChoicePrompt는 모달 차단이 없어(패널 뒤 입력이 그대로 통과) 안
+  막으면 상호작용 키를 연타할 때 패널이 겹쳐 쌓인다(DUNGEON
+  vendor_button.gd 등 기존 소비처들은 버튼 클릭형이라 이 문제가 원래
+  없었다 — 이 판의 "다가가서 폴링" 구조라 새로 필요해진 방어). 기존
+  `_buy_cheapest_missing()`/`_buy_scroll()`은 지우고 이 함수들로
+  교체했다.
+- **검증(헤드리스, 값 자체까지) — 새로운 방법.** `story_merchant.gd`가
+  `StorySaveState`를 전역 식별자로 직접 참조해(이 프로젝트 모든 게임
+  스크립트의 정상적인 방식) `--script` 단독 실행에서 그 스크립트를
+  `preload()`만 해도 "Identifier not found: StorySaveState" 컴파일
+  오류가 난다(주문서 절 문서화 이후 `get_node("/root/...")`로 우회하던
+  것과 같은 근본 원인, 이번에 정확히 재현·확인). **해결 — 스크립트를
+  직접 preload하지 않고, 그 스크립트가 실제로 붙어 있는 씬
+  (`HeodoField.tscn`)을 `load().instantiate()`로 통째로 불러 트리에
+  얹은 뒤, 자식 노드 중 그 스크립트를 쓰는 걸 찾아 `Callable`
+  (`node.call("_gear_offers")` 등)로 부른다.** 정상 씬 부팅 경로를
+  타면 autoload 전역 식별자가 문제없이 풀린다 — 다음에 비슷한 검증이
+  필요하면 이 방법(스크립트 preload가 아니라 씬 instantiate)을 먼저
+  쓸 것. **한 가지 더 — `--script`가 중간에 오류로 멈추면 `--quit-after`
+  없이는 헤드리스가 그대로 무한 대기한다**(렌더링할 게 없어도 SceneTree
+  가 계속 돈다) — 이번에 실제로 겪어 Godot 프로세스 두 개가 남았다가
+  PID로 직접 taskkill. **앞으로 `--script` 검증은 항상 `--quit-after`를
+  안전망으로 같이 준다.**
+  - 레벨1·빈 장비 → 부위 10개 전부(제일 싼 tier1), 주문서 0개(전부
+    can_scroll false) — `offers1=10 has_sword1=true`
+  - 무기(sword1) 낌+scroll_left=5 → 무기 오퍼 사라짐(9개), 무기 주문서
+    3개(atk100/60/10 전부 can_scroll) — `offers2=9 has_sword1=false
+    scrolls2=3`
+  - 레벨5 → sword2가 새 후보(sword1은 여전히 없음, 낀 채라) —
+    `offers3 has_sword2=true has_sword1=false`
+  - `_on_gear_picked("sword2", {})` → 장착 갱신 + 정확히 1100골드
+    차감(sword2 price) — `after_buy weapon=sword2 gold_spent=1100`
+  - hat(hat1) 낌+scroll_left=5 → `_on_scroll_picked("def100", {})`
+    (rate 1.0) → scroll_left -1·골드 -500(price)·scroll_bonus.hat.def=
+    1.0 — 전부 손계산과 정확히 일치.
+  - 임포트 확인(texture-a.png.import CRLF 잡음만 재발생, 되돌림) →
+    `TestField.tscn`·`HeodoField.tscn` 각각 `--quit-after 6 --verbose`
+    스크립트 오류 0건. 검증 스크립트 삭제 후 `git status`로
+    `project.godot`·`*.import` 재확인 — 무관한 잡음만 되돌림.
+
+**GUI 실기 확인은 아직 안 함** — 상인에게 다가가 K를 눌렀을 때 패널이
+실제로 뜨는지, 버튼을 눌러 사는 손맛, 연타해도 패널이 안 겹치는지
+눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — STORY 1절 "제외" 목록의 굵직한 항목은 몬스터
+도감 정도만 남았다. 그 밖엔 STORY 밖(다른 네 판, saga-unity 트랙)으로
+옮겨 갈 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

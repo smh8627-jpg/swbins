@@ -5354,3 +5354,30 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   행상(`vendor_button.gd`)·FOREST·REALM에서 이미 상점/서고류 선택지
   목록으로 쓰이고 있다 — STORY도 그걸 재사용하면 된다. 자세한 내용은
   `docs/VERTICAL_SLICE_STORY.md` "업적" 절 끝의 정정 참고.
+
+## STORY 상점 물목 화면 (2026-09-13, "이어해" 지시로 계속)
+
+- 위 정정 직후 바로 이어서 처리 — `story_merchant.gd`의 "다가가면
+  알아서 가장 싼 걸 산다"를 ChoicePrompt(`games/saga_go/ui/
+  choice_prompt.gd`) 기반 **물목을 직접 고르는 화면**으로 바꿨다.
+  ChoicePrompt에 스크롤이 없어 GEAR_ITEMS 마흔 개를 다 못 늘어놓으므로
+  부위(열 곳)마다 가장 싼 것 하나만 후보로 올린다 — 주문서 일곱 개는
+  전부(can_scroll로 못 쓰는 것만 거름). `story_combat.gd`에
+  `SLOT_LABEL`(부위 이름/이모지, data-gear.js SLOTS) 신규. 자세한 내용은
+  `docs/VERTICAL_SLICE_STORY.md` "상점 물목 화면" 절 참고.
+- **검증 방법 새로 발견** — `story_merchant.gd`처럼 `StorySaveState`를
+  전역 식별자로 직접 쓰는 스크립트는 `--script` 단독 실행에서
+  preload만 해도 컴파일 오류가 난다. 스크립트를 직접 안 불러오고 그
+  스크립트가 실제로 붙은 씬(`HeodoField.tscn`)을 `load().instantiate()`
+  로 통째로 불러 자식 노드를 찾아 `node.call("_메서드")`로 부르면
+  정상 동작한다 — 다음에 비슷한 검증 필요하면 이 방법부터. 그리고
+  `--script`가 도중에 에러로 멈추면 `--quit-after` 없이는 헤드리스가
+  무한 대기한다(실제로 겪어 프로세스 두 개 PID로 직접 taskkill) —
+  앞으로 `--script` 검증엔 항상 `--quit-after`를 같이 준다.
+- 검증: 헤드리스 임포트 오류 0건, 두 씬(TestField·HeodoField)
+  `--quit-after 6` 스크립트 오류 0건. 위 새 방법으로 부위별 오퍼 개수·
+  레벨업에 따른 후보 교체·구매 시 골드 차감·주문서 적용까지 손계산과
+  일치 확인 후 스크립트 삭제, 재검증까지 마쳤다. `.import` 잡음만
+  되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: STORY 남은 굵직한 후보는 몬스터 도감 정도. 그 밖엔
+  다른 네 판·saga-unity 트랙으로 옮겨 갈 자리.
