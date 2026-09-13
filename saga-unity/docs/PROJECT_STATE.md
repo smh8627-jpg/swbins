@@ -3669,6 +3669,23 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   남은 단계) → 이후 44장 우선순위대로 Kenney/VRoid 플레이스홀더를
   실제 씬에 순차 교체.
 
+## 66-2장 "다음에 할 일" ⑦ Mixamo 캐릭터 반입 + Humanoid 리깅 (2026-09-13, 이어서)
+
+- **사용자가 mixamo.com에서 직접 받았다** — Maria 몸+애니메이션 8개
+  (idle·walk·run·attack·hit·dodge·death·interaction, ③ 레시피 그대로),
+  `Assets/Art/CharactersRealistic/`(`.gitignore` 대상)로 복사해 넣었다.
+- `SetupMixamoCharacterImport.cs`(신규)로 몸은 Create From This Model,
+  애니메이션 8개는 전부 Copy From Other Avatar(몸의 Avatar 공유)로
+  Humanoid 리깅, 클립 이름을 액션 이름으로 바꾸고 idle/walk/run만
+  루프 설정. 배치 모드 실행 결과 **몸 Avatar가 isValid·isHuman 둘 다
+  통과**(Mixamo T-pose가 별 수동 보정 없이 Unity Humanoid에 바로
+  들어맞음), 8개 클립 전부 정상 리네임 확인. 컴파일 오류 0건,
+  `ProjectSettings/`·`Packages/` 부작용 없음. 자세한 내용은 `PLAN.md`
+  66-2장 ⑦ 참고.
+- **다음에 할 일**: Animator Controller로 클립 연결+씬 배치, ⑤ 헤어/
+  스킨 셰이더를 Maria 실제 머티리얼에 붙이기(머티리얼 슬롯 구성부터
+  확인 필요), 이후 44장 우선순위대로 실제 씬 순차 교체.
+
 ## GUI 실기 확인 + 라이팅 재조정 — 다섯 판 전부 (2026-09-13, 이어서)
 
 - **사용자 지시 "Unity 에디터로 직접 열어서 화면 톤 확인해줘"** — 위
