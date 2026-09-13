@@ -4180,3 +4180,112 @@ GO/Story의 Environment→Building(각 게임 지형 빌더가 Dungeon과 구조
 달라 EnvironmentMaterial.cs 패턴을 그대로 못 옮기고 게임별로 새로
 봐야 함), 또는 Forest에 적대 개체를 새로 넣을지(콘텐츠 설계 결정 필요),
 또는 Realm의 자산 우선순위를 별도로 정하는 것.
+
+## 같은 세션 이어서 — GO/Story "Environment" 마저 함, 세션 종료 (2026-09-14)
+
+사용자 "모두 다해"·"묻지말고"로 계속 진행 지시. 두 게임의 지형 구조가
+서로 또 Dungeon과도 달라 각각 다르게 접근했다:
+
+- **GO "Environment"** — GO 지형은 primitive가 아니라 9종 지형을 정점색
+  하나로 칠하는 커스텀 셰이더(`VertexColorLit.shader`, UV조차 없었다)라
+  Dungeon 패턴(재질 통째 교체)을 못 옮긴다. **사용자에게 범위를
+  물어**("전체 멀티텍스처 스플랫팅" vs "간단한 디테일 오버레이") →
+  "간단한 디테일 오버레이만"으로 확정. `TerrainBuilder.cs`에 UV(월드
+  XZ) 추가, 셰이더에 `_DetailTex/_DetailTiling/_DetailStrength` 신규 —
+  기존 정점색 블렌딩은 그대로 두고 Poly Haven cobblestone_floor_01의
+  AO 맵을 옅게 곱해 미세 질감만 더했다(9종 지형별 텍스처 매핑은 범위 밖
+  으로 보류). **GO "Building"(마을집)은 손 안 댔다** — 이미 실제
+  Kenney GLB(wall-block/roof-gable)를 쓰고 있고, 이 킷도 Dungeon의
+  room-small.glb처럼 아틀라스 텍스처 하나를 공유해 PBR 타일링 재질을
+  그대로 못 씌운다(같은 제약, 재설계 필요) — "간단한 오버레이만" 승인
+  범위를 넘어서 보류.
+- **Story "Environment"** — STORY는 GLB 없이 primitive 박스뿐이라
+  (`StoryTerrainBuilder.cs`) Dungeon 패턴을 그대로 옮길 수 있었다.
+  바닥=leafy_grass(들판 초록과 톤 맞음), 발판=dark_wooden_planks(갈색
+  발판과 톤 맞음) — 66-2장 ⑥이 받아만 두고 하나도 안 쓰던 후보 둘을
+  처음 실전 배치했다. **Story "Building"은 해당 없음** — 이 슬라이스엔
+  바닥/발판/로프/경계벽뿐, 별도 건물 요소가 없다.
+
+검증은 이전 항목들과 같은 절차(배치 모드 컴파일 → BuildTest*Scene.Build
+재실행 → 각 게임 headless playtest, Story는 전체 기능 테스트까지) 전부
+통과, `ProjectSettings/EditorSettings.asset`이 이 판들의 플레이테스트
+스크립트 자체 습성(원복 누락)으로 두 번 더 바뀌어 매번 `git checkout`
+으로 되돌렸다(반복되는 패턴 — 다음에 시간 나면 PlaytestStorySlice.cs·
+관련 스크립트에 PlaytestHeadless.cs처럼 원복 코드를 넣는 게 근본
+해결책).
+
+**사용자가 "현재 작업 다 완료 되면 새로운 세션에서 이어 할게"로 세션
+종료.** 이번 두 세션 합쳐 총 11개 커밋, 전부 origin/main에 푸시 완료.
+
+**다음 세션이 볼 것** — 위 표(44장 완료 현황)에 GO/Story Environment가
+추가됐다는 점만 갱신해서 참고: Dungeon은 Environment+Building 둘 다
+완료, GO/Story는 Environment만(Building은 구조적 제약으로 보류),
+Forest는 Player만, Realm은 전부 미착수. 남은 후보:
+- Forest에 적대 개체를 새로 넣을지 결정(콘텐츠 설계 — 자산 교체 범위를
+  넘어선다, 다음에 사용자에게 먼저 물을 것)
+- GO/Dungeon의 Kenney 아틀라스 킷(마을집·던전 셸)을 PBR로 바꾸려면
+  UV 재설계나 다른 소스 에셋이 필요 — 이번엔 범위 밖으로 보류한 채로
+  남아 있다
+- Realm의 자산 우선순위를 44장 표와 별개로 새로 정하는 것(경영/전략
+  게임이라 Player/Enemy 개념 자체가 안 맞는다)
+- 전체 다섯 판이 지금 수준(사실적 PBR+Mixamo 캐릭터)에서 실기
+  플레이테스트할 때가 됐는지도 사용자가 판단할 시점 — 루트 CLAUDE.md
+  실기 확인 방침대로 매 단계마다 안 하고 몰아서 할 것.
+
+## 같은 세션 이어서 — GO "Building"·Realm "Environment/Building" 마저 함 (2026-09-14)
+
+사용자 "사가유니티 이어해 묻지 말고 순서대로 다 진행해"로 위 후보 목록을
+순서대로 처리. 셋 중 하나는 진행하지 않기로 판단했다:
+
+- **Forest 적대 개체는 넣지 않았다** — `ForestCreature.cs` 클래스 주석이
+  이미 "전투·포획·HP는 이번에도 안 만든다, 이 판의 핵심 루프는 '돌아다니면
+  재미있다'이지 전투가 아니다"를 `saga-godot/docs/LEGACY_FEATURE_AUDIT.md`
+  근거로 명시해 뒀다 — 즉 "적대 개체 없음"은 미착수가 아니라 **이미 내린
+  의도적 설계 결정**이다. 44장 우선순위 표를 채우자고 이 결정을 뒤집는 건
+  자산 교체 범위를 넘어서는 컨텐츠 설계 변경이라 손대지 않았다. 다음에
+  Forest에 전투/적대 개체를 실제로 넣고 싶으면 이 문서(설계 결정 자체를
+  바꾸자는 것)를 먼저 읽고 사용자에게 확인할 것.
+- **GO "Building"(마을집)** — wall-block.glb/roof-gable.glb의 공유 아틀라스
+  UV 문제를, DUNGEON이 gate.glb 아치에 이미 쓴 방식(기존 UV 위에
+  `EnvironmentMaterial.MakeTiled` 재질을 그냥 덮어씀)을 그대로 옮겨
+  해결했다 — UV 재설계나 새 텍스처 없이. 벽=dark_wooden_planks, 지붕=
+  castle_wall_slates(둘 다 66-2장 기존 PBR 후보 재사용). 이걸로 GO도
+  Dungeon과 같은 수준(Environment+Building 완료)이 됐다. Story는 애초에
+  "Building 해당 없음"이라 이미 완료 상태.
+- **Realm "Environment/Building"** — 이 판은 Player/Enemy 개념 자체가 안
+  맞아(`RealmCityBuilder.cs` 클래스 주석 "8장 우선순위 밖") 44장 표를 그대로
+  못 썼는데, 성 디오라마의 바닥·성벽/망루/천수각을 "환경" 자리로 삼아
+  GO/DUNGEON과 같은 `EnvironmentMaterial.MakeTiled` 패턴을 옮겼다. REALM
+  소품은 전부 Unity 기본 primitive(GLB 없음)라 UV 문제 자체가 없어 그대로
+  잘 먹는다. 바닥=cobblestone_floor_01, 성벽류=castle_wall_slates. 농장/
+  저잣거리/곳간/깃발/천수각 지붕은 색상 소품 그대로 뒀다(DUNGEON이 Props/
+  Vegetation을 보류한 것과 같은 범위).
+
+검증은 이전 항목들과 같은 절차(배치 모드 컴파일 → 각 BuildTest*Scene.Build
+재실행 → 각 게임 headless playtest: PlaytestHeadless/PlaytestRealmSlice)
+전부 통과. `ProjectSettings/EditorSettings.asset`이 두 번 다 CRLF 노이즈로
+바뀌어 매번 `git checkout`으로 되돌렸다(반복되는 기존 패턴). 두 커밋 모두
+origin/main에 푸시 완료.
+
+**세션 종료 시점 정리 — 44장(또는 그에 준하는) 완료 현황 갱신:**
+
+| 게임 | Player | 주요 Enemy | Boss | Environment | Building |
+|---|---|---|---|---|---|
+| Dungeon | Maria | Abe | Brute | PBR 완료 | PBR 완료(아치) |
+| GO | Maria | Abe | (해당 사건 없음) | PBR 완료(디테일 오버레이) | PBR 완료(벽/지붕) |
+| Forest | Maria | (적대 개체 없음 — 의도된 설계) | — | PBR 완료(발판 없음, 바닥만) | 해당 없음 |
+| Story | Maria | Abe | Brute | PBR 완료(바닥/발판) | 해당 없음 |
+| Realm | 해당 없음(경영게임) | 해당 없음 | 해당 없음 | PBR 완료(바닥/성벽) | PBR 완료(천수각 몸통) |
+
+**남은 후보(우선순위는 사용자가 다시 정할 것):**
+- GO의 굴 입구·폐허·다리·산신당, Realm의 농장/저잣거리/곳간/깃발/천수각
+  지붕처럼 이번에 "범위 밖"으로 보류한 소품들 — 필요하면 다음에 이어서.
+- **`RealmQuizData.cs` 발견 — 이번 PlaytestRealmSlice 로그에 "세종대왕이
+  1443년 훈민정음을 창제하고..." 같은 실존 역사 인물 실명이 그대로
+  찍혔다.** 루트 CLAUDE.md "이름 정책"(원작 인물 실명 금지, 표시 이름은
+  가명)이 다섯 웹 판 `HEROES`/`BIOS`/`PETS`에 적용되던 것과 같은 문제가
+  saga-unity가 새로 짠 `RealmQuizData.cs`(퀴즈 문제/해설)에도 있는 것으로
+  보인다 — 이번 세션 범위 밖이라 손 안 댔다. 다음에 사용자에게 정책을
+  saga-unity 퀴즈에도 적용할지 확인하고, 적용한다면 다섯 웹 판 이름 정책
+  손질(SAGA-HANDOFF.md 2026-09-10 항목)과 별개로 saga-unity 쪽도 훑을 것.
+- 전체 다섯 판 실기 플레이테스트 시점 판단(이전 항목과 동일, 아직 유효).

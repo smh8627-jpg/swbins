@@ -143,6 +143,11 @@ namespace Saga.EditorTools
         private const string TerrainDetailTexPath =
             "Assets/Art/EnvironmentPBR_candidates/PolyHaven_CobblestoneFloor01/cobblestone_floor_01_ao_1k.jpg";
 
+        // 44장 "Building" 교체 — 마을집 벽/지붕(DUNGEON gate.glb와 같은 방식,
+        // LandmarksBuilder.cs 주석 참고).
+        private const string VillageWallMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
+        private const string VillageRoofMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+
         private static GameObject BuildTerrain()
         {
             var terrainGo = new GameObject("Terrain");
@@ -183,6 +188,10 @@ namespace Saga.EditorTools
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/pillar-stone.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Buildings/planks.glb"),
                 AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Shrine/altar-stone.glb"));
+            var wallMat = AssetDatabase.LoadAssetAtPath<Material>(VillageWallMatPath);
+            var roofMat = AssetDatabase.LoadAssetAtPath<Material>(VillageRoofMatPath);
+            if (wallMat != null) SetPrivateField(builder, "wallMaterial", wallMat);
+            if (roofMat != null) SetPrivateField(builder, "roofMaterial", roofMat);
             builder.Build();
         }
 
