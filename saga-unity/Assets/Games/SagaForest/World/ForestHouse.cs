@@ -167,8 +167,10 @@ namespace Saga.Forest.World
         }
 
         /// <summary>ForestFinishStall.cs가 벽지/장판을 바꿀 때 부른다(직접
-        /// 호출 — `ForestFurnitureAnchor.RebuildVisual()`과 같은 결, 이벤트
-        /// 시스템 없음). **재질을 필드로 캐싱하지 않고 매번 하이어라키에서
+        /// 호출 — 벽지/장판엔 여럿이 구독할 만한 이벤트가 필요 없어 가구
+        /// 배치(`ForestFurniturePlacer.cs`, `ForestHomeState.Changed`
+        /// 이벤트 구독)와 달리 이 방식을 그대로 둔다). **재질을 필드로
+        /// 캐싱하지 않고 매번 하이어라키에서
         /// 찾는다** — 에디터가 미리 지어(`BuildTestVillageForestScene.cs`)
         /// 씬 파일로 저장해 둔 뒤 Play에서 그 자식을 그대로 불러오는 경로라,
         /// 이 컴포넌트의 private 필드(비직렬화)는 새 인스턴스에서 항상

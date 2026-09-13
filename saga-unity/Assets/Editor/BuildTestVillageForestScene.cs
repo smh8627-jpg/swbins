@@ -126,20 +126,12 @@ namespace Saga.EditorTools
             return go;
         }
 
-        // "집 꾸미기(가구)" 슬라이스 — IndoorRoom(ForestHouse.Awake()가 이미 지어
-        // 둔 실내, +500m 포켓) 안에 좌판 하나 + 고정 자리 여섯을 놓는다. 방이
-        // 6x6m뿐이라 자리마다 반지름을 좁게 잡았다(ForestFurnitureAnchor 0.6m·
-        // ForestFurnitureStall 0.8m) — 그래도 서로, 그리고 ForestHouse의 실내
-        // 출구 트리거(로컬 (0,0,-2), 반지름 1.4m)와 안 겹치게 아래 좌표를 손으로
-        // 맞췄다(최소 간격 1.2~2m 확보, 정확한 계산 근거는 이 파일 히스토리 참고).
-        private static readonly Vector3[] FurnitureAnchorOffsets =
-        {
-            new Vector3(-1.8f, 0f, 1.7f), new Vector3(1.8f, 0f, 1.7f),
-            new Vector3(-1.8f, 0f, 0.4f), new Vector3(1.8f, 0f, 0.4f),
-            new Vector3(-1.8f, 0f, -0.9f), new Vector3(1.8f, 0f, -0.9f),
-        };
-        private static readonly Vector3 FurnitureStallOffset = new Vector3(0f, 0f, 2.6f);
-
+        // "집 꾸미기(가구)" 슬라이스(2026-09-12) → **자유 배치로 재설계
+        // (2026-09-13)** — IndoorRoom(ForestHouse.Awake()가 이미 지어 둔 실내,
+        // +500m 포켓) 안에 좌판 하나 + 격자 배치 컴포넌트 하나를 놓는다.
+        // 좌판 좌표는 `ForestHomeState.StallLocalPos`(단일 출처, 격자
+        // 유효성 판정도 이 값을 그대로 쓴다)를 그대로 따른다 — 여기서
+        // 따로 상수를 안 둔다.
         private static void BuildHomeFurniture(GameObject houseGo)
         {
             var indoorRoom = houseGo.transform.Find("IndoorRoom");
@@ -151,17 +143,13 @@ namespace Saga.EditorTools
 
             var stallGo = new GameObject("FurnitureStall");
             stallGo.transform.SetParent(indoorRoom, false);
-            stallGo.transform.localPosition = FurnitureStallOffset;
+            stallGo.transform.localPosition = ForestHomeState.StallLocalPos;
             stallGo.AddComponent<ForestFurnitureStall>();
 
-            for (int i = 0; i < FurnitureAnchorOffsets.Length; i++)
-            {
-                var anchorGo = new GameObject($"FurnitureAnchor_{i}");
-                anchorGo.transform.SetParent(indoorRoom, false);
-                anchorGo.transform.localPosition = FurnitureAnchorOffsets[i];
-                var anchor = anchorGo.AddComponent<ForestFurnitureAnchor>();
-                anchor.SetIndex(i);
-            }
+            var placerGo = new GameObject("FurniturePlacer");
+            placerGo.transform.SetParent(indoorRoom, false);
+            var placer = placerGo.AddComponent<ForestFurniturePlacer>();
+            placer.SetIndoorRoom(indoorRoom);
         }
 
         // FOREST 다음 조각 — 벽지/장판 좌판(도배전). House.RepaintFinish()가

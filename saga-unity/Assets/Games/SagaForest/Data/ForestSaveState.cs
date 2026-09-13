@@ -12,7 +12,7 @@ namespace Saga.Forest.Data
     /// </summary>
     public static class ForestSaveState
     {
-        private const int SaveVersion = 3; // v3 — "벽지/장판" 조각, homeWalls/homeFloors/homeCurWall/homeCurFloor 추가.
+        private const int SaveVersion = 4; // v4 — 가구 "자유 배치"로 재설계, homeAnchors(고정 여섯)를 homePlaceX/Y/Ids(격자 칸)로 교체.
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_forest.json");
 
@@ -24,7 +24,9 @@ namespace Saga.Forest.Data
             public int fruitCount;
             public string[] homeStockKeys;
             public int[] homeStockCounts;
-            public string[] homeAnchors;
+            public int[] homePlaceX;
+            public int[] homePlaceY;
+            public string[] homePlaceIds;
             public string[] homeWalls;
             public string[] homeFloors;
             public string homeCurWall;
@@ -53,6 +55,7 @@ namespace Saga.Forest.Data
 
             var (stockKeys, stockCounts) = ForestHomeState.SnapshotStock();
             var finishes = ForestHomeState.SnapshotFinishes();
+            var (placeX, placeY, placeIds) = ForestHomeState.SnapshotPlacements();
             var data = new SaveData
             {
                 version = SaveVersion,
@@ -60,7 +63,9 @@ namespace Saga.Forest.Data
                 fruitCount = ForestState.FruitCount,
                 homeStockKeys = stockKeys,
                 homeStockCounts = stockCounts,
-                homeAnchors = ForestHomeState.SnapshotAnchors(),
+                homePlaceX = placeX,
+                homePlaceY = placeY,
+                homePlaceIds = placeIds,
                 homeWalls = finishes.Walls,
                 homeFloors = finishes.Floors,
                 homeCurWall = finishes.CurWall,
@@ -100,11 +105,17 @@ namespace Saga.Forest.Data
             if (data.version >= 2)
             {
                 ForestHomeState.RestoreStock(data.homeStockKeys, data.homeStockCounts);
-                ForestHomeState.RestoreAnchors(data.homeAnchors);
             }
             if (data.version >= 3)
             {
                 ForestHomeState.RestoreFinishes(data.homeWalls, data.homeFloors, data.homeCurWall, data.homeCurFloor);
+            }
+            if (data.version >= 4)
+            {
+                // v3 이하 세이브는 옛 고정 자리(homeAnchors) 데이터를 그냥
+                // 잃는다 — REALM 세이브 버전 올림과 같은 관례(첫 슬라이스
+                // 스키마 변경엔 마이그레이션 경로를 안 만든다, PLAN.md 28장).
+                ForestHomeState.RestorePlacements(data.homePlaceX, data.homePlaceY, data.homePlaceIds);
             }
 
             Transform player = FindPlayer();

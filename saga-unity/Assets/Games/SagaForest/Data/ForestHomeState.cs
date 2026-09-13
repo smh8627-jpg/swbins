@@ -1,26 +1,64 @@
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Saga.Forest.Data
 {
     /// <summary>
-    /// FOREST "집 꾸미기(가구)" 슬라이스(2026-09-12) — `DungeonBestiaryState`/
-    /// `HeroState`와 같은 결의 정적 상태 클래스. 창고(구매한 가구, 아직 안 놓은
-    /// 것)와 여섯 개 고정 자리(`World/ForestFurnitureAnchor.cs`)에 놓인 것을
-    /// 나눠 관리한다.
+    /// FOREST "집 꾸미기(가구)" 슬라이스(2026-09-12) + **자유 배치로 재설계
+    /// (2026-09-13, 스물한 번째 세션)** — `DungeonBestiaryState`/`HeroState`와
+    /// 같은 결의 정적 상태 클래스. 창고(구매한 가구, 아직 안 놓은 것)와 방
+    /// 안 격자 칸(`World/ForestFurniturePlacer.cs`)에 놓인 것을 나눠 관리한다.
     ///
-    /// **원작(웹판 `home.js`)과 다른 점 — 자유 배치가 아니라 고정 자리 여섯.**
-    /// 웹판은 "선 자리에 놓는다"(임의 좌표)지만, 이 프로젝트의 FOREST 트랙은
-    /// 아직 상호작용 입력 자체가 없다(이동 뿐, 공격 버튼도 없는 GO판 컨트롤러
-    /// 재사용) — 새 "놓기" 버튼을 만드는 대신, 이 트랙의 기존 관례(나무·주민·
-    /// 집 문처럼 "가까이 다가가면 반응")를 그대로 따라 여섯 개 고정 자리를
-    /// 두고 다가가면 놓거나 거둔다. 자유 배치·격자 판정은 다음 슬라이스 후보.
+    /// **원작(웹판 `home.js`)과 맞춘 점 — 격자 칸에 놓는다.** 웹판도 실은
+    /// 연속 좌표가 아니라 `TILE` 크기로 칸 나눔한 자리에 놓는다(`home.js
+    /// place()`의 `Math.floor(p.x/T)*T` — 우리 `WorldToCell`/`CellToLocal`과
+    /// 같은 발상). 처음 이 슬라이스가 "고정 자리 여섯"으로 좁혔던 건 이
+    /// 프로젝트에 "놓기" 버튼이 없어서였는데(FOREST는 이동뿐인 GO판
+    /// 컨트롤러 재사용, 공격 버튼도 없다), 여전히 새 버튼은 안 만들고
+    /// 이 트랙의 기존 관례("다가가면 반응")를 그대로 격자 전체로 넓혔다 —
+    /// 방(6x6m, 문·좌판 자리 제외)에 놓을 수 있는 칸이 여섯→열여덟로 늘어
+    /// 사실상 "아무 데나 놓는다"에 가까워졌다.
     /// </summary>
     public static class ForestHomeState
     {
-        public const int AnchorCount = 6;
+        public const float TileSize = 1f;
+        // ForestHouse.cs RoomSize=(6,3,6) 기준 격자 반경 — 벽(±3m, 두께
+        // 0.2m)에서 충분히 떨어진 -2..2 다섯 줄×다섯 칸.
+        public const int GridHalfExtent = 2;
+
+        // World/ForestFurniturePlacer.cs·Editor/BuildTestVillageForestScene.cs가
+        // 좌판·문 위치를 이 값과 맞춰 쓴다(단일 출처) — ForestHouse.cs의
+        // 실내 출구 트리거((0,0,-2), 반경 1.4)·좌판 자리((0,0,2.6))와
+        // 겹치지 않을 만큼만 넉넉히 비운다.
+        public static readonly Vector3 DoorLocalPos = new Vector3(0f, 0f, -2f);
+        public const float DoorKeepClear = 1.6f;
+        public static readonly Vector3 StallLocalPos = new Vector3(0f, 0f, 2.6f);
+        public const float StallKeepClear = 1.0f;
 
         private static readonly Dictionary<string, int> Stock = new Dictionary<string, int>();
-        private static readonly string[] Anchors = new string[AnchorCount];
+        private static readonly Dictionary<Vector2Int, string> Placements = new Dictionary<Vector2Int, string>();
+
+        /// <summary>가구를 놓거나 거둘 때마다 울린다 — `ForestFurniturePlacer
+        /// .cs`가 이걸 구독해 시각을 다시 그린다(`RealmCityBuilder.cs`의
+        /// `RealmCityState.Changed`와 같은 결).</summary>
+        public static event Action Changed;
+
+        public static Vector2Int WorldToCell(Vector3 localPos) =>
+            new Vector2Int(Mathf.RoundToInt(localPos.x / TileSize), Mathf.RoundToInt(localPos.z / TileSize));
+
+        public static Vector3 CellToLocal(Vector2Int cell) => new Vector3(cell.x * TileSize, 0f, cell.y * TileSize);
+
+        /// <summary>격자 반경 안이면서 문·좌판 자리에서 충분히 떨어진 칸만
+        /// 유효하다 — 벽 자체는 반경이 이미 안쪽으로 좁아 안 닿는다.</summary>
+        public static bool IsValidCell(Vector2Int cell)
+        {
+            if (Mathf.Abs(cell.x) > GridHalfExtent || Mathf.Abs(cell.y) > GridHalfExtent) return false;
+            var local = CellToLocal(cell);
+            if (Vector3.Distance(local, DoorLocalPos) < DoorKeepClear) return false;
+            if (Vector3.Distance(local, StallLocalPos) < StallKeepClear) return false;
+            return true;
+        }
 
         // FOREST 다음 조각 — 벽지/장판(ForestFinishData.cs 클래스 주석
         // 참고). 기본 한 벌(흙벽·마루)은 처음부터 갖고 입은 채 시작한다.
@@ -31,7 +69,9 @@ namespace Saga.Forest.Data
 
         public static int StockCount(string id) => id != null && Stock.TryGetValue(id, out var n) ? n : 0;
 
-        public static string AnchorItem(int index) => (index >= 0 && index < AnchorCount) ? Anchors[index] : null;
+        public static string CellItem(Vector2Int cell) => Placements.TryGetValue(cell, out var id) ? id : null;
+
+        public static IEnumerable<KeyValuePair<Vector2Int, string>> AllPlacements() => Placements;
 
         /// <summary>과일로 산다 — 모자라면 false(창고 안 늘어남).</summary>
         public static bool TryBuy(string id)
@@ -43,14 +83,14 @@ namespace Saga.Forest.Data
             return true;
         }
 
-        /// <summary>그 자리가 비어 있으면 창고에서 가장 값진 것부터 하나 놓는다
-        /// (원작의 "선 자리에 놓는다"를 "어느 자리든 다가가면 창고에서 하나"로
-        /// 단순화한 것 — 항목을 고르는 UI가 없어서). 놓인 품목 id를 돌려준다
-        /// (null이면 실패 — 이미 있거나 창고가 빔).</summary>
-        public static string TryPlaceAny(int index)
+        /// <summary>그 칸이 비어 있고 유효하면(IsValidCell) 창고에서 가장
+        /// 값진 것부터 하나 놓는다(원작의 "선 자리에 놓는다"를 "어느 칸이든
+        /// 다가가면 창고에서 하나"로 단순화한 것 — 항목을 고르는 UI가
+        /// 없어서). 놓인 품목 id를 돌려준다(null이면 실패 — 이미 있거나
+        /// 무효 칸이거나 창고가 빔).</summary>
+        public static string TryPlaceAny(Vector2Int cell)
         {
-            if (index < 0 || index >= AnchorCount) return null;
-            if (!string.IsNullOrEmpty(Anchors[index])) return null;
+            if (!IsValidCell(cell) || Placements.ContainsKey(cell)) return null;
 
             string best = null;
             int bestValue = -1;
@@ -62,19 +102,19 @@ namespace Saga.Forest.Data
             if (best == null) return null;
 
             Stock[best] -= 1;
-            Anchors[index] = best;
+            Placements[cell] = best;
+            Changed?.Invoke();
             return best;
         }
 
-        /// <summary>그 자리에 놓인 걸 창고로 되거둔다. 거둔 품목 id(없으면 null).</summary>
-        public static string PickUp(int index)
+        /// <summary>그 칸에 놓인 걸 창고로 되거둔다. 거둔 품목 id(없으면 null).</summary>
+        public static string PickUp(Vector2Int cell)
         {
-            if (index < 0 || index >= AnchorCount) return null;
-            string id = Anchors[index];
-            if (string.IsNullOrEmpty(id)) return null;
+            if (!Placements.TryGetValue(cell, out var id)) return null;
 
-            Anchors[index] = null;
+            Placements.Remove(cell);
             Stock[id] = StockCount(id) + 1;
+            Changed?.Invoke();
             return id;
         }
 
@@ -111,7 +151,7 @@ namespace Saga.Forest.Data
             int count = 0;
             var sets = new Dictionary<FurnitureSet, int>();
 
-            foreach (var id in Anchors)
+            foreach (var id in Placements.Values)
             {
                 if (string.IsNullOrEmpty(id)) continue;
                 var item = FurnitureItem.Get(id);
@@ -162,14 +202,32 @@ namespace Saga.Forest.Data
             }
         }
 
-        public static string[] SnapshotAnchors() => (string[])Anchors.Clone();
-
-        public static void RestoreAnchors(string[] anchors)
+        public static (int[] X, int[] Y, string[] Ids) SnapshotPlacements()
         {
-            for (int i = 0; i < AnchorCount; i++)
+            var xs = new int[Placements.Count];
+            var ys = new int[Placements.Count];
+            var ids = new string[Placements.Count];
+            int i = 0;
+            foreach (var kv in Placements)
             {
-                Anchors[i] = (anchors != null && i < anchors.Length) ? anchors[i] : null;
+                xs[i] = kv.Key.x;
+                ys[i] = kv.Key.y;
+                ids[i] = kv.Value;
+                i++;
             }
+            return (xs, ys, ids);
+        }
+
+        public static void RestorePlacements(int[] xs, int[] ys, string[] ids)
+        {
+            Placements.Clear();
+            if (xs == null || ys == null || ids == null) return;
+            int n = System.Math.Min(xs.Length, System.Math.Min(ys.Length, ids.Length));
+            for (int i = 0; i < n; i++)
+            {
+                if (!string.IsNullOrEmpty(ids[i])) Placements[new Vector2Int(xs[i], ys[i])] = ids[i];
+            }
+            Changed?.Invoke();
         }
 
         public static (string[] Walls, string[] Floors, string CurWall, string CurFloor) SnapshotFinishes()

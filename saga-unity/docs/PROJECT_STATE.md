@@ -5,6 +5,42 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **FOREST — 가구 자유 배치로 재설계 (2026-09-13, 스물한 번째 세션,
+  "1,2,3 순서대로 다 진행해줘 묻지 말고"의 (2)).** 고정 자리 여섯
+  (`ForestFurnitureAnchor.cs`, GameObject 여섯 개)을 없애고 방(6x6m)
+  전체를 1m 격자로 보는 컴포넌트 하나(`World/ForestFurniturePlacer.cs`)로
+  바꿨다 — 문(반경 1.6m)·좌판(반경 1.0m) 자리만 빼면 놓을 수 있는 칸이
+  여섯→열여덟로 늘어 "고정 자리"라는 재해석 자체가 사실상 해소됐다.
+  입력 동사는 여전히 안 늘렸다(FOREST는 이동뿐인 GO판 컨트롤러 재사용,
+  공격 버튼도 없다) — 이 트랙의 기존 관례("다가가면 반응")를 그대로
+  격자 전체로 넓힌 것뿐.
+  - `ForestHomeState.cs` — `Anchors[6]` 고정 배열 → `Dictionary<Vector2Int,
+    string> Placements`. `WorldToCell`/`CellToLocal`/`IsValidCell`
+    (문·좌판 배제 반경까지 포함해 단일 출처로) 신규, `TryPlaceAny`/
+    `PickUp`가 인덱스 대신 격자 좌표를 받는다. 새 `Changed` 이벤트로
+    시각 갱신을 알린다(`RealmCityState.Changed`와 같은 결).
+  - **전역 쿨다운 하나로 재해석** — 예전엔 자리마다(6개) 독립 쿨다운이라
+    문제없었지만, 격자가 훨씬 커지며 "방을 가로지르며 여기저기 놓임"
+    사고를 막으려면 컴포넌트 전체에 쿨다운 하나가 더 낫다고 판단해
+    `ForestFurniturePlacer.cs`에서 그렇게 지었다(문서화된 재해석).
+  - `ForestSaveState.cs` v3→v4(`homeAnchors` → `homePlaceX/Y/Ids`) —
+    REALM 세이브 버전 올림과 같은 관례로 옛 버전 세이브는 가구 배치만
+    잃는다(마이그레이션 경로 없음).
+  - `Editor/BuildTestVillageForestScene.cs`의 여섯 자리 루프를
+    `FurniturePlacer` GameObject 하나로 교체, 좌판 좌표도
+    `ForestHomeState.StallLocalPos`(단일 출처)로 옮김.
+  - **검증** — 컴파일·씬 재빌드·`PlaytestForestFurniture`(기존 구매/
+    놓기/거두기 경로 재확인 + 신규 `FreePlacementCheck` phase: 서로
+    다른 두 칸에 동시에 놓임·문 자리 배치 거부·이미 채운 칸 덮어쓰기
+    거부까지 확인) `OK - bought/placed/picked-up + free-placement
+    (two cells, door-blocked, overwrite-blocked) all verified, no
+    errors`. 회귀 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
+    `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·`PlaytestStorySlice`·
+    `PlaytestRealmSlice` 전부 통과.
+  - **사람의 GUI 확인 필요**(아직 안 됨) — 방 안 여러 칸에 실제로
+    가구를 놓고 걸어 다니며 배치감이 자연스러운지, 격자 죽은 영역
+    (칸 사이 0.05m — `ProximityRadius=0.45`)이 실제로 걸을 때 거슬리는지.
+
 - **REALM — 월드맵 첫 슬라이스 (2026-09-13, 스물한 번째 세션, "1,2,3
   순서대로 다 진행해줘 묻지 말고"의 (1)).** `saga-godot/docs/
   VERTICAL_SLICE_REALM.md` 2-8~2-10절(성표 셋을 한 지도로·탭으로 조망
