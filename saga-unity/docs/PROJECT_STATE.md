@@ -3686,6 +3686,44 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   스킨 셰이더를 Maria 실제 머티리얼에 붙이기(머티리얼 슬롯 구성부터
   확인 필요), 이후 44장 우선순위대로 실제 씬 순차 교체.
 
+## 66-2장 "다음에 할 일" ⑧ Animator Controller + 확인용 씬 배치 (2026-09-13, 이어서)
+
+- `BuildTestCharacterRealisticScene.cs` 신규 — `Assets/Animators/
+  Maria.controller`(커밋 대상, Mixamo 데이터 없이 클립 이름/전이만
+  있음)에 8개 클립 전부 연결(Speed 블렌드로 Idle/Walk/Run, 나머지
+  다섯은 Any State 트리거로 즉시 전이 후 Idle 복귀 — Death만 복귀
+  안 시킴), `Assets/Scenes/TestCharacterRealistic.unity`(신규, 어느
+  게임에도 안 속하는 독립 리그 검증 씬)에 Maria를 배치하고 Animator에
+  물렸다. 배치 모드로 8개 상태 전부 클립이 실제로 물린 것·씬의
+  Animator가 정확한 컨트롤러를 참조하는 것 확인, 컴파일 오류 0건,
+  `ProjectSettings/`·`Packages/` 부작용 없음. 자세한 내용은 `PLAN.md`
+  66-2장 ⑧ 참고.
+- **다음에 할 일**: 사람이 에디터로 이 씬을 열어 Play 모드에서 직접
+  확인 → ⑤ 헤어/스킨 셰이더를 Maria 머티리얼에 붙이기.
+
+## 66-2장 "다음에 할 일" ⑨ 사용자 요청 "직접 확인해" — GUI Play 확인 + 버그 수정 (2026-09-13, 이어서)
+
+- `PlaytestCharacterRealisticGui.cs` 신규 — 실제 GUI로 Unity를 띄워
+  TestCharacterRealistic 씬 Play 진입 → idle/run/attack 세 시점
+  스크린샷 → 스스로 Play 종료+Unity 프로세스까지 완전 종료(별도
+  taskkill 불필요, 확인함).
+- **1차 스크린샷에서 버그 발견** — Ground Plane이 `CreatePrimitive()`의
+  URP 비호환 기본 내장 머티리얼을 그대로 쓰고 있어 캐릭터·바닥이 전부
+  플랫한 시안색으로 나왔다. `BuildTestCharacterRealisticScene.cs`에
+  명시적 URP Lit 회색 머티리얼+평평한 회색 앰비언트(스카이박스 제거)를
+  추가해 수정, 재확인 결과 idle/run/attack 세 클립 전부 정상 렌더링
+  확인.
+- **부가 발견 — Maria FBX에 디퓨즈 텍스처가 0개.** `MariaMat`은 URP
+  Lit 셰이더로 올바르게 매핑돼 있으나 `_BaseMap`이 null이라 지금은
+  흰색 무채색으로만 보인다(메시·리깅·애니메이션 자체는 정상). Mixamo
+  "FBX for Unity" 포맷이 텍스처를 안 담아 준 것으로 보임 — 사람이
+  mixamo.com에서 재확인해야 풀리는 문제. 머티리얼 슬롯 구성도 확인:
+  단일 `MariaMat`을 몸+검 서브메시 둘이 공유(부위별 셰이더를 따로
+  물리려면 먼저 머티리얼 분리 필요). 자세한 내용은 `PLAN.md` 66-2장
+  ⑨ 참고.
+- **다음에 할 일**: Maria 디퓨즈 텍스처 확보(사람 GUI 단계) → ⑤ 헤어/
+  스킨 셰이더를 실제 머티리얼에 붙이기.
+
 ## GUI 실기 확인 + 라이팅 재조정 — 다섯 판 전부 (2026-09-13, 이어서)
 
 - **사용자 지시 "Unity 에디터로 직접 열어서 화면 톤 확인해줘"** — 위
