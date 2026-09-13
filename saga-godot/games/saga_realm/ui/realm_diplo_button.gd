@@ -8,6 +8,13 @@ extends Button
 ## 하나뿐이던 것을 realm_attack_button.gd·realm_transfer_button.gd와
 ## 같은 결로 일반화했다 — 대상 고르기(1단) → 조공/화친 고르기(2단).
 ## `RealmCities.ENEMY_CITIES`가 늘 때마다 이 파일은 다시 안 고쳐도 된다.
+##
+## **2026-09-14 추가 — 주인 없는 성(77개, 한국/일본/교주/서역/남중/
+## 천축/막북/임읍/균열/폐허/묘역) 목록에서 제외.** `diplo.js`가 원작부터
+## `if (!c.force) return {ok:false, why:'주인 없는 성입니다'}`로 걸러온
+## 규칙을 처음으로 코드에 옮겼다 — 지금까지는 이 코드에 손이 안 갔다
+## (삼국지 30성만 있을 땐 전부 force가 있었다). 새 규칙이 아니라 원작
+## 규칙을 이제야 만난 것뿐이다.
 
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
@@ -35,6 +42,8 @@ func _on_pressed() -> void:
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
 		if bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
+			continue
+		if String(e.get("force", "")).is_empty():
 			continue
 		choices.append({
 			"label": "%s — %s" % [String(e.get("name", eid)), _lord_name(eid)],
