@@ -492,13 +492,13 @@
   }
 
   var PRESETS = [
-    ['🏁 갓 시작한 판', '194년 군웅할거 · 유비(소패 한 성)',
+    ['🏁 갓 시작한 판', '194년 군웅할거 · 인형(소패 한 성)',
       function () { R.setup('bei', '194'); }],
-    ['⚔️ 관도 직전', '200년 관도 · 조조 — 원소와 마주 선 판',
+    ['⚔️ 관도 직전', '200년 관도 · 패헌 — 고문과 마주 선 판',
       function () { R.setup('cao', '200'); }],
-    ['🔥 적벽 — 손유 동맹', '208년 적벽 · 유비 — 시나리오가 스스로 손권과 동맹을 건다',
+    ['🔥 적벽 — 손유 동맹', '208년 적벽 · 인형 — 시나리오가 스스로 벽해와 동맹을 건다',
       function () { R.setup('bei', '208'); }],
-    ['🏰 1위 세력 (12성)', '194년 · 조조가 등용도 전쟁도 없이 12성을 쥔 판',
+    ['🏰 1위 세력 (12성)', '194년 · 패헌이 등용도 전쟁도 없이 12성을 쥔 판',
       function () {
         R.setup('cao', '194');
         var i = 0;
@@ -506,31 +506,31 @@
           grant(CD.CITIES[i].id, 'cao');
         }
       }],
-    ['💀 패배 직전', '194년 · 유비가 소패 한 성만 남고 나머지는 다 조조 것',
+    ['💀 패배 직전', '194년 · 인형이 소패 한 성만 남고 나머지는 다 패헌 것',
       function () {
         R.setup('bei', '194');
         CD.CITIES.forEach(function (d) { if (d.id !== 'xiaopei') { grant(d.id, 'cao'); } });
       }],
-    ['👑 천하통일 직전', '194년 · 유비가 업(鄴) 한 성만 빼고 천하를 다 쥔 판',
+    ['👑 천하통일 직전', '194년 · 인형이 업(鄴) 한 성만 빼고 천하를 다 쥔 판',
       function () {
         R.setup('bei', '194');
         CD.CITIES.forEach(function (d) { if (d.id !== 'ye') { grant(d.id, 'bei'); } });
       }],
-    ['💰 재정 · 공적 넉넉', '194년 · 유비 — 금 100만 · 전원 공 900(승진 가능) · 내 성 내정 만땅',
+    ['💰 재정 · 공적 넉넉', '194년 · 인형 — 금 100만 · 전원 공 900(승진 가능) · 내 성 내정 만땅',
       function () {
         R.setup('bei', '194');
         R.force('bei').gold = 1000000;
         OFF.ofForce('bei').forEach(function (h) { OFF.rec(h.id).feats = 900; });
         R.citiesOf('bei').forEach(function (cid) { maxCity(cid); });
       }],
-    ['🕵️ 재야 인재 발견', '194년 · 유비 — 내 성의 재야를 모두 찾아낸 상태로',
+    ['🕵️ 재야 인재 발견', '194년 · 인형 — 내 성의 재야를 모두 찾아낸 상태로',
       function () {
         R.setup('bei', '194');
         R.citiesOf('bei').forEach(function (cid) {
           OFF.freeAt(cid, false).forEach(function (h) { OFF.rec(h.id).found = true; });
         });
       }],
-    ['⛺ 원정 진행 중', '194년 · 유비 — 여남 앞에 우리 진(陣)이 하나 서 있는 판',
+    ['⛺ 원정 진행 중', '194년 · 인형 — 여남 앞에 우리 진(陣)이 하나 서 있는 판',
       function () {
         R.setup('bei', '194');
         var st = R.state(), off1 = OFF.ofForce('bei')[0];

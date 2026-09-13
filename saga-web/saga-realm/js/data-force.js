@@ -45,7 +45,7 @@
     O('rf_guojia',     '곽가',   '郭嘉',   5, 'wisdom', 32, 98, 70, '🍷', '열 가지로 이기고 열 가지로 집니다 — 들어 보시겠습니까.'),
 
     /* 원소군 */
-    O('rf_yuanshao',   '원소',   '袁紹',   4, 'command',73, 74, 88, '🏆', '사대(四代)에 삼공을 낸 집안이오.'),
+    O('rf_yuanshao',   '고문',   '高門',   4, 'command',73, 74, 88, '🏆', '사대(四代)에 삼공을 낸 집안이오.'),
     O('rf_yanliang',   '안량',   '顔良',   4, 'might',  92, 40, 76, '⚔️', '하북에 나만 한 창이 또 있겠는가.'),
     O('rf_wenchou',    '문추',   '文醜',   4, 'might',  91, 38, 74, '🗡️', '안량의 원수를 갚겠다!'),
     O('rf_jushou',     '저수',   '沮授',   4, 'wisdom', 40, 93, 82, '🧭', '천자를 받들면 명분이 우리에게 옵니다.'),
@@ -55,12 +55,12 @@
     O('rf_gaolan',     '고람',   '高覽',   3, 'might',  84, 55, 76, '🛡️', '하북 사정주(四庭柱)의 하나요.'),
 
     /* 공손찬군 */
-    O('rf_gongsunzan', '공손찬', '公孫瓚', 3, 'might',  84, 60, 82, '🐎', '백마의천(白馬義從)을 아느냐.'),
+    O('rf_gongsunzan', '은기',   '銀騎',   3, 'might',  84, 60, 82, '🐎', '백마의천(白馬義從)을 아느냐.'),
     O('rf_yangang',    '엄강',   '嚴綱',   2, 'might',  72, 42, 66, '🏳️', '선봉은 백마가 맡습니다.'),
 
     /* 공융군 */
-    O('rf_kongrong',   '공융',   '孔融',   3, 'wisdom', 24, 87, 58, '🍐', '자리에 손님이 늘 가득하고 잔이 비지 않으면 족하오.'),
-    O('rf_wuanguo',    '무안국', '武安國', 2, 'might',  74, 38, 60, '🔨', '철퇴로 여포를 맞겠소!'),
+    O('rf_kongrong',   '빈헌',   '賓軒',   3, 'wisdom', 24, 87, 58, '🍐', '자리에 손님이 늘 가득하고 잔이 비지 않으면 족하오.'),
+    O('rf_wuanguo',    '무안국', '武安國', 2, 'might',  74, 38, 60, '🔨', '철퇴로 패창을 맞겠소!'),
 
     /* 유비군 */
     O('rf_mizhu',      '미축',   '麋竺',   3, 'wisdom', 26, 84, 62, '💰', '집안의 재물을 다 내어 군자금에 보태겠습니다.'),
@@ -71,42 +71,42 @@
     O('rf_gaoshun',    '고순',   '高順',   4, 'command',87, 66, 90, '🪖', '함진영(陷陣營)은 물러선 적이 없습니다.'),
 
     /* 원술군 */
-    O('rf_yuanshu',    '원술',   '袁術',   3, 'command',60, 58, 72, '🍯', '옥새가 내게 왔으니 하늘의 뜻이 아니겠는가.'),
+    O('rf_yuanshu',    '옥형',   '玉衡',   3, 'command',60, 58, 72, '🍯', '옥새가 내게 왔으니 하늘의 뜻이 아니겠는가.'),
     O('rf_jiling',     '기령',   '紀靈',   3, 'might',  85, 52, 78, '🌙', '삼첨도(三尖刀)의 무게를 견뎌 보아라.'),
     O('rf_yanghong',   '양홍',   '楊弘',   2, 'wisdom', 30, 74, 58, '📜', '창고를 열어 인심을 사시지요.'),
 
     /* 손책군 */
-    O('rf_sunce',      '손책',   '孫策',   5, 'might',  93, 72, 92, '🐅', '강동은 젊은 손으로 여는 것이오.'),
+    O('rf_sunce',      '강룡',   '江龍',   5, 'might',  93, 72, 92, '🐅', '강동은 젊은 손으로 여는 것이오.'),
     O('rf_chengpu',    '정보',   '程普',   4, 'command',84, 72, 88, '🔱', '삼대를 섬긴 늙은 신하올시다.'),
     O('rf_huanggai',   '황개',   '黃蓋', 4, 'command', 85, 68, 86, '🔥', '이 늙은 몸을 태워서라도 이기겠소.'),
     O('rf_handang',    '한당',   '韓當',   3, 'might',  83, 58, 80, '🏹', '활이든 창이든 배 위에서라면 지지 않소.'),
     O('rf_zhoutai',    '주태',   '周泰',   4, 'might',  89, 48, 78, '🩸', '이 흉터 하나하나가 주공을 지킨 자립니다.'),
 
     /* 유표군 */
-    O('rf_liubiao',    '유표',   '劉表',   3, 'wisdom', 45, 80, 76, '🌾', '형주를 조용히 지키는 것도 공(功)이오.'),
+    O('rf_liubiao',    '형수',   '荊守',   3, 'wisdom', 45, 80, 76, '🌾', '형주를 조용히 지키는 것도 공(功)이오.'),
     O('rf_caimao',     '채모',   '蔡瑁',   3, 'command',70, 72, 82, '⛵', '수군은 형주의 자랑입니다.'),
     O('rf_kuailiang',  '괴량',   '蒯良',   3, 'wisdom', 28, 88, 70, '🪶', '형주의 호족을 달래는 일부터 하십시오.'),
     O('rf_huangzu',    '황조',   '黃祖',   2, 'command',70, 50, 72, '🏹', '강하는 내가 지킨다.'),
     O('rf_wenpin',     '문빙',   '文聘',   3, 'command',82, 66, 85, '🚩', '북쪽 국경은 제가 맡겠습니다.'),
 
     /* 이각군 (동탁 잔당) */
-    O('rf_lijue',      '이각',   '李傕',   3, 'might',  84, 56, 76, '🔥', '장안은 우리 것이다.'),
+    O('rf_lijue',      '철혼',   '鐵魂',   3, 'might',  84, 56, 76, '🔥', '장안은 우리 것이다.'),
     O('rf_guosi',      '곽사',   '郭汜',   3, 'might',  82, 52, 74, '🐺', '천자를 끼고 있으면 누가 뭐라 하겠나.'),
     O('rf_zhangji',    '장제',   '張濟',   2, 'might',  76, 50, 70, '🛖', '군량만 있으면 어디든 갑니다.'),
     O('rf_jiaxu',      '가후',   '賈詡',   5, 'wisdom', 40, 99, 78, '🦊', '살아남는 계책만 말씀드립니다.'),
 
     /* 마등군 */
-    O('rf_mateng',     '마등',   '馬騰',   3, 'might',  86, 60, 82, '🐫', '서량의 말은 바람을 탄다.'),
+    O('rf_mateng',     '노기',   '老驥',   3, 'might',  86, 60, 82, '🐫', '서량의 말은 바람을 탄다.'),
     O('rf_pangde',     '방덕',   '龐德',   4, 'might',  92, 60, 84, '⚰️', '관을 지고 나왔으니 살아 돌아갈 뜻이 없소.'),
     O('rf_hansui',     '한수',   '韓遂',   3, 'command',74, 74, 84, '🤝', '동맹은 오래갈 때만 동맹이오.'),
 
     /* 장로군 */
-    O('rf_zhanglu',    '장로',   '張魯',   3, 'wisdom', 50, 78, 74, '☯️', '오두미(五斗米)면 병도 고치고 나라도 다스리오.'),
+    O('rf_zhanglu',    '선치',   '仙治',   3, 'wisdom', 50, 78, 74, '☯️', '오두미(五斗米)면 병도 고치고 나라도 다스리오.'),
     O('rf_yangren',    '양임',   '楊任',   2, 'might',  76, 52, 70, '⛰️', '한중의 산길은 제가 압니다.'),
     O('rf_yangsong',   '양송',   '楊松',   1, 'wisdom', 20, 62, 30, '🪙', '금이면 열리지 않는 문이 없지요.'),
 
     /* 유장군 */
-    O('rf_liuzhang',   '유장',   '劉璋',   2, 'wisdom', 30, 62, 55, '🍚', '백성을 싸움에 몰아넣고 싶지 않소.'),
+    O('rf_liuzhang',   '인목',   '仁牧',   2, 'wisdom', 30, 62, 55, '🍚', '백성을 싸움에 몰아넣고 싶지 않소.'),
     O('rf_zhangren',   '장임',   '張任',   4, 'command',87, 74, 88, '🏹', '충신은 두 주인을 섬기지 않소.'),
     O('rf_yanyan',     '엄안',   '嚴顔',   4, 'might',  86, 68, 84, '🧓', '목을 벨 장수는 있어도 항복할 장수는 없다.'),
     O('rf_fazheng',    '법정',   '法正',   5, 'wisdom', 42, 95, 76, '🗺️', '촉으로 드는 길을 그려 드리지요.'),
@@ -692,48 +692,48 @@
    */
 
   var FORCES_194 = [
-    { id: 'cao', name: '조조', color: '#5b8ff0', creed: 'aggressive',
+    { id: 'cao', name: '패헌', color: '#5b8ff0', creed: 'aggressive',
       lord: 'sg_caocao', cities: ['chenliu', 'puyang', 'xuchang'],
       officers: ['sg_xiahoudun', 'sg_xunyu', 'rf_xiahouyuan', 'rf_caoren', 'rf_caohong',
                  'rf_dianwei', 'rf_xuchu', 'rf_yujin', 'rf_yuejin', 'rf_lidian',
                  'rf_chengyu', 'rf_guojia'] },
-    { id: 'shao', name: '원소', color: '#c9a227', creed: 'balanced',
+    { id: 'shao', name: '고문', color: '#c9a227', creed: 'balanced',
       lord: 'rf_yuanshao', cities: ['ye', 'nanpi', 'jinyang'],
       officers: ['rf_yanliang', 'rf_wenchou', 'rf_jushou', 'rf_tianfeng',
                  'rf_shenpei', 'rf_zhanghe', 'rf_gaolan'] },
-    { id: 'zan', name: '공손찬', color: '#d8dee9', creed: 'aggressive',
+    { id: 'zan', name: '은기', color: '#d8dee9', creed: 'aggressive',
       lord: 'rf_gongsunzan', cities: ['jixian', 'beiping'],
       officers: ['sg_zhaoyun', 'rf_yangang'] },
-    { id: 'rong', name: '공융', color: '#8fbf8f', creed: 'turtle',
+    { id: 'rong', name: '빈헌', color: '#8fbf8f', creed: 'turtle',
       lord: 'rf_kongrong', cities: ['beihai'],
       officers: ['sg_taishici', 'rf_wuanguo'] },
-    { id: 'bei', name: '유비', color: '#4caf72', creed: 'balanced',
+    { id: 'bei', name: '인형', color: '#4caf72', creed: 'balanced',
       lord: 'sg_liubei', cities: ['xiaopei'],
       officers: ['sg_guanyu', 'sg_zhangfei', 'rf_mizhu', 'rf_jianyong'] },
-    { id: 'bu', name: '여포', color: '#b0524a', creed: 'aggressive',
+    { id: 'bu', name: '패창', color: '#b0524a', creed: 'aggressive',
       lord: 'sg_lubu', cities: ['xiapi'],
       officers: ['sg_zhangliao', 'sg_diaochan', 'rf_chengong', 'rf_gaoshun'] },
-    { id: 'shu', name: '원술', color: '#c98a3c', creed: 'aggressive',
+    { id: 'shu', name: '옥형', color: '#c98a3c', creed: 'aggressive',
       lord: 'rf_yuanshu', cities: ['shouchun', 'runan'],
       officers: ['rf_jiling', 'rf_yanghong'] },
-    { id: 'ce', name: '손책', color: '#e05c5c', creed: 'aggressive',
+    { id: 'ce', name: '강룡', color: '#e05c5c', creed: 'aggressive',
       lord: 'rf_sunce', cities: ['jianye', 'chaisang', 'kuaiji'],
       officers: ['sg_sunquan', 'sg_zhouyu', 'rf_chengpu', 'rf_huanggai',
                  'rf_handang', 'rf_zhoutai'] },
-    { id: 'biao', name: '유표', color: '#7fb8d8', creed: 'turtle',
+    { id: 'biao', name: '형수', color: '#7fb8d8', creed: 'turtle',
       lord: 'rf_liubiao', cities: ['xiangyang', 'xinye', 'jiangling', 'jiangxia', 'changsha', 'wan'],
       officers: ['sg_huangzhong', 'sg_ganning', 'rf_caimao', 'rf_kuailiang',
                  'rf_huangzu', 'rf_wenpin'] },
-    { id: 'jue', name: '이각', color: '#9a6b9a', creed: 'balanced',
+    { id: 'jue', name: '철혼', color: '#9a6b9a', creed: 'balanced',
       lord: 'rf_lijue', cities: ['luoyang', 'changan'],
       officers: ['rf_guosi', 'rf_zhangji', 'rf_jiaxu'] },
-    { id: 'teng', name: '마등', color: '#c07b4a', creed: 'balanced',
+    { id: 'teng', name: '노기', color: '#c07b4a', creed: 'balanced',
       lord: 'rf_mateng', cities: ['tianshui', 'wuwei'],
       officers: ['sg_machao', 'rf_pangde', 'rf_hansui'] },
-    { id: 'lu', name: '장로', color: '#a8a2c8', creed: 'turtle',
+    { id: 'lu', name: '선치', color: '#a8a2c8', creed: 'turtle',
       lord: 'rf_zhanglu', cities: ['hanzhong'],
       officers: ['rf_yangren', 'rf_yangsong'] },
-    { id: 'zhang', name: '유장', color: '#7ac0a8', creed: 'turtle',
+    { id: 'zhang', name: '인목', color: '#7ac0a8', creed: 'turtle',
       lord: 'rf_liuzhang', cities: ['chengdu', 'jiangzhou', 'yongan'],
       officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi'] }
   ];
@@ -743,37 +743,37 @@
    * 여포·원술·공손찬·공융·이각은 이미 없다 — 그 사람들은 재야로 흩어진다.
    */
   var FORCES_200 = [
-    { id: 'shao', name: '원소', color: '#c9a227', creed: 'aggressive',
+    { id: 'shao', name: '고문', color: '#c9a227', creed: 'aggressive',
       lord: 'rf_yuanshao', cities: ['ye', 'nanpi', 'jixian', 'beiping', 'jinyang', 'beihai'],
       officers: ['rf_yanliang', 'rf_wenchou', 'rf_jushou', 'rf_tianfeng',
                  'rf_shenpei', 'rf_zhanghe', 'rf_gaolan'] },
-    { id: 'cao', name: '조조', color: '#5b8ff0', creed: 'aggressive',
+    { id: 'cao', name: '패헌', color: '#5b8ff0', creed: 'aggressive',
       lord: 'sg_caocao',
       cities: ['xuchang', 'chenliu', 'puyang', 'luoyang', 'changan',
                'xiaopei', 'xiapi', 'shouchun'],
       officers: ['sg_xiahoudun', 'sg_xunyu', 'sg_zhangliao', 'rf_xiahouyuan', 'rf_caoren',
                  'rf_caohong', 'rf_xuchu', 'rf_yujin', 'rf_yuejin', 'rf_lidian',
                  'rf_chengyu', 'rf_guojia', 'rf_jiaxu'] },
-    { id: 'bei', name: '유비', color: '#4caf72', creed: 'balanced',
+    { id: 'bei', name: '인형', color: '#4caf72', creed: 'balanced',
       lord: 'sg_liubei', cities: ['runan'],
       officers: ['sg_guanyu', 'sg_zhangfei', 'sg_zhaoyun', 'rf_mizhu', 'rf_jianyong'] },
-    { id: 'quan', name: '손권', color: '#e05c5c', creed: 'balanced',
+    { id: 'quan', name: '벽해', color: '#e05c5c', creed: 'balanced',
       lord: 'sg_sunquan', cities: ['jianye', 'chaisang', 'kuaiji'],
       officers: ['sg_zhouyu', 'sg_taishici', 'rf_chengpu', 'rf_huanggai',
                  'rf_handang', 'rf_zhoutai'] },
-    { id: 'biao', name: '유표', color: '#7fb8d8', creed: 'turtle',
+    { id: 'biao', name: '형수', color: '#7fb8d8', creed: 'turtle',
       lord: 'rf_liubiao',
       cities: ['xiangyang', 'wan', 'xinye', 'jiangling', 'jiangxia', 'changsha'],
       officers: ['sg_huangzhong', 'sg_ganning', 'rf_caimao', 'rf_kuailiang',
                  'rf_huangzu', 'rf_wenpin'] },
-    { id: 'teng', name: '마등', color: '#c07b4a', creed: 'balanced',
+    { id: 'teng', name: '노기', color: '#c07b4a', creed: 'balanced',
       lord: 'rf_mateng', cities: ['tianshui', 'wuwei'],
       officers: ['sg_machao', 'rf_pangde', 'rf_hansui'] },
-    { id: 'lu', name: '장로', color: '#a8a2c8', creed: 'turtle',
+    { id: 'lu', name: '선치', color: '#a8a2c8', creed: 'turtle',
       lord: 'rf_zhanglu', cities: ['hanzhong'],
       officers: ['rf_yangren', 'rf_yangsong'] },
     /* 유비(초록)와 색이 붙어 지도에서 헷갈렸다 — 이각이 없는 판이니 그 보라를 쓴다 */
-    { id: 'zhang', name: '유장', color: '#9a6b9a', creed: 'turtle',
+    { id: 'zhang', name: '인목', color: '#9a6b9a', creed: 'turtle',
       lord: 'rf_liuzhang', cities: ['chengdu', 'jiangzhou', 'yongan'],
       officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi'] }
   ];
@@ -784,7 +784,7 @@
    * 손권과 유비는 **동맹으로 시작한다**(SCENARIOS 의 pacts). 그것 없이는 적벽이 아니다.
    */
   var FORCES_208 = [
-    { id: 'cao', name: '조조', color: '#5b8ff0', creed: 'aggressive',
+    { id: 'cao', name: '패헌', color: '#5b8ff0', creed: 'aggressive',
       lord: 'sg_caocao',
       cities: ['xuchang', 'chenliu', 'puyang', 'luoyang', 'changan', 'runan',
                'xiaopei', 'xiapi', 'shouchun', 'ye', 'nanpi', 'jixian', 'beiping',
@@ -793,21 +793,21 @@
                  'rf_xiahouyuan', 'rf_caoren', 'rf_caohong', 'rf_xuchu', 'rf_yujin',
                  'rf_yuejin', 'rf_lidian', 'rf_chengyu', 'rf_jiaxu', 'rf_zhanghe',
                  'rf_caimao', 'rf_wenpin', 'rf_kuailiang'] },
-    { id: 'quan', name: '손권', color: '#e05c5c', creed: 'balanced',
+    { id: 'quan', name: '벽해', color: '#e05c5c', creed: 'balanced',
       lord: 'sg_sunquan', cities: ['jianye', 'chaisang', 'kuaiji'],
       officers: ['sg_zhouyu', 'sg_luxun', 'sg_ganning', 'sg_taishici', 'rf_chengpu',
                  'rf_huanggai', 'rf_handang', 'rf_zhoutai'] },
-    { id: 'bei', name: '유비', color: '#4caf72', creed: 'balanced',
+    { id: 'bei', name: '인형', color: '#4caf72', creed: 'balanced',
       lord: 'sg_liubei', cities: ['jiangxia', 'changsha'],
       officers: ['sg_guanyu', 'sg_zhangfei', 'sg_zhaoyun', 'sg_zhugeliang',
                  'sg_huangzhong', 'rf_mizhu', 'rf_jianyong'] },
-    { id: 'chao', name: '마초', color: '#c07b4a', creed: 'aggressive',
+    { id: 'chao', name: '서풍', color: '#c07b4a', creed: 'aggressive',
       lord: 'sg_machao', cities: ['tianshui', 'wuwei'],
       officers: ['rf_pangde', 'rf_hansui', 'rf_mateng'] },
-    { id: 'lu', name: '장로', color: '#a8a2c8', creed: 'turtle',
+    { id: 'lu', name: '선치', color: '#a8a2c8', creed: 'turtle',
       lord: 'rf_zhanglu', cities: ['hanzhong'],
       officers: ['rf_yangren', 'rf_yangsong'] },
-    { id: 'zhang', name: '유장', color: '#9a6b9a', creed: 'turtle',
+    { id: 'zhang', name: '인목', color: '#9a6b9a', creed: 'turtle',
       lord: 'rf_liuzhang', cities: ['chengdu', 'jiangzhou', 'yongan'],
       officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi', 'sg_pangtong'] }
   ];
@@ -817,10 +817,10 @@
       desc: '열세 깃발이 한꺼번에 섰다. 누구를 잡아도 갈 길이 멀다.',
       forces: FORCES_194, pacts: [] },
     { id: '200', year: 200, name: '관도', hanja: '官渡',
-      desc: '하북의 원소와 중원의 조조가 마주 섰다. 여포도 원술도 이미 없다.',
+      desc: '하북의 고문과 중원의 패헌이 마주 섰다. 패창도 옥형도 이미 없다.',
       forces: FORCES_200, pacts: [] },
     { id: '208', year: 208, name: '적벽', hanja: '赤壁',
-      desc: '조조가 스물 가까운 성을 쥐고 강을 내려온다. 손권과 유비는 손을 잡았다.',
+      desc: '패헌이 스물 가까운 성을 쥐고 강을 내려온다. 벽해와 인형은 손을 잡았다.',
       forces: FORCES_208, pacts: [['quan', 'bei', 'ally', 24]] }
   ];
 
