@@ -6,10 +6,9 @@ extends RefCounted
 ## (강릉진) 항목. heodo_map.gd와 같은 패턴(town:true — spawn:0, 적·
 ## 채집·보스가 없다) — 발판·줄 좌표만 SCALE(0.02)로 옮긴다.
 ##
-## **재해석** — 원작 portals는 [[70,'field'],[1230,'forest']] 둘이지만,
-## 오림 숲(forest)은 이 슬라이스 범위 밖(나머지 사냥터 8곳 중 남은
-## 항목)이라 동쪽 문은 안 옮긴다 — heodo_map.gd가 신야성(sinya) 문을
-## 미뤄 둔 것과 같은 이유·같은 자리(경계벽만 있는 막다른 길로 남는다).
+## **2026-09-13 추가(같은 날 더, 21절 다음 걸음) — 동쪽 문(forest) 개통.**
+## 오림 숲(forest_map.gd)이 생겨서 원작 portals[1]([1230,'forest'])도
+## 마저 옮긴다 — 아래 서쪽 문(field)과 같은 구조.
 ##
 ## 원작 npcs([[220,'guard'],[620,'elder'],[980,'merchant']])는 이 슬라이스
 ## 범위 밖 — 상점·전직은 이미 허도 하나에만 있는 것으로 좁혀 뒀다(14·15절
@@ -39,6 +38,11 @@ const PORTAL_WEST_X_PX := 70.0
 ## field에서 건너올 때 도착하는 자리 — heodo_map.gd arrival_from_field
 ## 와 같은 +80px 관례(서쪽 문 바로 앞이 아니라 한 걸음 안쪽).
 const ARRIVAL_FROM_FIELD_X_PX := 150.0
+
+const PORTAL_EAST_X_PX := 1230.0
+## 오림 숲에서 건너올 때 도착하는 자리 — 동쪽 문 관례(-80px, town이라
+## field_map.gd처럼 보스와 겹칠 걱정이 없다).
+const ARRIVAL_FROM_FOREST_X_PX := 1150.0
 
 
 static func width_m() -> float:
@@ -78,3 +82,11 @@ static func portal_west_m() -> float:
 
 static func arrival_from_field_m() -> float:
 	return ARRIVAL_FROM_FIELD_X_PX * SCALE
+
+
+static func portal_east_m() -> float:
+	return PORTAL_EAST_X_PX * SCALE
+
+
+static func arrival_from_forest_m() -> float:
+	return ARRIVAL_FROM_FOREST_X_PX * SCALE
