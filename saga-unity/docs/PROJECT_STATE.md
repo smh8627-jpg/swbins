@@ -3540,3 +3540,27 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   씬에 저장되고 컴파일·헤드리스가 깨지지 않는지까지만 확인했다. 다음에
   사람이 Unity 에디터로 직접 열어 Bloom/색감이 기대한 방향인지 봐야
   한다(66-2장 "검증" 절 그대로).
+
+## 66-2장 "다음에 할 일" ② 환경 PBR 텍스처 킷 조사 (2026-09-13, 이어서)
+
+- ①에 이어 ②(환경 PBR 텍스처 킷 조사)를 이 세션에서 처리했다. **Poly
+  Haven**(CC0, 공개 API로 로그인 없이 정적 URL 다운로드 — saga-godot
+  세션이 Quaternius itch.io에서 겪은 "JS라 자동 다운로드 불가" 문제가
+  없다)에서 `cobblestone_floor_01`(바닥)·`castle_wall_slates`(벽) 두
+  재질을 1k JPG(diffuse·normal·roughness·AO)로 받아 `Assets/Art/
+  EnvironmentPBR_candidates/`에 뒀다 — 아직 후보일 뿐 씬엔 안 물림.
+- `BuildEnvironmentPbrSample.cs`(신규, `Saga/Build Environment PBR
+  Sample Materials`)로 URP `Lit` 머티리얼 2개를 코드로 지어 파이프라인
+  검증(diffuse→BaseMap, normal→BumpMap+`_NORMALMAP`, AO→
+  OcclusionMap+`_OCCLUSIONMAP`). 배치 모드 실행, 컴파일 오류 0건,
+  머티리얼 2개 생성 확인.
+- **채널 팩킹 문제 발견** — URP Lit의 Metallic 워크플로는 Smoothness를
+  Metallic맵 알파로만 받고 별도 Roughness 슬롯이 없다. Poly Haven의
+  Roughness는 별도 텍스처라 지금은 상수(0.3~0.35)로 근사만 해 뒀다 —
+  실제 지형/벽에 쓸 때 커스텀 Shader Graph로 `arm`(ORM 팩) 텍스처를
+  풀어 쓸 것. 자세한 내용은 `PLAN.md` 66-2장·`docs/ASSET_GUIDE.md` 참고.
+- 배치 모드 후 `ProjectSettings/`·`Packages/` 버전 자동 갱신(이 세션
+  두 번째 발생, ①과 같은 함정) 확인 → `git checkout`으로 되돌림.
+- **다음에 할 일**: ③ 캐릭터 에셋 조사(아직 후보 없음), 위 채널 팩킹을
+  실제로 풀 Shader Graph, Poly Haven에서 재질 더 조사(흙길·초목·목재),
+  그 다음에야 실제 씬 교체.

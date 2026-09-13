@@ -320,3 +320,24 @@ CLAUDE.md가 헤드리스 임포트 뒤 `project.godot`/`*.import`를 확인하�
 설정을 건드릴 수 있다는 것은 그래픽 스타일과 무관한 엔진 사실이라
 여전히 유효하다. 다만 "이 방향(원신)으로 에셋을 채워 간다"는 전제는
 더 이상 맞지 않으니, 그 부분만 걸러서 읽을 것.
+
+## 2026-09-13 — Poly Haven PBR 텍스처 후보 (66-2장 ② 환경 조사)
+
+`Assets/Art/EnvironmentPBR_candidates/`(`PolyHaven_CobblestoneFloor01/`·
+`PolyHaven_CastleWallSlates/`) — **Poly Haven**(CC0, 공개 API로 로그인
+없이 정적 URL 다운로드) 재질 두 벌. 1k JPG로 diffuse·normal(OpenGL)·
+roughness·AO 네 맵. `LICENSE.txt`에 출처 URL(`polyhaven.com/a/<slug>`)
+적어 둠. **아직 후보일 뿐 — 어느 씬에도 안 물렸다.**
+
+`BuildEnvironmentPbrSample.cs`(에디터 도구)로 URP `Lit` 머티리얼 2개를
+지어 실제로 파이프라인이 도는지만 확인했다(diffuse→BaseMap,
+normal→BumpMap, AO→OcclusionMap). **Roughness 맵은 아직 안 씀** — URP
+Lit의 Metallic 워크플로가 Smoothness를 별도 슬롯이 아니라 Metallic맵
+알파로만 받아서, 지금은 상수(0.3~0.35)로 근사만 해 뒀다. 실제 지형/벽에
+쓸 때는 커스텀 Shader Graph로 Poly Haven의 `arm`(ORM 팩) 텍스처를
+풀어 쓸 것 — 자세한 내용은 `PLAN.md` 66-2장 "② 환경 PBR 텍스처 킷 조사"
+참고, 여기서 반복하지 않는다.
+
+배치 모드 실행 후 `ProjectSettings/`·`Packages/` 버전 자동 갱신
+부작용(위 항목과 같은 함정, 2026-09-13 두 번째 발생) 확인 후
+`git checkout`으로 되돌림.

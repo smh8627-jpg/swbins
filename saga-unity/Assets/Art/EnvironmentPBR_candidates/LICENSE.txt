@@ -1,0 +1,9 @@
+Poly Haven (https://polyhaven.com) — all assets are CC0 1.0 Universal
+(public domain). No attribution required.
+
+- cobblestone_floor_01 by Rob Tuytel — https://polyhaven.com/a/cobblestone_floor_01
+- castle_wall_slates — https://polyhaven.com/a/castle_wall_slates
+
+Downloaded as 1k JPG (diffuse/nor_gl/roughness/AO) via the public
+Poly Haven API (https://api.polyhaven.com) — see PLAN.md 66-2장 and
+docs/ASSET_GUIDE.md for how these are used.

@@ -973,16 +973,59 @@ Assets/Settings/
 - 이 정정을 이유로 66-1장(렌더러 프로파일)을 다시 논의하기 — 오히려
   66-1장이 이미 사실적 방향에 맞게 잡혀 있어 그대로 쓴다.
 
-## 다음에 할 일 (아직 착수 전, 이 PC가 아니라 다른 PC에서 이어감)
+## ① 라이팅/색보정/후처리 셋업 — 완료 (2026-09-13)
 
-**사용자 지시 "다른 피시에서 작업할거임"** — 아래는 이 세션이 하는 게
-아니라, 다음에 saga-unity를 여는 세션(다른 PC)이 볼 목록이다:
+**"이어해" 요청으로 다섯 판 전부에 구현·검증까지 끝났다.** 자세한 내용은
+`docs/PROJECT_STATE.md` "66-2장 '다음에 할 일' ① 라이팅/색보정/후처리
+셋업" 항목 참고 — 여기서 반복하지 않는다. 요약만: `BuildFF16VolumeProfiles.cs`
+가 공유 VolumeProfile 둘(`FF16Volume_PC/Mobile.asset`)을 짓고, 다섯
+`BuildXxxScene.cs`가 GlobalVolume+`PlatformVolumeProfile`로 꽂는다.
+실제 화면(GUI) 톤 확인은 아직 — 사람이 볼 차례.
 
-- **"현실적 기대치" 표의 순서대로 착수** — 캐릭터 에셋부터 찾지 말고
-  ① 라이팅/색보정/후처리 셋업(Volume Profile 튜닝, 에셋 불필요) →
-  ② 환경 PBR 텍스처 킷 조사(무료/CC0 또는 저가, Quixel Megascans류
-  포토스캔 재질) → ③ 캐릭터 에셋(사실적 인체 비율, 헤어카드+SSS 셰이더
-  적용 가능한 것) 순으로 투자한다.
+## ② 환경 PBR 텍스처 킷 조사 — 샘플 다운로드·URP 파이핑 검증 (2026-09-13, 이어서)
+
+- **Poly Haven**(CC0, Quixel Megascans급 포토스캔 재질 — 공개 API로
+  로그인 없이 정적 URL 다운로드 가능, saga-godot 세션이 Quaternius에서
+  겪은 "itch.io가 JS라 자동 다운로드 불가" 문제가 없다)에서 두 재질을
+  받았다: **`cobblestone_floor_01`**(마을 바닥, 현재 Kenney Fantasy
+  Town Kit 대체 후보)·**`castle_wall_slates`**(성벽/건물 벽, 현재
+  Kenney 대체 후보). 둘 다 CC0, 1k JPG로 diffuse·normal(OpenGL)·
+  roughness·AO 네 맵 전부. `Assets/Art/EnvironmentPBR_candidates/`에
+  두고 `LICENSE.txt`(출처 URL) 동봉 — **아직 후보일 뿐, 어느 씬에도
+  안 물렸다**(saga-godot의 `_candidates_66-2` 폴더와 같은 자리 표시자
+  성격).
+- `BuildEnvironmentPbrSample.cs`(신규, `Saga/Build Environment PBR
+  Sample Materials` 메뉴) — 두 재질을 URP `Lit` 셰이더 머티리얼로
+  코드로 지어 실제로 파이프라인이 도는지 검증(diffuse→BaseMap,
+  normal→BumpMap+`_NORMALMAP` 키워드, AO→OcclusionMap+`_OCCLUSIONMAP`
+  키워드). 배치 모드(`-executeMethod`)로 실행, 컴파일 오류 0건·머티리얼
+  2개 생성 확인.
+- **채널 팩킹 문제 발견, 지금은 근사만 해 뒀다** — Poly Haven의
+  Roughness는 별도 텍스처인데 URP Lit의 Metallic 워크플로는 Smoothness를
+  Metallic맵의 알파 채널로만 받는다(별도 Roughness 슬롯이 없다). 지금은
+  Smoothness를 상수(0.3~0.35, 러프니스 실측 평균의 반전 근사)로만
+  뒀다 — **실제 교체 때는 커스텀 Shader Graph로 Poly Haven의 `arm`
+  (Occlusion-Roughness-Metalness 팩) 텍스처를 풀어 쓰거나, Roughness→
+  Smoothness 반전 텍스처를 미리 구워야 한다.** 다음에 이 재질을 실제
+  지형/벽에 쓸 세션이 참고할 것.
+- 헤드리스 임포트(`-batchmode -nographics -quit`) 후 `ProjectSettings/`·
+  `Packages/` 배치 모드 부작용(이 PC의 Unity 6000.3.24f1이 프로젝트
+  고정 버전 6000.3.23f1보다 최신이라 자동 버전업) 재확인 → `git
+  checkout`으로 되돌림(CLAUDE.md에 이미 기록된 함정, 두 번째 발생분).
+- **현실적 기대치 표 갱신 근거** — "환경(지형·식생·던전 재질) 근접
+  가능성: 중간~높음"이라던 앞선 판단이 실제로 확인됐다. Poly Haven
+  재질 자체 화질은 실제로 AAA급이고 CC0라 비용도 없다 — 남은 건
+  채널 팩킹(위)과 실제 지형 메시에 UV 스케일 맞춰 붙이는 작업뿐.
+
+## 다음에 할 일 (③부터, 아직 착수 전)
+
+- **③ 캐릭터 에셋 조사** — 사실적 인체 비율, 헤어카드+SSS 셰이더 적용
+  가능한 소스(포토그래메트리 기반 무료/저가 킷). ①·②와 달리 아직
+  후보조차 안 정했다.
+- 위 채널 팩킹 문제를 실제로 풀 커스텀 URP Shader Graph(ORM 언팩) —
+  ②가 발견만 해 두고 미룬 것.
+- Poly Haven에서 추가 재질(흙길·초목 바닥·목재 등) 더 조사 — 이번엔
+  대표 둘(바닥·벽)만 확인, 44장 우선순위대로 더 넓힐 것.
 - Kenney·VRoid 플레이스홀더를 위 순서로 실제 사실적 에셋으로 순차
   교체(44장 우선순위: Player → 주요 Enemy → Boss → Environment →
   Building → … 와 교차 적용).
