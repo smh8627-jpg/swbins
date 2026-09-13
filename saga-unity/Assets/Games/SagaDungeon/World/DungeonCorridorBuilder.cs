@@ -60,6 +60,13 @@ namespace Saga.Dungeon.World
         [SerializeField] private GameObject corridorModel;
         private const float CorridorModelDepth = 4.0f;
 
+        // 44장 "Environment" 교체 — DungeonRoomBuilder.cs와 같은 결
+        // (EnvironmentMaterial.cs 참고). 채워져 있으면 corridor.glb 대신 PBR
+        // 재질을 바닥·벽·천장에 씌운다.
+        [SerializeField] private Material floorMaterial;
+        [SerializeField] private Material wallMaterial;
+        private bool UsePbrEnvironment => floorMaterial != null && wallMaterial != null;
+
         /// <summary>복도 길이(z축) — 두 방의 벽 바깥면 사이 거리는
         /// BuildTestDungeonScene.cs가 방 간격을 잡을 때 이 값을 그대로
         /// 씀.</summary>
@@ -98,7 +105,8 @@ namespace Saga.Dungeon.World
             floor.transform.localPosition = new Vector3(0f, -0.5f, 0f);
             floor.transform.localScale = new Vector3(DoorWidth, 1f, Length);
             var renderer = floor.GetComponent<MeshRenderer>();
-            if (corridorModel != null) renderer.enabled = false; // GLB가 보여줄 자리 — 콜라이더만 남김.
+            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(floorMaterial, DoorWidth, Length);
+            else if (corridorModel != null) renderer.enabled = false; // GLB가 보여줄 자리 — 콜라이더만 남김.
             else renderer.sharedMaterial = MakeMaterial(Colors().floor);
         }
 
@@ -120,7 +128,8 @@ namespace Saga.Dungeon.World
             wall.transform.localPosition = pos;
             wall.transform.localScale = size;
             var renderer = wall.GetComponent<MeshRenderer>();
-            if (corridorModel != null) renderer.enabled = false; // GLB가 보여줄 자리 — 콜라이더만 남김.
+            if (UsePbrEnvironment) renderer.sharedMaterial = EnvironmentMaterial.MakeTiled(wallMaterial, Mathf.Max(size.x, size.z), size.y);
+            else if (corridorModel != null) renderer.enabled = false; // GLB가 보여줄 자리 — 콜라이더만 남김.
             else renderer.sharedMaterial = MakeMaterial(color);
         }
 
@@ -131,6 +140,14 @@ namespace Saga.Dungeon.World
         /// 보여줌).</summary>
         private void BuildVisualModel()
         {
+            // "Environment" PBR 경로 — DungeonRoomBuilder.cs와 같은 결.
+            // corridor.glb 타일 대신 천장 하나로 마저 닫는다.
+            if (UsePbrEnvironment)
+            {
+                BuildCeiling();
+                return;
+            }
+
             if (corridorModel == null) return;
 
             var tint = Colors().wall; // 통로 전체를 한 톤으로(폐허 색, 방과 달리 성격 하나뿐)
@@ -143,6 +160,20 @@ namespace Saga.Dungeon.World
                 tile.transform.localPosition = new Vector3(0f, 0f, tileCenterZ);
                 CharacterVisual.Tint(tile, tint);
             }
+        }
+
+        /// <summary>PBR 환경 경로 전용 — DungeonRoomBuilder.BuildCeiling()과
+        /// 같은 이유(콜라이더 없는 시각 전용 천장).</summary>
+        private void BuildCeiling()
+        {
+            var ceiling = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ceiling.name = "Ceiling";
+            ceiling.transform.SetParent(transform, false);
+            ceiling.transform.localPosition = new Vector3(0f, WallHeight, 0f);
+            ceiling.transform.localScale = new Vector3(DoorWidth, 1f, Length);
+            ceiling.GetComponent<MeshRenderer>().sharedMaterial =
+                EnvironmentMaterial.MakeTiled(wallMaterial, DoorWidth, Length);
+            Object.DestroyImmediate(ceiling.GetComponent<Collider>());
         }
 
         private static Material MakeMaterial(Color color)

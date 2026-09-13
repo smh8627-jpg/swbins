@@ -58,6 +58,13 @@ namespace Saga.EditorTools
         private const string GateGlbPath = "Assets/Art/Dungeon/gate.glb";
         private const string RoomGlbPath = "Assets/Art/Dungeon/room-small.glb";
 
+        // 44장 "Environment" 교체 — ⑥이 미리 구워 둔 Poly Haven PBR 재질
+        // (BuildEnvironmentPbrSample.cs)을 room-small.glb/corridor.glb 셸
+        // 대신 실제로 씬에 물린다. 후보 폴더가 없으면(다른 PC에 아직 안
+        // 받아 둔 경우) null로 남아 기존 셸/색상 경로로 조용히 폴백한다.
+        private const string DungeonFloorMatPath = "Assets/Art/EnvironmentPBR_candidates/cobblestone_floor_01_URPLit.mat";
+        private const string DungeonWallMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+
         private static readonly Vector3 PlayerSpawn = new Vector3(-6f, 0.1f, 0f);
 
         // "몬스터 무리" 슬라이스 — saga-dungeon 웹판 js/dungeon.js:333
@@ -279,6 +286,7 @@ namespace Saga.EditorTools
         // Build() 시작에 한 번만 로드해 각 Build* 메서드가 나눠 쓴다.
         private static GameObject _characterA, _characterB, _characterC, _characterD;
         private static GameObject _corridorGlb, _gateGlb, _roomGlb;
+        private static Material _dungeonFloorMat, _dungeonWallMat;
 
         [MenuItem("Saga/Build TestDungeon Scene")]
         public static void Build()
@@ -343,6 +351,21 @@ namespace Saga.EditorTools
             {
                 Debug.LogWarning("[BuildTestDungeonScene] corridor.glb/gate.glb/room-small.glb 중 일부를 못 찾음 — primitive 색상으로 대체됨.");
             }
+
+            _dungeonFloorMat = AssetDatabase.LoadAssetAtPath<Material>(DungeonFloorMatPath);
+            _dungeonWallMat = AssetDatabase.LoadAssetAtPath<Material>(DungeonWallMatPath);
+            if (_dungeonFloorMat == null || _dungeonWallMat == null)
+            {
+                Debug.LogWarning("[BuildTestDungeonScene] Environment PBR 재질을 못 찾음 — room-small.glb 셸/색상으로 대체됨(Saga/Build Environment PBR Sample Materials 먼저 실행).");
+            }
+        }
+
+        /// <summary>44장 "Environment" — room/corridor 빌더 하나에 PBR 재질
+        /// 둘을 한 번에 배정한다(호출부가 많아 헬퍼로 뺌).</summary>
+        private static void AssignEnvironmentMaterials(Object builder)
+        {
+            SetPrivateField(builder, "floorMaterial", _dungeonFloorMat);
+            SetPrivateField(builder, "wallMaterial", _dungeonWallMat);
         }
 
         /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) 라이팅/무드 —
@@ -383,6 +406,7 @@ namespace Saga.EditorTools
             SetPrivateField(builder, "decorOffset", new Vector3(-8f, 0f, 5f));
             SetPrivateField(builder, "gateModel", _gateGlb); // "환경/건물 GLB"
             SetPrivateField(builder, "roomModel", _roomGlb); // "방 셸 GLB"
+            AssignEnvironmentMaterials(builder);
             builder.Build();
             builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드/필드" 슬라이스 — 복도로 Room2와 잇는다.
             builder.OpenSouthDoor(RoomDoorWidth); // "오픈월드 확장 — 마을 여러 개" — 들길로 Town2와 잇는다.
@@ -405,6 +429,7 @@ namespace Saga.EditorTools
             // 다른 세 복도)을 안 쓴다. 여기는 무너진 던전 통로가 아니라
             // 마을로 가는 들길이라는 걸 색으로도 가른다.
             SetPrivateField(townCorridorBuilder, "corridorModel", _corridorGlb); // "환경/건물 GLB" 자산 재사용
+            AssignEnvironmentMaterials(townCorridorBuilder);
             townCorridorBuilder.Build();
 
             var town2Go = new GameObject("Town2");
@@ -415,6 +440,7 @@ namespace Saga.EditorTools
             // (Colors()의 "예전 색"이 곧 이 방의 고유색이 되는 셈).
             SetPrivateField(town2Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
             SetPrivateField(town2Builder, "roomModel", _roomGlb); // "방 셸 GLB"
+            AssignEnvironmentMaterials(town2Builder);
             town2Builder.Build();
             town2Builder.OpenNorthDoor(RoomDoorWidth); // 복도 쪽(Room1 방향).
             town2Builder.OpenWestDoor(RoomDoorWidth); // "위성↔위성 지름길" — Crossroads를 거쳐 Town3와 잇는다.
@@ -454,6 +480,7 @@ namespace Saga.EditorTools
             corridorGo.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
             var corridorBuilder = corridorGo.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridorBuilder, "corridorModel", _corridorGlb);
+            AssignEnvironmentMaterials(corridorBuilder);
             corridorBuilder.Build();
 
             var town3Go = new GameObject("Town3");
@@ -461,6 +488,7 @@ namespace Saga.EditorTools
             var town3Builder = town3Go.AddComponent<DungeonRoomBuilder>();
             SetPrivateField(town3Builder, "gateModel", _gateGlb);
             SetPrivateField(town3Builder, "roomModel", _roomGlb);
+            AssignEnvironmentMaterials(town3Builder);
             town3Builder.Build();
             town3Builder.OpenEastDoor(RoomDoorWidth); // 복도 쪽(Room1 방향).
             town3Builder.OpenSouthDoor(RoomDoorWidth); // "위성↔위성 지름길" — Crossroads를 거쳐 Town2와 잇는다.
@@ -488,6 +516,7 @@ namespace Saga.EditorTools
             corridorGo.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
             var corridorBuilder = corridorGo.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridorBuilder, "corridorModel", _corridorGlb);
+            AssignEnvironmentMaterials(corridorBuilder);
             corridorBuilder.Build();
 
             var town4Go = new GameObject("Town4");
@@ -495,6 +524,7 @@ namespace Saga.EditorTools
             var town4Builder = town4Go.AddComponent<DungeonRoomBuilder>();
             SetPrivateField(town4Builder, "gateModel", _gateGlb);
             SetPrivateField(town4Builder, "roomModel", _roomGlb);
+            AssignEnvironmentMaterials(town4Builder);
             town4Builder.Build();
             town4Builder.OpenWestDoor(RoomDoorWidth); // 복도 쪽(Room1 방향).
             town4Builder.OpenSouthDoor(RoomDoorWidth); // "위성↔위성 지름길 후속" — Crossroads2를 거쳐 Town2와 잇는다. 더는 막다른 마을이 아니다.
@@ -527,6 +557,7 @@ namespace Saga.EditorTools
             corridorNorthGo.transform.position = ShortcutCorridorNorthCenter;
             var corridorNorthBuilder = corridorNorthGo.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridorNorthBuilder, "corridorModel", _corridorGlb);
+            AssignEnvironmentMaterials(corridorNorthBuilder);
             corridorNorthBuilder.Build();
 
             var crossroadsGo = new GameObject("Crossroads");
@@ -534,6 +565,7 @@ namespace Saga.EditorTools
             var crossroadsBuilder = crossroadsGo.AddComponent<DungeonRoomBuilder>();
             SetPrivateField(crossroadsBuilder, "gateModel", _gateGlb);
             SetPrivateField(crossroadsBuilder, "roomModel", _roomGlb);
+            AssignEnvironmentMaterials(crossroadsBuilder);
             crossroadsBuilder.Build();
             crossroadsBuilder.OpenNorthDoor(RoomDoorWidth); // Town3 방향.
             crossroadsBuilder.OpenEastDoor(RoomDoorWidth); // Town2 방향.
@@ -543,6 +575,7 @@ namespace Saga.EditorTools
             corridorEastGo.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
             var corridorEastBuilder = corridorEastGo.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridorEastBuilder, "corridorModel", _corridorGlb);
+            AssignEnvironmentMaterials(corridorEastBuilder);
             corridorEastBuilder.Build();
 
             // 순수 경유지 표시 — 마을(황금빛)도 야생 바이옴도 아닌 중립
@@ -563,6 +596,7 @@ namespace Saga.EditorTools
             corridorWestGo.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
             var corridorWestBuilder = corridorWestGo.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridorWestBuilder, "corridorModel", _corridorGlb);
+            AssignEnvironmentMaterials(corridorWestBuilder);
             corridorWestBuilder.Build();
 
             var crossroads2Go = new GameObject("Crossroads2");
@@ -570,6 +604,7 @@ namespace Saga.EditorTools
             var crossroads2Builder = crossroads2Go.AddComponent<DungeonRoomBuilder>();
             SetPrivateField(crossroads2Builder, "gateModel", _gateGlb);
             SetPrivateField(crossroads2Builder, "roomModel", _roomGlb);
+            AssignEnvironmentMaterials(crossroads2Builder);
             crossroads2Builder.Build();
             crossroads2Builder.OpenWestDoor(RoomDoorWidth); // Town2 방향.
             crossroads2Builder.OpenNorthDoor(RoomDoorWidth); // Town4 방향.
@@ -578,6 +613,7 @@ namespace Saga.EditorTools
             corridorNorthGo.transform.position = ShortcutCorridorNorth2Center;
             var corridorNorthBuilder = corridorNorthGo.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridorNorthBuilder, "corridorModel", _corridorGlb);
+            AssignEnvironmentMaterials(corridorNorthBuilder);
             corridorNorthBuilder.Build();
 
             BuildTownLantern(Crossroads2Center);
@@ -684,6 +720,7 @@ namespace Saga.EditorTools
             var corridorBuilder = corridorGo.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridorBuilder, "biome", SagaBiome.Ruins); // "바이옴 5종" — 복도 셋은 전부 폐허
             SetPrivateField(corridorBuilder, "corridorModel", _corridorGlb); // "환경/건물 GLB"
+            AssignEnvironmentMaterials(corridorBuilder);
             corridorBuilder.Build();
 
             var room2Go = new GameObject("Room2");
@@ -695,6 +732,7 @@ namespace Saga.EditorTools
             SetPrivateField(room2Builder, "decorOffset", new Vector3(7f, 0f, 5f));
             SetPrivateField(room2Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
             SetPrivateField(room2Builder, "roomModel", _roomGlb); // "방 셸 GLB"
+            AssignEnvironmentMaterials(room2Builder);
             room2Builder.Build();
             room2Builder.OpenSouthDoor(RoomDoorWidth);
             room2Builder.OpenNorthDoor(RoomDoorWidth); // "방 종류 마지막" — 복도2로 Room3와 잇는다.
@@ -744,6 +782,7 @@ namespace Saga.EditorTools
             var corridor2Builder = corridor2Go.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridor2Builder, "biome", SagaBiome.Ruins);
             SetPrivateField(corridor2Builder, "corridorModel", _corridorGlb); // "환경/건물 GLB"
+            AssignEnvironmentMaterials(corridor2Builder);
             corridor2Builder.Build();
 
             var room3Go = new GameObject("Room3");
@@ -756,6 +795,7 @@ namespace Saga.EditorTools
             SetPrivateField(room3Builder, "decorOffset", new Vector3(3f, 0f, -6f));
             SetPrivateField(room3Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
             SetPrivateField(room3Builder, "roomModel", _roomGlb); // "방 셸 GLB"
+            AssignEnvironmentMaterials(room3Builder);
             room3Builder.Build();
             room3Builder.OpenSouthDoor(RoomDoorWidth);
             room3Builder.OpenNorthDoor(RoomDoorWidth); // 복도3으로 Room4와 잇는다.
@@ -850,6 +890,7 @@ namespace Saga.EditorTools
             var corridor3Builder = corridor3Go.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridor3Builder, "biome", SagaBiome.Ruins);
             SetPrivateField(corridor3Builder, "corridorModel", _corridorGlb); // "환경/건물 GLB"
+            AssignEnvironmentMaterials(corridor3Builder);
             corridor3Builder.Build();
 
             var room4Go = new GameObject("Room4");
@@ -862,6 +903,7 @@ namespace Saga.EditorTools
             SetPrivateField(room4Builder, "decorOffset", new Vector3(-8f, 0f, -5f));
             SetPrivateField(room4Builder, "gateModel", _gateGlb); // "환경/건물 GLB"
             SetPrivateField(room4Builder, "roomModel", _roomGlb); // "방 셸 GLB"
+            AssignEnvironmentMaterials(room4Builder);
             room4Builder.Build();
             room4Builder.OpenSouthDoor(RoomDoorWidth);
             room4Builder.OpenNorthDoor(RoomDoorWidth); // "오픈월드 확장" — 복도4로 ProcRoom(절차적 층 진행)과 잇는다. Room4는 더는 막다른 방이 아니다.
@@ -894,6 +936,7 @@ namespace Saga.EditorTools
             var corridor4Builder = corridor4Go.AddComponent<DungeonCorridorBuilder>();
             SetPrivateField(corridor4Builder, "biome", SagaBiome.Ruins);
             SetPrivateField(corridor4Builder, "corridorModel", _corridorGlb);
+            AssignEnvironmentMaterials(corridor4Builder);
             corridor4Builder.Build();
 
             var procRoomGo = new GameObject("ProcRoom");
@@ -903,6 +946,7 @@ namespace Saga.EditorTools
             SetPrivateField(procRoomBuilder, "decorOffset", new Vector3(-8f, 0f, 5f));
             SetPrivateField(procRoomBuilder, "gateModel", _gateGlb);
             SetPrivateField(procRoomBuilder, "roomModel", _roomGlb);
+            AssignEnvironmentMaterials(procRoomBuilder);
             procRoomBuilder.Build();
             procRoomBuilder.OpenSouthDoor(RoomDoorWidth); // 북쪽 문은 없다 — 방이 하나뿐이라 물리적으로 더 이을 필요가 없다.
 
