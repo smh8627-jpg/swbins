@@ -32,6 +32,12 @@ namespace Saga.Story.World
         private static readonly Color RopeColor = new Color(0.6f, 0.5f, 0.35f);
         private const float WallHeight = 20f;
 
+        // 44장 "Environment" 교체 — 편집기 빌드 스크립트가 채워 준다(런타임
+        // Awake()는 AssetDatabase를 못 쓴다, DungeonRoomBuilder.cs와 같은
+        // 결). 비어 있으면 기존 GroundColor/PlatColor 평면색 그대로.
+        [SerializeField] private Material groundMaterial;
+        [SerializeField] private Material platformMaterial;
+
         private void Awake()
         {
             if (transform.childCount > 0) return;
@@ -49,7 +55,7 @@ namespace Saga.Story.World
         private void BuildGround()
         {
             float width = FieldMapData.WidthM;
-            BuildBox(width * 0.5f, -PlatformThickness * 0.5f, width, PlatformThickness, GroundColor, "Ground");
+            BuildBox(width * 0.5f, -PlatformThickness * 0.5f, width, PlatformThickness, GroundColor, "Ground", groundMaterial);
         }
 
         private void BuildPlatform(FieldMapData.Platform p)
@@ -61,7 +67,7 @@ namespace Saga.Story.World
 
             if (!ropePassesUnder)
             {
-                BuildBox(p.X, p.Height - PlatformThickness * 0.5f, p.HalfWidth * 2f, PlatformThickness, PlatColor, "Platform");
+                BuildBox(p.X, p.Height - PlatformThickness * 0.5f, p.HalfWidth * 2f, PlatformThickness, PlatColor, "Platform", platformMaterial);
                 return;
             }
 
@@ -76,17 +82,19 @@ namespace Saga.Story.World
         {
             float width = right - left;
             if (width <= 0f) return;
-            BuildBox((left + right) * 0.5f, height - PlatformThickness * 0.5f, width, PlatformThickness, PlatColor, "Platform");
+            BuildBox((left + right) * 0.5f, height - PlatformThickness * 0.5f, width, PlatformThickness, PlatColor, "Platform", platformMaterial);
         }
 
-        private void BuildBox(float centerX, float centerY, float width, float thickness, Color color, string boxName)
+        private void BuildBox(float centerX, float centerY, float width, float thickness, Color color, string boxName, Material materialOverride = null)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = boxName;
             go.transform.SetParent(transform, false);
             go.transform.localPosition = new Vector3(centerX, centerY, 0f);
             go.transform.localScale = new Vector3(width, thickness, PlatformDepth);
-            go.GetComponent<MeshRenderer>().sharedMaterial = MakeMaterial(color);
+            go.GetComponent<MeshRenderer>().sharedMaterial = materialOverride != null
+                ? EnvironmentMaterial.MakeTiled(materialOverride, width, PlatformDepth)
+                : MakeMaterial(color);
         }
 
         /// <summary>웹판 ropes[0](kind:'rope') — 오르내리는 동안 옆으로 못

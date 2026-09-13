@@ -98,10 +98,29 @@ namespace Saga.EditorTools
             RenderSettings.ambientLight = new Color(0.5f, 0.55f, 0.6f);
         }
 
+        // 44장 "Environment" 교체 — STORY는 GLB 없이 primitive 박스뿐이라
+        // (StoryTerrainBuilder.cs 클래스 주석) Dungeon과 같은 방식(primitive
+        // 크기에 맞춘 타일링 PBR 재질)을 그대로 옮길 수 있다. 바닥은 초록
+        // 들판(GroundColor #6faf55와 톤이 맞는 leafy_grass), 발판은 나무
+        // 색조(PlatColor)와 맞는 dark_wooden_planks — 둘 다 66-2장 ⑥이
+        // 받아 두고 "아직 어느 씬에도 안 물렸다"던 후보를 처음 실전 배치.
+        private const string StoryGroundMatPath = "Assets/Art/EnvironmentPBR_candidates/leafy_grass_URPLit.mat";
+        private const string StoryPlatformMatPath = "Assets/Art/EnvironmentPBR_candidates/dark_wooden_planks_URPLit.mat";
+
         private static void BuildTerrain()
         {
             var go = new GameObject("Terrain");
             var builder = go.AddComponent<StoryTerrainBuilder>();
+
+            var groundMat = AssetDatabase.LoadAssetAtPath<Material>(StoryGroundMatPath);
+            var platformMat = AssetDatabase.LoadAssetAtPath<Material>(StoryPlatformMatPath);
+            if (groundMat != null) SetPrivateField(builder, "groundMaterial", groundMat);
+            if (platformMat != null) SetPrivateField(builder, "platformMaterial", platformMat);
+            if (groundMat == null || platformMat == null)
+            {
+                Debug.LogWarning("[BuildTestStoryScene] Environment PBR 재질을 못 찾음 — 바닥/발판이 예전 평면색으로 대체됨.");
+            }
+
             builder.Build(); // Awake()는 Play 모드에서만 자동으로 도니 edit-time 저장을 위해 직접 부른다.
         }
 
