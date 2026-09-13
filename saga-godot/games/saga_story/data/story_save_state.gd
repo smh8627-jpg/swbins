@@ -15,7 +15,7 @@ const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 13  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1)
+const SAVE_VERSION := 14  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1), 13→14: repeat_progress/daily_done_day(반복/일일 사명)
 
 var level := 1
 var exp := 0
@@ -27,6 +27,8 @@ var bosses := 0  # side.js s.bosses 그대로 — a_boss5 업적의 진행 카�
 var feat := 0  # core.js player.feat(공적) — 이 슬라이스엔 칭호가 없어 그냥 누적값만
 var achievements: Dictionary = {}  # key(String) -> true, achieve.js st() 그대로(한 번 달성하면 안 없어짐)
 var quests_done: Dictionary = {}  # key(String) -> true, quest.js 완료 기록의 이 포트 버전(전부 repeat:false 8개뿐이라 achievements와 같은 모양)
+var repeat_progress: Dictionary = {}  # REPEAT_QUESTS key(String) -> float, 마지막 완수 시점의 _quest_value() 스냅샷(그 이후 늘어난 만큼만 다음 판 진행도로 본다)
+var daily_done_day: Dictionary = {}  # REPEAT_QUESTS(daily:true) key(String) -> int(day index), 오늘 이미 완수했으면 다음 날까지 다시 안 된다
 var _checking_quests := false  # check_quests()가 보상으로 add_gold()를 부르고, add_gold()가 다시 check_quests()를 부르는 되먹임을 막는 잠금
 var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
 var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.item_def() 참고(밑감·고유 둘 다)
@@ -285,7 +287,39 @@ func check_quests() -> void:
 		if not scroll_key.is_empty():
 			_grant_quest_scroll(scroll_key)
 		Toast.show(self, "📜 사명 완수 · %s" % String(q.name), 3.0)
+	_check_repeat_quests()
 	_checking_quests = false
+
+
+## story_combat.gd REPEAT_QUESTS 머리말 참고 — "지난 완수 이후로 그 값이
+## n만큼 늘 때마다" 자동으로 다시 완수하는 반복 문턱. check_quests()
+## 안에서만 불린다(같은 _checking_quests 잠금 아래 — 보상으로 부르는
+## add_exp()/add_gold()가 다시 check_quests()를 불러도 잠금에 막힌다).
+func _check_repeat_quests() -> void:
+	var today := int(Time.get_unix_time_from_system() / 86400.0)
+	for key: String in StoryCombat.REPEAT_QUESTS:
+		var q: Dictionary = StoryCombat.REPEAT_QUESTS[key]
+		if level < int(q.need):
+			continue
+		if bool(q.get("daily", false)) and int(daily_done_day.get(key, -1)) == today:
+			continue
+		var baseline := float(repeat_progress.get(key, 0.0))
+		var current := _quest_value(q)
+		if current - baseline < float(q.n):
+			continue
+		repeat_progress[key] = current
+		if bool(q.get("daily", false)):
+			daily_done_day[key] = today
+		var exp_reward := int(q.get("exp", 0))
+		if exp_reward > 0:
+			add_exp(exp_reward)
+		var gold_reward := int(q.get("gold", 0))
+		if gold_reward > 0:
+			add_gold(gold_reward)
+		var scroll_key := String(q.get("scroll", ""))
+		if not scroll_key.is_empty():
+			_grant_quest_scroll(scroll_key)
+		Toast.show(self, "📜 %s 완수(다시 쌓이면 또)" % String(q.name), 3.0)
 
 
 ## quest.js look()의 이 포트 버전 — goal.type마다 다른 누적값을 본다.
@@ -458,6 +492,8 @@ func save() -> bool:
 		"feat": feat,
 		"achievements": achievements,
 		"quests_done": quests_done,
+		"repeat_progress": repeat_progress,
+		"daily_done_day": daily_done_day,
 		"mats": mats,
 		"equipped": equipped,
 		"gold": gold,
@@ -500,6 +536,10 @@ func try_load() -> bool:
 	achievements = loaded_achievements if typeof(loaded_achievements) == TYPE_DICTIONARY else {}
 	var loaded_quests_done: Variant = data.get("quests_done", {})
 	quests_done = loaded_quests_done if typeof(loaded_quests_done) == TYPE_DICTIONARY else {}
+	var loaded_repeat_progress: Variant = data.get("repeat_progress", {})
+	repeat_progress = loaded_repeat_progress if typeof(loaded_repeat_progress) == TYPE_DICTIONARY else {}
+	var loaded_daily_done_day: Variant = data.get("daily_done_day", {})
+	daily_done_day = loaded_daily_done_day if typeof(loaded_daily_done_day) == TYPE_DICTIONARY else {}
 	var loaded_mats: Variant = data.get("mats", {})
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
 	var loaded_equipped: Variant = data.get("equipped", {})

@@ -5478,3 +5478,29 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - **다음에 할 일**: r_*(반복 사명 5개)·d_*(일일 사명 2개) — "바친 뒤
   다시 받는다"에 필요한 받기/반납 상태가 아직 없어 하나로 묶어 다음에
   볼 것. 그 밖엔 STORY 밖(다른 네 판·saga-unity 트랙)으로.
+
+## STORY 반복/일일 사명 6개 (2026-09-13, "이어해" 지시로 계속)
+
+- 위가 남긴 마지막 사명 뭉치 — data-quest.js 나머지 일곱 중 여섯
+  (r_hunt·r_boss·r_forage·r_talk·d_hunt·d_gather)을 옮겼다. **받기/
+  바치기 UI가 없어** "지난 완수 이후 그 값이 n만큼 늘 때마다 자동으로
+  다시 완수" 방식으로 재해석 — `story_save_state.gd`
+  `repeat_progress`(완수 시점 스냅샷)·`daily_done_day`(하루 게이트)
+  신규, `check_quests()` 끝에서 `_check_repeat_quests()`를 같이 부른다.
+  `story_combat.gd`에 `REPEAT_QUESTS`(QUESTS와 분리) 신규.
+  SAVE_VERSION 13→14. **`r_purse`(gold 스냅샷 조건)만 뺐다** — gold는
+  줄지 않는 한 상태 변화마다 도는 이 포트의 자동 판정에서 매번
+  재완수돼 버려(kill/boss/gather/talk과 달리 "늘어난 양"으로 못 봄)
+  받기/바치기 UI가 생기기 전엔 못 옮긴다 — STORY 20개 사명 중 유일한
+  잔여. 자세한 내용은 `docs/VERTICAL_SLICE_STORY.md` "반복/일일 사명
+  6개" 절 참고.
+- 검증: 헤드리스 임포트 오류 0건, TestField·HeodoField·
+  ForestHuntGround 각각 `--quit-after 6` 스크립트 오류 0건. 임시
+  씬(앞선 두 절과 같은 방식)으로 r_hunt 30킬 문턱 두 판 연속(기준선
+  30→60)·d_hunt daily 게이트(같은 날 재완수 안 됨, 날짜를 어제로
+  돌리면 즉시 재완수)·r_boss·d_gather/r_forage 문턱 순서·r_talk까지
+  손계산과 일치 확인 후 임시 파일 삭제, 재검증까지 마쳤다. `.import`
+  잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: STORY 안엔 `r_purse`(받기/바치기 UI 필요) 하나만
+  남아 새로 옮길 굵직한 사명·업적이 거의 없다 — 다음은 STORY 밖(다른
+  네 판·saga-unity 트랙)으로 옮겨 가는 쪽을 진지하게 고려할 자리.
