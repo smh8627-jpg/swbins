@@ -585,9 +585,13 @@ func transfer_officer(officer_id: String, to_city_id: String) -> Dictionary:
 ## - 승부가 안 갈리면(stalemate) 원작은 진(camp)을 쳐 다음 달로 넘기는데,
 ##   이 슬라이스엔 진영 시스템이 없어(realm_war.gd 머리말 참고) **routed와
 ##   같이 취급** — 살아남은 병력이 그냥 돌아간다.
-## - 이기면(capture) 원작의 관리 인계(무장 배치·태수·치안 반토막 등)는
-##   옮기지 않았다 — 이 슬라이스는 아직 정복한 성을 플레이 가능한 성으로
-##   안 들인다(다음에 볼 자리, `captured` 깃발만 세운다).
+## - 이기면(capture) 원작의 관리 인계(무장 배치·태수·치안 반토막·agri/
+##   comm/pop 편입 등)는 `_annex_city()`(2026-09-12)와 이 함수의 승리
+##   분기(officer_city 배치, 2026-09-14, "정복 후 관리" 이어감)로 전부
+##   옮겨졌다 — 정복한 성은 그 자리에서 곧바로 playable_ids()에 들어가
+##   조망·명령 대상이 된다. **세력 멸망 판정**(원작 checkResult())만
+##   여전히 안 옮겼다 — `enemies` Dictionary가 성을 세력별로 묶지 않아,
+##   107개 성 편입 이후 범위가 커진 채 다음에 볼 자리로 남아 있다.
 func attack(enemy_id: String) -> Dictionary:
 	var enemy_def := RealmCities.enemy_by_id(enemy_id)
 	if enemy_def.is_empty():
@@ -668,8 +672,12 @@ func attack(enemy_id: String) -> Dictionary:
 			enemy_officer_loyal.erase(oid)
 		e.officers = []
 		_annex_city(enemy_id, enemy_def, int(rep.atk_troops_left), int(c.train))
-		## war.js capture() "데려간 장수는 그 성에 남는다" — feats+=3·충성+3·
-		## EXP.win. 이 슬라이스는 장수 하나(officer_id)뿐이라 그 한 명만.
+		## war.js capture() "데려간 장수는 그 성에 남는다" — off.placeAt()
+		## 그대로. `_governor_at()`이 officer_city를 매번 다시 훑는 구조라
+		## (머리말 참고) 태수를 따로 저장할 필요 없이 이 한 줄로 새 성에
+		## 태수가 선다. feats+=3·충성+3·EXP.win도 같이 — 이 슬라이스는
+		## 장수 하나(officer_id)뿐이라 그 한 명만 받는다.
+		officer_city[officer_id] = enemy_id
 		var wg := _growth(officer_id)
 		wg.feats = int(wg.feats) + 3
 		officer_loyal[officer_id] = clampi(int(officer_loyal.get(officer_id, 50)) + 3, 0, 100)
