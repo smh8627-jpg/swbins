@@ -45,14 +45,27 @@ namespace Saga.EditorTools
             Debug.Log($"[BuildTestCityScene] saved to {ScenePath}");
         }
 
+        /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) 라이팅/무드 —
+        /// golden-hour급으로 각도를 낮추고 색을 데워 Bloom(66-2 후처리)이
+        /// 반응하게 한다. 차가운 톤 RimLight로 실루엣 강조(66-2장). 월드맵
+        /// 카메라도 같은 Light를 공유하니 두 뷰 다 톤이 같이 바뀐다.</summary>
         private static void BuildLighting()
         {
             var sunGo = new GameObject("Light");
             var light = sunGo.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 1.15f;
+            light.intensity = 1.7f;
+            light.color = new Color(1f, 0.88f, 0.72f);
             light.shadows = LightShadows.Soft;
-            sunGo.transform.rotation = Quaternion.Euler(55f, -25f, 0f);
+            sunGo.transform.rotation = Quaternion.Euler(35f, -25f, 0f);
+
+            var rimGo = new GameObject("RimLight");
+            var rim = rimGo.AddComponent<Light>();
+            rim.type = LightType.Directional;
+            rim.intensity = 0.45f;
+            rim.color = new Color(0.55f, 0.6f, 0.85f);
+            rim.shadows = LightShadows.None;
+            rimGo.transform.rotation = Quaternion.Euler(20f, 155f, 0f);
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.5f, 0.55f, 0.6f);

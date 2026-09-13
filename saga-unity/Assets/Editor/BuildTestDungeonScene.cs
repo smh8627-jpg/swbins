@@ -328,16 +328,28 @@ namespace Saga.EditorTools
             }
         }
 
+        /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) 라이팅/무드 —
+        /// 던전은 밝기 자체는 그대로 낮게 두되(어두운 분위기가 목적) 색만
+        /// 횃불처럼 데워 Bloom(66-2 후처리)이 반응할 여지를 준다. 반대편에서
+        /// 차가운 톤 RimLight를 살짝 넣어 벽·몬스터 실루엣에 대비를 만든다
+        /// (66-2장 "역광·림라이트로 실루엣 강조").</summary>
         private static void BuildLighting()
         {
-            // 던전다운 어두운 분위기 — 은은한 방향광 하나뿐(saga-dungeon 웹판의
-            // 실내 조명 세부는 다음 슬라이스, GLB 도입 때 같이 다룬다).
             var sunGo = new GameObject("Light");
             var light = sunGo.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 0.7f;
+            light.intensity = 0.9f;
+            light.color = new Color(1f, 0.75f, 0.5f);
             light.shadows = LightShadows.Soft;
             sunGo.transform.rotation = Quaternion.Euler(55f, -20f, 0f);
+
+            var rimGo = new GameObject("RimLight");
+            var rim = rimGo.AddComponent<Light>();
+            rim.type = LightType.Directional;
+            rim.intensity = 0.35f;
+            rim.color = new Color(0.5f, 0.55f, 0.9f);
+            rim.shadows = LightShadows.None;
+            rimGo.transform.rotation = Quaternion.Euler(20f, 160f, 0f);
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.16f, 0.15f, 0.18f);

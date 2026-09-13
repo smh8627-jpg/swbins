@@ -3593,3 +3593,52 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   실제로 받아 붙이는 것도 다음 단계(사람 개입 또는 실제 통합 작업).
   코드 변경 없어 헤드리스 검증 없음(PLAN.md·ASSET_GUIDE.md·.gitignore만
   수정).
+
+## GUI 실기 확인 + 라이팅 재조정 — 다섯 판 전부 (2026-09-13, 이어서)
+
+- **사용자 지시 "Unity 에디터로 직접 열어서 화면 톤 확인해줘"** — 위
+  항목이 미뤄 둔 실기 확인을 했다. Unity를 배치 모드가 아니라 실제
+  GUI로 띄우고(`-executeMethod`로 씬을 연 뒤 종료 안 함, PowerShell
+  좌표 클릭으로 Game 탭 전환 + 스크린샷, 확인 뒤 PID로 정확히 종료 —
+  saga-godot CLAUDE.md의 같은 패턴), Inspector로 `GlobalVolume`이
+  `FF16Volume_PC`를 정확히 물고 Bloom/Color Adjustments 값이 코드
+  그대로 들어간 것까지 확인했다. **다만 실제 Game 뷰는 여전히 창백하고
+  평면적** — Bloom이 반응할 만큼 밝은 곳이 없고(태양이 정오처럼
+  평평한 각도), 대비/채도 조정도 미세해서 안 보였다.
+- **1차 조정 — 다섯 판 전부 라이팅을 golden-hour급으로.** 각
+  `BuildXxxScene.cs`의 `BuildLighting()`에서 태양 각도를 낮추고
+  (45~55°→30~35°, 그림자가 길어져 입체감) 색을 따뜻하게(주황 기미)
+  태우고 밝기를 올려(GO/Forest/Story/Realm 1.1~1.15→1.7~1.8, Bloom
+  threshold 0.9를 실제로 넘도록 — 던전은 무드 유지 목적으로 0.7→0.9만)
+  바꿨다. `RimLight`(차가운 톤 방향광, 그림자 없음, 반대편에서)도
+  신규 추가 — 66-2장 "역광·림라이트로 실루엣 강조" 스펙.
+- **2차 조정(GUI로 재확인하다 발견) — GO의 `SkyFogBuilder.cs`가 원흉.**
+  라이팅만 바꾸고 GUI로 다시 보니 여전히 창백했다 — 원인을 따라가 보니
+  이 파일의 Trilight 앰비언트(하늘/수평선/땅)와 안개(`FogColor`
+  (0.75,0.78,0.72), `FogDensity` 0.006)가 태양보다 화면을 더 많이
+  덮고 있었다(원래 saga-godot env_pc.tres 값을 그대로 옮긴, 중립적인
+  대낮 톤 — 66-2장으로 그래픽 방향이 갈라지기 전 유산). 이 파일도
+  golden-hour 톤으로 다시 잡았다: SkyColor를 살짝 데우고, HorizonColor
+  (0.75,0.8,0.78)→(0.95,0.75,0.55)(카메라 배경색이기도 함), FogColor
+  (0.75,0.78,0.72)→(0.85,0.72,0.58), FogDensity 0.006→0.0035(원경이
+  완전히 안개색 한 톤으로 뭉개지지 않게). **재확인 결과 확실히
+  나아짐** — Game 뷰가 창백한 회록색에서 따뜻한 골든아워 톤(주황빛
+  하늘, 데워진 지면, 보이는 원경 실루엣)으로 바뀜, 스크린샷으로 직접
+  확인.
+  **다른 네 판(Dungeon/Forest/Story/Realm)은 이 fog 시스템이 아예
+  없다**(Flat 앰비언트만 — `RenderSettings.fog` 안 씀) — 이번엔 GO만
+  고쳤다. Story(`TestField`)를 이어서 열어 봤는데, 이 게임은 2.5D
+  가로 이동이라 하늘이 카메라 단색 배경(`SkyColor` 고정값)이라 애초에
+  라이팅의 영향을 안 받는 부분 — 지금은 그대로 두었다(다른 디자인
+  영역, 이번 라이팅 조정과 별개 결정이 필요하면 다음에 판단).
+- **검증** — 라이팅 변경 후 다섯 씬 전부 재빌드 + 다섯 헤드리스
+  플레이테스트 재확인(전부 `error CS` 0건, 기존 OK 문구 그대로) →
+  SkyFogBuilder 변경 후 GO만 다시 재빌드 + `PlaytestHeadless` 재확인
+  통과. `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음(`git
+  status`로 훑음), GUI 확인 후 Unity.exe는 매번 PID로 정확히 종료(임시
+  씬-열기 스크립트 `TempOpenSceneForScreenshot.cs`는 커밋 안 하고
+  확인 끝나자마자 삭제).
+  **아직 남은 것** — Dungeon/Forest/Realm은 라이팅 값만 바꾸고 GUI로
+  직접 보진 않았다(Inspector 값 확인·헤드리스만). 던전의 "무드 유지
+  목적으로 밝기 그대로" 판단이 실제로 어때 보이는지, Forest/Realm도
+  GO처럼 팔레트를 더 데워야 할지는 다음에 GUI로 마저 훑어야 한다.

@@ -77,14 +77,30 @@ namespace Saga.EditorTools
                       $"groundVerts={terrainGo.GetComponent<MeshFilter>().sharedMesh.vertexCount}");
         }
 
+        /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) "무엇을 뜻하는가"
+        /// 라이팅/무드 — 정오처럼 평평하던 각도(45°)를 golden-hour급으로
+        /// 낮추고(그림자가 길게 늘어져 입체감이 생긴다) 색을 따뜻하게 태워
+        /// Bloom(66-2 후처리, threshold 0.9)이 실제로 반응할 밝기를 만든다.
+        /// 역광 실루엣용 RimLight(차가운 톤, 태양 반대편에서)도 추가 —
+        /// 66-2장이 "역광·림라이트로 실루엣 강조"라 명시한 부분.</summary>
         private static Light BuildLighting()
         {
             var sunGo = new GameObject("Sun");
             var sun = sunGo.AddComponent<Light>();
             sun.type = LightType.Directional;
-            sun.intensity = 1.1f;
+            sun.intensity = 1.8f;
+            sun.color = new Color(1f, 0.88f, 0.7f);
             sun.shadows = LightShadows.Soft;
-            sunGo.transform.rotation = Quaternion.Euler(45f, -30f, 0f);
+            sunGo.transform.rotation = Quaternion.Euler(32f, -40f, 0f);
+
+            var rimGo = new GameObject("RimLight");
+            var rim = rimGo.AddComponent<Light>();
+            rim.type = LightType.Directional;
+            rim.intensity = 0.5f;
+            rim.color = new Color(0.55f, 0.65f, 0.85f);
+            rim.shadows = LightShadows.None; // 실루엣 강조용 — 그림자까지 더블로 안 그린다.
+            rimGo.transform.rotation = Quaternion.Euler(15f, 140f, 0f);
+
             return sun;
         }
 

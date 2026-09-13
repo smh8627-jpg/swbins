@@ -82,14 +82,26 @@ namespace Saga.EditorTools
             }
         }
 
+        /// <summary>PLAN.md 66-2장(파이널 판타지 최신작 기준) 라이팅/무드 —
+        /// golden-hour급으로 각도를 낮추고 색을 데워 Bloom(66-2 후처리)이
+        /// 반응하게 한다. 차가운 톤 RimLight로 실루엣 강조(66-2장).</summary>
         private static void BuildLighting()
         {
             var sunGo = new GameObject("Light");
             var light = sunGo.AddComponent<Light>();
             light.type = LightType.Directional;
-            light.intensity = 1.1f; // 던전보다 밝게 — 낮의 야외 숲마을.
+            light.intensity = 1.7f; // 던전보다 밝게 — 낮의 야외 숲마을.
+            light.color = new Color(1f, 0.9f, 0.75f);
             light.shadows = LightShadows.Soft;
-            sunGo.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            sunGo.transform.rotation = Quaternion.Euler(30f, -30f, 0f);
+
+            var rimGo = new GameObject("RimLight");
+            var rim = rimGo.AddComponent<Light>();
+            rim.type = LightType.Directional;
+            rim.intensity = 0.45f;
+            rim.color = new Color(0.6f, 0.7f, 0.9f);
+            rim.shadows = LightShadows.None;
+            rimGo.transform.rotation = Quaternion.Euler(15f, 150f, 0f);
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.35f, 0.38f, 0.3f);
