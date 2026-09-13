@@ -29,6 +29,9 @@ namespace Saga.EditorTools
 
         private const string ControllerPath = "Assets/Animators/Maria.controller";
         private const string ScenePath = "Assets/Scenes/TestCharacterRealistic.unity";
+        private const string SplitMeshPath = "Assets/Art/CharactersRealistic/Generated/Maria_Split.asset";
+        private const string SkinMatPath = "Assets/Art/CharactersRealistic/Generated/MariaSkin.mat";
+        private const string RestMatPath = "Assets/Art/CharactersRealistic/Generated/MariaRest.mat";
 
         [MenuItem("Saga/Build Test Character Realistic Scene")]
         public static void Build()
@@ -82,12 +85,40 @@ namespace Saga.EditorTools
             }
             animator.runtimeAnimatorController = controller;
 
+            ApplySkinSplit(maria);
+
             if (!AssetDatabase.IsValidFolder("Assets/Scenes"))
             {
                 AssetDatabase.CreateFolder("Assets", "Scenes");
             }
             EditorSceneManager.SaveScene(scene, ScenePath);
             Debug.Log($"[BuildTestCharacterRealisticScene] built {ScenePath}");
+        }
+
+        /// <summary>
+        /// `BuildMariaSkinSplit.cs`가 미리 구워 둔 피부/기타 분리 메시·머티리얼이
+        /// 있으면 물린다(66-2장 ⑤ 실제 적용) — 없으면(아직 안 돌렸으면) 원본
+        /// 단일 머티리얼 그대로 둔다(조용히 건너뜀, 에러 아님).
+        /// </summary>
+        private static void ApplySkinSplit(GameObject maria)
+        {
+            var splitMesh = AssetDatabase.LoadAssetAtPath<Mesh>(SplitMeshPath);
+            var skinMat = AssetDatabase.LoadAssetAtPath<Material>(SkinMatPath);
+            var restMat = AssetDatabase.LoadAssetAtPath<Material>(RestMatPath);
+            if (splitMesh == null || skinMat == null || restMat == null)
+            {
+                Debug.LogWarning("[BuildTestCharacterRealisticScene] skin-split assets not found — run 'Saga/Build Maria Skin Split' first. Using original single material for now.");
+                return;
+            }
+
+            var smr = maria.GetComponentsInChildren<SkinnedMeshRenderer>(true)
+                .FirstOrDefault(r => r.name == "Maria_J_J_Ong");
+            if (smr == null)
+            {
+                return;
+            }
+            smr.sharedMesh = splitMesh;
+            smr.sharedMaterials = new[] { skinMat, restMat };
         }
 
         private static Material CreateSimpleUrpLitMaterial(string name, Color color)
