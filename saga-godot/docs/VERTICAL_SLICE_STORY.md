@@ -2002,9 +2002,21 @@ feat이 중복 지급되지 않음 — 전부 손계산(합 105, achievements 5�
 올려 업적 토스트가 뜨는 느낌을 눈으로 볼 것. 계속 몰아서 받을 것.
 
 **다음 이어질 것** — 이걸로 STORY 1절 "제외" 목록의 굵직한 항목은
-상점 UI(물목 화면, 인터랙티브 메뉴 프레임워크 자체가 새로 필요)·
-몬스터 도감·2~4차 전직 재설계 확인 정도만 남았다. 그 밖엔 STORY 밖
+상점 UI(물목 화면)·몬스터 도감 정도만 남았다. 그 밖엔 STORY 밖
 (다른 네 판, saga-unity 트랙)으로 옮겨 갈 자리.
+
+**정정(같은 날, 사용자 질문 "saga-godot 완성도된거 맞아?"에 답하며
+발견)** — 바로 위에서 "인터랙티브 메뉴 프레임워크 자체가 새로 필요"라고
+적은 건 **틀렸다.** `games/saga_go/ui/choice_prompt.gd`(ChoicePrompt)가
+이미 DUNGEON(`vendor_button.gd`·`forge_button.gd`·`socket_button.gd`)·
+FOREST(`museum.gd`·`forest_house.gd`)·GO(`bandit_encounter.gd` 등)·
+REALM(`realm_archive_button.gd` 등)에서 두루 재활용되는 공용 선택지
+목록 UI다 — DUNGEON 행상(`vendor_button.gd`)이 정확히 "물목을 골라
+사는" 화면을 이걸로 이미 구현해 두고 있다. STORY 상점 UI를 만들
+때는 이 파일을 그대로 재사용하면 된다 — 새 프레임워크가 필요한 게
+아니라 이 판만 아직 안 붙였을 뿐이다. PLAN.md 7장 "공통 시스템을
+재사용한다"를 어기고 새로 만들자고 할 뻔한 실수, 다음 세션은 이
+사실을 먼저 확인하고 시작할 것.
 
 ## FINAL RULE (이 문서에도 동일 적용)
 
