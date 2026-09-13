@@ -52,10 +52,15 @@ func _attack(target_id: String, layer_box: Dictionary) -> void:
 
 	var target_name := String(RealmCities.enemy_by_id(target_id).get("name", target_id))
 	var msg: String
+	var toast_sec := TOAST_SEC
 	if r.won:
 		msg = "🚩 %s 함락! (아군 손실 %d · 적 손실 %d)" % [target_name, int(r.loss_a), int(r.loss_d)]
+		var boss_beaten := String(r.get("boss_beaten", ""))
+		if not boss_beaten.is_empty():
+			msg += "\n👑 보스급 수비 무장 %s 을(를) 꺾었다! 금 %d" % [boss_beaten, RealmSaveState.BOSS_BONUS_GOLD]
+			toast_sec = TOAST_SEC + 1.5
 	elif r.routed:
 		msg = "↩️ 물러났다 (아군 손실 %d · 적 손실 %d)" % [int(r.loss_a), int(r.loss_d)]
 	else:
 		msg = "🌒 날이 저물었다 — 못 떨어뜨렸다 (아군 손실 %d · 적 손실 %d)" % [int(r.loss_a), int(r.loss_d)]
-	Toast.show(self, msg, TOAST_SEC)
+	Toast.show(self, msg, toast_sec)

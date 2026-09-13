@@ -65,11 +65,18 @@ extends RefCounted
 ## seonghon/성혼) 원작 이름 정책 문제가 없다 — name·hanja를 원본 그대로
 ## 옮겼다. `faction` 필드는 위/오/촉이 아니라 **그 무장이 지키는 성의
 ## 이름**(원본 관례 그대로, 예: kr2_pasodan의 faction은 "양평"). 원본의
-## `boss: true`(균열·막북·임읍·폐허·묘역 각 지역 허브 하나씩)와
-## `monster`(균열·폐허·묘역, `asset3d.js`가 읽는 실제 3D 모델 경로)는 이
-## 스키마에 없는 필드라 옮기지 않았다 — REALM은 아직 이 도시들에 전투
-## 보상 배율·3D 몬스터 렌더링을 걸지 않은 데이터 전용 슬라이스다(자세한
-## 내용 `docs/VERTICAL_SLICE_REALM.md` 17절).
+## `boss: true`(원본은 천축·막북·임읍·균열·폐허·묘역 여섯 지역 허브
+## 하나씩 — 이 머리말이 처음 적혔을 때 천축을 빠뜨렸었다, 2026-09-14
+## "보스전 보상" 절에서 바로잡음)와 `monster`(균열·폐허·묘역, `asset3d.js`
+## 가 읽는 실제 3D 모델 경로)는 이 스키마에 없는 필드라 그때는 옮기지
+## 않았다.
+##
+## **2026-09-14 추가 — 보스전 보상.** `boss: true` 여섯 개(tz_beonwang·
+## mb_seonwoo·ly_jeonchung·fu_jongwang·ru_geohae·tb_baekgi)를 원본
+## 그대로 얹었다 — `realm_save_state.gd attack()`이 함락 직전 수비
+## 명단에서 이 값을 읽어 보스 보너스(금+유물)를 준다. `monster`(3D 모델
+## 경로)는 여전히 안 옮겼다 — REALM에 3D 몬스터 렌더링 자체가 아직
+## 없어서다(다음 자리).
 ##
 ## 필드: id(불변 고유키) · name(표시 이름, 가명) · era(시대 그룹) ·
 ## faction(세력) · rarity(1~5) · trait(might/wisdom/virtue, 설득 어필 방향) ·
@@ -1861,6 +1868,7 @@ const HEROES := [
 		"faction": "신독",
 		"rarity": 4,
 		"trait": "command",
+		"boss": true,
 		"stats": {
 			"might": 74,
 			"wisdom": 60,
@@ -2133,6 +2141,7 @@ const HEROES := [
 		"faction": "운중",
 		"rarity": 4,
 		"trait": "command",
+		"boss": true,
 		"stats": {
 			"might": 78,
 			"wisdom": 56,
@@ -2245,6 +2254,7 @@ const HEROES := [
 		"faction": "전충",
 		"rarity": 4,
 		"trait": "command",
+		"boss": true,
 		"stats": {
 			"might": 74,
 			"wisdom": 60,
@@ -2405,6 +2415,7 @@ const HEROES := [
 		"faction": "종말",
 		"rarity": 4,
 		"trait": "command",
+		"boss": true,
 		"stats": {
 			"might": 80,
 			"wisdom": 70,
@@ -2453,6 +2464,7 @@ const HEROES := [
 		"faction": "폐도",
 		"rarity": 4,
 		"trait": "might",
+		"boss": true,
 		"stats": {
 			"might": 88,
 			"wisdom": 34,
@@ -2581,6 +2593,7 @@ const HEROES := [
 		"faction": "묘문",
 		"rarity": 4,
 		"trait": "might",
+		"boss": true,
 		"stats": {
 			"might": 86,
 			"wisdom": 38,

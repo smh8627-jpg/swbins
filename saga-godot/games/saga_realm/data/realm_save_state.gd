@@ -658,9 +658,24 @@ func attack(enemy_id: String) -> Dictionary:
 	gain_exp(officer_id, int(RealmGrowth.EXP.march))
 
 	e.wall = wall.wall
+	var boss_beaten := ""
 	if rep.won:
 		e.captured = true
 		e.troops = 0
+		## war.js capture() "보스전"(README 여덟 축) — 성을 잃기 전 수비
+		## 명단에 `boss:true`인 사람이 있었는지 먼저 본다(아래서 이 사람들
+		## 자리가 옮겨지기 전에). 새 전투 판정은 없다 — fight()가 이미 끝낸
+		## 결과에 보상만 얹는다. **재해석 — 유물은 안 준다.** 원작은
+		## ID.randomItem()으로 유물도 하나 얹는데, 이 슬라이스엔 장비/유물
+		## 시스템 자체가 없어(REALM에 data-item.js 대응이 없다) 금 보너스만
+		## 옮겼다(quiz_answer()가 feat/fame/scroll을 뺀 것과 같은 결).
+		for oid: String in def_officers:
+			var bh = Characters.find(oid)
+			if bh != null and bool(bh.get("boss", false)):
+				boss_beaten = String(bh.name)
+				break
+		if not boss_beaten.is_empty():
+			gold += BOSS_BONUS_GOLD
 		## war.js capture() "사로잡힌다" — 소패는 몸 붙일 이웃 성이 없어
 		## (refuge 없음, `bei`가 소패 하나뿐) 원작에서도 전부 사로잡히는
 		## 경로만 탄다. 사로잡힌 무장은 그 성(이제 우리 성)의 재야가
@@ -695,6 +710,7 @@ func attack(enemy_id: String) -> Dictionary:
 		"ok": true, "won": rep.won, "routed": rep.routed, "sortie": rep.sortie,
 		"loss_a": rep.loss_a, "loss_d": rep.loss_d,
 		"wall_from": rep.wall_from, "wall_to": rep.wall_to,
+		"boss_beaten": boss_beaten,
 	}
 
 
@@ -705,8 +721,8 @@ func attack(enemy_id: String) -> Dictionary:
 ## 들이면서, 그때까지 안 빠져나간 이들을 위(`attack()`)에서 `found[]`로
 ## 옮기는 것까지 옮겼다(war.js capture()의 caught 분기 — 소패는 몸 붙일
 ## 이웃 성이 없어 fled 분기는 원작에서도 안 탄다). **보스전 보상은
-## 여전히 안 옮겼다** — `def.officers`에 `boss:true`인 사람이 없다(이
-## 슬라이스가 들인 둘은 보스가 아니다). 세력 멸망 판정도 안 옮겼다 —
+## 2026-09-14에 옮겼다**(`attack()`의 `boss_beaten` 처리 — 유물 없이
+## 금 보너스만, 위 함수 머리말 참고). 세력 멸망 판정은 여전히 안 옮겼다 —
 ## `bei`가 소패 하나만 들고 있다는 걸 `enemies` Dictionary가 몰라(정적
 ## 수치일 뿐 성 목록을 세력별로 묶지 않는다), "세력의 마지막 성을
 ## 뺏었는가"를 새로 판정하는 대신 다음에 볼 자리로 남긴다.
@@ -732,6 +748,7 @@ func _annex_city(city_id: String, enemy_def: Dictionary, garrison: int, train_va
 	}
 
 
+const BOSS_BONUS_GOLD := 600  # war.js capture() bossBeaten 분기의 bonusGold 그대로
 const ENVOY_GOLD := 300     # diplo.js envoy()의 "gold" 매개변수 — 수량 선택
                              # UI가 없어 고정값(전임·전군출진과 같은 결)
 const ENVOY_FEE := RealmDiplo.ENVOY_FEE
