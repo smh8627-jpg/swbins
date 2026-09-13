@@ -47,14 +47,29 @@ var _buff_time_left := 0.0  # 기합(brace) 남은 시간 — atk·speed 배율�
 ## 하나(story_enemy.gd `_attack_cd_left`, 1초)뿐이라 같은 적이 연타하는
 ## 건 이미 막히고, 여러 적이 동시에 겹쳐 때리는 경우는 이번 슬라이스
 ## (그룬트 셋+보스 하나) 규모에선 드물다고 보고 좁혔다.
+##
+## **2026-09-13 추가(같은 날 더) — 장비 10부위.** max_hp는 이제 고정값이
+## 아니라 StorySaveState.gear_totals().hp를 더한 값(power()의 hp = base +
+## gear.hp + jb.hp와 같은 자리, jobGrow는 이 슬라이스에 없어 뺌)이라
+## 계산 프로퍼티(get)로 뺐다 — mp처럼 세이브에 hp 자체는 안 넣지만
+## (재입장 시 가득 찬 채 시작), 장비(equipped)는 세이브에 있으므로
+## 로드 직후 story_save_state.gd::try_load()가 hp를 새 max_hp로
+## 채워 준다(안 그러면 이전 세션 장비 보너스가 반영되기 전 기본치로
+## 시작해 잠깐 어긋난다).
 var hp := StoryCombat.START_HP
-var max_hp := StoryCombat.START_HP
+
+var max_hp: float:
+	get: return StoryCombat.START_HP + float(StorySaveState.gear_totals().hp)
 
 
+## side.js hurtMe()의 gear.cut(power().def) 그대로 — 방어구 def 합으로
+## 받는 피해를 줄인다(story_combat.gd damage_cut() 참고).
 func take_damage(amount: float) -> void:
 	if amount <= 0.0:
 		return
-	hp = maxf(0.0, hp - amount)
+	var def: float = float(StorySaveState.gear_totals().def)
+	var cut: float = StoryCombat.damage_cut(def)
+	hp = clampf(hp - amount * (1.0 - cut), 0.0, max_hp)
 
 
 func _ready() -> void:
@@ -166,11 +181,12 @@ func clear_rope_area(area: Area3D) -> void:
 
 
 ## side.js power()의 atk = round(might*0.9+wisdom*0.3) + gearBonus().atk —
-## 무기(목검, 2026-09-13 추가)가 있으면 그 위에 얹는다. 기합(brace)이
-## 걸려 있으면 그 합계에 ×1.35(원문 buff.atk 그대로, side.js가 pw.atk
-## 자체를 buff로 올리는 것과 같은 결 — 스킬마다 따로 배율을 안 곱한다).
+## 낀 장비(10부위, 2026-09-13 추가) 전부의 atk 합을 그 위에 얹는다.
+## 기합(brace)이 걸려 있으면 그 합계에 ×1.35(원문 buff.atk 그대로,
+## side.js가 pw.atk 자체를 buff로 올리는 것과 같은 결 — 스킬마다
+## 따로 배율을 안 곱한다).
 func _effective_atk() -> float:
-	var atk := StoryCombat.START_ATK + (StoryCombat.WEAPON_ATK if StorySaveState.has_weapon else 0.0)
+	var atk := StoryCombat.START_ATK + float(StorySaveState.gear_totals().atk)
 	return atk * (StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0)
 
 

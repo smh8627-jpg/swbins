@@ -4467,3 +4467,35 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
     8곳(문 포함)·전직 트리·장비 나머지(방어구·장신구·주문서·고유·
     상점), 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 장비 — 10부위 tier1 전부로 확장 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 무기 한 자리만 있던 것을
+  같은 날 이어서 data-gear.js need:1 전체(부위마다 하나씩, 10개)로
+  넓혔다. tier2~4·주문서·고유·상점은 여전히 범위 밖(field=lv1이라
+  애초에 못 낌). 개별 상수 대신 `GEAR_ITEMS` Dictionary 표로
+  리팩터링(PLAN.md 7절 데이터 기반 설계) — 다음 tier 추가 시 표만
+  늘리면 된다. 방어력이 이번에 처음 의미가 생김(gear.cut(def) 그대로,
+  11절 반격 없이는 방어 스탯이 무의미했다). max_hp도 gear.hp만큼
+  늘어난다(계산 프로퍼티로 전환).
+  - `story_combat.gd`: GEAR_ITEMS(10)+damage_cut()+gear_totals()
+    신규(WEAPON_NAME/ATK 제거). `story_save_state.gd`: equipped
+    Dictionary+equip_gear()/has_slot()/gear_totals() 신규(has_weapon
+    제거), SAVE_VERSION 3→4, try_load()가 hp를 새 max로 채움.
+    `story_player.gd`: max_hp 계산 프로퍼티화, take_damage()에 방어
+    컷 적용. `story_enemy.gd`: _maybe_drop_gear()(안 낀 부위만 풀).
+    `story_weapon_pickup.gd` 삭제 → `story_gear_pickup.gd`(신규,
+    범용).
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 12절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(GEAR_DROP_CHANCE_GRUNT 1.0)로
+    10개 표 확인, sword1+top1 장착 시 atk25·maxhp172·totals 정확,
+    방어 컷 데미지 손계산과 일치, 전부 채우면 드롭 중단, 세이브
+    왕복으로 10부위 복원+hp가 새 max(211)로 채워짐까지 확인. 디버그
+    원상복구(diff 0) + 테스트 세이브 삭제.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
+    8곳(문 포함)·전직 트리·장비 나머지(tier2~4·주문서·고유·상점),
+    또는 다른 판 작업 — 승인 후.

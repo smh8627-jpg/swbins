@@ -11,14 +11,16 @@ extends Node
 ## (GO/DUNGEON/FOREST와 같은 최소 범위, 1절 "제외" 목록에 없는 것은
 ## 애초에 저장할 상태 자체가 없다).
 
+const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
+
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 3  # 1→2: mats 추가, 2→3: has_weapon(장비) 추가
+const SAVE_VERSION := 4  # 1→2: mats, 2→3: has_weapon, 3→4: equipped(부위별 장비)로 대체
 
 var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
 var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
-var has_weapon := false  # data-gear.js sword1(목검) 장착 여부 — 슬롯 하나뿐이라 bool로 충분
+var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.GEAR_ITEMS 참고
 
 
 func add_kill() -> void:
@@ -29,8 +31,22 @@ func add_mat(kind: String, amount: int = 1) -> void:
 	mats[kind] = int(mats.get(kind, 0)) + amount
 
 
-func equip_weapon() -> void:
-	has_weapon = true
+## 부위는 StoryCombat.GEAR_ITEMS[key].slot에서 뽑는다 — 호출 쪽이 슬롯을
+## 따로 안 넘겨도 된다(story_enemy.gd가 드롭 풀을 고를 때 이미 이 표를
+## 훑으므로 중복 데이터가 안 생긴다).
+func equip_gear(key: String) -> void:
+	var it: Dictionary = StoryCombat.GEAR_ITEMS.get(key, {})
+	if it.is_empty():
+		return
+	equipped[String(it.slot)] = key
+
+
+func has_slot(slot: String) -> bool:
+	return equipped.has(slot)
+
+
+func gear_totals() -> Dictionary:
+	return StoryCombat.gear_totals(equipped.values())
 
 
 func quest_done() -> bool:
@@ -48,7 +64,7 @@ func save() -> bool:
 		"exp": exp,
 		"kills": kills,
 		"mats": mats,
-		"has_weapon": has_weapon,
+		"equipped": equipped,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -75,7 +91,8 @@ func try_load() -> bool:
 	kills = int(data.get("kills", 0))
 	var loaded_mats: Variant = data.get("mats", {})
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
-	has_weapon = bool(data.get("has_weapon", false))
+	var loaded_equipped: Variant = data.get("equipped", {})
+	equipped = loaded_equipped if typeof(loaded_equipped) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:
@@ -83,6 +100,12 @@ func try_load() -> bool:
 	var player := _find_player()
 	if player != null:
 		player.global_position = Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+		## mp와 달리 equipped는 세이브에 있으므로, 로드 직후 hp를 새
+		## max_hp(장비 hp 보너스 포함)로 채운다 — 안 그러면 "재입장 시
+		## 가득 찬 채 시작"이 이전 세션 장비 보너스 반영 전 기본치로
+		## 잠깐 어긋난다(player.gd 머리말 참고).
+		if player.has_method("take_damage"):
+			player.hp = player.max_hp
 	return true
 
 

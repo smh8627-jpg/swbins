@@ -21,7 +21,7 @@ extends Node3D
 ## 것과 같은 결로 새로 정했다.
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
-const StoryWeaponPickup := preload("res://games/saga_story/world/story_weapon_pickup.gd")
+const StoryGearPickup := preload("res://games/saga_story/world/story_gear_pickup.gd")
 
 signal died
 
@@ -98,15 +98,21 @@ func _die() -> void:
 	_dead = true
 	died.emit()
 	StorySaveState.add_kill()
-	_maybe_drop_weapon()
+	_maybe_drop_gear()
 	queue_free()
 
 
-## data-gear.js sword1 하나뿐이라 이미 꼈으면 다시 안 굴린다(story_combat.gd
-## 머리말 — 중복 습득이 의미 없는 단일 슬롯).
-func _maybe_drop_weapon() -> void:
-	if StorySaveState.has_weapon:
+## 아직 안 낀 부위만 드롭 풀에 넣는다(story_combat.gd GEAR_ITEMS 머리말
+## — 가방이 없어 중복 습득이 의미 없다). 전부 꼈으면 드롭 자체가 없다.
+func _maybe_drop_gear() -> void:
+	var pool: Array = []
+	for key: String in StoryCombat.GEAR_ITEMS:
+		var slot: String = String(StoryCombat.GEAR_ITEMS[key].slot)
+		if not StorySaveState.has_slot(slot):
+			pool.append(key)
+	if pool.is_empty():
 		return
 	var chance: float = StoryCombat.GEAR_DROP_CHANCE_BOSS if is_boss else StoryCombat.GEAR_DROP_CHANCE_GRUNT
 	if randf() < chance:
-		StoryWeaponPickup.spawn_at(get_parent(), global_position)
+		var picked: String = pool[randi() % pool.size()]
+		StoryGearPickup.spawn_at(get_parent(), global_position, picked)

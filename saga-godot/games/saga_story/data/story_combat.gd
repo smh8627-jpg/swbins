@@ -81,20 +81,55 @@ const BOSS_HP_MUL := 12.0
 const BOSS_DMG_MUL := 2.0
 const BOSS_COOL_SEC := 900.0  # 15분 * 60초
 
-## **2026-09-13 추가 — 장비(무기 한 자리만, 1절 "제외" 목록의 "장비/노획").**
-## data-gear.js sword1(무기 슬롯 tier1, need:1·atk:4) 하나만 옮긴다 —
-## 이 슬라이스는 `field`(lv1) 하나뿐이라 tier1을 넘는 물건은 어차피 못
-## 낀다(need>1). gear.js rollDrop()의 gearRate(잡졸 0.035·보스 0.9)도
-## 그대로. 방어구·장신구·주문서·고유(unique)·상점은 전부 제외 —
-## DUNGEON 첫 슬라이스("이름만 있는 장비")보다도 더 좁힌다(위 field_map.gd
-## 머리말이 이미 그렇게 정해 뒀다). 가방이 없어 줍는 즉시 갈아 든다
-## (DUNGEON loot_pickup.gd와 같은 방식) — 이미 꼈으면 또 안 뜬다(중복
-## 습득이 의미 없는 단일 슬롯이라 새로 정한 규칙, 원작은 가방+판매가
-## 있어 안 그렇다).
-const WEAPON_NAME := "목검(木劍)"
-const WEAPON_ATK := 4.0
+## **2026-09-13 추가 — 장비(1절 "제외" 목록의 "장비/노획").** 처음엔
+## 무기 한 자리(목검)만 옮겼다가, 같은 날 이어서 **10부위 tier1 전부**로
+## 넓혔다 — data-gear.js RAW에서 need:1인 물건 정확히 열 개(부위마다
+## 하나씩). 이 슬라이스는 `field`(lv1) 하나뿐이라 need>1인 물건은
+## 애초에 못 낀다 — tier2~4·주문서·고유(unique)·상점은 여전히 범위
+## 밖(그 부분만 남은 "장비 나머지"). gear.js `rollDrop()`의 gearRate
+## (잡졸 0.035·보스 0.9)도 그대로.
+##
+## 가방이 없어 DUNGEON loot_pickup.gd처럼 **줍는 즉시 장착** — 부위별로
+## 하나씩만 낄 수 있어(이미 그 부위를 꼈으면 같은 물건이 다시 안 뜬다)
+## 드롭 풀은 "아직 안 낀 부위"로만 좁힌다(원작은 가방+판매가 있어 중복을
+## 허용하지만, 단일 슬롯 포트에선 의미가 없어 새로 정한 규칙).
+const GEAR_ITEMS := {
+	"sword1": {"slot": "weapon",   "name": "목검(木劍)",   "atk": 4.0, "def": 0.0, "hp": 0.0},
+	"hat1":   {"slot": "hat",      "name": "가죽 두건",    "atk": 0.0, "def": 2.0, "hp": 6.0},
+	"top1":   {"slot": "top",      "name": "무명 저고리",  "atk": 0.0, "def": 3.0, "hp": 10.0},
+	"bot1":   {"slot": "bottom",   "name": "무명 바지",    "atk": 0.0, "def": 2.0, "hp": 8.0},
+	"shoe1":  {"slot": "shoes",    "name": "짚신",         "atk": 0.0, "def": 1.0, "hp": 4.0},
+	"glv1":   {"slot": "glove",    "name": "무명 팔찌",    "atk": 1.0, "def": 1.0, "hp": 2.0},
+	"cap1":   {"slot": "cape",     "name": "베 망토",      "atk": 0.0, "def": 1.0, "hp": 8.0},
+	"ring1":  {"slot": "ring",     "name": "무명 지환",    "atk": 2.0, "def": 0.0, "hp": 3.0},
+	"neck1":  {"slot": "necklace", "name": "나무 목걸이",  "atk": 0.0, "def": 1.0, "hp": 6.0},
+	"ear1":   {"slot": "earring",  "name": "나무 귀걸이",  "atk": 1.0, "def": 1.0, "hp": 2.0},
+}
 const GEAR_DROP_CHANCE_GRUNT := 0.035
 const GEAR_DROP_CHANCE_BOSS := 0.9
+
+## side.js hurtMe()가 쓰는 gear.js cut(def) 그대로: min(0.6, def/(def+40)).
+## amount *= (1 - cut) 형태로 적용한다 — story_player.gd take_damage() 참고.
+static func damage_cut(def: float) -> float:
+	if def <= 0.0:
+		return 0.0
+	return minf(0.6, def / (def + 40.0))
+
+
+## 낀 물건 키 목록(equipped.values())에서 atk/def/hp 합을 뽑는다 —
+## power()의 gearBonus()와 같은 자리(story_player.gd·story_save_state.gd
+## 둘 다 이 셋을 쓴다).
+static func gear_totals(equipped_keys: Array) -> Dictionary:
+	var atk := 0.0
+	var def := 0.0
+	var hp := 0.0
+	for key: String in equipped_keys:
+		var it: Dictionary = GEAR_ITEMS.get(key, {})
+		atk += float(it.get("atk", 0.0))
+		def += float(it.get("def", 0.0))
+		hp += float(it.get("hp", 0.0))
+	return {"atk": atk, "def": def, "hp": hp}
+
 
 static var _hitstop_active := false
 
