@@ -61,15 +61,18 @@ namespace Saga.Realm.World
                 DestroyImmediate(transform.GetChild(i).gameObject);
             }
 
+            var record = RealmCityState.CityRecord(RealmCityState.CurrentCity);
+            if (record == null) return; // 씬 첫 로드 등 아직 상태가 없을 때 — 다음 Changed에서 다시 지음.
+
             BuildGround();
             BuildWallAndTowers();
             BuildKeep();
             BuildRosterFlags();
-            BuildCountedProps("Farm", Mathf.Clamp(RealmCityState.Agri / 90, 0, MaxFarms), FarmColor,
+            BuildCountedProps("Farm", Mathf.Clamp(record.Agri / 90, 0, MaxFarms), FarmColor,
                 PrimitiveType.Cube, new Vector3(1.4f, 0.3f, 1.4f), radius: 5.5f, y: 0.15f);
-            BuildCountedProps("Market", Mathf.Clamp(RealmCityState.Comm / 80, 0, MaxMarkets), MarketColor,
+            BuildCountedProps("Market", Mathf.Clamp(record.Comm / 80, 0, MaxMarkets), MarketColor,
                 PrimitiveType.Cube, new Vector3(1.0f, 0.9f, 1.0f), radius: 7.5f, y: 0.45f);
-            BuildCountedProps("Granary", Mathf.Clamp(RealmCityState.Food / 400, 0, MaxGranaries), GranaryColor,
+            BuildCountedProps("Granary", Mathf.Clamp(record.Food / 400, 0, MaxGranaries), GranaryColor,
                 PrimitiveType.Cylinder, new Vector3(1.1f, 1.4f, 1.1f), radius: 9.2f, y: 0.7f);
         }
 
@@ -136,12 +139,17 @@ namespace Saga.Realm.World
                 new Vector3(2.4f, 0.9f, 2.4f), KeepColor);
         }
 
-        /// <summary>로스터 깃발 — city3d.js의 "로스터 깃발"(이 슬라이스에만
-        /// 있는 값, 무장 수)을 그대로. 무장이 늘수록 성 앞에 깃발이
-        /// 하나씩 는다.</summary>
+        /// <summary>로스터 깃발 — city3d.js의 "로스터 깃발"(무장 수)을
+        /// 그대로. 여러 성으로 확장한 뒤로는 **이 성에 배치된** 무장
+        /// 수만 센다(전체 로스터가 아니라) — "무장 성 소속"이 실제로
+        /// 눈에 보이는 유일한 자리라 의미 있게 맞췄다.</summary>
         private void BuildRosterFlags()
         {
-            int count = RealmCityState.RosterIds.Count;
+            int count = 0;
+            foreach (var id in RealmCityState.RosterIds)
+            {
+                if (RealmCityState.OfficerCityId(id) == RealmCityState.CurrentCity) count++;
+            }
             for (int i = 0; i < count; i++)
             {
                 float angle = (i / (float)Mathf.Max(1, count)) * 40f - 20f;

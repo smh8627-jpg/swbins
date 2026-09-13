@@ -104,7 +104,7 @@ namespace Saga.EditorTools
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(20f, -20f);
-            rect.sizeDelta = new Vector2(700f, 220f);
+            rect.sizeDelta = new Vector2(760f, 300f);
 
             var text = textGo.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
