@@ -120,6 +120,33 @@ var _cd_assassin_dart := 0.0
 var _cd_sage_step := 0.0
 var _cd_sage_orb := 0.0
 
+## **2026-09-13 추가(같은 날 더 더 더 더) — tier3 무예 스물넷(원수·비장·
+## 귀영·진인 각 여섯). 입력은 story_job_skill3_1~6.**
+var _cd_marshal_heaven := 0.0
+var _cd_marshal_quake := 0.0
+var _cd_marshal_charge := 0.0
+var _cd_marshal_banner := 0.0
+var _cd_marshal_edge := 0.0
+var _cd_marshal_vital := 0.0
+var _cd_flier_storm := 0.0
+var _cd_flier_pierce := 0.0
+var _cd_flier_volley := 0.0
+var _cd_flier_focus := 0.0
+var _cd_flier_retreat := 0.0
+var _cd_flier_burst := 0.0
+var _cd_wraith_blur := 0.0
+var _cd_wraith_petal := 0.0
+var _cd_wraith_void := 0.0
+var _cd_wraith_mark := 0.0
+var _cd_wraith_whirl := 0.0
+var _cd_wraith_dart := 0.0
+var _cd_immortal_meteor := 0.0
+var _cd_immortal_abyss := 0.0
+var _cd_immortal_mend := 0.0
+var _cd_immortal_tao := 0.0
+var _cd_immortal_step := 0.0
+var _cd_immortal_orb := 0.0
+
 ## **2026-09-13 추가(같은 날 더 더) — job 버프 배율을 캐스팅 시점에
 ## 저장한다.** 지금까지 `_effective_atk()`/`take_damage()`가 매 프레임
 ## `job`에서 배율을 다시 골라 왔는데(철갑=WARRIOR_IRON_ATK_MUL 등),
@@ -132,6 +159,11 @@ var _cd_sage_orb := 0.0
 var _job_buff_atk_mul := 1.0
 var _job_buff_guard := 0.0
 var _job_buff_regen_mul := 1.0
+
+## **2026-09-13 추가(같은 날 더 더 더 더) — f_focus(정심, tier3)가 이
+## 포트 job 버프 중 처음으로 이동속도 배율(speed×1.15)을 갖는다.**
+## `_walk()`가 `_buff_time_left`(brace)와 별개로 이 값을 곱한다.
+var _job_buff_speed_mul := 1.0
 
 ## **2026-09-13 추가 — 플레이어 체력(잡졸 반격).** story_enemy.gd 머리말이
 ## "추격·원거리 반격이 없다"고 적어 둔 것 중 반격(겹치면 맞는다, side.js
@@ -236,6 +268,30 @@ func _physics_process(delta: float) -> void:
 	_cd_assassin_dart = maxf(0.0, _cd_assassin_dart - delta)
 	_cd_sage_step = maxf(0.0, _cd_sage_step - delta)
 	_cd_sage_orb = maxf(0.0, _cd_sage_orb - delta)
+	_cd_marshal_heaven = maxf(0.0, _cd_marshal_heaven - delta)
+	_cd_marshal_quake = maxf(0.0, _cd_marshal_quake - delta)
+	_cd_marshal_charge = maxf(0.0, _cd_marshal_charge - delta)
+	_cd_marshal_banner = maxf(0.0, _cd_marshal_banner - delta)
+	_cd_marshal_edge = maxf(0.0, _cd_marshal_edge - delta)
+	_cd_marshal_vital = maxf(0.0, _cd_marshal_vital - delta)
+	_cd_flier_storm = maxf(0.0, _cd_flier_storm - delta)
+	_cd_flier_pierce = maxf(0.0, _cd_flier_pierce - delta)
+	_cd_flier_volley = maxf(0.0, _cd_flier_volley - delta)
+	_cd_flier_focus = maxf(0.0, _cd_flier_focus - delta)
+	_cd_flier_retreat = maxf(0.0, _cd_flier_retreat - delta)
+	_cd_flier_burst = maxf(0.0, _cd_flier_burst - delta)
+	_cd_wraith_blur = maxf(0.0, _cd_wraith_blur - delta)
+	_cd_wraith_petal = maxf(0.0, _cd_wraith_petal - delta)
+	_cd_wraith_void = maxf(0.0, _cd_wraith_void - delta)
+	_cd_wraith_mark = maxf(0.0, _cd_wraith_mark - delta)
+	_cd_wraith_whirl = maxf(0.0, _cd_wraith_whirl - delta)
+	_cd_wraith_dart = maxf(0.0, _cd_wraith_dart - delta)
+	_cd_immortal_meteor = maxf(0.0, _cd_immortal_meteor - delta)
+	_cd_immortal_abyss = maxf(0.0, _cd_immortal_abyss - delta)
+	_cd_immortal_mend = maxf(0.0, _cd_immortal_mend - delta)
+	_cd_immortal_tao = maxf(0.0, _cd_immortal_tao - delta)
+	_cd_immortal_step = maxf(0.0, _cd_immortal_step - delta)
+	_cd_immortal_orb = maxf(0.0, _cd_immortal_orb - delta)
 	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
 	## m_talis(부적)·p_ward(호신부)가 걸려 있으면 mp 회복이 배로 빨라진다
 	## (side.js MP_REGEN*bf.regen과 같은 자리) — 다른 job 버프는 regen이
@@ -375,6 +431,64 @@ func _physics_process(delta: float) -> void:
 		if Input.is_action_just_pressed("story_job_skill2_5"):
 			_cast_sage_orb()
 
+	## **2026-09-13 추가(같은 날 더 더 더 더) — tier3 무예 스물넷.** 위
+	## tier1·tier2 분기와 별개 입력(story_job_skill3_1~6)이라 elif로 안
+	## 묶는다 — chain에 tier1·tier2도 항상 같이 들어 있으므로(예:
+	## job=marshal이면 chain=[marshal,general,warrior]) 세 분기가 전부
+	## 걸린다.
+	if chain.has("marshal"):
+		if Input.is_action_just_pressed("story_job_skill3_1"):
+			_cast_marshal_heaven()
+		if Input.is_action_just_pressed("story_job_skill3_2"):
+			_cast_marshal_quake()
+		if Input.is_action_just_pressed("story_job_skill3_3"):
+			_cast_marshal_charge()
+		if Input.is_action_just_pressed("story_job_skill3_4"):
+			_cast_marshal_banner()
+		if Input.is_action_just_pressed("story_job_skill3_5"):
+			_cast_marshal_edge()
+		if Input.is_action_just_pressed("story_job_skill3_6"):
+			_cast_marshal_vital()
+	elif chain.has("flier"):
+		if Input.is_action_just_pressed("story_job_skill3_1"):
+			_cast_flier_storm()
+		if Input.is_action_just_pressed("story_job_skill3_2"):
+			_cast_flier_pierce()
+		if Input.is_action_just_pressed("story_job_skill3_3"):
+			_cast_flier_volley()
+		if Input.is_action_just_pressed("story_job_skill3_4"):
+			_cast_flier_focus()
+		if Input.is_action_just_pressed("story_job_skill3_5"):
+			_cast_flier_retreat()
+		if Input.is_action_just_pressed("story_job_skill3_6"):
+			_cast_flier_burst()
+	elif chain.has("wraith"):
+		if Input.is_action_just_pressed("story_job_skill3_1"):
+			_cast_wraith_blur()
+		if Input.is_action_just_pressed("story_job_skill3_2"):
+			_cast_wraith_petal()
+		if Input.is_action_just_pressed("story_job_skill3_3"):
+			_cast_wraith_void()
+		if Input.is_action_just_pressed("story_job_skill3_4"):
+			_cast_wraith_mark()
+		if Input.is_action_just_pressed("story_job_skill3_5"):
+			_cast_wraith_whirl()
+		if Input.is_action_just_pressed("story_job_skill3_6"):
+			_cast_wraith_dart()
+	elif chain.has("immortal"):
+		if Input.is_action_just_pressed("story_job_skill3_1"):
+			_cast_immortal_meteor()
+		if Input.is_action_just_pressed("story_job_skill3_2"):
+			_cast_immortal_abyss()
+		if Input.is_action_just_pressed("story_job_skill3_3"):
+			_cast_immortal_mend()
+		if Input.is_action_just_pressed("story_job_skill3_4"):
+			_cast_immortal_tao()
+		if Input.is_action_just_pressed("story_job_skill3_5"):
+			_cast_immortal_step()
+		if Input.is_action_just_pressed("story_job_skill3_6"):
+			_cast_immortal_orb()
+
 
 func _walk(delta: float) -> void:
 	if not is_on_floor():
@@ -385,7 +499,10 @@ func _walk(delta: float) -> void:
 		velocity.y = 0.0
 
 	var axis := Input.get_axis("move_left", "move_right")
-	var speed := RUN_SPEED * (StoryCombat.BRACE_SPEED_MUL if _buff_time_left > 0.0 else 1.0)
+	## **2026-09-13 추가(같은 날 더 더 더 더)** — f_focus(정심)가 처음으로
+	## job 버프에 이동속도 배율을 얹었다. 기합(brace)과는 별개 곱.
+	var speed := RUN_SPEED * (StoryCombat.BRACE_SPEED_MUL if _buff_time_left > 0.0 else 1.0) \
+		* (_job_buff_speed_mul if _job_buff_time_left > 0.0 else 1.0)
 	velocity.x = axis * speed
 
 	if absf(axis) > 0.05:
@@ -598,6 +715,7 @@ func _cast_warrior_iron() -> void:
 	_job_buff_atk_mul = StoryCombat.WARRIOR_IRON_ATK_MUL
 	_job_buff_guard = StoryCombat.WARRIOR_IRON_GUARD
 	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = 1.0
 
 
 ## 파공검(w_edge) — bolt. 기탄과 같은 재해석(사거리 2배).
@@ -672,6 +790,7 @@ func _cast_archer_eye() -> void:
 	_job_buff_atk_mul = StoryCombat.ARCHER_EYE_ATK_MUL
 	_job_buff_guard = 0.0
 	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = 1.0
 
 
 ## 퇴보사(a_retreat) — dash, 원문 그대로 **뒤로** 물러나며 쏜다(다른
@@ -763,6 +882,7 @@ func _cast_rogue_vital() -> void:
 	_job_buff_atk_mul = StoryCombat.ROGUE_VITAL_ATK_MUL
 	_job_buff_guard = 0.0
 	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = 1.0
 
 
 ## 선풍각(r_whirl) — aoe, r:110px. 선풍과 같은 360도 판정 구조.
@@ -860,6 +980,7 @@ func _cast_mage_talis() -> void:
 	_job_buff_atk_mul = StoryCombat.MAGE_TALIS_ATK_MUL
 	_job_buff_guard = 0.0
 	_job_buff_regen_mul = StoryCombat.MAGE_TALIS_REGEN_MUL
+	_job_buff_speed_mul = 1.0
 
 
 ## 축지(m_step) — dash + invuln:0.5. 은신보와 같은 순서.
@@ -935,6 +1056,7 @@ func _cast_general_wall() -> void:
 	_job_buff_atk_mul = StoryCombat.GENERAL_WALL_ATK_MUL
 	_job_buff_guard = StoryCombat.GENERAL_WALL_GUARD
 	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = 1.0
 
 
 ## 벽공검(g_edge) — bolt. 파공검과 같은 재해석(사거리 2배).
@@ -1151,6 +1273,7 @@ func _cast_sage_ward() -> void:
 	_job_buff_atk_mul = StoryCombat.SAGE_WARD_ATK_MUL
 	_job_buff_guard = StoryCombat.SAGE_WARD_GUARD
 	_job_buff_regen_mul = StoryCombat.SAGE_WARD_REGEN_MUL
+	_job_buff_speed_mul = 1.0
 
 
 ## 축지술(p_step) — dash + invuln:0.7. 축지와 같은 재해석(더 크게 나아간다).
@@ -1177,6 +1300,350 @@ func _cast_sage_orb() -> void:
 	_play_anim("sprint")
 	var mul := StoryCombat.skill_mul(StoryCombat.SAGE_ORB_BASE, StoryCombat.SAGE_ORB_PER, lv)
 	for i in StoryCombat.SAGE_ORB_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 천붕격(n_heaven) — melee, hits:3.
+func _cast_marshal_heaven() -> void:
+	var lv := StorySaveState.skill_level("n_heaven")
+	if lv <= 0 or _cd_marshal_heaven > 0.0 or mp < StoryCombat.MARSHAL_HEAVEN_COST:
+		return
+	_cd_marshal_heaven = StoryCombat.MARSHAL_HEAVEN_CD
+	mp -= StoryCombat.MARSHAL_HEAVEN_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.MARSHAL_HEAVEN_BASE, StoryCombat.MARSHAL_HEAVEN_PER, lv)
+	for i in StoryCombat.MARSHAL_HEAVEN_HITS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 진각(n_quake) — aoe, r:264px.
+func _cast_marshal_quake() -> void:
+	var lv := StorySaveState.skill_level("n_quake")
+	if lv <= 0 or _cd_marshal_quake > 0.0 or mp < StoryCombat.MARSHAL_QUAKE_COST:
+		return
+	_cd_marshal_quake = StoryCombat.MARSHAL_QUAKE_CD
+	mp -= StoryCombat.MARSHAL_QUAKE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.MARSHAL_QUAKE_BASE, StoryCombat.MARSHAL_QUAKE_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.MARSHAL_QUAKE_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 철기돌격(n_charge) — dash, dist:330px.
+func _cast_marshal_charge() -> void:
+	var lv := StorySaveState.skill_level("n_charge")
+	if lv <= 0 or _cd_marshal_charge > 0.0 or mp < StoryCombat.MARSHAL_CHARGE_COST:
+		return
+	_cd_marshal_charge = StoryCombat.MARSHAL_CHARGE_CD
+	mp -= StoryCombat.MARSHAL_CHARGE_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.marshal_charge_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.MARSHAL_CHARGE_BASE, StoryCombat.MARSHAL_CHARGE_PER, lv))
+	global_position.x += dist_m * _facing
+
+
+## 대장기(n_banner) — buff, 대미지 없음.
+func _cast_marshal_banner() -> void:
+	if StorySaveState.skill_level("n_banner") <= 0 or _cd_marshal_banner > 0.0 or mp < StoryCombat.MARSHAL_BANNER_COST:
+		return
+	_cd_marshal_banner = StoryCombat.MARSHAL_BANNER_CD
+	mp -= StoryCombat.MARSHAL_BANNER_COST
+	_job_buff_time_left = StoryCombat.MARSHAL_BANNER_SEC
+	_job_buff_atk_mul = StoryCombat.MARSHAL_BANNER_ATK_MUL
+	_job_buff_guard = StoryCombat.MARSHAL_BANNER_GUARD
+	_job_buff_regen_mul = StoryCombat.MARSHAL_BANNER_REGEN_MUL
+	_job_buff_speed_mul = 1.0
+
+
+## 천단검(n_edge) — bolt. 벽공검과 같은 재해석(사거리 2배).
+func _cast_marshal_edge() -> void:
+	var lv := StorySaveState.skill_level("n_edge")
+	if lv <= 0 or _cd_marshal_edge > 0.0 or mp < StoryCombat.MARSHAL_EDGE_COST:
+		return
+	_cd_marshal_edge = StoryCombat.MARSHAL_EDGE_CD
+	mp -= StoryCombat.MARSHAL_EDGE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.MARSHAL_EDGE_BASE, StoryCombat.MARSHAL_EDGE_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.MARSHAL_EDGE_RANGE_MUL, mul)
+
+
+## 불사결(n_vital) — heal.
+func _cast_marshal_vital() -> void:
+	var lv := StorySaveState.skill_level("n_vital")
+	if lv <= 0 or _cd_marshal_vital > 0.0 or mp < StoryCombat.MARSHAL_VITAL_COST:
+		return
+	_cd_marshal_vital = StoryCombat.MARSHAL_VITAL_CD
+	mp -= StoryCombat.MARSHAL_VITAL_COST
+	var pct := StoryCombat.skill_mul(StoryCombat.MARSHAL_VITAL_BASE, StoryCombat.MARSHAL_VITAL_PER, lv)
+	hp = clampf(hp + max_hp * pct, 0.0, max_hp)
+
+
+## 시우(f_storm) — 원문 effect:'rain', 전우와 같은 단순 정면 재해석.
+func _cast_flier_storm() -> void:
+	var lv := StorySaveState.skill_level("f_storm")
+	if lv <= 0 or _cd_flier_storm > 0.0 or mp < StoryCombat.FLIER_STORM_COST:
+		return
+	_cd_flier_storm = StoryCombat.FLIER_STORM_CD
+	mp -= StoryCombat.FLIER_STORM_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.skill_mul(StoryCombat.FLIER_STORM_BASE, StoryCombat.FLIER_STORM_PER, lv))
+
+
+## 파천시(f_pierce) — bolt. 일점사와 같은 재해석(사거리 2배).
+func _cast_flier_pierce() -> void:
+	var lv := StorySaveState.skill_level("f_pierce")
+	if lv <= 0 or _cd_flier_pierce > 0.0 or mp < StoryCombat.FLIER_PIERCE_COST:
+		return
+	_cd_flier_pierce = StoryCombat.FLIER_PIERCE_CD
+	mp -= StoryCombat.FLIER_PIERCE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.FLIER_PIERCE_BASE, StoryCombat.FLIER_PIERCE_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.FLIER_PIERCE_RANGE_MUL, mul)
+
+
+## 만시(f_volley) — volley(shots:8). 분시와 같은 재해석.
+func _cast_flier_volley() -> void:
+	var lv := StorySaveState.skill_level("f_volley")
+	if lv <= 0 or _cd_flier_volley > 0.0 or mp < StoryCombat.FLIER_VOLLEY_COST:
+		return
+	_cd_flier_volley = StoryCombat.FLIER_VOLLEY_CD
+	mp -= StoryCombat.FLIER_VOLLEY_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.FLIER_VOLLEY_BASE, StoryCombat.FLIER_VOLLEY_PER, lv)
+	for i in StoryCombat.FLIER_VOLLEY_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 정심(f_focus) — buff, 대미지 없음. 이 포트 job 버프 중 처음으로
+## 이동속도(_job_buff_speed_mul)도 함께 채운다.
+func _cast_flier_focus() -> void:
+	if StorySaveState.skill_level("f_focus") <= 0 or _cd_flier_focus > 0.0 or mp < StoryCombat.FLIER_FOCUS_COST:
+		return
+	_cd_flier_focus = StoryCombat.FLIER_FOCUS_CD
+	mp -= StoryCombat.FLIER_FOCUS_COST
+	_job_buff_time_left = StoryCombat.FLIER_FOCUS_SEC
+	_job_buff_atk_mul = StoryCombat.FLIER_FOCUS_ATK_MUL
+	_job_buff_guard = 0.0
+	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = StoryCombat.FLIER_FOCUS_SPEED_MUL
+
+
+## 답공사(f_retreat) — dash, 활보사와 같은 재해석(뒤로 물러난다).
+func _cast_flier_retreat() -> void:
+	var lv := StorySaveState.skill_level("f_retreat")
+	if lv <= 0 or _cd_flier_retreat > 0.0 or mp < StoryCombat.FLIER_RETREAT_COST:
+		return
+	_cd_flier_retreat = StoryCombat.FLIER_RETREAT_CD
+	mp -= StoryCombat.FLIER_RETREAT_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.flier_retreat_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.FLIER_RETREAT_BASE, StoryCombat.FLIER_RETREAT_PER, lv))
+	global_position.x -= dist_m * _facing
+
+
+## 천환시(f_burst) — aoe, r:175px.
+func _cast_flier_burst() -> void:
+	var lv := StorySaveState.skill_level("f_burst")
+	if lv <= 0 or _cd_flier_burst > 0.0 or mp < StoryCombat.FLIER_BURST_COST:
+		return
+	_cd_flier_burst = StoryCombat.FLIER_BURST_CD
+	mp -= StoryCombat.FLIER_BURST_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.FLIER_BURST_BASE, StoryCombat.FLIER_BURST_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.FLIER_BURST_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 잔영(v_blur) — melee, hits:6.
+func _cast_wraith_blur() -> void:
+	var lv := StorySaveState.skill_level("v_blur")
+	if lv <= 0 or _cd_wraith_blur > 0.0 or mp < StoryCombat.WRAITH_BLUR_COST:
+		return
+	_cd_wraith_blur = StoryCombat.WRAITH_BLUR_CD
+	mp -= StoryCombat.WRAITH_BLUR_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WRAITH_BLUR_BASE, StoryCombat.WRAITH_BLUR_PER, lv)
+	for i in StoryCombat.WRAITH_BLUR_HITS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 낙화(v_petal) — volley(shots:7). 만천화우와 같은 재해석.
+func _cast_wraith_petal() -> void:
+	var lv := StorySaveState.skill_level("v_petal")
+	if lv <= 0 or _cd_wraith_petal > 0.0 or mp < StoryCombat.WRAITH_PETAL_COST:
+		return
+	_cd_wraith_petal = StoryCombat.WRAITH_PETAL_CD
+	mp -= StoryCombat.WRAITH_PETAL_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WRAITH_PETAL_BASE, StoryCombat.WRAITH_PETAL_PER, lv)
+	for i in StoryCombat.WRAITH_PETAL_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 허공답보(v_void) — dash + invuln:1.2. 그림자밟기와 같은 재해석.
+func _cast_wraith_void() -> void:
+	var lv := StorySaveState.skill_level("v_void")
+	if lv <= 0 or _cd_wraith_void > 0.0 or mp < StoryCombat.WRAITH_VOID_COST:
+		return
+	_cd_wraith_void = StoryCombat.WRAITH_VOID_CD
+	mp -= StoryCombat.WRAITH_VOID_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.wraith_void_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.WRAITH_VOID_BASE, StoryCombat.WRAITH_VOID_PER, lv))
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.WRAITH_VOID_INVULN_SEC)
+
+
+## 사혼(v_mark) — buff, 대미지 없음.
+func _cast_wraith_mark() -> void:
+	if StorySaveState.skill_level("v_mark") <= 0 or _cd_wraith_mark > 0.0 or mp < StoryCombat.WRAITH_MARK_COST:
+		return
+	_cd_wraith_mark = StoryCombat.WRAITH_MARK_CD
+	mp -= StoryCombat.WRAITH_MARK_COST
+	_job_buff_time_left = StoryCombat.WRAITH_MARK_SEC
+	_job_buff_atk_mul = StoryCombat.WRAITH_MARK_ATK_MUL
+	_job_buff_guard = 0.0
+	_job_buff_regen_mul = 1.0
+	_job_buff_speed_mul = 1.0
+
+
+## 광풍각(v_whirl) — aoe, r:175px.
+func _cast_wraith_whirl() -> void:
+	var lv := StorySaveState.skill_level("v_whirl")
+	if lv <= 0 or _cd_wraith_whirl > 0.0 or mp < StoryCombat.WRAITH_WHIRL_COST:
+		return
+	_cd_wraith_whirl = StoryCombat.WRAITH_WHIRL_CD
+	mp -= StoryCombat.WRAITH_WHIRL_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WRAITH_WHIRL_BASE, StoryCombat.WRAITH_WHIRL_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.WRAITH_WHIRL_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 귀표(v_dart) — bolt. 암습표와 같은 재해석(사거리 2배).
+func _cast_wraith_dart() -> void:
+	var lv := StorySaveState.skill_level("v_dart")
+	if lv <= 0 or _cd_wraith_dart > 0.0 or mp < StoryCombat.WRAITH_DART_COST:
+		return
+	_cd_wraith_dart = StoryCombat.WRAITH_DART_CD
+	mp -= StoryCombat.WRAITH_DART_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.WRAITH_DART_BASE, StoryCombat.WRAITH_DART_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.WRAITH_DART_RANGE_MUL, mul)
+
+
+## 유성(i_meteor) — 원문 effect:'rain', 천뢰와 같은 단순 정면 재해석.
+func _cast_immortal_meteor() -> void:
+	var lv := StorySaveState.skill_level("i_meteor")
+	if lv <= 0 or _cd_immortal_meteor > 0.0 or mp < StoryCombat.IMMORTAL_METEOR_COST:
+		return
+	_cd_immortal_meteor = StoryCombat.IMMORTAL_METEOR_CD
+	mp -= StoryCombat.IMMORTAL_METEOR_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.skill_mul(StoryCombat.IMMORTAL_METEOR_BASE, StoryCombat.IMMORTAL_METEOR_PER, lv))
+
+
+## 천붕지열(i_abyss) — aoe, r:300px.
+func _cast_immortal_abyss() -> void:
+	var lv := StorySaveState.skill_level("i_abyss")
+	if lv <= 0 or _cd_immortal_abyss > 0.0 or mp < StoryCombat.IMMORTAL_ABYSS_COST:
+		return
+	_cd_immortal_abyss = StoryCombat.IMMORTAL_ABYSS_CD
+	mp -= StoryCombat.IMMORTAL_ABYSS_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.IMMORTAL_ABYSS_BASE, StoryCombat.IMMORTAL_ABYSS_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.IMMORTAL_ABYSS_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 회춘(i_mend) — heal.
+func _cast_immortal_mend() -> void:
+	var lv := StorySaveState.skill_level("i_mend")
+	if lv <= 0 or _cd_immortal_mend > 0.0 or mp < StoryCombat.IMMORTAL_MEND_COST:
+		return
+	_cd_immortal_mend = StoryCombat.IMMORTAL_MEND_CD
+	mp -= StoryCombat.IMMORTAL_MEND_COST
+	var pct := StoryCombat.skill_mul(StoryCombat.IMMORTAL_MEND_BASE, StoryCombat.IMMORTAL_MEND_PER, lv)
+	hp = clampf(hp + max_hp * pct, 0.0, max_hp)
+
+
+## 태극(i_tao) — buff, 대미지 없음.
+func _cast_immortal_tao() -> void:
+	if StorySaveState.skill_level("i_tao") <= 0 or _cd_immortal_tao > 0.0 or mp < StoryCombat.IMMORTAL_TAO_COST:
+		return
+	_cd_immortal_tao = StoryCombat.IMMORTAL_TAO_CD
+	mp -= StoryCombat.IMMORTAL_TAO_COST
+	_job_buff_time_left = StoryCombat.IMMORTAL_TAO_SEC
+	_job_buff_atk_mul = StoryCombat.IMMORTAL_TAO_ATK_MUL
+	_job_buff_guard = StoryCombat.IMMORTAL_TAO_GUARD
+	_job_buff_regen_mul = StoryCombat.IMMORTAL_TAO_REGEN_MUL
+	_job_buff_speed_mul = 1.0
+
+
+## 이형보(i_step) — dash + invuln:0.9. 축지술과 같은 재해석.
+func _cast_immortal_step() -> void:
+	var lv := StorySaveState.skill_level("i_step")
+	if lv <= 0 or _cd_immortal_step > 0.0 or mp < StoryCombat.IMMORTAL_STEP_COST:
+		return
+	_cd_immortal_step = StoryCombat.IMMORTAL_STEP_CD
+	mp -= StoryCombat.IMMORTAL_STEP_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.immortal_step_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.IMMORTAL_STEP_BASE, StoryCombat.IMMORTAL_STEP_PER, lv))
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.IMMORTAL_STEP_INVULN_SEC)
+
+
+## 유성탄(i_orb) — volley(shots:6). 연환탄과 같은 재해석.
+func _cast_immortal_orb() -> void:
+	var lv := StorySaveState.skill_level("i_orb")
+	if lv <= 0 or _cd_immortal_orb > 0.0 or mp < StoryCombat.IMMORTAL_ORB_COST:
+		return
+	_cd_immortal_orb = StoryCombat.IMMORTAL_ORB_CD
+	mp -= StoryCombat.IMMORTAL_ORB_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.IMMORTAL_ORB_BASE, StoryCombat.IMMORTAL_ORB_PER, lv)
+	for i in StoryCombat.IMMORTAL_ORB_SHOTS:
 		_melee_hit(ATTACK_RANGE, mul)
 
 

@@ -1626,6 +1626,67 @@ Lv5 게이트가 정확히 걸림 → skill_mul 네 표본(파공검·마탄·�
 이미 사슬·게이트까지 되어 있어 무예만 채우면 tier4 진급 문까지 열린다.
 그 밖엔 STORY 밖(다른 판)이거나 가방·상점 확장 등 다른 후보.
 
+
+## 30. tier3 무예 스물넷 — 원수·비장·귀영·진인 각 여섯 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해 묻지말고"** — 29절이 남긴 "다음
+이어질 것"을 채웠다. tier1·tier2가 이번 세션 안에서 전부 옮겨진
+덕분에(각 갈래 여섯 개씩), tier3(원수·비장·귀영·진인)는 원문 그대로
+갈래마다 **여섯 개 전부**를 한 번에 채울 수 있었다 — tier2 때처럼
+"프리렉이 없어 못 채우는 스킬"이 하나도 없었다.
+
+**`need`가 tier2뿐 아니라 tier1을 직접 잇는 경우가 있다** —
+`n_charge<-w_rush`·`f_focus<-a_eye`·`v_mark<-r_vital`·`i_mend<-m_heal`
+넷은 원문 자체가 tier2를 건너뛰고 tier1을 바로 잇는다(그 넷은 애초에
+tier2 대응이 없다, 28절 머리말에 이미 적어 둔 규칙 — data-job.js
+`need` 그대로 옮겼을 뿐 임의로 바꾸지 않았다).
+
+**f_focus(정심)가 이 포트 job 버프 중 처음으로 이동속도 배율을 갖는다**
+— `_job_buff_speed_mul`(신규, 기본 1.0)을 두고 `_walk()`가 기합(brace)
+배율과 별개로 곱한다. 기존 여섯 버프 캐스트 함수 전부에 이 필드를
+1.0으로 채우는 줄을 추가(회귀 방지 — 안 채우면 이전 버프 값이 새
+버프에 새어 들어갈 수 있다).
+
+**입력** — `story_job_skill3_1~6`(물리키 E·,·.·/·;·', 알파벳을 거의
+다 써서 이번엔 구두점 키를 썼다) 신규. 위 tier1·tier2 분기와 별개라
+elif로 안 묶는다(chain에 tier1·tier2도 항상 같이 들어 있다). SP 투자는
+새 입력 없이 기존 `_raise(0..5)`(이미 29절에서 6자리까지 늘려 둠)를
+그대로 재사용.
+
+- `story_combat.gd`: `SKILL_JOB`·`JOB_SKILL_KEYS`·`SKILL_NEED` tier3
+  확장. 스물네 스킬의 cost/cd/mul 상수, `marshal_charge_dist_m()`/
+  `flier_retreat_dist_m()`/`wraith_void_dist_m()`/`immortal_step_
+  dist_m()` 신규.
+- `story_player.gd`: `_job_buff_speed_mul` 신규(기존 여섯 버프에 1.0
+  추가), `_walk()` 속도식에 곱함. cd 변수 스물넷, 입력 분기
+  (`story_job_skill3_1~6`), 캐스트 함수 스물넷 신규.
+- `project.godot`: `story_job_skill3_1~6`(물리키 69·44·46·47·59·39)
+  여섯 개 신규.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → `project.godot` diff가 입력 액션 30줄뿐인지 확인 →
+STORY 필드 씬 아홉 개+기본 씬 각 세 번씩 exit 0·로그 완전 동일(다섯
+판 회귀 포함). **임시 검증 스크립트**(28·29절과 같은 방식)로: 네
+tier3 job 정확히 6개씩·SKILL_JOB/SKILL_NEED 정합 → tier2 경유
+게이트(n_heaven<-g_smash)와 tier1 직결 게이트(n_charge<-w_rush·
+f_focus<-a_eye·v_mark<-r_vital·i_mend<-m_heal) 전부 정확히 걸림 →
+marshal이어도 warrior·general 무예 계속 투자 가능(chain 소속 회귀) →
+skill_mul 네 표본 손계산과 일치 → range/dist 환산 여섯 개 손계산과
+일치 → `job_grow_chain("marshal")`=hp340(40+110+190)/atk22(2+7+13),
+사슬 3단 합산 정확 → warlord(tier4) 진급은 n_heaven Lv7까지 막히고
+Lv10부터 열림(JOB_SKILL_LEVEL_GATE[4]=10 회귀) — 전부 예측과 정확히
+일치. 검증 스크립트 삭제 후 재검증까지 마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — 구두점 키(E·,·.·/·;·')로 실제 tier3
+무예가 나가는 손맛, 정심(f_focus)의 이동속도 증가 체감은 눈으로 볼 것.
+계속 몰아서 받을 것.
+
+**다음 이어질 것** — data-job.js SKILLS는 이걸로 무명·tier1·tier2·
+tier3 전부(4갈래×22개+무명4=92개) 이 포트에 옮겨졌다. 남은 건
+**tier4(warlord 등, 6개씩×4갈래=24개)** 뿐 — 채우면 이 게임의
+전직 트리 전체(무명→1차→2차→3차→4차)가 완주된다. 그 다음은 STORY
+밖(다른 판)이거나 가방·상점 확장 등 다른 후보.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

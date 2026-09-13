@@ -384,6 +384,17 @@ const SKILL_JOB := {
 	"s_retreat": "sniper", "s_burst": "sniper",
 	"x_whirl": "assassin", "x_dart": "assassin",
 	"p_step": "sage", "p_orb": "sage",
+	## **2026-09-13 추가(같은 날 더 더 더 더) — tier3 무예 스물넷.** 아래
+	## SKILL_NEED 머리말 참고 — tier1·tier2가 전부 옮겨져 있어 갈래마다
+	## 여섯 개 전부(원문 그대로) 채울 수 있었다.
+	"n_heaven": "marshal", "n_quake": "marshal", "n_charge": "marshal",
+	"n_banner": "marshal", "n_edge": "marshal", "n_vital": "marshal",
+	"f_storm": "flier", "f_pierce": "flier", "f_volley": "flier",
+	"f_focus": "flier", "f_retreat": "flier", "f_burst": "flier",
+	"v_blur": "wraith", "v_petal": "wraith", "v_void": "wraith",
+	"v_mark": "wraith", "v_whirl": "wraith", "v_dart": "wraith",
+	"i_meteor": "immortal", "i_abyss": "immortal", "i_mend": "immortal",
+	"i_tao": "immortal", "i_step": "immortal", "i_orb": "immortal",
 }
 
 ## job → 그 직업 무예 key 목록. tier1(여섯)은 data-job.js SKILLS 등장
@@ -402,6 +413,12 @@ const JOB_SKILL_KEYS := {
 	"sniper": ["s_rain", "s_snipe", "s_split", "s_retreat", "s_burst"],
 	"assassin": ["x_storm", "x_fan", "x_shadow", "x_whirl", "x_dart"],
 	"sage": ["p_quake", "p_beam", "p_ward", "p_step", "p_orb"],
+	## tier3(여섯, tier1과 같은 개수)은 입력 story_job_skill3_1~6·SP 투자
+	## story_job_1~6을 그대로 쓴다.
+	"marshal": ["n_heaven", "n_quake", "n_charge", "n_banner", "n_edge", "n_vital"],
+	"flier": ["f_storm", "f_pierce", "f_volley", "f_focus", "f_retreat", "f_burst"],
+	"wraith": ["v_blur", "v_petal", "v_void", "v_mark", "v_whirl", "v_dart"],
+	"immortal": ["i_meteor", "i_abyss", "i_mend", "i_tao", "i_step", "i_orb"],
 }
 
 ## **2026-09-13 추가(같은 날 더 더) — 2~4차 전직 다음 걸음: tier2 무예
@@ -441,6 +458,35 @@ const SKILL_NEED := {
 	"x_dart": {"key": "r_dart", "lv": 5},
 	"p_step": {"key": "m_step", "lv": 5},
 	"p_orb": {"key": "m_orb", "lv": 5},
+	## **2026-09-13 추가(같은 날 더 더 더 더) — tier3 무예 스물넷.**
+	## data-job.js SKILLS의 need가 tier2뿐 아니라 tier1을 직접 가리키는
+	## 경우도 있다(n_charge<-w_rush, f_focus<-a_eye, v_mark<-r_vital,
+	## i_mend<-m_heal — 그 넷은 tier2에 대응 무예가 없어 원문이 tier1을
+	## 바로 잇는다, 28절 머리말 참고) — 원문 그대로 옮겼다.
+	"n_heaven": {"key": "g_smash", "lv": 5},
+	"n_quake": {"key": "g_roar", "lv": 5},
+	"n_charge": {"key": "w_rush", "lv": 5},
+	"n_banner": {"key": "g_wall", "lv": 5},
+	"n_edge": {"key": "g_edge", "lv": 5},
+	"n_vital": {"key": "g_vital", "lv": 5},
+	"f_storm": {"key": "s_rain", "lv": 5},
+	"f_pierce": {"key": "s_snipe", "lv": 5},
+	"f_volley": {"key": "s_split", "lv": 5},
+	"f_focus": {"key": "a_eye", "lv": 5},
+	"f_retreat": {"key": "s_retreat", "lv": 5},
+	"f_burst": {"key": "s_burst", "lv": 5},
+	"v_blur": {"key": "x_storm", "lv": 5},
+	"v_petal": {"key": "x_fan", "lv": 5},
+	"v_void": {"key": "x_shadow", "lv": 5},
+	"v_mark": {"key": "r_vital", "lv": 5},
+	"v_whirl": {"key": "x_whirl", "lv": 5},
+	"v_dart": {"key": "x_dart", "lv": 5},
+	"i_meteor": {"key": "p_beam", "lv": 5},
+	"i_abyss": {"key": "p_quake", "lv": 5},
+	"i_mend": {"key": "m_heal", "lv": 5},
+	"i_tao": {"key": "p_ward", "lv": 5},
+	"i_step": {"key": "p_step", "lv": 5},
+	"i_orb": {"key": "p_orb", "lv": 5},
 }
 
 
@@ -844,6 +890,205 @@ const SAGE_ORB_CD := 5.0
 const SAGE_ORB_BASE := 1.5
 const SAGE_ORB_PER := 0.12
 const SAGE_ORB_SHOTS := 4
+
+
+## **2026-09-13 추가(같은 날 더 더 더 더) — tier3 무예 스물넷(원수·비장·
+## 귀영·진인 각 여섯).** SKILL_NEED 머리말 참고 — tier1·tier2가 전부
+## 있어 갈래마다 여섯 개 전부(원문 그대로) 채웠다. `f_focus`(원문
+## speed:1.15)가 이 포트 job 버프 중 처음으로 이동속도 배율을 갖는다 —
+## `_job_buff_speed_mul`(story_player.gd 신규, 기본 1.0)을 추가해 `_walk()`
+## 속도 계산에 곱한다(BRACE_SPEED_MUL과 같은 자리, 별도 곱).
+
+## 천붕격(n_heaven) — melee, hits:3.
+const MARSHAL_HEAVEN_COST := 58.0
+const MARSHAL_HEAVEN_CD := 11.0
+const MARSHAL_HEAVEN_BASE := 4.6
+const MARSHAL_HEAVEN_PER := 0.42
+const MARSHAL_HEAVEN_HITS := 3
+
+## 진각(n_quake) — aoe, r:264px.
+const MARSHAL_QUAKE_COST := 52.0
+const MARSHAL_QUAKE_CD := 12.0
+const MARSHAL_QUAKE_BASE := 3.6
+const MARSHAL_QUAKE_PER := 0.32
+const MARSHAL_QUAKE_RANGE_MUL := 264.0 / 78.0
+
+## 철기돌격(n_charge) — dash, dist:330px.
+const MARSHAL_CHARGE_COST := 48.0
+const MARSHAL_CHARGE_CD := 9.0
+const MARSHAL_CHARGE_BASE := 3.2
+const MARSHAL_CHARGE_PER := 0.28
+const MARSHAL_CHARGE_DIST_PX := 330.0
+
+
+static func marshal_charge_dist_m() -> float:
+	return MARSHAL_CHARGE_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 대장기(n_banner) — buff. sec:13·atk×1.55·guard0.45·regen1.8 원문 그대로.
+const MARSHAL_BANNER_COST := 56.0
+const MARSHAL_BANNER_CD := 24.0
+const MARSHAL_BANNER_SEC := 13.0
+const MARSHAL_BANNER_ATK_MUL := 1.55
+const MARSHAL_BANNER_GUARD := 0.45
+const MARSHAL_BANNER_REGEN_MUL := 1.8
+
+## 천단검(n_edge) — bolt. 벽공검(g_edge)과 같은 재해석(사거리 2배).
+const MARSHAL_EDGE_COST := 44.0
+const MARSHAL_EDGE_CD := 9.0
+const MARSHAL_EDGE_BASE := 4.0
+const MARSHAL_EDGE_PER := 0.35
+const MARSHAL_EDGE_RANGE_MUL := 2.0
+
+## 불사결(n_vital) — heal.
+const MARSHAL_VITAL_COST := 48.0
+const MARSHAL_VITAL_CD := 22.0
+const MARSHAL_VITAL_BASE := 0.4
+const MARSHAL_VITAL_PER := 0.034
+
+## 시우(f_storm) — 원문 effect:'rain', 전우(s_rain)와 같은 단순 정면 재해석.
+const FLIER_STORM_COST := 60.0
+const FLIER_STORM_CD := 12.0
+const FLIER_STORM_BASE := 4.2
+const FLIER_STORM_PER := 0.38
+
+## 파천시(f_pierce) — bolt. 일점사(s_snipe)와 같은 재해석(사거리 2배).
+const FLIER_PIERCE_COST := 54.0
+const FLIER_PIERCE_CD := 9.0
+const FLIER_PIERCE_BASE := 6.4
+const FLIER_PIERCE_PER := 0.55
+const FLIER_PIERCE_RANGE_MUL := 2.0
+
+## 만시(f_volley) — volley(shots:8). 분시(s_split)와 같은 재해석.
+const FLIER_VOLLEY_COST := 50.0
+const FLIER_VOLLEY_CD := 7.0
+const FLIER_VOLLEY_BASE := 1.9
+const FLIER_VOLLEY_PER := 0.16
+const FLIER_VOLLEY_SHOTS := 8
+
+## 정심(f_focus) — buff. sec:12·atk×1.75·**speed×1.15(job 버프 최초의
+## 이동속도 배율)** 원문 그대로.
+const FLIER_FOCUS_COST := 46.0
+const FLIER_FOCUS_CD := 22.0
+const FLIER_FOCUS_SEC := 12.0
+const FLIER_FOCUS_ATK_MUL := 1.75
+const FLIER_FOCUS_SPEED_MUL := 1.15
+
+## 답공사(f_retreat) — dash, dist:300px. 활보사(s_retreat)와 같은
+## 재해석(뒤로 물러난다).
+const FLIER_RETREAT_COST := 46.0
+const FLIER_RETREAT_CD := 8.0
+const FLIER_RETREAT_BASE := 3.5
+const FLIER_RETREAT_PER := 0.3
+const FLIER_RETREAT_DIST_PX := 300.0
+
+
+static func flier_retreat_dist_m() -> float:
+	return FLIER_RETREAT_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 천환시(f_burst) — aoe, r:175px. 광환시(s_burst)와 같은 재해석.
+const FLIER_BURST_COST := 46.0
+const FLIER_BURST_CD := 7.0
+const FLIER_BURST_BASE := 3.6
+const FLIER_BURST_PER := 0.31
+const FLIER_BURST_RANGE_MUL := 175.0 / 78.0
+
+## 잔영(v_blur) — melee, hits:6.
+const WRAITH_BLUR_COST := 52.0
+const WRAITH_BLUR_CD := 8.0
+const WRAITH_BLUR_BASE := 2.2
+const WRAITH_BLUR_PER := 0.19
+const WRAITH_BLUR_HITS := 6
+
+## 낙화(v_petal) — volley(shots:7). 만천화우(x_fan)와 같은 재해석.
+const WRAITH_PETAL_COST := 54.0
+const WRAITH_PETAL_CD := 9.0
+const WRAITH_PETAL_BASE := 1.8
+const WRAITH_PETAL_PER := 0.15
+const WRAITH_PETAL_SHOTS := 7
+
+## 허공답보(v_void) — dash, dist:360px + invuln:1.2. 그림자밟기(x_shadow)와
+## 같은 재해석(더 크게 나아가고 무적도 길다).
+const WRAITH_VOID_COST := 44.0
+const WRAITH_VOID_CD := 7.0
+const WRAITH_VOID_BASE := 3.0
+const WRAITH_VOID_PER := 0.26
+const WRAITH_VOID_DIST_PX := 360.0
+const WRAITH_VOID_INVULN_SEC := 1.2
+
+
+static func wraith_void_dist_m() -> float:
+	return WRAITH_VOID_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 사혼(v_mark) — buff. sec:10·atk×1.95 원문 그대로.
+const WRAITH_MARK_COST := 48.0
+const WRAITH_MARK_CD := 20.0
+const WRAITH_MARK_SEC := 10.0
+const WRAITH_MARK_ATK_MUL := 1.95
+
+## 광풍각(v_whirl) — aoe, r:175px. 질풍각(x_whirl)과 같은 재해석.
+const WRAITH_WHIRL_COST := 46.0
+const WRAITH_WHIRL_CD := 7.0
+const WRAITH_WHIRL_BASE := 3.6
+const WRAITH_WHIRL_PER := 0.31
+const WRAITH_WHIRL_RANGE_MUL := 175.0 / 78.0
+
+## 귀표(v_dart) — bolt. 암습표(x_dart)와 같은 재해석(사거리 2배).
+const WRAITH_DART_COST := 44.0
+const WRAITH_DART_CD := 9.0
+const WRAITH_DART_BASE := 4.0
+const WRAITH_DART_PER := 0.35
+const WRAITH_DART_RANGE_MUL := 2.0
+
+## 유성(i_meteor) — 원문 effect:'rain', 천뢰(p_beam)와 같은 단순 정면 재해석.
+const IMMORTAL_METEOR_COST := 64.0
+const IMMORTAL_METEOR_CD := 12.0
+const IMMORTAL_METEOR_BASE := 4.8
+const IMMORTAL_METEOR_PER := 0.42
+
+## 천붕지열(i_abyss) — aoe, r:300px. 지진(p_quake)과 같은 재해석.
+const IMMORTAL_ABYSS_COST := 68.0
+const IMMORTAL_ABYSS_CD := 14.0
+const IMMORTAL_ABYSS_BASE := 5.0
+const IMMORTAL_ABYSS_PER := 0.44
+const IMMORTAL_ABYSS_RANGE_MUL := 300.0 / 78.0
+
+## 회춘(i_mend) — heal. 치유(m_heal)와 같은 공식.
+const IMMORTAL_MEND_COST := 50.0
+const IMMORTAL_MEND_CD := 13.0
+const IMMORTAL_MEND_BASE := 0.42
+const IMMORTAL_MEND_PER := 0.035
+
+## 태극(i_tao) — buff. sec:14·atk×1.5·guard0.3·regen4.0 원문 그대로.
+const IMMORTAL_TAO_COST := 58.0
+const IMMORTAL_TAO_CD := 22.0
+const IMMORTAL_TAO_SEC := 14.0
+const IMMORTAL_TAO_ATK_MUL := 1.5
+const IMMORTAL_TAO_GUARD := 0.3
+const IMMORTAL_TAO_REGEN_MUL := 4.0
+
+## 이형보(i_step) — dash, dist:340px + invuln:0.9. 축지술(p_step)과 같은
+## 재해석(더 크게 나아간다).
+const IMMORTAL_STEP_COST := 48.0
+const IMMORTAL_STEP_CD := 9.0
+const IMMORTAL_STEP_BASE := 3.0
+const IMMORTAL_STEP_PER := 0.26
+const IMMORTAL_STEP_DIST_PX := 340.0
+const IMMORTAL_STEP_INVULN_SEC := 0.9
+
+
+static func immortal_step_dist_m() -> float:
+	return IMMORTAL_STEP_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 유성탄(i_orb) — volley(shots:6). 연환탄(p_orb)과 같은 재해석.
+const IMMORTAL_ORB_COST := 50.0
+const IMMORTAL_ORB_CD := 7.0
+const IMMORTAL_ORB_BASE := 1.9
+const IMMORTAL_ORB_PER := 0.16
+const IMMORTAL_ORB_SHOTS := 6
 
 
 static var _hitstop_active := false
