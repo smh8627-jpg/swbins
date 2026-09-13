@@ -32,5 +32,6 @@ func _ready() -> void:
 		enemy.enemy_lv = map.enemy_lv()
 		enemy.enemy_color = map.enemy_color()
 		enemy.is_ranged = map.enemy_is_ranged()
+		enemy.stage_key = map.stage_key()
 		enemy.position = Vector3(x, GROUND_Y, 0)
 		add_child(enemy)

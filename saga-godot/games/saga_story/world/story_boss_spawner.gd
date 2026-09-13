@@ -45,6 +45,7 @@ func _spawn_boss() -> void:
 	boss.boss_dmg_mul = _map.boss_dmg_mul()
 	boss.enemy_lv = _map.enemy_lv()
 	boss.enemy_color = _map.boss_color()
+	boss.stage_key = _map.stage_key()
 	boss.position = Vector3(_map.boss_position_m(), GROUND_Y, 0)
 	add_child(boss)
 	boss.died.connect(_on_boss_died)

@@ -2159,6 +2159,58 @@ q_first("첫 사냥")·q_gather1("약초 캐기") 둘은 **관찰형**(HUD에 �
 사명 7개(받기/반납 상태 필요) 정도. 이 중 아무거나 골라도 되고, STORY
 밖(다른 네 판·saga-unity 트랙)으로 옮겨 가도 된다.
 
+## 사냥터별 킬 수 사명 3개 + a_quest10 (2026-09-13, "이어해" 지시로 계속)
+
+바로 위가 남긴 "사냥터별 킬 수 사명 3개"부터 이어서, q_field(들판을
+비운다, 허창 들판 40)·q_forest(오림의 그늘, 오림 숲 60)·q_cave(굴혈로,
+한중 굴혈 90)를 옮겼다 — 8개였던 사명이 이제 11개다.
+
+- **새 카운터**: `story_save_state.gd`에 `stage_kills`(Dictionary,
+  stage_key→int) 신규 — `add_kill(stage_key:="")` 시그니처를 바꿔
+  stage_key가 있으면 전체 `kills`와 함께 그 사냥터 몫도 센다.
+  `_quest_value(q)`가 이제 goal_type "kill"에서 `q.stage`가 있으면
+  전체 kills 대신 `stage_kills[stage]`를 본다.
+- **배선**: field_map.gd·forest_map.gd·cave_map.gd·gorge_map.gd 넷
+  다(data-quest.js에 q_gorge는 없지만 스포너 둘이 맵 구분 없이
+  `stage_key()`를 부르므로 넷 다 갖춤) `stage_key()` 신규.
+  `story_enemy.gd`에 `stage_key` 프로퍼티 신규, `story_enemy_spawner.gd`/
+  `story_boss_spawner.gd`가 `enemy_is_ranged()`·`boss_hp_mul()` 등과
+  같은 자리에서 넘긴다. `_die()`가 `add_kill(stage_key)`로 바뀌었다
+  (보스도 잡졸도 이 함수 하나를 쓰므로 보스 킬도 그 사냥터 몫에
+  자연히 들어간다 — 원작 onKill()이 보스를 안 가리는 것과 같다).
+  SAVE_VERSION 10→11.
+- **덤으로 `a_quest10` 업적도 옮겼다.** 지난 절이 "사명이 8개뿐이라
+  '10번 완료'에 대응하는 값이 없다"고 미뤄 뒀던 것을, 사명이 열하나로
+  늘면서 `quests_done.size()`가 원작의 좋은 근사가 됐다(반복 사명이
+  없어 `done` 누적 대신 "완료한 사명 종류 수"로 좁힌 재해석).
+  `story_combat.gd` ACHIEVES에 여덟 번째 항목으로 추가, `_achieve_
+  value()`에 분기 추가. **같은 자리에서 예전 `a_dex20` 주석의 "몬스터
+  도감"이라는 잘못된 표현도 고쳤다** — 실제로는 인물·펫 등용 로스터를
+  본다(위 절 정정과 같은 내용, 소스 코드 주석 쪽은 이번에야 고침).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  잡음만 재발생, 되돌림) → 네 사냥터 씬(TestField·ForestHuntGround·
+  CaveHuntGround·GorgeHuntGround) 각각 `--quit-after 6` 스크립트
+  오류 0건. **임시 씬-instantiate 검증 스크립트**로: 네 맵의
+  `stage_key()`가 각각 field/forest/cave/gorge인지 → `add_kill("field")`
+  두 번+`add_kill("forest")` 한 번 → 전체 kills=3·stage_kills.field=2·
+  stage_kills.forest=1(정확) → `add_kill("")`(스테이지 없는 킬)은
+  stage_kills를 안 건드림 → 레벨3에서 field 40킬 → q_field 완수,
+  forest는 그때까지 0킬이라 q_forest 미완(레벨도 6 미달) → 이후
+  레벨20으로 올리고 나머지 조건(장비7·보스1·forest 61킬·cave
+  직접 90·gold 8000·skill 20·gather 15)을 채운 뒤 `check_quests()`
+  두 번 호출 → **11개 전부 완수 + a_quest10도 함께 달성** — 손계산과
+  정확히 일치. 검증 스크립트 삭제 후 재검증까지 마쳤다. `.import`
+  잡음만 되돌림.
+
+**GUI 실기 확인은 아직 안 함** — 오림 숲·한중 굴혈에서 사냥할 때
+"들판을 비운다"류 사명이 자연스럽게 완수되는지, 각 사냥터 킬이 서로
+안 섞이는지 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — STORY 1절 "제외" 목록에 남은 건 visit·talk 사명
+2개(새 추적 필요)·반복/일일 사명 7개(받기/반납 상태 필요) 정도. 이
+중 아무거나 골라도 되고, STORY 밖(다른 네 판·saga-unity 트랙)으로
+옮겨 가도 된다.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

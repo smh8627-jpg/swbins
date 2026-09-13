@@ -337,13 +337,15 @@ const SCROLLS := {
 ## 없다 — admin.js 표시값과 같은 정신으로 그냥 누적 숫자만 저장한다
 ## (StorySaveState.feat, 다음에 칭호를 붙일 자리를 위해 값 자체는 쌓아 둔다).
 ##
-## **9개 중 7개만 옮겼다** — 나머지 둘은 이 슬라이스에 그 값 자체가
-## 없다: `a_dex20`(도감 등록 수 — 몬스터 도감 자체가 아직 없다,
-## VERTICAL_SLICE_STORY.md "다음 이어질 것" 목록 참고)과 `a_quest10`
-## (사명 완료 "누적 횟수" — 이 슬라이스의 사명 둘(q_first·q_gather1)은
-## 반복 완료가 아니라 관찰형 진행도 하나뿐이라 "10번 마쳤다"에 대응하는
-## 값이 없다, 1절 "사명 나머지" 제외 항목과 같은 사유). RANGED_WEAPON.staff를
-## 안 옮긴 것과 같은 결 — 값 자체가 생기면 그때 채운다.
+## **처음엔 9개 중 7개만 옮겼었다** — `a_dex20`·`a_quest10` 둘은 그때
+## 그 값 자체가 없었다. **2026-09-13 정정** — `a_dex20`(도감 등록 수)을
+## "몬스터 도감"이라고 적었던 건 틀렸다: 원문 valueOf()는 실제로
+## `core.save.dex.heroes/pets`(인물·펫 등용 로스터)를 본다 — 이 슬라이스엔
+## 인물 로스터 자체가 없어(story_combat.gd 맨 위 머리말) 여전히 못
+## 옮긴다. **`a_quest10`은 이제 옮길 수 있다** — 아래 QUESTS가 여덟에서
+## 열하나로 늘어 `StorySaveState.quests_done.size()`가 원작 "사명
+## 10번 완료"의 좋은 근사가 됐다(원작은 반복 사명의 `done` 누적까지
+## 세지만, 이 포트는 반복 사명이 없어 "완료한 사명 종류 수"로 좁힌다).
 const ACHIEVES := {
 	"a_kill100":  {"name": "백부장", "need": 100, "feat": 15, "emoji": "⚔️"},
 	"a_kill500":  {"name": "살성(殺星)", "need": 500, "feat": 40, "emoji": "💀"},
@@ -352,15 +354,15 @@ const ACHIEVES := {
 	"a_lv30":     {"name": "노련한 몸", "need": 30, "feat": 50, "emoji": "🌳"},
 	"a_gold5000": {"name": "군자금", "need": 5000, "feat": 20, "emoji": "🪙"},
 	"a_gear7":    {"name": "온몸 무장", "need": 7, "feat": 25, "emoji": "🛡️"},
+	"a_quest10":  {"name": "믿을 만한 사람", "need": 10, "feat": 20, "emoji": "📋"},
 }
 
 
 ## **2026-09-13 추가 — 사명(퀘스트) 게시판.** data-quest.js QUESTS 20개 중
-## **8개만** 옮겼다 — 이 슬라이스가 이미 가진 누적값(kill/gather/gear/
-## boss/skill/gold)만으로 바로 판정 가능한 것만 골랐다. 나머지 열둘은
-## 새 시스템이 필요해 다음으로 미룬다:
-##   - q_field/q_forest/q_cave(사냥터별 킬 수) — `kills`는 전체 합산
-##     하나뿐, 사냥터별 카운트가 없다
+## **처음엔 8개, 이번에 사냥터별 킬 수 셋(q_field/q_forest/q_cave)을
+## 더해 11개**가 됐다 — 이 슬라이스가 이미 가진 누적값(kill/gather/
+## gear/boss/skill/gold, +이번에 stage_kills)만으로 바로 판정 가능한
+## 것만 골랐다. 나머지 아홉은 새 시스템이 필요해 다음으로 미룬다:
 ##   - q_explore1(goal.type:'visit')·q_talk1('talk') — "밟은 사냥터
 ##     집합"·"말 건 횟수" 추적이 없다(대화 가능한 마을 NPC 자체가 없다)
 ##   - r_*(반복 5개)·d_*(일일 2개) — "바친 뒤 다시 받는다"에 필요한
@@ -368,13 +370,18 @@ const ACHIEVES := {
 ## reward의 `potion`(탕약)은 전부 뺐다 — 이 포트엔 그 시스템 자체가
 ## 없다(RANGED_WEAPON.staff와 같은 결, 값이 생기면 채운다). `scroll`은
 ## 있는 그대로 옮겼다(story_save_state.gd `_grant_quest_scroll()` 참고).
+## `stage`가 있으면(q_field 등) `_quest_value()`가 전체 kills 대신
+## stage_kills[stage]를 본다(각 맵의 `stage_key()` 참고).
 const QUESTS := {
 	"q_first":   {"name": "첫 사냥",       "need": 1,  "goal_type": "kill",   "n": 10,   "exp": 60,   "gold": 200,  "scroll": ""},
 	"q_gather1": {"name": "약초 캐기",     "need": 2,  "goal_type": "gather", "n": 15,   "exp": 140,  "gold": 400,  "scroll": ""},
+	"q_field":   {"name": "들판을 비운다", "need": 3,  "goal_type": "kill",   "n": 40,   "stage": "field",  "exp": 220,  "gold": 700,  "scroll": "def100"},
 	"q_gear1":   {"name": "몸을 갖춘다",   "need": 4,  "goal_type": "gear",   "n": 3,    "exp": 180,  "gold": 600,  "scroll": ""},
 	"q_boss1":   {"name": "두목의 목",     "need": 5,  "goal_type": "boss",   "n": 1,    "exp": 400,  "gold": 1200, "scroll": "atk60"},
+	"q_forest":  {"name": "오림의 그늘",   "need": 6,  "goal_type": "kill",   "n": 60,   "stage": "forest", "exp": 700,  "gold": 2000, "scroll": ""},
 	"q_job":     {"name": "길을 정한다",   "need": 10, "goal_type": "skill",  "n": 1,    "exp": 500,  "gold": 1500, "scroll": "hp60"},
 	"q_gold1":   {"name": "군자금",        "need": 8,  "goal_type": "gold",   "n": 8000, "exp": 600,  "gold": 0,    "scroll": "atk10"},
+	"q_cave":    {"name": "굴혈로",        "need": 12, "goal_type": "kill",   "n": 90,   "stage": "cave",   "exp": 1800, "gold": 5000, "scroll": "def60"},
 	"q_gear2":   {"name": "온몸을 갖춘다", "need": 14, "goal_type": "gear",   "n": 7,    "exp": 2200, "gold": 6000, "scroll": "hp10"},
 	"q_master":  {"name": "무예를 익힌다", "need": 18, "goal_type": "skill",  "n": 20,   "exp": 3000, "gold": 8000, "scroll": "atk10"},
 }

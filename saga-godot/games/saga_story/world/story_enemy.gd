@@ -57,6 +57,7 @@ var boss_hp_mul := StoryCombat.BOSS_HP_MUL
 var boss_dmg_mul := StoryCombat.BOSS_DMG_MUL
 var enemy_lv := 1.0
 var enemy_color := COLOR
+var stage_key := ""  # data-quest.js goal.stage 그대로 — story_save_state.gd stage_kills 참고
 var hp: float
 var _dead := false
 var _attack_cd_left := 0.0
@@ -147,7 +148,7 @@ func _die() -> void:
 		return
 	_dead = true
 	died.emit()
-	StorySaveState.add_kill()
+	StorySaveState.add_kill(stage_key)
 	if is_boss:
 		StorySaveState.add_boss_kill()
 	StorySaveState.add_exp(StoryCombat.enemy_exp(is_boss, enemy_lv))

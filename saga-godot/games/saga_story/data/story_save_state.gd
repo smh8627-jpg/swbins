@@ -15,11 +15,12 @@ const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 10  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명)
+const SAVE_VERSION := 11  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명)
 
 var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
+var stage_kills: Dictionary = {}  # stage_key(String) -> int, data-quest.js q_field/q_forest/q_cave goal.stage 필터의 이 포트 버전
 var bosses := 0  # side.js s.bosses 그대로 — a_boss5 업적의 진행 카운트
 var feat := 0  # core.js player.feat(공적) — 이 슬라이스엔 칭호가 없어 그냥 누적값만
 var achievements: Dictionary = {}  # key(String) -> true, achieve.js st() 그대로(한 번 달성하면 안 없어짐)
@@ -69,8 +70,12 @@ func consume_pending_spawn() -> float:
 	return pending_spawn_x
 
 
-func add_kill() -> void:
+## stage_key를 넘기면(사냥터 안 잡졸·보스) 그 사냥터의 킬 수도 같이 센다
+## (q_field/q_forest/q_cave). 빈 문자열이면 원래대로 전체 킬만 센다.
+func add_kill(stage_key: String = "") -> void:
 	kills += 1
+	if not stage_key.is_empty():
+		stage_kills[stage_key] = int(stage_kills.get(stage_key, 0)) + 1
 	check_achievements()
 	check_quests()
 
@@ -226,6 +231,8 @@ func _achieve_value(key: String) -> float:
 			return float(gold)
 		"a_gear7":
 			return float(equipped.size())
+		"a_quest10":
+			return float(quests_done.size())
 		_:
 			return 0.0
 
@@ -246,7 +253,7 @@ func check_quests() -> void:
 		var q: Dictionary = StoryCombat.QUESTS[key]
 		if level < int(q.need):
 			continue
-		if _quest_value(String(q.goal_type)) < float(q.n):
+		if _quest_value(q) < float(q.n):
 			continue
 		quests_done[key] = true
 		var exp_reward := int(q.get("exp", 0))
@@ -265,10 +272,19 @@ func check_quests() -> void:
 ## quest.js look()의 이 포트 버전 — goal.type마다 다른 누적값을 본다.
 ## achieve.js valueOf()와 겹치는 칸(kills/bosses/equipped.size())이
 ## 있지만, 사명 쪽은 goal_type 이름이 원작 그대로라 따로 둔다.
-func _quest_value(goal_type: String) -> float:
+##
+## **2026-09-13 추가 — 사냥터별 킬 수.** goal_type이 'kill'이고 `stage`가
+## 있으면(q_field 등) 전체 kills 대신 stage_kills[stage]를 본다 —
+## data-quest.js onKill()의 `g.stage && g.stage !== info.stage` 필터와
+## 같은 결.
+func _quest_value(q: Dictionary) -> float:
+	var goal_type := String(q.goal_type)
 	match goal_type:
 		"kill":
-			return float(kills)
+			var stage := String(q.get("stage", ""))
+			if stage.is_empty():
+				return float(kills)
+			return float(stage_kills.get(stage, 0))
 		"gather":
 			return float(gathered_total())
 		"gear":
@@ -412,6 +428,7 @@ func save() -> bool:
 		"level": level,
 		"exp": exp,
 		"kills": kills,
+		"stage_kills": stage_kills,
 		"bosses": bosses,
 		"feat": feat,
 		"achievements": achievements,
@@ -447,6 +464,8 @@ func try_load() -> bool:
 	level = int(data.get("level", 1))
 	exp = int(data.get("exp", 0))
 	kills = int(data.get("kills", 0))
+	var loaded_stage_kills: Variant = data.get("stage_kills", {})
+	stage_kills = loaded_stage_kills if typeof(loaded_stage_kills) == TYPE_DICTIONARY else {}
 	bosses = int(data.get("bosses", 0))
 	feat = int(data.get("feat", 0))
 	var loaded_achievements: Variant = data.get("achievements", {})

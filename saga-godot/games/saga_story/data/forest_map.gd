@@ -153,6 +153,12 @@ static func enemy_is_ranged() -> bool:
 	return true
 
 
+## **2026-09-13 추가 — 사냥터별 킬 수 사명.** data-quest.js goal.stage
+## 값 그대로 — q_forest가 이 사냥터의 킬만 센다.
+static func stage_key() -> String:
+	return "forest"
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:

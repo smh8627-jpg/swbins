@@ -132,6 +132,13 @@ static func enemy_is_ranged() -> bool:
 	return false
 
 
+## **2026-09-13 추가 — 사냥터별 킬 수 사명.** data-quest.js에 q_gorge는
+## 없지만(field/forest/cave 셋만), story_enemy_spawner.gd/story_boss_
+## spawner.gd가 이 함수를 맵 구분 없이 부르므로 넷 다 갖춰 둔다.
+static func stage_key() -> String:
+	return "gorge"
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:

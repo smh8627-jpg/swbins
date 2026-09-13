@@ -5409,3 +5409,22 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - **다음에 할 일**: 사냥터별 킬 수 사명 3개·visit·talk 사명 2개·
   반복/일일 사명 7개 중 아무거나, 또는 STORY 밖(다른 네 판·
   saga-unity 트랙)으로.
+
+## STORY 사냥터별 킬 수 사명 3개 + a_quest10 (2026-09-13, "이어해" 지시로 계속)
+
+- q_field·q_forest·q_cave(사냥터별 킬 수 사명)를 옮겨 사명이 8→11개.
+  `story_save_state.gd`에 `stage_kills` 신규, `add_kill(stage_key)`로
+  시그니처 변경. 네 맵(field/forest/cave/gorge)에 `stage_key()` 신규,
+  `story_enemy.gd`/스포너 둘이 배선. SAVE_VERSION 10→11. 덤으로
+  `a_quest10` 업적도 옮김(사명이 11개로 늘어 `quests_done.size()`가
+  원작 "10번 완료"의 근사가 됨) — 그 김에 예전 `a_dex20` 소스 주석의
+  "몬스터 도감" 오기도 고쳤다(실제로는 인물·펫 등용 로스터). 자세한
+  내용은 `docs/VERTICAL_SLICE_STORY.md` 해당 절 참고.
+- 검증: 헤드리스 임포트 오류 0건, 네 사냥터 씬 각각 `--quit-after 6`
+  스크립트 오류 0건. 임시 씬-instantiate 검증 스크립트로 stage_key
+  네 개·stage_kills 분리 집계·q_field/q_forest 개별 완수·11개 전체
+  완수+a_quest10 달성까지 손계산과 일치 확인 후 스크립트 삭제,
+  재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은 아직
+  (몰아서 받을 것).
+- **다음에 할 일**: visit·talk 사명 2개·반복/일일 사명 7개 중
+  아무거나, 또는 STORY 밖(다른 네 판·saga-unity 트랙)으로.
