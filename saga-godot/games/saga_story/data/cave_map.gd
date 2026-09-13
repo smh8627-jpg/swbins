@@ -58,6 +58,12 @@ const GATHERS_PX: Array = [
 const BOSS_NAME := "위군 도독"
 const BOSS_X_PX := 2600.0
 
+## **2026-09-13 추가 — 사냥터별 보스 배율.** data-side.js cave.boss
+## 그대로(hpMul 17·dmgMul 2.5·cool 30분).
+const BOSS_HP_MUL := 17.0
+const BOSS_DMG_MUL := 2.5
+const BOSS_COOL_SEC := 1800.0  # 30분 * 60초
+
 const PORTAL_WEST_X_PX := 70.0
 ## 남정성에서 건너올 때 도착하는 자리 — +80px 관례.
 const ARRIVAL_FROM_NAMJEONGSEONG_X_PX := 150.0
@@ -114,6 +120,18 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_hp_mul() -> float:
+	return BOSS_HP_MUL
+
+
+static func boss_dmg_mul() -> float:
+	return BOSS_DMG_MUL
+
+
+static func boss_cool_sec() -> float:
+	return BOSS_COOL_SEC
 
 
 static func portal_west_m() -> float:

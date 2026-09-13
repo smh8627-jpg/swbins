@@ -57,6 +57,12 @@ const GATHERS_PX: Array = [
 const BOSS_NAME := "적국 대장군"
 const BOSS_X_PX := 3250.0
 
+## **2026-09-13 추가 — 사냥터별 보스 배율.** data-side.js gorge.boss
+## 그대로(hpMul 20·dmgMul 2.8·cool 40분) — 네 보스 중 가장 강하다.
+const BOSS_HP_MUL := 20.0
+const BOSS_DMG_MUL := 2.8
+const BOSS_COOL_SEC := 2400.0  # 40분 * 60초
+
 const PORTAL_WEST_X_PX := 70.0
 ## 기산채에서 건너올 때 도착하는 자리 — +80px 관례.
 const ARRIVAL_FROM_GISANCHAE_X_PX := 150.0
@@ -109,6 +115,18 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_hp_mul() -> float:
+	return BOSS_HP_MUL
+
+
+static func boss_dmg_mul() -> float:
+	return BOSS_DMG_MUL
+
+
+static func boss_cool_sec() -> float:
+	return BOSS_COOL_SEC
 
 
 static func portal_west_m() -> float:

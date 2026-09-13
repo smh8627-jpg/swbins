@@ -19,6 +19,11 @@ extends Node3D
 ## 몸집 배율(BOSS_VISUAL_SCALE)은 원작에 없는 값 — DUNGEON dungeon_
 ## enemy.gd가 r=boss?22:13(≈1.7배)로 몸집만 키우고 색은 그대로 두는
 ## 것과 같은 결로 새로 정했다.
+##
+## **2026-09-13 추가 — 사냥터별 보스 배율.** hp_mul/dmg_mul은 이제
+## story_boss_spawner.gd가 add_child 전에 맵별 값(is_boss와 같은 배선
+## 순서)으로 덮어쓴다 — 기본값(story_combat.gd BOSS_HP_MUL/DMG_MUL)은
+## map_path를 안 거치는 맨몸 인스턴스용 안전값일 뿐이다.
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const StoryGearPickup := preload("res://games/saga_story/world/story_gear_pickup.gd")
@@ -32,6 +37,8 @@ const OVERLAP_RANGE := 0.6  # (P_W/2 + enemy_w/2)px * SCALE = (13+17)*0.02
 const ATTACK_COOLDOWN := 1.0  # side.js e.cd = 1.0 그대로
 
 var is_boss := false
+var boss_hp_mul := StoryCombat.BOSS_HP_MUL
+var boss_dmg_mul := StoryCombat.BOSS_DMG_MUL
 var hp := StoryCombat.ENEMY_HP
 var _dead := false
 var _attack_cd_left := 0.0
@@ -39,7 +46,7 @@ var _attack_cd_left := 0.0
 
 func _ready() -> void:
 	if is_boss:
-		hp = StoryCombat.ENEMY_HP * StoryCombat.BOSS_HP_MUL
+		hp = StoryCombat.ENEMY_HP * boss_hp_mul
 		add_to_group("story_boss")
 	add_to_group("story_enemy")
 	_spawn_visual()
@@ -81,7 +88,7 @@ func _physics_process(delta: float) -> void:
 	if absf(dx) > OVERLAP_RANGE * scale_mul:
 		return
 	_attack_cd_left = ATTACK_COOLDOWN
-	var dmg: float = StoryCombat.ENEMY_DMG * (StoryCombat.BOSS_DMG_MUL if is_boss else 1.0)
+	var dmg: float = StoryCombat.ENEMY_DMG * (boss_dmg_mul if is_boss else 1.0)
 	player.take_damage(dmg)
 
 

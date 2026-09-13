@@ -4775,3 +4775,28 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 몬스터 도감, 사냥터별 보스 배율, 마을 배경
     (mood별 하늘 색), 2~4차 전직(job 체인 재설계 필요). "나머지 사냥터"
     굵직한 후보는 이걸로 완료.
+
+
+## STORY 사냥터별 보스 배율 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어해"** — 바로 위 항목이 남긴 "다음
+  이어질 것" 중 하나. field/forest/cave/gorge 네 보스가 지금까지
+  `story_combat.gd`의 field 전용 전역 상수(hp_mul 12·dmg_mul 2.0·
+  cool 15분) 하나를 같이 썼던 것을 `data-side.js` 원문대로 사냥터별로
+  갈랐다(forest 14/2.2/20분·cave 17/2.5/30분·gorge 20/2.8/40분).
+  자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 24절.
+  - 네 `*_map.gd`에 `boss_hp_mul()`/`boss_dmg_mul()`/`boss_cool_sec()`
+    신규(`boss_position_m()`과 같은 자리). `story_boss_spawner.gd`가
+    스폰 직전 이 값을 `story_enemy.gd`의 새 `boss_hp_mul`/`boss_dmg_mul`
+    변수에 얹고, 재스폰 타이머도 맵의 `boss_cool_sec()`을 쓴다(전역
+    상수 직접 참조 제거, `story_combat.gd` 값 자체는 안전 기본값으로
+    유지).
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+    → 열세 씬 세 번 연속 exit 0·로그 완전 동일(다섯 판 회귀 포함). 임시
+    디버그로 네 보스 씬(field/forest/cave/gorge) 각각 실제 적용된
+    hp_mul·dmg_mul·cool_sec과 스폰된 보스 hp(216/252/306/360)가 전부
+    손계산과 일치 확인. 디버그 원상복구(diff — print만 제거, 실제 로직은
+    유지), 재검증까지 마침.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 몬스터 도감(사냥터마다 다른 적), 마을 배경
+    (mood별 하늘 색), 2~4차 전직(job 체인 재설계 필요).

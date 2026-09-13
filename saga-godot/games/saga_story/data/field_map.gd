@@ -73,6 +73,16 @@ const GATHERS_PX: Array = [
 const BOSS_NAME := "황건 두목"
 const BOSS_X_PX := 2050.0
 
+## **2026-09-13 추가 — 사냥터별 보스 배율.** data-side.js field.boss
+## 그대로(hpMul 12·dmgMul 2.0·cool 15분). 지금까지는 story_combat.gd
+## BOSS_HP_MUL/BOSS_DMG_MUL/BOSS_COOL_SEC를 모든 사냥터가 같이 썼는데
+## (field 값과 우연히 같았을 뿐), forest/cave/gorge가 각자 다른 배율을
+## 가진 사냥터라 이 사냥터 전용 값으로 옮긴다. field는 story_combat.gd
+## 값과 수치가 같다(원래 그 값의 출처가 field였다).
+const BOSS_HP_MUL := 12.0
+const BOSS_DMG_MUL := 2.0
+const BOSS_COOL_SEC := 900.0  # 15분 * 60초
+
 ## **2026-09-13 추가 — 문(portal, 15절).** data-side.js field.portals[0]
 ## ([70,'heodo']) 그대로. portals[1]([2130,'gangneungjin'])은 그 사냥터가
 ## 아직 없어 안 옮겼었다 — **2026-09-13 추가(같은 날 더, 20절 SP 시스템
@@ -141,6 +151,18 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_hp_mul() -> float:
+	return BOSS_HP_MUL
+
+
+static func boss_dmg_mul() -> float:
+	return BOSS_DMG_MUL
+
+
+static func boss_cool_sec() -> float:
+	return BOSS_COOL_SEC
 
 
 static func portal_west_m() -> float:

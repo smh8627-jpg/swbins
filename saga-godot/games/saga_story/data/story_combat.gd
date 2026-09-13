@@ -84,6 +84,13 @@ const GATHER_INFO := {
 ## data-side.js field.boss(황건 두목) — hpMul 12·dmgMul 2.0·cool 15(분) 그대로.
 ## DMG_MUL은 2026-09-13(반격 추가)부터 실제로 쓰인다(story_enemy.gd
 ## `_physics_process()` — ENEMY_DMG에 곱한다).
+##
+## **2026-09-13 추가(같은 날 더) — 사냥터별 보스 배율로 옮김.** forest/
+## cave/gorge는 각자 다른 hpMul·dmgMul·cool을 가진 보스라(field_map.gd·
+## forest_map.gd·cave_map.gd·gorge_map.gd의 BOSS_HP_MUL 등 참고)
+## story_boss_spawner.gd가 이제 이 세 값을 안 읽는다 — 여기 남겨 둔 값은
+## field와 수치가 같고, map_path 없이 만들어진 story_enemy.gd 인스턴스의
+## 기본값(안전값)으로만 쓰인다.
 const BOSS_HP_MUL := 12.0
 const BOSS_DMG_MUL := 2.0
 const BOSS_COOL_SEC := 900.0  # 15분 * 60초

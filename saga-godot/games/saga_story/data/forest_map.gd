@@ -16,7 +16,8 @@ extends RefCounted
 ##     지금은 "새 사냥터가 있다"까지만 검증한다.
 ##   - 보스(오랑캐 족장)도 이름만 원문 그대로 옮기고(BOSS_NAME, 아직
 ##     화면에 안 뜬다 — field_map.gd 머리말과 같다), hpMul·dmgMul·cool은
-##     story_combat.gd가 이미 갖고 있는 field용 상수를 그대로 재사용한다
+##     처음엔 story_combat.gd의 field용 상수를 임시로 재사용했었다
+##     (2026-09-13 뒤에 이 사냥터 전용 값으로 되돌림, 아래 BOSS_HP_MUL 참고)
 ##     (사냥터마다 다른 보스 배율을 도입하는 것도 몬스터 도감과 같은 결의
 ##     더 큰 확장 — 지금은 안 벌린다).
 ##
@@ -66,6 +67,13 @@ const GATHERS_PX: Array = [
 ## 나중에 놓을 때 이 값과 60px 이상 떨어뜨리면 된다, 21절 참고).
 const BOSS_NAME := "오랑캐 족장"
 const BOSS_X_PX := 2450.0
+
+## **2026-09-13 추가 — 사냥터별 보스 배율.** 위 머리말이 "field용 상수를
+## 그대로 재사용한다"고 적어 뒀던 것을 이번에 원문(data-side.js forest.
+## boss: hpMul 14·dmgMul 2.2·cool 20분)으로 되돌린다.
+const BOSS_HP_MUL := 14.0
+const BOSS_DMG_MUL := 2.2
+const BOSS_COOL_SEC := 1200.0  # 20분 * 60초
 
 const PORTAL_WEST_X_PX := 70.0
 ## 강릉진에서 건너올 때 도착하는 자리 — heodo/gangneungjin과 같은
@@ -128,6 +136,18 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_hp_mul() -> float:
+	return BOSS_HP_MUL
+
+
+static func boss_dmg_mul() -> float:
+	return BOSS_DMG_MUL
+
+
+static func boss_cool_sec() -> float:
+	return BOSS_COOL_SEC
 
 
 static func portal_west_m() -> float:

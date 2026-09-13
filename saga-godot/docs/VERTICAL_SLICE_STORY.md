@@ -1214,6 +1214,52 @@ field 전용이었다(22절이 놓친 넷째 스포너) — 오림 숲·한중 �
   나머지 사냥터라는 "굵직한 후보"는 이걸로 완료 — PLAN.md 79·80장이
   가리키던 항목이 다 채워졌다.
 
+## 24. 사냥터별 보스 배율 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해"** — 23절이 남긴 "다음 이어질 것" 중
+하나(사냥터별 보스 배율)를 채웠다. 지금까지 field/forest/cave/gorge
+네 보스가 전부 `story_combat.gd`의 전역 상수(`BOSS_HP_MUL` 12·
+`BOSS_DMG_MUL` 2.0·`BOSS_COOL_SEC` 900) 하나를 같이 썼다 — field
+전용이던 값이 forest 이후 세 사냥터에도 그대로 새 나갔던 것(forest_
+map.gd 머리말이 "story_combat.gd가 이미 갖고 있는 field용 상수를
+그대로 재사용한다"고 스스로 적어 뒀었다). `data-side.js` 원문은 넷이
+다 다르다(field 12/2.0/15분, forest 14/2.2/20분, cave 17/2.5/30분,
+gorge 20/2.8/40분) — 이번에 그 차이를 실제로 살렸다.
+
+- `{field,forest,cave,gorge}_map.gd`: 각자 `BOSS_HP_MUL`/`BOSS_DMG_MUL`/
+  `BOSS_COOL_SEC` 상수 + `boss_hp_mul()`/`boss_dmg_mul()`/
+  `boss_cool_sec()` 신규(`boss_position_m()`과 같은 자리·모양).
+- `story_boss_spawner.gd`: `_spawn_boss()`가 `is_boss`와 같은 순서로
+  `boss.boss_hp_mul`/`boss.boss_dmg_mul`을 add_child 전에 세팅(이제
+  맵에서 읽음). `_on_boss_died()`의 재스폰 타이머도 `StoryCombat.
+  BOSS_COOL_SEC` 대신 `_map.boss_cool_sec()`. 안 쓰게 된 `StoryCombat`
+  preload 제거.
+- `story_enemy.gd`: `is_boss` 옆에 `boss_hp_mul`/`boss_dmg_mul` export성
+  변수 신규(기본값은 story_combat.gd 상수 — map_path를 안 거치는
+  맨몸 인스턴스용 안전값). `_ready()`의 hp 계산과 `_physics_process()`의
+  반격 데미지가 이 두 변수를 읽는다(전역 상수 직접 참조 제거).
+- `story_combat.gd`의 `BOSS_HP_MUL`/`BOSS_DMG_MUL`/`BOSS_COOL_SEC`는
+  안 지웠다 — field 값과 같고, 위 안전값 용도로 여전히 쓰인다.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → `project.godot`/`*.import` diff 없음 확인 → 열세 씬
+전부 `--quit-after 5` 세 번 연속 exit 0·로그 완전 동일(다섯 판 회귀
+포함). **임시 디버그**(`story_boss_spawner.gd` `_spawn_boss()`에 print
+두 줄 추가)로 네 보스 씬(TestField·ForestHuntGround·CaveHuntGround·
+GorgeHuntGround)을 각각 실행해 실제 적용값 확인: hp_mul/dmg_mul/
+cool_sec이 map_path별로 정확히 12·2.0·900(field) / 14·2.2·1200(forest) /
+17·2.5·1800(cave) / 20·2.8·2400(gorge)로 갈리고, 스폰된 보스의 실제
+hp가 `ENEMY_HP(18) × hp_mul` = 216/252/306/360으로 넷 다 손계산과
+정확히 일치. 디버그 원상복구(`story_boss_spawner.gd` diff — print
+두 줄만 제거, 실제 로직 변경분은 유지), 재검증(3회 반복, exit 0·로그
+동일·project.godot/.import diff 없음)까지 마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — 강한 보스(gorge, 적국 대장군)가 실제로
+더 세게 느껴지는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 몬스터 도감(사냥터마다 다른 적), 마을 배경(mood별
+하늘 색), 2~4차 전직(job 체인 재설계 필요).
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
