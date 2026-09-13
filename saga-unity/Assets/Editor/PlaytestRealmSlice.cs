@@ -5,6 +5,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using Saga.Realm.Data;
 using Saga.Realm.World;
+using Saga.Realm.Player;
 using Saga.Realm.UI;
 
 namespace Saga.EditorTools
@@ -44,7 +45,7 @@ namespace Saga.EditorTools
 
         private enum Phase
         {
-            Init, LocationGate, ShipsGate, Agri, SettleAfterAgri, Comm, SettleAfterComm,
+            Init, WorldMap, LocationGate, ShipsGate, Agri, SettleAfterAgri, Comm, SettleAfterComm,
             Tech, Sec, Wall, Train, Draft, SettleAfterDraft,
             SearchAtChenliu, Hire, AgriByNewOfficer,
             PlotGate, PlotRumor, PlotFire,
@@ -110,7 +111,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -143,8 +144,142 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    _phase = Phase.WorldMap;
+                    break;
+
+                case Phase.WorldMap:
+                {
+                    // VERTICAL_SLICE_REALM.md 2-8~2-10절 — 지도 토글·성표
+                    // 위치·탭 선택·드래그 회전/줌 클램프까지, 컴포넌트를
+                    // 직접 불러 판정 경로만 본다(다른 phase들과 같은 관행).
+                    // GameObject.Find()는 비활성 오브젝트를 못 찾는다(WorldMap
+                    // 쪽은 시작 시 꺼져 있다) — 컴포넌트를 FindObjectsInactive
+                    // .Include로 찾은 뒤 그 gameObject를 쓴다.
+                    var worldMap = Object.FindFirstObjectByType<RealmWorldMap>(FindObjectsInactive.Include);
+                    var mapCam = Object.FindFirstObjectByType<RealmWorldMapCamera>(FindObjectsInactive.Include);
+                    var dioramaCam = Object.FindFirstObjectByType<RealmOrbitCamera>(FindObjectsInactive.Include);
+                    var mapCameraRigGo = mapCam != null ? mapCam.gameObject : null;
+                    var dioramaRigGo = dioramaCam != null ? dioramaCam.gameObject : null;
+                    if (worldMap == null || mapCam == null || mapCameraRigGo == null || dioramaRigGo == null)
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] 월드맵 구성 못 찾음 — RealmWorldMap/RealmWorldMapCamera/WorldMapCameraRig/RealmCameraRig 중 일부 없음");
+                        Fail();
+                        return;
+                    }
+
+                    // 켜기 전엔 디오라마만 활성.
+                    if (!dioramaRigGo.activeSelf || mapCameraRigGo.activeSelf)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 초기 상태 이상 — diorama={dioramaRigGo.activeSelf}(기대=true) mapCam={mapCameraRigGo.activeSelf}(기대=false)");
+                        Fail();
+                        return;
+                    }
+
+                    RealmMapState.Toggle();
+                    if (!RealmMapState.ViewingMap || dioramaRigGo.activeSelf || !mapCameraRigGo.activeSelf)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 지도 토글 실패 — viewingMap={RealmMapState.ViewingMap} diorama={dioramaRigGo.activeSelf} mapCam={mapCameraRigGo.activeSelf}");
+                        Fail();
+                        return;
+                    }
+
+                    // 성표 위치 — 손 계산과 대조(허창(58,47)·진류(63,39)·
+                    // 복양(68,33), 중심=(63, 39.667), WorldScale=14).
+                    var (centerX, centerY) = RealmWorldMap.MapCenter(RealmCityState.ActiveCityIds);
+                    if (Mathf.Abs(centerX - 63f) > 0.01f || Mathf.Abs(centerY - 39.667f) > 0.01f)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 지도 중심 불일치 — center=({centerX},{centerY}) 기대=(63, 39.667)");
+                        Fail();
+                        return;
+                    }
+                    var xuchangPos = RealmWorldMap.WorldPos(RealmCityData.Get("xuchang"), centerX, centerY);
+                    var expectedXuchang = new Vector3((58f - centerX) * 14f, 0f, (centerY - 47f) * 14f);
+                    if (Vector3.Distance(xuchangPos, expectedXuchang) > 0.01f)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 성표 위치 불일치 — xuchang={xuchangPos} 기대={expectedXuchang}");
+                        Fail();
+                        return;
+                    }
+
+                    // 탭 선택 — 지금 조망은 xuchang, 진류 성표를 탭하면 바뀌어야 한다.
+                    var chenliuMarkerGo = GameObject.Find("Marker_chenliu");
+                    if (chenliuMarkerGo == null)
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] Marker_chenliu 못 찾음");
+                        Fail();
+                        return;
+                    }
+                    var mapCameraComponent = mapCam.GetComponentInChildren<Camera>(); // Camera는 rig의 자식에 있다.
+                    Vector2 markerScreenPos = mapCameraComponent != null
+                        ? (Vector2)mapCameraComponent.WorldToScreenPoint(chenliuMarkerGo.transform.position)
+                        : Vector2.zero;
+                    mapCam.DebugBeginDrag(markerScreenPos);
+                    mapCam.DebugEndDrag(markerScreenPos); // 문지방 안 넘긴 손떼기 = 탭.
+                    if (RealmCityState.CurrentCity != "chenliu")
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 성표 탭 선택 실패 — currentCity={RealmCityState.CurrentCity}(기대=chenliu)");
+                        Fail();
+                        return;
+                    }
+                    RealmCityState.SetCurrentCity("xuchang"); // 이후 phase들의 전제(허창 시작)로 되돌린다.
+
+                    // 드래그 회전 + 클램프 — 문지방 넘는 이동은 yaw/pitch를
+                    // 공식대로 바꾸고, 확정된 드래그 뒤의 손떼기는 탭으로
+                    // 오판하면 안 된다(성이 안 바뀜).
+                    float yawBefore = mapCam.DebugYaw;
+                    float pitchBefore = mapCam.DebugPitch;
+                    var dragStart = new Vector2(500f, 500f);
+                    mapCam.DebugBeginDrag(dragStart);
+                    var dragPos = dragStart + new Vector2(80f, 40f); // 문지방(10px) 훌쩍 넘는 이동.
+                    mapCam.DebugApplyDrag(dragPos - dragStart, dragPos);
+                    mapCam.DebugEndDrag(dragPos);
+                    if (RealmCityState.CurrentCity != "xuchang")
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 드래그 확정 후 탭 오판 — currentCity={RealmCityState.CurrentCity}(기대=xuchang, 안 바뀌어야 함)");
+                        Fail();
+                        return;
+                    }
+                    float expectedYaw = yawBefore + 80f * 0.006f;
+                    float expectedPitch = Mathf.Clamp(pitchBefore + 40f * 0.006f, 0.35f, 1.3f);
+                    if (Mathf.Abs(mapCam.DebugYaw - expectedYaw) > 0.0001f ||
+                        Mathf.Abs(mapCam.DebugPitch - expectedPitch) > 0.0001f)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 드래그 회전 공식 불일치 — yaw={mapCam.DebugYaw}(기대={expectedYaw}) pitch={mapCam.DebugPitch}(기대={expectedPitch})");
+                        Fail();
+                        return;
+                    }
+                    // 문지방 안 넘는 미세한 드래그는 안 잠겨야 한다.
+                    float yawBeforeSmall = mapCam.DebugYaw;
+                    var smallStart = new Vector2(200f, 200f);
+                    mapCam.DebugBeginDrag(smallStart);
+                    var smallPos = smallStart + new Vector2(3f, 2f); // 거리 3.6 < 10.
+                    mapCam.DebugApplyDrag(smallPos - smallStart, smallPos);
+                    if (Mathf.Abs(mapCam.DebugYaw - yawBeforeSmall) > 0.00001f)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 문지방 미만 드래그가 잠김 — yaw={mapCam.DebugYaw}(기대={yawBeforeSmall})");
+                        Fail();
+                        return;
+                    }
+                    mapCam.DebugEndDrag(smallPos); // 문지방 안 넘겼으니 탭 판정 — 빈 곳이라 성 안 바뀜.
+                    if (RealmCityState.CurrentCity != "xuchang")
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 빈 곳 탭인데 성이 바뀜 — currentCity={RealmCityState.CurrentCity}");
+                        Fail();
+                        return;
+                    }
+
+                    Debug.Log("[PlaytestRealmSlice] world map OK - toggle/marker-position/tap-select/drag-rotate(threshold+clamp) all verified");
+
+                    RealmMapState.ForceOff();
+                    if (RealmMapState.ViewingMap || !dioramaRigGo.activeSelf || mapCameraRigGo.activeSelf)
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] 지도 되돌리기 실패");
+                        Fail();
+                        return;
+                    }
                     _phase = Phase.LocationGate;
                     break;
+                }
 
                 case Phase.LocationGate:
                 {

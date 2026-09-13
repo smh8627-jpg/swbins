@@ -19,8 +19,13 @@ namespace Saga.Realm.Data
         public readonly int BaseComm;
         public readonly int BaseWall;
         public readonly int BasePop;
+        /// <summary>월드맵 좌표(VERTICAL_SLICE_REALM.md 2-8절) — js/data-city.js의
+        /// x·y(0~100 지도 비율) 그대로. 디오라마 조망과는 무관 — 지도에서
+        /// 성 위치를 잡을 때만 쓴다.</summary>
+        public readonly float MapX;
+        public readonly float MapY;
 
-        public RealmCityDef(string id, string name, RealmLand land, int agri, int comm, int wall, int pop)
+        public RealmCityDef(string id, string name, RealmLand land, int agri, int comm, int wall, int pop, float mapX, float mapY)
         {
             Id = id;
             Name = name;
@@ -29,6 +34,8 @@ namespace Saga.Realm.Data
             BaseComm = comm;
             BaseWall = wall;
             BasePop = pop;
+            MapX = mapX;
+            MapY = mapY;
         }
     }
 
@@ -42,14 +49,14 @@ namespace Saga.Realm.Data
 
         private static readonly Dictionary<string, RealmCityDef> Catalog = new Dictionary<string, RealmCityDef>
         {
-            ["xuchang"] = new RealmCityDef("xuchang", "허창", RealmLand.Plain, agri: 400, comm: 360, wall: 5400, pop: 260000),
-            ["chenliu"] = new RealmCityDef("chenliu", "진류", RealmLand.Plain, agri: 340, comm: 320, wall: 4800, pop: 240000),
-            ["puyang"] = new RealmCityDef("puyang", "복양", RealmLand.River, agri: 300, comm: 280, wall: 4600, pop: 210000),
+            ["xuchang"] = new RealmCityDef("xuchang", "허창", RealmLand.Plain, agri: 400, comm: 360, wall: 5400, pop: 260000, mapX: 58, mapY: 47),
+            ["chenliu"] = new RealmCityDef("chenliu", "진류", RealmLand.Plain, agri: 340, comm: 320, wall: 4800, pop: 240000, mapX: 63, mapY: 39),
+            ["puyang"] = new RealmCityDef("puyang", "복양", RealmLand.River, agri: 300, comm: 280, wall: 4600, pop: 210000, mapX: 68, mapY: 33),
             // js/data-city.js 그대로 — RealmEnemyCity.cs가 전쟁 판정(성벽 3600)에
             // 이미 쓰는 것과 같은 성. AllCityIds엔 안 넣는다(처음부터 우리
             // 것이 아니다) — 함락하면 RealmCityState.AbsorbCity()가 이 정의로
             // RealmCityRecord를 지어 편입한다(REALM 다음 조각 (2) 참고).
-            ["xiaopei"] = new RealmCityDef("xiaopei", "소패", RealmLand.Plain, agri: 220, comm: 200, wall: 3600, pop: 120000),
+            ["xiaopei"] = new RealmCityDef("xiaopei", "소패", RealmLand.Plain, agri: 220, comm: 200, wall: 3600, pop: 120000, mapX: 70, mapY: 43),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
