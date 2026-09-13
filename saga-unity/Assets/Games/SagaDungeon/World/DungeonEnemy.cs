@@ -71,11 +71,17 @@ namespace Saga.Dungeon.World
 
         private const float FlashSec = 0.08f; // "타격감 1차" 슬라이스 — enemy flash.
 
+        // 44장 "주요 Enemy" 교체 — Death 애니메이션이 재생될 시간을 준 뒤
+        // Destroy한다(Player/PlayerCombat.cs의 즉시 회복과 달리 적은
+        // 그 자리에서 완전히 사라지므로 지연이 필요).
+        private const float DeathAnimDelaySec = 1.2f;
+
         private State _state = State.Idle;
         private float _curHp;
         private float _attackCooldown;
         private Transform _player;
         private GameObject _visualGo;
+        private Animator _animator;
         private Coroutine _flashRoutine;
 
         /// <summary>"랜덤 이벤트" 슬라이스 — `DungeonAmbush.cs`처럼 런타임에
@@ -128,8 +134,29 @@ namespace Saga.Dungeon.World
         private void OnEnable() => Active.Add(this);
         private void OnDisable() => Active.Remove(this);
 
+        /// <summary>44장 "주요 Enemy" 교체 — `modelPrefab`에 Animator가
+        /// 이미 붙어 있으면(`SetupAbeCharacterImport.cs`가 구운
+        /// AbeAnimated.prefab처럼) 리깅된 캐릭터로 보고 실제 스케일 그대로
+        /// 쓴다(Mixamo FBX는 이미 실제 사람 크기 단위로 들어온다 —
+        /// `BuildTestDungeonScene.BuildPlayerVisual`의 Maria와 같은 가정).
+        /// 그 외(Kenney GLB·null)는 기존 `CharacterVisual`(NativeHeight
+        /// 2.7 기준 스케일) 경로 그대로.</summary>
         private void BuildVisual()
         {
+            if (modelPrefab != null && modelPrefab.GetComponent<Animator>() != null)
+            {
+                var inst = Instantiate(modelPrefab, transform, false);
+                inst.name = "Visual";
+                inst.transform.localScale = Vector3.one * visualScale;
+                _visualGo = inst;
+                _animator = inst.GetComponent<Animator>();
+                if (bodyColor != Color.white)
+                {
+                    CharacterVisual.Tint(inst, bodyColor);
+                }
+                return;
+            }
+
             float targetHeight = 2f * visualScale; // 기존 primitive capsule 기준(높이 2m × visualScale) 그대로 유지.
 
             Transform visual = modelPrefab != null
@@ -161,14 +188,17 @@ namespace Saga.Dungeon.World
                     transform.position += dir * chaseSpeed * Time.deltaTime;
                     transform.rotation = Quaternion.LookRotation(dir);
                 }
+                _animator?.SetFloat("Speed", 1f);
             }
             else
             {
+                _animator?.SetFloat("Speed", 0f);
                 _attackCooldown -= Time.deltaTime;
                 if (_attackCooldown <= 0f)
                 {
                     _attackCooldown = attackInterval;
                     HeroState.TakeDamage(dmg);
+                    _animator?.SetTrigger("Attack");
                 }
             }
         }
@@ -224,7 +254,14 @@ namespace Saga.Dungeon.World
                 _flashRoutine = StartCoroutine(FlashHit());
             }
 
-            if (_curHp <= 0f) Die();
+            if (_curHp <= 0f)
+            {
+                Die();
+            }
+            else
+            {
+                _animator?.SetTrigger("Hit");
+            }
         }
 
         private IEnumerator FlashHit()
@@ -257,6 +294,20 @@ namespace Saga.Dungeon.World
             if (newlyDiscovered) msg += $"\n📖 도감에 처음 기록됨 — {displayName}";
             DialogueLabel.Instance?.Show(msg, ToastSec);
 
+            if (_animator != null)
+            {
+                _animator.SetTrigger("Death");
+                StartCoroutine(DestroyAfterDeathAnim());
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+        }
+
+        private IEnumerator DestroyAfterDeathAnim()
+        {
+            yield return new WaitForSeconds(DeathAnimDelaySec);
             Destroy(gameObject);
         }
     }
