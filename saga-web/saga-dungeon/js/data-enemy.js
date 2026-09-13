@@ -204,7 +204,19 @@
     { name: '판갑룡', emoji: '🦕', kind: 'beast', color: '#5a6a4a', form: 'quad', body: 'dino_stego', tier: 3, resist: { phys: 30 } },
     { name: '폭룡', emoji: '🦖', kind: 'beast', color: '#6a2a1a', form: 'quad', body: 'dino_trex', tier: 4, resist: { phys: 25 } },
     { name: '삼각뿔룡', emoji: '🦏', kind: 'beast', color: '#8a5a3a', form: 'quad', body: 'dino_tri', tier: 4, resist: { phys: 35 } },
-    { name: '장경룡', emoji: '🦕', kind: 'beast', color: '#5a7a6a', form: 'quad', body: 'dino_apato', tier: 4, resist: { phys: 40 } }
+    { name: '장경룡', emoji: '🦕', kind: 'beast', color: '#5a7a6a', form: 'quad', body: 'dino_apato', tier: 4, resist: { phys: 40 } },
+
+    /* 2026-09-14(이어서) — "3안" 계속, OpenGameArt "Cute Animated Monsters"
+       (Quaternius, CC0, asset3d.js 주석 참고)에서 새로 받은 다섯. 겹치는
+       개체(Demon·Yeti·Cactus·Mushroom)는 이미 있어 안 쓰고, 새 몸 다섯만
+       판에 얹는다 — 전부 실제 인물·시리즈와 무관한 창작 형상이라 이름
+       정책에 걸리지 않는다(크툴루 신화의 그 이름은 내부 식별자 `body`
+       에만 남기고 화면 이름은 다른 민담 어휘로 옮겼다). */
+    { name: '풋귀', emoji: '👹', kind: 'beast', color: '#5a8a3a', form: 'ogre', body: 'demon_green', tier: 1 },
+    { name: '집게괴', emoji: '🦀', kind: 'beast', color: '#a8503a', form: 'quad', body: 'crab', tier: 1, resist: { phys: 10 }, biome: 'swamp' },
+    { name: '고목정', emoji: '🌳', kind: 'beast', color: '#4a6a3a', form: 'ogre', body: 'treant', tier: 2, resist: { phys: 10 }, biome: 'forest' },
+    { name: '외눈귀', emoji: '👁️', kind: 'beast', color: '#7a6a5a', form: 'ogre', body: 'cyclops', tier: 3, resist: { phys: 15 }, biome: 'mountain' },
+    { name: '심연촉수귀', emoji: '🐙', kind: 'beast', color: '#2a3a4a', form: 'dragon', body: 'cthulhu', tier: 4, resist: { chi: 20 } }
   ];
 
   var BOSSES = [
