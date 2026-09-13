@@ -2505,25 +2505,70 @@ PROJECT_STATE.md` 참고. 요약:
   먼저 Quaternius로 바꾸는 쪽이 비용 대비 효과가 크다**는 게 이번 비교의
   실질적 결론 — 다음에 사람이 다운로드를 받아 주면 바로 이어갈 것.
 
-## 다음에 할 일 (아직 착수 전)
+## 톤 확인 + 실제 씬 반영 (2026-09-13, "1,2,3,4,5,6 순으로 진행" 지시로 이어서)
 
-- **사람이 직접 `CelShaderPrototype.tscn`을 열어 카툰 톤을 눈으로 확인**
-  (band_count·rim 값 튜닝은 실기 확인 후 결정) — 자동화 불가 영역
-- 실제 캐릭터 외형(플레이어·촌장·상인·산적 등) 디자인 — 사람이 VRoid
-  Studio를 직접 열어 슬라이더로 조형해야 하는 부분(자동화 불가 영역)
+- **1번 — 실기 확인 완료.** PowerShell 스크린샷 절차(saga-godot
+  CLAUDE.md)로 `CelShaderPrototype.tscn`을 직접 띄워 확인. 첫 결과는
+  정면 광원+`rim_strength=0.6`이 겹쳐 밝은 옷(카디건)이 완전히 하얗게
+  날아가고(env_pc.tres의 `glow_bloom`과 겹쳐 halo가 더 도드라짐), 밴드
+  경계도 거의 안 보였다. `cel_toon.gdshader` 기본값을 `rim_strength
+  0.6→0.3`·`rim_power 3.0→4.5`·`band_softness 0.15→0.08`로 낮추고,
+  프로토타입 전용 `Sun` 각도를 정면광 대신 `rotation_degrees=(-45,-35,0)`
+  옆광으로 바꿔 재확인 — 밴드 경계(머리카락·카디건 그늘 쪽)가 살짝 더
+  보이지만 흰 옷 rim은 여전히 밝다(연구 결론: 이건 셰이더보다
+  `env_pc.tres`의 글로우와 흰색 알베도가 겹치는 문제 — 다음에 더 다듬을
+  여지로 남겨 둠, 완전한 원신 톤까지는 아직 아니다).
+- **4번 — 실제 Player/NPC 씬에 반영.** 프로토타입 로직을 재사용 가능한
+  공용 헬퍼로 뽑았다: `saga_core/shaders/cel_shader_apply.gd`
+  (`CelShaderApply.apply_to(node)`, `BaseMaterial3D`이고
+  `albedo_texture`가 있는 서피스만 셰이더로 덮는다 — 텍스처 없는 단색
+  primitive는 건드리지 않아 검게 뜨는 걸 막는다).
+  - `games/saga_go/player/player.gd`(GO·DUNGEON·FOREST가 공유) `_ready()`에
+    `CelShaderApply.apply_to(visual)` 추가 — 세 판 Player 전부 적용.
+  - `games/saga_story/player/story_player.gd` `_ready()`에도 동일하게
+    추가.
+  - `games/saga_go/world/npc_builder.gd`의 `_spawn()`에서 NPC 몸체
+    인스턴스 직후 적용 — 촌장·상인(character-b/c.glb)도 카툰 톤.
+  - **FOREST 마을 주민(`villager_builder.gd`)은 건드리지 않았다** — 이미
+    `WorldCurveMaterial`(구면 투영, `saga_core/world/
+    world_curve_material.gd`) 셰이더 머티리얼을 쓰고 있어(66-2장·루트
+    CLAUDE.md가 되돌리지 말라는 그 곡률), `CelShaderApply`의
+    `BaseMaterial3D` 가드에 걸려 조용히 no-op된다. 곡률+카툰을 동시에
+    입히려면 `world_curve_material.gd` 자체에 밴드/rim 로직을 병합해야
+    하는데, 이건 다섯 곳(건물·나무·바위·주민 전부가 이 머티리얼을 쓴다)에
+    영향을 주는 별도 작업이라 이번 패스 범위 밖으로 남겨 둔다.
+  - **Enemy/Boss는 아직 반영 안 함** — `dungeon_enemy.gd`·
+    `dungeon_hero_encounter.gd`·`story_enemy.gd`·`story_talk_npc.gd` 전부
+    아직 GLB가 없는 단색 캡슐 placeholder다(주석에 이미 "이 판 전용 GLB가
+    아직 없다"고 적혀 있음) — 셀 셰이더는 텍스처 대상이라 지금 적용할
+    실제 대상이 없다. GLB가 생기면 그때 `CelShaderApply.apply_to()`
+    한 줄만 더하면 된다.
+  - 검증: `--headless --editor --quit`(임포트, 오류 0) +
+    `TestVillage.tscn`·`TestRoom.tscn`(dungeon)·`TestVillageForest.tscn`·
+    `TestField.tscn`(story) 넷을 각각 `--quit-after 3 --verbose`로 헤드리스
+    실행, 전부 오류·경고 0건. `git status`로 `project.godot`/`*.import`
+    잡음 확인 후 되돌림(에디터 부작용, 이번 작업과 무관).
+- **5번 — KayKit 판단.** 형태 비교(위 절)에서 이미 나온 결론대로, 지금
+  단계에서는 **채택하지 않는다** — Kenney Fantasy Town Kit과 같은 각진
+  저폴리라 교체 실익이 없다. `assets/_candidates_66-2/kaykit_medieval_hex/`는
+  그대로 후보 폴더로 남겨 두고 게임 씬엔 계속 안 물린다. 자연물
+  (Quaternius)이 먼저다 — 아래 "아직 남은 것" 참고.
+- **6번 — 확인.** `assets/characters_vroid/AvatarSample_A.{vrm,glb}` 둘 다
+  여전히 있음, 이번 세션에서 새 VRM을 추가하지 않아 규칙 위반 없음.
+
+## 아직 남은 것 (사람 손이 필요해 이번엔 못 끝냄)
+
+- 실제 캐릭터 외형(플레이어·촌장·상인·산적 등) 디자인 — VRoid Studio를
+  사람이 직접 열어 슬라이더로 조형해야 한다(자동화 불가). 지금 씬에
+  물려 있는 건 여전히 `character-a/b/c.glb`(Kenney) 자리표시자다.
 - **사람이 Quaternius Stylized Nature MegaKit 무료(Standard) 버전을
   itch.io에서 한 번 다운로드**(`quaternius.itch.io/stylized-nature-
-  megakit`, name-your-own-price 0원 가능) — 그 다음은 이 세션이 이어서
-  Godot 임포트·기존 Kenney 나무와 교체 검증까지 할 수 있다
-- 톤이 확정되면 `cel_toon.gdshader`를 44장 우선순위대로 실제
-  Player/Enemy/NPC/Boss 씬에 반영, 아웃라인은 그 다음 별도 단계
-- `assets/_candidates_66-2/`의 KayKit 샘플은 실제 채택 여부 결정 전까지
-  게임 씬에 물리지 않는다 — 채택하면 정식 `assets/buildings/`류 폴더로
-  옮기고 이 후보 폴더는 지운다
-- `assets/characters_vroid/AvatarSample_A.vrm` 원본은 참고용으로 남기고,
-  실제 씬에서 쓰는 쪽은 `.glb` 사본 — Godot 프로젝트 규칙상 `.vrm`은
-  임포트 대상이 아니므로 이후 새 VRM을 추가할 때마다 `.glb`로도 복사해야
-  한다는 점을 기억할 것
+  megakit`, name-your-own-price 0원 가능) — 받아 주면 이어서 Godot
+  임포트·기존 Kenney 나무 교체 검증까지 이 세션이 할 수 있다.
+- 카툰 톤 자체가 아직 "확정"은 아니다 — rim/glow 겹침 문제가 남아 있어
+  사람이 실기기로 한 번 더 보고 tone을 최종 승인해야 한다(위 1번 기록
+  참고). 그 전까지 위 4번 반영은 "잠정 적용"으로 본다.
+- 아웃라인(외곽선) 단계는 위 톤 확정 전까지 시작하지 않는다.
 
 ## 검증
 

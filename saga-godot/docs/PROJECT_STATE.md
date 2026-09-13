@@ -5615,3 +5615,25 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   107개"는 이런 식으로 계속 하나씩 늘릴 수 있지만, 승진/관직 5단·타
   세력 AI가 게임성 측면에선 더 묵직하다 — 다음 세션에서 우선순위
   결정. 그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.
+
+## 66-2장 "다음에 할 일" 1·4·5·6번 처리 (2026-09-13, "1~6 순으로 진행" 지시)
+
+- **1번(톤 실기 확인)** — PowerShell 스크린샷으로 `CelShaderPrototype.tscn`
+  직접 확인. 정면광+rim 0.6이 겹쳐 흰 옷이 날아가 보여 `cel_toon.gdshader`
+  기본값(`rim_strength 0.3`·`rim_power 4.5`·`band_softness 0.08`)과
+  프로토타입 `Sun` 각도(옆광)를 조정, 재확인 — 밴드는 살짝 더 보이지만
+  흰 옷 rim+env_pc.tres 글로우가 겹치는 문제가 남아 **톤은 아직 최종
+  확정 아님**(사람이 한 번 더 볼 것).
+- **4번(실제 씬 반영)** — 새 공용 헬퍼 `saga_core/shaders/
+  cel_shader_apply.gd`(`CelShaderApply.apply_to`)를 `player.gd`(GO·
+  DUNGEON·FOREST 공유)·`story_player.gd`·GO `npc_builder.gd`에 연결.
+  FOREST 주민(`villager_builder.gd`, `WorldCurveMaterial` 사용 중이라
+  가드에 걸려 no-op)과 Enemy/Boss(아직 GLB 없는 캡슐 placeholder)는
+  이번에 제외 — 자세한 이유는 `PLAN.md` 66-2장 참고.
+- **5번** — KayKit 미채택 결정(형태 비교상 실익 없음), 후보 폴더 유지.
+  **6번** — VRM/glb 사본 규칙 위반 없음 확인.
+- 검증: 헤드리스 임포트 0건 + TestVillage/TestRoom/TestVillageForest/
+  TestField 넷 각각 `--quit-after 3` 0건. `.import` 잡음만 되돌림.
+- **다음에 할 일**: 사람의 VRoid 캐릭터 조형·Quaternius itch.io 다운로드
+  (둘 다 자동화 불가, `PLAN.md` 66-2장 "아직 남은 것" 참고), 그리고
+  카툰 톤 최종 승인(사람 실기 확인).
