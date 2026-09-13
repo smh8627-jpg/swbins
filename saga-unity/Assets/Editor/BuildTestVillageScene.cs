@@ -200,11 +200,28 @@ namespace Saga.EditorTools
             builder.Build();
         }
 
+        // 44장 "주요 Enemy" 교체 — Dungeon 잡졸(황건적)과 같은 배역(도적)
+        // 이라 Abe를 그대로 재사용(SetupAbeCharacterImport.cs가 구운
+        // AbeAnimated.prefab). 실측 높이(1.94m, TempMeasureAbeBrute로 측정)
+        // 기준 HumanHeight(3.4) 배율.
+        private const string AbeAnimatedPrefabPath = "Assets/Art/CharactersRealistic/Abe/AbeAnimated.prefab";
+        private const float AbeNativeHeight = 1.94f;
+
         private static void BuildBanditEncounter()
         {
             var go = new GameObject("BanditEncounter");
             var encounter = go.AddComponent<BanditEncounter>();
-            encounter.Init(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-d.glb"));
+
+            var abe = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath);
+            if (abe != null)
+            {
+                encounter.Init(abe, CharacterVisual.HumanHeight / AbeNativeHeight);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestVillageScene] {AbeAnimatedPrefabPath} 를 못 찾음(로컬 전용 자산) — character-d로 폴백.");
+                encounter.Init(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Art/Characters/character-d.glb"));
+            }
             encounter.Build();
         }
 
