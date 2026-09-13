@@ -1165,16 +1165,45 @@ Assets/Settings/
   확인, `ProjectSettings/`·`Packages/` 부작용 없음.
 - **아직 후보일 뿐 — 어느 씬에도 안 물렸다**(위 ②와 같은 성격).
 
+## ⑦ Mixamo 캐릭터 반입 + Humanoid 리깅 (2026-09-13, 이어서)
+
+- **사용자가 mixamo.com에서 직접 받았다** — 몸(**Maria WProp J J Ong**,
+  Format FBX for Unity)+애니메이션 8개(③ 레시피 그대로: idle·walk·run·
+  attack·hit·dodge·death·interaction), 전부 `C:\Users\Windows\Downloads`에
+  받아 뒀길래 `Assets/Art/CharactersRealistic/`(`.gitignore` 대상, 로컬
+  전용)로 복사해 넣었다. 애니메이션 파일들은 예상보다 커서(각 15~16MB,
+  몸과 비슷한 크기) "Without Skin"이 아니라 메시 포함으로 받힌 것으로
+  보이지만 — 기능엔 문제없다(아래에서 Copy From Other Avatar로 몸의
+  Avatar를 그대로 쓰게 만들어서 각 파일 자체의 메시는 안 쓴다), 로컬
+  디스크 용량만 더 든다(총 ~140MB, 커밋 안 되니 저장소 크기엔 무관).
+- **`SetupMixamoCharacterImport.cs`(신규, `Saga/Setup Mixamo Character
+  Import` 메뉴)** — 몸 FBX는 `ModelImporterAnimationType.Human`+
+  `CreateFromThisModel`로 Avatar를 새로 만들고, 애니메이션 8개는
+  전부 `CopyFromOther`로 몸의 Avatar를 그대로 물려(리타게팅이 확실히
+  같은 골격에 걸리게) 각 파일의 클립을 액션 이름(`idle`·`walk`·`run`·
+  `attack`·`hit`·`dodge`·`death`·`interaction`)으로 바꾸고 loopTime을
+  적절히 설정(idle/walk/run만 루프)한다.
+- 배치 모드(`-executeMethod
+  Saga.EditorTools.SetupMixamoCharacterImport.Setup`)로 실행 —
+  **몸 Avatar가 `isValid`·`isHuman` 둘 다 통과**(Mixamo 표준 T-pose가
+  Unity Humanoid 매핑에 별다른 수동 보정 없이 바로 들어맞았다는 뜻),
+  8개 애니메이션 전부 클립 리네임+루프 설정 로그로 확인. 컴파일 오류
+  0건, `ProjectSettings/`·`Packages/` 부작용 없음.
+- **아직 안 한 것** — 실제 씬에 배치, Animator Controller로 클립 연결,
+  ⑤의 헤어카드/SSS 셰이더를 Maria 머티리얼에 실제로 붙이기(Maria 기본
+  머티리얼이 어떤 셰이더인지, 헤어 메시가 몸과 분리돼 있는지 등은 다음에
+  확인). 이번엔 리깅까지만.
+
 ## 다음에 할 일 (아직 착수 전)
 
-- **사람이 mixamo.com에서 캐릭터+애니메이션을 받아 `Assets/Art/
-  CharactersRealistic/`에 넣기** — 위 ③ 레시피대로. 이게 되어야 실제
-  캐릭터 교체를 시작할 수 있다(여전히 유일하게 남은, 사람 GUI 조작이
-  필요한 단계) — ⑤로 셰이더는 이미 프로젝트 안에 들어와 있으니, 캐릭터만
-  들어오면 바로 붙여 볼 수 있다.
-- Kenney·VRoid 플레이스홀더를 위 다섯 환경 재질/⑤ 캐릭터 셰이더로 실제
-  사실적 에셋으로 순차 교체(44장 우선순위: Player → 주요 Enemy → Boss →
-  Environment → Building → … 와 교차 적용).
+- Animator Controller를 만들어 위 8개 클립(idle/walk/run/attack/hit/
+  dodge/death/interaction)을 연결하고 실제 씬에 캐릭터를 배치해 본다.
+- ⑤의 헤어카드(이방성)·SSS 스킨 셰이더 후보를 Maria의 실제 머티리얼에
+  붙여 본다 — 먼저 Maria FBX 안 머티리얼 슬롯 구성(피부/헤어/의상이
+  몇 개 서브메시·머티리얼로 나뉘는지)부터 확인.
+- Kenney·VRoid 플레이스홀더를 위 다섯 환경 재질/⑤ 캐릭터 셰이더/⑦
+  캐릭터로 실제 사실적 에셋으로 순차 교체(44장 우선순위: Player →
+  주요 Enemy → Boss → Environment → Building → … 와 교차 적용).
 - 66-1장 PC/Mobile 두 프로파일이 실제 사실적 에셋으로도 성능·화질
   균형이 맞는지 확인(카툰 방향보다 텍스처·라이팅 비용이 커질 수 있어
   45장 모바일 목표와 자주 대조할 것 — 특히 SSS 스킨 셰이더·DoF는 모바일
