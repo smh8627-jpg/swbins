@@ -1700,3 +1700,53 @@ REALM 4절 "제외"는 17절과 같다(승진/관직 5단·시나리오 200/208�
 된다 — 사용자가 "다음 거 묻지 말고 이어가라"고 지시했으니, 다음
 세션은 우선순위를 사용자에게 되묻지 않고 위 목록 중 가장 작고
 자체완결적인 것부터 스스로 골라 진행할 것.
+
+## 19. 승진/관직 5단 (2026-09-14, 같은 날 이어서, "사가고돗 이어해" → "묻지말고 순서대로 다 진행해")
+
+4절 "제외"에 오래 남아 있던 항목 중 첫째. `saga-web/saga-realm/js/
+hero.js`(MAX_LV=30·MAX_RANK=5·LV_STEP=0.022·RANK_STEP=0.06·expNeed·
+growMul)와 `officer.js`(EXP·promoteCost·RANK_KOR·promote())를 그대로
+옮겼다 — 새 판정식을 상상하지 않는다. 새 파일 `realm_growth.gd`(상수·
+순수 함수)와 `realm_save_state.gd`의 `officer_growth`(officer_id →
+{lv,exp,rank,feats})가 짝을 이룬다.
+
+**재해석 — EXP 종류를 이 슬라이스에 있는 시스템만큼만 옮긴다.** 원작
+EXP는 order/march/siege/win/duel/gov 여섯인데, siege(진영 없음)·
+duel(일기토 없음)은 뺐다. order(개발형·징병 명령)·gov(태수로 한 달
+버팀)·march(출진)·win(함락)만 옮겼다 — 전부 이 슬라이스에 이미 있는
+자리(`_do_devel`/`_do_draft`→`_grant_order_growth()`, `next_month()`의
+태수 계산, `attack()`의 출진·함락)에 한 줄씩 꽂았다.
+
+**능력치를 쓰는 자리를 전부 한 함수로 좁혔다.** hero.js 머리말의
+"계산이 두 곳으로 갈라지면 화면과 판정이 어긋난다"를 그대로 따라
+`_effective_stat(id, stat_key)`(기본치 × growMul)를 새로 두고, 기존에
+`Characters.find(id).stats.get(...)`을 직접 읽던 아홉 자리(명령 성과
+굴림·수색·등용·태수 고르기·출진 대장/수비 무장·최적 무장 고르기·
+정전/계략을 보내는 무장·계략 대상 지력) 전부 이걸 거치게 바꿨다.
+아직 관직이 없는 무장(대부분)은 lv=1·rank=0(배율 1.0)이라 화면에 보이는
+기존 수치가 하나도 안 바뀐다 — 승진해야 비로소 갈린다.
+
+새 UI: **"승진" 버튼**(`realm_promote_button.gd`, RealmHUD 맨 위,
+ArchiveButton 위) — `realm_transfer_button.gd`와 같은 ChoicePrompt
+1단(무장 고르기 하나로 끝) 패턴. 목록에 "이름 — 관직명 Lv.N (공
+F/필요치)"를 보여줘 승진에 얼마나 남았는지 버튼을 누르기 전에 안다
+(diplo.js "계략은 성공률을 숨기지 않는다"와 같은 결).
+
+세이브: `SAVE_VERSION` 10→11(`officer_growth` 추가). 검증(헤드리스) —
+임포트 오류 0건, 다섯 씬(TestVillage/TestRoom/TestVillageForest/
+TestField/TestCity) 각각 `--quit-after 5` 오류 0건, TestCity 세 번
+연속 로그 완전 동일. 임시 씬(`_tmp_verify_growth`)으로 exp_need·
+grow_mul 손계산 일치·레벨업 시 effective stat이 growMul만큼 실제로
+커짐·공 부족 시 승진 거부→공 채운 뒤 성공(관직명·충성 반환값 확인)·
+MAX_RANK에서 막힘·`execute_order`가 devel 경로에서 feats+1/충성+1/
+exp+EXP.order를 실제로 얹음·저장→값 흩트림→불러오기 왕복(lv/exp/
+rank/feats 네 값 모두 복원)까지 확인 후 임시 파일·테스트 세이브
+삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은
+아직(몰아서 받을 것) — "승진" 버튼 목록 문구가 잘 읽히는지, 실제
+플레이에서 몇 달 만에 첫 승진이 나오는지 특히 볼 것.
+
+**다음에 할 일** — REALM 4절 "제외"엔 이제 시나리오 200/208년·타 세력
+AI·정복 후 관리·보스전 보상·3D 몬스터 자산이 남는다. 사용자가 "묻지말고
+순서대로 다 진행해"라 지시했으니, 다음은 시나리오 200/208년(94년 하나만
+있던 것을 넓히는 항목, 데이터 위주라 비교적 작다)부터 이어갈 것 — 이후
+타 세력 AI·정복 후 관리·보스전 보상·3D 몬스터 자산(균열/폐허/묘역) 순.

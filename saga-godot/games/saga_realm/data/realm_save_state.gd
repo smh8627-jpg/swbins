@@ -44,11 +44,12 @@ const RealmOfficerPool := preload("res://games/saga_realm/data/realm_officer_poo
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
+const RealmGrowth := preload("res://games/saga_realm/data/realm_growth.gd")
 const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 10  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left)
+const SAVE_VERSION := 11  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -82,6 +83,15 @@ var officer_city: Dictionary = {RealmOfficerPool.STARTING_OFFICER: RealmCities.D
 ## 아직 충성을 깎는 수단(이간)이 없어 실전에서 잘 안 터지는 안전망이지만,
 ## 값과 문(door)은 이걸로 열어 둔다.
 var officer_loyal: Dictionary = {RealmOfficerPool.STARTING_OFFICER: RealmDiplo.base_loyal(RealmOfficerPool.STARTING_OFFICER)}
+
+## **2026-09-14 추가 — 승진/관직 5단(officer.js/hero.js, `realm_growth.gd`).**
+## officer_id -> {lv, exp, rank, feats}. `_effective_stat()`이 이 값으로
+## `RealmGrowth.grow_mul()`을 곱해 기본 능력치(Characters.find(id).stats)
+## 위에 얹는다 — hero.js 머리말 "계산이 두 곳으로 갈라지면 안 된다"를 그대로
+## 따라, 능력치를 쓰는 모든 자리(명령 성과·수색·등용·태수·출진·계략)가 이
+## 한 함수만 거치게 좁혔다. 아직 관직이 없는(또는 세이브에 없는) 무장은
+## lv=1·rank=0(배율 1.0)이라 기존 값과 다르지 않다.
+var officer_growth: Dictionary = {}
 var _done_this_month: Dictionary = {}  # officer_id -> bool
 
 ## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).**
@@ -186,6 +196,91 @@ func _init_quiz() -> void:
 	}
 
 
+## ── 성장 (경험 · 승진) ──────────────────────────────────────────
+## officer.js grow()/gainExp()/promote()를 그대로 옮겼다(위 officer_growth
+## 머리말 참고).
+
+func _growth(id: String) -> Dictionary:
+	if not officer_growth.has(id):
+		officer_growth[id] = {"lv": 1, "exp": 0, "rank": 0, "feats": 0}
+	return officer_growth[id]
+
+
+## officer.js off.stats() 축약 — 나이(aging)는 이 슬라이스에 없어(REALM
+## PLAN 4절에도 없는 항목) 성장 배율만 곱한다. Characters.find(id)가 없으면
+## (없는 id) 0을 돌려준다.
+func _effective_stat(id: String, stat_key: String) -> float:
+	var h = Characters.find(id)
+	if h == null:
+		return 0.0
+	var base: float = float(h.stats.get(stat_key, 0))
+	var g: Dictionary = officer_growth.get(id, {"lv": 1, "rank": 0})
+	return base * RealmGrowth.grow_mul(int(g.get("lv", 1)), int(g.get("rank", 0)))
+
+
+## 경험을 준다 — 레벨이 오르면 _effective_stat()가 그만큼 곱해진다.
+## officer.js gainExp() 그대로.
+func gain_exp(id: String, amount: int) -> Dictionary:
+	if amount <= 0 or Characters.find(id) == null:
+		return {"gained": 0, "levels": 0}
+	var g := _growth(id)
+	if int(g.lv) >= RealmGrowth.MAX_LV:
+		g.exp = 0
+		return {"gained": 0, "levels": 0}
+	g.exp = int(g.exp) + amount
+	var levels := 0
+	var need := RealmGrowth.exp_need(int(g.lv))
+	while int(g.exp) >= need and int(g.lv) < RealmGrowth.MAX_LV:
+		g.exp = int(g.exp) - need
+		g.lv = int(g.lv) + 1
+		levels += 1
+		need = RealmGrowth.exp_need(int(g.lv))
+	if int(g.lv) >= RealmGrowth.MAX_LV:
+		g.exp = 0
+	return {"gained": amount, "levels": levels}
+
+
+## rtk.js order() 말미의 "명령 하나가 남기는 것" — 개발형·징병 명령에만
+## 붙는다(수색·등용은 execute_order()가 먼저 return해 여기까지 안 온다).
+func _grant_order_growth(officer_id: String) -> void:
+	var g := _growth(officer_id)
+	g.feats = int(g.feats) + 1
+	officer_loyal[officer_id] = clampi(int(officer_loyal.get(officer_id, 50)) + 1, 0, 100)
+	gain_exp(officer_id, int(RealmGrowth.EXP.order))
+
+
+func promote_check(id: String) -> Dictionary:
+	if Characters.find(id) == null:
+		return {"ok": false, "why": "없는 무장입니다"}
+	if not (id in roster):
+		return {"ok": false, "why": "재야입니다"}
+	var g := _growth(id)
+	if int(g.rank) >= RealmGrowth.MAX_RANK:
+		return {"ok": false, "why": "더 올릴 자리가 없습니다"}
+	var cost := RealmGrowth.promote_cost(int(g.rank))
+	if int(g.feats) < int(cost.feats):
+		return {"ok": false, "why": "공이 모자랍니다 (%d/%d)" % [int(g.feats), int(cost.feats)], "cost": cost}
+	if gold < int(cost.gold):
+		return {"ok": false, "why": "금이 모자랍니다 (%d)" % int(cost.gold), "cost": cost}
+	return {"ok": true, "cost": cost}
+
+
+## 승진 — 쌓인 공과 금으로 관직을 올린다. 능력치가 오르고(RANK_STEP),
+## 충성이 크게 오른다(+12) — 원작에서 관직이 사람을 붙들어 두는 힘이 그것이다.
+## officer.js promote() 그대로.
+func promote(id: String) -> Dictionary:
+	var chk := promote_check(id)
+	if not bool(chk.get("ok", false)):
+		return chk
+	var g := _growth(id)
+	var cost: Dictionary = chk.cost
+	g.feats = int(g.feats) - int(cost.feats)
+	gold -= int(cost.gold)
+	g.rank = int(g.rank) + 1
+	officer_loyal[id] = clampi(int(officer_loyal.get(id, 50)) + 12, 0, 100)
+	return {"ok": true, "rank": int(g.rank), "name": RealmGrowth.rank_name(int(g.rank)), "loyal": int(officer_loyal[id])}
+
+
 ## 명령을 실행한다 — rtk.js order()를 current_city 하나에 적용하는 축약.
 ## 반환: {"ok": bool, "why": String}(실패) 또는
 ##       {"ok": true, "officer": String, "amount": int, "crit": bool}
@@ -219,16 +314,15 @@ func execute_order(key: String) -> Dictionary:
 		return _do_search(officer_id)
 	if key == "hire":
 		return _do_hire(officer_id)
-	if key == "draft":
-		return _do_draft(o, officer_id)
-	return _do_devel(key, o, officer_id)
+	var result := _do_draft(o, officer_id) if key == "draft" else _do_devel(key, o, officer_id)
+	_grant_order_growth(officer_id)
+	return result
 
 
 ## rtk.js order()의 "대성공 판정 + 성과량" 부분 — 개발형 명령(devel)과
 ## 징병(draft)이 공유한다(뒤에서 amount를 다르게 다룰 뿐 굴리는 방식은 같다).
 func _roll_amount(o: Dictionary, officer_id: String) -> Dictionary:
-	var h = Characters.find(officer_id)
-	var stat_val: float = float(h.stats.get(String(o.stat), 0))
+	var stat_val: float = _effective_stat(officer_id, String(o.stat))
 	var crit := _rng.randf() < clampf(stat_val / 400.0, 0.03, 0.28)
 	var amount := roundi((float(o.base) + stat_val * float(o.per)) * (1.5 if crit else 1.0))
 	return {"amount": amount, "crit": crit}
@@ -288,8 +382,7 @@ func _do_search(officer_id: String) -> Dictionary:
 	hidden.sort_custom(func(a: String, b: String) -> bool:
 		return int(Characters.find(a).rarity) > int(Characters.find(b).rarity))
 
-	var h = Characters.find(officer_id)
-	var wis: float = float(h.stats.get("wisdom", 0))
+	var wis: float = _effective_stat(officer_id, "wisdom")
 	var reach := clampi(roundi(hidden.size() * wis / 130.0), 1, hidden.size())
 	var pick_idx := _rng.randi_range(0, reach - 1)
 	var got: String = hidden[pick_idx]
@@ -307,7 +400,7 @@ func _do_hire(officer_id: String) -> Dictionary:
 	var target_id: String = found[0]
 	var by = Characters.find(officer_id)
 	var t = Characters.find(target_id)
-	var wis: float = float(by.stats.get("wisdom", 0))
+	var wis: float = _effective_stat(officer_id, "wisdom")
 	var chance := clampf(0.28 + wis / 260.0 - (float(t.rarity) - 2.0) * 0.09, 0.05, 0.9)
 	if String(by.trait) == String(t.trait):
 		chance += 0.10
@@ -345,8 +438,9 @@ func next_month() -> void:
 		var gov_id := _governor_at(city_id)
 		var mul := 1.0
 		if not gov_id.is_empty():
-			var h = Characters.find(gov_id)
-			mul = RealmOrders.gov_mul(float(h.stats.get("wisdom", 0)), float(h.stats.get("command", 0)))
+			mul = RealmOrders.gov_mul(_effective_stat(gov_id, "wisdom"), _effective_stat(gov_id, "command"))
+			## rtk.js "태수로 한 달을 앉아 있으면 그만큼 는다" — 자리가 사람을 기른다.
+			gain_exp(gov_id, int(RealmGrowth.EXP.gov))
 
 		var dz: Dictionary = RealmOrders.disaster_by_key(String(c.get("disaster", "")))
 		var harvest_mul: float = float(dz.get("harvest", 1.0)) if not dz.is_empty() else 1.0
@@ -530,10 +624,9 @@ func attack(enemy_id: String) -> Dictionary:
 	c.troops = 0
 	c.food = int(c.food) - need
 
-	var h = Characters.find(officer_id)
 	var atk := {
 		"troops": troops, "start": troops, "train": int(c.train), "tech": int(c.tech),
-		"best_command": float(h.stats.get("command", 0)), "best_might": float(h.stats.get("might", 0)),
+		"best_command": _effective_stat(officer_id, "command"), "best_might": _effective_stat(officer_id, "might"),
 		"officer_count": 1,
 	}
 	## **2026-09-12 갱신 — 이간·매수로 이름 있는 수비 무장이 생겼다.**
@@ -544,11 +637,10 @@ func attack(enemy_id: String) -> Dictionary:
 	var def_best_command := 0.0
 	var def_best_might := 0.0
 	for oid: String in def_officers:
-		var dh = Characters.find(oid)
-		if dh == null:
+		if Characters.find(oid) == null:
 			continue
-		def_best_command = maxf(def_best_command, float(dh.stats.get("command", 0)))
-		def_best_might = maxf(def_best_might, float(dh.stats.get("might", 0)))
+		def_best_command = maxf(def_best_command, _effective_stat(oid, "command"))
+		def_best_might = maxf(def_best_might, _effective_stat(oid, "might"))
 	var def_army := {
 		"troops": int(e.troops), "start": int(e.troops), "train": int(e.train), "tech": int(e.tech),
 		"best_command": def_best_command, "best_might": def_best_might, "officer_count": def_officers.size(),
@@ -558,6 +650,8 @@ func attack(enemy_id: String) -> Dictionary:
 
 	var rep := RealmWar.fight(atk, def_army, wall, RealmCities.land_def(land), RealmCities.land_siege(land), _rng)
 	_done_this_month[officer_id] = true
+	## war.js march() "따라나선 것만으로도 는다 — 이기고 지고는 그다음이다".
+	gain_exp(officer_id, int(RealmGrowth.EXP.march))
 
 	e.wall = wall.wall
 	if rep.won:
@@ -574,6 +668,12 @@ func attack(enemy_id: String) -> Dictionary:
 			enemy_officer_loyal.erase(oid)
 		e.officers = []
 		_annex_city(enemy_id, enemy_def, int(rep.atk_troops_left), int(c.train))
+		## war.js capture() "데려간 장수는 그 성에 남는다" — feats+=3·충성+3·
+		## EXP.win. 이 슬라이스는 장수 하나(officer_id)뿐이라 그 한 명만.
+		var wg := _growth(officer_id)
+		wg.feats = int(wg.feats) + 3
+		officer_loyal[officer_id] = clampi(int(officer_loyal.get(officer_id, 50)) + 3, 0, 100)
+		gain_exp(officer_id, int(RealmGrowth.EXP.win))
 	else:
 		## war.js finishMarch() routed 분기 — 치중(baggage)은 need에서 이 달
 		## 먹은 몫(food_upkeep(troops), 정확히 need의 절반)을 뺀 나머지다.
@@ -652,8 +752,7 @@ func envoy_truce(enemy_id: String) -> Dictionary:
 	_done_this_month[officer_id] = true
 
 	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
-	var h = Characters.find(officer_id)
-	var chance := RealmDiplo.truce_chance(float(h.stats.get("wisdom", 0)), int(dip.relation), ENVOY_GOLD)
+	var chance := RealmDiplo.truce_chance(_effective_stat(officer_id, "wisdom"), int(dip.relation), ENVOY_GOLD)
 
 	var accepted := _rng.randf() <= chance
 	if accepted:
@@ -779,10 +878,9 @@ func _enemy_guard_wisdom(enemy_id: String) -> float:
 	var e: Dictionary = enemies.get(enemy_id, {})
 	var best := -1.0
 	for oid: String in (e.get("officers", []) as Array):
-		var h = Characters.find(oid)
-		if h == null:
+		if Characters.find(oid) == null:
 			continue
-		best = maxf(best, float(h.stats.get("wisdom", 0)))
+		best = maxf(best, _effective_stat(oid, "wisdom"))
 	return best if best >= 0.0 else float(RealmDiplo.PLOT_GUARD_WISDOM)
 
 
@@ -841,8 +939,7 @@ func _plot_check(kind: String, enemy_id: String) -> Dictionary:
 
 	var force_id: String = String(enemy_def.get("force", ""))
 	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
-	var h = Characters.find(officer_id)
-	var mine_wisdom := float(h.stats.get("wisdom", 0))
+	var mine_wisdom := _effective_stat(officer_id, "wisdom")
 	var guard_wisdom := _enemy_guard_wisdom(enemy_id)
 	var sec := int(e.get("sec", 50))
 
@@ -1072,10 +1169,9 @@ func _governor_at(city_id: String) -> String:
 	for id: String in roster:
 		if officer_city.get(id, "") != city_id:
 			continue
-		var h = Characters.find(id)
-		if h == null:
+		if Characters.find(id) == null:
 			continue
-		var v: float = float(h.stats.get("wisdom", 0)) * 0.6 + float(h.stats.get("command", 0)) * 0.4
+		var v: float = _effective_stat(id, "wisdom") * 0.6 + _effective_stat(id, "command") * 0.4
 		if v > best_val:
 			best_val = v
 			best_id = id
@@ -1092,10 +1188,9 @@ func _best_officer_for(stat: String, city_filter: String = "") -> String:
 			continue
 		if not city_filter.is_empty() and officer_city.get(id, "") != city_filter:
 			continue
-		var h = Characters.find(id)
-		if h == null:
+		if Characters.find(id) == null:
 			continue
-		var v: float = float(h.stats.get(stat, 0))
+		var v: float = _effective_stat(id, stat)
 		if v > best_val:
 			best_val = v
 			best_id = id
@@ -1112,6 +1207,7 @@ func save() -> bool:
 		"roster": roster, "found": found,
 		"officer_city": officer_city,
 		"officer_loyal": officer_loyal,
+		"officer_growth": officer_growth,
 		"enemies": enemies,
 		"enemy_officer_loyal": enemy_officer_loyal,
 		"diplomacy": diplomacy,
@@ -1152,6 +1248,9 @@ func try_load() -> bool:
 	var loaded_officer_loyal: Variant = data.get("officer_loyal", {})
 	if typeof(loaded_officer_loyal) == TYPE_DICTIONARY and not loaded_officer_loyal.is_empty():
 		officer_loyal = loaded_officer_loyal
+	var loaded_officer_growth: Variant = data.get("officer_growth", {})
+	if typeof(loaded_officer_growth) == TYPE_DICTIONARY:
+		officer_growth = loaded_officer_growth
 	var loaded_enemies: Variant = data.get("enemies", {})
 	if typeof(loaded_enemies) == TYPE_DICTIONARY and not loaded_enemies.is_empty():
 		enemies = loaded_enemies

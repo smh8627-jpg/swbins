@@ -5749,3 +5749,31 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   하부구조가 필요해 다음 세션 몫(사용자가 "다음 거 묻지 말고 이어가라"
   지시 — 우선순위를 되묻지 않고 가장 작고 자체완결적인 것부터 고를
   것). 그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.
+
+## REALM 승진/관직 5단 (2026-09-14, 같은 날 이어서, "사가고돗 이어해" → "묻지말고 순서대로 다 진행해")
+
+- 4절 "제외" 목록의 첫째 항목. `hero.js`(MAX_LV/MAX_RANK/LV_STEP/
+  RANK_STEP/expNeed/growMul)·`officer.js`(EXP/promoteCost/RANK_KOR/
+  promote())를 그대로 옮겼다 — 새 파일 `realm_growth.gd`(순수 상수·
+  함수) + `realm_save_state.gd`의 `officer_growth`(id→{lv,exp,rank,
+  feats}). EXP는 이 슬라이스에 있는 시스템만큼만(order·gov·march·win,
+  siege·duel은 진영·일기토가 없어 제외) — 자세한 내용은
+  `docs/VERTICAL_SLICE_REALM.md` 19절 참고.
+- 능력치를 읽는 아홉 자리(명령 성과·수색·등용·태수·출진·계략 등)를
+  전부 `_effective_stat()` 한 곳으로 좁혀, growMul이 실제로 전투·내정
+  판정에 반영되게 했다(hero.js "계산이 두 곳으로 갈라지면 안 된다"
+  원칙 그대로). 새 UI "승진" 버튼(RealmHUD 맨 위) — 무장 고르기
+  1단 ChoicePrompt, 목록에 현재 관직·Lv·공 진행도를 미리 보여준다.
+  `SAVE_VERSION` 10→11.
+- 검증: 헤드리스 임포트 오류 0건, 다섯 씬(TestVillage/TestRoom/
+  TestVillageForest/TestField/TestCity) 각각 `--quit-after 5` 오류
+  0건, TestCity 세 번 연속 로그 완전 동일. 임시 씬으로 exp_need/
+  grow_mul 손계산·레벨업 시 effective stat 실제 반영·승진 성공/실패
+  (공 부족·MAX_RANK)·execute_order의 feats+1/충성+1/exp 지급·저장/
+  불러오기 왕복(lv/exp/rank/feats)까지 확인 후 임시 파일·테스트
+  세이브 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
+  확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 시나리오 200/208년·타 세력 AI·정복 후 관리·보스전
+  보상·3D 몬스터 자산(균열·폐허·묘역)이 남는다. "묻지말고 순서대로 다
+  진행해" 지시에 따라 다음은 시나리오 200/208년(데이터 위주라 비교적
+  작다)부터 이어간다.
