@@ -1314,6 +1314,71 @@ gorge (0.2275,0.0784,0.0627)/(0.5608,0.2275,0.1098) = `#3a1410`/`#8f3a1c`).
 전용 장식(성벽·깃발 등)까지 mood별로 갈리길 원하면 그건 이 절의 범위
 밖(색만 다룸)이라 별도로 볼 자리.
 
+## 26. 몬스터 도감 — 사냥터별 잡졸·보스 수치·색 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해 묻지말고"** — 25절이 남긴 "다음 이어질
+것" 중 마지막 남은 큰 후보(몬스터 도감)를 채웠다. 지금까지 field/
+forest/cave/gorge 넷이 잡졸(황건적, hp18·dmg6)과 보스 색(모두 황건
+두목의 `#c9a83a`)을 그대로 같이 썼다 — `data-side.js`의 `enemyLv`
+(field1·forest6·cave14·gorge26)가 `story_enemy.gd`까지 한 번도 안
+넘어와 있었다.
+
+**웹판 공식을 되살렸다.** `side.js spawnEnemy()`/`spawnBoss()`가 실제로
+쓰는 lv 기반 공식 — `hp=round(18*1.22^(lv-1))`·`dmg=round(4+lv*1.6)`
+(E_HP/E_DMG=1 기본값 그대로) — 를 `story_combat.gd`에 `enemy_base_hp(lv)`
+/`enemy_base_dmg(lv)`로 들였다. lv=1을 넣으면 이 슬라이스가 처음 옮겼던
+고정값(18/6)과 정확히 같다(그 고정값의 출처가 이 공식의 lv=1 케이스).
+`roll_gold`/`enemy_exp`도 지금까지 field(lv1) 고정이던 것을 lv 인자로
+바꿔, forest/cave/gorge 킬이 이제 그 사냥터 lv 기준 보상을 준다.
+
+**잡졸 종류 — data-enemy.js에서 그대로 골랐다(새로 안 지어냄).**
+field=황건적(#c9a83a, 이미 있던 값과 우연히 같아 무변화), forest=오랑캐
+궁수(#7a6a4a, 보스 오랑캐 족장과 같은 세력), cave=위군 창병(#3a4a6a,
+보스 위군 도독과 같은 위나라 계열), gorge=철갑 중장병(#6a6a7a, 보스
+적국 대장군이 특정 세력이 아니라 tier4 첫 항목을 그대로 씀).
+
+**작은 발견 하나(같이 바로잡음)** — 보스도 지금까지 `story_enemy.gd`의
+하드코딩된 색 하나(황건 두목 `#c9a83a`)를 넷 다 뒤집어쓰고 있었다.
+`data-enemy.js BOSSES`의 실제 색은 잡졸과 다른데(field만 우연히 같다),
+그 차이가 하나도 안 살아 있었다 — 이번에 `boss_color()`를 새로 추가해
+바로잡았다: forest 오랑캐 족장 `#7a5a2a`, cave 위군 도독 `#31609f`,
+gorge 적국 대장군 `#7a2a3a`.
+
+- `story_combat.gd`: `ENEMY_HP`/`ENEMY_DMG`(죽은 lv=1 고정값) 제거 →
+  `enemy_base_hp(lv)`/`enemy_base_dmg(lv)` 신규. `roll_gold`/`enemy_exp`가
+  `lv` 인자를 받게 바뀜(죽은 `ENEMY_LV` 상수 제거).
+- `{field,forest,cave,gorge}_map.gd`: `ENEMY_LV`/`ENEMY_NAME`/
+  `ENEMY_COLOR`/`BOSS_COLOR` 상수 + `enemy_lv()`/`enemy_color()`/
+  `boss_color()` 신규(`boss_position_m()`과 같은 자리).
+- `story_enemy.gd`: `enemy_lv`/`enemy_color` export성 변수 신규(기본값은
+  field). hp·dmg가 이제 lv 공식을 쓰고, 몸 색도 맵이 넘긴 값. `_die()`가
+  `roll_gold`/`enemy_exp`에 `enemy_lv`를 넘긴다.
+- `story_enemy_spawner.gd`/`story_boss_spawner.gd`: 스폰 직전 `enemy_lv`
+  (둘 다)·`enemy_color`(전자는 `map.enemy_color()`, 후자는 `_map.
+  boss_color()`)를 얹는다.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → `project.godot`/`*.import` diff 없음 → 열세 씬 세 번
+연속 exit 0·로그 완전 동일(다섯 판 회귀 포함). **임시 디버그**(스폰
+직후 print 한 줄씩, `story_field.gd` `_ready()`에 보상 공식 확인용
+루프)로 네 사냥터 각각 실제 적용값 확인 — 잡졸 hp(18/49/239/2596)·보스
+hp(216/686/4063/51920)가 `enemy_base_hp(lv)*hp_mul`과 정확히 일치, 잡졸·
+보스 색이 맵별로 서로 다르고(field만 같음) hex 원문과 일치, exp
+(그런트 10/30/62/110·보스 150/450/930/1650)가 lv 공식과 정확히 일치,
+금은 기대 범위 안(±변동)까지 확인. 디버그 원상복구 — `story_field.gd`는
+git diff 0(추가·제거가 정확히 상쇄), 나머지 넷은 print 한 줄만 제거.
+재검증(3회 반복, exit 0·로그 동일·project.godot/.import diff 없음)까지
+마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — 사냥터를 걸어 넘나들 때 잡졸이 실제로
+다른 색으로 보이는지, 호로곡의 철갑 중장병이 훨씬 세게(hp 2596!) 느껴
+지는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — 2~4차 전직(job 체인 재설계 필요, 24절부터 계속
+미뤄 둔 항목). 몬스터 종류를 tier당 하나 이상(원작처럼 풀에서 무작위
+고르기)으로 늘리는 건 이 절의 범위 밖(사냥터당 하나로 좁혔다) — 원하면
+별도로 볼 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

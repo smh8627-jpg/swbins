@@ -23,10 +23,21 @@ const START_ATK := 21.0  # round(20*0.9 + 10*0.3) = round(21.0)
 const START_HP := 162.0  # 60 + 15*6 + 1*12
 
 ## 잡졸(황건적) — data-enemy.js 첫 항목 + side.js spawnEnemy()의
-## lv=1 공식: hp=round(18*1.22^0)=18, dmg=round(4+1*1.6)=6(E_HP=E_DMG=1
-## 기본값 그대로, core.tuned 안 건드림).
-const ENEMY_HP := 18.0
-const ENEMY_DMG := 6.0
+## lv 공식(E_HP/E_DMG=1 기본값 그대로, core.tuned 안 건드림):
+## hp=round(18*1.22^(lv-1)), dmg=round(4+lv*1.6). lv=1(field)을 넣으면
+## hp=18·dmg=6 — 이 슬라이스가 처음 옮겼던 고정값과 정확히 같다(그
+## 고정값의 출처가 이 공식의 lv=1 케이스였다).
+##
+## **2026-09-13 추가 — 몬스터 도감(사냥터별 잡졸).** 지금까지 이 lv가
+## field(1) 하나로 고정이었던 것을, field/forest/cave/gorge 각 맵의
+## `enemy_lv()`를 story_enemy.gd가 그대로 넘겨받아 되살린다 — side.js
+## `spawnEnemy()`/`spawnBoss()`가 실제로 쓰는 것과 같은 공식이다.
+static func enemy_base_hp(lv: float) -> float:
+	return maxf(1.0, roundf(18.0 * pow(1.22, lv - 1.0)))
+
+
+static func enemy_base_dmg(lv: float) -> float:
+	return roundf(4.0 + lv * 1.6)
 
 ## **2026-09-12 추가 — 무예 나머지 셋(횡소·기탄·기합).** VERTICAL_
 ## SLICE_STORY.md 1절 "제외" 목록의 "무예 나머지(48-1개)" 중, 무명이
@@ -126,12 +137,15 @@ const GEAR_DROP_CHANCE_BOSS := 0.9
 
 ## **2026-09-13 추가 — 상점(1절 "제외" 목록 "장비 나머지"의 첫 걸음).**
 ## side.js kill()의 금 계산 그대로: gold = round((6+lv*3)*(0.8~1.4)*mul*
-## GAIN_GOLD). lv는 이 슬라이스가 늘 1(field.enemyLv, ENEMY_HP/DMG와 같은
-## 전제) · GAIN_GOLD(core.tuned 기본 배수)는 1.0 그대로(손잡이 자체를 아직
-## 안 옮겼다). mul은 보스 12·그 외 1.
+## GAIN_GOLD). GAIN_GOLD(core.tuned 기본 배수)는 1.0 그대로(손잡이 자체를
+## 아직 안 옮겼다). mul은 보스 12·그 외 1.
+##
+## **2026-09-13 추가(같은 날 더, 몬스터 도감) — lv를 인자로 받는다.**
+## 지금까지 lv가 이 상수(field.enemyLv=1) 하나로 고정이었던 것을,
+## story_enemy.gd가 자기 맵의 enemy_lv를 넘기도록 바꿨다(forest/cave/
+## gorge 킬이 이제 그 사냥터 lv 기준 금·경험치를 준다).
 const ENEMY_GOLD_BASE := 6.0
 const ENEMY_GOLD_PER_LV := 3.0
-const ENEMY_LV := 1.0
 const BOSS_GOLD_MUL := 12.0
 const GAIN_GOLD := 1.0
 
@@ -160,10 +174,10 @@ static func gear_totals(equipped_keys: Array) -> Dictionary:
 
 ## side.js kill()의 gold 계산 그대로(위 상수 참고) — Math.round와 같게
 ## roundi를 쓴다.
-static func roll_gold(is_boss: bool) -> int:
+static func roll_gold(is_boss: bool, lv: float) -> int:
 	var mul: float = BOSS_GOLD_MUL if is_boss else 1.0
 	var variance: float = 0.8 + randf() * 0.6
-	return roundi((ENEMY_GOLD_BASE + ENEMY_LV * ENEMY_GOLD_PER_LV) * variance * mul * GAIN_GOLD)
+	return roundi((ENEMY_GOLD_BASE + lv * ENEMY_GOLD_PER_LV) * variance * mul * GAIN_GOLD)
 
 
 ## **2026-09-13 추가 — 전직 트리(4절 "제외" 목록)의 첫 걸음: 레벨/경험치.**
@@ -185,9 +199,9 @@ static func exp_need(level: int) -> int:
 
 
 ## core.js kill()의 gainExp 호출 인자 그대로: (6+lv*4)*(boss?15:1)*GAIN_EXP.
-static func enemy_exp(is_boss: bool) -> int:
+static func enemy_exp(is_boss: bool, lv: float) -> int:
 	var mul: float = BOSS_EXP_MUL if is_boss else 1.0
-	return roundi((ENEMY_EXP_BASE + ENEMY_LV * ENEMY_EXP_PER_LV) * mul * GAIN_EXP)
+	return roundi((ENEMY_EXP_BASE + lv * ENEMY_EXP_PER_LV) * mul * GAIN_EXP)
 
 
 ## **1차 전직(Lv.10) 넷** — data-job.js JOBS tier:1 그대로(grow만 옮긴다,

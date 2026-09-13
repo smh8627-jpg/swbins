@@ -62,6 +62,14 @@ const ROPES_PX: Array = [
 ## 잡졸 스폰 자리(고정 셋, 위 "재해석" 참고) — 발판 사이 평지 위주로 골랐다.
 const ENEMY_X_PX: Array = [520.0, 1000.0, 1500.0]
 
+## **2026-09-13 추가 — 몬스터 도감.** data-side.js field.enemyLv 그대로
+## (1) — `tierOf()` 기준 tier1. 잡졸은 tier1 첫 항목(data-enemy.js
+## 황건적, #c9a83a) 그대로 — 보스(황건 두목)와 같은 무리라 이미 맞아
+## 떨어진다.
+const ENEMY_LV := 1.0
+const ENEMY_NAME := "황건적"
+const ENEMY_COLOR := Color(0.788, 0.659, 0.227, 1)
+
 ## data-side.js FIELDS.field.gathers 그대로 — [x, kind] 셋, 전부 herb(들꽃).
 const GATHERS_PX: Array = [
 	[480.0, "herb"],
@@ -71,6 +79,9 @@ const GATHERS_PX: Array = [
 
 ## data-side.js field.boss.name 그대로. 자리(x)는 원작에 없어 새로 정함(위 참고).
 const BOSS_NAME := "황건 두목"
+## data-enemy.js BOSSES의 황건 두목 color 그대로 — 그 무리 잡졸(황건적)과
+## 우연히 같은 색이다(원작 실제 값, 지어낸 게 아니다).
+const BOSS_COLOR := Color(0.788, 0.659, 0.227, 1)
 const BOSS_X_PX := 2050.0
 
 ## **2026-09-13 추가 — 사냥터별 보스 배율.** data-side.js field.boss
@@ -142,6 +153,14 @@ static func enemy_positions_m() -> Array:
 	return out
 
 
+static func enemy_lv() -> float:
+	return ENEMY_LV
+
+
+static func enemy_color() -> Color:
+	return ENEMY_COLOR
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:
@@ -151,6 +170,10 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_color() -> Color:
+	return BOSS_COLOR
 
 
 static func boss_hp_mul() -> float:

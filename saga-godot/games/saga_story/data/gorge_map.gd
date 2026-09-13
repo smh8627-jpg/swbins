@@ -43,6 +43,14 @@ const ROPES_PX: Array = [
 ## 잡졸 스폰 자리(고정 셋) — 발판 사이, 채집·보스와 안 겹치게.
 const ENEMY_X_PX: Array = [1100.0, 2100.0, 3100.0]
 
+## **2026-09-13 추가 — 몬스터 도감.** data-side.js gorge.enemyLv 그대로
+## (26) — tier4. 잡졸은 tier4 첫 항목(철갑 중장병, #6a6a7a)으로 골랐다
+## — 보스(적국 대장군)가 특정 세력이 아니라 "적국" 총칭이라 다른 셋과
+## 달리 세력이 안 맞는 짝은 없다.
+const ENEMY_LV := 26.0
+const ENEMY_NAME := "철갑 중장병"
+const ENEMY_COLOR := Color(0.4157, 0.4157, 0.4784, 1)
+
 ## data-side.js STAGES.gorge.gathers 그대로 — [x, kind] 셋, 전부 cinder(그은 돌).
 const GATHERS_PX: Array = [
 	[700.0, "cinder"],
@@ -55,6 +63,9 @@ const GATHERS_PX: Array = [
 ## 걱정할 필요가 없었다(마지막 발판(2740px) 너머, 채집 마지막 자리와
 ## 350px=7m 떨어뜨렸다).
 const BOSS_NAME := "적국 대장군"
+## data-enemy.js BOSSES의 적국 대장군 color 그대로 — 잡졸(철갑 중장병
+## #6a6a7a)과는 다른 색(짙은 붉은빛, "대장군"다운 색으로 원작이 따로 칠했다).
+const BOSS_COLOR := Color(0.4784, 0.1647, 0.2275, 1)
 const BOSS_X_PX := 3250.0
 
 ## **2026-09-13 추가 — 사냥터별 보스 배율.** data-side.js gorge.boss
@@ -106,6 +117,14 @@ static func enemy_positions_m() -> Array:
 	return out
 
 
+static func enemy_lv() -> float:
+	return ENEMY_LV
+
+
+static func enemy_color() -> Color:
+	return ENEMY_COLOR
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:
@@ -115,6 +134,10 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_color() -> Color:
+	return BOSS_COLOR
 
 
 static func boss_hp_mul() -> float:

@@ -14,6 +14,14 @@ extends Node3D
 ## cool_sec을 더 이상 StoryCombat 전역 상수(field 값 하나뿐)로 안 쓰고
 ## 각 맵의 boss_hp_mul()/boss_dmg_mul()/boss_cool_sec()에서 읽는다
 ## (field/forest/cave/gorge 넷 다 정의돼 있다 — data-side.js 원문 그대로).
+##
+## **2026-09-13 추가(같은 날 더) — 몬스터 도감.** `enemy_lv`도 맵에서
+## 읽는다(base hp/dmg 공식이 lv를 쓴다, story_enemy.gd 참고) — 지금까지
+## 모든 보스가 lv=1 기준 hp(18*hp_mul)로 계산되고 있었는데, forest(lv6)·
+## cave(lv14)·gorge(lv26)는 원래 훨씬 센 lv를 쓴다. `enemy_color`도
+## data-enemy.js BOSSES의 실제 색(map.boss_color(), 잡졸과 다른 색)으로
+## 바꿔 지금까지 넷 다 field 잡졸 색(#c9a83a)을 그대로 뒤집어쓰던 것을
+## 바로잡는다.
 
 @export var map_path: String = "res://games/saga_story/data/field_map.gd"
 
@@ -35,6 +43,8 @@ func _spawn_boss() -> void:
 	boss.is_boss = true  # _ready()보다 먼저 잡아야 한다(add_child가 곧바로 _ready를 부른다)
 	boss.boss_hp_mul = _map.boss_hp_mul()
 	boss.boss_dmg_mul = _map.boss_dmg_mul()
+	boss.enemy_lv = _map.enemy_lv()
+	boss.enemy_color = _map.boss_color()
 	boss.position = Vector3(_map.boss_position_m(), GROUND_Y, 0)
 	add_child(boss)
 	boss.died.connect(_on_boss_died)

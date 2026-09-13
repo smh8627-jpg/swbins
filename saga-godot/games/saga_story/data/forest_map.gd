@@ -53,6 +53,13 @@ const ROPES_PX: Array = [
 ## 잡졸 스폰 자리(고정 셋, 위 "재해석" 참고) — 발판 사이 평지 위주.
 const ENEMY_X_PX: Array = [500.0, 1200.0, 1900.0]
 
+## **2026-09-13 추가 — 몬스터 도감.** data-side.js forest.enemyLv 그대로
+## (6) — tier2. 잡졸은 tier2 중 오랑캐 궁수(#7a6a4a)로 골랐다 — 보스
+## (오랑캐 족장)와 같은 무리라는 결이 field(황건적/황건 두목)와 같다.
+const ENEMY_LV := 6.0
+const ENEMY_NAME := "오랑캐 궁수"
+const ENEMY_COLOR := Color(0.4784, 0.4157, 0.2902, 1)
+
 ## data-side.js STAGES.forest.gathers 그대로 — [x, kind] 넷, 전부 berry(산딸기).
 const GATHERS_PX: Array = [
 	[420.0, "berry"],
@@ -66,6 +73,9 @@ const GATHERS_PX: Array = [
 ## 없어 field처럼 보스-도착지 간격을 미리 걱정할 필요는 없다(문을
 ## 나중에 놓을 때 이 값과 60px 이상 떨어뜨리면 된다, 21절 참고).
 const BOSS_NAME := "오랑캐 족장"
+## data-enemy.js BOSSES의 오랑캐 족장 color 그대로 — 잡졸(오랑캐 궁수
+## #7a6a4a)과는 다른 색(원작이 잡졸/보스를 따로 칠했다).
+const BOSS_COLOR := Color(0.4784, 0.3529, 0.1647, 1)
 const BOSS_X_PX := 2450.0
 
 ## **2026-09-13 추가 — 사냥터별 보스 배율.** 위 머리말이 "field용 상수를
@@ -127,6 +137,14 @@ static func enemy_positions_m() -> Array:
 	return out
 
 
+static func enemy_lv() -> float:
+	return ENEMY_LV
+
+
+static func enemy_color() -> Color:
+	return ENEMY_COLOR
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:
@@ -136,6 +154,10 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_color() -> Color:
+	return BOSS_COLOR
 
 
 static func boss_hp_mul() -> float:

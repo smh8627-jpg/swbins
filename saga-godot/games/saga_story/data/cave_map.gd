@@ -45,6 +45,13 @@ const ROPES_PX: Array = [
 ## 잡졸 스폰 자리(고정 셋) — 발판 사이 평지 위주, 채집·보스 자리와 안 겹치게.
 const ENEMY_X_PX: Array = [900.0, 1700.0, 2400.0]
 
+## **2026-09-13 추가 — 몬스터 도감.** data-side.js cave.enemyLv 그대로
+## (14) — tier3. 잡졸은 tier3 중 위군 창병(#3a4a6a)으로 골랐다 — 보스
+## (위군 도독)와 같은 무리.
+const ENEMY_LV := 14.0
+const ENEMY_NAME := "위군 창병"
+const ENEMY_COLOR := Color(0.2275, 0.2902, 0.4157, 1)
+
 ## data-side.js STAGES.cave.gathers 그대로 — [x, kind] 셋, 전부 ore(이끼 광물).
 const GATHERS_PX: Array = [
 	[500.0, "ore"],
@@ -56,6 +63,9 @@ const GATHERS_PX: Array = [
 ## 표준 -80px 관례로 동쪽 문 도착 자리(2850px)를 잡아도 이 값(2600px)과
 ## 250px(5.0m) 떨어져 있어 field/forest처럼 특별히 당길 필요가 없었다.
 const BOSS_NAME := "위군 도독"
+## data-enemy.js BOSSES의 위군 도독 color 그대로 — 잡졸(위군 창병
+## #3a4a6a)과는 다른 색(같은 위나라 계열이지만 원작이 따로 칠했다).
+const BOSS_COLOR := Color(0.1922, 0.3765, 0.6235, 1)
 const BOSS_X_PX := 2600.0
 
 ## **2026-09-13 추가 — 사냥터별 보스 배율.** data-side.js cave.boss
@@ -111,6 +121,14 @@ static func enemy_positions_m() -> Array:
 	return out
 
 
+static func enemy_lv() -> float:
+	return ENEMY_LV
+
+
+static func enemy_color() -> Color:
+	return ENEMY_COLOR
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:
@@ -120,6 +138,10 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func boss_color() -> Color:
+	return BOSS_COLOR
 
 
 static func boss_hp_mul() -> float:

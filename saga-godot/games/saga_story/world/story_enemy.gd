@@ -24,6 +24,13 @@ extends Node3D
 ## story_boss_spawner.gd가 add_child 전에 맵별 값(is_boss와 같은 배선
 ## 순서)으로 덮어쓴다 — 기본값(story_combat.gd BOSS_HP_MUL/DMG_MUL)은
 ## map_path를 안 거치는 맨몸 인스턴스용 안전값일 뿐이다.
+##
+## **2026-09-13 추가(같은 날 더) — 몬스터 도감.** `enemy_lv`/`enemy_color`
+## 신규 — hp·dmg가 이제 story_combat.gd의 lv 공식(`enemy_base_hp`/
+## `enemy_base_dmg`)을 따르고, 몸 색도 맵이 넘긴 값을 쓴다(story_enemy_
+## spawner.gd는 잡졸 색을, story_boss_spawner.gd는 보스 전용 색을
+## 넘긴다 — 이 파일이 알던 하드코딩된 `COLOR` 하나(황건적/황건 두목,
+## field 전용)는 이제 그 둘의 기본값일 뿐이다).
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const StoryGearPickup := preload("res://games/saga_story/world/story_gear_pickup.gd")
@@ -39,15 +46,20 @@ const ATTACK_COOLDOWN := 1.0  # side.js e.cd = 1.0 그대로
 var is_boss := false
 var boss_hp_mul := StoryCombat.BOSS_HP_MUL
 var boss_dmg_mul := StoryCombat.BOSS_DMG_MUL
-var hp := StoryCombat.ENEMY_HP
+var enemy_lv := 1.0
+var enemy_color := COLOR
+var hp: float
 var _dead := false
 var _attack_cd_left := 0.0
 
 
 func _ready() -> void:
+	var base_hp: float = StoryCombat.enemy_base_hp(enemy_lv)
 	if is_boss:
-		hp = StoryCombat.ENEMY_HP * boss_hp_mul
+		hp = base_hp * boss_hp_mul
 		add_to_group("story_boss")
+	else:
+		hp = base_hp
 	add_to_group("story_enemy")
 	_spawn_visual()
 
@@ -61,7 +73,7 @@ func _spawn_visual() -> void:
 	mi.mesh = mesh
 	mi.position = Vector3(0, 0.8 * scale_mul, 0)
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = COLOR
+	mat.albedo_color = enemy_color
 	mi.material_override = mat
 	add_child(mi)
 
@@ -88,7 +100,8 @@ func _physics_process(delta: float) -> void:
 	if absf(dx) > OVERLAP_RANGE * scale_mul:
 		return
 	_attack_cd_left = ATTACK_COOLDOWN
-	var dmg: float = StoryCombat.ENEMY_DMG * (boss_dmg_mul if is_boss else 1.0)
+	var base_dmg: float = StoryCombat.enemy_base_dmg(enemy_lv)
+	var dmg: float = base_dmg * (boss_dmg_mul if is_boss else 1.0)
 	player.take_damage(dmg)
 
 
@@ -106,8 +119,8 @@ func _die() -> void:
 	_dead = true
 	died.emit()
 	StorySaveState.add_kill()
-	StorySaveState.add_exp(StoryCombat.enemy_exp(is_boss))
-	StoryGoldPickup.spawn_at(get_parent(), global_position + Vector3(-0.4, 0, 0.4), StoryCombat.roll_gold(is_boss))
+	StorySaveState.add_exp(StoryCombat.enemy_exp(is_boss, enemy_lv))
+	StoryGoldPickup.spawn_at(get_parent(), global_position + Vector3(-0.4, 0, 0.4), StoryCombat.roll_gold(is_boss, enemy_lv))
 	_maybe_drop_gear()
 	queue_free()
 
