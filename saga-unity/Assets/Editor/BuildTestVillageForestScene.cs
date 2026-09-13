@@ -71,6 +71,7 @@ namespace Saga.EditorTools
             BuildPostProcessingVolume();
             BuildEventSystem();
             BuildDialogueUi();
+            BuildHostileEncounterUi();
             BuildSaveButton();
             BuildMobileHud();
             BuildBootstrap();
@@ -350,6 +351,23 @@ namespace Saga.EditorTools
             var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
             SetPrivateField(dialogueLabel, "label", text);
             textGo.SetActive(false);
+        }
+
+        /// <summary>44장 "전투 콘텐츠"(2026-09-14) — 포자괴물과 대치했을 때
+        /// 뜨는 "밀어내기" 미니게임 UI. BuildDialogueUi()와 같은 패턴(자체
+        /// Canvas 하나).</summary>
+        private static void BuildHostileEncounterUi()
+        {
+            var canvasGo = new GameObject("HostileEncounterUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var ui = canvasGo.AddComponent<ForestHostileEncounterUi>();
+            ui.Build(canvasGo.transform);
         }
 
         private static void BuildSaveButton()
