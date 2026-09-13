@@ -12,12 +12,13 @@ extends Node
 ## 애초에 저장할 상태 자체가 없다).
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 2  # 1→2: mats(필드 채집 누적) 추가
+const SAVE_VERSION := 3  # 1→2: mats 추가, 2→3: has_weapon(장비) 추가
 
 var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
 var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
+var has_weapon := false  # data-gear.js sword1(목검) 장착 여부 — 슬롯 하나뿐이라 bool로 충분
 
 
 func add_kill() -> void:
@@ -26,6 +27,10 @@ func add_kill() -> void:
 
 func add_mat(kind: String, amount: int = 1) -> void:
 	mats[kind] = int(mats.get(kind, 0)) + amount
+
+
+func equip_weapon() -> void:
+	has_weapon = true
 
 
 func quest_done() -> bool:
@@ -43,6 +48,7 @@ func save() -> bool:
 		"exp": exp,
 		"kills": kills,
 		"mats": mats,
+		"has_weapon": has_weapon,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -69,6 +75,7 @@ func try_load() -> bool:
 	kills = int(data.get("kills", 0))
 	var loaded_mats: Variant = data.get("mats", {})
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
+	has_weapon = bool(data.get("has_weapon", false))
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:

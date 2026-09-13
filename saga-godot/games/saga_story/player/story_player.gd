@@ -146,11 +146,13 @@ func clear_rope_area(area: Area3D) -> void:
 		_on_rope = false
 
 
-## 기합(brace)이 걸려 있으면 atk×1.35(원문 buff.atk 그대로) — 연참·
-## 횡소·기탄 전부 이 값을 쓴다(side.js가 pw.atk 자체를 buff로 올리는 것과
-## 같은 결 — 스킬마다 따로 배율을 안 곱한다).
+## side.js power()의 atk = round(might*0.9+wisdom*0.3) + gearBonus().atk —
+## 무기(목검, 2026-09-13 추가)가 있으면 그 위에 얹는다. 기합(brace)이
+## 걸려 있으면 그 합계에 ×1.35(원문 buff.atk 그대로, side.js가 pw.atk
+## 자체를 buff로 올리는 것과 같은 결 — 스킬마다 따로 배율을 안 곱한다).
 func _effective_atk() -> float:
-	return StoryCombat.START_ATK * (StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0)
+	var atk := StoryCombat.START_ATK + (StoryCombat.WEAPON_ATK if StorySaveState.has_weapon else 0.0)
+	return atk * (StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0)
 
 
 ## 정면 판정 공용 — 연참(reach)·기탄(reach*2)이 같이 쓴다. mul은 무예별

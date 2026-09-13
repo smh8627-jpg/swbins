@@ -4413,3 +4413,30 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — 2절 설계 중 Foreground만 남았지만 선택
     사항(완료 조건 무관). 굵직한 후보: Z축 깊이·나머지 사냥터 8곳·
     전직 트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+
+## STORY 장비 — 무기 한 자리(목검) (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 1절 "제외" 목록 "장비/노획"
+  의 첫 컷. data-gear.js sword1(무기 tier1, atk4) 하나만 — 이
+  슬라이스는 field(lv1)뿐이라 다른 슬롯·상위 tier·주문서·고유는
+  자연히 범위 밖. gear.js rollDrop() 드롭률(잡졸 0.035·보스 0.9)
+  그대로, 가방 없이 즉시 장착(DUNGEON loot_pickup.gd 방식), 이미
+  꼈으면 재드롭 안 함.
+  - `story_combat.gd`: WEAPON_NAME·WEAPON_ATK·GEAR_DROP_CHANCE_
+    GRUNT/BOSS 신규. `story_save_state.gd`: has_weapon+equip_
+    weapon(), SAVE_VERSION 2→3. `story_player.gd`: _effective_atk()에
+    무기 보너스 반영. `story_weapon_pickup.gd`(신규, loot_pickup.gd
+    패턴) + `story_enemy.gd`의 `_die()`에 드롭 롤 추가.
+  - 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 10절.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST 회귀 확인 포함). 임시 디버그(GEAR_DROP_CHANCE_BOSS 1.0으로
+    올림)로 atk 21→25(무기 유무) 정확, 그룬트 드롭률 2만 회 표본
+    3.5% 근사, 보스 킬 시 픽업 스폰·접촉 시 장착·재드롭 방지·세이브
+    영속까지 확인. 디버그 원상복구(diff 0) + 테스트로 생긴
+    user://save_story.json 삭제(다음 실기 확인이 깨끗하게 시작하도록).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 남은 굵직한 후보: Z축 깊이·나머지 사냥터
+    8곳(문 포함)·전직 트리·장비 나머지(방어구·장신구·주문서·고유·
+    상점), 또는 다른 판 작업 — 승인 후.

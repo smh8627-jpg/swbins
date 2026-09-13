@@ -394,6 +394,53 @@ MultiMeshInstance3D라 충돌은 원래 없다(따로 안 막음).
   후보: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳(이제 문까지
   필요)·전직 트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.
 
+## 10. 장비 — 무기 한 자리(목검) (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. 1절 "제외" 목록의 "장비/노획"
+(data-gear.js·data-unique.js) 중 **첫 컷**만 — data-gear.js sword1
+(무기 슬롯 tier1, need:1·atk:4) 하나만 옮겼다. 이 슬라이스는 `field`
+(lv1) 하나뿐이라 need>1인 물건은 애초에 못 낀다(다른 아홉 슬롯·
+tier2~4·주문서·고유(unique)·상점은 자연히 범위 밖) — DUNGEON 첫
+슬라이스("이름만 있는 장비")보다도 더 좁힌, field_map.gd 머리말이
+이미 정해 둔 경계 그대로.
+
+`gear.js` `rollDrop()`의 드롭률(잡졸 0.035·보스 0.9)도 그대로 옮겼다.
+가방이 없어 DUNGEON `loot_pickup.gd`와 같이 **줍는 즉시 장착** — 다만
+이 슬라이스는 물건이 하나뿐이라 이미 꼈으면 다시 안 굴린다(원작은
+가방+판매가 있어 중복을 허용하지만, 단일 bool 슬롯에선 의미가 없어
+새로 정한 규칙). 무기 공격력은 `side.js power()`의 `atk = base + gear.
+atk` 그대로 `_effective_atk()`에 얹었다 — 기합(brace) 배율은 그 합계
+전체에 곱한다(원문이 pw.atk 자체를 buff로 올리는 것과 같은 결).
+
+- `story_combat.gd`: `WEAPON_NAME`·`WEAPON_ATK`(4.0)·
+  `GEAR_DROP_CHANCE_GRUNT`(0.035)·`GEAR_DROP_CHANCE_BOSS`(0.9) 신규.
+- `story_save_state.gd`: `has_weapon: bool`(신규)+`equip_weapon()`,
+  세이브 포함, SAVE_VERSION 2→3.
+- `story_player.gd`: `_effective_atk()`가 `has_weapon`이면 WEAPON_ATK를
+  더한 뒤 기합 배율을 곱하도록 수정(이전엔 START_ATK만 배율 대상).
+- `story_weapon_pickup.gd`(신규) — loot_pickup.gd와 같은 Area3D 뼈대,
+  물건이 하나뿐이라 등급·부위 분기 없음. `story_enemy.gd`: `_die()`에
+  `_maybe_drop_weapon()` 추가(이미 꼈으면 스킵 → 잡졸/보스 확률로
+  굴림 → 맞으면 `get_parent()`에 픽업 스폰, queue_free() 전에 호출해
+  parent가 아직 유효할 때 처리).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생, 되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+  FOREST 회귀 확인 포함). 임시 디버그(`GEAR_DROP_CHANCE_BOSS`를 1.0으로
+  잠깐 올림 — 결정적 확인을 위해)로: 무기 없을 때 atk=21.0·있을 때
+  atk=25.0(21+4) 정확, 그룬트 드롭률 2만 회 표본 3.39~3.57%(기대
+  3.5%와 합치), 보스 킬 시 `WeaponPickup` 실제 스폰·접촉 시
+  `has_weapon=true`+atk 갱신 확인, 이미 낀 채로 그룬트를 죽여도
+  새 픽업이 안 뜨는 중복 방지 확인, `save()`→`has_weapon` 리셋→
+  `try_load()` 왕복으로 세이브 영속 확인. 디버그 원상복구
+  (`GEAR_DROP_CHANCE_BOSS` 0.9로, diff 0) — 디버그가 실제로 써 버린
+  테스트용 `user://save_story.json`도 삭제해 다음 실기 확인이 깨끗한
+  상태에서 시작하도록 정리했다.
+- **GUI 실기 확인은 아직 안 함** — 목검을 주웠을 때 손맛(타격감 차이가
+  체감되는지)은 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 1절 "제외" 목록의 남은 굵직한 후보: Gameplay
+  Depth 실제 Z축 이동·나머지 사냥터 8곳(문 포함)·전직 트리·장비 나머지
+  (방어구·장신구·주문서·고유·상점), 또는 다른 판 작업 — 승인 후.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

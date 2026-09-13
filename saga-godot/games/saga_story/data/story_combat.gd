@@ -81,6 +81,21 @@ const BOSS_HP_MUL := 12.0
 const BOSS_DMG_MUL := 2.0
 const BOSS_COOL_SEC := 900.0  # 15분 * 60초
 
+## **2026-09-13 추가 — 장비(무기 한 자리만, 1절 "제외" 목록의 "장비/노획").**
+## data-gear.js sword1(무기 슬롯 tier1, need:1·atk:4) 하나만 옮긴다 —
+## 이 슬라이스는 `field`(lv1) 하나뿐이라 tier1을 넘는 물건은 어차피 못
+## 낀다(need>1). gear.js rollDrop()의 gearRate(잡졸 0.035·보스 0.9)도
+## 그대로. 방어구·장신구·주문서·고유(unique)·상점은 전부 제외 —
+## DUNGEON 첫 슬라이스("이름만 있는 장비")보다도 더 좁힌다(위 field_map.gd
+## 머리말이 이미 그렇게 정해 뒀다). 가방이 없어 줍는 즉시 갈아 든다
+## (DUNGEON loot_pickup.gd와 같은 방식) — 이미 꼈으면 또 안 뜬다(중복
+## 습득이 의미 없는 단일 슬롯이라 새로 정한 규칙, 원작은 가방+판매가
+## 있어 안 그렇다).
+const WEAPON_NAME := "목검(木劍)"
+const WEAPON_ATK := 4.0
+const GEAR_DROP_CHANCE_GRUNT := 0.035
+const GEAR_DROP_CHANCE_BOSS := 0.9
+
 static var _hitstop_active := false
 
 

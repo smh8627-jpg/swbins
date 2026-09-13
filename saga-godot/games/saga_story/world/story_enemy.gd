@@ -19,6 +19,7 @@ extends Node3D
 ## 것과 같은 결로 새로 정했다.
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
+const StoryWeaponPickup := preload("res://games/saga_story/world/story_weapon_pickup.gd")
 
 signal died
 
@@ -74,4 +75,15 @@ func _die() -> void:
 	_dead = true
 	died.emit()
 	StorySaveState.add_kill()
+	_maybe_drop_weapon()
 	queue_free()
+
+
+## data-gear.js sword1 하나뿐이라 이미 꼈으면 다시 안 굴린다(story_combat.gd
+## 머리말 — 중복 습득이 의미 없는 단일 슬롯).
+func _maybe_drop_weapon() -> void:
+	if StorySaveState.has_weapon:
+		return
+	var chance: float = StoryCombat.GEAR_DROP_CHANCE_BOSS if is_boss else StoryCombat.GEAR_DROP_CHANCE_GRUNT
+	if randf() < chance:
+		StoryWeaponPickup.spawn_at(get_parent(), global_position)
