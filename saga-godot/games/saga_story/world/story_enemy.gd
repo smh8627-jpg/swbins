@@ -125,13 +125,16 @@ func _die() -> void:
 	queue_free()
 
 
-## 아직 안 낀 부위만 드롭 풀에 넣는다(story_combat.gd GEAR_ITEMS 머리말
-## — 가방이 없어 중복 습득이 의미 없다). 전부 꼈으면 드롭 자체가 없다.
+## **2026-09-13 추가(같은 날 더, tier2~4) — 사냥터 lv 기준 풀로 좁힘.**
+## StoryCombat.gear_pool_for(enemy_lv)(data-gear.js poolFor와 같음, need
+## <= enemy_lv+3)에서 **이미 끼고 있는 바로 그 키**만 뺀다 — 부위 전체를
+## 빼던 전엔 tier1 하나뿐이라 결과가 같았지만, 이제 tier가 여럿이라
+## 부위 전체를 빼면 승급(더 좋은 tier로 교체)이 영영 안 된다.
 func _maybe_drop_gear() -> void:
 	var pool: Array = []
-	for key: String in StoryCombat.GEAR_ITEMS:
+	for key: String in StoryCombat.gear_pool_for(enemy_lv):
 		var slot: String = String(StoryCombat.GEAR_ITEMS[key].slot)
-		if not StorySaveState.has_slot(slot):
+		if String(StorySaveState.equipped.get(slot, "")) != key:
 			pool.append(key)
 	if pool.is_empty():
 		return

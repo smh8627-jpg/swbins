@@ -5201,3 +5201,22 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   잡음만 되돌림. 신규 Godot 프로세스는 `--quit`으로 자체 종료.
 - **다음에 할 일**: 사람이 Quaternius 무료 버전을 itch.io에서 한 번
   받아 주면 이어서 Godot 임포트·기존 Kenney 나무 교체 검증까지 진행.
+
+## STORY 장비 tier2~4 확장 (2026-09-13, "이어해" 지시로 계속)
+
+- 66-2장(아트 방향) "다음에 할 일" 세 항목이 전부 사람 개입 대기(GUI
+  실기 확인·VRoid 조형·itch.io 다운로드)라, 자동화 가능한 STORY 쪽
+  "다음 이어질 것"(가방/장비 확장)으로 갈아탔다.
+- `story_combat.gd` GEAR_ITEMS를 tier1 10개 → data-gear.js RAW 그대로
+  40개(부위 10×tier 4, need 필드 신규)로 확장. `equip_gear()`가 이제
+  레벨 게이트로 bool을 반환, 드롭 풀(`gear_pool_for`, poolFor(lv) 포트)·
+  상점("이미 낀 바로 그 키만 제외")·줍기(레벨 미달이면 안 줍고 바닥에
+  남김)를 전부 그에 맞춰 고쳤다. 자세한 내용은 `docs/
+  VERTICAL_SLICE_STORY.md` "장비 tier2~4 확장" 절 참고 — 여기서
+  반복하지 않는다.
+- 안 옮긴 것 — 주문서(가방 없이는 물건별 up/left 상태를 못 담아 더 큰
+  설계 변경 필요)·고유(unique)·상점 물목 UI. 다음에 이어갈 자리.
+- 검증: 헤드리스 임포트 오류 0건, `TestField.tscn`·`HeodoField.tscn`
+  (상인 있는 유일한 씬) 각각 `--quit-after 5` 스크립트 오류 0건.
+  `project.godot`·`*.import` 확인 — 무관한 `.import` 줄바꿈 잡음만
+  되돌림. GUI 실기 확인은 아직(몰아서 받을 것).

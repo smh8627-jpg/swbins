@@ -77,14 +77,23 @@ func _process(_delta: float) -> void:
 		_buy_cheapest_missing()
 
 
-## 안 낀 부위 중 price가 가장 싼 것부터 산다 — 원작의 "고르는" 화면이
-## 없으니 "가장 도움이 되는 것"을 매번 결정적으로 골라 준다.
+## 지금 낄 수 있는(need <= level) 물건 중, **이미 끼고 있는 바로 그 물건은
+## 빼고** price가 가장 싼 것부터 산다 — 원작의 "고르는" 화면이 없으니
+## "가장 도움이 되는 것"을 매번 결정적으로 골라 준다.
+##
+## **2026-09-13 추가(같은 날 더, tier2~4) — "부위 전체 제외"에서 "그 키만
+## 제외"로 바꿨다.** tier1 하나뿐이던 때는 결과가 같았지만, 이제 레벨이
+## 올라 tier2+를 낄 수 있게 되면 이 함수가 자연히 승급 구매로 넘어간다
+## (열 부위 tier1을 다 갖춘 뒤엔 tier1 키들이 전부 "이미 낀 바로 그 키"라
+## 걸러지고, 다음으로 싼 tier2 물건이 뽑힌다 — 새 UI 없이 그대로 된다).
 func _buy_cheapest_missing() -> void:
 	var cheapest_key := ""
 	var cheapest_price := -1
 	for key: String in StoryCombat.GEAR_ITEMS:
 		var it: Dictionary = StoryCombat.GEAR_ITEMS[key]
-		if StorySaveState.has_slot(String(it.slot)):
+		if int(it.need) > StorySaveState.level:
+			continue
+		if String(StorySaveState.equipped.get(String(it.slot), "")) == key:
 			continue
 		var price := int(it.price)
 		if cheapest_key.is_empty() or price < cheapest_price:
@@ -92,7 +101,7 @@ func _buy_cheapest_missing() -> void:
 			cheapest_price = price
 
 	if cheapest_key.is_empty():
-		Toast.show(self, "🏪 이미 다 갖췄다", 2.0)
+		Toast.show(self, "🏪 지금 살 수 있는 게 없다", 2.0)
 		return
 
 	if not StorySaveState.spend_gold(cheapest_price):

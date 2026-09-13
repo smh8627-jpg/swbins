@@ -52,10 +52,18 @@ static func spawn_at(parent: Node, pos: Vector3, key: String) -> void:
 
 	parent.add_child(area)
 	area.body_entered.connect(func(body: Node3D) -> void:
-		if body.is_in_group("player"):
-			StorySaveState.equip_gear(key)
+		if not body.is_in_group("player"):
+			return
+		## **2026-09-13 추가(같은 날 더, tier2~4) — 요구 레벨을 못 채우면
+		## 못 낀다(story_save_state.gd equip_gear() 게이트). 가방이 없어
+		## "일단 담아 둔다"가 안 되니, 이 포트에선 **줍지 않고 그대로 둔다**
+		## — 레벨이 오른 뒤 다시 와서 주울 수 있게(원작의 "가방에 넣고 나중에
+		## 낀다"와 결과가 같다, 담아 두는 자리만 가방 대신 바닥이다).
+		if StorySaveState.equip_gear(key):
 			Toast.show(area, "🎁 %s 획득 · %s" % [String(it.name), _stat_line(it)], 3.0)
 			area.queue_free()
+		else:
+			Toast.show(area, "⚠️ Lv.%d 부터 낄 수 있다 · %s" % [int(it.need), String(it.name)], 2.5)
 	)
 
 

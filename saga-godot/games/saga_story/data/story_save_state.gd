@@ -90,15 +90,19 @@ func spend_gold(n: int) -> bool:
 ## 부위는 StoryCombat.GEAR_ITEMS[key].slot에서 뽑는다 — 호출 쪽이 슬롯을
 ## 따로 안 넘겨도 된다(story_enemy.gd가 드롭 풀을 고를 때 이미 이 표를
 ## 훑으므로 중복 데이터가 안 생긴다).
-func equip_gear(key: String) -> void:
+##
+## **2026-09-13 추가(같은 날 더, tier2~4) — 요구 레벨 게이트.** gear.js
+## `equip()` 그대로: `level`이 그 물건의 `need`에 못 미치면 거절(레벨은
+## 내려가지 않으니, 한 번 낀 물건이 나중에 다시 거절되는 web의 "승급 전
+## 세이브" 예외는 이 포트에선 안 생긴다 — bonus 쪽에 그 검사를 안 옮긴 이유).
+func equip_gear(key: String) -> bool:
 	var it: Dictionary = StoryCombat.GEAR_ITEMS.get(key, {})
 	if it.is_empty():
-		return
+		return false
+	if level < int(it.get("need", 1)):
+		return false
 	equipped[String(it.slot)] = key
-
-
-func has_slot(slot: String) -> bool:
-	return equipped.has(slot)
+	return true
 
 
 func gear_totals() -> Dictionary:

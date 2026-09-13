@@ -114,26 +114,102 @@ const BOSS_COOL_SEC := 900.0  # 15분 * 60초
 ## 밖(그 부분만 남은 "장비 나머지"). gear.js `rollDrop()`의 gearRate
 ## (잡졸 0.035·보스 0.9)도 그대로.
 ##
-## 가방이 없어 DUNGEON loot_pickup.gd처럼 **줍는 즉시 장착** — 부위별로
-## 하나씩만 낄 수 있어(이미 그 부위를 꼈으면 같은 물건이 다시 안 뜬다)
-## 드롭 풀은 "아직 안 낀 부위"로만 좁힌다(원작은 가방+판매가 있어 중복을
-## 허용하지만, 단일 슬롯 포트에선 의미가 없어 새로 정한 규칙).
-## price는 data-gear.js RAW의 7번째 칸(그 물건 하나뿐이라 gear.js priceMul()
-## 같은 배수는 안 건드림) — story_merchant.gd가 그대로 읽는다.
+## **2026-09-13 추가(같은 날 더, "가방 확장" 첫 걸음) — tier2~4로 확장.**
+## 나머지 사냥터(강릉진 lv5·오림 숲 등 lv12·마지막 lv20대)가 이미 갖춰져
+## need가 이제 실제로 의미를 갖는다. data-gear.js RAW 40줄(부위 10×tier 4)을
+## `need` 필드와 함께 그대로 옮겼다 — 새 숫자를 상상하지 않는다. 주문서·
+## 고유(unique)·풀 가방+판매 UI는 여전히 범위 밖(가방 자체가 없는 이
+## 포트 구조상 "물건 인스턴스별 상태"가 필요한 기능이라 별도 설계가
+## 필요하다, 다음에 볼 자리).
+##
+## 가방이 없어 DUNGEON loot_pickup.gd처럼 **줍는 즉시 장착** — 이젠 부위당
+## 물건이 넷이라 "아직 안 낀 부위"가 아니라 **이미 끼고 있는 바로 그 키**만
+## 드롭 풀에서 뺀다(story_enemy.gd `_maybe_drop_gear()`) — 같은 물건이
+## 다시 뜨는 것만 막고, 다른 단(tier)은 계속 뜬다(그래야 승급이 된다).
+## `need`(요구 레벨)를 못 채우면 주워도 못 낀다 — `equip_gear()`가 거절.
+## price는 data-gear.js RAW의 8번째 칸(gear.js priceMul() 같은 배수는
+## 안 건드림) — story_merchant.gd가 그대로 읽는다.
+const GEAR_POOL_LV_MARGIN := 3  # data-gear.js poolFor(lv): need <= lv+3
+
 const GEAR_ITEMS := {
-	"sword1": {"slot": "weapon",   "name": "목검(木劍)",   "atk": 4.0, "def": 0.0, "hp": 0.0, "price": 240},
-	"hat1":   {"slot": "hat",      "name": "가죽 두건",    "atk": 0.0, "def": 2.0, "hp": 6.0, "price": 180},
-	"top1":   {"slot": "top",      "name": "무명 저고리",  "atk": 0.0, "def": 3.0, "hp": 10.0, "price": 220},
-	"bot1":   {"slot": "bottom",   "name": "무명 바지",    "atk": 0.0, "def": 2.0, "hp": 8.0, "price": 160},
-	"shoe1":  {"slot": "shoes",    "name": "짚신",         "atk": 0.0, "def": 1.0, "hp": 4.0, "price": 120},
-	"glv1":   {"slot": "glove",    "name": "무명 팔찌",    "atk": 1.0, "def": 1.0, "hp": 2.0, "price": 200},
-	"cap1":   {"slot": "cape",     "name": "베 망토",      "atk": 0.0, "def": 1.0, "hp": 8.0, "price": 150},
-	"ring1":  {"slot": "ring",     "name": "무명 지환",    "atk": 2.0, "def": 0.0, "hp": 3.0, "price": 160},
-	"neck1":  {"slot": "necklace", "name": "나무 목걸이",  "atk": 0.0, "def": 1.0, "hp": 6.0, "price": 150},
-	"ear1":   {"slot": "earring",  "name": "나무 귀걸이",  "atk": 1.0, "def": 1.0, "hp": 2.0, "price": 150},
+	# 무기 — 공격력은 인물 능력치에서 나오고(story_combat.gd 머리말), 무기는 그 위에 얹는다
+	"sword1": {"slot": "weapon", "name": "목검(木劍)",     "need": 1,  "atk": 4.0,  "def": 0.0, "hp": 0.0,  "price": 240},
+	"sword2": {"slot": "weapon", "name": "환도(環刀)",     "need": 5,  "atk": 11.0, "def": 0.0, "hp": 0.0,  "price": 1100},
+	"sword3": {"slot": "weapon", "name": "청강검(靑鋼劍)", "need": 12, "atk": 22.0, "def": 0.0, "hp": 0.0,  "price": 4200},
+	"sword4": {"slot": "weapon", "name": "용린도(龍鱗刀)", "need": 20, "atk": 38.0, "def": 1.0, "hp": 0.0,  "price": 13000},
+
+	# 투구
+	"hat1": {"slot": "hat", "name": "가죽 두건",   "need": 1,  "atk": 0.0, "def": 2.0,  "hp": 6.0,  "price": 180},
+	"hat2": {"slot": "hat", "name": "철투구",      "need": 5,  "atk": 0.0, "def": 5.0,  "hp": 14.0, "price": 820},
+	"hat3": {"slot": "hat", "name": "봉시투구",    "need": 12, "atk": 0.0, "def": 9.0,  "hp": 26.0, "price": 3100},
+	"hat4": {"slot": "hat", "name": "금장 갑주투", "need": 20, "atk": 1.0, "def": 15.0, "hp": 44.0, "price": 9800},
+
+	# 갑옷
+	"top1": {"slot": "top", "name": "무명 저고리", "need": 1,  "atk": 0.0, "def": 3.0,  "hp": 10.0, "price": 220},
+	"top2": {"slot": "top", "name": "가죽 갑옷",   "need": 5,  "atk": 0.0, "def": 7.0,  "hp": 22.0, "price": 980},
+	"top3": {"slot": "top", "name": "찰갑(札甲)",  "need": 12, "atk": 0.0, "def": 12.0, "hp": 40.0, "price": 3600},
+	"top4": {"slot": "top", "name": "두정갑",      "need": 20, "atk": 1.0, "def": 19.0, "hp": 66.0, "price": 11500},
+
+	# 하의
+	"bot1": {"slot": "bottom", "name": "무명 바지", "need": 1,  "atk": 0.0, "def": 2.0,  "hp": 8.0,  "price": 160},
+	"bot2": {"slot": "bottom", "name": "가죽 전군", "need": 5,  "atk": 0.0, "def": 5.0,  "hp": 16.0, "price": 760},
+	"bot3": {"slot": "bottom", "name": "철엽 전군", "need": 12, "atk": 0.0, "def": 9.0,  "hp": 30.0, "price": 2900},
+	"bot4": {"slot": "bottom", "name": "용문 전군", "need": 20, "atk": 0.0, "def": 14.0, "hp": 50.0, "price": 9200},
+
+	# 신
+	"shoe1": {"slot": "shoes", "name": "짚신",      "need": 1,  "atk": 0.0, "def": 1.0,  "hp": 4.0,  "price": 120},
+	"shoe2": {"slot": "shoes", "name": "가죽 전화", "need": 5,  "atk": 0.0, "def": 4.0,  "hp": 10.0, "price": 640},
+	"shoe3": {"slot": "shoes", "name": "철갑 전화", "need": 12, "atk": 0.0, "def": 7.0,  "hp": 20.0, "price": 2400},
+	"shoe4": {"slot": "shoes", "name": "비룡화",    "need": 20, "atk": 1.0, "def": 11.0, "hp": 34.0, "price": 7600},
+
+	# 수갑 — 원작의 장갑이 그렇듯 공격이 조금 붙는다
+	"glv1": {"slot": "glove", "name": "무명 팔찌", "need": 1,  "atk": 1.0,  "def": 1.0, "hp": 2.0,  "price": 200},
+	"glv2": {"slot": "glove", "name": "가죽 수갑", "need": 5,  "atk": 3.0,  "def": 3.0, "hp": 6.0,  "price": 900},
+	"glv3": {"slot": "glove", "name": "철갑 수갑", "need": 12, "atk": 6.0,  "def": 5.0, "hp": 12.0, "price": 3300},
+	"glv4": {"slot": "glove", "name": "용조 수갑", "need": 20, "atk": 11.0, "def": 8.0, "hp": 20.0, "price": 10500},
+
+	# 망토
+	"cap1": {"slot": "cape", "name": "베 망토",     "need": 1,  "atk": 0.0, "def": 1.0,  "hp": 8.0,  "price": 150},
+	"cap2": {"slot": "cape", "name": "가죽 망토",   "need": 5,  "atk": 0.0, "def": 3.0,  "hp": 18.0, "price": 700},
+	"cap3": {"slot": "cape", "name": "수달피 망토", "need": 12, "atk": 1.0, "def": 6.0,  "hp": 32.0, "price": 2700},
+	"cap4": {"slot": "cape", "name": "흑룡 망토",   "need": 20, "atk": 2.0, "def": 10.0, "hp": 54.0, "price": 8900},
+
+	# 반지 — 장신구, 공격 중심
+	"ring1": {"slot": "ring", "name": "무명 지환", "need": 1,  "atk": 2.0,  "def": 0.0, "hp": 3.0,  "price": 160},
+	"ring2": {"slot": "ring", "name": "은지환",    "need": 5,  "atk": 5.0,  "def": 0.0, "hp": 8.0,  "price": 750},
+	"ring3": {"slot": "ring", "name": "옥지환",    "need": 12, "atk": 9.0,  "def": 1.0, "hp": 16.0, "price": 2800},
+	"ring4": {"slot": "ring", "name": "금룡지환",  "need": 20, "atk": 16.0, "def": 2.0, "hp": 28.0, "price": 8800},
+
+	# 목걸이 — 장신구, 체력 중심
+	"neck1": {"slot": "necklace", "name": "나무 목걸이", "need": 1,  "atk": 0.0, "def": 1.0, "hp": 6.0,  "price": 150},
+	"neck2": {"slot": "necklace", "name": "은 목걸이",   "need": 5,  "atk": 0.0, "def": 2.0, "hp": 14.0, "price": 700},
+	"neck3": {"slot": "necklace", "name": "옥 목걸이",   "need": 12, "atk": 0.0, "def": 4.0, "hp": 26.0, "price": 2600},
+	"neck4": {"slot": "necklace", "name": "금 목걸이",   "need": 20, "atk": 1.0, "def": 7.0, "hp": 44.0, "price": 8200},
+
+	# 귀걸이 — 장신구, 공격·방어 고르게
+	"ear1": {"slot": "earring", "name": "나무 귀걸이", "need": 1,  "atk": 1.0, "def": 1.0, "hp": 2.0,  "price": 150},
+	"ear2": {"slot": "earring", "name": "은 귀걸이",   "need": 5,  "atk": 2.0, "def": 2.0, "hp": 6.0,  "price": 700},
+	"ear3": {"slot": "earring", "name": "옥 귀걸이",   "need": 12, "atk": 4.0, "def": 4.0, "hp": 12.0, "price": 2600},
+	"ear4": {"slot": "earring", "name": "금 귀걸이",   "need": 20, "atk": 7.0, "def": 7.0, "hp": 20.0, "price": 8200},
 }
 const GEAR_DROP_CHANCE_GRUNT := 0.035
 const GEAR_DROP_CHANCE_BOSS := 0.9
+
+
+## data-gear.js poolFor(lv) 그대로 — 그 사냥터 lv+3까지의 물건(부위 안 가림).
+## 빈 결과가 나올 수 없는 lv(≥-2)면 그럴 일이 없지만, 원문처럼 안전망으로
+## need==1(부위마다 하나씩, tier1 전부)로 대체한다.
+static func gear_pool_for(lv: float) -> Array:
+	var out: Array = []
+	for key: String in GEAR_ITEMS:
+		if int(GEAR_ITEMS[key].need) <= int(lv) + GEAR_POOL_LV_MARGIN:
+			out.append(key)
+	if not out.is_empty():
+		return out
+	for key: String in GEAR_ITEMS:
+		if int(GEAR_ITEMS[key].need) == 1:
+			out.append(key)
+	return out
 
 ## **2026-09-13 추가 — 상점(1절 "제외" 목록 "장비 나머지"의 첫 걸음).**
 ## side.js kill()의 금 계산 그대로: gold = round((6+lv*3)*(0.8~1.4)*mul*
