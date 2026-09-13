@@ -13,6 +13,9 @@ extends Node3D
 ## 사냥터가 story_enemy.gd 기본값(황건적, lv1) 하나를 같이 썼다 — 이제
 ## 맵의 enemy_lv()/enemy_color()를 읽어 사냥터마다 다른 종·수치로 세운다
 ## (story_boss_spawner.gd가 boss_hp_mul 등을 넘기는 것과 같은 배선).
+##
+## **2026-09-13 추가(같은 날 더 더) — 원거리 적.** map.enemy_is_ranged()도
+## 같이 읽는다 — forest_map.gd(오랑캐 궁수)만 true, 나머지 셋은 false.
 
 @export var map_path: String = "res://games/saga_story/data/field_map.gd"
 
@@ -28,5 +31,6 @@ func _ready() -> void:
 		enemy.set_script(StoryEnemyScene)
 		enemy.enemy_lv = map.enemy_lv()
 		enemy.enemy_color = map.enemy_color()
+		enemy.is_ranged = map.enemy_is_ranged()
 		enemy.position = Vector3(x, GROUND_Y, 0)
 		add_child(enemy)

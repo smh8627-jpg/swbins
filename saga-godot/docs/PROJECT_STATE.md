@@ -5258,3 +5258,25 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   시도 횟수만큼 정확히 소모·승급 시 리셋·gear_totals 합산 전부 손계산과
   일치 확인 후 스크립트 삭제, 재검증까지 마쳤다. `.import` 줄바꿈
   잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+
+## STORY 원거리 적 (2026-09-13, "이어해" 지시로 계속)
+
+- 가방 확장이 끝나 1절 "제외" 목록의 다음 항목(원거리 적)으로 이동.
+  `forest_map.gd`의 잡졸 이름이 이미 "오랑캐 궁수"(활)였는데 실제로는
+  다른 사냥터와 똑같은 근접 고정형으로 동작하던 어긋남을 발견해
+  바로잡았다. `story_combat.gd`에 `RANGED_*` 상수 신규(`data-side.js`
+  RANGED_WEAPON.bow 포트), 네 전투 맵(`field`/`forest`/`cave`/`gorge`)에
+  `enemy_is_ranged()` 신규(forest만 true), `story_enemy_spawner.gd`가
+  그 값을 넘긴다. `story_enemy.gd`에 근접 공격과 독립된 원거리 발사
+  로직 신규 — 이 포트의 잡졸은 추격이 없어 "사거리 안이면 멈춰서
+  쏜다"(holding) 갈래 없이 제자리에서 그냥 쏜다. 신규 `story_enemy_
+  shot.gd`(Area3D 투사체) — 이 포트에 생기는 첫 실제 투사체. 자세한
+  내용은 `docs/VERTICAL_SLICE_STORY.md` "원거리 적" 절 참고.
+- 검증: 헤드리스 임포트 오류 0건, 잡졸이 서는 씬 넷(TestField·
+  ForestHuntGround·CaveHuntGround·GorgeHuntGround) 전부 `--quit-after 6`
+  스크립트 오류 0건. 임시 스크립트로 네 맵의 enemy_is_ranged() 값·
+  RANGED_* 상수 다섯 개를 확인(전부 일치) — 발사체 자체의 이동·충돌은
+  SceneTree 스크립트에서 직접 시뮬레이션하려 했으나 `_initialize()`
+  시점엔 노드가 실제로 트리에 안 들어가 `global_position` 접근이 조기
+  실패해 포기, 대신 네 씬의 헤드리스 실행(오류 0건)으로 대체했다.
+  `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).

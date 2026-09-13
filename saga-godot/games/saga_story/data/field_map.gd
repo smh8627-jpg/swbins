@@ -161,6 +161,12 @@ static func enemy_color() -> Color:
 	return ENEMY_COLOR
 
 
+## **2026-09-13 추가 — 원거리 적.** data-enemy.js 황건적 look.weapon:'club'
+## — 근접형(story_combat.gd RANGED_WEAPON 머리말 참고).
+static func enemy_is_ranged() -> bool:
+	return false
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:

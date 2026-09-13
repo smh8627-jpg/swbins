@@ -31,10 +31,18 @@ extends Node3D
 ## spawner.gd는 잡졸 색을, story_boss_spawner.gd는 보스 전용 색을
 ## 넘긴다 — 이 파일이 알던 하드코딩된 `COLOR` 하나(황건적/황건 두목,
 ## field 전용)는 이제 그 둘의 기본값일 뿐이다).
-
+##
+## **2026-09-13 추가(같은 날 더 더) — 원거리 적(1절 "제외" 목록).**
+## `is_ranged`(story_enemy_spawner.gd가 map.enemy_is_ranged()로 세팅,
+## 보스는 안 씀 — story_boss_spawner.gd가 안 건드려 기본값 false 그대로)
+## true면 근접 접촉 피해와 별개로 사거리 안에서 화살을 쏜다(story_combat.gd
+## RANGED_* 참고). 두 공격은 서로 독립된 쿨다운이라(side.js `e.cd`와
+## `e.shotCd`가 다른 변수인 것과 같다) 한 쪽이 쿨다운 중이어도 다른 쪽은
+## 정상 작동해야 한다 — `_physics_process()`를 그렇게 갈랐다.
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const StoryGearPickup := preload("res://games/saga_story/world/story_gear_pickup.gd")
 const StoryGoldPickup := preload("res://games/saga_story/world/story_gold_pickup.gd")
+const StoryEnemyShot := preload("res://games/saga_story/world/story_enemy_shot.gd")
 
 signal died
 
@@ -44,6 +52,7 @@ const OVERLAP_RANGE := 0.6  # (P_W/2 + enemy_w/2)px * SCALE = (13+17)*0.02
 const ATTACK_COOLDOWN := 1.0  # side.js e.cd = 1.0 그대로
 
 var is_boss := false
+var is_ranged := false
 var boss_hp_mul := StoryCombat.BOSS_HP_MUL
 var boss_dmg_mul := StoryCombat.BOSS_DMG_MUL
 var enemy_lv := 1.0
@@ -51,6 +60,7 @@ var enemy_color := COLOR
 var hp: float
 var _dead := false
 var _attack_cd_left := 0.0
+var _shot_cd_left := 0.0
 
 
 func _ready() -> void:
@@ -90,19 +100,38 @@ func _physics_process(delta: float) -> void:
 	if _dead:
 		return
 	_attack_cd_left = maxf(0.0, _attack_cd_left - delta)
-	if _attack_cd_left > 0.0:
-		return
+	_shot_cd_left = maxf(0.0, _shot_cd_left - delta)
 	var player := get_tree().get_first_node_in_group("player")
 	if player == null or not player.has_method("take_damage"):
 		return
 	var scale_mul: float = BOSS_VISUAL_SCALE if is_boss else 1.0
 	var dx: float = player.global_position.x - global_position.x
-	if absf(dx) > OVERLAP_RANGE * scale_mul:
-		return
-	_attack_cd_left = ATTACK_COOLDOWN
-	var base_dmg: float = StoryCombat.enemy_base_dmg(enemy_lv)
-	var dmg: float = base_dmg * (boss_dmg_mul if is_boss else 1.0)
-	player.take_damage(dmg)
+
+	if _attack_cd_left <= 0.0 and absf(dx) <= OVERLAP_RANGE * scale_mul:
+		_attack_cd_left = ATTACK_COOLDOWN
+		var base_dmg: float = StoryCombat.enemy_base_dmg(enemy_lv)
+		var dmg: float = base_dmg * (boss_dmg_mul if is_boss else 1.0)
+		player.take_damage(dmg)
+
+	if is_ranged and not is_boss and _shot_cd_left <= 0.0 and absf(dx) <= StoryCombat.RANGED_RANGE_M:
+		_shot_cd_left = StoryCombat.RANGED_CD_SEC
+		_fire_shot(dx)
+
+
+## side.js eshot 그대로: dir·spd(RANGED_SPD_M)로 날아가 RANGED_MUL만큼
+## 깎인 피해를 준다(enemy_base_dmg(enemy_lv) 기준 — 근접 피해와 같은
+## lv 공식에서 갈라져 나온다).
+func _fire_shot(dx: float) -> void:
+	var dir: float = 1.0 if dx > 0.0 else -1.0
+	var dmg: float = StoryCombat.enemy_base_dmg(enemy_lv) * StoryCombat.RANGED_MUL
+	var shot := Area3D.new()
+	shot.set_script(StoryEnemyShot)
+	shot.global_position = global_position + Vector3(dir * 0.5, 0.9, 0)
+	shot.dir = dir
+	shot.speed = StoryCombat.RANGED_SPD_M
+	shot.damage = dmg
+	shot.life_left = StoryCombat.RANGED_LIFE_SEC
+	get_parent().add_child(shot)
 
 
 func take_damage(amount: float) -> void:

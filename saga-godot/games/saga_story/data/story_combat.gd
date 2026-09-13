@@ -39,6 +39,27 @@ static func enemy_base_hp(lv: float) -> float:
 static func enemy_base_dmg(lv: float) -> float:
 	return roundf(4.0 + lv * 1.6)
 
+
+## **2026-09-13 추가 — 원거리 적(1절 "제외" 목록의 "원거리 적").**
+## `data-side.js` RANGED_WEAPON.bow(spd 430px·range 360px·mul 0.8·cd 2.2초)
+## 그대로 — px 값은 SCALE(0.02, 모든 맵 공통)로 미터 환산. 원작은 활·
+## 조총 둘이 있지만, 이 포트는 사냥터마다 잡졸이 하나뿐이라(story_enemy_
+## spawner.gd) **활(오랑캐 궁수, forest_map.gd) 한 종만** 옮긴다 — 조총은
+## 다음에 다른 사냥터를 원거리로 바꿀 때 참고할 자리(RANGED_WEAPON.staff:
+## spd 560·range 420·mul 1.0·cd 3.2).
+##
+## **재해석 — "다가오지 않고 멈춰서 쏜다"(holding) 갈래는 없다.** 이
+## 포트의 잡졸은 애초에 추격을 안 해(story_enemy.gd 머리말, 1절 "제외")
+## 제자리에서 사거리 안이면 그냥 쏜다 — 근접 접촉 피해(OVERLAP_RANGE)도
+## 그대로 살아 있어, 붙어서 때리면 원거리형도 똑같이 맞는다(원작도 role
+## 과 무관하게 overlap 판정은 걸린다, side.js 머리말 참고).
+const RANGED_SPD_M := 8.6     # 430px * 0.02
+const RANGED_RANGE_M := 7.2   # 360px * 0.02
+const RANGED_MUL := 0.8
+const RANGED_CD_SEC := 2.2
+const RANGED_LIFE_SEC := 2.4  # side.js eshot life:2.4(초 단위라 환산 불필요)
+
+
 ## **2026-09-12 추가 — 무예 나머지 셋(횡소·기탄·기합).** VERTICAL_
 ## SLICE_STORY.md 1절 "제외" 목록의 "무예 나머지(48-1개)" 중, 무명이
 ## 처음부터 갖는 tier0 넷(`data-job.js` SKILLS job:'none') 나머지 셋만
@@ -59,9 +80,13 @@ const SWEEP_CD := 4.0
 const SWEEP_MUL := 1.8
 const SWEEP_RANGE_MUL := 1.5  # story_player.gd ATTACK_RANGE에 곱한다
 
-## 기탄(氣彈) — bolt(관통). 이 슬라이스엔 투사체 이동이 없어(적이 제자리에
-## 서 있다, story_enemy.gd 머리말) "더 멀리 뻗는 관통 공격"으로 재해석 —
-## 사거리만 늘리고(연참의 2배) 판정은 연참과 같은 정면 판정을 그대로 쓴다.
+## 기탄(氣彈) — bolt(관통). 이 슬라이스가 처음 옮겨질 땐 투사체 이동
+## 자체가 없어(적이 제자리에 서 있다, story_enemy.gd 머리말) "더 멀리
+## 뻗는 관통 공격"으로 재해석했다 — 사거리만 늘리고(연참의 2배) 판정은
+## 연참과 같은 정면 판정을 그대로 쓴다. **2026-09-13 추가 — 원거리 적이
+## 생기며 투사체(story_enemy_shot.gd) 자체는 이제 있다**, 다만 이 무예는
+## 플레이어가 쓰는 즉발형이라 그 투사체를 빌려 쓰지 않는다(재해석은 그대로
+## 유효 — 다시 만들 이유가 없다).
 const BOLT_COST := 24.0
 const BOLT_CD := 6.0
 const BOLT_MUL := 2.1

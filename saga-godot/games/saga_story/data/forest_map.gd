@@ -145,6 +145,14 @@ static func enemy_color() -> Color:
 	return ENEMY_COLOR
 
 
+## **2026-09-13 추가 — 원거리 적.** ENEMY_NAME("오랑캐 궁수")이 data-enemy.js
+## 그대로 활을 든 이름이면서도 지금까지 근접형과 똑같이 움직였다 — 이 이름
+## 값에 맞춰 실제로 원거리형으로 돌린다(story_combat.gd RANGED_WEAPON.bow,
+## story_enemy.gd 참고). 다섯 판 중 이 사냥터만 해당.
+static func enemy_is_ranged() -> bool:
+	return true
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:

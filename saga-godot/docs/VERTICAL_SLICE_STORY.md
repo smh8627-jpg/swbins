@@ -1894,6 +1894,66 @@ hp10을 5번 적용 → **성패와 무관하게** `scroll_left.hat`=0(업횟은
 항목(tier2~4·고유·주문서)이 전부 끝났다 — **상점 UI**(물목을 고르는
 화면)만 여전히 "다가가면 자동 구매"로 남아 있다, 다음에 볼 자리.
 
+## 원거리 적 (2026-09-13, "이어해" 지시로 계속)
+
+가방/장비 확장이 끝나 1절 "제외" 목록의 다른 항목으로 넘어갔다 —
+**원거리 적(활/조총)**. 조사해 보니 `forest_map.gd`의 `ENEMY_NAME`이
+이미 "오랑캐 궁수"(`data-enemy.js` 그대로, `look.weapon:'bow'`)였는데
+실제 동작은 다른 세 사냥터(황건적·위군 창병·철갑 중장병, 전부 근접
+무기)와 똑같았다 — 이름만 궁수고 실제로는 활을 안 쐈다. 이 어긋남을
+바로잡는 게 이번 걸음.
+
+- `story_combat.gd` — `data-side.js` `RANGED_WEAPON.bow`(spd 430px·
+  range 360px·mul 0.8·cd 2.2초) 그대로 옮겨 `RANGED_SPD_M`(8.6)·
+  `RANGED_RANGE_M`(7.2)·`RANGED_MUL`(0.8)·`RANGED_CD_SEC`(2.2)·
+  `RANGED_LIFE_SEC`(2.4) 신규 — px→m 환산은 다른 모든 맵과 같은
+  SCALE(0.02). 조총(`staff`)은 안 옮겼다 — 이 포트는 사냥터마다 잡졸이
+  하나뿐이라 지금은 활 하나로 충분(다음에 다른 사냥터를 원거리로 바꿀
+  때 참고할 수치만 주석으로 남겨 둠).
+- `field_map.gd`·`cave_map.gd`·`gorge_map.gd`·`forest_map.gd`에
+  `enemy_is_ranged()` 신규 — `enemy_lv()`/`enemy_color()`와 같은 자리.
+  forest만 true(오랑캐 궁수·bow), 나머지 셋은 각자의 무기(club/spear/
+  halberd)가 `data-enemy.js`에서도 원거리가 아니라 false.
+- `story_enemy_spawner.gd`가 `map.enemy_is_ranged()`를 읽어 `enemy.
+  is_ranged`로 넘긴다(is_boss와 같은 배선 순서 — set_script 직후,
+  add_child 전). `story_boss_spawner.gd`는 안 건드려 보스는 기본값
+  false 그대로(원문 `e.ranged && !e.boss`와 결과가 같다).
+- `story_enemy.gd` — `is_ranged`/`_shot_cd_left` 신규. **재해석 — "사거리
+  안이면 멈춰서 쏜다"(holding) 갈래는 없다.** 이 포트의 잡졸은 애초에
+  추격 자체가 없어(1·3절 "제외") 제자리에서 사거리 안이면 그냥 쏜다.
+  근접 접촉 피해(`OVERLAP_RANGE`)와 원거리 발사는 원문처럼 **서로 독립된
+  쿨다운**(`_attack_cd_left`/`_shot_cd_left`, side.js `e.cd`/`e.shotCd`와
+  같다) — `_physics_process()`를 한쪽이 막혀도 다른 쪽이 도는 구조로
+  갈랐다(전에는 근접 쿨다운이 안 끝나면 통째로 `return`해 원거리 검사
+  자체를 못 했다). `_fire_shot(dx)` 신규 — `enemy_base_dmg(enemy_lv) *
+  RANGED_MUL`을 담아 투사체를 만든다.
+- `story_enemy_shot.gd`(신규 파일) — `Area3D` 확장, `dir`/`speed`/
+  `damage`/`life_left`를 받아 `_physics_process()`에서 X축으로 움직이고
+  `life_left`가 다하면 자멸, `body_entered`로 플레이어를 맞히면 즉시
+  피해를 주고 사라진다. `story_enemy.gd`가 `story_gear_pickup.gd`처럼
+  static 팩토리를 거치지 않고 `set_script`+속성 대입으로 직접 만든다
+  (`story_enemy_spawner.gd`가 `story_enemy.gd`를 만드는 것과 같은 배선).
+  **이 포트에 생기는 첫 실제 투사체**(story_combat.gd 62절 근처 기탄
+  주석에 짧게 곁들여 둠 — 플레이어 스킬은 여전히 즉발형이라 이 투사체를
+  안 빌려 쓴다, 재해석은 그대로 유효).
+
+**검증(헤드리스)** — import 확인(vroid·texture-a.png.import CRLF 잡음만
+재발생, 되돌림) → 잡졸이 실제로 서는 씬 넷(`TestField`·
+`ForestHuntGround`·`CaveHuntGround`·`GorgeHuntGround`) 전부
+`--quit-after 6 --verbose` 스크립트 오류 0건. **임시 검증 스크립트**로
+네 맵의 `enemy_is_ranged()`가 forest만 true인지, RANGED_* 상수 다섯
+개가 정확한지 확인(전부 일치) — 다만 발사체 자체의 이동·충돌은
+SceneTree `_initialize()` 시점엔 노드가 실제로 트리에 들어가지 않아
+`global_position` 접근이 조기 실패해(`is_inside_tree()` false) 이
+스크립트에서 직접 시뮬레이션하지는 못했다(대신 위 네 씬의 헤드리스
+실행 오류 0건이 그 자리를 대신한다). 검증 스크립트 삭제, 재검증까지
+마쳤다. `git status`로 `project.godot`·`*.import` 확인 — 무관한 잡음만
+되돌림.
+
+**GUI 실기 확인은 아직 안 함** — 오림 숲에 들어가 궁수가 실제로 화살을
+쏘는지, 사거리 밖에선 안 쏘는지, 근접 접촉 피해와 안 겹치는지 눈으로
+볼 것. 계속 몰아서 받을 것.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

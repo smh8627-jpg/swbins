@@ -125,6 +125,13 @@ static func enemy_color() -> Color:
 	return ENEMY_COLOR
 
 
+## **2026-09-13 추가 — 원거리 적.** data-enemy.js 철갑 중장병 look.weapon:
+## 'halberd' — side.js enemyRole()로는 탱커형(이번엔 안 옮긴다)이지 원거리형이
+## 아니다. 근접형으로 둔다(story_combat.gd RANGED_WEAPON 머리말 참고).
+static func enemy_is_ranged() -> bool:
+	return false
+
+
 static func gather_positions_m() -> Array:
 	var out: Array = []
 	for g: Array in GATHERS_PX:
