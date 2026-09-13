@@ -4342,3 +4342,30 @@ UI 컴포넌트를 새로 짤 때 이 함정을 먼저 떠올릴 것.**
 그대로라 적용 대상이 아니다(리깅된 몬스터 에셋이 아직 없다) — 나중에
 Forest에도 실제 몬스터 3D 에셋을 붙이고 싶다면 그건 별도로 소싱해야
 한다.
+
+## 같은 날 후속 — Forest "사운드" 첫 슬라이스 (2026-09-14)
+
+"묻지 말고 이어해"에 이어 계속 진행 — PLAN.md 67장(사운드) 착수. 밀어내기
+미니게임에 SFX 두 개를 붙였다: 누를 때마다 `chop.ogg`, 대치가 풀리면(성공/
+타임아웃 공통) `confirmation_001.ogg`(둘 다 opengameart.org의 Kenney CC0
+미러 — Kenney 공식 페이지는 다운로드 버튼이 JS라 직접 URL을 못 뽑는다는
+Props 항목의 결론 그대로, 자세한 출처는 `docs/ASSET_GUIDE.md` 2026-09-14
+항목). `Saga.Forest.Audio.ForestAudio`(신규)가 재생을 맡는다 —
+Master/SFX/BGM 볼륨을 PlayerPrefs로 갖고 `PlayOneShot`에 곱해서 "카테고리별
+볼륨 분리"를 흉내 낸다. **진짜 Unity AudioMixer 에셋은 만들지 않았다** —
+에디터 GUI로 사람이 노드를 잇는 방식이라(66-2장 ⑤ 헤어카드/SSS Shader
+Graph 배선과 같은 제약) 배치 모드 스크립트로 못 만든다. FOREST 하나에만
+만들었다 — 다섯 판 복사 관례대로 다른 네 판은 필요해질 때 각자 복사.
+
+검증: 배치 모드 컴파일(오디오 임포트 확인, AudioImporter로 뜨는지 meta
+확인) → 씬 재빌드(클립 로드 성공, 경고 없음) → PlaytestForestCreatures
+2연속 통과(중간 1회는 익숙한 첫 실행 플레이키니스). 커밋·푸시 완료 —
+푸시 시 다른 세션(saga-web 다섯 판 쪽, 이 저장소지만 완전히 다른 폴더)의
+동시 커밋과 충돌 없이 merge 하나로 정리됐다(경로가 안 겹쳐 충돌 자체가
+없었음).
+
+**다음에 볼 것**: BGM 트랙은 아직 안 구했다(`ForestAudio.PlayBgm`도 아직
+없음) — 필요해지면 Kenney/Poly Haven류 CC0 음악 팩에서 받을 것. 실제
+AudioMixer로 바꾸는 건 사람이 에디터를 열어야 하는 몫(`HOW_TO_PLAYTEST.md`
+에 적어 둘 만함). 다른 네 판(GO/Dungeon/Story/Realm)에 오디오를 넣는 건
+아직 착수 전.
