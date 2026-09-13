@@ -87,6 +87,102 @@ namespace Saga.Realm.Data
             return new AttackResult(true, message);
         }
 
+        public readonly struct PlotResult
+        {
+            public readonly bool Ok;
+            public readonly string Message;
+            public PlotResult(bool ok, string message) { Ok = ok; Message = message; }
+        }
+
+        /// <summary>diplo.js plotChance() 의 일반 갈래(이간·매수가 아닌 것)
+        /// 그대로 — 거는 사람 지력 대 막는 사람 지력, 태수가 없으면 30
+        /// (원작 기본값, 소패는 처음부터 태수가 없다). 치안 항은 이
+        /// 슬라이스의 소패에 치안 필드가 없어 뺐다(중립값으로 상쇄한
+        /// 것과 같다 — RealmPlotData.cs 클래스 주석 참고).</summary>
+        private static float PlotChance(RealmOfficer officer) =>
+            Mathf.Clamp(0.30f + (officer.Wisdom - 30) / 200f, 0.05f, 0.9f);
+
+        /// <summary>계략을 걸 수 있는 무장 — Attack()과 같은 자리(허창)에
+        /// 배치된, 이 달에 아직 안 쓴 사람 중 지력 최고. UI가 % 미리보기에도
+        /// 쓴다(RealmCommandUi.cs).</summary>
+        private static RealmOfficer BestPlotter(string fromCityId)
+        {
+            RealmOfficer best = null;
+            foreach (var id in RealmCityState.RosterIds)
+            {
+                if (RealmCityState.OfficerCityId(id) != fromCityId) continue;
+                if (RealmCityState.IsOfficerDone(id)) continue;
+                var o = RealmOfficerPool.Get(id);
+                if (o == null) continue;
+                if (best == null || o.Wisdom > best.Wisdom) best = o;
+            }
+            return best;
+        }
+
+        /// <summary>계략 버튼에 걸기 전 성공률을 보여주기 위한 미리보기 —
+        /// 무장이 없으면 0(버튼에 "무장 없음"으로 뜬다).</summary>
+        public static float PreviewPlotChance(string fromCityId)
+        {
+            var officer = BestPlotter(fromCityId);
+            return officer == null ? 0f : PlotChance(officer);
+        }
+
+        /// <summary>계략을 건다 — diplo.js plot() 을 소패 하나로 좁힌 것.
+        /// 이간·매수(적 무장 대상)는 소패에 무장이 없어 범위 밖 —
+        /// RealmPlotData.cs 클래스 주석 참고.</summary>
+        public static PlotResult Plot(string kind, string fromCityId)
+        {
+            if (_xiaopei.Captured) return new PlotResult(false, "이미 함락한 성입니다");
+            if (fromCityId != RealmEnemyCity.AttackFromCityId)
+            {
+                return new PlotResult(false, $"{RealmCityData.Get(RealmEnemyCity.AttackFromCityId)?.Name}에서만 계략을 쓸 수 있습니다");
+            }
+            var plot = RealmPlotData.Get(kind);
+            if (plot == null) return new PlotResult(false, "없는 계략");
+
+            var officer = BestPlotter(fromCityId);
+            if (officer == null) return new PlotResult(false, "이 성에서 계략을 쓸 수 있는 무장이 없습니다");
+            if (!RealmCityState.TrySpendGold(plot.Gold)) return new PlotResult(false, "금이 모자랍니다");
+
+            RealmCityState.MarkOfficerDone(officer.Id);
+            float chance = PlotChance(officer);
+            string message;
+            if (UnityEngine.Random.value > chance)
+            {
+                message = $"{plot.Emoji} {plot.Name} — 들통났다 (성공률 {Mathf.RoundToInt(chance * 100f)}%였다)";
+            }
+            else
+            {
+                string effect = kind == "rumor" ? ApplyRumor() : ApplyFire();
+                message = $"{plot.Emoji} {plot.Name} 성공 — {effect}";
+            }
+
+            Changed?.Invoke();
+            return new PlotResult(true, message);
+        }
+
+        /// <summary>유언비어 — 원작은 치안을 깎지만(sec 필드 없음, 클래스
+        /// 주석 참고) 훈련도를 깎아 실제로 다음 전투(RealmWar.ArmyPower)에
+        /// 반영되게 재해석했다. 낙폭도 원작 수치(10+rand(12)) 그대로.</summary>
+        private static string ApplyRumor()
+        {
+            int before = _xiaopei.Train;
+            int drop = 10 + UnityEngine.Random.Range(0, 12);
+            _xiaopei.Train = Mathf.Max(0, _xiaopei.Train - drop);
+            return $"소패 훈련도 {before} → {_xiaopei.Train}";
+        }
+
+        /// <summary>화계 — 원작은 군량을 태우지만(소패에 군량 필드 없음)
+        /// 병력을 그만큼 직접 깎아 재해석했다. 비율도 원작(25~55%) 그대로.</summary>
+        private static string ApplyFire()
+        {
+            int before = _xiaopei.Troops;
+            float frac = 0.25f + UnityEngine.Random.value * 0.3f;
+            int burned = Mathf.RoundToInt(_xiaopei.Troops * frac);
+            _xiaopei.Troops = Mathf.Max(0, _xiaopei.Troops - burned);
+            return $"소패 병력 {before} → {_xiaopei.Troops} ({burned} 소실)";
+        }
+
         public static (int wall, int maxWall, int troops, int train, int tech, bool captured) Snapshot() =>
             (_xiaopei.Wall, _xiaopei.MaxWall, _xiaopei.Troops, _xiaopei.Train, _xiaopei.Tech, _xiaopei.Captured);
 

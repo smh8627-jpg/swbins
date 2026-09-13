@@ -74,6 +74,17 @@ namespace Saga.Realm.Data
 
         public static string OfficerCityId(string officerId) => _officerCity.TryGetValue(officerId, out var c) ? c : null;
 
+        /// <summary>RealmWarState.Plot() 등 외부(다른 static 클래스)가 금고를
+        /// 쓸 때 — Gold의 세터가 private이라 이 클래스 밖에서 직접 못
+        /// 깎는다. 모자라면 아무 것도 안 하고 false.</summary>
+        public static bool TrySpendGold(int amount)
+        {
+            if (Gold < amount) return false;
+            Gold -= amount;
+            Changed?.Invoke();
+            return true;
+        }
+
         public static void SetCurrentCity(string cityId)
         {
             if (!_cities.ContainsKey(cityId) || cityId == CurrentCity) return;

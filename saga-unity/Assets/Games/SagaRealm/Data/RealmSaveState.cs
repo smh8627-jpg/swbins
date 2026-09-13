@@ -45,6 +45,18 @@ namespace Saga.Realm.Data
             public bool xiaopeiCaptured;
         }
 
+        /// <summary>PlaytestRealmSlice.cs 전용 — GameBootstrap.Awake()가
+        /// 매 Play 시작마다 TryLoad()를 부르기 때문에, 이전 헤드리스
+        /// 실행이 남긴 세이브 파일이 있으면 "새 게임 시작 상태"를 전제로
+        /// 하는 테스트의 Init 단계가 깨진다(2026-09-13 계략 슬라이스
+        /// 추가 중 실제로 겪음 — persistentDataPath는 Unity 프로세스가
+        /// 바뀌어도 그대로 남는다). 실제 게임 코드 경로에선 안 쓴다.</summary>
+        public static void DeleteForTest()
+        {
+            try { if (File.Exists(SavePath)) File.Delete(SavePath); }
+            catch (Exception e) { Debug.LogWarning($"[RealmSaveState] 테스트용 세이브 삭제 실패: {e.Message}"); }
+        }
+
         public static bool Save()
         {
             var cities = new List<CitySave>();

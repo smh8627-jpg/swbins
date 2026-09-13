@@ -66,7 +66,9 @@ namespace Saga.Realm.UI
             }
             sb.Append('\n');
             var xiaopei = RealmWarState.Xiaopei;
-            sb.Append("소패 — ").Append(xiaopei.Captured ? "함락됨" : $"병력 {xiaopei.Troops} · 성벽 {xiaopei.Wall}");
+            sb.Append("소패 — ").Append(xiaopei.Captured
+                ? "함락됨"
+                : $"병력 {xiaopei.Troops} · 성벽 {xiaopei.Wall} · 훈련 {xiaopei.Train}");
             label.text = sb.ToString();
         }
     }

@@ -42,11 +42,13 @@ namespace Saga.EditorTools
             Init, LocationGate, ShipsGate, Agri, SettleAfterAgri, Comm, SettleAfterComm,
             Tech, Sec, Wall, Train, Draft, SettleAfterDraft,
             SearchAtChenliu, Hire, AgriByNewOfficer,
+            PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm, AttackAgainBlocked,
             SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
         private static int _hireAttempts;
+        private static int _plotAttempts;
         private static int _goldBeforeSettle;
         private static int _foodBeforeSettle;
 
@@ -59,12 +61,18 @@ namespace Saga.EditorTools
             EditorSettings.enterPlayModeOptions =
                 EnterPlayModeOptions.DisableDomainReload | EnterPlayModeOptions.DisableSceneReload;
 
+            // GameBootstrap.Awake()가 매번 TryLoad()를 불러 이전 헤드리스
+            // 실행이 남긴 세이브를 그대로 읽어 버린다 — "새 게임" 전제인
+            // Init 단계가 깨지지 않도록 먼저 지운다(RealmSaveState.cs
+            // DeleteForTest() 주석 참고).
+            RealmSaveState.DeleteForTest();
             EditorSceneManager.OpenScene(ScenePath);
 
             _hadError = false;
             _framesSeen = 0;
             _phase = Phase.Init;
             _hireAttempts = 0;
+            _plotAttempts = 0;
 
             Application.logMessageReceived += OnLog;
             EditorApplication.playModeStateChanged += OnStateChanged;
@@ -95,7 +103,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -400,8 +408,104 @@ namespace Saga.EditorTools
                     }
                     Debug.Log($"[PlaytestRealmSlice] new-officer agri OK - {result.Message}");
                     RealmCityState.SetCurrentCity("xuchang");
-                    RealmCityState.NextMonth(); // 전쟁 테스트를 위해 무장 done을 깨끗이 비운다.
-                    _phase = Phase.AttackWrongCity;
+                    RealmCityState.NextMonth(); // 계략/전쟁 테스트를 위해 무장 done을 깨끗이 비운다.
+                    _phase = Phase.PlotGate;
+                    break;
+                }
+
+                case Phase.PlotGate:
+                {
+                    // 계략도 공격처럼 허창에서만 — 진류에서 걸면 막혀야 한다.
+                    var result = RealmWarState.Plot("rumor", "chenliu");
+                    if (result.Ok)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 계략 성 밖 게이트 실패 — msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] plot wrong-city gate OK - {result.Message}");
+                    _phase = Phase.PlotRumor;
+                    break;
+                }
+
+                case Phase.PlotRumor:
+                {
+                    // 확률 판정이라 등용처럼 성공할 때까지 반복(최대
+                    // MaxHireAttempts번, NextMonth로 명령 소진·금고를 되돌려
+                    // 가며). 성공하면 소패 훈련도가 실제로 떨어져야 한다.
+                    int goldBefore = RealmCityState.Gold;
+                    int trainBefore = RealmWarState.Xiaopei.Train;
+                    var result = RealmWarState.Plot("rumor", "xuchang");
+                    if (!result.Ok || RealmCityState.Gold != goldBefore - RealmPlotData.Get("rumor").Gold)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 유언비어 실행 이상 — ok={result.Ok} gold={RealmCityState.Gold}(기대={goldBefore - RealmPlotData.Get("rumor").Gold}) msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    if (RealmWarState.Xiaopei.Train < trainBefore)
+                    {
+                        Debug.Log($"[PlaytestRealmSlice] plot rumor OK (success, attempt {_plotAttempts + 1}) - {result.Message}");
+                        _plotAttempts = 0;
+                        RealmCityState.NextMonth();
+                        _phase = Phase.PlotFire;
+                        break;
+                    }
+                    if (RealmWarState.Xiaopei.Train != trainBefore)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 유언비어 실패인데 훈련도가 바뀜 — before={trainBefore} after={RealmWarState.Xiaopei.Train}");
+                        Fail();
+                        return;
+                    }
+                    _plotAttempts++;
+                    if (_plotAttempts >= MaxHireAttempts)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 유언비어가 {MaxHireAttempts}번 안에 성공 못 함(확률 판정) — last={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] plot rumor miss (attempt {_plotAttempts}) - {result.Message}");
+                    RealmCityState.NextMonth();
+                    break;
+                }
+
+                case Phase.PlotFire:
+                {
+                    int goldBefore = RealmCityState.Gold;
+                    int troopsBefore = RealmWarState.Xiaopei.Troops;
+                    var result = RealmWarState.Plot("fire", "xuchang");
+                    if (!result.Ok || RealmCityState.Gold != goldBefore - RealmPlotData.Get("fire").Gold)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 화계 실행 이상 — ok={result.Ok} gold={RealmCityState.Gold}(기대={goldBefore - RealmPlotData.Get("fire").Gold}) msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    if (RealmWarState.Xiaopei.Troops < troopsBefore)
+                    {
+                        Debug.Log($"[PlaytestRealmSlice] plot fire OK (success, attempt {_plotAttempts + 1}) - {result.Message}");
+                        // 소패 병력/훈련이 계략으로 흐트러진 채면 뒤의 약한
+                        // 공격/압도적 공격 시나리오(고정 수치를 전제로 한
+                        // 테스트)가 어긋난다 — 기준값으로 되돌려 둔다.
+                        RealmWarState.Restore(RealmEnemyCity.XiaopeiBaseWall, RealmEnemyCity.XiaopeiBaseWall,
+                            RealmEnemyCity.XiaopeiBaseTroops, RealmEnemyCity.XiaopeiBaseTrain, RealmEnemyCity.XiaopeiBaseTech, false);
+                        RealmCityState.NextMonth();
+                        _phase = Phase.AttackWrongCity;
+                        break;
+                    }
+                    if (RealmWarState.Xiaopei.Troops != troopsBefore)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 화계 실패인데 병력이 바뀜 — before={troopsBefore} after={RealmWarState.Xiaopei.Troops}");
+                        Fail();
+                        return;
+                    }
+                    _plotAttempts++;
+                    if (_plotAttempts >= MaxHireAttempts)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 화계가 {MaxHireAttempts}번 안에 성공 못 함(확률 판정) — last={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] plot fire miss (attempt {_plotAttempts}) - {result.Message}");
+                    RealmCityState.NextMonth();
                     break;
                 }
 

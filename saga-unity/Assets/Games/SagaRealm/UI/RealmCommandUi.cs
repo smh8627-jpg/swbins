@@ -12,23 +12,30 @@ namespace Saga.Realm.UI
     {
         private GameObject _orderPanel;
         private GameObject _cityPanel;
+        private GameObject _plotPanel;
+        private Transform _plotButtonsRoot;
 
         public void Build()
         {
             var canvas = RealmUiKit.NewCanvas("RealmCommandUI");
             canvas.transform.SetParent(transform, false);
 
-            RealmUiKit.NewButton(canvas.transform, "명령", new Vector2(0.5f, 0f), new Vector2(-405f, 100f),
-                new Vector2(190f, 110f), ToggleOrderPanel);
-            RealmUiKit.NewButton(canvas.transform, "성", new Vector2(0.5f, 0f), new Vector2(-135f, 100f),
-                new Vector2(190f, 110f), ToggleCityPanel);
-            RealmUiKit.NewButton(canvas.transform, "공격", new Vector2(0.5f, 0f), new Vector2(135f, 100f),
-                new Vector2(190f, 110f), ExecuteAttack);
-            RealmUiKit.NewButton(canvas.transform, "다음 달", new Vector2(0.5f, 0f), new Vector2(405f, 100f),
-                new Vector2(190f, 110f), ExecuteNextMonth);
+            // 다섯 버튼(명령/성/계략/공격/다음달) — 외교(계략) 추가로
+            // 넷에서 다섯으로 늘며 간격만 좁혔다(폭 190→180, 간격 270→210).
+            RealmUiKit.NewButton(canvas.transform, "명령", new Vector2(0.5f, 0f), new Vector2(-420f, 100f),
+                new Vector2(180f, 110f), ToggleOrderPanel);
+            RealmUiKit.NewButton(canvas.transform, "성", new Vector2(0.5f, 0f), new Vector2(-210f, 100f),
+                new Vector2(180f, 110f), ToggleCityPanel);
+            RealmUiKit.NewButton(canvas.transform, "계략", new Vector2(0.5f, 0f), new Vector2(0f, 100f),
+                new Vector2(180f, 110f), TogglePlotPanel);
+            RealmUiKit.NewButton(canvas.transform, "공격", new Vector2(0.5f, 0f), new Vector2(210f, 100f),
+                new Vector2(180f, 110f), ExecuteAttack);
+            RealmUiKit.NewButton(canvas.transform, "다음 달", new Vector2(0.5f, 0f), new Vector2(420f, 100f),
+                new Vector2(180f, 110f), ExecuteNextMonth);
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
+            BuildPlotPanel(canvas.transform);
         }
 
         /// <summary>명령 10종 — rtk.js ORDERS 순서, 두 열(왼쪽 5·오른쪽 5)로
@@ -84,16 +91,74 @@ namespace Saga.Realm.UI
                 new Vector2(300f, 70f), () => _cityPanel.SetActive(false));
         }
 
+        /// <summary>diplo.js "계략은 성공률을 숨기지 않는다" — 성공률이
+        /// 지금 조망 성·로스터 상태에 따라 매번 바뀌므로(RealmWarState
+        /// .PreviewPlotChance), 정적으로 한 번 짓지 않고 열 때마다 버튼을
+        /// 다시 만든다(RealmCityBuilder.Rebuild()와 같은 결).</summary>
+        private void BuildPlotPanel(Transform parent)
+        {
+            _plotPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 420f),
+                new Color(0f, 0f, 0f, 0.75f));
+            _plotPanel.SetActive(false);
+
+            RealmUiKit.NewText(_plotPanel.transform, "계략 — 허창에서만", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+                new Vector2(600f, 60f), 30);
+
+            var root = new GameObject("PlotButtons", typeof(RectTransform));
+            root.transform.SetParent(_plotPanel.transform, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            rootRect.anchoredPosition = Vector2.zero;
+            _plotButtonsRoot = root.transform;
+
+            RealmUiKit.NewButton(_plotPanel.transform, "닫는다", new Vector2(0.5f, 0f), new Vector2(0f, 40f),
+                new Vector2(300f, 70f), () => _plotPanel.SetActive(false));
+        }
+
+        private void RefreshPlotPanel()
+        {
+            for (int i = _plotButtonsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_plotButtonsRoot.GetChild(i).gameObject);
+            }
+
+            float y = -150f;
+            foreach (var key in RealmPlotData.AllKeys)
+            {
+                var plot = RealmPlotData.Get(key);
+                float chance = RealmWarState.PreviewPlotChance(RealmCityState.CurrentCity);
+                string chanceText = chance > 0f ? $"{Mathf.RoundToInt(chance * 100f)}%" : "무장 없음";
+                string label = $"{plot.Emoji} {plot.Name} ({plot.Gold}냥, 성공률 {chanceText})";
+                string capturedKey = key;
+                RealmUiKit.NewButton(_plotButtonsRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y),
+                    new Vector2(600f, 84f), () => ChoosePlot(capturedKey));
+                y -= 100f;
+            }
+        }
+
         private void ToggleOrderPanel()
         {
             _cityPanel.SetActive(false);
+            _plotPanel.SetActive(false);
             _orderPanel.SetActive(!_orderPanel.activeSelf);
         }
 
         private void ToggleCityPanel()
         {
             _orderPanel.SetActive(false);
+            _plotPanel.SetActive(false);
             _cityPanel.SetActive(!_cityPanel.activeSelf);
+        }
+
+        private void TogglePlotPanel()
+        {
+            _orderPanel.SetActive(false);
+            _cityPanel.SetActive(false);
+            bool open = !_plotPanel.activeSelf;
+            _plotPanel.SetActive(open);
+            if (open) RefreshPlotPanel();
         }
 
         private void ChooseOrder(string key)
@@ -119,6 +184,13 @@ namespace Saga.Realm.UI
         {
             var result = RealmWarState.Attack(RealmCityState.CurrentCity);
             RealmToast.Instance?.Show(result.Message, 6f);
+        }
+
+        private void ChoosePlot(string key)
+        {
+            var result = RealmWarState.Plot(key, RealmCityState.CurrentCity);
+            RealmToast.Instance?.Show(result.Message, 6f);
+            if (result.Ok) _plotPanel.SetActive(false);
         }
     }
 }
