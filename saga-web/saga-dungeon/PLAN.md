@@ -4212,3 +4212,29 @@ README·메인 페이지는 "새 창작 방향 선언문 + 현재 상태 최신�
   캐시된 사용자에게 바로 반영되게 버전만 올렸다).
 - **다음** — 사용자가 확정한 "3안"(새 CC0 몬스터 에셋 조사)을 이어서
   진행할 것.
+
+## "3안" 이어감 — 새 CC0 공룡 6종 + 그 김에 잡은 진짜 버그 (2026-09-14)
+
+3안(새 CC0 몬스터 에셋 조사)을 실제로 진행 — Quaternius "Animated Dinosaur
+Pack"(CC0, 기존 CC0 팩과 같은 GitHub 미러에서 확인)에서 여섯(Apatosaurus·
+Parasaurolophus·Stegosaurus·Trex·Triceratops·Velociraptor, 전부 idle·walk·
+run·attack·death 클립 내장)을 새로 받아 `쾌조룡·볏공룡·판갑룡·폭룡·
+삼각뿔룡·장경룡`(tier 2~4)으로 등록했다. **최신 Quaternius 팩 상당수가
+CC0 에서 QAL(재배포 금지)로 바뀌어 있어** 이름만 보고 받지 말고 팩 상세
+페이지에서 라이선스를 낱개 확인해야 했다(`assets/ASSET_LICENSES.md`
+"Animated Dinosaur Pack" 절 참고).
+
+이걸 실제로 연결하려다 **`js/asset3d.js`의 `monster:` 네임스페이스가
+2026-09-07부터 통째로 안 이어져 있었다는 걸 발견해 고쳤다** — DEFAULTS 에
+`monster:이름`으로 등록해 둔 58종을, `data-enemy.js`의 `body` 필드는
+접두어 없는 맨 이름으로 적어 왔는데 `lookup(kind)`가 정확히 일치하는
+키만 찾아 짐승형 94개 중 88개(보스 '천룡' 포함)가 GLB 를 하나도 못 받고
+조용히 상자(fallback shape)로만 그려지고 있었다. `lookup()`에 "맨 이름이
+없으면 `monster:`를 붙여 한 번 더 찾는다" 두 줄만 보태 고쳤다(REG·
+DEFAULTS·data-enemy.js 는 안 건드림). 자세한 경위·검증은
+`assets/ASSET_LICENSES.md`의 같은 날짜 절 참고.
+
+**다음** — 실기기로 이번에 처음 GLB 가 붙는 몬스터들(스켈레톤·오크·고스트
+등 88종 전부)과 새 공룡 6종이 실제로 어떻게 보이는지 확인할 것. 그 다음엔
+남은 몬스터 소스(Quaternius 의 다른 CC0 팩, 또는 poly.pizza 개별 검색)를
+더 훑어볼 수 있다.

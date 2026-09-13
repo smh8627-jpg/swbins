@@ -540,6 +540,23 @@
     'monster:skeleton_solo': 'assets/models/monsters/quaternius2/SkeletonSolo.glb',
     'monster:giant': 'assets/models/monsters/quaternius2/Giant.glb',
     'monster:slime_enemy': 'assets/models/monsters/community/SlimeEnemy.glb',
+    /* 2026-09-14 — PLAN "3안"(새 CC0 몬스터 에셋 조사). Quaternius "Animated
+       Dinosaur Pack"(CC0, quaternius.itch.io/animated-lowpoly-dinosaurs —
+       quaternius.com 최신 팩 다수가 QAL(재배포 금지)로 바뀌어 있어 이번엔
+       팩 페이지에서 라이선스를 낱개로 다시 확인했다) 6종. 기존 `monster:dino`
+       (Ultimate Monsters 소속, 뿔공룡/왕뿔공룡이 쓰는 그 하나뿐인 공룡)과는
+       완전히 다른 개체 — 이름이 하나도 안 겹쳐 접미사 없이 그대로 받는다.
+       전부 Armature 계열 클립(idle·walk·run·attack·death·jump)을 갖고 있어
+       `mapClips()`의 낱말표를 그대로 받는다(Apatosaurus.glb 의 death 클립만
+       원본 자체에 `Stegosaurus_Death`로 잘못 붙어 있었지만, 이름이 아니라
+       "death"라는 낱말만 보고 고르므로 문제없이 그대로 잡힌다 — 원본 파일을
+       고치지 않았다). `tools/glb-compress`로 재압축(6개, 1.9MB→0.7MB). */
+    'monster:dino_apato': 'assets/models/monsters/quaternius_dino/Apatosaurus.glb',
+    'monster:dino_para': 'assets/models/monsters/quaternius_dino/Parasaurolophus.glb',
+    'monster:dino_stego': 'assets/models/monsters/quaternius_dino/Stegosaurus.glb',
+    'monster:dino_trex': 'assets/models/monsters/quaternius_dino/Trex.glb',
+    'monster:dino_tri': 'assets/models/monsters/quaternius_dino/Triceratops.glb',
+    'monster:dino_raptor': 'assets/models/monsters/quaternius_dino/Velociraptor.glb',
     /* 2026-09-04 — 도감(펫) 초상 실사화. "코드로 그리지 말고 에셋으로"가
        인물 초상은 이미 되는데(`portrait3d.js`) 펫(짐승)은 여태 빠져 있었다.
        펫 41종 중 신수(神獸) 11종·포켓몬 오마주 16종은 CC0로 존재할 리 없는
@@ -873,7 +890,26 @@
   restore();
   function register(key, url) { if (!key) { return REG; } if (url) { REG[key] = url; } else { delete REG[key]; } return REG; }
 
-  function lookup(kind) { return REG[kind] ? { key: kind, url: REG[kind] } : null; }
+  /* 2026-09-14 — 진짜 버그 하나 잡음. `data-enemy.js`의 `body` 필드(예:
+     'skeleton_minion'·'ghost'·'dragon_evolved')는 접두어 없는 맨 이름인데,
+     "몬스터 100개" 확장(2026-09-07~11)이 DEFAULTS 에 채운 58종은 전부
+     `monster:` 접두 키(`monster:skeleton_minion` 등)였다 — `dungeon3d.js`의
+     foeBody 조립(`AS3.build(enemyDef.body, ...)`)은 그 접두어를 붙이는
+     자리가 없어 REG[kind] 가 늘 undefined, `wants()` 가 false 를 돌려줘
+     **GLB 를 하나도 못 받고 조용히 상자(fallback shape)로만 그려지고
+     있었다**(예외가 안 나 자가진단·500회 스폰 검사 어느 것도 못 잡음 —
+     둘 다 "구조가 맞는지"만 보지 "GLB 가 실제로 붙는지"는 안 봤다). 보스
+     '천룡'(`dragon_evolved`)도 포함해 짐승형 94개 중 88개가 여기 걸려
+     있었다(Node vm 으로 REG 대조해 직접 확인). 맨 이름이 안 잡히면
+     `monster:` 를 붙여 한 번 더 찾는다 — dead 네임스페이스였던 `monster:`
+     접두 키를 이제 실제로 연결한다. DEFAULTS·data-enemy.js 는 한 글자도
+     안 건드렸다(주석 "여기는 안 건드리고 표만 고치면 된다"의 그 표 쪽 문제였다). */
+  function lookup(kind) {
+    if (REG[kind]) { return { key: kind, url: REG[kind] }; }
+    var mk = 'monster:' + kind;
+    if (REG[mk]) { return { key: mk, url: REG[mk] }; }
+    return null;
+  }
 
   function strHash(s) {
     var h = 0, i;

@@ -1,0 +1,32 @@
+{
+  "Apatosaurus.glb": {
+    "size": 132864,
+    "result": "ok",
+    "at": "2026-09-13T22:48:01.623Z"
+  },
+  "Parasaurolophus.glb": {
+    "size": 116256,
+    "result": "ok",
+    "at": "2026-09-13T22:48:02.119Z"
+  },
+  "Stegosaurus.glb": {
+    "size": 151724,
+    "result": "ok",
+    "at": "2026-09-13T22:48:02.618Z"
+  },
+  "Trex.glb": {
+    "size": 126896,
+    "result": "ok",
+    "at": "2026-09-13T22:48:03.110Z"
+  },
+  "Triceratops.glb": {
+    "size": 125952,
+    "result": "ok",
+    "at": "2026-09-13T22:48:03.600Z"
+  },
+  "Velociraptor.glb": {
+    "size": 111100,
+    "result": "ok",
+    "at": "2026-09-13T22:48:04.085Z"
+  }
+}

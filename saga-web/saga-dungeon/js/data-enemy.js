@@ -190,7 +190,21 @@
     { name: '겁화귀', emoji: '😈', kind: 'beast', color: '#a81a1a', form: 'ogre', body: 'demon', tier: 4, resist: { chi: 35 }, atkEl: 'fire' },
     { name: '태고진흙귀신', emoji: '🪨', kind: 'beast', color: '#2a2018', form: 'ogre', body: 'goleling_evolved', tier: 4, resist: { phys: 40 } },
     { name: '빙하대설인', emoji: '❄️', kind: 'beast', color: '#d8f0f8', form: 'ogre', body: 'yeti_2', tier: 4, resist: { phys: 30 }, atkEl: 'cold' },
-    { name: '폭풍거인', emoji: '🗿', kind: 'beast', color: '#4a4a5a', form: 'ogre', body: 'giant', tier: 4, atkEl: 'lit', resist: { phys: 45 } }
+    { name: '폭풍거인', emoji: '🗿', kind: 'beast', color: '#4a4a5a', form: 'ogre', body: 'giant', tier: 4, atkEl: 'lit', resist: { phys: 45 } },
+
+    /* 2026-09-14 — PLAN "3안"(새 CC0 몬스터 에셋 조사). 기존 몸 재활용이던
+       2안(위 "짐승형 47종 파생")과 달리 이번엔 실제로 새 CC0 GLB 6종
+       (Quaternius Animated Dinosaur Pack, `asset3d.js` REG 참고)을 받아
+       왔다. 기존 '뿔공룡'(tier3)·'왕뿔공룡'(tier4, body:'dino')은 다른 팩의
+       다른 개체라 그대로 두고, 이번 여섯은 각자 다른 몸(GLB)을 하나씩 쓴다
+       — 이름은 실제 공룡 학명을 그대로 안 쓰고(정책상 문제는 없지만 이
+       판의 관례를 따라) 생김새를 묘사하는 한자어로 옮겼다. */
+    { name: '쾌조룡', emoji: '🦎', kind: 'beast', color: '#6a7a3a', form: 'quad', body: 'dino_raptor', tier: 2, resist: { phys: 10 } },
+    { name: '볏공룡', emoji: '🦕', kind: 'beast', color: '#a0895a', form: 'quad', body: 'dino_para', tier: 3, resist: { phys: 15 } },
+    { name: '판갑룡', emoji: '🦕', kind: 'beast', color: '#5a6a4a', form: 'quad', body: 'dino_stego', tier: 3, resist: { phys: 30 } },
+    { name: '폭룡', emoji: '🦖', kind: 'beast', color: '#6a2a1a', form: 'quad', body: 'dino_trex', tier: 4, resist: { phys: 25 } },
+    { name: '삼각뿔룡', emoji: '🦏', kind: 'beast', color: '#8a5a3a', form: 'quad', body: 'dino_tri', tier: 4, resist: { phys: 35 } },
+    { name: '장경룡', emoji: '🦕', kind: 'beast', color: '#5a7a6a', form: 'quad', body: 'dino_apato', tier: 4, resist: { phys: 40 } }
   ];
 
   var BOSSES = [
