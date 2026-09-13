@@ -71,7 +71,11 @@ namespace Saga.Realm.Data
             {
                 _xiaopei.Captured = true;
                 _xiaopei.Troops = def.Troops;
-                message = $"{RealmEnemyCity.XiaopeiName}을(를) 함락했다! (아군 손실 {result.LossA}, 적 손실 {result.LossD})";
+                // REALM 다음 조각 (2) — 함락한 성을 플레이 가능한 성으로
+                // 들인다. 전후 성벽·병력·훈련·기술은 이 전투가 실제로 남긴
+                // 값 그대로(RealmCityState.AbsorbCity() 주석 참고).
+                RealmCityState.AbsorbCity(RealmEnemyCity.XiaopeiId, _xiaopei.Wall, _xiaopei.Troops, _xiaopei.Train, _xiaopei.Tech);
+                message = $"{RealmEnemyCity.XiaopeiName}을(를) 함락했다! (아군 손실 {result.LossA}, 적 손실 {result.LossD}) — 이제 우리 성입니다";
             }
             else
             {

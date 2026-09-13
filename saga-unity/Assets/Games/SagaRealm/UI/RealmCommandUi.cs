@@ -13,6 +13,7 @@ namespace Saga.Realm.UI
         private GameObject _orderPanel;
         private GameObject _cityPanel;
         private GameObject _plotPanel;
+        private Transform _cityButtonsRoot;
         private Transform _plotButtonsRoot;
 
         public void Build()
@@ -68,27 +69,47 @@ namespace Saga.Realm.UI
                 new Vector2(300f, 70f), () => _orderPanel.SetActive(false));
         }
 
+        /// <summary>함락한 성(REALM 다음 조각 (2))이 늘면 목록도 늘어야
+        /// 하므로, 계략 패널(RefreshPlotPanel)과 같은 결로 열 때마다
+        /// RealmCityState.ActiveCityIds 기준으로 다시 짓는다.</summary>
         private void BuildCityPanel(Transform parent)
         {
-            _cityPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(560f, 480f),
+            _cityPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(560f, 560f),
                 new Color(0f, 0f, 0f, 0.75f));
             _cityPanel.SetActive(false);
 
             RealmUiKit.NewText(_cityPanel.transform, "성 — 조망·명령 대상", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
                 new Vector2(500f, 60f), 30);
 
-            float y = -150f;
-            foreach (var cityId in RealmCityData.AllCityIds)
-            {
-                var def = RealmCityData.Get(cityId);
-                string capturedId = cityId;
-                RealmUiKit.NewButton(_cityPanel.transform, def.Name, new Vector2(0.5f, 1f), new Vector2(0f, y),
-                    new Vector2(460f, 84f), () => ChooseCity(capturedId));
-                y -= 100f;
-            }
+            var root = new GameObject("CityButtons", typeof(RectTransform));
+            root.transform.SetParent(_cityPanel.transform, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            rootRect.anchoredPosition = Vector2.zero;
+            _cityButtonsRoot = root.transform;
 
             RealmUiKit.NewButton(_cityPanel.transform, "닫는다", new Vector2(0.5f, 0f), new Vector2(0f, 30f),
                 new Vector2(300f, 70f), () => _cityPanel.SetActive(false));
+        }
+
+        private void RefreshCityPanel()
+        {
+            for (int i = _cityButtonsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_cityButtonsRoot.GetChild(i).gameObject);
+            }
+
+            float y = -150f;
+            foreach (var cityId in RealmCityState.ActiveCityIds)
+            {
+                var def = RealmCityData.Get(cityId);
+                string capturedId = cityId;
+                RealmUiKit.NewButton(_cityButtonsRoot, def.Name, new Vector2(0.5f, 1f), new Vector2(0f, y),
+                    new Vector2(460f, 84f), () => ChooseCity(capturedId));
+                y -= 100f;
+            }
         }
 
         /// <summary>diplo.js "계략은 성공률을 숨기지 않는다" — 성공률이
@@ -149,7 +170,9 @@ namespace Saga.Realm.UI
         {
             _orderPanel.SetActive(false);
             _plotPanel.SetActive(false);
-            _cityPanel.SetActive(!_cityPanel.activeSelf);
+            bool open = !_cityPanel.activeSelf;
+            _cityPanel.SetActive(open);
+            if (open) RefreshCityPanel();
         }
 
         private void TogglePlotPanel()

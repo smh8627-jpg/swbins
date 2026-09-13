@@ -43,7 +43,8 @@ namespace Saga.EditorTools
             Tech, Sec, Wall, Train, Draft, SettleAfterDraft,
             SearchAtChenliu, Hire, AgriByNewOfficer,
             PlotGate, PlotRumor, PlotFire,
-            AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm, AttackAgainBlocked,
+            AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
+            CapturedCityDevelop, AttackAgainBlocked,
             SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -103,7 +104,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -575,7 +576,67 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
-                    Debug.Log($"[PlaytestRealmSlice] overwhelm attack OK - {result.Message}");
+
+                    // REALM 다음 조각 (2) — 함락한 성이 실제로 편입됐는지.
+                    // RealmWarState.Xiaopei 스냅샷과 새로 생긴 RealmCityRecord가
+                    // 정확히 같은 값을 들고 있어야 한다(AbsorbCity()가 그
+                    // 자리에서 그대로 옮긴 것이므로).
+                    var xiaopeiSnap = RealmWarState.Snapshot();
+                    var xiaopeiRecord = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId);
+                    var xiaopeiDef = RealmCityData.Get(RealmEnemyCity.XiaopeiId);
+                    if (!RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.XiaopeiId) || xiaopeiRecord == null ||
+                        xiaopeiRecord.Wall != xiaopeiSnap.wall || xiaopeiRecord.Troops != xiaopeiSnap.troops ||
+                        xiaopeiRecord.Train != xiaopeiSnap.train || xiaopeiRecord.Tech != xiaopeiSnap.tech ||
+                        xiaopeiRecord.Sec != 30 || xiaopeiRecord.Agri != xiaopeiDef.BaseAgri || xiaopeiRecord.Comm != xiaopeiDef.BaseComm)
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] 함락한 성 편입 값 불일치 (ActiveCityIds/필드 중 하나)");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] overwhelm attack + city absorb OK - {result.Message} (agri={xiaopeiRecord.Agri}, sec={xiaopeiRecord.Sec}, wall={xiaopeiRecord.Wall}, troops={xiaopeiRecord.Troops})");
+                    _phase = Phase.CapturedCityDevelop;
+                    break;
+                }
+
+                case Phase.CapturedCityDevelop:
+                {
+                    // 무장이 아직 아무도 없으니 개발형 명령이 막혀야 한다
+                    // (진류가 처음에 그랬던 것과 같은 성 소속 게이트).
+                    RealmCityState.SetCurrentCity(RealmEnemyCity.XiaopeiId);
+                    var blocked = RealmCityState.ExecuteOrder("agri");
+                    if (blocked.Ok)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 무장 없는 소패에서 개간이 성공해 버림 — msg={blocked.Message}");
+                        Fail();
+                        return;
+                    }
+
+                    // 무장 전임(성 사이 이동)은 이번 범위 밖(godot 3절 "뺀 것") —
+                    // 테스트만을 위해 저장 스냅샷을 다시 불러오는 경로(Restore)로
+                    // 현책을 소패에 심어, 새로 편입된 성에서도 개발형 명령이
+                    // 실제로 도는지만 확인한다.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.XiaopeiId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.XiaopeiId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    int before = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri;
+                    var result = RealmCityState.ExecuteOrder("agri");
+                    if (!result.Ok || RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri <= before)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 소패 배치 후 개간 실패 — ok={result.Ok} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] captured-city develop OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
                     _phase = Phase.AttackAgainBlocked;
                     break;
                 }
@@ -607,6 +668,8 @@ namespace Saga.EditorTools
                     int chenliuAgriBefore = RealmCityState.CityRecord("chenliu").Agri;
                     int puyangWallBefore = RealmCityState.CityRecord("puyang").Wall;
                     string musashiCityBefore = RealmCityState.OfficerCityId("jp_musashi");
+                    string startOfficerCityBefore = RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId);
+                    int xiaopeiAgriBefore = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri;
                     var xiaopeiBefore = RealmWarState.Snapshot();
 
                     if (!RealmSaveState.Save())
@@ -616,10 +679,10 @@ namespace Saga.EditorTools
                         return;
                     }
 
-                    // 상태를 흩트린 뒤(성 셋 전부 엉터리 값으로) 다시 불러와
-                    // 그대로 돌아오는지 확인.
+                    // 상태를 흩트린 뒤(성 넷 — 함락한 소패 포함 — 전부 엉터리
+                    // 값으로) 다시 불러와 그대로 돌아오는지 확인.
                     var dummyCities = new List<RealmCityState.CitySnapshot>();
-                    foreach (var id in new[] { "xuchang", "chenliu", "puyang" })
+                    foreach (var id in new[] { "xuchang", "chenliu", "puyang", RealmEnemyCity.XiaopeiId })
                     {
                         dummyCities.Add(new RealmCityState.CitySnapshot
                         {
@@ -650,15 +713,18 @@ namespace Saga.EditorTools
                         RealmCityState.CityRecord("chenliu").Agri != chenliuAgriBefore ||
                         RealmCityState.CityRecord("puyang").Wall != puyangWallBefore ||
                         RealmCityState.OfficerCityId("jp_musashi") != musashiCityBefore ||
-                        RealmWarState.Snapshot() != xiaopeiBefore;
+                        RealmWarState.Snapshot() != xiaopeiBefore ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.XiaopeiId) ||
+                        RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri != xiaopeiAgriBefore ||
+                        RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId) != startOfficerCityBefore;
                     if (mismatch)
                     {
-                        Debug.LogError("[PlaytestRealmSlice] 로드 후 불일치 발생 (성 셋/로스터/성 소속/소패 전황 중 하나)");
+                        Debug.LogError("[PlaytestRealmSlice] 로드 후 불일치 발생 (성 넷/로스터/성 소속/소패 전황 중 하나)");
                         Fail();
                         return;
                     }
 
-                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (3 cities + roster + officer city assignment)");
+                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (4 cities incl. captured xiaopei + roster + officer city assignment)");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;

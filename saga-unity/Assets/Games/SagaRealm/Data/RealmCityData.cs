@@ -45,6 +45,11 @@ namespace Saga.Realm.Data
             ["xuchang"] = new RealmCityDef("xuchang", "허창", RealmLand.Plain, agri: 400, comm: 360, wall: 5400, pop: 260000),
             ["chenliu"] = new RealmCityDef("chenliu", "진류", RealmLand.Plain, agri: 340, comm: 320, wall: 4800, pop: 240000),
             ["puyang"] = new RealmCityDef("puyang", "복양", RealmLand.River, agri: 300, comm: 280, wall: 4600, pop: 210000),
+            // js/data-city.js 그대로 — RealmEnemyCity.cs가 전쟁 판정(성벽 3600)에
+            // 이미 쓰는 것과 같은 성. AllCityIds엔 안 넣는다(처음부터 우리
+            // 것이 아니다) — 함락하면 RealmCityState.AbsorbCity()가 이 정의로
+            // RealmCityRecord를 지어 편입한다(REALM 다음 조각 (2) 참고).
+            ["xiaopei"] = new RealmCityDef("xiaopei", "소패", RealmLand.Plain, agri: 220, comm: 200, wall: 3600, pop: 120000),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -31,6 +31,7 @@ namespace Saga.Realm.Data
         public static string CurrentCity { get; private set; } = RealmCityData.StartingCityId;
 
         private static readonly Dictionary<string, RealmCityRecord> _cities = BuildInitialCities();
+        private static readonly List<string> _activeCityIds = new List<string>(RealmCityData.AllCityIds);
         private static readonly List<string> _roster = new List<string> { RealmOfficerPool.StartingOfficerId };
         private static readonly HashSet<string> _doneThisMonth = new HashSet<string>();
         private static readonly HashSet<string> _foundIds = new HashSet<string>();
@@ -40,6 +41,11 @@ namespace Saga.Realm.Data
         };
 
         public static IReadOnlyList<string> RosterIds => _roster;
+        /// <summary>지금까지 "우리 성"인 곳 — 시작 셋(RealmCityData.AllCityIds)
+        /// 에 함락한 성(AbsorbCity)이 더해진다. "성" 패널·정산·저장이 이
+        /// 목록으로 돈다(RealmCityData.AllCityIds는 "처음부터 우리 것"만
+        /// 가리키는 고정 정의라 여기서 더 안 늘린다).</summary>
+        public static IReadOnlyList<string> ActiveCityIds => _activeCityIds;
         public static IReadOnlyCollection<string> FoundIds => _foundIds;
 
         /// <summary>명령 실행·다음 달 정산·성 전환 뒤마다 울린다 — HUD·
@@ -83,6 +89,32 @@ namespace Saga.Realm.Data
             Gold -= amount;
             Changed?.Invoke();
             return true;
+        }
+
+        /// <summary>REALM 다음 조각 (2) "함락한 성을 플레이 가능한 성으로
+        /// 들인다" — RealmWarState.Attack()이 소패를 함락한 직후 부른다.
+        /// 전후 성벽·병력·훈련·기술은 그 전투가 실제로 남긴 값을 그대로
+        /// 이어받고(원작 필드가 없던 개간·상업·인구는 RealmCityData의
+        /// 정의값으로, js/data-city.js 그대로), 치안은 rtk.js 함락
+        /// 뒤처리 관례대로 절반(기본 60→30)으로 깎인 채 시작한다 — 무장
+        /// 배치·태수는 여전히 범위 밖(godot 3절 "뺀 것" 그대로, 등용·
+        /// 수색을 이 성에서 쓰면 자연히 채워진다). 이미 편입돼 있으면
+        /// (저장/불러오기 등으로 두 번 불릴 수 있다) 아무 것도 안 한다.</summary>
+        public static void AbsorbCity(string cityId, int wall, int troops, int train, int tech)
+        {
+            if (_cities.ContainsKey(cityId)) return;
+            var def = RealmCityData.Get(cityId);
+            if (def == null) return;
+
+            var record = RealmCityRecord.FromDef(def);
+            record.Wall = wall;
+            record.Troops = troops;
+            record.Train = train;
+            record.Tech = tech;
+            record.Sec = 30;
+            _cities[cityId] = record;
+            _activeCityIds.Add(cityId);
+            Changed?.Invoke();
         }
 
         public static void SetCurrentCity(string cityId)
@@ -297,7 +329,7 @@ namespace Saga.Realm.Data
         public static string NextMonth()
         {
             int income = 0;
-            foreach (var cityId in RealmCityData.AllCityIds)
+            foreach (var cityId in _activeCityIds)
             {
                 var r = _cities[cityId];
                 income += Mathf.RoundToInt(r.Comm * 0.55f * SecMul(r.Sec));
@@ -307,7 +339,7 @@ namespace Saga.Realm.Data
 
             bool harvest = Array.IndexOf(HarvestMonths, Month) >= 0;
             var starved = new List<string>();
-            foreach (var cityId in RealmCityData.AllCityIds)
+            foreach (var cityId in _activeCityIds)
             {
                 var r = _cities[cityId];
                 if (harvest) r.Food += Mathf.RoundToInt(r.Agri * 6f * SecMul(r.Sec));
@@ -338,7 +370,7 @@ namespace Saga.Realm.Data
         public static List<CitySnapshot> SnapshotCities()
         {
             var list = new List<CitySnapshot>();
-            foreach (var cityId in RealmCityData.AllCityIds)
+            foreach (var cityId in _activeCityIds)
             {
                 var r = _cities[cityId];
                 list.Add(new CitySnapshot
@@ -385,7 +417,18 @@ namespace Saga.Realm.Data
             {
                 foreach (var snap in cities)
                 {
-                    if (!_cities.TryGetValue(snap.CityId, out var r)) continue;
+                    if (!_cities.TryGetValue(snap.CityId, out var r))
+                    {
+                        // 저장 시점엔 함락해 편입돼 있었지만(AbsorbCity), 이
+                        // 프로세스의 _cities는 시작 셋으로만 지어져 있다 —
+                        // 정의가 있으면 새로 지어 편입한다(AbsorbCity와 같은
+                        // 결, 값은 바로 아래에서 스냅샷으로 덮어쓴다).
+                        var def = RealmCityData.Get(snap.CityId);
+                        if (def == null) continue;
+                        r = RealmCityRecord.FromDef(def);
+                        _cities[snap.CityId] = r;
+                        if (!_activeCityIds.Contains(snap.CityId)) _activeCityIds.Add(snap.CityId);
+                    }
                     r.Agri = snap.Agri; r.Comm = snap.Comm; r.Tech = snap.Tech; r.Sec = snap.Sec;
                     r.Wall = snap.Wall; r.Train = snap.Train; r.Ships = snap.Ships;
                     r.Pop = snap.Pop; r.Troops = snap.Troops; r.Food = snap.Food;

@@ -67,7 +67,7 @@ namespace Saga.Realm.UI
             sb.Append('\n');
             var xiaopei = RealmWarState.Xiaopei;
             sb.Append("소패 — ").Append(xiaopei.Captured
-                ? "함락됨"
+                ? "함락됨(성 목록에 편입, \"성\"에서 조망 가능)"
                 : $"병력 {xiaopei.Troops} · 성벽 {xiaopei.Wall} · 훈련 {xiaopei.Train}");
             label.text = sb.ToString();
         }
