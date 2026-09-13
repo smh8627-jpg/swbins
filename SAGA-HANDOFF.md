@@ -814,6 +814,14 @@
 > 기준(GLB 우선, 4K 텍스처 금지 등)·스타일 통일 원칙이 담겨 있다. 앞으로 그래픽
 > 관련 작업 전에 한 번씩 참고할 것.
 >
+> **정정(2026-09-13) — `SAGA WEB.md`는 이제 `saga-web/SAGA WEB.md`.** 다섯
+> 웹 판이 `saga-web/` 밑으로 옮겨진 뒤에도 이 문서만 루트에 남아 있었다 —
+> 순수하게 웹 다섯 판(HTML/CSS/JS) 전용 지시서라 saga-godot·saga-unity와는
+> 무관해 `saga-web/` 밑으로 옮겼다. 같이 루트에 남아 있던 `package.json`·
+> `package-lock.json`(빈 lockfile, 어떤 빌드·CI도 안 씀)은 제거했다 — 이
+> 파일(SAGA-HANDOFF.md)과 `index.html`(GitHub Pages 진입점, `saga-web/*`
+> 링크가 들어 있어 루트에 있어야 동작한다)만 저장소 루트에 그대로 둔다.
+>
 > **"사가블로가 웹에서 멈춘다"는 제보를 조사해 고쳤다**(커밋 `bc8c751`) — 원인은
 > 다섯 판에 넣은 QRPG 사람 모델이 배포 형태 그대로(.gltf, 버퍼를 base64로 JSON에
 > 통째로 박음)라 파일당 2.5~3.3MB였고, 그 base64 문자열을 메인스레드에서
