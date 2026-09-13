@@ -39,6 +39,11 @@ namespace Saga.EditorTools
         private const string MariaBodyFbxPath = "Assets/Art/CharactersRealistic/Maria WProp J J Ong.fbx";
         private const string MariaControllerPath = "Assets/Animators/Maria.controller";
 
+        // 44장 "주요 Enemy" 교체 — 잡졸(character-d) 자리를 Abe(리깅+Animator
+        // 내장 프리팹, SetupAbeCharacterImport.cs 참고)로. 미니보스/두목
+        // (character-c)은 다음 우선순위("Boss") 몫이라 이번엔 안 건드린다.
+        private const string AbeAnimatedPrefabPath = "Assets/Art/CharactersRealistic/Abe/AbeAnimated.prefab";
+
         // "환경/건물 GLB" 슬라이스 — SagaGo가 이미 쓰는 CC0 Kenney Modular
         // Cave Kit(gate-rock.glb와 같은 킷)에서 문·복도 타일만 마저 뽑아
         // saga-godot의 assets/dungeon/에서 그대로 복사(새 다운로드 없음).
@@ -317,7 +322,8 @@ namespace Saga.EditorTools
             _characterA = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterAPath);
             _characterB = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterBPath);
             _characterC = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterCPath);
-            _characterD = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterDPath);
+            _characterD = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath)
+                ?? AssetDatabase.LoadAssetAtPath<GameObject>(CharacterDPath);
             if (_characterA == null || _characterB == null || _characterC == null || _characterD == null)
             {
                 Debug.LogWarning("[BuildTestDungeonScene] character-{a,b,c,d}.glb 중 일부를 못 찾음 — primitive capsule로 대체됨(CharacterVisual.cs 폴백).");

@@ -3959,3 +3959,55 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   효과인지는 판단이 필요해 이번엔 손대지 않았다** — 다음에 사용자가
   실기로 보고 재질/조명 중 어느 쪽을 조정할지 정할 것.
 - `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음 확인.
+
+## 44장 "주요 Enemy" 교체 — Dungeon 잡졸(황건적) (2026-09-13, 새 세션 이어서)
+
+- 로컬에 Maria 말고 다른 Mixamo 캐릭터가 없어 막혀서, 사용자 확인 받고
+  Chrome 자동화로 mixamo.com에 직접 접속(이미 로그인돼 있었음) — 검색
+  "warrior"에서 **Abe**(맨몸 전투용 노년 캐릭터, 낡은 로브)를 골라
+  황건적 잡졸 이미지에 맞춤. 애니메이션 5개(Idle=Action Idle To Fight
+  Idle·Walking·Punching·Hit Reaction·Dying, 전부 FBX+With Skin)를
+  함께 받아 `Assets/Art/CharactersRealistic/Abe/`에 정리(로컬 전용,
+  `.gitignore` 대상 — Maria와 같은 폴더 규칙 아래 하위 폴더로 분리).
+- **Maria 리깅 절차를 공용화** — `SetupMixamoCharacterImport.cs`(Maria)의
+  로직을 `MixamoRigUtil.RigCharacter()`로 뽑아내고, 새
+  `SetupAbeCharacterImport.cs`가 같이 쓴다. Abe는 무기 프롭이 없어
+  Dodge/Interact 클립이 없다(Idle/Walk/Attack/Hit/Death 다섯 상태만).
+- **Player(Maria)와 결정적으로 다른 점** — 잡졸은 편집기 빌드 때 한 번만
+  놓이는 게 아니라 `DungeonFloorRunner`가 절차적 층 진행 중 **런타임에도**
+  새로 스폰한다. 런타임 코드는 `AssetDatabase`(에디터 전용 API)를 못 써
+  Animator Controller를 매번 코드로 못 붙인다 — 그래서
+  `SetupAbeCharacterImport.cs`가 Animator+Controller까지 미리 붙여
+  **`AbeAnimated.prefab`**으로 구워 둔다(이 프리팹도 `CharactersRealistic/`
+  밑이라 `.gitignore` 대상 — 다른 머신은 "Saga/Setup Abe Character
+  Import" 메뉴를 한 번 더 돌려야 재생성됨, Maria와 같은 관례).
+- `BuildTestDungeonScene.LoadCharacterModels()`가 `_characterD`(잡졸
+  전용 슬롯)에 `AbeAnimated.prefab`을 먼저 찾고 없으면 기존
+  `character-d.glb`로 폴백 — **호출부 9곳을 하나도 안 건드렸다**(전부
+  `_characterD`를 그대로 읽는 기존 코드, 무엇을 로드하느냐만 바꿈).
+  미니보스/두목(`_characterC`)은 이번 범위 밖(다음 "Boss" 우선순위)이라
+  안 건드림.
+- `DungeonEnemy.cs`의 `BuildVisual()`이 `modelPrefab.GetComponent
+  <Animator>() != null`로 "리깅된 캐릭터인가"를 판단해 갈린다(Player
+  쪽 `animator` null 체크와 같은 결) — 리깅됐으면 실제 스케일 그대로
+  Instantiate(Mixamo FBX는 이미 실사람 크기 단위), 아니면 기존
+  `CharacterVisual`(NativeHeight 2.7 가정) 경로. 이동 중엔 `Speed`,
+  공격 판정마다 `Attack`, 피격(안 죽었을 때)마다 `Hit`, 죽을 때 `Death`
+  트리거 — Death는 애니메이션이 재생될 1.2초를 기다렸다 `Destroy`(기존
+  즉시 `Destroy`와 달리 지연 필요, 코루틴 추가).
+- 검증: 컴파일 통과 → `BuildTestDungeonScene.Build` 재실행(경고 없이
+  Abe 로드 확인) → `PlaytestDungeonHeadless` 통과 → **`PlaytestDungeonFloorProgression`**
+  (12개 방 통과, 층 2→4, "fight" 방 여러 번 포함 — 절차적 스폰 경로를
+  실제로 거침) 에러 0건 통과, 런타임 Instantiate+Animator 배선이
+  실제로도 안 터지는 것까지 확인. GUI 스크린샷도 시도했으나 카메라를
+  수동으로 잡졸 위치로 스냅시키는 임시 스크립트의 좌표 계산이 안 맞아
+  빈 화면만 찍혔다 — 대신 로그로 `Enemy_Floor_Grunt`라는 이름의
+  DungeonEnemy가 실제로 non-null Animator를 갖고 런타임에 존재하는 것을
+  직접 확인함(`[TempShotDungeonEnemy] tracking enemy 'Enemy_Floor_Grunt'
+  ...`). **완전한 육안 스크린샷 확인은 다음 기회로 남긴다** — 기능
+  자체(인스턴스화·Animator 부착·트리거 무배선 없음)는 확인됐지만 실제
+  포즈 전환을 눈으로 보지는 못했다.
+- `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음 확인.
+- **다음에 할 일**: Abe 잡졸의 실제 포즈 스크린샷 확인(카메라 스냅
+  로직 고쳐서), 그 다음 44장 "Boss" 우선순위(character-c 미니보스/두목
+  교체) 또는 다른 판으로 이동.
