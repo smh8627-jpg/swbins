@@ -148,6 +148,8 @@ func _die() -> void:
 	_dead = true
 	died.emit()
 	StorySaveState.add_kill()
+	if is_boss:
+		StorySaveState.add_boss_kill()
 	StorySaveState.add_exp(StoryCombat.enemy_exp(is_boss, enemy_lv))
 	StoryGoldPickup.spawn_at(get_parent(), global_position + Vector3(-0.4, 0, 0.4), StoryCombat.roll_gold(is_boss, enemy_lv))
 	_maybe_drop_gear()
