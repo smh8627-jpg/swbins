@@ -73,6 +73,15 @@ const GATHERS_PX: Array = [
 const BOSS_NAME := "황건 두목"
 const BOSS_X_PX := 2050.0
 
+## **2026-09-13 추가 — 문(portal, 15절).** data-side.js field.portals[0]
+## ([70,'heodo']) 그대로. portals[1]([2130,'gangneungjin'])은 그 사냥터가
+## 아직 없어 안 옮긴다(나머지 사냥터 8곳과 함께 남은 항목 — 그 자리는
+## 여전히 경계벽만 있는 막다른 길이다).
+const PORTAL_WEST_X_PX := 70.0
+## 허도에서 건너올 때 도착하는 자리 — 문 바로 앞이 아니라 한 걸음
+## 안쪽으로 잡아 도착하자마자 다시 경계벽에 닿지 않게 여유를 둔다.
+const ARRIVAL_FROM_HEODO_X_PX := 150.0
+
 
 static func width_m() -> float:
 	return WIDTH_PX * SCALE
@@ -122,3 +131,11 @@ static func gather_positions_m() -> Array:
 
 static func boss_position_m() -> float:
 	return BOSS_X_PX * SCALE
+
+
+static func portal_west_m() -> float:
+	return PORTAL_WEST_X_PX * SCALE
+
+
+static func arrival_from_heodo_m() -> float:
+	return ARRIVAL_FROM_HEODO_X_PX * SCALE

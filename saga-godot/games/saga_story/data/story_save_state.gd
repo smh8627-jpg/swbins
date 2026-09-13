@@ -14,13 +14,35 @@ extends Node
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 4  # 1→2: mats, 2→3: has_weapon, 3→4: equipped(부위별 장비)로 대체
+const SAVE_VERSION := 6  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직)
 
 var level := 1
 var exp := 0
 var kills := 0  # data-quest.js q_first(kill 10)의 진행 카운트
 var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(들꽃 등) 누적
 var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.GEAR_ITEMS 참고
+var gold := 0  # side.js core.save.player.gold 그대로 — 상인(story_merchant.gd)이 쓴다
+var job := "none"  # data-job.js JOBS key — StoryCombat.JOBS_TIER1 참고, 한 번 정하면 안 바뀐다(전직 트리 첫 걸음)
+
+## **2026-09-13 추가 — 문(portal, 15절).** 씬을 넘나들 때 세이브 위치
+## 대신 문이 정해 준 자리에 서게 하는 임시 값 — story_portal.gd가 넘어가기
+## 직전에 세팅하고, 도착한 씬의 _ready()가 한 번 읽고 바로 끈다(세이브에는
+## 안 담는다, 이 값은 "다음 씬 진입 한 번"만을 위한 신호다).
+var pending_spawn_x := 0.0
+var has_pending_spawn := false
+
+
+func set_pending_spawn(x_m: float) -> void:
+	pending_spawn_x = x_m
+	has_pending_spawn = true
+
+
+## 호출 즉시 플래그를 끈다 — 씬이 한 번 읽고 나면 다음부터는 다시
+## try_load()/기본 위치로 돌아가야 한다(문으로 안 들어온 재실행까지
+## 이 값을 계속 쓰면 안 된다).
+func consume_pending_spawn() -> float:
+	has_pending_spawn = false
+	return pending_spawn_x
 
 
 func add_kill() -> void:
@@ -29,6 +51,34 @@ func add_kill() -> void:
 
 func add_mat(kind: String, amount: int = 1) -> void:
 	mats[kind] = int(mats.get(kind, 0)) + amount
+
+
+## data-quest.js q_gather1("약초 캐기", goal.type:'gather', n:15)의 진행도.
+## 이 슬라이스는 채집물이 herb 하나뿐이지만, mats 전체 합으로 뽑아 둬야
+## 다른 채집물이 늘어도 이 사명이 그대로 맞는다(원작도 kind를 안 가린다).
+func gathered_total() -> int:
+	var total := 0
+	for v: Variant in mats.values():
+		total += int(v)
+	return total
+
+
+func gather_quest_done() -> bool:
+	return gathered_total() >= 15
+
+
+func add_gold(n: int) -> void:
+	if n == 0:
+		return
+	gold = maxi(0, gold + n)
+
+
+## 모자라면 아무것도 안 하고 false — DUNGEON DungeonGoldState.spend()와 같은 계약.
+func spend_gold(n: int) -> bool:
+	if n <= 0 or gold < n:
+		return false
+	gold -= n
+	return true
 
 
 ## 부위는 StoryCombat.GEAR_ITEMS[key].slot에서 뽑는다 — 호출 쪽이 슬롯을
@@ -53,6 +103,37 @@ func quest_done() -> bool:
 	return kills >= 10
 
 
+## **2026-09-13 추가 — 전직 트리 첫 걸음.** core.js gainExp() 그대로:
+## 랜덤 없이 결정적으로 exp_need(level)만큼씩 소비하며 오른다(한 번에
+## 여러 레벨도 오를 수 있다 — while 루프, 원문과 같다).
+func add_exp(amount: int) -> void:
+	if amount <= 0:
+		return
+	exp += amount
+	var need := StoryCombat.exp_need(level)
+	while exp >= need:
+		exp -= need
+		level += 1
+		need = StoryCombat.exp_need(level)
+
+
+func can_change_job() -> bool:
+	return job == "none" and level >= StoryCombat.JOB_CHANGE_LEVEL
+
+
+## data-job.js "되돌릴 수 없다" 그대로 — 이미 정했으면 무시.
+func choose_job(key: String) -> bool:
+	if not can_change_job() or not StoryCombat.JOBS_TIER1.has(key):
+		return false
+	job = key
+	return true
+
+
+## 1차 전직 grow(hp/atk/mp) — job이 'none'이면 전부 0.
+func job_grow() -> Dictionary:
+	return StoryCombat.JOBS_TIER1.get(job, {"hp": 0.0, "atk": 0.0, "mp": 0.0})
+
+
 func save() -> bool:
 	var player := _find_player()
 	if player == null:
@@ -65,6 +146,8 @@ func save() -> bool:
 		"kills": kills,
 		"mats": mats,
 		"equipped": equipped,
+		"gold": gold,
+		"job": job,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -93,6 +176,8 @@ func try_load() -> bool:
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
 	var loaded_equipped: Variant = data.get("equipped", {})
 	equipped = loaded_equipped if typeof(loaded_equipped) == TYPE_DICTIONARY else {}
+	gold = int(data.get("gold", 0))
+	job = String(data.get("job", "none"))
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:

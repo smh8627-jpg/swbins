@@ -22,6 +22,7 @@ extends Node3D
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const StoryGearPickup := preload("res://games/saga_story/world/story_gear_pickup.gd")
+const StoryGoldPickup := preload("res://games/saga_story/world/story_gold_pickup.gd")
 
 signal died
 
@@ -98,6 +99,8 @@ func _die() -> void:
 	_dead = true
 	died.emit()
 	StorySaveState.add_kill()
+	StorySaveState.add_exp(StoryCombat.enemy_exp(is_boss))
+	StoryGoldPickup.spawn_at(get_parent(), global_position + Vector3(-0.4, 0, 0.4), StoryCombat.roll_gold(is_boss))
 	_maybe_drop_gear()
 	queue_free()
 

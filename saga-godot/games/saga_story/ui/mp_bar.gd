@@ -14,8 +14,11 @@ func _ready() -> void:
 	show_percentage = false
 
 
+## **2026-09-13 추가 — 전직(방사 jb.mp+40) 반영.** max_value도 player.
+## max_mp를 그대로 따라간다(hp_bar.gd가 max_hp를 따라가는 것과 같은 결).
 func _process(_delta: float) -> void:
 	var players := get_tree().get_nodes_in_group("player")
 	if players.is_empty():
 		return
+	max_value = float(players[0].max_mp)
 	value = float(players[0].mp)

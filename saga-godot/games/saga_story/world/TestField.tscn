@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://games/saga_story/world/story_field.gd" id="1"]
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://games/saga_story/world/story_gather_spawner.gd" id="9"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_boss_spawner.gd" id="10"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_background.gd" id="11"]
+[ext_resource type="Script" path="res://games/saga_story/world/story_portal.gd" id="12"]
 
 [node name="TestField" type="Node3D"]
 script = ExtResource("1")
@@ -38,6 +39,13 @@ script = ExtResource("9")
 
 [node name="BossSpawner" type="Node3D" parent="."]
 script = ExtResource("10")
+
+[node name="PortalToHeodo" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 0, 0)
+script = ExtResource("12")
+target_scene = "res://games/saga_story/world/HeodoField.tscn"
+arrival_x_m = 25.0
+label_text = "허도로"
 
 [node name="FieldCamera" type="Camera3D" parent="."]
 current = true

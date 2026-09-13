@@ -7,30 +7,40 @@ extends Node3D
 ## primitive 박스뿐이다(GLB 없음) — 이 판은 이제 막 첫 슬라이스를
 ## 시작하는 단계라 GO/FOREST의 "primitive는 프로토타입에서만" 원칙
 ## 그대로.
+##
+## **2026-09-13 추가 — 사냥터/마을 공용화(15절).** 처음엔 FieldMap을
+## 상수로 preload해 이 사냥터 전용이었다가, 허도(마을)를 지으며 `map_path`
+## export로 바꿨다 — 새 사냥터/마을을 추가할 때 이 파일을 복제하지 않고
+## (PLAN.md 76장) 같은 모양(width_m/plats_m/ropes_m)의 데이터 파일만
+## 새로 만들면 된다. `ground_color`도 데이터마다 다르게 칠할 수 있게 뺐다
+## (허도 '#7a5a30' vs 들판 '#6faf55').
 
-const FieldMap := preload("res://games/saga_story/data/field_map.gd")
+@export var map_path: String = "res://games/saga_story/data/field_map.gd"
+@export var ground_color := Color(0.435, 0.686, 0.333)  # data-side.js field.ground '#6faf55'
 
 const PLATFORM_DEPTH := 4.0
 const PLATFORM_THICKNESS := 0.4
-const GROUND_COLOR := Color(0.435, 0.686, 0.333)  # data-side.js field.ground '#6faf55'
 const PLAT_COLOR := Color(0.55, 0.42, 0.28)
 const ROPE_COLOR := Color(0.6, 0.5, 0.35)
 const LADDER_COLOR := Color(0.42, 0.32, 0.2)  # 사다리 — 줄보다 짙은 목재색
 const WALL_HEIGHT := 20.0
 
+var _map: RefCounted
+
 
 func _ready() -> void:
+	_map = (load(map_path) as GDScript).new()
 	_build_ground()
-	for p: Dictionary in FieldMap.plats_m():
+	for p: Dictionary in _map.plats_m():
 		_build_platform(p)
-	for r: Dictionary in FieldMap.ropes_m():
+	for r: Dictionary in _map.ropes_m():
 		_build_climb(r)
 	_build_boundary_walls()
 
 
 func _build_ground() -> void:
-	var width: float = FieldMap.width_m()
-	_build_box(width * 0.5, -PLATFORM_THICKNESS * 0.5, width, PLATFORM_THICKNESS, GROUND_COLOR, "Ground")
+	var width: float = _map.width_m()
+	_build_box(width * 0.5, -PLATFORM_THICKNESS * 0.5, width, PLATFORM_THICKNESS, ground_color, "Ground")
 
 
 func _build_platform(p: Dictionary) -> void:
@@ -153,10 +163,11 @@ func _on_rope_body_exited(body: Node3D, area: Area3D) -> void:
 		body.clear_rope_area(area)
 
 
-## 문(portal)이 없는 이번 슬라이스에서 양 끝으로 걸어 나가지 못하게
-## 막는다(1절 "제외" 목록 — 사냥터 이동 자체가 범위 밖).
+## 목적지 없는 방향으로 걸어 나가지 못하게 막는다 — 문(Portal 노드)이
+## 있는 쪽도 이 벽은 그대로 둔다(문은 상호작용해야 넘어가지, 그냥
+## 걸어서는 못 지나간다 — 벽이 그 자리를 지킨다, 15절).
 func _build_boundary_walls() -> void:
-	var width: float = FieldMap.width_m()
+	var width: float = _map.width_m()
 	_build_wall(-0.5)
 	_build_wall(width + 0.5)
 
