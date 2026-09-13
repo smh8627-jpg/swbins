@@ -6,6 +6,10 @@
 (기존 웹/JS 판)은 그대로 두고 건드리지 않는다 — 여기는 완전히 새 프로젝트다.
 
 현재 상태는 `docs/PROJECT_STATE.md`, 구조는 `docs/ARCHITECTURE.md`.
+**사람이 직접 손으로 조작해 확인하는 법**(에디터 준비·씬별 실행·조작키
+표·세이브 파일 직접 편집)은 `docs/HOW_TO_PLAYTEST.md` — 사용자가 실기
+테스트 방법을 물으면 이 파일을 가리키거나 최신 조작(새 입력 액션 등)을
+반영해 갱신한다.
 
 **Godot 에디터 설치 여부는 PC마다 다르다** — 이 저장소는 여러 PC에서 돈다(루트
 CLAUDE.md 참고). `docs/PROJECT_STATE.md`에 "winget 설치 완료"라고 적혀 있어도
