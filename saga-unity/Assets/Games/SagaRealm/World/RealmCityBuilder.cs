@@ -30,6 +30,19 @@ namespace Saga.Realm.World
         private static readonly Color GranaryColor = new Color(0.45f, 0.32f, 0.18f);
         private static readonly Color FlagColor = new Color(0.85f, 0.75f, 0.15f);
 
+        // 44장 "Environment/Building" 교체(2026-09-14) — REALM은 Player/Enemy
+        // 개념 자체가 안 맞는 경영 게임이라(클래스 주석의 "8장 우선순위 밖"
+        // 판단 그대로) 44장 표를 그대로 적용할 수 없었다. 이 게임에서
+        // "환경"에 해당하는 건 성 디오라마의 바닥·성벽/망루/천수각 —
+        // GO/DUNGEON이 primitive에 EnvironmentMaterial.MakeTiled로 PBR 재질을
+        // 씌운 것과 같은 방식을 그대로 옮겼다(REALM 소품은 전부 Unity 기본
+        // primitive라 GLB 아틀라스 UV 문제 자체가 없다 — 클래스 주석 "GLB
+        // 자산 없음"). 바닥=cobblestone_floor_01(성 안뜰 포장), 성벽/망루/
+        // 천수각=castle_wall_slates. 농장·저잣거리·곳간·깃발은 색상 소품
+        // 그대로 둔다(DUNGEON이 Props/Vegetation을 보류한 것과 같은 범위).
+        [SerializeField] private Material groundMaterial;
+        [SerializeField] private Material wallMaterial;
+
         private bool _synced;
 
         private void Awake()
@@ -77,23 +90,31 @@ namespace Saga.Realm.World
         }
 
         private static GameObject Spawn(string name, Transform parent, PrimitiveType type, Vector3 localPos,
-            Vector3 scale, Color color)
+            Vector3 scale, Color color, Material pbrMaterial = null)
         {
             var go = GameObject.CreatePrimitive(type);
             go.name = name;
             go.transform.SetParent(parent, false);
             go.transform.localPosition = localPos;
             go.transform.localScale = scale;
-            var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = $"{name} (generated)" };
-            mat.color = color;
-            go.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            if (pbrMaterial != null)
+            {
+                go.GetComponent<MeshRenderer>().sharedMaterial = pbrMaterial;
+            }
+            else
+            {
+                var mat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = $"{name} (generated)" };
+                mat.color = color;
+                go.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            }
             return go;
         }
 
         private void BuildGround()
         {
+            var mat = groundMaterial != null ? EnvironmentMaterial.MakeTiled(groundMaterial, 14f, 14f) : null;
             Spawn("Ground", transform, PrimitiveType.Cylinder, new Vector3(0f, -0.05f, 0f),
-                new Vector3(14f, 0.1f, 14f), GroundColor);
+                new Vector3(14f, 0.1f, 14f), GroundColor, mat);
         }
 
         /// <summary>담장 넷(남쪽만 문 폭만큼 비워 둔다) + 모서리 망루 넷 —
@@ -105,19 +126,22 @@ namespace Saga.Realm.World
             const float wallThick = 0.5f;
             const float gateHalf = 1.4f; // 남쪽 벽 가운데 문 폭.
 
+            Material WallMat(float widthMeters, float heightMeters) =>
+                wallMaterial != null ? EnvironmentMaterial.MakeTiled(wallMaterial, widthMeters, heightMeters) : null;
+
             Spawn("Wall_North", transform, PrimitiveType.Cube, new Vector3(0f, wallH / 2f, r),
-                new Vector3(r * 2f, wallH, wallThick), WallColor);
+                new Vector3(r * 2f, wallH, wallThick), WallColor, WallMat(r * 2f, wallH));
             Spawn("Wall_East", transform, PrimitiveType.Cube, new Vector3(r, wallH / 2f, 0f),
-                new Vector3(wallThick, wallH, r * 2f), WallColor);
+                new Vector3(wallThick, wallH, r * 2f), WallColor, WallMat(r * 2f, wallH));
             Spawn("Wall_West", transform, PrimitiveType.Cube, new Vector3(-r, wallH / 2f, 0f),
-                new Vector3(wallThick, wallH, r * 2f), WallColor);
+                new Vector3(wallThick, wallH, r * 2f), WallColor, WallMat(r * 2f, wallH));
             // 남쪽 벽 — 문 폭만큼 가운데를 비우고 좌우 두 조각.
             float southSegLen = r - gateHalf;
             float southSegCenter = gateHalf + southSegLen / 2f;
             Spawn("Wall_South_East", transform, PrimitiveType.Cube, new Vector3(southSegCenter, wallH / 2f, -r),
-                new Vector3(southSegLen, wallH, wallThick), WallColor);
+                new Vector3(southSegLen, wallH, wallThick), WallColor, WallMat(southSegLen, wallH));
             Spawn("Wall_South_West", transform, PrimitiveType.Cube, new Vector3(-southSegCenter, wallH / 2f, -r),
-                new Vector3(southSegLen, wallH, wallThick), WallColor);
+                new Vector3(southSegLen, wallH, wallThick), WallColor, WallMat(southSegLen, wallH));
 
             Vector3[] corners =
             {
@@ -127,14 +151,16 @@ namespace Saga.Realm.World
             for (int i = 0; i < corners.Length; i++)
             {
                 var pos = corners[i] + new Vector3(0f, 1.1f, 0f);
-                Spawn($"Tower_{i}", transform, PrimitiveType.Cylinder, pos, new Vector3(1.2f, 1.1f, 1.2f), WallColor);
+                Spawn($"Tower_{i}", transform, PrimitiveType.Cylinder, pos, new Vector3(1.2f, 1.1f, 1.2f), WallColor,
+                    WallMat(1.2f, 2.2f));
             }
         }
 
         private void BuildKeep()
         {
+            var mat = wallMaterial != null ? EnvironmentMaterial.MakeTiled(wallMaterial, 3.2f, 2.8f) : null;
             Spawn("Keep", transform, PrimitiveType.Cube, new Vector3(0f, 1.4f, 0f),
-                new Vector3(3.2f, 2.8f, 3.2f), KeepColor);
+                new Vector3(3.2f, 2.8f, 3.2f), KeepColor, mat);
             Spawn("KeepRoof", transform, PrimitiveType.Cylinder, new Vector3(0f, 3.2f, 0f),
                 new Vector3(2.4f, 0.9f, 2.4f), KeepColor);
         }

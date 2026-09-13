@@ -24,6 +24,11 @@ namespace Saga.EditorTools
 
         private static readonly Color SkyColor = new Color(0.55f, 0.75f, 0.92f);
 
+        // 44장 "Environment/Building" 교체 — RealmCityBuilder.cs 주석 참고
+        // (REALM은 Player/Enemy 우선순위가 안 맞아 바닥/성벽을 그 자리에 넣었다).
+        private const string CityGroundMatPath = "Assets/Art/EnvironmentPBR_candidates/cobblestone_floor_01_URPLit.mat";
+        private const string CityWallMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
+
         [MenuItem("Saga/Build TestCity Scene")]
         public static void Build()
         {
@@ -75,6 +80,10 @@ namespace Saga.EditorTools
         {
             var cityGo = new GameObject("City");
             var builder = cityGo.AddComponent<RealmCityBuilder>();
+            var groundMat = AssetDatabase.LoadAssetAtPath<Material>(CityGroundMatPath);
+            var wallMat = AssetDatabase.LoadAssetAtPath<Material>(CityWallMatPath);
+            if (groundMat != null) SetPrivateField(builder, "groundMaterial", groundMat);
+            if (wallMat != null) SetPrivateField(builder, "wallMaterial", wallMat);
             builder.Rebuild(); // Awake()는 Play 모드에서만 자동으로 도니 edit-time 저장을 위해 직접 부른다.
             return cityGo;
         }
