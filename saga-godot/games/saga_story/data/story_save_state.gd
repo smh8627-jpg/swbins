@@ -14,7 +14,7 @@ extends Node
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 6  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직)
+const SAVE_VERSION := 7  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자)
 
 var level := 1
 var exp := 0
@@ -23,6 +23,12 @@ var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(�
 var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.GEAR_ITEMS 참고
 var gold := 0  # side.js core.save.player.gold 그대로 — 상인(story_merchant.gd)이 쓴다
 var job := "none"  # data-job.js JOBS key — StoryCombat.JOBS_TIER1 참고, 한 번 정하면 안 바뀐다(전직 트리 첫 걸음)
+
+## **2026-09-13 추가(같은 날 더) — SP(무예 점수) 투자.** key(StoryCombat.
+## SKILL_JOB) → 투자한 레벨(1~10). job.js `core.save.skills`와 같은 자리 —
+## SP 자체는 담지 않는다(sp_total()-sp_spent()의 파생값, job.js 머리말과
+## 같은 이유: 레벨이 오르면 저절로 는다).
+var skills: Dictionary = {}
 
 ## **2026-09-13 추가 — 문(portal, 15절).** 씬을 넘나들 때 세이브 위치
 ## 대신 문이 정해 준 자리에 서게 하는 임시 값 — story_portal.gd가 넘어가기
@@ -134,6 +140,45 @@ func job_grow() -> Dictionary:
 	return StoryCombat.JOBS_TIER1.get(job, {"hp": 0.0, "atk": 0.0, "mp": 0.0})
 
 
+## job.js spTotal()/spSpent()/spLeft() 그대로 — 총점은 (레벨-1)×SP_PER_LEVEL,
+## 남은 점수는 총점에서 이미 찍은 레벨의 합을 뺀 파생값(세이브에 안 담는다).
+func sp_total() -> int:
+	return maxi(0, (level - 1) * StoryCombat.SP_PER_LEVEL)
+
+
+func sp_spent() -> int:
+	var sum := 0
+	for v: Variant in skills.values():
+		sum += int(v)
+	return sum
+
+
+func sp_left() -> int:
+	return maxi(0, sp_total() - sp_spent())
+
+
+func skill_level(key: String) -> int:
+	return int(skills.get(key, 0))
+
+
+## job.js canRaise() 그대로 — 이 job의 무예가 맞는지·아직 만렙이 아닌지·
+## 남은 점수가 있는지만 본다(원문의 `need`(다음 갈래 연계) 조건은 이
+## 슬라이스가 1차 넷뿐이라 해당 무예가 없어 범위 밖).
+func can_raise_skill(key: String) -> bool:
+	if String(StoryCombat.SKILL_JOB.get(key, "")) != job:
+		return false
+	if skill_level(key) >= StoryCombat.SKILL_MAX_LEVEL:
+		return false
+	return sp_left() > 0
+
+
+func raise_skill(key: String) -> bool:
+	if not can_raise_skill(key):
+		return false
+	skills[key] = skill_level(key) + 1
+	return true
+
+
 func save() -> bool:
 	var player := _find_player()
 	if player == null:
@@ -148,6 +193,7 @@ func save() -> bool:
 		"equipped": equipped,
 		"gold": gold,
 		"job": job,
+		"skills": skills,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -178,6 +224,8 @@ func try_load() -> bool:
 	equipped = loaded_equipped if typeof(loaded_equipped) == TYPE_DICTIONARY else {}
 	gold = int(data.get("gold", 0))
 	job = String(data.get("job", "none"))
+	var loaded_skills: Variant = data.get("skills", {})
+	skills = loaded_skills if typeof(loaded_skills) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:

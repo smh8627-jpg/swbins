@@ -19,6 +19,13 @@ extends Node3D
 ## **grow(hp/atk/mp)만 옮긴다** — 1차 전직에서 새로 열리는 무예 넷씩
 ## (총 16개, `data-job.js` SKILLS job:'warrior' 등)은 범위 밖(다음 걸음).
 ## 지금은 "직업을 고르면 스탯이 달라진다"까지만 검증한다.
+##
+## **2026-09-13 추가(같은 날 더) — SP(무예 점수) 투자.** 전직 전에는
+## 숫자 1~4가 갈래를 고르고, **전직 후에는 같은 숫자 1~4가 그 직업의
+## 무예 넷(StoryCombat.JOB_SKILL_KEYS 순서 — story_job_skill_1~4와 같은
+## 순서) 중 하나에 SP 1점을 투자**하는 것으로 바뀐다 — 새 입력 액션을
+## 안 늘리고 같은 넷을 "고르기 전/후" 두 자리로 재사용한다(허도 안에
+## 탭 UI가 없어 이 자리 하나로 both를 겸한다).
 
 const Toast := preload("res://saga_core/ui/toast.gd")
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
@@ -80,7 +87,11 @@ func _on_range_exited(body: Node3D) -> void:
 func _status_text() -> String:
 	if StorySaveState.job != "none":
 		var name_: String = String(StoryCombat.JOBS_TIER1.get(StorySaveState.job, {}).get("name", StorySaveState.job))
-		return "🎖️ 이미 전직했다 — %s" % name_
+		var keys: Array = StoryCombat.JOB_SKILL_KEYS.get(StorySaveState.job, [])
+		var levels := ""
+		for i in keys.size():
+			levels += "%d:%s(Lv%d) " % [i + 1, String(keys[i]), StorySaveState.skill_level(String(keys[i]))]
+		return "🎖️ %s — SP %d/%d 남음 — %s" % [name_, StorySaveState.sp_left(), StorySaveState.sp_total(), levels]
 	if StorySaveState.level < StoryCombat.JOB_CHANGE_LEVEL:
 		return "🎖️ 전직은 Lv.%d부터(현재 Lv.%d) — 1:무사 2:궁수 3:협객 4:방사" % [StoryCombat.JOB_CHANGE_LEVEL, StorySaveState.level]
 	return "🎖️ 전직할 수 있다 — 1:무사 2:궁수 3:협객 4:방사"
@@ -92,6 +103,12 @@ func _process(_delta: float) -> void:
 		return
 	if Input.is_action_just_pressed("story_interact"):
 		Toast.show(self, _status_text(), 2.5)
+		return
+	if StorySaveState.job != "none":
+		_raise(0)
+		_raise(1)
+		_raise(2)
+		_raise(3)
 		return
 	for i in JOB_ORDER.size():
 		if Input.is_action_just_pressed("story_job_%d" % (i + 1)):
@@ -108,3 +125,19 @@ func _choose(key: String) -> void:
 		String(it.name), int(it.hp), int(it.atk),
 		(" 기력+%d" % int(it.mp)) if float(it.mp) > 0.0 else "",
 	], 3.0)
+
+
+## SP 투자 — story_job_(idx+1) 액션이 눌리면 그 직업의 idx번째 무예에
+## 1점 찍는다(job.js raise() 그대로: 이미 만렙이거나 SP가 없으면 조용히
+## 실패, 토스트로만 알린다 — 원문 toast 'weak' 정신).
+func _raise(idx: int) -> void:
+	if not Input.is_action_just_pressed("story_job_%d" % (idx + 1)):
+		return
+	var keys: Array = StoryCombat.JOB_SKILL_KEYS.get(StorySaveState.job, [])
+	if idx >= keys.size():
+		return
+	var key: String = String(keys[idx])
+	if StorySaveState.raise_skill(key):
+		Toast.show(self, "🎖️ %s Lv.%d (SP %d 남음)" % [key, StorySaveState.skill_level(key), StorySaveState.sp_left()], 2.0)
+	else:
+		Toast.show(self, _status_text(), 2.5)

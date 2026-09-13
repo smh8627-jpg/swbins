@@ -4659,3 +4659,37 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
   - **다음 이어질 것** — SP(무예 점수) 투자 시스템 UI(지금은
     FIXED_SKILL_LEVEL 고정), 2~4차 전직, 나머지 일곱 사냥터+신야성.
+
+
+## STORY SP(무예 점수) 투자 시스템 (2026-09-13)
+
+- **사용자 지시 "계속 이어해 묻지말고"** — 17~19절이 16개 무예를
+  FIXED_SKILL_LEVEL(5, 고정값)로 채워 뒀던 것을 실제 투자 레벨(0~10)로
+  바꿨다. 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 20절.
+  - `StorySaveState.skills`(key→레벨, SAVE_VERSION 7) 신규. mul 공식은
+    `skill_mul(base,per,level)=base+per*level`(이 포트가 17절부터 써
+    온 관례 그대로 유지, job.js의 (lv-1) 공식과는 다르지만 이미 커밋된
+    검증 수치와 안 어긋나게 이 결로 통일). **미투자(레벨0) 무예는 캐스팅
+    자체가 조용히 막힌다**(job.js bar()의 "찍은 것만" 놓는 규칙과 같은
+    자리).
+  - SP는 허도 전직 담당(`story_job_trainer.gd`)에서 찍는다 — 전직 전엔
+    숫자 1~4가 갈래를 고르고, 전직 후엔 같은 숫자 1~4가 그 직업 무예
+    넷 중 하나에 SP 1점을 투자(새 입력 액션 안 늘림).
+  - `story_combat.gd`: `SKILL_MAX_LEVEL`(10)·`SP_PER_LEVEL`(3)·
+    `SKILL_JOB`·`JOB_SKILL_KEYS`·`skill_mul()` 신규, 16개 `*_MUL`을
+    `*_BASE`/`*_PER`로 분리, `FIXED_SKILL_LEVEL` 제거. `story_save_
+    state.gd`: sp_total/spent/left·skill_level·can_raise_skill·
+    raise_skill 신규. `story_player.gd`: 16개 `_cast_*`에 레벨0 차단 +
+    동적 mul 계산. `story_job_trainer.gd`: SP 투자 UI(_raise, 상태
+    토스트).
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+    → 여섯 씬 세 번 연속 exit 0·로그 무결(다섯 판 전부 회귀 포함). 임시
+    디버그로 sp_total(lv10)=27 정확, 미투자 무예 시전이 완전히 무시됨,
+    can_raise_skill이 직업별로 정확히 갈림, 1점 투자 후 레벨1·mul
+    1.24로 실제 명중, 반복 투자해도 레벨이 SKILL_MAX_LEVEL(10)에서
+    멈추고 sp_left=17(=27-10)로 정확, 세이브/로드 왕복으로 skills가
+    그대로 복원됨까지 전부 예측과 일치. 디버그 원상복구(diff 0,
+    디버그가 만든 세이브 파일도 정리).
+  - **GUI 실기 확인은 아직 안 함** — 허도에서 숫자 키로 SP 찍는 손맛은
+    눈으로 볼 것. 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 2~4차 전직, 나머지 일곱 사냥터+신야성.

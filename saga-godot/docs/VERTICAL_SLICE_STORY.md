@@ -969,6 +969,73 @@ elif로, 새 입력 액션은 안 늘렸다).
   2~4차 전직, 나머지 일곱 사냥터+신야성(15절이 첫 걸음만 뗀 것) — 다음
   "saga-godot 이어 해"에서 이어간다.
 
+## 20. SP(무예 점수) 투자 시스템 (2026-09-13)
+
+**사용자 지시 "계속 이어해 묻지말고"** — 19절이 남긴 굵직한 후보 중
+SP 투자 시스템을 먼저 잡았다. 17~19절이 1차 전직 무예 16개를 전부
+`FIXED_SKILL_LEVEL`(5, 임의 고정값)로 mul을 미리 계산해 둔 것을,
+**실제 투자한 레벨(0~10)로 대체**했다 — `data-job.js` 머리말 "레벨마다
+3점을 찍어 무예를 0~10으로 올린다"와 `job.js`의 spTotal/spSpent/spLeft/
+canRaise/raise를 그대로 옮긴다.
+
+**세이브** — `StorySaveState.skills`(key→레벨 Dictionary) 신규, SAVE_
+VERSION 6→7. SP 자체는 담지 않는다(원문과 같은 이유 — `sp_total()-
+sp_spent()`의 파생값이라 레벨이 오르면 저절로 는다).
+
+**mul 공식** — `job.js mulOf()`는 `mul[0]+mul[1]*max(0,lv-1)`이지만,
+이 포트는 17절부터 이미 `FIXED_SKILL_LEVEL`을 (lv-1)이 아니라 lv에
+그대로 곱해 왔다(그 상수 계산 주석들이 그렇게 적혀 있고, 검증도 그
+공식으로 확인됐다) — 새 `StoryCombat.skill_mul(base, per, level)`도
+그 관례를 그대로 잇는다(`base + per*level`), 지금 와서 (lv-1)로 바로
+잡지 않는다(이미 커밋된 17~19절 검증 수치와 어긋나게 되는 걸 피했다 —
+"재해석"이 아니라 "이 포트의 mul 공식 관례"로 남긴다).
+
+**미투자 무예는 아예 못 쓴다** — `job.js bar()`가 "찍은 것만" 조작
+띠에 놓는 것과 같은 자리. 16개 `_cast_*` 함수 전부 맨 앞에서 `Story
+SaveState.skill_level(key) <= 0`이면 조용히 무시하도록 고쳤다(버프
+넷은 mul 스케일이 없어 "배웠는지"만 확인, 나머지 열둘은 `skill_mul()`로
+매번 다시 계산).
+
+**SP를 어디서 찍나** — 탭 UI가 없어(가방·상점과 같은 이유) 허도의 전직
+담당(`story_job_trainer.gd`) 자리를 **재사용**했다: 전직 전엔 숫자
+1~4가 갈래를 고르고, **전직 후엔 같은 숫자 1~4가 그 직업 무예 넷
+(`StoryCombat.JOB_SKILL_KEYS` 순서 — 전투 입력 순서와 같다) 중 하나에
+SP 1점**을 찍는다. 새 입력 액션을 안 늘렸다. 근처에 서 있으면 상태
+토스트에 SP 잔여·각 무예 레벨이 뜬다.
+
+- `story_combat.gd`: `SKILL_MAX_LEVEL`(10)·`SP_PER_LEVEL`(3)·
+  `SKILL_JOB`(key→job)·`JOB_SKILL_KEYS`(job→key 넷)·`skill_mul()` 신규.
+  16개 `*_MUL` 상수를 `*_BASE`/`*_PER` 쌍으로 쪼갬(버프 넷의 atk_mul·
+  guard·sec 등은 그대로 — 원문에 레벨 항이 없다). `FIXED_SKILL_LEVEL`
+  제거(더 안 쓴다).
+- `story_save_state.gd`: `skills` 신규(SAVE_VERSION 7). `sp_total()`/
+  `sp_spent()`/`sp_left()`/`skill_level()`/`can_raise_skill()`/
+  `raise_skill()` 신규. save()/try_load()가 skills를 담고 복원.
+- `story_player.gd`: 16개 `_cast_*`가 전부 `skill_level(key)<=0`이면
+  조용히 반환하도록, mul을 상수 대신 `StoryCombat.skill_mul(BASE, PER,
+  skill_level(key))`로 매번 계산하도록 수정.
+- `story_job_trainer.gd`: `_status_text()`가 전직 후 SP 잔여·무예별
+  레벨을 보여주도록, `_process()`/`_raise()` 신규(전직 후 숫자 1~4가
+  SP 투자로 전환).
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 여섯 씬 세 번 연속 exit 0·로그 무결(다섯 판 전부 회귀 포함). 임시
+  디버그(`story_field.gd`)로: `sp_total(레벨10)`=27(=(10-1)×3) 정확,
+  **미투자 무예(레벨0) 시전이 mp·적 hp 둘 다 그대로 두고 완전히 무시됨
+  확인**, `can_raise_skill`이 다른 직업 무예엔 false·자기 직업 무예엔
+  true, 1점 투자 후 레벨1·spent1·left26 정확, 레벨1로 실제 시전하니
+  mul이 정확히 1.24(=1.15+0.09×1)로 명중, 반복 투자해도 **레벨이
+  SKILL_MAX_LEVEL(10)에서 멈추고 sp_left가 17(=27-10)로 정확히 남음**
+  (SP 총량 27로는 열 곳을 못 채우고 한 무예만 만렙 가능한 것도 확인),
+  세이브/로드 왕복으로 skills(레벨10)이 그대로 복원됨까지 전부 예측과
+  일치. 디버그 원상복구(`story_field.gd` diff 0, 디버그가 만든 세이브
+  파일도 스스로 지움).
+- **GUI 실기 확인은 아직 안 함** — 특히 허도에서 숫자 키로 SP를 찍는
+  손맛(토스트 문구가 붐비지 않는지)은 눈으로 볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 2~4차 전직(더 위 갈래 자체가 아직 없다), 나머지
+  일곱 사냥터+신야성(15절이 첫 걸음만 뗀 것). SP 시스템이 생겼으니
+  레벨업 시 "몇 점 남았다"는 알림(현재는 허도에 가야만 보인다)도 다음에
+  볼 만하다.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
