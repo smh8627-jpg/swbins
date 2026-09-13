@@ -5238,3 +5238,23 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   gear_pool_for 값 전부 손계산과 일치 확인 후 스크립트 삭제, 재검증까지
   마쳤다. `.import` 줄바꿈 잡음만 되돌림. GUI 실기 확인은 아직(몰아서
   받을 것).
+
+## STORY 주문서 (2026-09-13, "이어해" 지시로 계속)
+
+- 가방/장비 확장 마지막 걸음 — `data-gear.js` SCROLLS 일곱 개. 가방이
+  없어 **사는 즉시 적용**으로 재해석(`story_merchant.gd _buy_scroll()`
+  — 살 장비가 다 떨어지면 넘어간다, 무기 주문서는 무기 슬롯·방어구
+  주문서는 낀 방어구 중 무작위 하나). `GEAR_ITEMS`/`UNIQUE_ITEMS`에
+  그동안 안 옮겼던 `up`(업횟 상한)을 이제 채웠다. `story_save_state.gd`
+  `scroll_bonus`/`scroll_left`(slot 단위 — 물건 인스턴스가 없어 "슬롯
+  하나가 곧 그 물건", 재장착 시 리셋) 신규, SAVE_VERSION 7→8. 자세한
+  내용은 `docs/VERTICAL_SLICE_STORY.md` "주문서" 절 참고.
+- 이걸로 STORY의 "다음 이어질 것"(가방 확장) 세 항목(tier2~4·고유·
+  주문서)이 전부 끝났다 — 상점 UI(물목 화면)만 "다가가면 자동 구매"로
+  남아 있다, 다음 걸음.
+- 검증: 헤드리스 임포트·두 씬 스크립트 오류 0건. 임시 SceneTree
+  스크립트(`_initialize()`로 autoload 대기 후 StorySaveState 직접
+  조작)로 scroll_left 초기화·rate=1.0 항상 성공·rate=0.1도 업횟은
+  시도 횟수만큼 정확히 소모·승급 시 리셋·gear_totals 합산 전부 손계산과
+  일치 확인 후 스크립트 삭제, 재검증까지 마쳤다. `.import` 줄바꿈
+  잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).

@@ -129,69 +129,77 @@ const BOSS_COOL_SEC := 900.0  # 15분 * 60초
 ## `need`(요구 레벨)를 못 채우면 주워도 못 낀다 — `equip_gear()`가 거절.
 ## price는 data-gear.js RAW의 8번째 칸(gear.js priceMul() 같은 배수는
 ## 안 건드림) — story_merchant.gd가 그대로 읽는다.
+##
+## **2026-09-13 추가(같은 날 더, 주문서) — `up`(9번째 칸, 업횟 상한) 추가.**
+## "주문서로 올린다"(3절 머리말) 자체를 포트하며 처음으로 이 칸이 쓰인다 —
+## story_save_state.gd `scroll_left`가 장착 시 이 값으로 초기화된다.
 const GEAR_POOL_LV_MARGIN := 3  # data-gear.js poolFor(lv): need <= lv+3
 
 const GEAR_ITEMS := {
 	# 무기 — 공격력은 인물 능력치에서 나오고(story_combat.gd 머리말), 무기는 그 위에 얹는다
-	"sword1": {"slot": "weapon", "name": "목검(木劍)",     "need": 1,  "atk": 4.0,  "def": 0.0, "hp": 0.0,  "price": 240},
-	"sword2": {"slot": "weapon", "name": "환도(環刀)",     "need": 5,  "atk": 11.0, "def": 0.0, "hp": 0.0,  "price": 1100},
-	"sword3": {"slot": "weapon", "name": "청강검(靑鋼劍)", "need": 12, "atk": 22.0, "def": 0.0, "hp": 0.0,  "price": 4200},
-	"sword4": {"slot": "weapon", "name": "용린도(龍鱗刀)", "need": 20, "atk": 38.0, "def": 1.0, "hp": 0.0,  "price": 13000},
+	"sword1": {"slot": "weapon", "name": "목검(木劍)",     "need": 1,  "atk": 4.0,  "def": 0.0, "hp": 0.0,  "price": 240,   "up": 5},
+	"sword2": {"slot": "weapon", "name": "환도(環刀)",     "need": 5,  "atk": 11.0, "def": 0.0, "hp": 0.0,  "price": 1100,  "up": 6},
+	"sword3": {"slot": "weapon", "name": "청강검(靑鋼劍)", "need": 12, "atk": 22.0, "def": 0.0, "hp": 0.0,  "price": 4200,  "up": 7},
+	"sword4": {"slot": "weapon", "name": "용린도(龍鱗刀)", "need": 20, "atk": 38.0, "def": 1.0, "hp": 0.0,  "price": 13000, "up": 7},
 
 	# 투구
-	"hat1": {"slot": "hat", "name": "가죽 두건",   "need": 1,  "atk": 0.0, "def": 2.0,  "hp": 6.0,  "price": 180},
-	"hat2": {"slot": "hat", "name": "철투구",      "need": 5,  "atk": 0.0, "def": 5.0,  "hp": 14.0, "price": 820},
-	"hat3": {"slot": "hat", "name": "봉시투구",    "need": 12, "atk": 0.0, "def": 9.0,  "hp": 26.0, "price": 3100},
-	"hat4": {"slot": "hat", "name": "금장 갑주투", "need": 20, "atk": 1.0, "def": 15.0, "hp": 44.0, "price": 9800},
+	"hat1": {"slot": "hat", "name": "가죽 두건",   "need": 1,  "atk": 0.0, "def": 2.0,  "hp": 6.0,  "price": 180,  "up": 5},
+	"hat2": {"slot": "hat", "name": "철투구",      "need": 5,  "atk": 0.0, "def": 5.0,  "hp": 14.0, "price": 820,  "up": 5},
+	"hat3": {"slot": "hat", "name": "봉시투구",    "need": 12, "atk": 0.0, "def": 9.0,  "hp": 26.0, "price": 3100, "up": 6},
+	"hat4": {"slot": "hat", "name": "금장 갑주투", "need": 20, "atk": 1.0, "def": 15.0, "hp": 44.0, "price": 9800, "up": 7},
 
 	# 갑옷
-	"top1": {"slot": "top", "name": "무명 저고리", "need": 1,  "atk": 0.0, "def": 3.0,  "hp": 10.0, "price": 220},
-	"top2": {"slot": "top", "name": "가죽 갑옷",   "need": 5,  "atk": 0.0, "def": 7.0,  "hp": 22.0, "price": 980},
-	"top3": {"slot": "top", "name": "찰갑(札甲)",  "need": 12, "atk": 0.0, "def": 12.0, "hp": 40.0, "price": 3600},
-	"top4": {"slot": "top", "name": "두정갑",      "need": 20, "atk": 1.0, "def": 19.0, "hp": 66.0, "price": 11500},
+	"top1": {"slot": "top", "name": "무명 저고리", "need": 1,  "atk": 0.0, "def": 3.0,  "hp": 10.0, "price": 220,   "up": 5},
+	"top2": {"slot": "top", "name": "가죽 갑옷",   "need": 5,  "atk": 0.0, "def": 7.0,  "hp": 22.0, "price": 980,   "up": 6},
+	"top3": {"slot": "top", "name": "찰갑(札甲)",  "need": 12, "atk": 0.0, "def": 12.0, "hp": 40.0, "price": 3600,  "up": 6},
+	"top4": {"slot": "top", "name": "두정갑",      "need": 20, "atk": 1.0, "def": 19.0, "hp": 66.0, "price": 11500, "up": 7},
 
 	# 하의
-	"bot1": {"slot": "bottom", "name": "무명 바지", "need": 1,  "atk": 0.0, "def": 2.0,  "hp": 8.0,  "price": 160},
-	"bot2": {"slot": "bottom", "name": "가죽 전군", "need": 5,  "atk": 0.0, "def": 5.0,  "hp": 16.0, "price": 760},
-	"bot3": {"slot": "bottom", "name": "철엽 전군", "need": 12, "atk": 0.0, "def": 9.0,  "hp": 30.0, "price": 2900},
-	"bot4": {"slot": "bottom", "name": "용문 전군", "need": 20, "atk": 0.0, "def": 14.0, "hp": 50.0, "price": 9200},
+	"bot1": {"slot": "bottom", "name": "무명 바지", "need": 1,  "atk": 0.0, "def": 2.0,  "hp": 8.0,  "price": 160,  "up": 5},
+	"bot2": {"slot": "bottom", "name": "가죽 전군", "need": 5,  "atk": 0.0, "def": 5.0,  "hp": 16.0, "price": 760,  "up": 5},
+	"bot3": {"slot": "bottom", "name": "철엽 전군", "need": 12, "atk": 0.0, "def": 9.0,  "hp": 30.0, "price": 2900, "up": 6},
+	"bot4": {"slot": "bottom", "name": "용문 전군", "need": 20, "atk": 0.0, "def": 14.0, "hp": 50.0, "price": 9200, "up": 6},
 
 	# 신
-	"shoe1": {"slot": "shoes", "name": "짚신",      "need": 1,  "atk": 0.0, "def": 1.0,  "hp": 4.0,  "price": 120},
-	"shoe2": {"slot": "shoes", "name": "가죽 전화", "need": 5,  "atk": 0.0, "def": 4.0,  "hp": 10.0, "price": 640},
-	"shoe3": {"slot": "shoes", "name": "철갑 전화", "need": 12, "atk": 0.0, "def": 7.0,  "hp": 20.0, "price": 2400},
-	"shoe4": {"slot": "shoes", "name": "비룡화",    "need": 20, "atk": 1.0, "def": 11.0, "hp": 34.0, "price": 7600},
+	"shoe1": {"slot": "shoes", "name": "짚신",      "need": 1,  "atk": 0.0, "def": 1.0,  "hp": 4.0,  "price": 120,  "up": 5},
+	"shoe2": {"slot": "shoes", "name": "가죽 전화", "need": 5,  "atk": 0.0, "def": 4.0,  "hp": 10.0, "price": 640,  "up": 5},
+	"shoe3": {"slot": "shoes", "name": "철갑 전화", "need": 12, "atk": 0.0, "def": 7.0,  "hp": 20.0, "price": 2400, "up": 6},
+	"shoe4": {"slot": "shoes", "name": "비룡화",    "need": 20, "atk": 1.0, "def": 11.0, "hp": 34.0, "price": 7600, "up": 6},
 
 	# 수갑 — 원작의 장갑이 그렇듯 공격이 조금 붙는다
-	"glv1": {"slot": "glove", "name": "무명 팔찌", "need": 1,  "atk": 1.0,  "def": 1.0, "hp": 2.0,  "price": 200},
-	"glv2": {"slot": "glove", "name": "가죽 수갑", "need": 5,  "atk": 3.0,  "def": 3.0, "hp": 6.0,  "price": 900},
-	"glv3": {"slot": "glove", "name": "철갑 수갑", "need": 12, "atk": 6.0,  "def": 5.0, "hp": 12.0, "price": 3300},
-	"glv4": {"slot": "glove", "name": "용조 수갑", "need": 20, "atk": 11.0, "def": 8.0, "hp": 20.0, "price": 10500},
+	"glv1": {"slot": "glove", "name": "무명 팔찌", "need": 1,  "atk": 1.0,  "def": 1.0, "hp": 2.0,  "price": 200,   "up": 5},
+	"glv2": {"slot": "glove", "name": "가죽 수갑", "need": 5,  "atk": 3.0,  "def": 3.0, "hp": 6.0,  "price": 900,   "up": 5},
+	"glv3": {"slot": "glove", "name": "철갑 수갑", "need": 12, "atk": 6.0,  "def": 5.0, "hp": 12.0, "price": 3300,  "up": 6},
+	"glv4": {"slot": "glove", "name": "용조 수갑", "need": 20, "atk": 11.0, "def": 8.0, "hp": 20.0, "price": 10500, "up": 7},
 
 	# 망토
-	"cap1": {"slot": "cape", "name": "베 망토",     "need": 1,  "atk": 0.0, "def": 1.0,  "hp": 8.0,  "price": 150},
-	"cap2": {"slot": "cape", "name": "가죽 망토",   "need": 5,  "atk": 0.0, "def": 3.0,  "hp": 18.0, "price": 700},
-	"cap3": {"slot": "cape", "name": "수달피 망토", "need": 12, "atk": 1.0, "def": 6.0,  "hp": 32.0, "price": 2700},
-	"cap4": {"slot": "cape", "name": "흑룡 망토",   "need": 20, "atk": 2.0, "def": 10.0, "hp": 54.0, "price": 8900},
+	"cap1": {"slot": "cape", "name": "베 망토",     "need": 1,  "atk": 0.0, "def": 1.0,  "hp": 8.0,  "price": 150,  "up": 5},
+	"cap2": {"slot": "cape", "name": "가죽 망토",   "need": 5,  "atk": 0.0, "def": 3.0,  "hp": 18.0, "price": 700,  "up": 5},
+	"cap3": {"slot": "cape", "name": "수달피 망토", "need": 12, "atk": 1.0, "def": 6.0,  "hp": 32.0, "price": 2700, "up": 6},
+	"cap4": {"slot": "cape", "name": "흑룡 망토",   "need": 20, "atk": 2.0, "def": 10.0, "hp": 54.0, "price": 8900, "up": 7},
 
 	# 반지 — 장신구, 공격 중심
-	"ring1": {"slot": "ring", "name": "무명 지환", "need": 1,  "atk": 2.0,  "def": 0.0, "hp": 3.0,  "price": 160},
-	"ring2": {"slot": "ring", "name": "은지환",    "need": 5,  "atk": 5.0,  "def": 0.0, "hp": 8.0,  "price": 750},
-	"ring3": {"slot": "ring", "name": "옥지환",    "need": 12, "atk": 9.0,  "def": 1.0, "hp": 16.0, "price": 2800},
-	"ring4": {"slot": "ring", "name": "금룡지환",  "need": 20, "atk": 16.0, "def": 2.0, "hp": 28.0, "price": 8800},
+	"ring1": {"slot": "ring", "name": "무명 지환", "need": 1,  "atk": 2.0,  "def": 0.0, "hp": 3.0,  "price": 160,  "up": 5},
+	"ring2": {"slot": "ring", "name": "은지환",    "need": 5,  "atk": 5.0,  "def": 0.0, "hp": 8.0,  "price": 750,  "up": 5},
+	"ring3": {"slot": "ring", "name": "옥지환",    "need": 12, "atk": 9.0,  "def": 1.0, "hp": 16.0, "price": 2800, "up": 6},
+	"ring4": {"slot": "ring", "name": "금룡지환",  "need": 20, "atk": 16.0, "def": 2.0, "hp": 28.0, "price": 8800, "up": 7},
 
 	# 목걸이 — 장신구, 체력 중심
-	"neck1": {"slot": "necklace", "name": "나무 목걸이", "need": 1,  "atk": 0.0, "def": 1.0, "hp": 6.0,  "price": 150},
-	"neck2": {"slot": "necklace", "name": "은 목걸이",   "need": 5,  "atk": 0.0, "def": 2.0, "hp": 14.0, "price": 700},
-	"neck3": {"slot": "necklace", "name": "옥 목걸이",   "need": 12, "atk": 0.0, "def": 4.0, "hp": 26.0, "price": 2600},
-	"neck4": {"slot": "necklace", "name": "금 목걸이",   "need": 20, "atk": 1.0, "def": 7.0, "hp": 44.0, "price": 8200},
+	"neck1": {"slot": "necklace", "name": "나무 목걸이", "need": 1,  "atk": 0.0, "def": 1.0, "hp": 6.0,  "price": 150,  "up": 5},
+	"neck2": {"slot": "necklace", "name": "은 목걸이",   "need": 5,  "atk": 0.0, "def": 2.0, "hp": 14.0, "price": 700,  "up": 5},
+	"neck3": {"slot": "necklace", "name": "옥 목걸이",   "need": 12, "atk": 0.0, "def": 4.0, "hp": 26.0, "price": 2600, "up": 6},
+	"neck4": {"slot": "necklace", "name": "금 목걸이",   "need": 20, "atk": 1.0, "def": 7.0, "hp": 44.0, "price": 8200, "up": 7},
 
 	# 귀걸이 — 장신구, 공격·방어 고르게
-	"ear1": {"slot": "earring", "name": "나무 귀걸이", "need": 1,  "atk": 1.0, "def": 1.0, "hp": 2.0,  "price": 150},
-	"ear2": {"slot": "earring", "name": "은 귀걸이",   "need": 5,  "atk": 2.0, "def": 2.0, "hp": 6.0,  "price": 700},
-	"ear3": {"slot": "earring", "name": "옥 귀걸이",   "need": 12, "atk": 4.0, "def": 4.0, "hp": 12.0, "price": 2600},
-	"ear4": {"slot": "earring", "name": "금 귀걸이",   "need": 20, "atk": 7.0, "def": 7.0, "hp": 20.0, "price": 8200},
+	"ear1": {"slot": "earring", "name": "나무 귀걸이", "need": 1,  "atk": 1.0, "def": 1.0, "hp": 2.0,  "price": 150,  "up": 5},
+	"ear2": {"slot": "earring", "name": "은 귀걸이",   "need": 5,  "atk": 2.0, "def": 2.0, "hp": 6.0,  "price": 700,  "up": 5},
+	"ear3": {"slot": "earring", "name": "옥 귀걸이",   "need": 12, "atk": 4.0, "def": 4.0, "hp": 12.0, "price": 2600, "up": 6},
+	"ear4": {"slot": "earring", "name": "금 귀걸이",   "need": 20, "atk": 7.0, "def": 7.0, "hp": 20.0, "price": 8200, "up": 7},
 }
+
+## 무기 아닌 나머지 아홉 부위 — 주문서 `for:'armor'`가 이 중 아무 데나
+## 붙는다(scroll.rate 등의 정의역, story_merchant.gd `_buy_scroll()` 참고).
+const ARMOR_SLOTS: Array[String] = ["hat", "top", "bottom", "shoes", "glove", "cape", "ring", "necklace", "earring"]
 const GEAR_DROP_CHANCE_GRUNT := 0.035
 const GEAR_DROP_CHANCE_BOSS := 0.9
 
@@ -218,8 +226,8 @@ static func gear_pool_for(lv: float) -> Array:
 ## 접사 자체가 없다, 표에 적힌 값이 최종값). `base`가 그 밑감의
 ## GEAR_ITEMS 키 — 밑감이 그 부위의 마지막 단일 때만 고유로 바뀔 수
 ## 있다(원문 그대로, 낮은 단이 고유가 되면 표의 마지막 물건보다 세져
-## 어색해진다는 이유). `up`(업횟 상한)은 주문서를 아직 안 옮겨 안 쓴다
-## (다음에 주문서를 들이면 밑감처럼 이 값을 그때 쓴다).
+## 어색해진다는 이유). `up`(업횟 상한)도 밑감과 같은 자리 — data-unique.js
+## 그대로 옮겼다.
 ##
 ## `GEAR_ITEMS`와 분리한 이유 — 여기 섞으면 `gear_pool_for()`가 일반
 ## 사냥터 드롭 풀에 고유를 끼워 넣어 버린다(원문은 "보스가 tier4 밑감을
@@ -231,16 +239,16 @@ static func gear_pool_for(lv: float) -> Array:
 const UNIQUE_CHANCE := 0.16  # gear.js UNIQUE_CHANCE — 보스가 tier4 밑감을 떨굴 때 고유로 바뀔 확률
 
 const UNIQUE_ITEMS := {
-	"u_sword": {"slot": "weapon", "base": "sword4", "name": "진룡도(震龍刀)", "need": 20, "atk": 56.0, "def": 2.0, "hp": 0.0, "price": 42000},
-	"u_hat": {"slot": "hat", "base": "hat4", "name": "봉황관(鳳凰冠)", "need": 20, "atk": 2.0, "def": 22.0, "hp": 70.0, "price": 32000},
-	"u_top": {"slot": "top", "base": "top4", "name": "현무갑(玄武甲)", "need": 20, "atk": 2.0, "def": 28.0, "hp": 100.0, "price": 36000},
-	"u_bottom": {"slot": "bottom", "base": "bot4", "name": "천리군(千里裙)", "need": 20, "atk": 0.0, "def": 20.0, "hp": 75.0, "price": 30000},
-	"u_shoes": {"slot": "shoes", "base": "shoe4", "name": "분마화(奔馬靴)", "need": 20, "atk": 2.0, "def": 16.0, "hp": 50.0, "price": 26000},
-	"u_glove": {"slot": "glove", "base": "glv4", "name": "호랑수갑(虎狼手甲)", "need": 20, "atk": 18.0, "def": 12.0, "hp": 30.0, "price": 34000},
-	"u_cape": {"slot": "cape", "base": "cap4", "name": "봉래포(蓬萊袍)", "need": 20, "atk": 3.0, "def": 16.0, "hp": 80.0, "price": 28000},
-	"u_ring": {"slot": "ring", "base": "ring4", "name": "구룡지환(九龍指環)", "need": 20, "atk": 26.0, "def": 3.0, "hp": 34.0, "price": 24000},
-	"u_necklace": {"slot": "necklace", "base": "neck4", "name": "영롱주(玲瓏珠)", "need": 20, "atk": 2.0, "def": 10.0, "hp": 78.0, "price": 22000},
-	"u_earring": {"slot": "earring", "base": "ear4", "name": "월아환(月牙環)", "need": 20, "atk": 13.0, "def": 13.0, "hp": 24.0, "price": 22000},
+	"u_sword": {"slot": "weapon", "base": "sword4", "name": "진룡도(震龍刀)", "need": 20, "atk": 56.0, "def": 2.0, "hp": 0.0, "price": 42000, "up": 9},
+	"u_hat": {"slot": "hat", "base": "hat4", "name": "봉황관(鳳凰冠)", "need": 20, "atk": 2.0, "def": 22.0, "hp": 70.0, "price": 32000, "up": 9},
+	"u_top": {"slot": "top", "base": "top4", "name": "현무갑(玄武甲)", "need": 20, "atk": 2.0, "def": 28.0, "hp": 100.0, "price": 36000, "up": 9},
+	"u_bottom": {"slot": "bottom", "base": "bot4", "name": "천리군(千里裙)", "need": 20, "atk": 0.0, "def": 20.0, "hp": 75.0, "price": 30000, "up": 8},
+	"u_shoes": {"slot": "shoes", "base": "shoe4", "name": "분마화(奔馬靴)", "need": 20, "atk": 2.0, "def": 16.0, "hp": 50.0, "price": 26000, "up": 8},
+	"u_glove": {"slot": "glove", "base": "glv4", "name": "호랑수갑(虎狼手甲)", "need": 20, "atk": 18.0, "def": 12.0, "hp": 30.0, "price": 34000, "up": 9},
+	"u_cape": {"slot": "cape", "base": "cap4", "name": "봉래포(蓬萊袍)", "need": 20, "atk": 3.0, "def": 16.0, "hp": 80.0, "price": 28000, "up": 9},
+	"u_ring": {"slot": "ring", "base": "ring4", "name": "구룡지환(九龍指環)", "need": 20, "atk": 26.0, "def": 3.0, "hp": 34.0, "price": 24000, "up": 8},
+	"u_necklace": {"slot": "necklace", "base": "neck4", "name": "영롱주(玲瓏珠)", "need": 20, "atk": 2.0, "def": 10.0, "hp": 78.0, "price": 22000, "up": 8},
+	"u_earring": {"slot": "earring", "base": "ear4", "name": "월아환(月牙環)", "need": 20, "atk": 13.0, "def": 13.0, "hp": 24.0, "price": 22000, "up": 8},
 }
 
 
@@ -258,6 +266,30 @@ static func unique_for_base(base_key: String) -> String:
 		if String(UNIQUE_ITEMS[key].base) == base_key:
 			return key
 	return ""
+
+
+## **2026-09-13 추가(같은 날 더 더, "가방 확장" 마지막 걸음) — 주문서.**
+## `data-gear.js` SCROLLS 일곱 개 그대로. `for`는 'weapon'(무기 하나뿐)·
+## 'armor'(나머지 아홉 부위 아무 데나, ARMOR_SLOTS). **"터지는" 규칙은
+## 없다** — 원작 머리말 그대로, 실패해도 물건(이 포트는 그 슬롯의 남은
+## 업횟)만 닳는다.
+##
+## **재해석 — 가방 없이 산다.** 원작은 사서 가방에 쌓고, 낀 물건(uid)을
+## 골라 쓴다. 이 포트는 가방도 물건 인스턴스(uid)도 없어 **사는 즉시
+## 적용**으로 좁힌다 — `story_merchant.gd _buy_scroll()`이 대상 슬롯
+## (무기 주문서→무기, 방어구 주문서→낀 방어구 중 무작위 하나)을 그
+## 자리에서 골라 바로 굴린다. 주문서를 "모아 뒀다 나중에 쓴다"는 결이
+## 사라지지만, 이 포트는 처음부터 상점 자체가 "다가가면 자동 구매"라
+## 같은 결의 단순화다(장비 구매와 다르지 않다).
+const SCROLLS := {
+	"atk100": {"for": "weapon", "rate": 1.0, "atk": 1.0, "def": 0.0, "hp": 0.0, "price": 900, "name": "공격력 주문서 100%"},
+	"atk60":  {"for": "weapon", "rate": 0.6, "atk": 3.0, "def": 0.0, "hp": 0.0, "price": 1800, "name": "공격력 주문서 60%"},
+	"atk10":  {"for": "weapon", "rate": 0.1, "atk": 8.0, "def": 0.0, "hp": 0.0, "price": 4200, "name": "공격력 주문서 10%"},
+	"def100": {"for": "armor", "rate": 1.0, "atk": 0.0, "def": 1.0, "hp": 0.0, "price": 500, "name": "물리방어 주문서 100%"},
+	"def60":  {"for": "armor", "rate": 0.6, "atk": 0.0, "def": 3.0, "hp": 0.0, "price": 1100, "name": "물리방어 주문서 60%"},
+	"hp60":   {"for": "armor", "rate": 0.6, "atk": 0.0, "def": 0.0, "hp": 18.0, "price": 1300, "name": "체력 주문서 60%"},
+	"hp10":   {"for": "armor", "rate": 0.1, "atk": 0.0, "def": 0.0, "hp": 55.0, "price": 3600, "name": "체력 주문서 10%"},
+}
 
 
 ## **2026-09-13 추가 — 상점(1절 "제외" 목록 "장비 나머지"의 첫 걸음).**

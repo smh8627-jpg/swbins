@@ -1841,6 +1841,59 @@ hat1 def2·hp6, 손계산과 일치) → `gear_pool_for(1)`=정확히 tier1 10�
 빛나 보이는지, "★ " 이름이 자연스러운지는 눈으로 볼 것. 계속 몰아서
 받을 것.
 
+## 주문서 (2026-09-13, "이어해" 지시로 계속)
+
+**가방/장비 확장의 마지막 걸음.** tier2~4(need 게이트)·고유(unique) 다음
+남았던 셋 중 마지막 — `data-gear.js` SCROLLS 일곱 개(공격력 100/60/10%·
+물리방어 100/60%·체력 60/10%)를 옮겼다.
+
+- **재해석 — 가방 없이 "사는 즉시 적용".** 원작은 가방에 쌓아 뒀다 원하는
+  물건(uid)에 골라 쓰지만, 이 포트엔 가방도 물건 인스턴스도 없다.
+  `story_merchant.gd`에서 살 장비가 다 떨어지면(레벨상 갖출 수 있는 tier를
+  다 채우면) `_buy_scroll()`로 넘어가, 사는 즉시 알맞은 슬롯에 바로
+  적용한다 — 무기 주문서는 무기 슬롯, 방어구 주문서는 지금 낀 방어구
+  슬롯(ARMOR_SLOTS 아홉 곳) 중 아직 업횟이 남은 곳을 무작위로 골라 붓는다.
+  "터지는" 규칙은 없다(원작 그대로) — 실패해도 물건은 그대로, 업횟만 준다.
+- `story_combat.gd` — `SCROLLS` 신규(위 일곱 개). `GEAR_ITEMS`·
+  `UNIQUE_ITEMS`에 그동안 안 옮겼던 **`up`(업횟 상한, data-gear.js RAW
+  9번째 칸/data-unique.js 그대로)**을 이제 채웠다 — 주문서가 처음으로
+  이 칸을 쓴다. `ARMOR_SLOTS`(무기 아닌 아홉 부위) 신규.
+- `story_save_state.gd` — `scroll_bonus`(slot→{atk,def,hp}, 주문서로 붙은
+  값)·`scroll_left`(slot→int, 남은 업횟) 신규. **물건 인스턴스가 없어
+  "슬롯 하나가 곧 그 물건"** — `equip_gear()`가 슬롯에 새 키를 물릴 때마다
+  `scroll_bonus`는 비우고 `scroll_left`는 새 물건의 `up`으로 다시 채운다
+  (원작에서 낡은 물건을 버리면 거기 붙은 값도 같이 사라지는 것과 결과가
+  같다). `can_scroll(slot)`(gear.js `it.left<=0` 게이트)·`apply_scroll(
+  slot, scroll)`(gear.js `apply()` 그대로 — 성패 불문 업횟 1 소모, 성공
+  (rate 확률)하면 값이 붙는다) 신규. `gear_totals()`가 이제
+  `StoryCombat.gear_totals()`(밑감·고유) + `scroll_bonus` 합을 낸다.
+  SAVE_VERSION 7→8(scroll_bonus/scroll_left 필드 추가).
+- `story_merchant.gd` `_buy_scroll()` 신규 — 적용 가능한(무기면 무기
+  슬롯 can_scroll, 방어구면 아홉 슬롯 중 하나라도 can_scroll) 주문서 중
+  가장 싼 것을 사서 즉시 적용, 토스트로 성공/실패(둘 다 골드는 나간다)를
+  알린다. `_pick_armor_slot()` — can_scroll인 방어구 슬롯 중 무작위 하나.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(vroid·texture-a.png.import
+CRLF 잡음만 재발생, 되돌림) → `TestField.tscn`·`HeodoField.tscn` 각각
+`--quit-after 5 --verbose` 스크립트 오류 0건. **임시 검증 스크립트**
+(`_verify_scroll_tmp.gd`, `_initialize()`로 autoload 준비를 기다린 뒤
+`StorySaveState`를 직접 조작)로: sword1 장착 시 `scroll_left.weapon`=5·
+`scroll_bonus.weapon` 빈 값 → rate=1.0인 atk100을 5번 적용, **매번 hit**·
+`scroll_left.weapon`=0·`scroll_bonus.weapon.atk`=5.0(1.0×5) 정확 →
+`can_scroll("weapon")`=false(업횟 소진) → `gear_totals().atk`=9.0(4+5,
+손계산과 일치) → 레벨 5로 올려 sword2로 승급 장착 → `scroll_bonus.weapon`
+다시 빈 값·`scroll_left.weapon`=6(sword2 up), `gear_totals().atk`=11.0
+(승급 전 주문서 보너스가 안 남음, 의도대로) → hat2 장착 후 rate=0.1인
+hp10을 5번 적용 → **성패와 무관하게** `scroll_left.hat`=0(업횟은 시도
+횟수만큼 정확히 준다) → `can_scroll("necklace")`(안 낌)=false — 전부
+예측과 일치. 검증 스크립트 삭제 후 재검증(임포트+두 씬)까지 마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — 상인에게 계속 다가가 장비가 다 떨어진
+뒤 자연히 주문서 구매로 넘어가는 흐름, 실패 토스트의 느낌은 눈으로
+볼 것. 이걸로 66-2장이 아닌 STORY 쪽 "다음 이어질 것"(가방 확장) 세
+항목(tier2~4·고유·주문서)이 전부 끝났다 — **상점 UI**(물목을 고르는
+화면)만 여전히 "다가가면 자동 구매"로 남아 있다, 다음에 볼 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

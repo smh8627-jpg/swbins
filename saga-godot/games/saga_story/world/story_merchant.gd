@@ -12,8 +12,11 @@ extends Node3D
 ## (다음에 볼 자리). "이동 상인"(side.js MERCHANT_DUR 할인 버프)도 이번엔
 ## 안 옮긴다 — 상점 자체가 없던 채였으니 기본 매매부터 검증한다.
 ##
-## 가격(price)·상품 목록은 story_combat.gd GEAR_ITEMS를 그대로 읽는다 —
-## 데이터를 새로 안 만든다(PLAN.md 7장).
+## 가격(price)·상품 목록은 story_combat.gd GEAR_ITEMS/SCROLLS를 그대로
+## 읽는다 — 데이터를 새로 안 만든다(PLAN.md 7장). **2026-09-13 추가(같은
+## 날 더 더, 주문서)** — 살 장비가 다 떨어지면(레벨상 살 수 있는 tier를
+## 다 갖췄으면) 이제 주문서로 넘어간다(`_buy_scroll()`), 가방이 없어
+## "사는 즉시 적용"으로 좁힌 재해석은 그 함수 머리말 참고.
 
 const Toast := preload("res://saga_core/ui/toast.gd")
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
@@ -101,7 +104,7 @@ func _buy_cheapest_missing() -> void:
 			cheapest_price = price
 
 	if cheapest_key.is_empty():
-		Toast.show(self, "🏪 지금 살 수 있는 게 없다", 2.0)
+		_buy_scroll()
 		return
 
 	if not StorySaveState.spend_gold(cheapest_price):
@@ -111,3 +114,61 @@ func _buy_cheapest_missing() -> void:
 	StorySaveState.equip_gear(cheapest_key)
 	var it: Dictionary = StoryCombat.GEAR_ITEMS[cheapest_key]
 	Toast.show(self, "🏪 %s 구매 · 🪙 -%d" % [String(it.name), cheapest_price], 2.5)
+
+
+## **2026-09-13 추가(같은 날 더 더, 주문서) — 살 장비가 바닥나면(위에서
+## cheapest_key가 빈 채로 돌아오면) 주문서로 넘어간다.** 원작은 "무기용/
+## 방어구용" 주문서를 가방의 특정 물건에 골라 쓰지만, 이 포트는 가방이
+## 없어 **살 수 있는 것 중 가장 싼 주문서를 사는 즉시 알맞은 슬롯에
+## 적용**한다 — 무기 주문서는 무기 슬롯, 방어구 주문서는 지금 낀 방어구
+## 슬롯(ARMOR_SLOTS) 중 아직 업횟이 남은 곳을 무작위로 골라 붓는다.
+func _buy_scroll() -> void:
+	var applicable: Array[String] = []
+	if StorySaveState.can_scroll("weapon"):
+		for key: String in StoryCombat.SCROLLS:
+			if String(StoryCombat.SCROLLS[key].get("for", "")) == "weapon":
+				applicable.append(key)
+	var armor_ready := false
+	for slot: String in StoryCombat.ARMOR_SLOTS:
+		if StorySaveState.can_scroll(slot):
+			armor_ready = true
+			break
+	if armor_ready:
+		for key: String in StoryCombat.SCROLLS:
+			if String(StoryCombat.SCROLLS[key].get("for", "")) == "armor":
+				applicable.append(key)
+
+	if applicable.is_empty():
+		Toast.show(self, "🏪 지금 살 수 있는 게 없다", 2.0)
+		return
+
+	var cheapest_key := ""
+	var cheapest_price := -1
+	for key: String in applicable:
+		var price := int(StoryCombat.SCROLLS[key].price)
+		if cheapest_key.is_empty() or price < cheapest_price:
+			cheapest_key = key
+			cheapest_price = price
+
+	if not StorySaveState.spend_gold(cheapest_price):
+		Toast.show(self, "🪙 금이 모자라다 (%d / 보유 %d)" % [cheapest_price, StorySaveState.gold], 2.5)
+		return
+
+	var sc: Dictionary = StoryCombat.SCROLLS[cheapest_key]
+	var target_slot: String = "weapon" if String(sc.get("for", "")) == "weapon" else _pick_armor_slot()
+	var hit := StorySaveState.apply_scroll(target_slot, sc)
+	if hit:
+		Toast.show(self, "✨ %s 성공 · 🪙 -%d" % [String(sc.name), cheapest_price], 2.5)
+	else:
+		Toast.show(self, "💨 %s 실패(업횟만 닳음) · 🪙 -%d" % [String(sc.name), cheapest_price], 2.5)
+
+
+## ARMOR_SLOTS 중 지금 낄 수 있는(equip 상태 + 업횟 남음) 곳을 무작위로
+## 하나 고른다 — _buy_scroll()이 armor_ready를 이미 확인했으니 최소 하나는
+## 있다.
+func _pick_armor_slot() -> String:
+	var candidates: Array[String] = []
+	for slot: String in StoryCombat.ARMOR_SLOTS:
+		if StorySaveState.can_scroll(slot):
+			candidates.append(slot)
+	return candidates[randi() % candidates.size()]

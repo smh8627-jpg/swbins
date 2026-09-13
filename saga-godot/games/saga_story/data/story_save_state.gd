@@ -14,7 +14,7 @@ extends Node
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 7  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자)
+const SAVE_VERSION := 8  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서)
 
 var level := 1
 var exp := 0
@@ -23,6 +23,18 @@ var mats: Dictionary = {}  # side.js s.mats[kind] 그대로 — 필드 채집(�
 var equipped: Dictionary = {}  # slot(String) -> gear key(String), StoryCombat.item_def() 참고(밑감·고유 둘 다)
 var gold := 0  # side.js core.save.player.gold 그대로 — 상인(story_merchant.gd)이 쓴다
 var job := "none"  # data-job.js JOBS key — StoryCombat.JOBS_TIER1 참고, 한 번 정하면 안 바뀐다(전직 트리 첫 걸음)
+
+## **2026-09-13 추가(같은 날 더 더, 주문서) — gear.js `it.atk/it.def/it.hp`
+## (붙은 값)의 이 포트 버전. 물건 인스턴스(uid)가 없어 **슬롯 하나가
+## 곧 그 물건**이다 — `equip_gear()`가 슬롯에 새 키를 물릴 때마다
+## 0으로 리셋된다(원작에서 낡은 물건을 팔거나 바꿔 끼면 그 물건의 붙은
+## 값도 같이 사라지는 것과 결과가 같다).
+var scroll_bonus: Dictionary = {}  # slot(String) -> {atk,def,hp}
+
+## gear.js `it.left`의 이 포트 버전 — 슬롯에 새 키가 물릴 때 그 물건의
+## `up`(GEAR_ITEMS/UNIQUE_ITEMS)으로 초기화되고, 주문서를 쓸 때마다
+## 성패와 무관하게 1씩 줄어든다. 0이면 그 슬롯엔 더 못 붓는다.
+var scroll_left: Dictionary = {}  # slot(String) -> int
 
 ## **2026-09-13 추가(같은 날 더) — SP(무예 점수) 투자.** key(StoryCombat.
 ## SKILL_JOB) → 투자한 레벨(1~10). job.js `core.save.skills`와 같은 자리 —
@@ -99,18 +111,53 @@ func spend_gold(n: int) -> bool:
 ## **2026-09-13 추가(같은 날 더 더, 고유) — GEAR_ITEMS 대신 item_def()로
 ## 조회한다.** 고유(UNIQUE_ITEMS) key도 이 함수 하나로 낄 수 있어야
 ## story_enemy.gd/story_gear_pickup.gd가 밑감과 고유를 구분 없이 넘길 수 있다.
+## **2026-09-13 추가(같은 날 더 더, 주문서) — 슬롯에 새 물건을 물릴 때마다
+## 그 슬롯의 주문서 상태를 초기화한다.** scroll_bonus는 비우고, scroll_left는
+## 새 물건의 `up`으로 새로 채운다 — 이전 물건에 붙었던 값·남은 업횟은
+## 사라진다(물건 인스턴스가 없는 이 포트에서 "낡은 물건을 버린다"의 결과).
 func equip_gear(key: String) -> bool:
 	var it: Dictionary = StoryCombat.item_def(key)
 	if it.is_empty():
 		return false
 	if level < int(it.get("need", 1)):
 		return false
-	equipped[String(it.slot)] = key
+	var slot := String(it.slot)
+	equipped[slot] = key
+	scroll_bonus.erase(slot)
+	scroll_left[slot] = int(it.get("up", 0))
 	return true
 
 
+## StoryCombat.gear_totals()(밑감·고유 값) + scroll_bonus(주문서로 붙은 값) 합.
 func gear_totals() -> Dictionary:
-	return StoryCombat.gear_totals(equipped.values())
+	var totals := StoryCombat.gear_totals(equipped.values())
+	for slot: String in scroll_bonus:
+		var b: Dictionary = scroll_bonus[slot]
+		totals.atk = float(totals.atk) + float(b.get("atk", 0.0))
+		totals.def = float(totals.def) + float(b.get("def", 0.0))
+		totals.hp = float(totals.hp) + float(b.get("hp", 0.0))
+	return totals
+
+
+## gear.js `it.left <= 0` 그대로 — 그 슬롯이 비었거나 업횟이 다 닳았으면 false.
+func can_scroll(slot: String) -> bool:
+	return equipped.has(slot) and int(scroll_left.get(slot, 0)) > 0
+
+
+## gear.js `apply(uid, scrollKey)` 그대로: 업횟은 성패 불문 1 닳고, 성공하면
+## (rate 확률) 그 값만큼 scroll_bonus에 쌓인다. 호출 전에 can_scroll(slot)로
+## 먼저 확인하는 게 계약 — 여기선 다시 안 본다(story_merchant.gd가 이미
+## 확인하고 대상 슬롯을 고른 뒤 부른다).
+func apply_scroll(slot: String, scroll: Dictionary) -> bool:
+	scroll_left[slot] = maxi(0, int(scroll_left.get(slot, 0)) - 1)
+	var hit := randf() < float(scroll.get("rate", 0.0))
+	if hit:
+		var b: Dictionary = scroll_bonus.get(slot, {"atk": 0.0, "def": 0.0, "hp": 0.0})
+		b.atk = float(b.get("atk", 0.0)) + float(scroll.get("atk", 0.0))
+		b.def = float(b.get("def", 0.0)) + float(scroll.get("def", 0.0))
+		b.hp = float(b.get("hp", 0.0)) + float(scroll.get("hp", 0.0))
+		scroll_bonus[slot] = b
+	return hit
 
 
 func quest_done() -> bool:
@@ -240,6 +287,8 @@ func save() -> bool:
 		"gold": gold,
 		"job": job,
 		"skills": skills,
+		"scroll_bonus": scroll_bonus,
+		"scroll_left": scroll_left,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -272,6 +321,10 @@ func try_load() -> bool:
 	job = String(data.get("job", "none"))
 	var loaded_skills: Variant = data.get("skills", {})
 	skills = loaded_skills if typeof(loaded_skills) == TYPE_DICTIONARY else {}
+	var loaded_scroll_bonus: Variant = data.get("scroll_bonus", {})
+	scroll_bonus = loaded_scroll_bonus if typeof(loaded_scroll_bonus) == TYPE_DICTIONARY else {}
+	var loaded_scroll_left: Variant = data.get("scroll_left", {})
+	scroll_left = loaded_scroll_left if typeof(loaded_scroll_left) == TYPE_DICTIONARY else {}
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:
