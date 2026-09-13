@@ -52,6 +52,11 @@ namespace Saga.Story.Data
             150f, 400f, 650f, 900f, 1150f, 1400f, 1650f, 1850f, 2000f, 2120f,
         };
 
+        /// <summary>두목(황건 두목) 자리 — "STORY 콘텐츠 확장"(2026-09-13),
+        /// q_boss1 원문 설명 "사냥터 안쪽을 지키는 자"를 그대로 따라 들판
+        /// 가장 안쪽(오른쪽 끝, 마지막 잡졸 2120px보다 더 안쪽)에 둔다.</summary>
+        private const float BossXPx = 2180f;
+
         public static float WidthM => WidthPx * ScaleMPerPx;
 
         /// <summary>바닥(floor_px) 기준 높이(m) — 값이 클수록 위(웹은 y가
@@ -101,5 +106,7 @@ namespace Saga.Story.Data
             for (int i = 0; i < result.Length; i++) result[i] = EnemyXPx[i] * ScaleMPerPx;
             return result;
         }
+
+        public static float BossPositionM() => BossXPx * ScaleMPerPx;
     }
 }

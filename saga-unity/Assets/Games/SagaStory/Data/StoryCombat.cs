@@ -35,6 +35,11 @@ namespace Saga.Story.Data
         public const float EnemyHp = 18f;  // round(18*1.22^0)
         public const float EnemyDmg = 6f;  // round(4+1*1.6, 이 슬라이스는 미사용 — 잡졸이 반격하지 않음)
 
+        // 두목(황건 두목) — "STORY 콘텐츠 확장"(2026-09-13), q_boss1 사명.
+        // data-side.js STAGES.field boss{hpMul:12, dmgMul:2.0} 그대로.
+        public const float BossHp = EnemyHp * 12f; // 216
+        public const float BossDmg = EnemyDmg * 2f; // 12(잡졸과 같은 이유로 이 슬라이스는 미사용 — 두목도 반격 안 함)
+
         /// <summary>
         /// "STORY 콘텐츠 확장" (2026-09-12) — 무예 나머지 셋(횡소·기탄·기합,
         /// 1절 "제외" 목록)을 더한다. 값은 `js/data-job.js` SKILLS[0..3]

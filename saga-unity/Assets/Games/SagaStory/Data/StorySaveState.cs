@@ -15,7 +15,7 @@ namespace Saga.Story.Data
     /// </summary>
     public static class StorySaveState
     {
-        private const int SaveVersion = 1;
+        private const int SaveVersion = 2; // v2 — "콘텐츠 확장"(두목 사명), bossKills 추가.
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_story.json");
 
@@ -25,6 +25,7 @@ namespace Saga.Story.Data
             public int version;
             public float[] playerPos;
             public int kills;
+            public int bossKills;
         }
 
         public static bool Save()
@@ -37,6 +38,7 @@ namespace Saga.Story.Data
                 version = SaveVersion,
                 playerPos = new[] { player.position.x, player.position.y, player.position.z },
                 kills = StoryQuestState.Kills,
+                bossKills = StoryQuestState.BossKills,
             };
 
             try
@@ -67,7 +69,7 @@ namespace Saga.Story.Data
             }
             if (data == null || data.version > SaveVersion) return false;
 
-            StoryQuestState.Restore(data.kills);
+            StoryQuestState.Restore(data.kills, data.bossKills);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
