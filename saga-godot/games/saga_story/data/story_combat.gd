@@ -367,6 +367,12 @@ const SKILL_JOB := {
 	"a_shot": "archer", "a_double": "archer", "a_pierce": "archer", "a_eye": "archer",
 	"r_twin": "rogue", "r_knife": "rogue", "r_step": "rogue", "r_vital": "rogue",
 	"m_fire": "mage", "m_bolt": "mage", "m_heal": "mage", "m_talis": "mage",
+	## **2026-09-13 추가(같은 날 더 더) — tier2 무예 열둘.** 아래 SKILL_NEED
+	## 머리말 참고.
+	"g_smash": "general", "g_roar": "general", "g_wall": "general",
+	"s_rain": "sniper", "s_snipe": "sniper", "s_split": "sniper",
+	"x_storm": "assassin", "x_fan": "assassin", "x_shadow": "assassin",
+	"p_quake": "sage", "p_beam": "sage", "p_ward": "sage",
 }
 
 ## job → 그 직업 무예 넷의 key(입력 액션 story_job_skill_1~4·story_job_1~4
@@ -376,6 +382,42 @@ const JOB_SKILL_KEYS := {
 	"archer": ["a_shot", "a_double", "a_pierce", "a_eye"],
 	"rogue": ["r_twin", "r_knife", "r_step", "r_vital"],
 	"mage": ["m_fire", "m_bolt", "m_heal", "m_talis"],
+	## tier2는 갈래마다 셋뿐이다(아래 SKILL_NEED 머리말 참고) — story_job_
+	## trainer.gd `_raise()`가 idx>=keys.size()면 조용히 넘어가므로 넷째
+	## 자리(물리키 4)는 그냥 안 쓰인다.
+	"general": ["g_smash", "g_roar", "g_wall"],
+	"sniper": ["s_rain", "s_snipe", "s_split"],
+	"assassin": ["x_storm", "x_fan", "x_shadow"],
+	"sage": ["p_quake", "p_beam", "p_ward"],
+}
+
+## **2026-09-13 추가(같은 날 더 더) — 2~4차 전직 다음 걸음: tier2 무예
+## 열둘.** data-job.js SKILLS의 tier2 스물(4갈래×5개) 중, 이 포트가 옮긴
+## tier1 넷(cut/whirl/rush/iron 등) 안에 실제로 `need`가 걸리는 것만
+## 골랐다 — 갈래마다 정확히 셋(장군·신궁·자객·도사 각 3개=12개). 나머지
+## (g_edge/g_vital·s_retreat/s_burst·x_whirl/x_dart·p_step/p_orb)는 그
+## 다섯째·여섯째 tier1 무예(w_edge 등, data-job.js에는 있지만 이 포트는
+## 아직 안 옮겼다)가 없어 자연히 범위 밖 — 다음에 그 tier1 넷을 채우면
+## 같이 열린다. 돌진(w_rush)·응안(a_eye)·급소(r_vital)·치유(m_heal)는
+## 원문 자체에 tier2 대응이 없다(임의로 건너뛴 게 아니라 데이터가 그렇다
+## — 3차에서 바로 이어진다, JOB_FROM 위 다른 갈래도 같은 결).
+##
+## **`need`(선행 무예 lv5 이상) 게이트를 이번에 처음 실제로 켠다** —
+## tier1엔 need가 없어 이 조건 자체가 없었지만, tier2부터는 원문에
+## 실존하는 규칙이라 `StorySaveState.can_raise_skill()`이 이제 확인한다.
+const SKILL_NEED := {
+	"g_smash": {"key": "w_cut", "lv": 5},
+	"g_roar": {"key": "w_whirl", "lv": 5},
+	"g_wall": {"key": "w_iron", "lv": 5},
+	"s_rain": {"key": "a_shot", "lv": 5},
+	"s_snipe": {"key": "a_pierce", "lv": 5},
+	"s_split": {"key": "a_double", "lv": 5},
+	"x_storm": {"key": "r_twin", "lv": 5},
+	"x_fan": {"key": "r_knife", "lv": 5},
+	"x_shadow": {"key": "r_step", "lv": 5},
+	"p_quake": {"key": "m_bolt", "lv": 5},
+	"p_beam": {"key": "m_fire", "lv": 5},
+	"p_ward": {"key": "m_talis", "lv": 5},
 }
 
 
@@ -532,6 +574,105 @@ const MAGE_TALIS_CD := 16.0
 const MAGE_TALIS_SEC := 10.0
 const MAGE_TALIS_ATK_MUL := 1.25
 const MAGE_TALIS_REGEN_MUL := 2.6
+
+
+## **2026-09-13 추가(같은 날 더 더) — tier2 무예 열둘.** SKILL_NEED 머리말
+## 참고. 사거리 배율(r/dist px → 배율)은 위 tier1과 같은 방식으로
+## REACH(78px)비·WARRIOR_RUSH_SCALE(0.02)을 그대로 재사용한다 — job마다
+## 새 환산 규칙을 만들지 않는다.
+
+## 패왕격(g_smash) — melee, hits:2. 참격(w_cut)과 같은 정면 판정.
+const GENERAL_SMASH_COST := 40.0
+const GENERAL_SMASH_CD := 9.0
+const GENERAL_SMASH_BASE := 3.4
+const GENERAL_SMASH_PER := 0.3
+const GENERAL_SMASH_HITS := 2
+
+## 함성(g_roar) — aoe, r:190px.
+const GENERAL_ROAR_COST := 34.0
+const GENERAL_ROAR_CD := 14.0
+const GENERAL_ROAR_BASE := 2.4
+const GENERAL_ROAR_PER := 0.2
+const GENERAL_ROAR_RANGE_MUL := 190.0 / 78.0
+
+## 철벽(g_wall) — buff. sec:11·atk×1.15·guard0.5 원문 그대로.
+const GENERAL_WALL_COST := 38.0
+const GENERAL_WALL_CD := 20.0
+const GENERAL_WALL_SEC := 11.0
+const GENERAL_WALL_ATK_MUL := 1.15
+const GENERAL_WALL_GUARD := 0.5
+
+## 전우(s_rain) — 원문 effect:'rain'. 원문에 별도 사거리·반경이 없어(rain
+## 류 공통 — data-job.js 어느 rain 항목도 r/dist가 없다) 사격(a_shot)과
+## 같은 단순 정면 판정으로 재해석.
+const SNIPER_RAIN_COST := 42.0
+const SNIPER_RAIN_CD := 10.0
+const SNIPER_RAIN_BASE := 2.6
+const SNIPER_RAIN_PER := 0.24
+
+## 일점사(s_snipe) — bolt. 관통시(a_pierce)와 같은 재해석(사거리 2배).
+const SNIPER_SNIPE_COST := 36.0
+const SNIPER_SNIPE_CD := 8.0
+const SNIPER_SNIPE_BASE := 4.0
+const SNIPER_SNIPE_PER := 0.34
+const SNIPER_SNIPE_RANGE_MUL := 2.0
+
+## 분시(s_split) — volley(shots:4). 연사(a_double)와 같은 재해석(정면
+## 판정을 그 횟수만큼 잇달아 적용).
+const SNIPER_SPLIT_COST := 34.0
+const SNIPER_SPLIT_CD := 5.0
+const SNIPER_SPLIT_BASE := 1.5
+const SNIPER_SPLIT_PER := 0.12
+const SNIPER_SPLIT_SHOTS := 4
+
+## 난무(x_storm) — melee, hits:4.
+const ASSASSIN_STORM_COST := 38.0
+const ASSASSIN_STORM_CD := 8.0
+const ASSASSIN_STORM_BASE := 1.5
+const ASSASSIN_STORM_PER := 0.13
+const ASSASSIN_STORM_HITS := 4
+
+## 만천화우(x_fan) — volley(shots:5).
+const ASSASSIN_FAN_COST := 40.0
+const ASSASSIN_FAN_CD := 9.0
+const ASSASSIN_FAN_BASE := 1.4
+const ASSASSIN_FAN_PER := 0.12
+const ASSASSIN_FAN_SHOTS := 5
+
+## 그림자밟기(x_shadow) — dash, dist:300px + invuln:0.9. 은신보(r_step)와
+## 같은 순서(경로 판정 → 순간이동, 무적시간 포함).
+const ASSASSIN_SHADOW_COST := 32.0
+const ASSASSIN_SHADOW_CD := 6.0
+const ASSASSIN_SHADOW_BASE := 2.0
+const ASSASSIN_SHADOW_PER := 0.17
+const ASSASSIN_SHADOW_DIST_PX := 300.0
+const ASSASSIN_SHADOW_INVULN_SEC := 0.9
+
+
+static func assassin_shadow_dist_m() -> float:
+	return ASSASSIN_SHADOW_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## 지진(p_quake) — aoe, r:230px.
+const SAGE_QUAKE_COST := 44.0
+const SAGE_QUAKE_CD := 10.0
+const SAGE_QUAKE_BASE := 3.2
+const SAGE_QUAKE_PER := 0.28
+const SAGE_QUAKE_RANGE_MUL := 230.0 / 78.0
+
+## 천뢰(p_beam) — 원문 effect:'rain'. s_rain과 같은 단순 정면 재해석.
+const SAGE_BEAM_COST := 40.0
+const SAGE_BEAM_CD := 9.0
+const SAGE_BEAM_BASE := 3.0
+const SAGE_BEAM_PER := 0.26
+
+## 호신부(p_ward) — buff. sec:12·atk×1.1·guard0.4·regen3.2 원문 그대로.
+const SAGE_WARD_COST := 36.0
+const SAGE_WARD_CD := 18.0
+const SAGE_WARD_SEC := 12.0
+const SAGE_WARD_ATK_MUL := 1.1
+const SAGE_WARD_GUARD := 0.4
+const SAGE_WARD_REGEN_MUL := 3.2
 
 
 static var _hitstop_active := false

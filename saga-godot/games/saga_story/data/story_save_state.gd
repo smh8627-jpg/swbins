@@ -193,14 +193,20 @@ func skill_level(key: String) -> int:
 ## 봤는데(그때는 사슬이 tier1 하나뿐이라 같은 결과), 이제 진급해도 하위
 ## 무예(예: 장군이 된 뒤에도 무사 무예)에 계속 투자할 수 있어야 하므로
 ## 사슬 소속 여부로 바꿨다(원작 skillsOf()의 chain-walk과 같은 정신).
-## 원문의 `need`(다음 갈래 연계, 한 무예를 올리려면 그 앞 무예가 필요)
-## 조건은 여전히 범위 밖(각 tier 무예 자체가 아직 없다).
+## **2026-09-13 추가(같은 날 더 더) — tier2 무예 열둘.** 원문 `need`(한
+## 무예를 올리려면 그 앞 무예가 lv5 이상이어야 한다, data-job.js SKILLS
+## need 필드)를 이제 실제로 확인한다 — tier1은 need가 없어 이 검사 자체가
+## 전에는 없었다(story_combat.gd SKILL_NEED 머리말 참고).
 func can_raise_skill(key: String) -> bool:
 	var skill_job := String(StoryCombat.SKILL_JOB.get(key, ""))
 	if skill_job == "" or not StoryCombat.job_chain(job).has(skill_job):
 		return false
 	if skill_level(key) >= StoryCombat.SKILL_MAX_LEVEL:
 		return false
+	if StoryCombat.SKILL_NEED.has(key):
+		var need: Dictionary = StoryCombat.SKILL_NEED[key]
+		if skill_level(String(need.key)) < int(need.lv):
+			return false
 	return sp_left() > 0
 
 

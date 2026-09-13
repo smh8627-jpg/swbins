@@ -1469,6 +1469,98 @@ atk2/mp0 확인 → `can_advance_job("general")`=true → `advance_job`
 다음은 tier2 무예 확장이거나 STORY 밖(다른 판, GO/DUNGEON/FOREST/
 REALM)으로 옮겨 갈 자리.
 
+
+## 28. tier2 무예 — 장군·신궁·자객·도사 각 셋 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어해 묻지말고"** — 27절이 남긴 "다음
+이어질 것"을 채웠다. data-job.js SKILLS의 tier2는 갈래마다 다섯 개씩
+(20개)인데, 이 포트는 tier1 무예를 갈래마다 넷만 옮겨 뒀다(w_cut·
+w_whirl·w_rush·w_iron 등 — 다섯째·여섯째 무예 w_edge·w_vital류는 아직
+범위 밖). data-job.js `need` 필드로 tier2 스물을 훑어 보니, 그 tier1
+넷 중 정확히 **셋**(참격·선풍·철갑류, 돌진류는 tier2 대응이 원문에
+아예 없다 — 응안·급소·치유도 마찬가지, tier3에서 tier1을 직접
+잇는다)에만 실제 need가 걸려 있었다 — 그래서 갈래마다 정확히 셋,
+총 **열둘**만 지금 채울 수 있는 정확한 범위였다(g_smash·g_roar·
+g_wall / s_rain·s_snipe·s_split / x_storm·x_fan·x_shadow / p_quake·
+p_beam·p_ward). 나머지 여덟(g_edge 등)은 그 다섯째·여섯째 tier1
+무예가 옮겨지면 같이 열린다 — 다음에 볼 자리.
+
+**`need`(선행 무예 Lv.5 이상) 게이트를 이번에 처음 켠다.** tier1은
+`need`가 없어 이 조건 자체가 없었는데, `story_combat.gd`에 새
+`SKILL_NEED`(key→{선행 key, lv})를 두고 `story_save_state.gd
+can_raise_skill()`이 확인하게 했다 — 27절이 "무예 자체가 없어 범위
+밖"이라 적어 뒀던 그 조건이다.
+
+**버프 배율을 chain이 아니라 캐스팅 시점 값으로 바꿨다(작은 리팩터).**
+지금까지 `_effective_atk()`/`take_damage()`/mp 회복 줄이 매 프레임
+`job_chain(job)`을 다시 훑어 "warrior면 철갑 배율, archer면 응안
+배율…" 식으로 배율을 골랐는데, 장군(general)의 `chain`엔 `warrior`도
+항상 들어 있어(`["general","warrior"]`) 새 철벽(g_wall, tier2 버프)이
+걸려 있어도 이 방식은 계속 철갑(w_iron, tier1) 배율을 골라 버린다 —
+chain 소속만으로는 "지금 실제로 어느 버프가 걸렸는지"를 구분 못 한다.
+그래서 `_cast_*_iron/_eye/_vital/_talis()`(기존 넷)와 새
+`_cast_general_wall()`/`_cast_sage_ward()`가 캐스팅 순간
+`_job_buff_atk_mul`/`_job_buff_guard`/`_job_buff_regen_mul` 세 값을
+직접 채워 넣고, 위 세 읽는 자리는 이제 `job`을 다시 안 보고 그 값을
+그대로 쓴다. 신궁·자객 tier2는 버프가 없어(원문에 대응 스킬 자체가
+없다) 이 셋 중 새로 걸리는 값은 장군·도사 둘뿐이다.
+
+**사거리/거리 환산은 기존 관례 그대로 재사용** — aoe 반경(r px)은
+REACH(78px)비(`r/78.0`), dash 거리는 `WARRIOR_RUSH_SCALE`(0.02),
+bolt류는 기존 `*_RANGE_MUL := 2.0` 패턴을 그대로 따랐다(새 환산
+규칙을 안 만든다). `effect:'rain'`(s_rain·p_beam, 원문에 r/dist가
+없다)은 사격(a_shot)과 같은 단순 정면 판정으로 재해석 — 이 포트가
+`arrow`도 같은 식으로 다뤘던 것과 같은 결.
+
+**입력** — tier1 넷(`story_job_skill_1~4`)과 별도로 `story_job_skill2_
+1~3`(물리키 B·N·M, 갈래마다 셋뿐이라 넷째가 없다)을 새로 뒀다. `chain`엔
+tier1도 항상 같이 들어 있으므로 `story_player.gd`의 tier1 분기와 이
+tier2 분기는 **elif로 안 묶고 둘 다 걸리게** 했다 — 장군으로 전직해도
+무사 무예 넷을 그대로 쓰면서 장군 무예 셋도 새로 쓴다(27절의 "전직해도
+하위 무예를 안 잃는다" 정신 그대로). SP 투자는 새 입력을 안 늘렸다 —
+`story_job_trainer.gd _raise()`가 이미 `JOB_SKILL_KEYS.get(현재 job)`을
+그대로 쓰므로, `JOB_SKILL_KEYS`에 "general": [...] 등 3개짜리 항목만
+추가하면 기존 숫자 1~3(허도 트레이너 앞) 그대로 재사용된다.
+
+- `story_combat.gd`: `SKILL_NEED` 신규. `SKILL_JOB`·`JOB_SKILL_KEYS`에
+  tier2 넷 추가. 열두 스킬의 cost/cd/mul(/hits·shots·r·dist·invuln/
+  buff) 상수, `assassin_shadow_dist_m()` 신규.
+- `story_save_state.gd`: `can_raise_skill()`에 `SKILL_NEED` 게이트 추가.
+- `story_player.gd`: `_job_buff_atk_mul`/`_job_buff_guard`/
+  `_job_buff_regen_mul` 신규(캐스팅 시점 저장) — `_effective_atk()`·
+  `take_damage()`·mp 회복 줄이 chain 재판별 대신 이 값을 쓰도록 교체.
+  tier2 열두 스킬의 cd 변수·캐스트 함수(`_cast_general_smash()` 등)
+  신규, 입력 분기(`story_job_skill2_1~3`, elif로 안 묶음) 신규.
+- `project.godot`: `story_job_skill2_1~3`(물리키 B=66·N=78·M=77) 신규 —
+  기존 입력 액션이 안 쓰던 키 확인 후 골랐다.
+
+**검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import만
+재발생, 되돌림) → `project.godot` diff가 의도한 입력 액션 15줄뿐인지
+확인 → STORY 필드 씬 아홉 개(TestField·HeodoField·GangneungjinField·
+ForestHuntGround·SinyaField·NamjeongseongField·CaveHuntGround·
+GisanchaeField·GorgeHuntGround) 각각 세 번씩 헤드리스 로드, 전부
+exit 0·로그 완전 동일(다섯 판 회귀 포함 기본 씬도 3회 동일). **임시
+검증 스크립트**(`--script`로 SceneTree 새로 만들어 StorySaveState
+스크립트를 직접 preload·인스턴스화, 헤드리스 전용 — 씬 파일이 아니라
+바로 지우고 회귀 확인까지 마쳤다)로: g_smash가 w_cut Lv4에서는
+투자 불가·Lv5부터 가능(SKILL_NEED 게이트) → job="general"이어도
+w_whirl(무사 사슬)은 여전히 투자 가능 → 다른 갈래(a_shot)는 불가
+(chain 소속 확인) → skill_mul(3.4,0.3,lv5)=4.9(손계산과 일치) →
+GENERAL_ROAR_RANGE_MUL=190/78(손계산과 일치) → 네 tier2 job 전부
+정확히 3개씩·SKILL_JOB/SKILL_NEED 정합 확인 → g_smash Lv7까지는
+marshal 진급 불가, Lv8부터 가능(job_advance_skill_gate=8 회귀 확인,
+27절 로직 그대로 살아 있음) — 전부 예측과 정확히 일치. 검증 스크립트
+삭제 후 재검증(diff 0)까지 마쳤다.
+
+**GUI 실기 확인은 아직 안 함** — B·N·M키로 실제 장군/신궁/자객/도사
+무예가 나가는 손맛, 철벽(g_wall)·호신부(p_ward) 버프가 걸렸을 때
+화면 표시는 눈으로 볼 것. 계속 몰아서 받을 것.
+
+**다음 이어질 것** — w_edge/w_vital류(다섯째·여섯째 tier1 무예, 넷
+갈래×2=8개)를 채우면 남은 tier2 여덟(g_edge·g_vital 등)도 마저 열린다.
+그 전까지는 STORY 밖(다른 판)으로 옮겨 가거나, 이 포트가 아직 안 건드린
+다른 굵직한 후보(가방·상점 확장 등)를 볼 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

@@ -80,6 +80,38 @@ var _cd_mage_bolt := 0.0
 var _cd_mage_heal := 0.0
 var _cd_mage_talis := 0.0
 
+## **2026-09-13 추가(같은 날 더 더) — tier2 무예 열둘(장군·신궁·자객·도사
+## 각 셋).** 별도 입력 액션(story_job_skill2_1~3)을 쓴다 — chain에는
+## 언제나 tier1도 같이 들어 있어(예: job=general이면 chain=[general,
+## warrior]) 위 tier1 분기와 이 분기가 둘 다 걸린다(전직해도 무사 무예
+## 넷을 그대로 쓰면서 장군 무예 셋도 새로 쓴다, story_combat.gd
+## SKILL_NEED 머리말 참고).
+var _cd_general_smash := 0.0
+var _cd_general_roar := 0.0
+var _cd_general_wall := 0.0
+var _cd_sniper_rain := 0.0
+var _cd_sniper_snipe := 0.0
+var _cd_sniper_split := 0.0
+var _cd_assassin_storm := 0.0
+var _cd_assassin_fan := 0.0
+var _cd_assassin_shadow := 0.0
+var _cd_sage_quake := 0.0
+var _cd_sage_beam := 0.0
+var _cd_sage_ward := 0.0
+
+## **2026-09-13 추가(같은 날 더 더) — job 버프 배율을 캐스팅 시점에
+## 저장한다.** 지금까지 `_effective_atk()`/`take_damage()`가 매 프레임
+## `job`에서 배율을 다시 골라 왔는데(철갑=WARRIOR_IRON_ATK_MUL 등),
+## tier2에 새 버프(g_wall·p_ward)가 생기면서 job의 사슬(chain)만으로는
+## "지금 실제로 걸린 버프가 tier1 것인지 tier2 것인지" 구분이 안 된다
+## (예: job=general이면 chain이 warrior도 포함해 철갑 배율로 잘못 고를
+## 수 있다). 그래서 각 `_cast_*_iron/_eye/_vital/_talis/_wall/_ward()`가
+## 캐스팅 순간 이 세 값을 직접 채워 넣고, `_job_buff_time_left`가 남아
+## 있는 동안은 그 값을 그대로 쓴다(job을 다시 안 본다).
+var _job_buff_atk_mul := 1.0
+var _job_buff_guard := 0.0
+var _job_buff_regen_mul := 1.0
+
 ## **2026-09-13 추가 — 플레이어 체력(잡졸 반격).** story_enemy.gd 머리말이
 ## "추격·원거리 반격이 없다"고 적어 둔 것 중 반격(겹치면 맞는다, side.js
 ## overlap()+hurtMe())만 이번에 채운다 — 추격(쫓아오기)은 여전히 없다
@@ -120,10 +152,10 @@ func take_damage(amount: float) -> void:
 		return
 	var def: float = float(StorySaveState.gear_totals().def)
 	var cut: float = StoryCombat.damage_cut(def)
-	## **2026-09-13 추가 — 2~4차 전직**: `job == "warrior"` 정확 일치 대신
-	## 사슬 소속(장군으로 전직해도 무사 철갑을 잃지 않는다)으로 바꿨다.
-	var job_chain: Array = StoryCombat.job_chain(StorySaveState.job)
-	var guard_mul: float = (1.0 - StoryCombat.WARRIOR_IRON_GUARD) if (_job_buff_time_left > 0.0 and job_chain.has("warrior")) else 1.0
+	## **2026-09-13 추가(같은 날 더 더)** — 캐스팅 시점에 저장해 둔
+	## `_job_buff_guard`를 그대로 쓴다(변수 선언부 머리말 참고, tier2
+	## 버프가 생기며 chain만으로는 어느 버프가 걸렸는지 구분이 안 된다).
+	var guard_mul: float = (1.0 - _job_buff_guard) if _job_buff_time_left > 0.0 else 1.0
 	hp = clampf(hp - amount * (1.0 - cut) * guard_mul, 0.0, max_hp)
 
 
@@ -155,11 +187,25 @@ func _physics_process(delta: float) -> void:
 	_cd_mage_bolt = maxf(0.0, _cd_mage_bolt - delta)
 	_cd_mage_heal = maxf(0.0, _cd_mage_heal - delta)
 	_cd_mage_talis = maxf(0.0, _cd_mage_talis - delta)
+	_cd_general_smash = maxf(0.0, _cd_general_smash - delta)
+	_cd_general_roar = maxf(0.0, _cd_general_roar - delta)
+	_cd_general_wall = maxf(0.0, _cd_general_wall - delta)
+	_cd_sniper_rain = maxf(0.0, _cd_sniper_rain - delta)
+	_cd_sniper_snipe = maxf(0.0, _cd_sniper_snipe - delta)
+	_cd_sniper_split = maxf(0.0, _cd_sniper_split - delta)
+	_cd_assassin_storm = maxf(0.0, _cd_assassin_storm - delta)
+	_cd_assassin_fan = maxf(0.0, _cd_assassin_fan - delta)
+	_cd_assassin_shadow = maxf(0.0, _cd_assassin_shadow - delta)
+	_cd_sage_quake = maxf(0.0, _cd_sage_quake - delta)
+	_cd_sage_beam = maxf(0.0, _cd_sage_beam - delta)
+	_cd_sage_ward = maxf(0.0, _cd_sage_ward - delta)
 	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
-	## m_talis(부적)가 걸려 있으면 mp 회복이 MAGE_TALIS_REGEN_MUL배 빨라진다
-	## (side.js MP_REGEN*bf.regen과 같은 자리) — 다른 job 버프는 regen이 없다.
-	## 2026-09-13 추가(2~4차 전직) — 사슬 소속으로 확인(도사로 전직해도 유지).
-	var regen_mul: float = StoryCombat.MAGE_TALIS_REGEN_MUL if (_job_buff_time_left > 0.0 and StoryCombat.job_chain(StorySaveState.job).has("mage")) else 1.0
+	## m_talis(부적)·p_ward(호신부)가 걸려 있으면 mp 회복이 배로 빨라진다
+	## (side.js MP_REGEN*bf.regen과 같은 자리) — 다른 job 버프는 regen이
+	## 없다(캐스팅 시점에 `_job_buff_regen_mul`을 1.0으로 채워 둔다).
+	## **2026-09-13 추가(같은 날 더 더)** — job을 다시 안 보고 캐스팅
+	## 시점에 저장해 둔 값을 그대로 쓴다(변수 선언부 머리말 참고).
+	var regen_mul: float = _job_buff_regen_mul if _job_buff_time_left > 0.0 else 1.0
 	mp = minf(max_mp, mp + StoryCombat.MP_REGEN * regen_mul * delta)
 	_check_rope()
 
@@ -225,6 +271,40 @@ func _physics_process(delta: float) -> void:
 			_cast_mage_heal()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_mage_talis()
+
+	## **2026-09-13 추가(같은 날 더 더) — tier2 무예 열둘.** 위 tier1
+	## 분기와 별개 입력 액션(story_job_skill2_1~3, 갈래마다 셋뿐이라
+	## 넷째가 없다)이라 elif로 안 묶는다 — chain에 tier1도 항상 같이
+	## 들어 있으므로 위 분기와 이 분기가 둘 다 걸린다(전직해도 무사
+	## 무예 넷을 그대로 쓰면서 장군 무예 셋도 새로 쓴다).
+	if chain.has("general"):
+		if Input.is_action_just_pressed("story_job_skill2_1"):
+			_cast_general_smash()
+		if Input.is_action_just_pressed("story_job_skill2_2"):
+			_cast_general_roar()
+		if Input.is_action_just_pressed("story_job_skill2_3"):
+			_cast_general_wall()
+	elif chain.has("sniper"):
+		if Input.is_action_just_pressed("story_job_skill2_1"):
+			_cast_sniper_rain()
+		if Input.is_action_just_pressed("story_job_skill2_2"):
+			_cast_sniper_snipe()
+		if Input.is_action_just_pressed("story_job_skill2_3"):
+			_cast_sniper_split()
+	elif chain.has("assassin"):
+		if Input.is_action_just_pressed("story_job_skill2_1"):
+			_cast_assassin_storm()
+		if Input.is_action_just_pressed("story_job_skill2_2"):
+			_cast_assassin_fan()
+		if Input.is_action_just_pressed("story_job_skill2_3"):
+			_cast_assassin_shadow()
+	elif chain.has("sage"):
+		if Input.is_action_just_pressed("story_job_skill2_1"):
+			_cast_sage_quake()
+		if Input.is_action_just_pressed("story_job_skill2_2"):
+			_cast_sage_beam()
+		if Input.is_action_just_pressed("story_job_skill2_3"):
+			_cast_sage_ward()
 
 
 func _walk(delta: float) -> void:
@@ -307,17 +387,10 @@ func clear_rope_area(area: Area3D) -> void:
 func _effective_atk() -> float:
 	var atk := StoryCombat.START_ATK + float(StorySaveState.gear_totals().atk) + float(StorySaveState.job_grow().atk)
 	atk *= StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0
+	## **2026-09-13 추가(같은 날 더 더)** — 캐스팅 시점에 저장해 둔
+	## `_job_buff_atk_mul`을 그대로 쓴다(변수 선언부 머리말 참고).
 	if _job_buff_time_left > 0.0:
-		## 2026-09-13 추가(2~4차 전직) — 사슬 소속으로 확인(전직 후에도 유지).
-		var chain: Array = StoryCombat.job_chain(StorySaveState.job)
-		if chain.has("warrior"):
-			atk *= StoryCombat.WARRIOR_IRON_ATK_MUL
-		elif chain.has("archer"):
-			atk *= StoryCombat.ARCHER_EYE_ATK_MUL
-		elif chain.has("rogue"):
-			atk *= StoryCombat.ROGUE_VITAL_ATK_MUL
-		elif chain.has("mage"):
-			atk *= StoryCombat.MAGE_TALIS_ATK_MUL
+		atk *= _job_buff_atk_mul
 	return atk
 
 
@@ -453,6 +526,9 @@ func _cast_warrior_iron() -> void:
 	_cd_warrior_iron = StoryCombat.WARRIOR_IRON_CD
 	mp -= StoryCombat.WARRIOR_IRON_COST
 	_job_buff_time_left = StoryCombat.WARRIOR_IRON_SEC
+	_job_buff_atk_mul = StoryCombat.WARRIOR_IRON_ATK_MUL
+	_job_buff_guard = StoryCombat.WARRIOR_IRON_GUARD
+	_job_buff_regen_mul = 1.0
 
 
 ## 사격(a_shot) — arrow. 참격(w_cut)과 같은 정면 판정·사거리(원문에 별도
@@ -501,6 +577,9 @@ func _cast_archer_eye() -> void:
 	_cd_archer_eye = StoryCombat.ARCHER_EYE_CD
 	mp -= StoryCombat.ARCHER_EYE_COST
 	_job_buff_time_left = StoryCombat.ARCHER_EYE_SEC
+	_job_buff_atk_mul = StoryCombat.ARCHER_EYE_ATK_MUL
+	_job_buff_guard = 0.0
+	_job_buff_regen_mul = 1.0
 
 
 ## 쌍참(r_twin) — melee, hits:2. 연사(a_double)와 같은 재해석(정면 판정을
@@ -552,6 +631,9 @@ func _cast_rogue_vital() -> void:
 	_cd_rogue_vital = StoryCombat.ROGUE_VITAL_CD
 	mp -= StoryCombat.ROGUE_VITAL_COST
 	_job_buff_time_left = StoryCombat.ROGUE_VITAL_SEC
+	_job_buff_atk_mul = StoryCombat.ROGUE_VITAL_ATK_MUL
+	_job_buff_guard = 0.0
+	_job_buff_regen_mul = 1.0
 
 
 ## 화구(m_fire) — bolt. 기탄·관통시와 같은 재해석(사거리 2배).
@@ -611,6 +693,179 @@ func _cast_mage_talis() -> void:
 	_cd_mage_talis = StoryCombat.MAGE_TALIS_CD
 	mp -= StoryCombat.MAGE_TALIS_COST
 	_job_buff_time_left = StoryCombat.MAGE_TALIS_SEC
+	_job_buff_atk_mul = StoryCombat.MAGE_TALIS_ATK_MUL
+	_job_buff_guard = 0.0
+	_job_buff_regen_mul = StoryCombat.MAGE_TALIS_REGEN_MUL
+
+
+## 패왕격(g_smash) — melee, hits:2. 참격(w_cut)과 같은 정면 판정.
+func _cast_general_smash() -> void:
+	var lv := StorySaveState.skill_level("g_smash")
+	if lv <= 0 or _cd_general_smash > 0.0 or mp < StoryCombat.GENERAL_SMASH_COST:
+		return
+	_cd_general_smash = StoryCombat.GENERAL_SMASH_CD
+	mp -= StoryCombat.GENERAL_SMASH_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.GENERAL_SMASH_BASE, StoryCombat.GENERAL_SMASH_PER, lv)
+	for i in StoryCombat.GENERAL_SMASH_HITS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 함성(g_roar) — aoe, r:190px.
+func _cast_general_roar() -> void:
+	var lv := StorySaveState.skill_level("g_roar")
+	if lv <= 0 or _cd_general_roar > 0.0 or mp < StoryCombat.GENERAL_ROAR_COST:
+		return
+	_cd_general_roar = StoryCombat.GENERAL_ROAR_CD
+	mp -= StoryCombat.GENERAL_ROAR_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.GENERAL_ROAR_BASE, StoryCombat.GENERAL_ROAR_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.GENERAL_ROAR_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 철벽(g_wall) — buff, 대미지 없음.
+func _cast_general_wall() -> void:
+	if StorySaveState.skill_level("g_wall") <= 0 or _cd_general_wall > 0.0 or mp < StoryCombat.GENERAL_WALL_COST:
+		return
+	_cd_general_wall = StoryCombat.GENERAL_WALL_CD
+	mp -= StoryCombat.GENERAL_WALL_COST
+	_job_buff_time_left = StoryCombat.GENERAL_WALL_SEC
+	_job_buff_atk_mul = StoryCombat.GENERAL_WALL_ATK_MUL
+	_job_buff_guard = StoryCombat.GENERAL_WALL_GUARD
+	_job_buff_regen_mul = 1.0
+
+
+## 전우(s_rain) — 원문 effect:'rain', 사격(a_shot)과 같은 단순 정면 재해석.
+func _cast_sniper_rain() -> void:
+	var lv := StorySaveState.skill_level("s_rain")
+	if lv <= 0 or _cd_sniper_rain > 0.0 or mp < StoryCombat.SNIPER_RAIN_COST:
+		return
+	_cd_sniper_rain = StoryCombat.SNIPER_RAIN_CD
+	mp -= StoryCombat.SNIPER_RAIN_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.skill_mul(StoryCombat.SNIPER_RAIN_BASE, StoryCombat.SNIPER_RAIN_PER, lv))
+
+
+## 일점사(s_snipe) — bolt. 관통시(a_pierce)와 같은 재해석(사거리 2배).
+func _cast_sniper_snipe() -> void:
+	var lv := StorySaveState.skill_level("s_snipe")
+	if lv <= 0 or _cd_sniper_snipe > 0.0 or mp < StoryCombat.SNIPER_SNIPE_COST:
+		return
+	_cd_sniper_snipe = StoryCombat.SNIPER_SNIPE_CD
+	mp -= StoryCombat.SNIPER_SNIPE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.SNIPER_SNIPE_BASE, StoryCombat.SNIPER_SNIPE_PER, lv)
+	_melee_hit(ATTACK_RANGE * StoryCombat.SNIPER_SNIPE_RANGE_MUL, mul)
+
+
+## 분시(s_split) — volley(shots:4). 연사(a_double)와 같은 재해석.
+func _cast_sniper_split() -> void:
+	var lv := StorySaveState.skill_level("s_split")
+	if lv <= 0 or _cd_sniper_split > 0.0 or mp < StoryCombat.SNIPER_SPLIT_COST:
+		return
+	_cd_sniper_split = StoryCombat.SNIPER_SPLIT_CD
+	mp -= StoryCombat.SNIPER_SPLIT_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.SNIPER_SPLIT_BASE, StoryCombat.SNIPER_SPLIT_PER, lv)
+	for i in StoryCombat.SNIPER_SPLIT_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 난무(x_storm) — melee, hits:4.
+func _cast_assassin_storm() -> void:
+	var lv := StorySaveState.skill_level("x_storm")
+	if lv <= 0 or _cd_assassin_storm > 0.0 or mp < StoryCombat.ASSASSIN_STORM_COST:
+		return
+	_cd_assassin_storm = StoryCombat.ASSASSIN_STORM_CD
+	mp -= StoryCombat.ASSASSIN_STORM_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ASSASSIN_STORM_BASE, StoryCombat.ASSASSIN_STORM_PER, lv)
+	for i in StoryCombat.ASSASSIN_STORM_HITS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 만천화우(x_fan) — volley(shots:5).
+func _cast_assassin_fan() -> void:
+	var lv := StorySaveState.skill_level("x_fan")
+	if lv <= 0 or _cd_assassin_fan > 0.0 or mp < StoryCombat.ASSASSIN_FAN_COST:
+		return
+	_cd_assassin_fan = StoryCombat.ASSASSIN_FAN_CD
+	mp -= StoryCombat.ASSASSIN_FAN_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.ASSASSIN_FAN_BASE, StoryCombat.ASSASSIN_FAN_PER, lv)
+	for i in StoryCombat.ASSASSIN_FAN_SHOTS:
+		_melee_hit(ATTACK_RANGE, mul)
+
+
+## 그림자밟기(x_shadow) — dash + invuln:0.9. 은신보(r_step)와 같은 순서.
+func _cast_assassin_shadow() -> void:
+	var lv := StorySaveState.skill_level("x_shadow")
+	if lv <= 0 or _cd_assassin_shadow > 0.0 or mp < StoryCombat.ASSASSIN_SHADOW_COST:
+		return
+	_cd_assassin_shadow = StoryCombat.ASSASSIN_SHADOW_CD
+	mp -= StoryCombat.ASSASSIN_SHADOW_COST
+	_play_anim("sprint")
+	var dist_m := StoryCombat.assassin_shadow_dist_m()
+	_melee_hit(dist_m, StoryCombat.skill_mul(StoryCombat.ASSASSIN_SHADOW_BASE, StoryCombat.ASSASSIN_SHADOW_PER, lv))
+	global_position.x += dist_m * _facing
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.ASSASSIN_SHADOW_INVULN_SEC)
+
+
+## 지진(p_quake) — aoe, r:230px.
+func _cast_sage_quake() -> void:
+	var lv := StorySaveState.skill_level("p_quake")
+	if lv <= 0 or _cd_sage_quake > 0.0 or mp < StoryCombat.SAGE_QUAKE_COST:
+		return
+	_cd_sage_quake = StoryCombat.SAGE_QUAKE_CD
+	mp -= StoryCombat.SAGE_QUAKE_COST
+	_play_anim("sprint")
+	var mul := StoryCombat.skill_mul(StoryCombat.SAGE_QUAKE_BASE, StoryCombat.SAGE_QUAKE_PER, lv)
+	var range_m := ATTACK_RANGE * StoryCombat.SAGE_QUAKE_RANGE_MUL
+	for enemy in get_tree().get_nodes_in_group("story_enemy"):
+		var e := enemy as Node3D
+		if e == null:
+			continue
+		var dx: float = e.global_position.x - global_position.x
+		if absf(dx) > range_m:
+			continue
+		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
+		e.take_damage(float(roll.dmg))
+		if bool(roll.crit):
+			StoryCombat.trigger_hitstop(get_tree())
+
+
+## 천뢰(p_beam) — 원문 effect:'rain', s_rain과 같은 단순 정면 재해석.
+func _cast_sage_beam() -> void:
+	var lv := StorySaveState.skill_level("p_beam")
+	if lv <= 0 or _cd_sage_beam > 0.0 or mp < StoryCombat.SAGE_BEAM_COST:
+		return
+	_cd_sage_beam = StoryCombat.SAGE_BEAM_CD
+	mp -= StoryCombat.SAGE_BEAM_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.skill_mul(StoryCombat.SAGE_BEAM_BASE, StoryCombat.SAGE_BEAM_PER, lv))
+
+
+## 호신부(p_ward) — buff, 대미지 없음.
+func _cast_sage_ward() -> void:
+	if StorySaveState.skill_level("p_ward") <= 0 or _cd_sage_ward > 0.0 or mp < StoryCombat.SAGE_WARD_COST:
+		return
+	_cd_sage_ward = StoryCombat.SAGE_WARD_CD
+	mp -= StoryCombat.SAGE_WARD_COST
+	_job_buff_time_left = StoryCombat.SAGE_WARD_SEC
+	_job_buff_atk_mul = StoryCombat.SAGE_WARD_ATK_MUL
+	_job_buff_guard = StoryCombat.SAGE_WARD_GUARD
+	_job_buff_regen_mul = StoryCombat.SAGE_WARD_REGEN_MUL
 
 
 func _play_anim(anim_name: String) -> void:

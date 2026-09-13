@@ -4890,3 +4890,39 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
     채우면 tier3 진급 문이 자연히 열린다. 21절부터 이어 온 STORY
     "굵직한 후보"(사명 확장→상점→나머지 사냥터→전직 트리→몬스터 도감→
     마을 배경→2~4차 전직)가 이걸로 전부 최소 한 걸음씩 완료됐다.
+
+
+## STORY tier2 무예 — 장군·신궁·자객·도사 각 셋 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어해 묻지말고"** — 바로 위 항목이 남긴
+  "다음 이어질 것"을 채웠다. data-job.js tier2는 갈래마다 다섯 개씩
+  (20개)이지만, 이 포트가 옮긴 tier1 넷(다섯째·여섯째 무예는 아직
+  범위 밖) 중 실제로 `need`가 걸린 건 갈래마다 정확히 셋뿐이라, 이번
+  걸음은 열둘(g_smash·g_roar·g_wall / s_rain·s_snipe·s_split / x_storm·
+  x_fan·x_shadow / p_quake·p_beam·p_ward)로 정확히 좁혀졌다. 자세한
+  기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 28절.
+  - **`need`(선행 무예 Lv.5 이상) 게이트를 처음 켠다** — `story_combat.gd`
+    `SKILL_NEED` 신규, `story_save_state.gd can_raise_skill()`이 확인.
+  - **작은 리팩터** — job 버프 배율을 매 프레임 `job_chain(job)`으로
+    다시 고르던 것을(장군의 chain엔 warrior도 있어 새 철벽 버프가
+    걸려도 철갑 배율을 잘못 고르는 문제가 생겼다) 캐스팅 시점에
+    `_job_buff_atk_mul`/`_job_buff_guard`/`_job_buff_regen_mul`로 직접
+    저장하는 방식으로 바꿨다(기존 넷+신규 둘, 총 여섯 버프가 이 값을
+    채운다).
+  - 입력은 tier1(`story_job_skill_1~4`)과 별도 `story_job_skill2_1~3`
+    (물리키 B·N·M) — chain엔 tier1도 항상 있어 두 분기가 **둘 다**
+    걸린다(elif로 안 묶음). SP 투자는 새 입력 없이 `JOB_SKILL_KEYS`에
+    tier2 3개짜리 항목만 추가해 기존 숫자 1~3을 재사용.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+    → `project.godot` diff가 입력 액션 15줄뿐인지 확인 → STORY 필드
+    씬 아홉 개 각 세 번씩 exit 0·로그 완전 동일(다섯 판 회귀 포함).
+    **임시 검증 스크립트**(`--script`로 StorySaveState를 직접 preload·
+    인스턴스화, 헤드리스 전용)로 SKILL_NEED 게이트·chain 소속(전직
+    후에도 하위 무예 투자 가능·다른 갈래는 불가)·skill_mul 손계산·
+    range 환산·JOB_SKILL_KEYS/SKILL_JOB/SKILL_NEED 정합·marshal 진급
+    게이트(27절 로직 회귀) 전부 예측과 일치 확인, 스크립트 삭제 후
+    재검증까지 마쳤다.
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — w_edge/w_vital류(다섯째·여섯째 tier1 무예
+    여덟 개)를 채우면 남은 tier2 여덟도 마저 열린다. 그 전까지는 STORY
+    밖(다른 판)이거나 가방·상점 확장 등 다른 굵직한 후보를 볼 자리.
