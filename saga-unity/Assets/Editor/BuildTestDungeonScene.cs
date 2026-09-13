@@ -40,9 +40,12 @@ namespace Saga.EditorTools
         private const string MariaControllerPath = "Assets/Animators/Maria.controller";
 
         // 44장 "주요 Enemy" 교체 — 잡졸(character-d) 자리를 Abe(리깅+Animator
-        // 내장 프리팹, SetupAbeCharacterImport.cs 참고)로. 미니보스/두목
-        // (character-c)은 다음 우선순위("Boss") 몫이라 이번엔 안 건드린다.
+        // 내장 프리팹, SetupAbeCharacterImport.cs 참고)로.
         private const string AbeAnimatedPrefabPath = "Assets/Art/CharactersRealistic/Abe/AbeAnimated.prefab";
+
+        // 44장 "Boss" 교체 — 미니보스/두목(character-c) 자리를 Brute로
+        // (SetupBruteCharacterImport.cs 참고).
+        private const string BruteAnimatedPrefabPath = "Assets/Art/CharactersRealistic/Brute/BruteAnimated.prefab";
 
         // "환경/건물 GLB" 슬라이스 — SagaGo가 이미 쓰는 CC0 Kenney Modular
         // Cave Kit(gate-rock.glb와 같은 킷)에서 문·복도 타일만 마저 뽑아
@@ -321,7 +324,8 @@ namespace Saga.EditorTools
         {
             _characterA = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterAPath);
             _characterB = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterBPath);
-            _characterC = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterCPath);
+            _characterC = AssetDatabase.LoadAssetAtPath<GameObject>(BruteAnimatedPrefabPath)
+                ?? AssetDatabase.LoadAssetAtPath<GameObject>(CharacterCPath);
             _characterD = AssetDatabase.LoadAssetAtPath<GameObject>(AbeAnimatedPrefabPath)
                 ?? AssetDatabase.LoadAssetAtPath<GameObject>(CharacterDPath);
             if (_characterA == null || _characterB == null || _characterC == null || _characterD == null)
