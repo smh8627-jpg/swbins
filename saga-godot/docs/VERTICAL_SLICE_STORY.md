@@ -1087,6 +1087,73 @@ BOSS_VISUAL_SCALE 1.6 = 0.96m)보다 확실히 먼 간격을 두려고 문 쪽�
   부딪혀 — job 체인 전체를 다시 설계해야 하는 더 큰 작업, 다음 세션에서
   신중히 볼 자리).
 
+## 22. 나머지 사냥터 — 셋째: 오림 숲(진짜 전투 사냥터) (2026-09-13)
+
+**사용자 지시 "계속 이어해 묻지말고"** — 21절(강릉진)에 이어 **오림
+숲(forest)**을 지었다. field 이후 **첫 진짜 전투 사냥터**(잡졸·채집·
+보스가 다 있다, 마을이 아니다)라 field_map.gd와 같은 결로 옮긴다.
+
+**재해석 셋**(field_map.gd 머리말과 같은 결):
+- 잡졸 스폰(원작 spawn:9, 무작위 보충) → **고정 자리 셋**(field와 같은
+  단순화 — day/파도 시스템 자체가 범위 밖이라 원작 스폰 수를 그대로
+  옮기는 의미가 없다).
+- 몬스터 종류(`data-enemy.js` tierOf(6)의 "변방" 풀)는 **아직 안
+  옮긴다** — 이 슬라이스는 여전히 잡졸(황건적) 하나뿐이다. 사냥터마다
+  다른 몬스터를 넣는 것은 몬스터 도감이라는 더 큰 별도 작업(다음에
+  볼 자리) — 지금은 "새 사냥터가 있다"까지만 검증한다.
+- 보스(오랑캐 족장)도 **이름만** 원문 그대로 옮기고 hpMul·dmgMul·cool은
+  story_combat.gd의 field용 상수(BOSS_HP_MUL 등)를 그대로 재사용 —
+  사냥터별 보스 배율 도입도 몬스터 도감과 같은 결의 확장이라 안 벌렸다.
+
+**사냥터 스포너 공용화** — story_enemy_spawner.gd·story_gather_
+spawner.gd·story_boss_spawner.gd 셋이 지금까지 `FieldMap`을 상수로
+preload해 field 전용이었다(15절이 story_terrain_builder.gd만 `map_
+path` export로 공용화하고 이 셋은 안 건드렸었다 — 마을엔 적·채집·
+보스가 없어 필요가 없었다). 오림 숲이 처음으로 이 셋이 필요한 새
+전투 사냥터라 이번에 마저 같은 방식(`map_path` export, 기본값
+field_map.gd — TestField.tscn은 손 안 대도 그대로 돈다)으로 공용화
+했다.
+
+**채집물 확장** — `story_combat.gd` GATHER_INFO에 `"berry": {"산딸기",
+🍓}` 추가(머리말이 예고해 뒀던 "다른 채집물이 늘어나면"의 첫 사례).
+
+**문** — 서쪽(70px, 강릉진)은 이번에 실제로 연다(강릉진의 동쪽 문도
+같이 개통 — 원작 portals[1] [1230,'forest']). 동쪽(2530px,
+'namjeongseong')은 그 사냥터가 아직 없어 안 옮긴다(heodo/field가
+써 온 것과 같은 유예). 보스 자리(2450px)는 이 문이 아직 안 열려 있어
+21절처럼 도착지-보스 간격을 걱정할 필요가 없었다(문을 놓을 때 60px+
+간격을 두면 된다는 메모만 남겨 둠).
+
+- `games/saga_story/data/forest_map.gd` 신규(field_map.gd와 같은 모양
+  + enemy/gather/boss 포함, heodo/gangneungjin류 마을 데이터보다 큼).
+- `gangneungjin_map.gd`: `PORTAL_EAST_X_PX`(1230)·`ARRIVAL_FROM_FOREST_
+  X_PX`(1150)·`portal_east_m()`/`arrival_from_forest_m()` 신규.
+- `story_combat.gd`: GATHER_INFO에 berry 추가.
+- `story_enemy_spawner.gd`/`story_gather_spawner.gd`/`story_boss_
+  spawner.gd`: `map_path` export로 공용화(기존 FieldMap 상수 preload
+  제거, 기본값은 그대로 field_map.gd).
+- `games/saga_story/world/ForestHuntGround.tscn` 신규(TestField.tscn과
+  같은 구성 — Terrain/EnemySpawner/GatherSpawner/BossSpawner 넷 다
+  map_path="forest_map.gd", 서쪽 PortalToGangneungjin만 배선).
+- `GangneungjinField.tscn`: `PortalToForest` 노드 신규(x=24.6m, arrival
+  3.0m).
+- **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+  → 이제 **여덟 씬**(신규 ForestHuntGround 포함) 세 번 연속 exit 0·
+  로그 무결(다섯 판 전부 회귀 포함). 임시 디버그로 gangneungjin
+  portal_east_m=24.6·arrival_from_forest_m=23.0, forest width_m=52.0·
+  portal_west_m=1.4·arrival_from_gangneungjin_m=3.0·boss_position_m=
+  49.0·잡졸 셋([10.0,24.0,38.0])·채집 넷(전부 berry)·발판 여섯/줄
+  여섯 좌표 전부 손계산과 일치. **문 체인을 실제로 두 번 실행**
+  (`change_scene_to_file()`을 field→gangneungjin→forest 순으로 연쇄,
+  15·21절과 같은 방식) — 각 도착 지점이 쓰인 arrival 상수와 정확히
+  일치함을 확인(gangneungjin 도착 x=3.0=arrival_from_field_m, forest
+  도착 x=3.0=arrival_from_gangneungjin_m). 디버그 원상복구(`story_
+  field.gd`·`story_town.gd` diff 0).
+- **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+- **다음 이어질 것** — 남정성·한중 굴혈·기산채·호로곡·신야성(나머지
+  다섯), 몬스터 도감(사냥터별 다른 적), 2~4차 전직(job 체인 재설계
+  필요 — 별도로 신중히).
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

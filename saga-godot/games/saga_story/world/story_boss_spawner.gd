@@ -5,15 +5,23 @@ extends Node3D
 ## field.boss(황건 두목, cool:15분) 그대로 — 잡으면 BOSS_COOL_SEC 뒤
 ## 같은 자리에 다시 선다(story_gather.gd의 respawn과 같은 결, 다만
 ## 대상이 하나뿐이라 킬 시그널로 다음 스폰을 잇는다).
+##
+## **2026-09-13 추가 — 사냥터 공용화(21절)** — story_enemy_spawner.gd와
+## 같은 이유로 `map_path` export로 바꿨다(보스 이름은 아직 화면에 안
+## 띄운다 — field_map.gd BOSS_NAME 머리말 참고, 위치만 옮긴다).
 
-const FieldMap := preload("res://games/saga_story/data/field_map.gd")
+@export var map_path: String = "res://games/saga_story/data/field_map.gd"
+
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const StoryEnemyScene := preload("res://games/saga_story/world/story_enemy.gd")
 
 const GROUND_Y := 0.0
 
+var _map: RefCounted
+
 
 func _ready() -> void:
+	_map = (load(map_path) as GDScript).new()
 	_spawn_boss()
 
 
@@ -21,7 +29,7 @@ func _spawn_boss() -> void:
 	var boss := Node3D.new()
 	boss.set_script(StoryEnemyScene)
 	boss.is_boss = true  # _ready()보다 먼저 잡아야 한다(add_child가 곧바로 _ready를 부른다)
-	boss.position = Vector3(FieldMap.boss_position_m(), GROUND_Y, 0)
+	boss.position = Vector3(_map.boss_position_m(), GROUND_Y, 0)
 	add_child(boss)
 	boss.died.connect(_on_boss_died)
 

@@ -41,3 +41,10 @@ script = ExtResource("8")
 target_scene = "res://games/saga_story/world/TestField.tscn"
 arrival_x_m = 42.2
 label_text = "허창 들판으로"
+
+[node name="PortalToForest" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.6, 0, 0)
+script = ExtResource("8")
+target_scene = "res://games/saga_story/world/ForestHuntGround.tscn"
+arrival_x_m = 3.0
+label_text = "오림 숲으로"
