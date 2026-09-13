@@ -43,11 +43,16 @@ namespace Saga.Go.World
         // 교체 불가"였는데, DUNGEON이 gate.glb 아치에 이미 쓴 것과 같은 방식
         // (기존 아틀라스 UV 위에 EnvironmentMaterial.MakeTiled로 다시 구운 재질을
         // 그냥 덮어씀 — DungeonRoomBuilder.BuildGateArch와 동일 패턴)을 그대로
-        // 옮겼다. 벽=dark_wooden_planks(집 느낌), 지붕=castle_wall_slates(슬레이트
-        // 지붕 느낌) — 둘 다 66-2장이 미리 구워 둔 다섯 후보 중 재사용, 새 텍스처는
-        // 안 받았다. 둘 다 없으면(다른 PC 등) 기존 GLB 원본 재질 그대로 폴백.
-        [SerializeField] private Material wallMaterial;
-        [SerializeField] private Material roofMaterial;
+        // 옮겼다. 처음엔 마을집 벽/지붕에만 썼는데(그때는 wallMaterial/
+        // roofMaterial로 불렀다), 이어서(2026-09-14 후속) 굴 입구·폐허 기둥·
+        // 다리 널판·산신당까지 같은 두 재질을 재사용해 필드 이름을 재질
+        // 성질(나무/돌) 기준으로 바꿨다 — woodMaterial=dark_wooden_planks
+        // (다리 널판), stoneMaterial=castle_wall_slates(마을집 지붕·굴 입구·
+        // 폐허 기둥·산신당, 전부 돌/바위 질감이라 어울린다). 66-2장이 미리
+        // 구워 둔 다섯 후보 중 재사용, 새 텍스처는 안 받았다. 둘 다 없으면
+        // (다른 PC 등) 기존 GLB 원본 재질 그대로 폴백.
+        [SerializeField] private Material woodMaterial;
+        [SerializeField] private Material stoneMaterial;
 
         public void Init(GameObject cave, GameObject wall, GameObject roof, GameObject pillar, GameObject plank, GameObject shrine)
         {
@@ -109,6 +114,10 @@ namespace Saga.Go.World
                 var col = cave.AddComponent<BoxCollider>();
                 col.center = new Vector3(0f, 2.025f, 0f);
                 col.size = new Vector3(4.0f, 4.05f, 2.45f);
+                if (stoneMaterial != null)
+                {
+                    ApplyPbrToRenderers(cave, EnvironmentMaterial.MakeTiled(stoneMaterial, 4.0f * scale, 2.45f * scale));
+                }
             }
             else
             {
@@ -145,9 +154,9 @@ namespace Saga.Go.World
                     var col = wall.AddComponent<BoxCollider>();
                     col.center = new Vector3(0f, 0.5f, 0f);
                     col.size = Vector3.one;
-                    if (wallMaterial != null)
+                    if (woodMaterial != null)
                     {
-                        ApplyPbrToRenderers(wall, EnvironmentMaterial.MakeTiled(wallMaterial, bodySize.x, bodySize.z));
+                        ApplyPbrToRenderers(wall, EnvironmentMaterial.MakeTiled(woodMaterial, bodySize.x, bodySize.z));
                     }
                 }
                 else
@@ -164,9 +173,9 @@ namespace Saga.Go.World
                     roof.name = "Roof";
                     roof.transform.localPosition = new Vector3(0f, bodySize.y, 0f);
                     roof.transform.localScale = Vector3.one * 10f;
-                    if (roofMaterial != null)
+                    if (stoneMaterial != null)
                     {
-                        ApplyPbrToRenderers(roof, EnvironmentMaterial.MakeTiled(roofMaterial, roofSize.x, roofSize.z));
+                        ApplyPbrToRenderers(roof, EnvironmentMaterial.MakeTiled(stoneMaterial, roofSize.x, roofSize.z));
                     }
                 }
                 else
@@ -189,7 +198,7 @@ namespace Saga.Go.World
             {
                 float height = 5f + (i % 2) * 1.5f;
                 Vector3 pos = basePos + new Vector3(offsets[i].x, 0f, offsets[i].y);
-                SpawnPillar($"RuinPillar_{i}", pos, height, RuinColor);
+                SpawnPillar($"RuinPillar_{i}", pos, height, RuinColor, stoneMaterial);
             }
         }
 
@@ -216,6 +225,9 @@ namespace Saga.Go.World
 
                 int count = Mathf.RoundToInt(depth);
                 float plankLength = depth / count;
+                // 널판 44개가 전부 같은 크기라 재질 인스턴스도 하나만 구워 공유한다
+                // (매번 새로 구우면 44벌 생긴다 — 낭비).
+                var plankMat = woodMaterial != null ? EnvironmentMaterial.MakeTiled(woodMaterial, width, plankLength) : null;
                 for (int i = 0; i < count; i++)
                 {
                     float z = center.z + (i - (count - 1) * 0.5f) * plankLength;
@@ -223,6 +235,10 @@ namespace Saga.Go.World
                     plank.name = "Plank";
                     plank.transform.position = new Vector3(center.x, center.y - 0.03f, z);
                     plank.transform.localScale = new Vector3(width, 1f, plankLength);
+                    if (plankMat != null)
+                    {
+                        ApplyPbrToRenderers(plank, plankMat);
+                    }
                 }
             }
             else
@@ -264,6 +280,11 @@ namespace Saga.Go.World
                 var col = altar.AddComponent<BoxCollider>();
                 col.center = new Vector3(0f, ShrineSize.y * 0.5f, 0f);
                 col.size = ShrineSize;
+                if (stoneMaterial != null)
+                {
+                    ApplyPbrToRenderers(altar,
+                        EnvironmentMaterial.MakeTiled(stoneMaterial, ShrineSize.x * ShrineScale, ShrineSize.z * ShrineScale));
+                }
             }
             else
             {
@@ -278,7 +299,7 @@ namespace Saga.Go.World
         /// <summary>pillar-stone.glb(실측 0.16×1.0×0.16, 바닥 피벗) — 스케일이
         /// 곧 목표 높이(docs/ASSET_GUIDE.md "높이=스케일값"). GLB가 없으면
         /// 예전 primitive Cylinder로 대체한다.</summary>
-        private void SpawnPillar(string name, Vector3 groundPos, float height, Color color)
+        private void SpawnPillar(string name, Vector3 groundPos, float height, Color color, Material pbrMaterial = null)
         {
             if (pillarModel != null)
             {
@@ -290,6 +311,13 @@ namespace Saga.Go.World
                 col.radius = 0.08f;
                 col.height = 1f;
                 col.direction = 1; // Y축
+                if (pbrMaterial != null)
+                {
+                    // pillar-stone.glb 실측 지름 0.32m — 아주 얇은 기둥이라 타일
+                    // 배율을 그대로 쓰면 0.1 최솟값에 눌려 거의 늘 같은 배율이
+                    // 된다(EnvironmentMaterial.MakeTiled 참고), 그래도 무해하다.
+                    ApplyPbrToRenderers(pillar, EnvironmentMaterial.MakeTiled(pbrMaterial, 0.32f, height));
+                }
             }
             else
             {
