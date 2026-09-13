@@ -51,7 +51,7 @@ namespace Saga.EditorTools
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
             CapturedCityDevelop, AttackAgainBlocked,
-            QuizCorrect, QuizWrong,
+            QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -840,6 +840,29 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestRealmSlice] quiz wrong OK - {p.Q} (정답은 \"{result.AnswerText}\") learned={progress.Learned}/{progress.Total}");
+                    _phase = Phase.QuizArchive;
+                    break;
+                }
+
+                case Phase.QuizArchive:
+                {
+                    // 서고 — QuizCorrect에서 익힌 문제 하나가 최근 순 목록
+                    // 맨 앞(정확히 하나뿐)에 그대로 있는지 확인한다.
+                    var list = RealmQuizState.LearnedList();
+                    if (list.Count != 1)
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 서고 목록 개수 이상 — count={list.Count}(기대=1)");
+                        Fail();
+                        return;
+                    }
+                    var entry = list[0];
+                    if (string.IsNullOrEmpty(entry.Q) || string.IsNullOrEmpty(entry.AnswerText) || string.IsNullOrEmpty(entry.Why))
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] 서고 항목 필드 비어 있음");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] quiz archive OK - {entry.Q} (정답: {entry.AnswerText})");
                     _phase = Phase.SaveLoad;
                     break;
                 }

@@ -3374,3 +3374,23 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
   회귀로 `PlaytestForestHeadless`·`PlaytestForestHouseTransition`·
   `PlaytestForestFurniture`·`PlaytestDungeonHeadless`·
   `PlaytestDungeonFloorProgression` 전부 재확인.
+- REALM 서고(archive, godot REALM 10절과 같은 결) 신규 — 익힌 문제를
+  최근 순으로 다시 보는 기능. `RealmQuizState`에 `_learnedOrder`(진짜
+  삽입 순 리스트, `_learned` HashSet과 별도) + `LearnedList()` 추가,
+  `RealmQuizData.ShortQ()`(quiz.js `shortQ()` 그대로, 26자 초과 시 줄임)
+  신규. `RealmCommandUi`에 "서고" 버튼(명령 계열 패널과 같은 결로
+  열 때마다 다시 지음, 최대 20개 — 스크롤 없는 패널이라 자름) +
+  `CloseAllPanels()`로 다섯 패널(주문·내정·계략·문답·서고) 토글 중복
+  코드 정리. 세이브 스키마(필드 이름·개수)는 그대로 — `SnapshotLearned()`
+  가 이제 `_learnedOrder`를 반환하도록만 바뀌어 버전 안 올림(구버전
+  세이브를 불러와도 `Restore()`가 준 순서를 그대로 `_learnedOrder`로
+  씀, 서고는 표시용이라 옛 순서 근사치라도 무해).
+  **검증** — 컴파일(`error CS` 0건)·`PlaytestRealmSlice`(신규 Phase
+  `QuizArchive`, 문답 정답 하나를 익힌 직후 서고 목록이 정확히 1건이고
+  필드가 다 채워져 있는지 확인) → `[PlaytestRealmSlice] quiz archive OK
+  - "중꺾마"는 무엇의 줄임말인가? (정답: 중요한 것은 꺾이지 않는 마음)`,
+  최종 `OK - world-map/location gate/ships gate/orders(10)/draft/
+  search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-
+  absorb/quiz/save-load all verified, no errors`. 서고 UI는 런타임에
+  짓는 패널이라(`RealmCommandUi.Awake`) 씬 재빌드(`BuildTestCityScene`)
+  불필요 — 하이어라키를 안 건드리는 변경.

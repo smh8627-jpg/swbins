@@ -56,6 +56,9 @@ namespace Saga.Realm.Data
             return key;
         }
 
+        /// <summary>서고 목록 한 줄용 — quiz.js shortQ() 그대로(26자 넘으면 줄임).</summary>
+        public static string ShortQ(string q) => q.Length > 26 ? q.Substring(0, 26) + "…" : q;
+
         public static readonly List<RealmQuizQuestion> Bank = new List<RealmQuizQuestion>
         {
             // ── 역사 ──

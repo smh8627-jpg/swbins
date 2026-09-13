@@ -26,6 +26,10 @@ namespace Saga.Realm.Data
         };
 
         private static readonly HashSet<string> _learned = new HashSet<string>();
+        // 서고(archive) — "최근 순"을 익힌 순번으로 재해석(godot REALM 10절과
+        // 같은 결, 실제 시각을 쓰면 헤드리스 검증의 결정성이 깨진다). Answer()
+        // 에서 처음 익힐 때만 append, 절대 제거되지 않는다.
+        private static readonly List<string> _learnedOrder = new List<string>();
         private static readonly Dictionary<string, int> _wrongs = new Dictionary<string, int>();
         private static int _total, _correct, _streak, _bestStreak;
 
@@ -127,7 +131,7 @@ namespace Saga.Realm.Data
 
                 var (firstGold, reviewGold) = LvReward[p.Lv];
                 gold = first ? firstGold : reviewGold;
-                if (first) _learned.Add(p.Id);
+                if (first) { _learned.Add(p.Id); _learnedOrder.Add(p.Id); }
                 RealmCityState.AddGold(gold);
             }
             else
@@ -158,8 +162,46 @@ namespace Saga.Realm.Data
         public static Progress GetProgress() =>
             new Progress(_learned.Count, RealmQuizData.Bank.Count, _total, _correct, _streak, _bestStreak);
 
+        public readonly struct LearnedEntry
+        {
+            public readonly string Id;
+            public readonly string Cat;
+            public readonly int Lv;
+            public readonly string Q;
+            public readonly string AnswerText;
+            public readonly string Why;
+
+            public LearnedEntry(string id, string cat, int lv, string q, string answerText, string why)
+            {
+                Id = id; Cat = cat; Lv = lv; Q = q; AnswerText = answerText; Why = why;
+            }
+        }
+
+        /// <summary>서고 — quiz.js learnedList() 그대로, 익힌 순번 역순(최근
+        /// 먼저) 최대 limit개(기본 20 — ChoicePrompt류 패널이 스크롤이 없어
+        /// godot REALM 10절과 같은 이유로 자른다). catKey는 분야 필터(다음에
+        /// UI만 얹으면 되도록 인자만 미리 받는다, 아직 UI는 전체만 보여줌).</summary>
+        public static List<LearnedEntry> LearnedList(string catKey = null, int limit = 20)
+        {
+            var result = new List<LearnedEntry>();
+            for (int i = _learnedOrder.Count - 1; i >= 0 && result.Count < limit; i--)
+            {
+                var q = RealmQuizData.ById(_learnedOrder[i]);
+                if (q == null) continue;
+                if (catKey != null && q.Cat != catKey) continue;
+                result.Add(new LearnedEntry(q.Id, q.Cat, q.Lv, q.Q, q.Choices[q.AnswerIdx], q.Why));
+            }
+            return result;
+        }
+
         // ── 저장/불러오기 ──────────────────────────────────────
-        public static List<string> SnapshotLearned() => new List<string>(_learned);
+        // 익힌 순서 그대로 저장한다(서고 정렬 키) — 예전엔 HashSet 순서를
+        // 그대로 썼는데(우연히 대체로 삽입 순이지만 보장되진 않음), 이제
+        // _learnedOrder가 진짜 삽입 순을 보장한다. 세이브 스키마(필드 이름·
+        // 개수)는 그대로라 버전을 안 올려도 된다 — 구버전 세이브를 불러와도
+        // Restore()가 준 순서를 그대로 _learnedOrder로 쓴다(옛 순서 근사치,
+        // 해롭지 않다 — 서고는 표시용일 뿐 판정 로직과 무관).
+        public static List<string> SnapshotLearned() => new List<string>(_learnedOrder);
         public static List<string> SnapshotWrongIds() => new List<string>(_wrongs.Keys);
         public static List<int> SnapshotWrongCounts()
         {
@@ -172,7 +214,11 @@ namespace Saga.Realm.Data
             int total, int correct, int streak, int bestStreak)
         {
             _learned.Clear();
-            if (learned != null) foreach (var id in learned) _learned.Add(id);
+            _learnedOrder.Clear();
+            if (learned != null)
+            {
+                foreach (var id in learned) { _learned.Add(id); _learnedOrder.Add(id); }
+            }
 
             _wrongs.Clear();
             if (wrongIds != null && wrongCounts != null)

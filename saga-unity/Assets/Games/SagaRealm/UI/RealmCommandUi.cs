@@ -15,9 +15,11 @@ namespace Saga.Realm.UI
         private GameObject _cityPanel;
         private GameObject _plotPanel;
         private GameObject _quizPanel;
+        private GameObject _archivePanel;
         private Transform _cityButtonsRoot;
         private Transform _plotButtonsRoot;
         private Transform _quizButtonsRoot;
+        private Transform _archiveButtonsRoot;
         private Text _quizQuestionText;
         private Text _quizProgressText;
         private RealmQuizState.Presented? _currentQuiz;
@@ -51,10 +53,16 @@ namespace Saga.Realm.UI
             RealmUiKit.NewButton(canvas.transform, "지도", new Vector2(1f, 1f), new Vector2(-110f, -210f),
                 new Vector2(180f, 110f), ToggleMap);
 
+            // 서고(godot REALM 10절) — 문답보다도 위 구석(같은 결로 명령
+            // 계열과 안 겹치는 유일한 빈 자리).
+            RealmUiKit.NewButton(canvas.transform, "서고", new Vector2(1f, 1f), new Vector2(-110f, 30f),
+                new Vector2(180f, 110f), ToggleArchivePanel);
+
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
             BuildPlotPanel(canvas.transform);
             BuildQuizPanel(canvas.transform);
+            BuildArchivePanel(canvas.transform);
         }
 
         /// <summary>명령 10종 — rtk.js ORDERS 순서, 두 열(왼쪽 5·오른쪽 5)로
@@ -252,42 +260,109 @@ namespace Saga.Realm.UI
             RefreshQuizPanel();
         }
 
-        private void ToggleOrderPanel()
+        private void CloseAllPanels()
         {
+            _orderPanel.SetActive(false);
             _cityPanel.SetActive(false);
             _plotPanel.SetActive(false);
             _quizPanel.SetActive(false);
-            _orderPanel.SetActive(!_orderPanel.activeSelf);
+            _archivePanel.SetActive(false);
+        }
+
+        /// <summary>서고(godot REALM 10절) — 익힌 문제를 최근 순으로 다시
+        /// 본다(RealmQuizState.LearnedList). 계략 패널과 같은 결로 열 때마다
+        /// 다시 짓는다(문답 도중 새로 익힌 게 있을 수 있으니).</summary>
+        private void BuildArchivePanel(Transform parent)
+        {
+            _archivePanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(760f, 800f),
+                new Color(0f, 0f, 0f, 0.82f));
+            _archivePanel.SetActive(false);
+
+            RealmUiKit.NewText(_archivePanel.transform, "서고 — 익힌 문제(최근 순)", new Vector2(0.5f, 1f), new Vector2(0f, -50f),
+                new Vector2(680f, 50f), 28);
+
+            var root = new GameObject("ArchiveButtons", typeof(RectTransform));
+            root.transform.SetParent(_archivePanel.transform, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            rootRect.anchoredPosition = Vector2.zero;
+            _archiveButtonsRoot = root.transform;
+
+            RealmUiKit.NewButton(_archivePanel.transform, "닫는다", new Vector2(0.5f, 1f), new Vector2(0f, -740f),
+                new Vector2(300f, 70f), () => _archivePanel.SetActive(false));
+        }
+
+        private void RefreshArchivePanel()
+        {
+            for (int i = _archiveButtonsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_archiveButtonsRoot.GetChild(i).gameObject);
+            }
+
+            var list = RealmQuizState.LearnedList();
+            if (list.Count == 0)
+            {
+                RealmUiKit.NewText(_archiveButtonsRoot, "아직 익힌 문제가 없다.", new Vector2(0.5f, 1f), new Vector2(0f, -120f),
+                    new Vector2(660f, 60f), 24);
+                return;
+            }
+
+            float y = -110f;
+            foreach (var entry in list)
+            {
+                string label = $"[{RealmQuizData.CatName(entry.Cat)}] {RealmQuizData.ShortQ(entry.Q)}";
+                var captured = entry;
+                RealmUiKit.NewButton(_archiveButtonsRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y),
+                    new Vector2(680f, 60f), () => ShowArchiveEntry(captured));
+                y -= 68f;
+                if (y < -700f) break; // 패널이 스크롤 없이 이 높이까진 담는다.
+            }
+        }
+
+        private void ShowArchiveEntry(RealmQuizState.LearnedEntry entry)
+        {
+            RealmToast.Instance?.Show($"[{RealmQuizData.CatName(entry.Cat)} · Lv{entry.Lv}]\n{entry.Q}\n정답: {entry.AnswerText}\n{entry.Why}", 8f);
+        }
+
+        private void ToggleOrderPanel()
+        {
+            bool open = !_orderPanel.activeSelf;
+            CloseAllPanels();
+            _orderPanel.SetActive(open);
         }
 
         private void ToggleCityPanel()
         {
-            _orderPanel.SetActive(false);
-            _plotPanel.SetActive(false);
-            _quizPanel.SetActive(false);
             bool open = !_cityPanel.activeSelf;
+            CloseAllPanels();
             _cityPanel.SetActive(open);
             if (open) RefreshCityPanel();
         }
 
         private void TogglePlotPanel()
         {
-            _orderPanel.SetActive(false);
-            _cityPanel.SetActive(false);
-            _quizPanel.SetActive(false);
             bool open = !_plotPanel.activeSelf;
+            CloseAllPanels();
             _plotPanel.SetActive(open);
             if (open) RefreshPlotPanel();
         }
 
         private void ToggleQuizPanel()
         {
-            _orderPanel.SetActive(false);
-            _cityPanel.SetActive(false);
-            _plotPanel.SetActive(false);
             bool open = !_quizPanel.activeSelf;
+            CloseAllPanels();
             _quizPanel.SetActive(open);
             if (open) RefreshQuizPanel();
+        }
+
+        private void ToggleArchivePanel()
+        {
+            bool open = !_archivePanel.activeSelf;
+            CloseAllPanels();
+            _archivePanel.SetActive(open);
+            if (open) RefreshArchivePanel();
         }
 
         /// <summary>월드맵을 열 때는 명령 계열 패널이 지도 위에 뜨는 게
@@ -295,13 +370,7 @@ namespace Saga.Realm.UI
         /// 그냥 토글만.</summary>
         private void ToggleMap()
         {
-            if (!RealmMapState.ViewingMap)
-            {
-                _orderPanel.SetActive(false);
-                _cityPanel.SetActive(false);
-                _plotPanel.SetActive(false);
-                _quizPanel.SetActive(false);
-            }
+            if (!RealmMapState.ViewingMap) CloseAllPanels();
             RealmMapState.Toggle();
         }
 
