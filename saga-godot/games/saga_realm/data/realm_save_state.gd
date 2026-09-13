@@ -49,7 +49,7 @@ const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 11  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth)
+const SAVE_VERSION := 12  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 var year := 194
@@ -125,6 +125,15 @@ var diplomacy: Dictionary = {}
 ## 뺐다 — 첫 정답 보상은 세력 금고(gold)와 학식뿐이다(`quiz_answer()`
 ## 참고).
 var quiz: Dictionary = {}
+
+## **2026-09-14 추가 — 세력 멸망/승패 판정(rtk.js checkResult()).**
+## ""(미정)·"win"(전체 107개 성을 다 가짐). **"lose"는 이 슬라이스에서
+## 도달 불가능하다** — 22절("타 세력 AI")이 "AI가 이겨도 성을 뺏지
+## 않는다"고 정한 안전장치 때문에 `cities`가 절대 비지 않는다. rtk.js
+## `st.result`가 한 번 정해지면 그대로 굳는 것과 같이(`check_result()`
+## 머리말 참고) `next_month()`도 승패가 정해지면 더 안 넘어간다(rtk.js
+## `endMonth()`의 `if (!st.started || st.result) return null;` 그대로).
+var result := ""
 
 var _rng := RandomNumberGenerator.new()
 
@@ -427,6 +436,8 @@ func _do_hire(officer_id: String) -> Dictionary:
 ## 시작 달에 한 번만이 아니라 `c.disaster`가 남아 있는 한 매달 다시
 ## 적용된다(플레그 3개월이면 병력이 매달 5%씩 세 번 준다).
 func next_month() -> void:
+	if not result.is_empty():
+		return
 	var income := 0
 	var harvest := month in RealmOrders.HARVEST_MONTHS
 	for city_id: String in cities.keys():
@@ -501,6 +512,7 @@ func next_month() -> void:
 		month = 1
 		year += 1
 	_done_this_month.clear()
+	check_result()
 
 
 ## rtk.js rollDisasters() 그대로 — 달마다 한 번, DISASTER_CHANCE 확률로
@@ -676,6 +688,21 @@ func _enemy_attack(enemy_id: String, e: Dictionary, target_id: String) -> String
 			[enemy_name, city_name, int(rep.loss_d), int(rep.loss_a)]
 	return "⚔️ %s 이(가) %s 을(를) 쳤으나 물리쳤다 (아군 손실 %d · 적 손실 %d)" % \
 		[enemy_name, city_name, int(rep.loss_d), int(rep.loss_a)]
+
+
+## rtk.js checkResult() — 승패 판정. 한 번 정해지면(`result`가 빈 문자열이
+## 아니면) 그대로 굳는다(원작의 `if (st.result) return st.result;`).
+## **"lose"는 이 슬라이스에서 도달 불가능하다** — `_enemy_attack()`이
+## 이겨도 성을 안 뺏어 `cities`가 절대 비지 않는다(위 `result` 변수
+## 머리말 참고). "win"만 실제로 판정한다 — 성 우주 전체(기본 3 + 정복
+## 대상 104 = 107)를 전부 갖게 되면 천하통일.
+func check_result() -> String:
+	if not result.is_empty():
+		return result
+	if cities.size() >= RealmCities.ids().size() + RealmCities.ENEMY_CITIES.size():
+		result = "win"
+		Toast.show(self, "👑 천하가 하나가 되었다! %d년 %d월." % [year, month], 5.0)
+	return result
 
 
 ## rtk.js war.js moveOfficer() — 무장을 맞닿은 성으로 옮긴다(그 달의 명령을
@@ -1362,6 +1389,7 @@ func save() -> bool:
 		"enemy_officer_loyal": enemy_officer_loyal,
 		"diplomacy": diplomacy,
 		"quiz": quiz,
+		"result": result,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -1413,5 +1441,6 @@ func try_load() -> bool:
 	var loaded_quiz: Variant = data.get("quiz", {})
 	if typeof(loaded_quiz) == TYPE_DICTIONARY and not loaded_quiz.is_empty():
 		quiz = loaded_quiz
+	result = String(data.get("result", ""))
 	_done_this_month.clear()
 	return true
