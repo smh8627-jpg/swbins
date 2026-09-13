@@ -23,6 +23,23 @@ extends Camera3D
 ## camera_rig.gd와 같은 방식으로 옮겼지만, 두 손가락 거리를 추적하는
 ## 멀티터치 핀치는 스코프 밖으로 남겨 뒀다(이 지도 크기에서 휠·드래그
 ## 확대만으로도 아쉽지 않다고 보고 좁혔다).
+##
+## **2026-09-14 정정 — LOOK_AT을 원점 고정에서 "지금 조망 중인 성"으로
+## 바꿨다("월드맵 좌표계 몰아서 말고 지금 바로 확인해줘"로 발견).** 16·
+## 17절에서 107성을 다 채우고 보니, 처음 3성 클러스터의 원점을 축으로 한
+## RADIUS_MAX(420)로는 애초에 갈 수 있는 범위가 반경 420뿐이라 대부분의
+## 성(원점에서 최대 2679 단위, 중앙값도 985)에 카메라가 닿지 않았다.
+## **다행히 이웃 성끼리(from_city 간선)의 실제 거리는 전부 420 안쪽이다**
+## (임시 스크립트로 106개 간선을 다 재 봄 — 가장 먼 것도 367 — 인접한
+## 성끼리는 원래 걸어서/말타고 오갈 거리로 잡혀 있어서다). 그래서 원점을
+## 고정하는 대신 **"지금 조망 중인 성"을 축으로 삼으면**, 정복해 나가며
+## 조망 대상을 옆 성으로 옮길 때마다 축이 따라와 매번 반경 420 안에서
+## 다음 이웃 성이 보인다 — 카메라를 다시 설계하지 않고 축만 성 하나
+## 따라가게 바꾼 것으로 전체 지도를 커버한다. GROUND_SPAN(바닥, 카메라와
+## 무관하게 고정된 평면)은 `realm_worldmap.gd`에서 따로 키웠다 — 이 정정과
+## 짝을 이룬다(둘 다 안 고치면 축만 따라가도 바닥이 안 보인다).
+
+const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 
 const ROTATE_SPEED := 0.006   # camera_rig.gd와 같은 감도
 const ZOOM_STEP := 14.0
@@ -31,11 +48,11 @@ const RADIUS_MIN := 120.0
 const RADIUS_MAX := 420.0
 const PITCH_MIN := 0.35       # realm3d.js PITCH_MIN() 그대로
 const PITCH_MAX := 1.3        # realm3d.js PITCH_MAX() 그대로
-const LOOK_AT := Vector3(0, 0, 0)
 
 var _yaw := 0.6
 var _pitch := 0.9
 var _radius := 260.0
+var _look_at := Vector3.ZERO
 var _dragging := false
 var _drag_start := Vector2.ZERO
 var _drag_confirmed := false
@@ -46,6 +63,7 @@ var _drag_confirmed := false
 func _process(_delta: float) -> void:
 	current = RealmSaveState.viewing_map
 	if current:
+		_look_at = RealmCities.world_pos(RealmSaveState.current_city)
 		_apply_transform()
 
 
@@ -96,5 +114,5 @@ func _zoom(amount: float) -> void:
 func _apply_transform() -> void:
 	var height := _radius * sin(_pitch)
 	var flat := _radius * cos(_pitch)
-	global_position = Vector3(sin(_yaw) * flat, height, cos(_yaw) * flat) + LOOK_AT
-	look_at(LOOK_AT, Vector3.UP)
+	global_position = Vector3(sin(_yaw) * flat, height, cos(_yaw) * flat) + _look_at
+	look_at(_look_at, Vector3.UP)

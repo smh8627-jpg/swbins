@@ -84,6 +84,29 @@ static func map_center() -> Vector2:
 	return Vector2(sx / CITIES.size(), sy / CITIES.size())
 
 
+## **2026-09-14 추가 — 월드맵 좌표계 실기 확인("월드맵 좌표계 몰아서
+## 말고 지금 바로 확인해줘")으로 발견된 문제의 수정 절반.** `realm_
+## worldmap.gd`가 갖고 있던 `WORLD_SCALE`을 여기로 옮겨 `realm_worldmap_
+## camera.gd`와 공유한다(전엔 카메라가 이 값을 몰라 `LOOK_AT`을 원점에
+## 고정해 둘 수밖에 없었다). 값 자체(14.0)는 그대로 — 3성 클러스터가
+## 다닥다닥 붙어 보이지 않게 하려고 고른 축척이라 바꾸면 그 사정이 깨진다.
+const WORLD_SCALE := 14.0
+
+
+## `realm_worldmap.gd _world_pos(dict)`와 같은 공식을 성 id 하나로 바로
+## 계산한다(city 하나만 있고 아직 dict를 안 들고 있는 카메라 쪽이 쓴다).
+## 없는 id면 원점(map_center 자기 자신의 위치, 즉 Vector3.ZERO)을 준다 —
+## 카메라가 못 찾을 성을 바라보다 멈추는 것보단 원점을 보는 쪽이 안전하다.
+static func world_pos(city_id: String) -> Vector3:
+	var c := any_by_id(city_id)
+	if c.is_empty():
+		return Vector3.ZERO
+	var center := map_center()
+	return Vector3(
+		(float(c.x) - center.x) * WORLD_SCALE, 0.0,
+		(float(c.y) - center.y) * WORLD_SCALE)
+
+
 ## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).** data-
 ## city.js 그대로: 소패(小沛, xiaopei) — 허창(xuchang)과 맞닿은 plain
 ## 성, 시나리오 194엔 유비(`sg_liubei`)령이다. `wall_start`도 data-

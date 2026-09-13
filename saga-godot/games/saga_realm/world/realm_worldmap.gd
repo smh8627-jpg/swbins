@@ -40,8 +40,22 @@ const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
-const WORLD_SCALE := 14.0
-const GROUND_SPAN := 260.0  # 성 셋의 실측 좌표가 대각선으로 최대 240 정도 벌어져(허창-복양) 220으론 가장자리가 빠듯했다
+## **2026-09-14 정정 — WORLD_SCALE은 realm_cities.gd로 옮겼다.** 여기 있던
+## 상수(14.0, 값은 그대로)를 `realm_worldmap_camera.gd`도 같이 봐야 해서
+## 옮겼다(자세한 사정은 `RealmCities.WORLD_SCALE` 머리말 참고).
+##
+## **GROUND_SPAN 260 → 6000 — "월드맵 좌표계 몰아서 말고 지금 바로
+## 확인해줘"로 발견된 문제.** 260은 성 셋(반경 130)만 가정한 값이라, 16·
+## 17절에서 107성을 다 채운 지금은 어긋난다 — 실제로 확인해 보니 107개
+## 중 103개(하비 포함, xiapi도 이미 260 밖이었다)의 마커가 이 평면
+## 바깥에 떴다(임시 스크립트로 좌표를 다 뽑아 확인, 가장 먼 성 jinhon이
+## 원점에서 2679 단위 — 260의 절반 130을 훌쩍 넘는다). **GROUND_SPAN만
+## 6000으로 키운다** — 평면 메시는 세분(subdivide) 없이 사각형 하나라
+## 커져도 비용이 없다. `WORLD_SCALE`은 그대로 둔다(줄이면 처음 3성
+## 클러스터가 다닥다닥 붙어 보이는 문제가 되돌아온다 — 근접한 세 성과
+## 저 먼 107성을 동시에 "적당한 크기"로 보여줄 하나의 축척은 없다,
+## 카메라 쪽 정정과 짝을 이룬다).
+const GROUND_SPAN := 6000.0
 const COLOR_GROUND := Color(0.42, 0.48, 0.32)
 const COLOR_FLAG := Color(0.85, 0.8, 0.7)
 const COLOR_CURRENT := Color(0.95, 0.75, 0.2)
@@ -123,8 +137,8 @@ func _check_annexed() -> void:
 func _world_pos(c: Dictionary) -> Vector3:
 	var center := RealmCities.map_center()
 	return Vector3(
-		(float(c.x) - center.x) * WORLD_SCALE, 0.0,
-		(float(c.y) - center.y) * WORLD_SCALE)
+		(float(c.x) - center.x) * RealmCities.WORLD_SCALE, 0.0,
+		(float(c.y) - center.y) * RealmCities.WORLD_SCALE)
 
 
 func _build_ground() -> void:
