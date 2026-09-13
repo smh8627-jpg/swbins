@@ -4603,3 +4603,31 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
 - **다음 이어질 것** — 궁수·협객·방사 무예 넷씩(같은 패턴), SP 투자
   UI, 2~4차 전직, 나머지 일곱 사냥터+신야성.
+
+
+## STORY 전직 무예 다음 걸음 — 궁수(archer) 넷 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 이전 항목이 남긴 "궁수·협객·
+  방사 무예 넷씩" 중 둘째 갈래(archer) 넷(사격·연사·관통시·응안)을
+  채웠다. FIXED_SKILL_LEVEL(5) 그대로 재사용. 자세한 기록·수치 검증은
+  `docs/VERTICAL_SLICE_STORY.md` 18절.
+  - 사격(arrow, 새 effect명)은 참격과 같은 정면 판정·ATTACK_RANGE로
+    좁힘. 연사(volley 3발)는 정면 판정을 세 번 잇달아 적용으로 재해석.
+    관통시는 원문 effect가 이미 'bolt'라 기탄과 같은 사거리 2배
+    재해석을 재사용. 응안(buff, atk×1.4)은 철갑과 `_job_buff_time_left`를
+    공유(job이 고정이라 안 섞인다) — `_effective_atk()`/`take_damage()`
+    가 job별로 배율/guard 적용 여부를 가른다(archer는 guard 없음).
+  - `story_combat.gd`: `ARCHER_SHOT_*`/`ARCHER_DOUBLE_*`/`ARCHER_PIERCE_*`/
+    `ARCHER_EYE_*` 신규. `story_player.gd`: 쿨다운 넷+`_cast_archer_*`
+    넷 신규, `_effective_atk()`/`take_damage()` job 분기 수정.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 여섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST/REALM 회귀 확인 포함). 임시 디버그(더미 적+강제 job=archer)로
+    네 mul 정확, roll_damage 표본 손계산 범위 안, 사격/연사/관통시
+    실제 시전으로 mp·쿨다운·데미지 전부 손계산과 일치(관통시는 평타로는
+    못 맞히는 3.5m 거리에서 실제로 명중까지 확인), 응안 atk×1.4·버프
+    9초, take_damage(100)이 정확히 −100(철갑 guard가 archer에 안 샘)
+    까지 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 협객·방사 무예 넷씩(같은 패턴), SP 투자 UI,
+    2~4차 전직, 나머지 일곱 사냥터+신야성.

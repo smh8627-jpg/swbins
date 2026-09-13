@@ -50,6 +50,16 @@ var _cd_warrior_rush := 0.0
 var _cd_warrior_iron := 0.0
 var _job_buff_time_left := 0.0
 
+## **2026-09-13 추가(같은 날 더) — 전직 다음 걸음: 궁수(archer) 무예 넷.**
+## `_job_buff_time_left`는 응안(a_eye)도 같이 쓴다(철갑처럼 "전직 넷 중
+## 버프 하나" 자리는 job당 하나뿐이라 타이머를 공유해도 섞이지 않는다 —
+## `job`이 한 번 정해지면 안 바뀌므로 동시에 두 직업 버프가 걸릴 수
+## 없다). 배율은 `_effective_atk()`/`take_damage()`가 job을 보고 고른다.
+var _cd_archer_shot := 0.0
+var _cd_archer_double := 0.0
+var _cd_archer_pierce := 0.0
+var _cd_archer_eye := 0.0
+
 ## **2026-09-13 추가 — 플레이어 체력(잡졸 반격).** story_enemy.gd 머리말이
 ## "추격·원거리 반격이 없다"고 적어 둔 것 중 반격(겹치면 맞는다, side.js
 ## overlap()+hurtMe())만 이번에 채운다 — 추격(쫓아오기)은 여전히 없다
@@ -88,7 +98,7 @@ func take_damage(amount: float) -> void:
 		return
 	var def: float = float(StorySaveState.gear_totals().def)
 	var cut: float = StoryCombat.damage_cut(def)
-	var guard_mul: float = (1.0 - StoryCombat.WARRIOR_IRON_GUARD) if _job_buff_time_left > 0.0 else 1.0
+	var guard_mul: float = (1.0 - StoryCombat.WARRIOR_IRON_GUARD) if (_job_buff_time_left > 0.0 and StorySaveState.job == "warrior") else 1.0
 	hp = clampf(hp - amount * (1.0 - cut) * guard_mul, 0.0, max_hp)
 
 
@@ -107,6 +117,10 @@ func _physics_process(delta: float) -> void:
 	_cd_warrior_whirl = maxf(0.0, _cd_warrior_whirl - delta)
 	_cd_warrior_rush = maxf(0.0, _cd_warrior_rush - delta)
 	_cd_warrior_iron = maxf(0.0, _cd_warrior_iron - delta)
+	_cd_archer_shot = maxf(0.0, _cd_archer_shot - delta)
+	_cd_archer_double = maxf(0.0, _cd_archer_double - delta)
+	_cd_archer_pierce = maxf(0.0, _cd_archer_pierce - delta)
+	_cd_archer_eye = maxf(0.0, _cd_archer_eye - delta)
 	_job_buff_time_left = maxf(0.0, _job_buff_time_left - delta)
 	mp = minf(max_mp, mp + StoryCombat.MP_REGEN * delta)
 	_check_rope()
@@ -140,6 +154,15 @@ func _physics_process(delta: float) -> void:
 			_cast_warrior_rush()
 		if Input.is_action_just_pressed("story_job_skill_4"):
 			_cast_warrior_iron()
+	elif StorySaveState.job == "archer":
+		if Input.is_action_just_pressed("story_job_skill_1"):
+			_cast_archer_shot()
+		if Input.is_action_just_pressed("story_job_skill_2"):
+			_cast_archer_double()
+		if Input.is_action_just_pressed("story_job_skill_3"):
+			_cast_archer_pierce()
+		if Input.is_action_just_pressed("story_job_skill_4"):
+			_cast_archer_eye()
 
 
 func _walk(delta: float) -> void:
@@ -222,7 +245,11 @@ func clear_rope_area(area: Area3D) -> void:
 func _effective_atk() -> float:
 	var atk := StoryCombat.START_ATK + float(StorySaveState.gear_totals().atk) + float(StorySaveState.job_grow().atk)
 	atk *= StoryCombat.BRACE_ATK_MUL if _buff_time_left > 0.0 else 1.0
-	atk *= StoryCombat.WARRIOR_IRON_ATK_MUL if _job_buff_time_left > 0.0 else 1.0
+	if _job_buff_time_left > 0.0:
+		if StorySaveState.job == "warrior":
+			atk *= StoryCombat.WARRIOR_IRON_ATK_MUL
+		elif StorySaveState.job == "archer":
+			atk *= StoryCombat.ARCHER_EYE_ATK_MUL
 	return atk
 
 
@@ -350,6 +377,49 @@ func _cast_warrior_iron() -> void:
 	_cd_warrior_iron = StoryCombat.WARRIOR_IRON_CD
 	mp -= StoryCombat.WARRIOR_IRON_COST
 	_job_buff_time_left = StoryCombat.WARRIOR_IRON_SEC
+
+
+## 사격(a_shot) — arrow. 참격(w_cut)과 같은 정면 판정·사거리(원문에 별도
+## 사거리가 없다, story_combat.gd 머리말) — mul만 다르다.
+func _cast_archer_shot() -> void:
+	if _cd_archer_shot > 0.0 or mp < StoryCombat.ARCHER_SHOT_COST:
+		return
+	_cd_archer_shot = StoryCombat.ARCHER_SHOT_CD
+	mp -= StoryCombat.ARCHER_SHOT_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE, StoryCombat.ARCHER_SHOT_MUL)
+
+
+## 연사(a_double) — volley(shots:3). 투사체가 없어 정면 판정을 세 번
+## 잇달아 적용하는 것으로 재해석(story_combat.gd 머리말).
+func _cast_archer_double() -> void:
+	if _cd_archer_double > 0.0 or mp < StoryCombat.ARCHER_DOUBLE_COST:
+		return
+	_cd_archer_double = StoryCombat.ARCHER_DOUBLE_CD
+	mp -= StoryCombat.ARCHER_DOUBLE_COST
+	_play_anim("sprint")
+	for i in StoryCombat.ARCHER_DOUBLE_SHOTS:
+		_melee_hit(ATTACK_RANGE, StoryCombat.ARCHER_DOUBLE_MUL)
+
+
+## 관통시(a_pierce) — bolt. 기탄(_cast_bolt)과 같은 재해석(사거리 2배).
+func _cast_archer_pierce() -> void:
+	if _cd_archer_pierce > 0.0 or mp < StoryCombat.ARCHER_PIERCE_COST:
+		return
+	_cd_archer_pierce = StoryCombat.ARCHER_PIERCE_CD
+	mp -= StoryCombat.ARCHER_PIERCE_COST
+	_play_anim("sprint")
+	_melee_hit(ATTACK_RANGE * StoryCombat.ARCHER_PIERCE_RANGE_MUL, StoryCombat.ARCHER_PIERCE_MUL)
+
+
+## 응안(a_eye) — buff, 대미지 없음. 철갑과 같은 `_job_buff_time_left`를
+## 쓴다(job이 한 번 정해지면 안 바뀌어 섞일 일이 없다, 변수 선언부 참고).
+func _cast_archer_eye() -> void:
+	if _cd_archer_eye > 0.0 or mp < StoryCombat.ARCHER_EYE_COST:
+		return
+	_cd_archer_eye = StoryCombat.ARCHER_EYE_CD
+	mp -= StoryCombat.ARCHER_EYE_COST
+	_job_buff_time_left = StoryCombat.ARCHER_EYE_SEC
 
 
 func _play_anim(anim_name: String) -> void:

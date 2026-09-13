@@ -226,6 +226,43 @@ static func warrior_rush_dist_m() -> float:
 	return WARRIOR_RUSH_DIST_PX * WARRIOR_RUSH_SCALE
 
 
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 궁수(archer)
+## 무예 넷.** data-job.js SKILLS job:'archer' 넷(a_shot/a_double/
+## a_pierce/a_eye) — 무사와 같은 FIXED_SKILL_LEVEL(5)로 mul 고정.
+##
+## effect 문자열이 무사 넷과 다르다('arrow'/'volley'는 이 포트에 처음
+## 등장) — 둘 다 원문에 사거리(r/dist)가 없어(무사 참격과 같은 자리)
+## **정면 판정+ATTACK_RANGE**로 좁힌다(활이라고 사거리를 늘리는 건 새
+## 숫자를 상상하는 것이라 안 한다). a_pierce는 원문 effect가 이미
+## 'bolt'라 기탄(BOLT_RANGE_MUL)과 같은 결로 사거리를 2배 늘린다 — 새
+## 상수가 아니라 같은 재해석을 archer 몫으로 하나 더 둔 것뿐.
+const ARCHER_SHOT_COST := 8.0
+const ARCHER_SHOT_CD := 0.6
+const ARCHER_SHOT_MUL := 1.3 + 0.11 * FIXED_SKILL_LEVEL  # 1.85
+
+## a_double(연사) — 원문 effect:'volley', shots:3(화살 셋을 잇달아).
+## 투사체가 없어 "정면 판정을 세 번 잇달아 적용"으로 재해석(w_whirl이
+## aoe를 한 번 도는 것과 같은 결 — 여러 번의 개별 roll_damage를 그대로
+## 잇는다, 새 효과를 안 만든다).
+const ARCHER_DOUBLE_COST := 22.0
+const ARCHER_DOUBLE_CD := 3.4
+const ARCHER_DOUBLE_MUL := 1.1 + 0.08 * FIXED_SKILL_LEVEL  # 1.5
+const ARCHER_DOUBLE_SHOTS := 3
+
+const ARCHER_PIERCE_COST := 26.0
+const ARCHER_PIERCE_CD := 6.0
+const ARCHER_PIERCE_MUL := 2.0 + 0.18 * FIXED_SKILL_LEVEL  # 2.9
+const ARCHER_PIERCE_RANGE_MUL := 2.0  # BOLT_RANGE_MUL과 같은 재해석, archer 몫
+
+## a_eye(응안) — buff. sec:9·atk×1.4 원문 그대로(레벨로 안 오르는 buff
+## 필드, 철갑과 같은 결 — WARRIOR_IRON_ATK_MUL도 FIXED_SKILL_LEVEL을
+## 안 곱한다). guard 성분은 원문에 없다(철갑만의 것).
+const ARCHER_EYE_COST := 30.0
+const ARCHER_EYE_CD := 16.0
+const ARCHER_EYE_SEC := 9.0
+const ARCHER_EYE_ATK_MUL := 1.4
+
+
 static var _hitstop_active := false
 
 

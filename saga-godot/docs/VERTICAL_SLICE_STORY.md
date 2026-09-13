@@ -845,6 +845,62 @@ SKILLS job:'warrior'):
   UI, 2~4차 전직, 나머지 일곱 사냥터+신야성 — 다음 "saga-godot 이어
   해"에서 이어간다.
 
+## 18. 전직 무예 다음 걸음 — 궁수(archer) 넷 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"** — 17절이 남긴 "궁수·협객·방사 무예
+넷씩" 중 둘째 갈래(archer) 넷(사격·연사·관통시·응안)을 채웠다. 협객·
+방사 둘은 같은 패턴으로 이어갈 수 있게 남겨 뒀다.
+
+**FIXED_SKILL_LEVEL(5)** 그대로 재사용(17절과 같은 의도적 축소, SP UI는
+여전히 범위 밖).
+
+넷 다 원문 그대로(`data-job.js` SKILLS job:'archer', cost·cd·mul 안 바꿈):
+- **사격(a_shot)** — 원문 effect:'arrow'(이 포트에 처음 등장, 무사 갈래엔
+  없던 이름). 참격(w_cut)과 같은 정면 판정·ATTACK_RANGE로 좁혔다 —
+  원문에 별도 사거리가 없어 활이라고 사거리를 늘리는 새 숫자는 상상하지
+  않았다(mul 1.85).
+- **연사(a_double)** — 원문 effect:'volley', shots:3("화살 셋을 잇달아").
+  투사체가 없어 **정면 판정을 세 번 잇달아 적용**으로 재해석(mul 1.5×3회).
+- **관통시(a_pierce)** — 원문 effect가 이미 'bolt'라 기탄(4절)·파공검과
+  같은 재해석을 그대로 재사용 — 사거리 2배(ARCHER_PIERCE_RANGE_MUL,
+  BOLT_RANGE_MUL과 같은 값 2.0을 archer 몫으로 따로 둠), mul 2.9.
+- **응안(a_eye)** — buff, sec9·atk×1.4 원문 그대로. guard 성분은 원문에
+  없다(철갑만의 것) — `_job_buff_time_left`를 철갑과 **공유**한다(job이
+  한 번 정해지면 안 바뀌어 두 직업 버프가 동시에 걸릴 일이 없다는 점을
+  이용, 새 변수를 안 늘렸다). `_effective_atk()`/`take_damage()`가 job을
+  보고 어느 배율(철갑 1.2+guard 0.35 vs 응안 1.4, guard 없음)을 적용할지
+  고른다.
+
+`job=='archer'`일 때만 실제로 쓰인다 — 같은 입력 액션 넷(`story_job_
+skill_1~4`)을 job에 따라 다른 무예로 배선했다(warrior 분기 옆에 archer
+분기를 추가, 새 입력 액션은 안 늘렸다).
+
+- `story_combat.gd`: `ARCHER_SHOT_*`/`ARCHER_DOUBLE_*`/`ARCHER_PIERCE_*`/
+  `ARCHER_EYE_*` 상수 신규.
+- `story_player.gd`: 쿨다운 넷(`_cd_archer_shot/double/pierce/eye`) 신규.
+  `_cast_archer_shot/double/pierce/eye()` 신규. `_effective_atk()`가
+  job별로 철갑/응안 배율을 고르도록, `take_damage()`의 guard가 `job==
+  "warrior"`일 때만 적용되도록 수정(응안엔 guard가 없으므로 archer가
+  철갑의 방어 보너스를 새지 않는지 확인 대상).
+- **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+  재발생 노이즈, 되돌림) → 여섯 씬 세 번 연속 exit 0·로그 무결(GO/
+  DUNGEON/FOREST/REALM/STORY 둘 다 회귀 확인 포함). 임시 디버그
+  (`story_field.gd`에 더미 적+강제 job=archer)로: 네 mul(1.85·1.5·2.9·
+  1.4) 정확, `roll_damage` 500회 표본이 손계산 범위(atk21·mul1.85 기준
+  34.20~69.56) 안, 사격 실제 시전으로 mp 100→92(−8)·쿨다운 0.6·데미지가
+  손계산 범위(atk26 job보너스 포함·noncrit 42.3~53.9·crit 67.7~86.2) 안
+  49.9, 연사로 mp −22·쿨다운 3.4·3발 합산 117.6(단발 평균 ×3 근사),
+  평타(2.2m)는 3.5m 밖 표적을 못 맞히는데 관통시(4.4m)는 맞힘(mp −26·
+  쿨다운 6.0·데미지 68.95, 손계산 noncrit 66.35~84.45 안), 응안으로
+  `_effective_atk()`가 26.0→36.4(×1.4 정확)·`_job_buff_time_left`=9.0,
+  마지막으로 `take_damage(100)`이 172→72(정확히 −100, 철갑 guard가
+  archer에 안 새는 것 확인)까지 전부 예측과 일치. 디버그 원상복구
+  (`story_field.gd` diff 0, `git checkout`으로 확인).
+- **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+- **다음 이어질 것** — 협객·방사 무예 넷씩(같은 패턴), SP 투자 UI,
+  2~4차 전직, 나머지 일곱 사냥터+신야성 — 다음 "saga-godot 이어 해"에서
+  이어간다.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →
