@@ -3892,3 +3892,30 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 - **다음에 할 일**: Forest를 GO 수준으로 데울지 결정 → 그 다음 44장
   우선순위대로 Kenney/VRoid 플레이스홀더 실제 씬 교체(⑪이 남긴 다음
   과제, 아직 미착수).
+
+## Forest도 GO 수준으로 데움 (2026-09-13, 새 세션 이어서)
+
+- 사용자가 "순서대로 이어해줘"로 확정 — Forest 미결정 항목부터 처리.
+  GO의 `SkyFogBuilder`와 같은 결로 `Saga.Forest.World.ForestSkyFogBuilder`
+  신규(Trilight 앰비언트 + 옅은 안개, 숲마을에 맞게 GroundColor는 GO보다
+  덜 갈색으로). `BuildTestVillageForestScene.BuildLighting()`의 기존
+  Flat 앰비언트 대입을 이 컴포넌트 호출로 교체, 카메라
+  `backgroundColor`도 `ForestSkyFogBuilder.HorizonColor`로 맞춤(기존엔
+  차가운 하늘색 고정값).
+- 검증: 컴파일 통과 → `BuildTestVillageForestScene.Build` 재실행(씬
+  갱신) → `PlaytestForestHeadless` 재확인 통과(`OK - 10 frames, no
+  errors`) → GUI 스크린샷으로 재확인(1회용 `TempShotForest.cs`, 확인
+  후 삭제). **개선 확인** — 구면 지평선 가장자리가 차가운 파란 띠에서
+  따뜻한 주황/황토 톤으로 바뀜. 지면 자체의 초록 채도는 바이옴 정점
+  색(`ForestBiomeData.SampleTint`, 게임플레이 값이라 손 안 댐)이라
+  여전히 진하지만, 이번 목적(하늘/앰비언트 냉색 제거)은 달성.
+  `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음 확인.
+- **2026-09-13 발견 — 이 세션(관리자 권한 터미널)에서는 Unity GUI를 새로
+  띄울 때마다("Administrator Privileges Detected" 모달) 매번 dismiss가
+  필요했다** — 앞 항목("한 번 넘기면 끝")과 달리, 프로세스를 새로
+  실행할 때마다(같은 세션 안에서도) 다시 뜬다. 앞으로 이 세션에서 GUI를
+  또 띄우면 그때마다 `AppActivate(pid)` + `SendKeys::SendWait("{ENTER}")`
+  를 반복해 줄 것 — "한 번 겪었으니 이제 안 뜨겠지"라고 넘겨짚지 말 것.
+- **다음에 할 일**: 44장 우선순위대로 Kenney/VRoid 플레이스홀더를
+  Player → 주요 Enemy → Boss → Environment → Building 순서로 실제
+  사실적 에셋(Maria 캐릭터·⑤ 셰이더·⑥ PBR 재질)으로 교체 시작.
