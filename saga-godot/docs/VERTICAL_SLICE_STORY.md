@@ -350,6 +350,49 @@ respawn과 같은 결이지만 대상이 하나뿐이라 `died` 시그널로 다
   (강릉진·오림숲 등, 이제 문까지 만들 이유가 생겼다)·전직 트리·
   장비/노획 등, 또는 다른 판 작업 — 승인 후.
 
+## 9. Background 레이어 — 나무·산 실루엣 (2026-09-13)
+
+**사용자 지시 "saga-godot 이어 해"**. 2절이 설계해 둔 세 겹(Background/
+Midground/Foreground) 중 지금까지 **Midground(바닥·발판, Z=0)만**
+지어져 있었다 — "카메라는 깊이감을 보여만 준다"(1절 "제외" 목록의
+괄호 설명)는 원래 포함 범위였는데 실제로는 빠져 있던 부분을 채웠다
+(Foreground는 여전히 생략 — 2절 "있으면 좋고 없어도 완료 조건에 안
+걸린다").
+
+새 GLB를 받지 않고(PLAN.md 44장) 이미 있는 GO/FOREST 에셋(tree_oak.glb·
+rock_largeA.glb)을 재활용 — 원래 텍스처 대신 짙은 단색(UNSHADED)으로
+덮어 "실루엣"으로만 쓴다. 나무 레이어(Z=-30)·산 레이어(Z=-45, 대기
+원근으로 더 파르스름) 둘, 사냥터 너비에 고르게 퍼뜨리고 인덱스 홀짝
+으로 크기만 살짝 변주(`randf()` 안 씀 — vegetation_builder.gd의 "매번
+같은 자리" 원칙과 같은 정신, 다만 격자가 없어 인덱스 기반으로 단순화).
+MultiMeshInstance3D라 충돌은 원래 없다(따로 안 막음).
+
+- `story_background.gd`(신규) — `_build_layer()` 하나가 나무·산 둘 다
+  만든다(GLBUtils.extract_mesh() 재사용, games/saga_go/world/의 것을
+  그대로 preload — 이미 GO 소품 다른 파일도 STORY가 preload하고 있던
+  전례와 같다, environment_profile.gd). `TestField.tscn`에 `Background`
+  노드 추가(Terrain보다 먼저 — 그리기 순서는 상관없지만 "배경이 먼저"
+  가 읽기 순서상 자연스럽다).
+- **검증(헤드리스)** — import 확인(texture-a.png.import 재발생, 되돌림)
+  → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST 회귀 확인
+  포함). 임시 디버그로 `Background` 자식 2개(BackgroundTrees·
+  BackgroundHills), MultiMesh instance_count가 각각 14·5(상수와 일치),
+  mesh가 둘 다 null 아님(GLB 로드 성공) 확인.
+  **한계** — MultiMesh 개별 인스턴스의 실제 좌표(x·scale)는 `--headless`
+  더미 렌더러에서 `get_instance_transform()`이 항등행렬만 돌려줘 엔진
+  쪽에서 값 자체를 재확인하지 못했다(루트 CLAUDE.md가 이미 적어 둔
+  "헤드리스는 디스플레이 서버 없이 더미 렌더러로 돈다"는 한계가
+  MultiMesh 트랜스폼 버퍼에도 적용되는 걸 이번에 처음 확인). 좌표
+  공식 자체는 단순 산술(등간격+인덱스 홀짝 배율)이라 코드 리뷰로
+  갈음 — 실제로 자리가 맞는지는 GUI 실기 확인 몫으로 넘긴다.
+- **GUI 실기 확인은 아직 안 함** — 나무·산 실루엣이 실제로 "먼 배경"
+  으로 읽히는지(크기·색·거리감), 미드그라운드와 안 겹치는지는 눈으로
+  볼 것. 계속 몰아서 받을 것.
+- **다음 이어질 것** — 2절 설계(Background/Midground/Foreground) 중
+  Foreground만 남았지만 완료 조건에 안 걸린다(선택 사항). 남은 굵직한
+  후보: Gameplay Depth 실제 Z축 이동·나머지 사냥터 8곳(이제 문까지
+  필요)·전직 트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

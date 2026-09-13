@@ -4388,3 +4388,26 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   - **다음 이어질 것** — field_map.gd의 문·채집·보스 셋을 전부 채웠다.
     남은 후보: Z축 깊이·나머지 사냥터 8곳(이제 문까지 필요)·전직
     트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.
+
+
+## STORY Background 레이어 — 나무·산 실루엣 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 2절이 설계해 둔 세 겹
+  (Background/Midground/Foreground) 중 Midground(바닥·발판)만
+  지어져 있던 걸 채웠다. 새 GLB 없이 GO/FOREST 에셋(tree_oak.glb·
+  rock_largeA.glb)을 단색 실루엣으로 재활용.
+  - `story_background.gd`(신규) — 나무(Z=-30)·산(Z=-45) 두 겹,
+    MultiMeshInstance3D(충돌 없음), `TestField.tscn`에 `Background`
+    노드 추가.
+  - 자세한 기록은 `docs/VERTICAL_SLICE_STORY.md` 9절.
+  - **검증(헤드리스)** — import 확인(texture-a.png.import 재발생,
+    되돌림) → 다섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/FOREST
+    회귀 확인 포함). 임시 디버그로 자식 2개·instance_count 14/5·mesh
+    로드 성공 확인. **한계 기록** — MultiMesh 개별 좌표는 헤드리스
+    더미 렌더러에서 get_instance_transform()이 항등행렬만 돌려줘
+    재확인 불가(공식 자체는 단순 등간격 산술, 코드 리뷰로 갈음).
+  - **GUI 실기 확인은 아직 안 함** — 실루엣이 실제로 "먼 배경"으로
+    읽히는지는 눈으로 볼 것. 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 2절 설계 중 Foreground만 남았지만 선택
+    사항(완료 조건 무관). 굵직한 후보: Z축 깊이·나머지 사냥터 8곳·
+    전직 트리·장비/노획 등, 또는 다른 판 작업 — 승인 후.

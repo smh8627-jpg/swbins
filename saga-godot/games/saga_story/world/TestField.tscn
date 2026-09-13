@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://games/saga_story/world/story_field.gd" id="1"]
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://games/saga_story/ui/StoryHUD.tscn" id="8"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_gather_spawner.gd" id="9"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_boss_spawner.gd" id="10"]
+[ext_resource type="Script" path="res://games/saga_story/world/story_background.gd" id="11"]
 
 [node name="TestField" type="Node3D"]
 script = ExtResource("1")
@@ -22,6 +23,9 @@ script = ExtResource("3")
 transform = Transform3D(0.8, -0.35, 0.48, 0, 0.807, 0.59, -0.6, -0.472, 0.646, 0, 40, 0)
 light_energy = 1.1
 shadow_enabled = true
+
+[node name="Background" type="Node3D" parent="."]
+script = ExtResource("11")
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("4")
