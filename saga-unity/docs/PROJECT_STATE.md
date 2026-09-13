@@ -5,6 +5,54 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 완료 단계
 
+- **FOREST — 벽지/장판 (2026-09-13, 스무 번째 세션, "1,2,3,4 순서대로
+  다 진행해 묻지말고"의 (4), "다른 판 콘텐츠 확장" 방향으로 세션이
+  직접 골랐다).** PROJECT_STATE.md에 오래전부터 "가구 자유 배치" ·
+  "벽지/장판"(`ForestHomeData.cs`에 카테고리 추가 필요) 둘이 FOREST의
+  남은 후보로 적혀 있었다 — 후자가 범위가 더 뚜렷해(원작 `data-village
+  .js` WALLS·FLOORS 그대로) 이걸 골랐다.
+  - 신규 `Data/ForestFinishData.cs`(벽지 5종·장판 5종, 원작 가격 그대로)
+    — 가구와 같은 재해석(`Value`=원작 냥 값 참고용, `FruitCost`=실제
+    과일 구매가). `ForestHomeState.cs`에 소유/착용 상태 추가 —
+    **구매=착용으로 합쳤다**(갈아입기 UI가 없어서, 가구처럼 "다가가면
+    반응"). `Score()`가 원작 `home.js score()`의 "벽지·장판이 기본이
+    아니면 각 +12" 보너스까지 반영하도록 튜플을 3원소→4원소로 확장
+    (기존 콜사이트 셋 — `ForestFurnitureAnchor.cs`·`PlaytestForestFurniture
+    .cs` 둘 — 전부 4원소로 갱신).
+  - 신규 `World/ForestFinishStall.cs`(도배전) — 다섯+다섯 다 가지기
+    전엔 안 가진 것 중에서, 다 가지면 **가진 것끼리 공짜로 갈아입는**
+    룰렛(원작의 "소유한 것들 사이 자유 교체"를 클릭 UI 없이 재해석).
+    집 안(가구 자리 여섯+가구전)이 이미 빽빽해 **집 밖**(동쪽 벽에서
+    2m, 출입 트리거에서 4.7m 떨어진 자리)에 세웠다.
+  - `World/ForestHouse.cs`에 `RepaintFinish()` 신규 — 실내 바닥/벽
+    머티리얼 색을 원작 hex 그대로 다시 칠한다. **필드로 캐싱하지 않고
+    매번 하이어라키에서 찾는다** — 에디터가 미리 지어 씬 파일로 저장한
+    뒤 Play에서 그대로 불러오는 경로라 private 필드(비직렬화)가 새
+    인스턴스에서 항상 null이기 때문(이번에 실제로 확인하고 우회함).
+    로드 직후 첫 Update에 한 번 자동 호출 + 도배전이 바꿀 때마다 직접
+    호출(이벤트 시스템 없음, 이 프로젝트의 기존 관례).
+  - `ForestSaveState.cs` v2→v3(`homeWalls`/`homeFloors`/`homeCurWall`/
+    `homeCurFloor` 추가).
+  - **검증 중 REALM과 똑같은 테스트 인프라 결함을 FOREST에서도 잡았다**
+    — `PlaytestForestFinish`가 저장한 세이브를 다음 헤드리스 프로세스의
+    `PlaytestForestFurniture`가 그대로 불러와 "가구를 다 치우면 점수
+    0" 전제가 깨졌다(원인 동일: `GameBootstrap`이 매번 `TryLoad()`를
+    부르고 persistentDataPath는 프로세스가 바뀌어도 남는다). `RealmSaveState
+    .DeleteForTest()`와 같은 자리에 `ForestSaveState.DeleteForTest()`
+    신규 — **FOREST의 헤드리스 Playtest 다섯 개 전부**(`PlaytestForestHeadless`·
+    `PlaytestForestFurniture`·`PlaytestForestFinish`·`PlaytestForestCreatures`·
+    `PlaytestForestHouseTransition`) `Run()` 맨 앞에서 부르도록 고쳤다.
+  - **검증** — 컴파일(오류 없음)·씬 재빌드·신규 `PlaytestForestFinish`
+    (구매+착용+점수 보너스+저장/로드 왕복)·회귀 `PlaytestForestFurniture`·
+    `PlaytestForestHeadless`·`PlaytestForestHouseTransition` 전부 통과.
+    `PlaytestForestCreatures`는 첫 실행에서 무작위 배회 요행으로 실패
+    (`pojagoemul`이 배회 시간 안에 거의 안 움직임)했다가 재실행하면
+    통과 — **이 조각과 무관한 기존 플레이키**(창조물 파일을 이번에
+    안 건드렸다, 재현 확인만 해 두고 다음 세션 참고용으로 여기 기록).
+  - **사람의 GUI 확인 필요**(아직 안 됨, 앞선 FOREST 확인 목록 뒤에
+    이어짐) — 도배전(집 밖)이 실제로 자연스러운 자리에 있는지, 벽지/
+    장판을 바꿨을 때 실내 색이 실제로 눈에 띄게 바뀌는지, 집 안팎을
+    오갈 때 바뀐 색이 유지되는지.
 - **REALM — 문답(quiz.js) (2026-09-13, 스무 번째 세션, "1,2,3,4 순서대로
   다 진행해 묻지말고"의 (3)).** 원작 문제은행 260문항(역사·사자성어·
   상식·유행어·세계사·속담 6분야)에서 **분야당 6문항, 총 36문항**만
@@ -2451,7 +2499,33 @@ PLAN.md 규칙(33장 토큰 절약 규칙 10)에 따라 여기에는 완료 단�
 
 ## 다음 작업 (다음 세션이 이어갈 것)
 
-- **열아홉 번째 세션은 여기서 멈췄다(2026-09-13, 사용자가 "새로운
+- **스무 번째 세션은 여기서 멈췄다(2026-09-13, 사용자가 "현재 작업
+  완료 하고 새로운 세션에서 다시하자"로 끝) — "1,2,3,4 순서대로 다
+  진행해 묻지말고"로 네 조각을 전부 세션이 직접 순서대로 끝냈다: (1)
+  REALM 외교 절반(계략: 유언비어·화계), (2) REALM 함락한 성 편입,
+  (3) REALM 문답(36문항), (4) FOREST 벽지/장판(위 "완료 단계" 각
+  항목 참고, 세션이 "다른 판 콘텐츠 확장"을 FOREST로 직접 골랐다).**
+  - 작업 트리 깨끗함(커밋되지 않은 변경 없음), 이 세션에서 나간 커밋
+    넷(`1d0772d` 계략 → `16f4760` 함락한 성 편입 → `9307b8b` 문답 →
+    FOREST 벽지/장판 커밋) 전부 컴파일·헤드리스 플레이테스트 통과
+    확인 후 그때그때 커밋·푸시.
+  - **곁다리로 테스트 인프라 결함 둘을 같은 패턴으로 잡았다** —
+    REALM·FOREST 둘 다 `GameBootstrap`이 매번 `TryLoad()`를 불러
+    이전 헤드리스 실행이 남긴 세이브를 그대로 읽어 버리는 문제
+    (`RealmSaveState.DeleteForTest()`/`ForestSaveState.DeleteForTest()`
+    신규, 모든 헤드리스 Playtest의 `Run()` 맨 앞에서 호출). 다른 세
+    판(GO/DUNGEON/STORY)도 저장 스키마가 또 바뀌면 같은 함정을 밟을
+    수 있다 — 그때 참고할 것.
+  - **다음 세션이 볼 것** — (1) 사람의 실기 확인 피드백(이번까지 쌓인
+    REALM 전체·FOREST 벽지장판·DUNGEON 마을 넷·STORY 첫 슬라이스 등)이
+    먼저 도착하면 그것부터, (2) 없으면 REALM 남은 후보(월드맵 2-8~
+    2-10절 등)·FOREST 가구 자유 배치·다른 판 콘텐츠 확장 중 **어느 걸
+    먼저 할지는 방향 결정이라 세션이 임의로 안 고른다** — 사용자가
+    다시 "정해줘"로 위임하지 않는 한 상의부터 한다. (3) `PlaytestForestCreatures`
+    가 가끔 무작위 배회 요행으로 실패하는 것(이 세션이 재현·재실행
+    확인만 해 둠, 이 조각과 무관 — 픽스는 아직 안 함, 픽스하려면 씨앗
+    고정 또는 문턱값 완화 검토) — 급하지 않으면 다음 결정과 함께.
+- **(과거) 열아홉 번째 세션은 여기서 멈췄다(2026-09-13, 사용자가 "새로운
   세션에서 이어 하자"로 끝) — "실기 확인은 내가 할게, 다음 방향
   정해줘"로 방향 결정을 세션에 위임받아, REALM 전쟁 첫 슬라이스(소패
   공략, 위 "완료 단계" 맨 위 항목)를 세션이 직접 골라 끝냈다.**

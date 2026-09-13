@@ -43,6 +43,7 @@ namespace Saga.EditorTools
             EditorSettings.enterPlayModeOptions =
                 EnterPlayModeOptions.DisableDomainReload | EnterPlayModeOptions.DisableSceneReload;
 
+            ForestSaveState.DeleteForTest(); // 이전 헤드리스 실행이 남긴 세이브 무시(ForestSaveState.cs 주석 참고).
             EditorSceneManager.OpenScene(ScenePath);
 
             _hadError = false;
@@ -159,7 +160,7 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
-                    var (total, count, _) = ForestHomeState.Score();
+                    var (total, count, _, _) = ForestHomeState.Score();
                     if (total <= 0 || count != 1)
                     {
                         Debug.LogError($"[PlaytestForestFurniture] 점수 계산이 이상함 — total={total} count={count}");
@@ -200,7 +201,7 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
-                    var (totalAfter, countAfter, _) = ForestHomeState.Score();
+                    var (totalAfter, countAfter, _, _) = ForestHomeState.Score();
                     if (totalAfter != 0 || countAfter != 0)
                     {
                         Debug.LogError($"[PlaytestForestFurniture] 거둔 뒤 점수가 0으로 안 돌아감 — total={totalAfter} count={countAfter}");

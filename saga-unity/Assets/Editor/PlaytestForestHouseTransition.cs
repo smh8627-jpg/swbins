@@ -2,6 +2,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Saga.Forest.Data;
 using Saga.Forest.World;
 
 namespace Saga.EditorTools
@@ -43,6 +44,7 @@ namespace Saga.EditorTools
             EditorSettings.enterPlayModeOptions =
                 EnterPlayModeOptions.DisableDomainReload | EnterPlayModeOptions.DisableSceneReload;
 
+            ForestSaveState.DeleteForTest(); // 이전 헤드리스 실행이 남긴 세이브 무시(ForestSaveState.cs 주석 참고).
             EditorSceneManager.OpenScene(ScenePath);
 
             _hadError = false;

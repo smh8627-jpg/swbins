@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using Saga.Forest.Data;
 using Saga.Forest.UI;
 
 namespace Saga.Forest.World
@@ -29,6 +31,29 @@ namespace Saga.Forest.World
         private static readonly Color RoofColor = new Color(0.5f, 0.2f, 0.15f);
         private static readonly Color IndoorFloorColor = new Color(0.55f, 0.42f, 0.3f);
         private static readonly Color IndoorWallColor = new Color(0.82f, 0.78f, 0.68f);
+
+        // FOREST 다음 조각 — 벽지/장판 색(saga-forest 웹판 `data-village.js`
+        // WALLS.c/FLOORS.a 그대로). 기본(흙벽/마루)은 위 IndoorWallColor/
+        // IndoorFloorColor와 값이 같다 — 갈아입지 않았으면 지금까지와 똑같이
+        // 보인다.
+        private static readonly Dictionary<string, Color> WallFinishColors = new Dictionary<string, Color>
+        {
+            ["earth"] = HexColor("#e6d8bd"), ["hanji"] = HexColor("#f4ecda"), ["muk"] = HexColor("#5a5f6a"),
+            ["sol"] = HexColor("#5f7f5a"), ["dan"] = HexColor("#c05a44"),
+        };
+        private static readonly Dictionary<string, Color> FloorFinishColors = new Dictionary<string, Color>
+        {
+            ["wood"] = HexColor("#c2925c"), ["mat"] = HexColor("#c8b98a"), ["jangpan"] = HexColor("#d8b26a"),
+            ["stone"] = HexColor("#9aa0a6"), ["ondol"] = HexColor("#b0a08a"),
+        };
+
+        private static Color HexColor(string hex)
+        {
+            ColorUtility.TryParseHtmlString(hex, out var c);
+            return c;
+        }
+
+        private bool _finishSynced;
 
         private Vector3 _entryTriggerPos;      // 야외 — 문 앞, 여기 다가가면 들어간다.
         private Vector3 _exitLandingPos;       // 야외 — 나올 때 돌아오는 자리(재진입 반경 밖).
@@ -141,8 +166,44 @@ namespace Saga.Forest.World
             wall.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
 
+        /// <summary>ForestFinishStall.cs가 벽지/장판을 바꿀 때 부른다(직접
+        /// 호출 — `ForestFurnitureAnchor.RebuildVisual()`과 같은 결, 이벤트
+        /// 시스템 없음). **재질을 필드로 캐싱하지 않고 매번 하이어라키에서
+        /// 찾는다** — 에디터가 미리 지어(`BuildTestVillageForestScene.cs`)
+        /// 씬 파일로 저장해 둔 뒤 Play에서 그 자식을 그대로 불러오는 경로라,
+        /// 이 컴포넌트의 private 필드(비직렬화)는 새 인스턴스에서 항상
+        /// null이다 — 세이브 로드 직후 첫 Update에도 안전하게 쓰려면
+        /// 캐싱 대신 조회가 맞다.</summary>
+        public void RepaintFinish()
+        {
+            var indoorRoom = transform.Find("IndoorRoom");
+            if (indoorRoom == null) return;
+
+            var floorRenderer = indoorRoom.Find("IndoorFloor")?.GetComponent<MeshRenderer>();
+            if (floorRenderer != null && FloorFinishColors.TryGetValue(ForestHomeState.CurrentFloor, out var floorColor))
+            {
+                floorRenderer.material.color = floorColor;
+            }
+
+            if (WallFinishColors.TryGetValue(ForestHomeState.CurrentWall, out var wallColor))
+            {
+                foreach (Transform child in indoorRoom)
+                {
+                    if (child.name != "Wall") continue;
+                    var mr = child.GetComponent<MeshRenderer>();
+                    if (mr != null) mr.material.color = wallColor;
+                }
+            }
+        }
+
         private void Update()
         {
+            if (!_finishSynced)
+            {
+                _finishSynced = true;
+                RepaintFinish(); // 로드된 세이브의 벽지/장판을 첫 프레임에 반영.
+            }
+
             if (_player == null) return;
 
             if (!_isInside)

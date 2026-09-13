@@ -72,7 +72,7 @@ namespace Saga.Forest.World
                 }
                 RebuildVisual();
                 var item = FurnitureItem.Get(placedId);
-                var (total, count, _) = ForestHomeState.Score();
+                var (total, count, _, _) = ForestHomeState.Score();
                 DialogueLabel.Instance?.Show(
                     $"{(item != null ? item.Name : placedId)}을(를) 놓았다 — 집 평가: {FurnitureItem.GradeName(total)}"
                     + $"({total}점, 가구 {count}개)",

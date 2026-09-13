@@ -22,6 +22,13 @@ namespace Saga.Forest.Data
         private static readonly Dictionary<string, int> Stock = new Dictionary<string, int>();
         private static readonly string[] Anchors = new string[AnchorCount];
 
+        // FOREST 다음 조각 — 벽지/장판(ForestFinishData.cs 클래스 주석
+        // 참고). 기본 한 벌(흙벽·마루)은 처음부터 갖고 입은 채 시작한다.
+        private static readonly HashSet<string> _ownedWalls = new HashSet<string> { ForestFinishData.DefaultWallKey };
+        private static readonly HashSet<string> _ownedFloors = new HashSet<string> { ForestFinishData.DefaultFloorKey };
+        private static string _currentWall = ForestFinishData.DefaultWallKey;
+        private static string _currentFloor = ForestFinishData.DefaultFloorKey;
+
         public static int StockCount(string id) => id != null && Stock.TryGetValue(id, out var n) ? n : 0;
 
         public static string AnchorItem(int index) => (index >= 0 && index < AnchorCount) ? Anchors[index] : null;
@@ -71,10 +78,34 @@ namespace Saga.Forest.Data
             return id;
         }
 
+        // ── 벽지/장판 ────────────────────────────────────────
+        public static string CurrentWall => _currentWall;
+        public static string CurrentFloor => _currentFloor;
+        public static bool OwnsFinish(FinishKind kind, string key) =>
+            (kind == FinishKind.Wall ? _ownedWalls : _ownedFloors).Contains(key);
+
+        /// <summary>과일로 사서 바로 입는다 — 이 슬라이스엔 "갈아입기" UI가
+        /// 없어(가구 자리처럼 다가가면 반응하는 것뿐) 구매=착용으로 합쳤다.
+        /// 이미 가진 것이면 돈 안 내고 그냥 새로 입기만 한다.</summary>
+        public static bool TryBuyAndEquipFinish(FinishKind kind, string key)
+        {
+            var item = ForestFinishData.Get(kind, key);
+            if (item == null) return false;
+            var owned = kind == FinishKind.Wall ? _ownedWalls : _ownedFloors;
+            if (!owned.Contains(key))
+            {
+                if (!ForestState.SpendFruit(item.FruitCost)) return false;
+                owned.Add(key);
+            }
+            if (kind == FinishKind.Wall) _currentWall = key; else _currentFloor = key;
+            return true;
+        }
+
         /// <summary>웹판 `home.js score()` 그대로 — 값/50 + 개수×2 + 계열 보너스
-        /// (3개 이상 +25, 5개 이상 +45). 원작의 tier 보너스·벽지장판 보너스는
-        /// 이 슬라이스엔 그 두 시스템 자체가 없어 뺐다.</summary>
-        public static (int Total, int Count, int Bonus) Score()
+        /// (3개 이상 +25, 5개 이상 +45) + 벽지/장판 보너스(기본이 아니면
+        /// 각 +12, 원작 그대로). 원작의 tier(증축) 보너스는 이 슬라이스엔
+        /// 증축 시스템 자체가 없어 여전히 뺐다.</summary>
+        public static (int Total, int Count, int Bonus, int Finish) Score()
         {
             float sum = 0f;
             int count = 0;
@@ -99,7 +130,12 @@ namespace Saga.Forest.Data
             }
             sum += bonus;
 
-            return ((int)System.Math.Round(sum), count, bonus);
+            int finish = 0;
+            if (_currentWall != ForestFinishData.DefaultWallKey) finish += 12;
+            if (_currentFloor != ForestFinishData.DefaultFloorKey) finish += 12;
+            sum += finish;
+
+            return ((int)System.Math.Round(sum), count, bonus, finish);
         }
 
         public static (string[] Keys, int[] Counts) SnapshotStock()
@@ -134,6 +170,29 @@ namespace Saga.Forest.Data
             {
                 Anchors[i] = (anchors != null && i < anchors.Length) ? anchors[i] : null;
             }
+        }
+
+        public static (string[] Walls, string[] Floors, string CurWall, string CurFloor) SnapshotFinishes()
+        {
+            var walls = new string[_ownedWalls.Count];
+            _ownedWalls.CopyTo(walls);
+            var floors = new string[_ownedFloors.Count];
+            _ownedFloors.CopyTo(floors);
+            return (walls, floors, _currentWall, _currentFloor);
+        }
+
+        public static void RestoreFinishes(string[] ownedWalls, string[] ownedFloors, string curWall, string curFloor)
+        {
+            _ownedWalls.Clear();
+            _ownedWalls.Add(ForestFinishData.DefaultWallKey);
+            if (ownedWalls != null) foreach (var k in ownedWalls) if (!string.IsNullOrEmpty(k)) _ownedWalls.Add(k);
+
+            _ownedFloors.Clear();
+            _ownedFloors.Add(ForestFinishData.DefaultFloorKey);
+            if (ownedFloors != null) foreach (var k in ownedFloors) if (!string.IsNullOrEmpty(k)) _ownedFloors.Add(k);
+
+            _currentWall = !string.IsNullOrEmpty(curWall) ? curWall : ForestFinishData.DefaultWallKey;
+            _currentFloor = !string.IsNullOrEmpty(curFloor) ? curFloor : ForestFinishData.DefaultFloorKey;
         }
     }
 }

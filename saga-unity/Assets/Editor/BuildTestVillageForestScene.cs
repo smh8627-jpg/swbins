@@ -36,6 +36,10 @@ namespace Saga.EditorTools
         private static readonly Vector3 FruitTreeSpawn = new Vector3(-10f, 0f, 5f);
         private static readonly Vector3 VillagerSpawn = new Vector3(10f, 0f, 5f);
         private static readonly Vector3 HouseSpawn = new Vector3(15f, 0f, -10f);
+        // 집 안(가구 자리 여섯+가구전)이 이미 빽빽해 벽지/장판 좌판은 집
+        // 밖에 둔다 — 동쪽 벽(HouseSpawn.x+2)에서 2m, 출입 트리거
+        // (HouseSpawn+(0,0,-2.5), 반경 1.4)에서도 4.7m 떨어져 안전.
+        private static readonly Vector3 FinishStallSpawn = new Vector3(19f, 0f, -10f);
 
         private static GameObject _treeGlb, _villagerGlb, _playerGlb;
 
@@ -51,6 +55,7 @@ namespace Saga.EditorTools
             BuildVillager();
             var houseGo = BuildHouse();
             BuildHomeFurniture(houseGo);
+            BuildFinishStall();
             BuildCreatures();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
@@ -157,6 +162,17 @@ namespace Saga.EditorTools
                 var anchor = anchorGo.AddComponent<ForestFurnitureAnchor>();
                 anchor.SetIndex(i);
             }
+        }
+
+        // FOREST 다음 조각 — 벽지/장판 좌판(도배전). House.RepaintFinish()가
+        // 실내를 다시 칠하려면 House를 찾아야 하는데, 집 안(포켓 공간)과
+        // 달리 이건 평범한 야외 오브젝트라 Awake()에서
+        // FindFirstObjectByType로 바로 찾을 수 있다.
+        private static void BuildFinishStall()
+        {
+            var go = new GameObject("FinishStall");
+            go.transform.position = FinishStallSpawn;
+            go.AddComponent<ForestFinishStall>();
         }
 
         // "몬스터·퓨전 콘텐츠" 슬라이스 — Awake()가 Play 모드에서만 저절로
