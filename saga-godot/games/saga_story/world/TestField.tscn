@@ -47,6 +47,13 @@ target_scene = "res://games/saga_story/world/HeodoField.tscn"
 arrival_x_m = 25.0
 label_text = "허도로"
 
+[node name="PortalToGangneungjin" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.6, 0, 0)
+script = ExtResource("12")
+target_scene = "res://games/saga_story/world/GangneungjinField.tscn"
+arrival_x_m = 3.0
+label_text = "강릉진으로"
+
 [node name="FieldCamera" type="Camera3D" parent="."]
 current = true
 script = ExtResource("6")

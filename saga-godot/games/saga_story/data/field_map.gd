@@ -75,12 +75,22 @@ const BOSS_X_PX := 2050.0
 
 ## **2026-09-13 추가 — 문(portal, 15절).** data-side.js field.portals[0]
 ## ([70,'heodo']) 그대로. portals[1]([2130,'gangneungjin'])은 그 사냥터가
-## 아직 없어 안 옮긴다(나머지 사냥터 8곳과 함께 남은 항목 — 그 자리는
-## 여전히 경계벽만 있는 막다른 길이다).
+## 아직 없어 안 옮겼었다 — **2026-09-13 추가(같은 날 더, 20절 SP 시스템
+## 다음 걸음) — 강릉진을 지으며 이 동쪽 문도 마저 옮긴다.**
 const PORTAL_WEST_X_PX := 70.0
 ## 허도에서 건너올 때 도착하는 자리 — 문 바로 앞이 아니라 한 걸음
 ## 안쪽으로 잡아 도착하자마자 다시 경계벽에 닿지 않게 여유를 둔다.
 const ARRIVAL_FROM_HEODO_X_PX := 150.0
+
+const PORTAL_EAST_X_PX := 2130.0
+## 강릉진에서 건너올 때 도착하는 자리 — 서쪽 문과 같은 "한 걸음 안쪽"
+## 관례를 그대로 따르면 2050px인데, 그 값은 BOSS_X_PX와 정확히 겹친다
+## (보스 자리는 원작에 없어 이 포트가 새로 정한 값이라 우연히 부딪혔다).
+## story_enemy.gd의 보스 접촉 판정 반경(OVERLAP_RANGE 0.6m × BOSS_
+## VISUAL_SCALE 1.6 = 0.96m)보다 확실히 먼 거리(1.2m 이상)를 두려고
+## 문 쪽으로 20px만 더 붙여 2110px로 잡았다(보스(2050px)와 60px=1.2m
+## 차이 — 도착하자마자 겹쳐 맞는 사고를 피한다).
+const ARRIVAL_FROM_GANGNEUNGJIN_X_PX := 2110.0
 
 
 static func width_m() -> float:
@@ -139,3 +149,11 @@ static func portal_west_m() -> float:
 
 static func arrival_from_heodo_m() -> float:
 	return ARRIVAL_FROM_HEODO_X_PX * SCALE
+
+
+static func portal_east_m() -> float:
+	return PORTAL_EAST_X_PX * SCALE
+
+
+static func arrival_from_gangneungjin_m() -> float:
+	return ARRIVAL_FROM_GANGNEUNGJIN_X_PX * SCALE

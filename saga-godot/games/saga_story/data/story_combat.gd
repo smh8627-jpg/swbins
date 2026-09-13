@@ -189,29 +189,65 @@ const JOB_CHANGE_LEVEL := 10
 
 ## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 무사(warrior)
 ## 무예 넷.** data-job.js SKILLS job:'warrior' 넷(w_cut/w_whirl/w_rush/
-## w_iron) — 아직 SP(무예 점수) 투자 시스템이 없어(레벨마다 3점을 찍어
-## 무예를 0~10으로 올리는 것, data-job.js 머리말) `FIXED_SKILL_LEVEL`
-## (5, 임의의 중간값)로 **고정**해 mul을 미리 계산해 둔다 — SP 배분
-## UI는 다음에 볼 자리. 궁수·협객·방사 셋은 아직 범위 밖(이 넷과 같은
-## 패턴으로 이어갈 수 있다).
+## w_iron).
 ##
 ## w_whirl의 r:128px는 SWEEP_RANGE_MUL(117/78=1.5)과 같은 방식으로
 ## REACH(78px, story_player.gd ATTACK_RANGE 자리)비로 옮긴다: 128/78.
 ## w_rush의 dist:210px는 SCALE(field_map.gd와 같은 0.02)로 미터 환산.
-const FIXED_SKILL_LEVEL := 5
+##
+## **2026-09-13 추가(같은 날 더 더) — SP(무예 점수) 투자 시스템.**
+## 지금까지 `FIXED_SKILL_LEVEL`(5, 임의의 중간값)로 mul을 고정해 뒀던 것을
+## 실제 투자 레벨로 바꾼다 — `data-job.js` 머리말의 "레벨마다 3점을 찍어
+## 무예를 0~10으로 올린다"를 `StorySaveState.skills`(key→레벨)로 옮기고,
+## `job.js` `mulOf()`(mul[0]+mul[1]*max(0,lv-1))의 재해석을 그대로
+## 이어간다 — 이 포트는 처음부터 (lv-1)이 아니라 lv를 그대로 곱하는
+## 결로 갔었으니(과거 FIXED_SKILL_LEVEL 주석들) 그 관례를 유지한다:
+## `skill_mul(base, per, lv) = base + per*lv`. **투자 0(안 배운 무예)은
+## 아예 못 쓴다** — 원작 `job.js bar()`가 "찍은 것만" 조작 띠에 놓는 것과
+## 같은 자리(story_player.gd 각 `_cast_*` 함수 맨 앞에서 확인).
+const SKILL_MAX_LEVEL := 10
+const SP_PER_LEVEL := 3  # data-job.js SP_PER_LEVEL 그대로
+
+## key → job. StorySaveState.can_raise_skill()이 "이 직업의 무예가
+## 맞는지" 확인할 때 쓴다(job.js canRaise()의 `JD.skillsOf(job)` 자리).
+const SKILL_JOB := {
+	"w_cut": "warrior", "w_whirl": "warrior", "w_rush": "warrior", "w_iron": "warrior",
+	"a_shot": "archer", "a_double": "archer", "a_pierce": "archer", "a_eye": "archer",
+	"r_twin": "rogue", "r_knife": "rogue", "r_step": "rogue", "r_vital": "rogue",
+	"m_fire": "mage", "m_bolt": "mage", "m_heal": "mage", "m_talis": "mage",
+}
+
+## job → 그 직업 무예 넷의 key(입력 액션 story_job_skill_1~4·story_job_1~4
+## 순서와 정확히 같다) — story_job_trainer.gd의 SP 투자 배선이 쓴다.
+const JOB_SKILL_KEYS := {
+	"warrior": ["w_cut", "w_whirl", "w_rush", "w_iron"],
+	"archer": ["a_shot", "a_double", "a_pierce", "a_eye"],
+	"rogue": ["r_twin", "r_knife", "r_step", "r_vital"],
+	"mage": ["m_fire", "m_bolt", "m_heal", "m_talis"],
+}
+
+
+## job.js mulOf()의 이 포트 재해석 — base + per*lv(레벨 0이면 0, 호출
+## 쪽이 먼저 "안 배웠으면 캐스팅 자체를 막는다"로 걸러 둔다).
+static func skill_mul(base: float, per: float, level: int) -> float:
+	return base + per * float(level)
+
 
 const WARRIOR_CUT_COST := 6.0
 const WARRIOR_CUT_CD := 0.5
-const WARRIOR_CUT_MUL := 1.15 + 0.09 * FIXED_SKILL_LEVEL  # 1.6
+const WARRIOR_CUT_BASE := 1.15
+const WARRIOR_CUT_PER := 0.09  # 레벨10에서 2.05
 
 const WARRIOR_WHIRL_COST := 20.0
 const WARRIOR_WHIRL_CD := 3.6
-const WARRIOR_WHIRL_MUL := 1.6 + 0.14 * FIXED_SKILL_LEVEL  # 2.3
+const WARRIOR_WHIRL_BASE := 1.6
+const WARRIOR_WHIRL_PER := 0.14
 const WARRIOR_WHIRL_RANGE_MUL := 128.0 / 78.0
 
 const WARRIOR_RUSH_COST := 24.0
 const WARRIOR_RUSH_CD := 6.0
-const WARRIOR_RUSH_MUL := 1.8 + 0.16 * FIXED_SKILL_LEVEL  # 2.6
+const WARRIOR_RUSH_BASE := 1.8
+const WARRIOR_RUSH_PER := 0.16
 const WARRIOR_RUSH_DIST_PX := 210.0
 const WARRIOR_RUSH_SCALE := 0.02  # field_map.gd SCALE과 같다
 
@@ -224,6 +260,126 @@ const WARRIOR_IRON_GUARD := 0.35
 
 static func warrior_rush_dist_m() -> float:
 	return WARRIOR_RUSH_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 궁수(archer)
+## 무예 넷.** data-job.js SKILLS job:'archer' 넷(a_shot/a_double/
+## a_pierce/a_eye) — 무사와 같은 FIXED_SKILL_LEVEL(5)로 mul 고정.
+##
+## effect 문자열이 무사 넷과 다르다('arrow'/'volley'는 이 포트에 처음
+## 등장) — 둘 다 원문에 사거리(r/dist)가 없어(무사 참격과 같은 자리)
+## **정면 판정+ATTACK_RANGE**로 좁힌다(활이라고 사거리를 늘리는 건 새
+## 숫자를 상상하는 것이라 안 한다). a_pierce는 원문 effect가 이미
+## 'bolt'라 기탄(BOLT_RANGE_MUL)과 같은 결로 사거리를 2배 늘린다 — 새
+## 상수가 아니라 같은 재해석을 archer 몫으로 하나 더 둔 것뿐.
+const ARCHER_SHOT_COST := 8.0
+const ARCHER_SHOT_CD := 0.6
+const ARCHER_SHOT_BASE := 1.3
+const ARCHER_SHOT_PER := 0.11
+
+## a_double(연사) — 원문 effect:'volley', shots:3(화살 셋을 잇달아).
+## 투사체가 없어 "정면 판정을 세 번 잇달아 적용"으로 재해석(w_whirl이
+## aoe를 한 번 도는 것과 같은 결 — 여러 번의 개별 roll_damage를 그대로
+## 잇는다, 새 효과를 안 만든다).
+const ARCHER_DOUBLE_COST := 22.0
+const ARCHER_DOUBLE_CD := 3.4
+const ARCHER_DOUBLE_BASE := 1.1
+const ARCHER_DOUBLE_PER := 0.08
+const ARCHER_DOUBLE_SHOTS := 3
+
+const ARCHER_PIERCE_COST := 26.0
+const ARCHER_PIERCE_CD := 6.0
+const ARCHER_PIERCE_BASE := 2.0
+const ARCHER_PIERCE_PER := 0.18
+const ARCHER_PIERCE_RANGE_MUL := 2.0  # BOLT_RANGE_MUL과 같은 재해석, archer 몫
+
+## a_eye(응안) — buff. sec:9·atk×1.4 원문 그대로(레벨로 안 오르는 buff
+## 필드, 철갑과 같은 결 — WARRIOR_IRON_ATK_MUL도 FIXED_SKILL_LEVEL을
+## 안 곱한다). guard 성분은 원문에 없다(철갑만의 것).
+const ARCHER_EYE_COST := 30.0
+const ARCHER_EYE_CD := 16.0
+const ARCHER_EYE_SEC := 9.0
+const ARCHER_EYE_ATK_MUL := 1.4
+
+
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 협객(rogue)
+## 무예 넷.** data-job.js SKILLS job:'rogue' 넷(r_twin/r_knife/r_step/
+## r_vital) — 같은 FIXED_SKILL_LEVEL(5).
+##
+## r_twin은 원문 effect가 이미 'melee'에 hits:2 — a_double(volley)과
+## 같은 재해석(정면 판정을 그 횟수만큼 잇달아 적용)을 그대로 재사용,
+## 새 효과를 안 만든다.
+const ROGUE_TWIN_COST := 7.0
+const ROGUE_TWIN_CD := 0.42
+const ROGUE_TWIN_BASE := 0.72
+const ROGUE_TWIN_PER := 0.06
+const ROGUE_TWIN_HITS := 2
+
+const ROGUE_KNIFE_COST := 18.0
+const ROGUE_KNIFE_CD := 2.6
+const ROGUE_KNIFE_BASE := 1.0
+const ROGUE_KNIFE_PER := 0.09
+const ROGUE_KNIFE_SHOTS := 2
+
+## r_step(은신보) — dash, dist:260px + **invuln:0.7(이 포트에 처음
+## 등장)**. side.js dash 처리(`p.invuln = Math.max(p.invuln, sk.invuln)`,
+## hurtMe()가 invuln>0이면 피해를 통째로 무시)를 story_player.gd의 공용
+## `_invuln_time_left`로 옮긴다 — take_damage()가 그 값이 0보다 크면
+## 방어 컷 계산 전에 그냥 무시한다. dist는 WARRIOR_RUSH_SCALE(0.02, 같은
+## field_map.gd SCALE)로 미터 환산.
+const ROGUE_STEP_COST := 22.0
+const ROGUE_STEP_CD := 7.0
+const ROGUE_STEP_BASE := 1.2
+const ROGUE_STEP_PER := 0.1
+const ROGUE_STEP_DIST_PX := 260.0
+const ROGUE_STEP_INVULN_SEC := 0.7
+
+const ROGUE_VITAL_COST := 26.0
+const ROGUE_VITAL_CD := 15.0
+const ROGUE_VITAL_SEC := 8.0
+const ROGUE_VITAL_ATK_MUL := 1.55
+
+
+static func rogue_step_dist_m() -> float:
+	return ROGUE_STEP_DIST_PX * WARRIOR_RUSH_SCALE
+
+
+## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 방사(mage)
+## 무예 넷.** data-job.js SKILLS job:'mage' 넷(m_fire/m_bolt/m_heal/
+## m_talis) — 같은 FIXED_SKILL_LEVEL(5).
+##
+## m_fire는 원문 effect가 이미 'bolt' — 기탄·관통시와 같은 재해석(사거리
+## 2배). m_bolt(aoe, r:165px)는 선풍(w_whirl)과 같은 결로 REACH(78px)비를
+## 옮긴다(165/78).
+const MAGE_FIRE_COST := 12.0
+const MAGE_FIRE_CD := 0.9
+const MAGE_FIRE_BASE := 1.5
+const MAGE_FIRE_PER := 0.13
+const MAGE_FIRE_RANGE_MUL := 2.0  # BOLT_RANGE_MUL과 같은 재해석, mage 몫
+
+const MAGE_BOLT_COST := 26.0
+const MAGE_BOLT_CD := 4.0
+const MAGE_BOLT_BASE := 1.9
+const MAGE_BOLT_PER := 0.17
+const MAGE_BOLT_RANGE_MUL := 165.0 / 78.0
+
+## m_heal(치유) — **이 포트에 처음 등장하는 effect:'heal'.** side.js
+## heal 처리(`pct = heal[0] + heal[1]*max(0,lv-1); hp = min(hpMax, hp +
+## round(hpMax*pct))`) 그대로 옮기되, mul과 같은 결로 레벨을 직접 곱한다
+## (skill_mul()과 같은 공식 — heal도 새 규칙을 따로 안 만든다).
+const MAGE_HEAL_COST := 34.0
+const MAGE_HEAL_CD := 11.0
+const MAGE_HEAL_BASE := 0.18
+const MAGE_HEAL_PER := 0.022
+
+## m_talis(부적) — buff, sec:10·atk×1.25·**regen:2.6(이 포트에 처음
+## 등장 — MP 회복 속도 배율)** 원문 그대로. side.js MP_REGEN*bf.regen과
+## 같은 자리를 story_player.gd `_physics_process()`의 mp 회복 줄에 얹는다.
+const MAGE_TALIS_COST := 30.0
+const MAGE_TALIS_CD := 16.0
+const MAGE_TALIS_SEC := 10.0
+const MAGE_TALIS_ATK_MUL := 1.25
+const MAGE_TALIS_REGEN_MUL := 2.6
 
 
 static var _hitstop_active := false

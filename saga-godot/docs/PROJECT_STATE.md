@@ -4603,3 +4603,119 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
 - **다음 이어질 것** — 궁수·협객·방사 무예 넷씩(같은 패턴), SP 투자
   UI, 2~4차 전직, 나머지 일곱 사냥터+신야성.
+
+
+## STORY 전직 무예 다음 걸음 — 궁수(archer) 넷 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 해"** — 이전 항목이 남긴 "궁수·협객·
+  방사 무예 넷씩" 중 둘째 갈래(archer) 넷(사격·연사·관통시·응안)을
+  채웠다. FIXED_SKILL_LEVEL(5) 그대로 재사용. 자세한 기록·수치 검증은
+  `docs/VERTICAL_SLICE_STORY.md` 18절.
+  - 사격(arrow, 새 effect명)은 참격과 같은 정면 판정·ATTACK_RANGE로
+    좁힘. 연사(volley 3발)는 정면 판정을 세 번 잇달아 적용으로 재해석.
+    관통시는 원문 effect가 이미 'bolt'라 기탄과 같은 사거리 2배
+    재해석을 재사용. 응안(buff, atk×1.4)은 철갑과 `_job_buff_time_left`를
+    공유(job이 고정이라 안 섞인다) — `_effective_atk()`/`take_damage()`
+    가 job별로 배율/guard 적용 여부를 가른다(archer는 guard 없음).
+  - `story_combat.gd`: `ARCHER_SHOT_*`/`ARCHER_DOUBLE_*`/`ARCHER_PIERCE_*`/
+    `ARCHER_EYE_*` 신규. `story_player.gd`: 쿨다운 넷+`_cast_archer_*`
+    넷 신규, `_effective_atk()`/`take_damage()` job 분기 수정.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(texture-a.png.import
+    재발생, 되돌림) → 여섯 씬 세 번 연속 exit 0·로그 무결(GO/DUNGEON/
+    FOREST/REALM 회귀 확인 포함). 임시 디버그(더미 적+강제 job=archer)로
+    네 mul 정확, roll_damage 표본 손계산 범위 안, 사격/연사/관통시
+    실제 시전으로 mp·쿨다운·데미지 전부 손계산과 일치(관통시는 평타로는
+    못 맞히는 3.5m 거리에서 실제로 명중까지 확인), 응안 atk×1.4·버프
+    9초, take_damage(100)이 정확히 −100(철갑 guard가 archer에 안 샘)
+    까지 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 협객·방사 무예 넷씩(같은 패턴), SP 투자 UI,
+    2~4차 전직, 나머지 일곱 사냥터+신야성.
+
+
+## STORY 전직 무예 마지막 걸음 — 협객·방사 넷씩, 1차 전직 16개 완성 (2026-09-13)
+
+- **사용자 지시 "saga-godot 이어 하고 묻지말고 최대한 다해줘"** — 남은
+  두 갈래(협객 rogue·방사 mage) 넷씩을 한 번에 끝냈다. 이걸로 1차 전직
+  4갈래×4개=16개가 전부 채워졌다. 자세한 기록·수치 검증은
+  `docs/VERTICAL_SLICE_STORY.md` 19절.
+  - 협객: 쌍참(melee hits2, 연사와 같은 재해석)·비도(volley2)·은신보
+    (dash 5.2m + **invuln 0.7초, 이 포트에 처음 등장** — `_invuln_
+    time_left` 신규, take_damage()가 맨 앞에서 무시)·급소(buff atk1.55).
+  - 방사: 화구(bolt, 기탄과 같은 재해석)·뇌전(aoe, REACH비로 사거리
+    환산)·치유(**effect:'heal', 이 포트에 처음 등장** — max_hp*0.29
+    회복, 적 판정 없음)·부적(buff atk1.25 + **regen 2.6배, 이 포트에
+    처음 등장** — mp 회복 줄에 job=='mage'일 때만 곱함).
+  - `story_combat.gd`: `ROGUE_*`/`MAGE_*` 상수 신규. `story_player.gd`:
+    쿨다운 여덟+`_invuln_time_left` 신규, `_cast_rogue_*`/`_cast_mage_*`
+    여덟 신규, `take_damage()`·`_effective_atk()`·mp 회복 줄 수정.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+    → 여섯 씬 세 번 연속 exit 0·로그 무결(다섯 판 전부 회귀 포함). 임시
+    디버그로 여덟 mul 정확, 실제 시전으로 mp·쿨다운·데미지 손계산과
+    일치, 은신보 이동거리 정확히 5.2m, 무적 중 take_damage(50) 완전
+    무시 확인 후 무적 해제하면 정확히 −50, 급소×1.55·부적×1.25 정확,
+    치유가 87→137.46(max_hp 174×0.29=50.46) 정확, 부적 regen으로 1초당
+    mp +20.8(=8×2.6) 정확까지 전부 예측과 일치. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — SP(무예 점수) 투자 시스템 UI(지금은
+    FIXED_SKILL_LEVEL 고정), 2~4차 전직, 나머지 일곱 사냥터+신야성.
+
+
+## STORY SP(무예 점수) 투자 시스템 (2026-09-13)
+
+- **사용자 지시 "계속 이어해 묻지말고"** — 17~19절이 16개 무예를
+  FIXED_SKILL_LEVEL(5, 고정값)로 채워 뒀던 것을 실제 투자 레벨(0~10)로
+  바꿨다. 자세한 기록·수치 검증은 `docs/VERTICAL_SLICE_STORY.md` 20절.
+  - `StorySaveState.skills`(key→레벨, SAVE_VERSION 7) 신규. mul 공식은
+    `skill_mul(base,per,level)=base+per*level`(이 포트가 17절부터 써
+    온 관례 그대로 유지, job.js의 (lv-1) 공식과는 다르지만 이미 커밋된
+    검증 수치와 안 어긋나게 이 결로 통일). **미투자(레벨0) 무예는 캐스팅
+    자체가 조용히 막힌다**(job.js bar()의 "찍은 것만" 놓는 규칙과 같은
+    자리).
+  - SP는 허도 전직 담당(`story_job_trainer.gd`)에서 찍는다 — 전직 전엔
+    숫자 1~4가 갈래를 고르고, 전직 후엔 같은 숫자 1~4가 그 직업 무예
+    넷 중 하나에 SP 1점을 투자(새 입력 액션 안 늘림).
+  - `story_combat.gd`: `SKILL_MAX_LEVEL`(10)·`SP_PER_LEVEL`(3)·
+    `SKILL_JOB`·`JOB_SKILL_KEYS`·`skill_mul()` 신규, 16개 `*_MUL`을
+    `*_BASE`/`*_PER`로 분리, `FIXED_SKILL_LEVEL` 제거. `story_save_
+    state.gd`: sp_total/spent/left·skill_level·can_raise_skill·
+    raise_skill 신규. `story_player.gd`: 16개 `_cast_*`에 레벨0 차단 +
+    동적 mul 계산. `story_job_trainer.gd`: SP 투자 UI(_raise, 상태
+    토스트).
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+    → 여섯 씬 세 번 연속 exit 0·로그 무결(다섯 판 전부 회귀 포함). 임시
+    디버그로 sp_total(lv10)=27 정확, 미투자 무예 시전이 완전히 무시됨,
+    can_raise_skill이 직업별로 정확히 갈림, 1점 투자 후 레벨1·mul
+    1.24로 실제 명중, 반복 투자해도 레벨이 SKILL_MAX_LEVEL(10)에서
+    멈추고 sp_left=17(=27-10)로 정확, 세이브/로드 왕복으로 skills가
+    그대로 복원됨까지 전부 예측과 일치. 디버그 원상복구(diff 0,
+    디버그가 만든 세이브 파일도 정리).
+  - **GUI 실기 확인은 아직 안 함** — 허도에서 숫자 키로 SP 찍는 손맛은
+    눈으로 볼 것. 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 2~4차 전직, 나머지 일곱 사냥터+신야성.
+
+
+## STORY 나머지 사냥터 — 둘째: 강릉진(중계 마을) (2026-09-13)
+
+- **사용자 지시 "계속 이어해 묻지말고"** — 15절(허도)에 이어 강릉진
+  (江陵鎭, town:true 중계 마을)을 지었다. 자세한 기록·수치 검증은
+  `docs/VERTICAL_SLICE_STORY.md` 21절.
+  - `gangneungjin_map.gd` 신규(heodo_map.gd와 같은 모양). field의 동쪽
+    문(portals[1], 15절이 미뤄 뒀던 것)도 이번에 마저 열었다 — 도착
+    자리를 원래 관례(+80px)대로 잡으면 보스 자리와 정확히 겹쳐서,
+    보스 접촉 반경(0.96m)보다 먼 1.2m 간격을 두도록 20px 더 문 쪽으로
+    당겼다(2110px).
+  - `GangneungjinField.tscn` 신규(story_town.gd 재사용, Terrain map_path만
+    교체 — story_terrain_builder.gd 공용화 덕에 파일 하나로 끝남).
+    npcs(상점·전직)는 안 옮김 — 그 기능은 허도 하나에만 두는 기존 결정
+    유지, 이 마을은 field↔forest 순수 중계지.
+  - **검증(헤드리스, 값 자체까지)** — import 확인(재발생 노이즈, 되돌림)
+    → 이제 일곱 씬(신규 포함) 세 번 연속 exit 0·로그 무결(다섯 판 전부
+    회귀 포함). 임시 디버그로 문 위치·도착 자리·보스와의 안전 거리
+    (1.2m>0.96m)·지형 좌표 전부 손계산과 일치, 문을 실제로 실행해
+    130프레임 뒤 정확히 x=3.0에 도착 확인. 디버그 원상복구(diff 0).
+  - **GUI 실기 확인은 아직 안 함** — 계속 몰아서 받을 것.
+  - **다음 이어질 것** — 오림 숲(forest, 다음 진짜 전투 사냥터)·남정성·
+    한중 굴혈·기산채·호로곡·신야성(나머지 여섯), 2~4차 전직(`job`
+    필드를 덮어쓰는 원작 방식이 이 포트의 여러 `job=="warrior"` 분기와
+    부딪혀 더 큰 재설계가 필요 — 신중히 볼 자리).
