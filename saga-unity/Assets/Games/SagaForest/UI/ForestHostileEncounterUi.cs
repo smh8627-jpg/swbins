@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using Saga.Forest.Audio;
 
 namespace Saga.Forest.UI
 {
@@ -35,6 +36,10 @@ namespace Saga.Forest.UI
         // private Text label;`과 같은 이유로 여기도 필요.
         [SerializeField] private GameObject _panel;
         [SerializeField] private Image _gaugeFill;
+        // 67장 "사운드" 첫 슬라이스 — ForestAudio.cs 참고. 이 필드들도 같은
+        // 이유로 [SerializeField]가 필요하다(위 _panel 주석과 동일).
+        [SerializeField] private AudioClip _pressClip;
+        [SerializeField] private AudioClip _resolveClip;
         private int _pressesLeft;
         private Action<bool> _onResolved;
         private Coroutine _timeoutRoutine;
@@ -45,9 +50,12 @@ namespace Saga.Forest.UI
         }
 
         /// <summary>edit-time 씬 빌드가 직접 부른다 — 다른 편집기 빌드 스크립트의
-        /// UI 조립 패턴(BuildDialogueUi 등)과 같다.</summary>
-        public void Build(Transform canvasRoot)
+        /// UI 조립 패턴(BuildDialogueUi 등)과 같다. pressClip/resolveClip는
+        /// 없어도(다른 PC 등) 동작에 지장 없다 — PlaySfx가 null을 조용히 건너뛴다.</summary>
+        public void Build(Transform canvasRoot, AudioClip pressClip = null, AudioClip resolveClip = null)
         {
+            _pressClip = pressClip;
+            _resolveClip = resolveClip;
             _panel = EncounterUiKit.NewPanel(canvasRoot, new Vector2(0.5f, 0.22f), new Vector2(560f, 220f),
                 new Color(0.08f, 0.08f, 0.1f, 0.85f));
             EncounterUiKit.NewText(_panel.transform, "포자괴물이 다가온다!", new Vector2(0.5f, 1f),
@@ -83,6 +91,7 @@ namespace Saga.Forest.UI
         private void OnPress()
         {
             if (!IsActive) return;
+            ForestAudio.PlaySfx(_pressClip);
             _pressesLeft--;
             _gaugeFill.fillAmount = Mathf.Max(0f, (float)_pressesLeft / PressesToWin);
             if (_pressesLeft <= 0) Resolve(true);
@@ -102,6 +111,7 @@ namespace Saga.Forest.UI
                 _timeoutRoutine = null;
             }
             _panel.SetActive(false);
+            ForestAudio.PlaySfx(_resolveClip);
             var cb = _onResolved;
             _onResolved = null;
             cb?.Invoke(won);

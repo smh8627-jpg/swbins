@@ -377,3 +377,24 @@ CC0-1.0) 후 실제로 `git clone`해 받았다. 아직 후보일 뿐 — 캐릭
 텍스처 후보" 항목이 대표 둘(바닥·벽)만 확인한 것에 이어 44장 우선순위
 대로 넓힌 것 — 출처는 `LICENSE.txt`, 자세한 내용은 `PLAN.md` 66-2장
 ⑥ 참고. 여전히 후보일 뿐, 어느 씬에도 안 물렸다.
+
+## 2026-09-14 — 사운드 첫 벌(Kenney, CC0) — PLAN.md 67장 첫 슬라이스
+
+FOREST 포자괴물 "밀어내기" 미니게임(같은 날 앞서 추가된 전투 콘텐츠)에
+쓸 SFX 두 개를 opengameart.org의 Kenney CC0 미러에서 받았다(Kenney
+공식 페이지는 다운로드 버튼이 JS라 직접 URL을 못 뽑는다는 게 위 Props
+항목의 결론 그대로라 이번에도 같은 미러를 썼다):
+
+| 파일 | 출처 팩 | 쓰는 곳 |
+|---|---|---|
+| `Assets/Art/Audio/Kenney_RPGSounds/chop.ogg` | [RPG sounds](https://opengameart.org/content/50-rpg-sound-effects)(50 RPG Sound Effects) | 밀어내기 버튼 누를 때마다 |
+| `Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_001.ogg` | [Interface Sounds](https://opengameart.org/content/interface-sounds) | 대치 해소(성공/타임아웃 공통) |
+
+라이선스: CC0 — 두 폴더의 `LICENSE.txt` 참고. 각 팩 전체(수십~수백
+파일)를 받지 않고 실제로 쓰는 파일만 골라 커밋했다(Props 항목과 같은
+절제 — 킷 하나를 통째로 받지 않는다). `Saga.Forest.Audio.ForestAudio`
+(신규)가 재생을 맡는다 — 진짜 Unity AudioMixer 에셋(카테고리별 볼륨을
+Mixer로 분리하는 것)은 에디터 GUI로 사람이 노드를 잇는 방식이라 배치
+모드로 못 만들어서, 이번엔 코드로 볼륨만 곱해 흉내 냈다(자세한 내용은
+`ForestAudio.cs` 클래스 주석). FOREST 하나에만 만들었다 — 다른 네 판은
+필요해질 때 각자 복사해 붙일 것.
