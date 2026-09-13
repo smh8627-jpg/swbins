@@ -402,7 +402,7 @@ const QUESTS := {
 
 
 ## **2026-09-13 추가(같은 날 더 더 더) — 반복/일일 사명.** data-quest.js
-## 나머지 일곱(r_*(반복 다섯)·d_*(일일 둘)) 중 **여섯**을 옮긴다.
+## 나머지 일곱(r_*(반복 다섯)·d_*(일일 둘)) **전부**를 옮긴다.
 ## **재해석** — 원작은 게시판에서 "받기"를 누르고, 조건을 채운 뒤
 ## "바치기"를 눌러야 보상을 받고 다시 받을 수 있게 된다(quest.js
 ## take()/turnIn()). 이 포트엔 그 게시판 UI가 없어(위 QUESTS 머리말과
@@ -415,18 +415,21 @@ const QUESTS := {
 ## 나머지는 다음 판으로 안 넘어간다). `daily:true` 둘은
 ## `daily_done_day`(key→day index)로 하루 한 번만 걸러진다.
 ##
-## **`r_purse`(goal.type:'gold', "금 4000 이상을 보여라 — 바쳐도 줄지
-## 않는다")는 뺐다.** kill/boss/gather/talk과 달리 gold는 오르내릴 수
-## 있는 **스냅샷** 조건이라 "지난 완수 이후 늘어난 양"으로 볼 수가
-## 없다 — gold가 한 번 4000을 넘으면 그 뒤로 내려가지 않는 한 이
-## 포트의 자동 판정(상태가 바뀔 때마다 check_quests() 호출)이 호출될
-## 때마다 매번 다시 완수돼 버린다(원작은 플레이어가 매번 직접 "바치기"를
-## 눌러야 하니 이 문제가 없다). 받기/바치기 UI가 생기기 전까진 보류.
+## **정정(2026-09-13, 다음 세션) — `r_purse`를 "gold는 스냅샷이라 못
+## 옮긴다"고 뺐던 건 틀렸다.** 그 근거("gold가 한 번 4000을 넘으면
+## 매번 다시 완수돼 버린다")는 baseline을 매번 0에 고정한 채 "지금
+## gold>=n인가"만 보는 잘못된 구현을 가정한 것이었다 — 실제로 짠
+## `_check_repeat_quests()`는 baseline을 **완수 시점의 현재값**으로
+## 매번 올리므로(바로 위 문단), gold처럼 오르내리는 값이라도 "마지막
+## 완수 이후 n만큼 더 늘었는가"를 정확히 본다. gold가 늘었다 줄었다
+## 해도 델타 기준이라 과도하게 자주 터지지 않는다 — kill/boss/gather/
+## talk과 다를 게 없었다. 그래서 이제 **일곱 전부** 옮긴다.
 const REPEAT_QUESTS := {
-	"r_hunt":   {"name": "토벌령(討伐令)", "need": 3, "goal_type": "kill",   "n": 30, "exp": 260, "gold": 900,  "scroll": "",      "daily": false},
-	"r_boss":   {"name": "수급(首級)",     "need": 7, "goal_type": "boss",   "n": 2,  "exp": 900, "gold": 2600, "scroll": "def60", "daily": false},
-	"r_forage": {"name": "약재 상납",      "need": 4, "goal_type": "gather", "n": 20, "exp": 240, "gold": 500,  "scroll": "",      "daily": false},
-	"r_talk":   {"name": "민심 순회",      "need": 6, "goal_type": "talk",   "n": 8,  "exp": 300, "gold": 600,  "scroll": "",      "daily": false},
+	"r_hunt":   {"name": "토벌령(討伐令)", "need": 3, "goal_type": "kill",   "n": 30,   "exp": 260, "gold": 900,  "scroll": "",      "daily": false},
+	"r_boss":   {"name": "수급(首級)",     "need": 7, "goal_type": "boss",   "n": 2,    "exp": 900, "gold": 2600, "scroll": "def60", "daily": false},
+	"r_purse":  {"name": "군량 조달",      "need": 9, "goal_type": "gold",   "n": 4000, "exp": 700, "gold": 0,    "scroll": "",      "daily": false},
+	"r_forage": {"name": "약재 상납",      "need": 4, "goal_type": "gather", "n": 20,   "exp": 240, "gold": 500,  "scroll": "",      "daily": false},
+	"r_talk":   {"name": "민심 순회",      "need": 6, "goal_type": "talk",   "n": 8,    "exp": 300, "gold": 600,  "scroll": "",      "daily": false},
 	"d_hunt":   {"name": "일일 토벌",      "need": 2, "goal_type": "kill",   "n": 20, "exp": 500, "gold": 1500, "scroll": "",      "daily": true},
 	"d_gather": {"name": "일일 채집",      "need": 2, "goal_type": "gather", "n": 12, "exp": 350, "gold": 800,  "scroll": "",      "daily": true},
 }
