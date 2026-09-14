@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/party_label.gd" id="11"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hardcore_button.gd" id="12"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/skill_button.gd" id="13"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_button.gd" id="14"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -219,3 +220,16 @@ offset_bottom = -510.0
 text = "🥋"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("13")
+
+[node name="BoltButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -660.0
+offset_right = -40.0
+offset_bottom = -590.0
+text = "🌊"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("14")

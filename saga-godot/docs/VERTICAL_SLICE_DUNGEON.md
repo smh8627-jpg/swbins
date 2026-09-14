@@ -536,3 +536,38 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   꽂히는 것"이 아니다. GUI 실기 확인은 아직(몰아서 받을 것, HUD에
   버튼이 하나 늘어난 것도 함께 볼 것). DUNGEON 밖(GO/FOREST/STORY/
   REALM 추가 확장·saga-unity 트랙)을 고려할 자리이기도 하다.
+
+## 14. 51장 "장비→빌드" — 첫 활성 무예: 기공파(s_wave, bolt) (2026-09-14, 같은 날 이어서, "사가고돗 이어해")
+
+- 위 13절이 예고한 "훨씬 큰 몫"(투사체 등 새 전투 코드) 중 가장 작은
+  하나(shots=1, 대상 하나)만 먼저 옮겼다. 웹판 `applyShapeSkill()`의
+  'bolt'는 진짜 투사체(속도 330, 최대 1.5초 생존, 벽에 닿으면 소멸)를
+  쏘지만, 이 슬라이스엔 투사체 이동/충돌 시스템이 없어 "가장 가까운 적
+  하나를 즉시 맞히는" 히트스캔으로 근사했다(우물이 원작 미니게임을 즉시
+  회복으로 근사한 것과 같은 결의 판단) — `games/saga_dungeon/player/
+  skill_bolt.gd` 신규, melee_attack.gd와 같은 경계(Player 자식 컴포넌트,
+  HUD 버튼이 "skill_bolt" 그룹으로 찾아 같은 진입점 호출)로 짰다.
+- 기력(mp)이 없어 `sk.cost`(30)는 소비하지 않고 쿨다운(`sk.cd`, 8초)만
+  남발을 막는다 — `dungeon_skills.gd`의 `s_wave` 항목에 `shape`·`cd`·
+  `el`(chi) 세 필드를 원작 값 그대로 채워 넣었다(passive 열넷을 옮길 때
+  비워 뒀던 자리). `s_focus`·`y_hex`가 쌓아 온 `skillPct`도 이번에 처음
+  실제로 소비된다 — `DungeonRunState.skill_mul()` 신규(world eff 합산에
+  안 섞고 skill_bolt.gd가 직접 곱한다, "무예 위력"은 무예 데미지에만
+  곱해야 하는 계수라서).
+- 데미지 공식은 melee_attack.gd의 기준(ATK_DAMAGE=9, atk_mult+장비flat/pct,
+  crit 1.85배)을 그대로 가져오되 `value_at(sk,rank)`(원작 v/grow)와
+  `skill_mul()`을 곱한다 — 상수(9.0·1.85)를 새로 안 만들고 melee_attack.gd
+  의 const를 preload로 참조. 새 입력 액션 `dungeon_skill_1`(R키) + HUD
+  버튼(`bolt_button.gd`, 🌊) 추가.
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 8` 세 번
+  연속 로그 완전 동일(md5 일치). 임시 씬(`_verify_bolt.tscn`, 검증 후
+  삭제)으로 9항목 PASS — 랭크0 무동작·투자 후 랭크1·**데미지 공식 정확히
+  일치**(9×2.2=19.8→round 20, HP 24→4 실측)·쿨다운 차단·사거리 밖 실패까지
+  확인. GO·FOREST·STORY·REALM 회귀도 헤드리스 오류 0건. `.import` 잡음은
+  이전부터 있던 vroid 텍스처뿐(이번 세션 변경 아님), `project.godot` diff는
+  의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 여섯 갈래(swing·nova·dash·buff·heal·summon)는
+  범위 판정·돌진·버프/치유·소환 등 각자 다른 새 코드가 필요 — bolt보다
+  더 큰 몫들. GUI 실기 확인은 아직(몰아서 받을 것, R키/🌊 버튼 둘 다).
+  DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity 트랙)도 고려할
+  자리.

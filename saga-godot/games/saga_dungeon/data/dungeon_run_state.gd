@@ -120,6 +120,15 @@ func echo_pct() -> float:
 	return _sum_eff("echoPct")
 
 
+## dungeon.js skillMul()의 "1 + boonVal('skillPct')/100" 그대로 — 단,
+## 이 슬라이스엔 skillPct를 주는 은사/장비/부대가 없어(dungeon_skills.gd
+## s_focus·y_hex 무예만 준다) 사실상 무예 랭크만 반영된다. atk_mult()
+## 등과 달리 world eff 합산에 안 섞고 skill_bolt.gd가 직접 부른다 —
+## "무예 위력"은 무예 데미지에만 곱해야 하는 계수라서다.
+func skill_mul() -> float:
+	return 1.0 + _sum_eff("skillPct") / 100.0
+
+
 ## "제외" 목록 3번(행상 등) — dungeon.js dropGold()의 `(1+boonVal('goldPct')/100)
 ## *(1+core.effect('goldPct')/100)` 두 배율을 여기 하나로 합친다(은사+장비가
 ## 이미 _sum_eff 한 곳에서 더해진다 — atk_mult()와 같은 경계).

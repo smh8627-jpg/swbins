@@ -6524,3 +6524,10 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 정직하게 밝힘: 15개 중 11개만 실제 효과(critPct/reachPct/atkSpdPct/hpPct/atkPct/drainPct/guardPct, 기존 getter가 소비), 나머지 넷(bolt 자체·mpRegen·skillPct·allResPct)은 소비 시스템이 없어 값만 쌓임(문서화된 의도).
 - 검증: 헤드리스 3회 로그 동일(새 스크립트 .uid 등록 필요했음 — 과거 함정 재확인). 임시 씬 20항목 PASS, a_eye 1단 투자 시 DungeonRunState.crit_chance()가 실제로 +4 오르는 실전 경로까지 확인. save_dungeon.json 백업/복원. GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 13절.
 - 다음: 남은 활성 무예(bolt/swing/nova/dash/buff/heal/summon)는 투사체·범위판정·소환 등 새 전투 코드가 필요해 훨씬 큰 몫 — 다음 세션이 판단할 자리. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 첫 활성 무예: 기공파(s_wave, bolt) (2026-09-14, 같은 날 이어서, "사가고돗 이어해")
+
+- 활성 무예 중 가장 작은 하나(단일 대상 bolt)만 먼저 옮김. 투사체 없이 "가장 가까운 적 즉시 명중" 히트스캔으로 근사. 신규 skill_bolt.gd(Player 컴포넌트)·bolt_button.gd(HUD 🌊)·입력 액션 dungeon_skill_1(R키).
+- dungeon_skills.gd s_wave에 shape/cd/el 필드 채움. DungeonRunState.skill_mul() 신규 — skillPct(s_focus·y_hex)를 처음 실제 소비. 데미지=melee 기준(9×atk_mult+flat)×value_at(rank)×skill_mul, crit/원소저항 재사용.
+- 검증: 헤드리스 3회 로그 동일, 임시 씬 9항목 PASS(공식 정확히 9×2.2=20 확인). GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 14절.
+- 다음: 남은 여섯 갈래(swing/nova/dash/buff/heal/summon) 각자 새 코드 필요 — 더 큰 몫. GUI 실기 확인 아직(몰아서 받을 것).

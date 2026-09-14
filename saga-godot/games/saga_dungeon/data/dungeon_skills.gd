@@ -20,21 +20,25 @@ class_name DungeonSkills
 ##
 ## 궁장(archer)·무장(warrior)·도독(marshal)·방사(mystic)는 br=2 세 단
 ## (row 0~2)이 전부 passive라 그대로 옮겼다. 책사(scholar)만 br=2 row 0
-## (`s_wave`, 기(氣) 결 bolt)이 passive가 아니다 — 그래도 함께 옮긴
-## 이유: 앞 단에 1점이 있어야 다음 단이 열리는 원작 규칙(`prereq_of()`)
-## 을 지키려면 row 0이 있어야 row 1(`s_wit`)이 열린다. `s_wave`에 점을
-## 넣어도 지금은 **아무 효과가 없다**(bolt 투사체 자체가 없다) — 값을
-## 지어내지 않고 원작 그대로 둔 것뿐, 다음에 활성 무예(bolt 등)를 옮길
-## 때 그대로 쓰면 된다.
+## (`s_wave`, 기(氣) 결 bolt)이 passive가 아니었다.
+## **2026-09-14, 같은 날 이어서 — 첫 활성 무예로 옮겼다**(`games/
+## saga_dungeon/player/skill_bolt.gd` 참고). 진짜 투사체(속도 330, 최대
+## 1.5초 생존) 대신 "가장 가까운 적 하나를 즉시 맞히는" 히트스캔으로
+## 근사했다 — 우물이 원작 미니게임을 즉시 회복으로 근사한 것과 같은 결의
+## 판단. `shape`·`cd`·`el` 세 필드를 이때 채워 넣었다(원작 값 그대로,
+## 지어내지 않음). `s_focus`·`y_hex`가 쌓아 온 `skillPct`도 이걸로 처음
+## 실제 소비된다(`DungeonRunState.skill_mul()`).
 ##
-## **eff 키 중 이번에 실제로 반영되는 것**: critPct·reachPct·atkSpdPct·
-## hpPct·atkPct·drainPct·guardPct — 전부 `dungeon_run_state.gd`가 이미
-## 소비 중이다(위 헤더 참고). **반영 안 되는 것(시스템이 아직 없다)**:
-## mpRegen(기력 자체가 없다)·skillPct(무예 위력 배율 — 활성 무예 자체가
-## 없다)·allResPct(원소 저항 합산 자리, `dungeon_equipment_state.gd
-## elem_resist()`가 이미 있지만 "전체 결" 합산 채널은 없다). 데이터는
-## 그대로 두고(다음에 채널이 생기면 그때 잇는다), 이 셋에 점을 넣어도
-## 지금은 조용히 아무 효과가 없다 — dungeon_run_state.gd 헤더의
+## **eff 키 중 반영되는 것**: critPct·reachPct·atkSpdPct·hpPct·atkPct·
+## drainPct·guardPct — 전부 `dungeon_run_state.gd`가 이미 소비 중이다
+## (위 헤더 참고). skillPct는 world eff 합산이 아니라 skill_bolt.gd가
+## `DungeonRunState.skill_mul()`로 직접 소비한다(passive들과 다른 자리 —
+## "무예 위력 배율"은 무예 데미지에만 곱해야지 은사/장비의 다른 수치에
+## 섞이면 안 된다). **아직 반영 안 되는 것(시스템이 없다)**: mpRegen
+## (기력 자체가 없다)·allResPct(원소 저항 합산 자리, `dungeon_equipment_
+## state.gd elem_resist()`가 이미 있지만 "전체 결" 합산 채널은 없다).
+## 데이터는 그대로 두고(다음에 채널이 생기면 그때 잇는다), 이 둘에 점을
+## 넣어도 지금은 조용히 아무 효과가 없다 — dungeon_run_state.gd 헤더의
 ## "goldPct(경제 시스템 없음)"과 같은 결의 판단이다.
 
 const MAX_RANK := 5
@@ -55,8 +59,10 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "w_second", "cls": "warrior", "br": 2, "row": 2, "name": "이혼대법(離魂)",
 		"eff": "drainPct", "v": 2.0, "grow": 1.0, "desc": "적을 잡으면 체력이 조금 돌아온다." },
 	## 책사(策士) br=2 — row 0(s_wave)만 passive가 아니다(위 헤더 참고).
+	## shape/cd/el은 data-skill.js 그대로(cost=30은 기력이 없어 안 씀).
 	{ "key": "s_wave", "cls": "scholar", "br": 2, "row": 0, "name": "기공파(氣功波)",
-		"eff": "", "v": 2.2, "grow": 0.5, "desc": "꿰뚫는 기를 쏜다.(아직 투사체 없음 — 값만 보존)" },
+		"shape": "bolt", "cd": 8.0, "el": "chi",
+		"eff": "", "v": 2.2, "grow": 0.5, "desc": "꿰뚫는 기를 쏜다." },
 	{ "key": "s_wit", "cls": "scholar", "br": 2, "row": 1, "name": "명민(明敏)",
 		"eff": "mpRegen", "v": 2.0, "grow": 1.4, "desc": "기력이 빨리 찬다.(아직 기력 없음)" },
 	{ "key": "s_focus", "cls": "scholar", "br": 2, "row": 2, "name": "집중(集中)",
