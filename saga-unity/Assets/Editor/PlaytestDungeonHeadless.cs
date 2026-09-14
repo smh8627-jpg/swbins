@@ -123,6 +123,14 @@ namespace Saga.EditorTools
             float near2Hp = (float)GetPrivate(near2, "_curHp");
             float farHp = (float)GetPrivate(far, "_curHp");
 
+            // 회전베기 피해(24 HP 더미에 약 2.8)로는 안 죽어 STORY 더미(Die()로
+            // 자가 정리)와 달리 손수 치워야 한다 — 안 치우면 남은 프레임 동안
+            // DungeonEnemy.Active에 그대로 남아 플레이어를 쫓아다니며(aggroRadius
+            // 8f) 이후 검사에 비결정적 부작용을 끼얹는다.
+            Object.Destroy(near1.gameObject);
+            Object.Destroy(near2.gameObject);
+            Object.Destroy(far.gameObject);
+
             if (near1Hp >= hpBefore || near2Hp >= hpBefore)
             {
                 Debug.LogError($"[PlaytestDungeonHeadless] 회전베기가 반경 안 더미를 안 때림 — near1={near1Hp} near2={near2Hp}(기대 < {hpBefore})");

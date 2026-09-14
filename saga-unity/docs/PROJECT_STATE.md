@@ -4808,3 +4808,57 @@ RealmEnemyCity.AllIds를 도는 걸로 바꿔 앞으로는 안 잊어도 되게
 다음 "판단 없이 할 일" 후보로 안전하다. 단, 지적을 다 받아들이지 말고
 이 프로젝트의 "필요 이상으로 방어 코드를 안 쌓는다" 원칙에 맞는지
 먼저 거른다.
+
+
+## DUNGEON 회전베기 커밋(5a5b019) 코드 리뷰 — 새 카테고리 (2026-09-14, 열네 번째 "이어해", "버그 리뷰로 새 카테고리 정해서 이어해")
+
+- 지난 세션이 REALM 커밋(618dcab) 하나만 리뷰하고 "51장류 콘텐츠
+  확장 뒤엔 code-review를 돌리는 게 안전하다"고 남긴 교훈을 이어,
+  아직 안 훑은 DUNGEON "빌드"(회전베기) 커밋(5a5b019)을 `/code-review
+  high`로 훑었다. 지적 셋 전부 이 프로젝트 스타일에 맞는 실제 값
+  있는 지적이라 판단해 전부 반영(REALM 리뷰 때는 열 개 중 하나만
+  반영했던 것과 대조적 — 이번엔 가상의 엣지케이스가 아니라 셋 다
+  구체적인 실패 시나리오가 있었다):
+  1. `PlayerCombat.TryWhirl()`에 `TryHeavyAttack()`은 이미 갖고 있는
+     `IsDodging` 가드가 빠져 있어, 회피 무적 중(0.22초)에도 회전베기를
+     쓸 수 있었다(쿨다운 기반 위험/보상 트레이드오프가 깨짐) — 같은
+     가드 한 줄 추가.
+  2. `PlaytestDungeonHeadless.CheckWhirl()`이 스폰한 더미 셋 중 근접
+     둘(near1/near2)은 회전베기 피해(약 2.8)로는 안 죽어(24 HP) STORY
+     더미(Die()로 자가 정리)와 달리 안 치워졌다 — 남은 프레임 동안
+     `DungeonEnemy.Active`에 남아 플레이어를 쫓아다니며 이후 검사에
+     비결정적 부작용을 끼얹을 수 있었다 — 검사 직후 `Object.Destroy()`
+     셋 다 추가.
+  3. `BuildWhirlButton()`이 Save/Attack/HeavyAttack/Dodge 네 버튼과
+     거의 똑같은 ~35줄(Canvas+GraphicRaycaster+Button+Text) 골격을
+     또 복제(PLAN.md 33장 규칙 6·7 "동일한 코드를 복사하지 않는다"와
+     정면으로 어긋남) — `BuildActionButton(canvasName, buttonName,
+     anchor, pos, size, color, label, fontSize, onClick)` 공용
+     헬퍼로 다섯 버튼 전부(Save 포함) 묶었다. 이름·앵커·위치·크기·
+     색·글자·콜백은 전부 원래 값 그대로 유지(동작 변화 없음).
+- 검증: Unity 6000.3.24f1 배치 모드(`-batchmode -nographics
+  -executeMethod Saga.EditorTools.PlaytestDungeonHeadless.Run`)로
+  컴파일 확인 후 `PlaytestDungeonHeadless` 실행 — "whirl OK -
+  near1=20.26667 near2=20.26667 far=24(변화 없음)"로 회전베기 자체
+  (가드·반경 판정)는 정상. **이번 배치 실행에서 이 PC의 Unity 버전
+  (6000.3.24f1)이 프로젝트가 마지막으로 저장된 버전보다 최신이라
+  `ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`·
+  `EditorSettings.asset`을 조용히 고쳐 썼다(CLAUDE.md가 미리 경고해
+  둔 함정 그대로 재현) — 커밋 전 `git checkout`으로 전부 되돌림, 세
+  파일만 남은 것 확인.
+- **알려진 흠, 못 고침(다음 세션 몫)** — `TestDungeon.unity`를 열 때
+  `Missing Prefab Asset: 'Visual (Missing Prefab with guid:
+  0b167ff5b8ac4fe48ac934671a2ae220)'` 오류가 나 `PlaytestDungeonHeadless`
+  전체 결과가 FAIL로 찍힌다. **이번 세 수정과 무관한 사전 존재
+  결함**임을 확인했다 — `git stash`로 이번 수정 셋을 잠깐 치우고
+  원본(수정 전) 코드로 같은 배치 명령을 다시 돌려도 똑같이 재현됨
+  (실제 회전베기 로직 검사는 두 경우 다 통과, missing-prefab만 별개로
+  실패). 어느 GameObject의 어떤 prefab이 빠졌는지는 이번 세션에서
+  더 파지 않았다 — 다음 세션이 `Assets/Scenes/TestDungeon.unity`에서
+  guid `0b167ff5b8ac4fe48ac934671a2ae220`를 참조하는 자리를 찾아
+  고치거나 다시 연결할 것.
+- **다음에 할 일**: 위 missing-prefab 결함이 먼저다(PlaytestDungeonHeadless
+  가 지금 항상 FAIL로 찍혀 회귀 확인 도구 구실을 못 한다). 그 뒤
+  STORY·GO·FOREST의 51장 확장 커밋들도 아직 코드 리뷰 전이니 이어서
+  훑을 수 있다. 사용자가 "새 세션에서 하자"고 요청해 이번 세션은
+  여기서 정리한다.

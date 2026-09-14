@@ -1465,179 +1465,60 @@ namespace Saga.EditorTools
 
         private static void BuildSaveButton()
         {
-            var canvasGo = new GameObject("SaveUI");
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            canvasGo.AddComponent<GraphicRaycaster>();
-
-            var btnGo = new GameObject("SaveButton", typeof(RectTransform));
-            btnGo.transform.SetParent(canvasGo.transform, false);
-            var rect = (RectTransform)btnGo.transform;
-            rect.anchorMin = new Vector2(1f, 1f);
-            rect.anchorMax = new Vector2(1f, 1f);
-            rect.pivot = new Vector2(1f, 1f);
-            rect.anchoredPosition = new Vector2(-30f, -30f);
-            rect.sizeDelta = new Vector2(160f, 80f);
-
-            var img = btnGo.AddComponent<Image>();
-            img.color = new Color(1f, 1f, 1f, 0.18f);
-            var button = btnGo.AddComponent<Button>();
-            button.targetGraphic = img;
-            button.onClick.AddListener(() =>
-            {
-                bool ok = SaveState.Save();
-                DialogueLabel.Instance?.Show(ok ? "저장했다." : "저장 실패 — 플레이어를 못 찾았다.", 3f);
-            });
-
-            var textGo = new GameObject("Text", typeof(RectTransform));
-            textGo.transform.SetParent(btnGo.transform, false);
-            var textRect = (RectTransform)textGo.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 26;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = "저장";
+            BuildActionButton("SaveUI", "SaveButton", new Vector2(1f, 1f), new Vector2(-30f, -30f),
+                new Vector2(160f, 80f), new Color(1f, 1f, 1f, 0.18f), "저장", 26, () =>
+                {
+                    bool ok = SaveState.Save();
+                    DialogueLabel.Instance?.Show(ok ? "저장했다." : "저장 실패 — 플레이어를 못 찾았다.", 3f);
+                });
         }
 
         /// <summary>화면 오른쪽 아래 — 모바일 공격 버튼(PlayerCombat.TriggerAttack()).
         /// 데스크톱은 스페이스바로도 된다(PlayerCombat.cs 참고).</summary>
         private static void BuildAttackButton(PlayerCombat combat)
         {
-            var canvasGo = new GameObject("AttackUI");
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            canvasGo.AddComponent<GraphicRaycaster>();
-
-            var btnGo = new GameObject("AttackButton", typeof(RectTransform));
-            btnGo.transform.SetParent(canvasGo.transform, false);
-            var rect = (RectTransform)btnGo.transform;
-            rect.anchorMin = new Vector2(1f, 0f);
-            rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-100f, 180f);
-            rect.sizeDelta = new Vector2(160f, 160f);
-
-            var img = btnGo.AddComponent<Image>();
-            img.color = new Color(0.7f, 0.2f, 0.15f, 0.55f);
-            var button = btnGo.AddComponent<Button>();
-            button.targetGraphic = img;
-            button.onClick.AddListener(combat.TriggerAttack);
-
-            var textGo = new GameObject("Text", typeof(RectTransform));
-            textGo.transform.SetParent(btnGo.transform, false);
-            var textRect = (RectTransform)textGo.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 30;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = "공격";
+            BuildActionButton("AttackUI", "AttackButton", new Vector2(1f, 0f), new Vector2(-100f, 180f),
+                new Vector2(160f, 160f), new Color(0.7f, 0.2f, 0.15f, 0.55f), "공격", 30, combat.TriggerAttack);
         }
 
         /// <summary>"스킬 다양화" 슬라이스 — 공격 버튼 바로 위(20px 간격),
         /// 데스크톱은 Left Alt로도 된다(PlayerCombat.TryHeavyAttack() 참고).</summary>
         private static void BuildHeavyAttackButton(PlayerCombat combat)
         {
-            var canvasGo = new GameObject("HeavyAttackUI");
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            canvasGo.AddComponent<GraphicRaycaster>();
-
-            var btnGo = new GameObject("HeavyAttackButton", typeof(RectTransform));
-            btnGo.transform.SetParent(canvasGo.transform, false);
-            var rect = (RectTransform)btnGo.transform;
-            rect.anchorMin = new Vector2(1f, 0f);
-            rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-100f, 360f); // AttackButton(y=180, 높이160) 바로 위, 20px 간격
-            rect.sizeDelta = new Vector2(130f, 130f);
-
-            var img = btnGo.AddComponent<Image>();
-            img.color = new Color(0.75f, 0.4f, 0.05f, 0.55f);
-            var button = btnGo.AddComponent<Button>();
-            button.targetGraphic = img;
-            button.onClick.AddListener(combat.TriggerHeavyAttack);
-
-            var textGo = new GameObject("Text", typeof(RectTransform));
-            textGo.transform.SetParent(btnGo.transform, false);
-            var textRect = (RectTransform)textGo.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 26;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = "강공격";
+            // AttackButton(y=180, 높이160) 바로 위, 20px 간격
+            BuildActionButton("HeavyAttackUI", "HeavyAttackButton", new Vector2(1f, 0f), new Vector2(-100f, 360f),
+                new Vector2(130f, 130f), new Color(0.75f, 0.4f, 0.05f, 0.55f), "강공격", 26, combat.TriggerHeavyAttack);
         }
 
         /// <summary>PLAN.md 51장 "DUNGEON 확장 — 빌드" — 강공격 버튼 위(20px
         /// 간격), 데스크톱은 E키로도 된다(PlayerCombat.TryWhirl() 참고).</summary>
         private static void BuildWhirlButton(PlayerCombat combat)
         {
-            var canvasGo = new GameObject("WhirlUI");
-            var canvas = canvasGo.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            var scaler = canvasGo.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080, 1920);
-            canvasGo.AddComponent<GraphicRaycaster>();
-
-            var btnGo = new GameObject("WhirlButton", typeof(RectTransform));
-            btnGo.transform.SetParent(canvasGo.transform, false);
-            var rect = (RectTransform)btnGo.transform;
-            rect.anchorMin = new Vector2(1f, 0f);
-            rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-100f, 510f); // HeavyAttackButton(y=360, 높이130) 바로 위, 20px 간격
-            rect.sizeDelta = new Vector2(130f, 130f);
-
-            var img = btnGo.AddComponent<Image>();
-            img.color = new Color(0.5f, 0.15f, 0.55f, 0.55f);
-            var button = btnGo.AddComponent<Button>();
-            button.targetGraphic = img;
-            button.onClick.AddListener(combat.TriggerWhirl);
-
-            var textGo = new GameObject("Text", typeof(RectTransform));
-            textGo.transform.SetParent(btnGo.transform, false);
-            var textRect = (RectTransform)textGo.transform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-            var text = textGo.AddComponent<Text>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 26;
-            text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
-            text.text = "회전베기";
+            // HeavyAttackButton(y=360, 높이130) 바로 위, 20px 간격
+            BuildActionButton("WhirlUI", "WhirlButton", new Vector2(1f, 0f), new Vector2(-100f, 510f),
+                new Vector2(130f, 130f), new Color(0.5f, 0.15f, 0.55f, 0.55f), "회전베기", 26, combat.TriggerWhirl);
         }
 
         /// <summary>"회피" 슬라이스 — 공격 버튼 왼쪽(20px 간격), 데스크톱은
         /// Left Ctrl로도 된다(PlayerController.TryDodge() 참고).</summary>
         private static void BuildDodgeButton(PlayerController controller)
         {
-            var canvasGo = new GameObject("DodgeUI");
+            // AttackButton(-100, 폭160)의 왼쪽, 20px 간격
+            BuildActionButton("DodgeUI", "DodgeButton", new Vector2(1f, 0f), new Vector2(-280f, 180f),
+                new Vector2(130f, 130f), new Color(0.15f, 0.45f, 0.6f, 0.55f), "회피", 26, controller.TryDodge);
+        }
+
+        /// <summary>모바일 화면 버튼 하나(전체화면 캔버스+사각 배경+가운데 정렬
+        /// 라벨) — Save/Attack/HeavyAttack/Whirl/Dodge 다섯 버튼이 이 골격
+        /// 하나만 다르고(이름·앵커·위치·크기·색·글자·콜백) 전부 같았다(code-review
+        /// 지적, PLAN.md 33장 규칙 6·7 "동일한 코드를 복사하지 않는다"). anchor는
+        /// anchorMin=anchorMax=pivot으로 쓰인다 — 다섯 버튼 전부 고정점 앵커라
+        /// 늘어나는 앵커는 없다.</summary>
+        private static void BuildActionButton(string canvasName, string buttonName, Vector2 anchor,
+            Vector2 anchoredPosition, Vector2 size, Color color, string label, int fontSize,
+            UnityEngine.Events.UnityAction onClick)
+        {
+            var canvasGo = new GameObject(canvasName);
             var canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.AddComponent<CanvasScaler>();
@@ -1645,20 +1526,20 @@ namespace Saga.EditorTools
             scaler.referenceResolution = new Vector2(1080, 1920);
             canvasGo.AddComponent<GraphicRaycaster>();
 
-            var btnGo = new GameObject("DodgeButton", typeof(RectTransform));
+            var btnGo = new GameObject(buttonName, typeof(RectTransform));
             btnGo.transform.SetParent(canvasGo.transform, false);
             var rect = (RectTransform)btnGo.transform;
-            rect.anchorMin = new Vector2(1f, 0f);
-            rect.anchorMax = new Vector2(1f, 0f);
-            rect.pivot = new Vector2(1f, 0f);
-            rect.anchoredPosition = new Vector2(-280f, 180f); // AttackButton(-100, 폭160)의 왼쪽, 20px 간격
-            rect.sizeDelta = new Vector2(130f, 130f);
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.pivot = anchor;
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = size;
 
             var img = btnGo.AddComponent<Image>();
-            img.color = new Color(0.15f, 0.45f, 0.6f, 0.55f);
+            img.color = color;
             var button = btnGo.AddComponent<Button>();
             button.targetGraphic = img;
-            button.onClick.AddListener(controller.TryDodge);
+            button.onClick.AddListener(onClick);
 
             var textGo = new GameObject("Text", typeof(RectTransform));
             textGo.transform.SetParent(btnGo.transform, false);
@@ -1669,10 +1550,10 @@ namespace Saga.EditorTools
             textRect.offsetMax = Vector2.zero;
             var text = textGo.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = 26;
+            text.fontSize = fontSize;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = "회피";
+            text.text = label;
         }
 
         private static void BuildMobileHud()
