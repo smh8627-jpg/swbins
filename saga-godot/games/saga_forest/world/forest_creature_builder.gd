@@ -25,6 +25,12 @@ const ForestCreature := preload("res://games/saga_forest/world/forest_creature.g
 ## 2026-09-12: 4종째(마지막 바이옴) "꽃정령"(꽃밭, biome_at(6,3)=meadow
 ## 확인됨) 추가 — 네 바이옴 전부 채웠다. 넷 중 가장 넓게 돌아다니게
 ## (wander_m 최댓값) 잡아 앞선 셋과 또 다른 축으로 갈랐다.
+##
+## **2026-09-14, 51장 "생태계" 축 — 바이옴마다 둘째 종을 보탰다(웹판
+## ANIMALS처럼 한 바이옴에 여러 종).** den은 기존 넷과 같은 규칙으로
+## 골랐다 — 자기 바이옴 안, 모든 기존 고정 자리(주민 6·채집물 8·집·
+## 박물관·낚시터·기존 창작 몬스터 4종)에서 격자거리 3 이상. `forest_
+## creature.gd`의 종별 주석에 각 형태·성격 근거가 있다.
 const CREATURES := [
 	{"id": "creature_dokkaebi", "kind": "dokkaebi", "den": Vector2i(19, 3),
 	 "wander_m": 4.0, "flee_m": 6.0, "speed": 1.5, "flee_speed": 3.5},
@@ -34,6 +40,14 @@ const CREATURES := [
 	 "wander_m": 3.5, "flee_m": 3.0, "speed": 2.0, "flee_speed": 4.2},
 	{"id": "creature_kkot", "kind": "kkot", "den": Vector2i(6, 3),
 	 "wander_m": 5.0, "flee_m": 5.0, "speed": 1.7, "flee_speed": 3.0},
+	{"id": "creature_nabi", "kind": "nabi", "den": Vector2i(2, 9),
+	 "wander_m": 2.0, "flee_m": 7.0, "speed": 1.2, "flee_speed": 4.5},
+	{"id": "creature_bueong", "kind": "bueong", "den": Vector2i(16, 2),
+	 "wander_m": 2.0, "flee_m": 5.0, "speed": 0.8, "flee_speed": 5.0},
+	{"id": "creature_dalpaeng", "kind": "dalpaeng", "den": Vector2i(2, 17),
+	 "wander_m": 1.0, "flee_m": 2.0, "speed": 0.4, "flee_speed": 0.6},
+	{"id": "creature_yeomso", "kind": "yeomso", "den": Vector2i(16, 17),
+	 "wander_m": 4.0, "flee_m": 4.5, "speed": 1.8, "flee_speed": 3.8},
 ]
 
 

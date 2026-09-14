@@ -31,6 +31,25 @@ extends CharacterBody3D
 ##   (wander_m 최댓값) 잡았다 — 앞선 셋(어둡거나 좁은 바이옴)과는 다른
 ##   축으로 갈랐다.
 ##
+## **2026-09-14, 51장 "생태계" 축 — 바이옴마다 둘째 종을 보탰다.** 웹판
+## `data-village.js` ANIMALS는 바이옴 하나에 여러 종이 같이 산다(green
+## 바이옴만 해도 사슴·토끼·다람쥐·새 넷) — 이 슬라이스는 지금까지 바이옴당
+## 하나뿐이었다. 새 종도 실존 동물이 아니라 창작 몬스터로 짓는다(위
+## "재해석" 원칙 그대로, 기존 넷과 같은 결):
+## - "nabi"(나비정령, 꽃밭 — kkot과 짝) — 구 몸통+날개 둘(얇은 상자), 라벤더+
+##   주황. 넷 중 가장 재빠르고 가장 잘 놀란다(flee_m 최댓값) — kkot(가장
+##   넓게 도는 느긋한 종)과 반대 축으로 갈랐다.
+## - "bueong"(부엉도깨비, 어둑숲 — dokkaebi와 짝) — 캡슐 몸통+귀깃 원뿔 둘,
+##   갈색조. 거의 안 돌아다니다(wander_m 최솟값급) 놀라면 아주 빠르게
+##   튄다(flee_speed 최댓값) — "웅크렸다 순간에 난다"는 인상.
+## - "dalpaeng"(달팽이정, 버섯숲 — beoseot과 짝) — 구 몸통(등딱지, 눌러
+##   찌그러뜨림)+작은 구 머리, 흙빛. 다섯 종 중 가장 느리고(speed·
+##   flee_speed 최솟값) 가장 안 놀란다(flee_m 최솟값) — beoseot(가장
+##   재빠른 종)과 완전히 반대.
+## - "yeomso"(염소도깨비, 바위 지대 — bawi와 짝) — 상자 몸통+뿔 원뿔 둘,
+##   크림색. bawi(육중하고 느림)와 달리 재빠르고 넓게 돈다 — 같은
+##   바이옴 안에서 "무겁게 버티는 놈"과 "가볍게 뛰어다니는 놈"으로 갈랐다.
+##
 ## 시각은 전부 primitive — 이 판의 몬스터 전용 GLB가 없다(버섯·가구가 이미
 ## 쓴 예외와 같은 이유). WorldCurveMaterial을 쓴다 — 이동하는 오브젝트도
 ## 구면 투영 대상이다(villager_builder.gd와 같은 결).
@@ -46,6 +65,12 @@ const COLOR_BEOSEOT_STEM := Color(0.88, 0.85, 0.74)  # forest_biome_scatter.gd �
 const COLOR_BEOSEOT_CAP := Color(0.22, 0.55, 0.5)    # 장식 버섯(살구색 갓)과 갈리는 청록빛 신규 창작색
 const COLOR_KKOT_BODY := Color(0.95, 0.93, 0.85)     # 신규 창작색 — 꽃받침을 연상시키는 아이보리
 const COLOR_KKOT_CROWN := Color(0.86, 0.42, 0.55)    # 신규 창작색 — 꽃밭 톤에 맞춘 분홍
+const COLOR_NABI_BODY := Color(0.78, 0.72, 0.88)     # 신규 창작색 — 라벤더
+const COLOR_NABI_WING := Color(0.95, 0.72, 0.32)     # 신규 창작색 — 주황빛 날개
+const COLOR_BUEONG := Color(0.36, 0.29, 0.24)        # 신규 창작색 — 어둑숲 톤의 짙은 갈색
+const COLOR_DALPAENG_SHELL := Color(0.55, 0.42, 0.3) # 신규 창작색 — 흙빛 등딱지
+const COLOR_DALPAENG_HEAD := Color(0.74, 0.77, 0.62) # 신규 창작색 — 옅은 풀빛 머리
+const COLOR_YEOMSO := Color(0.78, 0.72, 0.6)         # 신규 창작색 — 크림빛
 const IDLE_TIME_MIN := 1.5
 const IDLE_TIME_MAX := 3.5
 const FLEE_TIME := 2.5
@@ -95,6 +120,14 @@ func _spawn_visual() -> void:
 			_spawn_visual_beoseot()
 		"kkot":
 			_spawn_visual_kkot()
+		"nabi":
+			_spawn_visual_nabi()
+		"bueong":
+			_spawn_visual_bueong()
+		"dalpaeng":
+			_spawn_visual_dalpaeng()
+		"yeomso":
+			_spawn_visual_yeomso()
 		_:
 			_spawn_visual_dokkaebi()
 
@@ -228,6 +261,153 @@ func _spawn_visual_kkot() -> void:
 	var cs := CollisionShape3D.new()
 	var shape := SphereShape3D.new()
 	shape.radius = 0.26
+	cs.position = Vector3(0, 0.26, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 나비정령 — 작은 구 몸통에 얇은 상자 둘을 좌우로 벌려 날개처럼 얹는다.
+## 다섯 종 중 처음 쓰는 3부 조합(몸통+날개 둘).
+func _spawn_visual_nabi() -> void:
+	var body_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.6, COLOR_NABI_BODY)
+	var wing_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.45, COLOR_NABI_WING)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := SphereMesh.new()
+	body_mesh.radius = 0.16
+	body_mesh.height = 0.3
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.5, 0)
+	body.material_override = body_mat
+	add_child(body)
+
+	var wing_l := MeshInstance3D.new()
+	var wing_mesh := BoxMesh.new()
+	wing_mesh.size = Vector3(0.32, 0.24, 0.03)
+	wing_l.mesh = wing_mesh
+	wing_l.position = Vector3(-0.2, 0.52, 0)
+	wing_l.rotation.y = 0.5
+	wing_l.material_override = wing_mat
+	add_child(wing_l)
+
+	var wing_r: MeshInstance3D = wing_l.duplicate()
+	wing_r.position = Vector3(0.2, 0.52, 0)
+	wing_r.rotation.y = -0.5
+	add_child(wing_r)
+
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.2
+	cs.position = Vector3(0, 0.5, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 부엉도깨비 — 캡슐 몸통(웅크린 인상)에 귀깃 원뿔 둘. 다섯 종 중 처음
+## 쓰는 캡슐 몸통(다른 종은 구·상자·원기둥뿐이었다).
+func _spawn_visual_bueong() -> void:
+	var mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.85, COLOR_BUEONG)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := CapsuleMesh.new()
+	body_mesh.radius = 0.26
+	body_mesh.height = 0.5
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.3, 0)
+	body.material_override = mat
+	add_child(body)
+
+	var ear_l := MeshInstance3D.new()
+	var ear_mesh := CylinderMesh.new()
+	ear_mesh.top_radius = 0.0
+	ear_mesh.bottom_radius = 0.06
+	ear_mesh.height = 0.16
+	ear_l.mesh = ear_mesh
+	ear_l.position = Vector3(-0.1, 0.56, 0)
+	ear_l.material_override = mat
+	add_child(ear_l)
+
+	var ear_r: MeshInstance3D = ear_l.duplicate()
+	ear_r.position = Vector3(0.1, 0.56, 0)
+	add_child(ear_r)
+
+	var cs := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.26
+	shape.height = 0.5
+	cs.position = Vector3(0, 0.3, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 달팽이정 — 눌러 찌그러뜨린 구(등딱지)+작은 구(머리). 다섯 종 중 처음
+## 쓰는 "구 둘" 조합(kkot은 구+토러스였다).
+func _spawn_visual_dalpaeng() -> void:
+	var shell_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.9, COLOR_DALPAENG_SHELL)
+	var head_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.6, COLOR_DALPAENG_HEAD)
+
+	var shell := MeshInstance3D.new()
+	var shell_mesh := SphereMesh.new()
+	shell_mesh.radius = 0.24
+	shell_mesh.height = 0.3
+	shell.mesh = shell_mesh
+	shell.scale = Vector3(1.0, 0.6, 1.0)
+	shell.position = Vector3(0, 0.16, -0.05)
+	shell.material_override = shell_mat
+	add_child(shell)
+
+	var head := MeshInstance3D.new()
+	var head_mesh := SphereMesh.new()
+	head_mesh.radius = 0.09
+	head_mesh.height = 0.18
+	head.mesh = head_mesh
+	head.position = Vector3(0, 0.1, 0.22)
+	head.material_override = head_mat
+	add_child(head)
+
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.22
+	cs.position = Vector3(0, 0.14, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 염소도깨비 — 상자 몸통+뿔 원뿔 둘(뒤로 젖힌 각). bawi(상자+상자 혹)와
+## 같은 상자 몸통이지만 원뿔 뿔로 "재빠른 축"임을 시각으로도 가른다.
+func _spawn_visual_yeomso() -> void:
+	var mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.75, COLOR_YEOMSO)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := BoxMesh.new()
+	body_mesh.size = Vector3(0.42, 0.4, 0.36)
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.26, 0)
+	body.material_override = mat
+	add_child(body)
+
+	var horn_l := MeshInstance3D.new()
+	var horn_mesh := CylinderMesh.new()
+	horn_mesh.top_radius = 0.0
+	horn_mesh.bottom_radius = 0.05
+	horn_mesh.height = 0.24
+	horn_l.mesh = horn_mesh
+	horn_l.position = Vector3(-0.1, 0.52, -0.05)
+	horn_l.rotation.x = -0.4
+	horn_l.material_override = mat
+	add_child(horn_l)
+
+	var horn_r: MeshInstance3D = horn_l.duplicate()
+	horn_r.position = Vector3(0.1, 0.52, -0.05)
+	add_child(horn_r)
+
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.42, 0.4, 0.36)
 	cs.position = Vector3(0, 0.26, 0)
 	cs.shape = shape
 	add_child(cs)
