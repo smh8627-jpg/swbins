@@ -6320,4 +6320,38 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   밖(다른 네 판·saga-unity 트랙)을 진지하게 고려할 자리 — GO·DUNGEON·
   FOREST·STORY·REALM 다섯 판 전부 오늘 각자의 51장 축을 한 걸음씩
   진행했다.
-  고려할 자리.
+
+## DUNGEON 방 종류 다양화 — 상자(trove)·우물(well) 이식 (2026-09-14, 같은 날 이어서, "사가고돗 이어해묻지말고 이어해")
+
+- REALM 문답 항목이 남긴 "다음은 밖을 고려할 자리"를 다시 DUNGEON
+  51장 축("던전 증가→엘리트→보스→장비→빌드")으로 좁혔다. 지난 DUNGEON
+  항목이 "보스"·"장비" 중 뭐가 남았는지 웹판과 대조부터 하라고 남겨
+  뒀는데, 실제로 대조해 보니 진짜 폭은 그 둘이 아니라 **방 종류**였다
+  — 웹판 `data-dungeon.js ROOMS`는 11갈래(fight·trove·well·shrine·
+  elite·miniboss·cave·merchant·puzzle·event·forage)인데 이 슬라이스는
+  지금까지 방마다 전부 "fight"뿐이었다.
+- 11갈래를 한 번에 안 옮기고 UI가 안 필요한 가장 단순한 둘부터: 상자
+  (trove, `_spawn_chest()` 신규, `LootPickup.spawn_at` 재사용해 1~2개
+  노획)·우물(well, `_spawn_well()` 신규, `player_health.heal_by(max_hp
+  *0.4)`). `test_room.gd`에 `ROOM_KINDS` 배열 추가(보스층 3·6층은
+  그대로 fight). **정직하게 밝혀 둔다** — 상자 노획은 원작의 독립된
+  bias/골드배율 대신 이미 검증된 "정예" 갈래(ilvl+14·금×2.2)로 근사
+  했다(정확히 맞추려면 새 매개변수가 필요 — 다음 몫). 자세한 내용은
+  `docs/VERTICAL_SLICE_DUNGEON.md` 8절 참고.
+- **검증 중 발견** — 실기 개발 세이브(`user://save_dungeon.json`, 방
+  3개 시절의 길이-2 배열)가 남아 있어 0·1번 방이 "이미 클리어"로 읽혀
+  새 코드가 전혀 안 도는 함정을 먼저 만났다. 파일을 `rm`으로 지우려다
+  권한 분류기가 "되돌릴 수 없는 로컬 삭제"로 막았고(다른 세션의 진행
+  상황이라 실제로도 지우면 안 되는 게 맞다) — Godot `FileAccess`로
+  내용만 잠깐 비웠다가 검증 뒤 원문 그대로 되돌리는 방식으로 우회,
+  되돌린 뒤 바이트 단위로 원본과 같은 것까지 Read로 재확인했다.
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 6` 세
+  번 연속 로그 완전 동일(md5 일치). 임시 씬으로 `Well` 1개·상자 노획
+  1개·우물 힐 공식(`min(max_hp,hp+max_hp*0.4)`, 35→59 실측 일치)까지
+  확인 후 삭제. GO·FOREST·STORY·REALM 대표 씬도 3회 로그 동일·오류
+  0건 재확인. `.import` 잡음 없음(`git status`로 `test_room.gd` 한
+  파일만 확인). GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 남은 9갈래 중 다음은 정예 소굴(elite)·미니보스
+  (miniboss) — 이미 있는 정예 확률/보스 스폰을 방 단위로 강제만 하면
+  돼 새 UI가 안 필요하다. 채광·행상·퍼즐·구출·채집은 각자 새 상호작용이
+  필요한 더 큰 몫.

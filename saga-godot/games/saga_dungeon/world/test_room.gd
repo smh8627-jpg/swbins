@@ -18,6 +18,7 @@ extends Node3D
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const DungeonEnemy := preload("res://games/saga_dungeon/world/dungeon_enemy.gd")
 const DungeonHeroEncounter := preload("res://games/saga_dungeon/world/dungeon_hero_encounter.gd")
+const LootPickup := preload("res://games/saga_dungeon/world/loot_pickup.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 ## GO의 사건 선택지 패널을 그대로 재사용한다(GLBUtils·Toast와 같은 cross-game
 ## 재사용 경계 — GO 전용 로직이 아니라 순수 UI 빌더라 옮길 필요가 없다).
@@ -38,6 +39,20 @@ const CORRIDOR_GLB := "res://assets/dungeon/corridor.glb"
 ## 작은 폭으로 늘리는 쪽을 택했다 — REALM이 3→8→107로 단계를 밟은 것과
 ## 같은 결.
 const ROOM_COUNT := 6
+
+## **2026-09-14, 51장 확장 이어서** — GO/DUNGEON/FOREST/STORY/REALM 다섯
+## 판이 각자 "제외" 목록을 다 채운 뒤 REALM이 "다음은 밖을 고려할 자리"라고
+## 적어 둔 것을 다시 좁혀, DUNGEON PLAN.md 51장 축("던전 증가→엘리트→
+## 보스→장비→빌드")에서 실제로 안 옮긴 것을 웹판과 대조해 찾았다. 웹판
+## `data-dungeon.js ROOMS`는 방 종류가 11갈래(fight·trove·well·shrine·
+## elite·miniboss·cave·merchant·puzzle·event·forage, `dungeon.js
+## pickRoomKind()`)인데 이 슬라이스는 지금까지 방마다 전부 "fight"뿐이었다
+## — "보스"·"장비"는 이미 이 슬라이스에 상당히 있어 51장이 말하는 진짜
+## 남은 폭은 방 종류 다양성 쪽이었다. 한 번에 11갈래를 다 옮기지 않고
+## (토큰 절약 규칙 3) 가장 단순한 둘 — 상자(trove)·우물(well, 둘 다 원작
+## 손짓이 "닿으면 끝"이라 퍼즐·행상·구출처럼 별도 UI가 안 필요하다 —
+## 부터 옮긴다. 보스층(3층·6층)은 그대로 fight 유지.
+const ROOM_KINDS: Array[String] = ["fight", "trove", "fight", "well", "fight", "fight"]
 
 ## "제외" 목록 5번(인물 등용) — 방마다 실제 역사 인물 하나씩(saga_core
 ## 105명 중 새로 골랐다 — GO가 이미 kr_yisunsin을 쓰고 있어 안 겹치게).
@@ -89,9 +104,21 @@ func _ready() -> void:
 	for i in range(ROOM_COUNT):
 		var cleared: bool = loaded and DungeonSaveState.is_room_cleared(i)
 		if not cleared:
-			## data-dungeon.js isBossFloor(floor)=floor%3==0 그대로 — 마지막
-			## 방뿐 아니라 3층마다(이 슬라이스는 3층·6층) 보스가 선다.
-			_spawn_enemy(_room_origin_z[i], i + 1, (i + 1) % 3 == 0)
+			var kind: String = ROOM_KINDS[i]
+			if kind == "trove":
+				## dungeon.js makeRoom() 'trove' 갈래 — "상자를 지키는 잡졸이
+				## 있을 때도, 없을 때도 있다"(50% 확률), 정예·보스는 아니다.
+				if randf() < 0.5:
+					_spawn_enemy(_room_origin_z[i], i + 1, false)
+				_spawn_chest(_room_origin_z[i], i + 1)
+			elif kind == "well":
+				## dungeon.js makeRoom() 'well' 갈래 — 지킴이 없이 우물만.
+				_spawn_well(_room_origin_z[i])
+			else:
+				## data-dungeon.js isBossFloor(floor)=floor%3==0 그대로 —
+				## 마지막 방뿐 아니라 3층마다(이 슬라이스는 3층·6층) 보스가
+				## 선다. trove·well이 아닌 방은 전부 이 'fight' 갈래다.
+				_spawn_enemy(_room_origin_z[i], i + 1, (i + 1) % 3 == 0)
 		else:
 			## 클리어한 방을 불러오면 저장된 위치가 그 방의 출구 트리거
 			## 안일 수 있다(마지막으로 나간 자리 그대로 복원하니까) —
@@ -306,6 +333,58 @@ func _finish_exit(body: Node3D, room_index: int, is_final: bool) -> void:
 		Toast.show(self, "이번 슬라이스는 여기까지 — 저장했다.", 5.0)
 	else:
 		Toast.show(self, "다음 방으로 향한다 — 진행 상황을 저장했다.", 3.0)
+
+
+## dungeon.js makeRoom() 'trove' 갈래 — `dropItem(room, chest.x, chest.y, 22)`를
+## 1~2회(원작 `1 + Math.floor(Math.random()*2)`), `dropGold(...,3)`가 같이
+## 따라붙는다. **정직하게 밝혀 둔다** — 이 슬라이스의 `LootPickup.spawn_at()`은
+## 원작처럼 "물건 굴림 bias"와 "골드 배율"을 따로 받지 않고 boss/elite
+## 플래그 하나로 묶여 있다(dungeon_enemy.gd가 정예·보스를 그렇게 이식해
+## 둔 그대로). bias=22를 ilvl에 그대로 더하면(=floor_num+22) 골드 계산도
+## 같은 ilvl을 타 넘겨(지수 배율이라) 수십 배로 튀므로 그렇게 하지 않았다
+## — 대신 이미 검증된 정예(elite) 갈래(ilvl+14·금×2.2)를 재사용해 "상자는
+## 정예급 노획을 준다"로 근사했다. 새 bias 상수를 만들어 물건과 골드
+## 계산을 갈라 정확히 22를 맞추는 것은 다음에 더 좁힐 자리로 남긴다.
+func _spawn_chest(origin_z: float, floor_num: int) -> void:
+	var bonus_count := 1 + (1 if randf() < 0.5 else 0)
+	for b in range(bonus_count):
+		LootPickup.spawn_at(self, Vector3(2.6 + float(b) * 1.1, 0, origin_z), floor_num, false, true)
+	Toast.show(self, "🎁 보물상자!", 3.0)
+
+
+## dungeon.js 우물 손짓 그대로 — `healBy(run.hpMax * 0.4)`, 한 번만 쓸 수
+## 있다(area.queue_free()로 자기 자신을 지운다, loot_pickup.gd의 픽업들과
+## 같은 "한 번 닿으면 끝" 방식).
+func _spawn_well(origin_z: float) -> void:
+	var area := Area3D.new()
+	area.name = "Well"
+	area.position = Vector3(2.6, 1.0, origin_z)
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 1.4
+	cs.shape = shape
+	area.add_child(cs)
+	var mi := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.9
+	mesh.bottom_radius = 0.9
+	mesh.height = 0.6
+	mi.mesh = mesh
+	mi.position = Vector3(0, 0.3, 0)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.25, 0.55, 0.85) # dungeon.js potion.js 'heal' 계열과 구분되는 우물색(물)
+	mi.material_override = mat
+	area.add_child(mi)
+	add_child(area)
+	area.body_entered.connect(func(body: Node3D) -> void:
+		if not body.is_in_group("player"):
+			return
+		var hp_node: Node = get_tree().get_first_node_in_group("player_health")
+		if hp_node:
+			hp_node.heal_by(float(hp_node.max_hp) * 0.4)
+		Toast.show(area, "💧 우물 · 체력 40% 회복", 3.0)
+		area.queue_free()
+	)
 
 
 func _spawn_enemy(origin_z: float, floor_num: int, is_boss: bool = false) -> void:
