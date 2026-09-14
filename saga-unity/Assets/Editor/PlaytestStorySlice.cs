@@ -42,7 +42,7 @@ namespace Saga.EditorTools
 
         private enum Phase
         {
-            Init, TalkNpc, TriggerDiscovery, KillEnemies, KillBoss, SweepTest, BoltCast, BoltWait, BraceTest,
+            Init, TalkNpc, TriggerDiscovery, KillEnemies, KillBoss, TalkNpcChoice, SweepTest, BoltCast, BoltWait, BraceTest,
             LandBeforeJump, EnterRope, RopeTopClearance, RopeDescend, ExitRope, SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -113,7 +113,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestStorySlice] OK - killed 10 grunts + boss (both quests done), sweep/bolt/brace/jump/rope/save-load all verified, no errors"
+                    ? "[PlaytestStorySlice] OK - killed 10 grunts + boss (both quests done), npc talk/choice, sweep/bolt/brace/jump/rope/save-load all verified, no errors"
                     : $"[PlaytestStorySlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -155,7 +155,7 @@ namespace Saga.EditorTools
                     // 않고 이 테스트가 스스로 시작 상태를 못박는다.
                     StoryQuestState.Restore(0, 0);
                     StoryWorldEventState.Restore(null); // 위와 같은 이유 — 이전 실행이 남긴 save_story.json 무시.
-                    StoryNpcState.Restore(0); // 위와 같은 이유 — 새 정적 상태를 추가할 때마다 여기 잊지 말 것(2026-09-14에 한 번 빠뜨려 겪음).
+                    StoryNpcState.Restore(0, 0); // 위와 같은 이유 — 새 정적 상태를 추가할 때마다 여기 잊지 말 것(2026-09-14에 한 번 빠뜨려 겪음).
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -353,6 +353,80 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestStorySlice] boss killed in {hits} hits, quest boss done, bossKills={StoryQuestState.BossKills}");
+                    _phase = Phase.TalkNpcChoice;
+                    break;
+                }
+
+                case Phase.TalkNpcChoice:
+                {
+                    // PLAN.md 51장 "STORY 확장 — 선택" 검증 — 두목을 막 잡은
+                    // 뒤 첫 대화는 평소 대사 대신 StoryChoiceUi가 떠야 한다.
+                    var npcGo = GameObject.Find("Npc_Scout");
+                    var npc = npcGo != null ? npcGo.GetComponent<StoryNpc>() : null;
+                    var choiceGo = GameObject.Find("StoryChoiceUI");
+                    var choiceUi = choiceGo != null ? choiceGo.GetComponent<StoryChoiceUi>() : null;
+                    if (npc == null || choiceUi == null)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 선택 검증용 오브젝트 못 찾음 npc={npc != null} choiceUi={choiceUi != null}");
+                        Fail();
+                        return;
+                    }
+
+                    SetPrivate(npc, "_lastSaidTime", -1000f);
+                    var method = typeof(StoryNpc).GetMethod("OnTriggerEnter", BindingFlags.NonPublic | BindingFlags.Instance);
+                    method.Invoke(npc, new object[] { _playerController });
+
+                    if (!choiceUi.IsShowing)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 두목 처치 직후 대화인데 StoryChoiceUi가 안 뜸");
+                        Fail();
+                        return;
+                    }
+                    if (StoryNpcState.ChoiceMade != 0)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 선택 팝업이 뜨기 전인데 ChoiceMade={StoryNpcState.ChoiceMade}(기대=0)");
+                        Fail();
+                        return;
+                    }
+
+                    var optionAButton = GetPrivate(choiceUi, "optionAButton") as Button;
+                    optionAButton.onClick.Invoke();
+
+                    if (choiceUi.IsShowing)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 선택지를 눌렀는데 팝업이 안 닫힘");
+                        Fail();
+                        return;
+                    }
+                    if (StoryNpcState.ChoiceMade != 1)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 첫 선택지를 눌렀는데 ChoiceMade={StoryNpcState.ChoiceMade}(기대=1)");
+                        Fail();
+                        return;
+                    }
+
+                    var dialogueGo = GameObject.Find("StoryDialogueUI");
+                    var dialogueLabel = dialogueGo != null ? dialogueGo.GetComponent<DialogueLabel>() : null;
+                    var label = dialogueLabel != null ? GetPrivate(dialogueLabel, "label") as Text : null;
+                    if (label == null || !label.text.Contains("한 잔"))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 선택 직후 대사가 이상함 text=\"{(label != null ? label.text : "<null>")}\"");
+                        Fail();
+                        return;
+                    }
+
+                    // 다음 만남부터는 선택 어투(형씨!)로 인사말이 갈리는지 확인 —
+                    // 두 번 다시 선택 팝업이 뜨지 않아야 한다(ChoiceMade!=0).
+                    SetPrivate(npc, "_lastSaidTime", -1000f);
+                    method.Invoke(npc, new object[] { _playerController });
+                    if (choiceUi.IsShowing || !label.text.Contains("형씨"))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 선택 이후 재대화가 이상함 showingChoice={choiceUi.IsShowing} text=\"{label.text}\"");
+                        Fail();
+                        return;
+                    }
+
+                    Debug.Log($"[PlaytestStorySlice] npc choice OK - \"{label.text}\"");
                     _phase = Phase.SweepTest;
                     break;
                 }
@@ -568,6 +642,8 @@ namespace Saga.EditorTools
                     bool discoveredBeforeSave = StoryWorldEventState.IsTriggered(StoryDiscovery.EventId);
                     // 세이브 스키마 v4(2026-09-14) — 관계(척후병 대화 횟수)도 같이 본다.
                     int scoutTalkCountBeforeSave = StoryNpcState.ScoutTalkCount;
+                    // 세이브 스키마 v5(2026-09-14) — 선택(ChoiceMade)도 같이 본다.
+                    int choiceMadeBeforeSave = StoryNpcState.ChoiceMade;
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -578,7 +654,7 @@ namespace Saga.EditorTools
                     // 상태를 지운 뒤 다시 불러와 그대로 돌아오는지 확인.
                     StoryQuestState.Restore(0, 0);
                     StoryWorldEventState.Restore(null);
-                    StoryNpcState.Restore(0);
+                    StoryNpcState.Restore(0, 0);
                     TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                     if (!StorySaveState.TryLoad())
                     {
@@ -601,6 +677,12 @@ namespace Saga.EditorTools
                     if (StoryNpcState.ScoutTalkCount != scoutTalkCountBeforeSave)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 로드 후 scoutTalkCount={StoryNpcState.ScoutTalkCount}(기대={scoutTalkCountBeforeSave})");
+                        Fail();
+                        return;
+                    }
+                    if (StoryNpcState.ChoiceMade != choiceMadeBeforeSave)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 choiceMade={StoryNpcState.ChoiceMade}(기대={choiceMadeBeforeSave})");
                         Fail();
                         return;
                     }

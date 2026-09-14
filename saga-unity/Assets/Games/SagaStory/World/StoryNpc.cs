@@ -5,19 +5,25 @@ using Saga.Story.UI;
 namespace Saga.Story.World
 {
     /// <summary>
-    /// PLAN.md 51장 "STORY 확장 — 스토리 챕터→NPC/선택/사건/관계"의
-    /// NPC·관계 두 칸을 채운다(사건은 `StoryDiscovery.cs`가 별도로 채움).
-    /// `StoryQuestState.cs` 클래스 주석이 이미 "gear/gather/visit/talk/
-    /// skill/gold" 사명은 범위 밖이라고 적어 둔 대로, 말을 걸어도 진행
-    /// 자체(사명·골드 등)는 안 바꾼다 — GO `NpcBuilder.cs`의 촌장·나그네와
-    /// 달리 부수효과가 없다(STORY엔 골드·인벤토리가 없어 줄 보상이 없다).
+    /// PLAN.md 51장 "STORY 확장 — 스토리 챕터→NPC/선택/사건/관계"의 네 칸
+    /// 중 NPC·관계·선택 셋을 채운다(사건은 `StoryDiscovery.cs`가 별도로
+    /// 채움). `StoryQuestState.cs` 클래스 주석이 이미 "gear/gather/visit/
+    /// talk/skill/gold" 사명은 범위 밖이라고 적어 둔 대로, 말을 걸어도
+    /// 진행 자체(사명·골드 등)는 안 바꾼다 — GO `NpcBuilder.cs`의 촌장·
+    /// 나그네와 달리 부수효과가 없다(STORY엔 골드·인벤토리가 없어 줄
+    /// 보상이 없다).
     ///
     /// **관계** — NPC가 아직 이 척후병 하나뿐이라 본격 호감도(수치·
     /// 사건별 증감)까지는 안 가고, `StoryNpcState.ScoutTalkCount`로 "몇
     /// 번 말을 걸었는가"만 센다 — 계속 마주칠수록 인사말 앞머리가 조금씩
-    /// 데워진다. **선택**(대화 분기)은 여전히 미착수 — 새 UI(선택지
-    /// 버튼)뿐 아니라 실제로 갈리는 결과가 있어야 의미가 있는데 이번
-    /// 슬라이스 범위로는 장식적 분기밖에 못 만들어 다음 방향을 기다린다.
+    /// 데워진다.
+    ///
+    /// **선택(2026-09-14 추가)** — 두목 처치 직후 첫 대화에서
+    /// `StoryChoiceUi`로 두 선택지("함께 축배" vs "치하만")를 한 번
+    /// 묻는다(`ShowChoice`). STORY엔 갈릴 결과를 담을 시스템(골드·평판
+    /// 등)이 없어 **장식적 분기**다 — 어느 쪽을 골라도 게임 상태는 안
+    /// 바뀌고 이후 인사말·본문 어투만 갈린다(`Greeting`/`Line`의
+    /// `ChoiceMade` 분기). 이걸로 51장 STORY 네 칸이 모두 채워졌다.
     ///
     /// GO `World/VillagerTalk.cs`와 같은 트리거 규칙(플레이어가 반경에
     /// 들어오면 쿨다운을 두고 한 줄), 시각은 `StoryEnemy.cs`처럼
@@ -60,15 +66,59 @@ namespace Saga.Story.World
             if (Time.time - _lastSaidTime < TalkGapSec) return;
 
             _lastSaidTime = Time.time;
+
+            if (StoryQuestState.QuestBossDone && StoryNpcState.ChoiceMade == 0)
+            {
+                ShowChoice();
+                return;
+            }
+
             StoryNpcState.AddScoutTalk();
             DialogueLabel.Instance?.Show($"들판의 척후병 — {Greeting()}{Line()}", LineShowSec);
         }
 
+        /// <summary>선택 — 두목 처치 직후 한 번만 묻는다. `StoryChoiceUi`가
+        /// 씬에 없으면(구버전 씬 등) 안전하게 평소 대화로 건너뛴다 —
+        /// 에러가 아니라 조용한 폴백(다른 Build*Scene 자산 누락 처리와
+        /// 같은 결).</summary>
+        private void ShowChoice()
+        {
+            var ui = StoryChoiceUi.Instance;
+            if (ui == null)
+            {
+                StoryNpcState.AddScoutTalk();
+                DialogueLabel.Instance?.Show($"들판의 척후병 — {Greeting()}{Line()}", LineShowSec);
+                return;
+            }
+
+            ui.Show(
+                "두목까지 처치하셨군요! 노고를 어떻게 치하해 드릴까요?",
+                "함께 축배를 든다",
+                "간단히 치하만 받는다",
+                choice =>
+                {
+                    StoryNpcState.SetChoice(choice);
+                    StoryNpcState.AddScoutTalk();
+                    DialogueLabel.Instance?.Show($"들판의 척후병 — {ChoiceLine(choice)}", LineShowSec);
+                });
+        }
+
+        private static string ChoiceLine(int choice) => choice == 1
+            ? "좋습니다, 오늘은 마음 놓고 한 잔 합시다!"
+            : "예, 알겠습니다 — 다음에 또 뵙지요.";
+
         /// <summary>관계 — 몇 번째 만남인지에 따라 인사말 앞머리만 데운다
-        /// (본문 `Line()`은 그대로, 관계와 사명 진행을 서로 안 섞는다).</summary>
+        /// (본문 `Line()`은 그대로, 관계와 사명 진행을 서로 안 섞는다).
+        /// 선택 이후엔 그 어투를 우선한다(둘 다 장식일 뿐이라 섞지
+        /// 않고 나중 결정 하나만 반영).</summary>
         private static string Greeting()
         {
             int count = StoryNpcState.ScoutTalkCount;
+            switch (StoryNpcState.ChoiceMade)
+            {
+                case 1: return count <= 1 ? "" : "형씨! ";
+                case 2: return count <= 1 ? "" : "어서 오십시오. ";
+            }
             if (count <= 1) return "";
             if (count <= 4) return "또 뵙는군요. ";
             return "이제 낯이 익어 마음이 놓입니다. ";
@@ -78,7 +128,11 @@ namespace Saga.Story.World
         {
             if (StoryQuestState.QuestBossDone)
             {
-                return "두목까지 처치하셨군요. 이 들판은 이제 안전합니다.";
+                // 이 분기에 오는 시점엔 ShowChoice()를 이미 거쳤다(ChoiceMade!=0) —
+                // 선택 어투만 다르고 안전 선언 자체는 그대로다(장식적 분기).
+                return StoryNpcState.ChoiceMade == 1
+                    ? "지난번 잔치, 아직도 훈훈합니다. 이 들판은 이제 안전합니다."
+                    : "이 들판은 이제 안전합니다. 감사합니다.";
             }
             if (StoryQuestState.QuestDone)
             {

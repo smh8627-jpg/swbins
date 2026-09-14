@@ -16,10 +16,11 @@ namespace Saga.Story.Data
     /// </summary>
     public static class StorySaveState
     {
-        // v4 — "STORY 확장 — 관계"(2026-09-14), 척후병과 몇 번 말을
-        // 나눴는지(scoutTalkCount) 추가. 구버전 세이브는 0으로 들어와도
-        // StoryNpcState.Restore(0)이 "아직 안 만남"으로 처리해 무해하다.
-        private const int SaveVersion = 4;
+        // v5 — "STORY 확장 — 선택"(2026-09-14), 두목 처치 직후 장식적
+        // 분기 결과(choiceMade) 추가. 구버전 세이브는 0으로 들어와도
+        // StoryNpcState.Restore(scoutTalkCount, 0)이 "아직 안 고름"으로
+        // 처리해 무해하다(다시 척후병에게 물어보면 그만).
+        private const int SaveVersion = 5;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_story.json");
 
@@ -32,6 +33,7 @@ namespace Saga.Story.Data
             public int bossKills;
             public string[] triggeredEvents;
             public int scoutTalkCount;
+            public int choiceMade;
         }
 
         public static bool Save()
@@ -48,6 +50,7 @@ namespace Saga.Story.Data
                 bossKills = StoryQuestState.BossKills,
                 triggeredEvents = events.ToArray(),
                 scoutTalkCount = StoryNpcState.ScoutTalkCount,
+                choiceMade = StoryNpcState.ChoiceMade,
             };
 
             try
@@ -80,7 +83,7 @@ namespace Saga.Story.Data
 
             StoryQuestState.Restore(data.kills, data.bossKills);
             StoryWorldEventState.Restore(data.triggeredEvents);
-            StoryNpcState.Restore(data.scoutTalkCount);
+            StoryNpcState.Restore(data.scoutTalkCount, data.choiceMade);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

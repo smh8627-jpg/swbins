@@ -4580,3 +4580,43 @@ Init`의 리셋 목록(`StoryQuestState.Restore(0,0)` 옆)에 같이 넣었다 �
 등)이라 위젯 자체는 어렵지 않지만, 실제로 갈리는 결과가 있어야 "선택"이
 의미 있는데 지금 STORY 콘텐츠 범위로는 장식적 분기(다른 대사만 나오고
 결과는 같음)밖에 못 만든다 — 이번에도 방향 없이 손 안 댐.
+
+## 같은 날 네 번째 후속 — STORY에 "선택"(여섯 번째 "이어해", 51장 완결) (2026-09-14)
+
+바로 위에서 미룬 "장식적 분기라도 만들지, 방향을 기다릴지"를 "이어해
+묻지 말고 모두 진행해"에 그냥 진행하는 쪽으로 판단했다 — 되돌리기 쉽고
+범위가 명확한 마지막 한 조각이라 이 세션 스스로 판단할 수 있는
+경계라고 봤다(66-1 재확인·설정 UI처럼 시스템을 통째로 새로 설계해야
+하는 규모가 아니다).
+
+- **신규 `Saga.Story.UI.StoryChoiceUi`** — GO/DUNGEON `EncounterUiKit`과
+  달리 이 판에 쓰는 곳이 한 곳뿐이라 kit로 안 뽑고 파일 하나로 끝냈다.
+  프롬프트 텍스트 + 버튼 둘, `Show(prompt, optionA, optionB, onChosen)`.
+- **트리거** — `StoryNpc.OnTriggerEnter`가 `StoryQuestState.QuestBossDone
+  && StoryNpcState.ChoiceMade == 0`일 때 평소 대사 대신 이 팝업을 한 번
+  띄운다("함께 축배를 든다" / "간단히 치하만 받는다"). `StoryChoiceUi`가
+  씬에 없으면(구버전 씬 등) 조용히 평소 대화로 폴백한다.
+- **장식적 분기임을 분명히** — 어느 쪽을 골라도 사명·MP·골드 등 게임
+  상태는 안 바뀐다(`StoryNpcState.ChoiceMade`만 1 또는 2로 남는다).
+  이후 인사말(`Greeting`, "형씨!" vs "어서 오십시오.")과 두목 처치 대사
+  (`Line`의 QuestBossDone 분기)의 어투만 갈린다 — 관계(`ScoutTalkCount`)
+  축과는 안 섞고, 선택이 있으면 그쪽 어투를 우선한다.
+- 세이브 스키마 v4→v5(`choiceMade` 추가), 구버전 세이브는 0("아직 안
+  고름")으로 들어와도 무해하다(다시 물어보면 그만).
+- **검증** — `PlaytestStorySlice`에 `TalkNpcChoice` 단계 추가: 두목 처치
+  직후 첫 대화가 실제로 `StoryChoiceUi.IsShowing`을 true로 만드는지,
+  첫 선택지 버튼(`onClick.Invoke()`)을 누르면 팝업이 닫히고
+  `ChoiceMade==1`이 되는지, 대사가 "한 잔"을 포함하는지, 재대화 때
+  팝업이 다시 안 뜨고 인사말이 "형씨"로 갈리는지, 저장/로드 라운드
+  트립에 `choiceMade`가 살아남는지까지 전부 확인. 배치 모드 컴파일 →
+  `BuildTestStoryScene` 재빌드 → `PlaytestStorySlice` 3연속 통과
+  (`PlaytestStorySlice.Run`을 `-executeMethod`로 부를 때 `-quit`을
+  같이 주면 Run()이 반환하자마자 종료돼 OK/FAIL 로그가 안 찍힌다는
+  기존 함정을 이번에도 한 번 밟았다가 바로잡음 — `-quit` 없이 불러야
+  한다).
+- 다른 네 판은 파일이 전혀 안 겹쳐(STORY 전용 신규/수정 파일뿐) 무관
+  확인은 생략했다 — 공유 로직(다섯 벌 복사 대상)을 안 건드렸다.
+
+**이걸로 STORY 51장 네 칸(NPC/선택/사건/관계)이 모두 채워졌다.** PLAN.md
+51장이 가리키는 GO→DUNGEON→FOREST→STORY→REALM 순서상 STORY 몫은 일단
+닫혔다 — REALM 쪽 51장 진행 상태는 REALM 관련 항목 참고.

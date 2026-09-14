@@ -58,6 +58,7 @@ namespace Saga.EditorTools
             BuildEventSystem();
             BuildHud();
             BuildDialogueLabel();
+            BuildChoiceUi();
             BuildSaveButton();
             BuildMobileControls(playerController);
             BuildBootstrap();
@@ -368,6 +369,91 @@ namespace Saga.EditorTools
             var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
             SetPrivateField(dialogueLabel, "label", text);
             textGo.SetActive(false);
+        }
+
+        /// <summary>PLAN.md 51장 "STORY 확장 — 선택" — 두목 처치 직후
+        /// 척후병이 묻는 장식적 분기 팝업(StoryChoiceUi.cs 클래스 주석
+        /// 참고). GO/DUNGEON `EncounterUiKit`과 달리 이 판에 한 곳뿐이라
+        /// 그 kit를 안 쓰고 직접 조립한다.</summary>
+        private static void BuildChoiceUi()
+        {
+            var canvasGo = new GameObject("StoryChoiceUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var panelGo = new GameObject("Panel", typeof(RectTransform));
+            panelGo.transform.SetParent(canvasGo.transform, false);
+            var panelRect = (RectTransform)panelGo.transform;
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = new Vector2(860f, 460f);
+            var panelImg = panelGo.AddComponent<Image>();
+            panelImg.color = new Color(0f, 0f, 0f, 0.75f);
+
+            var promptGo = new GameObject("Prompt", typeof(RectTransform));
+            promptGo.transform.SetParent(panelGo.transform, false);
+            var promptRect = (RectTransform)promptGo.transform;
+            promptRect.anchorMin = new Vector2(0.5f, 1f);
+            promptRect.anchorMax = new Vector2(0.5f, 1f);
+            promptRect.pivot = new Vector2(0.5f, 1f);
+            promptRect.anchoredPosition = new Vector2(0f, -30f);
+            promptRect.sizeDelta = new Vector2(760f, 200f);
+            var promptText = promptGo.AddComponent<Text>();
+            promptText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            promptText.fontSize = 32;
+            promptText.alignment = TextAnchor.MiddleCenter;
+            promptText.color = Color.white;
+            promptText.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            var optionA = BuildChoiceButton(panelGo.transform, new Vector2(0f, -260f), out var optionALabel);
+            var optionB = BuildChoiceButton(panelGo.transform, new Vector2(0f, -360f), out var optionBLabel);
+
+            var choiceUi = canvasGo.AddComponent<StoryChoiceUi>();
+            SetPrivateField(choiceUi, "panel", panelGo);
+            SetPrivateField(choiceUi, "promptLabel", promptText);
+            SetPrivateField(choiceUi, "optionAButton", optionA);
+            SetPrivateField(choiceUi, "optionALabel", optionALabel);
+            SetPrivateField(choiceUi, "optionBButton", optionB);
+            SetPrivateField(choiceUi, "optionBLabel", optionBLabel);
+            panelGo.SetActive(false);
+        }
+
+        private static Button BuildChoiceButton(Transform parent, Vector2 anchoredPos, out Text label)
+        {
+            var go = new GameObject("Option", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = anchoredPos;
+            rect.sizeDelta = new Vector2(700f, 80f);
+
+            var img = go.AddComponent<Image>();
+            img.color = new Color(1f, 1f, 1f, 0.18f);
+            var button = go.AddComponent<Button>();
+            button.targetGraphic = img;
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(go.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            label = textGo.AddComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 26;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+
+            return button;
         }
 
         private static void BuildSaveButton()
