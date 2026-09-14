@@ -632,3 +632,42 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   까지의 셋(bolt·swing·nova)보다 크다. GUI 실기 확인 아직(몰아서 받을
   것, N키/⚡ 버튼도 함께). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·
   saga-unity 트랙)도 고려할 자리.
+
+## 17. 51장 "장비→빌드" — 넷째 활성 무예: 질주사(a_dashshot, dash) (2026-09-15, "dash 이어해")
+
+- 궁장(archer) br=5 row=0 `a_dashshot` 추가 — bolt(scholar)·swing(warrior)·
+  nova(mystic)에 이은 넷째 직업 첫 활성 무예, 이걸로 다섯 직업 중 넷이
+  활성 무예를 하나씩 갖는다(도독만 남음). dash는 **처음으로 플레이어
+  위치 자체를 옮기는** 무예라 `player.gd`(GO와 공유)에 아주 작은 훅
+  둘(`dash_dir`·`dash_speed`)을 추가했다 — boon_speed_sync.gd가
+  `speed_mult`를 미는 것과 같은 일방 통행, 기본값 0/영벡터라 GO는 영향
+  없다.
+- **속도 환산**: nova가 "반경"을 `BASE_REACH`(34px) 기준으로 옮긴 것과
+  달리 dash는 "이동"이라 `BASE_SPD`(148px/s, 원작 이동속도 기준값)를
+  기준 삼아 원작 돌진 속도(620px/s)를 `620×(6.0/148)≈25.14`m/s로
+  옮겼다(6.0=player.gd WALK_SPEED, 그 웹 쪽 짝). 지속시간은 원작
+  `0.2×(sk.far||1)`초 그대로(a_dashshot은 far 없음) — 한 번에 ≈5m.
+  지나는 적 판정 반경은 몬스터별 충돌 반지름이 없는 이 슬라이스 특성상
+  새 상수 대신 `melee_attack.gd`의 `ATK_RANGE`(2.4m)를 재사용했다.
+- **실측으로 잡은 함정** — 처음엔 `velocity`+`move_and_slide()`로
+  옮겼더니 돌진 경로 위의 적(둘 다 CharacterBody3D)과 몸통이 부딪혀
+  플레이어가 옆으로 밀려났다(사거리 밖에 둔 검증용 적까지 맞는 걸로
+  발견). 원작 dungeon.js 돌진도 `p.x`/`p.y`를 충돌 없이 직접 더할 뿐이라,
+  `player.gd`의 돌진 분기를 `global_position` 직접 이동으로 바꾸고 그
+  프레임 `move_and_slide()`·중력을 건너뛴다(끝나면 다음 프레임부터 정상
+  재개). 원작의 돌진 중 무적(`p.invuln`)은 이 슬라이스에 회피·무적
+  시스템 자체가 없어(`combat_dodge` 입력도 아직 안 걸림) kb·mpRegen과
+  같은 결로 값만 두고 안 쓴다.
+- 신규 `games/saga_dungeon/player/skill_dash.gd`·`ui/dash_button.gd`
+  (💨)·입력 액션 `dungeon_skill_4`(V키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일(player.gd 변경 전후 md5도 일치 — 정적 로드엔 영향 없음 확인).
+  임시 씬(`_verify_dash.tscn`, 검증 후 삭제)으로 13항목 PASS — row0
+  선행조건 없음·돌진 경로 위 적만 피격(사거리 밖 적 무사)·이동 거리·
+  데미지 round(9×1.3)=12·쿨다운까지 확인. GO·FOREST·STORY·REALM 회귀도
+  헤드리스 오류 0건(GO는 `player.gd` 변경의 직접 당사자라 특히 재확인).
+  `project.godot` diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 다섯 직업 중 유일하게 활성 무예가 없는 도독(marshal)
+  — buff(m_rally 등, br=0)가 후보. heal·summon은 그 뒤. GUI 실기 확인
+  아직(몰아서 받을 것, V키/💨 버튼도 함께). DUNGEON 밖(GO/FOREST/STORY/
+  REALM 추가 확장·saga-unity 트랙)도 고려할 자리.

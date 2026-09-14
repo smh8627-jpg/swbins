@@ -68,6 +68,35 @@ class_name DungeonSkills
 ## 임의 상수 아님). **아직 반영 안 되는 것**: `el`(lit, 원소 저항은
 ## `melee_attack.gd`가 아니라 무예 자체가 직접 계산한다, skill_bolt.gd와
 ## 같은 경계).
+##
+## **2026-09-15, 또 이어서 — 궁장(archer) br=5 row=0 `a_dashshot`(질주사,
+## shape:'dash') 추가**(`games/saga_dungeon/player/skill_dash.gd` 참고).
+## 궁장은 여태 br=2 세 단(passive)뿐이라 넷째 직업이 첫 활성 무예를 얻는다.
+## bolt·swing·nova는 "제자리에서 판정"이지만 dash는 **그 자리에서 짧게
+## 돌진하며 지나는 적을 벤다** — 처음으로 플레이어 위치 자체를 옮기는
+## 무예라 `player.gd`(GO와 공유)에 아주 작은 훅 둘(`dash_dir`·`dash_speed`)
+## 을 추가했다: 0이 아니면 그 프레임 이동 입력을 무시하고 그 방향/속력으로
+## `move_and_slide()`한다 — boon_speed_sync.gd가 `speed_mult`를 미는 것과
+## 같은 결의 일방 통행(하위 호환: 기본값 0이라 GO는 아무 영향 없다).
+## `player.gd`는 여전히 `DungeonRunState`를 모른다. **실측으로 고친 것** —
+## 처음엔 `velocity`+`move_and_slide()`로 옮겼더니 적(CharacterBody3D)과
+## 몸통이 부딪혀 옆으로 밀려났다(검증 스크립트가 사거리 밖 적까지 맞히는
+## 걸로 드러남). 원작 dungeon.js 돌진도 `p.x`/`p.y`를 충돌 없이 직접
+## 더할 뿐이라, `player.gd`의 돌진 분기는 `global_position`을 직접
+## 옮기고 그 프레임 `move_and_slide()`(와 중력)를 건너뛴다.
+##
+## **속도 환산** — dash는 "반경"이 아니라 "이동"이라 `BASE_REACH`가 아니라
+## `BASE_SPD`(148px/s, 원작 이동속도 기준값)를 기준으로 삼는다. `player.gd`
+## 의 `WALK_SPEED`(6.0m/s)가 그 Godot 쪽 짝이므로, 원작 돌진 속도(620px/s,
+## dungeon.js 하드코딩값)를 `620×(6.0/148)≈25.14`m/s로 옮긴다. 지속시간은
+## 원작 `0.2×(sk.far||1)`초 그대로(a_dashshot은 far 없음 → 0.2초) — 즉
+## 한 번에 약 5m를 돌진한다. 지나는 적 판정 반경("de.r+P_R+6", 몬스터별
+## 픽셀 반지름)은 이 슬라이스에 몬스터 개별 충돌 반지름을 안 두므로(swing·
+## nova도 마찬가지) 새 상수를 안 만들고 `melee_attack.gd`의 `ATK_RANGE`
+## (2.4m)를 그대로 재사용한다("스쳐 지나가며 벤다"는 접촉 판정이라 평타
+## 사거리와 같은 성격). 원작의 무적(`p.invuln`)은 이 슬라이스에 회피·
+## 무적 시스템 자체가 없어(`combat_dodge` 입력 액션도 아직 아무 데도
+## 안 걸려 있다) 값만 흘리고 안 쓴다 — kb·mpRegen과 같은 결의 판단.
 
 const MAX_RANK := 5
 
@@ -79,6 +108,11 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "reachPct", "v": 8.0, "grow": 6.0, "desc": "닿는 거리가 길어진다." },
 	{ "key": "a_swift", "cls": "archer", "br": 2, "row": 2, "name": "질보(疾步)",
 		"eff": "atkSpdPct", "v": 6.0, "grow": 4.0, "desc": "손이 빨라진다." },
+	## 궁장(弓將) br=5 row 0 — data-skill.js 그대로(cost=18은 기력이 없어
+	## 안 씀). el 없음(물리) — 위 헤더의 dash 환산 참고.
+	{ "key": "a_dashshot", "cls": "archer", "br": 5, "row": 0, "name": "질주사(疾走射)",
+		"shape": "dash", "cd": 6.0,
+		"eff": "", "v": 1.3, "grow": 0.3, "desc": "몸을 날려 스치며 벤다." },
 	## 무장(武將) br=0 row 0 — data-skill.js 그대로. shape/cd는 원작 값
 	## 그대로(cost=22는 기력이 없어 안 씀, kb=30은 넉백이 없어 안 씀).
 	{ "key": "w_whirl", "cls": "warrior", "br": 0, "row": 0, "name": "회전참(回轉斬)",

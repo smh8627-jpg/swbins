@@ -6544,3 +6544,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 신규: skill_nova.gd·nova_button.gd(⚡)·입력 액션 dungeon_skill_3(N키).
 - 검증: 헤드리스 3회 로그 동일. 임시 씬 13항목 PASS(반경 경계 3.80/3.81/4.00m·데미지 round(9×2.2)=20·row0 선행조건 없음·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0.
 - 다음: 남은 넷(dash/buff/heal/summon)은 이동/지속효과/소환 하위 시스템이 필요해 더 큰 몫. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 넷째 활성 무예: 질주사(a_dashshot, dash) (2026-09-15, 같은 날 이어서, "dash 이어해")
+
+- 궁장(archer) br=5 row=0 a_dashshot 신규 — bolt/swing/nova에 이은 넷째 직업 첫 활성 무예(다섯 중 넷 완료, 도독만 남음). 속도 25.14m/s = 원작 620px/s÷BASE_SPD(148)×WALK_SPEED(6.0), 판정 반경은 ATK_RANGE(2.4m) 재사용.
+- player.gd(GO 공유)에 dash_dir/dash_speed 훅 추가(기본 무영향). **실측 함정**: move_and_slide()로 옮기면 적과 충돌해 옆으로 밀림 → global_position 직접 이동으로 교체(원작도 충돌 없이 직접 이동).
+- 신규: skill_dash.gd·dash_button.gd(💨)·입력 액션 dungeon_skill_4(V키).
+- 검증: 헤드리스 3회 로그 동일(player.gd 변경 전후 md5 일치). 임시 씬 13항목 PASS(경로 위 적만 피격·이동거리·데미지 round(9×1.3)=12·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0(GO는 player.gd 당사자라 재확인).
+- 다음: 남은 건 도독(marshal)의 buff, 그 뒤 heal/summon. GUI 실기 확인 아직(몰아서 받을 것).
