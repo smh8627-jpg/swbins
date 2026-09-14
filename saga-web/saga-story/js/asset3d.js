@@ -100,6 +100,11 @@
        (들소·젖소·황소)도 이미 있는 Cow.glb 를 그대로 재사용한다. 새 GLB
        없이 등록만 하면 된다는 게 portrait3d.js 의 사슴·구미호 판단과 같다 */
     'critter:cow': ANIMALS + 'Cow.glb',
+    /* 도감 초상 3D화 확장 이어서(2026-09-14) — Wolf.glb 는 이미 'beast' 로
+       적 짐승형(승냥이 등)에 쓰이고 있었지만, 도감 펫 쪽(개과)에는 아직 안
+       물려 있었다. 개와 늑대는 같은 종(Canis lupus)이라 진돗개·삽살개·
+       발바리를 이 하나로 묶는다 — 새 GLB 없이 등록만 추가 */
+    'critter:wolf': ANIMALS + 'Wolf.glb',
     /* 랜덤 이벤트(PLAN 11절, 2026-09-09) — saga-dungeon 이 이미 받아 둔 KayKit
        상자를 그대로 재사용한다 */
     'chest': PROPS + 'Chest.glb'

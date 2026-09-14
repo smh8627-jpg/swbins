@@ -4238,3 +4238,36 @@ DEFAULTS·data-enemy.js 는 안 건드림). 자세한 경위·검증은
 등 88종 전부)과 새 공룡 6종이 실제로 어떻게 보이는지 확인할 것. 그 다음엔
 남은 몬스터 소스(Quaternius 의 다른 CC0 팩, 또는 poly.pizza 개별 검색)를
 더 훑어볼 수 있다.
+
+## "3안" 계속 — Cute Animated Monsters 다섯 종 (2026-09-14, 다음 세션)
+
+위 절이 남긴 "남은 몬스터 소스" 숙제를 이어 받았다. 실기기 확인은 이
+세션 몫이 아니라(사용자가 직접 하거나 요청할 때만) 손 안 댔고, 대신
+CC0 몬스터 에셋을 더 찾는 쪽을 진행했다.
+
+- **찾은 곳** — `opengameart.org/content/lowpoly-animated-monsters`
+  (Quaternius "Cute Animated Monsters", CC0 — quaternius.com 팩 페이지의
+  `creativecommons.org/publicdomain/zero/1.0/` 링크로 재확인). 같은
+  itch.io 페이지(`quaternius.itch.io/lowpoly-animated-monsters`)는 무료
+  항목도 결제 흐름이 있어 curl로 못 받는다 — OGA 미러로 우회했다(이전
+  세션들이 "캐릭터" 쪽에서 이미 쓰던 그 우회로).
+- 21종 중 **다섯만** 새로 얹었다(풋귀·집게괴·고목정·외눈귀·심연촉수귀,
+  각각 GreenDemon·Crab·Tree·Cyclops·Cthulhu의 FBX를 `fbx2gltf`로 변환).
+  나머지는 이미 있는 개체와 겹치거나(Demon·Yeti·Cactus·Mushroom·Skull)
+  이 판 결에 안 맞아(Alien·Alien_Tall, 2026-09-11 결정 그대로 따름)
+  뺐다. 자세한 경위·라이선스·검증은 `assets/ASSET_LICENSES.md`의 같은
+  날짜 절 참고.
+- `js/asset3d.js` DEFAULTS에 다섯 등록, `js/data-enemy.js`에 다섯 배치
+  (tier 1~4, `_test.html`은 이 판의 몬스터 구조 검사를 안 맡는다는
+  2026-09-11부터의 관례대로 Node `vm` 검증만 새로 돌렸다 — 135개 전부
+  `lookup()` 성공·이름 중복 없음). `_test.html` 296/296 3회 동일(SHA256
+  까지 대조, 완전히 같은 출력) — 개수는 안 늘었다(회귀만 확인).
+  `sw.js` → `dungeon-v0.114.0`.
+- **다음** — 실기기 확인(새 다섯이 실제로 어떻게 보이는지, 특히 `외눈귀`
+  가 사람 크기로 나오는데 거인다운 위압감이 있는지, `집게괴`를
+  `form:'quad'`로 근사한 게 어색하지 않은지)은 여전히 사용자 몫으로
+  남겨 둔다. 몬스터 쪽 "3안"을 더 이어가려면 이번에 제외한 21종 나머지
+  (Bat·Bee·Chicken·Deer·Panda·Penguin·Pig 등 순한 동물/새 — "괴물"보다
+  마을 가축 결이라 `pet:` 쪽 후보에 더 가깝다)나, 다른 Quaternius CC0
+  팩(`quaternius.com/packs.html`에서 라이선스를 낱개로 확인하는 절차는
+  이번에도 유효했다 — 최신 팩 상당수가 QAL이다)을 더 볼 수 있다.

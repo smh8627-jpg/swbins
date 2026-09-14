@@ -712,3 +712,56 @@ Astronaut 3벌 중 1벌만 옮겼다.
 먼저 찾아 이 좁은 키가 걸린다. 다른 NPC·마을 주민·플레이어는 그대로
 `HERO_RECIPES`(QRPG·MPFB 섞음) 해시를 탄다 — 배달원만 예외로 갈랐다. 새
 상호작용·판정은 안 건드렸다(순전히 외형).
+
+---
+
+## Quaternius "Ultimate Space Kit" — 우주기지 확충: 건물·로버·메카 (2026-09-14)
+
+PLAN §46-3 "다음에 이어갈 것" 둘째 항목(우주기지 §45~46 를 지금까지 fence·
+cart·crate·lantern — **전부 이 팩과 무관한 다른 자리에서 빌린 소품** —
+로만 채웠던 것에, 이 팩 자체의 건물·차량·메카를 처음 얹는다).
+
+**§46-2 가 "poly.pizza 직접 다운로드는 이 환경에서 SSL 로 막혀 있다"고
+적어 둔 것을 이번에 다시 확인**했다 — `curl`로 `poly.pizza`·
+`static.poly.pizza` 모두 이번 세션엔 200 으로 응답했다(막혔던 것이 상시가
+아니라 그때그때 환경 사정이었던 듯). 그래도 이 저장소가 이미 Frog.glb 등에
+써 온 **GitHub 미러**(`trebeljahr/quaternius-showcase`, saga-go·
+saga-dungeon 도 같은 미러를 쓴다)로 그대로 받았다 — 배달원 우주복
+(위 절)과 **같은 Ultimate Space Kit 팩**(Quaternius, CC0)이라 출처 확인은
+이미 이 판·saga-dungeon 양쪽에 서 있다.
+
+| 자산 | 받은 곳 | 파일 | 크기 |
+|---|---|---|---|
+| 본관(Base_Large) | `github.com/trebeljahr/quaternius-showcase` `public/glb/ultimate_space_pack/Base_Large-transformed.glb` | `assets/models/buildings/space/Base_Large.glb` | 13.4KB |
+| 숙소(House_Single) | 〃 `House_Single-transformed.glb` | `assets/models/buildings/space/House_Single.glb` | 6.3KB |
+| 측지돔(GeodesicDome) | 〃 `GeodesicDome-transformed.glb` | `assets/models/buildings/space/GeodesicDome.glb` | 9.7KB |
+| 태양광판(SolarPanel_Ground) | 〃 `SolarPanel_Ground-transformed.glb` | `assets/models/props/space/SolarPanel_Ground.glb` | 3.6KB |
+| 탐사차(Rover_1) | 〃 `Rover_1-transformed.glb` | `assets/models/props/space/Rover_1.glb` | 28.0KB |
+| 메카(Mech_FinnTheFrog) | 〃 `Mech_FinnTheFrog-transformed.glb` | `assets/models/props/space/Mech_FinnTheFrog.glb` | 181.3KB |
+
+만든 이 Quaternius, 라이선스 **CC0 1.0 Universal**(저작자 표시 불필요,
+재배포 허용) — 위 절과 동일. 여섯 다 합쳐도 240KB 남짓이라 PLAN 31절
+"적은 수의 좋은 에셋" 원칙 그대로다.
+
+`js/asset3d.js`에 `building:spaceBase`·`building:spaceHouse`·
+`building:spaceDome`·`rover`·`solarPanel`·`mech` 로 등록,
+`js/village.js`의 우주기지 자리(spaceBaseSpot)에 전부 `deco:true`(순전히
+장식, 새 상호작용 없음)로 놓았다. `js/village-view3d.js`의
+`SCATTER_KIND`/`SCATTER_H`, `js/data-village.js`의 `VD.PROPS`(2D 대체
+이모지 — 3D 가 꺼진 기기·프로필을 위한 되돌림 자리)에도 짝을 맞춰 넣었다.
+메카(Mech_FinnTheFrog)는 PLAN 45절 표가 미리 적어 둔 대로 "세워 두고
+살펴보는 장식" — 새 탈것·전투 시스템은 안 늘렸다.
+
+자가진단 261/265(3회 동일 — 공사(工事) 테스트 넷은 이 변경과 무관한
+기존 실패, `PLAN.md` §46-3 이 이미 같은 261/265 를 기준선으로 적어
+뒀다). 우주기지 deco 소품 수를 세는 기존 테스트를 5 → 11 개로 맞춰
+고쳤다(`_test.html`).
+
+**다음에 이어갈 것** (PLAN §45 표 갱신)
+- 현대(도시) 목적지 — 여전히 CC0 자산 미확보
+- 이 팩에 남은 것 — Connector·Roof_*·MetalSupport·Stairs·Ramp 같은 결합용
+  조각(본관 하나로도 "기지" 느낌은 나서 이번엔 안 받았다), Enemy_*(포자괴물과
+  같은 결의 우주기지 전용 희귀 몬스터 후보, PLAN §45 표 참고), Pickup_*
+  (택배 소포 모양을 상자 대신 이걸로 바꾸는 안)
+- 실기 확인 전 — 우주기지가 실제로 그 자리에 서는지, 여섯 새 소품이 3D
+  화면에서 서로 겹치지 않고 자연스럽게 보이는지는 사용자가 직접 봐야 한다

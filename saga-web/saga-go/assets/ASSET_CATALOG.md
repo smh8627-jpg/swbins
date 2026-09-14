@@ -26,7 +26,7 @@
 | 3D 모델 (`models/anim`, 몸짓 창고) | 1 | 7.27 MB |
 | 땅 텍스처 (`textures/land`, WebP) | 6 | 1.30 MB |
 | 초상 스프라이트 (`sprites2d/portrait`) | 71 | 0.24 MB |
-| 효과음 (`audio/sfx`, mp3) | 6 | 0.10 MB |
+| 효과음 (`audio/sfx`, mp3) | 7 | 0.11 MB |
 
 **`models/people/regular/`(되돌림 전용, 지금은 표 기본이 아니다)는 2026-09-04
 이전엔 26.7MB — 전체 에셋의 절반 가까이였다.** 대부분
@@ -229,6 +229,21 @@ SAGA WEB.md 19절 "4K 텍스처 금지"에 정면으로 걸리던 자리였고, 
 
 원본은 48kHz 스테레오 ogg. 위 RPG Sound Pack 다섯과 같은 규격(모노
 44.1kHz 96kbps mp3)으로 맞춰 옮겼다 — 팩이 다르지만 재생 규격은 통일했다.
+
+---
+
+## OpenGameArt "RPG Sound Pack" — 레벨업, mp3 (`audio/sfx/levelup.mp3`)
+
+[artisticdude, **CC0**](ASSET_LICENSES.md#opengameart-rpg-sound-pack--효과음-assetsaudiosfx) ·
+`js/audio.js`가 `levelup`(`core.js`의 플레이어 레벨업)을 엿듣고 재생 (2026-09-14)
+
+| 이름 | 형식 | 길이 | 용량 | 쓰이는 곳 |
+|---|---|---:|---:|---|
+| levelup | mp3 모노 96kbps | 0.50s | 6.4 KB | `levelup`(플레이어 레벨업) |
+
+원본은 위 다섯 조각과 같은 팩(`interface/interface6.wav`, 44.1kHz 스테레오
+WAV) — 이번에 새로 골랐다. 같은 규격(모노 96kbps mp3)으로 맞췄다. ffmpeg가
+없는 세션이라 Node(`lamejs`, 순수 JS mp3 인코더)로 직접 다운믹스·인코딩했다.
 
 ---
 
