@@ -2,7 +2,9 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 using Saga.Dungeon.Player;
+using Saga.Dungeon.UI;
 using Saga.Dungeon.World;
 
 namespace Saga.EditorTools
@@ -88,6 +90,7 @@ namespace Saga.EditorTools
             {
                 _whirlChecked = true;
                 CheckWhirl();
+                CheckDebugHud();
             }
 
             if (_framesSeen >= FramesToRun)
@@ -133,6 +136,35 @@ namespace Saga.EditorTools
             else
             {
                 Debug.Log($"[PlaytestDungeonHeadless] whirl OK - near1={near1Hp} near2={near2Hp} far={farHp}(변화 없음)");
+            }
+        }
+
+        /// <summary>PLAN.md 44~49장 디버그 화면(2026-09-14, GO와 같은 결) —
+        /// 레벨/층/적 수/사명/좌표 줄이 실제로 채워지는지 본다.</summary>
+        private static void CheckDebugHud()
+        {
+            var hudGo = GameObject.Find("DebugUI");
+            var hud = hudGo != null ? hudGo.GetComponent<DebugHud>() : null;
+            var labelGo = hudGo != null ? hudGo.transform.Find("Label") : null;
+            var label = labelGo != null ? labelGo.GetComponent<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] DebugUI/Label을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var method = typeof(DebugHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+            method.Invoke(hud, null);
+
+            if (!label.text.Contains("lv ") || !label.text.Contains("floor ") || !label.text.Contains("quest:") || !label.text.Contains("pos:"))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 디버그 오버레이 내용 이상 text=\"{label.text}\"");
+                _hadError = true;
+            }
+            else
+            {
+                Debug.Log($"[PlaytestDungeonHeadless] debug hud OK - \"{label.text.Replace("\n", " | ")}\"");
             }
         }
 

@@ -4699,3 +4699,39 @@ Zone) 중, GO `DebugHud.cs`(다섯 판 중 디버그 오버레이가 있는 유�
   원래도 비결정적인 측정값이라 무해하다).
 - 다른 네 판은 파일이 전혀 안 겹쳐(GO 전용 파일만 고침) 무관 확인
   생략.
+
+## 같은 날 일곱 번째 후속 — 디버그 오버레이를 DUNGEON/FOREST/STORY/REALM까지 확장 (2026-09-14, 아홉 번째 "이어해")
+
+GO에만 있던 디버그 오버레이(PLAN.md 44~49장)를 나머지 네 판에도
+만들었다 — 문서의 디버그 화면 요구가 GO 하나만의 스펙이 아니라 다섯
+판 공통이라 판단해서다(`DialogueLabel.cs`처럼 이미 다섯 벌 복사돼
+있는 것과 같은 위상으로 취급). 각 판에 이미 있는 시스템에 얹을 수
+있는 항목만 넣고, 없는 항목은 GO와 같은 기준으로 그냥 뺐다(억지로
+다 채우지 않음):
+
+- **DUNGEON** — lv(`HeroState.Level`)·floor(`DungeonFloorRunner.
+  CurrentFloor`, "지역" 대용)·enemies(`DungeonEnemy.Active.Count`,
+  GO엔 없던 상주 리스트가 있어 이건 됨)·quest(`QuestState.
+  ObjectiveText`)·좌표. 5줄로 GO보다 많다 — DUNGEON이 이미 갖춘
+  시스템이 더 많아서다.
+- **FOREST** — 좌표 하나뿐. `ForestState.cs` 클래스 주석이 이미
+  "전투·성장·경제가 전혀 없다"고 적어 둔 대로 Level/Quest/Enemy Count
+  전부 대응 시스템이 없다.
+- **STORY** — quest(`StoryQuestState` 기반 요약 문자열)·좌표. Level
+  없음, Enemy Count는 화면 상단 `StoryHud`가 이미 같은 정보(kill
+  카운트)를 보여주고 있어 중복 안 넣음.
+- **REALM** — REALM만 조작 캐릭터 자체가 없어(`FindWithTag("Player")`
+  호출 대상이 없다 — 다섯 판 중 유일) Player Position이 아예 안 된다.
+  대신 있는 진행 축(`RealmCityState.Year/Month/Gold/CurrentCity`)을
+  Zone/Quest 대용으로 얹었다. 화면 왼쪽 위는 이미 `RealmHud`가 차지하고
+  있어 REALM만 오른쪽 위에 배치(다른 네 판과 다른 위치).
+- **테스트** — DUNGEON·FOREST는 GO와 같은 프레임-후크 구조라 private
+  `Refresh()`를 리플렉션으로 직접 불러 텍스트 내용까지 확인하는 단계를
+  추가(3연속 통과). STORY·REALM은 기존 Playtest가 이미 다단계(Phase
+  머신)라 새 검증 단계를 끼워 넣는 비용이 커서 **내용 검증은 안 넣고
+  기존 전체 시나리오가 그대로 통과하는지(회귀 없음)만 1회 확인**했다 —
+  새 GameObject(DebugUI)가 씬에 늘어난 것 자체가 기존 로직과 안 겹침을
+  그것으로 확인한 셈.
+- 배치 모드 컴파일 → 네 씬(`BuildTestDungeonScene`·
+  `BuildTestVillageForestScene`·`BuildTestStoryScene`·
+  `BuildTestCityScene`) 재빌드 → 각 Playtest 실행, 전부 통과.

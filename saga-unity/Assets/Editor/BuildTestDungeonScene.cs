@@ -326,6 +326,7 @@ namespace Saga.EditorTools
             BuildPlayerHud();
             BuildMinimap();
             BuildOverworldMap();
+            BuildDebugOverlay();
             BuildSaveButton();
             BuildAttackButton(playerCombat);
             BuildHeavyAttackButton(playerCombat);
@@ -1428,6 +1429,38 @@ namespace Saga.EditorTools
             text.text = label;
 
             return img;
+        }
+
+        /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS·레벨·
+        /// 층·적 수·사명·좌표(DebugHud.cs 클래스 주석 참고, GO와 같은 결).</summary>
+        private static void BuildDebugOverlay()
+        {
+            var canvasGo = new GameObject("DebugUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(20f, -20f);
+            rect.sizeDelta = new Vector2(700f, 220f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 22;
+            text.alignment = TextAnchor.UpperLeft;
+            text.color = new Color(1f, 1f, 1f, 0.8f);
+            text.text = "";
+
+            var overlay = canvasGo.AddComponent<DebugHud>();
+            SetPrivateField(overlay, "label", text);
         }
 
         private static void BuildSaveButton()

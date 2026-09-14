@@ -50,6 +50,7 @@ namespace Saga.EditorTools
             BuildPostProcessingVolume();
             BuildEventSystem();
             BuildHudAndCommands();
+            BuildDebugOverlay();
             BuildBootstrap();
             BuildMapViewSwitcher(cityGo, dioramaRig, worldMapGo, mapCameraRig);
 
@@ -257,6 +258,40 @@ namespace Saga.EditorTools
             if (confirmClip != null) SetPrivateField(commandUi, "confirmClip", confirmClip);
             if (errorClip != null) SetPrivateField(commandUi, "errorClip", errorClip);
             commandUi.Build();
+        }
+
+        /// <summary>화면 오른쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS·연월·
+        /// 금·현재 도시(DebugHud.cs 클래스 주석 참고, GO와 같은 결). 왼쪽
+        /// 위는 이미 `RealmHud`가 차지하고 있어(BuildHudAndCommands) 겹치지
+        /// 않게 오른쪽 위로 뒀다 — REALM만 있는 배치.</summary>
+        private static void BuildDebugOverlay()
+        {
+            var canvasGo = new GameObject("DebugUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = new Vector2(-20f, -20f);
+            rect.sizeDelta = new Vector2(500f, 120f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 22;
+            text.alignment = TextAnchor.UpperRight;
+            text.color = new Color(1f, 1f, 1f, 0.8f);
+            text.text = "";
+
+            var overlay = canvasGo.AddComponent<DebugHud>();
+            SetPrivateField(overlay, "label", text);
         }
 
         private static void BuildBootstrap()
