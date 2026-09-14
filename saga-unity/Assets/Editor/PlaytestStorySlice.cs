@@ -156,6 +156,7 @@ namespace Saga.EditorTools
                     StoryQuestState.Restore(0, 0);
                     StoryWorldEventState.Restore(null); // 위와 같은 이유 — 이전 실행이 남긴 save_story.json 무시.
                     StoryNpcState.Restore(0, 0); // 위와 같은 이유 — 새 정적 상태를 추가할 때마다 여기 잊지 말 것(2026-09-14에 한 번 빠뜨려 겪음).
+                    if (!CheckSettingsPanel()) { Fail(); return; }
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -733,6 +734,51 @@ namespace Saga.EditorTools
             _hadError = true;
             EditorApplication.update -= Tick;
             EditorApplication.isPlaying = false;
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — GO
+        /// `PlaytestHeadless.CheckSettingsPanel()`과 같은 결. 이 파일은
+        /// 새 Phase를 안 늘리고 Init 안에서 한 번만 부른다(다단계 Phase
+        /// 머신에 끼워 넣는 비용을 피한다 — 디버그 오버레이 확장 때와
+        /// 같은 판단, docs/PROJECT_STATE.md 참고).</summary>
+        private static bool CheckSettingsPanel()
+        {
+            if (GameObject.Find("StorySettingsPanel") == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StorySettingsPanel을 못 찾음");
+                return false;
+            }
+
+            bool sfxBefore = StorySettingsState.SfxOn;
+            StorySettingsState.SfxOn = !sfxBefore;
+            bool vibBefore = StorySettingsState.VibrationOn;
+            StorySettingsState.VibrationOn = !vibBefore;
+            if (StorySettingsState.SfxOn == sfxBefore || StorySettingsState.VibrationOn == vibBefore)
+            {
+                Debug.LogError("[PlaytestStorySlice] 효과음/진동 토글이 안 바뀜");
+                return false;
+            }
+
+            StorySettingsState.UiScaleMultiplier = 1.15f;
+            var scaler = Object.FindFirstObjectByType<CanvasScaler>();
+            float expected = 1080f / 1.15f;
+            if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
+            {
+                Debug.LogError($"[PlaytestStorySlice] UI 크기가 캔버스에 안 먹음 — got={(scaler == null ? "null" : scaler.referenceResolution.x.ToString())}");
+                return false;
+            }
+            StorySettingsState.UiScaleMultiplier = 1f;
+
+            StorySettingsState.HighGraphicsQuality = false;
+            if (!Mathf.Approximately(QualitySettings.shadowDistance, 15f) || QualitySettings.antiAliasing != 0)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 그래픽 품질(절약)이 QualitySettings에 안 먹음 — shadowDistance={QualitySettings.shadowDistance} aa={QualitySettings.antiAliasing}");
+                return false;
+            }
+            StorySettingsState.HighGraphicsQuality = true;
+
+            Debug.Log("[PlaytestStorySlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
+            return true;
         }
 
         private static void TeleportPlayer(Vector3 position)

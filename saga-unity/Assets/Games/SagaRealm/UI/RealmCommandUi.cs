@@ -26,12 +26,17 @@ namespace Saga.Realm.UI
         private GameObject _plotPanel;
         private GameObject _quizPanel;
         private GameObject _archivePanel;
+        private GameObject _settingsPanel;
         private Transform _cityButtonsRoot;
         private Transform _plotButtonsRoot;
         private Transform _quizButtonsRoot;
         private Transform _archiveButtonsRoot;
         private Text _quizQuestionText;
         private Text _quizProgressText;
+        private Text _settingsSfxLabel;
+        private Text _settingsVibrationLabel;
+        private Text _settingsUiScaleLabel;
+        private Text _settingsQualityLabel;
         private RealmQuizState.Presented? _currentQuiz;
 
         public void Build()
@@ -68,11 +73,19 @@ namespace Saga.Realm.UI
             RealmUiKit.NewButton(canvas.transform, "서고", new Vector2(1f, 1f), new Vector2(-110f, 30f),
                 new Vector2(180f, 110f), ToggleArchivePanel);
 
+            // 설정(PLAN.md 67~69장 "접근성") — 문답/지도/서고와 같은 구석
+            // 기둥을 한 칸 더 내려 잇는다(지도 -210 바로 아래, 10px 틈).
+            // 디버그 오버레이(BuildTestCityScene.cs, y -20~-140)보다 한참
+            // 아래라 겹치지 않는다.
+            RealmUiKit.NewButton(canvas.transform, "설정", new Vector2(1f, 1f), new Vector2(-110f, -330f),
+                new Vector2(180f, 110f), ToggleSettingsPanel);
+
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
             BuildPlotPanel(canvas.transform);
             BuildQuizPanel(canvas.transform);
             BuildArchivePanel(canvas.transform);
+            BuildSettingsPanel(canvas.transform);
         }
 
         /// <summary>명령 10종 — rtk.js ORDERS 순서, 두 열(왼쪽 5·오른쪽 5)로
@@ -282,6 +295,7 @@ namespace Saga.Realm.UI
             _plotPanel.SetActive(false);
             _quizPanel.SetActive(false);
             _archivePanel.SetActive(false);
+            _settingsPanel.SetActive(false);
         }
 
         /// <summary>서고(godot REALM 10절) — 익힌 문제를 최근 순으로 다시
@@ -339,6 +353,59 @@ namespace Saga.Realm.UI
         private void ShowArchiveEntry(RealmQuizState.LearnedEntry entry)
         {
             RealmToast.Instance?.Show($"[{RealmQuizData.CatName(entry.Cat)} · Lv{entry.Lv}]\n{entry.Q}\n정답: {entry.AnswerText}\n{entry.Why}", 8f);
+        }
+
+        /// <summary>설정(PLAN.md 67~69장 "접근성") — 효과음·진동·UI 크기·
+        /// 그래픽 품질. 계략 패널처럼 매번 다시 짓지 않고, 한 번 지은 뒤
+        /// 버튼 안 Text만 갱신한다(값이 네 개뿐이라 다시 지을 이유가 없다).</summary>
+        private void BuildSettingsPanel(Transform parent)
+        {
+            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 620f),
+                new Color(0f, 0f, 0f, 0.8f));
+            _settingsPanel.SetActive(false);
+
+            RealmUiKit.NewText(_settingsPanel.transform, "설정", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+                new Vector2(500f, 60f), 32);
+
+            _settingsSfxLabel = MakeSettingsRow(-160f, "효과음", ChooseSfx);
+            _settingsVibrationLabel = MakeSettingsRow(-260f, "진동", ChooseVibration);
+            _settingsUiScaleLabel = MakeSettingsRow(-360f, "UI 크기", ChooseUiScale);
+            _settingsQualityLabel = MakeSettingsRow(-460f, "그래픽 품질", ChooseGraphicsQuality);
+
+            RealmUiKit.NewButton(_settingsPanel.transform, "닫는다", new Vector2(0.5f, 0f), new Vector2(0f, 40f),
+                new Vector2(300f, 70f), () => _settingsPanel.SetActive(false));
+
+            RefreshSettingsPanel();
+        }
+
+        private Text MakeSettingsRow(float y, string name, UnityEngine.Events.UnityAction onClick)
+        {
+            RealmUiKit.NewText(_settingsPanel.transform, name, new Vector2(0f, 1f), new Vector2(60f, y),
+                new Vector2(260f, 70f), 26).alignment = TextAnchor.MiddleLeft;
+            var button = RealmUiKit.NewButton(_settingsPanel.transform, "", new Vector2(1f, 1f), new Vector2(-60f, y),
+                new Vector2(260f, 70f), onClick);
+            return button.GetComponentInChildren<Text>();
+        }
+
+        private void ChooseSfx() { RealmSettingsState.SfxOn = !RealmSettingsState.SfxOn; RefreshSettingsPanel(); }
+        private void ChooseVibration() { RealmSettingsState.VibrationOn = !RealmSettingsState.VibrationOn; RefreshSettingsPanel(); }
+        private void ChooseUiScale() { RealmSettingsState.CycleUiScale(); RefreshSettingsPanel(); }
+        private void ChooseGraphicsQuality() { RealmSettingsState.CycleGraphicsQuality(); RefreshSettingsPanel(); }
+
+        private void RefreshSettingsPanel()
+        {
+            if (_settingsSfxLabel == null) return;
+            _settingsSfxLabel.text = RealmSettingsState.SfxOn ? "켜짐" : "꺼짐";
+            _settingsVibrationLabel.text = RealmSettingsState.VibrationOn ? "켜짐" : "꺼짐";
+            _settingsUiScaleLabel.text = RealmSettingsState.UiScaleLabel();
+            _settingsQualityLabel.text = RealmSettingsState.GraphicsQualityLabel();
+        }
+
+        private void ToggleSettingsPanel()
+        {
+            bool open = !_settingsPanel.activeSelf;
+            CloseAllPanels();
+            _settingsPanel.SetActive(open);
         }
 
         private void ToggleOrderPanel()

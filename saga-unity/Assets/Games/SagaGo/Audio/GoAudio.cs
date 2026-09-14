@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Go.Data;
 
 namespace Saga.Go.Audio
 {
@@ -55,6 +56,7 @@ namespace Saga.Go.Audio
         {
             if (clip == null) return;
             EnsureSfxSource().PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
+            if (GoSettingsState.VibrationOn) Handheld.Vibrate();
         }
     }
 }

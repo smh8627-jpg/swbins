@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Dungeon.Data;
 
 namespace Saga.Dungeon.Audio
 {
@@ -72,6 +73,7 @@ namespace Saga.Dungeon.Audio
             if (clip == null) return;
             EnsureSource();
             _source.PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
+            if (DungeonSettingsState.VibrationOn) Handheld.Vibrate();
         }
 
         private static void EnsureSource()

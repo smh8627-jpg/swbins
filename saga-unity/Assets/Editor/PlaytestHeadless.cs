@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Audio;
+using Saga.Go.Data;
 using Saga.Go.UI;
 
 namespace Saga.EditorTools
@@ -109,6 +110,7 @@ namespace Saga.EditorTools
                 var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Audio/Kenney_RPGSounds/chop.ogg");
                 GoAudio.PlaySfx(clip);
                 CheckDebugHud();
+                CheckSettingsPanel();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -148,6 +150,54 @@ namespace Saga.EditorTools
             {
                 Debug.Log($"[PlaytestHeadless] debug hud OK - \"{label.text.Replace("\n", " | ")}\"");
             }
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — 패널 GameObject가
+        /// 실제로 지어졌는지, 효과음/진동/UI 크기/그래픽 품질 토글이
+        /// 상태를 바꾸고 CanvasScaler·QualitySettings에 실제로 반영되는지
+        /// 직접 확인한다(UI 버튼 클릭 시뮬레이션은 안 함 — 이 파일의 다른
+        /// 검사들과 같은 결로 정적 API를 직접 부른다).</summary>
+        private static void CheckSettingsPanel()
+        {
+            if (GameObject.Find("GoSettingsPanel") == null)
+            {
+                Debug.LogError("[PlaytestHeadless] GoSettingsPanel을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            bool sfxBefore = GoSettingsState.SfxOn;
+            GoSettingsState.SfxOn = !sfxBefore;
+            bool vibBefore = GoSettingsState.VibrationOn;
+            GoSettingsState.VibrationOn = !vibBefore;
+            if (GoSettingsState.SfxOn == sfxBefore || GoSettingsState.VibrationOn == vibBefore)
+            {
+                Debug.LogError("[PlaytestHeadless] 효과음/진동 토글이 안 바뀜");
+                _hadError = true;
+                return;
+            }
+
+            GoSettingsState.UiScaleMultiplier = 1.15f;
+            var scaler = Object.FindFirstObjectByType<CanvasScaler>();
+            float expected = 1080f / 1.15f;
+            if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
+            {
+                Debug.LogError($"[PlaytestHeadless] UI 크기가 캔버스에 안 먹음 — got={(scaler == null ? "null" : scaler.referenceResolution.x.ToString())}");
+                _hadError = true;
+                return;
+            }
+            GoSettingsState.UiScaleMultiplier = 1f; // 다른 검사에 영향 없게 기본값으로 되돌린다.
+
+            GoSettingsState.HighGraphicsQuality = false;
+            if (!Mathf.Approximately(QualitySettings.shadowDistance, 15f) || QualitySettings.antiAliasing != 0)
+            {
+                Debug.LogError($"[PlaytestHeadless] 그래픽 품질(절약)이 QualitySettings에 안 먹음 — shadowDistance={QualitySettings.shadowDistance} aa={QualitySettings.antiAliasing}");
+                _hadError = true;
+                return;
+            }
+            GoSettingsState.HighGraphicsQuality = true; // 원래(기본) 값으로 되돌린다.
+
+            Debug.Log("[PlaytestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
         }
     }
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Forest.Data;
 
 namespace Saga.Forest.Audio
 {
@@ -63,6 +64,7 @@ namespace Saga.Forest.Audio
         {
             if (clip == null) return;
             EnsureSfxSource().PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
+            if (ForestSettingsState.VibrationOn) Handheld.Vibrate();
         }
 
         // BGM 트랙은 아직 안 구했다 — 구하면 여기에 PlayBgm(AudioClip)을 추가할 것.

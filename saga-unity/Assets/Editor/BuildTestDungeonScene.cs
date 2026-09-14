@@ -328,6 +328,7 @@ namespace Saga.EditorTools
             BuildOverworldMap();
             BuildDebugOverlay();
             BuildSaveButton();
+            BuildSettingsUi();
             BuildAttackButton(playerCombat);
             BuildHeavyAttackButton(playerCombat);
             BuildWhirlButton(playerCombat);
@@ -1505,6 +1506,16 @@ namespace Saga.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.text = "저장";
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성" — 효과음·진동·UI 크기·그래픽
+        /// 품질. 오른쪽 위 미니맵(-30,-130,140×220) 아래, 20px 틈을 두고
+        /// 둔다(`DungeonSettingsPanel.cs` 클래스 주석 참고).</summary>
+        private static void BuildSettingsUi()
+        {
+            var go = new GameObject("DungeonSettingsPanel");
+            var panel = go.AddComponent<DungeonSettingsPanel>();
+            panel.Build();
         }
 
         /// <summary>화면 오른쪽 아래 — 모바일 공격 버튼(PlayerCombat.TriggerAttack()).

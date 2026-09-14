@@ -10,6 +10,8 @@ namespace Saga.Realm.World
         private void Start()
         {
             RealmSaveState.TryLoad();
+            RealmSettingsState.ApplyToAllScalers();
+            RealmSettingsState.ApplyGraphicsQuality();
         }
     }
 }

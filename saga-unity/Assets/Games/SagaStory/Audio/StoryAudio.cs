@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Story.Data;
 
 namespace Saga.Story.Audio
 {
@@ -54,6 +55,7 @@ namespace Saga.Story.Audio
         {
             if (clip == null) return;
             EnsureSfxSource().PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
+            if (StorySettingsState.VibrationOn) Handheld.Vibrate();
         }
     }
 }

@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
+using Saga.Dungeon.Data;
 using Saga.Dungeon.Player;
 using Saga.Dungeon.UI;
 using Saga.Dungeon.World;
@@ -91,6 +92,7 @@ namespace Saga.EditorTools
                 _whirlChecked = true;
                 CheckWhirl();
                 CheckDebugHud();
+                CheckSettingsPanel();
             }
 
             if (_framesSeen >= FramesToRun)
@@ -166,6 +168,51 @@ namespace Saga.EditorTools
             {
                 Debug.Log($"[PlaytestDungeonHeadless] debug hud OK - \"{label.text.Replace("\n", " | ")}\"");
             }
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — GO
+        /// `PlaytestHeadless.CheckSettingsPanel()`과 같은 결.</summary>
+        private static void CheckSettingsPanel()
+        {
+            if (GameObject.Find("DungeonSettingsPanel") == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] DungeonSettingsPanel을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            bool sfxBefore = DungeonSettingsState.SfxOn;
+            DungeonSettingsState.SfxOn = !sfxBefore;
+            bool vibBefore = DungeonSettingsState.VibrationOn;
+            DungeonSettingsState.VibrationOn = !vibBefore;
+            if (DungeonSettingsState.SfxOn == sfxBefore || DungeonSettingsState.VibrationOn == vibBefore)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 효과음/진동 토글이 안 바뀜");
+                _hadError = true;
+                return;
+            }
+
+            DungeonSettingsState.UiScaleMultiplier = 1.15f;
+            var scaler = Object.FindFirstObjectByType<CanvasScaler>();
+            float expected = 1080f / 1.15f;
+            if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] UI 크기가 캔버스에 안 먹음 — got={(scaler == null ? "null" : scaler.referenceResolution.x.ToString())}");
+                _hadError = true;
+                return;
+            }
+            DungeonSettingsState.UiScaleMultiplier = 1f;
+
+            DungeonSettingsState.HighGraphicsQuality = false;
+            if (!Mathf.Approximately(QualitySettings.shadowDistance, 15f) || QualitySettings.antiAliasing != 0)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 그래픽 품질(절약)이 QualitySettings에 안 먹음 — shadowDistance={QualitySettings.shadowDistance} aa={QualitySettings.antiAliasing}");
+                _hadError = true;
+                return;
+            }
+            DungeonSettingsState.HighGraphicsQuality = true;
+
+            Debug.Log("[PlaytestDungeonHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
         }
 
         private static DungeonEnemy SpawnDummyEnemy(Vector3 position)

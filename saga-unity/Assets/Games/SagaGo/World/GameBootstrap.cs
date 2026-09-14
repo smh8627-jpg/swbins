@@ -16,6 +16,8 @@ namespace Saga.Go.World
         {
             SaveState.TryLoad();
             CombineStaticBatches();
+            GoSettingsState.ApplyToAllScalers();
+            GoSettingsState.ApplyGraphicsQuality();
         }
 
         /// <summary>

@@ -4,6 +4,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 using Saga.Realm.Data;
 using Saga.Realm.World;
 using Saga.Realm.Player;
@@ -164,6 +165,7 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    if (!CheckSettingsPanel()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
 
@@ -1037,6 +1039,53 @@ namespace Saga.EditorTools
         {
             var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
             return field?.GetValue(target) as T;
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — GO
+        /// `PlaytestHeadless.CheckSettingsPanel()`과 같은 결. 이 파일도
+        /// STORY처럼 새 Phase를 안 늘리고 Init 안에서 한 번만 부른다.</summary>
+        private static bool CheckSettingsPanel()
+        {
+            // REALM엔 GO/DUNGEON/FOREST/STORY 같은 독립 XxxSettingsPanel
+            // GameObject가 없다 — RealmCommandUi가 스스로 짓는 캔버스 안에
+            // "설정" 버튼+패널로 얹혀 있다(RealmCommandUi.Build() 참고).
+            // 버튼은 이름이 "Btn_설정"이라 그걸로 찾는다.
+            if (GameObject.Find("Btn_설정") == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 설정 버튼(Btn_설정)을 못 찾음");
+                return false;
+            }
+
+            bool sfxBefore = RealmSettingsState.SfxOn;
+            RealmSettingsState.SfxOn = !sfxBefore;
+            bool vibBefore = RealmSettingsState.VibrationOn;
+            RealmSettingsState.VibrationOn = !vibBefore;
+            if (RealmSettingsState.SfxOn == sfxBefore || RealmSettingsState.VibrationOn == vibBefore)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 효과음/진동 토글이 안 바뀜");
+                return false;
+            }
+
+            RealmSettingsState.UiScaleMultiplier = 1.15f;
+            var scaler = Object.FindFirstObjectByType<CanvasScaler>();
+            float expected = 1080f / 1.15f;
+            if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] UI 크기가 캔버스에 안 먹음 — got={(scaler == null ? "null" : scaler.referenceResolution.x.ToString())}");
+                return false;
+            }
+            RealmSettingsState.UiScaleMultiplier = 1f;
+
+            RealmSettingsState.HighGraphicsQuality = false;
+            if (!Mathf.Approximately(QualitySettings.shadowDistance, 15f) || QualitySettings.antiAliasing != 0)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 그래픽 품질(절약)이 QualitySettings에 안 먹음 — shadowDistance={QualitySettings.shadowDistance} aa={QualitySettings.antiAliasing}");
+                return false;
+            }
+            RealmSettingsState.HighGraphicsQuality = true;
+
+            Debug.Log("[PlaytestRealmSlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
+            return true;
         }
     }
 }
