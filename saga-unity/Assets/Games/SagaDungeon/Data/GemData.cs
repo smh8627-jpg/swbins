@@ -14,13 +14,15 @@ namespace Saga.Dungeon.Data
     public class GemData
     {
         public readonly string Id;
-        public readonly string Name;
+        private readonly string _name;
+        /// <summary>Localization — ItemData.Name과 같은 결(T(key, fallback)).</summary>
+        public string Name => DungeonLocalization.T("gem." + Id, _name);
         public readonly float AtkBonus;
 
         private GemData(string id, string name, float atk)
         {
             Id = id;
-            Name = name;
+            _name = name;
             AtkBonus = atk;
         }
 

@@ -32,6 +32,17 @@
     { "key": "quest.boss_defeated", "value": "Defeated the Yellow Turban Chief" },
     { "key": "quest.miniboss_defeated", "value": "Defeated the Yellow Turban Assassin" },
     { "key": "quest.captive_rescued", "value": "Rescued the captive" },
-    { "key": "quest.reward_msg", "value": "Quest Reward: +{0} EXP · +{1} Gold" }
+    { "key": "quest.reward_msg", "value": "Quest Reward: +{0} EXP · +{1} Gold" },
+    { "key": "merchant.cant_afford", "value": "Merchant — not enough gold for {0} ({1} gold)." },
+    { "key": "merchant.bought_socketed", "value": "Merchant — bought {0} for {1} gold — socketed it right away." },
+    { "key": "merchant.bought_equipped", "value": "Merchant — bought {0} for {1} gold — equipped it right away." },
+    { "key": "merchant.bought_plain", "value": "Merchant — bought {0} for {1} gold." },
+    { "key": "gem.gem_jade", "value": "Jade" },
+    { "key": "gem.gem_sapphire", "value": "Sapphire" },
+    { "key": "gem.gem_ruby", "value": "Ruby" },
+    { "key": "captive.rescued_reward", "value": "Rescued — repaid with gratitude. +{0} EXP · +{1} Gold" },
+    { "key": "shrine.blessed_reward", "value": "Shrine — received a blessing. +{0} EXP · +{1} Gold" },
+    { "key": "secret_stash.found_reward", "value": "🔍 Hidden Area — found a forgotten pouch! +{0} EXP · +{1} Gold" },
+    { "key": "combat.levelup_suffix", "value": " — Level up! ({0} → {1})" }
   ]
 }

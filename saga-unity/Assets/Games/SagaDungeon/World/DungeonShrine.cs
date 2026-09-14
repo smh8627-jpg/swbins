@@ -66,8 +66,8 @@ namespace Saga.Dungeon.World
             int levelBefore = HeroState.Level;
             HeroState.AddExp(RewardExp);
             HeroState.AddGold(RewardGold);
-            string msg = $"성소 · 가호를 받았다 — 경험치 +{RewardExp} · 돈 +{RewardGold}냥";
-            if (HeroState.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {HeroState.Level})";
+            string msg = string.Format(DungeonLocalization.T("shrine.blessed_reward", "성소 · 가호를 받았다 — 경험치 +{0} · 돈 +{1}냥"), RewardExp, RewardGold);
+            if (HeroState.Level > levelBefore) msg += string.Format(DungeonLocalization.T("combat.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, HeroState.Level);
             DialogueLabel.Instance?.Show(msg, ToastSec);
         }
     }

@@ -32,6 +32,17 @@
     { "key": "quest.boss_defeated", "value": "황건적 두목을 처치했다" },
     { "key": "quest.miniboss_defeated", "value": "황건 살수를 처치했다" },
     { "key": "quest.captive_rescued", "value": "갇힌 인영을 구출했다" },
-    { "key": "quest.reward_msg", "value": "퀘스트 보상 경험치 +{0} · 돈 +{1}냥" }
+    { "key": "quest.reward_msg", "value": "퀘스트 보상 경험치 +{0} · 돈 +{1}냥" },
+    { "key": "merchant.cant_afford", "value": "행상 — {0}({1}냥)를 살 돈이 모자라다." },
+    { "key": "merchant.bought_socketed", "value": "행상 — {0}을(를) {1}냥에 샀다 — 바로 세공했다." },
+    { "key": "merchant.bought_equipped", "value": "행상 — {0}을(를) {1}냥에 샀다 — 바로 갖췄다." },
+    { "key": "merchant.bought_plain", "value": "행상 — {0}을(를) {1}냥에 샀다." },
+    { "key": "gem.gem_jade", "value": "벽옥" },
+    { "key": "gem.gem_sapphire", "value": "남주" },
+    { "key": "gem.gem_ruby", "value": "홍옥" },
+    { "key": "captive.rescued_reward", "value": "구출 · 은혜를 갚는다 — 경험치 +{0} · 돈 +{1}냥" },
+    { "key": "shrine.blessed_reward", "value": "성소 · 가호를 받았다 — 경험치 +{0} · 돈 +{1}냥" },
+    { "key": "secret_stash.found_reward", "value": "🔍 숨겨진 지역 — 잊혀진 주머니를 찾아냈다! 경험치 +{0} · 돈 +{1}냥" },
+    { "key": "combat.levelup_suffix", "value": " — 레벨업! ({0} → {1})" }
   ]
 }
