@@ -6575,3 +6575,12 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 신규: skill_curse.gd·curse_button.gd(📛)·입력 액션 dungeon_skill_7(C키).
 - 검증: 헤드리스 3회 로그 동일. 임시 씬 13항목 PASS(반경 경계·직접데미지 없음·느려짐·저주·take_damage 30% 실측·쿨다운·만료). GO/FOREST/STORY/REALM 회귀 오류 0.
 - 다음: 남은 shape는 summon·chain(더 큼) 또는 각 직업 셋째 활성 무예. GUI 실기 확인 아직(몰아서 받을 것, 일곱 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 방사의 원래 모양: 분신술(y_shade, summon) (2026-09-15, 같은 날 이어서, "summon 이어해")
+
+- 방사(mystic) br=0 row=0 y_shade 신규 — 원작 CLASSES 설명 그대로 방사의 원래 모양(nova/curse처럼 다른 직업에서 빌려온 게 아님). 처음으로 화면에 남는 새 개체(분신) 필요.
+- 신규 dungeon_minion.gd — Node3D(물리 충돌 없음, global_position 직접 이동), 가장 가까운 적 추격·타격, 적이 없으면 플레이어 복귀, sec초 후 자멸. 적은 분신을 공격 안 함(원작 그대로, hp 없음).
+- 속도 환산은 dash와 같은 BASE_SPD(148)→WALK_SPEED(6.0) 비율. 랭크는 데미지가 아니라 분신 개체 수(round(value_at))를 늘림 — 다른 무예와 다른 결.
+- 신규: skill_summon.gd·summon_button.gd(👥)·입력 액션 dungeon_skill_8(M키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 9항목 PASS(랭크1=분신1개·6m 밖 적 추격+타격 실측 hp 24→9·수명만료 자멸). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 shape는 chain뿐 — 이걸로 8가지 모양 중 7개 완료. GUI 실기 확인 아직(몰아서 받을 것, 여덟 키/버튼 전부).

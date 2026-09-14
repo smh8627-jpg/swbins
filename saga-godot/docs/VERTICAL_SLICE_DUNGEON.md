@@ -761,3 +761,35 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   활성 무예(예: br=1 갈래)로 더 작은 걸음을 고를 수도 있다. GUI 실기
   확인 아직(몰아서 받을 것, 일곱 키/버튼 전부). DUNGEON 밖(GO/FOREST/
   STORY/REALM 추가 확장·saga-unity 트랙)도 고려할 자리.
+
+## 21. 51장 "장비→빌드" — 방사의 원래 모양: 분신술(y_shade, summon) (2026-09-15, "summon 이어해")
+
+- 방사(mystic) br=0 row=0 `y_shade` 추가 — 원작 `CLASSES` 설명 "분신을
+  세우고 적을 묶는다" 그대로, nova·curse처럼 다른 직업에서 "빌려 온"
+  게 아니라 방사의 가장 원래 모양이다. 처음으로 **화면에 남는 새
+  개체**(분신)가 필요해 지금까지 중 가장 큰 걸음이었다.
+- 신규 `games/saga_dungeon/world/dungeon_minion.gd` — `CharacterBody3D`가
+  아니라 맨 `Node3D`(물리 충돌 없음, `global_position` 직접 이동 — dash가
+  겪은 몸통 충돌 문제를 아예 피한다, 원작 분신도 몸통 충돌이 없다). 가장
+  가까운 적을 쫓다가 닿으면 멈춰 서서 주기적으로 때리고, 적이 없으면
+  플레이어 곁으로 돌아온다. `sec`초 뒤 스스로 `queue_free()`. **적이
+  분신을 공격하지 않는다**(원작 그대로 — hp도 죽음도 없다).
+- **속도·거리 환산**: dash와 같은 이유로 "이동"이라 `BASE_SPD`(148px/s)
+  기준 — 추격 110px/s→≈4.46m/s, 복귀 90px/s→≈3.65m/s, 소환 위치 흩뿌림
+  (±20px×±15px)→≈±0.81m×±0.61m. 공격 판정 거리는 curse·dash와 같은
+  이유로 `melee_attack.gd`의 `ATK_RANGE`(2.4m) 재사용. **랭크가 하는
+  일이 다른 무예와 다르다** — 데미지가 아니라 `round(value_at(rank))`
+  으로 분신 **개체 수**를 늘린다(원작 그대로).
+- 신규 `games/saga_dungeon/player/skill_summon.gd`·`ui/summon_button.gd`
+  (👥)·입력 액션 `dungeon_skill_8`(M키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_summon.tscn`, 검증 후 삭제)으로 9항목 PASS —
+  row0 선행조건 없음·랭크1에 정확히 분신 1개 생성·쿨다운·**분신이 실제로
+  6m 밖 적에게 다가가 때리는 것**(2.5초 동안 hp 24→9 감소 실측)·수명
+  만료 후 자동 소멸까지 확인. GO·FOREST·STORY·REALM 회귀도 헤드리스
+  오류 0건. `project.godot` diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 shape는 chain(적 사이 튕기며 타격, 연쇄
+  타겟팅 필요)뿐이다 — 이걸로 51장의 8가지 모양(swing·bolt·nova·dash·
+  buff·heal·curse·summon) 중 7개를 마쳤다. GUI 실기 확인 아직(몰아서
+  받을 것, 여덟 키/버튼 전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가
+  확장·saga-unity 트랙)도 고려할 자리.

@@ -133,6 +133,31 @@ class_name DungeonSkills
 ## 사거리와 같은 성격). 원작의 무적(`p.invuln`)은 이 슬라이스에 회피·
 ## 무적 시스템 자체가 없어(`combat_dodge` 입력 액션도 아직 아무 데도
 ## 안 걸려 있다) 값만 흘리고 안 쓴다 — kb·mpRegen과 같은 결의 판단.
+##
+## **2026-09-15, 또 이어서 — 방사(mystic) br=0 row=0 `y_shade`(분신술,
+## shape:'summon') 추가**(`games/saga_dungeon/player/skill_summon.gd`·
+## `games/saga_dungeon/world/dungeon_minion.gd` 참고). 방사 자체가 원작
+## `CLASSES` 설명부터 "분신을 세우고 적을 묶는다"라 y_shade가 그 직업의
+## 가장 원래 모양이다(nova·curse처럼 다른 직업에서 "빌려 온" 게 아니다).
+## 처음으로 **화면에 남는 새 개체**(분신)가 필요해 지금까지 중 가장 큰
+## 걸음이다 — `dungeon_minion.gd` 신규: `CharacterBody3D`가 아니라 맨
+## `Node3D`(물리 충돌 없음, `global_position`을 직접 옮긴다 — dash가
+## 겪은 몸통 충돌 문제를 아예 피한다, 원작 분신도 2D 좌표만 있지 몸통
+## 충돌이 없다) 하나가: 가장 가까운 적을 쫓다가 닿으면 멈춰 서서
+## 주기적으로 때리고(`melee_attack.gd`의 `ATK_DAMAGE`를 `mul`(=0.5×
+## `sk.str`, y_shade는 str 없음 → 0.5)만큼 줄여 쓴다 — crit·저항은
+## 그대로 적용, 적이 없으면 플레이어 곁으로 돌아온다), `sec`초 뒤 스스로
+## `queue_free()`한다. **적이 분신을 공격하지 않는다**(원작 그대로 — hp도
+## 없다, 죽음·부활을 새로 안 만드는 선택).
+##
+## **속도 환산** — dash와 같은 이유로 "이동"이라 `BASE_SPD`(148px/s)
+## 기준을 쓴다: 추격 110px/s→`110×(6.0/148)≈4.46`m/s, 복귀 90px/s→
+## `≈3.65`m/s, 소환 위치 흩뿌림(±20px×±15px)→`≈±0.81m×±0.61m`. 공격
+## 판정 거리("bd > best.r+14", 몬스터별 반지름 없음)는 curse·dash와 같은
+## 이유로 `melee_attack.gd`의 `ATK_RANGE`(2.4m)를 재사용한다. 공격
+## 쿨다운(0.7초)은 이미 초 단위라 그대로 옮긴다. **랭크가 하는 일** —
+## 데미지가 아니라 **개체 수**(`round(value_at(rank))`)를 늘린다(원작
+## `summon(Math.round(v), ...)` 그대로) — 다른 무예와 결이 다르다.
 
 const MAX_RANK := 5
 
@@ -202,6 +227,12 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "guardPct", "v": 4.0, "grow": 3.0, "desc": "받는 피해가 늘 조금 준다." },
 	{ "key": "m_lead", "cls": "marshal", "br": 2, "row": 2, "name": "통솔(統率)",
 		"eff": "hpPct", "v": 6.0, "grow": 4.0, "desc": "부대 체력이 오른다." },
+	## 방사(方士) br=0 row 0 — data-skill.js 그대로(cost=26은 기력이 없어
+	## 안 씀). v/grow는 데미지가 아니라 분신 "개체 수"(round(value_at))다
+	## — 위 헤더 참고. sec(지속초)은 랭크 무관 고정.
+	{ "key": "y_shade", "cls": "mystic", "br": 0, "row": 0, "name": "분신술(分身)",
+		"shape": "summon", "cd": 12.0, "sec": 12.0,
+		"eff": "", "v": 1.0, "grow": 1.0, "desc": "분신을 세운다. 대신 싸운다." },
 	## 방사(方士) br=2 — data-skill.js 그대로.
 	{ "key": "y_leech", "cls": "mystic", "br": 2, "row": 0, "name": "흡정(吸精)",
 		"eff": "drainPct", "v": 2.0, "grow": 1.5, "desc": "적을 잡으면 체력이 돌아온다." },

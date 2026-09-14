@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/dungeon_camera_rig.gd" id="2"]
@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_buff.gd" id="12"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_heal.gd" id="13"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_curse.gd" id="14"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_summon.gd" id="15"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.9
@@ -76,3 +77,6 @@ script = ExtResource("13")
 
 [node name="SkillCurse" type="Node" parent="."]
 script = ExtResource("14")
+
+[node name="SkillSummon" type="Node" parent="."]
+script = ExtResource("15")
