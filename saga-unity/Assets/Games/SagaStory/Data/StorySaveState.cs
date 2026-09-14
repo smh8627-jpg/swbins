@@ -16,11 +16,10 @@ namespace Saga.Story.Data
     /// </summary>
     public static class StorySaveState
     {
-        // v3 — "STORY 확장 — 사건"(2026-09-14), 숨은 발견(field_lookout)이
-        // 다시 안 나오도록 triggeredEvents 추가. 구버전 세이브는 이 필드가
-        // null로 들어와도 StoryWorldEventState.Restore(null)이 빈 집합으로
-        // 처리해 무해하다.
-        private const int SaveVersion = 3;
+        // v4 — "STORY 확장 — 관계"(2026-09-14), 척후병과 몇 번 말을
+        // 나눴는지(scoutTalkCount) 추가. 구버전 세이브는 0으로 들어와도
+        // StoryNpcState.Restore(0)이 "아직 안 만남"으로 처리해 무해하다.
+        private const int SaveVersion = 4;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_story.json");
 
@@ -32,6 +31,7 @@ namespace Saga.Story.Data
             public int kills;
             public int bossKills;
             public string[] triggeredEvents;
+            public int scoutTalkCount;
         }
 
         public static bool Save()
@@ -47,6 +47,7 @@ namespace Saga.Story.Data
                 kills = StoryQuestState.Kills,
                 bossKills = StoryQuestState.BossKills,
                 triggeredEvents = events.ToArray(),
+                scoutTalkCount = StoryNpcState.ScoutTalkCount,
             };
 
             try
@@ -79,6 +80,7 @@ namespace Saga.Story.Data
 
             StoryQuestState.Restore(data.kills, data.bossKills);
             StoryWorldEventState.Restore(data.triggeredEvents);
+            StoryNpcState.Restore(data.scoutTalkCount);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

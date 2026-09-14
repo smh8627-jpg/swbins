@@ -5,16 +5,19 @@ using Saga.Story.UI;
 namespace Saga.Story.World
 {
     /// <summary>
-    /// PLAN.md 51장 "STORY 확장 — 스토리 챕터→NPC/선택/사건/관계"의 첫
-    /// 칸(NPC)만 채운다. `StoryQuestState.cs` 클래스 주석이 이미 "gear/
-    /// gather/visit/talk/skill/gold" 사명은 범위 밖이라고 적어 둔 대로,
-    /// 이 NPC는 **말을 걸어도 아무 상태도 안 바꾼다** — 진행 중인 사명
-    /// (첫 사냥·두목의 목)을 그대로 되읽어 주는 순수 잡담 한 마디뿐이다
-    /// (GO `NpcBuilder.cs`의 촌장처럼 말을 걸면 사명을 시작시키거나
-    /// 나그네처럼 골드를 주는 부수효과가 없다 — STORY엔 애초에 골드·
-    /// 인벤토리 시스템 자체가 없어 그런 보상을 줄 데가 없다). 선택(대화
-    /// 분기)·사건(월드 이벤트)·관계(호감도)는 각각 훨씬 큰 새 시스템이
-    /// 필요해 이번 슬라이스엔 안 들어간다 — 다음 확장 몫으로 남긴다.
+    /// PLAN.md 51장 "STORY 확장 — 스토리 챕터→NPC/선택/사건/관계"의
+    /// NPC·관계 두 칸을 채운다(사건은 `StoryDiscovery.cs`가 별도로 채움).
+    /// `StoryQuestState.cs` 클래스 주석이 이미 "gear/gather/visit/talk/
+    /// skill/gold" 사명은 범위 밖이라고 적어 둔 대로, 말을 걸어도 진행
+    /// 자체(사명·골드 등)는 안 바꾼다 — GO `NpcBuilder.cs`의 촌장·나그네와
+    /// 달리 부수효과가 없다(STORY엔 골드·인벤토리가 없어 줄 보상이 없다).
+    ///
+    /// **관계** — NPC가 아직 이 척후병 하나뿐이라 본격 호감도(수치·
+    /// 사건별 증감)까지는 안 가고, `StoryNpcState.ScoutTalkCount`로 "몇
+    /// 번 말을 걸었는가"만 센다 — 계속 마주칠수록 인사말 앞머리가 조금씩
+    /// 데워진다. **선택**(대화 분기)은 여전히 미착수 — 새 UI(선택지
+    /// 버튼)뿐 아니라 실제로 갈리는 결과가 있어야 의미가 있는데 이번
+    /// 슬라이스 범위로는 장식적 분기밖에 못 만들어 다음 방향을 기다린다.
     ///
     /// GO `World/VillagerTalk.cs`와 같은 트리거 규칙(플레이어가 반경에
     /// 들어오면 쿨다운을 두고 한 줄), 시각은 `StoryEnemy.cs`처럼
@@ -57,7 +60,18 @@ namespace Saga.Story.World
             if (Time.time - _lastSaidTime < TalkGapSec) return;
 
             _lastSaidTime = Time.time;
-            DialogueLabel.Instance?.Show($"들판의 척후병 — {Line()}", LineShowSec);
+            StoryNpcState.AddScoutTalk();
+            DialogueLabel.Instance?.Show($"들판의 척후병 — {Greeting()}{Line()}", LineShowSec);
+        }
+
+        /// <summary>관계 — 몇 번째 만남인지에 따라 인사말 앞머리만 데운다
+        /// (본문 `Line()`은 그대로, 관계와 사명 진행을 서로 안 섞는다).</summary>
+        private static string Greeting()
+        {
+            int count = StoryNpcState.ScoutTalkCount;
+            if (count <= 1) return "";
+            if (count <= 4) return "또 뵙는군요. ";
+            return "이제 낯이 익어 마음이 놓입니다. ";
         }
 
         private static string Line()

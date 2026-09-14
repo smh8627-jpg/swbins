@@ -155,6 +155,7 @@ namespace Saga.EditorTools
                     // 않고 이 테스트가 스스로 시작 상태를 못박는다.
                     StoryQuestState.Restore(0, 0);
                     StoryWorldEventState.Restore(null); // 위와 같은 이유 — 이전 실행이 남긴 save_story.json 무시.
+                    StoryNpcState.Restore(0); // 위와 같은 이유 — 새 정적 상태를 추가할 때마다 여기 잊지 말 것(2026-09-14에 한 번 빠뜨려 겪음).
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -188,6 +189,25 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    if (StoryNpcState.ScoutTalkCount != 1)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 첫 대화인데 ScoutTalkCount={StoryNpcState.ScoutTalkCount}(기대=1)");
+                        Fail();
+                        return;
+                    }
+
+                    // 관계 — 쿨다운을 직접 0으로 되돌려(TryAttack 쿨다운
+                    // 우회와 같은 결) 두 번째 만남을 시뮬레이션, 인사말
+                    // 앞머리가 데워지는지 본다(StoryNpc.Greeting()).
+                    SetPrivate(npc, "_lastSaidTime", -1000f);
+                    method.Invoke(npc, new object[] { _playerController });
+                    if (StoryNpcState.ScoutTalkCount != 2 || !label.text.Contains("또 뵙는군요"))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 두 번째 대화 갱신 실패 count={StoryNpcState.ScoutTalkCount}(기대=2) text=\"{label.text}\"");
+                        Fail();
+                        return;
+                    }
+
                     Debug.Log($"[PlaytestStorySlice] npc talk OK - \"{label.text}\"");
                     _phase = Phase.TriggerDiscovery;
                     break;
@@ -546,6 +566,8 @@ namespace Saga.EditorTools
                     // TriggerDiscovery phase에서 이미 true — 세이브 스키마
                     // v3(2026-09-14)가 이걸 저장/복원하는지까지 같이 본다.
                     bool discoveredBeforeSave = StoryWorldEventState.IsTriggered(StoryDiscovery.EventId);
+                    // 세이브 스키마 v4(2026-09-14) — 관계(척후병 대화 횟수)도 같이 본다.
+                    int scoutTalkCountBeforeSave = StoryNpcState.ScoutTalkCount;
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -556,6 +578,7 @@ namespace Saga.EditorTools
                     // 상태를 지운 뒤 다시 불러와 그대로 돌아오는지 확인.
                     StoryQuestState.Restore(0, 0);
                     StoryWorldEventState.Restore(null);
+                    StoryNpcState.Restore(0);
                     TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                     if (!StorySaveState.TryLoad())
                     {
@@ -572,6 +595,12 @@ namespace Saga.EditorTools
                     if (StoryWorldEventState.IsTriggered(StoryDiscovery.EventId) != discoveredBeforeSave)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 로드 후 discovery triggered={StoryWorldEventState.IsTriggered(StoryDiscovery.EventId)}(기대={discoveredBeforeSave})");
+                        Fail();
+                        return;
+                    }
+                    if (StoryNpcState.ScoutTalkCount != scoutTalkCountBeforeSave)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 scoutTalkCount={StoryNpcState.ScoutTalkCount}(기대={scoutTalkCountBeforeSave})");
                         Fail();
                         return;
                     }
