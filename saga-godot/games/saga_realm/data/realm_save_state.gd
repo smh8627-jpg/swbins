@@ -505,6 +505,7 @@ func next_month() -> void:
 
 	_check_defection()
 	_run_enemy_ai()
+	_run_enemy_economy()
 	_roll_disasters()
 
 	month += 1
@@ -688,6 +689,77 @@ func _enemy_attack(enemy_id: String, e: Dictionary, target_id: String) -> String
 			[enemy_name, city_name, int(rep.loss_d), int(rep.loss_a)]
 	return "⚔️ %s 이(가) %s 을(를) 쳤으나 물리쳤다 (아군 손실 %d · 적 손실 %d)" % \
 		[enemy_name, city_name, int(rep.loss_d), int(rep.loss_a)]
+
+
+## rtk-ai.js pickOrder()를 적 세력 쪽으로 좁혀 옮긴 것(2026-09-14, "묻지말고
+## 이어해" 네 번째 — 4절 "제외" 셋 중 economy AI). **재해석 — 적(enemies)은
+## agri/comm/gold/pop을 안 갖는다(`_init_enemies()` 참고, 원래 전투용
+## 값만 있었다)** — pickOrder 우선순위 중 이 슬라이스에 실제로 있는 필드
+## (sec/wall/train/tech)만 옮기고 나머지(agri·comm·draft·ships)는 뺐다.
+## 금 소모도 없다 — 적에게 금고 자체가 없어(플레이어처럼 명령을 "사는"
+## 구조가 아니다), 세력이 살아 있는 한(captured=false, 장수 1명 이상)
+## 매달 그대로 자란다.
+## 이게 없으면 한 번 계략·전투로 깎인 적 성은 영영 그 값에 멈춰 있었다 —
+## troops/wall/sec/train/tech 중 내려가는 경로(전투·`realm_plot_button.gd`
+## 유언비어)는 있어도 올라가는 경로가 하나도 없어, 플레이어가 초반에 계속
+## 같은 약한 이웃만 노려도 손해가 없었다.
+func _run_enemy_economy() -> void:
+	for enemy_id: String in enemies.keys():
+		var e: Dictionary = enemies[enemy_id]
+		if bool(e.get("captured", false)):
+			continue
+		var officers: Array = e.get("officers", [])
+		if officers.is_empty():
+			continue
+		var key := _enemy_pick_order(e)
+		if key.is_empty():
+			continue
+		var o := RealmOrders.by_key(key)
+		var officer_id := _best_enemy_officer(officers, String(o.stat))
+		if officer_id.is_empty():
+			continue
+		var stat_val: float = _effective_stat(officer_id, String(o.stat))
+		var crit := _rng.randf() < clampf(stat_val / 400.0, 0.03, 0.28)
+		var amount := roundi((float(o.base) + stat_val * float(o.per)) * (1.5 if crit else 1.0))
+		match key:
+			"sec": e.sec = mini(RealmOrders.CAP_SEC, int(e.sec) + amount)
+			"wall": e.wall = mini(int(e.max_wall), int(e.wall) + amount)
+			"train": e.train = mini(RealmOrders.CAP_TRAIN, int(e.train) + amount)
+			"tech": e.tech = mini(RealmOrders.CAP_TECH, int(e.tech) + amount)
+		enemies[enemy_id] = e
+
+
+## rtk-ai.js pickOrder() 우선순위 그대로, 적에게 있는 네 필드로 좁힌 버전
+## (sec<45 → sec, wall<maxWall*0.7 → wall, train<70 → train, tech<400 →
+## tech, sec<85 → sec — food/agri/comm/wall(공성 없음)/draft/ships 문턱은
+## 이 슬라이스의 enemies에 해당 필드가 없어 전부 뺐다). 넷 다 문턱을 채웠으면
+## 빈 문자열(그 성은 이미 다 자랐다 — 아무것도 안 한다).
+func _enemy_pick_order(e: Dictionary) -> String:
+	if int(e.sec) < 45:
+		return "sec"
+	if int(e.wall) < int(e.max_wall) * 0.7:
+		return "wall"
+	if int(e.train) < 70:
+		return "train"
+	if int(e.tech) < 400:
+		return "tech"
+	if int(e.sec) < 85:
+		return "sec"
+	return ""
+
+
+## rtk-ai.js bestFor() 축약 — 그 명령에 맞는 자질이 가장 높은 적 장수.
+func _best_enemy_officer(officers: Array, stat_key: String) -> String:
+	var best_id := ""
+	var best_val := -1.0
+	for oid: String in officers:
+		if Characters.find(oid) == null:
+			continue
+		var v: float = _effective_stat(oid, stat_key)
+		if v > best_val:
+			best_val = v
+			best_id = oid
+	return best_id
 
 
 ## rtk.js checkResult() — 승패 판정. 한 번 정해지면(`result`가 빈 문자열이

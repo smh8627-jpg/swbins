@@ -5858,3 +5858,33 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   한다"고 판단한 큰 재설계 — 다음 세션은 사용자와 방향을 확인하거나
   더 잘게 쪼갤 방법을 먼저 찾을 것. 그 밖엔 REALM 밖(다른 네 판·
   saga-unity 트랙)으로.
+
+## REALM economy pickOrder AI — 적 성 passive 성장 (2026-09-14, 같은 날 이어서, "사가고돗 이어해 묻지 말고")
+
+- 남은 셋 중 economy AI를 조사 — rtk-ai.js `pickOrder()` 전체(agri·
+  comm·food·pop·ships·gold 전제)를 옮기긴 여전히 크지만, 이 슬라이스의
+  적(`enemies[eid]`)에 실제로 있는 필드(sec/wall/train/tech)만으로
+  좁히면 자체완결적이었다 — 그렇게 끝냈다.
+- `realm_save_state.gd`에 `_enemy_pick_order()`(우선순위: sec<45→sec,
+  wall<maxWall*0.7→wall, train<70→train, tech<400→tech, sec<85→sec)·
+  `_best_enemy_officer()`(bestFor 축약)·`_run_enemy_economy()`(`_roll_
+  amount()`가 이미 쓰는 대성공 공식 재사용, 캡에서 멈춤, captured·
+  장수 0명인 적은 건너뜀, 금 소모 없음) 추가. `next_month()`가
+  `_run_enemy_ai()` 뒤에 부른다. 자세한 내용은 `docs/
+  VERTICAL_SLICE_REALM.md` 25절 참고.
+- **메우는 구멍**: troops/wall/sec/train/tech는 이전엔 전투·계략으로
+  내려가는 경로만 있고 올라가는 경로가 없어, 한 번 깎은 적 성이 영영
+  그 값에 멈춰 있었다. troops(병력) 자체는 이 슬라이스에 pop이 없어
+  여전히 회복 경로가 없다(원작도 draft가 pop을 깎아 만드는 구조라
+  옮길 수 없음, 범위 밖).
+- 검증: 헤드리스 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 세
+  번 연속 로그 완전 동일(`project.godot`은 이번엔 안 건드려짐,
+  `.import` 잡음만 되돌림). 임시 씬으로 우선순위 판정(넷 다 낮으면
+  sec 최우선, sec≥45면 wall)·한 틱에 지정 필드만 오름·wall/sec 각각
+  캡(max_wall/100)을 못 넘음·captured 적 불변·네 필드 다 채운 적은
+  빈 문자열 반환까지 확인 후 삭제, 재검증까지 마쳤다. GUI 실기 확인은
+  아직(몰아서 받을 것).
+- **다음에 할 일**: 시나리오 200/208년·3D 몬스터 자산 둘만 남는다.
+  둘 다 여전히 큰 재설계 — 다음 세션은 사용자와 방향을 확인하거나
+  더 잘게 쪼갤 방법을 먼저 찾을 것. 그 밖엔 REALM 밖(다른 네 판·
+  saga-unity 트랙)으로.

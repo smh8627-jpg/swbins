@@ -1936,3 +1936,59 @@ null;`도 옮겼다 — `result`가 정해지면 `next_month()`가 그 자리에
 큰 재설계 — 다음 세션은 사용자와 방향을 확인하거나, 그중 하나를 더
 잘게 쪼갤 방법을 먼저 찾을 것. 그 밖엔 REALM 밖(다른 네 판·
 saga-unity 트랙)으로.
+
+## 25. economy pickOrder AI — 적 성 passive 성장 (2026-09-14, 같은 날 이어서, "사가고돗 이어해 묻지 말고")
+
+24절이 남긴 셋(시나리오 200/208년·3D 몬스터 자산·economy AI) 중
+economy AI를 조사해 보니 rtk-ai.js `pickOrder()`를 통째로 옮기는 건
+여전히 크다 — 원래 우선순위(sec→agri→comm→wall→ships→draft→train→
+agri→comm→tech→sec)가 agri/comm/food/pop/ships/gold를 전제하는데,
+이 슬라이스의 적(`enemies[eid]`)은 그 값 자체가 없다(`troops`·`wall`·
+`max_wall`·`train`·`tech`·`sec`·`food`·`officers`뿐 — `_init_enemies()`
+참고, 원래 전투·계략 대상 값만 있었다). **범위를 실제로 있는 네
+필드(sec/wall/train/tech)로 좁혀서 이번에 끝냈다** — agri·comm·
+draft·ships·시장(trade)·승진(promote, 적은 이미 관직 개념이 없다)은
+빠졌다.
+
+`realm_save_state.gd`에 세 함수 추가:
+- `_enemy_pick_order(e)` — pickOrder 우선순위 그대로(sec<45 → sec,
+  wall<maxWall*0.7 → wall, train<70 → train, tech<400 → tech,
+  sec<85 → sec), 넷 다 문턱을 채웠으면 빈 문자열(더 할 일 없음).
+- `_best_enemy_officer(officers, stat_key)` — bestFor() 축약, `e.
+  officers`(정적 정의를 복사해 든 배열, `_init_enemies()` 참고) 중
+  그 자질이 가장 높은 사람.
+- `_run_enemy_economy()` — `RealmOrders.ORDERS`의 sec/wall/train/tech
+  항목(`base`·`per`·`stat`)과 `_roll_amount()`가 이미 쓰는 대성공 공식
+  (`round((base + stat*per) * (crit ? 1.5 : 1))`, crit률 `clamp(stat/
+  400, 0.03, 0.28)`)을 그대로 재사용해 값을 올리고, 각 필드의 캡(sec
+  100·train 100·tech 900·wall은 `max_wall`)에서 멈춘다. `captured`거나
+  장수가 하나도 없는 적은 건너뛴다. **금 소모가 없다** — 적에게 금고
+  자체가 없어(플레이어처럼 명령을 "사는" 구조가 아니다), 세력이 살아
+  있는 한 매달 공짜로 자란다. `next_month()`가 `_run_enemy_ai()` 뒤에
+  부른다.
+
+**재해석 — 이게 메우는 구멍.** 이전까지 `troops`/`wall`/`sec`/`train`/
+`tech`는 전투·`realm_plot_button.gd`(유언비어)로 **내려가는 경로만**
+있고 올라가는 경로가 하나도 없었다 — 한 번 계략·전투로 깎은 적 성은
+플레이어가 손대지 않는 한 영영 그 값에 멈춰 있었다. `troops`(병력)
+자체는 여전히 이 슬라이스에 회복 경로가 없다(원작 rtk-ai.js도 draft로
+인구를 깎아 병력을 만드는 구조라 이 슬라이스의 적에겐 pop이 없어
+옮길 수 없다 — 범위 밖으로 남긴다).
+
+검증(헤드리스): 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 세
+번 연속 로그 완전 동일(`.import` 잡음만 되돌림, `project.godot`은
+이번엔 안 건드려짐). 임시 씬(`_tmp_verify_econ`)으로 (1) 넷 다 낮게
+만들면 sec가 최우선으로 뽑힘·(2) 한 틱 뒤 sec만 오르고 wall/train/
+tech는 그대로·(3) sec≥45면 다음 우선순위(wall)로 넘어감·(4) wall을
+`max_wall*0.7` 근처에 두고 여러 틱 굴려도 `max_wall`을 못 넘음·(5)
+sec 근처에서도 100을 못 넘음·(6) `captured=true`인 적은 손 안 댐·(7)
+네 필드가 전부 문턱을 채운 적은 `_enemy_pick_order`가 빈 문자열까지
+확인 후 임시 파일 삭제, 재검증까지 마쳤다. GUI 실기 확인은 아직(몰아서
+받을 것) — 여러 달 굴렸을 때 적 성이 실제로 더 단단해지는 체감은
+사람이 직접 몇 달 돌려봐야 보인다.
+
+**다음에 할 일** — REALM 4절 "제외"엔 이제 시나리오 200/208년·3D
+몬스터 자산 둘만 남는다. 둘 다 여전히 큰 재설계(시나리오는 세력·시작
+성 배치 자체가 달라지고, 3D 몬스터 자산은 새 렌더링 하부구조가
+필요하다) — 다음 세션은 사용자와 방향을 확인하거나 더 잘게 쪼갤
+방법을 먼저 찾을 것. 그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.
