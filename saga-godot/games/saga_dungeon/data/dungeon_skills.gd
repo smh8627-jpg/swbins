@@ -85,6 +85,18 @@ class_name DungeonSkills
 ## 더할 뿐이라, `player.gd`의 돌진 분기는 `global_position`을 직접
 ## 옮기고 그 프레임 `move_and_slide()`(와 중력)를 건너뛴다.
 ##
+## **2026-09-15, 또 이어서 — 도독(marshal) br=0 row=0 `m_rally`(사기,
+## shape:'buff') 추가**(`games/saga_dungeon/player/skill_buff.gd` 참고).
+## 이걸로 다섯 직업 전부 활성 무예를 하나씩 갖는다(bolt·swing·nova·dash·
+## buff). buff는 처음으로 **한동안**(sec초) 효과가 붙는 무예라 —
+## `dungeon_run_state.gd`에 `_temp_buffs`(잠깐짜리 world eff, 다섯 번째
+## 합산 자리) 신규. 원작 dungeon.js `addBuff()`/`boonVal()` 그대로: 값과
+## 만료 시각만 들고 있다가 `_sum_eff()`가 조회 시점에 안 끝났으면 더한다
+## (틱 타이머로 안 지운다 — 굳이 지울 필요가 없다, 만료된 항목은 그냥
+## 조용히 안 더해질 뿐이고 다음에 같은 eff로 다시 buff를 걸면 덮어 쓴다).
+## 세이브에는 안 남는다(원작 주석 "잠깐짜리 무예·분신은 회차 안에서만
+## 산다" 그대로).
+##
 ## **속도 환산** — dash는 "반경"이 아니라 "이동"이라 `BASE_REACH`가 아니라
 ## `BASE_SPD`(148px/s, 원작 이동속도 기준값)를 기준으로 삼는다. `player.gd`
 ## 의 `WALK_SPEED`(6.0m/s)가 그 Godot 쪽 짝이므로, 원작 돌진 속도(620px/s,
@@ -134,6 +146,18 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "mpRegen", "v": 2.0, "grow": 1.4, "desc": "기력이 빨리 찬다.(아직 기력 없음)" },
 	{ "key": "s_focus", "cls": "scholar", "br": 2, "row": 2, "name": "집중(集中)",
 		"eff": "skillPct", "v": 10.0, "grow": 7.0, "desc": "무예의 위력이 오른다." },
+	## 도독(都督) br=0 row 0 — data-skill.js 그대로(cost=34는 기력이 없어
+	## 안 씀). sec(지속초)은 랭크와 무관하게 고정(원작 그대로) — v(위력)만
+	## value_at()으로 랭크에 따라 는다. **`eff`를 비워 둔 이유** — 다른
+	## shape 무예(bolt·swing·nova·dash)와 같은 이유다: `eff`를 채우면
+	## `dungeon_skill_state.gd::world_eff_sum()`이 "랭크만 있으면 늘
+	## 더하는 패시브"로 착각해 버프가 안 걸려 있어도 영구히 atkSpdPct가
+	## 오른다. 실제로 버프할 자리는 `buff_eff`라는 별도 필드에 둔다
+	## (skill_buff.gd가 캐스팅 순간에만 이 값을 읽어 `DungeonRunState.
+	## add_temp_buff()`로 넘긴다 — 랭크 합산과 완전히 분리된 경로).
+	{ "key": "m_rally", "cls": "marshal", "br": 0, "row": 0, "name": "사기(士氣)",
+		"shape": "buff", "cd": 16.0, "sec": 6.0, "buff_eff": "atkSpdPct",
+		"eff": "", "v": 30.0, "grow": 8.0, "desc": "한동안 손과 발이 빨라진다." },
 	## 도독(都督) br=2 — data-skill.js 그대로.
 	{ "key": "m_res", "cls": "marshal", "br": 2, "row": 0, "name": "기수련(氣修)",
 		"eff": "allResPct", "v": 5.0, "grow": 4.0, "desc": "모든 결의 저항이 오른다.(아직 합산 채널 없음)" },

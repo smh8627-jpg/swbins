@@ -22,6 +22,24 @@ signal boons_changed
 
 var boons: Dictionary = {} # key(String) -> count(int)
 
+## PLAN.md 51장 "장비→빌드" — 무예 "buff"(사기 등)의 잠깐짜리 효과.
+## 웹판 dungeon.js addBuff()/boonVal()의 그 자리 그대로: eff_key마다
+## 값(v)과 만료 시각만 들고, 지나면 자연히 무시된다(_process로 안 지운다
+## — run.buffs도 사라진 항목을 매 프레임 delete할 뿐 실질은 "만료
+## 검사"였다, 여기선 조회 시점에 그 검사를 한다). 세이브에 안 남는다
+## (웹판 주석 "잠깐짜리 무예 · 분신은 회차 안에서만 산다" 그대로 —
+## boons/ranks와 달리 dungeon_save_state.gd가 이 자리를 저장하지 않는다).
+var _temp_buffs: Dictionary = {} # eff_key(String) -> {v: float, until_msec: int}
+
+
+## addBuff() 그대로 — 기존 값이 더 세고 아직 안 끝났으면 안 덮는다(약한
+## 재시전이 강한 버프를 깎아 먹지 않도록).
+func add_temp_buff(eff_key: String, value: float, sec: float) -> void:
+	var cur: Dictionary = _temp_buffs.get(eff_key, {})
+	if not cur.is_empty() and float(cur.v) > value and Time.get_ticks_msec() < int(cur.until_msec):
+		return
+	_temp_buffs[eff_key] = {"v": value, "until_msec": Time.get_ticks_msec() + int(sec * 1000.0)}
+
 
 func roll_choice() -> Array[String]:
 	var pool: Array[String] = []
@@ -71,7 +89,10 @@ func restore(saved: Dictionary) -> void:
 ## 네 번째로 이어 붙였다(critPct·reachPct·atkSpdPct·hpPct·atkPct·
 ## drainPct·guardPct에 반응, dungeon_skill_state.gd 참고). 이 함수
 ## 하나로 atk_mult()·hp_mult()·crit_chance() 등 아래 모든 getter가
-## 은사+장비+부대+무예를 자동으로 같이 반영한다.
+## 은사+장비+부대+무예를 자동으로 같이 반영한다. 2026-09-15, 51장
+## "장비→빌드"의 무예 "buff"(m_rally 등)를 위해 다섯 번째로 `_temp_buffs`
+## (잠깐짜리, 아래 정의)를 더했다 — 나머지 넷과 달리 시간이 지나면
+## 저절로 빠진다.
 func _sum_eff(eff_key: String) -> float:
 	var total := 0.0
 	for key in boons:
@@ -81,6 +102,9 @@ func _sum_eff(eff_key: String) -> float:
 	total += DungeonEquipmentState.world_eff_sum(eff_key)
 	total += DungeonPartyState.world_eff_sum(eff_key)
 	total += DungeonSkillState.world_eff_sum(eff_key)
+	var buf: Dictionary = _temp_buffs.get(eff_key, {})
+	if not buf.is_empty() and Time.get_ticks_msec() < int(buf.until_msec):
+		total += float(buf.v)
 	return total
 
 

@@ -6552,3 +6552,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 신규: skill_dash.gd·dash_button.gd(💨)·입력 액션 dungeon_skill_4(V키).
 - 검증: 헤드리스 3회 로그 동일(player.gd 변경 전후 md5 일치). 임시 씬 13항목 PASS(경로 위 적만 피격·이동거리·데미지 round(9×1.3)=12·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0(GO는 player.gd 당사자라 재확인).
 - 다음: 남은 건 도독(marshal)의 buff, 그 뒤 heal/summon. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 다섯째 활성 무예: 사기(m_rally, buff) (2026-09-15, 같은 날 이어서, "buff 이어해")
+
+- 도독(marshal) br=0 row=0 m_rally 신규 — 다섯 직업 전부 활성 무예 하나씩 완료(bolt/swing/nova/dash/buff). dungeon_run_state.gd에 _temp_buffs(잠깐짜리 world eff)·add_temp_buff() 신규(다섯째 합산 자리, 세이브 안 됨).
+- eff는 비워 두고 실제 대상 스탯은 buff_eff 필드에 둠(world_eff_sum이 영구 패시브로 착각하는 것 방지, dungeon_skills.gd 헤더 참고).
+- 신규: skill_buff.gd·buff_button.gd(🚩)·입력 액션 dungeon_skill_5(B키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 11항목 PASS(캐스팅 즉시 atk_speed_mult 1.30 반영·짧은 지속시간 만료 확인·약한 재시전이 강한 버프 안 깎음). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 다섯 직업 모두 첫 활성 무예 완료. 남은 shape(heal/summon/curse/chain) 또는 각 직업 둘째 활성 무예. GUI 실기 확인 아직(몰아서 받을 것, 다섯 키/버튼 전부).

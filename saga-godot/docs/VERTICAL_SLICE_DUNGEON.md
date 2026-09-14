@@ -671,3 +671,38 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   — buff(m_rally 등, br=0)가 후보. heal·summon은 그 뒤. GUI 실기 확인
   아직(몰아서 받을 것, V키/💨 버튼도 함께). DUNGEON 밖(GO/FOREST/STORY/
   REALM 추가 확장·saga-unity 트랙)도 고려할 자리.
+
+## 18. 51장 "장비→빌드" — 다섯째 활성 무예: 사기(m_rally, buff) (2026-09-15, "buff 이어해")
+
+- 도독(marshal) br=0 row=0 `m_rally` 추가 — 이걸로 **다섯 직업 전부**
+  활성 무예를 하나씩 갖는다(bolt·swing·nova·dash·buff). buff는 대상도
+  방향도 없이 **자신에게 한동안(sec초) 효과**를 거는 첫 무예라
+  `dungeon_run_state.gd`에 `_temp_buffs`(잠깐짜리 world eff, boons·장비·
+  부대·무예 랭크에 이은 다섯 번째 합산 자리)와 `add_temp_buff(eff_key,
+  value, sec)`를 신규로 얹었다. 원작 dungeon.js `addBuff()`/`boonVal()`
+  그대로: 값·만료 시각만 들고 있다가 `_sum_eff()`가 조회 시점에 안
+  끝났으면 더한다(틱 타이머로 안 지운다). 세이브에는 안 남는다(원작
+  "잠깐짜리 무예·분신은 회차 안에서만 산다" 그대로).
+- **`eff`를 비워 둔 이유**(다른 넷과 같은 이유, dungeon_skills.gd 헤더
+  참고) — `eff`를 채우면 `dungeon_skill_state.gd::world_eff_sum()`이
+  "랭크만 있으면 늘 더하는 패시브"로 착각해 버프가 꺼져 있어도 영구히
+  atkSpdPct가 오른다. 실제 대상 스탯은 `buff_eff`라는 별도 필드에 두고
+  `skill_buff.gd`가 캐스팅 순간에만 읽어 `add_temp_buff()`로 넘긴다.
+- 신규 `games/saga_dungeon/player/skill_buff.gd`·`ui/buff_button.gd`
+  (🚩)·입력 액션 `dungeon_skill_5`(B키). 다른 넷과 달리 대상 판정이
+  없어 컴포넌트가 가장 단순하다(플레이어 참조도 필요 없음).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_buff.tscn`, 검증 후 삭제)으로 11항목 PASS —
+  row0 선행조건 없음·캐스팅 즉시 `atk_speed_mult()` 1.0→1.30 반영·
+  쿨다운 차단·짧은 지속시간(0.15초)으로 만료 후 자동 제외 확인·약한
+  재시전이 강한 버프를 안 깎아 먹는 것(addBuff 규칙)까지 확인. 종료
+  직전 "material is null" 경고 한 줄은 FOREST 51장 검증 때와 같은
+  종료-순서 특유 현상으로 판단(실제 게임 코드 경로 아님). GO·FOREST·
+  STORY·REALM 회귀도 헤드리스 오류 0건. `project.godot` diff는 의도한
+  입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 다섯 직업 모두 첫 활성 무예를 얻어 51장의 "무예"
+  갈래가 한 바퀴 돌았다. 남은 shape(heal·summon·curse·chain)는 각자
+  더 필요하고, 각 직업의 둘째 활성 무예(예: w_cleave, s_blaze 등)로
+  이어갈 수도 있다. GUI 실기 확인 아직(몰아서 받을 것, 다섯 키/버튼
+  전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity 트랙)도
+  고려할 자리.
