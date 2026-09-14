@@ -45,6 +45,21 @@ namespace Saga.Dungeon.World
 
         [SerializeField] private bool isBoss;
         [SerializeField] private string displayName = "황건적";
+
+        // Localization — displayName 자체가 BestiaryState.Record()의 저장 키라
+        // (기존 세이브 호환) 그 값은 안 건드리고, 화면 표시용으로만 이 표를
+        // 거친다. 종류가 넷뿐이라(잡졸/정예/살수/두목) 새 id 필드를 따로
+        // 두는 대신 알려진 한국어 표시명 → 키 매핑 하나로 충분하다.
+        private static readonly Dictionary<string, string> DisplayNameKeys = new Dictionary<string, string>
+        {
+            ["황건적"] = "enemy.grunt",
+            ["사나운 황건적"] = "enemy.elite",
+            ["황건 살수"] = "enemy.miniboss",
+            ["황건적 두목"] = "enemy.boss",
+        };
+
+        private string LocalizedDisplayName =>
+            DisplayNameKeys.TryGetValue(displayName, out var key) ? DungeonLocalization.T(key, displayName) : displayName;
         [SerializeField] private Color bodyColor = new Color(0.72f, 0.64f, 0.3f); // 황건 — 누런 두건.
         [SerializeField] private float visualScale = 1f;
 
@@ -285,13 +300,18 @@ namespace Saga.Dungeon.World
             var item = ItemData.Get(rewardItemId);
             bool socketed = !string.IsNullOrEmpty(rewardGemId) && HeroState.SocketIfBetter(rewardGemId);
             var gem = GemData.Get(rewardGemId);
-            bool newlyDiscovered = BestiaryState.Record(displayName);
+            bool newlyDiscovered = BestiaryState.Record(displayName); // 저장 키는 원문 그대로(세이브 호환) — 표시만 아래서 옮긴다.
 
-            string msg = $"{displayName}{(isBoss ? "을(를) 쓰러뜨렸다" : "을(를) 물리쳤다")} — 경험치 +{rewardExp} · 돈 +{rewardGold}냥";
-            if (HeroState.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {HeroState.Level})";
-            if (item != null) msg += $"\n{item.Name}을(를) 주웠다{(equipped ? " — 바로 갖췄다." : ".")}";
-            if (gem != null) msg += $"\n{gem.Name}을(를) 주웠다{(socketed ? " — 바로 세공했다." : ".")}";
-            if (newlyDiscovered) msg += $"\n📖 도감에 처음 기록됨 — {displayName}";
+            string defeatedVerb = DungeonLocalization.T(isBoss ? "enemy.defeated_boss" : "enemy.defeated_normal",
+                isBoss ? "을(를) 쓰러뜨렸다" : "을(를) 물리쳤다");
+            string msg = string.Format(DungeonLocalization.T("enemy.defeat_msg", "{0}{1} — 경험치 +{2} · 돈 +{3}냥"),
+                LocalizedDisplayName, defeatedVerb, rewardExp, rewardGold);
+            if (HeroState.Level > levelBefore) msg += string.Format(DungeonLocalization.T("combat.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, HeroState.Level);
+            if (item != null) msg += string.Format(DungeonLocalization.T(equipped ? "enemy.loot_equipped" : "enemy.loot_plain",
+                equipped ? "\n{0}을(를) 주웠다 — 바로 갖췄다." : "\n{0}을(를) 주웠다."), item.Name);
+            if (gem != null) msg += string.Format(DungeonLocalization.T(socketed ? "enemy.gem_socketed" : "enemy.loot_plain",
+                socketed ? "\n{0}을(를) 주웠다 — 바로 세공했다." : "\n{0}을(를) 주웠다."), gem.Name);
+            if (newlyDiscovered) msg += string.Format(DungeonLocalization.T("enemy.bestiary_new", "\n📖 도감에 처음 기록됨 — {0}"), LocalizedDisplayName);
             DialogueLabel.Instance?.Show(msg, ToastSec);
 
             if (_animator != null)
