@@ -728,3 +728,36 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   타겟팅)이 필요해 더 크다. GUI 실기 확인 아직(몰아서 받을 것, 여섯
   키/버튼 전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity
   트랙)도 고려할 자리.
+
+## 20. 51장 "장비→빌드" — 무장의 둘째 활성 무예: 위해(w_intimidate, curse) (2026-09-15, "curse 이어해")
+
+- 무장(warrior) br=5 row=0 `w_intimidate` 추가 — 원작 desc "무장의 첫
+  저주" 그대로(첫째는 w_whirl, swing). nova와 같은 반경 판정(자기 둘레,
+  `reach_mult()` 안 곱함)이지만 데미지 대신 **상태 둘**을 건다.
+- **신규 상태 하나** — `dungeon_enemy.gd`에 `_hex_v`/`_hex_time_left`·
+  `apply_hex()`를 추가했다("그동안 받는 모든 피해가 v%만큼 는다").
+  `take_damage()` 한 곳에서 배율을 곱해, 공격 스크립트(melee·bolt·swing·
+  nova·dash) 다섯 곳을 전부 고칠 필요가 없게 했다 — 원작 strike()가
+  물리·무예 안 가리고 한 곳에서 hex를 곱하는 것과 같은 효과를 다른
+  방식(스크립트 통합 대신 착탄 지점 통합)으로 낸다. **정직하게 밝혀
+  둠**: "가시 돋친" 정예의 반사량은 이 hex 배율이 걸리기 "전"의 원본
+  dmg로 계산돼(공격 스크립트가 `take_damage()` 호출 전 dmg로 반사도
+  따로 부른다) 저주가 걸린 동안은 원작보다 반사량이 살짝 적다 — 가시
+  정예+저주가 겹치는 드문 조합이라 지금은 근사로 둔다(`dungeon_enemy.gd`
+  `take_damage()` 주석에 남겨 둠).
+- 느려짐은 기존 `apply_elem_slow()`(냉기 감속과 같은 자리, mult=0.35
+  원작 그대로)를 재사용 — 새 감속 채널을 안 만든다. 반경 3.82m은
+  y_thunderdoom과 같은 환산(원작 r도 130으로 같은 값).
+- 신규 `games/saga_dungeon/player/skill_curse.gd`·`ui/curse_button.gd`
+  (📛)·입력 액션 `dungeon_skill_7`(C키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_curse.tscn`, 검증 후 삭제)으로 13항목 PASS —
+  row0 선행조건 없음·반경 경계(안/밖)·직접 데미지 없음·느려짐·저주 부여·
+  `take_damage()`가 실제로 30% 더 받는 것 실측(10 → 13)·쿨다운·만료까지
+  확인. GO·FOREST·STORY·REALM 회귀도 헤드리스 오류 0건. `project.godot`
+  diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 shape는 summon·chain, 둘 다 소환체 AI·연쇄
+  타겟팅 같은 새 시스템이 필요해 지금까지보다 크다. 각 직업의 셋째
+  활성 무예(예: br=1 갈래)로 더 작은 걸음을 고를 수도 있다. GUI 실기
+  확인 아직(몰아서 받을 것, 일곱 키/버튼 전부). DUNGEON 밖(GO/FOREST/
+  STORY/REALM 추가 확장·saga-unity 트랙)도 고려할 자리.

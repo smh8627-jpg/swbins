@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_button.gd" id="17"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_button.gd" id="18"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/heal_button.gd" id="19"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/curse_button.gd" id="20"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -303,3 +304,16 @@ offset_bottom = -990.0
 text = "💗"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("19")
+
+[node name="CurseButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -1140.0
+offset_right = -40.0
+offset_bottom = -1070.0
+text = "📛"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("20")

@@ -105,6 +105,22 @@ class_name DungeonSkills
 ## `player_health.gd`의 기존 `heal_by()`를 그대로 부른다 — buff처럼 대상도
 ## 방향도 없어 지금까지 중 가장 단순하다(새 상태·판정이 전혀 없다).
 ##
+## **2026-09-15, 또 이어서 — 무장(warrior) br=5 row=0 `w_intimidate`(위해,
+## shape:'curse') 추가**(`games/saga_dungeon/player/skill_curse.gd` 참고).
+## 원작 desc "무장의 첫 저주" 그대로 — 무장의 둘째 활성 무예(첫째는
+## w_whirl, swing). 반경은 nova와 같은 문제라 같은 요령으로 옮겼다(원작
+## `sk.r`이 `reachOf()`를 안 곱하는 원시 픽셀 값 — `BASE_REACH`로 나눈
+## 3.82m, w_intimidate의 원작 r도 130이라 y_thunderdoom과 정확히 같은
+## 값이 나온다). 데미지가 없는 "상태만 거는" 무예라 처음으로
+## `dungeon_enemy.gd`에 새 상태 하나(`_hex_v`/`_hex_time_left`,
+## `apply_hex()`)를 추가했다 — "그동안 이 적이 받는 모든 피해가 v%만큼
+## 는다"를 `take_damage()` 한 곳에서 계산해, 공격 스크립트마다 따로
+## 체크할 필요가 없게 했다(원작 strike()가 물리·무예 안 가리고 한 곳에서
+## 곱하는 것과 같은 효과). 느려짐은 기존 `apply_elem_slow()`(냉기와 같은
+## 자리, mult=0.35 원작 그대로)를 그대로 재사용 — 새 감속 채널을 안
+## 만든다. 원작 `sk.v`(위해의 위력, 30)는 hex 배율에, 슬로우는 원작처럼
+## 랭크와 무관하게 항상 0.35다.
+##
 ## **속도 환산** — dash는 "반경"이 아니라 "이동"이라 `BASE_REACH`가 아니라
 ## `BASE_SPD`(148px/s, 원작 이동속도 기준값)를 기준으로 삼는다. `player.gd`
 ## 의 `WALK_SPEED`(6.0m/s)가 그 Godot 쪽 짝이므로, 원작 돌진 속도(620px/s,
@@ -145,6 +161,12 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "atkPct", "v": 7.0, "grow": 5.0, "desc": "부대 공격력이 오른다." },
 	{ "key": "w_second", "cls": "warrior", "br": 2, "row": 2, "name": "이혼대법(離魂)",
 		"eff": "drainPct", "v": 2.0, "grow": 1.0, "desc": "적을 잡으면 체력이 조금 돌아온다." },
+	## 무장(武將) br=5 row 0 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀). r=3.82는 y_thunderdoom과 같은 환산(위 헤더 참고, 원작 r도
+	## 130으로 같다). sec(지속초)은 랭크 무관 고정.
+	{ "key": "w_intimidate", "cls": "warrior", "br": 5, "row": 0, "name": "위해(威嚇)",
+		"shape": "curse", "cd": 9.0, "r": 3.82, "sec": 5.0,
+		"eff": "", "v": 30.0, "grow": 8.0, "desc": "노호로 적을 굼뜨고 약하게 만든다." },
 	## 책사(策士) br=2 — row 0(s_wave)만 passive가 아니다(위 헤더 참고).
 	## shape/cd/el은 data-skill.js 그대로(cost=30은 기력이 없어 안 씀).
 	{ "key": "s_wave", "cls": "scholar", "br": 2, "row": 0, "name": "기공파(氣功波)",

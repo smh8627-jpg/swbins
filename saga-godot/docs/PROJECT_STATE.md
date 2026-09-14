@@ -6567,3 +6567,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 신규: skill_heal.gd·heal_button.gd(💗)·입력 액션 dungeon_skill_6(H키).
 - 검증: 헤드리스 3회 로그 동일. 임시 씬 9항목 PASS(회복량 정확·최대체력 클램프·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0.
 - 다음: 남은 shape는 curse(작은 몫)·summon·chain(둘 다 새 시스템 필요, 더 큼). GUI 실기 확인 아직(몰아서 받을 것, 여섯 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 무장의 둘째 활성 무예: 위해(w_intimidate, curse) (2026-09-15, 같은 날 이어서, "curse 이어해")
+
+- 무장(warrior) br=5 row=0 w_intimidate 신규 — nova와 같은 반경 판정, 데미지 대신 느려짐(기존 apply_elem_slow 재사용)+저주(hex, 신규) 부여.
+- dungeon_enemy.gd에 _hex_v/_hex_time_left·apply_hex() 신규, take_damage() 한 곳에서 배율 적용(공격 스크립트 다섯 곳 안 고침). 가시 정예+저주 동시 조합만 반사량이 원작보다 살짝 적은 근사(문서화함).
+- 신규: skill_curse.gd·curse_button.gd(📛)·입력 액션 dungeon_skill_7(C키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 13항목 PASS(반경 경계·직접데미지 없음·느려짐·저주·take_damage 30% 실측·쿨다운·만료). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 shape는 summon·chain(더 큼) 또는 각 직업 셋째 활성 무예. GUI 실기 확인 아직(몰아서 받을 것, 일곱 키/버튼 전부).
