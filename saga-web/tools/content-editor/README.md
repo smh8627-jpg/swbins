@@ -54,6 +54,15 @@ run-editor.bat
   코드를 직접 열어 고친다.
 - 이 탭은 **판마다 따로** 저장한다(HEROES/PETS처럼 다섯 판에 동시 반영 안
   함) — 애초에 판마다 내용이 다르기 때문이다.
+- 파일 목록은 `assets/models/`뿐 아니라 `assets/textures/`도 훑는다. 순수
+  이미지(webp/png/jpg)를 고르면 3D 뷰포트 대신 `<img>`로 바로 보여준다.
+- 상단 "업로드(FBX·GLB·이미지)" 버튼으로 로컬 파일을 추가할 수 있다.
+  GLB/GLTF·이미지는 그대로 `assets/models/_uploaded/`·
+  `assets/textures/_uploaded/`에 들어가고, **FBX는 자동으로 GLB로
+  변환**돼 들어간다(저장소 루트에 `npm install fbx2gltf`로 깐 로컬 변환
+  도구를 그 자리에서 부른다 — 없으면 에러 메시지로 알려주고 멈춘다).
+  이미 있는 이름은 절대 덮어쓰지 않고 `-2`, `-3`처럼 번호를 붙인다.
+  OBJ 변환은 아직 없다(필요하면 `obj2gltf` 패키지를 추가해야 한다).
 
 ## 안 하는 것
 

@@ -13,6 +13,7 @@
 
 const http = require('http');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const fmt = require('./datajs-format');
@@ -35,22 +36,34 @@ function gameRoot(game) {
   return path.join(ROOT, game);
 }
 
-const MODEL_EXT = new Set(['.glb', '.gltf', '.webp']);
+const MODEL_EXT = new Set(['.glb', '.gltf']);
+const IMAGE_EXT = new Set(['.webp', '.png', '.jpg', '.jpeg']);
 
-function listModelFiles(game) {
-  const base = path.join(gameRoot(game), 'assets', 'models');
-  if (!fs.existsSync(base)) return [];
-  const entries = fs.readdirSync(base, { recursive: true, withFileTypes: true });
+function scanDir(absDir, relToGame) {
+  if (!fs.existsSync(absDir)) return [];
+  const entries = fs.readdirSync(absDir, { recursive: true, withFileTypes: true });
   const out = [];
   entries.forEach((d) => {
     if (!d.isFile()) return;
     const ext = path.extname(d.name).toLowerCase();
-    if (!MODEL_EXT.has(ext)) return;
+    let type = null;
+    if (MODEL_EXT.has(ext)) type = 'model';
+    else if (IMAGE_EXT.has(ext)) type = 'image';
+    else return;
     const full = path.join(d.parentPath || d.path, d.name);
-    const rel = path.relative(gameRoot(game), full).split(path.sep).join('/');
-    out.push(rel);
+    const rel = path.relative(relToGame, full).split(path.sep).join('/');
+    out.push({ path: rel, type });
   });
-  out.sort();
+  return out;
+}
+
+/** assets/models(3D 모델)·assets/textures(순수 이미지) 밑을 전부 훑는다.
+ *  모델 폴더 안에 섞여 있는 webp(예: 동물 텍스처)도 image 로 잡힌다. */
+function listAssetFiles(game) {
+  const root = gameRoot(game);
+  const out = scanDir(path.join(root, 'assets', 'models'), root)
+    .concat(scanDir(path.join(root, 'assets', 'textures'), root));
+  out.sort((a, b) => a.path.localeCompare(b.path));
   return out;
 }
 
@@ -228,6 +241,87 @@ function readBody(req) {
   });
 }
 
+const UPLOAD_MAX = 200 * 1024 * 1024; // GLB 모델은 수십 MB 도 흔하다
+
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > UPLOAD_MAX) { req.destroy(); reject(new Error('파일이 너무 큼(200MB 초과)')); return; }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+function safeFileName(name) {
+  const base = path.basename(String(name || ''));
+  const cleaned = base.replace(/[^A-Za-z0-9_.-]/g, '_');
+  return cleaned || ('file_' + Date.now());
+}
+
+/** 같은 이름이 이미 있으면 -2, -3 ... 을 붙여 절대 덮어쓰지 않는다. */
+function uniquePath(dir, fileName) {
+  const ext = path.extname(fileName);
+  const stem = fileName.slice(0, fileName.length - ext.length);
+  let candidate = fileName;
+  let n = 2;
+  while (fs.existsSync(path.join(dir, candidate))) {
+    candidate = stem + '-' + n + ext;
+    n++;
+  }
+  return candidate;
+}
+
+/** FBX/OBJ·GLB/GLTF·이미지 업로드. FBX 는 fbx2gltf(로컬 node_modules, 저장소
+ *  루트에 있으면)로 GLB 변환까지 해서 assets/models/_uploaded/ 에 넣는다.
+ *  이미 있는 파일은 절대 덮어쓰지 않고 새 이름을 붙인다. */
+async function handleUpload(game, fileName, buffer) {
+  if (GAMES.indexOf(game) === -1) return { error: '알 수 없는 판: ' + game };
+  const ext = path.extname(fileName).toLowerCase();
+  const clean = safeFileName(fileName);
+  const root = gameRoot(game);
+
+  if (ext === '.glb' || ext === '.gltf') {
+    const dir = path.join(root, 'assets', 'models', '_uploaded');
+    fs.mkdirSync(dir, { recursive: true });
+    const finalName = uniquePath(dir, clean);
+    fs.writeFileSync(path.join(dir, finalName), buffer);
+    return { ok: true, path: 'assets/models/_uploaded/' + finalName, type: 'model' };
+  }
+  if (IMAGE_EXT.has(ext)) {
+    const dir = path.join(root, 'assets', 'textures', '_uploaded');
+    fs.mkdirSync(dir, { recursive: true });
+    const finalName = uniquePath(dir, clean);
+    fs.writeFileSync(path.join(dir, finalName), buffer);
+    return { ok: true, path: 'assets/textures/_uploaded/' + finalName, type: 'image' };
+  }
+  if (ext === '.fbx') {
+    let convert;
+    try { convert = require('fbx2gltf'); } catch (err) {
+      return { error: 'FBX 변환 도구(fbx2gltf)가 안 깔려 있음 — 저장소 루트에서 npm install fbx2gltf 실행 필요' };
+    }
+    const dir = path.join(root, 'assets', 'models', '_uploaded');
+    fs.mkdirSync(dir, { recursive: true });
+    const tmpFbx = path.join(os.tmpdir(), 'upload-' + crypto.randomBytes(6).toString('hex') + '.fbx');
+    fs.writeFileSync(tmpFbx, buffer);
+    const finalName = uniquePath(dir, clean.replace(/\.fbx$/i, '.glb'));
+    const destPath = path.join(dir, finalName);
+    try {
+      await convert(tmpFbx, destPath, []);
+    } catch (err) {
+      return { error: 'FBX 변환 실패: ' + err.message };
+    } finally {
+      try { fs.unlinkSync(tmpFbx); } catch (e) { /* 임시파일 못 지워도 치명적이지 않음 */ }
+    }
+    return { ok: true, path: 'assets/models/_uploaded/' + finalName, type: 'model' };
+  }
+  return { error: '지원하지 않는 확장자: ' + ext + ' (fbx·glb·gltf·webp·png·jpg만)' };
+}
+
 function sendJson(res, code, obj) {
   const body = JSON.stringify(obj);
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
@@ -297,7 +391,7 @@ function handleDelete(kind, id) {
 function handleModelsList(game) {
   if (GAMES.indexOf(game) === -1) return { error: '알 수 없는 판: ' + game };
   const { entries } = loadModelDefaults(game);
-  const files = listModelFiles(game);
+  const files = listAssetFiles(game);
   return { entries, files };
 }
 
@@ -379,6 +473,14 @@ const server = http.createServer((req, res) => {
       const mModelsList = u.pathname.match(/^\/api\/models\/([a-z-]+)$/);
       if (req.method === 'GET' && mModelsList) {
         return sendJson(res, 200, handleModelsList(mModelsList[1]));
+      }
+      const mUpload = u.pathname.match(/^\/api\/upload\/([a-z-]+)$/);
+      if (req.method === 'POST' && mUpload) {
+        const fileName = u.searchParams.get('name') || 'upload.bin';
+        return readRawBody(req)
+          .then((buf) => handleUpload(mUpload[1], fileName, buf))
+          .then((out) => sendJson(res, 200, out))
+          .catch((err) => sendJson(res, 400, { error: err.message }));
       }
       const mStatic = u.pathname.match(/^\/static\/([a-z-]+)\/(.+)$/);
       if (req.method === 'GET' && mStatic) {

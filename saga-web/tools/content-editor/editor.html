@@ -120,6 +120,8 @@
     <button id="modeContent" class="tabbtn">콘텐츠(인물·펫)</button>
     <button id="modeModels" class="tabbtn">3D 자산</button>
     <select id="gameSelect" hidden></select>
+    <input type="file" id="uploadInput" accept=".fbx,.glb,.gltf,.webp,.png,.jpg,.jpeg" hidden>
+    <button id="btnUpload" hidden>업로드(FBX·GLB·이미지)</button>
     <span id="syncBadge">확인 중…</span>
     <div class="spacer"></div>
     <button id="btnRefresh">새로고침</button>
@@ -506,23 +508,35 @@ function renderModelsTree() {
   const body2 = document.createElement('div');
   head2.onclick = () => { body2.style.display = body2.style.display === 'none' ? '' : 'none'; };
   root2.appendChild(head2);
-  modelsData.files.filter((f) => !q || f.toLowerCase().includes(q)).forEach((f) => {
+  modelsData.files.filter((f) => !q || f.path.toLowerCase().includes(q)).forEach((f) => {
     const row = document.createElement('div');
     row.className = 'modelrow';
-    if (modelsSelected && modelsSelected.type === 'file' && modelsSelected.path === f) row.classList.add('selected');
-    row.innerHTML = '<span>' + f.split('/').pop() + '</span>';
-    row.title = f;
-    row.onclick = () => { modelsSelected = { type: 'file', path: f }; renderModelsTree(); renderModelsInspector(); };
+    if (modelsSelected && modelsSelected.type === 'file' && modelsSelected.path === f.path) row.classList.add('selected');
+    row.innerHTML = '<span>' + f.path.split('/').pop() + '</span><span class="tag">' + (f.type === 'image' ? '이미지' : '모델') + '</span>';
+    row.title = f.path;
+    row.onclick = () => { modelsSelected = { type: 'file', path: f.path, fileType: f.type }; renderModelsTree(); renderModelsInspector(); };
     body2.appendChild(row);
   });
   root2.appendChild(body2);
   treeScroll.appendChild(root2);
 }
 
+function isImagePath(p) {
+  return /\.(webp|png|jpe?g)$/i.test(p || '');
+}
+
+function previewHtmlFor(game, file) {
+  if (!file) return '<div id="previewFrame" style="display:flex;align-items:center;justify-content:center;color:var(--sub)">미리볼 파일 없음</div>';
+  if (isImagePath(file)) {
+    return '<img id="previewFrame" style="object-fit:contain" src="/static/' + encodeURIComponent(game) + '/' + file.split('/').map(encodeURIComponent).join('/') + '">';
+  }
+  return '<iframe id="previewFrame" src="/preview3d.html?game=' + encodeURIComponent(game) + '&file=' + encodeURIComponent(file) + '"></iframe>';
+}
+
 function renderModelsInspector() {
   if (!modelsSelected) {
     inspector.className = 'empty';
-    inspector.innerHTML = '왼쪽에서 DEFAULTS 항목이나 GLB 파일을 고르세요.';
+    inspector.innerHTML = '왼쪽에서 DEFAULTS 항목이나 자산 파일을 고르세요.';
     return;
   }
   inspector.className = '';
@@ -536,8 +550,9 @@ function renderModelsInspector() {
       html += '<div class="warnbox">이 항목은 배열 후보군이거나 다른 변수를 참조하는 복잡한 표현식이라 여기서는 못 바꿉니다 — 원본: <code>' + escapeHtml(e.raw) + '</code></div>';
     } else {
       previewFile = e.path;
+      const modelFiles = modelsData.files.filter((f) => f.type === 'model');
       html += field('현재 파일', '<input type="text" id="m_current" value="' + escapeHtml(e.path) + '" disabled>');
-      html += field('바꿀 파일', '<select id="m_newfile">' + modelsData.files.map((f) => '<option value="' + escapeHtml(f) + '"' + (f === e.path ? ' selected' : '') + '>' + escapeHtml(f) + '</option>').join('') + '</select>');
+      html += field('바꿀 파일', '<select id="m_newfile">' + modelFiles.map((f) => '<option value="' + escapeHtml(f.path) + '"' + (f.path === e.path ? ' selected' : '') + '>' + escapeHtml(f.path) + '</option>').join('') + '</select>');
       html += '<div id="insp-actions"><button class="primary" id="btnModelSave">저장</button></div>';
     }
   } else {
@@ -550,7 +565,7 @@ function renderModelsInspector() {
       : '<div class="preview-hint">현재 이 파일을 쓰는 DEFAULTS 항목 없음(미리보기 전용)</div>';
   }
 
-  html += '<iframe id="previewFrame" src="' + (previewFile ? ('/preview3d.html?game=' + encodeURIComponent(modelsGame) + '&file=' + encodeURIComponent(previewFile)) : 'about:blank') + '"></iframe>';
+  html += previewHtmlFor(modelsGame, previewFile);
 
   inspector.innerHTML = html;
   if (el('#btnModelSave')) {
@@ -569,11 +584,26 @@ function renderModelsInspector() {
   }
 }
 
+async function uploadFile(file) {
+  const buf = await file.arrayBuffer();
+  const r = await fetch(API + '/api/upload/' + modelsGame + '?name=' + encodeURIComponent(file.name), {
+    method: 'POST', body: buf,
+  });
+  const out = await r.json();
+  if (out.error) { alert(out.error); return; }
+  log('업로드: ' + modelsGame + ' / ' + out.path, true);
+  await loadModels();
+  modelsSelected = { type: 'file', path: out.path, fileType: out.type };
+  renderModelsTree();
+  renderModelsInspector();
+}
+
 function setMode(next) {
   mode = next;
   el('#modeContent').classList.toggle('active', mode === 'content');
   el('#modeModels').classList.toggle('active', mode === 'models');
   el('#gameSelect').hidden = mode !== 'models';
+  el('#btnUpload').hidden = mode !== 'models';
   el('#syncBadge').hidden = mode === 'models';
   el('#searchInput').placeholder = mode === 'models' ? '키·파일명으로 찾기' : '이름·id로 찾기';
   if (mode === 'models' && !modelsData) loadModels();
@@ -590,6 +620,13 @@ el('#gameSelect').onchange = async (e) => {
   modelsData = null;
   await loadModels();
   renderInspector();
+};
+
+el('#btnUpload').onclick = () => el('#uploadInput').click();
+el('#uploadInput').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (file) await uploadFile(file);
 };
 
 el('#btnRefresh').onclick = async () => {
