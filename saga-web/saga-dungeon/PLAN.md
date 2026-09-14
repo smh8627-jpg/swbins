@@ -4271,3 +4271,62 @@ CC0 몬스터 에셋을 더 찾는 쪽을 진행했다.
   마을 가축 결이라 `pet:` 쪽 후보에 더 가깝다)나, 다른 Quaternius CC0
   팩(`quaternius.com/packs.html`에서 라이선스를 낱개로 확인하는 절차는
   이번에도 유효했다 — 최신 팩 상당수가 QAL이다)을 더 볼 수 있다.
+
+## "3안" 더 찾아봤지만 새 몬스터 후보를 못 찾았다 → ⚙️ 설정 시트 "진동" 손잡이로 방향 전환 (2026-09-14, 다음 세션)
+
+바로 위 "다음"이 남긴 숙제(다른 Quaternius CC0 팩·순한 동물 pet 후보)를 실제로
+뒤져 봤다 — 자세한 경위는 `assets/ASSET_LICENSES.md`의 "정정 — 위 '받은 곳'
+URL이..." 절 참고. 요약:
+
+- **가장 먼저 잡은 것 — 위 "Cute Animated Monsters" 절의 출처 URL이 틀려
+  있었다.** `lowpoly-animated-monsters` 페이지는 실제로 Bat·Dragon·Skeleton·
+  Slime 4종뿐인 **다른** 팩이고, 21종 팩의 진짜 출처는
+  `opengameart.org/content/textured-cute-monster-pack`이다. 기록을 정정했다.
+- 그 21종 중 이번 세션 앞에서 빠뜨렸던 `Ghost`·`YellowDragon` 둘도 확인
+  — 각각 기존 `monster:ghost`와 겹치고, 천룡(`dragon_evolved`)의 "둘째를
+  안 만든다"는 결정과 같은 이유로 제외가 맞았다(위 문서 참고).
+- `trebeljahr/quaternius-showcase` GitHub 미러의 `easy_enemies_pack`·
+  `animals_pack`·`fish_pack`, OGA `lowpoly-animated-knight`,
+  `lowpoly-animated-farm-animal-pack`, `platformer_pack` 계열을 훑었지만
+  **몬스터로 새로 쓸 만한 미사용 CC0 후보를 못 찾았다** — 쓸 만한 종은 이미
+  다른 경로로 이 판에 들어와 있었거나(개·고양이·사슴·말류는 전부
+  `pet:`로 이미 등록), 장르가 안 맞았다(플랫포머 소품).
+- 남은 후보(Bat·Bee·Chicken·Panda·Penguin을 `pt_*` 도감 펫으로)는 `js/data.js`
+  (PETS)가 다섯 판이 같은 내용이어야 해서 이 폴더 하나만 보는 세션은 손대면
+  안 된다 — 다섯 판을 함께 보는 세션 몫으로 남긴다.
+- **부수 소득** — `npm install fbx2gltf`가 이 환경에서 실제로 Windows용
+  `FBX2glTF.exe`를 깔아 주고 잘 돈다는 것을 확인했다(이전 세션들이 "session
+  scratch"라고만 적어 둔 그 도구). 다음에 몬스터/펫 후보를 다시 찾을 때
+  이 확인부터 다시 할 필요는 없다.
+
+**그래서 이번엔 코드 쪽 숙제로 방향을 돌렸다** — §"⚙️ 설정 시트 신설" 절이
+"이 판엔 아직 BGM·진동이 없어(sfx.js에 그 손잡이 자체가 없다) 그 두 줄은
+뺐다"고 적어 둔 것 중 **진동**을 얹었다:
+
+- `js/sfx.js` — `settings().vibrate`(기본 `true`), `vibrateEnabled()`/
+  `setVibrateEnabled()`/`vibrateSupported()`(`navigator.vibrate` 유무로
+  기기 지원을 잰다) 신설. **소리와는 별개 채널**이다 — `play()`가 `enabled()`
+  (소리 on/off) 관문을 걸기 **전에** `doVibrate(key)`를 먼저 부르므로, 소리를
+  꺼도 진동은 따로 켜 둘 수 있고 그 반대도 된다. `VIBE` 표로 손맛 있는 자리
+  (`hit`·`crit`·`kill`·`boss`·`hurt`·`heavy`·`die`)에만 패턴을 물렸다 —
+  줍기·UI·환경음까지 다 울리면 손이 피곤해진다. 각 키의 최소 간격은 `CUES`
+  표의 `gap`을 그대로 재사용해(같은 소리가 겹칠 때 안 겹치는 그 규칙) 새
+  상수를 안 늘렸다.
+- `js/ui.js` — `⚙️ 설정` 시트에 **진동 켜짐/꺼짐** 단추를 추가(효과음·음량
+  다음 자리). `SF.vibrateSupported()`가 거짓이면(데스크톱·iOS Safari 다수)
+  **줄 자체를 안 그린다** — 눌러도 안 되는 죽은 손잡이를 안 둔다(그래픽
+  품질 손잡이가 3D 없을 때 숨는 것과 같은 결). `data-act="vib-toggle"`을
+  `handleAct()`에 얹었다 — `snd-toggle`과 똑같은 모양.
+- `_test.html` — 네 항목 추가(295→**299**): (1) `settings.vibrate`가 세이브에
+  남는다, (2) 시트 단추가 실제로 `vibrateEnabled()`를 뒤집는다(지원 안 하는
+  환경에서는 "설계대로 손잡이가 없다"로 통과), (3) 전투 손맛 있는 7종에만
+  진동이 물리고 나머지(줍기·UI·문·층 이동 등)엔 안 물린다는 것을
+  `navigator.vibrate`를 임시로 갈아 끼워 실제 호출 여부로 확인. 이 검사가
+  `S._clear()`(기존 `lastAt` 초기화 손잡이, 이번에 `lastVibeAt`도 같이
+  지우게 넓혔다)로 앞선 항목이 남긴 `gap` 잠금을 지우고 도는 것도 확인.
+- `sw.js` → `dungeon-v0.115.0`.
+
+**검증** — `node -c js/sfx.js`·`node -c js/ui.js` 통과. `_test.html` 헤드리스
+3회 연속 `RESULT 299/299`, 세 출력 파일 `diff` 완전 동일(한 글자도 안 다름).
+**실기기 확인 전** — 실제 폰에서 타격·격파 때 진동이 손에 느껴지는지, 시트
+줄이 지원 기기에서만 뜨는지는 사용자가 봐야 한다.

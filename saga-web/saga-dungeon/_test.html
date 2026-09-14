@@ -3325,6 +3325,59 @@ window.requestAnimationFrame = function () { return 0; };
       return flipped && '⚙️ 설정 시트 단추 → sfx 실제로 반영';
     });
 
+    t('진동을 끄면 세이브에 남는다 (2026-09-14)', function () {
+      var S = DG.sfx;
+      S.setVibrateEnabled(false);
+      var off = C.save.settings.vibrate === false && S.vibrateEnabled() === false;
+      S.setVibrateEnabled(true);
+      return off && S.vibrateEnabled() === true && C.save.settings.vibrate === true &&
+        '설정에 남는다 (settings.vibrate)';
+    });
+
+    t('설정 시트 — 진동 단추가 실제로 sfx.vibrateEnabled() 를 뒤집는다 (2026-09-14, 지원 기기에서만)', function () {
+      var S = DG.sfx;
+      if (!S.vibrateSupported || !S.vibrateSupported()) {
+        return '이 환경은 navigator.vibrate 를 지원하지 않아 시트에 손잡이가 없다 (설계대로)';
+      }
+      var before = S.vibrateEnabled();
+      DG.ui.openSheet('settings');
+      var btn = document.querySelector('#sheet-body [data-act="vib-toggle"]');
+      if (!btn) { DG.ui.closeSheet(); return false; }
+      btn.click();
+      var flipped = S.vibrateEnabled() === !before;
+      S.setVibrateEnabled(before);
+      DG.ui.closeSheet();
+      return flipped && '⚙️ 설정 시트 단추 → 진동 실제로 반영';
+    });
+
+    t('진동 — 타격·격파·보스 등 손맛 있는 자리에만 패턴이 물려 있다 (2026-09-14)', function () {
+      var expect = ['hit', 'crit', 'kill', 'boss', 'hurt', 'heavy', 'die'];
+      var noise = ['gold', 'drop0', 'ui', 'door', 'floor', 'enter', 'skill'];
+      /* VIBE 표는 export 되지 않는다(내부 상수) — play() 가 doVibrate() 를
+         부르는지는 navigator.vibrate 를 얹어 실제로 호출됐는지로 잰다. */
+      var old = navigator.vibrate, calls = [];
+      navigator.vibrate = function (p) { calls.push(p); return true; };
+      var S = DG.sfx, before = S.vibrateEnabled();
+      S.setVibrateEnabled(true);
+      S._clear();   // 앞선 항목들이 같은 키를 이미 울렸으면 gap 이 이번 호출을 막는다
+      var okExpect = true, i;
+      for (i = 0; i < expect.length; i++) {
+        calls.length = 0;
+        S.play(expect[i]);
+        if (!calls.length) { okExpect = false; break; }
+      }
+      var okNoise = true;
+      for (i = 0; i < noise.length; i++) {
+        calls.length = 0;
+        S.play(noise[i]);
+        if (calls.length) { okNoise = false; break; }
+      }
+      navigator.vibrate = old;
+      S.setVibrateEnabled(before);
+      return okExpect && okNoise &&
+        ('전투 ' + expect.length + '종 진동 · 비전투 ' + noise.length + '종 무진동');
+    });
+
     /* ── 가입해서 저장 ─────────────────────────────────── */
 
     t('세이브는 프로필 아래로 들어간다', function () {

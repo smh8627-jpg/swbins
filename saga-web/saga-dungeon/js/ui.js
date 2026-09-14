@@ -168,6 +168,11 @@
         if (SF0) { SF0.setEnabled(!SF0.enabled()); renderSheet(); }
         return;
       }
+      if (act === 'vib-toggle') {
+        var SF2 = global.DG.sfx;
+        if (SF2) { SF2.setVibrateEnabled(!SF2.vibrateEnabled()); renderSheet(); }
+        return;
+      }
       if (act === 'gq-set') {
         var D30 = global.DG.dungeon3d;
         if (D30 && D30.set) { D30.set('dg3d.quality', b.getAttribute('data-level')); renderSheet(); }
@@ -497,13 +502,20 @@
   };
 
   /** 2026-09-10 — 효과음·그래픽 품질(사가스토리 PLAN §30과 같은 결).
-   *  이 판엔 아직 BGM·진동이 없어(sfx.js에 그 손잡이 자체가 없다) 그 두
-   *  줄은 뺐다 — 나중에 그 모듈이 생기면 그때 얹는다. */
+   *  이 판엔 아직 BGM이 없어(그 모듈 자체가 없다) 그 줄은 뺐다 — 나중에
+   *  생기면 그때 얹는다. **2026-09-14 — 진동은 sfx.js에 손잡이가 생겨
+   *  더했다**(지원하는 기기에서만 보인다, 아래 vibrateSupported() 참고). */
   var QUALITY_LABEL = { auto: '자동', low: '낮음', medium: '보통', high: '높음' };
   function viewSettings() {
     var SF = global.DG.sfx, D3 = global.DG.dungeon3d;
     if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
     var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
+    var vibRow = '';
+    if (SF.vibrateSupported && SF.vibrateSupported()) {
+      var von = SF.vibrateEnabled();
+      vibRow = '<div class="key-row"><b>진동</b>' +
+        '<button data-act="vib-toggle">' + (von ? '켜짐' : '꺼짐') + '</button></div>';
+    }
     var gq = '';
     if (D3 && D3.active && D3.active()) {
       var cur = D3.tuned('dg3d.quality', 'auto'), lv;
@@ -525,7 +537,7 @@
         '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
         (on ? '' : ' disabled') + '>' +
         '<span class="key-cur">' + vol + '%</span></div>' +
-      gq;
+      vibRow + gq;
   }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
