@@ -90,8 +90,10 @@ namespace Saga.Story.World
             }
 
             StoryNpcState.AddScoutTalk();
-            DialogueLabel.Instance?.Show($"들판의 척후병 — {Greeting()}{Line()}", LineShowSec);
+            DialogueLabel.Instance?.Show($"{ScoutName} — {Greeting()}{Line()}", LineShowSec);
         }
+
+        private static string ScoutName => StoryLocalization.T("npc.scout_name", "들판의 척후병");
 
         /// <summary>선택 — 두목 처치 직후 한 번만 묻는다. `StoryChoiceUi`가
         /// 씬에 없으면(구버전 씬 등) 안전하게 평소 대화로 건너뛴다 —
@@ -103,25 +105,25 @@ namespace Saga.Story.World
             if (ui == null)
             {
                 StoryNpcState.AddScoutTalk();
-                DialogueLabel.Instance?.Show($"들판의 척후병 — {Greeting()}{Line()}", LineShowSec);
+                DialogueLabel.Instance?.Show($"{ScoutName} — {Greeting()}{Line()}", LineShowSec);
                 return;
             }
 
             ui.Show(
-                "두목까지 처치하셨군요! 노고를 어떻게 치하해 드릴까요?",
-                "함께 축배를 든다",
-                "간단히 치하만 받는다",
+                StoryLocalization.T("npc.scout_choice_prompt", "두목까지 처치하셨군요! 노고를 어떻게 치하해 드릴까요?"),
+                StoryLocalization.T("npc.scout_choice_a", "함께 축배를 든다"),
+                StoryLocalization.T("npc.scout_choice_b", "간단히 치하만 받는다"),
                 choice =>
                 {
                     StoryNpcState.SetChoice(choice);
                     StoryNpcState.AddScoutTalk();
-                    DialogueLabel.Instance?.Show($"들판의 척후병 — {ChoiceLine(choice)}", LineShowSec);
+                    DialogueLabel.Instance?.Show($"{ScoutName} — {ChoiceLine(choice)}", LineShowSec);
                 });
         }
 
         private static string ChoiceLine(int choice) => choice == 1
-            ? "좋습니다, 오늘은 마음 놓고 한 잔 합시다!"
-            : "예, 알겠습니다 — 다음에 또 뵙지요.";
+            ? StoryLocalization.T("npc.scout_choice_line_a", "좋습니다, 오늘은 마음 놓고 한 잔 합시다!")
+            : StoryLocalization.T("npc.scout_choice_line_b", "예, 알겠습니다 — 다음에 또 뵙지요.");
 
         /// <summary>관계 — 몇 번째 만남인지에 따라 인사말 앞머리만 데운다
         /// (본문 `Line()`은 그대로, 관계와 사명 진행을 서로 안 섞는다).
@@ -132,12 +134,12 @@ namespace Saga.Story.World
             int count = StoryNpcState.ScoutTalkCount;
             switch (StoryNpcState.ChoiceMade)
             {
-                case 1: return count <= 1 ? "" : "형씨! ";
-                case 2: return count <= 1 ? "" : "어서 오십시오. ";
+                case 1: return count <= 1 ? "" : StoryLocalization.T("npc.scout_greeting_1", "형씨! ");
+                case 2: return count <= 1 ? "" : StoryLocalization.T("npc.scout_greeting_2", "어서 오십시오. ");
             }
             if (count <= 1) return "";
-            if (count <= 4) return "또 뵙는군요. ";
-            return "이제 낯이 익어 마음이 놓입니다. ";
+            if (count <= 4) return StoryLocalization.T("npc.scout_greeting_default_2", "또 뵙는군요. ");
+            return StoryLocalization.T("npc.scout_greeting_default_3", "이제 낯이 익어 마음이 놓입니다. ");
         }
 
         private static string Line()
@@ -147,18 +149,18 @@ namespace Saga.Story.World
                 // 이 분기에 오는 시점엔 ShowChoice()를 이미 거쳤다(ChoiceMade!=0) —
                 // 선택 어투만 다르고 안전 선언 자체는 그대로다(장식적 분기).
                 return StoryNpcState.ChoiceMade == 1
-                    ? "지난번 잔치, 아직도 훈훈합니다. 이 들판은 이제 안전합니다."
-                    : "이 들판은 이제 안전합니다. 감사합니다.";
+                    ? StoryLocalization.T("npc.scout_line_done_a", "지난번 잔치, 아직도 훈훈합니다. 이 들판은 이제 안전합니다.")
+                    : StoryLocalization.T("npc.scout_line_done_b", "이 들판은 이제 안전합니다. 감사합니다.");
             }
             if (StoryQuestState.QuestDone)
             {
-                return "잡졸들은 거의 정리되셨군요. 안쪽에 두목이 아직 버티고 있습니다.";
+                return StoryLocalization.T("npc.scout_line_boss_pending", "잡졸들은 거의 정리되셨군요. 안쪽에 두목이 아직 버티고 있습니다.");
             }
             if (StoryQuestState.Kills > 0)
             {
-                return $"황건적이 아직 {StoryQuestState.KillGoal - StoryQuestState.Kills}명은 더 남았을 겁니다.";
+                return string.Format(StoryLocalization.T("npc.scout_line_kills_remaining", "황건적이 아직 {0}명은 더 남았을 겁니다."), StoryQuestState.KillGoal - StoryQuestState.Kills);
             }
-            return "이 들판에 황건적 떼가 진을 쳤습니다. 조심하십시오.";
+            return StoryLocalization.T("npc.scout_line_initial", "이 들판에 황건적 떼가 진을 쳤습니다. 조심하십시오.");
         }
     }
 }
