@@ -25,6 +25,12 @@
     { "key": "hud.exp", "value": "EXP {0}/{1}" },
     { "key": "hud.gold", "value": "{0} Gold" },
     { "key": "item.bare_hands", "value": "Bare Hands" },
-    { "key": "item.plain_clothes", "value": "Plain Clothes" }
+    { "key": "item.plain_clothes", "value": "Plain Clothes" },
+    { "key": "item.wp_wood", "value": "Wooden Sword" },
+    { "key": "item.wp_iron", "value": "Iron Sword" },
+    { "key": "item.ar_cloth", "value": "Hemp Armor" },
+    { "key": "item.ar_leather", "value": "Leather Armor" },
+    { "key": "item.wp_relic", "value": "Relic Sword" },
+    { "key": "item.ar_wolf", "value": "Wolf-Hide Armor" }
   ]
 }

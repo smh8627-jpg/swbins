@@ -19,6 +19,11 @@
     { "key": "hud.gold", "value": "돈 {0}냥" },
     { "key": "hud.atk", "value": "공격력 {0:0}" },
     { "key": "hud.floor", "value": "🕳️ 지하 {0}층" },
-    { "key": "item.bare_hands", "value": "맨손" }
+    { "key": "item.bare_hands", "value": "맨손" },
+    { "key": "item.wp_start", "value": "목검" },
+    { "key": "item.wp_axe", "value": "쇠도끼" },
+    { "key": "item.wp_glaive", "value": "귀두도" },
+    { "key": "item.wp_saber", "value": "환도" },
+    { "key": "item.wp_greatblade", "value": "흑철중검" }
   ]
 }

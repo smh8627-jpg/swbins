@@ -38,6 +38,21 @@
     { "key": "hud.food", "value": "Food" },
     { "key": "hud.roster", "value": "Roster: " },
     { "key": "hud.captured", "value": "Captured (added to city list)" },
-    { "key": "hud.enemy_status", "value": "Troops {0} · Walls {1} · Training {2}" }
+    { "key": "hud.enemy_status", "value": "Troops {0} · Walls {1} · Training {2}" },
+    { "key": "city.xuchang", "value": "Xuchang" },
+    { "key": "city.chenliu", "value": "Chenliu" },
+    { "key": "city.puyang", "value": "Puyang" },
+    { "key": "city.xiaopei", "value": "Xiaopei" },
+    { "key": "city.dingtao", "value": "Dingtao" },
+    { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
+    { "key": "officer.kr_yisunsin", "value": "Haejang" },
+    { "key": "officer.jp_musashi", "value": "Idoin" },
+    { "key": "order.draft", "value": "Conscription" },
+    { "key": "order.search", "value": "Search" },
+    { "key": "order.hire", "value": "Recruit" },
+    { "key": "plot.rumor_name", "value": "Rumor Campaign" },
+    { "key": "plot.rumor_desc", "value": "Spread rumors in the enemy city to undermine discipline (lowers training)." },
+    { "key": "plot.fire_name", "value": "Fire Attack" },
+    { "key": "plot.fire_desc", "value": "Set fire to the enemy's supply lines (troop losses)." }
   ]
 }

@@ -38,6 +38,21 @@
     { "key": "hud.food", "value": "군량" },
     { "key": "hud.roster", "value": "로스터: " },
     { "key": "hud.captured", "value": "함락됨(성 목록에 편입)" },
-    { "key": "hud.enemy_status", "value": "병력 {0} · 성벽 {1} · 훈련 {2}" }
+    { "key": "hud.enemy_status", "value": "병력 {0} · 성벽 {1} · 훈련 {2}" },
+    { "key": "city.xuchang", "value": "허창" },
+    { "key": "city.chenliu", "value": "진류" },
+    { "key": "city.puyang", "value": "복양" },
+    { "key": "city.xiaopei", "value": "소패" },
+    { "key": "city.dingtao", "value": "정도" },
+    { "key": "officer.sg_zhugeliang", "value": "현책" },
+    { "key": "officer.kr_yisunsin", "value": "해장" },
+    { "key": "officer.jp_musashi", "value": "이도인" },
+    { "key": "order.draft", "value": "징병" },
+    { "key": "order.search", "value": "수색" },
+    { "key": "order.hire", "value": "등용" },
+    { "key": "plot.rumor_name", "value": "유언비어" },
+    { "key": "plot.rumor_desc", "value": "적국에 뜬소문을 놓아 군율을 흐트러뜨린다(훈련도 하락)." },
+    { "key": "plot.fire_name", "value": "화계" },
+    { "key": "plot.fire_desc", "value": "적국의 병참에 불을 놓는다(병력 손실)." }
   ]
 }

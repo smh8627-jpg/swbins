@@ -9,7 +9,8 @@ namespace Saga.Realm.Data
     public class RealmOfficer
     {
         public readonly string Id;
-        public readonly string Name;
+        private readonly string _name;
+        public string Name => RealmLocalization.T("officer." + Id, _name);
         public readonly int Might;
         public readonly int Wisdom;
         public readonly int Command;
@@ -18,7 +19,7 @@ namespace Saga.Realm.Data
         public RealmOfficer(string id, string name, int might, int wisdom, int command, int rarity)
         {
             Id = id;
-            Name = name;
+            _name = name;
             Might = might;
             Wisdom = wisdom;
             Command = command;

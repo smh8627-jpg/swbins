@@ -52,6 +52,14 @@ namespace Saga.Forest.Data
             return _table != null && _table.TryGetValue(key, out var value) ? value : key;
         }
 
+        /// <summary>데이터 콘텐츠(도시/장비 이름 등) 조회용 — 번역 누락일 때
+        /// 키 대신 원래 값(보통 한국어 원문)을 그대로 보여준다.</summary>
+        public static string T(string key, string fallback)
+        {
+            EnsureLoaded();
+            return _table != null && _table.TryGetValue(key, out var value) ? value : fallback;
+        }
+
         private static void EnsureLoaded()
         {
             string lang = CurrentLanguage;

@@ -19,6 +19,11 @@
     { "key": "hud.gold", "value": "{0} Gold" },
     { "key": "hud.atk", "value": "ATK {0:0}" },
     { "key": "hud.floor", "value": "🕳️ B{0}F" },
-    { "key": "item.bare_hands", "value": "Bare Hands" }
+    { "key": "item.bare_hands", "value": "Bare Hands" },
+    { "key": "item.wp_start", "value": "Wooden Sword" },
+    { "key": "item.wp_axe", "value": "Iron Axe" },
+    { "key": "item.wp_glaive", "value": "Ghosthead Blade" },
+    { "key": "item.wp_saber", "value": "Hwando Saber" },
+    { "key": "item.wp_greatblade", "value": "Black Iron Greatsword" }
   ]
 }
