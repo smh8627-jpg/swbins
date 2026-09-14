@@ -1,45 +1,77 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Saga.Dungeon.Audio
 {
     /// <summary>
-    /// PLAN.md(saga-dungeon 웹판) 37장 "사운드" — 이 프로젝트엔 아직
-    /// 오디오 에셋 파이프라인 자체가 없다(saga-unity 전체를 훑어도
-    /// AudioSource/AudioClip을 쓰는 코드가 하나도 없었다). 원작 에셋
-    /// 반입 금지 원칙(루트 CLAUDE.md)상 CC0 SFX를 새로 구해 와야
-    /// 정공법인데 이 세션엔 그럴 방법이 없어, 대신 같은 문서의 "그림은
-    /// 코드가 그린다" 원칙을 소리에도 그대로 적용했다 — 파형을 코드로
-    /// 합성한 아주 짧은 절차적 톤만 최소로 넣었다. 환경별 ambience
-    /// (Forest/Ruins/Swamp — 새·바람·물)는 루프 음원이 있어야 자연스러워
-    /// 순수 합성으로는 부자연스럽고 범위 밖으로 남긴다 — Combat 카테고리
-    /// (hit·critical·skill·enemy death) 중 이 슬라이스가 가진 히트
-    /// 종류(평타·강공격)·죽음·레벨업만 다룬다.
+    /// PLAN.md(saga-dungeon 웹판) 37장 "사운드". 처음엔 이 프로젝트에 CC0
+    /// 오디오를 구할 방법이 없어 파형을 코드로 합성한 절차적 톤을 썼는데
+    /// (원문 상수·"그림은 코드가 그린다" 원칙 참고 — 이제는 지운 옛 구현),
+    /// 2026-09-14 다른 네 판(GO/FOREST/STORY/REALM)에 Kenney CC0 실클립을
+    /// 붙인 뒤 사용자가 명시적으로 "DUNGEON도 실제 클립으로 통일"을
+    /// 골라 이 클래스도 같은 방식으로 바꿨다 — 공개 API(PlayHit() 등,
+    /// 인자 없음)는 그대로 둬서 `PlayerCombat.cs`·`DungeonEnemy.cs`·
+    /// `DungeonSecretStash.cs`·`GameBootstrap.cs` 네 호출부는 안 건드렸다.
+    ///
+    /// 클립 자체는 정적 클래스라 씬에 못 묶는다(Unity 직렬화는
+    /// MonoBehaviour/ScriptableObject 인스턴스 필드뿐, `Saga.Realm.Audio.
+    /// RealmAudio.cs`가 겪은 것과 같은 제약) — 씬에 하나뿐이라 이미
+    /// `PlayLevelUp()`을 부르고 있던 `GameBootstrap`이 [SerializeField]로
+    /// 받은 클립 다섯 개를 `Configure()`로 한 번 넘긴다(씬 빌드 스크립트가
+    /// `BuildTestDungeonScene.cs`에서 그 필드들을 채운다).
     /// </summary>
     public static class SfxPlayer
     {
-        private const int SampleRate = 44100;
+        private const string MasterKey = "saga_dungeon_vol_master";
+        private const string SfxKey = "saga_dungeon_vol_sfx";
+        private const string BgmKey = "saga_dungeon_vol_bgm";
+
+        public static float MasterVolume
+        {
+            get => PlayerPrefs.GetFloat(MasterKey, 1f);
+            set => PlayerPrefs.SetFloat(MasterKey, Mathf.Clamp01(value));
+        }
+
+        public static float SfxVolume
+        {
+            get => PlayerPrefs.GetFloat(SfxKey, 1f);
+            set => PlayerPrefs.SetFloat(SfxKey, Mathf.Clamp01(value));
+        }
+
+        public static float BgmVolume
+        {
+            get => PlayerPrefs.GetFloat(BgmKey, 1f);
+            set => PlayerPrefs.SetFloat(BgmKey, Mathf.Clamp01(value));
+        }
 
         private static AudioSource _source;
-        private static readonly Dictionary<string, AudioClip> Cache = new Dictionary<string, AudioClip>();
 
-        public static void PlayHit() => Play("hit", 520f, 0.06f, 0.5f);
-        public static void PlayHeavyHit() => Play("heavy", 260f, 0.1f, 0.7f); // "critical effect" 대용 — 새 크리티컬 확률 시스템 없이 강공격 자체를 그 신호로 재사용.
-        public static void PlayEnemyDeath() => Play("death", 180f, 0.22f, 0.6f, descend: true);
-        public static void PlayLevelUp() => Play("levelup", 660f, 0.28f, 0.5f, ascend: true);
-        public static void PlayDiscovery() => Play("discovery", 440f, 0.35f, 0.45f, ascend: true); // "Secret Area" 슬라이스 — 레벨업과 다른 낮고 긴 종소리로 구분.
+        private static AudioClip _hitClip;
+        private static AudioClip _heavyHitClip;
+        private static AudioClip _enemyDeathClip;
+        private static AudioClip _levelUpClip;
+        private static AudioClip _discoveryClip;
 
-        private static void Play(string key, float freq, float duration, float volume, bool descend = false, bool ascend = false)
+        public static void Configure(AudioClip hitClip, AudioClip heavyHitClip, AudioClip enemyDeathClip,
+            AudioClip levelUpClip, AudioClip discoveryClip)
         {
-            EnsureSource();
-            if (_source == null) return; // AudioListener가 없는 헤드리스 등에서도 조용히 넘어간다.
+            _hitClip = hitClip;
+            _heavyHitClip = heavyHitClip;
+            _enemyDeathClip = enemyDeathClip;
+            _levelUpClip = levelUpClip;
+            _discoveryClip = discoveryClip;
+        }
 
-            if (!Cache.TryGetValue(key, out var clip))
-            {
-                clip = BuildTone(freq, duration, descend, ascend);
-                Cache[key] = clip;
-            }
-            _source.PlayOneShot(clip, volume);
+        public static void PlayHit() => Play(_hitClip);
+        public static void PlayHeavyHit() => Play(_heavyHitClip, 0.9f); // knifeSlice — chop.ogg보다 날카로워 강공격/급소 대용으로 구분.
+        public static void PlayEnemyDeath() => Play(_enemyDeathClip);
+        public static void PlayLevelUp() => Play(_levelUpClip);
+        public static void PlayDiscovery() => Play(_discoveryClip);
+
+        private static void Play(AudioClip clip, float volumeScale = 1f)
+        {
+            if (clip == null) return;
+            EnsureSource();
+            _source.PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
         }
 
         private static void EnsureSource()
@@ -49,30 +81,6 @@ namespace Saga.Dungeon.Audio
             _source = go.AddComponent<AudioSource>();
             _source.playOnAwake = false;
             _source.spatialBlend = 0f; // 던전 규모가 작아 위치 기반 감쇠 없이 2D로 충분.
-        }
-
-        /// <summary>사인파 + 선형 감쇠 봉투. descend/ascend는 짧게 오르내리는
-        /// 피치 스윕으로 죽음("뚝 떨어짐")·레벨업("띵 올라감") 인상을 준다.</summary>
-        private static AudioClip BuildTone(float freq, float duration, bool descend, bool ascend)
-        {
-            int sampleCount = Mathf.Max(1, Mathf.RoundToInt(SampleRate * duration));
-            var data = new float[sampleCount];
-
-            for (int i = 0; i < sampleCount; i++)
-            {
-                float t = (float)i / SampleRate;
-                float progress = (float)i / sampleCount;
-                float f = freq;
-                if (descend) f = Mathf.Lerp(freq, freq * 0.5f, progress);
-                else if (ascend) f = Mathf.Lerp(freq * 0.7f, freq, progress);
-
-                float envelope = 1f - progress; // 딱딱한 "삑" 대신 짧게 꼬리를 죽인다.
-                data[i] = Mathf.Sin(2f * Mathf.PI * f * t) * envelope;
-            }
-
-            var clip = AudioClip.Create($"Sfx_{freq:0}_{duration:0.00}", sampleCount, 1, SampleRate, false);
-            clip.SetData(data, 0);
-            return clip;
         }
     }
 }

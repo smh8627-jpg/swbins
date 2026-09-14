@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -15,7 +16,11 @@ namespace Saga.Story.Data
     /// </summary>
     public static class StorySaveState
     {
-        private const int SaveVersion = 2; // v2 — "콘텐츠 확장"(두목 사명), bossKills 추가.
+        // v5 — "STORY 확장 — 선택"(2026-09-14), 두목 처치 직후 장식적
+        // 분기 결과(choiceMade) 추가. 구버전 세이브는 0으로 들어와도
+        // StoryNpcState.Restore(scoutTalkCount, 0)이 "아직 안 고름"으로
+        // 처리해 무해하다(다시 척후병에게 물어보면 그만).
+        private const int SaveVersion = 5;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_story.json");
 
@@ -26,6 +31,9 @@ namespace Saga.Story.Data
             public float[] playerPos;
             public int kills;
             public int bossKills;
+            public string[] triggeredEvents;
+            public int scoutTalkCount;
+            public int choiceMade;
         }
 
         public static bool Save()
@@ -33,12 +41,16 @@ namespace Saga.Story.Data
             Transform player = FindPlayer();
             if (player == null) return false;
 
+            var events = new List<string>(StoryWorldEventState.TriggeredIds);
             var data = new SaveData
             {
                 version = SaveVersion,
                 playerPos = new[] { player.position.x, player.position.y, player.position.z },
                 kills = StoryQuestState.Kills,
                 bossKills = StoryQuestState.BossKills,
+                triggeredEvents = events.ToArray(),
+                scoutTalkCount = StoryNpcState.ScoutTalkCount,
+                choiceMade = StoryNpcState.ChoiceMade,
             };
 
             try
@@ -70,6 +82,8 @@ namespace Saga.Story.Data
             if (data == null || data.version > SaveVersion) return false;
 
             StoryQuestState.Restore(data.kills, data.bossKills);
+            StoryWorldEventState.Restore(data.triggeredEvents);
+            StoryNpcState.Restore(data.scoutTalkCount, data.choiceMade);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

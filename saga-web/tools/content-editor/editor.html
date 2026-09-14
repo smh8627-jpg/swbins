@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>saga-web 콘텐츠 에디터</title>
+<style>
+  :root {
+    --bg: #1e1f22; --panel: #26272b; --panel2: #2d2f34; --line: #3a3c42;
+    --text: #e6e6e6; --sub: #9a9ea6; --accent: #5b8cff; --accent2: #3f6bd8;
+    --ok: #5ec26a; --bad: #e0605a; --warn: #e0a53a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text); font: 13px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #topbar {
+    display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+    background: var(--panel2); border-bottom: 1px solid var(--line); flex: none;
+  }
+  #topbar h1 { font-size: 14px; margin: 0; font-weight: 600; color: #cfd6ff; }
+  #syncBadge { padding: 3px 10px; border-radius: 10px; font-size: 12px; cursor: default; }
+  #syncBadge.ok { background: rgba(94,194,106,.15); color: var(--ok); border: 1px solid rgba(94,194,106,.4); }
+  #syncBadge.bad { background: rgba(224,96,90,.15); color: var(--bad); border: 1px solid rgba(224,96,90,.4); }
+  #topbar .spacer { flex: 1; }
+  button {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 5px;
+    padding: 6px 12px; cursor: pointer; font-size: 12px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  button.primary:hover { background: var(--accent); }
+  button.danger { border-color: var(--bad); color: var(--bad); }
+  button.danger:hover { background: rgba(224,96,90,.15); }
+  button:disabled { opacity: .4; cursor: default; }
+  #main { flex: 1; display: flex; min-height: 0; }
+  #tree {
+    width: 300px; flex: none; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+  }
+  #treeSearch { margin: 8px; }
+  #treeSearch input {
+    width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 5px;
+    color: var(--text); padding: 6px 8px; font-size: 12px;
+  }
+  #treeScroll { flex: 1; overflow-y: auto; padding: 0 4px 8px; }
+  .root-node { margin-bottom: 4px; }
+  .root-label {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px; font-weight: 600; cursor: pointer;
+    color: #cfd6ff; user-select: none;
+  }
+  .root-label .addbtn { margin-left: auto; font-size: 11px; padding: 2px 8px; }
+  .group-label {
+    padding: 4px 8px 4px 20px; color: var(--sub); font-size: 11.5px; cursor: pointer; user-select: none;
+  }
+  .leaf {
+    padding: 4px 8px 4px 32px; cursor: pointer; border-radius: 4px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; display: flex; gap: 6px; align-items: baseline;
+  }
+  .leaf:hover { background: var(--panel2); }
+  .leaf.selected { background: var(--accent2); color: #fff; }
+  .leaf .lid { color: var(--sub); font-size: 10.5px; }
+  .leaf.selected .lid { color: #d8e0ff; }
+  #inspector { flex: 1; overflow-y: auto; padding: 18px 22px; }
+  #inspector.empty { display: flex; align-items: center; justify-content: center; color: var(--sub); }
+  .insp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .insp-head .emoji { font-size: 26px; }
+  .insp-head .title { font-size: 16px; font-weight: 600; }
+  .insp-head .idtag { color: var(--sub); font-size: 12px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; margin-bottom: 4px; color: var(--sub); font-size: 11.5px; }
+  .field input[type=text], .field input[type=number], .field select, .field textarea {
+    width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 5px;
+    color: var(--text); padding: 7px 9px; font-size: 13px; font-family: inherit;
+  }
+  .field textarea { resize: vertical; min-height: 52px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hint { color: var(--sub); font-size: 11px; margin-top: 3px; }
+  .warnbox {
+    background: rgba(224,165,58,.1); border: 1px solid rgba(224,165,58,.35); color: var(--warn);
+    padding: 8px 10px; border-radius: 6px; font-size: 11.5px; margin-bottom: 14px;
+  }
+  #insp-actions { display: flex; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  #resultLog {
+    flex: none; max-height: 140px; overflow-y: auto; background: var(--panel2);
+    border-top: 1px solid var(--line); padding: 8px 14px; font-size: 11.5px; font-family: Consolas, monospace;
+  }
+  #resultLog .line { padding: 2px 0; }
+  #resultLog .ok { color: var(--ok); }
+  #resultLog .bad { color: var(--bad); }
+  .dirtydot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); display: inline-block; margin-left: 6px; }
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <h1>saga-web 콘텐츠 에디터</h1>
+    <span id="syncBadge">확인 중…</span>
+    <div class="spacer"></div>
+    <button id="btnRefresh">새로고침</button>
+  </div>
+  <div id="main">
+    <div id="tree">
+      <div id="treeSearch"><input type="text" id="searchInput" placeholder="이름·id로 찾기"></div>
+      <div id="treeScroll"></div>
+    </div>
+    <div id="inspector" class="empty">왼쪽에서 인물이나 펫을 고르세요.</div>
+  </div>
+  <div id="resultLog"></div>
+
+<script>
+'use strict';
+const API = '';
+let content = null;   // { heroes, pets, bios, eras, petGroups }
+let selected = null;  // { kind: 'hero'|'pet', id, isNew }
+let dirty = false;
+
+const el = (sel) => document.querySelector(sel);
+const treeScroll = el('#treeScroll');
+const inspector = el('#inspector');
+const resultLog = el('#resultLog');
+
+function log(text, ok) {
+  const div = document.createElement('div');
+  div.className = 'line ' + (ok ? 'ok' : 'bad');
+  div.textContent = (ok ? '✓ ' : '✗ ') + text;
+  resultLog.prepend(div);
+}
+
+function logResults(action, results) {
+  const ok = Object.values(results).every((r) => r.ok);
+  const fails = Object.entries(results).filter(([, r]) => !r.ok);
+  if (ok) {
+    log(action + ' — 다섯 판 모두 반영됨', true);
+  } else {
+    log(action + ' — 일부 실패: ' + fails.map(([g, r]) => g + '(' + r.reason + ')').join(', '), false);
+  }
+}
+
+async function loadStatus() {
+  const r = await fetch(API + '/api/status');
+  const s = await r.json();
+  const badge = el('#syncBadge');
+  if (s.synced) {
+    badge.textContent = '다섯 판 동기화됨';
+    badge.className = 'ok';
+  } else {
+    const bad = s.games.filter((g) => !g.exists || g.contentHash !== s.games[0].contentHash);
+    badge.textContent = '불일치: ' + bad.map((g) => g.game).join(', ');
+    badge.className = 'bad';
+  }
+}
+
+async function loadContent() {
+  const r = await fetch(API + '/api/content');
+  content = await r.json();
+  renderTree();
+}
+
+function matchesSearch(item, q) {
+  if (!q) return true;
+  q = q.toLowerCase();
+  return (item.name && item.name.toLowerCase().includes(q)) || (item.id && item.id.toLowerCase().includes(q));
+}
+
+function renderTree() {
+  const q = el('#searchInput').value.trim();
+  treeScroll.innerHTML = '';
+
+  treeScroll.appendChild(buildRoot('인물 (HEROES)', content.eras, content.heroes, 'hero', q));
+  treeScroll.appendChild(buildRoot('펫 (PETS)', content.petGroups, content.pets, 'pet', q));
+}
+
+function buildRoot(label, groups, items, kind, q) {
+  const root = document.createElement('div');
+  root.className = 'root-node';
+  const head = document.createElement('div');
+  head.className = 'root-label';
+  head.innerHTML = '<span>▾ ' + label + ' (' + items.length + ')</span>';
+  const add = document.createElement('button');
+  add.className = 'addbtn';
+  add.textContent = '+ 새로 추가';
+  add.onclick = (e) => { e.stopPropagation(); openNewEntry(kind); };
+  head.appendChild(add);
+  root.appendChild(head);
+
+  const body = document.createElement('div');
+  head.onclick = () => { body.style.display = body.style.display === 'none' ? '' : 'none'; };
+
+  const allGroups = groups.slice();
+  items.forEach((it) => {
+    const g = kind === 'hero' ? it.era : it._group;
+    if (g && allGroups.indexOf(g) === -1) allGroups.push(g);
+  });
+
+  allGroups.forEach((g) => {
+    const groupItems = items.filter((it) => (kind === 'hero' ? it.era : it._group) === g).filter((it) => matchesSearch(it, q));
+    if (!groupItems.length && q) return;
+    const gLabel = document.createElement('div');
+    gLabel.className = 'group-label';
+    gLabel.textContent = '▾ ' + g + ' (' + groupItems.length + ')';
+    const gBody = document.createElement('div');
+    gLabel.onclick = () => { gBody.style.display = gBody.style.display === 'none' ? '' : 'none'; };
+    body.appendChild(gLabel);
+    groupItems.forEach((it) => gBody.appendChild(buildLeaf(it, kind)));
+    body.appendChild(gBody);
+  });
+  root.appendChild(body);
+  return root;
+}
+
+function buildLeaf(item, kind) {
+  const leaf = document.createElement('div');
+  leaf.className = 'leaf';
+  if (selected && selected.kind === kind && selected.id === item.id) leaf.classList.add('selected');
+  leaf.innerHTML = '<span>' + (item.emoji || '') + ' ' + escapeHtml(item.name) + '</span><span class="lid">' + item.id + '</span>';
+  leaf.onclick = () => selectEntry(kind, item.id);
+  return leaf;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function selectEntry(kind, id) {
+  if (dirty && !confirm('저장하지 않은 변경사항이 있습니다. 버리고 이동할까요?')) return;
+  selected = { kind, id, isNew: false };
+  dirty = false;
+  renderTree();
+  renderInspector();
+}
+
+function openNewEntry(kind) {
+  if (dirty && !confirm('저장하지 않은 변경사항이 있습니다. 버리고 새로 만들까요?')) return;
+  selected = { kind, id: null, isNew: true };
+  dirty = false;
+  renderInspector();
+}
+
+const TRAITS = [['might', '무(武)'], ['wisdom', '지(智)'], ['virtue', '덕(德)']];
+const KINDS = [['beast', '동물'], ['divine', '신수']];
+const STATS = [['might', '무력'], ['wisdom', '지력'], ['command', '통솔']];
+
+function field(labelText, inputHtml, hint) {
+  return '<div class="field"><label>' + labelText + '</label>' + inputHtml + (hint ? '<div class="hint">' + hint + '</div>' : '') + '</div>';
+}
+
+function renderInspector() {
+  if (!selected) {
+    inspector.className = 'empty';
+    inspector.innerHTML = '왼쪽에서 인물이나 펫을 고르세요.';
+    return;
+  }
+  inspector.className = '';
+  const isHero = selected.kind === 'hero';
+  const data = selected.isNew ? {} : (isHero ? content.heroes : content.pets).find((x) => x.id === selected.id) || {};
+  const bio = isHero ? (content.bios[selected.id] || '') : null;
+
+  let html = '';
+  html += '<div class="insp-head"><span class="emoji">' + (data.emoji || '❔') + '</span>';
+  html += '<span class="title">' + (selected.isNew ? '새 ' + (isHero ? '인물' : '펫') + ' 만들기' : escapeHtml(data.name)) + '</span>';
+  if (!selected.isNew) html += '<span class="idtag">' + data.id + '</span>';
+  html += '</div>';
+
+  html += '<div class="warnbox">이름·한자는 실존 인물 실명을 그대로 쓰지 않습니다 — 가명만 씁니다. id 는 세이브·연성에 물려 있어 한번 정하면 바꾸지 않습니다.</div>';
+
+  html += field('id' + (selected.isNew ? ' (한번 정하면 못 바꿉니다)' : ''),
+    '<input type="text" id="f_id" value="' + escapeHtml(data.id || '') + '" ' + (selected.isNew ? '' : 'disabled') + '>');
+
+  html += field('표시 이름', '<input type="text" id="f_name" value="' + escapeHtml(data.name || '') + '">');
+
+  if (isHero) {
+    html += '<div class="row2">';
+    html += field('시대(era)', '<input type="text" id="f_era" list="eraList" value="' + escapeHtml(data.era || '') + '">');
+    html += field('세력(faction)', '<input type="text" id="f_faction" value="' + escapeHtml(data.faction || '') + '">');
+    html += '</div>';
+    html += '<datalist id="eraList">' + content.eras.map((e) => '<option value="' + escapeHtml(e) + '">').join('') + '</datalist>';
+
+    html += '<div class="row2">';
+    html += field('희귀도(rarity 1~5)', '<input type="number" id="f_rarity" min="1" max="5" value="' + (data.rarity || 3) + '">');
+    html += field('기질(trait)', '<select id="f_trait">' + TRAITS.map(([k, l]) => '<option value="' + k + '"' + (data.trait === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>');
+    html += '</div>';
+
+    html += '<div class="row3">';
+    STATS.forEach(([k, l]) => {
+      html += field(l + ' (' + k + ')', '<input type="number" id="f_stat_' + k + '" min="0" max="100" value="' + ((data.stats && data.stats[k]) || 50) + '">');
+    });
+    html += '</div>';
+
+    html += '<div class="row2">';
+    html += field('emoji', '<input type="text" id="f_emoji" value="' + escapeHtml(data.emoji || '') + '">');
+    html += field('한자/원어(hanja)', '<input type="text" id="f_hanja" value="' + escapeHtml(data.hanja || '') + '">');
+    html += '</div>';
+
+    html += field('등용 대사(quote)', '<textarea id="f_quote">' + escapeHtml(data.quote || '') + '</textarea>');
+    html += field('열전(BIOS, 없어도 됨) — 실명·실제 사건 서술 대신 오마주로 씁니다', '<textarea id="f_bio">' + escapeHtml(bio || '') + '</textarea>');
+  } else {
+    html += '<div class="row2">';
+    html += field('종류(kind)', '<select id="f_kind">' + KINDS.map(([k, l]) => '<option value="' + k + '"' + (data.kind === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>');
+    html += field('그룹(트리 분류용)', '<input type="text" id="f_group" list="petGroupList" value="' + escapeHtml(data._group || '') + '">');
+    html += '</div>';
+    html += '<datalist id="petGroupList">' + content.petGroups.map((g) => '<option value="' + escapeHtml(g) + '">').join('') + '</datalist>';
+
+    html += '<div class="row3">';
+    html += field('희귀도(rarity 1~5)', '<input type="number" id="f_rarity" min="1" max="5" value="' + (data.rarity || 3) + '">');
+    html += field('emoji', '<input type="text" id="f_emoji" value="' + escapeHtml(data.emoji || '') + '">');
+    html += field('포획확률(catchBase 0~1)', '<input type="number" id="f_catch" step="0.01" min="0" max="1" value="' + (data.catchBase != null ? data.catchBase : 0.5) + '">');
+    html += '</div>';
+
+    html += '<div class="row2">';
+    html += field('보너스 스탯(bonus.stat)', '<select id="f_bstat">' + STATS.concat([['virtue', '덕']]).map(([k, l]) => '<option value="' + k + '"' + ((data.bonus && data.bonus.stat) === k ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>');
+    html += field('보너스 값(bonus.value)', '<input type="number" id="f_bvalue" value="' + ((data.bonus && data.bonus.value) || 3) + '">');
+    html += '</div>';
+
+    html += field('설명(desc)', '<textarea id="f_desc">' + escapeHtml(data.desc || '') + '</textarea>');
+  }
+
+  html += '<div id="insp-actions">';
+  html += '<button class="primary" id="btnSave">' + (selected.isNew ? '추가' : '저장') + '</button>';
+  if (!selected.isNew) html += '<button class="danger" id="btnDelete">삭제</button>';
+  html += '<button id="btnCancel">' + (selected.isNew ? '취소' : '되돌리기') + '</button>';
+  html += '</div>';
+
+  inspector.innerHTML = html;
+  inspector.querySelectorAll('input, textarea, select').forEach((elm) => elm.addEventListener('input', () => { dirty = true; }));
+  el('#btnSave').onclick = () => saveEntry(isHero);
+  el('#btnCancel').onclick = () => { dirty = false; renderInspector(); };
+  if (!selected.isNew) el('#btnDelete').onclick = () => deleteEntry(isHero);
+}
+
+function collectFields(isHero) {
+  const id = el('#f_id').value.trim();
+  if (!id) { alert('id 를 입력하세요.'); return null; }
+  const name = el('#f_name').value.trim();
+  if (!name) { alert('표시 이름을 입력하세요.'); return null; }
+  if (isHero) {
+    return {
+      id, name,
+      era: el('#f_era').value.trim(),
+      faction: el('#f_faction').value.trim(),
+      rarity: Number(el('#f_rarity').value),
+      trait: el('#f_trait').value,
+      stats: { might: Number(el('#f_stat_might').value), wisdom: Number(el('#f_stat_wisdom').value), command: Number(el('#f_stat_command').value) },
+      emoji: el('#f_emoji').value.trim(),
+      hanja: el('#f_hanja').value.trim(),
+      quote: el('#f_quote').value.trim(),
+    };
+  }
+  return {
+    id, name,
+    kind: el('#f_kind').value,
+    rarity: Number(el('#f_rarity').value),
+    emoji: el('#f_emoji').value.trim(),
+    catchBase: Number(el('#f_catch').value),
+    bonus: { stat: el('#f_bstat').value, value: Number(el('#f_bvalue').value) },
+    desc: el('#f_desc').value.trim(),
+    _group: el('#f_group').value.trim(),
+  };
+}
+
+async function saveEntry(isHero) {
+  const fields = collectFields(isHero);
+  if (!fields) return;
+  const bioText = isHero ? el('#f_bio').value.trim() : null;
+  const endpoint = isHero ? '/api/hero/save' : '/api/pet/save';
+  const r = await fetch(API + endpoint, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isNew: selected.isNew, fields }),
+  });
+  const out = await r.json();
+  if (out.error) { alert(out.error); return; }
+  logResults((selected.isNew ? '추가' : '저장') + ': ' + fields.name + ' (' + fields.id + ')', out.results);
+
+  if (isHero) {
+    const r2 = await fetch(API + '/api/bio/save', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: fields.id, text: bioText }),
+    });
+    const out2 = await r2.json();
+    if (!out2.error) logResults('열전 저장: ' + fields.id, out2.results);
+  }
+
+  selected = { kind: isHero ? 'hero' : 'pet', id: fields.id, isNew: false };
+  dirty = false;
+  await loadContent();
+  await loadStatus();
+  renderInspector();
+}
+
+async function deleteEntry(isHero) {
+  if (!confirm('"' + selected.id + '" 를 다섯 판에서 모두 삭제할까요? 되돌리려면 git 으로 복원해야 합니다.')) return;
+  const r = await fetch(API + '/api/delete', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind: isHero ? 'hero' : 'pet', id: selected.id }),
+  });
+  const out = await r.json();
+  if (out.error) { alert(out.error); return; }
+  logResults('삭제: ' + selected.id, out.results);
+  selected = null;
+  dirty = false;
+  await loadContent();
+  await loadStatus();
+  renderInspector();
+}
+
+el('#btnRefresh').onclick = async () => { await loadContent(); await loadStatus(); renderInspector(); };
+el('#searchInput').addEventListener('input', renderTree);
+
+(async function init() {
+  await loadContent();
+  await loadStatus();
+})();
+</script>
+</body>
+</html>

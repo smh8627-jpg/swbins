@@ -1344,16 +1344,20 @@ Assets/Settings/
   실제로 쓰려면 **Shader Graph 노드 연결을 사람이 GUI로 해야 한다**
   (⑪에서 확인한 제약) — 다음 세션 또는 사용자가 직접 Unity 에디터를
   열어 진행할 몫으로 남긴다.
-- Kenney·VRoid 플레이스홀더를 위 다섯 환경 재질/⑤ 캐릭터 셰이더/⑦
-  캐릭터로 실제 사실적 에셋으로 순차 교체(44장 우선순위: Player →
-  주요 Enemy → Boss → Environment → Building → … 와 교차 적용).
-- Kenney·VRoid 플레이스홀더를 위 다섯 환경 재질/⑤ 캐릭터 셰이더/⑦
-  캐릭터로 실제 사실적 에셋으로 순차 교체(44장 우선순위: Player →
-  주요 Enemy → Boss → Environment → Building → … 와 교차 적용).
-- 66-1장 PC/Mobile 두 프로파일이 실제 사실적 에셋으로도 성능·화질
-  균형이 맞는지 확인(카툰 방향보다 텍스처·라이팅 비용이 커질 수 있어
-  45장 모바일 목표와 자주 대조할 것 — 특히 SSS 스킨 셰이더·DoF는 모바일
-  에서 가장 먼저 끌 후보).
+- ~~Kenney·VRoid 플레이스홀더를 다섯 환경 재질/⑤ 캐릭터 셰이더/⑦
+  캐릭터로 실제 사실적 에셋으로 순차 교체~~ — 2026-09-14에 다섯 판
+  전부(Environment/Building까지) 끝났다(자세한 내용은
+  `docs/PROJECT_STATE.md` 해당 날짜 항목들, 요약은 세션 메모리 참고).
+- ~~66-1장 PC/Mobile 두 프로파일이 실제 사실적 에셋으로도 성능·화질
+  균형이 맞는지 확인~~ — 다시 보니 걱정했던 두 후보(SSS 스킨 셰이더·DoF)
+  둘 다 애초에 아직 안 켜져 있어서 문제 자체가 없었다: DoF는
+  `BuildFF16VolumeProfiles.cs`가 처음부터 "대화 연출 토글 시스템이
+  없어 지금 넣으면 항상 흐려진다"는 이유로 안 넣었고, 진짜 SSS
+  (`FakeSSS.shadersubgraph`)도 바로 위 항목처럼 아직 아무 머티리얼에도
+  안 물려 있다 — 지금 실제로 도는 피부 표현은 `BuildMariaSkinSplit.cs`가
+  쓴 "값싼 URP Lit 근사"뿐이라 PC/Mobile 어느 쪽에서도 추가 비용이 없다.
+  **재확인이 필요해지는 시점은 Shader Graph 배선(사람 몫)이 실제로
+  끝난 뒤** — 그때 이 항목을 다시 살릴 것.
 
 ---
 
@@ -1364,6 +1368,18 @@ Skill/UI/Environment 사운드 구조(Unity AudioSource + AudioMixer로
 카테고리별 볼륨 분리). 텍스트는 코드에 안 박는다(Unity Localization
 패키지 또는 간단 JSON 사전, 한국어/영어/일본어 확장 가능). UI 크기·
 진동·효과음·BGM On/Off·그래픽 품질 설정 가능하게.
+
+**진행 현황(2026-09-14)** — SFX 쪽은 다섯 판 전부 같은 방식(코드로
+Master/SFX 볼륨만 곱하는 `XxxAudio.cs`, 진짜 AudioMixer 에셋은 사람이
+에디터 GUI로 노드를 이어야 해서 배치 모드로는 못 만듦)으로 통일됐다 —
+GO/FOREST/STORY/REALM/DUNGEON 순으로 붙였고, 자세한 내용은
+`docs/PROJECT_STATE.md`·`docs/ASSET_GUIDE.md` 해당 날짜 항목. **BGM은
+다섯 판 전부 미착수** — 무드가 있는 선곡이라 이 프로젝트를 다루는
+세션은 오디오를 직접 들을 방법이 없어(재생 가능 여부만 로그로 확인
+가능) 사람이 직접 들어 보고 골라야 하는 몫으로 남겼다(사용자가
+2026-09-14에 명시적으로 보류를 택함 — 다음에 먼저 묻지 말고 그냥
+시작하지 말 것). Localization·접근성(UI 크기·진동·그래픽 품질)은
+아직 착수 전.
 
 ---
 
