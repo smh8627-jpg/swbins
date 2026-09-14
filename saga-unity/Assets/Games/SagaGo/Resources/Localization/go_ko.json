@@ -13,6 +13,14 @@
     { "key": "quality.low", "value": "절약" },
     { "key": "scale.small", "value": "작게" },
     { "key": "scale.normal", "value": "보통" },
-    { "key": "scale.large", "value": "크게" }
+    { "key": "scale.large", "value": "크게" },
+    { "key": "encounter.fight", "value": "맞선다" },
+    { "key": "encounter.pay", "value": "값을 치른다" },
+    { "key": "encounter.flee", "value": "달아난다" },
+    { "key": "encounter.avoid", "value": "피한다" },
+    { "key": "combat.quick", "value": "속공" },
+    { "key": "combat.ult", "value": "필살" },
+    { "key": "combat.dodge", "value": "회피" },
+    { "key": "combat.retreat", "value": "물러난다" }
   ]
 }

@@ -13,6 +13,7 @@
     { "key": "quality.low", "value": "절약" },
     { "key": "scale.small", "value": "작게" },
     { "key": "scale.normal", "value": "보통" },
-    { "key": "scale.large", "value": "크게" }
+    { "key": "scale.large", "value": "크게" },
+    { "key": "encounter.push_back", "value": "밀어내기!" }
   ]
 }

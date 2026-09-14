@@ -13,6 +13,14 @@
     { "key": "quality.low", "value": "Battery Saver" },
     { "key": "scale.small", "value": "Small" },
     { "key": "scale.normal", "value": "Normal" },
-    { "key": "scale.large", "value": "Large" }
+    { "key": "scale.large", "value": "Large" },
+    { "key": "encounter.fight", "value": "Fight" },
+    { "key": "encounter.pay", "value": "Pay the Toll" },
+    { "key": "encounter.flee", "value": "Flee" },
+    { "key": "encounter.avoid", "value": "Avoid" },
+    { "key": "combat.quick", "value": "Quick Attack" },
+    { "key": "combat.ult", "value": "Ultimate" },
+    { "key": "combat.dodge", "value": "Dodge" },
+    { "key": "combat.retreat", "value": "Retreat" }
   ]
 }

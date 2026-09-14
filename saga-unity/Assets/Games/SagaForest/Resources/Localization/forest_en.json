@@ -13,6 +13,7 @@
     { "key": "quality.low", "value": "Battery Saver" },
     { "key": "scale.small", "value": "Small" },
     { "key": "scale.normal", "value": "Normal" },
-    { "key": "scale.large", "value": "Large" }
+    { "key": "scale.large", "value": "Large" },
+    { "key": "encounter.push_back", "value": "Push Back!" }
   ]
 }

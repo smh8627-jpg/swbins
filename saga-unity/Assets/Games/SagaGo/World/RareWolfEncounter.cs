@@ -188,8 +188,8 @@ namespace Saga.Go.World
             EncounterUiKit.NewText(panel.transform, "🐺 흰 늑대\n숲 그늘에서 눈빛 하나가 이쪽을 노려본다.",
                 new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(620f, 180f), 30);
 
-            EncounterUiKit.NewButton(panel.transform, "맞선다", new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(560f, 74f), ChooseFight);
-            EncounterUiKit.NewButton(panel.transform, "피한다", new Vector2(0.5f, 1f), new Vector2(0f, -304f), new Vector2(560f, 74f), ChooseAvoid);
+            EncounterUiKit.NewButton(panel.transform, GoLocalization.T("encounter.fight"), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(560f, 74f), ChooseFight);
+            EncounterUiKit.NewButton(panel.transform, GoLocalization.T("encounter.avoid"), new Vector2(0.5f, 1f), new Vector2(0f, -304f), new Vector2(560f, 74f), ChooseAvoid);
         }
 
         private void ChooseFight()
@@ -234,10 +234,10 @@ namespace Saga.Go.World
             _moraleFill = EncounterUiKit.NewBarRow(canvas.transform, "사기", -160f, out _);
             _kiFill = EncounterUiKit.NewBarRow(canvas.transform, "기(氣)", -210f, out _);
 
-            EncounterUiKit.NewButton(canvas.transform, "속공", new Vector2(0f, 0f), new Vector2(150f, 130f), new Vector2(220f, 110f), () => DoAct("quick"));
-            _ultButton = EncounterUiKit.NewButton(canvas.transform, "필살", new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(220f, 110f), () => DoAct("ult"));
-            EncounterUiKit.NewButton(canvas.transform, "회피", new Vector2(1f, 0f), new Vector2(-150f, 130f), new Vector2(220f, 110f), () => DoAct("dodge"));
-            EncounterUiKit.NewButton(canvas.transform, "물러난다", new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(300f, 74f), FleeCombat);
+            EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.quick"), new Vector2(0f, 0f), new Vector2(150f, 130f), new Vector2(220f, 110f), () => DoAct("quick"));
+            _ultButton = EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.ult"), new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(220f, 110f), () => DoAct("ult"));
+            EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.dodge"), new Vector2(1f, 0f), new Vector2(-150f, 130f), new Vector2(220f, 110f), () => DoAct("dodge"));
+            EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.retreat"), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(300f, 74f), FleeCombat);
         }
 
         private void StartFight()

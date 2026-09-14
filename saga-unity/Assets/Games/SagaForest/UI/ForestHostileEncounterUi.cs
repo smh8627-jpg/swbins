@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Forest.Audio;
+using Saga.Forest.Data;
 
 namespace Saga.Forest.UI
 {
@@ -61,7 +62,7 @@ namespace Saga.Forest.UI
             EncounterUiKit.NewText(_panel.transform, "포자괴물이 다가온다!", new Vector2(0.5f, 1f),
                 new Vector2(0f, -34f), new Vector2(520f, 60f), 30);
             _gaugeFill = EncounterUiKit.NewBarRow(_panel.transform, "경계", -110f, out _);
-            EncounterUiKit.NewButton(_panel.transform, "밀어내기!", new Vector2(0.5f, 0f),
+            EncounterUiKit.NewButton(_panel.transform, ForestLocalization.T("encounter.push_back"), new Vector2(0.5f, 0f),
                 new Vector2(0f, 44f), new Vector2(280f, 84f), OnPress);
             _panel.SetActive(false);
         }
