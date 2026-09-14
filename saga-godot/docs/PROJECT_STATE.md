@@ -6502,3 +6502,10 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - den: CLEAR_SPOTS+기존 12종=29 고정점 전수조사, meadow(9,8)·dark(22,8).
 - 검증: 정적+런타임 이중 검증 PASS, 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_FOREST.md 8절.
 - 다음: "생태계"의 "동물" 갈래 마무리. 남은 갈래: 채집→마을→생활, 또는 DUNGEON 남은 여섯 부위·saga-unity.
+
+## FOREST 51장 "생활" 축 — 집 증축(HOME_TIERS) (2026-09-14, 같은 날 이어서, "사가고돗 이어해")
+
+- 채집·동물은 다시 보니 이미 완료 상태였다 — 진짜 남은 건 가구(확장 1호)가 미뤄 둔 증축. 웹판 HOME_TIERS 4단(cost 0·12000·40000·120000) 그대로, half_x/half_z는 새 값(tier0=기존 8×8m 그대로, 비율만큼 확대).
+- forest_house.gd: 벽/바닥/문/장을 `_rebuild_interior_shell()`로 분리 — 증축 즉시 씬 재로드 없이 방이 넓어진다. forest_save_state.gd: home_tier/home_debt 순수 추가 + expand_home()/repay_home_debt().
+- 검증: 헤드리스 3회 로그 동일. 임시 .tscn(SceneTree -s는 autoload 식별자가 안 풀려 실패 — .tscn 방식으로 우회, 다음에 참고)으로 17항목 PASS + save/load 왕복 확인. GO/DUNGEON/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_FOREST.md 9절.
+- 다음: FOREST 51장 네 갈래 다 최소 한 걸음. 남은 건 "마을"(편지만 범위 밖)·"생활"(벽지/장판 신규 종류, 꽃 교배 깊이) 소소한 몫, 또는 DUNGEON 남은 여섯 부위·saga-unity.

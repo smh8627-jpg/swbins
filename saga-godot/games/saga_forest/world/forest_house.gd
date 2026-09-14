@@ -63,7 +63,6 @@ const HOUSE_GRID := Vector2i(15, 9)  # village_map.gd의 "H" 타일과 같은 �
 
 ## 마을과 절대 안 겹치는 먼 좌표 — 씬 전환 없이 텔레포트만으로 오간다.
 const INTERIOR_ORIGIN := Vector3(500, 0, 500)
-const INTERIOR_HALF := 4.0
 const INTERIOR_WALL_HEIGHT := 4.0
 
 var _exterior_spawn := Vector3.ZERO
@@ -75,6 +74,14 @@ var _interior_node: Node3D = null
 var _player_indoors := false
 var _home_items_synced := false
 var _furniture_nodes: Array = []  # ForestSaveState.home_items와 같은 인덱스
+
+## FOREST 콘텐츠 확장 2호(증축) — 방 크기가 ForestSaveState.home_tier에
+## 따라 바뀌므로, 그 crust(바닥·벽·장·나가는 자리)만 따로 추적해 두고
+## 증축할 때 이것만 지우고 다시 짓는다(가구는 _furniture_nodes로 별도
+## 관리라 안 건드린다).
+var _shell_nodes: Array = []
+var _half_x := 0.0
+var _half_z := 0.0
 
 
 func _ready() -> void:
@@ -222,21 +229,46 @@ func _build_interior() -> void:
 	## (1절 "집 안·동굴 안은 이 include를 아예 안 쓰는 머티리얼로 남긴다").
 	## 색은 _apply_finish_visuals()가 ForestSaveState.floor_key/wall_key를
 	## 보고 매 프레임 다시 칠한다(제외 목록 6번, 벽지/장판) — 여기 값은
-	## 첫 프레임까지의 임시 기본값일 뿐이다.
+	## 첫 프레임까지의 임시 기본값일 뿐이다. 증축(_rebuild_interior_shell)이
+	## 지오메트리를 다시 지어도 이 머티리얼 객체는 그대로 재사용한다.
 	_floor_mat = StandardMaterial3D.new()
 	_floor_mat.albedo_color = Color(0.55, 0.42, 0.28)
 	_floor_mat.roughness = 0.9
 
+	_wall_mat = StandardMaterial3D.new()
+	_wall_mat.albedo_color = Color(0.42, 0.36, 0.3)
+	_wall_mat.roughness = 0.95
+
+	_rebuild_interior_shell()
+
+
+## FOREST 콘텐츠 확장 2호(증축) — 바닥·벽·장·나가는 자리를 ForestSaveState.
+## home_tier가 가리키는 크기로 (다시) 짓는다. _build_interior()의 첫
+## 호출도 이걸 거치고, 증축 직후에도 같은 함수를 한 번 더 불러 그 자리에서
+## 방을 넓힌다(씬 재로드 없이 — 웹판 expand()의 core.emit('changed')와
+## 같은 즉시 반영).
+func _rebuild_interior_shell() -> void:
+	for n: Node in _shell_nodes:
+		if is_instance_valid(n):
+			n.queue_free()
+	_shell_nodes.clear()
+
+	var tier: Dictionary = ForestHome.tier_at(ForestSaveState.home_tier)
+	_half_x = float(tier.half_x)
+	_half_z = float(tier.half_z)
+	var interior := _interior_node
+
 	var floor_mesh := PlaneMesh.new()
-	floor_mesh.size = Vector2(INTERIOR_HALF * 2, INTERIOR_HALF * 2)
+	floor_mesh.size = Vector2(_half_x * 2, _half_z * 2)
 	var floor_mi := MeshInstance3D.new()
 	floor_mi.name = "InteriorFloor"
 	floor_mi.mesh = floor_mesh
 	floor_mi.material_override = _floor_mat
 	interior.add_child(floor_mi)
+	_shell_nodes.append(floor_mi)
 
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(INTERIOR_HALF * 2, 0.4, INTERIOR_HALF * 2)
+	floor_box.size = Vector3(_half_x * 2, 0.4, _half_z * 2)
 	var floor_cs := CollisionShape3D.new()
 	floor_cs.shape = floor_box
 	var floor_body := StaticBody3D.new()
@@ -244,31 +276,28 @@ func _build_interior() -> void:
 	floor_body.position = Vector3(0, -0.2, 0)
 	floor_body.add_child(floor_cs)
 	interior.add_child(floor_body)
+	_shell_nodes.append(floor_body)
 
-	_wall_mat = StandardMaterial3D.new()
-	_wall_mat.albedo_color = Color(0.42, 0.36, 0.3)
-	_wall_mat.roughness = 0.95
+	_shell_nodes.append(_interior_wall(Vector3(_half_x * 2, INTERIOR_WALL_HEIGHT, 1.0),
+		Vector3(0, INTERIOR_WALL_HEIGHT * 0.5, _half_z), _wall_mat, interior))  # 북
+	_shell_nodes.append(_interior_wall(Vector3(1.0, INTERIOR_WALL_HEIGHT, _half_z * 2),
+		Vector3(_half_x, INTERIOR_WALL_HEIGHT * 0.5, 0), _wall_mat, interior))  # 동
+	_shell_nodes.append(_interior_wall(Vector3(1.0, INTERIOR_WALL_HEIGHT, _half_z * 2),
+		Vector3(-_half_x, INTERIOR_WALL_HEIGHT * 0.5, 0), _wall_mat, interior))  # 서
 
-	_interior_wall(Vector3(INTERIOR_HALF * 2, INTERIOR_WALL_HEIGHT, 1.0),
-		Vector3(0, INTERIOR_WALL_HEIGHT * 0.5, INTERIOR_HALF), _wall_mat, interior)  # 북
-	_interior_wall(Vector3(1.0, INTERIOR_WALL_HEIGHT, INTERIOR_HALF * 2),
-		Vector3(INTERIOR_HALF, INTERIOR_WALL_HEIGHT * 0.5, 0), _wall_mat, interior)  # 동
-	_interior_wall(Vector3(1.0, INTERIOR_WALL_HEIGHT, INTERIOR_HALF * 2),
-		Vector3(-INTERIOR_HALF, INTERIOR_WALL_HEIGHT * 0.5, 0), _wall_mat, interior)  # 서
-
-	var south_seg_len: float = INTERIOR_HALF - DOOR_HALF_WIDTH
+	var south_seg_len: float = _half_x - DOOR_HALF_WIDTH
 	var south_seg_center: float = DOOR_HALF_WIDTH + south_seg_len * 0.5
-	_interior_wall(Vector3(south_seg_len, INTERIOR_WALL_HEIGHT, 1.0),
-		Vector3(south_seg_center, INTERIOR_WALL_HEIGHT * 0.5, -INTERIOR_HALF), _wall_mat, interior)
-	_interior_wall(Vector3(south_seg_len, INTERIOR_WALL_HEIGHT, 1.0),
-		Vector3(-south_seg_center, INTERIOR_WALL_HEIGHT * 0.5, -INTERIOR_HALF), _wall_mat, interior)
+	_shell_nodes.append(_interior_wall(Vector3(south_seg_len, INTERIOR_WALL_HEIGHT, 1.0),
+		Vector3(south_seg_center, INTERIOR_WALL_HEIGHT * 0.5, -_half_z), _wall_mat, interior))
+	_shell_nodes.append(_interior_wall(Vector3(south_seg_len, INTERIOR_WALL_HEIGHT, 1.0),
+		Vector3(-south_seg_center, INTERIOR_WALL_HEIGHT * 0.5, -_half_z), _wall_mat, interior))
 
 	## 제외 목록 6번(벽지/장판) — 방 한쪽 구석에 둔 "장"(가구 없이 자리만).
 	## 문(-z)·나가는 자리와 충분히 떨어져 있어(FINISH_SHOP_RADIUS=1.6m)
 	## 들어오자마자 걸리지 않는다.
 	var shop_area := Area3D.new()
 	shop_area.name = "FinishShop"
-	shop_area.position = Vector3(INTERIOR_HALF - 1.5, 1.0, 0)
+	shop_area.position = Vector3(_half_x - 1.5, 1.0, 0)
 	var shop_cs := CollisionShape3D.new()
 	var shop_shape := SphereShape3D.new()
 	shop_shape.radius = FINISH_SHOP_RADIUS
@@ -277,10 +306,11 @@ func _build_interior() -> void:
 	interior.add_child(shop_area)
 	shop_area.body_entered.connect(_on_finish_shop_entered)
 	shop_area.body_exited.connect(_on_finish_shop_exited)
+	_shell_nodes.append(shop_area)
 
 	var exit_area := Area3D.new()
 	exit_area.name = "ExitTrigger"
-	exit_area.position = Vector3(0, 1.0, -INTERIOR_HALF + 1.0)
+	exit_area.position = Vector3(0, 1.0, -_half_z + 1.0)
 	var exit_cs := CollisionShape3D.new()
 	var exit_shape := BoxShape3D.new()
 	exit_shape.size = Vector3(DOOR_HALF_WIDTH * 2, 3.0, 2.0)
@@ -288,29 +318,35 @@ func _build_interior() -> void:
 	exit_area.add_child(exit_cs)
 	interior.add_child(exit_area)
 	exit_area.body_entered.connect(_on_exit_house)
+	_shell_nodes.append(exit_area)
 
-	## ExitTrigger(local z=-3, 범위 -4..-2)보다 확실히 더 안쪽이라 들어오자마자
-	## 다시 밖으로 안 튕겨 나간다.
-	_interior_spawn = INTERIOR_ORIGIN + Vector3(0, 0.1, INTERIOR_HALF * 0.5)
+	## ExitTrigger(local z=-half_z+1, 범위 half_z-2..half_z)보다 확실히 더
+	## 안쪽이라 들어오자마자 다시 밖으로 안 튕겨 나간다.
+	_interior_spawn = INTERIOR_ORIGIN + Vector3(0, 0.1, _half_z * 0.5)
 
 
-func _interior_wall(size: Vector3, local_pos: Vector3, mat: StandardMaterial3D, parent: Node3D) -> void:
+## 시각(MeshInstance3D)+충돌(StaticBody3D) 한 쌍을 감싸는 Node3D를 돌려준다
+## — 증축 때 _shell_nodes에 하나로 담아 한 번에 지울 수 있게.
+func _interior_wall(size: Vector3, local_pos: Vector3, mat: StandardMaterial3D, parent: Node3D) -> Node3D:
+	var root := Node3D.new()
+	root.position = local_pos
+	parent.add_child(root)
+
 	var mi := MeshInstance3D.new()
 	var box_mesh := BoxMesh.new()
 	box_mesh.size = size
 	mi.mesh = box_mesh
 	mi.material_override = mat
-	mi.position = local_pos
-	parent.add_child(mi)
+	root.add_child(mi)
 
 	var body := StaticBody3D.new()
-	body.position = local_pos
 	var cs := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = size
 	cs.shape = box
 	body.add_child(cs)
-	parent.add_child(body)
+	root.add_child(body)
+	return root
 
 
 func _on_enter_house(body: Node3D) -> void:
@@ -423,6 +459,21 @@ func _open_finish_menu() -> void:
 			"cb": func() -> void: _show_home_score(layer_box),
 		})
 
+	## FOREST 콘텐츠 확장 2호(증축) — 웹판 home.js expand()/repay() 그대로:
+	## 빚이 있으면 증축 신청 자체를 막고 "빚 갚기"만 보여준다.
+	if ForestSaveState.home_debt > 0:
+		choices.append({
+			"label": "🪙 빚 갚기 (남은 🪙%d)" % ForestSaveState.home_debt,
+			"cb": func() -> void: _repay_home_debt(layer_box),
+		})
+	else:
+		var nx: Dictionary = ForestHome.next_tier(ForestSaveState.home_tier)
+		if not nx.is_empty():
+			choices.append({
+				"label": "🏠 %s (으)로 넓히기 (빚 🪙%d 생김)" % [nx.name, int(nx.cost)],
+				"cb": func() -> void: _expand_home(nx, layer_box),
+			})
+
 	if choices.is_empty():
 		Toast.show(self, "장 — 지금은 딱히 바꿀 게 없다.", 2.0)
 		return
@@ -446,9 +497,35 @@ func _show_home_score(layer_box: Dictionary) -> void:
 		fin += 12
 	if ForestSaveState.floor_key != "wood":
 		fin += 12
-	var sc: Dictionary = ForestHome.score(ForestSaveState.home_items, fin)
+	var sc: Dictionary = ForestHome.score(ForestSaveState.home_items, fin, ForestSaveState.home_tier)
 	Toast.show(self, "🏠 %s — 평가 %d점(가구 %d점)" %
 		[ForestHome.grade(int(sc.total)), int(sc.total), int(sc.n)], 4.0)
+
+
+## 웹판 home.js expand() — 즉시 넓어지고 그 자리에서 빚이 생긴다(선불이
+## 아니다). 방 지오메트리는 _rebuild_interior_shell()로 그 자리에서 다시
+## 짓는다(씬 재로드 없음) — 이미 놓인 가구는 새 방이 항상 더 커서
+## (tier가 오르기만 하지 내려가진 않는다) 좌표가 그대로 유효하다.
+func _expand_home(nx: Dictionary, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if not ForestSaveState.expand_home(int(nx.cost)):
+		Toast.show(self, "빚이 남아 있어 증축을 신청할 수 없다.", 2.5)
+		return
+	_rebuild_interior_shell()
+	Toast.show(self, "🏠 %s (으)로 넓혔다 — 빚 🪙%d 이 생겼다." % [nx.name, int(nx.cost)], 3.0)
+
+
+## 웹판 home.js repay() — 가진 금 안에서 최대한 갚는다.
+func _repay_home_debt(layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	var paid := ForestSaveState.repay_home_debt(ForestSaveState.home_debt)
+	if paid <= 0:
+		Toast.show(self, "금이 없다.", 2.0)
+		return
+	if ForestSaveState.home_debt <= 0:
+		Toast.show(self, "🪙 빚을 다 갚았다 (-%d)." % paid, 3.0)
+	else:
+		Toast.show(self, "🪙 빚을 갚았다 (-%d) — 남은 빚 🪙%d" % [paid, ForestSaveState.home_debt], 3.0)
 
 
 func _buy_finish(kind: String, f: Dictionary, layer_box: Dictionary) -> void:
@@ -513,11 +590,11 @@ func _place_furniture(key: String, layer_box: Dictionary) -> void:
 
 
 func _place_blocked_reason(x: float, z: float) -> String:
-	if absf(x) > INTERIOR_HALF - PLACE_MARGIN or absf(z) > INTERIOR_HALF - PLACE_MARGIN:
+	if absf(x) > _half_x - PLACE_MARGIN or absf(z) > _half_z - PLACE_MARGIN:
 		return "벽에 너무 붙었다."
-	if Vector2(x, z + INTERIOR_HALF).length() < DOOR_CLEAR:
+	if Vector2(x, z + _half_z).length() < DOOR_CLEAR:
 		return "문 앞은 비워 둔다."
-	if Vector2(x - (INTERIOR_HALF - 1.5), z).length() < SHOP_CLEAR:
+	if Vector2(x - (_half_x - 1.5), z).length() < SHOP_CLEAR:
 		return "장 앞은 비워 둔다."
 	for it: Dictionary in ForestSaveState.home_items:
 		if Vector2(x - float(it.x), z - float(it.z)).length() < ITEM_CLEAR:

@@ -72,6 +72,35 @@ var wear_owned: Dictionary = {
 var home_stock: Dictionary = {}  # furn_key(String) -> count(int), 창고
 var home_items: Array = []       # [{"key":String,"x":float,"z":float}], 놓인 것
 
+## FOREST 콘텐츠 확장 2호(증축) — 순수 추가. 웹판 home.js expand()/repay()
+## 그대로: 증축은 즉시 되고 그 자리에서 빚이 생긴다(선불이 아니다), 빚을
+## 다 갚아야 다음 증축을 신청할 수 있다. tier·cost 표는 forest_home.gd
+## HOME_TIERS가 갖고 있어 여기선 원시 int 둘만 들고 있는다(다른 세이브
+## 필드처럼 이 파일은 값을, 규칙은 부르는 쪽(forest_house.gd)이 갖는다).
+var home_tier := 0
+var home_debt := 0
+
+
+## 다음 tier가 있고 빚이 없을 때만 성공 — cost는 forest_house.gd가
+## ForestHome.next_tier(home_tier).cost로 구해 넘겨준다.
+func expand_home(cost: int) -> bool:
+	if home_debt > 0:
+		return false
+	home_tier += 1
+	home_debt = cost
+	return true
+
+
+## 가진 금 안에서 최대한 갚는다(turnip 판다·팔다 계열과 같은 결) — 실제로
+## 깎인 금액을 돌려준다(0이면 빚이 없거나 금이 없다).
+func repay_home_debt(amount: int) -> int:
+	var pay: int = mini(mini(amount, home_debt), gold)
+	if pay <= 0:
+		return 0
+	gold -= pay
+	home_debt -= pay
+	return pay
+
 
 func home_stock_add(key: String, n: int = 1) -> void:
 	home_stock[key] = int(home_stock.get(key, 0)) + n
@@ -313,6 +342,8 @@ func save() -> bool:
 		"wear_owned": wear_owned,
 		"home_stock": home_stock,
 		"home_items": home_items,
+		"home_tier": home_tier,
+		"home_debt": home_debt,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -373,6 +404,8 @@ func try_load() -> bool:
 	home_stock = loaded_home_stock if typeof(loaded_home_stock) == TYPE_DICTIONARY else {}
 	var loaded_home_items: Variant = data.get("home_items", [])
 	home_items = loaded_home_items if typeof(loaded_home_items) == TYPE_ARRAY else []
+	home_tier = int(data.get("home_tier", 0))
+	home_debt = int(data.get("home_debt", 0))
 
 	var pos: Array = data.get("player_pos", [])
 	if pos.size() != 3:

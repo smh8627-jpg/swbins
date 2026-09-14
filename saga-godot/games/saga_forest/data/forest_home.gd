@@ -41,6 +41,28 @@ const HOME_GRADES: Array = [
 	{"at": 450, "name": "명가(名家)"},
 ]
 
+## FOREST 콘텐츠 확장 2호 — 증축(HOME_TIERS). 웹판 data-village.js
+## HOME_TIERS 그대로(name·w·h·cost 한 값도 안 바꿈). half_x/half_z는
+## 웹판에 없는 이 슬라이스만의 값 — forest_house.gd의 고정 8×8m 방
+## (INTERIOR_HALF=4.0, 정사각형)을 tier 0으로 그대로 두고(기존 세이브·
+## 가구 배치가 안 깨지게), w/h 비율(9:6·11:7·13:8 / 7:5)만큼 그 자리에서
+## 늘렸다 — 웹판처럼 타일 좌표계를 그대로 옮기지 않은 이유는 이 방이
+## 처음부터 웹판 타일 크기가 아니라 미터 단위 3D 상자라서다.
+const HOME_TIERS: Array = [
+	{"name": "단칸방", "w": 7, "h": 5, "cost": 0, "half_x": 4.0, "half_z": 4.0},
+	{"name": "툇마루 딸린 방", "w": 9, "h": 6, "cost": 12000, "half_x": 5.0, "half_z": 4.8},
+	{"name": "사랑채", "w": 11, "h": 7, "cost": 40000, "half_x": 6.3, "half_z": 5.6},
+	{"name": "기와집", "w": 13, "h": 8, "cost": 120000, "half_x": 7.4, "half_z": 6.4},
+]
+
+
+static func tier_at(idx: int) -> Dictionary:
+	return HOME_TIERS[clampi(idx, 0, HOME_TIERS.size() - 1)]
+
+
+static func next_tier(idx: int) -> Dictionary:
+	return HOME_TIERS[idx + 1] if idx + 1 < HOME_TIERS.size() else {}
+
 const SHOP_N := 4  # 전방에 날마다 들어오는 가구 수(웹판 SHOP_N 그대로)
 
 
@@ -69,7 +91,9 @@ static func daily_shop(day_key: int) -> Array:
 ## {"key":..} 형태의 배열(forest_save_state.gd의 home_items). tier
 ## 보너스(HOME_TIERS)는 이번 슬라이스에 증축이 없어 항상 0.
 ## fin_bonus는 forest_house.gd가 wall_key/floor_key를 보고 넘겨준다.
-static func score(items: Array, fin_bonus: int) -> Dictionary:
+## tier_idx(증축 단계, 기본 0)는 웹판 score()의 "st().tier * 20"(넓은 집은
+## 그 자체로 점수) 그대로.
+static func score(items: Array, fin_bonus: int, tier_idx: int = 0) -> Dictionary:
 	var sets: Dictionary = {}
 	var sum := 0.0
 	for it: Dictionary in items:
@@ -88,6 +112,7 @@ static func score(items: Array, fin_bonus: int) -> Dictionary:
 			bonus += 25
 	sum += bonus
 	sum += fin_bonus
+	sum += tier_idx * 20
 	return {"total": roundi(sum), "sets": sets, "bonus": bonus, "n": items.size()}
 
 
