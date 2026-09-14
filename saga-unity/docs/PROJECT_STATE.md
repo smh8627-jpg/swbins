@@ -5140,3 +5140,42 @@ Angle-B 후보 둘(RealmHud/StoryHud/PlayerHud의 단일 인자 `T(key)`가
 실제로 해당 키들은 ko/en 둘 다 있다.
 
 커밋·푸시 완료.
+
+## BGM 다섯 곡 전부 착수 — "묻지말고 순서대로 진행해"로 보류 해제
+(2026-09-15, code-review 라운드 3 후속)
+
+code-review까지 끝나 남은 게 BGM(보류)·STORY 확장(방향 필요) 둘뿐이던
+차에, 사용자가 "순서대로 진행해"로 직접 지시해 둘 다 순서대로
+착수하기로 했다. 먼저 BGM.
+
+**보류를 뒤집은 근거** — 여태 보류 사유는 "승리/패배처럼 어느 쪽인지
+들어야 갈리는 곡을 잘못 고르는 사고"였다(`GoAudio.cs` 등 클래스
+주석). 상시 배경 루프 한 곡(승패 구분 없음)은 그 제약에 안 걸려서,
+그 좁은 슬라이스만 진행했다 — 감정가 있는 선곡(승리 팡파레 등)은
+여전히 손 안 댐, "먼저 묻지 말고 시작하지 말 것"도 그대로 유효.
+
+**곡 조달** — opengameart.org 고급 검색을 CC0 라이선스(tid=4)·Music
+타입(tid=12)으로 필터링해(그냥 키워드 검색만으론 CC-BY가 섞여 나와
+license-name 태그로 재확인) 판마다 제목이 이미 명확한 곡을 골랐다:
+GO=town-theme-rpg(cynicmusic), DUNGEON=dungeon-ambience(yd),
+FOREST=peaceful-town(aroachifoundonmypillow),
+STORY=fight-run-breath-deeply(Komiku), REALM=war-theme(spring-spring).
+다섯 곡 다 CC0 확인, `Assets/Art/Audio/CC0_BGM/LICENSE.txt`에 곡별
+출처 기록(자세한 내용은 `docs/ASSET_GUIDE.md` 같은 날짜 항목).
+
+**구현** — `XxxAudio.PlayBgm()`/`RefreshBgmVolume()`를 다섯 벌 추가
+(이미 예비돼 있던 `BgmVolume` PlayerPref를 그대로 씀), 설정 패널
+여섯째 줄 "BGM"(기존 다섯 줄은 안 건드리고 끝에 추가, 패널
+680×720→680×820), `settings.bgm` 로컬라이즈 키 다섯 벌. 클립은
+`GameBootstrap`(REALM만 `RealmCommandUi`가 아니라 별도 파일)의
+`[SerializeField]`에 씬 빌드 스크립트가 채운다.
+
+**검증** — 배치 모드 컴파일, 다섯 씬 재빌드(클립 못 찾음 경고 없음),
+`PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·
+`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice`
+전부 3연속 통과, `PlaytestDungeonFloorProgression`(SfxPlayer.Configure
+시그니처 변경 회귀 확인)도 통과. BGM이 실제로 잘 들리는지(음량 균형·
+루프 이음매)는 여전히 사람이 직접 들어야 확인되는 몫 — 헤드리스는
+에러 없이 재생 호출이 걸리는지까지만 본다.
+
+다음은 STORY "선택" 이후 확장(같은 지시의 두 번째 순서).

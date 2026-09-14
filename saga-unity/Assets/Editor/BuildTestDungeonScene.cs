@@ -74,6 +74,7 @@ namespace Saga.EditorTools
         private const string EnemyDeathClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_001.ogg";
         private const string LevelUpClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_002.ogg";
         private const string DiscoveryClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_003.ogg";
+        private const string BgmClipPath = "Assets/Art/Audio/CC0_BGM/dungeon_ambience.ogg"; // 67장 BGM(2026-09-15).
 
         private static readonly Vector3 PlayerSpawn = new Vector3(-6f, 0.1f, 0f);
 
@@ -1611,6 +1612,7 @@ namespace Saga.EditorTools
             SetPrivateField(bootstrap, "enemyDeathClip", AssetDatabase.LoadAssetAtPath<AudioClip>(EnemyDeathClipPath));
             SetPrivateField(bootstrap, "levelUpClip", AssetDatabase.LoadAssetAtPath<AudioClip>(LevelUpClipPath));
             SetPrivateField(bootstrap, "discoveryClip", AssetDatabase.LoadAssetAtPath<AudioClip>(DiscoveryClipPath));
+            SetPrivateField(bootstrap, "bgmClip", AssetDatabase.LoadAssetAtPath<AudioClip>(BgmClipPath));
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

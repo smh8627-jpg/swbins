@@ -34,6 +34,8 @@ namespace Saga.Go.UI
         private Text _qualityValueLabel;
         private Text _languageNameLabel;
         private Text _languageValueLabel;
+        private Text _bgmNameLabel;
+        private Text _bgmValueLabel;
 
         public void Build()
         {
@@ -44,7 +46,7 @@ namespace Saga.Go.UI
                 new Vector2(1f, 1f), new Vector2(-30f, -130f), new Vector2(160f, 80f), TogglePanel);
             _toggleLabel = toggleButton.GetComponentInChildren<Text>();
 
-            _panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 720f),
+            _panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
                 new Color(0f, 0f, 0f, 0.8f));
             _panel.SetActive(false);
 
@@ -56,6 +58,7 @@ namespace Saga.Go.UI
             (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-360f, "settings.ui_scale", ChooseUiScale);
             (_qualityNameLabel, _qualityValueLabel) = MakeRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
             (_languageNameLabel, _languageValueLabel) = MakeRow(-560f, "settings.language", ChooseLanguage);
+            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", ChooseBgm);
 
             var closeButton = EncounterUiKit.NewButton(_panel.transform, GoLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _panel.SetActive(false));
@@ -82,6 +85,7 @@ namespace Saga.Go.UI
         private void ChooseUiScale() { GoSettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { GoSettingsState.CycleGraphicsQuality(); Refresh(); }
         private void ChooseLanguage() { GoLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseBgm() { GoSettingsState.BgmOn = !GoSettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);
 
@@ -97,12 +101,14 @@ namespace Saga.Go.UI
             _uiScaleNameLabel.text = GoLocalization.T("settings.ui_scale");
             _qualityNameLabel.text = GoLocalization.T("settings.graphics_quality");
             _languageNameLabel.text = GoLocalization.T("settings.language");
+            _bgmNameLabel.text = GoLocalization.T("settings.bgm");
 
             _sfxValueLabel.text = GoLocalization.T(GoSettingsState.SfxOn ? "state.on" : "state.off");
             _vibrationValueLabel.text = GoLocalization.T(GoSettingsState.VibrationOn ? "state.on" : "state.off");
             _uiScaleValueLabel.text = GoSettingsState.UiScaleLabel();
             _qualityValueLabel.text = GoSettingsState.GraphicsQualityLabel();
             _languageValueLabel.text = GoLocalization.LanguageLabel();
+            _bgmValueLabel.text = GoLocalization.T(GoSettingsState.BgmOn ? "state.on" : "state.off");
         }
     }
 }

@@ -25,6 +25,12 @@ namespace Saga.Story.Data
             set => StoryAudio.SfxVolume = value ? 1f : 0f;
         }
 
+        public static bool BgmOn
+        {
+            get => StoryAudio.BgmVolume > 0.5f;
+            set { StoryAudio.BgmVolume = value ? 1f : 0f; StoryAudio.RefreshBgmVolume(); }
+        }
+
         public static bool VibrationOn
         {
             get => PlayerPrefs.GetInt(VibrationKey, 1) != 0;

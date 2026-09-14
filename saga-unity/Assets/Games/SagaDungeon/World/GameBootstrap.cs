@@ -21,10 +21,11 @@ namespace Saga.Dungeon.World
         [SerializeField] private AudioClip enemyDeathClip;
         [SerializeField] private AudioClip levelUpClip;
         [SerializeField] private AudioClip discoveryClip;
+        [SerializeField] private AudioClip bgmClip; // 67장 "사운드" BGM(2026-09-15).
 
         private void Start()
         {
-            SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip);
+            SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip, bgmClip);
             SaveState.TryLoad();
             CombineStaticBatches();
             DungeonSettingsState.ApplyToAllScalers();

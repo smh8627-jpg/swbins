@@ -53,13 +53,14 @@ namespace Saga.Dungeon.Audio
         private static AudioClip _discoveryClip;
 
         public static void Configure(AudioClip hitClip, AudioClip heavyHitClip, AudioClip enemyDeathClip,
-            AudioClip levelUpClip, AudioClip discoveryClip)
+            AudioClip levelUpClip, AudioClip discoveryClip, AudioClip bgmClip = null)
         {
             _hitClip = hitClip;
             _heavyHitClip = heavyHitClip;
             _enemyDeathClip = enemyDeathClip;
             _levelUpClip = levelUpClip;
             _discoveryClip = discoveryClip;
+            PlayBgm(bgmClip);
         }
 
         public static void PlayHit() => Play(_hitClip);
@@ -83,6 +84,33 @@ namespace Saga.Dungeon.Audio
             _source = go.AddComponent<AudioSource>();
             _source.playOnAwake = false;
             _source.spatialBlend = 0f; // 던전 규모가 작아 위치 기반 감쇠 없이 2D로 충분.
+        }
+
+        private static AudioSource _bgmSource;
+
+        private static AudioSource EnsureBgmSource()
+        {
+            if (_bgmSource != null) return _bgmSource;
+            var go = new GameObject("SfxPlayer_BgmSource");
+            _bgmSource = go.AddComponent<AudioSource>();
+            _bgmSource.playOnAwake = false;
+            _bgmSource.loop = true;
+            return _bgmSource;
+        }
+
+        public static void PlayBgm(AudioClip clip)
+        {
+            if (clip == null) return;
+            var src = EnsureBgmSource();
+            if (src.clip == clip && src.isPlaying) return;
+            src.clip = clip;
+            src.volume = MasterVolume * BgmVolume;
+            src.Play();
+        }
+
+        public static void RefreshBgmVolume()
+        {
+            if (_bgmSource != null) _bgmSource.volume = MasterVolume * BgmVolume;
         }
     }
 }

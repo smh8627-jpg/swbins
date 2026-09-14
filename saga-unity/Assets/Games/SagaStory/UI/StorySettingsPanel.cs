@@ -33,6 +33,8 @@ namespace Saga.Story.UI
         private Text _qualityValueLabel;
         private Text _languageNameLabel;
         private Text _languageValueLabel;
+        private Text _bgmNameLabel;
+        private Text _bgmValueLabel;
 
         public void Build()
         {
@@ -43,7 +45,7 @@ namespace Saga.Story.UI
                 new Vector2(1f, 1f), new Vector2(-30f, -130f), new Vector2(160f, 80f), TogglePanel);
             _toggleLabel = toggleButton.GetComponentInChildren<Text>();
 
-            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 720f),
+            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
                 new Color(0f, 0f, 0f, 0.8f));
             _panel.SetActive(false);
 
@@ -55,6 +57,7 @@ namespace Saga.Story.UI
             (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-360f, "settings.ui_scale", ChooseUiScale);
             (_qualityNameLabel, _qualityValueLabel) = MakeRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
             (_languageNameLabel, _languageValueLabel) = MakeRow(-560f, "settings.language", ChooseLanguage);
+            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", ChooseBgm);
 
             var closeButton = NewButton(_panel.transform, StoryLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _panel.SetActive(false));
@@ -78,6 +81,7 @@ namespace Saga.Story.UI
         private void ChooseUiScale() { StorySettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { StorySettingsState.CycleGraphicsQuality(); Refresh(); }
         private void ChooseLanguage() { StoryLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseBgm() { StorySettingsState.BgmOn = !StorySettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);
 
@@ -93,12 +97,14 @@ namespace Saga.Story.UI
             _uiScaleNameLabel.text = StoryLocalization.T("settings.ui_scale");
             _qualityNameLabel.text = StoryLocalization.T("settings.graphics_quality");
             _languageNameLabel.text = StoryLocalization.T("settings.language");
+            _bgmNameLabel.text = StoryLocalization.T("settings.bgm");
 
             _sfxValueLabel.text = StoryLocalization.T(StorySettingsState.SfxOn ? "state.on" : "state.off");
             _vibrationValueLabel.text = StoryLocalization.T(StorySettingsState.VibrationOn ? "state.on" : "state.off");
             _uiScaleValueLabel.text = StorySettingsState.UiScaleLabel();
             _qualityValueLabel.text = StorySettingsState.GraphicsQualityLabel();
             _languageValueLabel.text = StoryLocalization.LanguageLabel();
+            _bgmValueLabel.text = StoryLocalization.T(StorySettingsState.BgmOn ? "state.on" : "state.off");
         }
 
         private static Canvas NewCanvas(string name)

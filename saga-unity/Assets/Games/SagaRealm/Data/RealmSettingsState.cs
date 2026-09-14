@@ -25,6 +25,12 @@ namespace Saga.Realm.Data
             set => RealmAudio.SfxVolume = value ? 1f : 0f;
         }
 
+        public static bool BgmOn
+        {
+            get => RealmAudio.BgmVolume > 0.5f;
+            set { RealmAudio.BgmVolume = value ? 1f : 0f; RealmAudio.RefreshBgmVolume(); }
+        }
+
         public static bool VibrationOn
         {
             get => PlayerPrefs.GetInt(VibrationKey, 1) != 0;

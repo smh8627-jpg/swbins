@@ -35,6 +35,8 @@ namespace Saga.Dungeon.UI
         private Text _qualityValueLabel;
         private Text _languageNameLabel;
         private Text _languageValueLabel;
+        private Text _bgmNameLabel;
+        private Text _bgmValueLabel;
 
         public void Build()
         {
@@ -45,7 +47,7 @@ namespace Saga.Dungeon.UI
                 new Vector2(1f, 1f), new Vector2(-30f, -370f), new Vector2(160f, 80f), TogglePanel);
             _toggleLabel = toggleButton.GetComponentInChildren<Text>();
 
-            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 720f),
+            _panel = NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
                 new Color(0f, 0f, 0f, 0.8f));
             _panel.SetActive(false);
 
@@ -57,6 +59,7 @@ namespace Saga.Dungeon.UI
             (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-360f, "settings.ui_scale", ChooseUiScale);
             (_qualityNameLabel, _qualityValueLabel) = MakeRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
             (_languageNameLabel, _languageValueLabel) = MakeRow(-560f, "settings.language", ChooseLanguage);
+            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", ChooseBgm);
 
             var closeButton = NewButton(_panel.transform, DungeonLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _panel.SetActive(false));
@@ -80,6 +83,7 @@ namespace Saga.Dungeon.UI
         private void ChooseUiScale() { DungeonSettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { DungeonSettingsState.CycleGraphicsQuality(); Refresh(); }
         private void ChooseLanguage() { DungeonLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseBgm() { DungeonSettingsState.BgmOn = !DungeonSettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);
 
@@ -95,12 +99,14 @@ namespace Saga.Dungeon.UI
             _uiScaleNameLabel.text = DungeonLocalization.T("settings.ui_scale");
             _qualityNameLabel.text = DungeonLocalization.T("settings.graphics_quality");
             _languageNameLabel.text = DungeonLocalization.T("settings.language");
+            _bgmNameLabel.text = DungeonLocalization.T("settings.bgm");
 
             _sfxValueLabel.text = DungeonLocalization.T(DungeonSettingsState.SfxOn ? "state.on" : "state.off");
             _vibrationValueLabel.text = DungeonLocalization.T(DungeonSettingsState.VibrationOn ? "state.on" : "state.off");
             _uiScaleValueLabel.text = DungeonSettingsState.UiScaleLabel();
             _qualityValueLabel.text = DungeonSettingsState.GraphicsQualityLabel();
             _languageValueLabel.text = DungeonLocalization.LanguageLabel();
+            _bgmValueLabel.text = DungeonLocalization.T(DungeonSettingsState.BgmOn ? "state.on" : "state.off");
         }
 
         // GO `UI/EncounterUiKit.cs`와 같은 넷(캔버스/패널/텍스트/버튼) —
