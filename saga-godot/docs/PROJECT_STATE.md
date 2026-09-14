@@ -6537,3 +6537,50 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 자기 둘레 반경(sk.r×reach_mult()) 안 적 전부를 때리는 swing 옮김. 신규 skill_whirl.gd·whirl_button.gd(🌀)·입력 액션 dungeon_skill_2(L키). warrior br=0 row=0 w_whirl 신규(원작 값 그대로), 넉백은 시스템 없어 미적용.
 - 검증: 헤드리스 3회 로그 동일(bolt 때와 같은 md5), 임시 씬 10항목 PASS(반경 경계 2.3m 정확히 일치, 데미지 round(9×1.7)=15 실측). GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 15절.
 - 다음: nova(고정 반경, swing과 비슷해 다음 후보)가 남은 넷(dash/buff/heal/summon)보다 작은 몫. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 셋째 활성 무예: 뇌쇄(y_thunderdoom, nova) (2026-09-15)
+
+- 방사(mystic) br=5 row=0 y_thunderdoom 신규(첫 활성 무예, scholar/warrior에 이은 셋째 직업). reach_mult() 안 곱함(원작 nova 그대로). 반경 3.82m = 원작 sk.r(130px)÷BASE_REACH(34px) — swing 반경 비율과 정확히 일치하게 환산(dungeon_skills.gd 헤더 참고).
+- 신규: skill_nova.gd·nova_button.gd(⚡)·입력 액션 dungeon_skill_3(N키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 13항목 PASS(반경 경계 3.80/3.81/4.00m·데미지 round(9×2.2)=20·row0 선행조건 없음·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 넷(dash/buff/heal/summon)은 이동/지속효과/소환 하위 시스템이 필요해 더 큰 몫. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 넷째 활성 무예: 질주사(a_dashshot, dash) (2026-09-15, 같은 날 이어서, "dash 이어해")
+
+- 궁장(archer) br=5 row=0 a_dashshot 신규 — bolt/swing/nova에 이은 넷째 직업 첫 활성 무예(다섯 중 넷 완료, 도독만 남음). 속도 25.14m/s = 원작 620px/s÷BASE_SPD(148)×WALK_SPEED(6.0), 판정 반경은 ATK_RANGE(2.4m) 재사용.
+- player.gd(GO 공유)에 dash_dir/dash_speed 훅 추가(기본 무영향). **실측 함정**: move_and_slide()로 옮기면 적과 충돌해 옆으로 밀림 → global_position 직접 이동으로 교체(원작도 충돌 없이 직접 이동).
+- 신규: skill_dash.gd·dash_button.gd(💨)·입력 액션 dungeon_skill_4(V키).
+- 검증: 헤드리스 3회 로그 동일(player.gd 변경 전후 md5 일치). 임시 씬 13항목 PASS(경로 위 적만 피격·이동거리·데미지 round(9×1.3)=12·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0(GO는 player.gd 당사자라 재확인).
+- 다음: 남은 건 도독(marshal)의 buff, 그 뒤 heal/summon. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 다섯째 활성 무예: 사기(m_rally, buff) (2026-09-15, 같은 날 이어서, "buff 이어해")
+
+- 도독(marshal) br=0 row=0 m_rally 신규 — 다섯 직업 전부 활성 무예 하나씩 완료(bolt/swing/nova/dash/buff). dungeon_run_state.gd에 _temp_buffs(잠깐짜리 world eff)·add_temp_buff() 신규(다섯째 합산 자리, 세이브 안 됨).
+- eff는 비워 두고 실제 대상 스탯은 buff_eff 필드에 둠(world_eff_sum이 영구 패시브로 착각하는 것 방지, dungeon_skills.gd 헤더 참고).
+- 신규: skill_buff.gd·buff_button.gd(🚩)·입력 액션 dungeon_skill_5(B키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 11항목 PASS(캐스팅 즉시 atk_speed_mult 1.30 반영·짧은 지속시간 만료 확인·약한 재시전이 강한 버프 안 깎음). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 다섯 직업 모두 첫 활성 무예 완료. 남은 shape(heal/summon/curse/chain) 또는 각 직업 둘째 활성 무예. GUI 실기 확인 아직(몰아서 받을 것, 다섯 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 책사의 둘째 활성 무예: 축기회복(s_restore, heal) (2026-09-15, 같은 날 이어서, "heal 이어해")
+
+- 책사(scholar) br=5 row=0 s_restore 신규 — heal 모양 첫 도입(원작 "책사의 첫 회복"). player_health.gd::heal_by(max_hp×value_at/100) 그대로 호출, 새 상태 없음.
+- 신규: skill_heal.gd·heal_button.gd(💗)·입력 액션 dungeon_skill_6(H키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 9항목 PASS(회복량 정확·최대체력 클램프·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 shape는 curse(작은 몫)·summon·chain(둘 다 새 시스템 필요, 더 큼). GUI 실기 확인 아직(몰아서 받을 것, 여섯 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 무장의 둘째 활성 무예: 위해(w_intimidate, curse) (2026-09-15, 같은 날 이어서, "curse 이어해")
+
+- 무장(warrior) br=5 row=0 w_intimidate 신규 — nova와 같은 반경 판정, 데미지 대신 느려짐(기존 apply_elem_slow 재사용)+저주(hex, 신규) 부여.
+- dungeon_enemy.gd에 _hex_v/_hex_time_left·apply_hex() 신규, take_damage() 한 곳에서 배율 적용(공격 스크립트 다섯 곳 안 고침). 가시 정예+저주 동시 조합만 반사량이 원작보다 살짝 적은 근사(문서화함).
+- 신규: skill_curse.gd·curse_button.gd(📛)·입력 액션 dungeon_skill_7(C키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 13항목 PASS(반경 경계·직접데미지 없음·느려짐·저주·take_damage 30% 실측·쿨다운·만료). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 shape는 summon·chain(더 큼) 또는 각 직업 셋째 활성 무예. GUI 실기 확인 아직(몰아서 받을 것, 일곱 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 방사의 원래 모양: 분신술(y_shade, summon) (2026-09-15, 같은 날 이어서, "summon 이어해")
+
+- 방사(mystic) br=0 row=0 y_shade 신규 — 원작 CLASSES 설명 그대로 방사의 원래 모양(nova/curse처럼 다른 직업에서 빌려온 게 아님). 처음으로 화면에 남는 새 개체(분신) 필요.
+- 신규 dungeon_minion.gd — Node3D(물리 충돌 없음, global_position 직접 이동), 가장 가까운 적 추격·타격, 적이 없으면 플레이어 복귀, sec초 후 자멸. 적은 분신을 공격 안 함(원작 그대로, hp 없음).
+- 속도 환산은 dash와 같은 BASE_SPD(148)→WALK_SPEED(6.0) 비율. 랭크는 데미지가 아니라 분신 개체 수(round(value_at))를 늘림 — 다른 무예와 다른 결.
+- 신규: skill_summon.gd·summon_button.gd(👥)·입력 액션 dungeon_skill_8(M키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 9항목 PASS(랭크1=분신1개·6m 밖 적 추격+타격 실측 hp 24→9·수명만료 자멸). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 shape는 chain뿐 — 이걸로 8가지 모양 중 7개 완료. GUI 실기 확인 아직(몰아서 받을 것, 여덟 키/버튼 전부).

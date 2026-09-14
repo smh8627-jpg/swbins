@@ -601,3 +601,195 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   지속시간/소환 같은 아직 없는 하위 시스템이 필요해 더 크다. GUI 실기
   확인은 아직(몰아서 받을 것, L키/🌀 버튼도 함께). DUNGEON 밖(GO/FOREST/
   STORY/REALM 추가 확장·saga-unity 트랙)도 고려할 자리.
+
+## 16. 51장 "장비→빌드" — 셋째 활성 무예: 뇌쇄(y_thunderdoom, nova) (2026-09-15, "사가고돗 이어할사항 다 이어해")
+
+- 15절이 예고한 nova를 옮겼다 — swing과 판정은 같지만(둘레 반경 안 적
+  전부) **`reach_mult()`를 안 곱한다**(원작 dungeon.js `applyShapeSkill()`
+  의 'nova'는 `sk.r`을 그대로 반경으로 쓴다, swing만 `reachOf()`를
+  곱한다). 방사(mystic)는 여태 br=2 세 단(passive)뿐이었어서 이걸로
+  scholar(bolt)·warrior(swing)에 이어 **셋째 직업이 첫 활성 무예**를
+  얻는다. `dungeon_skills.gd`에 mystic br=5 row=0 `y_thunderdoom`(원작
+  값 그대로: v=2.2·grow=0.5·cd=9·el=lit) 신규, row=0이라 기존 mystic
+  br=2 사슬과 무관하게 바로 투자 가능.
+- **반경 환산**: 원작 `sk.r`(130, 픽셀)은 swing의 `sk.r`(1.7~3.2, 이미
+  미터로 쓰는 값)과 자릿수가 다르다 — swing은 웹에서 `reachOf()×sk.r`
+  (BASE_REACH 34px 곱)로 실제 반경이 나오지만 nova는 `sk.r` 자체가 이미
+  그만큼(≈34배) 커진 원시값이기 때문. `sk.r`을 BASE_REACH(34)로 나눈
+  3.82를 미터로 썼다 — 웹의 실제 반경 비율(nova 130 : swing 78.2 ≈1.66)과
+  이 값의 비율(3.82:2.3≈1.66)이 정확히 일치해 임의 상수가 아니다.
+  자세한 유도는 `dungeon_skills.gd` 헤더 주석 참고. 신규
+  `games/saga_dungeon/player/skill_nova.gd`(Player 컴포넌트)·
+  `ui/nova_button.gd`(⚡ HUD 버튼)·입력 액션 `dungeon_skill_3`(N키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 8` 세 번
+  연속 로그 완전 동일. 임시 씬(`_verify_nova.tscn`, 검증 후 삭제)으로
+  13항목 PASS — row0 선행조건 없음·**반경 경계 정확히 일치**(3.80m·
+  3.81m 피격, 4.00m 무사)·데미지 round(9×2.2)=20 실측·쿨다운 차단까지
+  확인. GO·FOREST·STORY·REALM 회귀도 헤드리스 오류 0건. `project.godot`
+  diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 네 갈래(dash·buff·heal·summon)는 각각 이동
+  판정/상태효과 지속시간/소환 같은 아직 없는 하위 시스템이 필요해 지금
+  까지의 셋(bolt·swing·nova)보다 크다. GUI 실기 확인 아직(몰아서 받을
+  것, N키/⚡ 버튼도 함께). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·
+  saga-unity 트랙)도 고려할 자리.
+
+## 17. 51장 "장비→빌드" — 넷째 활성 무예: 질주사(a_dashshot, dash) (2026-09-15, "dash 이어해")
+
+- 궁장(archer) br=5 row=0 `a_dashshot` 추가 — bolt(scholar)·swing(warrior)·
+  nova(mystic)에 이은 넷째 직업 첫 활성 무예, 이걸로 다섯 직업 중 넷이
+  활성 무예를 하나씩 갖는다(도독만 남음). dash는 **처음으로 플레이어
+  위치 자체를 옮기는** 무예라 `player.gd`(GO와 공유)에 아주 작은 훅
+  둘(`dash_dir`·`dash_speed`)을 추가했다 — boon_speed_sync.gd가
+  `speed_mult`를 미는 것과 같은 일방 통행, 기본값 0/영벡터라 GO는 영향
+  없다.
+- **속도 환산**: nova가 "반경"을 `BASE_REACH`(34px) 기준으로 옮긴 것과
+  달리 dash는 "이동"이라 `BASE_SPD`(148px/s, 원작 이동속도 기준값)를
+  기준 삼아 원작 돌진 속도(620px/s)를 `620×(6.0/148)≈25.14`m/s로
+  옮겼다(6.0=player.gd WALK_SPEED, 그 웹 쪽 짝). 지속시간은 원작
+  `0.2×(sk.far||1)`초 그대로(a_dashshot은 far 없음) — 한 번에 ≈5m.
+  지나는 적 판정 반경은 몬스터별 충돌 반지름이 없는 이 슬라이스 특성상
+  새 상수 대신 `melee_attack.gd`의 `ATK_RANGE`(2.4m)를 재사용했다.
+- **실측으로 잡은 함정** — 처음엔 `velocity`+`move_and_slide()`로
+  옮겼더니 돌진 경로 위의 적(둘 다 CharacterBody3D)과 몸통이 부딪혀
+  플레이어가 옆으로 밀려났다(사거리 밖에 둔 검증용 적까지 맞는 걸로
+  발견). 원작 dungeon.js 돌진도 `p.x`/`p.y`를 충돌 없이 직접 더할 뿐이라,
+  `player.gd`의 돌진 분기를 `global_position` 직접 이동으로 바꾸고 그
+  프레임 `move_and_slide()`·중력을 건너뛴다(끝나면 다음 프레임부터 정상
+  재개). 원작의 돌진 중 무적(`p.invuln`)은 이 슬라이스에 회피·무적
+  시스템 자체가 없어(`combat_dodge` 입력도 아직 안 걸림) kb·mpRegen과
+  같은 결로 값만 두고 안 쓴다.
+- 신규 `games/saga_dungeon/player/skill_dash.gd`·`ui/dash_button.gd`
+  (💨)·입력 액션 `dungeon_skill_4`(V키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일(player.gd 변경 전후 md5도 일치 — 정적 로드엔 영향 없음 확인).
+  임시 씬(`_verify_dash.tscn`, 검증 후 삭제)으로 13항목 PASS — row0
+  선행조건 없음·돌진 경로 위 적만 피격(사거리 밖 적 무사)·이동 거리·
+  데미지 round(9×1.3)=12·쿨다운까지 확인. GO·FOREST·STORY·REALM 회귀도
+  헤드리스 오류 0건(GO는 `player.gd` 변경의 직접 당사자라 특히 재확인).
+  `project.godot` diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 다섯 직업 중 유일하게 활성 무예가 없는 도독(marshal)
+  — buff(m_rally 등, br=0)가 후보. heal·summon은 그 뒤. GUI 실기 확인
+  아직(몰아서 받을 것, V키/💨 버튼도 함께). DUNGEON 밖(GO/FOREST/STORY/
+  REALM 추가 확장·saga-unity 트랙)도 고려할 자리.
+
+## 18. 51장 "장비→빌드" — 다섯째 활성 무예: 사기(m_rally, buff) (2026-09-15, "buff 이어해")
+
+- 도독(marshal) br=0 row=0 `m_rally` 추가 — 이걸로 **다섯 직업 전부**
+  활성 무예를 하나씩 갖는다(bolt·swing·nova·dash·buff). buff는 대상도
+  방향도 없이 **자신에게 한동안(sec초) 효과**를 거는 첫 무예라
+  `dungeon_run_state.gd`에 `_temp_buffs`(잠깐짜리 world eff, boons·장비·
+  부대·무예 랭크에 이은 다섯 번째 합산 자리)와 `add_temp_buff(eff_key,
+  value, sec)`를 신규로 얹었다. 원작 dungeon.js `addBuff()`/`boonVal()`
+  그대로: 값·만료 시각만 들고 있다가 `_sum_eff()`가 조회 시점에 안
+  끝났으면 더한다(틱 타이머로 안 지운다). 세이브에는 안 남는다(원작
+  "잠깐짜리 무예·분신은 회차 안에서만 산다" 그대로).
+- **`eff`를 비워 둔 이유**(다른 넷과 같은 이유, dungeon_skills.gd 헤더
+  참고) — `eff`를 채우면 `dungeon_skill_state.gd::world_eff_sum()`이
+  "랭크만 있으면 늘 더하는 패시브"로 착각해 버프가 꺼져 있어도 영구히
+  atkSpdPct가 오른다. 실제 대상 스탯은 `buff_eff`라는 별도 필드에 두고
+  `skill_buff.gd`가 캐스팅 순간에만 읽어 `add_temp_buff()`로 넘긴다.
+- 신규 `games/saga_dungeon/player/skill_buff.gd`·`ui/buff_button.gd`
+  (🚩)·입력 액션 `dungeon_skill_5`(B키). 다른 넷과 달리 대상 판정이
+  없어 컴포넌트가 가장 단순하다(플레이어 참조도 필요 없음).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_buff.tscn`, 검증 후 삭제)으로 11항목 PASS —
+  row0 선행조건 없음·캐스팅 즉시 `atk_speed_mult()` 1.0→1.30 반영·
+  쿨다운 차단·짧은 지속시간(0.15초)으로 만료 후 자동 제외 확인·약한
+  재시전이 강한 버프를 안 깎아 먹는 것(addBuff 규칙)까지 확인. 종료
+  직전 "material is null" 경고 한 줄은 FOREST 51장 검증 때와 같은
+  종료-순서 특유 현상으로 판단(실제 게임 코드 경로 아님). GO·FOREST·
+  STORY·REALM 회귀도 헤드리스 오류 0건. `project.godot` diff는 의도한
+  입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 다섯 직업 모두 첫 활성 무예를 얻어 51장의 "무예"
+  갈래가 한 바퀴 돌았다. 남은 shape(heal·summon·curse·chain)는 각자
+  더 필요하고, 각 직업의 둘째 활성 무예(예: w_cleave, s_blaze 등)로
+  이어갈 수도 있다. GUI 실기 확인 아직(몰아서 받을 것, 다섯 키/버튼
+  전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity 트랙)도
+  고려할 자리.
+
+## 19. 51장 "장비→빌드" — 책사의 둘째 활성 무예: 축기회복(s_restore, heal) (2026-09-15, "heal 이어해")
+
+- 책사(scholar) br=5 row=0 `s_restore` 추가 — 다섯 직업 모두 첫 활성
+  무예를 이미 가진 뒤라 이번엔 **책사의 둘째 활성 무예**로 "heal" 모양을
+  채운다(원작 desc "책사의 첫 회복" 그대로 — 원작에서도 책사에게 heal은
+  이 자리가 처음). buff처럼 대상·방향이 없고, 새 시스템도 필요 없다 —
+  `player_health.gd`의 기존 `heal_by(max_hp × value_at(rank) / 100)`를
+  그대로 부르기만 한다(지금까지 다섯 무예 중 가장 단순).
+- 신규 `games/saga_dungeon/player/skill_heal.gd`·`ui/heal_button.gd`
+  (💗)·입력 액션 `dungeon_skill_6`(H키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_heal.tscn`, 검증 후 삭제)으로 9항목 PASS —
+  row0 선행조건 없음·회복량(max_hp×16%) 정확·최대 체력을 넘겨 회복하지
+  않는 클램프·쿨다운까지 확인. GO·FOREST·STORY·REALM 회귀도 헤드리스
+  오류 0건. `project.godot` diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 shape는 curse·summon·chain. curse(둘레 적
+  약화·둔화, 새 상태 하나만 있으면 됨)가 다음으로 작은 몫, summon(분신
+  소환)·chain(적 사이 튕기며 타격)은 각자 새 시스템(소환체 AI, 연쇄
+  타겟팅)이 필요해 더 크다. GUI 실기 확인 아직(몰아서 받을 것, 여섯
+  키/버튼 전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity
+  트랙)도 고려할 자리.
+
+## 20. 51장 "장비→빌드" — 무장의 둘째 활성 무예: 위해(w_intimidate, curse) (2026-09-15, "curse 이어해")
+
+- 무장(warrior) br=5 row=0 `w_intimidate` 추가 — 원작 desc "무장의 첫
+  저주" 그대로(첫째는 w_whirl, swing). nova와 같은 반경 판정(자기 둘레,
+  `reach_mult()` 안 곱함)이지만 데미지 대신 **상태 둘**을 건다.
+- **신규 상태 하나** — `dungeon_enemy.gd`에 `_hex_v`/`_hex_time_left`·
+  `apply_hex()`를 추가했다("그동안 받는 모든 피해가 v%만큼 는다").
+  `take_damage()` 한 곳에서 배율을 곱해, 공격 스크립트(melee·bolt·swing·
+  nova·dash) 다섯 곳을 전부 고칠 필요가 없게 했다 — 원작 strike()가
+  물리·무예 안 가리고 한 곳에서 hex를 곱하는 것과 같은 효과를 다른
+  방식(스크립트 통합 대신 착탄 지점 통합)으로 낸다. **정직하게 밝혀
+  둠**: "가시 돋친" 정예의 반사량은 이 hex 배율이 걸리기 "전"의 원본
+  dmg로 계산돼(공격 스크립트가 `take_damage()` 호출 전 dmg로 반사도
+  따로 부른다) 저주가 걸린 동안은 원작보다 반사량이 살짝 적다 — 가시
+  정예+저주가 겹치는 드문 조합이라 지금은 근사로 둔다(`dungeon_enemy.gd`
+  `take_damage()` 주석에 남겨 둠).
+- 느려짐은 기존 `apply_elem_slow()`(냉기 감속과 같은 자리, mult=0.35
+  원작 그대로)를 재사용 — 새 감속 채널을 안 만든다. 반경 3.82m은
+  y_thunderdoom과 같은 환산(원작 r도 130으로 같은 값).
+- 신규 `games/saga_dungeon/player/skill_curse.gd`·`ui/curse_button.gd`
+  (📛)·입력 액션 `dungeon_skill_7`(C키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_curse.tscn`, 검증 후 삭제)으로 13항목 PASS —
+  row0 선행조건 없음·반경 경계(안/밖)·직접 데미지 없음·느려짐·저주 부여·
+  `take_damage()`가 실제로 30% 더 받는 것 실측(10 → 13)·쿨다운·만료까지
+  확인. GO·FOREST·STORY·REALM 회귀도 헤드리스 오류 0건. `project.godot`
+  diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 shape는 summon·chain, 둘 다 소환체 AI·연쇄
+  타겟팅 같은 새 시스템이 필요해 지금까지보다 크다. 각 직업의 셋째
+  활성 무예(예: br=1 갈래)로 더 작은 걸음을 고를 수도 있다. GUI 실기
+  확인 아직(몰아서 받을 것, 일곱 키/버튼 전부). DUNGEON 밖(GO/FOREST/
+  STORY/REALM 추가 확장·saga-unity 트랙)도 고려할 자리.
+
+## 21. 51장 "장비→빌드" — 방사의 원래 모양: 분신술(y_shade, summon) (2026-09-15, "summon 이어해")
+
+- 방사(mystic) br=0 row=0 `y_shade` 추가 — 원작 `CLASSES` 설명 "분신을
+  세우고 적을 묶는다" 그대로, nova·curse처럼 다른 직업에서 "빌려 온"
+  게 아니라 방사의 가장 원래 모양이다. 처음으로 **화면에 남는 새
+  개체**(분신)가 필요해 지금까지 중 가장 큰 걸음이었다.
+- 신규 `games/saga_dungeon/world/dungeon_minion.gd` — `CharacterBody3D`가
+  아니라 맨 `Node3D`(물리 충돌 없음, `global_position` 직접 이동 — dash가
+  겪은 몸통 충돌 문제를 아예 피한다, 원작 분신도 몸통 충돌이 없다). 가장
+  가까운 적을 쫓다가 닿으면 멈춰 서서 주기적으로 때리고, 적이 없으면
+  플레이어 곁으로 돌아온다. `sec`초 뒤 스스로 `queue_free()`. **적이
+  분신을 공격하지 않는다**(원작 그대로 — hp도 죽음도 없다).
+- **속도·거리 환산**: dash와 같은 이유로 "이동"이라 `BASE_SPD`(148px/s)
+  기준 — 추격 110px/s→≈4.46m/s, 복귀 90px/s→≈3.65m/s, 소환 위치 흩뿌림
+  (±20px×±15px)→≈±0.81m×±0.61m. 공격 판정 거리는 curse·dash와 같은
+  이유로 `melee_attack.gd`의 `ATK_RANGE`(2.4m) 재사용. **랭크가 하는
+  일이 다른 무예와 다르다** — 데미지가 아니라 `round(value_at(rank))`
+  으로 분신 **개체 수**를 늘린다(원작 그대로).
+- 신규 `games/saga_dungeon/player/skill_summon.gd`·`ui/summon_button.gd`
+  (👥)·입력 액션 `dungeon_skill_8`(M키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_summon.tscn`, 검증 후 삭제)으로 9항목 PASS —
+  row0 선행조건 없음·랭크1에 정확히 분신 1개 생성·쿨다운·**분신이 실제로
+  6m 밖 적에게 다가가 때리는 것**(2.5초 동안 hp 24→9 감소 실측)·수명
+  만료 후 자동 소멸까지 확인. GO·FOREST·STORY·REALM 회귀도 헤드리스
+  오류 0건. `project.godot` diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 shape는 chain(적 사이 튕기며 타격, 연쇄
+  타겟팅 필요)뿐이다 — 이걸로 51장의 8가지 모양(swing·bolt·nova·dash·
+  buff·heal·curse·summon) 중 7개를 마쳤다. GUI 실기 확인 아직(몰아서
+  받을 것, 여덟 키/버튼 전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가
+  확장·saga-unity 트랙)도 고려할 자리.

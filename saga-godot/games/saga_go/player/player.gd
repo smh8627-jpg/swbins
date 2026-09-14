@@ -24,6 +24,13 @@ var speed_mult := 1.0
 ## 값과 무관하게 계속 입력을 받으므로 카메라 회전/줌은 그대로 된다.
 var frozen := false
 
+## DUNGEON의 무예 "돌진"(dash) 전용 훅 — boon_speed_sync.gd가 speed_mult를
+## 미는 것과 같은 일방 통행(games/saga_dungeon/player/skill_dash.gd 참고).
+## dash_speed가 0이면(기본값) 아무 영향이 없다 — GO는 이 필드를 안 건드린다.
+## player.gd 자체는 여전히 DungeonRunState를 모른다.
+var dash_dir := Vector3.ZERO
+var dash_speed := 0.0
+
 @onready var camera_rig: Node3D = $CameraRig
 @onready var visual: Node3D = $Visual
 @onready var _anim: AnimationPlayer = visual.find_child("AnimationPlayer", true, false)
@@ -39,6 +46,15 @@ func _ready() -> void:
 	CelShaderApply.apply_to(visual)
 
 func _physics_process(delta: float) -> void:
+	## 돌진 중엔 move_and_slide()를 안 쓴다 — CharacterBody3D끼리(플레이어
+	## vs 적) 충돌 판정에 걸려 옆으로 밀려나 버리는 걸 실측으로 확인했다
+	## (원작 dungeon.js도 돌진은 p.x/p.y를 직접 더할 뿐 몸통 충돌이 없다,
+	## games/saga_dungeon/data/dungeon_skills.gd 헤더 참고). 중력도 이
+	## 프레임엔 같이 쉰다 — 돌진이 끝나면 다음 프레임부터 정상 재개된다.
+	if dash_speed > 0.0:
+		global_position += dash_dir * dash_speed * delta
+		return
+
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	else:

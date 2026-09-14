@@ -70,6 +70,8 @@ var _is_shade: bool = false  # 그림자 분신 자신인지 — 정예 굴림·
 var _dots: Array[Dictionary] = [] # [{dps, t}] — applyElem()의 독(pois) dot과 같은 모양
 var _slow_mult := 1.0
 var _slow_time_left := 0.0
+var _hex_v := 0.0 # PLAN.md 51장 "장비→빌드" — 저주(curse)가 거는 "더 아파한다"
+var _hex_time_left := 0.0
 
 ## "여러 방 연결"(§28-8 A안 이전의 최소 버전) — 방을 층처럼 취급해 웹판
 ## `dungeon.js`의 `enemyHp(floor, boss)`·`enemyDmg(floor, boss)` 공식을
@@ -160,6 +162,7 @@ func _physics_process(delta: float) -> void:
 	if _dead or _player == null:
 		return
 	_tick_slow(delta)
+	_tick_hex(delta)
 	_attack_cd_left = maxf(0.0, _attack_cd_left - delta)
 	var to_player: Vector3 = _player.global_position - global_position
 	to_player.y = 0
@@ -219,6 +222,14 @@ func _tick_slow(delta: float) -> void:
 		_slow_mult = 1.0
 
 
+func _tick_hex(delta: float) -> void:
+	if _hex_time_left <= 0.0:
+		return
+	_hex_time_left -= delta
+	if _hex_time_left <= 0.0:
+		_hex_v = 0.0
+
+
 ## 빙(cold) — 맞은 적이 잠깐 느려진다(data-elem.js). 여러 번 맞아도
 ## 겹쳐 더 안 느려지고 시간만 제일 긴 것으로 갱신된다(원작 dungeon.js
 ## "e.slow = max(e.slow||0, def.slowSec)"와 같은 규칙).
@@ -227,6 +238,18 @@ func apply_elem_slow(mult: float, secs: float) -> void:
 		return
 	_slow_mult = minf(_slow_mult, mult) if _slow_time_left > 0.0 else mult
 	_slow_time_left = maxf(_slow_time_left, secs)
+
+
+## 저주(curse) — dungeon.js "ce.hex = { v, t: sk.sec||5 }" 그대로, 새로
+## 걸 때마다 값·지속시간을 덮어쓴다(슬로우와 달리 "더 센 쪽 유지" 비교가
+## 원작에 없다). `take_damage()`가 조회해 들어오는 모든 피해에 곱한다 —
+## 원작 strike()가 물리/무예 가리지 않고 한 곳에서 곱하는 것과 같은 효과를,
+## 공격 스크립트마다 따로 체크하지 않고 여기 한 곳에 모아서 낸다.
+func apply_hex(v: float, secs: float) -> void:
+	if _dead:
+		return
+	_hex_v = v
+	_hex_time_left = secs
 
 
 ## 독(pois) — 즉발 대신 dps*t로 나눠 문다(applyElem() 그대로).
@@ -257,9 +280,18 @@ func _attack_player() -> void:
 		_player.get_node("PlayerHealth").take_damage(attack_damage)
 
 
+## **저주(hex)와 "가시 돋친" 정예의 순서 근사** — 원작 strike()는 hex
+## 배율까지 곱한 최종 dmg로 e.hp를 깎고, 그 같은 dmg로 가시 반사량도
+## 계산한다(둘 다 한 함수 안, 같은 변수). 여기선 반사(thorn_reflect())를
+## 공격 스크립트가 이 함수 호출 "전"의 원본 dmg로 별도로 부르므로, hex가
+## 걸려 있는 동안은 반사량이 그만큼 원작보다 약간 적게 계산된다 — 가시
+## 정예와 저주가 동시에 걸리는 드문 조합이라 지금은 그대로 둔다(다음에
+## 실제로 문제가 되면 take_damage()가 조정된 양을 돌려주는 쪽으로 고칠 것).
 func take_damage(amount: float) -> void:
 	if _dead or amount <= 0.0:
 		return
+	if _hex_time_left > 0.0:
+		amount *= 1.0 + _hex_v / 100.0
 	hp -= amount
 	if hp <= 0.0:
 		_die()

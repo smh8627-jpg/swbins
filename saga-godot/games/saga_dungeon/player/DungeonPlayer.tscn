@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/dungeon_camera_rig.gd" id="2"]
@@ -9,6 +9,12 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/player/potion_belt_input.gd" id="7"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_bolt.gd" id="8"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_whirl.gd" id="9"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova.gd" id="10"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_dash.gd" id="11"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_buff.gd" id="12"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_heal.gd" id="13"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_curse.gd" id="14"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_summon.gd" id="15"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.9
@@ -56,3 +62,21 @@ script = ExtResource("8")
 
 [node name="SkillWhirl" type="Node" parent="."]
 script = ExtResource("9")
+
+[node name="SkillNova" type="Node" parent="."]
+script = ExtResource("10")
+
+[node name="SkillDash" type="Node" parent="."]
+script = ExtResource("11")
+
+[node name="SkillBuff" type="Node" parent="."]
+script = ExtResource("12")
+
+[node name="SkillHeal" type="Node" parent="."]
+script = ExtResource("13")
+
+[node name="SkillCurse" type="Node" parent="."]
+script = ExtResource("14")
+
+[node name="SkillSummon" type="Node" parent="."]
+script = ExtResource("15")
