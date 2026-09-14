@@ -49,11 +49,13 @@ namespace Saga.EditorTools
             BuildLighting();
             BuildTerrain();
             BuildEnemies();
+            BuildNpc();
             var (playerGo, playerController) = BuildPlayer();
             BuildCamera();
             BuildPostProcessingVolume();
             BuildEventSystem();
             BuildHud();
+            BuildDialogueLabel();
             BuildSaveButton();
             BuildMobileControls(playerController);
             BuildBootstrap();
@@ -169,6 +171,16 @@ namespace Saga.EditorTools
                 SetPrivateField(spawner, "riggedBossVisualScale", BossTargetHeight / BruteNativeHeight);
             }
             spawner.Build();
+        }
+
+        /// <summary>PLAN.md 51장 "STORY 확장 — NPC" 첫 슬라이스 — 척후병
+        /// 하나만, 잡졸 자리(첫 자리 3m)보다 앞·플레이어 스폰(2m)과 겹치는
+        /// 자리에 세운다(StoryNpc.cs 클래스 주석 참고).</summary>
+        private static void BuildNpc()
+        {
+            var npcGo = new GameObject("Npc_Scout");
+            npcGo.transform.position = new Vector3(0.6f, 0.1f, 0f);
+            npcGo.AddComponent<StoryNpc>();
         }
 
         private static (GameObject playerGo, StoryPlayerController controller) BuildPlayer()
@@ -308,6 +320,41 @@ namespace Saga.EditorTools
 
             var hud = canvasGo.AddComponent<StoryHud>();
             SetPrivateField(hud, "label", text);
+        }
+
+        /// <summary>PLAN.md 51장 "STORY 확장 — NPC" — DUNGEON `DialogueUI`와
+        /// 같은 배치(화면 위쪽 가운데 배너), `StoryHud`(왼쪽 위 상시 표시)와
+        /// 안 겹친다.</summary>
+        private static void BuildDialogueLabel()
+        {
+            var canvasGo = new GameObject("StoryDialogueUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -80f);
+            rect.sizeDelta = new Vector2(920f, 140f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 34;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.text = "";
+
+            var dialogueLabel = canvasGo.AddComponent<DialogueLabel>();
+            SetPrivateField(dialogueLabel, "label", text);
+            textGo.SetActive(false);
         }
 
         private static void BuildSaveButton()

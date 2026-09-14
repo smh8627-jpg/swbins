@@ -2,9 +2,11 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 using Saga.Story.Data;
 using Saga.Story.Player;
 using Saga.Story.World;
+using Saga.Story.UI;
 
 namespace Saga.EditorTools
 {
@@ -40,7 +42,7 @@ namespace Saga.EditorTools
 
         private enum Phase
         {
-            Init, KillEnemies, KillBoss, SweepTest, BoltCast, BoltWait, BraceTest,
+            Init, TalkNpc, KillEnemies, KillBoss, SweepTest, BoltCast, BoltWait, BraceTest,
             LandBeforeJump, EnterRope, RopeTopClearance, RopeDescend, ExitRope, SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -153,8 +155,42 @@ namespace Saga.EditorTools
                     // 않고 이 테스트가 스스로 시작 상태를 못박는다.
                     StoryQuestState.Restore(0, 0);
                     _enemyIndex = 0;
+                    _phase = Phase.TalkNpc;
+                    break;
+
+                case Phase.TalkNpc:
+                {
+                    // PLAN.md 51장 "STORY 확장 — NPC" 첫 슬라이스 검증 —
+                    // 다른 단계들처럼 private 메서드를 리플렉션으로 직접
+                    // 불러 판정 경로만 본다(실제 물리 트리거 콜백 타이밍에
+                    // 기대지 않는다 — 처음엔 텔레포트 후 한 틱 기다리는
+                    // 방식으로 짰다가 CharacterController×트리거 조합이
+                    // 이 헤드리스 환경에서 안 잡혀 실패했다, TryAttack()
+                    // 등 다른 단계와 같은 결로 바꿈).
+                    var npcGo = GameObject.Find("Npc_Scout");
+                    var npc = npcGo != null ? npcGo.GetComponent<StoryNpc>() : null;
+                    if (npc == null)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] Npc_Scout를 씬에서 못 찾음");
+                        Fail();
+                        return;
+                    }
+                    var method = typeof(StoryNpc).GetMethod("OnTriggerEnter", BindingFlags.NonPublic | BindingFlags.Instance);
+                    method.Invoke(npc, new object[] { _playerController });
+
+                    var dialogueGo = GameObject.Find("StoryDialogueUI");
+                    var dialogueLabel = dialogueGo != null ? dialogueGo.GetComponent<DialogueLabel>() : null;
+                    var label = dialogueLabel != null ? GetPrivate(dialogueLabel, "label") as Text : null;
+                    if (label == null || !label.gameObject.activeSelf || string.IsNullOrEmpty(label.text))
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 척후병에게 말을 걸었는데 DialogueLabel이 안 뜸");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestStorySlice] npc talk OK - \"{label.text}\"");
                     _phase = Phase.KillEnemies;
                     break;
+                }
 
                 case Phase.KillEnemies:
                     if (_enemyIndex >= ExpectedEnemyCount)

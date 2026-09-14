@@ -4478,3 +4478,41 @@ DUNGEON 전부 confirm류 SFX 방식으로 통일됐다. **다섯 판 다 BGM은
 — 사용자가 이번에 명시적으로 보류를 골랐으니 다음에 먼저 묻지 말고
 그냥 시작하지 말 것(사람이 후보를 듣고 고르는 단계가 먼저 필요하다고
 이미 답했다).
+
+## 같은 날 후속 — STORY에 첫 NPC (2026-09-14, "묻지 말고 이어해")
+
+사운드 스레드가 다 닫힌 뒤 "묻지 말고 이어해"가 다시 와서, PLAN.md
+51장 확장 순서(GO→DUNGEON→FOREST→STORY→REALM)를 다시 훑어보니 GO/
+DUNGEON/FOREST/REALM은 각 항목(탐험·지역·이벤트·수집·희귀 몬스터 /
+엘리트·보스·장비·빌드 / 동물·채집·마을·생활 / 세력·도시·영지)이 여러
+날에 걸쳐 이미 상당히 들어가 있었는데, **STORY만 51장 네 칸(NPC/선택/
+사건/관계) 중 하나도 없었다**(`StoryQuestState.cs` 클래스 주석이
+"gear/gather/visit/talk/skill/gold 사명은 범위 밖"이라고 이미 적어 둔
+그대로 — STORY는 순수 사이드스크롤 전투 슬라이스였다). 그중 가장 작고
+확실한 칸(NPC) 하나만 채웠다 — 선택/사건/관계는 각각 훨씬 큰 새 시스템
+(대화 분기·월드 이벤트·호감도)이 필요해 이번엔 손 안 댐.
+
+**추가한 것** — `Saga.Story.UI.DialogueLabel`(GO `UI/DialogueLabel.cs`
+그대로 복사)과 `Saga.Story.World.StoryNpc`(들판 척후병 1명, GO
+`NpcBuilder`+`VillagerTalk`을 하나로 합친 축소판 — NPC가 하나뿐이라
+목록형 빌더를 새로 안 지었다). **말을 걸어도 아무 상태도 안 바꾼다** —
+`StoryQuestState`(첫 사냥/두목의 목 진행도)를 그대로 되읽어 주는 잡담
+한 마디뿐, GO 촌장(퀘스트 시작)·나그네(골드 보상)와 달리 부수효과가
+없다 — STORY엔 애초에 골드·인벤토리 시스템 자체가 없어 줄 보상이 없다.
+플레이어 스폰(2m)과 겹치게 x=0.6m에 세워 시작하자마자 반경 안에 있다.
+
+**테스트** — `PlaytestStorySlice.cs`에 `TalkNpc` 단계를 새로 추가.
+처음엔 텔레포트 후 물리 트리거 콜백이 실제로 뜨길 기다리는 방식으로
+짰다가 **이 헤드리스 환경에서 CharacterController×트리거 조합이 한
+틱을 기다려도 안 잡혀 실패**했다 — 원인을 더 파지 않고 이 파일의
+다른 모든 단계와 같은 결(`TryAttack()`처럼 private 메서드를 리플렉션
+으로 직접 호출)로 바꿔, `StoryNpc.OnTriggerEnter(Collider)`를
+`_playerController`(CharacterController — `Collider`의 서브클래스라
+그대로 넘길 수 있다)를 인자로 직접 불렀다. 검증: 배치 모드 컴파일 →
+`BuildTestStoryScene` 재빌드 → `PlaytestStorySlice`(새 npc talk 단계
+포함) 3연속 통과, 대사 텍스트까지 로그로 확인. 커밋·푸시 완료.
+
+**다음에 볼 것**: STORY 51장 나머지 셋(선택/사건/관계)은 이번에 안 함 —
+각각 새 시스템 설계가 필요해 사용자 방향이 더 필요하다. NPC 시각도
+아직 fallback capsule뿐(44장 우선순위 표엔 애초에 NPC가 없던 새 칸이라
+리깅된 모델을 아직 안 붙였다).
