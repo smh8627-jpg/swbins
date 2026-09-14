@@ -6291,4 +6291,33 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - **다음에 할 일**: STORY 안에서 더 좁힐 만한 것은 이제 정말 거의
   없다. 다음은 STORY 밖(다른 네 판·saga-unity 트랙)을 진지하게 고려할
   자리.
+
+## REALM 문답 문항 완주 — data-quiz.js BANK 260문항 전부 (2026-09-14, 같은 날 이어서, "묻지말고 이어해 REALM도 손대")
+
+- DUNGEON·FOREST·STORY가 각자 "이미 있는 데이터인데 화면엔 다 안
+  나온 자리"를 찾아 밀도를 늘린 것과 같은 결로, REALM `realm_quiz_
+  data.gd`가 8절에서 스스로 "더 늘리려면 이 형식 그대로 data-quiz.js
+  에서 계속 골라 오면 된다"고 적어 둔 채 90/260문항만 옮겨 둔 상태로
+  남아 있던 것을 발견했다.
+- 나머지 170문항(hist/idiom/sense/mz는 16~50·world/proverb는 16~30)을
+  id·q·c·a·why 원문 그대로 마저 옮겨 여섯 분야 전부 웹판과 정확히
+  같은 개수(hist/idiom/sense/mz 50개씩·world/proverb 30개씩, 총 260개)
+  가 됐다. 실존 인물 실명은 원작 그대로 유지(data-quiz.js는 역사
+  퀴즈라 이름 정책 예외로 이미 확정된 결정). **170문항을 손으로 옮겨
+  적지 않고** Node.js로 `data-quiz.js` BANK를 직접 파싱해 GDScript
+  딕셔너리 리터럴로 변환해 이어 붙였다 — 오탈자 없이 옮기는 유일한
+  방법. `quiz_progress().total`이 이미 `BANK.size()`를 그대로 읽고
+  있어 로직은 한 줄도 안 바꿨다. 자세한 내용은 `docs/VERTICAL_SLICE_
+  REALM.md` 32절 참고.
+- 검증: 헤드리스 임포트 오류 0건, `TestCity.tscn` `--quit-after 6`
+  세 번 연속 로그 완전 동일. 임시 씬으로 `BANK.size()==260`·분야별
+  개수 정확히 일치·중복 id 0·형식 오류 0·대표 항목(h50·p30·m19)의
+  텍스트가 원문과(임베디드 따옴표 포함) 정확히 일치까지 확인 후 삭제,
+  재검증까지 마쳤다. GO·DUNGEON·FOREST·STORY 회귀도 오류 0건 재확인.
+  `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: REALM 안에서 데이터가 미완인 자리는 이제 정말
+  거의 없다(3D 몬스터 자산 GLB만 66-2장·사람 손 대기). 다음은 REALM
+  밖(다른 네 판·saga-unity 트랙)을 진지하게 고려할 자리 — GO·DUNGEON·
+  FOREST·STORY·REALM 다섯 판 전부 오늘 각자의 51장 축을 한 걸음씩
+  진행했다.
   고려할 자리.
