@@ -5025,3 +5025,27 @@ PlaytestHeadless(GO)·PlaytestDungeonHeadless/Town2/Towns34), 전부
 
 **다음 세션 후보**: en 번역 사람 검수, 위 "손 안 댄 것 둘"(로스터/
 도감 id 분리), BGM(계속 보류), STORY "선택" 이후 확장.
+
+## DUNGEON 처치 메시지/도감 Localization — "손 안 댄 것 둘" 중 하나 해소 (2026-09-15, 새 세션 "새로운 세션에서 이어해", 커밋 32ee29c)
+
+위 항목이 남겨 둔 `DungeonEnemy.displayName` id 얽힘을 풀었다 — 실제로
+세어 보니 표시명이 넷뿐(황건적/사나운 황건적/황건 살수/황건적 두목)
+이라 REALM Officer식 새 id 필드 없이 "알려진 한국어 표시명 → 로컬라이즈
+키" 매핑(`DisplayNameKeys`) 하나로 충분했다. `BestiaryState.Record()`에
+넘기는 값은 원문 그대로 둬 세이브 호환은 그대로 지키고, 화면에 보이는
+처치 메시지·전리품 문구·도감 신규 기록 토스트만 `LocalizedDisplayName`
+을 거치게 했다. dungeon_ko.json/dungeon_en.json에 11개 키 추가.
+`PlaytestDungeonHeadless`(컴파일+스모크)·`PlaytestDungeonFloorProgression`
+(잡졸 처치 12회 포함) 재검증, 회귀 없음 — 미니보스/두목/정예는 킬을
+직접 만드는 헤드리스가 없어 컴파일 확인까지만(같은 코드 경로, 다른
+딕셔너리 키라 위험 낮음).
+
+**GO `BanditEncounter.RecruitId`는 그대로 둔다** — 표시되는 곳이
+없어(로스터 UI 자체가 없음) 지금 건드리면 이득 없이 세이브 포맷만
+바꾸는 꼴이다. 로스터 UI가 생기면 그때 REALM Officer와 같은 결로
+분리할 것.
+
+**남은 항목 셋 다 사람 판단/역량 필요**: en 번역 검수, BGM(오디오
+청취 불가로 계속 보류), STORY "선택" 이후 확장(51장 네 칸은 이미
+완결 — 이 이상은 새 서사 설계라 방향 필요). 다음 "이어해"가 오면
+이 중 하나를 사용자에게 직접 물어보는 데서 시작할 것.
