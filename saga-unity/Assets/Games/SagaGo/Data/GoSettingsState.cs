@@ -22,7 +22,7 @@ namespace Saga.Go.Data
 
         private static readonly Vector2 BaseReferenceResolution = new Vector2(1080f, 1920f);
         public static readonly float[] UiScaleSteps = { 0.85f, 1f, 1.15f };
-        public static readonly string[] UiScaleLabels = { "작게", "보통", "크게" };
+        private static readonly string[] UiScaleKeys = { "scale.small", "scale.normal", "scale.large" };
 
         public static bool SfxOn
         {
@@ -58,7 +58,7 @@ namespace Saga.Go.Data
         public static string UiScaleLabel()
         {
             int idx = System.Array.IndexOf(UiScaleSteps, UiScaleMultiplier);
-            return UiScaleLabels[idx < 0 ? 1 : idx];
+            return GoLocalization.T(UiScaleKeys[idx < 0 ? 1 : idx]);
         }
 
         /// <summary>사용자가 한 번도 안 건드렸으면 플랫폼 자동값(66-1장 —
@@ -78,7 +78,7 @@ namespace Saga.Go.Data
 
         public static void CycleGraphicsQuality() => HighGraphicsQuality = !HighGraphicsQuality;
 
-        public static string GraphicsQualityLabel() => HighGraphicsQuality ? "기본" : "절약";
+        public static string GraphicsQualityLabel() => GoLocalization.T(HighGraphicsQuality ? "quality.high" : "quality.low");
 
         /// <summary>66-1장 PC/Mobile 두 QualitySettings 레벨은 서로
         /// `excludedTargetPlatforms`로 배타적이라(Mobile은 Standalone 제외,

@@ -1,0 +1,18 @@
+{
+  "entries": [
+    { "key": "settings.title", "value": "설정" },
+    { "key": "settings.sfx", "value": "효과음" },
+    { "key": "settings.vibration", "value": "진동" },
+    { "key": "settings.ui_scale", "value": "UI 크기" },
+    { "key": "settings.graphics_quality", "value": "그래픽 품질" },
+    { "key": "settings.language", "value": "언어" },
+    { "key": "settings.close", "value": "닫는다" },
+    { "key": "state.on", "value": "켜짐" },
+    { "key": "state.off", "value": "꺼짐" },
+    { "key": "quality.high", "value": "기본" },
+    { "key": "quality.low", "value": "절약" },
+    { "key": "scale.small", "value": "작게" },
+    { "key": "scale.normal", "value": "보통" },
+    { "key": "scale.large", "value": "크게" }
+  ]
+}

@@ -158,7 +158,19 @@ namespace Saga.EditorTools
             }
             ForestSettingsState.HighGraphicsQuality = true;
 
-            Debug.Log("[PlaytestForestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
+            string langBefore = ForestLocalization.CurrentLanguage;
+            string qualityLabelBefore = ForestSettingsState.GraphicsQualityLabel();
+            ForestLocalization.CycleLanguage();
+            if (ForestLocalization.CurrentLanguage == langBefore
+                || ForestSettingsState.GraphicsQualityLabel() == qualityLabelBefore)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 언어 전환이 실제 문구를 안 바꿈");
+                _hadError = true;
+                return;
+            }
+            ForestLocalization.CurrentLanguage = langBefore;
+
+            Debug.Log("[PlaytestForestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
         }
     }
 }

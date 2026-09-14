@@ -1084,7 +1084,18 @@ namespace Saga.EditorTools
             }
             RealmSettingsState.HighGraphicsQuality = true;
 
-            Debug.Log("[PlaytestRealmSlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
+            string langBefore = RealmLocalization.CurrentLanguage;
+            string qualityLabelBefore = RealmSettingsState.GraphicsQualityLabel();
+            RealmLocalization.CycleLanguage();
+            if (RealmLocalization.CurrentLanguage == langBefore
+                || RealmSettingsState.GraphicsQualityLabel() == qualityLabelBefore)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 언어 전환이 실제 문구를 안 바꿈");
+                return false;
+            }
+            RealmLocalization.CurrentLanguage = langBefore;
+
+            Debug.Log("[PlaytestRealmSlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
             return true;
         }
     }

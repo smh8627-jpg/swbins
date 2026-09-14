@@ -33,10 +33,19 @@ namespace Saga.Realm.UI
         private Transform _archiveButtonsRoot;
         private Text _quizQuestionText;
         private Text _quizProgressText;
+        private Text _settingsToggleLabel;
+        private Text _settingsTitleLabel;
+        private Text _settingsCloseLabel;
+        private Text _settingsSfxNameLabel;
         private Text _settingsSfxLabel;
+        private Text _settingsVibrationNameLabel;
         private Text _settingsVibrationLabel;
+        private Text _settingsUiScaleNameLabel;
         private Text _settingsUiScaleLabel;
+        private Text _settingsQualityNameLabel;
         private Text _settingsQualityLabel;
+        private Text _settingsLanguageNameLabel;
+        private Text _settingsLanguageLabel;
         private RealmQuizState.Presented? _currentQuiz;
 
         public void Build()
@@ -77,8 +86,9 @@ namespace Saga.Realm.UI
             // 기둥을 한 칸 더 내려 잇는다(지도 -210 바로 아래, 10px 틈).
             // 디버그 오버레이(BuildTestCityScene.cs, y -20~-140)보다 한참
             // 아래라 겹치지 않는다.
-            RealmUiKit.NewButton(canvas.transform, "설정", new Vector2(1f, 1f), new Vector2(-110f, -330f),
-                new Vector2(180f, 110f), ToggleSettingsPanel);
+            var settingsToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("settings.title"),
+                new Vector2(1f, 1f), new Vector2(-110f, -330f), new Vector2(180f, 110f), ToggleSettingsPanel);
+            _settingsToggleLabel = settingsToggleButton.GetComponentInChildren<Text>();
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
@@ -360,45 +370,60 @@ namespace Saga.Realm.UI
         /// 버튼 안 Text만 갱신한다(값이 네 개뿐이라 다시 지을 이유가 없다).</summary>
         private void BuildSettingsPanel(Transform parent)
         {
-            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 620f),
+            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 720f),
                 new Color(0f, 0f, 0f, 0.8f));
             _settingsPanel.SetActive(false);
 
-            RealmUiKit.NewText(_settingsPanel.transform, "설정", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
-                new Vector2(500f, 60f), 32);
+            _settingsTitleLabel = RealmUiKit.NewText(_settingsPanel.transform, RealmLocalization.T("settings.title"),
+                new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(500f, 60f), 32);
 
-            _settingsSfxLabel = MakeSettingsRow(-160f, "효과음", ChooseSfx);
-            _settingsVibrationLabel = MakeSettingsRow(-260f, "진동", ChooseVibration);
-            _settingsUiScaleLabel = MakeSettingsRow(-360f, "UI 크기", ChooseUiScale);
-            _settingsQualityLabel = MakeSettingsRow(-460f, "그래픽 품질", ChooseGraphicsQuality);
+            (_settingsSfxNameLabel, _settingsSfxLabel) = MakeSettingsRow(-160f, "settings.sfx", ChooseSfx);
+            (_settingsVibrationNameLabel, _settingsVibrationLabel) = MakeSettingsRow(-260f, "settings.vibration", ChooseVibration);
+            (_settingsUiScaleNameLabel, _settingsUiScaleLabel) = MakeSettingsRow(-360f, "settings.ui_scale", ChooseUiScale);
+            (_settingsQualityNameLabel, _settingsQualityLabel) = MakeSettingsRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
+            (_settingsLanguageNameLabel, _settingsLanguageLabel) = MakeSettingsRow(-560f, "settings.language", ChooseLanguage);
 
-            RealmUiKit.NewButton(_settingsPanel.transform, "닫는다", new Vector2(0.5f, 0f), new Vector2(0f, 40f),
-                new Vector2(300f, 70f), () => _settingsPanel.SetActive(false));
+            var closeButton = RealmUiKit.NewButton(_settingsPanel.transform, RealmLocalization.T("settings.close"),
+                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _settingsPanel.SetActive(false));
+            _settingsCloseLabel = closeButton.GetComponentInChildren<Text>();
 
             RefreshSettingsPanel();
         }
 
-        private Text MakeSettingsRow(float y, string name, UnityEngine.Events.UnityAction onClick)
+        private (Text name, Text value) MakeSettingsRow(float y, string nameKey, UnityEngine.Events.UnityAction onClick)
         {
-            RealmUiKit.NewText(_settingsPanel.transform, name, new Vector2(0f, 1f), new Vector2(60f, y),
-                new Vector2(260f, 70f), 26).alignment = TextAnchor.MiddleLeft;
+            var name = RealmUiKit.NewText(_settingsPanel.transform, RealmLocalization.T(nameKey), new Vector2(0f, 1f),
+                new Vector2(60f, y), new Vector2(260f, 70f), 26);
+            name.alignment = TextAnchor.MiddleLeft;
             var button = RealmUiKit.NewButton(_settingsPanel.transform, "", new Vector2(1f, 1f), new Vector2(-60f, y),
                 new Vector2(260f, 70f), onClick);
-            return button.GetComponentInChildren<Text>();
+            return (name, button.GetComponentInChildren<Text>());
         }
 
         private void ChooseSfx() { RealmSettingsState.SfxOn = !RealmSettingsState.SfxOn; RefreshSettingsPanel(); }
         private void ChooseVibration() { RealmSettingsState.VibrationOn = !RealmSettingsState.VibrationOn; RefreshSettingsPanel(); }
         private void ChooseUiScale() { RealmSettingsState.CycleUiScale(); RefreshSettingsPanel(); }
         private void ChooseGraphicsQuality() { RealmSettingsState.CycleGraphicsQuality(); RefreshSettingsPanel(); }
+        private void ChooseLanguage() { RealmLocalization.CycleLanguage(); RefreshSettingsPanel(); }
 
         private void RefreshSettingsPanel()
         {
             if (_settingsSfxLabel == null) return;
-            _settingsSfxLabel.text = RealmSettingsState.SfxOn ? "켜짐" : "꺼짐";
-            _settingsVibrationLabel.text = RealmSettingsState.VibrationOn ? "켜짐" : "꺼짐";
+
+            _settingsToggleLabel.text = RealmLocalization.T("settings.title");
+            _settingsTitleLabel.text = RealmLocalization.T("settings.title");
+            _settingsCloseLabel.text = RealmLocalization.T("settings.close");
+            _settingsSfxNameLabel.text = RealmLocalization.T("settings.sfx");
+            _settingsVibrationNameLabel.text = RealmLocalization.T("settings.vibration");
+            _settingsUiScaleNameLabel.text = RealmLocalization.T("settings.ui_scale");
+            _settingsQualityNameLabel.text = RealmLocalization.T("settings.graphics_quality");
+            _settingsLanguageNameLabel.text = RealmLocalization.T("settings.language");
+
+            _settingsSfxLabel.text = RealmLocalization.T(RealmSettingsState.SfxOn ? "state.on" : "state.off");
+            _settingsVibrationLabel.text = RealmLocalization.T(RealmSettingsState.VibrationOn ? "state.on" : "state.off");
             _settingsUiScaleLabel.text = RealmSettingsState.UiScaleLabel();
             _settingsQualityLabel.text = RealmSettingsState.GraphicsQualityLabel();
+            _settingsLanguageLabel.text = RealmLocalization.LanguageLabel();
         }
 
         private void ToggleSettingsPanel()

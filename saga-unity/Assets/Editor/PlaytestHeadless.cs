@@ -197,7 +197,21 @@ namespace Saga.EditorTools
             }
             GoSettingsState.HighGraphicsQuality = true; // 원래(기본) 값으로 되돌린다.
 
-            Debug.Log("[PlaytestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
+            // 2026-09-14 "Localization" — 언어를 실제로 바꾸면 라벨 문구도
+            // 실제로 바뀌는지 본다(API만 값을 바꾸고 표는 그대로인 오탐을 막음).
+            string langBefore = GoLocalization.CurrentLanguage;
+            string qualityLabelBefore = GoSettingsState.GraphicsQualityLabel();
+            GoLocalization.CycleLanguage();
+            if (GoLocalization.CurrentLanguage == langBefore
+                || GoSettingsState.GraphicsQualityLabel() == qualityLabelBefore)
+            {
+                Debug.LogError("[PlaytestHeadless] 언어 전환이 실제 문구를 안 바꿈");
+                _hadError = true;
+                return;
+            }
+            GoLocalization.CurrentLanguage = langBefore; // 다른 검사에 영향 없게 되돌린다.
+
+            Debug.Log("[PlaytestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
         }
     }
 }

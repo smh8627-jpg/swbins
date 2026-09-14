@@ -777,7 +777,18 @@ namespace Saga.EditorTools
             }
             StorySettingsState.HighGraphicsQuality = true;
 
-            Debug.Log("[PlaytestStorySlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality all verified");
+            string langBefore = StoryLocalization.CurrentLanguage;
+            string qualityLabelBefore = StorySettingsState.GraphicsQualityLabel();
+            StoryLocalization.CycleLanguage();
+            if (StoryLocalization.CurrentLanguage == langBefore
+                || StorySettingsState.GraphicsQualityLabel() == qualityLabelBefore)
+            {
+                Debug.LogError("[PlaytestStorySlice] 언어 전환이 실제 문구를 안 바꿈");
+                return false;
+            }
+            StoryLocalization.CurrentLanguage = langBefore;
+
+            Debug.Log("[PlaytestStorySlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
             return true;
         }
 

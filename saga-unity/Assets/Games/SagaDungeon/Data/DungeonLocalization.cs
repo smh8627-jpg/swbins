@@ -1,0 +1,79 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Saga.Dungeon.Data
+{
+    /// <summary>
+    /// PLAN.md 67~69장 "Localization" — 화면 글자를 코드에 안 박고
+    /// `Resources/Localization/dungeon_&lt;lang&gt;.json`에서 읽어 온다(다섯 판이
+    /// 각자 복사해 쓰는 관례 그대로, `GoSettingsState.cs`와 같은 결).
+    /// 지금은 설정 패널 자신의 글자만 이 표를 거친다 — 나머지(대사·퀘스트·
+    /// HUD)는 아직 하드코딩된 한국어 그대로고, 다음에 범위를 넓힐 때 이
+    /// 클래스를 그대로 재사용하면 된다(PROJECT_STATE.md 2026-09-14
+    /// "Localization" 항목 참고). ko/en 두 언어 파일은 다섯 판이 전부
+    /// 같은 키·값을 쓴다 — data.js처럼 다섯 벌 함께 고치고 md5로 확인할 것.
+    /// </summary>
+    public static class DungeonLocalization
+    {
+        private const string LanguageKey = "saga_dungeon_language";
+        public static readonly string[] LanguageCodes = { "ko", "en" };
+        public static readonly string[] LanguageNames = { "한국어", "English" };
+
+        private static string _loadedLanguage;
+        private static Dictionary<string, string> _table;
+
+        public static string CurrentLanguage
+        {
+            get => PlayerPrefs.GetString(LanguageKey, LanguageCodes[0]);
+            set => PlayerPrefs.SetString(LanguageKey, value);
+        }
+
+        /// <summary>버튼 하나로 순환시키는 이 판 공통 방식(UI 크기·그래픽
+        /// 품질과 같은 결).</summary>
+        public static void CycleLanguage()
+        {
+            int idx = System.Array.IndexOf(LanguageCodes, CurrentLanguage);
+            idx = (idx < 0 ? 0 : idx + 1) % LanguageCodes.Length;
+            CurrentLanguage = LanguageCodes[idx];
+            _table = null; // 다음 T() 호출에서 새 언어 표를 다시 읽는다.
+        }
+
+        public static string LanguageLabel()
+        {
+            int idx = System.Array.IndexOf(LanguageCodes, CurrentLanguage);
+            return LanguageNames[idx < 0 ? 0 : idx];
+        }
+
+        /// <summary>표에 키가 없으면(번역 누락, 언어 파일 못 찾음) 키 자체를
+        /// 돌려준다 — 화면이 비는 대신 무슨 글자가 빠졌는지 바로 보인다.</summary>
+        public static string T(string key)
+        {
+            EnsureLoaded();
+            return _table != null && _table.TryGetValue(key, out var value) ? value : key;
+        }
+
+        private static void EnsureLoaded()
+        {
+            string lang = CurrentLanguage;
+            if (_table != null && _loadedLanguage == lang) return;
+
+            _table = new Dictionary<string, string>();
+            _loadedLanguage = lang;
+            var asset = Resources.Load<TextAsset>($"Localization/dungeon_{lang}");
+            if (asset == null)
+            {
+                Debug.LogWarning($"[DungeonLocalization] Resources/Localization/dungeon_{lang}.json을 못 찾음");
+                return;
+            }
+            var parsed = JsonUtility.FromJson<StringTable>(asset.text);
+            if (parsed?.entries == null) return;
+            foreach (var entry in parsed.entries) _table[entry.key] = entry.value;
+        }
+
+        [System.Serializable]
+        private class StringEntry { public string key; public string value; }
+
+        [System.Serializable]
+        private class StringTable { public StringEntry[] entries; }
+    }
+}
