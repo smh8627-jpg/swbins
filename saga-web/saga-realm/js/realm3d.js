@@ -237,11 +237,16 @@
 
   var canvas = null, renderer = null, scene = null, camera = null;
   var ready = false, failed = false, loopRunning = false;
-  var dyn = null;              // 매달(성이 바뀔 때) 다시 짓는 그룹 — 성·길·지형
+  var dyn = null;              // `core.on('changed')`마다 다시 짓는 그룹 — 성 타워·길·진·원정
+  var statGrp = null;          // 성이 바뀌어도 안 변하는 그룹 — 지형 소품(나무·바위·성 둘레
+                                // 장식 등, PLAN 27절 성능 최적화 2026-09-14 이어서). 페이지
+                                // 생애 동안 딱 한 번만 짓는다 — `buildStaticOnce()` 참고
+  var staticBuilt = false;
   var hitMeshes = [];          // 탭 판정용 투명 원기둥들
   var pulseRings = [];         // 포위 표시 — 숨쉬듯 커졌다 작아진다
   var floaters = [];           // 재해 그림문자 — 천천히 위아래로 떠다닌다
-  var rebuildSeq = 0;          // 늦게 도착한 옛 build() 콜백을 거른다
+  var rebuildSeq = 0;          // 늦게 도착한 옛 build() 콜백을 거른다(dyn 몫만 — statGrp 은
+                                // 한 번 짓고 나면 다시 안 지으니 이 검사가 필요 없다)
 
   var yaw = 0, pitch = 0.85, dist = 260;
   var targetYaw = 0, targetPitch = 0.85, targetDist = 260;
@@ -341,6 +346,8 @@
 
     dyn = new t.Group();
     scene.add(dyn);
+    statGrp = new t.Group();
+    scene.add(statGrp);
 
     fitCameraToMap();
     yaw = targetYaw; pitch = targetPitch; dist = targetDist;
@@ -429,16 +436,44 @@
    *  움직이고 서로 안 겹쳐도 되는 정적 원판이라, 하나의 InstancedMesh 에
    *  인스턴스로 눕혀 드로우콜 하나로 합친다 — 지오메트리·머티리얼은 그대로
    *  공유하던 것을 이어 쓴다(눈에 보이는 그림은 그대로, 그리는 방식만
-   *  바뀐다). `clearDyn()`이 달마다 `shadowInst`를 비워 다시 짓는다. */
+   *  바뀐다). `clearDyn()`이 달마다 `shadowInst`(dyn 몫)를 비워 다시 짓는다.
+   *
+   *  2026-09-14 이어서 — `grp`(대상 그룹)를 받아 **정적 소품용 인스턴스를
+   *  따로** 둔다(`statShadowInst`, `statGrp`에 얹는다). dyn 몫은 여전히
+   *  `clearDyn()`마다 다시 짓지만, `statGrp`는 `clearDyn()`이 안 건드려서
+   *  거기 얹은 인스턴스도 한 번 채우면 그대로 남는다 — 바로 아래
+   *  "지형 소품을 한 번만 짓는다" 절 참고. */
   var blobGeo = null, blobMat = null;
   var shadowInst = null, shadowCount = 0, shadowDummy = null;
+  var statShadowInst = null, statShadowCount = 0;
   var SHADOW_MAX = 6000;
-  function addShadow(x, z, r) {
+  function addShadow(x, z, r, grp) {
     var t = three();
-    if (!t || !dyn) { return; }
+    if (!t) { return; }
+    var isStatic = grp === statGrp;
+    if (isStatic ? !statGrp : !dyn) { return; }
     if (!blobGeo) {
       blobGeo = new t.CircleGeometry(1, 16);
       blobMat = new t.MeshBasicMaterial({ color: 0x14140c, transparent: true, opacity: 0.3, depthWrite: false });
+    }
+    if (!shadowDummy) { shadowDummy = new t.Object3D(); }
+    shadowDummy.position.set(x, elevAt(x, z) + 0.015, z);
+    shadowDummy.rotation.set(-Math.PI / 2, 0, 0);
+    shadowDummy.scale.setScalar(Math.max(0.4, r));
+    shadowDummy.updateMatrix();
+    if (isStatic) {
+      if (!statShadowInst) {
+        statShadowInst = new t.InstancedMesh(blobGeo, blobMat, SHADOW_MAX);
+        statShadowInst.count = 0;
+        statShadowCount = 0;
+        statGrp.add(statShadowInst);
+      }
+      if (statShadowCount >= SHADOW_MAX) { return; }
+      statShadowInst.setMatrixAt(statShadowCount, shadowDummy.matrix);
+      statShadowCount++;
+      statShadowInst.count = statShadowCount;
+      statShadowInst.instanceMatrix.needsUpdate = true;
+      return;
     }
     if (!shadowInst) {
       shadowInst = new t.InstancedMesh(blobGeo, blobMat, SHADOW_MAX);
@@ -447,11 +482,6 @@
       dyn.add(shadowInst);
     }
     if (shadowCount >= SHADOW_MAX) { return; }   // 안전판 — 넘치면 조용히 그만둔다(그림자 몇 개 없어도 안 티난다)
-    if (!shadowDummy) { shadowDummy = new t.Object3D(); }
-    shadowDummy.position.set(x, elevAt(x, z) + 0.015, z);
-    shadowDummy.rotation.set(-Math.PI / 2, 0, 0);
-    shadowDummy.scale.setScalar(Math.max(0.4, r));
-    shadowDummy.updateMatrix();
     shadowInst.setMatrixAt(shadowCount, shadowDummy.matrix);
     shadowCount++;
     shadowInst.count = shadowCount;
@@ -459,37 +489,49 @@
   }
 
   /** GLB 소품 하나를 세운다(비동기) — cityDressing·scatterSmall·riverPond 가 같이 쓴다.
-   *  `seq` 가 다시 지어진 뒤(늦게 온 콜백)면 조용히 버린다 */
-  function addProp(kind, id, x, z, scaleH, rotY, seq) {
+   *  `grp`(대상 그룹, 기본값 dyn)가 `statGrp`면 **정적 소품** 취급 —
+   *  `rebuildSeq`로 거르지 않는다(`statGrp`는 `buildStaticOnce()`가 딱 한 번만
+   *  채우고 다시 안 비우므로 늦게 온 콜백을 걱정할 일이 없다). 그 외엔
+   *  예전 그대로 `seq`가 다시 지어진 뒤(늦게 온 콜백)면 조용히 버린다 */
+  function addProp(kind, id, x, z, scaleH, rotY, seq, grp) {
+    var g2 = grp || dyn;
+    var isStatic = g2 === statGrp;
     asset3d().build(kind, { id: id }, function (g) {
-      if (seq !== rebuildSeq || !g || !dyn) { return; }
+      if (!g) { return; }
+      if (isStatic) { if (!statGrp) { return; } }
+      else if (seq !== rebuildSeq || !dyn) { return; }
       g.position.set(x, elevAt(x, z), z);
       g.rotation.y = rotY || 0;
       g.scale.setScalar(scaleH);
-      dyn.add(g);
-      addShadow(x, z, scaleH * 0.4);
+      g2.add(g);
+      addShadow(x, z, scaleH * 0.4, g2);
     });
   }
 
   /** 성 둘레 잔장식 — 우물 · 횃불 두 개. 3등급 대성은 성벽 · 시장 · 사찰까지
-   *  더해 "이 나라의 큰 성" 임이 한눈에 보이도록 한다 */
-  function cityDressing(city, tier, h, footprint, seq) {
+   *  더해 "이 나라의 큰 성" 임이 한눈에 보이도록 한다.
+   *  전부 tier·h·footprint(모두 static 값 — `cityTier()`가 읽는 `maxWall`은
+   *  세력이 바뀌어도 안 변한다)로만 정해지고 소유(force)와 무관하다 —
+   *  2026-09-14, `buildStaticOnce()`가 성마다 한 번만 부른다(`grp`는 늘
+   *  `statGrp`). */
+  function cityDressing(city, tier, h, footprint, seq, grp) {
     var cx = worldX(city.x), cz = worldZ(city.y);
-    addProp('well', city.id + ':well', cx - footprint * 1.3, cz + footprint * 0.4, h * 0.5, 0, seq);
-    addProp('torch', city.id + ':torchL', cx + footprint * 1.1, cz + footprint * 0.55, h * 0.45, 0, seq);
-    addProp('torch', city.id + ':torchR', cx + footprint * 1.1, cz - footprint * 0.55, h * 0.45, 0, seq);
+    addProp('well', city.id + ':well', cx - footprint * 1.3, cz + footprint * 0.4, h * 0.5, 0, seq, grp);
+    addProp('torch', city.id + ':torchL', cx + footprint * 1.1, cz + footprint * 0.55, h * 0.45, 0, seq, grp);
+    addProp('torch', city.id + ':torchR', cx + footprint * 1.1, cz - footprint * 0.55, h * 0.45, 0, seq, grp);
     if (tier === 't3') {
-      addProp('wall', city.id + ':wallA', cx, cz + footprint * 1.5, h * 0.6, 0, seq);
-      addProp('wall', city.id + ':wallB', cx, cz - footprint * 1.5, h * 0.6, Math.PI, seq);
-      addProp('market', city.id + ':market', cx + footprint * 1.8, cz + footprint * 0.9, h * 0.55, 0, seq);
-      addProp('temple', city.id + ':temple', cx + footprint * 1.8, cz - footprint * 0.9, h * 0.6, 0, seq);
+      addProp('wall', city.id + ':wallA', cx, cz + footprint * 1.5, h * 0.6, 0, seq, grp);
+      addProp('wall', city.id + ':wallB', cx, cz - footprint * 1.5, h * 0.6, Math.PI, seq, grp);
+      addProp('market', city.id + ':market', cx + footprint * 1.8, cz + footprint * 0.9, h * 0.55, 0, seq, grp);
+      addProp('temple', city.id + ':temple', cx + footprint * 1.8, cz - footprint * 0.9, h * 0.6, 0, seq, grp);
     }
   }
 
-  /** 강가 성 — 물웅덩이 하나 + 갈대 삼아 풀 두 포기. `land: 'river'` 뿐 */
-  function riverPond(city, seq) {
+  /** 강가 성 — 물웅덩이 하나 + 갈대 삼아 풀 두 포기. `land: 'river'` 뿐(static) */
+  function riverPond(city, seq, grp) {
     if (city.land !== 'river') { return; }
     var t = three();
+    var g2 = grp || dyn;
     var cx = worldX(city.x), cz = worldZ(city.y);
     var hh = hashOf(city.id + ':pond');
     var ang = ((hh % 360) / 360) * Math.PI * 2;
@@ -502,14 +544,14 @@
     );
     pond.rotation.x = -Math.PI / 2;
     pond.position.set(px, elevAt(px, pz) + 0.04, pz);
-    dyn.add(pond);
-    addProp('grass', city.id + ':reed1', px + r * 0.6, pz, 0.7, 0, seq);
-    addProp('grass', city.id + ':reed2', px - r * 0.5, pz + r * 0.3, 0.6, 0.8, seq);
+    g2.add(pond);
+    addProp('grass', city.id + ':reed1', px + r * 0.6, pz, 0.7, 0, seq, grp);
+    addProp('grass', city.id + ':reed2', px - r * 0.5, pz + r * 0.3, 0.6, 0.8, seq, grp);
   }
 
   /** 작은 덤불 · 풀 · 꽃 — 나무/바위 큰 레이어 위에 얹는 잔풀 레이어(PLAN 33절
-   *  "큰→중간→작은"). 산지는 암석 지대라 뺀다 */
-  function scatterSmall(city, seq) {
+   *  "큰→중간→작은"). 산지는 암석 지대라 뺀다(static) */
+  function scatterSmall(city, seq, grp) {
     if (city.land === 'mount') { return; }
     var cx = worldX(city.x), cz = worldZ(city.y);
     var n = 4, i;
@@ -522,7 +564,7 @@
       var pick = hh % 3;
       var kind = pick === 0 ? 'bush' : (pick === 1 ? 'grass' : 'flower');
       var scaleH = kind === 'bush' ? (0.8 + (hh % 6) / 10) : (0.5 + (hh % 5) / 10);
-      addProp(kind, city.id + ':' + kind + ':' + hh, px, pz, scaleH, (hh % 628) / 100, seq);
+      addProp(kind, city.id + ':' + kind + ':' + hh, px, pz, scaleH, (hh % 628) / 100, seq, grp);
     }
   }
 
@@ -676,8 +718,8 @@
   }
 
   /** 지형지물 — 산은 봉우리, 구릉은 낮은 둔덕, 나머지는 나무·바위를 몇 개 흩는다.
-   *  같은 성은 늘 같은 자리에 같은 것이 선다(해시 기반 — 매번 안 흔들린다) */
-  function scatterAround(city, seq) {
+   *  같은 성은 늘 같은 자리에 같은 것이 선다(해시 기반 — 매번 안 흔들린다, static) */
+  function scatterAround(city, seq, grp) {
     var cx = worldX(city.x), cz = worldZ(city.y);
     /* 2026-09-10 — "맵이 텅 비어 보인다" 피드백으로 성 하나당 1개씩 늘렸다.
        카메라가 가장 오래 머무는 자리(성 바로 곁)라 여기를 조금만 늘려도
@@ -694,7 +736,7 @@
       if (isSea(px, pz)) { continue; }
       var kind = city.land === 'mount' ? 'mount' : (((hh >> 4) % 3) === 0 ? 'rock' : 'tree');
       var scaleH = kind === 'mount' ? (7 + (hh % 5)) : (kind === 'rock' ? 0.9 : (2.2 + (hh % 12) / 10));
-      addProp(kind, city.id + ':' + kind + ':' + i, px, pz, scaleH, (hh % 628) / 100, seq);
+      addProp(kind, city.id + ':' + kind + ':' + i, px, pz, scaleH, (hh % 628) / 100, seq, grp);
     }
   }
 
@@ -714,8 +756,11 @@
    *  지적에 자연물만이 아니라 사람 손길도 보태려는 것).
    *
    *  2026-09-11 — 같은 재지적으로 확률을 26%→32%, 화전 마을 비율도
-   *  12%→16%로 한 번 더 올렸다(전체 소품 수는 약 874→1070개 선). */
-  function scatterField(seq) {
+   *  12%→16%로 한 번 더 올렸다(전체 소품 수는 약 874→1070개 선).
+   *
+   *  전부 성 좌표·land(둘 다 static)만으로 정해진다(static) — 2026-09-14,
+   *  `buildStaticOnce()`가 한 번만 부른다. */
+  function scatterField(seq, grp) {
     var cities = cityData().CITIES, i, k;
     var minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
     for (i = 0; i < cities.length; i++) {
@@ -748,9 +793,9 @@
            쓴다 — 위치·종류 결정과 안 겹치게) */
         if ((land === 'plain' || land === 'river') && ((hh >> 22) % 100) < 16) {
           addProp('house', 'field:' + Math.round(jx) + ':' + Math.round(jz) + ':house',
-            jx, jz, 1.6 + (hh % 5) / 10, (hh % 628) / 100, seq);
+            jx, jz, 1.6 + (hh % 5) / 10, (hh % 628) / 100, seq, grp);
           addProp('well', 'field:' + Math.round(jx) + ':' + Math.round(jz) + ':well',
-            jx + 2.4, jz + 1.6, 0.7, 0, seq);
+            jx + 2.4, jz + 1.6, 0.7, 0, seq, grp);
           continue;
         }
         if (land === 'mount') {
@@ -766,7 +811,7 @@
           kind = pick < 7 ? 'tree' : (pick < 9 ? 'bush' : 'flower');
           scaleH = kind === 'tree' ? (2 + (hh % 14) / 10) : 0.7;
         }
-        addProp(kind, 'field:' + Math.round(jx) + ':' + Math.round(jz), jx, jz, scaleH, (hh % 628) / 100, seq);
+        addProp(kind, 'field:' + Math.round(jx) + ':' + Math.round(jz), jx, jz, scaleH, (hh % 628) / 100, seq, grp);
       }
     }
   }
@@ -787,7 +832,9 @@
 
       var footprint = Math.max(3.2, h * 0.5);
       addShadow(cx, cz, footprint * 0.9);
-      cityDressing(city, tier, h, footprint, seq);
+      /* 성 둘레 잔장식(우물·횃불·성벽 등)은 소유(force)와 무관한 정적 소품이라
+         2026-09-14부터 여기서 안 짓는다 — `buildStaticOnce()`가 성마다 한 번만
+         짓는다(PLAN 27절 성능 최적화, 아래 그 함수 머리말 참고). */
       var hitGeo = new t.CylinderGeometry(footprint, footprint, h, 10);
       var hit = new t.Mesh(hitGeo, new t.MeshBasicMaterial({ visible: false }));
       hit.position.set(cx, gy + h / 2, cz);
@@ -843,13 +890,43 @@
     });
   }
 
-  /** 성·길·지형을 통째로 다시 짓는다 — 세력이 바뀌거나(정벌) 달이 넘어갈 때 */
+  /** 지형 소품(나무·바위·잔풀·성 둘레 장식·강가 웅덩이·빈 들의 화전 마을 등)을
+   *  **딱 한 번만** 짓는다 — 2026-09-14, 성능 최적화(PLAN 27절 "필요하지 않은
+   *  오브젝트 업데이트 중지"). 전부 성 좌표·land·maxWall처럼 세력이 바뀌어도
+   *  안 변하는 static 값만으로 정해지는데, 예전엔 `rebuild()`가
+   *  `core.on('changed')`(무장 등용·시장 거래·행군 등 판정 하나마다 울린다,
+   *  달 넘김 뿐이 아니다)마다 이 소품들(지역 열한 곳 기준 2천 개 안팎)을
+   *  통째로 허물고 다시 지었다 — `scatterField()`만 해도 격자 칸 수 ×
+   *  성 수(90여 곳)만큼 최근접 성을 다시 찾는 반복이라, 화면과 무관한 명령
+   *  하나에도 그 계산과 GLB 인스턴스 생성이 고스란히 다시 돌았다. `statGrp`는
+   *  `clearDyn()`이 안 건드리는 별도 그룹이라 여기 얹은 것은 게임이 끝날
+   *  때까지(페이지가 살아있는 동안) 그대로 남는다 — 성 목록 자체가
+   *  시나리오·세력이 바뀌어도 안 바뀌므로 다시 지을 이유가 없다. */
+  function buildStaticOnce() {
+    if (staticBuilt || !statGrp) { return; }
+    staticBuilt = true;
+    var cities = cityData().CITIES, i;
+    for (i = 0; i < cities.length; i++) {
+      var city = cities[i];
+      var tier = cityTier(city), h = TIER_H[tier], footprint = Math.max(3.2, h * 0.5);
+      cityDressing(city, tier, h, footprint, 0, statGrp);
+      scatterAround(city, 0, statGrp);
+      scatterSmall(city, 0, statGrp);
+      riverPond(city, 0, statGrp);
+    }
+    scatterField(0, statGrp);
+  }
+
+  /** 성·길·진영을 다시 짓는다 — 세력이 바뀌거나(정벌) 달이 넘어갈 때(`changed`
+   *  가 울릴 때마다). 2026-09-14부터 지형 소품은 여기 없다 — `buildStaticOnce()`
+   *  가 따로, 한 번만 짓는다(위 머리말 참고). */
   function rebuild() {
     if (!ready) { return; }
     rebuildSeq++;
     clearDyn();
     var st = R().state();
     if (!st || !st.started) { return; }
+    buildStaticOnce();
     var cities = cityData().CITIES, i, j, drawn = {};
 
     for (i = 0; i < cities.length; i++) {
@@ -876,11 +953,7 @@
     var seq = rebuildSeq;
     for (i = 0; i < cities.length; i++) {
       buildCity(cities[i], st.cities[cities[i].id], st.me);
-      scatterAround(cities[i], seq);
-      scatterSmall(cities[i], seq);
-      riverPond(cities[i], seq);
     }
-    scatterField(seq);
 
     /* 진(陣) — 물러나지 않고 성 밖에 진 친 부대. 내 것·남의 것 다 세운다
        (이 판은 애초에 안 가린 정보라 — enemyCity() 도 적 성 살림을 그대로 보여준다) */
