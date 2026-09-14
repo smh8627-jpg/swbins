@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Forest.Data;
 using Saga.Forest.UI;
 
 namespace Saga.Forest.World
@@ -244,7 +245,8 @@ namespace Saga.Forest.World
         {
             _aggroCooldownUntil = Time.time + AggroCooldownSec;
             DialogueLabel.Instance?.Show(
-                won ? "포자괴물을 몰아냈다!" : "포자괴물이 슬그머니 물러갔다.", 3f);
+                won ? ForestLocalization.T("encounter.won", "포자괴물을 몰아냈다!")
+                    : ForestLocalization.T("encounter.lost", "포자괴물이 슬그머니 물러갔다."), 3f);
             StartFlee(); // 승패와 무관하게 물러난다 — 처벌 없음(클래스 주석 참고).
         }
 

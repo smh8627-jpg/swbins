@@ -65,12 +65,14 @@ namespace Saga.Forest.World
                 {
                     _house?.RepaintFinish();
                     DialogueLabel.Instance?.Show(
-                        $"도배전 — {item.Name}을(를) 사서 발랐다(과일 -{item.FruitCost}).", ToastSec);
+                        string.Format(ForestLocalization.T("finish.stall.bought", "도배전 — {0}을(를) 사서 발랐다(과일 -{1})."),
+                            item.Name, item.FruitCost), ToastSec);
                 }
                 else
                 {
                     DialogueLabel.Instance?.Show(
-                        $"도배전 — 눈에 든 건 {item.Name}(과일 {item.FruitCost}개)인데, 과일이 모자라 못 샀다(보유 {ForestState.FruitCount}개).",
+                        string.Format(ForestLocalization.T("finish.stall.cant_afford", "도배전 — 눈에 든 건 {0}(과일 {1}개)인데, 과일이 모자라 못 샀다(보유 {2}개)."),
+                            item.Name, item.FruitCost, ForestState.FruitCount),
                         ToastSec);
                 }
                 return;
@@ -84,7 +86,9 @@ namespace Saga.Forest.World
             var pick = all[Random.Range(0, all.Count)];
             ForestHomeState.TryBuyAndEquipFinish(pick.Kind, pick.Item.Key);
             _house?.RepaintFinish();
-            DialogueLabel.Instance?.Show($"도배전 — 이미 다 가졌다. 오늘은 {pick.Item.Name}로 갈아입어 본다.", ToastSec);
+            DialogueLabel.Instance?.Show(
+                string.Format(ForestLocalization.T("finish.stall.swap", "도배전 — 이미 다 가졌다. 오늘은 {0}로 갈아입어 본다."), pick.Item.Name),
+                ToastSec);
         }
     }
 }

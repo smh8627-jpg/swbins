@@ -23,7 +23,9 @@ namespace Saga.Forest.Data
     public class FurnitureItem
     {
         public readonly string Id;
-        public readonly string Name;
+        private readonly string _name;
+        /// <summary>Localization — RealmCityData.Name 등과 같은 결(T(key, fallback)).</summary>
+        public string Name => ForestLocalization.T("furniture." + Id, _name);
         public readonly FurnitureSet Set;
         public readonly int Value;      // 집 평가 점수 계산용(웹판 '냥' 값 그대로) — 실제 통화 아님.
         public readonly int FruitCost;  // 실제 구매가(과일 개수).
@@ -32,7 +34,7 @@ namespace Saga.Forest.Data
         private FurnitureItem(string id, string name, FurnitureSet set, int value, bool isCylinder)
         {
             Id = id;
-            Name = name;
+            _name = name;
             Set = set;
             Value = value;
             FruitCost = System.Math.Max(1, (int)System.Math.Round(value / 100.0));
@@ -71,28 +73,29 @@ namespace Saga.Forest.Data
 
         public static string SetName(FurnitureSet set) => set switch
         {
-            FurnitureSet.Anbang => "안방",
-            FurnitureSet.Sarang => "사랑방",
-            FurnitureSet.Buok => "부엌",
-            FurnitureSet.Ddeul => "뜰",
+            FurnitureSet.Anbang => ForestLocalization.T("furniture.set.anbang", "안방"),
+            FurnitureSet.Sarang => ForestLocalization.T("furniture.set.sarang", "사랑방"),
+            FurnitureSet.Buok => ForestLocalization.T("furniture.set.buok", "부엌"),
+            FurnitureSet.Ddeul => ForestLocalization.T("furniture.set.ddeul", "뜰"),
             _ => "",
         };
 
-        /// <summary>웹판 `HOME_GRADES` 그대로(점수 문턱·이름).</summary>
-        public static readonly (int At, string Name)[] Grades =
+        /// <summary>웹판 `HOME_GRADES` 그대로(점수 문턱·이름). Key는 Localization
+        /// 조회용(Name은 ko 원문 fallback).</summary>
+        public static readonly (int At, string Key, string Name)[] Grades =
         {
-            (0, "휑한 방"), (30, "살림이 든 방"), (80, "정갈한 집"),
-            (160, "아취 있는 집"), (280, "이름난 집"), (450, "명가(名家)"),
+            (0, "grade0", "휑한 방"), (30, "grade1", "살림이 든 방"), (80, "grade2", "정갈한 집"),
+            (160, "grade3", "아취 있는 집"), (280, "grade4", "이름난 집"), (450, "grade5", "명가(名家)"),
         };
 
         public static string GradeName(int total)
         {
-            string name = Grades[0].Name;
+            var grade = Grades[0];
             foreach (var g in Grades)
             {
-                if (total >= g.At) name = g.Name;
+                if (total >= g.At) grade = g;
             }
-            return name;
+            return ForestLocalization.T("home." + grade.Key, grade.Name);
         }
     }
 }

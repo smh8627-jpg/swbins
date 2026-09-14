@@ -17,7 +17,9 @@ namespace Saga.Forest.Data
     public class FinishItem
     {
         public readonly string Key;
-        public readonly string Name;
+        private readonly string _name;
+        /// <summary>Localization — ForestHomeData.FurnitureItem.Name과 같은 결.</summary>
+        public string Name => ForestLocalization.T("finish." + Key, _name);
         public readonly FinishKind Kind;
         public readonly int Value;     // 원작 '냥' 가격(참고용).
         public readonly int FruitCost; // 실제 구매가(과일 개수) — 기본 한 벌은 0.
@@ -25,7 +27,7 @@ namespace Saga.Forest.Data
         public FinishItem(string key, string name, FinishKind kind, int value)
         {
             Key = key;
-            Name = name;
+            _name = name;
             Kind = kind;
             Value = value;
             FruitCost = value <= 0 ? 0 : System.Math.Max(1, (int)System.Math.Round(value / 100.0));

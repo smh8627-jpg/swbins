@@ -22,7 +22,7 @@ namespace Saga.Forest.World
         private const float TreeScale = 4.5f; // GO VegetationBuilder.cs와 같은 값(tree_oak.glb 실측 기준).
         private const float GatherRadius = 2.5f;
         private const float GatherCooldownSec = 2f;
-        private const string FruitName = "산딸기";
+        private static string FruitName => ForestLocalization.T("fruit.name", "산딸기");
         private const float ToastSec = 3f;
 
         [SerializeField] private GameObject treeModel; // BuildTestVillageForestScene.cs가 tree_oak.glb를 채운다.
@@ -78,7 +78,10 @@ namespace Saga.Forest.World
 
             _cooldownLeft = GatherCooldownSec;
             ForestState.AddFruit(1);
-            DialogueLabel.Instance?.Show($"나무를 흔들었다 — {FruitName}을(를) 주웠다 (보유 {ForestState.FruitCount}개)", ToastSec);
+            DialogueLabel.Instance?.Show(
+                string.Format(ForestLocalization.T("fruit.gather_toast", "나무를 흔들었다 — {0}을(를) 주웠다 (보유 {1}개)"),
+                    FruitName, ForestState.FruitCount),
+                ToastSec);
         }
     }
 }

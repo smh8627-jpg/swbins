@@ -56,13 +56,15 @@ namespace Saga.Forest.World
             if (ForestHomeState.TryBuy(item.Id))
             {
                 DialogueLabel.Instance?.Show(
-                    $"가구전 — {item.Name}을(를) 샀다(과일 -{item.FruitCost}) — 빈 자리에 다가가면 창고에서 놓인다.",
+                    string.Format(ForestLocalization.T("furniture.stall.bought", "가구전 — {0}을(를) 샀다(과일 -{1}) — 빈 자리에 다가가면 창고에서 놓인다."),
+                        item.Name, item.FruitCost),
                     ToastSec);
             }
             else
             {
                 DialogueLabel.Instance?.Show(
-                    $"가구전 — 오늘 눈에 든 건 {item.Name}(과일 {item.FruitCost}개)인데, 과일이 모자라 못 샀다(보유 {ForestState.FruitCount}개).",
+                    string.Format(ForestLocalization.T("furniture.stall.cant_afford", "가구전 — 오늘 눈에 든 건 {0}(과일 {1}개)인데, 과일이 모자라 못 샀다(보유 {2}개)."),
+                        item.Name, item.FruitCost, ForestState.FruitCount),
                     ToastSec);
             }
         }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Forest.Data;
 using Saga.Forest.UI;
 
 namespace Saga.Forest.World
@@ -15,8 +16,8 @@ namespace Saga.Forest.World
     /// </summary>
     public class ForestVillager : MonoBehaviour
     {
-        private const string DisplayName = "숲지기";
-        private const string Line = "이 숲은 내가 돌본다 — 짐승을 함부로 놀라게 하지 마시게.";
+        private static string DisplayName => ForestLocalization.T("villager.keeper.name", "숲지기");
+        private static string Line => ForestLocalization.T("villager.keeper.line", "이 숲은 내가 돌본다 — 짐승을 함부로 놀라게 하지 마시게.");
         private const float TalkRadius = 2.5f;
         private const float RetalkCooldownSec = 4f;
         private const float ToastSec = 4f;

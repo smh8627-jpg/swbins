@@ -77,21 +77,26 @@ namespace Saga.Forest.World
             {
                 string pickedId = ForestHomeState.PickUp(cell);
                 var item = FurnitureItem.Get(pickedId);
-                DialogueLabel.Instance?.Show($"{(item != null ? item.Name : pickedId)}을(를) 창고로 거두었다.", ToastSec);
+                DialogueLabel.Instance?.Show(
+                    string.Format(ForestLocalization.T("furniture.placer.pickup", "{0}을(를) 창고로 거두었다."),
+                        item != null ? item.Name : pickedId),
+                    ToastSec);
             }
             else
             {
                 string placedId = ForestHomeState.TryPlaceAny(cell);
                 if (placedId == null)
                 {
-                    DialogueLabel.Instance?.Show("놓을 가구가 창고에 없다 — 가구전에서 먼저 사야 한다.", ToastSec);
+                    DialogueLabel.Instance?.Show(
+                        ForestLocalization.T("furniture.placer.empty_storage", "놓을 가구가 창고에 없다 — 가구전에서 먼저 사야 한다."),
+                        ToastSec);
                     return;
                 }
                 var item = FurnitureItem.Get(placedId);
                 var (total, count, _, _) = ForestHomeState.Score();
                 DialogueLabel.Instance?.Show(
-                    $"{(item != null ? item.Name : placedId)}을(를) 놓았다 — 집 평가: {FurnitureItem.GradeName(total)}"
-                    + $"({total}점, 가구 {count}개)",
+                    string.Format(ForestLocalization.T("furniture.placer.placed", "{0}을(를) 놓았다 — 집 평가: {1}({2}점, 가구 {3}개)"),
+                        item != null ? item.Name : placedId, FurnitureItem.GradeName(total), total, count),
                     ToastSec);
             }
         }
