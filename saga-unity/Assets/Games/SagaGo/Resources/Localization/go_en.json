@@ -60,6 +60,24 @@
     { "key": "encounter.wolf_avoid_msg", "value": "Held its breath and quietly turned away." },
     { "key": "encounter.wolf_tell", "value": "The wolf crouches low — dodge before it pounces!" },
     { "key": "encounter.wolf_victory", "value": "Defeated the {0} — rare monster subdued!\n+{1} EXP · +{2} Gold" },
-    { "key": "encounter.loot_certain", "value": "\nObtained {0} for certain." }
+    { "key": "encounter.loot_certain", "value": "\nObtained {0} for certain." },
+    { "key": "combat.timer", "value": "{0}s" },
+    { "key": "combat.momentum", "value": "Momentum" },
+    { "key": "combat.morale", "value": "Morale" },
+    { "key": "combat.ki", "value": "Ki" },
+    { "key": "encounter.bandit_tell", "value": "A heavy blow is coming — dodge!" },
+    { "key": "event.hidden_treasure", "value": "Found a hidden treasure! Got {0}. +{1} EXP · +{2} Gold" },
+    { "key": "event.grove_relic", "value": "Found an old stone pillar — a trace of someone long ago. +{0} EXP · +{1} Gold" },
+    { "key": "event.gather", "value": "Picked wild greens — sold for medicine, +{0} Gold" },
+    { "key": "event.mountain_shrine", "value": "Received the mountain spirit's blessing — +{0} EXP · +{1} Gold" },
+    { "key": "event.animal_flee", "value": "The animal got startled and ran off." },
+    { "key": "event.cairn_broke", "value": "Village shrine cairn — not enough travel money to make a wish." },
+    { "key": "event.cairn_reward_suffix", "value": " (+{0} Gold" },
+    { "key": "event.cairn_reward_exp_suffix", "value": " · +{0} EXP)" },
+    { "key": "event.cairn_wish", "value": "Placed a stone and made a wish — {0}{1}" },
+    { "key": "event.cairn_outcome_none", "value": "Nothing happened." },
+    { "key": "event.cairn_outcome_small", "value": "A small stroke of luck — a bit of gold came back." },
+    { "key": "event.cairn_outcome_medium", "value": "A fair bit of luck — a good deal of gold came back." },
+    { "key": "event.cairn_outcome_big", "value": "Great luck! Body and mind both feel lighter." }
   ]
 }

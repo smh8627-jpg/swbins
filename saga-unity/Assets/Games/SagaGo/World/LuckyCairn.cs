@@ -25,6 +25,7 @@ namespace Saga.Go.World
 
         private struct Outcome
         {
+            public string Key;
             public string Text;
             public int Gold;
             public int Exp;
@@ -34,10 +35,10 @@ namespace Saga.Go.World
         // 합 100 — 대략 절반은 본전도 못 건지고, 아주 드물게 크게 웃는다.
         private static readonly Outcome[] Outcomes =
         {
-            new Outcome { Text = "아무 일도 일어나지 않았다.", Gold = 0, Exp = 0, Weight = 50f },
-            new Outcome { Text = "작은 행운 — 돈이 조금 돌아왔다.", Gold = 5, Exp = 0, Weight = 32f },
-            new Outcome { Text = "제법 큰 행운 — 돈이 두둑이 돌아왔다.", Gold = 15, Exp = 0, Weight = 14f },
-            new Outcome { Text = "큰 행운! 몸도 마음도 가벼워졌다.", Gold = 20, Exp = 10, Weight = 4f },
+            new Outcome { Key = "none", Text = "아무 일도 일어나지 않았다.", Gold = 0, Exp = 0, Weight = 50f },
+            new Outcome { Key = "small", Text = "작은 행운 — 돈이 조금 돌아왔다.", Gold = 5, Exp = 0, Weight = 32f },
+            new Outcome { Key = "medium", Text = "제법 큰 행운 — 돈이 두둑이 돌아왔다.", Gold = 15, Exp = 0, Weight = 14f },
+            new Outcome { Key = "big", Text = "큰 행운! 몸도 마음도 가벼워졌다.", Gold = 20, Exp = 10, Weight = 4f },
         };
 
         private float _lastWishTime = -CooldownSec;
@@ -91,7 +92,7 @@ namespace Saga.Go.World
 
             if (!GoldState.TrySpend(WishCost))
             {
-                DialogueLabel.Instance?.Show("성황당 돌무더기 — 노잣돈이 모자라 기원하지 못했다.", 2.5f);
+                DialogueLabel.Instance?.Show(GoLocalization.T("event.cairn_broke", "성황당 돌무더기 — 노잣돈이 모자라 기원하지 못했다."), 2.5f);
                 return;
             }
 
@@ -101,9 +102,12 @@ namespace Saga.Go.World
             if (outcome.Exp > 0) PlayerStats.AddExp(outcome.Exp);
 
             string reward = (outcome.Gold > 0 || outcome.Exp > 0)
-                ? $" (돈 +{outcome.Gold}냥" + (outcome.Exp > 0 ? $" · 경험치 +{outcome.Exp})" : ")")
+                ? string.Format(GoLocalization.T("event.cairn_reward_suffix", " (돈 +{0}냥"), outcome.Gold)
+                    + (outcome.Exp > 0 ? string.Format(GoLocalization.T("event.cairn_reward_exp_suffix", " · 경험치 +{0})"), outcome.Exp) : ")")
                 : "";
-            DialogueLabel.Instance?.Show($"돌 하나를 얹고 기원했다 — {outcome.Text}{reward}", 3f);
+            string outcomeText = GoLocalization.T("event.cairn_outcome_" + outcome.Key, outcome.Text);
+            DialogueLabel.Instance?.Show(
+                string.Format(GoLocalization.T("event.cairn_wish", "돌 하나를 얹고 기원했다 — {0}{1}"), outcomeText, reward), 3f);
         }
 
         private static Outcome Roll()

@@ -113,7 +113,7 @@ namespace Saga.Go.World
 
             if (announce)
             {
-                DialogueLabel.Instance?.Show("동물이 놀라 달아난다.", 2f);
+                DialogueLabel.Instance?.Show(GoLocalization.T("event.animal_flee", "동물이 놀라 달아난다."), 2f);
                 foreach (var other in Active)
                 {
                     if (other == this) continue;
