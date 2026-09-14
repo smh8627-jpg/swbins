@@ -4516,3 +4516,38 @@ DUNGEON/FOREST/REALM은 각 항목(탐험·지역·이벤트·수집·희귀 몬
 각각 새 시스템 설계가 필요해 사용자 방향이 더 필요하다. NPC 시각도
 아직 fallback capsule뿐(44장 우선순위 표엔 애초에 NPC가 없던 새 칸이라
 리깅된 모델을 아직 안 붙였다).
+
+## 같은 날 또 후속 — STORY에 "사건"(월드 이벤트) (2026-09-14, 네 번째 "묻지 말고 이어해")
+
+NPC 칸에 이어 51장 남은 셋 중 "사건"을 채웠다 — PLAN.md 72~73장(World
+Event/Hidden Area)과도 겹치는 항목이라 GO `Data/WorldEventState.cs`를
+그대로 복사해 `Saga.Story.Data.StoryWorldEventState`를 만들고, 발판
+다섯 자리 중 가장 높은 #3(4.4m) 위에 `StoryDiscovery`(GO
+`HiddenTreasure.cs`와 같은 결) 하나를 얹었다. STORY엔 골드·인벤토리가
+없어 GO식 전리품 대신 이미 있는 자원(MP)을 가득 채우는 걸로 보상을
+대신했다 — `StoryCombat.RestoreMp`를 재사용, 새 보상 체계를 안 만들었다.
+세이브 스키마를 v2→v3으로 올려 `triggeredEvents`를 추가했다(구버전
+세이브는 null로 들어와 `Restore(null)`이 빈 집합 처리 — 무해).
+
+**버그 하나 잡음(같은 세션 안에서)** — `PlaytestStorySlice.cs`의 Init
+단계가 이미 `StoryQuestState.Restore(0, 0)`으로 "이전 실행이 남긴
+save_story.json을 무시"하고 있었는데, 새로 추가한
+`StoryWorldEventState`는 그 초기화에서 빠뜨려서 **두 번째·세 번째 실행부터
+비결정적으로 실패**했다(첫 실행만 통과, 이후론 계속 실패) — 원인은
+`GameBootstrap.Start()`가 Awake 이후 자동으로 `SaveState.TryLoad()`를
+불러 직전 실행이 저장해 둔 "field_lookout"을 이미 트리거된 걸로
+복원해 버린 것. `StoryQuestState.Restore(0, 0)` 바로 옆에
+`StoryWorldEventState.Restore(null)`을 추가해 고쳤다 — **새 정적 상태를
+테스트 Init 단계에 추가할 땐 항상 이 리셋 목록에도 같이 넣을 것**
+(이 파일에 이미 있던 교훈인데 새 상태 추가 시 깜빡 빠뜨리기 쉽다는 걸
+실제로 겪음).
+
+검증: 배치 모드 컴파일 → `BuildTestStoryScene` 재빌드 →
+`PlaytestStorySlice`(TriggerDiscovery 단계 신규 — 이벤트 트리거·MP 복원·
+중복 방지·세이브 라운드트립까지 확인) 3연속 통과(위 버그를 고친 뒤).
+커밋·푸시 완료.
+
+**다음에 볼 것**: STORY 51장 마지막 하나(관계)는 이번에도 안 함 — NPC가
+아직 하나뿐이라 "관계(호감도)"를 만들어도 상대가 하나라 의미가 약하다,
+NPC를 더 늘리거나 방향을 다시 받은 뒤에 볼 것. "선택"(대화 분기)도
+마찬가지로 미착수.

@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using Saga.Story.World;
 using Saga.Story.Player;
 using Saga.Story.UI;
+using Saga.Story.Data;
 
 namespace Saga.EditorTools
 {
@@ -50,6 +51,7 @@ namespace Saga.EditorTools
             BuildTerrain();
             BuildEnemies();
             BuildNpc();
+            BuildDiscovery();
             var (playerGo, playerController) = BuildPlayer();
             BuildCamera();
             BuildPostProcessingVolume();
@@ -181,6 +183,17 @@ namespace Saga.EditorTools
             var npcGo = new GameObject("Npc_Scout");
             npcGo.transform.position = new Vector3(0.6f, 0.1f, 0f);
             npcGo.AddComponent<StoryNpc>();
+        }
+
+        /// <summary>PLAN.md 72~73장 World Event / Hidden Area + 51장
+        /// "STORY 확장 — 사건" 첫 슬라이스 — 발판 다섯 자리 중 가장 높은
+        /// #3(index 3) 위에 세운다(StoryDiscovery.cs 클래스 주석 참고).</summary>
+        private static void BuildDiscovery()
+        {
+            var platform = FieldMapData.Platforms()[3];
+            var discoveryGo = new GameObject("Discovery_Lookout");
+            discoveryGo.transform.position = new Vector3(platform.X, platform.Height + 0.4f, 0f);
+            discoveryGo.AddComponent<StoryDiscovery>();
         }
 
         private static (GameObject playerGo, StoryPlayerController controller) BuildPlayer()

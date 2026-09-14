@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -15,7 +16,11 @@ namespace Saga.Story.Data
     /// </summary>
     public static class StorySaveState
     {
-        private const int SaveVersion = 2; // v2 — "콘텐츠 확장"(두목 사명), bossKills 추가.
+        // v3 — "STORY 확장 — 사건"(2026-09-14), 숨은 발견(field_lookout)이
+        // 다시 안 나오도록 triggeredEvents 추가. 구버전 세이브는 이 필드가
+        // null로 들어와도 StoryWorldEventState.Restore(null)이 빈 집합으로
+        // 처리해 무해하다.
+        private const int SaveVersion = 3;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_story.json");
 
@@ -26,6 +31,7 @@ namespace Saga.Story.Data
             public float[] playerPos;
             public int kills;
             public int bossKills;
+            public string[] triggeredEvents;
         }
 
         public static bool Save()
@@ -33,12 +39,14 @@ namespace Saga.Story.Data
             Transform player = FindPlayer();
             if (player == null) return false;
 
+            var events = new List<string>(StoryWorldEventState.TriggeredIds);
             var data = new SaveData
             {
                 version = SaveVersion,
                 playerPos = new[] { player.position.x, player.position.y, player.position.z },
                 kills = StoryQuestState.Kills,
                 bossKills = StoryQuestState.BossKills,
+                triggeredEvents = events.ToArray(),
             };
 
             try
@@ -70,6 +78,7 @@ namespace Saga.Story.Data
             if (data == null || data.version > SaveVersion) return false;
 
             StoryQuestState.Restore(data.kills, data.bossKills);
+            StoryWorldEventState.Restore(data.triggeredEvents);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

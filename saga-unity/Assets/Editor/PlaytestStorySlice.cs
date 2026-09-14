@@ -42,7 +42,7 @@ namespace Saga.EditorTools
 
         private enum Phase
         {
-            Init, TalkNpc, KillEnemies, KillBoss, SweepTest, BoltCast, BoltWait, BraceTest,
+            Init, TalkNpc, TriggerDiscovery, KillEnemies, KillBoss, SweepTest, BoltCast, BoltWait, BraceTest,
             LandBeforeJump, EnterRope, RopeTopClearance, RopeDescend, ExitRope, SaveLoad, Done,
         }
         private static Phase _phase = Phase.Init;
@@ -154,6 +154,7 @@ namespace Saga.EditorTools
                     // 단계가 디스크에 남긴 파일 — 실제로 겪음). 존재를 가정하지
                     // 않고 이 테스트가 스스로 시작 상태를 못박는다.
                     StoryQuestState.Restore(0, 0);
+                    StoryWorldEventState.Restore(null); // 위와 같은 이유 — 이전 실행이 남긴 save_story.json 무시.
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -188,6 +189,52 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestStorySlice] npc talk OK - \"{label.text}\"");
+                    _phase = Phase.TriggerDiscovery;
+                    break;
+                }
+
+                case Phase.TriggerDiscovery:
+                {
+                    // PLAN.md 72~73장 World Event / Hidden Area 검증 — 위
+                    // TalkNpc와 같은 이유(헤드리스 환경 물리 트리거 불신)로
+                    // OnTriggerEnter를 직접 호출한다. MP를 일부러 깎아 둔
+                    // 뒤 발견 보상(RestoreMp)이 실제로 채우는지까지 본다.
+                    var discoveryGo = GameObject.Find("Discovery_Lookout");
+                    var discovery = discoveryGo != null ? discoveryGo.GetComponent<StoryDiscovery>() : null;
+                    if (discovery == null)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] Discovery_Lookout를 씬에서 못 찾음");
+                        Fail();
+                        return;
+                    }
+                    StoryCombat.RestoreMp(0f);
+                    var method = typeof(StoryDiscovery).GetMethod("OnTriggerEnter", BindingFlags.NonPublic | BindingFlags.Instance);
+                    method.Invoke(discovery, new object[] { _playerController });
+
+                    if (!StoryWorldEventState.IsTriggered(StoryDiscovery.EventId))
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 망루 발견 트리거를 불렀는데 StoryWorldEventState에 안 남음");
+                        Fail();
+                        return;
+                    }
+                    if (Mathf.Abs(StoryCombat.Mp - StoryCombat.MpMax) > 0.01f)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 발견 보상이 MP를 안 채움 mp={StoryCombat.Mp}(기대={StoryCombat.MpMax})");
+                        Fail();
+                        return;
+                    }
+                    // Destroy()는 실제 파괴를 프레임 끝으로 미뤄(StoryEnemy.IsDead
+                    // 주석과 같은 함정) 같은 프레임에 GameObject.Find로 확인할 수
+                    // 없다 — 대신 State 쪽 자체 중복 방지를 본다(같은 id를 또
+                    // 트리거해도 false여야 한다, 오브젝트 파괴 타이밍과 무관).
+                    if (StoryWorldEventState.TryTrigger(StoryDiscovery.EventId))
+                    {
+                        Debug.LogError("[PlaytestStorySlice] StoryWorldEventState가 같은 id 중복 트리거를 막지 못함");
+                        Fail();
+                        return;
+                    }
+
+                    Debug.Log("[PlaytestStorySlice] discovery OK - event triggered, mp restored, object cleared, dedupe OK");
                     _phase = Phase.KillEnemies;
                     break;
                 }
@@ -496,6 +543,9 @@ namespace Saga.EditorTools
                     // 무해하다). 하드코딩된 3 대신 실제 값을 저장 직전에 읽는다.
                     int killsBeforeSave = StoryQuestState.Kills;
                     int bossKillsBeforeSave = StoryQuestState.BossKills; // KillBoss phase에서 이미 1.
+                    // TriggerDiscovery phase에서 이미 true — 세이브 스키마
+                    // v3(2026-09-14)가 이걸 저장/복원하는지까지 같이 본다.
+                    bool discoveredBeforeSave = StoryWorldEventState.IsTriggered(StoryDiscovery.EventId);
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -505,6 +555,7 @@ namespace Saga.EditorTools
 
                     // 상태를 지운 뒤 다시 불러와 그대로 돌아오는지 확인.
                     StoryQuestState.Restore(0, 0);
+                    StoryWorldEventState.Restore(null);
                     TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                     if (!StorySaveState.TryLoad())
                     {
@@ -515,6 +566,12 @@ namespace Saga.EditorTools
                     if (StoryQuestState.Kills != killsBeforeSave || StoryQuestState.BossKills != bossKillsBeforeSave)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 로드 후 kills={StoryQuestState.Kills}(기대={killsBeforeSave}) bossKills={StoryQuestState.BossKills}(기대={bossKillsBeforeSave})");
+                        Fail();
+                        return;
+                    }
+                    if (StoryWorldEventState.IsTriggered(StoryDiscovery.EventId) != discoveredBeforeSave)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 discovery triggered={StoryWorldEventState.IsTriggered(StoryDiscovery.EventId)}(기대={discoveredBeforeSave})");
                         Fail();
                         return;
                     }
