@@ -2158,3 +2158,35 @@ enemies 104·gold 3200·force 12개로 정확히 원복까지 확인 후 삭제,
 따라가는 자리 정리 (3) 3D 몬스터 자산(GLB, 66-2장). 그 밖엔 REALM
 밖(다른 네 판·saga-unity 트랙)으로도 진지하게 고려할 자리 — REALM
 "포함" 목록 자체는 이제 다 채워졌다.
+
+## 28. 시나리오 재배정 라벨 정리 — lord_of() (2026-09-14, 같은 날 이어서, "이어해 묻지 말고")
+
+27절이 "다음에 할 일" (2)로 남긴 것. `realm_diplo_button.gd _lord_name()`이
+성의 **정적** `lord` 필드(194 기준)를 직접 읽어서, 200에서 force가
+재배정된 7개 성(계·북평·북해→shao, 건업·시상·회계→quan, 여남→bei)의
+"외교 — 누구와" 목록이 여전히 옛 주인 이름(공손찬·공융·손책·원술)을
+보여줄 뻔했다.
+
+`realm_cities.gd`에 `FORCE_LORD`(force_id→그 세력 군주, `data-force.js`
+각 FORCES_* 항목의 `lord` 그대로 — 세력은 시나리오가 바뀌어도 군주가
+안 바뀐다, 손책→손권처럼 force id 자체가 바뀌는 quan만 예외로 명시)
+신규. `realm_save_state.gd`에 `lord_of(city_id)` 신규 —
+`force_of(city_id)`가 이미 답한 "지금 세력"을 `FORCE_LORD`로 한 번 더
+거친다(재야 성은 force가 없어 자연히 빈 문자열). `_lord_name()`이 이
+함수를 쓰도록 갈아 끼웠다 — `enemy_def`(정적 조회) 자체를 더는 안 쓴다.
+
+검증(헤드리스): 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 세 번
+연속 로그 완전 동일. 임시 씬으로 194에서 `lord_of(jixian)`=="공손찬
+그대로"·`lord_of(xiaopei)`=="유비"·재야 성은 빈 문자열, `start_
+scenario("200")` 뒤 `lord_of(jixian)`=="원소"(재배정 확인)·
+`lord_of(jianye)`=="손권"(ce→quan 인물 교체 확인)·`lord_of(runan)`==
+"유비"(shu→bei)·`lord_of(ye)`=="원소"(안 바뀐 자리도 여전히 맞음)·
+`lord_of(luoyang)`==""(우리 성이 됨) 전부 확인, `Characters.find()`로
+실제 표시 이름("패항" 등)까지 뽑아 본 뒤 삭제, 재검증까지 마쳤다.
+`.import` 잡음만 되돌림.
+
+**다음에 할 일** — REALM 4절 "제외"의 후속 작업 중 이제 (1) "새 게임"
+시나리오 고르기 UI (2) 3D 몬스터 자산(GLB, 66-2장) 둘만 남는다. 둘 다
+새 UI/렌더링 하부구조가 필요하다 — 다음 세션은 방향을 확인하거나
+더 잘게 쪼갤 방법을 먼저 찾을 것. 그 밖엔 REALM 밖(다른 네 판·
+saga-unity 트랙)으로도 진지하게 고려할 자리.

@@ -256,6 +256,17 @@ func force_of(city_id: String) -> String:
 	return String(city_force.get(city_id, ""))
 
 
+## **2026-09-14 추가 — 이 성이 "지금" 섬기는 군주.** `RealmCities.
+## enemy_by_id(city_id).lord`(정적, 194 기준)를 직접 읽지 않는다 —
+## 200에서 force가 재배정된 성(계·북평·북해→shao 등)은 그 정적 값이
+## 옛 주인을 가리켜서 화면에 옛 이름이 뜬다(`realm_diplo_button.gd`
+## `_lord_name()`이 처음 이걸로 걸렸다). `force_of()`가 이미 답한
+## "지금 세력"을 `RealmCities.FORCE_LORD`로 한 번 더 거친다 — 재야
+## 성(force 없음)은 FORCE_LORD에도 없어 자연히 빈 문자열이 나온다.
+func lord_of(city_id: String) -> String:
+	return String(RealmCities.FORCE_LORD.get(force_of(city_id), ""))
+
+
 ## city_force가 실제로 갖는 force마다 우호 기본값(40)을 채운다 — 세력이
 ## 같은 여러 성을 가리켜도(예: 200의 shao는 여섯) 세력당 한 번만.
 ## **2026-09-14 — city_force 기준으로 갈아 끼웠다**(예전엔 ENEMY_CITIES의

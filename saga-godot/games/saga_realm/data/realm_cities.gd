@@ -868,6 +868,23 @@ static func creed_of(force_id: String) -> String:
 	return String(CREED.get(force_id, "balanced"))
 
 
+## **2026-09-14 추가 — force_id → 그 세력의 군주.** `js/data-force.js`
+## 각 FORCES_* 항목의 `lord` 그대로(세력은 시나리오가 바뀌어도 군주가
+## 안 바뀐다 — 손책→손권처럼 force id 자체가 바뀌는 경우만 예외라 quan을
+## 따로 적어 뒀다). `realm_save_state.gd lord_of()`가 이 표로 "지금 이
+## 성의 군주가 누구인가"를 시나리오에 안전하게 답한다 — force가 재배정된
+## 성(예: 200의 계·북평·북해가 shao로 넘어간 것)의 정적 `lord` 필드는
+## 옛 주인(공손찬 등)을 그대로 가리켜서, 화면에 보여줄 이름은 이 표를
+## 거쳐야 한다(realm_diplo_button.gd `_lord_name()` 참고).
+const FORCE_LORD := {
+	"shao": "rf_yuanshao", "zan": "rf_gongsunzan", "rong": "rf_kongrong",
+	"bei": "sg_liubei", "bu": "sg_lubu", "shu": "rf_yuanshu",
+	"ce": "rf_sunce", "biao": "rf_liubiao", "jue": "rf_lijue",
+	"teng": "rf_mateng", "lu": "rf_zhanglu", "zhang": "rf_liuzhang",
+	"quan": "sg_sunquan",
+}
+
+
 ## **2026-09-14 추가 — 시나리오 200년(관도).** REALM 4절 "제외"에 마지막
 ## 남은 항목. `js/data-force.js FORCES_200`을 옮긴다 — 194(현재 유일한
 ## 시작)와 달리 조조(cao)가 처음부터 8개 성을 갖는다. 5개(낙양·장안·

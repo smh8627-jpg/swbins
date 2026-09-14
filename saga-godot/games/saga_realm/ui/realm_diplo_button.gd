@@ -30,9 +30,13 @@ func _ready() -> void:
 	pressed.connect(_on_pressed)
 
 
+## **2026-09-14 정정 — `enemy_def.get("lord")`(정적, 194 기준) 대신
+## `RealmSaveState.lord_of()`를 쓴다.** 200에서 force가 재배정된 성은
+## 정적 lord가 옛 주인을 가리켜(예: 계는 이제 shao 소속인데 정적 lord는
+## 여전히 공손찬) 이 라벨이 틀린 이름을 보여줬다 — 27절 "놓칠 뻔한 것"
+## 항목의 마지막 남은 자리.
 func _lord_name(target_id: String) -> String:
-	var enemy_def := RealmCities.enemy_by_id(target_id)
-	var h = Characters.find(String(enemy_def.get("lord", "")))
+	var h = Characters.find(RealmSaveState.lord_of(target_id))
 	return String(h.name) if h else "상대"
 
 
