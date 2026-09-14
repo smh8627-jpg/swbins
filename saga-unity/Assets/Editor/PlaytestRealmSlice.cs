@@ -940,10 +940,15 @@ namespace Saga.EditorTools
                     int puyangWallBefore = RealmCityState.CityRecord("puyang").Wall;
                     string musashiCityBefore = RealmCityState.OfficerCityId("jp_musashi");
                     string startOfficerCityBefore = RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId);
-                    int xiaopeiAgriBefore = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri;
-                    var xiaopeiBefore = RealmWarState.Snapshot(RealmEnemyCity.XiaopeiId);
-                    int dingtaoAgriBefore = RealmCityState.CityRecord(RealmEnemyCity.DingtaoId).Agri;
-                    var dingtaoBefore = RealmWarState.Snapshot(RealmEnemyCity.DingtaoId);
+                    // RealmEnemyCity.AllIds를 도는 걸로 해 뒀다 — 51장이 더 늘려도
+                    // (code-review 지적) 여기 손대는 걸 잊을 일이 없다.
+                    var enemyAgriBefore = new Dictionary<string, int>();
+                    var enemySnapBefore = new Dictionary<string, (int wall, int maxWall, int troops, int train, int tech, bool captured)>();
+                    foreach (var enemyId in RealmEnemyCity.AllIds)
+                    {
+                        enemyAgriBefore[enemyId] = RealmCityState.CityRecord(enemyId).Agri;
+                        enemySnapBefore[enemyId] = RealmWarState.Snapshot(enemyId);
+                    }
                     var quizBefore = RealmQuizState.GetProgress();
 
                     if (!RealmSaveState.Save())
@@ -956,7 +961,7 @@ namespace Saga.EditorTools
                     // 상태를 흩트린 뒤(성 다섯 — 함락한 소패·정도 포함 — 전부
                     // 엉터리 값으로) 다시 불러와 그대로 돌아오는지 확인.
                     var dummyCities = new List<RealmCityState.CitySnapshot>();
-                    foreach (var id in new[] { "xuchang", "chenliu", "puyang", RealmEnemyCity.XiaopeiId, RealmEnemyCity.DingtaoId })
+                    foreach (var id in RealmCityData.AllCityIds.Concat(RealmEnemyCity.AllIds))
                     {
                         dummyCities.Add(new RealmCityState.CitySnapshot
                         {
@@ -968,8 +973,7 @@ namespace Saga.EditorTools
                         new List<string> { "sg_zhugeliang" }, null, null,
                         new List<string> { "sg_zhugeliang" }, new List<string> { "xuchang" },
                         dummyCities);
-                    RealmWarState.Restore(RealmEnemyCity.XiaopeiId, 1, 1, 1, 1, 1, false);
-                    RealmWarState.Restore(RealmEnemyCity.DingtaoId, 1, 1, 1, 1, 1, false);
+                    foreach (var enemyId in RealmEnemyCity.AllIds) RealmWarState.Restore(enemyId, 1, 1, 1, 1, 1, false);
                     RealmQuizState.Restore(new List<string>(), null, null, 0, 0, 0, 0);
 
                     if (!RealmSaveState.TryLoad())
@@ -977,6 +981,17 @@ namespace Saga.EditorTools
                         Debug.LogError("[PlaytestRealmSlice] RealmSaveState.TryLoad() 실패");
                         Fail();
                         return;
+                    }
+                    bool enemyMismatch = false;
+                    foreach (var enemyId in RealmEnemyCity.AllIds)
+                    {
+                        if (RealmWarState.Snapshot(enemyId) != enemySnapBefore[enemyId] ||
+                            !RealmCityState.ActiveCityIds.Contains(enemyId) ||
+                            RealmCityState.CityRecord(enemyId).Agri != enemyAgriBefore[enemyId])
+                        {
+                            enemyMismatch = true;
+                            break;
+                        }
                     }
                     bool mismatch = RealmCityState.Gold != goldBeforeSave ||
                         RealmCityState.RosterIds.Count != rosterBeforeSave ||
@@ -989,12 +1004,7 @@ namespace Saga.EditorTools
                         RealmCityState.CityRecord("chenliu").Agri != chenliuAgriBefore ||
                         RealmCityState.CityRecord("puyang").Wall != puyangWallBefore ||
                         RealmCityState.OfficerCityId("jp_musashi") != musashiCityBefore ||
-                        RealmWarState.Snapshot(RealmEnemyCity.XiaopeiId) != xiaopeiBefore ||
-                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.XiaopeiId) ||
-                        RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri != xiaopeiAgriBefore ||
-                        RealmWarState.Snapshot(RealmEnemyCity.DingtaoId) != dingtaoBefore ||
-                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.DingtaoId) ||
-                        RealmCityState.CityRecord(RealmEnemyCity.DingtaoId).Agri != dingtaoAgriBefore ||
+                        enemyMismatch ||
                         RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId) != startOfficerCityBefore;
                     var quizAfter = RealmQuizState.GetProgress();
                     bool quizMismatch = quizAfter.Learned != quizBefore.Learned || quizAfter.Answered != quizBefore.Answered ||
