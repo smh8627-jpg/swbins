@@ -22,6 +22,15 @@
  * 걸면 같은 프레임에 소리가 서넛 겹쳐 운다. 화면 배너가 있는 **플레이어
  * 레벨업 하나만** 소리를 낸다.
  *
+ * **2026-09-14 (더 이어서) — 펫 연성(`growth:refine`)도 소리를 얻었다.**
+ * `growth.js`의 `refine()`(영초·단사를 써서 펫 보정을 한 단 올리는 것)은
+ * 토스트만 띄우고 소리가 하나도 없었다 — 같은 파일의 `ascend()`(승화)는
+ * `gainFeat()`를 거쳐 `reward` 소리가 붙는데, 자원을 그대로 소비하는
+ * `refine()`은 공적(功績)이 아니라서 그 길을 안 탄다. **새 mp3 를 받지
+ * 않고 이미 있는 `reward` 소리를 재사용했다** — `panel_open` 이 이미 네
+ * 이벤트(`duel:open`·`*:request`)에서 재사용되는 것과 같은 결이다. 신호만
+ * 새로 열었을 뿐 `growth.js` 의 값 계산은 한 줄도 안 건드렸다.
+ *
  * **새 판정을 만들지 않는다.** 이미 도는 이벤트버스(`core.on`/`emit`)를
  * 엿듣기만 한다 — 어느 게임 로직 파일도 고치지 않았다:
  *
@@ -34,6 +43,7 @@
  *                  역참·조우·성채 카드가 열린다               → open
  *   sky:thunder    비 오는 날 번개가 친다                    → thunder
  *   levelup        플레이어 레벨이 오른다(화면 배너와 같이) → levelup
+ *   growth:refine  펫 연성(강화) 한 단이 성공한다             → reward(재사용)
  *
  * **손잡이** `audio.on`(0이면 전부 무음, 기본 1) · `audio.vol`(0~1, 기본 0.6).
  * **자동재생 정책** — 모바일은 첫 사용자 제스처 전엔 재생을 막는다.
@@ -112,6 +122,7 @@
     c.on('fort:request', function () { play('open'); });
     c.on('sky:thunder', function () { play('thunder'); });
     c.on('levelup', function () { play('levelup'); });
+    c.on('growth:refine', function () { play('reward'); });  // 새 mp3 없이 재사용
   }
 
   function stats() { return { on: ON(), vol: VOL(), clips: Object.keys(CLIPS).length }; }

@@ -160,6 +160,7 @@
     core.emit('toast', '🌿 ' + (p ? p.name : id) + ' 연성 ' + g.lv + '단 · ' +
       statKor(p) + ' +' + bonusOf(p));
     core.emit('changed');
+    core.emit('growth:refine', { id: id, lv: g.lv });  // 소리 낼 자리 — 판정에는 안 닿는다(audio.js 참고)
     core.persist();
     return true;
   }

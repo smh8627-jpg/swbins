@@ -479,7 +479,7 @@ EverFace).
 | `discover.mp3` | `inventory/bubble2.wav` | `codex` 이벤트 — 새 지역·사람·짐승·사건·역사를 처음 봤을 때 |
 | `catch.mp3`(파일명 `encounter_win.mp3`) | `battle/magic1.wav` | `dex:new` — 등용·포획 성공 |
 | `hit.mp3` | `battle/swing.wav` | `duel:fx` — 교전 중 타격 |
-| `reward.mp3` | `inventory/coin.wav` | `feat` — 공적 획득 |
+| `reward.mp3` | `inventory/coin.wav` | `feat` — 공적 획득 · `growth:refine` — 펫 연성 성공(재사용, 2026-09-14) |
 | `panel_open.mp3` | `world/door.wav` | `duel:open`·`station:request`·`encounter:request`·`fort:request` — 카드/무대가 열릴 때 |
 | `levelup.mp3` | `interface/interface6.wav` | `levelup` — 플레이어 레벨업 (2026-09-14 추가) |
 
