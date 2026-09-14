@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const fmt = require('./datajs-format');
+const a3d = require('./asset3d-format');
 
 const ROOT = path.join(__dirname, '..', '..'); // saga-web/
 const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
@@ -24,6 +25,44 @@ const PORT = 8799;
 
 function dataJsPath(game) {
   return path.join(ROOT, game, 'js', 'data.js');
+}
+
+function asset3dPath(game) {
+  return path.join(ROOT, game, 'js', 'asset3d.js');
+}
+
+function gameRoot(game) {
+  return path.join(ROOT, game);
+}
+
+const MODEL_EXT = new Set(['.glb', '.gltf', '.webp']);
+
+function listModelFiles(game) {
+  const base = path.join(gameRoot(game), 'assets', 'models');
+  if (!fs.existsSync(base)) return [];
+  const entries = fs.readdirSync(base, { recursive: true, withFileTypes: true });
+  const out = [];
+  entries.forEach((d) => {
+    if (!d.isFile()) return;
+    const ext = path.extname(d.name).toLowerCase();
+    if (!MODEL_EXT.has(ext)) return;
+    const full = path.join(d.parentPath || d.path, d.name);
+    const rel = path.relative(gameRoot(game), full).split(path.sep).join('/');
+    out.push(rel);
+  });
+  out.sort();
+  return out;
+}
+
+function loadModelDefaults(game) {
+  const text = fs.readFileSync(asset3dPath(game), 'utf8');
+  const prefixVars = a3d.collectStringVars(text);
+  const entries = a3d.parseDefaults(text);
+  const list = entries.map((e) => {
+    const c = a3d.classify(e.raw, prefixVars);
+    return { key: e.key, kind: c.kind, path: c.path || null, raw: e.raw };
+  });
+  return { entries: list, prefixVars };
 }
 
 function readGame(game) {
@@ -255,6 +294,47 @@ function handleDelete(kind, id) {
   return { error: 'BIOS 는 삭제를 지원하지 않음(빈 문자열로 저장하세요)' };
 }
 
+function handleModelsList(game) {
+  if (GAMES.indexOf(game) === -1) return { error: '알 수 없는 판: ' + game };
+  const { entries } = loadModelDefaults(game);
+  const files = listModelFiles(game);
+  return { entries, files };
+}
+
+function handleModelSave(game, body) {
+  if (GAMES.indexOf(game) === -1) return { error: '알 수 없는 판: ' + game };
+  const key = body.key;
+  const newPath = body.newPath;
+  const filePath = asset3dPath(game);
+  const text = fs.readFileSync(filePath, 'utf8');
+  const prefixVars = a3d.collectStringVars(text);
+  const entries = a3d.parseDefaults(text);
+  const existing = entries.find((e) => e.key === key);
+  if (!existing) return { error: '항목을 못 찾음: ' + key };
+  const cls = a3d.classify(existing.raw, prefixVars);
+  if (cls.kind === 'complex') return { error: '복잡한 표현식이라 이 에디터에서는 못 바꿉니다: ' + key };
+  const newRaw = a3d.serializeValue(newPath, prefixVars);
+  const next = text.slice(0, existing.valueStart) + newRaw + text.slice(existing.valueEnd);
+  fs.writeFileSync(filePath, next, 'utf8');
+  return { ok: true, key, newPath, raw: newRaw };
+}
+
+const MODEL_MIME = { '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.webp': 'image/webp', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg' };
+
+/** 게임 폴더 밑 정적 파일을 서빙한다(3D 미리보기용 GLB·vendor three.js 전용,
+ *  경로 탈출 방지를 위해 반드시 그 게임 루트 안쪽인지 확인한다). */
+function serveStatic(res, game, relPath) {
+  if (GAMES.indexOf(game) === -1) { sendJson(res, 404, { error: 'unknown game' }); return; }
+  const base = gameRoot(game);
+  const target = path.join(base, relPath);
+  if (!target.startsWith(base + path.sep) && target !== base) { sendJson(res, 403, { error: 'forbidden' }); return; }
+  if (!fs.existsSync(target) || !fs.statSync(target).isFile()) { sendJson(res, 404, { error: 'not found' }); return; }
+  const ext = path.extname(target).toLowerCase();
+  const body = fs.readFileSync(target);
+  res.writeHead(200, { 'Content-Type': MODEL_MIME[ext] || 'application/octet-stream', 'Content-Length': body.length });
+  res.end(body);
+}
+
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8' };
 
 const server = http.createServer((req, res) => {
@@ -284,6 +364,26 @@ const server = http.createServer((req, res) => {
     }
     if (req.method === 'POST' && u.pathname === '/api/delete') {
       return readBody(req).then((body) => sendJson(res, 200, handleDelete(body.kind, body.id)));
+    }
+    if (req.method === 'GET' && u.pathname === '/preview3d.html') {
+      const body = fs.readFileSync(path.join(__dirname, 'preview3d.html'));
+      res.writeHead(200, { 'Content-Type': MIME['.html'] });
+      res.end(body);
+      return;
+    }
+    {
+      const mModelsSave = u.pathname.match(/^\/api\/models\/([a-z-]+)\/save$/);
+      if (req.method === 'POST' && mModelsSave) {
+        return readBody(req).then((body) => sendJson(res, 200, handleModelSave(mModelsSave[1], body)));
+      }
+      const mModelsList = u.pathname.match(/^\/api\/models\/([a-z-]+)$/);
+      if (req.method === 'GET' && mModelsList) {
+        return sendJson(res, 200, handleModelsList(mModelsList[1]));
+      }
+      const mStatic = u.pathname.match(/^\/static\/([a-z-]+)\/(.+)$/);
+      if (req.method === 'GET' && mStatic) {
+        return serveStatic(res, mStatic[1], decodeURIComponent(mStatic[2]));
+      }
     }
     sendJson(res, 404, { error: 'not found' });
   } catch (err) {
