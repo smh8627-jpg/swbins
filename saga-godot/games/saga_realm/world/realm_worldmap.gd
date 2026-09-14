@@ -30,15 +30,28 @@ extends Node3D
 ## **하지 않은 것(다음에 볼 자리)** — 지형 기복·해협
 ## (드래그 궤도 카메라는 realm_worldmap_camera.gd에서 옮겼다).
 ##
-## **2026-09-12 추가 — 정복 성 편입.** 소패를 함락하면(`RealmSaveState.
-## enemies.xiaopei.captured`) `_process()`가 그걸 보고 마커를 하나 더
-## 짓는다 — `_ready()`가 CITIES 셋만 짓고 끝나던 것을 매 프레임 가볍게
-## 폴링해 보완한다(FOREST gather_label.gd와 같은 폴링 결). 좌표·색은
-## `ENEMY_CITIES`에 새로 들인 x·y·land로 CITIES 마커와 똑같이 잡힌다.
+## **2026-09-12 추가 — 정복 성 편입.** 함락하면(`RealmSaveState.
+## enemies[id].captured`) `_process()`가 그걸 보고 마커 색을 바꾼다 —
+## 매 프레임 가볍게 폴링한다(FOREST gather_label.gd와 같은 폴링 결).
+## **2026-09-14 정정 — "마커를 하나 더 짓는다"에서 바뀌었다.** 아래
+## 항목이 104개 적 성 마커를 `_ready()`에서 전부 미리 세워 두게 되며,
+## 함락 시엔 이제 그 마커의 색만 우호색으로 바꾼다(`_check_annexed()`
+## 참고) — 마커 자체는 이미 있다.
+##
+## **2026-09-14 추가 — 미정복 적 성도 지도에 세운다(REALM 4절 "제외"
+## "3D 몬스터 자산"의 첫 걸음).** 이전엔 CITIES(우리 성) + 함락한 성만
+## 마커가 있어 미정복 104개는 지도에서 통째로 안 보였다. 실제 3D 몬스터
+## 모델은 아직 없으니(66-2장 카툰 셰이더/에셋 파이프라인이 REALM까지
+## 안 왔다) 색으로만 구분한 자리표시자를 세운다 — 보통 적 성은 붉은색,
+## 보스급 수비 무장(균열·폐허·묘역 등 지역 허브 여섯)이 있는 성은 보라색.
+## 탭하면(아직 우리 성이 아니므로) 이름만 토스트로 보여주고 조망 대상은
+## 안 바뀐다 — `realm_city.gd`/명령 실행이 전제하는 "current_city는 항상
+## `cities`에 있다"를 안 깬다.
 
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const Characters := preload("res://saga_core/data/characters.gd")
 
 ## **2026-09-14 정정 — WORLD_SCALE은 realm_cities.gd로 옮겼다.** 여기 있던
 ## 상수(14.0, 값은 그대로)를 `realm_worldmap_camera.gd`도 같이 봐야 해서
@@ -60,12 +73,22 @@ const COLOR_GROUND := Color(0.42, 0.48, 0.32)
 const COLOR_FLAG := Color(0.85, 0.8, 0.7)
 const COLOR_CURRENT := Color(0.95, 0.75, 0.2)
 const LAND_COLOR := {"plain": Color(0.74, 0.62, 0.4), "river": Color(0.42, 0.58, 0.66)}
+## **2026-09-14 추가 — 미정복 적 성(REALM 4절 "제외" "3D 몬스터 자산"의
+## 첫 걸음).** 이 슬라이스엔 GLB 몬스터 모델이 없어(위 66-2장 참고) 실제
+## 몬스터를 세우는 대신, 지금까지 지도에서 아예 안 보이던 미정복 104개
+## 성을 색으로만 구분해 세운다 — 코드가 그리는 자리표시자(다른 다섯 판의
+## Enemy/Boss 캡슐과 같은 결). 보스급 수비 무장(균열·폐허·묘역 등 여섯
+## 지역 허브)이 있는 성만 따로 도드라진 색을 쓴다.
+const COLOR_ENEMY := Color(0.55, 0.18, 0.16)
+const COLOR_BOSS := Color(0.7, 0.12, 0.62)
 const TOAST_SEC := 2.0
 const TAP_RADIUS := 2.6  # 기둥(반경 0.7)보다 훨씬 넉넉하게 — 손가락 탭 판정
 const TAP_HEIGHT := 4.5
 
-var _markers: Dictionary = {}  # city_id -> MeshInstance3D(성표(城標) 기둥, 강조 대상)
-var _areas: Dictionary = {}    # city_id -> Area3D(탭 판정)
+var _markers: Dictionary = {}    # city_id -> MeshInstance3D(성표(城標) 기둥, 강조 대상)
+var _areas: Dictionary = {}      # city_id -> Area3D(탭 판정)
+var _base_color: Dictionary = {} # city_id -> Color(강조 아닐 때 되돌아갈 색 — 우호/적/보스)
+var _annexed_seen: Dictionary = {} # eid -> true(색을 이미 우호색으로 한 번 바꿨다)
 var _last_current := ""
 var _last_visible := false
 
@@ -74,7 +97,14 @@ func _ready() -> void:
 	get_viewport().physics_object_picking = true
 	_build_ground()
 	for c: Dictionary in RealmCities.CITIES:
-		_build_marker(c)
+		_build_marker(c, _land_color(String(c.id)))
+	for e: Dictionary in RealmCities.ENEMY_CITIES:
+		var eid := String(e.id)
+		if bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
+			_annexed_seen[eid] = true
+			_build_marker(e, _land_color(eid))
+		else:
+			_build_marker(e, COLOR_BOSS if _is_boss_city(eid) else COLOR_ENEMY)
 
 
 ## realm_city.gd/realm_camera.gd와 같은 손잡이(RealmSaveState.viewing_map)를
@@ -96,9 +126,13 @@ func _process(_delta: float) -> void:
 	_last_current = cur
 	for city_id: String in _markers:
 		var marker: MeshInstance3D = _markers[city_id]
-		marker.material_override = _mat(COLOR_CURRENT if city_id == cur else _land_color(city_id))
+		marker.material_override = _mat(COLOR_CURRENT if city_id == cur else _base_color.get(city_id, _land_color(city_id)))
 
 
+## **2026-09-14 추가 — 미정복 성은 current_city가 될 수 없다.** 실기(diorama,
+## `realm_city.gd`)·명령 실행이 전부 `RealmSaveState.cities`에 있는 성만
+## 전제하고 있어(3절 "포함"), 정복 전 적 성을 조망 대상으로 넘기면 그
+## 전제가 깨진다 — 탭해도 정보만 토스트로 보여주고 상태는 안 바꾼다.
 func _on_marker_input(_camera: Node, event: InputEvent, _pos: Vector3, _normal: Vector3,
 		_shape_idx: int, city_id: String) -> void:
 	var pressed := false
@@ -110,9 +144,15 @@ func _on_marker_input(_camera: Node, event: InputEvent, _pos: Vector3, _normal: 
 		pressed = st.pressed and st.index == 0
 	if not pressed:
 		return
-	RealmSaveState.current_city = city_id
 	var city_def := RealmCities.any_by_id(city_id)
-	Toast.show(self, "%s 조망" % String(city_def.get("name", "")), TOAST_SEC)
+	if RealmSaveState.cities.has(city_id):
+		RealmSaveState.current_city = city_id
+		Toast.show(self, "%s 조망" % String(city_def.get("name", "")), TOAST_SEC)
+		return
+	var label := String(city_def.get("name", city_id))
+	if _is_boss_city(city_id):
+		label += " — 보스급 수비"
+	Toast.show(self, "%s (아직 우리 성이 아닙니다)" % label, TOAST_SEC)
 
 
 func _land_color(city_id: String) -> Color:
@@ -120,18 +160,33 @@ func _land_color(city_id: String) -> Color:
 	return LAND_COLOR.get(land, LAND_COLOR["plain"])
 
 
-## 정복 성 편입 — 함락된 적 성마다 마커를 하나씩 세운다(한 번 세우면
-## `_markers`에 남아 다시 안 짓는다). 갓 지은 마커의 탭 판정은 지금
-## `visible` 상태에 맞춰 바로 켜 둔다 — 다음 가시성 전환을 기다리지 않는다.
+## 이 적 성의 수비 명단(officers) 중 `boss:true`인 사람이 있는가 —
+## `realm_save_state.gd attack()`의 bossBeaten 판정과 같은 기준이다(21절
+## 보스전 보상 참고). 함락 전 지도 표시용으로 미리 살피는 것뿐, 새 판정은
+## 아니다.
+func _is_boss_city(eid: String) -> bool:
+	var e := RealmCities.enemy_by_id(eid)
+	for oid: String in (e.get("officers", []) as Array):
+		var h = Characters.find(oid)
+		if h != null and bool(h.get("boss", false)):
+			return true
+	return false
+
+
+## **2026-09-14 갈아끼움 — 마커를 새로 짓는 대신 색만 우호색으로 바꾼다.**
+## 이제 `_ready()`가 104개 적 성 마커를 전부(적/보스 색으로) 미리 세워 둬
+## `_markers`에 이미 다 있다 — 예전엔 함락돼야 비로소 마커가 생겨 미정복
+## 영토가 지도에서 통째로 안 보였다.
 func _check_annexed() -> void:
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
-		if _markers.has(eid):
+		if _annexed_seen.has(eid):
 			continue
 		if not bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
 			continue
-		_build_marker(RealmCities.any_by_id(eid))
-		(_areas[eid] as Area3D).input_ray_pickable = visible
+		_annexed_seen[eid] = true
+		_base_color[eid] = _land_color(eid)
+		(_markers[eid] as MeshInstance3D).material_override = _mat(_base_color[eid])
 
 
 func _world_pos(c: Dictionary) -> Vector3:
@@ -152,9 +207,13 @@ func _build_ground() -> void:
 
 ## 성표(城標) — 기둥(강조 대상, 성마다 다른 색)에 깃발을 얹은 표지 하나로
 ## 성 하나를 대신한다(디오라마 전체를 지도 위에 얹지 않는다 — 개관용이라
-## 실루엣만 있으면 된다).
-func _build_marker(c: Dictionary) -> void:
+## 실루엣만 있으면 된다). **2026-09-14 — `color`를 인자로 받는다**(우호/적/
+## 보스 셋 중 어느 걸 세울지는 호출부가 정한다, `_land_color()`로 안에서
+## 다시 고르지 않는다 — 적 성엔 애초에 "우호색" 개념이 안 맞는다).
+func _build_marker(c: Dictionary, color: Color) -> void:
 	var pos := _world_pos(c)
+	var city_id := String(c.id)
+	_base_color[city_id] = color
 
 	var pole := MeshInstance3D.new()
 	var pole_mesh := CylinderMesh.new()
@@ -163,9 +222,9 @@ func _build_marker(c: Dictionary) -> void:
 	pole_mesh.height = 3.0
 	pole.mesh = pole_mesh
 	pole.position = pos + Vector3(0, 1.5, 0)
-	pole.material_override = _mat(_land_color(String(c.id)))
+	pole.material_override = _mat(color)
 	add_child(pole)
-	_markers[String(c.id)] = pole
+	_markers[city_id] = pole
 
 	var flag := MeshInstance3D.new()
 	var flag_mesh := BoxMesh.new()
@@ -175,7 +234,6 @@ func _build_marker(c: Dictionary) -> void:
 	flag.material_override = _mat(COLOR_FLAG)
 	add_child(flag)
 
-	var city_id := String(c.id)
 	var area := Area3D.new()
 	area.input_ray_pickable = false  # 처음엔 숨김 상태 — _process()가 보일 때 켠다
 	area.position = pos + Vector3(0, TAP_HEIGHT * 0.5, 0)
