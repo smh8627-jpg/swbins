@@ -55,7 +55,8 @@ namespace Saga.Go.World
             PlayerStats.AddExp(RewardExp);
             GoldState.Add(RewardGold);
             DialogueLabel.Instance?.Show(
-                $"산신령의 가호를 받았다 — 경험치 +{RewardExp} · 돈 +{RewardGold}냥", ToastSec);
+                string.Format(GoLocalization.T("event.mountain_shrine", "산신령의 가호를 받았다 — 경험치 +{0} · 돈 +{1}냥"),
+                    RewardExp, RewardGold), ToastSec);
             Destroy(gameObject);
         }
     }

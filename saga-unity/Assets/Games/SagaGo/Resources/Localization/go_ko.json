@@ -60,6 +60,24 @@
     { "key": "encounter.wolf_avoid_msg", "value": "숨을 죽이고 조용히 발길을 돌렸다." },
     { "key": "encounter.wolf_tell", "value": "늑대가 몸을 낮춘다 — 덮치기 전에 피하라!" },
     { "key": "encounter.wolf_victory", "value": "{0}을 물리쳤다 — 희귀 몬스터 토벌!\n경험치 +{1} · 돈 +{2}냥" },
-    { "key": "encounter.loot_certain", "value": "\n{0}을(를) 확실히 얻었다." }
+    { "key": "encounter.loot_certain", "value": "\n{0}을(를) 확실히 얻었다." },
+    { "key": "combat.timer", "value": "{0}초" },
+    { "key": "combat.momentum", "value": "기세" },
+    { "key": "combat.morale", "value": "사기" },
+    { "key": "combat.ki", "value": "기(氣)" },
+    { "key": "encounter.bandit_tell", "value": "강타가 온다 — 피하라!" },
+    { "key": "event.hidden_treasure", "value": "숨겨진 보물을 발견했다! {0}을(를) 얻었다. 경험치 +{1} · 돈 +{2}냥" },
+    { "key": "event.grove_relic", "value": "낡은 돌기둥을 발견했다 — 오래전 누군가의 흔적. 경험치 +{0} · 돈 +{1}냥" },
+    { "key": "event.gather", "value": "산나물을 캤다 — 약값으로 돈 +{0}냥" },
+    { "key": "event.mountain_shrine", "value": "산신령의 가호를 받았다 — 경험치 +{0} · 돈 +{1}냥" },
+    { "key": "event.animal_flee", "value": "동물이 놀라 달아난다." },
+    { "key": "event.cairn_broke", "value": "성황당 돌무더기 — 노잣돈이 모자라 기원하지 못했다." },
+    { "key": "event.cairn_reward_suffix", "value": " (돈 +{0}냥" },
+    { "key": "event.cairn_reward_exp_suffix", "value": " · 경험치 +{0})" },
+    { "key": "event.cairn_wish", "value": "돌 하나를 얹고 기원했다 — {0}{1}" },
+    { "key": "event.cairn_outcome_none", "value": "아무 일도 일어나지 않았다." },
+    { "key": "event.cairn_outcome_small", "value": "작은 행운 — 돈이 조금 돌아왔다." },
+    { "key": "event.cairn_outcome_medium", "value": "제법 큰 행운 — 돈이 두둑이 돌아왔다." },
+    { "key": "event.cairn_outcome_big", "value": "큰 행운! 몸도 마음도 가벼워졌다." }
   ]
 }

@@ -71,7 +71,8 @@ namespace Saga.Go.World
             PlayerStats.AddExp(RewardExp);
             GoldState.Add(RewardGold);
             DialogueLabel.Instance?.Show(
-                $"낡은 돌기둥을 발견했다 — 오래전 누군가의 흔적. 경험치 +{RewardExp} · 돈 +{RewardGold}냥", ToastSec);
+                string.Format(GoLocalization.T("event.grove_relic", "낡은 돌기둥을 발견했다 — 오래전 누군가의 흔적. 경험치 +{0} · 돈 +{1}냥"),
+                    RewardExp, RewardGold), ToastSec);
             Destroy(gameObject);
         }
     }

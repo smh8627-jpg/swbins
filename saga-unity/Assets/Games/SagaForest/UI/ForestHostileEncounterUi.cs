@@ -59,9 +59,9 @@ namespace Saga.Forest.UI
             _resolveClip = resolveClip;
             _panel = EncounterUiKit.NewPanel(canvasRoot, new Vector2(0.5f, 0.22f), new Vector2(560f, 220f),
                 new Color(0.08f, 0.08f, 0.1f, 0.85f));
-            EncounterUiKit.NewText(_panel.transform, "포자괴물이 다가온다!", new Vector2(0.5f, 1f),
+            EncounterUiKit.NewText(_panel.transform, ForestLocalization.T("encounter.title", "포자괴물이 다가온다!"), new Vector2(0.5f, 1f),
                 new Vector2(0f, -34f), new Vector2(520f, 60f), 30);
-            _gaugeFill = EncounterUiKit.NewBarRow(_panel.transform, "경계", -110f, out _);
+            _gaugeFill = EncounterUiKit.NewBarRow(_panel.transform, ForestLocalization.T("encounter.gauge", "경계"), -110f, out _);
             EncounterUiKit.NewButton(_panel.transform, ForestLocalization.T("encounter.push_back"), new Vector2(0.5f, 0f),
                 new Vector2(0f, 44f), new Vector2(280f, 84f), OnPress);
             _panel.SetActive(false);

@@ -94,7 +94,9 @@ namespace Saga.Dungeon.World
             if (!HeroState.TrySpendGold(price))
             {
                 _declineCooldownLeft = DeclineCooldownSec;
-                DialogueLabel.Instance?.Show($"행상 — {wantName}({price}냥)를 살 돈이 모자라다.", ToastSec);
+                DialogueLabel.Instance?.Show(
+                    string.Format(DungeonLocalization.T("merchant.cant_afford", "행상 — {0}({1}냥)를 살 돈이 모자라다."), wantName, price),
+                    ToastSec);
                 return; // 안 판 상태로 남겨 둔다 — 돈이 모이면 다시 시도 가능(GO ShopState.cs와 같은 결).
             }
 
@@ -103,13 +105,17 @@ namespace Saga.Dungeon.World
             {
                 bool socketed = HeroState.SocketIfBetter(sellGemId);
                 DialogueLabel.Instance?.Show(
-                    $"행상 — {wantName}을(를) {price}냥에 샀다{(socketed ? " — 바로 세공했다." : ".")}", ToastSec);
+                    string.Format(DungeonLocalization.T(socketed ? "merchant.bought_socketed" : "merchant.bought_plain",
+                        socketed ? "행상 — {0}을(를) {1}냥에 샀다 — 바로 세공했다." : "행상 — {0}을(를) {1}냥에 샀다."), wantName, price),
+                    ToastSec);
             }
             else
             {
                 bool equipped = HeroState.EquipIfBetter(sellItemId);
                 DialogueLabel.Instance?.Show(
-                    $"행상 — {wantName}을(를) {price}냥에 샀다{(equipped ? " — 바로 갖췄다." : ".")}", ToastSec);
+                    string.Format(DungeonLocalization.T(equipped ? "merchant.bought_equipped" : "merchant.bought_plain",
+                        equipped ? "행상 — {0}을(를) {1}냥에 샀다 — 바로 갖췄다." : "행상 — {0}을(를) {1}냥에 샀다."), wantName, price),
+                    ToastSec);
             }
         }
     }

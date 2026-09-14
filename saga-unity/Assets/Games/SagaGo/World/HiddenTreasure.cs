@@ -78,7 +78,8 @@ namespace Saga.Go.World
             GoldState.Add(RewardGold);
             var item = ItemData.Get(RewardItemId);
             DialogueLabel.Instance?.Show(
-                $"숨겨진 보물을 발견했다! {item?.Name}을(를) 얻었다. 경험치 +{RewardExp} · 돈 +{RewardGold}냥", ToastSec);
+                string.Format(GoLocalization.T("event.hidden_treasure", "숨겨진 보물을 발견했다! {0}을(를) 얻었다. 경험치 +{1} · 돈 +{2}냥"),
+                    item?.Name, RewardExp, RewardGold), ToastSec);
             Destroy(gameObject);
         }
     }

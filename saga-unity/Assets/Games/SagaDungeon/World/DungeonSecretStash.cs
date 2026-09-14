@@ -65,8 +65,8 @@ namespace Saga.Dungeon.World
             HeroState.AddGold(RewardGold);
             SfxPlayer.PlayDiscovery();
 
-            string msg = $"🔍 숨겨진 지역 — 잊혀진 주머니를 찾아냈다! 경험치 +{RewardExp} · 돈 +{RewardGold}냥";
-            if (HeroState.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {HeroState.Level})";
+            string msg = string.Format(DungeonLocalization.T("secret_stash.found_reward", "🔍 숨겨진 지역 — 잊혀진 주머니를 찾아냈다! 경험치 +{0} · 돈 +{1}냥"), RewardExp, RewardGold);
+            if (HeroState.Level > levelBefore) msg += string.Format(DungeonLocalization.T("combat.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, HeroState.Level);
             DialogueLabel.Instance?.Show(msg, ToastSec);
 
             Destroy(gameObject);

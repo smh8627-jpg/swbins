@@ -295,12 +295,12 @@ namespace Saga.Go.World
             var titleText = EncounterUiKit.NewText(canvas.transform, $"🗡 {GoLocalization.T("foe.bandit", FoeName)}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
             titleText.alignment = TextAnchor.MiddleLeft;
 
-            _timerText = EncounterUiKit.NewText(canvas.transform, "60초", new Vector2(1f, 1f), new Vector2(-140f, -50f), new Vector2(220f, 60f), 30);
+            _timerText = EncounterUiKit.NewText(canvas.transform, string.Format(GoLocalization.T("combat.timer", "{0}초"), 60), new Vector2(1f, 1f), new Vector2(-140f, -50f), new Vector2(220f, 60f), 30);
             _timerText.alignment = TextAnchor.MiddleRight;
 
-            _hpFill = EncounterUiKit.NewBarRow(canvas.transform, "기세", -110f, out _);
-            _moraleFill = EncounterUiKit.NewBarRow(canvas.transform, "사기", -160f, out _);
-            _kiFill = EncounterUiKit.NewBarRow(canvas.transform, "기(氣)", -210f, out _);
+            _hpFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.momentum", "기세"), -110f, out _);
+            _moraleFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.morale", "사기"), -160f, out _);
+            _kiFill = EncounterUiKit.NewBarRow(canvas.transform, GoLocalization.T("combat.ki", "기(氣)"), -210f, out _);
 
             EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.quick"), new Vector2(0f, 0f), new Vector2(150f, 130f), new Vector2(220f, 110f), () => DoAct("quick"));
             _ultButton = EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.ult"), new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(220f, 110f), () => DoAct("ult"));
@@ -351,7 +351,7 @@ namespace Saga.Go.World
             switch (e.T)
             {
                 case "tell":
-                    Toast("강타가 온다 — 피하라!");
+                    Toast(GoLocalization.T("encounter.bandit_tell", "강타가 온다 — 피하라!"));
                     CharacterVisual.Tint(_visual.gameObject, TellColor);
                     break;
                 case "heavy":
@@ -372,7 +372,7 @@ namespace Saga.Go.World
             _hpFill.fillAmount = Mathf.Clamp01(_duel.Hp / _duel.FoeHp);
             _moraleFill.fillAmount = Mathf.Clamp01(_duel.Morale / _duel.MoraleMax);
             _kiFill.fillAmount = Mathf.Clamp01(_duel.Ki / DuelRules.KiMax);
-            _timerText.text = $"{Mathf.CeilToInt(Mathf.Max(0f, _duel.Left))}초";
+            _timerText.text = string.Format(GoLocalization.T("combat.timer", "{0}초"), Mathf.CeilToInt(Mathf.Max(0f, _duel.Left)));
             _ultButton.interactable = _duel.Ki >= DuelRules.KiMax;
         }
 

@@ -67,8 +67,8 @@ namespace Saga.Dungeon.World
             int levelBefore = HeroState.Level;
             HeroState.AddExp(RewardExp);
             HeroState.AddGold(RewardGold);
-            string msg = $"구출 · 은혜를 갚는다 — 경험치 +{RewardExp} · 돈 +{RewardGold}냥";
-            if (HeroState.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {HeroState.Level})";
+            string msg = string.Format(DungeonLocalization.T("captive.rescued_reward", "구출 · 은혜를 갚는다 — 경험치 +{0} · 돈 +{1}냥"), RewardExp, RewardGold);
+            if (HeroState.Level > levelBefore) msg += string.Format(DungeonLocalization.T("combat.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, HeroState.Level);
             DialogueLabel.Instance?.Show(msg, ToastSec);
             QuestState.MarkCaptiveFreed(); // "퀘스트 시스템" 슬라이스 — 메인 퀘스트 마지막 단계.
         }

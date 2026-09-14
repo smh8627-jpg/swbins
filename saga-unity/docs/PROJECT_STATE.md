@@ -4979,3 +4979,101 @@ fallback)로 교체→json에 키 추가→검증→커밋.
 
 **알려진 사항**: en 번역 전부 사람 검수 전. BGM은 오디오 청취 불가로
 계속 보류(우선순위 문제 아님, 역량 제약).
+
+## Localization ①~⑤ 전부 완료 (2026-09-15, "묻지 말고 다 이어해" 세션, 커밋 6aceffe~0bc184f)
+
+바로 위 "다음 작업" 목록 다섯 개를 순서대로 전부 끝냈다 — 이걸로
+2026-09-14 세션이 시작한 Localization 확장이 다섯 판 전체 1차 마무리.
+
+- **① REALM 문답 36개** — `RealmQuizQuestion`의 Q/Choices/Why·분야명을
+  `RealmCityData.Name`과 같은 결(T(key, fallback))로 옮김. 사자성어/
+  유행어/속담처럼 한국 고유 표현은 en 질문을 "무엇을 뜻하는가"로 풀고
+  원 표현(한글+로마자)은 보기로 남겼다.
+- **② FOREST 전체** — 숲지기 대사, 가구 14종+계열+집 등급 6단계, 벽지/
+  장판 10종, 포자괴물 조우 UI+결과, 나무 흔들기, 가구전/도배전/자유
+  배치 토스트까지 — 이 판의 대사·HUD가 사실상 전부 옮겨졌다.
+- **③ GO 나머지** — HiddenTreasure/EastGroveRelic/MountainShrine/
+  Gatherable/LuckyCairn/WanderingAnimal 발견형 이벤트 + 도적·흰늑대
+  전투 UI 공유 잔여분(타이머·기세/사기/기(氣) 라벨, 도적 쪽에만 빠져
+  있던 "강타가 온다" 텔레그래프).
+- **④ DUNGEON 행상/구출** — DungeonMerchant(+GemData.Name도 같이),
+  DungeonCaptive, 그리고 같은 패턴을 복붙해 쓰던 DungeonShrine·
+  DungeonSecretStash까지 맞춰 셋이 따로 놀지 않게 함.
+- **⑤ REALM 서술 전체** — 명령 10종 결과·게이트 에러, 전쟁 출진/함락/
+  퇴각, 계략 성공/발각/효과, 문답 서고(목록/상세)까지.
+
+**의도적으로 손 안 댄 것 둘** (다음에 손댈 때 참고):
+1. **GO `BanditEncounter.RecruitId`** — 표시 문자열이 아니라
+   `PartyState.Recruit()`가 그대로 쓰는 로스터 식별자라 안 건드림
+   (`FoeName`은 이미 `foe.bandit` 키로 별도 분리돼 있어 무관 —
+   RecruitId만의 문제). 지금은 로스터를 화면에 보여주는 곳 자체가
+   없어 해롭지 않지만, 나중에 로스터 UI가 생기면 REALM Officer처럼
+   id/표시명을 분리해야 한다.
+2. **DUNGEON `DungeonEnemy.displayName`** — 처치 메시지("{0}을(를)
+   물리쳤다")에 쓰이는 동시에 `BestiaryState.Record(displayName)`의
+   저장 키이기도 하다(도감 시스템). REALM Officer/City처럼 id와
+   표시명을 분리하려면 몬스터별 id를 새로 도입하는 구조 변경이
+   먼저 필요해 이번 세션 범위 밖으로 남겼다 — DungeonEnemy.cs의
+   처치 메시지·도감 등록은 여전히 하드코딩 한국어 그대로다.
+
+**검증**: 다섯 판 각각 배치 모드 컴파일 + 관련 헤드리스 재검증
+(PlaytestRealmSlice·PlaytestForestHeadless/Creatures/Furniture/Finish·
+PlaytestHeadless(GO)·PlaytestDungeonHeadless/Town2/Towns34), 전부
+회귀 없음. GO/DUNGEON은 REALM/FOREST만큼 기능별 헤드리스가 안 갖춰져
+있어(스모크 테스트 위주) 일부 토스트는 컴파일 확인 수준에 그쳤다 —
+사람이 실기 확인할 때 참고.
+
+**다음 세션 후보**: en 번역 사람 검수, 위 "손 안 댄 것 둘"(로스터/
+도감 id 분리), BGM(계속 보류), STORY "선택" 이후 확장.
+
+## DUNGEON 처치 메시지/도감 Localization — "손 안 댄 것 둘" 중 하나 해소 (2026-09-15, 새 세션 "새로운 세션에서 이어해", 커밋 32ee29c)
+
+위 항목이 남겨 둔 `DungeonEnemy.displayName` id 얽힘을 풀었다 — 실제로
+세어 보니 표시명이 넷뿐(황건적/사나운 황건적/황건 살수/황건적 두목)
+이라 REALM Officer식 새 id 필드 없이 "알려진 한국어 표시명 → 로컬라이즈
+키" 매핑(`DisplayNameKeys`) 하나로 충분했다. `BestiaryState.Record()`에
+넘기는 값은 원문 그대로 둬 세이브 호환은 그대로 지키고, 화면에 보이는
+처치 메시지·전리품 문구·도감 신규 기록 토스트만 `LocalizedDisplayName`
+을 거치게 했다. dungeon_ko.json/dungeon_en.json에 11개 키 추가.
+`PlaytestDungeonHeadless`(컴파일+스모크)·`PlaytestDungeonFloorProgression`
+(잡졸 처치 12회 포함) 재검증, 회귀 없음 — 미니보스/두목/정예는 킬을
+직접 만드는 헤드리스가 없어 컴파일 확인까지만(같은 코드 경로, 다른
+딕셔너리 키라 위험 낮음).
+
+**GO `BanditEncounter.RecruitId`는 그대로 둔다** — 표시되는 곳이
+없어(로스터 UI 자체가 없음) 지금 건드리면 이득 없이 세이브 포맷만
+바꾸는 꼴이다. 로스터 UI가 생기면 그때 REALM Officer와 같은 결로
+분리할 것.
+
+**남은 항목 셋 다 사람 판단/역량 필요**: en 번역 검수, BGM(오디오
+청취 불가로 계속 보류), STORY "선택" 이후 확장(51장 네 칸은 이미
+완결 — 이 이상은 새 서사 설계라 방향 필요). 다음 "이어해"가 오면
+이 중 하나를 사용자에게 직접 물어보는 데서 시작할 것.
+
+## en 번역 검수 — "손 안 댄 것" 중 하나 마무리 (2026-09-15, "묻지말고 다이어해" 세션)
+
+사용자가 "묻지 말고 진행하라"고 명시해 위 세 후보 중 사람 판단이
+꼭 필요하진 않은 것(en 번역 검수)을 이 세션이 대신 맡았다. 방법
+둘을 같이 썼다:
+
+1. **기계적 정합성 검사** — 다섯 판 `*_ko.json`/`*_en.json`을 키
+   집합·placeholder(`{0}` 류)·개행 수·빈 값 기준으로 전수 대조
+   (node 스크립트, python3는 루트 CLAUDE.md가 경고한 스토어 스텁이라
+   못 씀). 793개 키(DUNGEON 55·FOREST 65·GO 79·REALM 318·STORY 33)
+   전부 en/ko 키 집합 일치, placeholder 불일치 0건, 빈 값 0건 —
+   `enemy.defeated_boss`/`enemy.defeated_normal`의 "공백 위치 다름"
+   플래그 하나만 걸렸는데, 한국어는 조사가 이름에 바로 붙고("을(를)
+   쓰러뜨렸다") 영어는 "has been..." 앞에 띄어쓰기가 필요해서
+   생기는 의도된 차이 — 실제 결함 아님.
+2. **직접 읽고 대조** — 다섯 파일 전체를 사람이 검수하듯 훑었다.
+   REALM 퀴즈(역사 36문항 포함)는 ko 원문과 나란히 대조해 연도·
+   인명·사실관계가 안 틀렸는지 확인(세종/이순신/을지문덕/강감찬/
+   왕건/대조영/진시황 등 표본 점검, 전부 일치). 등용 인물 가명
+   (현책→Hyeonchaek, 해장→Haejang, 이도인→Idoin)도 로마자 표기가
+   일관됨을 확인.
+
+**결론 — 검수 끝, 실제 오류 0건.** 고칠 게 없어 커밋할 코드 변경은
+없다. 남은 둘(BGM, STORY 확장)은 여전히 사람 판단이 필요해 손 안
+댐 — BGM은 "먼저 묻지 말고 시작하지 말 것"이 유효한 규칙이라 계속
+보류, STORY 확장은 새 서사 방향이 필요해 다음에 사용자에게 직접
+물어볼 것.

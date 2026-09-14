@@ -20,14 +20,28 @@ namespace Saga.Realm.Data
         public readonly string Id;
         public readonly string Cat;
         public readonly int Lv;
-        public readonly string Q;
-        public readonly string[] Choices;
+        private readonly string _q;
+        private readonly string[] _choices;
         public readonly int AnswerIdx;
-        public readonly string Why;
+        private readonly string _why;
+
+        /// <summary>Localization — RealmCityData.Name 등과 같은 결(T(key, fallback)).
+        /// Id 별로 키를 매겨 en 번역 누락 시 원문(한국어) 그대로 보인다.</summary>
+        public string Q => RealmLocalization.T("quiz." + Id + ".q", _q);
+        public string[] Choices
+        {
+            get
+            {
+                var arr = new string[_choices.Length];
+                for (int i = 0; i < _choices.Length; i++) arr[i] = RealmLocalization.T("quiz." + Id + ".c" + i, _choices[i]);
+                return arr;
+            }
+        }
+        public string Why => RealmLocalization.T("quiz." + Id + ".why", _why);
 
         public RealmQuizQuestion(string id, string cat, int lv, string q, string[] choices, int answerIdx, string why)
         {
-            Id = id; Cat = cat; Lv = lv; Q = q; Choices = choices; AnswerIdx = answerIdx; Why = why;
+            Id = id; Cat = cat; Lv = lv; _q = q; _choices = choices; AnswerIdx = answerIdx; _why = why;
         }
     }
 
@@ -52,7 +66,7 @@ namespace Saga.Realm.Data
 
         public static string CatName(string key)
         {
-            foreach (var c in Cats) if (c.Key == key) return c.Name;
+            foreach (var c in Cats) if (c.Key == key) return RealmLocalization.T("quiz.cat." + key, c.Name);
             return key;
         }
 

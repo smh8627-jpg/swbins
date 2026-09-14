@@ -82,7 +82,8 @@ namespace Saga.Go.World
             if (!GatherState.TryGather(spotId)) return;
 
             GoldState.Add(RewardGold);
-            DialogueLabel.Instance?.Show($"산나물을 캤다 — 약값으로 돈 +{RewardGold}냥", ToastSec);
+            DialogueLabel.Instance?.Show(
+                string.Format(GoLocalization.T("event.gather", "산나물을 캤다 — 약값으로 돈 +{0}냥"), RewardGold), ToastSec);
             Destroy(gameObject);
         }
     }

@@ -212,14 +212,14 @@ namespace Saga.Realm.Data
         public static OrderResult ExecuteOrder(string orderKey)
         {
             var order = RealmOrderData.Get(orderKey);
-            if (order == null) return new OrderResult(false, "없는 명령");
+            if (order == null) return new OrderResult(false, RealmLocalization.T("order.err_unknown", "없는 명령"));
 
             var officer = BestAvailableOfficer(order.Stat, order.LocationBound);
             if (officer == null)
             {
                 return new OrderResult(false, order.LocationBound
-                    ? "이 성에서 명령을 쓸 수 있는 무장이 없습니다"
-                    : "이 달에 이미 명령을 썼습니다");
+                    ? RealmLocalization.T("order.err_no_officer_here", "이 성에서 명령을 쓸 수 있는 무장이 없습니다")
+                    : RealmLocalization.T("order.err_already_done", "이 달에 이미 명령을 썼습니다"));
             }
 
             var cityDef = RealmCityData.Get(CurrentCity);
@@ -228,9 +228,9 @@ namespace Saga.Realm.Data
             // rtk.js order() — 배는 물가에서만, 이 체크가 금 확인보다 먼저다.
             if (orderKey == "ships" && cityDef.Land != RealmLand.River)
             {
-                return new OrderResult(false, "물길이 없는 성입니다");
+                return new OrderResult(false, RealmLocalization.T("order.err_no_river", "물길이 없는 성입니다"));
             }
-            if (Gold < order.Gold) return new OrderResult(false, "금이 모자랍니다");
+            if (Gold < order.Gold) return new OrderResult(false, RealmLocalization.T("order.err_no_gold", "금이 모자랍니다"));
 
             Gold -= order.Gold;
             _doneThisMonth.Add(officer.Id);
@@ -259,8 +259,8 @@ namespace Saga.Realm.Data
             int amount = after - before;
             SetField(record, key, after);
 
-            string msg = $"{officer.Name} — {order.Name} {(amount > 0 ? $"+{amount}" : "더 올릴 곳이 없다")}" +
-                         $"{(crit && amount > 0 ? " (대성공!)" : "")}";
+            string msg = $"{officer.Name} — {order.Name} {(amount > 0 ? $"+{amount}" : RealmLocalization.T("order.no_room", "더 올릴 곳이 없다"))}" +
+                         $"{(crit && amount > 0 ? RealmLocalization.T("order.crit_suffix", " (대성공!)") : "")}";
             return new OrderResult(true, msg);
         }
 
@@ -282,7 +282,7 @@ namespace Saga.Realm.Data
                 record.Train = Mathf.RoundToInt(record.Train * (float)(record.Troops - amount) / record.Troops);
             }
 
-            string msg = $"{officer.Name} — 징병 {(amount > 0 ? $"+{amount}" : "더 뽑을 사람이 없다")}";
+            string msg = $"{officer.Name} — {order.Name} {(amount > 0 ? $"+{amount}" : RealmLocalization.T("order.no_recruits", "더 뽑을 사람이 없다"))}";
             return new OrderResult(true, msg);
         }
 
@@ -297,13 +297,13 @@ namespace Saga.Realm.Data
                 if (_foundIds.Contains(id) || _roster.Contains(id)) continue;
                 hidden.Add(RealmOfficerPool.Get(id));
             }
-            if (hidden.Count == 0) return new OrderResult(true, "더 찾을 사람이 없다");
+            if (hidden.Count == 0) return new OrderResult(true, RealmLocalization.T("order.search_none", "더 찾을 사람이 없다"));
 
             hidden.Sort((a, b) => b.Rarity.CompareTo(a.Rarity));
             int reach = Mathf.Clamp(Mathf.RoundToInt(hidden.Count * (officer.Wisdom / 130f)), 1, hidden.Count);
             var found = hidden[UnityEngine.Random.Range(0, reach)];
             _foundIds.Add(found.Id);
-            return new OrderResult(true, $"{officer.Name} — {found.Name}을(를) 찾아냈다!");
+            return new OrderResult(true, string.Format(RealmLocalization.T("order.search_found", "{0} — {1}을(를) 찾아냈다!"), officer.Name, found.Name));
         }
 
         /// <summary>등용 — rtk.js doHire()/tryHire(). 지금 조망 중인 성에서
@@ -316,17 +316,17 @@ namespace Saga.Realm.Data
             {
                 if (_foundIds.Contains(id) && !_roster.Contains(id)) { targetId = id; break; }
             }
-            if (targetId == null) return new OrderResult(true, "부를 사람이 없다 (먼저 수색하시오)");
+            if (targetId == null) return new OrderResult(true, RealmLocalization.T("order.hire_none_found", "부를 사람이 없다 (먼저 수색하시오)"));
 
             var target = RealmOfficerPool.Get(targetId);
             float chance = Mathf.Clamp(0.28f + officer.Wisdom / 260f - (target.Rarity - 2) * 0.09f, 0.05f, 0.9f);
             if (UnityEngine.Random.value > chance)
             {
-                return new OrderResult(true, $"{target.Name}이(가) 설득에 응하지 않았다.");
+                return new OrderResult(true, string.Format(RealmLocalization.T("order.hire_declined", "{0}이(가) 설득에 응하지 않았다."), target.Name));
             }
             _roster.Add(targetId);
             _officerCity[targetId] = CurrentCity;
-            return new OrderResult(true, $"{target.Name}이(가) 세력에 합류했다({CityName(CurrentCity)} 배치)!");
+            return new OrderResult(true, string.Format(RealmLocalization.T("order.hire_joined", "{0}이(가) 세력에 합류했다({1} 배치)!"), target.Name, CityName(CurrentCity)));
         }
 
         private static string CityName(string cityId) => RealmCityData.Get(cityId)?.Name ?? cityId;
@@ -371,8 +371,10 @@ namespace Saga.Realm.Data
             _doneThisMonth.Clear();
 
             Changed?.Invoke();
-            string summary = $"{Year}년 {Month}월 — 금 +{income}-{upkeep}(봉록){(harvest ? ", 수확" : "")}";
-            if (starved.Count > 0) summary += $" — {string.Join(", ", starved)} 굶주려 병사 흩어짐";
+            string summary = string.Format(RealmLocalization.T("month.summary", "{0}년 {1}월 — 금 +{2}-{3}(봉록){4}"),
+                Year, Month, income, upkeep, harvest ? RealmLocalization.T("month.harvest_suffix", ", 수확") : "");
+            if (starved.Count > 0)
+                summary += string.Format(RealmLocalization.T("month.starved_suffix", " — {0} 굶주려 병사 흩어짐"), string.Join(", ", starved));
             return summary;
         }
 

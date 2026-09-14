@@ -52,18 +52,18 @@ namespace Saga.Realm.Data
         public static AttackResult Attack(string fromCityId)
         {
             string enemyId = RealmEnemyCity.TargetFrom(fromCityId);
-            if (enemyId == null) return new AttackResult(false, "이 성에서는 칠 적국이 없습니다");
+            if (enemyId == null) return new AttackResult(false, RealmLocalization.T("war.err_no_target", "이 성에서는 칠 적국이 없습니다"));
 
             var def = RealmEnemyCity.Get(enemyId);
             var enemy = _enemies[enemyId];
-            if (enemy.Captured) return new AttackResult(false, "이미 함락한 성입니다");
+            if (enemy.Captured) return new AttackResult(false, RealmLocalization.T("war.err_already_captured", "이미 함락한 성입니다"));
 
             var city = RealmCityState.CityRecord(fromCityId);
             int troops = city.Troops;
-            if (troops < 500) return new AttackResult(false, "오백은 넘겨야 군대라 하지요");
+            if (troops < 500) return new AttackResult(false, RealmLocalization.T("war.err_too_few_troops", "오백은 넘겨야 군대라 하지요"));
 
             int need = Mathf.RoundToInt(troops / 1000f * RealmCityState.FoodPer1000 * 2f);
-            if (city.Food < need) return new AttackResult(false, $"군량이 모자랍니다 ({need} 필요)");
+            if (city.Food < need) return new AttackResult(false, string.Format(RealmLocalization.T("war.err_no_food", "군량이 모자랍니다 ({0} 필요)"), need));
 
             var officers = new List<string>();
             foreach (var id in RealmCityState.RosterIds)
@@ -73,7 +73,7 @@ namespace Saga.Realm.Data
                     officers.Add(id);
                 }
             }
-            if (officers.Count == 0) return new AttackResult(false, "이 성에서 명령을 쓸 수 있는 무장이 없습니다");
+            if (officers.Count == 0) return new AttackResult(false, RealmLocalization.T("order.err_no_officer_here", "이 성에서 명령을 쓸 수 있는 무장이 없습니다"));
 
             // 출진 — 병력 전군·군량 need만큼 미리 나간다(war.js와 같은 순서).
             city.Troops = 0;
@@ -97,7 +97,8 @@ namespace Saga.Realm.Data
                 // 들인다. 전후 성벽·병력·훈련·기술은 이 전투가 실제로 남긴
                 // 값 그대로(RealmCityState.AbsorbCity() 주석 참고).
                 RealmCityState.AbsorbCity(enemyId, enemy.Wall, enemy.Troops, enemy.Train, enemy.Tech);
-                message = $"{def.Name}을(를) 함락했다! (아군 손실 {result.LossA}, 적 손실 {result.LossD}) — 이제 우리 성입니다";
+                message = string.Format(RealmLocalization.T("war.captured", "{0}을(를) 함락했다! (아군 손실 {1}, 적 손실 {2}) — 이제 우리 성입니다"),
+                    def.Name, result.LossA, result.LossD);
             }
             else
             {
@@ -106,7 +107,8 @@ namespace Saga.Realm.Data
                 city.Troops += atk.Troops;
                 city.Food += baggage;
                 enemy.Troops = defArmy.Troops; // 병력·성벽이 이어져 재도전이 의미 있다.
-                message = $"물러났다 — 생존 {atk.Troops}, 적 손실 {result.LossD}, 치중 {baggage} 귀환";
+                message = string.Format(RealmLocalization.T("war.retreated", "물러났다 — 생존 {0}, 적 손실 {1}, 치중 {2} 귀환"),
+                    atk.Troops, result.LossD, baggage);
             }
 
             Changed?.Invoke();
@@ -160,30 +162,31 @@ namespace Saga.Realm.Data
         public static PlotResult Plot(string kind, string fromCityId)
         {
             string enemyId = RealmEnemyCity.TargetFrom(fromCityId);
-            if (enemyId == null) return new PlotResult(false, "이 성에서는 계략을 걸 적국이 없습니다");
+            if (enemyId == null) return new PlotResult(false, RealmLocalization.T("plot.err_no_target", "이 성에서는 계략을 걸 적국이 없습니다"));
 
             var enemy = _enemies[enemyId];
-            if (enemy.Captured) return new PlotResult(false, "이미 함락한 성입니다");
+            if (enemy.Captured) return new PlotResult(false, RealmLocalization.T("war.err_already_captured", "이미 함락한 성입니다"));
 
             var plot = RealmPlotData.Get(kind);
-            if (plot == null) return new PlotResult(false, "없는 계략");
+            if (plot == null) return new PlotResult(false, RealmLocalization.T("plot.err_unknown", "없는 계략"));
 
             var officer = BestPlotter(fromCityId);
-            if (officer == null) return new PlotResult(false, "이 성에서 계략을 쓸 수 있는 무장이 없습니다");
-            if (!RealmCityState.TrySpendGold(plot.Gold)) return new PlotResult(false, "금이 모자랍니다");
+            if (officer == null) return new PlotResult(false, RealmLocalization.T("plot.err_no_officer_here", "이 성에서 계략을 쓸 수 있는 무장이 없습니다"));
+            if (!RealmCityState.TrySpendGold(plot.Gold)) return new PlotResult(false, RealmLocalization.T("order.err_no_gold", "금이 모자랍니다"));
 
             RealmCityState.MarkOfficerDone(officer.Id);
             float chance = PlotChance(officer);
             string message;
             if (UnityEngine.Random.value > chance)
             {
-                message = $"{plot.Emoji} {plot.Name} — 들통났다 (성공률 {Mathf.RoundToInt(chance * 100f)}%였다)";
+                message = string.Format(RealmLocalization.T("plot.failed", "{0} {1} — 들통났다 (성공률 {2}%였다)"),
+                    plot.Emoji, plot.Name, Mathf.RoundToInt(chance * 100f));
             }
             else
             {
                 var def = RealmEnemyCity.Get(enemyId);
                 string effect = kind == "rumor" ? ApplyRumor(enemy, def.Name) : ApplyFire(enemy, def.Name);
-                message = $"{plot.Emoji} {plot.Name} 성공 — {effect}";
+                message = string.Format(RealmLocalization.T("plot.succeeded", "{0} {1} 성공 — {2}"), plot.Emoji, plot.Name, effect);
             }
 
             Changed?.Invoke();
@@ -198,7 +201,7 @@ namespace Saga.Realm.Data
             int before = enemy.Train;
             int drop = 10 + UnityEngine.Random.Range(0, 12);
             enemy.Train = Mathf.Max(0, enemy.Train - drop);
-            return $"{enemyName} 훈련도 {before} → {enemy.Train}";
+            return string.Format(RealmLocalization.T("plot.rumor_effect", "{0} 훈련도 {1} → {2}"), enemyName, before, enemy.Train);
         }
 
         /// <summary>화계 — 원작은 군량을 태우지만(적 성에 군량 필드 없음)
@@ -209,7 +212,7 @@ namespace Saga.Realm.Data
             float frac = 0.25f + UnityEngine.Random.value * 0.3f;
             int burned = Mathf.RoundToInt(enemy.Troops * frac);
             enemy.Troops = Mathf.Max(0, enemy.Troops - burned);
-            return $"{enemyName} 병력 {before} → {enemy.Troops} ({burned} 소실)";
+            return string.Format(RealmLocalization.T("plot.fire_effect", "{0} 병력 {1} → {2} ({3} 소실)"), enemyName, before, enemy.Troops, burned);
         }
 
         public static (int wall, int maxWall, int troops, int train, int tech, bool captured) Snapshot(string enemyId)
