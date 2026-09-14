@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://games/saga_story/world/story_town.gd" id="1"]
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://games/saga_story/ui/StoryHUD.tscn" id="7"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_portal.gd" id="8"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_sky.gd" id="9"]
+[ext_resource type="Script" path="res://games/saga_story/world/story_talk_npc.gd" id="10"]
 
 [node name="SinyaField" type="Node3D"]
 script = ExtResource("1")
@@ -47,3 +48,18 @@ script = ExtResource("8")
 target_scene = "res://games/saga_story/world/HeodoField.tscn"
 arrival_x_m = 3.0
 label_text = "허도로"
+
+[node name="ElderNpc" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0, 0)
+script = ExtResource("10")
+npc_key = "elder"
+
+[node name="GuardNpc" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, 0)
+script = ExtResource("10")
+npc_key = "guard"
+
+[node name="WandererNpc" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 0, 0)
+script = ExtResource("10")
+npc_key = "wanderer"

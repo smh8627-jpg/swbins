@@ -6271,4 +6271,24 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   채워져 있었다 — 다음은 FOREST 밖(다른 네 판·saga-unity 트랙)을
   고려하거나, 더 좁힐 것을 찾는다면 "생태계" 밀도를 한 단계 더(바이옴당
   셋째 종) 늘리는 같은 패턴이 남아 있다.
+
+## STORY NPC_TALK 밀도 — 다섯 마을에 대사 NPC 채우기 (2026-09-14, 같은 날 이어서, "묻지말고 이어해 STORY도 손대")
+
+- STORY는 "새로 옮길 굵직한 항목이 없다"는 결론만 반복돼 왔는데, 다시
+  보니 `story_combat.gd NPC_TALK`(elder·guard·healer·wanderer, 대사
+  4줄씩)는 이미 다 있는데 실제 씬엔 HeodoField의 guard 하나뿐이었다.
+  웹판 `data-side.js STAGES`의 다섯 `town:true` 마을(신야성·허도·
+  강릉진·남정성·기산채)이 각자 다른 npcs 조합을 이미 정해 뒀길래
+  (merchant 제외 — 이 슬라이스는 상점을 필드 상인 하나로 단순화해 둔
+  별개 결정) 그대로 따라 다섯 마을에 `story_talk_npc.gd` 인스턴스
+  12개를 배치했다. 새 코드·새 데이터 없음 — 순수 씬 배치. 자세한
+  내용은 `docs/VERTICAL_SLICE_STORY.md` 32절 참고.
+- 검증: 헤드리스 임포트 오류 0건, 다섯 마을 씬 각각 `--quit-after 6`
+  세 번 연속 로그 완전 동일. 임시 씬으로 각 마을의 NPC 조합이 의도와
+  정확히 일치·대사 4줄씩 정상 조회 확인 후 삭제, 재검증까지 마쳤다.
+  GO·DUNGEON·FOREST·REALM·STORY(TestField) 회귀도 오류 0건 재확인.
+  `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: STORY 안에서 더 좁힐 만한 것은 이제 정말 거의
+  없다. 다음은 STORY 밖(다른 네 판·saga-unity 트랙)을 진지하게 고려할
+  자리.
   고려할 자리.
