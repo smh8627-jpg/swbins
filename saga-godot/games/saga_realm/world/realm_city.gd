@@ -28,6 +28,7 @@ extends Node3D
 ## 짓는다)을 그대로 옮겨 매 프레임 재생성을 피한다.
 
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
+const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 
 const COLOR_BASE := Color(0.56, 0.5, 0.4)     # 흙빛 기단
 const COLOR_TOWER := Color(0.68, 0.6, 0.46)   # 누각(망루)
@@ -50,8 +51,18 @@ var _dyn: Node3D
 var _last_sig := ""
 
 
+## **2026-09-14 추가 — 새 게임 시나리오 고르기(REALM 4절 "제외" 마지막
+## 후속 작업).** `try_load()`가 세이브를 못 찾으면(진짜 새 게임 — 파일이
+## 아예 없거나 SAVE_VERSION이 안 맞는 옛 세이브, 둘 다 지금까지도 조용히
+## 194로 부팅해 왔다) 시나리오를 고르게 한다. 고정 소품(기단·누각·담장,
+## 시나리오·현재 성과 무관)은 고르는 동안에도 그대로 짓는다 — 고른
+## 직후엔 새 함수가 따로 필요 없다, `_process()`의 `_rebuild_if_changed()`
+## 가 이미 매 프레임 sig()로 "값이 바뀌었나"만 보고 있어 `start_scenario()`
+## 가 바꾼 현재 성 값을 다음 프레임에 저절로 집어 든다.
 func _ready() -> void:
-	RealmSaveState.try_load()
+	if not RealmSaveState.try_load():
+		RealmSaveState.scenario_ready = false
+		_show_scenario_picker()
 	_build_base()
 	_build_tower()
 	_build_walls()
@@ -60,6 +71,22 @@ func _ready() -> void:
 	_dyn = Node3D.new()
 	_dyn.name = "Diorama"
 	add_child(_dyn)
+
+
+func _show_scenario_picker() -> void:
+	var layer_box := {}
+	var choices: Array = [
+		{"label": "194년 · 군웅할거 (조조, 성 3곳)",
+		 "cb": func() -> void: _pick_scenario("194", layer_box)},
+		{"label": "200년 · 관도 (조조, 성 8곳)",
+		 "cb": func() -> void: _pick_scenario("200", layer_box)},
+	]
+	layer_box["layer"] = ChoicePrompt.build(self, "새 게임 — 시나리오를 고른다", choices)
+
+
+func _pick_scenario(id: String, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	RealmSaveState.start_scenario(id)
 
 
 ## **2026-09-12 추가 — 월드맵과 화면을 나눠 쓴다.** RealmSaveState.

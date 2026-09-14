@@ -57,6 +57,17 @@ const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우�
 ## 시작과 똑같다. `city_force`(아래)가 이 값을 따라간다.
 var scenario_id := "194"
 
+## **2026-09-14 추가 — 새 게임 시나리오 고르기(REALM 4절 "제외" 마지막
+## 후속 작업).** 기본값 true — 세이브를 불러왔거나(`try_load()`가 이미
+## 확정된 과거 선택을 복원) 아직 한 번도 고를 필요가 없던 지금까지의
+## 유일한 시작(194)과 같은 뜻이다. `realm_city.gd`가 진짜 새 게임(세이브
+## 없음/버전 불일치)이라 판단해 시나리오 선택 패널을 띄우는 그 순간에만
+## false로 내려간다 — `realm_worldmap.gd`가 이 값을 보고, 아직 고르지
+## 않았으면 마커 세우기를 미룬다(우호 마커를 어느 성 기준으로 세워야
+## 할지 아직 안 정해졌으므로). `start_scenario()`가 끝에서 다시 true로
+## 올린다("이제 확정됐다").
+var scenario_ready := true
+
 var year := 194
 var month := 1
 ## 조조군 시작 금고 — rtk.js setup(): 2000 + cities.length(3) * 400 = 3200.
@@ -321,6 +332,7 @@ func start_scenario(id: String) -> void:
 	## 달라진 시나리오에도 그대로 적용 — 194(3성)=3200(기존과 동일),
 	## 200(8성)=5200.
 	gold = 2000 + cities.size() * 400
+	scenario_ready = true  # 이제 확정됐다 — realm_worldmap.gd가 미뤄 둔 마커를 세울 차례
 
 
 ## quiz.js qstate()의 기본값 그대로(best_streak는 camelCase→snake_case만).

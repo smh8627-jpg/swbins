@@ -91,6 +91,7 @@ var _base_color: Dictionary = {} # city_id -> Color(강조 아닐 때 되돌아�
 var _annexed_seen: Dictionary = {} # eid -> true(색을 이미 우호색으로 한 번 바꿨다)
 var _last_current := ""
 var _last_visible := false
+var _markers_built := false  # RealmSaveState.scenario_ready가 false인 동안 미룬다
 
 
 ## **2026-09-14 정정 — 우호 마커는 이제 `RealmCities.CITIES`(194 고정 셋)가
@@ -102,13 +103,24 @@ var _last_visible := false
 func _ready() -> void:
 	get_viewport().physics_object_picking = true
 	_build_ground()
+	if RealmSaveState.scenario_ready:
+		_build_all_markers()
+
+
+## **2026-09-14 추가 — 새 게임 시나리오 고르기와 짝을 이룬다.**
+## `realm_city.gd`가 시나리오 선택 패널을 띄우는 동안은 `RealmSaveState.
+## scenario_ready`가 false라 `_ready()`가 마커 세우기를 건너뛴다(그
+## 시점엔 "우리 성이 어디인가"가 아직 안 정해졌다) — 매 프레임 `_process()`
+## 가 그 값이 true로 바뀌는 순간(선택 완료)을 잡아 한 번만 세운다.
+func _build_all_markers() -> void:
+	_markers_built = true
 	for city_id: String in RealmSaveState.cities.keys():
 		_build_marker(RealmCities.any_by_id(city_id), _land_color(city_id))
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
-		## **2026-09-14 추가 — 시나리오가 우리 것으로 준 성은 건너뛴다**
-		## (위 루프가 이미 우호 마커를 세웠다) — `RealmSaveState.enemies`에
-		## 없으면 이 시나리오에서 애초에 적이 아니다(`_init_enemies()` 참고).
+		## 시나리오가 우리 것으로 준 성은 건너뛴다(위 루프가 이미 우호
+		## 마커를 세웠다) — `RealmSaveState.enemies`에 없으면 이 시나리오
+		## 에서 애초에 적이 아니다(`_init_enemies()` 참고).
 		if not RealmSaveState.enemies.has(eid):
 			continue
 		if bool(RealmSaveState.enemies[eid].get("captured", false)):
@@ -122,6 +134,10 @@ func _ready() -> void:
 ## 폴링한다(FOREST gather_label.gd 폴링 패턴과 같은 결) — 숨어 있는 동안은
 ## 강조 갱신도, 탭 판정도 건너뛴다.
 func _process(_delta: float) -> void:
+	if not _markers_built:
+		if not RealmSaveState.scenario_ready:
+			return  # 아직 시나리오를 안 골랐다 — 이번 프레임엔 할 일이 없다
+		_build_all_markers()
 	_check_annexed()
 	visible = RealmSaveState.viewing_map
 	if visible != _last_visible:
