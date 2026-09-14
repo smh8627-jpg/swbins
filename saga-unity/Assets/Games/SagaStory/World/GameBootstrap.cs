@@ -13,6 +13,8 @@ namespace Saga.Story.World
         private void Start()
         {
             StorySaveState.TryLoad();
+            StorySettingsState.ApplyToAllScalers();
+            StorySettingsState.ApplyGraphicsQuality();
         }
     }
 }

@@ -185,11 +185,11 @@ namespace Saga.Go.World
 
             var panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(700f, 420f), new Color(0f, 0f, 0f, 0.72f));
 
-            EncounterUiKit.NewText(panel.transform, "🐺 흰 늑대\n숲 그늘에서 눈빛 하나가 이쪽을 노려본다.",
+            EncounterUiKit.NewText(panel.transform, GoLocalization.T("encounter.wolf_intro", "🐺 흰 늑대\n숲 그늘에서 눈빛 하나가 이쪽을 노려본다."),
                 new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(620f, 180f), 30);
 
-            EncounterUiKit.NewButton(panel.transform, "맞선다", new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(560f, 74f), ChooseFight);
-            EncounterUiKit.NewButton(panel.transform, "피한다", new Vector2(0.5f, 1f), new Vector2(0f, -304f), new Vector2(560f, 74f), ChooseAvoid);
+            EncounterUiKit.NewButton(panel.transform, GoLocalization.T("encounter.fight"), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(560f, 74f), ChooseFight);
+            EncounterUiKit.NewButton(panel.transform, GoLocalization.T("encounter.avoid"), new Vector2(0.5f, 1f), new Vector2(0f, -304f), new Vector2(560f, 74f), ChooseAvoid);
         }
 
         private void ChooseFight()
@@ -201,7 +201,7 @@ namespace Saga.Go.World
         private void ChooseAvoid()
         {
             _promptRoot.SetActive(false);
-            Toast("숨을 죽이고 조용히 발길을 돌렸다.");
+            Toast(GoLocalization.T("encounter.wolf_avoid_msg", "숨을 죽이고 조용히 발길을 돌렸다."));
             EnterCooldown();
         }
 
@@ -224,7 +224,7 @@ namespace Saga.Go.World
             _flashImage.color = new Color(1f, 0.15f, 0.15f, 0f);
             _flashImage.raycastTarget = false;
 
-            var titleText = EncounterUiKit.NewText(canvas.transform, $"🐺 {FoeName}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
+            var titleText = EncounterUiKit.NewText(canvas.transform, $"🐺 {GoLocalization.T("foe.rare_wolf", FoeName)}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
             titleText.alignment = TextAnchor.MiddleLeft;
 
             _timerText = EncounterUiKit.NewText(canvas.transform, "60초", new Vector2(1f, 1f), new Vector2(-140f, -50f), new Vector2(220f, 60f), 30);
@@ -234,10 +234,10 @@ namespace Saga.Go.World
             _moraleFill = EncounterUiKit.NewBarRow(canvas.transform, "사기", -160f, out _);
             _kiFill = EncounterUiKit.NewBarRow(canvas.transform, "기(氣)", -210f, out _);
 
-            EncounterUiKit.NewButton(canvas.transform, "속공", new Vector2(0f, 0f), new Vector2(150f, 130f), new Vector2(220f, 110f), () => DoAct("quick"));
-            _ultButton = EncounterUiKit.NewButton(canvas.transform, "필살", new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(220f, 110f), () => DoAct("ult"));
-            EncounterUiKit.NewButton(canvas.transform, "회피", new Vector2(1f, 0f), new Vector2(-150f, 130f), new Vector2(220f, 110f), () => DoAct("dodge"));
-            EncounterUiKit.NewButton(canvas.transform, "물러난다", new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(300f, 74f), FleeCombat);
+            EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.quick"), new Vector2(0f, 0f), new Vector2(150f, 130f), new Vector2(220f, 110f), () => DoAct("quick"));
+            _ultButton = EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.ult"), new Vector2(0.5f, 0f), new Vector2(0f, 130f), new Vector2(220f, 110f), () => DoAct("ult"));
+            EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.dodge"), new Vector2(1f, 0f), new Vector2(-150f, 130f), new Vector2(220f, 110f), () => DoAct("dodge"));
+            EncounterUiKit.NewButton(canvas.transform, GoLocalization.T("combat.retreat"), new Vector2(0.5f, 0f), new Vector2(0f, 30f), new Vector2(300f, 74f), FleeCombat);
         }
 
         private void StartFight()
@@ -281,7 +281,7 @@ namespace Saga.Go.World
             switch (e.T)
             {
                 case "tell":
-                    Toast("늑대가 몸을 낮춘다 — 덮치기 전에 피하라!");
+                    Toast(GoLocalization.T("encounter.wolf_tell", "늑대가 몸을 낮춘다 — 덮치기 전에 피하라!"));
                     _visualMat.color = TellColor;
                     break;
                 case "heavy":
@@ -321,9 +321,10 @@ namespace Saga.Go.World
                 Inventory.AddItem(RewardItemId);
                 var item = ItemData.Get(RewardItemId);
 
-                var msg = $"{FoeName}을 물리쳤다 — 희귀 몬스터 토벌!\n경험치 +{ExpReward} · 돈 +{RewardGold}냥";
-                if (PlayerStats.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {PlayerStats.Level})";
-                if (item != null) msg += $"\n{item.Name}을(를) 확실히 얻었다.";
+                var msg = string.Format(GoLocalization.T("encounter.wolf_victory", "{0}을 물리쳤다 — 희귀 몬스터 토벌!\n경험치 +{1} · 돈 +{2}냥"),
+                    GoLocalization.T("foe.rare_wolf", FoeName), ExpReward, RewardGold);
+                if (PlayerStats.Level > levelBefore) msg += string.Format(GoLocalization.T("encounter.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, PlayerStats.Level);
+                if (item != null) msg += string.Format(GoLocalization.T("encounter.loot_certain", "\n{0}을(를) 확실히 얻었다."), item.Name);
                 Toast(msg, VictoryToastSec);
 
                 // 희귀 몬스터는 이번 슬라이스에서 한 번만 나고 다시 안 난다
@@ -334,11 +335,11 @@ namespace Saga.Go.World
 
             if (dealt <= 0f)
             {
-                Toast("물러났다.");
+                Toast(GoLocalization.T("encounter.retreat_clean", "물러났다."));
             }
             else
             {
-                Toast("밀렸다. 물러났다.");
+                Toast(GoLocalization.T("encounter.retreat_pushed", "밀렸다. 물러났다."));
             }
             EnterCooldown();
         }

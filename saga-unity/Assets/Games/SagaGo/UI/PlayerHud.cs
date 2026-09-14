@@ -35,9 +35,11 @@ namespace Saga.Go.UI
         private void Refresh()
         {
             if (label == null) return;
-            string weapon = ItemData.Get(Inventory.EquippedWeaponId)?.Name ?? "맨손";
-            string armor = ItemData.Get(Inventory.EquippedArmorId)?.Name ?? "베옷";
-            label.text = $"Lv.{PlayerStats.Level}  (경험치 {PlayerStats.Exp}/{PlayerStats.ExpToNext})  돈 {GoldState.Gold}냥\n" +
+            string weapon = ItemData.Get(Inventory.EquippedWeaponId)?.Name ?? GoLocalization.T("item.bare_hands");
+            string armor = ItemData.Get(Inventory.EquippedArmorId)?.Name ?? GoLocalization.T("item.plain_clothes");
+            string exp = string.Format(GoLocalization.T("hud.exp"), PlayerStats.Exp, PlayerStats.ExpToNext);
+            string gold = string.Format(GoLocalization.T("hud.gold"), GoldState.Gold);
+            label.text = $"Lv.{PlayerStats.Level}  ({exp})  {gold}\n" +
                          $"{weapon} · {armor}";
         }
     }

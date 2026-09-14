@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Saga.Go.Data;
 
 namespace Saga.Go.UI
 {
@@ -23,6 +24,7 @@ namespace Saga.Go.UI
             var scaler = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1080f, 1920f);
+            GoSettingsState.ApplyUiScale(scaler); // 설정에서 고른 UI 크기를 새 캔버스에도 그대로.
             go.AddComponent<GraphicRaycaster>();
             return canvas;
         }

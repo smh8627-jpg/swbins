@@ -11,13 +11,14 @@ namespace Saga.Dungeon.Data
     public class ItemData
     {
         public readonly string Id;
-        public readonly string Name;
+        private readonly string _name;
+        public string Name => DungeonLocalization.T("item." + Id, _name);
         public readonly float AtkBonus;
 
         private ItemData(string id, string name, float atk)
         {
             Id = id;
-            Name = name;
+            _name = name;
             AtkBonus = atk;
         }
 

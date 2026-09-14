@@ -61,6 +61,7 @@ namespace Saga.EditorTools
             BuildChoiceUi();
             BuildDebugOverlay();
             BuildSaveButton();
+            BuildSettingsUi();
             BuildMobileControls(playerController);
             BuildBootstrap();
 
@@ -542,6 +543,16 @@ namespace Saga.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.text = "저장";
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성" — 효과음·진동·UI 크기·그래픽
+        /// 품질. "저장" 버튼(-30,-30,160×80) 바로 아래가 GO/FOREST와 같은
+        /// 이유로 이 판에서도 유일하게 빈 오른쪽 위 자리다.</summary>
+        private static void BuildSettingsUi()
+        {
+            var go = new GameObject("StorySettingsPanel");
+            var panel = go.AddComponent<StorySettingsPanel>();
+            panel.Build();
         }
 
         /// <summary>19~21장 모바일 조작 — 이 판은 1축 플랫포머라 다른 네

@@ -46,15 +46,20 @@ namespace Saga.Realm.UI
             if (cityDef == null || record == null) return;
 
             var sb = new StringBuilder();
-            sb.Append(cityDef.Name).Append(" · ").Append(RealmCityState.Year).Append("년 ")
-                .Append(RealmCityState.Month).Append("월 · 금 ").Append(RealmCityState.Gold).Append('\n');
-            sb.Append("개간 ").Append(record.Agri).Append(" · 상업 ").Append(record.Comm)
-                .Append(" · 기술 ").Append(record.Tech).Append(" · 치안 ").Append(record.Sec).Append('\n');
-            sb.Append("축성 ").Append(record.Wall).Append(" · 훈련 ").Append(record.Train)
-                .Append(" · 조선 ").Append(record.Ships).Append('\n');
-            sb.Append("인구 ").Append(record.Pop).Append(" · 병력 ").Append(record.Troops)
-                .Append(" · 군량 ").Append(record.Food).Append('\n');
-            sb.Append("로스터: ");
+            sb.Append(cityDef.Name).Append(" · ")
+                .Append(string.Format(RealmLocalization.T("hud.year_month"), RealmCityState.Year, RealmCityState.Month, RealmCityState.Gold))
+                .Append('\n');
+            sb.Append(RealmLocalization.T("hud.agri")).Append(' ').Append(record.Agri)
+                .Append(" · ").Append(RealmLocalization.T("hud.comm")).Append(' ').Append(record.Comm)
+                .Append(" · ").Append(RealmLocalization.T("hud.tech")).Append(' ').Append(record.Tech)
+                .Append(" · ").Append(RealmLocalization.T("hud.sec")).Append(' ').Append(record.Sec).Append('\n');
+            sb.Append(RealmLocalization.T("hud.wall")).Append(' ').Append(record.Wall)
+                .Append(" · ").Append(RealmLocalization.T("hud.train")).Append(' ').Append(record.Train)
+                .Append(" · ").Append(RealmLocalization.T("hud.ships")).Append(' ').Append(record.Ships).Append('\n');
+            sb.Append(RealmLocalization.T("hud.pop")).Append(' ').Append(record.Pop)
+                .Append(" · ").Append(RealmLocalization.T("hud.troops")).Append(' ').Append(record.Troops)
+                .Append(" · ").Append(RealmLocalization.T("hud.food")).Append(' ').Append(record.Food).Append('\n');
+            sb.Append(RealmLocalization.T("hud.roster"));
             bool first = true;
             foreach (var id in RealmCityState.RosterIds)
             {
@@ -75,8 +80,8 @@ namespace Saga.Realm.UI
                 if (!firstEnemy) sb.Append(" · ");
                 firstEnemy = false;
                 sb.Append(enemyDef.Name).Append(" — ").Append(enemy.Captured
-                    ? "함락됨(성 목록에 편입)"
-                    : $"병력 {enemy.Troops} · 성벽 {enemy.Wall} · 훈련 {enemy.Train}");
+                    ? RealmLocalization.T("hud.captured")
+                    : string.Format(RealmLocalization.T("hud.enemy_status"), enemy.Troops, enemy.Wall, enemy.Train));
             }
             label.text = sb.ToString();
         }

@@ -14,7 +14,16 @@ namespace Saga.Realm.Data
     public class RealmOrderData
     {
         public readonly string Key;
-        public readonly string Name;
+        private readonly string _name;
+        /// <summary>개간/상업/기술/치안/축성/훈련/조선은 HUD 상태줄이 이미
+        /// 쓰는 `hud.*` 키를 그대로 재사용한다(같은 단어) — 징병/수색/등용만
+        /// 새 `order.*` 키.</summary>
+        public string Name => RealmLocalization.T(Key switch
+        {
+            "agri" => "hud.agri", "comm" => "hud.comm", "tech" => "hud.tech", "sec" => "hud.sec",
+            "wall" => "hud.wall", "train" => "hud.train", "ships" => "hud.ships",
+            _ => "order." + Key,
+        }, _name);
         public readonly int Gold;
         public readonly int Base;
         public readonly float Per;
@@ -24,7 +33,7 @@ namespace Saga.Realm.Data
         private RealmOrderData(string key, string name, int gold, int @base, float per, RealmStat stat, bool locationBound)
         {
             Key = key;
-            Name = name;
+            _name = name;
             Gold = gold;
             Base = @base;
             Per = per;

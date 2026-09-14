@@ -27,6 +27,8 @@ namespace Saga.Dungeon.World
             SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip);
             SaveState.TryLoad();
             CombineStaticBatches();
+            DungeonSettingsState.ApplyToAllScalers();
+            DungeonSettingsState.ApplyGraphicsQuality();
             QuestState.StageCompleted += OnQuestStageCompleted;
             HeroState.LeveledUp += OnLeveledUp; // "사운드" 슬라이스 — PLAN.md 37장, 레벨업 신호음.
         }

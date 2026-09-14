@@ -21,18 +21,20 @@ namespace Saga.Realm.Data
     public class RealmPlotData
     {
         public readonly string Key;
-        public readonly string Name;
+        private readonly string _name;
+        private readonly string _desc;
+        public string Name => RealmLocalization.T("plot." + Key + "_name", _name);
+        public string Desc => RealmLocalization.T("plot." + Key + "_desc", _desc);
         public readonly string Emoji;
         public readonly int Gold;
-        public readonly string Desc;
 
         private RealmPlotData(string key, string name, string emoji, int gold, string desc)
         {
             Key = key;
-            Name = name;
+            _name = name;
             Emoji = emoji;
             Gold = gold;
-            Desc = desc;
+            _desc = desc;
         }
 
         public static readonly Dictionary<string, RealmPlotData> Catalog = new Dictionary<string, RealmPlotData>

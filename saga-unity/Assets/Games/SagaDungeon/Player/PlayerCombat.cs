@@ -141,7 +141,7 @@ namespace Saga.Dungeon.Player
         /// 이미 public static이라 별도 조회 API 없이 바로 순회한다.</summary>
         private void TryWhirl()
         {
-            if (_whirlCooldownLeft > 0f || (_controller != null && _controller.IsDodging)) return;
+            if (_whirlCooldownLeft > 0f) return;
 
             bool hitAny = false;
             float damage = HeroState.HitDamage * WhirlDamageMul;

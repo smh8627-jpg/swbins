@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Audio;
+using Saga.Go.Data;
 using Saga.Go.UI;
 
 namespace Saga.EditorTools
@@ -109,6 +110,8 @@ namespace Saga.EditorTools
                 var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Audio/Kenney_RPGSounds/chop.ogg");
                 GoAudio.PlaySfx(clip);
                 CheckDebugHud();
+                CheckSettingsPanel();
+                CheckPlayerHudLocalization();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -148,6 +151,101 @@ namespace Saga.EditorTools
             {
                 Debug.Log($"[PlaytestHeadless] debug hud OK - \"{label.text.Replace("\n", " | ")}\"");
             }
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — 패널 GameObject가
+        /// 실제로 지어졌는지, 효과음/진동/UI 크기/그래픽 품질 토글이
+        /// 상태를 바꾸고 CanvasScaler·QualitySettings에 실제로 반영되는지
+        /// 직접 확인한다(UI 버튼 클릭 시뮬레이션은 안 함 — 이 파일의 다른
+        /// 검사들과 같은 결로 정적 API를 직접 부른다).</summary>
+        private static void CheckSettingsPanel()
+        {
+            if (GameObject.Find("GoSettingsPanel") == null)
+            {
+                Debug.LogError("[PlaytestHeadless] GoSettingsPanel을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            bool sfxBefore = GoSettingsState.SfxOn;
+            GoSettingsState.SfxOn = !sfxBefore;
+            bool vibBefore = GoSettingsState.VibrationOn;
+            GoSettingsState.VibrationOn = !vibBefore;
+            if (GoSettingsState.SfxOn == sfxBefore || GoSettingsState.VibrationOn == vibBefore)
+            {
+                Debug.LogError("[PlaytestHeadless] 효과음/진동 토글이 안 바뀜");
+                _hadError = true;
+                return;
+            }
+
+            GoSettingsState.UiScaleMultiplier = 1.15f;
+            var scaler = Object.FindFirstObjectByType<CanvasScaler>();
+            float expected = 1080f / 1.15f;
+            if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
+            {
+                Debug.LogError($"[PlaytestHeadless] UI 크기가 캔버스에 안 먹음 — got={(scaler == null ? "null" : scaler.referenceResolution.x.ToString())}");
+                _hadError = true;
+                return;
+            }
+            GoSettingsState.UiScaleMultiplier = 1f; // 다른 검사에 영향 없게 기본값으로 되돌린다.
+
+            GoSettingsState.HighGraphicsQuality = false;
+            if (!Mathf.Approximately(QualitySettings.shadowDistance, 15f) || QualitySettings.antiAliasing != 0)
+            {
+                Debug.LogError($"[PlaytestHeadless] 그래픽 품질(절약)이 QualitySettings에 안 먹음 — shadowDistance={QualitySettings.shadowDistance} aa={QualitySettings.antiAliasing}");
+                _hadError = true;
+                return;
+            }
+            GoSettingsState.HighGraphicsQuality = true; // 원래(기본) 값으로 되돌린다.
+
+            // 2026-09-14 "Localization" — 언어를 실제로 바꾸면 라벨 문구도
+            // 실제로 바뀌는지 본다(API만 값을 바꾸고 표는 그대로인 오탐을 막음).
+            string langBefore = GoLocalization.CurrentLanguage;
+            string qualityLabelBefore = GoSettingsState.GraphicsQualityLabel();
+            GoLocalization.CycleLanguage();
+            if (GoLocalization.CurrentLanguage == langBefore
+                || GoSettingsState.GraphicsQualityLabel() == qualityLabelBefore)
+            {
+                Debug.LogError("[PlaytestHeadless] 언어 전환이 실제 문구를 안 바꿈");
+                _hadError = true;
+                return;
+            }
+            GoLocalization.CurrentLanguage = langBefore; // 다른 검사에 영향 없게 되돌린다.
+
+            Debug.Log("[PlaytestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
+        }
+
+        /// <summary>PLAN.md 67~69장 "Localization" 2차(2026-09-14) — PlayerHud의
+        /// 경험치/돈 표시가 실제로 영어 문구를 보여주는지 본다(단순 T() 호출
+        /// 성공이 아니라 string.Format 인자 순서가 실제로 맞는지까지).</summary>
+        private static void CheckPlayerHudLocalization()
+        {
+            var hudGo = GameObject.Find("PlayerHudUI");
+            var hud = hudGo != null ? hudGo.GetComponent<PlayerHud>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestHeadless] PlayerHudUI/Label을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            string langBefore = GoLocalization.CurrentLanguage;
+            var method = typeof(PlayerHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            GoLocalization.CurrentLanguage = "en";
+            method.Invoke(hud, null);
+            if (!label.text.Contains("EXP") || !label.text.Contains("Gold"))
+            {
+                Debug.LogError($"[PlaytestHeadless] PlayerHud 영어 전환이 안 먹음 text=\"{label.text}\"");
+                _hadError = true;
+                GoLocalization.CurrentLanguage = langBefore;
+                return;
+            }
+            GoLocalization.CurrentLanguage = langBefore;
+            method.Invoke(hud, null); // 다른 검사에 영향 없게 원래 언어로 다시 그린다.
+
+            Debug.Log("[PlaytestHeadless] player hud localization OK");
         }
     }
 }

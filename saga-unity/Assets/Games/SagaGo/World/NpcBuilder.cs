@@ -29,17 +29,20 @@ namespace Saga.Go.World
         }
 
         // 자리는 saga-godot과 동일한 좌표(같은 7x7 지도) — 마을집 좌우 평지.
-        private static readonly VillagerDef[] Villagers =
+        // 2026-09-14 "Localization" — 이름을 static 배열 리터럴로 한 번만
+        // 굳히지 않고 메서드로 뒀다. Build()가 부를 때마다(씬을 다시 열 때
+        // 마다) GoLocalization.T()를 다시 불러 그 시점의 언어를 반영한다.
+        private static VillagerDef[] BuildVillagerDefs() => new[]
         {
             new VillagerDef
             {
-                Id = "npc_elder", Name = "마을 촌장",
+                Id = "npc_elder", Name = GoLocalization.T("npc.elder_name", "마을 촌장"),
                 LineFn = ElderLine,
                 Gx = 1, Gy = 3, Color = new Color(0.25f, 0.32f, 0.55f),
             },
             new VillagerDef
             {
-                Id = "npc_merchant", Name = "떠돌이 상인",
+                Id = "npc_merchant", Name = GoLocalization.T("npc.merchant_name", "떠돌이 상인"),
                 LineFn = MerchantLine,
                 Gx = 4, Gy = 3, Color = new Color(0.55f, 0.32f, 0.18f),
             },
@@ -50,7 +53,7 @@ namespace Saga.Go.World
                 // 상인(거래)과 달리 진행 상태가 없는 "말 걸면 한 번, 그걸로
                 // 끝"인 가장 단순한 형태 — WorldEventState(2026-09-12에 id
                 // 집합으로 일반화된 것)를 그대로 재사용.
-                Id = "npc_traveler", Name = "나그네",
+                Id = "npc_traveler", Name = GoLocalization.T("npc.traveler_name", "나그네"),
                 LineFn = TravelerLine,
                 Gx = 4, Gy = 9, Color = new Color(0.42f, 0.4f, 0.36f),
             },
@@ -65,14 +68,13 @@ namespace Saga.Go.World
 
             if (ShopState.MerchantSold)
             {
-                return "덕분에 짐이 줄어 고맙네. 좋은 길 되시게.";
+                return GoLocalization.T("npc.merchant_thanks", "덕분에 짐이 줄어 고맙네. 좋은 길 되시게.");
             }
             if (ShopState.TryBuyFromMerchant())
             {
-                return $"짐이 무거워 골치였는데 — {itemName}을 {ShopState.MerchantPrice}냥에 내주지. 가져가시게.";
+                return string.Format(GoLocalization.T("npc.merchant_sell", "짐이 무거워 골치였는데 — {0}을 {1}냥에 내주지. 가져가시게."), itemName, ShopState.MerchantPrice);
             }
-            return $"북쪽 산길은 요즘 값이 오르오. {itemName}을 {ShopState.MerchantPrice}냥에 넘기고 싶은데, " +
-                   "자네 주머니 사정이 넉넉지 않아 보이는군.";
+            return string.Format(GoLocalization.T("npc.merchant_offer", "북쪽 산길은 요즘 값이 오르오. {0}을 {1}냥에 넘기고 싶은데, 자네 주머니 사정이 넉넉지 않아 보이는군."), itemName, ShopState.MerchantPrice);
         }
 
         /// <summary>PLAN.md 70장 — 도적 퀘스트를 내주고, 진행 중이면 재촉하고,
@@ -85,11 +87,11 @@ namespace Saga.Go.World
             {
                 case QuestStage.NotStarted:
                     QuestState.StartBanditQuest();
-                    return "이 근처에 도적 떼가 나온다더군. 처치해 주면 사례하지.";
+                    return GoLocalization.T("npc.elder_start", "이 근처에 도적 떼가 나온다더군. 처치해 주면 사례하지.");
                 case QuestStage.Active:
-                    return "아직인가? 도적 놈들 때문에 다들 걱정이 크네.";
+                    return GoLocalization.T("npc.elder_active", "아직인가? 도적 놈들 때문에 다들 걱정이 크네.");
                 default:
-                    return "고맙네, 자네 덕에 길이 편해졌어.";
+                    return GoLocalization.T("npc.elder_done", "고맙네, 자네 덕에 길이 편해졌어.");
             }
         }
 
@@ -101,13 +103,12 @@ namespace Saga.Go.World
         {
             if (WorldEventState.IsTriggered(TravelerEventId))
             {
-                return "또 만났군. 좋은 길 되시게.";
+                return GoLocalization.T("npc.traveler_again", "또 만났군. 좋은 길 되시게.");
             }
             WorldEventState.TryTrigger(TravelerEventId);
             PlayerStats.AddExp(TravelerRewardExp);
             GoldState.Add(TravelerRewardGold);
-            return "이 근처 지리를 좀 아네. 도움이 될 만한 걸 나눠 주지 — " +
-                   $"경험치 +{TravelerRewardExp} · 돈 +{TravelerRewardGold}냥";
+            return string.Format(GoLocalization.T("npc.traveler_first", "이 근처 지리를 좀 아네. 도움이 될 만한 걸 나눠 주지 — 경험치 +{0} · 돈 +{1}냥"), TravelerRewardExp, TravelerRewardGold);
         }
 
         // 편집기 빌드 스크립트가 Init()으로 채워 준다 — Gatherable.cs와 같은
@@ -136,7 +137,7 @@ namespace Saga.Go.World
 
         public void Build()
         {
-            foreach (var v in Villagers)
+            foreach (var v in BuildVillagerDefs())
             {
                 Spawn(v);
             }

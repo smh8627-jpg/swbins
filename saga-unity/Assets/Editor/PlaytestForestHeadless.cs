@@ -80,6 +80,7 @@ namespace Saga.EditorTools
             if (_framesSeen == 3)
             {
                 CheckDebugHud();
+                CheckSettingsPanel();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -113,6 +114,63 @@ namespace Saga.EditorTools
             {
                 Debug.Log($"[PlaytestForestHeadless] debug hud OK - \"{label.text.Replace("\n", " | ")}\"");
             }
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — GO
+        /// `PlaytestHeadless.CheckSettingsPanel()`과 같은 결.</summary>
+        private static void CheckSettingsPanel()
+        {
+            if (GameObject.Find("ForestSettingsPanel") == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] ForestSettingsPanel을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            bool sfxBefore = ForestSettingsState.SfxOn;
+            ForestSettingsState.SfxOn = !sfxBefore;
+            bool vibBefore = ForestSettingsState.VibrationOn;
+            ForestSettingsState.VibrationOn = !vibBefore;
+            if (ForestSettingsState.SfxOn == sfxBefore || ForestSettingsState.VibrationOn == vibBefore)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 효과음/진동 토글이 안 바뀜");
+                _hadError = true;
+                return;
+            }
+
+            ForestSettingsState.UiScaleMultiplier = 1.15f;
+            var scaler = Object.FindFirstObjectByType<CanvasScaler>();
+            float expected = 1080f / 1.15f;
+            if (scaler == null || Mathf.Abs(scaler.referenceResolution.x - expected) > 1f)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] UI 크기가 캔버스에 안 먹음 — got={(scaler == null ? "null" : scaler.referenceResolution.x.ToString())}");
+                _hadError = true;
+                return;
+            }
+            ForestSettingsState.UiScaleMultiplier = 1f;
+
+            ForestSettingsState.HighGraphicsQuality = false;
+            if (!Mathf.Approximately(QualitySettings.shadowDistance, 15f) || QualitySettings.antiAliasing != 0)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 그래픽 품질(절약)이 QualitySettings에 안 먹음 — shadowDistance={QualitySettings.shadowDistance} aa={QualitySettings.antiAliasing}");
+                _hadError = true;
+                return;
+            }
+            ForestSettingsState.HighGraphicsQuality = true;
+
+            string langBefore = ForestLocalization.CurrentLanguage;
+            string qualityLabelBefore = ForestSettingsState.GraphicsQualityLabel();
+            ForestLocalization.CycleLanguage();
+            if (ForestLocalization.CurrentLanguage == langBefore
+                || ForestSettingsState.GraphicsQualityLabel() == qualityLabelBefore)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 언어 전환이 실제 문구를 안 바꿈");
+                _hadError = true;
+                return;
+            }
+            ForestLocalization.CurrentLanguage = langBefore;
+
+            Debug.Log("[PlaytestForestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
         }
     }
 }

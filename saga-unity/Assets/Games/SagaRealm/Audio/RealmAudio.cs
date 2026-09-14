@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Realm.Data;
 
 namespace Saga.Realm.Audio
 {
@@ -57,6 +58,7 @@ namespace Saga.Realm.Audio
         {
             if (clip == null) return;
             EnsureSfxSource().PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
+            if (RealmSettingsState.VibrationOn) Handheld.Vibrate();
         }
     }
 }

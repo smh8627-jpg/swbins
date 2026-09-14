@@ -13,7 +13,8 @@ namespace Saga.Realm.Data
     public class RealmCityDef
     {
         public readonly string Id;
-        public readonly string Name;
+        private readonly string _name;
+        public string Name => RealmLocalization.T("city." + Id, _name);
         public readonly RealmLand Land;
         public readonly int BaseAgri;
         public readonly int BaseComm;
@@ -28,7 +29,7 @@ namespace Saga.Realm.Data
         public RealmCityDef(string id, string name, RealmLand land, int agri, int comm, int wall, int pop, float mapX, float mapY)
         {
             Id = id;
-            Name = name;
+            _name = name;
             Land = land;
             BaseAgri = agri;
             BaseComm = comm;

@@ -15,7 +15,8 @@ namespace Saga.Go.Data
     public class ItemData
     {
         public readonly string Id;
-        public readonly string Name;
+        private readonly string _name;
+        public string Name => GoLocalization.T("item." + Id, _name);
         public readonly ItemSlot Slot;
         public readonly float AtkBonus;
         public readonly float DefBonus;
@@ -23,7 +24,7 @@ namespace Saga.Go.Data
         private ItemData(string id, string name, ItemSlot slot, float atk, float def)
         {
             Id = id;
-            Name = name;
+            _name = name;
             Slot = slot;
             AtkBonus = atk;
             DefBonus = def;

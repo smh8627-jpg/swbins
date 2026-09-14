@@ -15,6 +15,8 @@ namespace Saga.Forest.World
         private void Start()
         {
             ForestSaveState.TryLoad();
+            ForestSettingsState.ApplyToAllScalers();
+            ForestSettingsState.ApplyGraphicsQuality();
         }
     }
 }

@@ -26,12 +26,26 @@ namespace Saga.Realm.UI
         private GameObject _plotPanel;
         private GameObject _quizPanel;
         private GameObject _archivePanel;
+        private GameObject _settingsPanel;
         private Transform _cityButtonsRoot;
         private Transform _plotButtonsRoot;
         private Transform _quizButtonsRoot;
         private Transform _archiveButtonsRoot;
         private Text _quizQuestionText;
         private Text _quizProgressText;
+        private Text _settingsToggleLabel;
+        private Text _settingsTitleLabel;
+        private Text _settingsCloseLabel;
+        private Text _settingsSfxNameLabel;
+        private Text _settingsSfxLabel;
+        private Text _settingsVibrationNameLabel;
+        private Text _settingsVibrationLabel;
+        private Text _settingsUiScaleNameLabel;
+        private Text _settingsUiScaleLabel;
+        private Text _settingsQualityNameLabel;
+        private Text _settingsQualityLabel;
+        private Text _settingsLanguageNameLabel;
+        private Text _settingsLanguageLabel;
         private RealmQuizState.Presented? _currentQuiz;
 
         public void Build()
@@ -41,38 +55,47 @@ namespace Saga.Realm.UI
 
             // 다섯 버튼(명령/성/계략/공격/다음달) — 외교(계략) 추가로
             // 넷에서 다섯으로 늘며 간격만 좁혔다(폭 190→180, 간격 270→210).
-            RealmUiKit.NewButton(canvas.transform, "명령", new Vector2(0.5f, 0f), new Vector2(-420f, 100f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.orders"), new Vector2(0.5f, 0f), new Vector2(-420f, 100f),
                 new Vector2(180f, 110f), ToggleOrderPanel);
-            RealmUiKit.NewButton(canvas.transform, "성", new Vector2(0.5f, 0f), new Vector2(-210f, 100f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.city"), new Vector2(0.5f, 0f), new Vector2(-210f, 100f),
                 new Vector2(180f, 110f), ToggleCityPanel);
-            RealmUiKit.NewButton(canvas.transform, "계략", new Vector2(0.5f, 0f), new Vector2(0f, 100f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.plot"), new Vector2(0.5f, 0f), new Vector2(0f, 100f),
                 new Vector2(180f, 110f), TogglePlotPanel);
-            RealmUiKit.NewButton(canvas.transform, "공격", new Vector2(0.5f, 0f), new Vector2(210f, 100f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.attack"), new Vector2(0.5f, 0f), new Vector2(210f, 100f),
                 new Vector2(180f, 110f), ExecuteAttack);
-            RealmUiKit.NewButton(canvas.transform, "다음 달", new Vector2(0.5f, 0f), new Vector2(420f, 100f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.next_month"), new Vector2(0.5f, 0f), new Vector2(420f, 100f),
                 new Vector2(180f, 110f), ExecuteNextMonth);
 
             // 문답(REALM 다음 조각 (3))은 명령/전쟁과 달리 턴·성·무장과
             // 무관한 개인 미니게임이라 아래 다섯 버튼 행에 안 끼우고
             // 화면 오른쪽 위 구석에 따로 뒀다(HUD가 왼쪽 위를 쓰니 안 겹침).
-            RealmUiKit.NewButton(canvas.transform, "문답", new Vector2(1f, 1f), new Vector2(-110f, -90f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.quiz"), new Vector2(1f, 1f), new Vector2(-110f, -90f),
                 new Vector2(180f, 110f), ToggleQuizPanel);
 
             // 월드맵(2-8절) — 문답과 같은 구석, 그 바로 아래에 둔다(명령/성/
             // 계략/공격/다음달 행과도, HUD 라벨과도 안 겹치는 유일한 빈 자리).
-            RealmUiKit.NewButton(canvas.transform, "지도", new Vector2(1f, 1f), new Vector2(-110f, -210f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.map"), new Vector2(1f, 1f), new Vector2(-110f, -210f),
                 new Vector2(180f, 110f), ToggleMap);
 
             // 서고(godot REALM 10절) — 문답보다도 위 구석(같은 결로 명령
             // 계열과 안 겹치는 유일한 빈 자리).
-            RealmUiKit.NewButton(canvas.transform, "서고", new Vector2(1f, 1f), new Vector2(-110f, 30f),
+            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.archive"), new Vector2(1f, 1f), new Vector2(-110f, 30f),
                 new Vector2(180f, 110f), ToggleArchivePanel);
+
+            // 설정(PLAN.md 67~69장 "접근성") — 문답/지도/서고와 같은 구석
+            // 기둥을 한 칸 더 내려 잇는다(지도 -210 바로 아래, 10px 틈).
+            // 디버그 오버레이(BuildTestCityScene.cs, y -20~-140)보다 한참
+            // 아래라 겹치지 않는다.
+            var settingsToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("settings.title"),
+                new Vector2(1f, 1f), new Vector2(-110f, -330f), new Vector2(180f, 110f), ToggleSettingsPanel);
+            _settingsToggleLabel = settingsToggleButton.GetComponentInChildren<Text>();
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
             BuildPlotPanel(canvas.transform);
             BuildQuizPanel(canvas.transform);
             BuildArchivePanel(canvas.transform);
+            BuildSettingsPanel(canvas.transform);
         }
 
         /// <summary>명령 10종 — rtk.js ORDERS 순서, 두 열(왼쪽 5·오른쪽 5)로
@@ -83,7 +106,7 @@ namespace Saga.Realm.UI
                 new Color(0f, 0f, 0f, 0.75f));
             _orderPanel.SetActive(false);
 
-            RealmUiKit.NewText(_orderPanel.transform, "명령", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+            RealmUiKit.NewText(_orderPanel.transform, RealmLocalization.T("command.orders"), new Vector2(0.5f, 1f), new Vector2(0f, -60f),
                 new Vector2(560f, 60f), 32);
 
             var keys = RealmOrderData.AllKeys;
@@ -101,7 +124,7 @@ namespace Saga.Realm.UI
                     new Vector2(420f, 84f), () => ChooseOrder(key));
             }
 
-            RealmUiKit.NewButton(_orderPanel.transform, "닫는다", new Vector2(0.5f, 0f), new Vector2(0f, 40f),
+            RealmUiKit.NewButton(_orderPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 40f),
                 new Vector2(300f, 70f), () => _orderPanel.SetActive(false));
         }
 
@@ -114,7 +137,7 @@ namespace Saga.Realm.UI
                 new Color(0f, 0f, 0f, 0.75f));
             _cityPanel.SetActive(false);
 
-            RealmUiKit.NewText(_cityPanel.transform, "성 — 조망·명령 대상", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+            RealmUiKit.NewText(_cityPanel.transform, RealmLocalization.T("panel.city_title"), new Vector2(0.5f, 1f), new Vector2(0f, -60f),
                 new Vector2(500f, 60f), 30);
 
             var root = new GameObject("CityButtons", typeof(RectTransform));
@@ -126,7 +149,7 @@ namespace Saga.Realm.UI
             rootRect.anchoredPosition = Vector2.zero;
             _cityButtonsRoot = root.transform;
 
-            RealmUiKit.NewButton(_cityPanel.transform, "닫는다", new Vector2(0.5f, 0f), new Vector2(0f, 30f),
+            RealmUiKit.NewButton(_cityPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 30f),
                 new Vector2(300f, 70f), () => _cityPanel.SetActive(false));
         }
 
@@ -158,7 +181,7 @@ namespace Saga.Realm.UI
                 new Color(0f, 0f, 0f, 0.75f));
             _plotPanel.SetActive(false);
 
-            RealmUiKit.NewText(_plotPanel.transform, "계략 — 적국과 맞닿은 성에서만", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+            RealmUiKit.NewText(_plotPanel.transform, RealmLocalization.T("panel.plot_title"), new Vector2(0.5f, 1f), new Vector2(0f, -60f),
                 new Vector2(600f, 60f), 30);
 
             var root = new GameObject("PlotButtons", typeof(RectTransform));
@@ -170,7 +193,7 @@ namespace Saga.Realm.UI
             rootRect.anchoredPosition = Vector2.zero;
             _plotButtonsRoot = root.transform;
 
-            RealmUiKit.NewButton(_plotPanel.transform, "닫는다", new Vector2(0.5f, 0f), new Vector2(0f, 40f),
+            RealmUiKit.NewButton(_plotPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 40f),
                 new Vector2(300f, 70f), () => _plotPanel.SetActive(false));
         }
 
@@ -207,7 +230,7 @@ namespace Saga.Realm.UI
             // 전부 위(anchor top) 기준으로 순서대로 쌓는다 — 아래(닫는다
             // 버튼)만 따로 아래 기준을 쓰면 문제 텍스트 줄 수에 따라
             // 겹칠 수 있어 통일했다.
-            RealmUiKit.NewText(_quizPanel.transform, "문답", new Vector2(0.5f, 1f), new Vector2(0f, -50f),
+            RealmUiKit.NewText(_quizPanel.transform, RealmLocalization.T("command.quiz"), new Vector2(0.5f, 1f), new Vector2(0f, -50f),
                 new Vector2(600f, 50f), 30);
             _quizProgressText = RealmUiKit.NewText(_quizPanel.transform, "", new Vector2(0.5f, 1f), new Vector2(0f, -115f),
                 new Vector2(680f, 36f), 22);
@@ -223,7 +246,7 @@ namespace Saga.Realm.UI
             rootRect.anchoredPosition = Vector2.zero;
             _quizButtonsRoot = root.transform;
 
-            RealmUiKit.NewButton(_quizPanel.transform, "닫는다", new Vector2(0.5f, 1f), new Vector2(0f, -740f),
+            RealmUiKit.NewButton(_quizPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 1f), new Vector2(0f, -740f),
                 new Vector2(300f, 70f), () => _quizPanel.SetActive(false));
         }
 
@@ -282,6 +305,7 @@ namespace Saga.Realm.UI
             _plotPanel.SetActive(false);
             _quizPanel.SetActive(false);
             _archivePanel.SetActive(false);
+            _settingsPanel.SetActive(false);
         }
 
         /// <summary>서고(godot REALM 10절) — 익힌 문제를 최근 순으로 다시
@@ -293,7 +317,7 @@ namespace Saga.Realm.UI
                 new Color(0f, 0f, 0f, 0.82f));
             _archivePanel.SetActive(false);
 
-            RealmUiKit.NewText(_archivePanel.transform, "서고 — 익힌 문제(최근 순)", new Vector2(0.5f, 1f), new Vector2(0f, -50f),
+            RealmUiKit.NewText(_archivePanel.transform, RealmLocalization.T("panel.archive_title"), new Vector2(0.5f, 1f), new Vector2(0f, -50f),
                 new Vector2(680f, 50f), 28);
 
             var root = new GameObject("ArchiveButtons", typeof(RectTransform));
@@ -305,7 +329,7 @@ namespace Saga.Realm.UI
             rootRect.anchoredPosition = Vector2.zero;
             _archiveButtonsRoot = root.transform;
 
-            RealmUiKit.NewButton(_archivePanel.transform, "닫는다", new Vector2(0.5f, 1f), new Vector2(0f, -740f),
+            RealmUiKit.NewButton(_archivePanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 1f), new Vector2(0f, -740f),
                 new Vector2(300f, 70f), () => _archivePanel.SetActive(false));
         }
 
@@ -339,6 +363,74 @@ namespace Saga.Realm.UI
         private void ShowArchiveEntry(RealmQuizState.LearnedEntry entry)
         {
             RealmToast.Instance?.Show($"[{RealmQuizData.CatName(entry.Cat)} · Lv{entry.Lv}]\n{entry.Q}\n정답: {entry.AnswerText}\n{entry.Why}", 8f);
+        }
+
+        /// <summary>설정(PLAN.md 67~69장 "접근성") — 효과음·진동·UI 크기·
+        /// 그래픽 품질. 계략 패널처럼 매번 다시 짓지 않고, 한 번 지은 뒤
+        /// 버튼 안 Text만 갱신한다(값이 네 개뿐이라 다시 지을 이유가 없다).</summary>
+        private void BuildSettingsPanel(Transform parent)
+        {
+            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 720f),
+                new Color(0f, 0f, 0f, 0.8f));
+            _settingsPanel.SetActive(false);
+
+            _settingsTitleLabel = RealmUiKit.NewText(_settingsPanel.transform, RealmLocalization.T("settings.title"),
+                new Vector2(0.5f, 1f), new Vector2(0f, -60f), new Vector2(500f, 60f), 32);
+
+            (_settingsSfxNameLabel, _settingsSfxLabel) = MakeSettingsRow(-160f, "settings.sfx", ChooseSfx);
+            (_settingsVibrationNameLabel, _settingsVibrationLabel) = MakeSettingsRow(-260f, "settings.vibration", ChooseVibration);
+            (_settingsUiScaleNameLabel, _settingsUiScaleLabel) = MakeSettingsRow(-360f, "settings.ui_scale", ChooseUiScale);
+            (_settingsQualityNameLabel, _settingsQualityLabel) = MakeSettingsRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
+            (_settingsLanguageNameLabel, _settingsLanguageLabel) = MakeSettingsRow(-560f, "settings.language", ChooseLanguage);
+
+            var closeButton = RealmUiKit.NewButton(_settingsPanel.transform, RealmLocalization.T("settings.close"),
+                new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _settingsPanel.SetActive(false));
+            _settingsCloseLabel = closeButton.GetComponentInChildren<Text>();
+
+            RefreshSettingsPanel();
+        }
+
+        private (Text name, Text value) MakeSettingsRow(float y, string nameKey, UnityEngine.Events.UnityAction onClick)
+        {
+            var name = RealmUiKit.NewText(_settingsPanel.transform, RealmLocalization.T(nameKey), new Vector2(0f, 1f),
+                new Vector2(60f, y), new Vector2(260f, 70f), 26);
+            name.alignment = TextAnchor.MiddleLeft;
+            var button = RealmUiKit.NewButton(_settingsPanel.transform, "", new Vector2(1f, 1f), new Vector2(-60f, y),
+                new Vector2(260f, 70f), onClick);
+            return (name, button.GetComponentInChildren<Text>());
+        }
+
+        private void ChooseSfx() { RealmSettingsState.SfxOn = !RealmSettingsState.SfxOn; RefreshSettingsPanel(); }
+        private void ChooseVibration() { RealmSettingsState.VibrationOn = !RealmSettingsState.VibrationOn; RefreshSettingsPanel(); }
+        private void ChooseUiScale() { RealmSettingsState.CycleUiScale(); RefreshSettingsPanel(); }
+        private void ChooseGraphicsQuality() { RealmSettingsState.CycleGraphicsQuality(); RefreshSettingsPanel(); }
+        private void ChooseLanguage() { RealmLocalization.CycleLanguage(); RefreshSettingsPanel(); }
+
+        private void RefreshSettingsPanel()
+        {
+            if (_settingsSfxLabel == null) return;
+
+            _settingsToggleLabel.text = RealmLocalization.T("settings.title");
+            _settingsTitleLabel.text = RealmLocalization.T("settings.title");
+            _settingsCloseLabel.text = RealmLocalization.T("settings.close");
+            _settingsSfxNameLabel.text = RealmLocalization.T("settings.sfx");
+            _settingsVibrationNameLabel.text = RealmLocalization.T("settings.vibration");
+            _settingsUiScaleNameLabel.text = RealmLocalization.T("settings.ui_scale");
+            _settingsQualityNameLabel.text = RealmLocalization.T("settings.graphics_quality");
+            _settingsLanguageNameLabel.text = RealmLocalization.T("settings.language");
+
+            _settingsSfxLabel.text = RealmLocalization.T(RealmSettingsState.SfxOn ? "state.on" : "state.off");
+            _settingsVibrationLabel.text = RealmLocalization.T(RealmSettingsState.VibrationOn ? "state.on" : "state.off");
+            _settingsUiScaleLabel.text = RealmSettingsState.UiScaleLabel();
+            _settingsQualityLabel.text = RealmSettingsState.GraphicsQualityLabel();
+            _settingsLanguageLabel.text = RealmLocalization.LanguageLabel();
+        }
+
+        private void ToggleSettingsPanel()
+        {
+            bool open = !_settingsPanel.activeSelf;
+            CloseAllPanels();
+            _settingsPanel.SetActive(open);
         }
 
         private void ToggleOrderPanel()

@@ -75,6 +75,7 @@ namespace Saga.EditorTools
             BuildSaveButton();
             BuildPlayerHud();
             BuildDebugOverlay();
+            BuildSettingsUi();
             BuildBootstrap();
             var joystick = BuildMobileHud();
 
@@ -473,6 +474,16 @@ namespace Saga.EditorTools
 
             var overlay = canvasGo.AddComponent<DebugHud>();
             SetPrivateField(overlay, "label", text);
+        }
+
+        /// <summary>PLAN.md 67~69장 "접근성" — 효과음·진동·UI 크기·그래픽
+        /// 품질. "저장" 버튼(-30,-30,160×80) 바로 아래가 이 판에서 유일하게
+        /// 빈 오른쪽 위 자리다(DebugUI는 왼쪽 위).</summary>
+        private static void BuildSettingsUi()
+        {
+            var go = new GameObject("GoSettingsPanel");
+            var panel = go.AddComponent<GoSettingsPanel>();
+            panel.Build();
         }
 
         /// <summary>씬이 다 올라온 뒤 저장 파일을 되돌린다(saga-godot test_village.gd와 같은 역할).</summary>

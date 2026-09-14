@@ -27,7 +27,8 @@ namespace Saga.Realm.Data
     public class RealmEnemyCityDef
     {
         public readonly string Id;
-        public readonly string Name;
+        private readonly string _name;
+        public string Name => RealmLocalization.T("city." + Id, _name);
         public readonly RealmLand Land;
         public readonly int BaseWall;
         public readonly int BaseTroops;
@@ -41,7 +42,7 @@ namespace Saga.Realm.Data
         public RealmEnemyCityDef(string id, string name, RealmLand land, int baseWall, int baseTroops, int baseTrain, int baseTech, string attackFromCityId)
         {
             Id = id;
-            Name = name;
+            _name = name;
             Land = land;
             BaseWall = baseWall;
             BaseTroops = baseTroops;
