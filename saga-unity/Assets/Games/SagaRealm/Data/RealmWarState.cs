@@ -7,15 +7,31 @@ namespace Saga.Realm.Data
     /// <summary>
     /// VERTICAL_SLICE_REALM.md 3절 — war.js setupMarch()/finishMarch()의
     /// "출진 준비 → fight() 호출 → 뒤처리"를 소패 하나로 좁혀 옮겼다.
-    /// **뺀 것**(문서 그대로): 수량 선택 UI(허창의 전군을 보낸다), 진영
-    /// (camp — 무승부는 routed와 같이 취급), 함락 뒤처리(무장 배치·태수·
-    /// 치안 반토막·랜드마크 — `Captured` 깃발만 세운다), 구원군·물길.
+    /// **51장 "대규모 콘텐츠"(2026-09-14)로 정도가 둘째 목표로 붙으면서
+    /// 적 성 하나(_xiaopei)를 RealmEnemyCity.AllIds 전부를 키로 둔 딕셔너리
+    /// (_enemies)로 일반화했다** — Attack()/Plot() 모두 "어느 적을 칠지"를
+    /// fromCityId로부터 RealmEnemyCity.TargetFrom()이 알아낸다(성 하나당
+    /// 목표 하나뿐이라 인자를 안 늘려도 된다). `Xiaopei` 프로퍼티는 옛
+    /// 테스트·호출부 호환을 위해 그대로 남긴다(Get("xiaopei")와 같다).
+    /// **뺀 것**(문서 그대로): 수량 선택 UI(전군을 보낸다), 진영(camp —
+    /// 무승부는 routed와 같이 취급), 함락 뒤처리(무장 배치·태수·치안
+    /// 반토막·랜드마크 — `Captured` 깃발만 세운다), 구원군·물길.
     /// </summary>
     public static class RealmWarState
     {
-        private static RealmEnemyRecord _xiaopei = RealmEnemyCity.NewXiaopei();
+        private static readonly Dictionary<string, RealmEnemyRecord> _enemies = BuildInitial();
 
-        public static RealmEnemyRecord Xiaopei => _xiaopei;
+        private static Dictionary<string, RealmEnemyRecord> BuildInitial()
+        {
+            var dict = new Dictionary<string, RealmEnemyRecord>();
+            foreach (var id in RealmEnemyCity.AllIds) dict[id] = RealmEnemyCity.NewRecord(id);
+            return dict;
+        }
+
+        public static RealmEnemyRecord Get(string enemyId) => _enemies.TryGetValue(enemyId, out var r) ? r : null;
+
+        /// <summary>옛 호출부 호환용 — Get("xiaopei")와 같다.</summary>
+        public static RealmEnemyRecord Xiaopei => Get(RealmEnemyCity.XiaopeiId);
 
         public static event Action Changed;
 
@@ -31,14 +47,16 @@ namespace Saga.Realm.Data
         }
 
         /// <summary>출진할 수 있는가 — war.js canMarch()를 이 슬라이스
-        /// 범위(성 하나·적 하나·물길 없음)로 좁힌 것.</summary>
+        /// 범위(성 하나당 적 하나·물길 없음)로 좁힌 것. 목표는 fromCityId로
+        /// 정해진다(RealmEnemyCity.TargetFrom).</summary>
         public static AttackResult Attack(string fromCityId)
         {
-            if (_xiaopei.Captured) return new AttackResult(false, "이미 함락한 성입니다");
-            if (fromCityId != RealmEnemyCity.AttackFromCityId)
-            {
-                return new AttackResult(false, $"{RealmCityData.Get(RealmEnemyCity.AttackFromCityId)?.Name}에서만 소패를 칠 수 있습니다");
-            }
+            string enemyId = RealmEnemyCity.TargetFrom(fromCityId);
+            if (enemyId == null) return new AttackResult(false, "이 성에서는 칠 적국이 없습니다");
+
+            var def = RealmEnemyCity.Get(enemyId);
+            var enemy = _enemies[enemyId];
+            if (enemy.Captured) return new AttackResult(false, "이미 함락한 성입니다");
 
             var city = RealmCityState.CityRecord(fromCityId);
             int troops = city.Troops;
@@ -63,9 +81,9 @@ namespace Saga.Realm.Data
             foreach (var id in officers) RealmCityState.MarkOfficerDone(id);
 
             var atk = new RealmArmy { Troops = troops, Start = troops, Train = city.Train, Tech = city.Tech, OfficerIds = officers, Morale = 1f };
-            var def = new RealmArmy { Troops = _xiaopei.Troops, Start = _xiaopei.Troops, Train = _xiaopei.Train, Tech = _xiaopei.Tech, OfficerIds = new List<string>(), Morale = 1f };
+            var defArmy = new RealmArmy { Troops = enemy.Troops, Start = enemy.Troops, Train = enemy.Train, Tech = enemy.Tech, OfficerIds = new List<string>(), Morale = 1f };
 
-            var result = RealmWar.Fight(atk, def, _xiaopei, RealmEnemyCity.XiaopeiLand);
+            var result = RealmWar.Fight(atk, defArmy, enemy, def.Land);
 
             int eaten = Mathf.RoundToInt(troops / 1000f * RealmCityState.FoodPer1000);
             int baggage = Mathf.Max(0, need - eaten);
@@ -73,13 +91,13 @@ namespace Saga.Realm.Data
             string message;
             if (result.Won)
             {
-                _xiaopei.Captured = true;
-                _xiaopei.Troops = def.Troops;
+                enemy.Captured = true;
+                enemy.Troops = defArmy.Troops;
                 // REALM 다음 조각 (2) — 함락한 성을 플레이 가능한 성으로
                 // 들인다. 전후 성벽·병력·훈련·기술은 이 전투가 실제로 남긴
                 // 값 그대로(RealmCityState.AbsorbCity() 주석 참고).
-                RealmCityState.AbsorbCity(RealmEnemyCity.XiaopeiId, _xiaopei.Wall, _xiaopei.Troops, _xiaopei.Train, _xiaopei.Tech);
-                message = $"{RealmEnemyCity.XiaopeiName}을(를) 함락했다! (아군 손실 {result.LossA}, 적 손실 {result.LossD}) — 이제 우리 성입니다";
+                RealmCityState.AbsorbCity(enemyId, enemy.Wall, enemy.Troops, enemy.Train, enemy.Tech);
+                message = $"{def.Name}을(를) 함락했다! (아군 손실 {result.LossA}, 적 손실 {result.LossD}) — 이제 우리 성입니다";
             }
             else
             {
@@ -87,7 +105,7 @@ namespace Saga.Realm.Data
                 // (routed와 "날이 저묾" 둘 다 이 슬라이스에선 같이 취급).
                 city.Troops += atk.Troops;
                 city.Food += baggage;
-                _xiaopei.Troops = def.Troops; // 병력·성벽이 이어져 재도전이 의미 있다.
+                enemy.Troops = defArmy.Troops; // 병력·성벽이 이어져 재도전이 의미 있다.
                 message = $"물러났다 — 생존 {atk.Troops}, 적 손실 {result.LossD}, 치중 {baggage} 귀환";
             }
 
@@ -104,15 +122,15 @@ namespace Saga.Realm.Data
 
         /// <summary>diplo.js plotChance() 의 일반 갈래(이간·매수가 아닌 것)
         /// 그대로 — 거는 사람 지력 대 막는 사람 지력, 태수가 없으면 30
-        /// (원작 기본값, 소패는 처음부터 태수가 없다). 치안 항은 이
-        /// 슬라이스의 소패에 치안 필드가 없어 뺐다(중립값으로 상쇄한
+        /// (원작 기본값, 소패·정도는 처음부터 태수가 없다). 치안 항은 이
+        /// 슬라이스의 적 성에 치안 필드가 없어 뺐다(중립값으로 상쇄한
         /// 것과 같다 — RealmPlotData.cs 클래스 주석 참고).</summary>
         private static float PlotChance(RealmOfficer officer) =>
             Mathf.Clamp(0.30f + (officer.Wisdom - 30) / 200f, 0.05f, 0.9f);
 
-        /// <summary>계략을 걸 수 있는 무장 — Attack()과 같은 자리(허창)에
-        /// 배치된, 이 달에 아직 안 쓴 사람 중 지력 최고. UI가 % 미리보기에도
-        /// 쓴다(RealmCommandUi.cs).</summary>
+        /// <summary>계략을 걸 수 있는 무장 — Attack()과 같은 자리(출진
+        /// 성)에 배치된, 이 달에 아직 안 쓴 사람 중 지력 최고. UI가 % 미리
+        /// 보기에도 쓴다(RealmCommandUi.cs).</summary>
         private static RealmOfficer BestPlotter(string fromCityId)
         {
             RealmOfficer best = null;
@@ -135,16 +153,18 @@ namespace Saga.Realm.Data
             return officer == null ? 0f : PlotChance(officer);
         }
 
-        /// <summary>계략을 건다 — diplo.js plot() 을 소패 하나로 좁힌 것.
-        /// 이간·매수(적 무장 대상)는 소패에 무장이 없어 범위 밖 —
+        /// <summary>계략을 건다 — diplo.js plot() 을 이 슬라이스 범위로
+        /// 좁힌 것. 목표는 Attack()과 같이 fromCityId로 정해진다. 이간·
+        /// 매수(적 무장 대상)는 적 성에 무장이 없어 범위 밖 —
         /// RealmPlotData.cs 클래스 주석 참고.</summary>
         public static PlotResult Plot(string kind, string fromCityId)
         {
-            if (_xiaopei.Captured) return new PlotResult(false, "이미 함락한 성입니다");
-            if (fromCityId != RealmEnemyCity.AttackFromCityId)
-            {
-                return new PlotResult(false, $"{RealmCityData.Get(RealmEnemyCity.AttackFromCityId)?.Name}에서만 계략을 쓸 수 있습니다");
-            }
+            string enemyId = RealmEnemyCity.TargetFrom(fromCityId);
+            if (enemyId == null) return new PlotResult(false, "이 성에서는 계략을 걸 적국이 없습니다");
+
+            var enemy = _enemies[enemyId];
+            if (enemy.Captured) return new PlotResult(false, "이미 함락한 성입니다");
+
             var plot = RealmPlotData.Get(kind);
             if (plot == null) return new PlotResult(false, "없는 계략");
 
@@ -161,7 +181,8 @@ namespace Saga.Realm.Data
             }
             else
             {
-                string effect = kind == "rumor" ? ApplyRumor() : ApplyFire();
+                var def = RealmEnemyCity.Get(enemyId);
+                string effect = kind == "rumor" ? ApplyRumor(enemy, def.Name) : ApplyFire(enemy, def.Name);
                 message = $"{plot.Emoji} {plot.Name} 성공 — {effect}";
             }
 
@@ -172,31 +193,34 @@ namespace Saga.Realm.Data
         /// <summary>유언비어 — 원작은 치안을 깎지만(sec 필드 없음, 클래스
         /// 주석 참고) 훈련도를 깎아 실제로 다음 전투(RealmWar.ArmyPower)에
         /// 반영되게 재해석했다. 낙폭도 원작 수치(10+rand(12)) 그대로.</summary>
-        private static string ApplyRumor()
+        private static string ApplyRumor(RealmEnemyRecord enemy, string enemyName)
         {
-            int before = _xiaopei.Train;
+            int before = enemy.Train;
             int drop = 10 + UnityEngine.Random.Range(0, 12);
-            _xiaopei.Train = Mathf.Max(0, _xiaopei.Train - drop);
-            return $"소패 훈련도 {before} → {_xiaopei.Train}";
+            enemy.Train = Mathf.Max(0, enemy.Train - drop);
+            return $"{enemyName} 훈련도 {before} → {enemy.Train}";
         }
 
-        /// <summary>화계 — 원작은 군량을 태우지만(소패에 군량 필드 없음)
+        /// <summary>화계 — 원작은 군량을 태우지만(적 성에 군량 필드 없음)
         /// 병력을 그만큼 직접 깎아 재해석했다. 비율도 원작(25~55%) 그대로.</summary>
-        private static string ApplyFire()
+        private static string ApplyFire(RealmEnemyRecord enemy, string enemyName)
         {
-            int before = _xiaopei.Troops;
+            int before = enemy.Troops;
             float frac = 0.25f + UnityEngine.Random.value * 0.3f;
-            int burned = Mathf.RoundToInt(_xiaopei.Troops * frac);
-            _xiaopei.Troops = Mathf.Max(0, _xiaopei.Troops - burned);
-            return $"소패 병력 {before} → {_xiaopei.Troops} ({burned} 소실)";
+            int burned = Mathf.RoundToInt(enemy.Troops * frac);
+            enemy.Troops = Mathf.Max(0, enemy.Troops - burned);
+            return $"{enemyName} 병력 {before} → {enemy.Troops} ({burned} 소실)";
         }
 
-        public static (int wall, int maxWall, int troops, int train, int tech, bool captured) Snapshot() =>
-            (_xiaopei.Wall, _xiaopei.MaxWall, _xiaopei.Troops, _xiaopei.Train, _xiaopei.Tech, _xiaopei.Captured);
-
-        public static void Restore(int wall, int maxWall, int troops, int train, int tech, bool captured)
+        public static (int wall, int maxWall, int troops, int train, int tech, bool captured) Snapshot(string enemyId)
         {
-            _xiaopei = new RealmEnemyRecord { Wall = wall, MaxWall = maxWall, Troops = troops, Train = train, Tech = tech, Captured = captured };
+            var e = Get(enemyId);
+            return e == null ? (0, 0, 0, 0, 0, false) : (e.Wall, e.MaxWall, e.Troops, e.Train, e.Tech, e.Captured);
+        }
+
+        public static void Restore(string enemyId, int wall, int maxWall, int troops, int train, int tech, bool captured)
+        {
+            _enemies[enemyId] = new RealmEnemyRecord { Wall = wall, MaxWall = maxWall, Troops = troops, Train = train, Tech = tech, Captured = captured };
             Changed?.Invoke();
         }
     }

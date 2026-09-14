@@ -8,15 +8,18 @@ namespace Saga.Realm.Data
     /// <summary>
     /// VERTICAL_SLICE_REALM.md 5절 "저장한다 → 다시 켜서 이어진다" —
     /// 여러 성 확장(2-4절 참고, 개념만) 이후로는 성마다의 아홉 필드도
-    /// 함께 저장한다. 3절(전쟁) 이후로는 소패 상태(성벽·병력·함락 여부)도
+    /// 함께 저장한다. 3절(전쟁) 이후로는 적국 상태(성벽·병력·함락 여부)도
     /// 같이 저장 — 병력·성벽이 두 번의 공격에 걸쳐 이어지려면 필요하다.
-    /// `SaveVersion`을 2→3으로 올렸다(구조가 달라 옛 버전 세이브는 자동
-    /// 무시되고 새 게임으로 시작한다 — PLAN.md 28장 "Version 필드" 대비
-    /// 그대로, 첫 슬라이스라 마이그레이션 경로를 따로 안 만든다).
+    /// **51장 "대규모 콘텐츠"(2026-09-14)로 정도가 둘째 목표로 붙으면서
+    /// 고정 필드 다섯 개(xiaopeiWall 등)를 `RealmEnemyCity.AllIds` 전부를
+    /// 도는 `List&lt;EnemySave&gt;`로 바꿨다** — `SaveVersion`을 3→4로 올렸다
+    /// (구조가 달라 옛 v3 세이브는 자동 무시되고 새 게임으로 시작한다 —
+    /// PLAN.md 28장 "Version 필드" 대비 그대로, 마이그레이션 경로는 안
+    /// 만든다).
     /// </summary>
     public static class RealmSaveState
     {
-        private const int SaveVersion = 3;
+        private const int SaveVersion = 4;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_realm.json");
 
@@ -25,6 +28,14 @@ namespace Saga.Realm.Data
         {
             public string cityId;
             public int agri, comm, tech, sec, wall, train, ships, pop, troops, food;
+        }
+
+        [Serializable]
+        private class EnemySave
+        {
+            public string enemyId;
+            public int wall, maxWall, troops, train, tech;
+            public bool captured;
         }
 
         [Serializable]
@@ -41,8 +52,7 @@ namespace Saga.Realm.Data
             public List<string> officerCityIds;
             public List<string> officerCityCities;
             public List<CitySave> cities;
-            public int xiaopeiWall, xiaopeiMaxWall, xiaopeiTroops, xiaopeiTrain, xiaopeiTech;
-            public bool xiaopeiCaptured;
+            public List<EnemySave> enemies;
             // REALM 다음 조각 (3) 문답 — 세이브 버전은 안 올렸다(JsonUtility는
             // 없는 필드를 기본값/null로 채워 읽으니, 옛 v3 세이브를 불러와도
             // RealmQuizState.Restore(null,...)이 그냥 빈 상태로 시작할 뿐 깨지지
@@ -85,7 +95,16 @@ namespace Saga.Realm.Data
                 officerCityCities.Add(RealmCityState.OfficerCityId(id));
             }
 
-            var xiaopei = RealmWarState.Snapshot();
+            var enemies = new List<EnemySave>();
+            foreach (var enemyId in RealmEnemyCity.AllIds)
+            {
+                var snap = RealmWarState.Snapshot(enemyId);
+                enemies.Add(new EnemySave
+                {
+                    enemyId = enemyId, wall = snap.wall, maxWall = snap.maxWall,
+                    troops = snap.troops, train = snap.train, tech = snap.tech, captured = snap.captured,
+                });
+            }
 
             var data = new SaveData
             {
@@ -100,12 +119,7 @@ namespace Saga.Realm.Data
                 officerCityIds = officerCityIds,
                 officerCityCities = officerCityCities,
                 cities = cities,
-                xiaopeiWall = xiaopei.wall,
-                xiaopeiMaxWall = xiaopei.maxWall,
-                xiaopeiTroops = xiaopei.troops,
-                xiaopeiTrain = xiaopei.train,
-                xiaopeiTech = xiaopei.tech,
-                xiaopeiCaptured = xiaopei.captured,
+                enemies = enemies,
                 quizLearned = RealmQuizState.SnapshotLearned(),
                 quizWrongIds = RealmQuizState.SnapshotWrongIds(),
                 quizWrongCounts = RealmQuizState.SnapshotWrongCounts(),
@@ -158,8 +172,13 @@ namespace Saga.Realm.Data
 
             RealmCityState.Restore(data.gold, data.year, data.month, data.currentCity,
                 data.roster, data.done, data.found, data.officerCityIds, data.officerCityCities, cities);
-            RealmWarState.Restore(data.xiaopeiWall, data.xiaopeiMaxWall, data.xiaopeiTroops,
-                data.xiaopeiTrain, data.xiaopeiTech, data.xiaopeiCaptured);
+            if (data.enemies != null)
+            {
+                foreach (var e in data.enemies)
+                {
+                    RealmWarState.Restore(e.enemyId, e.wall, e.maxWall, e.troops, e.train, e.tech, e.captured);
+                }
+            }
             RealmQuizState.Restore(data.quizLearned, data.quizWrongIds, data.quizWrongCounts,
                 data.quizTotal, data.quizCorrect, data.quizStreak, data.quizBestStreak);
             return true;

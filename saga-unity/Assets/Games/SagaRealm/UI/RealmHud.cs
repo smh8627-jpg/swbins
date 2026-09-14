@@ -7,7 +7,8 @@ namespace Saga.Realm.UI
 {
     /// <summary>화면 위 상태 줄 — 현재 성 이름과 그 성의 아홉 값(개간·
     /// 상업·기술·치안·축성·훈련·조선·인구·병력·군량), 세력 금고·연월·
-    /// 로스터(이름+배치 성)·소패 전황(3절). RealmCityState.Changed·
+    /// 로스터(이름+배치 성)·적국 전황 전부(3절, 51장으로 소패·정도 둘).
+    /// RealmCityState.Changed·
     /// RealmWarState.Changed를 구독해 명령·다음 달 정산·성 전환·공격
     /// 직후 바로 갱신한다. RealmCityBuilder.cs와 같은 이유로 로드 순서
     /// 경합을 피하려 첫 Update 프레임에 한 번 더 강제 갱신한다.</summary>
@@ -65,10 +66,18 @@ namespace Saga.Realm.UI
                 if (atCity != null) sb.Append('(').Append(atCity.Name).Append(')');
             }
             sb.Append('\n');
-            var xiaopei = RealmWarState.Xiaopei;
-            sb.Append("소패 — ").Append(xiaopei.Captured
-                ? "함락됨(성 목록에 편입, \"성\"에서 조망 가능)"
-                : $"병력 {xiaopei.Troops} · 성벽 {xiaopei.Wall} · 훈련 {xiaopei.Train}");
+            bool firstEnemy = true;
+            foreach (var enemyId in RealmEnemyCity.AllIds)
+            {
+                var enemyDef = RealmEnemyCity.Get(enemyId);
+                var enemy = RealmWarState.Get(enemyId);
+                if (enemyDef == null || enemy == null) continue;
+                if (!firstEnemy) sb.Append(" · ");
+                firstEnemy = false;
+                sb.Append(enemyDef.Name).Append(" — ").Append(enemy.Captured
+                    ? "함락됨(성 목록에 편입)"
+                    : $"병력 {enemy.Troops} · 성벽 {enemy.Wall} · 훈련 {enemy.Train}");
+            }
             label.text = sb.ToString();
         }
     }

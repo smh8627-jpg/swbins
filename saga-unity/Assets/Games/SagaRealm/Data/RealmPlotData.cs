@@ -6,11 +6,12 @@ namespace Saga.Realm.Data
     /// REALM 다음 조각 — 외교(js/diplo.js) 중 이 슬라이스에 실제로 적용되는
     /// 절반만 옮겼다. diplo.js는 "우호·동맹·화친·조공"(다른 세력과의 관계)과
     /// "계략"(이간·유언비어·매수·화계, 적 성에 거는 것) 둘로 나뉘는데, 이
-    /// 슬라이스엔 상대할 다른 세력이 소패 하나뿐이고 소패엔 태수·무장이
-    /// 없다(RealmEnemyRecord 참고) — 그래서 **동맹/화친/조공(다른 세력
-    /// 필요)과 이간/매수(적 무장 필요)는 대상 자체가 없어 범위 밖**이고,
-    /// 성 자체를 겨냥하는 유언비어·화계 둘만 뜻이 선다. 원작 효과(치안↓·
-    /// 군량 소각)는 그대로 두면 아무 효과가 없다 — RealmWar.Fight()가
+    /// 슬라이스엔 상대할 다른 세력이 적 성뿐이고(소패·정도, RealmEnemyCity.cs
+    /// 참고) 어느 쪽도 태수·무장이 없다(RealmEnemyRecord 참고) — 그래서
+    /// **동맹/화친/조공(다른 세력 필요)과 이간/매수(적 무장 필요)는 대상
+    /// 자체가 없어 범위 밖**이고, 성 자체를 겨냥하는 유언비어·화계 둘만
+    /// 뜻이 선다. 원작 효과(치안↓·군량 소각)는 그대로 두면 아무 효과가
+    /// 없다 — RealmWar.Fight()가
     /// 실제로 쓰는 건 Wall/Troops/Train/Tech뿐이라(치안·군량은 이 슬라이스의
     /// 적 성엔 필드 자체가 없다) **유언비어→훈련도 하락·화계→병력 손실로
     /// 재해석**했다(둘 다 다음 전투에서 실제로 체감되도록, RealmWarState.cs
@@ -36,8 +37,8 @@ namespace Saga.Realm.Data
 
         public static readonly Dictionary<string, RealmPlotData> Catalog = new Dictionary<string, RealmPlotData>
         {
-            ["rumor"] = new RealmPlotData("rumor", "유언비어", "🗣️", 150, "소패에 뜬소문을 놓아 군율을 흐트러뜨린다(훈련도 하락)."),
-            ["fire"] = new RealmPlotData("fire", "화계", "🔥", 300, "소패의 병참에 불을 놓는다(병력 손실)."),
+            ["rumor"] = new RealmPlotData("rumor", "유언비어", "🗣️", 150, "적국에 뜬소문을 놓아 군율을 흐트러뜨린다(훈련도 하락)."),
+            ["fire"] = new RealmPlotData("fire", "화계", "🔥", 300, "적국의 병참에 불을 놓는다(병력 손실)."),
         };
 
         public static readonly string[] AllKeys = { "rumor", "fire" };
