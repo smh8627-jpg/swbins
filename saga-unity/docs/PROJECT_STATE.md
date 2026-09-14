@@ -4903,167 +4903,22 @@ REALM/STORY의 다단계 Phase 머신은 새 Phase를 안 늘리고 Init 안에�
 BGM 선곡(보류)·Localization(미착수)·STORY "선택" 이후 확장 중
 사용자에게 물어 고를 것.
 
-## Localization 인프라 + 설정 패널 첫 콘텐츠 (2026-09-14, 새 세션 —
-사용자가 AskUserQuestion으로 Localization을 직접 골랐다)
 
-PLAN.md 67~69장 "텍스트는 코드에 안 박는다" — 다섯 판에 처음으로
-Localization 표를 놓았다. `XxxLocalization.cs`(다섯 벌 복사, `XxxAudio.
-cs`·`XxxSettingsState.cs`와 같은 결)가 `Resources/Localization/
-xxx_<lang>.json`(JsonUtility로 파싱하는 key/value 배열)을 읽어
-`T(key)`를 돌려준다 — 키가 없으면 키 자체를 돌려줘 번역 누락이 빈
-화면 대신 바로 보인다. 언어 선택은 다른 접근성 항목과 같은 버튼 순환
-(ko→en→ko), `PlayerPrefs`로 저장. 이 프로젝트에 런타임 `Resources.
-Load` 선례가 전혀 없었다(기존 모델·클립은 전부 에디터 빌드 스크립트가
-`AssetDatabase`로 심어 둠) — 빌드된 플레이어에서도 그대로 도는 진짜
-런타임 로딩이 필요해서 처음으로 도입했다.
+## Localization (2026-09-14, 새 세션 — 커밋 c57b8eb~98e3fe8)
 
-**범위 — 설정 패널 자신의 글자만.** 201/203개 스크립트에 한국어
-리터럴이 남아 있어(대사·퀘스트·HUD·REALM 문답 등) 전부를 한 세션에
-옮기는 건 현실적이지 않다고 판단, 마침 최근에 다섯 판 전부에 새로
-붙은 설정 패널(제목·효과음·진동·UI 크기·그래픽 품질·켜짐/꺼짐·
-기본/절약·작게/보통/크게·닫는다)을 첫 실콘텐츠로 옮기고 다섯째 줄로
-"언어" 행을 추가했다(패널 높이 680×620→680×720, REALM 포함 다섯
-판 전부 같은 만큼 늘어남 — 행 간격 100px 그대로 유지). 언어를 바꾸면
-`Refresh()`가 패널의 모든 글자(행 이름·값·제목·토글 버튼·닫기 버튼)를
-다시 그린다. `XxxSettingsState.UiScaleLabel()`/`GraphicsQualityLabel()`도
-고정 한국어 대신 `XxxLocalization.T()`를 거치도록 최소 침습으로 바꿨다
-(호출부는 두 판별 메서드 시그니처 그대로라 무영향).
+**완료**: 다섯 판에 `XxxLocalization.cs`(json 기반 T(key)/T(key,fallback))
+추가. 설정 패널·버튼/패널 제목·HUD 상태줄 ko/en 전환 완료(전 판).
+데이터 콘텐츠 일부 번역: REALM 도시5·장수3·명령10·계략2, GO/DUNGEON
+장비 11종, GO 촌장/상인/나그네 전체 대사+도적/흰늑대 조우 사건 전체,
+DUNGEON 퀘스트 문구, STORY 척후병 대사+퀘스트명. 원칙: 다른 코드가
+문자열 값으로 매칭하는 식별자 상수는 안 건드리고 표시 문자열만 번역.
+매 커밋 컴파일+관련 Playtest 재검증, 회귀 없음.
 
-ko/en 두 언어 파일은 다섯 판이 전부 같은 키·값(md5 확인 완료) — 앞으로
-이 표를 고칠 땐 data.js처럼 다섯 벌 함께 고치고 md5로 재확인할 것.
-en 번역은 이 세션이 직접 옮긴 것(사람 검수 전). 일본어는 아직 없다.
+**다음 작업**(우선순위순): ① REALM RealmQuizData.cs(문답 36개, 사실
+정확성 중요) ② FOREST(전체 미착수) ③ GO HiddenTreasure 등 나머지
+④ DUNGEON DungeonMerchant/DungeonCaptive 대사 ⑤ REALM 서고·전투
+결과 서술. 패턴 그대로 반복: 리터럴 찾기→식별자 여부 확인→T(key,
+fallback)로 교체→json에 키 추가→검증→커밋.
 
-**검증** — 순수 컴파일(`-batchmode -nographics -quit`) 통과 후 다섯
-Playtest 전부에 "언어를 실제로 바꾸면 라벨 문구가 실제로 바뀌는지"
-검사를 추가(그래픽 품질 라벨을 언어 전환 전후로 비교, 값을 되돌림) —
-GO 3연속 포함 다섯 판 전부 헤드리스 통과, 기존 시나리오 회귀 없음
-(STORY 전체 시나리오·REALM 전쟁/외교/문답/저장-불러오기 포함). 배치
-모드가 만든 `.meta`만 새로 생겼고 `ProjectSettings/`·`Packages/`는
-안 건드림(`git status`로 확인).
-
-**남은 것** — 대사·퀘스트·HUD·REALM 문답 등 나머지 대부분은 여전히
-하드코딩된 한국어다. 다음에 범위를 넓힐 땐 이미 있는
-`XxxLocalization.T()`를 그대로 재사용하면 된다. en 번역은 사람 검수가
-안 됐고, ja는 아직 없다(PLAN.md는 "한국어/영어/일본어 확장 가능"이라고
-적어 뒀을 뿐 셋 다 지금 채우라는 뜻은 아니었음 — ko/en 둘로 시작).
-
-## Localization 2차 — 버튼·패널 제목 chrome (2026-09-14, 같은 세션,
-"모두 이어해" 후속)
-
-설정 패널 다음으로 **런타임에 매번 새로 지어지는 UI의 버튼·패널
-제목**(순수 짧은 동사/명사, 데이터 보간 없음)까지 범위를 넓혔다 — GO
-`BanditEncounter.cs`/`RareWolfEncounter.cs`의 전투 선택지(맞선다/값을
-치른다/달아난다/피한다)와 전투 버튼(속공/필살/회피/물러난다),
-FOREST `ForestHostileEncounterUi.cs`의 "밀어내기!", REALM
-`RealmCommandUi.cs`의 다섯 버튼(명령/성/계략/공격/다음 달)+구석 셋
-(문답/지도/서고)+다섯 패널 제목(명령/문답/성/계략/서고, "닫는다"는
-기존 `settings.close` 키 재사용)까지 전부 `T()`를 거치게 했다.
-
-**의도적으로 안 건드린 것** — ① 이 문장에 섞인 실제 고유명사·서사
-(도적의 "🗡 도적의 습격\n..." 대사, 포자괴물이라는 창조물 이름, 무기/
-방어구 실제 이름 등 데이터 콘텐츠), ② **DUNGEON/STORY의 모바일 액션
-버튼**(공격/강공격/회전베기/회피 등)은 GO/FOREST/REALM과 달리 런타임
-코드가 아니라 **에디터 빌드 스크립트**(`BuildTestDungeonScene.cs`·
-`BuildTestStoryScene.cs`)가 씬에 한 번만 구워 넣는다 — `T()`로 바꿔도
-씬을 다시 구울 때의 언어만 박히고 플레이 중 언어 전환엔 반응 안 해
-(Refresh 훅이 없음) 어설프게 반만 맞는 결과가 되므로, 제대로 하려면
-새 런타임 리프레시 컴포넌트가 필요해 이번엔 손 안 댔다 — 다음에 이
-둘을 볼 때는 "언어 전환 시 다시 그리는 훅"부터 설계할 것.
-
-새 키(command.*/encounter.*/combat.*/panel.*)는 게임마다 다르게 늘어
-`settings.*`류처럼 다섯 벌 md5 일치를 요구하지 않는다 — settings.*
-공유 키만 계속 다섯 판 일치 확인. 컴파일 통과 + GO/FOREST/REALM
-헤드리스 재검증, 회귀 없음.
-
-## Localization 3차 — 상시 HUD 상태줄(GO/DUNGEON/STORY/REALM) (2026-09-14,
-같은 세션, 계속 "이어해")
-
-버튼 다음으로 **화면 위 항상 보이는 상태줄**(PlayerHud/RealmHud/
-StoryHud)까지 넓혔다. 이번엔 숫자를 끼워 넣는 문장이라 단순 키→값이
-아니라 **`string.Format` 템플릿**(예: `"hud.gold"` ko="돈 {0}냥"
-en="{0} Gold" — 어순 자체가 다름)으로 풀었다. 게임 데이터(무기/방어구/
-성/장수 실제 이름, 퀘스트 목표 문장 `QuestState.ObjectiveText`, STORY의
-"첫 사냥"/"두목의 목" 같은 퀘스트 고유명)는 이번에도 의도적으로 그대로
-뒀다 — chrome(라벨 단어)과 콘텐츠(데이터가 담은 실제 이름·문장)의
-경계를 계속 지켰다. GO/DUNGEON의 무기 없음 기본값("맨손"/"베옷")은
-코드에 박힌 리터럴이라 chrome으로 취급해 옮겼다.
-
-REALM `RealmHud.cs`가 제일 컸다 — 개간/상업/기술/치안/축성/훈련/조선/
-인구/병력/군량/로스터/함락됨 등 11개 라벨을 전부 키로 뺐다.
-
-**이번엔 문구 내용까지 실제로 검증했다** — 이전 두 차수는 "언어가
-바뀌었다"만 확인했는데, `string.Format` 인자 순서를 잘못 짜면(예:
-HP와 EXP를 바꿔 넣음) 문구는 바뀌지만 틀린 값이 나올 수 있어, 리플렉션
-으로 `Refresh()`를 직접 불러 en 텍스트에 기대한 영어 조각(EXP/Gold,
-HP/EXP/ATK, MP, Farming/Troops)이 실제로 들어있는지 네 판 Playtest에
-검사를 추가했다(`CheckPlayerHudLocalization`/`CheckRealmHudLocalization`).
-컴파일 통과 + GO/DUNGEON/STORY/REALM 헤드리스 전부 통과, 새 검사
-포함 회귀 없음.
-
-**이걸로 안전하게 이어갈 수 있는 "chrome만" 국소가 사실상 다 닫혔다.**
-남은 한국어 텍스트(대사·퀘스트 서술·아이템/장수/도시 이름·REALM 문답)는
-전부 데이터 콘텐츠라 진짜 번역이 필요하다 — 다음은 사람 검수·방향이
-있어야 의미 있게 진행된다.
-
-## Localization 4~6차 — 데이터 콘텐츠 번역 착수 (2026-09-14, 같은 세션,
-사용자가 "계속 이어해··· 빨리좀"으로 재촉해 3차 이후 경계를 넘어
-실제 콘텐츠 번역까지 진행)
-
-T()에 `T(key, fallback)` 오버로드를 다섯 판 Localization 클래스
-전부에 추가(번역 누락 시 키 대신 원문을 보여줌 — 데이터 콘텐츠
-조회용). 이후 세 커밋에 걸쳐 실제 번역을 넣었다:
-
-- **4차(커밋 d694ac6)** — REALM `RealmCityData`/`RealmEnemyCity`(도시
-  다섯: 허창·진류·복양·소패·정도)·`RealmOfficerPool`(장수 셋, 기존
-  가명을 로마자로 — 예: 현책→Hyeonchaek)·`RealmOrderData`(명령
-  열 종, 일부는 기존 `hud.*` 키 재사용)·`RealmPlotData`(계략 둘,
-  이름+설명문). GO/DUNGEON `ItemData`(장비 이름 11종).
-- **5차(커밋 a6fa972)** — GO `NpcBuilder.cs`(촌장/상인/나그네 이름+
-  전체 대사)·`BanditEncounter.cs`·`RareWolfEncounter.cs`(사건 도입부·
-  토스트·승리 메시지 전부). DUNGEON `QuestState.cs`(퀘스트 목표·완료
-  문구). NPC 이름 배열은 `static readonly` 리터럴 대신 메서드로 바꿔
-  씬을 다시 열 때 그 시점 언어를 반영하게 했다(`NpcBuilder.
-  BuildVillagerDefs()`).
-- **6차(커밋 1b5869f)** — STORY `StoryNpc.cs`(척후병 이름·인사말·
-  본문·선택지 팝업)·`StoryHud.cs`의 퀘스트 고유명("첫 사냥"/"두목의
-  목").
-
-**식별자와 표시 문자열을 분리하는 원칙을 계속 지켰다** —
-`BanditEncounter.RecruitId`, DUNGEON `QuestState`의 `BossName`/
-`MinibossName`처럼 다른 코드가 문자열 값 자체로 매칭하는 내부 식별자는
-그대로 한국어로 두고, 화면에 보여주는 자리만 `T()`를 거치게 했다(예:
-DUNGEON은 `BestiaryState.IsDiscovered(BossName)`이 `DungeonFloorRunner.
-cs`가 스폰할 때 쓰는 리터럴과 문자열 그대로 매칭 — 번역했으면
-조용히 깨졌을 것).
-
-컴파일 통과 + 매 커밋마다 관련 판 헤드리스 재검증(GO 3연속 포함),
-회귀 없음. 지명(허창·소패·정도 등)은 이름 정책 대상이 아님(인물이
-아니라 지명), 장수 가명은 정책에 따라 실명이 아닌 기존 가명을 그대로
-로마자 표기.
-
-**다음 세션 안내 — 사용자가 "현재 완료되면 새로운 세션에서 이어해"로
-여기서 멈추라고 정함.** 남은 데이터 콘텐츠 후보(우선순위 순, 전부
-같은 패턴 — `XxxLocalization.T(key, fallback)` 그대로 재사용):
-
-1. **REALM `RealmQuizData.cs`(36개 문답)** — 가장 크고 정확성이
-   중요하다(역사·상식 퀴�즈라 번역이 사실관계까지 맞아야 함). 아직
-   손 안 댐.
-2. **FOREST** — 이 세션 전체에서 FOREST를 한 번도 안 건드렸다. 주민
-   대사(`ForestVillagerTalk.cs`류, 있다면)·창조물 설명·집 안 가구/
-   도배전 룰렛 문구 등을 확인부터 할 것.
-3. **GO 나머지** — `HiddenTreasure.cs`(굴 속 보물 이벤트 문구),
-   `WorldEventState`를 쓰는 다른 이벤트가 있다면.
-4. **DUNGEON 나머지** — `DungeonMerchant.cs`(행상 대사),
-   `DungeonCaptive.cs`(구출 이벤트 문구), 도감(`BestiaryState`) 관련
-   표시 문구가 있다면.
-5. **REALM 나머지** — `RealmArchive`(서고에 쌓이는 학습 기록 표시
-   문구), 계략 판정 결과 메시지(`RealmWarState`의 승패 서술)처럼
-   Playtest 로그에 아직 한국어로 찍히는 것들(예: "물러났다 — 생존
-   {0}, 적 손실 {1}..." 같은 전투 결과 서술).
-
-**패턴은 완전히 자리잡았다** — 새 파일을 만질 때마다 (a) 화면에
-보여줄 리터럴을 찾고, (b) 다른 코드가 그 문자열 값 자체를 식별자로
-쓰는지 먼저 확인(식별자면 안 건드림), (c) `XxxLocalization.T(key,
-fallback)` 또는 `string.Format(T(key, fallback), args)`로 바꾸고,
-(d) ko/en 두 json에 키 추가, (e) 컴파일+관련 Playtest 재검증,
-(f) 커밋. 다음 세션은 이 다섯 단계를 그대로 반복하면 된다.
+**알려진 사항**: en 번역 전부 사람 검수 전. BGM은 오디오 청취 불가로
+계속 보류(우선순위 문제 아님, 역량 제약).
