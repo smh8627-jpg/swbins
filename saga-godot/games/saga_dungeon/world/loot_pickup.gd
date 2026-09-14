@@ -48,6 +48,12 @@ const SCROLL_DROP_CHANCE := 0.07 # dungeon.js "e.boss?0.8:0.07" 그대로
 const BOSS_MAT_DROP_CHANCE := 0.9
 const BOSS_POTION_DROP_CHANCE := 1.0
 const BOSS_SCROLL_DROP_CHANCE := 0.8
+## "제외" 목록 7번(정예) — dungeon.js kill()의 elK 갈래 그대로: 금 2.2배,
+## 장비 ilvl +14(보스는 +30), 단약 확률 34%(정예는 mat·감정서 확률·재료
+## ilvl은 안 바뀐다 — 원작에 그 갈래가 없다, 새로 상상하지 않는다).
+const ELITE_GOLD_MUL := 2.2
+const ELITE_ILVL_BONUS := 14
+const ELITE_POTION_DROP_CHANCE := 0.34
 const RUNE_COLOR := Color(0.94, 0.65, 0.22) # dungeon.js take()의 룬 색('#f0a53a') 그대로
 const JEWEL_COLOR := Color(0.94, 0.48, 0.75) # dungeon.js take()의 주옥 색('#f07ac0') 그대로
 const GOLD_COLOR := Color(1.0, 0.84, 0.2)
@@ -55,8 +61,9 @@ const POTION_COLOR := Color(0.75, 0.22, 0.17) # potion.js KINDS.heal.color '#c03
 const SCROLL_COLOR := Color(0.56, 0.78, 1.0)
 
 
-static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false) -> void:
-	var it := DungeonItems.roll(ilvl + (30 if is_boss else 0))
+static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false, is_elite: bool = false) -> void:
+	var ilvl_bonus := 30 if is_boss else (ELITE_ILVL_BONUS if is_elite else 0)
+	var it := DungeonItems.roll(ilvl + ilvl_bonus)
 	var tier: Dictionary = DungeonItems.TIERS[it.tier]
 	var b := DungeonItems.base_by_key(str(it.base))
 	var slot_name := str(b.get("slot", "weapon"))
@@ -96,10 +103,12 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 			area.queue_free()
 	)
 
-	_spawn_gold(parent, pos + Vector3(-0.6, 0, -0.6), ilvl, 5.0 if is_boss else 1.0)
+	var gold_mul := 5.0 if is_boss else (ELITE_GOLD_MUL if is_elite else 1.0)
+	_spawn_gold(parent, pos + Vector3(-0.6, 0, -0.6), ilvl, gold_mul)
 	if randf() < (BOSS_MAT_DROP_CHANCE if is_boss else MAT_DROP_CHANCE):
 		_spawn_mat(parent, pos + Vector3(0.6, 0, 0.6), ilvl + (30 if is_boss else 0))
-	if randf() < (BOSS_POTION_DROP_CHANCE if is_boss else POTION_DROP_CHANCE):
+	var potion_chance := BOSS_POTION_DROP_CHANCE if is_boss else (ELITE_POTION_DROP_CHANCE if is_elite else POTION_DROP_CHANCE)
+	if randf() < potion_chance:
 		_spawn_potion(parent, pos + Vector3(0.6, 0, -0.6), ilvl)
 	if randf() < (BOSS_SCROLL_DROP_CHANCE if is_boss else SCROLL_DROP_CHANCE):
 		_spawn_scroll(parent, pos + Vector3(-0.6, 0, 0.6))

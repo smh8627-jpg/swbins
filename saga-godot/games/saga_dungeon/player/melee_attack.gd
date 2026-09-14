@@ -70,9 +70,23 @@ func _strike(enemy: Node) -> void:
 	var dmg: float = ATK_DAMAGE * pct_mult + DungeonEquipmentState.atk_flat_bonus()
 	if randf() * 100.0 < DungeonRunState.crit_chance():
 		dmg *= CRIT_MULT
+	## dungeon.js strike()의 "res = resistOf(e,'phys'); if (res>0) dmg *= 1-res/100"
+	## 그대로 — 정예 "철갑 두른"이 붙기 전엔 어떤 몬스터에도 resist.phys가
+	## 없어(0으로 조회됨) 지금까지는 이 자리를 안 타도 결과가 같았다.
+	var phys_res: float = float(enemy.resist_pct("phys")) if enemy.has_method("resist_pct") else 0.0
+	if phys_res > 0.0:
+		dmg *= 1.0 - phys_res / 100.0
 	enemy.take_damage(dmg)
 	if is_instance_valid(enemy) and enemy.hp > 0.0:
 		_apply_elemental(enemy)
+		## dungeon.js strike()의 "가시 돋친" 반사 — 죽이지 못했을 때만 되받는다
+		## (원작도 e.hp>0 조건).
+		if enemy.has_method("thorn_reflect"):
+			var reflect: float = enemy.thorn_reflect(dmg)
+			if reflect > 0.0:
+				var ph := get_tree().get_nodes_in_group("player_health")
+				if not ph.is_empty():
+					ph[0].take_damage(reflect)
 	var drain: float = DungeonRunState.drain_pct()
 	if was_alive and drain > 0.0 and (not is_instance_valid(enemy) or enemy.hp <= 0.0):
 		var found := get_tree().get_nodes_in_group("player_health")

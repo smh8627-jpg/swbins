@@ -27,6 +27,13 @@ extends CharacterBody3D
 ## `boss` 갈래(*7·*2.2) 그대로 — 위 함수 이름이 이미 `boss` 인자를 받게
 ## 지어져 있었다(이번에 처음 실제로 쓴다). 몸집은 dungeon.js spawnEnemy()의
 ## `r = boss?22:13`(≈1.7배) 그대로 캡슐 반지름·높이·공격 사거리에 적용.
+##
+## **정예(精銳, 2026-09-14, 51장 "엘리트" 축)** — dungeon.js ELITES·
+## eliteChance()·spawnEnemy()의 정예 갈래를 그대로 옮겼다("원작(디아블로)의
+## 파란/노란 이름 몬스터", 주석 원문 그대로). 보스·그림자 분신에는 안 붙는다.
+## 몸집(r 13→16)·색·효과 하나(속도·완력·저항·재생·가시·분열)가 붙고,
+## `loot_pickup.gd`가 확정 드랍(이미 이 슬라이스는 잡졸도 확정이라 변화 없음)
+## ·금 배율(2.2×)·아이템레벨 보너스(+14)·단약 확률(34%)을 정예 갈래로 받는다.
 
 signal died
 
@@ -36,10 +43,30 @@ const DETECT_RADIUS := 9.0
 const ATTACK_RANGE := 2.0
 const COLOR := Color(0.788, 0.659, 0.227)  # data-enemy.js 황건적 color '#c9a83a' 그대로
 const BOSS_SCALE := 22.0 / 13.0  # dungeon.js spawnEnemy()의 r = boss?22:13 그대로
+const ELITE_SCALE := 16.0 / 13.0  # spawnEnemy()의 정예 r=16 그대로
+const SHADE_SCALE := 10.0 / 13.0  # spawnEnemy()의 그림자 분신 r=10 그대로
 const LootPickup := preload("res://games/saga_dungeon/world/loot_pickup.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")  # "그림자가 갈라졌다" 토스트용
+
+## dungeon.js ELITES 그대로(8종, 색까지 원작 값) — hp/dmg 배율 없는 항목은
+## spawnEnemy()의 기본값(1.35/1.15)을 쓴다(아래 _init에서 처리).
+const ELITES: Array[Dictionary] = [
+	{"key": "swift", "name": "날쌘", "color": "#6ad9e0", "spd": 1.9, "cd": 0.55},
+	{"key": "tough", "name": "완강한", "color": "#8a9ab2", "hp": 2.6},
+	{"key": "fierce", "name": "사나운", "color": "#e06565", "dmg": 1.9},
+	{"key": "regen", "name": "되살아나는", "color": "#7ec96a", "regen": 0.035},
+	{"key": "thorn", "name": "가시 돋친", "color": "#c98ae0", "thorn": 0.22},
+	{"key": "shade", "name": "그림자", "color": "#9a7ad9", "split": 2},
+	{"key": "plated", "name": "철갑 두른", "color": "#9aa3b2", "resist": {"phys": 35.0}},
+	{"key": "warded", "name": "호신 두른", "color": "#6ad9e0", "resist": {"chi": 45.0}},
+]
 
 ## 이 몬스터의 결별 저항(% ) — 황건적은 원작에 저항 키가 없어 빈 채로 둔다.
+## 정예(철갑 두른·호신 두른)만 이 자리를 채운다(아래 _init).
 var resist: Dictionary = {}
+var elite_key: String = ""  # dungeon.js e.elite 그대로 — 없으면 빈 문자열
+var _elite_def: Dictionary = {}  # ELITES[i] 그대로(빠른 재조회용 캐시)
+var _is_shade: bool = false  # 그림자 분신 자신인지 — 정예 굴림·재분열을 막는다
 var _dots: Array[Dictionary] = [] # [{dps, t}] — applyElem()의 독(pois) dot과 같은 모양
 var _slow_mult := 1.0
 var _slow_time_left := 0.0
@@ -61,12 +88,34 @@ var _player: Node3D
 var _dead := false
 
 
-func _init(floor_num: int = 1, boss: bool = false) -> void:
+## dungeon.js eliteChance(floor) 그대로 — 깊을수록 잦다(상한 30%).
+static func _elite_chance(floor_num: int) -> float:
+	return minf(0.30, 0.06 + float(floor_num) * 0.012)
+
+
+## shade=true는 kill()이 만드는 그림자 분신 전용(spawnEnemy()의 opts.shade
+## 그대로) — boss와 마찬가지로 정예가 안 붙는다("!opts.spawned" 그대로,
+## 여기선 shade 인자 자체가 그 역할).
+func _init(floor_num: int = 1, boss: bool = false, shade: bool = false) -> void:
 	_floor_num = floor_num
 	is_boss = boss
+	_is_shade = shade
 	_scale_mul = BOSS_SCALE if boss else 1.0
 	max_hp = roundf(24.0 * pow(1.26, floor_num - 1) * (7.0 if boss else 1.0))
 	attack_damage = roundf(5.0 * pow(1.20, floor_num - 1) * (2.2 if boss else 1.0))
+	if not boss and not shade and randf() < _elite_chance(floor_num):
+		_elite_def = ELITES[randi() % ELITES.size()]
+		elite_key = str(_elite_def.key)
+		max_hp = roundf(max_hp * float(_elite_def.get("hp", 1.35)))
+		attack_damage = roundf(attack_damage * float(_elite_def.get("dmg", 1.15)))
+		_scale_mul = ELITE_SCALE
+		resist = (_elite_def.get("resist", {}) as Dictionary).duplicate()
+	if shade:
+		## spawnEnemy()의 shade 갈래 — hp*0.34·dmg*0.6·r=10, 정예 배율보다
+		## 나중에 적용된다(원작도 elite 갈래 뒤에 shade 갈래가 온다).
+		max_hp = maxf(1.0, roundf(max_hp * 0.34))
+		attack_damage = roundf(attack_damage * 0.6)
+		_scale_mul = SHADE_SCALE
 	hp = max_hp
 
 
@@ -86,7 +135,8 @@ func _spawn_visual() -> void:
 	mi.mesh = mesh
 	mi.position = Vector3(0, 0.85 * _scale_mul, 0)
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = COLOR
+	## enemyName()의 정예 접두처럼, 시각도 정예 색이 잡졸 색을 덮는다.
+	mat.albedo_color = Color(String(_elite_def.color)) if not _elite_def.is_empty() else COLOR
 	mi.material_override = mat
 	add_child(mi)
 
@@ -103,6 +153,7 @@ func _physics_process(delta: float) -> void:
 	if _dead:
 		return
 	_tick_dots(delta)
+	_tick_regen(delta)
 	if _dead or _player == null:
 		return
 	_tick_slow(delta)
@@ -113,10 +164,15 @@ func _physics_process(delta: float) -> void:
 	if dist <= ATTACK_RANGE * _scale_mul:
 		velocity = Vector3.ZERO
 		if _attack_cd_left <= 0.0:
-			_attack_cd_left = ATTACK_COOLDOWN
+			## dungeon.js "en.cd = ENEMY_CD * (elite.cd||1) / chill" 그대로
+			## (chill=냉기 감속, 우리는 몬스터 자신이 냉기에 걸릴 일이 없어
+			## 그 인자는 안 옮긴다 — 새 규칙을 안 만든다).
+			_attack_cd_left = ATTACK_COOLDOWN * float(_elite_def.get("cd", 1.0))
 			_attack_player()
 	elif dist <= DETECT_RADIUS:
-		velocity = to_player.normalized() * CHASE_SPEED * _slow_mult
+		## dungeon.js "* (elite.spd||1) * chill" 그대로 — 정예 속도 배율에
+		## 빙결 감속(_slow_mult)까지 곱한다.
+		velocity = to_player.normalized() * CHASE_SPEED * float(_elite_def.get("spd", 1.0)) * _slow_mult
 	else:
 		velocity = Vector3.ZERO
 	move_and_slide()
@@ -140,6 +196,16 @@ func _tick_dots(delta: float) -> void:
 		i -= 1
 	if hp <= 0.0:
 		_die()
+
+
+## dungeon.js "if (el && el.regen && en.hp < en.hpMax) { en.hp += en.hpMax *
+## el.regen * dt }" 그대로 — "되살아나는" 정예만 해당(그 밖엔 regen 키가
+## 없어 0으로 조회돼 그냥 지나간다).
+func _tick_regen(delta: float) -> void:
+	var rate: float = float(_elite_def.get("regen", 0.0))
+	if rate <= 0.0 or hp >= max_hp:
+		return
+	hp = minf(max_hp, hp + max_hp * rate * delta)
 
 
 func _tick_slow(delta: float) -> void:
@@ -171,6 +237,18 @@ func resist_pct(kind: String) -> float:
 	return clampf(float(resist.get(kind, 0.0)), 0.0, DungeonItems.RESIST_CAP)
 
 
+## dungeon.js strike()의 "if (elS && elS.thorn && e.hp > 0) { hurtPlayer(...) }"
+## 그대로 — "가시 돋친" 정예만 해당, 맞은 만큼(전달받은 물리 피해 기준)
+## 일부를 되돌려준다. 호출부(melee_attack.gd)가 실제로 플레이어에게 입힌다.
+func thorn_reflect(dmg: float) -> float:
+	if _dead or hp <= 0.0:
+		return 0.0
+	var thorn_pct: float = float(_elite_def.get("thorn", 0.0))
+	if thorn_pct <= 0.0:
+		return 0.0
+	return maxf(1.0, roundf(dmg * thorn_pct))
+
+
 func _attack_player() -> void:
 	if _player.has_node("PlayerHealth"):
 		_player.get_node("PlayerHealth").take_damage(attack_damage)
@@ -184,10 +262,29 @@ func take_damage(amount: float) -> void:
 		_die()
 
 
+## dungeon.js kill()의 "if (elK && elK.split && !e.shade) { ... spawnEnemy(...,
+## {spawned:true, shade:true, ...}) }" 그대로 — "그림자" 정예가 죽으면
+## split(2)개의 약한 분신이 그 자리에 선다. 분신 자신(_is_shade)은 다시
+## 갈라지지 않는다(위 가드 그대로).
 func _die() -> void:
 	if _dead:
 		return
 	_dead = true
 	died.emit()
-	LootPickup.spawn_at(get_parent(), global_position, _floor_num, is_boss)
+	var split: int = int(_elite_def.get("split", 0))
+	if split > 0 and not _is_shade:
+		var parent := get_parent()
+		for i in range(split):
+			## 자기 자신과 같은 스크립트로 새로 만든다(파일 안에서 자기
+			## 클래스 이름을 못 쓰므로 get_script() 경유 — test_room.gd처럼
+			## 바깥에서 부를 땐 그냥 DungeonEnemy.new()로 preload한다).
+			var kid: CharacterBody3D = get_script().new(_floor_num, false, true)
+			var offset := Vector3(0.9 if i == 0 else -0.9, 0, 0.6 if i == 0 else -0.6)
+			## 트리에 먼저 넣어야 한다 — 안 그러면 global_position 대입이
+			## "!is_inside_tree()" 오류를 낸다(트리 밖 Node3D는 전역 변환을
+			## 못 구한다). 실측으로 잡은 문제(아래 검증 참고).
+			parent.add_child(kid)
+			kid.global_position = global_position + offset
+		Toast.show(parent, "👤 그림자가 갈라졌다", 2.5)
+	LootPickup.spawn_at(get_parent(), global_position, _floor_num, is_boss, not elite_key.is_empty())
 	queue_free()
