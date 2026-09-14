@@ -166,6 +166,7 @@ namespace Saga.EditorTools
                         return;
                     }
                     if (!CheckSettingsPanel()) { Fail(); return; }
+                    if (!CheckRealmHudLocalization()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
 
@@ -1096,6 +1097,37 @@ namespace Saga.EditorTools
             RealmLocalization.CurrentLanguage = langBefore;
 
             Debug.Log("[PlaytestRealmSlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
+            return true;
+        }
+
+        /// <summary>PLAN.md 67~69장 "Localization" 2차(2026-09-14) — RealmHud의
+        /// 개간/상업/병력 등 상태 표시가 실제로 영어 문구를 보여주는지 본다.</summary>
+        private static bool CheckRealmHudLocalization()
+        {
+            var hudGo = GameObject.Find("RealmHudUI");
+            var hud = hudGo != null ? hudGo.GetComponent<RealmHud>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmHudUI/Label을 못 찾음");
+                return false;
+            }
+
+            string langBefore = RealmLocalization.CurrentLanguage;
+            var method = typeof(RealmHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            RealmLocalization.CurrentLanguage = "en";
+            method.Invoke(hud, null);
+            if (!label.text.Contains("Farming") || !label.text.Contains("Troops"))
+            {
+                Debug.LogError($"[PlaytestRealmSlice] RealmHud 영어 전환이 안 먹음 text=\"{label.text}\"");
+                RealmLocalization.CurrentLanguage = langBefore;
+                return false;
+            }
+            RealmLocalization.CurrentLanguage = langBefore;
+            method.Invoke(hud, null);
+
+            Debug.Log("[PlaytestRealmSlice] realm hud localization OK");
             return true;
         }
     }

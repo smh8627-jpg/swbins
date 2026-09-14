@@ -21,6 +21,10 @@
     { "key": "combat.quick", "value": "속공" },
     { "key": "combat.ult", "value": "필살" },
     { "key": "combat.dodge", "value": "회피" },
-    { "key": "combat.retreat", "value": "물러난다" }
+    { "key": "combat.retreat", "value": "물러난다" },
+    { "key": "hud.exp", "value": "경험치 {0}/{1}" },
+    { "key": "hud.gold", "value": "돈 {0}냥" },
+    { "key": "item.bare_hands", "value": "맨손" },
+    { "key": "item.plain_clothes", "value": "베옷" }
   ]
 }

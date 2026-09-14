@@ -4974,3 +4974,33 @@ FOREST `ForestHostileEncounterUi.cs`의 "밀어내기!", REALM
 `settings.*`류처럼 다섯 벌 md5 일치를 요구하지 않는다 — settings.*
 공유 키만 계속 다섯 판 일치 확인. 컴파일 통과 + GO/FOREST/REALM
 헤드리스 재검증, 회귀 없음.
+
+## Localization 3차 — 상시 HUD 상태줄(GO/DUNGEON/STORY/REALM) (2026-09-14,
+같은 세션, 계속 "이어해")
+
+버튼 다음으로 **화면 위 항상 보이는 상태줄**(PlayerHud/RealmHud/
+StoryHud)까지 넓혔다. 이번엔 숫자를 끼워 넣는 문장이라 단순 키→값이
+아니라 **`string.Format` 템플릿**(예: `"hud.gold"` ko="돈 {0}냥"
+en="{0} Gold" — 어순 자체가 다름)으로 풀었다. 게임 데이터(무기/방어구/
+성/장수 실제 이름, 퀘스트 목표 문장 `QuestState.ObjectiveText`, STORY의
+"첫 사냥"/"두목의 목" 같은 퀘스트 고유명)는 이번에도 의도적으로 그대로
+뒀다 — chrome(라벨 단어)과 콘텐츠(데이터가 담은 실제 이름·문장)의
+경계를 계속 지켰다. GO/DUNGEON의 무기 없음 기본값("맨손"/"베옷")은
+코드에 박힌 리터럴이라 chrome으로 취급해 옮겼다.
+
+REALM `RealmHud.cs`가 제일 컸다 — 개간/상업/기술/치안/축성/훈련/조선/
+인구/병력/군량/로스터/함락됨 등 11개 라벨을 전부 키로 뺐다.
+
+**이번엔 문구 내용까지 실제로 검증했다** — 이전 두 차수는 "언어가
+바뀌었다"만 확인했는데, `string.Format` 인자 순서를 잘못 짜면(예:
+HP와 EXP를 바꿔 넣음) 문구는 바뀌지만 틀린 값이 나올 수 있어, 리플렉션
+으로 `Refresh()`를 직접 불러 en 텍스트에 기대한 영어 조각(EXP/Gold,
+HP/EXP/ATK, MP, Farming/Troops)이 실제로 들어있는지 네 판 Playtest에
+검사를 추가했다(`CheckPlayerHudLocalization`/`CheckRealmHudLocalization`).
+컴파일 통과 + GO/DUNGEON/STORY/REALM 헤드리스 전부 통과, 새 검사
+포함 회귀 없음.
+
+**이걸로 안전하게 이어갈 수 있는 "chrome만" 국소가 사실상 다 닫혔다.**
+남은 한국어 텍스트(대사·퀘스트 서술·아이템/장수/도시 이름·REALM 문답)는
+전부 데이터 콘텐츠라 진짜 번역이 필요하다 — 다음은 사람 검수·방향이
+있어야 의미 있게 진행된다.

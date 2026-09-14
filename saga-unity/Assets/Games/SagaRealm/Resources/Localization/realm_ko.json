@@ -24,6 +24,20 @@
     { "key": "command.archive", "value": "서고" },
     { "key": "panel.city_title", "value": "성 — 조망·명령 대상" },
     { "key": "panel.plot_title", "value": "계략 — 적국과 맞닿은 성에서만" },
-    { "key": "panel.archive_title", "value": "서고 — 익힌 문제(최근 순)" }
+    { "key": "panel.archive_title", "value": "서고 — 익힌 문제(최근 순)" },
+    { "key": "hud.year_month", "value": "{0}년 {1}월 · 금 {2}" },
+    { "key": "hud.agri", "value": "개간" },
+    { "key": "hud.comm", "value": "상업" },
+    { "key": "hud.tech", "value": "기술" },
+    { "key": "hud.sec", "value": "치안" },
+    { "key": "hud.wall", "value": "축성" },
+    { "key": "hud.train", "value": "훈련" },
+    { "key": "hud.ships", "value": "조선" },
+    { "key": "hud.pop", "value": "인구" },
+    { "key": "hud.troops", "value": "병력" },
+    { "key": "hud.food", "value": "군량" },
+    { "key": "hud.roster", "value": "로스터: " },
+    { "key": "hud.captured", "value": "함락됨(성 목록에 편입)" },
+    { "key": "hud.enemy_status", "value": "병력 {0} · 성벽 {1} · 훈련 {2}" }
   ]
 }

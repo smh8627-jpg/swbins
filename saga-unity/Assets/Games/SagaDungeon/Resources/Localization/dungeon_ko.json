@@ -13,6 +13,12 @@
     { "key": "quality.low", "value": "절약" },
     { "key": "scale.small", "value": "작게" },
     { "key": "scale.normal", "value": "보통" },
-    { "key": "scale.large", "value": "크게" }
+    { "key": "scale.large", "value": "크게" },
+    { "key": "hud.hp", "value": "체력 {0}/{1}" },
+    { "key": "hud.exp", "value": "경험치 {0}/{1}" },
+    { "key": "hud.gold", "value": "돈 {0}냥" },
+    { "key": "hud.atk", "value": "공격력 {0:0}" },
+    { "key": "hud.floor", "value": "🕳️ 지하 {0}층" },
+    { "key": "item.bare_hands", "value": "맨손" }
   ]
 }

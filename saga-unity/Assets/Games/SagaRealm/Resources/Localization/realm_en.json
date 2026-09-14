@@ -24,6 +24,20 @@
     { "key": "command.archive", "value": "Archive" },
     { "key": "panel.city_title", "value": "City — View & Command Target" },
     { "key": "panel.plot_title", "value": "Schemes — Only from cities bordering an enemy" },
-    { "key": "panel.archive_title", "value": "Archive — Learned Questions (Most Recent)" }
+    { "key": "panel.archive_title", "value": "Archive — Learned Questions (Most Recent)" },
+    { "key": "hud.year_month", "value": "Year {0}, Month {1} · Gold {2}" },
+    { "key": "hud.agri", "value": "Farming" },
+    { "key": "hud.comm", "value": "Commerce" },
+    { "key": "hud.tech", "value": "Tech" },
+    { "key": "hud.sec", "value": "Security" },
+    { "key": "hud.wall", "value": "Walls" },
+    { "key": "hud.train", "value": "Training" },
+    { "key": "hud.ships", "value": "Ships" },
+    { "key": "hud.pop", "value": "Population" },
+    { "key": "hud.troops", "value": "Troops" },
+    { "key": "hud.food", "value": "Food" },
+    { "key": "hud.roster", "value": "Roster: " },
+    { "key": "hud.captured", "value": "Captured (added to city list)" },
+    { "key": "hud.enemy_status", "value": "Troops {0} · Walls {1} · Training {2}" }
   ]
 }

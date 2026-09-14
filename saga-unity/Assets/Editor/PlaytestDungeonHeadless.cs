@@ -93,6 +93,7 @@ namespace Saga.EditorTools
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
+                CheckPlayerHudLocalization();
             }
 
             if (_framesSeen >= FramesToRun)
@@ -225,6 +226,38 @@ namespace Saga.EditorTools
             DungeonLocalization.CurrentLanguage = langBefore;
 
             Debug.Log("[PlaytestDungeonHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
+        }
+
+        /// <summary>PLAN.md 67~69장 "Localization" 2차(2026-09-14) — PlayerHud의
+        /// 체력/경험치/돈/공격력/층 표시가 실제로 영어 문구를 보여주는지 본다.</summary>
+        private static void CheckPlayerHudLocalization()
+        {
+            var hudGo = GameObject.Find("PlayerHudUI");
+            var hud = hudGo != null ? hudGo.GetComponent<PlayerHud>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] PlayerHudUI/Label을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            string langBefore = DungeonLocalization.CurrentLanguage;
+            var method = typeof(PlayerHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            DungeonLocalization.CurrentLanguage = "en";
+            method.Invoke(hud, null);
+            if (!label.text.Contains("HP") || !label.text.Contains("EXP") || !label.text.Contains("ATK"))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] PlayerHud 영어 전환이 안 먹음 text=\"{label.text}\"");
+                _hadError = true;
+                DungeonLocalization.CurrentLanguage = langBefore;
+                return;
+            }
+            DungeonLocalization.CurrentLanguage = langBefore;
+            method.Invoke(hud, null);
+
+            Debug.Log("[PlaytestDungeonHeadless] player hud localization OK");
         }
 
         private static DungeonEnemy SpawnDummyEnemy(Vector3 position)

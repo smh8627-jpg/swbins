@@ -157,6 +157,7 @@ namespace Saga.EditorTools
                     StoryWorldEventState.Restore(null); // 위와 같은 이유 — 이전 실행이 남긴 save_story.json 무시.
                     StoryNpcState.Restore(0, 0); // 위와 같은 이유 — 새 정적 상태를 추가할 때마다 여기 잊지 말 것(2026-09-14에 한 번 빠뜨려 겪음).
                     if (!CheckSettingsPanel()) { Fail(); return; }
+                    if (!CheckPlayerHudLocalization()) { Fail(); return; }
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -789,6 +790,37 @@ namespace Saga.EditorTools
             StoryLocalization.CurrentLanguage = langBefore;
 
             Debug.Log("[PlaytestStorySlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
+            return true;
+        }
+
+        /// <summary>PLAN.md 67~69장 "Localization" 2차(2026-09-14) — StoryHud의
+        /// MP 표시가 실제로 영어 문구를 보여주는지 본다.</summary>
+        private static bool CheckPlayerHudLocalization()
+        {
+            var hudGo = GameObject.Find("StoryHudUI");
+            var hud = hudGo != null ? hudGo.GetComponent<StoryHud>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StoryHudUI/Label을 못 찾음");
+                return false;
+            }
+
+            string langBefore = StoryLocalization.CurrentLanguage;
+            var method = typeof(StoryHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            StoryLocalization.CurrentLanguage = "en";
+            method.Invoke(hud, null);
+            if (!label.text.Contains("MP"))
+            {
+                Debug.LogError($"[PlaytestStorySlice] StoryHud 영어 전환이 안 먹음 text=\"{label.text}\"");
+                StoryLocalization.CurrentLanguage = langBefore;
+                return false;
+            }
+            StoryLocalization.CurrentLanguage = langBefore;
+            method.Invoke(hud, null);
+
+            Debug.Log("[PlaytestStorySlice] player hud localization OK");
             return true;
         }
 

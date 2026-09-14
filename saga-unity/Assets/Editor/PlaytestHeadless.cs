@@ -111,6 +111,7 @@ namespace Saga.EditorTools
                 GoAudio.PlaySfx(clip);
                 CheckDebugHud();
                 CheckSettingsPanel();
+                CheckPlayerHudLocalization();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -212,6 +213,39 @@ namespace Saga.EditorTools
             GoLocalization.CurrentLanguage = langBefore; // 다른 검사에 영향 없게 되돌린다.
 
             Debug.Log("[PlaytestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
+        }
+
+        /// <summary>PLAN.md 67~69장 "Localization" 2차(2026-09-14) — PlayerHud의
+        /// 경험치/돈 표시가 실제로 영어 문구를 보여주는지 본다(단순 T() 호출
+        /// 성공이 아니라 string.Format 인자 순서가 실제로 맞는지까지).</summary>
+        private static void CheckPlayerHudLocalization()
+        {
+            var hudGo = GameObject.Find("PlayerHudUI");
+            var hud = hudGo != null ? hudGo.GetComponent<PlayerHud>() : null;
+            var label = hudGo != null ? hudGo.GetComponentInChildren<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestHeadless] PlayerHudUI/Label을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            string langBefore = GoLocalization.CurrentLanguage;
+            var method = typeof(PlayerHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            GoLocalization.CurrentLanguage = "en";
+            method.Invoke(hud, null);
+            if (!label.text.Contains("EXP") || !label.text.Contains("Gold"))
+            {
+                Debug.LogError($"[PlaytestHeadless] PlayerHud 영어 전환이 안 먹음 text=\"{label.text}\"");
+                _hadError = true;
+                GoLocalization.CurrentLanguage = langBefore;
+                return;
+            }
+            GoLocalization.CurrentLanguage = langBefore;
+            method.Invoke(hud, null); // 다른 검사에 영향 없게 원래 언어로 다시 그린다.
+
+            Debug.Log("[PlaytestHeadless] player hud localization OK");
         }
     }
 }

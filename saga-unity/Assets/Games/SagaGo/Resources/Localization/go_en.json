@@ -21,6 +21,10 @@
     { "key": "combat.quick", "value": "Quick Attack" },
     { "key": "combat.ult", "value": "Ultimate" },
     { "key": "combat.dodge", "value": "Dodge" },
-    { "key": "combat.retreat", "value": "Retreat" }
+    { "key": "combat.retreat", "value": "Retreat" },
+    { "key": "hud.exp", "value": "EXP {0}/{1}" },
+    { "key": "hud.gold", "value": "{0} Gold" },
+    { "key": "item.bare_hands", "value": "Bare Hands" },
+    { "key": "item.plain_clothes", "value": "Plain Clothes" }
   ]
 }

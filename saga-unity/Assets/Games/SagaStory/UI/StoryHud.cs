@@ -33,11 +33,12 @@ namespace Saga.Story.UI
             if (label == null) return;
             bool done = StoryQuestState.QuestDone;
             bool bossDone = StoryQuestState.QuestBossDone;
+            string mp = string.Format(StoryLocalization.T("hud.mp"), Mathf.RoundToInt(StoryCombat.Mp), Mathf.RoundToInt(StoryCombat.MpMax));
             label.text = $"🗡️ 첫 사냥 {Mathf.Min(StoryQuestState.Kills, StoryQuestState.KillGoal)}/{StoryQuestState.KillGoal}" +
-                         (done ? " — 완료!" : "") +
+                         (done ? StoryLocalization.T("hud.done") : "") +
                          $"\n👺 두목의 목 {Mathf.Min(StoryQuestState.BossKills, StoryQuestState.BossGoal)}/{StoryQuestState.BossGoal}" +
-                         (bossDone ? " — 완료!" : "") +
-                         $"\n💧 MP {Mathf.RoundToInt(StoryCombat.Mp)}/{Mathf.RoundToInt(StoryCombat.MpMax)}";
+                         (bossDone ? StoryLocalization.T("hud.done") : "") +
+                         $"\n{mp}";
         }
     }
 }
