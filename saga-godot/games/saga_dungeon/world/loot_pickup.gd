@@ -9,7 +9,9 @@ extends RefCounted
 ##
 ## "제외" 목록 2번(소켓+부문어·투장·내구) — roll()이 이제 무기·부적을
 ## 안 가리고 굴리므로(웹판 dropItem()과 같은 방식) **어느 부위가 나왔는지
-## 보고** 장착한다. 또 dungeon.js::dropMat()의 부문(룬) 갈래를 옮겨,
+## 보고** 장착한다(2026-09-14부터 갑주도 같은 풀에 섞여 나온다 —
+## DungeonEquipmentState.equip(slot_name, it) 하나로 세 부위 다 받는다).
+## 또 dungeon.js::dropMat()의 부문(룬) 갈래를 옮겨,
 ## 같은 킬에 독립된 확률로 부문 하나가 따로 떨어질 수 있다(재료는 즉시
 ## 주머니로 — 웹판과 같은 규칙, "노획물 정산"을 안 탄다).
 ##
@@ -102,10 +104,7 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 	parent.add_child(area)
 	area.body_entered.connect(func(body: Node3D) -> void:
 		if body.is_in_group("player"):
-			if slot_name == "charm":
-				DungeonEquipmentState.equip_charm(it)
-			else:
-				DungeonEquipmentState.equip_weapon(it)
+			DungeonEquipmentState.equip(slot_name, it)
 			var lines := DungeonItems.item_lines(it)
 			Toast.show(area, "🎁 %s · %s (%s)" % [tier.name, DungeonItems.item_name(it), " · ".join(lines)], TOAST_SEC)
 			area.queue_free()

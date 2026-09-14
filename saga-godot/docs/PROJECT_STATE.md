@@ -6510,3 +6510,37 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   catchBase 높은 5,60여 종)는 여전히 범위 밖(다음에 필요하면 그때 몫).
   다음은 GO 밖(DUNGEON "장비→빌드"·FOREST 넷째 종·saga-unity 트랙)을
   고려할 자리.
+
+## DUNGEON 51장 "장비→빌드" — 갑주(armor) 슬롯 (2026-09-14, 같은 날 이어서, "모두 이어서해")
+
+- GO 신수 마무리 항목이 남긴 세 갈래(DUNGEON 장비→빌드·FOREST 넷째
+  종·saga-unity 트랙) 중 DUNGEON부터 이었다. dungeon_items.gd의 예전
+  판단("방어력·기질 스탯이 없어 갑주를 못 걸친다")을 다시 보니, 원작
+  갑주 5종 main이 애초에 might가 아니라 wisdom/command라 이 슬라이스의
+  유일한 목표 스탯(무력)엔 원래도 안 닿는다 — 기존 wisdom/command
+  부적과 같은 처지였고, 진짜 값은 소켓(원소 저항)·세트(투장) 쪽에
+  있었다. 갑주 5종(지갑·피갑·찰갑·두정갑·도포)을 BASES에 추가하고
+  SOCK_MAX·GEM_SLOT_CAT을 원작 그대로 한 줄씩 채우자, 무기+부적만으론
+  2점에 머물던 세트 넷(충무·와룡·호랑·패왕)이 처음 3점(완성)에
+  닿았다. dungeon_equipment_state.gd는 부위가 셋이 되며 흩어진
+  `weapon ? : charm` 2진 분기가 못 버틸 상황이라 `_item_for`/
+  `_set_item`/`_emit_changed` 헬퍼로 정리하면서 공개 `equip()`/
+  `item_for()`를 새로 둬 loot_pickup.gd·vendor_button.gd·test_room.gd의
+  흩어진 분기를 대체했다. save_state에 armor 필드(순수 추가, 버전
+  안 올림), vendor에 "투전: 갑주"·감정 우선순위 확장, player_health가
+  armor_changed도 구독. 자세한 내용은 docs/VERTICAL_SLICE_DUNGEON.md
+  11절 참고.
+- 검증: 헤드리스 임포트 오류 0건, TestRoom.tscn 3회 로그 완전 동일
+  (md5 일치). 무거운 Player 씬을 직접 인스턴스화하던 이전 검증 방식이
+  원인 불명으로 멎은 적이 있어(GO 신수 항목 참고), 이번엔 오토로드만
+  부르는 가벼운 SceneTree 스크립트로 BASES·SOCK_MAX·GEM_SLOT_CAT·
+  roll("armor") 슬롯 필터·equip/item_for·atk_flat_bonus가 갑주 main에
+  안 새는 것·호랑 세트 3점 완성(플랫 무력 56·world critPct 10)·내구
+  마모/파손/수리·소켓+원소저항(agate → fire 8)·감정·save/load 왕복까지
+  10개 항목 전부 PASS. GO·FOREST·STORY·REALM 회귀도 오류 0건.
+  `.import` 잡음만 되돌리고 project.godot는 안 건드려짐 확인, git
+  status로 스크립트 7개만 확인. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 남은 여섯 부위(helm·glove·boot·ring·neck)는 각
+  세트 나머지 조각이지만 범위 밖으로 남긴다. 다음은 FOREST 넷째 종
+  또는 saga-unity 트랙을 고려할 자리 — "모두 이어서해" 지시에 따라
+  다음 세션이 이어서 FOREST를 볼 차례로 남겨 둔다.

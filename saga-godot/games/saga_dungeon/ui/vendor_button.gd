@@ -49,6 +49,12 @@ func _on_pressed() -> void:
 		"cb": func() -> void: _gamble("weapon", gamble_weapon_cost, lv),
 	})
 
+	var gamble_armor_cost := DungeonItems.gamble_price("armor", lv)
+	choices.append({
+		"label": "🎲 투전: 갑주 (금 %d)" % gamble_armor_cost,
+		"cb": func() -> void: _gamble("armor", gamble_armor_cost, lv),
+	})
+
 	var gamble_charm_cost := DungeonItems.gamble_price("charm", lv)
 	choices.append({
 		"label": "🎲 투전: 부적 (금 %d)" % gamble_charm_cost,
@@ -61,6 +67,8 @@ func _on_pressed() -> void:
 		var slot_name := ""
 		if bool(DungeonEquipmentState.weapon.get("unid", false)):
 			slot_name = "weapon"
+		elif bool(DungeonEquipmentState.armor.get("unid", false)):
+			slot_name = "armor"
 		elif bool(DungeonEquipmentState.charm.get("unid", false)):
 			slot_name = "charm"
 		if slot_name != "":
@@ -109,10 +117,7 @@ func _gamble(slot_name: String, cost: int, lv: int) -> void:
 		return
 	var t := DungeonItems.roll_tier_gamble()
 	var it := DungeonItems.roll(lv, slot_name, t, true)
-	if slot_name == "charm":
-		DungeonEquipmentState.equip_charm(it)
-	else:
-		DungeonEquipmentState.equip_weapon(it)
+	DungeonEquipmentState.equip(slot_name, it)
 	var tier: Dictionary = DungeonItems.TIERS[it.tier]
 	var lines := DungeonItems.item_lines(it)
 	Toast.show(self, "🎲 %s · %s (%s)" % [tier.name, DungeonItems.item_name(it), " · ".join(lines)], 4.0)
@@ -122,5 +127,5 @@ func _identify(slot_name: String) -> void:
 	if not DungeonMaterialsState.take_scroll():
 		return
 	DungeonEquipmentState.identify(slot_name)
-	var it: Dictionary = DungeonEquipmentState.weapon if slot_name == "weapon" else DungeonEquipmentState.charm
+	var it := DungeonEquipmentState.item_for(slot_name)
 	Toast.show(self, "🔎 감정 완료 — %s" % DungeonItems.item_name(it), 3.0)

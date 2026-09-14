@@ -370,3 +370,50 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   만으로는 안 끝난다 — 여기서부터는 DUNGEON 밖(다른 네 판·saga-unity
   트랙)을 진지하게 고려하거나, 방 종류 다양화를 잠시 접고 51장의 다른
   갈래("장비→빌드")로 옮겨 갈 것을 다음 세션이 판단할 자리.
+
+
+## 11. 51장 "장비→빌드" — 갑주(armor) 슬롯 (2026-09-14, 같은 날 이어서, "모두 이어서해")
+
+- 지난 절이 "51장의 다른 갈래(장비→빌드)로 옮겨 갈 것"으로 남긴 것을
+  이어 옮겼다. `dungeon_items.gd`의 오래된 판단("방어력·기질 스탯
+  자체가 없어 갑주를 걸칠 자리가 없다")을 다시 살펴보니, 원작 갑주 5종의
+  main은 전부 might가 아니라 wisdom/command라 `atk_flat_bonus()`(might
+  전용)에는 원래도 안 닿는다 — 이미 옮겨 둔 wisdom/command 부적들과
+  같은 처지였다. 진짜 값은 main이 아니라 **소켓(원소 저항)·접사(world
+  kind)·투장(세트)**에 있었고, 특히 충무·와룡·호랑·패왕 네 세트는 무기+
+  부적만으로는 영영 2점에 머물던 것을 갑주가 채워 처음 3점(완성)에
+  닿는다 — GEMS·SETS 데이터는 애초에 갑주 자리까지 원작 그대로 옮겨져
+  있었으니(예전 세션이 "나중에 생기면 바로 쓴다"고 미리 적어 둠) 진짜
+  막혀 있던 건 장비칸 자체였다.
+- `dungeon_items.gd`: BASES에 지갑·피갑·찰갑·두정갑·도포 5종 추가,
+  `SOCK_MAX["armor"]=3`·`GEM_SLOT_CAT["armor"]="armor"`(원작 그대로,
+  전부 데이터 한 줄씩만 더한 것). `dungeon_equipment_state.gd`: 부위가
+  셋(무기·갑주·부적)으로 늘며 `slot_name == "weapon" ? weapon : charm`
+  식 2진 삼항식이 전부 깨질 상황이라, `_item_for()`/`_set_item()`/
+  `_emit_changed()` 세 헬퍼 + `SLOT_NAMES` 상수로 파일 전체를
+  정리하면서 얹었다 — 공개 진입점 `equip(slot_name, it)`·
+  `item_for(slot_name)`도 새로 둬 `loot_pickup.gd`·`vendor_button.gd`·
+  `test_room.gd`의 흩어진 2진 분기를 그걸로 대체했다(중복 로직을
+  새로 안 늘렸다). `dungeon_save_state.gd`에 `armor` 저장 필드
+  (순수 추가, 버전 안 올림). `vendor_button.gd`에 "투전: 갑주" 옵션·
+  감정 우선순위(무기→갑주→부적)도 같이 얹었다. `player_health.gd`가
+  `armor_changed`도 구독(hpPct 접사가 갑주에도 붙을 수 있어서).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 6`
+  세 번 연속 로그 완전 동일(md5 일치). 별도 SceneTree 스크립트(씬 인스턴스
+  없이 오토로드만 부르는 방식 — 무거운 Player 씬을 직접 인스턴스화하던
+  이전 방식이 원인 불명으로 멎은 적이 있어 이번엔 처음부터 피했다)로
+  10개 항목 검증: BASES 5종·SOCK_MAX·GEM_SLOT_CAT 값·roll("armor")이
+  갑주만 굴리는지·equip()/item_for()/active_items·atk_flat_bonus가 갑주
+  main(wisdom/command)에 안 새는지·호랑(虎狼) 세트 3점 완성(플랫 무력
+  56·world critPct 10 정확히 일치)·내구 마모→파손(wear_all)·수리
+  (repair_all)·소켓(보석 박아 elem_resist 8 확인)·감정(identify)·
+  save/load 왕복까지 전부 PASS. GO·FOREST·STORY·REALM 회귀도 헤드리스
+  오류 0건 재확인. `.import` 잡음만 되돌림(`project.godot`는 안
+  건드려짐 확인), `git status`로 의도한 7개 스크립트 파일만 확인.
+  GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 갑주로 완성된 네 세트 중 실제로 굴려서(등급·접사
+  랜덤) 3점 세트를 자연 상태로 마주치는 건 여전히 확률적(SET_CHANCE
+  0.55 × 보물 등급에서만)이라 별도 확인 UI는 없다 — 필요하면 다음
+  몫. 남은 여섯 부위(helm·glove·boot·ring·neck)는 각 세트 나머지 조각
+  이지만 아직 범위 밖. DUNGEON 밖(다른 네 판·saga-unity 트랙)을 고려할
+  자리이기도 하다.

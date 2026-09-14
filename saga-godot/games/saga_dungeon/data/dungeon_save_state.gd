@@ -66,6 +66,9 @@ func save(player: Node3D) -> void:
 		## charm 안에 이미 들어 있어 따로 안 적는다(item Dictionary 그대로
 		## 저장). 부문(룬) 주머니는 별도 최상위 필드.
 		"charm": DungeonEquipmentState.charm,
+		## PLAN.md 51장 "장비→빌드"(2026-09-14) — 갑주도 같은 경계(순수
+		## 추가 필드, 버전 안 올림).
+		"armor": DungeonEquipmentState.armor,
 		"runes": DungeonMaterialsState.rune_counts,
 		## §"제외" 3번(행상/투전/연단·단약/요대·감정·창고) — 전부 순수
 		## 추가 필드(창고는 안 만들었으니 저장할 것도 없다).
@@ -123,9 +126,11 @@ func try_load() -> bool:
 	DungeonRunState.restore(boons if typeof(boons) == TYPE_DICTIONARY else {})
 	var weapon: Variant = data.get("weapon", {})
 	var charm: Variant = data.get("charm", {})
+	var armor: Variant = data.get("armor", {})
 	DungeonEquipmentState.restore(
 		weapon if typeof(weapon) == TYPE_DICTIONARY else {},
-		charm if typeof(charm) == TYPE_DICTIONARY else {})
+		charm if typeof(charm) == TYPE_DICTIONARY else {},
+		armor if typeof(armor) == TYPE_DICTIONARY else {})
 	var runes: Variant = data.get("runes", {})
 	var scrolls: Variant = data.get("scrolls", 0)
 	var gems: Variant = data.get("gems", {})

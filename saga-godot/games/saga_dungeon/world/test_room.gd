@@ -343,7 +343,7 @@ func _on_boon_picked(key: String, body: Node3D, layer_box: Dictionary, room_inde
 func _finish_exit(body: Node3D, room_index: int, is_final: bool) -> void:
 	var broke := DungeonEquipmentState.wear_all(1.0)
 	for slot_name in broke:
-		var it: Dictionary = DungeonEquipmentState.weapon if slot_name == "weapon" else DungeonEquipmentState.charm
+		var it := DungeonEquipmentState.item_for(slot_name)
 		Toast.show(self, "🔧 %s 이(가) 부서졌다 — 새로 주울 때까지 능력치를 못 낸다." % DungeonItems.item_name(it), 4.0)
 	DungeonSaveState.mark_room_cleared(room_index)
 	DungeonSaveState.save(body)

@@ -3,43 +3,94 @@ extends Node
 ## "제외" 목록 3번(장비 등급+접사) — 무기 한 자루짜리 최소 장착 상태였던
 ## 것에, "제외" 목록 2번(소켓+부문어·투장·내구)에서 **부적(charm) 한
 ## 점**을 더했다(dungeon_items.gd 헤더 참고 — 투장이 2점을 채우려면
-## 부위가 최소 둘 있어야 한다). 여전히 가방·창고는 없다 — 새로 주우면
-## 그 부위의 이전 것을 그냥 대체한다(대체된 물건에 박혀 있던 룬은
-## 그대로 사라진다 — 원작도 "한 번 박은 룬은 못 뺀다"였으니 이 손실은
-## 새 버그가 아니라 같은 규칙의 자연스러운 결과다).
+## 부위가 최소 둘 있어야 한다). **2026-09-14, PLAN.md 51장 "장비→빌드"
+## — 갑주(armor) 한 점을 더해 세 부위가 됐다**(투장 3점 완성이 이걸로
+## 처음 가능해진다, dungeon_items.gd SETS 주석 참고). 여전히 가방·창고는
+## 없다 — 새로 주우면 그 부위의 이전 것을 그냥 대체한다(대체된 물건에
+## 박혀 있던 룬은 그대로 사라진다 — 원작도 "한 번 박은 룬은 못 뺀다"였으니
+## 이 손실은 새 버그가 아니라 같은 규칙의 자연스러운 결과다).
+##
+## 세 부위 각각에 흩어져 있던 `slot_name == "weapon" ? weapon : charm`류
+## 2진 삼항식이 갑주가 생기며 전부 깨질 뻔해(부위가 셋이면 이미 어색하고
+## 넷째가 오면 못 버틴다), `_item_for()`/`_set_item()`/`_emit_changed()`
+## 세 헬퍼로 슬롯 이름 하나로 찾아 바꾸는 방식으로 이 파일 전체를
+## 갈아엎었다 — 바깥에서 `DungeonEquipmentState.weapon`처럼 직접 읽는
+## 자리(job_label.gd 등)는 프로퍼티 이름이 그대로라 안 건드려도 된다.
 ##
 ## project.godot [autoload]에 DungeonEquipmentState로 등록.
 
+const SLOT_NAMES: Array[String] = ["weapon", "armor", "charm"]
+
 signal weapon_changed
+signal armor_changed
 signal charm_changed
 
-## {} 면 "맨손"/"부적 없음"(시작 상태). 처음 주운 물건부터 실제로 바뀐다.
+## {} 면 "맨손"/"갑주 없음"/"부적 없음"(시작 상태). 처음 주운 물건부터 실제로 바뀐다.
 var weapon: Dictionary = {}
+var armor: Dictionary = {}
 var charm: Dictionary = {}
 
 
+## 슬롯 이름 → 그 var(참조) — Dictionary는 GDScript에서 참조형이라, 돌려준
+## 것을 그 자리에서 고치면(`it["dur"] = ...`) weapon/armor/charm 원본이
+## 그대로 바뀐다(기존 코드가 이미 기대던 성질, 새로 만든 규칙이 아니다).
+func _item_for(slot_name: String) -> Dictionary:
+	match slot_name:
+		"weapon": return weapon
+		"armor": return armor
+		"charm": return charm
+	return {}
+
+
+func _set_item(slot_name: String, it: Dictionary) -> void:
+	match slot_name:
+		"weapon": weapon = it
+		"armor": armor = it
+		"charm": charm = it
+
+
+func _emit_changed(slot_name: String) -> void:
+	match slot_name:
+		"weapon": weapon_changed.emit()
+		"armor": armor_changed.emit()
+		"charm": charm_changed.emit()
+
+
+## 부위 이름을 몰라도(loot_pickup.gd처럼 주운 밑감의 slot만 아는 자리)
+## 바로 장착할 수 있는 공용 진입점.
+func equip(slot_name: String, it: Dictionary) -> void:
+	_set_item(slot_name, it)
+	_emit_changed(slot_name)
+
+
+## _item_for()의 공개판 — test_room.gd·vendor_button.gd처럼 바깥에서
+## slot_name 하나로 "그 부위에 지금 뭐가 걸려 있는지" 물을 때 쓴다.
+func item_for(slot_name: String) -> Dictionary:
+	return _item_for(slot_name)
+
+
 func equip_weapon(it: Dictionary) -> void:
-	weapon = it
-	weapon_changed.emit()
+	equip("weapon", it)
 
 
 func equip_charm(it: Dictionary) -> void:
-	charm = it
-	charm_changed.emit()
+	equip("charm", it)
 
 
-func restore(saved_weapon: Dictionary, saved_charm: Dictionary = {}) -> void:
+func restore(saved_weapon: Dictionary, saved_charm: Dictionary = {}, saved_armor: Dictionary = {}) -> void:
 	weapon = saved_weapon
 	charm = saved_charm
+	armor = saved_armor
 	weapon_changed.emit()
 	charm_changed.emit()
+	armor_changed.emit()
 
 
 ## 부서진 장비는 아무 값도 안 낸다(item.js "부서지면 능력치를 안 준다") —
 ## main·접사·소켓 효과·투장 집계 전부 이 문턱 하나를 공유한다.
 func _active_items() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for it in [weapon, charm]:
+	for it in [weapon, armor, charm]:
 		if not it.is_empty() and not DungeonItems.is_broken(it):
 			out.append(it)
 	return out
@@ -62,9 +113,10 @@ func _affix_and_socket_effects() -> Array[Dictionary]:
 	return out
 
 
-## 걸친(안 부서진) 무기·부적이 같은 투장(세트)에 속하면 그 점수만큼의
+## 걸친(안 부서진) 무기·갑주·부적이 같은 투장(세트)에 속하면 그 점수만큼의
 ## 세트 효과를 더한다 — data-set.js bonusFor()는 누적이라 2점 값 위에
-## 3점 값도 더 있으면 같이 붙지만, 우리는 갑주가 없어 3점은 못 채운다.
+## 3점 값도 더 있으면 같이 붙는다. 갑주가 생겨(2026-09-14) 세 부위가
+## 같은 세트면 이제 3점 문턱도 넘는다(dungeon_items.gd SETS 주석 참고).
 func _set_effects() -> Array[Dictionary]:
 	var counts: Dictionary = {}
 	for it: Dictionary in _active_items():
@@ -128,12 +180,12 @@ func world_eff_sum(eff_key: String) -> float:
 
 ## "제외" 목록 2번(내구) — item.js::wearAll(), "층을 내려갈 때마다 1
 ## 닳는다"를 test_room.gd의 방 출구(descend에 해당)에서 부른다. 방금
-## 부서진 부위 이름("weapon"/"charm")만 돌려준다(토스트용) — 장신구
-## (charm)는 dur_max_of()가 0을 주므로 애초에 안 닳는다.
+## 부서진 부위 이름("weapon"/"armor"/"charm")만 돌려준다(토스트용) —
+## 장신구(charm)는 dur_max_of()가 0을 주므로 애초에 안 닳는다.
 func wear_all(n: float = 1.0) -> Array[String]:
 	var broke: Array[String] = []
-	for slot_name in ["weapon", "charm"]:
-		var it: Dictionary = weapon if slot_name == "weapon" else charm
+	for slot_name in SLOT_NAMES:
+		var it := _item_for(slot_name)
 		if it.is_empty():
 			continue
 		var max_d := DungeonItems.dur_max_of(it)
@@ -143,17 +195,16 @@ func wear_all(n: float = 1.0) -> Array[String]:
 		it["dur"] = clampf(was - n, 0.0, max_d)
 		if was > 0.0 and it.dur <= 0.0:
 			broke.append(slot_name)
-	if not broke.is_empty():
-		weapon_changed.emit()
-		charm_changed.emit()
+	for slot_name in broke:
+		_emit_changed(slot_name)
 	return broke
 
 
 ## "제외" 목록 2번(소켓) — 무기부터 살펴 빈 구멍이 있는 첫 부위를 준다
 ## (없으면 ""). 소켓 UI가 "지금 뭘 박을 수 있는지"를 물을 때 쓴다.
 func first_socketable_slot() -> String:
-	for slot_name in ["weapon", "charm"]:
-		var it: Dictionary = weapon if slot_name == "weapon" else charm
+	for slot_name in SLOT_NAMES:
+		var it := _item_for(slot_name)
 		if it.is_empty():
 			continue
 		var sock: Array = it.get("sock", [])
@@ -166,7 +217,7 @@ func first_socketable_slot() -> String:
 ## DungeonMaterialsState에서 있는지 확인하고 불렀다고 본다(socket_button.gd).
 ## @returns 부문어가 새로 이루어졌으면 그 정의(word), 아니면 {}.
 func socket_rune(slot_name: String, rune_key: String) -> Dictionary:
-	var it: Dictionary = weapon if slot_name == "weapon" else charm
+	var it := _item_for(slot_name)
 	if it.is_empty():
 		return {}
 	var sock: Array = it.get("sock", [])
@@ -174,10 +225,7 @@ func socket_rune(slot_name: String, rune_key: String) -> Dictionary:
 	if idx < 0:
 		return {}
 	sock[idx] = {"t": "rune", "key": rune_key}
-	if slot_name == "weapon":
-		weapon_changed.emit()
-	else:
-		charm_changed.emit()
+	_emit_changed(slot_name)
 	var b := DungeonItems.base_by_key(str(it.get("base", "")))
 	return DungeonItems.word_of(sock, str(b.get("slot", "")))
 
@@ -185,7 +233,7 @@ func socket_rune(slot_name: String, rune_key: String) -> Dictionary:
 ## "제외" 목록 4번(원소 6결+저항) — socket_rune()과 같은 경계(부문어 여부를
 ## 돌려준다, 여기선 보석·주옥이 섞이면 부문어가 절대 안 되니 늘 {}다).
 func socket_gem(slot_name: String, gem_key: String, grade_num: int) -> Dictionary:
-	var it: Dictionary = weapon if slot_name == "weapon" else charm
+	var it := _item_for(slot_name)
 	if it.is_empty():
 		return {}
 	var sock: Array = it.get("sock", [])
@@ -193,16 +241,13 @@ func socket_gem(slot_name: String, gem_key: String, grade_num: int) -> Dictionar
 	if idx < 0:
 		return {}
 	sock[idx] = {"t": "gem", "key": gem_key, "g": grade_num}
-	if slot_name == "weapon":
-		weapon_changed.emit()
-	else:
-		charm_changed.emit()
+	_emit_changed(slot_name)
 	return {}
 
 
 ## 주옥은 **부위를 안 가린다** — 어느 소켓에 박아도 굴려 나온 접사 그대로 낸다.
 func socket_jewel(slot_name: String, jewel: Dictionary) -> Dictionary:
-	var it: Dictionary = weapon if slot_name == "weapon" else charm
+	var it := _item_for(slot_name)
 	if it.is_empty():
 		return {}
 	var sock: Array = it.get("sock", [])
@@ -210,10 +255,7 @@ func socket_jewel(slot_name: String, jewel: Dictionary) -> Dictionary:
 	if idx < 0:
 		return {}
 	sock[idx] = {"t": "jewel", "j": jewel}
-	if slot_name == "weapon":
-		weapon_changed.emit()
-	else:
-		charm_changed.emit()
+	_emit_changed(slot_name)
 	return {}
 
 
@@ -229,8 +271,8 @@ func elem_damage() -> Dictionary:
 
 
 ## item.js elemResist() 그대로 — 결별 저항(%), 상한은 DungeonItems.RESIST_CAP.
-## 갑주 슬롯이 없어 보석의 elres는 안 닿고, **주옥만**(부위를 안 가리므로)
-## 이 값을 채울 수 있다.
+## 2026-09-14부터 갑주 소켓에 박은 보석(GEMS)도 이 값을 낸다 — 그 전엔
+## 주옥만(부위를 안 가리므로) 채울 수 있었다.
 func elem_resist(el: String) -> float:
 	var total := 0.0
 	for e: Dictionary in _affix_and_socket_effects():
@@ -243,35 +285,33 @@ func elem_resist(el: String) -> float:
 ## (vendor_button.gd)이 이미 DungeonMaterialsState에서 있는지 확인하고
 ## 불렀다고 본다(socket_rune()과 같은 경계). 이미 확인된 물건이면 false.
 func identify(slot_name: String) -> bool:
-	var it: Dictionary = weapon if slot_name == "weapon" else charm
+	var it := _item_for(slot_name)
 	if it.is_empty() or not bool(it.get("unid", false)):
 		return false
 	it["unid"] = false
-	if slot_name == "weapon":
-		weapon_changed.emit()
-	else:
-		charm_changed.emit()
+	_emit_changed(slot_name)
 	return true
 
 
 ## "제외" 목록 3번(수리) — item.js::repairCost()의 합. 0이면 수리할 게 없다.
 func repair_all_cost() -> int:
 	var total := 0
-	for it: Dictionary in [weapon, charm]:
+	for it: Dictionary in [weapon, armor, charm]:
 		if not it.is_empty():
 			total += DungeonItems.repair_cost(it)
 	return total
 
 
-## 무기·부적을 모두 최대 내구까지 고친다 — 비용은 호출 쪽이 이미
+## 무기·갑주·부적을 모두 최대 내구까지 고친다 — 비용은 호출 쪽이 이미
 ## repair_all_cost()로 확인하고 금을 뗐다고 본다.
 func repair_all() -> void:
-	for slot_name in ["weapon", "charm"]:
-		var it: Dictionary = weapon if slot_name == "weapon" else charm
+	for slot_name in SLOT_NAMES:
+		var it := _item_for(slot_name)
 		if it.is_empty():
 			continue
 		var max_d := DungeonItems.dur_max_of(it)
 		if max_d > 0.0:
 			it["dur"] = max_d
 	weapon_changed.emit()
+	armor_changed.emit()
 	charm_changed.emit()

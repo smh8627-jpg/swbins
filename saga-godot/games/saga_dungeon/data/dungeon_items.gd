@@ -11,19 +11,27 @@ class_name DungeonItems
 ## 고유(유니크)·가방/창고**는 여전히 이 슬라이스 밖이다.
 ##
 ## "제외" 목록 4번(원소 6결+저항) — `data-elem.js`의 ELEMENTS·`data-gem.js`의
-## GRADES·GEMS·JEWEL_*를 여기 이어 옮겼다(아래 ELEMENTS 블록부터). 갑주
-## 슬롯이 없어 보석(GEMS)의 armor 자리(원소 저항)는 안 닿지만, 데이터는
-## 원작 그대로 셋(weapon/armor/charm) 다 옮겨 뒀다 — 주옥(珠玉)은 부위를
-## 안 가려 우리 무기·부적 소켓에도 저항이 그대로 붙는다.
+## GRADES·GEMS·JEWEL_*를 여기 이어 옮겼다(아래 ELEMENTS 블록부터). 당시엔
+## 갑주 슬롯이 없어 보석(GEMS)의 armor 자리(원소 저항)가 안 닿았지만, 아래
+## 51장 항목대로 갑주가 생기면서 이제 닿는다 — 데이터는 처음부터 원작
+## 그대로 셋(weapon/armor/charm) 다 옮겨 뒀던 것이라 GEM_SLOT_CAT 한 줄만
+## 더하면 됐다.
 ##
-## BASES는 원본 31종 중 **무기 10종 + 부적(charm) 5종**만 옮겼다(갑주·
-## 투구·장갑·신발·목걸이·반지는 여전히 뺐다 — 방어력·기질 스탯 자체가
-## 없어 걸칠 자리가 없다). 부적을 새로 더한 이유는 투장(세트)이 최소
-## 두 부위를 동시에 걸쳐야 뜻이 생기는데(data-set.js "한 벌은 셋(무기·
-## 갑주·부적)이다"), 우리는 갑주가 없어 **무기+부적 두 점**으로 세트의
-## "2점" 문턱까지만 시험할 수 있다 — 3점(무기+갑주+부적) 완성은 갑주
-## 슬롯이 생겨야 가능하다(그때까지 세트 10벌 중 갑주만 걸치는 조각이
-## 낀 것들은 계속 미완성으로 남는다 — 새 세트를 상상해 채우지 않는다).
+## BASES는 원본 31종 중 **무기 10종 + 부적(charm) 5종**만 옮겼었다(갑주·
+## 투구·장갑·신발·목걸이·반지는 그때 뺐다 — 방어력·기질 스탯 자체가 없어
+## 걸칠 자리가 없다는 판단이었다). 부적을 새로 더한 이유는 투장(세트)이
+## 최소 두 부위를 동시에 걸쳐야 뜻이 생기는데(data-set.js "한 벌은 셋(무기·
+## 갑주·부적)이다"), 그때는 갑주가 없어 **무기+부적 두 점**으로 세트의
+## "2점" 문턱까지만 시험할 수 있었다.
+##
+## **2026-09-14, PLAN.md 51장 "장비→빌드" — 갑주(armor) 5종 추가.** main이
+## might가 아니라(전부 wisdom/command) 이 슬라이스의 유일한 목표 스탯(무력)
+## 에는 안 닿지만(부적의 wisdom/command 계열과 같은 처지, 새 제약이
+## 아니다), 세트 효과·소켓(원소 저항)·접사(world kind)는 부위를 안 가려
+## 그대로 값을 낸다 — 특히 **3점(무기+갑주+부적) 완성 세트 넷**(충무·와룡·
+## 호랑·패왕, DungeonItems.SETS 참고)이 갑주 없이는 영영 2점에 머물렀던
+## 것을 이걸로 처음 채운다. 투구·장갑·신발·목걸이·반지는 여전히 뺐다(각
+## 세트 나머지 조각이 그쪽에 있어도 그건 다음 몫).
 ##
 ## "제외" 목록 3번(행상/투전/연단·단약/요대·감정·창고) — `vendor.js`의
 ## 투전(GAMBLE_W) 표·`item.js`의 값어치(price)·수리 공식, **감정(unid)**을
@@ -46,7 +54,8 @@ const TIERS: Array[Dictionary] = [
 	{ "key": 4, "name": "전설", "hanja": "傳說", "color": "#c7a76c", "mul": 2.15, "affix": 4, "weight": 1.6 },
 ]
 
-## 무기 10종 + 부적 5종 — data-item.js BASES 중 slot이 weapon/charm인 것만, 값 그대로.
+## 무기 10종 + 부적 5종 + 갑주 5종 — data-item.js BASES 중 slot이
+## weapon/charm/armor인 것만, 값 그대로.
 const BASES: Array[Dictionary] = [
 	## 무장(武將) — spear/club/axe/halberd
 	{ "key": "w_pyeongon", "slot": "weapon", "name": "편곤", "main": "might", "base": 10.0, "look": "club" },
@@ -71,6 +80,13 @@ const BASES: Array[Dictionary] = [
 	{ "key": "c_hobu", "slot": "charm", "name": "호부", "main": "might", "base": 6.0 },
 	{ "key": "c_dokkaebi", "slot": "charm", "name": "도깨비방울", "main": "might", "base": 7.0 },
 	{ "key": "c_gyeong", "slot": "charm", "name": "청동경", "main": "command", "base": 7.0 },
+	## 갑주(甲胄) — look 없음(원작도 없다), 내구는 무기와 같은 공식(안 닳는
+	## 부위가 아니다, NO_DUR_SLOT에 없음).
+	{ "key": "a_jichap", "slot": "armor", "name": "지갑", "main": "command", "base": 8.0 },
+	{ "key": "a_pigap", "slot": "armor", "name": "피갑", "main": "command", "base": 9.0 },
+	{ "key": "a_chalgap", "slot": "armor", "name": "찰갑", "main": "command", "base": 11.0 },
+	{ "key": "a_dujeong", "slot": "armor", "name": "두정갑", "main": "command", "base": 12.0 },
+	{ "key": "a_dopo", "slot": "armor", "name": "도포", "main": "wisdom", "base": 9.0 },
 ]
 
 ## data-skill.js WEAPON_CLASS 그대로 — 장착한 무기의 look이 직업을 정한다
@@ -132,8 +148,9 @@ const AFFIXES: Array[Dictionary] = [
 ## ring/neck도 원작 표 그대로 남겨 둔다(뜻은 없어도 값을 지어내지 않는다).
 const NO_DUR_SLOT: Dictionary = { "charm": true, "ring": true, "neck": true }
 
-## data-item.js SOCK_MAX 중 우리가 가진 부위만(무기 3 · 부적 2).
-const SOCK_MAX: Dictionary = { "weapon": 3, "charm": 2 }
+## data-item.js SOCK_MAX 중 우리가 가진 부위만(무기 3 · 갑주 3 · 부적 2,
+## 원작 그대로).
+const SOCK_MAX: Dictionary = { "weapon": 3, "armor": 3, "charm": 2 }
 
 ## data-gem.js RUNES 12종 전부 — eff 모양은 장비 접사와 같다(flat·pct·world).
 const RUNES: Array[Dictionary] = [
@@ -195,9 +212,7 @@ static func grade(g: int) -> Dictionary:
 
 ## data-gem.js GEMS 6종 전부 — **박는 자리에 따라 다른 것을 준다**(원작 그대로):
 ##   무기(weapon)  그 원소의 피해(eldmg)
-##   갑주(armor)   그 원소의 저항(elres) — 이 슬라이스엔 갑주 슬롯이 없어 안 닿는다
-##                 (아래 GEM_SLOT_CAT이 weapon·charm만 있는 이유. 데이터 자체는
-##                 원작 그대로 셋 다 옮겨 뒀다 — 나중에 갑주가 생기면 바로 쓴다)
+##   갑주(armor)   그 원소의 저항(elres) — 2026-09-14 갑주 슬롯이 생겨 이제 닿는다
 ##   부적(charm)   능력치
 const GEMS: Array[Dictionary] = [
 	{ "key": "agate", "name": "마노(瑪瑙)", "emoji": "🔴", "el": "fire",
@@ -232,17 +247,19 @@ const GEMS: Array[Dictionary] = [
 		"desc": "출처를 알 수 없는 돌. 미래의 힘이 깃들었다." },
 ]
 
-## data-item.js GEM_SLOT_CAT 중 우리가 가진 부위만(무기·부적). 갑주 계열
-##(armor/helm/glove/boot)·장신구 계열(ring/neck)은 슬롯 자체가 없어 뺐다.
-const GEM_SLOT_CAT: Dictionary = { "weapon": "weapon", "charm": "charm" }
+## data-item.js GEM_SLOT_CAT 중 우리가 가진 부위만(무기·갑주·부적). helm/
+## glove/boot(원작은 이들도 armor 카테고리로 묶는다)·ring/neck(charm
+## 카테고리)은 슬롯 자체가 없어 뺐다.
+const GEM_SLOT_CAT: Dictionary = { "weapon": "weapon", "armor": "armor", "charm": "charm" }
 
 ## data-gem.js JEWEL_TWO·JEWEL_MAX 그대로.
 const JEWEL_TWO := 0.34
 const JEWEL_MAX := 40
 
 ## data-gem.js JEWEL_AFFIXES 20종 전부 — **부위를 안 가린다**(주옥의 정체).
-## 원소 저항(elres)이 이 슬라이스에서 갑주 없이도 손에 닿는 유일한 길이다
-## (보석의 armor 자리는 안 쓰이지만 주옥은 무기·부적 소켓에도 그대로 붙는다).
+## 갑주가 없던 시절엔 원소 저항(elres)이 이걸로만 닿았지만, 이제 갑주
+## 소켓에 보석(GEMS)을 박아도 같은 저항이 붙는다 — 주옥은 여전히 무기·
+## 부적 소켓에도 그대로 붙는다는 점에서 다르다(부위를 안 가리는 유일한 것).
 const JEWEL_AFFIXES: Array[Dictionary] = [
 	{ "key": "j_fire", "kind": "eldmg", "el": "fire", "lo": 3.0, "hi": 8.0, "pre": "타는" },
 	{ "key": "j_cold", "kind": "eldmg", "el": "cold", "lo": 3.0, "hi": 7.0, "pre": "시린" },
@@ -288,7 +305,12 @@ const WORDS: Array[Dictionary] = [
 
 ## data-set.js SETS 10벌 — `skill` 필드(세트 전용 무예)는 뺐다(스킬트리·
 ## 핫바 시스템이 이 슬라이스에 없다). bonus는 누적(2점 값 위에 3점 값을
-## 더 얹는다) — 우리는 갑주가 없어 3점 문턱은 넘을 수 없다(위 헤더 참고).
+## 더 얹는다). **2026-09-14, 갑주 5종 추가로 넷(충무·와룡·호랑·패왕)은
+## 세 조각(무기+갑주+부적) 다 우리 BASES 안에 있어 3점까지 완성된다.**
+## 나머지 여섯 중 청낭만 여전히 2점(무기+부적, 갑주 조각이 helm이라 안
+## 닿는다) — 철옹·은하·맹혼·비영·현학은 helm/glove/boot/ring/neck 조각이
+## 둘 이상 끼어 있어 1점(철옹은 이번에 0→1, 나머지는 무기 하나뿐)에
+## 머문다(위 헤더 참고).
 const SETS: Array[Dictionary] = [
 	{ "key": "chungmu", "name": "충무(忠武)", "pieces": ["w_hwando", "a_dujeong", "c_hopae"],
 		"bonus": { 2: [{ "kind": "flat", "stat": "command", "v": 14.0 }],
