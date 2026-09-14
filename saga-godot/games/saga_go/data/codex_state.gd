@@ -13,6 +13,13 @@ extends Node
 ## 그쪽이 "역사" 갈래의 취지에 더 맞는다고 판단했다(웹판 그대로 옮긴 게
 ## 아니라는 것을 밝혀 둔다).
 ##
+## **2026-09-14, "pet" 갈래 추가 — 정직하게 밝혀 둔다.** 웹판은 이걸
+## KINDS 다섯과 따로 관리한다(codex.js dexCount()가 `save.pets`를 KINDS
+## tally와 별개로 센다, encounter.js registerDex('pets', id)) — 여기서는
+## 새 시스템을 두 벌 만들지 않고 이미 있는 discover()/book/TOTAL/REWARD
+## 한 벌에 그냥 여섯째 키로 얹었다(구조를 그대로 베낀 게 아니라 "본 것에
+## 도장 찍고 센다"는 뜻만 재사용한 것).
+##
 ## project.godot [autoload]에 CodexState로 등록된 싱글턴.
 
 signal codex_changed
@@ -25,6 +32,10 @@ const REWARD := {
 	"beast": 6.0,
 	"event": 10.0,
 	"record": 14.0,
+	## 2026-09-14, GO 51장 "희귀 몬스터" — pets.gd 신수, 확률 판정을 통과
+	## 해야만 얻는 유일한 갈래라(다른 갈래는 전부 마주치기만 하면 확정)
+	## record보다도 조금 높게 잡았다.
+	"pet": 16.0,
 }
 
 ## 갈래별 총 개수 — 지금 있는 Vertical Slice 지역(11×11) 기준 실제
@@ -38,6 +49,12 @@ const TOTAL := {
 	              # 사라진 아이·늑대 무리·정찰병·마을의 부탁·길 위의 상인·
 	              # 이름 없는 굴·불어난 여울(비 올 때만)·산속 폭포
 	"record": 2,  # 해장(이순신 오마주)·현책(제갈량 오마주)
+	## 2026-09-14, GO 51장 "희귀 몬스터" — pets.gd 신수 11종 중 이번
+	## 걸음엔 사신(四神) 넷만 세계에 배치(pet_encounter.gd 헤더 참고),
+	## 나머지 일곱은 다음 몫이라 아직 TOTAL에 안 넣는다(도감 % 가 배치
+	## 안 한 걸 "못 채운 것"처럼 보이게 하지 않으려는 것 — event/beast도
+	## 실제 배치된 개수만 TOTAL에 넣는 같은 원칙).
+	"pet": 4,
 }
 
 var book: Dictionary = {}
