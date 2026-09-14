@@ -40,6 +40,13 @@ class_name DungeonSkills
 ## 데이터는 그대로 두고(다음에 채널이 생기면 그때 잇는다), 이 둘에 점을
 ## 넣어도 지금은 조용히 아무 효과가 없다 — dungeon_run_state.gd 헤더의
 ## "goldPct(경제 시스템 없음)"과 같은 결의 판단이다.
+##
+## **2026-09-14, 또 이어서 — 무장(warrior) br=0 row=0 `w_whirl`(회전참,
+## shape:'swing') 추가**(`games/saga_dungeon/player/skill_whirl.gd` 참고).
+## bolt(가장 가까운 적 하나)와 달리 swing은 자기 둘레 반경(`sk.r`×reach_
+## mult()) 안의 적 **전부**를 때린다 — 새 반경 판정이지만 투사체·소환보다
+## 훨씬 작은 몫이라 다음으로 골랐다. 원작의 넉백(`kb:30`)은 이 슬라이스에
+## 넉백 자체가 없어(melee_attack.gd도 안 한다) 값만 보존하고 안 쓴다.
 
 const MAX_RANK := 5
 
@@ -51,6 +58,11 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "reachPct", "v": 8.0, "grow": 6.0, "desc": "닿는 거리가 길어진다." },
 	{ "key": "a_swift", "cls": "archer", "br": 2, "row": 2, "name": "질보(疾步)",
 		"eff": "atkSpdPct", "v": 6.0, "grow": 4.0, "desc": "손이 빨라진다." },
+	## 무장(武將) br=0 row 0 — data-skill.js 그대로. shape/cd는 원작 값
+	## 그대로(cost=22는 기력이 없어 안 씀, kb=30은 넉백이 없어 안 씀).
+	{ "key": "w_whirl", "cls": "warrior", "br": 0, "row": 0, "name": "회전참(回轉斬)",
+		"shape": "swing", "cd": 5.0, "r": 2.3,
+		"eff": "", "v": 1.7, "grow": 0.35, "desc": "둘레의 모든 적을 벤다." },
 	## 무장(武將) br=2 — data-skill.js 그대로.
 	{ "key": "w_tough", "cls": "warrior", "br": 2, "row": 0, "name": "단련(鍛鍊)",
 		"eff": "hpPct", "v": 8.0, "grow": 5.0, "desc": "부대 체력이 오른다." },
@@ -66,7 +78,7 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "s_wit", "cls": "scholar", "br": 2, "row": 1, "name": "명민(明敏)",
 		"eff": "mpRegen", "v": 2.0, "grow": 1.4, "desc": "기력이 빨리 찬다.(아직 기력 없음)" },
 	{ "key": "s_focus", "cls": "scholar", "br": 2, "row": 2, "name": "집중(集中)",
-		"eff": "skillPct", "v": 10.0, "grow": 7.0, "desc": "무예의 위력이 오른다.(아직 활성 무예 없음)" },
+		"eff": "skillPct", "v": 10.0, "grow": 7.0, "desc": "무예의 위력이 오른다." },
 	## 도독(都督) br=2 — data-skill.js 그대로.
 	{ "key": "m_res", "cls": "marshal", "br": 2, "row": 0, "name": "기수련(氣修)",
 		"eff": "allResPct", "v": 5.0, "grow": 4.0, "desc": "모든 결의 저항이 오른다.(아직 합산 채널 없음)" },
@@ -78,7 +90,7 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_leech", "cls": "mystic", "br": 2, "row": 0, "name": "흡정(吸精)",
 		"eff": "drainPct", "v": 2.0, "grow": 1.5, "desc": "적을 잡으면 체력이 돌아온다." },
 	{ "key": "y_hex", "cls": "mystic", "br": 2, "row": 1, "name": "주술(呪術)",
-		"eff": "skillPct", "v": 8.0, "grow": 6.0, "desc": "무예의 위력이 오른다.(아직 활성 무예 없음)" },
+		"eff": "skillPct", "v": 8.0, "grow": 6.0, "desc": "무예의 위력이 오른다." },
 	{ "key": "y_spirit", "cls": "mystic", "br": 2, "row": 2, "name": "정신(精神)",
 		"eff": "mpRegen", "v": 2.0, "grow": 1.2, "desc": "기력이 빨리 찬다.(아직 기력 없음)" },
 ]

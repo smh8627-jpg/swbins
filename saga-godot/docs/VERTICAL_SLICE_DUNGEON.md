@@ -571,3 +571,33 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   더 큰 몫들. GUI 실기 확인은 아직(몰아서 받을 것, R키/🌊 버튼 둘 다).
   DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity 트랙)도 고려할
   자리.
+
+## 15. 51장 "장비→빌드" — 둘째 활성 무예: 회전참(w_whirl, swing) (2026-09-14, 또 이어서, "사가고돗 이어서해")
+
+- 14절이 예고한 여섯 갈래 중 swing(범위 판정)을 옮겼다 — bolt(가장
+  가까운 적 하나)와 달리 자기 둘레 반경(`sk.r`×`reach_mult()`) 안의 적
+  **전부**를 때린다. `games/saga_dungeon/player/skill_whirl.gd` 신규,
+  skill_bolt.gd와 완전히 같은 경계(Player 자식 컴포넌트, HUD 버튼이
+  그룹으로 찾아 같은 진입점 호출, melee_attack.gd의 ATK_DAMAGE/CRIT_MULT
+  재사용). 무장(warrior) br=0 row=0 `w_whirl`을 `dungeon_skills.gd`에
+  신규 추가(원작 값 그대로: v=1.7·grow=0.35·r=2.3·cd=5). row=0이라
+  기존 warrior br=2 사슬(w_tough 등)과 무관하게 바로 투자 가능 —
+  점수는 클래스당 하나로 이미 공유된다(dungeon_skill_state.gd).
+- 원작 넉백(kb=30)은 이 슬라이스에 넉백 자체가 없어(melee_attack.gd도
+  안 한다) 값만 보존하고 안 쓴다 — mpRegen 등과 같은 결의 판단. 새 입력
+  액션 `dungeon_skill_2`(L키) + HUD 버튼(`whirl_button.gd`, 🌀) 추가.
+  겸사겸사 `s_focus`·`y_hex`의 desc에 남아 있던 "아직 활성 무예 없음"
+  문구도 지웠다(이제 사실이 아니게 됐다).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 8` 세
+  번 연속 로그 완전 동일(md5 일치, bolt 검증 때와 같은 해시). 임시 씬
+  (`_verify_whirl.tscn`, 검증 후 삭제)으로 10항목 PASS — 랭크0 무동작·
+  투자 후 랭크1·**반경 경계 정확히 일치**(반경 안 2.0m·경계 2.3m 둘 다
+  피격, 2.5m는 무사, 데미지 round(9×1.7)=15 실측 일치)·쿨다운 차단까지
+  확인. GO·FOREST·STORY·REALM 회귀도 헤드리스 오류 0건. `project.godot`
+  diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 다섯 갈래(nova·dash·buff·heal·summon) 중 nova는
+  swing과 거의 같은 반경 판정(자기 자리 고정, sk.r 대신 고정 반경)이라
+  다음으로 가장 작은 몫. dash·buff·heal·summon은 각각 이동/상태효과
+  지속시간/소환 같은 아직 없는 하위 시스템이 필요해 더 크다. GUI 실기
+  확인은 아직(몰아서 받을 것, L키/🌀 버튼도 함께). DUNGEON 밖(GO/FOREST/
+  STORY/REALM 추가 확장·saga-unity 트랙)도 고려할 자리.

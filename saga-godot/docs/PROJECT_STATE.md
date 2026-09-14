@@ -6531,3 +6531,9 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - dungeon_skills.gd s_wave에 shape/cd/el 필드 채움. DungeonRunState.skill_mul() 신규 — skillPct(s_focus·y_hex)를 처음 실제 소비. 데미지=melee 기준(9×atk_mult+flat)×value_at(rank)×skill_mul, crit/원소저항 재사용.
 - 검증: 헤드리스 3회 로그 동일, 임시 씬 9항목 PASS(공식 정확히 9×2.2=20 확인). GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 14절.
 - 다음: 남은 여섯 갈래(swing/nova/dash/buff/heal/summon) 각자 새 코드 필요 — 더 큰 몫. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 둘째 활성 무예: 회전참(w_whirl, swing) (2026-09-14, 또 이어서, "사가고돗 이어서해")
+
+- 자기 둘레 반경(sk.r×reach_mult()) 안 적 전부를 때리는 swing 옮김. 신규 skill_whirl.gd·whirl_button.gd(🌀)·입력 액션 dungeon_skill_2(L키). warrior br=0 row=0 w_whirl 신규(원작 값 그대로), 넉백은 시스템 없어 미적용.
+- 검증: 헤드리스 3회 로그 동일(bolt 때와 같은 md5), 임시 씬 10항목 PASS(반경 경계 2.3m 정확히 일치, 데미지 round(9×1.7)=15 실측). GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 15절.
+- 다음: nova(고정 반경, swing과 비슷해 다음 후보)가 남은 넷(dash/buff/heal/summon)보다 작은 몫. GUI 실기 확인 아직(몰아서 받을 것).
