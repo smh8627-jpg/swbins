@@ -557,6 +557,25 @@
     'monster:dino_trex': 'assets/models/monsters/quaternius_dino/Trex.glb',
     'monster:dino_tri': 'assets/models/monsters/quaternius_dino/Triceratops.glb',
     'monster:dino_raptor': 'assets/models/monsters/quaternius_dino/Velociraptor.glb',
+    /* 2026-09-14(이어서) — "3안" 계속. OpenGameArt "Cute Animated Monsters"
+       (Quaternius, CC0 — quaternius.com/packs/animatedmonster.html·
+       quaternius.itch.io/lowpoly-animated-monsters 도 같은 팩, 다만 itch.io는
+       결제 흐름이 막혀 있어 opengameart.org 미러로 받았다) 21종 중 다섯만
+       골랐다 — 나머지는 이미 있는 개체와 겹치거나(Demon·Yeti·Cactus·
+       Mushroom·Skull은 PEOPLE_MONSTERS_Q 쪽에 이미 있다) 이 판 결에
+       안 맞아서(Alien·Alien_Tall — 2026-09-11 주석과 같은 이유로 제외)
+       뺐다. FBX만 주는 팩이라 `fbx2gltf`(npm, 세션 스크래치, 저장소엔
+       미커밋 — 이전 "캐릭터 12차분" 절 참고)로 변환했다. 전부 같은
+       `MonsterArmature|*` 클립(Idle·Walk·Death·HitRecieve·Bite_Front·
+       Bite_InPlace·Jump·Dance·Yes·No) — `mapClips()` 낱말표에 "bite"가
+       없어 attack 슬롯은 이번에도 FALLBACK(→interaction→idle)으로 간다
+       (2026-09-09 "Wizard.glb" 절과 같은 자리, 낱말표는 그대로 둔다).
+       `tools/glb-compress`로 재압축(5개, 0.6MB→0.2MB). */
+    'monster:cyclops': 'assets/models/monsters/quaternius_cute/Cyclops.glb',
+    'monster:crab': 'assets/models/monsters/quaternius_cute/Crab.glb',
+    'monster:cthulhu': 'assets/models/monsters/quaternius_cute/Cthulhu.glb',
+    'monster:treant': 'assets/models/monsters/quaternius_cute/Tree.glb',
+    'monster:demon_green': 'assets/models/monsters/quaternius_cute/GreenDemon.glb',
     /* 2026-09-04 — 도감(펫) 초상 실사화. "코드로 그리지 말고 에셋으로"가
        인물 초상은 이미 되는데(`portrait3d.js`) 펫(짐승)은 여태 빠져 있었다.
        펫 41종 중 신수(神獸) 11종·포켓몬 오마주 16종은 CC0로 존재할 리 없는

@@ -57,13 +57,15 @@
    *  그림으로만 남는다), 여우(pt_fox)는 구미호보다 오히려 더 정확한
    *  실제 여우 매칭, 들소·젖소·황소(pt_cow·pt_cow_farm·pt_bull)는 셋 다
    *  소과라 Cow.glb 하나로 같이 묶었다(PLAN §4 "하나의 에셋을 여러 자리에
-   *  재사용"과 같은 결). 새 GLB는 하나도 안 늘렸다 — 이미 있는 넷
-   *  (Deer·Fox·Cow·Wolf 중 Wolf는 짝이 되는 펫이 없어 그대로 둔다)만 더
-   *  넓게 물렸다. */
+   *  재사용"과 같은 결). **2026-09-14 (이어서)** — 남아 있던 Wolf.glb(적
+   *  짐승형 'beast'로만 쓰이고 있었다)도 개과(진돗개·삽살개·발바리)에
+   *  물렸다. 새 GLB는 이번에도 하나도 안 늘렸다 — 이미 있는 넷
+   *  (Deer·Fox·Cow·Wolf) 전부가 이제 도감 펫에도 물려 있다. */
   var PET_MAP = {
     pt_deer: 'critter:deer', pt_stag: 'critter:deer',
     pt_gumiho: 'critter:fox', pt_fox: 'critter:fox',
-    pt_cow: 'critter:cow', pt_cow_farm: 'critter:cow', pt_bull: 'critter:cow'
+    pt_cow: 'critter:cow', pt_cow_farm: 'critter:cow', pt_bull: 'critter:cow',
+    pt_jindo: 'critter:wolf', pt_sapsal: 'critter:wolf', pt_pug: 'critter:wolf'
   };
   function petKeyOf(id) { return PET_MAP[id] || null; }
 
