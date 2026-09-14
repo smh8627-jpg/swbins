@@ -6600,3 +6600,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 신규: skill_chain_marshal.gd·chain_marshal_button.gd(🔗)·입력 액션 dungeon_skill_10(J키).
 - 검증: 헤드리스 3회 로그 동일. 임시 씬 13항목 PASS(최근접 표적 우선·홉마다 12% 감쇠 실측 21→18·사거리 밖 미적중·쿨다운·skill_chain/skill_chain_marshal 그룹이 서로 안 섞임). GO/FOREST/STORY/REALM 회귀 오류 0.
 - 다음: 궁장·무장·책사·방사는 활성 무예 둘씩, 도독도 이제 둘 — 다섯 직업이 고르게 둘씩 됐다. 51장 "장비→빌드" 축에서 더 나아가려면(각 직업 셋째 활성 무예 등) 웹판과 비교해 범위부터 좁힐 것. 그 밖엔 FOREST(51장 "생태계"·"생활" 남은 소소한 몫)·saga-unity 트랙도 있음. GUI 실기 확인 아직(몰아서 받을 것, 열 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 다섯 직업 셋째 활성 무예를 한 번에 (2026-09-15, 같은 날 이어서, "사가고돗 이어 해둬 묻지말고")
+
+- 다섯 직업 모두 활성 무예 둘씩을 채운 뒤 "묻지 말고 이어 하라"는 지시라, 웹판 data-skill.js를 다시 훑어 row:0(전 단 없이 바로 쓸 수 있음)이면서 이미 옮겨진 아홉 모양(bolt·swing·nova·dash·buff·heal·curse·summon·chain) 중 하나인 항목만 다섯 직업 각각 하나씩 골라 스스로 범위를 좁혔다. row 0을 고른 이유: 이 슬라이스는 진짜 트리가 아니라 br/row 여러 갈래에서 낱개로 옮겨 온 것이라(dungeon_skills.gd 헤더 참고) row>0을 고르면 prereq_of()가 전 단을 못 찾는 애매한 상황이 생길 수 있는데, row 0은 애초에 그 문제가 안 생긴다.
+- 신규 다섯: 궁장 a_pierce(관통사, br0row0, bolt) — 궁장의 첫 bolt. 무장 w_dash(돌진, br1row0, dash) — 무장의 셋째 모양(swing·curse에 이어). 책사 s_chainfire(연쇄화염, br3row0, chain, el:fire) — chain이 세 번째로 공유하는 직업(a_chain·m_chain에 이어). 도독 m_smite(기격, br1row0, swing, el:chi) — 도독의 첫 swing. 방사 y_curse(주박, br1row0, curse, r=130→3.82·sec=5·v=30, w_intimidate와 원작부터 값이 전부 같다) — 방사의 첫 curse.
+- 다섯 다 기존 shape 스크립트(skill_bolt.gd·skill_dash.gd·skill_chain.gd/skill_chain_marshal.gd·skill_whirl.gd·skill_curse.gd)를 그대로 복제해 SKILL_KEY·그룹명·입력 액션만 바꿨다 — 새 판정 로직 없음(chain이 두 벌이던 선례를 셋째로 확장한 것뿐). 신규 파일 10개: skill_bolt_archer.gd/bolt_archer_button.gd(🎯)·skill_dash_warrior.gd/dash_warrior_button.gd(💨)·skill_chain_scholar.gd/chain_scholar_button.gd(🔗)·skill_swing_marshal.gd/swing_marshal_button.gd(✊)·skill_curse_mystic.gd/curse_mystic_button.gd(🕸️). 입력 액션 dungeon_skill_11~15(G·I·O·P·U 키) 신규.
+- 검증: 헤드리스 에디터 임포트 오류 0. project.godot의 run/main_scene을 games/saga_dungeon/world/TestRoom.tscn으로 잠깐 바꿔(검증 뒤 원래 값으로 복원, diff로 재확인) 헤드리스로 직접 로드 — DungeonPlayer.tscn·DungeonHUD.tscn에 새로 매단 노드 10개까지 전부 포함해 파싱·인스턴스화 오류 0. project.godot diff는 의도한 입력 액션 다섯 블록(25줄)뿐임을 재확인. GO/FOREST/STORY/REALM 회귀도 헤드리스 오류 0.
+- 다음: 다섯 직업 모두 활성 무예 셋씩. 더 나아가려면(넷째 활성 무예 등) 웹판과 다시 비교해 범위를 좁힐 것 — row 0만 골라도 남은 목록이 있다(archer br1/br4, warrior br4, scholar br0/br1/br4, marshal br4, mystic br4 등). 그 밖엔 FOREST(51장 "생태계"·"생활" 남은 소소한 몫)·saga-unity 트랙도 있음. GUI 실기 확인 아직(몰아서 받을 것, 열다섯 키/버튼 전부).

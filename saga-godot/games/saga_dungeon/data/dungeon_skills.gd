@@ -182,6 +182,32 @@ class_name DungeonSkills
 ## 선례를 따른 것 — skill_nova.gd/skill_curse.gd도 반경 판정이 거의
 ## 같지만 따로 파일이다). 다른 점은 SKILL_KEY·입력 액션·el 기본값(`el:
 ## 'chi'`, a_chain은 phys)뿐이다.
+##
+## **2026-09-15, 다섯 직업 모두 둘씩을 채운 뒤 — 셋째 활성 무예 다섯 개를
+## 한 번에 이어간다("사가고돗 이어 해둬 묻지말고").** 웹판 데이터를
+## 다시 훑어 **다음 조건 둘을 모두 만족하는 항목**만 골랐다: (1) `row: 0`
+## (이 슬라이스는 진짜 트리가 아니라 br/row 여러 갈래에서 낱개로 옮겨
+## 온 것이라 `prereq_of()`가 전 단을 못 찾으면 조용히 요구 안 함으로
+## 넘어가긴 하지만, row 0을 고르면 애초에 그 불일치 자체가 안 생긴다),
+## (2) 이미 옮겨진 아홉 모양(bolt·swing·nova·dash·buff·heal·curse·summon·
+## chain) 중 하나라 새 판정 코드가 필요 없다. 그 결과:
+## - 궁장(archer) `a_pierce`(관통사, br0row0, bolt, el 없음) — 궁장의
+##   첫 bolt(지금까지 dash·chain뿐이었다).
+## - 무장(warrior) `w_dash`(돌진, br1row0, dash, el 없음) — 무장의
+##   첫 dash(swing·curse에 이어 셋째 모양).
+## - 책사(scholar) `s_chainfire`(연쇄화염, br3row0, chain, el:'fire') —
+##   chain이 세 번째로 공유하는 직업이 된다(a_chain·m_chain에 이어).
+## - 도독(marshal) `m_smite`(기격, br1row0, swing, el:'chi', r=1.6) —
+##   도독의 첫 swing.
+## - 방사(mystic) `y_curse`(주박, br1row0, curse, r=130→3.82, sec=5,
+##   v=30) — w_intimidate와 v·r·sec가 전부 같다(원작에서도 그렇다).
+##
+## 각각 skill_bolt.gd/skill_dash.gd/skill_chain.gd/skill_whirl.gd/
+## skill_curse.gd를 그대로 복제해 SKILL_KEY·그룹·입력 액션만 바꿨다(직업당
+## 스크립트 하나 결 유지 — chain이 두 벌 있던 선례를 셋째로 늘린 것뿐, 새
+## 판정 로직은 전혀 안 늘었다). 입력 액션은 dungeon_skill_11~15(G·I·O·P·U
+## 키) 신규 — 그 다섯 글자는 DUNGEON 안에서 여태 안 쓰인 키라 새로
+## 배정했다(FOREST·STORY가 같은 글자를 쓰고 있지만 두 게임은 동시에 안 돈다).
 
 const MAX_RANK := 5
 
@@ -204,6 +230,11 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "a_chain", "cls": "archer", "br": 3, "row": 0, "name": "연환시(連環矢)",
 		"shape": "chain", "cd": 9.0, "r": 7.65,
 		"eff": "", "v": 1.7, "grow": 0.4, "desc": "가까운 적을 꿰고 다음 적으로 튄다." },
+	## 궁장(弓將) br=0 row 0 — data-skill.js 그대로(cost=14는 기력이 없어
+	## 안 씀). el 없음(물리) — 궁장의 첫 bolt.
+	{ "key": "a_pierce", "cls": "archer", "br": 0, "row": 0, "name": "관통사(貫通射)",
+		"shape": "bolt", "cd": 3.0,
+		"eff": "", "v": 1.6, "grow": 0.35, "desc": "꿰뚫는 화살. 뒤의 적까지 닿는다." },
 	## 무장(武將) br=0 row 0 — data-skill.js 그대로. shape/cd는 원작 값
 	## 그대로(cost=22는 기력이 없어 안 씀, kb=30은 넉백이 없어 안 씀).
 	{ "key": "w_whirl", "cls": "warrior", "br": 0, "row": 0, "name": "회전참(回轉斬)",
@@ -222,6 +253,11 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "w_intimidate", "cls": "warrior", "br": 5, "row": 0, "name": "위해(威嚇)",
 		"shape": "curse", "cd": 9.0, "r": 3.82, "sec": 5.0,
 		"eff": "", "v": 30.0, "grow": 8.0, "desc": "노호로 적을 굼뜨고 약하게 만든다." },
+	## 무장(武將) br=1 row 0 — data-skill.js 그대로(cost=18은 기력이 없어
+	## 안 씀). el 없음(물리) — 무장의 첫 dash(skill_dash.gd 그대로 복제).
+	{ "key": "w_dash", "cls": "warrior", "br": 1, "row": 0, "name": "돌진(突進)",
+		"shape": "dash", "cd": 6.0,
+		"eff": "", "v": 1.2, "grow": 0.3, "desc": "앞으로 파고들며 벤다." },
 	## 책사(策士) br=2 — row 0(s_wave)만 passive가 아니다(위 헤더 참고).
 	## shape/cd/el은 data-skill.js 그대로(cost=30은 기력이 없어 안 씀).
 	{ "key": "s_wave", "cls": "scholar", "br": 2, "row": 0, "name": "기공파(氣功波)",
@@ -238,6 +274,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "s_restore", "cls": "scholar", "br": 5, "row": 0, "name": "축기회복(蓄氣回復)",
 		"shape": "heal", "cd": 16.0,
 		"eff": "", "v": 16.0, "grow": 6.0, "desc": "기를 모아 상처를 아문다." },
+	## 책사(策士) br=3 row 0 — data-skill.js 그대로(cost=26은 기력이 없어
+	## 안 씀). r=7.65는 a_chain·m_chain과 같은 환산(원작 r 필드 없음 →
+	## 기본 260px). el:'fire'만 다르다 — chain이 세 번째로 공유하는 직업.
+	{ "key": "s_chainfire", "cls": "scholar", "br": 3, "row": 0, "name": "연쇄화염(連鎖火焰)",
+		"shape": "chain", "cd": 9.0, "r": 7.65, "el": "fire",
+		"eff": "", "v": 1.9, "grow": 0.45, "desc": "불덩이가 적 사이를 옮겨 붙는다." },
 	## 도독(都督) br=0 row 0 — data-skill.js 그대로(cost=34는 기력이 없어
 	## 안 씀). sec(지속초)은 랭크와 무관하게 고정(원작 그대로) — v(위력)만
 	## value_at()으로 랭크에 따라 는다. **`eff`를 비워 둔 이유** — 다른
@@ -263,6 +305,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "m_chain", "cls": "marshal", "br": 3, "row": 0, "name": "연환기격(連環氣擊)",
 		"shape": "chain", "cd": 9.0, "r": 7.65, "el": "chi",
 		"eff": "", "v": 1.9, "grow": 0.4, "desc": "기를 실어 가까운 적을 연달아 친다." },
+	## 도독(都督) br=1 row 0 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀). r=1.6은 w_whirl(2.3)과 같은 자릿수(swing은 이미 미터로 쓸
+	## 만한 원작 r을 그대로 쓴다 — 위 헤더 참고). 도독의 첫 swing.
+	{ "key": "m_smite", "cls": "marshal", "br": 1, "row": 0, "name": "기격(氣擊)",
+		"shape": "swing", "cd": 4.0, "r": 1.6, "el": "chi",
+		"eff": "", "v": 1.9, "grow": 0.4, "desc": "기를 실어 둘레를 친다." },
 	## 방사(方士) br=0 row 0 — data-skill.js 그대로(cost=26은 기력이 없어
 	## 안 씀). v/grow는 데미지가 아니라 분신 "개체 수"(round(value_at))다
 	## — 위 헤더 참고. sec(지속초)은 랭크 무관 고정.
@@ -281,6 +329,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_thunderdoom", "cls": "mystic", "br": 5, "row": 0, "name": "뇌쇄(雷殺)",
 		"shape": "nova", "cd": 9.0, "r": 3.82, "el": "lit",
 		"eff": "", "v": 2.2, "grow": 0.5, "desc": "벼락이 둘레에 떨어진다." },
+	## 방사(方士) br=1 row 0 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀). r=3.82·sec=5.0·v=30.0은 w_intimidate와 전부 같다(원작에서도
+	## 그렇다, r 130도 동일). 방사의 첫 curse.
+	{ "key": "y_curse", "cls": "mystic", "br": 1, "row": 0, "name": "주박(呪縛)",
+		"shape": "curse", "cd": 8.0, "r": 3.82, "sec": 5.0,
+		"eff": "", "v": 30.0, "grow": 8.0, "desc": "둘레의 적이 굼떠지고 더 아파한다." },
 ]
 
 
