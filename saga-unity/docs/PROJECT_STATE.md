@@ -5004,3 +5004,66 @@ HP/EXP/ATK, MP, Farming/Troops)이 실제로 들어있는지 네 판 Playtest에
 남은 한국어 텍스트(대사·퀘스트 서술·아이템/장수/도시 이름·REALM 문답)는
 전부 데이터 콘텐츠라 진짜 번역이 필요하다 — 다음은 사람 검수·방향이
 있어야 의미 있게 진행된다.
+
+## Localization 4~6차 — 데이터 콘텐츠 번역 착수 (2026-09-14, 같은 세션,
+사용자가 "계속 이어해··· 빨리좀"으로 재촉해 3차 이후 경계를 넘어
+실제 콘텐츠 번역까지 진행)
+
+T()에 `T(key, fallback)` 오버로드를 다섯 판 Localization 클래스
+전부에 추가(번역 누락 시 키 대신 원문을 보여줌 — 데이터 콘텐츠
+조회용). 이후 세 커밋에 걸쳐 실제 번역을 넣었다:
+
+- **4차(커밋 d694ac6)** — REALM `RealmCityData`/`RealmEnemyCity`(도시
+  다섯: 허창·진류·복양·소패·정도)·`RealmOfficerPool`(장수 셋, 기존
+  가명을 로마자로 — 예: 현책→Hyeonchaek)·`RealmOrderData`(명령
+  열 종, 일부는 기존 `hud.*` 키 재사용)·`RealmPlotData`(계략 둘,
+  이름+설명문). GO/DUNGEON `ItemData`(장비 이름 11종).
+- **5차(커밋 a6fa972)** — GO `NpcBuilder.cs`(촌장/상인/나그네 이름+
+  전체 대사)·`BanditEncounter.cs`·`RareWolfEncounter.cs`(사건 도입부·
+  토스트·승리 메시지 전부). DUNGEON `QuestState.cs`(퀘스트 목표·완료
+  문구). NPC 이름 배열은 `static readonly` 리터럴 대신 메서드로 바꿔
+  씬을 다시 열 때 그 시점 언어를 반영하게 했다(`NpcBuilder.
+  BuildVillagerDefs()`).
+- **6차(커밋 1b5869f)** — STORY `StoryNpc.cs`(척후병 이름·인사말·
+  본문·선택지 팝업)·`StoryHud.cs`의 퀘스트 고유명("첫 사냥"/"두목의
+  목").
+
+**식별자와 표시 문자열을 분리하는 원칙을 계속 지켰다** —
+`BanditEncounter.RecruitId`, DUNGEON `QuestState`의 `BossName`/
+`MinibossName`처럼 다른 코드가 문자열 값 자체로 매칭하는 내부 식별자는
+그대로 한국어로 두고, 화면에 보여주는 자리만 `T()`를 거치게 했다(예:
+DUNGEON은 `BestiaryState.IsDiscovered(BossName)`이 `DungeonFloorRunner.
+cs`가 스폰할 때 쓰는 리터럴과 문자열 그대로 매칭 — 번역했으면
+조용히 깨졌을 것).
+
+컴파일 통과 + 매 커밋마다 관련 판 헤드리스 재검증(GO 3연속 포함),
+회귀 없음. 지명(허창·소패·정도 등)은 이름 정책 대상이 아님(인물이
+아니라 지명), 장수 가명은 정책에 따라 실명이 아닌 기존 가명을 그대로
+로마자 표기.
+
+**다음 세션 안내 — 사용자가 "현재 완료되면 새로운 세션에서 이어해"로
+여기서 멈추라고 정함.** 남은 데이터 콘텐츠 후보(우선순위 순, 전부
+같은 패턴 — `XxxLocalization.T(key, fallback)` 그대로 재사용):
+
+1. **REALM `RealmQuizData.cs`(36개 문답)** — 가장 크고 정확성이
+   중요하다(역사·상식 퀴�즈라 번역이 사실관계까지 맞아야 함). 아직
+   손 안 댐.
+2. **FOREST** — 이 세션 전체에서 FOREST를 한 번도 안 건드렸다. 주민
+   대사(`ForestVillagerTalk.cs`류, 있다면)·창조물 설명·집 안 가구/
+   도배전 룰렛 문구 등을 확인부터 할 것.
+3. **GO 나머지** — `HiddenTreasure.cs`(굴 속 보물 이벤트 문구),
+   `WorldEventState`를 쓰는 다른 이벤트가 있다면.
+4. **DUNGEON 나머지** — `DungeonMerchant.cs`(행상 대사),
+   `DungeonCaptive.cs`(구출 이벤트 문구), 도감(`BestiaryState`) 관련
+   표시 문구가 있다면.
+5. **REALM 나머지** — `RealmArchive`(서고에 쌓이는 학습 기록 표시
+   문구), 계략 판정 결과 메시지(`RealmWarState`의 승패 서술)처럼
+   Playtest 로그에 아직 한국어로 찍히는 것들(예: "물러났다 — 생존
+   {0}, 적 손실 {1}..." 같은 전투 결과 서술).
+
+**패턴은 완전히 자리잡았다** — 새 파일을 만질 때마다 (a) 화면에
+보여줄 리터럴을 찾고, (b) 다른 코드가 그 문자열 값 자체를 식별자로
+쓰는지 먼저 확인(식별자면 안 건드림), (c) `XxxLocalization.T(key,
+fallback)` 또는 `string.Format(T(key, fallback), args)`로 바꾸고,
+(d) ko/en 두 json에 키 추가, (e) 컴파일+관련 Playtest 재검증,
+(f) 커밋. 다음 세션은 이 다섯 단계를 그대로 반복하면 된다.
