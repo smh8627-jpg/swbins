@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/dungeon_camera_rig.gd" id="2"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/player/potion_belt_input.gd" id="7"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_bolt.gd" id="8"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_whirl.gd" id="9"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova.gd" id="10"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.9
@@ -56,3 +57,6 @@ script = ExtResource("8")
 
 [node name="SkillWhirl" type="Node" parent="."]
 script = ExtResource("9")
+
+[node name="SkillNova" type="Node" parent="."]
+script = ExtResource("10")

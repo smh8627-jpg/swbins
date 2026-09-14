@@ -601,3 +601,34 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   지속시간/소환 같은 아직 없는 하위 시스템이 필요해 더 크다. GUI 실기
   확인은 아직(몰아서 받을 것, L키/🌀 버튼도 함께). DUNGEON 밖(GO/FOREST/
   STORY/REALM 추가 확장·saga-unity 트랙)도 고려할 자리.
+
+## 16. 51장 "장비→빌드" — 셋째 활성 무예: 뇌쇄(y_thunderdoom, nova) (2026-09-15, "사가고돗 이어할사항 다 이어해")
+
+- 15절이 예고한 nova를 옮겼다 — swing과 판정은 같지만(둘레 반경 안 적
+  전부) **`reach_mult()`를 안 곱한다**(원작 dungeon.js `applyShapeSkill()`
+  의 'nova'는 `sk.r`을 그대로 반경으로 쓴다, swing만 `reachOf()`를
+  곱한다). 방사(mystic)는 여태 br=2 세 단(passive)뿐이었어서 이걸로
+  scholar(bolt)·warrior(swing)에 이어 **셋째 직업이 첫 활성 무예**를
+  얻는다. `dungeon_skills.gd`에 mystic br=5 row=0 `y_thunderdoom`(원작
+  값 그대로: v=2.2·grow=0.5·cd=9·el=lit) 신규, row=0이라 기존 mystic
+  br=2 사슬과 무관하게 바로 투자 가능.
+- **반경 환산**: 원작 `sk.r`(130, 픽셀)은 swing의 `sk.r`(1.7~3.2, 이미
+  미터로 쓰는 값)과 자릿수가 다르다 — swing은 웹에서 `reachOf()×sk.r`
+  (BASE_REACH 34px 곱)로 실제 반경이 나오지만 nova는 `sk.r` 자체가 이미
+  그만큼(≈34배) 커진 원시값이기 때문. `sk.r`을 BASE_REACH(34)로 나눈
+  3.82를 미터로 썼다 — 웹의 실제 반경 비율(nova 130 : swing 78.2 ≈1.66)과
+  이 값의 비율(3.82:2.3≈1.66)이 정확히 일치해 임의 상수가 아니다.
+  자세한 유도는 `dungeon_skills.gd` 헤더 주석 참고. 신규
+  `games/saga_dungeon/player/skill_nova.gd`(Player 컴포넌트)·
+  `ui/nova_button.gd`(⚡ HUD 버튼)·입력 액션 `dungeon_skill_3`(N키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 8` 세 번
+  연속 로그 완전 동일. 임시 씬(`_verify_nova.tscn`, 검증 후 삭제)으로
+  13항목 PASS — row0 선행조건 없음·**반경 경계 정확히 일치**(3.80m·
+  3.81m 피격, 4.00m 무사)·데미지 round(9×2.2)=20 실측·쿨다운 차단까지
+  확인. GO·FOREST·STORY·REALM 회귀도 헤드리스 오류 0건. `project.godot`
+  diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 네 갈래(dash·buff·heal·summon)는 각각 이동
+  판정/상태효과 지속시간/소환 같은 아직 없는 하위 시스템이 필요해 지금
+  까지의 셋(bolt·swing·nova)보다 크다. GUI 실기 확인 아직(몰아서 받을
+  것, N키/⚡ 버튼도 함께). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·
+  saga-unity 트랙)도 고려할 자리.

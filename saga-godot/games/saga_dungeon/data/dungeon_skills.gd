@@ -47,6 +47,27 @@ class_name DungeonSkills
 ## mult()) 안의 적 **전부**를 때린다 — 새 반경 판정이지만 투사체·소환보다
 ## 훨씬 작은 몫이라 다음으로 골랐다. 원작의 넉백(`kb:30`)은 이 슬라이스에
 ## 넉백 자체가 없어(melee_attack.gd도 안 한다) 값만 보존하고 안 쓴다.
+##
+## **2026-09-15, 이어서 — 방사(mystic) br=5 row=0 `y_thunderdoom`(뇌쇄,
+## shape:'nova') 추가**(`games/saga_dungeon/player/skill_nova.gd` 참고).
+## 방사는 여태 br=2 세 단(passive)뿐이라 이걸로 첫 활성 무예를 얻는다
+## (bolt→scholar, swing→warrior, 이제 nova→mystic). swing과 판정은 같지만
+## (둘레 반경 안 전부) **reach_mult()를 안 곱한다** — 원작 dungeon.js
+## `applyShapeSkill()`의 'nova'는 `sk.r`을 그대로 반경으로 쓰지 swing처럼
+## `reachOf()`를 곱하지 않는다(코드 그대로). 다만 원작 `sk.r`(130)은
+## `reachOf()`에 곱해질 걸 전제 안 한 **원시 픽셀** 값이라 swing의 `sk.r`
+## (1.7~3.2, 이미 미터로 쓸 만한 크기)과 자릿수가 다르다 — 그대로 미터로
+## 쓰면 방 절반(6m)의 곱절이 넘는다. swing 포팅이 "웹 `sk.r`를 그대로
+## 미터로 쓴다"고 정한 선례를 지키려면 두 무예의 **원작 반경 비율**부터
+## 맞춰야 한다: 웹에서 실제 반경은 swing이 `reachOf()×sk.r`(예: w_whirl
+## 34×2.3=78.2px), nova는 `sk.r`(130px) 그대로 — 즉 nova의 원시 `sk.r`은
+## `reachOf()`의 기준값 `BASE_REACH`(34px)만큼 "이미 스케일업"돼 있다.
+## 그래서 여기서는 `sk.r`을 그 34로 나눠(130/34=3.82) swing과 같은
+## 자릿수로 되돌린 값을 미터로 쓴다 — 결과 비율(3.82/2.3=1.66)이 웹의
+## 실제 반경 비율(130/78.2=1.66)과 정확히 같다(같은 판단의 연장, 새
+## 임의 상수 아님). **아직 반영 안 되는 것**: `el`(lit, 원소 저항은
+## `melee_attack.gd`가 아니라 무예 자체가 직접 계산한다, skill_bolt.gd와
+## 같은 경계).
 
 const MAX_RANK := 5
 
@@ -93,6 +114,11 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "skillPct", "v": 8.0, "grow": 6.0, "desc": "무예의 위력이 오른다." },
 	{ "key": "y_spirit", "cls": "mystic", "br": 2, "row": 2, "name": "정신(精神)",
 		"eff": "mpRegen", "v": 2.0, "grow": 1.2, "desc": "기력이 빨리 찬다.(아직 기력 없음)" },
+	## 방사(方士) br=5 row 0 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). r=3.82는 원작 130px÷BASE_REACH(34px) — 위 헤더 참고.
+	{ "key": "y_thunderdoom", "cls": "mystic", "br": 5, "row": 0, "name": "뇌쇄(雷殺)",
+		"shape": "nova", "cd": 9.0, "r": 3.82, "el": "lit",
+		"eff": "", "v": 2.2, "grow": 0.5, "desc": "벼락이 둘레에 떨어진다." },
 ]
 
 

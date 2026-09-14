@@ -6537,3 +6537,10 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 자기 둘레 반경(sk.r×reach_mult()) 안 적 전부를 때리는 swing 옮김. 신규 skill_whirl.gd·whirl_button.gd(🌀)·입력 액션 dungeon_skill_2(L키). warrior br=0 row=0 w_whirl 신규(원작 값 그대로), 넉백은 시스템 없어 미적용.
 - 검증: 헤드리스 3회 로그 동일(bolt 때와 같은 md5), 임시 씬 10항목 PASS(반경 경계 2.3m 정확히 일치, 데미지 round(9×1.7)=15 실측). GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 15절.
 - 다음: nova(고정 반경, swing과 비슷해 다음 후보)가 남은 넷(dash/buff/heal/summon)보다 작은 몫. GUI 실기 확인 아직(몰아서 받을 것).
+
+## DUNGEON 51장 "장비→빌드" — 셋째 활성 무예: 뇌쇄(y_thunderdoom, nova) (2026-09-15)
+
+- 방사(mystic) br=5 row=0 y_thunderdoom 신규(첫 활성 무예, scholar/warrior에 이은 셋째 직업). reach_mult() 안 곱함(원작 nova 그대로). 반경 3.82m = 원작 sk.r(130px)÷BASE_REACH(34px) — swing 반경 비율과 정확히 일치하게 환산(dungeon_skills.gd 헤더 참고).
+- 신규: skill_nova.gd·nova_button.gd(⚡)·입력 액션 dungeon_skill_3(N키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 13항목 PASS(반경 경계 3.80/3.81/4.00m·데미지 round(9×2.2)=20·row0 선행조건 없음·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 넷(dash/buff/heal/summon)은 이동/지속효과/소환 하위 시스템이 필요해 더 큰 몫. GUI 실기 확인 아직(몰아서 받을 것).
