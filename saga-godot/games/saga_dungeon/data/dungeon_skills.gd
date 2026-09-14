@@ -171,6 +171,17 @@ class_name DungeonSkills
 ## 같은 요령으로 옮겼다 — a_chain은 원작에 `r` 필드가 없어(기본값 260px)
 ## `260 ÷ BASE_REACH(34) ≈ 7.65`m를 쓴다. hops는 원작에 없으면 3(data-
 ## skill.js `sk.hops || 3` 그대로), a_chain도 hops 필드가 없어 3.
+##
+## **2026-09-15, 또 이어서 — 도독(marshal) br=3 row=0 `m_chain`(연환기격,
+## shape:'chain') 추가**(`games/saga_dungeon/player/skill_chain_marshal.gd`
+## 참고). 도독은 여태 m_rally(buff) 하나뿐이라(다섯 직업 중 활성 무예가
+## 가장 적었다) 이걸로 둘째를 얻는다. **'chain'이 처음으로 두 직업이
+## 공유하는 모양이다** — a_chain과 판정·감쇠 계산이 완전히 같아(원작
+## `applyShapeSkill()`은 shape 하나로 모든 chain 무예를 처리한다) 로직을
+## 그대로 복사했다(기존 스크립트들이 "직업당 스크립트 하나" 결을 지켜온
+## 선례를 따른 것 — skill_nova.gd/skill_curse.gd도 반경 판정이 거의
+## 같지만 따로 파일이다). 다른 점은 SKILL_KEY·입력 액션·el 기본값(`el:
+## 'chi'`, a_chain은 phys)뿐이다.
 
 const MAX_RANK := 5
 
@@ -246,6 +257,12 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "guardPct", "v": 4.0, "grow": 3.0, "desc": "받는 피해가 늘 조금 준다." },
 	{ "key": "m_lead", "cls": "marshal", "br": 2, "row": 2, "name": "통솔(統率)",
 		"eff": "hpPct", "v": 6.0, "grow": 4.0, "desc": "부대 체력이 오른다." },
+	## 도독(都督) br=3 row 0 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀). r=7.65는 a_chain과 같은 환산(위 헤더 참고, 원작 r 필드 없음 →
+	## 기본 260px). el:'chi'만 a_chain(phys)과 다르다.
+	{ "key": "m_chain", "cls": "marshal", "br": 3, "row": 0, "name": "연환기격(連環氣擊)",
+		"shape": "chain", "cd": 9.0, "r": 7.65, "el": "chi",
+		"eff": "", "v": 1.9, "grow": 0.4, "desc": "기를 실어 가까운 적을 연달아 친다." },
 	## 방사(方士) br=0 row 0 — data-skill.js 그대로(cost=26은 기력이 없어
 	## 안 씀). v/grow는 데미지가 아니라 분신 "개체 수"(round(value_at))다
 	## — 위 헤더 참고. sec(지속초)은 랭크 무관 고정.
