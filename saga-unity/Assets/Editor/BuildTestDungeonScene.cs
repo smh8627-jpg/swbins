@@ -65,6 +65,16 @@ namespace Saga.EditorTools
         private const string DungeonFloorMatPath = "Assets/Art/EnvironmentPBR_candidates/cobblestone_floor_01_URPLit.mat";
         private const string DungeonWallMatPath = "Assets/Art/EnvironmentPBR_candidates/castle_wall_slates_URPLit.mat";
 
+        // 2026-09-14 "사운드" 실클립 전환 — SfxPlayer.cs 클래스 주석 참고.
+        // 다섯 판 공유 원본 트리(Assets/Art/Audio) 재사용(hit/death)과
+        // 새로 받은 클립(heavyHit/levelUp/discovery) 섞임 — 자세한 선정
+        // 기준은 docs/ASSET_GUIDE.md 2026-09-14 항목.
+        private const string HitClipPath = "Assets/Art/Audio/Kenney_RPGSounds/chop.ogg";
+        private const string HeavyHitClipPath = "Assets/Art/Audio/Kenney_RPGSounds/knifeSlice.ogg";
+        private const string EnemyDeathClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_001.ogg";
+        private const string LevelUpClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_002.ogg";
+        private const string DiscoveryClipPath = "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_003.ogg";
+
         private static readonly Vector3 PlayerSpawn = new Vector3(-6f, 0.1f, 0f);
 
         // "몬스터 무리" 슬라이스 — saga-dungeon 웹판 js/dungeon.js:333
@@ -1627,7 +1637,12 @@ namespace Saga.EditorTools
         private static void BuildBootstrap()
         {
             var go = new GameObject("GameBootstrap");
-            go.AddComponent<GameBootstrap>();
+            var bootstrap = go.AddComponent<GameBootstrap>();
+            SetPrivateField(bootstrap, "hitClip", AssetDatabase.LoadAssetAtPath<AudioClip>(HitClipPath));
+            SetPrivateField(bootstrap, "heavyHitClip", AssetDatabase.LoadAssetAtPath<AudioClip>(HeavyHitClipPath));
+            SetPrivateField(bootstrap, "enemyDeathClip", AssetDatabase.LoadAssetAtPath<AudioClip>(EnemyDeathClipPath));
+            SetPrivateField(bootstrap, "levelUpClip", AssetDatabase.LoadAssetAtPath<AudioClip>(LevelUpClipPath));
+            SetPrivateField(bootstrap, "discoveryClip", AssetDatabase.LoadAssetAtPath<AudioClip>(DiscoveryClipPath));
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

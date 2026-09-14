@@ -458,3 +458,41 @@ CC0).
 확인). ProjectSettings/EditorSettings.asset이 배치 모드 실행 후 diff로
 떴으나 실제 내용 변경 없이 CRLF/LF 차이뿐이라 되돌렸다(루트 CLAUDE.md
 "git autocrlf 가짜 diff"와 같은 함정).
+
+## 2026-09-14 — DUNGEON도 절차적 합성→실클립으로 통일(사용자 확정)
+
+위 항목에서 "DUNGEON은 이미 절차적 합성 톤이 있어 그대로 뒀다"고 적었는데,
+사용자에게 직접 물어보니(AskUserQuestion) **"실제 클립으로 교체"** 를
+골랐다 — 다섯 판 사운드 방식을 통일하는 쪽. `SfxPlayer.cs`의 옛 합성
+로직(사인파+감쇠 봉투)을 지우고 다른 네 판과 같은 클립 재생 방식으로
+바꿨다. 공개 API(`PlayHit()` 등 인자 없는 다섯 메서드)는 그대로 둬
+`PlayerCombat.cs`·`DungeonEnemy.cs`·`DungeonSecretStash.cs`·
+`GameBootstrap.cs` 네 호출부는 안 건드렸다 — 이미 씬에 하나뿐이던
+`GameBootstrap`이 [SerializeField] 클립 다섯 개를 받아 `SfxPlayer.
+Configure()`를 한 번 부르는 방식(`RealmCommandUi`류의 "호출부가 클립을
+들고 있는" 패턴과 다르게, 호출부가 넷으로 흩어져 있어 이번엔 이미 있던
+싱글턴 부트스트랩에 모았다).
+
+| 카테고리 | 파일 | 비고 |
+|---|---|---|
+| hit(평타) | `Kenney_RPGSounds/chop.ogg` | 재사용(GO/STORY와 동일) |
+| heavyHit(강공격/급소 대용) | `Kenney_RPGSounds/knifeSlice.ogg` | 신규 — RPG sounds 킷(이미 zip 통째로 받아 둔 상태)에서 chop과 결이 다른 "날카로운" 소리로 골라 hit과 구분 |
+| enemyDeath | `Kenney_InterfaceSounds/confirmation_001.ogg` | 재사용(FOREST/STORY와 같은 "대치 해소" 취지) |
+| levelUp | `Kenney_InterfaceSounds/confirmation_002.ogg` | 신규 — 이미 받아 둔 interfaceSounds.zip의 confirmation 변종 |
+| discovery(비밀 지역) | `Kenney_InterfaceSounds/confirmation_003.ogg` | 신규 — 위와 같음, levelUp과 다른 변종으로 구분만 |
+
+heavyHit/levelUp/discovery 셋 다 **이 세션이 파일 이름·소속 팩만 보고
+새로 골랐다**(zip 자체는 REALM의 `error_001.ogg`를 받을 때 이미 통째로
+내려받아 둔 상태라 새 다운로드 없이 압축만 다시 풀었다) — REALM
+`error_001.ogg`와 같은 기준("감정가 없는 UI/임팩트 블립은 사람 확인 없이
+이름만 보고 골라도 된다")을 그대로 적용했다. 다섯 판 모두 실클립
+방식으로 통일됐고, **BGM은 다섯 판 전부 여전히 없다** — 사용자가 이번엔
+"보류"를 골라 다음으로 미뤘다(감정가 있는 선곡이라 사람이 직접 들어야
+한다는 원칙 그대로).
+
+검증: 배치 모드 컴파일 → `BuildTestDungeonScene` 재빌드 →
+`PlaytestDungeonHeadless`(스모크) 3연속 통과 →
+`PlaytestDungeonFloorProgression`(실제 `TakeDamage`로 적을 죽여 hit/death
+SFX 호출 경로를 실제로 태움, 12개 방 진행 중 레벨업도 자연히 발생)
+3연속 통과. ProjectSettings/EditorSettings.asset은 이번에도 CRLF/LF
+차이만 뜨고 실제 변경은 없어 되돌렸다.

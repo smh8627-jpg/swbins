@@ -15,8 +15,16 @@ namespace Saga.Dungeon.World
     /// </summary>
     public class GameBootstrap : MonoBehaviour
     {
+        // 2026-09-14 "사운드" 실클립 전환 — SfxPlayer.cs 클래스 주석 참고.
+        [SerializeField] private AudioClip hitClip;
+        [SerializeField] private AudioClip heavyHitClip;
+        [SerializeField] private AudioClip enemyDeathClip;
+        [SerializeField] private AudioClip levelUpClip;
+        [SerializeField] private AudioClip discoveryClip;
+
         private void Start()
         {
+            SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip);
             SaveState.TryLoad();
             CombineStaticBatches();
             QuestState.StageCompleted += OnQuestStageCompleted;

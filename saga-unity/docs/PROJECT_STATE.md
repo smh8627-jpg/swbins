@@ -4444,3 +4444,37 @@ diff로 띄웠으나 CRLF/LF 차이뿐이라 되돌렸다(루트 CLAUDE.md 경�
 (절차적 합성) 방식을 유지할지, 지금은 인터넷에서 CC0를 받을 수 있다는 걸
 아니 다른 네 판처럼 Kenney 실제 클립으로 바꿀지는 아직 안 정했다 —
 사용자가 다음에 정할 것. REALM/STORY 둘 다 BGM은 여전히 없다.
+
+## 같은 날 후속 — DUNGEON도 실클립으로 통일, BGM은 보류 (2026-09-14)
+
+"이어해"에 이어 바로 위에서 미정으로 남긴 두 갈래를 사용자에게 직접
+물었다(AskUserQuestion) — **① DUNGEON 사운드: 실제 클립으로 교체**,
+**② 다섯 판 BGM: 보류**(사람이 직접 들어야 하는 감정가 있는 선곡이라
+이번엔 안 함). ①을 실행: `SfxPlayer.cs`의 절차적 합성(사인파 봉투) 구현을
+지우고 다른 네 판과 같은 AudioClip 재생 방식으로 바꿨다. **공개 API는
+그대로**(`PlayHit()`·`PlayHeavyHit()`·`PlayEnemyDeath()`·`PlayLevelUp()`·
+`PlayDiscovery()`, 전부 인자 없음) — 호출부 넷(`PlayerCombat.cs`·
+`DungeonEnemy.cs`·`DungeonSecretStash.cs`·`GameBootstrap.cs`)을 안
+건드리고, 이미 씬에 하나뿐이던 `GameBootstrap`이 [SerializeField] 클립
+다섯 개를 받아 `SfxPlayer.Configure()`를 한 번 부르는 걸로 배선했다
+(호출부가 넷으로 흩어져 있어 REALM/STORY처럼 "호출부 컴포넌트가 클립을
+들고 있는" 패턴 대신 이미 있는 싱글턴에 모으는 쪽을 골랐다).
+
+클립 다섯 중 둘(hit=chop.ogg, enemyDeath=confirmation_001.ogg)은 재사용,
+셋(heavyHit=knifeSlice.ogg, levelUp=confirmation_002.ogg,
+discovery=confirmation_003.ogg)은 새로 받았다 — REALM `error_001.ogg`와
+같은 기준(감정가 없는 UI/임팩트 블립은 파일 이름만 보고 사람 확인 없이
+골라도 됨)으로 이번 세션이 직접 골랐다. 자세한 표는
+`docs/ASSET_GUIDE.md` 2026-09-14 "DUNGEON도 절차적 합성→실클립으로
+통일" 항목.
+
+검증: 배치 모드 컴파일 → `BuildTestDungeonScene` 재빌드 →
+`PlaytestDungeonHeadless` 3연속 통과 → `PlaytestDungeonFloorProgression`
+(실제 `TakeDamage`로 적 처치 → hit/death SFX 경로를 실제로 태움, 12개 방
+진행 중 레벨업도 자연히 발생) 3연속 통과. 커밋·푸시 완료.
+
+**다섯 판 사운드 현황 정리(2026-09-14 기준)**: GO/FOREST/STORY/REALM/
+DUNGEON 전부 confirm류 SFX 방식으로 통일됐다. **다섯 판 다 BGM은 없다**
+— 사용자가 이번에 명시적으로 보류를 골랐으니 다음에 먼저 묻지 말고
+그냥 시작하지 말 것(사람이 후보를 듣고 고르는 단계가 먼저 필요하다고
+이미 답했다).
