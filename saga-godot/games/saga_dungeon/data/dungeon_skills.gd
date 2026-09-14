@@ -208,6 +208,23 @@ class_name DungeonSkills
 ## 판정 로직은 전혀 안 늘었다). 입력 액션은 dungeon_skill_11~15(G·I·O·P·U
 ## 키) 신규 — 그 다섯 글자는 DUNGEON 안에서 여태 안 쓰인 키라 새로
 ## 배정했다(FOREST·STORY가 같은 글자를 쓰고 있지만 두 게임은 동시에 안 돈다).
+##
+## **2026-09-15, 또 이어서 — 넷째 활성 무예 다섯 개("사가고돗 이어해").**
+## 셋째와 같은 방식으로 골랐다: `row: 0`이면서 이미 옮겨진 아홉 모양 중
+## 하나. 이번엔 **다섯 직업 모두 br=4 row=0**이 조건에 맞았다(우연히
+## 웹판이 그 갈래를 다섯 직업 다 "여태 이 직업이 안 써 본 모양"으로
+## 채워 뒀다) — 그래서 이 배치가 끝나면 다섯 직업 전부 **서로 다른
+## 모양 넷씩**을 갖는다:
+## - 궁장 `a_flourish`(궁신무, swing, r=1.6) — 궁장의 첫 swing.
+## - 무장 `w_throw`(투창, bolt, el 없음) — 무장의 첫 bolt.
+## - 책사 `s_blink`(축지, dash, el:'lit') — 책사의 첫 dash.
+## - 도독 `m_javelin`(표창, bolt, el:'chi') — 도독의 첫 bolt.
+## - 방사 `y_soulbolt`(혼탄, bolt, el:'chi') — 방사의 첫 bolt(이걸로
+##   bolt가 궁장·무장·도독·방사 넷이 공유하는 모양이 된다 — chain 다음
+##   으로 널리 재사용되는 shape).
+## 각각 skill_whirl.gd/skill_bolt.gd/skill_dash.gd를 복제해 SKILL_KEY·
+## 그룹·입력 액션만 바꿨다(새 판정 로직 없음). 입력 액션은
+## dungeon_skill_16~20(E·Q·T·X·Y 키) 신규.
 
 const MAX_RANK := 5
 
@@ -235,6 +252,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "a_pierce", "cls": "archer", "br": 0, "row": 0, "name": "관통사(貫通射)",
 		"shape": "bolt", "cd": 3.0,
 		"eff": "", "v": 1.6, "grow": 0.35, "desc": "꿰뚫는 화살. 뒤의 적까지 닿는다." },
+	## 궁장(弓將) br=4 row 0 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀). r=1.6은 m_smite와 같은 자릿수(swing은 원작 r을 그대로
+	## 미터로 쓴다 — 위 헤더 참고). 궁장의 첫 swing.
+	{ "key": "a_flourish", "cls": "archer", "br": 4, "row": 0, "name": "궁신무(弓身舞)",
+		"shape": "swing", "cd": 5.0, "r": 1.6,
+		"eff": "", "v": 1.5, "grow": 0.35, "desc": "활대로 후려친다. 가까이 붙은 적에게 쓴다." },
 	## 무장(武將) br=0 row 0 — data-skill.js 그대로. shape/cd는 원작 값
 	## 그대로(cost=22는 기력이 없어 안 씀, kb=30은 넉백이 없어 안 씀).
 	{ "key": "w_whirl", "cls": "warrior", "br": 0, "row": 0, "name": "회전참(回轉斬)",
@@ -258,6 +281,11 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "w_dash", "cls": "warrior", "br": 1, "row": 0, "name": "돌진(突進)",
 		"shape": "dash", "cd": 6.0,
 		"eff": "", "v": 1.2, "grow": 0.3, "desc": "앞으로 파고들며 벤다." },
+	## 무장(武將) br=4 row 0 — data-skill.js 그대로(cost=16은 기력이 없어
+	## 안 씀). el 없음(물리) — 무장의 첫 bolt.
+	{ "key": "w_throw", "cls": "warrior", "br": 4, "row": 0, "name": "투창(投槍)",
+		"shape": "bolt", "cd": 4.0,
+		"eff": "", "v": 1.6, "grow": 0.4, "desc": "창을 던진다. 곧게 나간다." },
 	## 책사(策士) br=2 — row 0(s_wave)만 passive가 아니다(위 헤더 참고).
 	## shape/cd/el은 data-skill.js 그대로(cost=30은 기력이 없어 안 씀).
 	{ "key": "s_wave", "cls": "scholar", "br": 2, "row": 0, "name": "기공파(氣功波)",
@@ -280,6 +308,11 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "s_chainfire", "cls": "scholar", "br": 3, "row": 0, "name": "연쇄화염(連鎖火焰)",
 		"shape": "chain", "cd": 9.0, "r": 7.65, "el": "fire",
 		"eff": "", "v": 1.9, "grow": 0.45, "desc": "불덩이가 적 사이를 옮겨 붙는다." },
+	## 책사(策士) br=4 row 0 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀). el:'lit' — 책사의 첫 dash.
+	{ "key": "s_blink", "cls": "scholar", "br": 4, "row": 0, "name": "축지(縮地)",
+		"shape": "dash", "cd": 7.0, "el": "lit",
+		"eff": "", "v": 1.3, "grow": 0.3, "desc": "번개처럼 파고든다." },
 	## 도독(都督) br=0 row 0 — data-skill.js 그대로(cost=34는 기력이 없어
 	## 안 씀). sec(지속초)은 랭크와 무관하게 고정(원작 그대로) — v(위력)만
 	## value_at()으로 랭크에 따라 는다. **`eff`를 비워 둔 이유** — 다른
@@ -311,6 +344,11 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "m_smite", "cls": "marshal", "br": 1, "row": 0, "name": "기격(氣擊)",
 		"shape": "swing", "cd": 4.0, "r": 1.6, "el": "chi",
 		"eff": "", "v": 1.9, "grow": 0.4, "desc": "기를 실어 둘레를 친다." },
+	## 도독(都督) br=4 row 0 — data-skill.js 그대로(cost=16은 기력이 없어
+	## 안 씀). el:'chi' — 도독의 첫 bolt.
+	{ "key": "m_javelin", "cls": "marshal", "br": 4, "row": 0, "name": "표창(標槍)",
+		"shape": "bolt", "cd": 4.0, "el": "chi",
+		"eff": "", "v": 1.5, "grow": 0.35, "desc": "기를 실은 창을 던진다." },
 	## 방사(方士) br=0 row 0 — data-skill.js 그대로(cost=26은 기력이 없어
 	## 안 씀). v/grow는 데미지가 아니라 분신 "개체 수"(round(value_at))다
 	## — 위 헤더 참고. sec(지속초)은 랭크 무관 고정.
@@ -335,6 +373,13 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_curse", "cls": "mystic", "br": 1, "row": 0, "name": "주박(呪縛)",
 		"shape": "curse", "cd": 8.0, "r": 3.82, "sec": 5.0,
 		"eff": "", "v": 30.0, "grow": 8.0, "desc": "둘레의 적이 굼떠지고 더 아파한다." },
+	## 방사(方士) br=4 row 0 — data-skill.js 그대로(cost=16은 기력이 없어
+	## 안 씀). el:'chi' — 방사의 첫 bolt. 이걸로 bolt를 가진 직업이
+	## 궁장·무장·도독·방사 넷으로 는다(위 헤더 참고, 책사는 이미 별개로
+	## s_wave가 있어 다섯 다 bolt를 갖는다).
+	{ "key": "y_soulbolt", "cls": "mystic", "br": 4, "row": 0, "name": "혼탄(魂彈)",
+		"shape": "bolt", "cd": 3.0, "el": "chi",
+		"eff": "", "v": 1.6, "grow": 0.4, "desc": "넋을 실은 기를 쏜다." },
 ]
 
 

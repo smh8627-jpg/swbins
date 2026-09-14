@@ -841,3 +841,45 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   warrior br4, scholar br0/br1/br4, marshal br4, mystic br4 등). GUI
   실기 확인 아직(몰아서 받을 것, 열다섯 키/버튼 전부). DUNGEON 밖
   (FOREST 51장 "생태계"·"생활" 남은 소소한 몫·saga-unity 트랙)도 있음.
+
+## 23. 51장 "장비→빌드" — 다섯 직업 넷째 활성 무예를 한 번에 (2026-09-15, "사가고돗 이어해")
+
+- 셋째와 같은 방식으로 좁혔다(row:0 + 이미 옮겨진 아홉 모양 중 하나).
+  이번엔 다섯 직업 모두 **br=4 row=0**이 조건에 맞았고, 마침 각자
+  "여태 이 직업이 안 써 본 모양"이라 이 배치가 끝나면 다섯 직업 전부
+  **서로 다른 모양 넷씩**을 갖는다.
+- 궁장 `a_flourish`(궁신무, swing, r=1.6) — 궁장의 첫 swing. 무장
+  `w_throw`(투창, bolt, el 없음) — 무장의 첫 bolt. 책사 `s_blink`
+  (축지, dash, el:'lit') — 책사의 첫 dash. 도독 `m_javelin`(표창,
+  bolt, el:'chi') — 도독의 첫 bolt. 방사 `y_soulbolt`(혼탄, bolt,
+  el:'chi') — 방사의 첫 bolt. **bolt가 이걸로 궁장·무장·도독·방사
+  넷이 공유하는 모양이 된다**(책사는 이미 별개로 s_wave를 가짐 —
+  다섯 직업 전부 bolt를 갖는 셈).
+- 다섯 다 기존 shape 스크립트(skill_whirl.gd·skill_bolt.gd·
+  skill_dash.gd)를 그대로 복제해 SKILL_KEY·그룹·입력 액션만 바꿨다 —
+  새 판정 로직 없음. 신규 파일 10개(스크립트 5·버튼 5):
+  `skill_swing_archer.gd`/`swing_archer_button.gd`(🥋),
+  `skill_bolt_warrior.gd`/`bolt_warrior_button.gd`(🎯),
+  `skill_dash_scholar.gd`/`dash_scholar_button.gd`(⚡),
+  `skill_bolt_marshal.gd`/`bolt_marshal_button.gd`(🎯),
+  `skill_bolt_mystic.gd`/`bolt_mystic_button.gd`(🔮). 입력 액션
+  `dungeon_skill_16`~`20`(E·Q·T·X·Y 키) 신규.
+- 검증: 헤드리스 에디터 임포트 오류 0건. `project.godot`의
+  `run/main_scene`을 `games/saga_dungeon/world/TestRoom.tscn`으로
+  잠깐 바꿔(검증 뒤 원래 값으로 복원, diff로 재확인) 헤드리스로 직접
+  로드 — `DungeonPlayer.tscn`·`DungeonHUD.tscn`에 새로 매단 노드
+  10개까지 전부 포함해 파싱·인스턴스화 오류 0건. `project.godot`
+  diff는 의도한 입력 액션 다섯 블록(25줄)뿐임을 재확인. 이번 변경은
+  DUNGEON 전용 파일 + `project.godot` 입력 맵 추가뿐이라 GO/FOREST/
+  STORY/REALM은 건드리지 않았고, 전체 프로젝트를 훑는 헤드리스 에디터
+  임포트 패스도 오류 0이라 회귀 위험은 낮다.
+- **다음에 할 일**: 다섯 직업 모두 활성 무예 넷씩. 다섯째로 바로 쓸
+  수 있는 후보 둘을 미리 봐 뒀다 — 무장 `w_chain`(연환격, br3row0,
+  chain)과 방사 `y_chain`(독쇄, br3row0, chain, el:'pois'), 둘 다 그
+  직업엔 아직 없는 chain을 채운다(이걸로 chain이 다섯 직업 전부가
+  공유하는 모양이 된다). 다만 이 둘만으론 무장·방사가 다른 셋보다
+  하나씩 앞서가니 다섯 직업을 고르게 유지하려면 나머지 셋(궁장·책사·
+  도독)의 다섯째도 같이 찾아야 한다 — 남은 row 0 후보는 대부분 이미
+  쓴 모양의 다른 원소 변형뿐이라 셋째·넷째만큼 깔끔하진 않다. GUI
+  실기 확인 아직(몰아서 받을 것, 스무 키/버튼 전부). DUNGEON 밖
+  (FOREST 51장 "생태계"·"생활" 남은 소소한 몫·saga-unity 트랙)도 있음.

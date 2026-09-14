@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -28,6 +28,11 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_marshal_button.gd" id="26"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/curse_mystic_button.gd" id="27"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/chain_scholar_button.gd" id="28"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_archer_button.gd" id="29"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_warrior_button.gd" id="30"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_scholar_button.gd" id="31"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_marshal_button.gd" id="32"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_mystic_button.gd" id="33"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -429,3 +434,68 @@ offset_bottom = -1710.0
 text = "🔗"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("28")
+
+[node name="SwingArcherButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -1860.0
+offset_right = -40.0
+offset_bottom = -1790.0
+text = "🥋"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("29")
+
+[node name="BoltWarriorButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -1940.0
+offset_right = -40.0
+offset_bottom = -1870.0
+text = "🎯"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("30")
+
+[node name="DashScholarButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -2020.0
+offset_right = -40.0
+offset_bottom = -1950.0
+text = "⚡"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("31")
+
+[node name="BoltMarshalButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -2100.0
+offset_right = -40.0
+offset_bottom = -2030.0
+text = "🎯"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("32")
+
+[node name="BoltMysticButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -2180.0
+offset_right = -40.0
+offset_bottom = -2110.0
+text = "🔮"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("33")
