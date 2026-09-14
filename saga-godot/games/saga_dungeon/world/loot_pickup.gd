@@ -61,6 +61,14 @@ const POTION_COLOR := Color(0.75, 0.22, 0.17) # potion.js KINDS.heal.color '#c03
 const SCROLL_COLOR := Color(0.56, 0.78, 1.0)
 
 
+## test_room.gd 'cave' 방(채광, POI: Cave) 전용 — dungeon.js dropMat()을
+## 그대로 부르되 gold/item/potion/scroll 없이 재료 하나만 확정으로 내는
+## 자리가 필요해 만들었다. `_spawn_mat()`(private)을 새로 안 베끼고
+## 그대로 감싸기만 한다 — 이 파일 밖에서 드랍 확률 로직을 손대지 않는다.
+static func spawn_mat_at(parent: Node, pos: Vector3, floor_num: int) -> void:
+	_spawn_mat(parent, pos, floor_num)
+
+
 static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false, is_elite: bool = false) -> void:
 	var ilvl_bonus := 30 if is_boss else (ELITE_ILVL_BONUS if is_elite else 0)
 	var it := DungeonItems.roll(ilvl + ilvl_bonus)

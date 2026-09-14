@@ -38,7 +38,11 @@ const CORRIDOR_GLB := "res://assets/dungeon/corridor.glb"
 ## 세운다"는 방식(§28-8 A안 진짜 오픈월드는 다음 몫)이라 무한 대신
 ## 작은 폭으로 늘리는 쪽을 택했다 — REALM이 3→8→107로 단계를 밟은 것과
 ## 같은 결.
-const ROOM_COUNT := 6
+## **2026-09-14, 채광(cave) 이식 — 6→7로 한 칸 늘렸다.** 기존 6개(0~5)의
+## kind·floor_num·보스 판정은 손 안 댔다(순서를 안 흔들고 뒤에 하나만
+## 덧붙였다, REALM 3→8→107이 이미 쓴 것과 같은 "덧붙이기" 결) — 새 방
+## (index6, floor7)은 `(7)%3!=0`이라 보스 판정에 안 걸린다.
+const ROOM_COUNT := 7
 
 ## **2026-09-14, 51장 확장 이어서** — GO/DUNGEON/FOREST/STORY/REALM 다섯
 ## 판이 각자 "제외" 목록을 다 채운 뒤 REALM이 "다음은 밖을 고려할 자리"라고
@@ -54,7 +58,13 @@ const ROOM_COUNT := 6
 ## (elite)·미니보스(miniboss)** — 둘 다 이미 있는 정예 강제 굴림·보스
 ## 스폰을 방 단위로 쓰기만 하면 돼 새 UI가 필요 없었다. 보스층(3층·6층)은
 ## 그대로 fight 유지, 나머지 두 fight 방(0·4번)을 elite·miniboss로 바꿨다.
-const ROOM_KINDS: Array[String] = ["elite", "trove", "fight", "well", "miniboss", "fight"]
+## **채광(cave)** — 원작 손짓("닿으면 재료 확정 지급")이 우물과 같은
+## 구조라 이어서 옮겼다. 기존 6칸을 재배치하지 않고 7번째 방(index6)을
+## 새로 붙였다(위 ROOM_COUNT 주석 참고) — cave는 새 자리를 요구하지
+## 않고 fight 방 하나를 갈아 끼워도 됐지만, 이미 elite·trove·well·
+## miniboss·fight×2로 여섯 자리가 다 찬 상태라 하나를 지우는 대신 늘리는
+## 쪽이 "이미 검증된 방을 다시 안 건드린다"는 토큰 절약 규칙에 더 맞았다.
+const ROOM_KINDS: Array[String] = ["elite", "trove", "fight", "well", "miniboss", "fight", "cave"]
 
 ## "제외" 목록 5번(인물 등용) — 방마다 실제 역사 인물 하나씩(saga_core
 ## 105명 중 새로 골랐다 — GO가 이미 kr_yisunsin을 쓰고 있어 안 겹치게).
@@ -120,6 +130,8 @@ func _ready() -> void:
 				_spawn_elite_den(_room_origin_z[i], i + 1)
 			elif kind == "miniboss":
 				_spawn_miniboss(_room_origin_z[i], i + 1)
+			elif kind == "cave":
+				_spawn_cave_vein(_room_origin_z[i], i + 1)
 			else:
 				## data-dungeon.js isBossFloor(floor)=floor%3==0 그대로 —
 				## 마지막 방뿐 아니라 3층마다(이 슬라이스는 3층·6층) 보스가
@@ -391,6 +403,22 @@ func _spawn_well(origin_z: float) -> void:
 		Toast.show(area, "💧 우물 · 체력 40% 회복", 3.0)
 		area.queue_free()
 	)
+
+
+## dungeon.js makeRoom() 'cave' 갈래(POI: Cave, PLAN 12절 "희귀 광석") —
+## 35% 확률 지킴이(우물·상자와 같은 확률형 지킴이) + 광맥은 세공 재료를
+## 확정으로 둘 낸다(`dropMat` 두 번 그대로). **정직하게 밝혀 둔다** —
+## 원작 `dropMat(room, x, y, 26)`의 bias=26은 이 슬라이스에 안 옮긴다.
+## `DungeonItems.roll_material_drop(floor_num)`가 애초에 bias 인자를
+## 안 받는 형태로 이미 단순화돼 있다(loot_pickup.gd 헤더의 "이중 구조를
+## 하나로 수렴시켰다"는 결정 그대로, 이번에 새로 만든 문제가 아니다) —
+## 그래서 bias 없이 floor_num만 두 번 굴린다.
+func _spawn_cave_vein(origin_z: float, floor_num: int) -> void:
+	if randf() < 0.35:
+		_spawn_enemy(origin_z, floor_num, false)
+	LootPickup.spawn_mat_at(self, Vector3(2.6, 0, origin_z), floor_num)
+	LootPickup.spawn_mat_at(self, Vector3(3.6, 0, origin_z), floor_num)
+	Toast.show(self, "⛏️ 광맥 · 세공 재료를 캤다", 3.0)
 
 
 func _spawn_enemy(origin_z: float, floor_num: int, is_boss: bool = false) -> void:

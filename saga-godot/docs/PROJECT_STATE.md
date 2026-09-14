@@ -6383,3 +6383,25 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   은사를 준다"는 슬라이스 설계와 뜻이 겹쳐 제외 판단, 채광(cave, 손짓
   하나로 재료 확정이라 우물과 구조가 비슷)이 다음 후보. DUNGEON 밖(다른
   네 판·saga-unity 트랙)도 고려할 자리.
+
+## DUNGEON 방 종류 다양화 셋째 — 채광(cave) (2026-09-14, 같은 날 이어서, "사가고돗 이어해묻지말고 이어해" → "순서대로 계속 이어해")
+
+- 위 항목이 예고한 채광(cave)을 이어서 옮겼다. 기존 6방이 이미 다
+  찬 상태라 `ROOM_COUNT`를 6→7로 늘려 새 7번째 방(floor7, 보스 아님)에
+  배치 — 기존 0~5번 방은 전혀 안 건드렸다. `loot_pickup.gd`에 공개
+  래퍼 `spawn_mat_at()` 한 줄 추가(private `_spawn_mat()`을 그대로
+  감싼다), `test_room.gd::_spawn_cave_vein()`이 dungeon.js `dropMat`
+  두 번+35% 확률 지킴이를 그대로 옮긴다. bias=26은 이전 세션이 이미
+  `roll_material_drop()`에서 없앤 인자라 이번에도 그대로 존중, 새로
+  만들지 않았다. 자세한 내용은 `docs/VERTICAL_SLICE_DUNGEON.md` 10절
+  참고.
+- 지난 절의 사고를 교훈 삼아 검증 스크립트의 세이브 복원 코드를 최대한
+  앞뒤로 붙여 쓰고 `is_in_group("dungeon_enemy")`로 Player와 안 겹치게
+  걸렀다 — 검증 뒤 세이브 파일이 바이트 단위로 원본과 같은 것 재확인.
+- 검증: 헤드리스 오류 0건, `TestRoom.tscn` 3회 로그 동일. 임시 씬으로
+  `room_count==7`·재료 픽업 정확히 2개 생성 확인. GO·FOREST·STORY·
+  REALM 회귀도 오류 0건, `git status`로 두 파일만 바뀐 것 확인.
+- **다음에 할 일**: 남은 6갈래(shrine 제외 판단 완료·merchant·puzzle·
+  event·forage)는 전부 독립 UI/상태기계가 필요해 이제부터는 DUNGEON
+  밖(다른 네 판·saga-unity 트랙)을 진지하게 고려하거나, 51장의 다른
+  갈래("장비→빌드")로 옮겨 갈 것을 다음 세션이 판단할 자리.
