@@ -13,6 +13,15 @@
  * 규격(모노 44.1kHz 96kbps mp3)으로 옮겨 넣었다 — 출처는
  * `assets/ASSET_LICENSES.md`.
  *
+ * **2026-09-14 (이어서) — 레벨업(`levelup`)도 더했다.** `core.js`의
+ * `gainExp()`가 레벨이 오르면 `levelup` 이벤트를 던지고 `ui.js`가 화면
+ * 배너("LEVEL UP")까지 띄우는데 소리만 없었다 — 등용·타격·공적·화면 전환은
+ * 다 소리가 붙어 있는데 이 자리만 비어 있었다. **`hero:levelup`(부대원
+ * 개별 레벨업, `hero.js`)은 일부러 안 걸었다** — `awardParty()`가 부대
+ * 전원에게 한 번에 경험치를 먹이는 자리가 많아(등용·성채·토벌 보상 등),
+ * 걸면 같은 프레임에 소리가 서넛 겹쳐 운다. 화면 배너가 있는 **플레이어
+ * 레벨업 하나만** 소리를 낸다.
+ *
  * **새 판정을 만들지 않는다.** 이미 도는 이벤트버스(`core.on`/`emit`)를
  * 엿듣기만 한다 — 어느 게임 로직 파일도 고치지 않았다:
  *
@@ -24,6 +33,7 @@
  *   station:request / encounter:request / fort:request
  *                  역참·조우·성채 카드가 열린다               → open
  *   sky:thunder    비 오는 날 번개가 친다                    → thunder
+ *   levelup        플레이어 레벨이 오른다(화면 배너와 같이) → levelup
  *
  * **손잡이** `audio.on`(0이면 전부 무음, 기본 1) · `audio.vol`(0~1, 기본 0.6).
  * **자동재생 정책** — 모바일은 첫 사용자 제스처 전엔 재생을 막는다.
@@ -53,7 +63,8 @@
     hit: 'hit.mp3',
     reward: 'reward.mp3',
     open: 'panel_open.mp3',
-    thunder: 'thunder.mp3'
+    thunder: 'thunder.mp3',
+    levelup: 'levelup.mp3'
   };
   var POOL_N = 3;   // 동시에 겹쳐도 서로 안 끊기게
 
@@ -100,6 +111,7 @@
     c.on('encounter:request', function () { play('open'); });
     c.on('fort:request', function () { play('open'); });
     c.on('sky:thunder', function () { play('thunder'); });
+    c.on('levelup', function () { play('levelup'); });
   }
 
   function stats() { return { on: ON(), vol: VOL(), clips: Object.keys(CLIPS).length }; }

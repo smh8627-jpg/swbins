@@ -699,6 +699,17 @@
       props.push({ id: 'spaceFence', kind: 'fence', x: sbx + TILE * 1.6, y: sby + TILE * 0.2, deco: true });
       props.push({ id: 'spaceCart', kind: 'cart', x: sbx + TILE * 0.9, y: sby - TILE * 1.1, deco: true });
       props.push({ id: 'spaceLantern', kind: 'lantern', x: sbx - TILE * 1.7, y: sby + TILE * 0.6, deco: true });
+      /* 우주기지 확충(2026-09-14, PLAN 46-3절 "다음에 이어갈 것" — asset3d.js
+         의 BLD_SPACE 주석 참고) — 이 팩 자체의 건물·로버·메카를 처음 얹는다.
+         전부 deco:true(순전히 장식, 새 상호작용 없음), 위 다섯 개·배달원
+         (courier, sb 중심 + 0.4칸)과 안 겹치게 7×7 자리(inSpaceBase) 안에서
+         자리를 나눠 잡았다 */
+      props.push({ id: 'spaceBase', kind: 'spaceBase', x: sbx - TILE * 0.3, y: sby - TILE * 2.4, deco: true });
+      props.push({ id: 'spaceHouse', kind: 'spaceHouse', x: sbx - TILE * 2.5, y: sby - TILE * 0.3, deco: true });
+      props.push({ id: 'spaceDome', kind: 'spaceDome', x: sbx + TILE * 2.6, y: sby - TILE * 0.7, deco: true });
+      props.push({ id: 'spaceSolar', kind: 'solarPanel', x: sbx - TILE * 0.9, y: sby - TILE * 1.7, deco: true });
+      props.push({ id: 'spaceRover', kind: 'rover', x: sbx + TILE * 1.8, y: sby + TILE * 1.8, deco: true });
+      props.push({ id: 'spaceMech', kind: 'mech', x: sbx - TILE * 2.2, y: sby + TILE * 1.7, deco: true });
     }
 
     /* 택배 접수대(PLAN 45절) — 우편함(mail) 곁, 마을 안. 우편함과 다른

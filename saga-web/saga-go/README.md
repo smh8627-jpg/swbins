@@ -793,10 +793,22 @@ mp3(모노 96kbps)로 옮겼다 — 출처는 `assets/ASSET_LICENSES.md`.
 `sfx100v2_thunder_01.ogg`를 같은 규격(모노 44.1kHz 96kbps mp3)으로
 옮겨 `thunder.mp3`로 넣었다.
 
+**2026-09-14(이어서) — 레벨업을 일곱째로 더했다.** `core.js`의 `levelup`
+이벤트(플레이어 레벨업)는 화면 배너(`ui.js`)만 있고 소리가 없었다 — 등용·
+타격·공적·화면 전환·천둥까지 다 소리가 붙었는데 이 자리만 비어 있었다.
+같은 RPG Sound Pack에서 안 쓰던 여섯째 조각(`interface/interface6.wav`)을
+새로 골라 `levelup.mp3`로 넣었다. **`hero:levelup`(부대원 개별 레벨업)은
+일부러 안 걸었다** — `awardParty()`가 부대 전원에게 한 번에 경험치를 주는
+자리가 많아 걸면 소리가 서넛 겹친다. 화면 배너가 있는 플레이어 레벨업
+하나만 소리를 낸다. 이 세션엔 `ffmpeg`가 없어 Node `lamejs`(순수 JS
+인코더, npm에서만 받고 저장소엔 안 남겼다)로 스테레오→모노 다운믹스 후
+96kbps mp3로 직접 인코딩했다.
+
 - **새 판정을 만들지 않았다.** 이미 도는 이벤트버스(`core.on`/`emit`)를
   엿듣기만 한다 — `codex`(발견)→discover · `dex:new`(등용·포획 성공)→catch ·
   `duel:fx`(타격)→hit · `feat`(공적 획득)→reward · `duel:open`·`*:request`
-  (카드/무대 열림)→open · `sky:thunder`(비 오는 날 번개)→thunder.
+  (카드/무대 열림)→open · `sky:thunder`(비 오는 날 번개)→thunder ·
+  `levelup`(플레이어 레벨업)→levelup.
   어느 게임 로직 파일도 안 고쳤다
 - **손잡이 `audio.on`(0이면 무음) · `audio.vol`(0~1, 기본 0.6)** — `_admin.html`에도 있다
 - **지연 로딩** — `preload="none"`, 처음 그 소리를 낼 때만 받는다(7절).
