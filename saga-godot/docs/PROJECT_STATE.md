@@ -6482,95 +6482,23 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   라는 51장 문구엔 신수만으로 충분하다고 보면 다음은 GO 밖(DUNGEON
   "장비→빌드"·FOREST 넷째 종·saga-unity 트랙)을 고려할 자리이기도 하다.
 
-## GO 51장 확장 둘째 — 신수 나머지 일곱 배치 (2026-09-14, 같은 날 이어서, "사가고돗 이어해")
+## GO 51장 확장 둘째 — 신수 나머지 일곱 배치 (2026-09-14, 커밋 604cea8)
 
-- 지난 GO 항목이 "사신 넷만 배치, 나머지 일곱은 다음 몫"이라 남긴 것을
-  이어 옮겼다. `pets.gd`는 이미 11종 데이터를 다 갖고 있었으니 새 데이터
-  작업 없이 `TestVillage.tscn`에 `PetEncounter` 노드 일곱 개(삼족오·해태·
-  구미호·도깨비·불가사리·홍염마·섬영마)만 더 얹었다 — `pet_encounter.gd`
-  스크립트·확률식·보상 채널은 하나도 안 건드림(재사용). 좌표는 기존
-  이벤트·NPC(`npc_builder.gd` VILLAGERS)·동물 서식지(`animal_builder.gd`)
-  grid와 겹치지 않는 숲(T) 타일 중에서 `TestMap.ROWS`를 직접 대조해
-  일곱 곳을 골랐다(사신처럼 방위 의미가 없어 지도 전체에 고르게 흩음).
-  `codex_state.gd TOTAL.pet`도 4→11로 갱신(실제 배치된 개수만 넣는
-  기존 원칙 그대로).
-- 검증: 헤드리스 임포트 오류 0건, `TestVillage.tscn` `--quit-after 6`
-  세 번 연속 로그 완전 동일(md5 일치), `pet_encounter.gd`의 "unknown
-  pet_id" 경고 0건(11종 전부 id가 유효하다는 뜻). Node.js로 `TestVillage.
-  tscn`을 직접 파싱해 11개 노드·pets.gd 11종과 정확히 일치·좌표 중복
-  0·기존 NPC/동물/이벤트 grid와 충돌 0까지 확인(SceneTree 래퍼 스크립트로
-  씬 전체를 직접 인스턴스화하는 방식은 이번엔 원인 불명으로 멎어 — Player
-  포함 무거운 씬이라 그런 듯 — 중단하고 정적 파싱으로 대체했다, 실제
-  게임 코드 경로는 `--quit-after` 방식으로 이미 검증됨). DUNGEON·FOREST·
-  REALM·STORY 회귀도 헤드리스 오류 0건 재확인. `.import` 잡음만 되돌림
-  (`project.godot`는 안 건드려짐 확인, `git status`로 세 파일만 바뀐 것
-  확인 — `codex_state.gd`·`TestVillage.tscn`·`pet_encounter.gd`).
-- **다음에 할 일**: 신수 11종 전부 세계에 나왔다. GO 51장 "희귀 몬스터"
-  문구는 이걸로 충분하다고 본 지난 판단 그대로 — 동물 kind(rarity 1~3,
-  catchBase 높은 5,60여 종)는 여전히 범위 밖(다음에 필요하면 그때 몫).
-  다음은 GO 밖(DUNGEON "장비→빌드"·FOREST 넷째 종·saga-unity 트랙)을
-  고려할 자리.
+- 신수 11종(pets.gd) 전부 TestVillage.tscn에 배치 완료(사신 4 + 나머지 7).
+- codex_state.gd TOTAL.pet: 4→11.
+- 검증: 헤드리스 3회 로그 동일, Node.js 정적 파싱으로 11개 노드·좌표 중복 0 확인. GO/DUNGEON/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: GO 51장 "희귀 몬스터" 완료. 다음은 DUNGEON "장비→빌드"·FOREST 넷째 종·saga-unity.
 
-## DUNGEON 51장 "장비→빌드" — 갑주(armor) 슬롯 (2026-09-14, 같은 날 이어서, "모두 이어서해")
+## DUNGEON 51장 "장비→빌드" — 갑주(armor) 슬롯 (2026-09-14, 커밋 4f652af)
 
-- GO 신수 마무리 항목이 남긴 세 갈래(DUNGEON 장비→빌드·FOREST 넷째
-  종·saga-unity 트랙) 중 DUNGEON부터 이었다. dungeon_items.gd의 예전
-  판단("방어력·기질 스탯이 없어 갑주를 못 걸친다")을 다시 보니, 원작
-  갑주 5종 main이 애초에 might가 아니라 wisdom/command라 이 슬라이스의
-  유일한 목표 스탯(무력)엔 원래도 안 닿는다 — 기존 wisdom/command
-  부적과 같은 처지였고, 진짜 값은 소켓(원소 저항)·세트(투장) 쪽에
-  있었다. 갑주 5종(지갑·피갑·찰갑·두정갑·도포)을 BASES에 추가하고
-  SOCK_MAX·GEM_SLOT_CAT을 원작 그대로 한 줄씩 채우자, 무기+부적만으론
-  2점에 머물던 세트 넷(충무·와룡·호랑·패왕)이 처음 3점(완성)에
-  닿았다. dungeon_equipment_state.gd는 부위가 셋이 되며 흩어진
-  `weapon ? : charm` 2진 분기가 못 버틸 상황이라 `_item_for`/
-  `_set_item`/`_emit_changed` 헬퍼로 정리하면서 공개 `equip()`/
-  `item_for()`를 새로 둬 loot_pickup.gd·vendor_button.gd·test_room.gd의
-  흩어진 분기를 대체했다. save_state에 armor 필드(순수 추가, 버전
-  안 올림), vendor에 "투전: 갑주"·감정 우선순위 확장, player_health가
-  armor_changed도 구독. 자세한 내용은 docs/VERTICAL_SLICE_DUNGEON.md
-  11절 참고.
-- 검증: 헤드리스 임포트 오류 0건, TestRoom.tscn 3회 로그 완전 동일
-  (md5 일치). 무거운 Player 씬을 직접 인스턴스화하던 이전 검증 방식이
-  원인 불명으로 멎은 적이 있어(GO 신수 항목 참고), 이번엔 오토로드만
-  부르는 가벼운 SceneTree 스크립트로 BASES·SOCK_MAX·GEM_SLOT_CAT·
-  roll("armor") 슬롯 필터·equip/item_for·atk_flat_bonus가 갑주 main에
-  안 새는 것·호랑 세트 3점 완성(플랫 무력 56·world critPct 10)·내구
-  마모/파손/수리·소켓+원소저항(agate → fire 8)·감정·save/load 왕복까지
-  10개 항목 전부 PASS. GO·FOREST·STORY·REALM 회귀도 오류 0건.
-  `.import` 잡음만 되돌리고 project.godot는 안 건드려짐 확인, git
-  status로 스크립트 7개만 확인. GUI 실기 확인은 아직(몰아서 받을 것).
-- **다음에 할 일**: 남은 여섯 부위(helm·glove·boot·ring·neck)는 각
-  세트 나머지 조각이지만 범위 밖으로 남긴다. 다음은 FOREST 넷째 종
-  또는 saga-unity 트랙을 고려할 자리 — "모두 이어서해" 지시에 따라
-  다음 세션이 이어서 FOREST를 볼 차례로 남겨 둔다.
+- 갑주 5종 추가, 세트 4벌(충무·와룡·호랑·패왕) 3점 완성 가능해짐. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 11절.
+- dungeon_equipment_state.gd를 _item_for/_set_item/_emit_changed 헬퍼로 리팩터, 공개 equip()/item_for() 추가.
+- 검증: SceneTree 스크립트로 10항목 PASS(세트 완성·내구·소켓·감정·save/load). 회귀 오류 0.
+- 다음: 남은 여섯 부위(helm·glove·boot·ring·neck)는 범위 밖. FOREST 넷째 종 또는 saga-unity로.
 
-## FOREST 51장 "생태계" 축 — meadow·dark에만 넷째 종 (2026-09-14, 같은 날 이어서, "모두 이어서해")
+## FOREST 51장 "생태계" 축 — meadow·dark에만 넷째 종 (2026-09-14, 커밋 0d11836)
 
-- DUNGEON 갑주 항목이 남긴 다음 갈래(FOREST 넷째 종)를 이었다. 지금까지
-  "바이옴마다 균등하게 셋씩"이던 패턴을 웹판 ANIMALS와 다시 대조해
-  깼다 — 원작은 meadow·dark 4종, rocky 3종, mushroom 2종(+희귀 1)으로
-  애초에 안 균등했고, 이 슬라이스는 넷 다 3종씩이라 rocky는 이미
-  원작과 같고 mush는 오히려 원작보다 많다. 그래서 이번엔 아직 원작
-  수(4)에 못 닿은 meadow·dark 둘에만 넷째를 보탰다(rocky·mush는
-  건드리지 않음) — "다음에 할 일"에 남아 있던 우려("이미 충분히
-  붐빈다")를 실제 원작 대조로 확인해 정확한 범위로 좁힌 셈.
-- 두 종: "반딧불도깨비"(bandi, 꽃밭 — 원기둥+토러스 고리, 금빛,
-  flee_m 6.5로 예민하지만 flee_speed 2.0으로 도망은 굼뜨다) ·
-  "그림자도깨비"(geurimja, 어둑숲 — 상자+작은 구 눈, 거의 검정,
-  dark 그룹 최저 flee_m 2.0에 극단적이지 않은 flee_speed 2.8로
-  "무난하고 둔감한" 축). den은 CLEAR_SPOTS 17+기존 창작 몬스터
-  12곳=29개 고정점 전수조사로 meadow(9,8)·dark(22,8) 골랐다(체비셰프
-  거리 3). 자세한 내용은 docs/VERTICAL_SLICE_FOREST.md 8절 참고.
-- 검증: 헤드리스 임포트 오류 0건, TestVillageForest.tscn 3회 로그
-  완전 동일(md5 일치). Node.js 정적 파싱(14개 den 중복 0·타일·biome
-  일치)에 더해, 오토로드 없이 forest_creature_builder.gd 하나만
-  가볍게 인스턴스화하는 SceneTree 스크립트(`await process_frame`으로
-  `_ready()` 대기)로 den 월드좌표·biome_at()·네 수치·전체 14마리
-  스폰까지 런타임 재확인. GO·DUNGEON·REALM·STORY 회귀도 오류 0건.
-  `.import` 잡음만 되돌리고 project.godot는 안 건드려짐 확인, git
-  status로 스크립트 2개만 확인. GUI 실기 확인은 아직(몰아서 받을 것).
-- **다음에 할 일**: meadow·dark도 원작 밀도에 닿아 "생태계" 축의
-  "동물" 갈래는 이걸로 마무리로 본다. 남은 갈래는 "채집→마을→생활"
-  (FOREST 51장) 또는 DUNGEON 남은 여섯 부위(helm·glove·boot·ring·
-  neck)·saga-unity 트랙 — 다음 세션이 이어서 판단할 자리.
+- 웹판 원작 밀도(meadow·dark 4종, rocky 3, mush 2) 대조해 meadow·dark 둘에만 넷째 종(반딧불도깨비·그림자도깨비) 추가.
+- den: CLEAR_SPOTS+기존 12종=29 고정점 전수조사, meadow(9,8)·dark(22,8).
+- 검증: 정적+런타임 이중 검증 PASS, 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_FOREST.md 8절.
+- 다음: "생태계"의 "동물" 갈래 마무리. 남은 갈래: 채집→마을→생활, 또는 DUNGEON 남은 여섯 부위·saga-unity.
