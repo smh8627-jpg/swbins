@@ -80,6 +80,8 @@ func _show_scenario_picker() -> void:
 		 "cb": func() -> void: _pick_scenario("194", layer_box)},
 		{"label": "200년 · 관도 (조조, 성 8곳)",
 		 "cb": func() -> void: _pick_scenario("200", layer_box)},
+		{"label": "208년 · 적벽 (조조, 성 19곳)",
+		 "cb": func() -> void: _pick_scenario("208", layer_box)},
 	]
 	layer_box["layer"] = ChoicePrompt.build(self, "새 게임 — 시나리오를 고른다", choices)
 

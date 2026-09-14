@@ -862,6 +862,9 @@ const CREED := {
 	                      # 손권(quan)으로 넘어간 뒤 쓰는 force id. data-
 	                      # force.js FORCES_200 quan 항목의 creed 그대로
 	                      # (CREED.get()의 기본값과 우연히 같지만, 명시해 둔다).
+	"chao": "aggressive", # 2026-09-14 추가 — 시나리오 208에서 마등(teng)이
+	                      # 마초(chao)로 넘어간 뒤 쓰는 force id. data-force.js
+	                      # FORCES_208 chao 항목의 creed 그대로.
 }
 
 static func creed_of(force_id: String) -> String:
@@ -881,7 +884,7 @@ const FORCE_LORD := {
 	"bei": "sg_liubei", "bu": "sg_lubu", "shu": "rf_yuanshu",
 	"ce": "rf_sunce", "biao": "rf_liubiao", "jue": "rf_lijue",
 	"teng": "rf_mateng", "lu": "rf_zhanglu", "zhang": "rf_liuzhang",
-	"quan": "sg_sunquan",
+	"quan": "sg_sunquan", "chao": "sg_machao",
 }
 
 
@@ -897,10 +900,26 @@ const FORCE_LORD := {
 ## 재배정되거나(아래 SCENARIO_FORCE_OVERRIDE) 조조 몫이 된다(이각의
 ## 낙양·장안, 여포의 하비, 원술의 수춘·[여남은 유비에게], 유비의 소패는
 ## 조조 몫). 자세한 대응표는 `docs/VERTICAL_SLICE_REALM.md` 27절 참고.
+## **2026-09-14 추가 — 208년(적벽).** `js/data-force.js FORCES_208`을
+## 옮긴다 — "아주 기울어진 판"(조조가 열아홉 성, 나머지 다섯 세력이
+## 남은 열한 성을 나눠 갖는다). 조조 몫 열아홉은 원작 FORCES_208.cao.cities
+## 그대로 — 194/200과 달리 이미 우리 성이던 자리(진류·복양·허창)와 200에서
+## 조조가 흡수한 자리(낙양·장안·소패·하비·수춘)에 더해, 200엔 아직 남의
+## 세력이던 열한 곳 중 아홉(업·남피·계·북평·진양·북해·완·신야·양양·강릉 —
+## 원소·유표 세력이 208에선 아예 사라져 조조가 흡수)이 새로 조조 몫이
+## 된다. 원작 pacts([['quan','bei','ally',24]], 손권·유비 동맹)는 이
+## 슬라이스에 안 옮긴다 — `realm_save_state.gd _run_enemy_ai()`가
+## 애초에 적 세력끼리는 서로 안 치고 플레이어만 노리는 단순화라(머리말
+## "AI가 이겨도 성을 뺏지 않는다"와 같은 절 참고), 동맹이 있어도 없어도
+## 게임플레이에 차이가 없다 — 데이터만 옮기고 실제로 없는 메커니즘을
+## 흉내 내지 않는다.
 const SCENARIO_CAO_CITIES := {
 	"194": ["chenliu", "puyang", "xuchang"],
 	"200": ["xuchang", "chenliu", "puyang", "luoyang", "changan",
 	        "xiaopei", "xiapi", "shouchun"],
+	"208": ["xuchang", "chenliu", "puyang", "luoyang", "changan", "runan",
+	        "xiaopei", "xiapi", "shouchun", "ye", "nanpi", "jixian", "beiping",
+	        "jinyang", "beihai", "wan", "xinye", "xiangyang", "jiangling"],
 }
 
 ## ENEMY_CITIES에 정적으로 박힌 194 기준 `force`에서, 그 시나리오만
@@ -913,6 +932,13 @@ const SCENARIO_FORCE_OVERRIDE := {
 		"beihai": "shao",                      # 공융(rong) 소멸 → 원소가 흡수
 		"jianye": "quan", "chaisang": "quan", "kuaiji": "quan",  # 손책→손권
 		"runan": "bei",                        # 원술(shu) 소멸 → 유비가 흡수
+	},
+	"208": {
+		"jianye": "quan", "chaisang": "quan", "kuaiji": "quan",  # 손책→손권(200과 동일)
+		"jiangxia": "bei", "changsha": "bei",  # 유표(biao) 소멸 → 유비가 흡수
+		"tianshui": "chao", "wuwei": "chao",   # 마등(teng)→마초(chao) 승계
+		# hanzhong(lu)·chengdu/jiangzhou/yongan(zhang)은 194 기준 force가
+		# 이미 lu/zhang이라 재배정 불필요 — FORCES_208 그대로다.
 	},
 }
 
