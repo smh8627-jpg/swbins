@@ -359,6 +359,12 @@
        Mushnub 하나만 옮겨 왔다(`ASSET_LICENSES.md` 참고) — 원본에
        Idle·Walk·Attack 클립이 있어 다른 짐승과 같은 결로 걷는 몸짓이 탄다 */
     'monster:mushnub': MON + 'Mushnub_55c64684.glb',
+    /* 성간충(2026-09-14, PLAN 46-4 "다음에 이어갈 것" — Enemy_*). 배달원
+       우주복(§46-3)·우주기지 건물(§46-4)과 같은 Ultimate Space Kit(Quaternius,
+       CC0)의 Enemy_Small — 우주기지에만 아주 드물게 나타나는 몬스터다.
+       원본에 Idle·Walk·Attack 클립이 있어 다른 짐승과 같은 결로 걷는
+       몸짓이 탄다(`ASSET_LICENSES.md` 참고) */
+    'monster:spacebug': MON + 'space/EnemySmall.glb',
 
     /* 2026-09-05 — 도감 펫(`pt_*`·`pk_*`) 초상을 굽는 자리(`portrait3d.js`).
        위 `animal:an_*` 는 숲의 **배경 짐승** 전용이라 도감 펫과 id 가 안

@@ -765,3 +765,45 @@ saga-dungeon 도 같은 미러를 쓴다)로 그대로 받았다 — 배달원 �
   (택배 소포 모양을 상자 대신 이걸로 바꾸는 안)
 - 실기 확인 전 — 우주기지가 실제로 그 자리에 서는지, 여섯 새 소품이 3D
   화면에서 서로 겹치지 않고 자연스럽게 보이는지는 사용자가 직접 봐야 한다
+
+---
+
+## Quaternius "Ultimate Space Kit" — 우주기지 전용 희귀 몬스터 "성간충" (2026-09-14)
+
+바로 위 절이 "다음에 이어갈 것"으로 남긴 셋(현대 목적지·이 팩의 남은 조각·
+Enemy_*) 중 `Enemy_*`(포자괴물과 같은 결의 우주기지 전용 희귀 몬스터 후보)를
+채웠다. 같은 GitHub 미러(`trebeljahr/quaternius-showcase`)에서 이번엔
+`ultimate_space_pack/Enemy_Small-transformed.glb`를 받았다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (<https://quaternius.com>) |
+| **라이선스** | **CC0 1.0 Universal** — 저작자 표시 필요 없다, 재배포 허용된다 |
+| **받은 곳** | `github.com/trebeljahr/quaternius-showcase` `public/glb/ultimate_space_pack/Enemy_Small-transformed.glb`(같은 Ultimate Space Kit 팩, 위 두 절과 출처 동일) |
+| **파일** | `assets/models/monsters/space/EnemySmall.glb`(41.2KB) |
+
+`js/asset3d.js`에 `monster:spacebug`로 등록. `js/data-village.js`의
+`VD.ANIMALS.spacebug`(표시 이름 '성간충', `rare:true`)로 등록했지만,
+우주기지는 `BIOME_CELL`(22칸) 격자보다 작은 자리(7×7)라 포자괴물이 쓰는
+`MONSTER_BIOME` 경유 뽑기에는 안 걸린다 — `js/village.js`의
+`buildAnimals()`가 배달원(courier)과 같은 방식(고정 위치, 세이브 시드별
+확률 — 40%)으로 따로 심는다. 새 전투 시스템은 안 만들었다 — 다른 짐승과
+똑같이 idle/wander/flee만 탄다. `js/village-view3d.js`의
+`SCATTER_KIND`/`TURNING_KIND`/`SCATTER_H`에도 다른 짐승과 같은 결로 한
+줄씩 보탰다(원본에 Idle·Walk·Attack 클립이 있어 걷는 몸짓이 그대로 탄다).
+2D는 맞는 CC0 스프라이트가 없어 이모지(👾)로 뜬다(다른 미매핑 짐승과 같은
+자동 대체 경로).
+
+자가진단에 "여러 씨앗을 돌며 나타날 때만·항상 우주기지 안"을 확인하는
+항목을 새로 추가(40개 씨앗을 돌려 봄, 40% 근방으로 나타나고 벗어난 자리는
+0개 확인), 기존 TURNING_KIND·짐승 종 완결성 검사 두 개도 새 종에 맞춰
+`need` 배열을 고쳤다. `node -c`로 손댄 네 스크립트(asset3d.js·
+data-village.js·village.js·village-view3d.js) 구문 확인, `_test.html`
+인라인 스크립트도 마찬가지.
+
+**다음에 이어갈 것** (PLAN §45 표 갱신)
+- 현대(도시) 목적지 — 여전히 CC0 자산 미확보
+- 이 팩에 남은 것 — Connector·Roof_*·MetalSupport·Stairs·Ramp 같은 결합용
+  조각, Pickup_*(택배 소포 모양을 상자 대신 이걸로 바꾸는 안)
+- 실기 확인 전 — 성간충이 실제로 우주기지 안에서 자연스럽게 보이는지,
+  이모지(👾) 폴백이 어색하지 않은지는 사용자가 직접 봐야 한다

@@ -1748,6 +1748,69 @@ village-view3d.js·data-village.js) 전부 구문 확인, `_test.html`의 인라
 
 ---
 
+# 46-5. 우주기지 전용 희귀 몬스터 "성간충"(Enemy_Small) — §46-4 "다음에 이어갈 것" 중 하나 (2026-09-14)
+
+§46-4가 남긴 셋(현대 목적지·이 팩 남은 조각·Enemy_*·Pickup_*) 중 **Enemy_***
+(PLAN §45 표가 이미 "포자괴물과 같은 결의 우주기지 전용 희귀 몬스터 후보"로
+적어 둔 것)를 채웠다. 같은 GitHub 미러(`trebeljahr/quaternius-showcase`,
+Ultimate Space Kit)에서 `Enemy_Small-transformed.glb`를 새로 받았다(41.2KB).
+
+## 지은 것
+
+- **왜 기존 `MONSTER_BIOME`(포자괴물 경로)을 그대로 못 쓰나** — 그 경로는
+  `buildAnimals()`의 `BIOME_CELL`(22칸) 격자 뽑기에 얹혀 도는데, 우주기지는
+  `spaceBaseSpot()`/`inSpaceBase()`로 정해지는 7×7 자리라 격자 칸 하나보다도
+  작다 — 격자 표본점이 그 안에 들어갈 확률이 사실상 0이다. 그래서 courier
+  NPC(§45)와 같은 결로 **고정 위치 + 세이브 시드별 확률**(40%, 새 hash2
+  스트림 하나)로 따로 심는 길을 골랐다. 새 전투는 안 만들었다 — 다른 짐승과
+  똑같이 idle/wander/flee만 탄다.
+- **`js/asset3d.js`**: `monster:spacebug` → `assets/models/monsters/space/
+  EnemySmall.glb` 등록. 원본에 Idle·Walk·Attack 클립이 있어 `buildGeneric()`가
+  자동으로 걷는 몸짓을 태운다(다른 몬스터·짐승과 같은 경로).
+- **`js/data-village.js`**: `VD.ANIMALS.spacebug`(이름 '성간충', 이모지 👾,
+  `rare:true`) 신설. `biomes`에 다섯 바이옴을 다 적어 뒀다 — 실제로 그 다섯
+  아무 데서나 나서가 아니라, 자가진단의 "제 바이옴에만 선다" 검사가 그
+  자리의 `biomeAt()` 해시값(우주기지와 무관하게, 세이브마다 다르게 계산된다)과
+  안 어긋나게 하기 위해서다.
+- **`js/village.js`**: `buildAnimals()` 끝에 우주기지 전용 블록 추가 —
+  `spaceBaseSpot()`이 있고 `VD.ANIMALS.spacebug`가 있으면, 새 hash2(다른
+  좌표 계수라 기존 hgate·hpick·hmon 흐름은 안 건드린다)로 40% 확률을 굴려
+  우주기지 중심에서 (+0.6, +2.3)칸 자리(다른 소품·건물·courier와 안 겹치는
+  빈자리, 7×7 경계 안)에 심는다.
+- **`js/village-view3d.js`**: `SCATTER_KIND`·`TURNING_KIND`·`SCATTER_H`에
+  각각 한 줄(다른 짐승과 같은 syncScatter()/Object Pool/회전-보간 경로).
+- 2D는 맞는 CC0 스프라이트가 없어 이모지(👾)로 뜬다 — `ANIMAL_SPRITE`
+  표에 없는 kind는 자동으로 이모지 fallback을 타는 기존 경로 그대로다.
+
+## 자가진단
+
+`node -c`로 손댄 네 스크립트(asset3d.js·data-village.js·village.js·
+village-view3d.js) 구문 확인, `_test.html` 인라인 스크립트 두 블록도
+마찬가지. 새 항목 하나 추가 — 세이브 시드 40개를 돌며 `buildAnimals()`를
+다시 불러 `spacebug`가 나타날 때만·항상 우주기지 안인지 확인(0/40이나
+40/40이면 확률·위치 로직이 잘못된 것 — 실제로는 그 사이 값, 나타나면 전부
+`inSpaceBase()` 안, `asset3d` 등록도 함께 확인). 기존 TURNING_KIND 완결성
+검사·짐승 종 목록 검사의 `need` 배열도 새 종에 맞춰 고쳤다.
+
+헤드리스 자가진단 — **262/266, 세 번 동일**(byte-diff 없음). §46-3·§46-4와
+같은 기준선 261/265에 새 항목 1개(성간충 씨앗 훑기)만 더해 262/266 —
+여전히 남은 FAIL 넷은 전부 "공사"(지형 개조) 테스트로, `git diff` 없이도
+이 변경과 무관함을 확인했다(회귀 없음).
+
+## 다음에 이어갈 것
+
+- 현대(도시) 목적지 — 여전히 CC0 자산 미확보
+- 이 팩에 남은 것 — Connector·Roof_*·MetalSupport·Stairs·Ramp 같은 결합용
+  조각, Pickup_*(택배 소포 모양을 상자 대신 이걸로 바꾸는 안)
+
+## 실기 확인 전
+
+성간충이 실제로 우주기지 안에서 자연스럽게 보이는지(등장 확률이 체감상
+적당한지), 이모지(👾) 폴백이 다른 소품들 사이에서 안 어색한지는 사용자가
+직접 봐야 한다.
+
+---
+
 # Claude Code 최종 작업 원칙
 
 **실기(실제 기기) 확인은 배치 끝에 한 번만 — 매 기능마다 따로 챙기지
