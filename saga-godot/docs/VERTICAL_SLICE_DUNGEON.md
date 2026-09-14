@@ -275,3 +275,61 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   고른다"는 슬라이스 설계와 뜻이 겹쳐 굳이 새 방 종류로 안 만들어도
   된다는 점을 먼저 따져볼 것). 채광(cave)·행상(merchant)·퍼즐(puzzle)·
   구출(event)·채집(forage)은 각자 새 상호작용/UI가 필요해 더 큰 몫이다.
+
+## 9. 방 종류 다양화 둘째 — 정예 소굴(elite)·미니보스(miniboss) (2026-09-14, 같은 날 이어서, "사가고돗 이어해묻지말고 이어해")
+
+- 위 8절 "다음에 할 일"이 예고한 대로, 이미 있는 정예·보스 로직을 방
+  단위로 강제만 하면 되는 둘을 옮겼다. `ROOM_KINDS`를 `["elite","trove",
+  "fight","well","miniboss","fight"]`로(0·4번 fight를 elite·miniboss로
+  교체, 보스층 3·6층은 그대로) 바꿨다.
+- `dungeon_enemy.gd::_init()`에 `force_elite` 매개변수 신규 — `dungeon.js
+  spawnEnemy(floor,false,{forceElite:true})` 그대로, 확률 굴림 대신
+  무조건 `ELITES`에서 하나를 고르게 하는 한 줄(`force_elite or randf() <
+  _elite_chance(...)`)만 더했다. 기존 두 호출부(그림자 분신·일반
+  스폰)는 새 매개변수에 기본값 false라 안 건드려도 그대로 동작.
+- `test_room.gd::_spawn_enemy()`를 `_spawn_enemy_at(pos, floor_num,
+  is_boss, grant_hero_reward, force_elite)` 공용 헬퍼로 갈라냈다(기존
+  호출부는 동작 변화 없음, 새 자리 하나를 더 쓰려고 재사용) —
+  - **정예 소굴**(`_spawn_elite_den`) — 원작은 3~8마리(정예 하나 강제+
+    나머지 일반)지만, 이 슬라이스는 fight 방이 이미 "방당 1마리"로
+    크게 줄여 둔 상태라 같은 비율로 줄여 **정예 1(강제)+일반 1 = 2마리**
+    로 잡았다(새 밀도를 상상하지 않고, 기존 fight 방보다 확실히 더
+    붐빈다는 것만 살렸다).
+  - **미니보스**(`_spawn_miniboss`) — 부하 없이 혼자, `is_boss=true`라
+    `loot_pickup.gd`가 보스급 노획을 그대로 준다(dungeon.js 주석 "따로
+    더 챙길 것은 없다" 그대로). 단 `grant_hero_reward=false`로
+    `_on_boss_defeated`(인물 자동 합류)는 안 건다 — 그건 진짜 층 끝
+    보스 전용 보상이고 웹판 미니보스엔 없는 개념이라 새로 만들지 않았다.
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 6` 세
+  번 연속 로그 완전 동일. 임시 씬(`_tmp_verify_elite2.tscn`+`.gd`)으로
+  방0의 두 적이 각각 `elite_key`가 채워진 강제-정예(예: "tough", hp=
+  round(24×2.6)=62)와 일반(hp=24, floor1 공식 그대로)인 것·방4(미니보스,
+  floor5)가 `is_boss=true`인데도 `died` 신호 연결 수(`get_signal_
+  connection_list`)가 0인 반면 방2·방5(진짜 보스, floor3·6)는 정확히
+  1인 것까지 확인 후 삭제, 재검증까지 마쳤다. GO·FOREST·STORY·REALM
+  대표 씬도 오류 0건 재확인.
+- **실측으로 잡은 실수 하나** — 검증 스크립트가 방마다 도는 자식 노드를
+  `get_class()=="CharacterBody3D"`로만 걸러 `is_boss` 등을 읽다가
+  Player(`player.gd`)도 같은 클래스라 "Invalid access to property"
+  오류를 냈다. `is_in_group("dungeon_enemy")`로 걸러 고쳤다 — 이 실수
+  때문에 첫 검증 스크립트가 세이브 파일 복원 줄까지 못 가고 중간에
+  멈춰(오류가 나면 그 함수의 나머지 줄이 실행되지 않는다) `user://
+  save_dungeon.json`을 빈 상태로 남긴 채 끝났다. **바로 눈치채지
+  못했다** — 스크립트를 고쳐 재검증까지 다 마친 뒤 git status/diff를
+  훑다가 뒤늦게 발견(diff 대상이 아니라 그냥 눈으로 원본 JSON과
+  대조하다가). 다행히 이전 턴에서 원본 JSON 전문을 이미 대화에 출력해
+  둔 적이 있어 그 값 그대로 다시 써넣어 복구했고, 바이트 단위로 이전
+  기록과 같은 것까지 재확인했다. **교훈** — "검증 스크립트 끝에서
+  원상복구"는 스크립트가 끝까지 도달해야만 지켜진다. 다음엔 try/finally
+  가 없는 GDScript 특성상, 복원 코드를 맨 앞(뭔가 실패해도 최대한 먼저
+  실행되게)에 두거나, 애초에 실기 세이브 파일을 직접 왕복시키지 않고
+  완전히 별도의 격리된 테스트 프로필/세이브 경로를 쓰는 쪽이 더 안전할
+  것 — `docs/PROJECT_STATE.md`에도 별도 기록.
+- **다음에 할 일**: 남은 7갈래(shrine·cave·merchant·puzzle·event·
+  forage) 전부 원작에 독립된 UI/상태기계가 있어(제단 순서 맞추기,
+  행상 재고 셋, 구출 등) 지금까지처럼 "이미 있는 로직 재사용"만으로는
+  안 끝난다 — 다음은 그중 상대적으로 작은 것(사당(shrine)은 위에서
+  이미 "은사를 모든 방 출구에서 준다"는 슬라이스 설계와 뜻이 겹친다고
+  판단했으니, 채광(cave, 손짓 하나로 재료 확정 지급이라 우물과 구조가
+  비슷함)부터 검토해 볼 것)부터 좁히거나, DUNGEON 밖(다른 네 판·
+  saga-unity 트랙)을 고려할 자리.

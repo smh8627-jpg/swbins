@@ -6355,3 +6355,31 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   (miniboss) — 이미 있는 정예 확률/보스 스폰을 방 단위로 강제만 하면
   돼 새 UI가 안 필요하다. 채광·행상·퍼즐·구출·채집은 각자 새 상호작용이
   필요한 더 큰 몫.
+
+## DUNGEON 방 종류 다양화 둘째 — 정예 소굴(elite)·미니보스(miniboss) (2026-09-14, 같은 날 이어서, "사가고돗 이어해묻지말고 이어해")
+
+- 위 항목이 예고한 대로 이어서 진행. `ROOM_KINDS`의 남은 두 fight 방
+  (0·4번)을 elite·miniboss로 바꿨다. `dungeon_enemy.gd::_init()`에
+  `force_elite` 매개변수(`dungeon.js` forceElite 그대로) 추가, `test_
+  room.gd::_spawn_enemy()`를 `_spawn_enemy_at(pos, is_boss, grant_hero_
+  reward, force_elite)` 공용 헬퍼로 갈라 정예 소굴(정예 1강제+일반 1)·
+  미니보스(혼자, 보스급 노획이지만 인물 자동합류는 안 줌)를 얹었다.
+  자세한 내용은 `docs/VERTICAL_SLICE_DUNGEON.md` 9절 참고.
+- 검증: 헤드리스 오류 0건, `TestRoom.tscn` 3회 로그 동일. 임시 씬으로
+  방0의 강제-정예(hp가 배율 공식과 정확히 일치)+일반 동행·방4 미니보스
+  (`is_boss=true`인데 `died` 신호 연결 0, 진짜 보스인 방2·5는 1)까지
+  확인. GO·FOREST·STORY·REALM 회귀도 오류 0건.
+- **실수 하나 있었다** — 첫 검증 스크립트가 Player도 CharacterBody3D라는
+  걸 놓쳐 런타임 오류로 중간에 멎었고, 그 바람에 끝에 있던 "세이브 파일
+  원상복구" 줄이 안 돌아 실기 개발 세이브(`save_dungeon.json`)가 빈
+  상태로 한동안 남았다. git status를 훑다가 뒤늦게 알아챘고, 이전 턴
+  대화에 이미 출력해 둔 원본 JSON 전문으로 그대로 복구·바이트 단위
+  재확인까지 마쳤다. **다음부터**: 실기 세이브를 잠깐 왕복시키는 검증은
+  복원 코드가 스크립트 맨 끝에만 있으면 중간 오류에 취약하다 — 복원을
+  먼저 시도하거나, 애초에 별도 테스트 프로필 경로를 쓰는 쪽이 더 안전.
+- **다음에 할 일**: 남은 7갈래(shrine·cave·merchant·puzzle·event·
+  forage)는 전부 독립 UI/상태기계가 필요해 지금까지처럼 "이미 있는
+  로직 재사용"만으로는 안 끝난다. 사당(shrine)은 이미 "모든 방 출구에서
+  은사를 준다"는 슬라이스 설계와 뜻이 겹쳐 제외 판단, 채광(cave, 손짓
+  하나로 재료 확정이라 우물과 구조가 비슷)이 다음 후보. DUNGEON 밖(다른
+  네 판·saga-unity 트랙)도 고려할 자리.

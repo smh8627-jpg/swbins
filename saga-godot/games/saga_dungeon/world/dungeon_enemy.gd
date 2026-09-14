@@ -96,14 +96,17 @@ static func _elite_chance(floor_num: int) -> float:
 ## shade=true는 kill()이 만드는 그림자 분신 전용(spawnEnemy()의 opts.shade
 ## 그대로) — boss와 마찬가지로 정예가 안 붙는다("!opts.spawned" 그대로,
 ## 여기선 shade 인자 자체가 그 역할).
-func _init(floor_num: int = 1, boss: bool = false, shade: bool = false) -> void:
+## force_elite=true는 dungeon.js spawnEnemy(floor, false, {forceElite:true})
+## 그대로 — "정예 소굴"(POI: Elite) 방이 확률 없이 정예 하나를 반드시
+## 끼우는 자리에서만 쓴다(test_room.gd::_spawn_elite_den).
+func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_elite: bool = false) -> void:
 	_floor_num = floor_num
 	is_boss = boss
 	_is_shade = shade
 	_scale_mul = BOSS_SCALE if boss else 1.0
 	max_hp = roundf(24.0 * pow(1.26, floor_num - 1) * (7.0 if boss else 1.0))
 	attack_damage = roundf(5.0 * pow(1.20, floor_num - 1) * (2.2 if boss else 1.0))
-	if not boss and not shade and randf() < _elite_chance(floor_num):
+	if not boss and not shade and (force_elite or randf() < _elite_chance(floor_num)):
 		_elite_def = ELITES[randi() % ELITES.size()]
 		elite_key = str(_elite_def.key)
 		max_hp = roundf(max_hp * float(_elite_def.get("hp", 1.35)))

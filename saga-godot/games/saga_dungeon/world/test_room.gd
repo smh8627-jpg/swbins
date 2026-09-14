@@ -49,10 +49,12 @@ const ROOM_COUNT := 6
 ## pickRoomKind()`)인데 이 슬라이스는 지금까지 방마다 전부 "fight"뿐이었다
 ## — "보스"·"장비"는 이미 이 슬라이스에 상당히 있어 51장이 말하는 진짜
 ## 남은 폭은 방 종류 다양성 쪽이었다. 한 번에 11갈래를 다 옮기지 않고
-## (토큰 절약 규칙 3) 가장 단순한 둘 — 상자(trove)·우물(well, 둘 다 원작
-## 손짓이 "닿으면 끝"이라 퍼즐·행상·구출처럼 별도 UI가 안 필요하다 —
-## 부터 옮긴다. 보스층(3층·6층)은 그대로 fight 유지.
-const ROOM_KINDS: Array[String] = ["fight", "trove", "fight", "well", "fight", "fight"]
+## (토큰 절약 규칙 3) 가장 단순한 것부터: 상자(trove)·우물(well, 원작
+## 손짓이 "닿으면 끝"이라 별도 UI가 안 필요함) 다음으로, **정예 소굴
+## (elite)·미니보스(miniboss)** — 둘 다 이미 있는 정예 강제 굴림·보스
+## 스폰을 방 단위로 쓰기만 하면 돼 새 UI가 필요 없었다. 보스층(3층·6층)은
+## 그대로 fight 유지, 나머지 두 fight 방(0·4번)을 elite·miniboss로 바꿨다.
+const ROOM_KINDS: Array[String] = ["elite", "trove", "fight", "well", "miniboss", "fight"]
 
 ## "제외" 목록 5번(인물 등용) — 방마다 실제 역사 인물 하나씩(saga_core
 ## 105명 중 새로 골랐다 — GO가 이미 kr_yisunsin을 쓰고 있어 안 겹치게).
@@ -114,6 +116,10 @@ func _ready() -> void:
 			elif kind == "well":
 				## dungeon.js makeRoom() 'well' 갈래 — 지킴이 없이 우물만.
 				_spawn_well(_room_origin_z[i])
+			elif kind == "elite":
+				_spawn_elite_den(_room_origin_z[i], i + 1)
+			elif kind == "miniboss":
+				_spawn_miniboss(_room_origin_z[i], i + 1)
 			else:
 				## data-dungeon.js isBossFloor(floor)=floor%3==0 그대로 —
 				## 마지막 방뿐 아니라 3층마다(이 슬라이스는 3층·6층) 보스가
@@ -388,15 +394,42 @@ func _spawn_well(origin_z: float) -> void:
 
 
 func _spawn_enemy(origin_z: float, floor_num: int, is_boss: bool = false) -> void:
-	var enemy: CharacterBody3D = DungeonEnemy.new(floor_num, is_boss)
-	enemy.position = Vector3(0, 0, origin_z - 1.5)
+	_spawn_enemy_at(Vector3(0, 0, origin_z - 1.5), floor_num, is_boss, true, false)
+
+
+## `_spawn_enemy()`가 쓰는 공용 자리 — 정예 소굴(elite)이 같은 방에 둘째
+## 자리(다른 pos)를 더 쓰려고 갈라냈다(재사용, 새 스폰 경로를 안 만든다).
+## grant_hero_reward=false면 is_boss=true라도 `_on_boss_defeated`(인물
+## 자동 합류)를 안 건다 — 미니보스는 보스급 노획만 주고 인물 보상은
+## 진짜 층 끝 보스 전용으로 남겨 둔다(dungeon.js miniboss 주석 "따로 더
+## 챙길 것은 없다" 그대로).
+func _spawn_enemy_at(pos: Vector3, floor_num: int, is_boss: bool, grant_hero_reward: bool, force_elite: bool) -> void:
+	var enemy: CharacterBody3D = DungeonEnemy.new(floor_num, is_boss, false, force_elite)
+	enemy.position = pos
 	add_child(enemy)
-	if is_boss:
+	if is_boss and grant_hero_reward:
 		## LEGACY_FEATURE_AUDIT.md KEEP "인물은 던전에서 등용(출사표3+보스층
 		## 합류)" 의 후반부 — 2026-09-12㉔가 "7번이 생긴 뒤로 미룬다"고
 		## 남겨 둔 그 경로. game.js bossReward()를 그대로 옮긴다: 보스가
 		## 죽는 순간(문을 나가는 시점이 아니라) 인물 하나가 자동으로 합류.
 		enemy.died.connect(_on_boss_defeated.bind(floor_num - 1))
+
+
+## dungeon.js makeRoom() 'elite' 갈래 — 원작은 3~8마리(정예 하나 강제+
+## 나머지 일반) 무리지만, 이 슬라이스는 fight 방이 이미 "방당 1마리"로
+## 크게 줄여 둔 상태라(원작 4~12마리 대신) 같은 비율로 줄여 **정예 1
+## (강제)+일반 1 = 2마리**로 잡았다 — 새 밀도를 상상하지 않고 기존 fight
+## 방보다 확실히 붐빈다는 것만 살린다.
+func _spawn_elite_den(origin_z: float, floor_num: int) -> void:
+	_spawn_enemy_at(Vector3(0, 0, origin_z - 1.5), floor_num, false, true, true)
+	_spawn_enemy_at(Vector3(1.8, 0, origin_z - 0.6), floor_num, false, true, false)
+
+
+## dungeon.js makeRoom() 'miniboss' 갈래 — 부하 없이 혼자, 보스급 노획
+## (`loot_pickup.gd`가 is_boss만 보고 이미 챙겨 준다). 인물 자동 합류는
+## 위 `_spawn_enemy_at()` 주석 참고 — 진짜 층 끝 보스에만 남긴다.
+func _spawn_miniboss(origin_z: float, floor_num: int) -> void:
+	_spawn_enemy_at(Vector3(0, 0, origin_z - 1.5), floor_num, true, false, false)
 
 
 ## room_index별 hero_resolved를 재사용한다 — 뜻은 다르지만("설득 성공/실패"
