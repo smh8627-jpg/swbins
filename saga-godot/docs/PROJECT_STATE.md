@@ -6191,3 +6191,29 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   다음은 REALM 안에서 더 좁힐 것을 찾거나(예: 여전히 실제 GLB가 없는
   3D 몬스터 자산), REALM 밖(다른 네 판 추가 확장·saga-unity 트랙)을
   고려할 자리.
+
+## DUNGEON 던전 증가 — 방 3개(보스 1명)→6개(보스 2명) (2026-09-14, 같은 날 이어서, "사가고돗 이어해")
+
+- **판을 골라야 했다** — GO·STORY·REALM은 09-14 안에 각자 최초 "제외"
+  목록을 완전히 다 채웠고, DUNGEON·FOREST는 09-12 이후 Vertical Slice
+  범위에서 손을 뗀 채였다. `PLAN.md` 51장이 DUNGEON의 다음 축을 "던전
+  증가→엘리트→보스→장비→빌드"로 적어 둬서 그 첫 항목을 골랐다.
+- `games/saga_dungeon/world/test_room.gd`의 `ROOM_COUNT`를 3→6으로,
+  보스 판정을 "마지막 방만"에서 웹판 `data-dungeon.js isBossFloor(floor)
+  =floor%3===0` 그대로인 `(i+1) % 3 == 0`으로 바꿔 3층·6층 둘 다 보스가
+  서게 했다. 새 보상식·새 몬스터를 상상하지 않았다 — `_on_boss_defeated`의
+  등급 상한 계산은 이미 floor_num을 일반화해 둔 것이라 손 안 댐,
+  `rooms_cleared`/`hero_resolved` 저장 스키마도 이미 동적 배열이라
+  그대로 확장됐다. 자세한 내용은 `docs/VERTICAL_SLICE_DUNGEON.md` 6절
+  참고.
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 5` 세 번
+  연속 로그 완전 동일. 임시 씬(`_tmp_verify_rooms.tscn`+`.gd`,
+  `TestRoom.tscn`을 실제로 인스턴스화)으로 `ROOM_COUNT==6`·잡졸 4·보스
+  2·보스가 선 floor가 정확히 `[3, 6]`인 것까지 확인 후 삭제, 재검증까지
+  마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 51장 DUNGEON 축의 다음은 "엘리트"(잡졸·보스 사이
+  강화 개체) — 웹판(`saga-web/saga-dungeon/js/data-dungeon.js` 등)에
+  이미 있는 개념인지 먼저 확인부터 할 것(없으면 새로 상상하지 않는다).
+  그 밖엔 FOREST(51장 "생태계" 축)도 09-12 이후 손을 안 댄 채 남아 있어
+  고려할 자리.
+  고려할 자리.

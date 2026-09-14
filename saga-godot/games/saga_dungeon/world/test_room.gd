@@ -28,11 +28,16 @@ const ROOM_GLB := "res://assets/dungeon/room-small.glb"
 const GATE_GLB := "res://assets/dungeon/gate.glb"
 const CORRIDOR_GLB := "res://assets/dungeon/corridor.glb"
 
-## "제외" 목록 7번(보스층) — 방 하나 늘려 3개로. data-dungeon.js
-## `isBossFloor(floor) = floor % 3 === 0`을 그대로 옮기면 이 슬라이스에서
-## 방=층 취급(각 방의 floor_num은 i+1)이라 마지막 방(floor_num=3)이 정확히
-## 보스 층이다 — 그 방의 잡졸 자리를 보스로 바꾼다(새 방 구조를 안 만든다).
-const ROOM_COUNT := 3
+## "제외" 목록 7번(보스층) — data-dungeon.js `isBossFloor(floor) =
+## floor % 3 === 0`을 그대로 옮긴다(이 슬라이스에서 방=층 취급, 각 방의
+## floor_num은 i+1). **2026-09-14, 51장 확장(GO/STORY/REALM이 각자
+## "제외" 목록을 다 채운 뒤 "던전 증가"를 골랐다) — 방 3개(보스 1명)에서
+## 6개(보스 2명, 3층·6층)로 늘렸다.** 웹판은 층수 제한이 없는 끝없는
+## 하강(roguelike)이지만, 이 슬라이스는 여전히 "한 씬 안에 방을 나란히
+## 세운다"는 방식(§28-8 A안 진짜 오픈월드는 다음 몫)이라 무한 대신
+## 작은 폭으로 늘리는 쪽을 택했다 — REALM이 3→8→107로 단계를 밟은 것과
+## 같은 결.
+const ROOM_COUNT := 6
 
 ## "제외" 목록 5번(인물 등용) — 방마다 실제 역사 인물 하나씩(saga_core
 ## 105명 중 새로 골랐다 — GO가 이미 kr_yisunsin을 쓰고 있어 안 겹치게).
@@ -84,7 +89,9 @@ func _ready() -> void:
 	for i in range(ROOM_COUNT):
 		var cleared: bool = loaded and DungeonSaveState.is_room_cleared(i)
 		if not cleared:
-			_spawn_enemy(_room_origin_z[i], i + 1, i == ROOM_COUNT - 1)
+			## data-dungeon.js isBossFloor(floor)=floor%3==0 그대로 — 마지막
+			## 방뿐 아니라 3층마다(이 슬라이스는 3층·6층) 보스가 선다.
+			_spawn_enemy(_room_origin_z[i], i + 1, (i + 1) % 3 == 0)
 		else:
 			## 클리어한 방을 불러오면 저장된 위치가 그 방의 출구 트리거
 			## 안일 수 있다(마지막으로 나간 자리 그대로 복원하니까) —
