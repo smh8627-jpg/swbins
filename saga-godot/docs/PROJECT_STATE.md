@@ -6077,3 +6077,42 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   둘만 남는다 — 둘 다 새 UI/카메라 모드가 필요해 범위를 먼저 좁힐
   것. 그 밖엔 GO 밖(DUNGEON/STORY/FOREST 추가 확장·saga-unity 트랙)도
   고려할 자리.
+
+## GO 사진 모드 — VERTICAL_SLICE.md 26절 "제외" 목록 착수 (2026-09-14, 같은 날 이어서, "묻지말고 사가고돗 이어해")
+
+- 남은 둘(소문 시스템·사진 모드) 중 사진 모드를 먼저 골랐다 — 소문
+  시스템은 웹판(js/npc.js)도 "소문이 붙을 모양만 잡아 두고" 실제
+  내용은 끝내 안 만든 미완성 기능이라 새 콘텐츠 설계가 선행돼야
+  한다(범위 밖으로 계속 남김). 사진 모드는 기존 조각(HUD 라벨들·
+  camera_rig.gd의 드래그 회전/줌·Toast·player.gd)만 조립하면 되는
+  쪽이라 새 설계 없이 바로 좁힐 수 있었다.
+- `games/saga_go/ui/photo_mode_button.gd` 신규 — MobileHUD에 추가한
+  `PhotoModeButton`(📷)을 누르면 자신·`CaptureButton` 말고 HUD 나머지
+  (조이스틱·PartyLabel·QuestLabel·CodexLabel·WeatherLabel·SaveButton·
+  RendererDebugLabel)를 숨기고 `player.gd`의 새 `frozen` 필드를 켠다
+  (이동 입력을 무시 — 카메라 회전/줌은 camera_rig.gd가 이 버튼과
+  무관하게 이미 직접 입력을 받으므로 그대로 된다). 다시 누르면 전부
+  원상복구. `CaptureButton`(📸, 켜진 동안만 보임)을 누르면
+  `get_viewport().get_texture().get_image()`를 PNG로 `user://photos/`에
+  저장, Toast로 경로를 알려준다.
+- **헤드리스 한계 발견** — `get_viewport().get_texture().get_image()`가
+  헤드리스 null 렌더러에선 null을 준다(ASSET_GUIDE.md의 "MultiMesh
+  인스턴스별 transform이 항상 identity" 항목과 같은 종류의 엔진 한계 —
+  실제로 화면을 그리는 렌더러가 없어서다). 그대로 두면 `save_png()`
+  호출에서 크래시라, null이면 "사진 저장 실패 — 화면을 읽을 수 없다"
+  토스트로 안전하게 실패하도록 방어 코드를 넣었다 — 실제 GUI(진짜
+  렌더러)에서는 이 분기를 안 타고 정상 저장된다.
+- 검증: 헤드리스 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 세 번
+  연속 로그 완전 동일. 임시 씬(`_tmp_verify_photo.tscn`+`.gd`,
+  `TestVillage.tscn`을 실제로 인스턴스화)으로 버튼을 실제
+  `pressed.emit()`으로 눌러 켜짐 상태(조이스틱·PartyLabel 숨김,
+  CaptureButton 보임, player.frozen==true)·촬영 버튼을 눌러도 크래시
+  없이 토스트까지 도달(위 헤드리스 한계로 PNG 저장 자체는 여기선
+  확인 못 함)·다시 눌러 꺼짐 상태(전부 원상복구, frozen==false)까지
+  확인 후 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
+  확인은 아직(몰아서 받을 것) — 실제 PNG가 저장되는지, 사진 모드에서
+  카메라 구도가 자연스러운지, HUD가 깔끔하게 사라지는지 볼 것.
+- **다음에 할 일**: GO 26절 "제외"엔 이제 소문 시스템 하나만 남는다 —
+  새 콘텐츠(대사 문구·발생 조건) 설계가 필요해 범위부터 좁힐 것.
+  그 밖엔 GO 밖(DUNGEON/STORY/FOREST 추가 확장·saga-unity 트랙)도
+  고려할 자리.

@@ -18,6 +18,12 @@ const TURN_RATE := 12.0
 ## DungeonRunState를 모른다, games/saga_dungeon/player/boon_speed_sync.gd 참고).
 var speed_mult := 1.0
 
+## VERTICAL_SLICE.md 26절 "제외" 목록의 "사진 모드"(2026-09-14) —
+## `photo_mode_button.gd`가 켜고 끈다. 켜져 있는 동안은 이동 입력을 그냥
+## 무시한다(조이스틱/키보드 값을 읽지도 않는다) — camera_rig.gd는 이
+## 값과 무관하게 계속 입력을 받으므로 카메라 회전/줌은 그대로 된다.
+var frozen := false
+
 @onready var camera_rig: Node3D = $CameraRig
 @onready var visual: Node3D = $Visual
 @onready var _anim: AnimationPlayer = visual.find_child("AnimationPlayer", true, false)
@@ -37,6 +43,13 @@ func _physics_process(delta: float) -> void:
 		velocity.y -= GRAVITY * delta
 	else:
 		velocity.y = 0.0
+
+	if frozen:
+		velocity.x = 0.0
+		velocity.z = 0.0
+		_play_anim("idle")
+		move_and_slide()
+		return
 
 	var input_dir := _movement_input()
 	var move_dir := _world_direction(input_dir)

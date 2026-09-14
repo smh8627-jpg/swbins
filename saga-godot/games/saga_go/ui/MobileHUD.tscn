@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/ui/renderer_debug_label.gd" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://games/saga_go/ui/quest_label.gd" id="5"]
 [ext_resource type="Script" path="res://games/saga_go/ui/codex_label.gd" id="6"]
 [ext_resource type="Script" path="res://games/saga_go/ui/weather_label.gd" id="7"]
+[ext_resource type="Script" path="res://games/saga_go/ui/photo_mode_button.gd" id="8"]
 
 [node name="MobileHUD" type="CanvasLayer"]
 
@@ -119,6 +120,29 @@ offset_top = -100.0
 offset_right = -40.0
 offset_bottom = -40.0
 script = ExtResource("4")
+
+[node name="CaptureButton" type="Button" parent="."]
+visible = false
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -160.0
+offset_right = -170.0
+offset_bottom = -100.0
+text = "📸 촬영"
+
+[node name="PhotoModeButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -160.0
+offset_right = -40.0
+offset_bottom = -100.0
+script = ExtResource("8")
 
 [node name="RendererDebugLabel" type="Label" parent="."]
 anchor_left = 1.0
