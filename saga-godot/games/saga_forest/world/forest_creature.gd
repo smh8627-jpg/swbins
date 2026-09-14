@@ -50,6 +50,33 @@ extends CharacterBody3D
 ##   크림색. bawi(육중하고 느림)와 달리 재빠르고 넓게 돈다 — 같은
 ##   바이옴 안에서 "무겁게 버티는 놈"과 "가볍게 뛰어다니는 놈"으로 갈랐다.
 ##
+## **2026-09-14, 51장 "생태계" 축 — 바이옴마다 셋째 종을 보탰다.** 웹판
+## ANIMALS green 바이옴은 넷(사슴·토끼·다람쥐·새)까지도 있었으니 셋도
+## 과하지 않다. den은 forest_biome_scatter.gd CLEAR_SPOTS(주민·채집물·
+## 집·박물관·낚시터 17곳)와 기존 창작 몬스터 8곳까지 합쳐 25개 고정점
+## 전부에서 격자거리(체비셰프) 3 이상인 자리만 스크립트로 걸러 골랐다
+## (손으로 어림하지 않았다 — forest_creature_builder.gd 주석 참고).
+## - "hangari"(항아리도깨비, 어둑숲 — dokkaebi·bueong과 함께) — 토러스
+##   몸통+작은 구 머리, 지금까지 없던 "고리+구"다. 거의 안
+##   움직이고(wander_m 최솟값급) 놀라도 느리게 피한다(flee_speed 낮음)
+##   — dokkaebi(중간)·bueong(웅크렸다 순간에 남)과 다른 "묵직하고
+##   태평한" 셋째 축.
+## - "duduji"(두더지도깨비, 바위 지대 — bawi·yeomso와 함께) — 옆으로
+##   누운 캡슐 몸통+원뿔 주둥이 하나(지금까지 뿔·귀는 늘 둘이었는데
+##   처음으로 하나). 아주 좁게만 돌아다니지만(wander_m 최솟값, 굴 밖을
+##   잘 안 나온다는 인상) 놀라면 가장 빠르게 파고들듯 튄다(flee_speed가
+##   세 종 중 가장 높다).
+## - "gaemi"(개미도깨비, 버섯숲 — beoseot·dalpaeng와 함께) — 구 셋(머리·
+##   가슴·배)을 일렬로 잇고 더듬이 원기둥 둘을 얹는다, 지금까지 없던
+##   "구 사슬"이다. beoseot(가장 재빠름)·dalpaeng(가장 느림)
+##   사이 정확히 중간값으로 잡아 "평범한 축"을 채운다.
+## - "gaeguri"(개구리도깨비, 꽃밭 — kkot·nabi와 함께) — 누른 구 몸통+
+##   작은 구 눈 둘, "구+작은 구 둘" 조합은 처음이다(kkot은 구+토러스,
+##   nabi는 구+상자 날개). duduji와 함께 wander_m 공동 최솟값(둘 다
+##   0.8, 좁게만 움직인다)이면서 놀라면 폴짝 뛰듯 열두 종 통틀어 가장
+##   빠르게 도망친다(flee_speed 최댓값, bueong의 5.0보다도 높다) —
+##   "느긋하다 한 번에 튄다"는 개구리다운 인상.
+##
 ## 시각은 전부 primitive — 이 판의 몬스터 전용 GLB가 없다(버섯·가구가 이미
 ## 쓴 예외와 같은 이유). WorldCurveMaterial을 쓴다 — 이동하는 오브젝트도
 ## 구면 투영 대상이다(villager_builder.gd와 같은 결).
@@ -71,6 +98,12 @@ const COLOR_BUEONG := Color(0.36, 0.29, 0.24)        # 신규 창작색 — 어�
 const COLOR_DALPAENG_SHELL := Color(0.55, 0.42, 0.3) # 신규 창작색 — 흙빛 등딱지
 const COLOR_DALPAENG_HEAD := Color(0.74, 0.77, 0.62) # 신규 창작색 — 옅은 풀빛 머리
 const COLOR_YEOMSO := Color(0.78, 0.72, 0.6)         # 신규 창작색 — 크림빛
+const COLOR_HANGARI_BODY := Color(0.24, 0.2, 0.14)   # 신규 창작색 — 어둑숲 톤의 짙은 항아리 갈색
+const COLOR_HANGARI_HEAD := Color(0.4, 0.32, 0.2)    # 신규 창작색 — 몸통보다 옅은 흙빛
+const COLOR_DUDUJI := Color(0.34, 0.28, 0.22)        # 신규 창작색 — 바위 지대 톤의 두더지 갈회색
+const COLOR_GAEMI := Color(0.2, 0.12, 0.06)          # 신규 창작색 — 버섯숲 그늘에 묻히는 짙은 개미 갈색
+const COLOR_GAEGURI_BODY := Color(0.3, 0.52, 0.26)   # 신규 창작색 — 꽃밭 톤의 개구리 초록
+const COLOR_GAEGURI_EYE := Color(0.75, 0.78, 0.35)   # 신규 창작색 — 눈만 밝은 연두
 const IDLE_TIME_MIN := 1.5
 const IDLE_TIME_MAX := 3.5
 const FLEE_TIME := 2.5
@@ -128,6 +161,14 @@ func _spawn_visual() -> void:
 			_spawn_visual_dalpaeng()
 		"yeomso":
 			_spawn_visual_yeomso()
+		"hangari":
+			_spawn_visual_hangari()
+		"duduji":
+			_spawn_visual_duduji()
+		"gaemi":
+			_spawn_visual_gaemi()
+		"gaeguri":
+			_spawn_visual_gaeguri()
 		_:
 			_spawn_visual_dokkaebi()
 
@@ -409,6 +450,170 @@ func _spawn_visual_yeomso() -> void:
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(0.42, 0.4, 0.36)
 	cs.position = Vector3(0, 0.26, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 항아리도깨비 — 토러스(고리) 몸통 위에 작은 구 머리. 지금까지 없던
+## "고리+구" 조합(kkot은 구+토러스로 순서가 반대다).
+func _spawn_visual_hangari() -> void:
+	var body_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.9, COLOR_HANGARI_BODY)
+	var head_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.6, COLOR_HANGARI_HEAD)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := TorusMesh.new()
+	body_mesh.inner_radius = 0.14
+	body_mesh.outer_radius = 0.32
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.22, 0)
+	body.material_override = body_mat
+	add_child(body)
+
+	var head := MeshInstance3D.new()
+	var head_mesh := SphereMesh.new()
+	head_mesh.radius = 0.14
+	head_mesh.height = 0.26
+	head.mesh = head_mesh
+	head.position = Vector3(0, 0.42, 0)
+	head.material_override = head_mat
+	add_child(head)
+
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.28
+	cs.position = Vector3(0, 0.26, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 두더지도깨비 — 옆으로 누운 캡슐 몸통+원뿔 주둥이 하나. 지금까지 뿔·귀·
+## 날개는 늘 둘이었는데 처음으로 하나만 단다("파고드는 주둥이" 인상).
+func _spawn_visual_duduji() -> void:
+	var mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.85, COLOR_DUDUJI)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := CapsuleMesh.new()
+	body_mesh.radius = 0.22
+	body_mesh.height = 0.5
+	body.mesh = body_mesh
+	body.rotation.z = deg_to_rad(90.0)
+	body.position = Vector3(0, 0.22, 0)
+	body.material_override = mat
+	add_child(body)
+
+	var snout := MeshInstance3D.new()
+	var snout_mesh := CylinderMesh.new()
+	snout_mesh.top_radius = 0.0
+	snout_mesh.bottom_radius = 0.08
+	snout_mesh.height = 0.2
+	snout.mesh = snout_mesh
+	snout.rotation.x = deg_to_rad(90.0)
+	snout.position = Vector3(0, 0.2, 0.25)
+	snout.material_override = mat
+	add_child(snout)
+
+	var cs := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.22
+	shape.height = 0.5
+	cs.rotation.z = deg_to_rad(90.0)
+	cs.position = Vector3(0, 0.22, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 개미도깨비 — 구 셋(머리·가슴·배)을 일렬로 잇고 더듬이 원기둥 둘을
+## 얹는다. 지금까지 없던 "구 사슬" 조합(dalpaeng은 구 둘뿐이었다).
+func _spawn_visual_gaemi() -> void:
+	var mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.6, COLOR_GAEMI)
+
+	var abdomen := MeshInstance3D.new()
+	var abdomen_mesh := SphereMesh.new()
+	abdomen_mesh.radius = 0.14
+	abdomen_mesh.height = 0.26
+	abdomen.mesh = abdomen_mesh
+	abdomen.position = Vector3(0, 0.14, -0.2)
+	abdomen.material_override = mat
+	add_child(abdomen)
+
+	var thorax := MeshInstance3D.new()
+	var thorax_mesh := SphereMesh.new()
+	thorax_mesh.radius = 0.1
+	thorax_mesh.height = 0.2
+	thorax.mesh = thorax_mesh
+	thorax.position = Vector3(0, 0.14, 0.0)
+	thorax.material_override = mat
+	add_child(thorax)
+
+	var head := MeshInstance3D.new()
+	var head_mesh := SphereMesh.new()
+	head_mesh.radius = 0.09
+	head_mesh.height = 0.18
+	head.mesh = head_mesh
+	head.position = Vector3(0, 0.14, 0.18)
+	head.material_override = mat
+	add_child(head)
+
+	var ant_l := MeshInstance3D.new()
+	var ant_mesh := CylinderMesh.new()
+	ant_mesh.top_radius = 0.015
+	ant_mesh.bottom_radius = 0.02
+	ant_mesh.height = 0.18
+	ant_l.mesh = ant_mesh
+	ant_l.position = Vector3(-0.05, 0.26, 0.25)
+	ant_l.rotation.x = deg_to_rad(-40.0)
+	ant_l.material_override = mat
+	add_child(ant_l)
+
+	var ant_r: MeshInstance3D = ant_l.duplicate()
+	ant_r.position = Vector3(0.05, 0.26, 0.25)
+	add_child(ant_r)
+
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.2
+	cs.position = Vector3(0, 0.14, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 개구리도깨비 — 누른(스케일 낮춘) 구 몸통+작은 구 눈 둘. "구+작은 구
+## 둘" 조합은 처음이다(kkot은 구+토러스, nabi는 구+상자 날개).
+func _spawn_visual_gaeguri() -> void:
+	var body_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.55, COLOR_GAEGURI_BODY)
+	var eye_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.3, COLOR_GAEGURI_EYE)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := SphereMesh.new()
+	body_mesh.radius = 0.3
+	body_mesh.height = 0.34
+	body.mesh = body_mesh
+	body.scale = Vector3(1.0, 0.7, 1.0)
+	body.position = Vector3(0, 0.16, 0)
+	body.material_override = body_mat
+	add_child(body)
+
+	var eye_l := MeshInstance3D.new()
+	var eye_mesh := SphereMesh.new()
+	eye_mesh.radius = 0.07
+	eye_mesh.height = 0.14
+	eye_l.mesh = eye_mesh
+	eye_l.position = Vector3(-0.12, 0.32, 0.12)
+	eye_l.material_override = eye_mat
+	add_child(eye_l)
+
+	var eye_r: MeshInstance3D = eye_l.duplicate()
+	eye_r.position = Vector3(0.12, 0.32, 0.12)
+	add_child(eye_r)
+
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = 0.26
+	cs.position = Vector3(0, 0.16, 0)
 	cs.shape = shape
 	add_child(cs)
 

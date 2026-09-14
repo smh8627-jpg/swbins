@@ -31,6 +31,14 @@ const ForestCreature := preload("res://games/saga_forest/world/forest_creature.g
 ## 골랐다 — 자기 바이옴 안, 모든 기존 고정 자리(주민 6·채집물 8·집·
 ## 박물관·낚시터·기존 창작 몬스터 4종)에서 격자거리 3 이상. `forest_
 ## creature.gd`의 종별 주석에 각 형태·성격 근거가 있다.
+##
+## **2026-09-14, 같은 날 이어서 — 바이옴마다 셋째 종을 보탰다.** den은
+## 이번엔 손으로 어림하지 않고, forest_biome_scatter.gd CLEAR_SPOTS(17)
+## +기존 창작 몬스터 8곳 = 고정점 25개 전부에서 체비셰프 거리 3 이상인
+## "." 타일만 걸러(Node.js로 전수조사) 그중 하나씩 골랐다 — 어둑숲
+## (18,6)·바위 지대(20,17)·버섯숲(13,12)·꽃밭(9,2), 넷 다 거리 3 이상
+## 확인됨(바위 지대는 4). `forest_creature.gd`의 종별 주석에 각 형태·
+## 성격 근거가 있다.
 const CREATURES := [
 	{"id": "creature_dokkaebi", "kind": "dokkaebi", "den": Vector2i(19, 3),
 	 "wander_m": 4.0, "flee_m": 6.0, "speed": 1.5, "flee_speed": 3.5},
@@ -48,6 +56,14 @@ const CREATURES := [
 	 "wander_m": 1.0, "flee_m": 2.0, "speed": 0.4, "flee_speed": 0.6},
 	{"id": "creature_yeomso", "kind": "yeomso", "den": Vector2i(16, 17),
 	 "wander_m": 4.0, "flee_m": 4.5, "speed": 1.8, "flee_speed": 3.8},
+	{"id": "creature_hangari", "kind": "hangari", "den": Vector2i(18, 6),
+	 "wander_m": 1.5, "flee_m": 3.0, "speed": 0.6, "flee_speed": 1.5},
+	{"id": "creature_duduji", "kind": "duduji", "den": Vector2i(20, 17),
+	 "wander_m": 0.8, "flee_m": 2.5, "speed": 0.6, "flee_speed": 4.2},
+	{"id": "creature_gaemi", "kind": "gaemi", "den": Vector2i(13, 12),
+	 "wander_m": 2.25, "flee_m": 2.5, "speed": 1.2, "flee_speed": 2.4},
+	{"id": "creature_gaeguri", "kind": "gaeguri", "den": Vector2i(9, 2),
+	 "wander_m": 0.8, "flee_m": 4.0, "speed": 0.9, "flee_speed": 5.5},
 ]
 
 
