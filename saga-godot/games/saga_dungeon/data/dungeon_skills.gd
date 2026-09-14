@@ -158,6 +158,19 @@ class_name DungeonSkills
 ## 쿨다운(0.7초)은 이미 초 단위라 그대로 옮긴다. **랭크가 하는 일** —
 ## 데미지가 아니라 **개체 수**(`round(value_at(rank))`)를 늘린다(원작
 ## `summon(Math.round(v), ...)` 그대로) — 다른 무예와 결이 다르다.
+##
+## **2026-09-15, 또 이어서 — 궁장(archer) br=3 row=0 `a_chain`(연환시,
+## shape:'chain') 추가**(`games/saga_dungeon/player/skill_chain.gd` 참고).
+## 이걸로 웹판의 아홉 모양(bolt·swing·nova·dash·buff·heal·curse·summon·
+## chain) 전부가 이 슬라이스에 있다 — 궁장의 둘째 활성 무예(첫째는
+## a_dashshot, dash). nova·curse처럼 "제자리 반경"이 아니라 원작
+## `applyShapeSkill()`의 'chain' 그대로 **가장 가까운 적부터 시작해, 아직
+## 안 맞은 적 중 가장 가까운 쪽으로 최대 hops(기본 3)번 옮겨 붙는다** —
+## 튈 때마다 12%씩 약해진다(`v * skillMul() * (1 - hop*0.12)`, 원작 그대로).
+## 탐색 반경(`sk.r`, 다음 표적을 찾는 거리)은 nova·curse와 같은 문제라
+## 같은 요령으로 옮겼다 — a_chain은 원작에 `r` 필드가 없어(기본값 260px)
+## `260 ÷ BASE_REACH(34) ≈ 7.65`m를 쓴다. hops는 원작에 없으면 3(data-
+## skill.js `sk.hops || 3` 그대로), a_chain도 hops 필드가 없어 3.
 
 const MAX_RANK := 5
 
@@ -174,6 +187,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "a_dashshot", "cls": "archer", "br": 5, "row": 0, "name": "질주사(疾走射)",
 		"shape": "dash", "cd": 6.0,
 		"eff": "", "v": 1.3, "grow": 0.3, "desc": "몸을 날려 스치며 벤다." },
+	## 궁장(弓將) br=3 row 0 — data-skill.js 그대로(cost=22는 기력이 없어
+	## 안 씀). r=7.65는 위 헤더의 chain 환산(260÷34) 참고. hops·el 없음(원작도
+	## 없음 → hops 기본 3, el 기본 phys).
+	{ "key": "a_chain", "cls": "archer", "br": 3, "row": 0, "name": "연환시(連環矢)",
+		"shape": "chain", "cd": 9.0, "r": 7.65,
+		"eff": "", "v": 1.7, "grow": 0.4, "desc": "가까운 적을 꿰고 다음 적으로 튄다." },
 	## 무장(武將) br=0 row 0 — data-skill.js 그대로. shape/cd는 원작 값
 	## 그대로(cost=22는 기력이 없어 안 씀, kb=30은 넉백이 없어 안 씀).
 	{ "key": "w_whirl", "cls": "warrior", "br": 0, "row": 0, "name": "회전참(回轉斬)",

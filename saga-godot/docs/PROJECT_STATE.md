@@ -6584,3 +6584,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 신규: skill_summon.gd·summon_button.gd(👥)·입력 액션 dungeon_skill_8(M키).
 - 검증: 헤드리스 3회 로그 동일. 임시 씬 9항목 PASS(랭크1=분신1개·6m 밖 적 추격+타격 실측 hp 24→9·수명만료 자멸). GO/FOREST/STORY/REALM 회귀 오류 0.
 - 다음: 남은 shape는 chain뿐 — 이걸로 8가지 모양 중 7개 완료. GUI 실기 확인 아직(몰아서 받을 것, 여덟 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 궁장의 둘째 활성 무예: 연환시(a_chain, chain) (2026-09-15, 같은 날 이어서, "사가고돗 이어해 묻지말고 계속")
+
+- 궁장(archer) br=3 row=0 a_chain 신규 — 원작 dungeon.js applyShapeSkill()의 'chain' 그대로 옮겼다. 이걸로 웹판의 아홉 모양(bolt·swing·nova·dash·buff·heal·curse·summon·chain) 전부가 이 슬라이스에 있다.
+- nova·curse(제자리 반경)와 달리 **가장 가까운 적부터 시작해, 아직 안 맞은 적 중 가장 가까운 쪽으로 최대 hops(기본 3)번 옮겨 붙는다** — 튈 때마다 12%씩 약해짐(원작 그대로). 탐색 반경(sk.r)은 nova·curse와 같은 픽셀→미터 환산(260÷34≈7.65m, a_chain은 원작에 r 필드가 없어 기본값 260 사용).
+- 신규: skill_chain.gd·chain_button.gd(🔗)·입력 액션 dungeon_skill_9(K키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 12항목 PASS(플레이어 최근접 표적 우선·홉마다 12% 감쇠 실측 23→20→17·사거리 밖 셋째 홉 미적중·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 아홉 모양 전부 완료 — 51장 "장비→빌드" 축은 남은 폭(각 직업 셋째 활성 무예 등)을 다음 세션이 웹판과 비교해 좁힐 것. 그 밖엔 FOREST(51장 "생태계"·"생활" 남은 소소한 몫)·saga-unity 트랙도 있음. GUI 실기 확인 아직(몰아서 받을 것, 아홉 키/버튼 전부).
