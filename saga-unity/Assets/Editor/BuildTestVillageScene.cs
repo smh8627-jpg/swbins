@@ -442,7 +442,9 @@ namespace Saga.EditorTools
             SetPrivateField(hud, "label", text);
         }
 
-        /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS.</summary>
+        /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS·레벨·
+        /// 사명·좌표(DebugHud.cs 클래스 주석 참고, 2026-09-14에 세 줄 추가돼
+        /// 높이를 100→220으로 늘렸다).</summary>
         private static void BuildDebugOverlay()
         {
             var canvasGo = new GameObject("DebugUI");
@@ -460,7 +462,7 @@ namespace Saga.EditorTools
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(20f, -20f);
-            rect.sizeDelta = new Vector2(500f, 100f);
+            rect.sizeDelta = new Vector2(700f, 220f);
 
             var text = textGo.AddComponent<Text>();
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");

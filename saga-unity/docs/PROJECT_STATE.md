@@ -4665,3 +4665,37 @@ DUNGEON "빌드"가 STORY 선택과 같은 결(작고 되돌리기 쉽고 새 �
 **남은 51장 빈 칸**: REALM "대규모 콘텐츠"(적국 확장) 하나뿐 — 새
 세력·시나리오 밸런스 설계가 필요해 방향 없이는 손 안 댐(66-1
 재확인·STORY 선택 초기 판단과 같은 기준).
+
+## 같은 날 여섯 번째 후속 — GO 디버그 오버레이 확장 (2026-09-14, 여덟 번째 "이어해")
+
+51장은 REALM "대규모 콘텐츠"만 남기고 다 닫혀서(방향 대기, 손 안 댐),
+fork로 51장 밖에서 다른 작고 안전한 빈 칸을 찾았다. PLAN.md 44~49장이
+디버그 화면에 나열한 목록(FPS/Draw Calls/Visible Objects/Enemy Count/
+NPC Count/Memory/Player Position/Current Quest/Player Level/Current
+Zone) 중, GO `DebugHud.cs`(다섯 판 중 디버그 오버레이가 있는 유일한
+게임)는 렌더러 이름·FPS 둘뿐이었고 클래스 주석 자체가 "그 시스템 자체가
+없어서" 나머지를 안 넣었다고 적어 뒀었다 — 다시 보니 그새 GO에 실제로
+생긴 시스템(`PlayerStats.Level`·`QuestState.BanditQuest`)에 그냥
+얹을 수 있는 항목이 셋 있었다.
+
+- **Player Level·Current Quest·Player Position 세 줄을 추가.** Enemy/
+  NPC Count·Current Zone은 여전히 안 넣었다 — GO 사건은 상주 리스트가
+  아니라 트리거식 1회성(`BanditEncounter.cs` 등)이라 "개수"가 안 맞고,
+  맵도 이름 붙은 지역 구분이 아직 없다(`TestMapData.cs`). Draw Calls/
+  Visible Objects/Memory는 PLAN.md 자체가 대안으로 제시한 Unity
+  Profiler 몫(온스크린 라벨로 뽑을 공식 API가 없다) — 여전히 손 안 댐,
+  전체 목록을 억지로 다 채우지 않았다.
+  - `BuildTestVillageScene.BuildDebugOverlay()` 텍스트 박스 높이를
+    100→220으로(4줄이 됐으니).
+- **테스트 공백 하나 더 찾음** — `PlaytestHeadless.cs`(GO 스모크
+  테스트)는 DebugHud를 한 번도 확인한 적이 없었다. 0.5초(unscaled)
+  FPS 타이머가 배치 모드에선 몇 프레임 안에 절대 안 찬다는 걸 먼저
+  확인하고(다른 Playtest들이 이미 겪은 "배치 모드는 실시간보다 훨씬
+  빠르다" 함정과 같은 종류), 타이머를 기다리는 대신 private `Refresh()`
+  를 리플렉션으로 직접 불러 텍스트에 레벨/사명/좌표가 실제로 채워지는지
+  확인하는 단계를 추가했다. 배치 모드 컴파일 → `BuildTestVillageScene`
+  재빌드 → `PlaytestHeadless` 3연속 통과(`lv 1 · quest: - · pos: 고정
+  좌표` — fps 숫자만 배치 타이밍에 따라 1~2 사이로 흔들리는데 이건
+  원래도 비결정적인 측정값이라 무해하다).
+- 다른 네 판은 파일이 전혀 안 겹쳐(GO 전용 파일만 고침) 무관 확인
+  생략.
