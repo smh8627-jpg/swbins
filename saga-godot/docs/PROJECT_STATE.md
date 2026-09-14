@@ -6516,3 +6516,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - dungeon_equipment_state.gd: SLOT_NAMES 8부위로 확장, `_active_items()`/`repair_all_cost()`/`repair_all()`도 하드코딩 셋 대신 SLOT_NAMES 순회로 일반화. `restore()`는 위치 인자 대신 Dictionary 하나로 변경(save_state.gd가 SLOT_NAMES 돌며 채워 넘김).
 - 검증: 헤드리스 3회 로그 동일. 임시 씬으로 21항목 PASS(세트 3점 완성·내구·감정·save/load 왕복 등). 실기 save_dungeon.json은 Bash로 스크립트 실행 전/후에 백업·복원(memory 교훈 반영). GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 12절.
 - 다음: DUNGEON "장비"는 이걸로 사실상 완결. 남은 축은 "빌드"(SETS의 skill 필드가 자리, 스킬트리/핫바 시스템). 또는 GO/FOREST/STORY/REALM 추가 확장·saga-unity.
+
+## DUNGEON 51장 "장비→빌드" — 무예(스킬) 첫 걸음: 직업별 passive 세 단 (2026-09-14, 같은 날 이어서, "사가도곳 이어해")
+
+- 웹판 무예 120개 중 새 전투 코드 없이 바로 꽂히는 shape:'passive' 열넷(+prereq 체인 유지용 s_wave 하나=15개)만 첫 슬라이스로 옮겼다. dungeon_run_state.gd::_sum_eff()가 이미 은사/장비/부대를 합산하던 자리에 DungeonSkillState를 네 번째로 이어 붙여 새 전투 시스템 없이도 실전(crit_chance 등)에 바로 반영된다.
+- 새 파일: dungeon_skills.gd(데이터)·dungeon_skill_state.gd(autoload, points/ranks/invest/world_eff_sum)·skill_button.gd(HUD 🥋 버튼). 점수는 원작처럼 "인물 레벨"이 아니라 이미 있는 리듬(방 클리어=은사 하나 고르는 자리)에 얹어 그 순간 무기가 정하는 직업에 1점씩.
+- 정직하게 밝힘: 15개 중 11개만 실제 효과(critPct/reachPct/atkSpdPct/hpPct/atkPct/drainPct/guardPct, 기존 getter가 소비), 나머지 넷(bolt 자체·mpRegen·skillPct·allResPct)은 소비 시스템이 없어 값만 쌓임(문서화된 의도).
+- 검증: 헤드리스 3회 로그 동일(새 스크립트 .uid 등록 필요했음 — 과거 함정 재확인). 임시 씬 20항목 PASS, a_eye 1단 투자 시 DungeonRunState.crit_chance()가 실제로 +4 오르는 실전 경로까지 확인. save_dungeon.json 백업/복원. GO/FOREST/STORY/REALM 회귀 오류 0. 자세한 내용 VERTICAL_SLICE_DUNGEON.md 13절.
+- 다음: 남은 활성 무예(bolt/swing/nova/dash/buff/heal/summon)는 투사체·범위판정·소환 등 새 전투 코드가 필요해 훨씬 큰 몫 — 다음 세션이 판단할 자리. GUI 실기 확인 아직(몰아서 받을 것).

@@ -67,8 +67,11 @@ func restore(saved: Dictionary) -> void:
 ## 같은 eff 키 이름을 쓰므로 여기서 같이 더한다(DungeonEquipmentState.
 ## world_eff_sum 참고). "제외" 목록 5번(인물 등용)에서 DungeonPartyState도
 ## 같은 자리에 이어 붙였다(atkPct·hpPct만 반응, dungeon_party_state.gd
-## 참고). 이 함수 하나로 atk_mult()·hp_mult()·crit_chance() 등 아래 모든
-## getter가 은사+장비+부대를 자동으로 같이 반영한다.
+## 참고). PLAN.md 51장 "장비→빌드"(2026-09-14)에서 DungeonSkillState도
+## 네 번째로 이어 붙였다(critPct·reachPct·atkSpdPct·hpPct·atkPct·
+## drainPct·guardPct에 반응, dungeon_skill_state.gd 참고). 이 함수
+## 하나로 atk_mult()·hp_mult()·crit_chance() 등 아래 모든 getter가
+## 은사+장비+부대+무예를 자동으로 같이 반영한다.
 func _sum_eff(eff_key: String) -> float:
 	var total := 0.0
 	for key in boons:
@@ -77,6 +80,7 @@ func _sum_eff(eff_key: String) -> float:
 			total += float(b.eff[eff_key]) * int(boons[key])
 	total += DungeonEquipmentState.world_eff_sum(eff_key)
 	total += DungeonPartyState.world_eff_sum(eff_key)
+	total += DungeonSkillState.world_eff_sum(eff_key)
 	return total
 
 

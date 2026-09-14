@@ -345,6 +345,12 @@ func _finish_exit(body: Node3D, room_index: int, is_final: bool) -> void:
 	for slot_name in broke:
 		var it := DungeonEquipmentState.item_for(slot_name)
 		Toast.show(self, "🔧 %s 이(가) 부서졌다 — 새로 주울 때까지 능력치를 못 낸다." % DungeonItems.item_name(it), 4.0)
+	## PLAN.md 51장 "장비→빌드"(2026-09-14) — 원작은 "인물 레벨만큼" 무예
+	## 점수를 주지만 이 슬라이스엔 인물 레벨이 없다. 은사와 같은 리듬(방
+	## 클리어마다 하나)을 그대로 빌려, 그 순간 장착 중인 무기가 정하는
+	## 직업에 점 하나를 준다(dungeon_skill_state.gd 헤더 참고).
+	var cls_key := DungeonItems.class_key_for_weapon(DungeonEquipmentState.weapon)
+	DungeonSkillState.award_point(cls_key)
 	DungeonSaveState.mark_room_cleared(room_index)
 	DungeonSaveState.save(body)
 	if is_final:

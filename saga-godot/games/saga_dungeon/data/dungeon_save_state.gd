@@ -90,6 +90,10 @@ func save(player: Node3D) -> void:
 		## §"제외" 6번(결사) — 순수 추가 필드, 버전 안 올림.
 		"hardcore": DungeonHardcoreState.hardcore,
 		"fallen": DungeonHardcoreState.fallen,
+		## PLAN.md 51장 "장비→빌드"(2026-09-14) — 무예 랭크도 순수 추가
+		## 필드(버전 안 올림).
+		"skill_points": DungeonSkillState.points,
+		"skill_ranks": DungeonSkillState.ranks,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -162,6 +166,11 @@ func try_load() -> bool:
 	DungeonHardcoreState.restore(
 		bool(hardcore),
 		fallen if typeof(fallen) == TYPE_DICTIONARY else {})
+	var skill_points: Variant = data.get("skill_points", {})
+	var skill_ranks: Variant = data.get("skill_ranks", {})
+	DungeonSkillState.restore(
+		skill_points if typeof(skill_points) == TYPE_DICTIONARY else {},
+		skill_ranks if typeof(skill_ranks) == TYPE_DICTIONARY else {})
 	return true
 
 

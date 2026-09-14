@@ -470,3 +470,69 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   건 "빌드"(스킬트리·핫바처럼 장비를 넘어선 조합 시스템, SETS의
   `skill` 필드가 원래 이 자리다) — DUNGEON 밖(GO/FOREST/STORY/REALM
   추가 확장·saga-unity 트랙)을 고려할 자리이기도 하다.
+
+## 13. 51장 "장비→빌드" — 무예(스킬) 첫 걸음: 직업별 passive 세 단 (2026-09-14, 같은 날 이어서, "사가도곳 이어해")
+
+- 지난 절이 남긴 "빌드"(스킬트리·핫바)로 넘어갔다. 웹판 `data-skill.js`
+  는 직업 5 × 갈래 8 × 단 3 = 120개 무예를 갖지만, 그중 **투사체·
+  범위판정·소환 같은 새 전투 코드를 하나도 안 짜도 바로 꽂히는 것은
+  `shape:'passive'` 열넷뿐**이었다 — `dungeon_run_state.gd::_sum_eff()`
+  가 이미 은사·장비·부대 세 갈래를 world eff 키(atkPct·hpPct·critPct·
+  reachPct·atkSpdPct·drainPct·guardPct)로 합산해 melee_attack.gd·
+  player_health.gd가 실전에서 쓰고 있어, 여기에 "무예 랭크"라는 **네
+  번째 자리**만 얹으면 끝이었다. 이 열넷(정확히는 br=2 branch, 책사만
+  row0 `s_wave`가 passive가 아니지만 원작의 "앞 단에 1점 있어야 다음
+  단"(prereq) 규칙을 지키려고 함께 옮겼다 — 총 15개)을 첫 슬라이스로
+  잡았다.
+- 새 파일 `dungeon_skills.gd`(`class_name DungeonSkills`, RefCounted)
+  — SKILLS 15종(값 하나 안 바꿈)·MAX_RANK(5)·`skill_by_key`/`skills_of`/
+  `value_at`(v+grow*(rank-1))/`prereq_of`. **직업(cls) 표는 새로 안
+  만들었다** — dungeon_items.gd의 `class_key_for_weapon()`/
+  `CLASS_NAMES`(무기 look이 직업을 정하는 이미 있는 표)를 그대로 쓴다.
+- 새 파일 `dungeon_skill_state.gd`(autoload `DungeonSkillState`) —
+  `dungeon_party_state.gd::world_eff_sum()`과 완전히 같은 계약. `points`
+  (직업별 미사용 점수)·`ranks`(무예별 랭크), `award_point`/`invest`/
+  `can_invest`(점수·MAX_RANK·선행 셋 다 확인)/`restore`/`world_eff_sum`.
+  `dungeon_run_state.gd::_sum_eff()`에 이 함수를 네 번째로 이어 붙였다
+  (한 줄 추가) — `atk_mult()`·`hp_mult()`·`crit_chance()` 등 기존
+  getter가 손 안 대도 무예 랭크를 자동으로 반영한다.
+- **점수를 얻는 자리** — 원작은 "인물 레벨만큼"인데 이 슬라이스엔
+  인물 레벨이 없다. 새 시스템을 만들지 않고 이미 있는 리듬(방
+  클리어마다 은사 하나 고르는 그 자리, `test_room.gd::_finish_exit()`)
+  에 그대로 얹었다 — 방을 클리어할 때마다, **그 순간 장착 중인 무기가
+  정하는 직업**에 점 하나. `dungeon_save_state.gd`에 `skill_points`/
+  `skill_ranks` 순수 추가(버전 안 올림).
+- UI: `skill_button.gd`(신규, vendor_button.gd·socket_button.gd와 같은
+  결 — HUD 버튼 하나가 ChoicePrompt를 연다) + `DungeonHUD.tscn`에
+  `SkillButton`(🥋) 노드 추가. 지금 장착한 무기의 직업 무예 셋을 보여주고
+  누르면 투자, 실패 이유(점수 없음·선행 미달·만랭크)는 토스트로.
+- **정직하게 밝혀 둔다** — 15개 중 실제로 지금 효과를 내는 건 11개뿐
+  (critPct·reachPct·atkSpdPct·hpPct×2·atkPct·drainPct×2·guardPct, 전부
+  `dungeon_run_state.gd`가 이미 소비 중). 나머지 넷(`s_wave`의 bolt
+  자체·`mpRegen`×2·`skillPct`×2·`allResPct`)은 그 채널을 소비할 시스템
+  (투사체·기력·활성 무예 위력 배율·결별 저항 합산)이 아직 없어 값만
+  쌓이고 조용히 아무 효과가 없다 — `dungeon_run_state.gd` 헤더의
+  "goldPct(경제 시스템 없음)"과 같은 결의 판단이다, 값을 지어내지
+  않았다.
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 6`
+  세 번 연속 로그 완전 동일(md5 일치) — 새 스크립트 둘(`dungeon_
+  skills.gd`·`skill_button.gd`)이 `.uid` 없이 만들어져 `class_name`이
+  안 풀리는 최초 실패를 한 번 겪었고(과거 세션이 이미 문서화해 둔
+  함정, `--headless --editor --quit`으로 재확인 후 해결), `project.
+  godot`엔 내가 더한 autoload 한 줄 말고 다른 변화가 없는 것도 diff로
+  재확인했다. 임시 씬으로 20항목 검증(SKILLS 표·prereq_of 경계(row0
+  없음/row2가 row1을 요구)·value_at 공식·점수 없으면 row0도 투자
+  불가·선행 없으면 row1 불가·MAX_RANK 상한·**직업별 점수 완전 분리**
+  (archer 투자가 warrior 점수에 안 샘)·**실전 경로**(`a_eye` 1단
+  투자 시 `DungeonRunState.crit_chance()`가 정확히 +4 오르는 것까지
+  확인 — 데이터·집계뿐 아니라 실제 소비 지점까지)·save/load 왕복)
+  전부 PASS. 실기 `save_dungeon.json`은 Bash로 실행 전/후 백업·복원,
+  diff로 바이트 일치 재확인. GO·FOREST·STORY·REALM 회귀도 헤드리스
+  오류 0건. `git status`로 의도한 여섯 파일(신규 스크립트 둘 + `.uid`
+  둘 + 기존 다섯 수정)만 확인.
+- **다음에 할 일**: 남은 br 일곱 갈래(bolt·swing·nova·dash·buff·heal·
+  summon 등 활성 무예)는 전부 투사체·범위 판정·소환 같은 새 전투
+  코드가 있어야 해 훨씬 큰 몫이다 — 이번처럼 "새 시스템 없이 바로
+  꽂히는 것"이 아니다. GUI 실기 확인은 아직(몰아서 받을 것, HUD에
+  버튼이 하나 늘어난 것도 함께 볼 것). DUNGEON 밖(GO/FOREST/STORY/
+  REALM 추가 확장·saga-unity 트랙)을 고려할 자리이기도 하다.
