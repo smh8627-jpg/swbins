@@ -123,6 +123,26 @@
     { key: 'space_astronaut1', body: PEOPLE_SPACE + 'Astronaut1.glb', anim: PEOPLE_SPACE + 'Astronaut1.glb' }
   ];
 
+  /* 2026-09-14 — PLAN §46-3 "다음에 이어갈 것" 둘째 항목: 우주기지(§45~46,
+   * spaceBaseSpot) 를 지금까지는 다른 자리에서 빌려 온 fence·cart·crate·
+   * lantern(전부 우주기지와 무관한 팩)로만 채웠었다. §46-2 가 "poly.pizza
+   * 직접 다운로드는 이 환경에서 SSL 로 막혀 있다"고 적어 둔 것을 이번에
+   * 다시 확인해 보니(GitHub `api.github.com`/`raw.githubusercontent.com`
+   * 은 원래도 열려 있었다 — 다섯 판 CLAUDE.md), 실제로 이번 세션에선
+   * `poly.pizza`/`static.poly.pizza` 도 직접 응답했다(막혔던 것이 상시가
+   * 아니라 그때그때 환경 사정이었던 듯). 그래도 이 저장소가 이미
+   * Frog.glb 등에 써 온 미러(`trebeljahr/quaternius-showcase`, saga-go·
+   * saga-dungeon도 같은 미러를 쓴다)로 그대로 받았다 — 배달원 우주복과
+   * **같은 Ultimate Space Kit 팩**(Quaternius, CC0)이라 출처가 이미 이
+   * 판에 확인돼 있는 것과 같다. 새로 받은 여섯 — 본관(Base_Large)·
+   * 오두막(House_Single)·측지돔(GeodesicDome)·로버(Rover_1)·태양광판
+   * (SolarPanel_Ground)·메카(Mech_FinnTheFrog, 순전히 장식 — PLAN 45절
+   * 표 "세워 두고 살펴보는 장식+상호작용 소품, 새 탈것 시스템 불필요"
+   * 그대로) — 전부 deco:true 로만 놓는다(village.js), 새 상호작용은
+   * 하나도 안 늘렸다. 출처·용량은 assets/ASSET_LICENSES.md 참고. */
+  var BLD_SPACE = 'assets/models/buildings/space/';
+  var PROP_SPACE = 'assets/models/props/space/';
+
   /** 되돌림 자리 — 실사 바위가 안 맞으면 이 값으로 register() 두 줄이면 돌아간다:
    *    asset3d.register('rock', ROCK_STYLIZED.rock);
    *    asset3d.register('rock:moss', ROCK_STYLIZED['rock:moss']);
@@ -269,6 +289,14 @@
        'building:mail'(우편함)이 이미 쓰는 box_small.gltf.glb를 같은
        파일 그대로 새 kind로 한 줄 더 등록한 것뿐이다 */
     'crate': PROP + 'box_small.gltf.glb',
+    /* 우주기지 확충(2026-09-14, PLAN 46-3절 "다음에 이어갈 것" — 위 BLD_SPACE
+       주석 참고) — 이번엔 그 팩 자체(건물·로버·메카)를 처음 받았다 */
+    'building:spaceBase': BLD_SPACE + 'Base_Large.glb',
+    'building:spaceHouse': BLD_SPACE + 'House_Single.glb',
+    'building:spaceDome': BLD_SPACE + 'GeodesicDome.glb',
+    'rover': PROP_SPACE + 'Rover_1.glb',
+    'solarPanel': PROP_SPACE + 'SolarPanel_Ground.glb',
+    'mech': PROP_SPACE + 'Mech_FinnTheFrog.glb',
     /* 폐허(2026-09-10, 퓨전 방향 — PLAN 10절 "폐허") — saga-go·saga-dungeon
        이 이미 CC0 확인해 둔 Quaternius 무너진 아치(modular_dungeon_1 팩)를
        그대로 복사(md5 saga-go 쪽과 동일, ASSET_LICENSES.md 참고) */
