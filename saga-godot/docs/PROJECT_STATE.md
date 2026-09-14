@@ -6544,3 +6544,33 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   세트 나머지 조각이지만 범위 밖으로 남긴다. 다음은 FOREST 넷째 종
   또는 saga-unity 트랙을 고려할 자리 — "모두 이어서해" 지시에 따라
   다음 세션이 이어서 FOREST를 볼 차례로 남겨 둔다.
+
+## FOREST 51장 "생태계" 축 — meadow·dark에만 넷째 종 (2026-09-14, 같은 날 이어서, "모두 이어서해")
+
+- DUNGEON 갑주 항목이 남긴 다음 갈래(FOREST 넷째 종)를 이었다. 지금까지
+  "바이옴마다 균등하게 셋씩"이던 패턴을 웹판 ANIMALS와 다시 대조해
+  깼다 — 원작은 meadow·dark 4종, rocky 3종, mushroom 2종(+희귀 1)으로
+  애초에 안 균등했고, 이 슬라이스는 넷 다 3종씩이라 rocky는 이미
+  원작과 같고 mush는 오히려 원작보다 많다. 그래서 이번엔 아직 원작
+  수(4)에 못 닿은 meadow·dark 둘에만 넷째를 보탰다(rocky·mush는
+  건드리지 않음) — "다음에 할 일"에 남아 있던 우려("이미 충분히
+  붐빈다")를 실제 원작 대조로 확인해 정확한 범위로 좁힌 셈.
+- 두 종: "반딧불도깨비"(bandi, 꽃밭 — 원기둥+토러스 고리, 금빛,
+  flee_m 6.5로 예민하지만 flee_speed 2.0으로 도망은 굼뜨다) ·
+  "그림자도깨비"(geurimja, 어둑숲 — 상자+작은 구 눈, 거의 검정,
+  dark 그룹 최저 flee_m 2.0에 극단적이지 않은 flee_speed 2.8로
+  "무난하고 둔감한" 축). den은 CLEAR_SPOTS 17+기존 창작 몬스터
+  12곳=29개 고정점 전수조사로 meadow(9,8)·dark(22,8) 골랐다(체비셰프
+  거리 3). 자세한 내용은 docs/VERTICAL_SLICE_FOREST.md 8절 참고.
+- 검증: 헤드리스 임포트 오류 0건, TestVillageForest.tscn 3회 로그
+  완전 동일(md5 일치). Node.js 정적 파싱(14개 den 중복 0·타일·biome
+  일치)에 더해, 오토로드 없이 forest_creature_builder.gd 하나만
+  가볍게 인스턴스화하는 SceneTree 스크립트(`await process_frame`으로
+  `_ready()` 대기)로 den 월드좌표·biome_at()·네 수치·전체 14마리
+  스폰까지 런타임 재확인. GO·DUNGEON·REALM·STORY 회귀도 오류 0건.
+  `.import` 잡음만 되돌리고 project.godot는 안 건드려짐 확인, git
+  status로 스크립트 2개만 확인. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: meadow·dark도 원작 밀도에 닿아 "생태계" 축의
+  "동물" 갈래는 이걸로 마무리로 본다. 남은 갈래는 "채집→마을→생활"
+  (FOREST 51장) 또는 DUNGEON 남은 여섯 부위(helm·glove·boot·ring·
+  neck)·saga-unity 트랙 — 다음 세션이 이어서 판단할 자리.

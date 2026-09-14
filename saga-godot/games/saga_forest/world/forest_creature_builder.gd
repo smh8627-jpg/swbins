@@ -39,6 +39,12 @@ const ForestCreature := preload("res://games/saga_forest/world/forest_creature.g
 ## (18,6)·바위 지대(20,17)·버섯숲(13,12)·꽃밭(9,2), 넷 다 거리 3 이상
 ## 확인됨(바위 지대는 4). `forest_creature.gd`의 종별 주석에 각 형태·
 ## 성격 근거가 있다.
+##
+## **2026-09-14, 같은 날 이어서 — 넷째 종을 meadow·dark 둘에만 보탰다**
+## (rocky·mush는 원작 밀도에 이미 닿거나 넘어서 제외 — forest_creature.gd
+## 헤더의 2026-09-14 "넷째 종" 항목 참고). den도 같은 방식(CLEAR_SPOTS
+## 17+창작 몬스터 12곳=고정점 29개 전수조사)으로 meadow(9,8)·dark(22,8)
+## 둘 다 체비셰프 거리 3 확인.
 const CREATURES := [
 	{"id": "creature_dokkaebi", "kind": "dokkaebi", "den": Vector2i(19, 3),
 	 "wander_m": 4.0, "flee_m": 6.0, "speed": 1.5, "flee_speed": 3.5},
@@ -64,6 +70,10 @@ const CREATURES := [
 	 "wander_m": 2.25, "flee_m": 2.5, "speed": 1.2, "flee_speed": 2.4},
 	{"id": "creature_gaeguri", "kind": "gaeguri", "den": Vector2i(9, 2),
 	 "wander_m": 0.8, "flee_m": 4.0, "speed": 0.9, "flee_speed": 5.5},
+	{"id": "creature_bandi", "kind": "bandi", "den": Vector2i(9, 8),
+	 "wander_m": 3.2, "flee_m": 6.5, "speed": 1.0, "flee_speed": 2.0},
+	{"id": "creature_geurimja", "kind": "geurimja", "den": Vector2i(22, 8),
+	 "wander_m": 3.0, "flee_m": 2.0, "speed": 1.1, "flee_speed": 2.8},
 ]
 
 

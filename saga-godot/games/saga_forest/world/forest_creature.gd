@@ -77,6 +77,32 @@ extends CharacterBody3D
 ##   빠르게 도망친다(flee_speed 최댓값, bueong의 5.0보다도 높다) —
 ##   "느긋하다 한 번에 튄다"는 개구리다운 인상.
 ##
+## **2026-09-14, 같은 날 이어서 — 바이옴마다 넷째 종을 보태되, 이번엔
+## 네 바이옴 전부가 아니라 둘만 골랐다.** 웹판 ANIMALS를 다시 세어 보니
+## 바이옴별 종 수가 균일하지 않다(meadow·dark 4종, rocky 3종, mushroom
+## 2종+희귀 1종) — 이 슬라이스는 지금까지 넷을 똑같이 3종씩 채워 와서,
+## rocky는 이미 원작과 같은 수(3)에 닿았고 mush는 오히려 원작(2)보다도
+## 많다. 그대로 넷째를 더하면 원작보다 붐비게 된다고 판단해, 아직 원작
+## 수(4)에 못 닿은 **meadow·dark 둘에만** 넷째를 보탰다 — "바이옴마다
+## 균등하게"가 아니라 "원작 밀도에 맞게"로 기준을 바꾼 첫 사례.
+## - "bandi"(반딧불도깨비, 꽃밭 — kkot·nabi·gaeguri와 함께) — 원기둥
+##   몸통+토러스 고리(지금까지 없던 조합, 토러스는 몸통으로만 쓰였다),
+##   금빛. 꽃밭 넷 중 가장 예민하게(flee_m 6.5, 열두 종 통틀어 dokkaebi
+##   6.0·nabi 7.0 다음으로 높다) 잡되 도망 속도는 낮게(flee_speed 2.0)
+##   해 "빨리 알아채지만 도망은 굼뜨다"는, 지금까지 없던 조합의 성격을
+##   줬다.
+## - "geurimja"(그림자도깨비, 어둑숲 — dokkaebi·bueong·hangari와 함께) —
+##   납작한 상자 몸통+작은 구 눈 하나(상자+구 조합도 지금까지 없었다),
+##   거의 검정에 가까운 짙은 색. 어둑숲 넷 중 가장 안 겁내고(flee_m
+##   2.0, dark 그룹 최저) 도망 속도도 평범해(flee_speed 2.8, 극단값이
+##   아니다) 앞선 셋(다들 어느 한 축에서 극단값을 가진다)과 달리
+##   "무난하고 둔감한" 축을 채운다.
+##
+## den은 이번에도 손으로 어림하지 않았다 — forest_biome_scatter.gd
+## CLEAR_SPOTS(17)+기존 창작 몬스터 12곳=고정점 29개 전부와 biome_at()을
+## Node.js로 대조해 meadow(9,8)·dark(22,8) 둘 다 체비셰프 거리 정확히
+## 3(문턱값) 확인됨.
+##
 ## 시각은 전부 primitive — 이 판의 몬스터 전용 GLB가 없다(버섯·가구가 이미
 ## 쓴 예외와 같은 이유). WorldCurveMaterial을 쓴다 — 이동하는 오브젝트도
 ## 구면 투영 대상이다(villager_builder.gd와 같은 결).
@@ -104,6 +130,10 @@ const COLOR_DUDUJI := Color(0.34, 0.28, 0.22)        # 신규 창작색 — 바�
 const COLOR_GAEMI := Color(0.2, 0.12, 0.06)          # 신규 창작색 — 버섯숲 그늘에 묻히는 짙은 개미 갈색
 const COLOR_GAEGURI_BODY := Color(0.3, 0.52, 0.26)   # 신규 창작색 — 꽃밭 톤의 개구리 초록
 const COLOR_GAEGURI_EYE := Color(0.75, 0.78, 0.35)   # 신규 창작색 — 눈만 밝은 연두
+const COLOR_BANDI_BODY := Color(0.68, 0.58, 0.3)     # 신규 창작색 — 꽃밭 톤의 옅은 황금빛
+const COLOR_BANDI_RING := Color(0.95, 0.86, 0.4)     # 신규 창작색 — 반딧불처럼 밝은 노랑
+const COLOR_GEURIMJA := Color(0.1, 0.08, 0.14)       # 신규 창작색 — 어둑숲 톤보다 더 짙은 그림자빛
+const COLOR_GEURIMJA_EYE := Color(0.7, 0.85, 0.6)    # 신규 창작색 — 어둠 속에 홀로 빛나는 연둣빛 눈
 const IDLE_TIME_MIN := 1.5
 const IDLE_TIME_MAX := 3.5
 const FLEE_TIME := 2.5
@@ -169,6 +199,10 @@ func _spawn_visual() -> void:
 			_spawn_visual_gaemi()
 		"gaeguri":
 			_spawn_visual_gaeguri()
+		"bandi":
+			_spawn_visual_bandi()
+		"geurimja":
+			_spawn_visual_geurimja()
 		_:
 			_spawn_visual_dokkaebi()
 
@@ -614,6 +648,80 @@ func _spawn_visual_gaeguri() -> void:
 	var shape := SphereShape3D.new()
 	shape.radius = 0.26
 	cs.position = Vector3(0, 0.16, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 반딧불도깨비 — 원기둥 몸통(가늘고 낮음) 위에 토러스 고리를 띄운다,
+## "원기둥+토러스"는 지금까지 없던 조합(원기둥은 beoseot의 줄기로만,
+## 토러스는 kkot·hangari의 몸통으로만 쓰였다). 고리를 몸통보다 밝은
+## 노랑으로 갈라 "빛나는 고리를 달고 있다"는 인상을 준다.
+func _spawn_visual_bandi() -> void:
+	var body_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.7, COLOR_BANDI_BODY)
+	var ring_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.25, COLOR_BANDI_RING)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := CylinderMesh.new()
+	body_mesh.top_radius = 0.16
+	body_mesh.bottom_radius = 0.2
+	body_mesh.height = 0.32
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.18, 0)
+	body.material_override = body_mat
+	add_child(body)
+
+	var ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.05
+	ring_mesh.outer_radius = 0.14
+	ring.mesh = ring_mesh
+	ring.position = Vector3(0, 0.42, 0)
+	ring.material_override = ring_mat
+	add_child(ring)
+
+	var cs := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.2
+	shape.height = 0.4
+	cs.position = Vector3(0, 0.18, 0)
+	cs.shape = shape
+	add_child(cs)
+
+
+## 그림자도깨비 — 납작한 상자 몸통(땅에 붙듯 낮음) 위에 눈 하나만 작은
+## 구로 띄운다, "상자+구"는 지금까지 없던 조합(상자는 bawi·yeomso가
+## 상자끼리만, 구는 여럿이 달려 온 조합만 있었다). 색은 열둘 중 가장
+## 짙게(거의 검정에 가까운 보랏빛) 잡아 "그림자에 파묻혀 눈만 보인다"는
+## 인상을 준다.
+func _spawn_visual_geurimja() -> void:
+	var body_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.95, COLOR_GEURIMJA)
+	var eye_mat: ShaderMaterial = WorldCurveMaterial.vertex_color_material(
+		CURVE_AMOUNT, 0.15, COLOR_GEURIMJA_EYE)
+
+	var body := MeshInstance3D.new()
+	var body_mesh := BoxMesh.new()
+	body_mesh.size = Vector3(0.5, 0.2, 0.42)
+	body.mesh = body_mesh
+	body.position = Vector3(0, 0.1, 0)
+	body.material_override = body_mat
+	add_child(body)
+
+	var eye := MeshInstance3D.new()
+	var eye_mesh := SphereMesh.new()
+	eye_mesh.radius = 0.06
+	eye_mesh.height = 0.12
+	eye.mesh = eye_mesh
+	eye.position = Vector3(0, 0.24, 0.16)
+	eye.material_override = eye_mat
+	add_child(eye)
+
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.5, 0.2, 0.42)
+	cs.position = Vector3(0, 0.1, 0)
 	cs.shape = shape
 	add_child(cs)
 

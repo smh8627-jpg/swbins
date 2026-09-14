@@ -393,3 +393,43 @@ GO의 12단계·DUNGEON의 8단계와 같은 자리 — 이 일곱 단계가 "�
   바이옴의 넷도 이미 이 슬라이스 기준으로는 충분히 붐비는 수준이라
   다음은 FOREST 밖(다른 네 판·saga-unity 트랙)을 더 진지하게 고려할
   자리로 보인다.
+
+
+## 8. 51장 "생태계" 축 — meadow·dark에만 넷째 종 (2026-09-14, 같은 날 이어서, "모두 이어서해")
+
+- 6·7절이 "바이옴마다"로 균등하게 채워 온 패턴을 이번엔 깼다. 웹판
+  ANIMALS를 바이옴별로 다시 세어 보니 meadow 4종·dark 4종·rocky 3종·
+  mushroom 2종(+희귀 1종)으로 원래도 균등하지 않았는데, 이 슬라이스는
+  지금까지 넷 다 3종씩 채워 와서 rocky는 이미 원작과 같은 수에 닿았고
+  mush는 오히려 원작보다 많았다 — 그대로 넷째를 넷 다 보태면 원작보다
+  붐비게 된다. 그래서 이번엔 아직 원작 수(4)에 못 닿은 **meadow·dark
+  둘에만** 넷째를 보탰다.
+- den은 forest_biome_scatter.gd CLEAR_SPOTS(17)+기존 창작 몬스터 12곳
+  =고정점 29개 전부와 biome_at()을 Node.js로 대조해 meadow(9,8)·
+  dark(22,8) 둘 다 체비셰프 거리 정확히 3(문턱값) 확인 후 골랐다.
+- 두 종 추가: "반딧불도깨비"(bandi, 꽃밭 — kkot·nabi·gaeguri와 함께,
+  원기둥 몸통+토러스 고리, 지금까지 없던 조합, 금빛) · "그림자도깨비"
+  (geurimja, 어둑숲 — dokkaebi·bueong·hangari와 함께, 납작한 상자
+  몸통+작은 구 눈 하나, 역시 없던 조합, 거의 검정). 자세한 형태·성격
+  근거는 forest_creature.gd 헤더의 2026-09-14 "넷째 종" 항목 참고 —
+  반딧불은 "빨리 알아채지만 도망은 굼뜨다"(flee_m 6.5·flee_speed 2.0),
+  그림자는 "무난하고 둔감하다"(dark 그룹 최저 flee_m 2.0, flee_speed는
+  극단값이 아닌 2.8)로 기존 종들과 다른 축을 채웠다.
+- 검증: 헤드리스 임포트 오류 0건, `TestVillageForest.tscn`
+  `--quit-after 8` 세 번 연속 로그 완전 동일(md5 일치). 두 갈래로
+  검증했다 — Node.js 정적 파싱으로 CREATURES 14개 전부 den 좌표
+  중복 0·새 둘의 타일이 "."·biome_at() 일치 확인. 그리고 별도
+  SceneTree 스크립트(오토로드 없이 forest_creature_builder.gd 하나만
+  가볍게 인스턴스화, `await process_frame`으로 `_ready()` 대기)로
+  런타임에도 den 월드 좌표·biome_at()·wander/flee/speed/flee_speed
+  네 수치가 데이터와 정확히 일치하는 것·전체 14마리 스폰까지 재확인.
+  GO·DUNGEON·REALM·STORY 회귀도 헤드리스 오류 0건. `.import` 잡음만
+  되돌림(`project.godot`는 안 건드려짐 확인), `git status`로 스크립트
+  둘(`forest_creature.gd`·`forest_creature_builder.gd`)만 확인. GUI
+  실기 확인은 아직(몰아서 받을 것) — meadow·dark만 넷으로 붐비고
+  rocky·mush는 셋으로 남아 있는 게 실제로 자연스러워 보이는지 볼 것.
+- **다음에 할 일**: 이걸로 meadow·dark도 원작 밀도(4)에 닿았다 —
+  rocky(3)·mush(2)는 이미 원작과 같거나 넘어서 더 보탤 계획 없음.
+  FOREST 안에서 51장 "생태계" 축(동물→채집→마을→생활)의 다음 갈래는
+  "채집"·"마을"·"생활" — 다음은 그쪽을 보거나 FOREST 밖(DUNGEON 남은
+  여섯 부위·saga-unity 트랙)을 고려할 자리.
