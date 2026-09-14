@@ -47,6 +47,15 @@ extends Node3D
 ## 탭하면(아직 우리 성이 아니므로) 이름만 토스트로 보여주고 조망 대상은
 ## 안 바뀐다 — `realm_city.gd`/명령 실행이 전제하는 "current_city는 항상
 ## `cities`에 있다"를 안 깬다.
+##
+## **2026-09-14 추가 — 적/보스 성은 깃발 대신 몬스터 실루엣.** 위 항목이
+## 색만으로 적/보스를 구분했는데, 이번엔 그 자리에 실제 "몬스터가 지키고
+## 있다"는 형태를 얹는다 — 실제 CC0 몬스터 GLB는 여전히 없으니(66-2장
+## 카툰 파이프라인이 REALM까지 안 왔다) GO `animal_builder.gd`(사슴·소를
+## 어울리는 킷이 없어 box 조합으로 대신한 것)와 같은 결로 코드가 그리는
+## primitive 몸통+뿔이다. 보스는 몸통이 크고 뿔이 셋, 일반 적은 몸통이
+## 작고 뿔이 하나 — 색뿐 아니라 형태로도 구분된다. 함락되면(`_check_
+## annexed()`) 이 실루엣을 지우고 원래 깃발로 되돌린다(이제 우리 성이니).
 
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
@@ -86,6 +95,7 @@ const TAP_RADIUS := 2.6  # 기둥(반경 0.7)보다 훨씬 넉넉하게 — 손�
 const TAP_HEIGHT := 4.5
 
 var _markers: Dictionary = {}    # city_id -> MeshInstance3D(성표(城標) 기둥, 강조 대상)
+var _monsters: Dictionary = {}   # eid -> Node3D(적/보스 성 위 몬스터 실루엣, 함락되면 지운다)
 var _areas: Dictionary = {}      # city_id -> Area3D(탭 판정)
 var _base_color: Dictionary = {} # city_id -> Color(강조 아닐 때 되돌아갈 색 — 우호/적/보스)
 var _annexed_seen: Dictionary = {} # eid -> true(색을 이미 우호색으로 한 번 바꿨다)
@@ -115,7 +125,7 @@ func _ready() -> void:
 func _build_all_markers() -> void:
 	_markers_built = true
 	for city_id: String in RealmSaveState.cities.keys():
-		_build_marker(RealmCities.any_by_id(city_id), _land_color(city_id))
+		_build_marker(RealmCities.any_by_id(city_id), _land_color(city_id), false)
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
 		## 시나리오가 우리 것으로 준 성은 건너뛴다(위 루프가 이미 우호
@@ -125,9 +135,9 @@ func _build_all_markers() -> void:
 			continue
 		if bool(RealmSaveState.enemies[eid].get("captured", false)):
 			_annexed_seen[eid] = true
-			_build_marker(e, _land_color(eid))
+			_build_marker(e, _land_color(eid), false)
 		else:
-			_build_marker(e, COLOR_BOSS if _is_boss_city(eid) else COLOR_ENEMY)
+			_build_marker(e, COLOR_BOSS if _is_boss_city(eid) else COLOR_ENEMY, true)
 
 
 ## realm_city.gd/realm_camera.gd와 같은 손잡이(RealmSaveState.viewing_map)를
@@ -214,6 +224,10 @@ func _check_annexed() -> void:
 		_annexed_seen[eid] = true
 		_base_color[eid] = _land_color(eid)
 		(_markers[eid] as MeshInstance3D).material_override = _mat(_base_color[eid])
+		if _monsters.has(eid):
+			(_monsters[eid] as Node3D).queue_free()
+			_monsters.erase(eid)
+			_build_flag(_world_pos(e))
 
 
 func _world_pos(c: Dictionary) -> Vector3:
@@ -232,12 +246,14 @@ func _build_ground() -> void:
 	add_child(mi)
 
 
-## 성표(城標) — 기둥(강조 대상, 성마다 다른 색)에 깃발을 얹은 표지 하나로
-## 성 하나를 대신한다(디오라마 전체를 지도 위에 얹지 않는다 — 개관용이라
-## 실루엣만 있으면 된다). **2026-09-14 — `color`를 인자로 받는다**(우호/적/
-## 보스 셋 중 어느 걸 세울지는 호출부가 정한다, `_land_color()`로 안에서
-## 다시 고르지 않는다 — 적 성엔 애초에 "우호색" 개념이 안 맞는다).
-func _build_marker(c: Dictionary, color: Color) -> void:
+## 성표(城標) — 기둥(강조 대상, 성마다 다른 색)에 깃발(우리 성)이나 몬스터
+## 실루엣(적/보스 성)을 얹은 표지 하나로 성 하나를 대신한다(디오라마 전체를
+## 지도 위에 얹지 않는다 — 개관용이라 실루엣만 있으면 된다). **2026-09-14
+## — `color`를 인자로 받는다**(우호/적/보스 셋 중 어느 걸 세울지는 호출부가
+## 정한다, `_land_color()`로 안에서 다시 고르지 않는다 — 적 성엔 애초에
+## "우호색" 개념이 안 맞는다). **`is_enemy` 추가 — 적/보스는 깃발 대신
+## `_build_monster_body()`를 얹는다**(위 헤더 주석 참고).
+func _build_marker(c: Dictionary, color: Color, is_enemy: bool) -> void:
 	var pos := _world_pos(c)
 	var city_id := String(c.id)
 	_base_color[city_id] = color
@@ -253,13 +269,13 @@ func _build_marker(c: Dictionary, color: Color) -> void:
 	add_child(pole)
 	_markers[city_id] = pole
 
-	var flag := MeshInstance3D.new()
-	var flag_mesh := BoxMesh.new()
-	flag_mesh.size = Vector3(1.6, 1.0, 0.1)
-	flag.mesh = flag_mesh
-	flag.position = pos + Vector3(0.9, 2.6, 0)
-	flag.material_override = _mat(COLOR_FLAG)
-	add_child(flag)
+	if is_enemy:
+		var monster := _build_monster_body(color, color == COLOR_BOSS)
+		monster.position = pos + Vector3(0, 3.0, 0)
+		add_child(monster)
+		_monsters[city_id] = monster
+	else:
+		_build_flag(pos)
 
 	var area := Area3D.new()
 	area.input_ray_pickable = false  # 처음엔 숨김 상태 — _process()가 보일 때 켠다
@@ -273,6 +289,51 @@ func _build_marker(c: Dictionary, color: Color) -> void:
 	area.input_event.connect(_on_marker_input.bind(city_id))
 	add_child(area)
 	_areas[city_id] = area
+
+
+func _build_flag(pos: Vector3) -> MeshInstance3D:
+	var flag := MeshInstance3D.new()
+	var flag_mesh := BoxMesh.new()
+	flag_mesh.size = Vector3(1.6, 1.0, 0.1)
+	flag.mesh = flag_mesh
+	flag.position = pos + Vector3(0.9, 2.6, 0)
+	flag.material_override = _mat(COLOR_FLAG)
+	add_child(flag)
+	return flag
+
+
+## GO `animal_builder.gd`(사슴·소 — 어울리는 CC0 킷이 없어 box 조합으로
+## 대신한 것)와 같은 결의 code-drawn primitive. 보스는 몸통이 크고 뿔이
+## 셋, 일반 적은 몸통이 작고 뿔이 하나 — 색뿐 아니라 형태로도 구분된다.
+func _build_monster_body(color: Color, is_boss: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = "Monster"
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	var size_mul := 1.6 if is_boss else 1.0
+
+	var torso := MeshInstance3D.new()
+	var tmesh := BoxMesh.new()
+	tmesh.size = Vector3(1.4, 1.4, 1.4) * size_mul
+	torso.mesh = tmesh
+	torso.material_override = mat
+	root.add_child(torso)
+
+	var horn_count := 3 if is_boss else 1
+	var horn_radius := 0.22 * size_mul
+	var horn_height := 1.1 * size_mul
+	for i in horn_count:
+		var horn := MeshInstance3D.new()
+		var hmesh := CylinderMesh.new()
+		hmesh.top_radius = 0.0
+		hmesh.bottom_radius = horn_radius
+		hmesh.height = horn_height
+		horn.mesh = hmesh
+		var offset_x := (float(i) - float(horn_count - 1) * 0.5) * 0.5 * size_mul
+		horn.position = Vector3(offset_x, tmesh.size.y * 0.5 + horn_height * 0.5, 0)
+		horn.material_override = mat
+		root.add_child(horn)
+	return root
 
 
 func _mat(color: Color) -> ShaderMaterial:
