@@ -44,9 +44,13 @@ func _on_pressed() -> void:
 	var choices: Array = []
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
-		if bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
+		## **2026-09-14 추가 — 시나리오가 우리 것으로 준 성은 목록에서 뺀다**
+		## (realm_attack_button.gd와 같은 이유).
+		if not RealmSaveState.enemies.has(eid):
 			continue
-		if String(e.get("force", "")).is_empty():
+		if bool(RealmSaveState.enemies[eid].get("captured", false)):
+			continue
+		if RealmSaveState.force_of(eid).is_empty():
 			continue
 		choices.append({
 			"label": String(e.get("name", eid)),

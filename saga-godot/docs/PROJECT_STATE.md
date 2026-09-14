@@ -5917,3 +5917,44 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   잘게 쪼갤 방법을 먼저 찾을 것. 진짜 3D 몬스터 모델(GLB)은 이 절로
   "구멍은 메웠지만 모델은 여전히 없다" 상태로 66-2장을 기다린다. 그
   밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.
+
+## REALM 시나리오 200년(관도) — 첫 걸음 (2026-09-14, 같은 날 이어서, "이어해 묻지 말고")
+
+- REALM 4절 "제외"에 마지막 남은 항목을 실제로 뜯어봤다 — 걱정과 달리
+  자료는 이미 다 있었다(`ENEMY_CITIES` 104개 전부가 애초에 agri_start/
+  comm_start/pop_start/wall_start/troops_start/train_start/tech_start를
+  갖고 있다, `_annex_city()`가 정복 시 이미 이 값들을 쓰고 있었다).
+  진짜 막힌 건 "성 하나가 지금 누구 것인가"를 6곳(외교·계략·전투)이
+  전부 194 기준 정적 `force` 필드를 직접 읽던 구조였다.
+- `js/data-force.js FORCES_200`을 옮겼다 — 조조가 처음부터 8개 성(허창·
+  진류·복양+낙양·장안·소패·하비·수춘)을 갖는다. `realm_cities.gd`에
+  `SCENARIO_CAO_CITIES`·`SCENARIO_FORCE_OVERRIDE`(194 기준 force가
+  실제로 달라지는 7개 자리만) 신규. `realm_save_state.gd`에 `city_force`
+  (city_id→force_id, "지금 누구 것인가"의 유일한 출처)·`force_of()`·
+  `_init_city_force()`·**`start_scenario(id)`** 신규, `_init_cities()`/
+  `_init_enemies()`/`_init_diplomacy()`를 scenario_id로 일반화. 6곳의
+  정적 force 읽기를 전부 `force_of()`로 교체. `save()`/`try_load()`에
+  `scenario_id` 추가(SAVE_VERSION 12→13). 자세한 내용은 `docs/
+  VERTICAL_SLICE_REALM.md` 27절 참고.
+- **놓칠 뻔한 것** — `realm_attack_button.gd`·`realm_diplo_button.gd`·
+  `realm_plot_button.gd`·`realm_worldmap.gd` 넷 다 정적 `ENEMY_CITIES`/
+  `RealmCities.CITIES`를 직접 훑고 있어서, 200에서 조조 몫이 된 5개
+  성을 여전히 "적"으로 잘못 보여줄 뻔했다 — 넷 다 `RealmSaveState.
+  enemies`/`cities`를 실제 출처로 삼도록 가드·루프를 고쳤다.
+- **아직 이걸 부르는 UI가 없다** — "새 게임" 시나리오 고르기 화면은
+  다음 슬라이스 몫(지금까지 게임은 언제나 194로만 부팅했다). `_lord_
+  name()` 등 라벨류가 force 재배정을 못 따라가는 자리도 남았다(그
+  UI가 생길 때 같이 고칠 것).
+- 검증: 헤드리스 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 세 번
+  연속 로그 완전 동일(194 기본 부팅 경로는 전혀 안 바뀜). 임시 씬으로
+  194 기본값(cities 3·enemies 104·force 12개)·200 전환(cities 8·
+  enemies 99·총합 107·7개 재배정 force_of 전부 일치·diplomacy 정확히
+  7개·조조 몫 성은 force_of=""·gold 5200)·194로 왕복(정확히 원복)까지
+  확인 후 삭제, 재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기
+  확인은 아직(몰아서 받을 것) — 진입점이 없어 사람이 직접 눌러 볼 방법이
+  아직 없다.
+- **다음에 할 일**: REALM 4절 "제외"가 완전히 비었다(전부 최소 한 걸음씩
+  진행). 남은 건 (1) 새 게임 시나리오 고르기 UI(208은 손권·유비 동맹
+  pact도 추가로 필요) (2) 라벨류 정리 (3) 3D 몬스터 자산(GLB, 66-2장).
+  그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로도 진지하게 고려할
+  자리.

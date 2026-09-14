@@ -49,8 +49,13 @@ const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 12  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result)
+const SAVE_VERSION := 13  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
+
+## **2026-09-14 추가 — 시나리오(RealmCities.SCENARIO_CAO_CITIES 키).**
+## `start_scenario(id)`로만 바뀐다 — 기본값 "194"는 지금까지의 유일한
+## 시작과 똑같다. `city_force`(아래)가 이 값을 따라간다.
+var scenario_id := "194"
 
 var year := 194
 var month := 1
@@ -117,6 +122,17 @@ var enemy_officer_loyal: Dictionary = {}
 ## 하나씩 깎는다(diplo.js monthly()).
 var diplomacy: Dictionary = {}
 
+## **2026-09-14 추가 — 시나리오별 force 재배정.** city_id -> force_id.
+## `RealmCities.ENEMY_CITIES`에 정적으로 박힌 194 기준 `force`를 그대로
+## 담되, `scenario_id`가 200/208처럼 194와 다르면 `RealmCities.
+## SCENARIO_FORCE_OVERRIDE`로 겹쳐 쓴다(_init_city_force() 참고) —
+## 실제 194 기준 세력 소속을 담은 const 배열 자체는 절대 안 건드린다,
+## 이 Dictionary가 "지금 시나리오에서 실제로 누구 것인가"의 유일한
+## 출처다. **저장하지 않는다** — `scenario_id`만 저장하고, 불러온
+## 뒤 `_init_city_force()`로 다시 채운다(파생값, city_force 자체를
+## 세이브에 중복해서 담지 않는다).
+var city_force: Dictionary = {}
+
 ## **2026-09-12 추가 — 문답(quiz.js, "1,2,3 순서대로 다해" 세 번째).**
 ## quiz.js `qstate()`와 같은 모양 — learned(id→true)·wrongs(id→틀린
 ## 횟수)·total·correct·streak·best_streak·lore(학식, `LORE_PER_FIND`가
@@ -140,23 +156,45 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.seed = RNG_SEED
+	_init_city_force(RealmCities.SCENARIO_FORCE_OVERRIDE.get(scenario_id, {}))
 	_init_cities()
 	_init_enemies()
 	_init_diplomacy()
 	_init_quiz()
 
 
-## rtk.js setup()의 도시 초기화 — RealmCities.CITIES 정의 그대로.
+## rtk.js setup()의 도시 초기화. **2026-09-14 — scenario_id로 일반화.**
+## `RealmCities.SCENARIO_CAO_CITIES[scenario_id]`가 주는 성 목록을 돈다 —
+## 194의 세 성(`RealmCities.CITIES`에 있는)은 지금까지처럼 채우고(troops=0,
+## sec/tech/train은 RealmOrders 기본 상수, "아직 아무것도 없는 시작"),
+## 시나리오가 추가로 준 나머지 성(예: 200의 낙양·장안·소패·하비·수춘)은
+## `RealmCities.ENEMY_CITIES`의 정의로 채운다 — 그 성 자신의 troops_start/
+## train_start/tech_start를 그대로 쓴다("이미 자리 잡은 성을 물려받는다"는
+## 뜻이라 0에서 시작하지 않는다, `_annex_city()`의 신선한 버전).
 func _init_cities() -> void:
-	for def: Dictionary in RealmCities.CITIES:
-		var cid: String = String(def.id)
-		cities[cid] = {
+	cities.clear()
+	var cao_cities: Array = RealmCities.SCENARIO_CAO_CITIES.get(scenario_id, RealmCities.SCENARIO_CAO_CITIES["194"])
+	for city_id: String in cao_cities:
+		var base := RealmCities.by_id(city_id)
+		if not base.is_empty():
+			cities[city_id] = {
+				"agri": int(base.agri_start), "comm": int(base.comm_start),
+				"sec": RealmOrders.SEC_START, "tech": RealmOrders.TECH_START,
+				"wall": int(base.wall_start), "train": RealmOrders.TRAIN_START,
+				"pop": int(base.pop_start), "troops": 0,
+				"food": RealmCities.food_start(city_id),
+				"ships": RealmCities.ships_start(city_id),
+				"disaster": "", "d_left": 0,
+			}
+			continue
+		var def := RealmCities.enemy_by_id(city_id)
+		cities[city_id] = {
 			"agri": int(def.agri_start), "comm": int(def.comm_start),
-			"sec": RealmOrders.SEC_START, "tech": RealmOrders.TECH_START,
-			"wall": int(def.wall_start), "train": RealmOrders.TRAIN_START,
-			"pop": int(def.pop_start), "troops": 0,
-			"food": RealmCities.food_start(cid),
-			"ships": RealmCities.ships_start(cid),
+			"sec": RealmOrders.SEC_START, "tech": int(def.tech_start),
+			"wall": int(def.wall_start), "train": int(def.train_start),
+			"pop": int(def.pop_start), "troops": int(def.troops_start),
+			"food": RealmCities.food_start(city_id),
+			"ships": RealmCities.ships_start(city_id),
 			"disaster": "", "d_left": 0,
 		}
 
@@ -170,9 +208,17 @@ func _init_cities() -> void:
 ## 참고) — 정적 정의(`ENEMY_CITIES[].officers`)를 그대로 복사해 실행 중
 ## 지워질 수 있는 배열로 든다(`cities`가 정적 시작값을 복사해 실행 중
 ## 값으로 쓰는 것과 같은 패턴). `enemy_officer_loyal`도 여기서 같이 채운다.
+## **2026-09-14 추가 — 시나리오가 우리 것으로 준 성은 건너뛴다**(위
+## `_init_cities()`가 이미 `cities`에 넣었다 — 한 성이 `cities`와
+## `enemies` 둘 다에 있으면 안 된다).
 func _init_enemies() -> void:
+	enemies.clear()
+	enemy_officer_loyal.clear()
+	var cao_cities: Array = RealmCities.SCENARIO_CAO_CITIES.get(scenario_id, RealmCities.SCENARIO_CAO_CITIES["194"])
 	for def: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid: String = String(def.id)
+		if cao_cities.has(eid):
+			continue
 		var def_officers: Array = (def.get("officers", []) as Array).duplicate()
 		enemies[eid] = {
 			"troops": int(def.troops_start), "wall": int(def.wall_start),
@@ -187,14 +233,83 @@ func _init_enemies() -> void:
 				enemy_officer_loyal[oid] = RealmDiplo.base_loyal(oid, lord_id)
 
 
-## ENEMY_CITIES의 force마다 우호 기본값(40)을 채운다 — 세력이 같은
-## enemy_id 여럿을 가리켜도(지금은 xiaopei→bei 하나뿐) 세력당 한 번만.
-func _init_diplomacy() -> void:
+## **2026-09-14 추가 — 시나리오별 force 재배정의 실제 출처.** `city_force`를
+## 채운다 — 194 기준 정적 `force`에 `overrides`(RealmCities.
+## SCENARIO_FORCE_OVERRIDE[scenario_id])를 겹쳐 쓰되, 이 시나리오에서
+## 이미 우리 것이 된 성(`cao_cities`)은 아예 뺀다(그런 성은 "적의 세력"
+## 개념 자체가 없다 — `enemies`에도 안 들어간다, 위 `_init_enemies()`와
+## 같은 필터).
+func _init_city_force(overrides: Dictionary) -> void:
+	city_force.clear()
+	var cao_cities: Array = RealmCities.SCENARIO_CAO_CITIES.get(scenario_id, RealmCities.SCENARIO_CAO_CITIES["194"])
 	for def: Dictionary in RealmCities.ENEMY_CITIES:
-		var fid: String = String(def.get("force", ""))
+		var eid: String = String(def.id)
+		if cao_cities.has(eid):
+			continue
+		city_force[eid] = String(overrides.get(eid, def.get("force", "")))
+
+
+## 이 성이 "지금" 속한 force — 194 기준 정적 `force` 대신 이걸 쓴다(다른
+## 시나리오가 겹쳐 쓸 수 있으므로). 우리 것이거나(cao_cities) 원래도
+## force가 없는 재야 성(77개)이면 빈 문자열.
+func force_of(city_id: String) -> String:
+	return String(city_force.get(city_id, ""))
+
+
+## city_force가 실제로 갖는 force마다 우호 기본값(40)을 채운다 — 세력이
+## 같은 여러 성을 가리켜도(예: 200의 shao는 여섯) 세력당 한 번만.
+## **2026-09-14 — city_force 기준으로 갈아 끼웠다**(예전엔 ENEMY_CITIES의
+## 정적 force를 직접 훑었다 — 시나리오가 그 값을 겹쳐 쓸 수 있게 된 지금은
+## `city_force`가 유일한 출처다. `_init_city_force()`가 이미 우리 것이 된
+## 성을 걸러 둬 죽은 항목(force는 있지만 실제 성이 하나도 없는)이 안 생긴다).
+func _init_diplomacy() -> void:
+	diplomacy.clear()
+	for eid: String in city_force:
+		var fid: String = String(city_force[eid])
 		if fid.is_empty() or diplomacy.has(fid):
 			continue
 		diplomacy[fid] = {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0}
+
+
+## **2026-09-14 추가 — 시나리오 전환(REALM 4절 "제외"에 마지막까지 남았던
+## 항목).** `RealmCities.SCENARIO_CAO_CITIES`가 아는 시나리오("194"·"200")
+## 로 게임 전체를 처음부터 다시 짠다 — `_ready()`가 부팅 시 한 번 하는 일
+## (도시·적·외교·문답 초기화)을 그대로 다시 부르되, `scenario_id`를 먼저
+## 바꿔 그 값을 따라가게 한다. 로스터·문답·연월·금고도 전부 새로 시작한다
+## — **진행 중이던 게임 위에 부르면 그 진행이 지워진다**(save()로 먼저
+## 남겨 두지 않은 채 쓰면 안 됨, "새 게임" 개념).
+##
+## **아직 이걸 부르는 UI가 없다** — 시나리오 고르기 화면(새 게임 시작
+## 지점)은 이 슬라이스의 범위 밖으로 남겨 둔다(REALM 4절 "포함"에 아직
+## "새 게임" 자체가 없다 — 지금까지 게임은 언제나 194로 부팅했다). 이
+## 함수는 헤드리스 임시 씬으로 직접 불러 검증했다 — 다음 슬라이스가 할
+## 일은 이 함수를 실제로 호출하는 진입점을 만드는 것뿐이다.
+func start_scenario(id: String) -> void:
+	if not RealmCities.SCENARIO_CAO_CITIES.has(id):
+		return
+	scenario_id = id
+	year = int(id)
+	month = 1
+	result = ""
+	roster = [RealmOfficerPool.STARTING_OFFICER]
+	found = []
+	officer_city = {RealmOfficerPool.STARTING_OFFICER: RealmCities.DEFAULT_CITY}
+	officer_loyal = {RealmOfficerPool.STARTING_OFFICER: RealmDiplo.base_loyal(RealmOfficerPool.STARTING_OFFICER)}
+	officer_growth = {}
+	_done_this_month.clear()
+	viewing_map = false
+
+	_init_city_force(RealmCities.SCENARIO_FORCE_OVERRIDE.get(scenario_id, {}))
+	_init_cities()
+	_init_enemies()
+	_init_diplomacy()
+	_init_quiz()
+
+	current_city = RealmCities.DEFAULT_CITY  # 세 시나리오 전부 조조가 허창을 갖는다
+	## rtk.js setup() 금고 공식(2000 + cities.length * 400)을 성 개수가
+	## 달라진 시나리오에도 그대로 적용 — 194(3성)=3200(기존과 동일),
+	## 200(8성)=5200.
+	gold = 2000 + cities.size() * 400
 
 
 ## quiz.js qstate()의 기본값 그대로(best_streak는 camelCase→snake_case만).
@@ -599,7 +714,7 @@ func _run_enemy_ai() -> Array:
 		if bool(e.get("captured", false)):
 			continue
 		var enemy_def := RealmCities.enemy_by_id(enemy_id)
-		var force_id := String(enemy_def.get("force", ""))
+		var force_id := force_of(enemy_id)
 		if force_id.is_empty():
 			continue
 		var dip: Dictionary = diplomacy.get(force_id, {})
@@ -825,7 +940,7 @@ func attack(enemy_id: String) -> Dictionary:
 		return {"ok": false, "why": "이미 함락한 성입니다"}
 	## war.js canMarch() "diplo.blocked()" 체크와 같은 자리 — 화친 중이면
 	## 못 친다(2026-09-12 외교 슬라이스, `realm_diplo.gd` 머리말 참고).
-	var force_id: String = String(enemy_def.get("force", ""))
+	var force_id: String = force_of(enemy_id)
 	var dip: Dictionary = diplomacy.get(force_id, {})
 	if int(dip.get("truce_months", 0)) > 0:
 		return {"ok": false, "why": "맹약이 있어 칠 수 없습니다"}
@@ -986,7 +1101,7 @@ func envoy_truce(enemy_id: String) -> Dictionary:
 	var enemy_def := RealmCities.enemy_by_id(enemy_id)
 	if enemy_def.is_empty():
 		return {"ok": false, "why": "없는 상대"}
-	var force_id: String = String(enemy_def.get("force", ""))
+	var force_id: String = force_of(enemy_id)
 	var cost := ENVOY_GOLD + ENVOY_FEE
 	if gold < cost:
 		return {"ok": false, "why": "금이 모자랍니다"}
@@ -1019,7 +1134,7 @@ func envoy_tribute(enemy_id: String) -> Dictionary:
 	var enemy_def := RealmCities.enemy_by_id(enemy_id)
 	if enemy_def.is_empty():
 		return {"ok": false, "why": "없는 상대"}
-	var force_id: String = String(enemy_def.get("force", ""))
+	var force_id: String = force_of(enemy_id)
 	var cost := TRIBUTE_GOLD + ENVOY_FEE
 	if gold < cost:
 		return {"ok": false, "why": "금이 모자랍니다"}
@@ -1186,7 +1301,7 @@ func _plot_check(kind: String, enemy_id: String) -> Dictionary:
 		if target_id.is_empty():
 			return {"ok": false, "why": "홀릴 사람이 없습니다"}
 
-	var force_id: String = String(enemy_def.get("force", ""))
+	var force_id: String = force_of(enemy_id)
 	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
 	var mine_wisdom := _effective_stat(officer_id, "wisdom")
 	var guard_wisdom := _enemy_guard_wisdom(enemy_id)
@@ -1449,6 +1564,7 @@ func _best_officer_for(stat: String, city_filter: String = "") -> String:
 func save() -> bool:
 	var data := {
 		"version": SAVE_VERSION,
+		"scenario_id": scenario_id,
 		"year": year, "month": month,
 		"gold": gold,
 		"cities": cities,
@@ -1483,6 +1599,11 @@ func try_load() -> bool:
 	if int(data.get("version", 0)) != SAVE_VERSION:
 		return false
 
+	scenario_id = String(data.get("scenario_id", "194"))
+	if not RealmCities.SCENARIO_CAO_CITIES.has(scenario_id):
+		scenario_id = "194"
+	## city_force는 저장하지 않는다(파생값) — scenario_id로 다시 채운다.
+	_init_city_force(RealmCities.SCENARIO_FORCE_OVERRIDE.get(scenario_id, {}))
 	year = int(data.get("year", 194))
 	month = int(data.get("month", 1))
 	gold = int(data.get("gold", 3200))

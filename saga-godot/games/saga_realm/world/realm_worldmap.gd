@@ -93,14 +93,25 @@ var _last_current := ""
 var _last_visible := false
 
 
+## **2026-09-14 정정 — 우호 마커는 이제 `RealmCities.CITIES`(194 고정 셋)가
+## 아니라 `RealmSaveState.cities.keys()`를 돈다.** 시나리오가 194가
+## 아니면(예: 200) 처음부터 우리 것인 성이 세 곳보다 많아지는데,
+## `RealmCities.CITIES`는 여전히 194의 세 곳으로 고정된 상수라 이걸로
+## 도는 한 시나리오 200의 낙양·장안 등은 우호 마커를 못 받는다. 실제
+## "지금 우리 성이 뭔가"의 출처는 언제나 `RealmSaveState.cities`다.
 func _ready() -> void:
 	get_viewport().physics_object_picking = true
 	_build_ground()
-	for c: Dictionary in RealmCities.CITIES:
-		_build_marker(c, _land_color(String(c.id)))
+	for city_id: String in RealmSaveState.cities.keys():
+		_build_marker(RealmCities.any_by_id(city_id), _land_color(city_id))
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
-		if bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
+		## **2026-09-14 추가 — 시나리오가 우리 것으로 준 성은 건너뛴다**
+		## (위 루프가 이미 우호 마커를 세웠다) — `RealmSaveState.enemies`에
+		## 없으면 이 시나리오에서 애초에 적이 아니다(`_init_enemies()` 참고).
+		if not RealmSaveState.enemies.has(eid):
+			continue
+		if bool(RealmSaveState.enemies[eid].get("captured", false)):
 			_annexed_seen[eid] = true
 			_build_marker(e, _land_color(eid))
 		else:

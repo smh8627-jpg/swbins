@@ -858,10 +858,46 @@ const CREED := {
 	"bei": "balanced", "bu": "aggressive", "shu": "aggressive",
 	"ce": "aggressive", "biao": "turtle", "jue": "balanced",
 	"teng": "balanced", "lu": "turtle", "zhang": "turtle",
+	"quan": "balanced",  # 2026-09-14 추가 — 시나리오 200/208에서 손책(ce)이
+	                      # 손권(quan)으로 넘어간 뒤 쓰는 force id. data-
+	                      # force.js FORCES_200 quan 항목의 creed 그대로
+	                      # (CREED.get()의 기본값과 우연히 같지만, 명시해 둔다).
 }
 
 static func creed_of(force_id: String) -> String:
 	return String(CREED.get(force_id, "balanced"))
+
+
+## **2026-09-14 추가 — 시나리오 200년(관도).** REALM 4절 "제외"에 마지막
+## 남은 항목. `js/data-force.js FORCES_200`을 옮긴다 — 194(현재 유일한
+## 시작)와 달리 조조(cao)가 처음부터 8개 성을 갖는다. 5개(낙양·장안·
+## 소패·하비·수춘)는 194 기준으로 ENEMY_CITIES에 남의 세력으로 들어
+## 있던 성인데, 이 시나리오에선 처음부터 우리 것이다 — 그 정의가 이미
+## 갖고 있는 agri_start/comm_start/pop_start/wall_start/troops_start/
+## train_start/tech_start로 채운다(`realm_save_state.gd
+## start_scenario()`가 실제로 씀). **194에만 있던 세력 여섯(공손찬·
+## 공융·이각·여포·원술·손책)은 200엔 없다** — 그 성은 남은 세력에게
+## 재배정되거나(아래 SCENARIO_FORCE_OVERRIDE) 조조 몫이 된다(이각의
+## 낙양·장안, 여포의 하비, 원술의 수춘·[여남은 유비에게], 유비의 소패는
+## 조조 몫). 자세한 대응표는 `docs/VERTICAL_SLICE_REALM.md` 27절 참고.
+const SCENARIO_CAO_CITIES := {
+	"194": ["chenliu", "puyang", "xuchang"],
+	"200": ["xuchang", "chenliu", "puyang", "luoyang", "changan",
+	        "xiaopei", "xiapi", "shouchun"],
+}
+
+## ENEMY_CITIES에 정적으로 박힌 194 기준 `force`에서, 그 시나리오만
+## 실제로 달라지는 자리만 담는다(나머지는 194 값 그대로 유효 — 예:
+## shao 자신의 원래 세 성, teng·lu·zhang·biao 전부 194와 200이 같다).
+## 194는 override가 없다(빈 Dictionary, 기본값 그대로).
+const SCENARIO_FORCE_OVERRIDE := {
+	"200": {
+		"jixian": "shao", "beiping": "shao",  # 공손찬(zan) 소멸 → 원소가 흡수
+		"beihai": "shao",                      # 공융(rong) 소멸 → 원소가 흡수
+		"jianye": "quan", "chaisang": "quan", "kuaiji": "quan",  # 손책→손권
+		"runan": "bei",                        # 원술(shu) 소멸 → 유비가 흡수
+	},
+}
 
 
 ## **재해석 — rtk-ai.js는 creed마다 손실 허용치(lossCap)가 다를 뿐, "친다/

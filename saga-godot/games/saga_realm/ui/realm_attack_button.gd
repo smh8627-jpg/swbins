@@ -31,7 +31,13 @@ func _on_pressed() -> void:
 	var choices: Array = []
 	for e: Dictionary in RealmCities.ENEMY_CITIES:
 		var eid := String(e.id)
-		if bool(RealmSaveState.enemies.get(eid, {}).get("captured", false)):
+		## **2026-09-14 추가 — 시나리오가 우리 것으로 준 성은 목록에서
+		## 아예 뺀다.** `ENEMY_CITIES`는 정적(107개 지도 전체)이라 시나리오와
+		## 무관하지만, `RealmSaveState.enemies`는 지금 시나리오의 실제 적만
+		## 담는다(`_init_enemies()` 참고) — 그 안에 없으면 애초에 우리 성이다.
+		if not RealmSaveState.enemies.has(eid):
+			continue
+		if bool(RealmSaveState.enemies[eid].get("captured", false)):
 			continue
 		choices.append({
 			"label": "%s(%s)" % [String(e.get("name", eid)), String(e.get("hanja", ""))],

@@ -2056,3 +2056,105 @@ GUI 실기 확인은 아직(몰아서 받을 것) — 특히 107개 마커가 �
 3D 몬스터 자산 자체(GLB 모델)는 이 절로 "구멍은 메웠지만 진짜 모델은
 여전히 없다"는 상태로 66-2장 아트 파이프라인이 REALM까지 올 때를
 기다린다. 그 밖엔 REALM 밖(다른 네 판·saga-unity 트랙)으로.
+
+## 27. 시나리오 200년(관도) — 첫 걸음 (2026-09-14, 같은 날 이어서, "이어해 묻지 말고")
+
+26절까지 "큰 재설계"라고만 적어 둔 마지막 항목을 실제로 뜯어봤다.
+걱정했던 것과 달리 **필요한 자료는 이미 다 있었다** — `ENEMY_CITIES`
+104개 전부가 애초에 `agri_start`/`comm_start`/`pop_start`/`wall_start`/
+`troops_start`/`train_start`/`tech_start`를 갖고 있다(data-city.js가
+107개 성 전체에 원래 공통으로 주는 값이라, `cities`(3개)만 쓰던
+이 슬라이스가 지금까지 안 썼을 뿐이다 — `_annex_city()`가 정복 시
+이미 이 값들로 새 `cities` 항목을 짓고 있었다, 그 "신선한 버전"이면
+됐다). 진짜 막혀 있던 건 자료가 아니라 **"성 하나가 지금 누구 것인가"를
+어디서 읽는가**였다 — 아래 참고.
+
+`js/data-force.js FORCES_200`을 옮겼다: 조조가 처음부터 8개 성(허창·
+진류·복양 + 낙양·장안·소패·하비·수춘)을 갖는다. 194에만 있던 세력
+여섯(공손찬 zan·공융 rong·이각 jue·여포 bu·원술 shu·손책 ce)은 200엔
+없다 — 그 성은 조조 몫이 되거나(낙양·장안은 jue, 소패는 bei, 하비는
+bu, 수춘은 shu) 남은 세력에게 재배정된다(계·북평은 zan→shao, 북해는
+rong→shao, 건업·시상·회계는 ce→quan(손책이 손권이 된 것뿐, 성은
+그대로), 여남은 shu→bei).
+
+`realm_cities.gd`:
+- `SCENARIO_CAO_CITIES`(194/200 조조 시작 성 목록)·
+  `SCENARIO_FORCE_OVERRIDE`(200에서 194 기준 force가 실제로 달라지는
+  7개 자리만) 신규.
+- `CREED`에 `"quan": "balanced"` 추가(FORCES_200.quan.creed 그대로 —
+  기존 기본값과 우연히 같지만 명시해 둔다).
+
+`realm_save_state.gd`:
+- **`city_force: Dictionary`(city_id→force_id) 신규 — "지금 누구 것인가"의
+  유일한 출처.** 예전엔 6곳(외교·계략·전투)이 전부 `enemy_def.get("force",
+  "")`로 194 기준 정적값을 직접 읽었다 — 시나리오가 그 값을 겹쳐 쓸 수
+  없는 구조였다. `_init_city_force(overrides)`가 `RealmCities.
+  SCENARIO_FORCE_OVERRIDE[scenario_id]`를 겹쳐 써서 채우고(조조 몫이 된
+  성은 아예 뺀다 — "적의 세력" 개념 자체가 없다), `force_of(city_id)`
+  하나로 좁혀 6곳 전부와 `_init_diplomacy()`가 이걸 쓰게 갈아 끼웠다.
+- `_init_cities()`/`_init_enemies()`를 `scenario_id`로 일반화 — 194의
+  세 성은 지금까지처럼(troops=0, RealmOrders 기본 상수), 시나리오가
+  추가로 준 성(낙양 등 5개)은 그 성 자신의 `_start` 값들로 채운다("이미
+  자리 잡은 성을 물려받는다"). `_init_enemies()`는 조조 몫이 된 성을
+  건너뛴다(한 성이 `cities`와 `enemies` 둘 다에 있으면 안 된다).
+- **`start_scenario(id)` 신규** — 위 넷(`_init_city_force`·`_init_cities`·
+  `_init_enemies`·`_init_diplomacy`) + `_init_quiz`를 다시 부르고
+  로스터·연월·금고·결과를 새로 시작한다(rtk.js setup() 금고 공식
+  `2000 + cities.size()*400`을 성 개수가 달라진 시나리오에도 그대로
+  적용 — 200은 5200). **아직 이걸 부르는 UI가 없다** — "새 게임"
+  시나리오 고르기 화면은 다음 슬라이스 몫(REALM 4절 "포함"에 아직
+  "새 게임" 자체가 없다, 지금까지 게임은 언제나 194로만 부팅했다).
+- `save()`/`try_load()`에 `scenario_id` 추가(SAVE_VERSION 12→13).
+  `city_force`는 파생값이라 저장하지 않고 불러온 뒤 다시 채운다.
+
+**놓칠 뻔한 것 — 정적 `ENEMY_CITIES`를 직접 훑던 UI 세 곳.**
+`realm_attack_button.gd`·`realm_diplo_button.gd`·`realm_plot_button.gd`가
+전부 `RealmCities.ENEMY_CITIES`(107개 지도 전체, 시나리오 무관)를 직접
+돌며 `RealmSaveState.enemies.get(eid, {}).get("captured", false)`만
+봤다 — 194에선 이 둘(정적 전체 vs 실제 적)이 늘 같은 집합이라 문제가
+없었지만, 200에서 조조 몫이 된 5개 성은 `enemies`엔 없는데 여전히
+`ENEMY_CITIES`엔 있어 **세 버튼 다 그 성을 "공격/외교/계략 대상"으로
+잘못 보여줄 뻔했다**(제일 먼저 눈에 띈 건 `realm_worldmap.gd` — 우호
+마커를 `RealmCities.CITIES`(194 고정 3개) 기준으로만 세워서, 200의
+낙양 등 5개는 우호 마커도 못 받으면서 동시에 적 마커까지 받을
+뻔했다). 세 버튼 다 `if not RealmSaveState.enemies.has(eid): continue`
+가드를 앞에 추가했고, 월드맵은 우호 마커 루프를 `RealmCities.CITIES`
+대신 `RealmSaveState.cities.keys()`로 바꿨다 — "지금 우리 성이 뭔가"는
+언제나 `RealmSaveState.cities`가 유일한 출처가 되도록 통일했다.
+
+**재해석 — 뺀 것.** 로스터는 시나리오와 무관하게 여전히 무장 한 명
+(`STARTING_OFFICER`)뿐이다 — 이 슬라이스가 처음부터 "로스터 전체를
+안 준다, 수색/등용으로 채운다"는 원칙이라(2-4절), 200의 조조 로스터
+12명을 그대로 옮기지 않았다. `realm_diplo_button.gd _lord_name()`은
+여전히 성의 **정적** `lord` 필드를 읽는다 — 200에서 force가 재배정된
+7개 성(계·북평·북해·건업·시상·회계·여남)은 이 라벨이 194 기준 옛
+군주 이름을 보여준다(예: 계는 "고문"(shao)에 속하게 됐지만 라벨은
+여전히 원소가 아니라 공손찬 쪽 이름을 읽는다) — `force_of()`가
+갈랐지만 `lord`는 성마다 정적으로 하나뿐이라 아직 안 건드렸다. 실제로
+드러나려면 "새 게임 200 시작" UI 자체가 먼저 있어야 하니, 그 UI를
+붙일 때 같이 고칠 자리로 남긴다.
+
+검증(헤드리스): 임포트 오류 0건, 다섯 씬 각각 `--quit-after 5` 세 번
+연속 로그 완전 동일(194 기본 부팅 경로는 전혀 안 바뀌었다는 뜻).
+임시 씬으로 (1) 194 기본 부팅 — cities 3·enemies 104·force_of(xiaopei)
+=="bei"·force_of(ye)=="shao"·재야(빈 force) 뺀 distinct force 12개,
+(2) `start_scenario("200")` — cities 8·enemies 99·총합 107·조조의 8개
+성이 cities엔 있고 enemies엔 없음·기존 3성(xuchang)은 troops=0 그대로·
+새 5성(luoyang)은 troops_start 그대로 물려받음·7개 재배정
+force_of 전부 기대값과 일치·조조 몫 성은 force_of=""·**diplomacy가
+정확히 7개(죽은 항목 없음)**·current_city=="xuchang"·gold==5200·
+year==200, (3) 다시 `start_scenario("194")`로 왕복 — cities 3·
+enemies 104·gold 3200·force 12개로 정확히 원복까지 확인 후 삭제,
+재검증까지 마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은 아직
+(몰아서 받을 것) — 특히 "새 게임 200" 진입점이 아직 없어 이 함수는
+사람이 직접 눌러 볼 방법이 아직 없다(다음 항목).
+
+**다음에 할 일** — REALM 4절 "제외"가 **완전히 비었다**(포함 항목
+전부 구현, 제외 항목 전부 최소 한 걸음씩 진행). 남은 굵직한 일은
+전부 이 절이 미리 표시해 둔 후속 작업이다: (1) "새 게임" 시나리오
+고르기 UI(이게 있어야 `start_scenario()`를 사람이 실제로 눌러 볼 수
+있다, 208도 이 UI가 생긴 뒤 곁들일 것 — 208은 손권·유비 동맹 pact도
+추가로 필요하다) (2) `_lord_name()` 등 라벨류가 force 재배정을 못
+따라가는 자리 정리 (3) 3D 몬스터 자산(GLB, 66-2장). 그 밖엔 REALM
+밖(다른 네 판·saga-unity 트랙)으로도 진지하게 고려할 자리 — REALM
+"포함" 목록 자체는 이제 다 채워졌다.
