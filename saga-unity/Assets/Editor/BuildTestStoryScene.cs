@@ -59,6 +59,7 @@ namespace Saga.EditorTools
             BuildHud();
             BuildDialogueLabel();
             BuildChoiceUi();
+            BuildDebugOverlay();
             BuildSaveButton();
             BuildMobileControls(playerController);
             BuildBootstrap();
@@ -176,6 +177,8 @@ namespace Saga.EditorTools
             spawner.Build();
         }
 
+        private const string VillagerModelPath = "Assets/Art/Characters/character-b.glb"; // GO/FOREST 주민 배역과 같은 모델(StoryNpc.cs 클래스 주석 참고).
+
         /// <summary>PLAN.md 51장 "STORY 확장 — NPC" 첫 슬라이스 — 척후병
         /// 하나만, 잡졸 자리(첫 자리 3m)보다 앞·플레이어 스폰(2m)과 겹치는
         /// 자리에 세운다(StoryNpc.cs 클래스 주석 참고).</summary>
@@ -183,7 +186,17 @@ namespace Saga.EditorTools
         {
             var npcGo = new GameObject("Npc_Scout");
             npcGo.transform.position = new Vector3(0.6f, 0.1f, 0f);
-            npcGo.AddComponent<StoryNpc>();
+            var npc = npcGo.AddComponent<StoryNpc>();
+
+            var villagerModel = AssetDatabase.LoadAssetAtPath<GameObject>(VillagerModelPath);
+            if (villagerModel != null)
+            {
+                SetPrivateField(npc, "modelPrefab", villagerModel);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 척후병은 primitive capsule로 대체됨.");
+            }
         }
 
         /// <summary>PLAN.md 72~73장 World Event / Hidden Area + 51장
@@ -454,6 +467,38 @@ namespace Saga.EditorTools
             label.color = Color.white;
 
             return button;
+        }
+
+        /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS·사명·
+        /// 좌표(DebugHud.cs 클래스 주석 참고, GO와 같은 결).</summary>
+        private static void BuildDebugOverlay()
+        {
+            var canvasGo = new GameObject("DebugUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(20f, -20f);
+            rect.sizeDelta = new Vector2(650f, 140f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 22;
+            text.alignment = TextAnchor.UpperLeft;
+            text.color = new Color(1f, 1f, 1f, 0.8f);
+            text.text = "";
+
+            var overlay = canvasGo.AddComponent<DebugHud>();
+            SetPrivateField(overlay, "label", text);
         }
 
         private static void BuildSaveButton()

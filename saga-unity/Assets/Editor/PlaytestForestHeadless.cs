@@ -1,7 +1,10 @@
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 using Saga.Forest.Data;
+using Saga.Forest.UI;
 
 namespace Saga.EditorTools
 {
@@ -70,10 +73,45 @@ namespace Saga.EditorTools
         private static void CountFrames()
         {
             _framesSeen++;
+            // PLAN.md 44~49장 디버그 화면(2026-09-14, GO/DUNGEON과 같은 결) —
+            // 좌표 줄이 실제로 채워지는지 본다. 0.5초 FPS 타이머를 기다리는
+            // 대신(배치 모드는 몇 프레임 안엔 절대 안 찬다) private
+            // Refresh()를 리플렉션으로 직접 부른다.
+            if (_framesSeen == 3)
+            {
+                CheckDebugHud();
+            }
             if (_framesSeen >= FramesToRun)
             {
                 EditorApplication.update -= CountFrames;
                 EditorApplication.isPlaying = false;
+            }
+        }
+
+        private static void CheckDebugHud()
+        {
+            var hudGo = GameObject.Find("DebugUI");
+            var hud = hudGo != null ? hudGo.GetComponent<DebugHud>() : null;
+            var labelGo = hudGo != null ? hudGo.transform.Find("Label") : null;
+            var label = labelGo != null ? labelGo.GetComponent<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] DebugUI/Label을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var method = typeof(DebugHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+            method.Invoke(hud, null);
+
+            if (!label.text.Contains("pos:"))
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 디버그 오버레이에 좌표가 안 보임 text=\"{label.text}\"");
+                _hadError = true;
+            }
+            else
+            {
+                Debug.Log($"[PlaytestForestHeadless] debug hud OK - \"{label.text.Replace("\n", " | ")}\"");
             }
         }
     }

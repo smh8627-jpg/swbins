@@ -1,7 +1,10 @@
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 using Saga.Go.Audio;
+using Saga.Go.UI;
 
 namespace Saga.EditorTools
 {
@@ -105,11 +108,45 @@ namespace Saga.EditorTools
             {
                 var clip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Audio/Kenney_RPGSounds/chop.ogg");
                 GoAudio.PlaySfx(clip);
+                CheckDebugHud();
             }
             if (_framesSeen >= FramesToRun)
             {
                 EditorApplication.update -= CountFrames;
                 EditorApplication.isPlaying = false;
+            }
+        }
+
+        /// <summary>PLAN.md 44~49장 디버그 화면 확장(2026-09-14, DebugHud.cs
+        /// 클래스 주석 참고) — 레벨/사명/좌표 세 줄이 실제로 채워지는지
+        /// 본다. 0.5초(unscaled) 타이머를 기다리는 대신(배치 모드는 프레임이
+        /// 실시간보다 훨씬 빨리 돌아 몇 프레임 안엔 절대 안 찬다 — 다른
+        /// Playtest들이 이미 겪은 함정과 같은 종류) private Refresh()를
+        /// 리플렉션으로 직접 불러 판정 경로만 본다.</summary>
+        private static void CheckDebugHud()
+        {
+            var hudGo = GameObject.Find("DebugUI");
+            var hud = hudGo != null ? hudGo.GetComponent<DebugHud>() : null;
+            var labelGo = hudGo != null ? hudGo.transform.Find("Label") : null;
+            var label = labelGo != null ? labelGo.GetComponent<Text>() : null;
+            if (hud == null || label == null)
+            {
+                Debug.LogError("[PlaytestHeadless] DebugUI/Label을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var method = typeof(DebugHud).GetMethod("Refresh", BindingFlags.NonPublic | BindingFlags.Instance);
+            method.Invoke(hud, null);
+
+            if (!label.text.Contains("lv ") || !label.text.Contains("quest:") || !label.text.Contains("pos:"))
+            {
+                Debug.LogError($"[PlaytestHeadless] 디버그 오버레이에 레벨/사명/좌표가 안 보임 text=\"{label.text}\"");
+                _hadError = true;
+            }
+            else
+            {
+                Debug.Log($"[PlaytestHeadless] debug hud OK - \"{label.text.Replace("\n", " | ")}\"");
             }
         }
     }

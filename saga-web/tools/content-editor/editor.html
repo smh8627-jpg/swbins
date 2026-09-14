@@ -24,6 +24,27 @@
   #syncBadge.ok { background: rgba(94,194,106,.15); color: var(--ok); border: 1px solid rgba(94,194,106,.4); }
   #syncBadge.bad { background: rgba(224,96,90,.15); color: var(--bad); border: 1px solid rgba(224,96,90,.4); }
   #topbar .spacer { flex: 1; }
+  .tabbtn.active { border-color: var(--accent); background: var(--panel2); color: #cfd6ff; }
+  #gameSelect {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 5px;
+    padding: 6px 8px; font-size: 12px;
+  }
+  .modelrow {
+    padding: 4px 8px 4px 20px; cursor: pointer; border-radius: 4px; display: flex; gap: 6px;
+    align-items: baseline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .modelrow:hover { background: var(--panel2); }
+  .modelrow.selected { background: var(--accent2); color: #fff; }
+  .modelrow .tag {
+    font-size: 9.5px; padding: 1px 5px; border-radius: 8px; background: var(--panel2); color: var(--sub);
+  }
+  .modelrow.selected .tag { background: rgba(255,255,255,.2); color: #fff; }
+  .modelrow .tag.editable { color: var(--ok); }
+  .modelrow .tag.complex { color: var(--warn); }
+  #previewFrame {
+    width: 100%; height: 320px; border: 1px solid var(--line); border-radius: 8px; background: #22262c;
+  }
+  .preview-hint { color: var(--sub); font-size: 11px; margin: 6px 0 14px; }
   button {
     background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 5px;
     padding: 6px 12px; cursor: pointer; font-size: 12px;
@@ -96,13 +117,18 @@
 <body>
   <div id="topbar">
     <h1>saga-web 콘텐츠 에디터</h1>
+    <button id="modeContent" class="tabbtn">콘텐츠(인물·펫)</button>
+    <button id="modeModels" class="tabbtn">3D 자산</button>
+    <select id="gameSelect" hidden></select>
+    <input type="file" id="uploadInput" accept=".fbx,.glb,.gltf,.webp,.png,.jpg,.jpeg" hidden>
+    <button id="btnUpload" hidden>업로드(FBX·GLB·이미지)</button>
     <span id="syncBadge">확인 중…</span>
     <div class="spacer"></div>
     <button id="btnRefresh">새로고침</button>
   </div>
   <div id="main">
     <div id="tree">
-      <div id="treeSearch"><input type="text" id="searchInput" placeholder="이름·id로 찾기"></div>
+      <div id="treeSearch"><input type="text" id="searchInput" placeholder="이름·id·파일명으로 찾기"></div>
       <div id="treeScroll"></div>
     </div>
     <div id="inspector" class="empty">왼쪽에서 인물이나 펫을 고르세요.</div>
@@ -115,6 +141,11 @@ const API = '';
 let content = null;   // { heroes, pets, bios, eras, petGroups }
 let selected = null;  // { kind: 'hero'|'pet', id, isNew }
 let dirty = false;
+let mode = 'content'; // 'content' | 'models'
+const GAMES = ['saga-go', 'saga-dungeon', 'saga-forest', 'saga-story', 'saga-realm'];
+let modelsGame = 'saga-dungeon';
+let modelsData = null;   // { entries, files }
+let modelsSelected = null; // { type: 'entry'|'file', key|path }
 
 const el = (sel) => document.querySelector(sel);
 const treeScroll = el('#treeScroll');
@@ -165,6 +196,16 @@ function matchesSearch(item, q) {
 }
 
 function renderTree() {
+  if (mode === 'models') return renderModelsTree();
+  return renderContentTree();
+}
+
+function renderInspector() {
+  if (mode === 'models') return renderModelsInspector();
+  return renderContentInspector();
+}
+
+function renderContentTree() {
   const q = el('#searchInput').value.trim();
   treeScroll.innerHTML = '';
 
@@ -246,7 +287,7 @@ function field(labelText, inputHtml, hint) {
   return '<div class="field"><label>' + labelText + '</label>' + inputHtml + (hint ? '<div class="hint">' + hint + '</div>' : '') + '</div>';
 }
 
-function renderInspector() {
+function renderContentInspector() {
   if (!selected) {
     inspector.className = 'empty';
     inspector.innerHTML = '왼쪽에서 인물이나 펫을 고르세요.';
@@ -404,10 +445,198 @@ async function deleteEntry(isHero) {
   renderInspector();
 }
 
-el('#btnRefresh').onclick = async () => { await loadContent(); await loadStatus(); renderInspector(); };
+/* ── 3D 자산(asset3d.js DEFAULTS) — 판마다 내용이 다르고 공유하지 않는다 ── */
+
+function groupOfKey(key) {
+  const m = key.match(/^([a-zA-Z]+)[_:]/);
+  return m ? m[1] : key;
+}
+
+async function loadModels() {
+  const r = await fetch(API + '/api/models/' + modelsGame);
+  modelsData = await r.json();
+  if (modelsData.error) { alert(modelsData.error); modelsData = { entries: [], files: [] }; }
+  renderTree();
+}
+
+function renderModelsTree() {
+  const q = el('#searchInput').value.trim().toLowerCase();
+  treeScroll.innerHTML = '';
+  if (!modelsData) return;
+
+  const root1 = document.createElement('div');
+  root1.className = 'root-node';
+  const groups = {};
+  modelsData.entries.forEach((e) => {
+    const g = groupOfKey(e.key);
+    (groups[g] = groups[g] || []).push(e);
+  });
+  const head1 = document.createElement('div');
+  head1.className = 'root-label';
+  head1.innerHTML = '<span>▾ DEFAULTS 항목 (' + modelsData.entries.length + ')</span>';
+  const body1 = document.createElement('div');
+  head1.onclick = () => { body1.style.display = body1.style.display === 'none' ? '' : 'none'; };
+  root1.appendChild(head1);
+  Object.keys(groups).sort().forEach((g) => {
+    const items = groups[g].filter((e) => !q || e.key.toLowerCase().includes(q) || (e.path || '').toLowerCase().includes(q));
+    if (!items.length) return;
+    const gLabel = document.createElement('div');
+    gLabel.className = 'group-label';
+    gLabel.textContent = '▾ ' + g + ' (' + items.length + ')';
+    const gBody = document.createElement('div');
+    gLabel.onclick = () => { gBody.style.display = gBody.style.display === 'none' ? '' : 'none'; };
+    body1.appendChild(gLabel);
+    items.forEach((e) => {
+      const row = document.createElement('div');
+      row.className = 'modelrow';
+      if (modelsSelected && modelsSelected.type === 'entry' && modelsSelected.key === e.key) row.classList.add('selected');
+      const tag = e.kind === 'complex' ? '<span class="tag complex">복잡</span>' : '<span class="tag editable">편집가능</span>';
+      row.innerHTML = '<span>' + e.key + '</span>' + tag;
+      row.onclick = () => { modelsSelected = { type: 'entry', key: e.key }; renderModelsTree(); renderModelsInspector(); };
+      gBody.appendChild(row);
+    });
+    body1.appendChild(gBody);
+  });
+  root1.appendChild(body1);
+  treeScroll.appendChild(root1);
+
+  const root2 = document.createElement('div');
+  root2.className = 'root-node';
+  const head2 = document.createElement('div');
+  head2.className = 'root-label';
+  head2.innerHTML = '<span>▾ 파일 찾아보기 (' + modelsData.files.length + ')</span>';
+  const body2 = document.createElement('div');
+  head2.onclick = () => { body2.style.display = body2.style.display === 'none' ? '' : 'none'; };
+  root2.appendChild(head2);
+  modelsData.files.filter((f) => !q || f.path.toLowerCase().includes(q)).forEach((f) => {
+    const row = document.createElement('div');
+    row.className = 'modelrow';
+    if (modelsSelected && modelsSelected.type === 'file' && modelsSelected.path === f.path) row.classList.add('selected');
+    row.innerHTML = '<span>' + f.path.split('/').pop() + '</span><span class="tag">' + (f.type === 'image' ? '이미지' : '모델') + '</span>';
+    row.title = f.path;
+    row.onclick = () => { modelsSelected = { type: 'file', path: f.path, fileType: f.type }; renderModelsTree(); renderModelsInspector(); };
+    body2.appendChild(row);
+  });
+  root2.appendChild(body2);
+  treeScroll.appendChild(root2);
+}
+
+function isImagePath(p) {
+  return /\.(webp|png|jpe?g)$/i.test(p || '');
+}
+
+function previewHtmlFor(game, file) {
+  if (!file) return '<div id="previewFrame" style="display:flex;align-items:center;justify-content:center;color:var(--sub)">미리볼 파일 없음</div>';
+  if (isImagePath(file)) {
+    return '<img id="previewFrame" style="object-fit:contain" src="/static/' + encodeURIComponent(game) + '/' + file.split('/').map(encodeURIComponent).join('/') + '">';
+  }
+  return '<iframe id="previewFrame" src="/preview3d.html?game=' + encodeURIComponent(game) + '&file=' + encodeURIComponent(file) + '"></iframe>';
+}
+
+function renderModelsInspector() {
+  if (!modelsSelected) {
+    inspector.className = 'empty';
+    inspector.innerHTML = '왼쪽에서 DEFAULTS 항목이나 자산 파일을 고르세요.';
+    return;
+  }
+  inspector.className = '';
+  let html = '';
+  let previewFile = null;
+
+  if (modelsSelected.type === 'entry') {
+    const e = modelsData.entries.find((x) => x.key === modelsSelected.key);
+    html += '<div class="insp-head"><span class="title">' + e.key + '</span></div>';
+    if (e.kind === 'complex') {
+      html += '<div class="warnbox">이 항목은 배열 후보군이거나 다른 변수를 참조하는 복잡한 표현식이라 여기서는 못 바꿉니다 — 원본: <code>' + escapeHtml(e.raw) + '</code></div>';
+    } else {
+      previewFile = e.path;
+      const modelFiles = modelsData.files.filter((f) => f.type === 'model');
+      html += field('현재 파일', '<input type="text" id="m_current" value="' + escapeHtml(e.path) + '" disabled>');
+      html += field('바꿀 파일', '<select id="m_newfile">' + modelFiles.map((f) => '<option value="' + escapeHtml(f.path) + '"' + (f.path === e.path ? ' selected' : '') + '>' + escapeHtml(f.path) + '</option>').join('') + '</select>');
+      html += '<div id="insp-actions"><button class="primary" id="btnModelSave">저장</button></div>';
+    }
+  } else {
+    previewFile = modelsSelected.path;
+    html += '<div class="insp-head"><span class="title">' + previewFile.split('/').pop() + '</span></div>';
+    const refs = modelsData.entries.filter((e) => e.path === previewFile);
+    html += '<div class="hint">' + previewFile + '</div>';
+    html += refs.length
+      ? '<div class="preview-hint">현재 이 DEFAULTS 키가 이 파일을 씀: ' + refs.map((r) => r.key).join(', ') + '</div>'
+      : '<div class="preview-hint">현재 이 파일을 쓰는 DEFAULTS 항목 없음(미리보기 전용)</div>';
+  }
+
+  html += previewHtmlFor(modelsGame, previewFile);
+
+  inspector.innerHTML = html;
+  if (el('#btnModelSave')) {
+    el('#btnModelSave').onclick = async () => {
+      const newPath = el('#m_newfile').value;
+      const r = await fetch(API + '/api/models/' + modelsGame + '/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: modelsSelected.key, newPath }),
+      });
+      const out = await r.json();
+      if (out.error) { alert(out.error); return; }
+      log('저장: ' + modelsGame + ' / ' + modelsSelected.key + ' → ' + newPath, true);
+      await loadModels();
+      renderModelsInspector();
+    };
+  }
+}
+
+async function uploadFile(file) {
+  const buf = await file.arrayBuffer();
+  const r = await fetch(API + '/api/upload/' + modelsGame + '?name=' + encodeURIComponent(file.name), {
+    method: 'POST', body: buf,
+  });
+  const out = await r.json();
+  if (out.error) { alert(out.error); return; }
+  log('업로드: ' + modelsGame + ' / ' + out.path, true);
+  await loadModels();
+  modelsSelected = { type: 'file', path: out.path, fileType: out.type };
+  renderModelsTree();
+  renderModelsInspector();
+}
+
+function setMode(next) {
+  mode = next;
+  el('#modeContent').classList.toggle('active', mode === 'content');
+  el('#modeModels').classList.toggle('active', mode === 'models');
+  el('#gameSelect').hidden = mode !== 'models';
+  el('#btnUpload').hidden = mode !== 'models';
+  el('#syncBadge').hidden = mode === 'models';
+  el('#searchInput').placeholder = mode === 'models' ? '키·파일명으로 찾기' : '이름·id로 찾기';
+  if (mode === 'models' && !modelsData) loadModels();
+  renderTree();
+  renderInspector();
+}
+
+el('#modeContent').onclick = () => setMode('content');
+el('#modeModels').onclick = () => setMode('models');
+el('#gameSelect').innerHTML = GAMES.map((g) => '<option value="' + g + '"' + (g === modelsGame ? ' selected' : '') + '>' + g + '</option>').join('');
+el('#gameSelect').onchange = async (e) => {
+  modelsGame = e.target.value;
+  modelsSelected = null;
+  modelsData = null;
+  await loadModels();
+  renderInspector();
+};
+
+el('#btnUpload').onclick = () => el('#uploadInput').click();
+el('#uploadInput').onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (file) await uploadFile(file);
+};
+
+el('#btnRefresh').onclick = async () => {
+  if (mode === 'models') { await loadModels(); renderInspector(); return; }
+  await loadContent(); await loadStatus(); renderInspector();
+};
 el('#searchInput').addEventListener('input', renderTree);
 
 (async function init() {
+  setMode('content');
   await loadContent();
   await loadStatus();
 })();

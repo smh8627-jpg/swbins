@@ -4620,3 +4620,140 @@ Init`의 리셋 목록(`StoryQuestState.Restore(0,0)` 옆)에 같이 넣었다 �
 **이걸로 STORY 51장 네 칸(NPC/선택/사건/관계)이 모두 채워졌다.** PLAN.md
 51장이 가리키는 GO→DUNGEON→FOREST→STORY→REALM 순서상 STORY 몫은 일단
 닫혔다 — REALM 쪽 51장 진행 상태는 REALM 관련 항목 참고.
+
+## 같은 날 다섯 번째 후속 — DUNGEON에 "빌드"(회전베기), 51장 다섯 판 조사 (2026-09-14)
+
+STORY가 끝나 다시 "묻지 말고 이어해"가 왔다. 이번엔 GO/DUNGEON/FOREST/
+REALM 51장 축(각자 5개/4개/4개/4개 하위 칸)을 실제 파일 기준으로
+훑어(fork 조사) 빈 칸을 찾았다:
+
+- **GO** — 5칸(탐험/지역/이벤트/수집/희귀 몬스터) 전부 있음(`TestMapData.
+  cs`·`EastGroveRelic.cs`·`MountainShrine.cs`·`LuckyCairn.cs`·
+  `Gatherable.cs`·`RareWolfEncounter.cs`).
+- **DUNGEON** — 엘리트(`DungeonFormulas.EliteHp/EliteDmg`)·보스
+  (`QuestState.cs`)·장비(`HeroState.EquipIfBetter`+`GemData.cs`)는
+  있는데 **"빌드"가 비어 있었다** — `PlayerCombat.cs`엔 평타·강공격
+  둘뿐, 플레이스타일이 갈리는 선택지가 없었다.
+- **FOREST** — 4칸(동물/채집/마을/생활) 전부 있음(`ForestCreature.cs`
+  의 포자괴물 포함·`ForestFruitTree.cs`·`ForestVillager.cs`·
+  `ForestHomeData.cs`).
+- **REALM** — 세력/도시/영지는 있는데 "대규모 콘텐츠"는 얇음(적국 하나
+  뿐) — 다만 이건 새 세력·시나리오 밸런스 설계가 필요해 방향 없이
+  못 간다.
+
+DUNGEON "빌드"가 STORY 선택과 같은 결(작고 되돌리기 쉽고 새 시스템
+설계가 필요 없음)이라 이번 조각으로 골랐다.
+
+- **`PlayerCombat.TriggerWhirl`(회전베기, 신규)** — 반경(2.8m) 안
+  살아있는 적을 전부 때린다(`DungeonEnemy.Active`를 그대로 순회, 이미
+  public static이라 새 조회 API 불필요). 대상 하나당 피해는 평타의
+  0.7배로 낮게 잡아 "하나에 강공격을 몰아칠지, 여럿을 넓게 쓸지"가
+  실제 트레이드오프가 되게 했다 — STORY `TriggerSweep`과 같은 설계
+  의도지만 DUNGEON엔 MP가 없어(`HeroState.cs`에 자원 필드가 아예 없다)
+  쿨다운(3.5초, 평타·강공격보다 훨씬 길다)만으로 억제한다. 데스크톱은
+  E키, 모바일은 새 "회전베기" 버튼(강공격 버튼 바로 위).
+- **테스트 공백 하나 발견** — 지금까지 DUNGEON Playtest들은 전투 스킬
+  (TryAttack/TryHeavyAttack)을 한 번도 직접 확인한 적이 없었다(전부
+  `TakeDamage(999999f)`로 바로 죽여 넘어감). 이번엔 `PlaytestDungeonHeadless.cs`
+  에 더미 셋(근접 둘·먼 거리 하나)을 스폰해 회전베기가 반경 안만
+  때리는지 실제로 확인하는 단계를 추가했다(STORY `SpawnDummyEnemy`와
+  같은 결). 배치 모드 컴파일 → `BuildTestDungeonScene` 재빌드 →
+  `PlaytestDungeonHeadless` 3연속 통과(`near1=near2<24, far=24 그대로`).
+- 다른 네 판(GO/FOREST/STORY/REALM)은 파일이 전혀 안 겹쳐 무관 확인
+  생략 — DUNGEON 전용 파일만 고쳤다.
+
+**남은 51장 빈 칸**: REALM "대규모 콘텐츠"(적국 확장) 하나뿐 — 새
+세력·시나리오 밸런스 설계가 필요해 방향 없이는 손 안 댐(66-1
+재확인·STORY 선택 초기 판단과 같은 기준).
+
+## 같은 날 여섯 번째 후속 — GO 디버그 오버레이 확장 (2026-09-14, 여덟 번째 "이어해")
+
+51장은 REALM "대규모 콘텐츠"만 남기고 다 닫혀서(방향 대기, 손 안 댐),
+fork로 51장 밖에서 다른 작고 안전한 빈 칸을 찾았다. PLAN.md 44~49장이
+디버그 화면에 나열한 목록(FPS/Draw Calls/Visible Objects/Enemy Count/
+NPC Count/Memory/Player Position/Current Quest/Player Level/Current
+Zone) 중, GO `DebugHud.cs`(다섯 판 중 디버그 오버레이가 있는 유일한
+게임)는 렌더러 이름·FPS 둘뿐이었고 클래스 주석 자체가 "그 시스템 자체가
+없어서" 나머지를 안 넣었다고 적어 뒀었다 — 다시 보니 그새 GO에 실제로
+생긴 시스템(`PlayerStats.Level`·`QuestState.BanditQuest`)에 그냥
+얹을 수 있는 항목이 셋 있었다.
+
+- **Player Level·Current Quest·Player Position 세 줄을 추가.** Enemy/
+  NPC Count·Current Zone은 여전히 안 넣었다 — GO 사건은 상주 리스트가
+  아니라 트리거식 1회성(`BanditEncounter.cs` 등)이라 "개수"가 안 맞고,
+  맵도 이름 붙은 지역 구분이 아직 없다(`TestMapData.cs`). Draw Calls/
+  Visible Objects/Memory는 PLAN.md 자체가 대안으로 제시한 Unity
+  Profiler 몫(온스크린 라벨로 뽑을 공식 API가 없다) — 여전히 손 안 댐,
+  전체 목록을 억지로 다 채우지 않았다.
+  - `BuildTestVillageScene.BuildDebugOverlay()` 텍스트 박스 높이를
+    100→220으로(4줄이 됐으니).
+- **테스트 공백 하나 더 찾음** — `PlaytestHeadless.cs`(GO 스모크
+  테스트)는 DebugHud를 한 번도 확인한 적이 없었다. 0.5초(unscaled)
+  FPS 타이머가 배치 모드에선 몇 프레임 안에 절대 안 찬다는 걸 먼저
+  확인하고(다른 Playtest들이 이미 겪은 "배치 모드는 실시간보다 훨씬
+  빠르다" 함정과 같은 종류), 타이머를 기다리는 대신 private `Refresh()`
+  를 리플렉션으로 직접 불러 텍스트에 레벨/사명/좌표가 실제로 채워지는지
+  확인하는 단계를 추가했다. 배치 모드 컴파일 → `BuildTestVillageScene`
+  재빌드 → `PlaytestHeadless` 3연속 통과(`lv 1 · quest: - · pos: 고정
+  좌표` — fps 숫자만 배치 타이밍에 따라 1~2 사이로 흔들리는데 이건
+  원래도 비결정적인 측정값이라 무해하다).
+- 다른 네 판은 파일이 전혀 안 겹쳐(GO 전용 파일만 고침) 무관 확인
+  생략.
+
+## 같은 날 일곱 번째 후속 — 디버그 오버레이를 DUNGEON/FOREST/STORY/REALM까지 확장 (2026-09-14, 아홉 번째 "이어해")
+
+GO에만 있던 디버그 오버레이(PLAN.md 44~49장)를 나머지 네 판에도
+만들었다 — 문서의 디버그 화면 요구가 GO 하나만의 스펙이 아니라 다섯
+판 공통이라 판단해서다(`DialogueLabel.cs`처럼 이미 다섯 벌 복사돼
+있는 것과 같은 위상으로 취급). 각 판에 이미 있는 시스템에 얹을 수
+있는 항목만 넣고, 없는 항목은 GO와 같은 기준으로 그냥 뺐다(억지로
+다 채우지 않음):
+
+- **DUNGEON** — lv(`HeroState.Level`)·floor(`DungeonFloorRunner.
+  CurrentFloor`, "지역" 대용)·enemies(`DungeonEnemy.Active.Count`,
+  GO엔 없던 상주 리스트가 있어 이건 됨)·quest(`QuestState.
+  ObjectiveText`)·좌표. 5줄로 GO보다 많다 — DUNGEON이 이미 갖춘
+  시스템이 더 많아서다.
+- **FOREST** — 좌표 하나뿐. `ForestState.cs` 클래스 주석이 이미
+  "전투·성장·경제가 전혀 없다"고 적어 둔 대로 Level/Quest/Enemy Count
+  전부 대응 시스템이 없다.
+- **STORY** — quest(`StoryQuestState` 기반 요약 문자열)·좌표. Level
+  없음, Enemy Count는 화면 상단 `StoryHud`가 이미 같은 정보(kill
+  카운트)를 보여주고 있어 중복 안 넣음.
+- **REALM** — REALM만 조작 캐릭터 자체가 없어(`FindWithTag("Player")`
+  호출 대상이 없다 — 다섯 판 중 유일) Player Position이 아예 안 된다.
+  대신 있는 진행 축(`RealmCityState.Year/Month/Gold/CurrentCity`)을
+  Zone/Quest 대용으로 얹었다. 화면 왼쪽 위는 이미 `RealmHud`가 차지하고
+  있어 REALM만 오른쪽 위에 배치(다른 네 판과 다른 위치).
+- **테스트** — DUNGEON·FOREST는 GO와 같은 프레임-후크 구조라 private
+  `Refresh()`를 리플렉션으로 직접 불러 텍스트 내용까지 확인하는 단계를
+  추가(3연속 통과). STORY·REALM은 기존 Playtest가 이미 다단계(Phase
+  머신)라 새 검증 단계를 끼워 넣는 비용이 커서 **내용 검증은 안 넣고
+  기존 전체 시나리오가 그대로 통과하는지(회귀 없음)만 1회 확인**했다 —
+  새 GameObject(DebugUI)가 씬에 늘어난 것 자체가 기존 로직과 안 겹침을
+  그것으로 확인한 셈.
+- 배치 모드 컴파일 → 네 씬(`BuildTestDungeonScene`·
+  `BuildTestVillageForestScene`·`BuildTestStoryScene`·
+  `BuildTestCityScene`) 재빌드 → 각 Playtest 실행, 전부 통과.
+
+## 같은 날 여덟 번째 후속 — STORY 척후병에 실제 모델 (2026-09-14, 열 번째 "이어해")
+
+REALM "대규모 콘텐츠"를 다시 검토했다 — `RealmEnemyCity.cs`를 직접 읽어
+보니 새 성 하나를 더 넣으려면 `RealmCityData.cs`에 아예 없는 새 도시
+(이름·지도 좌표·농업/상업/성벽/인구 값)를 처음부터 지어내야 했다(기존
+소패는 이미 있던 유일한 적성). 이건 DUNGEON "빌드"(기존 공식 재사용)
+와 달리 진짜 새 콘텐츠 설계라 이번에도 손 안 댐 — 원래 판단이 맞았다.
+
+대신 STORY `World/StoryNpc.cs` 클래스 주석이 남겨 뒀던 작은 자국을
+채웠다 — 척후병이 지금까지 fallback capsule이었던 것을 GO/FOREST가
+이미 "주민" 배역으로 쓰는 `character-b.glb`(Kenney Blocky Characters)
+로 바꿨다. **새 자산을 하나도 안 만들고 이미 있는 걸 재사용**한
+것뿐이라 44장 규모의 판단이 아니다 — 모델이 없는 PC에서는 여전히
+`CharacterVisual.SpawnFallbackCapsule`로 안전하게 대체된다.
+
+- `StoryNpc.cs`에 `[SerializeField] private GameObject modelPrefab`
+  추가, `BuildVisual()`이 있으면 쓰고 없으면 폴백.
+- `BuildTestStoryScene.BuildNpc()`가 `character-b.glb`를 로드해 채운다.
+- 배치 모드 컴파일 → `BuildTestStoryScene` 재빌드(경고 없이 모델 로드
+  확인) → `PlaytestStorySlice` 3연속 통과(NPC 대화 로직은 안 건드려
+  기존 검증 그대로 통과).

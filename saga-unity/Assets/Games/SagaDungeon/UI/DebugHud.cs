@@ -1,27 +1,26 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
-using Saga.Go.Data;
+using Saga.Dungeon.Data;
+using Saga.Dungeon.World;
 
-namespace Saga.Go.UI
+namespace Saga.Dungeon.UI
 {
     /// <summary>
-    /// PLAN.md 46장·66-1장 — 디버그 빌드에서만 온스크린 진단 정보를 표시한다
-    /// (릴리즈 빌드에서는 자동으로 숨는다). saga-godot의
-    /// renderer_debug_label.gd와 같은 정신에서 시작했지만, 44~49장이
-    /// 나열한 전체 목록(FPS/Draw Calls/Visible Objects/Enemy Count/
-    /// NPC Count/Memory/Player Position/Current Quest/Player Level/
-    /// Current Zone) 중 **Player Level·Current Quest·Player Position**
-    /// 셋을 2026-09-14에 추가했다 — GO에 이미 있는 시스템(`PlayerStats`·
-    /// `QuestState`)에 그대로 얹을 수 있는 항목만 골랐다. 나머지는 여전히
-    /// 안 넣는다: Draw Calls/Visible Objects/Memory는 문서 자체가 대안으로
-    /// 제시한 Unity Profiler API 몫(온스크린 라벨로 값을 뽑는 공식 API가
-    /// 따로 없다), Enemy/NPC Count·Current Zone은 GO에 대응하는 시스템이
-    /// 없다(사건은 상주 리스트가 아니라 트리거식 1회성 — `BanditEncounter.
-    /// cs` 등, 맵도 이름 붙은 지역 구분이 아직 없다 — `TestMapData.cs`).
+    /// PLAN.md 44~49장 디버그 화면 — GO `UI/DebugHud.cs`와 같은 결(다섯 판
+    /// 공용 로직 복사 관례, 루트 CLAUDE.md), DUNGEON엔 아직 없어 2026-09-14에
+    /// 새로 만들었다. 문서가 나열한 전체 목록(FPS/Draw Calls/Visible
+    /// Objects/Enemy Count/NPC Count/Memory/Player Position/Current Quest/
+    /// Player Level/Current Zone) 중 DUNGEON에 이미 있는 시스템에 얹을 수
+    /// 있는 것만 골랐다: Level=`HeroState.Level`, Current Quest=
+    /// `QuestState.ObjectiveText`, Current Zone=`DungeonFloorRunner.
+    /// CurrentFloor`(절차적 층 진행이 이 판의 "지역" 개념), Player Position.
+    /// Enemy Count는 `DungeonEnemy.Active.Count`로 바로 된다(GO는 상주
+    /// 리스트가 없어 못 넣었던 것과 다르다). Draw Calls/Visible Objects/
+    /// Memory는 GO와 같은 이유(Unity Profiler 몫)로 안 넣는다.
     /// </summary>
     // 이름 주의 — "DebugOverlay"는 UnityEngine.Rendering.DebugOverlay와
-    // 겹쳐 컴파일 에러(CS0104)가 난다. DebugHud로 피했다.
+    // 겹쳐 컴파일 에러(CS0104)가 난다. DebugHud로 피했다(GO와 같은 이유).
     public class DebugHud : MonoBehaviour
     {
         [SerializeField] private Text label;
@@ -63,16 +62,11 @@ namespace Saga.Go.UI
             string pos = _player != null
                 ? $"{_player.position.x:F1}, {_player.position.y:F1}, {_player.position.z:F1}"
                 : "-";
+            int floor = DungeonFloorRunner.Instance != null ? DungeonFloorRunner.Instance.CurrentFloor : 1;
             label.text = $"renderer: {rendererName}\n{_fps:F0} fps\n" +
-                $"lv {PlayerStats.Level} · quest: {QuestLabel()}\n" +
+                $"lv {HeroState.Level} · floor {floor} · enemies {DungeonEnemy.Active.Count}\n" +
+                $"quest: {QuestState.ObjectiveText}\n" +
                 $"pos: {pos}";
         }
-
-        private static string QuestLabel() => QuestState.BanditQuest switch
-        {
-            QuestStage.Active => "도적 소탕 진행 중",
-            QuestStage.Completed => "도적 소탕 완료",
-            _ => "-",
-        };
     }
 }

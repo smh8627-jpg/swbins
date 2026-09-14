@@ -326,9 +326,11 @@ namespace Saga.EditorTools
             BuildPlayerHud();
             BuildMinimap();
             BuildOverworldMap();
+            BuildDebugOverlay();
             BuildSaveButton();
             BuildAttackButton(playerCombat);
             BuildHeavyAttackButton(playerCombat);
+            BuildWhirlButton(playerCombat);
             BuildDodgeButton(playerController);
             BuildMobileHud();
             BuildBootstrap();
@@ -1429,6 +1431,38 @@ namespace Saga.EditorTools
             return img;
         }
 
+        /// <summary>화면 왼쪽 위 — 디버그 빌드에서만 렌더러 이름·FPS·레벨·
+        /// 층·적 수·사명·좌표(DebugHud.cs 클래스 주석 참고, GO와 같은 결).</summary>
+        private static void BuildDebugOverlay()
+        {
+            var canvasGo = new GameObject("DebugUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var textGo = new GameObject("Label", typeof(RectTransform));
+            textGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)textGo.transform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(20f, -20f);
+            rect.sizeDelta = new Vector2(700f, 220f);
+
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 22;
+            text.alignment = TextAnchor.UpperLeft;
+            text.color = new Color(1f, 1f, 1f, 0.8f);
+            text.text = "";
+
+            var overlay = canvasGo.AddComponent<DebugHud>();
+            SetPrivateField(overlay, "label", text);
+        }
+
         private static void BuildSaveButton()
         {
             var canvasGo = new GameObject("SaveUI");
@@ -1555,6 +1589,48 @@ namespace Saga.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.text = "강공격";
+        }
+
+        /// <summary>PLAN.md 51장 "DUNGEON 확장 — 빌드" — 강공격 버튼 위(20px
+        /// 간격), 데스크톱은 E키로도 된다(PlayerCombat.TryWhirl() 참고).</summary>
+        private static void BuildWhirlButton(PlayerCombat combat)
+        {
+            var canvasGo = new GameObject("WhirlUI");
+            var canvas = canvasGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            var scaler = canvasGo.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            canvasGo.AddComponent<GraphicRaycaster>();
+
+            var btnGo = new GameObject("WhirlButton", typeof(RectTransform));
+            btnGo.transform.SetParent(canvasGo.transform, false);
+            var rect = (RectTransform)btnGo.transform;
+            rect.anchorMin = new Vector2(1f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(1f, 0f);
+            rect.anchoredPosition = new Vector2(-100f, 510f); // HeavyAttackButton(y=360, 높이130) 바로 위, 20px 간격
+            rect.sizeDelta = new Vector2(130f, 130f);
+
+            var img = btnGo.AddComponent<Image>();
+            img.color = new Color(0.5f, 0.15f, 0.55f, 0.55f);
+            var button = btnGo.AddComponent<Button>();
+            button.targetGraphic = img;
+            button.onClick.AddListener(combat.TriggerWhirl);
+
+            var textGo = new GameObject("Text", typeof(RectTransform));
+            textGo.transform.SetParent(btnGo.transform, false);
+            var textRect = (RectTransform)textGo.transform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            var text = textGo.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 26;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.text = "회전베기";
         }
 
         /// <summary>"회피" 슬라이스 — 공격 버튼 왼쪽(20px 간격), 데스크톱은
