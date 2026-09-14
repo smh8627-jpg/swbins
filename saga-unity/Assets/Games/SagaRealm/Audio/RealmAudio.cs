@@ -60,5 +60,32 @@ namespace Saga.Realm.Audio
             EnsureSfxSource().PlayOneShot(clip, MasterVolume * SfxVolume * volumeScale);
             if (RealmSettingsState.VibrationOn) Handheld.Vibrate();
         }
+
+        private static AudioSource _bgmSource;
+
+        private static AudioSource EnsureBgmSource()
+        {
+            if (_bgmSource != null) return _bgmSource;
+            var go = new GameObject("RealmAudio_BgmSource");
+            _bgmSource = go.AddComponent<AudioSource>();
+            _bgmSource.playOnAwake = false;
+            _bgmSource.loop = true;
+            return _bgmSource;
+        }
+
+        public static void PlayBgm(AudioClip clip)
+        {
+            if (clip == null) return;
+            var src = EnsureBgmSource();
+            if (src.clip == clip && src.isPlaying) return;
+            src.clip = clip;
+            src.volume = MasterVolume * BgmVolume;
+            src.Play();
+        }
+
+        public static void RefreshBgmVolume()
+        {
+            if (_bgmSource != null) _bgmSource.volume = MasterVolume * BgmVolume;
+        }
     }
 }

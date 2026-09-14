@@ -30,6 +30,14 @@ namespace Saga.Go.Data
             set => GoAudio.SfxVolume = value ? 1f : 0f;
         }
 
+        /// <summary>효과음과 같은 결로 GoAudio.BgmVolume을 0/1로 그대로 쓴다.
+        /// 이미 도는 트랙에도 바로 반영되도록 RefreshBgmVolume()을 같이 부른다.</summary>
+        public static bool BgmOn
+        {
+            get => GoAudio.BgmVolume > 0.5f;
+            set { GoAudio.BgmVolume = value ? 1f : 0f; GoAudio.RefreshBgmVolume(); }
+        }
+
         public static bool VibrationOn
         {
             get => PlayerPrefs.GetInt(VibrationKey, 1) != 0;

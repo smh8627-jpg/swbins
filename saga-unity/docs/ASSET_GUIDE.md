@@ -496,3 +496,53 @@ heavyHit/levelUp/discovery 셋 다 **이 세션이 파일 이름·소속 팩만 
 SFX 호출 경로를 실제로 태움, 12개 방 진행 중 레벨업도 자연히 발생)
 3연속 통과. ProjectSettings/EditorSettings.asset은 이번에도 CRLF/LF
 차이만 뜨고 실제 변경은 없어 되돌렸다.
+
+## 2026-09-15 — BGM 다섯 곡 전부 착수 — "묻지말고 순서대로 진행해"로 보류 해제
+
+위에서 몇 차례 보류돼 온 BGM을, 사용자가 이번엔 "순서대로 진행해"로
+직접 진행을 지시해 착수했다. 여태 보류 사유는 **승리/패배처럼 "어느
+쪽인지 들어야 아는 곡"을 잘못 고르는 사고**였지(`GoAudio.cs`·
+`RealmAudio.cs` 클래스 주석 참고) 상시 배경 루프 자체가 막힌 적은
+없었다 — 그래서 이번엔 승패 구분 없는 **판마다 상시 배경 루프 한
+곡씩**만 붙였다(그 제약을 피해 가는 것이지 어기는 게 아니다). 사람이
+직접 들어야 하는 감정가 있는 선곡(승리 팡파레·패배 음악 등)은 여전히
+안 건드렸다 — 그대로 사람 몫.
+
+곡은 opengameart.org에서 **CC0 라이선스로 필터링해**(고급 검색 —
+Art Type=Music, License=CC0) 찾고, 제목·태그만으로 판마다 어울리는
+곡을 골랐다(오디오를 못 듣는 건 여전해서 — Kenney "Short jingles"의
+승패 구분 문제와 달리, 이번엔 제목 자체가 이미 명확한 곡만 썼다):
+
+| 게임 | 파일 | 원제 · 작곡가 | 출처 |
+|---|---|---|---|
+| 사가고 | `Assets/Art/Audio/CC0_BGM/go_town_theme.mp3` | "Town Theme (RPG)" · cynicmusic | <https://opengameart.org/content/town-theme-rpg> |
+| 사가블로 | `Assets/Art/Audio/CC0_BGM/dungeon_ambience.ogg` | "Dungeon Ambience" · yd | <https://opengameart.org/content/dungeon-ambience> |
+| 사가의숲 | `Assets/Art/Audio/CC0_BGM/forest_peaceful_town.ogg` | "Peaceful Town" · aroachifoundonmypillow | <https://opengameart.org/content/peaceful-town> |
+| 사가스토리 | `Assets/Art/Audio/CC0_BGM/story_fight_run_breath_deeply.mp3` | "…Fight, run, breath deeply" · Komiku | <https://opengameart.org/content/fight-run-breath-deeply> |
+| 사가국지 | `Assets/Art/Audio/CC0_BGM/realm_war_theme.ogg` | "War Theme" · spring-spring | <https://opengameart.org/content/war-theme> |
+
+라이선스: 다섯 곡 전부 CC0 — 다섯 명 서로 다른 작곡가라 Kenney 킷처럼
+팩 전체에 딸린 `LICENSE.txt` 한 장이 없어서, 이번엔
+`Assets/Art/Audio/CC0_BGM/LICENSE.txt`에 곡마다 원제·작곡가·출처 URL을
+직접 적어 넣었다(CC0라 표시 의무는 없지만 추적 목적으로 남김).
+
+**인프라** — `XxxAudio.PlayBgm(clip)`/`RefreshBgmVolume()`를 다섯 벌
+(DUNGEON은 `SfxPlayer.cs`) 추가, 루프 재생(`AudioSource.loop = true`)
+전용 소스를 SFX와 분리해 새로 둔다(이미 있던 `BgmVolume` PlayerPref를
+그대로 씀 — 애초에 이걸 예비해 뒀던 자리). 클립 자체는 다른 실클립과
+같은 결로 `GameBootstrap`(REALM은 `RealmCommandUi`가 아니라 별도
+`World/GameBootstrap.cs`)의 `[SerializeField]`에 씬 빌드 스크립트가
+`AssetDatabase.LoadAssetAtPath`로 채운다.
+
+**설정 패널에 여섯째 줄 "BGM" 추가** — 다섯 판 전부 기존 줄(효과음/
+진동/UI 크기/그래픽 품질/언어)은 그대로 두고 맨 끝에 이어 붙였다(줄
+순서를 안 바꿔 기존 y좌표를 안 건드림) — 패널 높이 680×720→680×820.
+`settings.bgm` 로컬라이즈 키(ko "배경음악"/en "Music") 다섯 벌 추가.
+
+검증: 배치 모드 컴파일 → 다섯 씬 전부 재빌드(클립 못 찾음 경고 없음
+확인) → `PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·
+`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice`
+전부 3연속 통과 → `PlaytestDungeonFloorProgression` 재검증(SfxPlayer.
+Configure() 시그니처에 bgmClip 인자가 늘어난 것의 회귀 확인) 통과.
+BGM 자체가 실제로 들리는지는(음량·루프 이음매 등) 여전히 사람 확인
+몫 — 헤드리스는 "에러 없이 재생 호출이 걸리는지"까지만 확인한다.

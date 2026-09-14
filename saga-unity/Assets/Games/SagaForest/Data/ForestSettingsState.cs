@@ -25,6 +25,12 @@ namespace Saga.Forest.Data
             set => ForestAudio.SfxVolume = value ? 1f : 0f;
         }
 
+        public static bool BgmOn
+        {
+            get => ForestAudio.BgmVolume > 0.5f;
+            set { ForestAudio.BgmVolume = value ? 1f : 0f; ForestAudio.RefreshBgmVolume(); }
+        }
+
         public static bool VibrationOn
         {
             get => PlayerPrefs.GetInt(VibrationKey, 1) != 0;

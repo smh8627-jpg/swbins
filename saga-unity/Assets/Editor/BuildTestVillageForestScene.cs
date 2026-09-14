@@ -508,7 +508,12 @@ namespace Saga.EditorTools
         private static void BuildBootstrap()
         {
             var go = new GameObject("ForestBootstrap");
-            go.AddComponent<ForestBootstrap>();
+            var bootstrap = go.AddComponent<ForestBootstrap>();
+
+            // 67장 "사운드" BGM(2026-09-15) — docs/ASSET_GUIDE.md 참고.
+            var bgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Audio/CC0_BGM/forest_peaceful_town.ogg");
+            if (bgmClip == null) Debug.LogWarning("[BuildTestVillageForestScene] BGM 클립을 못 찾음 — 소리 없이 동작.");
+            SetPrivateField(bootstrap, "bgmClip", bgmClip);
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

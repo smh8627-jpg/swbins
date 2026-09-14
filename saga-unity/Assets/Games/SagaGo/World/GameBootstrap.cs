@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Go.Audio;
 using Saga.Go.Data;
 
 namespace Saga.Go.World
@@ -12,12 +13,17 @@ namespace Saga.Go.World
     /// </summary>
     public class GameBootstrap : MonoBehaviour
     {
+        // 67장 "사운드" — BGM 첫 슬라이스(2026-09-15, GoAudio.cs 클래스 주석
+        // 참고). 편집기 빌드 스크립트가 채운다(BuildTestVillageScene.cs).
+        [SerializeField] private AudioClip bgmClip;
+
         private void Start()
         {
             SaveState.TryLoad();
             CombineStaticBatches();
             GoSettingsState.ApplyToAllScalers();
             GoSettingsState.ApplyGraphicsQuality();
+            GoAudio.PlayBgm(bgmClip);
         }
 
         /// <summary>

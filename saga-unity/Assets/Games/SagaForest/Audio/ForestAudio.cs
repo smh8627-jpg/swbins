@@ -67,6 +67,34 @@ namespace Saga.Forest.Audio
             if (ForestSettingsState.VibrationOn) Handheld.Vibrate();
         }
 
-        // BGM 트랙은 아직 안 구했다 — 구하면 여기에 PlayBgm(AudioClip)을 추가할 것.
+        private static AudioSource _bgmSource;
+
+        private static AudioSource EnsureBgmSource()
+        {
+            if (_bgmSource != null) return _bgmSource;
+            var go = new GameObject("ForestAudio_BgmSource");
+            _bgmSource = go.AddComponent<AudioSource>();
+            _bgmSource.playOnAwake = false;
+            _bgmSource.loop = true;
+            return _bgmSource;
+        }
+
+        /// <summary>2026-09-15 — docs/ASSET_GUIDE.md 해당 날짜 항목 참고.
+        /// 상시 배경 루프 한 곡(승패 구분 없음)이라 오디오를 직접 들어야
+        /// 하는 제약에 안 걸린다.</summary>
+        public static void PlayBgm(AudioClip clip)
+        {
+            if (clip == null) return;
+            var src = EnsureBgmSource();
+            if (src.clip == clip && src.isPlaying) return;
+            src.clip = clip;
+            src.volume = MasterVolume * BgmVolume;
+            src.Play();
+        }
+
+        public static void RefreshBgmVolume()
+        {
+            if (_bgmSource != null) _bgmSource.volume = MasterVolume * BgmVolume;
+        }
     }
 }

@@ -46,6 +46,8 @@ namespace Saga.Realm.UI
         private Text _settingsQualityLabel;
         private Text _settingsLanguageNameLabel;
         private Text _settingsLanguageLabel;
+        private Text _settingsBgmNameLabel;
+        private Text _settingsBgmLabel;
         private RealmQuizState.Presented? _currentQuiz;
 
         public void Build()
@@ -375,7 +377,7 @@ namespace Saga.Realm.UI
         /// 버튼 안 Text만 갱신한다(값이 네 개뿐이라 다시 지을 이유가 없다).</summary>
         private void BuildSettingsPanel(Transform parent)
         {
-            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 720f),
+            _settingsPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
                 new Color(0f, 0f, 0f, 0.8f));
             _settingsPanel.SetActive(false);
 
@@ -387,6 +389,7 @@ namespace Saga.Realm.UI
             (_settingsUiScaleNameLabel, _settingsUiScaleLabel) = MakeSettingsRow(-360f, "settings.ui_scale", ChooseUiScale);
             (_settingsQualityNameLabel, _settingsQualityLabel) = MakeSettingsRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
             (_settingsLanguageNameLabel, _settingsLanguageLabel) = MakeSettingsRow(-560f, "settings.language", ChooseLanguage);
+            (_settingsBgmNameLabel, _settingsBgmLabel) = MakeSettingsRow(-660f, "settings.bgm", ChooseBgm);
 
             var closeButton = RealmUiKit.NewButton(_settingsPanel.transform, RealmLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _settingsPanel.SetActive(false));
@@ -410,6 +413,7 @@ namespace Saga.Realm.UI
         private void ChooseUiScale() { RealmSettingsState.CycleUiScale(); RefreshSettingsPanel(); }
         private void ChooseGraphicsQuality() { RealmSettingsState.CycleGraphicsQuality(); RefreshSettingsPanel(); }
         private void ChooseLanguage() { RealmLocalization.CycleLanguage(); RefreshSettingsPanel(); }
+        private void ChooseBgm() { RealmSettingsState.BgmOn = !RealmSettingsState.BgmOn; RefreshSettingsPanel(); }
 
         private void RefreshSettingsPanel()
         {
@@ -423,12 +427,14 @@ namespace Saga.Realm.UI
             _settingsUiScaleNameLabel.text = RealmLocalization.T("settings.ui_scale");
             _settingsQualityNameLabel.text = RealmLocalization.T("settings.graphics_quality");
             _settingsLanguageNameLabel.text = RealmLocalization.T("settings.language");
+            _settingsBgmNameLabel.text = RealmLocalization.T("settings.bgm");
 
             _settingsSfxLabel.text = RealmLocalization.T(RealmSettingsState.SfxOn ? "state.on" : "state.off");
             _settingsVibrationLabel.text = RealmLocalization.T(RealmSettingsState.VibrationOn ? "state.on" : "state.off");
             _settingsUiScaleLabel.text = RealmSettingsState.UiScaleLabel();
             _settingsQualityLabel.text = RealmSettingsState.GraphicsQualityLabel();
             _settingsLanguageLabel.text = RealmLocalization.LanguageLabel();
+            _settingsBgmLabel.text = RealmLocalization.T(RealmSettingsState.BgmOn ? "state.on" : "state.off");
         }
 
         private void ToggleSettingsPanel()

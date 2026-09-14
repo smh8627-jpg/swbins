@@ -656,7 +656,12 @@ namespace Saga.EditorTools
         private static void BuildBootstrap()
         {
             var go = new GameObject("GameBootstrap");
-            go.AddComponent<GameBootstrap>();
+            var bootstrap = go.AddComponent<GameBootstrap>();
+
+            // 67장 "사운드" BGM(2026-09-15) — docs/ASSET_GUIDE.md 참고.
+            var bgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Audio/CC0_BGM/story_fight_run_breath_deeply.mp3");
+            if (bgmClip == null) Debug.LogWarning("[BuildTestStoryScene] BGM 클립을 못 찾음 — 소리 없이 동작.");
+            SetPrivateField(bootstrap, "bgmClip", bgmClip);
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

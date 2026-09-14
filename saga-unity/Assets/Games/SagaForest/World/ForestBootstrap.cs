@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Forest.Audio;
 using Saga.Forest.Data;
 
 namespace Saga.Forest.World
@@ -12,11 +13,15 @@ namespace Saga.Forest.World
     /// </summary>
     public class ForestBootstrap : MonoBehaviour
     {
+        // 67장 "사운드" BGM(2026-09-15, ForestAudio.cs 클래스 주석 참고).
+        [SerializeField] private AudioClip bgmClip;
+
         private void Start()
         {
             ForestSaveState.TryLoad();
             ForestSettingsState.ApplyToAllScalers();
             ForestSettingsState.ApplyGraphicsQuality();
+            ForestAudio.PlayBgm(bgmClip);
         }
     }
 }

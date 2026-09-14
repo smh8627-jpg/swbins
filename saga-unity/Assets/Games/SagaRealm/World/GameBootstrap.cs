@@ -1,4 +1,5 @@
 using UnityEngine;
+using Saga.Realm.Audio;
 using Saga.Realm.Data;
 
 namespace Saga.Realm.World
@@ -7,11 +8,15 @@ namespace Saga.Realm.World
     /// 올라온 뒤 저장 파일이 있으면 RealmCityState를 되돌린다.</summary>
     public class GameBootstrap : MonoBehaviour
     {
+        // 67장 "사운드" BGM(2026-09-15, RealmAudio.cs 참고).
+        [SerializeField] private AudioClip bgmClip;
+
         private void Start()
         {
             RealmSaveState.TryLoad();
             RealmSettingsState.ApplyToAllScalers();
             RealmSettingsState.ApplyGraphicsQuality();
+            RealmAudio.PlayBgm(bgmClip);
         }
     }
 }

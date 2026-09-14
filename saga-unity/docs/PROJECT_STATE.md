@@ -5077,3 +5077,105 @@ PlaytestHeadless(GO)·PlaytestDungeonHeadless/Town2/Towns34), 전부
 댐 — BGM은 "먼저 묻지 말고 시작하지 말 것"이 유효한 규칙이라 계속
 보류, STORY 확장은 새 서사 방향이 필요해 다음에 사용자에게 직접
 물어볼 것.
+
+## code-review 라운드 3 — ad87aa4 이후 전체 반영 (2026-09-15, "묻지말고 계속
+이어해" 후속)
+
+en 검수 뒤 다시 판단 없이 할 일을 찾다가, 지난 code-review 이후(ad87aa4
+~HEAD, 51장 완결·설정 UI·Localization ①~⑥·en 검수까지) 쌓인 커밋이
+많아 `/code-review high ad87aa4..HEAD -- saga-unity`를 fork로 돌렸다.
+지적 6개 중 **실제 반영 2개**, 나머지 4개는 이 프로젝트 스타일(방어
+코드 지양·다섯 벌 복사 관례)과 안 맞거나 저위험 사변이라 버렸다:
+
+1. **반영 — `DungeonEnemy.cs` DisplayNameKeys 누락(진짜 버그)**:
+   `DungeonFloorRunner.SpawnElite()`(실제 절차적 층 진행이 쓰는 정예
+   스폰)가 붙이는 표시명은 "폐허의 황건 정예"인데, 2026-09-15 오전
+   세션이 고친 매핑 표엔 `BuildTestDungeonScene.cs` 더미가 쓰는
+   "사나운 황건적"만 들어 있었다 — 실제 플레이에서 정예를 잡으면
+   영어 모드에서도 한국어 원문이 그대로 노출되는 진짜 회귀. 표시명
+   하나를 매핑에 추가해 해소(같은 "enemy.elite" 키 재사용). 검증:
+   컴파일 통과 + `PlaytestDungeonHeadless`(3연속)·
+   `PlaytestDungeonFloorProgression`(12회 방 진행) 회귀 없음 — 정예
+   킬 자체를 직접 검증하는 헤드리스는 이 프로젝트에 아직 없어(미니보스/
+   두목과 같은 사정) 컴파일+회귀 확인까지.
+2. **반영 — `PlaytestRealmSlice.CheckSettingsPanel()` 언어 상태 누출로
+   인한 잠재적 flaky 실패**: 설정 버튼을 `GameObject.Find("Btn_설정")`
+   (한국어 라벨 기반 이름)로 찾는데, 그 이름은
+   `RealmLocalization.CurrentLanguage`(PlayerPrefs 저장, 세션 간
+   유지)가 "ko"일 때만 성립한다 — GO/DUNGEON/FOREST/STORY의 동급
+   체크는 전부 언어 독립적인 고정 컨테이너 이름을 써서 이 문제가 없다.
+   `RealmSaveState.DeleteForTest()`(이전 헤드리스 실행이 남긴 세이브를
+   먼저 지우는 것)와 같은 이유로, `Run()` 시작부에
+   `RealmLocalization.CurrentLanguage = "ko"`를 추가해 Play 모드
+   진입 전에 고정했다. 레지스트리에서 실제 PlayerPrefs 키를 못 찾아
+   (`-batchmode`가 PlayerPrefs를 디스크에 플러시하는지 확인 못 함)
+   인위적 재현은 못 했지만, 코드 경로(RealmUiKit.NewButton이
+   `$"Btn_{label}"`로 짓고 label이 RealmLocalization.T(...)를 거침)는
+   리뷰가 정확히 짚었다 — 저위험·고확신 수정이라 반영. 검증:
+   `PlaytestRealmSlice` 3연속 OK.
+3. **버림 — reflection `.Invoke()` null-check 4곳**: "일어날 수 없는
+   시나리오에 방어 코드를 안 쌓는다"는 이 프로젝트 스타일과 정면
+   충돌(루트 CLAUDE.md). `GetMethod("Refresh", ...)`가 실패하는 건
+   메서드를 리네임할 때뿐이고, 그때는 지금도 다른 방식으로 바로
+   드러난다(NullReferenceException).
+4. **버림 — 5개 Playtest 파일의 설정 패널 테스트 코드(~35줄) 중복을
+   공용 헬퍼로 뽑자는 제안**: `XxxAudio.cs`·`XxxLocalization.cs`처럼
+   "다섯 판은 공용 파일을 다섯 벌 복사해 나눠 든다, 하나로 합치자고
+   제안하지 않는다"는 루트 CLAUDE.md 원칙이 Editor 테스트 코드에도
+   같은 결로 적용된다고 판단.
+5. **버림 — `GoSettingsPanel.cs`(외 4벌) MakeRow/Refresh() 키 리터럴
+   중복**: 기술적으론 맞는 지적이지만, `T()`가 키를 못 찾으면 원본
+   키 문자열을 그대로 돌려주게 설계돼 있어(Localization 인프라 도입
+   때부터 의도된 자가진단) 오타가 나면 화면에 바로 티가 난다 — 실제
+   위험이 낮다. 다섯 벌 구조를 하나 더 손대는 비용 대비 이득이 작다고
+   판단.
+6. **버림 — `ApplyToAllScalers()` 씬 전체 `FindObjectsByType` 스캔을
+   캐싱하자는 제안**: 리뷰 자신도 "프레임당이 아니라 지금은 영향이
+   작다"고 적었고, 캐싱은 새 상태(소유 캔버스 목록)와 무효화 로직이
+   필요해 지금 필요 이상으로 복잡해진다.
+
+Angle-B 후보 둘(RealmHud/StoryHud/PlayerHud의 단일 인자 `T(key)`가
+한국어 폴백이 없다는 것)은 리뷰가 스스로 조사해 반증했다 — `T(key)`가
+키를 그대로 돌려주는 건 번역 누락을 숨기지 않으려는 의도적 설계이고
+실제로 해당 키들은 ko/en 둘 다 있다.
+
+커밋·푸시 완료.
+
+## BGM 다섯 곡 전부 착수 — "묻지말고 순서대로 진행해"로 보류 해제
+(2026-09-15, code-review 라운드 3 후속)
+
+code-review까지 끝나 남은 게 BGM(보류)·STORY 확장(방향 필요) 둘뿐이던
+차에, 사용자가 "순서대로 진행해"로 직접 지시해 둘 다 순서대로
+착수하기로 했다. 먼저 BGM.
+
+**보류를 뒤집은 근거** — 여태 보류 사유는 "승리/패배처럼 어느 쪽인지
+들어야 갈리는 곡을 잘못 고르는 사고"였다(`GoAudio.cs` 등 클래스
+주석). 상시 배경 루프 한 곡(승패 구분 없음)은 그 제약에 안 걸려서,
+그 좁은 슬라이스만 진행했다 — 감정가 있는 선곡(승리 팡파레 등)은
+여전히 손 안 댐, "먼저 묻지 말고 시작하지 말 것"도 그대로 유효.
+
+**곡 조달** — opengameart.org 고급 검색을 CC0 라이선스(tid=4)·Music
+타입(tid=12)으로 필터링해(그냥 키워드 검색만으론 CC-BY가 섞여 나와
+license-name 태그로 재확인) 판마다 제목이 이미 명확한 곡을 골랐다:
+GO=town-theme-rpg(cynicmusic), DUNGEON=dungeon-ambience(yd),
+FOREST=peaceful-town(aroachifoundonmypillow),
+STORY=fight-run-breath-deeply(Komiku), REALM=war-theme(spring-spring).
+다섯 곡 다 CC0 확인, `Assets/Art/Audio/CC0_BGM/LICENSE.txt`에 곡별
+출처 기록(자세한 내용은 `docs/ASSET_GUIDE.md` 같은 날짜 항목).
+
+**구현** — `XxxAudio.PlayBgm()`/`RefreshBgmVolume()`를 다섯 벌 추가
+(이미 예비돼 있던 `BgmVolume` PlayerPref를 그대로 씀), 설정 패널
+여섯째 줄 "BGM"(기존 다섯 줄은 안 건드리고 끝에 추가, 패널
+680×720→680×820), `settings.bgm` 로컬라이즈 키 다섯 벌. 클립은
+`GameBootstrap`(REALM만 `RealmCommandUi`가 아니라 별도 파일)의
+`[SerializeField]`에 씬 빌드 스크립트가 채운다.
+
+**검증** — 배치 모드 컴파일, 다섯 씬 재빌드(클립 못 찾음 경고 없음),
+`PlaytestHeadless`(GO)·`PlaytestDungeonHeadless`·
+`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice`
+전부 3연속 통과, `PlaytestDungeonFloorProgression`(SfxPlayer.Configure
+시그니처 변경 회귀 확인)도 통과. BGM이 실제로 잘 들리는지(음량 균형·
+루프 이음매)는 여전히 사람이 직접 들어야 확인되는 몫 — 헤드리스는
+에러 없이 재생 호출이 걸리는지까지만 본다.
+
+다음은 STORY "선택" 이후 확장(같은 지시의 두 번째 순서).

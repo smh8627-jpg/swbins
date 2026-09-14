@@ -30,6 +30,8 @@ namespace Saga.Forest.UI
         private Text _qualityValueLabel;
         private Text _languageNameLabel;
         private Text _languageValueLabel;
+        private Text _bgmNameLabel;
+        private Text _bgmValueLabel;
 
         public void Build()
         {
@@ -40,7 +42,7 @@ namespace Saga.Forest.UI
                 new Vector2(1f, 1f), new Vector2(-30f, -130f), new Vector2(160f, 80f), TogglePanel);
             _toggleLabel = toggleButton.GetComponentInChildren<Text>();
 
-            _panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 720f),
+            _panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(680f, 820f),
                 new Color(0f, 0f, 0f, 0.8f));
             _panel.SetActive(false);
 
@@ -52,6 +54,7 @@ namespace Saga.Forest.UI
             (_uiScaleNameLabel, _uiScaleValueLabel) = MakeRow(-360f, "settings.ui_scale", ChooseUiScale);
             (_qualityNameLabel, _qualityValueLabel) = MakeRow(-460f, "settings.graphics_quality", ChooseGraphicsQuality);
             (_languageNameLabel, _languageValueLabel) = MakeRow(-560f, "settings.language", ChooseLanguage);
+            (_bgmNameLabel, _bgmValueLabel) = MakeRow(-660f, "settings.bgm", ChooseBgm);
 
             var closeButton = EncounterUiKit.NewButton(_panel.transform, ForestLocalization.T("settings.close"),
                 new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(300f, 70f), () => _panel.SetActive(false));
@@ -75,6 +78,7 @@ namespace Saga.Forest.UI
         private void ChooseUiScale() { ForestSettingsState.CycleUiScale(); Refresh(); }
         private void ChooseGraphicsQuality() { ForestSettingsState.CycleGraphicsQuality(); Refresh(); }
         private void ChooseLanguage() { ForestLocalization.CycleLanguage(); Refresh(); }
+        private void ChooseBgm() { ForestSettingsState.BgmOn = !ForestSettingsState.BgmOn; Refresh(); }
 
         private void TogglePanel() => _panel.SetActive(!_panel.activeSelf);
 
@@ -90,12 +94,14 @@ namespace Saga.Forest.UI
             _uiScaleNameLabel.text = ForestLocalization.T("settings.ui_scale");
             _qualityNameLabel.text = ForestLocalization.T("settings.graphics_quality");
             _languageNameLabel.text = ForestLocalization.T("settings.language");
+            _bgmNameLabel.text = ForestLocalization.T("settings.bgm");
 
             _sfxValueLabel.text = ForestLocalization.T(ForestSettingsState.SfxOn ? "state.on" : "state.off");
             _vibrationValueLabel.text = ForestLocalization.T(ForestSettingsState.VibrationOn ? "state.on" : "state.off");
             _uiScaleValueLabel.text = ForestSettingsState.UiScaleLabel();
             _qualityValueLabel.text = ForestSettingsState.GraphicsQualityLabel();
             _languageValueLabel.text = ForestLocalization.LanguageLabel();
+            _bgmValueLabel.text = ForestLocalization.T(ForestSettingsState.BgmOn ? "state.on" : "state.off");
         }
     }
 }

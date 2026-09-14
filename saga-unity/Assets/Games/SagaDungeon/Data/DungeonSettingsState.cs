@@ -25,6 +25,12 @@ namespace Saga.Dungeon.Data
             set => SfxPlayer.SfxVolume = value ? 1f : 0f;
         }
 
+        public static bool BgmOn
+        {
+            get => SfxPlayer.BgmVolume > 0.5f;
+            set { SfxPlayer.BgmVolume = value ? 1f : 0f; SfxPlayer.RefreshBgmVolume(); }
+        }
+
         public static bool VibrationOn
         {
             get => PlayerPrefs.GetInt(VibrationKey, 1) != 0;
