@@ -237,7 +237,7 @@ namespace Saga.Go.World
 
             var panel = EncounterUiKit.NewPanel(canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(700f, 480f), new Color(0f, 0f, 0f, 0.72f));
 
-            EncounterUiKit.NewText(panel.transform, "🗡 도적의 습격\n\"길세를 내고 가라. 아니면 두고 가든지.\"",
+            EncounterUiKit.NewText(panel.transform, GoLocalization.T("encounter.bandit_intro", "🗡 도적의 습격\n\"길세를 내고 가라. 아니면 두고 가든지.\""),
                 new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(620f, 180f), 30);
 
             EncounterUiKit.NewButton(panel.transform, GoLocalization.T("encounter.fight"), new Vector2(0.5f, 1f), new Vector2(0f, -220f), new Vector2(560f, 74f), ChooseFight);
@@ -254,13 +254,14 @@ namespace Saga.Go.World
         private void ChoosePay()
         {
             _promptRoot.SetActive(false);
+            string foeName = GoLocalization.T("foe.bandit", FoeName);
             if (GoldState.TrySpend(PayTollCost))
             {
-                Toast($"{FoeName} — 길세 {PayTollCost}냥을 치르고 지나갔다. (남은 돈 {GoldState.Gold}냥)");
+                Toast(string.Format(GoLocalization.T("encounter.pay_success", "{0} — 길세 {1}냥을 치르고 지나갔다. (남은 돈 {2}냥)"), foeName, PayTollCost, GoldState.Gold));
             }
             else
             {
-                Toast($"길세로 낼 {PayTollCost}냥이 없다 — {FoeName}이 앞을 막아선다.");
+                Toast(string.Format(GoLocalization.T("encounter.pay_fail", "길세로 낼 {1}냥이 없다 — {0}이 앞을 막아선다."), foeName, PayTollCost));
             }
             EnterCooldown();
         }
@@ -268,7 +269,7 @@ namespace Saga.Go.World
         private void ChooseFleeEvent()
         {
             _promptRoot.SetActive(false);
-            Toast("어둠 속으로 달아났다.");
+            Toast(GoLocalization.T("encounter.flee_msg", "어둠 속으로 달아났다."));
             EnterCooldown();
         }
 
@@ -291,7 +292,7 @@ namespace Saga.Go.World
             _flashImage.color = new Color(1f, 0.15f, 0.15f, 0f);
             _flashImage.raycastTarget = false;
 
-            var titleText = EncounterUiKit.NewText(canvas.transform, $"🗡 {FoeName}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
+            var titleText = EncounterUiKit.NewText(canvas.transform, $"🗡 {GoLocalization.T("foe.bandit", FoeName)}", new Vector2(0f, 1f), new Vector2(220f, -50f), new Vector2(380f, 60f), 30);
             titleText.alignment = TextAnchor.MiddleLeft;
 
             _timerText = EncounterUiKit.NewText(canvas.transform, "60초", new Vector2(1f, 1f), new Vector2(-140f, -50f), new Vector2(220f, 60f), 30);
@@ -413,11 +414,12 @@ namespace Saga.Go.World
                 bool questDone = QuestState.CompleteBanditQuest();
                 if (questDone) PlayerStats.AddExp(QuestState.BanditRewardExp);
 
-                var msg = $"{FoeName}을 물리쳤다 — 부대에 합류했다! (전투력 {Mathf.RoundToInt(PartyState.Atk + PartyState.Def)})\n" +
-                          $"경험치 +{ExpReward} · 돈 +{VictoryGoldReward}냥";
-                if (questDone) msg += $"\n퀘스트 완료 — 촌장이 사례하다 (경험치 +{QuestState.BanditRewardExp})";
-                if (PlayerStats.Level > levelBefore) msg += $" — 레벨업! ({levelBefore} → {PlayerStats.Level})";
-                if (lootItem != null) msg += $"\n{lootItem.Name}을(를) 주웠다{(lootEquipped ? " — 바로 갖췄다." : ".")}";
+                var msg = string.Format(GoLocalization.T("encounter.victory_base", "{0}을 물리쳤다 — 부대에 합류했다! (전투력 {1})\n경험치 +{2} · 돈 +{3}냥"),
+                    GoLocalization.T("foe.bandit", FoeName), Mathf.RoundToInt(PartyState.Atk + PartyState.Def), ExpReward, VictoryGoldReward);
+                if (questDone) msg += string.Format(GoLocalization.T("encounter.quest_done_suffix", "\n퀘스트 완료 — 촌장이 사례하다 (경험치 +{0})"), QuestState.BanditRewardExp);
+                if (PlayerStats.Level > levelBefore) msg += string.Format(GoLocalization.T("encounter.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, PlayerStats.Level);
+                if (lootItem != null) msg += string.Format(GoLocalization.T(lootEquipped ? "encounter.loot_equipped" : "encounter.loot_plain",
+                    lootEquipped ? "\n{0}을(를) 주웠다 — 바로 갖췄다." : "\n{0}을(를) 주웠다."), lootItem.Name);
                 Toast(msg, VictoryToastSec);
 
                 // 물리친 도적은 사라진다 — 이번 슬라이스에서는 다시 나지 않는다.
@@ -428,11 +430,11 @@ namespace Saga.Go.World
             if (dealt <= 0f)
             {
                 // 한 대도 못 때리고 물러난 것은 패배로 안 친다(웹판 event.js와 같은 경계).
-                Toast("물러났다.");
+                Toast(GoLocalization.T("encounter.retreat_clean", "물러났다."));
             }
             else
             {
-                Toast("밀렸다. 물러났다.");
+                Toast(GoLocalization.T("encounter.retreat_pushed", "밀렸다. 물러났다."));
             }
             EnterCooldown();
         }

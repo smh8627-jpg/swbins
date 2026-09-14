@@ -62,10 +62,10 @@ namespace Saga.Dungeon.Data
 
         public static string ObjectiveText => Current switch
         {
-            Stage.HuntBoss => "메인 퀘스트 — 황건적 두목을 처치하라",
-            Stage.HuntMiniboss => "메인 퀘스트 — 황건 살수(미니보스)를 처치하라",
-            Stage.Rescue => "메인 퀘스트 — 갇힌 인영을 구출하라",
-            _ => "메인 퀘스트 — 완료(던전을 정리했다)",
+            Stage.HuntBoss => DungeonLocalization.T("quest.objective_boss", "메인 퀘스트 — 황건적 두목을 처치하라"),
+            Stage.HuntMiniboss => DungeonLocalization.T("quest.objective_miniboss", "메인 퀘스트 — 황건 살수(미니보스)를 처치하라"),
+            Stage.Rescue => DungeonLocalization.T("quest.objective_rescue", "메인 퀘스트 — 갇힌 인영을 구출하라"),
+            _ => DungeonLocalization.T("quest.objective_done", "메인 퀘스트 — 완료(던전을 정리했다)"),
         };
 
         /// <summary>GameBootstrap.Update()가 매 프레임 부른다 — 두목·미니보스
@@ -74,11 +74,11 @@ namespace Saga.Dungeon.Data
         {
             if (!_bossDead && BestiaryState.IsDiscovered(BossName))
             {
-                Complete(ref _bossDead, "황건적 두목을 처치했다");
+                Complete(ref _bossDead, DungeonLocalization.T("quest.boss_defeated", "황건적 두목을 처치했다"));
             }
             if (!_minibossDead && BestiaryState.IsDiscovered(MinibossName))
             {
-                Complete(ref _minibossDead, "황건 살수를 처치했다");
+                Complete(ref _minibossDead, DungeonLocalization.T("quest.miniboss_defeated", "황건 살수를 처치했다"));
             }
         }
 
@@ -87,7 +87,7 @@ namespace Saga.Dungeon.Data
         /// 무관하게 항상 인정된다(위 클래스 주석 "결함" 참고).</summary>
         public static void MarkCaptiveFreed()
         {
-            if (!_captiveFreed) Complete(ref _captiveFreed, "갇힌 인영을 구출했다");
+            if (!_captiveFreed) Complete(ref _captiveFreed, DungeonLocalization.T("quest.captive_rescued", "갇힌 인영을 구출했다"));
         }
 
         private static void Complete(ref bool flag, string completedText)
@@ -95,7 +95,7 @@ namespace Saga.Dungeon.Data
             flag = true;
             HeroState.AddExp(StageRewardExp);
             HeroState.AddGold(StageRewardGold);
-            string msg = $"📜 {completedText} — 퀘스트 보상 경험치 +{StageRewardExp} · 돈 +{StageRewardGold}냥";
+            string msg = $"📜 {completedText} — " + string.Format(DungeonLocalization.T("quest.reward_msg", "퀘스트 보상 경험치 +{0} · 돈 +{1}냥"), StageRewardExp, StageRewardGold);
             StageCompleted?.Invoke(Current, msg);
         }
 

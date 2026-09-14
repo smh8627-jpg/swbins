@@ -24,6 +24,14 @@
     { "key": "item.wp_axe", "value": "Iron Axe" },
     { "key": "item.wp_glaive", "value": "Ghosthead Blade" },
     { "key": "item.wp_saber", "value": "Hwando Saber" },
-    { "key": "item.wp_greatblade", "value": "Black Iron Greatsword" }
+    { "key": "item.wp_greatblade", "value": "Black Iron Greatsword" },
+    { "key": "quest.objective_boss", "value": "Main Quest — Defeat the Yellow Turban Chief" },
+    { "key": "quest.objective_miniboss", "value": "Main Quest — Defeat the Yellow Turban Assassin (Mini-Boss)" },
+    { "key": "quest.objective_rescue", "value": "Main Quest — Rescue the captive" },
+    { "key": "quest.objective_done", "value": "Main Quest — Complete (the dungeon has been cleared)" },
+    { "key": "quest.boss_defeated", "value": "Defeated the Yellow Turban Chief" },
+    { "key": "quest.miniboss_defeated", "value": "Defeated the Yellow Turban Assassin" },
+    { "key": "quest.captive_rescued", "value": "Rescued the captive" },
+    { "key": "quest.reward_msg", "value": "Quest Reward: +{0} EXP · +{1} Gold" }
   ]
 }
