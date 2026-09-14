@@ -177,6 +177,8 @@ namespace Saga.EditorTools
             spawner.Build();
         }
 
+        private const string VillagerModelPath = "Assets/Art/Characters/character-b.glb"; // GO/FOREST 주민 배역과 같은 모델(StoryNpc.cs 클래스 주석 참고).
+
         /// <summary>PLAN.md 51장 "STORY 확장 — NPC" 첫 슬라이스 — 척후병
         /// 하나만, 잡졸 자리(첫 자리 3m)보다 앞·플레이어 스폰(2m)과 겹치는
         /// 자리에 세운다(StoryNpc.cs 클래스 주석 참고).</summary>
@@ -184,7 +186,17 @@ namespace Saga.EditorTools
         {
             var npcGo = new GameObject("Npc_Scout");
             npcGo.transform.position = new Vector3(0.6f, 0.1f, 0f);
-            npcGo.AddComponent<StoryNpc>();
+            var npc = npcGo.AddComponent<StoryNpc>();
+
+            var villagerModel = AssetDatabase.LoadAssetAtPath<GameObject>(VillagerModelPath);
+            if (villagerModel != null)
+            {
+                SetPrivateField(npc, "modelPrefab", villagerModel);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 척후병은 primitive capsule로 대체됨.");
+            }
         }
 
         /// <summary>PLAN.md 72~73장 World Event / Hidden Area + 51장

@@ -4735,3 +4735,25 @@ GO에만 있던 디버그 오버레이(PLAN.md 44~49장)를 나머지 네 판에
 - 배치 모드 컴파일 → 네 씬(`BuildTestDungeonScene`·
   `BuildTestVillageForestScene`·`BuildTestStoryScene`·
   `BuildTestCityScene`) 재빌드 → 각 Playtest 실행, 전부 통과.
+
+## 같은 날 여덟 번째 후속 — STORY 척후병에 실제 모델 (2026-09-14, 열 번째 "이어해")
+
+REALM "대규모 콘텐츠"를 다시 검토했다 — `RealmEnemyCity.cs`를 직접 읽어
+보니 새 성 하나를 더 넣으려면 `RealmCityData.cs`에 아예 없는 새 도시
+(이름·지도 좌표·농업/상업/성벽/인구 값)를 처음부터 지어내야 했다(기존
+소패는 이미 있던 유일한 적성). 이건 DUNGEON "빌드"(기존 공식 재사용)
+와 달리 진짜 새 콘텐츠 설계라 이번에도 손 안 댐 — 원래 판단이 맞았다.
+
+대신 STORY `World/StoryNpc.cs` 클래스 주석이 남겨 뒀던 작은 자국을
+채웠다 — 척후병이 지금까지 fallback capsule이었던 것을 GO/FOREST가
+이미 "주민" 배역으로 쓰는 `character-b.glb`(Kenney Blocky Characters)
+로 바꿨다. **새 자산을 하나도 안 만들고 이미 있는 걸 재사용**한
+것뿐이라 44장 규모의 판단이 아니다 — 모델이 없는 PC에서는 여전히
+`CharacterVisual.SpawnFallbackCapsule`로 안전하게 대체된다.
+
+- `StoryNpc.cs`에 `[SerializeField] private GameObject modelPrefab`
+  추가, `BuildVisual()`이 있으면 쓰고 없으면 폴백.
+- `BuildTestStoryScene.BuildNpc()`가 `character-b.glb`를 로드해 채운다.
+- 배치 모드 컴파일 → `BuildTestStoryScene` 재빌드(경고 없이 모델 로드
+  확인) → `PlaytestStorySlice` 3연속 통과(NPC 대화 로직은 안 건드려
+  기존 검증 그대로 통과).

@@ -26,10 +26,15 @@ namespace Saga.Story.World
     /// `ChoiceMade` 분기). 이걸로 51장 STORY 네 칸이 모두 채워졌다.
     ///
     /// GO `World/VillagerTalk.cs`와 같은 트리거 규칙(플레이어가 반경에
-    /// 들어오면 쿨다운을 두고 한 줄), 시각은 `StoryEnemy.cs`처럼
-    /// `CharacterVisual.SpawnFallbackCapsule`(리깅된 모델은 아직 없음 —
-    /// 44장 우선순위가 Player/Enemy/Boss/Environment/Building까지만
-    /// 끝났고 NPC는 그 표에 없던 새 칸이라 다음에 필요하면 따로 붙인다).
+    /// 들어오면 쿨다운을 두고 한 줄). **시각(2026-09-14 추가)** — 44장
+    /// 우선순위 표엔 애초에 NPC가 없던 새 칸이라 그동안 fallback
+    /// capsule이었는데, GO/FOREST가 마을 주민 역할에 이미 쓰는
+    /// `character-b.glb`(Kenney Blocky Characters)를 그대로 재사용해
+    /// 실제 모델을 입혔다 — 새 자산을 만들지 않고 이미 있는 "주민" 배역
+    /// 모델을 그대로 가져다 쓴 것뿐이라 44장 규모의 판단은 아니다.
+    /// `modelPrefab`이 비어 있으면(에셋을 못 찾은 다른 PC 등) 여전히
+    /// `CharacterVisual.SpawnFallbackCapsule`로 안전하게 대체된다
+    /// (`StoryEnemy.cs`와 같은 폴백 순서).
     /// </summary>
     public class StoryNpc : MonoBehaviour
     {
@@ -38,6 +43,8 @@ namespace Saga.Story.World
         private const float LineShowSec = 5f;
         private const float NpcHeight = 1.6f;
         private static readonly Color BodyColor = new Color(0.35f, 0.5f, 0.32f); // 병졸 갑주와 다른 녹갈색 평상복
+
+        [SerializeField] private GameObject modelPrefab; // BuildTestStoryScene.cs가 character-b.glb를 채운다.
 
         private float _lastSaidTime = -TalkGapSec;
 
@@ -48,8 +55,17 @@ namespace Saga.Story.World
             BuildTalkArea();
         }
 
-        private void BuildVisual() =>
-            CharacterVisual.SpawnFallbackCapsule(transform, NpcHeight, BodyColor);
+        private void BuildVisual()
+        {
+            if (modelPrefab != null)
+            {
+                CharacterVisual.Spawn(modelPrefab, transform, NpcHeight, BodyColor);
+            }
+            else
+            {
+                CharacterVisual.SpawnFallbackCapsule(transform, NpcHeight, BodyColor);
+            }
+        }
 
         private void BuildTalkArea()
         {
