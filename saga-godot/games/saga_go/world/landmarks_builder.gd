@@ -47,6 +47,16 @@ const CAVE_GATE_SCALE := 6.0 / 4.05
 const SHRINE_SIZE := Vector3(1.04, 0.49, 0.65)
 const SHRINE_SCALE := 2.5
 
+## VERTICAL_SLICE.md 26절 "제외" 목록의 "역참/성채 같은 건물 POI" 착수
+## (2026-09-14). 성채(요새 하나만한 규모)는 범위가 커서 이번엔 역참
+## (길손이 쉬어 가는 작은 정자)만 — 마을집과 같은 wall-block/roof-gable
+## GLB를 재사용하되 발자국을 마을집(10x4x10)보다 작게 잡아(6x3x6) "쉼터"
+## 규모로 구별한다(44장 "에셋은 무작정 많이 넣지 않는다" — 새 킷 없이
+## 기존 조각으로 충분). 길(=) 위, 굴 입구(y=2)와 마을(y=5) 사이 (5,3)에
+## 세워 "여행길의 쉼터"라는 자리 의미를 살렸다.
+const WAYSTATION_FOOTPRINT := Vector3(6, 3, 6)
+const WAYSTATION_ROOF_SCALE := Vector3(6, 6, 6)
+
 ## 2026-09-12⑩ — 산속 폭포(waterfall_falls, land.js 다섯 표식 중 마지막).
 ## 새 킷을 받지 않고 **이미 받아 둔** vegetation_builder.gd의 산 바위
 ## (rock_largeA.glb, 실측 0.78 x 0.26 x 1.02)를 절벽처럼 세로로 세워
@@ -75,6 +85,7 @@ func _ready() -> void:
 	_add_bridge()
 	_add_shrine()
 	_add_waterfall()
+	_add_waystation()
 
 
 func _box(size: Vector3, color: Color) -> MeshInstance3D:
@@ -235,25 +246,45 @@ func _add_village() -> void:
 
 	## 2026-09-11㉒ 지도 확장(+2,+2) — test_map.gd 참고.
 	for gx in [4, 5]:
-		var house := Node3D.new()
-		house.name = "House_%d" % gx
-		house.position = TestMap.world_pos(gx, 5) + Vector3(0, ground, 0)
+		var pos := TestMap.world_pos(gx, 5) + Vector3(0, ground, 0)
+		var house := _build_house("House_%d" % gx, pos, WALL_FOOTPRINT, ROOF_SCALE, wall_mesh, roof_mesh)
 		add_child(house)
-
-		var body_size := WALL_FOOTPRINT
-		if wall_mesh != null:
-			house.add_child(_build_wall_perimeter(wall_mesh, body_size))
-		## 충돌은 시각 메시의 피벗과 무관하게 중심 기준이라 그대로 둔다.
-		_solid(body_size, Vector3(0, body_size.y * 0.5, 0), house)
-
-		if roof_mesh != null:
-			var roof := MeshInstance3D.new()
-			roof.name = "Roof"
-			roof.mesh = roof_mesh
-			roof.transform = Transform3D(Basis().scaled(ROOF_SCALE), Vector3(0, body_size.y, 0))
-			house.add_child(roof)
-
 		_add_discovery_area("village", house.position, self)
+
+
+## wall-block.glb 벽 둘레 + roof-gable.glb 지붕 + 충돌 하나짜리 건물 한 채.
+## `_add_village()`(마을집, WALL_FOOTPRINT)와 `_add_waystation()`(역참,
+## WAYSTATION_FOOTPRINT — 더 작은 발자국)이 같은 조립을 쓴다(35장 "동일한
+## 코드를 복사하지 않는다").
+func _build_house(node_name: String, pos: Vector3, footprint: Vector3, roof_scale: Vector3,
+		wall_mesh: Mesh, roof_mesh: Mesh) -> Node3D:
+	var house := Node3D.new()
+	house.name = node_name
+	house.position = pos
+
+	if wall_mesh != null:
+		house.add_child(_build_wall_perimeter(wall_mesh, footprint))
+	## 충돌은 시각 메시의 피벗과 무관하게 중심 기준이라 그대로 둔다.
+	_solid(footprint, Vector3(0, footprint.y * 0.5, 0), house)
+
+	if roof_mesh != null:
+		var roof := MeshInstance3D.new()
+		roof.name = "Roof"
+		roof.mesh = roof_mesh
+		roof.transform = Transform3D(Basis().scaled(roof_scale), Vector3(0, footprint.y, 0))
+		house.add_child(roof)
+
+	return house
+
+
+func _add_waystation() -> void:
+	var ground: float = TerrainBuilder.LEGEND["="].height
+	var wall_mesh := GLBUtils.extract_mesh(WALL_GLB)
+	var roof_mesh := GLBUtils.extract_mesh(ROOF_GLB)
+	var pos := TestMap.world_pos(5, 3) + Vector3(0, ground, 0)
+	var house := _build_house("Waystation", pos, WAYSTATION_FOOTPRINT, WAYSTATION_ROOF_SCALE, wall_mesh, roof_mesh)
+	add_child(house)
+	_add_discovery_area("waystation", house.position, self)
 
 
 ## wall-block.glb(1x1x1, 바닥 피벗) 여러 장을 footprint(x칸·y층·z칸, 전부
