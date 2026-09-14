@@ -53,7 +53,8 @@ namespace Saga.Dungeon.World
         private static readonly Dictionary<string, string> DisplayNameKeys = new Dictionary<string, string>
         {
             ["황건적"] = "enemy.grunt",
-            ["사나운 황건적"] = "enemy.elite",
+            ["사나운 황건적"] = "enemy.elite", // BuildTestDungeonScene.cs 더미 전용 표시명.
+            ["폐허의 황건 정예"] = "enemy.elite", // DungeonFloorRunner.SpawnElite() 실제 스폰 표시명.
             ["황건 살수"] = "enemy.miniboss",
             ["황건적 두목"] = "enemy.boss",
         };

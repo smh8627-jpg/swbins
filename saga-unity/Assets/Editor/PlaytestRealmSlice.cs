@@ -79,6 +79,14 @@ namespace Saga.EditorTools
             // Init 단계가 깨지지 않도록 먼저 지운다(RealmSaveState.cs
             // DeleteForTest() 주석 참고).
             RealmSaveState.DeleteForTest();
+
+            // CheckSettingsPanel()이 설정 버튼을 "Btn_설정"(한국어 라벨)으로
+            // 찾는다 — RealmCommandUi.Build()가 그 이름을 지을 때 쓰는
+            // RealmLocalization.CurrentLanguage는 PlayerPrefs에 저장돼 이전
+            // 실행(또는 사람이 에디터에서 언어를 바꾼 뒤 안 되돌리고 끈 세션)이
+            // "en"을 남기면 이번 실행이 처음부터 어긋난 이름으로 시작해 버튼을
+            // 영영 못 찾는다 — 위 세이브 삭제와 같은 이유로 여기서 먼저 고정한다.
+            RealmLocalization.CurrentLanguage = "ko";
             EditorSceneManager.OpenScene(ScenePath);
 
             _hadError = false;
