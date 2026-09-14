@@ -6191,3 +6191,133 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   다음은 REALM 안에서 더 좁힐 것을 찾거나(예: 여전히 실제 GLB가 없는
   3D 몬스터 자산), REALM 밖(다른 네 판 추가 확장·saga-unity 트랙)을
   고려할 자리.
+
+## DUNGEON 던전 증가 — 방 3개(보스 1명)→6개(보스 2명) (2026-09-14, 같은 날 이어서, "사가고돗 이어해")
+
+- **판을 골라야 했다** — GO·STORY·REALM은 09-14 안에 각자 최초 "제외"
+  목록을 완전히 다 채웠고, DUNGEON·FOREST는 09-12 이후 Vertical Slice
+  범위에서 손을 뗀 채였다. `PLAN.md` 51장이 DUNGEON의 다음 축을 "던전
+  증가→엘리트→보스→장비→빌드"로 적어 둬서 그 첫 항목을 골랐다.
+- `games/saga_dungeon/world/test_room.gd`의 `ROOM_COUNT`를 3→6으로,
+  보스 판정을 "마지막 방만"에서 웹판 `data-dungeon.js isBossFloor(floor)
+  =floor%3===0` 그대로인 `(i+1) % 3 == 0`으로 바꿔 3층·6층 둘 다 보스가
+  서게 했다. 새 보상식·새 몬스터를 상상하지 않았다 — `_on_boss_defeated`의
+  등급 상한 계산은 이미 floor_num을 일반화해 둔 것이라 손 안 댐,
+  `rooms_cleared`/`hero_resolved` 저장 스키마도 이미 동적 배열이라
+  그대로 확장됐다. 자세한 내용은 `docs/VERTICAL_SLICE_DUNGEON.md` 6절
+  참고.
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 5` 세 번
+  연속 로그 완전 동일. 임시 씬(`_tmp_verify_rooms.tscn`+`.gd`,
+  `TestRoom.tscn`을 실제로 인스턴스화)으로 `ROOM_COUNT==6`·잡졸 4·보스
+  2·보스가 선 floor가 정확히 `[3, 6]`인 것까지 확인 후 삭제, 재검증까지
+  마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: 51장 DUNGEON 축의 다음은 "엘리트"(잡졸·보스 사이
+  강화 개체) — 웹판(`saga-web/saga-dungeon/js/data-dungeon.js` 등)에
+  이미 있는 개념인지 먼저 확인부터 할 것(없으면 새로 상상하지 않는다).
+  그 밖엔 FOREST(51장 "생태계" 축)도 09-12 이후 손을 안 댄 채 남아 있어
+  고려할 자리.
+
+## DUNGEON 엘리트(정예) — dungeon.js ELITES 8종 이식 (2026-09-14, 같은 날 이어서, "묻지말고 이어해 사가고돗 웹판은 완벽하지")
+
+- 웹판에 "정예(精銳)" 시스템이 실제로 있었다(`dungeon.js`, "원작(디아블로)의
+  파란/노란 이름 몬스터") — 8종(날쌘·완강한·사나운·되살아나는·가시
+  돋친·그림자·철갑 두른·호신 두른) 전부 색·수치 그대로 이식했다.
+  `games/saga_dungeon/world/dungeon_enemy.gd`에 `ELITES`·`_elite_chance()`
+  (`min(0.30,0.06+floor*0.012)`) 추가, `_init()`이 보스·그림자 분신이
+  아닐 때만 이 확률로 하나를 고른다.
+- **찾아서 고친 버그 둘**: (1) `melee_attack.gd` 기본 공격이 지금까지
+  `resist_pct('phys')`를 한 번도 안 불렀다(황건적이 저항 0이라 지금까지는
+  안 드러났다) — "철갑 두른" 정예를 넣으며 `dungeon.js strike()`의 저항
+  적용 순서(크리티컬 뒤·원소 앞)를 그대로 옮겨 고쳤다. (2) 그림자 분신을
+  만들 때 `kid.global_position`을 `add_child()`보다 먼저 대입해
+  "!is_inside_tree()" 오류가 났다 — 순서를 뒤집어 고쳤다(임시 검증
+  스크립트로 실제로 오류를 재현한 뒤 고침).
+  자세한 내용은 `docs/VERTICAL_SLICE_DUNGEON.md` 7절 참고.
+- `loot_pickup.gd`에 `is_elite` 매개변수 — 금 2.2배·장비 ilvl +14·단약
+  확률 34%를 정예 갈래로 받는다(장비 확정 드랍은 이미 잡졸도 확정이라
+  정예도 변화 없음, 재료·감정서는 원작에도 정예 갈래가 없어 안 건드림).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` `--quit-after 8` 세 번
+  연속 로그 완전 동일. 임시 씬(`_tmp_verify_elite.tscn`+`.gd`)으로
+  `_elite_chance` 상한·정예별 hp/dmg 배율·저항·가시 반사·재생·그림자
+  분열(분신 hp가 `round(round(24*1.26²)*0.34)=13`과 정확히 일치, 분신은
+  다시 안 갈라짐)까지 전부 기댓값과 일치 확인 후 삭제, 재검증까지
+  마쳤다. `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: DUNGEON 51장 축("던전 증가→엘리트→보스→장비→빌드")의
+  다음은 "보스"·"장비" — 둘 다 이미 이 슬라이스에 상당 부분 있어(보스는
+  3·6층에 이미 있음, 장비는 등급+접사+소켓까지 있음) 51장이 말하는
+  추가 폭이 뭔지 웹판과 비교해 먼저 좁힐 것. FOREST(51장 "생태계" 축)도
+  여전히 09-12 이후 손을 안 댄 채 남아 있다.
+
+## FOREST 51장 "생태계" 축 — 바이옴마다 둘째 종 (2026-09-14, 같은 날 이어서, "묻지말고 이어해 FOREST도 손대")
+
+- FOREST의 51장 축("생태계→동물→채집→마을→생활")을 뜯어 보니 "채집"·
+  "마을"·"생활"은 09-12에 이미 다 채워져 있었고 "동물"도 5절 "몬스터·
+  퓨전 자유" 결정으로 창작 몬스터 4종(숲도깨비·바위도깨비·버섯정령·
+  꽃정령)이 이미 그 역할을 하고 있었다 — 남은 진짜 폭은 "생태계"의
+  밀도였다(웹판 ANIMALS는 바이옴 하나에 여러 종이 같이 산다).
+- `games/saga_forest/world/forest_creature.gd`에 네 종 추가(전부 창작
+  몬스터, 실존 동물 이름 안 씀): 나비정령(꽃밭, kkot과 짝)·부엉도깨비
+  (어둑숲, dokkaebi와 짝)·달팽이정(버섯숲, beoseot과 짝)·염소도깨비
+  (바위 지대, bawi와 짝). 넷 다 새 primitive 조합, 상태기계(idle→
+  wander→flee)는 100% 재사용. `forest_creature_builder.gd` CREATURES에
+  den 네 자리(자기 바이옴 안, 격자거리 3 이상 규칙 그대로) 추가.
+  자세한 내용은 `docs/VERTICAL_SLICE_FOREST.md` 6절 참고.
+- 검증: 헤드리스 임포트 오류 0건, `TestVillageForest.tscn` `--quit-after 8`
+  세 번 연속 로그 완전 동일. 임시 씬으로 여덟 종 전부 의도한 바이옴과
+  정확히 일치·풀밭 타일 확인·씬에 8개체가 실제로 서는 것까지 확인 후
+  삭제, 재검증까지 마쳤다. GO·DUNGEON·STORY·REALM 대표 씬도 오류 0건
+  재확인. `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: FOREST 51장 축의 나머지 네 항목은 이미 09-12에
+  채워져 있었다 — 다음은 FOREST 밖(다른 네 판·saga-unity 트랙)을
+  고려하거나, 더 좁힐 것을 찾는다면 "생태계" 밀도를 한 단계 더(바이옴당
+  셋째 종) 늘리는 같은 패턴이 남아 있다.
+
+## STORY NPC_TALK 밀도 — 다섯 마을에 대사 NPC 채우기 (2026-09-14, 같은 날 이어서, "묻지말고 이어해 STORY도 손대")
+
+- STORY는 "새로 옮길 굵직한 항목이 없다"는 결론만 반복돼 왔는데, 다시
+  보니 `story_combat.gd NPC_TALK`(elder·guard·healer·wanderer, 대사
+  4줄씩)는 이미 다 있는데 실제 씬엔 HeodoField의 guard 하나뿐이었다.
+  웹판 `data-side.js STAGES`의 다섯 `town:true` 마을(신야성·허도·
+  강릉진·남정성·기산채)이 각자 다른 npcs 조합을 이미 정해 뒀길래
+  (merchant 제외 — 이 슬라이스는 상점을 필드 상인 하나로 단순화해 둔
+  별개 결정) 그대로 따라 다섯 마을에 `story_talk_npc.gd` 인스턴스
+  12개를 배치했다. 새 코드·새 데이터 없음 — 순수 씬 배치. 자세한
+  내용은 `docs/VERTICAL_SLICE_STORY.md` 32절 참고.
+- 검증: 헤드리스 임포트 오류 0건, 다섯 마을 씬 각각 `--quit-after 6`
+  세 번 연속 로그 완전 동일. 임시 씬으로 각 마을의 NPC 조합이 의도와
+  정확히 일치·대사 4줄씩 정상 조회 확인 후 삭제, 재검증까지 마쳤다.
+  GO·DUNGEON·FOREST·REALM·STORY(TestField) 회귀도 오류 0건 재확인.
+  `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: STORY 안에서 더 좁힐 만한 것은 이제 정말 거의
+  없다. 다음은 STORY 밖(다른 네 판·saga-unity 트랙)을 진지하게 고려할
+  자리.
+
+## REALM 문답 문항 완주 — data-quiz.js BANK 260문항 전부 (2026-09-14, 같은 날 이어서, "묻지말고 이어해 REALM도 손대")
+
+- DUNGEON·FOREST·STORY가 각자 "이미 있는 데이터인데 화면엔 다 안
+  나온 자리"를 찾아 밀도를 늘린 것과 같은 결로, REALM `realm_quiz_
+  data.gd`가 8절에서 스스로 "더 늘리려면 이 형식 그대로 data-quiz.js
+  에서 계속 골라 오면 된다"고 적어 둔 채 90/260문항만 옮겨 둔 상태로
+  남아 있던 것을 발견했다.
+- 나머지 170문항(hist/idiom/sense/mz는 16~50·world/proverb는 16~30)을
+  id·q·c·a·why 원문 그대로 마저 옮겨 여섯 분야 전부 웹판과 정확히
+  같은 개수(hist/idiom/sense/mz 50개씩·world/proverb 30개씩, 총 260개)
+  가 됐다. 실존 인물 실명은 원작 그대로 유지(data-quiz.js는 역사
+  퀴즈라 이름 정책 예외로 이미 확정된 결정). **170문항을 손으로 옮겨
+  적지 않고** Node.js로 `data-quiz.js` BANK를 직접 파싱해 GDScript
+  딕셔너리 리터럴로 변환해 이어 붙였다 — 오탈자 없이 옮기는 유일한
+  방법. `quiz_progress().total`이 이미 `BANK.size()`를 그대로 읽고
+  있어 로직은 한 줄도 안 바꿨다. 자세한 내용은 `docs/VERTICAL_SLICE_
+  REALM.md` 32절 참고.
+- 검증: 헤드리스 임포트 오류 0건, `TestCity.tscn` `--quit-after 6`
+  세 번 연속 로그 완전 동일. 임시 씬으로 `BANK.size()==260`·분야별
+  개수 정확히 일치·중복 id 0·형식 오류 0·대표 항목(h50·p30·m19)의
+  텍스트가 원문과(임베디드 따옴표 포함) 정확히 일치까지 확인 후 삭제,
+  재검증까지 마쳤다. GO·DUNGEON·FOREST·STORY 회귀도 오류 0건 재확인.
+  `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을 것).
+- **다음에 할 일**: REALM 안에서 데이터가 미완인 자리는 이제 정말
+  거의 없다(3D 몬스터 자산 GLB만 66-2장·사람 손 대기). 다음은 REALM
+  밖(다른 네 판·saga-unity 트랙)을 진지하게 고려할 자리 — GO·DUNGEON·
+  FOREST·STORY·REALM 다섯 판 전부 오늘 각자의 51장 축을 한 걸음씩
+  진행했다.
+  고려할 자리.

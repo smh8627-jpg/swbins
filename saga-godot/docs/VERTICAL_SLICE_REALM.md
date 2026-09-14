@@ -2313,3 +2313,41 @@ REALM 밖(다른 네 판·saga-unity 트랙)으로도 진지하게 고려할 자
   다음은 REALM 안에서 더 좁힐 것을 찾거나(3D 몬스터 자산이 여전히
   실제 GLB 없이 primitive 상태), REALM 밖(다른 네 판 추가 확장·
   saga-unity 트랙)을 고려할 자리.
+
+## 32. 문답 문항 완주 — data-quiz.js BANK 260문항 전부 (2026-09-14, "묻지말고 이어해 REALM도 손대")
+
+- **판을 골라야 했다** — DUNGEON·FOREST·STORY는 09-14 안에 "이미 있는
+  데이터인데 화면엔 다 안 나온 자리"를 찾아 밀도를 늘렸다(정예 8종·
+  바이옴 둘째 종·NPC_TALK 다섯 마을). REALM에서 같은 결의 자리를
+  찾다가, 8절이 이미 "더 늘리려면 이 형식 그대로 data-quiz.js에서
+  계속 골라 오면 된다"고 스스로 적어 둔 채 남겨 뒀던 문답 은행을
+  발견했다 — 08-12에 분야마다 15문항(총 90)까지만 옮기고 나머지
+  170문항(분야당 최대 50 중 hist/idiom/sense/mz는 16~50·world/proverb는
+  16~30)을 안 옮긴 채였다.
+- 실존 인물 실명(세종대왕·이순신·강감찬 등)이 그대로 나오는 것도
+  원작 그대로다 — 이름 정책 예외([[saga_realm_data_force_realnames]]
+  메모, `docs/PROJECT_STATE.md`가 "data-quiz.js는 역사 퀴즈라 예외"로
+  확정해 둔 결정) 그대로 유지, 손 안 댔다.
+- **170문항을 손으로 옮겨 적지 않았다** — Node.js로 `data-quiz.js`의
+  BANK 배열을 `new Function('return '+arrText)()`로 직접 파싱해 실제
+  JS 객체 배열을 얻은 뒤, 각 항목을 GDScript 딕셔너리 리터럴로
+  변환해(따옴표·역슬래시 이스케이프 포함) 기존 `realm_quiz_data.gd`
+  BANK 배열 끝(p15 다음)에 그대로 이어 붙였다 — 260문항 전체를 한
+  글자도 안 틀리게 옮기는 유일한 방법이라 판단했다(사람이 옮겨 적으면
+  이 분량에서 오탈자가 안 날 수가 없다). `realm_save_state.gd`의
+  `quiz_progress().total`은 이미 `RealmQuizData.BANK.size()`를 그대로
+  읽고 있어(하드코딩된 90 같은 값이 따로 없음) 로직은 한 줄도 안
+  바꿨다.
+- 검증: 헤드리스 임포트 오류 0건, `TestCity.tscn` `--quit-after 6`
+  세 번 연속 로그 완전 동일. 임시 씬(`_tmp_verify_quiz.tscn`+`.gd`)으로
+  `BANK.size()==260`·분야별 개수(hist/idiom/sense/mz 50·world/proverb
+  30, 원작과 정확히 일치)·중복 id 0·보기 4개가 아닌 항목 0·정답
+  인덱스 범위 밖 0·q/why 빈 문자열 0·대표 항목 몇 개(h50·p30·m19)의
+  텍스트가 원문과(따옴표 포함 이스케이프까지) 정확히 일치까지 확인 후
+  삭제, 재검증까지 마쳤다. GO·DUNGEON·FOREST·STORY 대표 씬도 오류 0건
+  재확인. `.import` 잡음만 되돌림. GUI 실기 확인은 아직(몰아서 받을
+  것) — 서고(learnedList) 화면에서 늘어난 260개가 분야별로 잘 나뉘어
+  보이는지 볼 것.
+- **다음에 할 일**: REALM 안에서 데이터가 미완인 자리는 이제 정말
+  거의 없다(3D 몬스터 자산 GLB만 66-2장·사람 손 대기). 다음은 REALM
+  밖(다른 네 판·saga-unity 트랙)을 진지하게 고려할 자리.

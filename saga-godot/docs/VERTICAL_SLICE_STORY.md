@@ -2384,6 +2384,44 @@ ForestHuntGround·CaveHuntGround) 각각 `--quit-after 5` 오류 0건.
   주문서·원거리 적도 이미 채워져 있어 STORY 안엔 이제 새로 옮길
   굵직한 항목이 없다. 다음은 STORY 밖(다른 네 판·saga-unity 트랙)으로.
 
+## 32. NPC_TALK 밀도 — 다섯 마을에 대사 NPC 채우기 (2026-09-14, "묻지말고 이어해 STORY도 손대")
+
+- **판을 골라야 했다** — DUNGEON·FOREST는 09-14 안에 각자 51장 축의
+  첫 항목을 진행했고(던전 증가·생태계 밀도), STORY는 위 항목처럼 "새로
+  옮길 굵직한 항목이 없다"는 결론만 반복되고 있었다. 다시 훑어보니
+  **데이터는 이미 완전한데 화면엔 안 나온** 자리가 하나 있었다 —
+  `story_combat.gd NPC_TALK`엔 elder·guard·healer·wanderer 넷이 전부
+  대사 4줄씩 갖춰 정의돼 있는데(26절 q_talk1에서 이미 넣어 둠), 실제
+  씬에 세워진 건 HeodoField의 GuardNpc 하나뿐이었다. 웹판 `data-side.js
+  STAGES`를 보니 `town:true`인 다섯 마을(신야성·허도·강릉진·남정성·
+  기산채) 각자가 `npcs:[[x,key],...]`로 서로 다른 조합을 이미 정해
+  두고 있었다 — FOREST의 "바이옴당 여러 종"과 같은 결의 밀도 확장이다.
+- 웹판 다섯 마을의 npcs 배열(merchant는 뺀다 — 이 슬라이스는 상점을
+  이미 필드 상인 하나로 단순화해 둔 별개 결정, 14절)을 그대로 따라
+  `story_talk_npc.gd`(기존 파일, 코드 변경 없음 — `npc_key` export로
+  이미 어떤 NPC_TALK 항목이든 재사용 가능했다) 인스턴스를 배치했다:
+  - 신야성(SinyaField, 신규): elder·guard·wanderer
+  - 허도(HeodoField, 기존 guard에 보탬): healer·wanderer
+  - 강릉진(GangneungjinField, 신규): guard·elder
+  - 남정성(NamjeongseongField, 신규): guard·healer·wanderer
+  - 기산채(GisanchaeField, 신규): wanderer·guard
+  x좌표는 각 마을의 기존 포탈·플레이어 시작 지점에서 떨어진 빈자리로
+  손으로 골랐다(다른 판이 den·격자거리로 하던 것과 같은 수작업 배치).
+- 새 스크립트·새 데이터 없음 — 순수하게 씬 노드 12개 추가(각각
+  Node3D + `story_talk_npc.gd` + `npc_key`)뿐이다. `q_talk1`(대화 5회
+  사명)이 이제 다섯 마을 어디서든, 여러 NPC를 오가며 채울 수 있다.
+- 검증: 헤드리스 임포트 오류 0건, 다섯 마을 씬 각각 `--quit-after 6`
+  세 번 연속 로그 완전 동일. 임시 씬으로 다섯 마을을 차례로 인스턴스화
+  해 각 마을에 실제로 선 NPC의 `npc_key` 집합이 의도한 조합과 정확히
+  일치·`NPC_TALK`에서 각 키의 대사가 4줄씩 정상 조회되는 것까지 확인
+  후 삭제, 재검증까지 마쳤다. GO·DUNGEON·FOREST·REALM·STORY(TestField)
+  대표 씬도 오류 0건 재확인. `.import` 잡음만 되돌림. GUI 실기 확인은
+  아직(몰아서 받을 것) — 한 마을 안에서 여러 NPC를 오가며 말을 걸 때
+  간격이 자연스러운지 볼 것.
+- **다음에 할 일**: STORY 안에서 더 좁힐 만한 것은 이제 정말 거의
+  없다(사명 20/20, NPC_TALK 다섯 마을 전부 배치). 다음은 STORY 밖(다른
+  네 판·saga-unity 트랙)을 진지하게 고려할 자리.
+
 ## FINAL RULE (이 문서에도 동일 적용)
 
 PLAN.md의 그 규칙 그대로 — 한 번에 다 만들지 않는다. Legacy Audit →

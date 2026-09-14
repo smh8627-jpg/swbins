@@ -57,6 +57,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, 0)
 script = ExtResource("12")
 npc_key = "guard"
 
+[node name="HealerNpc" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13.5, 0, 0)
+script = ExtResource("12")
+npc_key = "healer"
+
+[node name="WandererNpc" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, 0)
+script = ExtResource("12")
+npc_key = "wanderer"
+
 [node name="PortalToField" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6, 0, 0)
 script = ExtResource("9")
