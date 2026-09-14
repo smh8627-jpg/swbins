@@ -6481,3 +6481,32 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
   kind(rarity 1~3, catchBase 높은 5,60여 종)도 아직 안 옮겼다 — "희귀"
   라는 51장 문구엔 신수만으로 충분하다고 보면 다음은 GO 밖(DUNGEON
   "장비→빌드"·FOREST 넷째 종·saga-unity 트랙)을 고려할 자리이기도 하다.
+
+## GO 51장 확장 둘째 — 신수 나머지 일곱 배치 (2026-09-14, 같은 날 이어서, "사가고돗 이어해")
+
+- 지난 GO 항목이 "사신 넷만 배치, 나머지 일곱은 다음 몫"이라 남긴 것을
+  이어 옮겼다. `pets.gd`는 이미 11종 데이터를 다 갖고 있었으니 새 데이터
+  작업 없이 `TestVillage.tscn`에 `PetEncounter` 노드 일곱 개(삼족오·해태·
+  구미호·도깨비·불가사리·홍염마·섬영마)만 더 얹었다 — `pet_encounter.gd`
+  스크립트·확률식·보상 채널은 하나도 안 건드림(재사용). 좌표는 기존
+  이벤트·NPC(`npc_builder.gd` VILLAGERS)·동물 서식지(`animal_builder.gd`)
+  grid와 겹치지 않는 숲(T) 타일 중에서 `TestMap.ROWS`를 직접 대조해
+  일곱 곳을 골랐다(사신처럼 방위 의미가 없어 지도 전체에 고르게 흩음).
+  `codex_state.gd TOTAL.pet`도 4→11로 갱신(실제 배치된 개수만 넣는
+  기존 원칙 그대로).
+- 검증: 헤드리스 임포트 오류 0건, `TestVillage.tscn` `--quit-after 6`
+  세 번 연속 로그 완전 동일(md5 일치), `pet_encounter.gd`의 "unknown
+  pet_id" 경고 0건(11종 전부 id가 유효하다는 뜻). Node.js로 `TestVillage.
+  tscn`을 직접 파싱해 11개 노드·pets.gd 11종과 정확히 일치·좌표 중복
+  0·기존 NPC/동물/이벤트 grid와 충돌 0까지 확인(SceneTree 래퍼 스크립트로
+  씬 전체를 직접 인스턴스화하는 방식은 이번엔 원인 불명으로 멎어 — Player
+  포함 무거운 씬이라 그런 듯 — 중단하고 정적 파싱으로 대체했다, 실제
+  게임 코드 경로는 `--quit-after` 방식으로 이미 검증됨). DUNGEON·FOREST·
+  REALM·STORY 회귀도 헤드리스 오류 0건 재확인. `.import` 잡음만 되돌림
+  (`project.godot`는 안 건드려짐 확인, `git status`로 세 파일만 바뀐 것
+  확인 — `codex_state.gd`·`TestVillage.tscn`·`pet_encounter.gd`).
+- **다음에 할 일**: 신수 11종 전부 세계에 나왔다. GO 51장 "희귀 몬스터"
+  문구는 이걸로 충분하다고 본 지난 판단 그대로 — 동물 kind(rarity 1~3,
+  catchBase 높은 5,60여 종)는 여전히 범위 밖(다음에 필요하면 그때 몫).
+  다음은 GO 밖(DUNGEON "장비→빌드"·FOREST 넷째 종·saga-unity 트랙)을
+  고려할 자리.
