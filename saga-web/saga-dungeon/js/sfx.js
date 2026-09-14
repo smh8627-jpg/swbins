@@ -185,6 +185,7 @@
     var s = core.save.settings || (core.save.settings = {});
     if (typeof s.sound !== 'boolean') { s.sound = true; }
     if (typeof s.soundVol !== 'number') { s.soundVol = 0.5; }
+    if (typeof s.vibrate !== 'boolean') { s.vibrate = true; }
     return s;
   }
 
@@ -204,6 +205,43 @@
     if (master) { master.gain.value = settings().soundVol; }
     core.persist();
     return settings().soundVol;
+  }
+
+  /* ── 진동(vibration) — 2026-09-14, ⚙️ 설정 시트가 남겨 둔 숙제.
+   * 소리와 **다른 채널**이다 — 소리를 꺼도 진동은 따로 켤 수 있고, 그 반대도
+   * 된다. 그래서 `play()`의 `enabled()`(소리 on/off) 관문보다 **앞에서** 잰다.
+   * 지원 안 하는 기기(데스크톱·iOS Safari 다수)는 `vibrateSupported()`가
+   * false라 시트에 손잡이 자체를 안 보여준다 — 눌러도 안 되는 죽은 버튼을
+   * 두지 않는다(그래픽 품질 손잡이가 3D 없을 때 숨는 것과 같은 결). */
+  function vibrateEnabled() { return settings().vibrate !== false; }
+
+  function vibrateSupported() {
+    return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
+  }
+
+  function setVibrateEnabled(v) {
+    settings().vibrate = !!v;
+    core.persist();
+    if (v && vibrateSupported()) { try { navigator.vibrate(20); } catch (e) { /* 무시 */ } }
+    return settings().vibrate;
+  }
+
+  /* 때린 맛이 있는 자리만 울린다 — 줍기·UI·환경음까지 다 울리면 손이 피곤하다.
+   * 값은 ms 하나 또는 on/off 패턴 배열(navigator.vibrate 그대로). */
+  var VIBE = {
+    hit: 10, crit: [10, 15, 10], kill: 20, boss: [50, 30, 50, 30, 80],
+    hurt: 25, heavy: 15, die: [40, 30, 40, 30, 120]
+  };
+  var lastVibeAt = {};
+
+  function doVibrate(key) {
+    var pat = VIBE[key];
+    if (pat === undefined || !vibrateEnabled() || !vibrateSupported()) { return false; }
+    var now = Date.now();
+    var gapMs = ((CUES[key] && CUES[key].gap) || 0.05) * 1000;
+    if (lastVibeAt[key] !== undefined && now - lastVibeAt[key] < gapMs) { return false; }
+    lastVibeAt[key] = now;
+    try { return !!navigator.vibrate(pat); } catch (e) { return false; }
   }
 
   /* ── 깨우기 ───────────────────────────────────────────────
@@ -310,6 +348,7 @@
 
     var cue = CUES[key];
     if (!cue) { return false; }
+    if (!amb) { doVibrate(key); }   // 소리 on/off와 무관한 별도 채널
     if (!enabled() || !unlocked || !ctx || !master) { return false; }
 
     var now = ctx.currentTime;
@@ -460,10 +499,12 @@
     unlock: unlock, ready: function () { return unlocked; },
     enabled: enabled, setEnabled: setEnabled,
     volume: volume, setVolume: setVolume,
+    vibrateEnabled: vibrateEnabled, setVibrateEnabled: setVibrateEnabled,
+    vibrateSupported: vibrateSupported,
     /** 최근 요청 n 개 (진단용 — 소리가 꺼져 있어도 남는다) */
     _tail: function (n) { return recent.slice(-(n || 8)); },
     _ambTail: function (n) { return ambRecent.slice(-(n || 8)); },
-    _clear: function () { recent.length = 0; ambRecent.length = 0; lastAt = {}; },
+    _clear: function () { recent.length = 0; ambRecent.length = 0; lastAt = {}; lastVibeAt = {}; },
     /** 환경음 — 지금 켜져 있어야 할 결(테마 이름), 실제 노드 유무와 별개다 */
     ambience: function () { return ambTheme; },
     _startAmbience: startAmbience, _stopAmbience: stopAmbience

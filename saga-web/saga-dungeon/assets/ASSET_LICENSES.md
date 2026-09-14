@@ -1719,3 +1719,54 @@ DEFAULTS에 `monster:cyclops`·`monster:crab`·`monster:cthulhu`·
 `form:'ogre'`라 사람 크기 스케일로 나올 텐데 실제 '거인'다운 위압감이
 나는지, 게(`crab`)는 `form:'quad'`로 근사했는데 실루엣이 어색하지
 않은지)는 사용자가 봐야 한다.
+
+### 정정 — 위 "받은 곳" URL이 실제로는 다른(더 작은) 팩을 가리킨다 (2026-09-14, 다음 세션)
+
+"3안"을 더 이어보려고 위 URL(`opengameart.org/content/lowpoly-animated-monsters`)을
+다시 열어 보니, 그 페이지의 실제 zip(`Animated Monster Pack by @Quaternius.zip`,
+1.4MB)은 **Bat·Dragon·Skeleton·Slime 4종뿐**이다(바로 위 "itch.io 안 쓴 것" 절이
+말하는 그 4종 팩과 같다) — Cyclops·Crab·Cthulhu·Tree·GreenDemon 등 21종은
+**여기서 온 게 아니었다.** 실제 21종 팩은 `opengameart.org/content/
+textured-cute-monster-pack`(zip 이름 `cute_animated_monsters_-_aug_2020.zip`,
+10.2MB, 라이선스는 같은 CC0 — 페이지에 "CC0 - Uploader: quaternius" 명시)이다.
+기록을 정정한다 — 다음에 이 팩을 더 열어 볼 때는 `textured-cute-monster-pack`
+쪽을 볼 것.
+
+**같은 김에 21종 중 이번에도 안 쓴 나머지를 확인** — `Ghost`·`YellowDragon`
+두 종은 위 목록(Demon·Yeti·Cactus·Mushroom·Skull·Alien·Alien_Tall·Bat·Bee·
+Chicken·Deer·Panda·Penguin·Pig, 14종)에 안 들어 있었다(2026-09-14 앞 세션이
+빠뜨린 것으로 보인다) — 확인해 보니 **둘 다 이유가 있어 뺀다**: `Ghost`는
+`monster:ghost`(다른 소스)가 이미 있고, `YellowDragon`은 "천룡(dragon_evolved)은
+둘째를 만들면 특별함이 옅어져 제외"(위 "몬스터 로스터 확장" 절)와 같은 이유로
+피한다. **이걸로 21종 전부(다섯 종 사용 + 16종 제외 사유 확인)가 설명된다.**
+
+**"3안"을 더 이어가 보려 한 시도와 그 결론** — 이번 세션이 실제로 찾아본 것:
+- `trebeljahr/quaternius-showcase`(GitHub, 이미 공룡 6종을 받은 그 GLB 미러)의
+  `easy_enemies_pack`(Frog·Rat·Snake·Spider·Wasp)과 `animals_pack`(Alpaca·Bull·
+  Cow·Deer·Donkey·Fox·Horse·Husky·ShibaInu·Stag)은 **이미 이 판에 전부 등록돼
+  있었다**(`monster:frog`·`monster:rat` 등, `pet:alpaca` 등 — 다른 다운로드
+  경로로 먼저 들어와 있었을 뿐).
+- OGA `lowpoly-animated-knight`(Quaternius, CC0)의 `KnightCharacter.fbx`는
+  `assets/models/people/oga_knight/KnightCharacter.glb`로 **2026-09-09에 이미
+  변환·등록돼 있었다**(`ogaknight_char`, 사람형 쪽).
+- OGA `lowpoly-animated-farm-animal-pack`(Cow·Horse·Llama·Pig·Pug·Sheep·Zebra,
+  2018년 팩)은 FBX/OBJ/Blend뿐이고 애니메이션도 불확실해 보류, 종도 이미 다른
+  소스로 다 있다.
+- `trebeljahr/quaternius-showcase`의 `fish_pack`(Dolphin·Fish1~3·Manta_ray·
+  Shark·Whale)도 이미 `pet:`로 다 등록돼 있었다. `platformer_pack`·
+  `platformer_game_pack`은 마리오풍 플랫포머 소품(구름·파이프·동전 등)이라 이
+  판 결과 안 맞는다(2026-09-11 Alien 제외와 같은 판단).
+- **결론 — 이번엔 새로 쓸 만한 미사용 CC0 "몬스터" 후보를 못 찾았다.** 남은
+  합리적인 다음 수는 (a) 위 Bat·Bee·Chicken·Panda·Penguin(Deer·Pig는 이미
+  `pet:deer`·`pet:pig`로 있다) 을 **몬스터가 아니라 `pt_*` 도감 펫으로** 얹는
+  것인데, `js/data.js`(PETS)는 다섯 판이 **같은 내용으로** 들고 있어야 해서
+  saga-dungeon 폴더 하나만 고치는 세션은 손대면 안 된다(`../../CLAUDE.md`) —
+  다섯 판을 함께 보는 세션이 맡을 것. (b) `quaternius.com/packs.html`은 목록이
+  JS로 그려져 있어 curl로는 안 보인다 — 실제 팩 URL을 하나씩 짐작해 그 상세
+  페이지(`quaternius.com/packs/<이름>.html`)를 직접 열어 라이선스(CC0/QAL)를
+  낱개 확인하는 수밖에 없다(이번엔 여기까지는 안 갔다).
+- **참고 — FBX→glTF 변환 도구가 이 환경에서도 된다.** `npm install fbx2gltf`
+  뒤 `node_modules/fbx2gltf/bin/Windows_NT/FBX2glTF.exe`(윈도우 실행 파일이
+  postinstall로 같이 깔린다)가 실제로 동작한다(`-i in.fbx -o out --binary`).
+  이전 세션들의 "session scratch, 저장소엔 미커밋"이 가리키던 게 이것이다 —
+  다음에 이 도구가 있는지부터 다시 찾아 헤매지 않아도 된다.
