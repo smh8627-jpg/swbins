@@ -114,7 +114,7 @@ namespace Saga.Realm.UI
             {
                 string key = keys[i];
                 var order = RealmOrderData.Get(key);
-                string label = order != null ? $"{order.Name} ({order.Gold}냥)" : key;
+                string label = order != null ? string.Format(RealmLocalization.T("ui.order_label", "{0} ({1}냥)"), order.Name, order.Gold) : key;
 
                 int col = i / 5; // 0=왼쪽, 1=오른쪽
                 int row = i % 5;
@@ -209,8 +209,8 @@ namespace Saga.Realm.UI
             {
                 var plot = RealmPlotData.Get(key);
                 float chance = RealmWarState.PreviewPlotChance(RealmCityState.CurrentCity);
-                string chanceText = chance > 0f ? $"{Mathf.RoundToInt(chance * 100f)}%" : "무장 없음";
-                string label = $"{plot.Emoji} {plot.Name} ({plot.Gold}냥, 성공률 {chanceText})";
+                string chanceText = chance > 0f ? $"{Mathf.RoundToInt(chance * 100f)}%" : RealmLocalization.T("plot.no_officer", "무장 없음");
+                string label = string.Format(RealmLocalization.T("ui.plot_label", "{0} {1} ({2}냥, 성공률 {3})"), plot.Emoji, plot.Name, plot.Gold, chanceText);
                 string capturedKey = key;
                 RealmUiKit.NewButton(_plotButtonsRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y),
                     new Vector2(600f, 84f), () => ChoosePlot(capturedKey));
@@ -260,17 +260,20 @@ namespace Saga.Realm.UI
             }
 
             var progress = RealmQuizState.GetProgress();
-            _quizProgressText.text = $"학습 {progress.Learned}/{progress.Total} · 정답 {progress.Correct}/{progress.Answered} · 연속 {progress.Streak}(최고 {progress.BestStreak})";
+            _quizProgressText.text = string.Format(
+                RealmLocalization.T("quiz.progress", "학습 {0}/{1} · 정답 {2}/{3} · 연속 {4}(최고 {5})"),
+                progress.Learned, progress.Total, progress.Correct, progress.Answered, progress.Streak, progress.BestStreak);
 
             var drawn = RealmQuizState.Draw();
             _currentQuiz = drawn;
             if (drawn == null)
             {
-                _quizQuestionText.text = "낼 문제가 없다.";
+                _quizQuestionText.text = RealmLocalization.T("quiz.none_left", "낼 문제가 없다.");
                 return;
             }
             var p = drawn.Value;
-            _quizQuestionText.text = $"[{RealmQuizData.CatName(p.Cat)} · Lv{p.Lv}{(p.Review ? " · 복습" : "")}]\n{p.Q}";
+            _quizQuestionText.text = string.Format(RealmLocalization.T("quiz.header", "[{0} · Lv{1}{2}]\n{3}"),
+                RealmQuizData.CatName(p.Cat), p.Lv, p.Review ? RealmLocalization.T("quiz.review_suffix", " · 복습") : "", p.Q);
 
             float y = -360f;
             for (int i = 0; i < p.Choices.Length; i++)
@@ -287,8 +290,9 @@ namespace Saga.Realm.UI
             if (_currentQuiz == null) return;
             var result = RealmQuizState.Answer(_currentQuiz.Value, choiceIdx);
             string msg = result.Ok
-                ? $"⭕ 정답! {result.Why}" + (result.Gold > 0 ? $" (+{result.Gold}냥)" : "")
-                : $"❌ 오답 — 정답은 \"{result.AnswerText}\". {result.Why}";
+                ? string.Format(RealmLocalization.T("quiz.correct", "⭕ 정답! {0}"), result.Why)
+                    + (result.Gold > 0 ? string.Format(RealmLocalization.T("quiz.correct_gold_suffix", " (+{0}냥)"), result.Gold) : "")
+                : string.Format(RealmLocalization.T("quiz.wrong", "❌ 오답 — 정답은 \"{0}\". {1}"), result.AnswerText, result.Why);
             RealmToast.Instance?.Show(msg, 7f);
             PlayOutcomeSfx(result.Ok);
             RefreshQuizPanel();
@@ -343,7 +347,7 @@ namespace Saga.Realm.UI
             var list = RealmQuizState.LearnedList();
             if (list.Count == 0)
             {
-                RealmUiKit.NewText(_archiveButtonsRoot, "아직 익힌 문제가 없다.", new Vector2(0.5f, 1f), new Vector2(0f, -120f),
+                RealmUiKit.NewText(_archiveButtonsRoot, RealmLocalization.T("archive.empty", "아직 익힌 문제가 없다."), new Vector2(0.5f, 1f), new Vector2(0f, -120f),
                     new Vector2(660f, 60f), 24);
                 return;
             }
@@ -351,7 +355,7 @@ namespace Saga.Realm.UI
             float y = -110f;
             foreach (var entry in list)
             {
-                string label = $"[{RealmQuizData.CatName(entry.Cat)}] {RealmQuizData.ShortQ(entry.Q)}";
+                string label = string.Format(RealmLocalization.T("archive.entry_label", "[{0}] {1}"), RealmQuizData.CatName(entry.Cat), RealmQuizData.ShortQ(entry.Q));
                 var captured = entry;
                 RealmUiKit.NewButton(_archiveButtonsRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y),
                     new Vector2(680f, 60f), () => ShowArchiveEntry(captured));
@@ -362,7 +366,8 @@ namespace Saga.Realm.UI
 
         private void ShowArchiveEntry(RealmQuizState.LearnedEntry entry)
         {
-            RealmToast.Instance?.Show($"[{RealmQuizData.CatName(entry.Cat)} · Lv{entry.Lv}]\n{entry.Q}\n정답: {entry.AnswerText}\n{entry.Why}", 8f);
+            RealmToast.Instance?.Show(string.Format(RealmLocalization.T("archive.detail", "[{0} · Lv{1}]\n{2}\n정답: {3}\n{4}"),
+                RealmQuizData.CatName(entry.Cat), entry.Lv, entry.Q, entry.AnswerText, entry.Why), 8f);
         }
 
         /// <summary>설정(PLAN.md 67~69장 "접근성") — 효과음·진동·UI 크기·
