@@ -100,6 +100,13 @@
        (들소·젖소·황소)도 이미 있는 Cow.glb 를 그대로 재사용한다. 새 GLB
        없이 등록만 하면 된다는 게 portrait3d.js 의 사슴·구미호 판단과 같다 */
     'critter:cow': ANIMALS + 'Cow.glb',
+    /* 도감 초상 3D화 확장, 개과(2026-09-14, 이어서) — saga-dungeon 이 이미
+       받아 둔 ShibaInu.glb·Husky.glb 를 그대로 복사했다(같은 CC0, 위 소
+       셋과 같은 창고 saga-dungeon). saga-dungeon이 먼저 정한 짝(진돗개=
+       ShibaInu, 삽살개=Husky, "북슬북슬한 털이 가장 가까웠다")을 그대로
+       따른다 */
+    'critter:shiba': ANIMALS + 'ShibaInu.glb',
+    'critter:husky': ANIMALS + 'Husky.glb',
     /* 랜덤 이벤트(PLAN 11절, 2026-09-09) — saga-dungeon 이 이미 받아 둔 KayKit
        상자를 그대로 재사용한다 */
     'chest': PROPS + 'Chest.glb'

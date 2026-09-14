@@ -206,6 +206,25 @@ CC0(저작자 표시 불필요) 곡만 새로 찾았다. **직접 들어보고 �
 셋 다 **CC0 1.0 Universal** — 저작자 표시 필요 없다, 재배포 허용된다(위
 각 링크의 라이선스 아이콘으로 직접 확인했다).
 
+## 도감 초상 3D화 — 개과(`models/animals/ShibaInu.glb`·`Husky.glb`, 2026-09-14)
+
+| 항목 | |
+|---|---|
+| **만든 이** | Quaternius (poly.pizza) |
+| **라이선스** | **CC0 1.0 Universal** |
+| **저작자 표시** | 필요 없다 |
+| **재배포** | 허용된다 |
+| **받은 곳** | `saga-dungeon/assets/models/animals/`에 이미 받아 둔 `ShibaInu.glb`
+  (poly.pizza `/m/y4wdQpg767`) · `Husky.glb`(poly.pizza `/m/wcWiuEqwzq`)를
+  그대로 복사했다(위 174행 사슴·여우와 같은 창고) |
+
+`js/portrait3d.js`의 `PET_MAP`에 `pt_jindo`(진돗개)→`critter:shiba`,
+`pt_sapsal`(삽살개)→`critter:husky`를 얹었다 — saga-dungeon이 같은 두
+GLB로 먼저 정한 짝(진돗개=시바견 체형, 삽살개="북슬북슬한 털이 가장
+가까웠다")을 그대로 따른다. **발바리(`pt_pug`)는 뺐다** — 다섯 판을
+다 훑어도 소형 애완견 체형 CC0 모델이 없다(있는 개는 셰퍼드~시바
+체급뿐), 억지로 물리면 오히려 더 어긋나 보여 2D 도감 그림 그대로 둔다.
+
 ## Lucide — UI 아이콘 (2026-09-08, `js/icon.js`)
 
 `saga-go`의 `js/icon.js`를 그대로 옮겨 도구줄·독·지갑 이모지를 실제 아이콘으로
