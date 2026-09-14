@@ -97,6 +97,14 @@ class_name DungeonSkills
 ## 세이브에는 안 남는다(원작 주석 "잠깐짜리 무예·분신은 회차 안에서만
 ## 산다" 그대로).
 ##
+## **2026-09-15, 또 이어서 — 책사(scholar) br=5 row=0 `s_restore`(축기회복,
+## shape:'heal') 추가**(`games/saga_dungeon/player/skill_heal.gd` 참고).
+## 다섯 직업 전부(bolt·swing·nova·dash·buff)가 첫 활성 무예를 이미 가진
+## 뒤라 이번엔 **책사의 둘째 활성 무예**로 "heal" 모양을 채운다(원작 desc
+## "책사의 첫 회복" 그대로 — 원작에서도 책사에게 heal은 이 자리가 처음).
+## `player_health.gd`의 기존 `heal_by()`를 그대로 부른다 — buff처럼 대상도
+## 방향도 없어 지금까지 중 가장 단순하다(새 상태·판정이 전혀 없다).
+##
 ## **속도 환산** — dash는 "반경"이 아니라 "이동"이라 `BASE_REACH`가 아니라
 ## `BASE_SPD`(148px/s, 원작 이동속도 기준값)를 기준으로 삼는다. `player.gd`
 ## 의 `WALK_SPEED`(6.0m/s)가 그 Godot 쪽 짝이므로, 원작 돌진 속도(620px/s,
@@ -146,6 +154,13 @@ const SKILLS: Array[Dictionary] = [
 		"eff": "mpRegen", "v": 2.0, "grow": 1.4, "desc": "기력이 빨리 찬다.(아직 기력 없음)" },
 	{ "key": "s_focus", "cls": "scholar", "br": 2, "row": 2, "name": "집중(集中)",
 		"eff": "skillPct", "v": 10.0, "grow": 7.0, "desc": "무예의 위력이 오른다." },
+	## 책사(策士) br=5 row 0 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). v는 "최대 체력의 %"(player_health.gd::heal_by()가 그대로
+	## 받는다) — eff/world_eff_sum과는 무관해 비워 둘 필요조차 없지만
+	## 다른 shape 무예와 통일한다.
+	{ "key": "s_restore", "cls": "scholar", "br": 5, "row": 0, "name": "축기회복(蓄氣回復)",
+		"shape": "heal", "cd": 16.0,
+		"eff": "", "v": 16.0, "grow": 6.0, "desc": "기를 모아 상처를 아문다." },
 	## 도독(都督) br=0 row 0 — data-skill.js 그대로(cost=34는 기력이 없어
 	## 안 씀). sec(지속초)은 랭크와 무관하게 고정(원작 그대로) — v(위력)만
 	## value_at()으로 랭크에 따라 는다. **`eff`를 비워 둔 이유** — 다른

@@ -706,3 +706,25 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   이어갈 수도 있다. GUI 실기 확인 아직(몰아서 받을 것, 다섯 키/버튼
   전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity 트랙)도
   고려할 자리.
+
+## 19. 51장 "장비→빌드" — 책사의 둘째 활성 무예: 축기회복(s_restore, heal) (2026-09-15, "heal 이어해")
+
+- 책사(scholar) br=5 row=0 `s_restore` 추가 — 다섯 직업 모두 첫 활성
+  무예를 이미 가진 뒤라 이번엔 **책사의 둘째 활성 무예**로 "heal" 모양을
+  채운다(원작 desc "책사의 첫 회복" 그대로 — 원작에서도 책사에게 heal은
+  이 자리가 처음). buff처럼 대상·방향이 없고, 새 시스템도 필요 없다 —
+  `player_health.gd`의 기존 `heal_by(max_hp × value_at(rank) / 100)`를
+  그대로 부르기만 한다(지금까지 다섯 무예 중 가장 단순).
+- 신규 `games/saga_dungeon/player/skill_heal.gd`·`ui/heal_button.gd`
+  (💗)·입력 액션 `dungeon_skill_6`(H키).
+- 검증: 헤드리스 임포트 오류 0건, `TestRoom.tscn` 세 번 연속 로그 완전
+  동일. 임시 씬(`_verify_heal.tscn`, 검증 후 삭제)으로 9항목 PASS —
+  row0 선행조건 없음·회복량(max_hp×16%) 정확·최대 체력을 넘겨 회복하지
+  않는 클램프·쿨다운까지 확인. GO·FOREST·STORY·REALM 회귀도 헤드리스
+  오류 0건. `project.godot` diff는 의도한 입력 액션 한 블록뿐임을 재확인.
+- **다음에 할 일**: 남은 shape는 curse·summon·chain. curse(둘레 적
+  약화·둔화, 새 상태 하나만 있으면 됨)가 다음으로 작은 몫, summon(분신
+  소환)·chain(적 사이 튕기며 타격)은 각자 새 시스템(소환체 AI, 연쇄
+  타겟팅)이 필요해 더 크다. GUI 실기 확인 아직(몰아서 받을 것, 여섯
+  키/버튼 전부). DUNGEON 밖(GO/FOREST/STORY/REALM 추가 확장·saga-unity
+  트랙)도 고려할 자리.

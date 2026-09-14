@@ -6560,3 +6560,10 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 신규: skill_buff.gd·buff_button.gd(🚩)·입력 액션 dungeon_skill_5(B키).
 - 검증: 헤드리스 3회 로그 동일. 임시 씬 11항목 PASS(캐스팅 즉시 atk_speed_mult 1.30 반영·짧은 지속시간 만료 확인·약한 재시전이 강한 버프 안 깎음). GO/FOREST/STORY/REALM 회귀 오류 0.
 - 다음: 다섯 직업 모두 첫 활성 무예 완료. 남은 shape(heal/summon/curse/chain) 또는 각 직업 둘째 활성 무예. GUI 실기 확인 아직(몰아서 받을 것, 다섯 키/버튼 전부).
+
+## DUNGEON 51장 "장비→빌드" — 책사의 둘째 활성 무예: 축기회복(s_restore, heal) (2026-09-15, 같은 날 이어서, "heal 이어해")
+
+- 책사(scholar) br=5 row=0 s_restore 신규 — heal 모양 첫 도입(원작 "책사의 첫 회복"). player_health.gd::heal_by(max_hp×value_at/100) 그대로 호출, 새 상태 없음.
+- 신규: skill_heal.gd·heal_button.gd(💗)·입력 액션 dungeon_skill_6(H키).
+- 검증: 헤드리스 3회 로그 동일. 임시 씬 9항목 PASS(회복량 정확·최대체력 클램프·쿨다운). GO/FOREST/STORY/REALM 회귀 오류 0.
+- 다음: 남은 shape는 curse(작은 몫)·summon·chain(둘 다 새 시스템 필요, 더 큼). GUI 실기 확인 아직(몰아서 받을 것, 여섯 키/버튼 전부).
