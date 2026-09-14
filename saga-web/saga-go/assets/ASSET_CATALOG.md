@@ -210,7 +210,7 @@ SAGA WEB.md 19절 "4K 텍스처 금지"에 정면으로 걸리던 자리였고, 
 | discover | mp3 모노 96kbps | 0.47s | 8 KB | `codex`(신규 발견) |
 | encounter_win | mp3 모노 96kbps | 0.91s | 12 KB | `dex:new`(등용·포획 성공) |
 | hit | mp3 모노 96kbps | 0.26s | 4 KB | `duel:fx`(교전 타격) |
-| reward | mp3 모노 96kbps | 0.65s | 12 KB | `feat`(공적 획득) |
+| reward | mp3 모노 96kbps | 0.65s | 12 KB | `feat`(공적 획득) · `growth:refine`(펫 연성 성공, 재사용, 2026-09-14) |
 | panel_open | mp3 모노 96kbps | 1.04s | 16 KB | `duel:open`·`*:request`(카드/무대 열림) |
 
 원본은 44.1kHz WAV(95개 중 5개만 골라 옮김). 스테레오→모노 다운믹스로

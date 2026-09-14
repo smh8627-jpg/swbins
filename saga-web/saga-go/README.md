@@ -804,11 +804,20 @@ mp3(모노 96kbps)로 옮겼다 — 출처는 `assets/ASSET_LICENSES.md`.
 인코더, npm에서만 받고 저장소엔 안 남겼다)로 스테레오→모노 다운믹스 후
 96kbps mp3로 직접 인코딩했다.
 
+**2026-09-14(더 이어서) — 펫 연성(강화)도 소리를 얻었다.** `growth.js`의
+`refine()`(영초·단사로 펫 보정을 한 단 올리는 것)은 토스트만 뜨고 소리가
+없었다 — 같은 파일의 승화(`ascend()`)는 `gainFeat()`를 거쳐 `reward`
+소리가 붙는데, 자원을 소비만 하는 연성은 공적(功績)이 아니라 그 길을 안
+탄다. **새 mp3를 받지 않고 이미 있는 `reward` 소리를 재사용했다** —
+`panel_open`이 이미 네 이벤트에서 재사용되는 것과 같은 결이다.
+`growth.js`는 `growth:refine` 신호 한 줄만 새로 던지고, 값 계산은
+한 줄도 안 바뀌었다.
+
 - **새 판정을 만들지 않았다.** 이미 도는 이벤트버스(`core.on`/`emit`)를
   엿듣기만 한다 — `codex`(발견)→discover · `dex:new`(등용·포획 성공)→catch ·
   `duel:fx`(타격)→hit · `feat`(공적 획득)→reward · `duel:open`·`*:request`
   (카드/무대 열림)→open · `sky:thunder`(비 오는 날 번개)→thunder ·
-  `levelup`(플레이어 레벨업)→levelup.
+  `levelup`(플레이어 레벨업)→levelup · `growth:refine`(펫 연성 성공)→reward(재사용).
   어느 게임 로직 파일도 안 고쳤다
 - **손잡이 `audio.on`(0이면 무음) · `audio.vol`(0~1, 기본 0.6)** — `_admin.html`에도 있다
 - **지연 로딩** — `preload="none"`, 처음 그 소리를 낼 때만 받는다(7절).
