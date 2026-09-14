@@ -28,6 +28,8 @@ namespace Saga.EditorTools
     /// (7) 새로 배치된 무장이 그 성에서 개발형 명령을 실제로 쓸 수 있는지,
     /// (8) 전쟁 — 잘못된 성/병력 부족 전제조건, 약한 군대는 못 뺏고
     /// 돌아오는지, 압도적 물량은 함락시키는지, 함락한 성 재공격이 막히는지,
+    /// (8-1) 51장 "대규모 콘텐츠"(2026-09-14) — 둘째 목표(정도, 복양에서만
+    /// 출진)도 같은 Attack() 경로로 함락·편입되는지,
     /// (9) 계략(유언비어·화계) — 허창 밖 게이트, 성공 시 소패 훈련도/병력
     /// 실제 하락,
     /// (10) 함락한 성 편입 — 함락 즉시 네 번째 성으로 들어가는지, 무장
@@ -52,7 +54,7 @@ namespace Saga.EditorTools
             SearchAtChenliu, Hire, AgriByNewOfficer,
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
-            CapturedCityDevelop, AttackAgainBlocked,
+            CapturedCityDevelop, AttackAgainBlocked, AttackDingtao,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -645,8 +647,9 @@ namespace Saga.EditorTools
                         // 소패 병력/훈련이 계략으로 흐트러진 채면 뒤의 약한
                         // 공격/압도적 공격 시나리오(고정 수치를 전제로 한
                         // 테스트)가 어긋난다 — 기준값으로 되돌려 둔다.
-                        RealmWarState.Restore(RealmEnemyCity.XiaopeiBaseWall, RealmEnemyCity.XiaopeiBaseWall,
-                            RealmEnemyCity.XiaopeiBaseTroops, RealmEnemyCity.XiaopeiBaseTrain, RealmEnemyCity.XiaopeiBaseTech, false);
+                        var xiaopeiDef = RealmEnemyCity.Get(RealmEnemyCity.XiaopeiId);
+                        RealmWarState.Restore(RealmEnemyCity.XiaopeiId, xiaopeiDef.BaseWall, xiaopeiDef.BaseWall,
+                            xiaopeiDef.BaseTroops, xiaopeiDef.BaseTrain, xiaopeiDef.BaseTech, false);
                         RealmCityState.NextMonth();
                         _phase = Phase.AttackWrongCity;
                         break;
@@ -740,7 +743,7 @@ namespace Saga.EditorTools
                     // RealmWarState.Xiaopei 스냅샷과 새로 생긴 RealmCityRecord가
                     // 정확히 같은 값을 들고 있어야 한다(AbsorbCity()가 그
                     // 자리에서 그대로 옮긴 것이므로).
-                    var xiaopeiSnap = RealmWarState.Snapshot();
+                    var xiaopeiSnap = RealmWarState.Snapshot(RealmEnemyCity.XiaopeiId);
                     var xiaopeiRecord = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId);
                     var xiaopeiDef = RealmCityData.Get(RealmEnemyCity.XiaopeiId);
                     if (!RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.XiaopeiId) || xiaopeiRecord == null ||
@@ -810,6 +813,44 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestRealmSlice] re-attack blocked OK - {result.Message}");
+                    _phase = Phase.AttackDingtao;
+                    break;
+                }
+
+                case Phase.AttackDingtao:
+                {
+                    // 51장 "대규모 콘텐츠" — 정도(복양에서만 출진)도 소패와
+                    // 같은 RealmWarState.Attack() 경로로 함락·편입되는지
+                    // 확인한다. 무장 전임은 범위 밖(CapturedCityDevelop과
+                    // 같은 트릭) — 현책을 잠깐 복양으로 옮겨 "출진할 무장
+                    // 필요" 조건만 채운다.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? "puyang" : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        "puyang", roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var puyang = RealmCityState.CityRecord("puyang");
+                    puyang.Troops = 100000;
+                    puyang.Food = 100000;
+
+                    var result = RealmWarState.Attack("puyang");
+                    var dingtaoRecord = RealmCityState.CityRecord(RealmEnemyCity.DingtaoId);
+                    if (!result.Ok || !result.Won || dingtaoRecord == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.DingtaoId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 정도 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] dingtao attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
                     _phase = Phase.QuizCorrect;
                     break;
                 }
@@ -899,8 +940,15 @@ namespace Saga.EditorTools
                     int puyangWallBefore = RealmCityState.CityRecord("puyang").Wall;
                     string musashiCityBefore = RealmCityState.OfficerCityId("jp_musashi");
                     string startOfficerCityBefore = RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId);
-                    int xiaopeiAgriBefore = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri;
-                    var xiaopeiBefore = RealmWarState.Snapshot();
+                    // RealmEnemyCity.AllIds를 도는 걸로 해 뒀다 — 51장이 더 늘려도
+                    // (code-review 지적) 여기 손대는 걸 잊을 일이 없다.
+                    var enemyAgriBefore = new Dictionary<string, int>();
+                    var enemySnapBefore = new Dictionary<string, (int wall, int maxWall, int troops, int train, int tech, bool captured)>();
+                    foreach (var enemyId in RealmEnemyCity.AllIds)
+                    {
+                        enemyAgriBefore[enemyId] = RealmCityState.CityRecord(enemyId).Agri;
+                        enemySnapBefore[enemyId] = RealmWarState.Snapshot(enemyId);
+                    }
                     var quizBefore = RealmQuizState.GetProgress();
 
                     if (!RealmSaveState.Save())
@@ -910,10 +958,10 @@ namespace Saga.EditorTools
                         return;
                     }
 
-                    // 상태를 흩트린 뒤(성 넷 — 함락한 소패 포함 — 전부 엉터리
-                    // 값으로) 다시 불러와 그대로 돌아오는지 확인.
+                    // 상태를 흩트린 뒤(성 다섯 — 함락한 소패·정도 포함 — 전부
+                    // 엉터리 값으로) 다시 불러와 그대로 돌아오는지 확인.
                     var dummyCities = new List<RealmCityState.CitySnapshot>();
-                    foreach (var id in new[] { "xuchang", "chenliu", "puyang", RealmEnemyCity.XiaopeiId })
+                    foreach (var id in RealmCityData.AllCityIds.Concat(RealmEnemyCity.AllIds))
                     {
                         dummyCities.Add(new RealmCityState.CitySnapshot
                         {
@@ -925,7 +973,7 @@ namespace Saga.EditorTools
                         new List<string> { "sg_zhugeliang" }, null, null,
                         new List<string> { "sg_zhugeliang" }, new List<string> { "xuchang" },
                         dummyCities);
-                    RealmWarState.Restore(1, 1, 1, 1, 1, false);
+                    foreach (var enemyId in RealmEnemyCity.AllIds) RealmWarState.Restore(enemyId, 1, 1, 1, 1, 1, false);
                     RealmQuizState.Restore(new List<string>(), null, null, 0, 0, 0, 0);
 
                     if (!RealmSaveState.TryLoad())
@@ -933,6 +981,17 @@ namespace Saga.EditorTools
                         Debug.LogError("[PlaytestRealmSlice] RealmSaveState.TryLoad() 실패");
                         Fail();
                         return;
+                    }
+                    bool enemyMismatch = false;
+                    foreach (var enemyId in RealmEnemyCity.AllIds)
+                    {
+                        if (RealmWarState.Snapshot(enemyId) != enemySnapBefore[enemyId] ||
+                            !RealmCityState.ActiveCityIds.Contains(enemyId) ||
+                            RealmCityState.CityRecord(enemyId).Agri != enemyAgriBefore[enemyId])
+                        {
+                            enemyMismatch = true;
+                            break;
+                        }
                     }
                     bool mismatch = RealmCityState.Gold != goldBeforeSave ||
                         RealmCityState.RosterIds.Count != rosterBeforeSave ||
@@ -945,9 +1004,7 @@ namespace Saga.EditorTools
                         RealmCityState.CityRecord("chenliu").Agri != chenliuAgriBefore ||
                         RealmCityState.CityRecord("puyang").Wall != puyangWallBefore ||
                         RealmCityState.OfficerCityId("jp_musashi") != musashiCityBefore ||
-                        RealmWarState.Snapshot() != xiaopeiBefore ||
-                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.XiaopeiId) ||
-                        RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId).Agri != xiaopeiAgriBefore ||
+                        enemyMismatch ||
                         RealmCityState.OfficerCityId(RealmOfficerPool.StartingOfficerId) != startOfficerCityBefore;
                     var quizAfter = RealmQuizState.GetProgress();
                     bool quizMismatch = quizAfter.Learned != quizBefore.Learned || quizAfter.Answered != quizBefore.Answered ||
@@ -955,7 +1012,7 @@ namespace Saga.EditorTools
                         quizAfter.BestStreak != quizBefore.BestStreak;
                     if (mismatch || quizMismatch)
                     {
-                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 넷/로스터/성 소속/소패 전황/문답 중 하나) — quizMismatch={quizMismatch}");
+                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 다섯/로스터/성 소속/소패·정도 전황/문답 중 하나) — quizMismatch={quizMismatch}");
                         Fail();
                         return;
                     }

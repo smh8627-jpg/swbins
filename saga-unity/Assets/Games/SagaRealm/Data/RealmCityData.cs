@@ -57,6 +57,11 @@ namespace Saga.Realm.Data
             // 것이 아니다) — 함락하면 RealmCityState.AbsorbCity()가 이 정의로
             // RealmCityRecord를 지어 편입한다(REALM 다음 조각 (2) 참고).
             ["xiaopei"] = new RealmCityDef("xiaopei", "소패", RealmLand.Plain, agri: 220, comm: 200, wall: 3600, pop: 120000, mapX: 70, mapY: 43),
+            // 51장 "대규모 콘텐츠"(2026-09-14) — 소패와 같은 결의 둘째 목표.
+            // 복양(mapX 68·mapY 33)과 맞닿은 자리로 좀 더 바깥에 둔다.
+            // wall은 RealmEnemyCity.cs의 정도 정의(5000)와 맞춰 둔다(축성
+            // 상한 계산 CapOf가 이 값을 쓴다).
+            ["dingtao"] = new RealmCityDef("dingtao", "정도", RealmLand.Plain, agri: 260, comm: 235, wall: 5000, pop: 150000, mapX: 76, mapY: 25),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

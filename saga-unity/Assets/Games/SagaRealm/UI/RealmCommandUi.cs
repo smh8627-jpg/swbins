@@ -7,7 +7,8 @@ namespace Saga.Realm.UI
 {
     /// <summary>
     /// VERTICAL_SLICE_REALM.md 1·2-3·2-4·3절 — "명령"(10종, 두 열)·"성"
-    /// (조망·명령 대상 전환)·"공격"(소패 공략)·"다음 달" 버튼. SagaGo
+    /// (조망·명령 대상 전환)·"공격"(적국 공략, 51장부터 소패·정도 둘)·
+    /// "다음 달" 버튼. SagaGo
     /// `World/BanditEncounter.cs`처럼 자기 UI를 스스로 짓는 컴포넌트.
     ///
     /// 2026-09-14 "사운드" — 명령/문답/공격/계략 네 판정 결과에 confirm/
@@ -157,7 +158,7 @@ namespace Saga.Realm.UI
                 new Color(0f, 0f, 0f, 0.75f));
             _plotPanel.SetActive(false);
 
-            RealmUiKit.NewText(_plotPanel.transform, "계략 — 허창에서만", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+            RealmUiKit.NewText(_plotPanel.transform, "계략 — 적국과 맞닿은 성에서만", new Vector2(0.5f, 1f), new Vector2(0f, -60f),
                 new Vector2(600f, 60f), 30);
 
             var root = new GameObject("PlotButtons", typeof(RectTransform));
