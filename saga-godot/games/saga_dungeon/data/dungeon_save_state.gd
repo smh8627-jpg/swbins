@@ -69,6 +69,12 @@ func save(player: Node3D) -> void:
 		## PLAN.md 51장 "장비→빌드"(2026-09-14) — 갑주도 같은 경계(순수
 		## 추가 필드, 버전 안 올림).
 		"armor": DungeonEquipmentState.armor,
+		## 같은 날 이어서 — 남은 다섯 부위도 전부 순수 추가 필드(버전 안 올림).
+		"helm": DungeonEquipmentState.helm,
+		"glove": DungeonEquipmentState.glove,
+		"boot": DungeonEquipmentState.boot,
+		"ring": DungeonEquipmentState.ring,
+		"neck": DungeonEquipmentState.neck,
 		"runes": DungeonMaterialsState.rune_counts,
 		## §"제외" 3번(행상/투전/연단·단약/요대·감정·창고) — 전부 순수
 		## 추가 필드(창고는 안 만들었으니 저장할 것도 없다).
@@ -124,13 +130,14 @@ func try_load() -> bool:
 	player_pos = Vector3(p[0], p[1], p[2])
 	var boons: Variant = data.get("boons", {})
 	DungeonRunState.restore(boons if typeof(boons) == TYPE_DICTIONARY else {})
-	var weapon: Variant = data.get("weapon", {})
-	var charm: Variant = data.get("charm", {})
-	var armor: Variant = data.get("armor", {})
-	DungeonEquipmentState.restore(
-		weapon if typeof(weapon) == TYPE_DICTIONARY else {},
-		charm if typeof(charm) == TYPE_DICTIONARY else {},
-		armor if typeof(armor) == TYPE_DICTIONARY else {})
+	## restore()가 slot_name -> item Dictionary 하나를 받는 방식으로 바뀌었다
+	## (다섯 부위가 더 늘며 위치 인자로는 못 버틴다 — dungeon_equipment_state.gd
+	## 참고). 저장 안 된 슬롯(옛 세이브)은 {}로 안전하게 채워진다.
+	var equip_saved: Dictionary = {}
+	for slot_name in DungeonEquipmentState.SLOT_NAMES:
+		var v: Variant = data.get(slot_name, {})
+		equip_saved[slot_name] = v if typeof(v) == TYPE_DICTIONARY else {}
+	DungeonEquipmentState.restore(equip_saved)
 	var runes: Variant = data.get("runes", {})
 	var scrolls: Variant = data.get("scrolls", 0)
 	var gems: Variant = data.get("gems", {})

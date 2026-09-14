@@ -24,6 +24,16 @@ class_name DungeonItems
 ## 갑주·부적)이다"), 그때는 갑주가 없어 **무기+부적 두 점**으로 세트의
 ## "2점" 문턱까지만 시험할 수 있었다.
 ##
+## **2026-09-14, PLAN.md 51장 "장비→빌드" 갑주 절이 남긴 "남은 여섯
+## 부위" — 실제로는 다섯(helm·glove·boot·ring·neck)이다.** 투구(helm)
+## 3종·장갑(glove) 2종·신발(boot) 2종·목걸이(neck) 2종·반지(ring) 2종,
+## data-item.js BASES 그대로(이름·main·수치 하나 안 바꿈, helm 셋은
+## 원작에 `look:'helmet'`이 있지만 WEAPON_CLASS는 무기 look만 보므로
+## 여기선 안 옮긴다 — armor·charm이 애초에 look 없이 옮겨진 것과 같은
+## 이유). 이 다섯을 더하면 SETS의 나머지 여섯 벌(청낭·철옹·은하·맹혼·
+## 비영·현학, dungeon_items.gd SETS 주석 참고)이 전부 3점(완성)에
+## 닿는다 — 이게 이 다섯 부위를 더하는 진짜 이유다.
+##
 ## **2026-09-14, PLAN.md 51장 "장비→빌드" — 갑주(armor) 5종 추가.** main이
 ## might가 아니라(전부 wisdom/command) 이 슬라이스의 유일한 목표 스탯(무력)
 ## 에는 안 닿지만(부적의 wisdom/command 계열과 같은 처지, 새 제약이
@@ -87,6 +97,24 @@ const BASES: Array[Dictionary] = [
 	{ "key": "a_chalgap", "slot": "armor", "name": "찰갑", "main": "command", "base": 11.0 },
 	{ "key": "a_dujeong", "slot": "armor", "name": "두정갑", "main": "command", "base": 12.0 },
 	{ "key": "a_dopo", "slot": "armor", "name": "도포", "main": "wisdom", "base": 9.0 },
+	## 투구(頭盔) — look 없음(무기 look과 혼동하지 않으려 안 옮김, 위
+	## 헤더 참고). 내구는 갑주와 같은 공식(안 닳는 부위가 아니다).
+	{ "key": "a_myeongap", "slot": "helm", "name": "면갑", "main": "wisdom", "base": 8.0 },
+	{ "key": "a_cheollip", "slot": "helm", "name": "철립", "main": "might", "base": 7.0 },
+	{ "key": "h_tumo", "slot": "helm", "name": "투구", "main": "command", "base": 7.0 },
+	## 장갑(掌甲) — 마찬가지로 안 닳는 부위가 아니다.
+	{ "key": "g_wangap", "slot": "glove", "name": "완갑", "main": "might", "base": 5.0 },
+	{ "key": "g_wandae", "slot": "glove", "name": "완대", "main": "wisdom", "base": 5.0 },
+	## 신발(靴) — 마찬가지로 안 닳는 부위가 아니다.
+	{ "key": "b_hwaje", "slot": "boot", "name": "화자", "main": "might", "base": 5.0 },
+	{ "key": "b_jipsin", "slot": "boot", "name": "짚신", "main": "wisdom", "base": 4.0 },
+	## 목걸이(項牌) — 부적처럼 안 닳는다(NO_DUR_SLOT에 이미 "neck": true).
+	{ "key": "n_okpae", "slot": "neck", "name": "옥패", "main": "wisdom", "base": 5.0 },
+	{ "key": "n_geumpae", "slot": "neck", "name": "금패", "main": "command", "base": 6.0 },
+	## 반지(指環) — 부적처럼 안 닳는다(NO_DUR_SLOT에 이미 "ring": true).
+	## key 접두가 c_/r_로 갈린 건 원작 data-item.js 그대로(오타가 아니다).
+	{ "key": "c_okgae", "slot": "ring", "name": "옥가락지", "main": "wisdom", "base": 7.0 },
+	{ "key": "r_geumji", "slot": "ring", "name": "금지환", "main": "command", "base": 5.0 },
 ]
 
 ## data-skill.js WEAPON_CLASS 그대로 — 장착한 무기의 look이 직업을 정한다
@@ -148,9 +176,11 @@ const AFFIXES: Array[Dictionary] = [
 ## ring/neck도 원작 표 그대로 남겨 둔다(뜻은 없어도 값을 지어내지 않는다).
 const NO_DUR_SLOT: Dictionary = { "charm": true, "ring": true, "neck": true }
 
-## data-item.js SOCK_MAX 중 우리가 가진 부위만(무기 3 · 갑주 3 · 부적 2,
-## 원작 그대로).
-const SOCK_MAX: Dictionary = { "weapon": 3, "armor": 3, "charm": 2 }
+## data-item.js SOCK_MAX 그대로 — 이제 8부위 다 있다(무기 3 · 갑주 3 ·
+## 투구 2 · 장갑 1 · 신발 1 · 반지 1 · 목걸이 1 · 부적 2).
+const SOCK_MAX: Dictionary = {
+	"weapon": 3, "armor": 3, "helm": 2, "glove": 1, "boot": 1, "ring": 1, "neck": 1, "charm": 2,
+}
 
 ## data-gem.js RUNES 12종 전부 — eff 모양은 장비 접사와 같다(flat·pct·world).
 const RUNES: Array[Dictionary] = [
@@ -247,10 +277,12 @@ const GEMS: Array[Dictionary] = [
 		"desc": "출처를 알 수 없는 돌. 미래의 힘이 깃들었다." },
 ]
 
-## data-item.js GEM_SLOT_CAT 중 우리가 가진 부위만(무기·갑주·부적). helm/
-## glove/boot(원작은 이들도 armor 카테고리로 묶는다)·ring/neck(charm
-## 카테고리)은 슬롯 자체가 없어 뺐다.
-const GEM_SLOT_CAT: Dictionary = { "weapon": "weapon", "armor": "armor", "charm": "charm" }
+## data-item.js GEM_SLOT_CAT 그대로 — 투구·장갑·신발은 몸에 걸치는 갑주
+## 쪽(원소 저항)으로, 목걸이·반지는 장신구라 부적 쪽(능력치)으로 묶인다.
+const GEM_SLOT_CAT: Dictionary = {
+	"weapon": "weapon", "armor": "armor", "helm": "armor", "glove": "armor", "boot": "armor",
+	"ring": "charm", "neck": "charm", "charm": "charm",
+}
 
 ## data-gem.js JEWEL_TWO·JEWEL_MAX 그대로.
 const JEWEL_TWO := 0.34
@@ -305,12 +337,10 @@ const WORDS: Array[Dictionary] = [
 
 ## data-set.js SETS 10벌 — `skill` 필드(세트 전용 무예)는 뺐다(스킬트리·
 ## 핫바 시스템이 이 슬라이스에 없다). bonus는 누적(2점 값 위에 3점 값을
-## 더 얹는다). **2026-09-14, 갑주 5종 추가로 넷(충무·와룡·호랑·패왕)은
-## 세 조각(무기+갑주+부적) 다 우리 BASES 안에 있어 3점까지 완성된다.**
-## 나머지 여섯 중 청낭만 여전히 2점(무기+부적, 갑주 조각이 helm이라 안
-## 닿는다) — 철옹·은하·맹혼·비영·현학은 helm/glove/boot/ring/neck 조각이
-## 둘 이상 끼어 있어 1점(철옹은 이번에 0→1, 나머지는 무기 하나뿐)에
-## 머문다(위 헤더 참고).
+## 더 얹는다). 2026-09-14 갑주 5종으로 넷(충무·와룡·호랑·패왕)이 먼저
+## 3점(완성)에 닿았고, **같은 날 helm·glove·boot·ring·neck 열한 종을
+## 더하며 나머지 여섯(청낭·철옹·은하·맹혼·비영·현학)도 전부 3점에
+## 닿았다** — 이제 SETS 열 벌이 하나도 안 빠지고 다 완성 가능하다.
 const SETS: Array[Dictionary] = [
 	{ "key": "chungmu", "name": "충무(忠武)", "pieces": ["w_hwando", "a_dujeong", "c_hopae"],
 		"bonus": { 2: [{ "kind": "flat", "stat": "command", "v": 14.0 }],

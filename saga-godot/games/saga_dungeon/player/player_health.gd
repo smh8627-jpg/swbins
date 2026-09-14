@@ -42,10 +42,11 @@ func _ready() -> void:
 	## 이 더해지고 부서짐(is_broken)이 hpPct 반영分을 껐다 켰다 하므로
 	## charm_changed도 같이 구독한다(wear_all()이 부서뜨렸을 때도 신호를
 	## 쏜다 — dungeon_equipment_state.gd::wear_all() 참고). 2026-09-14
-	## 갑주(armor)가 생겨 armor_changed도 같은 이유로 구독한다.
-	DungeonEquipmentState.weapon_changed.connect(recalc_max_hp)
-	DungeonEquipmentState.charm_changed.connect(recalc_max_hp)
-	DungeonEquipmentState.armor_changed.connect(recalc_max_hp)
+	## 갑주(armor), 같은 날 이어서 남은 다섯 부위(helm·glove·boot·ring·
+	## neck)까지 생겨 여덟 신호 전부(SLOT_NAMES 순서) 같은 이유로 구독한다
+	## — 어느 부위든 hpPct 접사가 굴러 나올 수 있어서다.
+	for slot_name in DungeonEquipmentState.SLOT_NAMES:
+		Signal(DungeonEquipmentState, slot_name + "_changed").connect(recalc_max_hp)
 	## "제외" 목록 5번(인물 등용) — DungeonPartyState도 hpPct를 보태므로
 	## (dungeon_run_state.gd::_sum_eff 참고) 인원이 늘 때도 다시 계산한다.
 	DungeonPartyState.party_changed.connect(recalc_max_hp)

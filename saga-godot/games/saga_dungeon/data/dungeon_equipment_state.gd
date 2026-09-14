@@ -17,27 +17,51 @@ extends Node
 ## 갈아엎었다 — 바깥에서 `DungeonEquipmentState.weapon`처럼 직접 읽는
 ## 자리(job_label.gd 등)는 프로퍼티 이름이 그대로라 안 건드려도 된다.
 ##
+## **2026-09-14, PLAN.md 51장 "장비→빌드" — 남은 다섯 부위(helm·glove·
+## boot·ring·neck) 추가.** SLOT_NAMES가 data-item.js SLOTS 순서 그대로
+## 여덟으로 늘었다 — `_item_for`/`_set_item`/`_emit_changed` 세 헬퍼에
+## 다섯 갈래만 더하면 됐고, `_active_items()`·`repair_all_cost()`처럼
+## 셋을 하드코딩해 두던 자리는 이 김에 SLOT_NAMES를 도는 방식으로
+## 일반화했다(넷째 부위 때 이미 세웠어야 할 관례를 이번에 마저 세운다).
+##
 ## project.godot [autoload]에 DungeonEquipmentState로 등록.
 
-const SLOT_NAMES: Array[String] = ["weapon", "armor", "charm"]
+const SLOT_NAMES: Array[String] = [
+	"weapon", "armor", "helm", "glove", "boot", "ring", "neck", "charm",
+]
 
 signal weapon_changed
 signal armor_changed
+signal helm_changed
+signal glove_changed
+signal boot_changed
+signal ring_changed
+signal neck_changed
 signal charm_changed
 
-## {} 면 "맨손"/"갑주 없음"/"부적 없음"(시작 상태). 처음 주운 물건부터 실제로 바뀐다.
+## {} 면 "맨손"/"갑주 없음"/...(시작 상태). 처음 주운 물건부터 실제로 바뀐다.
 var weapon: Dictionary = {}
 var armor: Dictionary = {}
+var helm: Dictionary = {}
+var glove: Dictionary = {}
+var boot: Dictionary = {}
+var ring: Dictionary = {}
+var neck: Dictionary = {}
 var charm: Dictionary = {}
 
 
 ## 슬롯 이름 → 그 var(참조) — Dictionary는 GDScript에서 참조형이라, 돌려준
-## 것을 그 자리에서 고치면(`it["dur"] = ...`) weapon/armor/charm 원본이
+## 것을 그 자리에서 고치면(`it["dur"] = ...`) weapon/armor/... 원본이
 ## 그대로 바뀐다(기존 코드가 이미 기대던 성질, 새로 만든 규칙이 아니다).
 func _item_for(slot_name: String) -> Dictionary:
 	match slot_name:
 		"weapon": return weapon
 		"armor": return armor
+		"helm": return helm
+		"glove": return glove
+		"boot": return boot
+		"ring": return ring
+		"neck": return neck
 		"charm": return charm
 	return {}
 
@@ -46,6 +70,11 @@ func _set_item(slot_name: String, it: Dictionary) -> void:
 	match slot_name:
 		"weapon": weapon = it
 		"armor": armor = it
+		"helm": helm = it
+		"glove": glove = it
+		"boot": boot = it
+		"ring": ring = it
+		"neck": neck = it
 		"charm": charm = it
 
 
@@ -53,6 +82,11 @@ func _emit_changed(slot_name: String) -> void:
 	match slot_name:
 		"weapon": weapon_changed.emit()
 		"armor": armor_changed.emit()
+		"helm": helm_changed.emit()
+		"glove": glove_changed.emit()
+		"boot": boot_changed.emit()
+		"ring": ring_changed.emit()
+		"neck": neck_changed.emit()
 		"charm": charm_changed.emit()
 
 
@@ -77,20 +111,22 @@ func equip_charm(it: Dictionary) -> void:
 	equip("charm", it)
 
 
-func restore(saved_weapon: Dictionary, saved_charm: Dictionary = {}, saved_armor: Dictionary = {}) -> void:
-	weapon = saved_weapon
-	charm = saved_charm
-	armor = saved_armor
-	weapon_changed.emit()
-	charm_changed.emit()
-	armor_changed.emit()
+## `slot_name -> item` Dictionary 하나로 8부위를 한 번에 되돌린다(각
+## 부위를 위치 인자로 받던 옛 방식은 다섯이 더 늘며 못 버틴다 — dungeon_
+## save_state.gd가 저장된 슬롯만 채워 넘긴다, 없는 슬롯은 {}로 남는다).
+func restore(saved: Dictionary) -> void:
+	for slot_name in SLOT_NAMES:
+		_set_item(slot_name, saved.get(slot_name, {}))
+	for slot_name in SLOT_NAMES:
+		_emit_changed(slot_name)
 
 
 ## 부서진 장비는 아무 값도 안 낸다(item.js "부서지면 능력치를 안 준다") —
 ## main·접사·소켓 효과·투장 집계 전부 이 문턱 하나를 공유한다.
 func _active_items() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for it in [weapon, armor, charm]:
+	for slot_name in SLOT_NAMES:
+		var it := _item_for(slot_name)
 		if not it.is_empty() and not DungeonItems.is_broken(it):
 			out.append(it)
 	return out
@@ -180,8 +216,8 @@ func world_eff_sum(eff_key: String) -> float:
 
 ## "제외" 목록 2번(내구) — item.js::wearAll(), "층을 내려갈 때마다 1
 ## 닳는다"를 test_room.gd의 방 출구(descend에 해당)에서 부른다. 방금
-## 부서진 부위 이름("weapon"/"armor"/"charm")만 돌려준다(토스트용) —
-## 장신구(charm)는 dur_max_of()가 0을 주므로 애초에 안 닳는다.
+## 부서진 부위 이름(SLOT_NAMES 중 하나)만 돌려준다(토스트용) —
+## 장신구(charm·ring·neck)는 dur_max_of()가 0을 주므로 애초에 안 닳는다.
 func wear_all(n: float = 1.0) -> Array[String]:
 	var broke: Array[String] = []
 	for slot_name in SLOT_NAMES:
@@ -296,13 +332,14 @@ func identify(slot_name: String) -> bool:
 ## "제외" 목록 3번(수리) — item.js::repairCost()의 합. 0이면 수리할 게 없다.
 func repair_all_cost() -> int:
 	var total := 0
-	for it: Dictionary in [weapon, armor, charm]:
+	for slot_name in SLOT_NAMES:
+		var it := _item_for(slot_name)
 		if not it.is_empty():
 			total += DungeonItems.repair_cost(it)
 	return total
 
 
-## 무기·갑주·부적을 모두 최대 내구까지 고친다 — 비용은 호출 쪽이 이미
+## 걸친 모든 부위를 최대 내구까지 고친다 — 비용은 호출 쪽이 이미
 ## repair_all_cost()로 확인하고 금을 뗐다고 본다.
 func repair_all() -> void:
 	for slot_name in SLOT_NAMES:
@@ -312,6 +349,5 @@ func repair_all() -> void:
 		var max_d := DungeonItems.dur_max_of(it)
 		if max_d > 0.0:
 			it["dur"] = max_d
-	weapon_changed.emit()
-	armor_changed.emit()
-	charm_changed.emit()
+	for slot_name in SLOT_NAMES:
+		_emit_changed(slot_name)

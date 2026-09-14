@@ -417,3 +417,56 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   몫. 남은 여섯 부위(helm·glove·boot·ring·neck)는 각 세트 나머지 조각
   이지만 아직 범위 밖. DUNGEON 밖(다른 네 판·saga-unity 트랙)을 고려할
   자리이기도 하다.
+
+## 12. 51장 "장비→빌드" — 남은 다섯 부위(helm·glove·boot·ring·neck) (2026-09-14, 같은 날 이어서, "DUNGEON 남은 여섯 부위 이어해")
+
+- 지난 절이 "여섯"이라 적었던 건 실제로는 **다섯**이었다(data-item.js
+  SLOTS 8종에서 이미 옮긴 weapon/armor/charm 셋을 빼면 helm·glove·
+  boot·ring·neck 다섯). data-item.js BASES 그대로 11종 추가: 투구
+  (helm) 3종(면갑·철립·투구)·장갑(glove) 2종(완갑·완대)·신발(boot)
+  2종(화자·짚신)·목걸이(neck) 2종(옥패·금패)·반지(ring) 2종(옥가락지·
+  금지환). `SOCK_MAX`(helm2·glove1·boot1·ring1·neck1)·`GEM_SLOT_CAT`
+  (helm/glove/boot→armor, ring/neck→charm) 둘 다 원작 그대로 얹었다 —
+  `NO_DUR_SLOT`엔 ring/neck이 이미 있어(11장 이전부터) 안 건드림.
+- **이 다섯을 더한 진짜 이유** — `SETS` 열 벌 중 지난 절이 못 채운
+  나머지 여섯(청낭·철옹·은하·맹혼·비영·현학)이 전부 이 다섯 슬롯에
+  걸쳐 있었다. 이제 열 벌 다 3점(완성)에 닿는다(dungeon_items.gd
+  SETS 주석 참고) — 새 슬롯을 추가한 게 아니라 "이미 데이터에 있던
+  세트 조각을 마저 채운" 일이라는 점에서 11장(갑주)의 연장선이다.
+- `dungeon_equipment_state.gd`: `SLOT_NAMES`가 data-item.js SLOTS
+  순서 그대로 8부위로 늘었다. `_item_for`/`_set_item`/`_emit_changed`
+  세 헬퍼에 다섯 갈래만 더하면 됐지만, `_active_items()`·
+  `repair_all_cost()`·`repair_all()`이 아직도 `[weapon, armor, charm]`
+  을 하드코딩해 두고 있던 걸 이 김에 `SLOT_NAMES`를 도는 방식으로
+  일반화했다(넷째 부위가 왔을 때 이미 세웠어야 할 관례). `restore()`는
+  위치 인자 셋(weapon/charm/armor)으로 부르던 옛 방식이 여덟으로는
+  못 버텨 `slot_name -> item` Dictionary 하나를 받는 방식으로 바꿨다
+  (`dungeon_save_state.gd`가 SLOT_NAMES를 돌며 채워 넘긴다 — 옛 세이브
+  에 없는 슬롯은 {}로 안전하게 채워짐).
+- `dungeon_save_state.gd`: helm/glove/boot/ring/neck 다섯 저장 필드
+  순수 추가(버전 안 올림). `player_health.gd`: 여덟 `*_changed` 신호를
+  SLOT_NAMES를 돌며 한 번에 구독(`Signal(obj, name).connect()`로 —
+  신호는 `.get(name)`으론 안 잡힌다, 이번에 직접 겪음). `vendor_button.gd`:
+  투전(갑주 한 칸뿐이던 것)을 SLOT_NAMES 여덟 칸으로 늘리고, 감정
+  우선순위 검사도 세 슬롯 하드코딩 대신 SLOT_NAMES를 도는 루프로 바꿨다
+  (`_slot_label()` 헬퍼로 화면 표기 한글만 따로 둠 — 실존 인물 이름이
+  아니라 부위 이름이라 이름 정책과 무관).
+- 검증: 헤드리스 3회 로그 완전 동일(md5 일치). 임시 씬으로 21항목
+  검증(BASES 슬롯 배정·SOCK_MAX·GEM_SLOT_CAT·NO_DUR_SLOT·SLOT_NAMES
+  8부위·equip()이 helm_changed를 쏘는지·철옹 3점 완성(hpPct+20 정확히
+  일치)·helm/armor는 크게 닳으면 부서지되 neck은 안 닳음·identify·
+  save/load 왕복(helm·neck·ring 감정 상태까지)) 전부 PASS — 검증 중
+  한 번 FAIL이 났었는데(신호 발화 확인에 bool 지역변수를 쓴 람다 캡처
+  문제, 이 저장소가 이미 문서화해 둔 함정) 배열 칸으로 바꿔 재확인해
+  보니 실제 결함이 아니라 테스트 코드 실수였다. 실기 `save_dungeon.json`
+  은 Bash로 스크립트 실행 **전에** 백업해 뒀다가 실행 직후 곧바로
+  복원했다(스크립트 안에 복원 코드를 두지 않음 — memory: 중간 오류로
+  복원이 누락된 전례가 있어 이번엔 처음부터 Bash 쪽에서 감쌌다), diff로
+  바이트 일치 재확인. GO·FOREST·STORY·REALM 회귀도 헤드리스 오류 0건.
+  `git status`로 의도한 다섯 파일만 확인(새 스크립트 없음, `.uid`/
+  `.import`/`project.godot` 잡음 없음).
+- **다음에 할 일**: DUNGEON 51장 축("던전 증가→엘리트→보스→장비→빌드")
+  중 "장비"가 이걸로 사실상 다 찼다(8부위+소켓+접사+세트 전부). 남은
+  건 "빌드"(스킬트리·핫바처럼 장비를 넘어선 조합 시스템, SETS의
+  `skill` 필드가 원래 이 자리다) — DUNGEON 밖(GO/FOREST/STORY/REALM
+  추가 확장·saga-unity 트랙)을 고려할 자리이기도 하다.
