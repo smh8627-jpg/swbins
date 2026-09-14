@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Saga.Story.Data;
+using Saga.Story.Audio;
 
 namespace Saga.Story.World
 {
@@ -42,6 +43,11 @@ namespace Saga.Story.World
         [SerializeField] private float riggedVisualScale = 1f;
         [SerializeField] private float riggedBossVisualScale = 1f;
         [SerializeField] private bool isBoss;
+
+        // 2026-09-14 "사운드" — StoryAudio.cs 클래스 주석 참고. 이 컴포넌트
+        // 하나가 잡졸·두목 공통이라(SetBoss로만 갈린다) 클립도 공용 한 벌.
+        [SerializeField] private AudioClip hitClip;
+        [SerializeField] private AudioClip deathClip;
 
         private float _hp;
         private bool _dead;
@@ -100,6 +106,7 @@ namespace Saga.Story.World
         {
             if (_dead || amount <= 0f) return;
             _hp -= amount;
+            StoryAudio.PlaySfx(hitClip);
             if (_hp <= 0f) Die();
         }
 
@@ -107,6 +114,7 @@ namespace Saga.Story.World
         {
             if (_dead) return;
             _dead = true;
+            StoryAudio.PlaySfx(deathClip);
             StoryQuestState.AddKill();
             if (isBoss) StoryQuestState.AddBossKill();
             Destroy(gameObject);

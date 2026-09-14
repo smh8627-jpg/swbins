@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Realm.Data;
+using Saga.Realm.Audio;
 
 namespace Saga.Realm.UI
 {
@@ -8,9 +9,17 @@ namespace Saga.Realm.UI
     /// VERTICAL_SLICE_REALM.md 1·2-3·2-4·3절 — "명령"(10종, 두 열)·"성"
     /// (조망·명령 대상 전환)·"공격"(소패 공략)·"다음 달" 버튼. SagaGo
     /// `World/BanditEncounter.cs`처럼 자기 UI를 스스로 짓는 컴포넌트.
+    ///
+    /// 2026-09-14 "사운드" — 명령/문답/공격/계략 네 판정 결과에 confirm/
+    /// error 두 클립을 재생한다(`RealmAudio.cs` 클래스 주석 참고). 클립은
+    /// `BuildTestCityScene.cs`가 `SetPrivateField`로 채운다 — 비어 있으면
+    /// (헤드리스 유닛 테스트 등) `RealmAudio.PlaySfx`가 조용히 넘어간다.
     /// </summary>
     public class RealmCommandUi : MonoBehaviour
     {
+        [SerializeField] private AudioClip confirmClip;
+        [SerializeField] private AudioClip errorClip;
+
         private GameObject _orderPanel;
         private GameObject _cityPanel;
         private GameObject _plotPanel;
@@ -257,8 +266,13 @@ namespace Saga.Realm.UI
                 ? $"⭕ 정답! {result.Why}" + (result.Gold > 0 ? $" (+{result.Gold}냥)" : "")
                 : $"❌ 오답 — 정답은 \"{result.AnswerText}\". {result.Why}";
             RealmToast.Instance?.Show(msg, 7f);
+            PlayOutcomeSfx(result.Ok);
             RefreshQuizPanel();
         }
+
+        /// <summary>명령/문답/공격/계략 네 결과 처리가 공통으로 쓰는
+        /// confirm/error 재생 (`RealmAudio.cs` 클래스 주석 참고).</summary>
+        private void PlayOutcomeSfx(bool ok) => RealmAudio.PlaySfx(ok ? confirmClip : errorClip);
 
         private void CloseAllPanels()
         {
@@ -378,6 +392,7 @@ namespace Saga.Realm.UI
         {
             var result = RealmCityState.ExecuteOrder(key);
             RealmToast.Instance?.Show(result.Message, 5f);
+            PlayOutcomeSfx(result.Ok);
             if (result.Ok) _orderPanel.SetActive(false);
         }
 
@@ -397,12 +412,16 @@ namespace Saga.Realm.UI
         {
             var result = RealmWarState.Attack(RealmCityState.CurrentCity);
             RealmToast.Instance?.Show(result.Message, 6f);
+            // 출진 자체가 무효면 error, 유효하면 전투 결과(승/패)로 고른다
+            // (Won은 Ok=true일 때만 뜻이 있다 — RealmWarState.AttackResult 참고).
+            PlayOutcomeSfx(result.Won);
         }
 
         private void ChoosePlot(string key)
         {
             var result = RealmWarState.Plot(key, RealmCityState.CurrentCity);
             RealmToast.Instance?.Show(result.Message, 6f);
+            PlayOutcomeSfx(result.Ok);
             if (result.Ok) _plotPanel.SetActive(false);
         }
     }

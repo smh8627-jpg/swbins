@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -7,6 +8,7 @@ using Saga.Realm.Data;
 using Saga.Realm.World;
 using Saga.Realm.Player;
 using Saga.Realm.UI;
+using Saga.Realm.Audio;
 
 namespace Saga.EditorTools
 {
@@ -130,13 +132,29 @@ namespace Saga.EditorTools
             switch (_phase)
             {
                 case Phase.Init:
+                    var commandUi = Object.FindFirstObjectByType<RealmCommandUi>();
                     if (GameObject.Find("City") == null || GameObject.Find("RealmCameraRig") == null ||
-                        Object.FindFirstObjectByType<RealmHud>() == null || Object.FindFirstObjectByType<RealmCommandUi>() == null)
+                        Object.FindFirstObjectByType<RealmHud>() == null || commandUi == null)
                     {
                         Debug.LogError("[PlaytestRealmSlice] 씬 구성 못 찾음 — City/RealmCameraRig/RealmHud/RealmCommandUi 중 일부 없음");
                         Fail();
                         return;
                     }
+                    // 2026-09-14 "사운드" — 이 테스트는 UI 버튼을 안 눌러(클래스
+                    // 주석) RealmCommandUi.PlayOutcomeSfx()가 안 도는데, 씬
+                    // 빌드가 confirm/error 클립을 실제로 채웠는지·헤드리스에서
+                    // RealmAudio.PlaySfx가 예외 없이 도는지는 여기서 직접 본다
+                    // (GO PlaytestHeadless의 GoAudio 스모크와 같은 결).
+                    var confirmClip = GetPrivateField<AudioClip>(commandUi, "confirmClip");
+                    var errorClip = GetPrivateField<AudioClip>(commandUi, "errorClip");
+                    if (confirmClip == null || errorClip == null)
+                    {
+                        Debug.LogError("[PlaytestRealmSlice] RealmCommandUi confirm/error 클립 미배선");
+                        Fail();
+                        return;
+                    }
+                    RealmAudio.PlaySfx(confirmClip);
+                    RealmAudio.PlaySfx(errorClip);
                     if (RealmCityState.Gold != RealmCityState.StartingGold || RealmCityState.RosterIds.Count != 1 ||
                         RealmCityState.CurrentCity != "xuchang")
                     {
@@ -956,6 +974,12 @@ namespace Saga.EditorTools
             _hadError = true;
             EditorApplication.update -= Tick;
             EditorApplication.isPlaying = false;
+        }
+
+        private static T GetPrivateField<T>(object target, string fieldName) where T : class
+        {
+            var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            return field?.GetValue(target) as T;
         }
     }
 }

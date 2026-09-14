@@ -57,15 +57,21 @@
    *  그림으로만 남는다), 여우(pt_fox)는 구미호보다 오히려 더 정확한
    *  실제 여우 매칭, 들소·젖소·황소(pt_cow·pt_cow_farm·pt_bull)는 셋 다
    *  소과라 Cow.glb 하나로 같이 묶었다(PLAN §4 "하나의 에셋을 여러 자리에
-   *  재사용"과 같은 결). **2026-09-14 (이어서)** — 남아 있던 Wolf.glb(적
-   *  짐승형 'beast'로만 쓰이고 있었다)도 개과(진돗개·삽살개·발바리)에
-   *  물렸다. 새 GLB는 이번에도 하나도 안 늘렸다 — 이미 있는 넷
-   *  (Deer·Fox·Cow·Wolf) 전부가 이제 도감 펫에도 물려 있다. */
+   *  재사용"과 같은 결). 새 GLB는 하나도 안 늘렸다 — 이미 있는 넷
+   *  (Deer·Fox·Cow·Wolf 중 Wolf는 짝이 되는 펫이 없어 그대로 둔다)만 더
+   *  넓게 물렸다.
+   *  **2026-09-14, 이어서 — 개과 셋(진돗개·삽살개·발바리)도 훑었다.**
+   *  saga-dungeon 이 이미 poly.pizza 에서 받아 정한 짝(ShibaInu=진돗개,
+   *  Husky="북슬북슬한 털이 가장 가까웠다"=삽살개)을 그대로 복사해 물렸다.
+   *  발바리(pt_pug)는 뺐다 — 작은 애완견 체형이라 이 저장소 어디에도 맞는
+   *  CC0 모델이 없다(다섯 판 통틀어 있는 개는 셰퍼드형 셋(늑대·시바·허스키)
+   *  뿐, 소형견 없음) — 억지로 셋 중 하나를 물리면 오히려 "발바리인데
+   *  중형견 몸"으로 더 어긋나 보이므로, 2D 그림 그대로 둔다. */
   var PET_MAP = {
     pt_deer: 'critter:deer', pt_stag: 'critter:deer',
     pt_gumiho: 'critter:fox', pt_fox: 'critter:fox',
     pt_cow: 'critter:cow', pt_cow_farm: 'critter:cow', pt_bull: 'critter:cow',
-    pt_jindo: 'critter:wolf', pt_sapsal: 'critter:wolf', pt_pug: 'critter:wolf'
+    pt_jindo: 'critter:shiba', pt_sapsal: 'critter:husky'
   };
   function petKeyOf(id) { return PET_MAP[id] || null; }
 

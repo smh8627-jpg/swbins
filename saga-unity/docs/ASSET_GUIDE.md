@@ -413,3 +413,48 @@ Kenney "Short jingles" 팩(`jingles_HIT/NES/PIZZA/SAX/STEEL`, 각 17개)을
 보고 골라야 하는 몫**으로 남겨 뒀다(받아 둔 zip은 커밋 안 함, 필요하면
 다음에 같은 URL로 다시 받을 것: `https://opengameart.org/sites/default/files/jingleSounds_Kenney.zip`,
 CC0).
+
+## 2026-09-14 — 사운드를 REALM·STORY로 확장 — `error_001.ogg` 새로 받음
+
+같은 날 "묻지 말고 이어해"로 계속 진행 — PROJECT_STATE.md가 남겨 둔
+"Dungeon·Story·Realm 사운드 미착수" 중 STORY·REALM 두 판을 마저 붙였다
+(DUNGEON은 이미 `SfxPlayer.cs`가 절차적 합성 톤으로 먼저 들어가 있었다는
+걸 이번에 확인 — 그쪽은 그대로 둔다, 자세한 내용은 PROJECT_STATE.md
+2026-09-14 항목).
+
+| 파일 | 출처 팩 | 쓰는 곳 |
+|---|---|---|
+| `Assets/Art/Audio/Kenney_InterfaceSounds/error_001.ogg` | [Interface Sounds](https://opengameart.org/content/interface-sounds)(같은 킷, 새 파일만 추가) | REALM 명령/문답/공격/계략 실패·오답 |
+
+`error_001.ogg`는 위 두 SFX와 달리 **이 세션이 이름만 보고 새로 골랐다**
+(`kenney_interfaceSounds.zip`을 통째로 받아 목록만 확인, 실제로 쓰는
+파일 하나만 커밋 — 위 절제 원칙 그대로). GO 잉글 보류와 달리 감정가
+있는 선곡이 아니라(승리/패배 음악처럼 곡 전체의 무드를 판단해야 하는
+게 아니라 "삑 - 짧은 오류음"이라는 기능 하나만 확인하면 되는 UI blip)
+파일 이름(`error_001`)만으로 오인식 위험이 낮다고 판단해 사람 확인 없이
+바로 썼다 — 다음에 비슷한 "감정가 없는 UI 사운드"를 고를 땐 이 기준을
+써도 된다(반대로 승리/패배/BGM처럼 무드가 있는 선곡은 여전히 사람 몫).
+
+- **STORY** — `Saga.Story.Audio.StoryAudio`(신규, 같은 결). `StoryEnemy.cs`
+  (잡졸·두목 공용 컴포넌트)의 `TakeDamage()`에 `chop.ogg`(재사용), `Die()`에
+  `confirmation_001.ogg`(재사용 — "대치가 풀렸다"는 인상을 이미 FOREST가
+  쓴 것과 같은 취지로 재사용, 새 사운드를 안 만들었다). 클립은
+  `StoryEnemySpawner.cs`를 거쳐 `BuildTestStoryScene.cs`가 배선한다.
+- **REALM** — `Saga.Realm.Audio.RealmAudio`(신규). REALM은 타격감이 아니라
+  명령·문답·공격·계략 네 판정 결과 UI가 중심이라 confirm/error 두 갈래로만
+  나눴다(`RealmCommandUi.cs` 클래스 주석 참고) — `confirmation_001.ogg`
+  (재사용)/`error_001.ogg`(신규)를 `BuildTestCityScene.cs`가 배선한다.
+  소패 함락(승)도 confirm, 퇴각(패)도 error 한 갈래로 묶었다(`RealmWarState.
+  AttackResult`에 `Won` 필드를 새로 노출해 UI가 구분).
+
+검증: 배치 모드 컴파일 → 두 씬 재빌드(`BuildTestStoryScene`·
+`BuildTestCityScene`) → `PlaytestStorySlice`(전투 경로가 실제로
+`TakeDamage`/`Die`를 타 SFX 호출을 그대로 통과) 3연속 통과 →
+`PlaytestRealmSlice`는 UI 버튼을 안 눌러(정적 API 직접 호출 방식) 원래
+`RealmCommandUi.PlayOutcomeSfx()`를 못 봐, confirm/error 클립이 실제로
+배선됐는지 + 헤드리스에서 `RealmAudio.PlaySfx`가 예외 없이 도는지 직접
+확인하는 단계를 새로 추가해 3연속 통과 → 회귀 확인으로 GO
+`PlaytestHeadless`·FOREST `PlaytestForestCreatures` 1회씩 재확인(무관함
+확인). ProjectSettings/EditorSettings.asset이 배치 모드 실행 후 diff로
+떴으나 실제 내용 변경 없이 CRLF/LF 차이뿐이라 되돌렸다(루트 CLAUDE.md
+"git autocrlf 가짜 diff"와 같은 함정).
