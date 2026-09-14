@@ -908,6 +908,21 @@
         }
       }
     }
+    /* 우주기지 전용 희귀 몬스터(2026-09-14, PLAN 46-4 "다음에 이어갈 것" —
+       Enemy_*, 성간충). 우주기지(spaceBaseSpot)는 BIOME_CELL(22칸)보다 작은
+       자리(7×7)라 위 격자 뽑기에는 안 걸린다 — courier NPC(§45)와 같은
+       방식(고정 위치, 세이브 시드별 확률)으로 따로 심는다. 새 전투는
+       없다(다른 짐승과 같은 idle/wander/flee) */
+    var sb2 = spaceBaseSpot();
+    if (sb2 && VD.ANIMALS.spacebug) {
+      var hbug = core.hash2((s.seed % 733) + 11, ((s.seed >> 5) % 691) + 19);
+      if (hbug < 0.4) {
+        var sbx2 = sb2.tx * TILE + TILE * 0.5, sby2 = sb2.ty * TILE + TILE * 0.5;
+        var bx = sbx2 + TILE * 0.6, by = sby2 + TILE * 2.3;
+        animals.push({ id: 'spacebug', kind: 'spacebug', x: bx, y: by,
+                       home: { x: bx, y: by }, facing: 1, state: 'idle', aim: null, pause: 0 });
+      }
+    }
   }
 
   /** 링(숲 고리) 안에서 어느 바이옴이 처음 나오는 칸을 준다 — 좌표 순서로

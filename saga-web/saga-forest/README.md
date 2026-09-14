@@ -7,6 +7,26 @@
 **장기 지향점**: 마을 안에서 끝나지 않고 숲·호수·동굴까지 끊김 없이 걸어 나가는
 오픈월드를 목표로 한다.
 
+**2026-09-14 — 우주기지 전용 희귀 몬스터 "성간충" (PLAN 46-5절).** §46-4가
+남긴 셋(현대 목적지·이 팩 남은 조각·Enemy_*·Pickup_*) 중 `Enemy_*`(포자괴물과
+같은 결의 우주기지 전용 몬스터 후보)를 채웠다. 같은 GitHub 미러
+(`trebeljahr/quaternius-showcase`)에서 `Enemy_Small-transformed.glb`를
+새로 받아(41.2KB) `assets/models/monsters/space/EnemySmall.glb`로 옮겼다.
+우주기지는 `BIOME_CELL`(22칸) 격자보다 작은 자리(7×7)라 포자괴물이 쓰는
+`MONSTER_BIOME` 경유 뽑기에 안 걸린다 — 대신 배달원(courier)과 같은 결로
+**고정 위치 + 세이브 시드별 확률(40%)** 로 `village.js`의 `buildAnimals()`가
+따로 심는다. 새 전투는 안 만들었다 — 다른 짐승과 똑같이 idle/wander/flee만
+탄다. `asset3d.js`에 `monster:spacebug`, `data-village.js`에
+`VD.ANIMALS.spacebug`(이름 '성간충', 이모지 👾) 신설, `village-view3d.js`의
+SCATTER_KIND·TURNING_KIND·SCATTER_H에도 짝을 맞췄다. 2D는 맞는 CC0
+스프라이트가 없어 이모지로 뜬다(기존 fallback 경로 그대로).
+
+자가진단에 세이브 시드 40개를 훑어 "나타날 때만·항상 우주기지 안"을
+확인하는 항목 하나를 새로 추가했다(기존 TURNING_KIND·짐승 종 완결성
+검사의 `need` 배열도 새 종에 맞춰 고쳤다). **262/266, 세 번 동일**(§46-4와
+같은 기준선 261/265 + 새 항목 1개, 공사 테스트 넷은 여전히 무관한 기존
+실패). 자세한 것은 `PLAN.md` §46-5. **실기 확인 전.**
+
 **2026-09-14 — 우주기지에 이 팩 자체의 건물·로버·메카 (PLAN 46-4절).** §46-3이
 남긴 마지막 항목(현대 목적지·Space Kit 건물/로버/메카 중 후자)을 채웠다 —
 지금까지 우주기지는 이 팩과 무관한 fence·cart·crate·lantern(다른 자리에서

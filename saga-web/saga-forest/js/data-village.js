@@ -829,7 +829,18 @@
        buildAnimals() 의 일반 바이옴 뽑기 풀에는 안 끼고, `MONSTER_BIOME`
        경유로 아주 드물게만(8%) 여우 대신 선다 */
     mushnub: { name: '포자괴물', emoji: '🍄', speed: 16, wander: 40, flee: 160, fleeSpeed: 58,
-      biomes: ['mushroom'], rare: true }
+      biomes: ['mushroom'], rare: true },
+    /* 성간충(2026-09-14, PLAN 46-4 "다음에 이어갈 것" — Enemy_*, 우주기지
+       전용 희귀 몬스터). 포자괴물과 같은 결로 idle/wander/flee 만 탄다(새
+       전투 없음). 다만 우주기지(spaceBaseSpot)는 BIOME_CELL 격자(22칸)보다
+       작은 자리(7×7)라 위 MONSTER_BIOME 경유 뽑기에 안 걸린다 — village.js
+       buildAnimals() 가 courier NPC 와 같은 방식(고정 위치, 세이브 시드별
+       확률)으로 따로 심는다. biomes 를 다섯 다 적어 둔 건 실제로 그 다섯 중
+       아무 데서나 나서가 아니라, 자가진단의 "제 바이옴에만 선다" 검사가 그
+       자리의 biomeAt() 해시값(세이브마다 달라짐, 우주기지와는 무관하게
+       계산된다)과 어긋나지 않게 하기 위해서다 */
+    spacebug: { name: '성간충', emoji: '👾', speed: 14, wander: 30, flee: 170, fleeSpeed: 62,
+      biomes: ['green', 'meadow', 'dark', 'mushroom', 'rocky'], rare: true }
   };
 
   /** 바이옴별로 아주 드물게 나오는 몬스터 — buildAnimals() 가 일반 뽑기 뒤에

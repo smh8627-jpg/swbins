@@ -419,7 +419,7 @@ window.DG_NO_TUNE = true;
 
     t('village-view3d — 걷는 짐승만(딱 그만큼) 이동 방향으로 몸을 트는 표에 있다(나무·건물은 없음)', function () {
       var VV3 = DG.villageView3d, T = VV3.turningKind();
-      var need = ['deer', 'fox', 'wolf', 'rabbit', 'squirrel', 'duck', 'bird', 'frog', 'snake', 'mushnub'];
+      var need = ['deer', 'fox', 'wolf', 'rabbit', 'squirrel', 'duck', 'bird', 'frog', 'snake', 'mushnub', 'spacebug'];
       var miss = need.filter(function (k) { return !T[k]; });
       var leaked = ['tree', 'rock', 'flower', 'home', 'board'].filter(function (k) { return !!T[k]; });
       return miss.length === 0 && leaked.length === 0 && Object.keys(T).length === need.length &&
@@ -2839,7 +2839,7 @@ window.DG_NO_TUNE = true;
         (a1.length + '마리 재현');
     });
 
-    t('짐승 — 등록된 자산이 있는 종(사슴·여우·늑대·토끼·다람쥐·오리·새·개구리·뱀·포자괴물)만 나고, 제 바이옴에만 선다', function () {
+    t('짐승 — 등록된 자산이 있는 종(사슴·여우·늑대·토끼·다람쥐·오리·새·개구리·뱀·포자괴물·성간충)만 나고, 제 바이옴에만 선다', function () {
       V.buildAnimals();
       var list = V.raw().animals, i, bad = null;
       for (i = 0; i < list.length; i++) {
@@ -3252,6 +3252,31 @@ window.DG_NO_TUNE = true;
       var post = raw.props.filter(function (p) { return p.kind === 'courierPost'; })[0];
       return ground === 'sand' && inside && !outside && decoOk && kindsOk && !!post && !post.deco &&
         '땅 sand · 장식 11개 deco(건물·로버·메카 포함) · courierPost 는 손이 닿음';
+    });
+
+    t('우주기지 — 희귀 몬스터(성간충)는 나타날 때만 우주기지 안에 서고, asset3d 에도 등록돼 있다 (PLAN 46-4)', function () {
+      /* 우주기지는 BIOME_CELL(22칸)보다 작은 자리(7×7)라 일반 몬스터 뽑기
+         (MONSTER_BIOME 경유 buildAnimals() 격자)에는 안 걸린다 — courier와
+         같은 결로 세이브 시드별 확률로 따로 심는다(코드 주석의 "40%" 그대로).
+         여러 씨앗을 돌며 나타날 때만·항상은 아닌지, 나타나면 늘 우주기지
+         안인지를 함께 본다 */
+      var savedSeed = V.state().seed;
+      var seen = 0, badSpot = 0, n;
+      for (n = 0; n < 40; n++) {
+        V.state().seed = n * 97 + 1;
+        V.buildAnimals();
+        var bug = V.raw().animals.filter(function (a) { return a.kind === 'spacebug'; })[0];
+        if (bug) {
+          seen++;
+          var tx = Math.floor(bug.x / V.TILE), ty = Math.floor(bug.y / V.TILE);
+          if (!V.inSpaceBase(tx, ty)) { badSpot++; }
+        }
+      }
+      V.state().seed = savedSeed;
+      V.buildAnimals();
+      var A3 = DG.asset3d;
+      return badSpot === 0 && seen > 0 && seen < 40 && !!A3.REG()['monster:spacebug'] &&
+        (seen + '/40 씨앗에서 나타남 · 나타나면 전부 우주기지 안 · asset3d 등록 확인');
     });
 
     t('배달 — 접수대 → 배달원 왕복이 무제한 반복된다(소포 없인 못 받고, 들고는 하나만)', function () {

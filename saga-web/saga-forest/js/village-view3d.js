@@ -306,6 +306,10 @@
        buildAnimals() 가 여우 대신 아주 드물게(8%) 세우는 버섯숲 전용 몬스터.
        다른 짐승과 같은 syncScatter()/Object Pool 경로를 그대로 탄다 */
     mushnub: 'monster:mushnub',
+    /* 성간충(2026-09-14, PLAN 46-4 "다음에 이어갈 것") — village.js
+       buildAnimals() 가 우주기지에만 아주 드물게(세이브 시드별 40%) 심는
+       Enemy_Small 몬스터. mushnub 과 같은 syncScatter()/Object Pool 경로 */
+    spacebug: 'monster:spacebug',
     /* 마을 3D 건물(PLAN 6절, 2026-09-09) — village.js `buildProps()`의 shop·
        board·home·mail·tailor·pole·museum kind 를 그대로 타고 선다. 마을당
        하나뿐인 고정 건물이라 나무처럼 변종을 섞지 않는다 */
@@ -346,7 +350,7 @@
    *  것까지 매 프레임 회전을 계산할 까닭이 없어 짐승 일곱 종만 추렸다 */
   var TURNING_KIND = {
     deer: 1, fox: 1, wolf: 1, rabbit: 1, squirrel: 1, duck: 1, bird: 1, frog: 1, snake: 1,
-    mushnub: 1
+    mushnub: 1, spacebug: 1
   };
   /** 종류별로 실제 몇 미터로 세울까 — asset3d.build() 는 늘 키 1 로 눕혀 준다 */
   var SCATTER_H = {
@@ -363,6 +367,8 @@
     /* 포자괴물 — 여우(0.55)보다 살짝 작게, 버섯 소품(mushroom 0.5)과 비슷한
        눈높이로 눈대중 잡았다 */
     mushnub: 0.5,
+    /* 성간충 — 여우(0.55)보다 조금 작게, "Small" 이름값대로 눈대중 잡았다 */
+    spacebug: 0.45,
     /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
        비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
