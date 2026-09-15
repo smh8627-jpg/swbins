@@ -219,9 +219,6 @@ const ELEMENTS: Array[Dictionary] = [
 		"desc": "미래에서 흘러든 낯선 힘. 큰 한 방, 곁들이는 것은 없다." },
 ]
 
-## 보석으로 얻을 수 있는 결(물리는 무기 자체라 못 얻는다) — data-elem.js GEM_ELEMENTS.
-const GEM_ELEMENTS: Array[String] = ["fire", "cold", "lit", "pois", "chi", "emp"]
-
 ## 저항 상한 — data-enemy.js·dungeon.js RESIST_CAP 그대로(면역은 안 둔다).
 const RESIST_CAP := 75.0
 
