@@ -30,6 +30,12 @@ namespace Saga.Realm.Data
     /// (허창·진류·복양)과 2차 확장 셋(낙양·하비·업) 전부가 자기 목표를
     /// 하나씩 갖고, 3차 확장 셋(장안·수춘·진양)만 아직 다음 목표가
     /// 없다 — 다음에 더 늘릴 자리는 이 셋 중 하나에서 고르면 된다.
+    /// **51장 4차 확장(2026-09-16, 같은 날 "이어해")** — 장안→한중,
+    /// 수춘→여남 둘을 더했다. 진양은 원작 LINKS상 이웃(업·낙양·장안)이
+    /// 전부 이미 우리 성이라 더 뻗을 자리가 없어 이번엔 그대로 뒀다
+    /// (막다른 가지 — 결함이 아니라 원작 지도가 그렇게 생겼다). train은
+    /// 사슬마다 깊이 하나당 +15(허창 사슬: 40·55·70·85, 진류 사슬:
+    /// 50·65·80, 복양 사슬: 45·60·75로 진양에서 끝)로 규칙을 지켰다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -79,9 +85,14 @@ namespace Saga.Realm.Data
         public const string ChanganId = "changan";
         public const string ShouchunId = "shouchun";
         public const string JinyangId = "jinyang";
+        public const string HanzhongId = "hanzhong";
+        public const string RunanId = "runan";
 
         public static readonly string[] AllIds =
-            { XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId };
+        {
+            XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
+            HanzhongId, RunanId,
+        };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
         {
@@ -109,6 +120,12 @@ namespace Saga.Realm.Data
             // 진양은 업(ye)과만 맞닿아 있다(원작 LINKS: ye-jinyang) — 업을
             // 함락해야 열리는 셋째 단계 목표, 여덟 중 가장 어렵다.
             [JinyangId] = new RealmEnemyCityDef(JinyangId, "진양", RealmLand.Plain, baseWall: 5200, baseTroops: 1200, baseTrain: 75, baseTech: 100, attackFromCityId: "ye"),
+            // 한중은 장안(changan)과만 맞닿아 있다(원작 LINKS: changan-hanzhong,
+            // "촉으로 드는 문") — 장안을 함락해야 열리는 넷째 단계 목표.
+            [HanzhongId] = new RealmEnemyCityDef(HanzhongId, "한중", RealmLand.Plain, baseWall: 5600, baseTroops: 1300, baseTrain: 80, baseTech: 100, attackFromCityId: "changan"),
+            // 여남은 수춘(shouchun)과만 맞닿아 있다(원작 LINKS: shouchun-runan) —
+            // 수춘을 함락해야 열리는 넷째 단계 목표, 열 중 가장 어렵다.
+            [RunanId] = new RealmEnemyCityDef(RunanId, "여남", RealmLand.Plain, baseWall: 4200, baseTroops: 950, baseTrain: 85, baseTech: 100, attackFromCityId: "shouchun"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

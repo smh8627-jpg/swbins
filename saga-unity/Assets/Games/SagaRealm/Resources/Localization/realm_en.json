@@ -54,6 +54,8 @@
     { "key": "city.changan", "value": "Chang'an" },
     { "key": "city.shouchun", "value": "Shouchun" },
     { "key": "city.jinyang", "value": "Jinyang" },
+    { "key": "city.hanzhong", "value": "Hanzhong" },
+    { "key": "city.runan", "value": "Runan" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },

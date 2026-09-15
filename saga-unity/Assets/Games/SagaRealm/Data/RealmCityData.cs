@@ -92,6 +92,18 @@ namespace Saga.Realm.Data
             // Plain으로 둔다(효과 없음 — 새 enum 값 추가는 이 확장 범위 밖).
             // wall은 RealmEnemyCity.cs 진양 정의(5200)와 맞춘다.
             ["jinyang"] = new RealmCityDef("jinyang", "진양", RealmLand.Plain, agri: 210, comm: 200, wall: 5200, pop: 150000, mapX: 48, mapY: 20),
+            // 51장 "대규모 콘텐츠" 4차 확장(2026-09-16) — 장안을 함락한 뒤
+            // 이어지는 넷째 단계(원작 LINKS: changan-hanzhong, "촉으로 드는
+            // 문"). 진양처럼 원작 land가 mount라 Plain으로 둔다. wall은
+            // RealmEnemyCity.cs 한중 정의(5600)와 맞춘다. changan의 다른
+            // 이웃(tianshui)은 이번에 안 골랐다 — 성 하나당 목표 하나뿐이라
+            // 다음 확장 후보로 남겨 둔다.
+            ["hanzhong"] = new RealmCityDef("hanzhong", "한중", RealmLand.Plain, agri: 280, comm: 220, wall: 5600, pop: 170000, mapX: 29, mapY: 48),
+            // 51장 4차 확장 — 수춘을 함락한 뒤 이어지는 넷째 단계(원작
+            // LINKS: xiapi-shouchun-runan). wall은 RealmEnemyCity.cs 여남
+            // 정의(4200)와 맞춘다. shouchun의 다른 이웃(jianye·chaisang,
+            // 오나라 방면)은 이번에 안 골랐다 — 다음 확장 후보.
+            ["runan"] = new RealmCityDef("runan", "여남", RealmLand.Plain, agri: 340, comm: 260, wall: 4200, pop: 230000, mapX: 66, mapY: 54),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

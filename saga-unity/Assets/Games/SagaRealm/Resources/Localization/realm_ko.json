@@ -54,6 +54,8 @@
     { "key": "city.changan", "value": "장안" },
     { "key": "city.shouchun", "value": "수춘" },
     { "key": "city.jinyang", "value": "진양" },
+    { "key": "city.hanzhong", "value": "한중" },
+    { "key": "city.runan", "value": "여남" },
     { "key": "officer.sg_zhugeliang", "value": "현책" },
     { "key": "officer.kr_yisunsin", "value": "해장" },
     { "key": "officer.jp_musashi", "value": "이도인" },
