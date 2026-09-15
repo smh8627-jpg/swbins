@@ -513,6 +513,26 @@ class_name DungeonSkills
 ## 4194366, `--headless --script`로 조회해 확인)까지만 네 개고 Godot는
 ## KEY_F36이 없어(KeyList가 F35에서 끝난다, 조회로 확인) 다섯째는
 ## 처음으로 숫자패드(KP_0=4194438, 마찬가지로 조회해 확인)를 쓴다.
+##
+## **2026-09-15, 새 세션에서 또 이어서("이어해").** 직전 세션이 남긴
+## 마지막 목록 중 아직 손 안 댄 row1까지만 있는 세 갈래(row2가 빈
+## warrior br5·scholar br5·marshal br5)를 채운다 — 전부 이미 옮겨진
+## 모양(bolt·dash)만 써서 새 판정 로직이 필요 없다: 무장 `w_thunderlance`
+## (벽력창, br5row2, bolt, el:'lit') — prereq `w_frostcleave`. 무장의
+## 두 번째 bolt(w_throw에 이어). 무장 br5를 3/3으로. 책사 `s_venombolt`
+## (독무탄, br5row2, bolt, el:'pois') — prereq `s_plague`. 책사의 다섯
+## 번째 bolt(s_wave·s_fire·s_ice·s_bolt에 이어). 책사 br5를 3/3으로.
+## 도독 `m_frostcharge`(빙보, br5row2, dash, el:'cold') — prereq
+## `m_venomfield`. 도독의 두 번째 dash(m_charge에 이어). 도독 br5를
+## 3/3으로. 이걸로 **다섯 직업 여섯 갈래(br0~5) 전부 3/3인 것은 궁장을
+## 뺀 나머지 넷**이고, 궁장만 br0의 a_multi(다중 표적, 새 메커니즘
+## 필요)·a_rain이 막혀 5/6 상태로 남는다 — 이 나무에서 유일하게 남은
+## 빈 자리다.
+## 신규 6개: skill_bolt_warrior2.gd/bolt_warrior2_button.gd(⚡)·
+## skill_bolt_scholar5.gd/bolt_scholar5_button.gd(☠️)·skill_dash_
+## marshal2.gd/dash_marshal2_button.gd(🧊). 입력 액션 dungeon_skill_
+## 72~74 — KP_0(직전 세션) 다음이라 이어서 숫자패드 KP_1~KP_3
+## (4194439~4194441, 조회로 확인)를 쓴다.
 
 const MAX_RANK := 5
 
@@ -983,6 +1003,25 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_frostchain", "cls": "mystic", "br": 5, "row": 2, "name": "빙쇄(氷鎖)",
 		"shape": "chain", "cd": 9.0, "el": "cold",
 		"eff": "", "v": 1.8, "grow": 0.4, "desc": "언 기운이 적 사이를 옮겨 붙는다." },
+	## 무장(武將) br=5 row 2 — data-skill.js 그대로(cost=22는 기력이 없어
+	## 안 씀). prereq w_frostcleave(같은 br row1). 무장의 두 번째 bolt
+	## (w_throw에 이어). 무장 br5를 3/3으로.
+	{ "key": "w_thunderlance", "cls": "warrior", "br": 5, "row": 2, "name": "벽력창(霹靂槍)",
+		"shape": "bolt", "cd": 6.0, "el": "lit",
+		"eff": "", "v": 1.8, "grow": 0.45, "desc": "벼락을 실어 던진다." },
+	## 책사(策士) br=5 row 2 — data-skill.js 그대로(cost=18은 기력이 없어
+	## 안 씀). prereq s_plague(같은 br row1). 책사의 다섯 번째 bolt
+	## (s_wave·s_fire·s_ice·s_bolt에 이어). 책사 br5를 3/3으로.
+	{ "key": "s_venombolt", "cls": "scholar", "br": 5, "row": 2, "name": "독무탄(毒霧彈)",
+		"shape": "bolt", "cd": 4.0, "el": "pois",
+		"eff": "", "v": 1.5, "grow": 0.4, "desc": "독무를 뭉쳐 던진다." },
+	## 도독(都督) br=5 row 2 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀). far 필드 없음 → 기본 지속시간 0.2초(w_dash·m_charge와
+	## 같음). prereq m_venomfield(같은 br row1). 도독의 두 번째 dash
+	## (m_charge에 이어). 도독 br5를 3/3으로.
+	{ "key": "m_frostcharge", "cls": "marshal", "br": 5, "row": 2, "name": "빙보(氷步)",
+		"shape": "dash", "cd": 7.0, "el": "cold",
+		"eff": "", "v": 1.4, "grow": 0.35, "desc": "얼음을 두르고 파고든다." },
 ]
 
 

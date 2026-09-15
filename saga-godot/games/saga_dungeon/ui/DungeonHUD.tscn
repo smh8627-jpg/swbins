@@ -1,4 +1,4 @@
-[gd_scene load_steps=83 format=3]
+[gd_scene load_steps=86 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -84,6 +84,9 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_marshal2_button.gd" id="82"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/heal_mystic_button.gd" id="83"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/chain_mystic2_button.gd" id="84"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_warrior2_button.gd" id="85"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_scholar5_button.gd" id="86"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_marshal2_button.gd" id="87"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -1213,3 +1216,42 @@ offset_bottom = -6190.0
 text = "🧊"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("84")
+
+[node name="BoltWarrior2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6340.0
+offset_right = -40.0
+offset_bottom = -6270.0
+text = "⚡"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("85")
+
+[node name="BoltScholar5Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6420.0
+offset_right = -40.0
+offset_bottom = -6350.0
+text = "☠️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("86")
+
+[node name="DashMarshal2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6500.0
+offset_right = -40.0
+offset_bottom = -6430.0
+text = "🧊"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("87")
