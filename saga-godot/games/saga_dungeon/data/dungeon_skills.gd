@@ -373,6 +373,31 @@ class_name DungeonSkills
 ## (⚡)·skill_heal_marshal.gd/heal_marshal_button.gd(🌿)·skill_summon_
 ## mystic3.gd/summon_mystic3_button.gd(🗿). 입력 액션 dungeon_skill_41~45 —
 ## F1~F5(4194332~4194336) 다음이라 F6~F10(4194337~4194341)로 이어간다.
+##
+## **2026-09-15, 또 이어서 — 순서대로 다섯 갈래("이어해줘").** row2까지
+## 채운 다섯 갈래(archer br1/3, warrior br0/1, scholar br0/1, marshal
+## br0/1, mystic br0) 다음으로, 갈래 번호 오름차순으로 다음 빈 자리를
+## 골랐다 — 방사는 br1이 이미 row0·row1(y_curse·y_wither)까지 있어 그
+## row2부터, 나머지 넷은 아직 손 안 댄 br3(궁장만 br3도 이미 3/3이라
+## 다음인 br4)의 row1부터. 전부 이미 옮겨진 shape(buff·dash·swing·curse)만
+## 쓴다:
+## - 궁장 `a_speedy`(속사태세, br4row1, buff, buff_eff:'atkSpdPct') —
+##   prereq `a_flourish`. **궁장의 첫 buff.**
+## - 무장 `w_blaze_dash`(화염돌진, br3row1, dash, el:'fire') — prereq
+##   `w_chain`. 무장의 세 번째 dash.
+## - 책사 `s_fan`(선풍, br3row1, swing, r=1.8, el:'cold') — prereq
+##   `s_chainfire`. **책사의 첫 swing.**
+## - 도독 `m_press`(위압, br3row1, curse, r=140→4.12) — prereq `m_chain`.
+##   **도독의 첫 curse.**
+## - 방사 `y_doom`(멸, br1row2, curse, r=160→4.71, sec=7) — prereq
+##   `y_wither`. 방사의 두 번째 curse. 방사 br1을 3/3으로.
+## 다섯 다 기존 shape 스크립트를 복제 — 새 판정 로직 없음(궁장의 첫
+## buff·책사의 첫 swing·도독의 첫 curse라는 점만 새롭다). 신규 10개:
+## skill_buff_archer.gd/buff_archer_button.gd(🏃)·skill_dash_warrior3.gd/
+## dash_warrior3_button.gd(🔥)·skill_swing_scholar.gd/swing_scholar_button.gd
+## (🪭)·skill_curse_marshal.gd/curse_marshal_button.gd(📛)·skill_curse_
+## mystic2.gd/curse_mystic2_button.gd(☠️). 입력 액션 dungeon_skill_46~50 —
+## F6~F10 다음이라 F11~F15로 이어간다(조회로 확인 후 배정).
 
 const MAX_RANK := 5
 
@@ -681,6 +706,35 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_golem", "cls": "mystic", "br": 0, "row": 2, "name": "토우(土偶)",
 		"shape": "summon", "cd": 24.0, "sec": 20.0, "str": 4.0,
 		"eff": "", "v": 1.0, "grow": 0.0, "desc": "흙으로 빚은 큰 것 하나. 오래 버틴다." },
+	## 궁장(弓將) br=4 row 1 — data-skill.js 그대로(cost=28은 기력이 없어
+	## 안 씀). prereq a_flourish(같은 br row0). 궁장의 첫 buff.
+	{ "key": "a_speedy", "cls": "archer", "br": 4, "row": 1, "name": "속사태세(速射態勢)",
+		"shape": "buff", "cd": 14.0, "sec": 6.0, "buff_eff": "atkSpdPct",
+		"eff": "", "v": 32.0, "grow": 8.0, "desc": "한동안 손이 훨씬 빨라진다." },
+	## 무장(武將) br=3 row 1 — data-skill.js 그대로(cost=22는 기력이 없어
+	## 안 씀). el:'fire', far 없음(w_dash와 같은 0.2초). prereq w_chain
+	## (같은 br row0). 무장의 세 번째 dash.
+	{ "key": "w_blaze_dash", "cls": "warrior", "br": 3, "row": 1, "name": "화염돌진(火焰突進)",
+		"shape": "dash", "cd": 8.0, "el": "fire",
+		"eff": "", "v": 1.4, "grow": 0.35, "desc": "불을 두르고 파고든다." },
+	## 책사(策士) br=3 row 1 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀, kb=24는 넉백 없음). r=1.8은 swing 원작 값 그대로 미터로.
+	## prereq s_chainfire(같은 br row0). 책사의 첫 swing.
+	{ "key": "s_fan", "cls": "scholar", "br": 3, "row": 1, "name": "선풍(扇風)",
+		"shape": "swing", "cd": 5.0, "r": 1.8, "el": "cold",
+		"eff": "", "v": 1.6, "grow": 0.35, "desc": "부채를 크게 휘둘러 둘레를 벤다." },
+	## 도독(都督) br=3 row 1 — data-skill.js 그대로(cost=26은 기력이 없어
+	## 안 씀). r=4.12는 위 헤더의 nova/curse 환산(140÷34) 참고. prereq
+	## m_chain(같은 br row0). 도독의 첫 curse.
+	{ "key": "m_press", "cls": "marshal", "br": 3, "row": 1, "name": "위압(威壓)",
+		"shape": "curse", "cd": 10.0, "r": 4.12, "sec": 6.0,
+		"eff": "", "v": 32.0, "grow": 8.0, "desc": "위세로 적을 굼뜨고 약하게 만든다." },
+	## 방사(方士) br=1 row 2 — data-skill.js 그대로(cost=40은 기력이 없어
+	## 안 씀). r=4.71은 위 헤더의 nova/curse 환산(160÷34) 참고. prereq
+	## y_wither(같은 br row1). 방사의 두 번째 curse. 방사를 br1 3/3으로.
+	{ "key": "y_doom", "cls": "mystic", "br": 1, "row": 2, "name": "멸(滅)",
+		"shape": "curse", "cd": 18.0, "r": 4.71, "sec": 7.0,
+		"eff": "", "v": 55.0, "grow": 10.0, "desc": "둘레의 적이 크게 약해진다." },
 ]
 
 

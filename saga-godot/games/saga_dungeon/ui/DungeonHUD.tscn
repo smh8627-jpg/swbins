@@ -1,4 +1,4 @@
-[gd_scene load_steps=57 format=3]
+[gd_scene load_steps=62 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -58,6 +58,11 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_scholar4_button.gd" id="56"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/heal_marshal_button.gd" id="57"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/summon_mystic3_button.gd" id="58"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_archer_button.gd" id="59"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_warrior3_button.gd" id="60"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_scholar_button.gd" id="61"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/curse_marshal_button.gd" id="62"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/curse_mystic2_button.gd" id="63"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -849,3 +854,68 @@ offset_bottom = -4110.0
 text = "🗿"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("58")
+
+[node name="BuffArcherButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4260.0
+offset_right = -40.0
+offset_bottom = -4190.0
+text = "🏃"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("59")
+
+[node name="DashWarrior3Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4340.0
+offset_right = -40.0
+offset_bottom = -4270.0
+text = "🔥"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("60")
+
+[node name="SwingScholarButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4420.0
+offset_right = -40.0
+offset_bottom = -4350.0
+text = "🪭"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("61")
+
+[node name="CurseMarshalButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4500.0
+offset_right = -40.0
+offset_bottom = -4430.0
+text = "📛"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("62")
+
+[node name="CurseMystic2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4580.0
+offset_right = -40.0
+offset_bottom = -4510.0
+text = "☠️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("63")
