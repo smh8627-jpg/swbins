@@ -265,6 +265,36 @@ class_name DungeonSkills
 ## 세 갈래(br2 s_wave·br0 s_fire·br1 s_ice)에 갖는 첫 사례라 스크립트
 ## 이름은 `skill_bolt_scholar3.gd`. 입력 액션 dungeon_skill_26(9 키,
 ## STORY `story_job_skill4_3`이 쓰는 숫자 재사용 — 위와 같은 판단).
+##
+## **2026-09-15, 또 이어서 — row 1로 깊이 더하기, 첫 진짜 prereq 체인
+## ("묻지 말고 순서대로 진행해줘").** 다섯 직업 모두 여섯 갈래에 row0을
+## 가진 뒤라, 이번엔 다섯 직업 각각 row0이 있는 갈래 하나씩을 골라
+## row1을 채운다 — **row0에 먼저 1점을 넣어야 row1을 배울 수 있는 진짜
+## prereq_of() 체인이 이 슬라이스에서 처음 실제로 걸린다**(지금까진
+## row0만 있어 prereq_of()가 항상 빈 딕셔너리를 돌려줬다). 다섯 다
+## 새 판정 없이 기존 shape(bolt·swing·nova·buff)를 그대로 쓴다 — nova가
+## 추가로 두 직업(책사·방사)에 처음 생긴다는 점만 새롭다:
+## - 궁장 `a_ice`(빙시, br1row1, bolt, el:'cold') — prereq `a_fire`.
+##   궁장의 세 번째 bolt(a_pierce·a_fire에 이어).
+## - 무장 `w_cleave`(분쇄, br0row1, swing, r=1.7) — prereq `w_whirl`.
+##   무장의 두 번째 swing.
+## - 책사 `s_blaze`(염화, br0row1, nova, r=120→3.53, el:'fire') — prereq
+##   `s_fire`. **책사의 첫 nova**.
+## - 도독 `m_guard`(호신강기, br0row1, buff, sec=7, buff_eff:'guardPct')
+##   — prereq `m_rally`. 도독의 두 번째 buff(m_rally와 같은 갈래 br0).
+## - 방사 `y_wither`(고독, br1row1, nova, r=130→3.82, el:'pois') — prereq
+##   `y_curse`. 방사의 두 번째 nova(y_thunderdoom br5에 이어).
+## 스크립트는 같은 클래스 안에서 같은 shape가 몇 번째인지로 이름 붙인다
+## (지금까지 관례 그대로): `skill_bolt_archer3.gd`(a_ice, 세 번째)·
+## `skill_swing_warrior2.gd`(w_cleave, 두 번째)·`skill_nova_scholar.gd`
+## (s_blaze, 첫 번째라 번호 없음)·`skill_buff_marshal2.gd`(m_guard, 두
+## 번째)·`skill_nova_mystic2.gd`(y_wither, 두 번째). 입력 액션은
+## dungeon_skill_27~31 — 이 시점에서 **A~Z 스물여섯 글자가 이동/공격/
+## 무예 스물여섯 자리에 전부 차서**(움직임 4+공격1+무예21=26) 문자
+## 키가 동났다. 숫자 0(dungeon_skill_27, 아직 안 쓴 마지막 숫자)에 이어
+## 나머지 넷은 이 저장소에서 한 번도 안 쓴 구두점 키로 새로 연다:
+## `,`·`.`·`;`·`/`(콤마·마침표·세미콜론·슬래시 — 프로젝트 전체에서
+## grep해 확인, 어떤 판도 이 넷을 안 쓴다).
 
 const MAX_RANK := 5
 
@@ -303,11 +333,22 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "a_fire", "cls": "archer", "br": 1, "row": 0, "name": "화시(火矢)",
 		"shape": "bolt", "cd": 4.0, "el": "fire",
 		"eff": "", "v": 1.5, "grow": 0.4, "desc": "불붙은 화살." },
+	## 궁장(弓將) br=1 row 1 — data-skill.js 그대로(cost=22는 기력이 없어
+	## 안 씀). prereq: a_fire(같은 br row0). 궁장의 세 번째 bolt.
+	{ "key": "a_ice", "cls": "archer", "br": 1, "row": 1, "name": "빙시(氷矢)",
+		"shape": "bolt", "cd": 5.0, "el": "cold",
+		"eff": "", "v": 1.4, "grow": 0.35, "desc": "언 화살. 맞은 적이 굼떠진다." },
 	## 무장(武將) br=0 row 0 — data-skill.js 그대로. shape/cd는 원작 값
 	## 그대로(cost=22는 기력이 없어 안 씀, kb=30은 넉백이 없어 안 씀).
 	{ "key": "w_whirl", "cls": "warrior", "br": 0, "row": 0, "name": "회전참(回轉斬)",
 		"shape": "swing", "cd": 5.0, "r": 2.3,
 		"eff": "", "v": 1.7, "grow": 0.35, "desc": "둘레의 모든 적을 벤다." },
+	## 무장(武將) br=0 row 1 — data-skill.js 그대로(cost=28은 기력이 없어
+	## 안 씀, kb=46은 넉백 없음). prereq: w_whirl(같은 br row0). 무장의
+	## 두 번째 swing.
+	{ "key": "w_cleave", "cls": "warrior", "br": 0, "row": 1, "name": "분쇄(粉碎)",
+		"shape": "swing", "cd": 7.0, "r": 1.7,
+		"eff": "", "v": 2.6, "grow": 0.5, "desc": "한 번에 크게 벤다." },
 	## 무장(武將) br=2 — data-skill.js 그대로.
 	{ "key": "w_tough", "cls": "warrior", "br": 2, "row": 0, "name": "단련(鍛鍊)",
 		"eff": "hpPct", "v": 8.0, "grow": 5.0, "desc": "부대 체력이 오른다." },
@@ -369,6 +410,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "s_fire", "cls": "scholar", "br": 0, "row": 0, "name": "화탄(火彈)",
 		"shape": "bolt", "cd": 3.0, "el": "fire",
 		"eff": "", "v": 1.8, "grow": 0.45, "desc": "불덩이를 던진다." },
+	## 책사(策士) br=0 row 1 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). r=3.53은 원작 120px÷BASE_REACH(34, 위 헤더 nova 환산 참고).
+	## prereq: s_fire(같은 br row0). 책사의 첫 nova.
+	{ "key": "s_blaze", "cls": "scholar", "br": 0, "row": 1, "name": "염화(炎火)",
+		"shape": "nova", "cd": 8.0, "r": 3.53, "el": "fire",
+		"eff": "", "v": 2.4, "grow": 0.55, "desc": "둘레가 불바다가 된다." },
 	## 책사(策士) br=1 row 0 — data-skill.js 그대로(cost=16은 기력이 없어
 	## 안 씀). el:'cold' — 책사를 여섯 갈래 전부 채운다(다섯 직업 전부
 	## 6/6 완성). bolt가 책사의 세 번째 갈래(br2 s_wave·br0 s_fire에 이어).
@@ -387,6 +434,13 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "m_rally", "cls": "marshal", "br": 0, "row": 0, "name": "사기(士氣)",
 		"shape": "buff", "cd": 16.0, "sec": 6.0, "buff_eff": "atkSpdPct",
 		"eff": "", "v": 30.0, "grow": 8.0, "desc": "한동안 손과 발이 빨라진다." },
+	## 도독(都督) br=0 row 1 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). eff는 m_rally와 같은 이유로 비워 두고 buff_eff에 담는다
+	## (dungeon_skills.gd 헤더 참고). prereq: m_rally(같은 br row0).
+	## 도독의 두 번째 buff.
+	{ "key": "m_guard", "cls": "marshal", "br": 0, "row": 1, "name": "호신강기(護身)",
+		"shape": "buff", "cd": 14.0, "sec": 7.0, "buff_eff": "guardPct",
+		"eff": "", "v": 35.0, "grow": 8.0, "desc": "한동안 받는 피해가 준다." },
 	## 도독(都督) br=2 — data-skill.js 그대로.
 	{ "key": "m_res", "cls": "marshal", "br": 2, "row": 0, "name": "기수련(氣修)",
 		"eff": "allResPct", "v": 5.0, "grow": 4.0, "desc": "모든 결의 저항이 오른다.(아직 합산 채널 없음)" },
@@ -443,6 +497,13 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_curse", "cls": "mystic", "br": 1, "row": 0, "name": "주박(呪縛)",
 		"shape": "curse", "cd": 8.0, "r": 3.82, "sec": 5.0,
 		"eff": "", "v": 30.0, "grow": 8.0, "desc": "둘레의 적이 굼떠지고 더 아파한다." },
+	## 방사(方士) br=1 row 1 — data-skill.js 그대로(cost=28은 기력이 없어
+	## 안 씀). r=3.82는 원작 130px÷BASE_REACH(34)와 같은 값(w_intimidate·
+	## y_curse와 동일 자릿수). prereq: y_curse(같은 br row0). 방사의
+	## 두 번째 nova(y_thunderdoom br5에 이어).
+	{ "key": "y_wither", "cls": "mystic", "br": 1, "row": 1, "name": "고독(蠱毒)",
+		"shape": "nova", "cd": 9.0, "r": 3.82, "el": "pois",
+		"eff": "", "v": 2.2, "grow": 0.5, "desc": "독기가 둘레에 퍼진다." },
 	## 방사(方士) br=4 row 0 — data-skill.js 그대로(cost=16은 기력이 없어
 	## 안 씀). el:'chi' — 방사의 첫 bolt. 이걸로 bolt를 가진 직업이
 	## 궁장·무장·도독·방사 넷으로 는다(위 헤더 참고, 책사는 이미 별개로

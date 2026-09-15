@@ -983,3 +983,44 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   DUNGEON 밖(FOREST 51장 "생태계"·"생활" 남은 소소한 몫·saga-unity
   트랙)으로 옮길지 다음 세션이 판단할 것. GUI 실기 확인 아직(몰아서
   받을 것, 스물여섯 키/버튼 전부).
+
+## 27. 51장 "장비→빌드" — row1로 깊이 더하기, 첫 진짜 prereq 체인 (2026-09-15, "묻지 말고 순서대로 진행해줘")
+
+- 다섯 직업 각각 row0이 있는 갈래 하나씩을 골라 row1을 채웠다 —
+  **이 슬라이스에서 처음으로 `prereq_of()` 체인이 실제로 걸린다**
+  (row0에 먼저 1점을 넣어야 row1을 배울 수 있음, 지금까진 row0만
+  있어 늘 통과였다).
+- 궁장 `a_ice`(빙시, br1row1, bolt, el:'cold', prereq `a_fire`) —
+  궁장의 세 번째 bolt. 무장 `w_cleave`(분쇄, br0row1, swing, r=1.7,
+  prereq `w_whirl`) — 무장의 두 번째 swing. 책사 `s_blaze`(염화,
+  br0row1, nova, r=120→3.53, el:'fire', prereq `s_fire`) — **책사의
+  첫 nova**. 도독 `m_guard`(호신강기, br0row1, buff, buff_eff:
+  'guardPct', prereq `m_rally`) — 도독의 두 번째 buff. 방사
+  `y_wither`(고독, br1row1, nova, r=130→3.82, el:'pois', prereq
+  `y_curse`) — 방사의 두 번째 nova.
+- 기존 shape 스크립트(bolt·swing·nova·buff)를 그대로 복제 — 새 판정
+  로직 없음(nova가 책사·방사에서 처음 재사용된다는 점만 새로움).
+  신규 5개(스크립트): `skill_bolt_archer3.gd`·`skill_swing_warrior2.gd`·
+  `skill_nova_scholar.gd`·`skill_buff_marshal2.gd`·
+  `skill_nova_mystic2.gd`(+버튼 5개). 입력 액션 `dungeon_skill_27`~
+  `31` — 이 시점에서 A~Z 26글자가 이동(4)·공격(1)·무예(21) 자리에
+  전부 차서, 숫자 `0`(마지막 남은 숫자)에 이어 이 저장소가 한 번도
+  안 쓴 구두점 키(`,`·`.`·`;`·`/`)로 새로 열었다(전체 프로젝트 grep으로
+  미사용 확인).
+- 검증: 헤드리스 에디터 임포트 오류 0건, `TestRoom.tscn` 3회 로그
+  완전 동일(`project.godot` diff 25줄=다섯 블록만 재확인). 임시 씬
+  (`_verify_row1.tscn`, 검증 후 삭제)으로 30항목 PASS — **핵심은
+  prereq 게이트 실측**: row0 없이 row1을 invest하면 실패하고 포인트도
+  안 깎이는 것, row0에 1점 넣은 뒤에야 invest가 성공하는 것을 다섯
+  갈래 전부 확인. 데미지 실측(`a_ice` 13·`w_cleave` 23·`s_blaze` 22·
+  `y_wither` 20, 전부 `v×9` 공식과 일치)·swing 반경(1.7m) 경계·
+  `m_guard` 시전 즉시 `guard_mult()` 1.0→0.65 반영까지. GO 회귀
+  헤드리스 오류 0건.
+- **다음에 할 일**: row0/row1을 둘 다 채운 다섯 갈래(archer br1·
+  warrior br0·scholar br0·marshal br0·mystic br1)가 생겼지만, 아직
+  row0만 있는 갈래가 훨씬 많다 — 다음 세션이 웹판과 다시 비교해
+  남은 row1/row2를 더 채울지 판단할 것(`a_multi` 다중발사·`y_horde`/
+  `y_golem` 소환 강화처럼 새 메커니즘이 필요한 것도 섞여 있어 범위를
+  골라야 한다). DUNGEON 밖(FOREST 51장 남은 소소한 몫·saga-unity
+  트랙)도 있음. GUI 실기 확인 아직(몰아서 받을 것, 서른한 키/버튼
+  전부).
