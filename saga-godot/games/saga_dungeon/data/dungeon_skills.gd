@@ -422,6 +422,35 @@ class_name DungeonSkills
 ## skill_summon_marshal.gd/summon_marshal_button.gd(🛡️)·skill_swing_
 ## mystic.gd/swing_mystic_button.gd(👻). 입력 액션 dungeon_skill_51~55 —
 ## F11~F15 다음이라 F16~F20으로 이어간다(조회로 확인 후 배정).
+##
+## **2026-09-15, 새 세션에서 또 이어서 — br3를 다섯 직업 3/3으로("사가고돗
+## 이어 해줘").** 갈래 번호 오름차순 원칙 계속 — 궁장은 br3이 이미
+## 3/3이라(a_chain·a_venom·a_cripple) 다음 미완성 갈래인 br4(row0·row1만
+## 있음)의 row2, 나머지 넷은 br3(row0·row1만 있음)의 row2. 전부 이미
+## 옮겨진 모양(summon·nova·dash·buff)만 쓴다 — 새 판정 로직 없음:
+## - 궁장 `a_hawk`(응사소환, br4row2, summon, str 없음→배율 1.0) — prereq
+##   `a_speedy`. **궁장의 첫 summon.**
+## - 무장 `w_palm`(벽력장, br3row2, nova, r=150→4.41, el:'chi') — prereq
+##   `w_blaze_dash`. 무장의 두 번째 nova(w_quake br0에 이어). 무장 br3을
+##   3/3으로.
+## - 책사 `s_spirit`(빙정소환, br3row2, summon, str 없음→배율 1.0) —
+##   prereq `s_fan`. **책사의 첫 summon.** 책사 br3을 3/3으로.
+## - 도독 `m_charge`(기신보, br3row2, dash, el:'chi') — prereq `m_press`.
+##   **도독의 첫 dash.** 도독 br3을 3/3으로.
+## - 방사 `y_possess`(귀합, br3row2, buff, sec=7, buff_eff:'atkPct') —
+##   prereq `y_ghoststrike`. **방사의 첫 buff.** 방사 br3을 3/3으로.
+## r=4.41(w_palm)은 w_quake와 원작 r이 똑같이 150이라 같은 환산값이
+## 그대로 나온다(위 헤더의 nova 환산 참고). summon 둘(a_hawk·s_spirit)은
+## 원작에 `str` 필드가 없어 skill_summon.gd의 `sk.get("str", 1.0)` 기본값
+## 그대로 먹는다(y_shade·m_reserve와 같은 경계). dash(m_charge)도 `far`
+## 필드가 없어 기본 지속시간 0.2초(w_dash·a_dashshot과 같음). 신규 10개:
+## skill_summon_archer.gd/summon_archer_button.gd(🦅)·skill_nova_warrior2.gd/
+## nova_warrior2_button.gd(👊)·skill_summon_scholar.gd/summon_scholar_
+## button.gd(❄️)·skill_dash_marshal.gd/dash_marshal_button.gd(💨)·
+## skill_buff_mystic.gd/buff_mystic_button.gd(🕯️). 입력 액션
+## dungeon_skill_56~60 — F16~F20 다음이라 F21~F25(4194352~4194356,
+## `--headless --script`로 조회해 확인 — 이전 다섯 번의 F 구간과 정확히
+## 같은 등차 패턴)로 이어간다.
 
 const MAX_RANK := 5
 
@@ -787,6 +816,38 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_ghoststrike", "cls": "mystic", "br": 3, "row": 1, "name": "음령타(陰靈打)",
 		"shape": "swing", "cd": 6.0, "r": 1.8, "el": "chi",
 		"eff": "", "v": 1.7, "grow": 0.35, "desc": "음기를 둘러 손이 닿는 대로 친다." },
+	## 궁장(弓將) br=4 row 2 — data-skill.js 그대로(cost=36은 기력이 없어
+	## 안 씀). str 필드 없음 → skill_summon.gd 기본 배율 1.0. prereq
+	## a_speedy(같은 br row1). 궁장의 첫 summon. 궁장을 br4 3/3으로.
+	{ "key": "a_hawk", "cls": "archer", "br": 4, "row": 2, "name": "응사소환(鷹使召喚)",
+		"shape": "summon", "cd": 16.0, "sec": 14.0,
+		"eff": "", "v": 1.0, "grow": 1.0, "desc": "매를 불러 대신 싸우게 한다." },
+	## 무장(武將) br=3 row 2 — data-skill.js 그대로(cost=40은 기력이 없어
+	## 안 씀, kb=150은 넉백 없음). r=4.41은 w_quake와 같은 환산(원작 r도
+	## 150으로 같다 — 위 헤더 nova 환산 참고). prereq w_blaze_dash(같은 br
+	## row1). 무장의 두 번째 nova. 무장을 br3 3/3으로.
+	{ "key": "w_palm", "cls": "warrior", "br": 3, "row": 2, "name": "벽력장(霹靂掌)",
+		"shape": "nova", "cd": 13.0, "r": 4.41, "el": "chi",
+		"eff": "", "v": 3.2, "grow": 0.65, "desc": "기를 뻗어 둘레를 크게 친다." },
+	## 책사(策士) br=3 row 2 — data-skill.js 그대로(cost=34는 기력이 없어
+	## 안 씀). str 필드 없음 → skill_summon.gd 기본 배율 1.0. prereq
+	## s_fan(같은 br row1). 책사의 첫 summon. 책사를 br3 3/3으로.
+	{ "key": "s_spirit", "cls": "scholar", "br": 3, "row": 2, "name": "빙정소환(氷精召喚)",
+		"shape": "summon", "cd": 15.0, "sec": 13.0,
+		"eff": "", "v": 1.0, "grow": 1.0, "desc": "얼음 정령을 불러 대신 싸우게 한다." },
+	## 도독(都督) br=3 row 2 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀). far 필드 없음 → 기본 지속시간 0.2초(w_dash와 같음). prereq
+	## m_press(같은 br row1). 도독의 첫 dash. 도독을 br3 3/3으로.
+	{ "key": "m_charge", "cls": "marshal", "br": 3, "row": 2, "name": "기신보(氣身步)",
+		"shape": "dash", "cd": 7.0, "el": "chi",
+		"eff": "", "v": 1.5, "grow": 0.35, "desc": "기를 두르고 파고든다." },
+	## 방사(方士) br=3 row 2 — data-skill.js 그대로(cost=32는 기력이 없어
+	## 안 씀). eff는 m_rally 등과 같은 이유로 비워 두고 buff_eff에 담는다.
+	## prereq y_ghoststrike(같은 br row1). 방사의 첫 buff. 방사를 br3
+	## 3/3으로.
+	{ "key": "y_possess", "cls": "mystic", "br": 3, "row": 2, "name": "귀합(鬼合)",
+		"shape": "buff", "cd": 16.0, "sec": 7.0, "buff_eff": "atkPct",
+		"eff": "", "v": 35.0, "grow": 9.0, "desc": "한동안 음병의 기운이 몸에 실려 공격이 세진다." },
 ]
 
 
