@@ -37,3 +37,6 @@ dist/
 .idea/
 .vscode/
 *.iml
+
+# 세레나(Serena) MCP 프로젝트별 로컬 데이터 — 게임과 무관한 도구 설정
+.serena/
