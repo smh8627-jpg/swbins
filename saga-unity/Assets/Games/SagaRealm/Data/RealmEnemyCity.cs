@@ -13,6 +13,18 @@ namespace Saga.Realm.Data
     /// 소패와 같은 재해석 논리**(RealmEnemyRecord 클래스 주석 참고: 적
     /// AI가 없어 정적으로 채운다) — 정도는 소패보다 한 단계 큰 다음
     /// 목표로 자리하도록 성벽·병력을 살짝 올렸다.
+    /// **51장 2차 확장(2026-09-15)** — 낙양(진류의 첫 목표, 시작 성
+    /// 셋 중 그때까지 목표가 없던 유일한 곳)·하비(소패 함락 뒤 이어지는
+    /// 둘째 목표)·업(정도 함락 뒤 이어지는 둘째 목표) 셋을 더했다.
+    /// AttackFromCityId가 "xiaopei"·"dingtao"인 항목은 그 성을 먼저
+    /// 함락해 RealmCityState.ActiveCityIds에 편입시키기 전엔
+    /// RealmWarState.Attack()이 출진 병력·무장을 그 성에서 못 구해
+    /// 자연히 막힌다 — 별도 "잠금" 플래그 없이 기존 게이트(출진 성
+    /// 소유 여부)만으로 순서가 강제된다. wall/troops는 saga-web/
+    /// saga-realm/js/data-city.js 원본 성벽값 + 소패·정도가 이미 쓰던
+    /// 비율(병력≈성벽×0.23)로, train은 함락 난이도가 깊어질수록(진류·
+    /// 소패·복양의 첫 목표=40·45·50, 그 다음 단계=55·60) 단계적으로
+    /// 올렸다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -56,8 +68,11 @@ namespace Saga.Realm.Data
     {
         public const string XiaopeiId = "xiaopei";
         public const string DingtaoId = "dingtao";
+        public const string LuoyangId = "luoyang";
+        public const string XiapiId = "xiapi";
+        public const string YeId = "ye";
 
-        public static readonly string[] AllIds = { XiaopeiId, DingtaoId };
+        public static readonly string[] AllIds = { XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
         {
@@ -66,6 +81,16 @@ namespace Saga.Realm.Data
             // 정도는 복양(puyang)과만 맞닿아 있다 — 둘째 출진 성. 소패보다
             // 한 단계 큰 다음 목표(성벽·병력 소패의 약 1.4배).
             [DingtaoId] = new RealmEnemyCityDef(DingtaoId, "정도", RealmLand.Plain, baseWall: 5000, baseTroops: 1150, baseTrain: 45, baseTech: 100, attackFromCityId: "puyang"),
+            // 낙양은 진류(chenliu)와만 맞닿아 있다 — 시작 성 셋 중 그때까지
+            // 유일하게 목표가 없던 진류의 첫 출진 성(원작 LINKS: chenliu-luoyang).
+            [LuoyangId] = new RealmEnemyCityDef(LuoyangId, "낙양", RealmLand.Plain, baseWall: 6800, baseTroops: 1550, baseTrain: 50, baseTech: 100, attackFromCityId: "chenliu"),
+            // 하비는 소패(xiaopei)와만 맞닿아 있다(원작 LINKS: xiaopei-xiapi) —
+            // 소패를 함락해야 열리는 둘째 단계 목표.
+            [XiapiId] = new RealmEnemyCityDef(XiapiId, "하비", RealmLand.River, baseWall: 5200, baseTroops: 1200, baseTrain: 55, baseTech: 100, attackFromCityId: "xiaopei"),
+            // 업은 정도(dingtao)와만 맞닿아 있다(원작 LINKS: puyang-ye — 정도가
+            // 원작에 없는 창작 지명이라 그 다음 칸으로 자연스럽게 이어 붙였다) —
+            // 정도를 함락해야 열리는 둘째 단계 목표, 다섯 중 가장 어렵다.
+            [YeId] = new RealmEnemyCityDef(YeId, "업", RealmLand.Plain, baseWall: 6500, baseTroops: 1500, baseTrain: 60, baseTech: 100, attackFromCityId: "dingtao"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

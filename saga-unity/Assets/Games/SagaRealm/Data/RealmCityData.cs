@@ -63,6 +63,23 @@ namespace Saga.Realm.Data
             // wall은 RealmEnemyCity.cs의 정도 정의(5000)와 맞춰 둔다(축성
             // 상한 계산 CapOf가 이 값을 쓴다).
             ["dingtao"] = new RealmCityDef("dingtao", "정도", RealmLand.Plain, agri: 260, comm: 235, wall: 5000, pop: 150000, mapX: 76, mapY: 25),
+            // 51장 "대규모 콘텐츠" 2차 확장(2026-09-15) — saga-web/saga-realm/
+            // js/data-city.js LINKS 그대로 쓴다: 진류(chenliu)는 시작 성 중
+            // 유일하게 그때까지 목표가 없었다(허창→소패, 복양→정도는 이미
+            // 있음) — 그 자리를 채우는 셋째 목표. agri/comm/pop/land/mapX/mapY는
+            // 원작 데이터 그대로, wall은 RealmEnemyCity.cs 낙양 정의(6800)와
+            // 맞춘다(dingtao와 같은 이유).
+            ["luoyang"] = new RealmCityDef("luoyang", "낙양", RealmLand.Plain, agri: 380, comm: 420, wall: 6800, pop: 300000, mapX: 47, mapY: 41),
+            // 51장 2차 확장 — 소패를 함락한 뒤에도 계속 확장할 거리가 있도록
+            // 소패에 붙는 둘째 목표(원작 LINKS: xiaopei-xiapi). river라
+            // DefMul/SiegeMul이 정도·낙양과 다르게 붙는다(RealmCityData 아래
+            // 공식 참고). wall은 RealmEnemyCity.cs 하비 정의(5200)와 맞춘다.
+            ["xiapi"] = new RealmCityDef("xiapi", "하비", RealmLand.River, agri: 320, comm: 300, wall: 5200, pop: 220000, mapX: 79, mapY: 40),
+            // 51장 2차 확장 — 정도를 함락한 뒤 계속 확장할 거리(원작 LINKS:
+            // puyang-ye, 정도는 원작에 없는 창작 지명이라 정도 다음 칸으로
+            // 자연스럽게 이어 붙였다). wall은 RealmEnemyCity.cs 업 정의(6500)와
+            // 맞춘다.
+            ["ye"] = new RealmCityDef("ye", "업", RealmLand.Plain, agri: 420, comm: 380, wall: 6500, pop: 320000, mapX: 61, mapY: 28),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

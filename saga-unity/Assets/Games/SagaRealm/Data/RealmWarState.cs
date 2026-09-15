@@ -16,6 +16,10 @@ namespace Saga.Realm.Data
     /// **뺀 것**(문서 그대로): 수량 선택 UI(전군을 보낸다), 진영(camp —
     /// 무승부는 routed와 같이 취급), 함락 뒤처리(무장 배치·태수·치안
     /// 반토막·랜드마크 — `Captured` 깃발만 세운다), 구원군·물길.
+    /// **51장 2차 확장(2026-09-15)** — 낙양·하비·업 셋을 더 추가하는 동안
+    /// 이 클래스는 한 줄도 안 바뀌었다(`AllIds` 기준 딕셔너리로 이미
+    /// 일반화돼 있었다는 뜻 — RealmEnemyCity.cs·RealmCityData.cs 데이터만
+    /// 추가하면 되는 구조가 의도대로 동작했다).
     /// </summary>
     public static class RealmWarState
     {

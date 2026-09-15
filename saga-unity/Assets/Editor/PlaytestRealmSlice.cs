@@ -31,6 +31,9 @@ namespace Saga.EditorTools
     /// 돌아오는지, 압도적 물량은 함락시키는지, 함락한 성 재공격이 막히는지,
     /// (8-1) 51장 "대규모 콘텐츠"(2026-09-14) — 둘째 목표(정도, 복양에서만
     /// 출진)도 같은 Attack() 경로로 함락·편입되는지,
+    /// (8-2) 51장 2차 확장(2026-09-15) — 진류의 첫 목표(낙양)와, 소패·정도를
+    /// 함락한 뒤 이어지는 둘째 단계 목표(하비·업)까지 같은 Attack() 경로로
+    /// 순서대로(선행 성을 먼저 편입해야 열리는지 포함) 함락·편입되는지,
     /// (9) 계략(유언비어·화계) — 허창 밖 게이트, 성공 시 소패 훈련도/병력
     /// 실제 하락,
     /// (10) 함락한 성 편입 — 함락 즉시 네 번째 성으로 들어가는지, 무장
@@ -55,7 +58,7 @@ namespace Saga.EditorTools
             SearchAtChenliu, Hire, AgriByNewOfficer,
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
-            CapturedCityDevelop, AttackAgainBlocked, AttackDingtao,
+            CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -589,8 +592,11 @@ namespace Saga.EditorTools
 
                 case Phase.PlotGate:
                 {
-                    // 계략도 공격처럼 허창에서만 — 진류에서 걸면 막혀야 한다.
-                    var result = RealmWarState.Plot("rumor", "chenliu");
+                    // 계략도 공격처럼 목표가 있는 성에서만 — 51장 2차 확장
+                    // (2026-09-15)으로 진류도 낙양이라는 목표가 생겨 더 이상
+                    // "목표 없는 성" 예시가 아니다. 목표가 아예 없는 성(wan,
+                    // 시작 셋도 적국 다섯도 아니다)으로 바꿔 같은 게이트를 본다.
+                    var result = RealmWarState.Plot("rumor", "wan");
                     if (result.Ok)
                     {
                         Debug.LogError($"[PlaytestRealmSlice] 계략 성 밖 게이트 실패 — msg={result.Message}");
@@ -686,7 +692,10 @@ namespace Saga.EditorTools
 
                 case Phase.AttackWrongCity:
                 {
-                    var result = RealmWarState.Attack("chenliu");
+                    // 51장 2차 확장(2026-09-15)으로 진류도 낙양이라는 목표가
+                    // 생겨 더 이상 "목표 없는 성" 예시가 아니다(PlotGate와 같은
+                    // 이유) — wan으로 바꿔 같은 게이트를 본다.
+                    var result = RealmWarState.Attack("wan");
                     if (result.Ok || RealmWarState.Xiaopei.Captured)
                     {
                         Debug.LogError($"[PlaytestRealmSlice] 성 밖 공격 게이트 실패 — ok={result.Ok} msg={result.Message}");
@@ -825,6 +834,77 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestRealmSlice] re-attack blocked OK - {result.Message}");
+                    _phase = Phase.AttackLuoyang;
+                    break;
+                }
+
+                case Phase.AttackLuoyang:
+                {
+                    // 51장 2차 확장(2026-09-15) — 진류(시작 성 셋 중 그때까지
+                    // 목표가 없던 유일한 곳)의 첫 출진 목표. 정도 공략과 같은
+                    // 트릭(무장을 잠깐 옮겨 "출진할 무장 필요" 조건만 채운다).
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? "chenliu" : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        "chenliu", roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var chenliu = RealmCityState.CityRecord("chenliu");
+                    chenliu.Troops = 100000;
+                    chenliu.Food = 100000;
+
+                    var result = RealmWarState.Attack("chenliu");
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.LuoyangId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.LuoyangId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 낙양 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] luoyang attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackXiapi;
+                    break;
+                }
+
+                case Phase.AttackXiapi:
+                {
+                    // 51장 2차 확장 — 소패를 함락한 뒤에도 계속 확장할 거리가
+                    // 있도록 소패에 붙는 둘째 단계 목표(TargetFrom("xiaopei")).
+                    // AttackOverwhelm에서 이미 소패를 편입시켜 뒀으니 같은
+                    // 트릭(무장을 소패로 옮긴다)이 그대로 통한다.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.XiaopeiId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.XiaopeiId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var xiaopeiCity = RealmCityState.CityRecord(RealmEnemyCity.XiaopeiId);
+                    xiaopeiCity.Troops = 100000;
+                    xiaopeiCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.XiaopeiId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.XiapiId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.XiapiId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 하비 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] xiapi attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
                     _phase = Phase.AttackDingtao;
                     break;
                 }
@@ -862,6 +942,41 @@ namespace Saga.EditorTools
                         return;
                     }
                     Debug.Log($"[PlaytestRealmSlice] dingtao attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackYe;
+                    break;
+                }
+
+                case Phase.AttackYe:
+                {
+                    // 51장 2차 확장 — 정도를 함락한 뒤 이어지는 둘째 단계
+                    // 목표(TargetFrom("dingtao")), 다섯 중 가장 어렵다. 같은
+                    // 트릭(무장을 정도로 옮긴다).
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.DingtaoId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.DingtaoId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var dingtaoCity = RealmCityState.CityRecord(RealmEnemyCity.DingtaoId);
+                    dingtaoCity.Troops = 100000;
+                    dingtaoCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.DingtaoId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.YeId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.YeId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 업 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] ye attack + absorb OK - {result.Message}");
                     RealmCityState.SetCurrentCity("xuchang");
                     _phase = Phase.QuizCorrect;
                     break;
@@ -1024,12 +1139,12 @@ namespace Saga.EditorTools
                         quizAfter.BestStreak != quizBefore.BestStreak;
                     if (mismatch || quizMismatch)
                     {
-                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 다섯/로스터/성 소속/소패·정도 전황/문답 중 하나) — quizMismatch={quizMismatch}");
+                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 여덟/로스터/성 소속/적국 다섯 전황/문답 중 하나) — quizMismatch={quizMismatch}");
                         Fail();
                         return;
                     }
 
-                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (4 cities incl. captured xiaopei + roster + officer city assignment + quiz progress)");
+                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (8 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye + roster + officer city assignment + quiz progress)");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;

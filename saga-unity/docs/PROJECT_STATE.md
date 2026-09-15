@@ -5337,5 +5337,28 @@ PlayOutcomeSfx 재사용. `PlaytestRealmSlice.CheckCommandUiPanelsWork()`에
 헤드리스 3연속 통과.
 
 **이걸로 REALM도 다른 네 판과 저장 UI가 대등해졌다** — 5절 "언어 전환
-미반응 버튼"·"저장 UI 부재" 두 항목 모두 완전히 닫혔다. 다음 방향
-대기 항목은 이제 진짜로 없다 — 새 카테고리를 사용자에게 물어야 한다.
+미반응 버튼"·"저장 UI 부재" 두 항목 모두 완전히 닫혔다.
+
+## REALM 51장 "대규모 콘텐츠" 2차 확장 — 적국 셋 추가 (2026-09-16)
+
+방향을 물어(AskUserQuestion) 사용자가 "REALM 대규모 콘텐츠(적국 확장)"를
+고르고 "순서대로 다 해줘"로 위임 — saga-web/saga-realm/js/data-city.js의
+원작 LINKS(인접 관계) 그대로 셋을 추가했다.
+
+- **낙양**(진류의 첫 목표 — 시작 성 셋 중 유일하게 목표가 없던 곳),
+  **하비**(소패 함락 뒤 열리는 둘째 단계, TargetFrom("xiaopei")),
+  **업**(정도 함락 뒤 열리는 둘째 단계, TargetFrom("dingtao")).
+  wall/agri/comm/pop/land/좌표는 원작 데이터 그대로, troops는 소패·정도가
+  쓰던 비율(성벽×0.23)로, train은 40→60 단계적으로.
+- `RealmCityData.cs`·`RealmEnemyCity.cs`에 데이터만 추가 — `RealmWarState`·
+  `RealmSaveState`·`RealmHud`·저장/불러오기 라운드트립 테스트는 전부
+  `AllIds` 기준으로 이미 일반화돼 있어 코드 변경 0.
+  **회귀 하나 직접 잡음** — 진류가 목표(낙양)를 갖게 되면서 기존
+  "성 밖 게이트" 테스트 둘(`PlotGate`·`AttackWrongCity`)이 진류를
+  "목표 없는 성" 예시로 쓰고 있던 게 깨졌다 — `wan`(시작 성도 적국도
+  아닌 실제 지명)으로 교체.
+- `PlaytestRealmSlice.cs`에 AttackLuoyang/AttackXiapi/AttackYe 세 단계
+  추가(기존 AttackDingtao와 같은 트릭 — 무장을 잠깐 옮겨 출진 조건만
+  채운다). 배치 모드 컴파일 → 3연속 통과(다섯 적국 전부 함락+편입+
+  save/load 왕복 확인). 배치 모드가 건드린 ProjectVersion.txt/manifest.json/
+  packages-lock.json/EditorSettings.asset은 매번 checkout으로 되돌림.
