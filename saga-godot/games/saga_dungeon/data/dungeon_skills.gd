@@ -350,6 +350,29 @@ class_name DungeonSkills
 ## 4194336)를 그대로 썼다(숫자패드는 지난 절에서 "확신 못 해 피했다"고
 ## 적었는데, 실제로 조회해 보니 짐작했던 값과 달랐다 — 짐작 대신 조회로
 ## 확정하는 쪽이 맞다는 걸 이번에 확인했다).
+##
+## **2026-09-15, 또 이어서 — row2로 다섯 갈래를 3/3까지 채운다("이어해줘
+## 순서대로").** 직전 절에서 row1을 채운 다섯 갈래를 그대로 이어 row2까지
+## 채웠다 — 전부 이미 옮겨진 shape(curse·buff·bolt·heal·summon)만 쓴다:
+## - 궁장 `a_cripple`(파훼시, br3row2, curse, r=140→4.12) — prereq
+##   `a_venom`. **궁장의 첫 curse.** 궁장 br3을 3/3으로.
+## - 무장 `w_rage`(광분, br1row2, buff, sec=6, buff_eff:'atkSpdPct') —
+##   prereq `w_leap`. **무장의 첫 buff.** 무장 br1을 3/3으로.
+## - 책사 `s_bolt`(뇌격, br1row2, bolt, el:'lit') — prereq `s_frost`.
+##   책사의 네 번째 bolt. 책사 br1을 3/3으로.
+## - 도독 `m_heal`(치유, br1row2, heal) — prereq `m_ring`. **도독의 첫
+##   heal.** 도독 br1을 3/3으로.
+## - 방사 `y_golem`(토우, br0row2, summon, str=4, v=1·grow=0) — prereq
+##   `y_horde`. 방사의 세 번째 summon(랭크 무관 늘 1개, "크고 오래 버티는
+##   하나"). 원작 `big:true`는 분신 크기를 다르게 그리는 시스템이 없어
+##   값만 보존하고 안 쓴다. 방사 br0을 3/3으로.
+## 다섯 다 기존 shape 스크립트를 복제 — 새 판정 로직 없음(궁장의 첫
+## curse·무장의 첫 buff·도독의 첫 heal이라는 점만 새롭다). 신규 10개:
+## skill_curse_archer.gd/curse_archer_button.gd(💢)·skill_buff_warrior.gd/
+## buff_warrior_button.gd(🔺)·skill_bolt_scholar4.gd/bolt_scholar4_button.gd
+## (⚡)·skill_heal_marshal.gd/heal_marshal_button.gd(🌿)·skill_summon_
+## mystic3.gd/summon_mystic3_button.gd(🗿). 입력 액션 dungeon_skill_41~45 —
+## F1~F5(4194332~4194336) 다음이라 F6~F10(4194337~4194341)로 이어간다.
 
 const MAX_RANK := 5
 
@@ -626,6 +649,38 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_horde", "cls": "mystic", "br": 0, "row": 1, "name": "음병(陰兵)",
 		"shape": "summon", "cd": 16.0, "sec": 14.0, "str": 1.5,
 		"eff": "", "v": 2.0, "grow": 1.0, "desc": "더 많이, 더 세게 세운다." },
+	## 궁장(弓將) br=3 row 2 — data-skill.js 그대로(cost=28은 기력이 없어
+	## 안 씀). r=4.12는 위 헤더의 nova/curse 환산(140÷34) 참고. prereq
+	## a_venom(같은 br row1). 궁장의 첫 curse. 궁장을 br3 3/3으로.
+	{ "key": "a_cripple", "cls": "archer", "br": 3, "row": 2, "name": "파훼시(破毀矢)",
+		"shape": "curse", "cd": 10.0, "r": 4.12, "sec": 6.0,
+		"eff": "", "v": 36.0, "grow": 9.0, "desc": "급소를 노려 적을 굼뜨고 약하게 만든다." },
+	## 무장(武將) br=1 row 2 — data-skill.js 그대로(cost=34는 기력이 없어
+	## 안 씀). eff는 m_rally 등과 같은 이유로 비워 두고 buff_eff에 담는다.
+	## prereq w_leap(같은 br row1). 무장의 첫 buff. 무장을 br1 3/3으로.
+	{ "key": "w_rage", "cls": "warrior", "br": 1, "row": 2, "name": "광분(狂奮)",
+		"shape": "buff", "cd": 18.0, "sec": 6.0, "buff_eff": "atkSpdPct",
+		"eff": "", "v": 40.0, "grow": 10.0, "desc": "한동안 손이 훨씬 빨라진다." },
+	## 책사(策士) br=1 row 2 — data-skill.js 그대로(cost=32는 기력이 없어
+	## 안 씀). el:'lit'. prereq s_frost(같은 br row1). 책사의 네 번째 bolt.
+	## 책사를 br1 3/3으로.
+	{ "key": "s_bolt", "cls": "scholar", "br": 1, "row": 2, "name": "뇌격(雷擊)",
+		"shape": "bolt", "cd": 7.0, "el": "lit",
+		"eff": "", "v": 2.6, "grow": 0.7, "desc": "벼락을 곧게 내리꽂는다. 편차가 크다." },
+	## 도독(都督) br=1 row 2 — data-skill.js 그대로(cost=38은 기력이 없어
+	## 안 씀). prereq m_ring(같은 br row1). 도독의 첫 heal. 도독을 br1
+	## 3/3으로.
+	{ "key": "m_heal", "cls": "marshal", "br": 1, "row": 2, "name": "치유(治癒)",
+		"shape": "heal", "cd": 22.0,
+		"eff": "", "v": 18.0, "grow": 6.0, "desc": "그 자리에서 체력을 되찾는다." },
+	## 방사(方士) br=0 row 2 — data-skill.js 그대로(cost=44는 기력이 없어
+	## 안 씀). str=4.0은 skill_summon.gd가 이미 일반화해 둔 필드. big:true는
+	## 분신 크기 표현이 없어 값만 보존하고 안 쓴다. prereq y_horde(같은 br
+	## row1). 방사의 세 번째 summon(v=1·grow=0, 랭크 무관 늘 1개). 방사를
+	## br0 3/3으로.
+	{ "key": "y_golem", "cls": "mystic", "br": 0, "row": 2, "name": "토우(土偶)",
+		"shape": "summon", "cd": 24.0, "sec": 20.0, "str": 4.0,
+		"eff": "", "v": 1.0, "grow": 0.0, "desc": "흙으로 빚은 큰 것 하나. 오래 버틴다." },
 ]
 
 
