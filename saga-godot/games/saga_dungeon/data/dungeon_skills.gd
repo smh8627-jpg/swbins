@@ -451,6 +451,37 @@ class_name DungeonSkills
 ## dungeon_skill_56~60 — F16~F20 다음이라 F21~F25(4194352~4194356,
 ## `--headless --script`로 조회해 확인 — 이전 다섯 번의 F 구간과 정확히
 ## 같은 등차 패턴)로 이어간다.
+##
+## **2026-09-15, 새 세션에서 또 이어서 — 남은 미완성 갈래 여섯을 한 번에
+## ("사가고돗 이어 하자").** 직전 세션이 남긴 목록 그대로: 궁장 br5(row2만
+## 빔)·무장 br4(row2만 빔)·책사 br4(row2만 빔)·도독 br4(row2만 빔)는
+## prereq만 채우면 되는 row2, 방사는 br4·br5 둘 다 row1부터 비어 있었다.
+## 전부 이미 옮겨진 모양(nova·summon·buff·dash·swing)만 쓴다 — 새 판정
+## 로직 없음:
+## - 궁장 `a_gale`(기환시, br5row2, nova, r=130→3.82, el:'chi') — prereq
+##   `a_firstaid`. **궁장의 첫 nova.** 궁장을 br5 3/3으로.
+## - 무장 `w_hound`(군견소환, br4row2, summon, str 없음→배율 1.0) —
+##   prereq `w_regen`. **무장의 첫 summon.** 무장을 br4 3/3으로.
+## - 책사 `s_insight`(심득, br4row2, buff, eff:'skillPct') — prereq
+##   `s_hex`. **책사의 첫 buff.** 책사를 br4 3/3으로.
+## - 도독 `m_precision`(필중, br4row2, buff, eff:'critPct') — prereq
+##   `m_reserve`. 도독의 두 번째 buff(m_rally에 이어). 도독을 br4 3/3으로.
+## - 방사 `y_specter`(귀보, br4row1, dash, el:'pois') — prereq
+##   `y_soulbolt`. **방사의 첫 dash.**
+## - 방사 `y_hellstrike`(화령타, br5row1, swing, r=1.7, kb=22, el:'fire') —
+##   prereq `y_thunderdoom`. 방사의 두 번째 swing(y_ghoststrike에 이어).
+## a_gale의 r=3.82는 y_thunderdoom과 원작 r이 똑같이 130이라 같은
+## 환산값이 그대로 나온다(위 헤더 nova 환산 참고). w_hound는 원작에
+## `str` 필드가 없어 skill_summon.gd 기본 배율(1.0) 그대로(y_shade·
+## a_hawk 등과 같은 경계). y_hellstrike의 kb(넉백)는 이 슬라이스에
+## 넉백이 없어 값만 보존하고 안 쓴다(w_palm과 같은 판단). 신규 12개:
+## skill_nova_archer.gd/nova_archer_button.gd(🌀)·skill_summon_warrior.gd/
+## summon_warrior_button.gd(🐕)·skill_buff_scholar.gd/buff_scholar_
+## button.gd(🧠)·skill_buff_marshal4.gd/buff_marshal4_button.gd(🎯)·
+## skill_dash_mystic.gd/dash_mystic_button.gd(👻)·skill_swing_mystic2.gd/
+## swing_mystic2_button.gd(🔥). 입력 액션 dungeon_skill_61~66 — F21~F25
+## 다음이라 F26~F31(4194357~4194362, `--headless --script`로 조회해
+## 확인 — 이전 여섯 번의 F 구간과 정확히 같은 등차 패턴)로 이어간다.
 
 const MAX_RANK := 5
 
@@ -848,6 +879,44 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_possess", "cls": "mystic", "br": 3, "row": 2, "name": "귀합(鬼合)",
 		"shape": "buff", "cd": 16.0, "sec": 7.0, "buff_eff": "atkPct",
 		"eff": "", "v": 35.0, "grow": 9.0, "desc": "한동안 음병의 기운이 몸에 실려 공격이 세진다." },
+	## 궁장(弓將) br=5 row 2 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). r=3.82는 y_thunderdoom과 같은 환산(원작 r도 130으로 같다 —
+	## 위 헤더 nova 환산 참고). prereq a_firstaid(같은 br row1). 궁장의
+	## 첫 nova. 궁장을 br5 3/3으로.
+	{ "key": "a_gale", "cls": "archer", "br": 5, "row": 2, "name": "기환시(氣環矢)",
+		"shape": "nova", "cd": 9.0, "r": 3.82, "el": "chi",
+		"eff": "", "v": 2.1, "grow": 0.5, "desc": "기를 실은 화살비. 시우(矢雨)와 달리 기 결이다." },
+	## 무장(武將) br=4 row 2 — data-skill.js 그대로(cost=34는 기력이 없어
+	## 안 씀). str 필드 없음 → skill_summon.gd 기본 배율 1.0. prereq
+	## w_regen(같은 br row1). 무장의 첫 summon. 무장을 br4 3/3으로.
+	{ "key": "w_hound", "cls": "warrior", "br": 4, "row": 2, "name": "군견소환(軍犬召喚)",
+		"shape": "summon", "cd": 15.0, "sec": 13.0,
+		"eff": "", "v": 1.0, "grow": 1.0, "desc": "군견을 풀어 대신 싸우게 한다." },
+	## 책사(策士) br=4 row 2 — data-skill.js 그대로(cost=32는 기력이 없어
+	## 안 씀). eff는 m_rally 등과 같은 이유로 비워 두고 buff_eff에 담는다.
+	## prereq s_hex(같은 br row1). 책사의 첫 buff. 책사를 br4 3/3으로.
+	{ "key": "s_insight", "cls": "scholar", "br": 4, "row": 2, "name": "심득(心得)",
+		"shape": "buff", "cd": 15.0, "sec": 7.0, "buff_eff": "skillPct",
+		"eff": "", "v": 38.0, "grow": 9.0, "desc": "한동안 무예의 위력이 크게 오른다." },
+	## 도독(都督) br=4 row 2 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). prereq m_reserve(같은 br row1). 도독의 두 번째 buff
+	## (m_rally에 이어). 도독을 br4 3/3으로.
+	{ "key": "m_precision", "cls": "marshal", "br": 4, "row": 2, "name": "필중(必中)",
+		"shape": "buff", "cd": 15.0, "sec": 6.0, "buff_eff": "critPct",
+		"eff": "", "v": 12.0, "grow": 4.0, "desc": "한동안 급소를 정확히 노린다." },
+	## 방사(方士) br=4 row 1 — data-skill.js 그대로(cost=20은 기력이 없어
+	## 안 씀). far 필드 없음 → 기본 지속시간 0.2초(w_dash·m_charge와
+	## 같음). prereq y_soulbolt(같은 br row0). 방사의 첫 dash.
+	{ "key": "y_specter", "cls": "mystic", "br": 4, "row": 1, "name": "귀보(鬼步)",
+		"shape": "dash", "cd": 7.0, "el": "pois",
+		"eff": "", "v": 1.3, "grow": 0.3, "desc": "혼백처럼 스며들어 파고든다." },
+	## 방사(方士) br=5 row 1 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀, kb=22는 넉백 없음 — w_palm과 같은 판단). prereq
+	## y_thunderdoom(같은 br row0). 방사의 두 번째 swing(y_ghoststrike에
+	## 이어).
+	{ "key": "y_hellstrike", "cls": "mystic", "br": 5, "row": 1, "name": "화령타(火靈打)",
+		"shape": "swing", "cd": 6.0, "r": 1.7, "el": "fire",
+		"eff": "", "v": 1.8, "grow": 0.4, "desc": "귀화(鬼火)를 둘러 손이 닿는 대로 친다." },
 ]
 
 

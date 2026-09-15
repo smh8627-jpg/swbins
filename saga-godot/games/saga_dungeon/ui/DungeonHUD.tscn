@@ -1,4 +1,4 @@
-[gd_scene load_steps=72 format=3]
+[gd_scene load_steps=78 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -73,6 +73,12 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/summon_scholar_button.gd" id="71"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_marshal_button.gd" id="72"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_mystic_button.gd" id="73"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_archer_button.gd" id="74"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/summon_warrior_button.gd" id="75"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_scholar_button.gd" id="76"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_marshal4_button.gd" id="77"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_mystic_button.gd" id="78"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_mystic2_button.gd" id="79"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -1059,3 +1065,81 @@ offset_bottom = -5310.0
 text = "🕯️"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("73")
+
+[node name="NovaArcherButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -5460.0
+offset_right = -40.0
+offset_bottom = -5390.0
+text = "🌀"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("74")
+
+[node name="SummonWarriorButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -5540.0
+offset_right = -40.0
+offset_bottom = -5470.0
+text = "🐕"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("75")
+
+[node name="BuffScholarButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -5620.0
+offset_right = -40.0
+offset_bottom = -5550.0
+text = "🧠"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("76")
+
+[node name="BuffMarshal4Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -5700.0
+offset_right = -40.0
+offset_bottom = -5630.0
+text = "🎯"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("77")
+
+[node name="DashMysticButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -5780.0
+offset_right = -40.0
+offset_bottom = -5710.0
+text = "👻"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("78")
+
+[node name="SwingMystic2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -5860.0
+offset_right = -40.0
+offset_bottom = -5790.0
+text = "🔥"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("79")
