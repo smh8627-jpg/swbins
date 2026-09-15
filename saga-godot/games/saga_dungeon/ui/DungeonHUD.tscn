@@ -1,4 +1,4 @@
-[gd_scene load_steps=47 format=3]
+[gd_scene load_steps=52 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -48,6 +48,11 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_warrior_button.gd" id="46"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_scholar2_button.gd" id="47"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_marshal3_button.gd" id="48"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_archer5_button.gd" id="49"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_warrior2_button.gd" id="50"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_scholar3_button.gd" id="51"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_marshal_button.gd" id="52"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/summon_mystic2_button.gd" id="53"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -709,3 +714,68 @@ offset_bottom = -3310.0
 text = "🎌"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("48")
+
+[node name="BoltArcher5Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3460.0
+offset_right = -40.0
+offset_bottom = -3390.0
+text = "🧪"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("49")
+
+[node name="DashWarrior2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3540.0
+offset_right = -40.0
+offset_bottom = -3470.0
+text = "🦘"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("50")
+
+[node name="NovaScholar3Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3620.0
+offset_right = -40.0
+offset_bottom = -3550.0
+text = "🧊"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("51")
+
+[node name="NovaMarshalButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3700.0
+offset_right = -40.0
+offset_bottom = -3630.0
+text = "⭕"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("52")
+
+[node name="SummonMystic2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3780.0
+offset_right = -40.0
+offset_bottom = -3710.0
+text = "💀"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("53")

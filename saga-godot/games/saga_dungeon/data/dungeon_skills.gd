@@ -322,6 +322,34 @@ class_name DungeonSkills
 ## `` ` ``(대괄호 열고닫기·역슬래시·backtick — project.godot 전체 grep으로
 ## 확인, 어떤 판도 이 넷을 안 쓴다. 숫자패드 등 특수 키 영역은 정확한
 ## 물리 키코드를 확신할 수 없어 피했다).
+##
+## **2026-09-15, 또 이어서 — row1을 다섯 직업 한 번에("이어해줘 순서대로").**
+## row2까지 3/3을 채운 네 갈래 다음으로, 아직 row1이 없는 갈래 중 다섯을
+## 골랐다(궁장 br0은 a_multi가 다중 표적 판정이 새로 필요해 여전히
+## 건너뛴다) — 전부 이미 옮겨진 shape(bolt·dash·nova·summon)만 쓴다:
+## - 궁장 `a_venom`(독시, br3row1, bolt, el:'pois') — prereq `a_chain`.
+##   궁장의 다섯 번째 bolt.
+## - 무장 `w_leap`(도약, br1row1, dash, far=1.8) — prereq `w_dash`. 무장의
+##   두 번째 dash — far가 처음으로 실제 돌진 시간(DASH_DURATION)에 반영된다
+##   (0.2×1.8=0.36초, 위 dash 환산 기준 약 9m).
+## - 책사 `s_frost`(한파, br1row1, nova, r=135→3.97, el:'cold') — prereq
+##   `s_ice`. 책사의 세 번째 nova.
+## - 도독 `m_ring`(기환, br1row1, nova, r=140→4.12, el:'chi') — prereq
+##   `m_smite`. **도독의 첫 nova.**
+## - 방사 `y_horde`(음병, br0row1, summon, str=1.5) — prereq `y_shade`.
+##   방사의 두 번째 summon — `str`은 skill_summon.gd가 이미 `sk.get("str",
+##   1.0)`으로 일반화해 둔 필드라 새 코드 없이 그대로 먹는다.
+## 다섯 다 기존 shape 스크립트를 복제 — 새 판정 로직 없음(far가 실제
+## 지속시간에 반영되는 것·도독의 첫 nova라는 점만 새롭다). 신규 10개:
+## skill_bolt_archer5.gd/bolt_archer5_button.gd(🧪)·skill_dash_warrior2.gd/
+## dash_warrior2_button.gd(🦘)·skill_nova_scholar3.gd/nova_scholar3_button.gd
+## (🧊)·skill_nova_marshal.gd/nova_marshal_button.gd(⭕)·skill_summon_
+## mystic2.gd/summon_mystic2_button.gd(💀). 입력 액션 dungeon_skill_36~40 —
+## ASCII 키가 완전히 동나(A~Z·0~9·모든 구두점 키) `--headless --script`로
+## `KEY_F1`~`KEY_F5` 실제 값을 조회해 확인 후 그 물리 키코드(4194332~
+## 4194336)를 그대로 썼다(숫자패드는 지난 절에서 "확신 못 해 피했다"고
+## 적었는데, 실제로 조회해 보니 짐작했던 값과 달랐다 — 짐작 대신 조회로
+## 확정하는 쪽이 맞다는 걸 이번에 확인했다).
 
 const MAX_RANK := 5
 
@@ -569,6 +597,35 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "m_banner", "cls": "marshal", "br": 0, "row": 2, "name": "독전(督戰)",
 		"shape": "buff", "cd": 20.0, "sec": 8.0, "buff_eff": "atkPct",
 		"eff": "", "v": 40.0, "grow": 10.0, "desc": "한동안 부대의 공격이 세진다." },
+	## 궁장(弓將) br=3 row 1 — data-skill.js 그대로(cost=18은 기력이 없어
+	## 안 씀). el:'pois'. prereq a_chain(같은 br row0). 궁장의 다섯 번째 bolt.
+	{ "key": "a_venom", "cls": "archer", "br": 3, "row": 1, "name": "독시(毒矢)",
+		"shape": "bolt", "cd": 4.0, "el": "pois",
+		"eff": "", "v": 1.4, "grow": 0.35, "desc": "독을 바른 화살. 스민 독이 계속 아프게 한다." },
+	## 무장(武將) br=1 row 1 — data-skill.js 그대로(cost=26은 기력이 없어
+	## 안 씀). far=1.8은 위 헤더의 dash 환산(DASH_DURATION=0.2*far) 참고.
+	## prereq w_dash(같은 br row0). 무장의 두 번째 dash.
+	{ "key": "w_leap", "cls": "warrior", "br": 1, "row": 1, "name": "도약(跳躍)",
+		"shape": "dash", "cd": 9.0,
+		"eff": "", "v": 2.0, "grow": 0.45, "desc": "더 멀리 뛴다. 지나는 것을 다 벤다." },
+	## 책사(策士) br=1 row 1 — data-skill.js 그대로(cost=28은 기력이 없어
+	## 안 씀). r=3.97은 위 헤더의 nova 환산(135÷34) 참고. prereq s_ice(같은
+	## br row0). 책사의 세 번째 nova.
+	{ "key": "s_frost", "cls": "scholar", "br": 1, "row": 1, "name": "한파(寒波)",
+		"shape": "nova", "cd": 9.0, "r": 3.97, "el": "cold",
+		"eff": "", "v": 2.0, "grow": 0.5, "desc": "둘레가 얼어붙는다." },
+	## 도독(都督) br=1 row 1 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). r=4.12는 위 헤더의 nova 환산(140÷34) 참고. prereq m_smite
+	## (같은 br row0). 도독의 첫 nova.
+	{ "key": "m_ring", "cls": "marshal", "br": 1, "row": 1, "name": "기환(氣環)",
+		"shape": "nova", "cd": 9.0, "r": 4.12, "el": "chi",
+		"eff": "", "v": 2.3, "grow": 0.55, "desc": "기의 고리가 퍼진다." },
+	## 방사(方士) br=0 row 1 — data-skill.js 그대로(cost=36은 기력이 없어
+	## 안 씀). str=1.5는 skill_summon.gd가 이미 일반화해 둔 필드(위 헤더
+	## 참고). prereq y_shade(같은 br row0). 방사의 두 번째 summon.
+	{ "key": "y_horde", "cls": "mystic", "br": 0, "row": 1, "name": "음병(陰兵)",
+		"shape": "summon", "cd": 16.0, "sec": 14.0, "str": 1.5,
+		"eff": "", "v": 2.0, "grow": 1.0, "desc": "더 많이, 더 세게 세운다." },
 ]
 
 
