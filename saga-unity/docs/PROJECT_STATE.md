@@ -5273,3 +5273,15 @@ STORY 때 밟은 null 함정을 이번엔 처음부터 피함)을 적용했다.
 **이걸로 언어 전환 미반응 버튼(모바일 액션 버튼 + 저장 버튼) 계열은
 다섯 판 중 실제로 버튼이 존재하는 넷(GO/DUNGEON/FOREST/STORY) 전부
 끝났다.**
+
+## code-review 라운드 4 — 7d4c08b..f92827d (2026-09-15, "이어해" 후속)
+
+이 두 커밋(DUNGEON/STORY 액션 버튼 + GO/FOREST 저장 버튼 Localization)에
+`/code-review high`를 돌렸다 — **지적 0건, 클린.** LocalizedButtonLabel
+네 벌의 구조적 일치, BuildActionButton 호출부 전부 새 locKey 인자로
+갱신됐는지, 실제 저장된 .unity 씬 바이트까지 guid/key/fallback이 맞는지
+확인했다고 보고함. 다섯 판 복사 관례·폴링 방식은 리뷰가 스스로
+"이 저장소의 관례로 이미 승인된 것"이라 결함이 아니라고 판단.
+
+남은 방향 대기 항목: REALM 저장 UI 부재(설계 필요, localization과 무관),
+en 대사 추가 검수. 언어 전환 미반응 버튼 계열은 완전히 소진됐다.
