@@ -164,15 +164,25 @@ func _pick_line(v: Dictionary) -> String:
 func _offer_event_id(v: Dictionary) -> String:
 	return "offer_" + v.id
 
+## 2026-09-16 실측으로 잡은 버그 — "선언 후 대입"(var layer; layer =
+## ChoicePrompt.build(...))으로 클로저에 자기 자신을 참조시키는 이
+## 패턴은 GDScript 람다가 지역 변수를 **생성 시점 값으로 스냅샷 캡처**해
+## 실제로는 항상 null을 붙잡는다(참조 캡처가 아니다 — region2_coast.gd
+## _show_fisher_offer() 검증 중 버튼을 실제로 눌러 봐서 발견, `layer.
+## queue_free()`가 null 위에서 터졌다 — 즉 상인에게 말을 걸고 둘 중
+## 아무 선택지나 누르면 크래시했을 자리). realm_attack_button.gd 등
+## 다른 ChoicePrompt 호출부가 이미 쓰고 있던 `layer_box := {}` 관용구로
+## 맞춘다 — Dictionary는 참조 타입이라 값으로 캡처돼도 나중에 채운
+## 내용이 클로저 쪽에도 그대로 보인다.
 func _show_offer_prompt(v: Dictionary) -> void:
-	var layer: CanvasLayer
-	layer = ChoicePrompt.build(self, v.offer_title, [
-		{"label": v.offer_a_label, "cb": func() -> void: _resolve_offer(v, layer, v.offer_a_outcome, v.offer_a_exp)},
-		{"label": v.offer_b_label, "cb": func() -> void: _resolve_offer(v, layer, v.offer_b_outcome, v.offer_b_exp)},
+	var layer_box := {}
+	layer_box["layer"] = ChoicePrompt.build(self, v.offer_title, [
+		{"label": v.offer_a_label, "cb": func() -> void: _resolve_offer(v, layer_box, v.offer_a_outcome, v.offer_a_exp)},
+		{"label": v.offer_b_label, "cb": func() -> void: _resolve_offer(v, layer_box, v.offer_b_outcome, v.offer_b_exp)},
 	])
 
-func _resolve_offer(v: Dictionary, layer: CanvasLayer, text: String, exp_reward: float) -> void:
-	layer.queue_free()
+func _resolve_offer(v: Dictionary, layer_box: Dictionary, text: String, exp_reward: float) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
 	if exp_reward > 0.0:
 		PartyState.add_exp(exp_reward)
 		text += " (경험 +%d)" % int(exp_reward)

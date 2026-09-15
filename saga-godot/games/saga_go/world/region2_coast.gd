@@ -25,6 +25,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 
 const PLANK_GLB := "res://assets/buildings/planks.glb"
 
@@ -50,10 +51,30 @@ const GULL_LOCAL := Vector3(12.0, 0.6, -14.0)
 const WATER_Z_OFFSET := 20.0   # 물은 북쪽 절반(z 0~40)만 덮는다
 const DOCK_Z_OFFSET := 10.0    # 모래에서 물 쪽으로 뻗은 짧은 선착장
 
+## 포구 콘텐츠 확장(2026-09-16, "GO 포구 콘텐츠 확장") — npc_builder.gd
+## VILLAGERS의 상인(offer_a/b 한 번뿐인 제안) 패턴을 그대로 옮긴다.
+## npc_builder.gd를 직접 의존하지 않고 이 파일 안에서 다시 짠 것은 위
+## _add_discovery_area()와 같은 판단(단방향 의존, 코드 몇 줄 복제 수준).
+## 캐릭터 글자는 이 판에 있는 넷(a~d) 중 a=플레이어·c=마을 상인이 이미
+## 쓰고, d=도적(bandit_encounter.gd, 적대 조우)이라 우호적 NPC로 다시
+## 쓰면 헷갈린다 — 마을 촌장과 같은 b를 재사용한다(마을·포구가 텔레포트로만
+## 오가 화면에 동시에 안 보이니 겹쳐도 무해하다).
+const FISHER_ID := "npc_fisher"
+const FISHER_NAME := "늙은 어부"
+const FISHER_GLB := "res://assets/characters/character-b.glb"
+const FISHER_LOCAL := Vector3(-14.0, 1.0, -10.0)
+const FISHER_TALK_RADIUS := 14.0
+const FISHER_TALK_GAP_SEC := 45.0
+const FISHER_LINE := "그물은 무겁지만 바다는 정직하지."
+const FISHER_OFFER_EVENT_ID := "offer_npc_fisher"
+const NPC_CHAR_SCALE := 1.25
+const LINE_SHOW_SEC := 4.0
+
 var _village_layer: CanvasLayer
 var _village_triggered := false
 var _harbor_layer: CanvasLayer
 var _harbor_triggered := false
+var _fisher_last_said_ms := -1000000
 
 
 func _ready() -> void:
@@ -112,6 +133,7 @@ func _build_harbor() -> void:
 	_build_walls()
 	_build_dock()
 	_build_gull()
+	_build_fisherman()
 	_build_return_trigger()
 
 
@@ -229,6 +251,90 @@ func _build_gull() -> void:
 	mi.material_override = mat
 	add_child(mi)
 	_add_discovery_area("gull", pos, 15.0, "beast")
+
+
+## npc_builder.gd _spawn()/_build_body()와 같은 골격 — 대화만 하는 주민
+## 하나(사명 없음, 상인처럼 한 번뿐인 제안만 있다).
+func _build_fisherman() -> void:
+	var root := Node3D.new()
+	root.name = "Fisherman"
+	root.position = REGION_ORIGIN + FISHER_LOCAL
+	add_child(root)
+
+	var body := _build_fisher_body()
+	root.add_child(body)
+	CelShaderApply.apply_to(body)
+
+	var area := Area3D.new()
+	area.name = "FisherTalk"
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = FISHER_TALK_RADIUS
+	cs.shape = shape
+	area.add_child(cs)
+	root.add_child(area)
+	area.body_entered.connect(_on_fisher_entered)
+
+
+func _build_fisher_body() -> Node3D:
+	var scene: PackedScene = load(FISHER_GLB)
+	if scene != null:
+		var inst := scene.instantiate()
+		inst.scale = Vector3.ONE * NPC_CHAR_SCALE
+		return inst
+
+	var body := MeshInstance3D.new()
+	var mesh := CapsuleMesh.new()
+	mesh.radius = 0.9
+	mesh.height = 3.4
+	body.mesh = mesh
+	body.position = Vector3(0, 1.7, 0)
+	return body
+
+
+## npc_builder.gd _on_body_entered()의 상인 갈래(offer_title 있고
+## quest_id 없음)와 같은 흐름 — 처음엔 제안, 그 뒤론 한 줄(대화 간격은
+## 그대로 45초).
+func _on_fisher_entered(body: Node3D) -> void:
+	if not body.is_in_group("player"):
+		return
+	CodexState.discover("people", FISHER_ID)
+	var now := Time.get_ticks_msec()
+	if now - _fisher_last_said_ms < FISHER_TALK_GAP_SEC * 1000.0:
+		return
+	_fisher_last_said_ms = now
+
+	if not EventState.is_resolved(FISHER_OFFER_EVENT_ID):
+		CodexState.discover("event", FISHER_OFFER_EVENT_ID)
+		_show_fisher_offer()
+		return
+	Toast.show(self, "%s — %s" % [FISHER_NAME, FISHER_LINE], LINE_SHOW_SEC)
+
+
+## npc_builder.gd _show_offer_prompt()가 원래 쓰던 "선언 후 대입"(var
+## layer; layer = ChoicePrompt.build(...)) 방식은 배열 리터럴(콜백 포함)
+## 쪽이 대입보다 먼저 평가돼, 클로저가 GDScript 람다 특유의 "생성 시점
+## 값 스냅샷" 캡처 규칙 때문에 항상 null이던 layer를 붙잡는다 — 이 함수를
+## 임시 검증 씬으로 직접 실측해 버튼을 눌러 보고 발견(`layer.queue_free()`
+## 가 null 위에서 터짐, npc_builder.gd에도 같은 버그가 있어 같이 고쳤다).
+## realm_attack_button.gd 등이 이미 쓰던 `layer_box := {}` 관용구로
+## 맞춘다 — Dictionary는 참조 타입이라 값으로 캡처돼도 나중에 채운
+## 내용이 클로저 쪽에도 그대로 보인다.
+func _show_fisher_offer() -> void:
+	var layer_box := {}
+	layer_box["layer"] = ChoicePrompt.build(self, "🎣 늙은 어부\n\"그물이 무거워 혼자는 힘에 부치는구먼. 함께 당겨 주겠나?\"", [
+		{"label": "그물을 함께 당긴다", "cb": func() -> void: _resolve_fisher_offer(layer_box, "그물 가득한 물고기에 힘을 보탰다.", 10.0)},
+		{"label": "구경만 한다", "cb": func() -> void: _resolve_fisher_offer(layer_box, "어부가 홀로 그물을 마저 당겼다.", 0.0)},
+	])
+
+
+func _resolve_fisher_offer(layer_box: Dictionary, text: String, exp_reward: float) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if exp_reward > 0.0:
+		PartyState.add_exp(exp_reward)
+		text += " (경험 +%d)" % int(exp_reward)
+	Toast.show(self, text, LINE_SHOW_SEC)
+	EventState.mark_resolved(FISHER_OFFER_EVENT_ID)
 
 
 func _build_return_trigger() -> void:
