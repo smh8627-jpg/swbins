@@ -1,4 +1,4 @@
-[gd_scene load_steps=86 format=3]
+[gd_scene load_steps=88 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -87,6 +87,8 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_warrior2_button.gd" id="85"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_scholar5_button.gd" id="86"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_marshal2_button.gd" id="87"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_archer6_button.gd" id="88"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_archer2_button.gd" id="89"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -1255,3 +1257,29 @@ offset_bottom = -6430.0
 text = "🧊"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("87")
+
+[node name="BoltArcher6Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6580.0
+offset_right = -40.0
+offset_bottom = -6510.0
+text = "🏹"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("88")
+
+[node name="NovaArcher2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6660.0
+offset_right = -40.0
+offset_bottom = -6590.0
+text = "🌧️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("89")

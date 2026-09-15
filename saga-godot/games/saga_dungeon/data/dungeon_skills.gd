@@ -533,6 +533,31 @@ class_name DungeonSkills
 ## marshal2.gd/dash_marshal2_button.gd(🧊). 입력 액션 dungeon_skill_
 ## 72~74 — KP_0(직전 세션) 다음이라 이어서 숫자패드 KP_1~KP_3
 ## (4194439~4194441, 조회로 확인)를 쓴다.
+##
+## **2026-09-15, 새 세션에서 또 이어서("이어해") — 궁장 br0, 51장
+## "장비→빌드" 마지막 빈 자리.** `a_multi`(연사, br0row1)가 이 슬라이스
+## 전체에서 처음으로 `shots`·`spread` 필드를 쓰는 스킬이라 새 판정
+## 로직이 실제로 필요했다. 원작 dungeon.js applyShapeSkill()의 'bolt'
+## 분기는 `shots`개의 투사체를 `spread` 라디안 간격의 부채꼴로 조준
+## 방향 기준 발사한다(각 투사체는 독립된 전체 위력 — 데미지를 나눠
+## 갖지 않는다). 이 슬라이스의 bolt는 애초에 투사체가 없는 "최근접 적
+## 즉시 명중" 히트스캔이라 조준 방향 자체가 없다 — **부채꼴 산개는
+## 근사 대상에서 빼고, "각 슛이 독립된 전체 위력"이라는 성질만
+## 보존해 "가장 가까운 적 최대 shots명에게 각각 전체 위력으로 명중"
+## 으로 근사한다.** 대상이 shots보다 적으면 있는 만큼만 맞는다(원작도
+## 사거리 안에 적이 없으면 그 투사체는 허공으로 날아가 아무 일도
+## 안 일어난다 — 결과가 같다).
+## - 궁장 `a_multi`(연사, br0row1, bolt, shots:3, spread:0.34) — prereq
+##   `a_pierce`. 궁장의 여섯 번째 bolt(a_pierce·a_fire·a_ice·a_storm·
+##   a_venom에 이어).
+## - 궁장 `a_rain`(시우, br0row2, nova, r=130→3.82) — prereq `a_multi`.
+##   궁장의 두 번째 nova(a_gale에 이어, 기존 모양 그대로 재사용 — 새
+##   판정 로직 없음). **이걸로 궁장 br0가 3/3으로 차고, 다섯 직업
+##   전부가 여섯 갈래(br0~5) 전부 3/3 — 51장 "장비→빌드" 축 완주.**
+## 신규 4개: skill_bolt_archer6.gd/bolt_archer6_button.gd(🏹)·skill_nova_
+## archer2.gd/nova_archer2_button.gd(🌧️). 입력 액션 dungeon_skill_
+## 75~76 — KP_3(직전 세션) 다음이라 이어서 숫자패드 KP_4~KP_5
+## (4194442~4194443, 조회로 확인)를 쓴다.
 
 const MAX_RANK := 5
 
@@ -1022,6 +1047,21 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "m_frostcharge", "cls": "marshal", "br": 5, "row": 2, "name": "빙보(氷步)",
 		"shape": "dash", "cd": 7.0, "el": "cold",
 		"eff": "", "v": 1.4, "grow": 0.35, "desc": "얼음을 두르고 파고든다." },
+	## 궁장(弓將) br=0 row 1 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀). shots·spread는 이 슬라이스에선 skill_bolt_archer6.gd가
+	## "최근접 적 최대 shots명 동시 명중"으로 근사할 때만 shots를 읽고,
+	## spread(부채꼴 산개)는 조준 방향이 없어 안 쓴다(위 헤더 참고).
+	## prereq a_pierce(같은 br row0). 궁장의 여섯 번째 bolt.
+	{ "key": "a_multi", "cls": "archer", "br": 0, "row": 1, "name": "연사(連射)",
+		"shape": "bolt", "cd": 6.0, "shots": 3, "spread": 0.34,
+		"eff": "", "v": 1.3, "grow": 0.3, "desc": "한 번에 셋을 쏜다." },
+	## 궁장(弓將) br=0 row 2 — data-skill.js 그대로(cost=34는 기력이 없어
+	## 안 씀). r=3.82는 y_thunderdoom·a_gale과 같은 환산(원작 r도 130으로
+	## 같다). prereq a_multi(같은 br row1). 궁장의 두 번째 nova(a_gale에
+	## 이어). 궁장 br0를 3/3으로 — 다섯 직업 전부 여섯 갈래 3/3 완주.
+	{ "key": "a_rain", "cls": "archer", "br": 0, "row": 2, "name": "시우(矢雨)",
+		"shape": "nova", "cd": 10.0, "r": 3.82,
+		"eff": "", "v": 2.4, "grow": 0.5, "desc": "화살비가 둘레에 쏟아진다." },
 ]
 
 
