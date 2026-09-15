@@ -59,6 +59,17 @@ const ARRIVAL_GRID := Vector2i(4, 6)
 const RETURN_GRID := Vector2i(4, 7)
 const GULL_GRID := Vector2i(6, 4)
 const FISHER_GRID := Vector2i(2, 5)
+const DRIFTWOOD_GRID := Vector2i(6, 6)
+
+## 2026-09-16, 포구 콘텐츠 확장 2호 — simple_event.gd(웹판 event.js의
+## "발견/돕기" 계열)와 같은 결의 가장 가벼운 사건: 한 번뿐, 선택지 고르면
+## 문구만 보여주고 끝난다. simple_event.gd를 그대로 재사용하지 않고
+## 여기서 다시 짠 건 그 파일이 마을 격자(region_id 없는 TestMap)에
+## 고정돼 있어서다(export grid만으로는 지역을 못 고른다) — 코드 스무 줄
+## 남짓이라 복제 부담보다 새 export 하나 얹는 재설계 부담이 더 크다고
+## 판단했다.
+const DRIFTWOOD_ID := "coast_driftwood"
+const DRIFTWOOD_TRIGGER_RADIUS := 14.0
 
 ## 포구 콘텐츠 확장(2026-09-16, "GO 포구 콘텐츠 확장") — npc_builder.gd
 ## VILLAGERS의 상인(offer_a/b 한 번뿐인 제안) 패턴을 그대로 옮긴다.
@@ -145,6 +156,7 @@ func _build_harbor() -> void:
 	_build_dock()
 	_build_gull()
 	_build_fisherman()
+	_build_driftwood()
 	_build_return_trigger()
 
 
@@ -294,6 +306,59 @@ func _resolve_fisher_offer(layer_box: Dictionary, text: String, exp_reward: floa
 		text += " (경험 +%d)" % int(exp_reward)
 	Toast.show(self, text, LINE_SHOW_SEC)
 	EventState.mark_resolved(FISHER_OFFER_EVENT_ID)
+
+
+## simple_event.gd 계열의 가장 가벼운 사건 — 트리거 근처에 primitive
+## 상자 하나(GLB 없음, 다른 판 primitive 임시 교체와 같은 결). 한 번뿐:
+## 이미 해결된 뒤엔 body_entered가 다시 와도 아무 것도 안 뜬다.
+func _build_driftwood() -> void:
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var pos := TestMap.world_pos(DRIFTWOOD_GRID.x, DRIFTWOOD_GRID.y, COAST_REGION) + Vector3(0, ground, 0)
+
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(1.4, 0.9, 1.0)
+	mi.position = pos + Vector3(0, 0.45, 0)
+	mi.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.42, 0.3, 0.18)
+	mi.material_override = mat
+	add_child(mi)
+
+	var area := Area3D.new()
+	area.name = "Driftwood"
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = DRIFTWOOD_TRIGGER_RADIUS
+	cs.shape = shape
+	area.add_child(cs)
+	area.position = pos
+	add_child(area)
+	area.body_entered.connect(_on_driftwood_entered)
+
+
+func _on_driftwood_entered(body: Node3D) -> void:
+	if not body.is_in_group("player") or EventState.is_resolved(DRIFTWOOD_ID):
+		return
+	CodexState.discover("event", DRIFTWOOD_ID)
+	_show_driftwood_prompt()
+
+
+func _show_driftwood_prompt() -> void:
+	var layer_box := {}
+	layer_box["layer"] = ChoicePrompt.build(self, "🪵 표류물\n파도에 밀려온 나무 상자 하나가 모래에 반쯤 묻혀 있다.", [
+		{"label": "상자를 연다", "cb": func() -> void: _resolve_driftwood(layer_box, "방수포에 싸인 여행 물자가 조금 나왔다.", 15.0)},
+		{"label": "그냥 둔다", "cb": func() -> void: _resolve_driftwood(layer_box, "괜히 손대고 싶지 않아 그대로 두었다.", 0.0)},
+	])
+
+
+func _resolve_driftwood(layer_box: Dictionary, text: String, exp_reward: float) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if exp_reward > 0.0:
+		PartyState.add_exp(exp_reward)
+		text += " (경험 +%d)" % int(exp_reward)
+	Toast.show(self, text, LINE_SHOW_SEC)
+	EventState.mark_resolved(DRIFTWOOD_ID)
 
 
 func _build_return_trigger() -> void:
