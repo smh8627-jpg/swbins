@@ -5179,3 +5179,36 @@ STORY=fight-run-breath-deeply(Komiku), REALM=war-theme(spring-spring).
 에러 없이 재생 호출이 걸리는지까지만 본다.
 
 다음은 STORY "선택" 이후 확장(같은 지시의 두 번째 순서).
+
+## STORY 확장 — 전직·전직관(Job Trainer) (2026-09-15, "이어해" 후속)
+
+BGM 다음 순서였던 STORY "선택" 이후 확장 — saga-godot
+`story_job_trainer.gd`가 정본인 "전직·SP 투자 UI"의 SP 투자를 뺀
+전직(1차, Lv.10, 무사/궁수/협객/방사 넷 중 하나)만 옮겼다. SP 투자는
+직업별 전용 무예가 이 포트에 아예 없어 범위 밖.
+
+- `StoryJobState`(신규) — level/exp/job 정적 상태, `GainExp()`(레벨업
+  루프)·`ChooseJob()`(1회 제한). STORY엔 레벨 개념이 지금까지 아예
+  없었다(플레이어가 안 맞는 슬라이스라 미사용이던 것).
+- `StoryJobTrainer`(신규) — 척후병과 같은 반경(2m)+쿨다운(15s) 트리거
+  NPC, `BuildTestStoryScene.BuildJobTrainer()`가 (5,0.1,0)에 배치.
+- `StoryJobChoiceUi`(신규) — 넷 중 하나를 고르는 전용 팝업(기존
+  `StoryChoiceUi`는 두 선택지 전용이라 별도로 지음).
+- `StoryCombat`에 ExpNeed/GruntExp/BossExp/JobsTier1/JobOrder 추가,
+  `MpMaxCurrent`(방사 전직 시 MP 상한 증가) 신설.
+  `StoryPlayerController.CurrentAtk`에 AtkBonus 반영, `StoryHud`에
+  레벨·직업 줄 추가.
+- 세이브 스키마 v5→v6(level/exp/job 추가), 구버전 세이브도
+  `Restore()`가 기본값으로 무해 처리.
+- ko/en 로컬라이즈 키 9개 추가.
+- `PlaytestStorySlice`에 전직 가능 판정/스탯 반영/재전직 방지/
+  세이브-로드 라운드트립 검증 추가, 헤드리스 3연속 통과.
+
+**같은 세션 뒷정리** — 이전 BGM 커밋(bf93fe6)이 코드만 올리고 실제
+오디오 자산(`CC0_BGM/`)을 스테이징만 한 채 커밋을 빠뜨린 걸 발견,
+별도 커밋 두 개로 마저 올렸다(폴더 내용물 + 폴더 자신의 .meta).
+
+**남은 것** — STORY 51장 확장 축은 더 채울 빈 칸이 없다(NPC/선택/
+사건/관계 + 전직까지 끝남). 남은 진짜 방향 대기 항목은 en 대사 추가
+검수 정도이고, 그 외엔 새 카테고리(버그 리뷰 등)를 사용자에게 물어야
+한다.
