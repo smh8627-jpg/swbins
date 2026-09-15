@@ -5362,3 +5362,22 @@ PlayOutcomeSfx 재사용. `PlaytestRealmSlice.CheckCommandUiPanelsWork()`에
   채운다). 배치 모드 컴파일 → 3연속 통과(다섯 적국 전부 함락+편입+
   save/load 왕복 확인). 배치 모드가 건드린 ProjectVersion.txt/manifest.json/
   packages-lock.json/EditorSettings.asset은 매번 checkout으로 되돌림.
+
+## REALM 51장 3차 확장 — 적국 셋 더 추가 (2026-09-16, "순서대로 진행해" 후속)
+
+낙양·하비·업을 함락한 뒤 각자 이어지는 셋째 단계(장안·수춘·진양)를
+같은 방식으로 추가 — 원작 LINKS(luoyang-changan·xiapi-shouchun·
+ye-jinyang) 그대로. 이제 여덟 적국(허창→소패→하비→수춘, 복양→정도→
+업→진양, 진류→낙양→장안) 전부 원작 지도 인접만으로 이어진 하나의
+연결된 정복 트리다. 장안/수춘/진양만 아직 다음 목표가 없다(다음
+확장 후보).
+
+- 진양은 원작 land가 mount인데 `RealmLand` enum엔 plain/river뿐이라
+  Plain으로 뒀다(기존 hill/mount 미지원 관례 그대로 — enum 확장은
+  범위 밖).
+- `RealmEnemyCity.cs`의 `TargetFrom()` 주석이 "진류처럼 목표 없는
+  성"을 예시로 들고 있던 게 2차 확장 때 이미 stale해진 걸 이번에
+  발견해 wan/장안/수춘/진양으로 바로잡음.
+- `PlaytestRealmSlice.cs`에 AttackChangan/AttackShouchun/AttackJinyang
+  세 단계 추가(같은 트릭). 배치 모드 컴파일 → 3연속 통과(여덟 적국
+  전부 함락+편입+save/load 왕복 확인, 성 셋→열하나).

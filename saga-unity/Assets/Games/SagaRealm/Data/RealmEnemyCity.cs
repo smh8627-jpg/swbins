@@ -25,6 +25,11 @@ namespace Saga.Realm.Data
     /// 비율(병력≈성벽×0.23)로, train은 함락 난이도가 깊어질수록(진류·
     /// 소패·복양의 첫 목표=40·45·50, 그 다음 단계=55·60) 단계적으로
     /// 올렸다.
+    /// **51장 3차 확장(2026-09-16)** — 낙양·하비·업을 함락한 뒤 각자
+    /// 이어지는 셋째 단계(장안·수춘·진양)를 더했다. 이제 시작 성 셋
+    /// (허창·진류·복양)과 2차 확장 셋(낙양·하비·업) 전부가 자기 목표를
+    /// 하나씩 갖고, 3차 확장 셋(장안·수춘·진양)만 아직 다음 목표가
+    /// 없다 — 다음에 더 늘릴 자리는 이 셋 중 하나에서 고르면 된다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -71,8 +76,12 @@ namespace Saga.Realm.Data
         public const string LuoyangId = "luoyang";
         public const string XiapiId = "xiapi";
         public const string YeId = "ye";
+        public const string ChanganId = "changan";
+        public const string ShouchunId = "shouchun";
+        public const string JinyangId = "jinyang";
 
-        public static readonly string[] AllIds = { XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId };
+        public static readonly string[] AllIds =
+            { XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
         {
@@ -91,12 +100,22 @@ namespace Saga.Realm.Data
             // 원작에 없는 창작 지명이라 그 다음 칸으로 자연스럽게 이어 붙였다) —
             // 정도를 함락해야 열리는 둘째 단계 목표, 다섯 중 가장 어렵다.
             [YeId] = new RealmEnemyCityDef(YeId, "업", RealmLand.Plain, baseWall: 6500, baseTroops: 1500, baseTrain: 60, baseTech: 100, attackFromCityId: "dingtao"),
+            // 장안은 낙양(luoyang)과만 맞닿아 있다(원작 LINKS: luoyang-changan) —
+            // 낙양을 함락해야 열리는 셋째 단계 목표.
+            [ChanganId] = new RealmEnemyCityDef(ChanganId, "장안", RealmLand.Plain, baseWall: 6600, baseTroops: 1500, baseTrain: 65, baseTech: 100, attackFromCityId: "luoyang"),
+            // 수춘은 하비(xiapi)와만 맞닿아 있다(원작 LINKS: xiapi-shouchun) —
+            // 하비를 함락해야 열리는 셋째 단계 목표.
+            [ShouchunId] = new RealmEnemyCityDef(ShouchunId, "수춘", RealmLand.River, baseWall: 5000, baseTroops: 1150, baseTrain: 70, baseTech: 100, attackFromCityId: "xiapi"),
+            // 진양은 업(ye)과만 맞닿아 있다(원작 LINKS: ye-jinyang) — 업을
+            // 함락해야 열리는 셋째 단계 목표, 여덟 중 가장 어렵다.
+            [JinyangId] = new RealmEnemyCityDef(JinyangId, "진양", RealmLand.Plain, baseWall: 5200, baseTroops: 1200, baseTrain: 75, baseTech: 100, attackFromCityId: "ye"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
 
-        /// <summary>이 성에서 칠 수 있는 적 성 id — 없으면 null(진류처럼
-        /// 아직 어느 목표와도 안 맞닿은 성).</summary>
+        /// <summary>이 성에서 칠 수 있는 적 성 id — 없으면 null(장안·수춘·
+        /// 진양처럼 아직 다음 목표가 안 붙은 성, 또는 wan처럼 아예 우리
+        /// 목록에 없는 성).</summary>
         public static string TargetFrom(string ourCityId)
         {
             foreach (var def in Catalog.Values)

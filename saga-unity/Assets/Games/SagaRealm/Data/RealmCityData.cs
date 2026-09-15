@@ -80,6 +80,18 @@ namespace Saga.Realm.Data
             // 자연스럽게 이어 붙였다). wall은 RealmEnemyCity.cs 업 정의(6500)와
             // 맞춘다.
             ["ye"] = new RealmCityDef("ye", "업", RealmLand.Plain, agri: 420, comm: 380, wall: 6500, pop: 320000, mapX: 61, mapY: 28),
+            // 51장 "대규모 콘텐츠" 3차 확장(2026-09-16) — 낙양·하비·업을
+            // 함락한 뒤 각자 이어지는 셋째 단계(원작 LINKS: luoyang-changan·
+            // xiaopei-xiapi-shouchun·puyang-ye-jinyang 그대로). wall은
+            // RealmEnemyCity.cs 장안 정의(6600)와 맞춘다.
+            ["changan"] = new RealmCityDef("changan", "장안", RealmLand.Plain, agri: 360, comm: 400, wall: 6600, pop: 280000, mapX: 35, mapY: 37),
+            // wall은 RealmEnemyCity.cs 수춘 정의(5000)와 맞춘다.
+            ["shouchun"] = new RealmCityDef("shouchun", "수춘", RealmLand.River, agri: 330, comm: 340, wall: 5000, pop: 230000, mapX: 74, mapY: 51),
+            // 원작 land는 mount인데 RealmLand enum엔 plain/river뿐이라(다른
+            // 성 어디도 mount/hill을 안 옮겼다 — 위 DefMul/SiegeMul 주석 참고)
+            // Plain으로 둔다(효과 없음 — 새 enum 값 추가는 이 확장 범위 밖).
+            // wall은 RealmEnemyCity.cs 진양 정의(5200)와 맞춘다.
+            ["jinyang"] = new RealmCityDef("jinyang", "진양", RealmLand.Plain, agri: 210, comm: 200, wall: 5200, pop: 150000, mapX: 48, mapY: 20),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -34,6 +34,8 @@ namespace Saga.EditorTools
     /// (8-2) 51장 2차 확장(2026-09-15) — 진류의 첫 목표(낙양)와, 소패·정도를
     /// 함락한 뒤 이어지는 둘째 단계 목표(하비·업)까지 같은 Attack() 경로로
     /// 순서대로(선행 성을 먼저 편입해야 열리는지 포함) 함락·편입되는지,
+    /// (8-3) 51장 3차 확장(2026-09-16) — 낙양·하비·업을 함락한 뒤 각자
+    /// 이어지는 셋째 단계 목표(장안·수춘·진양)까지 같은 경로로 되는지,
     /// (9) 계략(유언비어·화계) — 허창 밖 게이트, 성공 시 소패 훈련도/병력
     /// 실제 하락,
     /// (10) 함락한 성 편입 — 함락 즉시 네 번째 성으로 들어가는지, 무장
@@ -59,6 +61,7 @@ namespace Saga.EditorTools
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
+            AttackChangan, AttackShouchun, AttackJinyang,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -978,6 +981,108 @@ namespace Saga.EditorTools
                     }
                     Debug.Log($"[PlaytestRealmSlice] ye attack + absorb OK - {result.Message}");
                     RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackChangan;
+                    break;
+                }
+
+                case Phase.AttackChangan:
+                {
+                    // 51장 3차 확장(2026-09-16) — 낙양을 함락한 뒤 이어지는
+                    // 셋째 단계 목표(TargetFrom("luoyang")). 같은 트릭.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.LuoyangId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.LuoyangId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var luoyangCity = RealmCityState.CityRecord(RealmEnemyCity.LuoyangId);
+                    luoyangCity.Troops = 100000;
+                    luoyangCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.LuoyangId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.ChanganId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.ChanganId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 장안 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] changan attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackShouchun;
+                    break;
+                }
+
+                case Phase.AttackShouchun:
+                {
+                    // 51장 3차 확장 — 하비를 함락한 뒤 이어지는 셋째 단계
+                    // 목표(TargetFrom("xiapi")). 같은 트릭.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.XiapiId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.XiapiId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var xiapiCity = RealmCityState.CityRecord(RealmEnemyCity.XiapiId);
+                    xiapiCity.Troops = 100000;
+                    xiapiCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.XiapiId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.ShouchunId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.ShouchunId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 수춘 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] shouchun attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackJinyang;
+                    break;
+                }
+
+                case Phase.AttackJinyang:
+                {
+                    // 51장 3차 확장 — 업을 함락한 뒤 이어지는 셋째 단계
+                    // 목표(TargetFrom("ye")), 여덟 중 가장 어렵다. 같은 트릭.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.YeId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.YeId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var yeCity = RealmCityState.CityRecord(RealmEnemyCity.YeId);
+                    yeCity.Troops = 100000;
+                    yeCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.YeId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.JinyangId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.JinyangId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 진양 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] jinyang attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
                     _phase = Phase.QuizCorrect;
                     break;
                 }
@@ -1139,12 +1244,12 @@ namespace Saga.EditorTools
                         quizAfter.BestStreak != quizBefore.BestStreak;
                     if (mismatch || quizMismatch)
                     {
-                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 여덟/로스터/성 소속/적국 다섯 전황/문답 중 하나) — quizMismatch={quizMismatch}");
+                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 열하나/로스터/성 소속/적국 여덟 전황/문답 중 하나) — quizMismatch={quizMismatch}");
                         Fail();
                         return;
                     }
 
-                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (8 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye + roster + officer city assignment + quiz progress)");
+                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (11 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye/changan/shouchun/jinyang + roster + officer city assignment + quiz progress)");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;
