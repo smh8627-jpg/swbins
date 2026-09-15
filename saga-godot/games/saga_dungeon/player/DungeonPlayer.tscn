@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=3]
+[gd_scene load_steps=43 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/dungeon_camera_rig.gd" id="2"]
@@ -38,6 +38,10 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova_scholar.gd" id="36"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_buff_marshal2.gd" id="37"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova_mystic2.gd" id="38"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_bolt_archer4.gd" id="39"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova_warrior.gd" id="40"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova_scholar2.gd" id="41"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_buff_marshal3.gd" id="42"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.9
@@ -172,3 +176,15 @@ script = ExtResource("37")
 
 [node name="SkillNovaMystic2" type="Node" parent="."]
 script = ExtResource("38")
+
+[node name="SkillBoltArcher4" type="Node" parent="."]
+script = ExtResource("39")
+
+[node name="SkillNovaWarrior" type="Node" parent="."]
+script = ExtResource("40")
+
+[node name="SkillNovaScholar2" type="Node" parent="."]
+script = ExtResource("41")
+
+[node name="SkillBuffMarshal3" type="Node" parent="."]
+script = ExtResource("42")

@@ -1,4 +1,4 @@
-[gd_scene load_steps=43 format=3]
+[gd_scene load_steps=47 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -44,6 +44,10 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_scholar_button.gd" id="42"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_marshal2_button.gd" id="43"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_mystic2_button.gd" id="44"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_archer4_button.gd" id="45"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_warrior_button.gd" id="46"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_scholar2_button.gd" id="47"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_marshal3_button.gd" id="48"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -653,3 +657,55 @@ offset_bottom = -2990.0
 text = "🐛"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("44")
+
+[node name="BoltArcher4Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3140.0
+offset_right = -40.0
+offset_bottom = -3070.0
+text = "⚡"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("45")
+
+[node name="NovaWarriorButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3220.0
+offset_right = -40.0
+offset_bottom = -3150.0
+text = "💥"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("46")
+
+[node name="NovaScholar2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3300.0
+offset_right = -40.0
+offset_bottom = -3230.0
+text = "☄️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("47")
+
+[node name="BuffMarshal3Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -3380.0
+offset_right = -40.0
+offset_bottom = -3310.0
+text = "🎌"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("48")

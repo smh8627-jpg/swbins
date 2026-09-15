@@ -295,6 +295,33 @@ class_name DungeonSkills
 ## 나머지 넷은 이 저장소에서 한 번도 안 쓴 구두점 키로 새로 연다:
 ## `,`·`.`·`;`·`/`(콤마·마침표·세미콜론·슬래시 — 프로젝트 전체에서
 ## grep해 확인, 어떤 판도 이 넷을 안 쓴다).
+##
+## **2026-09-15, 또 이어서 — row2로 네 갈래를 3/3까지 채운다("사가도곳
+## 이어해줘 순서대로").** row1을 가진 갈래 중 넷을 골라 row2까지 채웠다 —
+## 궁장 br0(a_pierce만 있음)은 row1(a_multi)이 "한 번에 셋을 쏜다"는
+## 다중 표적 판정이 새로 필요해(shots/spread 필드, 지금 bolt는 가장
+## 가까운 적 하나만 맞히는 히트스캔이라 그대로 못 옮긴다) 건너뛰고,
+## 대신 이미 row1까지 있는 갈래 넷(궁장 br1·무장 br0·책사 br0·도독 br0)을
+## 골랐다 — 전부 이미 옮겨진 shape(bolt·nova·buff)만 쓴다:
+## - 궁장 `a_storm`(뇌시, br1row2, bolt, el:'lit') — prereq `a_ice`.
+##   궁장 br1을 3/3(a_fire·a_ice·a_storm)으로.
+## - 무장 `w_quake`(진각, br0row2, nova, r=150→4.41) — prereq `w_cleave`.
+##   **무장의 첫 nova.** 무장 br0을 3/3(w_whirl·w_cleave·w_quake)으로.
+## - 책사 `s_meteor`(유성, br0row2, nova, r=160→4.71, el:'fire') — prereq
+##   `s_blaze`. 책사의 두 번째 nova. 책사 br0을 3/3(s_fire·s_blaze·
+##   s_meteor)으로.
+## - 도독 `m_banner`(독전, br0row2, buff, sec=8, buff_eff:'atkPct') —
+##   prereq `m_guard`. 도독의 세 번째 buff. 도독 br0을 3/3(m_rally·
+##   m_guard·m_banner)으로.
+## 넷 다 기존 shape 스크립트(skill_bolt_archer3.gd·skill_nova_scholar.gd·
+## skill_buff_marshal2.gd)를 복제 — 새 판정 로직 없음(무장의 첫 nova라는
+## 점만 새롭다). 신규: skill_bolt_archer4.gd·skill_nova_warrior.gd·
+## skill_nova_scholar2.gd·skill_buff_marshal3.gd(+버튼 4개). 입력 액션은
+## dungeon_skill_32~35 — A~Z·0~9·`,.;/`까지 다 찬 뒤라(위 항목 참고)
+## 이 저장소가 한 번도 안 쓴 나머지 ASCII 구두점 키로 연다: `[`·`\`·`]`·
+## `` ` ``(대괄호 열고닫기·역슬래시·backtick — project.godot 전체 grep으로
+## 확인, 어떤 판도 이 넷을 안 쓴다. 숫자패드 등 특수 키 영역은 정확한
+## 물리 키코드를 확신할 수 없어 피했다).
 
 const MAX_RANK := 5
 
@@ -518,6 +545,30 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_chain", "cls": "mystic", "br": 3, "row": 0, "name": "독쇄(毒鎖)",
 		"shape": "chain", "cd": 9.0, "r": 7.65, "el": "pois",
 		"eff": "", "v": 1.8, "grow": 0.4, "desc": "독한 기운이 적 사이를 옮겨 붙는다." },
+	## 궁장(弓將) br=1 row 2 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). el:'lit' — prereq a_ice(같은 br row1). 궁장을 br1 3/3으로.
+	{ "key": "a_storm", "cls": "archer", "br": 1, "row": 2, "name": "뇌시(雷矢)",
+		"shape": "bolt", "cd": 8.0, "el": "lit",
+		"eff": "", "v": 2.0, "grow": 0.55, "desc": "벼락을 실은 화살. 편차가 크다." },
+	## 무장(武將) br=0 row 2 — data-skill.js 그대로(cost=36은 기력이 없어
+	## 안 씀, kb=60은 넉백 없음). r=4.41은 위 헤더의 nova 환산(150÷34) 참고.
+	## prereq w_cleave(같은 br row1). 무장의 첫 nova. 무장을 br0 3/3으로.
+	{ "key": "w_quake", "cls": "warrior", "br": 0, "row": 2, "name": "진각(震脚)",
+		"shape": "nova", "cd": 11.0, "r": 4.41,
+		"eff": "", "v": 3.0, "grow": 0.6, "desc": "땅을 굴러 둘레를 뒤흔든다." },
+	## 책사(策士) br=0 row 2 — data-skill.js 그대로(cost=42는 기력이 없어
+	## 안 씀). r=4.71은 위 헤더의 nova 환산(160÷34) 참고. prereq s_blaze
+	## (같은 br row1). 책사의 두 번째 nova. 책사를 br0 3/3으로.
+	{ "key": "s_meteor", "cls": "scholar", "br": 0, "row": 2, "name": "유성(流星)",
+		"shape": "nova", "cd": 14.0, "r": 4.71, "el": "fire",
+		"eff": "", "v": 4.0, "grow": 0.9, "desc": "별이 떨어진다." },
+	## 도독(都督) br=0 row 2 — data-skill.js 그대로(cost=40은 기력이 없어
+	## 안 씀). eff는 m_rally·m_guard와 같은 이유로 비워 두고 buff_eff에
+	## 담는다(dungeon_skills.gd 헤더 참고). prereq m_guard(같은 br row1).
+	## 도독의 세 번째 buff. 도독을 br0 3/3으로.
+	{ "key": "m_banner", "cls": "marshal", "br": 0, "row": 2, "name": "독전(督戰)",
+		"shape": "buff", "cd": 20.0, "sec": 8.0, "buff_eff": "atkPct",
+		"eff": "", "v": 40.0, "grow": 10.0, "desc": "한동안 부대의 공격이 세진다." },
 ]
 
 
