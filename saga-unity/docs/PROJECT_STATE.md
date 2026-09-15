@@ -5285,3 +5285,40 @@ STORY 때 밟은 null 함정을 이번엔 처음부터 피함)을 적용했다.
 
 남은 방향 대기 항목: REALM 저장 UI 부재(설계 필요, localization과 무관),
 en 대사 추가 검수. 언어 전환 미반응 버튼 계열은 완전히 소진됐다.
+
+## ⚠️ REALM `RealmCommandUi` — 심각한 잠복 버그 발견·수정 (2026-09-15, "이어해" 후속, 커밋 이후)
+
+en 검수/REALM 저장 버튼 후보를 살피던 중, REALM에 저장 버튼이 왜
+없는지 확인하려다 `RealmCommandUi.Build()`가 `BuildTestCityScene.cs`
+에서 **에디터 시점에 딱 한 번만** 불리고(Awake() 없음) 패널/라벨
+참조를 전부 **[SerializeField] 없는 plain private 필드**로 들고 있는
+걸 발견했다. Unity는 그런 필드를 직렬화하지 않는다 — 즉 씬을 저장·
+재로드한(=실제 플레이) 뒤 `_settingsPanel`을 비롯한 **아홉 패널/여러
+라벨 참조가 전부 null**이었다. 리플렉션 덤프로 직접 확인(`confirmClip`/
+`errorClip`은 이미 `[SerializeField]`라 살아있고 나머지 전부 NULL).
+
+**왜 지금까지 아무도 못 잡았나** — `PlaytestRealmSlice.CheckSettingsPanel()`이
+`GameObject.Find("Btn_설정")`로 버튼이 **존재하는지**만 확인하고,
+`ToggleSettingsPanel()` 같은 `RealmCommandUi` 자신의 메서드는 한 번도
+호출한 적이 없었다. 즉 **실제 플레이에서 "설정"(또는 명령/성/계략/
+문답/지도/서고 아무 버튼이나)을 누르면 NullReferenceException으로
+그 자리에서 죽는 상태였는데, 지금까지의 모든 회귀 테스트가 이걸
+통과시켜 왔다** — "GameObject가 있다"와 "그 GameObject를 쓰는 코드가
+동작한다"는 다른 검증이라는 걸 다시 확인한 사례
+(DUNGEON/STORY LocalizedButtonLabel 때도 비슷한 결의 함정이었지만
+그건 "글자가 안 바뀜" 정도였지 이번처럼 크래시는 아니었다).
+
+**고침** — 아홉 패널 필드 + 라벨 필드 전부(그리고 이번에 같이 발견한
+"여덟 상시 버튼도 언어 전환에 응답 안 함" — `_settingsToggleLabel`
+자기 자신만 갱신되고 명령/성/계략/공격/다음달/문답/지도/서고는 안
+됐던 것도 같이) `[SerializeField]`로 승격 + `RefreshSettingsPanel()`에
+여덟 줄 추가. `PlaytestRealmSlice.CheckCommandUiPanelsWork()`(신규) —
+**존재 확인이 아니라 실제로 `ToggleSettingsPanel()`을 리플렉션으로
+불러 패널이 진짜 열리고 닫히는지, 언어 전환 후 명령 버튼 글자가
+바뀌는지**까지 검증하도록 바꿨다. 씬 재빌드 + 헤드리스 3연속 통과.
+
+**교훈** — "GameObject.Find로 존재만 확인"하는 테스트는 그 오브젝트를
+쓰는 코드 경로 자체가 도는지는 증명하지 못한다. 앞으로 새 UI
+컴포넌트를 검증할 때는 **버튼을 실제로 누르거나(리플렉션으로 메서드
+호출) 그 결과 상태가 바뀌는지까지 확인**할 것 — 이번처럼 존재 확인만
+통과시키는 테스트가 크래시를 몇 세션째 숨겼을 수 있다.
