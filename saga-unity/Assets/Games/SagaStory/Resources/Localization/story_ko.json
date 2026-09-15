@@ -45,6 +45,11 @@
     { "key": "job.warrior", "value": "무사(武士)" },
     { "key": "job.archer", "value": "궁수(弓手)" },
     { "key": "job.rogue", "value": "협객(俠客)" },
-    { "key": "job.mage", "value": "방사(方士)" }
+    { "key": "job.mage", "value": "방사(方士)" },
+    { "key": "action.jump", "value": "점프" },
+    { "key": "action.attack", "value": "공격" },
+    { "key": "action.brace", "value": "기합" },
+    { "key": "action.bolt", "value": "기탄" },
+    { "key": "action.sweep", "value": "횡소" }
   ]
 }

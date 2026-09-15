@@ -612,15 +612,15 @@ namespace Saga.EditorTools
             SetPrivateField(controller, "climbUpButton", upBtn);
             SetPrivateField(controller, "climbDownButton", downBtn);
 
-            BuildActionButton(canvasGo.transform, new Vector2(-100f, 180f), "점프", new Color(0.15f, 0.45f, 0.6f, 0.55f), controller.TriggerJump);
-            BuildActionButton(canvasGo.transform, new Vector2(-280f, 180f), "공격", new Color(0.7f, 0.2f, 0.15f, 0.55f), controller.TriggerAttack);
+            BuildActionButton(canvasGo.transform, new Vector2(-100f, 180f), "점프", new Color(0.15f, 0.45f, 0.6f, 0.55f), controller.TriggerJump, "action.jump");
+            BuildActionButton(canvasGo.transform, new Vector2(-280f, 180f), "공격", new Color(0.7f, 0.2f, 0.15f, 0.55f), controller.TriggerAttack, "action.attack");
 
             // 무예 나머지 셋(횡소·기탄·기합, "STORY 콘텐츠 확장" 2026-09-12) —
             // 점프·공격과 같은 오른쪽 아래 모서리, 한 줄 위(y=380)에 둬서
             // 이동 hold 버튼 넷(왼쪽 아래 모서리, x≤320)과 안 겹치게 한다.
-            BuildActionButton(canvasGo.transform, new Vector2(-100f, 380f), "기합", new Color(0.75f, 0.55f, 0.1f, 0.55f), controller.TriggerBrace);
-            BuildActionButton(canvasGo.transform, new Vector2(-280f, 380f), "기탄", new Color(0.2f, 0.4f, 0.75f, 0.55f), controller.TriggerBolt);
-            BuildActionButton(canvasGo.transform, new Vector2(-460f, 380f), "횡소", new Color(0.4f, 0.6f, 0.25f, 0.55f), controller.TriggerSweep);
+            BuildActionButton(canvasGo.transform, new Vector2(-100f, 380f), "기합", new Color(0.75f, 0.55f, 0.1f, 0.55f), controller.TriggerBrace, "action.brace");
+            BuildActionButton(canvasGo.transform, new Vector2(-280f, 380f), "기탄", new Color(0.2f, 0.4f, 0.75f, 0.55f), controller.TriggerBolt, "action.bolt");
+            BuildActionButton(canvasGo.transform, new Vector2(-460f, 380f), "횡소", new Color(0.4f, 0.6f, 0.25f, 0.55f), controller.TriggerSweep, "action.sweep");
         }
 
         private static HoldButton BuildHoldButton(Transform parent, Vector2 anchorFromBottomLeft, Vector2 offset, string label, Color color)
@@ -655,7 +655,7 @@ namespace Saga.EditorTools
             return hold;
         }
 
-        private static void BuildActionButton(Transform parent, Vector2 offset, string label, Color color, UnityEngine.Events.UnityAction onClick)
+        private static void BuildActionButton(Transform parent, Vector2 offset, string label, Color color, UnityEngine.Events.UnityAction onClick, string locKey)
         {
             var go = new GameObject("ActionButton_" + label, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -684,7 +684,10 @@ namespace Saga.EditorTools
             text.fontSize = 28;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = label;
+            text.text = StoryLocalization.T(locKey, label);
+
+            var localized = go.AddComponent<LocalizedButtonLabel>();
+            localized.Init(locKey, label);
         }
 
         private static void BuildBootstrap()

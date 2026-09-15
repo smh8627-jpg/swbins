@@ -55,6 +55,11 @@
     { "key": "enemy.loot_equipped", "value": "\n{0}을(를) 주웠다 — 바로 갖췄다." },
     { "key": "enemy.loot_plain", "value": "\n{0}을(를) 주웠다." },
     { "key": "enemy.gem_socketed", "value": "\n{0}을(를) 주웠다 — 바로 세공했다." },
-    { "key": "enemy.bestiary_new", "value": "\n📖 도감에 처음 기록됨 — {0}" }
+    { "key": "enemy.bestiary_new", "value": "\n📖 도감에 처음 기록됨 — {0}" },
+    { "key": "action.save", "value": "저장" },
+    { "key": "action.attack", "value": "공격" },
+    { "key": "action.heavy_attack", "value": "강공격" },
+    { "key": "action.whirl", "value": "회전베기" },
+    { "key": "action.dodge", "value": "회피" }
   ]
 }

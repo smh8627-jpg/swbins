@@ -159,6 +159,7 @@ namespace Saga.EditorTools
                     StoryJobState.Restore(1, 0f, StoryJobState.NoJob); // 위와 같은 이유(2026-09-15 "전직" 추가).
                     if (!CheckSettingsPanel()) { Fail(); return; }
                     if (!CheckPlayerHudLocalization()) { Fail(); return; }
+                    if (!CheckActionButtonLocalization()) { Fail(); return; }
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -869,6 +870,43 @@ namespace Saga.EditorTools
             method.Invoke(hud, null);
 
             Debug.Log("[PlaytestStorySlice] player hud localization OK");
+            return true;
+        }
+
+        /// <summary>2026-09-15 "모바일 액션 버튼 언어 전환 반응" —
+        /// `LocalizedButtonLabel`(폴링, Update()는 private이라 리플렉션)이
+        /// 실제로 씬 빌드 시점 이후에도 언어를 따라가는지 본다.</summary>
+        private static bool CheckActionButtonLocalization()
+        {
+            var go = GameObject.Find("ActionButton_공격");
+            var localized = go != null ? go.GetComponent<LocalizedButtonLabel>() : null;
+            var label = go != null ? go.GetComponentInChildren<Text>() : null;
+            if (localized == null || label == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] ActionButton_공격/LocalizedButtonLabel을 못 찾음");
+                return false;
+            }
+
+            string langBefore = StoryLocalization.CurrentLanguage;
+            var method = typeof(LocalizedButtonLabel).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            StoryLocalization.CurrentLanguage = "en";
+            method.Invoke(localized, null);
+            if (label.text != "Attack")
+            {
+                Debug.LogError($"[PlaytestStorySlice] 액션 버튼 영어 전환이 안 먹음 text=\"{label.text}\"(기대=Attack)");
+                StoryLocalization.CurrentLanguage = langBefore;
+                return false;
+            }
+            StoryLocalization.CurrentLanguage = langBefore;
+            method.Invoke(localized, null);
+            if (label.text != "공격")
+            {
+                Debug.LogError($"[PlaytestStorySlice] 액션 버튼이 원래 언어로 안 돌아옴 text=\"{label.text}\"(기대=공격)");
+                return false;
+            }
+
+            Debug.Log("[PlaytestStorySlice] action button localization OK");
             return true;
         }
 

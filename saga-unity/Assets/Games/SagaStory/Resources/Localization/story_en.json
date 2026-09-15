@@ -45,6 +45,11 @@
     { "key": "job.warrior", "value": "Warrior" },
     { "key": "job.archer", "value": "Archer" },
     { "key": "job.rogue", "value": "Rogue" },
-    { "key": "job.mage", "value": "Mage" }
+    { "key": "job.mage", "value": "Mage" },
+    { "key": "action.jump", "value": "Jump" },
+    { "key": "action.attack", "value": "Attack" },
+    { "key": "action.brace", "value": "Brace" },
+    { "key": "action.bolt", "value": "Bolt" },
+    { "key": "action.sweep", "value": "Sweep" }
   ]
 }
