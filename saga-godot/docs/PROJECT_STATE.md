@@ -6811,3 +6811,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - codex_state.gd TOTAL event 15→16.
 - 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. 다섯 판 헤드리스 회귀 3회 md5 완전 동일, 오류 0. 임시 씬(`_tmp_verify_driftwood.tscn/.gd`, 검증 후 삭제)에서 실제 Area3D 트리거로 8항목 PASS 3회 연속 — 접근 시 event 발견·선택지 2개·수락 시 EventState 해결+exp(천후배율 반영) 증가+패널 소멸·멀어졌다 재접근해도 한 번뿐이라 패널이 다시 안 뜨는 것까지.
 - 다음(사용자 지시 "순서대로 해줘" — 앞서 물었던 후보 중 다음 순번): PLAN.md 96·97 게이트 재감사 — 이번 세션이 새로 지은 test_map.gd(REGIONS)·terrain_builder.gd(region_id)·region2_coast.gd(9x9 좌표)에 한하여 경계값·잘못된 region_id 같은 자잘한 결을 더 훑는다.
+
+## PLAN.md 96·97 재감사 — 이번 세션이 새로 지은 REGIONS 코드에 국한 (2026-09-16, 같은 세션 이어서, 사용자 지시 "순서대로 해줘"의 다음 순번)
+
+- 이번 세션에서 새로 지은 test_map.gd(REGIONS)·terrain_builder.gd(region_id)·region2_coast.gd(9x9 좌표)만 좁혀서 다시 훑었다(다섯 판 전체 재감사는 바로 전전 세션에서 이미 했다 — 매번 전체를 다시 훑진 않는다).
+- 좌표 겹침 계산으로 확인: 어부(FISHER_GRID)·갈매기(GULL_GRID)·표류물(DRIFTWOOD_GRID)·도착점(ARRIVAL_GRID)·귀환 트리거(RETURN_GRID) 다섯 자리가 서로 트리거 반경 합보다 훨씬 떨어져 있어 의도치 않은 동시 발동 없음. `_add_discovery_area("harbor", ..., 90.0)`가 다른 트리거와 겹쳐도 discover()가 멱등이라 무해.
+- **진짜 구멍 하나 발견·수정** — `test_map.gd`의 `tile_size_of()`/`origin_of()`가 `rows_of()`와 따로 `REGIONS[region_id]`를 다시 찾고 있어서, region_id 오타가 나면 "Invalid get index 'rows' (on base: 'Nil')" 같은 엉뚱한 자리의 에러로 나타났다(당장은 호출부가 "village"·"coast" 둘뿐이라 실제 버그는 아니었지만, 지역이 늘수록 위험이 커진다). 세 접근자가 공유하는 `_region(region_id)` 헬퍼로 합치고, 모르는 id면 `push_error`로 분명한 메시지를 남기고 "village"로 안전하게 폴백하게 고쳤다.
+- 검증: `--headless --script`로 `TestMap.size("nonexistent_region")`을 직접 호출해 콜스택 포함 `push_error` 메시지가 실제로 뜨고, 반환값이 마을(11×11)로 정상 폴백하는지 확인. 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. 다섯 판 헤드리스 회귀 3회 md5 완전 동일(방어 코드만 추가했을 뿐 정상 경로는 안 바뀜을 확인).
+- **다음(사용자 지시 "순서대로 해줘"로 물었던 목록을 이걸로 다 돌았다)**: 포구 콘텐츠 확장(어부·표류물)과 이 재감사까지 마쳤다. 다음 세션은 포구에 콘텐츠를 더 채울지(아직 9x9 격자에 빈 칸이 많다), 세 번째 지역을 열지, PLAN.md 81~94·98~100(실기 필요)로 넘어가기 전 실기 확인을 받을지 판단할 것.

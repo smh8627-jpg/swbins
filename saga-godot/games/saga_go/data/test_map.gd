@@ -81,14 +81,24 @@ const REGIONS := {
 	},
 }
 
+## region_id 오타 하나가 "Invalid get index 'rows' (on base: 'Nil')" 같은
+## 엉뚱한 자리의 에러 대신 여기서 곧바로 분명한 메시지로 걸리게 한다
+## (2026-09-16, GO 진짜 두 번째 지역 재감사 — 지금은 호출부가 "village"·
+## "coast" 둘뿐이라 실제 버그는 아니지만, 지역이 늘수록 오타 위험도 는다).
+static func _region(region_id: String) -> Dictionary:
+	if not REGIONS.has(region_id):
+		push_error("test_map.gd: 모르는 region_id '%s'" % region_id)
+		return REGIONS["village"]
+	return REGIONS[region_id]
+
 static func rows_of(region_id: String = "village") -> Array:
-	return REGIONS[region_id].rows
+	return _region(region_id).rows
 
 static func tile_size_of(region_id: String = "village") -> float:
-	return REGIONS[region_id].tile_size
+	return _region(region_id).tile_size
 
 static func origin_of(region_id: String = "village") -> Vector3:
-	return REGIONS[region_id].origin
+	return _region(region_id).origin
 
 static func size(region_id: String = "village") -> Vector2i:
 	var rows: Array = rows_of(region_id)
