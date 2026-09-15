@@ -225,6 +225,19 @@ class_name DungeonSkills
 ## 각각 skill_whirl.gd/skill_bolt.gd/skill_dash.gd를 복제해 SKILL_KEY·
 ## 그룹·입력 액션만 바꿨다(새 판정 로직 없음). 입력 액션은
 ## dungeon_skill_16~20(E·Q·T·X·Y 키) 신규.
+##
+## **2026-09-15, 또 이어서 — 다섯째 활성 무예 둘("사가고돗 이어해").**
+## 넷째까지 끝나면 남는 row 0 항목은 대부분 이미 쓴 모양의 다른 원소
+## 변형이라 셋째·넷째만큼 깔끔하지 않다고 적어 뒀는데, 그중 **chain**만은
+## 예외다 — 무장(warrior)·방사(mystic)에게 chain을 채우면 다섯 직업
+## 전부가 공유하는 첫 모양이 된다(지금까지 최대 넷 공유였던 bolt를 넘어선다).
+## - 무장 `w_chain`(연환격, br3row0, el 없음) — 무장의 첫 chain.
+## - 방사 `y_chain`(독쇄, br3row0, el:'pois') — 방사의 첫 chain(`pois`
+##   원소는 `dungeon_enemy.gd`/`dungeon_items.gd`에 이미 있다 — 새 결 아님).
+## skill_chain.gd/skill_chain_marshal.gd/skill_chain_scholar.gd와 판정·감쇠
+## 계산이 완전히 같아(chain이 네 번째로 공유) 그대로 복제했다. 신규
+## skill_chain_warrior.gd·skill_chain_mystic.gd, 입력 액션
+## dungeon_skill_21~22(Z·5 키).
 
 const MAX_RANK := 5
 
@@ -286,6 +299,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "w_throw", "cls": "warrior", "br": 4, "row": 0, "name": "투창(投槍)",
 		"shape": "bolt", "cd": 4.0,
 		"eff": "", "v": 1.6, "grow": 0.4, "desc": "창을 던진다. 곧게 나간다." },
+	## 무장(武將) br=3 row 0 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀). r=7.65는 a_chain 등과 같은 환산(위 헤더 참고, 원작 r 필드
+	## 없음 → 기본 260px). el 없음(물리) — 무장의 첫 chain.
+	{ "key": "w_chain", "cls": "warrior", "br": 3, "row": 0, "name": "연환격(連環擊)",
+		"shape": "chain", "cd": 9.0, "r": 7.65,
+		"eff": "", "v": 1.8, "grow": 0.4, "desc": "가까운 적을 치고 다음 적으로 옮겨 붙는다." },
 	## 책사(策士) br=2 — row 0(s_wave)만 passive가 아니다(위 헤더 참고).
 	## shape/cd/el은 data-skill.js 그대로(cost=30은 기력이 없어 안 씀).
 	{ "key": "s_wave", "cls": "scholar", "br": 2, "row": 0, "name": "기공파(氣功波)",
@@ -380,6 +399,13 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_soulbolt", "cls": "mystic", "br": 4, "row": 0, "name": "혼탄(魂彈)",
 		"shape": "bolt", "cd": 3.0, "el": "chi",
 		"eff": "", "v": 1.6, "grow": 0.4, "desc": "넋을 실은 기를 쏜다." },
+	## 방사(方士) br=3 row 0 — data-skill.js 그대로(cost=22는 기력이 없어
+	## 안 씀). r=7.65는 w_chain 등과 같은 환산(원작 r 필드 없음 → 기본
+	## 260px). el:'pois' — 방사의 첫 chain. 이걸로 chain이 다섯 직업 전부가
+	## 공유하는 첫 모양이 된다(위 헤더 참고).
+	{ "key": "y_chain", "cls": "mystic", "br": 3, "row": 0, "name": "독쇄(毒鎖)",
+		"shape": "chain", "cd": 9.0, "r": 7.65, "el": "pois",
+		"eff": "", "v": 1.8, "grow": 0.4, "desc": "독한 기운이 적 사이를 옮겨 붙는다." },
 ]
 
 

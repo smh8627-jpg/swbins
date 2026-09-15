@@ -883,3 +883,36 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   쓴 모양의 다른 원소 변형뿐이라 셋째·넷째만큼 깔끔하진 않다. GUI
   실기 확인 아직(몰아서 받을 것, 스무 키/버튼 전부). DUNGEON 밖
   (FOREST 51장 "생태계"·"생활" 남은 소소한 몫·saga-unity 트랙)도 있음.
+
+## 24. 51장 "장비→빌드" — 무장·방사의 다섯째 활성 무예, chain이 다섯 직업 전부를 공유 (2026-09-15, "사가고돗 이어해줘 순서대로 모두 이어해")
+
+- 앞 절이 미리 봐 둔 후보 그대로: 무장(warrior) `w_chain`(연환격,
+  br3row0, el 없음)과 방사(mystic) `y_chain`(독쇄, br3row0, el:'pois')
+  추가 — **chain이 이걸로 다섯 직업 전부가 공유하는 첫 모양이 된다**
+  (지금까지 최대였던 bolt의 넷을 넘어선다).
+- `skill_chain.gd`(a_chain)·`skill_chain_marshal.gd`(m_chain)·
+  `skill_chain_scholar.gd`(s_chainfire)와 판정·감쇠 계산이 완전히
+  같아(chain이 네 번째로 공유) 그대로 복제했다 — 새 판정 로직 없음.
+  신규 파일 4개(스크립트 2·버튼 2): `skill_chain_warrior.gd`/
+  `chain_warrior_button.gd`(🔗), `skill_chain_mystic.gd`/
+  `chain_mystic_button.gd`(🔗). 입력 액션 `dungeon_skill_21`~`22`
+  (Z·5 키) 신규 — DUNGEON 안에서 남은 미사용 글자가 Z 하나뿐이라(A~Z
+  중 이동·전투·기존 스무 무예가 다 씀), 22번째는 STORY가 쓰는 숫자
+  "5"를 재사용했다(두 게임은 동시에 안 돈다, 기존 선례와 같은 판단).
+- 검증: 헤드리스 에디터 임포트 오류 0건. `project.godot`의
+  `run/main_scene`을 `TestRoom.tscn`으로 잠깐 바꿔(검증 뒤 원복,
+  diff로 재확인) 헤드리스 3회 로그 완전 동일(md5 일치). 임시 씬
+  (`_verify_chain5.tscn`, 검증 후 삭제)으로 21항목 PASS — 투자
+  게이트(포인트 없음/랭크0이면 invest·try_cast 실패)·row0 선행조건
+  없음·홉 상한(3) 경계(4번째 적은 hops 소진으로 안 맞음)·데미지가
+  12%씩 감쇠하는 것 실측(16→14→12, 24hp 잡졸 기준)·쿨다운 중 재시전
+  실패·사거리(7.65m) 밖이면 거기서 체인이 멈추는 것(둘째 표적 컷)·
+  el 기본값(w_chain=phys, y_chain=pois)까지 확인. GO 기본 씬 회귀
+  헤드리스 오류 0건, 전체 프로젝트 임포트 패스도 오류 0건.
+- **다음에 할 일**: 다섯 직업 모두 chain 포함 서로 다른 모양을 몇 개씩
+  갖게 됐지만 "다섯째"가 고르게 다섯씩은 아니다(무장·방사만 다섯째를
+  얻음) — 다음 세션이 웹판 `data-skill.js`를 다시 대조해 궁장·책사·
+  도독의 다섯째(대부분 row>0, 진짜 prereq 체인이 필요한 갈래)로
+  넘어갈지, 아니면 DUNGEON 밖(FOREST 51장 "생태계"·"생활" 남은 소소한
+  몫·saga-unity 트랙)으로 옮길지 판단할 것. GUI 실기 확인 아직(몰아서
+  받을 것, 스물두 키/버튼 전부).
