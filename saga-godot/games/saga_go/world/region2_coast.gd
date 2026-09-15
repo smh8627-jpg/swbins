@@ -21,10 +21,10 @@ extends Node3D
 ## 마을 쪽은 test_map.gd·terrain_builder.gd 둘 다 기본값(region_id 생략)
 ## 그대로라 헤드리스 회귀 로그 md5가 이 리팩터 전후로 완전히 같다.
 ##
-## **정직하게 밝혀 둔다** — "갈매기"는 웹판 js/animal.js KINDS에 없는,
-## 이 슬라이스만의 새 짐승이다(사가고 퓨전 방향 메모 — 포켓몬GO 완전
-## 모방은 필요 없다는 결). ox와 같은 완전 정지형(배회·도주 없음, 근접만
-## 으로 발견)으로 둬 새 상태기계를 만들지 않았다.
+## **정직하게 밝혀 둔다** — "갈매기"·"게"는 웹판 js/animal.js KINDS에
+## 없는, 이 슬라이스만의 새 짐승이다(사가고 퓨전 방향 메모 — 포켓몬GO
+## 완전 모방은 필요 없다는 결). ox와 같은 완전 정지형(배회·도주 없음,
+## 근접만으로 발견)으로 둬 새 상태기계를 만들지 않았다.
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
@@ -60,6 +60,7 @@ const RETURN_GRID := Vector2i(4, 7)
 const GULL_GRID := Vector2i(6, 4)
 const FISHER_GRID := Vector2i(2, 5)
 const DRIFTWOOD_GRID := Vector2i(6, 6)
+const CRAB_GRID := Vector2i(2, 4)
 
 ## 2026-09-16, 포구 콘텐츠 확장 2호 — simple_event.gd(웹판 event.js의
 ## "발견/돕기" 계열)와 같은 결의 가장 가벼운 사건: 한 번뿐, 선택지 고르면
@@ -155,6 +156,7 @@ func _build_harbor() -> void:
 	add_child(terrain)
 	_build_dock()
 	_build_gull()
+	_build_crab()
 	_build_fisherman()
 	_build_driftwood()
 	_build_return_trigger()
@@ -221,6 +223,26 @@ func _build_gull() -> void:
 	mi.material_override = mat
 	add_child(mi)
 	_add_discovery_area("gull", pos, 15.0, "beast")
+
+
+## 포구 콘텐츠 확장(2026-09-16, "포구 콘텐츠 더 채우기") — 갈매기와
+## 같은 결의 여섯째 짐승. 웹판 js/animal.js에도 없는 이 슬라이스만의
+## 새 종이라는 걸 정직하게 밝혀 둔다(사가고 퓨전 방향 메모 참고).
+## 갈매기와 자리를 겹치지 않는 모래 칸(CRAB_GRID)에 완전 정지형으로
+## 세운다 — 새 상태기계를 만들지 않는다.
+func _build_crab() -> void:
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var pos := TestMap.world_pos(CRAB_GRID.x, CRAB_GRID.y, COAST_REGION) + Vector3(0, ground + 0.15, 0)
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.55, 0.25, 0.4)
+	mi.mesh = mesh
+	mi.position = pos
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.75, 0.22, 0.14)
+	mi.material_override = mat
+	add_child(mi)
+	_add_discovery_area("crab", pos, 15.0, "beast")
 
 
 ## npc_builder.gd _spawn()/_build_body()와 같은 골격 — 대화만 하는 주민
