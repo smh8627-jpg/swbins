@@ -38,6 +38,8 @@ namespace Saga.EditorTools
     /// 이어지는 셋째 단계 목표(장안·수춘·진양)까지 같은 경로로 되는지,
     /// (8-4) 51장 4차 확장(2026-09-16, 같은 날) — 장안·수춘을 함락한 뒤
     /// 이어지는 넷째 단계 목표(한중·여남)까지 같은 경로로 되는지,
+    /// (8-5) 51장 5차 확장(2026-09-16, 같은 날) — 한중·여남을 함락한 뒤
+    /// 이어지는 다섯째 단계 목표(성도·강하)까지 같은 경로로 되는지,
     /// (9) 계략(유언비어·화계) — 허창 밖 게이트, 성공 시 소패 훈련도/병력
     /// 실제 하락,
     /// (10) 함락한 성 편입 — 함락 즉시 네 번째 성으로 들어가는지, 무장
@@ -64,6 +66,7 @@ namespace Saga.EditorTools
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
             AttackChangan, AttackShouchun, AttackJinyang, AttackHanzhong, AttackRunan,
+            AttackChengdu, AttackJiangxia,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -1153,6 +1156,74 @@ namespace Saga.EditorTools
                     }
                     Debug.Log($"[PlaytestRealmSlice] runan attack + absorb OK - {result.Message}");
                     RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackChengdu;
+                    break;
+                }
+
+                case Phase.AttackChengdu:
+                {
+                    // 51장 5차 확장(2026-09-16) — 한중을 함락한 뒤 이어지는
+                    // 다섯째 단계 목표(TargetFrom("hanzhong")). 같은 트릭.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.HanzhongId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.HanzhongId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var hanzhongCity = RealmCityState.CityRecord(RealmEnemyCity.HanzhongId);
+                    hanzhongCity.Troops = 100000;
+                    hanzhongCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.HanzhongId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.ChengduId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.ChengduId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 성도 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] chengdu attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackJiangxia;
+                    break;
+                }
+
+                case Phase.AttackJiangxia:
+                {
+                    // 51장 5차 확장 — 여남을 함락한 뒤 이어지는 다섯째 단계
+                    // 목표(TargetFrom("runan")), 열둘 중 가장 어렵다. 같은 트릭.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.RunanId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.RunanId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var runanCity = RealmCityState.CityRecord(RealmEnemyCity.RunanId);
+                    runanCity.Troops = 100000;
+                    runanCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.RunanId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.JiangxiaId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.JiangxiaId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 강하 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] jiangxia attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
                     _phase = Phase.QuizCorrect;
                     break;
                 }
@@ -1314,12 +1385,12 @@ namespace Saga.EditorTools
                         quizAfter.BestStreak != quizBefore.BestStreak;
                     if (mismatch || quizMismatch)
                     {
-                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 열셋/로스터/성 소속/적국 열 전황/문답 중 하나) — quizMismatch={quizMismatch}");
+                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 열다섯/로스터/성 소속/적국 열둘 전황/문답 중 하나) — quizMismatch={quizMismatch}");
                         Fail();
                         return;
                     }
 
-                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (13 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye/changan/shouchun/jinyang/hanzhong/runan + roster + officer city assignment + quiz progress)");
+                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (15 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye/changan/shouchun/jinyang/hanzhong/runan/chengdu/jiangxia + roster + officer city assignment + quiz progress)");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;

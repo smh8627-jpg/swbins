@@ -104,6 +104,20 @@ namespace Saga.Realm.Data
             // 정의(4200)와 맞춘다. shouchun의 다른 이웃(jianye·chaisang,
             // 오나라 방면)은 이번에 안 골랐다 — 다음 확장 후보.
             ["runan"] = new RealmCityDef("runan", "여남", RealmLand.Plain, agri: 340, comm: 260, wall: 4200, pop: 230000, mapX: 66, mapY: 54),
+            // 51장 "대규모 콘텐츠" 5차 확장(2026-09-16) — 한중을 함락한 뒤
+            // 이어지는 다섯째 단계(원작 LINKS: hanzhong-chengdu, "천부지국
+            // (天府之國), 굶는 해가 없다" — 촉의 심장부). wall은
+            // RealmEnemyCity.cs 성도 정의(6000)와 맞춘다. hanzhong의 다른
+            // 이웃(tianshui·jiangzhou)은 이번에 안 골랐다 — 다음 확장 후보.
+            ["chengdu"] = new RealmCityDef("chengdu", "성도", RealmLand.Plain, agri: 460, comm: 380, wall: 6000, pop: 340000, mapX: 14, mapY: 62),
+            // 51장 5차 확장 — 여남을 함락한 뒤 이어지는 다섯째 단계(원작
+            // LINKS: runan-jiangxia, "수군의 자리" — 형주 방면 첫걸음).
+            // wall은 RealmEnemyCity.cs 강하 정의(4800)와 맞춘다. **wan은
+            // 절대 목표로 안 붙인다** — PlaytestRealmSlice.cs가 "목표 없는
+            // 성" 게이트 검증에 고정으로 쓰는 성이다(2차 확장 때 진류로
+            // 같은 실수를 해서 회귀를 냈던 자리, RealmEnemyCity.cs 클래스
+            // 주석 참고). runan의 다른 이웃(wan)은 그래서 이번에도 안 골랐다.
+            ["jiangxia"] = new RealmCityDef("jiangxia", "강하", RealmLand.River, agri: 280, comm: 300, wall: 4800, pop: 190000, mapX: 60, mapY: 65),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

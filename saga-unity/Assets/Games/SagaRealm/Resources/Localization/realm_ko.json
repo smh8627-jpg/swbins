@@ -56,6 +56,8 @@
     { "key": "city.jinyang", "value": "진양" },
     { "key": "city.hanzhong", "value": "한중" },
     { "key": "city.runan", "value": "여남" },
+    { "key": "city.chengdu", "value": "성도" },
+    { "key": "city.jiangxia", "value": "강하" },
     { "key": "officer.sg_zhugeliang", "value": "현책" },
     { "key": "officer.kr_yisunsin", "value": "해장" },
     { "key": "officer.jp_musashi", "value": "이도인" },

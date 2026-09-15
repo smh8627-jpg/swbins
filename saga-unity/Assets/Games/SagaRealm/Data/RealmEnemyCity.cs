@@ -36,6 +36,13 @@ namespace Saga.Realm.Data
     /// (막다른 가지 — 결함이 아니라 원작 지도가 그렇게 생겼다). train은
     /// 사슬마다 깊이 하나당 +15(허창 사슬: 40·55·70·85, 진류 사슬:
     /// 50·65·80, 복양 사슬: 45·60·75로 진양에서 끝)로 규칙을 지켰다.
+    /// **51장 5차 확장(2026-09-16, 같은 날 "묻지 말고 이어해")** —
+    /// 한중→성도(촉의 심장부), 여남→강하(형주 방면 첫걸음) 둘을 더했다.
+    /// **"wan"은 앞으로도 절대 attackFromCityId로 안 쓴다** —
+    /// PlaytestRealmSlice.cs의 PlotGate·AttackWrongCity가 "목표 없는
+    /// 성"을 검증할 때 고정으로 쓰는 성이라, 여기 목표를 붙이면 그
+    /// 게이트 테스트가 조용히 깨진다(2차 확장 때 진류로 이미 한 번
+    /// 겪은 회귀와 같은 함정).
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -87,11 +94,13 @@ namespace Saga.Realm.Data
         public const string JinyangId = "jinyang";
         public const string HanzhongId = "hanzhong";
         public const string RunanId = "runan";
+        public const string ChengduId = "chengdu";
+        public const string JiangxiaId = "jiangxia";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
-            HanzhongId, RunanId,
+            HanzhongId, RunanId, ChengduId, JiangxiaId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -126,6 +135,13 @@ namespace Saga.Realm.Data
             // 여남은 수춘(shouchun)과만 맞닿아 있다(원작 LINKS: shouchun-runan) —
             // 수춘을 함락해야 열리는 넷째 단계 목표, 열 중 가장 어렵다.
             [RunanId] = new RealmEnemyCityDef(RunanId, "여남", RealmLand.Plain, baseWall: 4200, baseTroops: 950, baseTrain: 85, baseTech: 100, attackFromCityId: "shouchun"),
+            // 성도는 한중(hanzhong)과만 맞닿아 있다(원작 LINKS: hanzhong-chengdu,
+            // 촉의 심장부) — 한중을 함락해야 열리는 다섯째 단계 목표.
+            [ChengduId] = new RealmEnemyCityDef(ChengduId, "성도", RealmLand.Plain, baseWall: 6000, baseTroops: 1400, baseTrain: 95, baseTech: 100, attackFromCityId: "hanzhong"),
+            // 강하는 여남(runan)과만 맞닿아 있다(원작 LINKS: runan-jiangxia,
+            // 형주 방면 첫걸음) — 여남을 함락해야 열리는 다섯째 단계 목표,
+            // 열둘 중 가장 어렵다.
+            [JiangxiaId] = new RealmEnemyCityDef(JiangxiaId, "강하", RealmLand.River, baseWall: 4800, baseTroops: 1100, baseTrain: 100, baseTech: 100, attackFromCityId: "runan"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
