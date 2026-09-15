@@ -43,6 +43,9 @@ namespace Saga.Realm.Data
     /// 성"을 검증할 때 고정으로 쓰는 성이라, 여기 목표를 붙이면 그
     /// 게이트 테스트가 조용히 깨진다(2차 확장 때 진류로 이미 한 번
     /// 겪은 회귀와 같은 함정).
+    /// **51장 6차 확장(2026-09-16, 같은 날 "이어해줘")** — 성도→강주,
+    /// 강하→양양 둘을 더했다. 두 사슬(허창·진류 출신) 모두 여섯 단계
+    /// 깊이까지 왔다 — train도 그대로 +15씩 이어 붙였다(110·115).
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -96,11 +99,13 @@ namespace Saga.Realm.Data
         public const string RunanId = "runan";
         public const string ChengduId = "chengdu";
         public const string JiangxiaId = "jiangxia";
+        public const string JiangzhouId = "jiangzhou";
+        public const string XiangyangId = "xiangyang";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
-            HanzhongId, RunanId, ChengduId, JiangxiaId,
+            HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -142,6 +147,13 @@ namespace Saga.Realm.Data
             // 형주 방면 첫걸음) — 여남을 함락해야 열리는 다섯째 단계 목표,
             // 열둘 중 가장 어렵다.
             [JiangxiaId] = new RealmEnemyCityDef(JiangxiaId, "강하", RealmLand.River, baseWall: 4800, baseTroops: 1100, baseTrain: 100, baseTech: 100, attackFromCityId: "runan"),
+            // 강주는 성도(chengdu)와만 맞닿아 있다(원작 LINKS: chengdu-jiangzhou,
+            // 촉의 동쪽 자물쇠) — 성도를 함락해야 열리는 여섯째 단계 목표.
+            [JiangzhouId] = new RealmEnemyCityDef(JiangzhouId, "강주", RealmLand.River, baseWall: 4600, baseTroops: 1050, baseTrain: 110, baseTech: 100, attackFromCityId: "chengdu"),
+            // 양양은 강하(jiangxia)와만 맞닿아 있다(원작 LINKS: xiangyang-jiangxia,
+            // 형주의 머리) — 강하를 함락해야 열리는 여섯째 단계 목표, 열넷
+            // 중 가장 어렵다.
+            [XiangyangId] = new RealmEnemyCityDef(XiangyangId, "양양", RealmLand.River, baseWall: 6200, baseTroops: 1450, baseTrain: 115, baseTech: 100, attackFromCityId: "jiangxia"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

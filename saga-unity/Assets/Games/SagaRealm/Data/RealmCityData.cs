@@ -118,6 +118,16 @@ namespace Saga.Realm.Data
             // 같은 실수를 해서 회귀를 냈던 자리, RealmEnemyCity.cs 클래스
             // 주석 참고). runan의 다른 이웃(wan)은 그래서 이번에도 안 골랐다.
             ["jiangxia"] = new RealmCityDef("jiangxia", "강하", RealmLand.River, agri: 280, comm: 300, wall: 4800, pop: 190000, mapX: 60, mapY: 65),
+            // 51장 "대규모 콘텐츠" 6차 확장(2026-09-16) — 성도를 함락한 뒤
+            // 이어지는 여섯째 단계(원작 LINKS: chengdu-jiangzhou, "파(巴)의
+            // 물목, 촉의 동쪽 자물쇠"). wall은 RealmEnemyCity.cs 강주
+            // 정의(4600)와 맞춘다.
+            ["jiangzhou"] = new RealmCityDef("jiangzhou", "강주", RealmLand.River, agri: 280, comm: 260, wall: 4600, pop: 180000, mapX: 25, mapY: 69),
+            // 51장 6차 확장 — 강하를 함락한 뒤 이어지는 여섯째 단계(원작
+            // LINKS: xiangyang-jiangxia, "한수를 낀 형주의 머리"). jiangxia의
+            // 다른 이웃(chaisang, 오나라 방면)은 이번에 안 골랐다 — 다음
+            // 확장 후보. wall은 RealmEnemyCity.cs 양양 정의(6200)와 맞춘다.
+            ["xiangyang"] = new RealmCityDef("xiangyang", "양양", RealmLand.River, agri: 360, comm: 340, wall: 6200, pop: 260000, mapX: 50, mapY: 62),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
