@@ -916,3 +916,45 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   넘어갈지, 아니면 DUNGEON 밖(FOREST 51장 "생태계"·"생활" 남은 소소한
   몫·saga-unity 트랙)으로 옮길지 판단할 것. GUI 실기 확인 아직(몰아서
   받을 것, 스물두 키/버튼 전부).
+
+## 25. 51장 "장비→빌드" — 갈래(branch) 채우기: 궁장·도독 6/6, 책사 5/6 (2026-09-15, "이어해")
+
+- w_chain·y_chain을 넣은 뒤 다시 세어 보니 **무장·방사는 이미 br
+  0·1·2·3·4·5 여섯 갈래 전부에 row0이 있었다**(무장: whirl·dash·
+  passive·chain·throw·curse. 방사: summon·curse·passive·chain·bolt·
+  nova) — "다섯째 활성 무예"보다 **"남은 갈래 채우기"**가 더 정확한
+  다음 걸음이라 방향을 바꿨다. 궁장(br1)·책사(br0·br1)·도독(br5)의
+  빈 갈래 중 셋을 채운다.
+- 궁장 `a_fire`(화시, br1row0, bolt, el:'fire') — 궁장을 6/6으로.
+  책사 `s_fire`(화탄, br0row0, bolt, el:'fire') — 책사는 br1(`s_ice`)이
+  아직 남아 5/6. 도독 `m_flamesaber`(화도, br5row0, swing, el:'fire',
+  r=1.7, swing이라 원작 r을 그대로 미터로) — 도독을 6/6으로. **도독은
+  swing이 이걸로 두 번째**(`m_smite` br1에 이어) — 같은 클래스가 같은
+  모양을 두 갈래에 갖는 첫 사례.
+- 셋 다 기존 shape 스크립트(`skill_bolt.gd`/`skill_bolt_archer.gd`,
+  `skill_whirl.gd`/`skill_swing_marshal.gd`)를 복제 — 새 판정 로직
+  없음. 같은 클래스+모양 조합이 처음 겹쳐(궁장 bolt 2벌, 도독 swing
+  2벌) 파일명에 `2`를 붙였다: `skill_bolt_archer2.gd`/
+  `bolt_archer2_button.gd`(🔥), `skill_bolt_scholar2.gd`/
+  `bolt_scholar2_button.gd`(🔥), `skill_swing_marshal2.gd`/
+  `swing_marshal2_button.gd`(🔥). 입력 액션 `dungeon_skill_23`~`25`
+  (6·7·8 키) 신규 — STORY가 쓰는 숫자를 재사용했다(두 게임은 동시에
+  안 돈다, `w_chain` 때 Z를 그대로 쓴 것과 같은 판단).
+- 검증: 헤드리스 에디터 임포트 오류 0건. `TestRoom.tscn`으로 잠깐
+  바꿔(검증 뒤 원복, `project.godot` diff가 입력 액션 세 블록(15줄)
+  뿐임을 재확인) 헤드리스 3회 로그 완전 동일. 임시 씬
+  (`_verify_branch3.tscn`, 검증 후 삭제)으로 18항목 PASS — 투자
+  게이트·데미지 실측(`a_fire` 14, `s_fire` 16, `m_flamesaber` 17,
+  전부 `9×v` 공식과 일치)·swing 반경(1.7m) 경계(밖의 적은 안 맞음)·
+  el 필드 확인까지. **테스트 중 발견**: 임시 검증용 적을 만들 때
+  정예(elite) 확률(7.2%)을 안 눌러 두면 `max_hp`가 랜덤 스케일돼
+  데미지 비교가 가끔 어긋난다(실제로 첫 실행에서 한 번 겪음) —
+  `resist`뿐 아니라 `max_hp`/`hp`도 생성 직후 명시적으로 덮어써야
+  결정적이다(다음에 비슷한 임시 검증 씬을 짤 때 참고). GO 기본 씬
+  회귀 헤드리스 오류 0건.
+- **다음에 할 일**: 책사 br1(`s_ice`, bolt, el:'cold')만 채우면 다섯
+  직업 전부 6/6 갈래 완성. 그 뒤엔 row>0(진짜 prereq 체인, 예:
+  `a_multi` 다중발사·`a_venom` 도트 등 새 메커니즘이 필요한 것들)로
+  넘어갈지, DUNGEON 밖(FOREST 51장 "생태계"·"생활" 남은 소소한 몫·
+  saga-unity 트랙)으로 갈지 다음 세션이 판단할 것. GUI 실기 확인
+  아직(몰아서 받을 것, 스물다섯 키/버튼 전부).

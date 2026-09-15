@@ -238,6 +238,26 @@ class_name DungeonSkills
 ## 계산이 완전히 같아(chain이 네 번째로 공유) 그대로 복제했다. 신규
 ## skill_chain_warrior.gd·skill_chain_mystic.gd, 입력 액션
 ## dungeon_skill_21~22(Z·5 키).
+##
+## **2026-09-15, 또 이어서 — 갈래(branch) 채우기로 방향 전환("이어해").**
+## chain까지 옮긴 시점에서 세어 보니 **무장·방사는 이미 br 0·1·2·3·4·5
+## 여섯 갈래 전부에 row 0이 있다**(무장: whirl·dash·passive·chain·throw·
+## curse. 방사: summon·curse·passive·chain·bolt·nova). 반면 궁장은 br1이,
+## 책사는 br0·br1 둘 다, 도독은 br5가 아직 비어 있다 — "다섯째 활성 무예"
+## 보다 **"남은 갈래 채우기"**가 더 정확한 다음 걸음이다. 이번엔 그중
+## 셋(궁장 br1, 책사 br0, 도독 br5)을 채운다 — 전부 이미 옮겨진 모양
+## (bolt·swing)의 원소 변형이라 새 판정 코드가 없다:
+## - 궁장 `a_fire`(화시, br1row0, bolt, el:'fire') — 궁장을 6/6으로.
+## - 책사 `s_fire`(화탄, br0row0, bolt, el:'fire') — 책사는 아직 br1도
+##   비어 있어(s_ice) 이번엔 5/6, 다음 걸음으로 남겨 둔다.
+## - 도독 `m_flamesaber`(화도, br5row0, swing, el:'fire', r=1.7,
+##   swing이므로 원작 r을 그대로 미터로 쓴다 — 위 헤더 참고) — 도독을
+##   6/6으로. 도독은 swing이 이걸로 두 번째(m_smite br1에 이어) — 같은
+##   클래스가 같은 모양을 두 갈래에 갖는 첫 사례라 스크립트 이름에
+##   `2`를 붙인다(`skill_bolt_archer2.gd`·`skill_bolt_scholar2.gd`·
+##   `skill_swing_marshal2.gd`).
+## 입력 액션 dungeon_skill_23~25(6·7·8 키, STORY가 쓰는 숫자를 재사용 —
+## 두 게임은 동시에 안 돈다, w_chain 때 Z를 그대로 썼던 것과 같은 판단).
 
 const MAX_RANK := 5
 
@@ -271,6 +291,11 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "a_flourish", "cls": "archer", "br": 4, "row": 0, "name": "궁신무(弓身舞)",
 		"shape": "swing", "cd": 5.0, "r": 1.6,
 		"eff": "", "v": 1.5, "grow": 0.35, "desc": "활대로 후려친다. 가까이 붙은 적에게 쓴다." },
+	## 궁장(弓將) br=1 row 0 — data-skill.js 그대로(cost=18은 기력이 없어
+	## 안 씀). el:'fire' — 궁장을 여섯 갈래(0·1·2·3·4·5) 전부 채운다.
+	{ "key": "a_fire", "cls": "archer", "br": 1, "row": 0, "name": "화시(火矢)",
+		"shape": "bolt", "cd": 4.0, "el": "fire",
+		"eff": "", "v": 1.5, "grow": 0.4, "desc": "불붙은 화살." },
 	## 무장(武將) br=0 row 0 — data-skill.js 그대로. shape/cd는 원작 값
 	## 그대로(cost=22는 기력이 없어 안 씀, kb=30은 넉백이 없어 안 씀).
 	{ "key": "w_whirl", "cls": "warrior", "br": 0, "row": 0, "name": "회전참(回轉斬)",
@@ -332,6 +357,11 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "s_blink", "cls": "scholar", "br": 4, "row": 0, "name": "축지(縮地)",
 		"shape": "dash", "cd": 7.0, "el": "lit",
 		"eff": "", "v": 1.3, "grow": 0.3, "desc": "번개처럼 파고든다." },
+	## 책사(策士) br=0 row 0 — data-skill.js 그대로(cost=16은 기력이 없어
+	## 안 씀). el:'fire' — 책사는 이걸로 5/6(br1만 남는다).
+	{ "key": "s_fire", "cls": "scholar", "br": 0, "row": 0, "name": "화탄(火彈)",
+		"shape": "bolt", "cd": 3.0, "el": "fire",
+		"eff": "", "v": 1.8, "grow": 0.45, "desc": "불덩이를 던진다." },
 	## 도독(都督) br=0 row 0 — data-skill.js 그대로(cost=34는 기력이 없어
 	## 안 씀). sec(지속초)은 랭크와 무관하게 고정(원작 그대로) — v(위력)만
 	## value_at()으로 랭크에 따라 는다. **`eff`를 비워 둔 이유** — 다른
@@ -368,6 +398,14 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "m_javelin", "cls": "marshal", "br": 4, "row": 0, "name": "표창(標槍)",
 		"shape": "bolt", "cd": 4.0, "el": "chi",
 		"eff": "", "v": 1.5, "grow": 0.35, "desc": "기를 실은 창을 던진다." },
+	## 도독(都督) br=5 row 0 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀). r=1.7은 swing 원작 값 그대로 미터로(m_smite와 같은 요령).
+	## el:'fire' — 도독을 여섯 갈래 전부 채운다. swing이 도독의 두 번째
+	## (m_smite br1에 이어) — 같은 클래스가 같은 모양을 두 갈래에 갖는
+	## 첫 사례.
+	{ "key": "m_flamesaber", "cls": "marshal", "br": 5, "row": 0, "name": "화도(火刀)",
+		"shape": "swing", "cd": 6.0, "r": 1.7, "el": "fire",
+		"eff": "", "v": 1.9, "grow": 0.4, "desc": "불을 두른 칼로 둘레를 벤다." },
 	## 방사(方士) br=0 row 0 — data-skill.js 그대로(cost=26은 기력이 없어
 	## 안 씀). v/grow는 데미지가 아니라 분신 "개체 수"(round(value_at))다
 	## — 위 헤더 참고. sec(지속초)은 랭크 무관 고정.
