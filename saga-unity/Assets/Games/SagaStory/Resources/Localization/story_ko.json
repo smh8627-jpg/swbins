@@ -37,7 +37,7 @@
     { "key": "quest.boss_head", "value": "두목의 목" },
     { "key": "npc.trainer_name", "value": "전직관" },
     { "key": "npc.trainer_choice_prompt", "value": "전직할 수 있습니다 — 원하는 길을 고르세요" },
-    { "key": "npc.trainer_chosen", "value": "{0} — {1}로 전직! 체력+{2} 공격+{3}{4}" },
+    { "key": "npc.trainer_chosen", "value": "{0} — {1}로 전직! 공격+{2}{3}" },
     { "key": "npc.trainer_chosen_mp_suffix", "value": " 기력+{0}" },
     { "key": "npc.trainer_status_done", "value": "🎖️ {0} Lv.{1}" },
     { "key": "npc.trainer_status_locked", "value": "전직은 Lv.{0}부터(현재 Lv.{1})" },

@@ -95,9 +95,12 @@ namespace Saga.Story.World
                             ? string.Format(StoryLocalization.T("npc.trainer_chosen_mp_suffix", " 기력+{0}"), Mathf.RoundToInt(info.Mp))
                             : "";
                         string name = StoryLocalization.T($"job.{jobKey}", info.Name);
+                        // info.Hp(grow.hp)는 메시지에 안 넣는다 — 이 슬라이스는 플레이어가
+                        // 안 맞아(StoryCombat.StartHp 주석 참고) 체력 상한이 어디에도 안
+                        // 쓰인다, "체력+N"을 보여주면 실제로 안 일어나는 효과를 약속하는 셈.
                         DialogueLabel.Instance?.Show(string.Format(
-                            StoryLocalization.T("npc.trainer_chosen", "{0} — {1}로 전직! 체력+{2} 공격+{3}{4}"),
-                            TrainerName, name, Mathf.RoundToInt(info.Hp), Mathf.RoundToInt(info.Atk), mpPart), LineShowSec);
+                            StoryLocalization.T("npc.trainer_chosen", "{0} — {1}로 전직! 공격+{2}{3}"),
+                            TrainerName, name, Mathf.RoundToInt(info.Atk), mpPart), LineShowSec);
                     }
                     else
                     {

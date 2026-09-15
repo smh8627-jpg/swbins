@@ -10,9 +10,10 @@ namespace Saga.Story.Data
     /// 이어진다" — SagaDungeon `Data/SaveState.cs`와 같은 구조(로컬 파일
     /// 하나, 버전 필드). 파일명은 다르다(`save_story.json`, 다섯 판이
     /// 세이브 키를 따로 쓰는 것과 같은 원칙, 루트 CLAUDE.md).
-    /// 저장하는 것 — 위치 + 사명("첫 사냥") 진행도뿐(이 슬라이스엔 레벨업·
-    /// 장비가 없다 — 1절 "제외" 목록에 없는 것은 애초에 저장할 상태
-    /// 자체가 없다).
+    /// 저장하는 것 — 위치 + 사명("첫 사냥") 진행도(장비는 이 슬라이스에
+    /// 없다 — 1절 "제외" 목록에 없는 것은 애초에 저장할 상태 자체가
+    /// 없다). **2026-09-15부터 레벨업(level/exp/job)도 추가됐다** — 아래
+    /// SaveVersion 6 항목 참고.
     /// </summary>
     public static class StorySaveState
     {
