@@ -77,6 +77,7 @@ namespace Saga.Realm.UI
         [SerializeField] private Text _quizToggleLabel;
         [SerializeField] private Text _mapLabel;
         [SerializeField] private Text _archiveToggleLabel;
+        [SerializeField] private Text _saveLabel;
 
         public void Build()
         {
@@ -127,6 +128,13 @@ namespace Saga.Realm.UI
             var settingsToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("settings.title"),
                 new Vector2(1f, 1f), new Vector2(-110f, -330f), new Vector2(180f, 110f), ToggleSettingsPanel);
             _settingsToggleLabel = settingsToggleButton.GetComponentInChildren<Text>();
+
+            // 저장(2026-09-15 — GO/DUNGEON/FOREST/STORY엔 다 있던 저장 버튼이
+            // REALM만 없었다) — 설정 바로 아래, 같은 구석 기둥을 한 칸 더
+            // 잇는다(설정 -330 바로 아래, 10px 틈 — 같은 간격 규칙).
+            var saveButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.save"),
+                new Vector2(1f, 1f), new Vector2(-110f, -450f), new Vector2(180f, 110f), ExecuteSave);
+            _saveLabel = saveButton.GetComponentInChildren<Text>();
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
@@ -482,6 +490,7 @@ namespace Saga.Realm.UI
             _quizToggleLabel.text = RealmLocalization.T("command.quiz");
             _mapLabel.text = RealmLocalization.T("command.map");
             _archiveToggleLabel.text = RealmLocalization.T("command.archive");
+            _saveLabel.text = RealmLocalization.T("command.save");
         }
 
         private void ToggleSettingsPanel()
@@ -557,6 +566,19 @@ namespace Saga.Realm.UI
         {
             string summary = RealmCityState.NextMonth();
             RealmToast.Instance?.Show(summary, 5f);
+        }
+
+        /// <summary>2026-09-15 — GO/DUNGEON/FOREST/STORY엔 다 있던 저장
+        /// 버튼이 REALM만 없었다(자동 로드만 있고, 지금까지 저장은
+        /// PlaytestRealmSlice가 테스트용으로 RealmSaveState.Save()를 직접
+        /// 부르는 게 전부였다). 다른 네 판과 같은 결 — 결과를 토스트로만
+        /// 알린다, PlayOutcomeSfx도 같이 재사용.</summary>
+        private void ExecuteSave()
+        {
+            bool ok = RealmSaveState.Save();
+            RealmToast.Instance?.Show(RealmLocalization.T(ok ? "command.save_ok" : "command.save_fail",
+                ok ? "저장했다." : "저장 실패."), 3f);
+            PlayOutcomeSfx(ok);
         }
 
         private void ExecuteAttack()

@@ -1177,7 +1177,44 @@ namespace Saga.EditorTools
                 return false;
             }
 
-            Debug.Log("[PlaytestRealmSlice] command UI panels OK - settings panel actually toggles, orders label follows language");
+            // 저장 버튼(2026-09-15 신설 — REALM만 없던 저장 버튼을 이번에
+            // 같이 채웠다) — 실제로 눌러서 파일이 생기는지까지 본다.
+            var saveLabelField = typeof(RealmCommandUi).GetField("_saveLabel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var saveLabel = saveLabelField.GetValue(ui) as Text;
+            if (saveLabel == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._saveLabel이 null");
+                return false;
+            }
+            RealmSaveState.DeleteForTest();
+            var executeSaveMethod = typeof(RealmCommandUi).GetMethod("ExecuteSave", BindingFlags.NonPublic | BindingFlags.Instance);
+            try
+            {
+                executeSaveMethod.Invoke(ui, null);
+            }
+            catch (System.Reflection.TargetInvocationException e)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] ExecuteSave() 호출이 예외를 던짐 — {e.InnerException}");
+                return false;
+            }
+            if (!RealmSaveState.TryLoad())
+            {
+                Debug.LogError("[PlaytestRealmSlice] 저장 버튼을 눌렀는데 세이브 파일을 못 읽음");
+                return false;
+            }
+
+            RealmLocalization.CurrentLanguage = "en";
+            refreshMethod.Invoke(ui, null);
+            if (saveLabel.text != "Save")
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 저장 버튼 영어 전환이 안 먹음 text=\"{saveLabel.text}\"(기대=Save)");
+                RealmLocalization.CurrentLanguage = langBefore;
+                return false;
+            }
+            RealmLocalization.CurrentLanguage = langBefore;
+            refreshMethod.Invoke(ui, null);
+
+            Debug.Log("[PlaytestRealmSlice] command UI panels OK - settings panel actually toggles, orders/save labels follow language, save button actually writes a file");
             return true;
         }
 
