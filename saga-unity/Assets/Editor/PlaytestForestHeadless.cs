@@ -81,6 +81,7 @@ namespace Saga.EditorTools
             {
                 CheckDebugHud();
                 CheckSettingsPanel();
+                CheckActionButtonLocalization();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -171,6 +172,44 @@ namespace Saga.EditorTools
             ForestLocalization.CurrentLanguage = langBefore;
 
             Debug.Log("[PlaytestForestHeadless] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
+        }
+
+        /// <summary>2026-09-15 "저장 버튼 언어 전환 반응" — GO/DUNGEON/STORY에
+        /// 이어 FOREST도 같은 문제(씬 빌드 시점 언어로 굳음)가 있었다.
+        /// `LocalizedButtonLabel`(폴링, Update()는 private이라 리플렉션).</summary>
+        private static void CheckActionButtonLocalization()
+        {
+            var go = GameObject.Find("SaveButton");
+            var localized = go != null ? go.GetComponent<LocalizedButtonLabel>() : null;
+            var label = go != null ? go.GetComponentInChildren<Text>() : null;
+            if (localized == null || label == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] SaveButton/LocalizedButtonLabel을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            string langBefore = ForestLocalization.CurrentLanguage;
+            var method = typeof(LocalizedButtonLabel).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            ForestLocalization.CurrentLanguage = "en";
+            method.Invoke(localized, null);
+            if (label.text != "Save")
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 저장 버튼 영어 전환이 안 먹음 text=\"{label.text}\"(기대=Save)");
+                _hadError = true;
+                ForestLocalization.CurrentLanguage = langBefore;
+                return;
+            }
+            ForestLocalization.CurrentLanguage = langBefore;
+            method.Invoke(localized, null);
+            if (label.text != "저장")
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 저장 버튼이 원래 언어로 안 돌아옴 text=\"{label.text}\"(기대=저장)");
+                _hadError = true;
+            }
+
+            Debug.Log("[PlaytestForestHeadless] action button localization OK");
         }
     }
 }

@@ -65,6 +65,7 @@
     { "key": "finish.stall.swap", "value": "Wallpaper Shop — Already own everything. Switching to {0} today." },
     { "key": "furniture.placer.pickup", "value": "Picked up {0} into storage." },
     { "key": "furniture.placer.empty_storage", "value": "No furniture in storage to place — buy some at the furniture shop first." },
-    { "key": "furniture.placer.placed", "value": "Placed {0} — Home rating: {1} ({2} points, {3} furniture)" }
+    { "key": "furniture.placer.placed", "value": "Placed {0} — Home rating: {1} ({2} points, {3} furniture)" },
+    { "key": "action.save", "value": "Save" }
   ]
 }

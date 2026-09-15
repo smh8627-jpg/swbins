@@ -113,7 +113,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestStorySlice] OK - killed 10 grunts + boss (both quests done), npc talk/choice, sweep/bolt/brace/jump/rope/save-load all verified, no errors"
+                    ? "[PlaytestStorySlice] OK - killed 10 grunts + boss (both quests done), npc talk/choice, sweep/bolt/brace/jump/rope/job-change/save-load all verified, no errors"
                     : $"[PlaytestStorySlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -156,8 +156,10 @@ namespace Saga.EditorTools
                     StoryQuestState.Restore(0, 0);
                     StoryWorldEventState.Restore(null); // 위와 같은 이유 — 이전 실행이 남긴 save_story.json 무시.
                     StoryNpcState.Restore(0, 0); // 위와 같은 이유 — 새 정적 상태를 추가할 때마다 여기 잊지 말 것(2026-09-14에 한 번 빠뜨려 겪음).
+                    StoryJobState.Restore(1, 0f, StoryJobState.NoJob); // 위와 같은 이유(2026-09-15 "전직" 추가).
                     if (!CheckSettingsPanel()) { Fail(); return; }
                     if (!CheckPlayerHudLocalization()) { Fail(); return; }
+                    if (!CheckActionButtonLocalization()) { Fail(); return; }
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -631,6 +633,42 @@ namespace Saga.EditorTools
                         return;
                     }
 
+                    // 2026-09-15 "전직" — 여태까지의 자연 킬(13마리)만으론
+                    // Lv.10(JobChangeLevel)에 안 닿아 직접 exp를 보태 전직
+                    // 가능 여부·스탯 반영·재전직 방지를 검증한다(GainExp/
+                    // ChooseJob 둘 다 public static API라 리플렉션 불필요).
+                    if (!StoryJobState.CanChooseJob) StoryJobState.GainExp(9999f);
+                    if (!StoryJobState.CanChooseJob)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 전직 가능 상태가 안 됨 — level={StoryJobState.Level}");
+                        Fail();
+                        return;
+                    }
+                    if (StoryJobState.AtkBonus != 0f)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 전직 전인데 AtkBonus!=0 — {StoryJobState.AtkBonus}");
+                        Fail();
+                        return;
+                    }
+                    if (!StoryJobState.ChooseJob("warrior"))
+                    {
+                        Debug.LogError("[PlaytestStorySlice] ChooseJob(\"warrior\") 실패");
+                        Fail();
+                        return;
+                    }
+                    if (!Mathf.Approximately(StoryJobState.AtkBonus, StoryCombat.JobsTier1["warrior"].Atk))
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 전직 후 AtkBonus 불일치 — {StoryJobState.AtkBonus}(기대={StoryCombat.JobsTier1["warrior"].Atk})");
+                        Fail();
+                        return;
+                    }
+                    if (StoryJobState.ChooseJob("archer"))
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 이미 전직했는데 재전직이 성공함(재전직 방지 결함)");
+                        Fail();
+                        return;
+                    }
+
                     Vector3 posBeforeSave = new Vector3(7.5f, 0.1f, 0f);
                     TeleportPlayer(posBeforeSave);
                     // 실제 잡졸 10 + 스킬 테스트용 더미 셋(횡소1·기탄2) = 13 —
@@ -646,6 +684,10 @@ namespace Saga.EditorTools
                     int scoutTalkCountBeforeSave = StoryNpcState.ScoutTalkCount;
                     // 세이브 스키마 v5(2026-09-14) — 선택(ChoiceMade)도 같이 본다.
                     int choiceMadeBeforeSave = StoryNpcState.ChoiceMade;
+                    // 세이브 스키마 v6(2026-09-15) — 전직(level/exp/job)도 같이 본다.
+                    int levelBeforeSave = StoryJobState.Level;
+                    float expBeforeSave = StoryJobState.Exp;
+                    string jobBeforeSave = StoryJobState.Job;
                     if (!StorySaveState.Save())
                     {
                         Debug.LogError("[PlaytestStorySlice] StorySaveState.Save() 실패");
@@ -657,6 +699,7 @@ namespace Saga.EditorTools
                     StoryQuestState.Restore(0, 0);
                     StoryWorldEventState.Restore(null);
                     StoryNpcState.Restore(0, 0);
+                    StoryJobState.Restore(1, 0f, StoryJobState.NoJob);
                     TeleportPlayer(new Vector3(0f, 0.1f, 0f));
                     if (!StorySaveState.TryLoad())
                     {
@@ -685,6 +728,12 @@ namespace Saga.EditorTools
                     if (StoryNpcState.ChoiceMade != choiceMadeBeforeSave)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 로드 후 choiceMade={StoryNpcState.ChoiceMade}(기대={choiceMadeBeforeSave})");
+                        Fail();
+                        return;
+                    }
+                    if (StoryJobState.Level != levelBeforeSave || !Mathf.Approximately(StoryJobState.Exp, expBeforeSave) || StoryJobState.Job != jobBeforeSave)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 로드 후 level={StoryJobState.Level}(기대={levelBeforeSave}) exp={StoryJobState.Exp}(기대={expBeforeSave}) job={StoryJobState.Job}(기대={jobBeforeSave})");
                         Fail();
                         return;
                     }
@@ -821,6 +870,43 @@ namespace Saga.EditorTools
             method.Invoke(hud, null);
 
             Debug.Log("[PlaytestStorySlice] player hud localization OK");
+            return true;
+        }
+
+        /// <summary>2026-09-15 "모바일 액션 버튼 언어 전환 반응" —
+        /// `LocalizedButtonLabel`(폴링, Update()는 private이라 리플렉션)이
+        /// 실제로 씬 빌드 시점 이후에도 언어를 따라가는지 본다.</summary>
+        private static bool CheckActionButtonLocalization()
+        {
+            var go = GameObject.Find("ActionButton_공격");
+            var localized = go != null ? go.GetComponent<LocalizedButtonLabel>() : null;
+            var label = go != null ? go.GetComponentInChildren<Text>() : null;
+            if (localized == null || label == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] ActionButton_공격/LocalizedButtonLabel을 못 찾음");
+                return false;
+            }
+
+            string langBefore = StoryLocalization.CurrentLanguage;
+            var method = typeof(LocalizedButtonLabel).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            StoryLocalization.CurrentLanguage = "en";
+            method.Invoke(localized, null);
+            if (label.text != "Attack")
+            {
+                Debug.LogError($"[PlaytestStorySlice] 액션 버튼 영어 전환이 안 먹음 text=\"{label.text}\"(기대=Attack)");
+                StoryLocalization.CurrentLanguage = langBefore;
+                return false;
+            }
+            StoryLocalization.CurrentLanguage = langBefore;
+            method.Invoke(localized, null);
+            if (label.text != "공격")
+            {
+                Debug.LogError($"[PlaytestStorySlice] 액션 버튼이 원래 언어로 안 돌아옴 text=\"{label.text}\"(기대=공격)");
+                return false;
+            }
+
+            Debug.Log("[PlaytestStorySlice] action button localization OK");
             return true;
         }
 

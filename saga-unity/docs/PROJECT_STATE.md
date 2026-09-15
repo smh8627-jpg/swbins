@@ -5179,3 +5179,163 @@ STORY=fight-run-breath-deeply(Komiku), REALM=war-theme(spring-spring).
 에러 없이 재생 호출이 걸리는지까지만 본다.
 
 다음은 STORY "선택" 이후 확장(같은 지시의 두 번째 순서).
+
+## STORY 확장 — 전직·전직관(Job Trainer) (2026-09-15, "이어해" 후속)
+
+BGM 다음 순서였던 STORY "선택" 이후 확장 — saga-godot
+`story_job_trainer.gd`가 정본인 "전직·SP 투자 UI"의 SP 투자를 뺀
+전직(1차, Lv.10, 무사/궁수/협객/방사 넷 중 하나)만 옮겼다. SP 투자는
+직업별 전용 무예가 이 포트에 아예 없어 범위 밖.
+
+- `StoryJobState`(신규) — level/exp/job 정적 상태, `GainExp()`(레벨업
+  루프)·`ChooseJob()`(1회 제한). STORY엔 레벨 개념이 지금까지 아예
+  없었다(플레이어가 안 맞는 슬라이스라 미사용이던 것).
+- `StoryJobTrainer`(신규) — 척후병과 같은 반경(2m)+쿨다운(15s) 트리거
+  NPC, `BuildTestStoryScene.BuildJobTrainer()`가 (5,0.1,0)에 배치.
+- `StoryJobChoiceUi`(신규) — 넷 중 하나를 고르는 전용 팝업(기존
+  `StoryChoiceUi`는 두 선택지 전용이라 별도로 지음).
+- `StoryCombat`에 ExpNeed/GruntExp/BossExp/JobsTier1/JobOrder 추가,
+  `MpMaxCurrent`(방사 전직 시 MP 상한 증가) 신설.
+  `StoryPlayerController.CurrentAtk`에 AtkBonus 반영, `StoryHud`에
+  레벨·직업 줄 추가.
+- 세이브 스키마 v5→v6(level/exp/job 추가), 구버전 세이브도
+  `Restore()`가 기본값으로 무해 처리.
+- ko/en 로컬라이즈 키 9개 추가.
+- `PlaytestStorySlice`에 전직 가능 판정/스탯 반영/재전직 방지/
+  세이브-로드 라운드트립 검증 추가, 헤드리스 3연속 통과.
+
+**같은 세션 뒷정리** — 이전 BGM 커밋(bf93fe6)이 코드만 올리고 실제
+오디오 자산(`CC0_BGM/`)을 스테이징만 한 채 커밋을 빠뜨린 걸 발견,
+별도 커밋 두 개로 마저 올렸다(폴더 내용물 + 폴더 자신의 .meta).
+
+**남은 것** — STORY 51장 확장 축은 더 채울 빈 칸이 없다(NPC/선택/
+사건/관계 + 전직까지 끝남). 남은 진짜 방향 대기 항목은 en 대사 추가
+검수 정도이고, 그 외엔 새 카테고리(버그 리뷰 등)를 사용자에게 물어야
+한다.
+
+## code-review 지적 반영 + 모바일 액션 버튼 언어 전환 (2026-09-15, "이어해" 후속, 커밋 7d4c08b·이후)
+
+전직 커밋에 `/code-review high`를 돌려 실제 버그 3개를 잡았다(HUD
+직업명 Localization 누락, 효과 없는 "체력+N" 문구, 스테일한 클래스
+주석) — 자세한 내용은 위 STORY 전직 항목 바로 다음 커밋 메시지 참고.
+
+그 다음 "이어해"에서 이전 세션들이 "새 위젯 패러다임 필요해 보류"로
+남겨 뒀던 항목 — **DUNGEON/STORY 모바일 액션 버튼(공격/강공격/회전베기/
+회피, 점프/공격/기합/기탄/횡소)이 씬 빌드 시점 언어로 굳어 플레이 중
+전환에 반응 안 하던 것**을 풀었다. `LocalizedButtonLabel`(다섯 벌 관례
+대신 DUNGEON·STORY 둘만 — 이 문제를 가진 판이 이 둘뿐) — 이벤트 배선
+대신 `StoryHud.Refresh()`처럼 매 프레임 언어 문자열 하나만 비교하는
+폴링으로 간다, 새 인프라 불필요. DUNGEON은 저장 버튼도 같은 헬퍼를
+쓰길래 같이 localize했다(GO/FOREST/REALM 저장 버튼은 범위 밖 — 이번에
+새로 발견한 별개 격차, 아래 참고).
+
+**함정을 그 자리에서 직접 밟음** — `Init()`으로 참조 필드를 딱 한 번
+채우는 식으로 처음 짰다가, 일반 private 필드가 씬 저장·재로드 후 Play
+모드에서 전부 null로 돌아와 헤드리스 검증이 바로 걸렸다(2026-09-14
+FOREST 밀어내기 UI 세션이 이미 메모리에 남겨 둔 교훈인데 또 밟았다).
+`key`/`fallback`을 `[SerializeField]`로 승격, `Text` 참조는 필드로
+안 들고 `Awake()`에서 다시 찾는 식으로 고쳤다. **다음에 비슷한
+"에디터 빌드 스크립트가 한 번만 채우는 컴포넌트"를 짤 때는 이 함정을
+먼저 떠올릴 것 — 메모리에 적어 둔 교훈도 실제 코드를 짜는 순간엔 또
+놓칠 수 있다는 뜻.**
+
+PlaytestStorySlice/PlaytestDungeonHeadless에 언어 전환 후 액션 버튼
+글자 확인 단계 추가, 둘 다 헤드리스 3연속 통과 + PlaytestDungeonFloorProgression
+회귀 없음 확인.
+
+**새로 발견 — GO/FOREST의 저장 버튼도 똑같이 하드코딩 "저장"
+(+ 저장 성공/실패 토스트 메시지)이라 언어 전환에 전혀 안 반응한다.**
+Localization 2차 세션 기록이 "런타임에 매번 새로 짓는 UI만 옮겼다"고
+적어 둔 것과 별개로, 저장 버튼은 다섯 판 전부 애초에 그 라운드
+대상에서 빠져 있었다 — 이번엔 DUNGEON/STORY 범위(이미 손대는 파일)만
+고치고 GO/FOREST는 손 안 댔다. **REALM은 확인해 보니 애초에 런타임
+저장 버튼 자체가 없다**(RealmSaveState.Save()를 부르는 건
+PlaytestRealmSlice뿐 — 사람이 누를 UI가 없는 별개의 더 큰 공백, 이번
+localization 범위와 무관).
+
+## GO/FOREST 저장 버튼 — 언어 전환 실시간 반영 (2026-09-15, "이어해" 후속, 커밋 이후)
+
+DUNGEON/STORY 저장 버튼을 고친 직후 남겨 둔 후보를 마저 처리 —
+GO(`BuildTestVillageScene.BuildSaveButton()`)·FOREST(`BuildTestVillageForestScene.
+BuildSaveButton()`)에 같은 `LocalizedButtonLabel` 패턴(다섯 판 관례대로
+각자 복사, `[SerializeField]` key/fallback + Awake() 재탐색 — DUNGEON/
+STORY 때 밟은 null 함정을 이번엔 처음부터 피함)을 적용했다.
+`PlaytestHeadless`(GO)·`PlaytestForestHeadless`에 언어 전환 후 저장
+버튼 글자 확인 단계 추가, 둘 다 헤드리스 3연속 통과 +
+`PlaytestOverworldMap`·`PlaytestForestFurniture` 회귀 없음 확인.
+
+**확인 — REALM은 대상이 아니다.** 저장 버튼을 찾다 보니 REALM엔
+런타임에 사람이 누를 저장 UI 자체가 없다(자동 로드만 있고, 저장은
+`PlaytestRealmSlice`가 테스트용으로 `RealmSaveState.Save()`를 직접
+부르는 게 전부) — localization 문제가 아니라 더 큰 별개의 기능 공백,
+이번 범위 밖으로 그대로 남긴다.
+
+**이걸로 언어 전환 미반응 버튼(모바일 액션 버튼 + 저장 버튼) 계열은
+다섯 판 중 실제로 버튼이 존재하는 넷(GO/DUNGEON/FOREST/STORY) 전부
+끝났다.**
+
+## code-review 라운드 4 — 7d4c08b..f92827d (2026-09-15, "이어해" 후속)
+
+이 두 커밋(DUNGEON/STORY 액션 버튼 + GO/FOREST 저장 버튼 Localization)에
+`/code-review high`를 돌렸다 — **지적 0건, 클린.** LocalizedButtonLabel
+네 벌의 구조적 일치, BuildActionButton 호출부 전부 새 locKey 인자로
+갱신됐는지, 실제 저장된 .unity 씬 바이트까지 guid/key/fallback이 맞는지
+확인했다고 보고함. 다섯 판 복사 관례·폴링 방식은 리뷰가 스스로
+"이 저장소의 관례로 이미 승인된 것"이라 결함이 아니라고 판단.
+
+남은 방향 대기 항목: REALM 저장 UI 부재(설계 필요, localization과 무관),
+en 대사 추가 검수. 언어 전환 미반응 버튼 계열은 완전히 소진됐다.
+
+## ⚠️ REALM `RealmCommandUi` — 심각한 잠복 버그 발견·수정 (2026-09-15, "이어해" 후속, 커밋 이후)
+
+en 검수/REALM 저장 버튼 후보를 살피던 중, REALM에 저장 버튼이 왜
+없는지 확인하려다 `RealmCommandUi.Build()`가 `BuildTestCityScene.cs`
+에서 **에디터 시점에 딱 한 번만** 불리고(Awake() 없음) 패널/라벨
+참조를 전부 **[SerializeField] 없는 plain private 필드**로 들고 있는
+걸 발견했다. Unity는 그런 필드를 직렬화하지 않는다 — 즉 씬을 저장·
+재로드한(=실제 플레이) 뒤 `_settingsPanel`을 비롯한 **아홉 패널/여러
+라벨 참조가 전부 null**이었다. 리플렉션 덤프로 직접 확인(`confirmClip`/
+`errorClip`은 이미 `[SerializeField]`라 살아있고 나머지 전부 NULL).
+
+**왜 지금까지 아무도 못 잡았나** — `PlaytestRealmSlice.CheckSettingsPanel()`이
+`GameObject.Find("Btn_설정")`로 버튼이 **존재하는지**만 확인하고,
+`ToggleSettingsPanel()` 같은 `RealmCommandUi` 자신의 메서드는 한 번도
+호출한 적이 없었다. 즉 **실제 플레이에서 "설정"(또는 명령/성/계략/
+문답/지도/서고 아무 버튼이나)을 누르면 NullReferenceException으로
+그 자리에서 죽는 상태였는데, 지금까지의 모든 회귀 테스트가 이걸
+통과시켜 왔다** — "GameObject가 있다"와 "그 GameObject를 쓰는 코드가
+동작한다"는 다른 검증이라는 걸 다시 확인한 사례
+(DUNGEON/STORY LocalizedButtonLabel 때도 비슷한 결의 함정이었지만
+그건 "글자가 안 바뀜" 정도였지 이번처럼 크래시는 아니었다).
+
+**고침** — 아홉 패널 필드 + 라벨 필드 전부(그리고 이번에 같이 발견한
+"여덟 상시 버튼도 언어 전환에 응답 안 함" — `_settingsToggleLabel`
+자기 자신만 갱신되고 명령/성/계략/공격/다음달/문답/지도/서고는 안
+됐던 것도 같이) `[SerializeField]`로 승격 + `RefreshSettingsPanel()`에
+여덟 줄 추가. `PlaytestRealmSlice.CheckCommandUiPanelsWork()`(신규) —
+**존재 확인이 아니라 실제로 `ToggleSettingsPanel()`을 리플렉션으로
+불러 패널이 진짜 열리고 닫히는지, 언어 전환 후 명령 버튼 글자가
+바뀌는지**까지 검증하도록 바꿨다. 씬 재빌드 + 헤드리스 3연속 통과.
+
+**교훈** — "GameObject.Find로 존재만 확인"하는 테스트는 그 오브젝트를
+쓰는 코드 경로 자체가 도는지는 증명하지 못한다. 앞으로 새 UI
+컴포넌트를 검증할 때는 **버튼을 실제로 누르거나(리플렉션으로 메서드
+호출) 그 결과 상태가 바뀌는지까지 확인**할 것 — 이번처럼 존재 확인만
+통과시키는 테스트가 크래시를 몇 세션째 숨겼을 수 있다.
+
+## REALM 저장 버튼 신설 (2026-09-15, 같은 흐름 후속)
+
+버그 수정으로 RealmCommandUi 패널 인프라가 실제로 동작한다는 게
+증명됐으니, 원래 조사 동기였던 "REALM만 저장 버튼이 없다"를 마저
+채웠다. 문답(-90)/지도(-210)/서고(30)/설정(-330)과 같은 우측 상단
+구석 기둥에 120px 간격 그대로 이어(-450) "저장" 버튼 추가 —
+`RealmSaveState.Save()` 호출 + `RealmToast`로 결과 토스트(command.save_ok/
+command.save_fail, 감정가 없는 UI 문구라 사람 확인 없이 그대로 씀) +
+PlayOutcomeSfx 재사용. `PlaytestRealmSlice.CheckCommandUiPanelsWork()`에
+"실제로 버튼 핸들러를 불러 파일이 생기고 다시 읽히는지"까지 검증
+추가(이번 버그가 가르쳐 준 대로 존재 확인에서 안 멈춤). 씬 재빌드 +
+헤드리스 3연속 통과.
+
+**이걸로 REALM도 다른 네 판과 저장 UI가 대등해졌다** — 5절 "언어 전환
+미반응 버튼"·"저장 UI 부재" 두 항목 모두 완전히 닫혔다. 다음 방향
+대기 항목은 이제 진짜로 없다 — 새 카테고리를 사용자에게 물어야 한다.

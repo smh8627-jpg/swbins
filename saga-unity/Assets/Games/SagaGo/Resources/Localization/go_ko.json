@@ -79,6 +79,7 @@
     { "key": "event.cairn_outcome_none", "value": "아무 일도 일어나지 않았다." },
     { "key": "event.cairn_outcome_small", "value": "작은 행운 — 돈이 조금 돌아왔다." },
     { "key": "event.cairn_outcome_medium", "value": "제법 큰 행운 — 돈이 두둑이 돌아왔다." },
-    { "key": "event.cairn_outcome_big", "value": "큰 행운! 몸도 마음도 가벼워졌다." }
+    { "key": "event.cairn_outcome_big", "value": "큰 행운! 몸도 마음도 가벼워졌다." },
+    { "key": "action.save", "value": "저장" }
   ]
 }

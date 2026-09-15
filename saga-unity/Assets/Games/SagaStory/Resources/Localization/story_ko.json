@@ -17,6 +17,7 @@
     { "key": "scale.large", "value": "크게" },
     { "key": "hud.done", "value": " — 완료!" },
     { "key": "hud.mp", "value": "💧 MP {0}/{1}" },
+    { "key": "hud.level", "value": "Lv.{0}" },
     { "key": "npc.scout_name", "value": "들판의 척후병" },
     { "key": "npc.scout_choice_prompt", "value": "두목까지 처치하셨군요! 노고를 어떻게 치하해 드릴까요?" },
     { "key": "npc.scout_choice_a", "value": "함께 축배를 든다" },
@@ -33,6 +34,22 @@
     { "key": "npc.scout_line_kills_remaining", "value": "황건적이 아직 {0}명은 더 남았을 겁니다." },
     { "key": "npc.scout_line_initial", "value": "이 들판에 황건적 떼가 진을 쳤습니다. 조심하십시오." },
     { "key": "quest.first_hunt", "value": "첫 사냥" },
-    { "key": "quest.boss_head", "value": "두목의 목" }
+    { "key": "quest.boss_head", "value": "두목의 목" },
+    { "key": "npc.trainer_name", "value": "전직관" },
+    { "key": "npc.trainer_choice_prompt", "value": "전직할 수 있습니다 — 원하는 길을 고르세요" },
+    { "key": "npc.trainer_chosen", "value": "{0} — {1}로 전직! 공격+{2}{3}" },
+    { "key": "npc.trainer_chosen_mp_suffix", "value": " 기력+{0}" },
+    { "key": "npc.trainer_status_done", "value": "🎖️ {0} Lv.{1}" },
+    { "key": "npc.trainer_status_locked", "value": "전직은 Lv.{0}부터(현재 Lv.{1})" },
+    { "key": "npc.trainer_status_ready", "value": "전직할 수 있습니다" },
+    { "key": "job.warrior", "value": "무사(武士)" },
+    { "key": "job.archer", "value": "궁수(弓手)" },
+    { "key": "job.rogue", "value": "협객(俠客)" },
+    { "key": "job.mage", "value": "방사(方士)" },
+    { "key": "action.jump", "value": "점프" },
+    { "key": "action.attack", "value": "공격" },
+    { "key": "action.brace", "value": "기합" },
+    { "key": "action.bolt", "value": "기탄" },
+    { "key": "action.sweep", "value": "횡소" }
   ]
 }

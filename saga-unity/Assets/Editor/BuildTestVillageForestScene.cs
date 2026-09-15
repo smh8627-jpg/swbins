@@ -457,7 +457,10 @@ namespace Saga.EditorTools
             text.fontSize = 26;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = "저장";
+            text.text = ForestLocalization.T("action.save", "저장");
+
+            var localized = btnGo.AddComponent<LocalizedButtonLabel>();
+            localized.Init("action.save", "저장");
         }
 
         /// <summary>PLAN.md 67~69장 "접근성" — 효과음·진동·UI 크기·그래픽

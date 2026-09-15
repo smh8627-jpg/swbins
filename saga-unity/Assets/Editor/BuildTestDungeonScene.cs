@@ -1472,7 +1472,7 @@ namespace Saga.EditorTools
                 {
                     bool ok = SaveState.Save();
                     DialogueLabel.Instance?.Show(ok ? "저장했다." : "저장 실패 — 플레이어를 못 찾았다.", 3f);
-                });
+                }, "action.save");
         }
 
         /// <summary>PLAN.md 67~69장 "접근성" — 효과음·진동·UI 크기·그래픽
@@ -1490,7 +1490,7 @@ namespace Saga.EditorTools
         private static void BuildAttackButton(PlayerCombat combat)
         {
             BuildActionButton("AttackUI", "AttackButton", new Vector2(1f, 0f), new Vector2(-100f, 180f),
-                new Vector2(160f, 160f), new Color(0.7f, 0.2f, 0.15f, 0.55f), "공격", 30, combat.TriggerAttack);
+                new Vector2(160f, 160f), new Color(0.7f, 0.2f, 0.15f, 0.55f), "공격", 30, combat.TriggerAttack, "action.attack");
         }
 
         /// <summary>"스킬 다양화" 슬라이스 — 공격 버튼 바로 위(20px 간격),
@@ -1499,7 +1499,7 @@ namespace Saga.EditorTools
         {
             // AttackButton(y=180, 높이160) 바로 위, 20px 간격
             BuildActionButton("HeavyAttackUI", "HeavyAttackButton", new Vector2(1f, 0f), new Vector2(-100f, 360f),
-                new Vector2(130f, 130f), new Color(0.75f, 0.4f, 0.05f, 0.55f), "강공격", 26, combat.TriggerHeavyAttack);
+                new Vector2(130f, 130f), new Color(0.75f, 0.4f, 0.05f, 0.55f), "강공격", 26, combat.TriggerHeavyAttack, "action.heavy_attack");
         }
 
         /// <summary>PLAN.md 51장 "DUNGEON 확장 — 빌드" — 강공격 버튼 위(20px
@@ -1508,7 +1508,7 @@ namespace Saga.EditorTools
         {
             // HeavyAttackButton(y=360, 높이130) 바로 위, 20px 간격
             BuildActionButton("WhirlUI", "WhirlButton", new Vector2(1f, 0f), new Vector2(-100f, 510f),
-                new Vector2(130f, 130f), new Color(0.5f, 0.15f, 0.55f, 0.55f), "회전베기", 26, combat.TriggerWhirl);
+                new Vector2(130f, 130f), new Color(0.5f, 0.15f, 0.55f, 0.55f), "회전베기", 26, combat.TriggerWhirl, "action.whirl");
         }
 
         /// <summary>"회피" 슬라이스 — 공격 버튼 왼쪽(20px 간격), 데스크톱은
@@ -1517,7 +1517,7 @@ namespace Saga.EditorTools
         {
             // AttackButton(-100, 폭160)의 왼쪽, 20px 간격
             BuildActionButton("DodgeUI", "DodgeButton", new Vector2(1f, 0f), new Vector2(-280f, 180f),
-                new Vector2(130f, 130f), new Color(0.15f, 0.45f, 0.6f, 0.55f), "회피", 26, controller.TryDodge);
+                new Vector2(130f, 130f), new Color(0.15f, 0.45f, 0.6f, 0.55f), "회피", 26, controller.TryDodge, "action.dodge");
         }
 
         /// <summary>모바일 화면 버튼 하나(전체화면 캔버스+사각 배경+가운데 정렬
@@ -1528,7 +1528,7 @@ namespace Saga.EditorTools
         /// 늘어나는 앵커는 없다.</summary>
         private static void BuildActionButton(string canvasName, string buttonName, Vector2 anchor,
             Vector2 anchoredPosition, Vector2 size, Color color, string label, int fontSize,
-            UnityEngine.Events.UnityAction onClick)
+            UnityEngine.Events.UnityAction onClick, string locKey)
         {
             var canvasGo = new GameObject(canvasName);
             var canvas = canvasGo.AddComponent<Canvas>();
@@ -1565,7 +1565,10 @@ namespace Saga.EditorTools
             text.fontSize = fontSize;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = label;
+            text.text = DungeonLocalization.T(locKey, label);
+
+            var localized = btnGo.AddComponent<LocalizedButtonLabel>();
+            localized.Init(locKey, label);
         }
 
         private static void BuildMobileHud()

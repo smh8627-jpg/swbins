@@ -65,6 +65,7 @@
     { "key": "finish.stall.swap", "value": "도배전 — 이미 다 가졌다. 오늘은 {0}로 갈아입어 본다." },
     { "key": "furniture.placer.pickup", "value": "{0}을(를) 창고로 거두었다." },
     { "key": "furniture.placer.empty_storage", "value": "놓을 가구가 창고에 없다 — 가구전에서 먼저 사야 한다." },
-    { "key": "furniture.placer.placed", "value": "{0}을(를) 놓았다 — 집 평가: {1}({2}점, 가구 {3}개)" }
+    { "key": "furniture.placer.placed", "value": "{0}을(를) 놓았다 — 집 평가: {1}({2}점, 가구 {3}개)" },
+    { "key": "action.save", "value": "저장" }
   ]
 }

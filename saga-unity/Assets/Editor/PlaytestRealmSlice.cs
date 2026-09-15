@@ -175,6 +175,7 @@ namespace Saga.EditorTools
                     }
                     if (!CheckSettingsPanel()) { Fail(); return; }
                     if (!CheckRealmHudLocalization()) { Fail(); return; }
+                    if (!CheckCommandUiPanelsWork()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
 
@@ -1105,6 +1106,115 @@ namespace Saga.EditorTools
             RealmLocalization.CurrentLanguage = langBefore;
 
             Debug.Log("[PlaytestRealmSlice] settings panel OK - sfx/vibration/ui-scale/graphics-quality/language all verified");
+            return true;
+        }
+
+        /// <summary>2026-09-15 발견 — RealmCommandUi의 패널/라벨 참조
+        /// 필드가 전부 [SerializeField] 없이 Build()(에디터에서 딱 한 번)
+        /// 로만 채워져 있어서, 씬을 저장·재로드한 뒤(=실제 플레이 환경)
+        /// 전부 null이었다(리플렉션 덤프로 직접 확인). 그런데도
+        /// CheckSettingsPanel()은 GameObject.Find로 버튼 "존재"만 보고
+        /// ToggleSettingsPanel() 등 RealmCommandUi 자신의 메서드는 한 번도
+        /// 안 불러서 이 문제를 못 잡고 있었다 — 실제로는 "설정" 버튼을
+        /// 누르면 NullReferenceException으로 죽는 상태였다. [SerializeField]로
+        /// 승격한 뒤, 이번엔 실제로 패널을 토글해서(리플렉션으로 private
+        /// 메서드 호출) 열리는지까지 본다 — 존재 확인이 아니라 동작 확인.</summary>
+        private static bool CheckCommandUiPanelsWork()
+        {
+            var ui = Object.FindFirstObjectByType<RealmCommandUi>();
+            if (ui == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi 인스턴스를 못 찾음");
+                return false;
+            }
+
+            var settingsPanelField = typeof(RealmCommandUi).GetField("_settingsPanel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var settingsPanel = settingsPanelField.GetValue(ui) as GameObject;
+            if (settingsPanel == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._settingsPanel이 null — 씬 재로드 후 참조가 안 살아남음");
+                return false;
+            }
+
+            var toggleMethod = typeof(RealmCommandUi).GetMethod("ToggleSettingsPanel", BindingFlags.NonPublic | BindingFlags.Instance);
+            toggleMethod.Invoke(ui, null); // 열기 — 여기서 NRE가 나면 그대로 테스트 실패로 드러난다.
+            if (!settingsPanel.activeSelf)
+            {
+                Debug.LogError("[PlaytestRealmSlice] ToggleSettingsPanel() 호출 후에도 설정 패널이 안 열림");
+                return false;
+            }
+            toggleMethod.Invoke(ui, null); // 다시 닫아 다른 검사에 영향 안 주게.
+            if (settingsPanel.activeSelf)
+            {
+                Debug.LogError("[PlaytestRealmSlice] ToggleSettingsPanel() 두 번째 호출 후에도 설정 패널이 안 닫힘");
+                return false;
+            }
+
+            // 여덟 상시 버튼(명령/성/계략/공격/다음달/문답/지도/서고)도
+            // 같은 세션에서 같이 고친 언어 전환 반영을 확인한다.
+            var ordersLabelField = typeof(RealmCommandUi).GetField("_ordersLabel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var ordersLabel = ordersLabelField.GetValue(ui) as Text;
+            if (ordersLabel == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._ordersLabel이 null");
+                return false;
+            }
+            string langBefore = RealmLocalization.CurrentLanguage;
+            var refreshMethod = typeof(RealmCommandUi).GetMethod("RefreshSettingsPanel", BindingFlags.NonPublic | BindingFlags.Instance);
+            RealmLocalization.CurrentLanguage = "en";
+            refreshMethod.Invoke(ui, null);
+            if (ordersLabel.text != "Orders")
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 명령 버튼 영어 전환이 안 먹음 text=\"{ordersLabel.text}\"(기대=Orders)");
+                RealmLocalization.CurrentLanguage = langBefore;
+                return false;
+            }
+            RealmLocalization.CurrentLanguage = langBefore;
+            refreshMethod.Invoke(ui, null);
+            if (ordersLabel.text != "명령")
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 명령 버튼이 원래 언어로 안 돌아옴 text=\"{ordersLabel.text}\"(기대=명령)");
+                return false;
+            }
+
+            // 저장 버튼(2026-09-15 신설 — REALM만 없던 저장 버튼을 이번에
+            // 같이 채웠다) — 실제로 눌러서 파일이 생기는지까지 본다.
+            var saveLabelField = typeof(RealmCommandUi).GetField("_saveLabel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var saveLabel = saveLabelField.GetValue(ui) as Text;
+            if (saveLabel == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._saveLabel이 null");
+                return false;
+            }
+            RealmSaveState.DeleteForTest();
+            var executeSaveMethod = typeof(RealmCommandUi).GetMethod("ExecuteSave", BindingFlags.NonPublic | BindingFlags.Instance);
+            try
+            {
+                executeSaveMethod.Invoke(ui, null);
+            }
+            catch (System.Reflection.TargetInvocationException e)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] ExecuteSave() 호출이 예외를 던짐 — {e.InnerException}");
+                return false;
+            }
+            if (!RealmSaveState.TryLoad())
+            {
+                Debug.LogError("[PlaytestRealmSlice] 저장 버튼을 눌렀는데 세이브 파일을 못 읽음");
+                return false;
+            }
+
+            RealmLocalization.CurrentLanguage = "en";
+            refreshMethod.Invoke(ui, null);
+            if (saveLabel.text != "Save")
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 저장 버튼 영어 전환이 안 먹음 text=\"{saveLabel.text}\"(기대=Save)");
+                RealmLocalization.CurrentLanguage = langBefore;
+                return false;
+            }
+            RealmLocalization.CurrentLanguage = langBefore;
+            refreshMethod.Invoke(ui, null);
+
+            Debug.Log("[PlaytestRealmSlice] command UI panels OK - settings panel actually toggles, orders/save labels follow language, save button actually writes a file");
             return true;
         }
 

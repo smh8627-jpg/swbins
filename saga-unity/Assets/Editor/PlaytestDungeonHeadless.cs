@@ -94,6 +94,7 @@ namespace Saga.EditorTools
                 CheckDebugHud();
                 CheckSettingsPanel();
                 CheckPlayerHudLocalization();
+                CheckActionButtonLocalization();
             }
 
             if (_framesSeen >= FramesToRun)
@@ -266,6 +267,44 @@ namespace Saga.EditorTools
             method.Invoke(hud, null);
 
             Debug.Log("[PlaytestDungeonHeadless] player hud localization OK");
+        }
+
+        /// <summary>2026-09-15 "모바일 액션 버튼 언어 전환 반응" —
+        /// `LocalizedButtonLabel`(폴링, Update()는 private이라 리플렉션)이
+        /// 씬 빌드 시점 이후에도 언어를 따라가는지 본다.</summary>
+        private static void CheckActionButtonLocalization()
+        {
+            var go = GameObject.Find("AttackButton");
+            var localized = go != null ? go.GetComponent<LocalizedButtonLabel>() : null;
+            var label = go != null ? go.GetComponentInChildren<Text>() : null;
+            if (localized == null || label == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] AttackButton/LocalizedButtonLabel을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            string langBefore = DungeonLocalization.CurrentLanguage;
+            var method = typeof(LocalizedButtonLabel).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            DungeonLocalization.CurrentLanguage = "en";
+            method.Invoke(localized, null);
+            if (label.text != "Attack")
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 액션 버튼 영어 전환이 안 먹음 text=\"{label.text}\"(기대=Attack)");
+                _hadError = true;
+                DungeonLocalization.CurrentLanguage = langBefore;
+                return;
+            }
+            DungeonLocalization.CurrentLanguage = langBefore;
+            method.Invoke(localized, null);
+            if (label.text != "공격")
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 액션 버튼이 원래 언어로 안 돌아옴 text=\"{label.text}\"(기대=공격)");
+                _hadError = true;
+            }
+
+            Debug.Log("[PlaytestDungeonHeadless] action button localization OK");
         }
 
         private static DungeonEnemy SpawnDummyEnemy(Vector3 position)

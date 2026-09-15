@@ -21,34 +21,63 @@ namespace Saga.Realm.UI
         [SerializeField] private AudioClip confirmClip;
         [SerializeField] private AudioClip errorClip;
 
-        private GameObject _orderPanel;
-        private GameObject _cityPanel;
-        private GameObject _plotPanel;
-        private GameObject _quizPanel;
-        private GameObject _archivePanel;
-        private GameObject _settingsPanel;
-        private Transform _cityButtonsRoot;
-        private Transform _plotButtonsRoot;
-        private Transform _quizButtonsRoot;
-        private Transform _archiveButtonsRoot;
-        private Text _quizQuestionText;
-        private Text _quizProgressText;
-        private Text _settingsToggleLabel;
-        private Text _settingsTitleLabel;
-        private Text _settingsCloseLabel;
-        private Text _settingsSfxNameLabel;
-        private Text _settingsSfxLabel;
-        private Text _settingsVibrationNameLabel;
-        private Text _settingsVibrationLabel;
-        private Text _settingsUiScaleNameLabel;
-        private Text _settingsUiScaleLabel;
-        private Text _settingsQualityNameLabel;
-        private Text _settingsQualityLabel;
-        private Text _settingsLanguageNameLabel;
-        private Text _settingsLanguageLabel;
-        private Text _settingsBgmNameLabel;
-        private Text _settingsBgmLabel;
-        private RealmQuizState.Presented? _currentQuiz;
+        // 2026-09-15 발견 — 아래 참조 필드들은 전부 [SerializeField] 없이
+        // Build()(BuildTestCityScene.cs가 에디터에서 딱 한 번 부른다,
+        // Awake()가 따로 없다)에서만 채워지고 있었다. Unity는 [SerializeField]
+        // 없는 private 필드를 직렬화하지 않아서, 씬을 저장·재로드한 뒤(=
+        // 실제 플레이 환경) 전부 null로 돌아온다 — 진단으로 직접 확인함
+        // (PlaytestRealmSlice.cs 리플렉션 덤프). 그런데도 그동안 아무 테스트도
+        // 이걸 못 잡았다: PlaytestRealmSlice.CheckSettingsPanel()은
+        // GameObject.Find("Btn_설정")로 버튼이 "존재하는지"만 보고
+        // ToggleSettingsPanel() 같은 RealmCommandUi 자신의 메서드는 한 번도
+        // 안 불렀다 — 즉 실제 플레이에서 "설정" 버튼을 누르면
+        // NullReferenceException으로 바로 죽는 상태였다(패널 아홉 개 전부
+        // 같은 문제). DUNGEON/STORY LocalizedButtonLabel과 같은 함정 —
+        // [SerializeField]로 승격해 Build()가 만든 참조가 씬에 실제로
+        // 저장되게 한다.
+        [SerializeField] private GameObject _orderPanel;
+        [SerializeField] private GameObject _cityPanel;
+        [SerializeField] private GameObject _plotPanel;
+        [SerializeField] private GameObject _quizPanel;
+        [SerializeField] private GameObject _archivePanel;
+        [SerializeField] private GameObject _settingsPanel;
+        [SerializeField] private Transform _cityButtonsRoot;
+        [SerializeField] private Transform _plotButtonsRoot;
+        [SerializeField] private Transform _quizButtonsRoot;
+        [SerializeField] private Transform _archiveButtonsRoot;
+        [SerializeField] private Text _quizQuestionText;
+        [SerializeField] private Text _quizProgressText;
+        [SerializeField] private Text _settingsToggleLabel;
+        [SerializeField] private Text _settingsTitleLabel;
+        [SerializeField] private Text _settingsCloseLabel;
+        [SerializeField] private Text _settingsSfxNameLabel;
+        [SerializeField] private Text _settingsSfxLabel;
+        [SerializeField] private Text _settingsVibrationNameLabel;
+        [SerializeField] private Text _settingsVibrationLabel;
+        [SerializeField] private Text _settingsUiScaleNameLabel;
+        [SerializeField] private Text _settingsUiScaleLabel;
+        [SerializeField] private Text _settingsQualityNameLabel;
+        [SerializeField] private Text _settingsQualityLabel;
+        [SerializeField] private Text _settingsLanguageNameLabel;
+        [SerializeField] private Text _settingsLanguageLabel;
+        [SerializeField] private Text _settingsBgmNameLabel;
+        [SerializeField] private Text _settingsBgmLabel;
+        private RealmQuizState.Presented? _currentQuiz; // 런타임 전용 상태 — 저장할 이유 없음, 그대로 둔다.
+
+        // 2026-09-15 — 위 [SerializeField] 승격과 같은 세션, 별개 버그.
+        // 이 여덟 라벨(+설정 자기 자신은 이미 _settingsToggleLabel로 있었다)은
+        // 지금까지 아예 참조를 저장하지 않아 ChooseLanguage() 후
+        // RefreshSettingsPanel()이 불려도 못 바꿨다 — "설정" 버튼 자신만
+        // 언어가 바뀌고 나머지 여덟은 그대로 굳어 있던 것.
+        [SerializeField] private Text _ordersLabel;
+        [SerializeField] private Text _cityToggleLabel;
+        [SerializeField] private Text _plotToggleLabel;
+        [SerializeField] private Text _attackLabel;
+        [SerializeField] private Text _nextMonthLabel;
+        [SerializeField] private Text _quizToggleLabel;
+        [SerializeField] private Text _mapLabel;
+        [SerializeField] private Text _archiveToggleLabel;
+        [SerializeField] private Text _saveLabel;
 
         public void Build()
         {
@@ -57,32 +86,40 @@ namespace Saga.Realm.UI
 
             // 다섯 버튼(명령/성/계략/공격/다음달) — 외교(계략) 추가로
             // 넷에서 다섯으로 늘며 간격만 좁혔다(폭 190→180, 간격 270→210).
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.orders"), new Vector2(0.5f, 0f), new Vector2(-420f, 100f),
+            var ordersButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.orders"), new Vector2(0.5f, 0f), new Vector2(-420f, 100f),
                 new Vector2(180f, 110f), ToggleOrderPanel);
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.city"), new Vector2(0.5f, 0f), new Vector2(-210f, 100f),
+            _ordersLabel = ordersButton.GetComponentInChildren<Text>();
+            var cityButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.city"), new Vector2(0.5f, 0f), new Vector2(-210f, 100f),
                 new Vector2(180f, 110f), ToggleCityPanel);
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.plot"), new Vector2(0.5f, 0f), new Vector2(0f, 100f),
+            _cityToggleLabel = cityButton.GetComponentInChildren<Text>();
+            var plotButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.plot"), new Vector2(0.5f, 0f), new Vector2(0f, 100f),
                 new Vector2(180f, 110f), TogglePlotPanel);
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.attack"), new Vector2(0.5f, 0f), new Vector2(210f, 100f),
+            _plotToggleLabel = plotButton.GetComponentInChildren<Text>();
+            var attackButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.attack"), new Vector2(0.5f, 0f), new Vector2(210f, 100f),
                 new Vector2(180f, 110f), ExecuteAttack);
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.next_month"), new Vector2(0.5f, 0f), new Vector2(420f, 100f),
+            _attackLabel = attackButton.GetComponentInChildren<Text>();
+            var nextMonthButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.next_month"), new Vector2(0.5f, 0f), new Vector2(420f, 100f),
                 new Vector2(180f, 110f), ExecuteNextMonth);
+            _nextMonthLabel = nextMonthButton.GetComponentInChildren<Text>();
 
             // 문답(REALM 다음 조각 (3))은 명령/전쟁과 달리 턴·성·무장과
             // 무관한 개인 미니게임이라 아래 다섯 버튼 행에 안 끼우고
             // 화면 오른쪽 위 구석에 따로 뒀다(HUD가 왼쪽 위를 쓰니 안 겹침).
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.quiz"), new Vector2(1f, 1f), new Vector2(-110f, -90f),
+            var quizToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.quiz"), new Vector2(1f, 1f), new Vector2(-110f, -90f),
                 new Vector2(180f, 110f), ToggleQuizPanel);
+            _quizToggleLabel = quizToggleButton.GetComponentInChildren<Text>();
 
             // 월드맵(2-8절) — 문답과 같은 구석, 그 바로 아래에 둔다(명령/성/
             // 계략/공격/다음달 행과도, HUD 라벨과도 안 겹치는 유일한 빈 자리).
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.map"), new Vector2(1f, 1f), new Vector2(-110f, -210f),
+            var mapButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.map"), new Vector2(1f, 1f), new Vector2(-110f, -210f),
                 new Vector2(180f, 110f), ToggleMap);
+            _mapLabel = mapButton.GetComponentInChildren<Text>();
 
             // 서고(godot REALM 10절) — 문답보다도 위 구석(같은 결로 명령
             // 계열과 안 겹치는 유일한 빈 자리).
-            RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.archive"), new Vector2(1f, 1f), new Vector2(-110f, 30f),
+            var archiveToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.archive"), new Vector2(1f, 1f), new Vector2(-110f, 30f),
                 new Vector2(180f, 110f), ToggleArchivePanel);
+            _archiveToggleLabel = archiveToggleButton.GetComponentInChildren<Text>();
 
             // 설정(PLAN.md 67~69장 "접근성") — 문답/지도/서고와 같은 구석
             // 기둥을 한 칸 더 내려 잇는다(지도 -210 바로 아래, 10px 틈).
@@ -91,6 +128,13 @@ namespace Saga.Realm.UI
             var settingsToggleButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("settings.title"),
                 new Vector2(1f, 1f), new Vector2(-110f, -330f), new Vector2(180f, 110f), ToggleSettingsPanel);
             _settingsToggleLabel = settingsToggleButton.GetComponentInChildren<Text>();
+
+            // 저장(2026-09-15 — GO/DUNGEON/FOREST/STORY엔 다 있던 저장 버튼이
+            // REALM만 없었다) — 설정 바로 아래, 같은 구석 기둥을 한 칸 더
+            // 잇는다(설정 -330 바로 아래, 10px 틈 — 같은 간격 규칙).
+            var saveButton = RealmUiKit.NewButton(canvas.transform, RealmLocalization.T("command.save"),
+                new Vector2(1f, 1f), new Vector2(-110f, -450f), new Vector2(180f, 110f), ExecuteSave);
+            _saveLabel = saveButton.GetComponentInChildren<Text>();
 
             BuildOrderPanel(canvas.transform);
             BuildCityPanel(canvas.transform);
@@ -435,6 +479,18 @@ namespace Saga.Realm.UI
             _settingsQualityLabel.text = RealmSettingsState.GraphicsQualityLabel();
             _settingsLanguageLabel.text = RealmLocalization.LanguageLabel();
             _settingsBgmLabel.text = RealmLocalization.T(RealmSettingsState.BgmOn ? "state.on" : "state.off");
+
+            // 2026-09-15 — 설정 패널 자신 말고 바깥의 여덟 상시 버튼도 언어
+            // 전환에 반응하게 한다(이전엔 설정 버튼 자기 자신만 갱신됐다).
+            _ordersLabel.text = RealmLocalization.T("command.orders");
+            _cityToggleLabel.text = RealmLocalization.T("command.city");
+            _plotToggleLabel.text = RealmLocalization.T("command.plot");
+            _attackLabel.text = RealmLocalization.T("command.attack");
+            _nextMonthLabel.text = RealmLocalization.T("command.next_month");
+            _quizToggleLabel.text = RealmLocalization.T("command.quiz");
+            _mapLabel.text = RealmLocalization.T("command.map");
+            _archiveToggleLabel.text = RealmLocalization.T("command.archive");
+            _saveLabel.text = RealmLocalization.T("command.save");
         }
 
         private void ToggleSettingsPanel()
@@ -510,6 +566,19 @@ namespace Saga.Realm.UI
         {
             string summary = RealmCityState.NextMonth();
             RealmToast.Instance?.Show(summary, 5f);
+        }
+
+        /// <summary>2026-09-15 — GO/DUNGEON/FOREST/STORY엔 다 있던 저장
+        /// 버튼이 REALM만 없었다(자동 로드만 있고, 지금까지 저장은
+        /// PlaytestRealmSlice가 테스트용으로 RealmSaveState.Save()를 직접
+        /// 부르는 게 전부였다). 다른 네 판과 같은 결 — 결과를 토스트로만
+        /// 알린다, PlayOutcomeSfx도 같이 재사용.</summary>
+        private void ExecuteSave()
+        {
+            bool ok = RealmSaveState.Save();
+            RealmToast.Instance?.Show(RealmLocalization.T(ok ? "command.save_ok" : "command.save_fail",
+                ok ? "저장했다." : "저장 실패."), 3f);
+            PlayOutcomeSfx(ok);
         }
 
         private void ExecuteAttack()

@@ -117,6 +117,7 @@ namespace Saga.Story.World
             StoryAudio.PlaySfx(deathClip);
             StoryQuestState.AddKill();
             if (isBoss) StoryQuestState.AddBossKill();
+            StoryJobState.GainExp(isBoss ? StoryCombat.BossExp : StoryCombat.GruntExp);
             Destroy(gameObject);
         }
     }

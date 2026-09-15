@@ -51,6 +51,7 @@ namespace Saga.EditorTools
             BuildTerrain();
             BuildEnemies();
             BuildNpc();
+            BuildJobTrainer();
             BuildDiscovery();
             var (playerGo, playerController) = BuildPlayer();
             BuildCamera();
@@ -59,6 +60,7 @@ namespace Saga.EditorTools
             BuildHud();
             BuildDialogueLabel();
             BuildChoiceUi();
+            BuildJobChoiceUi();
             BuildDebugOverlay();
             BuildSaveButton();
             BuildSettingsUi();
@@ -197,6 +199,28 @@ namespace Saga.EditorTools
             else
             {
                 Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 척후병은 primitive capsule로 대체됨.");
+            }
+        }
+
+        /// <summary>PLAN.md 51장 "STORY 확장 — 전직·SP 투자 UI" —
+        /// 척후병(0.6m)·첫 잡졸(3m) 사이가 아니라 그 너머 5m에 세운다(로프
+        /// 6.8m·발판과도 안 겹치는 빈 자리, StoryJobTrainer.cs 클래스 주석
+        /// 참고). 전직 전엔 Lv.10 미만이라 장식만 보이고 실제 상호작용은
+        /// 사냥을 어느 정도 한 뒤에나 의미가 있다.</summary>
+        private static void BuildJobTrainer()
+        {
+            var trainerGo = new GameObject("Npc_JobTrainer");
+            trainerGo.transform.position = new Vector3(5f, 0.1f, 0f);
+            var trainer = trainerGo.AddComponent<StoryJobTrainer>();
+
+            var villagerModel = AssetDatabase.LoadAssetAtPath<GameObject>(VillagerModelPath);
+            if (villagerModel != null)
+            {
+                SetPrivateField(trainer, "modelPrefab", villagerModel);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 전직관은 primitive capsule로 대체됨.");
             }
         }
 
@@ -438,6 +462,16 @@ namespace Saga.EditorTools
             panelGo.SetActive(false);
         }
 
+        /// <summary>PLAN.md 51장 "전직·SP 투자 UI" — `StoryJobChoiceUi.cs`가
+        /// 자기 UI를 스스로 짓는 컴포넌트(GoSettingsPanel 등과 같은 결)라
+        /// Build() 한 번만 부르면 끝난다.</summary>
+        private static void BuildJobChoiceUi()
+        {
+            var go = new GameObject("StoryJobChoiceUI");
+            var ui = go.AddComponent<StoryJobChoiceUi>();
+            ui.Build();
+        }
+
         private static Button BuildChoiceButton(Transform parent, Vector2 anchoredPos, out Text label)
         {
             var go = new GameObject("Option", typeof(RectTransform));
@@ -578,15 +612,15 @@ namespace Saga.EditorTools
             SetPrivateField(controller, "climbUpButton", upBtn);
             SetPrivateField(controller, "climbDownButton", downBtn);
 
-            BuildActionButton(canvasGo.transform, new Vector2(-100f, 180f), "점프", new Color(0.15f, 0.45f, 0.6f, 0.55f), controller.TriggerJump);
-            BuildActionButton(canvasGo.transform, new Vector2(-280f, 180f), "공격", new Color(0.7f, 0.2f, 0.15f, 0.55f), controller.TriggerAttack);
+            BuildActionButton(canvasGo.transform, new Vector2(-100f, 180f), "점프", new Color(0.15f, 0.45f, 0.6f, 0.55f), controller.TriggerJump, "action.jump");
+            BuildActionButton(canvasGo.transform, new Vector2(-280f, 180f), "공격", new Color(0.7f, 0.2f, 0.15f, 0.55f), controller.TriggerAttack, "action.attack");
 
             // 무예 나머지 셋(횡소·기탄·기합, "STORY 콘텐츠 확장" 2026-09-12) —
             // 점프·공격과 같은 오른쪽 아래 모서리, 한 줄 위(y=380)에 둬서
             // 이동 hold 버튼 넷(왼쪽 아래 모서리, x≤320)과 안 겹치게 한다.
-            BuildActionButton(canvasGo.transform, new Vector2(-100f, 380f), "기합", new Color(0.75f, 0.55f, 0.1f, 0.55f), controller.TriggerBrace);
-            BuildActionButton(canvasGo.transform, new Vector2(-280f, 380f), "기탄", new Color(0.2f, 0.4f, 0.75f, 0.55f), controller.TriggerBolt);
-            BuildActionButton(canvasGo.transform, new Vector2(-460f, 380f), "횡소", new Color(0.4f, 0.6f, 0.25f, 0.55f), controller.TriggerSweep);
+            BuildActionButton(canvasGo.transform, new Vector2(-100f, 380f), "기합", new Color(0.75f, 0.55f, 0.1f, 0.55f), controller.TriggerBrace, "action.brace");
+            BuildActionButton(canvasGo.transform, new Vector2(-280f, 380f), "기탄", new Color(0.2f, 0.4f, 0.75f, 0.55f), controller.TriggerBolt, "action.bolt");
+            BuildActionButton(canvasGo.transform, new Vector2(-460f, 380f), "횡소", new Color(0.4f, 0.6f, 0.25f, 0.55f), controller.TriggerSweep, "action.sweep");
         }
 
         private static HoldButton BuildHoldButton(Transform parent, Vector2 anchorFromBottomLeft, Vector2 offset, string label, Color color)
@@ -621,7 +655,7 @@ namespace Saga.EditorTools
             return hold;
         }
 
-        private static void BuildActionButton(Transform parent, Vector2 offset, string label, Color color, UnityEngine.Events.UnityAction onClick)
+        private static void BuildActionButton(Transform parent, Vector2 offset, string label, Color color, UnityEngine.Events.UnityAction onClick, string locKey)
         {
             var go = new GameObject("ActionButton_" + label, typeof(RectTransform));
             go.transform.SetParent(parent, false);
@@ -650,7 +684,10 @@ namespace Saga.EditorTools
             text.fontSize = 28;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = label;
+            text.text = StoryLocalization.T(locKey, label);
+
+            var localized = go.AddComponent<LocalizedButtonLabel>();
+            localized.Init(locKey, label);
         }
 
         private static void BuildBootstrap()
