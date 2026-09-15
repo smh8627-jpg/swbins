@@ -337,6 +337,32 @@ const SCROLLS := {
 ## 없다 — admin.js 표시값과 같은 정신으로 그냥 누적 숫자만 저장한다
 ## (StorySaveState.feat, 다음에 칭호를 붙일 자리를 위해 값 자체는 쌓아 둔다).
 ##
+## **2026-09-15 — 그 "다음"이 이거다.** `feat`가 쌓이기만 하고 어디서도
+## 안 읽혀 막다른 값이었다(사가고돗 다섯 판 감사에서 발견 — FOREST
+## "교배꽃"이 팔 곳이 없던 것과 같은 모양의 구멍). 원작처럼 진짜 칭호
+## 시스템(칭호 목록·장착·표시 문구 갈아 끼우기)을 새로 짓는 대신, 이미
+## 있는 `feat` 숫자를 문턱값으로만 읽어 HUD에 이름 하나를 보여주는
+## 최소한만 얹는다(title_label.gd) — 장착·해제 개념 없이 지금 값에 맞는
+## 것 하나만 항상 뜬다.
+const TITLES := [
+	{"at": 0,   "name": "이름 없는 병사"},
+	{"at": 20,  "name": "신참"},
+	{"at": 60,  "name": "고참"},
+	{"at": 100, "name": "교두(敎頭)"},
+	{"at": 150, "name": "명장(名將)"},
+	{"at": 200, "name": "전설(傳說)"},
+]
+
+
+## feat 값에 맞는 칭호 하나(문턱을 넘은 것 중 가장 높은 것) — TITLES는
+## at 오름차순이 전제다.
+static func title_for(feat: int) -> String:
+	var name := String(TITLES[0].name)
+	for t: Dictionary in TITLES:
+		if feat >= int(t.at):
+			name = String(t.name)
+	return name
+##
 ## **처음엔 9개 중 7개만 옮겼었다** — `a_dex20`·`a_quest10` 둘은 그때
 ## 그 값 자체가 없었다. **2026-09-13 정정** — `a_dex20`(도감 등록 수)을
 ## "몬스터 도감"이라고 적었던 건 틀렸다: 원문 valueOf()는 실제로
