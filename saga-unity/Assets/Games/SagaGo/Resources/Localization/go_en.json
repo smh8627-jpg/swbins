@@ -79,6 +79,7 @@
     { "key": "event.cairn_outcome_none", "value": "Nothing happened." },
     { "key": "event.cairn_outcome_small", "value": "A small stroke of luck — a bit of gold came back." },
     { "key": "event.cairn_outcome_medium", "value": "A fair bit of luck — a good deal of gold came back." },
-    { "key": "event.cairn_outcome_big", "value": "Great luck! Body and mind both feel lighter." }
+    { "key": "event.cairn_outcome_big", "value": "Great luck! Body and mind both feel lighter." },
+    { "key": "action.save", "value": "Save" }
   ]
 }

@@ -5243,9 +5243,33 @@ PlaytestStorySlice/PlaytestDungeonHeadless에 언어 전환 후 액션 버튼
 글자 확인 단계 추가, 둘 다 헤드리스 3연속 통과 + PlaytestDungeonFloorProgression
 회귀 없음 확인.
 
-**새로 발견 — GO/FOREST/REALM의 저장 버튼도 똑같이 하드코딩 "저장"
+**새로 발견 — GO/FOREST의 저장 버튼도 똑같이 하드코딩 "저장"
 (+ 저장 성공/실패 토스트 메시지)이라 언어 전환에 전혀 안 반응한다.**
 Localization 2차 세션 기록이 "런타임에 매번 새로 짓는 UI만 옮겼다"고
 적어 둔 것과 별개로, 저장 버튼은 다섯 판 전부 애초에 그 라운드
 대상에서 빠져 있었다 — 이번엔 DUNGEON/STORY 범위(이미 손대는 파일)만
-고치고 GO/FOREST/REALM은 손 안 댔다. 다음에 이어할 후보로 남긴다.
+고치고 GO/FOREST는 손 안 댔다. **REALM은 확인해 보니 애초에 런타임
+저장 버튼 자체가 없다**(RealmSaveState.Save()를 부르는 건
+PlaytestRealmSlice뿐 — 사람이 누를 UI가 없는 별개의 더 큰 공백, 이번
+localization 범위와 무관).
+
+## GO/FOREST 저장 버튼 — 언어 전환 실시간 반영 (2026-09-15, "이어해" 후속, 커밋 이후)
+
+DUNGEON/STORY 저장 버튼을 고친 직후 남겨 둔 후보를 마저 처리 —
+GO(`BuildTestVillageScene.BuildSaveButton()`)·FOREST(`BuildTestVillageForestScene.
+BuildSaveButton()`)에 같은 `LocalizedButtonLabel` 패턴(다섯 판 관례대로
+각자 복사, `[SerializeField]` key/fallback + Awake() 재탐색 — DUNGEON/
+STORY 때 밟은 null 함정을 이번엔 처음부터 피함)을 적용했다.
+`PlaytestHeadless`(GO)·`PlaytestForestHeadless`에 언어 전환 후 저장
+버튼 글자 확인 단계 추가, 둘 다 헤드리스 3연속 통과 +
+`PlaytestOverworldMap`·`PlaytestForestFurniture` 회귀 없음 확인.
+
+**확인 — REALM은 대상이 아니다.** 저장 버튼을 찾다 보니 REALM엔
+런타임에 사람이 누를 저장 UI 자체가 없다(자동 로드만 있고, 저장은
+`PlaytestRealmSlice`가 테스트용으로 `RealmSaveState.Save()`를 직접
+부르는 게 전부) — localization 문제가 아니라 더 큰 별개의 기능 공백,
+이번 범위 밖으로 그대로 남긴다.
+
+**이걸로 언어 전환 미반응 버튼(모바일 액션 버튼 + 저장 버튼) 계열은
+다섯 판 중 실제로 버튼이 존재하는 넷(GO/DUNGEON/FOREST/STORY) 전부
+끝났다.**

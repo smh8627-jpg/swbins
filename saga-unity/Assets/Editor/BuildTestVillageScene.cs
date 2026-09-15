@@ -408,7 +408,10 @@ namespace Saga.EditorTools
             text.fontSize = 26;
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
-            text.text = "저장";
+            text.text = GoLocalization.T("action.save", "저장");
+
+            var localized = btnGo.AddComponent<LocalizedButtonLabel>();
+            localized.Init("action.save", "저장");
         }
 
         /// <summary>화면 왼쪽 위 — 레벨/경험치/돈/장비, 릴리즈 빌드에서도 항상 보임

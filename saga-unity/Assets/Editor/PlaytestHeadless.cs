@@ -112,6 +112,7 @@ namespace Saga.EditorTools
                 CheckDebugHud();
                 CheckSettingsPanel();
                 CheckPlayerHudLocalization();
+                CheckActionButtonLocalization();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -246,6 +247,44 @@ namespace Saga.EditorTools
             method.Invoke(hud, null); // 다른 검사에 영향 없게 원래 언어로 다시 그린다.
 
             Debug.Log("[PlaytestHeadless] player hud localization OK");
+        }
+
+        /// <summary>2026-09-15 "저장 버튼 언어 전환 반응" — DUNGEON/STORY에
+        /// 이어 GO도 같은 문제(씬 빌드 시점 언어로 굳음)가 있었다.
+        /// `LocalizedButtonLabel`(폴링, Update()는 private이라 리플렉션).</summary>
+        private static void CheckActionButtonLocalization()
+        {
+            var go = GameObject.Find("SaveButton");
+            var localized = go != null ? go.GetComponent<LocalizedButtonLabel>() : null;
+            var label = go != null ? go.GetComponentInChildren<Text>() : null;
+            if (localized == null || label == null)
+            {
+                Debug.LogError("[PlaytestHeadless] SaveButton/LocalizedButtonLabel을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            string langBefore = GoLocalization.CurrentLanguage;
+            var method = typeof(LocalizedButtonLabel).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            GoLocalization.CurrentLanguage = "en";
+            method.Invoke(localized, null);
+            if (label.text != "Save")
+            {
+                Debug.LogError($"[PlaytestHeadless] 저장 버튼 영어 전환이 안 먹음 text=\"{label.text}\"(기대=Save)");
+                _hadError = true;
+                GoLocalization.CurrentLanguage = langBefore;
+                return;
+            }
+            GoLocalization.CurrentLanguage = langBefore;
+            method.Invoke(localized, null);
+            if (label.text != "저장")
+            {
+                Debug.LogError($"[PlaytestHeadless] 저장 버튼이 원래 언어로 안 돌아옴 text=\"{label.text}\"(기대=저장)");
+                _hadError = true;
+            }
+
+            Debug.Log("[PlaytestHeadless] action button localization OK");
         }
     }
 }
