@@ -398,6 +398,30 @@ class_name DungeonSkills
 ## (🪭)·skill_curse_marshal.gd/curse_marshal_button.gd(📛)·skill_curse_
 ## mystic2.gd/curse_mystic2_button.gd(☠️). 입력 액션 dungeon_skill_46~50 —
 ## F6~F10 다음이라 F11~F15로 이어간다(조회로 확인 후 배정).
+##
+## **2026-09-15, 새 세션에서 이어서 — 순서대로 다섯 갈래 더("새로운
+## 세션에서 이어해").** 갈래 번호 오름차순으로 계속 — 궁장은 br0(a_multi,
+## 여전히 새 메커니즘 필요)만 빼면 br5가 다음 빈 자리, 나머지 넷은 아직
+## 손 안 댄 가장 낮은 갈래(br4, 방사만 br1까지 채워져 있어 br3)부터.
+## 전부 이미 옮겨진 shape(heal·curse·summon·swing)만 쓴다:
+## - 궁장 `a_firstaid`(응급처치, br5row1, heal) — prereq `a_dashshot`.
+##   **궁장의 첫 heal.**
+## - 무장 `w_regen`(회생, br4row1, heal) — prereq `w_throw`. **무장의
+##   첫 heal.**
+## - 책사 `s_hex`(저주, br4row1, curse, r=130→3.82) — prereq `s_blink`.
+##   **책사의 첫 curse.**
+## - 도독 `m_reserve`(원군소환, br4row1, summon) — prereq `m_javelin`.
+##   **도독의 첫 summon**(str 필드 없음 → 기본 배율 1.0).
+## - 방사 `y_ghoststrike`(음령타, br3row1, swing, r=1.8, el:'chi') —
+##   prereq `y_chain`. **방사의 첫 swing.**
+## 다섯 다 기존 shape 스크립트를 복제 — 새 판정 로직 없음(다섯 다 그
+## 직업의 "첫 ○○"이라는 점만 새롭다 — 아홉 모양이 이제 어느 직업에나
+## 최소 한 번씩은 다 옮겨졌다는 뜻이기도 하다). 신규 10개: skill_heal_
+## archer.gd/heal_archer_button.gd(💗)·skill_heal_warrior.gd/heal_warrior_
+## button.gd(💗)·skill_curse_scholar.gd/curse_scholar_button.gd(🕸️)·
+## skill_summon_marshal.gd/summon_marshal_button.gd(🛡️)·skill_swing_
+## mystic.gd/swing_mystic_button.gd(👻). 입력 액션 dungeon_skill_51~55 —
+## F11~F15 다음이라 F16~F20으로 이어간다(조회로 확인 후 배정).
 
 const MAX_RANK := 5
 
@@ -735,6 +759,34 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_doom", "cls": "mystic", "br": 1, "row": 2, "name": "멸(滅)",
 		"shape": "curse", "cd": 18.0, "r": 4.71, "sec": 7.0,
 		"eff": "", "v": 55.0, "grow": 10.0, "desc": "둘레의 적이 크게 약해진다." },
+	## 궁장(弓將) br=5 row 1 — data-skill.js 그대로(cost=26은 기력이 없어
+	## 안 씀). prereq a_dashshot(같은 br row0). 궁장의 첫 heal.
+	{ "key": "a_firstaid", "cls": "archer", "br": 5, "row": 1, "name": "응급처치(應急處置)",
+		"shape": "heal", "cd": 14.0,
+		"eff": "", "v": 14.0, "grow": 5.0, "desc": "상처를 싸매 체력을 되찾는다." },
+	## 무장(武將) br=4 row 1 — data-skill.js 그대로(cost=30은 기력이 없어
+	## 안 씀). prereq w_throw(같은 br row0). 무장의 첫 heal.
+	{ "key": "w_regen", "cls": "warrior", "br": 4, "row": 1, "name": "회생(回生)",
+		"shape": "heal", "cd": 16.0,
+		"eff": "", "v": 16.0, "grow": 6.0, "desc": "상처를 다잡아 체력을 되찾는다." },
+	## 책사(策士) br=4 row 1 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀). r=3.82는 위 헤더의 nova/curse 환산(130÷34) 참고. prereq
+	## s_blink(같은 br row0). 책사의 첫 curse.
+	{ "key": "s_hex", "cls": "scholar", "br": 4, "row": 1, "name": "저주(咀呪)",
+		"shape": "curse", "cd": 9.0, "r": 3.82, "sec": 5.0,
+		"eff": "", "v": 30.0, "grow": 8.0, "desc": "적을 굼뜨고 약하게 만든다." },
+	## 도독(都督) br=4 row 1 — data-skill.js 그대로(cost=36은 기력이 없어
+	## 안 씀). str 필드 없음 → 기본 배율 1.0. prereq m_javelin(같은 br
+	## row0). 도독의 첫 summon.
+	{ "key": "m_reserve", "cls": "marshal", "br": 4, "row": 1, "name": "원군소환(援軍召喚)",
+		"shape": "summon", "cd": 16.0, "sec": 14.0,
+		"eff": "", "v": 1.0, "grow": 1.0, "desc": "원군을 불러 대신 싸우게 한다." },
+	## 방사(方士) br=3 row 1 — data-skill.js 그대로(cost=22는 기력이 없어
+	## 안 씀, kb=20은 넉백 없음). r=1.8은 swing 원작 값 그대로 미터로.
+	## el:'chi'. prereq y_chain(같은 br row0). 방사의 첫 swing.
+	{ "key": "y_ghoststrike", "cls": "mystic", "br": 3, "row": 1, "name": "음령타(陰靈打)",
+		"shape": "swing", "cd": 6.0, "r": 1.8, "el": "chi",
+		"eff": "", "v": 1.7, "grow": 0.35, "desc": "음기를 둘러 손이 닿는 대로 친다." },
 ]
 
 

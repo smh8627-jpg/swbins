@@ -1,4 +1,4 @@
-[gd_scene load_steps=62 format=3]
+[gd_scene load_steps=67 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -63,6 +63,11 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_scholar_button.gd" id="61"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/curse_marshal_button.gd" id="62"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/curse_mystic2_button.gd" id="63"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/heal_archer_button.gd" id="64"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/heal_warrior_button.gd" id="65"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/curse_scholar_button.gd" id="66"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/summon_marshal_button.gd" id="67"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_mystic_button.gd" id="68"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -919,3 +924,68 @@ offset_bottom = -4510.0
 text = "☠️"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("63")
+
+[node name="HealArcherButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4660.0
+offset_right = -40.0
+offset_bottom = -4590.0
+text = "💗"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("64")
+
+[node name="HealWarriorButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4740.0
+offset_right = -40.0
+offset_bottom = -4670.0
+text = "💗"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("65")
+
+[node name="CurseScholarButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4820.0
+offset_right = -40.0
+offset_bottom = -4750.0
+text = "🕸️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("66")
+
+[node name="SummonMarshalButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4900.0
+offset_right = -40.0
+offset_bottom = -4830.0
+text = "🛡️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("67")
+
+[node name="SwingMysticButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -4980.0
+offset_right = -40.0
+offset_bottom = -4910.0
+text = "👻"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("68")
