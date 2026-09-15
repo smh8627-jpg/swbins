@@ -6,14 +6,20 @@ extends Node3D
 ## 발견만 되는 장식이었다 — 실제로 "다른 곳으로 통하는 길목"이라는 자리
 ## 의미를 이번에 준다.
 ##
-## **범위를 크게 줄였다** — terrain_builder.gd·landmarks_builder.gd는 둘 다
-## `TestMap` 하나에 고정 결합돼 있어(각각 11회·다수 호출) 진짜 두 번째
-## 타일맵 지역을 만들려면 그 둘을 다중 지역용으로 다시 설계해야 한다(꽤
-## 큰 일). 그 재설계 대신, FOREST의 집 안(forest_house.gd 헤더 — "씬
-## 전환 없이 텔레포트로만 오간다", 마을 좌표계와 절대 안 겹치는 먼 좌표에
-## 짓는다)과 같은 이미 검증된 패턴을 그대로 써서, 작은 포구 하나만 먼저
-## 연다. 두 번째 진짜 타일맵 지역은 이 첫 걸음이 재미있는지 확인한 뒤
-## 판단할 몫으로 남긴다(PLAN.md 3.1 Vertical Slice First 원칙 그대로).
+## **2026-09-16, 진짜 두 번째 타일맵 지역으로 다시 지었다.** 처음(09-15)엔
+## terrain_builder.gd·landmarks_builder.gd가 `TestMap` 하나에 고정
+## 결합돼 있어(각각 11회·다수 호출) 다중 지역화가 큰 일이라 primitive
+## (PlaneMesh 사각형+박스 벽 넷)로 자급자족했었다. 이번에 그 재설계를
+## 했다 — test_map.gd가 이제 `REGIONS`(id→{rows,tile_size,origin})
+## 레지스트리라 마을 말고 다른 글자 지도도 가질 수 있고, terrain_builder.gd
+## 는 `region_id`(export, 기본 "village")로 어떤 지역이든 그린다. 여기선
+## `region_id = "coast"`인 TerrainBuilder 인스턴스 하나로 땅·물·산 벽을
+## 전부 얻는다(primitive 셋을 손으로 만들던 `_build_ground/_build_water/
+## _build_walls`는 지웠다) — 마을과 똑같이 "산은 못 지나가고 물은 못
+## 지나가고 다리(B)로만 건넌다"는 진짜 지형 규칙이 적용된다(이전엔 "첫
+## 걸음이라 물에 못 들어간다는 규칙까지 안 만든다"고 미뤄 뒀던 것).
+## 마을 쪽은 test_map.gd·terrain_builder.gd 둘 다 기본값(region_id 생략)
+## 그대로라 헤드리스 회귀 로그 md5가 이 리팩터 전후로 완전히 같다.
 ##
 ## **정직하게 밝혀 둔다** — "갈매기"는 웹판 js/animal.js KINDS에 없는,
 ## 이 슬라이스만의 새 짐승이다(사가고 퓨전 방향 메모 — 포켓몬GO 완전
@@ -29,13 +35,12 @@ const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 
 const PLANK_GLB := "res://assets/buildings/planks.glb"
 
-## 마을 격자(11x11, TILE_SIZE 48 = 528m 사방)보다 훨씬 먼 좌표 — FOREST
-## INTERIOR_ORIGIN과 같은 발상. 절대 마을 지형과 안 겹친다.
+## test_map.gd REGIONS["coast"].origin과 반드시 같은 값이어야 한다(그
+## 파일이 그리는 지형과 이 파일이 세우는 실체가 같은 자리에 있어야 하니) —
+## 마을 격자(11x11, TILE_SIZE 48 = 528m 사방)보다 훨씬 먼 좌표라 절대
+## 마을 지형과 안 겹친다(FOREST INTERIOR_ORIGIN과 같은 발상).
 const REGION_ORIGIN := Vector3(8000.0, 0.0, 0.0)
-const HARBOR_HALF := 40.0
-const WATER_COLOR := Color(0.25, 0.45, 0.62, 0.75)   # terrain_builder.gd WaterSurface와 같은 색
-const SAND_COLOR := Color(0.76, 0.68, 0.5)
-const WALL_HEIGHT := 8.0
+const COAST_REGION := "coast"
 
 ## landmarks_builder.gd _add_waystation()과 같은 격자·계산 — 이 파일이
 ## 그쪽을 몰라도 되게(단방향 의존) 여기서 다시 구한다. 역참 좌표가 바뀌면
@@ -43,13 +48,17 @@ const WALL_HEIGHT := 8.0
 ## 않는다"의 예외로 둔 것 — 좌표 하나 재계산일 뿐 로직 복제가 아니다).
 const VILLAGE_WAYSTATION_GRID := Vector2i(5, 3)
 const TRAVEL_TRIGGER_RADIUS := 5.0
-## 포구는 남(모래사장, 도착 지점) → 북(바다) 한 축으로 배치한다. 도착
-## 지점(-24)은 귀환 트리거(0, 반경 5)에서 충분히 떨어져 있어 도착하자마자
-## 되돌아가는 선택지가 다시 뜨지 않는다.
-const ARRIVAL_LOCAL := Vector3(0.0, 1.0, -24.0)
-const GULL_LOCAL := Vector3(12.0, 0.6, -14.0)
-const WATER_Z_OFFSET := 20.0   # 물은 북쪽 절반(z 0~40)만 덮는다
-const DOCK_Z_OFFSET := 10.0    # 모래에서 물 쪽으로 뻗은 짧은 선착장
+
+## test_map.gd REGIONS["coast"].rows 격자 좌표(9x9) — 물(rows 1~3)·
+## 다리(4,3, 물에서 모래로 건너는 유일한 자리)·모래(rows 4~7)·산 테두리.
+## 도착점은 다리에서 세 칸(144m) 남쪽, 귀환 트리거는 도착점에서 한 칸
+## (48m) 더 남쪽 — TRAVEL_TRIGGER_RADIUS(5)보다 훨씬 떨어져 있어 도착
+## 하자마자 되돌아가는 선택지가 다시 뜨지 않는다.
+const DOCK_GRID := Vector2i(4, 3)
+const ARRIVAL_GRID := Vector2i(4, 6)
+const RETURN_GRID := Vector2i(4, 7)
+const GULL_GRID := Vector2i(6, 4)
+const FISHER_GRID := Vector2i(2, 5)
 
 ## 포구 콘텐츠 확장(2026-09-16, "GO 포구 콘텐츠 확장") — npc_builder.gd
 ## VILLAGERS의 상인(offer_a/b 한 번뿐인 제안) 패턴을 그대로 옮긴다.
@@ -62,7 +71,6 @@ const DOCK_Z_OFFSET := 10.0    # 모래에서 물 쪽으로 뻗은 짧은 선착
 const FISHER_ID := "npc_fisher"
 const FISHER_NAME := "늙은 어부"
 const FISHER_GLB := "res://assets/characters/character-b.glb"
-const FISHER_LOCAL := Vector3(-14.0, 1.0, -10.0)
 const FISHER_TALK_RADIUS := 14.0
 const FISHER_TALK_GAP_SEC := 45.0
 const FISHER_LINE := "그물은 무겁지만 바다는 정직하지."
@@ -119,92 +127,36 @@ func _close_village_prompt() -> void:
 func _travel_to_harbor(player: Node3D) -> void:
 	if _village_layer:
 		_village_layer.queue_free()
-	(player as Node3D).global_position = REGION_ORIGIN + ARRIVAL_LOCAL
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	(player as Node3D).global_position = TestMap.world_pos(ARRIVAL_GRID.x, ARRIVAL_GRID.y, COAST_REGION) + Vector3(0, ground + 1.0, 0)
 	CodexState.discover("place", "harbor")
 	Toast.show(self, "먼 포구에 닿았다.", 2.5)
 	_village_triggered = false
 
 
-## === 포구(두 번째 지역) ===
+## === 포구(두 번째 지역, 진짜 타일맵) ===
 
 func _build_harbor() -> void:
-	_build_ground()
-	_build_water()
-	_build_walls()
+	var terrain := Node3D.new()
+	terrain.set_script(TerrainBuilder)
+	terrain.name = "CoastTerrain"
+	terrain.set("region_id", COAST_REGION)
+	add_child(terrain)
 	_build_dock()
 	_build_gull()
 	_build_fisherman()
 	_build_return_trigger()
 
 
-func _build_ground() -> void:
-	var mi := MeshInstance3D.new()
-	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(HARBOR_HALF * 2.0, HARBOR_HALF * 2.0)
-	mi.mesh = mesh
-	mi.position = REGION_ORIGIN
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = SAND_COLOR
-	mi.material_override = mat
-	add_child(mi)
-
-	## 물 위까지 포함해 한 장짜리 평평한 충돌로 덮는다(FOREST 집 안 바닥과
-	## 같은 절 — 두 번째 지역은 첫 걸음이라 "물엔 못 들어간다"는 규칙까지
-	## 만들지 않는다, 얕은 물가를 걸을 수 있는 정도로 남긴다).
-	var body := StaticBody3D.new()
-	body.name = "HarborGround"
-	var cs := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = Vector3(HARBOR_HALF * 2.0, 1.0, HARBOR_HALF * 2.0)
-	cs.shape = box
-	cs.position = REGION_ORIGIN + Vector3(0, -0.5, 0)
-	body.add_child(cs)
-	add_child(body)
-
-
-func _build_water() -> void:
-	var mi := MeshInstance3D.new()
-	var mesh := PlaneMesh.new()
-	## 북쪽 절반(z 0~HARBOR_HALF)만 덮는다 — 담벼락(_build_walls) 밖으로
-	## 안 삐져나오게 정확히 절반 크기·절반 오프셋으로 맞췄다.
-	mesh.size = Vector2(HARBOR_HALF * 2.0, HARBOR_HALF)
-	mi.mesh = mesh
-	mi.position = REGION_ORIGIN + Vector3(0, 0.05, WATER_Z_OFFSET)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = WATER_COLOR
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mi.material_override = mat
-	add_child(mi)
-
-
-## 첫 걸음이라 포구를 사방 담벼락으로만 둘러 "밖으로 못 나간다"는 걸
-## 확실히 한다(TestMap의 "^" 산 벽과 같은 역할 — 새 지형 시스템 없이
-## primitive 벽 넷으로 대신한다).
-func _build_walls() -> void:
-	var half := HARBOR_HALF
-	var specs := [
-		[Vector3(0, WALL_HEIGHT * 0.5, -half), Vector3(half * 2.0, WALL_HEIGHT, 1.0)],
-		[Vector3(0, WALL_HEIGHT * 0.5, half), Vector3(half * 2.0, WALL_HEIGHT, 1.0)],
-		[Vector3(-half, WALL_HEIGHT * 0.5, 0), Vector3(1.0, WALL_HEIGHT, half * 2.0)],
-		[Vector3(half, WALL_HEIGHT * 0.5, 0), Vector3(1.0, WALL_HEIGHT, half * 2.0)],
-	]
-	for spec: Array in specs:
-		var body := StaticBody3D.new()
-		var cs := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = spec[1]
-		cs.shape = box
-		cs.position = REGION_ORIGIN + spec[0]
-		body.add_child(cs)
-		add_child(body)
-
-
-## landmarks_builder.gd _add_bridge()의 planks.glb 이어 붙이기와 같은
-## 방식(35장) — 모래에서 물 쪽으로 뻗은 짧은 선착장.
+## landmarks_builder.gd _add_bridge()와 완전히 같은 방식(35장) — 물에서
+## 모래로 건너는 유일한 자리(DOCK_GRID, "B" 타일)에 널판을 얹는다. 충돌은
+## terrain_builder.gd의 "B" 타일이 이미 같은 높이(BRIDGE_CLEARANCE)에
+## 놓아 두므로 여기서 따로 만들지 않는다.
 func _build_dock() -> void:
-	var dock_length := 18.0
+	var bed: float = TerrainBuilder.LEGEND["B"].height
+	var dock_length := 44.0   # landmarks_builder.gd _add_bridge()와 같은 값(칸 하나, 48m)
 	var dock_width := 4.0
-	var base_pos := REGION_ORIGIN + Vector3(0, 0.1, DOCK_Z_OFFSET)
+	var base_pos := TestMap.world_pos(DOCK_GRID.x, DOCK_GRID.y, COAST_REGION) + Vector3(0, bed + TerrainBuilder.BRIDGE_CLEARANCE, 0)
 
 	var plank_mesh := GLBUtils.extract_mesh(PLANK_GLB)
 	if plank_mesh == null:
@@ -233,13 +185,19 @@ func _build_dock() -> void:
 		mmi.name = "Dock"
 		add_child(mmi)
 
-	_add_discovery_area("harbor", REGION_ORIGIN, 25.0)
+	## ARRIVAL_GRID(모래 마당 한복판)를 중심으로 넉넉히 잡는다 — 어차피
+	## `_travel_to_harbor()`가 도착 즉시 discover()를 부르니 이 영역은
+	## 걸어서 왔을 때를 위한 안전망이다(중복 호출은 discover()가 알아서 막는다).
+	_add_discovery_area("harbor", TestMap.world_pos(ARRIVAL_GRID.x, ARRIVAL_GRID.y, COAST_REGION), 90.0)
 
 
 ## animal_builder.gd OX_HOMES와 같은 완전 정지형(act:null) — 배회·도주가
 ## 없어 근접만으로 발견을 찍는다(그 파일 헤더의 소 항목과 같은 경계).
+## 물가에 붙은 모래 칸(GULL_GRID)에 세운다 — 물 위가 아니라 물가에 서
+## 있는 새라는 그림.
 func _build_gull() -> void:
-	var pos := REGION_ORIGIN + GULL_LOCAL
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var pos := TestMap.world_pos(GULL_GRID.x, GULL_GRID.y, COAST_REGION) + Vector3(0, ground + 0.6, 0)
 	var mi := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = 0.35
@@ -256,9 +214,10 @@ func _build_gull() -> void:
 ## npc_builder.gd _spawn()/_build_body()와 같은 골격 — 대화만 하는 주민
 ## 하나(사명 없음, 상인처럼 한 번뿐인 제안만 있다).
 func _build_fisherman() -> void:
+	var ground: float = TerrainBuilder.LEGEND["D"].height
 	var root := Node3D.new()
 	root.name = "Fisherman"
-	root.position = REGION_ORIGIN + FISHER_LOCAL
+	root.position = TestMap.world_pos(FISHER_GRID.x, FISHER_GRID.y, COAST_REGION) + Vector3(0, ground, 0)
 	add_child(root)
 
 	var body := _build_fisher_body()
@@ -338,7 +297,8 @@ func _resolve_fisher_offer(layer_box: Dictionary, text: String, exp_reward: floa
 
 
 func _build_return_trigger() -> void:
-	var pos := REGION_ORIGIN
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var pos := TestMap.world_pos(RETURN_GRID.x, RETURN_GRID.y, COAST_REGION) + Vector3(0, ground, 0)
 	var area := Area3D.new()
 	area.name = "HarborReturn"
 	var cs := CollisionShape3D.new()

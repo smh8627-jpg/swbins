@@ -3,8 +3,16 @@ extends Node3D
 ## VERTICAL_SLICE.md 27절 — TestMap의 글자 지도를 읽어 색칠한 바닥을 세운다.
 ## 칸마다 MeshInstance3D를 만들지 않는다 — 종류별 MultiMesh 하나에 자리만
 ## 채운다(사가의숲 웹판 village-view3d.js의 InstancedMesh 원칙과 같다).
+##
+## 2026-09-16, GO "진짜 두 번째 지역" — 지금까지 이 파일은 TestMap.ROWS
+## (마을) 하나만 알았다. `region_id`(export, 기본 "village")를 추가해
+## test_map.gd REGIONS 어떤 지역이든 그릴 수 있게 넓혔다 — 기본값이 그대로
+## "village"라 TestVillage.tscn의 기존 TerrainBuilder 노드는 아무 것도
+## 안 바꿔도 이전과 완전히 같은 지형을 그린다(헤드리스 회귀 md5로 확인).
 
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
+
+@export var region_id := "village"
 
 ## height — 사가의숲 웹판 village-view3d.js가 "물은 12cm 낮춘다"고 한 것과
 ## 같은 원칙. 산은 두드러지고 강은 패어 보이게, 나머지는 거의 평면에 가깝게.
@@ -21,6 +29,9 @@ const LEGEND := {
 	"R": {"name": "ruins", "color": Color(0.45, 0.42, 0.4), "walkable": true, "height": 0.2},
 	"B": {"name": "bridge", "color": Color(0.5, 0.36, 0.2), "walkable": true, "height": -1.0},
 	"W": {"name": "waterfall", "color": Color(0.3, 0.42, 0.48), "walkable": true, "height": 0.3},
+	## 2026-09-16, "coast" 지역 신규 — region2_coast.gd가 primitive
+	## PlaneMesh(SAND_COLOR)로 자급자족하던 모래밭을 같은 색으로 옮긴다.
+	"D": {"name": "sand", "color": Color(0.76, 0.68, 0.5), "walkable": true, "height": 0.05},
 }
 
 const WATER_HEIGHT_ABOVE_BED := 0.55
@@ -55,8 +66,8 @@ func _ready() -> void:
 ## 섞는다 — 산·강은 여전히 벽처럼 뚝 끊겨야 막힌 지형임이 드러난다(충돌은
 ## 이미 칸마다 따로라 시각과 무관, `_build_collision()` 참고).
 func _build() -> void:
-	var rows := TestMap.ROWS
-	var half := TestMap.TILE_SIZE * 0.5
+	var rows := TestMap.rows_of(region_id)
+	var half := TestMap.tile_size_of(region_id) * 0.5
 
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -69,7 +80,7 @@ func _build() -> void:
 				push_warning("terrain_builder: 모르는 지형 글자 '%s'" % ch)
 				continue
 			var info: Dictionary = LEGEND[ch]
-			var center := TestMap.world_pos(x, y) + Vector3(0, info.height, 0)
+			var center := TestMap.world_pos(x, y, region_id) + Vector3(0, info.height, 0)
 			var own_color: Color = info.color
 			var col00 := _corner_color(rows, x, y)
 			var col10 := _corner_color(rows, x + 1, y)
@@ -161,7 +172,8 @@ func _corner_color(rows: Array, cx: int, cy: int) -> Color:
 ## 강 바닥(river) 타일 위에 반투명 파란 수면을 한 겹 더 얹는다. 다리(B) 밑도
 ## 강이므로 같이 덮는다 — 다리는 landmarks_builder.gd가 그 위에 널판을 놓는다.
 func _build_water() -> void:
-	var rows := TestMap.ROWS
+	var rows := TestMap.rows_of(region_id)
+	var tile_size := TestMap.tile_size_of(region_id)
 	var positions: Array[Vector3] = []
 	for y in rows.size():
 		var row: String = rows[y]
@@ -170,13 +182,13 @@ func _build_water() -> void:
 			if ch != "~" and ch != "B":
 				continue
 			var bed_height: float = LEGEND[ch].height
-			positions.append(TestMap.world_pos(x, y) + Vector3(0, bed_height + WATER_HEIGHT_ABOVE_BED, 0))
+			positions.append(TestMap.world_pos(x, y, region_id) + Vector3(0, bed_height + WATER_HEIGHT_ABOVE_BED, 0))
 
 	if positions.is_empty():
 		return
 
 	var quad := PlaneMesh.new()
-	quad.size = Vector2(TestMap.TILE_SIZE, TestMap.TILE_SIZE)
+	quad.size = Vector2(tile_size, tile_size)
 
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.25, 0.45, 0.62, 0.75)
@@ -200,7 +212,8 @@ func _build_water() -> void:
 ## 벽으로, 다리는 널판 높이에서, 나머지는 제 타일 높이에서 딛는다.
 ## (전에는 완전 평면 바닥 하나뿐이라 산이 허공에 뜬 것처럼 보였다.)
 func _build_collision() -> void:
-	var rows := TestMap.ROWS
+	var rows := TestMap.rows_of(region_id)
+	var tile_size := TestMap.tile_size_of(region_id)
 	var body := StaticBody3D.new()
 	body.name = "TerrainCollision"
 	add_child(body)
@@ -212,21 +225,21 @@ func _build_collision() -> void:
 			if not LEGEND.has(ch):
 				continue
 			var info: Dictionary = LEGEND[ch]
-			var pos := TestMap.world_pos(x, y)
+			var pos := TestMap.world_pos(x, y, region_id)
 			var cs := CollisionShape3D.new()
 			var box := BoxShape3D.new()
 
 			if ch == "^" or ch == "~":
-				box.size = Vector3(TestMap.TILE_SIZE, BLOCK_HEIGHT, TestMap.TILE_SIZE)
+				box.size = Vector3(tile_size, BLOCK_HEIGHT, tile_size)
 				cs.shape = box
 				cs.position = pos + Vector3(0, info.height, 0)
 			elif ch == "B":
 				var bridge_top: float = info.height + BRIDGE_CLEARANCE
-				box.size = Vector3(TestMap.TILE_SIZE, 0.6, TestMap.TILE_SIZE)
+				box.size = Vector3(tile_size, 0.6, tile_size)
 				cs.shape = box
 				cs.position = pos + Vector3(0, bridge_top, 0)
 			else:
-				box.size = Vector3(TestMap.TILE_SIZE, 1.0, TestMap.TILE_SIZE)
+				box.size = Vector3(tile_size, 1.0, tile_size)
 				cs.shape = box
 				cs.position = pos + Vector3(0, info.height - 0.5, 0)
 

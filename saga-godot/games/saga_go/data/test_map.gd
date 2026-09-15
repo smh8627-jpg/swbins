@@ -43,21 +43,71 @@ const ROWS := [
 
 const TILE_SIZE := 48.0
 
-static func size() -> Vector2i:
-	return Vector2i(ROWS[0].length(), ROWS.size())
+## 2026-09-16, GO "진짜 두 번째 지역" 착수 — region2_coast.gd가 지금까지
+## primitive(PlaneMesh 사각형+박스 벽)로 자급자족하던 포구를, 마을과 같은
+## 글자 지도+terrain_builder.gd 파이프라인으로 다시 짓는다. 이 파일을
+## 마을 하나만 아는 상태에서 **여러 지역을 아는 레지스트리**로 넓히되,
+## 기존 정적 API(ROWS·TILE_SIZE 상수, 인자 없는 size()/tile_at()/world_pos())는
+## 전부 그대로 남긴다(마을 쪽 호출부 전부가 여전히 이 형태로 부른다) — 새
+## `region_id` 인자를 덧붙이는 오버로드만 얹는다(기본값 "village" = 지금
+## ROWS 그대로, 딱 하나뿐이던 지역).
+##
+## 지역마다 원점이 다르다(region2_coast.gd REGION_ORIGIN=(8000,0,0)과 같은
+## 발상 — 마을 지형과 절대 안 겹치는 먼 좌표). 마을은 원점 0 그대로라
+## 기존 월드 좌표(Player.tscn 스폰 등)가 하나도 안 바뀐다.
+const REGIONS := {
+	"village": {"rows": ROWS, "tile_size": TILE_SIZE, "origin": Vector3.ZERO},
+	## "coast" — region2_coast.gd 참고. 9×9(432m 사방, 마을 11×11의 8할쯤).
+	## 북쪽은 바다(~, 통행 불가 — 마을의 강과 같은 규칙), 남쪽은 모래밭(D,
+	## 새 지형 글자 — terrain_builder.gd LEGEND에 추가), 가운데 한 칸(B,
+	## 다리)이 물가에서 모래로 건너오는 선착장 자리다. 사방 산(^) 테두리로
+	## 막는다 — 마을과 같은 원칙(다리로만 강을 건너듯, 여긴 애초에 물에
+	## 접한 칸이 딱 하나뿐이라 건널 필요조차 없다, 선착장은 순수 장식+
+	## 발견 지점).
+	"coast": {
+		"rows": [
+			"^^^^^^^^^",
+			"^~~~~~~~^",
+			"^~~~~~~~^",
+			"^~~~B~~~^",
+			"^DDDDDDD^",
+			"^DDDDDDD^",
+			"^DDDDDDD^",
+			"^DDDDDDD^",
+			"^^^^^^^^^",
+		],
+		"tile_size": TILE_SIZE,
+		"origin": Vector3(8000.0, 0.0, 0.0),
+	},
+}
 
-static func tile_at(grid_x: int, grid_y: int) -> String:
-	if grid_y < 0 or grid_y >= ROWS.size():
+static func rows_of(region_id: String = "village") -> Array:
+	return REGIONS[region_id].rows
+
+static func tile_size_of(region_id: String = "village") -> float:
+	return REGIONS[region_id].tile_size
+
+static func origin_of(region_id: String = "village") -> Vector3:
+	return REGIONS[region_id].origin
+
+static func size(region_id: String = "village") -> Vector2i:
+	var rows: Array = rows_of(region_id)
+	return Vector2i(String(rows[0]).length(), rows.size())
+
+static func tile_at(grid_x: int, grid_y: int, region_id: String = "village") -> String:
+	var rows: Array = rows_of(region_id)
+	if grid_y < 0 or grid_y >= rows.size():
 		return "^"
-	var row: String = ROWS[grid_y]
+	var row: String = rows[grid_y]
 	if grid_x < 0 or grid_x >= row.length():
 		return "^"
 	return row[grid_x]
 
-## 격자 좌표 → 월드 좌표(중심이 원점). land.js와 같은 규칙 — 지도의 그림과
-## 걷는 자리가 같은 칸 크기를 쓴다.
-static func world_pos(grid_x: float, grid_y: float) -> Vector3:
-	var s := size()
+## 격자 좌표 → 월드 좌표(각 지역 원점 기준, 지역 안에서는 중심이 그 원점).
+## land.js와 같은 규칙 — 지도의 그림과 걷는 자리가 같은 칸 크기를 쓴다.
+static func world_pos(grid_x: float, grid_y: float, region_id: String = "village") -> Vector3:
+	var s := size(region_id)
+	var tile_size: float = tile_size_of(region_id)
 	var half_w := s.x * 0.5
 	var half_h := s.y * 0.5
-	return Vector3((grid_x - half_w) * TILE_SIZE, 0.0, (grid_y - half_h) * TILE_SIZE)
+	return origin_of(region_id) + Vector3((grid_x - half_w) * tile_size, 0.0, (grid_y - half_h) * tile_size)
