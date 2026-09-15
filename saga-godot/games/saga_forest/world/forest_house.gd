@@ -25,12 +25,21 @@ const ForestHome := preload("res://games/saga_forest/data/forest_home.gd")
 ## "집 꾸미기" 체계지만, 이번 항목이 요청받은 것은 벽지·장판뿐이라 그
 ## 둘만 옮긴다 — 가구 배치·증축은 범위 밖으로 남긴다(다음에 "집 꾸미기"
 ## 자체를 넓힐 때 이 표를 이어 쓰면 된다).
+##
+## **신규 종류(2026-09-15 추가)** — 웹판엔 없던, 이 슬라이스만의 프리미엄
+## 티어 둘씩. `_daily_pick()`·`_open_finish_menu()`·ForestSaveState.owns_finish()
+## 전부 키를 문자열로만 다뤄 목록 길이에 의존하지 않는 데이터 기반 구조라
+## (32장 원칙) 코드 변경 없이 항목만 더했다. 기존 최고가(벽 5200·장판
+## 4200)보다 확실히 비싸게 잡아 "다음 목표"로 남게 했다 — 도감 펫과
+## 달리 이건 창작 항목이라 id 고정 걱정 없이 자유롭게 늘릴 수 있다.
 const WALLS := [
 	{"key": "earth", "name": "흙벽", "price": 0, "c": "#e6d8bd"},
 	{"key": "hanji", "name": "한지벽", "price": 2000, "c": "#f4ecda"},
 	{"key": "sol", "name": "솔빛벽", "price": 3800, "c": "#5f7f5a"},
 	{"key": "muk", "name": "먹빛벽", "price": 3200, "c": "#5a5f6a"},
 	{"key": "dan", "name": "단청벽", "price": 5200, "c": "#c05a44"},
+	{"key": "cheonghwa", "name": "청화벽", "price": 6400, "c": "#3d5a80"},
+	{"key": "geumbak", "name": "금박벽", "price": 8000, "c": "#d4af37"},
 ]
 const FLOORS := [
 	{"key": "wood", "name": "마루", "price": 0, "a": "#c2925c"},
@@ -38,6 +47,8 @@ const FLOORS := [
 	{"key": "jangpan", "name": "장판", "price": 2200, "a": "#d8b26a"},
 	{"key": "stone", "name": "박석", "price": 3400, "a": "#9aa0a6"},
 	{"key": "ondol", "name": "구들장", "price": 4200, "a": "#b0a08a"},
+	{"key": "hongmok", "name": "홍목마루", "price": 5800, "a": "#8a3d2b"},
+	{"key": "okdol", "name": "옥돌마루", "price": 6600, "a": "#6fa287"},
 ]
 const FINISH_SHOP_RADIUS := 1.6
 
