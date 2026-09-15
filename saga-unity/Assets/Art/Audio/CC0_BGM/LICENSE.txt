@@ -1,0 +1,34 @@
+
+###############################################################################
+
+	BGM tracks — five separate CC0 (public domain) uploads from
+	opengameart.org, one per saga-unity game. Each retains its own
+	author credit below (not required by CC0, kept for traceability).
+
+	License (CC0) for all five files:
+	http://creativecommons.org/publicdomain/zero/1.0/
+
+				------------------------------
+
+	forest_peaceful_town.ogg
+	  "Peaceful Town" by aroachifoundonmypillow
+	  https://opengameart.org/content/peaceful-town
+
+	go_town_theme.mp3
+	  "Town Theme (RPG)" by cynicmusic (cynicmusic.com)
+	  https://opengameart.org/content/town-theme-rpg
+
+	dungeon_ambience.ogg
+	  "Dungeon Ambience" by yd
+	  https://opengameart.org/content/dungeon-ambience
+
+	realm_war_theme.ogg
+	  "War Theme" by spring-spring
+	  https://opengameart.org/content/war-theme
+
+	story_fight_run_breath_deeply.mp3
+	  "It's time for adventure vol 2 - 13 Fight, run, breath deeply"
+	  by Komiku (loyalty-freak-music)
+	  https://opengameart.org/content/fight-run-breath-deeply
+
+###############################################################################
