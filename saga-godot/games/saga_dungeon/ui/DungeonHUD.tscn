@@ -1,4 +1,4 @@
-[gd_scene load_steps=78 format=3]
+[gd_scene load_steps=83 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/virtual_joystick.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/hp_label.gd" id="2"]
@@ -79,6 +79,11 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/buff_marshal4_button.gd" id="77"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_mystic_button.gd" id="78"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_mystic2_button.gd" id="79"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/swing_warrior3_button.gd" id="80"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_scholar4_button.gd" id="81"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_marshal2_button.gd" id="82"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/heal_mystic_button.gd" id="83"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/chain_mystic2_button.gd" id="84"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -1143,3 +1148,68 @@ offset_bottom = -5790.0
 text = "🔥"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("79")
+
+[node name="SwingWarrior3Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -5940.0
+offset_right = -40.0
+offset_bottom = -5870.0
+text = "🧊"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("80")
+
+[node name="NovaScholar4Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6020.0
+offset_right = -40.0
+offset_bottom = -5950.0
+text = "🦠"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("81")
+
+[node name="NovaMarshal2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6100.0
+offset_right = -40.0
+offset_bottom = -6030.0
+text = "☠️"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("82")
+
+[node name="HealMysticButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6180.0
+offset_right = -40.0
+offset_bottom = -6110.0
+text = "💗"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("83")
+
+[node name="ChainMystic2Button" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6260.0
+offset_right = -40.0
+offset_bottom = -6190.0
+text = "🧊"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("84")

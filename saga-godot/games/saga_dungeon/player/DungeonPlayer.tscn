@@ -1,4 +1,4 @@
-[gd_scene load_steps=74 format=3]
+[gd_scene load_steps=79 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/dungeon_camera_rig.gd" id="2"]
@@ -73,6 +73,11 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_buff_marshal4.gd" id="71"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_dash_mystic.gd" id="72"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/skill_swing_mystic2.gd" id="73"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_swing_warrior3.gd" id="74"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova_scholar4.gd" id="75"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_nova_marshal2.gd" id="76"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_heal_mystic.gd" id="77"]
+[ext_resource type="Script" path="res://games/saga_dungeon/player/skill_chain_mystic2.gd" id="78"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.9
@@ -312,3 +317,18 @@ script = ExtResource("72")
 
 [node name="SkillSwingMystic2" type="Node" parent="."]
 script = ExtResource("73")
+
+[node name="SkillSwingWarrior3" type="Node" parent="."]
+script = ExtResource("74")
+
+[node name="SkillNovaScholar4" type="Node" parent="."]
+script = ExtResource("75")
+
+[node name="SkillNovaMarshal2" type="Node" parent="."]
+script = ExtResource("76")
+
+[node name="SkillHealMystic" type="Node" parent="."]
+script = ExtResource("77")
+
+[node name="SkillChainMystic2" type="Node" parent="."]
+script = ExtResource("78")

@@ -482,6 +482,37 @@ class_name DungeonSkills
 ## swing_mystic2_button.gd(🔥). 입력 액션 dungeon_skill_61~66 — F21~F25
 ## 다음이라 F26~F31(4194357~4194362, `--headless --script`로 조회해
 ## 확인 — 이전 여섯 번의 F 구간과 정확히 같은 등차 패턴)로 이어간다.
+##
+## **2026-09-15, 새 세션에서 또 이어서("이어해줘").** 직전 세션이 웹판과
+## 대조해 정확히 좁혀 둔 목록 그대로 — 무장·책사·도독 br5는 row0만 있어
+## row1부터, 방사는 br4·br5 둘 다 row2만 비어 있었다. 궁장 br0(a_multi,
+## 다중 표적 판정 필요)는 이번에도 보류. 전부 이미 옮겨진 모양(swing·
+## nova·heal·chain)만 쓴다 — 새 판정 로직 없음:
+## - 무장 `w_frostcleave`(빙인참, br5row1, swing, r=1.7, kb=30, el:'cold')
+##   — prereq `w_intimidate`. 무장이 swing을 세 갈래(br0 w_whirl·w_cleave·
+##   br5 w_frostcleave)에 갖는 첫 사례.
+## - 책사 `s_plague`(역병, br5row1, nova, r=130→3.82, el:'pois') — prereq
+##   `s_restore`. 책사의 네 번째 nova(s_blaze·s_meteor·s_frost에 이어).
+## - 도독 `m_venomfield`(독진, br5row1, nova, r=140→4.12, el:'pois') —
+##   prereq `m_flamesaber`. 도독의 두 번째 nova(m_ring에 이어).
+## - 방사 `y_soulmend`(혼백치유, br4row2, heal, v=20, grow=7) — prereq
+##   `y_specter`. **방사의 첫 heal.** 방사를 br4 3/3으로.
+## - 방사 `y_frostchain`(빙쇄, br5row2, chain, el:'cold') — prereq
+##   `y_hellstrike`. 방사의 두 번째 chain(y_chain에 이어). 방사를 br5
+##   3/3으로.
+## r=4.12(m_venomfield)는 m_ring과 원작 r이 똑같이 140이라 같은 환산값이
+## 그대로 나온다. w_frostcleave의 kb(넉백 30)는 이 슬라이스에 넉백이
+## 없어 값만 보존하고 안 쓴다(w_palm·y_hellstrike와 같은 판단).
+## y_frostchain은 원작에 `r` 필드가 없어 skill_chain_mystic.gd의
+## DEFAULT_RANGE(7.65) 그대로 먹는다(y_chain과 같은 경계). 신규 10개:
+## skill_swing_warrior3.gd/swing_warrior3_button.gd(🧊)·skill_nova_
+## scholar4.gd/nova_scholar4_button.gd(🦠)·skill_nova_marshal2.gd/
+## nova_marshal2_button.gd(☠️)·skill_heal_mystic.gd/heal_mystic_
+## button.gd(💗)·skill_chain_mystic2.gd/chain_mystic2_button.gd(🧊).
+## 입력 액션 dungeon_skill_67~71 — F26~F31 다음인 F32~F35(4194363~
+## 4194366, `--headless --script`로 조회해 확인)까지만 네 개고 Godot는
+## KEY_F36이 없어(KeyList가 F35에서 끝난다, 조회로 확인) 다섯째는
+## 처음으로 숫자패드(KP_0=4194438, 마찬가지로 조회해 확인)를 쓴다.
 
 const MAX_RANK := 5
 
@@ -917,6 +948,41 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "y_hellstrike", "cls": "mystic", "br": 5, "row": 1, "name": "화령타(火靈打)",
 		"shape": "swing", "cd": 6.0, "r": 1.7, "el": "fire",
 		"eff": "", "v": 1.8, "grow": 0.4, "desc": "귀화(鬼火)를 둘러 손이 닿는 대로 친다." },
+	## 무장(武將) br=5 row 1 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀, kb=30은 넉백 없음). prereq w_intimidate(같은 br row0). 무장이
+	## swing을 세 갈래에 갖는 첫 사례(br0 w_whirl·w_cleave, br5
+	## w_frostcleave).
+	{ "key": "w_frostcleave", "cls": "warrior", "br": 5, "row": 1, "name": "빙인참(氷刃斬)",
+		"shape": "swing", "cd": 6.0, "r": 1.7, "el": "cold",
+		"eff": "", "v": 1.8, "grow": 0.4, "desc": "날을 얼려 벤다. 맞은 적이 굼떠진다." },
+	## 책사(策士) br=5 row 1 — data-skill.js 그대로(cost=32는 기력이 없어
+	## 안 씀). r=3.82는 y_thunderdoom·a_gale과 같은 환산(원작 r도 130으로
+	## 같다). prereq s_restore(같은 br row0). 책사의 네 번째 nova
+	## (s_blaze·s_meteor·s_frost에 이어).
+	{ "key": "s_plague", "cls": "scholar", "br": 5, "row": 1, "name": "역병(疫病)",
+		"shape": "nova", "cd": 10.0, "r": 3.82, "el": "pois",
+		"eff": "", "v": 2.1, "grow": 0.5, "desc": "둘레에 역병을 퍼뜨린다." },
+	## 도독(都督) br=5 row 1 — data-skill.js 그대로(cost=32는 기력이 없어
+	## 안 씀). r=4.12는 m_ring과 원작 r이 똑같이 140이라 같은 환산값이
+	## 그대로 나온다. prereq m_flamesaber(같은 br row0). 도독의 두 번째
+	## nova(m_ring에 이어).
+	{ "key": "m_venomfield", "cls": "marshal", "br": 5, "row": 1, "name": "독진(毒陣)",
+		"shape": "nova", "cd": 10.0, "r": 4.12, "el": "pois",
+		"eff": "", "v": 2.2, "grow": 0.5, "desc": "둘레에 독 기운을 퍼뜨린다." },
+	## 방사(方士) br=4 row 2 — data-skill.js 그대로(cost=34는 기력이 없어
+	## 안 씀). heal은 max_hp×value_at/100(skill_heal_warrior.gd와 같은
+	## 경계). prereq y_specter(같은 br row1). 방사의 첫 heal. 방사를 br4
+	## 3/3으로.
+	{ "key": "y_soulmend", "cls": "mystic", "br": 4, "row": 2, "name": "혼백치유(魂魄治癒)",
+		"shape": "heal", "cd": 18.0,
+		"eff": "", "v": 20.0, "grow": 7.0, "desc": "떠도는 기운을 모아 상처를 아문다." },
+	## 방사(方士) br=5 row 2 — data-skill.js 그대로(cost=24는 기력이 없어
+	## 안 씀). r 필드 없음 → skill_chain_mystic.gd DEFAULT_RANGE(7.65)
+	## 그대로(y_chain과 같은 경계). prereq y_hellstrike(같은 br row1).
+	## 방사의 두 번째 chain(y_chain에 이어). 방사를 br5 3/3으로.
+	{ "key": "y_frostchain", "cls": "mystic", "br": 5, "row": 2, "name": "빙쇄(氷鎖)",
+		"shape": "chain", "cd": 9.0, "el": "cold",
+		"eff": "", "v": 1.8, "grow": 0.4, "desc": "언 기운이 적 사이를 옮겨 붙는다." },
 ]
 
 
