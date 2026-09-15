@@ -17,6 +17,7 @@
     { "key": "scale.large", "value": "Large" },
     { "key": "hud.done", "value": " — Done!" },
     { "key": "hud.mp", "value": "💧 MP {0}/{1}" },
+    { "key": "hud.level", "value": "Lv.{0}" },
     { "key": "npc.scout_name", "value": "Field Scout" },
     { "key": "npc.scout_choice_prompt", "value": "You've even defeated the chief! How shall I thank you for your effort?" },
     { "key": "npc.scout_choice_a", "value": "Share a toast together" },
@@ -33,6 +34,17 @@
     { "key": "npc.scout_line_kills_remaining", "value": "There are still about {0} Yellow Turbans left." },
     { "key": "npc.scout_line_initial", "value": "A band of Yellow Turbans has camped on this field. Be careful." },
     { "key": "quest.first_hunt", "value": "First Hunt" },
-    { "key": "quest.boss_head", "value": "The Chief's Head" }
+    { "key": "quest.boss_head", "value": "The Chief's Head" },
+    { "key": "npc.trainer_name", "value": "Job Trainer" },
+    { "key": "npc.trainer_choice_prompt", "value": "You may change your class now — choose your path" },
+    { "key": "npc.trainer_chosen", "value": "{0} — Changed class to {1}! HP+{2} ATK+{3}{4}" },
+    { "key": "npc.trainer_chosen_mp_suffix", "value": " MP+{0}" },
+    { "key": "npc.trainer_status_done", "value": "🎖️ {0} Lv.{1}" },
+    { "key": "npc.trainer_status_locked", "value": "Class change available from Lv.{0} (currently Lv.{1})" },
+    { "key": "npc.trainer_status_ready", "value": "You may change your class now" },
+    { "key": "job.warrior", "value": "Warrior" },
+    { "key": "job.archer", "value": "Archer" },
+    { "key": "job.rogue", "value": "Rogue" },
+    { "key": "job.mage", "value": "Mage" }
   ]
 }

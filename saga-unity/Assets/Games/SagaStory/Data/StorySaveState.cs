@@ -16,11 +16,11 @@ namespace Saga.Story.Data
     /// </summary>
     public static class StorySaveState
     {
-        // v5 — "STORY 확장 — 선택"(2026-09-14), 두목 처치 직후 장식적
-        // 분기 결과(choiceMade) 추가. 구버전 세이브는 0으로 들어와도
-        // StoryNpcState.Restore(scoutTalkCount, 0)이 "아직 안 고름"으로
-        // 처리해 무해하다(다시 척후병에게 물어보면 그만).
-        private const int SaveVersion = 5;
+        // v6 — "STORY 확장 — 전직·SP 투자 UI"(2026-09-15), level/exp/job
+        // 추가. 구버전 세이브는 level/exp가 기본값(0)으로 들어오는데,
+        // StoryJobState.Restore()가 Mathf.Max(1, level)로 최소 1레벨을
+        // 보장해 무해하다(job도 빈 문자열→"none"으로 정규화).
+        private const int SaveVersion = 6;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_story.json");
 
@@ -34,6 +34,9 @@ namespace Saga.Story.Data
             public string[] triggeredEvents;
             public int scoutTalkCount;
             public int choiceMade;
+            public int level;
+            public float exp;
+            public string job;
         }
 
         public static bool Save()
@@ -51,6 +54,9 @@ namespace Saga.Story.Data
                 triggeredEvents = events.ToArray(),
                 scoutTalkCount = StoryNpcState.ScoutTalkCount,
                 choiceMade = StoryNpcState.ChoiceMade,
+                level = StoryJobState.Level,
+                exp = StoryJobState.Exp,
+                job = StoryJobState.Job,
             };
 
             try
@@ -84,6 +90,7 @@ namespace Saga.Story.Data
             StoryQuestState.Restore(data.kills, data.bossKills);
             StoryWorldEventState.Restore(data.triggeredEvents);
             StoryNpcState.Restore(data.scoutTalkCount, data.choiceMade);
+            StoryJobState.Restore(data.level, data.exp, data.job);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)

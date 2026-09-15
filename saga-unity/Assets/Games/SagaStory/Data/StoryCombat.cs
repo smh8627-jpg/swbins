@@ -50,6 +50,12 @@ namespace Saga.Story.Data
         public const float MpMax = 100f;
         public const float MpRegenPerSec = 8f; // side.js MP_REGEN = core.tuned('side.mpRegen', 8)
 
+        /// <summary>2026-09-15 "전직·SP 투자 UI" — 방사(mage) 전직 시
+        /// grow.mp(+40)만큼 최대치가 늘어난다(StoryJobState.MpBonus).
+        /// `Mp`(현재치) 자체는 그대로 두고 이 상한만 커져, 다음 TickMpRegen
+        /// 호출부터 실제로 더 찰 수 있게 된다.</summary>
+        public static float MpMaxCurrent => MpMax + StoryJobState.MpBonus;
+
         public const float SweepCost = 18f;
         public const float SweepCooldown = 4f;
         public const float SweepMul = 1.8f;
@@ -73,7 +79,7 @@ namespace Saga.Story.Data
         /// StorySaveState.cs 참고, 다음 켤 때도 금방 다시 차므로 무해).</summary>
         public static float Mp { get; private set; } = MpMax;
 
-        public static void TickMpRegen(float dt) => Mp = Mathf.Min(MpMax, Mp + MpRegenPerSec * dt);
+        public static void TickMpRegen(float dt) => Mp = Mathf.Min(MpMaxCurrent, Mp + MpRegenPerSec * dt);
 
         public static bool TrySpendMp(float cost)
         {
@@ -84,7 +90,7 @@ namespace Saga.Story.Data
 
         /// <summary>PlaytestStorySlice.cs가 스킬 하나씩 독립으로 검증하려고
         /// 매번 MP를 채워 두는 용도(테스트 전용 공개 API — 리플렉션 대신).</summary>
-        public static void RestoreMp(float mp) => Mp = Mathf.Clamp(mp, 0f, MpMax);
+        public static void RestoreMp(float mp) => Mp = Mathf.Clamp(mp, 0f, MpMaxCurrent);
 
         private static bool _hitstopActive;
 
@@ -111,5 +117,48 @@ namespace Saga.Story.Data
             Time.timeScale = 1f;
             _hitstopActive = false;
         }
+
+        /// <summary>2026-09-15 "STORY 확장 — 전직·SP 투자 UI"(PLAN.md 51장
+        /// 다음 걸음, saga-godot `story_combat.gd`/`story_job_trainer.gd`가
+        /// 정본). 원작은 레벨/경험치가 이 슬라이스에 아예 없었다(위 StartHp
+        /// 주석 — "플레이어가 안 맞아 미사용"과 같은 이유로 지금까지 레벨이
+        /// 늘 1 고정) — 전직보다 먼저 이 밑바탕부터 채운다.
+        /// `core.js`/`story_combat.gd` expNeed()·gainExp() 원문 그대로,
+        /// 새 숫자를 상상하지 않는다.</summary>
+        public const float ExpBase = 50f;
+        public const float ExpGrowth = 1.28f;
+
+        public static float ExpNeed(int level) => ExpBase * Mathf.Pow(ExpGrowth, level - 1);
+
+        // side.js/story_combat.gd enemy_exp(is_boss, lv=1) 그대로: (6+lv*4)*(boss?15:1).
+        // 이 포트는 사냥터가 하나(lv=1 고정)라 매번 lv를 안 받고 고정값 둘로 좁힌다
+        // (FieldMapData.cs에 다른 판처럼 여러 사냥터·lv 축이 아예 없다).
+        public const float GruntExp = 10f;  // round((6+1*4)*1)
+        public const float BossExp = 150f;  // round((6+1*4)*15)
+
+        /// <summary>1차 전직(Lv.10) 넷 — data-job.js JOBS tier:1 grow만
+        /// 옮긴다(그 자리에서 새로 열리는 무예 넷씩, 총 16개는 범위 밖 —
+        /// saga-godot 쪽도 이걸 첫 걸음으로 그은 경계와 같다). key,
+        /// 표시이름, grow(hp/atk/mp).</summary>
+        public const int JobChangeLevel = 10;
+
+        public struct JobInfo
+        {
+            public string Name;
+            public float Hp;
+            public float Atk;
+            public float Mp;
+        }
+
+        public static readonly System.Collections.Generic.Dictionary<string, JobInfo> JobsTier1 =
+            new System.Collections.Generic.Dictionary<string, JobInfo>
+            {
+                ["warrior"] = new JobInfo { Name = "무사(武士)", Hp = 40f, Atk = 2f, Mp = 0f },
+                ["archer"] = new JobInfo { Name = "궁수(弓手)", Hp = 10f, Atk = 5f, Mp = 0f },
+                ["rogue"] = new JobInfo { Name = "협객(俠客)", Hp = 18f, Atk = 4f, Mp = 0f },
+                ["mage"] = new JobInfo { Name = "방사(方士)", Hp = 12f, Atk = 3f, Mp = 40f },
+            };
+
+        public static readonly string[] JobOrder = { "warrior", "archer", "rogue", "mage" };
     }
 }

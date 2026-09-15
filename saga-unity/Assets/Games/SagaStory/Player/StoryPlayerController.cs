@@ -51,8 +51,9 @@ namespace Saga.Story.Player
         private bool BuffActive => Time.time < _buffUntilTime;
 
         /// <summary>side.js buffOn().atk와 같은 자리 — 기합이 켜져 있으면
-        /// 연참·횡소·기탄 전부 이 값으로 굴린다.</summary>
-        private float CurrentAtk => StoryCombat.StartAtk * (BuffActive ? StoryCombat.BraceAtkMul : 1f);
+        /// 연참·횡소·기탄 전부 이 값으로 굴린다. 2026-09-15 — 전직으로
+        /// 얻은 grow.atk(StoryJobState.AtkBonus)를 기초값 위에 얹는다.</summary>
+        private float CurrentAtk => (StoryCombat.StartAtk + StoryJobState.AtkBonus) * (BuffActive ? StoryCombat.BraceAtkMul : 1f);
 
         private void Awake()
         {

@@ -51,6 +51,7 @@ namespace Saga.EditorTools
             BuildTerrain();
             BuildEnemies();
             BuildNpc();
+            BuildJobTrainer();
             BuildDiscovery();
             var (playerGo, playerController) = BuildPlayer();
             BuildCamera();
@@ -59,6 +60,7 @@ namespace Saga.EditorTools
             BuildHud();
             BuildDialogueLabel();
             BuildChoiceUi();
+            BuildJobChoiceUi();
             BuildDebugOverlay();
             BuildSaveButton();
             BuildSettingsUi();
@@ -197,6 +199,28 @@ namespace Saga.EditorTools
             else
             {
                 Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 척후병은 primitive capsule로 대체됨.");
+            }
+        }
+
+        /// <summary>PLAN.md 51장 "STORY 확장 — 전직·SP 투자 UI" —
+        /// 척후병(0.6m)·첫 잡졸(3m) 사이가 아니라 그 너머 5m에 세운다(로프
+        /// 6.8m·발판과도 안 겹치는 빈 자리, StoryJobTrainer.cs 클래스 주석
+        /// 참고). 전직 전엔 Lv.10 미만이라 장식만 보이고 실제 상호작용은
+        /// 사냥을 어느 정도 한 뒤에나 의미가 있다.</summary>
+        private static void BuildJobTrainer()
+        {
+            var trainerGo = new GameObject("Npc_JobTrainer");
+            trainerGo.transform.position = new Vector3(5f, 0.1f, 0f);
+            var trainer = trainerGo.AddComponent<StoryJobTrainer>();
+
+            var villagerModel = AssetDatabase.LoadAssetAtPath<GameObject>(VillagerModelPath);
+            if (villagerModel != null)
+            {
+                SetPrivateField(trainer, "modelPrefab", villagerModel);
+            }
+            else
+            {
+                Debug.LogWarning($"[BuildTestStoryScene] {VillagerModelPath} 를 못 찾음 — 전직관은 primitive capsule로 대체됨.");
             }
         }
 
@@ -436,6 +460,16 @@ namespace Saga.EditorTools
             SetPrivateField(choiceUi, "optionBButton", optionB);
             SetPrivateField(choiceUi, "optionBLabel", optionBLabel);
             panelGo.SetActive(false);
+        }
+
+        /// <summary>PLAN.md 51장 "전직·SP 투자 UI" — `StoryJobChoiceUi.cs`가
+        /// 자기 UI를 스스로 짓는 컴포넌트(GoSettingsPanel 등과 같은 결)라
+        /// Build() 한 번만 부르면 끝난다.</summary>
+        private static void BuildJobChoiceUi()
+        {
+            var go = new GameObject("StoryJobChoiceUI");
+            var ui = go.AddComponent<StoryJobChoiceUi>();
+            ui.Build();
         }
 
         private static Button BuildChoiceButton(Transform parent, Vector2 anchoredPos, out Text label)
