@@ -258,6 +258,13 @@ class_name DungeonSkills
 ##   `skill_swing_marshal2.gd`).
 ## 입력 액션 dungeon_skill_23~25(6·7·8 키, STORY가 쓰는 숫자를 재사용 —
 ## 두 게임은 동시에 안 돈다, w_chain 때 Z를 그대로 썼던 것과 같은 판단).
+##
+## **2026-09-15, 또 이어서 — 책사의 마지막 빈 갈래("이어해").** br1
+## (s_ice)만 채우면 **다섯 직업 전부 여섯 갈래(br0~5)에 row0을 갖는다**.
+## 책사 `s_ice`(빙탄, br1row0, bolt, el:'cold') 추가 — 책사가 bolt를
+## 세 갈래(br2 s_wave·br0 s_fire·br1 s_ice)에 갖는 첫 사례라 스크립트
+## 이름은 `skill_bolt_scholar3.gd`. 입력 액션 dungeon_skill_26(9 키,
+## STORY `story_job_skill4_3`이 쓰는 숫자 재사용 — 위와 같은 판단).
 
 const MAX_RANK := 5
 
@@ -362,6 +369,12 @@ const SKILLS: Array[Dictionary] = [
 	{ "key": "s_fire", "cls": "scholar", "br": 0, "row": 0, "name": "화탄(火彈)",
 		"shape": "bolt", "cd": 3.0, "el": "fire",
 		"eff": "", "v": 1.8, "grow": 0.45, "desc": "불덩이를 던진다." },
+	## 책사(策士) br=1 row 0 — data-skill.js 그대로(cost=16은 기력이 없어
+	## 안 씀). el:'cold' — 책사를 여섯 갈래 전부 채운다(다섯 직업 전부
+	## 6/6 완성). bolt가 책사의 세 번째 갈래(br2 s_wave·br0 s_fire에 이어).
+	{ "key": "s_ice", "cls": "scholar", "br": 1, "row": 0, "name": "빙탄(氷彈)",
+		"shape": "bolt", "cd": 3.0, "el": "cold",
+		"eff": "", "v": 1.5, "grow": 0.4, "desc": "언 덩이를 던진다." },
 	## 도독(都督) br=0 row 0 — data-skill.js 그대로(cost=34는 기력이 없어
 	## 안 씀). sec(지속초)은 랭크와 무관하게 고정(원작 그대로) — v(위력)만
 	## value_at()으로 랭크에 따라 는다. **`eff`를 비워 둔 이유** — 다른

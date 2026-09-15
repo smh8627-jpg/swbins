@@ -958,3 +958,28 @@ AUDIT.md "핵심 루프: 내려간다 → 방 치운다 → 은사 고른다 →
   넘어갈지, DUNGEON 밖(FOREST 51장 "생태계"·"생활" 남은 소소한 몫·
   saga-unity 트랙)으로 갈지 다음 세션이 판단할 것. GUI 실기 확인
   아직(몰아서 받을 것, 스물다섯 키/버튼 전부).
+
+## 26. 51장 "장비→빌드" — 책사 br1 채움, 다섯 직업 전부 6/6 갈래 완성 (2026-09-15, "이어해")
+
+- 책사(scholar) `s_ice`(빙탄, br1row0, bolt, el:'cold') 추가 — 이걸로
+  **다섯 직업 전부가 여섯 갈래(br0~5)에 row0을 갖는다**. 책사가 bolt를
+  세 갈래(br2 `s_wave`·br0 `s_fire`·br1 `s_ice`)에 갖는 첫 사례라
+  스크립트는 `skill_bolt_scholar3.gd`.
+- 기존 `skill_bolt.gd`/`skill_bolt_scholar2.gd`를 복제 — 새 판정 로직
+  없음. 신규 `skill_bolt_scholar3.gd`/`bolt_scholar3_button.gd`(❄️).
+  입력 액션 `dungeon_skill_26`(9 키, STORY `story_job_skill4_3`이 쓰는
+  숫자 재사용).
+- 검증: 헤드리스 에디터 임포트 오류 0건, `TestRoom.tscn` 3회 로그
+  완전 동일(`project.godot` diff는 입력 액션 한 블록 5줄뿐 재확인).
+  임시 씬(`_verify_sice.tscn`, 검증 후 삭제)으로 15항목 PASS — 투자
+  게이트·데미지 실측(14, `v1.5×9`)·`el:'cold'`·row0 선행조건 없음에
+  더해, **다섯 직업 모두 `DungeonSkills.skills_of()`의 br 집합이
+  정확히 {0,1,2,3,4,5} 6개인지**를 직접 코드로 세어 확인(archer·
+  warrior·scholar·marshal·mystic 전부 6개). GO 회귀 헤드리스 오류 0건.
+- **다음에 할 일**: 51장 "장비→빌드"의 "갈래 채우기" 단계는 여기서
+  마무리됐다 — 다섯 직업 모두 여섯 갈래 row0을 다 가졌다. 이제부턴
+  row>0(진짜 prereq 체인, 예: `a_multi` 다중발사·`a_venom` 도트·
+  `a_rain`/`s_meteor` 등 새 메커니즘이 필요한 것들)로 깊이를 더할지,
+  DUNGEON 밖(FOREST 51장 "생태계"·"생활" 남은 소소한 몫·saga-unity
+  트랙)으로 옮길지 다음 세션이 판단할 것. GUI 실기 확인 아직(몰아서
+  받을 것, 스물여섯 키/버튼 전부).
