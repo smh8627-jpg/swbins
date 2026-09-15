@@ -61,6 +61,7 @@ const GULL_GRID := Vector2i(6, 4)
 const FISHER_GRID := Vector2i(2, 5)
 const DRIFTWOOD_GRID := Vector2i(6, 6)
 const CRAB_GRID := Vector2i(2, 4)
+const BOAT_GRID := Vector2i(7, 5)
 
 ## 2026-09-16, 포구 콘텐츠 확장 2호 — simple_event.gd(웹판 event.js의
 ## "발견/돕기" 계열)와 같은 결의 가장 가벼운 사건: 한 번뿐, 선택지 고르면
@@ -71,6 +72,12 @@ const CRAB_GRID := Vector2i(2, 4)
 ## 판단했다.
 const DRIFTWOOD_ID := "coast_driftwood"
 const DRIFTWOOD_TRIGGER_RADIUS := 14.0
+
+## 2026-09-16, 포구 콘텐츠 확장 4호 — 표류물과 같은 결(simple_event.gd
+## 계열, 한 번뿐)의 두 번째 사건. 산 테두리에 붙은 구석 칸(BOAT_GRID)에
+## 둬 표류물·어부·게와 자리가 겹치지 않는다.
+const BOAT_ID := "coast_boat"
+const BOAT_TRIGGER_RADIUS := 14.0
 
 ## 포구 콘텐츠 확장(2026-09-16, "GO 포구 콘텐츠 확장") — npc_builder.gd
 ## VILLAGERS의 상인(offer_a/b 한 번뿐인 제안) 패턴을 그대로 옮긴다.
@@ -159,6 +166,7 @@ func _build_harbor() -> void:
 	_build_crab()
 	_build_fisherman()
 	_build_driftwood()
+	_build_boat()
 	_build_return_trigger()
 
 
@@ -381,6 +389,58 @@ func _resolve_driftwood(layer_box: Dictionary, text: String, exp_reward: float) 
 		text += " (경험 +%d)" % int(exp_reward)
 	Toast.show(self, text, LINE_SHOW_SEC)
 	EventState.mark_resolved(DRIFTWOOD_ID)
+
+
+## 표류물과 완전히 같은 결의 두 번째 사건 — 뒤집힌 조각배 하나(primitive,
+## 표류물과 다른 크기·색으로 구분). 한 번뿐, 이미 해결된 뒤엔 다시 안 뜬다.
+func _build_boat() -> void:
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var pos := TestMap.world_pos(BOAT_GRID.x, BOAT_GRID.y, COAST_REGION) + Vector3(0, ground, 0)
+
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(2.6, 0.7, 1.2)
+	mi.position = pos + Vector3(0, 0.35, 0)
+	mi.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.55, 0.5, 0.42)
+	mi.material_override = mat
+	add_child(mi)
+
+	var area := Area3D.new()
+	area.name = "Boat"
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = BOAT_TRIGGER_RADIUS
+	cs.shape = shape
+	area.add_child(cs)
+	area.position = pos
+	add_child(area)
+	area.body_entered.connect(_on_boat_entered)
+
+
+func _on_boat_entered(body: Node3D) -> void:
+	if not body.is_in_group("player") or EventState.is_resolved(BOAT_ID):
+		return
+	CodexState.discover("event", BOAT_ID)
+	_show_boat_prompt()
+
+
+func _show_boat_prompt() -> void:
+	var layer_box := {}
+	layer_box["layer"] = ChoicePrompt.build(self, "🛶 뒤집힌 조각배\n모래에 반쯤 파묻힌 낡은 배 한 척이 뒤집혀 있다.", [
+		{"label": "배를 뒤집어 본다", "cb": func() -> void: _resolve_boat(layer_box, "밑에 깔려 있던 낡은 그물 조각을 챙겼다.", 15.0)},
+		{"label": "그냥 둔다", "cb": func() -> void: _resolve_boat(layer_box, "굳이 손대지 않고 지나쳤다.", 0.0)},
+	])
+
+
+func _resolve_boat(layer_box: Dictionary, text: String, exp_reward: float) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if exp_reward > 0.0:
+		PartyState.add_exp(exp_reward)
+		text += " (경험 +%d)" % int(exp_reward)
+	Toast.show(self, text, LINE_SHOW_SEC)
+	EventState.mark_resolved(BOAT_ID)
 
 
 func _build_return_trigger() -> void:

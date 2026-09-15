@@ -6828,3 +6828,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음(새 입력 액션 없음, 순수 씬 스크립트 추가라 project.godot 자체가 안 바뀜). GO TestVillage 헤드리스 회귀 3회 md5 완전 동일. 나머지 네 판(DUNGEON/FOREST/STORY/REALM) 헤드리스 1회씩 오류 0(이번 변경이 GO 파일 두 개에 국한돼 교차 영향 가능성이 사실상 없다고 판단, 3회씩은 생략). 임시 씬(`_tmp_verify_crab.tscn/.gd`, 검증 후 삭제)에서 실제 region2_coast.gd를 인스턴스해 5항목 PASS — 게 자리가 모래 칸인지·Discover_crab 노드 생성·갈매기/어부와의 거리(각 192m·48m, 트리거 반경 합보다 훨씬 큼)·실제 Area3D body_entered로 `CodexState.discover("beast","crab")`가 정확히 한 번 찍히는지까지.
 - GUI 실기 확인 아직(몰아서 받을 것 — 포구에서 게가 실제로 보이는지, 근접 시 도감 도장).
 - 다음: 포구 9x9 격자는 여전히 빈 칸이 많다(콘텐츠 더 채울 여지). 세 번째 지역을 열지, PLAN.md 96·97(버그 수정/불필요 기능 제거) 계속 누적할지, 아니면 saga-unity 트랙으로 옮길지는 다음 세션 판단.
+
+## GO 포구 콘텐츠 4호 — 뒤집힌 조각배(coast_boat) (2026-09-16, 같은 세션 이어서, "이어해줘")
+
+- 직전 항목이 남긴 "9x9 격자에 아직 빈 칸 많음"을 그대로 이어 표류물(coast_driftwood)과 완전히 같은 결의 두 번째 simple_event를 추가했다 — 산 테두리에 붙은 구석 칸(BOAT_GRID=(7,5), 표류물·어부·게와 최소 48m 이상 떨어짐)에 뒤집힌 조각배(primitive BoxMesh, 표류물과 다른 크기·색) 하나, 한 번뿐, 선택지 2개("배를 뒤집어 본다"/"그냥 둔다").
+- `codex_state.gd` TOTAL event 16→17.
+- 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. GO TestVillage 헤드리스 회귀 3회 md5 완전 동일, 나머지 네 판 1회씩 오류 0. 임시 씬(`_tmp_verify_boat.tscn/.gd`, 검증 후 삭제)에서 실제 region2_coast.gd를 인스턴스해 5항목 PASS — 조각배 자리가 모래 칸인지·Boat 노드 생성·표류물/게와의 거리(67.9m·244.8m, 트리거 반경 합보다 훨씬 큼)·첫 접근 시 `CodexState.discover("event","coast_boat")`가 정확히 찍히는지·해결(mark_resolved) 후 재접근해도 새 ChoicePrompt가 안 뜨는지(표류물과 같은 "한 번뿐" 계약)까지.
+- GUI 실기 확인 아직(몰아서 받을 것).
+- 다음: 포구 9x9 격자(어부·갈매기·게·표류물·조각배로 다섯 칸 참, 아직 빈 칸 여럿)를 더 채울지, 세 번째 지역을 열지, PLAN.md 96·97 계속 누적할지는 다음 세션 판단.
