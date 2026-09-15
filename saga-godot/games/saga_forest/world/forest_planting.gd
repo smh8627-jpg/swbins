@@ -14,6 +14,13 @@ extends Node3D
 ## 1회" 채집 대상이 되고, 곁에 다른 꽃이 있었으면(HYBRID_NEAR 반경)
 ## 드문 항목("교배꽃")을 낼 수도 있다 — 판정은 **자리 해시**라 심어 놓고
 ## 사흘 뒤에 와도 같은 결과가 나온다(난수가 아니다).
+##
+## **교배 깊이(2026-09-15 추가)** — 이전까진 "교배꽃"이 한 번 나오면 그걸로
+## 끝이었다(더 곁에 심어도 항상 같은 두 갈래뿐). 이제 **이미 하이브리드인
+## 꽃 곁에 심으면** 더 희귀한 2단("진교배꽃")을 노릴 수 있다 — 진짜 동물의숲
+## 튤립 교배(파랑→검정처럼 하이브리드끼리 교배해야 더 깊은 색이 나오는 것)의
+## 정신을 옮긴 것. 판정은 여전히 결정적 자리 해시 하나뿐(주사위를 두 번
+## 굴리지 않는다) — 문턱만 둘(HYBRID_ROLL·HYBRID2_ROLL)이라 결과가 갈린다.
 
 const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
 const TerrainBuilder := preload("res://games/saga_forest/world/forest_terrain_builder.gd")
@@ -30,6 +37,9 @@ const PLANT_MIN_GAP := 2.7
 const GATHER_RADIUS := 3.5
 const ITEM_LABEL_NORMAL := "꽃"
 const ITEM_LABEL_HYBRID := "교배꽃"
+const ITEM_LABEL_HYBRID2 := "진교배꽃"
+const HYBRID_ROLL := 0.45   # near>0이면 이 문턱을 넘어야 1단(교배꽃) — 그대로
+const HYBRID2_ROLL := 0.7   # near_best_tier>=1이면 이 더 높은 문턱을 넘어야 2단(진교배꽃)
 
 var _nodes: Array[Node3D] = []   # ForestSaveState.planted와 같은 인덱스
 var _in_range: Dictionary = {}   # index(int) -> bool
@@ -65,6 +75,7 @@ func _try_plant() -> void:
 		return
 
 	var near := 0
+	var near_best_tier := 0
 	for entry: Dictionary in ForestSaveState.planted:
 		var d := Vector2(pos.x - float(entry.x), pos.z - float(entry.z)).length()
 		if d < PLANT_MIN_GAP:
@@ -72,15 +83,25 @@ func _try_plant() -> void:
 			return
 		if d <= HYBRID_NEAR:
 			near += 1
+			near_best_tier = maxi(near_best_tier, _tier_of(entry))
 
-	var hybrid: bool = near > 0 and _hash2(int(round(pos.x)), int(round(pos.z))) > 0.45
+	var roll := _hash2(int(round(pos.x)), int(round(pos.z)))
+	var tier := 0
+	if near_best_tier >= 1 and roll > HYBRID2_ROLL:
+		tier = 2
+	elif near > 0 and roll > HYBRID_ROLL:
+		tier = 1
 
 	ForestSaveState.items[ITEM_LABEL_NORMAL] = ForestSaveState.item_count(ITEM_LABEL_NORMAL) - 1
-	var entry := {"x": pos.x, "z": pos.z, "day": ForestDay.epoch_day_index(), "hybrid": hybrid}
+	var entry := {"x": pos.x, "z": pos.z, "day": ForestDay.epoch_day_index(), "hybrid": tier >= 1, "tier": tier}
 	ForestSaveState.planted.append(entry)
 	_spawn_visual(ForestSaveState.planted.size() - 1)
-	Toast.show(self, "꽃을 심었다 — %d일 뒤 자란다%s." %
-		[PLANT_DAYS, "(곁에 꽃이 있어 드문 색이 필지도 모른다)" if near > 0 else ""], 3.0)
+	var hint := ""
+	if near_best_tier >= 1:
+		hint = "(하이브리드 곁이라 더 진귀한 색을 노려볼 만하다)"
+	elif near > 0:
+		hint = "(곁에 꽃이 있어 드문 색이 필지도 모른다)"
+	Toast.show(self, "꽃을 심었다 — %d일 뒤 자란다%s." % [PLANT_DAYS, hint], 3.0)
 
 
 func _spawn_visual(i: int) -> void:
@@ -97,7 +118,11 @@ func _spawn_visual(i: int) -> void:
 	sphere.height = sphere.radius * 2.0
 	mi.mesh = sphere
 	mi.position = Vector3(0, sphere.radius, 0)
-	var tint := Color(0.82, 0.35, 0.65) if (bool(entry.hybrid) and grown) else Color(1, 0.55, 0.72)
+	var tint := Color(1, 0.55, 0.72)
+	if grown:
+		match _tier_of(entry):
+			2: tint = Color(0.95, 0.78, 0.15)   # 진교배꽃 — 금빛(가장 희귀)
+			1: tint = Color(0.82, 0.35, 0.65)   # 교배꽃
 	mi.material_override = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT, 0.6, tint)
 	root.add_child(mi)
 
@@ -127,8 +152,10 @@ func _on_entered(body: Node3D, i: int) -> void:
 	if _elapsed(entry) < PLANT_DAYS:
 		Toast.show(self, "심은 꽃 — 아직 자라는 중(%d일 남음)." % (PLANT_DAYS - _elapsed(entry)), 2.0)
 		return
+	var tier := _tier_of(entry)
+	var rarity_hint := " — 진귀한 색이다!!" if tier == 2 else (" — 드문 색이다!" if tier == 1 else "")
 	if ForestSaveState.can_gather("planted_%d" % i):
-		Toast.show(self, "[G] 심은 꽃을 꺾는다%s" % (" — 드문 색이다!" if entry.hybrid else ""), 2.0)
+		Toast.show(self, "[G] 심은 꽃을 꺾는다%s" % rarity_hint, 2.0)
 	else:
 		Toast.show(self, "심은 꽃 — 오늘 몫은 이미 다 썼다.", 2.0)
 
@@ -147,9 +174,18 @@ func _gather(i: int) -> void:
 		Toast.show(self, "심은 꽃 — 오늘 몫은 이미 다 썼다.", 2.0)
 		return
 	ForestSaveState.mark_gathered(prop_id)
-	var label: String = ITEM_LABEL_HYBRID if entry.hybrid else ITEM_LABEL_NORMAL
+	var tier := _tier_of(entry)
+	var label: String = ITEM_LABEL_HYBRID2 if tier == 2 else (ITEM_LABEL_HYBRID if tier == 1 else ITEM_LABEL_NORMAL)
 	ForestSaveState.add_item(label, 1)
 	Toast.show(self, "심은 꽃을 꺾었다 — %s +1" % label, 2.5)
+
+
+## 옛 세이브(하이브리드 여부만 bool로 있던 시절)와도 호환 — "tier" 필드가
+## 있으면 그걸 쓰고, 없으면 "hybrid" bool에서 역산한다(true→1, false→0).
+static func _tier_of(entry: Dictionary) -> int:
+	if entry.has("tier"):
+		return int(entry.tier)
+	return 1 if bool(entry.get("hybrid", false)) else 0
 
 
 ## 웹판 core.hash2(x, y)의 Godot 포트 — forest_turnip.gd의 _hash2()와

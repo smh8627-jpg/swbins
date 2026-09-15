@@ -56,12 +56,23 @@ static func event_of_today() -> Dictionary:
 	return event_of_day_key(ForestDay.today_key())
 
 
+## 교배꽃·진교배꽃(forest_planting.gd)도 결국 꽃이다 — "꽃 값이 갑절"인
+## 날엔 이 둘도 같이 오른다(2026-09-15, villager_builder.gd SELL_BASE_PRICE에
+## 둘을 더하며 같이 손봄).
+const HYBRID_FLOWER_LABELS := ["교배꽃", "진교배꽃"]
+
+
 ## 오늘 이 갈래(item_label)가 비싸게 팔리나 — 없으면 1.0.
 static func price_mul(item_label: String) -> float:
 	var e := event_of_today()
 	if e.is_empty() or not e.has("up_cat"):
 		return 1.0
-	return float(e.up_mul) if String(e.up_cat) == item_label else 1.0
+	var up_cat := String(e.up_cat)
+	if up_cat == item_label:
+		return float(e.up_mul)
+	if up_cat == "꽃" and item_label in HYBRID_FLOWER_LABELS:
+		return float(e.up_mul)
+	return 1.0
 
 
 static func is_new_year() -> bool:
