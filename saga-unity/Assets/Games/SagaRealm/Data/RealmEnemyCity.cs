@@ -49,6 +49,11 @@ namespace Saga.Realm.Data
     /// **51장 7차 확장(2026-09-16, 같은 날 "이어해")** — 강주→영안,
     /// 양양→강릉 둘을 더했다. 두 사슬 모두 일곱 단계 깊이(train
     /// 125·130)까지 왔다.
+    /// **51장 8차 확장(2026-09-16, 같은 날 "이어해줘")** — 강릉→장사
+    /// 하나만 더했다. **영안은 이번에 막다른 가지로 확인됐다** —
+    /// 원작 LINKS상 영안의 이웃(강주·강릉)이 전부 이미 우리 성이라
+    /// 진양과 같은 사정(더 뻗을 자리가 없다). 장사는 여덟 단계
+    /// 깊이(train 145, +15 그대로)까지 왔다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -106,12 +111,13 @@ namespace Saga.Realm.Data
         public const string XiangyangId = "xiangyang";
         public const string YonganId = "yongan";
         public const string JianglingId = "jiangling";
+        public const string ChangshaId = "changsha";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
-            YonganId, JianglingId,
+            YonganId, JianglingId, ChangshaId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -168,6 +174,12 @@ namespace Saga.Realm.Data
             // xiangyang-jiangling, 형주의 곳간) — 양양을 함락해야 열리는
             // 일곱째 단계 목표, 열여섯 중 가장 어렵다.
             [JianglingId] = new RealmEnemyCityDef(JianglingId, "강릉", RealmLand.River, baseWall: 5400, baseTroops: 1250, baseTrain: 130, baseTech: 100, attackFromCityId: "xiangyang"),
+            // 장사는 강릉(jiangling)과만 맞닿아 있다(원작 LINKS:
+            // jiangling-changsha, 강남 사군의 맏이) — 강릉을 함락해야
+            // 열리는 여덟째 단계 목표, 열일곱 중 가장 어렵다. 영안(yongan)은
+            // 이웃(강주·강릉)이 전부 이미 우리 성이라 이번엔 다음 목표를 못
+            // 붙였다(진양과 같은 막다른 가지).
+            [ChangshaId] = new RealmEnemyCityDef(ChangshaId, "장사", RealmLand.Plain, baseWall: 4400, baseTroops: 1000, baseTrain: 145, baseTech: 100, attackFromCityId: "jiangling"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -5462,4 +5462,41 @@ Phase 한 칸 + 헬퍼 호출 한 줄이면 끝). 다음 후보:
   saga-web/saga-realm/js/data-city.js LINKS 블록에서 확인)
 - 진양(jinyang)은 원작 이웃이 전부 이미 우리 성이라 막다른 가지,
   더 늘릴 게 없다
+
+## REALM 51장 8차 확장 — 강릉→장사 (2026-09-16, 새 세션 "이어해줘")
+
+**중요 확인 — `AttackFromCityId`는 성 하나당 목표 하나뿐이다**
+(`RealmEnemyCity.TargetFrom()`이 그 성을 출진지로 쓰는 첫 항목만
+돌려준다). 그래서 장안(이미 한중을 목표로 붙임)·강주(이미 영안을
+목표로 붙임)에서 천수·주제로 또 뻗는 건 이번엔 못 골랐다 — 목표가
+아직 없는 성(영안·강릉, 51장 7차 확장의 프런티어)에서만 골랐다.
+강주→**영안**은 원작 LINKS 이웃(강주·강릉)이 전부 이미 우리 성이라
+막다른 가지로 확인됨(진양과 같은 사정). 양양→강릉→**장사**(강남
+사군의 맏이)만 더했다 — 원작 LINKS: jiangling-changsha. train은
+그대로 +15(130→145).
+
+- `RealmEnemyCity.cs`·`RealmCityData.cs`에 changsha 카탈로그 추가
+  (wall 4400, troops 1000, land는 원작 hill이지만 진양·한중·영안과
+  같은 이유로 Plain), `realm_en.json`·`realm_ko.json`에
+  `city.changsha` 로컬라이즈 키 추가.
+- `PlaytestRealmSlice.cs`에 AttackChangsha 단계 추가(AttackJiangling
+  다음), save/load 확인 로그의 "19 cities"·"영안·강릉"(성 열아홉)
+  텍스트가 8차 확장 전 그대로 남아 있던 걸 "20 cities"·"열일곱
+  적국"(성 스물)으로 같이 고쳤다(수치 자체 검증은 이미
+  `RealmEnemyCity.AllIds`/`RealmCityData.AllCityIds`로 동적으로
+  돌아 정확했다 — 로그 문구만 stale했다).
+- 배치 모드 컴파일 → 3연속 통과(열일곱 적국 전부 함락+편입+save/load
+  왕복 확인, 성 셋→스물). **배치 모드가 이번에도 이 PC의 Unity
+  버전(6000.3.24f1, 프로젝트 고정 6000.3.23f1보다 최신)으로
+  `ProjectVersion.txt`·`Packages/manifest.json`·`packages-lock.json`·
+  `EditorSettings.asset`을 조용히 고쳐 썼다(CLAUDE.md 경고 그대로
+  재현) — 커밋 전 `git checkout`으로 네 파일 전부 원복, 실제로 고친
+  다섯 파일만 남은 것 확인.**
+- 남은 확장 후보: 장안의 다른 이웃(천수) — 다만 한중에 이미 목표를
+  붙였으니 한중의 다음 단계로 대신 뻗는 방향을 고려할 것. 강주의
+  다른 이웃(주제)도 같은 사정 — 영안의 다음 단계로 대신 뻗는 건
+  막혔으니(막다른 가지) 강주 자체에서 나가는 두 번째 목표는 이
+  슬라이스 설계(성 하나당 목표 하나)를 벗어나 범위 밖이다. 장사의
+  다음 단계(원작 LINKS: changsha-chaisang, changsha-kuaiji,
+  changsha-nanhai)를 고르는 게 가장 자연스러운 다음 자리.
 - wan은 게이트 테스트 고정 성이라 앞으로도 목표로 쓰지 말 것

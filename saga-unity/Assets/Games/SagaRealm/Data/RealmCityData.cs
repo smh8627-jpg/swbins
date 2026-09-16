@@ -139,6 +139,14 @@ namespace Saga.Realm.Data
             // LINKS: xiangyang-jiangling, "형주의 곳간, 배와 군량이 여기서
             // 난다"). wall은 RealmEnemyCity.cs 강릉 정의(5400)와 맞춘다.
             ["jiangling"] = new RealmCityDef("jiangling", "강릉", RealmLand.River, agri: 340, comm: 320, wall: 5400, pop: 240000, mapX: 44, mapY: 68),
+            // 51장 "대규모 콘텐츠" 8차 확장(2026-09-16) — 강릉을 함락한 뒤
+            // 이어지는 여덟째 단계(원작 LINKS: jiangling-changsha, "강남
+            // 사군(四郡)의 맏이, 활을 잘 쏜다"). 원작 land는 hill인데
+            // 진양·한중·영안처럼 Plain으로 둔다. wall은 RealmEnemyCity.cs
+            // 장사 정의(4400)와 맞춘다. 영안(yongan)은 이웃이 전부 이미
+            // 우리 성이라(강주·강릉) 이번엔 다음 목표를 못 붙였다 — 진양과
+            // 같은 막다른 가지.
+            ["changsha"] = new RealmCityDef("changsha", "장사", RealmLand.Plain, agri: 300, comm: 240, wall: 4400, pop: 200000, mapX: 53, mapY: 77),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
