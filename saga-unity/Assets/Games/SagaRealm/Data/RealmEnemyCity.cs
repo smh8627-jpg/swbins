@@ -95,6 +95,12 @@ namespace Saga.Realm.Data
     /// 삭방을 골랐다(북지는 다음 확장 후보로 남긴다). land는 원작 그대로
     /// plain(보정 불필요). wall 2900은 원작 그대로, troops=wall×0.23
     /// 반올림=650, train=상군의 105+15=120.
+    /// **51장 15차 확장(2026-09-17, 같은 세션 "오원까지 마무리하고
+    /// 이어해줘")** — 삭방→오원(원작 LINKS: shuofang-wuyuan). 오원엔
+    /// 다른 LINKS가 전혀 없어(잎사귀) 복양 사슬은 여기서 끝난다 — 이제
+    /// 세 사슬(허창·복양·진류) 전부 확정된 막다른 끝. 원작 land는 hill인데
+    /// 진양·한중 등과 같은 이유로 Plain 처리. wall 2700은 원작 그대로,
+    /// troops=wall×0.23 반올림=600, train=삭방의 120+15=135.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -159,13 +165,14 @@ namespace Saga.Realm.Data
         public const string YunzhongId = "yunzhong";
         public const string ShangjunId = "shangjun";
         public const string ShuofangId = "shuofang";
+        public const string WuyuanId = "wuyuan";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
-            ShuofangId,
+            ShuofangId, WuyuanId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -263,6 +270,11 @@ namespace Saga.Realm.Data
             // 복양 사슬의 새 여섯째 단계 목표. 상군의 다른 이웃(북지)은
             // 잎사귀라 이번엔 계속 뻗을 수 있는 삭방을 골랐다.
             [ShuofangId] = new RealmEnemyCityDef(ShuofangId, "삭방", RealmLand.Plain, baseWall: 2900, baseTroops: 650, baseTrain: 120, baseTech: 100, attackFromCityId: "shangjun"),
+            // 오원은 삭방(shuofang)과만 맞닿아 있다(원작 LINKS:
+            // shuofang-wuyuan, 막북 넷째 관문) — 삭방을 함락해야 열리는
+            // 복양 사슬의 새 일곱째 단계 목표. 오원엔 다른 LINKS가 없어
+            // (잎사귀) 이 사슬의 마지막 칸이다.
+            [WuyuanId] = new RealmEnemyCityDef(WuyuanId, "오원", RealmLand.Plain, baseWall: 2700, baseTroops: 600, baseTrain: 135, baseTech: 100, attackFromCityId: "shuofang"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

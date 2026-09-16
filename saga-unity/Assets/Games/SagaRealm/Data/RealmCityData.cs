@@ -185,6 +185,12 @@ namespace Saga.Realm.Data
             // shuofang, "막북 셋째 관문"). land는 원작 그대로 plain. wall은
             // RealmEnemyCity.cs 삭방 정의(2900)와 맞춘다.
             ["shuofang"] = new RealmCityDef("shuofang", "삭방", RealmLand.Plain, agri: 180, comm: 100, wall: 2900, pop: 40000, mapX: 28, mapY: -8),
+            // 51장 "대규모 콘텐츠" 15차 확장(2026-09-17) — 삭방을 함락한 뒤
+            // 이어지는 복양 사슬의 새 일곱째 단계이자 마지막 칸(원작 LINKS:
+            // shuofang-wuyuan, "막북 넷째 관문", 오원엔 다른 이웃이 없다).
+            // 원작 land는 hill인데 진양·한중 등과 같은 이유로 Plain 처리.
+            // wall은 RealmEnemyCity.cs 오원 정의(2700)와 맞춘다.
+            ["wuyuan"] = new RealmCityDef("wuyuan", "오원", RealmLand.Plain, agri: 120, comm: 90, wall: 2700, pop: 36000, mapX: 38, mapY: -15),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
