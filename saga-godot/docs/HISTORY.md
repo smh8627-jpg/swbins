@@ -7203,3 +7203,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(32183836 — 새 오토로드로 ⑤와 다르지만 3회는 일치)·error/warn 0. GO·FOREST·STORY·REALM 대표 씬 스모크 오류 0.
 - **PLAN 101-2 표의 DUNGEON 이식 순서 ①~⑥ 완주.** 남은 건 시대 퓨전(표에 이미 "웹 검증 뒤"로 미뤄 둠)과 목표판·세션 카드(101-4 공통 순서 1번 — GO만 붙었고 DUNGEON은 아직, 다음에 이어할 자리).
 - 다음: DUNGEON 목표판·세션 카드 또는 FOREST/STORY/REALM ① — 우선순위는 PROJECT_STATE "다음 작업" 참고.
+
+## DUNGEON 목표판·세션 카드 (2026-09-17, 같은 세션 이어서, "완성도좀 올려줘 질질 끌지 말고") — 101-4 공통 순서 1번
+- GO만 붙어 있던 표준 A/B(목표판 3줄·세션 마무리 카드)를 DUNGEON에도 붙였다(`saga_core/ui/goal_board.gd`·`session_card.gd`는 그대로, 새 UI 없음) — GO `test_village.gd`·`save_button.gd`와 같은 배선 방식.
+- `DungeonHUD.tscn`에 `GoalBoard` Label 신규(우상단, GO MobileHUD.tscn과 같은 위치·스타일 그대로 복붙).
+- `test_room.gd::_refresh_goal_board()` — "지금"은 난입 진행 중이면 파도 수, 부적 던전 진행 중이면 티어, 둘 다 아니면 "방 클리어 N/7"(우선순위로 특수 모드가 이긴다). "이번 세션"은 금 획득량+새로 연 방 수. "이번 주"는 GO와 같은 이유(주간 축 없음)로 "—". `DungeonGoldState.gold_changed`·`DungeonHordeState.horde_changed`·`DungeonSigilState.sigil_changed` 신호로 갱신, 방 클리어 시(`_finish_exit`)도 직접 호출.
+- `dungeon_gold_state.gd`에 `begin_session()`/`session_gold_gained()` 추가(GO party_state.gd와 같은 계약 — 로드 뒤 스냅샷, 세이브엔 안 남음). `test_room.gd`에 `_session_start_cleared`(로컬 변수, rooms_cleared 스냅샷)로 "새로 연 방" 델타 계산.
+- 세션 마무리 카드는 마지막 방(is_final) 출구에서만 `SessionCard.show()`(문구 "저장했다 — 이번 세션", GO와 동일) — 중간 방까지 모달을 띄우면 7번 연속 막혀 손맛을 해쳐서, 중간 방은 기존 토스트 그대로 남겼다.
+- 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestRoom.tscn을 실제로 인스턴스화해 GoalBoard 라벨 텍스트를 확인(이 머신에 남아 있던 실제 플레이 세이브(`user://save_dungeon.json`, hardcore 결사 상태) 때문에 절대값 "0/7" 대신 형식+세션 델타 "+0"만 확인하도록 조정) — 금 변화 시 실시간 갱신, 난입 진행 중 표시 전환·종료 후 복귀까지 8가지, 3회 재현 8/8 fails=0.
+- `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(0d22e190)·error/warn 0, GO·FOREST·STORY·REALM 스모크 오류 0.
+- 다음: 시대 퓨전(웹 검증 뒤) 또는 FOREST/STORY/REALM ① — DUNGEON 몫은 이걸로 사실상 다 끝남.

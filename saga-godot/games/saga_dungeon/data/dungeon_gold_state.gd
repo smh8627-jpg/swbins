@@ -10,6 +10,21 @@ signal gold_changed
 
 var gold: int = 0
 
+## 표준 A/B(목표판·세션 카드, PLAN.md 101-1·101-4) — GO party_state.gd
+## begin_session()/session_exp_gained()과 같은 계약: 로드가 끝난 뒤(세이브
+## 값을 이미 반영한 뒤) 한 번 불러 기준점을 잡고, 그 뒤로 늘어난 만큼만
+## "이번 세션" 값으로 보여준다. 세이브엔 안 남는다(세션 경계는 씬을 새로
+## 여는 순간이라서 — 저장 파일에 남길 값이 아니다).
+var _session_start_gold: int = 0
+
+
+func begin_session() -> void:
+	_session_start_gold = gold
+
+
+func session_gold_gained() -> int:
+	return gold - _session_start_gold
+
 
 func add(n: int) -> void:
 	if n == 0:

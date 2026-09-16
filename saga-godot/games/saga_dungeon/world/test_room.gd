@@ -24,6 +24,9 @@ const Toast := preload("res://saga_core/ui/toast.gd")
 ## 재사용 경계 — GO 전용 로직이 아니라 순수 UI 빌더라 옮길 필요가 없다).
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Characters := preload("res://saga_core/data/characters.gd")
+## 표준 A/B(목표판·세션 카드, PLAN.md 101-4 공통 순서 1번) — GO
+## test_village.gd·save_button.gd와 같은 경계.
+const SessionCard := preload("res://saga_core/ui/session_card.gd")
 
 const ROOM_GLB := "res://assets/dungeon/room-small.glb"
 const GATE_GLB := "res://assets/dungeon/gate.glb"
@@ -93,6 +96,7 @@ const ROOM_SPACING := ROOM_HALF.z * 2.0 + CORRIDOR_GAP # 방 원점 사이 거�
 
 var _exit_used: Array[bool] = []
 var _room_origin_z: Array[float] = []
+var _session_start_cleared := 0  # 표준 B(세션 카드) — 이번 세션에 새로 연 방 수 계산용
 
 
 func _ready() -> void:
@@ -174,6 +178,38 @@ func _ready() -> void:
 		Toast.show(self, "☠️ 결사로 스러진 판입니다(제%d층) — 이어서 내려갈 수 없다." %
 			int(DungeonHardcoreState.fallen.get("floor", 0)), 8.0)
 		get_tree().paused = true
+
+	## 표준 A/B(목표판·세션 카드, PLAN.md 101-4 공통 순서 1번, 2026-09-17) —
+	## GO test_village.gd와 같은 자리(로드가 끝난 뒤 세션을 연다 — 세션
+	## 델타의 기준점이 로드 전 값이면 안 된다).
+	_session_start_cleared = DungeonSaveState.rooms_cleared.count(true)
+	DungeonGoldState.begin_session()
+	DungeonGoldState.gold_changed.connect(_refresh_goal_board)
+	DungeonHordeState.horde_changed.connect(_refresh_goal_board)
+	DungeonSigilState.sigil_changed.connect(_refresh_goal_board)
+	_refresh_goal_board()
+
+
+## saga_core/ui/goal_board.gd는 DungeonSaveState·DungeonHordeState·
+## DungeonSigilState를 모른다(GO test_village.gd 헤더와 같은 경계) — 이
+## 판의 월드 스크립트가 셋을 조립해 넣는다. "지금"은 진행 중인 특수 모드
+## (난입·부적 던전)가 있으면 그쪽을 우선 보여주고, 없으면 방 진행도.
+## "이번 주"는 DUNGEON에도 주간 축이 없어 GO와 같은 이유로 "—".
+func _refresh_goal_board() -> void:
+	var board := get_tree().get_first_node_in_group("goal_board")
+	if board == null:
+		return
+	var now: String
+	if DungeonHordeState.active:
+		now = "난입 — 파도 %d" % DungeonHordeState.wave
+	elif DungeonSigilState.is_active():
+		now = "부적 던전 — 티어 %d" % int(DungeonSigilState.active_sigil().get("tier", 0))
+	else:
+		now = "방 클리어 %d/%d" % [DungeonSaveState.rooms_cleared.count(true), ROOM_COUNT]
+	var session := "금 +%d · 새로 연 방 +%d" % [
+		DungeonGoldState.session_gold_gained(),
+		DungeonSaveState.rooms_cleared.count(true) - _session_start_cleared]
+	board.set_goals(now, session, "—")
 
 
 func _spawn_room_mesh(origin_z: float) -> void:
@@ -387,8 +423,18 @@ func _finish_exit(body: Node3D, room_index: int, is_final: bool) -> void:
 		DungeonSigilState.clear_run()
 		Toast.show(self, "🔺 부적 던전(티어 %d) 완주 — 부적이 꺼졌다." % cleared_tier, 5.0)
 	DungeonSaveState.save(body)
+	_refresh_goal_board()
+	## 표준 B(세션 마무리 카드, PLAN.md 101-4) — GO save_button.gd와 같은
+	## 문구("저장했다 — 이번 세션"). DUNGEON엔 수동 저장 버튼이 없어(방
+	## 출구 = 자동 저장) 마지막 방(이번 슬라이스의 자연스러운 "세션 끝")
+	## 에서만 카드로, 중간 방은 계속 토스트로 남긴다(매 방마다 모달을
+	## 띄우면 7번 연속 막혀 손맛을 해친다).
 	if is_final:
-		Toast.show(self, "이번 슬라이스는 여기까지 — 저장했다.", 5.0)
+		SessionCard.show(self, "저장했다 — 이번 세션", [
+			"금 +%d" % DungeonGoldState.session_gold_gained(),
+			"새로 연 방 +%d" % (DungeonSaveState.rooms_cleared.count(true) - _session_start_cleared),
+			"부대 %d명" % DungeonPartyState.members.size(),
+		])
 	else:
 		Toast.show(self, "다음 방으로 향한다 — 진행 상황을 저장했다.", 3.0)
 
