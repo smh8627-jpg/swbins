@@ -34,6 +34,21 @@ var level: int = 0
 var atk: float = BASE_ATK
 var def: float = BASE_DEF
 
+var _session_start_exp: float = 0.0
+
+
+## PLAN.md 101-4 "이번 세션" 줄의 기준점 — test_village.gd가 SaveState.
+## try_load()(그러니까 restore()가 이미 exp를 앉힌) 뒤에 부른다. 그 전에
+## 부르면 세션 델타가 로드 전 값(보통 0)을 기준으로 잡혀 "이번 세션에
+## 이만큼 벌었다"가 실제로는 세이브를 불러오기 전부터의 누적으로 부풀어
+## 보인다.
+func begin_session() -> void:
+	_session_start_exp = exp
+
+
+func session_exp_gained() -> float:
+	return exp - _session_start_exp
+
 
 func recruit(id: String) -> void:
 	members.append(id)

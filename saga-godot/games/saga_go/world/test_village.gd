@@ -23,6 +23,33 @@ func _ready() -> void:
 	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
 		_print_density_report()
 
+	## PLAN.md 101-4 GO ①후보 "일과판" — 로드가 끝난 뒤(위와 같은 이유,
+	## 세션 델타의 기준점이 로드 전 값이면 안 된다) 세션을 연다.
+	PartyState.begin_session()
+	CodexState.begin_session()
+	QuestState.quest_changed.connect(_refresh_goal_board)
+	CodexState.codex_changed.connect(_refresh_goal_board)
+	PartyState.power_changed.connect(func(_atk: float, _def: float) -> void: _refresh_goal_board())
+	_refresh_goal_board()
+
+
+## saga_core/ui/goal_board.gd는 QuestState·CodexState·PartyState를 모른다
+## (saga_core가 GO만의 싱글턴을 알면 안 된다) — 그래서 이 셋을 다 아는
+## 이 판의 월드 스크립트가 3줄을 조립해 넣어 준다. "이번 주"는 아직
+## 없는 걸 있는 척하지 않고 "—"로 정직하게 비워 둔다(PLAN.md 105 Q-f
+## 옆, 주간 축 자체가 101-1 §H의 열린 구멍).
+func _refresh_goal_board() -> void:
+	var board := get_tree().get_first_node_in_group("goal_board")
+	if board == null:
+		return
+	var now: String
+	if QuestState.active_id != "" and not QuestState.done:
+		now = "사명: " + QuestState.active_name
+	else:
+		now = "도감 채우기 (%d/%d)" % [CodexState.count(), CodexState.total()]
+	var session := "경험치 +%.0f · 발견 +%d" % [PartyState.session_exp_gained(), CodexState.session_discovered()]
+	board.set_goals(now, session, "—")
+
 ## PLAN.md 104-5 — 지역 3(마을·포구·폐허) 발견 밀도(§3-E). 평소엔 안
 ## 돌린다(로그에 매번 섞이면 회귀 md5 가 흔들린다) — 측정할 때만
 ## `SAGA_DENSITY_REPORT=1` 로 켠다. "codex_discoverable" 그룹은

@@ -7087,3 +7087,12 @@ PROJECT_STATE.md` 참고. 요약:
 - ⑤ `saga_core/world/density_report.gd`(순수 격자 계산, GO·FOREST 공용) 신설 — PLAN 101-3 이 codex_state.gd 소속으로 뒀던 걸 FOREST 재사용을 위해 saga_core 로 옮김(PLAN 도 함께 수정). `codex_discoverable` 그룹을 GO `_add_discovery_area()` 3곳(landmarks_builder/region2_coast/region3_ruins)과 FOREST 집·주민 5·낚시터·박물관·생물 den 에 달고, `SAGA_DENSITY_REPORT=1` 로만 켜지는 진단 출력을 test_village.gd/forest_village.gd 에 추가(평소 회귀 md5 안 흔들림, 확인함).
   - 실측: GO 마을 62.5%·포구 61.2%·폐허 80.0% 빈 격자(place 갈래, 10% 기준 셋 다 초과) · FOREST 마을 0.0%(60m 반경이 FOREST 지도엔 너무 커서 무의미 — PLAN 105 Q-f 로 열어 둠).
 - ③은 이미 ①의 스크립트 끝에 포함돼 있어 별도 작업 없음. ⑥(101 이식 ①로 이동)은 다음 세션.
+
+## PLAN 101-4 GO ①후보 "일과판+마무리 카드" (2026-09-16, 같은 세션 이어서, "사가고돗 이어해줘 묻지말고")
+
+- `saga_core/ui/goal_board.gd`(Label, group "goal_board", `set_goals(now, session, week)`) + `ui/session_card.gd`(choice_prompt.gd와 같은 자급자족 팝업, 선택지 없이 닫기만) 신설 — 다섯 판 공용 UI, 지금은 GO만 붙였다.
+- `party_state.gd`/`codex_state.gd`에 `begin_session()`(SaveState.try_load() 뒤에 불러야 세션 델타 기준점이 로드 전 값이 아니게 됨)과 세션 델타 헬퍼(`session_exp_gained()`/`session_discovered()`) 추가.
+- `test_village.gd`가 QuestState·CodexState·PartyState 신호를 모아 목표판 3줄 조립(saga_core는 이 셋을 몰라야 해서 GO 쪽이 조립). "이번 주"는 주간 축 자체가 없어 "—"로 정직하게 비움(PLAN 105 Q-f 옆에 나란한 구멍).
+- `save_button.gd`가 저장 성공 시 마무리 카드(경험치·발견·부대원 수) — GO엔 던전 클리어·월말 같은 뚜렷한 "세션 끝"이 없어 저장을 그 자리로 썼다.
+- `MobileHUD.tscn`에 GoalBoard 노드(우상단, RendererDebugLabel 아래) 배치.
+- 헤드리스 3회 회귀 통과(GO md5 변경은 예상된 것 — 새 코드가 매 실행 로그를 바꾼다, error/warn 0, 나머지 4판 md5 불변).

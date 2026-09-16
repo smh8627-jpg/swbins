@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://games/saga_go/ui/codex_label.gd" id="6"]
 [ext_resource type="Script" path="res://games/saga_go/ui/weather_label.gd" id="7"]
 [ext_resource type="Script" path="res://games/saga_go/ui/photo_mode_button.gd" id="8"]
+[ext_resource type="Script" path="res://saga_core/ui/goal_board.gd" id="9"]
 
 [node name="MobileHUD" type="CanvasLayer"]
 
@@ -143,6 +144,20 @@ offset_top = -160.0
 offset_right = -40.0
 offset_bottom = -100.0
 script = ExtResource("8")
+
+[node name="GoalBoard" type="Label" parent="."]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_top = 50.0
+offset_right = -10.0
+offset_bottom = 135.0
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 1, 1, 0.88)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+horizontal_alignment = 2
+script = ExtResource("9")
 
 [node name="RendererDebugLabel" type="Label" parent="."]
 anchor_left = 1.0

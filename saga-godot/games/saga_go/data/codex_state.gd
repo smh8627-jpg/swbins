@@ -82,6 +82,16 @@ const TOTAL := {
 }
 
 var book: Dictionary = {}
+var _session_start_count: int = 0
+
+
+## party_state.gd begin_session()과 같은 계약·같은 이유(로드 뒤에 부른다).
+func begin_session() -> void:
+	_session_start_count = count()
+
+
+func session_discovered() -> int:
+	return count() - _session_start_count
 
 
 ## 처음 본 것에 도장을 찍는다. 처음일 때만 true를 준다 — 두 번째부터는
