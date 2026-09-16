@@ -6240,3 +6240,37 @@ jiangxia→xiangyang→jiangling→changsha→chaisang→jianye→kuaiji)이 11�
 jinyang·yongan의 다른 이웃 중 아직 안 쓴 게 있는지부터 확인해야 한다 —
 PROJECT_STATE.md 다음 작업에 이 순서로 남겨 둠. 컴파일은 여전히 미검증(이 PC에
 Unity 없음, 세션 내내 동일).
+
+## REALM 51장 12차 확장 — 진양→운중, "막다른 가지" 판정 정정 (2026-09-17)
+
+새 세션 시작, PLAN 절차대로 CLAUDE.md→PLAN.md 목차→PROJECT_STATE 순으로 읽고 우선순위
+1번(컴파일 재검증)을 시도했으나 이 PC도 `Unity Hub/Editor/` 폴더가 비어(Hub·라이선싱
+클라이언트만 설치, 실제 에디터 없음) 여전히 불가능해 2번(GUI 확인, 사용자 대기)·3번
+(101-2 나머지 4판, 1번 검증 선행 조건)도 건너뛰고 6번(REALM 다음 확장 조사)으로 갔다.
+
+11차 HISTORY가 남긴 지시대로 `data-city.js`를 `jinyang`·`yongan`으로 전체 grep(감으로
+고르지 않기). **yongan은 확인대로 진짜 막다른 가지**(LINKS에 `jiangzhou-yongan`·
+`yongan-jiangling` 두 줄뿐, 둘 다 이미 우리 성) — 더 뻗을 데가 없다.
+
+**jinyang은 4차 확장 때의 판정이 틀렸었다.** 그때는 화북 본토 LINKS 구역(462~490행)만
+보고 "이웃(업·낙양·장안) 전부 이미 우리 성"이라 막다른 가지로 적었는데, 파일을 끝까지
+grep하니 542행 "막북" 구역(창작 확장 지역, 평원 지도 아래 별도 섹션)에 `['jinyang',
+'yunzhong']`이 따로 있었다 — 시작 성 셋 근처(462~490행)만 보고 뒤쪽 확장 구역 LINKS를
+놓친 게 원인. 운중(雲中)은 한대 북방 변경 군 실제 지명, `land: plain·landmark: true`
+(막북 첫 관문 — 그 너머로 안문·정양·상군 등 흉노 접경, 더 뒤로는 균열/폐허/묘역까지
+이어지는 이 저장소 창작 확장 지역). 수치는 원본 그대로(agri 160·comm 130·wall 3400·
+pop 55000·x 45·y 5) — mount 보정이 필요했던 진양·한중·영안·장사와 달리 원작 land가
+이미 plain이라 이번 확장은 처음으로 그 보정 각주가 필요 없었다. troops=wall×0.23
+반올림(50 단위)=800, train=복양 사슬 깊이(정도45·업60·진양75)+15=90.
+
+고친 파일은 지난 확장들과 동일한 3개(`RealmCityData.cs`·`RealmEnemyCity.cs`·
+`PlaytestRealmSlice.cs`). `enum Phase`에 `AttackJinyang` 바로 뒤 `AttackYunzhong`
+추가, `AttackJinyang`의 `AttackChainStep` 세 번째 인자를 `AttackHanzhong`에서
+`AttackYunzhong`으로 바꾸고 그 뒤에 새 case를 끼워 `AttackHanzhong`으로 넘긴다 —
+10·11차와 같은 삽입 패턴. 로컬라이제이션(`realm_ko.json`/`realm_en.json`)은 10·11차
+(jianye·kuaiji)도 안 넣었던 걸 확인하고 이번에도 안 넣었다 — `RealmLocalization.T`가
+키 없으면 생성자에 준 한글 이름으로 그냥 떨어진다.
+
+**결과 — 적국 20→21, 성 23→24.** 복양발 사슬(dingtao→ye→jinyang→yunzhong)이 4단계
+깊이(train 45·60·75·90)로 늘었다. 컴파일 여전히 미검증(이 PC도 Unity 에디터 없음) —
+PROJECT_STATE 우선순위 1번 그대로 최우선 대기.

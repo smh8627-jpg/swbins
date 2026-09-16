@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-16 (PLAN 104-1 ①②③ + 101-2 A·B GO 첫 이식 + REALM 51장 10·11차 — 이 PC 에 Unity 없어 전부 컴파일 미검증).
+마지막 갱신: 2026-09-17 (REALM 51장 12차, 진양→운중 — 이 PC 에 Unity 없어 컴파일 미검증).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -11,27 +11,27 @@
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일) |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 | Environment 완료 | 전부 붙음. 데이터 콘텐츠 번역은 미착수 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사) | 척후병 실제 모델 | 전부 붙음 |
-| REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 20, 성 23**(51장 11차, 사슬: 허창→소패→하비→수춘→여남→강하→양양→강릉→장사→시상→건업→회계(막다른 끝) / 복양→정도→업→진양 / 진류→낙양→장안→한중→성도→강주→영안) | 도시 Environment/Building | 전부 붙음. `RealmCommandUi` 직렬화 버그(2026-09-15) 수정·저장 버튼 신설 |
+| REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 21, 성 24**(51장 12차, 사슬: 허창→소패→하비→수춘→여남→강하→양양→강릉→장사→시상→건업→회계(막다른 끝) / 복양→정도→업→진양→운중(막북 관문, 계속 뻗을 수 있음) / 진류→낙양→장안→한중→성도→강주→영안(막다른 끝)) | 도시 Environment/Building | 전부 붙음. `RealmCommandUi` 직렬화 버그(2026-09-15) 수정·저장 버튼 신설 |
 
 렌더러: 66-1장 PC(Forward+, MSAA 4)/Mobile(Forward, MSAA 2) 이중 프로파일 + `FF16Volume_PC/Mobile.asset`(ACES·Bloom 0.35·Vignette 0.25·PC 만 Grain/CA). 아트 방향은 **사실적 PBR(FF16 톤)** — 66-2장·102장.
 캐릭터 파이프라인: Mixamo(Maria·Abe·Brute) → `MixamoRigUtil.RigCharacter()`(Humanoid+`ExtractTextures`) → Animator 8클립. 헤어카드·SSS 는 Shader Graph 배선 대기(사람 몫).
 
 ## 현재 작업
 
-- 이 PC 에 Unity 에디터가 없어(Unity Hub 만 설치, `Editor/<버전>` 폴더 없음, CLAUDE.md 절차대로 먼저 확인함) 이번 세션 전부 소스 편집만 하고 컴파일·실행은 못 했다. 사용자에게 물어 "컴파일 확인 없이 진행" 승인받고 계속함.
-- **PLAN 104-1 Phase 0 ①②③ 완료** — ① `tools/unity-batch.sh`(배치 실행→4파일 원복→git status 한 줄) · ② `Assets/Editor/Playtest*.cs` 의 `GameObject.Find` "존재 확인만" 패턴(GO/DUNGEON/FOREST/STORY `CheckSettingsPanel()` 4건)을 `TogglePanel()`·`ChooseSfx()` 실제 리플렉션 호출 + 화면 Text 확인으로 교체(REALM `CheckCommandUiPanelsWork()` 와 같은 결) · ③ `[SerializeField]` 누락 감사를 `UI/`·`World/`·`Player/` 전 폴더로 완료 — UI 폴더 5개 컴포넌트(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi) 승격, World/Player 는 전부 정상(Awake 재탐색) 확인. 남은 ⑤(Art candidates 정리)는 105장 Q1 결정 대기.
-- **PLAN 101-2 "공통 선행" A·B GO 첫 이식(신규 기능, 컴파일 미검증)** — `Assets/SagaCore/`에 `IGoalSource`(인터페이스)·`GoalBoard`(목표판 3줄 위젯)·`SessionCard`(5초 자동 닫힘 세션 요약 카드) 신설. `Assets/Games/SagaGo/UI/GoSessionTracker.cs` 가 `IGoalSource` 구현 + 걸은 거리·번 금 추적 + 무입력 5분/백그라운드 전환 시 `SessionCard.Show()` 호출을 맡는다. "지금" 줄=가장 가까운 미수집 `HiddenTreasure`, "이번 세션"=이동거리·금 증감(실측), "이번 주"=⑦ 승급 3택 미이식이라 자리만 잡은 플레이스홀더 문구. `GoalBoard`/`SessionCard` 둘 다 Awake()가 자기 UI를 다시 짓고 `IGoalSource`/`SessionCard` 참조도 씬에서 스스로 재탐색하도록 짜서 — 이번 세션 ③에서 고친 것과 같은 [SerializeField] 누락 함정을 새 코드에서 되풀이하지 않았다. `BuildTestVillageScene.cs`에 `BuildGoalBoardUi()` 추가(BuildPlayer() 뒤, BuildSettingsUi() 다음). `PlaytestHeadless.cs`에 `CheckGoalBoardAndSessionCard()` 추가 — 존재 확인이 아니라 세 줄 실제 내용·소스 자동 재탐색·카드 Show/자동 닫힘까지 검증(②와 같은 기준).
-- **REALM 51장 10·11차 확장** — 시상→건업→회계(원작 LINKS: chaisang-jianye-kuaiji). `RealmCityData.cs`·`RealmEnemyCity.cs`(`JianyeId`·`KuaijiId` 상수·`AllIds`·`Catalog` 항목 — 전부 `saga-web/saga-realm/js/data-city.js` 원본 수치, troops=wall×0.23 반올림, train=사슬 깊이×15)·`PlaytestRealmSlice.cs`(`Phase.AttackJianye`·`AttackKuaiji` 신설, `AttackChainStep` 세 인자 순서 확인하며 연결)만 고쳤다 — 지난 확장들과 같은 3파일 범위. 적국 18→20, 성 21→23. **회계는 원작 LINKS상 더 이상 이웃이 없어 이 사슬(허창발)의 확정된 마지막 칸이다** — 다음 확장은 다른 사슬(복양발 진양, 진류발 영안)이나 새 갈래에서 찾아야 한다. `RealmWorldMap`·`RealmCityState` 등은 `AllIds` 순회라 자동 반영 확인함.
-- **테스트 상태 표(아래)는 전부 이번 세션 편집 이전 결과다.** 이번 세션에 고친 파일 전부 재검증 전.
+- 이 PC 에도 Unity 에디터가 없어(Unity Hub 만 설치, `Editor/<버전>` 폴더 없음, CLAUDE.md 절차대로 먼저 확인함) 이번 세션도 소스 편집만 하고 컴파일·실행은 못 했다.
+- (이전 세션 완료, 컴파일 미검증 그대로) **PLAN 104-1 Phase 0 ①②③ 완료** — ① `tools/unity-batch.sh`(배치 실행→4파일 원복→git status 한 줄) · ② `Assets/Editor/Playtest*.cs` 의 `GameObject.Find` "존재 확인만" 패턴(GO/DUNGEON/FOREST/STORY `CheckSettingsPanel()` 4건)을 `TogglePanel()`·`ChooseSfx()` 실제 리플렉션 호출 + 화면 Text 확인으로 교체(REALM `CheckCommandUiPanelsWork()` 와 같은 결) · ③ `[SerializeField]` 누락 감사를 `UI/`·`World/`·`Player/` 전 폴더로 완료 — UI 폴더 5개 컴포넌트(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi) 승격, World/Player 는 전부 정상(Awake 재탐색) 확인. 남은 ⑤(Art candidates 정리)는 105장 Q1 결정 대기.
+- (이전 세션 완료, 컴파일 미검증 그대로) **PLAN 101-2 "공통 선행" A·B GO 첫 이식(신규 기능)** — `Assets/SagaCore/`에 `IGoalSource`(인터페이스)·`GoalBoard`(목표판 3줄 위젯)·`SessionCard`(5초 자동 닫힘 세션 요약 카드) 신설. `Assets/Games/SagaGo/UI/GoSessionTracker.cs` 가 `IGoalSource` 구현 + 걸은 거리·번 금 추적 + 무입력 5분/백그라운드 전환 시 `SessionCard.Show()` 호출을 맡는다. "지금" 줄=가장 가까운 미수집 `HiddenTreasure`, "이번 세션"=이동거리·금 증감(실측), "이번 주"=⑦ 승급 3택 미이식이라 자리만 잡은 플레이스홀더 문구. `GoalBoard`/`SessionCard` 둘 다 Awake()가 자기 UI를 다시 짓고 `IGoalSource`/`SessionCard` 참조도 씬에서 스스로 재탐색하도록 짜서 — 이번 세션 ③에서 고친 것과 같은 [SerializeField] 누락 함정을 새 코드에서 되풀이하지 않았다. `BuildTestVillageScene.cs`에 `BuildGoalBoardUi()` 추가(BuildPlayer() 뒤, BuildSettingsUi() 다음). `PlaytestHeadless.cs`에 `CheckGoalBoardAndSessionCard()` 추가 — 존재 확인이 아니라 세 줄 실제 내용·소스 자동 재탐색·카드 Show/자동 닫힘까지 검증(②와 같은 기준).
+- **REALM 51장 12차 확장(이번 세션)** — 진양→운중(원작 LINKS: jinyang-yunzhong, "막북 첫 관문"). `data-city.js`를 jinyang·yongan으로 전체 grep해 재확인 — yongan은 진짜 막다른 가지(이웃 둘 다 이미 우리 성) 그대로였지만, **jinyang은 4차 확장 때 판정이 틀렸었다**: 화북 본토 LINKS 구역만 보고 놓쳤던 `['jinyang', 'yunzhong']`(542행, "막북" 창작 확장 구역)이 따로 있었다. `RealmCityData.cs`·`RealmEnemyCity.cs`(`YunzhongId` 상수·`AllIds`·`Catalog` 항목 — wall/agri/comm/pop 원본 그대로, troops=wall×0.23 반올림=800, train=복양 사슬 깊이+15=90)·`PlaytestRealmSlice.cs`(`Phase.AttackYunzhong` 신설, `AttackJinyang`의 `AttackChainStep` 세 번째 인자를 `AttackYunzhong`으로 바꿔 연결)만 고쳤다 — 지난 확장들과 같은 3파일 범위. 적국 20→21, 성 23→24. 운중 자신도 막북 안쪽(안문·정양·상군)으로 더 뻗을 수 있어 다음 확장 후보로 남는다. `RealmWorldMap`·`RealmCityState` 등은 `AllIds` 순회라 자동 반영 확인함.
+- **테스트 상태 표(아래)는 전부 이번 세션 편집 이전 결과다.** 이번 세션에 고친 파일(12차 3개 + 이전 세션 미검증분) 전부 재검증 전.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **컴파일·재검증(최우선)** — 이번 세션 편집분(104-1 9개 + 101-2 신규 5개 + REALM 51장 10·11차 3개) 전부 미검증. Unity 에디터 있는 세션에서: 배치 컴파일 → `BuildTestXxxScene`(GO/DUNGEON/FOREST/STORY) + `BuildTestCityScene`(REALM) 재생성 → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` 3연속. 씬을 안 다시 지으면 [SerializeField] 승격·GoalBoard 배선·건업·회계 사슬 전부 실제로 검증되는 게 없다.
+1. **컴파일·재검증(최우선)** — 누적 미검증분(104-1 9개 + 101-2 신규 5개 + REALM 51장 10~12차 6개) 전부. Unity 에디터 있는 세션에서: 배치 컴파일 → `BuildTestXxxScene`(GO/DUNGEON/FOREST/STORY) + `BuildTestCityScene`(REALM) 재생성 → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` 3연속. 씬을 안 다시 지으면 [SerializeField] 승격·GoalBoard 배선·건업·회계·운중 사슬 전부 실제로 검증되는 게 없다.
 2. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(다섯 SettingsPanel + GO 목표판/세션카드 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
 3. **PLAN 101-2 A·B 나머지 4판** — GO 이식이 컴파일·실기로 검증되면 DUNGEON/FOREST/STORY/REALM 에도 같은 `IGoalSource` 구현체만 추가(GoalBoard/SessionCard 는 SagaCore 그대로 재사용). REALM 은 "일과" 개념이 다른 넷과 안 맞을 수 있어(경영형) 먼저 검토.
 4. **Localization 잔여** — FOREST 데이터 콘텐츠, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출. en 사람 검수.
 5. **PLAN 104장 Phase 0 나머지** — `Assets/Art/*_candidates` 정리 판정만 남음(102-4 표는 있으나 105장 Q1 완성판 트랙 결정 뒤로 미룸 — 사용자 결정 대기, 손대지 않음).
-6. **REALM 51장 다음 확장(막힘, 조사 필요)** — 허창 사슬(장사→시상→건업→회계)이 막다른 끝에 닿았다. 나머지 두 사슬 중 아직 안 막힌 가지: 복양 사슬은 진양(ye→jinyang)에서, 진류 사슬은 영안(jiangzhou→yongan)에서 각각 막혔었다 — `saga-web/saga-realm/js/data-city.js` LINKS를 다시 grep해 그 성들의 다른 미사용 이웃이 있는지부터 확인해야 한다(지금까지처럼 감으로 고르지 말 것).
+6. **REALM 51장 다음 확장** — 세 사슬 중 허창(→회계)·진류(→영안)는 확정된 막다른 끝. 복양 사슬만 운중(yunzhong)에서 계속 열려 있다 — `data-city.js` LINKS의 "막북" 구역(542행 이하: yunzhong-yanmen·yunzhong-dingxiang·yunzhong-shangjun)이 다음 후보. 이번에 jinyang 오판을 잡았듯, 성을 "막다른 가지"로 적기 전엔 반드시 파일 전체를 그 id로 grep해 뒤쪽 확장 구역(한국·일본·교주·서역·남중·천축·막북·균열·폐허·묘역) LINKS까지 다 봤는지 확인할 것 — 앞쪽(462~490행) 본토 구역만 보고 판단한 게 이번 오판의 원인이었다.
 
 ## 알려진 오류
 

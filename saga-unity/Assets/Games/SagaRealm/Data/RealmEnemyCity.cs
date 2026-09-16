@@ -70,6 +70,15 @@ namespace Saga.Realm.Data
     /// 있어(성 하나당 목표 하나) 건업 쪽에서만 이어 붙였다. 허창 사슬이
     /// 열한 단계 깊이(train 190, +15 그대로)까지 왔다 — 회계는 원작
     /// LINKS상 더 이상 이웃이 없어(강동의 끝) 이 사슬의 마지막 칸이다.
+    /// **51장 12차 확장(2026-09-17)** — 진양→운중(원작 LINKS: jinyang-
+    /// yunzhong). 4차 확장 때 진양을 "이웃(업·낙양·장안)이 전부 이미 우리
+    /// 성"이라 막다른 가지로 적었는데, 그건 화북 본토 LINKS만 보고 놓친
+    /// 오판이었다 — data-city.js 542행 "막북" 구역에 jinyang-yunzhong 링크가
+    /// 따로 있다(원작 시나리오 밖 이 저장소 창작 확장 지역, 균열/폐허로
+    /// 이어지는 관문). 운중은 land: plain·landmark: true(막북 첫 관문) —
+    /// wall 3400은 원작 그대로, troops는 다른 성들과 같은 wall×0.23(50
+    /// 단위 반올림) 공식으로 800, train은 복양 사슬 깊이(45·60·75)에 +15
+    /// 이어 90.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -131,12 +140,13 @@ namespace Saga.Realm.Data
         public const string ChaisangId = "chaisang";
         public const string JianyeId = "jianye";
         public const string KuaijiId = "kuaiji";
+        public const string YunzhongId = "yunzhong";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
-            YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId,
+            YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -218,6 +228,11 @@ namespace Saga.Realm.Data
             // 붙였다. 이 사슬의 마지막 칸(회계는 원작 LINKS상 더 이상
             // 이웃이 없다).
             [KuaijiId] = new RealmEnemyCityDef(KuaijiId, "회계", RealmLand.Plain, baseWall: 4400, baseTroops: 1000, baseTrain: 190, baseTech: 100, attackFromCityId: "jianye"),
+            // 운중은 진양(jinyang)과만 맞닿아 있다(원작 LINKS: jinyang-yunzhong,
+            // 막북의 첫 관문) — 진양을 함락해야 열리는 복양 사슬의 새 넷째
+            // 단계 목표. 4차 확장 때 진양을 막다른 가지로 적었던 건 화북
+            // 본토 LINKS만 본 오판이었다(위 클래스 주석 참고).
+            [YunzhongId] = new RealmEnemyCityDef(YunzhongId, "운중", RealmLand.Plain, baseWall: 3400, baseTroops: 800, baseTrain: 90, baseTech: 100, attackFromCityId: "jinyang"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

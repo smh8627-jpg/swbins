@@ -167,6 +167,13 @@ namespace Saga.Realm.Data
             // LINKS상 더 이상 이웃이 없다(장사와도 맞닿지만 장사는 이미
             // 시상을 목표로 갖고 있다).
             ["kuaiji"] = new RealmCityDef("kuaiji", "회계", RealmLand.Plain, agri: 300, comm: 340, wall: 4400, pop: 210000, mapX: 84, mapY: 76),
+            // 51장 "대규모 콘텐츠" 12차 확장(2026-09-17) — 진양을 함락한 뒤
+            // 이어지는 복양 사슬의 새 넷째 단계(원작 LINKS: jinyang-yunzhong,
+            // "막북의 첫 관문" — 이 저장소 창작 확장 지역 균열/폐허로 드는
+            // 문). 원작 data-city.js 그대로 land: plain(mount 보정 불필요,
+            // 이 확장에서 처음). wall은 RealmEnemyCity.cs 운중 정의(3400)와
+            // 맞춘다.
+            ["yunzhong"] = new RealmCityDef("yunzhong", "운중", RealmLand.Plain, agri: 160, comm: 130, wall: 3400, pop: 55000, mapX: 45, mapY: 5),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
