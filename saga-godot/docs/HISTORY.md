@@ -7114,3 +7114,11 @@ PROJECT_STATE.md` 참고. 요약:
 - `save_state.gd`가 `drops` 딕셔너리 저장(추가 필드, 다른 §31 필드들과 같은 경계로 버전 안 올림).
 - 자가진단(임시, 커밋 전 지움): `drop_at()` → `try_recover()`(회수 성공) → 다시 `try_recover()`(이미 지워져 0) 세 단계 직접 확인.
 - 헤드리스 3회 회귀 통과. `project.godot`에 `DropState` autoload 한 줄 추가는 의도한 변경이라 되돌리지 않았다(회귀 스크립트가 diff를 보여주고 확인).
+
+## PLAN 101-2 GO ④후보 "사당 시련" (2026-09-16, 같은 세션 이어서, "사가고돗 이어해줘 묻지말고" 세 번째)
+
+- `saga_core/ui/duel_hud.gd` 신설(먼저): `bandit_encounter.gd`의 `_add_bar_row()`/`_make_combat_button()`을 공용화 — 사당 시련도 같은 전투 화면 조각이 필요해져, 두 번째로 짜기 전에 뽑았다. 회귀 md5 불변으로 무해함 확인.
+- `games/saga_go/world/shrine_trial.gd` 신설. 웹판 PLAN.md §5-②(사당 시련 3분 방)를 옮긴다 — 판정 층은 `duel_rules.gd` 그대로 재사용(`bandit_encounter.gd`와 같은 경계). 파도 4개(90/120/170/230 세기, 마지막이 소보스), 전체 180초는 별도 타이머 없이 "이전 파도의 남은 시간을 다음 파도의 시작 시간으로" 넘겨 `DuelRules` 자체 시간 판정이 지키게 했다(설계 단계에서 처음엔 별도 `_trial_left` 필드를 뒀다가, `_duel.left`가 이미 같은 값을 들고 있어 중복임을 깨닫고 지웠다).
+- 하루 3회는 실시간 날짜(`Time.get_date_dict_from_system()`, time_of_day.gd의 벽시계 원칙과 같음) 기준. 실패 시 재입장 10분(재화 없어 "사료 2" 비용은 면제). 클리어 시 경험치 60(웹 "공적 60")과 **아직 안 배치된 인물 하나를 새로 `hero_encounter.gd`로 인스턴스화**(마을 고정 둘·폐허 하나와 안 겹치게 제외, rarity 3~4 우선 — 웹 "genchar ★3~4 또는 HEROES 미보유 중 해시"). `landmarks_builder.gd` `_add_shrine()`이 제단 자리에 심는다.
+- 자가진단(임시, 커밋 전 지움): 실시간 전투를 프레임으로 기다리는 대신 `_duel` 필드를 직접 조작(hp=0 → `_finish_if_done()` → `_on_wave_done()` 직접 호출)해 파도 4개를 빠르게 이겨 끝까지 흐름을 확인 — 처음엔 `_process()` 없이 자동 전환을 기대해 멈춰 있었다(엔진 프레임이 안 지나면 `_on_wave_done()`이 안 불린다는 걸 실측으로 확인, 직접 호출로 고침). 일일 횟수도 `_daily_left()`를 `_choose_enter()` 전에 먼저 불러야(실제 흐름과 같은 순서) 정확히 2로 줄어드는 걸 확인(처음엔 순서를 안 맞춰 3으로 잘못 보임 — 자기 완결 진단 코드의 함정, `_last_reset_day` 최초 호출 시점 문제였다).
+- 헤드리스 3회 회귀 통과(GO md5 변경은 새 노드·로직이 로그를 바꾸는 당연한 결과, error/warn 0).

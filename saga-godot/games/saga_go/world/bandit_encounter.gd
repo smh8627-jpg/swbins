@@ -23,6 +23,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const DuelHud := preload("res://saga_core/ui/duel_hud.gd")
 
 ## 2026-09-11 GLB 교체 — 플레이어(character-a)·주민(b·c)과 다른 글자를 써서
 ## 산적임을 옷 색만으로도 구별한다(docs/ASSET_GUIDE.md). 실측·스케일 근거는
@@ -265,41 +266,18 @@ func _build_combat_ui() -> void:
 	_timer_label.add_theme_font_size_override("font_size", 24)
 	head.add_child(_timer_label)
 
-	_hp_bar = _add_bar_row(box, "기세")
-	_morale_bar = _add_bar_row(box, "사기")
-	_ki_bar = _add_bar_row(box, "기(氣)")
+	_hp_bar = DuelHud.add_bar_row(box, "기세")
+	_morale_bar = DuelHud.add_bar_row(box, "사기")
+	_ki_bar = DuelHud.add_bar_row(box, "기(氣)")
 
 	var pad := HBoxContainer.new()
 	pad.add_theme_constant_override("separation", 12)
 	box.add_child(pad)
-	pad.add_child(_make_combat_button("속공\n(J)", func() -> void: _do_act("quick")))
-	_ult_button = _make_combat_button("필살\n(K)", func() -> void: _do_act("ult"))
+	pad.add_child(DuelHud.make_combat_button("속공\n(J)", func() -> void: _do_act("quick")))
+	_ult_button = DuelHud.make_combat_button("필살\n(K)", func() -> void: _do_act("ult"))
 	pad.add_child(_ult_button)
-	pad.add_child(_make_combat_button("회피\n(L)", func() -> void: _do_act("dodge")))
-	pad.add_child(_make_combat_button("물러난다", _flee_combat))
-
-func _add_bar_row(parent: VBoxContainer, label_text: String) -> ProgressBar:
-	var row := HBoxContainer.new()
-	parent.add_child(row)
-	var lbl := Label.new()
-	lbl.text = label_text
-	lbl.custom_minimum_size = Vector2(70.0, 0.0)
-	row.add_child(lbl)
-	var bar := ProgressBar.new()
-	bar.min_value = 0.0
-	bar.max_value = 100.0
-	bar.value = 100.0
-	bar.show_percentage = false
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(bar)
-	return bar
-
-func _make_combat_button(text: String, cb: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(90.0, 64.0)
-	b.pressed.connect(cb)
-	return b
+	pad.add_child(DuelHud.make_combat_button("회피\n(L)", func() -> void: _do_act("dodge")))
+	pad.add_child(DuelHud.make_combat_button("물러난다", _flee_combat))
 
 func _start_fight() -> void:
 	_state = State.FIGHT

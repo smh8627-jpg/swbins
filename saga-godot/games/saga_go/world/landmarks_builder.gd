@@ -13,6 +13,7 @@ extends Node3D
 const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
+const ShrineTrial := preload("res://games/saga_go/world/shrine_trial.gd")
 
 const WALL_GLB := "res://assets/buildings/wall-block.glb"
 const ROOF_GLB := "res://assets/buildings/roof-gable.glb"
@@ -186,6 +187,14 @@ func _add_shrine() -> void:
 
 	_solid(size, base_pos + Vector3(0, size.y * 0.5, 0), self)
 	_add_discovery_area("shrine", base_pos, self)
+
+	## PLAN.md 101-2 GO ④"사당 시련" — 제단 자리에 시련 노드를 심는다
+	## (shrine_trial.gd, 자기 완결형 — 위치는 자기 스스로 잡지 않고 여기
+	## base_pos를 받는다).
+	var trial := ShrineTrial.new()
+	trial.name = "ShrineTrial"
+	trial.position = base_pos
+	add_child(trial)
 
 
 ## 산속 폭포(W) — 격자 (8,3), 옛 산(^) 자리 하나를 깎았다(test_map.gd 참고).
