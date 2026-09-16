@@ -132,3 +132,57 @@ static func by_key(k: String) -> Dictionary:
 		if b.key == k:
 			return b
 	return {}
+
+
+## PLAN 101-2 DUNGEON ⑤(난입, 2026-09-17) — dungeon_run_state.gd::roll_choice()/
+## _roll_one_of_axis()를 여기로 뽑았다(동작 그대로, `self.boons`였던 자리만
+## 매개변수 `counts`로 바꿨다) — 난입의 즉석 3택(dungeon_horde_state.gd)이
+## 영구 `boons`가 아니라 "난입 한정" 카운트(run_boons)에 대고 같은 굴림을
+## 재사용해야 해서다. `exclude_keys`는 난입이 "비급"(영구 무예 점수, 되돌릴
+## 수 없다)을 후보 풀에서 아예 빼는 자리 — 평소 호출(등용 없음)엔 빈 배열.
+static func roll_choice(counts: Dictionary, exclude_keys: Array[String] = []) -> Array[String]:
+	var out: Array[String] = []
+	var axes := ["skill", "hero", "world"]
+	axes.shuffle()
+	for axis in axes:
+		if out.size() >= 3:
+			break
+		var picked := _roll_one_of_axis(axis, out, counts, exclude_keys)
+		if picked != "":
+			out.append(picked)
+	if out.size() < 3:
+		var pool: Array[String] = []
+		for b: Dictionary in BOONS:
+			if out.has(str(b.key)) or exclude_keys.has(str(b.key)):
+				continue
+			if int(counts.get(b.key, 0)) < int(b.max):
+				pool.append(str(b.key))
+		while out.size() < 3 and pool.size() > 0:
+			var idx := randi() % pool.size()
+			out.append(pool[idx])
+			pool.remove_at(idx)
+	return out
+
+
+static func _roll_one_of_axis(axis: String, exclude: Array[String], counts: Dictionary, exclude_keys: Array[String]) -> String:
+	var by_rarity := {"common": [] as Array[String], "rare": [] as Array[String], "legendary": [] as Array[String]}
+	for b: Dictionary in BOONS:
+		if str(b.axis) != axis or exclude.has(str(b.key)) or exclude_keys.has(str(b.key)):
+			continue
+		if int(counts.get(b.key, 0)) >= int(b.max):
+			continue
+		var r: String = str(b.get("rarity", "common"))
+		if not by_rarity.has(r):
+			r = "common"
+		by_rarity[r].append(str(b.key))
+	var roll := randf() * 100.0
+	var order: Array[String] = ["common", "rare", "legendary"]
+	if roll >= 90.0:
+		order = ["legendary", "rare", "common"]
+	elif roll >= 60.0:
+		order = ["rare", "common", "legendary"]
+	for tier in order:
+		var arr: Array[String] = by_rarity[tier]
+		if arr.size() > 0:
+			return arr[randi() % arr.size()]
+	return ""

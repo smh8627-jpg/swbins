@@ -48,59 +48,12 @@ func add_temp_buff(eff_key: String, value: float, sec: float) -> void:
 ## legendary 10%)을 옮겼다. 축(axis) 셋(skill·hero·world)에서 하나씩
 ## 뽑아 카드 셋을 채운다 — dungeon_boons.gd 파일 헤더가 이 슬라이스의
 ## 세 축이 뭘 뜻하는지 적어 뒀다.
+## PLAN 101-2 DUNGEON ⑤(난입, 2026-09-17) — 굴림 로직 자체는 dungeon_boons.gd
+## 로 옮겼다(난입의 즉석 3택이 `run_boons`에 대고 같은 로직을 재사용해야
+## 해서, 파일 헤더 참고). 여기선 여전히 영구 `boons`에 대고 굴린다 — 동작은
+## 전과 완전히 같다.
 func roll_choice() -> Array[String]:
-	var out: Array[String] = []
-	var axes := ["skill", "hero", "world"]
-	axes.shuffle()
-	for axis in axes:
-		if out.size() >= 3:
-			break
-		var picked := _roll_one_of_axis(axis, out)
-		if picked != "":
-			out.append(picked)
-	## 축 하나(또는 그 이상)가 상한까지 다 차 카드를 못 낸 드문 경우 —
-	## 축 안 가리고 남은 자리를 채운다("같은 축 중복 금지"보다 "카드 셋을
-	## 못 채우는 쪽"이 더 나쁘다, 원안도 축이 부족하면 그 자리는 못 채운다고
-	## 정하지 않았다).
-	if out.size() < 3:
-		var pool: Array[String] = []
-		for b: Dictionary in DungeonBoons.BOONS:
-			if out.has(str(b.key)):
-				continue
-			if int(boons.get(b.key, 0)) < int(b.max):
-				pool.append(str(b.key))
-		while out.size() < 3 and pool.size() > 0:
-			var idx := randi() % pool.size()
-			out.append(pool[idx])
-			pool.remove_at(idx)
-	return out
-
-
-## 한 축 안에서 희귀도 가중(60/30/10)으로 하나 뽑는다 — 뽑힌 등급에 후보가
-## 없으면 다음으로 흔한 등급으로 내려간다(등급 하나가 텅 빈 축도 카드를
-## 낼 수 있게).
-func _roll_one_of_axis(axis: String, exclude: Array[String]) -> String:
-	var by_rarity := {"common": [] as Array[String], "rare": [] as Array[String], "legendary": [] as Array[String]}
-	for b: Dictionary in DungeonBoons.BOONS:
-		if str(b.axis) != axis or exclude.has(str(b.key)):
-			continue
-		if int(boons.get(b.key, 0)) >= int(b.max):
-			continue
-		var r: String = str(b.get("rarity", "common"))
-		if not by_rarity.has(r):
-			r = "common"
-		by_rarity[r].append(str(b.key))
-	var roll := randf() * 100.0
-	var order: Array[String] = ["common", "rare", "legendary"]
-	if roll >= 90.0:
-		order = ["legendary", "rare", "common"]
-	elif roll >= 60.0:
-		order = ["rare", "common", "legendary"]
-	for tier in order:
-		var arr: Array[String] = by_rarity[tier]
-		if arr.size() > 0:
-			return arr[randi() % arr.size()]
-	return ""
+	return DungeonBoons.roll_choice(boons)
 
 
 ## 5.1 "거절 시 금 30×층" 그대로 — room_index(0부터)를 웹의 "층"(1부터)에
@@ -116,13 +69,25 @@ func reject_choice(room_index: int) -> int:
 ## healOnPick이 있으면 player_health 그룹을 찾아 즉시 회복까지 시킨다
 ## (웹판 applyBoon()이 healBy()를 직접 부르는 것과 같은 자리).
 func apply_boon(key: String) -> Dictionary:
+	var b := apply_boon_to(key, boons, true)
+	if not b.is_empty():
+		boons_changed.emit()
+	return b
+
+
+## PLAN 101-2 DUNGEON ⑤(난입, 2026-09-17) — apply_boon()의 몸통을 임의의
+## `counts` Dictionary에 대고 쓸 수 있게 뽑았다(dungeon_horde_state.gd가
+## `run_boons`에 대고 같은 걸 부른다, roll_choice()를 dungeon_boons.gd로
+## 옮긴 것과 같은 이유). `allow_skill_grant=false`면 "비급"(skillPointGrant,
+## 영구 무예 점수)을 소비하지 않는다 — 난입은 애초에 그 은사를 후보 풀에서
+## 빼지만(roll_choice의 exclude_keys), 이중으로 막아 둔다.
+func apply_boon_to(key: String, counts: Dictionary, allow_skill_grant: bool) -> Dictionary:
 	var b := DungeonBoons.by_key(key)
 	if b.is_empty():
 		return {}
-	if int(boons.get(key, 0)) >= int(b.max):
+	if int(counts.get(key, 0)) >= int(b.max):
 		return {}
-	boons[key] = int(boons.get(key, 0)) + 1
-	boons_changed.emit()
+	counts[key] = int(counts.get(key, 0)) + 1
 	var heal: float = b.eff.get("healOnPick", 0.0)
 	if heal > 0.0:
 		var found := get_tree().get_nodes_in_group("player_health")
@@ -133,7 +98,7 @@ func apply_boon(key: String) -> Dictionary:
 	## 여기서 즉시 한 번만 소비한다(test_room.gd::_finish_exit()이 방
 	## 클리어마다 주는 것과 같은 자리·같은 규칙 — 그 순간 장착 중인 무기가
 	## 정하는 직업에 준다).
-	if b.eff.get("skillPointGrant", 0.0) > 0.0:
+	if allow_skill_grant and b.eff.get("skillPointGrant", 0.0) > 0.0:
 		var cls_key := DungeonItems.class_key_for_weapon(DungeonEquipmentState.weapon)
 		DungeonSkillState.award_point(cls_key)
 	return b
@@ -173,6 +138,10 @@ func _sum_eff(eff_key: String) -> float:
 	## 뽑힌 부적이 켜져 있을 때만 atkPct/guardPct에 반응(dungeon_sigil_
 	## state.gd 참고). 여섯 번째 자리.
 	total += DungeonSigilState.world_eff_sum(eff_key)
+	## PLAN 101-2 DUNGEON ⑤(난입, 2026-09-17) — 난입 진행 중에만 "난입
+	## 한정" 즉석 3택(run_boons)이 반응한다(dungeon_horde_state.gd 참고).
+	## 일곱 번째 자리, 난입이 꺼져 있으면 0.
+	total += DungeonHordeState.world_eff_sum(eff_key)
 	var buf: Dictionary = _temp_buffs.get(eff_key, {})
 	if not buf.is_empty() and Time.get_ticks_msec() < int(buf.until_msec):
 		total += float(buf.v)

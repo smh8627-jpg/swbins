@@ -41,6 +41,10 @@ extends CharacterBody3D
 ## 이동 속도(`_physics_process`)·재생(`_tick_regen`)·저항(`resist_pct`).
 ## 전부 부적이 안 켜져 있으면(has_mod()가 false) 조용히 아무 효과가 없다
 ## — 새 분기가 아니라 기존 값에 배율 하나씩만 더 곱하는 자리다.
+##
+## **난입(亂入, 2026-09-17, PLAN 101-2 DUNGEON ⑤)** — `_init()` 꼬리 인자
+## `extra_stat_mult`(기본 1.0)를 horde_arena.gd가 넘긴다. 부적과 같은
+## "맨 끝에 한 번 더 곱한다" 자리, 서로 안 얽힌다.
 
 signal died
 
@@ -108,7 +112,7 @@ static func _elite_chance(floor_num: int) -> float:
 ## force_elite=true는 dungeon.js spawnEnemy(floor, false, {forceElite:true})
 ## 그대로 — "정예 소굴"(POI: Elite) 방이 확률 없이 정예 하나를 반드시
 ## 끼우는 자리에서만 쓴다(test_room.gd::_spawn_elite_den).
-func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_elite: bool = false) -> void:
+func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_elite: bool = false, extra_stat_mult: float = 1.0) -> void:
 	_floor_num = floor_num
 	is_boss = boss
 	_is_shade = shade
@@ -140,6 +144,13 @@ func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_el
 	if sigil_mul != 1.0:
 		max_hp = roundf(max_hp * sigil_mul)
 		attack_damage = roundf(attack_damage * sigil_mul)
+	## PLAN 101-2 DUNGEON ⑤(난입, 2026-09-17) — horde_arena.gd가 난입
+	## 잡졸에만 티어 배율(1+0.35×파도/8, dungeon_horde_state.gd 참고)을
+	## 넘긴다. 던전 스폰(기본값 1.0)은 전혀 안 바뀐다 — 부적과 같은 자리에서
+	## 한 번 더 곱할 뿐, 서로의 존재를 모른다("충돌 없음").
+	if extra_stat_mult != 1.0:
+		max_hp = roundf(max_hp * extra_stat_mult)
+		attack_damage = roundf(attack_damage * extra_stat_mult)
 	hp = max_hp
 
 

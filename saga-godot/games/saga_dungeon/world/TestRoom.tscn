@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://games/saga_dungeon/world/test_room.gd" id="1"]
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
 [ext_resource type="Script" path="res://games/saga_go/world/environment_profile.gd" id="3"]
 [ext_resource type="PackedScene" path="res://games/saga_dungeon/player/DungeonPlayer.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://games/saga_dungeon/ui/DungeonHUD.tscn" id="5"]
+[ext_resource type="Script" path="res://games/saga_dungeon/world/horde_arena.gd" id="6"]
 
 [node name="TestRoom" type="Node3D"]
 script = ExtResource("1")
@@ -23,3 +24,6 @@ shadow_enabled = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 4)
 
 [node name="DungeonHUD" parent="." instance=ExtResource("5")]
+
+[node name="HordeArena" type="Node" parent="."]
+script = ExtResource("6")

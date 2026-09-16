@@ -7179,3 +7179,15 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_sigil.gd/.tscn`, 커밋 전 지움) — 12가지 확인: 결정적 변형자·활성화 배타성(이미 켜진 동안 재활성화 거부)·유리대포 world_eff 실측(atk_mult 1.5·guard_mult 1.5)·적 배율(티어4→2.4배, 정예 굴림과 안 섞이게 비정예 나올 때까지 재시도)·재생(1초에 1%)·저항(지정 원소만 +40)·정예 확률 2배(통계 3000회씩, 2배 근사)·금 배율(치어2+treasure=2.25)·clear_run 상태 정리·인벤 상한 20(최고참 축출)·저장 왕복. 첫 시도에 정예 랜덤과 안 맞물린 1회 우연 실패를 재시도 로직으로 고침 — 5회 재현 전부 fails=0.
 - `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(e78cfc9e — 새 오토로드로 ③과 다르지만 3회는 일치)·error/warn 0, project.godot는 DungeonSigilState 오토로드 등록 한 줄만.
 - 다음: PLAN 101-2 DUNGEON ⑤난입 — 표 순서대로.
+
+## PLAN 101-2 DUNGEON ⑤후보 "난입" (2026-09-17, 같은 세션 이어서, "이어해")
+- saga-web/saga-dungeon/PLAN.md §5.5 "난입(亂入) — 15분 생존 파도"를 옮겼다(웹도 미구현, dungeon.js에 "horde" 문자열 자체가 없다 — 부적 던전과 같은 선례). "모루골 결사비 옆 표식"은 이 슬라이스에 허브 씬이 없어 HUD 버튼(horde_button.gd, hardcore/sigil과 같은 경계)으로, "3×3 방"은 새 지오메트리 없이 시작한 자리 그대로 스폰(horde_arena.gd)으로 재해석했다.
+- **레벨(처치 경험)** — 웹 core.gainExp/player.level(expNeed=50×1.28^lv) 자체가 이 슬라이스엔 없어(grep 확인) "난입 한정" 레벨을 새로 굴렸다: 처치 1=경험 1, L→L+1 필요 L²×10(PLAN 101-2 표 "경험 곡선 파도²×10"을 "레벨²×10"으로 읽음 — 파도는 이미 다른 수치를 맡고 있어 이 표기가 레벨을 가리킨다고 판단, 대조할 웹 코드 없음).
+- **즉석 3택 재사용 리팩터** — dungeon_boons.gd에 `roll_choice(counts, exclude_keys)`·`_roll_one_of_axis(...)`를 static으로 뽑고(동작 동일, `self.boons`→매개변수), dungeon_run_state.gd::roll_choice()는 이걸 위임 호출로 축소. apply_boon()도 `apply_boon_to(key, counts, allow_skill_grant)`로 일반화해 난입이 `run_boons`(난입 한정 카운트, 시작마다 비움)에 대고 같은 로직을 재사용한다. **"비급"(skillpoint, 영구 무예 점수)만 후보 풀에서 제외** — 유일한 영구 효과라 "난입 한정"과 모순돼서.
+- `dungeon_horde_state.gd` 신규(오토로드 DungeonHordeState) — wave/8 티어로 "1+0.35×T" 적 배율(부적과 같은 공식, 독립 숫자), 6+2×파도(상한 40) 스폰, 15분(RUN_LIMIT_SEC) 완주 또는 사망 시 `finish()`가 보상(초당 금15, 10분 이상 생존 시 부적 티어1)을 준다. `DungeonRunState._sum_eff()`에 일곱 번째 채널로 `world_eff_sum()` 연결(부적 다음 자리) — 난입이 꺼지면 조용히 0.
+- `dungeon_enemy.gd::_init()`에 꼬리 인자 `extra_stat_mult`(기본 1.0, 부적 sigil_mul과 같은 자리에서 한 번 더 곱함) 추가 — 기존 4개 호출부는 안 건드림(기본값이 no-op).
+- `horde_arena.gd`(TestRoom.tscn 형제 노드, 상시 대기) — 파도마다 플레이어 반경 4~7m에 스폰, 처치마다 DungeonHordeState.register_kill() → 레벨업 시 3택 카드(축 아이콘 라벨 근사, 은사 카드와 같은 결). player_health.died 신호를 구독해 죽으면 즉시 종료(생존 시간 비례 보상은 그대로 받음). 정직하게 밝혀 둠 — "그림자" 정예의 분신은 이 died 연결을 안 물려받아 처치 집계에 안 잡힌다(드문 조합, 이번 범위 밖).
+- `horde_button.gd`(DungeonHUD.tscn 맨 끝, SigilButton 다음) — ChoicePrompt 확인 후 horde_arena.start_run() 호출. `dungeon_save_state.gd`에 horde_best·horde_runs 필드(순수 추가, 진행 중 상태는 회차를 안 넘겨 저장 안 함).
+- 자가진단(임시 `_diag_horde.gd/.tscn`, 커밋 전 지움) — 파도/티어 공식·비급 제외(300회 굴림)·레벨 곡선(킬10에 첫 레벨업)·world_eff 7번째 채널 실측·extra_stat_mult 배율(1.35배)·보상 계산(300s→금4500, 650s→부적 지급)·start() 재진입 가드·저장 왕복. 3회 재현 329/329, fails=0.
+- `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(c580f1d6)·error/warn 0. GO·FOREST·STORY·REALM 대표 씬 스모크(오토로드 추가+DungeonBoons/DungeonRunState 리팩터가 다른 판을 안 깨뜨리는지) 오류 0.
+- 다음: PLAN 101-2 DUNGEON ⑥월드 보스 — 표 순서대로.
