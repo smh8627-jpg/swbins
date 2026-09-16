@@ -7122,3 +7122,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 하루 3회는 실시간 날짜(`Time.get_date_dict_from_system()`, time_of_day.gd의 벽시계 원칙과 같음) 기준. 실패 시 재입장 10분(재화 없어 "사료 2" 비용은 면제). 클리어 시 경험치 60(웹 "공적 60")과 **아직 안 배치된 인물 하나를 새로 `hero_encounter.gd`로 인스턴스화**(마을 고정 둘·폐허 하나와 안 겹치게 제외, rarity 3~4 우선 — 웹 "genchar ★3~4 또는 HEROES 미보유 중 해시"). `landmarks_builder.gd` `_add_shrine()`이 제단 자리에 심는다.
 - 자가진단(임시, 커밋 전 지움): 실시간 전투를 프레임으로 기다리는 대신 `_duel` 필드를 직접 조작(hp=0 → `_finish_if_done()` → `_on_wave_done()` 직접 호출)해 파도 4개를 빠르게 이겨 끝까지 흐름을 확인 — 처음엔 `_process()` 없이 자동 전환을 기대해 멈춰 있었다(엔진 프레임이 안 지나면 `_on_wave_done()`이 안 불린다는 걸 실측으로 확인, 직접 호출로 고침). 일일 횟수도 `_daily_left()`를 `_choose_enter()` 전에 먼저 불러야(실제 흐름과 같은 순서) 정확히 2로 줄어드는 걸 확인(처음엔 순서를 안 맞춰 3으로 잘못 보임 — 자기 완결 진단 코드의 함정, `_last_reset_day` 최초 호출 시점 문제였다).
 - 헤드리스 3회 회귀 통과(GO md5 변경은 새 노드·로직이 로그를 바꾸는 당연한 결과, error/warn 0).
+
+## PLAN 101-2 GO ⑤후보 "봉수대" (2026-09-16, 같은 세션 이어서, "사가고돗 이어해줘 묻지말고" 네 번째)
+
+- `games/saga_go/world/beacon_tower.gd` 신설. 웹판 PLAN.md §5-①(권역 27곳, 미니맵에 반경 1.5km 리빌)을 이 판(REGIONS 지역 3, 미니맵 자체가 없음)에 맞춰 옮겼다 — "가 보기 전까지 안 뜬다"의 예외를 봉수대만 허용한다는 웹 규칙의 정신은 그대로, 대상만 미니맵 점 대신 104-5에서 태그해 둔 `codex_discoverable`(place 갈래) 그룹으로 바꿨다. "3초 홀드" 입력도 이 판엔 그런 패턴이 없어(전부 ChoicePrompt 버튼) "불을 올린다" 확인으로 갈아탔다.
+- 지역 3곳(마을 9,1·포구 7,7·폐허 5,1, 기존 콘텐츠와 안 겹치는 자리) 각 1개. `landmarks_builder.gd`·`region2_coast.gd`·`region3_ruins.gd` 셋이 각자 `_add_beacon()`/`_build_beacon()`으로 심는다. 시각은 새 에셋 없이 `pillar-stone.glb`를 탑처럼 키워 재사용 + 꺼진/켜진 primitive 구슬(불).
+- 점등 시 그 지역 `codex_discoverable` 중 아직 못 본 place를 전부 `CodexState.discover()`, 경험치 40(웹 "공적 40" 상당) — 두 번째부터는 `_lit` 가드로 보상 없음(웹 "두 번 올려도 보상은 한 번"과 같음).
+- 자가진단(임시, 커밋 전 지움): `_light_beacon()`을 직접 두 번 불러 첫 번째만 codex·경험치가 오르고 두 번째는 그대로인 걸 확인(코덱스 1→7, 마을 landmark 6곳 일괄 발견).
+- 헤드리스 3회 회귀 통과.

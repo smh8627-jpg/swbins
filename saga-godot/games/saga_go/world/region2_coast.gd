@@ -32,6 +32,7 @@ const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
+const BeaconTower := preload("res://games/saga_go/world/beacon_tower.gd")
 
 const PLANK_GLB := "res://assets/buildings/planks.glb"
 
@@ -129,6 +130,18 @@ var _fisher_last_said_ms := -1000000
 func _ready() -> void:
 	_build_departure_trigger()
 	_build_harbor()
+	_build_beacon()
+
+
+## PLAN.md 101-2 GO ⑤"봉수대" — 포구 몫. 기존 콘텐츠(어부·표류물·조각배
+## 등)와 안 겹치는 구석(7,7).
+func _build_beacon() -> void:
+	var tower := BeaconTower.new()
+	tower.name = "BeaconTower_coast"
+	tower.region_id = COAST_REGION
+	tower.grid = Vector2i(7, 7)
+	tower.region_label = "포구"
+	add_child(tower)
 
 
 ## === 마을 쪽 — 역참에 실제 기능을 단다 ===

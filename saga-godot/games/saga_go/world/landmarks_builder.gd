@@ -14,6 +14,7 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const ShrineTrial := preload("res://games/saga_go/world/shrine_trial.gd")
+const BeaconTower := preload("res://games/saga_go/world/beacon_tower.gd")
 
 const WALL_GLB := "res://assets/buildings/wall-block.glb"
 const ROOF_GLB := "res://assets/buildings/roof-gable.glb"
@@ -87,6 +88,18 @@ func _ready() -> void:
 	_add_shrine()
 	_add_waterfall()
 	_add_waystation()
+	_add_beacon()
+
+
+## PLAN.md 101-2 GO ⑤"봉수대" — 마을 몫. 숲 모퉁이(9,1), 사당(2,1)·
+## 마을(5,5)·역참(5,3)과 안 겹치는 자리.
+func _add_beacon() -> void:
+	var tower := BeaconTower.new()
+	tower.name = "BeaconTower_village"
+	tower.region_id = "village"
+	tower.grid = Vector2i(9, 1)
+	tower.region_label = "마을"
+	add_child(tower)
 
 
 func _box(size: Vector3, color: Color) -> MeshInstance3D:

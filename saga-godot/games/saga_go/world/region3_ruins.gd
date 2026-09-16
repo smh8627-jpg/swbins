@@ -28,6 +28,7 @@ const TestMap := preload("res://games/saga_go/data/test_map.gd")
 const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const BeaconTower := preload("res://games/saga_go/world/beacon_tower.gd")
 
 const RUINS_REGION := "ruins"
 
@@ -62,6 +63,18 @@ func _ready() -> void:
 	_build_entry_discovery()
 	_build_return_trigger()
 	_build_relic()
+	_build_beacon()
+
+
+## PLAN.md 101-2 GO ⑤"봉수대" — 폐허 몫. 기존 콘텐츠(입구·귀환·유물)와
+## 안 겹치는 자리(5,1).
+func _build_beacon() -> void:
+	var tower := BeaconTower.new()
+	tower.name = "BeaconTower_ruins"
+	tower.region_id = RUINS_REGION
+	tower.grid = Vector2i(5, 1)
+	tower.region_label = "폐허"
+	add_child(tower)
 
 
 func _build_terrain() -> void:
