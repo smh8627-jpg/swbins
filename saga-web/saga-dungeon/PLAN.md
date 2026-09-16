@@ -201,9 +201,10 @@
 ## 6. 그래픽·에셋 (SAGA-DESIGN §6.1·§7 의 이 판 적용분)
 
 ### 6.1 적용 파일과 순서
-1. `post3d.js` — 톤매핑 ACESFilmic·노출 1.0·블룸 임계 0.9·비네트 0.25 를 공통 규격으로. AUTO 등급 진동 쿨다운 1.5s 유지. LOW 는 후처리 off + `setRenderTarget(null)`(이미 있음).
+1. `post3d.js` — 톤매핑 ACESFilmic·노출 1.0·블룸 임계 0.9·비네트 0.25 를 공통 규격으로. AUTO 등급 진동 쿨다운 1.5s 유지. LOW 는 후처리 off + `setRenderTarget(null)`(이미 있음). **(2026-09-17) 렌더 실패 시 자동 끔은 완료** — `draw()`를 `drawInner`로 옮기고 try/catch 로 감쌈(SAGA-DESIGN §8-6, saga-go 와 같은 처방). 톤매핑 곡선 자체는 아직 안 건드림.
 2. `ssao3d.js` — 반경 0.6, 폰(픽셀 비율 상한 1.5)에서는 off.
-3. `dungeon3d.js` `mat()` — `MeshToonMaterial` + 3단 그라디언트 맵 + 뒤집힌 헐 외곽선(스케일 1.03, 검정 0.8~1.2px). `asset3d.js` `delam()`(PBR 강제 해제)은 툰 전환으로 대체. 재질 캐시가 색·질감 키로 공유되므로 가림 페이드는 계속 인스턴스 복제.
+3. **재질(툰) 완료(2026-09-17), 외곽선은 보류.** 새 `js/toon3d.js`: `dungeon3d.js`의 `mat()`·`texMat()`·`groundMat()` 셋 다, `asset3d.js`의 `delam()`(PBR 강제 해제)도 `world3d.toon`(기본 1)이 켜져 있으면 `MeshToonMaterial`+3단 그라디언트로 나간다. 재질 캐시는 그대로 색·질감 키 공유(가림 페이드는 여전히 인스턴스 복제).
+   **뒤집힌 헐 외곽선은 이번에 안 넣었다** — `mat()`이 방 벽·바닥 같은 판형 지오메트리와 배우 부품을 가리지 않고 같이 쓴다. 사가고처럼 "덩이만" 골라 붙이려면 `box()` 수십 군데 호출부를 다 태그해야 하는데, 화면 확인이 안 되는 세션에서 방 경계에 이상한 테두리가 생길 위험을 무릅쓰지 않았다. 다음 손질 후보: 배우(`buildActor`)만 먼저 태그하고 방 지오메트리는 빼는 절충안.
 4. **안개는 없다**(`scene.fog=null`, 사용자 지시). 땅 끝이 각지면 안개를 되살리지 말고 `fieldVisR` 을 넓힌다. 대신 하늘 그라디언트(`hdri/` 재사용)와 지평선 색 일치로 깊이를 낸다.
 5. 지형 — `buildField()` 바닥을 트라이플레이너 3타일(잔디·흙·돌, `textures/`) + 노이즈 블렌드로. 길(`road`)은 데칼. `field-instance.js` InstancedMesh 그대로, 풀 바람 셰이더 추가.
 6. 그림자 — `PCFSoftShadowMap`, 카메라 추적 직교 라이트 1(범위 60), 접지 blob 그림자 겸용(횃불 점광은 그림자 없음).
@@ -255,7 +256,7 @@
 
 ### 7.3 Phase 0 작업
 1. 오류 링버퍼 50건(`window.onerror`·`unhandledrejection`) → localStorage → `_admin.html` "오류" 탭 보기·복사.
-2. 세이브 `v:1` → 마이그레이션 체인 함수 `migrate(save)` 신설(지금은 mergeDeep 만). `_test.html` 에 "옛 세이브(town.pos 없음·appearance 없음·dex.relics 없음) 로드" 3항목.
+2. **완료(2026-09-17)** — `core.js`에 `SAVE_VERSION`·`MIGRATIONS`·`migrate(save)` 추가. 예전엔 `parsed.v !== 1`이면 `load()`가 세이브를 통째로 버렸다(사가고에서 먼저 잡은 aa4b8b8류 지뢰가 다섯 판 공통이었다 — `saga-go/HANDOFF.md` 2026-09-17 참고). 지금은 버전이 안 맞아도 지우지 않고 `mergeDeep`으로 넘긴다. `_test.html` "옛 세이브 로드" 3항목은 아직 안 넣음(이 판 고유 필드 기준 목록이 필요해 보류).
 3. 강공격·회피·hitstop·콤보 자가진단 4항목 추가(지금 없음).
 4. `tools/precheck.sh` — `node -c js/*.js` + `_test.html` RESULT + `wc -c PLAN.md` 상한 경고.
 5. 7.2 목록을 사용자 실기 세션 1회로 몰아 확인 → 닫힌 것은 지우고 남은 것만 이슈로.

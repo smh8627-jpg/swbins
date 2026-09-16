@@ -623,10 +623,19 @@
    */
   var geoCache = {}, matCache = {};
   function geo(name, make) { if (!geoCache[name]) { geoCache[name] = make(); } return geoCache[name]; }
+  /** SAGA-DESIGN §6.1 — 툰 재질 손잡이(`world3d.toon`, 기본 1). 꺼지면 옛 Lambert */
+  function TOON_ON() {
+    var TN = global.DG.toon3d;
+    return !!(TN && TN.TOON_ON());
+  }
   function mat(hex, opt) {
-    var k = hex + '|' + (opt || '');
+    var toon = TOON_ON();
+    var k = hex + '|' + (opt || '') + '|' + (toon ? 't' : 'l');
     if (matCache[k]) { return matCache[k]; }
-    var m = new T.MeshLambertMaterial({ color: new T.Color(hex) });
+    var TN = global.DG.toon3d;
+    var m = toon
+      ? new T.MeshToonMaterial({ color: new T.Color(hex), gradientMap: TN.ramp() })
+      : new T.MeshLambertMaterial({ color: new T.Color(hex) });
     if (opt === 'flat') { m.flatShading = true; }
     if (opt === 'glow') { m.emissive = new T.Color(hex); m.emissiveIntensity = 0.7; }
     if (opt === 'water') { m.transparent = true; m.opacity = 0.78; m.depthWrite = false; }
@@ -699,14 +708,17 @@
   }
   var texMatCache = {};
   function texMat(hex, url, repU, repV) {
-    var k = hex + '|' + url + '|' + repU.toFixed(2) + '|' + repV.toFixed(2);
+    var toon = TOON_ON();
+    var k = hex + '|' + url + '|' + repU.toFixed(2) + '|' + repV.toFixed(2) + '|' + (toon ? 't' : 'l');
     if (texMatCache[k]) { return texMatCache[k]; }
     var base = rawTex(url);
     /* 로드가 끝나기 전에는 **맵 없이 층 색만**으로 그린다 — 예전의 단색
        바닥으로 잠깐 보이는 것뿐, 다시는 안 까매진다(맵을 아예 안 물리면
-       Lambert 재질은 그냥 `color`로 칠한다). 로드가 끝나면 그제서야
+       Lambert/Toon 재질은 그냥 `color`로 칠한다). 로드가 끝나면 그제서야
        clone 해서 물린다. */
-    var m = new T.MeshLambertMaterial({ color: new T.Color(hex), flatShading: true });
+    var m = toon
+      ? new T.MeshToonMaterial({ color: new T.Color(hex), flatShading: true, gradientMap: global.DG.toon3d.ramp() })
+      : new T.MeshLambertMaterial({ color: new T.Color(hex), flatShading: true });
     onTexReady(url, function () {
       var tx = base.clone();
       tx.wrapS = tx.wrapT = T.RepeatWrapping;
@@ -776,12 +788,15 @@
     return tx;
   }
   function groundMat(hex, repU, repV) {
-    var kk = hex + '|' + repU.toFixed(2) + '|' + repV.toFixed(2);
+    var toon = TOON_ON();
+    var kk = hex + '|' + repU.toFixed(2) + '|' + repV.toFixed(2) + '|' + (toon ? 't' : 'l');
     if (groundMatCache[kk]) { return groundMatCache[kk]; }
     var tx = groundNoise().clone();
     tx.needsUpdate = true;
     tx.repeat.set(repU, repV);
-    var m = new T.MeshLambertMaterial({ color: new T.Color(hex), map: tx, flatShading: true });
+    var m = toon
+      ? new T.MeshToonMaterial({ color: new T.Color(hex), map: tx, flatShading: true, gradientMap: global.DG.toon3d.ramp() })
+      : new T.MeshLambertMaterial({ color: new T.Color(hex), map: tx, flatShading: true });
     groundMatCache[kk] = m;
     return m;
   }
