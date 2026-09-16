@@ -664,3 +664,11 @@ village-view3d.js) 구문 확인, `_test.html` 인라인 스크립트 두 블록
 
 ---
 
+
+## 2026-09-17 — SAGA-DESIGN §8-3 세이브 마이그레이션 지뢰 제거 (다섯 판 공통, saga-go 세션에서 발견)
+
+`js/core.js`의 `load()`가 `parsed.v !== 1`이면 무조건 세이브를 버리는 하드 체크였다 — 사가고
+그래픽 작업 중 이 판이 다섯 벌 복사본이라는 걸 확인차 훑다가 다섯 판 전부 같은 코드임을 발견했다.
+`SAVE_VERSION`·`MIGRATIONS`·`migrate()`(순수 함수)를 추가해 버전이 안 맞아도 지우지 않고
+`mergeDeep(freshSave(), ...)`로 넘기게 고쳤다(자세한 설계 이유는 `saga-web/saga-go/HANDOFF.md`
+2026-09-17 절 참고 — 다섯 벌이 동일 로직이라 설명을 안 되풀이한다). `sw.js` VERSION 도 같이 올렸다.
