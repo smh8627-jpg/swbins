@@ -65,7 +65,7 @@
   실기기 확인은 사용자가 한다. 사용자가 명시적으로 요청할 때만 스크린샷을 찍는다
   (3D 는 `--use-angle=swiftshader --enable-unsafe-swiftshader --disable-gpu-sandbox` 추가).
 - 헤드리스 크롬을 띄웠으면 그 turn 안에 `taskkill //F //IM chrome.exe`. **`//IM node.exe` 는 절대 금지**(다른 세션 서버가 죽는다).
-- 진단 씨앗은 mulberry32(20260824) 고정. 시각 의존 축은 `weather.force('clear')`·`rogue.force(false)` 로 붙든다.
+- 진단 씨앗은 mulberry32(20260824) 고정. 시각 의존 축은 진단에서 붙든다 — 사가고는 `weather.force('clear')`·`rogue.force(false)`, 사가의숲은 날짜 해시(`VD.weatherOf`)라 그 판 PLAN §9 의 방식대로.
 - 서버(`run.bat` 등)는 사용자가 실기 테스트를 요청할 때만 띄운다.
 - 큰 파일은 **Write 툴**로 쓴다. python 치환은 반드시 바이너리(`'rb'`/`'wb'`) — 텍스트 모드는 CRLF 로 뒤집힌다.
 - 한글 `.ps1` 은 UTF-8 BOM 필수.
