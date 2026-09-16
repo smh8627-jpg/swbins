@@ -64,6 +64,12 @@ namespace Saga.Realm.Data
     /// 더했다. 시상의 다른 이웃(kuaiji, 강동 끝)은 이번에 안 골랐다 —
     /// 다음 확장 후보. 허창 사슬이 열 단계 깊이(train 175, +15 그대로)까지
     /// 왔다.
+    /// **51장 11차 확장(2026-09-16, 같은 날 "순서대로 이어해줘")** —
+    /// 건업→회계(원작 LINKS: jianye-kuaiji, "강동의 끝"). 원작 LINKS엔
+    /// 장사(changsha)도 회계와 맞닿지만 장사는 이미 시상을 목표로 갖고
+    /// 있어(성 하나당 목표 하나) 건업 쪽에서만 이어 붙였다. 허창 사슬이
+    /// 열한 단계 깊이(train 190, +15 그대로)까지 왔다 — 회계는 원작
+    /// LINKS상 더 이상 이웃이 없어(강동의 끝) 이 사슬의 마지막 칸이다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -124,12 +130,13 @@ namespace Saga.Realm.Data
         public const string ChangshaId = "changsha";
         public const string ChaisangId = "chaisang";
         public const string JianyeId = "jianye";
+        public const string KuaijiId = "kuaiji";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
-            YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId,
+            YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -204,6 +211,13 @@ namespace Saga.Realm.Data
             // 열째 단계 목표, 열아홉 중 가장 어렵다. 원작 LINKS엔 회계
             // (kuaiji)도 건업과 맞닿지만 이번엔 시상 쪽에서만 이어 붙였다.
             [JianyeId] = new RealmEnemyCityDef(JianyeId, "건업", RealmLand.River, baseWall: 5200, baseTroops: 1200, baseTrain: 175, baseTech: 100, attackFromCityId: "chaisang"),
+            // 회계는 건업(jianye)과만 맞닿아 있다(원작 LINKS: jianye-kuaiji,
+            // 강동의 끝) — 건업을 함락해야 열리는 열한째 단계 목표, 스물 중
+            // 가장 어렵다. 원작 LINKS엔 장사(changsha)도 회계와 맞닿지만
+            // 장사는 이미 시상을 목표로 갖고 있어 이번엔 건업에서만 이어
+            // 붙였다. 이 사슬의 마지막 칸(회계는 원작 LINKS상 더 이상
+            // 이웃이 없다).
+            [KuaijiId] = new RealmEnemyCityDef(KuaijiId, "회계", RealmLand.Plain, baseWall: 4400, baseTroops: 1000, baseTrain: 190, baseTech: 100, attackFromCityId: "jianye"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

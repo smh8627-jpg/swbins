@@ -76,7 +76,7 @@ namespace Saga.EditorTools
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
             AttackChangan, AttackShouchun, AttackJinyang, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
-            AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye,
+            AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -1002,10 +1002,19 @@ namespace Saga.EditorTools
                     // 51장 10차 확장(2026-09-16, "순서대로 이어해줘") —
                     // 시상을 함락한 뒤 이어지는 열째 단계 목표
                     // (TargetFrom("chaisang")), 원작 LINKS: chaisang-jianye
-                    // ("오나라 도읍 자리 — 왕기가 있다 한다"). 열아홉 중
-                    // 가장 어렵다. 시상의 다른 이웃(kuaiji, 강동 끝)은
-                    // 이번에 안 골랐다 — 다음 확장 후보.
-                    if (!AttackChainStep(RealmEnemyCity.ChaisangId, RealmEnemyCity.JianyeId, Phase.QuizCorrect)) return;
+                    // ("오나라 도읍 자리 — 왕기가 있다 한다").
+                    if (!AttackChainStep(RealmEnemyCity.ChaisangId, RealmEnemyCity.JianyeId, Phase.AttackKuaiji)) return;
+                    break;
+                }
+
+                case Phase.AttackKuaiji:
+                {
+                    // 51장 11차 확장(2026-09-16, 같은 날 "순서대로 이어해줘")
+                    // — 건업을 함락한 뒤 이어지는 열한째 단계 목표
+                    // (TargetFrom("jianye")), 원작 LINKS: jianye-kuaiji
+                    // ("강동의 끝"), 스물 중 가장 어렵다. 이 사슬의 마지막
+                    // 칸 — 회계는 원작 LINKS상 더 이상 이웃이 없다.
+                    if (!AttackChainStep(RealmEnemyCity.JianyeId, RealmEnemyCity.KuaijiId, Phase.QuizCorrect)) return;
                     break;
                 }
 

@@ -6209,3 +6209,34 @@ nextPhase)` 인자 순서(PROJECT_STATE.md가 확인하라고 남겨 둔 그 헬
 다음 확장 후보는 건업의 다른 이웃 회계(kuaiji, 원작 LINKS: jianye-kuaiji, "강동의
 끝") — PROJECT_STATE.md 다음 우선순위 4에 남겨 둠. 이번 것도 포함해 전부 컴파일
 미검증 상태로 쌓여 있다(이 PC에 Unity 없음, 이번 세션 내내 동일).
+
+## REALM 51장 11차 확장 — 건업→회계, 허창 사슬 마지막 칸 (2026-09-16, 같은 세션 "순서대로 이어해줘")
+
+10차(시상→건업)에 곧바로 이어 11차도 같은 턴에 진행했다. `data-city.js` LINKS를
+grep해 `['jianye', 'kuaiji']`를 확인 — 원작에 회계(kuaiji)는 건업과 장사(changsha)
+둘과 맞닿지만, 장사는 이미 시상을 목표로 갖고 있어(성 하나당 목표 하나 원칙) 건업
+쪽에서만 이어 붙였다.
+
+수치는 원본 그대로(agri 300·comm 340·wall 4400·pop 210000·x 84·y 76·land plain,
+desc "강동의 끝. 소금과 배로 먹고산다"). troops=wall×0.23 반올림=1000(마침 changsha와
+같은 wall 4400이라 같은 troops로 교차검증), train=건업의 175+15=190.
+
+**이 사슬은 여기서 끝났다** — `data-city.js`에서 "kuaiji"를 전체 grep했을 때 도시
+정의 하나와 LINKS 두 줄(changsha-kuaiji, jianye-kuaiji) 외엔 아무것도 안 나왔다.
+둘 다 이미 다른 목표를 가진 성(changsha→chaisang, 그리고 kuaiji 자신은 이제 목표를
+갖는 쪽)이라 더 뻗을 데가 없다 — 진양·영안과 같은 "막다른 가지" 판정.
+
+고친 파일은 10차와 동일한 3개(`RealmCityData.cs`·`RealmEnemyCity.cs`·
+`PlaytestRealmSlice.cs`). `enum Phase`에 `AttackKuaiji` 추가, `AttackJianye`의
+`AttackChainStep` 세 번째 인자를 `QuizCorrect`에서 `AttackKuaiji`로 바꾸고 그 뒤에
+새 case를 끼워 `QuizCorrect`로 넘긴다 — 10차 때와 완전히 같은 삽입 패턴이라 실수할
+자리가 없었다.
+
+**결과 — 적국 19→20, 성 22→23.** 허창발 사슬(xiaopei→xiapi→shouchun→runan→
+jiangxia→xiangyang→jiangling→changsha→chaisang→jianye→kuaiji)이 11단계 깊이로
+끝났다. 세 사슬(허창·복양·진류) 중 허창 사슬만 유일하게 여기까지 왔고 나머지 둘
+(복양발 jinyang, 진류발 yongan)은 훨씬 앞에서 이미 막다른 가지로 판정났었다.
+다음에 51장을 더 늘리려면 감으로 고르지 말고 `data-city.js` LINKS를 다시 훑어
+jinyang·yongan의 다른 이웃 중 아직 안 쓴 게 있는지부터 확인해야 한다 —
+PROJECT_STATE.md 다음 작업에 이 순서로 남겨 둠. 컴파일은 여전히 미검증(이 PC에
+Unity 없음, 세션 내내 동일).

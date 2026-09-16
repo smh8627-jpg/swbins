@@ -160,6 +160,13 @@ namespace Saga.Realm.Data
             // wall은 RealmEnemyCity.cs 건업 정의(5200)와 맞춘다. chaisang의
             // 다른 이웃(kuaiji, 강동 끝)은 이번에 안 골랐다 — 다음 확장 후보.
             ["jianye"] = new RealmCityDef("jianye", "건업", RealmLand.River, agri: 320, comm: 380, wall: 5200, pop: 250000, mapX: 77, mapY: 62),
+            // 51장 "대규모 콘텐츠" 11차 확장(2026-09-16) — 건업을 함락한 뒤
+            // 이어지는 열한째 단계(원작 LINKS: jianye-kuaiji, "강동의 끝,
+            // 소금과 배로 먹고산다"). wall은 RealmEnemyCity.cs 회계
+            // 정의(4400)와 맞춘다. 이 사슬의 마지막 칸 — 회계는 원작
+            // LINKS상 더 이상 이웃이 없다(장사와도 맞닿지만 장사는 이미
+            // 시상을 목표로 갖고 있다).
+            ["kuaiji"] = new RealmCityDef("kuaiji", "회계", RealmLand.Plain, agri: 300, comm: 340, wall: 4400, pop: 210000, mapX: 84, mapY: 76),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
