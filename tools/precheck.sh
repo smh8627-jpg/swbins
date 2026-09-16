@@ -16,6 +16,20 @@ for d in "${targets[@]}"; do
   done < <(find "$d/js" -name '*.js' -not -path '*/vendor/*')
 done
 
+echo "== 도감 data.js 다섯 벌 md5 (루트 CLAUDE.md: 도감은 다섯 벌 함께 고치고 md5 로 확인)"
+sums=""; for g in saga-go saga-dungeon saga-forest saga-story saga-realm; do
+  p="saga-web/$g/js/data.js"; [ -f "$p" ] || continue
+  s=$(md5sum "$p" | cut -c1-8); echo "$s $g"; sums="$sums $s"
+done
+distinct=$(echo "$sums" | tr ' ' '\n' | sed '/^$/d' | sort -u | wc -l)
+if [ "$distinct" -gt 1 ]; then
+  if git status --porcelain -- 'saga-web/*/js/data.js' | grep -q .; then
+    echo "MISMATCH data.js 가 다섯 벌 다르고 지금 data.js 를 고치는 중이다 — 다섯 벌 함께 맞춘 뒤 커밋"; fail=1
+  else
+    echo "WARN data.js 다섯 벌이 이미 다르다(기존 어긋남, 이번 커밋과 무관). 도감을 손댈 때 함께 맞출 것"
+  fi
+fi
+
 echo "== 문서 크기"
 limit() { # 파일 상한(바이트)
   local f=$1 max=$2; [ -f "$f" ] || return 0

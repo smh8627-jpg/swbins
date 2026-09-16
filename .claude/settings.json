@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tools/hooks/gate.js",
+            "timeout": 10,
+            "statusMessage": "saga 세션 절차 안내"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tools/hooks/gate.js",
+            "if": "Bash(git commit *)",
+            "timeout": 120,
+            "statusMessage": "커밋 전 precheck (node -c · data.js md5 · 문서 크기)"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node tools/hooks/gate.js",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
