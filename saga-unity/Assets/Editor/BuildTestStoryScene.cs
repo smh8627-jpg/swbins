@@ -8,6 +8,7 @@ using Saga.Story.World;
 using Saga.Story.Player;
 using Saga.Story.UI;
 using Saga.Story.Data;
+using Saga.Core;
 
 namespace Saga.EditorTools
 {
@@ -64,6 +65,7 @@ namespace Saga.EditorTools
             BuildDebugOverlay();
             BuildSaveButton();
             BuildSettingsUi();
+            BuildGoalBoardUi();
             BuildMobileControls(playerController);
             BuildBootstrap();
 
@@ -587,6 +589,27 @@ namespace Saga.EditorTools
             var go = new GameObject("StorySettingsPanel");
             var panel = go.AddComponent<StorySettingsPanel>();
             panel.Build();
+        }
+
+        /// <summary>PLAN.md 101-2 "공통 선행" A·B — 목표판 3줄 + 세션 마무리
+        /// 카드(STORY 네 번째 이식, GO·DUNGEON·FOREST의 `BuildGoalBoardUi()`와
+        /// 완전히 같은 배선). GoalBoard·SessionCard 는 Awake()가 자기 UI를
+        /// 다시 짓는 SagaCore 공용 컴포넌트라 [SerializeField] 배선이
+        /// 필요 없다 — StorySessionTracker(이 판 전용, Saga.Story.UI)
+        /// 하나가 IGoalSource 를 구현하면서 SessionCard 표시도 같이 맡는다.
+        /// Player가 이미 씬에 있어야 하니 BuildPlayer() 뒤에서만 부른다.</summary>
+        private static void BuildGoalBoardUi()
+        {
+            var cardGo = new GameObject("SessionCard");
+            var sessionCard = cardGo.AddComponent<SessionCard>();
+
+            var trackerGo = new GameObject("StorySessionTracker");
+            var tracker = trackerGo.AddComponent<StorySessionTracker>();
+            tracker.Init(sessionCard);
+
+            var boardGo = new GameObject("GoalBoard");
+            var board = boardGo.AddComponent<GoalBoard>();
+            board.Init(tracker);
         }
 
         /// <summary>19~21장 모바일 조작 — 이 판은 1축 플랫포머라 다른 네

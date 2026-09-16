@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
+using Saga.Core;
 using Saga.Forest.Data;
 using Saga.Forest.UI;
 
@@ -82,6 +83,7 @@ namespace Saga.EditorTools
                 CheckDebugHud();
                 CheckSettingsPanel();
                 CheckActionButtonLocalization();
+                CheckGoalBoardAndSessionCard();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -258,6 +260,84 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestForestHeadless] action button localization OK");
+        }
+
+        /// <summary>PLAN.md 101-2 "공통 선행" A·B(FOREST 세 번째 이식) —
+        /// `PlaytestHeadless.CheckGoalBoardAndSessionCard()`(GO)·
+        /// `PlaytestDungeonHeadless`(DUNGEON)와 완전히 같은 기준 — GoalBoard
+        /// 세 줄이 실제로 채워지는지, Awake()의 IGoalSource 자동 재탐색이
+        /// 동작하는지, SessionCard 가 뜨고 스스로 닫히는지를 직접 확인한다 —
+        /// 존재 확인만으로 끝내지 않는다.</summary>
+        private static void CheckGoalBoardAndSessionCard()
+        {
+            var board = Object.FindFirstObjectByType<GoalBoard>();
+            if (board == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] GoalBoard 컴포넌트를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var sourceField = typeof(GoalBoard).GetField("_source", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (sourceField.GetValue(board) == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] GoalBoard._source가 null — Awake() 자동 재탐색 실패");
+                _hadError = true;
+                return;
+            }
+
+            var labelField = typeof(GoalBoard).GetField("_label", BindingFlags.NonPublic | BindingFlags.Instance);
+            var label = labelField.GetValue(board) as Text;
+            if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
+            {
+                Debug.LogError($"[PlaytestForestHeadless] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");
+                _hadError = true;
+                return;
+            }
+
+            var card = Object.FindFirstObjectByType<SessionCard>();
+            if (card == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] SessionCard 컴포넌트를 못 찾음");
+                _hadError = true;
+                return;
+            }
+            if (card.IsShowing)
+            {
+                Debug.LogError("[PlaytestForestHeadless] SessionCard가 세션 시작부터 떠 있음(기본은 숨김)");
+                _hadError = true;
+                return;
+            }
+
+            card.Show("테스트", "줄1", "줄2");
+            if (!card.IsShowing)
+            {
+                Debug.LogError("[PlaytestForestHeadless] SessionCard.Show() 호출 후에도 안 뜸");
+                _hadError = true;
+                return;
+            }
+
+            // 5초를 실제로 안 기다리고 _closeTimer를 만료 직전으로 돌린 뒤
+            // Update()를 한 번 더 불러 자동 닫힘 경로를 확인한다.
+            var closeTimerField = typeof(SessionCard).GetField("_closeTimer", BindingFlags.NonPublic | BindingFlags.Instance);
+            closeTimerField.SetValue(card, 0.0001f);
+            var updateMethod = typeof(SessionCard).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            updateMethod.Invoke(card, null);
+            if (card.IsShowing)
+            {
+                Debug.LogError("[PlaytestForestHeadless] SessionCard가 만료 후에도 자동으로 안 닫힘");
+                _hadError = true;
+                return;
+            }
+
+            if (Object.FindFirstObjectByType<ForestSessionTracker>() == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] ForestSessionTracker 컴포넌트를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log("[PlaytestForestHeadless] goal board / session card OK - 3 lines filled, source auto-found, card shows and auto-closes");
         }
     }
 }

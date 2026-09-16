@@ -6385,3 +6385,36 @@ SessionCard/IGoalSource(SagaCore)는 손 안 댔다(GO 이식 때 이미 다 짜
 에디터가 다음에 열릴 때 자동 생성됨)를 그대로 따랐다. FOREST·STORY 이식과 REALM
 검토는 다음 차례로 남겼다(PROJECT_STATE 참고). 컴파일 여전히 미검증(이 PC도 Unity
 에디터 없음).
+
+## PLAN 101-2 A·B — FOREST·STORY 이식 (2026-09-17, 같은 세션 "잘못 나간거야묻지말고 이어해줘")
+
+DUNGEON 이식에 곧바로 이어, GO(첫 이식)·DUNGEON(둘째)과 같은 3파일 패턴을
+FOREST·STORY 두 판에 한 턴에 마저 옮겼다 — 남은 건 REALM(경영형이라 검토 먼저)뿐이다.
+
+**FOREST**: `Assets/Games/SagaForest/UI/ForestSessionTracker.cs` 신규. GO/DUNGEON과
+가장 다른 지점 — 이 판엔 금 경제가 없다(`ForestState.cs` 클래스 주석: 채집한 과일
+개수뿐) — "이번 세션" 줄의 "금"을 `ForestState.FruitCount` 세션 시작 대비 증가분
+("과일 +N")으로 바꿨다. "지금" 줄은 `ForestFruitTree`가 GO의 `HiddenTreasure`와
+달리 무제한 채집이라(다 찾는 개념이 없다) 그냥 가장 가까운 나무까지 거리만 보여준다
+(전부 못 찾아도 "다 찾음" 같은 문구는 안 씀). `BuildTestVillageForestScene.cs`에
+`BuildGoalBoardUi()`(`BuildSettingsUi()` 뒤) 추가, `PlaytestForestHeadless.cs`에
+`CheckGoalBoardAndSessionCard()`(GO·DUNGEON과 완전히 같은 검증) 추가.
+
+**STORY**: `Assets/Games/SagaStory/UI/StorySessionTracker.cs` 신규. 이 판도 금·과일
+경제가 없어(`StoryJobState`엔 Level/Exp만, 통화 없음) 대신 이미 있던
+`StoryQuestState.Kills`(사명 집계)를 "이번 세션" 지표로 썼다("처치 +N"). "지금" 줄은
+`StoryEnemy.All`(기존 static 목록)에서 `!IsDead`만 걸러 가장 가까운 살아있는 적까지
+거리 — DUNGEON과 같은 결(이 판도 핵심이 근접 전투). 다만 `PlaytestStorySlice.cs`는
+GO/DUNGEON/FOREST의 프레임카운트식이 아니라 **Phase 상태머신** 구조라 새 Phase를
+안 늘리고(`CheckSettingsPanel()` 등 기존 셋과 같은 자리, `Phase.Init` 안에서 한 번만)
+`CheckGoalBoardAndSessionCard()`를 **bool 반환**으로 맞춰 끼워 넣었다(이 파일의 기존
+`Check*()` 관례를 그대로 따름 — void+`_hadError` 대입 방식이 아니다). `BuildTestStoryScene.cs`에
+`BuildGoalBoardUi()`(`BuildSettingsUi()` 뒤) 추가.
+
+고친 파일 6개: `ForestSessionTracker.cs`·`StorySessionTracker.cs`(둘 다 신규)·
+`BuildTestVillageForestScene.cs`·`PlaytestForestHeadless.cs`·`BuildTestStoryScene.cs`·
+`PlaytestStorySlice.cs`(+ HISTORY/PROJECT_STATE). 새 `.cs.meta`는 이번에도 안 만듦
+(DUNGEON 때와 같은 이유). **PLAN 101-2 A·B, GO·DUNGEON·FOREST·STORY 네 판 전부
+이식 완료 — REALM만 남았다**("일과" 개념이 경영형과 안 맞을 수 있어 이식 전에 검토
+필요, PROJECT_STATE 참고). 컴파일 여전히 미검증(이 PC도 Unity 에디터 없음) — 이번
+세션에 늘어난 미검증분 전부 PROJECT_STATE에 집계해 둠.
