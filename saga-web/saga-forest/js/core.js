@@ -161,13 +161,33 @@
 
   /* ── 저장 / 불러오기 ──────────────────────────────────── */
 
+  /** 세이브 스키마 버전 — SAGA-DESIGN §8-3 "aa4b8b8 류 재발 방지"(사가고에서
+   *  먼저 잡고 다섯 판 공통 지뢰라 여기도 옮긴다). 올릴 때는 SAVE_VERSION 을
+   *  올리고 `MIGRATIONS[옛버전]`에 손질 함수를 더한다(고친 뒤 `s.v`를 다음
+   *  버전으로 올려 돌려준다). **버전이 지금과 정확히 같지 않다고 세이브를
+   *  통째로 버리지 않는다** — 예전엔 `parsed.v !== 1` 하나만 어긋나도 `load()`가
+   *  false 를 줘 그대로 새 세이브로 덮였다. */
+  var SAVE_VERSION = 1;
+  var MIGRATIONS = {};
+
+  /** 순수 함수 — 옛 버전 세이브를 체인을 따라 최신까지 밀어 올린다.
+   *  이을 손질이 없으면(사슬이 끊기면) 거기서 멈추고 있는 그대로 준다 */
+  function migrate(parsed) {
+    var s = parsed, guard = 0;
+    while (s && typeof s.v === 'number' && s.v < SAVE_VERSION && MIGRATIONS[s.v] && guard++ < 20) {
+      s = MIGRATIONS[s.v](s);
+    }
+    return s;
+  }
+
   function load() {
     try {
       var raw = localStorage.getItem(SAVE_KEY);
       if (!raw) { return false; }
       var parsed = JSON.parse(raw);
-      if (!parsed || parsed.v !== 1) { return false; }
-      // 누락 필드 보정 (버전 올릴 때 여기서 마이그레이션)
+      if (!parsed || typeof parsed.v !== 'number') { return false; }
+      parsed = migrate(parsed);
+      // 누락 필드 보정 — 버전이 맞든 안 맞든 `freshSave()` 위에 덧씌워 빈 자리를 채운다
       var base = freshSave();
       save = mergeDeep(base, parsed);
       return true;
@@ -370,6 +390,7 @@
     setSaveKey: setSaveKey,
     get save() { return save; },
     load: load, persist: persist, reset: reset,
+    SAVE_VERSION: SAVE_VERSION, MIGRATIONS: MIGRATIONS, migrate: migrate,
     on: on, emit: emit,
     gainFeat: gainFeat, gainExp: gainExp, expNeed: expNeed,
     effect: effect,

@@ -30,6 +30,14 @@ if [ "$distinct" -gt 1 ]; then
   fi
 fi
 
+echo "== sw.js 캐시 버전 (판별 PLAN §7 함정: js/ 고치고 VERSION 안 올리면 옛 캐시를 계속 본다)"
+for d in "${targets[@]}"; do
+  [ -f "$d/sw.js" ] || continue
+  if git status --porcelain -- "$d/js" 2>/dev/null | grep -q . && ! git status --porcelain -- "$d/sw.js" 2>/dev/null | grep -q .; then
+    echo "WARN $d/js 를 고쳤는데 $d/sw.js VERSION 은 그대로다 — 서비스워커 옛 캐시로 남을 수 있다"
+  fi
+done
+
 echo "== 문서 크기"
 limit() { # 파일 상한(바이트)
   local f=$1 max=$2; [ -f "$f" ] || return 0

@@ -160,11 +160,15 @@
    */
   function delam(root) {
     var t = three();
+    var TN = global.DG.toon3d;
+    var toon = !!(TN && TN.TOON_ON());
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
+        /* 2026-09-17 — SAGA-DESIGN §6.1: 손잡이가 켜져 있으면 툰으로, 꺼지면 예전 Lambert */
+        if (toon) { return TN.toonify(m); }
         /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
            검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
            뜬다 — saga-realm 에서 먼저 잡은 원인(2026-09-03) */

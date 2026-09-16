@@ -1084,6 +1084,8 @@
    *  선다(사가고가 2026-08-29 에 먼저 밟은 함정, `SAGA-HANDOFF.md` 참고) */
   function delam(root) {
     var t = three();
+    var TN = global.DG.toon3d;
+    var toon = !!(TN && TN.TOON_ON());
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       /* **법선이 아예 없는 GLB**(2026-09-04, "House"·"Wood" 새까만 자리로
@@ -1096,6 +1098,14 @@
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
+        /* 2026-09-17 — SAGA-DESIGN §6.1 적용분. 툰 손잡이가 켜져 있으면
+           `toon3d.toonify()`(DoubleSide·알파클립까지 옮긴다), 꺼져 있으면
+           예전 그대로 Lambert 로 벗긴다 */
+        if (toon) {
+          var tm = TN.toonify(m);
+          tm.side = t.DoubleSide;   // 이 판의 방침(위 주석) — 툰이어도 그대로 지킨다
+          return tm;
+        }
         /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
            검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
            뜬다 — 2026-09-03, saga-realm 에서 먼저 밟은 함정 */

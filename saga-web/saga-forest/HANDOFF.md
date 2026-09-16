@@ -664,3 +664,58 @@ village-view3d.js) 구문 확인, `_test.html` 인라인 스크립트 두 블록
 
 ---
 
+
+## 2026-09-17 — SAGA-DESIGN §8-3 세이브 마이그레이션 지뢰 제거 (다섯 판 공통, saga-go 세션에서 발견)
+
+`js/core.js`의 `load()`가 `parsed.v !== 1`이면 무조건 세이브를 버리는 하드 체크였다 — 사가고
+그래픽 작업 중 이 판이 다섯 벌 복사본이라는 걸 확인차 훑다가 다섯 판 전부 같은 코드임을 발견했다.
+`SAVE_VERSION`·`MIGRATIONS`·`migrate()`(순수 함수)를 추가해 버전이 안 맞아도 지우지 않고
+`mergeDeep(freshSave(), ...)`로 넘기게 고쳤다(자세한 설계 이유는 `saga-web/saga-go/HANDOFF.md`
+2026-09-17 절 참고 — 다섯 벌이 동일 로직이라 설명을 안 되풀이한다). `sw.js` VERSION 도 같이 올렸다.
+
+## 2026-09-17 — SAGA-DESIGN §6.1 툰 재질(외곽선 제외)
+
+사가고→사가블로→사가스토리에 이어 "이어해줘 묻지말고"로 이 판까지(다섯 판 마지막은
+사가국지, 다음 세션에서). 세이브 마이그레이션 지뢰(core.js `parsed.v !== 1`)는 다섯 판
+공통이라 이미 별도 커밋으로 먼저 고쳤다(`saga-go/HANDOFF.md` 2026-09-17 절 참고).
+
+**새 파일 `js/toon3d.js`** — 다른 판과 같은 3단 램프 `MeshToonMaterial`. 이 판은
+`asset3d.js`에 이미 `looksRealistic()` 스킵(사진측량 탑성 등 PBR+HDRI 자산은 `delam()`
+자체를 안 태움)이 있어 사가고와 같은 구조 — 실사 예외를 새로 만들 필요가 없었다.
+
+**`js/village-view3d.js`** — 땅 배경판(`ground`)과 타일 8종(`initTerrain()`, 물 제외)이
+`world3d.toon` 손잡이로 Toon/Lambert 를 고른다. **물 재질(`waterMaterial()`)은 절대
+안 건드렸다** — `scene.environment` HDRI 반사를 쓰는 `MeshStandardMaterial`이라 툰으로
+바꾸면 그 함수 주석이 자랑하는 "공짜 반사"가 죽는다.
+
+**`js/asset3d.js`** — `delam()`·`primitive()`(GLB 실패 시 캡슐 자리표시) 둘 다 적용.
+
+**외곽선은 이번에도 뺐다** — 땅이 `InstancedMesh`로 수백~수천 칸을 그리는 구조라, 칸마다
+외곽선을 더하면 격자 전체가 검은 테두리로 뒤덮여 오히려 나빠 보일 위험이 크다(화면 확인이
+안 되는 세션이라 무릅쓰지 않았다). **후처리 자동 끔(§8-6)도 해당 없음** — 이 판엔
+`post3d.js` 자체가 없다(별도 렌더 타깃 합성 없이 `renderer.render()`를 바로 부른다 —
+사가고·사가블로·사가스토리처럼 "실패하면 영구히 끄는" 대상 함수가 애초에 없는 구조).
+
+**HTML·sw.js** — `index.html`·`_demo.html`·`_test.html`에 `toon3d.js`를 `asset3d.js`
+앞에 얹었다. `sw.js` `SHELL`에도 추가(이 판은 `asset3d.js`가 원래 캐시 목록에 있었다 —
+사가스토리와 다름), VERSION `v0.55.2`→`v0.56.0`.
+
+**검증** — `node -c` 전 파일 통과, 세 HTML 인라인 스크립트 `new Function()` 파싱 확인,
+`bash tools/precheck.sh saga-web/saga-forest` → PRECHECK OK. 헤드리스 `_test.html` 3회
+확인은 이번에도 안 돌렸다(precheck.sh 자체 규칙 — 실기 확인은 사용자 몫).
+
+**남은 것** — 외곽선(배우만 골라 태그), §6.3 바이옴 5×24색 팔레트 스냅, 변형 배가,
+오류 링버퍼 — PLAN §6·§7 에 남겨 뒀다. **다섯 판 중 사가국지(saga-realm)만 이번
+연속 세션에서 손 안 댔다** — 다음에 이어서 하면 여기까지의 패턴(toon3d.js + delam +
+땅 재질, 실사 스킵 확인, 후처리 유무 확인)을 그대로 따르면 된다.
+
+## 2026-09-17 — SAGA-DESIGN §8-2 오류 링버퍼 (다섯 판 공통, saga-go 규격 그대로)
+
+사가고→사가블로에 이어 셋째. 새 `js/errlog.js`(storageKey `yeoksa-village/errlog`,
+`index.html`/`_admin.html`/`_test.html` 맨 첫 스크립트). `_admin.html`에 "오류" 탭(QA
+프리셋과 점검·백업 사이) — `js/admin.js`의 `renderAll()`에 `renderErr()` 추가(전체가
+try/catch 로 감싸여 있어 오류가 나도 다른 탭 렌더는 안 죽는다), `bind()`에 다시
+읽기·복사·비우기 버튼 배선. `_test.html`에 순수 함수 `push()` 상한 진단 1항목. `sw.js`
+`SHELL`에 `errlog.js` 추가, `VERSION` `village-v0.56.0` → `village-v0.57.0`.
+
+**검증** — `node -c` 통과, `bash tools/precheck.sh saga-web/saga-forest` → PRECHECK OK.

@@ -578,8 +578,24 @@
    * @return true 면 이미 화면에 냈다. false 면 부르는 쪽이 곧바로 그려야 한다
    *         (등급이 LOW 거나 손잡이가 0 이거나, 켜지지 못했을 때)
    */
+  /** SAGA-DESIGN §8-6 — 렌더 타깃·셰이더가 실패하면(폰 GPU 드라이버 등) 후처리를
+   *  영구히 끄고 바로 그리는 길로 돌려보낸다. "갈색/녹색 화면" 류가 이 자리다.
+   *  실제 처리는 `drawInner`, 여기는 그 둘레의 그물이다 */
   function draw(renderer, scene, camera, light) {
     if (!ready || !renderer || !scene || !camera) { return false; }
+    try {
+      return drawInner(renderer, scene, camera, light);
+    } catch (e) {
+      disposeTargets();
+      ready = false;
+      failed = true;
+      var E = global.DG.errlog;
+      if (E) { E.record({ kind: 'post3d', msg: (e && e.message) || String(e), stack: (e && e.stack) || '' }); }
+      return false;
+    }
+  }
+
+  function drawInner(renderer, scene, camera, light) {
     var P = global.DG.perf;
     var size = renderer.getDrawingBufferSize(new T.Vector2());
     var p = plan({

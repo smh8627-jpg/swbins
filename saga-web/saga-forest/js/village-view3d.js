@@ -942,7 +942,7 @@
 
     var ground = new t.Mesh(
       new t.PlaneGeometry(GROUND_SIZE(), GROUND_SIZE()),
-      new t.MeshLambertMaterial({ color: 0x63b04a })
+      (global.DG.toon3d ? global.DG.toon3d.lambertLike({ color: 0x63b04a }) : new t.MeshLambertMaterial({ color: 0x63b04a }))
     );
     ground.rotation.x = -Math.PI / 2;
     /* 색칠한 타일(y=0)보다 살짝 아래 — 이음매가 안 보인다. **물 칸(y=-WATER_DEPTH())
@@ -1016,7 +1016,9 @@
       if (!Object.prototype.hasOwnProperty.call(colors, k)) { continue; }
       var mat = k === 'water' ?
         waterMaterial(t, new t.Color(colors[k]), tileTexture(k)) :
-        new t.MeshLambertMaterial({ color: new t.Color(colors[k]), map: tileTexture(k) });
+        (global.DG.toon3d ?
+          global.DG.toon3d.lambertLike({ color: new t.Color(colors[k]), map: tileTexture(k) }) :
+          new t.MeshLambertMaterial({ color: new t.Color(colors[k]), map: tileTexture(k) }));
       var im = new t.InstancedMesh(k === 'water' ? waterGeo : geo, mat, terrainCap);
       im.count = 0;
       scene.add(im);

@@ -305,7 +305,8 @@
         canvas: canvas, antialias: true, alpha: false,
         preserveDrawingBuffer: !!global.DG_3D_PRESERVE
       });
-      renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+      /* SAGA-DESIGN §6.1 "저비용 통일" — 픽셀 비율 상한 1.5(옛 2는 폰에서 과잉 렌더) */
+      renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 1.5));
       renderer.outputColorSpace = T.SRGBColorSpace;
       /* 디버그: 그림자·안개를 끊어 원인을 좁힐 수 있게 (DG_3D_DEBUG) */
       if (!(global.DG_3D_DEBUG || {}).noShadow) {

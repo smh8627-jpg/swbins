@@ -424,10 +424,33 @@
    * 그림이 눈에 띄게 나빠지지 않는다. 이 모델들은 텍스처가 없고 **면마다 한 색**이라
    * PBR 로 얻는 것이 거의 없다.
    */
+  /* SAGA-DESIGN §6.1/§7.2 — 사가고 팔레트 24색(PLAN §6 "하북 들판·마을·강" 초안).
+   * 소품은 배우와 달리 툰 재질·외곽선을 안 받는다(면색 하나짜리라 얻을 게 적다) —
+   * 대신 이 24색으로 **색만 스냅**해 서로 다른 CC0 팩이 섞여도 한 그림으로 보이게 한다. */
+  var PALETTE = [
+    0x7FA650, 0xB58B5A, 0x4A4E57, 0xE8DCC3, 0x4F86A8, 0x3F6B45, 0x8A8F8B, 0xE39B5A,
+    0xA3C46F, 0xD0A874, 0x6C717B, 0xF5EEDD, 0x7FB0CC, 0x5E8C62, 0xB0B4AF, 0xF2B98A,
+    0x5C7D38, 0x8C6A42, 0x2F3238, 0xC9B99A, 0x355F7A, 0x26452C, 0x5F635F, 0xB56F3C
+  ];
+  function PALETTE_ON() { return core().tuned('world3d.palette', 1) ? true : false; }
+  /** hex → 팔레트에서 RGB 로 가장 가까운 색. 순수 함수(자가진단이 값으로 본다) */
+  function snapPalette(hex) {
+    var r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+    var best = PALETTE[0], bestD = Infinity;
+    for (var i = 0; i < PALETTE.length; i++) {
+      var p = PALETTE[i];
+      var dr = r - ((p >> 16) & 255), dg = g - ((p >> 8) & 255), db = b - (p & 255);
+      var d = dr * dr + dg * dg + db * db;
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best;
+  }
+
   function lambertOf(src) {
     var t = three();
     if (Array.isArray(src)) { src = src[0]; }
     var hex = src && src.color ? src.color.getHex() : 0x8a8a8a;
+    if (PALETTE_ON()) { hex = snapPalette(hex); }
     var key = String(hex);
     if (matCache[key]) { return matCache[key]; }
     matCache[key] = new t.MeshLambertMaterial({ color: new t.Color(hex) });
@@ -556,7 +579,7 @@
     REG: REG, register: register,
     /* 값을 내는 함수 — three 없이도 돈다 (자가진단이 이것만 따로 본다) */
     pick: pick, urls: urls, eagerUrls: eagerUrls, seasonKey: seasonKey, seasonTintHex: seasonTintHex,
-    ready: ready, casts: casts,
+    ready: ready, casts: casts, PALETTE: PALETTE, snapPalette: snapPalette,
     houseOn: houseOn, heightMul: heightMul,
     /* 그림 층 */
     parts: parts, preload: preload, stats: stats,

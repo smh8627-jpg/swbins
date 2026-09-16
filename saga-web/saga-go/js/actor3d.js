@@ -38,10 +38,19 @@
     if (!geoCache[key]) { geoCache[key] = make(); }
     return geoCache[key];
   }
+  /** SAGA-DESIGN §6.1 — 툰 재질 손잡이. 꺼지면 예전 Lambert 로 되돌아간다 */
+  function TOON_ON() {
+    var TN = global.DG.toon3d;
+    return !!(TN && TN.TOON_ON());
+  }
   function mat(color, kind) {
-    var key = color + '|' + (kind || '');
+    var toon = TOON_ON();
+    var key = color + '|' + (kind || '') + '|' + (toon ? 't' : 'l');
     if (matCache[key]) { return matCache[key]; }
-    var m = new T.MeshLambertMaterial({ color: new T.Color(color) });
+    var TN = global.DG.toon3d;
+    var m = toon
+      ? new T.MeshToonMaterial({ color: new T.Color(color), gradientMap: TN.ramp() })
+      : new T.MeshLambertMaterial({ color: new T.Color(color) });
     if (kind === 'glow') {
       m.emissive = new T.Color(color);
       m.emissiveIntensity = 0.5;
@@ -56,8 +65,14 @@
     mesh.position.set(x || 0, y || 0, z || 0);
     return mesh;
   }
-  /** 그림자를 지는 것은 큰 덩이만 — 부품마다 켜면 그림자 맵이 감당하지 못한다 */
-  function solid(mesh) { mesh.castShadow = true; return mesh; }
+  /** 그림자를 지는 것은 큰 덩이만 — 부품마다 켜면 그림자 맵이 감당하지 못한다.
+   *  같은 덩이만 뒤집힌 헐 외곽선도 받는다(`applyOutlines`, 부모에 매달린 뒤 한 번에) */
+  function solid(mesh) {
+    mesh.castShadow = true;
+    mesh.userData = mesh.userData || {};
+    mesh.userData.wantOutline = true;
+    return mesh;
+  }
 
   var BOX = function (w, h, d) { return geo('b' + w + '/' + h + '/' + d, function () { return new T.BoxGeometry(w, h, d); }); };
   var CYL = function (rt, rb, h, s) { return geo('c' + rt + '/' + rb + '/' + h + '/' + s, function () { return new T.CylinderGeometry(rt, rb, h, s || 10); }); };
@@ -836,13 +851,27 @@
   }
 
   /** 도형으로 조립한다 — 이 파일이 원래 하던 일 */
+  /** 다 세운 뒤 한 번에 — `solid()`가 표시해 둔 덩이마다 외곽선을 얹는다.
+   *  부모에 매달리기 전에는 형제를 못 붙이므로 조립이 끝난 뒤에만 부른다 */
+  function applyOutlines(g) {
+    var TN = global.DG.toon3d;
+    if (!g || !TN || !TN.OUTLINE_ON()) { return g; }
+    var todo = [];
+    g.traverse(function (o) {
+      if (o.isMesh && o.userData && o.userData.wantOutline) { todo.push(o); }
+    });
+    for (var i = 0; i < todo.length; i++) { TN.outline(todo[i]); }
+    return g;
+  }
+
   function shape(kind, ref) {
-    if (kind === 'hero') { return buildHero(ref); }
-    if (kind === 'pet') { return buildPet(ref); }
-    if (kind === 'station') { return buildStation(ref && ref.color); }
-    if (kind === 'fort') { return buildFort(ref && ref.color); }
-    if (kind === 'prop') { return buildProp(ref); }
-    return null;
+    var g = null;
+    if (kind === 'hero') { g = buildHero(ref); }
+    else if (kind === 'pet') { g = buildPet(ref); }
+    else if (kind === 'station') { g = buildStation(ref && ref.color); }
+    else if (kind === 'fort') { g = buildFort(ref && ref.color); }
+    else if (kind === 'prop') { g = buildProp(ref); }
+    return g ? applyOutlines(g) : null;
   }
 
   /**

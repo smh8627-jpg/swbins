@@ -84,9 +84,10 @@
     sun.position.set(-14, 22, 10);
     scene.add(sun);
 
+    var groundTN = global.DG.toon3d;
     var ground = new t.Mesh(
       new t.CircleGeometry(19, 28),
-      new t.MeshLambertMaterial({ color: 0xcfe0a0 })
+      groundTN ? groundTN.lambertLike({ color: 0xcfe0a0 }) : new t.MeshLambertMaterial({ color: 0xcfe0a0 })
     );
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);

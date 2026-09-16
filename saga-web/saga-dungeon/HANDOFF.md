@@ -2975,3 +2975,65 @@ URL이..." 절 참고. 요약:
 3회 연속 `RESULT 299/299`, 세 출력 파일 `diff` 완전 동일(한 글자도 안 다름).
 **실기기 확인 전** — 실제 폰에서 타격·격파 때 진동이 손에 느껴지는지, 시트
 줄이 지원 기기에서만 뜨는지는 사용자가 봐야 한다.
+
+## 2026-09-17 — SAGA-DESIGN §8-3 세이브 마이그레이션 지뢰 제거 (다섯 판 공통, saga-go 세션에서 발견)
+
+`js/core.js`의 `load()`가 `parsed.v !== 1`이면 무조건 세이브를 버리는 하드 체크였다 — 사가고
+그래픽 작업 중 이 판이 다섯 벌 복사본이라는 걸 확인차 훑다가 다섯 판 전부 같은 코드임을 발견했다.
+`SAVE_VERSION`·`MIGRATIONS`·`migrate()`(순수 함수)를 추가해 버전이 안 맞아도 지우지 않고
+`mergeDeep(freshSave(), ...)`로 넘기게 고쳤다(자세한 설계 이유는 `saga-web/saga-go/HANDOFF.md`
+2026-09-17 절 참고 — 다섯 벌이 동일 로직이라 설명을 안 되풀이한다). `sw.js` VERSION 도 같이 올렸다.
+
+## 2026-09-17 — SAGA-DESIGN §6.1 툰 재질(외곽선 제외) + §8-6 후처리 자동 끔
+
+사가고에서 그래픽 통일·안정화 세션을 마친 뒤 "이어해줘 묻지말고" 요청으로 이 판까지 이어서.
+사가고 세션 절차대로 CLAUDE.md→PLAN §6/§7을 먼저 읽고, 화면 확인 없이도 안전하게 끝낼 수
+있는 항목만 골랐다(세이브 마이그레이션 지뢰는 core.js가 다섯 벌 복사본임을 확인하다 발견해
+이미 별도 커밋으로 다섯 판 전부 고쳤다 — `saga-go/HANDOFF.md` 2026-09-17 절 참고).
+
+**새 파일 `js/toon3d.js`** — 3단 램프 `MeshToonMaterial`(사가고와 같은 규격). **외곽선은
+뺐다** — `dungeon3d.js`의 `mat()`이 방 벽·바닥 같은 큰 판형 지오메트리와 배우 부품을
+가리지 않고 같이 쓰는 구조라, 뒤집힌 헐을 붙이려면 `box()` 수십 호출부를 actor/environment
+로 다 갈라 태그해야 한다 — 화면 확인이 안 되는 이 세션에서 방 경계에 이상한 테두리가
+생길 위험을 무릅쓰지 않았다. PLAN §6.1-3 후속 과제로 명시해 뒀다.
+
+**`js/dungeon3d.js`** — `mat()`·`texMat()`(바닥·벽 사진텍스처)·`groundMat()`(절차 노이즈
+바닥) 셋 다 `world3d.toon`(기본 1) 손잡이를 보고 Toon/Lambert 를 고른다. `emissive`(글로우)·
+`transparent`(수면) 옵션은 그대로 살아 있다 — MeshToonMaterial 도 둘 다 받는다.
+
+**`js/asset3d.js`** — `delam()`이 툰 켜지면 `toon3d.toonify()`로 벗긴다. 이 판은 saga-go와
+달리 `/realistic/` 스킵이 없어(나무·집도 전부 delam을 탄다) 예외 처리가 필요 없었다 —
+다만 이 함수의 기존 방침("풍향이 뒤집힌 GLB도 있어 항상 DoubleSide로 받는다")은 `toonify()`
+결과 위에 `side = DoubleSide`를 다시 덮어써 지켰다(그냥 넘기면 이 판이 이미 밟았던
+poly.pizza 'Pond' 류 컬링 버그가 툴 켤 때만 재발할 뻔했다).
+
+**`js/post3d.js`** — 사가고와 동일한 처방: `draw()`를 `drawInner`로 옮기고 try/catch 로
+감싸, 실패하면 `ready=false`·`failed=true`로 후처리를 영구히 끄고 (`DG.errlog`가 있으면)
+기록한 뒤 직접 그리는 길로 돌려보낸다. 이 판엔 아직 `errlog.js`가 없어(§7.3-1 오류
+링버퍼는 이번에 손 안 댐) 그 부분은 조용히 건너뛴다 — 다음에 링버퍼를 넣으면 자동으로 연결된다.
+
+**HTML·sw.js** — `index.html`·`_demo.html`·`_retargettest.html`·`_test.html`에 `toon3d.js`
+를 `asset3d.js` 바로 앞에 얹었다. `sw.js` `SHELL`에도 추가, VERSION `v0.115.1`→`v0.116.0`.
+
+**검증** — `node -c` 전 파일 통과, 네 HTML 인라인 스크립트 전부 `new Function()` 파싱 확인,
+`bash tools/precheck.sh saga-web/saga-dungeon` → PRECHECK OK. 헤드리스 `_test.html` 3회
+확인은 이번에도 안 돌렸다(precheck.sh 자체 규칙 — 실기 확인은 사용자 몫).
+
+**남은 것** — 외곽선(배우만 골라 태그하는 절충안), §6.2 판별 4-mood 24색 스냅(이 판은
+saga-go와 달리 단일 팔레트가 아니라 마을/들/굴혈(고분~산채)/굴혈(수궁~천계) 넷으로
+갈라서, mood 판정 로직부터 필요해 손 안 댐), 지형 트라이플레이너, 오류 링버퍼 — 전부
+PLAN §6·§7.3 에 남겨 뒀다.
+
+## 2026-09-17 — SAGA-DESIGN §8-2 오류 링버퍼 (다섯 판 공통, saga-go 규격 그대로)
+
+사가고 `_admin.html` "오류" 탭을 다른 네 판에 옮기는 작업의 첫째. 새 `js/errlog.js`
+(`window.onerror`·`unhandledrejection` → localStorage 링버퍼 50건, storageKey
+`yeoksa-dungeon/errlog`, `index.html`/`_admin.html`/`_test.html` 맨 첫 스크립트 — 사가고와
+같은 이유로 다른 모든 파일의 오류를 파싱 오류만 빼고 잡는다). `_admin.html`에 "오류" 탭
+(QA 프리셋과 점검·백업 사이, 사가고와 같은 자리) — `js/admin.js`의 `renderAll()`에
+`renderErr()` 추가, `bind()`에 다시 읽기·복사·비우기 버튼 배선. `_test.html`에 순수 함수
+`push()` 상한 진단 1항목(런타임 에러 없음 항목 바로 앞). `sw.js` `SHELL`에 `errlog.js` 추가,
+`VERSION` `dungeon-v0.116.0` → `dungeon-v0.117.0`.
+
+**검증** — `node -c js/errlog.js js/admin.js sw.js` 통과, `bash tools/precheck.sh
+saga-web/saga-dungeon` → PRECHECK OK.

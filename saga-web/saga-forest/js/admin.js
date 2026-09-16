@@ -840,6 +840,22 @@
     try { location.hash = name; } catch (e) { /* 무시 */ }
   }
 
+  /* ── 오류 (SAGA-DESIGN §8-2) ──────────────────────── */
+
+  function renderErr() {
+    var E = global.DG && global.DG.errlog;
+    var list = E ? E.list() : [];
+    $('err-max').textContent = E ? E.MAX : 50;
+    if (!list.length) { $('err-out').value = ''; return; }
+    $('err-out').value = list.slice().reverse().map(function (e) {
+      var when = e.t ? new Date(e.t).toLocaleString() : '?';
+      var head = '[' + when + '] ' + (e.kind || 'error') + ' — ' + (e.msg || '');
+      var where = e.src ? ('\n  ' + e.src + ':' + (e.line || 0) + ':' + (e.col || 0)) : '';
+      var stack = e.stack ? ('\n' + e.stack) : '';
+      return head + where + stack;
+    }).join('\n\n');
+  }
+
   /* ── 다시 그리기 ──────────────────────────────────── */
 
   function renderAll() {
@@ -856,6 +872,7 @@
       renderTune();
       renderSnaps();
       renderUsage();
+      renderErr();
     } catch (e) {
       say('그리는 중에 걸렸습니다: ' + e.message);
     }
@@ -1020,6 +1037,18 @@
     });
 
     $('selftest').addEventListener('click', selfTest);
+
+    $('err-refresh').addEventListener('click', renderErr);
+    $('err-copy').addEventListener('click', function () {
+      $('err-out').select();
+      try { document.execCommand('copy'); say('복사했습니다'); } catch (e) { say('직접 복사해 주세요'); }
+    });
+    $('err-clear').addEventListener('click', function () {
+      var E = global.DG && global.DG.errlog;
+      if (E) { E.clear(); }
+      renderErr();
+      say('비웠습니다');
+    });
 
     /* 게임 창에서 진행이 바뀌면 여기도 따라 읽는다 */
     global.addEventListener('storage', function (e) {

@@ -18,6 +18,17 @@
   var T = null;
   function three() { if (!T) { T = global.THREE || null; } return T; }
 
+  /** SAGA-DESIGN §6.1 — `new MeshLambertMaterial(opts)` 를 쓰던 모든 자리의
+   *  대역. `world3d.toon`(기본 1)이 켜져 있으면 `toon3d.lambertLike()`가
+   *  같은 옵션으로 3단 램프 MeshToonMaterial 을 만든다. `toon3d.js` 가 아직
+   *  없거나(옛 캐시) three 가 없으면(자가진단) 예전 그대로 Lambert. */
+  function LM(opts) {
+    var TN = global.DG.toon3d;
+    if (TN) { return TN.lambertLike(opts); }
+    var t = three();
+    return t ? new t.MeshLambertMaterial(opts) : null;
+  }
+
   var renderer = null, scene = null, camera = null, ready = false;
   var W = 0, H = 0;
   var lastMood = null, worldGroup = null, actorGroup = null, dirLight = null, ambLight = null;
@@ -325,9 +336,9 @@
        실시간 광원 과용 금지), 저사양(effectiveLevel low)에서는 시각(도형)만 남기고
        실제 광원은 아예 안 켠다 */
     var torchBudget = effectiveLevel() === 'low' ? 0 : 3;
-    var farMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x2c5230
+    var farMat = LM({ color: mood === 'forest' ? 0x2c5230
       : mood === 'cave' ? 0x1c1622 : mood === 'fire' ? 0x241010 : 0x8fc48f });
-    var nearMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x3a6b3a
+    var nearMat = LM({ color: mood === 'forest' ? 0x3a6b3a
       : mood === 'cave' ? 0x352a3f : mood === 'fire' ? 0x3a1c14 : 0x6fae6f });
 
     var gen = stageGen;
@@ -335,7 +346,7 @@
     function trunk(x, z, h, mat, far) {
       var holder = new Tc.Group();
       holder.position.set(x, 0, z);
-      var trunkMat = new Tc.MeshLambertMaterial({ color: 0x4a3524 });
+      var trunkMat = LM({ color: 0x4a3524 });
       var tG = new Tc.Mesh(new Tc.CylinderGeometry(3, 4, h * 0.32, 6), trunkMat);
       tG.position.set(0, h * 0.16, 0);
       holder.add(tG);
@@ -349,7 +360,7 @@
     /* 종유석 — 바닥에 선 것만 GLB 바위로 갈린다(천장에 매달린 것은 뒤집힌 바위로는
        안 보이니 도형 그대로 둔다) */
     function stalactite(x, z, h, up) {
-      var mat = new Tc.MeshLambertMaterial({ color: 0x453a52 });
+      var mat = LM({ color: 0x453a52 });
       var holder = new Tc.Group();
       holder.position.set(x, 0, z);
       var c = new Tc.Mesh(new Tc.ConeGeometry(h * 0.22, h, 6), mat);
@@ -386,7 +397,7 @@
       var holder = new Tc.Group();
       holder.position.set(x, 0, z);
       var pole = new Tc.Mesh(new Tc.CylinderGeometry(2.4, 2.4, h * 0.75, 5),
-        new Tc.MeshLambertMaterial({ color: 0x3a2a1a }));
+        LM({ color: 0x3a2a1a }));
       pole.position.set(0, h * 0.38, 0);
       holder.add(pole);
       var head = new Tc.Mesh(new Tc.ConeGeometry(h * 0.18, h * 0.32, 6),
@@ -417,8 +428,8 @@
      *  나무·언덕과 같은 배경 깊이(z -180~-260)에, 우물·울타리는 사람이 걷는
      *  깊이 가까이(z -20~-70) 선다 */
     function house(x, z, h, seed) {
-      var wallMat = new Tc.MeshLambertMaterial({ color: 0x8a6a4a });
-      var roofMat = new Tc.MeshLambertMaterial({ color: 0x4a3020 });
+      var wallMat = LM({ color: 0x8a6a4a });
+      var roofMat = LM({ color: 0x4a3020 });
       var holder = new Tc.Group();
       holder.position.set(x, 0, z);
       var box = new Tc.Mesh(new Tc.BoxGeometry(h * 0.62, h * 0.68, h * 0.5), wallMat);
@@ -432,7 +443,7 @@
       swapIn(holder, 'house', x + ':' + z + ':' + seed, h, gen);
     }
     function well(x, z, h) {
-      var mat = new Tc.MeshLambertMaterial({ color: 0x8a8a8a });
+      var mat = LM({ color: 0x8a8a8a });
       var holder = new Tc.Group();
       holder.position.set(x, 0, z);
       var c = new Tc.Mesh(new Tc.CylinderGeometry(h * 0.42, h * 0.42, h, 8), mat);
@@ -442,7 +453,7 @@
       swapIn(holder, 'well', x + ':' + z, h, gen);
     }
     function fence(x, z, h) {
-      var mat = new Tc.MeshLambertMaterial({ color: 0x6a4a30 });
+      var mat = LM({ color: 0x6a4a30 });
       var holder = new Tc.Group();
       holder.position.set(x, 0, z);
       var b = new Tc.Mesh(new Tc.BoxGeometry(h * 1.7, h, 5), mat);
@@ -481,13 +492,13 @@
     /* 지역별 다른 식생(PLAN 6절) — 숲·초원·마을은 풀·꽃·덤불, 굴혈은 이끼 바위,
        불타는 골짜기는 그대로 민둥(식생 없음, 기존 규칙과 같다) */
     if (mood !== 'cave' && mood !== 'fire') {
-      var grassMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x3d7a3a : 0x6fae4a });
-      var bushMat = new Tc.MeshLambertMaterial({ color: mood === 'forest' ? 0x2f5c30 : 0x4f8f45 });
+      var grassMat = LM({ color: mood === 'forest' ? 0x3d7a3a : 0x6fae4a });
+      var bushMat = LM({ color: mood === 'forest' ? 0x2f5c30 : 0x4f8f45 });
       for (i = 0, m = -60; m < span; i++, m += 95) { deco(m, -30 - (i % 3) * 15, 18 + (i % 3) * 6, 'grass', grassMat); }
       for (i = 0, m = -120; m < span; i++, m += 260) { deco(m, -50, 24 + (i % 2) * 8, 'flower', grassMat); }
       for (i = 0, m = -180; m < span; i++, m += 340) { deco(m, -70, 40 + (i % 2) * 12, 'bush', bushMat); }
     } else if (mood === 'cave') {
-      for (i = 0, m = -140; m < span; i++, m += 300) { deco(m, -40, 22 + (i % 3) * 8, 'moss_rock', new Tc.MeshLambertMaterial({ color: 0x453a52 })); }
+      for (i = 0, m = -140; m < span; i++, m += 300) { deco(m, -40, 22 + (i % 3) * 8, 'moss_rock', LM({ color: 0x453a52 })); }
     }
   }
 
@@ -506,7 +517,7 @@
     dirLight.color.setHex(L.dirCol);
 
     var groundSpanX = stg.width + 1600, groundSpanZ = 900;
-    var groundMat = new Tc.MeshLambertMaterial({
+    var groundMat = LM({
       color: stg.ground,
       map: groundTexture(stg.mood, groundSpanX / TILE_WORLD, groundSpanZ / TILE_WORLD)
     });
@@ -520,7 +531,7 @@
     for (i = 0; i < stg.plats.length; i++) {
       pl = stg.plats[i];
       var pw = pl[2], py = stg.floor - pl[1];
-      var platMat = new Tc.MeshLambertMaterial({
+      var platMat = LM({
         color: stg.ground,
         map: groundTexture(stg.mood, Math.max(1, pw / TILE_WORLD), 46 / TILE_WORLD)
       });
@@ -550,7 +561,7 @@
     var holder = new Tc.Group();
     holder.position.set(run.chest.x, 0, -30);
     var prim = new Tc.Mesh(new Tc.BoxGeometry(h * 0.7, h * 0.5, h * 0.5),
-      new Tc.MeshLambertMaterial({ color: 0xc89a3c }));
+      LM({ color: 0xc89a3c }));
     prim.position.set(0, h * 0.25, 0);
     holder.add(prim);
     actorGroup.add(holder);
@@ -590,7 +601,7 @@
       var h = 40;
       holder.position.set(x, 0, -35 - i * 20);
       var prim = new Tc.Mesh(new Tc.CapsuleGeometry(h * 0.2, h * 0.4, 3, 6),
-        new Tc.MeshLambertMaterial({ color: 0x8a6a45 }));
+        LM({ color: 0x8a6a45 }));
       prim.position.set(0, h * 0.36, 0);
       holder.add(prim);
       holder.userData.anchor = x;
@@ -616,7 +627,7 @@
       var h = 26;
       var holder = new Tc.Group();
       holder.position.set(x, 0, -40);
-      var prim = new Tc.Mesh(new Tc.ConeGeometry(h * 0.3, h, 5), new Tc.MeshLambertMaterial({ color: 0x8fae4a }));
+      var prim = new Tc.Mesh(new Tc.ConeGeometry(h * 0.3, h, 5), LM({ color: 0x8fae4a }));
       prim.position.set(0, h / 2, 0);
       holder.add(prim);
       actorGroup.add(holder);
@@ -652,7 +663,7 @@
   function humanoid(Tc, color, boss) {
     var g = new Tc.Group();
     var scale = boss ? 1.9 : 1;
-    var bodyMat = new Tc.MeshLambertMaterial({ color: color || '#c8b090' });
+    var bodyMat = LM({ color: color || '#c8b090' });
     var body = new Tc.Mesh(new Tc.CapsuleGeometry(11 * scale, 30 * scale, 4, 8), bodyMat);
     body.position.y = 26 * scale;
     body.castShadow = true;

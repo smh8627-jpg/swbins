@@ -204,9 +204,10 @@
   var bannerPoleGeo = null, bannerPoleMat = null, bannerClothGeo = null, bannerClothMats = {};
   function banner(color, tipped) {
     var t = three();
+    var TN = global.DG.toon3d;
     if (!bannerPoleGeo) {
       bannerPoleGeo = new t.CylinderGeometry(0.035, 0.035, 1.5, 5);
-      bannerPoleMat = new t.MeshLambertMaterial({ color: 0x6b5533 });
+      bannerPoleMat = TN ? TN.lambertLike({ color: 0x6b5533 }) : new t.MeshLambertMaterial({ color: 0x6b5533 });
       bannerClothGeo = new t.BoxGeometry(0.46, 0.62, 0.03);
     }
     var g = new t.Group();
@@ -215,7 +216,7 @@
     g.add(pole);
     var hex = new t.Color(color).getHex();
     var clothMat = bannerClothMats[hex];
-    if (!clothMat) { clothMat = bannerClothMats[hex] = new t.MeshLambertMaterial({ color: hex }); }
+    if (!clothMat) { clothMat = bannerClothMats[hex] = TN ? TN.lambertLike({ color: hex }) : new t.MeshLambertMaterial({ color: hex }); }
     var cloth = new t.Mesh(bannerClothGeo, clothMat);
     cloth.position.set(0.26, 1.16, 0);
     g.add(cloth);
@@ -271,9 +272,11 @@
     scene.background = new t.Color(rep.water ? 0x8fc4e6 : 0xb9dcef);
     scene.fog = new t.Fog(rep.water ? 0x8fc4e6 : 0xb9dcef, 20, 70);
 
+    var groundTN = global.DG.toon3d;
     var ground = new t.Mesh(
       new t.CircleGeometry(11, 28),
-      new t.MeshLambertMaterial({ color: rep.water ? 0x5aa9d8 : 0xcfe0a0 })
+      groundTN ? groundTN.lambertLike({ color: rep.water ? 0x5aa9d8 : 0xcfe0a0 })
+        : new t.MeshLambertMaterial({ color: rep.water ? 0x5aa9d8 : 0xcfe0a0 })
     );
     ground.rotation.x = -Math.PI / 2;
     dyn.add(ground);

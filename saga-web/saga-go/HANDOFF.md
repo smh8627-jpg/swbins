@@ -3018,3 +3018,101 @@ _gallery.html · _probe.html   스프라이트를 눈으로 판정하는 판
   캔버스 없이도 도는 순수 함수라 자가진단이 따로 본다.
 - `js/icon.js`에 `compass` 아이콘을 추가했다(Lucide, ISC).
 - 자가진단(`_test.html`) 8항목 추가, 헤드리스 3회 동일 결과 확인.
+
+## 2026-09-17 — SAGA-DESIGN §6.1 그래픽 통일(재질·팔레트·픽셀비율), §10-Q1 확정
+
+사용자 요청: "사가디자인 보고 그래픽 처리해줄래". PLAN §6 표의 "할 것" 항목을 훑어 손볼 수
+있는 것부터 한 번에 처리했다. 실기 확인이 필요한 항목은 그대로 §7 목록에 남겨 뒀다.
+
+**새 파일 `js/toon3d.js`** — 3단 램프(`MeshToonMaterial.gradientMap`, `NearestFilter` 3픽셀
+텍스처)와 뒤집힌 헐 외곽선을 배우 전용으로 공용화했다. 외곽선은 **균일 스케일 복제가 아니라
+정점 셰이더에서 스키닝 뒤 법선 방향으로 미는 방식**(`ShaderMaterial` + `skinning_pars_vertex`
+등 표준 청크 조립)이라 — 사람 모양(발이 원점)을 그대로 스케일업하면 발끝은 안 벌어지고
+머리만 벌어지는 문제를 피했다. 폭은 지오메트리 바운딩구 반지름의 3%(PLAN "스케일 1.03"의
+환산). `world3d.toon`·`world3d.outline` 손잡이(둘 다 기본 1) — 끄면 예전 Lambert/외곽선 없음.
+`index.html`·`_test.html`·`_demo.html`·`_autoprobe.html` 스크립트 목록에 얹었다(`_admin.html`·
+`_glbcheck.html`은 이 파이프라인을 안 쓰므로 안 건드림).
+
+**`js/actor3d.js`** — `mat()`이 `world3d.toon`을 보고 Toon/Lambert 를 고른다(캐시 키에 갈래
+포함). `solid()`(그림자 지는 큰 덩이만)가 이제 `userData.wantOutline`도 같이 표시하고,
+`shape()`가 다 조립한 뒤(부모에 매달린 다음이라야 형제로 외곽선을 붙일 수 있다) 한 번에
+`applyOutlines()`로 훑어 붙인다.
+
+**`js/asset3d.js`** — `delam()`(GLB PBR → 평면 재질로 벗기는 자리)이 `toon3d.toonify()`를 쓰고
+스킨 메시엔 outline도 붙인다. `/realistic/` 밑(건물)은 원래부터 이 함수를 안 타 그대로다.
+**§10-Q1(인물 스타일 충돌) 확정** — MPFB 사진측량 실사 인체 20벌(`mpfb_male/female`·
+`v3~v23`)과 `vitruvian_v1`에 `realistic: true`를 달고, `heroPool()`이
+`world3d.realisticPeople`(기본 0=꺼짐)일 때 그 줄들을 걸러낸다. 그 결과 **기본 인물 표는
+QRPG 저폴리 6종만** 남는다(PLAN §7 실기 목록의 "MPFB 실사 5인" 항목이 자연히 뒤로 밀림 —
+다시 보려면 어드민에서 켜야 한다).
+
+**`js/prop3d.js`** — PLAN §6 초안의 24색(하북 들판·마을·강)을 그대로 배열로 얹고
+`snapPalette()`(RGB 최근접, 순수 함수)를 `lambertOf()`에 물렸다(`world3d.palette`, 기본 1).
+소품은 원래 GLB 재질이 면마다 단색이라(주석 "Quaternius 면색") PLAN이 적었던 "캔버스에서
+1회 스냅"은 필요 없었다 — 색 하나를 스냅하는 것으로 끝난다. 배우처럼 툰+외곽선은 안 받는다
+(PLAN 원문 그대로 — 얻을 게 적다는 판단 유지).
+
+**`js/world3d.js`** — 픽셀비율 상한 2 → 1.5(§6.1 "폰: 픽셀 비율 상한 1.5"). 안개·하늘·접지
+그림자는 **점검해보니 이미 되어 있었다**(PLAN 표가 옛 상태를 그대로 베낀 것) — `syncLight()`가
+`lightingAt().bg` 한 값을 배경·안개·클리어컬러 셋에 매 프레임 물리고, `groundShadow()`가
+배우마다(빌보드든 메시든) 접지 blob 을 이미 찍고 있었다. PLAN §6 표를 실제 상태로 고쳤다.
+
+**미룬 것 — 지형 트라이플레이너**: `LAND_PAINT()`가 이미 실제 land-use 를 반영해 캔버스에
+구운 텍스처를 붙이는, 크고 검증된 파이프라인이다. 셰이더를 트라이플레이너로 갈아 끼우면
+회귀 위험이 크고 화면으로 검증할 길이 없어(이 세션 규칙상 헤드리스 스크린샷 금지) 이번엔
+손 안 댔다. 실기로 "그래도 허접해 보이는지"부터 확인한 뒤 순서를 다시 잡기로.
+
+**검증** — `node -c` 새/수정 파일 전부 통과, `_admin.html` 인라인 스크립트 블록 전부
+`new Function()`으로 파싱 확인, `bash tools/precheck.sh saga-web/saga-go` → PRECHECK OK
+(data.js md5 불일치 경고는 이 세션과 무관한 기존 상태). **헤드리스 `_test.html` 3회 확인은
+안 돌렸다** — precheck.sh 자체 주석대로 "서버·브라우저는 안 띄운다, 실기 확인은 사용자 몫"이라
+서버를 새로 띄우는 게 이 규칙과 부딪힌다고 판단했다. 실기 확인 대기는 PLAN §7 11번에 모았다.
+
+**admin** — `_admin.html` 균형 손잡이 탭에 `world3d.toon`·`world3d.outline`·
+`world3d.realisticPeople`·`world3d.palette` 네 줄 추가.
+
+## 2026-09-17 (이어서) — SAGA-DESIGN §8 안정화(코드로 끝나는 항목)
+
+앞선 §6 그래픽 통일 뒤 "커밋하고 이어해줘 묻지도 말고" 요청으로 계속. PLAN §8 로드맵이 그래픽
+다음으로 "0 안정화"를 앞에 두고 있어(§7 목록을 안 닫으면 새 시스템을 안 넣는다는 SAGA-DESIGN
+§8-1 원칙) 그중 **실기기 없이 코드만으로 끝나는 항목**을 골라 처리했다.
+
+**새 파일 `js/errlog.js`** — `window.onerror`·`unhandledrejection`을 잡아 localStorage
+링버퍼(50건, `deungyong-go/errlog`)에 쌓는다. `push(arr, entry)`는 순수 함수(자가진단이
+55건 넣어 50건만 남는지, 오래된 것부터 밀리는지 값으로 본다). `errlog.on` 손잡이(기본 1).
+`index.html`을 비롯해 `js/data.js`를 싣는 화면 전부(`_admin.html`·`_autoprobe.html`·
+`_demo.html`·`_gallery.html`·`_probe.html`·`_test.html`)의 **맨 첫 스크립트**로 얹었다 —
+다른 모든 파일의 실행 중 오류(파싱 오류만 빼고)를 놓치지 않으려는 것.
+
+**`_admin.html`** — 새 탭 "오류"(다시 읽기·복사·비우기, `DG.errlog.list()`를 그대로 글로
+푼다). QA 프리셋에 "🩹 옛/이상한 버전 세이브 시뮬레이션" 추가 — `v`를 999로 바꿔 저장했다
+다시 읽어 골드 같은 값이 안 지워지는지 확인하고 정상 버전으로 되돌린다. 균형 손잡이 탭에
+`errlog.on` 한 줄.
+
+**`js/core.js`** — **§8-3의 실제 지뢰를 잡았다.** `load()`가 `parsed.v !== 1`이면 무조건
+`false`를 줘 그대로 새 세이브로 덮이는 구조였다(주석에 "마이그레이션은 여기서" 라고만
+적혀 있고 실제 체인은 없었다 — 사가국지가 이미 밟은 `aa4b8b8` 류를 이 판은 아직 안
+밟았을 뿐 구조는 똑같이 위험했다). `SAVE_VERSION`·`MIGRATIONS`·`migrate()`(순수 함수)를
+추가해 **버전이 안 맞아도 지우지 않고** `mergeDeep(freshSave(), ...)`로 넘긴다. 지금은
+`SAVE_VERSION=1`에 정의된 마이그레이션이 없어 체인은 그냥 통과만 시키지만, 다음에 스키마를
+바꿀 때 `MIGRATIONS[1] = function(s){...; s.v=2; return s;}` 식으로 얹을 자리가 생겼다.
+`_test.html`에 순수 함수 검사 항목 추가(`v=999`를 넣어도 필드가 안 지워지는지).
+
+**`js/post3d.js`** — `draw()`가 실제 렌더 로직(`drawInner`로 이름을 옮겼다)을 try/catch로
+감싼다. 실패하면(폰 GPU 드라이버 등으로 렌더 타깃·셰이더가 죽으면) 타깃을 놓아 주고
+`ready=false`·`failed=true`로 **영구히 후처리를 끄고** `errlog`에 기록한 뒤 `world3d`의
+바로 그리는 길로 돌려보낸다 — PLAN이 적어 둔 "갈색/녹색 화면" 류의 실제 대응.
+
+**`tools/precheck.sh`(루트, 다섯 판 공통)** — "sw.js 캐시 버전" 절 추가: `<판>/js`가
+git 상태에서 바뀌었는데 `<판>/sw.js`는 그대로면 WARN(막지는 않는다 — 캐시 안 타는 파일도
+있을 수 있어서다). 이 세션 자신도 `sw.js`(`go-v5.30.0`→`go-v5.31.0`)를 올리고 새 파일
+둘(`errlog.js`·`toon3d.js`)을 `SHELL` 목록에 넣어 오프라인 캐시에도 실리게 했다.
+
+**검증** — `node -c` 전 파일 통과, `_admin.html`·`_test.html` 인라인 스크립트 전부
+`new Function()` 파싱 확인, `bash tools/precheck.sh saga-web/saga-go` → PRECHECK OK(새
+sw.js 경고 절 포함, 이번엔 안 걸림 — VERSION 을 같이 올렸으니까). 헤드리스 `_test.html`
+3회 확인은 이번에도 안 돌렸다(§6 세션과 같은 이유 — precheck.sh 자체 규칙).
+
+**남은 것** — §7 목록의 나머지는 거의 다 실기 확인 항목이라 그대로 둔다. Phase 1(세션
+구조·손맛) 로 넘어가려면 "사람이 손으로 한 세션 플레이 기록"(§8 Phase 0 마지막 조건)이
+먼저 있어야 한다 — 사용자 몫.

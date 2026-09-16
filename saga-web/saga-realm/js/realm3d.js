@@ -323,9 +323,11 @@
       gp.setZ(gi, elevAt(gp.getX(gi), -gp.getY(gi)));
     }
     groundGeo.computeVertexNormals();
+    var groundTN = global.DG.toon3d;
     var ground = new t.Mesh(
       groundGeo,
-      new t.MeshLambertMaterial({ color: 0xffffff, map: groundTexture() })
+      groundTN ? groundTN.lambertLike({ color: 0xffffff, map: groundTexture() })
+        : new t.MeshLambertMaterial({ color: 0xffffff, map: groundTexture() })
     );
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
@@ -572,16 +574,17 @@
    *  직접 짓는다, GLB 가 아니다). 진(陣)의 크기를 숫자 그대로가 아니라 다발로 본다 */
   function banner(color) {
     var t = three();
+    var bannerTN = global.DG.toon3d;
     var g = new t.Group();
     var pole = new t.Mesh(
       new t.CylinderGeometry(0.07, 0.07, 2.3, 5),
-      new t.MeshLambertMaterial({ color: 0x6b5533 })
+      bannerTN ? bannerTN.lambertLike({ color: 0x6b5533 }) : new t.MeshLambertMaterial({ color: 0x6b5533 })
     );
     pole.position.y = 1.15;
     g.add(pole);
     var cloth = new t.Mesh(
       new t.BoxGeometry(0.85, 1.1, 0.05),
-      new t.MeshLambertMaterial({ color: new t.Color(color) })
+      bannerTN ? bannerTN.lambertLike({ color: new t.Color(color) }) : new t.MeshLambertMaterial({ color: new t.Color(color) })
     );
     cloth.position.set(0.48, 2.0, 0);
     g.add(cloth);

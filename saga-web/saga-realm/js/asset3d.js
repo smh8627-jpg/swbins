@@ -295,11 +295,15 @@
    *  없으면 거의 새까맣게 선다. 빛깔만 남기고 Lambert 로 바꾼다 */
   function delam(root) {
     var t = three();
+    var TN = global.DG.toon3d;
+    var toon = !!(TN && TN.TOON_ON());
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
+        /* 2026-09-17 — SAGA-DESIGN §6.1: 손잡이가 켜져 있으면 툰으로, 꺼지면 예전 Lambert */
+        if (toon) { return TN.toonify(m); }
         /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
            검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
            뜬다 — 2026-09-03, 무장 초상에서 후드가 늘 새까맣던 원인 */
@@ -369,7 +373,8 @@
     if (!t) { return null; }
     var g = new t.Group();
     var col = (ref && (ref.tint || ref.color)) || '#8a94a6';
-    var m = new t.MeshLambertMaterial({ color: new t.Color(col) });
+    var TN = global.DG.toon3d;
+    var m = TN ? TN.lambertLike({ color: new t.Color(col) }) : new t.MeshLambertMaterial({ color: new t.Color(col) });
     var body;
     if (kind && kind.indexOf('city') === 0) {
       body = new t.Mesh(new t.ConeGeometry(0.32, 1, 4), m);
@@ -416,16 +421,17 @@
     var h = span.h || 1;
     var x = span.w / 2 + h * 0.08, z = -(span.d / 2) - h * 0.06;
     var poleH = h * 1.08;
+    var TN = global.DG.toon3d;
     var pole = new t.Mesh(
       new t.CylinderGeometry(h * 0.015, h * 0.015, poleH, 5),
-      new t.MeshLambertMaterial({ color: 0x6b5533 })
+      TN ? TN.lambertLike({ color: 0x6b5533 }) : new t.MeshLambertMaterial({ color: 0x6b5533 })
     );
     pole.position.set(x, poleH / 2, z);
     wrap.add(pole);
     var fw = h * 0.26, fh = h * 0.38;
     var cloth = new t.Mesh(
       new t.BoxGeometry(fw, fh, h * 0.01),
-      new t.MeshLambertMaterial({ color: new t.Color(color) })
+      TN ? TN.lambertLike({ color: new t.Color(color) }) : new t.MeshLambertMaterial({ color: new t.Color(color) })
     );
     cloth.position.set(x + fw / 2, poleH - fh * 0.6, z);
     wrap.add(cloth);
