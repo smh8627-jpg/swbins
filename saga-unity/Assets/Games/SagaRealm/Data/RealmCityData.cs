@@ -128,6 +128,17 @@ namespace Saga.Realm.Data
             // 다른 이웃(chaisang, 오나라 방면)은 이번에 안 골랐다 — 다음
             // 확장 후보. wall은 RealmEnemyCity.cs 양양 정의(6200)와 맞춘다.
             ["xiangyang"] = new RealmCityDef("xiangyang", "양양", RealmLand.River, agri: 360, comm: 340, wall: 6200, pop: 260000, mapX: 50, mapY: 62),
+            // 51장 "대규모 콘텐츠" 7차 확장(2026-09-16) — 강주를 함락한 뒤
+            // 이어지는 일곱째 단계(원작 LINKS: jiangzhou-yongan, "삼협의
+            // 입구, 물살이 성벽 노릇을 한다"). 원작 land는 mount인데
+            // 진양·한중처럼 Plain으로 둔다. wall은 RealmEnemyCity.cs 영안
+            // 정의(5000)와 맞춘다. jiangzhou의 다른 이웃(zhuti, 남중 방면)은
+            // 이번에 안 골랐다 — 다음 확장 후보.
+            ["yongan"] = new RealmCityDef("yongan", "영안", RealmLand.Plain, agri: 200, comm: 180, wall: 5000, pop: 120000, mapX: 35, mapY: 63),
+            // 51장 7차 확장 — 양양을 함락한 뒤 이어지는 일곱째 단계(원작
+            // LINKS: xiangyang-jiangling, "형주의 곳간, 배와 군량이 여기서
+            // 난다"). wall은 RealmEnemyCity.cs 강릉 정의(5400)와 맞춘다.
+            ["jiangling"] = new RealmCityDef("jiangling", "강릉", RealmLand.River, agri: 340, comm: 320, wall: 5400, pop: 240000, mapX: 44, mapY: 68),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

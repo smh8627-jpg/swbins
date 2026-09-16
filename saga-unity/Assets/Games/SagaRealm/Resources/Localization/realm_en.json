@@ -60,6 +60,8 @@
     { "key": "city.jiangxia", "value": "Jiangxia" },
     { "key": "city.jiangzhou", "value": "Jiangzhou" },
     { "key": "city.xiangyang", "value": "Xiangyang" },
+    { "key": "city.yongan", "value": "Yong'an" },
+    { "key": "city.jiangling", "value": "Jiangling" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },

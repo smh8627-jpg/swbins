@@ -42,6 +42,8 @@ namespace Saga.EditorTools
     /// 이어지는 다섯째 단계 목표(성도·강하)까지 같은 경로로 되는지,
     /// (8-6) 51장 6차 확장(2026-09-16, 같은 날) — 성도·강하를 함락한 뒤
     /// 이어지는 여섯째 단계 목표(강주·양양)까지 같은 경로로 되는지,
+    /// (8-7) 51장 7차 확장(2026-09-16, 같은 날) — 강주·양양을 함락한 뒤
+    /// 이어지는 일곱째 단계 목표(영안·강릉)까지 같은 경로로 되는지,
     /// (9) 계략(유언비어·화계) — 허창 밖 게이트, 성공 시 소패 훈련도/병력
     /// 실제 하락,
     /// (10) 함락한 성 편입 — 함락 즉시 네 번째 성으로 들어가는지, 무장
@@ -69,6 +71,7 @@ namespace Saga.EditorTools
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
             AttackChangan, AttackShouchun, AttackJinyang, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
+            AttackYongan, AttackJiangling,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -1294,6 +1297,75 @@ namespace Saga.EditorTools
                     }
                     Debug.Log($"[PlaytestRealmSlice] xiangyang attack + absorb OK - {result.Message}");
                     RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackYongan;
+                    break;
+                }
+
+                case Phase.AttackYongan:
+                {
+                    // 51장 7차 확장(2026-09-16) — 강주를 함락한 뒤 이어지는
+                    // 일곱째 단계 목표(TargetFrom("jiangzhou")). 같은 트릭.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.JiangzhouId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.JiangzhouId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var jiangzhouCity = RealmCityState.CityRecord(RealmEnemyCity.JiangzhouId);
+                    jiangzhouCity.Troops = 100000;
+                    jiangzhouCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.JiangzhouId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.YonganId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.YonganId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 영안 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] yongan attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
+                    _phase = Phase.AttackJiangling;
+                    break;
+                }
+
+                case Phase.AttackJiangling:
+                {
+                    // 51장 7차 확장 — 양양을 함락한 뒤 이어지는 일곱째 단계
+                    // 목표(TargetFrom("xiangyang")), 열여섯 중 가장 어렵다.
+                    // 같은 트릭.
+                    var roster = new List<string>(RealmCityState.RosterIds);
+                    var officerCityIds = new List<string>();
+                    var officerCityCities = new List<string>();
+                    foreach (var id in roster)
+                    {
+                        officerCityIds.Add(id);
+                        officerCityCities.Add(id == RealmOfficerPool.StartingOfficerId ? RealmEnemyCity.XiangyangId : RealmCityState.OfficerCityId(id));
+                    }
+                    RealmCityState.Restore(RealmCityState.Gold, RealmCityState.Year, RealmCityState.Month,
+                        RealmEnemyCity.XiangyangId, roster, null, new List<string>(RealmCityState.FoundIds),
+                        officerCityIds, officerCityCities, RealmCityState.SnapshotCities());
+
+                    var xiangyangCity = RealmCityState.CityRecord(RealmEnemyCity.XiangyangId);
+                    xiangyangCity.Troops = 100000;
+                    xiangyangCity.Food = 100000;
+
+                    var result = RealmWarState.Attack(RealmEnemyCity.XiangyangId);
+                    if (!result.Ok || !result.Won || RealmCityState.CityRecord(RealmEnemyCity.JianglingId) == null ||
+                        !RealmCityState.ActiveCityIds.Contains(RealmEnemyCity.JianglingId))
+                    {
+                        Debug.LogError($"[PlaytestRealmSlice] 강릉 공략 실패 — ok={result.Ok} won={result.Won} msg={result.Message}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log($"[PlaytestRealmSlice] jiangling attack + absorb OK - {result.Message}");
+                    RealmCityState.SetCurrentCity("xuchang");
                     _phase = Phase.QuizCorrect;
                     break;
                 }
@@ -1455,12 +1527,12 @@ namespace Saga.EditorTools
                         quizAfter.BestStreak != quizBefore.BestStreak;
                     if (mismatch || quizMismatch)
                     {
-                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 열일곱/로스터/성 소속/적국 열넷 전황/문답 중 하나) — quizMismatch={quizMismatch}");
+                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 열아홉/로스터/성 소속/적국 열여섯 전황/문답 중 하나) — quizMismatch={quizMismatch}");
                         Fail();
                         return;
                     }
 
-                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (17 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye/changan/shouchun/jinyang/hanzhong/runan/chengdu/jiangxia/jiangzhou/xiangyang + roster + officer city assignment + quiz progress)");
+                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (19 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye/changan/shouchun/jinyang/hanzhong/runan/chengdu/jiangxia/jiangzhou/xiangyang/yongan/jiangling + roster + officer city assignment + quiz progress)");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;
