@@ -3070,3 +3070,49 @@ QRPG 저폴리 6종만** 남는다(PLAN §7 실기 목록의 "MPFB 실사 5인" 
 
 **admin** — `_admin.html` 균형 손잡이 탭에 `world3d.toon`·`world3d.outline`·
 `world3d.realisticPeople`·`world3d.palette` 네 줄 추가.
+
+## 2026-09-17 (이어서) — SAGA-DESIGN §8 안정화(코드로 끝나는 항목)
+
+앞선 §6 그래픽 통일 뒤 "커밋하고 이어해줘 묻지도 말고" 요청으로 계속. PLAN §8 로드맵이 그래픽
+다음으로 "0 안정화"를 앞에 두고 있어(§7 목록을 안 닫으면 새 시스템을 안 넣는다는 SAGA-DESIGN
+§8-1 원칙) 그중 **실기기 없이 코드만으로 끝나는 항목**을 골라 처리했다.
+
+**새 파일 `js/errlog.js`** — `window.onerror`·`unhandledrejection`을 잡아 localStorage
+링버퍼(50건, `deungyong-go/errlog`)에 쌓는다. `push(arr, entry)`는 순수 함수(자가진단이
+55건 넣어 50건만 남는지, 오래된 것부터 밀리는지 값으로 본다). `errlog.on` 손잡이(기본 1).
+`index.html`을 비롯해 `js/data.js`를 싣는 화면 전부(`_admin.html`·`_autoprobe.html`·
+`_demo.html`·`_gallery.html`·`_probe.html`·`_test.html`)의 **맨 첫 스크립트**로 얹었다 —
+다른 모든 파일의 실행 중 오류(파싱 오류만 빼고)를 놓치지 않으려는 것.
+
+**`_admin.html`** — 새 탭 "오류"(다시 읽기·복사·비우기, `DG.errlog.list()`를 그대로 글로
+푼다). QA 프리셋에 "🩹 옛/이상한 버전 세이브 시뮬레이션" 추가 — `v`를 999로 바꿔 저장했다
+다시 읽어 골드 같은 값이 안 지워지는지 확인하고 정상 버전으로 되돌린다. 균형 손잡이 탭에
+`errlog.on` 한 줄.
+
+**`js/core.js`** — **§8-3의 실제 지뢰를 잡았다.** `load()`가 `parsed.v !== 1`이면 무조건
+`false`를 줘 그대로 새 세이브로 덮이는 구조였다(주석에 "마이그레이션은 여기서" 라고만
+적혀 있고 실제 체인은 없었다 — 사가국지가 이미 밟은 `aa4b8b8` 류를 이 판은 아직 안
+밟았을 뿐 구조는 똑같이 위험했다). `SAVE_VERSION`·`MIGRATIONS`·`migrate()`(순수 함수)를
+추가해 **버전이 안 맞아도 지우지 않고** `mergeDeep(freshSave(), ...)`로 넘긴다. 지금은
+`SAVE_VERSION=1`에 정의된 마이그레이션이 없어 체인은 그냥 통과만 시키지만, 다음에 스키마를
+바꿀 때 `MIGRATIONS[1] = function(s){...; s.v=2; return s;}` 식으로 얹을 자리가 생겼다.
+`_test.html`에 순수 함수 검사 항목 추가(`v=999`를 넣어도 필드가 안 지워지는지).
+
+**`js/post3d.js`** — `draw()`가 실제 렌더 로직(`drawInner`로 이름을 옮겼다)을 try/catch로
+감싼다. 실패하면(폰 GPU 드라이버 등으로 렌더 타깃·셰이더가 죽으면) 타깃을 놓아 주고
+`ready=false`·`failed=true`로 **영구히 후처리를 끄고** `errlog`에 기록한 뒤 `world3d`의
+바로 그리는 길로 돌려보낸다 — PLAN이 적어 둔 "갈색/녹색 화면" 류의 실제 대응.
+
+**`tools/precheck.sh`(루트, 다섯 판 공통)** — "sw.js 캐시 버전" 절 추가: `<판>/js`가
+git 상태에서 바뀌었는데 `<판>/sw.js`는 그대로면 WARN(막지는 않는다 — 캐시 안 타는 파일도
+있을 수 있어서다). 이 세션 자신도 `sw.js`(`go-v5.30.0`→`go-v5.31.0`)를 올리고 새 파일
+둘(`errlog.js`·`toon3d.js`)을 `SHELL` 목록에 넣어 오프라인 캐시에도 실리게 했다.
+
+**검증** — `node -c` 전 파일 통과, `_admin.html`·`_test.html` 인라인 스크립트 전부
+`new Function()` 파싱 확인, `bash tools/precheck.sh saga-web/saga-go` → PRECHECK OK(새
+sw.js 경고 절 포함, 이번엔 안 걸림 — VERSION 을 같이 올렸으니까). 헤드리스 `_test.html`
+3회 확인은 이번에도 안 돌렸다(§6 세션과 같은 이유 — precheck.sh 자체 규칙).
+
+**남은 것** — §7 목록의 나머지는 거의 다 실기 확인 항목이라 그대로 둔다. Phase 1(세션
+구조·손맛) 로 넘어가려면 "사람이 손으로 한 세션 플레이 기록"(§8 Phase 0 마지막 조건)이
+먼저 있어야 한다 — 사용자 몫.
