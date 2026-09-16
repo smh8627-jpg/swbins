@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-16 (문서 재편 세션 — 코드 변경 없음).
+마지막 갱신: 2026-09-16 (PLAN 104-1 Phase 0 안정화 ①·③ 착수).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -18,15 +18,17 @@
 
 ## 현재 작업
 
-- 없음. 2026-09-16 문서 재편(PLAN 0장·101~105장, HISTORY 분리)까지 반영됨.
+- PLAN 104-1 Phase 0 진행 중. 이번 세션: ①`tools/unity-batch.sh` 신설(배치 실행→4파일 원복→git status 한 줄) · ③`[SerializeField]` 누락 감사 완료 — `Assets/Games/**/UI/*.cs` 전수 grep, 에디터 스크립트가 `Build()`를 한 번만 부르고 런타임 재호출이 없는 컴포넌트 5개(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi)의 참조 필드를 `RealmCommandUi`·`LocalizedButtonLabel` 과 같은 결로 승격. DebugHud·Minimap·OverworldMapUI·VirtualJoystick 은 이미 Awake() 런타임 재탐색이라 대상 아님.
+- **컴파일 미검증**: 이 PC 에 Unity 에디터 실행 파일을 못 찾음(Unity Hub 는 있으나 `Editor/<버전>` 없음, CLAUDE.md 절차대로 먼저 확인함) — 배치 모드 컴파일 확인은 다음에 에디터 있는 세션이나 사용자가 GUI 로 열 때 필요.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부. 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
-2. **PLAN 104장 Phase 0 안정화** — 배치 모드 4파일 부작용 원복 절차 스크립트화, `GameObject.Find` 존재 확인만 하는 Playtest 를 "실제 호출" 검증으로 교체(REALM 사례 재발 방지), `Assets/Art/*_candidates` 정리 판정(102장 표, 결정은 사용자).
-3. **PLAN 101장 재미 표준 A·B 첫 이식** — 목표판 3줄 + 세션 마무리 카드를 GO 에 먼저(웹 사가고 PLAN §5 ④ 검증 결과 기다리지 않고 UI 뼈대만).
-4. **REALM 51장 10차** — 시상→건업(`chaisang-jianye`). `AttackChainStep(출진, 함락, 다음)` 인자 순서 확인. wan 은 목표로 쓰지 않는다.
-5. **Localization 잔여** — FOREST 데이터 콘텐츠, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출. en 사람 검수.
+1. **컴파일 확인** — 위 5개 파일 `[SerializeField]` 추가 후 배치 모드 컴파일 미검증. Unity 에디터 있는 세션에서 `bash tools/unity-batch.sh -- -batchmode -nographics -quit -projectPath . -logFile <경로>` 로 확인.
+2. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(위 5개 패널의 씬 재로드 후 동작 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
+3. **PLAN 104장 Phase 0 나머지** — `GameObject.Find` 존재 확인만 하는 Playtest 를 "실제 호출" 검증으로 교체(대상 grep: `GameObject.Find(` in `Assets/Editor/Playtest*.cs`, 104-1 ②), `Assets/Art/*_candidates` 정리 판정(102-4, 105장 결정 뒤).
+4. **PLAN 101장 재미 표준 A·B 첫 이식** — 목표판 3줄 + 세션 마무리 카드를 GO 에 먼저(웹 사가고 PLAN §5 ④ 검증 결과 기다리지 않고 UI 뼈대만).
+5. **REALM 51장 10차** — 시상→건업(`chaisang-jianye`). `AttackChainStep(출진, 함락, 다음)` 인자 순서 확인. wan 은 목표로 쓰지 않는다.
+6. **Localization 잔여** — FOREST 데이터 콘텐츠, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출. en 사람 검수.
 
 ## 알려진 오류
 

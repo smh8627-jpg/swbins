@@ -15,9 +15,11 @@ namespace Saga.Story.UI
     {
         public static StoryJobChoiceUi Instance { get; private set; }
 
-        private GameObject _panel;
-        private Text _titleLabel;
-        private Text _closeLabel;
+        // PLAN.md 104-1 ③ — Build()를 부르는 게 에디터 스크립트뿐이라(런타임 재호출 없음)
+        // 씬 저장→재로드 후에도 참조가 남으려면 [SerializeField]가 필수(REALM/LocalizedButtonLabel과 같은 함정).
+        [SerializeField] private GameObject _panel;
+        [SerializeField] private Text _titleLabel;
+        [SerializeField] private Text _closeLabel;
         private System.Action<string> _onChosen;
 
         public bool IsShowing => _panel != null && _panel.activeSelf;

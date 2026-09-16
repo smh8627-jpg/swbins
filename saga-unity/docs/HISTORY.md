@@ -5995,3 +5995,36 @@ HiddenTreasure·DUNGEON 행상/구출 대사 등이 다음 후보로 남아있�
 (docs/PROJECT_STATE.md "다음 세션 안내" 참고). en 번역은 전부 이
 세션이 직접 옮긴 것이라 사람 검수 전이다.
 
+
+## PLAN 104-1 Phase 0 안정화 ①·③ 착수 (2026-09-16, "사가유니티 이어해줘")
+
+세션 절차대로 CLAUDE.md → PLAN 목차 → PROJECT_STATE 순으로 확인, "다음 작업" 2순위
+(104장 Phase 0)부터 착수. Unity 에디터가 이 PC 에서 안 잡혀(`Program Files/Unity/Hub/Editor`
+비어 있음, Hub 자체만 설치돼 있고 실제 버전 폴더 없음) GUI·배치 컴파일 둘 다 이번 세션엔
+못 돌렸다 — 소스 편집만 하고 다음 세션에 컴파일 확인을 넘긴다.
+
+**① `tools/unity-batch.sh` 신설** — 배치 모드 실행 뒤 `ProjectSettings/ProjectVersion.txt`·
+`EditorSettings.asset`·`Packages/manifest.json`·`packages-lock.json` 4파일 원복 + `git status`
+확인을 한 줄로. `bash tools/unity-batch.sh -- <Unity.exe 인자...>` 로 쓴다.
+
+**③ `[SerializeField]` 누락 감사** — `grep`으로 `Assets/Games/**/UI/*.cs` 의 plain private
+참조 필드(Text/Button/Image/GameObject/Transform/RectTransform 등) 전수 확인. 대상을
+"에디터 빌드 스크립트가 `Build()`를 딱 한 번 부르고 런타임엔 아무도 다시 안 부르는" 것으로
+좁혔다 — 그런 컴포넌트만 씬 저장→재로드 후 필드가 비게 되는 `RealmCommandUi`(2026-09-15)·
+`LocalizedButtonLabel`(같은 날) 함정에 걸린다. `DebugHud`·`Minimap`·`OverworldMapUI`(전부
+`_player`)와 `VirtualJoystick`(`_rect`)은 `Awake()`에서 매 Play 세션마다 다시 찾으므로
+대상 아님(확인만 하고 안 건드림).
+
+새로 `[SerializeField]` 로 승격한 것 — 전부 `Editor/BuildTest*Scene.cs` 가 `AddComponent`
+직후 `Build()` 를 한 번만 부르는 패턴:
+- `Saga.Dungeon.UI.DungeonSettingsPanel`(16 필드: `_panel`+설정 행 15개)
+- `Saga.Go.UI.GoSettingsPanel`(같은 16 필드)
+- `Saga.Forest.UI.ForestSettingsPanel`(같은 16 필드)
+- `Saga.Story.UI.StorySettingsPanel`(같은 16 필드)
+- `Saga.Story.UI.StoryJobChoiceUi`(`_panel`·`_titleLabel`·`_closeLabel`)
+
+REALM 은 별도 설정 패널이 없다(`RealmCommandUi` 안에 이미 있고 이미 고쳐져 있음, 확인만 함).
+
+**미착수(다음 세션)**: 104-1 ②(`GameObject.Find` 존재 확인 → 실제 호출 검증 교체, 대상
+`Assets/Editor/Playtest*.cs`), 컴파일 배치 확인(위 5개 파일 문법 검증), 실기 GUI 확인.
+PROJECT_STATE.md 에 다음 우선순위로 반영해 둠.

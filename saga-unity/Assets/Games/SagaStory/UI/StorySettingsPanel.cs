@@ -19,22 +19,24 @@ namespace Saga.Story.UI
     /// </summary>
     public class StorySettingsPanel : MonoBehaviour
     {
-        private GameObject _panel;
-        private Text _toggleLabel;
-        private Text _titleLabel;
-        private Text _closeLabel;
-        private Text _sfxNameLabel;
-        private Text _sfxValueLabel;
-        private Text _vibrationNameLabel;
-        private Text _vibrationValueLabel;
-        private Text _uiScaleNameLabel;
-        private Text _uiScaleValueLabel;
-        private Text _qualityNameLabel;
-        private Text _qualityValueLabel;
-        private Text _languageNameLabel;
-        private Text _languageValueLabel;
-        private Text _bgmNameLabel;
-        private Text _bgmValueLabel;
+        // PLAN.md 104-1 ③ — Build()를 부르는 게 에디터 스크립트뿐이라(런타임 재호출 없음)
+        // 씬 저장→재로드 후에도 참조가 남으려면 [SerializeField]가 필수(REALM/LocalizedButtonLabel과 같은 함정).
+        [SerializeField] private GameObject _panel;
+        [SerializeField] private Text _toggleLabel;
+        [SerializeField] private Text _titleLabel;
+        [SerializeField] private Text _closeLabel;
+        [SerializeField] private Text _sfxNameLabel;
+        [SerializeField] private Text _sfxValueLabel;
+        [SerializeField] private Text _vibrationNameLabel;
+        [SerializeField] private Text _vibrationValueLabel;
+        [SerializeField] private Text _uiScaleNameLabel;
+        [SerializeField] private Text _uiScaleValueLabel;
+        [SerializeField] private Text _qualityNameLabel;
+        [SerializeField] private Text _qualityValueLabel;
+        [SerializeField] private Text _languageNameLabel;
+        [SerializeField] private Text _languageValueLabel;
+        [SerializeField] private Text _bgmNameLabel;
+        [SerializeField] private Text _bgmValueLabel;
 
         public void Build()
         {
