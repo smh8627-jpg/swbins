@@ -1,70 +1,39 @@
 # saga-unity
 
-작업 전에 이 폴더의 **`PLAN.md`** 를 읽는다 — 5개 게임을 Unity 6 3D로 재구축하는
-최종 작업지시서, 정본이다.
+다섯 게임을 Unity 6 3D 로 재구축하는 **완전히 새 프로젝트**. 정본은 이 폴더 `PLAN.md`.
+`saga-godot/` 과 나란히 가는 **병행 트랙**이다 — 대체가 아니고, saga-godot 의 "Godot 유지" 결정을 뒤집는 것도 아니다(관계는 `PLAN.md` 0장).
+`saga-web/*`(웹 판)·`saga-godot/` 은 건드리지 않는다. 코드 공유 없음.
 
-**이 폴더는 `saga-godot/`과 나란히 가는 두 번째 엔진 트랙이다** (2026-09-11
-신설 — 사용자가 "유니티로 전환을 추가한다, 다른 곳은 Godot 작업 중이니"로
-명시적으로 요청). `saga-godot/PLAN.md` 66-1장의 "Godot 유지, Unity·Unreal로
-안 갈아탄다"는 결정을 뒤집는 게 아니다 — `saga-godot/`은 계속 그대로 간다.
-이 폴더는 **병행 실험**이지 대체가 아니다. 자세한 관계는 이 폴더 `PLAN.md`
-0장 참고.
+- 현재 상태 `docs/PROJECT_STATE.md`(430KB) · 실기 조작법 `docs/HOW_TO_PLAYTEST.md`(saga-godot 의 같은 이름 문서와 짝, 내용은 안 섞는다)
+- **`PLAN.md`·`PROJECT_STATE.md`·`VERTICAL_SLICE_*.md` 는 통째로 읽지 않는다.** 목차 grep 후 필요한 장·날짜만 `sed -n` 으로 읽는다.
+- 레거시 기획 감사는 새로 하지 않는다 — `saga-godot/docs/LEGACY_FEATURE_AUDIT.md` 를 그대로 참고(`PLAN.md` 4장).
+- 사용자가 실기 테스트 방법을 물으면 `HOW_TO_PLAYTEST.md` 를 가리키고, 새 키 배선이 생기면 거기에 반영한다.
 
-`saga-go`·`saga-dungeon`·`saga-forest`·`saga-story`·`saga-realm`(기존
-웹/JS 판)과 `saga-godot/`은 그대로 두고 건드리지 않는다 — 완전히 별개
-프로젝트다.
+## Unity 에디터 — PC 마다 다르다
 
-현재 상태는 `docs/PROJECT_STATE.md`.
-**사람이 직접 손으로 조작해 확인하는 법**(에디터 준비·씬별 실행·조작키
-표·세이브 파일 위치)은 `docs/HOW_TO_PLAYTEST.md` — 사용자가 실기 테스트
-방법을 물으면 이 파일을 가리키거나 최신 조작(새 키 배선 등)을 반영해
-갱신한다(saga-godot의 같은 이름 문서와 짝, 서로 별개 프로젝트라 내용은
-안 섞는다).
+기록상 이 PC 에는 Unity Hub 경유 **6000.3.23f1** 이 있다(`C:\Program Files\Unity\Hub\Editor\6000.3.23f1`). 다른 PC 일 수 있으니 새 세션은 먼저 확인한다:
 
-**레거시 기획 감사는 새로 하지 않는다** — `saga-godot/docs/
-LEGACY_FEATURE_AUDIT.md`를 그대로 참고한다(PLAN.md 4장).
-
-Unity는 이 PC에 **Unity 6000.3.23f1**(Unity Hub 경유)이 이미 설치돼 있다
-(`C:\Program Files\Unity\Hub\Editor\6000.3.23f1`). 다른 PC에서 이 세션이
-돌면 설치 여부가 다를 수 있다 — `saga-godot/CLAUDE.md`의 "PC마다 다르다"
-원칙과 같다. 새 세션은 먼저 확인부터 한다:
-
-```
+```bash
 find "/c/Program Files/Unity/Hub/Editor" -maxdepth 1 2>/dev/null
 ```
 
-Unity 프로젝트(`Assets/`·`ProjectSettings/`·`Packages/`)는 Phase 1에서
-아직 생성 전이다 — PLAN.md 35장 01~10단계 참고.
+## 검증
 
-**`.gitignore` 필수**: Unity가 만드는 `Library/`·`Temp/`·`Obj/`·`Build/`·
-`Logs/`·`UserSettings/`·`*.csproj`·`*.sln`은 절대 커밋하지 않는다(용량이
-크고 로컬 캐시/재생성 가능한 것들이다). Unity 프로젝트를 처음 만들 때
-바로 `.gitignore`부터 채운다(PLAN.md Phase 1, 08단계).
+배치 모드로 컴파일 오류·씬 로드만 확인한다:
 
-에디터를 실제로 띄워 화면을 확인하는 습관은 `saga-godot/CLAUDE.md`가
-2026-09-09·2026-09-11에 정리해 둔 것과 같은 원칙을 따른다 — **개발
-중에는 습관적으로 GUI를 띄워 스크린샷을 찍지 않는다.** 헤드리스 빌드/
-배치 모드(`Unity.exe -batchmode -nographics -quit -projectPath <경로>
--logFile <경로>`)로 컴파일 오류·씬 로드만 확인하고, 실제 화면 확인은
-기능을 다 완성한 뒤 사용자가 직접 하거나 명시적으로 요청할 때만 한다.
-GUI 에디터를 띄웠다면 그 turn 안에서 반드시 `taskkill //F //IM
-Unity.exe`로 정리한다(다른 세션의 Godot 프로세스까지 잡지 않도록 정확한
-이름만).
+```
+Unity.exe -batchmode -nographics -quit -projectPath <경로> -logFile <경로>
+```
 
-**주의 — 배치 모드 실행도 프로젝트 설정을 조용히 고쳐 쓸 수 있다
-(2026-09-13 발견).** 이 PC에 설치된 Unity 버전이 프로젝트가 마지막으로
-저장된 버전보다 최신이면, 열자마자 `ProjectSettings/ProjectVersion.txt`를
-새 버전으로 덮어쓰고 `Packages/manifest.json`·`packages-lock.json`의
-패키지 버전도 자동으로 올릴 수 있다(headless `-batchmode`에서도 발생함,
-GUI 에디터만의 문제가 아니다). saga-godot CLAUDE.md가 헤드리스 임포트
-뒤 `project.godot`/`*.import`를 확인하라고 경고하는 것과 같은 함정 —
-**배치 모드를 돌린 뒤에는 커밋 전에 반드시 `git status`/`git diff --
-ProjectSettings/ Packages/`로 의도하지 않은 변경이 없는지 훑는다.** 있으면
-`git checkout`으로 되돌리고, 실제로 고치려던 파일만 add한다.
+- **배치 모드도 프로젝트 설정을 조용히 고쳐 쓴다.** 설치된 Unity 가 프로젝트 저장 버전보다 새로우면 `ProjectSettings/ProjectVersion.txt` 와 `Packages/manifest.json`·`packages-lock.json` 을 자동으로 올린다.
+  돌린 뒤 커밋 전에 반드시 `git diff -- ProjectSettings/ Packages/` 를 훑고, 의도치 않은 변경은 `git checkout` 으로 되돌린 뒤 고친 파일만 add 한다.
+- **`.gitignore` 유지**: `Library/`·`Temp/`·`Obj/`·`Build/`·`Logs/`·`UserSettings/`·`*.csproj`·`*.sln` 은 절대 커밋하지 않는다.
 
-**같은 저장소, 여러 세션 동시 작업** — 루트 `CLAUDE.md`의 git 규칙을
-그대로 따른다: `git add` 해 두고 뜸 들이지 않는다, `git commit -F
-<메시지파일> -- <손댄 경로>`로 곧바로. `saga-godot/`을 만지는 다른
-세션과 파일이 겹칠 일은 구조상 없다(폴더가 다르다) — 겹칠 수 있는 건
-루트 `SAGA-HANDOFF.md`·루트 `CLAUDE.md` 정도이니 그 둘을 고칠 때만
-특히 조심한다.
+## GUI 화면 확인
+
+- **개발 중 습관적으로 GUI 를 띄워 스크린샷을 찍지 않는다**(루트 CLAUDE.md 와 같은 원칙). 기능을 다 완성한 뒤 사용자가 직접 보거나, 명시적으로 요청할 때만.
+- GUI 를 띄웠으면 그 turn 안에 `taskkill //F //IM Unity.exe`. 다른 세션의 Godot 프로세스까지 잡지 않도록 정확한 이름만.
+
+## git
+
+루트 CLAUDE.md 의 git 규칙 그대로. saga-godot 세션과 파일이 겹칠 일은 없고, 겹칠 수 있는 건 루트 `SAGA-HANDOFF.md`·루트 `CLAUDE.md` 뿐이니 그 둘을 고칠 때만 특히 조심한다.
