@@ -45,6 +45,10 @@ extends CharacterBody3D
 ## **난입(亂入, 2026-09-17, PLAN 101-2 DUNGEON ⑤)** — `_init()` 꼬리 인자
 ## `extra_stat_mult`(기본 1.0)를 horde_arena.gd가 넘긴다. 부적과 같은
 ## "맨 끝에 한 번 더 곱한다" 자리, 서로 안 얽힌다.
+##
+## **월드 보스(2026-09-17, PLAN 101-2 DUNGEON ⑥)** — `_init()` 꼬리 인자
+## `hp_only_extra_mult`(기본 1.0)를 world_boss_director.gd가 넘긴다.
+## extra_stat_mult와 달리 max_hp에만 곱한다("체력만 8배", 공격력은 그대로).
 
 signal died
 
@@ -112,7 +116,7 @@ static func _elite_chance(floor_num: int) -> float:
 ## force_elite=true는 dungeon.js spawnEnemy(floor, false, {forceElite:true})
 ## 그대로 — "정예 소굴"(POI: Elite) 방이 확률 없이 정예 하나를 반드시
 ## 끼우는 자리에서만 쓴다(test_room.gd::_spawn_elite_den).
-func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_elite: bool = false, extra_stat_mult: float = 1.0) -> void:
+func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_elite: bool = false, extra_stat_mult: float = 1.0, hp_only_extra_mult: float = 1.0) -> void:
 	_floor_num = floor_num
 	is_boss = boss
 	_is_shade = shade
@@ -151,6 +155,11 @@ func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_el
 	if extra_stat_mult != 1.0:
 		max_hp = roundf(max_hp * extra_stat_mult)
 		attack_damage = roundf(attack_damage * extra_stat_mult)
+	## PLAN 101-2 DUNGEON ⑥(월드 보스, 2026-09-17) — 웹 5.4 "체력 8배"는
+	## 체력만 말한다(공격력은 그대로) — extra_stat_mult와 달리 max_hp에만
+	## 곱한다. dungeon_worldboss_state.gd 참고.
+	if hp_only_extra_mult != 1.0:
+		max_hp = roundf(max_hp * hp_only_extra_mult)
 	hp = max_hp
 
 

@@ -73,9 +73,11 @@ static func spawn_mat_at(parent: Node, pos: Vector3, floor_num: int) -> void:
 	_spawn_mat(parent, pos, floor_num)
 
 
-static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false, is_elite: bool = false) -> void:
+## PLAN 101-2 DUNGEON ⑥(월드 보스, 2026-09-17) — `legendary_mult`(기본
+## 1.0)는 DungeonItems.roll()로 그대로 넘어간다(웹 5.4 "전설 확률×3").
+static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = false, is_elite: bool = false, legendary_mult: float = 1.0) -> void:
 	var ilvl_bonus := 30 if is_boss else (ELITE_ILVL_BONUS if is_elite else 0)
-	var it := DungeonItems.roll(ilvl + ilvl_bonus)
+	var it := DungeonItems.roll(ilvl + ilvl_bonus, "", -1, false, legendary_mult)
 	var tier: Dictionary = DungeonItems.TIERS[it.tier]
 	var b := DungeonItems.base_by_key(str(it.base))
 	var slot_name := str(b.get("slot", "weapon"))
@@ -130,12 +132,19 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 		_spawn_sigil(parent, pos + Vector3(0, 0, -0.9), ilvl)
 
 
-## dungeon.js dropGold()의 mul 인자 그대로(잡졸 1·보스 5) — 은사+장비
-## goldPct까지 DungeonRunState.gold_mult()가 이미 합산해 준다. PLAN 101-2
-## DUNGEON ④(부적 던전) — 부적이 켜져 있으면 DungeonSigilState.gold_mult()
-## (티어 배율+"treasure" 모드)까지 한 번 더 곱한다.
+## dungeon.js dropGold() 공식 그대로 — 은사+장비 goldPct까지
+## DungeonRunState.gold_mult()가 이미 합산해 준다. PLAN 101-2 DUNGEON ④
+## (부적 던전) — 부적이 켜져 있으면 DungeonSigilState.gold_mult()(티어
+## 배율+"treasure" 모드)까지 한 번 더 곱한다. PLAN 101-2 DUNGEON ⑥(월드
+## 보스, 2026-09-17) — dungeon_worldboss_state.gd의 "도망 시 30%" 보상이
+## 같은 계산을 재사용하려고 `_spawn_gold()`에서 뽑아냈다(동작 그대로).
+static func gold_amount(floor_num: int, mul: float = 1.0) -> int:
+	return int(roundf(5.0 * pow(1.19, float(floor_num) - 1.0) * DungeonRunState.gold_mult() * mul * DungeonSigilState.gold_mult()))
+
+
+## dungeon.js dropGold()의 mul 인자 그대로(잡졸 1·보스 5).
 static func _spawn_gold(parent: Node, pos: Vector3, floor_num: int, mul: float = 1.0) -> void:
-	var amount := int(roundf(5.0 * pow(1.19, float(floor_num) - 1.0) * DungeonRunState.gold_mult() * mul * DungeonSigilState.gold_mult()))
+	var amount := gold_amount(floor_num, mul)
 	if amount <= 0:
 		return
 

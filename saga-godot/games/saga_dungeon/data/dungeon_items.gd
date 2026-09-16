@@ -373,6 +373,7 @@ const SETS: Array[Dictionary] = [
 
 const SET_TIER := 3 # 보물(寶物) 등급에만 붙는다
 const SET_CHANCE := 0.55
+const LEGENDARY_TIER := 4 # 전설(傳說) — PLAN 101-2 DUNGEON ⑥(월드 보스)의 "전설 확률×3"이 가리키는 자리
 
 ## vendor.js GAMBLE_W 그대로 — 던전 드랍(100/52/22/7/1.6)보다 위쪽이 훨씬
 ## 두껍다. 투전이 비싼 대신 좋은 등급이 잘 나오는 이유.
@@ -545,13 +546,20 @@ static func bonus_for(s: Dictionary, n: int) -> Array[Dictionary]:
 
 
 ## rollTier(bias) — findPct 시스템이 없어 bias는 늘 0(웹판 item.js와 같은
-## 가중 추첨, 탐색안 보정만 뺐다).
-static func roll_tier() -> int:
+## 가중 추첨, 탐색안 보정만 뺐다). PLAN 101-2 DUNGEON ⑥(월드 보스, 2026-09-17)
+## — `legendary_mult`(기본 1.0)는 웹 5.4 "전설 확률×3"을 위한 자리 — 전설
+## 한 등급의 가중치만 곱한다(나머지 등급 비율은 그대로, 전설 몫만 커진
+## 만큼 다른 등급 몫이 상대적으로 줄어든다 — 원작 item.js도 등급별 가중치
+## 자체를 조작하는 방식이라 같은 결).
+static func roll_tier(legendary_mult: float = 1.0) -> int:
 	var total := 0.0
 	var w: Array[float] = []
 	for i in range(TIERS.size()):
-		w.append(TIERS[i].weight)
-		total += w[i]
+		var weight: float = TIERS[i].weight
+		if i == LEGENDARY_TIER and legendary_mult != 1.0:
+			weight *= legendary_mult
+		w.append(weight)
+		total += weight
 	var r := randf() * total
 	for i in range(w.size()):
 		r -= w[i]
@@ -737,7 +745,9 @@ static func socket_effects(it: Dictionary) -> Array[Dictionary]:
 ## GAMBLE_W로 직접 고른 등급을 여기 넣는 자리). force_identified가 참이면
 ## 등급과 상관없이 확인된 채로 나온다(행상·투전에서 산 것은 원작도 확인된
 ## 채로 온다 — item.js roll()의 `unid: opts.unid===false?false:t>=1`과 같음).
-static func roll(ilvl: int, slot: String = "", forced_tier: int = -1, force_identified: bool = false) -> Dictionary:
+## PLAN 101-2 DUNGEON ⑥(월드 보스, 2026-09-17) — `legendary_mult`(기본
+## 1.0)는 forced_tier가 안 쓰일 때만 roll_tier()로 그대로 넘어간다.
+static func roll(ilvl: int, slot: String = "", forced_tier: int = -1, force_identified: bool = false, legendary_mult: float = 1.0) -> Dictionary:
 	ilvl = maxi(1, ilvl)
 	var pool: Array[Dictionary] = []
 	for b: Dictionary in BASES:
@@ -746,7 +756,7 @@ static func roll(ilvl: int, slot: String = "", forced_tier: int = -1, force_iden
 	if pool.is_empty():
 		pool = BASES
 	var base: Dictionary = pool[randi() % pool.size()]
-	var t: int = forced_tier if forced_tier >= 0 else roll_tier()
+	var t: int = forced_tier if forced_tier >= 0 else roll_tier(legendary_mult)
 	var tier: Dictionary = TIERS[t]
 
 	var aff: Array[Dictionary] = []

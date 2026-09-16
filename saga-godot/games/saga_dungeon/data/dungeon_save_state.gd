@@ -109,6 +109,11 @@ func save(player: Node3D) -> void:
 		## 헤더 참고) 저장하지 않는다.
 		"horde_best": DungeonHordeState.best_survive_sec,
 		"horde_runs": DungeonHordeState.runs,
+		## PLAN 101-2 DUNGEON ⑥(월드 보스, 2026-09-17) — 순수 추가 필드
+		## (버전 안 올림). "마지막으로 보상한 슬롯"만 저장(dungeon_worldboss_
+		## state.gd 헤더 참고 — 슬롯은 벽시계로만 늘어나 이 값 하나로 "같은
+		## 슬롯 두 번 보상 안 함"이 계속 유지된다).
+		"worldboss_last_slot": DungeonWorldBossState.last_rewarded_slot,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -202,6 +207,9 @@ func try_load() -> bool:
 	DungeonHordeState.restore(
 		int(horde_best) if (typeof(horde_best) == TYPE_INT or typeof(horde_best) == TYPE_FLOAT) else 0,
 		int(horde_runs) if (typeof(horde_runs) == TYPE_INT or typeof(horde_runs) == TYPE_FLOAT) else 0)
+	var worldboss_last_slot: Variant = data.get("worldboss_last_slot", -1)
+	DungeonWorldBossState.restore(
+		int(worldboss_last_slot) if (typeof(worldboss_last_slot) == TYPE_INT or typeof(worldboss_last_slot) == TYPE_FLOAT) else -1)
 	return true
 
 
