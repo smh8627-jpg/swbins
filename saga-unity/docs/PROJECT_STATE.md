@@ -5500,3 +5500,32 @@ Phase 한 칸 + 헬퍼 호출 한 줄이면 끝). 다음 후보:
   다음 단계(원작 LINKS: changsha-chaisang, changsha-kuaiji,
   changsha-nanhai)를 고르는 게 가장 자연스러운 다음 자리.
 - wan은 게이트 테스트 고정 성이라 앞으로도 목표로 쓰지 말 것
+
+## REALM 51장 9차 확장 — 장사→시상 (2026-09-16, 같은 날 "이어해줘")
+
+장사의 세 이웃(시상·회계·남해) 중 시상만 골랐다 — 원작 LINKS엔
+수춘·강하도 시상과 맞닿지만 그 둘은 이미 각자 목표(여남·양양)가
+있어(성 하나당 목표 하나) 장사 쪽에서만 이어 붙였다. train은 그대로
++15(145→160).
+
+- `RealmEnemyCity.cs`·`RealmCityData.cs`에 chaisang 카탈로그 추가
+  (wall 4600, troops 1050, land는 원작 그대로 River —
+  jiangling/xiangyang과 같은 river 성), `realm_en.json`·
+  `realm_ko.json`에 `city.chaisang` 로컬라이즈 키 추가.
+- `PlaytestRealmSlice.cs`에 AttackChaisang 단계 추가(AttackChangsha
+  다음). **편집 중 `AttackChainStep` 호출에 출진 성 인자를
+  `RealmEnemyCity.JianglingId` 대신 실수로 `RealmEnemyCity.ChangshaId`
+  두 번 넣었다가 커밋 전에 바로 잡음** — 다음에 체인을 늘릴 때
+  `AttackChainStep(출진 성, 함락할 성, 다음 Phase)` 세 인자 순서를
+  한 번 더 눈으로 확인할 것. save/load 확인 로그도 "21 cities"·
+  "열여덟 적국"으로 같이 고침.
+- 배치 모드 컴파일 → 3연속 통과(열여덟 적국 전부 함락+편입+save/load
+  왕복 확인, 성 셋→스물하나). 이번에도 `ProjectVersion.txt`·
+  `Packages/manifest.json`·`packages-lock.json`·`EditorSettings.asset`이
+  배치 모드로 조용히 바뀌어 커밋 전 원복.
+- 남은 확장 후보: 장안의 다른 이웃(천수, 한중의 다음 단계로),
+  강주의 다른 이웃(주제, 범위 밖 — 위 8차 확장 항목 참고), 시상의
+  다음 단계(원작 LINKS: chaisang-jianye — 건업, "종산이 웅크린 자리")
+  가 가장 자연스러운 다음 자리. 회계(kuaiji)·남해(nanhai)는 장사의
+  다른 이웃이라 장사 자체에서 두 번째 목표를 못 붙이니(범위 밖) 후보
+  아님.

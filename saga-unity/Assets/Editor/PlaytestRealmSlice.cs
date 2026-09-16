@@ -47,6 +47,8 @@ namespace Saga.EditorTools
     /// (8-8) 51장 8차 확장(2026-09-16, 같은 날) — 강릉을 함락한 뒤
     /// 이어지는 여덟째 단계 목표(장사)까지 같은 경로로 되는지(영안은
     /// 이웃이 전부 이미 우리 성이라 막다른 가지 — 다음 단계 없음),
+    /// (8-9) 51장 9차 확장(2026-09-16, 같은 날) — 장사를 함락한 뒤
+    /// 이어지는 아홉째 단계 목표(시상)까지 같은 경로로 되는지,
     /// (9) 계략(유언비어·화계) — 허창 밖 게이트, 성공 시 소패 훈련도/병력
     /// 실제 하락,
     /// (10) 함락한 성 편입 — 함락 즉시 네 번째 성으로 들어가는지, 무장
@@ -74,7 +76,7 @@ namespace Saga.EditorTools
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
             AttackChangan, AttackShouchun, AttackJinyang, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
-            AttackYongan, AttackJiangling, AttackChangsha,
+            AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -979,11 +981,20 @@ namespace Saga.EditorTools
                 case Phase.AttackChangsha:
                 {
                     // 51장 8차 확장(2026-09-16) — 강릉을 함락한 뒤 이어지는
-                    // 여덟째 단계 목표(TargetFrom("jiangling")), 열일곱 중
-                    // 가장 어렵다. 영안(yongan)은 이웃이 전부 이미 우리
-                    // 성이라 이번엔 다음 목표가 없다(TargetFrom("yongan")
-                    // == null로 남는다 — 진양과 같은 막다른 가지).
-                    if (!AttackChainStep(RealmEnemyCity.JianglingId, RealmEnemyCity.ChangshaId, Phase.QuizCorrect)) return;
+                    // 여덟째 단계 목표(TargetFrom("jiangling")). 영안(yongan)은
+                    // 이웃이 전부 이미 우리 성이라 이번엔 다음 목표가 없다
+                    // (TargetFrom("yongan") == null로 남는다 — 진양과 같은
+                    // 막다른 가지).
+                    if (!AttackChainStep(RealmEnemyCity.JianglingId, RealmEnemyCity.ChangshaId, Phase.AttackChaisang)) return;
+                    break;
+                }
+
+                case Phase.AttackChaisang:
+                {
+                    // 51장 9차 확장(2026-09-16) — 장사를 함락한 뒤 이어지는
+                    // 아홉째 단계 목표(TargetFrom("changsha")), 열여덟 중
+                    // 가장 어렵다.
+                    if (!AttackChainStep(RealmEnemyCity.ChangshaId, RealmEnemyCity.ChaisangId, Phase.QuizCorrect)) return;
                     break;
                 }
 
@@ -1144,12 +1155,12 @@ namespace Saga.EditorTools
                         quizAfter.BestStreak != quizBefore.BestStreak;
                     if (mismatch || quizMismatch)
                     {
-                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 스물/로스터/성 소속/적국 열일곱 전황/문답 중 하나) — quizMismatch={quizMismatch}");
+                        Debug.LogError($"[PlaytestRealmSlice] 로드 후 불일치 발생 (성 스물하나/로스터/성 소속/적국 열여덟 전황/문답 중 하나) — quizMismatch={quizMismatch}");
                         Fail();
                         return;
                     }
 
-                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (20 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye/changan/shouchun/jinyang/hanzhong/runan/chengdu/jiangxia/jiangzhou/xiangyang/yongan/jiangling/changsha + roster + officer city assignment + quiz progress)");
+                    Debug.Log("[PlaytestRealmSlice] save/load round-trip OK (21 cities incl. captured xiaopei/dingtao/luoyang/xiapi/ye/changan/shouchun/jinyang/hanzhong/runan/chengdu/jiangxia/jiangzhou/xiangyang/yongan/jiangling/changsha/chaisang + roster + officer city assignment + quiz progress)");
                     EditorApplication.update -= Tick;
                     EditorApplication.isPlaying = false;
                     _phase = Phase.Done;

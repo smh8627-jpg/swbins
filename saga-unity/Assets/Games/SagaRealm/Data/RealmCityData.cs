@@ -147,6 +147,13 @@ namespace Saga.Realm.Data
             // 우리 성이라(강주·강릉) 이번엔 다음 목표를 못 붙였다 — 진양과
             // 같은 막다른 가지.
             ["changsha"] = new RealmCityDef("changsha", "장사", RealmLand.Plain, agri: 300, comm: 240, wall: 4400, pop: 200000, mapX: 53, mapY: 77),
+            // 51장 "대규모 콘텐츠" 9차 확장(2026-09-16) — 장사를 함락한 뒤
+            // 이어지는 아홉째 단계(원작 LINKS: changsha-chaisang, "강동의
+            // 서쪽 문"). wall은 RealmEnemyCity.cs 시상 정의(4600)와
+            // 맞춘다. 시상은 원작 LINKS상 수춘·강하와도 맞닿지만 그 둘은
+            // 이미 각자 목표(여남·양양)가 있어 이번엔 장사 쪽에서만
+            // 골랐다(성 하나당 목표 하나).
+            ["chaisang"] = new RealmCityDef("chaisang", "시상", RealmLand.River, agri: 260, comm: 280, wall: 4600, pop: 180000, mapX: 66, mapY: 69),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

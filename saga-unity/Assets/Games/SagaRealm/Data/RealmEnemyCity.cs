@@ -54,6 +54,11 @@ namespace Saga.Realm.Data
     /// 원작 LINKS상 영안의 이웃(강주·강릉)이 전부 이미 우리 성이라
     /// 진양과 같은 사정(더 뻗을 자리가 없다). 장사는 여덟 단계
     /// 깊이(train 145, +15 그대로)까지 왔다.
+    /// **51장 9차 확장(2026-09-16, 같은 날 "이어해줘")** — 장사→시상
+    /// (강동의 서쪽 문)을 더했다. 원작 LINKS상 시상은 수춘·강하와도
+    /// 맞닿아 있지만 그 둘은 이미 각자 목표(여남·양양)를 붙였으니(성
+    /// 하나당 목표 하나) 이번엔 장사 쪽에서만 이어 붙였다. 아홉 단계
+    /// 깊이(train 160, +15 그대로)까지 왔다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -112,12 +117,13 @@ namespace Saga.Realm.Data
         public const string YonganId = "yongan";
         public const string JianglingId = "jiangling";
         public const string ChangshaId = "changsha";
+        public const string ChaisangId = "chaisang";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
-            YonganId, JianglingId, ChangshaId,
+            YonganId, JianglingId, ChangshaId, ChaisangId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -180,6 +186,13 @@ namespace Saga.Realm.Data
             // 이웃(강주·강릉)이 전부 이미 우리 성이라 이번엔 다음 목표를 못
             // 붙였다(진양과 같은 막다른 가지).
             [ChangshaId] = new RealmEnemyCityDef(ChangshaId, "장사", RealmLand.Plain, baseWall: 4400, baseTroops: 1000, baseTrain: 145, baseTech: 100, attackFromCityId: "jiangling"),
+            // 시상은 장사(changsha)와만 맞닿아 있다(원작 LINKS:
+            // changsha-chaisang, "강동의 서쪽 문, 여기서 배를 내면
+            // 형주다") — 장사를 함락해야 열리는 아홉째 단계 목표, 열여덟
+            // 중 가장 어렵다. 원작 LINKS엔 수춘·강하도 시상과 맞닿지만
+            // 그 둘은 이미 각자 목표(여남·양양)를 갖고 있어 이번엔
+            // 장사에서만 이어 붙였다.
+            [ChaisangId] = new RealmEnemyCityDef(ChaisangId, "시상", RealmLand.River, baseWall: 4600, baseTroops: 1050, baseTrain: 160, baseTech: 100, attackFromCityId: "changsha"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
