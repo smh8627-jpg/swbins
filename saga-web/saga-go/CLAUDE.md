@@ -1,7 +1,7 @@
-# saga-go
+# saga-go (사가고)
 
-작업 전에 이 폴더의 **`PLAN.md`** 를 읽는다 — 앞으로 이 판을 어디로 끌고 갈지 적어 둔 정본이다.
-현재 상태는 `README.md`, 저장소 전체 규칙은 루트 `../../SAGA-HANDOFF.md`.
+정본은 이 폴더 `PLAN.md`(≈37KB, SAGA-DESIGN §9.3 틀), 현재 상태는 `README.md`(135KB), 이 판 세션 이력은 `HANDOFF.md`(235KB, append-only), 저장소 전체 규칙은 루트 `../../SAGA-HANDOFF.md`, 공통 개편 설계는 `../../SAGA-DESIGN.md`.
 
-(참고: `../../saga-godot/PLAN.md`는 별개 신규 프로젝트 `../../saga-godot/`의 작업지시서다 —
-이 폴더와는 무관하니 여기서는 안 본다)
+- **`README.md`·`HANDOFF.md`·`../../SAGA-HANDOFF.md` 는 통째로 읽지 않는다.** `grep -n "^## \|^### "` 로 목차만 뽑고 필요한 절·날짜만 `sed -n` 으로 읽는다. `PLAN.md` 도 목차 먼저.
+- 세션 기록은 `HANDOFF.md` 에만 append 한다. `PLAN.md` 는 결정이 바뀔 때만 고친다.
+- `../../saga-godot/`·`../../saga-unity/` 는 별개 프로젝트다. 여기서는 안 본다.
