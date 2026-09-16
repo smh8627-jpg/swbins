@@ -6862,3 +6862,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - `codex_state.gd` TOTAL place 9→10.
 - 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. GO 회귀 3회 md5 완전 동일(직전 커밋과도 동일), 나머지 네 판 오류 0. 임시 씬(`_tmp_verify_whalebone.tscn/.gd`, 검증 후 삭제)에서 4항목 PASS — 자리·거리·discover 발동까지.
 - 다음(사용자 지시 "순서대로 이어해줘"의 3번째이자 마지막): PLAN.md 96·97 재감사 — 이번 세션이 새로 지은 region3_ruins.gd·region2_coast.gd 확장분(RuinsGate/RELIC/WHALEBONE)에 한정.
+
+## PLAN.md 96·97 재감사 — 이번 세션 신규분(region3_ruins.gd·RuinsGate·WHALEBONE)에 한정 (2026-09-16, 같은 세션 이어서, "순서대로 이어해줘"의 3번째이자 마지막)
+
+- 앞서 09-16 세션이 "이번 세션이 새로 지은 REGIONS 코드에 국한"하는 방식으로 좁혀서 96·97을 훑은 선례(test_map.gd `_region()` 헬퍼 버그를 그 방식으로 찾았다)를 그대로 따랐다 — 이번엔 이번 대화(세 번째 지역 region3_ruins.gd + 포구 RuinsGate/WHALEBONE 확장)에서 새로 늘어난 자리만 좁혀서 봤다(크랩·조각배는 직전 턴에 이미 개별 검증을 거쳤으니 재감사 범위 밖).
+- 임시 스크립트(`_tmp_audit_9697.gd`, `--headless --script`로 직접 실행, 검증 후 삭제)로 이번에 늘어난 모든 격자 좌표(coast 10곳·ruins 3곳)가 실제로 의도한 지형 글자(D/B/R) 위에 있는지, 그리고 coast 안 10개 지점의 모든 쌍(45쌍) 최단 거리가 40m 밑으로 안 떨어지는지(트리거 반경 합보다 항상 크게)를 한 번에 전수 확인했다 — 14/14 PASS. 최단 거리는 ARRIVAL-RETURN 48m(원래 의도적으로 가까운 한 쌍, 문서화돼 있음).
+- 코드도 다시 읽었다 — `_on_return_entered`(region3_ruins.gd)가 `_on_village_entered`/`_on_harbor_entered`/`_on_ruins_gate_entered`(region2_coast.gd)와 같은 "멤버 변수(`_layer`/`_triggered`)로 닫기" 패턴을 그대로 따르고 있어, 09-16 세션이 잡았던 "선언 후 대입 클로저가 null을 붙잡는" 버그 계열(로컬 변수를 람다가 캡처하는 경우에만 발생)은 애초에 해당되지 않는다 — 표류물·조각배·유물처럼 콜백이 직접 `layer`를 참조해야 하는 자리는 전부 `layer_box := {}` Dictionary 관용구를 이미 쓰고 있었다. 새 상수(RUINS_REGION·RUINS_GATE_GRID·RUINS_ENTRY_GRID·WHALEBONE_ID/GRID/RADIUS·ENTRY_GRID·RETURN_GRID·HARBOR_GATE_GRID·RELIC_ID/GRID/RADIUS) 전부 실제로 쓰이는 것도 확인 — 죽은 상수 없음.
+- **결론: 새로 고칠 것 없음.** 코드 변경 없음(순수 검증) — 임시 스크립트는 사용 후 삭제.
+- **이걸로 사용자 지시 "순서대로 이어해줘"(폐허 콘텐츠 → 포구 빈 칸 → 96·97 재감사) 셋을 전부 돌았다.** 남은 후보: 폐허·포구 둘 다 아직 빈 칸이 있다(폐허는 NPC·짐승 없음, 포구도 9x9 중 다수 미사용), 폐허에 hero_encounter.gd 부류(GO의 "역사 인물" 정체성)를 region_id 지원으로 확장할지도 판단 대상. GUI 실기 확인은 여전히 몰아서 받을 몫.
