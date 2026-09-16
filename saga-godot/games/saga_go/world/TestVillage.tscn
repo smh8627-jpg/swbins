@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://games/saga_go/world/season_weather_visual.gd" id="14"]
 [ext_resource type="Script" path="res://games/saga_go/world/pet_encounter.gd" id="15"]
 [ext_resource type="Script" path="res://games/saga_go/world/region2_coast.gd" id="16"]
+[ext_resource type="Script" path="res://games/saga_go/world/region3_ruins.gd" id="17"]
 
 [node name="TestVillage" type="Node3D"]
 script = ExtResource("10")
@@ -265,6 +266,9 @@ pet_id = "pt_jeolyeong"
 
 [node name="Region2Coast" type="Node3D" parent="."]
 script = ExtResource("16")
+
+[node name="Region3Ruins" type="Node3D" parent="."]
+script = ExtResource("17")
 
 [node name="ReviewCamera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.4226, 0.9063, 0, -0.9063, 0.4226, 0, 300, 140)

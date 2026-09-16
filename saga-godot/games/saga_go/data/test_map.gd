@@ -79,6 +79,26 @@ const REGIONS := {
 		"tile_size": TILE_SIZE,
 		"origin": Vector3(8000.0, 0.0, 0.0),
 	},
+	## "ruins" — region3_ruins.gd 참고. 2026-09-16, GO 진짜 세 번째 지역
+	## (REGIONS 레지스트리 재설계의 실제 payoff — 새 항목 하나 + 새 파일
+	## 하나면 됐다는 게 이번에 실제로 확인됐다). 7×7, 물이 아예 없어
+	## terrain_builder.gd _build_water()는 할 일이 없다(강이 하나도
+	## 없으니 안전하게 지나간다). R(폐허 바닥)이 주가 되고 T(숲)를
+	## 군데군데 섞었다 — 사방은 마을·포구와 같은 산(^) 테두리. 원점을
+	## 아예 다른 축(Z)으로 멀리 둬 절대 안 겹친다.
+	"ruins": {
+		"rows": [
+			"^^^^^^^",
+			"^RRRRR^",
+			"^RTRTR^",
+			"^RRRRR^",
+			"^RTRTR^",
+			"^RRRRR^",
+			"^^^^^^^",
+		],
+		"tile_size": TILE_SIZE,
+		"origin": Vector3(0.0, 0.0, 8000.0),
+	},
 }
 
 ## region_id 오타 하나가 "Invalid get index 'rows' (on base: 'Nil')" 같은

@@ -79,6 +79,17 @@ const DRIFTWOOD_TRIGGER_RADIUS := 14.0
 const BOAT_ID := "coast_boat"
 const BOAT_TRIGGER_RADIUS := 14.0
 
+## 2026-09-16, GO 진짜 세 번째 지역("폐허", region3_ruins.gd) — 포구의
+## 갈림길 하나에 세 번째 목적지를 얹는다. region3_ruins.gd를 이 파일이
+## 몰라도 되게(단방향 의존, HarborReturn과 같은 원칙) TestMap에 "ruins"
+## region_id를 직접 넘겨 좌표만 계산한다. 산 테두리에 붙은 빈 모래 칸
+## (RUINS_GATE_GRID)에 둬 어부·게·표류물·조각배·도착점·귀환 트리거와
+## 안 겹친다.
+const RUINS_REGION := "ruins"
+const RUINS_GATE_GRID := Vector2i(1, 6)
+## region3_ruins.gd ENTRY_GRID와 반드시 같은 값 — 그 파일 주석 참고.
+const RUINS_ENTRY_GRID := Vector2i(3, 3)
+
 ## 포구 콘텐츠 확장(2026-09-16, "GO 포구 콘텐츠 확장") — npc_builder.gd
 ## VILLAGERS의 상인(offer_a/b 한 번뿐인 제안) 패턴을 그대로 옮긴다.
 ## npc_builder.gd를 직접 의존하지 않고 이 파일 안에서 다시 짠 것은 위
@@ -101,6 +112,8 @@ var _village_layer: CanvasLayer
 var _village_triggered := false
 var _harbor_layer: CanvasLayer
 var _harbor_triggered := false
+var _ruins_layer: CanvasLayer
+var _ruins_triggered := false
 var _fisher_last_said_ms := -1000000
 
 
@@ -167,6 +180,7 @@ func _build_harbor() -> void:
 	_build_fisherman()
 	_build_driftwood()
 	_build_boat()
+	_build_ruins_gate()
 	_build_return_trigger()
 
 
@@ -441,6 +455,53 @@ func _resolve_boat(layer_box: Dictionary, text: String, exp_reward: float) -> vo
 		text += " (경험 +%d)" % int(exp_reward)
 	Toast.show(self, text, LINE_SHOW_SEC)
 	EventState.mark_resolved(BOAT_ID)
+
+
+## 포구 안의 세 번째 갈림길 — 마을행 HarborReturn과 자리도 트리거도
+## 완전히 분리된 별도 지점(같은 곳에 선택지를 얹지 않는다, 두 행선지가
+## 헷갈리지 않게).
+func _build_ruins_gate() -> void:
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var pos := TestMap.world_pos(RUINS_GATE_GRID.x, RUINS_GATE_GRID.y, COAST_REGION) + Vector3(0, ground, 0)
+	var area := Area3D.new()
+	area.name = "RuinsGate"
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = TRAVEL_TRIGGER_RADIUS
+	cs.shape = shape
+	area.add_child(cs)
+	area.position = pos
+	add_child(area)
+	area.body_entered.connect(_on_ruins_gate_entered)
+
+
+func _on_ruins_gate_entered(body: Node3D) -> void:
+	if _ruins_triggered or not body.is_in_group("player"):
+		return
+	_ruins_triggered = true
+	var choices: Array = [
+		{"label": "🏛️ 산 너머 폐허로 들어간다", "cb": func() -> void: _travel_to_ruins(body)},
+		{"label": "그만둔다", "cb": _close_ruins_prompt},
+	]
+	_ruins_layer = ChoicePrompt.build(self, "낡은 길목 — 산 너머 폐허로 이어지는 좁은 길이 있다.", choices)
+
+
+func _close_ruins_prompt() -> void:
+	if _ruins_layer:
+		_ruins_layer.queue_free()
+	_ruins_triggered = false
+
+
+func _travel_to_ruins(player: Node3D) -> void:
+	if _ruins_layer:
+		_ruins_layer.queue_free()
+	var ground: float = TerrainBuilder.LEGEND["R"].height
+	(player as Node3D).global_position = TestMap.world_pos(RUINS_ENTRY_GRID.x, RUINS_ENTRY_GRID.y, RUINS_REGION) + Vector3(0, ground + 1.0, 0)
+	## id "ruins_far" — region3_ruins.gd _build_entry_discovery() 주석
+	## 참고(마을 폐허의 codex id "ruins"와 겹치면 안 된다).
+	CodexState.discover("place", "ruins_far")
+	Toast.show(self, "폐허에 발을 들였다.", 2.5)
+	_ruins_triggered = false
 
 
 func _build_return_trigger() -> void:

@@ -6836,3 +6836,14 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. GO TestVillage 헤드리스 회귀 3회 md5 완전 동일, 나머지 네 판 1회씩 오류 0. 임시 씬(`_tmp_verify_boat.tscn/.gd`, 검증 후 삭제)에서 실제 region2_coast.gd를 인스턴스해 5항목 PASS — 조각배 자리가 모래 칸인지·Boat 노드 생성·표류물/게와의 거리(67.9m·244.8m, 트리거 반경 합보다 훨씬 큼)·첫 접근 시 `CodexState.discover("event","coast_boat")`가 정확히 찍히는지·해결(mark_resolved) 후 재접근해도 새 ChoicePrompt가 안 뜨는지(표류물과 같은 "한 번뿐" 계약)까지.
 - GUI 실기 확인 아직(몰아서 받을 것).
 - 다음: 포구 9x9 격자(어부·갈매기·게·표류물·조각배로 다섯 칸 참, 아직 빈 칸 여럿)를 더 채울지, 세 번째 지역을 열지, PLAN.md 96·97 계속 누적할지는 다음 세션 판단.
+
+## GO 진짜 세 번째 지역 — "폐허"(region3_ruins.gd) (2026-09-16, 같은 세션 이어서, "이어해")
+
+- 직전 항목들이 남긴 세 갈래(포구 콘텐츠 더 채우기 / 세 번째 지역 열기 / PLAN.md 96·97 누적) 중, 이번엔 "REGIONS 레지스트리 재설계로 세 번째 지역을 여는 비용이 줄었다"던 09-16 초반 기록의 실제 payoff를 확인해 보기로 했다 — 포구 콘텐츠만 계속 늘리는 대신 구조적으로 더 의미 있는 걸음.
+- `test_map.gd` REGIONS에 `"ruins"`(7×7, 물 없음 — R 폐허 바닥+T 숲을 섞고 사방 산 테두리, 원점 Z축으로 멀리) 추가. 새 파일 `region3_ruins.gd`가 `TerrainBuilder(region_id="ruins")` 인스턴스 하나로 지형을 얻고, 입구 발견 지점 하나("place","ruins_far")와 포구로 돌아가는 복귀 트리거만 갖는 **일부러 최소 스켈레톤**(NPC·사건·짐승 없음) — region2_coast.gd도 09-15엔 이렇게 시작해 이후 세션들이 하나씩 콘텐츠를 얹었다는 선례를 그대로 따랐다.
+- `region2_coast.gd`에 포구 안 세 번째 갈림길(RuinsGate, HarborReturn과 다른 자리)을 추가 — 마을행 선택지와 헷갈리지 않게 완전히 분리된 트리거. `region3_ruins.gd`는 반대 방향(폐허→포구)만 알아 두 파일이 서로 상대 스크립트를 import하지 않고 좌표만 공유하는 단방향 의존 두 개로 왕복이 완성된다(HarborReturn↔WaystationTravel과 같은 기존 패턴).
+- **실제로 잡은 진짜 버그 하나** — 처음엔 새 랜드마크 codex id를 그냥 `"ruins"`로 쓰려 했는데, `landmarks_builder.gd _add_ruins()`가 마을 안 폐허에 이미 그 id를 쓰고 있어(`discover("place","ruins")`) 그대로 갔으면 서로 다른 두 랜드마크가 book 키 하나를 공유해 하나만 봐도 둘 다 발견된 걸로 잘못 찍히는 충돌이 났을 것이다. 검증 단계에서 실측(6번 항목)으로 이 충돌 가능성 자체를 테스트에 넣어 확인하며 발견해 `"ruins_far"`로 갈랐다.
+- `codex_state.gd` TOTAL place 8→9.
+- 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음(새 입력 액션 없음). GO TestVillage 헤드리스 회귀 3회 md5 완전 동일(직전 커밋 대비 리소스 로드 로그 한 줄만 늘어난 차이, diff로 직접 대조 확인), 나머지 네 판 1회씩 오류 0. 임시 씬(`_tmp_verify_ruins.tscn/.gd`, 검증 후 삭제)에서 두 스크립트(region2_coast.gd·region3_ruins.gd)를 함께 인스턴스해 7항목 PASS — ruins 격자 로드·원점이 마을/포구와 충분히 먼지·RuinsGate/RuinsReturn/RuinsTerrain 노드 생성·실제 Area3D로 갈림길 진입 시 ChoicePrompt 등장·`_travel_to_ruins()` 호출로 플레이어가 폐허 입구 근처로 옮겨지고 `place:ruins_far`만 찍히며 `place:ruins`(마을 쪽)와 충돌 안 하는지·`_travel_to_harbor()`로 포구 RuinsGate 자리로 돌아오는지까지 왕복 전체를 실측했다.
+- GUI 실기 확인 아직(몰아서 받을 것 — 폐허 지형이 실제로 어떻게 보이는지, 갈림길 선택지 실제 클릭).
+- 다음: 폐허는 아직 빈 지형뿐이다(NPC·사건·짐승 없음) — hero_encounter.gd·simple_event.gd·animal_builder.gd가 전부 region_id 없는 마을 격자에 고정돼 있어, 폐허에 내용을 채우려면 region2_coast.gd의 어부/게/표류물처럼 이 파일 안에서 다시 짜야 한다. 포구 9x9 격자도 여전히 빈 칸이 있다. PLAN.md 96·97 계속 누적도 후보.
