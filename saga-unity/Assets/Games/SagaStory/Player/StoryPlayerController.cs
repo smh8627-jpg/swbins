@@ -207,8 +207,17 @@ namespace Saga.Story.Player
 
         /// <summary>연참·횡소·기탄·기합 넷 다 검을 쓰는 동작이라 Maria.controller의
         /// 단일 "Attack" 트리거 하나로 같이 재생한다(무기별로 다른 클립을
-        /// 만드는 건 이번 슬라이스 범위 밖).</summary>
-        private void PlayAttackAnim() => animator?.SetTrigger("Attack");
+        /// 만드는 건 이번 슬라이스 범위 밖).
+        /// `animator?.`(null-조건 연산자)는 안 쓴다 — Maria 애셋이 없어(로컬
+        /// 전용, mixamo.com) 캡슐 폴백으로 지어진 씬은 이 필드가 "진짜 C#
+        /// null"이 아니라 "직렬화 때 한 번도 안 채워진" UnityEngine.Object라
+        /// `?.`가 놓치고 그대로 호출해 UnassignedReferenceException을 던진다
+        /// (Update()의 `if (animator != null)`과 같은 이유로 여기도 맞춘다,
+        /// 2026-09-17 PlaytestStorySlice 3연속 재검증에서 발견).</summary>
+        private void PlayAttackAnim()
+        {
+            if (animator != null) animator.SetTrigger("Attack");
+        }
 
         /// <summary>줄 안에서는 중력이 없다 — 세로 입력을 오르내리기 전용으로
         /// 빌려 쓴다. 가로 입력이 세게 들어오면(> 0.3) 손을 놓은 것으로

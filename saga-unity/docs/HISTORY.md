@@ -6418,3 +6418,34 @@ GO/DUNGEON/FOREST의 프레임카운트식이 아니라 **Phase 상태머신** �
 이식 완료 — REALM만 남았다**("일과" 개념이 경영형과 안 맞을 수 있어 이식 전에 검토
 필요, PROJECT_STATE 참고). 컴파일 여전히 미검증(이 PC도 Unity 에디터 없음) — 이번
 세션에 늘어난 미검증분 전부 PROJECT_STATE에 집계해 둠.
+
+## "유니티가 설치되어 있는데?" — 이 PC에 실제로 있었다, 전 게임 컴파일·재검증 완료 (2026-09-17, 같은 세션)
+
+세션 내내 "이 PC에도 Unity 없음"이라고 적어 왔는데 사용자가 반문 — 다시 확인하니
+`find "/c/Program Files/Unity/Hub/Editor" -maxdepth 1`이 이번엔 `6000.3.24f1`을
+찾아냈다(이전 확인이 왜 비었는지는 못 밝힘 — 명령 자체 오류였을 수도, 그 사이 설치가
+끝났을 수도 있다. 다음 세션은 이 결과를 과신하지 말고 다시 확인할 것). PLAN 우선순위
+1번(컴파일·재검증)을 드디어 실행:
+
+1. **배치 컴파일**(`tools/unity-batch.sh` 경유, `-batchmode -nographics -quit`, `-executeMethod` 없이 그냥 열고 닫기) — exit 0, 라이선스 토큰 경고 하나만("Access token is unavailable"), `LogAssemblyErrors` 전부 0ms(에러 없음 뜻).
+2. **씬 재생성** — `BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildTestVillageForestScene`·`BuildTestStoryScene` 넷을 `-executeMethod`로 재생성(REALM `TestCity`는 뺐다 — `BuildTestCityScene.cs`가 `RealmCityData`/`RealmEnemyCity`/`AllIds`를 전혀 참조하지 않아 51장 12~15차 데이터 변경이 씬에 영향을 안 준다는 걸 grep으로 먼저 확인했다 — 안 그러면 불필요한 fileID churn만 남긴다). 넷 다 exit 0, `grep -c GoalBoard` 로 네 씬 전부에 GoalBoard GameObject가 실제로 들어갔음을 확인.
+3. **`Playtest*.Run()` 3연속씩(다섯 게임)** — GO·DUNGEON·FOREST·REALM **전부 3/3 OK**. **STORY만 3/3 전부 실패**, 똑같은 에러로 결정적: `UnassignedReferenceException: The variable animator of StoryPlayerController has not been assigned` (`StoryPlayerController.PlayAttackAnim()` → `Animator.SetTrigger`).
+
+**원인 — 진짜 버그, 이번 세션 GoalBoard 작업과 무관** (에러 나기 전에 `goal board / session card OK` 로그가 이미 찍혔다). 이 PC엔 Maria 믹사모 애셋이 없어(로컬 전용, git 미포함) `BuildTestStoryScene.BuildPlayerVisual()`이 캡슐 폴백으로 빠지고 `animator`가 `null`로 남는다. `StoryPlayerController.cs`는 `Update()`에서는 `if (animator != null)`로 안전하게 막았는데 `PlayAttackAnim()`만 `animator?.SetTrigger("Attack")`(null-조건 연산자)를 썼다 — Unity의 "직렬화 때 한 번도 안 채워진 UnityEngine.Object"는 C# `null`이 아니라 가짜-null이라 `?.`가 못 거르고 그대로 호출해 `UnassignedReferenceException`을 던진다(진짜 null 참조 예외와 다른, 유니티 고유 함정). `PlayAttackAnim()`을 `Update()`와 같은 `if (animator != null)` 패턴으로 고치고 3연속 재실행 — **STORY도 3/3 OK**.
+
+다른 게임(DUNGEON `PlayerController.cs`·`DungeonEnemy.cs`)에도 같은 `animator?.` 패턴이
+있지만 둘 다 3/3 통과했으므로(이 PC에서 그 판의 애셋 폴백 경로가 다르게 동작하는 듯)
+손 안 댔다 — 안 깨진 코드를 감으로 "일관성 있게" 고치는 건 범위 밖.
+
+**부작용 파일**: `ProjectSettings/ProjectVersion.txt`·`EditorSettings.asset`·
+`Packages/manifest.json`·`packages-lock.json`이 예상대로 조용히 갱신됐다(이 PC Unity
+6000.3.24f1 > 프로젝트 6000.3.23f1) — 매번 `git checkout --`로 원복. 씬 4개
+(TestVillage·TestDungeon·TestVillageForest·TestField) fileID 전체 churn(문서에서
+경고한 그대로, 예상된 대가) — 실제로 GoalBoard가 들어갔으니 정당한 변경. 7개 스크립트
+(GoalBoard·SessionCard·IGoalSource·Go/Dungeon/Forest/StorySessionTracker)의 `.cs.meta`가
+Unity가 열리면서 자동 생성됨 — 다음 커밋에 같이 넣는다.
+
+**결과 — 다섯 게임 전부 컴파일·씬·헤드리스 3연속 검증 완료(GO/DUNGEON/FOREST/STORY/REALM).**
+REALM 12~15차 사슬(운중→상군→삭방→오원)도 `PlaytestRealmSlice` 3/3으로 실제 검증됐다.
+PROJECT_STATE "다음 작업" 1번(컴파일·재검증)은 이제 완료 — 남은 건 실기 GUI 확인
+(사용자 몫)과 REALM GoalBoard 이식·REALM 51장 범위 상의뿐이다.
