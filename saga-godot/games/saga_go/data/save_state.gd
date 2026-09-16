@@ -23,6 +23,7 @@ func save() -> bool:
 		"party_members": PartyState.members,
 		"party_exp": PartyState.exp,
 		"party_perks": PartyState.perks,
+		"drops": DropState.drops,
 		"quest_active_id": QuestState.active_id,
 		"quest_active_name": QuestState.active_name,
 		"quest_done": QuestState.done,
@@ -97,6 +98,12 @@ func try_load() -> bool:
 	## codex_book도 같은 경계(추가만, 없으면 빈 딕셔너리로 안전하게 채워짐).
 	var codex_book: Variant = data.get("codex_book", {})
 	CodexState.restore(codex_book if typeof(codex_book) == TYPE_DICTIONARY else {})
+
+	## drops(101-2 ③)도 같은 경계 — 없으면 빈 딕셔너리(떨어뜨린 짐 없음).
+	## 만료(10분) 판정은 실시간 유닉스 시각 기준이라 오래 쉬었다 돌아와도
+	## try_recover()가 스스로 걸러 낸다(따로 여기서 정리할 필요 없음).
+	var drops: Variant = data.get("drops", {})
+	DropState.restore(drops if typeof(drops) == TYPE_DICTIONARY else {})
 	return true
 
 

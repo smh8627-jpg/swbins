@@ -361,6 +361,12 @@ func _finish_fight() -> void:
 			msg = foe_name + "을 물리쳤다 — 부대에 합류했다! (전투력 %d)" % int(PartyState.atk + PartyState.def)
 		else:
 			msg = victory_text
+		## PLAN.md 101-2 GO ③"패배 비용과 회수" — 이 자리에서 예전에
+		## 진 적이 있으면(drop_state.gd) 여기서 되찾는다.
+		var recovered := DropState.try_recover(name)
+		if recovered > 0.0:
+			PartyState.add_exp(recovered)
+			msg += "\n💰 전에 떨어뜨린 짐(경험치 +%d)을 되찾았다!" % int(recovered)
 		if quest_id_to_complete != "":
 			QuestState.complete(quest_id_to_complete)
 			msg += "\n📋 사명을 완료했다!"
@@ -372,7 +378,14 @@ func _finish_fight() -> void:
 		# 한 대도 못 때리고 물러난 것은 패배로 안 친다(웹판 event.js와 같은 경계)
 		_toast("물러났다.")
 	else:
-		_toast("밀렸다. 물러났다.")
+		## PLAN.md 101-2 GO ③ — 여기부터가 웹 §5-⑧의 "패배"다(위 주석과
+		## 같은 경계, 죽어도 남는 것 = 도감·인물·인연·비석은 그대로 안
+		## 건드린다, 경험치 일부만 그 자리에 남는다).
+		var dropped := DropState.drop_at(name, PartyState.exp)
+		if dropped > 0.0:
+			_toast("밀렸다. 물러났다 — 경험치 %d 을 떨어뜨렸다(10분 안에 다시 이기면 되찾는다)." % int(dropped))
+		else:
+			_toast("밀렸다. 물러났다.")
 	_enter_cooldown()
 
 func _enter_cooldown() -> void:
