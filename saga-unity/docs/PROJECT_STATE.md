@@ -1,13 +1,13 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-16 (PLAN 104-1 Phase 0 안정화 ①·②·③ — 이 PC 에 Unity 없어 전부 컴파일 미검증).
+마지막 갱신: 2026-09-16 (PLAN 104-1 ①②③ 완료 + PLAN 101-2 A·B GO 첫 이식 — 이 PC 에 Unity 없어 전부 컴파일 미검증).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
-| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v5+) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집·오버월드 지도 | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. 디버그 오버레이·저장 버튼 |
+| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v5+) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집·오버월드 지도 | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. 디버그 오버레이·저장 버튼·**목표판/세션카드(101-2 A·B, 뼈대)** |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일) |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 | Environment 완료 | 전부 붙음. 데이터 콘텐츠 번역은 미착수 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사) | 척후병 실제 모델 | 전부 붙음 |
@@ -18,21 +18,17 @@
 
 ## 현재 작업
 
-- PLAN 104-1 Phase 0 진행 중, 이 PC 에 Unity 에디터가 없어(Unity Hub 만 설치, `Editor/<버전>` 폴더 없음, CLAUDE.md 절차대로 먼저 확인함) 전부 소스 편집만 하고 컴파일·실행은 못 했다.
-- **①** `tools/unity-batch.sh` 신설 — 배치 실행→4파일 원복→`git status` 한 줄.
-- **③** `[SerializeField]` 누락 감사 완료 — `Assets/Games/**/UI/*.cs` 전수 grep. 에디터 스크립트가 `Build()`를 한 번만 부르고 런타임 재호출이 없는 컴포넌트 5개(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi)의 참조 필드를 `RealmCommandUi`·`LocalizedButtonLabel` 과 같은 결로 승격. DebugHud·Minimap·OverworldMapUI·VirtualJoystick 은 이미 Awake() 런타임 재탐색이라 대상 아님(확인만 함).
-- **②** `GameObject.Find` "존재 확인만" Playtest 교체 — `Assets/Editor/Playtest*.cs` 의 `GameObject.Find(` 46건을 전수 분류: 약 40건은 씬 마커·NPC 를 찾아 실제로 이동·전투·상태 확인에 쓰는 정상 패턴(대상 아님). 나머지 4건(GO/DUNGEON/FOREST/STORY 의 `CheckSettingsPanel()`)이 정확히 문제 패턴이었다 — 패널 GameObject "존재"만 보고 그 뒤로는 `GoSettingsState` 등 정적 API 만 검증해, `_sfxValueLabel` 등이 null이어도(=[SerializeField] 없던 이전 상태) 통과해 버렸다(REALM `RealmCommandUi` 가 이미 이 구멍으로 죽었었다). 네 파일 모두 `Object.FindFirstObjectByType<XxxSettingsPanel>()` 로 컴포넌트를 얻고, 리플렉션으로 `TogglePanel()`(패널이 실제로 열리고 닫히는지) · `ChooseSfx()`(상태가 바뀌고 **화면 Text.text 도 실제로** 바뀌는지) 를 직접 호출하도록 고쳤다(REALM `CheckCommandUiPanelsWork()` 와 같은 결).
-- REALM `Btn_설정`(103행)은 그대로 둠 — 바로 뒤에 이미 `CheckCommandUiPanelsWork()`(진짜 검증)가 붙어 있어 대상 아님을 확인.
-- `StoryJobChoiceUi`(전직 팝업)는 애초에 어떤 Playtest 도 안 건드리고 있다(존재 확인조차 없음) — ②의 "교체 대상"은 아니지만 커버리지 공백으로 남겨둠. 다음 우선순위 참고.
-- **`[SerializeField]` 감사를 `World/`·`Player/` 폴더까지 확장(추가 확인, 버그 없음)** — 51건 grep, 전부 `Awake()`가 매 Play 세션 `GetComponent`/`GameObject.FindWithTag` 로 다시 채우는 정상 패턴(UI 폴더의 DebugHud 등과 같은 결). `BanditEncounter`/`RareWolfEncounter`(GO)는 애초에 [SerializeField] 대신 "Awake 때 자식 전부 지우고 Build() 재실행" 방식으로 2026-09-12 에 이미 이 버그 클래스를 막아 뒀다(클래스 내 주석 참고). 에디터 스크립트가 `SetPrivateField`로 이 폴더 필드를 채우는 사례도 0건. **104-1 ③은 이걸로 완료.**
-- **테스트 상태 표(아래)는 전부 이번 세션 편집 이전 결과다.** 이 세션에서 고친 5개 SettingsPanel + 4개 Playtest 파일은 재검증 전.
+- 이 PC 에 Unity 에디터가 없어(Unity Hub 만 설치, `Editor/<버전>` 폴더 없음, CLAUDE.md 절차대로 먼저 확인함) 이번 세션 전부 소스 편집만 하고 컴파일·실행은 못 했다. 사용자에게 물어 "컴파일 확인 없이 진행" 승인받고 계속함.
+- **PLAN 104-1 Phase 0 ①②③ 완료** — ① `tools/unity-batch.sh`(배치 실행→4파일 원복→git status 한 줄) · ② `Assets/Editor/Playtest*.cs` 의 `GameObject.Find` "존재 확인만" 패턴(GO/DUNGEON/FOREST/STORY `CheckSettingsPanel()` 4건)을 `TogglePanel()`·`ChooseSfx()` 실제 리플렉션 호출 + 화면 Text 확인으로 교체(REALM `CheckCommandUiPanelsWork()` 와 같은 결) · ③ `[SerializeField]` 누락 감사를 `UI/`·`World/`·`Player/` 전 폴더로 완료 — UI 폴더 5개 컴포넌트(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi) 승격, World/Player 는 전부 정상(Awake 재탐색) 확인. 남은 ⑤(Art candidates 정리)는 105장 Q1 결정 대기.
+- **PLAN 101-2 "공통 선행" A·B GO 첫 이식(신규 기능, 컴파일 미검증)** — `Assets/SagaCore/`에 `IGoalSource`(인터페이스)·`GoalBoard`(목표판 3줄 위젯)·`SessionCard`(5초 자동 닫힘 세션 요약 카드) 신설. `Assets/Games/SagaGo/UI/GoSessionTracker.cs` 가 `IGoalSource` 구현 + 걸은 거리·번 금 추적 + 무입력 5분/백그라운드 전환 시 `SessionCard.Show()` 호출을 맡는다. "지금" 줄=가장 가까운 미수집 `HiddenTreasure`, "이번 세션"=이동거리·금 증감(실측), "이번 주"=⑦ 승급 3택 미이식이라 자리만 잡은 플레이스홀더 문구. `GoalBoard`/`SessionCard` 둘 다 Awake()가 자기 UI를 다시 짓고 `IGoalSource`/`SessionCard` 참조도 씬에서 스스로 재탐색하도록 짜서 — 이번 세션 ③에서 고친 것과 같은 [SerializeField] 누락 함정을 새 코드에서 되풀이하지 않았다. `BuildTestVillageScene.cs`에 `BuildGoalBoardUi()` 추가(BuildPlayer() 뒤, BuildSettingsUi() 다음). `PlaytestHeadless.cs`에 `CheckGoalBoardAndSessionCard()` 추가 — 존재 확인이 아니라 세 줄 실제 내용·소스 자동 재탐색·카드 Show/자동 닫힘까지 검증(②와 같은 기준).
+- **테스트 상태 표(아래)는 전부 이번 세션 편집 이전 결과다.** 이번 세션에 고친 파일 전부 재검증 전.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **컴파일·재검증** — 이번 세션에서 고친 9개 파일(SettingsPanel 5 + Playtest 4) 전부 미검증. Unity 에디터 있는 세션에서 `bash tools/unity-batch.sh -- -batchmode -nographics -quit -projectPath . -logFile <경로>` 로 컴파일 확인 → `BuildTestXxxScene`(4종)로 씬 재생성(승격된 [SerializeField] 가 실제로 직렬화되게) → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 3연속 재확인. 씬을 안 다시 지으면 예전 씬 파일엔 새 [SerializeField] 값이 없어 테스트가 무의미하다.
-2. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(다섯 SettingsPanel 의 씬 재로드 후 동작 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
-3. **PLAN 104장 Phase 0 나머지** — `Assets/Art/*_candidates` 정리 판정만 남음(102-4 에 표는 이미 있으나 105장 Q1 완성판 트랙 결정 뒤로 미룸 — 사용자 결정 대기, 손대지 않음).
-4. **PLAN 101장 재미 표준 A·B 첫 이식** — 목표판 3줄 + 세션 마무리 카드를 GO 에 먼저(웹 사가고 PLAN §5 ④ 검증 결과 기다리지 않고 UI 뼈대만). **주의**: `SagaCore`(다섯 판 공용) 새 asmdef·`IGoalSource` 인터페이스·`GoalBoard`/`SessionCard` 위젯 등 여러 파일에 걸친 신규 기능이라, 이 PC 에 Unity 없이 컴파일 확인 없이 진행하면 리스크가 큼 — 사용자에게 진행 여부 확인 필요.
+1. **컴파일·재검증(최우선)** — 이번 세션 편집분(104-1 9개 파일 + 101-2 신규 5개 파일) 전부 미검증. Unity 에디터 있는 세션에서: 배치 컴파일 → `BuildTestXxxScene`(GO/DUNGEON/FOREST/STORY 4종, GO는 GoalBoard 배선 포함) 재생성 → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 3연속. 씬을 안 다시 지으면 [SerializeField] 승격도 GoalBoard 배선도 실제로 검증되는 게 없다.
+2. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(다섯 SettingsPanel + GO 목표판/세션카드 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
+3. **PLAN 101-2 A·B 나머지 4판** — GO 이식이 컴파일·실기로 검증되면 DUNGEON/FOREST/STORY/REALM 에도 같은 `IGoalSource` 구현체만 추가(GoalBoard/SessionCard 는 SagaCore 그대로 재사용). REALM 은 "일과" 개념이 다른 넷과 안 맞을 수 있어(경영형) 먼저 검토.
+4. **PLAN 104장 Phase 0 나머지** — `Assets/Art/*_candidates` 정리 판정만 남음(102-4 표는 있으나 105장 Q1 완성판 트랙 결정 뒤로 미룸 — 사용자 결정 대기, 손대지 않음).
 5. **REALM 51장 10차** — 시상→건업(`chaisang-jianye`). `AttackChainStep(출진, 함락, 다음)` 인자 순서 확인. wan 은 목표로 쓰지 않는다.
 6. **Localization 잔여** — FOREST 데이터 콘텐츠, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출. en 사람 검수.
 
@@ -58,7 +54,7 @@
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 동물 Group 발동 장면, 채집, 드로우콜 Before/After(Stats 창)
+- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 동물 Group 발동 장면, 채집, 드로우콜 Before/After(Stats 창), **목표판 3줄 화면 배치(대화창과 안 겹치는지)·세션카드 실제 등장(무입력 5분 체감)**
 - DUNGEON: 카메라 각도·공격 버튼 vs CameraRig 드래그 겹침, 아홉 슬라이스 전부(무리·엘리트/보스·방 종류·회피·필드·강공격·행상·동행·GLB), 마을 넷·층 진행·매복·구출·수수께끼·회전베기, 사실적 Player/Enemy/Boss 톤, 무드 유지 판단
 - FOREST: 벽지/장판, 가구 자유 배치 18칸, 생물·과일나무·좌판, 밀어내기 전투, 팔레트 데움 정도
 - STORY: 두목 크기·타격감(반격 없음이 샌드백처럼 느껴지는지), 사건·관계·선택 흐름, 전직 팝업, 척후병 모델

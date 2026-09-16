@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+using Saga.Core;
 using Saga.Go.World;
 using Saga.Go.Player;
 using Saga.Go.UI;
@@ -76,6 +77,7 @@ namespace Saga.EditorTools
             BuildPlayerHud();
             BuildDebugOverlay();
             BuildSettingsUi();
+            BuildGoalBoardUi();
             BuildBootstrap();
             var joystick = BuildMobileHud();
 
@@ -487,6 +489,27 @@ namespace Saga.EditorTools
             var go = new GameObject("GoSettingsPanel");
             var panel = go.AddComponent<GoSettingsPanel>();
             panel.Build();
+        }
+
+        /// <summary>PLAN.md 101-2 "공통 선행" A·B — 목표판 3줄 + 세션 마무리
+        /// 카드(GO 첫 이식, "UI 뼈대만" 범위). GoalBoard·SessionCard 는
+        /// Awake()가 자기 UI를 다시 짓는 SagaCore 공용 컴포넌트라
+        /// [SerializeField] 배선이 필요 없다 — GoSessionTracker(이 판
+        /// 전용, Saga.Go.UI) 하나가 IGoalSource 를 구현하면서 SessionCard
+        /// 표시도 같이 맡는다. Player가 이미 씬에 있어야 하니
+        /// BuildPlayer() 뒤에서만 부른다.</summary>
+        private static void BuildGoalBoardUi()
+        {
+            var cardGo = new GameObject("SessionCard");
+            var sessionCard = cardGo.AddComponent<SessionCard>();
+
+            var trackerGo = new GameObject("GoSessionTracker");
+            var tracker = trackerGo.AddComponent<GoSessionTracker>();
+            tracker.Init(sessionCard);
+
+            var boardGo = new GameObject("GoalBoard");
+            var board = boardGo.AddComponent<GoalBoard>();
+            board.Init(tracker);
         }
 
         /// <summary>씬이 다 올라온 뒤 저장 파일을 되돌린다(saga-godot test_village.gd와 같은 역할).</summary>

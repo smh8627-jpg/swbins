@@ -6100,3 +6100,64 @@ RareWolfEncounter도 같이 고쳤다는 기록). 에디터 스크립트가 `Set
 다음 우선순위(PLAN 101장 재미 표준 A·B, `SagaCore` 신규 asmdef·`IGoalSource`·
 `GoalBoard`/`SessionCard`)는 여러 파일에 걸친 새 기능이라 이 PC에 Unity 없이
 컴파일 확인 없이 진행하는 게 안전한지 사용자에게 먼저 물었다.
+
+## PLAN 101-2 "공통 선행" A·B — GoalBoard·SessionCard GO 첫 이식 (2026-09-16, 네 번째 "이어 해줘")
+
+104-1 Phase 0(①②③)를 마친 뒤 다음 우선순위인 101-2로 넘어갔다. 이건 이전 세 세션과
+성격이 다르다 — 기존 코드를 고치는 게 아니라 여러 파일에 걸친 새 기능이라, 이 PC에
+Unity가 없는 채로 진행하는 게 맞는지 사용자에게 먼저 물었고("컴파일 확인 없이 진행"으로
+답변받음), 최대한 신중하게(기존 패턴만 재사용, 새 API 표면 최소화) 작성했다.
+
+**범위 — PROJECT_STATE.md 우선순위 4가 이미 "UI 뼈대만"이라고 못박아 둔 대로.** 웹판
+saga-go PLAN.md §5 ④(일과판+마무리 카드)가 설계한 날짜 해시 일과 풀 8·주간 사다리는
+웹 자체도 미검증이라 그대로 안 옮기고, 실제 값이 있는 것만 채웠다:
+- **"지금"** — 가장 가까운 미수집 `HiddenTreasure`까지 거리(그 클래스가 이미 수집되면
+  `Destroy(gameObject)`로 스스로 사라지니 `FindObjectsByType`가 자동으로 미수집만 본다).
+- **"이번 세션"** — 플레이어 위치 델타로 걸은 거리 누적 + `GoldState.Gold` 세션 시작
+  대비 증감(둘 다 실측, 하드코딩 아님).
+- **"이번 주"** — ⑦ 승급 3택이 아직 3D에 없어 "다음 승급 이정표 준비 중" 플레이스홀더.
+
+**새 파일**:
+- `Assets/SagaCore/IGoalSource.cs` — `GoalLineNow()`/`GoalLineSession()`/`GoalLineWeek()`
+  세 메서드짜리 인터페이스. SagaCore→게임 단방향 의존(49장)을 지키려고 SagaCore 는
+  이 인터페이스만 알고 구현 타입(`GoSessionTracker`)은 모른다.
+- `Assets/SagaCore/GoalBoard.cs` — 화면 위 가운데(대화창 y=-80 바로 위, 이 판에서
+  유일하게 비는 상단 가로 띠) 3줄 Text 위젯. `Init(IGoalSource)`로 소스를 받는다.
+- `Assets/SagaCore/SessionCard.cs` — 화면 중앙 패널, `Show(title, params lines)`로
+  띄우면 5초 뒤 스스로 닫힌다(sortingOrder 100으로 다른 상시 HUD 위에 뜨게).
+- `Assets/Games/SagaGo/UI/GoSessionTracker.cs` — `IGoalSource` 구현 + 세션 통계 추적 +
+  무입력 5분(플레이어 위치가 안 변하는 시간 누적, Input API 대신 이동량 자체를 활동
+  신호로 씀 — 이 프로젝트가 새 Input System 참조라 레거시 `Input.anyKey` 가 활성 입력
+  핸들링에 따라 조용히 안 먹을 수 있어 아예 피했다) / `OnApplicationPause(true)` 시
+  `SessionCard.Show()` 호출.
+
+**이번 세션 ③에서 고친 것과 같은 함정을 새 코드에서 되풀이하지 않으려고 한 결정** —
+`GoalBoard._source`(인터페이스 타입이라 애초에 `[SerializeField]`가 안 먹는다)와
+`GoSessionTracker._sessionCard`(plain private, 에디터가 `Init()`으로 한 번만 채움)
+둘 다 씬 재로드 후 null이 될 수 있는 자리다. `[SerializeField]`로 못 막는 대신
+`BanditEncounter`/`DebugHud`와 같은 결로 **Awake()가 매번 자기 자식을 다시 짓고,
+필요한 참조도 스스로 다시 찾도록** 짰다 — `GoalBoard.Awake()`는
+`FindObjectsByType<MonoBehaviour>()`로 씬 안의 `IGoalSource` 구현체를 스캔해서 찾고
+(SagaCore가 `Saga.Go.*` 구체 타입을 몰라도 인터페이스만으로 가능), `GoSessionTracker.
+Awake()`는 `FindFirstObjectByType<SessionCard>()`로 찾는다. `Init()` 호출은 에디터
+빌드 시점 편의로 남겨 뒀지만 없어도 동작한다(둘 다 중복 호출돼도 안전 — `Init()`이
+그저 같은 값을 다시 대입할 뿐).
+
+**씬 배선** — `BuildTestVillageScene.cs`에 `BuildGoalBoardUi()`를 추가해
+`BuildSettingsUi()` 다음, `BuildBootstrap()` 전에 부른다(Player·HiddenTreasure가 이미
+씬에 있어야 하는데 둘 다 더 앞에서 지어진다). SessionCard→GoSessionTracker→GoalBoard
+순으로 생성해서 각자의 Awake() 자동 재탐색이 항상 이미 존재하는 대상을 찾게 했다
+(생성 순서가 안 맞아도 자동 재탐색이 있어 원래 안전하지만, 굳이 꼬아 둘 이유가 없다).
+
+**Playtest** — `PlaytestHeadless.cs`에 `CheckGoalBoardAndSessionCard()` 신설(프레임 3,
+다른 UI 검사들과 같이). 존재 확인이 아니라: `_source`가 자동 재탐색으로 실제 채워졌는지,
+라벨 텍스트에 세 줄 접두어가 다 있는지, `SessionCard.Show()`가 실제로 패널을
+활성화하는지, `_closeTimer`를 만료 직전으로 돌리고 `Update()`를 리플렉션으로 한 번 더
+불러 자동 닫힘 경로가 실제로 도는지까지 본다(104-1 ②와 같은 기준 — 이번에 만든 새
+코드부터 존재-확인-only 테스트를 안 남기려 함).
+
+**전부 컴파일 미검증.** 다음 세션에서 Unity가 있으면: 배치 컴파일 → `BuildTestVillageScene`
+재생성(GoalBoard 배선이 실제로 씬에 구워지게) → `PlaytestHeadless` 3연속 → 그 다음에야
+사용자가 실기로 화면 배치(대화창과 안 겹치는지)·세션카드 등장 타이밍을 확인한다.
+나머지 4판(DUNGEON/FOREST/STORY/REALM)에 같은 `IGoalSource` 구현체를 얹는 건 GO 검증이
+끝난 뒤로 미뤘다(PLAN 105장 Q-U1 "GO 한 판 끝까지 → 사용자 GUI 확인 → 확장" 권장과 일치).
