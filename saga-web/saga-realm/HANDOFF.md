@@ -990,3 +990,40 @@ proverb·sense·mz 180문항은 해당 없음)에도 이름 정책을 적용할�
 `SAVE_VERSION`·`MIGRATIONS`·`migrate()`(순수 함수)를 추가해 버전이 안 맞아도 지우지 않고
 `mergeDeep(freshSave(), ...)`로 넘기게 고쳤다(자세한 설계 이유는 `saga-web/saga-go/HANDOFF.md`
 2026-09-17 절 참고 — 다섯 벌이 동일 로직이라 설명을 안 되풀이한다). `sw.js` VERSION 도 같이 올렸다.
+
+## 2026-09-17 — SAGA-DESIGN §6.1 툰 재질 적용 (외곽선·후처리 항목은 해당 없음/보류)
+
+사가고→사가블로→사가스토리→사가의숲에 이어 다섯째. "사가웹 이어해"로 이어받아 같은 처방을
+그대로 옮겼다. 세이브 마이그레이션 지뢰(§8-3)는 이 판도 이미 앞선 세션(`eb327165`)에서
+`saga-dungeon/forest/story/realm` 묶음 커밋으로 잡혀 있었다 — `core.js`에 `SAVE_VERSION`·
+`MIGRATIONS`·`migrate()` 확인만 하고 손 안 댔다.
+
+**새 파일 `js/toon3d.js`** — 다른 네 판과 같은 규격(3단 그라디언트 `ramp()`, `lambertLike()`,
+`toonify()`, `world3d.toon` 손잡이 기본 1). 이 판은 재질 생성이 `realm3d.js`(3곳)·
+`battle3d.js`(3곳)·`city3d.js`(1곳)·`asset3d.js`(`delam()`+`primitive()`+`addFlag()` 4곳)에
+흩어져 있어(공용 캐시 함수가 없는 자리가 많다) 사가의숲 방식대로 **각 자리에 인라인
+삼항**(`global.DG.toon3d ? ... .lambertLike({...}) : new t.MeshLambertMaterial({...})`)을
+붙였다 — LM() 같은 대역 함수를 새로 만들지 않았다(자리 수가 적어 굳이 필요 없었다).
+`asset3d.js`의 `delam()`은 다른 판과 동일하게 PBR 감지 시 손잡이가 켜져 있으면
+`toonify()`로 보낸다.
+
+**건드리지 않은 것** — `realm3d.js`의 바다(`MeshPhongMaterial`)·도로/안개 표시
+(`MeshBasicMaterial`, 반투명·언라이트라 툰 램프와 무관), `portrait3d.js` 자체(직접
+`MeshLambertMaterial`을 만들지 않고 `asset3d.js`의 `delam()`/`primitive()`를 그대로 쓴다
+— 0곳 확인). **외곽선은 뺐다** — 다섯 판 공통으로 화면 확인 없이 무릅쓰지 않기로 한 결정
+(사가고만 choke point가 있어 먼저 넣었다). **후처리 자동 끔은 이 판엔 해당 없음** —
+`realm3d.js`·`battle3d.js`·`city3d.js` 어디에도 `EffectComposer` 같은 별도 합성 패스가
+없다(`renderer.render()`를 바로 씀, 사가의숲과 같은 사정).
+
+**wiring** — `index.html`·`_demo.html`에 `three.iife.js` 뒤 `asset3d.js` 앞으로
+`toon3d.js` 얹음. `sw.js` `SHELL`에 `./js/toon3d.js` 추가, `VERSION` `realm-v1.23.2` →
+`realm-v1.24.0`. `_test.html`은 애초에 `realm3d.js`/`battle3d.js`/`asset3d.js`를 안 실어
+(PLAN §7-2 "3D 진단 공백") 이번 손질과 무관 — 헤드리스 3회 확인도 다른 판과 같은 이유로
+안 돌렸다(사용자 실기 확인 몫).
+
+**검증** — `node -c` 전 파일(`toon3d.js`·`asset3d.js`·`realm3d.js`·`battle3d.js`·`city3d.js`·
+`sw.js`) 통과, `bash tools/precheck.sh saga-web/saga-realm` → PRECHECK OK(도감 md5 경고는
+사가고만 어긋난 기존 상태라 이번 커밋과 무관).
+
+**남은 것** — 외곽선, 안개 색·밀도 재계산, 트라이플레이너 지형, 소품 인스턴싱, 병종 기둥,
+성 킷배싱, 초상 팔레트 스냅 — 전부 PLAN §6에 남겨 뒀다.
