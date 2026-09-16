@@ -6344,3 +6344,44 @@ shuofang→wuyuan)이 7단계 깊이(train 45·60·75·90·105·120·135)로 끝
 시작 성, 또는 RealmCityData.cs 클래스 주석의 "정복·외교 제외" 결정 재검토)에서
 찾아야 한다 — 사용자와 상의 필요. 컴파일 여전히 미검증(이 PC도 Unity 에디터 없음),
 누적 미검증분이 이제 104-1 9개 + 101-2 5개 + REALM 10~15차 3파일×6회로 늘었다.
+
+## 51장 세 사슬 마무리 뒤 "이어해 묻지말고" — Localization 잔여 재검사 + DUNGEON GoalBoard·SessionCard 이식 (2026-09-17, 같은 세션)
+
+REALM 51장이 사용자 상의 대상으로 막혀, PROJECT_STATE "다음 작업" 4번(Localization
+잔여: FOREST 데이터 콘텐츠·REALM 문답 36·서고·전투 서술·GO HiddenTreasure·DUNGEON
+행상/구출, "en 사람 검수" 미완으로 적혀 있던 항목)으로 옮겨 확인했다. node 스크립트로
+다섯 게임 `Resources/Localization/*_ko.json`↔`*_en.json`을 전부 key-by-key 비교
+(missing-in-en·extra-in-en·"en 값이 ko 값과 똑같아 번역 안 된 것으로 의심되는 키"
+세 기준) — **다섯 게임 전부 0/0/0**, 즉 이 항목은 이미 완료돼 있었다(어느 세션이
+끝냈는지는 HISTORY grep으로 못 찾음 — PROJECT_STATE가 갱신 안 된 채 남아 있던
+스테일 항목으로 보인다). REALM 문답 36문항(RealmQuizQuestion.Q/Choices/Why)·서고
+(quiz.cat.*)·전투 서술(war.*·plot.* 열댓 개)·GO `item.wp_relic`(HiddenTreasure
+보상)·`event.hidden_treasure`·DUNGEON `merchant.*`·`captive.rescued_reward` 전부
+직접 열어 실제 영어 문장인지도 확인(단순 한글 복사 아님, 예: "손민수하다" →
+"To buy the exact same items as someone else's style"). "en 사람 검수"는 사람이
+직접 읽고 어감을 판단하는 작업이라 LLM이 대신 "검수 완료"라고 적을 수 없어 그 표현은
+그대로 남긴다.
+
+이 항목이 막혀 다음으로 PLAN 101-2 "공통 선행" A·B(GoalBoard·SessionCard)의 **두
+번째 이식(DUNGEON)** 으로 옮겼다 — item 3이 "GO 이식 검증되면"이라 조건부지만, GO도
+컴파일 미검증인 채로 이미 이식됐던 전례(같은 세션 원칙: 이 PC들엔 Unity가 없어
+소스만 진행)를 그대로 따랐다. GO `GoSessionTracker.cs`를 그대로 본떠 `Assets/Games/
+SagaDungeon/UI/DungeonSessionTracker.cs`를 새로 짰다 — 유일한 실질적 차이는
+"지금" 줄: GO는 `HiddenTreasure`(수집형)를 찾지만 DUNGEON의 핵심 루프는 근접 전투라
+`DungeonEnemy.FindNearest(pos, float.MaxValue)`(이미 있던 static 메서드, PlayerCombat.cs가
+쓰던 것 재사용)로 가장 가까운 살아있는 적까지 거리를 보여준다. "이번 세션"(이동거리·
+금 증감)·"이번 주"(플레이스홀더 문구) 는 GO와 완전히 같다. `BuildTestDungeonScene.cs`에
+`BuildGoalBoardUi()`(GO와 같은 이름·구조) 추가 — `BuildSettingsUi()` 뒤(GO와 같은
+위치)에서 호출. `PlaytestDungeonHeadless.cs`에 `CheckGoalBoardAndSessionCard()`
+추가 — `PlaytestHeadless.CheckGoalBoardAndSessionCard()`(GO)를 그대로 복사해 클래스
+이름만 바꿈(존재 확인이 아니라 세 줄 실제 내용·자동 재탐색·카드 Show/자동 닫힘까지
+검증, 104-1 ②·GO 이식과 같은 기준).
+
+고친 파일 5개: `DungeonSessionTracker.cs`(신규)·`BuildTestDungeonScene.cs`·
+`PlaytestDungeonHeadless.cs`·`docs/HISTORY.md`·`docs/PROJECT_STATE.md`. GoalBoard/
+SessionCard/IGoalSource(SagaCore)는 손 안 댔다(GO 이식 때 이미 다 짜 둔 공용
+컴포넌트 그대로 재사용). 새 `.cs.meta`는 안 만들었다 — `GoalBoard.cs`·`SessionCard.cs`·
+`IGoalSource.cs`·`GoSessionTracker.cs` 넷도 지난 세션에 meta 없이 커밋됐던 전례(Unity
+에디터가 다음에 열릴 때 자동 생성됨)를 그대로 따랐다. FOREST·STORY 이식과 REALM
+검토는 다음 차례로 남겼다(PROJECT_STATE 참고). 컴파일 여전히 미검증(이 PC도 Unity
+에디터 없음).

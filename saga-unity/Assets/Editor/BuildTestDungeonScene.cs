@@ -8,6 +8,7 @@ using Saga.Dungeon.World;
 using Saga.Dungeon.Player;
 using Saga.Dungeon.UI;
 using Saga.Dungeon.Data;
+using Saga.Core;
 
 namespace Saga.EditorTools
 {
@@ -330,6 +331,7 @@ namespace Saga.EditorTools
             BuildDebugOverlay();
             BuildSaveButton();
             BuildSettingsUi();
+            BuildGoalBoardUi();
             BuildAttackButton(playerCombat);
             BuildHeavyAttackButton(playerCombat);
             BuildWhirlButton(playerCombat);
@@ -1483,6 +1485,27 @@ namespace Saga.EditorTools
             var go = new GameObject("DungeonSettingsPanel");
             var panel = go.AddComponent<DungeonSettingsPanel>();
             panel.Build();
+        }
+
+        /// <summary>PLAN.md 101-2 "공통 선행" A·B — 목표판 3줄 + 세션 마무리
+        /// 카드(DUNGEON 두 번째 이식, GO `BuildTestVillageScene.BuildGoalBoardUi()`와
+        /// 완전히 같은 배선). GoalBoard·SessionCard 는 Awake()가 자기 UI를
+        /// 다시 짓는 SagaCore 공용 컴포넌트라 [SerializeField] 배선이
+        /// 필요 없다 — DungeonSessionTracker(이 판 전용, Saga.Dungeon.UI)
+        /// 하나가 IGoalSource 를 구현하면서 SessionCard 표시도 같이 맡는다.
+        /// Player가 이미 씬에 있어야 하니 BuildPlayer() 뒤에서만 부른다.</summary>
+        private static void BuildGoalBoardUi()
+        {
+            var cardGo = new GameObject("SessionCard");
+            var sessionCard = cardGo.AddComponent<SessionCard>();
+
+            var trackerGo = new GameObject("DungeonSessionTracker");
+            var tracker = trackerGo.AddComponent<DungeonSessionTracker>();
+            tracker.Init(sessionCard);
+
+            var boardGo = new GameObject("GoalBoard");
+            var board = boardGo.AddComponent<GoalBoard>();
+            board.Init(tracker);
         }
 
         /// <summary>화면 오른쪽 아래 — 모바일 공격 버튼(PlayerCombat.TriggerAttack()).
