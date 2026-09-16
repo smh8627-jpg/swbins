@@ -7160,3 +7160,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_grave.gd/.tscn`, 커밋 전 지움): 가짜 Player+PlayerHealth를 세워 ①비결사 사망 시 지갑 800(1000의 80%)·장비 소실·hp 만땅 회복·마커 1개 정확한 위치 ②부활 후 다시 피격 가능(`_dead` 안 걸림) ③claim() 지갑 1000 복원+장비 복원+grave 빔 ④두 번째 사망이 마커를 1개로 유지 ⑤세이브/로드 왕복 grave 일치 ⑥결사 모드는 이 경로를 안 타고 기존 `_fall()`만 동작 — 여섯 다 3회 재현 동일, fails=0.
 - `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(039016ed, ①과 같음 — 부팅 스모크는 전투 중 로직에 안 걸린다)·error/warn 0, project.godot는 `DungeonGraveState` 오토로드 등록 한 줄만 늘었다.
 - 다음: PLAN 101-2 DUNGEON ③손맛 2차 — 표 순서대로.
+
+## PLAN 101-2 DUNGEON ③후보 "손맛 2차" (2026-09-17, 같은 세션 이어서, "이어해 묻지 말고") — PLAN 101-3 공용 손맛 모듈 첫 실장
+- saga-web/saga-dungeon/PLAN.md §5.8을 옮기되, saga-godot 자체 PLAN 101-3(3D가 웹보다 올려야 하는 것 — C 구체안)이 이미 정해 둔 수치·함수 시그니처(`hit(target, amount, crit)`)를 그대로 따랐다 — 웹 5.8의 3단계 hitstop(잡졸/정예/크리)보다 101-3의 2단계(70ms·크리 120ms)가 이 3D 트랙의 정본이라 그쪽을 썼다.
+- `saga_core/combat_feel.gd` 신규(오토로드 CombatFeel, project.godot 맨 위 — 다섯 판 공용 자리로 설계됐지만 이번엔 DUNGEON만 실제로 연결). 5요소: ① hitstop(Engine.time_scale 0.05, 70/120ms, 겹치면 더 긴 쪽 유지 — dungeon_run_state.gd _temp_buffs와 같은 결) ② 카메라 흔들림("camera_rig" 그룹 첫 노드, 0.06m·120ms) ③ 피격 플래시(대상 첫 MeshInstance3D의 albedo_color 흰색 80ms — 102-3의 진짜 hit_flash 셰이더 uniform은 아직 DUNGEON 몬스터에 안 걸려 있어 재질 직접 조작으로 근사) ④ 숫자 팝(Label3D, 0.6s·0.8m·크리 1.4배·주황) ⑤ 타격음 라운드로빈(실제 오디오 자산이 없어 인덱스+신호만, 67장 "구조만"과 같은 판단).
+- `dungeon_camera_rig.gd`에 `shake(amp_m, dur_sec)` 추가 + `_ready()`에서 "camera_rig" 그룹 등록. `melee_attack.gd::_strike()`(유일한 "타격 한 곳")에서만 `CombatFeel.hit()`을 부른다 — 무예 스크립트 80여 개는 범위 밖(축복 3택 세션의 원소 시너지, 손맛 자체도 다음 세션에 STORY의 `trigger_hitstop()`·GO 화면 플래시를 이 모듈로 옮겨 붙일 자리로 남긴다, PLAN 101-4 순서 2).
+- 자가진단(임시 `_diag_combatfeel.gd/.tscn`, 커밋 전 지움): PLAN 101-3이 요구한 "hit() 1회 → 5요소 신호 5개"를 신호 카운트로 확인(첫 시도에 GDScript 람다 값 캡처 함정 — test_room.gd ChoicePrompt와 같은 문제 — 에 걸려 배열로 우회), 실제 부수효과(time_scale 0.05→1.0 복귀·머티리얼 흰색→원색 복귀·카메라 위치 흔들림→원점 복귀·Label3D 생성·라운드로빈 인덱스 증가)를 `OS.delay_msec(200)`으로 실제 벽시계 시간을 흘려보낸 뒤 확인 — 3회 재현 동일, fails=0.
+- `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(8853fee5 — 새 오토로드가 부팅 로그를 바꿔 ①·②의 039016ed와는 다르지만 3회는 서로 일치)·error/warn 0. GO `TestVillage.tscn` 스모크도 오류 0(새 전역 오토로드가 다른 판을 안 깨뜨리는지 확인).
+- 다음: PLAN 101-2 DUNGEON ④부적 던전 — 표 순서대로.

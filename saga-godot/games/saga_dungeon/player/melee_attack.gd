@@ -27,6 +27,10 @@ extends Node
 ## (DungeonEquipmentState.elem_damage()가 결별로 이미 더해 준다), 크리티컬은
 ## 안 탄다(웹판도 mul만 받지 crit 배율은 안 넘긴다). 빙은 느려짐, 독은
 ## dot으로 나눠 문다 — DungeonEnemy.apply_elem_slow()/apply_elem_dot()가 받는다.
+##
+## PLAN 101-2 DUNGEON ③(손맛 2차, 2026-09-17) — `_strike()`가 유일한
+## "타격 한 곳"이라 `saga_core/combat_feel.gd`의 5요소(hitstop·흔들림·
+## 플래시·숫자 팝·타격음)를 여기서 잇는다(`CombatFeel.hit()`).
 
 const ATK_COOLDOWN := 0.55 # 웹판 BASE_ATK_CD 그대로
 const ATK_DAMAGE := 9.0
@@ -68,7 +72,8 @@ func _strike(enemy: Node) -> void:
 	var was_alive: bool = enemy.hp > 0.0
 	var pct_mult: float = DungeonRunState.atk_mult() + DungeonEquipmentState.atk_pct_bonus() / 100.0
 	var dmg: float = ATK_DAMAGE * pct_mult + DungeonEquipmentState.atk_flat_bonus()
-	if randf() * 100.0 < DungeonRunState.crit_chance():
+	var is_crit := randf() * 100.0 < DungeonRunState.crit_chance()
+	if is_crit:
 		dmg *= CRIT_MULT
 	## dungeon.js strike()의 "res = resistOf(e,'phys'); if (res>0) dmg *= 1-res/100"
 	## 그대로 — 정예 "철갑 두른"이 붙기 전엔 어떤 몬스터에도 resist.phys가
@@ -77,6 +82,11 @@ func _strike(enemy: Node) -> void:
 	if phys_res > 0.0:
 		dmg *= 1.0 - phys_res / 100.0
 	enemy.take_damage(dmg)
+	## PLAN 101-2 DUNGEON ③(손맛 2차, 2026-09-17) — saga_core/combat_feel.gd
+	## 헤더 참고. 유일한 "타격 한 곳"(melee_attack.gd) 에서만 이번에 잇는다
+	## — 무예 스크립트 80여 개는 범위 밖(다음 세션).
+	if enemy is Node3D:
+		CombatFeel.hit(enemy, dmg, is_crit)
 	if is_instance_valid(enemy) and enemy.hp > 0.0:
 		_apply_elemental(enemy)
 		## dungeon.js strike()의 "가시 돋친" 반사 — 죽이지 못했을 때만 되받는다
