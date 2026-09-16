@@ -159,6 +159,12 @@ func _ready() -> void:
 	else:
 		_maybe_show_starter_pick()
 
+	## PLAN 101-2 DUNGEON ②(유품, 2026-09-17) — 껐다 켜도 마커가 남아
+	## 있어야 한다(player_health.gd::_die_and_respawn()은 죽는 순간에만
+	## 세운다 — 저장 파일을 새로 불러온 이번 자리에서는 여기서 대신 세운다).
+	if DungeonGraveState.has_grave():
+		LootPickup.spawn_grave_at(self, DungeonGraveState.grave_position())
+
 	## "제외" 목록 6번(결사) — 지난 회차가 결사로 스러진 채 저장됐으면
 	## (dungeon_hardcore_state.gd::fallen) 이번에 불러오자마자 바로 그
 	## 자리에서 멈춘다 — player_health.gd::_fall()과 같은 얼림

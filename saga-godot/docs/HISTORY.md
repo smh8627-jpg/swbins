@@ -7150,3 +7150,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_boons.gd/.tscn`, 커밋 전 지움): 축 다양성 100/100, skillamp1이 skill_mul()에 정확히 +0.15 반영, "비급"이 무예 점수 1 부여, reject_choice(2)=금 90, 21번째 "비급" 시도는 상한(20)에 막혀 실패 — 3회 재현 동일.
 - `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일·error/warn 0, project.godot/.import 잡음 없음.
 - 다음: PLAN 101-2 DUNGEON ②유품(사망 비용·회수) — 표 순서대로.
+
+## PLAN 101-2 DUNGEON ②후보 "유품" (2026-09-17, 같은 세션 이어서, "이어해 묻지마")
+- saga-web/saga-dungeon/PLAN.md §5.2를 옮겼다. 웹 원안("안 가져온 노획물이 그 층에 남는다")의 전제(가방·마을 정산 위험 구간)가 이 슬라이스엔 없어(금·장비가 줍는 즉시 영구 상태, `loot_pickup.gd` 헤더 그대로) "위험에 걸 것"을 이미 가진 지갑 일부 + 지금 장착한 무기·부적으로 재해석했다 — 경위는 `dungeon_grave_state.gd` 파일 헤더.
+- `player_health.gd::_die_and_respawn()` 신규 — 비결사 사망 시 지갑 20%(직접 정함)를 잃고 무기·부적을 그 자리에 남긴 채 **그 자리에서 곧바로 되살아난다**(방 이동·좌표 계산 없음, hp는 max로 회복, `_dead`도 false로 되돌아와 다시 맞을 수 있다). 결사(하드코어)는 기존 `_fall()` 그대로, 새 경로를 안 탄다(`if hardcore: _fall() else: _die_and_respawn()`).
+- `dungeon_grave_state.gd` 신규(오토로드 DungeonGraveState) — `grave: Dictionary`(pos·gold·weapon·charm) 하나, `claim()`이 지갑·장비를 실제로 돌려준다(장비가 비어 있으면 안 건드림). `loot_pickup.gd::spawn_grave_at()` 신규 — 죽은 자리에 표식(어두운 보라회색 상자, "dungeon_grave_marker" 그룹)을 세우고, 새로 세우기 전에 옛 마커를 지운다("1개만 유지").
+- `dungeon_save_state.gd`에 `grave` 필드 추가(순수 추가, 버전 안 올림), `test_room.gd::_ready()`가 로드 직후 `DungeonGraveState.has_grave()`면 마커를 다시 세운다(죽는 순간엔 player_health.gd가, 재접속엔 test_room.gd가 — 두 자리 다 같은 `spawn_grave_at()` 재사용).
+- 사망 화면은 새 UI 없이 `ChoicePrompt`(saga_go 재사용 헬퍼)로 "잃은 것 + 표식 안내" 한 장 + "계속" 버튼.
+- 자가진단(임시 `_diag_grave.gd/.tscn`, 커밋 전 지움): 가짜 Player+PlayerHealth를 세워 ①비결사 사망 시 지갑 800(1000의 80%)·장비 소실·hp 만땅 회복·마커 1개 정확한 위치 ②부활 후 다시 피격 가능(`_dead` 안 걸림) ③claim() 지갑 1000 복원+장비 복원+grave 빔 ④두 번째 사망이 마커를 1개로 유지 ⑤세이브/로드 왕복 grave 일치 ⑥결사 모드는 이 경로를 안 타고 기존 `_fall()`만 동작 — 여섯 다 3회 재현 동일, fails=0.
+- `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(039016ed, ①과 같음 — 부팅 스모크는 전투 중 로직에 안 걸린다)·error/warn 0, project.godot는 `DungeonGraveState` 오토로드 등록 한 줄만 늘었다.
+- 다음: PLAN 101-2 DUNGEON ③손맛 2차 — 표 순서대로.

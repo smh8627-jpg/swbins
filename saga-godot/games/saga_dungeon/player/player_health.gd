@@ -1,27 +1,35 @@
 extends Node
 
 ## VERTICAL_SLICE_DUNGEON.md 3절 — "때리는 손맛"을 검증하려면 적도
-## 되받아쳐야 한다. 죽음·부활은 이번 슬라이스 범위 밖(완료 조건 8단계에
-## 없음) — 체력이 0 밑으로 내려가도 그냥 멈춘다. GO의 Player.tscn/
-## player.gd는 손대지 않고, Player 인스턴스 밑에 이 컴포넌트 하나만
-## 얹는 방식으로 짰다(component 패턴 — melee_attack.gd와 같은 경계).
+## 되받아쳐야 한다. GO의 Player.tscn/player.gd는 손대지 않고, Player
+## 인스턴스 밑에 이 컴포넌트 하나만 얹는 방식으로 짰다(component 패턴 —
+## melee_attack.gd와 같은 경계).
 ##
 ## 은사(철벽) 적용 — max_hp가 더 이상 상수가 아니라 DungeonRunState.hp_mult()
 ## 로 다시 계산된다(웹판 dungeon.js hpMaxOf()와 같은 자리). 수호부(guardPct)
 ## 는 받는 피해를 줄인다(dungeon.js의 "amount *= 1 - boonVal('guardPct')/100"
 ## 그대로).
 ##
-## "제외" 목록 6번(결사) — 위 "죽음은 범위 밖" 원칙은 **비결사 모드에서는
-## 그대로 유지한다**(hp 0에서 그냥 멈춘다, 새 규칙을 안 만든다). 결사가
-## 켜져 있을 때만 hp 0을 "쓰러짐"으로 취급해 dungeon.js die()의 결사
-## 갈래(그 판이 끝난다)를 옮긴다 — `_dead` 가드는 그 판정을 한 번만 하기
-## 위한 것일 뿐, 그 자체로 비결사 모드 동작을 바꾸지 않는다(hp는 이미
-## 0에서 그대로 머물러 있었다).
+## "제외" 목록 6번(결사) — 결사가 켜져 있을 때만 hp 0을 "쓰러짐"으로
+## 취급해 dungeon.js die()의 결사 갈래(그 판이 끝난다)를 옮긴다(`_fall()`).
+## **비결사 모드는 처음엔 "죽음 범위 밖 — hp 0에서 그냥 멈춘다"였는데,
+## 2026-09-17 PLAN 101-2 DUNGEON ②(유품)에서 실제 죽음·부활 루프가
+## 생겼다(`_die_and_respawn()`)** — `_dead` 가드는 이제 두 갈래(결사·
+## 비결사) 모두에서 "hp 0 처리를 한 번만 하기" 용도로 쓰인다(비결사는
+## 처리 끝에 다시 false로 돌아온다, 결사는 화면이 멈춰 다시 물어볼 일이
+## 없다).
 
 signal hp_changed(hp: float, max_hp: float)
 signal died
 
 const Toast := preload("res://saga_core/ui/toast.gd")
+const LootPickup := preload("res://games/saga_dungeon/world/loot_pickup.gd")
+const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+
+## PLAN 101-2 DUNGEON ②(유품, 2026-09-17) — dungeon_grave_state.gd 헤더
+## 참고. 웹 5.2는 "노획물 전부"지만 이 슬라이스 지갑은 이미 영구 상태라
+## 전부를 걸면 너무 가혹하다 — 직접 정한 비율.
+const GRAVE_GOLD_LOSS_PCT := 0.20
 
 var _dead := false
 
@@ -76,6 +84,44 @@ func take_damage(amount: float) -> void:
 		died.emit()
 		if DungeonHardcoreState.hardcore:
 			_fall()
+		else:
+			_die_and_respawn()
+
+
+## PLAN 101-2 DUNGEON ②(유품, 2026-09-17) — 비결사 사망의 실제 비용:
+## 지갑 20%+지금 장착한 무기·부적을 그 자리에 남기고 **그 자리에서 곧바로
+## 되살아난다**(방 이동·좌표 계산이 없다 — 웹 5.2 "사망→재도전 조작 3회
+## 이하"보다도 짧다). 유품은 `LootPickup.spawn_grave_at()`이 그 자리에
+## 표식으로 남기고, `DungeonGraveState`가 실제 값을 들고 있다가 마커를
+## 밟으면 돌려준다.
+func _die_and_respawn() -> void:
+	var lost_gold: int = int(roundf(DungeonGoldState.gold * GRAVE_GOLD_LOSS_PCT))
+	DungeonGoldState.add(-lost_gold)
+	var lost_weapon: Dictionary = DungeonEquipmentState.weapon.duplicate(true)
+	var lost_charm: Dictionary = DungeonEquipmentState.charm.duplicate(true)
+	DungeonEquipmentState.equip("weapon", {})
+	DungeonEquipmentState.equip("charm", {})
+	var player: Node3D = get_parent()
+	DungeonGraveState.set_grave(player.global_position, lost_gold, lost_weapon, lost_charm)
+	LootPickup.spawn_grave_at(get_parent().get_parent(), player.global_position)
+	recalc_max_hp()
+	hp = max_hp
+	_dead = false
+	hp_changed.emit(hp, max_hp)
+	_show_death_card(lost_gold)
+
+
+## 웹 5.2 "사망 화면 = 세션 카드"를 이 판의 단순 패널(ChoicePrompt)로
+## 근사했다 — 새 UI를 안 만든다. "닫기" 버튼 하나로 곧바로 계속한다.
+func _show_death_card(lost_gold: int) -> void:
+	var room: Node = get_parent().get_parent()
+	var msg := "☠️ 쓰러졌다 — 금 %d 과 무기·부적을 그 자리에 두고 되살아난다.\n💀 표식을 다시 밟으면 돌려받는다." % lost_gold
+	var layer_box := {}
+	var choices: Array = [{
+		"label": "계속",
+		"cb": func() -> void: (layer_box["layer"] as CanvasLayer).queue_free(),
+	}]
+	layer_box["layer"] = ChoicePrompt.build(room, msg, choices)
 
 
 ## dungeon.js die()의 결사(決死) 갈래 — 정확한 "층"을 아는 자리(현재 방

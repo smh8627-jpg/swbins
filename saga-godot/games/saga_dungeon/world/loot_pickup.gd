@@ -61,6 +61,7 @@ const JEWEL_COLOR := Color(0.94, 0.48, 0.75) # dungeon.js take()의 주옥 색('
 const GOLD_COLOR := Color(1.0, 0.84, 0.2)
 const POTION_COLOR := Color(0.75, 0.22, 0.17) # potion.js KINDS.heal.color '#c0392b' 그대로
 const SCROLL_COLOR := Color(0.56, 0.78, 1.0)
+const GRAVE_COLOR := Color(0.35, 0.32, 0.42) # PLAN 101-2 DUNGEON ②(유품) — 직접 정함, 다른 노획과 안 헷갈리는 어두운 보라회색
 
 
 ## test_room.gd 'cave' 방(채광, POI: Cave) 전용 — dungeon.js dropMat()을
@@ -224,6 +225,30 @@ static func _spawn_scroll(parent: Node, pos: Vector3) -> void:
 		if body.is_in_group("player"):
 			DungeonMaterialsState.add_scroll(1)
 			Toast.show(area, "📜 감정서 획득", TOAST_SEC)
+			area.queue_free()
+	)
+
+
+## PLAN 101-2 DUNGEON ②(유품, 2026-09-17) — 비결사 사망 자리에 서는 표식.
+## `player_health.gd::_die_and_respawn()`이 죽은 그 자리에서 곧바로 부른다
+## (다른 픽업과 달리 몬스터가 아니라 죽음이 부른다). 웹 5.2 "1개만 유지" —
+## 새 유품이 서기 전에 옛 마커(있다면)를 지운다(DungeonGraveState.grave
+## 자체는 set_grave()가 이미 덮어쓰지만, 화면에 남은 옛 마커 노드는 따로
+## 지워야 한다).
+static func spawn_grave_at(parent: Node, pos: Vector3) -> void:
+	for old in parent.get_tree().get_nodes_in_group("dungeon_grave_marker"):
+		if is_instance_valid(old):
+			old.queue_free()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.55, 0.7, 0.55)
+	var area := _pickup_area("GraveMarker", pos, GRAVE_COLOR, mesh)
+	area.add_to_group("dungeon_grave_marker")
+	parent.add_child(area)
+	area.body_entered.connect(func(body: Node3D) -> void:
+		if body.is_in_group("player"):
+			var gold: int = int(DungeonGraveState.grave.get("gold", 0))
+			DungeonGraveState.claim()
+			Toast.show(area, "💀 유품 회수 — 금 +%d, 장비를 되찾았다." % gold, TOAST_SEC)
 			area.queue_free()
 	)
 
