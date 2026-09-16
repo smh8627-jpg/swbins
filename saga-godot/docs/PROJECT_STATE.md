@@ -6847,3 +6847,11 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음(새 입력 액션 없음). GO TestVillage 헤드리스 회귀 3회 md5 완전 동일(직전 커밋 대비 리소스 로드 로그 한 줄만 늘어난 차이, diff로 직접 대조 확인), 나머지 네 판 1회씩 오류 0. 임시 씬(`_tmp_verify_ruins.tscn/.gd`, 검증 후 삭제)에서 두 스크립트(region2_coast.gd·region3_ruins.gd)를 함께 인스턴스해 7항목 PASS — ruins 격자 로드·원점이 마을/포구와 충분히 먼지·RuinsGate/RuinsReturn/RuinsTerrain 노드 생성·실제 Area3D로 갈림길 진입 시 ChoicePrompt 등장·`_travel_to_ruins()` 호출로 플레이어가 폐허 입구 근처로 옮겨지고 `place:ruins_far`만 찍히며 `place:ruins`(마을 쪽)와 충돌 안 하는지·`_travel_to_harbor()`로 포구 RuinsGate 자리로 돌아오는지까지 왕복 전체를 실측했다.
 - GUI 실기 확인 아직(몰아서 받을 것 — 폐허 지형이 실제로 어떻게 보이는지, 갈림길 선택지 실제 클릭).
 - 다음: 폐허는 아직 빈 지형뿐이다(NPC·사건·짐승 없음) — hero_encounter.gd·simple_event.gd·animal_builder.gd가 전부 region_id 없는 마을 격자에 고정돼 있어, 폐허에 내용을 채우려면 region2_coast.gd의 어부/게/표류물처럼 이 파일 안에서 다시 짜야 한다. 포구 9x9 격자도 여전히 빈 칸이 있다. PLAN.md 96·97 계속 누적도 후보.
+
+## 폐허 콘텐츠 1호 — 옛 유물(ruins_relic) (2026-09-16, 같은 세션 이어서, "순서대로 이어해줘"의 1번째)
+
+- 직전 항목이 남긴 세 갈래(폐허 콘텐츠 채우기 / 포구 빈 칸 채우기 / PLAN.md 96·97 누적) 중 사용자가 순서를 그대로 지정 — 1번째로 폐허에 첫 콘텐츠를 얹었다.
+- `region3_ruins.gd`에 표류물·조각배와 같은 결의 simple_event(한 번뿐) "옛 유물"을 추가 — 입구·복귀 트리거와 96m 이상 떨어진 구석 칸(RELIC_GRID=(1,1))에 돌기둥(CylinderMesh, 표류물·조각배의 나무 상자와 형태를 갈랐다) 하나, 선택지 2개.
+- `codex_state.gd` TOTAL event 17→18.
+- 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. GO 회귀 3회 md5 완전 동일(직전 커밋과도 동일 — 순수 씬 스크립트 추가라 project.godot 자체가 안 바뀜), 나머지 네 판 오류 0. 임시 씬(`_tmp_verify_relic.tscn/.gd`, 검증 후 삭제)에서 5항목 PASS — 자리·거리(입구 135.8m·복귀 214.7m)·첫 접근 시 discover 발동·해결 후 재접근 안 뜸까지.
+- 다음(사용자 지시 "순서대로 이어해줘"의 2번째): 포구 9x9 격자 남은 빈 칸 채우기.

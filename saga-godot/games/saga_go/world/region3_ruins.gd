@@ -8,10 +8,16 @@ extends Node3D
 ## **일부러 최소만 짓는다** — region2_coast.gd도 처음엔(2026-09-15)
 ## "역참으로 이어지는 자리" 하나뿐이었고 어부·게·표류물·조각배 같은
 ## 내용은 이후 세션에서 하나씩 얹혔다. 이 파일도 같은 순서를 따른다:
-## 지형 + 왕복(입구/복귀) + 발견 지점 하나만 먼저 잇고, NPC·사건·짐승은
-## 다음에(hero_encounter.gd·simple_event.gd 등이 지금은 전부 region_id
+## 지형 + 왕복(입구/복귀) + 발견 지점을 먼저 잇고, NPC·사건·짐승은
+## 다음에(hero_encounter.gd·animal_builder.gd 등은 지금도 region_id
 ## 없는 마을 격자에 고정돼 있어, 여기 쓰려면 그 파일들도 region2_coast.gd
 ## 안 사건들처럼 이 파일 안에서 다시 짜야 한다 — 아직 안 함).
+##
+## 2026-09-16, 폐허 콘텐츠 1호(사용자 지시 "순서대로 이어해줘"의 1번째) —
+## simple_event.gd 계열(표류물·조각배와 같은 결, 한 번뿐) 첫 사건 "옛
+## 유물"을 얹었다. simple_event.gd를 그대로 재사용하지 않은 이유는
+## region2_coast.gd의 표류물·조각배와 같다(그 파일이 region_id 없는
+## 마을 격자에 고정돼 있어서, 단방향 의존으로 다시 짜는 게 더 쌈).
 ##
 ## 포구 쪽 입구는 이 파일이 아니라 region2_coast.gd `_build_ruins_gate()`에
 ## 있다(그 파일이 포구의 갈림길을 이미 갖고 있어서, 새 파일이 포구 좌표를
@@ -41,6 +47,12 @@ const TRAVEL_TRIGGER_RADIUS := 5.0
 ## 중복해 둔다(35장 예외, region2_coast.gd RUINS_GATE_GRID 주석 참고).
 const HARBOR_GATE_GRID := Vector2i(1, 6)
 
+## simple_event.gd 계열 첫 사건 — 입구(ENTRY_GRID)·복귀(RETURN_GRID)와
+## 최소 두 칸(96m) 이상 떨어진 구석 칸.
+const RELIC_ID := "ruins_relic"
+const RELIC_GRID := Vector2i(1, 1)
+const RELIC_TRIGGER_RADIUS := 14.0
+
 var _layer: CanvasLayer
 var _triggered := false
 
@@ -49,6 +61,7 @@ func _ready() -> void:
 	_build_terrain()
 	_build_entry_discovery()
 	_build_return_trigger()
+	_build_relic()
 
 
 func _build_terrain() -> void:
@@ -109,6 +122,61 @@ func _travel_to_harbor(player: Node3D) -> void:
 	(player as Node3D).global_position = TestMap.world_pos(HARBOR_GATE_GRID.x, HARBOR_GATE_GRID.y, "coast") + Vector3(0, ground + 1.0, 0)
 	Toast.show(self, "포구로 돌아왔다.", 2.5)
 	_triggered = false
+
+
+## region2_coast.gd _build_driftwood()/_build_boat()와 같은 결 — primitive
+## 하나(GLB 없음), 한 번뿐. 표류물·조각배는 나무 상자꼴이라 이번엔
+## 돌기둥(CylinderMesh)으로 모양을 갈라 폐허라는 자리값을 살렸다.
+func _build_relic() -> void:
+	var ground: float = TerrainBuilder.LEGEND["R"].height
+	var pos := TestMap.world_pos(RELIC_GRID.x, RELIC_GRID.y, RUINS_REGION) + Vector3(0, ground, 0)
+
+	var mi := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.5
+	mesh.bottom_radius = 0.65
+	mesh.height = 1.6
+	mi.position = pos + Vector3(0, 0.8, 0)
+	mi.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.5, 0.48, 0.44)
+	mi.material_override = mat
+	add_child(mi)
+
+	var area := Area3D.new()
+	area.name = "Relic"
+	var cs := CollisionShape3D.new()
+	var shape := SphereShape3D.new()
+	shape.radius = RELIC_TRIGGER_RADIUS
+	cs.shape = shape
+	area.add_child(cs)
+	area.position = pos
+	add_child(area)
+	area.body_entered.connect(_on_relic_entered)
+
+
+func _on_relic_entered(body: Node3D) -> void:
+	if not body.is_in_group("player") or EventState.is_resolved(RELIC_ID):
+		return
+	CodexState.discover("event", RELIC_ID)
+	_show_relic_prompt()
+
+
+func _show_relic_prompt() -> void:
+	var layer_box := {}
+	layer_box["layer"] = ChoicePrompt.build(self, "🗿 옛 유물\n이끼 낀 돌기둥 하나가 무너진 벽 사이에 홀로 서 있다.", [
+		{"label": "글자를 살펴본다", "cb": func() -> void: _resolve_relic(layer_box, "알아볼 수 없는 옛 글자뿐이었지만, 살핀 보람은 있었다.", 15.0)},
+		{"label": "그냥 둔다", "cb": func() -> void: _resolve_relic(layer_box, "돌기둥을 지나쳤다.", 0.0)},
+	])
+
+
+func _resolve_relic(layer_box: Dictionary, text: String, exp_reward: float) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	if exp_reward > 0.0:
+		PartyState.add_exp(exp_reward)
+		text += " (경험 +%d)" % int(exp_reward)
+	Toast.show(self, text, 4.0)
+	EventState.mark_resolved(RELIC_ID)
 
 
 ## region2_coast.gd `_add_discovery_area()`와 같은 계약·같은 판단(코드
