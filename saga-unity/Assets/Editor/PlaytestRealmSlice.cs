@@ -10,6 +10,7 @@ using Saga.Realm.World;
 using Saga.Realm.Player;
 using Saga.Realm.UI;
 using Saga.Realm.Audio;
+using Saga.Core;
 
 namespace Saga.EditorTools
 {
@@ -197,6 +198,7 @@ namespace Saga.EditorTools
                     if (!CheckSettingsPanel()) { Fail(); return; }
                     if (!CheckRealmHudLocalization()) { Fail(); return; }
                     if (!CheckCommandUiPanelsWork()) { Fail(); return; }
+                    if (!CheckGoalBoardAndSessionCard()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
 
@@ -383,6 +385,20 @@ namespace Saga.EditorTools
                     }
                     Debug.Log($"[PlaytestRealmSlice] agri OK - {result.Message} (게이트 실패 둘은 명령 소진 안 시킴 확인됨)");
                     RealmCityState.NextMonth();
+                    // PLAN 101-2 REALM 이식 — 무입력 대신 "다음 달"로 달이
+                    // 실제로 넘어간 시점에 RealmSessionTracker 가 SessionCard 를
+                    // 띄우는지 여기서 실제 트리거로 확인한다(GO 처럼 합성
+                    // Show() 호출로 때우지 않는다 — CheckGoalBoardAndSessionCard()
+                    // 는 구조만 본다).
+                    {
+                        var card = Object.FindFirstObjectByType<SessionCard>();
+                        if (card == null || !card.IsShowing)
+                        {
+                            Debug.LogError("[PlaytestRealmSlice] 첫 '다음 달' 이후 SessionCard가 안 뜸(월간 트리거 실패)");
+                            Fail();
+                            return;
+                        }
+                    }
                     _phase = Phase.Comm;
                     break;
                 }
@@ -1279,6 +1295,56 @@ namespace Saga.EditorTools
         {
             var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
             return field?.GetValue(target) as T;
+        }
+
+        /// <summary>PLAN.md 101-2 "공통 선행" A·B(REALM 다섯 번째·마지막 이식) —
+        /// `PlaytestHeadless.CheckGoalBoardAndSessionCard()`(GO)·DUNGEON·
+        /// FOREST·STORY와 같은 기준(구조만): GoalBoard 세 줄이 실제로
+        /// 채워지는지, Awake()의 IGoalSource 자동 재탐색이 동작하는지,
+        /// SessionCard가 세션 시작부터 떠 있진 않은지. "실제로 뜨는지"는
+        /// 여기서 합성 Show()로 때우지 않고 Phase.Agri 의 첫 "다음 달" 뒤에서
+        /// 진짜 트리거로 확인한다(REALM 은 무입력이 아니라 월간이 트리거라
+        /// 이 구조 체크 시점엔 아직 안 떠 있는 게 정상).</summary>
+        private static bool CheckGoalBoardAndSessionCard()
+        {
+            var board = Object.FindFirstObjectByType<GoalBoard>();
+            if (board == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] GoalBoard 컴포넌트를 못 찾음");
+                return false;
+            }
+
+            if (GetPrivateField<object>(board, "_source") == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] GoalBoard._source가 null — Awake() 자동 재탐색 실패");
+                return false;
+            }
+
+            var label = GetPrivateField<Text>(board, "_label");
+            if (label == null || !label.text.Contains("지금 —") || !label.text.Contains("이번 세션 —") || !label.text.Contains("이번 주 —"))
+            {
+                Debug.LogError($"[PlaytestRealmSlice] GoalBoard 세 줄이 안 채워짐 text=\"{(label == null ? "null" : label.text.Replace("\n", " | "))}\"");
+                return false;
+            }
+
+            var card = Object.FindFirstObjectByType<SessionCard>();
+            if (card == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] SessionCard 컴포넌트를 못 찾음");
+                return false;
+            }
+            if (card.IsShowing)
+            {
+                Debug.LogError("[PlaytestRealmSlice] SessionCard가 세션 시작부터 떠 있음(기본은 숨김)");
+                return false;
+            }
+
+            if (Object.FindFirstObjectByType<RealmSessionTracker>() == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmSessionTracker 컴포넌트를 못 찾음");
+                return false;
+            }
+            return true;
         }
 
         /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — GO

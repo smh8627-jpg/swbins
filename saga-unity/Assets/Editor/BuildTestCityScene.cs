@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using Saga.Realm.World;
 using Saga.Realm.Player;
 using Saga.Realm.UI;
+using Saga.Core;
 
 namespace Saga.EditorTools
 {
@@ -50,6 +51,7 @@ namespace Saga.EditorTools
             BuildPostProcessingVolume();
             BuildEventSystem();
             BuildHudAndCommands();
+            BuildGoalBoardUi();
             BuildDebugOverlay();
             BuildBootstrap();
             BuildMapViewSwitcher(cityGo, dioramaRig, worldMapGo, mapCameraRig);
@@ -303,6 +305,27 @@ namespace Saga.EditorTools
             var bgmClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Art/Audio/CC0_BGM/realm_war_theme.ogg");
             if (bgmClip == null) Debug.LogWarning("[BuildTestCityScene] BGM 클립을 못 찾음 — 소리 없이 동작.");
             SetPrivateField(bootstrap, "bgmClip", bgmClip);
+        }
+
+        /// <summary>PLAN.md 101-2 "공통 선행" A·B — 목표판 3줄 + 세션 마무리
+        /// 카드(REALM 다섯 번째·마지막 이식, GO·DUNGEON·FOREST·STORY의
+        /// `BuildGoalBoardUi()`와 같은 배선). GoalBoard·SessionCard 는
+        /// Awake()가 자기 UI를 다시 짓는 SagaCore 공용 컴포넌트라
+        /// [SerializeField] 배선이 필요 없다 — RealmSessionTracker(이 판
+        /// 전용, Saga.Realm.UI) 하나가 IGoalSource 를 구현하면서 SessionCard
+        /// 표시도 같이 맡는다(트리거는 무입력 대신 월간, 클래스 주석 참고).</summary>
+        private static void BuildGoalBoardUi()
+        {
+            var cardGo = new GameObject("SessionCard");
+            var sessionCard = cardGo.AddComponent<SessionCard>();
+
+            var trackerGo = new GameObject("RealmSessionTracker");
+            var tracker = trackerGo.AddComponent<RealmSessionTracker>();
+            tracker.Init(sessionCard);
+
+            var boardGo = new GameObject("GoalBoard");
+            var board = boardGo.AddComponent<GoalBoard>();
+            board.Init(tracker);
         }
 
         private static void SetPrivateField(object target, string fieldName, object value)

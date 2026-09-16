@@ -6449,3 +6449,35 @@ Unity가 열리면서 자동 생성됨 — 다음 커밋에 같이 넣는다.
 REALM 12~15차 사슬(운중→상군→삭방→오원)도 `PlaytestRealmSlice` 3/3으로 실제 검증됐다.
 PROJECT_STATE "다음 작업" 1번(컴파일·재검증)은 이제 완료 — 남은 건 실기 GUI 확인
 (사용자 몫)과 REALM GoalBoard 이식·REALM 51장 범위 상의뿐이다.
+
+## PLAN 101-2 A·B — REALM 이식, 다섯 판 전부 완료 (2026-09-17, 같은 세션 "이어해 묻지말고 완성도를 올려조")
+
+REALM 은 캐릭터·이동이 없는 턴제 경영이라 공통 "지금/이번 세션/이번 주" 3줄과 "무입력
+5분→요약 카드" 트리거가 그대로 안 맞았다(PROJECT_STATE 가 미리 남겨 둔 검토 항목). 감으로
+먼저 짜지 않고 사용자에게 물었다 — 확정: **"월간 요약 카드"로 변형**(REALM 5-7 아이디어
+재사용, PLAN 101-2 표).
+
+- `Assets/Games/SagaRealm/UI/RealmSessionTracker.cs`(신규) — `IGoalSource` 구현.
+  `RealmCityState.Changed` 를 구독해 `(연,월)` 델타를 직접 계산, **정확히 1개월** 넘어갔을
+  때만(=`ExecuteNextMonth()` 로 자연 진행) `SessionCard` 를 띄운다. 세이브 로드(`Restore()`)
+  도 같은 이벤트를 쏘지만 델타가 1이 아니라(여러 달 되감기) 걸러진다 — 별도 "로드 중" 플래그
+  없이 델타 계산만으로 구분됨.
+  - "지금" = 조망 중인 성 이름 + 금.
+  - "이번 세션" = 세션 시작 대비 함락 성 증가분·금 증감(`CapturedCount()` = `RealmEnemyCity.AllIds`
+    중 `RealmCityState.ActiveCityIds` 에 있는 것 카운트).
+  - "이번 주"(GoalBoard 라벨 자체는 공용이라 안 바꿈) 자리는 **의미만** "함락 x/24성"으로.
+- `BuildTestCityScene.cs` — `BuildGoalBoardUi()` 추가, `Build()` 에서 `BuildHudAndCommands()`
+  뒤·`BuildDebugOverlay()` 앞에 호출(GO/DUNGEON/FOREST/STORY 와 같은 배선 순서).
+- `PlaytestRealmSlice.cs` — `CheckGoalBoardAndSessionCard()`(Init 단계, 구조만: GoalBoard 세 줄
+  채워짐·IGoalSource 자동 재탐색·SessionCard 초기 숨김 확인, 다른 네 판과 같은 기준) +
+  **Phase.Agri 의 첫 "다음 달" 직후 `SessionCard.IsShowing` 실제 확인**(GO 처럼 합성 `Show()` 호출로
+  때우지 않고 진짜 월간 트리거를 검증 — REALM 만의 트리거라 별도로 필요했다).
+
+컴파일 exit 0 → `BuildTestCityScene.Build()` 로 `TestCity.unity` 재생성(GoalBoard/SessionCard
+GameObject 추가만, fileID 전면 churn 아님) → `PlaytestRealmSlice` 3연속 전부 LogError 0건,
+`OK` 로 종료. `git diff --stat -- ProjectSettings/ Packages/` 비어 있었다(이번엔 버전 자동
+갱신 부작용 없음).
+
+PROJECT_STATE "다음 작업"에서 PLAN 101-2 A·B 항목을 완료로 닫음 — 남은 건 실기 GUI 확인
+(사용자 몫, 다섯 판 목표판/세션카드 포함)과 104 장 Phase 0 나머지(Art candidates 정리)·
+REALM 51장 추가 확장(범위 재검토, 사용자 상의)뿐이다.
