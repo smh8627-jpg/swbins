@@ -154,6 +154,12 @@ namespace Saga.Realm.Data
             // 이미 각자 목표(여남·양양)가 있어 이번엔 장사 쪽에서만
             // 골랐다(성 하나당 목표 하나).
             ["chaisang"] = new RealmCityDef("chaisang", "시상", RealmLand.River, agri: 260, comm: 280, wall: 4600, pop: 180000, mapX: 66, mapY: 69),
+            // 51장 "대규모 콘텐츠" 10차 확장(2026-09-16) — 시상을 함락한 뒤
+            // 이어지는 열째 단계(원작 LINKS: chaisang-jianye, "종산이
+            // 웅크린 자리, 왕기(王氣)가 있다 한다" — 훗날 오나라 도읍).
+            // wall은 RealmEnemyCity.cs 건업 정의(5200)와 맞춘다. chaisang의
+            // 다른 이웃(kuaiji, 강동 끝)은 이번에 안 골랐다 — 다음 확장 후보.
+            ["jianye"] = new RealmCityDef("jianye", "건업", RealmLand.River, agri: 320, comm: 380, wall: 5200, pop: 250000, mapX: 77, mapY: 62),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

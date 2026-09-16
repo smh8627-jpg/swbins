@@ -76,7 +76,7 @@ namespace Saga.EditorTools
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
             AttackChangan, AttackShouchun, AttackJinyang, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
-            AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang,
+            AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -992,9 +992,20 @@ namespace Saga.EditorTools
                 case Phase.AttackChaisang:
                 {
                     // 51장 9차 확장(2026-09-16) — 장사를 함락한 뒤 이어지는
-                    // 아홉째 단계 목표(TargetFrom("changsha")), 열여덟 중
-                    // 가장 어렵다.
-                    if (!AttackChainStep(RealmEnemyCity.ChangshaId, RealmEnemyCity.ChaisangId, Phase.QuizCorrect)) return;
+                    // 아홉째 단계 목표(TargetFrom("changsha")).
+                    if (!AttackChainStep(RealmEnemyCity.ChangshaId, RealmEnemyCity.ChaisangId, Phase.AttackJianye)) return;
+                    break;
+                }
+
+                case Phase.AttackJianye:
+                {
+                    // 51장 10차 확장(2026-09-16, "순서대로 이어해줘") —
+                    // 시상을 함락한 뒤 이어지는 열째 단계 목표
+                    // (TargetFrom("chaisang")), 원작 LINKS: chaisang-jianye
+                    // ("오나라 도읍 자리 — 왕기가 있다 한다"). 열아홉 중
+                    // 가장 어렵다. 시상의 다른 이웃(kuaiji, 강동 끝)은
+                    // 이번에 안 골랐다 — 다음 확장 후보.
+                    if (!AttackChainStep(RealmEnemyCity.ChaisangId, RealmEnemyCity.JianyeId, Phase.QuizCorrect)) return;
                     break;
                 }
 

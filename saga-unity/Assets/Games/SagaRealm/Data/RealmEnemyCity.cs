@@ -59,6 +59,11 @@ namespace Saga.Realm.Data
     /// 맞닿아 있지만 그 둘은 이미 각자 목표(여남·양양)를 붙였으니(성
     /// 하나당 목표 하나) 이번엔 장사 쪽에서만 이어 붙였다. 아홉 단계
     /// 깊이(train 160, +15 그대로)까지 왔다.
+    /// **51장 10차 확장(2026-09-16, 같은 날 "순서대로 이어해줘")** —
+    /// 시상→건업(원작 LINKS: chaisang-jianye, 훗날 오나라 도읍)을
+    /// 더했다. 시상의 다른 이웃(kuaiji, 강동 끝)은 이번에 안 골랐다 —
+    /// 다음 확장 후보. 허창 사슬이 열 단계 깊이(train 175, +15 그대로)까지
+    /// 왔다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -118,12 +123,13 @@ namespace Saga.Realm.Data
         public const string JianglingId = "jiangling";
         public const string ChangshaId = "changsha";
         public const string ChaisangId = "chaisang";
+        public const string JianyeId = "jianye";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
-            YonganId, JianglingId, ChangshaId, ChaisangId,
+            YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -193,6 +199,11 @@ namespace Saga.Realm.Data
             // 그 둘은 이미 각자 목표(여남·양양)를 갖고 있어 이번엔
             // 장사에서만 이어 붙였다.
             [ChaisangId] = new RealmEnemyCityDef(ChaisangId, "시상", RealmLand.River, baseWall: 4600, baseTroops: 1050, baseTrain: 160, baseTech: 100, attackFromCityId: "changsha"),
+            // 건업은 시상(chaisang)과만 맞닿아 있다(원작 LINKS:
+            // chaisang-jianye, 훗날 오나라 도읍) — 시상을 함락해야 열리는
+            // 열째 단계 목표, 열아홉 중 가장 어렵다. 원작 LINKS엔 회계
+            // (kuaiji)도 건업과 맞닿지만 이번엔 시상 쪽에서만 이어 붙였다.
+            [JianyeId] = new RealmEnemyCityDef(JianyeId, "건업", RealmLand.River, baseWall: 5200, baseTroops: 1200, baseTrain: 175, baseTech: 100, attackFromCityId: "chaisang"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

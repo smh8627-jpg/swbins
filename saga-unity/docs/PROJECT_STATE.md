@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-16 (PLAN 104-1 ①②③ 완료 + PLAN 101-2 A·B GO 첫 이식 — 이 PC 에 Unity 없어 전부 컴파일 미검증).
+마지막 갱신: 2026-09-16 (PLAN 104-1 ①②③ + 101-2 A·B GO 첫 이식 + REALM 51장 10차 — 이 PC 에 Unity 없어 전부 컴파일 미검증).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -11,7 +11,7 @@
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일) |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 | Environment 완료 | 전부 붙음. 데이터 콘텐츠 번역은 미착수 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사) | 척후병 실제 모델 | 전부 붙음 |
-| REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 18, 성 21**(51장 9차, 사슬: 허창→소패→하비→수춘→여남→강하→양양→강릉→장사→시상 / 복양→정도→업→진양 / 진류→낙양→장안→한중→성도→강주→영안) | 도시 Environment/Building | 전부 붙음. `RealmCommandUi` 직렬화 버그(2026-09-15) 수정·저장 버튼 신설 |
+| REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 19, 성 22**(51장 10차, 사슬: 허창→소패→하비→수춘→여남→강하→양양→강릉→장사→시상→건업 / 복양→정도→업→진양 / 진류→낙양→장안→한중→성도→강주→영안) | 도시 Environment/Building | 전부 붙음. `RealmCommandUi` 직렬화 버그(2026-09-15) 수정·저장 버튼 신설 |
 
 렌더러: 66-1장 PC(Forward+, MSAA 4)/Mobile(Forward, MSAA 2) 이중 프로파일 + `FF16Volume_PC/Mobile.asset`(ACES·Bloom 0.35·Vignette 0.25·PC 만 Grain/CA). 아트 방향은 **사실적 PBR(FF16 톤)** — 66-2장·102장.
 캐릭터 파이프라인: Mixamo(Maria·Abe·Brute) → `MixamoRigUtil.RigCharacter()`(Humanoid+`ExtractTextures`) → Animator 8클립. 헤어카드·SSS 는 Shader Graph 배선 대기(사람 몫).
@@ -21,15 +21,16 @@
 - 이 PC 에 Unity 에디터가 없어(Unity Hub 만 설치, `Editor/<버전>` 폴더 없음, CLAUDE.md 절차대로 먼저 확인함) 이번 세션 전부 소스 편집만 하고 컴파일·실행은 못 했다. 사용자에게 물어 "컴파일 확인 없이 진행" 승인받고 계속함.
 - **PLAN 104-1 Phase 0 ①②③ 완료** — ① `tools/unity-batch.sh`(배치 실행→4파일 원복→git status 한 줄) · ② `Assets/Editor/Playtest*.cs` 의 `GameObject.Find` "존재 확인만" 패턴(GO/DUNGEON/FOREST/STORY `CheckSettingsPanel()` 4건)을 `TogglePanel()`·`ChooseSfx()` 실제 리플렉션 호출 + 화면 Text 확인으로 교체(REALM `CheckCommandUiPanelsWork()` 와 같은 결) · ③ `[SerializeField]` 누락 감사를 `UI/`·`World/`·`Player/` 전 폴더로 완료 — UI 폴더 5개 컴포넌트(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi) 승격, World/Player 는 전부 정상(Awake 재탐색) 확인. 남은 ⑤(Art candidates 정리)는 105장 Q1 결정 대기.
 - **PLAN 101-2 "공통 선행" A·B GO 첫 이식(신규 기능, 컴파일 미검증)** — `Assets/SagaCore/`에 `IGoalSource`(인터페이스)·`GoalBoard`(목표판 3줄 위젯)·`SessionCard`(5초 자동 닫힘 세션 요약 카드) 신설. `Assets/Games/SagaGo/UI/GoSessionTracker.cs` 가 `IGoalSource` 구현 + 걸은 거리·번 금 추적 + 무입력 5분/백그라운드 전환 시 `SessionCard.Show()` 호출을 맡는다. "지금" 줄=가장 가까운 미수집 `HiddenTreasure`, "이번 세션"=이동거리·금 증감(실측), "이번 주"=⑦ 승급 3택 미이식이라 자리만 잡은 플레이스홀더 문구. `GoalBoard`/`SessionCard` 둘 다 Awake()가 자기 UI를 다시 짓고 `IGoalSource`/`SessionCard` 참조도 씬에서 스스로 재탐색하도록 짜서 — 이번 세션 ③에서 고친 것과 같은 [SerializeField] 누락 함정을 새 코드에서 되풀이하지 않았다. `BuildTestVillageScene.cs`에 `BuildGoalBoardUi()` 추가(BuildPlayer() 뒤, BuildSettingsUi() 다음). `PlaytestHeadless.cs`에 `CheckGoalBoardAndSessionCard()` 추가 — 존재 확인이 아니라 세 줄 실제 내용·소스 자동 재탐색·카드 Show/자동 닫힘까지 검증(②와 같은 기준).
+- **REALM 51장 10차 확장** — 시상→건업(원작 LINKS: chaisang-jianye). `RealmCityData.cs`·`RealmEnemyCity.cs`(`JianyeId` 상수·`AllIds`·`Catalog` 항목: wall 5200·troops 1200·train 175·attackFromCityId "chaisang", 전부 `saga-web/saga-realm/js/data-city.js` 원본 수치)·`PlaytestRealmSlice.cs`(`Phase.AttackJianye` 신설, `AttackChaisang` 다음 단계로 연결, `AttackChainStep(ChaisangId, JianyeId, QuizCorrect)`)만 고쳤다 — 지난 아홉 번 확장과 같은 3파일 범위. 적국 18→19, 성 21→22. `RealmWorldMap`·`RealmCityState` 등은 `AllIds`를 그대로 순회해 마커·세이브 스키마는 자동으로 따라온다(직접 확인함, 추가 수정 없음). wan은 여전히 목표로 안 씀.
 - **테스트 상태 표(아래)는 전부 이번 세션 편집 이전 결과다.** 이번 세션에 고친 파일 전부 재검증 전.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **컴파일·재검증(최우선)** — 이번 세션 편집분(104-1 9개 파일 + 101-2 신규 5개 파일) 전부 미검증. Unity 에디터 있는 세션에서: 배치 컴파일 → `BuildTestXxxScene`(GO/DUNGEON/FOREST/STORY 4종, GO는 GoalBoard 배선 포함) 재생성 → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 3연속. 씬을 안 다시 지으면 [SerializeField] 승격도 GoalBoard 배선도 실제로 검증되는 게 없다.
+1. **컴파일·재검증(최우선)** — 이번 세션 편집분(104-1 9개 + 101-2 신규 5개 + REALM 51장 10차 3개) 전부 미검증. Unity 에디터 있는 세션에서: 배치 컴파일 → `BuildTestXxxScene`(GO/DUNGEON/FOREST/STORY) + `BuildTestCityScene`(REALM) 재생성 → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` 3연속. 씬을 안 다시 지으면 [SerializeField] 승격·GoalBoard 배선·건업 사슬 전부 실제로 검증되는 게 없다.
 2. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(다섯 SettingsPanel + GO 목표판/세션카드 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
 3. **PLAN 101-2 A·B 나머지 4판** — GO 이식이 컴파일·실기로 검증되면 DUNGEON/FOREST/STORY/REALM 에도 같은 `IGoalSource` 구현체만 추가(GoalBoard/SessionCard 는 SagaCore 그대로 재사용). REALM 은 "일과" 개념이 다른 넷과 안 맞을 수 있어(경영형) 먼저 검토.
-4. **PLAN 104장 Phase 0 나머지** — `Assets/Art/*_candidates` 정리 판정만 남음(102-4 표는 있으나 105장 Q1 완성판 트랙 결정 뒤로 미룸 — 사용자 결정 대기, 손대지 않음).
-5. **REALM 51장 10차** — 시상→건업(`chaisang-jianye`). `AttackChainStep(출진, 함락, 다음)` 인자 순서 확인. wan 은 목표로 쓰지 않는다.
+4. **REALM 51장 11차** — 건업 다음 단계 후보는 회계(kuaiji, 건업의 다른 이웃) — 원작 LINKS: jianye-kuaiji.
+5. **PLAN 104장 Phase 0 나머지** — `Assets/Art/*_candidates` 정리 판정만 남음(102-4 표는 있으나 105장 Q1 완성판 트랙 결정 뒤로 미룸 — 사용자 결정 대기, 손대지 않음).
 6. **Localization 잔여** — FOREST 데이터 콘텐츠, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출. en 사람 검수.
 
 ## 알려진 오류

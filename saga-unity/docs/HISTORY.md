@@ -6161,3 +6161,51 @@ Awake()`는 `FindFirstObjectByType<SessionCard>()`로 찾는다. `Init()` 호출
 사용자가 실기로 화면 배치(대화창과 안 겹치는지)·세션카드 등장 타이밍을 확인한다.
 나머지 4판(DUNGEON/FOREST/STORY/REALM)에 같은 `IGoalSource` 구현체를 얹는 건 GO 검증이
 끝난 뒤로 미뤘다(PLAN 105장 Q-U1 "GO 한 판 끝까지 → 사용자 GUI 확인 → 확장" 권장과 일치).
+
+## REALM 51장 10차 확장 — 시상→건업 (2026-09-16, 다섯 번째 "순서대로 이어해줘")
+
+PLAN 101-2 A·B(GoalBoard/SessionCard)의 다음 단계는 "GO 검증 먼저"라 컴파일 없이는
+더 못 미루고, 104-1 남은 항목(Art candidates)은 105장 결정 대기라 손 못 대서 —
+PROJECT_STATE.md 다음 우선순위였던 REALM 51장 사슬 확장으로 넘어갔다. 지난 아홉 번과
+같은 저위험 패턴(기존 데이터 카탈로그에 항목 하나 추가)이라 순서를 그대로 지켰다.
+
+**원작 확인** — `saga-web/saga-realm/js/data-city.js`에서 `chaisang`의 LINKS를 grep해
+`['chaisang', 'jianye']`를 확인(원작 데이터에 이미 있던 간선). 건업(jianye) 원본 수치
+그대로 가져옴: agri 320·comm 380·wall 5200·pop 250000·x 77·y 62·land river·
+desc "종산이 웅크린 자리. 왕기(王氣)가 있다 한다." — 지명(도읍 이름)이지 인물 실명이
+아니라 이름 정책에 안 걸린다.
+
+**수치 파생 규칙(지난 아홉 번과 동일)**:
+- `baseTroops` = wall × 0.23을 50 단위로 반올림. wall 5200은 이미 xiapi·jinyang이
+  쓰던 값과 같아서 그 둘과 같은 troops=1200으로 맞춤(교차검증 됨).
+- `baseTrain` = 자기가 속한 사슬의 직전 깊이 + 15. 허창 사슬(xiaopei→xiapi→
+  shouchun→runan→jiangxia→xiangyang→jiangling→changsha→chaisang)이 아홉째 깊이
+  train 160이었으니 건업은 열째 깊이 train 175.
+- `mapX/mapY`는 웹 데이터의 x/y를 그대로 옮긴다(과거 아홉 번 전부 1:1로 확인된 관례,
+  이번에도 luoyang/xiapi/ye/chaisang 네 항목으로 교차검증하고 그대로 적용).
+
+**고친 파일 3개(지난 아홉 번과 같은 범위)**:
+- `RealmCityData.cs` — `Catalog["jianye"]` 추가(함락 후 편입 시 `RealmCityState.
+  AbsorbCity()`가 쓸 정의).
+- `RealmEnemyCity.cs` — `JianyeId` 상수, `AllIds` 배열, `Catalog[JianyeId]`
+  (`attackFromCityId: "chaisang"`) 추가. 클래스 주석에 10차 확장 기록.
+- `PlaytestRealmSlice.cs` — `enum Phase`에 `AttackJianye` 추가. 기존
+  `case Phase.AttackChaisang`의 `AttackChainStep(...)` 세 번째 인자(다음 단계)를
+  `Phase.QuizCorrect`에서 `Phase.AttackJianye`로 바꾸고, 그 뒤에
+  `case Phase.AttackJianye: AttackChainStep(ChaisangId, JianyeId, QuizCorrect)`를
+  새로 끼워 넣어 퀴즈 단계로 이어지게 했다(체인이 한 칸 늘어난 만큼 QuizCorrect
+  진입 지점만 뒤로 밀림).
+
+**건드리지 않은 것(확인만 함)** — `RealmWorldMap.cs`(마커 생성)·`RealmCityState.cs`·
+`RealmSaveState.cs`·`RealmHud.cs`는 전부 `RealmEnemyCity.AllIds`/`RealmCityData.
+Catalog`를 순회하는 데이터 기반 코드라 새 항목이 자동으로 흘러 들어간다 — grep으로
+직접 확인했고 지난 아홉 번도 이 세 파일 밖은 안 건드렸다.
+
+**결과 — 적국 18→19, 성 21→22.** `AttackChainStep(fromCityId, expectedCapturedId,
+nextPhase)` 인자 순서(PROJECT_STATE.md가 확인하라고 남겨 둔 그 헬퍼)를 실제로
+읽어 정확한 순서(출진 성 · 기대 함락 id · 다음 Phase)를 재확인했다 — 잘못된 순서로
+넘기면 컴파일은 되지만 검증이 다른 성을 보게 되는 조용한 실수라 특히 조심했다.
+
+다음 확장 후보는 건업의 다른 이웃 회계(kuaiji, 원작 LINKS: jianye-kuaiji, "강동의
+끝") — PROJECT_STATE.md 다음 우선순위 4에 남겨 둠. 이번 것도 포함해 전부 컴파일
+미검증 상태로 쌓여 있다(이 PC에 Unity 없음, 이번 세션 내내 동일).
