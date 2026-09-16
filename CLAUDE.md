@@ -6,7 +6,7 @@
 - 공통 개편 설계(재미 표준·참고 게임·그래픽·에셋·문서 규칙): `SAGA-DESIGN.md` — 일곱 PLAN 의 상위 문서
 - 웹 다섯 판: `saga-web/<폴더>/PLAN.md` 가 정본, 이력은 각 폴더 `HANDOFF.md`
 - 3D 재구축 두 트랙(서로 코드 공유 없음, 기획만 공유): `saga-godot/PLAN.md`(Godot 4), `saga-unity/PLAN.md`(Unity 6)
-- 저장소 전체 규칙·이력: `SAGA-HANDOFF.md` (아래 "토큰" 절의 읽기 규칙 필수)
+- 규칙·방향·함정: `SAGA-HANDOFF.md`(≤80KB) · 이력: `SAGA-HISTORY.md`(grep 으로만, 아래 "토큰" 절)
 
 ## 다섯 판 — 완전히 별개인 프로젝트
 
@@ -46,7 +46,7 @@
 - **이름 정책(다섯 판 공통)**: 원작 인물·장수·펫·시리즈·실존 역사 인물의 실명을 표시 글자에 쓰지 않는다.
   가명은 임의로 정하고, id·세이브 키는 안 건드린다. `HEROES` 의 `name`·`hanja` 뿐 아니라
   `BIOS`·`PETS` 의 `desc` 도 "표시 글자"다. 새 인물 추가 시 실명 금지.
-  (`BIOS`·`PETS.desc` 105명은 아직 실명 서술 그대로 — 범위는 `SAGA-HANDOFF.md` 2026-09-10 항목)
+  (`BIOS`·`PETS.desc` 의 실명 구멍은 2026-09-11 에 메웠고 `_test.html` 에 회귀 진단이 있다 — 경위는 `SAGA-HISTORY.md` ⑤)
 - 원작 개체값(IV)·CP 도입 — 이 판의 펫은 개체가 아니라 **종**
 - 경영·문답을 `saga-realm` 밖으로 퍼뜨리기
 - 사가의숲 구면 투영을 평평한 탑다운으로 되돌리기(집 안만 일부러 안 휜다)
@@ -72,7 +72,7 @@
 
 ## 토큰
 
-- **`SAGA-HANDOFF.md`(450KB+)·각 `PLAN.md`·`README.md` 는 통째로 읽지 않는다.**
+- **`SAGA-HISTORY.md`(415KB)·각 `HANDOFF.md`·`README.md` 는 통째로 읽지 않는다.**
   `grep -n "^## \|^### "` 로 목차만 뽑고, 날짜·게임명으로 grep 해 필요한 절만 `sed -n` 으로 읽는다.
 - `sprite.js`(100KB)·`data.js`(75KB) 도 전체 Read 금지 — 심볼·id 로 grep 해 그 자리만 읽는다.
 - 진단 출력은 `grep -o "RESULT [0-9/]*"` 나 실패 줄만 남긴다. `--dump-dom` 전체를 컨텍스트에 올리지 않는다.
