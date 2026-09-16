@@ -10,13 +10,15 @@ extends Node
 ##
 ## 이번 슬라이스에서 실제로 적용하는 eff 키: atkPct·atkSpdPct·moveSpdPct·
 ## reachPct·hpPct+healOnPick·guardPct·drainPct·critPct(1.85배, dungeon.js
-## strike() 그대로)·echoPct. **적용하지 않는 키(시스템이 아직 없다)**:
+## strike() 그대로)·echoPct·**skillPct(2026-09-17, 축복 3택 무예 축 신규 —
+## 아래 skill_mul() 참고)**. **적용하지 않는 키(시스템이 아직 없다)**:
 ## goldPct(경제 시스템 없음)·worldFindPct(장비 희귀도 없음, 노획은 이름만)
 ## ·healOnFloor(여러 방/층 진입 이벤트가 없음, 방 하나뿐)·reveal(안개·
 ## 시야 시스템 없음)·piercePct(적에게 방어력 자체가 없다 — 잡졸은 고정
 ## HP만 갖는다, 방어를 "무시"할 대상이 없음). 이 키들도 `boons` 딕셔너리엔
 ## 정상적으로 쌓인다 — 나중에 해당 시스템이 생기면 여기 getter만 추가하면
-## 된다(데이터는 이미 다 있다).
+## 된다(데이터는 이미 다 있다). **skillPointGrant는 이 채널을 안 탄다** —
+## _sum_eff()가 아니라 apply_boon()이 직접 한 번만 소비한다(아래 참고).
 
 signal boons_changed
 
@@ -41,17 +43,73 @@ func add_temp_buff(eff_key: String, value: float, sec: float) -> void:
 	_temp_buffs[eff_key] = {"v": value, "until_msec": Time.get_ticks_msec() + int(sec * 1000.0)}
 
 
+## 2026-09-17, PLAN 101-2 DUNGEON ①(축복 3택) — saga-web/saga-dungeon/
+## PLAN.md §5.1 "같은 축 중복 금지"·희귀도 3단(common 60%·rare 30%·
+## legendary 10%)을 옮겼다. 축(axis) 셋(skill·hero·world)에서 하나씩
+## 뽑아 카드 셋을 채운다 — dungeon_boons.gd 파일 헤더가 이 슬라이스의
+## 세 축이 뭘 뜻하는지 적어 뒀다.
 func roll_choice() -> Array[String]:
-	var pool: Array[String] = []
-	for b: Dictionary in DungeonBoons.BOONS:
-		if int(boons.get(b.key, 0)) < int(b.max):
-			pool.append(b.key)
 	var out: Array[String] = []
-	while out.size() < 3 and pool.size() > 0:
-		var idx := randi() % pool.size()
-		out.append(pool[idx])
-		pool.remove_at(idx)
+	var axes := ["skill", "hero", "world"]
+	axes.shuffle()
+	for axis in axes:
+		if out.size() >= 3:
+			break
+		var picked := _roll_one_of_axis(axis, out)
+		if picked != "":
+			out.append(picked)
+	## 축 하나(또는 그 이상)가 상한까지 다 차 카드를 못 낸 드문 경우 —
+	## 축 안 가리고 남은 자리를 채운다("같은 축 중복 금지"보다 "카드 셋을
+	## 못 채우는 쪽"이 더 나쁘다, 원안도 축이 부족하면 그 자리는 못 채운다고
+	## 정하지 않았다).
+	if out.size() < 3:
+		var pool: Array[String] = []
+		for b: Dictionary in DungeonBoons.BOONS:
+			if out.has(str(b.key)):
+				continue
+			if int(boons.get(b.key, 0)) < int(b.max):
+				pool.append(str(b.key))
+		while out.size() < 3 and pool.size() > 0:
+			var idx := randi() % pool.size()
+			out.append(pool[idx])
+			pool.remove_at(idx)
 	return out
+
+
+## 한 축 안에서 희귀도 가중(60/30/10)으로 하나 뽑는다 — 뽑힌 등급에 후보가
+## 없으면 다음으로 흔한 등급으로 내려간다(등급 하나가 텅 빈 축도 카드를
+## 낼 수 있게).
+func _roll_one_of_axis(axis: String, exclude: Array[String]) -> String:
+	var by_rarity := {"common": [] as Array[String], "rare": [] as Array[String], "legendary": [] as Array[String]}
+	for b: Dictionary in DungeonBoons.BOONS:
+		if str(b.axis) != axis or exclude.has(str(b.key)):
+			continue
+		if int(boons.get(b.key, 0)) >= int(b.max):
+			continue
+		var r: String = str(b.get("rarity", "common"))
+		if not by_rarity.has(r):
+			r = "common"
+		by_rarity[r].append(str(b.key))
+	var roll := randf() * 100.0
+	var order: Array[String] = ["common", "rare", "legendary"]
+	if roll >= 90.0:
+		order = ["legendary", "rare", "common"]
+	elif roll >= 60.0:
+		order = ["rare", "common", "legendary"]
+	for tier in order:
+		var arr: Array[String] = by_rarity[tier]
+		if arr.size() > 0:
+			return arr[randi() % arr.size()]
+	return ""
+
+
+## 5.1 "거절 시 금 30×층" 그대로 — room_index(0부터)를 웹의 "층"(1부터)에
+## 맞춰 +1 한다. 골드를 직접 넣고 실제로 넣은 값을 돌려준다(호출부가 토스트
+## 문구에 그대로 쓴다).
+func reject_choice(room_index: int) -> int:
+	var gold := (room_index + 1) * 30
+	DungeonGoldState.add(gold)
+	return gold
 
 
 ## 은사 하나를 실제로 얹는다 — 상한을 넘겼으면 빈 Dictionary(실패).
@@ -71,6 +129,13 @@ func apply_boon(key: String) -> Dictionary:
 		if not found.is_empty():
 			found[0].recalc_max_hp()
 			found[0].heal_by(found[0].max_hp * heal / 100.0)
+	## "비급(祕笈)" — dungeon_boons.gd 헤더 참고. _sum_eff() 채널이 아니라
+	## 여기서 즉시 한 번만 소비한다(test_room.gd::_finish_exit()이 방
+	## 클리어마다 주는 것과 같은 자리·같은 규칙 — 그 순간 장착 중인 무기가
+	## 정하는 직업에 준다).
+	if b.eff.get("skillPointGrant", 0.0) > 0.0:
+		var cls_key := DungeonItems.class_key_for_weapon(DungeonEquipmentState.weapon)
+		DungeonSkillState.award_point(cls_key)
 	return b
 
 
@@ -144,11 +209,13 @@ func echo_pct() -> float:
 	return _sum_eff("echoPct")
 
 
-## dungeon.js skillMul()의 "1 + boonVal('skillPct')/100" 그대로 — 단,
-## 이 슬라이스엔 skillPct를 주는 은사/장비/부대가 없어(dungeon_skills.gd
-## s_focus·y_hex 무예만 준다) 사실상 무예 랭크만 반영된다. atk_mult()
-## 등과 달리 world eff 합산에 안 섞고 skill_bolt.gd가 직접 부른다 —
-## "무예 위력"은 무예 데미지에만 곱해야 하는 계수라서다.
+## dungeon.js skillMul()의 "1 + boonVal('skillPct')/100" 그대로 — 처음엔
+## dungeon_skills.gd s_focus·y_hex 무예만 이 채널을 채웠는데, 2026-09-17
+## 축복 3택 "무예 축"(skillamp1·skillamp2, dungeon_boons.gd)이 은사로도
+## 채우는 첫 사례가 됐다(_sum_eff()가 boons를 이미 순회하므로 여기 새
+## 코드는 없다). atk_mult() 등과 달리 world eff 합산에 안 섞고 skill_
+## bolt.gd 등 무예 스크립트가 직접 부른다 — "무예 위력"은 무예 데미지에만
+## 곱해야 하는 계수라서다(기본 공격엔 안 곱는다).
 func skill_mul() -> float:
 	return 1.0 + _sum_eff("skillPct") / 100.0
 

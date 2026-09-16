@@ -315,18 +315,38 @@ func _on_exit_entered(body: Node3D, room_index: int) -> void:
 	## 나중에 채워 넣으면 콜백도 같은 내용을 보게 된다 — 그 우회로 고쳤다.
 	var layer_box := {}
 	var choices: Array = []
+	## PLAN 101-2 DUNGEON ①(축복 3택, 2026-09-17) — 카드에 축 아이콘·희귀도를
+	## 얹는다(웹 5.1 "카드 위 축 아이콘·희귀도 테두리색"을 이 판의 단순 버튼
+	## UI 결에 맞춰 라벨 텍스트로 근사 — 새 UI를 안 만든다).
+	var axis_icons := {"skill": "🗡️", "hero": "👤", "world": "🌐"}
+	var rarity_tags := {"common": "", "rare": "[희귀] ", "legendary": "[전설] "}
 	for key in choice:
 		var b := DungeonBoons.by_key(key)
+		var axis_icon: String = axis_icons.get(str(b.get("axis", "")), "")
+		var rarity_tag: String = rarity_tags.get(str(b.get("rarity", "common")), "")
 		choices.append({
-			"label": "%s %s — %s" % [b.emoji, b.name, b.desc],
+			"label": "%s %s%s %s — %s" % [axis_icon, rarity_tag, b.emoji, b.name, b.desc],
 			"cb": func() -> void: _on_boon_picked(key, body, layer_box, room_index, is_final),
 		})
+	## 5.1 "거절" — 골드를 즉시 넣고 라벨에 그 값을 미리 보여 준다.
+	var reject_gold: int = (room_index + 1) * 30
+	choices.append({
+		"label": "🚫 거절 — 금 %d" % reject_gold,
+		"cb": func() -> void: _on_boon_rejected(body, layer_box, room_index, is_final),
+	})
 	layer_box["layer"] = ChoicePrompt.build(self, "🎴 은사를 고르세요", choices)
 
 
 func _on_boon_picked(key: String, body: Node3D, layer_box: Dictionary, room_index: int, is_final: bool) -> void:
 	(layer_box["layer"] as CanvasLayer).queue_free()
 	DungeonRunState.apply_boon(key)
+	_finish_exit(body, room_index, is_final)
+
+
+func _on_boon_rejected(body: Node3D, layer_box: Dictionary, room_index: int, is_final: bool) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	var gold := DungeonRunState.reject_choice(room_index)
+	Toast.show(self, "🚫 은사를 거절하고 금 %d 을(를) 얻었다." % gold, 3.0)
 	_finish_exit(body, room_index, is_final)
 
 

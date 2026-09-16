@@ -96,8 +96,16 @@ func _strike(enemy: Node) -> void:
 
 ## dungeon.js applyElem() — 무기(+부적)에 박은 보석·주옥이 얹는 원소 피해.
 ## 결마다 저항이 따로다. 빙은 느려짐, 독은 dot, 뇌는 편차(spread)가 크다.
+##
+## 2026-09-17, PLAN 101-2 DUNGEON ①(축복 3택) 세계 축 — 이 함수가 이미
+## "여러 결을 한 번에 순회"하는 유일한 자리라 원소 시너지(dungeon_boons.gd
+## SYNERGIES)를 여기 얹었다. dmgs.is_empty() 가드는 시너지 검사가 젬을 하나도
+## 안 박은 채로도 매 타격 돌게 하지 않으려는 것뿐(기존 동작은 그대로).
 func _apply_elemental(enemy: Node) -> void:
 	var dmgs := DungeonEquipmentState.elem_damage()
+	if dmgs.is_empty():
+		return
+	var death_pos: Vector3 = enemy.global_position
 	for el in dmgs:
 		var def := DungeonItems.elem_by_key(str(el))
 		if def.is_empty():
@@ -118,3 +126,24 @@ func _apply_elemental(enemy: Node) -> void:
 		var slow: float = float(def.get("slow", 0.0))
 		if slow > 0.0 and is_instance_valid(enemy) and enemy.has_method("apply_elem_slow"):
 			enemy.apply_elem_slow(slow, float(def.get("slow_sec", 1.0)))
+	_check_elem_synergy(dmgs, enemy, death_pos)
+
+
+## dungeon_boons.gd SYNERGIES 참고 — "처치 시" 그대로: 이 타격(물리+원소)이
+## 그 적을 눕히지 못했으면 시너지는 안 뜬다. `dmgs`(이번 타격에 실제로
+## 박혀 있던 결)에 그 쌍이 둘 다 있어야 하고, 그 쌍의 은사(syn_*)를 이미
+## 골랐어야 한다. skill_nova.gd 등이 이미 쓰는 "반경 안 적 순회" 판정을
+## 그대로 재사용한다 — 새 판정 로직 없음.
+func _check_elem_synergy(dmgs: Dictionary, enemy: Node, pos: Vector3) -> void:
+	if is_instance_valid(enemy) and enemy.hp > 0.0:
+		return
+	for syn: Dictionary in DungeonBoons.SYNERGIES:
+		if not DungeonRunState.boons.has(str(syn.key)):
+			continue
+		if not (dmgs.has(syn.a) and dmgs.has(syn.b)):
+			continue
+		for other in get_tree().get_nodes_in_group("dungeon_enemy"):
+			if not is_instance_valid(other) or other == enemy:
+				continue
+			if other.global_position.distance_to(pos) <= DungeonBoons.SYN_RADIUS:
+				other.take_damage(DungeonBoons.SYN_DAMAGE)

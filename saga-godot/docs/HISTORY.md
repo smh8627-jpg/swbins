@@ -7139,3 +7139,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시, 커밋 전 지움): `DuelRules.create()`를 직접 만들어 그냥 회피(4데미지, DODGE_CUT 그대로)와 저스트 회피(0데미지, 기 +30 정확히) 둘 다 수치까지 확인. `BanditLeaderEncounter.time_sec`가 75인지도 확인.
 - 헤드리스 3회 회귀 통과(GO md5 불변 — 이 변화는 전투 중에만 일어나 짧은 부팅 스모크에 안 걸림).
 - **이걸로 PLAN.md 101-2 GO 이식 순서(①~⑥) 전부 완료.** 다음은 101-4점 3에 따라 DUNGEON/FOREST/STORY/REALM ①로 넘어간다.
+
+## PLAN 101-2 DUNGEON ①후보 "축복 3택" (2026-09-17, "사가고돗 이어해") — GO 다음, DUNGEON 이식 순서 시작
+- saga-web/saga-dungeon/PLAN.md §5.1을 옮겼다. 웹 원안(무예 4칸 장착 강화·서명 무예)이 이 슬라이스 구조(스킬트리 상시 발동, 서명 무예 없음)와 안 맞아 세 축을 실제 채널로 재해석 — 경위는 `dungeon_boons.gd` 파일 헤더에 전부 적었다.
+- **무예 축**: `skillPct`(무예 전용 배율, `skill_mul()`)에 꽂는 진기(+15%)·현오(+30%) + 즉시형 "비급"(현재 무기 직업에 무예 점수 1, `DungeonSkillState.award_point()` 재사용). 모양별 고유 효과(swing 범위 등)는 스킬 스크립트 80여 개 개별 수정이 필요해 범위 밖 — 다음 세션.
+- **인물 축**: 기존 14개 중 캐릭터 스탯 11개(fury·wall·haste·dash·pierce·drain·crit·reach·mend·ghost·ward) 재배정.
+- **세계 축**: 기존 3개(greed·eye·scout) + 원소 시너지 3종 신규(화+뇌·빙+기·독+전자 — 셋 다 "처치 시 반경 2.35m 확산 피해 14"로 통일). `melee_attack.gd::_check_elem_synergy()`가 `_apply_elemental()` 안에서 그 회차에 골라 둔 시너지 은사(syn_*)와 이번 타격의 젬 결 조합을 대조한다. 물리+화 "작열"(콤보 카운터 필요)은 뺐다.
+- `dungeon_run_state.gd::roll_choice()`를 축 다양성(3장 서로 다른 축, 부족하면 축 안 가리고 채움)+희귀도 가중(60/30/10)으로 재작성, `reject_choice()`(거절 시 금 30×층) 신규. `test_room.gd`에 카드 라벨(축 아이콘·희귀도 태그)·거절 버튼 추가.
+- 메타 도감("은사첩")은 안 만든다 — `boons`가 이 슬라이스에서 이미 리셋 없이 유지된다(파일 원 주석 그대로).
+- 자가진단(임시 `_diag_boons.gd/.tscn`, 커밋 전 지움): 축 다양성 100/100, skillamp1이 skill_mul()에 정확히 +0.15 반영, "비급"이 무예 점수 1 부여, reject_choice(2)=금 90, 21번째 "비급" 시도는 상한(20)에 막혀 실패 — 3회 재현 동일.
+- `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일·error/warn 0, project.godot/.import 잡음 없음.
+- 다음: PLAN 101-2 DUNGEON ②유품(사망 비용·회수) — 표 순서대로.
