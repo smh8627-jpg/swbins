@@ -20,6 +20,31 @@ extends Node3D
 func _ready() -> void:
 	SaveState.try_load()
 	_remove_resolved_events()
+	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
+		_print_density_report()
+
+## PLAN.md 104-5 — 지역 3(마을·포구·폐허) 발견 밀도(§3-E). 평소엔 안
+## 돌린다(로그에 매번 섞이면 회귀 md5 가 흔들린다) — 측정할 때만
+## `SAGA_DENSITY_REPORT=1` 로 켠다. "codex_discoverable" 그룹은
+## landmarks_builder.gd·region2_coast.gd·region3_ruins.gd 의
+## `_add_discovery_area()` 가 채운다.
+func _print_density_report() -> void:
+	var test_map := load("res://games/saga_go/data/test_map.gd")
+	var density := load("res://saga_core/world/density_report.gd")
+	for region_id in ["village", "coast", "ruins"]:
+		var origin: Vector3 = test_map.origin_of(region_id)
+		var size: Vector2i = test_map.size(region_id)
+		var tile: float = test_map.tile_size_of(region_id)
+		var half_w := size.x * 0.5 * tile
+		var half_h := size.y * 0.5 * tile
+		var points: Array = []
+		for node in get_tree().get_nodes_in_group("codex_discoverable"):
+			var local: Vector3 = (node as Node3D).global_position - origin
+			if abs(local.x) <= half_w and abs(local.z) <= half_h:
+				points.append(Vector2(local.x / tile + size.x * 0.5, local.z / tile + size.y * 0.5))
+		var walkable := func(x: int, y: int) -> bool: return test_map.tile_at(x, y, region_id) != "^"
+		var report: Dictionary = density.report(size, tile, points, 60.0, walkable)
+		print("DENSITY %s total=%d empty=%d empty_pct=%.1f" % [region_id, report.total, report.empty, report.empty_pct])
 
 ## TestVillage 바로 아래 자식 중 이름이 EventState.resolved에 있는
 ## 것들을 치운다. 사건 노드는 전부 이 씬의 직계 자식(BanditEncounter·

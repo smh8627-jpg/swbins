@@ -127,6 +127,7 @@ func _build_exterior() -> void:
 	var house := Node3D.new()
 	house.name = "House"
 	house.position = base_pos
+	house.add_to_group("codex_discoverable")
 	add_child(house)
 
 	var wall_mesh := GLBUtils.extract_mesh(WALL_GLB)

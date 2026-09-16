@@ -7077,3 +7077,13 @@ PROJECT_STATE.md` 참고. 요약:
   사람이 실기기로 한 번 더 보고 tone을 최종 승인해야 한다(위 1번 기록
   참고). 그 전까지 위 4번 반영은 "잠정 적용"으로 본다.
 - 아웃라인(외곽선) 단계는 위 톤 확정 전까지 시작하지 않는다.
+
+## PLAN 104장 Phase 0 안정화 1~5단계 (2026-09-16, 새 세션, "사가고돗 이어해" → "순서대로")
+
+- Godot 4.7 실행 파일을 새로 받아 확보(PC 마다 다름, `.gitignore` 대상, 커밋 안 함).
+- ① `tools/godot_regress.sh` 신설(5대표씬×3회 headless, md5 동일+error/warn 0, `.import`/`project.godot` diff 확인까지 한 스크립트) — 통과.
+- ② 세이브 버전: STORY·REALM 은 버전 불일치 시 진행을 통째로 버리던 걸(`_migrate` 없음), GO/DUNGEON/FOREST 와 같은 `_migrate`/`_migrate_step` 계약으로 보강(과거 단계는 필드 추가뿐이라 변환 없이 버전만 올리는 통과 단계).
+- ④ ChoicePrompt 클로저(2026-09-16 앞선 세션에서 잡은 "선언 후 대입" 버그) 30개 호출부 재전수 확인 — 전부 멤버 필드·`layer_box` 관용구·클로저가 안 참조하는 `:=` 중 하나라 안전. 추가 수정 없음.
+- ⑤ `saga_core/world/density_report.gd`(순수 격자 계산, GO·FOREST 공용) 신설 — PLAN 101-3 이 codex_state.gd 소속으로 뒀던 걸 FOREST 재사용을 위해 saga_core 로 옮김(PLAN 도 함께 수정). `codex_discoverable` 그룹을 GO `_add_discovery_area()` 3곳(landmarks_builder/region2_coast/region3_ruins)과 FOREST 집·주민 5·낚시터·박물관·생물 den 에 달고, `SAGA_DENSITY_REPORT=1` 로만 켜지는 진단 출력을 test_village.gd/forest_village.gd 에 추가(평소 회귀 md5 안 흔들림, 확인함).
+  - 실측: GO 마을 62.5%·포구 61.2%·폐허 80.0% 빈 격자(place 갈래, 10% 기준 셋 다 초과) · FOREST 마을 0.0%(60m 반경이 FOREST 지도엔 너무 커서 무의미 — PLAN 105 Q-f 로 열어 둠).
+- ③은 이미 ①의 스크립트 끝에 포함돼 있어 별도 작업 없음. ⑥(101 이식 ①로 이동)은 다음 세션.

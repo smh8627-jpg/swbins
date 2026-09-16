@@ -17,16 +17,15 @@
 
 ## 현재 작업
 
-- **2026-09-16 문서 재편(코드 변경 없음)**: PROJECT_STATE 6882행 → `docs/HISTORY.md` 로 이동, 이 파일을 상태 요약으로 다시 씀. `PLAN.md` 에 0장(읽는 법)·101~105장(재미 진단·게임성 이식 / 그래픽 개편 / 에셋 창조 파이프라인 / 안정화·검증 / 열린 질문) 추가, 66-2장 진행 기록은 HISTORY 로.
-- 직전 코드 작업(2026-09-16): GO 폐허에 3번째 역사 인물 조우(`hero_encounter.gd` `region_id` 확장), 포구 콘텐츠 5호(고래뼈), 96·97 재감사(고칠 것 없음).
+- **2026-09-16 PLAN 104장 Phase 0 안정화 1~5단계 완료**("사가고돗 이어해" → "순서대로"): ① `tools/godot_regress.sh` 신설(5대표씬×3회 md5+error/warn 0, 통과) ② 세이브 버전: GO·DUNGEON·FOREST 는 이미 `_migrate`/`_migrate_step` 있었고, STORY·REALM 은 버전 불일치 시 그냥 포기(진행 통째로 버림)하던 걸 같은 계약의 `_migrate`/`_migrate_step`(과거 단계는 필드 추가뿐이라 변환 없이 버전만 올림)으로 보강 ③ `.import`/`project.godot` 되돌림은 회귀 스크립트 끝에 diff 확인+대화형 확인으로 이미 포함 ④ `ChoicePrompt` 클로저(로컬 변수 선언 후 대입) 패턴 전수 재검사 — 30개 호출부 전부 멤버 필드·`layer_box`·클로저가 참조 안 하는 `:=` 셋 중 하나라 안전, 추가 수정 없음 ⑤ 발견 밀도: `saga_core/world/density_report.gd`(순수 격자 계산, GO·FOREST 공용) 신설 + `codex_discoverable` 그룹(GO 는 `_add_discovery_area()` 3곳, FOREST 는 집·주민 5·낚시터·박물관·생물 den) + `SAGA_DENSITY_REPORT=1` 환경변수로만 켜지는 진단 출력(평소 회귀엔 안 섞임, md5 불변 확인). 측정값: **GO 마을 62.5%·포구 61.2%·폐허 80.0%** 빈 격자(place 갈래 기준, 10% 기준 셋 다 크게 초과 — 101-2 이식 우선순위와 일치) · **FOREST 마을 0.0%**(60m 반경이 FOREST 90×60m 맵엔 너무 커서 이 기준 자체가 무의미 — 그대로 쓰지 않는다, 105-f 로 열어 둠).
+- 직전 코드 작업(2026-09-16, 이전 세션): GO 폐허에 3번째 역사 인물 조우, 포구 콘텐츠 5호(고래뼈), 96·97 재감사(고칠 것 없음).
 
-## 다음 작업 (우선순위 5 — 상세는 PLAN 해당 장)
+## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
 1. **실기 확인 몰아서**(아래 "실기 확인 대기") — 사용자 몫. 결과는 HISTORY 에 날짜 항목으로.
-2. **PLAN 104장 Phase 0 안정화**: 다섯 대표 씬 헤드리스 3회 md5 회귀를 스크립트 하나로, 세이브 버전 필드 다섯 판 점검, `.import`/`project.godot` 잡음 자동 되돌림.
-3. **PLAN 101장 이식 1순위**: 목표판 3줄 + 세션 마무리 카드(다섯 판 공용 UI, `saga_core/ui/`).
-4. **PLAN 102장 그래픽 1차**: WorldEnvironment 재설정(AgX·SSAO·Glow·Adjustments·Fog) → 툰 톤 사람 승인 → 아웃라인.
-5. **PLAN 105장 열린 질문** 답 받기(완성판 트랙·캐릭터 스타일·후보 폴더 삭제·SDFGI/LightmapGI).
+2. **PLAN 101장 이식 1순위**: 목표판 3줄 + 세션 마무리 카드(다섯 판 공용 UI, `saga_core/ui/`) — 104장 Phase 0 은 끝났으니 101-4 순서대로.
+3. **PLAN 102장 그래픽 1차**: WorldEnvironment 재설정(AgX·SSAO·Glow·Adjustments·Fog) → 툰 톤 사람 승인 → 아웃라인.
+4. **PLAN 105장 열린 질문** 답 받기(완성판 트랙·캐릭터 스타일·후보 폴더 삭제·SDFGI/LightmapGI·FOREST 발견 밀도 기준).
 
 ## 알려진 오류
 

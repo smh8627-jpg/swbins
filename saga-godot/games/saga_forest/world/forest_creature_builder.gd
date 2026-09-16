@@ -81,6 +81,7 @@ func _ready() -> void:
 	for c: Dictionary in CREATURES:
 		var inst: CharacterBody3D = ForestCreature.new()
 		inst.name = c.id
+		inst.add_to_group("codex_discoverable")
 		add_child(inst)
 		var den_grid: Vector2i = c.den
 		var den_world: Vector3 = ForestMap.world_pos(den_grid.x, den_grid.y)

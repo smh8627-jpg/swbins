@@ -2746,7 +2746,7 @@ Combat Core 생성
 - **C 손맛(다섯 판 공용 `saga_core/combat_feel.gd` 신설)**: `hit(target, amount, crit)` 한 호출이 5요소를 발생시킨다 — ① hitstop `Engine.time_scale` 0.05 로 70ms(치명 120ms, STORY `trigger_hitstop` 을 여기로 승격) ② 카메라 `SpringArm3D` 부모에 4px 상당(거리 8m 기준 0.06m) 노이즈 120ms ③ 피격 메시 `albedo_tint` 흰색 80ms(셀셰이더 uniform) ④ 숫자 팝 `Label3D` 0.6s 위로 0.8m·크리티컬 1.4배 ⑤ 타격음 3종 라운드로빈(`AudioStreamPlayer3D`, 67장 구조 채우기). 진단: 임시 씬에서 `hit()` 1회 → 5요소 신호 5개.
 - **C 애니 블렌딩**: `AnimationTree` 1D 블렌드(idle 0 · walk 2.5 · run 5.5 m/s), 공격 OneShot fade 0.05/0.1, 피격 OneShot 0.2. 현재 Kenney character 는 애니 없음 → 103장 Mixamo 리타겟 뒤에 켠다.
 - **G 성장 가시화**: 등급별 **보이는 것 1개** — 무기 메시 스왑(tier1~4 GLB 4종, 103장 kitbash 로 생성) · 등급 색 외곽선(102장 아웃라인 색을 등급 팔레트로) · 이펙트(전설 = 잔광 파티클 1). 인물 등용 시 부대 뒤를 따르는 동행 실루엣(GO·DUNGEON). 진단: 등급 1→4 스냅샷 4장 비교.
-- **E 발견 밀도**: `codex_state.gd` TOTAL 을 지역 격자와 대조하는 헬퍼 `density_report(region_id)` — 60m(GO 격자 48m 기준 1.25칸) 반경 빈 격자 비율을 헤드리스로 출력. 10% 넘으면 그 지역에 콘텐츠를 더 넣는다(웹 §3-E 진단과 같은 수치).
+- **E 발견 밀도**: `saga_core/world/density_report.gd`(순수 격자 계산, GO·FOREST 공용 — 104-5 에서 codex_state.gd 소속으로 뒀던 걸 FOREST 도 그대로 쓰게 여기로 옮겼다) — 60m(GO 격자 48m 기준 1.25칸) 반경 빈 격자 비율을 헤드리스로 출력. 10% 넘으면 그 지역에 콘텐츠를 더 넣는다(웹 §3-E 진단과 같은 수치).
 
 ## 101-4. 이식 공통 순서
 
@@ -2921,6 +2921,7 @@ assets/generated/
 - **Q-c 후보 폴더 삭제**: `assets/_candidates_66-2/kaykit_medieval_hex/`(불채택) 를 지울 것인가.
 - **Q-d 사람 몫 셋**: Quaternius Stylized Nature 다운로드, Mixamo 애니 다운로드, VRoid 조형(주역 몇 명) — 언제 해 줄 수 있는가. 이게 없으면 102·103 은 팔레트 스냅·procgen 까지만 간다.
 - **Q-e 빌드 도구 공유**: `tools/asset-forge/` 를 다섯 판·두 트랙이 함께 써도 되는가("코드 공유 없음" 원칙은 게임 코드에 한정한다고 해석 — 확인 필요).
+- **Q-f FOREST 발견 밀도 기준**(104-5 실측): GO 격자(48m 타일)에 맞춘 60m 반경이 FOREST 지도(90m×60m, 3m 타일)엔 너무 커서 아무 데서나 0% 가 나온다(무의미). FOREST 는 더 작은 반경(예: 15~20m)으로 따로 잡을지, 격자 밀도 대신 다른 잣대(집 사이 평균 거리 등)를 쓸지.
 
 ---
 

@@ -1618,9 +1618,10 @@ func try_load() -> bool:
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return false
-	var data: Dictionary = parsed
-	if int(data.get("version", 0)) != SAVE_VERSION:
+	var migrated: Variant = _migrate(parsed)
+	if migrated == null:
 		return false
+	var data: Dictionary = migrated
 
 	scenario_id = String(data.get("scenario_id", "194"))
 	if not RealmCities.SCENARIO_CAO_CITIES.has(scenario_id):
@@ -1660,3 +1661,27 @@ func try_load() -> bool:
 	result = String(data.get("result", ""))
 	_done_this_month.clear()
 	return true
+
+
+## GO의 save_state.gd::_migrate()와 같은 계약. 지금까지 SAVE_VERSION을
+## 올린 1~13단계는 필드 추가뿐이고 try_load()가 전부 .get(key, 기본값)으로
+## 읽으므로, 여기 단계들은 실제 변환 없이 버전 숫자만 올려 통과시킨다
+## (필드 이름을 바꾸거나 옮기는 변경이 생기면 그 단계에 변환을 추가한다).
+func _migrate(data: Dictionary) -> Variant:
+	var version := int(data.get("version", 0))
+	while version < SAVE_VERSION:
+		var stepped: Variant = _migrate_step(version, data)
+		if stepped == null:
+			return null
+		data = stepped
+		version = int(data.get("version", version + 1))
+	if version > SAVE_VERSION:
+		return null
+	return data
+
+
+func _migrate_step(from_version: int, data: Dictionary) -> Variant:
+	if from_version < 1 or from_version >= SAVE_VERSION:
+		return null
+	data["version"] = from_version + 1
+	return data

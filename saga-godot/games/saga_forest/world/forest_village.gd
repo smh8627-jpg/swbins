@@ -7,6 +7,7 @@ extends Node3D
 
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
 
 var _player: Node3D = null
 
@@ -21,6 +22,30 @@ func _ready() -> void:
 	var e := ForestFestival.event_of_today()
 	if not e.is_empty():
 		Toast.show(self, "🎊 %s — %s" % [e.name, e.hello], 4.0)
+
+	if OS.get_environment("SAGA_DENSITY_REPORT") != "":
+		_print_density_report()
+
+
+## PLAN.md 104-5 — 발견 밀도(§3-E), GO test_village.gd `_print_density_report()`와
+## 같은 계약. FOREST엔 GO의 codex "discover" 갈래가 없어(루트 CLAUDE.md
+## 원칙대로 다섯 판을 억지로 맞추지 않는다), "codex_discoverable" 그룹을
+## 집·주민 5·낚시터·박물관·바이옴 생물의 실제 배치 지점으로 대신 채운다
+## (villager_builder.gd·forest_house.gd·fishing_spot.gd·museum.gd·
+## forest_creature_builder.gd). 평소엔 안 돌린다 — 회귀 md5 흔들림 방지.
+func _print_density_report() -> void:
+	var density := load("res://saga_core/world/density_report.gd")
+	var size: Vector2i = ForestMap.size()
+	var tile: float = ForestMap.TILE_SIZE
+	var half_w := size.x * 0.5 * tile
+	var half_h := size.y * 0.5 * tile
+	var points: Array = []
+	for node in get_tree().get_nodes_in_group("codex_discoverable"):
+		var p: Vector3 = (node as Node3D).global_position
+		if abs(p.x) <= half_w and abs(p.z) <= half_h:
+			points.append(Vector2(p.x / tile + size.x * 0.5, p.z / tile + size.y * 0.5))
+	var report: Dictionary = density.report(size, tile, points, 60.0)
+	print("DENSITY village total=%d empty=%d empty_pct=%.1f" % [report.total, report.empty, report.empty_pct])
 
 
 func _process(_delta: float) -> void:

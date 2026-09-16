@@ -110,6 +110,7 @@ func _add_discovery_area(codex_id: String, pos: Vector3, parent: Node3D) -> void
 	cs.shape = shape
 	area.add_child(cs)
 	area.position = pos
+	area.add_to_group("codex_discoverable")
 	parent.add_child(area)
 	area.body_entered.connect(func(body: Node3D) -> void:
 		if body.is_in_group("player"):

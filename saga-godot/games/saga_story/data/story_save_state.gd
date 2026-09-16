@@ -518,9 +518,10 @@ func try_load() -> bool:
 	var parsed: Variant = JSON.parse_string(f.get_as_text())
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return false
-	var data: Dictionary = parsed
-	if int(data.get("version", 0)) != SAVE_VERSION:
-		return false  # 스키마가 하나뿐이라 마이그레이션 체인 없이 그냥 포기
+	var migrated: Variant = _migrate(parsed)
+	if migrated == null:
+		return false
+	var data: Dictionary = migrated
 
 	level = int(data.get("level", 1))
 	exp = int(data.get("exp", 0))
@@ -571,3 +572,27 @@ func try_load() -> bool:
 func _find_player() -> Node3D:
 	var found := get_tree().get_nodes_in_group("player")
 	return found[0] if found.size() > 0 else null
+
+
+## GO의 save_state.gd::_migrate()와 같은 계약. 지금까지 SAVE_VERSION을
+## 올린 1~14단계는 필드 추가뿐이고 try_load()가 전부 .get(key, 기본값)으로
+## 읽으므로, 여기 단계들은 실제 변환 없이 버전 숫자만 올려 통과시킨다
+## (필드 이름을 바꾸거나 옮기는 변경이 생기면 그 단계에 변환을 추가한다).
+func _migrate(data: Dictionary) -> Variant:
+	var version := int(data.get("version", 0))
+	while version < SAVE_VERSION:
+		var stepped: Variant = _migrate_step(version, data)
+		if stepped == null:
+			return null
+		data = stepped
+		version = int(data.get("version", version + 1))
+	if version > SAVE_VERSION:
+		return null
+	return data
+
+
+func _migrate_step(from_version: int, data: Dictionary) -> Variant:
+	if from_version < 1 or from_version >= SAVE_VERSION:
+		return null
+	data["version"] = from_version + 1
+	return data

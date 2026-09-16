@@ -46,6 +46,7 @@ var _player: Node3D = null
 func _ready() -> void:
 	var ground: float = TerrainBuilder.LEGEND["."].height
 	position = ForestMap.world_pos(GRID.x, GRID.y) + Vector3(0, ground + 0.02, 0)
+	add_to_group("codex_discoverable")
 
 	## 연못은 primitive다 — 어울리는 CC0 GLB가 없어서가 아니라, 이번엔
 	## "낚시터 하나"만 필요하지 아직 물가 바이옴 자체(§4 "제외" 목록 7번,

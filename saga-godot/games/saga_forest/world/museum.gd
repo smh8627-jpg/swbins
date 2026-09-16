@@ -38,6 +38,7 @@ var _last_greet_ms := -GREET_GAP_SEC * 1000.0
 func _ready() -> void:
 	var ground: float = TerrainBuilder.LEGEND["."].height
 	position = ForestMap.world_pos(GRID.x, GRID.y) + Vector3(0, ground, 0)
+	add_to_group("codex_discoverable")
 
 	## 이 판에 어울리는 CC0 건물 조각이 없어 primitive로 표시한다(집
 	## (wall-block.glb)만큼 공을 들일 자리는 아니라고 판단 — gatherable_

@@ -124,6 +124,7 @@ func _spawn(v: Dictionary) -> void:
 	var root := Node3D.new()
 	root.name = "Villager_%s" % v.id
 	root.position = ForestMap.world_pos(v.grid.x, v.grid.y) + Vector3(0, ground, 0)
+	root.add_to_group("codex_discoverable")
 	add_child(root)
 
 	root.add_child(_build_body(v.glb))
