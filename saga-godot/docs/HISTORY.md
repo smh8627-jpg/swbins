@@ -7168,3 +7168,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_combatfeel.gd/.tscn`, 커밋 전 지움): PLAN 101-3이 요구한 "hit() 1회 → 5요소 신호 5개"를 신호 카운트로 확인(첫 시도에 GDScript 람다 값 캡처 함정 — test_room.gd ChoicePrompt와 같은 문제 — 에 걸려 배열로 우회), 실제 부수효과(time_scale 0.05→1.0 복귀·머티리얼 흰색→원색 복귀·카메라 위치 흔들림→원점 복귀·Label3D 생성·라운드로빈 인덱스 증가)를 `OS.delay_msec(200)`으로 실제 벽시계 시간을 흘려보낸 뒤 확인 — 3회 재현 동일, fails=0.
 - `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(8853fee5 — 새 오토로드가 부팅 로그를 바꿔 ①·②의 039016ed와는 다르지만 3회는 서로 일치)·error/warn 0. GO `TestVillage.tscn` 스모크도 오류 0(새 전역 오토로드가 다른 판을 안 깨뜨리는지 확인).
 - 다음: PLAN 101-2 DUNGEON ④부적 던전 — 표 순서대로.
+
+## PLAN 101-2 DUNGEON ④후보 "부적 던전" (2026-09-17, 새 세션에서 이어서, "새로운 세션에서 이어하자")
+- saga-web/saga-dungeon/PLAN.md §5.3 "나이트메어 티어와 변형자"를 옮겼다. 웹 원안("굴혈 앞에서 고르면 방 5개짜리 새 층이 열린다, 보스 없음")은 이 슬라이스에 "층 생성/내려가기" 자체가 없어(고정 방 7개 한 씬, test_room.gd) 그대로 못 옮긴다 — 새 층을 만드는 대신 **지금 있는 7개 방 전체를 부적을 켠 채로 다시 돈다**로 재해석했다(경위는 dungeon_sigil_state.gd 파일 헤더 — 축복 3택 세션과 같은 판단 결).
+- `dungeon_sigil_state.gd` 신규(오토로드 DungeonSigilState) — 부적 {id,tier,mods,resist_el}, 티어 T면 적 배율 1+0.35T·보상(금) 배율 1+0.25T(+treasure 모드 시 추가 1.5배), 클리어 시 60%로 T+1 부적. 변형자는 core.hash2 대신 id로 시드한 결정적 Fisher-Yates 셔플(Array.shuffle()은 전역 RNG라 시드를 못 줘 손수 구현)로 2~3개. 인벤 상한 20(초과 시 최고참부터 버림, active_index도 같이 보정).
+- **변형자 6종만 옮겼다**(원안 9종 중 방 단위 75초 제한 — "방 클리어" 판정 자체가 없다·항아리 스폰 — 순수 장식·어둠 — 조명 조작이라 헤드리스 검증이 어려움, 셋은 뺐다): swift(적 이동+30%, dungeon_enemy.gd _physics_process)·elite_double(정예 확률 2배, _init)·treasure(금 추가 1.5배, loot_pickup.gd)·regen(모든 적 HP 초당 1%, _tick_regen — "되살아나는" 정예 값이 더 세면 그쪽 유지)·resist_boost(지정 원소 저항+40, resist_pct)·glass_cannon(공격력+50%·받는피해+50%, dungeon_run_state.gd _sum_eff() 여섯 번째 채널 — DungeonSigilState.world_eff_sum()).
+- `loot_pickup.gd::_spawn_sigil()` 신규 — 보스 처치 시 50%(BOSS_SIGIL_DROP_CHANCE, 직접 정함 — 원작 "층 10+" 문턱이 보스 둘뿐인 이 슬라이스엔 안 맞는다) 확률로 드랍, 티어=floor_num 그대로(add_sigil()이 1~10 clamp). `test_room.gd::_finish_exit()`에 clear_run() 훅 — 마지막 방(is_final)에 부적을 켠 채로 닿으면 처리하고 토스트.
+- `sigil_button.gd` 신규(HUD, hardcore_button.gd와 같은 경계) — 보유 중 최고 티어 부적을 확인창으로 켠다(ChoicePrompt 재사용), 켜진 뒤엔 결사처럼 마지막 방까지 못 끈다(activate()가 이미 켜진 동안 재시도를 거부). DungeonHUD.tscn 맨 끝(offset_top -6740, 기존 버튼 스택 끝 -6660 다음)에 배치.
+- `dungeon_save_state.gd`에 sigils·sigil_active·sigil_best·sigil_next_id 필드 추가(순수 추가, 버전 안 올림) — id 발급 카운터도 저장해야 재접속 후 부적 id(따라서 결정적 변형자 조합)가 안 겹친다.
+- 자가진단(임시 `_diag_sigil.gd/.tscn`, 커밋 전 지움) — 12가지 확인: 결정적 변형자·활성화 배타성(이미 켜진 동안 재활성화 거부)·유리대포 world_eff 실측(atk_mult 1.5·guard_mult 1.5)·적 배율(티어4→2.4배, 정예 굴림과 안 섞이게 비정예 나올 때까지 재시도)·재생(1초에 1%)·저항(지정 원소만 +40)·정예 확률 2배(통계 3000회씩, 2배 근사)·금 배율(치어2+treasure=2.25)·clear_run 상태 정리·인벤 상한 20(최고참 축출)·저장 왕복. 첫 시도에 정예 랜덤과 안 맞물린 1회 우연 실패를 재시도 로직으로 고침 — 5회 재현 전부 fails=0.
+- `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(e78cfc9e — 새 오토로드로 ③과 다르지만 3회는 일치)·error/warn 0, project.godot는 DungeonSigilState 오토로드 등록 한 줄만.
+- 다음: PLAN 101-2 DUNGEON ⑤난입 — 표 순서대로.

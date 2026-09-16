@@ -62,6 +62,7 @@ const GOLD_COLOR := Color(1.0, 0.84, 0.2)
 const POTION_COLOR := Color(0.75, 0.22, 0.17) # potion.js KINDS.heal.color '#c0392b' 그대로
 const SCROLL_COLOR := Color(0.56, 0.78, 1.0)
 const GRAVE_COLOR := Color(0.35, 0.32, 0.42) # PLAN 101-2 DUNGEON ②(유품) — 직접 정함, 다른 노획과 안 헷갈리는 어두운 보라회색
+const SIGIL_COLOR := Color(0.55, 0.18, 0.62) # PLAN 101-2 DUNGEON ④(부적 던전) — 직접 정함, 보라 계열(나이트메어 느낌)
 
 
 ## test_room.gd 'cave' 방(채광, POI: Cave) 전용 — dungeon.js dropMat()을
@@ -120,12 +121,21 @@ static func spawn_at(parent: Node, pos: Vector3, ilvl: int, is_boss: bool = fals
 		_spawn_potion(parent, pos + Vector3(0.6, 0, -0.6), ilvl)
 	if randf() < (BOSS_SCROLL_DROP_CHANCE if is_boss else SCROLL_DROP_CHANCE):
 		_spawn_scroll(parent, pos + Vector3(-0.6, 0, 0.6))
+	## PLAN 101-2 DUNGEON ④(부적 던전, 2026-09-17) — 웹 5.3 "층 10+ 보스"
+	## 드랍을 옮기되, 이 슬라이스는 보스가 둘(3층·6층)뿐이라 층 문턱 없이
+	## 보스마다 확률로 낸다(BOSS_SIGIL_DROP_CHANCE, 직접 정함). 티어는
+	## floor_num을 그대로 쓴다(원작 "10+" 문턱이 이 슬라이스엔 안 맞아
+	## 직접 정한 매핑 — dungeon_sigil_state.gd 헤더 참고).
+	if is_boss and randf() < DungeonSigilState.BOSS_SIGIL_DROP_CHANCE:
+		_spawn_sigil(parent, pos + Vector3(0, 0, -0.9), ilvl)
 
 
 ## dungeon.js dropGold()의 mul 인자 그대로(잡졸 1·보스 5) — 은사+장비
-## goldPct까지 DungeonRunState.gold_mult()가 이미 합산해 준다.
+## goldPct까지 DungeonRunState.gold_mult()가 이미 합산해 준다. PLAN 101-2
+## DUNGEON ④(부적 던전) — 부적이 켜져 있으면 DungeonSigilState.gold_mult()
+## (티어 배율+"treasure" 모드)까지 한 번 더 곱한다.
 static func _spawn_gold(parent: Node, pos: Vector3, floor_num: int, mul: float = 1.0) -> void:
-	var amount := int(roundf(5.0 * pow(1.19, float(floor_num) - 1.0) * DungeonRunState.gold_mult() * mul))
+	var amount := int(roundf(5.0 * pow(1.19, float(floor_num) - 1.0) * DungeonRunState.gold_mult() * mul * DungeonSigilState.gold_mult()))
 	if amount <= 0:
 		return
 
@@ -249,6 +259,24 @@ static func spawn_grave_at(parent: Node, pos: Vector3) -> void:
 			var gold: int = int(DungeonGraveState.grave.get("gold", 0))
 			DungeonGraveState.claim()
 			Toast.show(area, "💀 유품 회수 — 금 +%d, 장비를 되찾았다." % gold, TOAST_SEC)
+			area.queue_free()
+	)
+
+
+## PLAN 101-2 DUNGEON ④(부적 던전, 2026-09-17) — 보스 드랍 전용. `ilvl`은
+## 호출부(spawn_at())에서 그대로 넘어온 floor_num — dungeon_sigil_state.gd
+## 헤더가 적어 둔 대로 층 번호를 그대로 티어에 쓴다(add_sigil()이 1~10
+## 으로 자체 clamp한다).
+static func _spawn_sigil(parent: Node, pos: Vector3, tier: int) -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.32
+	mesh.height = 0.64
+	var area := _pickup_area("SigilPickup", pos, SIGIL_COLOR, mesh)
+	parent.add_child(area)
+	area.body_entered.connect(func(body: Node3D) -> void:
+		if body.is_in_group("player"):
+			var s := DungeonSigilState.add_sigil(tier)
+			Toast.show(area, "🔺 부적 획득 · 티어 %d(%s)" % [int(s.get("tier", tier)), ", ".join(s.get("mods", []) as Array)], TOAST_SEC)
 			area.queue_free()
 	)
 

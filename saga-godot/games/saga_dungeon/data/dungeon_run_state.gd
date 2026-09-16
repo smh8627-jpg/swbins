@@ -157,7 +157,9 @@ func restore(saved: Dictionary) -> void:
 ## 은사+장비+부대+무예를 자동으로 같이 반영한다. 2026-09-15, 51장
 ## "장비→빌드"의 무예 "buff"(m_rally 등)를 위해 다섯 번째로 `_temp_buffs`
 ## (잠깐짜리, 아래 정의)를 더했다 — 나머지 넷과 달리 시간이 지나면
-## 저절로 빠진다.
+## 저절로 빠진다. 2026-09-17, PLAN 101-2 DUNGEON ④(부적 던전)에서
+## DungeonSigilState를 여섯 번째로 이어 붙였다 — "유리대포" 부적이 켜져
+## 있을 때만 atkPct/guardPct에 반응한다.
 func _sum_eff(eff_key: String) -> float:
 	var total := 0.0
 	for key in boons:
@@ -167,6 +169,10 @@ func _sum_eff(eff_key: String) -> float:
 	total += DungeonEquipmentState.world_eff_sum(eff_key)
 	total += DungeonPartyState.world_eff_sum(eff_key)
 	total += DungeonSkillState.world_eff_sum(eff_key)
+	## PLAN 101-2 DUNGEON ④(부적 던전, 2026-09-17) — "유리대포" 모드가
+	## 뽑힌 부적이 켜져 있을 때만 atkPct/guardPct에 반응(dungeon_sigil_
+	## state.gd 참고). 여섯 번째 자리.
+	total += DungeonSigilState.world_eff_sum(eff_key)
 	var buf: Dictionary = _temp_buffs.get(eff_key, {})
 	if not buf.is_empty() and Time.get_ticks_msec() < int(buf.until_msec):
 		total += float(buf.v)

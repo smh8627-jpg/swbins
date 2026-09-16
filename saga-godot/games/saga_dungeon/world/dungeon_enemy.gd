@@ -34,6 +34,13 @@ extends CharacterBody3D
 ## 몸집(r 13→16)·색·효과 하나(속도·완력·저항·재생·가시·분열)가 붙고,
 ## `loot_pickup.gd`가 확정 드랍(이미 이 슬라이스는 잡졸도 확정이라 변화 없음)
 ## ·금 배율(2.2×)·아이템레벨 보너스(+14)·단약 확률(34%)을 정예 갈래로 받는다.
+##
+## **부적 던전(符籍, 2026-09-17, PLAN 101-2 DUNGEON ④)** — `DungeonSigilState`
+## 가 부적이 켜져 있을 때만 반응하는 다섯 자리를 이 파일에 얹었다:
+## 정예 확률(`_init`)·HP·공격력 배율(`_init` 끝, 한 자리에서 둘 다)·
+## 이동 속도(`_physics_process`)·재생(`_tick_regen`)·저항(`resist_pct`).
+## 전부 부적이 안 켜져 있으면(has_mod()가 false) 조용히 아무 효과가 없다
+## — 새 분기가 아니라 기존 값에 배율 하나씩만 더 곱하는 자리다.
 
 signal died
 
@@ -108,7 +115,12 @@ func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_el
 	_scale_mul = BOSS_SCALE if boss else 1.0
 	max_hp = roundf(24.0 * pow(1.26, floor_num - 1) * (7.0 if boss else 1.0))
 	attack_damage = roundf(5.0 * pow(1.20, floor_num - 1) * (2.2 if boss else 1.0))
-	if not boss and not shade and (force_elite or randf() < _elite_chance(floor_num)):
+	## PLAN 101-2 DUNGEON ④(부적 던전, 2026-09-17) — "정예 2배" 부적이
+	## 켜져 있으면 정예 확률만 두 배(상한 90%, 완전 확정은 안 만든다).
+	var elite_chance := _elite_chance(floor_num)
+	if DungeonSigilState.has_mod("elite_double"):
+		elite_chance = minf(0.9, elite_chance * 2.0)
+	if not boss and not shade and (force_elite or randf() < elite_chance):
 		_elite_def = ELITES[randi() % ELITES.size()]
 		elite_key = str(_elite_def.key)
 		max_hp = roundf(max_hp * float(_elite_def.get("hp", 1.35)))
@@ -121,6 +133,13 @@ func _init(floor_num: int = 1, boss: bool = false, shade: bool = false, force_el
 		max_hp = maxf(1.0, roundf(max_hp * 0.34))
 		attack_damage = roundf(attack_damage * 0.6)
 		_scale_mul = SHADE_SCALE
+	## PLAN 101-2 DUNGEON ④(부적 던전) — "적 배율 1+0.35×T"를 정예·그림자
+	## 배율까지 다 곱해진 마지막에 한 번 더 곱한다(원작 순서와 같은 자리 —
+	## 티어 배율은 전부를 함께 키운다).
+	var sigil_mul := DungeonSigilState.enemy_stat_mult()
+	if sigil_mul != 1.0:
+		max_hp = roundf(max_hp * sigil_mul)
+		attack_damage = roundf(attack_damage * sigil_mul)
 	hp = max_hp
 
 
@@ -177,8 +196,10 @@ func _physics_process(delta: float) -> void:
 			_attack_player()
 	elif dist <= DETECT_RADIUS:
 		## dungeon.js "* (elite.spd||1) * chill" 그대로 — 정예 속도 배율에
-		## 빙결 감속(_slow_mult)까지 곱한다.
-		velocity = to_player.normalized() * CHASE_SPEED * float(_elite_def.get("spd", 1.0)) * _slow_mult
+		## 빙결 감속(_slow_mult)까지 곱한다. PLAN 101-2 DUNGEON ④(부적
+		## 던전) — "swift" 부적이 켜져 있으면 +30%를 한 번 더 곱한다.
+		var sigil_speed_mul := 1.3 if DungeonSigilState.has_mod("swift") else 1.0
+		velocity = to_player.normalized() * CHASE_SPEED * float(_elite_def.get("spd", 1.0)) * _slow_mult * sigil_speed_mul
 	else:
 		velocity = Vector3.ZERO
 	move_and_slide()
@@ -209,6 +230,11 @@ func _tick_dots(delta: float) -> void:
 ## 없어 0으로 조회돼 그냥 지나간다).
 func _tick_regen(delta: float) -> void:
 	var rate: float = float(_elite_def.get("regen", 0.0))
+	## PLAN 101-2 DUNGEON ④(부적 던전) — "regen" 부적은 정예 여부와 무관
+	## 하게 모든 적에게 초당 1%를 준다("되살아나는" 정예의 기존 값이 더
+	## 세면 그쪽을 그대로 쓴다 — 더 센 쪽 유지).
+	if DungeonSigilState.has_mod("regen"):
+		rate = maxf(rate, 0.01)
 	if rate <= 0.0 or hp >= max_hp:
 		return
 	hp = minf(max_hp, hp + max_hp * rate * delta)
@@ -259,8 +285,14 @@ func apply_elem_dot(dps: float, secs: float) -> void:
 	_dots.append({"dps": dps, "t": secs})
 
 
+## PLAN 101-2 DUNGEON ④(부적 던전) — "resist_boost" 부적은 그 부적이
+## 결정적으로 고른 한 원소(dungeon_sigil_state.gd::resist_boost_el())
+## 에만 +40을 더한다.
 func resist_pct(kind: String) -> float:
-	return clampf(float(resist.get(kind, 0.0)), 0.0, DungeonItems.RESIST_CAP)
+	var base := float(resist.get(kind, 0.0))
+	if DungeonSigilState.has_mod("resist_boost") and kind == DungeonSigilState.resist_boost_el():
+		base += 40.0
+	return clampf(base, 0.0, DungeonItems.RESIST_CAP)
 
 
 ## dungeon.js strike()의 "if (elS && elS.thorn && e.hp > 0) { hurtPlayer(...) }"

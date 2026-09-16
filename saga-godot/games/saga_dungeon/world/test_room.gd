@@ -378,6 +378,14 @@ func _finish_exit(body: Node3D, room_index: int, is_final: bool) -> void:
 	var cls_key := DungeonItems.class_key_for_weapon(DungeonEquipmentState.weapon)
 	DungeonSkillState.award_point(cls_key)
 	DungeonSaveState.mark_room_cleared(room_index)
+	## PLAN 101-2 DUNGEON ④(부적 던전, 2026-09-17) — 이 슬라이스의 "클리어"
+	## = 마지막 방(is_final)에 부적을 켠 채로 닿았을 때(dungeon_sigil_
+	## state.gd::clear_run() 헤더 참고). 저장 앞에 둬야 다음 티어 부적이
+	## 나왔으면 그것도 같이 저장된다.
+	if is_final and DungeonSigilState.is_active():
+		var cleared_tier: int = int(DungeonSigilState.active_sigil().get("tier", 0))
+		DungeonSigilState.clear_run()
+		Toast.show(self, "🔺 부적 던전(티어 %d) 완주 — 부적이 꺼졌다." % cleared_tier, 5.0)
 	DungeonSaveState.save(body)
 	if is_final:
 		Toast.show(self, "이번 슬라이스는 여기까지 — 저장했다.", 5.0)

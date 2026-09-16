@@ -89,6 +89,7 @@
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/dash_marshal2_button.gd" id="87"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/bolt_archer6_button.gd" id="88"]
 [ext_resource type="Script" path="res://games/saga_dungeon/ui/nova_archer2_button.gd" id="89"]
+[ext_resource type="Script" path="res://games/saga_dungeon/ui/sigil_button.gd" id="90"]
 
 [node name="DungeonHUD" type="CanvasLayer"]
 
@@ -1283,3 +1284,16 @@ offset_bottom = -6590.0
 text = "🌧️"
 theme_override_font_sizes/font_size = 30
 script = ExtResource("89")
+
+[node name="SigilButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -6740.0
+offset_right = -40.0
+offset_bottom = -6670.0
+text = "🔻0"
+theme_override_font_sizes/font_size = 30
+script = ExtResource("90")

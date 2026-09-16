@@ -97,6 +97,12 @@ func save(player: Node3D) -> void:
 		## PLAN 101-2 DUNGEON ②(유품, 2026-09-17) — 순수 추가 필드(버전 안
 		## 올림). {} 면 유품 없음(dungeon_grave_state.gd 참고).
 		"grave": DungeonGraveState.grave,
+		## PLAN 101-2 DUNGEON ④(부적 던전, 2026-09-17) — 순수 추가 필드
+		## (버전 안 올림). dungeon_sigil_state.gd 참고.
+		"sigils": DungeonSigilState.sigils,
+		"sigil_active": DungeonSigilState.active_index,
+		"sigil_best": DungeonSigilState.best_tier_cleared,
+		"sigil_next_id": DungeonSigilState.next_id_for_save(),
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -176,6 +182,15 @@ func try_load() -> bool:
 		skill_ranks if typeof(skill_ranks) == TYPE_DICTIONARY else {})
 	var grave: Variant = data.get("grave", {})
 	DungeonGraveState.restore(grave if typeof(grave) == TYPE_DICTIONARY else {})
+	var sigils: Variant = data.get("sigils", [])
+	var sigil_active: Variant = data.get("sigil_active", -1)
+	var sigil_best: Variant = data.get("sigil_best", 0)
+	var sigil_next_id: Variant = data.get("sigil_next_id", 1)
+	DungeonSigilState.restore(
+		sigils if sigils is Array else [],
+		int(sigil_active) if (typeof(sigil_active) == TYPE_INT or typeof(sigil_active) == TYPE_FLOAT) else -1,
+		int(sigil_best) if (typeof(sigil_best) == TYPE_INT or typeof(sigil_best) == TYPE_FLOAT) else 0,
+		int(sigil_next_id) if (typeof(sigil_next_id) == TYPE_INT or typeof(sigil_next_id) == TYPE_FLOAT) else 1)
 	return true
 
 
