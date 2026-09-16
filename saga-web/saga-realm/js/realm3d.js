@@ -1096,7 +1096,11 @@
     toggle: toggle,
     rebuild: rebuild,
     panBy: panBy,
-    panTo: panTo
+    panTo: panTo,
+    /* SAGA-DESIGN §7-2 "3D 진단 공백" — three 없이도 도는 순수 함수라 _test.html 이 부른다 */
+    elevAt: elevAt,
+    straitFactor: straitFactor,
+    isSea: isSea
   };
 
   /* 세력이 바뀌거나(정벌·외교) 달이 넘어가면 다시 짓는다 — 켜져 있을 때만.

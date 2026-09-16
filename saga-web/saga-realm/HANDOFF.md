@@ -1040,3 +1040,34 @@ proverb·sense·mz 180문항은 해당 없음)에도 이름 정책을 적용할�
 사가블로 → 사가의숲 → 사가스토리 → 사가국지).
 
 **검증** — `node -c` 통과, `bash tools/precheck.sh saga-web/saga-realm` → PRECHECK OK.
+
+## 2026-09-17 — SAGA-DESIGN §7-2 "3D 진단 공백" 순수 함수 2항목 추가
+
+`_test.html`이 `realm3d.js`·`battle3d.js`·`asset3d.js`를 안 실어 3D 쪽 순수 함수가 진단
+0항목이던 것을 메꿨다. `formationOf`(`war.js`)는 이미 `_test.html`에 진단 3항목이 있어
+그대로 뒀다(PLAN §7-2 옛 문구가 착오였다).
+
+**`js/realm3d.js`** — `elevAt`·`straitFactor`·`isSea`를 `global.DG.realm3d` export
+객체에 추가(전엔 내부 전용이었다, 셋 다 순수 함수라 export 만으로 끝 — 로직은 안 건드림).
+
+**`_test.html`** — `index.html`과 같은 순서로 `vendor/three.iife.js`·`toon3d.js`·
+`asset3d.js`(sfx.js 뒤, account.js 앞)·`realm3d.js`(ai.js 뒤, ui-rtk.js 앞) 추가.
+`game.js`도 이미 실려 있었지만 `DG_NO_DRAW=true`라 `realm3d.init()` 등 실제 WebGL
+초기화는 여전히 안 돈다 — 스크립트만 얹었을 뿐 진단 부팅 흐름은 그대로다.
+
+새 진단 2항목:
+- `elevAt`/`straitFactor`/`isSea` — 김해↔대마도 해협(`STRAITS` 목록 첫 구간) 정중앙 세계
+  좌표에서 `straitFactor`가 정확히 1(순수 기하 계산이라 노이즈 무관), `elevAt`이 정확히
+  `SEA_LEVEL - STRAIT_DEPTH = -28`(f=1일 때 지형 노이즈가 완전히 상쇄됨), `isSea`가 true.
+  대조로 아주 먼 뭍 좌표에서 `straitFactor`가 정확히 0. 전부 해시 노이즈와 무관하게
+  대수적으로 결정되는 값이라 mulberry32 씨앗과 상관없이 항상 같은 결과.
+- `mapClips` — 다른 판(사가고·사가의숲)과 같은 표를 그대로 검증(뒤섞인 이름 4개가 제
+  자리를 찾는지, 빈 목록이 빈 표 — `alias` 키만 남는 것까지 확인).
+
+**검증** — `node -c js/realm3d.js js/asset3d.js` 통과. `_test.html` 스크립트 순서를
+`index.html`과 대조해 `three.iife.js`→`asset3d.js`, `core.js`→`realm3d.js` 순서 확인.
+`bash tools/precheck.sh saga-web/saga-realm` → PRECHECK OK(`sw.js` VERSION
+`realm-v1.25.0` → `realm-v1.25.1`, `js/` 변경 경고 해소). 헤드리스 3회 확인은 이번에도
+안 돌렸다(사용자 실기 확인 몫, 다른 판과 같은 이유) — 대신 위 계산은 손으로 대수적으로
+검증했다(f=1일 때 `normal + (seaFloor-normal)*1`이 부동소수 반올림 안에서 `seaFloor`와
+같음, 나머지는 순수 기하라 노이즈가 아예 안 들어감).

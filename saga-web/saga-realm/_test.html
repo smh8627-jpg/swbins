@@ -70,6 +70,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/sprite.js"></script>
 <script src="js/core.js"></script>
 <script src="js/sfx.js"></script>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/toon3d.js"></script>
+<script src="js/asset3d.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
 <script src="js/officer.js"></script>
@@ -80,6 +83,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/quiz.js"></script>
 <script src="js/net.js"></script>
 <script src="js/ai.js"></script>
+<script src="js/realm3d.js"></script>
 <script src="js/ui-rtk.js"></script>
 <script src="js/game.js"></script>
 <script>
@@ -2039,6 +2043,33 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       for (i = 0; i < E.MAX + 5; i++) { arr = E.push(arr, { t: i, msg: 'e' + i }); }
       var ok = arr.length === E.MAX && arr[0].msg === 'e5' && arr[arr.length - 1].msg === ('e' + (E.MAX + 4));
       return ok && (E.MAX + 5) + '건 넣어 ' + arr.length + '건 남음(오래된 것부터 밀림)';
+    });
+
+    t('realm3d — elevAt·straitFactor·isSea 순수 함수 (SAGA-DESIGN §7-2 3D 진단 공백)', function () {
+      var R3 = DG.realm3d, CD = DG.cityData;
+      if (!R3 || typeof R3.straitFactor !== 'function' || !CD) { return false; }
+      var g = CD.find('gimhae'), s = CD.find('tsushima');
+      if (!g || !s) { return false; }
+      var SCALE = 4.5; // realm3d.js worldX()/worldZ() 기본 배율(WORLD_SCALE 손잡이 기본값)
+      var mx = ((g.x + s.x) / 2 - 50) * SCALE, mz = ((g.y + s.y) / 2 - 50) * SCALE;
+      var atStrait = R3.straitFactor(mx, mz);
+      var farAway = R3.straitFactor(-99999, 0);
+      var sea = R3.isSea(mx, mz);
+      var elev = R3.elevAt(mx, mz);
+      var ok = Math.abs(atStrait - 1) < 1e-9 && farAway === 0 && sea === true && Math.abs(elev - (-28)) < 1e-9;
+      return ok && ('김해↔대마도 해협 한복판 straitFactor=' + atStrait.toFixed(2) +
+        ' · elevAt=' + elev + '(바다) · 먼 뭍 straitFactor=' + farAway);
+    });
+
+    t('asset3d — mapClips 순수 함수 (SAGA-DESIGN §7-2 3D 진단 공백)', function () {
+      var A3 = DG.asset3d;
+      if (!A3 || typeof A3.mapClips !== 'function') { return false; }
+      var m = A3.mapClips(['Armature|mixamo.com|Idle_Loop', 'Walk.001', 'Anim_Attack_Slash', 'RunCycle']);
+      var empty = A3.mapClips([]);
+      return m.idle === 'Armature|mixamo.com|Idle_Loop' && m.walk === 'Walk.001' &&
+        m.attack === 'Anim_Attack_Slash' && m.run === 'RunCycle' &&
+        empty.idle === undefined && !!empty.alias &&
+        ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
     });
 
     t('런타임 에러 없음', function () {

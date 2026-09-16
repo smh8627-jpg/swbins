@@ -219,7 +219,7 @@
 ### 7-2. 코드로 닫을 것
 - **오류 수집**: **완료(2026-09-17)** — 새 `js/errlog.js`(`window.onerror`·`unhandledrejection` → localStorage 링버퍼 50건, `index.html` 맨 첫 스크립트), `_admin.html` "오류" 탭(다시 읽기·복사·비우기), `_test.html` `push()` 상한 순수 함수 진단 1항목.
 - **세이브 버전**: **완료(2026-09-17)** — `core.js` `SAVE_VERSION`/`MIGRATIONS`/`migrate()`, 다섯 판 공통 지뢰(사가고에서 먼저 잡음, `SAGA-HANDOFF.md`). `_test.html` "v0(옛) 세이브 로드" 항목은 아직.
-- **3D 진단 공백**: `_test.html` 이 `realm3d.js`·`battle3d.js`·`asset3d.js` 를 안 싣는다(0 항목). WebGL 없이도 돌 수 있는 순수 함수(`elevAt`·`straitFactor`·`isSea`·클립 매칭 `mapClips`·`formationOf` 배치)만 뽑아 항목 6개 추가. 렌더 자체는 실기.
+- **3D 진단 공백**: **대부분 완료(2026-09-17)** — `_test.html`에 `vendor/three.iife.js`·`toon3d.js`·`asset3d.js`·`realm3d.js`를 index.html과 같은 순서로 얹고(`battle3d.js`·`city3d.js`·`portrait3d.js`·`game.js`의 실제 3D 초기화는 `DG_NO_DRAW`로 여전히 안 돈다), WebGL 없이도 도는 순수 함수 진단 2항목 추가 — `realm3d.js`의 `elevAt`·`straitFactor`·`isSea`(새로 export, 김해↔대마도 해협 한복판에서 검증)와 `asset3d.js`의 `mapClips`(다른 판과 같은 표). `formationOf`(`war.js`)는 이미 3항목이 있어 손 안 댐. 렌더 자체(battle3d.js 등)는 여전히 실기 확인 몫.
 - **후처리 실패 시 자동 끔**: **이 판엔 해당 없음** — `realm3d.js`·`battle3d.js`·`city3d.js` 어디에도 `EffectComposer` 류 별도 합성 패스가 없다(`renderer.render()`를 바로 씀, 사가의숲과 같은 사정).
 - **성능 상한**: 폰 픽셀 비율 1.5, 소품 인스턴스 상한(⚙️ "성능" 손잡이 3단 — 지금 등급표 없음 → `realm3d.quality` 신설), 무리 파티클 ≤40.
 - **QA 프리셋**: 7-1 항목마다 `_admin.html` 프리셋 1개(균열 전투·해협 카메라·일기토 강제 등).
