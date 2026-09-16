@@ -209,6 +209,12 @@ script = ExtResource("12")
 grid = Vector2i(6, 4)
 hero_id = "sg_zhugeliang"
 
+[node name="HeroEncounter3" type="Node3D" parent="."]
+script = ExtResource("12")
+grid = Vector2i(5, 5)
+hero_id = "kr_gyebaek"
+region_id = "ruins"
+
 [node name="PetEncounterCheongryong" type="Node3D" parent="."]
 script = ExtResource("15")
 grid = Vector2i(9, 3)

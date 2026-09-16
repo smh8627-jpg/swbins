@@ -6870,3 +6870,13 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - 코드도 다시 읽었다 — `_on_return_entered`(region3_ruins.gd)가 `_on_village_entered`/`_on_harbor_entered`/`_on_ruins_gate_entered`(region2_coast.gd)와 같은 "멤버 변수(`_layer`/`_triggered`)로 닫기" 패턴을 그대로 따르고 있어, 09-16 세션이 잡았던 "선언 후 대입 클로저가 null을 붙잡는" 버그 계열(로컬 변수를 람다가 캡처하는 경우에만 발생)은 애초에 해당되지 않는다 — 표류물·조각배·유물처럼 콜백이 직접 `layer`를 참조해야 하는 자리는 전부 `layer_box := {}` Dictionary 관용구를 이미 쓰고 있었다. 새 상수(RUINS_REGION·RUINS_GATE_GRID·RUINS_ENTRY_GRID·WHALEBONE_ID/GRID/RADIUS·ENTRY_GRID·RETURN_GRID·HARBOR_GATE_GRID·RELIC_ID/GRID/RADIUS) 전부 실제로 쓰이는 것도 확인 — 죽은 상수 없음.
 - **결론: 새로 고칠 것 없음.** 코드 변경 없음(순수 검증) — 임시 스크립트는 사용 후 삭제.
 - **이걸로 사용자 지시 "순서대로 이어해줘"(폐허 콘텐츠 → 포구 빈 칸 → 96·97 재감사) 셋을 전부 돌았다.** 남은 후보: 폐허·포구 둘 다 아직 빈 칸이 있다(폐허는 NPC·짐승 없음, 포구도 9x9 중 다수 미사용), 폐허에 hero_encounter.gd 부류(GO의 "역사 인물" 정체성)를 region_id 지원으로 확장할지도 판단 대상. GUI 실기 확인은 여전히 몰아서 받을 몫.
+
+## 폐허에 세 번째 역사 인물 조우 — hero_encounter.gd region_id 확장 (2026-09-16, 새 세션, "이어해줘")
+
+- 직전 세션이 남긴 후보 중 "폐허에 hero_encounter.gd 부류(GO의 '역사 인물' 정체성)를 region_id 지원으로 확장할지"를 골랐다 — 포구/폐허에 primitive 장식을 더 늘리는 것보다 GO의 실제 정체성(record=역사 인물 조우, 지금까지 딱 2명뿐이었다)에 닿는 구조적 확장이 더 의미 있다고 판단.
+- `hero_encounter.gd`에 `terrain_builder.gd`와 같은 판단으로 `@export var region_id := "village"`를 추가 — `_spawn_visual()`의 두 `TestMap` 호출(`tile_at`/`world_pos`)에 `region_id`를 넘기는 것만으로 끝났다(기본값이 그대로 "village"라 기존 두 인스턴스는 아무 것도 안 바꿔도 이전과 완전히 같다 — 헤드리스 회귀 md5로 확인).
+- `TestVillage.tscn`에 `HeroEncounter3`(grid=(5,5), region_id="ruins", hero_id="kr_gyebaek") 추가 — 폐허(입구·복귀·유물과 모두 96m 이상 떨어짐)에 배치. **인물 선택도 자리에 맞춰 골랐다** — "결사"(決死, 계백 오마주, "오천으로 오만을 맞겠다")는 마지막 항전을 앞둔 장수라 폐허라는 자리와 결이 맞는다.
+- `codex_state.gd` TOTAL record 2→3.
+- 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음(새 입력 액션 없음). GO 회귀 3회 md5 완전 동일(직전 커밋과도 완전 동일 — diff로 직접 대조), 나머지 네 판 오류 0. 임시 씬(`_tmp_verify_hero3.tscn/.gd`, 검증 후 삭제)에서 hero_encounter.gd를 region_id="ruins"로 직접 인스턴스해 5항목 PASS — 격자 타일·ruins 원점 기준 정확한 스폰 위치(지형 높이 포함)·시각 메시 생성·근접 시 `CodexState.discover("record","kr_gyebaek")` 발동·설득 라운드 ChoicePrompt 등장까지.
+- GUI 실기 확인 아직(몰아서 받을 것 — 폐허에서 결사와 실제로 설득 3라운드를 눈으로 확인).
+- 다음: 폐허·포구 둘 다 여전히 빈 칸이 있다. 폐허에 더 채울지(짐승·다른 사건), hero_encounter.gd 확장을 포구에도 적용할지(포구는 아직 역사 인물 조우가 없다), 아니면 PLAN.md 81~94·98~100(실기 필요) 쪽으로 넘어가기 전 실기 확인을 받을지는 다음 세션 판단.

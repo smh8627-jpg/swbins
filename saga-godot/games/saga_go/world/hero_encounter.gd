@@ -38,6 +38,11 @@ const APPEALS := [
 
 @export var grid := Vector2i(7, 6) # 2026-09-11㉒ 지도 확장(+2,+2)
 @export var hero_id := "kr_yisunsin"
+## 2026-09-16, GO 폐허(region3_ruins.gd)에도 역사 인물 조우를 두기 위해
+## 추가 — terrain_builder.gd @export region_id와 같은 판단(기본값
+## "village" 그대로라 기존 두 인스턴스는 아무 것도 안 바꿔도 이전과
+## 완전히 같다, 헤드리스 회귀 md5로 확인).
+@export var region_id := "village"
 
 var _hero: Dictionary
 var _triggered := false
@@ -56,9 +61,9 @@ func _ready() -> void:
 	_spawn_area()
 
 func _spawn_visual() -> void:
-	var ch: String = TestMap.tile_at(grid.x, grid.y)
+	var ch: String = TestMap.tile_at(grid.x, grid.y, region_id)
 	var ground: float = TerrainBuilder.LEGEND[ch].height
-	position = TestMap.world_pos(grid.x, grid.y) + Vector3(0, ground, 0)
+	position = TestMap.world_pos(grid.x, grid.y, region_id) + Vector3(0, ground, 0)
 
 	var mi := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
