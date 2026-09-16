@@ -1,5 +1,8 @@
 extends Node3D
 
+const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+const Perks := preload("res://games/saga_go/data/perks.gd")
+
 ## VERTICAL_SLICE.md 12단계 루프의 마지막 단계 "다시 켜서 이어진다" —
 ## 씬이 다 만들어진 뒤(자식들의 _ready가 먼저 도는 Godot 기본 순서 그대로
 ## 이용) 저장 파일이 있으면 부대·플레이어 위치를 덮어쓴다. 없으면(첫
@@ -30,6 +33,7 @@ func _ready() -> void:
 	QuestState.quest_changed.connect(_refresh_goal_board)
 	CodexState.codex_changed.connect(_refresh_goal_board)
 	PartyState.power_changed.connect(func(_atk: float, _def: float) -> void: _refresh_goal_board())
+	PartyState.level_up.connect(_on_party_level_up)
 	_refresh_goal_board()
 
 
@@ -72,6 +76,29 @@ func _print_density_report() -> void:
 		var walkable := func(x: int, y: int) -> bool: return test_map.tile_at(x, y, region_id) != "^"
 		var report: Dictionary = density.report(size, tile, points, 60.0, walkable)
 		print("DENSITY %s total=%d empty=%d empty_pct=%.1f" % [region_id, report.total, report.empty, report.empty_pct])
+
+## PLAN.md 101-2 GO ②"승급 3택" — 부대가 레벨업할 때마다(웹판의 인물별
+## rank up 대신 이 판 유일한 성장 지점인 부대 레벨을 쓴다) 공/수/보
+## 축에서 하나씩 카드 3장 + 거절을 보여준다. npc_builder.gd
+## `_show_offer_prompt()`와 같은 `layer_box` 관용구(ChoicePrompt 클로저
+## 버그, PLAN.md 104-4 참고) — `opt`는 for 루프 변수라 별개(스냅샷 캡처가
+## 매 반복 제 값을 찍는다는 걸 test_loop_closure.gd로 직접 확인했다).
+func _on_party_level_up(new_level: int) -> void:
+	var options: Array = Perks.roll_three(PartyState.perks)
+	if options.is_empty():
+		return # 풀 12를 이미 다 가졌다 — 더 줄 특성이 없다.
+	var layer_box := {}
+	var choices: Array = []
+	for opt in options:
+		var label := "%s [%s] +%d%%" % [opt.name, Perks.AXIS_LABEL[opt.axis], int(opt.mul * 100.0)]
+		choices.append({"label": label, "cb": func() -> void:
+			PartyState.add_perk(opt.id)
+			(layer_box["layer"] as CanvasLayer).queue_free()})
+	choices.append({"label": "거절한다 (경험치 +%d)" % int(PartyState.REJECT_EXP), "cb": func() -> void:
+		PartyState.add_exp(PartyState.REJECT_EXP)
+		(layer_box["layer"] as CanvasLayer).queue_free()})
+	layer_box["layer"] = ChoicePrompt.build(self, "Lv.%d — 특성을 하나 고른다" % new_level, choices)
+
 
 ## TestVillage 바로 아래 자식 중 이름이 EventState.resolved에 있는
 ## 것들을 치운다. 사건 노드는 전부 이 씬의 직계 자식(BanditEncounter·

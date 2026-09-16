@@ -7096,3 +7096,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `save_button.gd`가 저장 성공 시 마무리 카드(경험치·발견·부대원 수) — GO엔 던전 클리어·월말 같은 뚜렷한 "세션 끝"이 없어 저장을 그 자리로 썼다.
 - `MobileHUD.tscn`에 GoalBoard 노드(우상단, RendererDebugLabel 아래) 배치.
 - 헤드리스 3회 회귀 통과(GO md5 변경은 예상된 것 — 새 코드가 매 실행 로그를 바꾼다, error/warn 0, 나머지 4판 md5 불변).
+
+## PLAN 101-2 GO ②후보 "승급 3택" (2026-09-16, 같은 세션 이어서, "사가고돗 이어해줘 묻지말고")
+
+- `games/saga_go/data/perks.gd`(특성 풀 12, 공/수/보 축 4개씩) 신설. 웹판 PLAN.md §5-⑦(아직 웹에도 없음, 이 판이 먼저 착수)은 인물별 rank up(중복 뽑기)에 붙지만 GO-Godot엔 인물별 랭크가 없어(부대 단일 레벨) **부대 레벨업**을 그 자리로 썼다. 웹의 거절 보상(재화 "단사" 10)도 이 판에 재화가 없어 경험치 +20으로 바꿨다.
+- `party_state.gd`에 `level_up` 신호(실제 성장에만 emit — `restore()`로 옛 레벨을 앉히는 로드는 emit 안 함, add_exp()/recruit()만 emit), `perks` 배열, `add_perk()`, 특성 배율이 반영된 `_recompute()`(공/수 축은 atk/def 곱연산, 보 축은 `add_exp()`의 exp 획득에 곱연산) 추가.
+- `test_village.gd`가 `level_up`을 받아 `ChoicePrompt.build()`(3장+거절)를 띄운다 — `npc_builder.gd` `_show_offer_prompt()`와 같은 `layer_box` 관용구(104-4에서 잡은 클로저 버그 회피). for 루프 변수(`opt`)를 닫힌 콜백에 쓰는 게 안전한지 `--headless --script`로 최소 재현 스크립트를 만들어 직접 확인(각 반복이 제 값을 스냅샷 — 안전).
+- `save_state.gd`가 `party_perks` 저장(추가 필드, 다른 §31 필드들과 같은 경계로 SAVE_VERSION 안 올림).
+- 자가진단(임시 스크립트, 커밋 전 지움): `add_exp()`를 여러 번 나눠 불러 실제 레벨업 유발 → 뜬 카드의 버튼을 실제로 `pressed.emit()`으로 눌러 "고르기"·"거절" 두 경로 모두 확인(perks 배열에 반영·atk/def 재계산 정상).
+- 헤드리스 3회 회귀 통과(레벨업은 경기 중 이벤트라 5프레임짜리 짧은 회귀엔 안 걸림 — GO md5 101-4 커밋 이후와 동일).

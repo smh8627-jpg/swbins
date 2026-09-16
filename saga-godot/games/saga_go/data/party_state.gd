@@ -18,6 +18,12 @@ extends Node
 ## 그만큼 공격력/방어력이 조금씩 더 붙는다(EXP_PER_LEVEL마다 1레벨).
 
 signal power_changed(atk: float, def: float)
+## PLAN.md 101-2 GO ②"승급 3택" — 레벨이 실제로 오를 때만 emit(로드로
+## 옛 레벨을 앉히는 restore()는 emit 안 함, 그 경위는 add_exp()·recruit()
+## 쪽 주석 참고).
+signal level_up(new_level: int)
+
+const Perks := preload("res://games/saga_go/data/perks.gd")
 
 const BASE_ATK := 60.0
 const BASE_DEF := 35.0
@@ -28,11 +34,16 @@ const EXP_PER_LEVEL := 100.0
 const ATK_PER_LEVEL := 4.0
 const DEF_PER_LEVEL := 2.0
 
+## 승급 3택 거절 보상 — 웹판 "단사 10"(재화)에 대응하나 이 판엔 재화가
+## 없어 경험치로 갈아탔다.
+const REJECT_EXP := 20.0
+
 var members: Array[String] = []
 var exp: float = 0.0
 var level: int = 0
 var atk: float = BASE_ATK
 var def: float = BASE_DEF
+var perks: Array[String] = []
 
 var _session_start_exp: float = 0.0
 
@@ -52,32 +63,70 @@ func session_exp_gained() -> float:
 
 func recruit(id: String) -> void:
 	members.append(id)
+	var old_level := level
 	_recompute()
 	power_changed.emit(atk, def)
+	if level > old_level:
+		level_up.emit(level)
 
 
 ## 사건 보상(고대 비문을 읽는다·부상병을 돌본다·적을 물리친다 등)이
 ## 경험치를 쌓는 유일한 통로다 — 걷기·시간 경과로는 안 오른다.
 ## 천후(weather.gd)가 이 보상에 보너스를 건다(웹판 weather.js의 expPct와
-## 같은 자리 — 이 판엔 포획·스폰 계열이 없어 exp만 옮겼다).
+## 같은 자리 — 이 판엔 포획·스폰 계열이 없어 exp만 옮겼다). "보" 축
+## 특성(101-2)이 여기 더 얹인다.
 func add_exp(amount: float) -> void:
 	if amount <= 0.0:
 		return
-	exp += amount * Weather.exp_bonus_mul()
+	exp += amount * Weather.exp_bonus_mul() * (1.0 + _support_bonus())
+	var old_level := level
 	_recompute()
 	power_changed.emit(atk, def)
+	if level > old_level:
+		level_up.emit(level)
 
 
 ## save_state.gd가 저장 파일을 불러온 뒤 여기로 넘긴다 — recruit()·add_exp()와
-## 다르게 이미 정해진 값을 통째로 앉히고 수치만 다시 계산한다(신호는 한 번만).
-func restore(saved_members: Array[String], saved_exp: float = 0.0) -> void:
+## 다르게 이미 정해진 값을 통째로 앉히고 수치만 다시 계산한다(신호는 한 번만,
+## level_up 은 안 emit — 로드는 새 성장이 아니다).
+func restore(saved_members: Array[String], saved_exp: float = 0.0, saved_perks: Array[String] = []) -> void:
 	members = saved_members.duplicate()
 	exp = saved_exp
+	perks = saved_perks.duplicate()
 	_recompute()
 	power_changed.emit(atk, def)
+
+
+## level_up 카드에서 고른 특성을 확정한다(games/saga_go/ui나 test_village.gd가
+## 부른다 — party_state.gd는 카드 UI를 모른다, codex_state.gd discover()와
+## 같은 경계).
+func add_perk(id: String) -> void:
+	if not perks.has(id):
+		perks.append(id)
+	_recompute()
+	power_changed.emit(atk, def)
+
+
+func _support_bonus() -> float:
+	var bonus := 0.0
+	for pid in perks:
+		var p: Dictionary = Perks.find(pid)
+		if not p.is_empty() and p.axis == "support":
+			bonus += float(p.mul)
+	return bonus
 
 
 func _recompute() -> void:
 	level = int(exp / EXP_PER_LEVEL)
-	atk = BASE_ATK + members.size() * ATK_PER_MEMBER + level * ATK_PER_LEVEL
-	def = BASE_DEF + members.size() * DEF_PER_MEMBER + level * DEF_PER_LEVEL
+	var atk_mul := 1.0
+	var def_mul := 1.0
+	for pid in perks:
+		var p: Dictionary = Perks.find(pid)
+		if p.is_empty():
+			continue
+		if p.axis == "attack":
+			atk_mul += float(p.mul)
+		elif p.axis == "defense":
+			def_mul += float(p.mul)
+	atk = (BASE_ATK + members.size() * ATK_PER_MEMBER + level * ATK_PER_LEVEL) * atk_mul
+	def = (BASE_DEF + members.size() * DEF_PER_MEMBER + level * DEF_PER_LEVEL) * def_mul
