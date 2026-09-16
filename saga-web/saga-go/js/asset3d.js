@@ -36,6 +36,16 @@
 
   /** GLB 를 쓸까 — 0 이면 표에 적혀 있어도 도형으로 간다 (되돌림용 손잡이) */
   function GLB_ON() { return core().tuned('world3d.glb', 1) ? true : false; }
+  /** PLAN §10-Q1 — 사진측량 실사 인체(`realistic: true`)를 기본 뽑기에 섞을까.
+   *  꺼져 있으면(기본) `heroPool` 이 걸러 QRPG 저폴리 여섯 벌만 남긴다 */
+  function REALISTIC_ON() { return core().tuned('world3d.realisticPeople', 0) ? true : false; }
+  /** 인물 표 한 줄(`hero*` 키)에서 실사 벌을 뺀다 — 손잡이가 켜져 있거나
+   *  목록이 조합 객체가 아니면(테스트가 문자열 하나로 덮어썼을 때) 그대로 준다 */
+  function heroPool(list) {
+    if (!Array.isArray(list) || REALISTIC_ON()) { return list; }
+    var f = list.filter(function (v) { return !(v && typeof v === 'object' && v.realistic); });
+    return f.length ? f : list;
+  }
 
   /* ── 표 ───────────────────────────────────────────────
    * 키는 **좁은 것부터** 찾는다. 청룡만 따로 모델을 주고 싶으면 `pet:pt_cheongryong`,
@@ -80,9 +90,12 @@
      가중치를 아예 안 만들어 둔 것 — Blender `parent_set(ARMATURE_AUTO)`로 고침)도
      이 파일들부터는 잡혀 있다 */
   var PEOPLE_MPFB = PEOPLE + 'mpfb_real/';
+  /* PLAN §10-Q1(2026-09-17 확정) — 이 사진측량 실사 인체는 §6.0-1 툰 저폴리와
+     섞인다. `realistic: true` 로 표시해 두면 기본 인물 뽑기(`heroPool`)에서
+     빠지고, `world3d.realisticPeople` 손잡이를 켠 사람만 다시 만난다 */
   HERO_RECIPES = HERO_RECIPES.concat([
-    { key: 'mpfb_male', body: PEOPLE_MPFB + 'male.glb' },
-    { key: 'mpfb_female', body: PEOPLE_MPFB + 'female.glb' }
+    { key: 'mpfb_male', body: PEOPLE_MPFB + 'male.glb', realistic: true },
+    { key: 'mpfb_female', body: PEOPLE_MPFB + 'female.glb', realistic: true }
   ]);
 
   /* 2026-09-05(이어서) — "마을 사람 다양성 늘리기"로 위 남/여 두 벌에 셋을
@@ -103,9 +116,9 @@
      `old_asian` 계열은 이 버그를 고치기 전엔 더 안 뽑는다. 자세한 내용은
      `assets/ASSET_LICENSES.md` 참고 */
   HERO_RECIPES = HERO_RECIPES.concat([
-    { key: 'mpfb_v3', body: PEOPLE_MPFB + 'v3.glb' },   // middleage_african_male + afro01 + male_worksuit01
-    { key: 'mpfb_v7', body: PEOPLE_MPFB + 'v7.glb' },   // young_african_female + braid01 + female_casualsuit02
-    { key: 'mpfb_v8', body: PEOPLE_MPFB + 'v8.glb' }    // old_african_male + short03 + male_casualsuit04
+    { key: 'mpfb_v3', body: PEOPLE_MPFB + 'v3.glb', realistic: true },   // middleage_african_male + afro01 + male_worksuit01
+    { key: 'mpfb_v7', body: PEOPLE_MPFB + 'v7.glb', realistic: true },   // young_african_female + braid01 + female_casualsuit02
+    { key: 'mpfb_v8', body: PEOPLE_MPFB + 'v8.glb', realistic: true }    // old_african_male + short03 + male_casualsuit04
   ]);
 
   /* 2026-09-05(더 이어서) — 위에서 뺐던 캐릭시안·노년 아시아 스킨 셋을 마저 뽑는다.
@@ -116,9 +129,9 @@
      머리·눈·이 Head 강체 고정, 알파클립 노드)은 위와 완전히 동일 — 원래
      처음 넷을 뽑을 때 정했던 조합 그대로다 */
   HERO_RECIPES = HERO_RECIPES.concat([
-    { key: 'mpfb_v9', body: PEOPLE_MPFB + 'v9.glb' },    // young_caucasian_female + ponytail01 + female_elegantsuit01
-    { key: 'mpfb_v10', body: PEOPLE_MPFB + 'v10.glb' },  // old_asian_male + short02 + male_casualsuit03
-    { key: 'mpfb_v11', body: PEOPLE_MPFB + 'v11.glb' }   // young_caucasian_female2 + bob01 + female_sportsuit01
+    { key: 'mpfb_v9', body: PEOPLE_MPFB + 'v9.glb', realistic: true },    // young_caucasian_female + ponytail01 + female_elegantsuit01
+    { key: 'mpfb_v10', body: PEOPLE_MPFB + 'v10.glb', realistic: true },  // old_asian_male + short02 + male_casualsuit03
+    { key: 'mpfb_v11', body: PEOPLE_MPFB + 'v11.glb', realistic: true }   // young_caucasian_female2 + bob01 + female_sportsuit01
   ]);
 
   /* 2026-09-05(또 이어서) — 눈 마스킹이 검증됐으니("이 현상은 사실 모든 스킨에
@@ -140,22 +153,22 @@
      맞추기(어깨·팔꿈치·손·엉덩이·무릎·발)를 매번 손으로 해야 한다 — 대량 생산용은
      아니다. 자세한 내용은 `assets/ASSET_LICENSES.md` 참고 */
   HERO_RECIPES = HERO_RECIPES.concat([
-    { key: 'vitruvian_v1', body: PEOPLE + 'vitruvian/vitruvian_v1.glb', anim: PEOPLE + 'vitruvian/vitruvian_v1.glb' }
+    { key: 'vitruvian_v1', body: PEOPLE + 'vitruvian/vitruvian_v1.glb', anim: PEOPLE + 'vitruvian/vitruvian_v1.glb', realistic: true }
   ]);
 
   HERO_RECIPES = HERO_RECIPES.concat([
-    { key: 'mpfb_v12', body: PEOPLE_MPFB + 'v12.glb' },  // middleage_african_female + bob02 + female_casualsuit01
-    { key: 'mpfb_v13', body: PEOPLE_MPFB + 'v13.glb' },  // middleage_asian_female + short04 + female_casualsuit02
-    { key: 'mpfb_v14', body: PEOPLE_MPFB + 'v14.glb' },  // middleage_asian_male + short01 + male_casualsuit02
-    { key: 'mpfb_v15', body: PEOPLE_MPFB + 'v15.glb' },  // middleage_caucasian_female + long01 + female_elegantsuit01
-    { key: 'mpfb_v16', body: PEOPLE_MPFB + 'v16.glb' },  // middleage_caucasian_male + short02 + male_casualsuit05
-    { key: 'mpfb_v17', body: PEOPLE_MPFB + 'v17.glb' },  // old_african_female + braid01 + female_sportsuit01
-    { key: 'mpfb_v18', body: PEOPLE_MPFB + 'v18.glb' },  // old_asian_female + bob01 + female_casualsuit01
-    { key: 'mpfb_v19', body: PEOPLE_MPFB + 'v19.glb' },  // old_caucasian_female + ponytail01 + female_casualsuit02
-    { key: 'mpfb_v20', body: PEOPLE_MPFB + 'v20.glb' },  // old_caucasian_male + short03 + male_casualsuit06
-    { key: 'mpfb_v21', body: PEOPLE_MPFB + 'v21.glb' },  // young_african_male + afro01 + male_worksuit01
-    { key: 'mpfb_v22', body: PEOPLE_MPFB + 'v22.glb' },  // young_caucasian_male + short04 + male_elegantsuit01
-    { key: 'mpfb_v23', body: PEOPLE_MPFB + 'v23.glb' }   // young_caucasian_male2 + long01 + male_casualsuit01
+    { key: 'mpfb_v12', body: PEOPLE_MPFB + 'v12.glb', realistic: true },  // middleage_african_female + bob02 + female_casualsuit01
+    { key: 'mpfb_v13', body: PEOPLE_MPFB + 'v13.glb', realistic: true },  // middleage_asian_female + short04 + female_casualsuit02
+    { key: 'mpfb_v14', body: PEOPLE_MPFB + 'v14.glb', realistic: true },  // middleage_asian_male + short01 + male_casualsuit02
+    { key: 'mpfb_v15', body: PEOPLE_MPFB + 'v15.glb', realistic: true },  // middleage_caucasian_female + long01 + female_elegantsuit01
+    { key: 'mpfb_v16', body: PEOPLE_MPFB + 'v16.glb', realistic: true },  // middleage_caucasian_male + short02 + male_casualsuit05
+    { key: 'mpfb_v17', body: PEOPLE_MPFB + 'v17.glb', realistic: true },  // old_african_female + braid01 + female_sportsuit01
+    { key: 'mpfb_v18', body: PEOPLE_MPFB + 'v18.glb', realistic: true },  // old_asian_female + bob01 + female_casualsuit01
+    { key: 'mpfb_v19', body: PEOPLE_MPFB + 'v19.glb', realistic: true },  // old_caucasian_female + ponytail01 + female_casualsuit02
+    { key: 'mpfb_v20', body: PEOPLE_MPFB + 'v20.glb', realistic: true },  // old_caucasian_male + short03 + male_casualsuit06
+    { key: 'mpfb_v21', body: PEOPLE_MPFB + 'v21.glb', realistic: true },  // young_african_male + afro01 + male_worksuit01
+    { key: 'mpfb_v22', body: PEOPLE_MPFB + 'v22.glb', realistic: true },  // young_caucasian_male + short04 + male_elegantsuit01
+    { key: 'mpfb_v23', body: PEOPLE_MPFB + 'v23.glb', realistic: true }   // young_caucasian_male2 + long01 + male_casualsuit01
   ]);
 
   /**
@@ -352,7 +365,8 @@
   function urlOf(kind, ref) {
     var h = lookup(kind, ref);
     if (!h) { return null; }
-    var v = oneOf(h.url, ref);
+    var pool = (kind === 'hero') ? heroPool(h.url) : h.url;
+    var v = oneOf(pool, ref);
     if (v && typeof v === 'object') { return v.key || null; }
     return v;
   }
@@ -362,7 +376,7 @@
   function heroRecipe(ref) {
     var h = lookup('hero', ref);
     if (!h) { return null; }
-    var v = oneOf(h.url, ref);
+    var v = oneOf(heroPool(h.url), ref);
     return (v && typeof v === 'object' && v.body) ? v : null;
   }
   function wants(kind, ref) { return GLB_ON() && !!urlOf(kind, ref); }
@@ -701,14 +715,23 @@
    *  이 판(`fort:t3`·`station`)에 실사 사진측량 건물을 처음 얹으며 같이 옮겼다 */
   function looksRealistic(url) { return typeof url === 'string' && url.indexOf('/realistic/') >= 0; }
 
+  /* 2026-09-17 — SAGA-DESIGN §6.1 "저비용 통일": Lambert 대신 3단 램프 툰 재질로
+     벗기고(`toon3d.toonify`), 큰 덩이(사람·짐승)엔 뒤집힌 헐 외곽선도 얹는다.
+     `world3d.toon`/`world3d.outline` 손잡이가 꺼지면 예전 Lambert 그대로다.
+     실사(`/realistic/`) 는 이 함수에 아예 안 들어온다 — PLAN §10-Q1: 기본은 툰,
+     실사는 (`world3d.realisticPeople`) 손잡이 뒤로. */
   function delam(root, url) {
     if (looksRealistic(url)) { return; }
     var t = three();
+    var TN = global.DG.toon3d;
+    var toon = !!(TN && TN.TOON_ON());
+    var wantOutline = !!(TN && TN.OUTLINE_ON());
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
+        if (toon) { return TN.toonify(m); }
         /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
            검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
            뜬다 — 2026-09-03, 사가국지 무장 초상에서 처음 잡은 버그다 */
@@ -720,6 +743,7 @@
         });
       });
       o.material = Array.isArray(o.material) ? out : out[0];
+      if (toon && wantOutline) { TN.outline(o); }
     });
   }
 
@@ -1271,6 +1295,7 @@
     DEFAULTS: DEFAULTS, restore: restore, tintOf: tintOf, oneOf: oneOf,
     pickPieces: pickPieces,
     ANIM_SRC: ANIM_SRC, heroRecipe: heroRecipe,
+    REALISTIC_ON: REALISTIC_ON, heroPool: heroPool,
     build: build, step: step, play: play, primitive: primitive, stats: stats,
     /** 표를 비운다 (진단이 제 뒤를 치울 때) */
     clear: function () {

@@ -3018,3 +3018,55 @@ _gallery.html · _probe.html   스프라이트를 눈으로 판정하는 판
   캔버스 없이도 도는 순수 함수라 자가진단이 따로 본다.
 - `js/icon.js`에 `compass` 아이콘을 추가했다(Lucide, ISC).
 - 자가진단(`_test.html`) 8항목 추가, 헤드리스 3회 동일 결과 확인.
+
+## 2026-09-17 — SAGA-DESIGN §6.1 그래픽 통일(재질·팔레트·픽셀비율), §10-Q1 확정
+
+사용자 요청: "사가디자인 보고 그래픽 처리해줄래". PLAN §6 표의 "할 것" 항목을 훑어 손볼 수
+있는 것부터 한 번에 처리했다. 실기 확인이 필요한 항목은 그대로 §7 목록에 남겨 뒀다.
+
+**새 파일 `js/toon3d.js`** — 3단 램프(`MeshToonMaterial.gradientMap`, `NearestFilter` 3픽셀
+텍스처)와 뒤집힌 헐 외곽선을 배우 전용으로 공용화했다. 외곽선은 **균일 스케일 복제가 아니라
+정점 셰이더에서 스키닝 뒤 법선 방향으로 미는 방식**(`ShaderMaterial` + `skinning_pars_vertex`
+등 표준 청크 조립)이라 — 사람 모양(발이 원점)을 그대로 스케일업하면 발끝은 안 벌어지고
+머리만 벌어지는 문제를 피했다. 폭은 지오메트리 바운딩구 반지름의 3%(PLAN "스케일 1.03"의
+환산). `world3d.toon`·`world3d.outline` 손잡이(둘 다 기본 1) — 끄면 예전 Lambert/외곽선 없음.
+`index.html`·`_test.html`·`_demo.html`·`_autoprobe.html` 스크립트 목록에 얹었다(`_admin.html`·
+`_glbcheck.html`은 이 파이프라인을 안 쓰므로 안 건드림).
+
+**`js/actor3d.js`** — `mat()`이 `world3d.toon`을 보고 Toon/Lambert 를 고른다(캐시 키에 갈래
+포함). `solid()`(그림자 지는 큰 덩이만)가 이제 `userData.wantOutline`도 같이 표시하고,
+`shape()`가 다 조립한 뒤(부모에 매달린 다음이라야 형제로 외곽선을 붙일 수 있다) 한 번에
+`applyOutlines()`로 훑어 붙인다.
+
+**`js/asset3d.js`** — `delam()`(GLB PBR → 평면 재질로 벗기는 자리)이 `toon3d.toonify()`를 쓰고
+스킨 메시엔 outline도 붙인다. `/realistic/` 밑(건물)은 원래부터 이 함수를 안 타 그대로다.
+**§10-Q1(인물 스타일 충돌) 확정** — MPFB 사진측량 실사 인체 20벌(`mpfb_male/female`·
+`v3~v23`)과 `vitruvian_v1`에 `realistic: true`를 달고, `heroPool()`이
+`world3d.realisticPeople`(기본 0=꺼짐)일 때 그 줄들을 걸러낸다. 그 결과 **기본 인물 표는
+QRPG 저폴리 6종만** 남는다(PLAN §7 실기 목록의 "MPFB 실사 5인" 항목이 자연히 뒤로 밀림 —
+다시 보려면 어드민에서 켜야 한다).
+
+**`js/prop3d.js`** — PLAN §6 초안의 24색(하북 들판·마을·강)을 그대로 배열로 얹고
+`snapPalette()`(RGB 최근접, 순수 함수)를 `lambertOf()`에 물렸다(`world3d.palette`, 기본 1).
+소품은 원래 GLB 재질이 면마다 단색이라(주석 "Quaternius 면색") PLAN이 적었던 "캔버스에서
+1회 스냅"은 필요 없었다 — 색 하나를 스냅하는 것으로 끝난다. 배우처럼 툰+외곽선은 안 받는다
+(PLAN 원문 그대로 — 얻을 게 적다는 판단 유지).
+
+**`js/world3d.js`** — 픽셀비율 상한 2 → 1.5(§6.1 "폰: 픽셀 비율 상한 1.5"). 안개·하늘·접지
+그림자는 **점검해보니 이미 되어 있었다**(PLAN 표가 옛 상태를 그대로 베낀 것) — `syncLight()`가
+`lightingAt().bg` 한 값을 배경·안개·클리어컬러 셋에 매 프레임 물리고, `groundShadow()`가
+배우마다(빌보드든 메시든) 접지 blob 을 이미 찍고 있었다. PLAN §6 표를 실제 상태로 고쳤다.
+
+**미룬 것 — 지형 트라이플레이너**: `LAND_PAINT()`가 이미 실제 land-use 를 반영해 캔버스에
+구운 텍스처를 붙이는, 크고 검증된 파이프라인이다. 셰이더를 트라이플레이너로 갈아 끼우면
+회귀 위험이 크고 화면으로 검증할 길이 없어(이 세션 규칙상 헤드리스 스크린샷 금지) 이번엔
+손 안 댔다. 실기로 "그래도 허접해 보이는지"부터 확인한 뒤 순서를 다시 잡기로.
+
+**검증** — `node -c` 새/수정 파일 전부 통과, `_admin.html` 인라인 스크립트 블록 전부
+`new Function()`으로 파싱 확인, `bash tools/precheck.sh saga-web/saga-go` → PRECHECK OK
+(data.js md5 불일치 경고는 이 세션과 무관한 기존 상태). **헤드리스 `_test.html` 3회 확인은
+안 돌렸다** — precheck.sh 자체 주석대로 "서버·브라우저는 안 띄운다, 실기 확인은 사용자 몫"이라
+서버를 새로 띄우는 게 이 규칙과 부딪힌다고 판단했다. 실기 확인 대기는 PLAN §7 11번에 모았다.
+
+**admin** — `_admin.html` 균형 손잡이 탭에 `world3d.toon`·`world3d.outline`·
+`world3d.realisticPeople`·`world3d.palette` 네 줄 추가.
