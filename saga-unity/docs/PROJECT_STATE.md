@@ -5433,3 +5433,21 @@ PlotGate·AttackWrongCity가 "목표 없는 성" 검증에 고정으로 쓰는
   save/load 왕복 확인, 성 셋→열아홉). 남은 확장 후보: 장안의 다른
   이웃(천수), 강주의 다른 이웃(주제, 남중 방면), 영안·강릉의 다음
   단계.
+
+## REALM 51장 확장 code-review + 리팩터 (2026-09-16, 같은 날 "묻지 말고 이어해" 후속)
+
+7차례 확장(fcca2c08~493bbd7a)에 `/code-review high`를 돌렸다 —
+지적 둘 다 클린업 성격(정확성 버그 0건):
+
+1. **AttackLuoyang~AttackJiangling 14개 Phase가 ~30줄짜리 거의 동일한
+   블록(무장 전임+공격+함락 확인+다음 Phase)을 손 복사** — `AttackChainStep
+   (fromCityId, expectedCapturedId, nextPhase)` 헬퍼로 묶었다(AttackDingtao도
+   같이). 각 case는 `if (!AttackChainStep(...)) return;` 한 줄로 줄었다
+   (파일 430줄 삭제, 76줄 추가). 다음에 사슬을 늘릴 때 도시 id를 잘못
+   옮겨 적는 실수를 원천 차단한다.
+2. PlotGate/AttackWrongCity 주석이 "wan은 적국 다섯도 아니다"처럼
+   그 순간의 적국 개수를 못박아 둬서 이후 확장 때마다 stale해지는
+   구조였다 — "카탈로그 어디에도 없어 51장이 몇 차까지 늘어도
+   무관"으로 개수 의존 없이 바꿈.
+
+배치 모드 컴파일 → 3연속 통과(리팩터 전후 동작 동일 확인).
