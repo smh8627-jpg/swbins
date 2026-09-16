@@ -90,6 +90,15 @@ const RUINS_GATE_GRID := Vector2i(1, 6)
 ## region3_ruins.gd ENTRY_GRID와 반드시 같은 값 — 그 파일 주석 참고.
 const RUINS_ENTRY_GRID := Vector2i(3, 3)
 
+## 2026-09-16, 포구 콘텐츠 확장(사용자 지시 "순서대로 이어해줘"의
+## 2번째) — landmarks_builder.gd _add_cave()/_add_shrine() 계열(선택지
+## 없이 근접만으로 도장 찍는 순수 장식)과 같은 결의 첫 사례. 지금까지
+## 포구 발견 지점은 전부 "harbor"(도착 안전망) 하나뿐이었다 — 어부·
+## 게·표류물·조각배·폐허 갈림길과 겹치지 않는 남은 구석 칸에 둔다.
+const WHALEBONE_ID := "coast_whalebone"
+const WHALEBONE_GRID := Vector2i(2, 7)
+const WHALEBONE_DISCOVERY_RADIUS := 15.0
+
 ## 포구 콘텐츠 확장(2026-09-16, "GO 포구 콘텐츠 확장") — npc_builder.gd
 ## VILLAGERS의 상인(offer_a/b 한 번뿐인 제안) 패턴을 그대로 옮긴다.
 ## npc_builder.gd를 직접 의존하지 않고 이 파일 안에서 다시 짠 것은 위
@@ -181,6 +190,7 @@ func _build_harbor() -> void:
 	_build_driftwood()
 	_build_boat()
 	_build_ruins_gate()
+	_build_whalebone()
 	_build_return_trigger()
 
 
@@ -265,6 +275,28 @@ func _build_crab() -> void:
 	mi.material_override = mat
 	add_child(mi)
 	_add_discovery_area("crab", pos, 15.0, "beast")
+
+
+## landmarks_builder.gd _add_cave()/_add_shrine()과 같은 결 — 선택지 없이
+## 근접만으로 도장 찍는 순수 장식(primitive, 구부러진 흰 뼈 두 조각).
+func _build_whalebone() -> void:
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	var pos := TestMap.world_pos(WHALEBONE_GRID.x, WHALEBONE_GRID.y, COAST_REGION) + Vector3(0, ground, 0)
+
+	for i in 2:
+		var mi := MeshInstance3D.new()
+		var mesh := CapsuleMesh.new()
+		mesh.radius = 0.18
+		mesh.height = 2.2
+		mi.mesh = mesh
+		mi.rotation = Vector3(0, 0, deg_to_rad(60.0 if i == 0 else -60.0))
+		mi.position = pos + Vector3(-0.4 if i == 0 else 0.4, 0.5, 0)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.88, 0.86, 0.8)
+		mi.material_override = mat
+		add_child(mi)
+
+	_add_discovery_area(WHALEBONE_ID, pos, WHALEBONE_DISCOVERY_RADIUS)
 
 
 ## npc_builder.gd _spawn()/_build_body()와 같은 골격 — 대화만 하는 주민

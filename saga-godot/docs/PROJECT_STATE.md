@@ -6855,3 +6855,10 @@ CLAUDE.md "실기 확인은 몰아서" 방침).
 - `codex_state.gd` TOTAL event 17→18.
 - 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. GO 회귀 3회 md5 완전 동일(직전 커밋과도 동일 — 순수 씬 스크립트 추가라 project.godot 자체가 안 바뀜), 나머지 네 판 오류 0. 임시 씬(`_tmp_verify_relic.tscn/.gd`, 검증 후 삭제)에서 5항목 PASS — 자리·거리(입구 135.8m·복귀 214.7m)·첫 접근 시 discover 발동·해결 후 재접근 안 뜸까지.
 - 다음(사용자 지시 "순서대로 이어해줘"의 2번째): 포구 9x9 격자 남은 빈 칸 채우기.
+
+## 포구 콘텐츠 5호 — 고래뼈(coast_whalebone), 선택지 없는 순수 발견 (2026-09-16, 같은 세션 이어서, "순서대로 이어해줘"의 2번째)
+
+- 지금까지 포구 발견 지점은 "harbor"(도착 안전망) 하나뿐이었다 — landmarks_builder.gd _add_cave()/_add_shrine() 계열(선택지 없이 근접만으로 도장 찍는 순수 장식)을 포구에도 처음 적용했다. 구부러진 흰 뼈 두 조각(CapsuleMesh, primitive) 하나를 남은 구석 칸(WHALEBONE_GRID=(2,7), 귀환 트리거·어부 대화 반경과 각각 96m)에 세웠다.
+- `codex_state.gd` TOTAL place 9→10.
+- 검증: 헤드리스 에디터 임포트 오류 0, project.godot/`.import` diff 없음. GO 회귀 3회 md5 완전 동일(직전 커밋과도 동일), 나머지 네 판 오류 0. 임시 씬(`_tmp_verify_whalebone.tscn/.gd`, 검증 후 삭제)에서 4항목 PASS — 자리·거리·discover 발동까지.
+- 다음(사용자 지시 "순서대로 이어해줘"의 3번째이자 마지막): PLAN.md 96·97 재감사 — 이번 세션이 새로 지은 region3_ruins.gd·region2_coast.gd 확장분(RuinsGate/RELIC/WHALEBONE)에 한정.
