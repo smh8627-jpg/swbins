@@ -6079,3 +6079,24 @@ SettingsPanel 이 없고 `RealmCommandUi` 안에 얹혀 있는데, 그 존재 �
 통과하든 실패하든 이번 수정이 실제로 뭘 검증하는지 의미가 없다 ③ 그 다음에야
 `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`
 3연속을 재확인한다.
+
+## PLAN 104-1 ③ 감사 범위 확장 — World/Player 폴더 (2026-09-16, 같은 날 세 번째 "이어 해줘")
+
+이전 두 세션은 `Assets/Games/**/UI/*.cs`만 봤다. 같은 [SerializeField] 함정이
+`World/`·`Player/` 폴더에도 있는지 51건을 추가로 grep해 확인 — **버그 없음**.
+전부 `Awake()`가 `GameObject.FindWithTag("Player")`나 `GetComponent<T>()`로
+매 Play 세션마다 다시 채우는 정상 패턴이었다(`DungeonFloorRunner`·`ForestHouse`·
+`DungeonEnemy` 등). `BanditEncounter`/`RareWolfEncounter`(GO)는 애초에 다른
+전략(Awake 때 기존 자식을 지우고 Build()를 통째로 재실행)으로 2026-09-12에
+이미 같은 버그 클래스를 막아 뒀다는 걸 클래스 내 주석에서 확인했다(그때
+RareWolfEncounter도 같이 고쳤다는 기록). 에디터 스크립트가 `SetPrivateField`로
+이 폴더 필드를 채우는 사례도 0건 — PLAN 104-1 ③은 이걸로 범위를 다 봤다고
+간주한다.
+
+104-1 남은 건 ⑤(`Assets/Art/*_candidates` 정리)뿐인데 이건 102-4 표에 판정은
+이미 적혀 있지만 105장 Q1(완성판 트랙 선택) 뒤로 미루기로 한 것이라 사용자
+결정 없이는 손대지 않는다.
+
+다음 우선순위(PLAN 101장 재미 표준 A·B, `SagaCore` 신규 asmdef·`IGoalSource`·
+`GoalBoard`/`SessionCard`)는 여러 파일에 걸친 새 기능이라 이 PC에 Unity 없이
+컴파일 확인 없이 진행하는 게 안전한지 사용자에게 먼저 물었다.
