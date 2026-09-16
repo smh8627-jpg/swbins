@@ -180,6 +180,11 @@ namespace Saga.Realm.Data
             // 등과 같은 이유로 Plain 처리. wall은 RealmEnemyCity.cs 상군
             // 정의(3200)와 맞춘다.
             ["shangjun"] = new RealmCityDef("shangjun", "상군", RealmLand.Plain, agri: 150, comm: 120, wall: 3200, pop: 48000, mapX: 30, mapY: 10),
+            // 51장 "대규모 콘텐츠" 14차 확장(2026-09-17) — 상군을 함락한 뒤
+            // 이어지는 복양 사슬의 새 여섯째 단계(원작 LINKS: shangjun-
+            // shuofang, "막북 셋째 관문"). land는 원작 그대로 plain. wall은
+            // RealmEnemyCity.cs 삭방 정의(2900)와 맞춘다.
+            ["shuofang"] = new RealmCityDef("shuofang", "삭방", RealmLand.Plain, agri: 180, comm: 100, wall: 2900, pop: 40000, mapX: 28, mapY: -8),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

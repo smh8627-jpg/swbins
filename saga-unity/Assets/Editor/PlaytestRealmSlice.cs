@@ -74,7 +74,7 @@ namespace Saga.EditorTools
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
-            AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackShangjun, AttackHanzhong, AttackRunan,
+            AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackShangjun, AttackShuofang, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             QuizCorrect, QuizWrong, QuizArchive,
@@ -927,7 +927,16 @@ namespace Saga.EditorTools
                     // 51장 13차 확장(2026-09-17, 같은 세션 "막북 안쪽으로
                     // 계속 이어해") — 운중을 함락한 뒤 이어지는 복양 사슬의
                     // 새 다섯째 단계 목표(TargetFrom("yunzhong")).
-                    if (!AttackChainStep(RealmEnemyCity.YunzhongId, RealmEnemyCity.ShangjunId, Phase.AttackHanzhong)) return;
+                    if (!AttackChainStep(RealmEnemyCity.YunzhongId, RealmEnemyCity.ShangjunId, Phase.AttackShuofang)) return;
+                    break;
+                }
+
+                case Phase.AttackShuofang:
+                {
+                    // 51장 14차 확장(2026-09-17, 같은 세션 "묻지말고
+                    // 이어해줘") — 상군을 함락한 뒤 이어지는 복양 사슬의
+                    // 새 여섯째 단계 목표(TargetFrom("shangjun")).
+                    if (!AttackChainStep(RealmEnemyCity.ShangjunId, RealmEnemyCity.ShuofangId, Phase.AttackHanzhong)) return;
                     break;
                 }
 

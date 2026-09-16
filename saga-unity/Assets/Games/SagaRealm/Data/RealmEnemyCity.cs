@@ -88,6 +88,13 @@ namespace Saga.Realm.Data
     /// 원작 land는 hill인데 이 사슬의 다른 성들(진양·한중·영안·장사)과
     /// 같은 이유로 Plain 처리(새 enum 값 추가는 범위 밖). wall 3200은
     /// 원작 그대로, troops=wall×0.23 반올림=750, train=운중의 90+15=105.
+    /// **51장 14차 확장(2026-09-17, 같은 세션 "묻지말고 이어해줘")** —
+    /// 상군→삭방(원작 LINKS: shangjun-shuofang). 상군의 다른 이웃(북지)은
+    /// 잎사귀(다른 LINKS 없음)라 골라도 바로 막다른 가지가 된다 — 삭방은
+    /// 오원(wuyuan)으로 한 단계 더 이어져 사슬을 늘릴 수 있어 이번엔
+    /// 삭방을 골랐다(북지는 다음 확장 후보로 남긴다). land는 원작 그대로
+    /// plain(보정 불필요). wall 2900은 원작 그대로, troops=wall×0.23
+    /// 반올림=650, train=상군의 105+15=120.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -151,12 +158,14 @@ namespace Saga.Realm.Data
         public const string KuaijiId = "kuaiji";
         public const string YunzhongId = "yunzhong";
         public const string ShangjunId = "shangjun";
+        public const string ShuofangId = "shuofang";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
+            ShuofangId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -249,6 +258,11 @@ namespace Saga.Realm.Data
             // 둘 다 잎사귀(다른 LINKS 없음)라 이번엔 계속 뻗을 수 있는
             // 상군을 골랐다.
             [ShangjunId] = new RealmEnemyCityDef(ShangjunId, "상군", RealmLand.Plain, baseWall: 3200, baseTroops: 750, baseTrain: 105, baseTech: 100, attackFromCityId: "yunzhong"),
+            // 삭방은 상군(shangjun)과만 맞닿아 있다(원작 LINKS:
+            // shangjun-shuofang, 막북 셋째 관문) — 상군을 함락해야 열리는
+            // 복양 사슬의 새 여섯째 단계 목표. 상군의 다른 이웃(북지)은
+            // 잎사귀라 이번엔 계속 뻗을 수 있는 삭방을 골랐다.
+            [ShuofangId] = new RealmEnemyCityDef(ShuofangId, "삭방", RealmLand.Plain, baseWall: 2900, baseTroops: 650, baseTrain: 120, baseTech: 100, attackFromCityId: "shangjun"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
