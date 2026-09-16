@@ -20,6 +20,16 @@ const HEAVY_MUL := 2.4
 const DODGE_CUT := 0.15
 const MORALE_MUL := 3.0
 
+## PLAN.md 101-2 GO ⑥"75초 토벌"(표준 C) — 웹판 PLAN.md §5-③ "저스트
+## 회피"만 옮긴다("부위 3 파괴"는 새 부위 조준 UI가 필요해 이번 범위
+## 밖으로 뺀다, 105 장에 열어 둘 것). 예고(tell)가 끝나기 직전
+## JUST_DODGE_WINDOW 안에 회피하면 완전 회피(기존 DODGE_CUT 15%가 아니라
+## 0%) + 기(氣) 즉시 +30% — 그보다 일찍 누른 "그냥 회피"는 기존 그대로
+## DODGE_CUT만 적용된다(추가만 있고 기존 동작은 안 바뀐다, 회귀 걱정
+## 없음).
+const JUST_DODGE_WINDOW := 0.25
+const JUST_DODGE_KI_BONUS := 0.30 # KI_MAX의 비율
+
 var foe_hp := 0.0
 var hp := 0.0
 var foe_atk := 0.0
@@ -33,12 +43,14 @@ var foe_t := 0.0
 var foe_n := 0
 var tell := 0.0
 var dodged := false
+var just_dodged := false
 
 var dealt := 0.0
 var hits := 0
 var ults := 0
 var dodge_try := 0
 var dodge_ok := 0
+var just_dodge_ok := 0
 var taken := 0.0
 
 var over := false
@@ -73,7 +85,10 @@ func act(kind: String) -> Dictionary:
 		if tell > 0.0:
 			dodged = true
 			dodge_ok += 1
-			return {"ok": true, "kind": "dodge"}
+			just_dodged = tell <= JUST_DODGE_WINDOW
+			if just_dodged:
+				just_dodge_ok += 1
+			return {"ok": true, "kind": "dodge", "just": just_dodged}
 		return {"ok": false, "kind": "dodge", "reason": "notell"}
 
 	if kind == "ult":
@@ -121,11 +136,16 @@ func step(dt: float) -> Array:
 			tell = 0.0
 			var heavy := roundf(foe_atk * HEAVY_MUL)
 			if dodged:
-				heavy = roundf(heavy * DODGE_CUT)
+				if just_dodged:
+					heavy = 0.0
+					ki = minf(KI_MAX, ki + KI_MAX * JUST_DODGE_KI_BONUS)
+				else:
+					heavy = roundf(heavy * DODGE_CUT)
 			morale -= heavy
 			taken += heavy
-			ev.append({"t": "heavy", "dmg": heavy, "dodged": dodged})
+			ev.append({"t": "heavy", "dmg": heavy, "dodged": dodged, "just": just_dodged})
 			dodged = false
+			just_dodged = false
 			foe_t = FOE_GAP
 	else:
 		foe_t -= dt

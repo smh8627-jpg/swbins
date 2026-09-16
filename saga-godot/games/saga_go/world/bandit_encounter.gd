@@ -53,6 +53,10 @@ const TOAST_SEC := 4.0
 @export var bandit_scale := 1.25
 @export var event_title := "🗡️ 도적의 습격"
 @export var event_quote := "\"길세를 내고 가라. 아니면 두고 가든지.\""
+## PLAN.md 101-2 GO ⑥"75초 토벌" — 이 인스턴스가 "토벌" 대상이면 75.0
+## 으로 덮어쓴다(export, 기본값은 duel_rules.gd TIME_SEC 그대로라 기존
+## 산적·도적 두목·늑대 무리·정찰병 넷은 하나도 안 바뀐다).
+@export var time_sec := DuelRules.TIME_SEC
 
 ## 물리친 적이 부대에 등용될 때 PartyState에 남기는 id. 아직 인물별
 ## 개성(saga_core 인물 데이터 연동)은 없다 — 이번 슬라이스는 "합류했다는
@@ -282,7 +286,7 @@ func _build_combat_ui() -> void:
 func _start_fight() -> void:
 	_state = State.FIGHT
 	var foe_hp := maxf(1.0, roundf(foe_power * foe_hp_mul))
-	_duel = DuelRules.create(foe_hp, PartyState.atk, PartyState.def)
+	_duel = DuelRules.create(foe_hp, PartyState.atk, PartyState.def, time_sec)
 	_combat_layer.show()
 	_refresh_combat_ui()
 
@@ -312,8 +316,15 @@ func _on_duel_event(e: Dictionary) -> void:
 		"heavy":
 			_clear_visual_color()
 			var dodged: bool = e.get("dodged", false)
-			var col: Color = Color(0.2, 1.0, 0.4, 0.35) if dodged else Color(1.0, 0.15, 0.15, 0.45)
-			_screen_flash(col)
+			var just: bool = e.get("just", false)
+			## PLAN.md 101-2 GO ⑥"저스트 회피" — 예고 끝 0.25초 창 안에
+			## 회피하면 화면 플래시(밝은 청록)+"간발!" 팝(웹 §5-③ UI 그대로).
+			if just:
+				_screen_flash(Color(0.3, 0.95, 1.0, 0.55))
+				_toast("⚡ 간발!")
+			else:
+				var col: Color = Color(0.2, 1.0, 0.4, 0.35) if dodged else Color(1.0, 0.15, 0.15, 0.45)
+				_screen_flash(col)
 		"hit":
 			_screen_flash(Color(1.0, 0.15, 0.15, 0.3))
 
