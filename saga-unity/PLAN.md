@@ -1,6 +1,13 @@
 # SAGA 프로젝트 — Unity 6 3D 신규 구축 최종 작업지시서
 ## saga-godot과 나란히 가는 두 번째 엔진 트랙 / Vertical Slice 우선 / Mobile 3D RPG
 
+## 0장 — 읽는 법 (2026-09-16 재편)
+
+- **이 파일은 정본이지만 통째로 읽지 않는다**(≈75KB). `grep -n "^# \|^## "` 로 장 목차를 뽑고 필요한 장만 `sed -n` 으로 읽는다. 장 번호(1~100·66-1·66-2·101~105)는 `docs/`·코드 주석이 가리키므로 **바꾸지 않는다**.
+- **상태**는 `docs/PROJECT_STATE.md`(≤15KB, 세션 끝에 덮어쓴다). **이력**은 `docs/HISTORY.md`(append-only, 날짜·게임명으로 grep). 이 PLAN 에는 날짜 달린 세션 기록을 쓰지 않는다 — 결정이 바뀔 때만 고친다(`../SAGA-DESIGN.md` §9 문서 3층).
+- 공통 개편 설계(재미 표준 8·참고 게임·그래픽·에셋·버그)는 `../SAGA-DESIGN.md`. 이 트랙 적용분은 **101~105장**(끝). 다섯 웹 판의 게임성 후보는 `../saga-web/<판>/PLAN.md` §5 — 3D 는 거기서 검증된 것을 옮긴다(101장).
+- 규칙(엔진 확인·배치 모드 부작용·GUI 금지·gitignore)은 이 폴더 `CLAUDE.md` 가 정본이고 여기서 반복하지 않는다.
+
 ---
 
 # 0. 이 문서의 위치
@@ -443,19 +450,7 @@ saga-unity/
 - 기존 구현을 무조건 재작성하지 않는다
 - 작업 로그를 남겨 다음 실행에서 불필요한 재분석을 방지한다
 
-**규칙 10 (2026-09-14 명시화) — `docs/PROJECT_STATE.md` 항목은 짧게.**
-34장이 이미 "완료 단계/현재 작업/다음 작업/알려진 오류/테스트 상태만
-짧게, 긴 설명은 남기지 않는다"고 적어 뒀지만 여러 세션에 걸쳐 실제로는
-안 지켜졌다(배경·판단 이유·전체 대화까지 매번 장문으로 적어 파일이
-5000줄 가까이 불어남 — 읽을 때마다 그만큼 토큰이 든다). **한 세션의
-추가분은 이 형식을 넘지 않는다**: 완료 목록(불릿, 커밋 해시만),
-다음 작업(우선순위 목록), 알려진 사항(한두 줄) — 항목당 총 15줄
-넘기지 않는 걸 기본으로 삼는다. "왜 이렇게 판단했는지"·"사용자가
-뭐라고 했는지"·세션 진행 과정은 여기 안 남긴다(그건 git 커밋
-메시지·대화 자체가 기록이다) — 다음 세션이 **무엇이 끝났고 무엇이
-남았는지**만 알면 된다. 이미 쌓인 과거의 장문 항목들은 그대로 두되
-(지우면 다른 세션이 참고하던 맥락이 사라질 위험), 새로 쓸 때부터
-이 기준을 따른다.
+**규칙 10 — 상태·이력 분리(2026-09-16 재편으로 대체).** `docs/PROJECT_STATE.md` 는 상태만 ≤15KB 로 **덮어쓰고**, 날짜별 경위는 `docs/HISTORY.md` 에 append 한다. 이 PLAN 에는 세션 기록을 쓰지 않는다(0장·`../SAGA-DESIGN.md` §9). 2026-09-16 이전에 쌓인 장문 기록은 HISTORY.md 첫 절에 그대로 있다.
 
 ---
 
@@ -463,7 +458,8 @@ saga-unity/
 
 ```text
 docs/
-├── PROJECT_STATE.md   (완료 단계/현재 작업/다음 작업/알려진 오류/테스트 상태만)
+├── PROJECT_STATE.md   (상태만 ≤15KB, 덮어쓴다 — 0장)
+├── HISTORY.md         (세션 이력 append-only, grep 으로만)
 ├── VERTICAL_SLICE.md
 ├── PERFORMANCE.md
 ├── ASSET_GUIDE.md
@@ -987,391 +983,10 @@ Assets/Settings/
 - 이 정정을 이유로 66-1장(렌더러 프로파일)을 다시 논의하기 — 오히려
   66-1장이 이미 사실적 방향에 맞게 잡혀 있어 그대로 쓴다.
 
-## ① 라이팅/색보정/후처리 셋업 — 완료 (2026-09-13)
+## ①~⑪ 캐릭터·환경 파이프라인 — 전부 완료 (2026-09-13), 기록은 `docs/HISTORY.md`
 
-**"이어해" 요청으로 다섯 판 전부에 구현·검증까지 끝났다.** 자세한 내용은
-`docs/PROJECT_STATE.md` "66-2장 '다음에 할 일' ① 라이팅/색보정/후처리
-셋업" 항목 참고 — 여기서 반복하지 않는다. 요약만: `BuildFF16VolumeProfiles.cs`
-가 공유 VolumeProfile 둘(`FF16Volume_PC/Mobile.asset`)을 짓고, 다섯
-`BuildXxxScene.cs`가 GlobalVolume+`PlatformVolumeProfile`로 꽂는다.
-실제 화면(GUI) 톤 확인은 아직 — 사람이 볼 차례.
-
-## ② 환경 PBR 텍스처 킷 조사 — 샘플 다운로드·URP 파이핑 검증 (2026-09-13, 이어서)
-
-- **Poly Haven**(CC0, Quixel Megascans급 포토스캔 재질 — 공개 API로
-  로그인 없이 정적 URL 다운로드 가능, saga-godot 세션이 Quaternius에서
-  겪은 "itch.io가 JS라 자동 다운로드 불가" 문제가 없다)에서 두 재질을
-  받았다: **`cobblestone_floor_01`**(마을 바닥, 현재 Kenney Fantasy
-  Town Kit 대체 후보)·**`castle_wall_slates`**(성벽/건물 벽, 현재
-  Kenney 대체 후보). 둘 다 CC0, 1k JPG로 diffuse·normal(OpenGL)·
-  roughness·AO 네 맵 전부. `Assets/Art/EnvironmentPBR_candidates/`에
-  두고 `LICENSE.txt`(출처 URL) 동봉 — **아직 후보일 뿐, 어느 씬에도
-  안 물렸다**(saga-godot의 `_candidates_66-2` 폴더와 같은 자리 표시자
-  성격).
-- `BuildEnvironmentPbrSample.cs`(신규, `Saga/Build Environment PBR
-  Sample Materials` 메뉴) — 두 재질을 URP `Lit` 셰이더 머티리얼로
-  코드로 지어 실제로 파이프라인이 도는지 검증(diffuse→BaseMap,
-  normal→BumpMap+`_NORMALMAP` 키워드, AO→OcclusionMap+`_OCCLUSIONMAP`
-  키워드). 배치 모드(`-executeMethod`)로 실행, 컴파일 오류 0건·머티리얼
-  2개 생성 확인.
-- **채널 팩킹 문제 발견, 지금은 근사만 해 뒀다** — Poly Haven의
-  Roughness는 별도 텍스처인데 URP Lit의 Metallic 워크플로는 Smoothness를
-  Metallic맵의 알파 채널로만 받는다(별도 Roughness 슬롯이 없다). 지금은
-  Smoothness를 상수(0.3~0.35, 러프니스 실측 평균의 반전 근사)로만
-  뒀다 — **실제 교체 때는 커스텀 Shader Graph로 Poly Haven의 `arm`
-  (Occlusion-Roughness-Metalness 팩) 텍스처를 풀어 쓰거나, Roughness→
-  Smoothness 반전 텍스처를 미리 구워야 한다.** 다음에 이 재질을 실제
-  지형/벽에 쓸 세션이 참고할 것.
-- 헤드리스 임포트(`-batchmode -nographics -quit`) 후 `ProjectSettings/`·
-  `Packages/` 배치 모드 부작용(이 PC의 Unity 6000.3.24f1이 프로젝트
-  고정 버전 6000.3.23f1보다 최신이라 자동 버전업) 재확인 → `git
-  checkout`으로 되돌림(CLAUDE.md에 이미 기록된 함정, 두 번째 발생분).
-- **현실적 기대치 표 갱신 근거** — "환경(지형·식생·던전 재질) 근접
-  가능성: 중간~높음"이라던 앞선 판단이 실제로 확인됐다. Poly Haven
-  재질 자체 화질은 실제로 AAA급이고 CC0라 비용도 없다 — 남은 건
-  채널 팩킹(위)과 실제 지형 메시에 UV 스케일 맞춰 붙이는 작업뿐.
-
-## ③ 캐릭터 에셋 조사 — Mixamo가 이 저장소의 기존 선례다 (2026-09-13, 이어서)
-
-- **레거시 감사 결과 재확인(4장 원칙 — 새로 안 하고 웹 판 기록을 그대로
-  가져다 씀)**: 웹 판 **사가의숲**이 2026-09-02에 이미 "사실적 사람"
-  문제를 풀어 봤다(`saga-web/saga-forest/assets/ASSET_LICENSES.md`
-  "Mixamo (Adobe)" 절). 결론과 제약이 이 프로젝트에도 그대로 적용된다:
-  - **Mixamo(mixamo.com, 무료 Adobe 계정)가 실사 인체·리깅·애니메이션
-    소스로는 최선이다** — 포토그래메트리는 아니지만 실사 비율 스캔
-    기반 캐릭터+수백 종 애니메이션을 무료로 제공한다.
-  - **자동화 불가** — mixamo.com은 공개 API가 없고 캐릭터 선택·
-    포맷·다운로드가 전부 로그인 후 GUI 조작이다(VRoid Studio와 같은
-    종류의 "사람이 직접 열어야 하는" 지점).
-  - **약관상 재배포 금지 — 변환 결과물을 이 공개 저장소에 커밋하지
-    않는다.** "원본 캐릭터·애니메이션을 독립 에셋으로 재배포"가
-    금지라(Adobe 커뮤니티 공지 다수가 일관되게 확인), 사가의숲도 받은
-    걸 `.gitignore`로 막고 로컬에만 뒀다. 이 프로젝트도 같은 원칙 —
-    **`.gitignore`에 `Assets/Art/CharactersRealistic/`을 미리 추가해
-    뒀다**(아직 폴더 자체는 없음, 받을 때를 대비한 선점).
-  - saga-go 세션이 별도로 "자동화까지 하고 싶다"며 시도했던 대안들
-    (Vitruvian Project 등)은 전부 막다른 길로 확정됐던 것도 그대로
-    유효 — 다시 조사하지 않는다.
-- **Unity는 웹 판보다 오히려 쉽다.** 웹(three.js)은 Mixamo FBX를
-  `FBX2glTF`+`gltf-transform`으로 glTF로 변환하는 파이프라인이
-  따로 필요했는데, **Unity는 FBX를 기본 임포터로 직접 읽는다**(glTF
-  변환 불필요, Mixamo 표준 휴머노이드 리그도 Unity의 Humanoid
-  Avatar로 바로 매핑된다) — 웹 판의 `tools/mixamo/slim_anim.js` 류
-  후처리 스크립트도 필요 없다.
-- **사람이 할 일(다음 세션 또는 사용자가 직접)** — 사가의숲 레시피를
-  Unity용으로 옮기면:
-  1. mixamo.com에서 캐릭터 하나 고르기(사가의숲처럼 아예 처음부터
-     하려면 **Maria** 재사용도 가능 — 이미 라이선스·평판 확인된 선택)
-     → Download, Format **FBX for Unity(Skin)** 로 몸 1회
-  2. 필요한 애니메이션(이동·전투 등, PLAN.md 게임별 요구 액션에 맞춰
-     선정 — 사가의숲의 여덟 개 목록을 참고 출발점으로 삼되 이 프로젝트
-     액션에 맞게 조정) 각각 Format FBX(Without Skin)로 받기
-  3. `Assets/Art/CharactersRealistic/`(신규, `.gitignore` 대상)에
-     그대로 넣기만 하면 Unity가 FBX를 직접 임포트 — 웹 판 같은 변환
-     스크립트 불필요
-  4. Rig 탭에서 Animation Type을 **Humanoid**로, Avatar Definition을
-     "Create From This Model"로 지정 — 이후 다른 Mixamo 애니메이션도
-     같은 Avatar를 공유해 재사용 가능(Unity Humanoid 리타게팅)
-- **헤어카드·URP SSS 스킨 셰이더 — 조사 결과(2026-09-13)**. Mixamo
-  캐릭터는 헤어가 보통 메시에 통합돼 있어 "여러 겹 헤어카드"까지는
-  기본 제공이 아니고, URP는 HDRP와 달리 전용 Skin/Hair 마스터 노드가
-  없다(HDRP의 Hair 마스터 노드·`com.unity.demoteam.digital-human`
-  둘 다 HDRP 전용, URP로 그대로 못 옮긴다). 다만 **"직접 처음부터
-  짜야 한다"는 아니다** — 공개(GitHub) URP 전용 Shader Graph 구현이
-  이미 있다:
-  - **스킨(SSS 근사)**: `CiaranSimpson/Subsurface-Scattering-for-
-    Unity-URP`(모바일 지향 wrap-lighting 근사, 즉시 쓸 수 있는 수준) —
-    더 사실적으로 가려면 Eric Penner의 pre-integrated skin(곡률 기반
-    diffuse lookup + thickness map, HDRP·유료 에셋들이 실제로 쓰는
-    기법)을 Custom Function 노드로 직접 옮겨야 한다(URP Shader Graph에
-    로우레벨 라이팅 데이터를 노출하는 내장 노드가 없어서 이 부분만은
-    피할 수 없다).
-  - **헤어카드(이방성 하이라이트)**: `cathyhlshih/
-    UnityURPAnisoHighlightHairShader`·`itsFulcrum/Unity-URP-Hair-
-    Shader`(둘 다 URP Shader Graph, Kajiya-Kay류 이방성 + 알파클립
-    카드 처리) — Unity 공식 `Unity-Technologies/URP-Defender-
-    Character-Demo` 레포에도 참고용 이방성 헤어 Shader Graph가 있다.
-  - **결론**: 완전히 무료·즉시 쓸 수 있는 뼈대가 다 있다 — 다음에
-    실제로 캐릭터에 붙일 세션은 "새로 설계"가 아니라 "위 공개 구현을
-    가져와 이 프로젝트 텍스처·머티리얼 슬롯에 맞게 손보는" 일이 된다.
-    단, 그 GitHub 저장소들 각각의 라이선스(MIT/CC 등)를 가져다 쓰기
-    전에 한 번 확인할 것 — 아직 안 함(이번엔 존재 확인까지만).
-- 이번 세션은 **문서 조사만** — 실제로 mixamo.com에서 캐릭터를 받는
-  것도, `Assets/Art/CharactersRealistic/` 폴더를 실제로 만드는 것도,
-  위 GitHub 셰이더를 실제로 받아 붙이는 것도 아직 안 함(66-1/66-2장이
-  이미 여러 번 짚은 "GUI 전용 자동화 불가" 지점과 같은 종류거나, 다음
-  단계에서 실제 코드로 옮길 일).
-
-## ④ 캐릭터 셰이더 라이선스 확인 + ②의 채널 팩킹 실제 해결 (2026-09-13, 이어서)
-
-- **③이 조사만 해 둔 GitHub 셰이더 세 곳의 라이선스를 실제로 확인했다**
-  (GitHub API로 `license.spdx_id` 조회) — 전부 문제없이 쓸 수 있다:
-  - `CiaranSimpson/Subsurface-Scattering-for-Unity-URP` → **MIT**
-  - `cathyhlshih/UnityURPAnisoHighlightHairShader` → **MIT**
-  - `itsFulcrum/Unity-URP-Hair-Shader` → **CC0-1.0**
-  - 참고로만 언급했던 `Unity-Technologies/URP-Defender-Character-Demo`는
-    **저장소를 찾지 못함(404, 검색해도 없음)** — 이름이 바뀌었거나
-    비공개/삭제된 것으로 보인다. 실사용 대상이 아니었으니 그냥 목록에서
-    뺀다, 다시 찾으려 하지 않는다.
-- **②에서 미뤄 뒀던 채널 팩킹 문제를 실제로 풀었다** — 처음 계획은
-  "커스텀 Shader Graph로 ORM 언팩"이었지만, 더 간단한 방법으로 갔다:
-  `BuildEnvironmentPbrSample.cs`에 `BuildMetallicSmoothnessMap()`을
-  추가해 Poly Haven의 Roughness 원본(`_rough_1k.jpg`)을 에디터에서
-  픽셀 단위로 읽어(`GetPixels32`) RGB=0(비금속)·A=255-Roughness로 다시
-  구운 `_metallicsmoothness_1k.png`를 만들고, 머티리얼의
-  `_MetallicGlossMap`에 물려 `_METALLICSPECGLOSSMAP` 키워드를 켠다
-  (`_Smoothness`는 1로 둬 알파값이 그대로 통과하게). 결과는 표준 URP
-  Lit Metallic 워크플로 그대로라 커스텀 셰이더가 아예 필요 없다 — 왜
-  Shader Graph보다 이쪽이 나은지: 텍스트로 손으로 짤 수 없는
-  `.shadergraph` JSON 자산을 새로 안 만들어도 되고, 결과 머티리얼이
-  표준 URP Lit이라 향후 유지보수·다른 재질과의 호환이 더 쉽다.
-  - 배치 모드(`-executeMethod
-    Saga.EditorTools.BuildEnvironmentPbrSample.Build`)로 실행,
-    컴파일 오류 0건·`cobblestone_floor_01`·`castle_wall_slates`
-    양쪽 다 `_metallicsmoothness_1k.png`+`.mat` 정상 생성 확인.
-  - 배치 모드 부작용(`ProjectSettings/`·`Packages/` 버전 자동 변경)도
-    이번엔 재확인 결과 없었음(`git diff -- ProjectSettings/
-    Packages/`로 확인) — CLAUDE.md의 함정이 매번 발생하는 건 아니고
-    프로젝트 고정 버전과 로컬 Unity 버전이 이미 일치하면 안 일어난다.
-  - 부작용으로 `_rough_1k.jpg` 원본 두 장의 텍스처 임포터 설정이
-    `isReadable=true`·`Uncompressed`로 바뀌었다(픽셀을 읽으려면
-    필요) — 이 원본은 어느 씬·머티리얼도 참조하지 않아(구운 PNG만
-    참조됨) 빌드에는 포함되지 않으니 문제없다.
-
-## ⑤ 캐릭터 셰이더 세 벌 실제 반입 (2026-09-13, 이어서)
-
-- **④에서 라이선스 확인까지 끝난 세 저장소를 `git clone`으로 실제
-  받아 `Assets/Art/CharacterShaders_candidates/`에 넣었다** — 아직
-  캐릭터가 없어(Mixamo 반입 전) 어느 머티리얼/씬에도 안 물렸다, 순수
-  후보 반입.
-  - `SSS_CiaranSimpson/` — `FakeSSS.shadersubgraph`만 가져옴.
-    **원본 저장소의 데모용 "Subsurface Shader.shadergraph"는 이
-    프로젝트의 Unity 6000.3 Shader Graph 패키지로 임포트하면
-    `NullReferenceException`으로 깨져서 뺐다**(원본이 더 오래된
-    Shader Graph 버전으로 저장된 그래프로 보임 — 재사용 대상인
-    서브그래프 노드 자체는 정상 임포트됨, 다음에 우리 캐릭터 셰이더
-    그래프 안에 이 노드를 직접 넣어 쓰면 된다).
-  - `AnisoHair_cathyhlshih/` — `UnityURPAnisoHighlightHair/` 전체
-    (셰이더 그래프+서브그래프+예시 머티리얼) 그대로, README 데모
-    이미지(`Images/`)만 제외.
-  - `HairCards_itsFulcrum/` — `FulcrumHairShader/`(HLSL 커스텀 URP
-    셰이더)+`Textures/` 그대로.
-  - 각 폴더에 원본 `LICENSE` 파일 동봉 + 상위에 출처·제외 이유 정리한
-    `LICENSE.txt`(Poly Haven 후보 폴더와 같은 관례).
-- 배치 모드(`-batchmode -nographics -quit`, `-executeMethod` 없이
-  순수 임포트)로 두 번 실행해 컴파일 오류 0건·깨진 셰이더그래프 제거
-  후 재확인, `ProjectSettings/`·`Packages/` 배치 모드 부작용 없음
-  확인.
-
-## ⑥ Poly Haven 재질 추가 조사 — 흙길·초목·목재 세 벌 (2026-09-13, 이어서)
-
-- ②가 대표 둘(바닥·벽)만 확인했던 것에 이어 **44장 우선순위대로 셋을
-  더 받았다** — 전부 CC0, Poly Haven 공개 API로:
-  - **`grass_path_2`**(흙길) — `Assets/Art/EnvironmentPBR_candidates/
-    PolyHaven_GrassPath2/`
-  - **`leafy_grass`**(초목 바닥) — `.../PolyHaven_LeafyGrass/`
-  - **`dark_wooden_planks`**(목재) — `.../PolyHaven_DarkWoodenPlanks/`
-  - 셋 다 diffuse·normal(OpenGL)·roughness·AO 네 맵(1k JPG) 전부.
-- `BuildEnvironmentPbrSample.cs`에 세 재질을 추가해(기존
-  `BuildMetallicSmoothnessMap()` 그대로 재사용 — ④에서 이미 채널 팩킹을
-  풀어 둔 덕에 새 재질도 별도 작업 없이 바로 적용됨) 총 다섯 개 URP Lit
-  머티리얼을 만든다. 배치 모드로 컴파일 오류 0건·머티리얼 5개 생성
-  확인, `ProjectSettings/`·`Packages/` 부작용 없음.
-- **아직 후보일 뿐 — 어느 씬에도 안 물렸다**(위 ②와 같은 성격).
-
-## ⑦ Mixamo 캐릭터 반입 + Humanoid 리깅 (2026-09-13, 이어서)
-
-- **사용자가 mixamo.com에서 직접 받았다** — 몸(**Maria WProp J J Ong**,
-  Format FBX for Unity)+애니메이션 8개(③ 레시피 그대로: idle·walk·run·
-  attack·hit·dodge·death·interaction), 전부 `C:\Users\Windows\Downloads`에
-  받아 뒀길래 `Assets/Art/CharactersRealistic/`(`.gitignore` 대상, 로컬
-  전용)로 복사해 넣었다. 애니메이션 파일들은 예상보다 커서(각 15~16MB,
-  몸과 비슷한 크기) "Without Skin"이 아니라 메시 포함으로 받힌 것으로
-  보이지만 — 기능엔 문제없다(아래에서 Copy From Other Avatar로 몸의
-  Avatar를 그대로 쓰게 만들어서 각 파일 자체의 메시는 안 쓴다), 로컬
-  디스크 용량만 더 든다(총 ~140MB, 커밋 안 되니 저장소 크기엔 무관).
-- **`SetupMixamoCharacterImport.cs`(신규, `Saga/Setup Mixamo Character
-  Import` 메뉴)** — 몸 FBX는 `ModelImporterAnimationType.Human`+
-  `CreateFromThisModel`로 Avatar를 새로 만들고, 애니메이션 8개는
-  전부 `CopyFromOther`로 몸의 Avatar를 그대로 물려(리타게팅이 확실히
-  같은 골격에 걸리게) 각 파일의 클립을 액션 이름(`idle`·`walk`·`run`·
-  `attack`·`hit`·`dodge`·`death`·`interaction`)으로 바꾸고 loopTime을
-  적절히 설정(idle/walk/run만 루프)한다.
-- 배치 모드(`-executeMethod
-  Saga.EditorTools.SetupMixamoCharacterImport.Setup`)로 실행 —
-  **몸 Avatar가 `isValid`·`isHuman` 둘 다 통과**(Mixamo 표준 T-pose가
-  Unity Humanoid 매핑에 별다른 수동 보정 없이 바로 들어맞았다는 뜻),
-  8개 애니메이션 전부 클립 리네임+루프 설정 로그로 확인. 컴파일 오류
-  0건, `ProjectSettings/`·`Packages/` 부작용 없음.
-- **아직 안 한 것** — 실제 씬에 배치, Animator Controller로 클립 연결,
-  ⑤의 헤어카드/SSS 셰이더를 Maria 머티리얼에 실제로 붙이기(Maria 기본
-  머티리얼이 어떤 셰이더인지, 헤어 메시가 몸과 분리돼 있는지 등은 다음에
-  확인). 이번엔 리깅까지만.
-
-## ⑧ Animator Controller + 확인용 씬 배치 (2026-09-13, 이어서)
-
-- **`BuildTestCharacterRealisticScene.cs`(신규, `Saga/Build Test
-  Character Realistic Scene` 메뉴)** — 두 가지를 한 번에 한다:
-  1. `Assets/Animators/Maria.controller`(신규 폴더, 커밋 대상 —
-     Mixamo 원본 데이터를 담지 않고 클립 이름/전이 구조만 있는 순수
-     제작물이라 `CharactersRealistic/`처럼 gitignore할 이유가 없다)에
-     8개 클립을 전부 연결한 Animator Controller를 코드로 짓는다.
-     파라미터는 `Speed`(float, Idle↔Walk↔Run 블렌드: >0.1 걷기,
-     >0.6 뛰기)+`Attack`·`Hit`·`Dodge`·`Death`·`Interact`(전부
-     Trigger, Any State에서 즉시 전이). 액션 클립은 재생이 끝나면
-     Idle로 자동 복귀하되(exitTime 0.9), **Death만 복귀시키지 않는다**
-     (죽었다가 자동으로 살아나면 부자연스럽다 — 실제 게임 사망 처리와
-     같은 관례, 다시 보려면 Play 모드를 재시작).
-  2. **`Assets/Scenes/TestCharacterRealistic.unity`(신규)** — 어느
-     게임에도 속하지 않는 독립 리그 검증 씬(조명 하나+바닥 Plane+
-     카메라, 66-2장 FF16 아트 패스는 일부러 안 걸었다 — 그건 각 게임
-     씬의 몫이고 여긴 리그 확인만). Maria FBX를 `PrefabUtility.
-     InstantiatePrefab`으로 배치하고 `Animator.runtimeAnimatorController`
-     에 위 컨트롤러를 물렸다.
-  - 배치 모드로 실행 — 컨트롤러의 8개 상태 전부 `m_Motion`이 non-null
-    (클립이 실제로 물렸다는 뜻), 씬의 Animator가 정확한 컨트롤러 GUID를
-    참조하는 것까지 직접 확인. 컴파일 오류 0건, `ProjectSettings/`·
-    `Packages/` 부작용 없음.
-  - **아직 사람이 GUI로 Play를 눌러 실제로 재생해 보진 않았다** — 다음
-    세션 또는 사용자가 에디터로 열어 Speed 슬라이더·트리거 버튼을
-    Animator 창에서 눌러 직접 확인할 차례.
-
-## ⑨ 사용자 요청 "직접 확인해" — 실제 GUI Play로 확인 + 버그 발견·수정 (2026-09-13, 이어서)
-
-- **`PlaytestCharacterRealisticGui.cs`(신규)** — 루트/이 폴더 CLAUDE.md의
-  "개발 중엔 GUI 스크린샷 습관적으로 안 찍는다" 원칙의 예외(사용자가
-  "직접 확인해"로 명시 요청). Unity를 실제 GUI로 띄워(배치 모드 아님)
-  TestCharacterRealistic 씬을 열고 Play 진입 → idle 정착(1초) →
-  `Speed=1`로 run 정착(1초) → `Attack` 트리거 → 세 시점 스크린샷
-  (`ScreenCapture.CaptureScreenshot`) → 스스로 Play 종료+
-  `EditorApplication.Exit(0)`로 Unity까지 완전히 닫는다(별도 taskkill
-  불필요, 프로세스 종료까지 확인함).
-- **1차 스크린샷에서 버그 발견 — 캐릭터·바닥이 전부 플랫한 시안색으로만
-  나옴(음영·디테일 전혀 없음).** 원인을 `Assets/Scenes/
-  TestCharacterRealistic.unity` YAML을 직접 열어 확인: `Ground` Plane이
-  `GameObject.CreatePrimitive()`의 **기본 내장 머티리얼**(Standard
-  셰이더, URP 비호환)을 그대로 쓰고 있었다 — ⑧에서 머티리얼을 따로
-  안 만들어 준 게 원인. 새 빈 씬이라 Skybox/앰비언트도 기본값(정의되지
-  않은 상태)이라 겹쳐서 이상하게 나온 것으로 보인다.
-- **수정**: `BuildTestCharacterRealisticScene.cs`에 `CreateSimpleUrpLitMaterial()`
-  헬퍼를 추가해 Ground에 명시적 회색 URP Lit 머티리얼을 물리고,
-  `RenderSettings.skybox = null`+`ambientMode = Flat`+회색 앰비언트로
-  스카이박스를 변수에서 뺐다(66-2장 FF16 무드는 각 게임 씬의 몫이라
-  이 리그 검증 씬은 일부러 중립으로 둔다), 카메라도 `CameraClearFlags.
-  SolidColor`로 배경을 명시. 재빌드 후 재확인 — **idle(제자리 파이팅
-  자세)·run(달리기, 루트 모션으로 카메라에서 멀어짐)·attack(중간 스윙
-  자세) 셋 다 정상적으로 렌더링됨을 스크린샷으로 직접 확인.**
-- **부가 발견(오판, 아래 ⑩에서 정정) — 당시엔 "Maria FBX에 디퓨즈
-  텍스처가 아예 없다"고 적었었다.** `MariaMat`의 `_BaseMap`이 null이고
-  `AssetDatabase.LoadAllAssetsAtPath`로 찾은 `Texture2D` 서브에셋이
-  0개인 것까지는 사실이었지만, "FBX 안에 텍스처 자체가 없다"는 결론은
-  틀렸다 — 실제로는 Unity가 FBX에 임베드된 텍스처를 **자동으로
-  추출해 주지 않을 뿐**이었다. 사람에게 mixamo.com 재확인을 요청했던
-  것도 불필요한 요청이었다 — 자세한 경위는 ⑩ 참고.
-- GUI 실행 후 `Unity.exe` 프로세스가 스스로 완전히 종료된 것도
-  `tasklist`로 확인(별도 kill 불필요). `ProjectSettings/`·`Packages/`
-  부작용 없음.
-
-## ⑩ 텍스처 문제 정정 — FBX에 이미 임베드돼 있었다, `ExtractTextures()`만 필요했다 (2026-09-13, 이어서)
-
-- **사용자가 "텍스처 있는 걸로 다시 받아둘게"라며 mixamo.com에서
-  `character.fbx`를 새로 받았다.** 진단해 보니 이 파일도 몸은
-  똑같은 Maria(`MariaMat`, 서브메시 `Maria_J_J_Ong`+`Maria_sword`
-  동일)였고, `_BaseMap`도 여전히 null — **재다운로드로도 안 풀렸다.**
-- **원인을 제대로 찾았다** — `character.fbx`를 바이너리로 직접 열어
-  PNG 시그니처(`\x89PNG\r\n\x1a\n`)를 찾아보니 실제로 3개
-  (`maria_diffuse.png`·`maria_normal.png`·`maria_specular.png`)가
-  파일 안에 임베드돼 있었다. **Unity의 `ModelImporter`는 FBX에 임베드된
-  텍스처를 기본적으로 자동 추출하지 않는다** — `ModelImporter.
-  ExtractTextures(destDir)`를 명시적으로 호출해야 실제 텍스처 에셋이
-  생기고 머티리얼이 그걸 가리키게 된다(에디터 GUI의 Materials 탭
-  "Extract Textures..." 버튼과 같은 동작을 코드로 부른 것).
-  `Assets/Art/CharactersRealistic/Textures/`에 세 PNG(2048×2048)가
-  추출됐다.
-- **바로 다음에 처음부터 받았던 `Maria WProp J J Ong.fbx`(리깅
-  완료본)도 똑같이 확인해 보니 3개 PNG가 이미 임베드돼 있었다** —
-  **애초에 재다운로드가 필요 없었다, 처음 받은 파일에 그냥
-  `ExtractTextures()`만 돌렸으면 됐다.** 그래서 새로 받은
-  `character.fbx`는 지우고, 이미 리깅·Animator Controller·씬 배치가
-  다 끝나 있던 원본 `Maria WProp J J Ong.fbx`에 텍스처 추출을 적용해
-  이어갔다(리깅 설정은 재추출 후에도 그대로 살아 있음을 확인 —
-  텍스처 추출은 재임포트만 트리거할 뿐 `animationType`/`avatarSetup`
-  같은 임포터 설정을 안 건드린다).
-- **재확인 — 실제로 옷·갑옷·머리카락 색이 다 입혀진 상태로 idle·run·
-  attack 전부 정상 렌더링됨을 스크린샷으로 확인.** 다만 **씬을 새로
-  빌드하고 GUI Play에 들어간 첫 실행에서 한 번, 셰이더 변형이 아직
-  컴파일 중이었는지 idle 스크린샷이 다시 플랫한 시안색으로 찍힌 적이
-  있었다**(60프레임 대기로는 부족) — 대기를 120프레임으로 늘려 재현
-  없이 안정적으로 텍스처가 입혀진 상태를 캡처하도록
-  `PlaytestCharacterRealisticGui.cs`를 고쳤다.
-- **정정 — 새 파일 반입은 이제 불필요하다.** 앞으로 Mixamo 캐릭터를
-  더 받을 때는 처음부터 body FBX마다 `ExtractTextures()`를 한 번
-  돌리는 걸 표준 절차에 넣는다(다음에 할 일 참고).
-
-## ⑪ 피부/기타 서브메시 분리 + 값싼 스킨 근사 적용 (2026-09-13, 이어서)
-
-- **⑩이 남긴 "머티리얼을 분리해야 함" 과제를 실제로 풀었다 — 단, 계획을
-  중간에 바꿨다.** 처음 생각은 "⑤가 받아 둔 `FakeSSS.shadersubgraph`를
-  Maria 피부에 직접 연결"이었는데, 확인해 보니 **Shader Graph는
-  `AnimatorController`(⑧에서 코드로 지음)와 달리 코드로 노드를 조립할
-  공식 API가 없다** — 손으로 GUI에서 노드를 드래그해 연결해야 하는
-  일이라 사람 개입이 필요하고, 내부/비공개 API를 리플렉션으로 억지로
-  건드리는 건 버전마다 깨지기 쉬운 위험한 지름길이라 안 갔다.
-- **대신 이렇게 갔다** — `BuildMariaSkinSplit.cs`(신규)가 Maria 몸
-  메시(단일 서브메시, 14566 삼각형)를 **삼각형별 UV 중심점을 디퓨즈
-  텍스처에서 색 샘플링해 피부색 근사(HSV 채도·명도·색상 범위)로 분류**,
-  피부 2642개·기타 11924개 삼각형으로 서브메시 둘을 가진 새 메시
-  (`Maria_Split`)를 만든다. 피부 쪽엔 살짝 따뜻한 톤(`_BaseColor`를
-  `(1, 0.93, 0.87)`로)+낮은 광택(`_Smoothness` 0.35)의 URP Lit
-  머티리얼(`MariaSkin`)을 물리고, 나머지는 원본과 동일한 값의
-  `MariaRest`를 쓴다 — **진짜 wrap-lighting SSS가 아니라 "밀랍 같은
-  느낌을 줄이는" 값싼 근사**임을 분명히 해 둔다(45장 모바일 목표에도
-  이쪽이 더 맞는다).
-  - **Mixamo ToS 때문에 결과물 저장 위치를 신경 썼다** — 분리된 메시는
-    Maria의 실제 지오메트리를 담으므로, 이미 gitignore 대상인
-    `Assets/Art/CharactersRealistic/`(하위 `Generated/`)에만 저장한다.
-    저장소 밖으로 절대 안 뺀다.
-  - `BuildTestCharacterRealisticScene.cs`가 이 분리 메시/머티리얼이
-    있으면 자동으로 물리도록(`ApplySkinSplit()`) 고쳤다 — 없으면 조용히
-    원본 단일 머티리얼로 건너뛴다(에러 아님, 순서 의존성 안내만).
-  - 배치 모드로 분리 실행(2642/11924 삼각형 분류 로그 확인)→씬 재빌드
-    →GUI Play 스크린샷으로 **메시가 깨지지 않고(구멍·튐 없음) 그대로
-    렌더링됨을 확인**. 씬의 PrefabInstance 오버라이드에 `m_Mesh`+
-    `m_Materials.Array.data[0]`/`[1]`이 정확히 새 에셋을 가리키는 것도
-    YAML로 직접 확인.
-- **아직 안 한 것** — 헤어(이방성 하이라이트)는 이번에 손 안 댔다.
-  머리카락 색(금발)과 갑옷 금장식 색이 색상 공간에서 너무 가까워
-  (둘 다 노란/금색 계열) 지금 쓴 것과 같은 색 분류 방식으로는 오분류
-  위험이 커서 뺐다 — 손으로 마스크를 그리거나(외부 DCC 툴 필요) 다른
-  판별 기준이 있어야 안전하게 분리할 수 있다. 실제 wrap-lighting SSS
-  포워드 패스(HairLitForwardPass.hlsl 같은 커스텀 셰이더 패스)를 손으로
-  짜는 것도 다음 과제로 남긴다 — 규모가 있는 작업이라 이번엔 안 갔다.
-
-## 다음에 할 일 (아직 착수 전)
-
-- ~~Mixamo 캐릭터를 새로 받을 때마다 `ModelImporter.ExtractTextures()`를
-  표준 절차에 포함시키기~~ — 이미 됐다. `MixamoRigUtil.RigCharacter()`
-  (Maria·Abe 공용 리깅 함수) 안에 `bodyImporter.ExtractTextures(...)`가
-  들어 있다(2026-09-14 확인, "이어해" 후속 세션에서 이 항목이 스테일임을
-  발견) — 다음에 새 Mixamo 캐릭터를 추가해도 이 함수를 쓰기만 하면 자동.
-- ⑤가 받아 둔 헤어카드(이방성)·진짜 SSS(`FakeSSS.shadersubgraph`)를
-  실제로 쓰려면 **Shader Graph 노드 연결을 사람이 GUI로 해야 한다**
-  (⑪에서 확인한 제약) — 다음 세션 또는 사용자가 직접 Unity 에디터를
-  열어 진행할 몫으로 남긴다.
-- ~~Kenney·VRoid 플레이스홀더를 다섯 환경 재질/⑤ 캐릭터 셰이더/⑦
-  캐릭터로 실제 사실적 에셋으로 순차 교체~~ — 2026-09-14에 다섯 판
-  전부(Environment/Building까지) 끝났다(자세한 내용은
-  `docs/PROJECT_STATE.md` 해당 날짜 항목들, 요약은 세션 메모리 참고).
-- ~~66-1장 PC/Mobile 두 프로파일이 실제 사실적 에셋으로도 성능·화질
-  균형이 맞는지 확인~~ — 다시 보니 걱정했던 두 후보(SSS 스킨 셰이더·DoF)
-  둘 다 애초에 아직 안 켜져 있어서 문제 자체가 없었다: DoF는
-  `BuildFF16VolumeProfiles.cs`가 처음부터 "대화 연출 토글 시스템이
-  없어 지금 넣으면 항상 흐려진다"는 이유로 안 넣었고, 진짜 SSS
-  (`FakeSSS.shadersubgraph`)도 바로 위 항목처럼 아직 아무 머티리얼에도
-  안 물려 있다 — 지금 실제로 도는 피부 표현은 `BuildMariaSkinSplit.cs`가
-  쓴 "값싼 URP Lit 근사"뿐이라 PC/Mobile 어느 쪽에서도 추가 비용이 없다.
-  **재확인이 필요해지는 시점은 Shader Graph 배선(사람 몫)이 실제로
-  끝난 뒤** — 그때 이 항목을 다시 살릴 것.
+라이팅/후처리 셋업(`BuildFF16VolumeProfiles.cs`) · Poly Haven PBR 5벌(채널 팩킹은 `BuildMetallicSmoothnessMap()` 으로 표준 URP Lit 유지) · 캐릭터 셰이더 3벌 반입(MIT·MIT·CC0, `CharacterShaders_candidates/`) · Mixamo Maria 반입+Humanoid 리깅(`MixamoRigUtil.RigCharacter()` 가 `ExtractTextures()` 포함) · Animator 8클립 · 피부 서브메시 분리 근사(`BuildMariaSkinSplit.cs`).
+**남은 결정 사항**: 헤어카드·진짜 SSS 는 Shader Graph 노드 배선이 코드로 불가 → 사람 GUI 몫. DoF 는 대화 연출 토글이 생긴 뒤에만. Mixamo 산출물은 `Assets/Art/CharactersRealistic/`(gitignore) 밖으로 내지 않는다. 자세한 경위는 `docs/HISTORY.md` "PLAN.md 66-2장" 절.
 
 ---
 
@@ -1383,64 +998,11 @@ Skill/UI/Environment 사운드 구조(Unity AudioSource + AudioMixer로
 패키지 또는 간단 JSON 사전, 한국어/영어/일본어 확장 가능). UI 크기·
 진동·효과음·BGM On/Off·그래픽 품질 설정 가능하게.
 
-**진행 현황(2026-09-14)** — SFX 쪽은 다섯 판 전부 같은 방식(코드로
-Master/SFX 볼륨만 곱하는 `XxxAudio.cs`, 진짜 AudioMixer 에셋은 사람이
-에디터 GUI로 노드를 이어야 해서 배치 모드로는 못 만듦)으로 통일됐다 —
-GO/FOREST/STORY/REALM/DUNGEON 순으로 붙였고, 자세한 내용은
-`docs/PROJECT_STATE.md`·`docs/ASSET_GUIDE.md` 해당 날짜 항목. 접근성
-(UI 크기·진동·그래픽 품질)은 같은 날 다섯 판 전부에 설정 UI로 붙었다
-(커밋 8127684).
-
-**BGM(2026-09-15) — 판마다 상시 배경 루프 한 곡씩 다섯 곡 다 붙였다.**
-2026-09-14엔 "무드가 있는 선곡은 오디오를 직접 들어야 골라 사람 몫"
-으로 보류했었는데, 그 보류는 **승리/패배처럼 어느 쪽인지 들어야
-갈리는 곡**에 한한 것이었지 상시 배경 루프 자체를 막은 게 아니었다 —
-opengameart.org에서 CC0로 필터링해 제목이 이미 명확한 곡만 골라
-그 제약을 피해 갔다(자세한 내용은 `docs/ASSET_GUIDE.md` 2026-09-15
-항목). 승리/패배 음악 같은 감정가 있는 선곡은 여전히 사람 몫으로
-남아 있다 — 그건 계속 "먼저 묻지 말고 시작하지 말 것".
-
-**Localization 진행 현황(2026-09-14)** — 인프라 + 첫 실제 콘텐츠(설정
-패널 자신의 글자)까지 붙었다. `XxxLocalization.cs`(다섯 벌 복사, 다른
-XxxAudio.cs·XxxSettingsState.cs와 같은 결)가 `Resources/Localization/
-xxx_<lang>.json`(키·값 JSON, JsonUtility로 파싱)을 읽어 `T(key)`로
-돌려준다 — 키가 없으면 키 자체를 돌려줘 번역 누락이 빈 화면 대신 바로
-보이게 했다. 언어는 다른 접근성 항목과 같은 버튼 순환 방식(ko→en→ko),
-설정 패널의 새 다섯째 줄("언어")로 고른다. **지금은 설정 패널 자신의
-글자(제목·효과음·진동·UI 크기·그래픽 품질·언어·켜짐/꺼짐·기본/절약·
-작게/보통/크게·닫는다)에 이어, 같은 날 2차로 **런타임에 매번 새로
-짓는 UI의 버튼·패널 제목**(GO 전투 선택지/전투 버튼, FOREST
-"밀어내기!", REALM 다섯 버튼+구석 셋+다섯 패널 제목)까지 이 표를
-거친다** — 나머지(대사·퀘스트·HUD 상태줄·REALM 문답 등 데이터 콘텐츠,
-그리고 DUNGEON/STORY의 **에디터 빌드 스크립트가 씬에 구워 넣는**
-모바일 액션 버튼 — 이쪽은 런타임 리프레시 훅이 없어 어설프게 반만
-localize하면 더 나쁘다)는 아직 하드코딩 그대로다. 다음에 범위를 넓힐
-때 `XxxLocalization.T()`를 그대로 재사용하면 된다(단 DUNGEON/STORY
-빌드-스크립트 버튼은 먼저 "언어 전환 시 다시 그리는 훅"부터 설계).
-`settings.*`류 공유 키는 다섯 판이 전부 같은 키·값을 쓴다 — data.js
-처럼 다섯 벌 함께 고치고 md5로 확인할 것(en 번역은 이 세션이 직접
-옮긴 것이라 사람 검수를 안 거쳤다). 게임별 신규 키(command.*/
-encounter.*/combat.*/panel.*/hud.*)는 다섯 벌 일치를 요구하지 않는다.
-일본어(ja)는 아직 없다.
-
-**3차(같은 날) — 상시 HUD 상태줄**(GO/DUNGEON/STORY/REALM의
-PlayerHud/RealmHud/StoryHud)까지 `T()`/`string.Format` 템플릿으로
-옮겼다. chrome(라벨)만 옮기는 경계를 지켰다 — 이때까지는 데이터
-콘텐츠(무기/장수/도시 이름, 퀘스트 문장)는 한국어 그대로.
-
-**4~6차(같은 날, 사용자가 더 진행을 요청해 경계를 넘음) — 데이터
-콘텐츠 번역 착수.** `T(key, fallback)` 오버로드를 추가하고 REALM
-도시/장수/명령/계략, GO/DUNGEON 장비 이름, GO 촌장/상인/나그네
-전체 대사와 두 조우 사건(도적/흰 늑대)의 모든 토스트·승리 메시지,
-DUNGEON 퀘스트 목표·완료 문구, STORY 척후병 대사+퀘스트 고유명까지
-번역했다(커밋 d694ac6·a6fa972·1b5869f, 자세한 내용은
-docs/PROJECT_STATE.md 해당 날짜 항목). **원칙 — 내부 식별자(다른
-코드가 문자열 값 자체로 매칭하는 상수, 예: DUNGEON QuestState의
-BossName)는 안 건드리고 표시 문자열만 옮긴다.** FOREST는 이 세션
-전체에서 미착수, REALM 문답(36개)·REALM 서고/전투 결과 서술·GO
-HiddenTreasure·DUNGEON 행상/구출 대사 등이 다음 후보로 남아있다
-(docs/PROJECT_STATE.md "다음 세션 안내" 참고). en 번역은 전부 이
-세션이 직접 옮긴 것이라 사람 검수 전이다.
+**진행 요약(2026-09-14~15, 경위는 `docs/HISTORY.md` "67~69장" 절)** — SFX·BGM·접근성 설정·Localization 인프라가 다섯 판 전부에 붙었다. 유지할 결정만 적는다:
+- SFX 는 코드로 Master/SFX/BGM 볼륨을 곱하는 `XxxAudio.cs`(다섯 벌). AudioMixer 에셋은 사람이 GUI 로 노드를 이어야 해 배치 모드로 못 만든다 — 만들지 않는다.
+- BGM 은 판마다 CC0 상시 루프 1곡(`Assets/Art/Audio/CC0_BGM/`). 승리/패배처럼 들어야 갈리는 선곡은 사람 몫 — 먼저 묻지 않고 시작하지 않는다.
+- Localization: `XxxLocalization.T(key[, fallback])` + `Resources/Localization/xxx_<lang>.json`(ko·en, ja 없음). 키 누락은 키 자체를 돌려준다(빈 화면 대신 보이게). `settings.*` 공유 키는 다섯 벌 md5 일치, 게임별 키는 불일치 허용. **내부 식별자(문자열 값으로 매칭되는 상수)는 번역하지 않는다.** 씬에 구워 넣는 버튼은 `LocalizedButtonLabel`(폴링) 로만 언어 전환. en 은 세션 번역이라 사람 검수 전.
+- 미착수: FOREST 데이터 콘텐츠 번역, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출 대사.
 
 ---
 
@@ -1468,6 +1030,166 @@ Enemies/Events/POI 분리). Prefab을 재사용 단위로 쓴다(`EnemyBase.pref
 불필요한 기능 제거·그래픽 품질 최종 개선·게임 루프 최종 검증·**Vertical
 Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 안 넘어간다 —
 재미없으면 Phase를 되돌려 개선한다.
+
+---
+
+# 101. 재미 진단·게임성 이식 (SAGA-DESIGN §1~§5 적용, 2026-09-16)
+
+## 101-1. 표준 8 — 이 트랙 현재 상태
+
+| # | 표준(§3) | 상태 | 근거(씬·스크립트) |
+|---|---|---|---|
+| A 목표판 | 지금/세션/주간 3줄 | **×** | `PlayerHud`·`StoryHud`·`RealmHud` 는 HP·골드·퀘스트 진척 상태줄만. "다음에 할 것" 을 계산하는 곳이 없다 |
+| B 마무리 카드 | 종료·귀환 시 카드 | **×** | 저장 버튼 토스트(`command.save_ok`)가 유일한 "마무리". 얻은 것·다음 할 것 요약 없음 |
+| C 손맛 | 5요소(hitstop·흔들림·플래시·팝·소리) | **△** | DUNGEON `DamagePopup`·SFX 라운드로빈은 있음. hitstop·카메라 임펄스·피격 플래시 없음. GO 전투는 선택지 UI(`EncounterUiKit`)라 타격 자체가 없다 |
+| D 선택 3택 | 서로 다른 축 3택 | **△** | STORY 전직 4택 1회(`StoryJobChoiceUi`)·STORY 선택(`StoryChoiceUi`, 2택)·DUNGEON 빌드 1(회전베기). 반복되는 성장 3택 없음 |
+| E 발견 밀도 | 60m 격자 빈칸 ≤10% | **△** | GO 은닉 보물·돌탑·유물·채집·산신당은 있으나 7×7 지도에 손배치, 밀도 규칙·재배치 없음. DUNGEON 방 종류 6 은 규칙적 |
+| F 실패·회복 | 비용 10~20%·회복 ≤2분 | **×** | 죽음 처리(`death` 클립)만. 비용·회수·"죽어도 남는 것" 없음. REALM 패전 비용도 병력 감소뿐 |
+| G 성장 가시화 | 단계마다 보이는 변화 1 | **△** | 장비 스탯은 오르지만 외형 불변(`CharacterVisual` 은 종류별 GLB 1). STORY 두목 1.4배는 예외 |
+| H 돌아올 이유 | 일일·주간 | **×** | 실시간 시계 없음. 세이브 타임스탬프만 |
+
+**가장 큰 구멍 3**: ① A·B 부재 — 다섯 씬 모두 "다음에 뭘 하나" 를 사람이 PROJECT_STATE 를 읽어야 안다. ② C — 사실적 아트로 갈수록 타격 반응 부재가 더 티 난다(66-2 톤에서 피격 플래시 없는 적은 마네킹). ③ F·H — 한 번 본 씬을 다시 열 이유가 없다.
+
+## 101-2. 다섯 게임 × 웹 PLAN §5 후보 — 3D 이식 표
+
+웹 판 §5 는 2026-09-16 설계본이고 **전부 웹 미검증**이다. 3D 는 "웹에서 통한 것부터" 옮기되(§5 원칙), A·B·C 처럼 웹 검증이 필요 없는 UI·감각 표준은 병행한다.
+
+| 게임 | 웹 §5 후보(우선순위 순, 제목만) | 3D 첫 이식 | 이 트랙 대응 파일 |
+|---|---|---|---|
+| GO | ① 봉수대(탑→지도 해제) ② 사당 시련 3분 방 ③ 75초 토벌·부위·저스트 회피 ④ 일과판+마무리 카드 ⑤ 비석 순례(GPS) ⑥ 인연(동행 관계) ⑦ 승급 3택 ⑧ 패배 비용·회수 | **④ → ⑦ → ③** (⑤ GPS 는 Unity 모바일 빌드 뒤) | `PlayerHud`·`QuestState`·`BanditEncounter`·`PartyState`·`LandmarksBuilder` |
+| DUNGEON | 5.1 축복 3택 5.2 유품(죽음 비용·회수) 5.3 부적 던전 티어 5.4 월드 보스 75초 5.5 난입 파도 5.6 목표판·카드 5.7 시대 퓨전 5.8 손맛 2차·가시화 | **5.8 → 5.1 → 5.2** (5.7 은 웹 선행 결과 뒤) | `PlayerCombat`·`DungeonEnemy`·`DungeonFloorRunner`·`HeroState`·`DamagePopup` |
+| FOREST | 5.1 일과판 5.2 마무리 카드 5.3 마을 번들 5.4 관계 하트 5.5 발견 격자+정령 60 5.6 축제 5.7 택배 사슬 5.8 채집 손맛 | **5.1+5.2 → 5.4 → 5.5** | `ForestState`·`ForestVillager`·`ForestHomeState`·`ForestGroundBuilder` |
+| STORY | 5-1 직업 정체성(고유 조작) 5-2 무예 유파 재해석 5-3 비경 미니던전 5-4 관문 대장 주간 보스 5-5 이동 손맛 5-6 목표판·카드 5-7 손맛 표준 5-8 동료 교대 | **5-5 → 5-7 → 5-1** (전직 4직이 이미 있어 고유 조작 1개씩 얹기 쉬움) | `StoryPlayerController`·`StoryCombat`·`StoryJobState`·`StoryEnemy` |
+| REALM | 5-1 인물 특성·야망 5-2 관계 이벤트 체인 5-3 일기토·설전 5-4 시작 시나리오·이정표 5-5 승리 조건·결과 카드 5-6 지형·진형 개입 5-7 월간 요약 카드 5-8 계승 | **5-7 → 5-4 → 5-3** (51장 사슬 확장은 5-4 이정표로 흡수) | `RealmCommandUi`·`RealmWarState`·`RealmOfficer`·`RealmQuizState` |
+
+**공통 선행(다섯 판 동시, SagaCore 에 1벌)**: `GoalBoard`(A, 3줄 위젯 — 게임별 공급자 인터페이스 `IGoalSource` 를 각 asmdef 가 구현) · `SessionCard`(B, Timeline 5초 카드) · `HitFeedback`(C — 아래) · `Cadence`(H, 로컬 시계 기반 일일/주간 키). SagaCore→게임 단방향 의존(49장)은 그대로.
+
+## 101-3. 엔진 장점으로 C·G 를 한 단 올리기(웹이 못 하는 것)
+
+| 표준 | Unity 수단 | 기본값 |
+|---|---|---|
+| C hitstop | `Time.timeScale` 대신 **피격자·가해자 Animator.speed=0** + 나머지 정상(전역 정지는 모바일 입력 지연) | 70ms, 치명 120ms |
+| C 흔들림 | **Cinemachine Impulse Source/Listener**(이미 Cinemachine 권장, 40장) | 진폭 0.15m·120ms·감쇠 지수 |
+| C 플래시 | `MaterialPropertyBlock` 로 `_EmissionColor` 80ms(머티리얼 복제 없음, SRP Batcher 유지) | 흰색 0.6 |
+| C 팝·소리 | 기존 `DamagePopup` 다섯 벌 + `SfxPlayer` 라운드로빈 3음 | 0.6s 상승·페이드 |
+| C 타격 VFX | Mobile: Shuriken 스파크 8입자 / PC: VFX Graph 동일 이름 | 풀링 16 |
+| G 장비 가시화 | `CharacterVisual` 에 슬롯 소켓(무기·어깨·망토) — Mixamo Humanoid 본 이름 고정이라 소켓 공용 | 등급별 이미시브 림 3단 |
+| G 지형 반응 | **URP Decal Projector** 로 발자국·타격 흔적(웹 불가) | 수명 8s·최대 32 |
+| G 성장 연출 | Timeline + Cinemachine 컷(레벨업 1.2s) | 스킵 가능 |
+| F 죽음 | 리깅 유지한 채 `Animator` death → 유품 마커 프리팹 드롭 | 회수 반경 2m |
+
+전부 **기존 씬 구성을 안 바꾸는** 컴포넌트 추가라 `Build()` 재실행이 필요한 것은 위젯 캔버스 추가(A·B) 둘뿐이다.
+
+---
+
+# 102. 그래픽 개편 — 사실적 PBR(66-2 유지) 위에 SAGA-DESIGN §6 적용
+
+**전제**: SAGA-DESIGN §6.0-1 "한 스타일 = 툰" 과 §6.3 "Shader Graph 툰" 은 이 트랙엔 적용하지 않는다 — 66-2장(사용자 지시 2026-09-13, 사실적 PBR·FF16 톤)이 우선한다. §6.0 의 **나머지 원칙**(팔레트→톤, 스케일, 빛 방향, 카메라, 실루엣)과 §6.4 "허접 10가지" 는 그대로 적용한다. 트랙 간 스타일 불일치 자체는 105장 Q3′.
+
+## 102-1. 아트 바이블(이 트랙 판)
+1. 한 스타일: **사실적 PBR + 필름틱 LUT**. Kenney 로우폴리·VRoid 애니풍과 한 화면에 섞지 않는다(44장 교체가 끝난 판부터 강제).
+2. 톤: 팔레트 스냅 대신 **판별 색보정 LUT 1장**(`Assets/Settings/LUT_<game>.png`, 32³) — 마을=따뜻/그림자 차갑게, 굴혈=청록, 들판=황금시각, 필드(STORY)=고대비, 성(REALM)=저채도.
+3. 스케일: 사람 1.7m(Mixamo 기본 1.75 → `MixamoRigUtil` 에서 0.97), 문 2.2m, 층 3m. 임포트 `Preset` 으로 강제(103-2).
+4. 빛: 키 라이트 방향 고정(회전 X 55°·Y -45°), 림 라이트 1(반대편 약 0.3), 앰비언트 = 스카이 그라디언트. `SkyFogBuilder`(GO) 값을 다섯 판 공통 프리팹으로.
+5. 카메라: 판별 1개(FOV 40·거리 6·기울기 25°, STORY 는 정사영 12), 줌 2단. 흔들림은 101-3 Impulse 만.
+6. 실루엣: 캐릭터·적은 128px 축소 스냅으로 구별 확인(`PlaytestXxx` 에 스크린샷 다운스케일 단계 추가 — GUI 필요라 사람 확인 몫).
+
+## 102-2. Volume 프로파일 — 현재값과 추가값
+
+| 오버라이드 | 현재(`FF16Volume_PC/Mobile`) | 추가·변경 | PC | Mobile |
+|---|---|---|---|---|
+| Tonemapping | ACES | 유지 | ○ | ○ |
+| Bloom | 임계 0.9·강도 0.35·scatter 0.6·tint 따뜻 | 강도 0.5(§6.3) | ○ | ○(0.3) |
+| Color Adjustments | 노출 +0.1·대비 12·채도 -8·필터 따뜻 | 대비 5·채도 -5 로 완화 + **LUT**(Color Lookup, 102-1-2) | ○ | ○ |
+| Vignette | 0.25·smooth 0.6 | 유지 | ○ | ○ |
+| Film Grain / CA | 0.15 / 0.08 (PC 만) | 유지 | ○ | × |
+| **SSAO**(Renderer Feature) | 템플릿 기본(PC) | 반경 0.5·강도 1.5·다운샘플 | ○ | × |
+| **Screen Space Shadows** | 없음 | Renderer Feature 추가 | ○ | × |
+| **Fog** | `SkyFogBuilder`(GO 만) | 다섯 판 공통, 색=하늘 지평선, 지수 0.012 | ○ | ○(0.008) |
+| Shadows | Cascade 4/1, 2048/1024, MSAA 4/2 | 유지 + **접지 blob 그림자** 프리팹(모바일 캐릭터) | ○ | blob |
+| Depth of Field | 없음(의도) | **대화·카드 연출 토글 시만**(`SessionCard` 가 켠다) | ○ | × |
+| Motion Blur | 없음 | 넣지 않는다 | × | × |
+| Adaptive Probe Volumes | 없음 | 정적 씬 5개에 APV 1 + Reflection Probe 1 | ○ | 라이트맵 |
+
+전부 `BuildFF16VolumeProfiles.cs` 확장 + `PC_Renderer.asset` Feature 추가로 코드에서 짓는다(Shader Graph 배선과 달리 코드 가능).
+
+## 102-3. 캐릭터·재질 파이프라인
+- 캐릭터: **Mixamo Humanoid(FBX)** 표준 유지, `MixamoRigUtil` 1벌. 피부는 `BuildMariaSkinSplit` 근사 → Shader Graph SSS 배선(사람 몫) 뒤 교체. 헤어카드 이방성(`AnisoHair_cathyhlshih`, MIT) 은 헤어 메시가 분리된 캐릭터에만.
+- 환경: Poly Haven CC0 PBR(`EnvironmentPBR_candidates` 5벌 → 승격) + `BuildMetallicSmoothnessMap()` 채널 팩킹 유지. **트라이플레이너 셰이더 1개**(heightmap 메시용, Shader Graph 없이 HLSL — `VertexColorLit.shader` 옆) 로 잔디·흙·돌 3타일 블렌드.
+- heightmap 메시: `TerrainBuilder`(GO) 의 4×4 서브쿼드 정점 블렌딩 유지. 높이 데이터 규격(`float[w*h]` + 셀 크기)은 saga-godot 과 **파일 포맷만 공유**, 코드는 공유하지 않는다.
+- VRoid: `UniVRM + MToon10` 은 애니풍 셰이더라 66-2 와 상충 — 이 트랙에선 초상·컷신에도 쓰지 않는다(105장 Q3′ 결정 전까지 파일만 보존).
+
+## 102-4. `Assets/Art` 판정 표(삭제는 105장 결정 뒤 — 지금은 표만)
+
+| 폴더 | 내용 | 판정 | 이유 |
+|---|---|---|---|
+| `CharacterShaders_candidates/` SSS·AnisoHair·HairCards | MIT·MIT·CC0 | **남김→`Art/Shaders/Character/` 로 승격** | 사실적 방향의 핵심. Shader Graph 배선만 남음 |
+| `EnvironmentPBR_candidates/` Poly Haven 5벌 + .mat | CC0 | **남김→`Art/Environment/PBR/` 승격** | 이미 44장 교체에 쓰임 |
+| `CharactersRealistic/` (gitignore) | Mixamo Maria·Abe·Brute | 남김(로컬 전용) | ToS 상 재배포 금지, 커밋 안 함 |
+| `CharactersVroid/` AvatarSample_A | 애니풍 | **보류→뺄 것** | 임포트 검증 끝, 66-2 와 불일치 |
+| `Characters/` Kenney blocky 4종 | CC0 로우폴리 | **뺄 것**(44장 Player·Enemy 교체 완료 확인 후) | 플레이스홀더 |
+| `Buildings/`·`Dungeon/`·`Props/`·`Rocks/`·`Shrine/`·`Vegetation/` Kenney | CC0 | **단계 교체** — 씬에 남은 참조 grep 후 PBR 재질 모듈로 | 44장 Environment/Building 완료분과 겹치는 것부터 |
+| `Audio/` Kenney·CC0_BGM | CC0 | 남김 | |
+
+## 102-5. §6.4 "허접 10가지" 해당 여부
+스타일 혼재 **해당**(Kenney 잔존·VRoid) · 후처리 **일부**(LUT·SSAO·SSS 없음) · 그림자 계단 **해당**(Mobile Cascade 1, blob 없음) · 바닥 한 색 **해당**(`VertexColorLit` 정점색 지형) · 하늘·안개 **GO 외 해당** · 스케일 **해당**(Kenney 1.0 vs Mixamo 1.75 혼재) · 애니 끊김 **해당**(Animator 전이 exitTime 0.9, 블렌드 없음) · 타격 반응 **해당**(101-1 C) · UI 폰트·패널 **일부**(`RealmUiKit`·`EncounterUiKit` 둘, 통일 안 됨) · 카메라 클리핑 **해당**(`CameraRig` 충돌 당김 없음 — `CinemachineDeoccluder` 로).
+
+---
+
+# 103. 에셋 창조 파이프라인 (SAGA-DESIGN §7 적용)
+
+## 103-1. 이 트랙이 받는 것
+- `tools/asset-forge/`(저장소 루트, 제안 상태) 산출물은 **`Assets/Art/Generated/<game>/`** 로 받는다. 원본 팩·Poly Haven 과 섞지 않는다. 씨앗·팔레트 JSON 은 `Assets/Art/Generated/_seed/` 에 같이 둔다(재생성 가능).
+- 이 트랙은 팔레트 스냅(§7.2-1) 대신 **LUT 톤**(102-1-2)이라 `palette.py` 는 정점색 플레이스홀더 메시에만 쓴다. 주력은 `procgen.py`(바위·나무·울타리·돌담·비석, 사실적 방향은 노이즈 변형 + PBR 트라이플레이너)·`kitbash.py`(Poly Haven 텍스처가 입힌 모듈로 건물 변형)·`tilegen.py`(트라이플레이너 3타일 세트, 판별 5)·`sfxgen.py`.
+- 변형 배가 대상: 나무(오크 1종 → 바이옴 5×3 형태) · 바위(2 → 12) · 건물 모듈(Kenney 4 → PBR 모듈 8 × 배치 조합) · DUNGEON 방 셸(4 → 티어별 마모 3단) · REALM 성벽 3단.
+
+## 103-2. 임포트 프리셋 규칙(`Assets/Settings/Presets/`, 코드로 적용)
+| 대상 | Preset | 값 |
+|---|---|---|
+| 텍스처 albedo/normal/ORM | `Tex_PBR` | 최대 2048(PC)·1024(Mobile override, ASTC 6×6), sRGB albedo 만, 노멀 타입 지정 |
+| 메시 GLB/FBX 정적 | `Mesh_Static` | Read/Write 끔, 스케일 1.0(§6.0-3 자동 리스케일은 빌더에서), 라이트맵 UV 생성 |
+| 캐릭터 FBX | `Mesh_Humanoid` | `MixamoRigUtil` 이 처리(Humanoid·ExtractTextures) |
+| 오디오 | `Audio_SFX`/`Audio_BGM` | SFX 압축 ADPCM·BGM Vorbis 0.5·스트리밍 |
+
+## 103-3. 사람이 여는 도구(§7.3) — 이 트랙 조건
+- **Mixamo**: 표준. 새 캐릭터는 body FBX(For Unity) + 필요한 클립. 재배포 금지라 `CharactersRealistic/` 로컬 전용, 분리 메시 산출물도 그 안 `Generated/`.
+- **Blender**(미설치): 설치되면 헤어 마스크·리토폴로지·헤어카드 분리(⑪이 막힌 지점)·데시메이트를 `blender -b -P` 배치로 세션이 자동화 가능.
+- **VRoid**: 이 트랙에선 쓰지 않는다(102-3).
+- AI 3D(§7.4)로 만든 소품은 Blender 데시메이트 + 102-2 Preset 을 거친 뒤에만 `Generated/` 로.
+
+## 103-4. 44장 교체 결정과의 관계
+44장(Player→Enemy→Boss→Environment→Building) 교체는 다섯 판 완료다. 103 은 그 **다음 층** — 종류를 늘리는 것이 아니라 E(발견 밀도) 를 채울 **변형 밀도** 를 만든다. 새 종류 추가는 101-2 후보가 요구할 때만.
+
+---
+
+# 104. 안정화·검증 (SAGA-DESIGN §8 적용, Phase 0)
+
+## 104-1. Phase 0 목록(101 착수 전에 끝낸다)
+1. 배치 모드 뒤 4파일 원복을 `tools/unity-batch.sh`(제안) 한 줄로: 실행 → `git checkout -- ProjectSettings/ProjectVersion.txt ProjectSettings/EditorSettings.asset Packages/manifest.json Packages/packages-lock.json` → `git status --porcelain` 출력. 사람이 매번 기억하지 않게.
+2. **Playtest 원칙 교체**: `GameObject.Find` 존재 확인만 하는 단계를 전부 "실제 메서드 호출 + 상태 변화 확인" 으로(REALM `RealmCommandUi` 크래시가 여러 세션 숨어 있던 원인). 대상 grep: `GameObject.Find(` in `Assets/Editor/Playtest*.cs`.
+3. `[SerializeField]` 누락 감사: `Assets/Games/**/UI/*.cs` 의 plain private 참조 필드 grep → 승격.
+4. 실기 확인 대기(`PROJECT_STATE.md`) 를 사용자가 몰아서 1회 — 결과로 닫히는 항목만 지운다.
+5. `Assets/Art/*_candidates` 승격·삭제(102-4, 105장 결정 뒤).
+6. 문서 상한: `PROJECT_STATE.md` ≤15KB·PLAN ≤110KB — `tools/precheck.sh` 가 검사한다.
+
+## 104-2. 검증 절차(중복 금지 — 정본은 폴더 `CLAUDE.md`)
+배치 컴파일 → 씬 `Build()`(GameObject 구성이 바뀔 때만) → 해당 `Playtest*` 3연속 → 4파일 원복 → `git diff --stat` 확인 → 커밋. GUI 는 사용자 요청 시만. Play 진입 테스트는 `-quit` 없이.
+
+## 104-3. 세이브 스키마
+게임별 `XxxSaveState` 버전 필드 유지(GO v5+, FOREST v4, STORY v6 …). 101 후보가 필드를 더할 때 **구버전 로드 단계**를 해당 `Playtest*` 에 반드시 추가(웹 §8-3 과 같은 규칙). 마이그레이션 경로 없이 필드를 잃는 변경(FOREST v3→v4 가구 배치 소실 같은 것)은 이제 하지 않는다.
+
+---
+
+# 105. 열린 질문 (사용자 결정, 답이 나오면 해당 장으로 내리고 여기서 지운다)
+
+- **Q1(§10-Q1) 완성판 트랙**: godot·unity 병행은 유지하되 그래픽·에셋 투자를 먼저 집중할 트랙을 고를 것인가. 이 트랙 관점 근거: URP Volume·APV·Cinemachine·Mixamo 직접 임포트가 이미 돌고 있어 **사실적 방향의 완성판**으로는 준비가 앞서 있다. 대신 모바일 빌드 크기·빌드 시간은 Godot 보다 불리하다.
+- **Q3′ 스타일 불일치**: SAGA-DESIGN §6.0-1 은 "한 스타일(툰)" 인데 이 트랙은 66-2 로 사실적이다. **트랙 간 불일치를 허용**(웹·godot=툰, unity=사실)할지, 공통 문서를 "트랙마다 한 스타일" 로 고칠지. 이 PLAN 은 허용을 전제로 썼다.
+- **Q4(§10-Q4) 생성 에셋 커밋**: `Assets/Art/Generated/` 산출물을 커밋할지, 스크립트+씨앗만 두고 세션 시작 시 재생성할지(Unity 는 .meta 가 따라붙어 재생성 시 GUID 가 바뀌면 씬 참조가 깨진다 — **커밋 쪽을 권장**, 크기 상한 판별 20MB).
+- **Q-U1 101 착수 순서**: 공통 선행(GoalBoard·SessionCard·HitFeedback·Cadence)을 먼저 다섯 판에 깔지, 한 판(GO)에서 A~C 를 끝까지 보여 준 뒤 확장할지. (권장: GO 한 판 끝까지 → 사용자 GUI 확인 → 확장)
+- **Q-U2 REALM 51장 사슬**: 10차(시상→건업) 이후도 계속 늘릴지, 101-2 의 5-4 이정표·5-7 요약 카드로 전환할지. 성 21 이면 E 는 충분하고 A·B·H 가 비어 있다.
+- **Q-U3 Shader Graph 배선 일정**: SSS·헤어카드 노드 연결(사람 GUI) 을 언제 할지. 그때까지 피부는 근사 유지.
+- **Q-U4 Mixamo 캐릭터 추가**: 인물 105 를 이 트랙에서 몇 명까지 실제 모델로 갈지(현재 3). 나머지는 Maria/Abe/Brute 3 베이스 + 장비 소켓(101-3 G) 변형으로 갈지.
+- **Q-U5 DoF 토글**: `SessionCard`·대화 연출에서만 DoF 를 켜는 것으로 확정할지(PC 만).
 
 ---
 
