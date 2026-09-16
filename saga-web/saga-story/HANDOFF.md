@@ -85,3 +85,13 @@
 
 **남은 것** — 외곽선, mood 별 24색 팔레트 스냅(`sky`/`forest`/`cave`/`fire` 넷), 변형 배가,
 오류 링버퍼 — 전부 PLAN §6·§7 에 남겨 뒀다.
+
+## 2026-09-17 — SAGA-DESIGN §8-2 오류 링버퍼 (다섯 판 공통, saga-go 규격 그대로)
+
+넷째. 새 `js/errlog.js`(storageKey `yeoksa-side/errlog`, `index.html`/`_admin.html`/
+`_test.html` 맨 첫 스크립트). `_admin.html`에 "오류" 탭(QA 프리셋과 점검·백업 사이) —
+`js/admin.js`의 `renderAll()`에 `renderErr()` 추가, `bind()`에 다시 읽기·복사·비우기 버튼
+배선. `_test.html`에 순수 함수 `push()` 상한 진단 1항목. `sw.js` `SHELL`에 `errlog.js`
+추가, `VERSION` `side-v0.46.8` → `side-v0.47.0`.
+
+**검증** — `node -c` 통과, `bash tools/precheck.sh saga-web/saga-story` → PRECHECK OK.

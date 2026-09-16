@@ -185,7 +185,7 @@
 9. 잡졸 32 유형 분포(1관문 원거리·3관문 탱커 신설) 체감.
 10. 마을 장사치 대화창 "🏪 저자를 연다" 단추.
 
-적용(SAGA-DESIGN §8): 오류 링버퍼 50건 → `_admin.html` 오류 탭(미착수) · 세이브 `v` 필드 + 마이그레이션 체인(**완료 2026-09-17** — `core.js` `SAVE_VERSION`/`MIGRATIONS`/`migrate()`, 예전 `parsed.v !== 1` 하드 체크가 다섯 판 공통 지뢰였다. `_test` v(n-1) 로드 항목은 아직) · QA 프리셋을 제보마다 추가 · `tools/precheck.sh`(node -c + RESULT, 다섯 판 공통이라 이미 있음 + sw.js 버전 경고 추가됨) · 후처리 실패 시 자동 끔(**완료 2026-09-17**, 갈색 화면 류 방어).
+적용(SAGA-DESIGN §8): 오류 링버퍼 50건 → `_admin.html` 오류 탭(**완료 2026-09-17** — 새 `js/errlog.js`, `index.html` 맨 첫 스크립트, `_test.html` `push()` 상한 진단 1항목) · 세이브 `v` 필드 + 마이그레이션 체인(**완료 2026-09-17** — `core.js` `SAVE_VERSION`/`MIGRATIONS`/`migrate()`, 예전 `parsed.v !== 1` 하드 체크가 다섯 판 공통 지뢰였다. `_test` v(n-1) 로드 항목은 아직) · QA 프리셋을 제보마다 추가 · `tools/precheck.sh`(node -c + RESULT, 다섯 판 공통이라 이미 있음 + sw.js 버전 경고 추가됨) · 후처리 실패 시 자동 끔(**완료 2026-09-17**, 갈색 화면 류 방어).
 
 ## 8. 로드맵
 

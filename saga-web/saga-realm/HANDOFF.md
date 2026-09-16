@@ -1027,3 +1027,16 @@ proverb·sense·mz 180문항은 해당 없음)에도 이름 정책을 적용할�
 
 **남은 것** — 외곽선, 안개 색·밀도 재계산, 트라이플레이너 지형, 소품 인스턴싱, 병종 기둥,
 성 킷배싱, 초상 팔레트 스냅 — 전부 PLAN §6에 남겨 뒀다.
+
+## 2026-09-17 — SAGA-DESIGN §8-2 오류 링버퍼 (다섯 판 공통, saga-go 규격 그대로)
+
+다섯째이자 마지막. 새 `js/errlog.js`(storageKey `saga-realm/errlog`, `index.html`/
+`_admin.html`/`_test.html` 맨 첫 스크립트). `_admin.html`에 "오류" 탭(QA 프리셋과
+점검·백업 사이) — `js/admin.js`의 `renderAll()`에 `renderErr()` 추가, `bind()`에 다시
+읽기·복사·비우기 버튼 배선. `_test.html`에 순수 함수 `push()` 상한 진단 1항목. `sw.js`
+`SHELL`에 `errlog.js` 추가, `VERSION` `realm-v1.24.0` → `realm-v1.25.0`.
+
+이로써 SAGA-DESIGN §8-2 오류 링버퍼가 다섯 판 전부에 들어갔다(사가고 원안 →
+사가블로 → 사가의숲 → 사가스토리 → 사가국지).
+
+**검증** — `node -c` 통과, `bash tools/precheck.sh saga-web/saga-realm` → PRECHECK OK.

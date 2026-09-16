@@ -86,6 +86,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 try { localStorage.clear(); } catch (e) { /* file:// 등에서 막히면 조용히 넘어간다 */ }
 window.requestAnimationFrame = function () { return 0; };
 </script>
+<script src="js/errlog.js"></script>
 <script src="js/data.js"></script>
 <script src="js/data-enemy.js"></script>
 <script src="js/data-item.js"></script>
@@ -4711,6 +4712,15 @@ window.requestAnimationFrame = function () { return 0; };
       return hit.length === 0 &&
         (Dx.heroes.length + '명 BIOS·quote + ' + Dx.pets.length + '개 PETS + ' +
          (HS ? Object.keys(HS.SIG).length : 0) + '개 서명 무예 검사, 걸린 실명 없음');
+    });
+
+    t('오류 링버퍼 상한 (SAGA-DESIGN §8-2)', function () {
+      var E = DG.errlog;
+      if (!E || typeof E.push !== 'function') { return false; }
+      var arr = [], i;
+      for (i = 0; i < E.MAX + 5; i++) { arr = E.push(arr, { t: i, msg: 'e' + i }); }
+      var ok = arr.length === E.MAX && arr[0].msg === 'e5' && arr[arr.length - 1].msg === ('e' + (E.MAX + 4));
+      return ok && (E.MAX + 5) + '건 넣어 ' + arr.length + '건 남음(오래된 것부터 밀림)';
     });
 
     t('런타임 에러 없음', function () {

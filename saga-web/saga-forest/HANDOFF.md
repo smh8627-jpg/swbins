@@ -708,3 +708,14 @@ village-view3d.js) 구문 확인, `_test.html` 인라인 스크립트 두 블록
 오류 링버퍼 — PLAN §6·§7 에 남겨 뒀다. **다섯 판 중 사가국지(saga-realm)만 이번
 연속 세션에서 손 안 댔다** — 다음에 이어서 하면 여기까지의 패턴(toon3d.js + delam +
 땅 재질, 실사 스킵 확인, 후처리 유무 확인)을 그대로 따르면 된다.
+
+## 2026-09-17 — SAGA-DESIGN §8-2 오류 링버퍼 (다섯 판 공통, saga-go 규격 그대로)
+
+사가고→사가블로에 이어 셋째. 새 `js/errlog.js`(storageKey `yeoksa-village/errlog`,
+`index.html`/`_admin.html`/`_test.html` 맨 첫 스크립트). `_admin.html`에 "오류" 탭(QA
+프리셋과 점검·백업 사이) — `js/admin.js`의 `renderAll()`에 `renderErr()` 추가(전체가
+try/catch 로 감싸여 있어 오류가 나도 다른 탭 렌더는 안 죽는다), `bind()`에 다시
+읽기·복사·비우기 버튼 배선. `_test.html`에 순수 함수 `push()` 상한 진단 1항목. `sw.js`
+`SHELL`에 `errlog.js` 추가, `VERSION` `village-v0.56.0` → `village-v0.57.0`.
+
+**검증** — `node -c` 통과, `bash tools/precheck.sh saga-web/saga-forest` → PRECHECK OK.

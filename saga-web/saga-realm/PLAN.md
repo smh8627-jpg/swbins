@@ -217,7 +217,7 @@
 8. 노쇠·사망 문턱(60/65/90세, 연 60%) 체감, 무장 시트 나이·노쇠 배지
 
 ### 7-2. 코드로 닫을 것
-- **오류 수집**: `window.onerror`·`unhandledrejection` → localStorage 링버퍼 50건 → `_admin.html` "오류" 탭. 제보가 증상 말고 스택으로 온다.
+- **오류 수집**: **완료(2026-09-17)** — 새 `js/errlog.js`(`window.onerror`·`unhandledrejection` → localStorage 링버퍼 50건, `index.html` 맨 첫 스크립트), `_admin.html` "오류" 탭(다시 읽기·복사·비우기), `_test.html` `push()` 상한 순수 함수 진단 1항목.
 - **세이브 버전**: **완료(2026-09-17)** — `core.js` `SAVE_VERSION`/`MIGRATIONS`/`migrate()`, 다섯 판 공통 지뢰(사가고에서 먼저 잡음, `SAGA-HANDOFF.md`). `_test.html` "v0(옛) 세이브 로드" 항목은 아직.
 - **3D 진단 공백**: `_test.html` 이 `realm3d.js`·`battle3d.js`·`asset3d.js` 를 안 싣는다(0 항목). WebGL 없이도 돌 수 있는 순수 함수(`elevAt`·`straitFactor`·`isSea`·클립 매칭 `mapClips`·`formationOf` 배치)만 뽑아 항목 6개 추가. 렌더 자체는 실기.
 - **후처리 실패 시 자동 끔**: **이 판엔 해당 없음** — `realm3d.js`·`battle3d.js`·`city3d.js` 어디에도 `EffectComposer` 류 별도 합성 패스가 없다(`renderer.render()`를 바로 씀, 사가의숲과 같은 사정).

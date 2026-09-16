@@ -210,7 +210,7 @@
 1. **공사 진단 4 FAIL**(262/266, 기존·회귀 아님). 원인 미확인 상태로 세 세션을 넘겼다 — Phase 0 첫 일. `terrain.js` 덮개층 vs 진단의 `raw().props` 스냅샷 문제일 가능성(README "손볼 때" 항목 참고).
 2. **실기 확인 대기 목록**(HANDOFF §42~§46-5 에서 모음, 전부 미확인): 효과음 20(`_sfxcheck.html`)·BGM·실내 3D 억제·회전 보간·개구리/뱀·손짓 몸짓·포자괴물/보스방/폐허 아치·안개 옵션 기본 꺼짐·**주민 5 3D(`residentMeshCount()===5`)**·우주기지 자리/소품 11·접수대↔배달원·탑성 폐허·정자·캔버스 상자·배달원 우주복·우주기지 건물 6 규모·성간충 40%. → 한 번에 몰아 확인, 결과는 `HANDOFF.md` 에 날짜로.
 3. **성능 경고(누적)**: 고정 콘텐츠(NPC·목적지)는 거리 컬링이 없다. 목적지·사건 노드(§5.5·§5.7)를 늘리기 **전에** "거리 기반 활성화(0~30 High / 30~70 Medium / 70+ Hidden)" 를 NPC·프롭에 실제로 건다. 짓기 전에 먼저 잰다(프레임 시간, 폰 medium 기준).
-4. SAGA-DESIGN §8 공통: `window.onerror` 링버퍼 50 → `_admin.html` 오류 탭(미착수) / 세이브 `v` 마이그레이션(**완료 2026-09-17** — `core.js` `SAVE_VERSION`/`MIGRATIONS`/`migrate()`, 예전 `parsed.v !== 1` 하드 체크가 다섯 판 공통 지뢰였다) / `tools/precheck.sh`(다섯 판 공통, 이미 있고 sw.js 버전 경고도 추가됨) / 포스트 실패 시 후처리 자동 끔(이 판은 `post3d.js` 자체가 없어 해당 없음).
+4. SAGA-DESIGN §8 공통: `window.onerror` 링버퍼 50 → `_admin.html` 오류 탭(**완료 2026-09-17** — 새 `js/errlog.js`, `index.html` 맨 첫 스크립트, `_test.html` `push()` 상한 진단 1항목) / 세이브 `v` 마이그레이션(**완료 2026-09-17** — `core.js` `SAVE_VERSION`/`MIGRATIONS`/`migrate()`, 예전 `parsed.v !== 1` 하드 체크가 다섯 판 공통 지뢰였다) / `tools/precheck.sh`(다섯 판 공통, 이미 있고 sw.js 버전 경고도 추가됨) / 포스트 실패 시 후처리 자동 끔(이 판은 `post3d.js` 자체가 없어 해당 없음).
 5. 진단 구멍 추가: 날씨는 날짜 해시라 `VD._setWeather` 류 구멍이 없다 → `_setStar`·`_setOpen` 과 같은 결로 하나 뚫는다(축제·행사 진단에 필요).
 6. `sw.js` VERSION 규칙(§2-9) 위반 검사도 precheck 에.
 

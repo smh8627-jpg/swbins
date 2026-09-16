@@ -255,7 +255,7 @@
 - 동행: 장비 바꿔도 장면 재진입 전엔 겉모습 안 바뀜(알려진 한계)
 
 ### 7.3 Phase 0 작업
-1. 오류 링버퍼 50건(`window.onerror`·`unhandledrejection`) → localStorage → `_admin.html` "오류" 탭 보기·복사.
+1. **완료(2026-09-17)** — 오류 링버퍼 50건(`window.onerror`·`unhandledrejection`) → localStorage → `_admin.html` "오류" 탭 보기·복사. 새 `js/errlog.js`(사가고와 같은 규격, `index.html` 맨 첫 스크립트). `_test.html`에 순수 함수 `push()` 상한 진단 1항목 추가.
 2. **완료(2026-09-17)** — `core.js`에 `SAVE_VERSION`·`MIGRATIONS`·`migrate(save)` 추가. 예전엔 `parsed.v !== 1`이면 `load()`가 세이브를 통째로 버렸다(사가고에서 먼저 잡은 aa4b8b8류 지뢰가 다섯 판 공통이었다 — `saga-go/HANDOFF.md` 2026-09-17 참고). 지금은 버전이 안 맞아도 지우지 않고 `mergeDeep`으로 넘긴다. `_test.html` "옛 세이브 로드" 3항목은 아직 안 넣음(이 판 고유 필드 기준 목록이 필요해 보류).
 3. 강공격·회피·hitstop·콤보 자가진단 4항목 추가(지금 없음).
 4. `tools/precheck.sh` — `node -c js/*.js` + `_test.html` RESULT + `wc -c PLAN.md` 상한 경고.

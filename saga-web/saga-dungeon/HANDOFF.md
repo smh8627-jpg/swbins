@@ -3023,3 +3023,17 @@ poly.pizza 'Pond' 류 컬링 버그가 툴 켤 때만 재발할 뻔했다).
 saga-go와 달리 단일 팔레트가 아니라 마을/들/굴혈(고분~산채)/굴혈(수궁~천계) 넷으로
 갈라서, mood 판정 로직부터 필요해 손 안 댐), 지형 트라이플레이너, 오류 링버퍼 — 전부
 PLAN §6·§7.3 에 남겨 뒀다.
+
+## 2026-09-17 — SAGA-DESIGN §8-2 오류 링버퍼 (다섯 판 공통, saga-go 규격 그대로)
+
+사가고 `_admin.html` "오류" 탭을 다른 네 판에 옮기는 작업의 첫째. 새 `js/errlog.js`
+(`window.onerror`·`unhandledrejection` → localStorage 링버퍼 50건, storageKey
+`yeoksa-dungeon/errlog`, `index.html`/`_admin.html`/`_test.html` 맨 첫 스크립트 — 사가고와
+같은 이유로 다른 모든 파일의 오류를 파싱 오류만 빼고 잡는다). `_admin.html`에 "오류" 탭
+(QA 프리셋과 점검·백업 사이, 사가고와 같은 자리) — `js/admin.js`의 `renderAll()`에
+`renderErr()` 추가, `bind()`에 다시 읽기·복사·비우기 버튼 배선. `_test.html`에 순수 함수
+`push()` 상한 진단 1항목(런타임 에러 없음 항목 바로 앞). `sw.js` `SHELL`에 `errlog.js` 추가,
+`VERSION` `dungeon-v0.116.0` → `dungeon-v0.117.0`.
+
+**검증** — `node -c js/errlog.js js/admin.js sw.js` 통과, `bash tools/precheck.sh
+saga-web/saga-dungeon` → PRECHECK OK.
