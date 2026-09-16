@@ -53,3 +53,35 @@
 `SAVE_VERSION`·`MIGRATIONS`·`migrate()`(순수 함수)를 추가해 버전이 안 맞아도 지우지 않고
 `mergeDeep(freshSave(), ...)`로 넘기게 고쳤다(자세한 설계 이유는 `saga-web/saga-go/HANDOFF.md`
 2026-09-17 절 참고 — 다섯 벌이 동일 로직이라 설명을 안 되풀이한다). `sw.js` VERSION 도 같이 올렸다.
+
+## 2026-09-17 — SAGA-DESIGN §6.1 툰 재질(외곽선 제외) + §8-6 후처리 자동 끔
+
+사가고→사가블로에 이어 "이어해줘 묻지말고"로 이 판까지. 세이브 마이그레이션 지뢰(core.js
+`parsed.v !== 1` 하드 체크)는 다섯 판 공통이라 이미 별도 커밋으로 먼저 고쳤다(자세한 설계는
+`saga-go/HANDOFF.md` 2026-09-17 절).
+
+**새 파일 `js/toon3d.js`** — 3단 램프 `MeshToonMaterial`(다른 판과 같은 규격). 이 판은
+`side-view3d.js`가 하늘·바닥·소품·배우 재질을 **곳곳에서 낱개로** `new Tc.MeshLambertMaterial({...})`
+로 만든다(공용 캐시 함수가 없다) — 그래서 사가고식 outline 시스템 대신, `side-view3d.js`
+맨 위에 `LM(opts)`(같은 옵션 객체를 받아 손잡이 보고 Toon/Lambert 를 고르는 대역 함수)를
+추가하고 파일 안 19곳의 `new Tc.MeshLambertMaterial(` 를 전부 `LM(` 로 기계적으로 치환했다
+(옵션 객체 리터럴은 손 안 댐 — 생성자 이름만 대역). **외곽선은 뺐다** — choke point 가
+없는 파일 구조라 소품마다 잘못 붙을 위험을 무릅쓰지 않았다.
+
+**`js/asset3d.js`** — `delam()`이 손잡이 보고 `toon3d.toonify()`로 벗긴다(다른 판과 동일).
+
+**`js/post3d.js`** — 사가고·사가블로와 동일한 처방: `draw()`→`drawInner`+try/catch, 실패
+시 `ready=false`·`failed=true`로 후처리 영구 끔 + (`DG.errlog` 있으면) 기록.
+
+**`index.html`·`_demo.html`** — `toon3d.js`를 `asset3d.js` 앞에 얹었다. **`sw.js`는 안
+건드렸다** — 확인해보니 이 판의 `SHELL`(오프라인 캐시 목록)엔 애초에 `asset3d.js`·
+`side-view3d.js`·`post3d.js`가 없었다(3D 레이어는 SW 프리캐시 대상이 아닌 게 이 판의
+기존 방침으로 보인다) — 없는 목록에 새 파일만 끼워 넣는 건 일관성이 안 맞아 그대로 뒀다.
+
+**검증** — `node -c` 전 파일 통과, 두 HTML 인라인 스크립트 `new Function()` 파싱 확인,
+`bash tools/precheck.sh saga-web/saga-story` → PRECHECK OK. `_test.html`은 애초에
+`side-view3d.js`/`asset3d.js`를 안 실어(순수 함수만 별도로 검증하는 구조) 이번 손질과
+무관 — 헤드리스 3회 확인도 이번엔 안 돌렸다(사용자 실기 확인 몫, 다른 판과 같은 이유).
+
+**남은 것** — 외곽선, mood 별 24색 팔레트 스냅(`sky`/`forest`/`cave`/`fire` 넷), 변형 배가,
+오류 링버퍼 — 전부 PLAN §6·§7 에 남겨 뒀다.
