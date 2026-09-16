@@ -74,7 +74,7 @@ namespace Saga.EditorTools
             PlotGate, PlotRumor, PlotFire,
             AttackWrongCity, AttackTooFewTroops, AttackWeak, AttackOverwhelm,
             CapturedCityDevelop, AttackAgainBlocked, AttackLuoyang, AttackXiapi, AttackDingtao, AttackYe,
-            AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackHanzhong, AttackRunan,
+            AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackShangjun, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             QuizCorrect, QuizWrong, QuizArchive,
@@ -918,7 +918,16 @@ namespace Saga.EditorTools
                 {
                     // 51장 12차 확장(2026-09-17) — 진양을 함락한 뒤 이어지는
                     // 복양 사슬의 새 넷째 단계 목표(TargetFrom("jinyang")).
-                    if (!AttackChainStep(RealmEnemyCity.JinyangId, RealmEnemyCity.YunzhongId, Phase.AttackHanzhong)) return;
+                    if (!AttackChainStep(RealmEnemyCity.JinyangId, RealmEnemyCity.YunzhongId, Phase.AttackShangjun)) return;
+                    break;
+                }
+
+                case Phase.AttackShangjun:
+                {
+                    // 51장 13차 확장(2026-09-17, 같은 세션 "막북 안쪽으로
+                    // 계속 이어해") — 운중을 함락한 뒤 이어지는 복양 사슬의
+                    // 새 다섯째 단계 목표(TargetFrom("yunzhong")).
+                    if (!AttackChainStep(RealmEnemyCity.YunzhongId, RealmEnemyCity.ShangjunId, Phase.AttackHanzhong)) return;
                     break;
                 }
 

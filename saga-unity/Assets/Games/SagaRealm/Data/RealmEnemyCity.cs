@@ -79,6 +79,15 @@ namespace Saga.Realm.Data
     /// wall 3400은 원작 그대로, troops는 다른 성들과 같은 wall×0.23(50
     /// 단위 반올림) 공식으로 800, train은 복양 사슬 깊이(45·60·75)에 +15
     /// 이어 90.
+    /// **51장 13차 확장(2026-09-17, 같은 세션 "막북 안쪽으로 계속
+    /// 이어해")** — 운중→상군(원작 LINKS: yunzhong-shangjun). 운중의
+    /// 이웃은 안문·정양·상군 셋인데, 안문·정양은 둘 다 운중 하나로만
+    /// 이어진 잎사귀(다른 LINKS 줄이 전혀 없다)라 골라도 바로 막다른
+    /// 가지가 된다 — 상군은 북지·삭방으로 계속 뻗어 사슬을 더 늘릴 수
+    /// 있어 이번엔 상군을 골랐다(안문·정양은 다음 확장 후보로 남긴다).
+    /// 원작 land는 hill인데 이 사슬의 다른 성들(진양·한중·영안·장사)과
+    /// 같은 이유로 Plain 처리(새 enum 값 추가는 범위 밖). wall 3200은
+    /// 원작 그대로, troops=wall×0.23 반올림=750, train=운중의 90+15=105.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -141,12 +150,13 @@ namespace Saga.Realm.Data
         public const string JianyeId = "jianye";
         public const string KuaijiId = "kuaiji";
         public const string YunzhongId = "yunzhong";
+        public const string ShangjunId = "shangjun";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
-            YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId,
+            YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -233,6 +243,12 @@ namespace Saga.Realm.Data
             // 단계 목표. 4차 확장 때 진양을 막다른 가지로 적었던 건 화북
             // 본토 LINKS만 본 오판이었다(위 클래스 주석 참고).
             [YunzhongId] = new RealmEnemyCityDef(YunzhongId, "운중", RealmLand.Plain, baseWall: 3400, baseTroops: 800, baseTrain: 90, baseTech: 100, attackFromCityId: "jinyang"),
+            // 상군은 운중(yunzhong)과만 맞닿아 있다(원작 LINKS:
+            // yunzhong-shangjun, 막북 둘째 관문) — 운중을 함락해야 열리는
+            // 복양 사슬의 새 다섯째 단계 목표. 운중의 다른 이웃(안문·정양)은
+            // 둘 다 잎사귀(다른 LINKS 없음)라 이번엔 계속 뻗을 수 있는
+            // 상군을 골랐다.
+            [ShangjunId] = new RealmEnemyCityDef(ShangjunId, "상군", RealmLand.Plain, baseWall: 3200, baseTroops: 750, baseTrain: 105, baseTech: 100, attackFromCityId: "yunzhong"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

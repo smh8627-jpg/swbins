@@ -174,6 +174,12 @@ namespace Saga.Realm.Data
             // 이 확장에서 처음). wall은 RealmEnemyCity.cs 운중 정의(3400)와
             // 맞춘다.
             ["yunzhong"] = new RealmCityDef("yunzhong", "운중", RealmLand.Plain, agri: 160, comm: 130, wall: 3400, pop: 55000, mapX: 45, mapY: 5),
+            // 51장 "대규모 콘텐츠" 13차 확장(2026-09-17) — 운중을 함락한 뒤
+            // 이어지는 복양 사슬의 새 다섯째 단계(원작 LINKS: yunzhong-
+            // shangjun, "막북 둘째 관문"). 원작 land는 hill인데 진양·한중
+            // 등과 같은 이유로 Plain 처리. wall은 RealmEnemyCity.cs 상군
+            // 정의(3200)와 맞춘다.
+            ["shangjun"] = new RealmCityDef("shangjun", "상군", RealmLand.Plain, agri: 150, comm: 120, wall: 3200, pop: 48000, mapX: 30, mapY: 10),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -6274,3 +6274,27 @@ pop 55000·x 45·y 5) — mount 보정이 필요했던 진양·한중·영안·�
 **결과 — 적국 20→21, 성 23→24.** 복양발 사슬(dingtao→ye→jinyang→yunzhong)이 4단계
 깊이(train 45·60·75·90)로 늘었다. 컴파일 여전히 미검증(이 PC도 Unity 에디터 없음) —
 PROJECT_STATE 우선순위 1번 그대로 최우선 대기.
+
+## REALM 51장 13차 확장 — 운중→상군, 막북 안쪽으로 (2026-09-17, 같은 세션 "막북 안쪽으로 계속 이어해")
+
+12차에 곧바로 이어 같은 턴에 진행. `data-city.js` LINKS에서 운중(yunzhong)의 이웃
+셋(안문·정양·상군, 543행)을 확인 — 안문·정양은 542~545행 전체에서 그 둘을 가리키는
+LINKS 줄이 `yunzhong-*` 하나뿐이라 골라도 바로 잎사귀(막다른 가지)로 끝난다. 상군은
+`shangjun-beidi`·`shangjun-shuofang`(544행) 두 줄을 더 갖고 있어 사슬을 계속 늘릴 수
+있으므로 상군을 골랐다(안문·정양은 다음 확장 후보로 남김, 지금까지 원칙대로 "성 하나당
+목표 하나"만 붙였다).
+
+수치는 원본 그대로(agri 150·comm 120·wall 3200·pop 48000·x 30·y 10, desc "황토 고원의
+군. 오랜 세월 변방을 지켰다"). 원작 land는 hill인데 진양·한중·영안·장사와 같은 이유로
+Plain 처리(새 enum 값 추가는 범위 밖). troops=wall×0.23 반올림(50 단위)=750,
+train=운중의 90+15=105.
+
+고친 파일은 12차와 동일한 3개. `enum Phase`에 `AttackYunzhong` 바로 뒤 `AttackShangjun`
+추가, `AttackYunzhong`의 `AttackChainStep` 세 번째 인자를 `AttackHanzhong`에서
+`AttackShangjun`으로 바꾸고 그 뒤에 새 case를 끼워 `AttackHanzhong`으로 넘긴다 — 지난
+확장들과 같은 삽입 패턴.
+
+**결과 — 적국 21→22, 성 24→25.** 복양발 사슬(dingtao→ye→jinyang→yunzhong→shangjun)이
+5단계 깊이(train 45·60·75·90·105)로 늘었다. 상군 자신도 북지(beidi)·삭방(shuofang,
+그 뒤 오원까지)으로 더 뻗을 수 있어 다음 확장 후보로 남는다. 컴파일 여전히 미검증(이
+PC도 Unity 에디터 없음).
