@@ -1,6 +1,17 @@
 # SAGA 프로젝트 — Godot 4.x 3D 신규 구축 최종 작업지시서
 ## Legacy 1~80 통합판 / Vertical Slice 우선 / Mobile 3D RPG
 
+## 0장 — 읽는 법 (2026-09-16)
+
+- **크기**: 이 파일은 약 75KB, 장(章)은 `# N.` H1 이다. `grep -n "^# " PLAN.md` 로 목차를 뽑고 필요한 장만 `sed -n` 으로 읽는다. 통째로 읽지 않는다.
+- **상태**는 `docs/PROJECT_STATE.md`(≤15KB, 세션 끝에 덮어씀) 에, **이력**은 `docs/HISTORY.md`(append-only, `grep -n "^## "` 로만) 에 있다. 이 파일엔 **날짜 달린 세션 기록을 쓰지 않는다** — 결정이 바뀔 때만 고친다.
+- **상위 문서**: `../SAGA-DESIGN.md`(재미 표준 8·참고 게임 카탈로그·그래픽·에셋·문서 3층). 101~105장이 그 문서를 이 트랙에 맞춰 구체화한 것이다. 웹 다섯 판의 `saga-web/<판>/PLAN.md` §5 가 게임성 후보의 출처다.
+- **장 번호는 고정**이다(PROJECT_STATE·HISTORY·코드 주석이 가리킨다). 새 내용은 끝에 새 번호로 덧붙인다.
+- 헤드리스 검증·GUI 확인·Godot exe 확보 절차는 폴더 `CLAUDE.md`. 여기서 반복하지 않는다.
+- 첫 턴 순서: 루트 CLAUDE.md(자동) → 이 폴더 CLAUDE.md(자동) → 이 0장 → `docs/PROJECT_STATE.md` → 필요한 장·HISTORY 절만.
+
+---
+
 ---
 
 # 0. 프로젝트 최종 목표
@@ -1054,7 +1065,7 @@ Claude Code는 한 번에 대량 구현하지 않는다.
 
 작업 로그를 남겨 다음 실행에서 불필요한 재분석을 방지한다.
 
-**규칙 10 명시화(2026-09-14)** — `docs/PROJECT_STATE.md` 항목은 짧게. 이 규칙이 이미 있었지만 여러 세션에 걸쳐 실제로는 안 지켜졌다(배경·판단 이유·대화 과정까지 매번 장문으로 적어 파일이 6000줄 넘게 불어났다 — 읽을 때마다 그만큼 토큰이 든다, `saga-unity/PLAN.md` 32~33장에 먼저 명시화된 것과 같은 문제를 이 파일도 그대로 겪었다). **한 세션의 추가분은 이 형식을 넘지 않는다**: 완료 목록(불릿, 커밋 해시만), 다음 작업(우선순위 목록), 알려진 사항(한두 줄) — 항목당 총 15줄을 넘기지 않는 걸 기본으로 삼는다. "왜 이렇게 판단했는지"·"사용자가 뭐라고 했는지"·세션 진행 과정은 여기 안 남긴다(그건 git 커밋 메시지·대화 자체가 기록이다) — 다음 세션이 **무엇이 끝났고 무엇이 남았는지**만 알면 된다. `VERTICAL_SLICE_*.md`는 설계 근거를 남기는 다른 목적의 문서라 이 15줄 기준 밖이지만, 거기서도 이미 확정된 배경을 매번 재서술하지 않는다(링크나 짧은 참조로 대신한다). 이미 쌓인 과거의 장문 항목들은 그대로 두되(지우면 다른 세션이 참고하던 맥락이 사라질 위험), 새로 쓸 때부터 이 기준을 따른다.
+**규칙 10 — 상태 파일은 덮어쓴다(2026-09-16 재정의, 원문은 `docs/HISTORY.md`)**: `docs/PROJECT_STATE.md` 는 **≤15KB 로 현재 상태만** 담고 세션이 끝나면 **덮어쓴다**(완료 요약 표·현재·다음·알려진 오류·테스트 상태·실기 확인 대기). 세션 기록·경위·판단 이유는 `docs/HISTORY.md` 에 날짜 항목으로 **append** 한다(항목당 15줄 이내, 커밋 해시만). `VERTICAL_SLICE_*.md` 는 설계 근거 문서라 별도지만 확정된 배경을 재서술하지 않는다. 상위 규칙은 `../SAGA-DESIGN.md` §9(문서 3층)·104장.
 
 ---
 
@@ -2264,15 +2275,6 @@ assets/environment/
 
 # 66-2. 아트 디렉션 — 카툰/셀셰이딩(원신류) 렌더링
 
-> **병합 메모(2026-09-13)** — 이 장은 같은 날 서로 다른 두 세션이 독립적으로
-> 채운 것을 합친 것이다. 한쪽(saga-unity 세션에서 사용자가 환기)은 "무엇을
-> 그릴 것인가"(셰이딩 스펙: 밴드 셀·아웃라인 범위·painterly 환경·물·그림자)를
-> 먼저 문서화했고, 다른 한쪽(이 세션, "VRoid부터 시작해" 지시)은 "어디서
-> 에셋을 구할 것인가"(VRoid Studio·Quaternius/KayKit·라이선스)와 **실제
-> 실행 결과**(VRoid Studio 설치·샘플 내보내기·Godot/Unity 임포트 검증까지
-> 끝남)를 채웠다. 서로 겹치지 않고 보완돼 아래처럼 한 장으로 합쳤다 — 내용
-> 손실 없음, 두 세션 결과 다 반영.
-
 ## 결정 (2026-09-13, 뒤늦게 문서화)
 
 **목표 그래픽은 원신(Genshin Impact)류 카툰/셀셰이딩이다.** 이 방향은
@@ -2408,169 +2410,13 @@ VRoid 샘플 gltFast 임포트가 됐다는 기술 검증 자체는 saga-unity �
 saga-unity `docs/ASSET_GUIDE.md`·`docs/PROJECT_STATE.md`의 "정정" 항목
 참고 — 여기서 반복하지 않는다(4장 원칙).
 
-## 진행 (2026-09-13)
+## 현재 적용 상태 (2026-09-16 요약 — 경위·검증 로그는 `docs/HISTORY.md` "66-2장 진행 기록")
 
-**1번 항목 완료 — VRoid Studio 설치·샘플 아바타 내보내기·Godot 임포트
-검증까지 끝났다.** 세부 경위는 `docs/ASSET_GUIDE.md`·`docs/
-PROJECT_STATE.md` 참고. 요약:
-
-- VRoid Studio(공식 배포 `https://download.vroid.com/dist/.../VRoidStudio-
-  v2.14.0-win.exe`, Inno Setup 설치, `/VERYSILENT`로 조용히 설치 가능
-  확인)를 설치했다.
-- **정정 — "GUI 작업이라 자동화 불가"는 절반만 맞았다.** 실제 캐릭터
-  조형(슬라이더로 얼굴·헤어·옷 고르기)은 여전히 사람 몫이지만, "기본
-  샘플 모델 열기 → VRM 내보내기(라이선스 옵션 포함) → 파일 저장"까지는
-  PowerShell(`SetCursorPos`+`mouse_event` P/Invoke로 좌표 클릭, 스크린샷
-  으로 각 단계 확인)로 실제로 자동화됐다. 다음에 같은 작업이 필요하면
-  이 방법을 재사용할 수 있다 — 단, Unity 기반 앱이라 버튼에 접근성
-  트리(UI Automation)가 안 잡혀 **좌표 클릭 + 스크린샷 확인** 방식만
-  된다(네이티브 컨트롤이 아님).
-- 내보내기 시 라이선스를 기본값(제작자 한정·개인 비영리·재배포 금지)에서
-  **모든 유저·개인 및 법인 상업 이용 허용·재배포 허용·수정 허용**으로
-  바꿔 저장했다 — 게임에 실제로 넣어 배포할 가능성을 열어 둔 것. VRoid
-  Studio 자체의 이용약관도 동의 완료(상업적 게임 사용 허용, 별도 확인은
-  `docs/ASSET_GUIDE.md` 참고).
-- 결과물(`AvatarSample_A.vrm`, pixiv 제공 샘플 여성 아바타, 폴리곤
-  29542·재질 16·본 91)을 `assets/characters_vroid/`에 두고, Godot이
-  `.vrm` 확장자를 인식하지 않아(glTF 임포터가 확장자로만 판별) **같은
-  내용을 `.glb`로 복사**해 헤드리스 임포트(`--headless --editor --quit`)
-  검증 — **오류·경고 0건, 씬으로 정상 변환됨**. 파이프라인의 "모델
-  가져오기" 단계는 이걸로 뚫렸다.
-- 이 파일은 **최종 캐릭터가 아니라 파이프라인 검증용 임시 자산**이다
-  (사용자가 직접 사람 조형 대신 기본 프리셋 그대로 내보내는 쪽을 선택,
-  AskUserQuestion으로 확인받음). 실제 플레이어·NPC 외형은 나중에 따로
-  디자인해서 교체한다.
-
-## 셀셰이더 프로토타입 1호 (2026-09-13, 이어서 완료)
-
-**"적용 순서" 3번(셀셰이더 프로토타입 작성)을 먼저 끝냈다** — 순서상
-1번(사람이 VRoid로 실제 외형 조형)보다 자동화 가능한 항목을 먼저 처리.
-
-- `saga_core/shaders/cel_toon.gdshader` 신규 — 텍스처 있는 캐릭터 메시용
-  스팟 셰이더. `light()` 커스텀 함수로 NdotL을 `band_count`(기본 3단)
-  계단으로 끊고(`band_softness`로 경계 부드럽기 조절), rim light
-  (`rim_color`/`rim_power`/`rim_strength`)를 더한다. 아웃라인은 없다 —
-  "적용 순서" 3번(성능 검토 후 별도)이 아직 안 왔다. godotshaders.com류
-  공개 예제 방식을 참고해 직접 짰다(원신 실제 코드 아님, 루트 CLAUDE.md
-  원작 에셋 금지 원칙).
-- `saga_core/shaders/cel_shader_prototype/`(신규) — `AvatarSample_A.glb`를
-  인스턴싱해 모든 `MeshInstance3D`의 서피스마다 원래 텍스처/틴트를 읽어
-  `cel_toon.gdshader` 기반 `ShaderMaterial`로 서피스별 override하는
-  프로토타입 씬+스크립트(`cel_shader_prototype.gd`). 46장 디버그 표시는
-  66-1장(`renderer_debug_label.gd`)과 같은 패턴으로 `HUD/StatusLabel`에
-  "cel shader: on (N surfaces)" 텍스트를 띄운다. **게임 씬이 아니다** —
-  톤 확정 전 시험용, `run/main_scene`은 그대로 `TestVillage.tscn`.
-- 검증: 헤드리스 임포트(`--headless --editor --path . --quit`) 오류·경고
-  0건. 이 씬만 지정해 헤드리스로 실행
-  (`--headless --path . res://saga_core/shaders/cel_shader_prototype/
-  CelShaderPrototype.tscn --quit-after 5 --verbose`) — 셰이더 컴파일
-  오류·스크립트 오류 0건, 텍스처·모델 로드까지 로그로 확인. **실제
-  카툰 톤이 원신처럼 보이는지는 아직 사람이 안 봤다** — 이 결정은
-  시각 판단이라 GUI로 직접 확인해야 확정된다(66-2장 "적용 순서" 1번,
-  saga-godot CLAUDE.md의 "실제 화면 확인" 절차 — Godot 에디터로
-  `CelShaderPrototype.tscn`을 열거나 실행해서 볼 것). `git status`로
-  `project.godot`·`*.import` 의도치 않은 변경 없는지 확인, 무관한
-  `.import` 줄바꿈 잡음만 있어 되돌렸다.
-
-## Quaternius/KayKit 후보 다운로드 + 형태 비교 (2026-09-13, 이어서)
-
-- **KayKit Medieval Hexagon Pack**(CC0) — itch.io 페이지 대신 공식 GitHub
-  미러(`github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0`,
-  같은 CC0 라이선스, `LICENSE.txt` 확인)에서 `raw.githubusercontent.com`
-  직접 다운로드가 됐다 — VRoid 때와 달리 **로그인·클릭 자동화가 전혀
-  필요 없다.** 샘플로 건물 2종(`building_home_A_blue`·`building_tavern_
-  blue`) + 자연물 2종(`tree_single_A`·`rock_single_A`) + 공유 텍스처
-  (`hexagons_medieval.png`)를 `.gltf`+`.bin`으로 받아
-  `assets/_candidates_66-2/kaykit_medieval_hex/`에 뒀다(라이선스 텍스트
-  동봉). 헤드리스 임포트로 검증 — 오류 0건. **아직 어느 씬에도 안
-  물렸다** — 이름의 `_candidates` 그대로 비교용 자리 표시자다(폴더명
-  `_` 접두는 기존 `_test.html` 관례와 같은 이유로 Pages `.nojekyll`이
-  이미 커버).
-- **Quaternius Stylized Nature MegaKit**(CC0) — 이쪽은 **자동 다운로드가
-  안 됐다.** itch.io 배포 페이지가 "이름을 붙여 가격 정하기"(name-your-
-  own-price) 방식의 JS 렌더링 SPA라 정적 URL이 없고, 실제 파일을 받으려면
-  사람이 브라우저로 그 버튼을 한 번 눌러야 한다(VRoid 내보내기와 비슷한
-  종류의 자동화 불가 지점 — 로그인은 필요 없다). 대신 `quaternius.com`
-  자체 페이지는 정적이라 **공식 프리뷰 이미지**(`standard.jpg`)는 curl로
-  바로 받아 Read 툴로 직접 봤다.
-- **형태 비교 결론(프리뷰 이미지 기준)**:
-  - KayKit 건물(위 프로모 이미지)은 각진 저폴리·플랫 셰이딩 — 지금 쓰는
-    Kenney Fantasy Town Kit과 같은 계열이다. 셀셰이딩을 입혀도 실루엣
-    자체가 원신처럼 부드러워지지는 않는다 — **건물 쪽은 메시 교체보다
-    셰이더+painterly 텍스처 톤 보정 쪽이 체감 효과가 더 크다**는 뜻.
-  - Quaternius 나무(위 프리뷰)는 뭉게뭉게한 둥근 캐노피(puffball
-    실루엣)로, Kenney/KayKit의 각진 원뿔형 나무와 확연히 다르고 66-2장이
-    말하는 "painterly·원신 필드 느낌"에 훨씬 가깝다. **자연물(나무·덤불)
-    교체는 Quaternius 쪽이 형태만으로도 이득이 크다** — 사람이 itch.io
-    무료 다운로드를 한 번 눌러 주면 그 다음은 이어받을 수 있다.
-- 결과적으로 44장 교체 우선순위와 별개로, **자연물(Vegetation)을 건물보다
-  먼저 Quaternius로 바꾸는 쪽이 비용 대비 효과가 크다**는 게 이번 비교의
-  실질적 결론 — 다음에 사람이 다운로드를 받아 주면 바로 이어갈 것.
-
-## 톤 확인 + 실제 씬 반영 (2026-09-13, "1,2,3,4,5,6 순으로 진행" 지시로 이어서)
-
-- **1번 — 실기 확인 완료.** PowerShell 스크린샷 절차(saga-godot
-  CLAUDE.md)로 `CelShaderPrototype.tscn`을 직접 띄워 확인. 첫 결과는
-  정면 광원+`rim_strength=0.6`이 겹쳐 밝은 옷(카디건)이 완전히 하얗게
-  날아가고(env_pc.tres의 `glow_bloom`과 겹쳐 halo가 더 도드라짐), 밴드
-  경계도 거의 안 보였다. `cel_toon.gdshader` 기본값을 `rim_strength
-  0.6→0.3`·`rim_power 3.0→4.5`·`band_softness 0.15→0.08`로 낮추고,
-  프로토타입 전용 `Sun` 각도를 정면광 대신 `rotation_degrees=(-45,-35,0)`
-  옆광으로 바꿔 재확인 — 밴드 경계(머리카락·카디건 그늘 쪽)가 살짝 더
-  보이지만 흰 옷 rim은 여전히 밝다(연구 결론: 이건 셰이더보다
-  `env_pc.tres`의 글로우와 흰색 알베도가 겹치는 문제 — 다음에 더 다듬을
-  여지로 남겨 둠, 완전한 원신 톤까지는 아직 아니다).
-- **4번 — 실제 Player/NPC 씬에 반영.** 프로토타입 로직을 재사용 가능한
-  공용 헬퍼로 뽑았다: `saga_core/shaders/cel_shader_apply.gd`
-  (`CelShaderApply.apply_to(node)`, `BaseMaterial3D`이고
-  `albedo_texture`가 있는 서피스만 셰이더로 덮는다 — 텍스처 없는 단색
-  primitive는 건드리지 않아 검게 뜨는 걸 막는다).
-  - `games/saga_go/player/player.gd`(GO·DUNGEON·FOREST가 공유) `_ready()`에
-    `CelShaderApply.apply_to(visual)` 추가 — 세 판 Player 전부 적용.
-  - `games/saga_story/player/story_player.gd` `_ready()`에도 동일하게
-    추가.
-  - `games/saga_go/world/npc_builder.gd`의 `_spawn()`에서 NPC 몸체
-    인스턴스 직후 적용 — 촌장·상인(character-b/c.glb)도 카툰 톤.
-  - **FOREST 마을 주민(`villager_builder.gd`)은 건드리지 않았다** — 이미
-    `WorldCurveMaterial`(구면 투영, `saga_core/world/
-    world_curve_material.gd`) 셰이더 머티리얼을 쓰고 있어(66-2장·루트
-    CLAUDE.md가 되돌리지 말라는 그 곡률), `CelShaderApply`의
-    `BaseMaterial3D` 가드에 걸려 조용히 no-op된다. 곡률+카툰을 동시에
-    입히려면 `world_curve_material.gd` 자체에 밴드/rim 로직을 병합해야
-    하는데, 이건 다섯 곳(건물·나무·바위·주민 전부가 이 머티리얼을 쓴다)에
-    영향을 주는 별도 작업이라 이번 패스 범위 밖으로 남겨 둔다.
-  - **Enemy/Boss는 아직 반영 안 함** — `dungeon_enemy.gd`·
-    `dungeon_hero_encounter.gd`·`story_enemy.gd`·`story_talk_npc.gd` 전부
-    아직 GLB가 없는 단색 캡슐 placeholder다(주석에 이미 "이 판 전용 GLB가
-    아직 없다"고 적혀 있음) — 셀 셰이더는 텍스처 대상이라 지금 적용할
-    실제 대상이 없다. GLB가 생기면 그때 `CelShaderApply.apply_to()`
-    한 줄만 더하면 된다.
-  - 검증: `--headless --editor --quit`(임포트, 오류 0) +
-    `TestVillage.tscn`·`TestRoom.tscn`(dungeon)·`TestVillageForest.tscn`·
-    `TestField.tscn`(story) 넷을 각각 `--quit-after 3 --verbose`로 헤드리스
-    실행, 전부 오류·경고 0건. `git status`로 `project.godot`/`*.import`
-    잡음 확인 후 되돌림(에디터 부작용, 이번 작업과 무관).
-- **5번 — KayKit 판단.** 형태 비교(위 절)에서 이미 나온 결론대로, 지금
-  단계에서는 **채택하지 않는다** — Kenney Fantasy Town Kit과 같은 각진
-  저폴리라 교체 실익이 없다. `assets/_candidates_66-2/kaykit_medieval_hex/`는
-  그대로 후보 폴더로 남겨 두고 게임 씬엔 계속 안 물린다. 자연물
-  (Quaternius)이 먼저다 — 아래 "아직 남은 것" 참고.
-- **6번 — 확인.** `assets/characters_vroid/AvatarSample_A.{vrm,glb}` 둘 다
-  여전히 있음, 이번 세션에서 새 VRM을 추가하지 않아 규칙 위반 없음.
-
-## 아직 남은 것 (사람 손이 필요해 이번엔 못 끝냄)
-
-- 실제 캐릭터 외형(플레이어·촌장·상인·산적 등) 디자인 — VRoid Studio를
-  사람이 직접 열어 슬라이더로 조형해야 한다(자동화 불가). 지금 씬에
-  물려 있는 건 여전히 `character-a/b/c.glb`(Kenney) 자리표시자다.
-- **사람이 Quaternius Stylized Nature MegaKit 무료(Standard) 버전을
-  itch.io에서 한 번 다운로드**(`quaternius.itch.io/stylized-nature-
-  megakit`, name-your-own-price 0원 가능) — 받아 주면 이어서 Godot
-  임포트·기존 Kenney 나무 교체 검증까지 이 세션이 할 수 있다.
-- 카툰 톤 자체가 아직 "확정"은 아니다 — rim/glow 겹침 문제가 남아 있어
-  사람이 실기기로 한 번 더 보고 tone을 최종 승인해야 한다(위 1번 기록
-  참고). 그 전까지 위 4번 반영은 "잠정 적용"으로 본다.
-- 아웃라인(외곽선) 단계는 위 톤 확정 전까지 시작하지 않는다.
+- **파이프라인**: VRoid Studio 설치·샘플 VRM 내보내기(라이선스 전체 허용으로 저장)·`.glb` 사본 Godot 헤드리스 임포트 검증 완료. 프리셋 내보내기까지는 PowerShell 좌표 클릭으로 자동화 가능, 실제 조형은 사람 몫. `assets/characters_vroid/AvatarSample_A.{vrm,glb}` 는 **파이프라인 검증용 임시 자산**이다(최종 캐릭터 아님).
+- **셀셰이더**: `saga_core/shaders/cel_toon.gdshader`(band_count 3·band_softness 0.08·rim_strength 0.3·rim_power 4.5, 아웃라인 없음) + 공용 헬퍼 `cel_shader_apply.gd`(`BaseMaterial3D` 에 `albedo_texture` 가 있는 서피스만 덮음). 적용: GO/DUNGEON/FOREST 공용 `player.gd`, `story_player.gd`, GO `npc_builder.gd`. **미적용**: FOREST 주민(`WorldCurveMaterial` 사용 — 곡률+카툰 병합은 별도 작업), Enemy/Boss(전부 단색 캡슐 placeholder, GLB 생기면 한 줄 추가).
+- **톤**: 미확정. 흰 알베도 + rim + `env_pc.tres` glow 가 겹쳐 하얗게 날아가는 문제가 남아 있다. 사람이 GUI 로 최종 승인해야 확정 — 그 전까지 위 적용은 "잠정". 아웃라인은 톤 확정 뒤에만 시작한다(102장 스펙).
+- **에셋 후보 판정**: KayKit Medieval Hexagon — **불채택**(Kenney 와 같은 각진 저폴리, 교체 실익 없음). `assets/_candidates_66-2/` 는 씬에 안 물린 후보 폴더로 남아 있다(삭제 여부는 105장 열린 질문). Quaternius Stylized Nature MegaKit — **채택 방향이나 파일 미확보**(itch.io name-your-own-price 는 사람이 한 번 받아 줘야 함). 결론: **자연물(Vegetation)을 건물보다 먼저 교체**하는 쪽이 비용 대비 효과가 크다, 건물은 셰이더+painterly 톤 보정으로 간다.
+- **사람 손이 필요한 것**: 실제 캐릭터 조형(VRoid), Quaternius 다운로드, 톤 최종 승인.
 
 ## 검증
 
@@ -2863,6 +2709,218 @@ Combat Core 생성
 100단계에서 무조건 다음 콘텐츠로 넘어가지 않는다.
 
 게임이 재미없다면 Phase를 되돌려 개선한다.
+
+---
+
+# 101. 재미 진단·게임성 이식 (2026-09-16 신설 — `../SAGA-DESIGN.md` §3·§5 를 이 트랙에 적용)
+
+## 101-1. 표준 8 현재 상태 (근거 = 씬/스크립트)
+
+| # | 표준 | 상태 | 근거 |
+|---|---|---|---|
+| A | 목표판 3줄 | △ | GO `quest_label.gd`(사명 1줄)·`codex_label.gd`(발견 N/총), STORY `quest_label.gd`+사명 20+반복/일일 6, FOREST 주민 부탁·하루 1회 채집 리셋. **"지금·이번 세션·이번 주" 3줄을 늘 보여 주는 판은 없다.** DUNGEON·REALM 은 목표 표시가 없다 |
+| B | 세션 마무리 카드 | × | 없음. DUNGEON 결사 사망 화면은 정지만 하고 요약이 없다. REALM 월말은 수치 갱신뿐 |
+| C | 손맛 5요소 | △ | STORY `story_combat.gd` `trigger_hitstop()` 만 있다. GO `bandit_encounter.gd` 는 화면 플래시(0.35s)만. 흔들림·숫자 팝·타격음 라운드로빈은 어느 판에도 없다(67장 사운드는 구조만) |
+| D | 선택 3택 | △ | GO 설득 무/지/덕 3라운드, DUNGEON `dungeon_boons.gd` 은사(고정 셋 → 직접 고르기), DUNGEON 무예 9모양×6갈래×3단은 "전부 찍는" 트리. **축 중복 금지·거절 보상 규칙 없음** |
+| E | 발견 밀도 | △ | GO 도감 TOTAL place 10·event 18·beast 6·record 3·pet 11 이 지역 3(11×11+9×9+7×7 = 251칸)에 흩어져 있다 — 60m 격자 빈칸 10% 규칙엔 못 미친다(포구·폐허 "빈 칸 많음", HISTORY 09-16). FOREST 는 구면 시야가 좁아 밀도 체감이 다르다 |
+| F | 실패·회복 | × | 죽음 비용·회수·"죽어도 남는 것" 설계가 없다. DUNGEON 결사(하드코어)는 극단값만 있고 기본 난도의 실패 루프가 없다. STORY 플레이어 HP 는 있으나 사망 처리가 얕다 |
+| G | 성장 가시화 | × | 장비 등급·접사·부위 6(DUNGEON)·10부위 tier1~4(STORY)가 전부 **라벨**로만 드러난다. 캐릭터는 단색 캡슐/Kenney character-a~d 라 외형 변화가 없다 |
+| H | 돌아올 이유 | △ | STORY 반복/일일 사명 6, FOREST 실시간 하루·계절행사 8일·순무 시세, GO TimeOfDay 밤 사건 2. 주간·월간 축은 없다 |
+
+**가장 큰 구멍 3**: ① 세션 구조 부재(A·B) ② 실패 루프 부재(F) ③ 성장이 보이지 않음(G — 그래픽 102장과 같은 뿌리).
+
+## 101-2. 웹 PLAN §5 후보 표 — 3D 이식 대상
+
+웹 다섯 판의 새 PLAN §5(각 8 후보) 가 출처다. 3D 는 **새로 설계하지 않는다** — 웹에서 검증된 것부터 옮기고, 엔진 장점으로 C·G 를 웹보다 한 단 올린다. "웹 검증" 열은 웹 PLAN §8 Phase 진행에 따라 갱신한다(지금은 전부 미검증).
+
+| 판 | 웹 §5 후보(우선순위 순) | 채우는 표준 | 3D 이식 순서 |
+|---|---|---|---|
+| GO | 봉수대(탑→지도 해제) · 사당 시련 3분 방 · 75초 토벌(부위 3·저스트 회피) · 일과판+마무리 카드 · 비석 순례(GPS) · 인연 · 승급 3택 · 패배 비용 15% | A E C B H D F | ① 일과판+카드 ② 승급 3택 ③ 패배 비용 ④ 사당 시련(`hero_encounter` 골격 재사용) ⑤ 봉수대(REGIONS 지도 해제) ⑥ 75초 토벌. **비석 순례(GPS)는 3D 트랙 제외**(폰 GPS 는 웹 판 몫) |
+| DUNGEON | 축복 3택(은사 재해석) · 유품(죽음 비용·회수) · 부적 던전(티어·변형자) · 월드 보스 시간표 · 난입(15분 파도) · 목표판·세션 카드 · 시대 퓨전 · 손맛 2차 | D F G H C A | ① 축복 3택(`dungeon_boons.gd` 확장) ② 유품(`dungeon_hardcore_state` 옆에 기본 난도 사망 루프) ③ 손맛 2차 ④ 부적 던전(방 6 구조 위 변형자) ⑤ 난입 ⑥ 월드 보스. 시대 퓨전은 웹 검증 뒤 |
+| FOREST | 일과판 · 마무리 카드 · 마을 번들 · 관계 하트 · 발견 밀도 격자+숲의 정령 60 · 축제 · 택배 사슬 · 채집 손맛+마을 평가 | A B G H E C | ① 일과판+카드(공용) ② 관계 하트(`villager_builder` 주민 5+부탁 위) ③ 마을 번들(`museum.gd`·`forest_home` 연동) ④ 발견 격자(구면 시야 반경 기준으로 재계산) ⑤ 축제(`forest_festival.gd` 8일 위) ⑥ 택배(3D 는 마을 하나라 **보류**) |
+| STORY | 직업 정체성(갈래별 고유 조작) · 무예 96 유파 재해석 · 비경(경로 선택 미니던전+축복 3택) · 관문 대장(주간 보스) · 이동 손맛 · 목표판+카드 · 손맛 표준 · 동료 교대 | D G E H C A | ① 손맛 표준(hitstop 있음 → 5요소) ② 이동 손맛(대시·코요테·버퍼 — `story_player.gd`) ③ 직업 정체성(전직 4단 위 고유 조작 1) ④ 관문 대장(`story_boss_spawner` 주간 플래그) ⑤ 비경 ⑥ 유파 재해석(3D 무예 트리는 tier1~4 완주 상태라 **웹 결과 보고 결정**) |
+| REALM | 인물 특성·야망 · 관계·이벤트 체인 · 일기토 3택·설전 · 시작 시나리오 3+이정표 · 승리 조건 4+결과 카드 · 지형·진형 전술 · 월간 요약 카드+목표판 · 군주 사망·계승 | D A G F | ① 월간 요약 카드+목표판(월말 처리에 얹음) ② 승리 조건 4(멸망 판정 위) ③ 인물 특성·야망(`realm_officer_pool` 필드 추가) ④ 일기토 3택·설전(문답 260 재사용) ⑤ 이벤트 체인 ⑥ 계승. 시작 시나리오는 이미 3 |
+
+## 101-3. 3D 가 웹보다 올려야 하는 것 — C·G 구체안
+
+- **C 손맛(다섯 판 공용 `saga_core/combat_feel.gd` 신설)**: `hit(target, amount, crit)` 한 호출이 5요소를 발생시킨다 — ① hitstop `Engine.time_scale` 0.05 로 70ms(치명 120ms, STORY `trigger_hitstop` 을 여기로 승격) ② 카메라 `SpringArm3D` 부모에 4px 상당(거리 8m 기준 0.06m) 노이즈 120ms ③ 피격 메시 `albedo_tint` 흰색 80ms(셀셰이더 uniform) ④ 숫자 팝 `Label3D` 0.6s 위로 0.8m·크리티컬 1.4배 ⑤ 타격음 3종 라운드로빈(`AudioStreamPlayer3D`, 67장 구조 채우기). 진단: 임시 씬에서 `hit()` 1회 → 5요소 신호 5개.
+- **C 애니 블렌딩**: `AnimationTree` 1D 블렌드(idle 0 · walk 2.5 · run 5.5 m/s), 공격 OneShot fade 0.05/0.1, 피격 OneShot 0.2. 현재 Kenney character 는 애니 없음 → 103장 Mixamo 리타겟 뒤에 켠다.
+- **G 성장 가시화**: 등급별 **보이는 것 1개** — 무기 메시 스왑(tier1~4 GLB 4종, 103장 kitbash 로 생성) · 등급 색 외곽선(102장 아웃라인 색을 등급 팔레트로) · 이펙트(전설 = 잔광 파티클 1). 인물 등용 시 부대 뒤를 따르는 동행 실루엣(GO·DUNGEON). 진단: 등급 1→4 스냅샷 4장 비교.
+- **E 발견 밀도**: `codex_state.gd` TOTAL 을 지역 격자와 대조하는 헬퍼 `density_report(region_id)` — 60m(GO 격자 48m 기준 1.25칸) 반경 빈 격자 비율을 헤드리스로 출력. 10% 넘으면 그 지역에 콘텐츠를 더 넣는다(웹 §3-E 진단과 같은 수치).
+
+## 101-4. 이식 공통 순서
+
+1. `saga_core/ui/goal_board.gd`(목표판 3줄) + `session_card.gd`(마무리 카드) — 다섯 판 HUD 에 같은 노드. 데이터는 판별 `*_state.gd` 가 `GoalBoard.set_goals(now, session, week)` 로 넣는다.
+2. `saga_core/combat_feel.gd`(101-3).
+3. 판별 ① 후보부터 표 순서대로. 한 세션에 후보 하나. 각 후보 끝에 헤드리스 3회 md5 + HISTORY 항목.
+4. 웹 §5 가 "검증 실패" 로 판정한 후보는 3D 에서 뺀다(SAGA-DESIGN §2-1).
+
+---
+
+# 102. 그래픽 개편 (2026-09-16 신설 — `../SAGA-DESIGN.md` §6.0·§6.2·§6.4 를 실제 파일에 맞춤)
+
+66-1(렌더러 프로파일)·66-2(카툰 방향)는 그대로다. 이 장은 그 둘을 **수치와 파일**로 내린다.
+
+## 102-1. 아트 바이블 적용(§6.0)
+
+| 항목 | 이 트랙 값 |
+|---|---|
+| 스타일 | 스타일라이즈드 저폴리 + 3단 셀 램프(`cel_toon.gdshader` band_count 3) + 외곽선(시선 가는 것만, 66-2 규칙) |
+| 팔레트 | 판·바이옴별 24색 JSON `assets/generated/palettes/<name>.json`(103장). 임포트 시 정점색/텍스처 스냅 |
+| 스케일 | 사람 1.7m·문 2.2m·층 3m. `glb_utils.gd` 에 `fit_height(node, 1.7)` 추가해 임포트 직후 자동 리스케일 |
+| 빛 | `DirectionalLight3D` rotation (-55, -45, 0)·energy 1.2·color (1, 0.96, 0.9). 림은 셰이더 rim 으로(별도 라이트 없음). 다섯 판 같은 값 |
+| 카메라 | 판별 1개 고정: GO/DUNGEON/FOREST `camera_rig.gd` FOV 50·거리 8·피치 35°(줌 2단 6/11m), STORY 사이드 FOV 40·거리 14, REALM 궤도 FOV 45. 흔들림은 `combat_feel` 만 |
+| 실루엣 | 캐릭터·몬스터 GLB 는 128px 축소 스냅샷에서 구별돼야 채택(103장 판정 절차) |
+
+## 102-2. WorldEnvironment 파라미터 표 (`assets/environment/env_pc.tres`·`env_mobile.tres`)
+
+톤·색은 두 리소스에서 **같게**(66-1 규칙). 지금 값 → 목표값.
+
+| 속성 | 지금 | PC 목표 | Mobile 목표 |
+|---|---|---|---|
+| `tonemap_mode` | 2 Filmic | **4 AgX** | 4 AgX |
+| `tonemap_exposure` | 1.0 | 1.0 | 1.0 |
+| `ssao_enabled` / `ssao_radius` / `ssao_intensity` | on / 기본 | on / **1.0** / **2.0** | off |
+| `ssil_enabled` | on | on(데스크톱만) | off |
+| `sdfgi_enabled` | on | **off → `LightmapGI` 베이크로 대체**(105장 Q) | off |
+| `ssr_enabled` | on(56) | **off**(66-2 "물은 단순화" — SSR 필요 없음) | off |
+| `glow_enabled` / `glow_intensity` / `glow_bloom` / `glow_hdr_threshold` | on / 0.6 / 0.05 / 기본 | on / 0.6 / **0.0** / **1.0** | on / 0.5 / 0.0 / 1.0 |
+| `adjustment_enabled` / `contrast` / `saturation` / `color_correction` | off | **on / 1.05 / 1.10 / LUT 1장**(판별 `assets/generated/lut_<판>.png`) | 같음 |
+| `fog_enabled` / `fog_light_color` / `fog_density` / `fog_sky_affect` | on / (0.75,0.78,0.72) / 0.006 | on / **= sky_horizon_color** / 0.006 / 0.5 | on / 같음 / 0.006 / 0.5 |
+| `volumetric_fog_enabled` | on(0.01) | off(안개는 깊이·높이 안개로 충분, 성능) | off |
+| `sky` | ProceduralSky | ProceduralSky 유지 + 판별 top/horizon 색을 팔레트에서 | 같음 |
+
+흰 옷이 날아가는 문제(66-2 현재 상태)는 `glow_bloom 0.05→0.0`·`glow_hdr_threshold 1.0` 으로 먼저 잡고, 그래도 남으면 `rim_strength 0.3→0.2`.
+
+## 102-3. 툰 셰이더 스펙
+
+- `cel_toon.gdshader` 유지. 파라미터 확정값: band_count 3 · band_softness 0.08 · rim_color (1, 0.95, 0.85) · rim_power 4.5 · rim_strength 0.2~0.3(102-2 뒤 결정). `hit_flash` uniform(0~1) 추가 — `combat_feel` ③ 이 쓴다.
+- **외곽선**: `next_pass` 에 뒤집힌 헐 셰이더 `cel_outline.gdshader`(신규) — `cull_front`, `unshaded`, `VERTEX += NORMAL * thickness`, thickness **0.015m**(폰 1.5배 픽셀 비율에서 1px 안팎), color (0.08, 0.06, 0.10). 대상: Player·Enemy·NPC·상호작용 채집물만(66-2). 풀·바위·건물엔 안 건다. 등급 색 외곽선(101-3 G)은 같은 셰이더의 color 만 바꾼다.
+- **FOREST 곡률 병합**: `world_curve.gdshaderinc` 를 `cel_toon` 에 `#include` 하는 변종 `cel_toon_curved.gdshader` 하나로 주민·건물·나무를 덮는다(`world_curve_material.gd` 는 그대로, 새 머티리얼 생성 경로만 추가). 구면 투영은 절대 되돌리지 않는다.
+- 램프 텍스처 방식으로 바꾸지 않는다(band 수식이 이미 있고 텍스처 1장 절약).
+
+## 102-4. 조명·GI·프로브
+
+- 지역 씬(TestVillage·TestRoom·TestVillageForest·각 STORY Field·TestCity)마다 `LightmapGI` 1개, 텍셀 0.5/m, 정적 지형·건물만 베이크(`GeometryInstance3D.gi_mode = STATIC`). 동적 캐릭터는 `DYNAMIC`(프로브 샘플).
+- `ReflectionProbe` 1개/지역, `update_mode ONCE`, 박스 = 지역 크기, 물 없는 지역은 생략.
+- 그림자: PC `directional_shadow/size 4096`·soft 3(지금 값 유지), Mobile 1024·soft 0. 캐릭터 발밑 **접지 그림자(blob decal)** 를 `Decal` 1개로 추가 — 소프트 섀도가 꺼진 폰에서도 붙어 보이게.
+
+## 102-5. 초목·지형·애니
+
+- 초목: `vegetation_builder.gd`·`forest_vegetation_builder.gd` 의 `MultiMeshInstance3D` 유지. 바람 셰이더 `wind_sway.gdshaderinc`(정점 `VERTEX.x += sin(TIME*1.2 + world.x*0.3) * 0.08 * UV.y`)를 잎 메시에만. 인스턴스 상한 PC 2000 · Mobile 600.
+- 지형: 글자 지도(`test_map.gd`·`village_map.gd`·STORY `*_map.gd`)는 그대로 데이터로 두고, 타일 평면 MultiMesh 대신 **지역당 heightmap 메시 1개**(`terrain_builder.gd` 에 `build_heightmap()` 경로 추가) + 트라이플레이너 셰이더 `terrain_triplanar.gdshader`(잔디·흙·돌 3타일 + 노이즈 블렌드, 타일은 103장 `tilegen`). 기존 `height` 값(산 +2.5·강 -1.0)을 그대로 읽는다. 충돌 바닥도 같은 메시에서 생성해 "평평한 충돌 바닥" 한계를 없앤다.
+- 애니: 103장 Mixamo 리타겟 뒤 `AnimationTree`(101-3). 그 전엔 캡슐·정지 GLB 그대로.
+- Mobile 프로파일: 위 표의 Mobile 열 + 외곽선 유지 + 인스턴스 600 + LUT 유지. 프로파일 분기는 66-1 의 세 줄과 `environment_profile.gd` 로만.
+
+## 102-6. 현재 에셋 판정 (§6.0-1 한 스타일·105장 Q3 기준)
+
+| 폴더 | 내용 | 판정 | 이유·조건 |
+|---|---|---|---|
+| `assets/characters/` character-a~d (Kenney Blocky) | 플레이어·NPC·산적 | **교체 대기(보류)** | 각진 블록 얼굴이 셀 램프와 안 맞음(66-2). 대체 GLB 확정 전까지 지우지 않는다(마이그레이션 규칙) |
+| `assets/characters_vroid/` AvatarSample_A | 파이프라인 검증용 | **보류 → Q3** | 하이폴(29542) 애니 비율. 저폴리 툰으로 가면 컷신·초상만, VRoid 계열로 가면 기준 캐릭터. 둘 다는 안 된다 |
+| `assets/buildings/` (Fantasy Town 모듈) | 마을집·기둥 | **남김** | 66-2 결론대로 셰이더+팔레트 스냅+painterly 톤으로 충분. `colormap.png` 를 팔레트 24색으로 스냅 |
+| `assets/vegetation/`·`rocks/` (Nature Kit) | 나무·바위 | **교체(Quaternius Stylized Nature)** | 뭉게 캐노피가 목표 톤에 맞음. 사람이 itch.io 에서 받아 줘야 함. 그 전엔 팔레트 스냅만 |
+| `assets/dungeon/` (Modular Cave) | 방·복도·문 | **남김** | 굴혈 mood 팔레트 3종 스냅 |
+| `assets/shrine/` altar-stone | 옛 사당 | **남김** | |
+| `assets/_candidates_66-2/kaykit_medieval_hex/` | 후보 4종 | **뺄 것(불채택 확정)** | 씬에 안 물림. 삭제는 105장 Q 로 사용자 확인 뒤 |
+| `assets/environment/` env_*.tres | 환경 | **남김·102-2 로 재설정** | |
+
+## 102-7. "허접해 보이는" 10가지 — 이 트랙 해당 여부
+
+| 원인 | 해당 | 처방(장) |
+|---|---|---|
+| 에셋 스타일 혼재 | **해당**(Kenney 블록 + VRoid 하이폴 + 단색 캡슐) | 102-6·103 |
+| 후처리 없음 | 부분(Glow·Fog 있음, Adjustments·LUT 없음) | 102-2 |
+| 그림자 계단 | 부분(PC soft 3, Mobile 0) | 102-4 blob |
+| 바닥 한 색 | **해당**(타일 색 평면) | 102-5 트라이플레이너 |
+| 하늘·안개 불일치 | 부분(fog 색 ≠ horizon) | 102-2 |
+| 스케일 뒤죽박죽 | 부분(마을집 모듈 실측 조립 뒤 개선, 캐릭터 1.4×/1.25× 배율 임의) | 102-1 fit_height |
+| 애니 끊김 | **해당**(애니 없음) | 101-3·103-4 |
+| 타격 반응 없음 | **해당**(hitstop 1개) | 101-3 |
+| UI 폰트·패널 불일치 | 부분(Label 나열, 9-slice 없음) | 폰트 1+숫자 1, 9-slice 패널 1종 `saga_core/ui/` |
+| 카메라 클리핑 | 부분(SpringArm 있음, 근접 페이드 없음) | `camera_rig.gd` 근접 페이드 1.5m |
+
+---
+
+# 103. 에셋 창조 파이프라인 (2026-09-16 신설 — `../SAGA-DESIGN.md` §7 를 이 프로젝트가 받는 방식)
+
+## 103-1. 받는 자리
+
+```text
+assets/generated/
+├── palettes/      <name>.json          24색 hex 배열 + 역할(base8·light8·dark8). 판·바이옴별
+├── tiles/         <biome>_<kind>_512.png (+ _n 노멀, _r 러프)   트라이플레이너용
+├── props/         <kind>_s<seed>_<nn>.glb                      procgen 바위·나무·울타리·비석
+├── variants/      <원본이름>__<palette>.glb                     palette.py 스냅 결과
+├── kitbash/       <조합표이름>_<nn>.glb                          부품 조합 캐릭터·건물
+├── lut/           lut_<판>.png                                  102-2 색보정
+└── sfx/           hit_01~03.ogg · pick_01~03.ogg · ui_01~03.ogg
+```
+
+- 원본 팩(`assets/characters/…` 등)과 섞지 않는다. 생성물은 씨앗으로 재생성 가능해야 한다(파일명에 `s<seed>`).
+- 스크립트는 저장소 루트 `tools/asset-forge/`(SAGA-DESIGN §7.2 — palette.py·kitbash.py·procgen.py·tilegen.py·spritegen.py·sfxgen.py). Python 3.14 + Pillow + numpy + trimesh 가 이 PC 에 있음이 확인됐다(Blender 없음). 스크립트는 다섯 판·두 트랙이 같이 쓰되 **출력만** 각 프로젝트로 간다(코드 공유 금지 원칙은 게임 코드 얘기, 빌드 도구는 예외 — 105장 Q 로 확인).
+
+## 103-2. `.import` 규칙
+
+- 텍스처: VRAM Compressed + 밉맵(ASSET_GUIDE 2026-09-11⑨ 와 같음), 팔레트 스냅 PNG 도 동일. LUT 는 **압축 끔·밉맵 끔**(색보정 정확도).
+- GLB: 기본 임포터, `root_type Node3D`, 애니 없는 소품은 `meshes/generate_lods false`(저폴리라 불필요). `.import` 파일은 첫 헤드리스 임포트 뒤 함께 커밋한다(기존 관례). 임포트 뒤 `git diff -- project.godot '*.import'` 잡음 확인은 폴더 CLAUDE.md 그대로.
+- 팔레트 JSON 은 Godot 이 임포트하지 않는 순수 데이터(`.json` 그대로 `FileAccess` 로 읽거나 빌드 시에만 씀).
+
+## 103-3. 변형 배가 대상 (지금 있는 것으로 곧바로 할 수 있는 것)
+
+| 원본 | 팔레트 | 결과 | 쓰는 곳 |
+|---|---|---|---|
+| Nature Kit 나무 3·바위 2 | GO 마을/포구/폐허 3 + FOREST 바이옴 5(green·meadow·dark·mushroom·rocky) | 5×8 = 40 변형 | `vegetation_builder`·`forest_biome_scatter` 가 바이옴별 변형을 고른다 |
+| Fantasy Town 모듈 4(벽·판자·지붕·기둥) | 마을·폐허·**시대 퓨전(녹슨 금속·홀로그램 잔해)** 3 | 12 변형 | `landmarks_builder`·`forest_house`·STORY `story_town` |
+| Modular Cave | 굴혈 mood 3(흙·석회·용암) | 3 세트 | DUNGEON `TestRoom` 방 종류별 |
+| character-a~d | NPC 옷 팔레트 8 | 32 변형 | `npc_builder`·`villager_builder`·REALM 무장 실루엣 — **교체 전 임시**, 교체되면 새 GLB 에 같은 스크립트 |
+| procgen 바위(노이즈 구체)·비석·울타리·돌담 | 판별 | 씨앗당 무한 | 포구·폐허 빈 칸(101-1 E) 채우기 |
+| tilegen 잔디·흙·돌·모래·눈·용암 | 판별 24색 | 6×판 | 102-5 트라이플레이너 |
+| 무기 kitbash(자루 3 × 날 4 × 장식 3) | 등급 4 색 | 36 | 101-3 G 무기 메시 스왑 |
+
+## 103-4. VRoid·Mixamo 활용 조건
+
+- **Mixamo**: 인간형 GLB(character-a~d 는 리그가 Kenney 자체 — 리타겟 필요, VRoid 는 VRM 휴머노이드) 를 FBX 로 올려 자동 리깅 + 애니(idle·walk·run·attack·hit·dodge·death) 받기 → Godot `BoneMap`(`SkeletonProfileHumanoid`) 리타겟. 라이선스는 게임 사용 허용. 사람이 Adobe 계정으로 다운로드해야 한다(자동화 불가).
+- **VRoid**: 105장 Q3 결과에 따라 (a) 기준 캐릭터로 쓰면 인물 105 조형은 사람 몫이라 현실적으로 **주역 5~10명만** VRoid, 나머지는 kitbash 저폴리 (b) 저폴리 툰으로 가면 VRoid 는 초상·컷신만. 어느 쪽이든 `cel_toon` 으로만 렌더(MToon 원본 셰이더는 안 씀).
+- 66-1/66-2 와의 관계: 66-1 결정(Godot 유지)·66-2 결정(카툰 방향·원작 리소스 금지·Kenney 순차 교체)은 그대로. 이 장은 "무엇으로 교체하나" 의 실행 계획이다. AI 생성(SAGA-DESIGN §7.4)은 소품·건물 텍스처에만, 원작 IP 프롬프트 금지, 결과물도 팔레트 스냅.
+
+## 103-5. 판정 절차(새 에셋 하나를 들일 때)
+
+1. 라이선스(CC0/CC-BY/VRM 허용) 확인 → ASSET_GUIDE 표에 한 줄.
+2. 헤드리스 임포트 오류 0.
+3. `fit_height` 스케일 → 128px 실루엣 스냅샷(사람 GUI 확인은 몰아서).
+4. 팔레트 스냅 → `assets/generated/variants/`.
+5. 씬 1곳에 물리고 헤드리스 3회 md5 회귀.
+
+---
+
+# 104. 안정화·검증 (2026-09-16 신설 — Phase 0)
+
+- **절차**: Godot exe 확보·헤드리스 임포트·실행·`.import`/`project.godot` 잡음 되돌림·GUI 확인·PID 종료는 폴더 `CLAUDE.md` 가 정본이다. 여기서 반복하지 않는다.
+- **회귀 스크립트(신설, 저장소 `tools/godot_regress.sh`)**: 다섯 대표 씬(`TestVillage`·`TestRoom`·`TestVillageForest`·`SinyaField`·`TestCity`) 을 `--headless --quit-after 5 --verbose` 로 각 3회 돌려 로그 md5 동일 + error/warn 0 을 한 줄로 출력. 세션 끝에 이것과 `git diff -- project.godot '*.import'` 빈 것을 확인한 뒤 HISTORY 항목을 쓴다.
+- **세이브 버전**: 다섯 `*_save_state.gd` 전부 `version` 필드와 마이그레이션 함수가 있는지 점검(PLAN 28장·97단계). 없는 판은 Phase 0 에서 추가. 헤드리스 검증 항목: 구버전 파일 로드 → 기본값 채움 → 재저장 왕복.
+- **문서 크기 상한**: `PLAN.md` ≤100KB · `docs/PROJECT_STATE.md` ≤15KB · `CLAUDE.md` ≤6KB. 루트 `tools/precheck.sh` 가 잰다. `docs/HISTORY.md` 는 상한 없음(grep 전용).
+- **실기 확인 대기**: 목록은 `docs/PROJECT_STATE.md` "실기 확인 대기" 가 정본(항목명만). 사용자가 몰아서 보고, 결과는 HISTORY 날짜 항목으로. 확인 전엔 같은 판에 새 큰 시스템을 얹지 않는다(SAGA-DESIGN §8-1).
+- **Phase 0 작업 목록**(순서대로, 각 1세션 이하):
+  1. `tools/godot_regress.sh` 작성·5씬 3회 통과.
+  2. 세이브 버전 필드 다섯 판 점검·보강.
+  3. `.import` 잡음 자동 되돌림을 regress 스크립트 끝에(`git checkout -- '*.import' project.godot` 는 **의도한 변경이 없을 때만**, 스크립트가 먼저 diff 를 보여 주고 묻는다).
+  4. `ChoicePrompt` 류 클로저 패턴 전수 검사(09-16 크래시와 같은 모양: 로컬 변수 캡처 후 `queue_free`).
+  5. `density_report()`(101-3) 로 GO 3지역·FOREST 빈 격자 비율 측정 → PROJECT_STATE 에 수치 1줄.
+  6. 이후 101장 이식 ① 로 넘어간다.
+
+---
+
+# 105. 열린 질문 (사용자 결정 — 답이 나오면 해당 장에 내려보내고 여기서 지운다)
+
+- **Q1 완성판 트랙**(SAGA-DESIGN §10-Q1): godot·unity 병행은 유지하되 그래픽·에셋 투자를 먼저 집중할 트랙을 고를 것인가. 이 트랙 입장: 카툰/셀 방향은 Godot 쪽이 이미 셰이더·파이프라인이 있다.
+- **Q3 캐릭터 기본 스타일**: 66-2 "원신류"(VRoid 계열 애니 비율) 와 SAGA-DESIGN §6.0-1 "저폴리 툰" 이 캐릭터 조형에서 갈린다. (a) VRoid 주역 5~10 + 저폴리 나머지 (b) 전부 저폴리 툰(VRoid 는 초상만). **둘 다는 안 된다** — 102-6·103-4 가 이 답을 기다린다.
+- **Q4 생성 에셋 커밋**: `assets/generated/` 산출물을 커밋하나, 스크립트+씨앗만 커밋하고 빌드 단계에서 만들나.
+- **Q-a 다섯 판 동시 진행**: 2026-08-31 방침("하나만 먼저 완성")과 달리 지금은 다섯 판이 다 진행 중이다. 101장 이식을 다섯 판 동시(공용 UI 먼저)로 갈지, GO 한 판에서 표준 8 을 다 채운 뒤 넷으로 갈지.
+- **Q-b SDFGI vs LightmapGI**: PC 프로파일에서 SDFGI 를 끄고 LightmapGI 베이크로 두 프로파일 톤을 맞출 것인가(102-2 제안), PC 만 SDFGI 유지할 것인가.
+- **Q-c 후보 폴더 삭제**: `assets/_candidates_66-2/kaykit_medieval_hex/`(불채택) 를 지울 것인가.
+- **Q-d 사람 몫 셋**: Quaternius Stylized Nature 다운로드, Mixamo 애니 다운로드, VRoid 조형(주역 몇 명) — 언제 해 줄 수 있는가. 이게 없으면 102·103 은 팔레트 스냅·procgen 까지만 간다.
+- **Q-e 빌드 도구 공유**: `tools/asset-forge/` 를 다섯 판·두 트랙이 함께 써도 되는가("코드 공유 없음" 원칙은 게임 코드에 한정한다고 해석 — 확인 필요).
 
 ---
 
