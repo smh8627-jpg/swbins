@@ -117,24 +117,72 @@ namespace Saga.EditorTools
             }
         }
 
-        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — GO
-        /// `PlaytestHeadless.CheckSettingsPanel()`과 같은 결.</summary>
+        /// <summary>PLAN.md 104-1 ②(2026-09-16) — GO
+        /// `PlaytestHeadless.CheckSettingsPanel()`과 같은 결로 존재 확인만
+        /// 하던 걸 TogglePanel()·ChooseSfx() 실제 호출 + 라벨 텍스트
+        /// 확인으로 바꿨다(RealmCommandUi 사례 재발 방지 — 그쪽 클래스
+        /// 주석 참고).</summary>
         private static void CheckSettingsPanel()
         {
-            if (GameObject.Find("ForestSettingsPanel") == null)
+            var panel = Object.FindFirstObjectByType<ForestSettingsPanel>();
+            if (panel == null)
             {
-                Debug.LogError("[PlaytestForestHeadless] ForestSettingsPanel을 못 찾음");
+                Debug.LogError("[PlaytestForestHeadless] ForestSettingsPanel 컴포넌트를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var panelGoField = typeof(ForestSettingsPanel).GetField("_panel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var panelGo = panelGoField.GetValue(panel) as GameObject;
+            if (panelGo == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] ForestSettingsPanel._panel이 null — 씬 재로드 후 참조가 안 살아남음");
+                _hadError = true;
+                return;
+            }
+
+            var toggleMethod = typeof(ForestSettingsPanel).GetMethod("TogglePanel", BindingFlags.NonPublic | BindingFlags.Instance);
+            toggleMethod.Invoke(panel, null); // 열기 — 여기서 NRE가 나면 그대로 테스트 실패로 드러난다.
+            if (!panelGo.activeSelf)
+            {
+                Debug.LogError("[PlaytestForestHeadless] TogglePanel() 호출 후에도 설정 패널이 안 열림");
+                _hadError = true;
+                return;
+            }
+            toggleMethod.Invoke(panel, null); // 닫기
+            if (panelGo.activeSelf)
+            {
+                Debug.LogError("[PlaytestForestHeadless] TogglePanel() 두 번째 호출 후에도 설정 패널이 안 닫힘");
+                _hadError = true;
+                return;
+            }
+
+            var sfxValueLabelField = typeof(ForestSettingsPanel).GetField("_sfxValueLabel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var sfxValueLabel = sfxValueLabelField.GetValue(panel) as Text;
+            if (sfxValueLabel == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] ForestSettingsPanel._sfxValueLabel이 null");
                 _hadError = true;
                 return;
             }
 
             bool sfxBefore = ForestSettingsState.SfxOn;
-            ForestSettingsState.SfxOn = !sfxBefore;
+            var chooseSfxMethod = typeof(ForestSettingsPanel).GetMethod("ChooseSfx", BindingFlags.NonPublic | BindingFlags.Instance);
+            chooseSfxMethod.Invoke(panel, null); // 실제 버튼 핸들러 — 상태를 뒤집고 Refresh()까지 그대로 탄다.
+            string expectedText = ForestLocalization.T(ForestSettingsState.SfxOn ? "state.on" : "state.off");
+            if (ForestSettingsState.SfxOn == sfxBefore || sfxValueLabel.text != expectedText)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] ChooseSfx() 이후 라벨이 실제로 안 바뀜 text=\"{sfxValueLabel.text}\"(기대=\"{expectedText}\")");
+                _hadError = true;
+                return;
+            }
+            chooseSfxMethod.Invoke(panel, null); // 원상복귀
+
             bool vibBefore = ForestSettingsState.VibrationOn;
             ForestSettingsState.VibrationOn = !vibBefore;
-            if (ForestSettingsState.SfxOn == sfxBefore || ForestSettingsState.VibrationOn == vibBefore)
+            if (ForestSettingsState.VibrationOn == vibBefore)
             {
-                Debug.LogError("[PlaytestForestHeadless] 효과음/진동 토글이 안 바뀜");
+                Debug.LogError("[PlaytestForestHeadless] 진동 토글이 안 바뀜");
                 _hadError = true;
                 return;
             }

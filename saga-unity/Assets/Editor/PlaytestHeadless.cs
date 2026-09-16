@@ -154,27 +154,78 @@ namespace Saga.EditorTools
             }
         }
 
-        /// <summary>PLAN.md 67~69장 "접근성"(2026-09-14) — 패널 GameObject가
-        /// 실제로 지어졌는지, 효과음/진동/UI 크기/그래픽 품질 토글이
-        /// 상태를 바꾸고 CanvasScaler·QualitySettings에 실제로 반영되는지
-        /// 직접 확인한다(UI 버튼 클릭 시뮬레이션은 안 함 — 이 파일의 다른
-        /// 검사들과 같은 결로 정적 API를 직접 부른다).</summary>
+        /// <summary>PLAN.md 104-1 ②(2026-09-16) — 이전엔 GameObject.Find로
+        /// 패널 "존재"만 보고 GoSettingsState 등 정적 API만 불러 검증했다.
+        /// 그건 RealmCommandUi가 실제로는 [SerializeField] 누락으로 버튼을
+        /// 누르면 죽는데도 안 잡히던 것과 같은 구멍이다(2026-09-15 발견,
+        /// `PlaytestRealmSlice.CheckCommandUiPanelsWork()` 참고) — 정적
+        /// 상태만 바뀌어도 통과해 버려서 화면 라벨이 실제로 갱신되는지는
+        /// 한 번도 안 봤다. GoSettingsPanel._panel/_sfxValueLabel도 같은
+        /// 패턴(Build()를 에디터가 한 번만 부름)이라 이번 세션에
+        /// [SerializeField]로 승격했고, 여기서 TogglePanel()·ChooseSfx()를
+        /// 리플렉션으로 직접 불러 패널이 실제로 열리고 라벨이 실제로
+        /// 바뀌는지까지 본다.</summary>
         private static void CheckSettingsPanel()
         {
-            if (GameObject.Find("GoSettingsPanel") == null)
+            var panel = Object.FindFirstObjectByType<GoSettingsPanel>();
+            if (panel == null)
             {
-                Debug.LogError("[PlaytestHeadless] GoSettingsPanel을 못 찾음");
+                Debug.LogError("[PlaytestHeadless] GoSettingsPanel 컴포넌트를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var panelGoField = typeof(GoSettingsPanel).GetField("_panel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var panelGo = panelGoField.GetValue(panel) as GameObject;
+            if (panelGo == null)
+            {
+                Debug.LogError("[PlaytestHeadless] GoSettingsPanel._panel이 null — 씬 재로드 후 참조가 안 살아남음");
+                _hadError = true;
+                return;
+            }
+
+            var toggleMethod = typeof(GoSettingsPanel).GetMethod("TogglePanel", BindingFlags.NonPublic | BindingFlags.Instance);
+            toggleMethod.Invoke(panel, null); // 열기 — 여기서 NRE가 나면 그대로 테스트 실패로 드러난다.
+            if (!panelGo.activeSelf)
+            {
+                Debug.LogError("[PlaytestHeadless] TogglePanel() 호출 후에도 설정 패널이 안 열림");
+                _hadError = true;
+                return;
+            }
+            toggleMethod.Invoke(panel, null); // 닫기 — 다른 검사에 영향 안 주게.
+            if (panelGo.activeSelf)
+            {
+                Debug.LogError("[PlaytestHeadless] TogglePanel() 두 번째 호출 후에도 설정 패널이 안 닫힘");
+                _hadError = true;
+                return;
+            }
+
+            var sfxValueLabelField = typeof(GoSettingsPanel).GetField("_sfxValueLabel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var sfxValueLabel = sfxValueLabelField.GetValue(panel) as Text;
+            if (sfxValueLabel == null)
+            {
+                Debug.LogError("[PlaytestHeadless] GoSettingsPanel._sfxValueLabel이 null");
                 _hadError = true;
                 return;
             }
 
             bool sfxBefore = GoSettingsState.SfxOn;
-            GoSettingsState.SfxOn = !sfxBefore;
+            var chooseSfxMethod = typeof(GoSettingsPanel).GetMethod("ChooseSfx", BindingFlags.NonPublic | BindingFlags.Instance);
+            chooseSfxMethod.Invoke(panel, null); // 실제 버튼 핸들러 — 상태를 뒤집고 Refresh()까지 그대로 탄다.
+            string expectedText = GoLocalization.T(GoSettingsState.SfxOn ? "state.on" : "state.off");
+            if (GoSettingsState.SfxOn == sfxBefore || sfxValueLabel.text != expectedText)
+            {
+                Debug.LogError($"[PlaytestHeadless] ChooseSfx() 이후 라벨이 실제로 안 바뀜 text=\"{sfxValueLabel.text}\"(기대=\"{expectedText}\")");
+                _hadError = true;
+                return;
+            }
+            chooseSfxMethod.Invoke(panel, null); // 원상복귀
+
             bool vibBefore = GoSettingsState.VibrationOn;
             GoSettingsState.VibrationOn = !vibBefore;
-            if (GoSettingsState.SfxOn == sfxBefore || GoSettingsState.VibrationOn == vibBefore)
+            if (GoSettingsState.VibrationOn == vibBefore)
             {
-                Debug.LogError("[PlaytestHeadless] 효과음/진동 토글이 안 바뀜");
+                Debug.LogError("[PlaytestHeadless] 진동 토글이 안 바뀜");
                 _hadError = true;
                 return;
             }

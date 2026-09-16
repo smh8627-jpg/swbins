@@ -793,19 +793,59 @@ namespace Saga.EditorTools
         /// 같은 판단, docs/PROJECT_STATE.md 참고).</summary>
         private static bool CheckSettingsPanel()
         {
-            if (GameObject.Find("StorySettingsPanel") == null)
+            var panel = Object.FindFirstObjectByType<StorySettingsPanel>();
+            if (panel == null)
             {
-                Debug.LogError("[PlaytestStorySlice] StorySettingsPanel을 못 찾음");
+                Debug.LogError("[PlaytestStorySlice] StorySettingsPanel 컴포넌트를 못 찾음");
+                return false;
+            }
+
+            var panelGoField = typeof(StorySettingsPanel).GetField("_panel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var panelGo = panelGoField.GetValue(panel) as GameObject;
+            if (panelGo == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StorySettingsPanel._panel이 null — 씬 재로드 후 참조가 안 살아남음");
+                return false;
+            }
+
+            var toggleMethod = typeof(StorySettingsPanel).GetMethod("TogglePanel", BindingFlags.NonPublic | BindingFlags.Instance);
+            toggleMethod.Invoke(panel, null); // 열기 — 여기서 NRE가 나면 그대로 테스트 실패로 드러난다.
+            if (!panelGo.activeSelf)
+            {
+                Debug.LogError("[PlaytestStorySlice] TogglePanel() 호출 후에도 설정 패널이 안 열림");
+                return false;
+            }
+            toggleMethod.Invoke(panel, null); // 닫기
+            if (panelGo.activeSelf)
+            {
+                Debug.LogError("[PlaytestStorySlice] TogglePanel() 두 번째 호출 후에도 설정 패널이 안 닫힘");
+                return false;
+            }
+
+            var sfxValueLabelField = typeof(StorySettingsPanel).GetField("_sfxValueLabel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var sfxValueLabel = sfxValueLabelField.GetValue(panel) as Text;
+            if (sfxValueLabel == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StorySettingsPanel._sfxValueLabel이 null");
                 return false;
             }
 
             bool sfxBefore = StorySettingsState.SfxOn;
-            StorySettingsState.SfxOn = !sfxBefore;
+            var chooseSfxMethod = typeof(StorySettingsPanel).GetMethod("ChooseSfx", BindingFlags.NonPublic | BindingFlags.Instance);
+            chooseSfxMethod.Invoke(panel, null); // 실제 버튼 핸들러 — 상태를 뒤집고 Refresh()까지 그대로 탄다.
+            string expectedText = StoryLocalization.T(StorySettingsState.SfxOn ? "state.on" : "state.off");
+            if (StorySettingsState.SfxOn == sfxBefore || sfxValueLabel.text != expectedText)
+            {
+                Debug.LogError($"[PlaytestStorySlice] ChooseSfx() 이후 라벨이 실제로 안 바뀜 text=\"{sfxValueLabel.text}\"(기대=\"{expectedText}\")");
+                return false;
+            }
+            chooseSfxMethod.Invoke(panel, null); // 원상복귀
+
             bool vibBefore = StorySettingsState.VibrationOn;
             StorySettingsState.VibrationOn = !vibBefore;
-            if (StorySettingsState.SfxOn == sfxBefore || StorySettingsState.VibrationOn == vibBefore)
+            if (StorySettingsState.VibrationOn == vibBefore)
             {
-                Debug.LogError("[PlaytestStorySlice] 효과음/진동 토글이 안 바뀜");
+                Debug.LogError("[PlaytestStorySlice] 진동 토글이 안 바뀜");
                 return false;
             }
 

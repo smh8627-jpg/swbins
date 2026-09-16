@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-16 (PLAN 104-1 Phase 0 안정화 ①·③ 착수).
+마지막 갱신: 2026-09-16 (PLAN 104-1 Phase 0 안정화 ①·②·③ — 이 PC 에 Unity 없어 전부 컴파일 미검증).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -18,14 +18,19 @@
 
 ## 현재 작업
 
-- PLAN 104-1 Phase 0 진행 중. 이번 세션: ①`tools/unity-batch.sh` 신설(배치 실행→4파일 원복→git status 한 줄) · ③`[SerializeField]` 누락 감사 완료 — `Assets/Games/**/UI/*.cs` 전수 grep, 에디터 스크립트가 `Build()`를 한 번만 부르고 런타임 재호출이 없는 컴포넌트 5개(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi)의 참조 필드를 `RealmCommandUi`·`LocalizedButtonLabel` 과 같은 결로 승격. DebugHud·Minimap·OverworldMapUI·VirtualJoystick 은 이미 Awake() 런타임 재탐색이라 대상 아님.
-- **컴파일 미검증**: 이 PC 에 Unity 에디터 실행 파일을 못 찾음(Unity Hub 는 있으나 `Editor/<버전>` 없음, CLAUDE.md 절차대로 먼저 확인함) — 배치 모드 컴파일 확인은 다음에 에디터 있는 세션이나 사용자가 GUI 로 열 때 필요.
+- PLAN 104-1 Phase 0 진행 중, 이 PC 에 Unity 에디터가 없어(Unity Hub 만 설치, `Editor/<버전>` 폴더 없음, CLAUDE.md 절차대로 먼저 확인함) 전부 소스 편집만 하고 컴파일·실행은 못 했다.
+- **①** `tools/unity-batch.sh` 신설 — 배치 실행→4파일 원복→`git status` 한 줄.
+- **③** `[SerializeField]` 누락 감사 완료 — `Assets/Games/**/UI/*.cs` 전수 grep. 에디터 스크립트가 `Build()`를 한 번만 부르고 런타임 재호출이 없는 컴포넌트 5개(DungeonSettingsPanel·GoSettingsPanel·ForestSettingsPanel·StorySettingsPanel·StoryJobChoiceUi)의 참조 필드를 `RealmCommandUi`·`LocalizedButtonLabel` 과 같은 결로 승격. DebugHud·Minimap·OverworldMapUI·VirtualJoystick 은 이미 Awake() 런타임 재탐색이라 대상 아님(확인만 함).
+- **②** `GameObject.Find` "존재 확인만" Playtest 교체 — `Assets/Editor/Playtest*.cs` 의 `GameObject.Find(` 46건을 전수 분류: 약 40건은 씬 마커·NPC 를 찾아 실제로 이동·전투·상태 확인에 쓰는 정상 패턴(대상 아님). 나머지 4건(GO/DUNGEON/FOREST/STORY 의 `CheckSettingsPanel()`)이 정확히 문제 패턴이었다 — 패널 GameObject "존재"만 보고 그 뒤로는 `GoSettingsState` 등 정적 API 만 검증해, `_sfxValueLabel` 등이 null이어도(=[SerializeField] 없던 이전 상태) 통과해 버렸다(REALM `RealmCommandUi` 가 이미 이 구멍으로 죽었었다). 네 파일 모두 `Object.FindFirstObjectByType<XxxSettingsPanel>()` 로 컴포넌트를 얻고, 리플렉션으로 `TogglePanel()`(패널이 실제로 열리고 닫히는지) · `ChooseSfx()`(상태가 바뀌고 **화면 Text.text 도 실제로** 바뀌는지) 를 직접 호출하도록 고쳤다(REALM `CheckCommandUiPanelsWork()` 와 같은 결).
+- REALM `Btn_설정`(103행)은 그대로 둠 — 바로 뒤에 이미 `CheckCommandUiPanelsWork()`(진짜 검증)가 붙어 있어 대상 아님을 확인.
+- `StoryJobChoiceUi`(전직 팝업)는 애초에 어떤 Playtest 도 안 건드리고 있다(존재 확인조차 없음) — ②의 "교체 대상"은 아니지만 커버리지 공백으로 남겨둠. 다음 우선순위 참고.
+- **테스트 상태 표(아래)는 전부 이번 세션 편집 이전 결과다.** 이 세션에서 고친 5개 SettingsPanel + 4개 Playtest 파일은 재검증 전.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **컴파일 확인** — 위 5개 파일 `[SerializeField]` 추가 후 배치 모드 컴파일 미검증. Unity 에디터 있는 세션에서 `bash tools/unity-batch.sh -- -batchmode -nographics -quit -projectPath . -logFile <경로>` 로 확인.
-2. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(위 5개 패널의 씬 재로드 후 동작 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
-3. **PLAN 104장 Phase 0 나머지** — `GameObject.Find` 존재 확인만 하는 Playtest 를 "실제 호출" 검증으로 교체(대상 grep: `GameObject.Find(` in `Assets/Editor/Playtest*.cs`, 104-1 ②), `Assets/Art/*_candidates` 정리 판정(102-4, 105장 결정 뒤).
+1. **컴파일·재검증** — 이번 세션에서 고친 9개 파일(SettingsPanel 5 + Playtest 4) 전부 미검증. Unity 에디터 있는 세션에서 `bash tools/unity-batch.sh -- -batchmode -nographics -quit -projectPath . -logFile <경로>` 로 컴파일 확인 → `BuildTestXxxScene`(4종)로 씬 재생성(승격된 [SerializeField] 가 실제로 직렬화되게) → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice` 3연속 재확인. 씬을 안 다시 지으면 예전 씬 파일엔 새 [SerializeField] 값이 없어 테스트가 무의미하다.
+2. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(다섯 SettingsPanel 의 씬 재로드 후 동작 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
+3. **PLAN 104장 Phase 0 나머지** — `[SerializeField]` 누락 감사는 UI 폴더만 봤다 — `Assets/Games/**/World/*.cs`·`Player/*.cs` 등 다른 폴더도 같은 함정이 있는지는 미확인. `Assets/Art/*_candidates` 정리 판정(102-4, 105장 결정 뒤).
 4. **PLAN 101장 재미 표준 A·B 첫 이식** — 목표판 3줄 + 세션 마무리 카드를 GO 에 먼저(웹 사가고 PLAN §5 ④ 검증 결과 기다리지 않고 UI 뼈대만).
 5. **REALM 51장 10차** — 시상→건업(`chaisang-jianye`). `AttackChainStep(출진, 함락, 다음)` 인자 순서 확인. wan 은 목표로 쓰지 않는다.
 6. **Localization 잔여** — FOREST 데이터 콘텐츠, REALM 문답 36·서고·전투 서술, GO HiddenTreasure, DUNGEON 행상/구출. en 사람 검수.

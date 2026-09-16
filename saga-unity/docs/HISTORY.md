@@ -6028,3 +6028,54 @@ REALM 은 별도 설정 패널이 없다(`RealmCommandUi` 안에 이미 있고 �
 **미착수(다음 세션)**: 104-1 ②(`GameObject.Find` 존재 확인 → 실제 호출 검증 교체, 대상
 `Assets/Editor/Playtest*.cs`), 컴파일 배치 확인(위 5개 파일 문법 검증), 실기 GUI 확인.
 PROJECT_STATE.md 에 다음 우선순위로 반영해 둠.
+
+## PLAN 104-1 Phase 0 ② 착수 — Playtest "존재 확인만" 교체 (2026-09-16, 같은 날 "이어 해줘")
+
+104-1 목록의 마지막 미착수 항목. `Assets/Editor/Playtest*.cs` 전체에서 `GameObject.Find(`
+46건을 grep 해 하나씩 문맥을 봤다.
+
+**약 40건은 이미 정상** — 씬 안의 월드 마커·NPC·문(`Ambush_south`·`Town2`·`Crossroads`·
+`Creature_{kind}`·`Npc_Scout`·`Marker_chenliu` 등)를 찾아 텔레포트·전투·수확 같은 실제
+동작을 뒤이어 확인하는 데 쓴다 — "찾았다"가 아니라 "찾은 걸로 뭔가 시켜서 결과를 본다"
+구조라 교체 대상이 아니다.
+
+**진짜 문제였던 4건 — GO/DUNGEON/FOREST/STORY 의 `CheckSettingsPanel()`.** 패턴이:
+```
+if (GameObject.Find("XxxSettingsPanel") == null) { 에러; return; }
+XxxSettingsState.SfxOn = !전; // 이후로는 전부 정적 API/전역 컴포넌트만 확인
+```
+`GoSettingsState.SfxOn`(정적 bool), `QualitySettings`, `CanvasScaler`(FindFirstObjectByType) 는
+전부 패널 컴포넌트의 private 필드를 안 거친다 — 그래서 이전 세션 감사(③)에서 발견한
+[SerializeField] 누락 버그(패널이 씬 재로드 후 `_sfxValueLabel` 등이 null)가 있어도 이 테스트는
+계속 통과했을 것이다. `RealmCommandUi` 가 정확히 이 구멍으로(존재만 보고 실제 메서드를
+한 번도 안 불러서) 여러 세션 동안 크래시 상태로 숨어 있었던 것과 같은 원인.
+
+**고친 방식(REALM `CheckCommandUiPanelsWork()` 그대로 재사용)** — 4개 파일(`PlaytestHeadless.cs`
+GO, `PlaytestDungeonHeadless.cs`, `PlaytestForestHeadless.cs`, `PlaytestStorySlice.cs`)의
+`CheckSettingsPanel()`을:
+1. `Object.FindFirstObjectByType<XxxSettingsPanel>()`로 컴포넌트 자체를 얻는다(GameObject 이름이
+   아니라 타입으로 — 이름이 바뀌어도 안 깨짐).
+2. 리플렉션으로 `_panel` 필드를 읽어 null 이면 "씬 재로드 후 참조가 안 살아남음"이라고 바로 실패.
+3. `TogglePanel()`을 리플렉션으로 직접 호출 — 열림/닫힘을 `_panel.activeSelf`로 확인. 필드가 진짜
+   null 이면 여기서 NRE 가 그대로 터져서 테스트가 실패로 드러난다(이전엔 이 경로 자체를 안 탐).
+4. `_sfxValueLabel` 필드를 읽어 `ChooseSfx()`를 호출한 뒤 **`.text`가 실제로 바뀌는지** 확인(이전
+   테스트가 놓치던 지점 — 정적 상태만 보고 화면 텍스트는 한 번도 안 봄).
+5. 이후 UI 크기/그래픽 품질/언어 전환 기존 검증은 그대로 유지.
+
+REALM 의 `Btn_설정`(`GameObject.Find` 존재 확인, 103행)은 안 건드렸다 — REALM 엔 독립
+SettingsPanel 이 없고 `RealmCommandUi` 안에 얹혀 있는데, 그 존재 확인 바로 뒤에
+`CheckCommandUiPanelsWork()`(2026-09-15 에 이미 이 세션과 같은 방식으로 고쳐진 진짜 검증)가
+붙어 있어 대상이 아님을 확인만 했다.
+
+`StoryJobChoiceUi`(전직 팝업)는 애초에 어떤 Playtest 도 그 존재조차 확인 안 하고 있다 —
+이건 "존재 확인만 하던 걸 교체"가 아니라 "테스트가 아예 없음"이라 이번 항목 범위 밖으로 남겨둠
+(docs/PROJECT_STATE.md 다음 작업 참고).
+
+**전부 컴파일 미검증** — 이 PC 에 Unity 에디터가 없다(Hub 만 설치돼 있고 `Editor/<버전>` 폴더가
+없음, 지난 세션과 다른 상태 — 에디터가 삭제됐거나 다른 PC 로 세션이 옮겨왔을 수 있다). 다음
+세션에서 에디터가 있으면: ① 배치 컴파일 확인 ② `BuildTestXxxScene`(GO/DUNGEON/FOREST/STORY)
+4종을 다시 돌려 씬을 재생성 — 지금 디스크의 .unity 파일들은 이번 세션의 [SerializeField]
+승격 이전에 저장된 것이라 아직 새 필드가 안 구워져 있다. 씬을 새로 안 지으면 Playtest 가
+통과하든 실패하든 이번 수정이 실제로 뭘 검증하는지 의미가 없다 ③ 그 다음에야
+`PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`
+3연속을 재확인한다.
