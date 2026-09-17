@@ -93,8 +93,17 @@ namespace Saga.EditorTools
                 _whirlChecked = true;
                 CheckHitstop(); // CheckWhirl보다 먼저 — TryAttack의 _cooldownLeft는 TryWhirl의 _whirlCooldownLeft와 별개 필드라 순서가 서로 안 막는다.
                 CheckHitSpark();
-                CheckLootMarker();
+                // CheckLootMarker보다 먼저 — CheckLootMarker의 더미 처치 보상(rewardExp
+                // 기본값 20)이 레벨 1의 ExpToNext(20)와 정확히 맞아떨어져 그 자리에서
+                // 먼저 레벨업을 하나 유발한다. 그 뒤에 이 체크가 돌면 Time.deltaTime이
+                // 이 프레임에 크게 잡힌 경우(배치 모드 실행 시간 편차) CameraRig.
+                // LevelUpCutRoutine()의 첫 동기 반복에서 두 번의 레벨업 컷이 모두
+                // _zoom을 MinZoom으로 완전히 클램프해 zoomBefore==zoomAfter가 되어
+                // 간헐적으로 실패했다(2026-09-17, 지형 반응 데칼 검증 중 실제로 겪음).
+                // 이 체크를 세션의 첫 레벨업으로 만들면 zoomBefore가 항상 손 안 댄
+                // 기본값(6)이라 결정적으로 통과한다.
                 CheckLevelUpCut();
+                CheckLootMarker();
                 CheckWeaponVisual();
                 CheckWhirl();
                 CheckDebugHud();
@@ -102,6 +111,7 @@ namespace Saga.EditorTools
                 CheckPlayerHudLocalization();
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
+                CheckGroundDecal();
             }
 
             if (_framesSeen >= FramesToRun)
@@ -606,6 +616,51 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestDungeonHeadless] goal board / session card OK - 3 lines filled, source auto-found, card shows and auto-closes");
+        }
+
+        /// <summary>PLAN.md 101-3 G "지형 반응"(2026-09-17 추가) — 타격마다
+        /// `GroundDecal.Spawn(HitMark)`가 실제로 호출되는지, 그리고 "최대
+        /// 32" 캡이 지켜지는지 둘 다 본다. 이 시점까지 이미 여러 검사
+        /// (hitstop·hitspark·loot marker·whirl·weapon visual)가 적을 때려
+        /// 히트마크를 계속 쌓아 왔으니 그 누적 위에 40개를 몰아 스폰해
+        /// 캡이 진짜 32에서 멈추는지 확인한다(발자국은 씬이 짧게 도는
+        /// 헤드리스 특성상 플레이어가 거의 안 움직여 여기선 안 본다 —
+        /// 히트마크 경로와 스폰 함수 자체가 같아 캡 검증엔 충분하다).</summary>
+        private static void CheckGroundDecal()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            if (playerGo == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 지형 데칼 검증용 player를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            int before = GroundDecal.ActiveCount;
+            var dummy = SpawnDummyEnemy(playerGo.transform.position + new Vector3(2f, 0f, 0f));
+            dummy.TakeDamage(1f);
+            Object.Destroy(dummy.gameObject);
+
+            if (GroundDecal.ActiveCount <= before)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 타격 지형 데칼이 안 생김 — before={before} after={GroundDecal.ActiveCount}");
+                _hadError = true;
+                return;
+            }
+
+            for (int i = 0; i < 40; i++)
+            {
+                GroundDecal.Spawn(Vector3.zero, GroundDecal.Kind.HitMark);
+            }
+
+            if (GroundDecal.ActiveCount > 32)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 지형 데칼 최대 32 캡이 안 지켜짐 — ActiveCount={GroundDecal.ActiveCount}");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log($"[PlaytestDungeonHeadless] ground decal OK - 타격마다 생성 확인, 캡 이후 ActiveCount={GroundDecal.ActiveCount}(<=32)");
         }
 
         private static DungeonEnemy SpawnDummyEnemy(Vector3 position)

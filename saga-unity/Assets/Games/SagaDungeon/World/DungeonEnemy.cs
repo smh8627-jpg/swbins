@@ -270,6 +270,7 @@ namespace Saga.Dungeon.World
             Vector3 popupPos = transform.position + Vector3.up * (2f * visualScale);
             DamagePopup.Spawn(popupPos, amount, heavy);
             HitSpark.Spawn(popupPos, heavy);
+            GroundDecal.Spawn(transform.position, GroundDecal.Kind.HitMark); // PLAN.md 101-3 G "지형 반응".
 
             if (_visualGo != null)
             {

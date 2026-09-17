@@ -6860,3 +6860,80 @@ EquipIfBetter("wp_glaive")` 호출 전후로 칼날 `localScale.y`가 커지는�
 갱신 반영)`, LogError 0건. 101-3은 이제 **G 지형 반응(데칼)** 하나만
 남았다 — 이것도 사용자와 방향(URP Decal Renderer Feature 배선 범위) 먼저
 확인하고 시작할 것.
+
+## PLAN 101-3 G 지형 반응 — DUNGEON 데칼 구현, 101-3 표 완결 (2026-09-17, 같은 세션 "G 지형 반응 데칼도 이어해줘")
+
+101-3 표의 마지막 항목. URP Decal Projector로 발자국·타격 흔적을 남긴다 —
+웹판은 절대 못 하는 것(엔진 장점).
+
+**구현**:
+- `BuildDecalRendererFeature.cs`(신규, 멱등) — 인스펙터 "Add Renderer
+  Feature"가 하는 일(`ScriptableRendererDataEditor.AddComponent()`,
+  internal이라 직접 못 부름)을 `SerializedObject`로 재현해 `PC_Renderer.asset`·
+  `Mobile_Renderer.asset` 둘 다에 `DecalRendererFeature`를 배선했다.
+  `m_RendererFeatures`(오브젝트 참조 배열)와 `m_RendererFeaturesMap`(영속
+  식별용 로컬 fileID 배열) 둘 다 채워야 인스펙터에서도 정상으로 보인다.
+  `DecalRendererFeature.settings` 필드(`DecalSettings`)는 URP 패키지
+  안에서만 `internal`이라 못 건드리지만 기본값(Automatic 기법·데칼
+  레이어 끔)이 이미 "아무 표면이나 다 받는다"라 문제없다.
+- `GroundDecal`(신규, `Assets/Games/SagaDungeon/World/`) — 발자국·타격
+  흔적 둘 다 담당. 텍스처 자산이 없어(원작 자산 금지) 패키지 내장
+  `Shader Graphs/Decal`(`Shader.Find`로 런타임에 찾음, AssetDatabase는
+  런타임 코드에서 못 씀 — `WeaponVisual`이 "Universal Render Pipeline/Lit"을
+  찾는 것과 같은 결)에 단색만 입힌 사각 패치를 만든다. 수명 8s·최대 32(표
+  값 그대로) — `Active` 리스트가 32를 넘으면 가장 오래된 것부터 즉시
+  지운다(`DungeonEnemy.Active`와 같은 OnEnable/OnDisable 패턴). 마지막
+  2초는 `DecalProjector.fadeFactor`로 옅어지다 사라진다.
+- `PlayerController.Update()` — 이동 중 0.35초 간격으로 발자국(`Kind.
+  Footprint`) 스폰.
+- `DungeonEnemy.TakeDamage()` — 맞을 때마다 타격 흔적(`Kind.HitMark`) 스폰.
+
+**막힌 점 — `SagaDungeon.asmdef`**: `DecalProjector`/`DecalRendererFeature`
+타입이 `Unity.RenderPipelines.Universal.Runtime` 어셈블리에 있는데
+`SagaDungeon.asmdef`는 `Unity.RenderPipelines.Core.Runtime`만 참조하고
+있어(Volume 계열만 쓰던 시절 그대로) 컴파일 에러(`CS0246`)가 났다.
+어셈블리 참조에 `Unity.RenderPipelines.Universal.Runtime` 추가로 해결
+— DungeonDecal 이후로 URP 전용 런타임 타입(DecalProjector 등)을 쓰는
+새 코드는 이 참조가 이미 있어 문제없다.
+
+**헤드리스 검증 중 발견한 무관한 간헐적 실패 — `CheckLevelUpCut` 순서
+문제**: `PlaytestDungeonHeadless` 5연속 중 1번(데칼 코드 추가 직후 첫
+3연속 중 2번째) `CheckLevelUpCut`이 "레벨업 직후 카메라 줌이 안 바뀜 —
+zoom=3"으로 실패했다. 원인은 데칼과 무관 — `CheckLootMarker`가 먼저
+도는데 그 더미의 기본 보상(`rewardExp=20`)이 레벨 1의 `ExpToNext`(20)와
+정확히 같아 그 자리에서 레벨업을 하나 미리 유발한다. 이 프레임의
+`Time.deltaTime`이 크게 잡히면(배치 모드 실행 시간 편차)
+`CameraRig.LevelUpCutRoutine()`의 첫 동기 반복에서 `Mathf.Lerp`가
+`t/duration>=1`로 클램프돼 `_zoom`이 곧장 `MinZoom`(3)으로 떨어지고,
+뒤이어 `CheckLevelUpCut()` 자신의 레벨업도 같은 프레임·같은 deltaTime
+이라 똑같이 즉시 클램프돼 `zoomBefore==zoomAfter==3`이 되어 실패했다
+— `CameraRig.PlayLevelUpCut()` 자체는 이미 이전 코루틴을 `StopCoroutine()`
+하고 있어 겹침 문제는 아니었다. **고침**: `CheckLevelUpCut()`을
+`CheckLootMarker()`보다 앞으로 옮겨 세션의 첫 레벨업이 되게 했다 —
+그러면 `zoomBefore`가 항상 손 안 댄 기본값(6)이라 결정적으로 통과한다.
+재배치 뒤 5연속 전부 `zoom 6.00→5.6x`로 통과.
+
+**변경 파일**:
+- `Assets/Editor/BuildDecalRendererFeature.cs` — 신규.
+- `Assets/Games/SagaDungeon/World/GroundDecal.cs` — 신규.
+- `Assets/Games/SagaDungeon/World/DungeonEnemy.cs` — `TakeDamage()`에
+  `GroundDecal.Spawn(HitMark)` 호출 추가.
+- `Assets/Games/SagaDungeon/Player/PlayerController.cs` — 이동 중
+  발자국 타이머·스폰 추가.
+- `Assets/Games/SagaDungeon/SagaDungeon.asmdef` — `Unity.RenderPipelines.
+  Universal.Runtime` 참조 추가.
+- `Assets/Settings/PC_Renderer.asset`·`Mobile_Renderer.asset` —
+  `DecalRendererFeature` 배선(`BuildDecalRendererFeature.Build()` 실행 결과).
+- `Assets/Editor/PlaytestDungeonHeadless.cs` — `CheckGroundDecal()` 신규
+  (타격마다 생성 확인 + 40개 몰아 스폰해 32 캡 확인) + `CheckLevelUpCut`
+  순서 이동(위 참고).
+- `PLAN.md` 101-3 G 지형 반응 줄 갱신 — 이로써 **101-3 표 전체 완결**
+  (DUNGEON 기준).
+
+**결과**: 컴파일 exit 0(첫 시도는 asmdef 참조 누락으로 CS0246, 추가 후
+재컴파일 통과). `BuildDecalRendererFeature.Build()` 실행 — 두 렌더러
+자산 모두 `m_Name: Decals` 확인. `PlaytestDungeonHeadless` 5연속(3연속
+요건보다 여유 있게) 전부 `ground decal OK`·`level-up cut OK`, LogError
+0건. PLAN 101-3 표는 이제 A·B(공통 선행)·C(hitstop/shake/flash/popup/
+타격 VFX)·F(죽음)·G(성장 연출·장비 소켓·지형 반응) 전부 DUNGEON 기준
+완료 — 다른 네 판은 각자 손맛 표준 진행 상황에 맞춰 범위 밖으로 남음.

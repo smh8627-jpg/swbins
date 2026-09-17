@@ -55,6 +55,8 @@ namespace Saga.Dungeon.Player
         private const float DodgeTrailFadeSec = 0.25f; // 대시보다 살짝 길게 남는 잔상
         private static readonly Color DodgeTintColor = new Color(0.75f, 0.92f, 1f); // 무적 동안 옅은 하늘색
 
+        private const float FootprintIntervalSec = 0.35f; // PLAN.md 101-3 G "지형 반응" — 발자국 간격.
+
         [SerializeField] private Transform visual;
         [SerializeField] private Animator animator;
         [SerializeField] private CameraRig cameraRig;
@@ -72,6 +74,7 @@ namespace Saga.Dungeon.Player
         private Vector3 _dodgeDir;
         private TrailRenderer _dodgeTrail;
         private bool _wasInvulnerable;
+        private float _footprintCooldown;
 
         public Transform Visual => visual;
 
@@ -204,11 +207,22 @@ namespace Saga.Dungeon.Player
                 animator.SetFloat("Speed", moving ? (running ? 1f : 0.5f) : 0f);
             }
 
-            if (moveDir.sqrMagnitude > 0.05f * 0.05f && visual != null)
+            if (moveDir.sqrMagnitude > 0.05f * 0.05f)
             {
-                float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
-                float yaw = Mathf.LerpAngle(visual.eulerAngles.y, targetYaw, TurnRate * dt);
-                visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+                if (visual != null)
+                {
+                    float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+                    float yaw = Mathf.LerpAngle(visual.eulerAngles.y, targetYaw, TurnRate * dt);
+                    visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+                }
+
+                // PLAN.md 101-3 G "지형 반응" — 걷는 동안 일정 간격으로 발자국.
+                _footprintCooldown -= dt;
+                if (_footprintCooldown <= 0f)
+                {
+                    _footprintCooldown = FootprintIntervalSec;
+                    GroundDecal.Spawn(transform.position, GroundDecal.Kind.Footprint);
+                }
             }
         }
 
