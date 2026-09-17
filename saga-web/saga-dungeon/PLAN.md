@@ -256,7 +256,7 @@
 
 ### 7.3 Phase 0 작업
 1. **완료(2026-09-17)** — 오류 링버퍼 50건(`window.onerror`·`unhandledrejection`) → localStorage → `_admin.html` "오류" 탭 보기·복사. 새 `js/errlog.js`(사가고와 같은 규격, `index.html` 맨 첫 스크립트). `_test.html`에 순수 함수 `push()` 상한 진단 1항목 추가.
-2. **완료(2026-09-17)** — `core.js`에 `SAVE_VERSION`·`MIGRATIONS`·`migrate(save)` 추가. 예전엔 `parsed.v !== 1`이면 `load()`가 세이브를 통째로 버렸다(사가고에서 먼저 잡은 aa4b8b8류 지뢰가 다섯 판 공통이었다 — `saga-go/HANDOFF.md` 2026-09-17 참고). 지금은 버전이 안 맞아도 지우지 않고 `mergeDeep`으로 넘긴다. `_test.html` "옛 세이브 로드" 3항목은 아직 안 넣음(이 판 고유 필드 기준 목록이 필요해 보류).
+2. **완료(2026-09-17)** — `core.js`에 `SAVE_VERSION`·`MIGRATIONS`·`migrate(save)` 추가. 예전엔 `parsed.v !== 1`이면 `load()`가 세이브를 통째로 버렸다(사가고에서 먼저 잡은 aa4b8b8류 지뢰가 다섯 판 공통이었다 — `saga-go/HANDOFF.md` 2026-09-17 참고). 지금은 버전이 안 맞아도 지우지 않고 `mergeDeep`으로 넘긴다. `_test.html`에 saga-go 와 같은 일반 회귀 진단("v=999 세이브도 안 지워짐") 1항목은 **추가(2026-09-17)** — 이 판 고유 필드 기준의 "옛 세이브 로드" 3항목은 여전히 보류(필드 목록 필요).
 3. **완료(2026-09-17)** — 강공격·회피·hitstop·콤보 자가진단 4항목 추가. `DN.enter()`→`DN.raw()`(기존 동행 테스트와 같은 요령)로 `run.player.heavyCd`·`dodgeCd`·`invuln`·`run.hitstopT`·`run.combo`를 직접 읽는다 — `status()`의 "회차 중" 가지는 이 파일에서 이제껏 한 번도 안 타 본 코드라 그쪽은 안 건드리고 우회했다.
 4. `tools/precheck.sh` — `node -c js/*.js` + `_test.html` RESULT + `wc -c PLAN.md` 상한 경고.
 5. 7.2 목록을 사용자 실기 세션 1회로 몰아 확인 → 닫힌 것은 지우고 남은 것만 이슈로.

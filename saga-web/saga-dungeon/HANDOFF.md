@@ -3077,3 +3077,14 @@ try/catch 는 잡아 주지만 **`DN.leave()`를 못 불러 `run`이 안 닫힌 
 (사용자 실기 확인 몫) — 대신 `run.player`의 초기 필드(`x`·`heavyCd`·`dodgeCd`·`invuln`
 ·`facing`)와 `HEAVY_MUL`·`DODGE_INVULN`·`DODGE_CD` 상수, `strike()`의 `hitstopT`/`combo`
 갱신 줄을 코드로 직접 대조해 값을 확인했다.
+
+## 2026-09-17 — SAGA-DESIGN §8-3 "옛 세이브 안 버려짐" 진단 1항목 추가
+
+`core.js`의 `SAVE_VERSION`/`MIGRATIONS`/`migrate()`는 이미 있었는데(같은 날 앞 세션)
+이 회귀를 잡아 줄 `_test.html` 진단이 saga-go 에만 있고 나머지 네 판엔 없었다
+(PLAN §7 목록의 "아직" 항목). saga-go 것을 그대로 옮겨 붙였다 — `C.migrate({v:999,...})`가
+지우지 않고 그대로 돌려주는지만 확인(`aa4b8b8` 류 지뢰 재발 방지, 다섯 판 공통 지뢰라
+`saga-go/HANDOFF.md` 2026-09-17 절 참고).
+
+**검증** — 헤드리스 3회 동일 확인(직접 돌림, 예외적으로 이번엔 코드 한 줄 진단이라
+가벼움). `bash tools/precheck.sh` 대상에 포함해 PRECHECK OK.

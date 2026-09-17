@@ -2036,6 +2036,19 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         (Dx.heroes.length + '명 BIOS·quote + ' + Dx.pets.length + '개 PETS 검사, 걸린 실명 없음');
     });
 
+    t('세이브 버전이 안 맞아도 안 버려진다 (SAGA-DESIGN §8-3)', function () {
+      /* 예전엔 `parsed.v !== 1` 이 하나라도 어긋나면 load()가 false 를 줘
+         그대로 새 세이브로 덮였다(aa4b8b8 류). `migrate()`는 이을 손질이
+         없어도(지금 SAVE_VERSION=1, 정의된 MIGRATIONS 없음) 세이브를
+         지우지 않고 그대로 돌려준다 — 실제 채움은 load()의 mergeDeep 몫 */
+      var M = C.migrate;
+      if (typeof M !== 'function') { return false; }
+      var weird = { v: 999, player: { gold: 123456 } };
+      var out = M(weird);
+      return !!out && !!out.player && out.player.gold === 123456 &&
+        'v=999 세이브도 안 지워지고 그대로 넘어옴';
+    });
+
     t('오류 링버퍼 상한 (SAGA-DESIGN §8-2)', function () {
       var E = DG.errlog;
       if (!E || typeof E.push !== 'function') { return false; }
