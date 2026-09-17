@@ -1119,11 +1119,18 @@ window.DG_NO_TUNE = true;
     });
 
     t('가방·판매 — 판 만큼 금이 들어온다', function () {
+      /* 2026-09-17 — 오늘의 행사(`VD.eventOf()`)가 마침 이 물건의 갈래를
+         비싸게 쳐주는 날(예: 추석·과일)과 겹치면 `V.sell()`이 갑절을 쳐줘
+         조용히 깨졌다("공사 FAIL 4"와 같은 층위의, 실행한 실제 날짜에 따라
+         갈리던 문제). 행사 없는 날처럼 고정해 두고 본다(`fakeEvent` 아래 정의,
+         함수 선언이라 이 자리에서도 부를 수 있다). */
+      var undo = fakeEvent(null);
       var it = VD.ITEMS.fruit[0];
       var s = V.state();
       s.bag[it.key] = 3;
       var g0 = C.save.player.gold;
       var got = V.sell(it.key, 2);
+      undo();
       return got === it.price * 2 && C.save.player.gold === g0 + got &&
         V.bagCount(it.key) === 1 && (it.name + ' 2개 → 🪙 ' + got);
     });
@@ -1230,6 +1237,14 @@ window.DG_NO_TUNE = true;
       s.bag.apple = 1;
       V.plant('apple');
       var r = V.interact();                      // 방금 심은 자리에 서 있다
+      /* 2026-09-17 — 여기서 안 치우면 이 심은 자리가 `s.planted`에 영영 남아,
+         한참 뒤 "공사" 테스트의 `findWorkPair()`가 우연히 이 자리를 빈 칸으로
+         집었다가(그 시점엔 다른 테스트의 `buildProps()`단독 호출로 이 사물이
+         잠깐 배열에서 빠져 있다) `TR.work()`가 `buildProps()+syncPlanted()`를
+         같이 불러 사물이 되살아나면서 그 자리를 막아 버렸다 — "공사 FAIL 4"의
+         진짜 원인(3세션째 미확인이었다). 심은 것을 걷어 다음 테스트에 안 남긴다. */
+      s.planted = [];
+      V.syncPlanted();
       return r && r.kind === 'empty' && r.text.indexOf('묘목') >= 0 && ('“' + r.text + '”');
     });
 
@@ -2778,9 +2793,15 @@ window.DG_NO_TUNE = true;
       var g0 = C.save.player.gold;
       var got = V.sell('apple', 2);
       undo();
+      /* 2026-09-17 — `undo()`는 진짜 `eventOf`로 되돌릴 뿐이라, 진단을 돌리는
+         실제 날짜가 마침 "여느 날"이 아니면(예: 오늘이 진짜 추석이면) 이
+         "여느 날" 대조군도 갑절 값을 받아 조용히 깨졌다. 대조군도 행사
+         없는 날로 못 박는다. */
+      var undo2 = fakeEvent(null);
       s.bag.apple = 2;
       var g1 = C.save.player.gold;
       var plain = V.sell('apple', 2);
+      undo2();
       return got === it.price * 2 * 2 && plain === it.price * 2 &&
         C.save.player.gold === g1 + plain &&
         ('한가위 ' + C.fmt(got) + ' · 여느 날 ' + C.fmt(plain));
