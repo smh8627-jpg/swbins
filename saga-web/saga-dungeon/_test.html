@@ -1749,20 +1749,24 @@ window.requestAnimationFrame = function () { return 0; };
       var g = IT.roll(24, { slot: 'weapon', tier: 4, unid: false });
       C.save.gear.bag.push(g);
       IT.equip(id, g.uid);
-      var full = HR.stats(id).might;
+      /* 무기 베이스마다 main 이 might·wisdom·command 로 갈린다(활·창은 might,
+         선채·죽장·필묵은 wisdom, 병서는 command) — 롤된 물건의 실제 main 으로 잰다,
+         might 로 고정하면 wisdom/command 무기가 뽑힐 때 dead === full 로 헛 실패한다 */
+      var stat = IT.baseOf(g).main;
+      var full = HR.stats(id)[stat];
       IT.wearAll(999);                                 // 다 닳린다
       var broke = IT.isBroken(g);
-      var dead = HR.stats(id).might;
+      var dead = HR.stats(id)[stat];
       /* 여전히 입고 있고 값도 그대로다 */
       var kept = IT.equipped(id).weapon === g && IT.price(g) > 0;
       var okd = broke && dead < full && kept;
       /* 고치면 돌아온다 */
       C.save.player.gold = 999999;
       var rr = IT.repair(g.uid);
-      var backAgain = rr.ok && !IT.isBroken(g) && HR.stats(id).might === full;
+      var backAgain = rr.ok && !IT.isBroken(g) && HR.stats(id)[stat] === full;
       C.save.gear.bag = keep; C.save.gear.equip = keepEq;
       return okd && backAgain &&
-        ('무력 ' + Math.round(full) + ' → ' + Math.round(dead) + ' → 수리 후 ' + Math.round(full));
+        (stat + ' ' + Math.round(full) + ' → ' + Math.round(dead) + ' → 수리 후 ' + Math.round(full));
     });
 
     t('내구 — 수리 값은 닳은 만큼만 낸다', function () {

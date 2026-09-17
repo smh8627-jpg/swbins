@@ -3088,3 +3088,17 @@ try/catch 는 잡아 주지만 **`DN.leave()`를 못 불러 `run`이 안 닫힌 
 
 **검증** — 헤드리스 3회 동일 확인(직접 돌림, 예외적으로 이번엔 코드 한 줄 진단이라
 가벼움). `bash tools/precheck.sh` 대상에 포함해 PRECHECK OK.
+
+## 2026-09-17 — 내구 진단 305/306 고침(테스트 버그, 게임 로직은 멀쩡)
+
+지난 세션에서 발견만 해 둔 "내구 — 부서지면 능력치를 못 낸다" FAIL 을 조사했다.
+원인은 무기 부문 22종 중 `w_seonchae`·`w_jukjang`·`w_bilbut`(main: wisdom)·
+`w_byeongseo`(main: command) 처럼 might 가 아닌 무기가 있는데, 테스트가
+`HR.stats(id).might` 를 고정으로 재고 있었다 — 고정 씨앗(mulberry32(20260824))
+에서 `IT.roll(24, {slot:'weapon', tier:4})` 이 하필 그런 무기를 뽑아 부서져도
+might 가 안 줄어드는 것처럼 보였다. 게임 쪽 `statBonus()`(item.js `isBroken(it)`
+분기)는 문제없다 — 무기의 `IT.baseOf(g).main` 으로 재는 스탯을 그때그때 골라 잡게
+고쳤다.
+
+**검증** — 헤드리스 3회 `RESULT 306/306` 동일. `bash tools/precheck.sh
+saga-web/saga-dungeon` → PRECHECK OK.
