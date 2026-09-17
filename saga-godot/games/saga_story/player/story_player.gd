@@ -8,6 +8,16 @@ extends CharacterBody3D
 ##
 ## 물리 상수는 VERTICAL_SLICE_STORY.md 2절 그대로(비율만 웹과 맞춘 재설계,
 ## 원문 픽셀값을 그대로 옮기지 않는다).
+##
+## PLAN 101-2 STORY ①후보 "손맛 표준"(2026-09-17) — DUNGEON melee_attack.gd
+## 가 이미 연결한 `saga_core/combat_feel.gd`의 5요소(hitstop·카메라 흔들림·
+## 피격 플래시·숫자 팝·타격음)를 STORY에도 잇는다. 적중 판정이 한 곳
+## (`_melee_hit()`)이 아니라 무예마다 함수가 갈려 있지만, 다 같은 3줄
+## (`e.take_damage(...)` → `roll.crit`이면 `trigger_hitstop()`)이라 그
+## 3줄을 `CombatFeel.hit(e, dmg, crit)` 한 줄로 바꿨다 — 이전엔 치명타일
+## 때만 화면이 멈췄지만 이제 모든 타격이 5요소를 낸다(비치명은 짧게,
+## combat_feel.gd 자체 수치). `story_combat.gd`의 옛 `trigger_hitstop()`
+## (Engine.time_scale 직접 조작)은 더 쓰는 곳이 없어 지웠다.
 
 const GRAVITY := 36.0
 const JUMP_SPEED := 15.0
@@ -16,6 +26,17 @@ const CLIMB_SPEED := 4.0
 const TURN_RATE := 12.0
 const ATTACK_RANGE := 2.2
 const ATTACK_COOLDOWN := 0.36  # 무예 연참(連斬) cd 0.36 그대로(js/data-job.js)
+
+## PLAN 101-2 STORY ②후보 "이동 손맛"(웹판 §5-5, 대시·코요테·버퍼만 — 3D
+## PLAN.md가 벽 차기·착지 롤은 범위 밖으로 이미 좁혀 뒀다). 시간값(쿨·
+## 무적·코요테·버퍼)은 웹판 초 단위 그대로 옮긴다(픽셀이 아니라 시간이라
+## 비율 재설계가 필요 없다) — 거리만 웹 140px를 그대로 안 쓰고 RUN_SPEED
+## 배수로 재설계.
+const DASH_DIST_M := RUN_SPEED * 0.5  # 3m, 한 걸음보다 훨씬 크게(0.5초 치 주행 거리)
+const DASH_COOLDOWN := 0.9
+const DASH_INVULN_SEC := 0.12
+const COYOTE_TIME := 0.1
+const JUMP_BUFFER_TIME := 0.12
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
@@ -71,6 +92,13 @@ var _cd_rogue_knife := 0.0
 var _cd_rogue_step := 0.0
 var _cd_rogue_vital := 0.0
 var _invuln_time_left := 0.0
+
+## PLAN 101-2 STORY ②후보 "이동 손맛" — 대시 쿨다운·코요테 타임(발판을
+## 떠난 직후에도 잠깐 점프를 허용)·점프 버퍼(착지 직전 눌러 둔 점프를
+## 착지 즉시 터뜨림).
+var _dash_cd_left := 0.0
+var _coyote_time_left := 0.0
+var _jump_buffer_left := 0.0
 
 ## **2026-09-13 추가(같은 날 더) — 전직 다음 걸음: 방사(mage) 무예 넷.**
 ## `_job_buff_time_left`를 부적(m_talis)도 같이 쓴다(archer/warrior와
@@ -265,6 +293,7 @@ func _physics_process(delta: float) -> void:
 	_cd_rogue_step = maxf(0.0, _cd_rogue_step - delta)
 	_cd_rogue_vital = maxf(0.0, _cd_rogue_vital - delta)
 	_invuln_time_left = maxf(0.0, _invuln_time_left - delta)
+	_dash_cd_left = maxf(0.0, _dash_cd_left - delta)
 	_cd_mage_fire = maxf(0.0, _cd_mage_fire - delta)
 	_cd_mage_bolt = maxf(0.0, _cd_mage_bolt - delta)
 	_cd_mage_heal = maxf(0.0, _cd_mage_heal - delta)
@@ -601,12 +630,29 @@ func _physics_process(delta: float) -> void:
 
 
 func _walk(delta: float) -> void:
-	if not is_on_floor():
-		velocity.y -= GRAVITY * delta
-	elif Input.is_action_just_pressed("jump"):
-		velocity.y = JUMP_SPEED
+	## 코요테 타임 — 발판 위에 있는 동안은 늘 꽉 채워 두고(그래서 평범한
+	## 즉시 점프도 아래 조건 하나로 같이 처리된다), 떠나면 그때부터 깎인다.
+	if is_on_floor():
+		_coyote_time_left = COYOTE_TIME
 	else:
+		velocity.y -= GRAVITY * delta
+		_coyote_time_left = maxf(0.0, _coyote_time_left - delta)
+
+	## 점프 버퍼 — 착지 직전 눌러 둔 점프를 기억해 뒀다 착지하는 프레임에
+	## 바로 터뜨린다(코요테 창이 동시에 열려 있어야 한다는 점에서 같은
+	## 조건 하나로 "제때 누른 보통 점프"·"코요테 안 점프"·"버퍼 착지 점프"
+	## 셋을 다 커버한다).
+	if Input.is_action_just_pressed("jump"):
+		_jump_buffer_left = JUMP_BUFFER_TIME
+	if _jump_buffer_left > 0.0 and _coyote_time_left > 0.0:
+		velocity.y = JUMP_SPEED
+		_jump_buffer_left = 0.0
+		_coyote_time_left = 0.0
+	elif is_on_floor():
 		velocity.y = 0.0
+	_jump_buffer_left = maxf(0.0, _jump_buffer_left - delta)
+
+	_try_dash()
 
 	var axis := Input.get_axis("move_left", "move_right")
 	## **2026-09-13 추가(같은 날 더 더 더 더)** — f_focus(정심)가 처음으로
@@ -621,6 +667,20 @@ func _walk(delta: float) -> void:
 		_play_anim("walk")
 	else:
 		_play_anim("idle")
+
+
+## 웹판 §5-5 "회피를 대시로 재정의"(3D엔 회피 입력이 아예 없어 새 액션
+## `story_dash`로 새로 판다, Shift — GO의 `run`과 물리 키는 같지만 이
+## 판은 안 쓰던 액션이라 겹치지 않는다). w_rush(돌진) 등 무예 "dash"들과
+## 같은 방식으로 순간이동 재해석(부드러운 이동 애니메이션 없음, 벽·구덩이
+## 충돌 미확인 — 다음에 볼 자리, w_rush 머리말과 같은 한계). 웹판의 대시
+## 잔상(3프레임)은 새 VFX라 이번엔 뺐다.
+func _try_dash() -> void:
+	if _dash_cd_left > 0.0 or not Input.is_action_just_pressed("story_dash"):
+		return
+	_dash_cd_left = DASH_COOLDOWN
+	global_position.x += DASH_DIST_M * _facing
+	_invuln_time_left = maxf(_invuln_time_left, DASH_INVULN_SEC)
 
 
 ## 줄 안에서는 중력이 없다 — 위/아래(move_forward/move_back, 원래 3D
@@ -704,8 +764,7 @@ func _melee_hit(range_m: float, mul: float) -> void:
 			continue  # 등 뒤는 안 맞는다(바로 겹친 자리 정도는 봐준다)
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 func _attack() -> void:
@@ -733,8 +792,7 @@ func _cast_sweep() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), StoryCombat.SWEEP_MUL)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 기탄(bolt) — 관통. 이 슬라이스는 투사체가 없어(적이 안 움직인다) "더
@@ -791,8 +849,7 @@ func _cast_warrior_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 돌진(w_rush) — dash. 이 슬라이스엔 원문처럼 부드러운 이동 애니메이션을
@@ -936,8 +993,7 @@ func _cast_archer_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 쌍참(r_twin) — melee, hits:2. 연사(a_double)와 같은 재해석(정면 판정을
@@ -1014,8 +1070,7 @@ func _cast_rogue_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 관통표(r_dart) — bolt. 기탄과 같은 재해석(사거리 2배).
@@ -1061,8 +1116,7 @@ func _cast_mage_bolt() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 치유(m_heal) — **이 포트에 처음 등장하는 effect:'heal'.** 적 판정이
@@ -1152,8 +1206,7 @@ func _cast_general_roar() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 철벽(g_wall) — buff, 대미지 없음.
@@ -1260,8 +1313,7 @@ func _cast_sniper_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 난무(x_storm) — melee, hits:4.
@@ -1323,8 +1375,7 @@ func _cast_assassin_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 암습표(x_dart) — bolt. 관통표와 같은 재해석(사거리 2배).
@@ -1358,8 +1409,7 @@ func _cast_sage_quake() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 천뢰(p_beam) — 원문 effect:'rain', s_rain과 같은 단순 정면 재해석.
@@ -1445,8 +1495,7 @@ func _cast_marshal_quake() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 철기돌격(n_charge) — dash, dist:330px.
@@ -1580,8 +1629,7 @@ func _cast_flier_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 잔영(v_blur) — melee, hits:6.
@@ -1656,8 +1704,7 @@ func _cast_wraith_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 귀표(v_dart) — bolt. 암습표와 같은 재해석(사거리 2배).
@@ -1702,8 +1749,7 @@ func _cast_immortal_abyss() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 회춘(i_mend) — heal.
@@ -1789,8 +1835,7 @@ func _cast_warlord_tremor() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 벽력돌(o_smite) — dash, dist:410px.
@@ -1924,8 +1969,7 @@ func _cast_falcon_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 팔도(d_carve) — melee, hits:8.
@@ -2000,8 +2044,7 @@ func _cast_reaper_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 명표(d_dart) — bolt. 귀표와 같은 재해석(사거리 2배).
@@ -2046,8 +2089,7 @@ func _cast_ascendant_collapse() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 환생(z_rebirth) — heal.

@@ -269,6 +269,7 @@ namespace Saga.Dungeon.World
 
             Vector3 popupPos = transform.position + Vector3.up * (2f * visualScale);
             DamagePopup.Spawn(popupPos, amount, heavy);
+            HitSpark.Spawn(popupPos, heavy);
 
             if (_visualGo != null)
             {

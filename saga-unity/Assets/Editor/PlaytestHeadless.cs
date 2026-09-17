@@ -7,6 +7,7 @@ using Saga.Core;
 using Saga.Go.Audio;
 using Saga.Go.Data;
 using Saga.Go.UI;
+using Saga.Go.World;
 
 namespace Saga.EditorTools
 {
@@ -115,6 +116,7 @@ namespace Saga.EditorTools
                 CheckPlayerHudLocalization();
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
+                CheckBanditHitstop();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -416,6 +418,51 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestHeadless] goal board / session card OK - 3 lines filled, source auto-found, card shows and auto-closes");
+        }
+
+        /// <summary>PLAN.md 101-3 C hitstop(2026-09-17, DUNGEON·STORY 다음
+        /// GO 차례) — `BanditEncounter.OnDuelEvent("hit")`를 리플렉션으로
+        /// 직접 불러(`CheckGoalBoardAndSessionCard`의 `Update()` 직접 호출과
+        /// 같은 결) `StartCoroutine()` 첫 세그먼트가 같은 프레임에 동기
+        /// 실행된다는 점으로 Animator.speed==0을 확인한다. player·foe 각각
+        /// 리깅 모델(Maria/Abe)이 이 PC에 없으면 폴백이라 null일 수 있다
+        /// (DUNGEON `CheckHitstop`과 같은 "null 허용" — 실제로 이 세션에서
+        /// player는 null, foe(Abe)는 있었다) — 최소 한쪽은 있어야 코드
+        /// 경로 자체는 확인된다.</summary>
+        private static void CheckBanditHitstop()
+        {
+            var encounter = Object.FindFirstObjectByType<BanditEncounter>();
+            if (encounter == null)
+            {
+                Debug.LogError("[PlaytestHeadless] BanditEncounter 컴포넌트를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var startFight = typeof(BanditEncounter).GetMethod("StartFight", BindingFlags.NonPublic | BindingFlags.Instance);
+            startFight.Invoke(encounter, null);
+
+            var playerAnimatorField = typeof(BanditEncounter).GetField("_playerAnimator", BindingFlags.NonPublic | BindingFlags.Instance);
+            var playerAnimator = playerAnimatorField.GetValue(encounter) as Animator;
+            var visualField = typeof(BanditEncounter).GetField("_visual", BindingFlags.NonPublic | BindingFlags.Instance);
+            var foeAnimator = (visualField.GetValue(encounter) as Transform)?.GetComponent<Animator>();
+
+            if (playerAnimator == null && foeAnimator == null)
+            {
+                Debug.Log("[PlaytestHeadless] hitstop 검증 스킵 — player·foe 둘 다 Animator가 null(폴백 모델, 정상 케이스)");
+                return;
+            }
+
+            var onDuelEvent = typeof(BanditEncounter).GetMethod("OnDuelEvent", BindingFlags.NonPublic | BindingFlags.Instance);
+            onDuelEvent.Invoke(encounter, new object[] { new DuelRules.DuelEvent { T = "hit", Dmg = 1f } });
+
+            if ((playerAnimator != null && playerAnimator.speed != 0f) || (foeAnimator != null && foeAnimator.speed != 0f))
+            {
+                Debug.LogError($"[PlaytestHeadless] hitstop이 hit 이벤트 직후 Animator를 안 멈춤 — player.speed={(playerAnimator != null ? playerAnimator.speed.ToString() : "null")} foe.speed={(foeAnimator != null ? foeAnimator.speed.ToString() : "null")}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestHeadless] bandit hitstop OK - hit 이벤트 직후 확인(player={(playerAnimator != null)}, foe={(foeAnimator != null)})");
         }
     }
 }

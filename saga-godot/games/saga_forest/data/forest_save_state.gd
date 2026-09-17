@@ -32,7 +32,20 @@ var gold := 0
 var met: Dictionary = {}          # npc_id(String) -> true(만난 적 있음)
 var quests_done: Dictionary = {}  # npc_id(String) -> true(부탁을 마침)
 var gifted: Dictionary = {}       # npc_id(String) -> day_key(마지막으로 선물한 날)
-var affinity: Dictionary = {}     # npc_id(String) -> int(친밀도)
+var affinity: Dictionary = {}     # npc_id(String) -> int(친밀도 = "하트" 0~10)
+
+## PLAN.md 101-2 FOREST ②후보 "관계 하트"(웹판 saga-forest/PLAN.md §5.4) —
+## 순수 추가. 웹 스펙(하트 0~10, 대화·선물·부탁·세배 상승, 하루 상한 +4,
+## 단계 해제 3/5/7/10♥, 하트≤2만 이사 후보)에서 이 3D 슬라이스가 이미
+## 가진 것만 옮긴다 — **재해석/제외**: 3♥(주민 집 방문)·7♥(30초 동행+채집
+## 확률)은 3D에 주민 집 인테리어·동행 AI가 아예 없어(다른 시스템이라
+## 이번 후보 범위 밖) 보류. **이사 판정 자체가 3D엔 없어**(원작 F 실패
+## 루프 전체를 이 슬라이스가 아직 안 옮겼다, 101-1 표 F 참고) "하트≤2만
+## 이사 후보"도 해당 없음.
+var talked: Dictionary = {}            # npc_id(String) -> day_key(대화 상승은 하루 1회)
+var affinity_day: Dictionary = {}      # npc_id(String) -> day_key(하루 상한 +4 기준일)
+var affinity_gained_today: Dictionary = {}  # npc_id(String) -> int(그 기준일에 이미 얻은 양)
+var heart_reward_10: Dictionary = {}   # npc_id(String) -> true(10♥ 기념 사례금, 한 번만)
 
 ## 4번째 확장(제외 목록 4번 — 곤충/화석/조개 + 박물관) — 역시 순수 추가.
 var tools: Dictionary = {}  # tool_key(String) -> true(예: "spade")
@@ -182,6 +195,35 @@ func mark_gifted(npc_id: String) -> void:
 
 func add_affinity(npc_id: String, amount: int) -> void:
 	affinity[npc_id] = int(affinity.get(npc_id, 0)) + amount
+
+
+func heart(npc_id: String) -> int:
+	return int(affinity.get(npc_id, 0))
+
+
+func talked_today(npc_id: String) -> bool:
+	return int(talked.get(npc_id, -1)) == ForestDay.today_key()
+
+
+func mark_talked(npc_id: String) -> void:
+	talked[npc_id] = ForestDay.today_key()
+
+
+## 웹판 §5.4 "하루 상승 상한 +4" — 그 날 이미 얻은 만큼만 빼고 남는 몫을
+## 적용한다(넘치는 나머지는 버림, gifted_today()처럼 하루가 지나면 새로
+## 리셋). 0~10 범위로 상시 clamp(§5.4 "인물별 heart 0~10"). 실제로 적용된
+## 양을 돌려준다 — 상한에 걸려 일부만 들어간 경우를 호출부가 알 수 있게.
+func gain_affinity(npc_id: String, amount: int) -> int:
+	var today := ForestDay.today_key()
+	if int(affinity_day.get(npc_id, -1)) != today:
+		affinity_day[npc_id] = today
+		affinity_gained_today[npc_id] = 0
+	var room: int = maxi(0, 4 - int(affinity_gained_today.get(npc_id, 0)))
+	var applied: int = mini(amount, room)
+	if applied > 0:
+		affinity[npc_id] = clampi(heart(npc_id) + applied, 0, 10)
+		affinity_gained_today[npc_id] = int(affinity_gained_today.get(npc_id, 0)) + applied
+	return applied
 
 
 func has_tool(tool_key: String) -> bool:
@@ -348,6 +390,10 @@ func save() -> bool:
 		"quests_done": quests_done,
 		"gifted": gifted,
 		"affinity": affinity,
+		"talked": talked,
+		"affinity_day": affinity_day,
+		"affinity_gained_today": affinity_gained_today,
+		"heart_reward_10": heart_reward_10,
 		"tools": tools,
 		"museum_donated": museum_donated,
 		"turnip": turnip,
@@ -399,6 +445,14 @@ func try_load() -> bool:
 	gifted = loaded_gifted if typeof(loaded_gifted) == TYPE_DICTIONARY else {}
 	var loaded_affinity: Variant = data.get("affinity", {})
 	affinity = loaded_affinity if typeof(loaded_affinity) == TYPE_DICTIONARY else {}
+	var loaded_talked: Variant = data.get("talked", {})
+	talked = loaded_talked if typeof(loaded_talked) == TYPE_DICTIONARY else {}
+	var loaded_affinity_day: Variant = data.get("affinity_day", {})
+	affinity_day = loaded_affinity_day if typeof(loaded_affinity_day) == TYPE_DICTIONARY else {}
+	var loaded_affinity_gained_today: Variant = data.get("affinity_gained_today", {})
+	affinity_gained_today = loaded_affinity_gained_today if typeof(loaded_affinity_gained_today) == TYPE_DICTIONARY else {}
+	var loaded_heart_reward_10: Variant = data.get("heart_reward_10", {})
+	heart_reward_10 = loaded_heart_reward_10 if typeof(loaded_heart_reward_10) == TYPE_DICTIONARY else {}
 	var loaded_tools: Variant = data.get("tools", {})
 	tools = loaded_tools if typeof(loaded_tools) == TYPE_DICTIONARY else {}
 	museum_donated = int(data.get("museum_donated", 0))

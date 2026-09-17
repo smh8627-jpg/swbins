@@ -2,12 +2,16 @@ extends Node
 
 ## PLAN.md 101-3 "C 손맛(다섯 판 공용 saga_core/combat_feel.gd 신설)" —
 ## 2026-09-17, PLAN 101-2 DUNGEON ③(손맛 2차)에서 처음 만든다. 다섯 판
-## 공용 자리로 설계됐지만(101-3 원문 그대로) 이번 세션은 DUNGEON 한 곳만
-## 실제로 연결한다(`melee_attack.gd::_strike()` — 이미 있는 유일한 "타격
+## 공용 자리로 설계됐지만(101-3 원문 그대로) 그 세션은 DUNGEON 한 곳만
+## 실제로 연결했다(`melee_attack.gd::_strike()` — 이미 있는 유일한 "타격
 ## 한 곳" 자리, 축복 3택 세션의 원소 시너지와 같은 판단 — 스킬 스크립트
-## 80여 개까지 개별로 잇는 건 범위 밖, 다음 세션). STORY의
-## `trigger_hitstop()`·GO의 화면 플래시(0.35s)는 이번엔 안 건드린다 —
-## 다음에 그 판들을 이 모듈로 옮겨 붙일 자리로 남겨 둔다(PLAN 101-4 순서 2).
+## 80여 개까지 개별로 잇는 건 범위 밖, 다음 세션). **같은 날, STORY
+## ①후보(손맛 표준)에서 `story_player.gd`도 이었다** — STORY는 무예마다
+## 함수가 갈려 있지만(연참·횡소·기탄 등 18곳) 다 같은 3줄 패턴이라
+## 한 번에 옮겼다(`story_player.gd` 헤더 참고). 옛 `trigger_hitstop()`
+## (story_combat.gd, Engine.time_scale 직접 조작)은 지웠다. GO의 화면
+## 플래시(0.35s)는 아직 안 건드렸다 — 다음에 그 판을 옮겨 붙일 자리로
+## 남겨 둔다(PLAN 101-4 순서 2, GO·FOREST·REALM 몫).
 ##
 ## `hit(target, amount, crit)` 한 호출이 5요소를 낸다(101-3 수치 그대로):
 ## ① **hitstop** — `Engine.time_scale` 0.05로 70ms(치명 120ms). 여러

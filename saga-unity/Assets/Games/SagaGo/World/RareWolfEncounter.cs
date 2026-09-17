@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Data;
+using Saga.Go.Player;
 using Saga.Go.UI;
 
 namespace Saga.Go.World
@@ -33,6 +34,12 @@ namespace Saga.Go.World
         private const string RewardItemId = "ar_wolf";
         private const string EventId = "rare_wolf";
 
+        // PLAN.md 101-3 C hitstop(2026-09-17) — `BanditEncounter.cs`와 완전히
+        // 같은 값·로직. 늑대 쪽(`_visualMat`뿐, Animator 없는 primitive
+        // capsule)은 애초에 못 멈춰 player 쪽만 실제로 걸린다.
+        private const float HitstopSec = 0.07f;
+        private const float HeavyHitstopSec = 0.12f;
+
         private static readonly Color BaseColor = new Color(0.78f, 0.78f, 0.8f);
         private static readonly Color TellColor = new Color(1.0f, 0.4f, 0.2f);
 
@@ -44,6 +51,7 @@ namespace Saga.Go.World
         private bool _playerInRange;
 
         private Material _visualMat;
+        private Animator _playerAnimator;
 
         private GameObject _promptRoot;
         private GameObject _combatRoot;
@@ -249,6 +257,9 @@ namespace Saga.Go.World
             _duel = DuelRules.Create(foeHp, atk, def);
             _combatRoot.SetActive(true);
             RefreshCombatUi();
+
+            var playerGo = GameObject.FindWithTag("Player");
+            _playerAnimator = playerGo != null ? playerGo.GetComponent<PlayerController>()?.Animator : null;
         }
 
         private void DoAct(string kind)
@@ -287,9 +298,11 @@ namespace Saga.Go.World
                 case "heavy":
                     _visualMat.color = BaseColor;
                     ScreenFlash(e.Dodged ? new Color(0.2f, 1.0f, 0.4f, 0.35f) : new Color(1.0f, 0.15f, 0.15f, 0.45f));
+                    if (!e.Dodged) ApplyHitstop(heavy: true);
                     break;
                 case "hit":
                     ScreenFlash(new Color(1.0f, 0.15f, 0.15f, 0.3f));
+                    ApplyHitstop(heavy: false);
                     break;
             }
         }
@@ -383,6 +396,20 @@ namespace Saga.Go.World
                 yield return null;
             }
             visual.localScale = baseScale;
+        }
+
+        /// <summary>`BanditEncounter.ApplyHitstop()`과 같은 로직 — 늑대 쪽은
+        /// Animator가 없어(위 클래스 주석) 항상 player만 실제로 멎는다.</summary>
+        private void ApplyHitstop(bool heavy)
+        {
+            StartCoroutine(HitstopRoutine(_playerAnimator, heavy ? HeavyHitstopSec : HitstopSec));
+        }
+
+        private static IEnumerator HitstopRoutine(Animator a, float seconds)
+        {
+            if (a != null) a.speed = 0f;
+            yield return new WaitForSeconds(seconds);
+            if (a != null) a.speed = 1f;
         }
 
         private void ScreenFlash(Color color)

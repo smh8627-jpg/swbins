@@ -14,8 +14,6 @@ extends RefCounted
 
 const CRIT_RATE := 0.15
 const CRIT_MUL := 1.6
-const HITSTOP_TIME_SCALE := 0.12
-const HITSTOP_SECONDS := 0.055
 
 ## side.js power()의 might=20·wisdom=10·command=15 대체값 그대로.
 ## atk = might*0.9 + wisdom*0.3, hp = 60 + command*6 + level*12(레벨1 고정).
@@ -1708,9 +1706,6 @@ const ASCENDANT_ORB_PER := 0.2
 const ASCENDANT_ORB_SHOTS := 8
 
 
-static var _hitstop_active := false
-
-
 ## side.js 883줄대 hit() 그대로: atk*(mul||1)*(0.88~1.12)*(crit?1.6:1).
 static func roll_damage(atk: float, mul: float = 1.0) -> Dictionary:
 	var crit: bool = randf() < CRIT_RATE
@@ -1718,16 +1713,3 @@ static func roll_damage(atk: float, mul: float = 1.0) -> Dictionary:
 	var dmg: float = atk * mul * variance * (CRIT_MUL if crit else 1.0)
 	return {"dmg": dmg, "crit": crit}
 
-
-## game.js의 freeze — 급소가 터진 순간 화면 전체가 0.055초 동안 12%
-## 속도로 느려진다. Engine.time_scale은 이 저장소가 아직 안 쓰던
-## 값이라(다른 판은 델타를 직접 스케일하지 않는다) 이 프로토타입에서
-## 처음 쓴다 — Godot가 이미 제공하는 정확히 같은 개념이라 새로 안 짠다.
-static func trigger_hitstop(tree: SceneTree) -> void:
-	if _hitstop_active:
-		return
-	_hitstop_active = true
-	Engine.time_scale = HITSTOP_TIME_SCALE
-	await tree.create_timer(HITSTOP_SECONDS, true, false, true).timeout
-	Engine.time_scale = 1.0
-	_hitstop_active = false

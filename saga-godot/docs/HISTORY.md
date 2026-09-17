@@ -7246,3 +7246,33 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestCity.tscn을 실제로 인스턴스화해 GoalBoard 텍스트 확인, `🎯 성 3/107 편입 / ⏱ 골드 +0 · 편입 +0 / 📅 —` 형식 그대로 나옴(194 시나리오 기본 3성).
 - `TestCity.tscn` 헤드리스 3회 회귀 md5 동일(850475e8)·error/warn 0. `tools/godot_regress.sh`로 다섯 판 전체 스모크 오류 0·project.godot/.import 잡음 없음 확인.
 - 다음: 101-4 공통 순서 1번은 다섯 판 다 끝났다 — 이제 FOREST·STORY·REALM 각자 101-2 ②후보부터(REALM은 ①이 이번에 끝났으니 ②승리 조건 4).
+
+## FOREST 관계 하트 (2026-09-17, 새 세션, "이어해") — PLAN 101-2 FOREST ②후보
+- 101-4 공통 순서 1번이 다섯 판 다 끝나서, 이번엔 각 판 자기 101-2 후보로 — FOREST는 ①목표판(지난 세션에 끝)에 이어 ②관계 하트(웹 saga-forest/PLAN.md §5.4).
+- 웹 스펙(하트 0~10, 대화·선물·부탁·세배 상승, 하루 상한 +4, 3/5/7/10♥ 해제, 하트≤2만 이사 후보)에서 3D가 이미 가진 것만 옮겼다 — `affinity` 필드를 그대로 재사용(이름은 안 바꿈, 개념만 0~10으로 좁힘).
+- `forest_save_state.gd`에 `gain_affinity(npc_id, amount) -> int` 신규 — 하루 상한 +4(§5.4 그대로, `affinity_day`/`affinity_gained_today` 새 필드로 추적)와 0~10 clamp를 한 곳에서 맡고, 실제 적용량을 돌려준다(선물 토스트가 상한 걸림을 "(오늘 상한)"으로 보여줄 수 있게). `talked`(대화 하루 1회)·`heart_reward_10`(10♥ 보상 1회 플래그) 신규 — 전부 순수 추가라 SAVE_VERSION 안 올림(기존 관례 그대로).
+- `villager_builder.gd::_talk()` — 진입할 때마다(어느 분기든) 하루 첫 대화면 +1. 부탁 완수 +2(신규), 설날 세배 +2(신규, 기존 골드 보상 위에 얹음). `_give_gift()`는 기존 +3(좋아함)/+1(보통) 그대로, `gain_affinity()`를 거쳐 상한·clamp 적용.
+- 해제 — **5♥**: 부탁을 마친 뒤 인사말이 고유 대사로 바뀐다(VILLAGERS 6명 각자 `heart_line` 신규, 실명 없이 관계가 깊어진 느낌만). **10♥**: 기념 사례금 🪙+2000 1회(웹판은 "인물 기념품 가구"지만 3D엔 인물별 가구 카탈로그가 없어 forest_house.gd 창고 시스템을 새로 안 건드리고 재해석).
+- **보류**(3D에 그 시스템 자체가 없다, 억지로 새로 안 지음): 3♥ 집 방문(주민 집 인테리어 없음) · 7♥ 30초 동행+채집 확률(follow AI 없음) · "하트≤2만 이사 후보"(3D엔 이사 판정 자체가 없다, 101-1 표 F "실패·회복" 구멍이 이 슬라이스가 아직 안 채운 부분).
+- 상단 메뉴 제목에 "(♥N)" 추가(ChoicePrompt 제목 한 줄, 새 UI 없이).
+- 자가진단(임시 `_diag_heart.gd/.tscn`, 커밋 전 지움) — `gain_affinity()` 순수 함수를 직접 두들겨 하루 상한(3+3+3 시도 → 적용 3+1+0=4)·다음날 리셋(+4 다시 허용)·여러 날에 걸친 0~10 clamp(10 이상 못 감) 셋 다 확인.
+- 헤드리스 회귀 md5 불변(FOREST 67467e92 그대로 — NPC 접촉이 idle 3프레임 스모크에 안 걸려서 당연함), `tools/godot_regress.sh`로 다섯 판 스모크 오류 0·project.godot/.import 잡음 없음.
+- 다음: FOREST ③(마을 번들, museum.gd·forest_home 연동) 또는 STORY ①(손맛 표준)·REALM ②(승리 조건 4).
+
+## STORY 손맛 표준 (2026-09-17, 새 세션, "이어서해") — PLAN 101-2 STORY ①후보
+- DUNGEON에 이어 `saga_core/combat_feel.gd`(101-3, 손맛 5요소: hitstop·카메라 흔들림·피격 플래시·숫자 팝·타격음)를 STORY에도 연결 — 두 번째 판.
+- STORY는 적중 판정이 DUNGEON `_strike()`처럼 한 곳이 아니라 무예마다 함수가 갈려 있다(연참·횡소·기탄 등 `story_player.gd` 18개 스킬 함수). 전부 조사해 보니 다 같은 3줄 패턴이었다: `e.take_damage(float(roll.dmg))` → `if bool(roll.crit): StoryCombat.trigger_hitstop(get_tree())`. 이 3줄을 `e.take_damage(...)` + `CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))` 두 줄로 18곳 전부 한 번에 교체(`Edit replace_all` — 텍스트가 정확히 같은 걸 `cat -A`로 먼저 확인).
+- **손맛이 달라진 지점** — 옛 코드는 치명타일 때만 화면이 0.055초 멈췄다(`trigger_hitstop()`). `CombatFeel.hit()`은 모든 타격에 5요소를 낸다(비치명 hitstop 70ms·치명 120ms, combat_feel.gd 자체 수치) — 실기 확인 때 "너무 자주 멈추는 느낌"인지 볼 자리로 남겼다(실기 확인 대기에 추가).
+- `story_combat.gd`의 옛 `trigger_hitstop()`(`Engine.time_scale` 직접 조작, static var `_hitstop_active`, 상수 `HITSTOP_TIME_SCALE`·`HITSTOP_SECONDS`)은 이제 부르는 곳이 없어 지웠다 — 죽은 코드를 안 남긴다는 이 저장소 원칙 그대로.
+- `combat_feel.gd` 머리말 갱신 — "STORY는 다음 세션 몫"이라던 주석을 "STORY도 이었다"로 고치고, GO·FOREST·REALM이 아직 남았다고 남김(PLAN 101-4 순서 2).
+- 검증 — 헤드리스 에디터 `--editor --quit` 임포트 0 에러(옛 함수·상수를 지운 뒤에도 프로젝트 전체가 컴파일된다는 게 곧 18곳 전부 정확히 옮겨졌다는 증거, 하나라도 안 옮겨졌으면 `trigger_hitstop` 미정의 에러가 났을 것). `tools/godot_regress.sh` 다섯 판 스모크 오류 0·md5 전부 불변(전투가 idle 스모크에 안 걸림)·project.godot/.import 잡음 없음.
+- 다음: STORY ②(이동 손맛, 대시·코요테·버퍼 — story_player.gd) 또는 FOREST ③(마을 번들)·REALM ②(승리 조건 4).
+
+## STORY 이동 손맛 (2026-09-17, 새 세션, "이어해줘") — PLAN 101-2 STORY ②후보
+- 웹판 saga-story/PLAN.md §5-5 "이동 손맛"에서 3D PLAN.md 101-2 표가 이미 대시·코요테·버퍼 셋으로 좁혀 둔 것만 옮겼다(벽 차기는 사냥터에 `walls` 배열이 없어, 착지 롤은 낙하 속도 판정이 새로 필요해 둘 다 범위 밖).
+- **대시** — 새 입력 액션 `story_dash`(Shift, project.godot). GO의 `run`도 물리 키가 Shift지만 액션 이름이 달라 STORY 안에서 충돌 없음(STORY는 애초에 `run`을 안 쓴다). 구현은 웹판처럼 0.16초짜리 이동이 아니라 이 파일에 이미 있던 무예 "dash"(돌진 w_rush 등, "그 자리로 순간이동"으로 재해석)와 같은 방식 — `global_position.x += DASH_DIST_M * _facing` 순간이동. 거리 3m(`RUN_SPEED*0.5`, 웹 140px는 픽셀이라 그대로 안 옮기고 비율로 재설계), 쿨 0.9s·무적 0.12s는 웹 수치 그대로(시간값이라 비율 재설계가 필요 없다). 웹판 "대시 잔상 3프레임"은 새 VFX라 뺐다. 공중에서도 그냥 호출되니 "공중 1회 포함"은 별도 분기 없이 자연히 만족(코드가 지상/공중을 안 가린다 — "2단 아님"도 쿨다운 하나뿐이라 자동으로 지켜진다).
+- **코요테 타임(0.1s)·점프 버퍼(0.12s)** — `_walk()`에서 발판 위에 있는 동안 `_coyote_time_left`를 늘 꽉 채워 두다가 떠나면 깎기 시작, 점프 입력은 `_jump_buffer_left`에 저장해 뒀다 깎는다. 점프 조건은 `버퍼>0 and 코요테>0` 하나뿐이라 "제때 누른 보통 점프"·"코요테 창의 안 점프"·"버퍼 착지 즉시 점프" 셋을 따로 안 가르고 자연히 다 커버한다.
+- `docs/HOW_TO_PLAYTEST.md` STORY 표에 Shift 대시 추가, "공통 조작"의 GO `run`과는 물리 키만 같다고 각주.
+- 자가진단(임시 `_diag_dash.gd/.tscn`, 커밋 전 지움) — StoryPlayer를 실제 인스턴스화해 5가지 확인: 대시 이동 거리(3.0 정확히)·쿨다운 중 재시도 차단·무적 타이머 세팅·코요테+버퍼 조합 시 점프(velocity.y>0)·코요테 창 닫힌 뒤 버퍼만으론 점프 안 함. **Input.action_press()+await로 "방금 눌림"을 흉내 낸 첫 시도는 프레임 경계 타이밍이 흔들려 점프 테스트가 실패했다** — 상태 변수(`_coyote_time_left`/`_jump_buffer_left`)를 직접 채워 `_walk()`의 조건문 자체만 순수하게 확인하는 쪽으로 바꾸고서야 5가지 다 통과(다음에 이런 입력 타이밍 진단을 짤 때 참고).
+- 헤드리스 에디터 임포트 0 에러, 다섯 판 스모크 오류 0, `project.godot` diff는 새 액션 5줄뿐(`git diff`로 확인, "잡음 없음"이 아니라 "의도한 추가뿐"이라는 뜻 — 이번엔 헤드리스 에디터가 `.import`/`project.godot`를 조용히 고쳐 쓰는 일 자체가 없었다).
+- 다음: STORY ③(직업 정체성, 전직 4단 위 고유 조작 1) 또는 FOREST ③(마을 번들)·REALM ②(승리 조건 4).

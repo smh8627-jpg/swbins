@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Go.Data;
+using Saga.Go.Player;
 using Saga.Go.UI;
 using Saga.Go.Audio;
 
@@ -40,6 +41,14 @@ namespace Saga.Go.World
         private const int VictoryGoldReward = 30;
         private const int PayTollCost = 40;
 
+        // PLAN.md 101-3 C hitstop(2026-09-17 추가, DUNGEON `PlayerCombat`·STORY
+        // `StoryCombat`과 같은 결) — `Time.timeScale` 대신 player·foe 두
+        // Animator.speed만 잠깐 0으로 둔다. 이 판은 프레임 단위 공격 판정이
+        // 아니라 초당 판정(`DuelRules.Step`)이라 "누가 때렸는지"가 아니라
+        // "타격이 발생했는지"(hit/heavy 이벤트) 기준으로 둘 다 같이 멎는다.
+        private const float HitstopSec = 0.07f;
+        private const float HeavyHitstopSec = 0.12f;
+
         private static readonly Color BaseColor = new Color(0.5f, 0.14f, 0.14f);
         private static readonly Color TellColor = new Color(1.0f, 0.55f, 0.1f);
 
@@ -67,6 +76,7 @@ namespace Saga.Go.World
         private Transform _visual;
         private Vector3 _visualBaseScale;
         private Color _restTint = BaseColor;
+        private Animator _playerAnimator;
 
         private GameObject _promptRoot;
         private GameObject _combatRoot;
@@ -319,6 +329,11 @@ namespace Saga.Go.World
             _duel = DuelRules.Create(foeHp, atk, def);
             _combatRoot.SetActive(true);
             RefreshCombatUi();
+
+            // hitstop용 — 전투 시작 시점에 한 번만 찾는다(타격마다 FindWithTag
+            // 하지 않는다). 씬에 플레이어가 하나뿐이라 캐싱해도 안전하다.
+            var playerGo = GameObject.FindWithTag("Player");
+            _playerAnimator = playerGo != null ? playerGo.GetComponent<PlayerController>()?.Animator : null;
         }
 
         private void DoAct(string kind)
@@ -357,11 +372,16 @@ namespace Saga.Go.World
                 case "heavy":
                     CharacterVisual.Tint(_visual.gameObject, _restTint);
                     ScreenFlash(e.Dodged ? new Color(0.2f, 1.0f, 0.4f, 0.35f) : new Color(1.0f, 0.15f, 0.15f, 0.45f));
-                    if (!e.Dodged) GoAudio.PlaySfx(hitClip);
+                    if (!e.Dodged)
+                    {
+                        GoAudio.PlaySfx(hitClip);
+                        ApplyHitstop(heavy: true);
+                    }
                     break;
                 case "hit":
                     ScreenFlash(new Color(1.0f, 0.15f, 0.15f, 0.3f));
                     GoAudio.PlaySfx(hitClip, 0.7f);
+                    ApplyHitstop(heavy: false);
                     break;
             }
         }
@@ -478,6 +498,25 @@ namespace Saga.Go.World
                 yield return null;
             }
             visual.localScale = baseScale;
+        }
+
+        /// <summary>player·foe(둘 다 있으면) Animator를 짧게 멈춘다 — foe는
+        /// `_visual`이 리깅 모델(Abe)일 때만 실제 Animator가 있고, 폴백
+        /// 캡슐이면 null이라 조용히 건너뛴다(DUNGEON `PlayerCombat`과 같은
+        /// null 허용 결).</summary>
+        private void ApplyHitstop(bool heavy)
+        {
+            var foeAnimator = _visual != null ? _visual.GetComponent<Animator>() : null;
+            StartCoroutine(HitstopRoutine(_playerAnimator, foeAnimator, heavy ? HeavyHitstopSec : HitstopSec));
+        }
+
+        private static IEnumerator HitstopRoutine(Animator a, Animator b, float seconds)
+        {
+            if (a != null) a.speed = 0f;
+            if (b != null) b.speed = 0f;
+            yield return new WaitForSeconds(seconds);
+            if (a != null) a.speed = 1f;
+            if (b != null) b.speed = 1f;
         }
 
         private void ScreenFlash(Color color)

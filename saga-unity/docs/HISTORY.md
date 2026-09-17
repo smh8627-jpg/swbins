@@ -6593,3 +6593,108 @@ TakeDamage()`가 사운드만 재생하고 "시각 반응 없이 HP만 깎인다
 실제로 확인됐지만 **이 씬의 player Animator는 null**(이 세션 STORY 테스트 환경은 폴백
 캡슐 — DUNGEON 쪽 씬과 달리 Maria가 안 잡힘)이라 hitstop 자체 값 검증은 "스킵"으로
 로그만 남고 통과 처리했다 — 코드 경로는 null 가드로 안전하게 넘어간다.
+
+## PLAN 101-3 C 타격 VFX — DUNGEON·STORY 구현, 101-3 C 완결 (2026-09-17, 새 세션 "사가유니티 이어해")
+
+**맥락**: 직전 세션이 101-3 C hitstop·shake·flash·popup을 DUNGEON·STORY 둘 다 끝내고
+PROJECT_STATE "현재 작업"에 "VFX·데칼·장비 소켓 등 101-3 나머지 C·G 항목은 남음"으로
+남겨 뒀다. "이어해"에 별다른 범위 지정이 없어 PLAN.md 101-3 표(101-3장)를 읽어 C 줄 중
+유일하게 안 끝난 "C 타격 VFX"를 골랐다 — G 항목(소켓·데칼·타임라인)은 범위가 훨씬 크고
+사용자 상의 없이 감으로 들어가기엔 크다고 판단해 미뤘다(PROJECT_STATE "다음 작업" 참고).
+
+**표와 다르게 간 결정 두 가지**(둘 다 PLAN.md 101-3 표에 직접 적음):
+1. "PC: VFX Graph" — VFX Graph는 에디터 노드 그래프 애셋이라 이 프로젝트가 지금까지
+   지켜 온 "빌드 스크립트가 전부 코드로 짓는다" 원칙과 안 맞는다(사람이 그래프를 열어
+   그릴 몫). PC도 Mobile과 같은 Shuriken `ParticleSystem`을 코드로 구성해 재사용하고,
+   강공격/크리티컬만 입자 수(8→14)·속도(3→5)로 구분했다.
+2. "풀링 16" — `DamagePopup.cs`가 이미 겪은 것과 같은 함정: 도메인 리로드를 끈 채
+   Play를 여러 번 도는 헤드리스 연속 검증에서 static 배열에 미리 만들어 둔
+   `ParticleSystem`들이 이전 Play 세션에서 파괴됐는데 배열 자체(C# 참조)는 null이 아니라
+   `if (_pool != null) return`류 가드로 못 거른다 — 다음 Play에서 破괴된 오브젝트를
+   그대로 쓰다 `MissingReferenceException`을 낸다. `DamagePopup`과 같은 이유로 풀 없이
+   매번 새 GameObject를 만들고 `Object.Destroy(go, LifeSec)`로 0.25초 뒤 자동 파괴하는
+   쪽을 택했다 — 수명이 짧고 공격 쿨다운(0.55s+)보다 훨씬 빨라 동시에 여럿 겹칠 일이
+   드물다(회전베기 정도가 예외).
+
+**머티리얼**: URP 프로젝트에서 파티클 기본(Built-in RP) 머티리얼을 그대로 쓰면 마젠타로
+깨진다. `Universal Render Pipeline/Particles/Unlit`으로 제대로 된 URP 파티클 셰이더를
+쓰려면 `_Surface`/`_Blend`/`_SURFACE_TYPE_TRANSPARENT` 등 키워드·블렌드 모드를 코드로
+전부 배선해야 하는데, 이 프로젝트엔 그 레시피 전례가 전혀 없고(파티클 자체를 처음 쓴다)
+헤드리스 검증으로는 렌더 결과를 못 보니 검증 없이 복잡한 셰이더 배선에 들어가는 대신
+`Sprites/Default`(두 렌더 파이프라인 모두에서 그대로 렌더되는 단순 알파 블렌드 셰이더)를
+새 머티리얼 없이 그대로 붙였다 — 안전한 대신 텍스처가 없어 밋밋한 점으로 보일 수 있다
+(PROJECT_STATE "실기 확인 대기" DUNGEON 줄에 남김, 다음 실기 확인 때 사람이 판단).
+
+**변경 파일**:
+- `Assets/Games/SagaDungeon/World/HitSpark.cs`(신규) — `Spawn(Vector3, bool heavy)`,
+  테스트용 `SpawnCount` 카운터.
+- `Assets/Games/SagaStory/World/HitSpark.cs`(신규) — DUNGEON과 완전히 같은 로직 사본
+  (asmdef가 서로 안 걸쳐 타입 공유 불가, 루트 CLAUDE.md "다섯 벌 복사" 원칙과 같은 이유).
+- `Assets/Games/SagaDungeon/World/DungeonEnemy.cs` — `TakeDamage()`의 `DamagePopup.Spawn()`
+  바로 옆에 `HitSpark.Spawn(popupPos, heavy)` 추가.
+- `Assets/Games/SagaStory/World/StoryEnemy.cs` — 같은 자리에 `HitSpark.Spawn(popupPos, crit)`.
+- `Assets/Editor/PlaytestDungeonHeadless.cs` — `CheckHitSpark()` 신규(`CheckHitstop()` 바로
+  뒤). 새 더미를 살짝만 때려(999999f로 즉사시키지 않음) `HitSpark.SpawnCount`가 1 늘었는지
+  확인.
+- `Assets/Editor/PlaytestStorySlice.cs` — 기존 `TryAttack()` 호출부(`CheckHitFeedback()`
+  바로 앞)에서 `hitSparkBefore`를 찍어 두고 공격 뒤 `HitSpark.SpawnCount`가 늘었는지 매
+  잡졸마다 확인(인덱스 제한 없음 — 카운터 비교라 `CheckHitFeedback`보다 훨씬 가볍다).
+- `PLAN.md` 101-3 C 타격 VFX 줄·101-2 DUNGEON 대응 파일 목록 갱신.
+
+**결과**: 컴파일 exit 0. `PlaytestDungeonHeadless`·`PlaytestStorySlice` 각 3연속 —
+전부 `hitspark OK`/`hit feedback OK`, LogError 0건. 배치 모드가 다시 고친
+`ProjectSettings/`·`Packages/`는 커밋 전 `git checkout`으로 되돌림(두 번 — 컴파일
+검증·헤드리스 검증 각각 한 번씩 다시 건드렸다).
+
+## PLAN 101-3 C hitstop — GO 구현, 실시간 전투 3판 전부 완결 (2026-09-17, 같은 세션 "GO 쪽 hitstop도 이어서 해줘")
+
+**맥락**: 직전 커밋(101-3 C 타격 VFX, DUNGEON·STORY)의 PROJECT_STATE "다음 작업"이
+"GO 쪽 hitstop"을 "GO 자체 §5 후보 ④→⑦→③ 순서가 우선이라 뒤로" 미뤄 뒀었는데,
+사용자가 직접 "GO 쪽 hitstop도 이어서 해줘"라고 우선순위를 뒤집었다 — 그대로 착수.
+
+**GO 전투의 구조 차이**: DUNGEON/STORY는 프레임 단위 실시간 공격(`TryAttack()`이
+`Animator.SetTrigger("Attack")`을 직접 쏨)이지만 GO의 `BanditEncounter`/
+`RareWolfEncounter`는 `DuelRules.Step(dt)`가 초당 판정을 내고 그 결과를
+`OnDuelEvent()`가 UI(화면 플래시·SFX·펄스 스케일)로만 그려 주는 구조라 애초에
+"공격 애니메이션" 자체가 없다. hitstop을 "누가 때렸는지"가 아니라 "타격이
+발생했는지"(hit/heavy(안 피함) 이벤트) 기준으로 걸어 player·foe(있으면) 둘 다
+짧게 멎게 했다 — 이동/유휴 애니메이션이 잠깐 끊기는 정도의 프리즈 프레임이라도
+화면에 "맞았다"는 무게를 준다고 판단(DUNGEON 101-3 표 값 그대로 70ms/120ms 재사용).
+
+**player Animator 참조가 없어서 새로 뚫음**: DUNGEON/STORY의 `PlayerController`엔
+이미 `public Animator Animator => animator;`가 있었는데 GO 것엔 없었다 — 추가하고
+`BanditEncounter.StartFight()`/`RareWolfEncounter.StartFight()`가 전투 시작 시점에
+`GameObject.FindWithTag("Player")`로 한 번만 찾아 캐싱한다(타격마다 Find 안 함).
+
+**늑대(RareWolfEncounter)는 foe 쪽이 원천적으로 없다**: 이 짐승은 아직 GLB 전이라
+primitive capsule + 머티리얼 색만 있고 Animator 자체가 없다(BanditEncounter는 Abe
+리깅 모델이라 있음) — 그래서 늑대 쪽 hitstop은 player만 실제로 걸리게 구조적으로
+갈렸다(클래스 주석에 남김).
+
+**헤드리스 검증 삽질**: `PlaytestHeadless.CheckBanditHitstop()`을 처음엔 "player·foe
+둘 다 non-null이어야 정상"으로 짜서 3연속 전부 실패했다 — 원인은 버그가 아니라
+**이 PC에 Maria FBX(`Assets/Art/CharactersRealistic/Maria WProp J J Ong.fbx`)가
+없어 GO player의 `animator` 필드가 애초에 null**이었던 것(반면 foe Abe는
+`AbeAnimated.prefab`도 이 PC엔 없지만 TestVillage.unity가 예전에 그 자산이 있던
+PC에서 구워져 씬 파일 안에 Animator 컴포넌트가 그대로 저장돼 있다 — 소스 FBX가
+사라져도 이미 인스턴스화돼 씬에 박힌 GameObject·컴포넌트는 남는다). STORY
+`CheckHitFeedback`이 이미 겪은 것과 같은 함정 — "한쪽이라도 있으면 그 쪽만
+확인, 둘 다 null이면 스킵"으로 고쳐 통과시켰다. **실제로 검증된 건 foe(Abe)
+쪽 뿐이고 player 쪽 hitstop 코드 경로는 이 PC에선 확인 못 함**(Maria가 있는
+PC에서 다시 돌리면 그쪽도 값으로 볼 수 있다).
+
+**변경 파일**:
+- `Assets/Games/SagaGo/Player/PlayerController.cs` — `public Animator Animator => animator;` 추가.
+- `Assets/Games/SagaGo/World/BanditEncounter.cs` — `HitstopSec`/`HeavyHitstopSec`
+  상수, `_playerAnimator` 필드, `StartFight()`에서 캐싱, `OnDuelEvent()`의
+  "hit"·"heavy(안 피함)"에서 `ApplyHitstop()` 호출, `ApplyHitstop()`/`HitstopRoutine()` 신설.
+- `Assets/Games/SagaGo/World/RareWolfEncounter.cs` — 같은 로직 사본(foe 쪽은 항상 null).
+- `Assets/Editor/PlaytestHeadless.cs` — `CheckBanditHitstop()` 신규(`StartFight()`·
+  `OnDuelEvent()`를 리플렉션으로 직접 호출, `CheckGoalBoardAndSessionCard()`의
+  `Update()` 직접 호출과 같은 결).
+- `PLAN.md` 101-3 C hitstop 줄 갱신 — "GO 는 아직" 삭제, 세 판 전부 완료로.
+
+**결과**: 컴파일 exit 0. `PlaytestHeadless` 3연속 — 전부 `bandit hitstop OK -
+hit 이벤트 직후 확인(player=False, foe=True)`, LogError 0건. 101-3 C(hitstop·
+shake·flash·popup·타격 VFX) 전 항목이 실시간 전투가 있는 세 판(GO·DUNGEON·STORY)
+모두에서 완결됐다 — 남은 101-3은 G 항목(장비 소켓·데칼·성장 연출·죽음 유품)뿐.

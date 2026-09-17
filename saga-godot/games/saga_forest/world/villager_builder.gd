@@ -73,16 +73,19 @@ const SELL_BASE_PRICE := {
 
 const VILLAGERS := [
 	{"id": "npc_keeper", "name": "숲지기", "line": "이 숲은 내가 돌본다 — 짐승을 함부로 놀라게 하지 마시게",
+	 "heart_line": "자네가 다녀간 뒤로 숲이 덜 사나워졌어 — 고맙네, 정말로.",
 	 "grid": Vector2i(19, 9), "glb": "res://assets/characters/character-b.glb",
 	 "gift_like": "과일",
 	 "quest": {"title": "숲의 몫", "type": "bagcat", "item_label": "과일", "count": 5, "reward": 300,
 		"desc": "겨울 채비로 과일을 다섯 개만 나눠 주게"}},
 	{"id": "npc_angler", "name": "낚시꾼", "line": "이 물엔 씨알 좋은 놈들이 산다네",
+	 "heart_line": "자네랑 나란히 낚싯대 드리우는 게 요즘 제일 낙이야.",
 	 "grid": Vector2i(26, 5), "glb": "res://assets/characters/character-c.glb",
 	 "gift_like": "물고기",
 	 "quest": {"title": "씨알 좋은 물고기", "type": "bagcat", "item_label": "물고기", "count": 3, "reward": 350,
 		"desc": "물고기 세 마리만 낚아다 주게"}},
 	{"id": "npc_merchant", "name": "상인", "line": "먼 길 다니며 이것저것 모았지 — 나중에 풀어놓겠네",
+	 "heart_line": "자네한테는 값 안 매기고 그냥 줘도 아깝지 않겠어.",
 	 "grid": Vector2i(5, 14), "glb": "res://assets/characters/character-d.glb",
 	 "gift_like": "꽃",
 	 "quest": {"title": "꽃 다섯 송이", "type": "bagcat", "item_label": "꽃", "count": 5, "reward": 300,
@@ -92,16 +95,19 @@ const VILLAGERS := [
 	 ## 만들고 이미 있는 "상인"에게 얹었다.
 	 "sells_tool": {"key": "spade", "name": "삽", "price": 700}},
 	{"id": "npc_explorer", "name": "탐험가", "line": "이 폭포 너머에 뭐가 있는지 아직 아무도 몰라",
+	 "heart_line": "다음에 폭포 너머로 갈 땐 자네부터 부르겠네.",
 	 "grid": Vector2i(25, 8), "glb": "res://assets/characters/character-b.glb",
 	 "gift_like": "광석",
 	 "quest": {"title": "숲의 나머지 사람들", "type": "meetnpc", "count": ROSTER_SIZE - 1, "reward": 500,
 		"desc": "이 숲 다른 사람들도 다 만나고 왔나?"}},
 	{"id": "npc_herbalist", "name": "약초꾼", "line": "버섯 숲엔 좋은 약초가 지천이야",
+	 "heart_line": "자네 안색만 봐도 요즘 어디 아픈 데는 없나 먼저 살피게 되네.",
 	 "grid": Vector2i(5, 8), "glb": "res://assets/characters/character-c.glb",
 	 "gift_like": "솔방울",
 	 "quest": {"title": "광석 세 덩이", "type": "bagcat", "item_label": "광석", "count": 3, "reward": 400,
 		"desc": "약을 지으려니 단단한 광석이 세 덩이 필요하네"}},
 	{"id": "npc_wanderer", "name": "나그네", "line": "이 외딴집에서 하룻밤 신세 좀 지고 있다네",
+	 "heart_line": "자네 덕에 이 숲이 남의 땅 같지 않고 편안해졌네.",
 	 "grid": Vector2i(14, 15), "glb": "res://assets/characters/character-d.glb",
 	 "gift_like": "과일",
 	 "quest": {"title": "길양식", "type": "bagcat", "item_label": "솔방울", "count": 4, "reward": 320,
@@ -188,19 +194,32 @@ func _on_body_exited(body: Node3D, v: Dictionary) -> void:
 
 ## 웹판 talkNpc() 그대로 — 부탁을 이미 마쳤으면 인사말, 안 마쳤는데
 ## 조건을 채웠으면 그 자리에서 마치고 보상, 아직이면 진행 상황.
+##
+## **2026-09-17 추가 — PLAN 101-2 FOREST ②후보 "관계 하트"(웹판 §5.4).**
+## "대화(하루 1회 +1)"는 이 함수가 곧 웹판 onTalk()이라 여기서 한 번만
+## 매긴다(어느 분기로 빠지든 하루에 한 번). 세배·부탁 완수 분기는 §5.4가
+## 딸린 값(+2 각각)을 그대로 더한다.
 func _talk(v: Dictionary) -> void:
+	if not ForestSaveState.talked_today(v.id):
+		ForestSaveState.mark_talked(v.id)
+		_gain_heart(v, 1)
+
 	## 설날 — 첫 인사는 세배다(웹판과 같은 우선순위, "부탁"보다 먼저 본다).
 	## 사람마다 하루 한 번, 친밀도가 깊을수록 두둑하다(500 + 친밀도*150,
 	## 웹판 village.js talk() 그대로).
 	if ForestFestival.is_new_year() and not ForestSaveState.has_bowed_today(v.id):
-		var money: int = 500 + int(ForestSaveState.affinity.get(v.id, 0)) * 150
+		var money: int = 500 + ForestSaveState.heart(v.id) * 150
 		ForestSaveState.add_gold(money)
 		ForestSaveState.mark_bowed(v.id)
+		_gain_heart(v, 2)
 		Toast.show(self, "%s — 새해 복 많이 받으시오. 🧧 🪙 +%d" % [v.name, money], LINE_SHOW_SEC)
 		return
 
 	if ForestSaveState.is_quest_done(v.id):
-		Toast.show(self, "%s — %s" % [v.name, v.line], LINE_SHOW_SEC)
+		## 5♥ 해제 — 고유 대화 한 줄(웹판 §5.4 "5♥ 고유 대화 3"을 하나로
+		## 좁혔다, 이 슬라이스엔 부탁을 하나만 두는 주민 구조라 그렇다).
+		var line: String = v.get("heart_line", "") if ForestSaveState.heart(v.id) >= 5 else String(v.line)
+		Toast.show(self, "%s — %s" % [v.name, line], LINE_SHOW_SEC)
 		return
 
 	var q: Dictionary = v.quest
@@ -213,7 +232,28 @@ func _talk(v: Dictionary) -> void:
 	if q.type == "bagcat":
 		ForestSaveState.items[q.item_label] = ForestSaveState.item_count(q.item_label) - int(q.count)
 	ForestSaveState.add_gold(int(q.reward))
+	_gain_heart(v, 2)
 	Toast.show(self, "%s — 「%s」을 마쳤다! 🪙 +%d" % [v.name, q.title, q.reward], LINE_SHOW_SEC)
+
+
+## PLAN 101-2 FOREST ②후보 "관계 하트" 공용 진입점 — 하루 상한(§5.4 "+4")과
+## 0~10 clamp는 ForestSaveState.gain_affinity()가 맡는다. _give_gift()는
+## 상한에 걸렸는지(applied < up) 토스트에 보여줘야 해서 gain_affinity()를
+## 직접 부르고 _check_heart_reward()만 따로 부른다 — 이 함수는 그 둘을
+## 한 번에 묶은 것뿐(대화·세배·부탁 완수처럼 적용량을 따로 안 보는 곳).
+func _gain_heart(v: Dictionary, amount: int) -> void:
+	ForestSaveState.gain_affinity(v.id, amount)
+	_check_heart_reward(v)
+
+
+## **10♥ 해제**(웹판 §5.4 "10♥ 인물 기념품 1") — 이 슬라이스엔 인물별
+## 가구 카탈로그가 없어(forest_house.gd 창고는 ForestHome.daily_shop()이
+## 도는 공용 목록뿐) **재해석**: 가구 대신 한 번뿐인 기념 사례금으로 좁혔다.
+func _check_heart_reward(v: Dictionary) -> void:
+	if ForestSaveState.heart(v.id) >= 10 and not ForestSaveState.heart_reward_10.get(v.id, false):
+		ForestSaveState.heart_reward_10[v.id] = true
+		ForestSaveState.add_gold(2000)
+		Toast.show(self, "%s — 10년이 가도 한결같구먼, 이 마음이나 받아두게. 🪙 +2000" % v.name, LINE_SHOW_SEC)
 
 
 ## bagcat(가방 속 채집물 개수)·meetnpc(만난 주민 수) 둘만 안다 — 웹판
@@ -301,7 +341,7 @@ func _open_interact_menu(v: Dictionary) -> void:
 	## test_room.gd의 은사 선택지·npc_builder.gd의 사명 제안과 같은
 	## layer_box 우회(ChoicePrompt.build() 호출 전에 만든 콜백이 그 결과를
 	## 미리 참조할 수 없어서다).
-	layer_box["layer"] = ChoicePrompt.build(self, "%s" % v.name, choices)
+	layer_box["layer"] = ChoicePrompt.build(self, "%s (♥%d)" % [v.name, ForestSaveState.heart(v.id)], choices)
 
 
 func _buy_tool(v: Dictionary, tool: Dictionary, layer_box: Dictionary) -> void:
@@ -388,6 +428,8 @@ func _give_gift(v: Dictionary, cat: String, layer_box: Dictionary) -> void:
 	ForestSaveState.mark_gifted(v.id)
 	var loved: bool = cat == v.gift_like
 	var up: int = 3 if loved else 1
-	ForestSaveState.add_affinity(v.id, up)
-	Toast.show(self, "%s%s 에게 %s 을(를) 건넸다 — 친밀도 +%d" %
-		["아주 반긴다! " if loved else "", v.name, cat, up], LINE_SHOW_SEC)
+	var applied := ForestSaveState.gain_affinity(v.id, up)
+	_check_heart_reward(v)
+	Toast.show(self, "%s%s 에게 %s 을(를) 건넸다 — 친밀도 +%d%s" %
+		["아주 반긴다! " if loved else "", v.name, cat, applied,
+			" (오늘 상한)" if applied < up else ""], LINE_SHOW_SEC)

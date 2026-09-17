@@ -1057,7 +1057,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | 게임 | 웹 §5 후보(우선순위 순, 제목만) | 3D 첫 이식 | 이 트랙 대응 파일 |
 |---|---|---|---|
 | GO | ① 봉수대(탑→지도 해제) ② 사당 시련 3분 방 ③ 75초 토벌·부위·저스트 회피 ④ 일과판+마무리 카드 ⑤ 비석 순례(GPS) ⑥ 인연(동행 관계) ⑦ 승급 3택 ⑧ 패배 비용·회수 | **④ → ⑦ → ③** (⑤ GPS 는 Unity 모바일 빌드 뒤) | `PlayerHud`·`QuestState`·`BanditEncounter`·`PartyState`·`LandmarksBuilder` |
-| DUNGEON | 5.1 축복 3택 5.2 유품(죽음 비용·회수) 5.3 부적 던전 티어 5.4 월드 보스 75초 5.5 난입 파도 5.6 목표판·카드 5.7 시대 퓨전 5.8 손맛 2차·가시화 | **5.8 → 5.1 → 5.2** (5.7 은 웹 선행 결과 뒤. 5.8 중 hitstop 은 2026-09-17 완료 — 101-3 C 표 참고, 나머지 C·G 항목(VFX·데칼·장비 소켓 등)은 남음) | `PlayerCombat`·`DungeonEnemy`·`DungeonFloorRunner`·`HeroState`·`DamagePopup` |
+| DUNGEON | 5.1 축복 3택 5.2 유품(죽음 비용·회수) 5.3 부적 던전 티어 5.4 월드 보스 75초 5.5 난입 파도 5.6 목표판·카드 5.7 시대 퓨전 5.8 손맛 2차·가시화 | **5.8 → 5.1 → 5.2** (5.7 은 웹 선행 결과 뒤. 5.8 중 hitstop·타격 VFX 는 2026-09-17 완료 — 101-3 C 표 참고, 나머지 G 항목(데칼·장비 소켓 등)은 남음) | `PlayerCombat`·`DungeonEnemy`·`DungeonFloorRunner`·`HeroState`·`DamagePopup`·`HitSpark` |
 | FOREST | 5.1 일과판 5.2 마무리 카드 5.3 마을 번들 5.4 관계 하트 5.5 발견 격자+정령 60 5.6 축제 5.7 택배 사슬 5.8 채집 손맛 | **5.1+5.2 → 5.4 → 5.5** | `ForestState`·`ForestVillager`·`ForestHomeState`·`ForestGroundBuilder` |
 | STORY | 5-1 직업 정체성(고유 조작) 5-2 무예 유파 재해석 5-3 비경 미니던전 5-4 관문 대장 주간 보스 5-5 이동 손맛 5-6 목표판·카드 5-7 손맛 표준 5-8 동료 교대 | **5-5 → 5-7 → 5-1** (전직 4직이 이미 있어 고유 조작 1개씩 얹기 쉬움. 5-7 은 2026-09-17 완료 — hitstop·shake·flash·popup 전부, 크리티컬 전역 슬로모는 웹판 원문 그대로 유지) | `StoryPlayerController`·`StoryCombat`·`StoryJobState`·`StoryEnemy` |
 | REALM | 5-1 인물 특성·야망 5-2 관계 이벤트 체인 5-3 일기토·설전 5-4 시작 시나리오·이정표 5-5 승리 조건·결과 카드 5-6 지형·진형 개입 5-7 월간 요약 카드 5-8 계승 | **5-7 → 5-4 → 5-3** (51장 사슬 확장은 5-4 이정표로 흡수. 공통 선행 A·B 는 2026-09-17 `RealmSessionTracker` 로 이식 완료 — 5-7 아이디어를 그대로 써 "월간" 트리거로 변형) | `RealmCommandUi`·`RealmWarState`·`RealmOfficer`·`RealmQuizState`·`RealmSessionTracker` |
@@ -1068,11 +1068,11 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 
 | 표준 | Unity 수단 | 기본값 |
 |---|---|---|
-| C hitstop | `Time.timeScale` 대신 **피격자·가해자 Animator.speed=0** + 나머지 정상(전역 정지는 모바일 입력 지연) | 70ms, 치명 120ms — **DUNGEON·STORY 구현 완료(2026-09-17)**. STORY는 `StoryCombat.ApplyHitFreeze()`(가해자만, 이 판은 적 쪽 Animator가 아예 없다)로, 웹판 원문 그대로인 크리티컬 전역 슬로모(`TriggerHitstop`/`Time.timeScale`)와는 별개 기능. **GO 는 아직**(현재 대응 우선순위 5-1이 먼저라 뒤로) |
+| C hitstop | `Time.timeScale` 대신 **피격자·가해자 Animator.speed=0** + 나머지 정상(전역 정지는 모바일 입력 지연) | 70ms, 치명 120ms — **다섯 판 중 실시간 전투가 있는 GO·DUNGEON·STORY 전부 구현 완료(2026-09-17)**. STORY는 `StoryCombat.ApplyHitFreeze()`(가해자만, 이 판은 적 쪽 Animator가 아예 없다)로, 웹판 원문 그대로인 크리티컬 전역 슬로모(`TriggerHitstop`/`Time.timeScale`)와는 별개 기능. GO는 `BanditEncounter`/`RareWolfEncounter.ApplyHitstop()` — 프레임 단위 공격이 아니라 초당 판정(`DuelRules.Step`)이라 "hit"/"heavy(안 피함)" 이벤트마다 player·foe(있으면) 둘 다 멎는다(늑대는 Animator 없는 primitive라 player만 실제로 걸림). GO 헤드리스 검증은 이 PC 기준 **player Animator가 null**(Maria FBX 미보유 — foe Abe는 예전에 구운 그대로라 있음)이라 foe 쪽 speed==0만 실제로 확인 |
 | C 흔들림 | **Cinemachine Impulse Source/Listener**(이미 Cinemachine 권장, 40장) | 진폭 0.15m·120ms·감쇠 지수 |
 | C 플래시 | `MaterialPropertyBlock` 로 `_EmissionColor` 80ms(머티리얼 복제 없음, SRP Batcher 유지) | 흰색 0.6 |
 | C 팝·소리 | `DamagePopup`(DUNGEON·STORY 2026-09-17 기준 2벌 — GO/FOREST/REALM은 실시간 근접 전투가 없거나 범위 밖) + `SfxPlayer` 라운드로빈 3음 | 0.6s 상승·페이드 |
-| C 타격 VFX | Mobile: Shuriken 스파크 8입자 / PC: VFX Graph 동일 이름 | 풀링 16 |
+| C 타격 VFX | Mobile: Shuriken 스파크 8입자 / PC: VFX Graph 동일 이름 | **DUNGEON·STORY 구현 완료(2026-09-17)** — `HitSpark`(두 판 각각 사본, `DamagePopup`과 같은 파일 위치). VFX Graph는 에디터 노드 그래프라 이 프로젝트의 "빌드 스크립트가 코드로 짓는다" 방식과 안 맞아 **PC도 같은 Shuriken 재사용**으로 단순화(강공격/크리티컬은 입자 수 8→14·속도로만 구분). 표의 "풀링 16"도 `DamagePopup`과 같은 이유(도메인 리로드 끈 헤드리스 연속 실행에서 static 배열이 파괴된 오브젝트를 계속 든다)로 안 쓰고 즉시 Destroy — 수명 0.25s로 짧아 안전. 헤드리스 검증은 `HitSpark.SpawnCount`(테스트 전용 카운터)로 확인 |
 | G 장비 가시화 | `CharacterVisual` 에 슬롯 소켓(무기·어깨·망토) — Mixamo Humanoid 본 이름 고정이라 소켓 공용 | 등급별 이미시브 림 3단 |
 | G 지형 반응 | **URP Decal Projector** 로 발자국·타격 흔적(웹 불가) | 수명 8s·최대 32 |
 | G 성장 연출 | Timeline + Cinemachine 컷(레벨업 1.2s) | 스킵 가능 |

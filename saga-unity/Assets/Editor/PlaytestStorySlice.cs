@@ -297,9 +297,19 @@ namespace Saga.EditorTools
                     // 확인하려는 대상이 아니다 — 연속 공격 사이 실제로 몇 프레임씩
                     // 기다리는 대신 매번 0으로 되돌려 "판정 자체"만 격리해서 본다.
                     SetPrivate(_storyController, "_attackCooldownLeft", 0f);
+                    int hitSparkBefore = HitSpark.SpawnCount;
                     InvokePrivate(_storyController, "TryAttack");
 
                     if (_enemyIndex == 0 && !CheckHitFeedback()) { Fail(); return; }
+
+                    // PLAN.md 101-3 C "타격 VFX"(2026-09-17 추가) — 죽는 잡졸마다
+                    // 확인(CheckHitFeedback과 달리 인덱스 제한 없음, 카운터 비교라 가볍다).
+                    if (HitSpark.SpawnCount != hitSparkBefore + 1)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 잡졸 #{_enemyIndex} 타격에 HitSpark가 안 생김 — SpawnCount {hitSparkBefore} → {HitSpark.SpawnCount}");
+                        Fail();
+                        return;
+                    }
 
                     // 데미지 굴림(atk21×0.88~1.12)의 최솟값(18.48)이 EnemyHp(18)보다
                     // 항상 크다 — 한 방에 죽어야 정상, 안 죽었으면 판정 로직 결함.

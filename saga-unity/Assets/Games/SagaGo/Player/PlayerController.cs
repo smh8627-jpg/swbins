@@ -33,6 +33,11 @@ namespace Saga.Go.Player
         // (Saga.Dungeon.Player.PlayerController와 같은 결).
         [SerializeField] private Animator animator;
 
+        // PLAN.md 101-3 C hitstop(2026-09-17) — BanditEncounter/RareWolfEncounter가
+        // 타격 순간 잠깐 멈추려고 읽는다(DUNGEON `PlayerCombat.cs`의 같은 이름
+        // 프로퍼티와 같은 결).
+        public Animator Animator => animator;
+
         private CharacterController _controller;
         private InputAction _moveAction;
         private InputAction _sprintAction;
