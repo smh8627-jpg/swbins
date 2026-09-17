@@ -53,6 +53,16 @@ var museum_donated := 0     # 사고에 기증한 누적 개수(종 수가 아�
                              # 이 슬라이스엔 종 카탈로그가 없어 단순화, 근거는
                              # museum.gd 상단 주석)
 
+## PLAN.md 101-2 FOREST ③후보 "마을 번들"(웹판 §5.3) — 순수 추가. 종
+## 카탈로그가 없어(위 museum_donated 머리말과 같은 이유) 웹판의 "번들당
+## 종 5~8개"를 "갈래당 기증 개수 5개"로 재해석했다(museum.gd BUNDLE_
+## THRESHOLD 참고) — 갈래(곤충·물고기·화석·조개·꽃·과일) 자체가 곧
+## 웹판 번들 하나하나에 대응한다.
+var museum_donated_by_cat: Dictionary = {}  # item_label(String) -> int
+var bundles_done: Dictionary = {}           # item_label(String) -> true(그 번들 완성)
+var village_bundle_grand_reward := false    # 웹판 "6개 완성 → 평가 상한 해제+깃발"의
+                                             # 재해석 보상(사례금+깃발 장식)을 한 번만 준다
+
 ## 5번째 확장(제외 목록 5번 — 순무 시세) — 역시 순수 추가. 가진 것만
 ## 남긴다는 웹판 turnip.js 원칙 그대로: {n, buy, week} 셋뿐, 시세는
 ## ForestTurnip이 주 번호에서 다시 계산한다(저장 안 함).
@@ -244,7 +254,24 @@ func donate_to_museum(item_label: String) -> bool:
 		return false
 	items[item_label] = item_count(item_label) - 1
 	museum_donated += 1
+	museum_donated_by_cat[item_label] = int(museum_donated_by_cat.get(item_label, 0)) + 1
 	return true
+
+
+## museum.gd BUNDLE_THRESHOLD(5)를 이 갈래가 막 넘겼으면 true(한 번만,
+## bundles_done으로 잠근다) — donate_to_museum() 바로 다음에 불러야
+## "막 넘긴 순간"을 잡는다.
+func check_bundle_complete(item_label: String, threshold: int) -> bool:
+	if bundles_done.get(item_label, false):
+		return false
+	if int(museum_donated_by_cat.get(item_label, 0)) < threshold:
+		return false
+	bundles_done[item_label] = true
+	return true
+
+
+func bundles_done_count() -> int:
+	return bundles_done.size()
 
 
 func has_turnip() -> bool:
@@ -396,6 +423,9 @@ func save() -> bool:
 		"heart_reward_10": heart_reward_10,
 		"tools": tools,
 		"museum_donated": museum_donated,
+		"museum_donated_by_cat": museum_donated_by_cat,
+		"bundles_done": bundles_done,
+		"village_bundle_grand_reward": village_bundle_grand_reward,
 		"turnip": turnip,
 		"bow": bow,
 		"planted": planted,
@@ -456,6 +486,11 @@ func try_load() -> bool:
 	var loaded_tools: Variant = data.get("tools", {})
 	tools = loaded_tools if typeof(loaded_tools) == TYPE_DICTIONARY else {}
 	museum_donated = int(data.get("museum_donated", 0))
+	var loaded_museum_by_cat: Variant = data.get("museum_donated_by_cat", {})
+	museum_donated_by_cat = loaded_museum_by_cat if typeof(loaded_museum_by_cat) == TYPE_DICTIONARY else {}
+	var loaded_bundles_done: Variant = data.get("bundles_done", {})
+	bundles_done = loaded_bundles_done if typeof(loaded_bundles_done) == TYPE_DICTIONARY else {}
+	village_bundle_grand_reward = bool(data.get("village_bundle_grand_reward", false))
 	var loaded_turnip: Variant = data.get("turnip", {})
 	turnip = loaded_turnip if typeof(loaded_turnip) == TYPE_DICTIONARY else {}
 

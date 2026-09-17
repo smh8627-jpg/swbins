@@ -7288,3 +7288,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_victory.gd/.tscn`, 커밋 전 지움) — 10가지: 문화 미달/충족·한 번 굳으면 다른 조건 채워도 안 바뀜·외교 미달/충족·`_all_alive_forces_at_peace()` 세 단계(아무도 화친 안 함/한 세력만 화친/전원 화친, 세력 12개 확인)·목표판 진척 문구. 전부 통과.
 - 헤드리스 에디터 임포트 0 에러, `tools/godot_regress.sh` 다섯 판 스모크 오류 0·project.godot/.import 잡음 없음.
 - 다음: REALM ③(인물 특성·야망) 또는 FOREST ③(마을 번들)·STORY ③(직업 정체성).
+
+## FOREST 마을 번들 (2026-09-17, 새 세션, "새로운 세션에서") — PLAN 101-2 FOREST ③후보
+- 웹판 saga-forest/PLAN.md §5.3 "마을 번들 — 모으면 마을이 변한다"를 옮겼다. 웹판은 번들당 종 5~8종(꽃 6종·물고기 8종·곤충 8종·화석 6·조개 5·계절 열매 4)을 요구하지만, museum.gd 머리말이 이미 밝힌 대로 이 슬라이스엔 종 카탈로그가 없다(갈래당 아이템 하나뿐) — **재해석**: "갈래당 기증 개수 5개"로 문턱을 좁히고, 기증 가능한 갈래를 기존 4(곤충·물고기·화석·조개)에서 6(꽃·과일 추가)으로 늘려 웹판 번들 여섯 개에 정확히 대응시켰다.
+- `forest_save_state.gd`에 `museum_donated_by_cat`(갈래별 누적, 신규)·`bundles_done`(갈래별 완성 플래그, 신규)·`village_bundle_grand_reward`(여섯 다 채운 보상 1회, 신규) 추가 — 전부 순수 추가라 SAVE_VERSION 안 올림. `donate_to_museum()`이 기존 총합(`museum_donated`)과 함께 갈래별 카운트도 같이 올리게 고쳤다.
+- `ForestSaveState.check_bundle_complete(cat, threshold)` — 문턱을 막 넘긴 순간만 true, `bundles_done`으로 잠가 재발동 안 함(gifted_today() 류의 "하루 한 번" 패턴과 달리 이건 "평생 한 번").
+- `museum.gd` — 완성 시 사고를 중심으로 육각 배치(6칸, `BUNDLE_SLOT_RADIUS`)에 primitive 기둥(CylinderMesh, 갈래별 색) + 이모지 라벨(Label3D, billboard)을 짓는다(웹판 "보이는 것 1개"·새 GLB 없이). 여섯 다 채우면 사고 위에 깃발(기둥+천 조각 두 MeshInstance3D) + 🪙3000 — 웹판 "평가 상한 해제"는 3D에 마을 평가 시스템 자체가 없어(따로 만든 적 없음) 재해석했다.
+- **저장은 값만, 그림은 로드 때 다시 짓는다**(forest_house.gd 가구와 같은 원칙) — `museum.gd::_ready()`가 `bundles_done`·`village_bundle_grand_reward`를 보고 이미 있는 장식을 다시 인스턴스화한다.
+- 자가진단(임시 `_diag_bundle.gd/.tscn`, 커밋 전 지움) 8가지: 문턱 미달/막 넘김/이미 완성(잠김) 3단계·완성 개수 카운트·여섯 다 채운 뒤 TestVillageForest.tscn 실제 인스턴스화해 museum 노드 찾기·로드 시 장식 6개 재구성·깃발 재구성. 도중에 `find_child(pattern, false)`가 기본 `owned=true`라 런타임 `add_child()`만 한 동적 노드(owner 없음)를 못 찾는 함정을 밟았다 — `get_children()` 직접 순회로 바꿔 해결(다음에 이런 진단 짤 때 참고, STORY 이동 손맛 세션의 Input 타이밍 함정과 같은 결의 "진단 도구 자체의 한계"였다).
+- 헤드리스 에디터 임포트 0 에러, `tools/godot_regress.sh` 다섯 판 스모크 오류 0·md5 전부 불변(장식 생성이 idle 스모크에 안 걸림)·project.godot/.import 잡음 없음.
+- 다음: FOREST ④(발견 격자, 구면 시야 반경 기준) 또는 STORY ③(직업 정체성)·REALM ③(인물 특성·야망).
