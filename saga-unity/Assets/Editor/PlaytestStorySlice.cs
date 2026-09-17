@@ -658,6 +658,52 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+
+                    // PLAN.md 104-1 "Playtest 원칙 교체"가 남겨둔 구멍 —
+                    // `StoryJobChoiceUi`(전직 팝업)는 지금까지 어떤 Playtest도
+                    // 존재조차 확인 안 했다(2026-09-16 세션이 "테스트가 아예
+                    // 없음"이라 범위 밖으로 남김, docs/HISTORY.md 참고). 아래
+                    // `StoryJobState.ChooseJob()` 직접 호출과는 별개로, 내
+                    // 콜백만 써서 위젯 자체(Show()로 뜨는지·버튼 클릭 흉내로
+                    // 닫히고 콜백이 오는지)를 먼저 확인한다 — 실제 게임
+                    // 상태(`StoryJobState`)는 안 건드린다.
+                    var jobChoiceUi = Object.FindFirstObjectByType<StoryJobChoiceUi>();
+                    if (jobChoiceUi == null)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] StoryJobChoiceUi 컴포넌트를 못 찾음");
+                        Fail();
+                        return;
+                    }
+                    if (jobChoiceUi.IsShowing)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] StoryJobChoiceUi가 시작부터 떠 있음(기본은 숨김)");
+                        Fail();
+                        return;
+                    }
+                    string jobChosenByCallback = null;
+                    jobChoiceUi.Show("테스트 안내문", jobKey => jobChosenByCallback = jobKey);
+                    if (!jobChoiceUi.IsShowing)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] StoryJobChoiceUi.Show() 호출 후에도 안 뜸");
+                        Fail();
+                        return;
+                    }
+                    var chooseMethod = typeof(StoryJobChoiceUi).GetMethod("Choose", BindingFlags.NonPublic | BindingFlags.Instance);
+                    chooseMethod.Invoke(jobChoiceUi, new object[] { "warrior" }); // 버튼 onClick과 같은 경로.
+                    if (jobChoiceUi.IsShowing)
+                    {
+                        Debug.LogError("[PlaytestStorySlice] 버튼 클릭(Choose) 후에도 StoryJobChoiceUi 패널이 안 닫힘");
+                        Fail();
+                        return;
+                    }
+                    if (jobChosenByCallback != "warrior")
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 버튼 클릭 콜백이 실제로 안 옴 — jobChosenByCallback={jobChosenByCallback}");
+                        Fail();
+                        return;
+                    }
+                    Debug.Log("[PlaytestStorySlice] job choice UI OK - Show()로 뜨고 버튼 클릭(Choose)으로 콜백+닫힘 확인");
+
                     if (StoryJobState.AtkBonus != 0f)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 전직 전인데 AtkBonus!=0 — {StoryJobState.AtkBonus}");

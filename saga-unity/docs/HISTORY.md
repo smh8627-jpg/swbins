@@ -6937,3 +6937,37 @@ zoom=3"으로 실패했다. 원인은 데칼과 무관 — `CheckLootMarker`가 
 0건. PLAN 101-3 표는 이제 A·B(공통 선행)·C(hitstop/shake/flash/popup/
 타격 VFX)·F(죽음)·G(성장 연출·장비 소켓·지형 반응) 전부 DUNGEON 기준
 완료 — 다른 네 판은 각자 손맛 표준 진행 상황에 맞춰 범위 밖으로 남음.
+
+## PLAN 104-1 ② 남은 구멍 — StoryJobChoiceUi(전직 팝업) 테스트 신설 (2026-09-17, 같은 세션 "사가유니티 이어해")
+
+101-3 표가 DUNGEON 기준으로 완결된 뒤라, PLAN 105 열린 질문(Q1·Q3′·Q4·
+Q-U2·Q-U4)은 전부 사용자 결정 대기라 손대지 않고 104-1 Phase 0 목록을
+다시 훑었다. ①③은 2026-09-16에 이미 끝나 있었고(HISTORY 그 날짜 절
+참고), ②(Playtest "존재 확인만" 교체)도 거의 끝났지만 그날 세션이 명시적으로
+범위 밖으로 남긴 구멍이 하나 있었다 — "`StoryJobChoiceUi`(전직 팝업)는
+애초에 어떤 Playtest도 그 존재조차 확인 안 하고 있다"("교체"가 아니라
+"테스트가 아예 없음"이라는 이유로 그때는 안 건드림).
+
+**메꿈**: `PlaytestStorySlice.cs`의 `Phase.SaveLoad` 케이스, 기존
+`StoryJobState.ChooseJob("warrior")` 직접 호출 테스트 **바로 앞**에 위젯
+자체 검증을 추가했다 — `CanChooseJob`이 이미 true인 시점이라 실제
+`StoryJobTrainer`가 팝업을 띄우는 것과 같은 타이밍이다. 실제 게임 상태를
+안 건드리려고 **내 콜백만 써서** `StoryJobChoiceUi.Show()`로 띄우고
+(`IsShowing` 확인), private `Choose("warrior")`를 리플렉션으로 불러
+버튼 클릭을 흉내 낸 뒤 패널이 닫히고 내 콜백이 실제로 "warrior"를
+받았는지 확인한다. 그다음에야 기존 코드가 `StoryJobState.ChooseJob()`으로
+진짜 전직을 수행 — 두 검증이 서로 안 겹친다.
+
+**변경 파일**:
+- `Assets/Editor/PlaytestStorySlice.cs` — 위젯 검증 46줄 추가.
+- `PLAN.md` 104-1 ①②③에 완료 표시(①③은 2026-09-16에 이미 끝나 있었는데
+  표에 표시가 안 돼 있던 것도 이번에 같이 정리).
+
+**결과**: 컴파일 exit 0(`tools/unity-batch.sh` 경유). `PlaytestStorySlice`
+3연속 — 전부 `job choice UI OK - Show()로 뜨고 버튼 클릭(Choose)으로
+콜백+닫힘 확인` + `save/load round-trip OK`, LogError 0건.
+
+이로써 104-1 Phase 0은 사용자 결정 대기인 ⑤(Art candidates)와 사용자가
+직접 하는 ④(실기 확인)만 남고 전부 끝났다. saga-godot 세션이 같은 트리에서
+동시에 돌고 있어(`git status`에 `../saga-godot/...` 변경분이 보임) 그쪽은
+안 건드리고 `Assets/Editor/PlaytestStorySlice.cs` 한 파일만 커밋했다.

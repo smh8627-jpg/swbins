@@ -1165,9 +1165,9 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 # 104. 안정화·검증 (SAGA-DESIGN §8 적용, Phase 0)
 
 ## 104-1. Phase 0 목록(101 착수 전에 끝낸다)
-1. 배치 모드 뒤 4파일 원복을 `tools/unity-batch.sh`(제안) 한 줄로: 실행 → `git checkout -- ProjectSettings/ProjectVersion.txt ProjectSettings/EditorSettings.asset Packages/manifest.json Packages/packages-lock.json` → `git status --porcelain` 출력. 사람이 매번 기억하지 않게.
-2. **Playtest 원칙 교체**: `GameObject.Find` 존재 확인만 하는 단계를 전부 "실제 메서드 호출 + 상태 변화 확인" 으로(REALM `RealmCommandUi` 크래시가 여러 세션 숨어 있던 원인). 대상 grep: `GameObject.Find(` in `Assets/Editor/Playtest*.cs`.
-3. `[SerializeField]` 누락 감사: `Assets/Games/**/UI/*.cs` 의 plain private 참조 필드 grep → 승격.
+1. ~~배치 모드 뒤 4파일 원복을 `tools/unity-batch.sh` 한 줄로~~ — **완료**(`tools/unity-batch.sh`, 2026-09-16).
+2. ~~**Playtest 원칙 교체**~~ — **완료**(2026-09-16, GO·DUNGEON·FOREST·STORY `CheckSettingsPanel()` 전부 실제 호출 검증으로 교체). 남았던 구멍 `StoryJobChoiceUi`(전직 팝업, 테스트 자체가 없던 것)도 **2026-09-17에 메움**(`PlaytestStorySlice.cs` — Show()로 뜨는지·버튼 클릭(Choose)으로 콜백+닫힘까지 확인).
+3. ~~`[SerializeField]` 누락 감사~~ — **완료**(2026-09-16, `UI/`·`World/`·`Player/` 폴더 전부 grep, 버그 없음 확인).
 4. 실기 확인 대기(`PROJECT_STATE.md`) 를 사용자가 몰아서 1회 — 결과로 닫히는 항목만 지운다.
 5. `Assets/Art/*_candidates` 승격·삭제(102-4, 105장 결정 뒤).
 6. 문서 상한: `PROJECT_STATE.md` ≤15KB·PLAN ≤110KB — `tools/precheck.sh` 가 검사한다.
