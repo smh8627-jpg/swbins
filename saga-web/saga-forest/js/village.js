@@ -563,6 +563,42 @@
     /* 사고(史庫) — 전방 건너편. 기증은 이 앞에서만 받는다 */
     props.push({ id: 'museum', kind: 'museum', x: (cx - 6) * TILE + 20, y: (cy + 1) * TILE + 20 });
 
+    /* 번들 시설(PLAN §5.3, 2026-09-17①) — 사고 갈래(museum.byCat())를 다
+       채우면 그 갈래에 배정된 시설(VD.BUNDLES)이 마을에 고정으로 선다.
+       캠프·museum 과 같은 결로 **해시가 아니라 세이브 조건부 고정 자리**다
+       — 완결이 풀리면(예: 팔아서 다시 갈래가 안 채워지는 일은 없다, donated
+       는 한 번 들이면 안 지워진다) 계속 서 있는다. 호수·강 기반 자리는
+       `lakeCenter()`가 null(고리가 좁아 호수를 포기한 판)이면 같이 건너뛴다. */
+    var MU5_3 = global.DG.museum;
+    if (MU5_3) {
+      var byc5_3 = MU5_3.byCat(), lc5_3 = lakeCenter();
+      for (var bci5_3 = 0; bci5_3 < byc5_3.length; bci5_3++) {
+        var bc5_3 = byc5_3[bci5_3];
+        if (bc5_3.total <= 0 || bc5_3.done < bc5_3.total) { continue; }
+        var bd5_3 = VD.BUNDLES[bc5_3.cat.key];
+        if (!bd5_3) { continue; }
+        if (bd5_3.facility === 'stele') {
+          props.push({ id: 'bundle_fossil', kind: 'stele',
+            x: (cx - 6) * TILE - 26, y: (cy + 1) * TILE + 20 });
+        } else if (bd5_3.facility === 'fireflyplot') {
+          props.push({ id: 'bundle_bug', kind: 'fireflyplot',
+            x: (cx + 2) * TILE + 20, y: (cy + 2) * TILE + 20 });
+        } else if (bd5_3.facility === 'bench' && lc5_3) {
+          props.push({ id: 'bundle_fish', kind: 'bench',
+            x: (lc5_3.tx + lc5_3.r * 1.6 + 1) * TILE + TILE * 0.5,
+            y: lc5_3.ty * TILE + TILE * 0.5 });
+        } else if (bd5_3.facility === 'shell' && lc5_3) {
+          var srx5_3 = riverCenterX(lc5_3.ty - 2);
+          if (srx5_3 !== null) {
+            props.push({ id: 'bundle_shell0', kind: 'shell',
+              x: (srx5_3 + RIVER_HALF_W + 0.6) * TILE + TILE * 0.5, y: (lc5_3.ty - 2) * TILE + TILE * 0.5 });
+            props.push({ id: 'bundle_shell1', kind: 'shell',
+              x: (srx5_3 + RIVER_HALF_W + 0.6) * TILE + TILE * 0.5, y: (lc5_3.ty - 1) * TILE + TILE * 0.5 });
+          }
+        }
+      }
+    }
+
     /* 숲 고리(PLAN 40절 PHASE 3 "넓은 Forest Map" + PLAN 11절 Biome) — 마을 밖에
        바이옴을 따라 사물을 흩뿌린다. id 접두 'f' 로 마을 것('p'..)과 겹치지 않게
        가른다.
@@ -1665,6 +1701,15 @@
     }
     if (prop.kind === 'sapling') {
       return { kind: 'empty', text: '아직 묘목입니다 — ' + (prop.leftDays || 1) + '일 더' };
+    }
+    /* 번들 시설(PLAN §5.3) — 시트를 열 게 없는 그냥 구경거리라 sapling 과
+       같은 결로 toast 만 띄운다(village:open 을 부르면 ui.js SHEET_TITLE 에
+       없는 이름이라 엉뚱하게 "기록" 시트가 열린다) */
+    if (prop.kind === 'stele') {
+      return { kind: 'empty', text: '🪧 화석을 모두 갖춘 사고를 기려 세운 비석입니다' };
+    }
+    if (prop.kind === 'fireflyplot') {
+      return { kind: 'empty', text: '✨ 낮에는 그저 풀밭이지만, 밤이 되면 반딧불이가 모여든다고 합니다' };
     }
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }

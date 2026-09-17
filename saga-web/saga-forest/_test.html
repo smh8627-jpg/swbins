@@ -2005,6 +2005,55 @@ window.DG_NO_TUNE = true;
         (g0 + ' → ' + g1 + ' (6종)');
     });
 
+    t('번들 시설 — 사고 갈래 완결 시에만 서고, 안 채우면 없다 (PLAN §5.3①)', function () {
+      var s = V.state(), VD = DG.villageData;
+      var savedDonated = s.donated;
+      s.donated = {};
+      V.buildProps();
+      var raw0 = V.raw();
+      var noneBefore = !raw0.props.some(function (p) { return p.id === 'bundle_fossil' || p.id === 'bundle_bug'; });
+
+      var fossils = VD.ITEMS.fossil, i;
+      for (i = 0; i < fossils.length; i++) { s.donated[fossils[i].key] = true; }
+      V.buildProps();
+      var raw1 = V.raw();
+      var stele = raw1.props.filter(function (p) { return p.id === 'bundle_fossil'; })[0];
+      var bugStillMissing = !raw1.props.some(function (p) { return p.id === 'bundle_bug'; });
+
+      s.donated = savedDonated;
+      V.buildProps();
+
+      return noneBefore && stele && stele.kind === 'stele' && bugStillMissing &&
+        '미완결 없음 · 화석만 채우면 석비만 선다(곤충 갈래는 그대로 없음)';
+    });
+
+    t('번들 시설 — 넷 다 채워도 다른 고정 자리와 안 겹친다 (PLAN §5.3① 충돌 없음)', function () {
+      var s = V.state(), VD = DG.villageData;
+      var savedDonated = s.donated;
+      s.donated = {};
+      ['fossil', 'bug', 'fish', 'shell'].forEach(function (cat) {
+        VD.ITEMS[cat].forEach(function (it) { s.donated[it.key] = true; });
+      });
+      V.buildProps();
+      var raw = V.raw();
+      var fixed = raw.props.filter(function (p) {
+        return ['shop', 'home', 'museum', 'board', 'mail', 'tailor', 'pole'].indexOf(p.id) >= 0 ||
+          p.id.indexOf('bundle_') === 0;
+      });
+      var dup = false;
+      for (var i = 0; i < fixed.length && !dup; i++) {
+        for (var j = i + 1; j < fixed.length; j++) {
+          if (fixed[i].x === fixed[j].x && fixed[i].y === fixed[j].y) { dup = true; break; }
+        }
+      }
+      var bundleN = raw.props.filter(function (p) { return p.id.indexOf('bundle_') === 0; }).length;
+
+      s.donated = savedDonated;
+      V.buildProps();
+
+      return !dup && bundleN === 5 && (bundleN + '개 시설 · 겹치는 자리 없음');
+    });
+
     t('도감과 사고는 다른 자리다 (팔아도 도감은 남는다)', function () {
       var s = V.state();
       s.donated = {};

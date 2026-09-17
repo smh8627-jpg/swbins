@@ -48,6 +48,11 @@
               hint: '판다', tool: 'spade' },
     shell:  { name: '조개',   emoji: '🐚', gather: 'shell',  reset: 1, hint: '줍는다' },
     museum: { name: '사고(史庫)', emoji: '🏛️', gather: null, reset: 0, hint: '들어간다' },
+    /* 번들 시설(PLAN §5.3, 2026-09-17①) — 사고 갈래(MUSEUM_CATS)를 다 채우면
+       village.js buildProps() 가 BUNDLES 표를 보고 심는다. 자리 표시만(①) —
+       석비 문구·반딧불이 밤 파티클 배율은 다음 차례 */
+    stele:      { name: '석비',   emoji: '🪧', gather: null, reset: 0, hint: '읽는다' },
+    fireflyplot:{ name: '반딧불이 정원', emoji: '✨', gather: null, reset: 0, hint: '바라본다' },
     pole:   { name: '깃대',   emoji: '🚩', gather: null,     reset: 0, hint: '올려다본다' },
     weed:   { name: '잡초',   emoji: '🌿', gather: null,     reset: 0, hint: '뽑는다' },
     tailor: { name: '침선방(針線房)', emoji: '🧵', gather: null, reset: 0, hint: '옷을 고른다' },
@@ -588,6 +593,23 @@
     { key: 'shell',  name: '조개',   icon: '🐚' }
   ];
 
+  /**
+   * 번들(PLAN §5.3 "마을 번들 — 모으면 마을이 변한다", 2026-09-17①) — 사고
+   * 갈래를 다 채우면(museum.byCat() 의 done===total) village.js buildProps()
+   * 가 그 갈래에 배정된 시설을 마을에 고정으로 심는다.
+   *
+   * PLAN 원안은 꽃·열매까지 6번들인데, **이 둘은 사고(MUSEUM_CATS)가 애초에
+   * 안 받는 갈래**다(꽃·열매는 판매·선물용, 이 판에 기증 UI가 없다) — 기증
+   * 갈래를 늘리는 건 그 자체로 정책 결정(선물·판매와 겹치는 물건을 사고에도
+   * 받을지)이라 이번엔 안 건드리고 넷만 채운다. 다음 차례에 사용자와 확인.
+   */
+  var BUNDLES = {
+    fossil: { facility: 'stele',       name: '화석 갈래 완결 — 석비' },
+    bug:    { facility: 'fireflyplot', name: '곤충 갈래 완결 — 반딧불이 정원' },
+    fish:   { facility: 'bench',       name: '물고기 갈래 완결 — 호숫가 평상' },
+    shell:  { facility: 'shell',       name: '조개 갈래 완결 — 강가 조개 길' }
+  };
+
   /** 집 평가 등급 — 점수가 오르면 이름이 바뀐다 (원작의 그 평가서) */
   var HOME_GRADES = [
     { at: 0,    name: '휑한 방' },
@@ -979,7 +1001,7 @@
     SEASONS: SEASONS, TOOLS: TOOLS,
     FURNITURE: FURNITURE, FURN_SETS: FURN_SETS, furn: furn,
     WALLS: WALLS, FLOORS: FLOORS, wall: wall, floor: floor,
-    MUSEUM_GRADES: MUSEUM_GRADES, MUSEUM_CATS: MUSEUM_CATS,
+    MUSEUM_GRADES: MUSEUM_GRADES, MUSEUM_CATS: MUSEUM_CATS, BUNDLES: BUNDLES,
     FOLK_TYPES: FOLK_TYPES,
     WEAR_PARTS: WEAR_PARTS, WEAR_COATS: WEAR_COATS, WEAR_HEADS: WEAR_HEADS,
     WEAR_DYES: WEAR_DYES, WEAR_CAPES: WEAR_CAPES,
