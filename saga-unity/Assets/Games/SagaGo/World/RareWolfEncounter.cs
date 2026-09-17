@@ -298,11 +298,16 @@ namespace Saga.Go.World
                 case "heavy":
                     _visualMat.color = BaseColor;
                     ScreenFlash(e.Dodged ? new Color(0.2f, 1.0f, 0.4f, 0.35f) : new Color(1.0f, 0.15f, 0.15f, 0.45f));
-                    if (!e.Dodged) ApplyHitstop(heavy: true);
+                    if (!e.Dodged)
+                    {
+                        ApplyHitstop(heavy: true);
+                        GroundDecal.Spawn(transform.position, GroundDecal.Kind.HitMark); // PLAN.md 101-3 G "지형 반응".
+                    }
                     break;
                 case "hit":
                     ScreenFlash(new Color(1.0f, 0.15f, 0.15f, 0.3f));
                     ApplyHitstop(heavy: false);
+                    GroundDecal.Spawn(transform.position, GroundDecal.Kind.HitMark); // PLAN.md 101-3 G "지형 반응".
                     break;
             }
         }
@@ -339,6 +344,10 @@ namespace Saga.Go.World
                 if (PlayerStats.Level > levelBefore) msg += string.Format(GoLocalization.T("encounter.levelup_suffix", " — 레벨업! ({0} → {1})"), levelBefore, PlayerStats.Level);
                 if (item != null) msg += string.Format(GoLocalization.T("encounter.loot_certain", "\n{0}을(를) 확실히 얻었다."), item.Name);
                 Toast(msg, VictoryToastSec);
+
+                // PLAN.md 101-3 F "죽음"(2026-09-17) — 보상은 이미 위에서
+                // 다 줬다, 이건 그 자리에 남는 시각적 표식뿐.
+                LootMarker.Spawn(transform.position);
 
                 // 희귀 몬스터는 이번 슬라이스에서 한 번만 나고 다시 안 난다
                 // (도적과 같은 결, RareWolfState가 재등장을 막는다).

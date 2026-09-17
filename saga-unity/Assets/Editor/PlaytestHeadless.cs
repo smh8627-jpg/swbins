@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using Saga.Core;
 using Saga.Go.Audio;
 using Saga.Go.Data;
+using Saga.Go.Player;
 using Saga.Go.UI;
 using Saga.Go.World;
 
@@ -117,6 +118,16 @@ namespace Saga.EditorTools
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
                 CheckBanditHitstop();
+                CheckGroundDecal();
+                // CheckBanditLootMarker보다 먼저 — DUNGEON에서 겪은 것과 같은
+                // 함정(PlaytestDungeonHeadless.cs 참고)을 피하려고 이 체크를
+                // 세션의 첫 레벨업으로 만든다. CheckBanditLootMarker의
+                // FinishFight()가 PlayerStats.AddExp()를 불러 레벨업을 유발할
+                // 수 있어, 그 뒤에 이 체크가 돌면 배치 모드 프레임 시간
+                // 편차로 두 레벨업 컷이 겹쳐 간헐적으로 실패할 수 있다.
+                CheckLevelUpCut();
+                CheckBanditLootMarker();
+                CheckWeaponVisual();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -463,6 +474,149 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log($"[PlaytestHeadless] bandit hitstop OK - hit 이벤트 직후 확인(player={(playerAnimator != null)}, foe={(foeAnimator != null)})");
+        }
+
+        /// <summary>PLAN.md 101-3 G "지형 반응"(2026-09-17 추가) — DUNGEON
+        /// `PlaytestDungeonHeadless.CheckGroundDecal()`과 같은 결. `hit`
+        /// 이벤트가 실제로 `GroundDecal.Spawn(HitMark)`을 부르는지, 그리고
+        /// "최대 32" 캡이 지켜지는지 본다(발자국은 씬이 짧게 도는 헤드리스
+        /// 특성상 플레이어가 거의 안 움직여 여기선 안 본다 — 히트마크와
+        /// 스폰 함수 자체가 같아 캡 검증엔 충분하다).</summary>
+        private static void CheckGroundDecal()
+        {
+            var encounter = Object.FindFirstObjectByType<BanditEncounter>();
+            if (encounter == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 지형 데칼 검증용 BanditEncounter를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            int before = GroundDecal.ActiveCount;
+            var onDuelEvent = typeof(BanditEncounter).GetMethod("OnDuelEvent", BindingFlags.NonPublic | BindingFlags.Instance);
+            onDuelEvent.Invoke(encounter, new object[] { new DuelRules.DuelEvent { T = "hit", Dmg = 1f } });
+
+            if (GroundDecal.ActiveCount <= before)
+            {
+                Debug.LogError($"[PlaytestHeadless] 타격 지형 데칼이 안 생김 — before={before} after={GroundDecal.ActiveCount}");
+                _hadError = true;
+                return;
+            }
+
+            for (int i = 0; i < 40; i++)
+            {
+                GroundDecal.Spawn(Vector3.zero, GroundDecal.Kind.HitMark);
+            }
+
+            if (GroundDecal.ActiveCount > 32)
+            {
+                Debug.LogError($"[PlaytestHeadless] 지형 데칼 최대 32 캡이 안 지켜짐 — ActiveCount={GroundDecal.ActiveCount}");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log($"[PlaytestHeadless] ground decal OK - hit마다 생성 확인, 캡 이후 ActiveCount={GroundDecal.ActiveCount}(<=32)");
+        }
+
+        /// <summary>PLAN.md 101-3 G "성장 연출"(2026-09-17 추가) — DUNGEON
+        /// `CameraRig.PlayLevelUpCut()`과 같은 결. `PlayerStats.AddExp()`가
+        /// `LeveledUp`을 동기 호출하고 `GameBootstrap.OnLeveledUp()`이 그
+        /// 자리에서 `StartCoroutine()`을 불러 같은 프레임에 `_zoom`이 이미
+        /// 움직여 있다. **`CheckBanditLootMarker`보다 반드시 먼저 돈다**(위
+        /// `CountFrames()` 주석 참고).</summary>
+        private static void CheckLevelUpCut()
+        {
+            var cameraRig = Object.FindFirstObjectByType<CameraRig>();
+            if (cameraRig == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 성장 연출 검증용 CameraRig를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var zoomField = typeof(CameraRig).GetField("_zoom", BindingFlags.NonPublic | BindingFlags.Instance);
+            float zoomBefore = (float)zoomField.GetValue(cameraRig);
+
+            PlayerStats.AddExp(PlayerStats.ExpToNext + 1);
+
+            float zoomAfter = (float)zoomField.GetValue(cameraRig);
+            if (Mathf.Approximately(zoomAfter, zoomBefore))
+            {
+                Debug.LogError($"[PlaytestHeadless] 레벨업 직후 카메라 줌이 안 바뀜 — zoom={zoomAfter}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestHeadless] level-up cut OK - 레벨업 직후 zoom {zoomBefore:F2}→{zoomAfter:F2}");
+        }
+
+        /// <summary>PLAN.md 101-3 F "죽음"(2026-09-17 추가) — DUNGEON
+        /// `CheckLootMarker()`와 같은 결. `_duel.Cleared`를 강제로 true로
+        /// 만든 뒤 `FinishFight()`를 직접 불러 승리 경로(보상+`LootMarker.
+        /// Spawn()`+`Destroy(gameObject)`)를 실제로 태운다.</summary>
+        private static void CheckBanditLootMarker()
+        {
+            var encounter = Object.FindFirstObjectByType<BanditEncounter>();
+            if (encounter == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 유품 마커 검증용 BanditEncounter를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var startFight = typeof(BanditEncounter).GetMethod("StartFight", BindingFlags.NonPublic | BindingFlags.Instance);
+            startFight.Invoke(encounter, null);
+
+            var duelField = typeof(BanditEncounter).GetField("_duel", BindingFlags.NonPublic | BindingFlags.Instance);
+            var duel = (DuelRules)duelField.GetValue(encounter);
+            duel.Cleared = true;
+
+            int before = LootMarker.SpawnCount;
+            var finishFight = typeof(BanditEncounter).GetMethod("FinishFight", BindingFlags.NonPublic | BindingFlags.Instance);
+            finishFight.Invoke(encounter, null);
+
+            if (LootMarker.SpawnCount != before + 1)
+            {
+                Debug.LogError($"[PlaytestHeadless] 유품 마커가 안 생김 — SpawnCount {before} → {LootMarker.SpawnCount}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log("[PlaytestHeadless] loot marker OK - 승리 시 LootMarker.Spawn 호출 확인(픽업 경로는 이후 자연 프레임에서 같이 검증됨)");
+        }
+
+        /// <summary>PLAN.md 101-3 G "장비 가시화"(2026-09-17 추가) — DUNGEON
+        /// `CheckWeaponVisual()`과 같은 결. `Inventory.AddItem("wp_relic")`
+        /// (2등급, 카탈로그 최고 공격력이라 이 시점까지 무슨 무기가 장착돼
+        /// 있었든 확실히 자동 장착된다)을 불러 칼날 크기가 커지는지 본다.</summary>
+        private static void CheckWeaponVisual()
+        {
+            var weaponVisual = Object.FindFirstObjectByType<WeaponVisual>();
+            if (weaponVisual == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 무기 가시화 검증용 WeaponVisual을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var bladeField = typeof(WeaponVisual).GetField("_blade", BindingFlags.NonPublic | BindingFlags.Instance);
+            var blade = (Transform)bladeField.GetValue(weaponVisual);
+            if (blade == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 무기 칼날(blade) 메시가 안 생김");
+                _hadError = true;
+                return;
+            }
+
+            float lengthBefore = blade.localScale.y;
+            Inventory.AddItem("wp_relic");
+            float lengthAfter = blade.localScale.y;
+
+            if (lengthAfter <= lengthBefore)
+            {
+                Debug.LogError($"[PlaytestHeadless] 무기 등급 갱신이 칼날 크기에 안 반영됨 — {lengthBefore:F2}→{lengthAfter:F2}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestHeadless] weapon visual OK - 무기 교체 시 칼날 길이 {lengthBefore:F2}→{lengthAfter:F2}(등급 갱신 반영)");
         }
     }
 }

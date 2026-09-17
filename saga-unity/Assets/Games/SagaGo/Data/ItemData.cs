@@ -21,24 +21,30 @@ namespace Saga.Go.Data
         public readonly float AtkBonus;
         public readonly float DefBonus;
 
-        private ItemData(string id, string name, ItemSlot slot, float atk, float def)
+        // PLAN.md 101-3 G "장비 가시화" — 무기 소켓의 이미시브 림 3단(0~2).
+        // 방어구는 이번 라운드에 시각화 대상이 아니라(소켓 자체가 무기 하나뿐)
+        // 값은 그냥 0으로 둔다 — 실제로 안 읽힌다.
+        public readonly int Grade;
+
+        private ItemData(string id, string name, ItemSlot slot, float atk, float def, int grade = 0)
         {
             Id = id;
             _name = name;
             Slot = slot;
             AtkBonus = atk;
             DefBonus = def;
+            Grade = grade;
         }
 
         public static readonly Dictionary<string, ItemData> Catalog = new Dictionary<string, ItemData>
         {
-            ["wp_wood"] = new ItemData("wp_wood", "목검", ItemSlot.Weapon, 10f, 0f),
-            ["wp_iron"] = new ItemData("wp_iron", "쇠칼", ItemSlot.Weapon, 22f, 0f),
+            ["wp_wood"] = new ItemData("wp_wood", "목검", ItemSlot.Weapon, 10f, 0f, grade: 0),
+            ["wp_iron"] = new ItemData("wp_iron", "쇠칼", ItemSlot.Weapon, 22f, 0f, grade: 1),
             ["ar_cloth"] = new ItemData("ar_cloth", "베옷 갑주", ItemSlot.Armor, 0f, 8f),
             ["ar_leather"] = new ItemData("ar_leather", "가죽 갑주", ItemSlot.Armor, 0f, 16f),
             // 도적 전리품엔 안 나온다 — 굴 속 숨겨진 보물(World/HiddenTreasure.cs)
             // 전용, 탐험 보상이 전투 보상보다 확실히 세도록.
-            ["wp_relic"] = new ItemData("wp_relic", "유물 검", ItemSlot.Weapon, 30f, 0f),
+            ["wp_relic"] = new ItemData("wp_relic", "유물 검", ItemSlot.Weapon, 30f, 0f, grade: 2),
             // 희귀 몬스터(World/RareWolfEncounter.cs) 전용 확정 보상 — 방어구
             // 축의 최고치를 여기 둬서 "희귀"가 실제로 제일 좋은 걸 준다.
             ["ar_wolf"] = new ItemData("ar_wolf", "늑대 가죽 갑주", ItemSlot.Armor, 0f, 24f),

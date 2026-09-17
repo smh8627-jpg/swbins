@@ -6971,3 +6971,78 @@ Q-U2·Q-U4)은 전부 사용자 결정 대기라 손대지 않고 104-1 Phase 0 
 직접 하는 ④(실기 확인)만 남고 전부 끝났다. saga-godot 세션이 같은 트리에서
 동시에 돌고 있어(`git status`에 `../saga-godot/...` 변경분이 보임) 그쪽은
 안 건드리고 `Assets/Editor/PlaytestStorySlice.cs` 한 파일만 커밋했다.
+
+## PLAN 101-3 F·G — GO로 확장 (2026-09-17, 같은 세션 "101-3 C·F·G를 GO·STORY로 확장")
+
+101-3 표가 DUNGEON 기준으로 완결된 뒤 사용자에게 다음 방향을 물어 "101-3
+C·F·G를 GO·STORY로 확장"을 골랐다. 먼저 두 판을 Explore 에이전트로 병렬
+조사(F/G 각 항목의 이식 가능성)한 뒤 GO부터 구현했다 — GO는 F·G-성장
+연출·G-장비소켓·G-지형반응 넷 다 기존 데이터(`ItemData`·`PlayerStats.
+LeveledUp`·`Inventory`)가 이미 있어 straightforward, STORY는 무기/등급
+시스템 자체가 없어 G-장비소켓만 재해석이나 사용자 결정이 필요하다는 걸
+먼저 확인해 뒀다(다음 세션 몫).
+
+**F 죽음** — `Assets/Games/SagaGo/World/LootMarker.cs`(신규, DUNGEON 사본
+— SagaGo가 SagaDungeon을 참조 안 해 복사). `BanditEncounter`·
+`RareWolfEncounter`의 `FinishFight()` 승리 분기, 기존 보상(등용/경험치/돈/
+전리품) 다음·`Destroy(gameObject)` 전에 `LootMarker.Spawn(transform.
+position)` 호출. GO엔 이름 붙은 픽업 SFX 헬퍼가 없어(`GoAudio.PlaySfx`는
+클립을 직접 받는 방식) 그냥 조용히 사라지게 뒀다(새 클립 배선은 범위 밖).
+
+**G 성장 연출** — `PlayerStats.LeveledUp`가 그동안 구독자 0명이었다(GO
+GameBootstrap이 안 걸어 뒀음). `CameraRig.cs`에 `PlayLevelUpCut()`(DUNGEON과
+같은 로직 — `_zoom`을 `MinZoom`까지 당겼다 되돌리는 코루틴, 아무 키나
+누르면 스킵)을 추가하고 `GameBootstrap.Start()`가 `PlayerStats.LeveledUp`을
+구독해 호출.
+
+**G 장비 가시화** — `ItemData.Grade`(0~2) 신규 필드, 무기 3종에 매김(wp_wood=0,
+wp_iron=1, wp_relic=2 — 유물 검이 굴 숨겨진 보물 전용 최고 무기라 2등급).
+`CharacterVisual.FindOrCreateWeaponSocket()`(DUNGEON과 같은 로직, `animator.
+isHuman` 가드 포함) 추가. `WeaponVisual`(신규) — DUNGEON과 달리 GO는
+`Inventory.ItemGained`(무기 슬롯 필터링)를 쓴다 — "재장착" 이벤트가 아니라
+"주웠다" 이벤트라 방어구를 주웠을 때는 무시해야 했다. GO는 시작 무기
+개념이 없어(`Inventory.EquippedWeaponId` 기본 null — "닫힌 빈 손")
+미장착 상태는 그냥 0등급으로 표시. `PlayerController`에 `Visual` public
+프로퍼티가 없어서(Animator만 있었음) DUNGEON과 맞추려고 새로 추가했다.
+
+**G 지형 반응** — `GroundDecal.cs`(신규, DUNGEON 사본). 렌더러 자산은
+프로젝트 공통이라(`Assets/Settings/PC_Renderer.asset`·`Mobile_Renderer.
+asset`) DUNGEON 때 이미 배선해 뒀다 — GO는 새로 배선할 필요가 없었다.
+발자국은 `PlayerController.Update()`(이동 중 0.35s 간격). 타격 흔적은
+DUNGEON과 다르게 걸었다 — GO는 프레임 단위 공격 판정이 없어(`DuelRules.
+Step` 초당 판정) `BanditEncounter`/`RareWolfEncounter.OnDuelEvent()`의
+"hit"/"heavy(안 피함)" 케이스(101-3 C hitstop과 같은 훅)에 건다.
+`SagaGo.asmdef`에 `Unity.RenderPipelines.Universal.Runtime` 참조 추가
+필요(DUNGEON과 같은 함정 — `DecalProjector`가 URP 전용 어셈블리).
+
+**헤드리스 검증(`PlaytestHeadless.cs`, GO)**: `CheckGroundDecal()`(hit
+이벤트마다 스폰 + 40개 몰아 32 캡 확인) · `CheckLevelUpCut()`(DUNGEON과
+같은 이유로 `CheckBanditLootMarker`보다 먼저 — 안 그러면 그 쪽 `FinishFight()`
+가 유발하는 우연한 레벨업과 겹쳐 간헐적으로 실패할 수 있다, PlaytestDungeonHeadless
+에서 실제로 겪은 패턴을 여기선 처음부터 순서로 피함) · `CheckBanditLootMarker()`
+(`_duel.Cleared`를 강제로 true로 만들고 `FinishFight()`를 직접 호출) ·
+`CheckWeaponVisual()`(`Inventory.AddItem("wp_relic")` — 카탈로그 최고
+공격력이라 이 시점까지 뭐가 장착돼 있었든 확실히 자동 장착됨) 넷 신규.
+
+**변경 파일**: `Assets/Games/SagaGo/Data/ItemData.cs`(Grade) ·
+`World/CharacterVisual.cs`(소켓) · `Player/WeaponVisual.cs`(신규) ·
+`Player/CameraRig.cs`(레벨업 컷) · `Player/PlayerController.cs`(Visual
+프로퍼티 + 발자국) · `World/GameBootstrap.cs`(LeveledUp 구독) ·
+`World/LootMarker.cs`·`World/GroundDecal.cs`(신규) ·
+`World/BanditEncounter.cs`·`World/RareWolfEncounter.cs`(LootMarker+
+GroundDecal 호출) · `SagaGo.asmdef`(URP Runtime 참조) ·
+`Assets/Editor/BuildTestVillageScene.cs`(WeaponVisual 부착) ·
+`Assets/Editor/PlaytestHeadless.cs`(체크 4종) · `Assets/Scenes/TestVillage.unity`
+(재생성) · `PLAN.md` 101-3 F·G 행 갱신(GO 완료 표시).
+
+**결과**: 컴파일 exit 0(`tools/unity-batch.sh` 경유). 씬 재생성 exit 0.
+`PlaytestHeadless` 3연속 — 전부 `ground decal OK`·`level-up cut OK`·
+`loot marker OK`·`weapon visual OK`, LogError 0건.
+
+**남은 일(다음 세션)**: STORY의 F(죽음)·G-성장 연출(카메라 상수를 가변
+필드로 바꿔야 함)·G-지형 반응(asmdef 문제 없음, `Shader Graphs/Decal`
+그대로 재사용 가능)은 GO와 비슷한 결로 이식 가능하다고 Explore 조사에서
+확인해 뒀다. G-장비 가시화만 STORY엔 아이템/등급 시스템 자체가 없어(순수
+job 스탯) "직업별 무기 프리팹" 같은 재해석이 필요 — 사용자와 먼저 상의할 것.
+사용자가 "커밋 푸시하고 새로운 세션에서 할게"라고 해서 이번 세션은 GO
+확장까지만 하고 STORY는 다음 세션으로 넘긴다.

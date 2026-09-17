@@ -63,6 +63,34 @@ namespace Saga.Go.World
             }
         }
 
+        private const string FallbackSocketName = "WeaponSocket (fallback)";
+
+        /// <summary>PLAN.md 101-3 G "장비 가시화" — 무기를 쥘 소켓(DUNGEON
+        /// `Saga.Dungeon.World.CharacterVisual.FindOrCreateWeaponSocket()`과
+        /// 같은 로직, 이 asmdef가 SagaDungeon을 참조하지 않아 복사). Humanoid
+        /// Animator(Maria)는 본 이름이 뭐든 Avatar 매핑이 같아 `GetBoneTransform`
+        /// 하나로 공용. 리깅 없는 폴백(Kenney GLB·capsule)은 시각 루트 밑에
+        /// 고정 오프셋 자식을 만들어 대신한다. **`animator.isHuman`으로 먼저
+        /// 거를 것** — Animator가 있어도 Avatar가 없거나 Humanoid가 아니면
+        /// `GetBoneTransform`이 `InvalidOperationException`을 던진다(DUNGEON
+        /// 쪽 작업에서 실제로 겪은 함정).</summary>
+        public static Transform FindOrCreateWeaponSocket(GameObject visualRoot, Animator animator)
+        {
+            if (animator != null && animator.isHuman)
+            {
+                var hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                if (hand != null) return hand;
+            }
+
+            var existing = visualRoot.transform.Find(FallbackSocketName);
+            if (existing != null) return existing;
+
+            var socket = new GameObject(FallbackSocketName).transform;
+            socket.SetParent(visualRoot.transform, false);
+            socket.localPosition = new Vector3(0.35f, 1.1f, 0.15f);
+            return socket;
+        }
+
         /// <summary>GLB 모델을 못 찾았을 때(다른 PC에 아직 안 받아 둔 경우 등)
         /// 쓰는 예전 primitive capsule 대체 — 씬 빌드 자체가 깨지지 않게 한다.</summary>
         public static Transform SpawnFallbackCapsule(Transform parent, Color tint)

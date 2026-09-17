@@ -1,6 +1,7 @@
 using UnityEngine;
 using Saga.Go.Audio;
 using Saga.Go.Data;
+using Saga.Go.Player;
 
 namespace Saga.Go.World
 {
@@ -17,6 +18,10 @@ namespace Saga.Go.World
         // 참고). 편집기 빌드 스크립트가 채운다(BuildTestVillageScene.cs).
         [SerializeField] private AudioClip bgmClip;
 
+        // PLAN.md 101-3 G "성장 연출"(2026-09-17) — DUNGEON `GameBootstrap`과
+        // 같은 결(캐싱 후 레벨업 이벤트에 카메라 컷 연결).
+        private CameraRig _cameraRig;
+
         private void Start()
         {
             SaveState.TryLoad();
@@ -24,6 +29,18 @@ namespace Saga.Go.World
             GoSettingsState.ApplyToAllScalers();
             GoSettingsState.ApplyGraphicsQuality();
             GoAudio.PlayBgm(bgmClip);
+            PlayerStats.LeveledUp += OnLeveledUp;
+            _cameraRig = Object.FindFirstObjectByType<CameraRig>();
+        }
+
+        private void OnDestroy()
+        {
+            PlayerStats.LeveledUp -= OnLeveledUp;
+        }
+
+        private void OnLeveledUp(int newLevel)
+        {
+            _cameraRig?.PlayLevelUpCut();
         }
 
         /// <summary>

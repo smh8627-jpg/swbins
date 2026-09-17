@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -41,6 +42,14 @@ namespace Saga.Go.Player
         private bool _dragConfirmed;
         private Vector2 _dragStart;
         private Vector2 _lastPointerPos;
+
+        // PLAN.md 101-3 G "성장 연출"(2026-09-17) — DUNGEON `CameraRig.
+        // PlayLevelUpCut()`과 같은 로직(줌을 MinZoom까지 당겼다 되돌린다).
+        // 이 asmdef가 SagaDungeon을 참조하지 않아 새로 짠다.
+        private const float LevelUpZoomInSec = 0.3f;
+        private const float LevelUpHoldSec = 0.6f;
+        private const float LevelUpZoomOutSec = 0.3f;
+        private Coroutine _levelUpRoutine;
 
         private void Awake()
         {
@@ -124,6 +133,58 @@ namespace Saga.Go.Player
         private void Zoom(float delta)
         {
             _zoom = Mathf.Clamp(_zoom + delta, MinZoom, MaxZoom);
+        }
+
+        /// <summary>`GameBootstrap.OnLeveledUp()`이 부른다 — 줌을 MinZoom까지
+        /// 당겼다 잠깐 멎었다 되돌린다. 아무 키나 누르면 그 프레임에 원래
+        /// 줌으로 바로 돌아간다(DUNGEON `CameraRig.PlayLevelUpCut()`과 같은 결).</summary>
+        public void PlayLevelUpCut()
+        {
+            if (_levelUpRoutine != null) StopCoroutine(_levelUpRoutine);
+            _levelUpRoutine = StartCoroutine(LevelUpCutRoutine());
+        }
+
+        private IEnumerator LevelUpCutRoutine()
+        {
+            float startZoom = _zoom;
+            float t = 0f;
+            while (t < LevelUpZoomInSec)
+            {
+                if (AnyKeyPressed()) { _zoom = startZoom; _levelUpRoutine = null; yield break; }
+                t += Time.deltaTime;
+                _zoom = Mathf.Lerp(startZoom, MinZoom, t / LevelUpZoomInSec);
+                yield return null;
+            }
+            _zoom = MinZoom;
+
+            t = 0f;
+            while (t < LevelUpHoldSec)
+            {
+                if (AnyKeyPressed()) break;
+                t += Time.deltaTime;
+                yield return null;
+            }
+
+            t = 0f;
+            while (t < LevelUpZoomOutSec)
+            {
+                t += Time.deltaTime;
+                _zoom = Mathf.Lerp(MinZoom, startZoom, t / LevelUpZoomOutSec);
+                yield return null;
+            }
+            _zoom = startZoom;
+            _levelUpRoutine = null;
+        }
+
+        private static bool AnyKeyPressed()
+        {
+            var kb = Keyboard.current;
+            if (kb != null && kb.anyKey.wasPressedThisFrame) return true;
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame) return true;
+            var touch = Touchscreen.current;
+            if (touch != null && touch.primaryTouch.press.wasPressedThisFrame) return true;
+            return false;
         }
 
         private void ApplyZoom()

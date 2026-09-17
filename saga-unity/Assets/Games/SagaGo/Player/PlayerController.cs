@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Saga.Go.UI;
+using Saga.Go.World;
 
 namespace Saga.Go.Player
 {
@@ -38,10 +39,18 @@ namespace Saga.Go.Player
         // 프로퍼티와 같은 결).
         public Animator Animator => animator;
 
+        /// <summary>PLAN.md 101-3 G "장비 가시화"(2026-09-17) — `WeaponVisual`이
+        /// 무기 소켓을 심을 자리를 찾으려고 읽는다(DUNGEON `PlayerController.
+        /// Visual`과 같은 결).</summary>
+        public Transform Visual => visual;
+
+        private const float FootprintIntervalSec = 0.35f; // PLAN.md 101-3 G "지형 반응" — 발자국 간격.
+
         private CharacterController _controller;
         private InputAction _moveAction;
         private InputAction _sprintAction;
         private float _verticalVelocity;
+        private float _footprintCooldown;
 
         private void Awake()
         {
@@ -89,6 +98,17 @@ namespace Saga.Go.Player
                 float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
                 float yaw = Mathf.LerpAngle(visual.eulerAngles.y, targetYaw, TurnRate * dt);
                 visual.rotation = Quaternion.Euler(0f, yaw, 0f);
+            }
+
+            if (moving)
+            {
+                // PLAN.md 101-3 G "지형 반응" — 걷는 동안 일정 간격으로 발자국.
+                _footprintCooldown -= dt;
+                if (_footprintCooldown <= 0f)
+                {
+                    _footprintCooldown = FootprintIntervalSec;
+                    GroundDecal.Spawn(transform.position, GroundDecal.Kind.Footprint);
+                }
             }
 
             // Maria.controller의 Speed 파라미터(Idle↔Walk↔Run 블렌드,

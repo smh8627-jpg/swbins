@@ -376,12 +376,14 @@ namespace Saga.Go.World
                     {
                         GoAudio.PlaySfx(hitClip);
                         ApplyHitstop(heavy: true);
+                        GroundDecal.Spawn(transform.position, GroundDecal.Kind.HitMark); // PLAN.md 101-3 G "지형 반응".
                     }
                     break;
                 case "hit":
                     ScreenFlash(new Color(1.0f, 0.15f, 0.15f, 0.3f));
                     GoAudio.PlaySfx(hitClip, 0.7f);
                     ApplyHitstop(heavy: false);
+                    GroundDecal.Spawn(transform.position, GroundDecal.Kind.HitMark); // PLAN.md 101-3 G "지형 반응".
                     break;
             }
         }
@@ -441,6 +443,10 @@ namespace Saga.Go.World
                 if (lootItem != null) msg += string.Format(GoLocalization.T(lootEquipped ? "encounter.loot_equipped" : "encounter.loot_plain",
                     lootEquipped ? "\n{0}을(를) 주웠다 — 바로 갖췄다." : "\n{0}을(를) 주웠다."), lootItem.Name);
                 Toast(msg, VictoryToastSec);
+
+                // PLAN.md 101-3 F "죽음"(2026-09-17) — 보상은 이미 위에서
+                // 다 줬다, 이건 그 자리에 남는 시각적 표식뿐.
+                LootMarker.Spawn(transform.position);
 
                 // 물리친 도적은 사라진다 — 이번 슬라이스에서는 다시 나지 않는다.
                 Destroy(gameObject);

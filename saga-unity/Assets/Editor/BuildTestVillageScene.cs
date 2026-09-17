@@ -569,6 +569,8 @@ namespace Saga.EditorTools
             SetPrivateField(pc, "cameraRig", cameraRig);
             SetPrivateField(pc, "inputActions", inputActions);
 
+            playerGo.AddComponent<WeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
+
             return (playerGo, cameraRig);
         }
 
