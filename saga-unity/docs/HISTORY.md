@@ -6593,3 +6593,55 @@ TakeDamage()`가 사운드만 재생하고 "시각 반응 없이 HP만 깎인다
 실제로 확인됐지만 **이 씬의 player Animator는 null**(이 세션 STORY 테스트 환경은 폴백
 캡슐 — DUNGEON 쪽 씬과 달리 Maria가 안 잡힘)이라 hitstop 자체 값 검증은 "스킵"으로
 로그만 남고 통과 처리했다 — 코드 경로는 null 가드로 안전하게 넘어간다.
+
+## PLAN 101-3 C 타격 VFX — DUNGEON·STORY 구현, 101-3 C 완결 (2026-09-17, 새 세션 "사가유니티 이어해")
+
+**맥락**: 직전 세션이 101-3 C hitstop·shake·flash·popup을 DUNGEON·STORY 둘 다 끝내고
+PROJECT_STATE "현재 작업"에 "VFX·데칼·장비 소켓 등 101-3 나머지 C·G 항목은 남음"으로
+남겨 뒀다. "이어해"에 별다른 범위 지정이 없어 PLAN.md 101-3 표(101-3장)를 읽어 C 줄 중
+유일하게 안 끝난 "C 타격 VFX"를 골랐다 — G 항목(소켓·데칼·타임라인)은 범위가 훨씬 크고
+사용자 상의 없이 감으로 들어가기엔 크다고 판단해 미뤘다(PROJECT_STATE "다음 작업" 참고).
+
+**표와 다르게 간 결정 두 가지**(둘 다 PLAN.md 101-3 표에 직접 적음):
+1. "PC: VFX Graph" — VFX Graph는 에디터 노드 그래프 애셋이라 이 프로젝트가 지금까지
+   지켜 온 "빌드 스크립트가 전부 코드로 짓는다" 원칙과 안 맞는다(사람이 그래프를 열어
+   그릴 몫). PC도 Mobile과 같은 Shuriken `ParticleSystem`을 코드로 구성해 재사용하고,
+   강공격/크리티컬만 입자 수(8→14)·속도(3→5)로 구분했다.
+2. "풀링 16" — `DamagePopup.cs`가 이미 겪은 것과 같은 함정: 도메인 리로드를 끈 채
+   Play를 여러 번 도는 헤드리스 연속 검증에서 static 배열에 미리 만들어 둔
+   `ParticleSystem`들이 이전 Play 세션에서 파괴됐는데 배열 자체(C# 참조)는 null이 아니라
+   `if (_pool != null) return`류 가드로 못 거른다 — 다음 Play에서 破괴된 오브젝트를
+   그대로 쓰다 `MissingReferenceException`을 낸다. `DamagePopup`과 같은 이유로 풀 없이
+   매번 새 GameObject를 만들고 `Object.Destroy(go, LifeSec)`로 0.25초 뒤 자동 파괴하는
+   쪽을 택했다 — 수명이 짧고 공격 쿨다운(0.55s+)보다 훨씬 빨라 동시에 여럿 겹칠 일이
+   드물다(회전베기 정도가 예외).
+
+**머티리얼**: URP 프로젝트에서 파티클 기본(Built-in RP) 머티리얼을 그대로 쓰면 마젠타로
+깨진다. `Universal Render Pipeline/Particles/Unlit`으로 제대로 된 URP 파티클 셰이더를
+쓰려면 `_Surface`/`_Blend`/`_SURFACE_TYPE_TRANSPARENT` 등 키워드·블렌드 모드를 코드로
+전부 배선해야 하는데, 이 프로젝트엔 그 레시피 전례가 전혀 없고(파티클 자체를 처음 쓴다)
+헤드리스 검증으로는 렌더 결과를 못 보니 검증 없이 복잡한 셰이더 배선에 들어가는 대신
+`Sprites/Default`(두 렌더 파이프라인 모두에서 그대로 렌더되는 단순 알파 블렌드 셰이더)를
+새 머티리얼 없이 그대로 붙였다 — 안전한 대신 텍스처가 없어 밋밋한 점으로 보일 수 있다
+(PROJECT_STATE "실기 확인 대기" DUNGEON 줄에 남김, 다음 실기 확인 때 사람이 판단).
+
+**변경 파일**:
+- `Assets/Games/SagaDungeon/World/HitSpark.cs`(신규) — `Spawn(Vector3, bool heavy)`,
+  테스트용 `SpawnCount` 카운터.
+- `Assets/Games/SagaStory/World/HitSpark.cs`(신규) — DUNGEON과 완전히 같은 로직 사본
+  (asmdef가 서로 안 걸쳐 타입 공유 불가, 루트 CLAUDE.md "다섯 벌 복사" 원칙과 같은 이유).
+- `Assets/Games/SagaDungeon/World/DungeonEnemy.cs` — `TakeDamage()`의 `DamagePopup.Spawn()`
+  바로 옆에 `HitSpark.Spawn(popupPos, heavy)` 추가.
+- `Assets/Games/SagaStory/World/StoryEnemy.cs` — 같은 자리에 `HitSpark.Spawn(popupPos, crit)`.
+- `Assets/Editor/PlaytestDungeonHeadless.cs` — `CheckHitSpark()` 신규(`CheckHitstop()` 바로
+  뒤). 새 더미를 살짝만 때려(999999f로 즉사시키지 않음) `HitSpark.SpawnCount`가 1 늘었는지
+  확인.
+- `Assets/Editor/PlaytestStorySlice.cs` — 기존 `TryAttack()` 호출부(`CheckHitFeedback()`
+  바로 앞)에서 `hitSparkBefore`를 찍어 두고 공격 뒤 `HitSpark.SpawnCount`가 늘었는지 매
+  잡졸마다 확인(인덱스 제한 없음 — 카운터 비교라 `CheckHitFeedback`보다 훨씬 가볍다).
+- `PLAN.md` 101-3 C 타격 VFX 줄·101-2 DUNGEON 대응 파일 목록 갱신.
+
+**결과**: 컴파일 exit 0. `PlaytestDungeonHeadless`·`PlaytestStorySlice` 각 3연속 —
+전부 `hitspark OK`/`hit feedback OK`, LogError 0건. 배치 모드가 다시 고친
+`ProjectSettings/`·`Packages/`는 커밋 전 `git checkout`으로 되돌림(두 번 — 컴파일
+검증·헤드리스 검증 각각 한 번씩 다시 건드렸다).

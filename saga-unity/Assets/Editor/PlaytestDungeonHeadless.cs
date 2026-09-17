@@ -92,6 +92,7 @@ namespace Saga.EditorTools
             {
                 _whirlChecked = true;
                 CheckHitstop(); // CheckWhirl보다 먼저 — TryAttack의 _cooldownLeft는 TryWhirl의 _whirlCooldownLeft와 별개 필드라 순서가 서로 안 막는다.
+                CheckHitSpark();
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
@@ -146,6 +147,36 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log("[PlaytestDungeonHeadless] hitstop OK - 공격 직후 player Animator.speed=0 확인");
+        }
+
+        /// <summary>PLAN.md 101-3 C "타격 VFX"(2026-09-17 추가) — `HitSpark`는
+        /// 풀링 없이 매번 새 GameObject를 만들어 `SpawnCount`(테스트 전용
+        /// 카운터, `StoryCombat.RestoreMp`와 같은 결)로만 확인한다. 실제
+        /// 타격은 `DungeonEnemy.TakeDamage()`가 부르므로 더미를 죽지 않을
+        /// 만큼 살짝만 때린다(CheckHitstop처럼 999999f로 즉사시키면 이후
+        /// 검증에 쓸 더미가 없어진다 — 이 더미는 이 체크 전용으로 새로 스폰).</summary>
+        private static void CheckHitSpark()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            if (playerGo == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] hitspark 검증용 player를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var dummy = SpawnDummyEnemy(playerGo.transform.position + new Vector3(1.5f, 0f, 0f));
+            int before = HitSpark.SpawnCount;
+            dummy.TakeDamage(1f);
+            Object.Destroy(dummy.gameObject);
+
+            if (HitSpark.SpawnCount != before + 1)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 히트 파티클이 안 생김 — SpawnCount {before} → {HitSpark.SpawnCount}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log("[PlaytestDungeonHeadless] hitspark OK - 타격마다 HitSpark.Spawn 호출 확인");
         }
 
         private static void CheckWhirl()

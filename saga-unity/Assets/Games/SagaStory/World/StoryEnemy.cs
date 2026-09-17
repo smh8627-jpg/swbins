@@ -122,7 +122,9 @@ namespace Saga.Story.World
             StoryAudio.PlaySfx(hitClip);
 
             float height = isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
-            DamagePopup.Spawn(transform.position + Vector3.up * height, amount, crit);
+            Vector3 popupPos = transform.position + Vector3.up * height;
+            DamagePopup.Spawn(popupPos, amount, crit);
+            HitSpark.Spawn(popupPos, crit);
 
             if (_visualGo != null)
             {
