@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace Saga.Core
 {
@@ -11,6 +13,13 @@ namespace Saga.Core
     ///
     /// `GoalBoard`와 같은 이유로 Awake()가 매번 자기 자식을 다시 지어
     /// [SerializeField] 없이도 씬 재로드 후 안전하다.
+    ///
+    /// PLAN.md 105장 Q-U5(2026-09-17 확정, 102-2 표대로 진행) — 이 카드가
+    /// 뜨는 동안만 Depth of Field 를 켠다(102-2 "대화·카드 연출 토글
+    /// 시만", PC 만). `BuildFF16VolumeProfiles.BuildPcOnlyOverrides()`가
+    /// PC 프로파일에만 DepthOfField 오버라이드를 넣어 뒀으니(mode 기본
+    /// Off), Mobile 프로파일엔 그 컴포넌트 자체가 없어 VolumeProfile.TryGet
+    /// 이 조용히 실패한다 — 플랫폼 분기 코드가 따로 필요 없다.
     /// </summary>
     public class SessionCard : MonoBehaviour
     {
@@ -82,12 +91,25 @@ namespace Saga.Core
                 : title;
             _panel.SetActive(true);
             _closeTimer = AutoCloseSeconds;
+            SetDepthOfField(true);
         }
 
         public void Hide()
         {
             _closeTimer = -1f;
             if (_panel != null) _panel.SetActive(false);
+            SetDepthOfField(false);
+        }
+
+        /// <summary>씬의 Global Volume 을 찾아 DepthOfField 오버라이드를
+        /// 켜고 끈다 — Mobile 프로파일엔 이 컴포넌트가 없어(102-2 표)
+        /// TryGet 이 false 를 돌려주면 조용히 넘어간다.</summary>
+        private static void SetDepthOfField(bool on)
+        {
+            var volume = Object.FindFirstObjectByType<Volume>();
+            if (volume == null || volume.profile == null) return;
+            if (!volume.profile.TryGet(out DepthOfField dof)) return;
+            dof.mode.value = on ? DepthOfFieldMode.Gaussian : DepthOfFieldMode.Off;
         }
 
         private void Update()

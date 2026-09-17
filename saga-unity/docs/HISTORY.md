@@ -6489,3 +6489,29 @@ REALM GoalBoard 이식 뒤 PROJECT_STATE 에 "이번엔 안 돌림"으로 남아
 `PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition`)와 `PlaytestOverworldMap`(GO)
 을 각 1회씩 마저 돌렸다 — 전부 exit 0·LogError 0건·`OK`로 종료, 회귀 없음. 씬 재생성 없이
 기존 씬 그대로 실행했고 `git status` 도 깨끗했다(ProjectSettings/Packages 부작용 없음).
+
+## PLAN 105 Q-U5 — SessionCard Depth of Field 토글 구현 (2026-09-17, 같은 세션 "이어해" → "묻지말고")
+
+열린 질문으로 남아 있던 Q-U5("SessionCard·대화 연출에서만 DoF 를 켜는 것으로 확정할지")를
+사용자가 "묻지말고" 라고 해 102-2 표에 이미 적혀 있던 설계(대화·카드 연출 토글 시만, PC 만)
+그대로 구현했다 — 답이 이미 문서에 있던 질문이라 감으로 짓는 게 아니라 기존 결정을 실행에
+옮긴 것.
+
+- `SagaCore.asmdef` — `references`에 `Unity.RenderPipelines.Core.Runtime`·
+  `Unity.RenderPipelines.Universal.Runtime` 추가(이전엔 빈 배열이라 `Volume`/`DepthOfField`
+  타입에 접근 못 함).
+- `SessionCard.cs` — `SetDepthOfField(bool)` 신설. 씬의 `Volume`을 찾아 `DepthOfField`
+  오버라이드의 `mode`를 `Show()`에서 Gaussian, `Hide()`(자동 닫힘 포함)에서 Off로 토글.
+  Mobile 프로파일엔 이 컴포넌트 자체가 없어 `VolumeProfile.TryGet`이 실패하면 조용히
+  넘어간다 — 플랫폼 분기 코드 불필요.
+- `BuildFF16VolumeProfiles.cs` — `BuildPcOnlyOverrides()`에 `DepthOfField` 오버라이드 추가
+  (기본 `mode = Off`, PC 프로파일에만). 예전 클래스 주석("토글 시스템이 아직 없다")을
+  갱신.
+
+부작용: `BuildFF16VolumeProfiles.Build()`가 자산을 지우고 새로 지어(멱등 설계) `FF16Volume_PC/
+Mobile.asset`의 GUID가 바뀌었다 — 다섯 씬(`BuildTestVillageScene`·`BuildTestDungeonScene`·
+`BuildTestVillageForestScene`·`BuildTestStoryScene`·`BuildTestCityScene`) 전부 재생성해야
+새 자산을 다시 참조한다. 컴파일 exit 0 → 볼륨 재생성 → 씬 5개 재생성 → 다섯 판 헤드리스
+(`PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·
+`PlaytestRealmSlice`) 각 3연속, 전부 LogError 0건·`OK` 종료. `git status`도 예상된 파일만
+(SagaCore 3개 + Volume 자산 4개 + 씬 5개) 바뀌어 있었다.

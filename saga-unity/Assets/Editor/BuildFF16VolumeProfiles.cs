@@ -77,10 +77,13 @@ namespace Saga.EditorTools
             vignette.smoothness.value = 0.6f;
         }
 
-        /// <summary>PC 프로파일에만 — 미세한 그레인·색수차. Depth of
-        /// Field·Motion Blur는 아직 안 넣는다(66-2장 "다음에 할 일" 범위
-        /// 밖 — DoF는 대화/연출 장면에서만 켜야 하는데 그 토글 시스템이
-        /// 아직 없어, 지금 넣으면 평소 플레이 중에도 항상 흐려진다).</summary>
+        /// <summary>PC 프로파일에만 — 미세한 그레인·색수차. Motion Blur는
+        /// 넣지 않는다(101-3 표, 의도). Depth of Field 는 105장 Q-U5
+        /// (2026-09-17 확정) — 기본은 Off(평소 플레이 중엔 안 흐려짐),
+        /// `SessionCard.Show()`/`Hide()`가 카드가 떠 있는 동안만 Gaussian
+        /// 으로 켠다. Mobile 프로파일엔 이 컴포넌트 자체를 안 넣는다
+        /// (102-2 표 — SessionCard.SetDepthOfField()가 TryGet 실패로
+        /// 조용히 넘어가 플랫폼 분기가 따로 필요 없다).</summary>
         private static void BuildPcOnlyOverrides(VolumeProfile profile)
         {
             var ca = AddOverride<ChromaticAberration>(profile);
@@ -89,6 +92,9 @@ namespace Saga.EditorTools
             var grain = AddOverride<FilmGrain>(profile);
             grain.intensity.value = 0.15f;
             grain.response.value = 0.7f;
+
+            var dof = AddOverride<DepthOfField>(profile);
+            dof.mode.value = DepthOfFieldMode.Off;
         }
 
         private static T AddOverride<T>(VolumeProfile profile) where T : VolumeComponent

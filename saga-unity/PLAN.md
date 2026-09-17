@@ -1107,7 +1107,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | **Screen Space Shadows** | 없음 | Renderer Feature 추가 | ○ | × |
 | **Fog** | `SkyFogBuilder`(GO 만) | 다섯 판 공통, 색=하늘 지평선, 지수 0.012 | ○ | ○(0.008) |
 | Shadows | Cascade 4/1, 2048/1024, MSAA 4/2 | 유지 + **접지 blob 그림자** 프리팹(모바일 캐릭터) | ○ | blob |
-| Depth of Field | 없음(의도) | **대화·카드 연출 토글 시만**(`SessionCard` 가 켠다) | ○ | × |
+| Depth of Field | **대화·카드 연출 토글 시만**(`SessionCard` 가 켠다, 105 Q-U5 2026-09-17 확정·구현 완료) | 유지 | ○ | × |
 | Motion Blur | 없음 | 넣지 않는다 | × | × |
 | Adaptive Probe Volumes | 없음 | 정적 씬 5개에 APV 1 + Reflection Probe 1 | ○ | 라이트맵 |
 
@@ -1189,7 +1189,6 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - **Q-U2 REALM 51장 사슬**: 10차(시상→건업) 이후도 계속 늘릴지, 101-2 의 5-4 이정표·5-7 요약 카드로 전환할지. 성 21 이면 E 는 충분하고 A·B·H 가 비어 있다.
 - **Q-U3 Shader Graph 배선 일정**: SSS·헤어카드 노드 연결(사람 GUI) 을 언제 할지. 그때까지 피부는 근사 유지.
 - **Q-U4 Mixamo 캐릭터 추가**: 인물 105 를 이 트랙에서 몇 명까지 실제 모델로 갈지(현재 3). 나머지는 Maria/Abe/Brute 3 베이스 + 장비 소켓(101-3 G) 변형으로 갈지.
-- **Q-U5 DoF 토글**: `SessionCard`·대화 연출에서만 DoF 를 켜는 것으로 확정할지(PC 만).
 
 ---
 
