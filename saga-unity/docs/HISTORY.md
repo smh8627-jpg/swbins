@@ -6548,3 +6548,48 @@ Player Animator가 실제로 붙어 있었다(폴백 캡슐이 아니었다).
 따로 안 건드렸다. GO·STORY 전투 코드에도 같은 hitstop을 추가하는 건 아직(101-3·PLAN.md
 DUNGEON 행 갱신 참고) — 각 판이 자기 순서표(GO 없음, STORY "5-7 손맛 표준")에 닿을 때
 같은 결로 넣으면 된다.
+
+## PLAN 101-3 C hitstop·shake·flash·popup — STORY 구현 (2026-09-17, 같은 세션 "이어해")
+
+101-2 표 STORY 행의 3D 우선순위 "5-5 → 5-7 → 5-1" 중 5-7="손맛 표준"이 다음 차례 —
+DUNGEON에 방금 추가한 101-3 C 표와 같은 항목이라 이어서 구현했다. STORY는 여태 `StoryEnemy.
+TakeDamage()`가 사운드만 재생하고 "시각 반응 없이 HP만 깎인다"고 클래스 주석에 명시돼
+있었다(1·3절 스코프 컷, 버그 아님) — 이번에 그 다음 단계를 채운 것.
+
+**중요한 구분** — STORY엔 이미 `StoryCombat.TriggerHitstop()`이 있었지만 이건 크리티컬
+전용 **전역 슬로모**(`Time.timeScale=0.12` 0.055초, 웹판 `side.js` 원문 상수 그대로 포팅한
+"경직" 기능)이고, 101-3 C의 "hitstop"은 **모든 타격**에 걸리는 **Animator.speed=0**(타임스케일
+안 건드림) 방식이라 서로 다른 기능이다. 둘을 혼동해 기존 걸 "고치지" 않고 별개로 공존시켰다
+(`ApplyHitFreeze`라는 새 이름을 붙여 `TriggerHitstop`과 안 겹치게).
+
+- `Assets/Games/SagaStory/Data/StoryCombat.cs` — `HitFreezeSeconds`(0.07s)·`HitShakeMag/Sec`·
+  `CritShakeMag/Sec` 상수 + `ApplyHitFreeze(MonoBehaviour runner, Animator animator)` 신설.
+  이 판은 적 쪽 Animator가 아예 없어(`StoryEnemy` 클래스 주석) 가해자(플레이어) 쪽만 멈춘다.
+- `Assets/Games/SagaStory/World/StoryCameraFollow.cs` — `Shake(magnitude, duration)` +
+  `Instance` 싱글턴(`DialogueLabel.Instance`·`RealmToast.Instance`와 같은 기존 관례) 추가.
+  흔들림 오프셋을 Lerp 목표(`_followY`)와 분리해 다음 프레임 드리프트를 막았다.
+- `Assets/Games/SagaStory/World/DamagePopup.cs`(신규) — DUNGEON `World/DamagePopup.cs`를
+  그대로 복사(다섯 판은 다섯 벌 복사 원칙, SagaStory엔 asmdef가 없어 타입 공유 불가).
+  "heavy" 대신 이 판의 대응 개념인 crit로 색을 가른다.
+- `Assets/Games/SagaStory/World/StoryEnemy.cs` — `_visualGo`·`_isRiggedVisual`·`_flashRoutine`
+  필드 추가, `BuildVisual()`이 세 분기(리깅·GLB·폴백 캡슐) 전부 `_visualGo`를 채우게 수정.
+  `TakeDamage(float amount, bool crit = false)`로 시그니처 확장(DamagePopup 색 결정용) +
+  `FlashHit()` 코루틴. **리깅 모델은 플래시 복원 때 `Tint(BodyColor)`가 아니라 `ClearTint()`를
+  써야 한다** — `BuildVisual()`이 리깅 모델엔 애초에 색조를 안 입힌다(실제 텍스처 오염 방지,
+  DUNGEON `DungeonEnemy`와 다른 점 — DUNGEON은 리깅 모델에도 bodyColor≠white면 tint를 입힌다).
+  이 차이를 놓치면 리깅 캐릭터가 맞을 때마다 영구적으로 누렇게 물든다.
+- `Assets/Games/SagaStory/Player/StoryPlayerController.cs` — `TryAttack()`/`TrySweep()`에
+  `hitAny`/`anyCrit` 추적 후 `ApplyHitFeedback()`(shake+hitstop, 횡소처럼 여럿을 때려도 한 번만
+  — DUNGEON `TryWhirl()`과 같은 결) 신설. `TryBolt()`가 `StoryBolt.Configure()`에 플레이어
+  Animator를 추가로 넘긴다.
+- `Assets/Games/SagaStory/World/StoryBolt.cs` — `Configure()`에 `shooterAnimator` 매개변수
+  추가, 관통 히트마다 crit 전달 + shake + hitstop 트리거.
+- `Assets/Editor/PlaytestStorySlice.cs` — `CheckHitFeedback()` 신규. 첫 `TryAttack()` 직후
+  `StoryCameraFollow.Instance._shakeTimer > 0`(리플렉션)과 player Animator.speed로 실제
+  트리거를 확인한다(DUNGEON `CheckHitstop()`과 같은 결 — `StartCoroutine()`이 첫 yield 전
+  세그먼트를 같은 프레임에 동기 실행한다는 점 이용).
+
+컴파일 exit 0 → `PlaytestStorySlice` 3연속, 전부 LogError 0건·`OK`. shake는 3연속 전부
+실제로 확인됐지만 **이 씬의 player Animator는 null**(이 세션 STORY 테스트 환경은 폴백
+캡슐 — DUNGEON 쪽 씬과 달리 Maria가 안 잡힘)이라 hitstop 자체 값 검증은 "스킵"으로
+로그만 남고 통과 처리했다 — 코드 경로는 null 가드로 안전하게 넘어간다.

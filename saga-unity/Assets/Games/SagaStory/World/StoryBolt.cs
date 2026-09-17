@@ -19,13 +19,15 @@ namespace Saga.Story.World
         private float _atk;
         private float _mul;
         private float _timer;
+        private Animator _shooterAnimator;
         private readonly HashSet<StoryEnemy> _alreadyHit = new HashSet<StoryEnemy>();
 
-        public void Configure(float dir, float atk, float mul)
+        public void Configure(float dir, float atk, float mul, Animator shooterAnimator)
         {
             _dir = dir;
             _atk = atk;
             _mul = mul;
+            _shooterAnimator = shooterAnimator;
 
             var visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             visual.name = "Visual";
@@ -55,8 +57,12 @@ namespace Saga.Story.World
 
                 _alreadyHit.Add(enemy);
                 var (dmg, crit) = StoryCombat.RollDamage(_atk, _mul);
-                enemy.TakeDamage(dmg);
+                enemy.TakeDamage(dmg, crit);
                 if (crit) StoryCombat.TriggerHitstop(this);
+                StoryCameraFollow.Instance?.Shake(
+                    crit ? StoryCombat.CritShakeMag : StoryCombat.HitShakeMag,
+                    crit ? StoryCombat.CritShakeSec : StoryCombat.HitShakeSec);
+                StoryCombat.ApplyHitFreeze(this, _shooterAnimator);
             }
         }
     }

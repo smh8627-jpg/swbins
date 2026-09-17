@@ -120,6 +120,8 @@ namespace Saga.Story.Player
             _attackCooldownLeft = AttackCooldown;
             PlayAttackAnim();
 
+            bool hitAny = false;
+            bool anyCrit = false;
             foreach (var enemy in StoryEnemy.All)
             {
                 if (enemy == null) continue;
@@ -128,9 +130,12 @@ namespace Saga.Story.Player
                 if (Mathf.Abs(dx) > 0.3f && !Mathf.Approximately(Mathf.Sign(dx), _facing)) continue; // 등 뒤는 안 맞는다.
 
                 var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk);
-                enemy.TakeDamage(dmg);
+                enemy.TakeDamage(dmg, crit);
                 if (crit) StoryCombat.TriggerHitstop(this);
+                hitAny = true;
+                anyCrit |= crit;
             }
+            ApplyHitFeedback(hitAny, anyCrit);
         }
 
         /// <summary>횡소(橫掃) — data-job.js sweep, aoe. 등 뒤·앞 구분 없이
@@ -141,6 +146,8 @@ namespace Saga.Story.Player
             _sweepCooldownLeft = StoryCombat.SweepCooldown;
             PlayAttackAnim();
 
+            bool hitAny = false;
+            bool anyCrit = false;
             Vector2 origin = new Vector2(transform.position.x, transform.position.y);
             foreach (var enemy in StoryEnemy.All)
             {
@@ -149,9 +156,26 @@ namespace Saga.Story.Player
                 if (Vector2.Distance(origin, pos) > StoryCombat.SweepRadius) continue;
 
                 var (dmg, crit) = StoryCombat.RollDamage(CurrentAtk, StoryCombat.SweepMul);
-                enemy.TakeDamage(dmg);
+                enemy.TakeDamage(dmg, crit);
                 if (crit) StoryCombat.TriggerHitstop(this);
+                hitAny = true;
+                anyCrit |= crit;
             }
+            ApplyHitFeedback(hitAny, anyCrit);
+        }
+
+        /// <summary>PLAN.md 101-2 STORY "5-7 손맛 표준"(2026-09-17, 101-3 C
+        /// 표) — 크리티컬 슬로모(`StoryCombat.TriggerHitstop`, 웹판 원문
+        /// 기능)와 별개로 **모든 타격**에 카메라 흔들림 + 짧은 Animator
+        /// 정지를 건다. 한 번의 공격이 여럿을 때려도(횡소) 한 번만 건다 —
+        /// DUNGEON `PlayerCombat.TryWhirl()`과 같은 결.</summary>
+        private void ApplyHitFeedback(bool hitAny, bool anyCrit)
+        {
+            if (!hitAny) return;
+            StoryCameraFollow.Instance?.Shake(
+                anyCrit ? StoryCombat.CritShakeMag : StoryCombat.HitShakeMag,
+                anyCrit ? StoryCombat.CritShakeSec : StoryCombat.HitShakeSec);
+            StoryCombat.ApplyHitFreeze(this, animator);
         }
 
         /// <summary>기탄(氣彈) — data-job.js bolt, 관통 투사체
@@ -164,7 +188,7 @@ namespace Saga.Story.Player
 
             var go = new GameObject("StoryBolt");
             go.transform.position = transform.position + new Vector3(_facing * 0.6f, 1f, 0f);
-            go.AddComponent<StoryBolt>().Configure(_facing, CurrentAtk, StoryCombat.BoltMul);
+            go.AddComponent<StoryBolt>().Configure(_facing, CurrentAtk, StoryCombat.BoltMul, animator);
         }
 
         /// <summary>기합(氣合) — data-job.js brace, buff. 8초간 공격·이동

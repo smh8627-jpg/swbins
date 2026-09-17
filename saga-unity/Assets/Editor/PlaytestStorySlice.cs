@@ -299,6 +299,8 @@ namespace Saga.EditorTools
                     SetPrivate(_storyController, "_attackCooldownLeft", 0f);
                     InvokePrivate(_storyController, "TryAttack");
 
+                    if (_enemyIndex == 0 && !CheckHitFeedback()) { Fail(); return; }
+
                     // 데미지 굴림(atk21×0.88~1.12)의 최솟값(18.48)이 EnemyHp(18)보다
                     // 항상 크다 — 한 방에 죽어야 정상, 안 죽었으면 판정 로직 결함.
                     // Destroy()는 실제 파괴를 프레임 끝으로 미루니 IsDead 플래그로 본다.
@@ -779,6 +781,41 @@ namespace Saga.EditorTools
             var go = new GameObject("TestDummyEnemy");
             go.transform.position = position;
             return go.AddComponent<StoryEnemy>();
+        }
+
+        /// <summary>PLAN.md 101-2 STORY "5-7 손맛 표준"(2026-09-17, 101-3 C
+        /// 표) — 공격 직후 바로 확인한다(`StartCoroutine()`이 첫 yield 전
+        /// 세그먼트를 같은 프레임에 동기 실행한다는 점 이용, DUNGEON
+        /// `PlaytestDungeonHeadless.CheckHitstop()`과 같은 결). 카메라
+        /// 흔들림은 `_shakeTimer`(private) 로, hitstop 은 player Animator
+        /// 의 `.speed` 로 본다 — 둘 다 `TryAttack()` 호출과 같은 프레임에서
+        /// 봐야 하므로 호출부(Phase.KillEnemies)가 첫 공격 직후 바로 부른다.</summary>
+        private static bool CheckHitFeedback()
+        {
+            var cam = StoryCameraFollow.Instance;
+            if (cam == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] StoryCameraFollow.Instance가 없음 — shake 검증 불가");
+                return false;
+            }
+            float shakeTimer = (float)GetPrivate(cam, "_shakeTimer");
+            if (shakeTimer <= 0f)
+            {
+                Debug.LogError("[PlaytestStorySlice] 공격 직후 카메라 shake가 안 걸림(_shakeTimer<=0)");
+                return false;
+            }
+
+            var animator = GetPrivate(_storyController, "animator") as Animator;
+            if (animator != null && animator.speed != 0f)
+            {
+                Debug.LogError($"[PlaytestStorySlice] hitstop이 공격 직후 player Animator를 안 멈춤 — speed={animator.speed}");
+                return false;
+            }
+
+            Debug.Log(animator == null
+                ? "[PlaytestStorySlice] hit feedback OK - shake 확인(player Animator는 null, 폴백 캡슐 케이스라 hitstop 검증 스킵)"
+                : "[PlaytestStorySlice] hit feedback OK - shake + hitstop(Animator.speed=0) 확인");
+            return true;
         }
 
         private static void Fail()

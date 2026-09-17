@@ -20,7 +20,21 @@ namespace Saga.Story.World
         private const float ZDistance = 16f;
         private const float YLerpRate = 3f;
 
+        /// <summary>`DialogueLabel.Instance`·`RealmToast.Instance`와 같은
+        /// 결 — 씬에 하나뿐이라 다른 컴포넌트(StoryPlayerController 등)가
+        /// 참조 배선 없이 바로 Shake()를 부를 수 있다.</summary>
+        public static StoryCameraFollow Instance { get; private set; }
+
         private Transform _player;
+        private float _followY; // 흔들림과 분리한 "진짜" Lerp 목표 — 안 그러면 흔들림 오프셋이 다음 프레임 Lerp 시작점으로 누적된다.
+        private float _shakeMagnitude;
+        private float _shakeTimer;
+
+        private void Awake() => Instance = this;
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
 
         private void Start()
         {
@@ -28,6 +42,16 @@ namespace Saga.Story.World
             pos.z = -ZDistance;
             transform.position = pos;
             transform.rotation = Quaternion.identity;
+            _followY = pos.y;
+        }
+
+        /// <summary>PLAN.md 101-3 C "shake" — DUNGEON `CameraRig.Shake()`와
+        /// 같은 서명. 이 판은 회전 카메라가 없어 X·Y 평면 오프셋만 준다
+        /// (Z는 항상 -ZDistance 고정).</summary>
+        public void Shake(float magnitude, float duration)
+        {
+            _shakeMagnitude = magnitude;
+            _shakeTimer = duration;
         }
 
         private void Update()
@@ -39,9 +63,18 @@ namespace Saga.Story.World
                 _player = go.transform;
             }
 
+            _followY = Mathf.Lerp(_followY, _player.position.y + YOffset, YLerpRate * Time.deltaTime);
+
+            Vector2 shakeOffset = Vector2.zero;
+            if (_shakeTimer > 0f)
+            {
+                _shakeTimer -= Time.deltaTime;
+                shakeOffset = Random.insideUnitCircle * _shakeMagnitude;
+            }
+
             var pos = transform.position;
-            pos.x = _player.position.x;
-            pos.y = Mathf.Lerp(pos.y, _player.position.y + YOffset, YLerpRate * Time.deltaTime);
+            pos.x = _player.position.x + shakeOffset.x;
+            pos.y = _followY + shakeOffset.y;
             pos.z = -ZDistance;
             transform.position = pos;
         }

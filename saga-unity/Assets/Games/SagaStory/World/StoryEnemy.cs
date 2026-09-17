@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Saga.Story.Data;
@@ -49,8 +50,13 @@ namespace Saga.Story.World
         [SerializeField] private AudioClip hitClip;
         [SerializeField] private AudioClip deathClip;
 
+        private const float FlashSec = 0.08f; // PLAN.md 101-2 STORY "5-7 손맛 표준" — DUNGEON DungeonEnemy.cs와 같은 값.
+
         private float _hp;
         private bool _dead;
+        private GameObject _visualGo;
+        private bool _isRiggedVisual; // 리깅된 캐릭터(Animator 포함)면 원래 색조가 안 입혀져 있다 — 플래시 복원 때 ClearTint로 되돌려야 한다(BuildVisual() 주석 참고).
+        private Coroutine _flashRoutine;
 
         public bool IsBoss => isBoss;
 
@@ -91,23 +97,53 @@ namespace Saga.Story.World
                 inst.transform.localScale = Vector3.one * effectiveRiggedScale;
                 inst.transform.localPosition = Vector3.zero;
                 inst.transform.localRotation = Quaternion.identity;
+                _visualGo = inst;
+                _isRiggedVisual = true;
             }
             else if (effectiveModel != null)
             {
-                CharacterVisual.Spawn(effectiveModel, transform, height, BodyColor);
+                _visualGo = CharacterVisual.Spawn(effectiveModel, transform, height, BodyColor).gameObject;
             }
             else
             {
-                CharacterVisual.SpawnFallbackCapsule(transform, height, BodyColor);
+                _visualGo = CharacterVisual.SpawnFallbackCapsule(transform, height, BodyColor).gameObject;
             }
         }
 
-        public void TakeDamage(float amount)
+        /// <summary>PLAN.md 101-2 STORY "5-7 손맛 표준"(2026-09-17) — DUNGEON
+        /// `DungeonEnemy.TakeDamage()`와 같은 결로 팝업·플래시를 더했다
+        /// (기존 사운드·HP 판정은 그대로). `crit`은 호출부(StoryPlayerController
+        /// ·StoryBolt)가 `StoryCombat.RollDamage()`에서 이미 굴린 값을
+        /// 그대로 넘긴다 — 여기서 새로 굴리지 않는다.</summary>
+        public void TakeDamage(float amount, bool crit = false)
         {
             if (_dead || amount <= 0f) return;
             _hp -= amount;
             StoryAudio.PlaySfx(hitClip);
+
+            float height = isBoss ? 1.6f * BossVisualScaleMul : 1.6f;
+            DamagePopup.Spawn(transform.position + Vector3.up * height, amount, crit);
+
+            if (_visualGo != null)
+            {
+                if (_flashRoutine != null) StopCoroutine(_flashRoutine);
+                _flashRoutine = StartCoroutine(FlashHit());
+            }
+
             if (_hp <= 0f) Die();
+        }
+
+        private IEnumerator FlashHit()
+        {
+            CharacterVisual.Tint(_visualGo, Color.white);
+            yield return new WaitForSeconds(FlashSec);
+            if (_visualGo == null) yield break;
+            // 리깅된 캐릭터는 원래 색조가 안 입혀져 있다(BuildVisual() 주석 —
+            // 실제 텍스처를 곱색으로 오염시키지 않으려고) — ClearTint로
+            // 되돌려야 진짜 텍스처가 돌아온다. 비리깅(primitive)은 원래
+            // BodyColor로 칠해져 있었으니 그 색으로 되돌린다.
+            if (_isRiggedVisual) CharacterVisual.ClearTint(_visualGo);
+            else CharacterVisual.Tint(_visualGo, BodyColor);
         }
 
         private void Die()

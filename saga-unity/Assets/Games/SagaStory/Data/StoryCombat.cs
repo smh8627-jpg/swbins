@@ -27,6 +27,17 @@ namespace Saga.Story.Data
         public const float HitstopTimeScale = 0.12f;
         public const float HitstopSeconds = 0.055f;
 
+        // PLAN.md 101-2 STORY "5-7 손맛 표준"(2026-09-17) — 101-3 C 표의
+        // hitstop·shake를 DUNGEON `PlayerCombat.cs`와 같은 결로 옮긴다.
+        // 위 `HitstopTimeScale`(크리티컬 전용 전역 슬로모, 웹판 원문 그대로)과는
+        // 별개 기능이다 — 이건 **모든 타격**에 걸리고 Animator.speed만
+        // 건드려(Time.timeScale은 그대로) 모바일 입력 지연이 없다.
+        public const float HitFreezeSeconds = 0.07f;
+        public const float HitShakeMag = 0.05f;
+        public const float HitShakeSec = 0.08f;
+        public const float CritShakeMag = 0.12f;
+        public const float CritShakeSec = 0.15f;
+
         // side.js power() 대체값: atk = might*0.9 + wisdom*0.3, hp = 60 + command*6 + level*12(레벨1).
         public const float StartAtk = 21f;  // round(20*0.9 + 10*0.3)
         public const float StartHp = 162f;  // 60 + 15*6 + 1*12(이 슬라이스는 플레이어가 안 맞아 미사용 — 다음 확장 대비 값만 남김)
@@ -116,6 +127,23 @@ namespace Saga.Story.Data
             yield return new WaitForSecondsRealtime(HitstopSeconds);
             Time.timeScale = 1f;
             _hitstopActive = false;
+        }
+
+        /// <summary>101-3 C hitstop — `runner`(공격자)의 Animator만 잠깐
+        /// 멈춘다(이 슬라이스는 적 쪽 Animator가 없다 — `StoryEnemy.cs`
+        /// 클래스 주석 "제자리에 서서 맞기만 한다" 그대로). 공격 쿨다운이
+        /// 전부 이 길이(0.07s)보다 훨씬 길어(연참 0.36s+) 겹칠 일은 없다.</summary>
+        public static void ApplyHitFreeze(MonoBehaviour runner, Animator animator)
+        {
+            if (runner == null || animator == null) return;
+            runner.StartCoroutine(HitFreezeRoutine(animator));
+        }
+
+        private static IEnumerator HitFreezeRoutine(Animator animator)
+        {
+            animator.speed = 0f;
+            yield return new WaitForSeconds(HitFreezeSeconds);
+            if (animator != null) animator.speed = 1f;
         }
 
         /// <summary>2026-09-15 "STORY 확장 — 전직·SP 투자 UI"(PLAN.md 51장
