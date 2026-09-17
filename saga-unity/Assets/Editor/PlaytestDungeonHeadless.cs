@@ -93,6 +93,7 @@ namespace Saga.EditorTools
                 _whirlChecked = true;
                 CheckHitstop(); // CheckWhirl보다 먼저 — TryAttack의 _cooldownLeft는 TryWhirl의 _whirlCooldownLeft와 별개 필드라 순서가 서로 안 막는다.
                 CheckHitSpark();
+                CheckLootMarker();
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
@@ -177,6 +178,35 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log("[PlaytestDungeonHeadless] hitspark OK - 타격마다 HitSpark.Spawn 호출 확인");
+        }
+
+        /// <summary>PLAN.md 101-3 F "죽음"(2026-09-17 추가) — 실제로 죽여서
+        /// `LootMarker.Spawn()`이 불렸는지만 카운터로 본다(`CheckHitSpark`와
+        /// 같은 결). 더미를 player 1.5m 옆에서 죽여 마커의 회수 반경(2m)
+        /// 안에서 바로 스폰되게 하면 이후 자연 프레임에서 픽업 경로도 같이
+        /// 타는데, 그때 예외가 나면 `Run()`의 전역 로그 리스너가 잡아
+        /// FAIL로 드러난다 — 여기서 따로 다시 확인하지 않는다.</summary>
+        private static void CheckLootMarker()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            if (playerGo == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 유품 마커 검증용 player를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var dummy = SpawnDummyEnemy(playerGo.transform.position + new Vector3(1.5f, 0f, 0f));
+            int before = LootMarker.SpawnCount;
+            dummy.TakeDamage(999999f);
+
+            if (LootMarker.SpawnCount != before + 1)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 유품 마커가 안 생김 — SpawnCount {before} → {LootMarker.SpawnCount}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log("[PlaytestDungeonHeadless] loot marker OK - 사망마다 LootMarker.Spawn 호출 확인(픽업 경로는 이후 자연 프레임에서 같이 검증됨)");
         }
 
         private static void CheckWhirl()

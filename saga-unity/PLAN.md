@@ -1057,7 +1057,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | 게임 | 웹 §5 후보(우선순위 순, 제목만) | 3D 첫 이식 | 이 트랙 대응 파일 |
 |---|---|---|---|
 | GO | ① 봉수대(탑→지도 해제) ② 사당 시련 3분 방 ③ 75초 토벌·부위·저스트 회피 ④ 일과판+마무리 카드 ⑤ 비석 순례(GPS) ⑥ 인연(동행 관계) ⑦ 승급 3택 ⑧ 패배 비용·회수 | **④ → ⑦ → ③** (⑤ GPS 는 Unity 모바일 빌드 뒤) | `PlayerHud`·`QuestState`·`BanditEncounter`·`PartyState`·`LandmarksBuilder` |
-| DUNGEON | 5.1 축복 3택 5.2 유품(죽음 비용·회수) 5.3 부적 던전 티어 5.4 월드 보스 75초 5.5 난입 파도 5.6 목표판·카드 5.7 시대 퓨전 5.8 손맛 2차·가시화 | **5.8 → 5.1 → 5.2** (5.7 은 웹 선행 결과 뒤. 5.8 중 hitstop·타격 VFX 는 2026-09-17 완료 — 101-3 C 표 참고, 나머지 G 항목(데칼·장비 소켓 등)은 남음) | `PlayerCombat`·`DungeonEnemy`·`DungeonFloorRunner`·`HeroState`·`DamagePopup`·`HitSpark` |
+| DUNGEON | 5.1 축복 3택 5.2 유품(죽음 비용·회수) 5.3 부적 던전 티어 5.4 월드 보스 75초 5.5 난입 파도 5.6 목표판·카드 5.7 시대 퓨전 5.8 손맛 2차·가시화 | **5.8 → 5.1 → 5.2** (5.7 은 웹 선행 결과 뒤. 5.8 중 hitstop·타격 VFX·죽음 표식 은 2026-09-17 완료 — 101-3 C·F 표 참고, **`LootMarker`는 101-3 F 항목이라 이 5.2(플레이어 죽음 비용·회수, 아직 미착수)와 다른 것 — 혼동 주의**. 나머지 G 항목(데칼·장비 소켓·성장 연출)은 남음) | `PlayerCombat`·`DungeonEnemy`·`DungeonFloorRunner`·`HeroState`·`DamagePopup`·`HitSpark`·`LootMarker` |
 | FOREST | 5.1 일과판 5.2 마무리 카드 5.3 마을 번들 5.4 관계 하트 5.5 발견 격자+정령 60 5.6 축제 5.7 택배 사슬 5.8 채집 손맛 | **5.1+5.2 → 5.4 → 5.5** | `ForestState`·`ForestVillager`·`ForestHomeState`·`ForestGroundBuilder` |
 | STORY | 5-1 직업 정체성(고유 조작) 5-2 무예 유파 재해석 5-3 비경 미니던전 5-4 관문 대장 주간 보스 5-5 이동 손맛 5-6 목표판·카드 5-7 손맛 표준 5-8 동료 교대 | **5-5 → 5-7 → 5-1** (전직 4직이 이미 있어 고유 조작 1개씩 얹기 쉬움. 5-7 은 2026-09-17 완료 — hitstop·shake·flash·popup 전부, 크리티컬 전역 슬로모는 웹판 원문 그대로 유지) | `StoryPlayerController`·`StoryCombat`·`StoryJobState`·`StoryEnemy` |
 | REALM | 5-1 인물 특성·야망 5-2 관계 이벤트 체인 5-3 일기토·설전 5-4 시작 시나리오·이정표 5-5 승리 조건·결과 카드 5-6 지형·진형 개입 5-7 월간 요약 카드 5-8 계승 | **5-7 → 5-4 → 5-3** (51장 사슬 확장은 5-4 이정표로 흡수. 공통 선행 A·B 는 2026-09-17 `RealmSessionTracker` 로 이식 완료 — 5-7 아이디어를 그대로 써 "월간" 트리거로 변형) | `RealmCommandUi`·`RealmWarState`·`RealmOfficer`·`RealmQuizState`·`RealmSessionTracker` |
@@ -1076,7 +1076,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | G 장비 가시화 | `CharacterVisual` 에 슬롯 소켓(무기·어깨·망토) — Mixamo Humanoid 본 이름 고정이라 소켓 공용 | 등급별 이미시브 림 3단 |
 | G 지형 반응 | **URP Decal Projector** 로 발자국·타격 흔적(웹 불가) | 수명 8s·최대 32 |
 | G 성장 연출 | Timeline + Cinemachine 컷(레벨업 1.2s) | 스킵 가능 |
-| F 죽음 | 리깅 유지한 채 `Animator` death → 유품 마커 프리팹 드롭 | 회수 반경 2m |
+| F 죽음 | 리깅 유지한 채 `Animator` death → 유품 마커 프리팹 드롭 | **DUNGEON 구현 완료(2026-09-17)** — `LootMarker`(`DungeonEnemy.Die()`가 기존 즉시 보상 뒤 호출). 회수 반경 2m(표 그대로), 주워도 추가 보상은 없다 — 이미 준 보상의 시각적 잔향일 뿐(즉시-보상 흐름은 세이브·베스티어리·퀘스트 완료가 얽혀 있어 안 건드림). 12초 안 주우면 스스로 사라짐. STORY는 적 쪽에 Animator 자체가 없어(101-3 C 표 참고) 범위 밖 |
 
 전부 **기존 씬 구성을 안 바꾸는** 컴포넌트 추가라 `Build()` 재실행이 필요한 것은 위젯 캔버스 추가(A·B) 둘뿐이다.
 

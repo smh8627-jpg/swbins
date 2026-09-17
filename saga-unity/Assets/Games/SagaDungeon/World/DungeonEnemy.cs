@@ -322,6 +322,10 @@ namespace Saga.Dungeon.World
             if (newlyDiscovered) msg += string.Format(DungeonLocalization.T("enemy.bestiary_new", "\n📖 도감에 처음 기록됨 — {0}"), LocalizedDisplayName);
             DialogueLabel.Instance?.Show(msg, ToastSec);
 
+            // PLAN.md 101-3 F "죽음"(2026-09-17) — 보상은 이미 위에서 다
+            // 줬다, 이건 그 자리에 남는 시각적 표식뿐(LootMarker.cs 클래스 주석 참고).
+            LootMarker.Spawn(transform.position);
+
             if (_animator != null)
             {
                 _animator.SetTrigger("Death");

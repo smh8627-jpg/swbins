@@ -6698,3 +6698,56 @@ PC에서 다시 돌리면 그쪽도 값으로 볼 수 있다).
 hit 이벤트 직후 확인(player=False, foe=True)`, LogError 0건. 101-3 C(hitstop·
 shake·flash·popup·타격 VFX) 전 항목이 실시간 전투가 있는 세 판(GO·DUNGEON·STORY)
 모두에서 완결됐다 — 남은 101-3은 G 항목(장비 소켓·데칼·성장 연출·죽음 유품)뿐.
+
+## PLAN 101-3 F 죽음 — DUNGEON LootMarker 구현 (2026-09-17, 같은 세션 "이어해줘" → 네 옵션 중 F 선택 → "묻지말고 이어해줘")
+
+**맥락**: GO hitstop까지 끝나며 101-3 C(hitstop·shake·flash·popup·타격 VFX)가
+실시간 전투가 있는 세 판 전부에서 완결됐다. 남은 101-3은 G(장비 소켓·데칼·
+성장 연출)·F(죽음) 넷인데, 이번엔 하나를 감으로 고르지 않고 사용자에게
+"뭐부터 이어갈까요"로 물었다 — G 셋은 각각 새 렌더 기능(URP Decal Renderer
+Feature+전용 셰이더)이나 새 데이터 스키마(장비 슬롯·등급, 지금 DUNGEON엔
+무기 슬롯 하나뿐이고 rarity 개념 자체가 없다)나 이 프로젝트에 전례 없는
+엔진 기능(Timeline)이 필요해 방향이 갈릴 여지가 컸다. 사용자가 F(유품
+마커)를 골랐고 "묻지말고 이어해줘"로 재확인해 바로 착수.
+
+**설계 — 보상은 이미 준 걸 다시 안 준다**: `DungeonEnemy.Die()`는 사망 즉시
+경험치·돈·장비·보석을 다 지급하고 토스트까지 띄운다(세이브·베스티어리·
+퀘스트 완료가 얽혀 있어 이 흐름 자체는 101-3의 "기존 씬 구성을 안 바꾸는
+컴포넌트 추가" 전제상 손 안 댐). `LootMarker`는 그 보상의 **시각적 잔향**일
+뿐이다 — 주워도 추가 지급이 없다. 처음엔 "걸어가서 주우면 그제서야 보상"
+으로 바꾸는 방안도 떠올랐지만 이미 검증된 보상 흐름(save·bestiary·quest
+completion까지 엮인)을 건드리는 건 이번 항목의 범위를 넘는다고 판단해
+제외했다.
+
+**회수 판정은 트리거 콜라이더가 아니라 "DUNGEON 관례"**: `DungeonSecretStash.cs`
+클래스 주석이 이미 "DUNGEON 관례대로 트리거 콜라이더 대신 Update() 폴링
+거리 판정을 쓴다"고 못박아 둔 걸 그대로 따랐다 — `LootMarker`도 캐싱해 둔
+player Transform과 매 프레임 `Vector3.Distance`만 잰다(PLAN 101-3 표 "회수
+반경 2m" 그대로). 12초 안 주우면 스스로 사라진다(표에 없는 값 — 방마다
+쌓이지 않게 이번에 새로 정함, 유사 자리표시자들의 수명 자릿수를 참고).
+
+**시각**: `DungeonSecretStash.cs`와 같은 "발광 구체 + Emission" 패턴을
+재사용하되(새 셰이더 개발 없음), 크기를 작게(0.35) 하고 색을 옅은
+청백색(다른 발견물의 금빛 발광과 구분)으로 잡았다. 위아래로 살짝
+까닥이고 천천히 도는 연출(`Update()`의 사인파+회전)을 더해 최소한의
+"반짝임"을 줬다.
+
+**변경 파일**:
+- `Assets/Games/SagaDungeon/World/LootMarker.cs`(신규) — `Spawn(Vector3)`,
+  테스트용 `SpawnCount`.
+- `Assets/Games/SagaDungeon/World/DungeonEnemy.cs` — `Die()`의 토스트 직후,
+  `_animator` 분기 이전에 `LootMarker.Spawn(transform.position)` 호출(애니메이터
+  유무와 무관하게 항상 뜨게).
+- `Assets/Editor/PlaytestDungeonHeadless.cs` — `CheckLootMarker()` 신규.
+  더미를 player 1.5m 옆에서 즉사시켜(`TakeDamage(999999f)`, 마커의 회수
+  반경 2m 안) `LootMarker.SpawnCount` 증가만 확인 — 스폰된 마커 자체는
+  이후 자연 프레임에서 픽업 경로(거리 판정→SFX→Destroy)를 실제로 타는데,
+  거기서 예외가 나면 `Run()`의 전역 `Application.logMessageReceived` 리스너가
+  잡아 FAIL로 드러난다(따로 다시 확인 안 함).
+- `PLAN.md` 101-3 F 죽음 줄·101-2 DUNGEON 대응 파일 목록 갱신(5.2 "유품(죽음
+  비용·회수)"와 이름이 겹치는 다른 개념이라 혼동 방지 메모 남김).
+
+**결과**: 컴파일 exit 0. `PlaytestDungeonHeadless` 3연속 — 전부
+`loot marker OK`·`OK - 10 frames, no errors`(픽업 경로 포함 예외 없음).
+101-3 C·F 전 항목 완료, 남은 101-3은 G 셋(장비 소켓·데칼·성장 연출)뿐 —
+셋 다 방향 확인 필요해 다음 세션으로 미룸.
