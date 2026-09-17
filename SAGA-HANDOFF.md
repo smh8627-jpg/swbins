@@ -102,10 +102,10 @@
 | 게임 | 폴더 | 포트 | 원작 | 세이브 키 | 진단 |
 |---|---|---|---|---|---|
 | **사가고** | `saga-go` | 8791 | 포켓몬GO | `deungyong-go/save/<프로필>` | 307/307 |
-| **사가블로** | `saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/<프로필>` | 182/182 |
-| **사가의숲** | `saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/<프로필>` | 143/143 |
-| **사가스토리** | `saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/<프로필>` | 106/106 |
-| **사가국지** | `saga-realm` | 8795 | **삼국지(코에이)** | `saga-realm/save/<프로필>` | 95/95 |
+| **사가블로** | `saga-dungeon` | 8792 | 디아블로 | `yeoksa-dungeon/save/<프로필>` | 184/184 |
+| **사가의숲** | `saga-forest` | 8793 | 동물의숲 | `yeoksa-village/save/<프로필>` | 144/144 |
+| **사가스토리** | `saga-story` | 8794 | 메이플스토리 | `yeoksa-side/save/<프로필>` | 108/108 |
+| **사가국지** | `saga-realm` | 8795 | **삼국지(코에이)** | `saga-realm/save/<프로필>` | 98/98 |
 
 `saga-pc/` 는 게임이 아니라 **PC 묶음 빌드 도구**다.
 
