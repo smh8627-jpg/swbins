@@ -47,6 +47,7 @@ const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 const RealmGrowth := preload("res://games/saga_realm/data/realm_growth.gd")
 const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
+const SessionCard := preload("res://saga_core/ui/session_card.gd")
 
 const SAVE_PATH := "user://save_realm.json"
 const SAVE_VERSION := 13  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id)
@@ -180,7 +181,22 @@ var quiz: Dictionary = {}
 ## `st.result`가 한 번 정해지면 그대로 굳는 것과 같이(`check_result()`
 ## 머리말 참고) `next_month()`도 승패가 정해지면 더 안 넘어간다(rtk.js
 ## `endMonth()`의 `if (!st.started || st.result) return null;` 그대로).
+##
+## **2026-09-17 추가 — PLAN 101-2 REALM ②후보 "승리 조건 4"(웹판 §5-5).**
+## 웹판 넷(패권·문화·외교·생존) 중 지금 3D가 가진 것만 옮긴다: "win"(정복,
+## 기존 그대로)에 "win_culture"(문답 정답 누적)·"win_diplomacy"(모든
+## 살아있는 세력과 화친 연속 유지) 둘을 더한다. **재해석** — 문화는
+## 웹판의 학식 상한·보물 11종을 뺐다(그 시스템 자체가 없다), 문답 정답
+## 수만 본다. **보류**(새 시스템이 필요해 이번 범위 밖): 패권(세력 순위·
+## "관문 성" 태그가 없다)·생존("균열의 왕" 전용 시나리오가 3D에 없다).
+## 웹판은 승리를 "여러 개 모으는" 열린 판이지만(`save.rtk.victories` 배열)
+## 3D는 기존 `result` 한 번 굳으면 다음 달을 막는 흐름을 그대로 따른다
+## (다시 설계 안 함) — 넷 중 먼저 채운 조건 하나로 그 판이 끝난다.
 var result := ""
+
+## 외교 승리 진행도 — next_month()가 매달 "살아있는 모든 세력이 지금
+## 화친 중인가"를 보고 이으면 +1, 끊기면 0으로 되돌린다.
+var diplomacy_peace_streak := 0
 
 var _rng := RandomNumberGenerator.new()
 
@@ -661,6 +677,15 @@ func next_month() -> void:
 		var dip: Dictionary = diplomacy[force_id]
 		dip.truce_months = maxi(0, int(dip.truce_months) - 1)
 
+	## PLAN 101-2 REALM ②후보 "외교 승리" — 살아있는 세력(아직 성이 하나도
+	## 안 넘어온 쪽) 전부가 지금 화친 중이면 이어지고, 하나라도 깨지면
+	## 되돌린다. 위에서 막 닳은 truce_months를 그대로 본다("이번 달"
+	## 기준이 맞다).
+	if _all_alive_forces_at_peace():
+		diplomacy_peace_streak += 1
+	else:
+		diplomacy_peace_streak = 0
+
 	_check_defection()
 	_run_enemy_ai()
 	_run_enemy_economy()
@@ -926,13 +951,54 @@ func _best_enemy_officer(officers: Array, stat_key: String) -> String:
 ## 이겨도 성을 안 뺏어 `cities`가 절대 비지 않는다(위 `result` 변수
 ## 머리말 참고). "win"만 실제로 판정한다 — 성 우주 전체(기본 3 + 정복
 ## 대상 104 = 107)를 전부 갖게 되면 천하통일.
+const CULTURE_VICTORY_CORRECT := 200   # 웹판 §5-5 "학당 문답 정답 200" 그대로
+const DIPLOMACY_VICTORY_MONTHS := 36   # 웹판 §5-5 "36달 연속" 그대로
+
+
 func check_result() -> String:
 	if not result.is_empty():
 		return result
 	if cities.size() >= RealmCities.ids().size() + RealmCities.ENEMY_CITIES.size():
 		result = "win"
-		Toast.show(self, "👑 천하가 하나가 되었다! %d년 %d월." % [year, month], 5.0)
+		_show_victory_card("👑 천하통일", "패업을 이루었다 — 천하가 하나가 되었다.")
+	elif int(quiz.get("correct", 0)) >= CULTURE_VICTORY_CORRECT:
+		result = "win_culture"
+		_show_victory_card("📚 문화의 으뜸", "학당 문답 %d개를 맞혀 학식으로 천하의 으뜸이 되었다." % CULTURE_VICTORY_CORRECT)
+	elif diplomacy_peace_streak >= DIPLOMACY_VICTORY_MONTHS:
+		result = "win_diplomacy"
+		_show_victory_card("🕊️ 화친의 시대", "%d달 동안 살아있는 모든 세력과 화친을 지켰다." % DIPLOMACY_VICTORY_MONTHS)
 	return result
+
+
+## 웹판 §5-5 "결과 카드"(걸린 달·성·인물·기록) 재해석 — 이 슬라이스가
+## 가진 값(연월·성·로스터)만 3줄로 좁혔다("인물 5인"·"다음 도전"은 아직
+## 없는 시스템이라 뺐다). GO/FOREST/STORY save_button.gd와 같은
+## SessionCard 패턴.
+func _show_victory_card(title: String, sub: String) -> void:
+	SessionCard.show(self, title, [
+		sub,
+		"%d년 %d월" % [year, month],
+		"성 %d개 · 로스터 %d명" % [cities.size(), roster.size()],
+	])
+
+
+## 웹판 §5-5 "살아 있는 모든 세력과 화친"의 이 슬라이스 판. city_force는
+## 시나리오 시작 시점 스냅샷이라(위 _init_city_force() 머리말) "아직 우리
+## 것이 안 된 성이 남은 force"만 본다 — diplomacy.keys()를 그대로 쓰면
+## 이미 멸망한(성을 다 뺏은) 세력의 죽은 항목까지 세게 된다.
+func _all_alive_forces_at_peace() -> bool:
+	var checked: Dictionary = {}
+	for eid: String in city_force:
+		if cities.has(eid):
+			continue
+		var fid: String = String(city_force[eid])
+		if fid.is_empty() or checked.has(fid):
+			continue
+		checked[fid] = true
+		var dip: Dictionary = diplomacy.get(fid, {"truce_months": 0})
+		if int(dip.get("truce_months", 0)) <= 0:
+			return false
+	return true
 
 
 ## rtk.js war.js moveOfficer() — 무장을 맞닿은 성으로 옮긴다(그 달의 명령을
@@ -1621,6 +1687,7 @@ func save() -> bool:
 		"diplomacy": diplomacy,
 		"quiz": quiz,
 		"result": result,
+		"diplomacy_peace_streak": diplomacy_peace_streak,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -1679,6 +1746,7 @@ func try_load() -> bool:
 	if typeof(loaded_quiz) == TYPE_DICTIONARY and not loaded_quiz.is_empty():
 		quiz = loaded_quiz
 	result = String(data.get("result", ""))
+	diplomacy_peace_streak = int(data.get("diplomacy_peace_streak", 0))
 	_done_this_month.clear()
 	return true
 

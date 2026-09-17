@@ -108,8 +108,12 @@ func _process(_delta: float) -> void:
 ## status_label.gd 선례대로) goal_board도 _process() 폴링으로 갱신.
 ## "지금"은 "성 편입" 진행도(멸망시킨 적 성을 포함한 전체 지도 107 중
 ## 지금 내 것). "세션"은 골드+편입 델타(RealmSaveState.begin_session()/
-## session_gold_gained()/session_cities_gained() 신규). "주"는 REALM도
-## 달(month) 축은 있지만 주간 축은 없어 다른 네 판과 같은 이유로 "—".
+## session_gold_gained()/session_cities_gained() 신규).
+## **2026-09-17 추가 — PLAN 101-2 REALM ②후보(승리 조건 4) 웹판 §5-5 UI
+## 메모 "셋째 줄이 가장 가까운 승리 조건 + 진척 %"를 채운다** — 다른
+## 네 판의 "주간 축 없음"과 달리 REALM은 이미 승리 조건 진척이라는 실제
+## 값이 생겨 "—"로 안 둔다. 정복·문화·외교 셋 중 가장 가까운(퍼센트가
+## 가장 높은) 것만 보여준다(패권·생존은 이번 세션 범위 밖이라 안 낀다).
 func _refresh_goal_board() -> void:
 	var board := get_tree().get_first_node_in_group("goal_board")
 	if board == null:
@@ -118,7 +122,26 @@ func _refresh_goal_board() -> void:
 	var now := "성 %d/%d 편입" % [RealmSaveState.cities.size(), total]
 	var session := "골드 +%d · 편입 +%d" % [
 		RealmSaveState.session_gold_gained(), RealmSaveState.session_cities_gained()]
-	board.set_goals(now, session, "—")
+	var week := _closest_victory_progress()
+	board.set_goals(now, session, week)
+
+
+func _closest_victory_progress() -> String:
+	if not RealmSaveState.result.is_empty():
+		return "승리 달성"
+	var total := RealmCities.CITIES.size() + RealmCities.ENEMY_CITIES.size()
+	var conquer_pct := float(RealmSaveState.cities.size()) / float(total) * 100.0
+	var culture_pct := float(RealmSaveState.quiz.get("correct", 0)) / float(RealmSaveState.CULTURE_VICTORY_CORRECT) * 100.0
+	var diplo_pct := float(RealmSaveState.diplomacy_peace_streak) / float(RealmSaveState.DIPLOMACY_VICTORY_MONTHS) * 100.0
+	var best_label := "천하통일"
+	var best_pct := conquer_pct
+	if culture_pct > best_pct:
+		best_pct = culture_pct
+		best_label = "문화"
+	if diplo_pct > best_pct:
+		best_pct = diplo_pct
+		best_label = "외교"
+	return "%s 진척 %d%%" % [best_label, mini(100, int(best_pct))]
 
 
 ## city3d.js sig()/render() 그대로 — 성이 다르거나(current_city) 숫자가
