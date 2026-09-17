@@ -7235,3 +7235,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestField.tscn을 실제로 인스턴스화해 GoalBoard 텍스트 확인, `🎯 사명 완수 0/13 / ⏱ 처치 +0 · 골드 +0 / 📅 —` 형식 그대로 나옴.
 - 헤드리스 3회 회귀 md5 동일(SinyaField dafb96d4, HUD 신규 라벨로 값 자체는 바뀜). `tools/godot_regress.sh`로 다섯 판 전체 스모크 오류 0·project.godot/.import 잡음 없음 확인.
 - 다음: REALM ①(같은 101-4 배선) — 이걸로 GO·DUNGEON·FOREST·STORY 네 판 다 끝나고 REALM 하나만 남음.
+
+## REALM 목표판·월간 요약 카드 (2026-09-17, 새 세션, "이어해") — 101-4 공통 순서 1번, 다섯 판 전부 완주
+- STORY에 붙인 표준 A/B(목표판 3줄·세션 마무리 카드)를 REALM에도 배선 — **이걸로 GO·DUNGEON·FOREST·STORY·REALM 다섯 판 전부 101-4 순서 1번 끝남.**
+- REALM은 PLAN 101-2 이식 순서 ①후보가 이미 "월간 요약 카드+목표판(월말 처리에 얹음)"이라 이번 배선이 곧 REALM 101-2 ①후보이기도 하다 — 다른 네 판과 달리 두 일을 한 번에 끝냄.
+- `RealmHUD.tscn`에 `GoalBoard` Label 신규(우상단, 다른 네 판과 같은 위치·스타일). `realm_city.gd::_process()`에서 폴링 갱신(realm_status_label.gd 선례대로, REALM엔 신호 배선 없음).
+- "지금"은 "성 N/107 편입"(`RealmSaveState.cities.size()` / `RealmCities.CITIES.size()+ENEMY_CITIES.size()` — 107 = 시작 성 3 + 적성 104, 하드코딩 안 하고 카탈로그에서 계산). "세션"은 골드+편입 델타. "주"는 다른 네 판과 같은 이유로 "—".
+- `realm_save_state.gd`에 `begin_session()`/`session_gold_gained()`/`session_cities_gained()` 추가(GO·FOREST·STORY와 같은 계약). `realm_city.gd::_ready()`에서 호출 — REALM은 씬이 TestCity.tscn 하나뿐이라(월드맵도 같은 씬 안에서 토글) GO test_village.gd와 같은 단일 진입점.
+- **"월간 요약 카드"** — `realm_month_button.gd`의 기존 3초 토스트(골드·식량 증감)를 `SessionCard.show()`로 올렸다. 달(月)이 REALM에선 다른 네 판의 "세션"에 해당하는 자연스러운 매듭이라(달마다 정산이 한 번씩 확정) "다음 달" 버튼을 누를 때마다 뜬다 — DUNGEON처럼 "마지막"으로 좁힐 이유가 없다(사용자가 직접 누르는 동작이라 GO save_button.gd와 같은 결). 카드 3줄: 골드 증감·식량 증감·보유 성 수.
+- 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestCity.tscn을 실제로 인스턴스화해 GoalBoard 텍스트 확인, `🎯 성 3/107 편입 / ⏱ 골드 +0 · 편입 +0 / 📅 —` 형식 그대로 나옴(194 시나리오 기본 3성).
+- `TestCity.tscn` 헤드리스 3회 회귀 md5 동일(850475e8)·error/warn 0. `tools/godot_regress.sh`로 다섯 판 전체 스모크 오류 0·project.godot/.import 잡음 없음 확인.
+- 다음: 101-4 공통 순서 1번은 다섯 판 다 끝났다 — 이제 FOREST·STORY·REALM 각자 101-2 ②후보부터(REALM은 ①이 이번에 끝났으니 ②승리 조건 4).

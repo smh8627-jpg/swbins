@@ -29,6 +29,7 @@ extends Node3D
 
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
+const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
 
 const COLOR_BASE := Color(0.56, 0.5, 0.4)     # 흙빛 기단
 const COLOR_TOWER := Color(0.68, 0.6, 0.46)   # 누각(망루)
@@ -63,6 +64,7 @@ func _ready() -> void:
 	if not RealmSaveState.try_load():
 		RealmSaveState.scenario_ready = false
 		_show_scenario_picker()
+	RealmSaveState.begin_session()
 	_build_base()
 	_build_tower()
 	_build_walls()
@@ -98,6 +100,25 @@ func _process(_delta: float) -> void:
 	visible = not RealmSaveState.viewing_map
 	if visible:
 		_rebuild_if_changed()
+	_refresh_goal_board()
+
+
+## saga_core/ui/goal_board.gd는 RealmSaveState·RealmCities를 모른다(GO
+## test_village.gd 헤더와 같은 경계). REALM엔 신호 배선이 없어(realm_
+## status_label.gd 선례대로) goal_board도 _process() 폴링으로 갱신.
+## "지금"은 "성 편입" 진행도(멸망시킨 적 성을 포함한 전체 지도 107 중
+## 지금 내 것). "세션"은 골드+편입 델타(RealmSaveState.begin_session()/
+## session_gold_gained()/session_cities_gained() 신규). "주"는 REALM도
+## 달(month) 축은 있지만 주간 축은 없어 다른 네 판과 같은 이유로 "—".
+func _refresh_goal_board() -> void:
+	var board := get_tree().get_first_node_in_group("goal_board")
+	if board == null:
+		return
+	var total := RealmCities.CITIES.size() + RealmCities.ENEMY_CITIES.size()
+	var now := "성 %d/%d 편입" % [RealmSaveState.cities.size(), total]
+	var session := "골드 +%d · 편입 +%d" % [
+		RealmSaveState.session_gold_gained(), RealmSaveState.session_cities_gained()]
+	board.set_goals(now, session, "—")
 
 
 ## city3d.js sig()/render() 그대로 — 성이 다르거나(current_city) 숫자가

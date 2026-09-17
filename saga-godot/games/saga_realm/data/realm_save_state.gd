@@ -79,6 +79,26 @@ var gold := 3200
 var cities: Dictionary = {}
 var current_city := RealmCities.DEFAULT_CITY  # "지금 조망 중인 성"
 
+## PLAN.md 101-4 표준 A·B(목표판·세션 카드) — GO PartyState.session_exp_gained()·
+## FOREST ForestSaveState.session_gold_gained()와 같은 계약(세이브 필드이
+## 아니다, 세션 시작 시점 스냅샷과의 차이만 잰다). "편입"은 cities.size()
+## 델타 — 성을 뺏기는(멸망) 경우도 있어 음수가 나올 수 있다, 그대로 보여준다.
+var _session_start_gold := 0
+var _session_start_cities := 0
+
+
+func begin_session() -> void:
+	_session_start_gold = gold
+	_session_start_cities = cities.size()
+
+
+func session_gold_gained() -> int:
+	return gold - _session_start_gold
+
+
+func session_cities_gained() -> int:
+	return cities.size() - _session_start_cities
+
 ## **2026-09-12 추가 — 월드맵 손잡이(viewing_map).** true면 realm_worldmap.gd
 ## (성 셋을 한눈에)를 보여주고 diorama(realm_city.gd, "성 하나를 3D로
 ## 조망")를 숨긴다. **저장하지 않는다** — 세이브를 열 때마다 항상 디오라마
