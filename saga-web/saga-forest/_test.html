@@ -1032,6 +1032,75 @@ window.DG_NO_TUNE = true;
         (r.text + ' · 두 번째는 ' + again.kind);
     });
 
+    /* ── 채집 손맛 표준 C(§5.8①) ──────────────────────── */
+
+    /* shake.bee 는 `village.js` 로드 시 딱 한 번 core.tuned()로 읽혀 상수에
+       박힌다(SHAKE_BEE) — setTune()으로 나중에 꺼 봤자 안 듣는다(다른 튜닝
+       손잡이들과 같은 함정, 걸음 배속과 같은 결). 벌집이 뜨면 `bug.swarm()`
+       이 그 자리에 말벌을 놓고, 잠자리채 없인 다음 interact() 마다 그 말벌이
+       최근접이 돼 전부 'no'(달아나는 중)로 새 버린다 — 매 시도 뒤
+       `DG.bug.reset()`으로 스폰된 것을 치워 나무를 다시 최근접으로 되돌린다. */
+    function clearBees() { if (DG.bug) { DG.bug.reset(); } }
+
+    t('채집 — village:gather 신호가 아이템·개수·연속을 실어 나른다', function () {
+      var raw = V.raw(), s = V.state();
+      var tree = raw.props.filter(function (p) { return p.kind === 'tree'; })[0];
+      raw.player.x = tree.x; raw.player.y = tree.y;
+      s.gatherStreak = 0; s.gatherStreakAt = 0;
+      var seen = null;
+      C.on('village:gather', function (e) { seen = e; });
+      for (var i = 0; i < 10 && !seen; i++) { s.used = {}; clearBees(); V.interact(); }
+      return !!seen && !!seen.item && seen.n >= 1 && seen.streak >= 1 &&
+        ('item=' + seen.item.key + ' n=' + seen.n + ' streak=' + seen.streak);
+    });
+
+    t('채집 손맛 — 3연속마다 리듬 보너스가 붙는다(사거리 안에서 쉬지 않고 이어야)', function () {
+      var raw = V.raw(), s = V.state();
+      var tree = raw.props.filter(function (p) { return p.kind === 'tree'; })[0];
+      raw.player.x = tree.x; raw.player.y = tree.y;
+      s.gatherStreak = 0; s.gatherStreakAt = 0;
+      var bonuses = [];
+      for (var i = 0; i < 20 && bonuses.length < 6; i++) {
+        s.used = {}; clearBees();
+        var r = V.interact();
+        if (r && r.kind === 'gather') { bonuses.push(!!r.bonus); }
+      }
+      return bonuses.length === 6 && !bonuses[0] && !bonuses[1] && bonuses[2] &&
+        !bonuses[3] && !bonuses[4] && bonuses[5] && '보너스는 3·6번째 채집에만';
+    });
+
+    t('채집 손맛 — 손을 오래 쉬면(GATHER_GAP 밖) 연속이 끊긴다', function () {
+      var raw = V.raw(), s = V.state();
+      var tree = raw.props.filter(function (p) { return p.kind === 'tree'; })[0];
+      raw.player.x = tree.x; raw.player.y = tree.y;
+      var r = null;
+      for (var i = 0; i < 10 && (!r || r.kind !== 'gather'); i++) {
+        clearBees();
+        s.gatherStreak = 2; s.gatherStreakAt = Date.now() - 20000;   // 20초 전 — 분명히 끊긴다
+        s.used = {};
+        r = V.interact();
+      }
+      return r && r.kind === 'gather' && s.gatherStreak === 1 && !r.bonus &&
+        '오래 쉬면 1부터 다시';
+    });
+
+    t('채집 손맛 — 효과음이 3종 라운드로빈으로 돈다(§5.8①, 보너스는 따로)', function () {
+      /* 라운드로빈 자리(gatherRR)는 이 진단 파일 전체에서 공유된다 — 앞선
+         "채집 손맛" 시험들이 이미 진짜 채집을 여러 번 해서 자리를 얼마나
+         돌려놨는지 모른다. 그래서 시작 자리를 **먼저 관찰**하고, 그 뒤로
+         셋이 정말 순서대로(a→b→c, 보너스는 건너뛰고) 도는지만 본다. */
+      var S = DG.sfx, seq = ['gather_a', 'gather_b', 'gather_c'];
+      S._clear();
+      C.emit('village:gather', { item: { key: 'x' }, n: 1, streak: 1, bonus: false });
+      var start = seq.indexOf(S._tail(1)[0]);
+      C.emit('village:gather', { item: { key: 'x' }, n: 1, streak: 2, bonus: false });
+      C.emit('village:gather', { item: { key: 'x' }, n: 2, streak: 3, bonus: true });
+      C.emit('village:gather', { item: { key: 'x' }, n: 1, streak: 4, bonus: false });
+      var tail = S._tail(4);
+      return start >= 0 && tail[1] === seq[(start + 1) % 3] &&
+        tail[2] === 'gather_bonus' && tail[3] === seq[(start + 2) % 3] && tail.join(' · ');
+    });
+
     /* ── 낚시 ─────────────────────────────────────────── */
 
     function findSpot() {

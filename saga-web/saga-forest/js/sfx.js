@@ -7,7 +7,7 @@
  * 간격 · AudioContext 한 번만) 은 그 파일 머리말과 같다. 자세한 설계 이유는
  * `saga-dungeon/js/sfx.js`를 참고할 것 — 여기서는 되풀이하지 않는다.
  *
- * **판정 코드(village.js·animal.js·weather.js·town.js)는 한 글자도 안 건드렸다.**
+ * **판정 코드(village.js·animal.js·weather.js·town.js)는 거의 안 건드렸다.**
  * 대신 두 갈래로 듣는다:
  *   ① 이미 있는 이벤트를 구독한다(village:fish·village:bug·village:home·
  *      village:cave·hero:levelup·levelup) — 코드 추가 0줄
@@ -15,9 +15,9 @@
  *      전환·유성)은 이 파일이 **폴링**한다(`village.raw()`·`village.tileAt()`·
  *      `villageData.season()`·`town.starNow()`는 전부 읽기 전용 공개 함수라
  *      폴링해도 판정을 안 건드린다).
- * 딱 세 곳(`mail.js`·`museum.js`를 통한 `ui.js`)에만 한 줄씩 보탰다 — 이 셋은
- * "판정"이 아니라 이미 결과가 난 다음의 UI 반응 지점이라 sfx 훅을 넣기에
- * 안전하다.
+ * 딱 네 곳(`mail.js`·`museum.js`를 통한 `ui.js`, 그리고 2026-09-17 §5.8①로
+ * `village.js`의 `gather()` 결과 자리)에만 한 줄씩 보탰다 — 전부 "판정"이
+ * 아니라 이미 결과가 난 다음의 반응 지점이라 sfx 훅을 넣기에 안전하다.
  */
 (function (global) {
   'use strict';
@@ -69,7 +69,15 @@
     gift_ok:   { gap: 0.2, l: [{ v: 'tone', f: 440, f2: 660, dur: 0.16, wave: 'sine', gain: 0.11 }] },
     gift_love: { gap: 0.2, l: [{ v: 'chime', notes: [880, 1175, 1568], step: 0.05,
                                  dur: 0.3, wave: 'triangle', gain: 0.15 }] },
-    ui:     { gap: 0.04, l: [{ v: 'tone', f: 660, f2: 620, dur: 0.05, wave: 'sine', gain: 0.06 }] }
+    ui:     { gap: 0.04, l: [{ v: 'tone', f: 660, f2: 620, dur: 0.05, wave: 'sine', gain: 0.06 }] },
+
+    /* 채집(§5.8① 표준 C "효과음 3종 라운드로빈") — 나무·꽃·광물 등 일반 채집
+       한 벌. 서로 다른 파형·음높이 셋을 돌려 써 같은 손짓이 매번 다르게 들린다 */
+    gather_a: { gap: 0.12, l: [{ v: 'tone', f: 520, f2: 700, dur: 0.09, wave: 'triangle', gain: 0.10 }] },
+    gather_b: { gap: 0.12, l: [{ v: 'tone', f: 440, f2: 580, dur: 0.10, wave: 'sine', gain: 0.10 }] },
+    gather_c: { gap: 0.12, l: [{ v: 'tone', f: 600, f2: 820, dur: 0.08, wave: 'square', gain: 0.07 }] },
+    gather_bonus: { gap: 0.2, l: [{ v: 'chime', notes: [659, 880, 1175], step: 0.05,
+                                    dur: 0.28, wave: 'triangle', gain: 0.14 }] }
   };
 
   /* ── 상태 ─────────────────────────────────────────────── */
@@ -239,6 +247,17 @@
   core.on('village:home', function (e) { play('door_home'); });
   core.on('village:cave', function (e) { play('door_cave'); });
   core.on('village:mail', function () { play('mail'); });
+
+  /* 채집(§5.8①) — village.js가 판정 뒤에 한 줄 emit 한다(gather() 함수 참고).
+     gather_a→b→c 를 순서대로 돌려 쓴다(라운드로빈) — 3연속 리듬 보너스는
+     한 옥타브 위 쨍한 종소리로 따로 알린다 */
+  var gatherRR = 0;
+  var GATHER_CUES = ['gather_a', 'gather_b', 'gather_c'];
+  core.on('village:gather', function (e) {
+    if (e && e.bonus) { play('gather_bonus'); return; }
+    play(GATHER_CUES[gatherRR % GATHER_CUES.length]);
+    gatherRR++;
+  });
 
   /* ── ② 판정 파일을 안 건드리고 폴링으로만 듣는 것 ─────────
    * `village`·`villageData`·`town`은 전부 읽기 전용 공개 함수라, 여기서

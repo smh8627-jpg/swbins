@@ -567,6 +567,34 @@
    *  전부 몸짓 한 번을 튼다(`triggerAction()`, 2026-09-10 "더 자연스럽게") */
   var NO_GESTURE_KIND = { open: 1, talk: 1, quest: 1, request: 1, reward: 1, no: 1, leaving: 1, home: 1, cave: 1, locked: 1 };
 
+  /**
+   * 채집 손맛(§5.8①) "대상 흔들림 + 수확 팝" — 캔버스·3D 는 안 건드린다.
+   * 포커스 카드 자체를 0.25s 흔들고, 그 위로 아이콘 +n 이 0.6s 떠올랐다 사라진다.
+   * 흔들림(§5.8①)·효과음(sfx.js `village:gather` 구독)·리듬 보너스(village.js
+   * `bumpGatherStreak()`)는 각자 다른 층에서 같은 한 신호(`interact()`의
+   * 결과값)를 듣는다 — 여기 쓰는 것은 그중 화면 층 몫뿐이다.
+   */
+  function gatherFeedback(r) {
+    if (els.focusbar) {
+      var card = els.focusbar.querySelector('.focus-card');
+      if (card) {
+        card.classList.remove('gather-pulse');
+        void card.offsetWidth;
+        card.classList.add('gather-pulse');
+      }
+    }
+    var host = els.focusbar;
+    if (!host) { return; }
+    var rect = host.getBoundingClientRect();
+    var pop = document.createElement('div');
+    pop.className = 'gather-pop';
+    pop.style.left = (rect.left + rect.width / 2) + 'px';
+    pop.style.top = rect.top + 'px';
+    pop.textContent = r.item.emoji + ' +' + (r.n || 1) + (r.bonus ? ' 🎵' : '');
+    document.body.appendChild(pop);
+    global.setTimeout(function () { if (pop.parentNode) { pop.parentNode.removeChild(pop); } }, 650);
+  }
+
   function doInteract() {
     var r = global.DG.village.interact();
     if (!r) { return; }
@@ -585,6 +613,7 @@
     } else if (r.kind === 'gather' || r.kind === 'furn' || r.kind === 'gold' ||
                r.kind === 'bees' || r.kind === 'treasure') {
       toast(r.text);
+      if (r.kind === 'gather' && r.item) { gatherFeedback(r); }
     } else if (r.kind === 'empty' || r.kind === 'locked') {
       toast(r.text);
     }

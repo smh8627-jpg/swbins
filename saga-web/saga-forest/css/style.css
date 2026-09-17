@@ -1203,6 +1203,26 @@ body.tilted3 #vignette {
 }
 .fc-ico img { width: 100%; height: 100%; object-fit: contain; }
 .fc-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+/* 채집 손맛(§5.8①) — 대상 흔들림 0.25s 스프링(카드 자체를 흔든다, 캔버스는
+   안 건드린다) + 수확 팝(아이콘이 0.6s 떠올랐다 사라진다) */
+.focus-card.gather-pulse { animation: gatherPulse .25s ease-out; }
+@keyframes gatherPulse {
+  0% { transform: scale(1) rotate(0); }
+  30% { transform: scale(1.06) rotate(-1.5deg); }
+  60% { transform: scale(0.98) rotate(1deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.gather-pop {
+  position: fixed; z-index: 60; pointer-events: none;
+  font-size: 20px; font-weight: 700; color: #ffd76a;
+  text-shadow: 0 1px 3px rgba(0,0,0,.5);
+  animation: gatherPop .6s ease-out forwards;
+}
+@keyframes gatherPop {
+  0% { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, -46px); opacity: 0; }
+}
 .fc-meta b { font-size: 13px; }
 .fc-meta small { font-size: 10.5px; }
 

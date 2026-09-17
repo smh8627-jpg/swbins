@@ -1616,6 +1616,19 @@
     }
   }
 
+  /** 채집 손맛 표준 C(§5.8①) "연속 채집 3회마다 리듬 보너스" — 손을 안 쉬고
+   *  이어 채집하면(GATHER_GAP 안에 다음 것) 연속이 쌓인다. 시간이 아니라
+   *  타이밍을 보는 이유는 손맛 자체(연타/콤보)를 재려는 것이지 "하루에 몇
+   *  번"을 재려는 게 아니라서다(그건 §5.1 일과가 이미 한다). */
+  var GATHER_GAP = 8000;
+  function bumpGatherStreak() {
+    var s = st(), now = Date.now();
+    s.gatherStreak = (s.gatherStreakAt && now - s.gatherStreakAt <= GATHER_GAP)
+      ? (s.gatherStreak || 0) + 1 : 1;
+    s.gatherStreakAt = now;
+    return s.gatherStreak;
+  }
+
   /**
    * 손을 쓴다 — 사물이면 채집, 주민이면 말을 건다.
    * @returns {{kind, text}} 화면에 띄울 한 줄 (없으면 null)
@@ -1689,15 +1702,21 @@
     /* 교배로 핀 꽃은 드문 것을 낸다 */
     var got = (prop.hybrid && def.gather === 'flower') ? VD.pickHybrid() : VD.pick(def.gather);
     if (!got) { return null; }
-    var n = 1 + (Math.random() < 0.25 ? 1 : 0);
+    var streak = bumpGatherStreak();
+    var bonus = streak > 0 && streak % 3 === 0;         // 리듬 보너스 — 3연속마다
+    var n = 1 + (Math.random() < 0.25 ? 1 : 0) + (bonus ? 1 : 0);
     bagAdd(got, n);
     if (def.reset) { st().used[prop.id] = st().day; }
     core.gainFeat(1, '채집');
     core.gainExp(6);
-    core.log(got.emoji + ' ' + got.name + ' ×' + n + ' 을 얻었다 (' + def.name + ')', 'good');
+    core.log(got.emoji + ' ' + got.name + ' ×' + n + ' 을 얻었다 (' + def.name + ')' +
+      (bonus ? ' — 🎵 리듬 보너스!' : ''), 'good');
+    /* 화면 층(흔들림·팝·효과음, §5.8①)이 듣는 신호 — 판정은 한 줄도 안 바뀐다 */
+    core.emit('village:gather', { item: got, n: n, streak: streak, bonus: bonus, propId: prop.id });
     core.emit('changed');
     core.persist();
-    return { kind: 'gather', text: got.emoji + ' ' + got.name + ' ×' + n, item: got };
+    return { kind: 'gather', text: got.emoji + ' ' + got.name + ' ×' + n +
+      (bonus ? ' 🎵' : ''), item: got, streak: streak, bonus: bonus };
   }
 
   /* ── 잡초 ─────────────────────────────────────────────────
