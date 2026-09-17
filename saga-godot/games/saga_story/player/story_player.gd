@@ -100,6 +100,18 @@ var _dash_cd_left := 0.0
 var _coyote_time_left := 0.0
 var _jump_buffer_left := 0.0
 
+## PLAN 101-2 STORY ③후보 "직업 정체성" — 갈래별 고유 조작(`_try_signature()`
+## 머리말 참고). `_dash_hold_time`은 `story_dash`를 누르고 있는 시간(뗄 때
+## 0으로), `_signature_next_mul`은 "다음 공격 한 방" 한정 배율(`_effective_
+## atk()`가 읽는 즉시 1.0으로 되돌린다).
+var _signature_cd_left := 0.0
+var _dash_hold_time := 0.0
+var _signature_fired_this_hold := false
+var _archer_charging := false
+var _parry_time_left := 0.0
+var _signature_next_mul := 1.0
+var _mage_element_idx := 0
+
 ## **2026-09-13 추가(같은 날 더) — 전직 다음 걸음: 방사(mage) 무예 넷.**
 ## `_job_buff_time_left`를 부적(m_talis)도 같이 쓴다(archer/warrior와
 ## 같은 공유 규칙). regen 배율은 mp 회복 줄(`_physics_process()`)이
@@ -259,6 +271,12 @@ func take_damage(amount: float) -> void:
 		return
 	if _invuln_time_left > 0.0:
 		return
+	## PLAN 101-2 STORY ③후보 — 무사 받아치기(w_parry). 판정 창 안에 맞으면
+	## 무효화하고 다음 공격에 배율을 건다(`_effective_atk()`가 소비한다).
+	if _parry_time_left > 0.0:
+		_parry_time_left = 0.0
+		_signature_next_mul = StoryCombat.WARRIOR_PARRY_NEXT_MUL
+		return
 	var def: float = float(StorySaveState.gear_totals().def)
 	var cut: float = StoryCombat.damage_cut(def)
 	## **2026-09-13 추가(같은 날 더 더)** — 캐스팅 시점에 저장해 둔
@@ -294,6 +312,8 @@ func _physics_process(delta: float) -> void:
 	_cd_rogue_vital = maxf(0.0, _cd_rogue_vital - delta)
 	_invuln_time_left = maxf(0.0, _invuln_time_left - delta)
 	_dash_cd_left = maxf(0.0, _dash_cd_left - delta)
+	_signature_cd_left = maxf(0.0, _signature_cd_left - delta)
+	_parry_time_left = maxf(0.0, _parry_time_left - delta)
 	_cd_mage_fire = maxf(0.0, _cd_mage_fire - delta)
 	_cd_mage_bolt = maxf(0.0, _cd_mage_bolt - delta)
 	_cd_mage_heal = maxf(0.0, _cd_mage_heal - delta)
@@ -653,12 +673,14 @@ func _walk(delta: float) -> void:
 	_jump_buffer_left = maxf(0.0, _jump_buffer_left - delta)
 
 	_try_dash()
+	_try_signature(delta)
 
 	var axis := Input.get_axis("move_left", "move_right")
 	## **2026-09-13 추가(같은 날 더 더 더 더)** — f_focus(정심)가 처음으로
 	## job 버프에 이동속도 배율을 얹었다. 기합(brace)과는 별개 곱.
 	var speed := RUN_SPEED * (StoryCombat.BRACE_SPEED_MUL if _buff_time_left > 0.0 else 1.0) \
-		* (_job_buff_speed_mul if _job_buff_time_left > 0.0 else 1.0)
+		* (_job_buff_speed_mul if _job_buff_time_left > 0.0 else 1.0) \
+		* (StoryCombat.ARCHER_DRAW_MOVE_MUL if _archer_charging else 1.0)
 	velocity.x = axis * speed
 
 	if absf(axis) > 0.05:
@@ -681,6 +703,77 @@ func _try_dash() -> void:
 	_dash_cd_left = DASH_COOLDOWN
 	global_position.x += DASH_DIST_M * _facing
 	_invuln_time_left = maxf(_invuln_time_left, DASH_INVULN_SEC)
+
+
+## PLAN 101-2 STORY ③후보(웹판 §5-1 "직업 정체성") — 같은 `story_dash`
+## 버튼을 길게 누르면 대시와 별개로 갈래별 고유 조작이 나온다(`_try_dash()`
+## 는 press 즉시 그대로 나가는 독립 이벤트라 서로 안 막는다). 궁수만
+## "누르는 동안 계속 차징 → 뗄 때 발동"이라 나머지 셋(즉시 발동)과 갈린다
+## — `story_combat.gd` 머리말 참고.
+func _try_signature(delta: float) -> void:
+	if Input.is_action_just_released("story_dash"):
+		if StorySaveState.job == "archer" and _archer_charging:
+			_release_archer_draw()
+		_dash_hold_time = 0.0
+		_signature_fired_this_hold = false
+		_archer_charging = false
+		return
+	if not Input.is_action_pressed("story_dash"):
+		return
+	_dash_hold_time += delta
+	if StorySaveState.job == "archer":
+		if _dash_hold_time >= StoryCombat.ARCHER_DRAW_MIN_SEC:
+			_archer_charging = true
+		return
+	if _signature_fired_this_hold or _dash_hold_time < StoryCombat.SIGNATURE_HOLD_SEC:
+		return
+	_signature_fired_this_hold = true
+	match StorySaveState.job:
+		"warrior": _fire_warrior_parry()
+		"rogue": _fire_rogue_shadow_step()
+		"mage": _fire_mage_element()
+
+
+func _signature_ready() -> bool:
+	return _signature_cd_left <= 0.0 and mp >= StoryCombat.SIGNATURE_MP_COST
+
+
+func _spend_signature() -> void:
+	_signature_cd_left = StoryCombat.SIGNATURE_COOLDOWN
+	mp -= StoryCombat.SIGNATURE_MP_COST
+
+
+func _fire_warrior_parry() -> void:
+	if not _signature_ready():
+		return
+	_spend_signature()
+	_parry_time_left = StoryCombat.WARRIOR_PARRY_SEC
+
+
+func _fire_rogue_shadow_step() -> void:
+	if not _signature_ready():
+		return
+	_spend_signature()
+	_invuln_time_left = maxf(_invuln_time_left, StoryCombat.ROGUE_SHADOW_INVULN_SEC)
+	_signature_next_mul = StoryCombat.ROGUE_SHADOW_NEXT_MUL
+
+
+func _fire_mage_element() -> void:
+	if not _signature_ready():
+		return
+	_spend_signature()
+	_mage_element_idx = (_mage_element_idx + 1) % StoryCombat.MAGE_ELEMENTS.size()
+	_signature_next_mul = StoryCombat.MAGE_ELEMENT_NEXT_MUL
+
+
+## 궁수 당기기 — 뗄 때 발동, 누른 시간(0.4~1.2s)에 비례해 배율이 오른다.
+func _release_archer_draw() -> void:
+	if not _signature_ready():
+		return
+	_spend_signature()
+	var held := clampf(_dash_hold_time, StoryCombat.ARCHER_DRAW_MIN_SEC, StoryCombat.ARCHER_DRAW_MAX_SEC)
+	var t := (held - StoryCombat.ARCHER_DRAW_MIN_SEC) / (StoryCombat.ARCHER_DRAW_MAX_SEC - StoryCombat.ARCHER_DRAW_MIN_SEC)
+	_signature_next_mul = lerpf(StoryCombat.ARCHER_DRAW_MIN_MUL, StoryCombat.ARCHER_DRAW_MAX_MUL, t)
 
 
 ## 줄 안에서는 중력이 없다 — 위/아래(move_forward/move_back, 원래 3D
@@ -747,6 +840,13 @@ func _effective_atk() -> float:
 	## `_job_buff_atk_mul`을 그대로 쓴다(변수 선언부 머리말 참고).
 	if _job_buff_time_left > 0.0:
 		atk *= _job_buff_atk_mul
+	## PLAN 101-2 STORY ③후보 — 갈래별 고유 조작의 "다음 공격" 배율. 한
+	## 방짜리라 여기서 읽는 즉시 1.0으로 되돌린다(24곳 전부가 매 공격마다
+	## `_effective_atk()`를 정확히 한 번씩만 부르므로 여기서 소비해도
+	## 안전하다 — 파일 안 다른 호출부가 없다).
+	if _signature_next_mul != 1.0:
+		atk *= _signature_next_mul
+		_signature_next_mul = 1.0
 	return atk
 
 

@@ -711,6 +711,83 @@ static func job_next(key: String) -> String:
 			return k
 	return ""
 
+
+## key가 속한 갈래의 tier1 뿌리(warrior/archer/rogue/mage) — job_chain()의
+## 마지막 항. PLAN 101-2 STORY ③후보(직업 정체성)의 "스승 인물"이 갈래
+## 단위로 고정되게 쓴다.
+static func job_root(key: String) -> String:
+	var chain := job_chain(key)
+	return String(chain[-1]) if not chain.is_empty() else key
+
+
+## **2026-09-17 추가 — PLAN 101-2 STORY ③후보(웹판 §5-1 "직업 정체성 —
+## 스승 인물").** 이 슬라이스는 아직 `saga_core Characters`(인물 105)를
+## 한 번도 안 붙였다(이 파일 머리말 "인물 로스터를 아직 안 붙였다") — 이
+## 자리가 STORY의 첫 연결이다. 웹판은 "스승이 도감(등용)에 있으면 고유
+## 조작 수치가 오른다"고 하지만, STORY엔 등용·도감 개념 자체가 없어(GO의
+## `hero_encounter`·REALM의 `roster` 같은 것이 없다) 그 수치 보정은 뺐다
+## — 전직 때 초상 대신 이름·대사 1줄만 보여주는 **순수 장식**으로
+## 좁혔다. (갈래, tier) 16쌍마다 문자 해시로 HEROES 105명 중 한 명을
+## 결정적으로 고른다(새 인물을 짓지 않는다, REALM `realm_traits.gd`
+## `_stable_hash`와 같은 방식).
+const Characters := preload("res://saga_core/data/characters.gd")
+
+
+static func mentor_of(key: String) -> Dictionary:
+	var root := job_root(key)
+	var tier := maxi(1, job_tier(key))
+	var seed_str := root + "#" + str(tier)
+	var h := 5381
+	for i in range(seed_str.length()):
+		h = (h * 33 + seed_str.unicode_at(i)) & 0x7fffffff
+	var heroes: Array = Characters.HEROES
+	return heroes[h % heroes.size()]
+
+
+## ── PLAN 101-2 STORY ③후보 — 갈래별 고유 조작(웹판 §5-1) ──────────
+## 회피 버튼(`story_dash`, Shift)을 길게 누르면(대시는 press 즉시 그대로
+## 나가는 별개 이벤트라 안 겹친다) 갈래별 고유 조작이 하나 더 나온다.
+## 웹판 "효과 9 밖의 조작"을 좇아 새 효과를 만들지 않고 전부 기존 채널
+## (한 방짜리 다음 공격 배율 `_signature_next_mul`·기존 무적 채널
+## `_invuln_time_left`)에만 얹는다 — 궁수만 "누르는 동안 차징 → 뗄 때
+## 발동"이라 즉시 발동인 나머지 셋과 다르다.
+const SIGNATURE_HOLD_SEC := 0.35   # 웹판 "길게 누름(0.18s)"보다 넉넉히(실기 확인 전 임시)
+const SIGNATURE_COOLDOWN := 6.0    # 웹판 "고유 조작 쿨 6s(공통)"
+const SIGNATURE_MP_COST := 12.0    # 웹판 "기력 12"
+
+## 무사 받아치기(w_parry) — 판정 창 0.25s 안에 맞으면 무효 + 다음 공격 ×1.5.
+const WARRIOR_PARRY_SEC := 0.25
+const WARRIOR_PARRY_NEXT_MUL := 1.5
+
+## 궁수 당기기(a_draw) — 누른 시간 0.4~1.2s에 따라 다음 공격 위력 ×1.0~2.2,
+## 차징 중 이동속도 40%(웹판 그대로). 관통(+1)은 이 슬라이스에 사거리별
+## 관통 수 자체가 없어(story_combat.gd에 그런 필드가 없다) 뺐다.
+const ARCHER_DRAW_MIN_SEC := 0.4
+const ARCHER_DRAW_MAX_SEC := 1.2
+const ARCHER_DRAW_MIN_MUL := 1.0
+const ARCHER_DRAW_MAX_MUL := 2.2
+const ARCHER_DRAW_MOVE_MUL := 0.4
+
+## 협객 그림자 걷기(r_shadow) — 0.5s 무적 이동 + 다음 공격 ×1.8("적 통과"는
+## 이 슬라이스가 이미 적과 몸이 안 부딪히는 판정이라(원거리 판정 위주) 그
+## 자체로 자연히 만족된다 — 따로 손댈 콜리전이 없다).
+const ROGUE_SHADOW_INVULN_SEC := 0.5
+const ROGUE_SHADOW_NEXT_MUL := 1.8
+
+## 방사 원소 전환(m_element) — 다음 3발 각각에 속성을 입히는 원문 대신,
+## "다음 한 발"에 속성 표시 + 약한 배율만 얹는다(웹판 "적 데이터에 칸을
+## 만들지 않는다"는 절제를 이어받아 지속피해·둔화·연쇄 같은 새 상태
+## 자체를 안 만든다 — 재해석). 3원소를 활성화마다 돌아가며 하나씩 쓴다.
+const MAGE_ELEMENT_NEXT_MUL := 1.15
+const MAGE_ELEMENTS: Array[String] = ["fire", "ice", "lightning"]
+const MAGE_ELEMENT_NAME := {"fire": "불", "ice": "얼음", "lightning": "번개"}
+
+## 갈래별 고유 조작 이름 — 전직 트레이너 안내문 한 줄에 쓴다.
+const SIGNATURE_NAME := {
+	"warrior": "받아치기", "archer": "당기기",
+	"rogue": "그림자 걷기", "mage": "원소 전환",
+}
+
 ## **2026-09-13 추가(같은 날 더) — 전직 트리 다음 걸음: 무사(warrior)
 ## 무예 넷.** data-job.js SKILLS job:'warrior' 넷(w_cut/w_whirl/w_rush/
 ## w_iron).

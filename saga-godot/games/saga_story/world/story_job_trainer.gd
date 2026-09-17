@@ -99,7 +99,10 @@ func _status_text() -> String:
 		var levels := ""
 		for i in keys.size():
 			levels += "%d:%s(Lv%d) " % [i + 1, String(keys[i]), StorySaveState.skill_level(String(keys[i]))]
-		var text := "🎖️ %s — SP %d/%d 남음 — %s" % [name_, StorySaveState.sp_left(), StorySaveState.sp_total(), levels]
+		var sig_name: String = String(StoryCombat.SIGNATURE_NAME.get(StoryCombat.job_root(StorySaveState.job), ""))
+		var text := "🎖️ %s — SP %d/%d 남음 — %s— 회피(Shift) 길게 눌러 %s" % [
+			name_, StorySaveState.sp_left(), StorySaveState.sp_total(), levels, sig_name,
+		]
 		var next_key := StoryCombat.job_next(StorySaveState.job)
 		if next_key != "":
 			var next_name: String = String(StoryCombat.job_info(next_key).get("name", next_key))
@@ -148,10 +151,12 @@ func _choose(key: String) -> void:
 		Toast.show(self, _status_text(), 2.5)
 		return
 	var it: Dictionary = StoryCombat.JOBS_TIER1[key]
-	Toast.show(self, "🎖️ %s로 전직! 체력+%d 공격+%d%s" % [
+	var mentor: Dictionary = StoryCombat.mentor_of(key)
+	Toast.show(self, "🎖️ %s로 전직! 체력+%d 공격+%d%s\n👤 스승 %s — \"%s\"" % [
 		String(it.name), int(it.hp), int(it.atk),
 		(" 기력+%d" % int(it.mp)) if float(it.mp) > 0.0 else "",
-	], 3.0)
+		String(mentor.name), String(mentor.quote),
+	], 4.0)
 
 
 ## 2~4차 전직 — job.js join() 그대로: 진급하면 job이 다음 자리로
@@ -163,10 +168,12 @@ func _advance() -> void:
 		Toast.show(self, _status_text(), 2.5)
 		return
 	var it: Dictionary = StoryCombat.job_info(next_key)
-	Toast.show(self, "🎖️ %s로 승급! 체력+%d 공격+%d%s" % [
+	var mentor: Dictionary = StoryCombat.mentor_of(next_key)
+	Toast.show(self, "🎖️ %s로 승급! 체력+%d 공격+%d%s\n👤 스승 %s — \"%s\"" % [
 		String(it.name), int(it.hp), int(it.atk),
 		(" 기력+%d" % int(it.mp)) if float(it.mp) > 0.0 else "",
-	], 3.0)
+		String(mentor.name), String(mentor.quote),
+	], 4.0)
 
 
 ## SP 투자 — story_job_(idx+1) 액션이 눌리면 그 직업의 idx번째 무예에
