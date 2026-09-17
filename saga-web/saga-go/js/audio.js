@@ -78,6 +78,12 @@
   };
   var POOL_N = 3;   // 동시에 겹쳐도 서로 안 끊기게
 
+  /* 타격음 3종 라운드로빈(SAGA-DESIGN §3 표준 C) — 새 mp3 파일 없이(원작사
+     에셋 금지, 루트 CLAUDE.md) 같은 클립의 재생 속도(음높이)만 code 로 세 갈래
+     내 매번 다르게 들리게 한다. `play()`가 이미 POOL_N개를 순번대로 돌려 쓰므로
+     그 자리마다 고정 배속을 박아 두면 저절로 라운드로빈이 된다. */
+  var HIT_RATES = [0.92, 1.0, 1.12];
+
   var pool = {};    // name -> HTMLAudioElement[POOL_N]
   var rr = {};       // name -> 다음에 쓸 자리(순번)
 
@@ -88,6 +94,7 @@
     for (var i = 0; i < POOL_N; i++) {
       var a = new Audio(BASE + CLIPS[name]);
       a.preload = 'none';
+      if (name === 'hit') { a.playbackRate = HIT_RATES[i % HIT_RATES.length]; }
       arr.push(a);
     }
     pool[name] = arr;
@@ -136,7 +143,9 @@
 
   global.DG = global.DG || {};
   global.DG.audio = {
-    play: play, stats: stats, CLIPS: CLIPS,
+    play: play, stats: stats, CLIPS: CLIPS, HIT_RATES: HIT_RATES,
+    /** 자가진단이 라운드로빈 배속이 실제로 풀에 박혔는지 볼 수 있게 */
+    bank: bank,
     enabled: ON, volume: VOL, setEnabled: setEnabled, setVolume: setVolume
   };
 

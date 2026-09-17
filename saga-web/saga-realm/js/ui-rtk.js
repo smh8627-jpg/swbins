@@ -450,6 +450,12 @@
       renderSheet();
       return;
     }
+    if (a === 'quality-set') {
+      var R3q = global.DG.realm3d;
+      if (R3q && R3q.setQuality) { R3q.setQuality(g('data-level')); }
+      renderSheet();
+      return;
+    }
     if (a === 'pick-force') {
       R().setup(g('data-id'), pickScen);
       closeEnc();
@@ -972,14 +978,29 @@
                       diplo: '🤝 외교', school: '📚 학당', log: '📜 기록', settings: '⚙️ 설정' };
 
   /** 2026-09-10 — 효과음(사가블로·사가스토리·사가의숲 설정 시트와 같은 결).
-   *  이 판엔 그래픽 품질 손잡이가 없다(realm3d.js 에 등급표 자체가 없다) —
-   *  진·BGM·진동도 없어(sfx.js 에 그 손잡이 자체가 없다) 효과음 하나만 둔다.
-   *  상단 더보기(⋯)의 🔊 는 그대로 둔다(빠른 켬/끔 — 이 시트로 대체하지 않는다). */
+   *  진·BGM·진동은 없어(sfx.js 에 그 손잡이 자체가 없다) 효과음만 둔다.
+   *  상단 더보기(⋯)의 🔊 는 그대로 둔다(빠른 켬/끔 — 이 시트로 대체하지 않는다).
+   *  2026-09-17 — 그래픽 품질 3단(SAGA-DESIGN §8 성능 상한, PLAN §7-2) 추가.
+   *  `realm3d.js`에 등급표(QUALITY_PRESET)가 생겨 여기 손잡이를 둔다 —
+   *  지도 소품 밀도는 `buildStaticOnce()`가 켤 때 한 번만 도는 정적값이라
+   *  새로고침해야 반영된다(문구로 안내). */
   function viewSettings() {
     var SF = global.DG.sfx;
     if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
     var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
     var shakeOn = core.tuned('battle3d.shake', 1) ? true : false;
+    var R3 = global.DG.realm3d;
+    var qRow = '';
+    if (R3 && R3.setQuality) {
+      var qLevels = [['auto', '자동'], ['low', '저'], ['medium', '중'], ['high', '고']];
+      var qCur = core.tuned('realm3d.quality', 'auto');
+      qRow = '<div class="key-row"><b>지도 화질</b><div class="bagtools">' +
+        qLevels.map(function (p) {
+          return '<button class="btn tiny' + (qCur === p[0] ? ' primary' : '') +
+            '" data-act="quality-set" data-level="' + p[0] + '">' + p[1] + '</button>';
+        }).join('') +
+        '</div></div><small class="muted">소품 밀도·해상도 — 바꾸면 새로고침해야 반영됩니다.</small>';
+    }
     return '<div class="key-row"><b>효과음</b>' +
         '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
       '<div class="key-row"><b>음량</b>' +
@@ -990,7 +1011,8 @@
          같이 둔다. 부드러운 것(라운드 충격 거리·일기토 근접 컷)은 안 가리고
          진짜 화면이 떨리는 것만 끌 수 있다 */
       '<div class="key-row"><b>전투 화면 흔들림</b>' +
-        '<button data-act="shake-toggle">' + (shakeOn ? '켜짐' : '꺼짐') + '</button></div>';
+        '<button data-act="shake-toggle">' + (shakeOn ? '켜짐' : '꺼짐') + '</button></div>' +
+      qRow;
   }
 
   function openSheet(name) {

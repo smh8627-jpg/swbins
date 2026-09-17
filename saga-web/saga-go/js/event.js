@@ -578,6 +578,8 @@
     var el = host();
     if (!el) { return false; }
     live = { ev: ev, ctx: ctx };
+    /* 일과(daily.js) "사건을 만난다" — quest 표엔 없던 kind 라 여기서 직접 한 줄 */
+    if (global.DG.quest) { global.DG.quest.progress('event', 1); }
 
     var foe = ev.foe ? FOES[ev.foe] : null;
     var odds = foe ? Math.round(winChance(ev.foe) * 100) : 0;

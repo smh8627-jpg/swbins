@@ -92,6 +92,10 @@
     });
     els['sheet-close'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
+    els.profile.addEventListener('click', function (e) {
+      if (!e.target.closest('[data-act="open-tasks"]')) { return; }
+      openSheet('town');
+    });
     global.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         if (els['dock-more'] && els['dock-more'].classList.contains('show')) { closeMore(); return; }
@@ -500,6 +504,23 @@
   var PHASE_ICON = { dawn: '🌄', day: '☀️', even: '🌇', night: '🌙' };
   var SEASON_ICON = { spring: '🌸', summer: '🌿', autumn: '🍁', winter: '❄️' };
 
+  /** 화면에 늘 있는 "지금 할 일" 한 줄(§5.1, 표준 A) — 일과 탭을 안 열어도 보인다 */
+  function taskGoalLine() {
+    var V = global.DG.village;
+    if (!V || !V.taskList) { return ''; }
+    var list = V.taskList();
+    if (!list.length) { return ''; }
+    var t = null, i, doneN = 0;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].done) { doneN++; } else if (!t) { t = list[i]; }
+    }
+    if (!t) {
+      return '<div class="p-goal ready" data-act="open-tasks">🎯 오늘 일과를 다 했습니다(' + doneN + '/' + list.length + ')</div>';
+    }
+    return '<div class="p-goal" data-act="open-tasks">🎯 ' + esc(t.name) +
+      ' <b>' + t.got + '/' + t.need + '</b> · (' + doneN + '/' + list.length + ')</div>';
+  }
+
   function renderTop() {
     var p = core.save.player;
     var need = core.expNeed(p.level);
@@ -519,6 +540,7 @@
           SEASON_ICON[st.season.key] + ' ' + st.season.name +
           ' · ' + st.phase.name + ' · 채집 <b>' + core.fmt(st.gathered) +
           '</b></div>' +
+        taskGoalLine() +
       '</div>';
 
     els.wallet.innerHTML =
@@ -545,6 +567,34 @@
    *  전부 몸짓 한 번을 튼다(`triggerAction()`, 2026-09-10 "더 자연스럽게") */
   var NO_GESTURE_KIND = { open: 1, talk: 1, quest: 1, request: 1, reward: 1, no: 1, leaving: 1, home: 1, cave: 1, locked: 1 };
 
+  /**
+   * 채집 손맛(§5.8①) "대상 흔들림 + 수확 팝" — 캔버스·3D 는 안 건드린다.
+   * 포커스 카드 자체를 0.25s 흔들고, 그 위로 아이콘 +n 이 0.6s 떠올랐다 사라진다.
+   * 흔들림(§5.8①)·효과음(sfx.js `village:gather` 구독)·리듬 보너스(village.js
+   * `bumpGatherStreak()`)는 각자 다른 층에서 같은 한 신호(`interact()`의
+   * 결과값)를 듣는다 — 여기 쓰는 것은 그중 화면 층 몫뿐이다.
+   */
+  function gatherFeedback(r) {
+    if (els.focusbar) {
+      var card = els.focusbar.querySelector('.focus-card');
+      if (card) {
+        card.classList.remove('gather-pulse');
+        void card.offsetWidth;
+        card.classList.add('gather-pulse');
+      }
+    }
+    var host = els.focusbar;
+    if (!host) { return; }
+    var rect = host.getBoundingClientRect();
+    var pop = document.createElement('div');
+    pop.className = 'gather-pop';
+    pop.style.left = (rect.left + rect.width / 2) + 'px';
+    pop.style.top = rect.top + 'px';
+    pop.textContent = r.item.emoji + ' +' + (r.n || 1) + (r.bonus ? ' 🎵' : '');
+    document.body.appendChild(pop);
+    global.setTimeout(function () { if (pop.parentNode) { pop.parentNode.removeChild(pop); } }, 650);
+  }
+
   function doInteract() {
     var r = global.DG.village.interact();
     if (!r) { return; }
@@ -563,6 +613,7 @@
     } else if (r.kind === 'gather' || r.kind === 'furn' || r.kind === 'gold' ||
                r.kind === 'bees' || r.kind === 'treasure') {
       toast(r.text);
+      if (r.kind === 'gather' && r.item) { gatherFeedback(r); }
     } else if (r.kind === 'empty' || r.kind === 'locked') {
       toast(r.text);
     }
@@ -1308,10 +1359,38 @@
     return html;
   }
 
+  /** 오늘의 일과판(§5.1, 표준 A·H) — 게시판(🪧) 상호작용이 여는 마을(town) 시트
+   *  맨 위에 얹는다. 셋 다 완료하고 이번 주 과제까지 마치면 연속(streak)이 는다. */
+  function taskBoardSection() {
+    var V = global.DG.village;
+    if (!V || !V.taskList) { return ''; }
+    var list = V.taskList(), w = V.weeklyTaskInfo();
+    var s = V.state();
+    var html = '<div class="sec"><h4>오늘의 일과 <small class="muted">' +
+      (s.tasks ? (s.tasks.streak || 0) + '일째' : '') + '</small></h4>';
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i];
+      html += '<div class="card' + (t.done ? ' done' : '') + '">' +
+        '<div class="stat-row"><span>' + esc(t.name) + '</span>' +
+          '<b>' + (t.done ? '✓ 완료' : t.got + ' / ' + t.need) + '</b></div>' +
+        (t.done ? '' : '<div class="bar sm"><i style="width:' + t.pct + '%"></i></div>') +
+      '</div>';
+    }
+    if (w) {
+      html += '<div class="card' + (w.done ? ' done' : '') + '"><div class="stat-row">' +
+        '<span>🗓️ ' + esc(w.name) + '</span>' +
+        '<b>' + (w.done ? '✓ 완료' : w.got + ' / ' + w.need) + '</b></div>' +
+        (w.done ? '' : '<div class="bar sm"><i style="width:' + w.pct + '%"></i></div>') +
+      '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function viewTown() {
     var T = global.DG.town, V = global.DG.village, VD = global.DG.villageData;
     var stt = T.status(), VV = global.DG.villageView;
-    var html = '', i;
+    var html = taskBoardSection(), i;
 
     html += '<div class="sec"><h4>마을</h4><div class="card">' +
       '<div class="flagrow">' +
@@ -1496,9 +1575,11 @@
     }
     html += '</div>';
 
-    /* 전시실 넷 */
+    /* 전시실 넷 — 갈래를 다 채우면 마을에 시설이 서는 번들(PLAN §5.3, 2026-09-17) */
+    var bundles = VD.BUNDLES || {};
     for (i = 0; i < stt.cats.length; i++) {
-      var c = stt.cats[i], rows = '';
+      var c = stt.cats[i], rows = '', bd = bundles[c.cat.key];
+      var bundleDone = bd && c.total > 0 && c.done >= c.total;
       for (j = 0; j < c.all.length; j++) {
         var it = c.all[j];
         var has = M.donated(it.key);
@@ -1507,7 +1588,10 @@
           (has ? it.emoji : '❔') + '</span>';
       }
       html += '<div class="sec"><h4>' + c.cat.icon + ' ' + c.cat.name + '</h4>' +
-        dexBar(c.done, c.total) + '<div class="biogrid">' + rows + '</div></div>';
+        dexBar(c.done, c.total) + '<div class="biogrid">' + rows + '</div>' +
+        (bd ? '<small class="muted">' + (bundleDone ? '✓ 다 채웠습니다 — 마을에 시설이 섰습니다'
+                                                     : '다 채우면 마을에 시설이 하나 섭니다') + '</small>' : '') +
+        '</div>';
     }
     return html;
   }
@@ -1844,11 +1928,52 @@
     toastTimer = setTimeout(function () { els.toast.classList.remove('show'); }, 2600);
   }
 
+  /**
+   * 하루 마무리 카드(§5.2, 표준 B) — 자정 넘겨 첫 부팅(=`rollDay()`가 실제로 돈
+   * 뒤) 딱 한 번 뜬다. `#encounter`(이 판에선 안 쓰던 자리)를 빌려 쓴다.
+   * 8초 뒤 저절로 닫히거나 눌러서 닫는다 — 닫히면 `dayLogSeen()`으로 다시 안 뜨게 한다.
+   */
+  var dayCardTimer = null;
+  function showDayCard(info) {
+    var el = $('encounter');
+    if (!el) { return; }
+    var ratingUp = info.ratingAfter - info.ratingBefore;
+    var metLine = info.metId && global.DG.data ? global.DG.data.find(info.metId) : null;
+    el.innerHTML =
+      '<div class="enc-card">' +
+        '<h3 style="margin:0 0 6px;font-size:17px">🌙 어제 하루</h3>' +
+        '<div class="stat-row"><span>채집</span><b>' + core.fmt(info.gathered) + '</b></div>' +
+        '<div class="stat-row"><span>금</span><b>🪙 ' + (info.gold >= 0 ? '+' : '') + core.fmt(info.gold) + '</b></div>' +
+        (info.donated ? '<div class="stat-row"><span>기증</span><b>' + info.donated + '</b></div>' : '') +
+        '<div class="stat-row"><span>마을 평가</span><b>' + (ratingUp >= 0 ? '+' : '') + ratingUp + '</b></div>' +
+        (metLine ? '<div class="stat-row"><span>가장 가까워진 사람</span><b>' + esc(metLine.name) + '</b></div>' : '') +
+        (info.next ? '<div class="p-goal" style="margin-top:8px">오늘 · 🎯 ' + esc(info.next) + '</div>' : '') +
+        '<button class="btn primary wide" id="daylog-ok">확인</button>' +
+      '</div>';
+    el.classList.add('show');
+    var close = function () {
+      el.classList.remove('show'); el.innerHTML = '';
+      if (dayCardTimer) { clearTimeout(dayCardTimer); dayCardTimer = null; }
+    };
+    var btn = $('daylog-ok');
+    if (btn) { btn.addEventListener('click', close); }
+    if (dayCardTimer) { clearTimeout(dayCardTimer); }
+    dayCardTimer = setTimeout(close, 8000);
+    global.DG.village.dayLogSeen();
+  }
+
+  function checkDayCard() {
+    var V = global.DG.village;
+    if (!V || !V.dayLogPending || !V.dayLogPending()) { return; }
+    showDayCard(V.dayLogInfo());
+  }
+
   /** 매 프레임이 아니라 주기적으로만 갱신한다 */
   function tickRefresh() {
     renderTop();
     renderFocus();
     renderAutoBar();
+    checkDayCard();
     var a = document.activeElement;
     if (a && (a.tagName === 'SELECT' || a.tagName === 'INPUT') && els['sheet-body'].contains(a)) { return; }
     /* 공사 시트는 **선 칸을 가운데로 한 3×3** 을 보여 준다 — 걸어가면 따라와야 한다.

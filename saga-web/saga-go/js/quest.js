@@ -126,6 +126,9 @@
       if (it.got >= it.need) { filled.push(i); }
     }
     if (filled.length) { core.emit('changed'); }
+    /* 일과(daily.js)로 **여기 한 곳에서만** 넘긴다 — 모듈마다 사명·일과를 따로
+       부르게 하면 언젠가 한쪽을 빠뜨려 어긋난다(§10-Q3 "나란히 둔다" 결정) */
+    if (global.DG.daily) { global.DG.daily.progress(kind, n); }
     return filled;
   }
 

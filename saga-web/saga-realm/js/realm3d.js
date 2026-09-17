@@ -45,6 +45,64 @@
   function DIST_MIN() { return C().tuned('realm3d.distMin', 90); }
   function DIST_MAX() { return C().tuned('realm3d.distMax', 900); }
 
+  /**
+   * 그래픽 품질 3단(SAGA-DESIGN §8 성능 상한, PLAN §7-2 "성능 상한") — 이 판은
+   * 걷는 인물이 없어 saga-forest `village-view3d.js` 처럼 "인물 주변 렌더
+   * 반경"을 좁힐 대상이 없다. 대신 값이 큰 두 축만 등급표로 묶는다 —
+   * 픽셀 비율(dpr, 폰 GPU 부담의 대부분)과 `scatterField()` 빈 들 소품 밀도
+   * (전체 1070개 선 중 가장 큰 덩이). 성 둘레(`scatterAround`/`scatterSmall`,
+   * 카메라가 늘 머무는 자리)는 등급과 무관하게 항상 다 세운다 — 그림 손실
+   * 체감이 크고 수도 field 쪽보다 훨씬 적어서다. `deviceScore`/`probeDevice`는
+   * saga-forest 것과 같은 요령(순수 함수 — three 없이도 헤드리스로 진단된다).
+   */
+  var QUALITY_PRESET = {
+    low:    { dpr: 1,   fieldDensity: 16 },
+    medium: { dpr: 1.5, fieldDensity: 24 },
+    high:   { dpr: 2,   fieldDensity: 32 }
+  };
+  function QUALITY() { return C().tuned('realm3d.quality', 'auto'); }
+  function deviceScore(o) {
+    var s = 0;
+    var cores = o.cores || 0, mem = o.mem || 0;
+    var px = (o.w || 0) * (o.h || 0) * (o.dpr || 1) * (o.dpr || 1);
+    s += cores >= 8 ? 2 : (cores >= 4 ? 1 : (cores > 0 ? 0 : 1));
+    s += mem >= 8 ? 2 : (mem >= 4 ? 1 : (mem > 0 ? 0 : 1));
+    s += px > 4000000 ? -1 : (px > 1600000 ? 0 : 1);
+    if (o.touch) { s -= 1; }
+    return s;
+  }
+  function tierFor(score) { return score >= 3 ? 'high' : (score >= 1 ? 'medium' : 'low'); }
+  function probeDevice() {
+    var n = global.navigator || {}, sc = global.screen || {};
+    return {
+      cores: n.hardwareConcurrency || 0, mem: n.deviceMemory || 0,
+      w: sc.width || 0, h: sc.height || 0, dpr: global.devicePixelRatio || 1,
+      touch: !!(('ontouchstart' in global) || (n.maxTouchPoints > 0))
+    };
+  }
+  var autoTierCache = null;
+  function autoTier() {
+    if (!autoTierCache) { autoTierCache = tierFor(deviceScore(probeDevice())); }
+    return autoTierCache;
+  }
+  /** 고정 값(low/medium/high)이면 그걸, 'auto'면 켤 때 한 번 잰 등급을 쓴다 */
+  function tier() {
+    var q = QUALITY();
+    return (q === 'low' || q === 'medium' || q === 'high') ? q : autoTier();
+  }
+  function DPR() { return C().tuned('realm3d.dpr', QUALITY_PRESET[tier()].dpr); }
+  function FIELD_DENSITY() { return C().tuned('realm3d.fieldDensity', QUALITY_PRESET[tier()].fieldDensity); }
+  /** 설정 시트(⚙️)에서 고른다 — `village3d.quality` 와 같은 결로 세이브 손잡이
+   *  (`core.setTune`)에 남는다. `scatterField()`(빈 들 소품)는 `buildStaticOnce()`
+   *  가 게임을 켤 때 **딱 한 번만** 도는 정적 소품이라 실시간으로는 안 바뀐다
+   *  — 새로고침해야 반영된다(`GROUND_SPAN`류와 같은 사정). 렌더러가 이미 서
+   *  있으면 픽셀비만 즉시 다시 먹인다. */
+  function setQuality(level) {
+    C().setTune('realm3d.quality', level);
+    if (renderer) { renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, DPR())); }
+    return tier();
+  }
+
   function forceColor(id) {
     var f = forceData().force(id);
     return f ? f.color : '#5b6572';
@@ -300,7 +358,7 @@
     try {
       renderer = new t.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
     } catch (e) { failed = true; return; }
-    renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, DPR()));
 
     scene = new t.Scene();
     scene.background = new t.Color(0x9fd0e8);
@@ -777,7 +835,7 @@
     for (var gx = minX; gx < maxX; gx += cell) {
       for (var gz = minZ; gz < maxZ; gz += cell) {
         var hh = hashOf('field:' + Math.round(gx) + ':' + Math.round(gz));
-        if (hh % 100 >= 32) { continue; }
+        if (hh % 100 >= FIELD_DENSITY()) { continue; }
         var jx = gx + ((hh >> 6) % cell) - cell / 2;
         var jz = gz + ((hh >> 12) % cell) - cell / 2;
         if (isSea(jx, jz)) { continue; }   // 해협 트인 바다 — 여기엔 안 심는다
@@ -1100,7 +1158,13 @@
     /* SAGA-DESIGN §7-2 "3D 진단 공백" — three 없이도 도는 순수 함수라 _test.html 이 부른다 */
     elevAt: elevAt,
     straitFactor: straitFactor,
-    isSea: isSea
+    isSea: isSea,
+    /* SAGA-DESIGN §8 성능 상한(PLAN §7-2) — 품질 등급 손잡이, 순수 함수도 같이 */
+    setQuality: setQuality,
+    tier: tier,
+    deviceScore: deviceScore,
+    tierFor: tierFor,
+    qualityPreset: function () { return QUALITY_PRESET; }
   };
 
   /* 세력이 바뀌거나(정벌·외교) 달이 넘어가면 다시 짓는다 — 켜져 있을 때만.

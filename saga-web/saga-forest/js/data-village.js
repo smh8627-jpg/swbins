@@ -48,6 +48,11 @@
               hint: '판다', tool: 'spade' },
     shell:  { name: '조개',   emoji: '🐚', gather: 'shell',  reset: 1, hint: '줍는다' },
     museum: { name: '사고(史庫)', emoji: '🏛️', gather: null, reset: 0, hint: '들어간다' },
+    /* 번들 시설(PLAN §5.3, 2026-09-17①) — 사고 갈래(MUSEUM_CATS)를 다 채우면
+       village.js buildProps() 가 BUNDLES 표를 보고 심는다. 자리 표시만(①) —
+       석비 문구·반딧불이 밤 파티클 배율은 다음 차례 */
+    stele:      { name: '석비',   emoji: '🪧', gather: null, reset: 0, hint: '읽는다' },
+    fireflyplot:{ name: '반딧불이 정원', emoji: '✨', gather: null, reset: 0, hint: '바라본다' },
     pole:   { name: '깃대',   emoji: '🚩', gather: null,     reset: 0, hint: '올려다본다' },
     weed:   { name: '잡초',   emoji: '🌿', gather: null,     reset: 0, hint: '뽑는다' },
     tailor: { name: '침선방(針線房)', emoji: '🧵', gather: null, reset: 0, hint: '옷을 고른다' },
@@ -290,7 +295,11 @@
   var EVENTS = [
     { key: 'seollal', name: '설날', m: 1, d: 1, tag: 'newyear',
       hello: '새해 첫날입니다',
-      desc: '주민에게 말을 걸면 세뱃돈을 줍니다 (사람마다 한 번).' },
+      desc: '주민에게 말을 걸면 세뱃돈을 줍니다 (사람마다 한 번).',
+      /* 5.1 오늘의 일과 — 값을 올리는 up 칸이 없는 유일한 행사라 따로 적는다.
+         "말을 걸면"의 실제 셈은 선물 카운터(giftTotal)로 대신한다 — 이 판엔
+         "대화" 전용 카운터가 없다(§5.1 범위 밖, 있으면 더 정확해진다) */
+      task: { key: 'ev_seollal', kind: 'gift', name: '설날 — 주민에게 선물하기', n: 1, reward: 200 } },
     { key: 'daeborum', name: '대보름', m: 2, d: 15, tag: 'moon', sky: 'clear',
       up: { cat: 'nut', mul: 2 },
       hello: '보름달이 큽니다',
@@ -320,6 +329,64 @@
       hello: '밤이 가장 긴 날입니다',
       desc: '팥죽을 쑤는 날. 열매 값이 오르고 눈이 잦습니다.' }
   ];
+
+  /* ── 오늘의 일과판 (PLAN §5.1, 표준 A·H) ──────────────────────
+   * "채집·주민·탐험" 세 축에서 하루 하나씩, 날짜 해시로 뽑는다(`weatherOf`와
+   * 같은 결 — 세이브에 안 남고 순수 함수로만 정해진다. `village.js`가 이 결과에
+   * `base`(그날 시작 시점 카운터 값)만 얹어 세이브에 넣는다).
+   * 행사가 있는 날은 셋째 줄(탐험)이 그 행사 전용 과제로 바뀐다. */
+  var CAT_NAME = { flower: '꽃', fish: '물고기', herb: '약초', bug: '곤충', nut: '밤·잣', fruit: '열매' };
+
+  var TASK_POOL = [
+    { key: 'gather_flower', axis: 'gather', kind: 'gather', cat: 'flower', name: '꽃 3 모으기', n: 3, reward: 100 },
+    { key: 'gather_fish',   axis: 'gather', kind: 'gather', cat: 'fish',   name: '물고기 2 모으기', n: 2, reward: 120 },
+    { key: 'gather_herb',   axis: 'gather', kind: 'gather', cat: 'herb',   name: '약초 3 모으기', n: 3, reward: 100 },
+    { key: 'gather_bug',    axis: 'gather', kind: 'gather', cat: 'bug',    name: '곤충 2 모으기', n: 2, reward: 110 },
+    { key: 'gather_nut',    axis: 'gather', kind: 'gather', cat: 'nut',    name: '밤·잣 3 모으기', n: 3, reward: 100 },
+    { key: 'gather_fruit',  axis: 'gather', kind: 'gather', cat: 'fruit',  name: '열매 3 모으기', n: 3, reward: 100 },
+    { key: 'gift',   axis: 'social',  kind: 'gift',   name: '주민에게 선물하기', n: 1, reward: 90 },
+    { key: 'donate', axis: 'explore', kind: 'donate', name: '사고에 기증하기', n: 1, reward: 130 },
+    { key: 'weed',   axis: 'explore', kind: 'weed',   name: '잡초 5 뽑기', n: 5, reward: 80 },
+    { key: 'deliver', axis: 'explore', kind: 'deliver', name: '택배 배달하기', n: 1, reward: 140 }
+  ];
+  var TASK_AXES = ['gather', 'social', 'explore'];
+
+  /** 주간(월~일요일 대신 순무 장 주기 — turnip.js 의 기존 week() 를 그대로 빌린다) */
+  var WEEKLY_POOL = [
+    { key: 'w_gather', kind: 'gatherAny', name: '이번 주 무엇이든 20개 모으기', n: 20, reward: 600 },
+    { key: 'w_gift',   kind: 'gift',      name: '이번 주 선물 3번 건네기', n: 3, reward: 600 },
+    { key: 'w_donate', kind: 'donate',    name: '이번 주 사고에 3번 기증하기', n: 3, reward: 600 }
+  ];
+
+  /** 그날의 채집·주민·탐험 셋 — **순수 함수**(dayNum 만으로 정해진다) */
+  function pickDayTasks(dayNum) {
+    var out = [];
+    for (var a = 0; a < TASK_AXES.length; a++) {
+      var axis = TASK_AXES[a];
+      var pool = TASK_POOL.filter(function (t) { return t.axis === axis; });
+      var h = dayHash(dayNum * 131 + a * 907 + 13);
+      out.push(pool[Math.min(pool.length - 1, Math.floor(h * pool.length))]);
+    }
+    return out;
+  }
+
+  /** 그날의 주간 과제 — **순수 함수**(weekNum 만으로 정해진다) */
+  function pickWeekTask(weekNum) {
+    var h = dayHash(weekNum * 733 + 5);
+    return WEEKLY_POOL[Math.min(WEEKLY_POOL.length - 1, Math.floor(h * WEEKLY_POOL.length))];
+  }
+
+  /** 행사일의 고정 과제(있으면) — 셋째(탐험) 줄을 대신한다 */
+  function eventTaskOf(ev) {
+    if (!ev) { return null; }
+    if (ev.task) { return ev.task; }
+    if (ev.up && ev.up.cat) {
+      var nm = CAT_NAME[ev.up.cat] || ev.up.cat;
+      return { key: 'ev_' + ev.key, kind: 'gather', cat: ev.up.cat,
+        name: ev.name + ' — ' + nm + ' 3 모으기', n: 3, reward: 200 };
+    }
+    return null;
+  }
 
   /* ── 날씨 ────────────────────────────────────────────────
    * **날짜로 정해진다.** 세이브에 남길 것이 없다 — 같은 날이면 같은 하늘이다.
@@ -525,6 +592,23 @@
     { key: 'fossil', name: '화석',   icon: '🦴' },
     { key: 'shell',  name: '조개',   icon: '🐚' }
   ];
+
+  /**
+   * 번들(PLAN §5.3 "마을 번들 — 모으면 마을이 변한다", 2026-09-17①) — 사고
+   * 갈래를 다 채우면(museum.byCat() 의 done===total) village.js buildProps()
+   * 가 그 갈래에 배정된 시설을 마을에 고정으로 심는다.
+   *
+   * PLAN 원안은 꽃·열매까지 6번들인데, **이 둘은 사고(MUSEUM_CATS)가 애초에
+   * 안 받는 갈래**다(꽃·열매는 판매·선물용, 이 판에 기증 UI가 없다) — 기증
+   * 갈래를 늘리는 건 그 자체로 정책 결정(선물·판매와 겹치는 물건을 사고에도
+   * 받을지)이라 이번엔 안 건드리고 넷만 채운다. 다음 차례에 사용자와 확인.
+   */
+  var BUNDLES = {
+    fossil: { facility: 'stele',       name: '화석 갈래 완결 — 석비' },
+    bug:    { facility: 'fireflyplot', name: '곤충 갈래 완결 — 반딧불이 정원' },
+    fish:   { facility: 'bench',       name: '물고기 갈래 완결 — 호숫가 평상' },
+    shell:  { facility: 'shell',       name: '조개 갈래 완결 — 강가 조개 길' }
+  };
 
   /** 집 평가 등급 — 점수가 오르면 이름이 바뀐다 (원작의 그 평가서) */
   var HOME_GRADES = [
@@ -917,13 +1001,15 @@
     SEASONS: SEASONS, TOOLS: TOOLS,
     FURNITURE: FURNITURE, FURN_SETS: FURN_SETS, furn: furn,
     WALLS: WALLS, FLOORS: FLOORS, wall: wall, floor: floor,
-    MUSEUM_GRADES: MUSEUM_GRADES, MUSEUM_CATS: MUSEUM_CATS,
+    MUSEUM_GRADES: MUSEUM_GRADES, MUSEUM_CATS: MUSEUM_CATS, BUNDLES: BUNDLES,
     FOLK_TYPES: FOLK_TYPES,
     WEAR_PARTS: WEAR_PARTS, WEAR_COATS: WEAR_COATS, WEAR_HEADS: WEAR_HEADS,
     WEAR_DYES: WEAR_DYES, WEAR_CAPES: WEAR_CAPES,
     wearPart: wearPart, wearItem: wearItem,
     TOWN_NAMES: TOWN_NAMES, FLAG_BGS: FLAG_BGS, FLAG_FGS: FLAG_FGS, FLAG_SYMS: FLAG_SYMS,
     EVENTS: EVENTS, eventOf: eventOf, nextEventOf: nextEventOf,
+    TASK_POOL: TASK_POOL, TASK_AXES: TASK_AXES, WEEKLY_POOL: WEEKLY_POOL, CAT_NAME: CAT_NAME,
+    pickDayTasks: pickDayTasks, pickWeekTask: pickWeekTask, eventTaskOf: eventTaskOf,
     WEATHERS: WEATHERS, weather: weather, weatherOf: weatherOf, inWeather: inWeather,
     HOME_TIERS: HOME_TIERS, HOME_GRADES: HOME_GRADES,
     pick: pick, pickHybrid: pickHybrid, item: item, phaseOf: phaseOf,

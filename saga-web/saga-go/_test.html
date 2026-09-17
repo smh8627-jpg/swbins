@@ -76,6 +76,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/season.js"></script>
 <script src="js/weather.js"></script>
 <script src="js/quest.js"></script>
+<script src="js/daily.js"></script>
 <script src="js/growth.js"></script>
 <script src="js/buddy.js"></script>
 <script src="js/hero.js"></script>
@@ -937,6 +938,91 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       var r = R.fight(raid, { live: true, dealt: 1, folded: [] });
       return r.ok && !r.win && r.left === raid.hp - 1 &&
         ('1 만 깎았다 · 남은 기세 ' + DG.core.fmt(r.left));
+    });
+
+    /* ── 75초 토벌 — 부위 파괴·저스트 회피 (PLAN §5 ③, §10-Q2 "토벌만 적용") ── */
+
+    t('토벌 — 75초가 지나면 끝난다', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 1e9, myAtk: 1, myDef: 1e9, timeSec: 75, raid: true });
+      var guard = 0;
+      while (!s.over && guard++ < 2000) { RA.tick(s, 0.05, RA.HEAVY_RANGE() * 10); }
+      return s.over && !s.cleared && s.timeSec === 75 && s.left === 0 &&
+        ('제한 75초 · left=' + s.left);
+    });
+
+    t('토벌 — 부위 셋이 각각 따로 깎인다(기세 25%마다)', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 2000, myAtk: 200, myDef: 1e9, raid: true, timeSec: 9999 });
+      var seen = [], guard = 0;
+      while (!s.over && guard++ < 6000) {
+        var ev = RA.tick(s, 0.05, 0);
+        for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'partbreak') { seen.push(ev[i].part); } }
+      }
+      return seen.length === 3 && seen.join(',') === '1,2,3' && s.parts === 3 &&
+        ('부위 파괴 순서 ' + seen.join('→') + '(' + guard + '틱)');
+    });
+
+    t('토벌 — 저스트 회피는 창 안에서만 기가 붙는다(§5 ③)', function () {
+      var RA = DG.rogueAction;
+      function run(press) {
+        var s = RA.create({ foeHp: 1e9, myAtk: 1, myDef: 1e9, raid: true, timeSec: 9999 });
+        var far = RA.HEAVY_RANGE() * 10;
+        var guard = 0, found = null;
+        while (!s.over && guard++ < 4000 && !found) {
+          if (press && s.tell > 0 && s.tell <= RA.JUST_WINDOW()) { RA.dodge(s); }
+          var ev = RA.tick(s, 0.05, far);
+          for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'heavy') { found = ev[i]; } }
+        }
+        return { ev: found, ki: s.ki };
+      }
+      var justR = run(true), walkR = run(false);
+      return justR.ev && justR.ev.dmg === 0 && justR.ev.just === true && justR.ki === 30 &&
+        walkR.ev && walkR.ev.dmg > 0 && walkR.ev.just === false && walkR.ki === 0 &&
+        ('저스트: 무피해·기+' + justR.ki + ' · 창 밖(그냥 걷기): ' + walkR.ev.dmg + '피해·기+' + walkR.ki);
+    });
+
+    t('토벌 — 예고 중 걷기만으로는 절반만 피한다(§10-Q2, 야생·성채는 그대로)', function () {
+      var RA = DG.rogueAction;
+      function firstHeavy(raidOn) {
+        var s = RA.create({ foeHp: 1e9, myAtk: 1, myDef: 1e9, raid: raidOn, timeSec: 9999 });
+        var far = RA.HEAVY_RANGE() * 10;
+        var guard = 0;
+        while (!s.over && guard++ < 4000) {
+          var ev = RA.tick(s, 0.05, far);
+          for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'heavy') { return ev[i]; } }
+        }
+        return null;
+      }
+      var raidHit = firstHeavy(true), wildHit = firstHeavy(false);
+      return raidHit && raidHit.dmg > 0 && raidHit.dodged && !raidHit.just &&
+        wildHit && wildHit.dmg === 0 && wildHit.dodged &&
+        ('토벌(걷기만) ' + raidHit.dmg + '피해 · 야생·성채(걷기만) ' + wildHit.dmg + '피해');
+    });
+
+    t('토벌 — 부위 파괴는 단사를 주고, 셋 다 깨면 등용 확률이 는다', function () {
+      var R = DG.raid, G = DG.growth;
+      var f = DG.world.fortsNear()[0];
+      var fd = findRaid(f);
+      var raid = fd && fd.raid;
+      if (!raid || !G) { return false; }
+      C.save.raid = { pass: 2, day: R.state().day, won: 0, tried: {} };
+      var dustBefore = G.dust();
+      var r = R.fight(raid, { live: true, dealt: raid.hp, folded: [{ n: 1, dmg: raid.hp, left: 0 }], parts: 3 });
+      var dustAfter = G.dust();
+      return r.ok && r.win && (dustAfter - dustBefore) === 12 &&
+        ('단사 +' + (dustAfter - dustBefore) + '(부위 3 × 4)');
+    });
+
+    t('타격음 — 라운드로빈 3자리에 서로 다른 배속을 박아 3종처럼 들린다(§3 표준 C)', function () {
+      var A = DG.audio;
+      if (!A || !A.bank) { return false; }
+      var arr = A.bank('hit');
+      if (!arr) { return true; }   // Audio 미지원 기기 — 조용히 통과(무음 기기 방침과 같다)
+      var rates = arr.map(function (a) { return a.playbackRate; });
+      var uniq = {}; rates.forEach(function (r) { uniq[r] = true; });
+      return arr.length === 3 && Object.keys(uniq).length === 3 &&
+        ('배속 ' + rates.join(', '));
     });
 
     t('성채는 교전을 잘 치른 쪽이 더 자주 이긴다', function () {
@@ -6011,6 +6097,90 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       }
       return hit.length === 0 &&
         (Dx.heroes.length + '명 BIOS·quote + ' + Dx.pets.length + '개 PETS 검사, 걸린 실명 없음');
+    });
+
+    /* ── 오늘의 일과 · 목표판 · 마무리 카드 (PLAN §5 ④) ──────────────── */
+
+    t('일과 — 같은 날은 같은 셋(해시)', function () {
+      var a = DG.daily.pickToday('2026-9-17').map(function (d) { return d.key; });
+      var b = DG.daily.pickToday('2026-9-17').map(function (d) { return d.key; });
+      return a.length === DG.daily.PER_DAY && a.join(',') === b.join(',') && ('오늘=' + a.join(','));
+    });
+
+    t('일과 — 날짜가 바뀌면 셋이 새로 뽑힌다(해시)', function () {
+      var days = ['2026-1-1', '2026-2-2', '2026-3-3', '2026-4-4', '2026-5-5', '2026-6-6', '2026-7-7'];
+      var uniq = {};
+      days.forEach(function (dstr) {
+        uniq[DG.daily.pickToday(dstr).map(function (t) { return t.key; }).sort().join(',')] = true;
+      });
+      return Object.keys(uniq).length > 1 && (Object.keys(uniq).length + '가지 조합(' + days.length + '일 표본)');
+    });
+
+    t('일과 — 진단은 날짜를 고정한다(세이브 롤오버)', function () {
+      /* 실제 오늘 날짜에 기대지 않는다 — 세이브의 `date` 를 확실히 지난 값으로
+         박아 두고, state() 가 그걸 보고 스스로 새로 뽑는지만 본다 */
+      var keepDaily = JSON.parse(JSON.stringify(DG.daily.state()));
+      C.save.daily.date = '2000-1-1';
+      C.save.daily.tasks = [{ key: 'walk', got: 999, need: 1, done: true }];
+      var s = DG.daily.state();
+      var rolled = s.date !== '2000-1-1' && s.tasks.length === DG.daily.PER_DAY &&
+        s.tasks.every(function (t) { return !t.done; });
+      C.save.daily = keepDaily;
+      return rolled && ('새 날짜 ' + s.date);
+    });
+
+    t('일과 — 비석·사당(아직 없는 후보)은 안 뽑힌다', function () {
+      var bad = false;
+      for (var i = 1; i <= 40; i++) {
+        if (DG.daily.pickToday('probe-' + i).some(function (d) { return d.disabled; })) { bad = true; }
+      }
+      return !bad && '40일 표본 — 비활성 후보 없음';
+    });
+
+    t('일과 완료 — 진행이 차면 즉시 보상과 도장', function () {
+      var keepDaily = JSON.parse(JSON.stringify(DG.daily.state()));
+      var keepGold = C.save.player.gold;
+      C.save.daily.tasks = [{ key: 'station', got: 0, need: 2, done: false }];
+      C.save.daily.stamps = 0;
+      var g0 = C.save.player.gold;
+      var filled = DG.daily.progress('station', 2);
+      var t0 = DG.daily.state().tasks[0], stamps = DG.daily.state().stamps;
+      var gAfter = C.save.player.gold;
+      C.save.daily = keepDaily; C.save.player.gold = keepGold;
+      return filled.length === 1 && t0.done && stamps === 1 && gAfter > g0 &&
+        ('금 ' + g0 + ' → ' + gAfter + ' · 도장 ' + stamps);
+    });
+
+    t('사명→일과 전달 — 한 번만 넘어간다(이중 계수 없음)', function () {
+      var keepDaily = JSON.parse(JSON.stringify(DG.daily.state()));
+      C.save.daily.tasks = [{ key: 'station', got: 0, need: 10, done: false }];
+      C.save.daily.stamps = 0;
+      DG.quest.progress('station', 3);
+      var got = DG.daily.state().tasks[0].got;
+      C.save.daily = keepDaily;
+      return got === 3 && ('넘어간 진행 ' + got + '(3을 한 번만 보냄)');
+    });
+
+    t('목표판 — 부팅 직후 세 줄이 비지 않는다', function () {
+      DG.ui.renderHud();
+      var html = document.getElementById('profile').innerHTML;
+      var n = (html.match(/class="p-goal/g) || []).length;
+      return n >= 3 && (n + '줄');
+    });
+
+    t('마무리 카드 — next 가 비지 않는다', function () {
+      DG.game.snapshotSession();
+      var keepD = C.save.player.distance, keepG = C.save.player.gold;
+      C.save.player.distance += 500;
+      C.save.player.gold += 20;
+      DG.game.maybeShowSessionCard();
+      var el = document.getElementById('encounter');
+      var shown = el.classList.contains('show');
+      var m = el.innerHTML.match(/다음 · 🧭 ([^<]*)</);
+      var hasNext = !!m && m[1].trim().length > 0;
+      el.classList.remove('show'); el.innerHTML = '';
+      C.save.player.distance = keepD; C.save.player.gold = keepG;
+      return shown && hasNext && ('다음=' + (m && m[1]));
     });
 
     t('세이브 버전이 안 맞아도 안 버려진다 (SAGA-DESIGN §8-3)', function () {

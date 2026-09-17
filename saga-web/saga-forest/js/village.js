@@ -563,6 +563,42 @@
     /* 사고(史庫) — 전방 건너편. 기증은 이 앞에서만 받는다 */
     props.push({ id: 'museum', kind: 'museum', x: (cx - 6) * TILE + 20, y: (cy + 1) * TILE + 20 });
 
+    /* 번들 시설(PLAN §5.3, 2026-09-17①) — 사고 갈래(museum.byCat())를 다
+       채우면 그 갈래에 배정된 시설(VD.BUNDLES)이 마을에 고정으로 선다.
+       캠프·museum 과 같은 결로 **해시가 아니라 세이브 조건부 고정 자리**다
+       — 완결이 풀리면(예: 팔아서 다시 갈래가 안 채워지는 일은 없다, donated
+       는 한 번 들이면 안 지워진다) 계속 서 있는다. 호수·강 기반 자리는
+       `lakeCenter()`가 null(고리가 좁아 호수를 포기한 판)이면 같이 건너뛴다. */
+    var MU5_3 = global.DG.museum;
+    if (MU5_3) {
+      var byc5_3 = MU5_3.byCat(), lc5_3 = lakeCenter();
+      for (var bci5_3 = 0; bci5_3 < byc5_3.length; bci5_3++) {
+        var bc5_3 = byc5_3[bci5_3];
+        if (bc5_3.total <= 0 || bc5_3.done < bc5_3.total) { continue; }
+        var bd5_3 = VD.BUNDLES[bc5_3.cat.key];
+        if (!bd5_3) { continue; }
+        if (bd5_3.facility === 'stele') {
+          props.push({ id: 'bundle_fossil', kind: 'stele',
+            x: (cx - 6) * TILE - 26, y: (cy + 1) * TILE + 20 });
+        } else if (bd5_3.facility === 'fireflyplot') {
+          props.push({ id: 'bundle_bug', kind: 'fireflyplot',
+            x: (cx + 2) * TILE + 20, y: (cy + 2) * TILE + 20 });
+        } else if (bd5_3.facility === 'bench' && lc5_3) {
+          props.push({ id: 'bundle_fish', kind: 'bench',
+            x: (lc5_3.tx + lc5_3.r * 1.6 + 1) * TILE + TILE * 0.5,
+            y: lc5_3.ty * TILE + TILE * 0.5 });
+        } else if (bd5_3.facility === 'shell' && lc5_3) {
+          var srx5_3 = riverCenterX(lc5_3.ty - 2);
+          if (srx5_3 !== null) {
+            props.push({ id: 'bundle_shell0', kind: 'shell',
+              x: (srx5_3 + RIVER_HALF_W + 0.6) * TILE + TILE * 0.5, y: (lc5_3.ty - 2) * TILE + TILE * 0.5 });
+            props.push({ id: 'bundle_shell1', kind: 'shell',
+              x: (srx5_3 + RIVER_HALF_W + 0.6) * TILE + TILE * 0.5, y: (lc5_3.ty - 1) * TILE + TILE * 0.5 });
+          }
+        }
+      }
+    }
+
     /* 숲 고리(PLAN 40절 PHASE 3 "넓은 Forest Map" + PLAN 11절 Biome) — 마을 밖에
        바이옴을 따라 사물을 흩뿌린다. id 접두 'f' 로 마을 것('p'..)과 겹치지 않게
        가른다.
@@ -1083,6 +1119,7 @@
     core.gainExp(10);
     core.log('📦 ' + def.name + '에게 소포를 전했다 — 🪙 ' + core.fmt(DELIVERY_REWARD) +
       ' (누적 ' + s.delivery.n + '건)', 'good');
+    checkTasks();
     core.emit('changed');
     core.persist();
     return { kind: 'quest', name: def.name,
@@ -1118,6 +1155,8 @@
     buildNpcs();
     if (global.DG.mail) { global.DG.mail.ensureMoveIn(); }
     rollDay();
+    if (!st().tasks) { rollTasks(today()); }   // 첫 부팅 — rollDay()가 "오늘=오늘"로 건너뛴 자리
+    if (!st().dayMark) { snapshotDayMark(); }
     syncPlanted();
   }
 
@@ -1126,10 +1165,162 @@
    * **이사와 편지도 여기서만 굴린다** — 프레임마다 굴리면 하루가 몇 번씩 지나간다.
    * 부탁을 지우기 **전에** 어제 누구를 도왔는지 먼저 챙긴다(감사장이 거기서 나온다).
    */
+  /* ── 오늘의 일과판 (PLAN §5.1, 표준 A·H) ──────────────────────
+   * 값을 내는 함수(`counterOf`·`taskList`·`weeklyTaskInfo`)는 세이브를 **읽기만**
+   * 한다. 세이브가 바뀌는 곳은 `rollTasks()`(날이 바뀔 때, `rollDay()`가 부른다)
+   * 와 `checkTasks()`(진행이 다 찼는지, 채집·선물·기증·잡초·배달 결과 자리마다
+   * 한 줄씩 부른다) 둘뿐이다.
+   */
+
+  /** 일과 종류별 지금 값 — 전부 **팔아도 줄지 않는 누계**(`caughtCatCount`·
+   *  `s.gathered`·`s.giftTotal`·`s.donateTotal`·`s.weedPulled`·`s.delivery.n`) */
+  function counterOf(kind, cat) {
+    var s = st();
+    if (kind === 'gather') { return cat ? caughtCatCount(cat) : (s.gathered || 0); }
+    if (kind === 'gatherAny') { return s.gathered || 0; }
+    if (kind === 'gift') { return s.giftTotal || 0; }
+    if (kind === 'donate') { return s.donateTotal || 0; }
+    if (kind === 'weed') { return s.weedPulled || 0; }
+    if (kind === 'deliver') { return (s.delivery && s.delivery.n) || 0; }
+    return 0;
+  }
+
+  /** 날이 바뀔 때만 부른다(`rollDay()` 안에서) — 오늘 셋 + 이번 주 하나를 새로 뽑는다.
+   *  행사일이면 셋째(탐험) 줄이 그 행사 전용 과제로 바뀐다(§5.1 "행사날은 1줄 고정") */
+  function rollTasks(d) {
+    var s = st();
+    var picks = VD.pickDayTasks(d).slice();
+    var ev = VD.eventOf();     // town.js 의 event()와 같은 결 — 날짜 밀기(dayShift)는 아직 안 탄다
+    var evTask = VD.eventTaskOf(ev);
+    if (evTask) { picks[2] = evTask; }
+    var allDoneBefore = s.tasks && s.tasks.list && s.tasks.list.length &&
+      s.tasks.list.every(function (t) { return t.done; }) &&
+      (!s.tasks.weekly || s.tasks.weekly.done);
+    s.tasks = {
+      day: d,
+      list: picks.map(function (p) {
+        return { key: p.key, name: p.name, kind: p.kind, cat: p.cat || null,
+          need: p.n, reward: p.reward, base: counterOf(p.kind, p.cat), done: false };
+      }),
+      week: s.tasks ? s.tasks.week : null,
+      weekly: s.tasks ? s.tasks.weekly : null,
+      streak: allDoneBefore ? ((s.tasks && s.tasks.streak) || 0) + 1 : 0
+    };
+    var wk = global.DG.turnip ? global.DG.turnip.week(d) : Math.floor(d / 7);
+    if (s.tasks.week !== wk || !s.tasks.weekly) {
+      var wp = VD.pickWeekTask(wk);
+      s.tasks.week = wk;
+      s.tasks.weekly = { key: wp.key, name: wp.name, kind: wp.kind,
+        need: wp.n, reward: wp.reward, base: counterOf(wp.kind, null), done: false };
+    }
+  }
+
+  /** 화면이 보는 오늘 셋 — 진행·완료 여부까지 얹어 순수하게 낸다 */
+  function taskList() {
+    var s = st();
+    if (!s.tasks || !s.tasks.list) { return []; }
+    return s.tasks.list.map(function (t, i) {
+      var have = Math.max(0, counterOf(t.kind, t.cat) - t.base);
+      return { i: i, key: t.key, name: t.name, got: Math.min(have, t.need), need: t.need,
+        pct: Math.min(100, Math.round(have / t.need * 100)), done: !!t.done };
+    });
+  }
+
+  /** 화면이 보는 이번 주 과제 */
+  function weeklyTaskInfo() {
+    var s = st();
+    if (!s.tasks || !s.tasks.weekly) { return null; }
+    var w = s.tasks.weekly;
+    var have = Math.max(0, counterOf(w.kind, null) - w.base);
+    return { key: w.key, name: w.name, got: Math.min(have, w.need), need: w.need,
+      pct: Math.min(100, Math.round(have / w.need * 100)), done: !!w.done };
+  }
+
+  function applyTaskReward(t) {
+    core.save.player.gold += t.reward;
+    core.gainFeat(2, '일과');
+    core.log('✅ 일과 완료 — ' + t.name + ' · 🪙 +' + core.fmt(t.reward), 'good');
+    core.emit('toast', '✅ ' + t.name + ' · 🪙 +' + t.reward);
+  }
+
+  /**
+   * 진행이 다 찼는지 살핀다 — 채집(bagAdd)·선물(giveGift)·기증(museum.donate)
+   * ·잡초(pullWeed)·배달(talkCourier) 결과 자리마다 한 줄씩 부른다.
+   */
+  function checkTasks() {
+    var s = st();
+    if (!s.tasks) { return []; }
+    var filled = [], i;
+    for (i = 0; i < (s.tasks.list || []).length; i++) {
+      var t = s.tasks.list[i];
+      if (t.done) { continue; }
+      if (counterOf(t.kind, t.cat) - t.base >= t.need) { t.done = true; applyTaskReward(t); filled.push(t); }
+    }
+    var w = s.tasks.weekly;
+    if (w && !w.done && counterOf(w.kind, null) - w.base >= w.need) {
+      w.done = true; applyTaskReward(w); filled.push(w);
+    }
+    if (filled.length) { core.emit('changed'); }
+    return filled;
+  }
+
+  /**
+   * 하루 마무리 카드(§5.2, 표준 B)의 재료 — 날이 바뀔 때(`rollDay()`)만 다룬다.
+   *   `snapshotDayMark()`  새 하루가 열리자마자 "그 시점" 값을 박아 둔다
+   *   위 값과 **오늘 끝난 시점**(다음 rollDay() 첫머리) 값의 차이가 dayLog 다
+   */
+  function snapshotDayMark() {
+    var s = st();
+    s.dayMark = {
+      gathered: s.gathered || 0,
+      gold: core.save.player.gold,
+      donated: s.donateTotal || 0,
+      friend: JSON.parse(JSON.stringify(s.friend || {})),
+      rating: global.DG.town ? global.DG.town.beauty().score : 0
+    };
+  }
+
+  function buildDayLog(prevDay) {
+    var s = st(), mark = s.dayMark;
+    if (!mark) { return; }
+    var bestId = null, bestUp = 0, id2;
+    for (id2 in (s.friend || {})) {
+      if (!Object.prototype.hasOwnProperty.call(s.friend, id2)) { continue; }
+      var up = (s.friend[id2] || 0) - (mark.friend[id2] || 0);
+      if (up > bestUp) { bestUp = up; bestId = id2; }
+    }
+    s.dayLog = {
+      date: prevDay,
+      gathered: Math.max(0, (s.gathered || 0) - mark.gathered),
+      gold: core.save.player.gold - mark.gold,
+      donated: Math.max(0, (s.donateTotal || 0) - mark.donated),
+      metId: bestId, metUp: bestUp,
+      ratingBefore: mark.rating, ratingAfter: global.DG.town ? global.DG.town.beauty().score : mark.rating,
+      shown: false
+    };
+  }
+
+  /** 화면이 보는 어제 요약 — 아직 안 보여줬으면 true */
+  function dayLogPending() { var l = st().dayLog; return !!(l && !l.shown); }
+  /** 오늘 첫 일과 미리보기 = "내일 한 가지" */
+  function dayLogInfo() {
+    var l = st().dayLog;
+    if (!l) { return null; }
+    var next = taskList()[0];
+    return {
+      gathered: l.gathered, gold: l.gold, donated: l.donated,
+      metId: l.metId, metUp: l.metUp,
+      ratingBefore: l.ratingBefore, ratingAfter: l.ratingAfter,
+      next: next ? next.name : null
+    };
+  }
+  function dayLogSeen() { var l = st().dayLog; if (l) { l.shown = true; } }
+
   function rollDay() {
     var s = st(), d = today();
     if (s.day === d) { return false; }
 
+    buildDayLog(s.day);             // 어제가 남긴 값 — 리셋 전에
     var helped = [], gifted = [], written = [], id;
     for (id in s.requests) {
       if (!Object.prototype.hasOwnProperty.call(s.requests, id)) { continue; }
@@ -1150,6 +1341,8 @@
     s.day = d;
     s.used = {};
     s.requests = {};
+    rollTasks(d);                  // 오늘의 일과 3 + 이번 주 과제(§5.1)
+    snapshotDayMark();              // 오늘의 마무리 카드(§5.2) 재료 — 오늘이 끝날 때 이 값과 비교한다
     growWeeds();                   // 안 뽑으면 날마다 는다
     buildProps();                  // 갈라진 자리와 조개는 아침마다 자리가 바뀐다
     syncPlanted();                 // 하루가 지났으니 묘목이 자랐을 수 있다
@@ -1353,6 +1546,7 @@
     /* 도감 — 한 번이라도 손에 넣은 것은 여기 남는다 (팔아도 지워지지 않는다) */
     if (!s.caught) { s.caught = {}; }
     s.caught[item.key] = (s.caught[item.key] || 0) + (n || 1);
+    checkTasks();   // 오늘의 일과(§5.1) — "채집" 축은 여기 한 곳으로 다 지나간다
   }
 
   /** 이 종류를 잡아 본 적이 있나 (도감) */
@@ -1365,6 +1559,15 @@
     var list = VD.ITEMS[cat], n = 0, i;
     if (!list) { return 0; }
     for (i = 0; i < list.length; i++) { n += bagCount(list[i].key); }
+    return n;
+  }
+
+  /** `bagCatCount`와 달리 **팔아도 줄지 않는다** — 일과 진행은 늘 앞으로만 가야
+   *  한다(§5.1). `s.caught`(도감, 잡아 본 적이 있으면 남는다)를 센다 */
+  function caughtCatCount(cat) {
+    var list = VD.ITEMS[cat], n = 0, i, s = st();
+    if (!list) { return 0; }
+    for (i = 0; i < list.length; i++) { n += (s.caught && s.caught[list[i].key]) || 0; }
     return n;
   }
 
@@ -1449,6 +1652,19 @@
     }
   }
 
+  /** 채집 손맛 표준 C(§5.8①) "연속 채집 3회마다 리듬 보너스" — 손을 안 쉬고
+   *  이어 채집하면(GATHER_GAP 안에 다음 것) 연속이 쌓인다. 시간이 아니라
+   *  타이밍을 보는 이유는 손맛 자체(연타/콤보)를 재려는 것이지 "하루에 몇
+   *  번"을 재려는 게 아니라서다(그건 §5.1 일과가 이미 한다). */
+  var GATHER_GAP = 8000;
+  function bumpGatherStreak() {
+    var s = st(), now = Date.now();
+    s.gatherStreak = (s.gatherStreakAt && now - s.gatherStreakAt <= GATHER_GAP)
+      ? (s.gatherStreak || 0) + 1 : 1;
+    s.gatherStreakAt = now;
+    return s.gatherStreak;
+  }
+
   /**
    * 손을 쓴다 — 사물이면 채집, 주민이면 말을 건다.
    * @returns {{kind, text}} 화면에 띄울 한 줄 (없으면 null)
@@ -1486,6 +1702,15 @@
     if (prop.kind === 'sapling') {
       return { kind: 'empty', text: '아직 묘목입니다 — ' + (prop.leftDays || 1) + '일 더' };
     }
+    /* 번들 시설(PLAN §5.3) — 시트를 열 게 없는 그냥 구경거리라 sapling 과
+       같은 결로 toast 만 띄운다(village:open 을 부르면 ui.js SHEET_TITLE 에
+       없는 이름이라 엉뚱하게 "기록" 시트가 열린다) */
+    if (prop.kind === 'stele') {
+      return { kind: 'empty', text: '🪧 화석을 모두 갖춘 사고를 기려 세운 비석입니다' };
+    }
+    if (prop.kind === 'fireflyplot') {
+      return { kind: 'empty', text: '✨ 낮에는 그저 풀밭이지만, 밤이 되면 반딧불이가 모여든다고 합니다' };
+    }
     if (prop.kind === 'weed') { return pullWeed(prop); }
     if (prop.kind === 'home') { return enterHome(); }
     if (prop.kind === 'cave') { return enterCave(); }
@@ -1522,15 +1747,21 @@
     /* 교배로 핀 꽃은 드문 것을 낸다 */
     var got = (prop.hybrid && def.gather === 'flower') ? VD.pickHybrid() : VD.pick(def.gather);
     if (!got) { return null; }
-    var n = 1 + (Math.random() < 0.25 ? 1 : 0);
+    var streak = bumpGatherStreak();
+    var bonus = streak > 0 && streak % 3 === 0;         // 리듬 보너스 — 3연속마다
+    var n = 1 + (Math.random() < 0.25 ? 1 : 0) + (bonus ? 1 : 0);
     bagAdd(got, n);
     if (def.reset) { st().used[prop.id] = st().day; }
     core.gainFeat(1, '채집');
     core.gainExp(6);
-    core.log(got.emoji + ' ' + got.name + ' ×' + n + ' 을 얻었다 (' + def.name + ')', 'good');
+    core.log(got.emoji + ' ' + got.name + ' ×' + n + ' 을 얻었다 (' + def.name + ')' +
+      (bonus ? ' — 🎵 리듬 보너스!' : ''), 'good');
+    /* 화면 층(흔들림·팝·효과음, §5.8①)이 듣는 신호 — 판정은 한 줄도 안 바뀐다 */
+    core.emit('village:gather', { item: got, n: n, streak: streak, bonus: bonus, propId: prop.id });
     core.emit('changed');
     core.persist();
-    return { kind: 'gather', text: got.emoji + ' ' + got.name + ' ×' + n, item: got };
+    return { kind: 'gather', text: got.emoji + ' ' + got.name + ' ×' + n +
+      (bonus ? ' 🎵' : ''), item: got, streak: streak, bonus: bonus };
   }
 
   /* ── 잡초 ─────────────────────────────────────────────────
@@ -1562,9 +1793,11 @@
     var i = parseInt(prop.id.slice(2), 10);
     if (isNaN(i) || !s.weeds[i]) { return null; }
     s.weeds.splice(i, 1);
+    s.weedPulled = (s.weedPulled || 0) + 1;
     buildProps();
     syncPlanted();
     core.gainFeat(1, '잡초');
+    checkTasks();
     core.emit('changed');
     core.persist();
     return { kind: 'weed', text: '🌿 잡초를 뽑았다 (남은 것 ' + s.weeds.length + ')' };
@@ -1792,12 +2025,14 @@
 
     s.bag[key] -= 1;
     s.gifted[heroId] = s.day;
+    s.giftTotal = (s.giftTotal || 0) + 1;   // 팔아도 안 주는 것과 달리 늘 앞으로만 간다(§5.1)
     s.friend[heroId] = friendOf(heroId) + up;
     core.save.player.fame += up * 5;
     core.gainFeat(3, '선물');
     core.gainExp(10);
     core.log('🎁 ' + res.ref.name + ' 에게 ' + it.emoji + ' ' + it.name + ' 을(를) 건넸다 — ' +
       (loved ? '아주 반긴다! ' : '') + '친밀도 +' + up + ' (' + s.friend[heroId] + ')', 'good');
+    checkTasks();
     core.emit('changed');
     core.persist();
     return { kind: 'gift', name: res.ref.name, loved: loved,
@@ -1924,6 +2159,11 @@
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
     rollDay: rollDay, today: today, status: status, state: st,
+    /** 오늘의 일과판(§5.1) */
+    taskList: taskList, weeklyTaskInfo: weeklyTaskInfo, checkTasks: checkTasks, counterOf: counterOf,
+    /** 하루 마무리 카드(§5.2) */
+    dayLogPending: dayLogPending, dayLogInfo: dayLogInfo, dayLogSeen: dayLogSeen,
+    snapshotDayMark: snapshotDayMark,
     castLine: castLine, hookLine: hookLine, fishState: fishState,
     BITE_WINDOW: BITE_WINDOW,
     plant: plant, plantable: plantable, canPlantHere: canPlantHere,

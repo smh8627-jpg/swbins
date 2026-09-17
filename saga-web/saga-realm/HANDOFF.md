@@ -1082,3 +1082,89 @@ proverb·sense·mz 180문항은 해당 없음)에도 이름 정책을 적용할�
 
 **검증** — 헤드리스 3회 동일 확인(직접 돌림, 예외적으로 이번엔 코드 한 줄 진단이라
 가벼움). `bash tools/precheck.sh` 대상에 포함해 PRECHECK OK.
+
+## 2026-09-17 — PLAN §7-2 "성능 상한" — 그래픽 품질 3단 (Phase 0 안정화)
+
+로드맵 Phase 0 남은 코드분 항목 중 하나. `ui-rtk.js` `viewSettings()`의 옛
+주석("이 판엔 그래픽 품질 손잡이가 없다")을 지우는 몫이다. saga-forest
+`village-view3d.js`의 등급표(QUALITY_PRESET·deviceScore·probeDevice·tierFor·tier,
+순수 함수라 three 없이도 헤드리스로 진단된다)를 그대로 옮기되, **이 판 사정에
+맞게 축을 둘로 줄였다** — 걷는 인물이 없어 "인물 주변 렌더 반경"을 좁힐
+대상 자체가 없다. 대신 값이 큰 두 축만: 픽셀 비율(1/1.5/2)과 `scatterField()`
+빈 들 소품 밀도(16/24/32%, 전체 소품 1070개 선 중 가장 큰 덩이 — 주석에
+적힌 최근 값 32%를 high 기본값으로 그대로 물려받았다). 성 둘레
+(`scatterAround`/`scatterSmall`, 카메라가 늘 머무는 자리)는 등급과 무관하게
+항상 다 세운다 — 그림 손실 체감이 크고 수도 field 쪽보다 훨씬 적어서다.
+
+- **`js/realm3d.js`** — `QUALITY_PRESET`·`QUALITY()`·`deviceScore()`·`tierFor()`·
+  `probeDevice()`·`autoTier()`·`tier()`·`DPR()`·`FIELD_DENSITY()`·`setQuality()`
+  신설(`DIST_MIN/MAX` 바로 뒤). `init()`의 `renderer.setPixelRatio(...,2)`를
+  `DPR()`로, `scatterField()`의 하드코딩 `hh % 100 >= 32`를 `FIELD_DENSITY()`로
+  바꿨다. `global.DG.realm3d`에 `setQuality`·`tier`·`deviceScore`·`tierFor`·
+  `qualityPreset` export(진단용).
+- **`js/ui-rtk.js`** — `viewSettings()`에 "지도 화질" 행(자동/저/중/고 버튼 4개,
+  `.btn.tiny`+`.primary` — 태수 고르기와 같은 결). `act()`에 `quality-set`
+  핸들러 신설(`realm3d.setQuality(레벨)` 호출 + `renderSheet()`). 소품 밀도는
+  `buildStaticOnce()`가 켤 때 한 번만 도는 정적값이라 실시간 반영이 안 돼
+  — 문구로 "새로고침해야 반영됩니다" 안내했다(픽셀비는 즉시 먹인다).
+- **무리 파티클 ≤40**(같은 §7-2 줄)은 이미 `bannerCluster()`가
+  `clamp(round(troops/1200), 2, 10)`으로 만족하고 있어 손 안 댔다(확인만).
+
+**검증** — `node -c js/realm3d.js js/ui-rtk.js` 통과, `_test.html` 인라인
+스크립트 2블록 `new Function()` 파싱 확인. 새 순수 함수 진단 1항목
+("realm3d — 그래픽 품질 3단") — 등급표 dpr·fieldDensity가 tier 순으로
+단조증가, `tierFor` 경계(0/1/3점), `deviceScore` 고사양>저사양 부호,
+`setQuality('low'/'high')`가 그 등급을 그대로 돌려주는지 확인 뒤 원래
+손잡이값으로 복원(`C.tune()['realm3d.quality']`를 저장해 뒀다 되돌림 —
+다른 진단에 안 새게). `bash tools/precheck.sh saga-web/saga-realm` →
+PRECHECK OK(`sw.js` VERSION `realm-v1.25.1` → `realm-v1.26.0`). 헤드리스
+`_test.html` 3회 확인은 이번에도 안 돌렸다(사용자 실기 확인 몫).
+
+**남은 것** — 실기 확인(저/중/고 체감 차이·자동 판정이 실기기에서 적당한지,
+PLAN §7-1 목록에 편입해 다음 "몰아서" 때 같이). Phase 0의 나머지 코드분
+항목은 QA 프리셋(§7-1 8항목마다 `_admin.html` 프리셋 1개) — 다음 차례.
+
+## 2026-09-17 — PLAN §7-2 "QA 프리셋" 3개 (Phase 0 안정화, 이어서)
+
+같은 로드맵 Phase 0 줄의 나머지 반쪽. PLAN §7-2가 예시로 든 세 이름
+("균열 전투·해협 카메라·일기토 강제")을 `admin.js` `PRESETS`에 그대로 채웠다
+— §7-1 실기 확인 8항목 중 1(3D 지도)·3(확장 지역)·4(전투 3D)·5(괴물 지역)를
+겨눈다. 프리셋은 **세이브 상태만 흉내낸다**(admin.js 자체 규칙 — 게임 창을
+열지 않는다) — 게임을 열면 그 상황이 카메라 앞에 있게 만드는 것까지가 몫이다.
+
+- **🌊 해협 접경** — `R.setup('bei','194')` 뒤 `grant('xiaopei','cao')`로
+  시작 성을 내주고 `grant('gimhae','bei')`·`grant('tsushima','bei')`로
+  해협 양쪽만 쥐어준다. `ui-rtk.js` `centerOnMine()`이 **내 성 좌표만으로**
+  카메라 중심·배율을 잡으므로(§46 이전부터 있던 로직, 안 건드림) 게임을
+  열자마자 3D 카메라가 해협 한복판을 향한다 — 안개·해안선·시작 배율을
+  바로 볼 수 있다.
+- **👹 균열 접경** — 같은 요령으로 성 하나(야마토, x158 — 균열 첫 성
+  천궤 x172 바로 앞)만 쥐어준다. 균열 지역이 2D viewBox·3D 지면 안에
+  들어오는지, 접근하면 균열 9종 몬스터 모델(전투 붙었을 때의 수비 지휘관)이
+  제대로 뜨는지 확인하는 출발점.
+- **🤺 일기토 강제** — **`might`는 `rec()`(세이브 가변 필드)에 없다** —
+  `officer.js` `stats()`가 `hero.js`(다섯 판 공유)에서 매번 계산해 오는
+  값이라(§2-6 원칙과 같은 이유로 도감을 안 건드리려면) 억지로 못 맞춘다.
+  대신 **이미 있는 로스터에서 무력 차가 가장 작은 상대를 찾는다** —
+  `CD.CITIES`를 훑어 남의 성마다 `OFF.atCity(id, force)[0]`(그 성 으뜸
+  수비 무장)과 내 으뜸 무장의 `might` 차를 재고, 가장 가까운 성으로
+  `⛺ 원정 진행 중`과 같은 결의 camp(도착까지 1개월)를 띄운다. `war.js`
+  `DUEL_GAP=25`(무력 차 25 이내)를 만족해도 그 자리에서 35% 확률로만
+  일기토가 실제로 붙는다(`duel()` 자체 규칙, 안 건드림) — "강제"는 성립
+  **문턱**까지고, 그 다음은 원래 게임 확률 그대로다.
+
+**검증** — `node -c js/admin.js` 통과. 세 함수 모두 기존 프리셋(`grant()`·
+`R.state()`·`OFF.ofForce()`·`OFF.atCity()`·`OFF.stats()`·camp 구조체)만
+불러 쓴다 — 새 API 를 안 만들었다. `_admin.html?selftest`의 "프리셋 N개가
+예외 없이 돈다"(모든 PRESETS를 임시 프로필에서 실제로 눌러 보는 자가진단,
+`admin.js` 642행)가 이 세 개도 그대로 덮는다 — 이번 세션은 안 띄웠다
+(헤드리스는 사용자 실기 확인 때, 다른 항목들과 같은 이유). `bash
+tools/precheck.sh saga-web/saga-realm` → PRECHECK OK(`sw.js` VERSION
+`realm-v1.26.0` → `realm-v1.26.1` — `admin.js`는 `sw.js` `SHELL`에 없어
+캐시엔 안 걸리지만 precheck 경고를 그냥 두지 않으려 습관대로 올렸다).
+
+**남은 것** — §7-1의 나머지 다섯(2 지도 조작·6 시장/원정사건/유물·7 가명·
+8 노쇠 문턱)은 프리셋으로 안 옮겼다. 세 프리셋 다 실기로 "정말 그 자리에
+있는지" 확인 대기(사용자 몫). Phase 0 안정화는 이제 §7-1 실기 확인만
+남는다 — 코드분(오류 수집·세이브 v·3D 순수함수 진단·성능 손잡이·
+QA 프리셋 절반)은 이번 세션까지 전부 닫혔다.
