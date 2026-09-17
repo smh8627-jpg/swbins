@@ -4,6 +4,7 @@ extends Button
 ## StorySaveState만 다르다.
 
 const TOAST_SEC := 3.0
+const SessionCard := preload("res://saga_core/ui/session_card.gd")
 
 
 func _ready() -> void:
@@ -11,9 +12,19 @@ func _ready() -> void:
 	pressed.connect(_on_pressed)
 
 
+## PLAN.md 101-4 표준 B(세션 마무리 카드) — GO·FOREST save_button.gd와
+## 같은 경계 결정(명확한 "세션 끝" 이벤트가 없어 저장 시점을 그 자리로
+## 쓴다).
 func _on_pressed() -> void:
 	var ok := StorySaveState.save()
-	_toast("저장했다." if ok else "저장 실패 — 플레이어를 못 찾았다.")
+	if ok:
+		SessionCard.show(get_tree().current_scene, "저장했다 — 이번 세션", [
+			"처치 +%d" % StorySaveState.session_kills_gained(),
+			"골드 +%d" % StorySaveState.session_gold_gained(),
+			"Lv.%d" % StorySaveState.level,
+		])
+	else:
+		_toast("저장 실패 — 플레이어를 못 찾았다.")
 
 
 func _toast(text_: String) -> void:

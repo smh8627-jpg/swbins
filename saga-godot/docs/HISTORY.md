@@ -7224,3 +7224,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestVillageForest.tscn을 실제로 인스턴스화해 GoalBoard 텍스트 확인, `🎯 주민 부탁 0/6 / ⏱ 골드 +0 · 채집 +0 / 📅 —` 형식 그대로 나옴(이 머신엔 세이브 파일이 없어 절대값도 그대로 검증됨).
 - `TestVillageForest.tscn` 헤드리스 3회 회귀 md5 동일(67467e92)·error/warn 0. `tools/godot_regress.sh`로 다섯 판 전체 스모크 오류 0·project.godot/.import 잡음 없음 확인.
 - 다음: STORY·REALM ①(같은 101-4 배선부터).
+
+## STORY 목표판·세션 카드 (2026-09-17, 새 세션, "이어해") — 101-4 공통 순서 1번, FOREST 다음
+- FOREST에 붙인 표준 A/B(목표판 3줄·세션 마무리 카드)를 STORY에도 배선(saga_core 공용 스크립트 그대로, 새 UI 없음).
+- STORY엔 GO/DUNGEON/FOREST 같은 씬 공통 "월드" 진입점이 없다(마을은 `story_town.gd`, 사냥터는 `story_field.gd`로 루트 스크립트가 갈린다) — 그래서 quest_label.gd·gold_label.gd 선례대로 작은 폴링 피더 노드 `games/saga_story/ui/goal_board_feed.gd`를 새로 만들어 StoryHUD.tscn에 GoalBoard Label과 나란히 둠(우상단, GO/DUNGEON/FOREST와 같은 위치·스타일).
+- "지금"은 "사명 완수 N/13"(`StorySaveState.quests_done.size()` / `story_combat.gd::QUESTS.size()` — 반복/일일 7개는 끝이 없는 성격이라 뺀다). "세션"은 처치+골드 델타. "주"는 다른 네 판과 같은 이유로 "—".
+- `story_save_state.gd`에 `begin_session()`/`session_kills_gained()`/`session_gold_gained()` 추가 — exp를 안 쓴 이유: `add_exp()`가 레벨업마다 exp를 0으로 되감아(while 루프) 델타가 안 맞는다, kills·gold는 그대로 누적/증감이라 안전.
+- `story_field.gd`(사냥터 루트, `try_load()` 성공 경로 — STORY의 유일한 진짜 재접속 지점, 다른 알려진 한계 주석 참고)에서만 `begin_session()` 호출. `story_town.gd`는 손 안 댐(포털로만 들어오는 마을이라 try_load() 자체가 없음) — 마을↔사냥터 포털 전환이 세션을 리셋하지 않게 하는 핵심 결정.
+- 세션 카드는 `story_save_button.gd`(저장 버튼) — 문구 "저장했다 — 이번 세션", GO·FOREST와 동일 패턴.
+- 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestField.tscn을 실제로 인스턴스화해 GoalBoard 텍스트 확인, `🎯 사명 완수 0/13 / ⏱ 처치 +0 · 골드 +0 / 📅 —` 형식 그대로 나옴.
+- 헤드리스 3회 회귀 md5 동일(SinyaField dafb96d4, HUD 신규 라벨로 값 자체는 바뀜). `tools/godot_regress.sh`로 다섯 판 전체 스모크 오류 0·project.godot/.import 잡음 없음 확인.
+- 다음: REALM ①(같은 101-4 배선) — 이걸로 GO·DUNGEON·FOREST·STORY 네 판 다 끝나고 REALM 하나만 남음.

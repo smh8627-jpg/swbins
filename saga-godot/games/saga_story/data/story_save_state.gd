@@ -60,6 +60,26 @@ var skills: Dictionary = {}
 var pending_spawn_x := 0.0
 var has_pending_spawn := false
 
+## PLAN.md 101-4 표준 A·B(목표판·세션 카드) — GO PartyState.session_exp_gained()·
+## FOREST ForestSaveState.session_gold_gained()와 같은 계약(세이브 필드가
+## 아니다, 세션 시작 시점 스냅샷과의 차이만 잰다). kills·gold를 쓰는 이유는
+## exp가 레벨업마다 0으로 되감겨(add_exp() 위) 델타가 안 맞기 때문.
+var _session_start_kills := 0
+var _session_start_gold := 0
+
+
+func begin_session() -> void:
+	_session_start_kills = kills
+	_session_start_gold = gold
+
+
+func session_kills_gained() -> int:
+	return kills - _session_start_kills
+
+
+func session_gold_gained() -> int:
+	return gold - _session_start_gold
+
 
 func set_pending_spawn(x_m: float) -> void:
 	pending_spawn_x = x_m

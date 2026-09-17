@@ -21,3 +21,4 @@ func _ready() -> void:
 			player.global_position = Vector3(x_m, 0.1, 0)
 	else:
 		StorySaveState.try_load()
+		StorySaveState.begin_session()
