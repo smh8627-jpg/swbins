@@ -1120,6 +1120,7 @@
     if (global.DG.mail) { global.DG.mail.ensureMoveIn(); }
     rollDay();
     if (!st().tasks) { rollTasks(today()); }   // 첫 부팅 — rollDay()가 "오늘=오늘"로 건너뛴 자리
+    if (!st().dayMark) { snapshotDayMark(); }
     syncPlanted();
   }
 
@@ -1227,10 +1228,63 @@
     return filled;
   }
 
+  /**
+   * 하루 마무리 카드(§5.2, 표준 B)의 재료 — 날이 바뀔 때(`rollDay()`)만 다룬다.
+   *   `snapshotDayMark()`  새 하루가 열리자마자 "그 시점" 값을 박아 둔다
+   *   위 값과 **오늘 끝난 시점**(다음 rollDay() 첫머리) 값의 차이가 dayLog 다
+   */
+  function snapshotDayMark() {
+    var s = st();
+    s.dayMark = {
+      gathered: s.gathered || 0,
+      gold: core.save.player.gold,
+      donated: s.donateTotal || 0,
+      friend: JSON.parse(JSON.stringify(s.friend || {})),
+      rating: global.DG.town ? global.DG.town.beauty().score : 0
+    };
+  }
+
+  function buildDayLog(prevDay) {
+    var s = st(), mark = s.dayMark;
+    if (!mark) { return; }
+    var bestId = null, bestUp = 0, id2;
+    for (id2 in (s.friend || {})) {
+      if (!Object.prototype.hasOwnProperty.call(s.friend, id2)) { continue; }
+      var up = (s.friend[id2] || 0) - (mark.friend[id2] || 0);
+      if (up > bestUp) { bestUp = up; bestId = id2; }
+    }
+    s.dayLog = {
+      date: prevDay,
+      gathered: Math.max(0, (s.gathered || 0) - mark.gathered),
+      gold: core.save.player.gold - mark.gold,
+      donated: Math.max(0, (s.donateTotal || 0) - mark.donated),
+      metId: bestId, metUp: bestUp,
+      ratingBefore: mark.rating, ratingAfter: global.DG.town ? global.DG.town.beauty().score : mark.rating,
+      shown: false
+    };
+  }
+
+  /** 화면이 보는 어제 요약 — 아직 안 보여줬으면 true */
+  function dayLogPending() { var l = st().dayLog; return !!(l && !l.shown); }
+  /** 오늘 첫 일과 미리보기 = "내일 한 가지" */
+  function dayLogInfo() {
+    var l = st().dayLog;
+    if (!l) { return null; }
+    var next = taskList()[0];
+    return {
+      gathered: l.gathered, gold: l.gold, donated: l.donated,
+      metId: l.metId, metUp: l.metUp,
+      ratingBefore: l.ratingBefore, ratingAfter: l.ratingAfter,
+      next: next ? next.name : null
+    };
+  }
+  function dayLogSeen() { var l = st().dayLog; if (l) { l.shown = true; } }
+
   function rollDay() {
     var s = st(), d = today();
     if (s.day === d) { return false; }
 
+    buildDayLog(s.day);             // 어제가 남긴 값 — 리셋 전에
     var helped = [], gifted = [], written = [], id;
     for (id in s.requests) {
       if (!Object.prototype.hasOwnProperty.call(s.requests, id)) { continue; }
@@ -1252,6 +1306,7 @@
     s.used = {};
     s.requests = {};
     rollTasks(d);                  // 오늘의 일과 3 + 이번 주 과제(§5.1)
+    snapshotDayMark();              // 오늘의 마무리 카드(§5.2) 재료 — 오늘이 끝날 때 이 값과 비교한다
     growWeeds();                   // 안 뽑으면 날마다 는다
     buildProps();                  // 갈라진 자리와 조개는 아침마다 자리가 바뀐다
     syncPlanted();                 // 하루가 지났으니 묘목이 자랐을 수 있다
@@ -2042,6 +2097,9 @@
     rollDay: rollDay, today: today, status: status, state: st,
     /** 오늘의 일과판(§5.1) */
     taskList: taskList, weeklyTaskInfo: weeklyTaskInfo, checkTasks: checkTasks, counterOf: counterOf,
+    /** 하루 마무리 카드(§5.2) */
+    dayLogPending: dayLogPending, dayLogInfo: dayLogInfo, dayLogSeen: dayLogSeen,
+    snapshotDayMark: snapshotDayMark,
     castLine: castLine, hookLine: hookLine, fishState: fishState,
     BITE_WINDOW: BITE_WINDOW,
     plant: plant, plantable: plantable, canPlantHere: canPlantHere,

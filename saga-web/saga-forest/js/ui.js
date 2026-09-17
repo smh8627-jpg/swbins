@@ -1894,11 +1894,52 @@
     toastTimer = setTimeout(function () { els.toast.classList.remove('show'); }, 2600);
   }
 
+  /**
+   * 하루 마무리 카드(§5.2, 표준 B) — 자정 넘겨 첫 부팅(=`rollDay()`가 실제로 돈
+   * 뒤) 딱 한 번 뜬다. `#encounter`(이 판에선 안 쓰던 자리)를 빌려 쓴다.
+   * 8초 뒤 저절로 닫히거나 눌러서 닫는다 — 닫히면 `dayLogSeen()`으로 다시 안 뜨게 한다.
+   */
+  var dayCardTimer = null;
+  function showDayCard(info) {
+    var el = $('encounter');
+    if (!el) { return; }
+    var ratingUp = info.ratingAfter - info.ratingBefore;
+    var metLine = info.metId && global.DG.data ? global.DG.data.find(info.metId) : null;
+    el.innerHTML =
+      '<div class="enc-card">' +
+        '<h3 style="margin:0 0 6px;font-size:17px">🌙 어제 하루</h3>' +
+        '<div class="stat-row"><span>채집</span><b>' + core.fmt(info.gathered) + '</b></div>' +
+        '<div class="stat-row"><span>금</span><b>🪙 ' + (info.gold >= 0 ? '+' : '') + core.fmt(info.gold) + '</b></div>' +
+        (info.donated ? '<div class="stat-row"><span>기증</span><b>' + info.donated + '</b></div>' : '') +
+        '<div class="stat-row"><span>마을 평가</span><b>' + (ratingUp >= 0 ? '+' : '') + ratingUp + '</b></div>' +
+        (metLine ? '<div class="stat-row"><span>가장 가까워진 사람</span><b>' + esc(metLine.name) + '</b></div>' : '') +
+        (info.next ? '<div class="p-goal" style="margin-top:8px">오늘 · 🎯 ' + esc(info.next) + '</div>' : '') +
+        '<button class="btn primary wide" id="daylog-ok">확인</button>' +
+      '</div>';
+    el.classList.add('show');
+    var close = function () {
+      el.classList.remove('show'); el.innerHTML = '';
+      if (dayCardTimer) { clearTimeout(dayCardTimer); dayCardTimer = null; }
+    };
+    var btn = $('daylog-ok');
+    if (btn) { btn.addEventListener('click', close); }
+    if (dayCardTimer) { clearTimeout(dayCardTimer); }
+    dayCardTimer = setTimeout(close, 8000);
+    global.DG.village.dayLogSeen();
+  }
+
+  function checkDayCard() {
+    var V = global.DG.village;
+    if (!V || !V.dayLogPending || !V.dayLogPending()) { return; }
+    showDayCard(V.dayLogInfo());
+  }
+
   /** 매 프레임이 아니라 주기적으로만 갱신한다 */
   function tickRefresh() {
     renderTop();
     renderFocus();
     renderAutoBar();
+    checkDayCard();
     var a = document.activeElement;
     if (a && (a.tagName === 'SELECT' || a.tagName === 'INPUT') && els['sheet-body'].contains(a)) { return; }
     /* 공사 시트는 **선 칸을 가운데로 한 3×3** 을 보여 준다 — 걸어가면 따라와야 한다.

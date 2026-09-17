@@ -1385,6 +1385,45 @@ window.DG_NO_TUNE = true;
       return ok && ('셋째 줄=' + (list[2] && list[2].name));
     });
 
+    /* ── 하루 마무리 카드(PLAN §5.2, 표준 B) ─────────────────── */
+
+    t('마무리 카드 — 어제 요약(dayLog)에 next 가 비지 않는다', function () {
+      var s = V.state();
+      var keep = { day: s.day, dayMark: JSON.parse(JSON.stringify(s.dayMark || {})), dayLog: s.dayLog };
+      s.day = V.today() - 1;
+      V.rollDay();
+      var info = V.dayLogInfo();
+      s.day = keep.day; s.dayMark = keep.dayMark; s.dayLog = keep.dayLog;
+      return !!info && !!info.next && ('next=' + info.next);
+    });
+
+    t('마무리 카드 — 한 번 보면(dayLogSeen) 다시 안 뜬다', function () {
+      var s = V.state();
+      var keep = { day: s.day, dayMark: JSON.parse(JSON.stringify(s.dayMark || {})), dayLog: s.dayLog };
+      s.day = V.today() - 1;
+      V.rollDay();
+      var before = V.dayLogPending();
+      V.dayLogSeen();
+      var after = V.dayLogPending();
+      s.day = keep.day; s.dayMark = keep.dayMark; s.dayLog = keep.dayLog;
+      return before && !after && '뜸(대기중) → 확인 뒤 안 뜸';
+    });
+
+    t('마무리 카드 — 채집·금 변화가 실제 값을 따라간다', function () {
+      var s = V.state();
+      var keep = { day: s.day, dayMark: JSON.parse(JSON.stringify(s.dayMark || {})), dayLog: s.dayLog,
+        gold: C.save.player.gold, gathered: s.gathered };
+      V.snapshotDayMark();                      // 오늘 시작점을 지금으로 다시 박는다
+      V.bagAdd(VD.ITEMS.flower[0], 4);
+      C.save.player.gold += 77;
+      s.day = V.today() - 1;
+      V.rollDay();
+      var info = V.dayLogInfo();
+      s.day = keep.day; s.dayMark = keep.dayMark; s.dayLog = keep.dayLog;
+      s.gathered = keep.gathered; C.save.player.gold = keep.gold;
+      return info.gathered === 4 && info.gold === 77 && ('채집 +' + info.gathered + ' · 금 +' + info.gold);
+    });
+
     /* ── 자동 마을살이 ────────────────────────────────── */
 
     t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {
