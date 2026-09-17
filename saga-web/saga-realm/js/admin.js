@@ -542,6 +542,50 @@
         };
         st.camps.push(cp);
         cp.officers.forEach(function (id) { OFF.rec(id).camp = cp.id; });
+      }],
+    /* SAGA-DESIGN §8 QA 프리셋(PLAN §7-2 "QA 프리셋", §7-1 실기 확인 목록의
+       예시 셋 그대로) — 게임을 열자마자 그 상황이 카메라 앞에 있게 만든다.
+       세 QA 프리셋은 실기 확인 8항목 중 1(3D 지도)·3(확장 지역)·4(전투 3D)·
+       5(괴물 지역)를 겨눈다. 2(지도 조작)·6(시장·원정 사건)·7(가명)·8(노쇠)는
+       아직 — 다음 차례(HANDOFF.md 참고). */
+    ['🌊 해협 접경', '194년 · 인형이 소패 대신 김해·대마도만 쥔 판 — 3D 지도 카메라가 열자마자 해협을 향한다',
+      function () {
+        R.setup('bei', '194');
+        grant('xiaopei', 'cao');
+        grant('gimhae', 'bei');
+        grant('tsushima', 'bei');
+      }],
+    ['👹 균열 접경', '194년 · 인형이 소패 대신 야마토만 쥔 판 — 균열 문턱, 균열 9종 몬스터 모델을 눈으로 보러 가는 출발점',
+      function () {
+        R.setup('bei', '194');
+        grant('xiaopei', 'cao');
+        grant('yamato', 'bei');
+      }],
+    ['🤺 일기토 강제', '194년 · 인형 — 우리 으뜸 무장과 무력이 가장 가까운 성으로 원정 중(도착만 하면 확률 35%로 일기토, war.js DUEL_GAP=25)',
+      function () {
+        R.setup('bei', '194');
+        var st = R.state();
+        var mine = OFF.ofForce('bei')[0];
+        if (!mine) { return; }
+        var myMight = OFF.stats(mine.id).might;
+        var best = null, bestGap = Infinity;
+        CD.CITIES.forEach(function (d) {
+          var c = R.city(d.id);
+          if (!c || !c.force || c.force === 'bei') { return; }
+          var top = OFF.atCity(d.id, c.force)[0];
+          if (!top) { return; }
+          var gap = Math.abs(OFF.stats(top.id).might - myMight);
+          if (gap < bestGap) { bestGap = gap; best = d.id; }
+        });
+        if (!best) { return; }
+        st.campSeq = (st.campSeq || 0) + 1;
+        var cp = {
+          id: 'camp' + st.campSeq, force: 'bei', from: 'xiaopei', to: best,
+          troops: 6000, officers: [mine.id], train: 60, tech: 100, morale: 0.9,
+          water: false, ships: 0, food: 500, months: 1
+        };
+        st.camps.push(cp);
+        OFF.rec(mine.id).camp = cp.id;
       }]
   ];
 
