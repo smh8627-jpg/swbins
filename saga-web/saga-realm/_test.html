@@ -2074,6 +2074,24 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ' · elevAt=' + elev + '(바다) · 먼 뭍 straitFactor=' + farAway);
     });
 
+    t('realm3d — 그래픽 품질 3단 (SAGA-DESIGN §8 성능 상한, PLAN §7-2)', function () {
+      var R3 = DG.realm3d, C = DG.core;
+      if (!R3 || typeof R3.setQuality !== 'function' || !C) { return false; }
+      var beforeRaw = C.tune()['realm3d.quality'];
+      var preset = R3.qualityPreset();
+      var okPreset = preset && preset.low && preset.medium && preset.high &&
+        preset.low.dpr < preset.medium.dpr && preset.medium.dpr < preset.high.dpr &&
+        preset.low.fieldDensity < preset.medium.fieldDensity && preset.medium.fieldDensity < preset.high.fieldDensity;
+      var okTierFor = R3.tierFor(0) === 'low' && R3.tierFor(1) === 'medium' && R3.tierFor(3) === 'high';
+      var okScore = R3.deviceScore({ cores: 8, mem: 8, w: 800, h: 600, dpr: 1, touch: false }) >
+                    R3.deviceScore({ cores: 1, mem: 1, w: 3000, h: 2000, dpr: 2, touch: true });
+      var lowTier = R3.setQuality('low'), highTier = R3.setQuality('high');
+      C.setTune('realm3d.quality', beforeRaw === undefined ? null : beforeRaw);
+      var ok = okPreset && okTierFor && okScore && lowTier === 'low' && highTier === 'high';
+      return ok && ('등급표 dpr ' + preset.low.dpr + '/' + preset.medium.dpr + '/' + preset.high.dpr +
+        ' · fieldDensity ' + preset.low.fieldDensity + '/' + preset.medium.fieldDensity + '/' + preset.high.fieldDensity);
+    });
+
     t('asset3d — mapClips 순수 함수 (SAGA-DESIGN §7-2 3D 진단 공백)', function () {
       var A3 = DG.asset3d;
       if (!A3 || typeof A3.mapClips !== 'function') { return false; }
