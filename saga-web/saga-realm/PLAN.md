@@ -43,7 +43,7 @@
 
 ## 3. 현재 시스템 지도
 
-상태: ○ 완료·검증 / △ 완료·실기 미확인 / × 미검증·미완. 진단 = `_test.html` 항목 수(총 134, `_admin.html?selftest` ADMIN 12).
+상태: ○ 완료·검증 / △ 완료·실기 미확인 / × 미검증·미완. 진단 = `_test.html` 항목 수(총 137, `_admin.html?selftest` ADMIN 12).
 
 | 시스템 | 주 파일 | 상태 | 진단 |
 |---|---|---|---|
@@ -69,7 +69,7 @@
 | AI — `runForce`: 아쉬운 것부터 명령, `tryWar`(forecast·spare·gather)·`trySupply`·`tryTrade`·`tryPromote`(충성 최저)·`tryPlot`·`tryEnvoy` | `rtk-ai.js` `ai.js` | ○ | 5 |
 | 학당 문답 — `BANK` 260(hist 50·world 30·idiom·proverb·sense·mz), 상금→금고, 학식→`revealFree` | `quiz.js` `data-quiz.js` | ○ | 2 |
 | 2D 지도 SVG — `MAP_VB`(-60 -30 300 180), 드래그·핀치·관성·조이스틱·키보드, 🏠 내 땅으로 | `ui-rtk.js` | △ | 4 |
-| 3D 국토 지도 — 기본 ON, 궤도 카메라, heightmap `elevAt()`, 바다 `STRAITS` 5, 소품 ~1070, 성 3등급 탑(1등급 동양풍) | `realm3d.js` `asset3d.js` | △ | 0 (3D 미탑재) |
+| 3D 국토 지도 — 기본 ON, 궤도 카메라, heightmap `elevAt()`, 바다 `STRAITS` 5, 소품 ~1070, 성 3등급 탑(1등급 동양풍) | `realm3d.js` `asset3d.js` | △ | 3(순수 함수만 — `elevAt`·`straitFactor`·`isSea`·`mapClips`, 렌더 자체는 실기) |
 | 전투 3D — `frames` 재생, 일기토 실캐릭터(QRPG)·지휘관 `leadA/D`, HUD `.bhud`, `roundPulse`·`wallShake`·피격 플래시·카메라 컷 | `battle3d.js` | △ | 0 |
 | 성 안 3D(`city3d.js`)·초상 3D(`portrait3d.js`, QRPG 6 + MPFB 20) | | △ | 0 |
 | 절차 사운드 24종(`sfx.js`, 이벤트 구독만·판정 파일 무접촉)·⚙️ 설정(음량·흔들림) | `sfx.js` `ui-rtk.js` | ○ | 12 |
@@ -223,7 +223,7 @@
 - **후처리 실패 시 자동 끔**: **이 판엔 해당 없음** — `realm3d.js`·`battle3d.js`·`city3d.js` 어디에도 `EffectComposer` 류 별도 합성 패스가 없다(`renderer.render()`를 바로 씀, 사가의숲과 같은 사정).
 - **성능 상한**: 폰 픽셀 비율 1.5, 소품 인스턴스 상한(⚙️ "성능" 손잡이 3단 — 지금 등급표 없음 → `realm3d.quality` 신설), 무리 파티클 ≤40.
 - **QA 프리셋**: 7-1 항목마다 `_admin.html` 프리셋 1개(균열 전투·해협 카메라·일기토 강제 등).
-- **커밋 전**: `node -c js/*.js` + `_test.html` 134/134 3회 동일 + ADMIN 12/12 → `tools/precheck.sh`(저장소 공통, 훅은 커밋하지 않는다).
+- **커밋 전**: `node -c js/*.js` + `_test.html` 137/137 3회 동일 + ADMIN 12/12 → `tools/precheck.sh`(저장소 공통, 훅은 커밋하지 않는다).
 
 ## 8. 로드맵
 
@@ -243,7 +243,7 @@
 
 ```
 구문   node -c js/<파일>.js
-진단   chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom http://127.0.0.1:8795/_test.html  → RESULT 134/134 (3회 동일)
+진단   chrome --headless=new --disable-gpu --virtual-time-budget=45000 --dump-dom http://127.0.0.1:8795/_test.html  → RESULT 137/137 (3회 동일)
 어드민 …/_admin.html?selftest → ADMIN 12/12
 폰     _mobileframe.html#probe → PROBE OK (390px iframe)
 데모   _demo.html#scen|pick|map|chibi|grown|city|enemy|war|camp|officers|diplo|school
