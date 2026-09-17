@@ -80,6 +80,25 @@ var home_items: Array = []       # [{"key":String,"x":float,"z":float}], 놓인 
 var home_tier := 0
 var home_debt := 0
 
+## PLAN.md 101-4 표준 A·B(목표판·세션 카드) — GO PartyState.session_exp_gained()·
+## DUNGEON DungeonGoldState.session_gold_gained()와 같은 계약(세이브 필드가
+## 아니다, 세션 시작 시점 스냅샷과의 차이만 잰다).
+var _session_start_gold := 0
+var _session_start_items := 0
+
+
+func begin_session() -> void:
+	_session_start_gold = gold
+	_session_start_items = total_items()
+
+
+func session_gold_gained() -> int:
+	return gold - _session_start_gold
+
+
+func session_items_gathered() -> int:
+	return total_items() - _session_start_items
+
 
 ## 다음 tier가 있고 빚이 없을 때만 성공 — cost는 forest_house.gd가
 ## ForestHome.next_tier(home_tier).cost로 구해 넘겨준다.

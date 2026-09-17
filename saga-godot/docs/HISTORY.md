@@ -7213,3 +7213,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestRoom.tscn을 실제로 인스턴스화해 GoalBoard 라벨 텍스트를 확인(이 머신에 남아 있던 실제 플레이 세이브(`user://save_dungeon.json`, hardcore 결사 상태) 때문에 절대값 "0/7" 대신 형식+세션 델타 "+0"만 확인하도록 조정) — 금 변화 시 실시간 갱신, 난입 진행 중 표시 전환·종료 후 복귀까지 8가지, 3회 재현 8/8 fails=0.
 - `TestRoom.tscn` 헤드리스 3회 회귀 md5 동일(0d22e190)·error/warn 0, GO·FOREST·STORY·REALM 스모크 오류 0.
 - 다음: 시대 퓨전(웹 검증 뒤) 또는 FOREST/STORY/REALM ① — DUNGEON 몫은 이걸로 사실상 다 끝남.
+
+## FOREST 목표판·세션 카드 (2026-09-17, 새 세션, "사가고돗 이어해 묻지마") — 101-4 공통 순서 1번, DUNGEON 다음
+- DUNGEON에 붙인 표준 A/B(목표판 3줄·세션 마무리 카드)를 FOREST에도 배선(saga_core 공용 스크립트 그대로, 새 UI 없음).
+- `ForestHUD.tscn`에 `GoalBoard` Label 신규(우상단, GO/DUNGEON과 같은 위치·스타일).
+- `forest_village.gd::_refresh_goal_board()` — "지금"은 "주민 부탁 N/6"(`ForestSaveState.quests_done.size()` / `villager_builder.gd::ROSTER_SIZE`, FOREST엔 GO 같은 단일 활성 사명이 없어 이 진행도 하나뿐). "세션"은 골드+채집물 델타. "주"는 GO·DUNGEON과 같은 이유로 "—".
+- FOREST엔 신호 배선이 없어(gather_label.gd가 이미 폴링, master.md 33장 근거) goal_board도 신호 대신 `_process()` 폴링으로 갱신 — 다섯 판 중 유일하게 폴링 방식.
+- `forest_save_state.gd`에 `begin_session()`/`session_gold_gained()`/`session_items_gathered()` 추가(GO party_state.gd·DUNGEON dungeon_gold_state.gd와 같은 계약, 세이브엔 안 남음). `forest_village.gd::_ready()`에서 `try_load()` 직후 호출.
+- 세션 카드는 `forest_save_button.gd`(저장 버튼 누를 때) — 문구 "저장했다 — 이번 세션", GO save_button.gd와 동일 패턴(FOREST도 명확한 "세션 끝" 이벤트가 없어 저장 시점을 그 자리로 씀). 실패 시엔 카드 없이 기존 토스트.
+- 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestVillageForest.tscn을 실제로 인스턴스화해 GoalBoard 텍스트 확인, `🎯 주민 부탁 0/6 / ⏱ 골드 +0 · 채집 +0 / 📅 —` 형식 그대로 나옴(이 머신엔 세이브 파일이 없어 절대값도 그대로 검증됨).
+- `TestVillageForest.tscn` 헤드리스 3회 회귀 md5 동일(67467e92)·error/warn 0. `tools/godot_regress.sh`로 다섯 판 전체 스모크 오류 0·project.godot/.import 잡음 없음 확인.
+- 다음: STORY·REALM ①(같은 101-4 배선부터).
