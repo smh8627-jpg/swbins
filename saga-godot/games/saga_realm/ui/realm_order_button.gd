@@ -28,18 +28,57 @@ func _on_pressed() -> void:
 	for o: Dictionary in RealmOrders.ORDERS:
 		choices.append({
 			"label": "%s %s (🪙%d) — %s" % [o.emoji, o.name, int(o.gold), o.desc],
-			"cb": func() -> void: _run_order(String(o.key), String(o.name), layer_box),
+			"cb": func() -> void: _start_order(String(o.key), String(o.name), layer_box),
 		})
 	layer_box["layer"] = ChoicePrompt.build(self, "명령", choices)
 
 
-func _run_order(key: String, name_: String, layer_box: Dictionary) -> void:
+## **2026-09-17 추가 — PLAN 101-2 REALM ④후보 "설전".** 등용(hire)만
+## 사자(`envoy_officer()`)가 3문 설전을 먼저 치른다 — 나머지 아홉 명령은
+## 그대로 곧장 실행한다.
+func _start_order(key: String, name_: String, layer_box: Dictionary) -> void:
 	(layer_box["layer"] as CanvasLayer).queue_free()
-	var r := RealmSaveState.execute_order(key)
+	if key != "hire":
+		_run_order(key, name_)
+		return
+	var officer_id := RealmSaveState.envoy_officer()
+	if officer_id.is_empty():
+		_run_order(key, name_)
+		return
+	_debate_round(key, name_, RealmSaveState.debate_draw(officer_id), [])
+
+
+func _debate_round(key: String, name_: String, questions: Array, answers: Array) -> void:
+	var box := {}
+	var q: Dictionary = questions[answers.size()]
+	var choice_list: Array = q.choices
+	var choices: Array = []
+	for i in range(choice_list.size()):
+		choices.append({
+			"label": String(choice_list[i]),
+			"cb": func() -> void: _debate_pick(key, name_, questions, answers, i, box),
+		})
+	box["layer"] = ChoicePrompt.build(self, "설전(%d/%d) — %s" % [answers.size() + 1, questions.size(), String(q.q)], choices)
+
+
+func _debate_pick(key: String, name_: String, questions: Array, answers: Array, choice_idx: int, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	var next_answers: Array = answers.duplicate()
+	next_answers.append(choice_idx)
+	if next_answers.size() < questions.size():
+		_debate_round(key, name_, questions, next_answers)
+	else:
+		var res := RealmSaveState.debate_result(questions, next_answers)
+		_run_order(key, name_, float(res.mul), int(res.correct))
+
+
+func _run_order(key: String, name_: String, debate_mul: float = 1.0, debate_correct: int = -1) -> void:
+	var r := RealmSaveState.execute_order(key, debate_mul)
 	if not r.get("ok", false):
 		Toast.show(self, "%s — %s" % [name_, r.get("why", "실패")], TOAST_SEC)
 		return
 
+	var prefix := "🗣️ 설전 %d/3 정답 — " % debate_correct if debate_correct >= 0 else ""
 	var msg: String
 	if key == "search":
 		var found_id: String = r.get("found", "")
@@ -51,10 +90,10 @@ func _run_order(key: String, name_: String, layer_box: Dictionary) -> void:
 	elif key == "hire":
 		var hired_id: String = r.get("hired", "")
 		if hired_id.is_empty():
-			msg = "등용 — 상대가 사양했다."
+			msg = prefix + "등용 — 상대가 사양했다."
 		else:
 			var h2 = Characters.find(hired_id)
-			msg = "🤝 %s 이(가) 합류했다!" % String(h2.name)
+			msg = prefix + "🤝 %s 이(가) 합류했다!" % String(h2.name)
 	else:
 		var amount: int = int(r.get("amount", 0))
 		msg = "%s %s" % [name_, ("+%d" % amount if amount > 0 else "더 올릴 곳이 없다")]

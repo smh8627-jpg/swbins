@@ -7308,3 +7308,13 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_traits.gd/.tscn`, 커밋 전 지움) 8가지: 특성 결정성·계수 범위(0.7~1.5)·야망 결정성·야망 달성(wealth 강제 충족 → 충성+20·wisdom+2)·12달 좌절 페널티(13번째 tick에서 처음 -3)·매수 확률이 `RealmDiplo.bribe_chance()` 수동 계산×특성 배율과 정확히 일치·승진 충성 보상 배율·문답 상금 배율. 전부 통과, 3회 동일.
 - 헤드리스 에디터 임포트 0 에러, `tools/godot_regress.sh` 다섯 판 스모크 오류 0·md5 전부 불변(REALM 9f0efd48)·project.godot/.import 잡음 없음.
 - 다음: REALM ④(일기토 3택·설전, 문답 260 재사용) 또는 FOREST ④(발견 격자, PLAN 105 Q-f 열림)·STORY ③(직업 정체성).
+
+## REALM 일기토·설전 (2026-09-17, 새 세션, "사가고돗 이어해") — PLAN 101-2 REALM ④후보
+- 웹판 saga-realm/PLAN.md §5-3 "일기토·설전 미니게임"을 옮겼다. 3D REALM엔 애초에 "일기토"(1대1 무장 대결) 자체가 없다(`realm_war.gd` 머리말이 "진형·일기토 — 이 첫 전투 슬라이스엔 안 들였다"고 이미 밝혀 둔 자리) — 이번에 새로 만들었다.
+- **일기토** — `RealmWar`에 상수·순수 판정 신설(`DUEL_MOVES`=베기/찌르기/막기, 가위바위보 순환, `duel_round_result`/`duel_round_mul`/`duel_ai_move`). `attack(enemy_id, duel_moves: Array = [])`로 확장 — 플레이어가 3합을 미리 골라 넘기면(UI가 순차로 받는다) 각 합마다 그 자리에서 AI 수를 굴려(`_rng`) 결과를 매기고, 웹판 배율(승1.3·무1.0·패0.8)의 **평균**을 그 싸움 전체의 `atk_might`에 곱한다 — 웹판은 원래 "합마다" hits[]에 얹지만 이 슬라이스 `fight()`는 10합을 뭉쳐 도는 집계식이라 3합을 배율 하나로 뭉친 재해석. `duel_moves`가 비면(자동/AI 공격, 기존 호출부) 배율 1.0 그대로 — 지금까지의 `attack()`과 완전히 동치.
+- **호전 특성(101-2 ③)과의 관계** — 지난 세션에 "일기토가 없어" 위력 배율로 재해석했던 호전 특성은 그대로 남긴다(특성은 상시, 일기토는 그때그때 선택 — 서로 다른 축이라 곱해서 쌓는다).
+- **설전** — `debate_draw(officer_id)`/`debate_result(questions, choice_indices)` 신규(`realm_save_state.gd`). 문답 260(`RealmQuizData.BANK`) 재사용하되 학당 진행(`quiz.learned`/`wrongs`/`streak`/`lore`)은 안 건드린다(웹판 "문답 콘텐츠는 이 판 안에서만 도니 §2-1 위반 아님" 그대로) — 난도는 사자 지력 문턱(70+→고급까지, 40+→중급까지, 그 밑→초급만)으로 좁힌 재해석. 정답 수(0~3) → 배율 0.8/0.95/1.1/1.3(웹판 그대로)을 `envoy_truce(enemy_id, debate_mul)`·`execute_order("hire", debate_mul)`(→`_do_hire`)에 곱한다. `envoy_officer()` 신규(공개) — UI가 설전 난도를 정할 사람을 미리 알아야 해서 `_best_officer_for("wisdom")`를 노출했다.
+- **UI** — `realm_attack_button.gd`(공격 전 "일기토를 걸까" → 3합 순차 ChoicePrompt), `realm_diplo_button.gd`(화친 전 설전 3문), `realm_order_button.gd`(등용만 설전 3문, 나머지 아홉 명령은 그대로). 셋 다 승진·전임 버튼과 같은 다단 ChoicePrompt+layer_box 클로저 패턴.
+- 자가진단(임시 `_diag_duel.gd/.tscn`, 커밋 전 지움) 8가지: 가위바위보 상성 완결성(3×3 전부)·배율 값(1.3/1.0/0.8)·선택 없이 자동 공격 시 duel_rounds 비고 배율 1.0·3수 실제 투입 시 배율이 세 합 평균과 정확히 일치·설전 배율 매핑 4단·`debate_draw`/`debate_result` 왕복(3정답→1.3, 0정답→0.8)·`envoy_truce`의 실측 chance가 `RealmDiplo.truce_chance()` 수동 계산×배율과 일치·`execute_order("hire", mul)`도 마찬가지. 로스터가 1명뿐이라 각 단계 사이 `_done_this_month.clear()`로 "다음 달"을 흉내 내야 했다(실제 매달 흐름에선 자연히 갈린다). 전부 통과, 3회 동일.
+- 헤드리스 에디터 임포트 0 에러, `tools/godot_regress.sh` 다섯 판 스모크 오류 0·md5 전부 불변(REALM 9f0efd48)·project.godot/.import 잡음 없음.
+- 다음: REALM ⑤(이벤트 체인, 관계표+월간 이벤트 카드) 또는 STORY ③(직업 정체성)·FOREST ④(발견 격자, PLAN 105 Q-f 열림 대기).

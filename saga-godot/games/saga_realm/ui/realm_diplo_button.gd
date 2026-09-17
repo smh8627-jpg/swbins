@@ -84,13 +84,50 @@ func _run_tribute(target_id: String, layer_box: Dictionary) -> void:
 	Toast.show(self, "🎁 조공 — 우호 +%d (지금 %d)" % [int(r.up), int(r.relation)], TOAST_SEC)
 
 
+## **2026-09-17 추가 — PLAN 101-2 REALM ④후보 "설전".** 화친을 청하기
+## 전에 사자(`envoy_truce()`가 고를 사람과 같은 지력 으뜸)가 3문 설전을
+## 치른다. 사자가 없으면(로스터가 텅 비면) 설전 없이 바로 `envoy_truce()`
+## 가 그 사정을 그대로 실패로 돌려준다.
 func _run_truce(target_id: String, layer_box: Dictionary) -> void:
 	(layer_box["layer"] as CanvasLayer).queue_free()
-	var r := RealmSaveState.envoy_truce(target_id)
+	var officer_id := RealmSaveState.envoy_officer()
+	if officer_id.is_empty():
+		_truce_result(target_id, 1.0, -1)
+		return
+	_debate_round(target_id, RealmSaveState.debate_draw(officer_id), [])
+
+
+func _debate_round(target_id: String, questions: Array, answers: Array) -> void:
+	var box := {}
+	var q: Dictionary = questions[answers.size()]
+	var choice_list: Array = q.choices
+	var choices: Array = []
+	for i in range(choice_list.size()):
+		choices.append({
+			"label": String(choice_list[i]),
+			"cb": func() -> void: _debate_pick(target_id, questions, answers, i, box),
+		})
+	box["layer"] = ChoicePrompt.build(self, "설전(%d/%d) — %s" % [answers.size() + 1, questions.size(), String(q.q)], choices)
+
+
+func _debate_pick(target_id: String, questions: Array, answers: Array, choice_idx: int, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	var next_answers: Array = answers.duplicate()
+	next_answers.append(choice_idx)
+	if next_answers.size() < questions.size():
+		_debate_round(target_id, questions, next_answers)
+	else:
+		var res := RealmSaveState.debate_result(questions, next_answers)
+		_truce_result(target_id, float(res.mul), int(res.correct))
+
+
+func _truce_result(target_id: String, debate_mul: float, correct: int) -> void:
+	var r := RealmSaveState.envoy_truce(target_id, debate_mul)
 	if not r.get("ok", false):
 		Toast.show(self, "화친 — %s" % r.get("why", "실패"), TOAST_SEC)
 		return
+	var prefix := "🗣️ 설전 %d/3 정답 — " % correct if correct >= 0 else ""
 	if r.accepted:
-		Toast.show(self, "🤝 화친을 맺었다! (우호 %d)" % int(r.relation), TOAST_SEC)
+		Toast.show(self, "%s🤝 화친을 맺었다! (우호 %d)" % [prefix, int(r.relation)], TOAST_SEC)
 	else:
-		Toast.show(self, "📜 화친을 사양했다 (우호 %d)" % int(r.relation), TOAST_SEC)
+		Toast.show(self, "%s📜 화친을 사양했다 (우호 %d)" % [prefix, int(r.relation)], TOAST_SEC)

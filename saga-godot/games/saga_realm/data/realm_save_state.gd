@@ -504,7 +504,9 @@ func promote(id: String) -> Dictionary:
 ##       (개간/상업/기술/치안/축성/징병/훈련/조선) /
 ##       {"ok": true, "found": String}(수색, 빈 문자열이면 "더 찾을 사람 없음") /
 ##       {"ok": true, "hired": String, "chance": float}(등용, 빈 문자열이면 거절)
-func execute_order(key: String) -> Dictionary:
+## `debate_mul`(PLAN 101-2 REALM ④후보 "설전") — key=="hire"에만 쓰인다,
+## 기본값 1.0(안 주면 지금까지와 동치).
+func execute_order(key: String, debate_mul: float = 1.0) -> Dictionary:
 	var o := RealmOrders.by_key(key)
 	if o.is_empty():
 		return {"ok": false, "why": "없는 명령"}
@@ -530,7 +532,7 @@ func execute_order(key: String) -> Dictionary:
 	if key == "search":
 		return _do_search(officer_id)
 	if key == "hire":
-		return _do_hire(officer_id)
+		return _do_hire(officer_id, debate_mul)
 	var result := _do_draft(o, officer_id) if key == "draft" else _do_devel(key, o, officer_id)
 	_grant_order_growth(officer_id)
 	return result
@@ -609,8 +611,8 @@ func _do_search(officer_id: String) -> Dictionary:
 
 ## rtk.js doHire()/tryHire() — 찾아낸 재야 중 가장 먼저 찾은 이를 부른다.
 ## 성공률은 부르는 쪽의 지력과 상대의 rarity(콧대)가 가른다 — 같은 trait면
-## +10%p.
-func _do_hire(officer_id: String) -> Dictionary:
+## +10%p. `debate_mul`(PLAN 101-2 REALM ④후보 "설전") 기본값 1.0.
+func _do_hire(officer_id: String, debate_mul: float = 1.0) -> Dictionary:
 	if found.is_empty():
 		return {"ok": true, "hired": ""}
 
@@ -621,6 +623,7 @@ func _do_hire(officer_id: String) -> Dictionary:
 	var chance := clampf(0.28 + wis / 260.0 - (float(t.rarity) - 2.0) * 0.09, 0.05, 0.9)
 	if String(by.trait) == String(t.trait):
 		chance += 0.10
+	chance = clampf(chance * debate_mul, 0.05, 0.9)
 
 	if _rng.randf() > chance:
 		return {"ok": true, "hired": "", "chance": chance}
@@ -1167,7 +1170,12 @@ func transfer_officer(officer_id: String, to_city_id: String) -> Dictionary:
 ##   조망·명령 대상이 된다. **세력 멸망 판정**(원작 checkResult())만
 ##   여전히 안 옮겼다 — `enemies` Dictionary가 성을 세력별로 묶지 않아,
 ##   107개 성 편입 이후 범위가 커진 채 다음에 볼 자리로 남아 있다.
-func attack(enemy_id: String) -> Dictionary:
+## **2026-09-17 추가 — PLAN 101-2 REALM ④후보 "일기토"(웹판 §5-3).**
+## `duel_moves`(플레이어가 미리 고른 최대 3수, `RealmWar.DUEL_MOVES` 값)를
+## 안 주면(빈 배열) 지금까지와 완전히 동치 — 진단 "AI 일기토 무영향"·
+## "선택 없이 자동으로 돌리면 기존 fight()와 결과 동일"이 이 기본값
+## 하나로 보장된다.
+func attack(enemy_id: String, duel_moves: Array = []) -> Dictionary:
 	var enemy_def := RealmCities.enemy_by_id(enemy_id)
 	if enemy_def.is_empty():
 		return {"ok": false, "why": "없는 목표"}
@@ -1203,12 +1211,29 @@ func attack(enemy_id: String) -> Dictionary:
 	c.troops = 0
 	c.food = int(c.food) - need
 
+	## PLAN 101-2 REALM ④후보 — 일기토 3합(`RealmWar` 상수·판정 참고). 합마다
+	## AI 수를 그 자리에서 굴려(`_rng`, 진단 결정성 유지) 결과·배율을 매기고,
+	## 3합 배율의 평균을 이 싸움 전체의 위력에 곱한다(머리말 재해석 참고).
+	var duel_rounds: Array = []
+	var duel_mul := 1.0
+	if not duel_moves.is_empty():
+		var mul_sum := 0.0
+		for player_move: String in (duel_moves as Array).slice(0, RealmWar.DUEL_ROUNDS):
+			var enemy_move := RealmWar.duel_ai_move(_rng)
+			var res := RealmWar.duel_round_result(String(player_move), enemy_move)
+			var mul := RealmWar.duel_round_mul(res)
+			duel_rounds.append({"player": player_move, "enemy": enemy_move, "result": res})
+			mul_sum += mul
+		duel_mul = mul_sum / float(duel_rounds.size())
+
 	## PLAN 101-2 REALM ③후보 — 호전(웹판 §5-1 "일기토 발생률" 재해석,
-	## `realm_traits.gd` TRAIT_MILITANT_MIGHT_MUL 참고 — 일기토가 없어
-	## 대신 출진 위력을 올린다).
+	## `realm_traits.gd` TRAIT_MILITANT_MIGHT_MUL 참고). 일기토(④, 위)가
+	## 이번 세션에 따로 생겼지만 호전의 위력 배율은 그와 별개로 쌓는다
+	## (하나는 특성, 하나는 그때그때 플레이어 선택 — 서로 다른 축).
 	var atk_might := _effective_stat(officer_id, "might")
 	if RealmTraits.has_trait(officer_id, "militant"):
 		atk_might *= RealmTraits.TRAIT_MILITANT_MIGHT_MUL
+	atk_might *= duel_mul
 	var atk := {
 		"troops": troops, "start": troops, "train": int(c.train), "tech": int(c.tech),
 		"best_command": _effective_stat(officer_id, "command"), "best_might": atk_might,
@@ -1292,6 +1317,7 @@ func attack(enemy_id: String) -> Dictionary:
 		"loss_a": rep.loss_a, "loss_d": rep.loss_d,
 		"wall_from": rep.wall_from, "wall_to": rep.wall_to,
 		"boss_beaten": boss_beaten,
+		"duel_rounds": duel_rounds, "duel_mul": duel_mul,
 	}
 
 
@@ -1339,7 +1365,9 @@ const TRIBUTE_GOLD := 600   # 조공에 실어 보내는 금 — 위와 같은 �
 ## diplo.js envoy(kind==='truce') — 사자(지력 으뜸 무장, 위치 무관 — 로스터
 ## 전체에서 고른다, 원작도 성 소속을 안 따진다)를 보내 정전을 청한다.
 ## 성공하면 `RealmDiplo.TRUCE_MONTHS`간 `attack()`이 막힌다.
-func envoy_truce(enemy_id: String) -> Dictionary:
+## `debate_mul`(PLAN 101-2 REALM ④후보 "설전") 기본값 1.0 — 안 주면
+## 지금까지와 동치.
+func envoy_truce(enemy_id: String, debate_mul: float = 1.0) -> Dictionary:
 	var enemy_def := RealmCities.enemy_by_id(enemy_id)
 	if enemy_def.is_empty():
 		return {"ok": false, "why": "없는 상대"}
@@ -1359,6 +1387,7 @@ func envoy_truce(enemy_id: String) -> Dictionary:
 
 	var dip: Dictionary = diplomacy.get(force_id, {"relation": RealmDiplo.DEFAULT_RELATION, "truce_months": 0})
 	var chance := RealmDiplo.truce_chance(_effective_stat(officer_id, "wisdom"), int(dip.relation), ENVOY_GOLD)
+	chance = clampf(chance * debate_mul, 0.03, 0.95)
 
 	var accepted := _rng.randf() <= chance
 	if accepted:
@@ -1577,6 +1606,56 @@ func _plot_check(kind: String, enemy_id: String) -> Dictionary:
 		"ok": true, "officer_id": officer_id, "force_id": force_id,
 		"e": e, "dip": dip, "chance": chance, "target_id": target_id,
 	}
+
+
+## PLAN 101-2 REALM ④후보(웹판 §5-3 "설전") — 문답 260문항 재사용, 학당
+## 진행(quiz.learned/wrongs/streak/lore)은 안 건드린다("문답 콘텐츠는 이
+## 판 안에서만 도니 §2-1 위반 아님", 웹판 문구 그대로). 화친(envoy_truce)·
+## 등용(execute_order("hire"))에서 쓰는 사자와 같은 사람(`_best_officer_
+## for("wisdom")`)의 지력으로 난도를 정한다.
+const DEBATE_ROUNDS := 3
+const DEBATE_MUL_BY_CORRECT := {0: 0.8, 1: 0.95, 2: 1.1, 3: 1.3}  # 웹판 §5-3 그대로
+
+
+## 화친·등용 둘 다 사자를 `_best_officer_for("wisdom")`로 고른다 — UI가
+## 설전 문제를 뽑기 전에 "누구 지력 기준인가"를 미리 알아야 해서 공개했다.
+func envoy_officer() -> String:
+	return _best_officer_for("wisdom")
+
+
+## 지력에 맞는 난도로 3문 뽑는다 — 웹판 "지력에 맞는 난도" 재해석(문답
+## 등급 1~3에 wisdom 문턱을 매겼다). `_present()`가 보기를 섞어 `order`를
+## 같이 내려준다(quiz_draw()와 같은 모양, `quiz.learned` 등은 안 건드림).
+func debate_draw(officer_id: String) -> Array:
+	var wisdom := _effective_stat(officer_id, "wisdom")
+	var max_lv := 1
+	if wisdom >= 70.0:
+		max_lv = 3
+	elif wisdom >= 40.0:
+		max_lv = 2
+	var pool: Array = []
+	for ref: Dictionary in RealmQuizData.BANK:
+		if RealmQuizData.lv_of(ref) <= max_lv:
+			pool.append(ref)
+	var out: Array = []
+	for i in range(DEBATE_ROUNDS):
+		var ref: Dictionary = pool[_rng.randi_range(0, pool.size() - 1)]
+		out.append(_present(ref))
+	return out
+
+
+## `questions`는 `debate_draw()`가 낸 순서 그대로, `choice_indices`는 각
+## 문제에서 플레이어가 고른 보기 자리(섞인 순서 기준, `quiz_answer()`와
+## 같은 판정: `order[idx] == ref.a`). 정답 수(0~3) → 배율.
+func debate_result(questions: Array, choice_indices: Array) -> Dictionary:
+	var correct := 0
+	for i in range(mini(questions.size(), choice_indices.size())):
+		var q: Dictionary = questions[i]
+		var ref := RealmQuizData.by_id(String(q.id))
+		var order: Array = q.order
+		if int(order[int(choice_indices[i])]) == int(ref.a):
+			correct += 1
+	return {"correct": correct, "mul": float(DEBATE_MUL_BY_CORRECT.get(correct, 1.0))}
 
 
 ## quiz.js draw() — 안 익힌 문제 우선(그 안에서는 쉬운 등급부터), 다

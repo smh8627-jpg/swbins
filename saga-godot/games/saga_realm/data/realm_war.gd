@@ -107,3 +107,41 @@ static func fight(atk: Dictionary, def: Dictionary, wall: Dictionary,
 		"wall_from": wall_from, "wall_to": int(wall.wall),
 		"atk_troops_left": int(atk.troops), "def_troops_left": int(def.troops),
 	}
+
+
+## PLAN 101-2 REALM ④후보(웹판 §5-3 "일기토") — 원작 duel()의 hits[]
+## 판정을 대체하지 않고 배율로 얹는다는 규칙 그대로, 다만 이 슬라이스의
+## `fight()`는 10합을 뭉쳐 도는 집계식이라 "합마다"가 아니라 **싸움 전체에
+## 한 번** 곱한다(3합 결과를 평균 배율 하나로 뭉친 재해석). 실시간 타이밍
+## 입력은 안 넣는다(턴제 판, PLAN 105-Q3와 같은 결).
+const DUEL_ROUNDS := 3
+const DUEL_MOVES: Array[String] = ["slash", "stab", "guard"]  # 베기·찌르기·막기
+const DUEL_MOVE_NAME := {"slash": "베기", "stab": "찌르기", "guard": "막기"}
+const DUEL_WIN_MUL := 1.3   # 웹판 §5-3 "이기면 ×1.3"
+const DUEL_TIE_MUL := 1.0   # "비기면 ×1.0"
+const DUEL_LOSE_MUL := 0.8  # "지면 ×0.8"
+
+## 베기>막기·막기>찌르기·찌르기>베기(가위바위보와 같은 순환).
+static func duel_beats(move: String) -> String:
+	match move:
+		"slash": return "guard"
+		"guard": return "stab"
+		"stab": return "slash"
+	return ""
+
+
+static func duel_round_result(player_move: String, enemy_move: String) -> String:
+	if player_move == enemy_move:
+		return "tie"
+	return "win" if duel_beats(player_move) == enemy_move else "lose"
+
+
+static func duel_round_mul(result: String) -> float:
+	match result:
+		"win": return DUEL_WIN_MUL
+		"lose": return DUEL_LOSE_MUL
+		_: return DUEL_TIE_MUL
+
+
+static func duel_ai_move(rng: RandomNumberGenerator) -> String:
+	return DUEL_MOVES[rng.randi_range(0, DUEL_MOVES.size() - 1)]

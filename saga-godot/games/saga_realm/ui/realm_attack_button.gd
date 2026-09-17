@@ -15,6 +15,7 @@ extends Button
 ## 결, 뒤가 알아서 판정한다).
 
 const RealmCities := preload("res://games/saga_realm/data/realm_cities.gd")
+const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
@@ -49,24 +50,76 @@ func _on_pressed() -> void:
 	layer_box["layer"] = ChoicePrompt.build(self, "공격 — 어디를", choices)
 
 
+## **2026-09-17 추가 — PLAN 101-2 REALM ④후보 "일기토".** 목표를 고른
+## 다음, 치기 전에 3합 일기토를 걸지 물을지 정한다. 걸면 `RealmWar.
+## DUEL_MOVES` 셋(베기·찌르기·막기) 중 하나를 3번 고르는 화면이 이어진다
+## (`realm_promote_button.gd`류 다단 ChoicePrompt와 같은 결).
 func _attack(target_id: String, layer_box: Dictionary) -> void:
 	(layer_box["layer"] as CanvasLayer).queue_free()
-	var r := RealmSaveState.attack(target_id)
+	var ask_box := {}
+	var choices: Array = [
+		{"label": "⚔️ 일기토를 건다(3합 — 이기면 위력↑, 지면 위력↓)",
+			"cb": func() -> void: _duel_round(target_id, [])},
+		{"label": "바로 친다",
+			"cb": func() -> void: _finish_attack(target_id, [], ask_box)},
+	]
+	ask_box["layer"] = ChoicePrompt.build(self, "%s — 일기토를 걸까" % _target_name(target_id), choices)
+
+
+func _duel_round(target_id: String, moves: Array) -> void:
+	var box := {}
+	var n := moves.size() + 1
+	var choices: Array = []
+	for mv: String in RealmWar.DUEL_MOVES:
+		choices.append({
+			"label": String(RealmWar.DUEL_MOVE_NAME.get(mv, mv)),
+			"cb": func() -> void: _duel_pick(target_id, moves, mv, box),
+		})
+	box["layer"] = ChoicePrompt.build(self, "일기토 — %d합째" % n, choices)
+
+
+func _duel_pick(target_id: String, moves: Array, mv: String, layer_box: Dictionary) -> void:
+	(layer_box["layer"] as CanvasLayer).queue_free()
+	var next_moves: Array = moves.duplicate()
+	next_moves.append(mv)
+	if next_moves.size() < RealmWar.DUEL_ROUNDS:
+		_duel_round(target_id, next_moves)
+	else:
+		_finish_attack(target_id, next_moves, {})
+
+
+func _target_name(target_id: String) -> String:
+	return String(RealmCities.enemy_by_id(target_id).get("name", target_id))
+
+
+func _finish_attack(target_id: String, duel_moves: Array, layer_box: Dictionary) -> void:
+	if layer_box.has("layer"):
+		(layer_box["layer"] as CanvasLayer).queue_free()
+	var r := RealmSaveState.attack(target_id, duel_moves)
 	if not r.get("ok", false):
 		Toast.show(self, "공격 — %s" % r.get("why", "실패"), TOAST_SEC)
 		return
 
-	var target_name := String(RealmCities.enemy_by_id(target_id).get("name", target_id))
+	var target_name := _target_name(target_id)
 	var msg: String
 	var toast_sec := TOAST_SEC
+	var duel_rounds: Array = r.get("duel_rounds", [])
+	if not duel_rounds.is_empty():
+		var wins := 0
+		for rd: Dictionary in duel_rounds:
+			if String(rd.result) == "win":
+				wins += 1
+		msg = "⚔️ 일기토 %d합 %d승 (위력 ×%.2f)\n" % [duel_rounds.size(), wins, float(r.get("duel_mul", 1.0))]
+	else:
+		msg = ""
 	if r.won:
-		msg = "🚩 %s 함락! (아군 손실 %d · 적 손실 %d)" % [target_name, int(r.loss_a), int(r.loss_d)]
+		msg += "🚩 %s 함락! (아군 손실 %d · 적 손실 %d)" % [target_name, int(r.loss_a), int(r.loss_d)]
 		var boss_beaten := String(r.get("boss_beaten", ""))
 		if not boss_beaten.is_empty():
 			msg += "\n👑 보스급 수비 무장 %s 을(를) 꺾었다! 금 %d" % [boss_beaten, RealmSaveState.BOSS_BONUS_GOLD]
 			toast_sec = TOAST_SEC + 1.5
 	elif r.routed:
-		msg = "↩️ 물러났다 (아군 손실 %d · 적 손실 %d)" % [int(r.loss_a), int(r.loss_d)]
+		msg += "↩️ 물러났다 (아군 손실 %d · 적 손실 %d)" % [int(r.loss_a), int(r.loss_d)]
 	else:
-		msg = "🌒 날이 저물었다 — 못 떨어뜨렸다 (아군 손실 %d · 적 손실 %d)" % [int(r.loss_a), int(r.loss_d)]
+		msg += "🌒 날이 저물었다 — 못 떨어뜨렸다 (아군 손실 %d · 적 손실 %d)" % [int(r.loss_a), int(r.loss_d)]
 	Toast.show(self, msg, toast_sec)
