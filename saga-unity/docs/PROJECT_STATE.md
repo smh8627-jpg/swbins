@@ -50,8 +50,9 @@
 | 씬 재생성(GO/DUNGEON/FOREST/STORY) | 4개 전부 exit 0, GoalBoard 실제 삽입 확인 |
 | 씬 재생성(REALM `TestCity`, GoalBoard/SessionCard 배선 추가분) | exit 0 |
 | `PlaytestHeadless`(GO) | 3연속 OK |
-| `PlaytestDungeonHeadless` | 3연속 OK(`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` 등 하위 슬라이스는 이번엔 안 돌림 — 다음 재검증 때 포함) |
-| `PlaytestForestHeadless` | 3연속 OK(`Creatures`·`Finish`·`Furniture`·`HouseTransition` 하위 슬라이스는 이번엔 안 돌림) |
+| `PlaytestDungeonHeadless` | 3연속 OK. 하위 슬라이스(`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34`) 도 이번 세션에 1회씩 재검증 — 전부 OK, 회귀 없음 |
+| `PlaytestForestHeadless` | 3연속 OK. 하위 슬라이스(`Creatures`·`Finish`·`Furniture`·`HouseTransition`) 도 이번 세션에 1회씩 재검증 — 전부 OK, 회귀 없음 |
+| `PlaytestOverworldMap`(GO) | 1회 재검증 — OK, 회귀 없음 |
 | `PlaytestStorySlice`(전직·언어 전환·save/load 포함) | 첫 3연속 전부 실패(animator 버그) → 수정 후 3연속 OK |
 | `PlaytestRealmSlice`(적국 24 함락·편입·패널 실제 토글·저장 버튼·save/load, 51장 12~15차 사슬, GoalBoard 구조+월간 트리거 실제 확인 포함) | 3연속 OK |
 | GUI 실제 Play 확인 | GO 라이팅 톤·`TestCharacterRealistic`(Maria idle/run/attack) 만. 나머지 아래(여전히 미확인 — 헤드리스와 별개) |

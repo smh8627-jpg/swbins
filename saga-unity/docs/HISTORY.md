@@ -6481,3 +6481,11 @@ GameObject 추가만, fileID 전면 churn 아님) → `PlaytestRealmSlice` 3연�
 PROJECT_STATE "다음 작업"에서 PLAN 101-2 A·B 항목을 완료로 닫음 — 남은 건 실기 GUI 확인
 (사용자 몫, 다섯 판 목표판/세션카드 포함)과 104 장 Phase 0 나머지(Art candidates 정리)·
 REALM 51장 추가 확장(범위 재검토, 사용자 상의)뿐이다.
+
+## 하위 슬라이스 회귀 재검증 (2026-09-17, 같은 세션 "커밋하고 이어해")
+
+REALM GoalBoard 이식 뒤 PROJECT_STATE 에 "이번엔 안 돌림"으로 남아 있던 DUNGEON/FOREST
+하위 슬라이스(`PlaytestDungeonFloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34`,
+`PlaytestForestCreatures`·`Finish`·`Furniture`·`HouseTransition`)와 `PlaytestOverworldMap`(GO)
+을 각 1회씩 마저 돌렸다 — 전부 exit 0·LogError 0건·`OK`로 종료, 회귀 없음. 씬 재생성 없이
+기존 씬 그대로 실행했고 `git status` 도 깨끗했다(ProjectSettings/Packages 부작용 없음).
