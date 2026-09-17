@@ -94,6 +94,7 @@ namespace Saga.EditorTools
                 CheckHitstop(); // CheckWhirl보다 먼저 — TryAttack의 _cooldownLeft는 TryWhirl의 _whirlCooldownLeft와 별개 필드라 순서가 서로 안 막는다.
                 CheckHitSpark();
                 CheckLootMarker();
+                CheckLevelUpCut();
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
@@ -207,6 +208,37 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log("[PlaytestDungeonHeadless] loot marker OK - 사망마다 LootMarker.Spawn 호출 확인(픽업 경로는 이후 자연 프레임에서 같이 검증됨)");
+        }
+
+        /// <summary>PLAN.md 101-3 G "성장 연출"(2026-09-17 추가) — Timeline
+        /// 대신 `CameraRig.PlayLevelUpCut()`(줌 펀치인)으로 대신했다(클래스
+        /// 주석 참고). `HeroState.AddExp()`가 `LeveledUp`을 동기 호출하고
+        /// `GameBootstrap.OnLeveledUp()`이 그 자리에서 `StartCoroutine()`을
+        /// 부르니 `CheckHitstop`과 같은 이유로 같은 프레임에 `_zoom`이 이미
+        /// 움직여 있다.</summary>
+        private static void CheckLevelUpCut()
+        {
+            var cameraRig = Object.FindFirstObjectByType<CameraRig>();
+            if (cameraRig == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 성장 연출 검증용 CameraRig를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var zoomField = typeof(CameraRig).GetField("_zoom", BindingFlags.NonPublic | BindingFlags.Instance);
+            float zoomBefore = (float)zoomField.GetValue(cameraRig);
+
+            HeroState.AddExp(HeroState.ExpToNext + 1);
+
+            float zoomAfter = (float)zoomField.GetValue(cameraRig);
+            if (Mathf.Approximately(zoomAfter, zoomBefore))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 레벨업 직후 카메라 줌이 안 바뀜 — zoom={zoomAfter}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestDungeonHeadless] level-up cut OK - 레벨업 직후 zoom {zoomBefore:F2}→{zoomAfter:F2}");
         }
 
         private static void CheckWhirl()

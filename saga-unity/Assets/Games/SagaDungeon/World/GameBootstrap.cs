@@ -1,6 +1,7 @@
 using UnityEngine;
 using Saga.Dungeon.Audio;
 using Saga.Dungeon.Data;
+using Saga.Dungeon.Player;
 using Saga.Dungeon.UI;
 
 namespace Saga.Dungeon.World
@@ -23,6 +24,8 @@ namespace Saga.Dungeon.World
         [SerializeField] private AudioClip discoveryClip;
         [SerializeField] private AudioClip bgmClip; // 67장 "사운드" BGM(2026-09-15).
 
+        private CameraRig _cameraRig;
+
         private void Start()
         {
             SfxPlayer.Configure(hitClip, heavyHitClip, enemyDeathClip, levelUpClip, discoveryClip, bgmClip);
@@ -32,6 +35,7 @@ namespace Saga.Dungeon.World
             DungeonSettingsState.ApplyGraphicsQuality();
             QuestState.StageCompleted += OnQuestStageCompleted;
             HeroState.LeveledUp += OnLeveledUp; // "사운드" 슬라이스 — PLAN.md 37장, 레벨업 신호음.
+            _cameraRig = Object.FindFirstObjectByType<CameraRig>(); // 101-3 G "성장 연출"용.
         }
 
         private void OnDestroy()
@@ -43,6 +47,7 @@ namespace Saga.Dungeon.World
         private void OnLeveledUp(int newLevel)
         {
             SfxPlayer.PlayLevelUp();
+            _cameraRig?.PlayLevelUpCut(); // PLAN.md 101-3 G "성장 연출".
         }
 
         private void Update()

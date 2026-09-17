@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -38,6 +39,20 @@ namespace Saga.Dungeon.Player
         private float _shakeTimer;
         private float _shakeMagnitude;
 
+        // PLAN.md 101-3 G "성장 연출"(2026-09-17) — 표는 Timeline+Cinemachine
+        // 컷을 권한다(40장이 이미 Cinemachine을 권장). 이 프로젝트는 Cinemachine
+        // 패키지 자체를 안 받았고(G 흔들림도 Impulse 대신 이 클래스의 수동
+        // `Shake()`로 대신함) 카메라를 전부 수동 코루틴으로 다뤄 왔다 — 새
+        // 패키지·Timeline 애셋을 새로 배우는 대신 같은 결로 "줌을 순간 당겼다
+        // 되돌리는" 카메라 펀치인(zoom punch-in)으로 대신한다. 표의 "1.2s·스킵
+        // 가능"은 그대로 지킨다(합계 1.2초, 아무 키나 누르면 그 자리에서 원래
+        // 줌으로 즉시 복귀 — 조작을 막지 않으니 "스킵"이라기보다 "끼어들면
+        // 양보"에 가깝다).
+        private const float LevelUpZoomInSec = 0.3f;
+        private const float LevelUpHoldSec = 0.6f;
+        private const float LevelUpZoomOutSec = 0.3f;
+        private Coroutine _levelUpRoutine;
+
         private void Awake()
         {
             if (cam == null) cam = GetComponentInChildren<Camera>();
@@ -57,6 +72,53 @@ namespace Saga.Dungeon.Player
         {
             _shakeMagnitude = magnitude;
             _shakeTimer = duration;
+        }
+
+        /// <summary>`GameBootstrap.OnLeveledUp()`이 부른다 — 줌을 MinZoom까지
+        /// 당겼다 잠깐 멎었다 되돌린다. 아무 키나 누르면 그 프레임에 원래
+        /// 줌으로 바로 돌아간다(위 클래스 필드 주석 "스킵" 참고).</summary>
+        public void PlayLevelUpCut()
+        {
+            if (_levelUpRoutine != null) StopCoroutine(_levelUpRoutine);
+            _levelUpRoutine = StartCoroutine(LevelUpCutRoutine());
+        }
+
+        private IEnumerator LevelUpCutRoutine()
+        {
+            float startZoom = _zoom;
+            float t = 0f;
+            while (t < LevelUpZoomInSec)
+            {
+                if (AnyKeyPressed()) { _zoom = startZoom; _levelUpRoutine = null; yield break; }
+                t += Time.deltaTime;
+                _zoom = Mathf.Lerp(startZoom, MinZoom, t / LevelUpZoomInSec);
+                yield return null;
+            }
+            _zoom = MinZoom;
+
+            t = 0f;
+            while (t < LevelUpHoldSec)
+            {
+                if (AnyKeyPressed()) break;
+                t += Time.deltaTime;
+                yield return null;
+            }
+
+            t = 0f;
+            while (t < LevelUpZoomOutSec)
+            {
+                t += Time.deltaTime;
+                _zoom = Mathf.Lerp(MinZoom, startZoom, t / LevelUpZoomOutSec);
+                yield return null;
+            }
+            _zoom = startZoom;
+            _levelUpRoutine = null;
+        }
+
+        private static bool AnyKeyPressed()
+        {
+            var kb = Keyboard.current;
+            return kb != null && kb.anyKey.wasPressedThisFrame;
         }
 
         private void HandlePointer()

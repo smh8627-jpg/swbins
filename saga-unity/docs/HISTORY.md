@@ -6751,3 +6751,50 @@ player Transform과 매 프레임 `Vector3.Distance`만 잰다(PLAN 101-3 표 "�
 `loot marker OK`·`OK - 10 frames, no errors`(픽업 경로 포함 예외 없음).
 101-3 C·F 전 항목 완료, 남은 101-3은 G 셋(장비 소켓·데칼·성장 연출)뿐 —
 셋 다 방향 확인 필요해 다음 세션으로 미룸.
+
+## PLAN 101-3 G 성장 연출 — DUNGEON 카메라 줌 펀치인 구현 (2026-09-17, 같은 세션 "이어해줘")
+
+**맥락**: F 죽음(유품 마커) 완료 뒤 "이어해줘"만 오고 G 셋(장비 소켓·데칼·
+성장 연출) 중 어느 걸 고를지는 지정이 없었다. 직전 F는 물어서 골랐지만,
+이번엔 셋을 다시 뜯어보니 성장 연출이 실제로는 가장 만만하다는 걸
+깨달았다 — 이유는 아래 "재평가" 참고. 사용자와 다시 확인하는 대신
+스스로 판단해 바로 착수(직전 "묻지말고 이어해줘" 기조를 이어받음).
+
+**재평가 — 왜 성장 연출이 제일 쉬웠나**: 처음엔 "이 프로젝트에 Timeline
+전례가 전혀 없다"는 이유로 데칼(신규 URP 렌더 기능)만큼 위험하다고
+봤는데, 실제로 `Packages/manifest.json`에 `com.unity.cinemachine` 자체가
+없고 `Assets/Games` 어디에도 Cinemachine 타입을 쓴 코드가 한 줄도 없다는
+걸 확인했다 — **101-3 표의 "G 흔들림"도 이미 Cinemachine Impulse 대신
+`CameraRig.Shake()`(수동 코루틴)로 구현돼 있었다**. 즉 이 프로젝트는
+Cinemachine·Timeline 둘 다 실제로는 한 번도 안 쓰고 카메라를 전부 손으로
+다뤄 온 전례가 있었다 — 그 전례를 그대로 따르면 새 패키지·새 애셋
+포맷을 배우지 않고도 표의 "레벨업 1.2s, 스킵 가능"을 만족시킬 수 있었다.
+
+**설계**: `HeroState.LeveledUp`(이미 있던 이벤트, `GameBootstrap.OnLeveledUp()`이
+이미 레벨업 SFX만 재생하던 자리)에 카메라 펀치인을 얹었다.
+`CameraRig.PlayLevelUpCut()` — 기존 자유 오빗 줌(`_zoom`)을 0.3초에 걸쳐
+MinZoom까지 당기고, 0.6초 멎었다가, 0.3초에 걸쳐 원래 줌으로 되돌린다
+(합계 1.2초, 표 값 그대로). "스킵 가능"은 진짜 컷신처럼 조작을 막지
+않는다 — 아무 키나 누르면 그 프레임에 바로 원래 줌으로 복귀한다("끼어들면
+양보"에 가까운 뜻으로 재해석, 클래스 주석에 남김).
+
+**헤드리스 검증**: `HeroState.AddExp()`가 `LeveledUp`을 동기 호출하고
+`GameBootstrap.OnLeveledUp()`이 그 자리에서 `StartCoroutine()`을 불러
+`CheckHitstop`과 같은 이유로 같은 프레임에 `_zoom`이 이미 움직여 있다 —
+`PlaytestDungeonHeadless.CheckLevelUpCut()`이 `HeroState.AddExp(ExpToNext+1)`
+직후 `_zoom` 값이 바뀌었는지만 리플렉션으로 본다(레벨은 이 static 상태가
+플레이테스트 세션 내내 유지되니 이후 디버그 오버레이 표시 레벨이 하나
+더 올라간다 — 다른 체크는 정확한 레벨 값을 안 따져서 무해).
+
+**변경 파일**:
+- `Assets/Games/SagaDungeon/Player/CameraRig.cs` — `PlayLevelUpCut()`/
+  `LevelUpCutRoutine()`/`AnyKeyPressed()` 신규.
+- `Assets/Games/SagaDungeon/World/GameBootstrap.cs` — `CameraRig` 참조
+  캐싱(`Start()`), `OnLeveledUp()`에서 `PlayLevelUpCut()` 호출.
+- `Assets/Editor/PlaytestDungeonHeadless.cs` — `CheckLevelUpCut()` 신규.
+- `PLAN.md` 101-3 G 성장 연출 줄·101-2 DUNGEON 대응 파일 목록 갱신.
+
+**결과**: 컴파일 exit 0. `PlaytestDungeonHeadless` 3연속 — 전부
+`level-up cut OK - 레벨업 직후 zoom 5.5x→5.1x`, LogError 0건. 101-3 C·F·G
+성장 연출까지 완료 — 남은 101-3은 G 장비 소켓·G 데칼 둘뿐, 둘 다 방향
+확인이 먼저 필요하다고 판단해 이번 세션엔 안 건드림.
