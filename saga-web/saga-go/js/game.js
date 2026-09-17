@@ -56,6 +56,59 @@
     }
   }
 
+  /* ── 세션 스냅샷 & 마무리 카드 (PLAN §5 ④, 표준 B) ──────
+   * "세션 시작 시 세이브 스냅샷을 메모리에 두고 차이로 계산한다" — 세이브엔
+   * 안 남는다. 셋 중 아무 신호에서나 부른다: 탭이 숨겨질 때(돌아오면 보여준다)
+   * ·5분 무입력·자동 순행을 껐을 때.
+   */
+  var sessionSnap = null;
+  var pendingCard = null;      // 숨겨진 동안 잰 diff — 돌아오면 보여주고 비운다
+  var lastInputAt = 0;
+  var idleFired = false;
+  var IDLE_MS = core.tuned('game.idleMs', 5 * 60 * 1000);
+
+  function snapshotSession() {
+    var p = core.save.player;
+    sessionSnap = { distance: p.distance, gold: p.gold };
+    if (global.DG.daily) { global.DG.daily.resetSession(); }
+    idleFired = false;
+  }
+
+  function sessionDiff() {
+    if (!sessionSnap) { return null; }
+    var p = core.save.player;
+    return {
+      steps: Math.max(0, Math.round(p.distance - sessionSnap.distance)),
+      gold: Math.max(0, p.gold - sessionSnap.gold),
+      meet: global.DG.daily ? global.DG.daily.sessionMeetCount() : 0
+    };
+  }
+
+  /** 아무 일도 없었으면(막 켰다 끄기 등) 카드를 안 띄운다 */
+  function maybeShowSessionCard() {
+    var diff = sessionDiff();
+    if (!diff || (!diff.steps && !diff.gold && !diff.meet)) { snapshotSession(); return; }
+    if (global.DG.event && global.DG.event.live) { return; }   // 다른 조우가 열려 있으면 건너뛴다
+    if (ui.showSessionCard) { ui.showSessionCard(diff); }
+    snapshotSession();
+  }
+
+  function markInput() { lastInputAt = Date.now(); idleFired = false; }
+
+  function initIdleWatch() {
+    lastInputAt = Date.now();
+    ['keydown', 'pointerdown', 'touchstart'].forEach(function (ev) {
+      global.addEventListener(ev, markInput, { passive: true });
+    });
+  }
+
+  function tickIdle() {
+    if (idleFired || document.hidden) { return; }
+    if (Date.now() - lastInputAt < IDLE_MS) { return; }
+    idleFired = true;
+    maybeShowSessionCard();
+  }
+
   /* 주소에 #fps 를 붙이면 프레임 수를 표시한다 (성능 확인용) */
   var fpsBox = null, fpsFrames = 0, fpsAcc = 0, fpsWorst = 0;
   function initFps() {
@@ -101,6 +154,8 @@
 
     bindTopbar();
     initFps();
+    snapshotSession();
+    initIdleWatch();
     // 온라인 모드로 저장돼 있으면 서버가 살아 있는지 조용히 확인한다
     if (global.DG.net.mode() === 'online') { global.DG.net.probe(true); }
     lastFrame = performance.now();
@@ -108,8 +163,17 @@
 
     global.addEventListener('beforeunload', function () { core.persist(); });
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) { core.persist(); }
-      else { core.save.lastSeen = Date.now(); }
+      if (document.hidden) {
+        core.persist();
+        pendingCard = sessionDiff();
+      } else {
+        core.save.lastSeen = Date.now();
+        var d = pendingCard; pendingCard = null;
+        if (d && (d.steps || d.gold || d.meet) && !(global.DG.event && global.DG.event.live)) {
+          if (ui.showSessionCard) { ui.showSessionCard(d); }
+        }
+        snapshotSession();
+      }
     });
     global.addEventListener('blur', function () { core.persist(); }); // 포커스만 잃어도 저장
   }
@@ -142,8 +206,10 @@
       };
       syncAutoBtn();
       autoBtn.addEventListener('click', function () {
-        global.DG.auto.toggle();
+        var nowOn = global.DG.auto.toggle();
         syncAutoBtn();
+        /* 자동 순행을 **껐을 때만** — 켤 때는 막 돌아온 참이라 diff 가 비어 있다 */
+        if (!nowOn) { maybeShowSessionCard(); }
       });
       core.on('changed', syncAutoBtn);
     }
@@ -312,7 +378,7 @@
     }
 
     uiAcc += dt;
-    if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); }
+    if (uiAcc >= 0.3) { uiAcc = 0; ui.tickRefresh(); tickIdle(); }
 
     tickFps(dt);
     global.DG.perf.tick(dt);            // 버거우면 스스로 품질을 낮춘다
@@ -325,7 +391,11 @@
 
   global.DG = global.DG || {};
   /** 자가진단이 걷기 보급을 직접 굴려 볼 수 있게 노출한다 */
-  global.DG.game = { tickSupply: tickSupply, SUPPLY_STEP: SUPPLY_STEP };
+  global.DG.game = {
+    tickSupply: tickSupply, SUPPLY_STEP: SUPPLY_STEP,
+    /** 자가진단이 5분 실제로 안 기다리고도 마무리 카드 경로를 재볼 수 있게 */
+    snapshotSession: snapshotSession, sessionDiff: sessionDiff, maybeShowSessionCard: maybeShowSessionCard
+  };
 
   /** 진입 — **가입(프로필)이 정해진 뒤에** 게임을 켠다.
    *  account.gate() 가 세이브 키를 정하고 start() 를 돌린다. */

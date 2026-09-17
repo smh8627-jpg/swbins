@@ -217,6 +217,9 @@
     }
     if (!legs) { return null; }
 
+    /* 일과(daily.js) "반려와 함께 걷는다" — quest 표엔 없던 kind 라 여기서 직접 한 줄 */
+    if (global.DG.quest) { global.DG.quest.progress('buddy', legs * leg); }
+
     core.log('🐾 ' + pet.name + ' 이(가) 영초를 물어 왔다 — 🌿 +' + herb +
       ' (함께 ' + core.fmt(info(b.id).walked) + 'm)', 'good');
     core.emit('toast', '🐾 ' + pet.name + ' · 🌿 +' + herb);

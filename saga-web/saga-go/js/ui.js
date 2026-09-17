@@ -326,23 +326,59 @@
   /* ── 상단 ─────────────────────────────────────────────── */
 
   /**
-   * 상단에 상시 노출하는 "지금 할 일" 한 줄. 사명 목록의 첫 미완료 항목을 보여
-   * 준다 — 축4(목표가 안 보인다) 대응. 사명 탭을 열지 않아도 화면에 늘 있다.
+   * 목표판 3줄(PLAN §5 ④, SAGA-DESIGN 표준 A) — **지금**(가장 가까운 상호작용) ·
+   * **이번 세션**(오늘의 일과 중 남은 것) · **이번 주**(주간 이정표 다음 단).
+   * 옛 `goalLine()`(사명 한 줄)을 대신한다 — 사명은 탭에서 계속 보인다.
    */
-  function goalLine() {
-    var Q = global.DG.quest;
-    if (!Q) { return ''; }
-    var list = Q.list();
-    if (!list.length) {
-      return '<div class="p-goal" data-act="open-quest">🎯 역참(🏮)에 들르면 사명을 받습니다</div>';
+
+  /** "지금" — 가장 가까운 상호작용. 역참·야생 대상 중 더 가까운 쪽(봉수대·사당·
+   *  비석은 PLAN §5 ①②⑤가 서면 여기 후보에 합류한다). 텍스트만 낸다 —
+   *  마무리 카드의 "다음" 줄도 이 함수를 그대로 쓴다. */
+  function goalNowText() {
+    var w = global.DG.world, cands = [];
+    var n = w.nearest ? w.nearest() : null;
+    if (n) {
+      cands.push({ d: n.dist, txt: (n.spawn.kind === 'hero' ? '🧑 ' : '🐾 ') + esc(n.spawn.ref.name) +
+        (n.inRange ? ' — 만나기' : ' · ' + Math.round(n.dist) + 'm') });
     }
-    var q = null;
-    for (var i = 0; i < list.length; i++) { if (!list[i].done) { q = list[i]; break; } }
-    if (!q) {
-      return '<div class="p-goal ready" data-act="open-quest">🎯 사명이 다 찼습니다 — 거두러 가기</div>';
+    var ns = w.nearestStation ? w.nearestStation() : null;
+    if (ns) {
+      var stn = global.DG.station, stt = stn ? stn.stateOf(ns.station.key) : null;
+      if (!stt || stt.ready) {
+        cands.push({ d: ns.dist, txt: '🏮 ' + esc(ns.station.name) +
+          (ns.inRange ? ' — 들르기' : ' · ' + Math.round(ns.dist) + 'm') });
+      }
     }
-    return '<div class="p-goal" data-act="open-quest">🎯 ' + esc(q.def.name) +
-      ' <b>' + core.fmt(Math.min(q.got, q.need)) + '/' + core.fmt(q.need) + '</b></div>';
+    if (!cands.length) { return '걸으면 새로운 것을 만납니다'; }
+    cands.sort(function (a, b) { return a.d - b.d; });
+    return cands[0].txt;
+  }
+
+  /** "이번 세션" — 오늘의 일과(daily.js) 중 첫 미완료 */
+  function goalSessionText() {
+    var Dl = global.DG.daily;
+    if (!Dl) { return ''; }
+    var t = Dl.firstUndone();
+    if (!t) { return '오늘 일과를 다 했습니다'; }
+    return esc(t.def.name) + ' <b>' + core.fmt(Math.min(t.got, t.need)) + '/' + core.fmt(t.need) + '</b>';
+  }
+
+  /** "이번 주" — 주간 이정표(milestone.js) 다음 단 */
+  function goalWeekText() {
+    var M = global.DG.milestone;
+    if (!M) { return ''; }
+    var rungs = M.rungs();
+    for (var i = 0; i < rungs.length; i++) {
+      if (!rungs[i].got) { return core.fmt(rungs[i].m) + 'm 이정표 <b>' + rungs[i].pct + '%</b>'; }
+    }
+    return '이번 주 이정표를 다 받았습니다';
+  }
+
+  function goalBoard() {
+    var Dl = global.DG.daily, M = global.DG.milestone;
+    return '<div class="p-goal now">🧭 ' + goalNowText() + '</div>' +
+      (Dl ? '<div class="p-goal" data-act="open-quest">🎯 ' + goalSessionText() + '</div>' : '') +
+      (M ? '<div class="p-goal" data-act="open-quest">🚩 ' + goalWeekText() + '</div>' : '');
   }
 
   function renderTop() {
@@ -364,7 +400,7 @@
           ' · 📍 ' + esc(w.regionName(rkey)) +
           ' · <b>' + core.fmt(p.distance) + 'm</b> 이동' +
           (net().online() ? ' · <span class="on-dot">🔮</span>' : '') + '</div>' +
-        goalLine() +
+        goalBoard() +
       '</div>';
 
     els.wallet.innerHTML =
@@ -478,11 +514,35 @@
 
   /* ── 사명 (원작의 필드 리서치) ────────────────────────── */
 
+  /** 오늘의 일과(daily.js) — 목표판 "이번 세션" 줄이 여는 자리 */
+  function dailySection() {
+    var Dl = global.DG.daily;
+    if (!Dl) { return ''; }
+    var s = Dl.state(), list = Dl.list();
+    var html = '<div class="sec"><h4>오늘의 일과 <small class="muted">' +
+      '도장 ' + s.stamps + ' / ' + Dl.STAMPS_FOR_WEEK + '</small></h4>';
+    html += '<div class="card"><div class="bar blue"><i style="width:' +
+      Math.round(s.stamps / Dl.STAMPS_FOR_WEEK * 100) + '%"></i></div>' +
+      '<small class="muted">셋을 마치는 대로 도장을 받습니다. 일곱이면 주간 보상.</small></div>';
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i];
+      html += '<div class="card' + (t.done ? ' done' : '') + '">' +
+        '<div class="stat-row"><span>' + t.def.emoji + ' <b>' + esc(t.def.name) + '</b></span>' +
+          '<b>' + (t.done ? '완료' : core.fmt(t.got) + ' / ' + core.fmt(t.need)) + '</b></div>' +
+        (t.done ? '' : '<div class="bar sm"><i style="width:' + t.pct + '%"></i></div>' +
+          '<small class="muted">' + rewardLine(t.def.reward) + '</small>') +
+      '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function viewQuest() {
     var Q = global.DG.quest;
     var st = Q.state();
     var list = Q.list();
-    var html = '<div class="sec"><h4>인장(印章) <small class="muted">' +
+    var html = dailySection();
+    html += '<div class="sec"><h4>인장(印章) <small class="muted">' +
       st.stamps + ' / ' + Q.STAMPS_FOR_BREAK + '</small></h4><div class="card">' +
       '<div class="bar blue"><i style="width:' +
         Math.round(st.stamps / Q.STAMPS_FOR_BREAK * 100) + '%"></i></div>' +
@@ -1286,6 +1346,38 @@
     levelupTimer = setTimeout(function () { els.levelup.classList.remove('show'); }, 1800);
   }
 
+  /**
+   * 마무리 카드 — PLAN §5 ④, 표준 B(세션 마무리 카드). `visibilitychange hidden`
+   * ·5분 무입력·자동 순행 끔에서 game.js 가 diff(걸음·만남·금)를 재서 부른다.
+   * `#encounter`(조우 모달)를 그대로 빌려 쓴다 — game.js 가 부르기 전에
+   * `event.live`(다른 조우가 열려 있는지)를 먼저 살핀다.
+   */
+  var sessionCardTimer = null;
+  function showSessionCard(diff) {
+    var el = $('encounter');
+    if (!el) { return; }
+    var rate = global.DG.codex ? global.DG.codex.rate() : null;
+    el.innerHTML =
+      '<div class="enc-card">' +
+        '<h3 style="margin:0 0 6px;font-size:17px">🌙 이번 나들이</h3>' +
+        '<div class="stat-row"><span>걸음</span><b>' + core.fmt(diff.steps) + 'm</b></div>' +
+        '<div class="stat-row"><span>만남</span><b>' + core.fmt(diff.meet) + '</b></div>' +
+        '<div class="stat-row"><span>금</span><b>🪙 ' + core.fmt(diff.gold) + '</b></div>' +
+        (rate ? '<div class="stat-row"><span>도감</span><b>' + rate.pct + '%</b></div>' : '') +
+        '<div class="p-goal now" style="margin-top:8px">다음 · 🧭 ' + goalNowText() + '</div>' +
+        '<button class="btn primary wide" id="daily-card-ok">확인</button>' +
+      '</div>';
+    el.classList.add('show');
+    var close = function () {
+      el.classList.remove('show'); el.innerHTML = '';
+      if (sessionCardTimer) { clearTimeout(sessionCardTimer); sessionCardTimer = null; }
+    };
+    var btn = $('daily-card-ok');
+    if (btn) { btn.addEventListener('click', close); }
+    if (sessionCardTimer) { clearTimeout(sessionCardTimer); }
+    sessionCardTimer = setTimeout(close, 5000);
+  }
+
   /** 매 프레임이 아니라 주기적으로만 갱신한다 */
   function tickRefresh() {
     renderTop();
@@ -1414,6 +1506,7 @@
     openSheet: openSheet, closeSheet: closeSheet,
     openDetail: openDetail, closeDetail: closeDetail,
     renderPanel: renderSheet, renderHud: renderTop,
-    syncStick: stickSync
+    syncStick: stickSync,
+    goalNowText: goalNowText, showSessionCard: showSessionCard
   };
 })(window);
