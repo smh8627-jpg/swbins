@@ -6515,3 +6515,36 @@ Mobile.asset`의 GUID가 바뀌었다 — 다섯 씬(`BuildTestVillageScene`·`B
 (`PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·
 `PlaytestRealmSlice`) 각 3연속, 전부 LogError 0건·`OK` 종료. `git status`도 예상된 파일만
 (SagaCore 3개 + Volume 자산 4개 + 씬 5개) 바뀌어 있었다.
+
+## PLAN 101-3 C hitstop — DUNGEON 구현 (2026-09-17, 같은 세션 "이어해 묻지말고")
+
+101-2 표에서 DUNGEON의 3D 첫 이식 순서는 "5.8 → 5.1 → 5.2"이고 5.8="손맛 2차·가시화" —
+101-3 C 표(hitstop·shake·flash·popup·VFX)와 정확히 같은 항목이다. shake(`CameraRig.Shake`)·
+flash(`DungeonEnemy.FlashHit`)·popup(`DamagePopup`)은 이미 "타격감 1차"로 있었고 hitstop만
+빠져 있어 이번에 채웠다(사용자 결정이 필요한 열린 질문이 아니라 PLAN에 이미 적힌 다음
+순서라 "묻지말고" 지시대로 바로 구현).
+
+- `Assets/Games/SagaDungeon/World/DungeonEnemy.cs` — `public Animator Animator => _animator;`
+  추가(외부에서 피해자 쪽 Animator를 봐야 hitstop을 걸 수 있다).
+- `Assets/Games/SagaDungeon/Player/PlayerCombat.cs` — `ApplyHitstop(Animator attacker, Animator
+  defender, float seconds)` 코루틴 신설. `Time.timeScale`은 안 건드리고(101-3 표 그대로 —
+  전역 정지는 모바일 입력 지연으로 느껴진다) 두 Animator의 `.speed`만 0→1로. 평타 70ms,
+  강공격 120ms, 회전베기는 가해자(플레이어)만(피해자가 여럿이라 하나를 못 고름). 공격
+  쿨다운이 hitstop 길이보다 훨씬 길어(0.55s+ vs 0.07~0.12s) 코루틴이 겹칠 일은 없다.
+- `Assets/Editor/PlaytestDungeonHeadless.cs` — `CheckHitstop()` 추가. `StartCoroutine()`이
+  IEnumerator 첫 세그먼트(첫 yield 전)를 같은 프레임에 동기 실행한다는 점을 이용해 공격
+  직후 바로 player Animator.speed==0 인지 확인(복원 타이밍까지는 안 봄 — `FlashHit()`의
+  색 복원과 같은 신뢰 수준). `CheckWhirl()`보다 먼저 부르게 순서를 바꿨다(`_cooldownLeft`와
+  `_whirlCooldownLeft`가 별개 필드라 상호 간섭은 없지만, 먼저 두는 게 더 이르게 실패를
+  잡는다). 더미(`SpawnDummyEnemy`)는 모델이 없어 자기 Animator가 원래 null이라 피해자
+  쪽은 "null 허용" 분기만 확인되고, 가해자(플레이어) 쪽만 실제 값을 검증한다.
+
+컴파일 exit 0(씬 재생성 불필요 — GameObject 구성 안 바뀜) → `PlaytestDungeonHeadless` 3연속
++ 하위 슬라이스(`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34`) 각 1회, 전부
+LogError 0건. hitstop 로그도 3연속 전부 "player Animator.speed=0 확인" — 이 세션 이 씬엔
+Player Animator가 실제로 붙어 있었다(폴백 캡슐이 아니었다).
+
+`Assets/Games/SagaDungeon/Player/PlayerController.cs`의 `Animator` 는 이미 공개 프로퍼티라
+따로 안 건드렸다. GO·STORY 전투 코드에도 같은 hitstop을 추가하는 건 아직(101-3·PLAN.md
+DUNGEON 행 갱신 참고) — 각 판이 자기 순서표(GO 없음, STORY "5-7 손맛 표준")에 닿을 때
+같은 결로 넣으면 된다.

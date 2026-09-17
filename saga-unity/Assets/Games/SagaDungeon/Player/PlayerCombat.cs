@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Saga.Dungeon.Audio;
@@ -56,6 +57,13 @@ namespace Saga.Dungeon.Player
         private const float HeavyShakeSec = 0.15f;
         private const float WhirlShakeMag = 0.09f;
         private const float WhirlShakeSec = 0.12f;
+
+        // "타격감 2차"(PLAN.md 101-3 C hitstop) — Time.timeScale 대신
+        // 가해자·피해자 두 Animator.speed만 잠깐 0으로 둔다(101-3 표 그대로,
+        // 나머지 게임 로직·모바일 입력은 정상 진행 — 전역 정지는 모바일에서
+        // 입력 지연으로 느껴진다). 강공격이 평타보다 더 오래 멎는다.
+        private const float HitstopSec = 0.07f;
+        private const float HeavyHitstopSec = 0.12f;
 
         private float _cooldownLeft;
         private float _heavyCooldownLeft;
@@ -118,6 +126,7 @@ namespace Saga.Dungeon.Player
             _cameraRig?.Shake(HitShakeMag, HitShakeSec);
             SfxPlayer.PlayHit();
             _controller.Animator?.SetTrigger("Attack");
+            StartCoroutine(ApplyHitstop(_controller.Animator, enemy.Animator, HitstopSec));
         }
 
         private void TryHeavyAttack()
@@ -134,6 +143,7 @@ namespace Saga.Dungeon.Player
             // Maria.controller엔 슬래시 클립이 하나뿐이라 강공격도 같은
             // "Attack" 트리거를 쓴다 — 전용 클립은 다음에 받을 몫.
             _controller.Animator?.SetTrigger("Attack");
+            StartCoroutine(ApplyHitstop(_controller.Animator, enemy.Animator, HeavyHitstopSec));
         }
 
         /// <summary>회전베기 — 반경 안 살아있는 적을 전부 때린다(TryAttack의
@@ -159,6 +169,22 @@ namespace Saga.Dungeon.Player
             _cameraRig?.Shake(WhirlShakeMag, WhirlShakeSec);
             SfxPlayer.PlayHit();
             _controller.Animator?.SetTrigger("Attack"); // Maria.controller엔 슬래시 클립이 하나뿐(강공격과 같은 이유).
+            // 회전베기는 한 번에 여럿을 때려 "피해자 쪽" 하나를 못 고른다 —
+            // 가해자(플레이어) 쪽만 멎는다.
+            StartCoroutine(ApplyHitstop(_controller.Animator, null, HitstopSec));
+        }
+
+        /// <summary>가해자·피해자 두 Animator를 `seconds` 동안 멈췄다 되돌린다
+        /// (defender 는 null 허용 — 회전베기처럼 특정 피해자를 못 고를 때).
+        /// 공격 쿨다운이 hitstop 길이보다 훨씬 길어(0.55s+ vs 0.07~0.12s)
+        /// 같은 Animator를 겹쳐 멈출 일은 없다.</summary>
+        private static IEnumerator ApplyHitstop(Animator attacker, Animator defender, float seconds)
+        {
+            if (attacker != null) attacker.speed = 0f;
+            if (defender != null) defender.speed = 0f;
+            yield return new WaitForSeconds(seconds);
+            if (attacker != null) attacker.speed = 1f;
+            if (defender != null) defender.speed = 1f;
         }
 
         /// <summary>이번 슬라이스는 죽음 화면·페널티 없이 바로 회복한다 —

@@ -83,6 +83,12 @@ namespace Saga.Dungeon.World
 
         public static readonly List<DungeonEnemy> Active = new List<DungeonEnemy>();
 
+        /// <summary>"타격감 2차"(PLAN.md 101-3 C hitstop) — PlayerCombat이
+        /// 가해자·피해자 두 Animator를 같이 잠깐 멈추려면 이 적 쪽
+        /// Animator도 밖에서 봐야 한다(null 이면 primitive 폴백이라 원래
+        /// 없다 — 호출부는 `?.` 로 그냥 넘어간다).</summary>
+        public Animator Animator => _animator;
+
         private enum State { Idle, Chase, Dead }
 
         private const float FlashSec = 0.08f; // "타격감 1차" 슬라이스 — enemy flash.

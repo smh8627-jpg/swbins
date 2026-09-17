@@ -91,6 +91,7 @@ namespace Saga.EditorTools
             if (_framesSeen == WhirlCheckFrame && !_whirlChecked)
             {
                 _whirlChecked = true;
+                CheckHitstop(); // CheckWhirl보다 먼저 — TryAttack의 _cooldownLeft는 TryWhirl의 _whirlCooldownLeft와 별개 필드라 순서가 서로 안 막는다.
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
@@ -104,6 +105,47 @@ namespace Saga.EditorTools
                 EditorApplication.update -= CountFrames;
                 EditorApplication.isPlaying = false;
             }
+        }
+
+        /// <summary>"타격감 2차"(PLAN.md 101-3 C hitstop, 2026-09-17 추가) —
+        /// `PlayerCombat.ApplyHitstop()`가 코루틴 첫 세그먼트(첫 yield 전)를
+        /// `StartCoroutine()` 호출과 같은 프레임에 동기 실행한다는 점을
+        /// 이용해, 공격 직후 바로 Animator.speed==0인지 확인한다(복원
+        /// 타이밍까지는 안 본다 — `SessionCard`의 `_closeTimer`처럼 실시간을
+        /// 흉내 내는 필드가 따로 없어, FlashHit()의 색 복원과 같은 결로
+        /// 신뢰한다). 더미(`SpawnDummyEnemy`)는 모델이 없어 자기 Animator가
+        /// 원래 null이라 피해자 쪽은 "null 허용" 분기만 확인되고, 가해자
+        /// (플레이어) 쪽만 실제로 값을 본다.</summary>
+        private static void CheckHitstop()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            var combat = playerGo != null ? playerGo.GetComponent<PlayerCombat>() : null;
+            var controller = playerGo != null ? playerGo.GetComponent<PlayerController>() : null;
+            if (playerGo == null || combat == null || controller == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] hitstop 검증용 player/PlayerCombat/PlayerController를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var dummy = SpawnDummyEnemy(playerGo.transform.position + new Vector3(1.5f, 0f, 0f));
+            var playerAnimator = controller.Animator;
+            combat.TriggerAttack();
+            float? speedRightAfter = playerAnimator != null ? playerAnimator.speed : (float?)null;
+            Object.Destroy(dummy.gameObject);
+
+            if (playerAnimator == null)
+            {
+                Debug.Log("[PlaytestDungeonHeadless] hitstop 검증 스킵 — 이 씬 Player Animator가 null(폴백 캡슐, 정상 케이스)");
+                return;
+            }
+            if (speedRightAfter != 0f)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] hitstop이 공격 직후 player Animator를 안 멈춤 — speed={speedRightAfter}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log("[PlaytestDungeonHeadless] hitstop OK - 공격 직후 player Animator.speed=0 확인");
         }
 
         private static void CheckWhirl()

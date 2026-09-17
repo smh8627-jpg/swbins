@@ -1,14 +1,14 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-17 (REALM 51장 15차 + Localization 잔여 감사(완료 확인) + PLAN 101-2 A·B **다섯 판 전부 이식 완료**(REALM은 "월간 요약 카드"로 변형, 사용자 확정) + **105 Q-U5 DoF 토글 구현 완료**(SessionCard가 뜨는 동안만 PC 한정 Gaussian DoF) + 다섯 게임 전부 컴파일·씬 재생성·헤드리스 3연속 검증 완료, STORY 실제 버그 1건 발견·수정).
+마지막 갱신: 2026-09-17 (REALM 51장 15차 + Localization 잔여 감사(완료 확인) + PLAN 101-2 A·B **다섯 판 전부 이식 완료**(REALM은 "월간 요약 카드"로 변형, 사용자 확정) + **105 Q-U5 DoF 토글 구현 완료**(SessionCard가 뜨는 동안만 PC 한정 Gaussian DoF) + **DUNGEON hitstop 구현 완료**(101-3 C, PLAN 5.8 "손맛 2차") + 다섯 게임 전부 컴파일·씬 재생성·헤드리스 3연속 검증 완료, STORY 실제 버그 1건 발견·수정).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
 | GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v5+) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집·오버월드 지도 | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. 디버그 오버레이·저장 버튼·**목표판/세션카드(101-2 A·B, 2026-09-17 컴파일·헤드리스 3연속 검증 완료)** |
-| DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B, 2026-09-17 검증 완료)** |
+| DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B, 2026-09-17 검증 완료)**. **hitstop(101-3 C, 2026-09-17)** |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 | Environment 완료 | 전부 붙음(데이터 콘텐츠 en 번역도 2026-09-17 감사로 완료 확인). **목표판/세션카드(101-2 A·B, 2026-09-17 검증 완료)** |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사) | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B, 2026-09-17 검증 완료)**. `PlayAttackAnim()` animator?. 버그 2026-09-17 수정 |
 | REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 24, 성 27**(51장 15차, 세 사슬 전부 막다른 끝: 허창→소패→하비→수춘→여남→강하→양양→강릉→장사→시상→건업→회계 / 복양→정도→업→진양→운중→상군→삭방→오원 / 진류→낙양→장안→한중→성도→강주→영안) | 도시 Environment/Building | 전부 붙음. `RealmCommandUi` 직렬화 버그(2026-09-15) 수정·저장 버튼 신설. **목표판/세션카드(101-2 A·B, 2026-09-17 컴파일·헤드리스 3연속 검증 완료 — "월간 요약 카드"로 변형, 트리거는 무입력 대신 다음 달)** |
@@ -19,10 +19,9 @@ DoF(105 Q-U5, 2026-09-17): PC 프로파일에만 `DepthOfField` 오버라이드(
 
 ## 현재 작업
 
-- **"이 PC에 Unity 없다"는 이번 세션 초반 판단이 틀렸다** — 사용자가 반문해서 다시 찾아보니 `Editor/6000.3.24f1`이 실제로 있었다(왜 처음 확인이 비었는지 원인 불명 — 다음 세션은 과신하지 말고 다시 `find`할 것). 덕분에 아래 전부 실제로 검증했다.
-- **다섯 게임 전부 컴파일·씬 재생성·헤드리스 3연속 검증 완료** — 배치 컴파일 exit 0(라이선스 경고만) → GO/DUNGEON/FOREST/STORY 씬 재생성(REALM `TestCity`는 `BuildTestCityScene.cs`가 도시 데이터를 안 써서 제외, grep으로 확인) → `PlaytestHeadless`·`PlaytestDungeonHeadless`·`PlaytestForestHeadless`·`PlaytestStorySlice`·`PlaytestRealmSlice` 각 3연속. **GO/DUNGEON/FOREST/REALM은 첫 시도부터 3/3**, REALM 검증으로 51장 12~15차 사슬(운중→상군→삭방→오원)도 실제 확인됨.
-- **STORY 버그 발견·수정** — `PlaytestStorySlice` 3/3 전부 결정적으로 실패(`UnassignedReferenceException: animator has not been assigned`, GoalBoard 검증은 통과한 뒤라 이번 세션 작업과 무관). 원인: 이 PC엔 Maria 믹사모 애셋이 없어 캡슐 폴백 → `animator`가 "직렬화 때 한 번도 안 채워진" 상태로 남는데, `StoryPlayerController.PlayAttackAnim()`이 `animator?.SetTrigger(...)`(null-조건 연산자)를 써서 Unity의 가짜-null을 못 거르고 `UnassignedReferenceException`을 던졌다(`Update()`의 `if (animator != null)`과 다른 패턴 — 파일 안에서도 일관성이 깨져 있었다). `if (animator != null)`로 고치고 3연속 재검증 — OK. DUNGEON에도 같은 `animator?.` 패턴이 있지만 거긴 이미 3/3 통과라 손 안 댐.
-- 부작용: `ProjectSettings/ProjectVersion.txt`·`EditorSettings.asset`·`Packages/manifest.json`·`packages-lock.json`(이 PC 6000.3.24f1 > 프로젝트 6000.3.23f1로 자동 갱신, 매번 `git checkout --`로 원복) · 씬 4개 fileID 전체 churn(정당 — GoalBoard가 실제로 들어감) · 스크립트 7개(GoalBoard·SessionCard·IGoalSource·Go/Dungeon/Forest/StorySessionTracker) `.cs.meta` 자동 생성.
+- 이 PC엔 Unity 6000.3.24f1 실제로 설치돼 있음(다음 세션은 `find "/c/Program Files/Unity/Hub/Editor" -maxdepth 1` 로 매번 새로 확인 — 과신 금지). 다섯 게임 전부 컴파일·씬 재생성·헤드리스 3연속 검증 완료(경위 HISTORY 2026-09-17).
+- **STORY 버그 발견·수정**(경위 HISTORY 참고) — `StoryPlayerController.PlayAttackAnim()`의 `animator?.SetTrigger(...)`가 `UnassignedReferenceException`을 던지던 것을 `if (animator != null)`로 수정, 3연속 재검증 OK. DUNGEON에도 같은 패턴이 남아 있으나 안 터져서 손 안 댐.
+- **DUNGEON hitstop 구현 완료(101-3 C, PLAN 5.8 "손맛 2차")** — `PlayerCombat.ApplyHitstop()`가 평타(70ms)·강공격(120ms) 명중 시 가해자+피해자 Animator.speed 를 잠깐 0으로(회전베기는 가해자만, 피해자 다수라). `DungeonEnemy.Animator` 공개 프로퍼티 신설. `PlaytestDungeonHeadless.CheckHitstop()`이 공격 직후 실제 player Animator.speed==0 확인(3연속 OK). VFX·데칼·장비 소켓 등 101-3 나머지 C·G 항목은 아직.
 - **105 Q-U5 DoF 토글 구현 완료** — SessionCard가 뜨는 동안만 Depth of Field 를 켠다(102-2 표, PC 한정). `SagaCore.asmdef`에 URP Runtime 참조 추가 → `SessionCard.SetDepthOfField()` 신설(Show=Gaussian, Hide=Off) → `BuildFF16VolumeProfiles.cs` PC 프로파일에 DoF 오버라이드(기본 Off) 추가, Mobile 엔 안 넣음. Volume 자산 재생성으로 GUID 가 바뀌어 **다섯 씬 전부 재생성**(`BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildTestVillageForestScene`·`BuildTestStoryScene`·`BuildTestCityScene`) 후 다섯 판 헤드리스 각 3연속 재검증 — 전부 OK.
 - **PLAN 101-2 A·B REALM 이식 완료(다섯 판 전부 끝)** — REALM 은 캐릭터·이동이 없어 공통 "무입력 5분→세션 카드" 트리거가 안 맞아, 이식 전에 사용자에게 물어 "월간 요약 카드"로 확정(5-7 아이디어 재사용). `RealmSessionTracker`(`Assets/Games/SagaRealm/UI/`)가 `RealmCityState.Changed` 를 구독해 달이 정확히 1개월 넘어갈 때만(세이브 로드로 여러 달 건너뛰는 건 델타로 걸러 제외) `SessionCard` 를 띄운다. "지금"=조망 성+금, "이번 세션"=함락 성 수·금 증감, "이번 주"자리는 의미만 "함락 x/24성"으로 바꿨다(GoalBoard 라벨 자체는 안 건드림). `BuildTestCityScene.BuildGoalBoardUi()`로 배선, `PlaytestRealmSlice`에 구조 체크(`CheckGoalBoardAndSessionCard`, Init 단계)+Phase.Agri 첫 "다음 달" 뒤 실제 트리거 확인 추가 — 컴파일·씬 재생성·3연속 전부 OK.
 - (이전 세션들 완료, 이번 세션에 컴파일 검증까지 끝남) PLAN 104-1 Phase 0 ①②③, PLAN 101-2 GO·DUNGEON·FOREST·STORY 이식, REALM 51장 12~15차 확장(진양→운중→상군→삭방→오원, 세 사슬 전부 막다른 끝), Localization 잔여 감사(다섯 게임 전부 완료 확인, node key-by-key 비교) — 경위는 각각 HISTORY 2026-09-16·2026-09-17 grep.
@@ -51,7 +50,7 @@ DoF(105 Q-U5, 2026-09-17): PC 프로파일에만 `DepthOfField` 오버라이드(
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(라이선스 토큰 경고만, DoF 변경 뒤 재확인) |
 | `BuildFF16VolumeProfiles.Build()`(DoF 오버라이드 추가) → 다섯 씬 재생성 | 전부 exit 0(자산 GUID 가 바뀌어 씬 재생성 필수였음) |
 | `PlaytestHeadless`(GO) | 3연속 OK(DoF 반영 뒤 재검증) |
-| `PlaytestDungeonHeadless` | 3연속 OK(DoF 반영 뒤 재검증). 하위 슬라이스(`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34`) 도 이번 세션에 1회씩 재검증 — 전부 OK, 회귀 없음 |
+| `PlaytestDungeonHeadless`(hitstop 실제 검증 `CheckHitstop` 포함) | 3연속 OK(DoF+hitstop 반영 뒤 재검증). 하위 슬라이스(`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34`) 도 이번 세션에 1회씩 재검증 — 전부 OK, 회귀 없음 |
 | `PlaytestForestHeadless` | 3연속 OK(DoF 반영 뒤 재검증). 하위 슬라이스(`Creatures`·`Finish`·`Furniture`·`HouseTransition`) 도 이번 세션에 1회씩 재검증 — 전부 OK, 회귀 없음 |
 | `PlaytestOverworldMap`(GO) | 1회 재검증 — OK, 회귀 없음 |
 | `PlaytestStorySlice`(전직·언어 전환·save/load 포함) | 첫 3연속 전부 실패(animator 버그) → 수정 후 3연속 OK, DoF 반영 뒤 3연속 재검증도 OK |
@@ -61,7 +60,7 @@ DoF(105 Q-U5, 2026-09-17): PC 프로파일에만 `DepthOfField` 오버라이드(
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
 - GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 동물 Group 발동 장면, 채집, 드로우콜 Before/After(Stats 창), **목표판 3줄 화면 배치(대화창과 안 겹치는지)·세션카드 실제 등장(무입력 5분 체감)**
-- DUNGEON: 카메라 각도·공격 버튼 vs CameraRig 드래그 겹침, 아홉 슬라이스 전부(무리·엘리트/보스·방 종류·회피·필드·강공격·행상·동행·GLB), 마을 넷·층 진행·매복·구출·수수께끼·회전베기, 사실적 Player/Enemy/Boss 톤, 무드 유지 판단, **목표판 3줄 화면 배치(미니맵과 안 겹치는지)·세션카드 실제 등장**
+- DUNGEON: 카메라 각도·공격 버튼 vs CameraRig 드래그 겹침, 아홉 슬라이스 전부(무리·엘리트/보스·방 종류·회피·필드·강공격·행상·동행·GLB), 마을 넷·층 진행·매복·구출·수수께끼·회전베기, 사실적 Player/Enemy/Boss 톤, 무드 유지 판단, **목표판 3줄 화면 배치(미니맵과 안 겹치는지)·세션카드 실제 등장**, **hitstop 체감(70/120ms, 과하지 않은지 — 101-3 C)**
 - FOREST: 벽지/장판, 가구 자유 배치 18칸, 생물·과일나무·좌판, 밀어내기 전투, 팔레트 데움 정도, **목표판 3줄 화면 배치·세션카드 실제 등장**
 - STORY: 두목 크기·타격감(반격 없음이 샌드백처럼 느껴지는지), 사건·관계·선택 흐름, 전직 팝업, 척후병 모델, **목표판 3줄 화면 배치·세션카드 실제 등장**
 - REALM: 월드맵, 적국 사슬 진행 체감, 패널 여덟 실제 조작, 저장 토스트, **목표판 3줄 화면 배치(다섯 버튼 행과 안 겹치는지)·세션카드 실제 등장("다음 달" 클릭 체감, 무입력 아님)**
