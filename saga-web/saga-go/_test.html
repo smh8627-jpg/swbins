@@ -940,6 +940,91 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         ('1 만 깎았다 · 남은 기세 ' + DG.core.fmt(r.left));
     });
 
+    /* ── 75초 토벌 — 부위 파괴·저스트 회피 (PLAN §5 ③, §10-Q2 "토벌만 적용") ── */
+
+    t('토벌 — 75초가 지나면 끝난다', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 1e9, myAtk: 1, myDef: 1e9, timeSec: 75, raid: true });
+      var guard = 0;
+      while (!s.over && guard++ < 2000) { RA.tick(s, 0.05, RA.HEAVY_RANGE() * 10); }
+      return s.over && !s.cleared && s.timeSec === 75 && s.left === 0 &&
+        ('제한 75초 · left=' + s.left);
+    });
+
+    t('토벌 — 부위 셋이 각각 따로 깎인다(기세 25%마다)', function () {
+      var RA = DG.rogueAction;
+      var s = RA.create({ foeHp: 2000, myAtk: 200, myDef: 1e9, raid: true, timeSec: 9999 });
+      var seen = [], guard = 0;
+      while (!s.over && guard++ < 6000) {
+        var ev = RA.tick(s, 0.05, 0);
+        for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'partbreak') { seen.push(ev[i].part); } }
+      }
+      return seen.length === 3 && seen.join(',') === '1,2,3' && s.parts === 3 &&
+        ('부위 파괴 순서 ' + seen.join('→') + '(' + guard + '틱)');
+    });
+
+    t('토벌 — 저스트 회피는 창 안에서만 기가 붙는다(§5 ③)', function () {
+      var RA = DG.rogueAction;
+      function run(press) {
+        var s = RA.create({ foeHp: 1e9, myAtk: 1, myDef: 1e9, raid: true, timeSec: 9999 });
+        var far = RA.HEAVY_RANGE() * 10;
+        var guard = 0, found = null;
+        while (!s.over && guard++ < 4000 && !found) {
+          if (press && s.tell > 0 && s.tell <= RA.JUST_WINDOW()) { RA.dodge(s); }
+          var ev = RA.tick(s, 0.05, far);
+          for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'heavy') { found = ev[i]; } }
+        }
+        return { ev: found, ki: s.ki };
+      }
+      var justR = run(true), walkR = run(false);
+      return justR.ev && justR.ev.dmg === 0 && justR.ev.just === true && justR.ki === 30 &&
+        walkR.ev && walkR.ev.dmg > 0 && walkR.ev.just === false && walkR.ki === 0 &&
+        ('저스트: 무피해·기+' + justR.ki + ' · 창 밖(그냥 걷기): ' + walkR.ev.dmg + '피해·기+' + walkR.ki);
+    });
+
+    t('토벌 — 예고 중 걷기만으로는 절반만 피한다(§10-Q2, 야생·성채는 그대로)', function () {
+      var RA = DG.rogueAction;
+      function firstHeavy(raidOn) {
+        var s = RA.create({ foeHp: 1e9, myAtk: 1, myDef: 1e9, raid: raidOn, timeSec: 9999 });
+        var far = RA.HEAVY_RANGE() * 10;
+        var guard = 0;
+        while (!s.over && guard++ < 4000) {
+          var ev = RA.tick(s, 0.05, far);
+          for (var i = 0; i < ev.length; i++) { if (ev[i].t === 'heavy') { return ev[i]; } }
+        }
+        return null;
+      }
+      var raidHit = firstHeavy(true), wildHit = firstHeavy(false);
+      return raidHit && raidHit.dmg > 0 && raidHit.dodged && !raidHit.just &&
+        wildHit && wildHit.dmg === 0 && wildHit.dodged &&
+        ('토벌(걷기만) ' + raidHit.dmg + '피해 · 야생·성채(걷기만) ' + wildHit.dmg + '피해');
+    });
+
+    t('토벌 — 부위 파괴는 단사를 주고, 셋 다 깨면 등용 확률이 는다', function () {
+      var R = DG.raid, G = DG.growth;
+      var f = DG.world.fortsNear()[0];
+      var fd = findRaid(f);
+      var raid = fd && fd.raid;
+      if (!raid || !G) { return false; }
+      C.save.raid = { pass: 2, day: R.state().day, won: 0, tried: {} };
+      var dustBefore = G.dust();
+      var r = R.fight(raid, { live: true, dealt: raid.hp, folded: [{ n: 1, dmg: raid.hp, left: 0 }], parts: 3 });
+      var dustAfter = G.dust();
+      return r.ok && r.win && (dustAfter - dustBefore) === 12 &&
+        ('단사 +' + (dustAfter - dustBefore) + '(부위 3 × 4)');
+    });
+
+    t('타격음 — 라운드로빈 3자리에 서로 다른 배속을 박아 3종처럼 들린다(§3 표준 C)', function () {
+      var A = DG.audio;
+      if (!A || !A.bank) { return false; }
+      var arr = A.bank('hit');
+      if (!arr) { return true; }   // Audio 미지원 기기 — 조용히 통과(무음 기기 방침과 같다)
+      var rates = arr.map(function (a) { return a.playbackRate; });
+      var uniq = {}; rates.forEach(function (r) { uniq[r] = true; });
+      return arr.length === 3 && Object.keys(uniq).length === 3 &&
+        ('배속 ' + rates.join(', '));
+    });
+
     t('성채는 교전을 잘 치른 쪽이 더 자주 이긴다', function () {
       var f = DG.world.fortsNear()[0];
       /* 이 항목은 판을 많이 굴린다 — 남기는 것이 없게 스스로 되돌린다 */

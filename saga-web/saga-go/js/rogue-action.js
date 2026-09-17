@@ -79,6 +79,15 @@
   function RANGED_CD() { return core.tuned('rogueAction.rangedCd', 3.5); }
   function RANGED_MUL() { return core.tuned('rogueAction.rangedAtkMul', 0.42); }
 
+  /* ── 토벌 전용(§10-Q2 "토벌만 적용") ─────────────────────
+   * PLAN §5 ③. `o.raid` 를 준 `create()` 호출(=`fort.js`의 `startRaidDuel()`)
+   * 에서만 켜진다 — 야생 조우·성채 수비대·적도는 옛 그대로(걸어서 완전히 피함) */
+  function JUST_WINDOW() { return core.tuned('rogueAction.justWindow', 0.25); }     // 저스트 회피 창(초)
+  function WALK_DODGE_MUL() { return core.tuned('rogueAction.walkDodgeMul', 0.5); } // 걷기만으로 피하면 남는 피해 비율
+  function JUST_KI_PCT() { return core.tuned('rogueAction.justKiPct', 30); }        // 저스트 성공 시 기 +30%
+  var PART_N = 3;              // 부위(갑주·병장·기마) 수
+  var PART_STEP = 0.25;        // 부위 하나 = 기세의 25% (3부위 = 누적 75%, 나머지 25%는 맨몸)
+
   /** 적의 큰 공격 사다리 — 예고가 풀리는 순간의 반경·배수가 저마다 다르다.
    *  **순서가 뜻이다**: `foeN`이 `FOE_HEAVY`의 배수가 될 때마다 다음 것으로
    *  넘어간다(무작위가 아니다 — 자가진단이 값으로 재현할 수 있어야 한다).
@@ -165,7 +174,12 @@
       acts: [],
       over: false,
       cleared: false,
-      fled: false
+      fled: false,
+      /* 토벌 전용(§10-Q2) */
+      raidMode: !!o.raid,
+      justDodge: false,    // 저스트 창 안에서 회피 버튼을 눌렀으면 다음 강타 판정에서 한 번 쓰인다
+      parts: 0,
+      partsMax: PART_N
     };
   }
 
@@ -190,6 +204,39 @@
       s.staggerCount++;
       if (ev) { ev.push({ t: 'stagger' }); }
     }
+  }
+
+  /**
+   * 부위 파괴(토벌 전용) — 자리를 따로 나누지 않고 **같은 기세 풀을 25%씩 읽는다**
+   * (갑주→병장→기마 순, PLAN §5 ③). 새로 문턱을 넘을 때마다 `ev`에 `partbreak`를
+   * 쌓고 그 자리에서 스태거를 강제로 채운다 — 부위가 깨지는 순간 자체가 빈틈이다.
+   */
+  function checkParts(s, ev) {
+    if (!s.raidMode) { return; }
+    var lost = 1 - Math.max(0, s.hp) / s.foeHp;
+    var target = Math.min(s.partsMax, Math.floor(lost / PART_STEP + 1e-9));
+    while (s.parts < target) {
+      s.parts++;
+      if (ev) { ev.push({ t: 'partbreak', part: s.parts }); }
+      if (s.staggered <= 0) {
+        s.poise = 0;
+        s.staggered = STAGGER_SEC();
+        s.staggerCount++;
+        if (ev) { ev.push({ t: 'stagger' }); }
+      }
+    }
+  }
+
+  /**
+   * 저스트 회피 버튼(토벌 전용) — 예고가 풀리기 `JUST_WINDOW()`초 전부터 눌러야
+   * 통한다. 창 밖에서 누르면 그냥 무시된다(연타해도 손해가 없다).
+   */
+  function dodge(s) {
+    if (!s || s.over) { return { ok: false, reason: 'over' }; }
+    if (!s.raidMode) { return { ok: false, reason: 'notraid' }; }
+    var just = s.tell > 0 && s.tell <= JUST_WINDOW();
+    if (just) { s.justDodge = true; }
+    return { ok: true, just: just };
   }
 
   /**
@@ -227,6 +274,7 @@
       note(s, finisher ? 'combo' : 'quick', dmg);
       ev.push({ t: finisher ? 'combo' : 'quick', dmg: dmg, combo: s.combo });
       addPoise(s, dmg, ev);
+      checkParts(s, ev);
       finishIfDone(s);
       if (s.over) { return ev; }
     }
@@ -238,11 +286,25 @@
       if (s.tell <= 0) {
         s.tell = 0;
         var mv = moveByKey(s.tellMove);
-        var dodged = d > mv.range;
-        var heavy = dodged ? 0 : Math.round(s.foeAtk * mv.dmgMul);
-        if (!dodged) { s.morale -= heavy; s.taken += heavy; }
-        ev.push({ t: 'heavy', dmg: heavy, dodged: dodged, move: mv.key });
+        var walkedOut = d > mv.range;
+        var full = Math.round(s.foeAtk * mv.dmgMul);
+        var justOk = s.raidMode && s.justDodge;
+        var heavy, dodged;
+        if (justOk) {
+          /* 저스트 회피(토벌 전용, §5 ③) — 완전히 피하고 기가 붙는다 */
+          heavy = 0; dodged = true;
+          s.ki = Math.min(Dl.KI_MAX, s.ki + Dl.KI_MAX * (JUST_KI_PCT() / 100));
+        } else if (walkedOut) {
+          /* §10-Q2: 토벌은 걷기만으론 절반만 샌다, 야생·성채는 옛 그대로 완전히 샌다 */
+          heavy = s.raidMode ? Math.round(full * WALK_DODGE_MUL()) : 0;
+          dodged = true;
+        } else {
+          heavy = full; dodged = false;
+        }
+        if (heavy > 0) { s.morale -= heavy; s.taken += heavy; }
+        ev.push({ t: 'heavy', dmg: heavy, dodged: dodged, just: justOk, move: mv.key });
         s.foeT = Dl.FOE_GAP;
+        s.justDodge = false;
       }
     } else if (s.staggered <= 0) {          // 기절 중엔 새 공격을 걸지 않는다 — 몰아칠 틈
       s.foeT -= dt;
@@ -284,8 +346,10 @@
     s.dealt += big;
     s.ults++;
     note(s, 'ult', big);
+    var ev = [];
+    checkParts(s, ev);
     finishIfDone(s);
-    return { ok: true, kind: 'ult', dmg: big };
+    return { ok: true, kind: 'ult', dmg: big, partsEv: ev };
   }
 
   /** 차지 일격 — 시간이 지나면 저절로 차고(필살과 다르다), 사거리 안이어야 맞는다.
@@ -308,6 +372,7 @@
     note(s, 'charge', dmg);
     var ev = [];
     addPoise(s, dmg * 1.4, ev);           // 차지는 스태거 게이지도 더 크게 채운다
+    checkParts(s, ev);
     finishIfDone(s);
     return { ok: true, kind: 'charge', dmg: dmg, staggerEv: ev };
   }
@@ -327,6 +392,7 @@
     note(s, 'ranged', dmg);
     var ev = [];
     addPoise(s, dmg, ev);
+    checkParts(s, ev);
     finishIfDone(s);
     return { ok: true, kind: 'ranged', dmg: dmg, staggerEv: ev };
   }
@@ -353,7 +419,10 @@
       staggerCount: s.staggerCount || 0,
       comboMax: s.comboMax || 0,
       chargeUsed: s.chargeUsed || 0,
-      rangedUsed: s.rangedUsed || 0
+      rangedUsed: s.rangedUsed || 0,
+      raidMode: !!s.raidMode,
+      parts: s.parts || 0,
+      partsMax: s.partsMax || 0
     };
   }
 
@@ -416,9 +485,13 @@
           '<div class="bar" id="ra-poise-bar"><i id="ra-poise" style="width:0%"></i></div></div>' +
         '<div class="ra-row"><small>차지</small>' +
           '<div class="bar" id="ra-chg-bar"><i id="ra-chg" style="width:0%"></i></div></div>' +
+        (cur.raidMode
+          ? '<div class="ra-row"><small>부위</small><span id="ra-parts" class="ra-parts"></span></div>'
+          : '') +
         '<div class="ra-tell" id="ra-tell">⚠️ 강타! 원 밖으로 물러서라</div>' +
         '<div class="ra-combo" id="ra-combo"></div>' +
         '<div class="ra-pad">' +
+          (cur.raidMode ? '<button class="btn primary" id="ra-dodge" data-ra="dodge">회피</button>' : '') +
           '<button class="btn primary" id="ra-ult" data-ra="ult" disabled>필살</button>' +
           '<button class="btn primary" id="ra-charge" data-ra="charge" disabled>차지 일격</button>' +
           '<button class="btn primary" id="ra-ranged" data-ra="ranged">원거리</button>' +
@@ -437,6 +510,17 @@
     if (poise) { poise.style.width = (cur.staggered > 0 ? 100 : Math.min(100, cur.poise / cur.poiseMax * 100)) + '%'; }
     if (chg) { chg.style.width = Math.min(100, cur.charge / CHARGE_MAX() * 100) + '%'; }
     if (combo) { combo.textContent = cur.combo > 1 ? '🔥 연타 ×' + cur.combo : ''; }
+    if (cur.raidMode) {
+      var pt = $('#ra-parts');
+      if (pt) {
+        var labels = ['🛡️', '🗡️', '🐎'];
+        pt.innerHTML = labels.map(function (e, i) {
+          return '<i' + (i < cur.parts ? ' class="gone"' : '') + '>' + e + '</i>';
+        }).join(' ');
+      }
+      var dg = $('#ra-dodge');
+      if (dg) { dg.classList.toggle('ready', cur.tell > 0 && cur.tell <= JUST_WINDOW()); }
+    }
     if (tell) {
       /* 예고가 없을 땐 같은 자리를 "다가가라" 안내로 쓴다 — 무대가 세우는
          거리(약 8m)가 내 사거리(3m)보다 멀어, 걸어 들어가지 않으면 자동
@@ -473,6 +557,7 @@
         var r = ult(cur);
         if (r.ok) {
           core.emit('duel:fx', { kind: 'ult', dmg: r.dmg, mine: true });
+          if (r.partsEv && r.partsEv.length) { emitEvents(r.partsEv); }
           refresh();
           if (cur.over) { finish(); }
         }
@@ -504,6 +589,18 @@
         }
       });
     }
+    var dg = $('[data-ra="dodge"]');
+    if (dg) {
+      dg.addEventListener('click', function () {
+        if (!cur) { return; }
+        var r = dodge(cur);
+        if (r.ok && r.just) {
+          core.emit('duel:fx', { kind: 'justdodge', mine: true });
+          if (global.DG.ui && global.DG.ui.toast) { global.DG.ui.toast('🌟 간발! 완전히 피했다'); }
+        }
+        refresh();
+      });
+    }
     var f = $('[data-ra="flee"]');
     if (f) {
       f.addEventListener('click', function () {
@@ -522,11 +619,14 @@
       else if (e.t === 'stagger') { core.emit('duel:fx', { kind: 'stagger', mine: true }); }
       else if (e.t === 'hit') { core.emit('duel:fx', { kind: 'hit', dmg: e.dmg, mine: false }); }
       else if (e.t === 'heavy') {
-        core.emit('duel:fx', { kind: 'heavy', dmg: e.dmg, dodged: !!e.dodged, move: e.move, mine: false });
+        core.emit('duel:fx', { kind: 'heavy', dmg: e.dmg, dodged: !!e.dodged, just: !!e.just, move: e.move, mine: false });
       } else if (e.t === 'tell') {
         /* 강타류 예고 — 화면 아래 HUD 문구만으로는 3D 화면을 보던 눈에 안 들어온다.
            상대 위에 뜨는 경고 알갱이로 같이 알린다(2026-09-05, "실시간 교전 손맛" 점검) */
         core.emit('duel:fx', { kind: 'tell', move: e.move, mine: false });
+      } else if (e.t === 'partbreak') {
+        /* 부위 파괴(토벌 전용, §5 ③) — 내가 낸 피해로 벌어지는 일이라 mine:true */
+        core.emit('duel:fx', { kind: 'partbreak', part: e.part, mine: true });
       }
       /* 'miss'·'rout'·'time' 은 카메라·알갱이로 옮길 것이 없다 — HUD 표시뿐 */
     }
@@ -584,10 +684,11 @@
   global.DG.rogueAction = {
     MY_REACH: MY_REACH, FOE_REACH: FOE_REACH, HEAVY_RANGE: HEAVY_RANGE,
     CHARGE_MAX: CHARGE_MAX, COMBO_N: COMBO_N, RANGED_CD: RANGED_CD,
+    JUST_WINDOW: JUST_WINDOW, WALK_DODGE_MUL: WALK_DODGE_MUL, PART_N: PART_N, PART_STEP: PART_STEP,
     foeMoves: foeMoves, moveByKey: moveByKey,
     /* 판정 층 — 화면 없이 굴린다 (자가진단이 쓰는 문) */
     create: create, tick: tick, ult: ult, flee: flee, perf: perf, fold: fold,
-    chargeAttack: chargeAttack, ranged: ranged,
+    chargeAttack: chargeAttack, ranged: ranged, dodge: dodge,
     /* 화면 층 */
     open: open,
     get active() { return !!cur; }

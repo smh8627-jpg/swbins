@@ -133,6 +133,15 @@
     }
     var win = hp <= 0;
 
+    /* 부위 파괴(§5 ③) — 이겼든 졌든 그때까지 깬 부위만큼 재료는 남는다
+       ("파괴 시 즉시" 의 실제 지급은 합이 끝난 여기서 한 번에 몰아 준다,
+       판정 자체는 `rogueAction.js`가 순수 함수로 이미 셌다) */
+    var partsBroken = (opts && opts.live) ? (opts.parts || 0) : 0;
+    if (partsBroken > 0 && global.DG.growth) {
+      var dust = global.DG.growth.addDust(partsBroken * 4);
+      core.log('🔩 부위 파괴 ' + partsBroken + '/3 · 단사 +' + dust, 'good');
+    }
+
     if (!win) {
       core.log('⚔️ ' + raid.hero.name + ' 을(를) 꺾지 못했다 (남은 기세 ' + Math.max(0, hp) + ')', 'bad');
       core.emit('changed');
@@ -140,8 +149,10 @@
       return { ok: true, win: false, rounds: rounds, left: Math.max(0, hp), raid: raid };
     }
 
-    /* 이겼다 — 원작처럼 **잡을 기회**가 주어진다 (등급이 높을수록 어렵다) */
+    /* 이겼다 — 원작처럼 **잡을 기회**가 주어진다 (등급이 높을수록 어렵다).
+       부위 3 전부 파괴(§5 ③) = 등용 확률 ×1.5 — 몸통만 때린 승리보다 후하다 */
     var chance = raid.tier.catch + core.effect('catchPct') / 100;
+    if (partsBroken >= 3) { chance *= 1.5; }
     chance = core.clamp(chance, 0.05, 0.95);
     var caught = Math.random() < chance;
     var feat = raid.tier.feat, gold = raid.tier.gold;

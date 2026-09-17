@@ -526,8 +526,15 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
 #rogue-hud .ra-tell.show { visibility: visible; opacity: 1; animation: fade .12s ease-out; }
 #rogue-hud .ra-tell.stagger { background: rgba(255,224,102,.22); color: #ffe066; }
 #rogue-hud .ra-combo { text-align: center; min-height: 16px; font-weight: 700; color: #ffb454; }
+#rogue-hud .ra-parts { font-size: 15px; letter-spacing: 2px; }
+#rogue-hud .ra-parts i { font-style: normal; transition: opacity .15s, filter .15s; }
+#rogue-hud .ra-parts i.gone { opacity: .28; filter: grayscale(1); }
 #rogue-hud .ra-pad { display: flex; gap: 8px; margin-top: 8px; }
 #rogue-hud .ra-pad .btn { flex: 1; pointer-events: auto; }
+/* 저스트 회피 창 안에서만 살짝 빛나 "지금이다" 를 몸으로 느끼게 한다(§5 ③) */
+#rogue-hud #ra-dodge.ready {
+  box-shadow: 0 0 0 2px #ffe066, 0 0 14px 2px rgba(255,224,102,.7);
+}
 
 
 /* 교전에 실제 3D 상대가 섰을 때(`duel.js` `open()` 이 `duel3d` 를 붙인다) —

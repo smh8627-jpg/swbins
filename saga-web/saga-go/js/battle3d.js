@@ -261,6 +261,15 @@
         } else if (o.kind === 'dodge') {
           w.shake(amp * 0.25); burst(s.x, s.z, 'wind', 1.2);
           anim(w, 'me', 'dodge', 380);
+        } else if (o.kind === 'justdodge') {
+          /* 저스트 회피 성공(토벌 전용, §5 ③) — 버튼을 누른 그 순간 바로 터진다.
+             실제 무피해 처리는 뒤이어 오는 'heavy'(dodged, just) 신호가 맡는다 */
+          w.shake(amp * 0.2); burst(s.x, s.z, 'gold', 1.6); burst(s.x, s.z, 'wind', 1.0);
+          anim(w, 'me', 'dodge', 340);
+        } else if (o.kind === 'partbreak') {
+          /* 부위 파괴(토벌 전용, §5 ③) — 강타보다 굵게, 필살보다는 짧게 */
+          w.hold(80); w.shake(amp * 1.5); burst(s.x, s.z, 'dust', 1.6); burst(s.x, s.z, 'gold', 1.1);
+          anim(w, 'foe', 'hit', 340);
         }
       } else {
         if (o.kind === 'heavy') {
@@ -268,7 +277,10 @@
              더 약하게(대신 반경이 넓다). `move` 가 없으면(옛 신호) 그대로 1배 */
           var moveAmp = o.move === 'charge' ? 1.3 : (o.move === 'sweep' ? 0.85 : 1);
           if (o.dodged) {
-            w.shake(amp * 0.5 * moveAmp); burst(s.x, s.z, 'wind', 1.3);
+            /* 저스트(o.just)는 걷기만으로 피한 것보다 또렷하게 — 금빛을 더 얹는다 */
+            w.shake(amp * (o.just ? 0.35 : 0.5) * moveAmp);
+            burst(s.x, s.z, 'wind', 1.3);
+            if (o.just) { burst(s.x, s.z, 'gold', 1.4); }
             anim(w, 'foe', 'attack', 420); anim(w, 'me', 'dodge', 380);
           } else {
             w.hold(70); w.shake(amp * 2.4 * moveAmp); burst(s.x, s.z, 'dust', moveAmp);
