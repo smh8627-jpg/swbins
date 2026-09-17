@@ -7258,3 +7258,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_heart.gd/.tscn`, 커밋 전 지움) — `gain_affinity()` 순수 함수를 직접 두들겨 하루 상한(3+3+3 시도 → 적용 3+1+0=4)·다음날 리셋(+4 다시 허용)·여러 날에 걸친 0~10 clamp(10 이상 못 감) 셋 다 확인.
 - 헤드리스 회귀 md5 불변(FOREST 67467e92 그대로 — NPC 접촉이 idle 3프레임 스모크에 안 걸려서 당연함), `tools/godot_regress.sh`로 다섯 판 스모크 오류 0·project.godot/.import 잡음 없음.
 - 다음: FOREST ③(마을 번들, museum.gd·forest_home 연동) 또는 STORY ①(손맛 표준)·REALM ②(승리 조건 4).
+
+## STORY 손맛 표준 (2026-09-17, 새 세션, "이어서해") — PLAN 101-2 STORY ①후보
+- DUNGEON에 이어 `saga_core/combat_feel.gd`(101-3, 손맛 5요소: hitstop·카메라 흔들림·피격 플래시·숫자 팝·타격음)를 STORY에도 연결 — 두 번째 판.
+- STORY는 적중 판정이 DUNGEON `_strike()`처럼 한 곳이 아니라 무예마다 함수가 갈려 있다(연참·횡소·기탄 등 `story_player.gd` 18개 스킬 함수). 전부 조사해 보니 다 같은 3줄 패턴이었다: `e.take_damage(float(roll.dmg))` → `if bool(roll.crit): StoryCombat.trigger_hitstop(get_tree())`. 이 3줄을 `e.take_damage(...)` + `CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))` 두 줄로 18곳 전부 한 번에 교체(`Edit replace_all` — 텍스트가 정확히 같은 걸 `cat -A`로 먼저 확인).
+- **손맛이 달라진 지점** — 옛 코드는 치명타일 때만 화면이 0.055초 멈췄다(`trigger_hitstop()`). `CombatFeel.hit()`은 모든 타격에 5요소를 낸다(비치명 hitstop 70ms·치명 120ms, combat_feel.gd 자체 수치) — 실기 확인 때 "너무 자주 멈추는 느낌"인지 볼 자리로 남겼다(실기 확인 대기에 추가).
+- `story_combat.gd`의 옛 `trigger_hitstop()`(`Engine.time_scale` 직접 조작, static var `_hitstop_active`, 상수 `HITSTOP_TIME_SCALE`·`HITSTOP_SECONDS`)은 이제 부르는 곳이 없어 지웠다 — 죽은 코드를 안 남긴다는 이 저장소 원칙 그대로.
+- `combat_feel.gd` 머리말 갱신 — "STORY는 다음 세션 몫"이라던 주석을 "STORY도 이었다"로 고치고, GO·FOREST·REALM이 아직 남았다고 남김(PLAN 101-4 순서 2).
+- 검증 — 헤드리스 에디터 `--editor --quit` 임포트 0 에러(옛 함수·상수를 지운 뒤에도 프로젝트 전체가 컴파일된다는 게 곧 18곳 전부 정확히 옮겨졌다는 증거, 하나라도 안 옮겨졌으면 `trigger_hitstop` 미정의 에러가 났을 것). `tools/godot_regress.sh` 다섯 판 스모크 오류 0·md5 전부 불변(전투가 idle 스모크에 안 걸림)·project.godot/.import 잡음 없음.
+- 다음: STORY ②(이동 손맛, 대시·코요테·버퍼 — story_player.gd) 또는 FOREST ③(마을 번들)·REALM ②(승리 조건 4).

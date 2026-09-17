@@ -8,6 +8,16 @@ extends CharacterBody3D
 ##
 ## 물리 상수는 VERTICAL_SLICE_STORY.md 2절 그대로(비율만 웹과 맞춘 재설계,
 ## 원문 픽셀값을 그대로 옮기지 않는다).
+##
+## PLAN 101-2 STORY ①후보 "손맛 표준"(2026-09-17) — DUNGEON melee_attack.gd
+## 가 이미 연결한 `saga_core/combat_feel.gd`의 5요소(hitstop·카메라 흔들림·
+## 피격 플래시·숫자 팝·타격음)를 STORY에도 잇는다. 적중 판정이 한 곳
+## (`_melee_hit()`)이 아니라 무예마다 함수가 갈려 있지만, 다 같은 3줄
+## (`e.take_damage(...)` → `roll.crit`이면 `trigger_hitstop()`)이라 그
+## 3줄을 `CombatFeel.hit(e, dmg, crit)` 한 줄로 바꿨다 — 이전엔 치명타일
+## 때만 화면이 멈췄지만 이제 모든 타격이 5요소를 낸다(비치명은 짧게,
+## combat_feel.gd 자체 수치). `story_combat.gd`의 옛 `trigger_hitstop()`
+## (Engine.time_scale 직접 조작)은 더 쓰는 곳이 없어 지웠다.
 
 const GRAVITY := 36.0
 const JUMP_SPEED := 15.0
@@ -704,8 +714,7 @@ func _melee_hit(range_m: float, mul: float) -> void:
 			continue  # 등 뒤는 안 맞는다(바로 겹친 자리 정도는 봐준다)
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 func _attack() -> void:
@@ -733,8 +742,7 @@ func _cast_sweep() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), StoryCombat.SWEEP_MUL)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 기탄(bolt) — 관통. 이 슬라이스는 투사체가 없어(적이 안 움직인다) "더
@@ -791,8 +799,7 @@ func _cast_warrior_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 돌진(w_rush) — dash. 이 슬라이스엔 원문처럼 부드러운 이동 애니메이션을
@@ -936,8 +943,7 @@ func _cast_archer_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 쌍참(r_twin) — melee, hits:2. 연사(a_double)와 같은 재해석(정면 판정을
@@ -1014,8 +1020,7 @@ func _cast_rogue_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 관통표(r_dart) — bolt. 기탄과 같은 재해석(사거리 2배).
@@ -1061,8 +1066,7 @@ func _cast_mage_bolt() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 치유(m_heal) — **이 포트에 처음 등장하는 effect:'heal'.** 적 판정이
@@ -1152,8 +1156,7 @@ func _cast_general_roar() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 철벽(g_wall) — buff, 대미지 없음.
@@ -1260,8 +1263,7 @@ func _cast_sniper_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 난무(x_storm) — melee, hits:4.
@@ -1323,8 +1325,7 @@ func _cast_assassin_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 암습표(x_dart) — bolt. 관통표와 같은 재해석(사거리 2배).
@@ -1358,8 +1359,7 @@ func _cast_sage_quake() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 천뢰(p_beam) — 원문 effect:'rain', s_rain과 같은 단순 정면 재해석.
@@ -1445,8 +1445,7 @@ func _cast_marshal_quake() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 철기돌격(n_charge) — dash, dist:330px.
@@ -1580,8 +1579,7 @@ func _cast_flier_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 잔영(v_blur) — melee, hits:6.
@@ -1656,8 +1654,7 @@ func _cast_wraith_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 귀표(v_dart) — bolt. 암습표와 같은 재해석(사거리 2배).
@@ -1702,8 +1699,7 @@ func _cast_immortal_abyss() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 회춘(i_mend) — heal.
@@ -1789,8 +1785,7 @@ func _cast_warlord_tremor() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 벽력돌(o_smite) — dash, dist:410px.
@@ -1924,8 +1919,7 @@ func _cast_falcon_burst() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 팔도(d_carve) — melee, hits:8.
@@ -2000,8 +1994,7 @@ func _cast_reaper_whirl() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 명표(d_dart) — bolt. 귀표와 같은 재해석(사거리 2배).
@@ -2046,8 +2039,7 @@ func _cast_ascendant_collapse() -> void:
 			continue
 		var roll: Dictionary = StoryCombat.roll_damage(_effective_atk(), mul)
 		e.take_damage(float(roll.dmg))
-		if bool(roll.crit):
-			StoryCombat.trigger_hitstop(get_tree())
+		CombatFeel.hit(e, float(roll.dmg), bool(roll.crit))
 
 
 ## 환생(z_rebirth) — heal.
