@@ -7246,3 +7246,15 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_goalboard.gd/.tscn`, 커밋 전 지움) — TestCity.tscn을 실제로 인스턴스화해 GoalBoard 텍스트 확인, `🎯 성 3/107 편입 / ⏱ 골드 +0 · 편입 +0 / 📅 —` 형식 그대로 나옴(194 시나리오 기본 3성).
 - `TestCity.tscn` 헤드리스 3회 회귀 md5 동일(850475e8)·error/warn 0. `tools/godot_regress.sh`로 다섯 판 전체 스모크 오류 0·project.godot/.import 잡음 없음 확인.
 - 다음: 101-4 공통 순서 1번은 다섯 판 다 끝났다 — 이제 FOREST·STORY·REALM 각자 101-2 ②후보부터(REALM은 ①이 이번에 끝났으니 ②승리 조건 4).
+
+## FOREST 관계 하트 (2026-09-17, 새 세션, "이어해") — PLAN 101-2 FOREST ②후보
+- 101-4 공통 순서 1번이 다섯 판 다 끝나서, 이번엔 각 판 자기 101-2 후보로 — FOREST는 ①목표판(지난 세션에 끝)에 이어 ②관계 하트(웹 saga-forest/PLAN.md §5.4).
+- 웹 스펙(하트 0~10, 대화·선물·부탁·세배 상승, 하루 상한 +4, 3/5/7/10♥ 해제, 하트≤2만 이사 후보)에서 3D가 이미 가진 것만 옮겼다 — `affinity` 필드를 그대로 재사용(이름은 안 바꿈, 개념만 0~10으로 좁힘).
+- `forest_save_state.gd`에 `gain_affinity(npc_id, amount) -> int` 신규 — 하루 상한 +4(§5.4 그대로, `affinity_day`/`affinity_gained_today` 새 필드로 추적)와 0~10 clamp를 한 곳에서 맡고, 실제 적용량을 돌려준다(선물 토스트가 상한 걸림을 "(오늘 상한)"으로 보여줄 수 있게). `talked`(대화 하루 1회)·`heart_reward_10`(10♥ 보상 1회 플래그) 신규 — 전부 순수 추가라 SAVE_VERSION 안 올림(기존 관례 그대로).
+- `villager_builder.gd::_talk()` — 진입할 때마다(어느 분기든) 하루 첫 대화면 +1. 부탁 완수 +2(신규), 설날 세배 +2(신규, 기존 골드 보상 위에 얹음). `_give_gift()`는 기존 +3(좋아함)/+1(보통) 그대로, `gain_affinity()`를 거쳐 상한·clamp 적용.
+- 해제 — **5♥**: 부탁을 마친 뒤 인사말이 고유 대사로 바뀐다(VILLAGERS 6명 각자 `heart_line` 신규, 실명 없이 관계가 깊어진 느낌만). **10♥**: 기념 사례금 🪙+2000 1회(웹판은 "인물 기념품 가구"지만 3D엔 인물별 가구 카탈로그가 없어 forest_house.gd 창고 시스템을 새로 안 건드리고 재해석).
+- **보류**(3D에 그 시스템 자체가 없다, 억지로 새로 안 지음): 3♥ 집 방문(주민 집 인테리어 없음) · 7♥ 30초 동행+채집 확률(follow AI 없음) · "하트≤2만 이사 후보"(3D엔 이사 판정 자체가 없다, 101-1 표 F "실패·회복" 구멍이 이 슬라이스가 아직 안 채운 부분).
+- 상단 메뉴 제목에 "(♥N)" 추가(ChoicePrompt 제목 한 줄, 새 UI 없이).
+- 자가진단(임시 `_diag_heart.gd/.tscn`, 커밋 전 지움) — `gain_affinity()` 순수 함수를 직접 두들겨 하루 상한(3+3+3 시도 → 적용 3+1+0=4)·다음날 리셋(+4 다시 허용)·여러 날에 걸친 0~10 clamp(10 이상 못 감) 셋 다 확인.
+- 헤드리스 회귀 md5 불변(FOREST 67467e92 그대로 — NPC 접촉이 idle 3프레임 스모크에 안 걸려서 당연함), `tools/godot_regress.sh`로 다섯 판 스모크 오류 0·project.godot/.import 잡음 없음.
+- 다음: FOREST ③(마을 번들, museum.gd·forest_home 연동) 또는 STORY ①(손맛 표준)·REALM ②(승리 조건 4).
