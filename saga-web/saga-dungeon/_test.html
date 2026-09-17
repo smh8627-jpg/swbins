@@ -355,6 +355,59 @@ window.requestAnimationFrame = function () { return 0; };
       return hurt && ('동행 공격 · 남은 체력 ' + Math.round(e.hp) + '/1000000');
     });
 
+    /* ── 강공격·회피·hitstop·콤보 (SAGA-DESIGN §7.3-3, 1차 손맛은 있는데
+       진단이 없던 것을 메꾼다 — PLAN §7.3 "지금 없음") ────────────── */
+
+    t('강공격 — HEAVY_MUL(2.6×)로 때리고 쿨다운이 걸린다', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      run.room.enemies.length = 0;
+      var e = DN._spawnEnemy(5, false, { spawned: true, x: run.player.x + 10, y: run.player.y });
+      e.hp = 1e6; e.hpMax = 1e6;
+      run.room.enemies.push(e);
+      var ok = DN.heavyAttack();
+      var hurt = e.hp < 1e6;
+      var cd = run.player.heavyCd;
+      DN.leave();
+      return ok && hurt && cd > 0 &&
+        ('강공격 성공 · 남은 체력 ' + Math.round(e.hp) + '/1000000 · 쿨다운 ' + cd.toFixed(2) + 's');
+    });
+
+    t('회피 — 짧게 무적이 걸리고 쿨다운이 걸린다', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      run.player.dirX = 1; run.player.dirY = 0;
+      var ok = DN.doDodge();
+      var invuln = run.player.invuln;
+      var cd = run.player.dodgeCd;
+      DN.leave();
+      return ok && invuln > 0 && cd > 0 && ('무적 ' + invuln.toFixed(2) + 's · 쿨다운 ' + cd.toFixed(2) + 's');
+    });
+
+    t('hitstop — 타격마다 걸린다(치명타면 더 길게, 크리 확률은 진단 씨앗이 정한다)', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      var e = DN._spawnEnemy(5, false, { spawned: true, x: 0, y: 0 });
+      e.hp = 1e6; e.hpMax = 1e6;
+      DN._strike(e, 1, 0);
+      var h = run.hitstopT;
+      DN.leave();
+      return (h === 0.05 || h === 0.09) && ('hitstop ' + h + 's');
+    });
+
+    t('콤보 — 연속 타격마다 1씩 쌓인다', function () {
+      DN.enter({ floor: 5, mode: 'easy' });
+      var run = DN.raw();
+      var e = DN._spawnEnemy(5, false, { spawned: true, x: 0, y: 0 });
+      e.hp = 1e6; e.hpMax = 1e6;
+      DN._strike(e, 1, 0);
+      DN._strike(e, 1, 0);
+      DN._strike(e, 1, 0);
+      var combo = run.combo;
+      DN.leave();
+      return combo === 3 && ('3연타 · combo=' + combo);
+    });
+
     /* ── 장비 ─────────────────────────────────────────── */
 
     t('장비 — 뽑고 담고 장착하면 능력치가 오른다', function () {

@@ -3048,3 +3048,32 @@ saga-web/saga-dungeon` → PRECHECK OK.
 
 **검증** — `bash tools/precheck.sh saga-web/saga-dungeon` → PRECHECK OK. `sw.js` 버전은
 안 건드림(`_test.html`은 SHELL 캐시 목록에 없다).
+
+## 2026-09-17 — SAGA-DESIGN §7.3-3 강공격·회피·hitstop·콤보 자가진단 4항목
+
+PLAN §7.3 Phase 0 항목 3(이제껏 "지금 없음"). 기존 동행(companion) 테스트가 이미
+`DN.enter({floor,mode})` → `DN.raw()`로 `run` 내부를 직접 들여다보고
+`run.room.enemies.length=0` 뒤 `push()`로 적을 심는 요령을 쓰고 있어 그대로 옮겼다.
+
+- **강공격** — `run.room.enemies`를 비우고 사거리 안(거리 10, `reachOf()*1.15`≈39
+  안쪽)에 적 하나를 심어 `DN.heavyAttack()` 호출 → 적 hp 감소 + `run.player.heavyCd`가
+  `HEAVY_CD`(1.3)로 걸리는지.
+- **회피** — `DN.doDodge()` 호출 → `run.player.invuln`(`DODGE_INVULN` 0.22) ·
+  `run.player.dodgeCd`(`DODGE_CD` 0.9)가 둘 다 걸리는지.
+- **hitstop** — `DN._strike(e, 1, 0)`(넉백 0 — `push`가 0이라 `run.player` 좌표 수학을
+  아예 안 탄다) 한 번 → `run.hitstopT`가 0.05(평타) 또는 0.09(크리) 중 하나인지.
+- **콤보** — `_strike()` 세 번 → `run.combo === 3`.
+
+**의도적으로 `DG.dungeon.status()`의 "회차 중" 가지는 안 썼다** — `_test.html`이 그동안
+`run이 없을 때`(회차 밖, `{active:false,...}`)만 이 함수를 불렀지 `run.player.cds` 등을
+읽는 가지는 한 번도 안 타 봤다. 새 진단 4개가 첫 시도가 되는 셈이라, 혹시 그 가지가
+숨은 전제(예: `goRoom()`을 따로 불러야 채워지는 필드)를 깨고 예외를 던지면 `t()`의
+try/catch 는 잡아 주지만 **`DN.leave()`를 못 불러 `run`이 안 닫힌 채로 남고, 뒤따르는
+모든 테스트의 `enter()`가 조용히 실패**할 위험이 있었다 — 그래서 `status()`를 아예
+안 부르고 `DN.raw()`가 내주는 원본 필드만 읽어 그 위험을 피했다.
+
+**검증** — `bash tools/precheck.sh saga-web/saga-dungeon` → PRECHECK OK. `sw.js` 버전
+안 건드림(`_test.html`은 SHELL 캐시 목록 밖). 헤드리스 3회 확인은 이번에도 안 돌렸다
+(사용자 실기 확인 몫) — 대신 `run.player`의 초기 필드(`x`·`heavyCd`·`dodgeCd`·`invuln`
+·`facing`)와 `HEAVY_MUL`·`DODGE_INVULN`·`DODGE_CD` 상수, `strike()`의 `hitstopT`/`combo`
+갱신 줄을 코드로 직접 대조해 값을 확인했다.
