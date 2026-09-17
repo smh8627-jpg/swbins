@@ -15,37 +15,43 @@ namespace Saga.Dungeon.Data
         public string Name => DungeonLocalization.T("item." + Id, _name);
         public readonly float AtkBonus;
 
-        private ItemData(string id, string name, float atk)
+        // PLAN.md 101-3 G "장비 가시화" — 무기 소켓의 이미시브 림 3단(0~2)을
+        // 고르는 값. 별도 희귀도 시스템은 아직 없어(클래스 상단 주석) 기존
+        // AtkBonus 서열을 그대로 3단에 나눠 붙였다.
+        public readonly int Grade;
+
+        private ItemData(string id, string name, float atk, int grade)
         {
             Id = id;
             _name = name;
             AtkBonus = atk;
+            Grade = grade;
         }
 
         public static readonly Dictionary<string, ItemData> Catalog = new Dictionary<string, ItemData>
         {
-            ["wp_start"] = new ItemData("wp_start", "목검", 0f),
+            ["wp_start"] = new ItemData("wp_start", "목검", 0f, 0),
             // 황건적(World/DungeonEnemy.cs) 처치 확정 드랍 — 이번 슬라이스
             // 유일한 보상 아이템이라 확률 룰렛 없이 항상 나온다.
-            ["wp_axe"] = new ItemData("wp_axe", "쇠도끼", 12f),
+            ["wp_axe"] = new ItemData("wp_axe", "쇠도끼", 12f, 0),
             // 두목(황건적 두목, DungeonEnemy isBoss=true) 확정 드랍 —
             // js/dungeon.js의 boss 공격력 배율(2.2배, enemyDmg 공식)을
             // 그대로 재사용해 wp_axe(12) × 2.2 = 26.4 → 26으로 잡았다
             // (웹판 boss 노획은 절차적 희귀도 시스템이라 이번 슬라이스
             // 범위 밖 — VERTICAL_SLICE_DUNGEON.md "제외" 참고, 그래도
             // 임의 수치 대신 기존 공식의 배율을 재사용).
-            ["wp_glaive"] = new ItemData("wp_glaive", "귀두도", 26f),
+            ["wp_glaive"] = new ItemData("wp_glaive", "귀두도", 26f, 2),
             // 행상(World/DungeonMerchant.cs, "방 종류 나머지" 슬라이스) 전용
             // 판매 아이템 — wp_axe(12)와 wp_glaive(26) 사이 중간 티어로
             // 잡았다(웹판 행상의 절차적 재고 굴리기는 범위 밖, GO
             // ShopState.cs와 같은 "고정 물건 하나" 단순화).
-            ["wp_saber"] = new ItemData("wp_saber", "환도", 18f),
+            ["wp_saber"] = new ItemData("wp_saber", "환도", 18f, 1),
             // 층2 두목("오픈월드 확장" 슬라이스, Editor/BuildTestDungeonScene.cs
             // BuildBossFloor2()) 확정 드랍 — js/dungeon.js enemyDmg가
             // floor 1→2에 걸리는 성장률(11→13, 약 1.18배)을 wp_glaive(26)에
             // 그대로 곱해 round(26*13/11)=31로 잡았다(층1 두목 아이템이
             // 이미 floor=1 공식 배율을 재사용한 것과 같은 결).
-            ["wp_greatblade"] = new ItemData("wp_greatblade", "흑철중검", 31f),
+            ["wp_greatblade"] = new ItemData("wp_greatblade", "흑철중검", 31f, 2),
         };
 
         public static ItemData Get(string id) => id != null && Catalog.TryGetValue(id, out var d) ? d : null;

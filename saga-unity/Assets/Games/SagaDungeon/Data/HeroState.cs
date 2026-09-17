@@ -61,6 +61,11 @@ namespace Saga.Dungeon.Data
         public static event Action<int> LeveledUp;
         public static event Action Died;
 
+        /// <summary>PLAN.md 101-3 G "장비 가시화" — `WeaponVisual`이 무기를
+        /// 다시 쥐어야 할 때만 구독(`EquipIfBetter`가 실제로 바뀔 때만
+        /// 부른다 — `LeveledUp`과 같은 결).</summary>
+        public static event Action<string> EquipmentChanged;
+
         private static int ExpForLevel(int level) => RoundInt(ExpBase * Pow(ExpGrowth, level - 1));
 
         public static void AddExp(int amount)
@@ -94,6 +99,7 @@ namespace Saga.Dungeon.Data
             if (item == null) return false;
             if (EquippedWeapon != null && EquippedWeapon.AtkBonus >= item.AtkBonus) return false;
             EquippedWeaponId = itemId;
+            EquipmentChanged?.Invoke(EquippedWeaponId);
             return true;
         }
 

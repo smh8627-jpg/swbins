@@ -6798,3 +6798,65 @@ MinZoom까지 당기고, 0.6초 멎었다가, 0.3초에 걸쳐 원래 줌으로 
 `level-up cut OK - 레벨업 직후 zoom 5.5x→5.1x`, LogError 0건. 101-3 C·F·G
 성장 연출까지 완료 — 남은 101-3은 G 장비 소켓·G 데칼 둘뿐, 둘 다 방향
 확인이 먼저 필요하다고 판단해 이번 세션엔 안 건드림.
+
+## PLAN 101-3 G 장비 가시화 — DUNGEON 무기 소켓 구현 (2026-09-17, 새 세션 "사가유니티 이어해")
+
+101-3 표에서 남은 두 G 항목(장비 가시화 소켓·지형 반응 데칼) 중 어느 쪽부터
+할지 사용자에게 먼저 확인(PROJECT_STATE에 "방향 먼저 확인"이라 못박혀
+있었음) — "G 장비 가시화(소켓)"를 골랐다.
+
+**문제**: 장착 무기(`HeroState.EquippedWeaponId`)는 그동안 순수 스탯
+보너스일 뿐 화면엔 아무 변화가 없었다. 무기 메시 자산은 없다(원작 자산
+금지 원칙, 루트 CLAUDE.md) — 자루+칼날을 코드로 지어야 한다
+(`LootMarker.cs`·`HitSpark.cs`와 같은 결).
+
+**구현**:
+- `CharacterVisual.FindOrCreateWeaponSocket(visualRoot, animator)` 신규
+  — Humanoid Animator(Maria 등 Mixamo 리깅)면 `animator.GetBoneTransform
+  (HumanBodyBones.RightHand)`(본 이름이 뭐든 Avatar 매핑이 같아 리깅된
+  캐릭터 전부에 공용). 리깅 없는 폴백(Kenney GLB·capsule)은 시각 루트
+  밑에 고정 오프셋 자식(`WeaponSocket (fallback)`)을 만들어 대신한다.
+  **`animator.isHuman`으로 먼저 거른다** — Animator 컴포넌트는 있어도
+  Avatar가 없거나 Humanoid가 아니면 `GetBoneTransform`이
+  `InvalidOperationException: Avatar is null`을 던진다. 이 PC의 Maria
+  인스턴스가 실제로 그 상태라(Animator는 있지만 Avatar 미설정) 첫
+  헤드리스 실행에서 그대로 겪었고, `isHuman` 가드로 고쳤다 — 무기 소켓은
+  못 쓰지만 값 자체가 원래도 폴백 없이 깨지던 걸 폴백으로 흡수한 셈.
+- `WeaponVisual`(신규, `Assets/Games/SagaDungeon/Player/WeaponVisual.cs`)
+  — 소켓 밑에 실린더(자루)+큐브(칼날) 프리미티브를 짓고, `HeroState.
+  EquipmentChanged`(신규 이벤트, `EquipIfBetter()`가 실제로 바뀔 때만
+  동기 호출 — `LeveledUp`과 같은 결)를 구독해 등급이 바뀔 때만 칼날
+  길이·이미시브 색을 갱신한다.
+- `ItemData.Grade`(0~2) 신규 필드 — 기존 무기 5종 AtkBonus 서열에 맞춰
+  매겼다: wp_start(0)·wp_axe(12)=0등급, wp_saber(18)=1등급,
+  wp_glaive(26)·wp_greatblade(31)=2등급. 등급별 이미시브 림(표의 "3단"):
+  0=무광, 1=옅은 청록(0.6배 감쇠), 2=강한 금색(1.6배). 칼날 길이도
+  등급마다 0.08m씩 늘어난다.
+- `BuildTestDungeonScene.BuildPlayer()`가 `WeaponVisual`을 Player에 부착.
+
+**헤드리스 검증**: `PlaytestDungeonHeadless.CheckWeaponVisual()` 신규 —
+`WeaponVisual`의 `_blade` 필드(리플렉션)를 잡고 `HeroState.
+EquipIfBetter("wp_glaive")` 호출 전후로 칼날 `localScale.y`가 커지는지
+본다. `EquipmentChanged`가 동기 이벤트라 `CheckLevelUpCut`과 같은 이유로
+호출 직후 바로 값을 볼 수 있다. wp_glaive(2등급, AtkBonus 26)는 이 시점
+까지 다른 검사(CheckHitstop·CheckHitSpark·CheckLootMarker의 더미)가 남긴
+어떤 드랍(기본 wp_axe, 2등급 미만)보다도 확실히 세서 결정적이다.
+
+**변경 파일**:
+- `Assets/Games/SagaDungeon/Data/ItemData.cs` — `Grade` 필드 신규.
+- `Assets/Games/SagaDungeon/Data/HeroState.cs` — `EquipmentChanged` 이벤트
+  신규, `EquipIfBetter()`에서 호출.
+- `Assets/Games/SagaDungeon/World/CharacterVisual.cs` —
+  `FindOrCreateWeaponSocket()` 신규.
+- `Assets/Games/SagaDungeon/Player/WeaponVisual.cs` — 신규 파일.
+- `Assets/Editor/BuildTestDungeonScene.cs` — Player에 `WeaponVisual` 부착.
+- `Assets/Editor/PlaytestDungeonHeadless.cs` — `CheckWeaponVisual()` 신규.
+- `Assets/Scenes/TestDungeon.unity` — 재생성(GameObject 구성 변경).
+- `PLAN.md` 101-3 G 장비 가시화 줄 갱신.
+
+**결과**: 컴파일 exit 0(첫 시도는 Avatar null 예외로 헤드리스 실행 중
+런타임 에러 — `isHuman` 가드로 수정 후 재컴파일). `PlaytestDungeonHeadless`
+3연속 — 전부 `weapon visual OK - 무기 교체 시 칼날 길이 0.55→0.71(등급
+갱신 반영)`, LogError 0건. 101-3은 이제 **G 지형 반응(데칼)** 하나만
+남았다 — 이것도 사용자와 방향(URP Decal Renderer Feature 배선 범위) 먼저
+확인하고 시작할 것.

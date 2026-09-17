@@ -95,6 +95,7 @@ namespace Saga.EditorTools
                 CheckHitSpark();
                 CheckLootMarker();
                 CheckLevelUpCut();
+                CheckWeaponVisual();
                 CheckWhirl();
                 CheckDebugHud();
                 CheckSettingsPanel();
@@ -239,6 +240,44 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log($"[PlaytestDungeonHeadless] level-up cut OK - 레벨업 직후 zoom {zoomBefore:F2}→{zoomAfter:F2}");
+        }
+
+        /// <summary>PLAN.md 101-3 G "장비 가시화"(2026-09-17 추가) —
+        /// `HeroState.EquipmentChanged`가 동기 이벤트라 `CheckLevelUpCut`과
+        /// 같은 이유로 `EquipIfBetter()` 호출 직후 바로 값을 본다.
+        /// wp_glaive(2등급, AtkBonus 26)는 이 시점까지 다른 검사가 남긴
+        /// 어떤 드랍(기본 wp_axe, 2등급 미만)보다도 확실히 세서 결정적으로
+        /// "장착됨 → 칼날이 커짐"을 보장한다.</summary>
+        private static void CheckWeaponVisual()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            var weaponVisual = playerGo != null ? playerGo.GetComponent<WeaponVisual>() : null;
+            if (playerGo == null || weaponVisual == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 무기 가시화 검증용 WeaponVisual을 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var blade = (Transform)GetPrivate(weaponVisual, "_blade");
+            if (blade == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 무기 칼날(blade) 메시가 안 생김");
+                _hadError = true;
+                return;
+            }
+
+            float lengthBefore = blade.localScale.y;
+            HeroState.EquipIfBetter("wp_glaive");
+            float lengthAfter = blade.localScale.y;
+
+            if (lengthAfter <= lengthBefore)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 무기 등급 갱신이 칼날 크기에 안 반영됨 — {lengthBefore:F2}→{lengthAfter:F2}");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestDungeonHeadless] weapon visual OK - 무기 교체 시 칼날 길이 {lengthBefore:F2}→{lengthAfter:F2}(등급 갱신 반영)");
         }
 
         private static void CheckWhirl()

@@ -1,0 +1,99 @@
+using UnityEngine;
+using Saga.Dungeon.Data;
+using Saga.Dungeon.World;
+
+namespace Saga.Dungeon.Player
+{
+    /// <summary>
+    /// PLAN.md 101-3 G "장비 가시화" — 장착 무기가 그동안 순수 스탯
+    /// 보너스일 뿐 화면엔 아무 변화가 없던 것을 실제로 손에 들려 보여준다.
+    /// 무기 메시 자산이 없어(원작 자산 금지 원칙, 루트 CLAUDE.md) 자루+
+    /// 칼날을 코드로 짓는다 — `LootMarker.cs`·`HitSpark.cs`와 같은 결.
+    /// 소켓은 `CharacterVisual.FindOrCreateWeaponSocket()`(Humanoid
+    /// Animator면 오른손 본, 아니면 시각 루트 밑 고정 오프셋 폴백) — 실제
+    /// "쥔" 포즈로 리깅된 게 아니라 손 본 자리에 얹어 두는 근사치다.
+    /// 등급 3단(`ItemData.Grade`)에 따라 칼날 길이·이미시브 림만 갈린다
+    /// (표의 "등급별 이미시브 림 3단") — 0=무광, 1=옅은 청록, 2=강한 금색.
+    /// `HeroState.EquipmentChanged`를 구독해 무기가 바뀔 때만 갱신한다.
+    /// </summary>
+    [RequireComponent(typeof(PlayerController))]
+    public class WeaponVisual : MonoBehaviour
+    {
+        private static readonly Color[] GradeEmission =
+        {
+            Color.black,
+            new Color(0.25f, 0.55f, 0.5f) * 0.6f,
+            new Color(1f, 0.78f, 0.25f) * 1.6f,
+        };
+
+        private const float BladeLength = 0.55f;
+        private const float BladeLengthPerGrade = 0.08f; // 등급이 높을수록 살짝 더 큰 무기.
+        private const float BladeWidth = 0.08f;
+        private const float BladeThickness = 0.02f;
+
+        private static readonly Color HandleColor = new Color(0.3f, 0.22f, 0.15f);
+        private static readonly Color BladeBaseColor = new Color(0.75f, 0.78f, 0.8f);
+
+        private PlayerController _controller;
+        private Transform _blade;
+        private MeshRenderer _bladeRenderer;
+
+        private void Awake()
+        {
+            _controller = GetComponent<PlayerController>();
+        }
+
+        private void Start()
+        {
+            BuildVisual();
+            HeroState.EquipmentChanged += OnEquipmentChanged;
+            Refresh();
+        }
+
+        private void OnDestroy()
+        {
+            HeroState.EquipmentChanged -= OnEquipmentChanged;
+        }
+
+        private void OnEquipmentChanged(string weaponId) => Refresh();
+
+        private void BuildVisual()
+        {
+            if (_controller.Visual == null) return;
+            var socket = CharacterVisual.FindOrCreateWeaponSocket(_controller.Visual.gameObject, _controller.Animator);
+
+            var handle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            handle.name = "WeaponHandle (generated)";
+            Object.Destroy(handle.GetComponent<Collider>());
+            handle.transform.SetParent(socket, false);
+            handle.transform.localScale = new Vector3(0.05f, 0.12f, 0.05f);
+            handle.transform.localPosition = Vector3.zero;
+            var handleMat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "WeaponHandle (generated)" };
+            handleMat.color = HandleColor;
+            handle.GetComponent<MeshRenderer>().sharedMaterial = handleMat;
+
+            var blade = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            blade.name = "WeaponBlade (generated)";
+            Object.Destroy(blade.GetComponent<Collider>());
+            blade.transform.SetParent(socket, false);
+            var bladeMat = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "WeaponBlade (generated)" };
+            bladeMat.color = BladeBaseColor;
+            bladeMat.EnableKeyword("_EMISSION");
+            blade.GetComponent<MeshRenderer>().sharedMaterial = bladeMat;
+
+            _blade = blade.transform;
+            _bladeRenderer = blade.GetComponent<MeshRenderer>();
+        }
+
+        private void Refresh()
+        {
+            if (_blade == null) return;
+
+            int grade = Mathf.Clamp(HeroState.EquippedWeapon?.Grade ?? 0, 0, GradeEmission.Length - 1);
+            float length = BladeLength + grade * BladeLengthPerGrade;
+            _blade.localScale = new Vector3(BladeWidth, length, BladeThickness);
+            _blade.localPosition = new Vector3(0f, length * 0.5f, 0f);
+            _bladeRenderer.sharedMaterial.SetColor("_EmissionColor", GradeEmission[grade]);
+        }
+    }
+}
