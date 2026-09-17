@@ -207,42 +207,58 @@
    * 문구의 `{it}` 은 물건, `{n}` 은 개수, `{have}` 는 지금 가진 수로 바뀐다.
    */
   var FOLK_TYPES = [
+    /* dislike(2026-09-17, PLAN §5.4 하트 취향표) — like 와 성격이 반대되는
+       갈래 하나씩. 서사적으로 중요하진 않다(그냥 "안 맞는 것"이 하나 있어야
+       선물에 -1 이 뜻을 가진다) — GIFT_CATS 안에서 like 와 겹치지 않게만 골랐다 */
     { key: 'hohyeop', name: '호협', icon: '🍶', desc: '활달하고 거침없다',
-      like: 'fish', req: ['fish', 'ore', 'fruit'],
+      like: 'fish', dislike: 'flower', req: ['fish', 'ore', 'fruit'],
       ask: '{it} {n}개만 구해 주시오! 사내끼리 긴말이 필요하겠소? ({have}/{n})',
       done: '과연! 시원시원하구려. 잘 받았소.',
       idle: '오늘은 자네 덕에 배가 부르오. 한잔 하려나?',
       letter: '어제 일은 참으로 시원했소. 사양 말고 받으시오!' },
     { key: 'geuneom', name: '근엄', icon: '📜', desc: '말이 짧고 무겁다',
-      like: 'ore', req: ['ore', 'nut', 'fossil'],
+      like: 'ore', dislike: 'bug', req: ['ore', 'nut', 'fossil'],
       ask: '{it}. {n}개. 부탁하네. ({have}/{n})',
       done: '수고했네.',
       idle: '되었네. 오늘은 그만하게.',
       letter: '받았네. 빈손으로 보내는 법이 아니라 하여 보내네.' },
     { key: 'dajeong', name: '다정', icon: '🌸', desc: '살갑고 말이 곱다',
-      like: 'flower', req: ['flower', 'fruit', 'shell'],
+      like: 'flower', dislike: 'ore', req: ['flower', 'fruit', 'shell'],
       ask: '{it} {n}개만 부탁드려도 될까요? 무리하진 마세요. ({have}/{n})',
       done: '어머, 정말 고마워요. 덕분에 오늘이 환하네요.',
       idle: '오늘은 정말 고마웠어요. 차 한잔 들고 가세요.',
       letter: '어제 일이 자꾸 생각나 붓을 들었어요. 작은 마음이에요.' },
     { key: 'hakgu', name: '학구', icon: '📖', desc: '아는 것을 꼭 말한다',
-      like: 'fossil', req: ['nut', 'ore', 'fossil'],
+      like: 'fossil', dislike: 'fruit', req: ['nut', 'ore', 'fossil'],
       ask: '{it}은(는) 예로부터 귀히 여겼소. {n}개면 족하오. ({have}/{n})',
       done: '옳지. 이만한 물건은 흔치 않소. 기록해 두겠소.',
       idle: '오늘 얻은 것은 사고에 들일 만하오. 생각해 보시오.',
       letter: '어제 것을 살펴보니 과연 물건이었소. 답례를 보내오.' },
     { key: 'iksal', name: '익살', icon: '🎭', desc: '한마디에 농이 섞인다',
-      like: 'bug', req: ['fruit', 'fish', 'bug'],
+      like: 'bug', dislike: 'fossil', req: ['fruit', 'fish', 'bug'],
       ask: '{it} {n}개! 없으면 말고… 아니 있어야 하오. ({have}/{n})',
       done: '어이쿠, 진짜 가져왔네? 농이었는데!',
       idle: '오늘은 자네가 이겼소. 내일 두고 보세.',
       letter: '어제 것 잘 먹었소. 아니 잘 썼소. 아무튼 고맙소.' },
     { key: 'ujik', name: '우직', icon: '🌾', desc: '순박하고 곧다',
-      like: 'fruit', req: ['fruit', 'nut', 'shell'],
+      like: 'fruit', dislike: 'shell', req: ['fruit', 'nut', 'shell'],
       ask: '{it} {n}개… 그거면 됩니다. ({have}/{n})',
       done: '고맙습니다. 잊지 않겠습니다.',
       idle: '오늘은 됐습니다. 정말 고맙습니다.',
       letter: '어제 일 잊지 않았습니다. 변변찮지만 보냅니다.' }
+  ];
+
+  /**
+   * 하트 해제 문턱(PLAN §5.4) — 이번엔 **이름표만** 둔다(집 방문·고유 대화·
+   * 동행·기념품 넷 다 실제 기능은 아직 — HANDOFF 참고). 화면에 "다음: n♥ 에
+   * …" 를 보여줄 자리가 있어야 하트가 왜 있는지 알 수 있어서, 문턱과 이름만
+   * 먼저 채운다.
+   */
+  var HEART_UNLOCKS = [
+    { at: 3,  name: '집 방문 허용' },
+    { at: 5,  name: '고유 대화' },
+    { at: 7,  name: '동행' },
+    { at: 10, name: '기념품' }
   ];
 
   /* ── 마을 ────────────────────────────────────────────────
@@ -1002,7 +1018,7 @@
     FURNITURE: FURNITURE, FURN_SETS: FURN_SETS, furn: furn,
     WALLS: WALLS, FLOORS: FLOORS, wall: wall, floor: floor,
     MUSEUM_GRADES: MUSEUM_GRADES, MUSEUM_CATS: MUSEUM_CATS, BUNDLES: BUNDLES,
-    FOLK_TYPES: FOLK_TYPES,
+    FOLK_TYPES: FOLK_TYPES, HEART_UNLOCKS: HEART_UNLOCKS,
     WEAR_PARTS: WEAR_PARTS, WEAR_COATS: WEAR_COATS, WEAR_HEADS: WEAR_HEADS,
     WEAR_DYES: WEAR_DYES, WEAR_CAPES: WEAR_CAPES,
     wearPart: wearPart, wearItem: wearItem,

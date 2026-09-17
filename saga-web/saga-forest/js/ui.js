@@ -1046,12 +1046,14 @@
       var have = V.bagCount(req.want);
       var lv = global.DG.mail.leavingOf(res.id);
       var ty2 = global.DG.folk.typeOf(res.id);
+      var heart = V.heartOf(res.id), nextU = V.heartNext(res.id);
       html += '<button class="card partyrow" data-act="detail" data-kind="hero" data-id="' + res.id + '">' +
         '<span class="pr-ico">' + pt('hero', res.ref, 44) + '</span>' +
         '<span class="pr-meta"><b>' + esc(res.ref.name) + ' <small class="muted">' +
           ty2.icon + ' ' + esc(ty2.name) + '</small></b>' +
           '<small class="muted">' + (req.done ? '✔️ 오늘 부탁 완료'
             : it.emoji + ' ' + it.name + ' ' + have + '/' + req.n) +
+          ' · 💗 ' + heart + '/10' + (nextU ? ' (다음 ' + nextU.at + '♥ — ' + esc(nextU.name) + ')' : ' (다 열었다)') +
           ' · 친밀도 ' + V.friendOf(res.id) +
           ' · 🎁 ' + esc(CAT_NAME[V.giftLike(res.id)] || V.giftLike(res.id)) + ' 를 반긴다' +
           (lv ? ' · 💭 떠날 뜻 (' + lv.left + '일)' : '') + '</small></span>' +

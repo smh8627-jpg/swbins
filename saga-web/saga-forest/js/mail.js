@@ -137,6 +137,7 @@
     l.read = true;
     l.replied = true;
     s.friend[l.from] = (s.friend[l.from] || 0) + 1;
+    if (V().bumpHeart) { V().bumpHeart(l.from, 1); }   // PLAN §5.4 "편지 답장 +1"
     var h = global.DG.data.find(l.from);
     core.gainFeat(2, '답장');
     core.log('✉️ ' + (h ? h.name : l.from) + ' 에게 답장을 썼다 — 친밀도 ' + s.friend[l.from], 'good');

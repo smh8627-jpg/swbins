@@ -45,7 +45,9 @@
         seed: Math.floor(Math.random() * 1e9),
         bag: {},                 // { itemKey: n }
         used: {},                // { propId: 마지막으로 딴 날짜(일 단위) }
-        friend: {},              // { heroId: 친밀도 }
+        friend: {},              // { heroId: 친밀도 } — 옛 값, 세배 삯·§5.2 카드가 여전히 쓴다
+        hearts: {},              // { heroId: { h: 0~10, lastTalk, gainDay, gained } } — PLAN §5.4
+                                 // lastTalk·gainDay 는 다른 곳의 gifted·wrote 와 같은 결로 s.day(정수) 를 넣는다
         planted: [],             // 심어 둔 것 { x, y, kind, day, from }
         residents: [],           // 이 마을에 사는 인물 id
         requests: {},            // { heroId: {want, n, done} }
@@ -66,6 +68,7 @@
         sold: 0, gathered: 0, helped: 0
       };
     }
+    if (!s.village.hearts) { s.village.hearts = {}; }
     if (!s.village.tools) { s.village.tools = {}; }
     if (!s.village.caught) { s.village.caught = {}; }
     if (!s.village.donated) { s.village.donated = {}; }
@@ -1887,6 +1890,43 @@
 
   function friendOf(id) { return st().friend[id] || 0; }
 
+  /**
+   * 하트(PLAN §5.4 "관계 하트") — `friend`(친밀도) 는 예전부터 있던 값인데
+   * **상한이 없고 화면에 안 보인다**(세배 삯·§5.2 카드가 계속 읽으므로 그건
+   * 그대로 둔다). 하트는 그 옆에 두는 **새 0~10 게이지**다 — 하루 상한
+   * +4, 해제 문턱(3·5·7·10)이 있어야 "쌓임" 이 눈에 보인다.
+   */
+  var HEART_MAX = 10, HEART_DAILY_CAP = 4;
+
+  function heartRec(id) {
+    var s = st();
+    if (!s.hearts[id]) { s.hearts[id] = { h: 0, lastTalk: 0, gainDay: 0, gained: 0 }; }
+    return s.hearts[id];
+  }
+
+  function heartOf(id) { return heartRec(id).h; }
+
+  /** 오늘 이미 하루 상한(+4)만큼 올랐으면 나머지는 버린다(음수 delta — 선물이
+   *  싫은 것일 때 — 는 상한에 안 걸린다, 벌은 늘 다 들어간다) */
+  function bumpHeart(id, delta) {
+    var s = st(), r = heartRec(id);
+    if (r.gainDay !== s.day) { r.gainDay = s.day; r.gained = 0; }
+    var applied = delta;
+    if (delta > 0) {
+      applied = Math.max(0, Math.min(delta, HEART_DAILY_CAP - r.gained));
+      r.gained += applied;
+    }
+    r.h = Math.max(0, Math.min(HEART_MAX, r.h + applied));
+    return applied;
+  }
+
+  /** 다음 해제 문턱 — 화면에 "다음: n♥ 에 …" 를 보여줄 때 쓴다 */
+  function heartNext(id) {
+    var h = heartOf(id), U = VD.HEART_UNLOCKS, i;
+    for (i = 0; i < U.length; i++) { if (h < U[i].at) { return U[i]; } }
+    return null;
+  }
+
   /** 부탁 하나를 만든다 — 오늘 안에 가져오면 금과 친밀도 */
   /**
    * 부탁 하나를 만든다.
@@ -1917,6 +1957,11 @@
     var req = requestOf(res.id);
     var it = VD.item(req.want);
 
+    /* 하트(PLAN §5.4) "대화" +1 — 오늘 이 사람과 처음 말을 건 것이면 한 번만.
+       세배·부탁 완수 등 아래 갈림길과 무관하게, 말을 걸었다는 사실 자체에 준다 */
+    var hr0 = heartRec(res.id);
+    if (hr0.lastTalk !== s.day) { hr0.lastTalk = s.day; bumpHeart(res.id, 1); }
+
     /* 설날 — 첫 인사는 세배다. 사람마다 한 번, 정이 깊을수록 두둑하다 */
     if (global.DG.town && global.DG.town.isNewYear()) {
       if (!s.bow) { s.bow = {}; }
@@ -1924,6 +1969,7 @@
         s.bow[res.id] = s.day;
         var money = 500 + friendOf(res.id) * 150;
         core.save.player.gold += money;
+        bumpHeart(res.id, 2);   // 행사날 세배 — PLAN §5.4 "행사날 세배·나눔 +2"
         core.gainFeat(2, '세배');
         core.log('🧧 ' + res.ref.name + ' 에게 세배했다 — 세뱃돈 🪙 +' + core.fmt(money), 'good');
         core.emit('changed');
@@ -1962,11 +2008,12 @@
       core.save.player.gold += gold;
       core.save.player.fame += fame;
       s.friend[res.id] = friendOf(res.id) + 1;
+      bumpHeart(res.id, 2);   // 부탁 완수 — PLAN §5.4
       s.helped += 1;
       core.gainFeat(4, '심부름');
       core.gainExp(18);
       core.log('🤝 ' + res.ref.name + ' 의 부탁을 들어주었다 — 🪙 +' + core.fmt(gold) +
-        ' · 🎖️ +' + fame + ' · 친밀도 ' + s.friend[res.id], 'good');
+        ' · 🎖️ +' + fame + ' · 친밀도 ' + s.friend[res.id] + ' · 💗 ' + heartOf(res.id) + '/10', 'good');
       core.emit('changed');
       core.persist();
       return { kind: 'reward', name: res.ref.name,
@@ -2003,6 +2050,13 @@
     return GIFT_CATS[Math.floor(core.hash2(n, n % 977 + 13) * GIFT_CATS.length) % GIFT_CATS.length];
   }
 
+  /** 이 사람이 싫어하는 갈래(PLAN §5.4 하트 취향표) — 없으면(성격표에 없으면) 없다고 본다.
+   *  기존 `friend`(loved 이분법)는 안 건드리고, 하트만 이 표로 -1 을 준다 */
+  function giftDislike(id) {
+    var t = global.DG.folk ? global.DG.folk.typeOf(id) : null;
+    return (t && t.dislike) || null;
+  }
+
   function giftedToday(id) { return st().gifted[id] === st().day; }
 
   /** 곁에 있는 주민에게 가방의 것 하나를 준다 */
@@ -2022,6 +2076,9 @@
     var like = giftLike(heroId);
     var loved = it.cat === like;
     var up = (loved ? 3 : 1) + (it.price >= 200 ? 1 : 0);
+    /* 하트(PLAN §5.4) — friend 의 이분법(loved/아님)과 달리 싫어함(-1)도 있다 */
+    var hUp = loved ? 3 : (it.cat === giftDislike(heroId) ? -1 : 1);
+    bumpHeart(heroId, hUp);
 
     s.bag[key] -= 1;
     s.gifted[heroId] = s.day;
@@ -2030,13 +2087,15 @@
     core.save.player.fame += up * 5;
     core.gainFeat(3, '선물');
     core.gainExp(10);
+    var hTxt = ' · 💗 ' + (hUp >= 0 ? '+' + hUp : hUp) + ' (' + heartOf(heroId) + '/10)';
     core.log('🎁 ' + res.ref.name + ' 에게 ' + it.emoji + ' ' + it.name + ' 을(를) 건넸다 — ' +
-      (loved ? '아주 반긴다! ' : '') + '친밀도 +' + up + ' (' + s.friend[heroId] + ')', 'good');
+      (loved ? '아주 반긴다! ' : '') + '친밀도 +' + up + ' (' + s.friend[heroId] + ')' + hTxt, 'good');
     checkTasks();
     core.emit('changed');
     core.persist();
     return { kind: 'gift', name: res.ref.name, loved: loved,
-             text: (loved ? '아주 반긴다! ' : '고맙게 받는다. ') + '친밀도 +' + up };
+             text: (loved ? '아주 반긴다! ' : (hUp < 0 ? '떨떠름해한다. ' : '고맙게 받는다. ')) +
+                   '친밀도 +' + up + hTxt };
   }
 
   /* ── 전방 ─────────────────────────────────────────────── */
@@ -2136,12 +2195,13 @@
     tileAt: tileAt, walkable: walkable,
     focus: focus, interact: interact, spent: spent,
     talk: talk, requestOf: requestOf, friendOf: friendOf, talkNpc: talkNpc,
+    heartOf: heartOf, bumpHeart: bumpHeart, heartNext: heartNext,
     bagList: bagList, bagCount: bagCount, bagCatCount: bagCatCount, bagAdd: bagAdd,
     sell: sell, sellAll: sellAll, questProgress: questProgress,
     caughtCount: caughtCount, shake: shake, speedMul: speedMul,
     weedCount: weedCount, pullWeed: pullWeed, growWeeds: growWeeds, WEED_MAX: WEED_MAX,
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
-    giveGift: giveGift, giftLike: giftLike, giftedToday: giftedToday,
+    giveGift: giveGift, giftLike: giftLike, giftDislike: giftDislike, giftedToday: giftedToday,
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,
     lakeCenter: lakeCenter, inLake: inLake, inRiver: inRiver, riverCenterX: riverCenterX,
     waterfallSpot: waterfallSpot, hamletSpot: hamletSpot, inHamlet: inHamlet,
