@@ -6645,3 +6645,56 @@ PROJECT_STATE "현재 작업"에 "VFX·데칼·장비 소켓 등 101-3 나머지
 전부 `hitspark OK`/`hit feedback OK`, LogError 0건. 배치 모드가 다시 고친
 `ProjectSettings/`·`Packages/`는 커밋 전 `git checkout`으로 되돌림(두 번 — 컴파일
 검증·헤드리스 검증 각각 한 번씩 다시 건드렸다).
+
+## PLAN 101-3 C hitstop — GO 구현, 실시간 전투 3판 전부 완결 (2026-09-17, 같은 세션 "GO 쪽 hitstop도 이어서 해줘")
+
+**맥락**: 직전 커밋(101-3 C 타격 VFX, DUNGEON·STORY)의 PROJECT_STATE "다음 작업"이
+"GO 쪽 hitstop"을 "GO 자체 §5 후보 ④→⑦→③ 순서가 우선이라 뒤로" 미뤄 뒀었는데,
+사용자가 직접 "GO 쪽 hitstop도 이어서 해줘"라고 우선순위를 뒤집었다 — 그대로 착수.
+
+**GO 전투의 구조 차이**: DUNGEON/STORY는 프레임 단위 실시간 공격(`TryAttack()`이
+`Animator.SetTrigger("Attack")`을 직접 쏨)이지만 GO의 `BanditEncounter`/
+`RareWolfEncounter`는 `DuelRules.Step(dt)`가 초당 판정을 내고 그 결과를
+`OnDuelEvent()`가 UI(화면 플래시·SFX·펄스 스케일)로만 그려 주는 구조라 애초에
+"공격 애니메이션" 자체가 없다. hitstop을 "누가 때렸는지"가 아니라 "타격이
+발생했는지"(hit/heavy(안 피함) 이벤트) 기준으로 걸어 player·foe(있으면) 둘 다
+짧게 멎게 했다 — 이동/유휴 애니메이션이 잠깐 끊기는 정도의 프리즈 프레임이라도
+화면에 "맞았다"는 무게를 준다고 판단(DUNGEON 101-3 표 값 그대로 70ms/120ms 재사용).
+
+**player Animator 참조가 없어서 새로 뚫음**: DUNGEON/STORY의 `PlayerController`엔
+이미 `public Animator Animator => animator;`가 있었는데 GO 것엔 없었다 — 추가하고
+`BanditEncounter.StartFight()`/`RareWolfEncounter.StartFight()`가 전투 시작 시점에
+`GameObject.FindWithTag("Player")`로 한 번만 찾아 캐싱한다(타격마다 Find 안 함).
+
+**늑대(RareWolfEncounter)는 foe 쪽이 원천적으로 없다**: 이 짐승은 아직 GLB 전이라
+primitive capsule + 머티리얼 색만 있고 Animator 자체가 없다(BanditEncounter는 Abe
+리깅 모델이라 있음) — 그래서 늑대 쪽 hitstop은 player만 실제로 걸리게 구조적으로
+갈렸다(클래스 주석에 남김).
+
+**헤드리스 검증 삽질**: `PlaytestHeadless.CheckBanditHitstop()`을 처음엔 "player·foe
+둘 다 non-null이어야 정상"으로 짜서 3연속 전부 실패했다 — 원인은 버그가 아니라
+**이 PC에 Maria FBX(`Assets/Art/CharactersRealistic/Maria WProp J J Ong.fbx`)가
+없어 GO player의 `animator` 필드가 애초에 null**이었던 것(반면 foe Abe는
+`AbeAnimated.prefab`도 이 PC엔 없지만 TestVillage.unity가 예전에 그 자산이 있던
+PC에서 구워져 씬 파일 안에 Animator 컴포넌트가 그대로 저장돼 있다 — 소스 FBX가
+사라져도 이미 인스턴스화돼 씬에 박힌 GameObject·컴포넌트는 남는다). STORY
+`CheckHitFeedback`이 이미 겪은 것과 같은 함정 — "한쪽이라도 있으면 그 쪽만
+확인, 둘 다 null이면 스킵"으로 고쳐 통과시켰다. **실제로 검증된 건 foe(Abe)
+쪽 뿐이고 player 쪽 hitstop 코드 경로는 이 PC에선 확인 못 함**(Maria가 있는
+PC에서 다시 돌리면 그쪽도 값으로 볼 수 있다).
+
+**변경 파일**:
+- `Assets/Games/SagaGo/Player/PlayerController.cs` — `public Animator Animator => animator;` 추가.
+- `Assets/Games/SagaGo/World/BanditEncounter.cs` — `HitstopSec`/`HeavyHitstopSec`
+  상수, `_playerAnimator` 필드, `StartFight()`에서 캐싱, `OnDuelEvent()`의
+  "hit"·"heavy(안 피함)"에서 `ApplyHitstop()` 호출, `ApplyHitstop()`/`HitstopRoutine()` 신설.
+- `Assets/Games/SagaGo/World/RareWolfEncounter.cs` — 같은 로직 사본(foe 쪽은 항상 null).
+- `Assets/Editor/PlaytestHeadless.cs` — `CheckBanditHitstop()` 신규(`StartFight()`·
+  `OnDuelEvent()`를 리플렉션으로 직접 호출, `CheckGoalBoardAndSessionCard()`의
+  `Update()` 직접 호출과 같은 결).
+- `PLAN.md` 101-3 C hitstop 줄 갱신 — "GO 는 아직" 삭제, 세 판 전부 완료로.
+
+**결과**: 컴파일 exit 0. `PlaytestHeadless` 3연속 — 전부 `bandit hitstop OK -
+hit 이벤트 직후 확인(player=False, foe=True)`, LogError 0건. 101-3 C(hitstop·
+shake·flash·popup·타격 VFX) 전 항목이 실시간 전투가 있는 세 판(GO·DUNGEON·STORY)
+모두에서 완결됐다 — 남은 101-3은 G 항목(장비 소켓·데칼·성장 연출·죽음 유품)뿐.

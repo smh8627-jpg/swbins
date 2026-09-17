@@ -1068,7 +1068,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 
 | 표준 | Unity 수단 | 기본값 |
 |---|---|---|
-| C hitstop | `Time.timeScale` 대신 **피격자·가해자 Animator.speed=0** + 나머지 정상(전역 정지는 모바일 입력 지연) | 70ms, 치명 120ms — **DUNGEON·STORY 구현 완료(2026-09-17)**. STORY는 `StoryCombat.ApplyHitFreeze()`(가해자만, 이 판은 적 쪽 Animator가 아예 없다)로, 웹판 원문 그대로인 크리티컬 전역 슬로모(`TriggerHitstop`/`Time.timeScale`)와는 별개 기능. **GO 는 아직**(현재 대응 우선순위 5-1이 먼저라 뒤로) |
+| C hitstop | `Time.timeScale` 대신 **피격자·가해자 Animator.speed=0** + 나머지 정상(전역 정지는 모바일 입력 지연) | 70ms, 치명 120ms — **다섯 판 중 실시간 전투가 있는 GO·DUNGEON·STORY 전부 구현 완료(2026-09-17)**. STORY는 `StoryCombat.ApplyHitFreeze()`(가해자만, 이 판은 적 쪽 Animator가 아예 없다)로, 웹판 원문 그대로인 크리티컬 전역 슬로모(`TriggerHitstop`/`Time.timeScale`)와는 별개 기능. GO는 `BanditEncounter`/`RareWolfEncounter.ApplyHitstop()` — 프레임 단위 공격이 아니라 초당 판정(`DuelRules.Step`)이라 "hit"/"heavy(안 피함)" 이벤트마다 player·foe(있으면) 둘 다 멎는다(늑대는 Animator 없는 primitive라 player만 실제로 걸림). GO 헤드리스 검증은 이 PC 기준 **player Animator가 null**(Maria FBX 미보유 — foe Abe는 예전에 구운 그대로라 있음)이라 foe 쪽 speed==0만 실제로 확인 |
 | C 흔들림 | **Cinemachine Impulse Source/Listener**(이미 Cinemachine 권장, 40장) | 진폭 0.15m·120ms·감쇠 지수 |
 | C 플래시 | `MaterialPropertyBlock` 로 `_EmissionColor` 80ms(머티리얼 복제 없음, SRP Batcher 유지) | 흰색 0.6 |
 | C 팝·소리 | `DamagePopup`(DUNGEON·STORY 2026-09-17 기준 2벌 — GO/FOREST/REALM은 실시간 근접 전투가 없거나 범위 밖) + `SfxPlayer` 라운드로빈 3음 | 0.6s 상승·페이드 |

@@ -1,13 +1,13 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-17 (REALM 51장 15차 + Localization 잔여 감사 + PLAN 101-2 A·B **다섯 판 전부 이식 완료** + **105 Q-U5 DoF 토글** + **DUNGEON·STORY hitstop/shake/flash/popup(101-3 C, "손맛 2차"·"손맛 표준") 구현 완료** + **DUNGEON·STORY 타격 VFX(101-3 C `HitSpark`) 구현 완료** + 다섯 게임 컴파일·씬 재생성·헤드리스 3연속 검증 완료, STORY 애니메이터 버그 1건 수정).
+마지막 갱신: 2026-09-17 (REALM 51장 15차 + Localization 잔여 감사 + PLAN 101-2 A·B **다섯 판 전부 이식 완료** + **105 Q-U5 DoF 토글** + **DUNGEON·STORY hitstop/shake/flash/popup(101-3 C, "손맛 2차"·"손맛 표준") 구현 완료** + **DUNGEON·STORY 타격 VFX(101-3 C `HitSpark`) 구현 완료** + **GO hitstop(101-3 C, `BanditEncounter`/`RareWolfEncounter`) 구현 완료 — 실시간 전투 3판 전부 완결** + 다섯 게임 컴파일·씬 재생성·헤드리스 3연속 검증 완료, STORY 애니메이터 버그 1건 수정).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
 | 게임 | 씬 | Vertical Slice(Phase 1~8) | 51장 콘텐츠 확장 | 44장 에셋 교체 | 공통(66-2 라이팅·67~69 사운드/설정/Localization) |
 |---|---|---|---|---|---|
-| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v5+) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집·오버월드 지도 | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. 디버그 오버레이·저장 버튼·**목표판/세션카드(101-2 A·B, 2026-09-17 컴파일·헤드리스 3연속 검증 완료)** |
+| GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v5+) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집·오버월드 지도 | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. 디버그 오버레이·저장 버튼·**목표판/세션카드(101-2 A·B, 2026-09-17 컴파일·헤드리스 3연속 검증 완료)**. **hitstop(101-3 C, 2026-09-17)** |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B, 2026-09-17 검증 완료)**. **hitstop·타격 VFX(101-3 C, 2026-09-17)** |
 | FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 | Environment 완료 | 전부 붙음(데이터 콘텐츠 en 번역도 2026-09-17 감사로 완료 확인). **목표판/세션카드(101-2 A·B, 2026-09-17 검증 완료)** |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사) | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **hitstop/shake/flash/popup/타격 VFX(101-3 C "손맛 표준", 2026-09-17)** — 크리티컬 전역 슬로모(웹판 원문)는 그대로 유지. `PlayAttackAnim()` animator? 버그 수정 |
@@ -21,16 +21,16 @@ DoF(105 Q-U5, 2026-09-17): PC 프로파일에만 `DepthOfField` 오버라이드(
 
 - 이 PC엔 Unity 6000.3.24f1 실제로 설치돼 있음(다음 세션은 `find "/c/Program Files/Unity/Hub/Editor" -maxdepth 1` 로 매번 새로 확인 — 과신 금지). 다섯 게임 전부 컴파일·씬 재생성·헤드리스 3연속 검증 완료(경위 HISTORY 2026-09-17).
 - STORY `PlayAttackAnim()`의 `animator?.SetTrigger(...)`가 `UnassignedReferenceException` 던지던 버그 `if (animator != null)`로 수정(경위 HISTORY 참고). DUNGEON에도 같은 패턴이 남아 있으나 안 터져서 손 안 댐.
-- **DUNGEON·STORY 101-3 C 전부 구현 완료(hitstop/shake/flash/popup/타격 VFX, PLAN 5.8/5-7 "손맛 2차/표준")** — hitstop은 Animator.speed=0(가해자+피해자, DUNGEON 70/120ms·STORY는 가해자만) — 웹판 원문 크리티컬 전역 슬로모(`Time.timeScale`)와 별개로 공존. VFX는 신규 `HitSpark`(두 판 각각 사본) — 표의 "PC: VFX Graph"는 에디터 노드 그래프라 이 프로젝트의 "코드로 짓는다" 방식과 안 맞아 PC도 같은 Shuriken 재사용(입자 8→14·속도로 강공격/크리티컬 구분), "풀링 16"도 `DamagePopup`과 같은 이유(도메인 리로드 끈 연속 실행에서 static 배열이 파괴된 오브젝트를 든다)로 안 쓰고 즉시 Destroy. `DamagePopup.Spawn()` 옆에서 같이 호출. 헤드리스는 `HitSpark.SpawnCount`(테스트 전용 카운터)로 검증 — 전부 3연속 OK. 남은 101-3: G 항목(데칼·장비 소켓·성장 연출·죽음 유품)·GO 쪽 hitstop.
+- **101-3 C 전부 구현 완료(hitstop/shake/flash/popup/타격 VFX, PLAN 5.8/5-7 "손맛 2차/표준" + GO 뒤이어)** — hitstop은 Animator.speed=0(가해자+피해자, DUNGEON 70/120ms·STORY는 가해자만) — 웹판 원문 크리티컬 전역 슬로모(`Time.timeScale`)와 별개로 공존. VFX는 신규 `HitSpark`(DUNGEON·STORY 각 사본) — "PC: VFX Graph"는 에디터 노드 그래프라 이 프로젝트의 "코드로 짓는다" 방식과 안 맞아 PC도 같은 Shuriken 재사용, "풀링 16"도 `DamagePopup`과 같은 이유(도메인 리로드 끈 연속 실행에서 static 배열이 파괴된 오브젝트를 든다)로 안 쓰고 즉시 Destroy. **GO는 hitstop만**(초당 판정 `DuelRules.Step`이라 hit/heavy 이벤트에 걸어 `BanditEncounter`/`RareWolfEncounter.ApplyHitstop()` — 이 PC는 player Animator가 null(Maria FBX 없음)이라 foe(Abe) 쪽만 실제 확인, 늑대는 Animator 자체가 없어 player 전용). 헤드리스는 카운터·speed 값 직접 확인 — 전부 3연속 OK. 남은 101-3: G 항목(데칼·장비 소켓·성장 연출·죽음 유품)뿐.
 - **105 Q-U5 DoF 토글 구현 완료** — SessionCard가 뜨는 동안만 Depth of Field 를 켠다(102-2 표, PC 한정). `SagaCore.asmdef`에 URP Runtime 참조 추가 → `SessionCard.SetDepthOfField()` 신설(Show=Gaussian, Hide=Off) → `BuildFF16VolumeProfiles.cs` PC 프로파일에 DoF 오버라이드(기본 Off) 추가, Mobile 엔 안 넣음. Volume 자산 재생성으로 GUID 가 바뀌어 **다섯 씬 전부 재생성**(`BuildTestVillageScene`·`BuildTestDungeonScene`·`BuildTestVillageForestScene`·`BuildTestStoryScene`·`BuildTestCityScene`) 후 다섯 판 헤드리스 각 3연속 재검증 — 전부 OK.
 - **PLAN 101-2 A·B REALM 이식 완료(다섯 판 전부 끝)** — REALM 은 캐릭터·이동이 없어 공통 "무입력 5분→세션 카드" 트리거가 안 맞아, 이식 전에 사용자에게 물어 "월간 요약 카드"로 확정(5-7 아이디어 재사용). `RealmSessionTracker`(`Assets/Games/SagaRealm/UI/`)가 `RealmCityState.Changed` 를 구독해 달이 정확히 1개월 넘어갈 때만(세이브 로드로 여러 달 건너뛰는 건 델타로 걸러 제외) `SessionCard` 를 띄운다. "지금"=조망 성+금, "이번 세션"=함락 성 수·금 증감, "이번 주"자리는 의미만 "함락 x/24성"으로 바꿨다(GoalBoard 라벨 자체는 안 건드림). `BuildTestCityScene.BuildGoalBoardUi()`로 배선, `PlaytestRealmSlice`에 구조 체크(`CheckGoalBoardAndSessionCard`, Init 단계)+Phase.Agri 첫 "다음 달" 뒤 실제 트리거 확인 추가 — 컴파일·씬 재생성·3연속 전부 OK.
-- (이전 세션들 완료, 이번 세션에 컴파일 검증까지 끝남) PLAN 104-1 Phase 0 ①②③, PLAN 101-2 GO·DUNGEON·FOREST·STORY 이식, REALM 51장 12~15차 확장(진양→운중→상군→삭방→오원, 세 사슬 전부 막다른 끝), Localization 잔여 감사(다섯 게임 전부 완료 확인, node key-by-key 비교) — 경위는 각각 HISTORY 2026-09-16·2026-09-17 grep.
+- (이전 세션들 완료) PLAN 104-1 Phase 0 ①②③, PLAN 101-2 GO·DUNGEON·FOREST·STORY 이식, REALM 51장 12~15차 확장, Localization 잔여 감사 — 경위는 HISTORY 2026-09-16·17 grep.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
 1. ~~컴파일·재검증~~ — 2026-09-17 이 PC에서 완료(다섯 게임 컴파일·씬 재생성·헤드리스 3연속 전부 OK, STORY 버그 1건 수정). 앞으로 새 소스 변경분만 그때그때 검증하면 된다(전부 다시 쌓아 둘 필요 없음).
 2. ~~PLAN 101-2 A·B~~ — REALM 까지 포함해 **다섯 판 전부 완료**(2026-09-17, 위 "현재 작업" 참고).
-3. ~~PLAN 101-3 C hitstop·shake·flash·popup·타격 VFX~~ — DUNGEON·STORY 전부 완료(2026-09-17). 남은 101-3 항목: **G 장비 가시화(소켓)·G 지형 반응(데칼)·G 성장 연출(Timeline)·F 죽음(유품 마커)**, **GO 쪽 hitstop**(GO 자체 §5 후보 ④→⑦→③ 순서가 우선이라 뒤로 — 101-2 표 참고). 다음 세션이 이어 갈 후보.
+3. ~~PLAN 101-3 C 전부(hitstop·shake·flash·popup·타격 VFX)~~ — GO·DUNGEON·STORY 전부 완료(2026-09-17). 남은 101-3: **G 장비 가시화(소켓)·G 지형 반응(데칼)·G 성장 연출(Timeline)·F 죽음(유품 마커)** — 범위가 커 사용자 상의 없이 안 들어감. 다음 세션 후보.
 4. **실기 GUI 확인 몰아서** — 아래 "실기 확인 대기" 전부(다섯 SettingsPanel + 다섯 판 목표판/세션카드 + 타격 VFX 포함). 사용자가 직접 하거나 명시 요청 시(폴더 CLAUDE.md).
 5. **PLAN 104장 Phase 0 나머지** — `Assets/Art/*_candidates` 정리 판정만 남음(102-4 표는 있으나 105장 Q1 완성판 트랙 결정 뒤로 미룸 — 사용자 결정 대기, 손대지 않음).
 6. **REALM 51장 더 늘리기(범위 재검토 필요, 사용자 상의)** — **세 사슬(허창·복양·진류) 전부 확정된 막다른 끝에 닿았다**(15차, 2026-09-17). 계속 늘리려면: (a) 새 시작 성/사슬을 아예 새로 여는 방법(원작 시나리오 194 조조군 성 셋 밖), 또는 (b) `RealmCityData.cs` 클래스 주석의 "정복·외교는 안 들인다(제외)" 결정을 재검토하는 방법 중 사용자와 상의해서 골라야 한다 — 감으로 먼저 코드를 고치지 말 것.
@@ -50,7 +50,7 @@ DoF(105 Q-U5, 2026-09-17): PC 프로파일에만 `DepthOfField` 오버라이드(
 |---|---|
 | `-batchmode -nographics -quit` 컴파일 | exit 0, 오류 0(라이선스 토큰 경고만, HitSpark 추가 뒤 재확인) |
 | `BuildFF16VolumeProfiles.Build()`(DoF 오버라이드 추가) → 다섯 씬 재생성 | 전부 exit 0(자산 GUID 가 바뀌어 씬 재생성 필수였음) |
-| `PlaytestHeadless`(GO) | 3연속 OK(DoF 반영 뒤 재검증) |
+| `PlaytestHeadless`(GO, hitstop `CheckBanditHitstop` 포함) | 3연속 OK(hitstop 추가 뒤 재검증) |
 | `PlaytestDungeonHeadless`(hitstop `CheckHitstop`·타격 VFX `CheckHitSpark` 실제 검증 포함) | 3연속 OK(HitSpark 추가 뒤 재검증). 하위 슬라이스(`FloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34`) 는 DoF 반영 시점에 1회씩 재검증 — 회귀 없음(HitSpark은 아직 재확인 안 함, TakeDamage 경로만 공유해 위험 낮다고 판단) |
 | `PlaytestForestHeadless` | 3연속 OK(DoF 반영 뒤 재검증). 하위 슬라이스(`Creatures`·`Finish`·`Furniture`·`HouseTransition`) 도 DoF 반영 시점에 1회씩 재검증 — 전부 OK, 회귀 없음 |
 | `PlaytestOverworldMap`(GO) | 1회 재검증 — OK, 회귀 없음 |
@@ -60,7 +60,7 @@ DoF(105 Q-U5, 2026-09-17): PC 프로파일에만 `DepthOfField` 오버라이드(
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 
-- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 동물 Group 발동 장면, 채집, 드로우콜 Before/After(Stats 창), **목표판 3줄 화면 배치(대화창과 안 겹치는지)·세션카드 실제 등장(무입력 5분 체감)**
+- GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 동물 Group 발동 장면, 채집, 드로우콜 Before/After(Stats 창), **목표판 3줄 화면 배치(대화창과 안 겹치는지)·세션카드 실제 등장(무입력 5분 체감)**, **hitstop 체감(도적·늑대 둘 다, UI 버튼 전투라 DUNGEON/STORY보다 어색하게 느껴질 수 있음 — 101-3 C)**
 - DUNGEON: 카메라 각도·공격 버튼 vs CameraRig 드래그 겹침, 아홉 슬라이스 전부(무리·엘리트/보스·방 종류·회피·필드·강공격·행상·동행·GLB), 마을 넷·층 진행·매복·구출·수수께끼·회전베기, 사실적 Player/Enemy/Boss 톤, 무드 유지 판단, **목표판 3줄 화면 배치(미니맵과 안 겹치는지)·세션카드 실제 등장**, **hitstop 체감(70/120ms, 과하지 않은지 — 101-3 C)**, **타격 VFX 색·크기 체감(`Sprites/Default` 셰이더로 단순화해 텍스처 없이 밋밋한 점으로 보일 수 있음 — 101-3 C)**
 - FOREST: 벽지/장판, 가구 자유 배치 18칸, 생물·과일나무·좌판, 밀어내기 전투, 팔레트 데움 정도, **목표판 3줄 화면 배치·세션카드 실제 등장**
 - STORY: 두목 크기·타격감(반격 없음이 샌드백처럼 느껴지는지), 사건·관계·선택 흐름, 전직 팝업, 척후병 모델, **목표판 3줄 화면 배치·세션카드 실제 등장**, **hitstop/shake/flash/popup/타격 VFX 체감(크리티컬 슬로모와 안 겹치는지 — 101-3 C)**
