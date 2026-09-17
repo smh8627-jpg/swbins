@@ -15,7 +15,7 @@ const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 14  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1), 13→14: repeat_progress/daily_done_day(반복/일일 사명)
+const SAVE_VERSION := 15  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1), 13→14: repeat_progress/daily_done_day(반복/일일 사명), 14→15: weekly_champion_week(관문 대장)
 
 var level := 1
 var exp := 0
@@ -108,6 +108,25 @@ func add_boss_kill() -> void:
 	bosses += 1
 	check_achievements()
 	check_quests()
+
+
+## PLAN 101-2 STORY ④후보(웹판 §5-4 "관문 대장") — stage_key(사냥터 넷)별로
+## 그 주(week index)에 강화판을 이미 잡았는지. `daily_done_day`(위 SAVE_
+## VERSION 13→14 머리말)의 day index와 같은 정신 — 달력 월요일 기준은
+## 아니고 7일 단위 정수 몫이다, 헤드리스 진단은 이 값을 직접 넣고 뺀다.
+var weekly_champion_week: Dictionary = {}
+
+
+func current_week() -> int:
+	return int(Time.get_unix_time_from_system() / (86400.0 * 7.0))
+
+
+func champion_available(stage_key: String) -> bool:
+	return int(weekly_champion_week.get(stage_key, -1)) != current_week()
+
+
+func claim_champion(stage_key: String) -> void:
+	weekly_champion_week[stage_key] = current_week()
 
 
 ## quest.js onStage() 그대로 — 처음 밟는 사냥터만 집합에 넣는다(같은 곳을
@@ -514,6 +533,7 @@ func save() -> bool:
 		"quests_done": quests_done,
 		"repeat_progress": repeat_progress,
 		"daily_done_day": daily_done_day,
+		"weekly_champion_week": weekly_champion_week,
 		"mats": mats,
 		"equipped": equipped,
 		"gold": gold,
@@ -561,6 +581,8 @@ func try_load() -> bool:
 	repeat_progress = loaded_repeat_progress if typeof(loaded_repeat_progress) == TYPE_DICTIONARY else {}
 	var loaded_daily_done_day: Variant = data.get("daily_done_day", {})
 	daily_done_day = loaded_daily_done_day if typeof(loaded_daily_done_day) == TYPE_DICTIONARY else {}
+	var loaded_weekly_champion_week: Variant = data.get("weekly_champion_week", {})
+	weekly_champion_week = loaded_weekly_champion_week if typeof(loaded_weekly_champion_week) == TYPE_DICTIONARY else {}
 	var loaded_mats: Variant = data.get("mats", {})
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
 	var loaded_equipped: Variant = data.get("equipped", {})

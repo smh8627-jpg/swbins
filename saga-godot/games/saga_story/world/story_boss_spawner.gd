@@ -26,6 +26,7 @@ extends Node3D
 @export var map_path: String = "res://games/saga_story/data/field_map.gd"
 
 const StoryEnemyScene := preload("res://games/saga_story/world/story_enemy.gd")
+const Toast := preload("res://saga_core/ui/toast.gd")
 
 const GROUND_Y := 0.0
 
@@ -37,6 +38,14 @@ func _ready() -> void:
 	_spawn_boss()
 
 
+## **2026-09-17 추가 — PLAN 101-2 STORY ④후보(웹판 §5-4 "관문 대장").**
+## 이 슬라이스엔 "미사용 보스 6종"이 없다(field/forest/cave/gorge 넷뿐 —
+## 나머지 다섯 사냥터는 애초에 보스 자체가 없다, 다음에 볼 자리) — 대신
+## **있는 넷을 매주 한 번 강화판으로 다시 살린다**로 재해석했다. 이번
+## 주(`StorySaveState.champion_available()`) 그 사냥터를 아직 관문
+## 대장으로 못 잡았으면, 평소처럼 자동으로 다시 서는 그 보스가 이번엔
+## 강화판이다 — 새 문(게이트) UI를 안 만들고 기존 리스폰 루프 그대로
+## 쓴다(story_enemy.gd `is_champion` 스탯 배율·방패·광폭 참고).
 func _spawn_boss() -> void:
 	var boss := Node3D.new()
 	boss.set_script(StoryEnemyScene)
@@ -46,9 +55,13 @@ func _spawn_boss() -> void:
 	boss.enemy_lv = _map.enemy_lv()
 	boss.enemy_color = _map.boss_color()
 	boss.stage_key = _map.stage_key()
+	var is_champion: bool = StorySaveState.champion_available(boss.stage_key)
+	boss.is_champion = is_champion
 	boss.position = Vector3(_map.boss_position_m(), GROUND_Y, 0)
 	add_child(boss)
 	boss.died.connect(_on_boss_died)
+	if is_champion:
+		Toast.show(self, "🚪 관문 대장 — %s(이)가 이번 주 강화판으로 나타났다!" % String(_map.BOSS_NAME), 3.5)
 
 
 func _on_boss_died() -> void:

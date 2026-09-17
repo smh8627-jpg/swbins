@@ -59,24 +59,49 @@ var enemy_lv := 1.0
 var enemy_color := COLOR
 var stage_key := ""  # data-quest.js goal.stage 그대로 — story_save_state.gd stage_kills 참고
 var hp: float
+var max_hp: float
 var _dead := false
 var _attack_cd_left := 0.0
 var _shot_cd_left := 0.0
+
+## PLAN 101-2 STORY ④후보(웹판 §5-4 "관문 대장") — `story_boss_spawner.gd`
+## 가 `is_boss`처럼 add_child 전에 세팅한다. 체력·공격 배율은 기존 보스
+## 배율 위에 곱한다(웹판 "체력 잡졸×40·공격×2.5"는 이 슬라이스의 잡졸
+## 기준과 안 맞아 배율을 다시 잡았다 — 재해석). 3단 체력바는 화면 UI가
+## 없어(이 슬라이스는 HP 숫자 바도 안 띄운다) 문턱만 내부에서 잰다(
+## 진단·기획 문서용, 화면 표시는 다음에 볼 자리).
+const CHAMPION_HP_MUL := 2.5
+const CHAMPION_DMG_MUL := 1.5
+const CHAMPION_VISUAL_SCALE := 1.9  # BOSS_VISUAL_SCALE(1.6)보다 한 단 더
+const CHAMPION_ENRAGE_SEC := 180.0        # 웹판 "제한 시간 3분(초과 시 광폭 +50%)"
+const CHAMPION_ENRAGE_DMG_MUL := 1.5
+const CHAMPION_SHIELD_THRESHOLD_PCT := 0.3  # 웹판 "누적 피해 30% → 방패 깨짐"
+const CHAMPION_SHIELD_VULN_SEC := 10.0      # 웹판 "10s 취약 ×1.5"
+const CHAMPION_SHIELD_VULN_MUL := 1.5
+const CHAMPION_EXP_MUL := 2.0  # 웹판 "고유 장비 확정+주문서+기억 조각" 재해석 — 기억 조각
+const CHAMPION_GOLD_MUL := 2.0  # 시스템이 없어(비경 미구현) 경험·금 보너스로 갈음
+
+var is_champion := false
+var _champion_elapsed := 0.0
+var _champion_dmg_taken := 0.0  # 취약 배율 적용 전 원본 피해 누적(방패 문턱 판정용)
+var _champion_shield_broken := false
+var _champion_vuln_time_left := 0.0
 
 
 func _ready() -> void:
 	var base_hp: float = StoryCombat.enemy_base_hp(enemy_lv)
 	if is_boss:
-		hp = base_hp * boss_hp_mul
+		hp = base_hp * boss_hp_mul * (CHAMPION_HP_MUL if is_champion else 1.0)
 		add_to_group("story_boss")
 	else:
 		hp = base_hp
+	max_hp = hp
 	add_to_group("story_enemy")
 	_spawn_visual()
 
 
 func _spawn_visual() -> void:
-	var scale_mul: float = BOSS_VISUAL_SCALE if is_boss else 1.0
+	var scale_mul: float = (CHAMPION_VISUAL_SCALE if is_champion else BOSS_VISUAL_SCALE) if is_boss else 1.0
 	var mi := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
 	mesh.radius = 0.6 * scale_mul
@@ -102,16 +127,23 @@ func _physics_process(delta: float) -> void:
 		return
 	_attack_cd_left = maxf(0.0, _attack_cd_left - delta)
 	_shot_cd_left = maxf(0.0, _shot_cd_left - delta)
+	if is_champion:
+		_champion_elapsed += delta
+		_champion_vuln_time_left = maxf(0.0, _champion_vuln_time_left - delta)
 	var player := get_tree().get_first_node_in_group("player")
 	if player == null or not player.has_method("take_damage"):
 		return
-	var scale_mul: float = BOSS_VISUAL_SCALE if is_boss else 1.0
+	var scale_mul: float = (CHAMPION_VISUAL_SCALE if is_champion else BOSS_VISUAL_SCALE) if is_boss else 1.0
 	var dx: float = player.global_position.x - global_position.x
 
 	if _attack_cd_left <= 0.0 and absf(dx) <= OVERLAP_RANGE * scale_mul:
 		_attack_cd_left = ATTACK_COOLDOWN
 		var base_dmg: float = StoryCombat.enemy_base_dmg(enemy_lv)
 		var dmg: float = base_dmg * (boss_dmg_mul if is_boss else 1.0)
+		if is_champion:
+			dmg *= CHAMPION_DMG_MUL
+			if _champion_elapsed >= CHAMPION_ENRAGE_SEC:
+				dmg *= CHAMPION_ENRAGE_DMG_MUL
 		player.take_damage(dmg)
 
 	if is_ranged and not is_boss and _shot_cd_left <= 0.0 and absf(dx) <= StoryCombat.RANGED_RANGE_M:
@@ -135,10 +167,23 @@ func _fire_shot(dx: float) -> void:
 	get_parent().add_child(shot)
 
 
+## PLAN 101-2 STORY ④후보 — 관문 대장 방패(웹판 §5-4 "등 뒤에서 누적
+## 피해 30% → 방패 깨짐 → 10s 취약 ×1.5"). "등 뒤" 판정은 이 슬라이스
+## 전투가 방향을 안 가려(정면·원거리 판정 위주) 재해석으로 뺐다 — 누적
+## 피해 문턱만 본다. 방패가 깨진 뒤 들어오는 피해에 배율을 곱한다.
 func take_damage(amount: float) -> void:
 	if _dead or amount <= 0.0:
 		return
-	hp -= amount
+	var applied := amount
+	if is_champion:
+		if _champion_vuln_time_left > 0.0:
+			applied *= CHAMPION_SHIELD_VULN_MUL
+		if not _champion_shield_broken:
+			_champion_dmg_taken += amount
+			if _champion_dmg_taken >= max_hp * CHAMPION_SHIELD_THRESHOLD_PCT:
+				_champion_shield_broken = true
+				_champion_vuln_time_left = CHAMPION_SHIELD_VULN_SEC
+	hp -= applied
 	if hp <= 0.0:
 		_die()
 
@@ -151,8 +196,12 @@ func _die() -> void:
 	StorySaveState.add_kill(stage_key)
 	if is_boss:
 		StorySaveState.add_boss_kill()
-	StorySaveState.add_exp(StoryCombat.enemy_exp(is_boss, enemy_lv))
-	StoryGoldPickup.spawn_at(get_parent(), global_position + Vector3(-0.4, 0, 0.4), StoryCombat.roll_gold(is_boss, enemy_lv))
+	if is_champion:
+		StorySaveState.claim_champion(stage_key)
+	var reward_mul: float = CHAMPION_EXP_MUL if is_champion else 1.0
+	StorySaveState.add_exp(roundi(StoryCombat.enemy_exp(is_boss, enemy_lv) * reward_mul))
+	var gold_mul: float = CHAMPION_GOLD_MUL if is_champion else 1.0
+	StoryGoldPickup.spawn_at(get_parent(), global_position + Vector3(-0.4, 0, 0.4), roundi(StoryCombat.roll_gold(is_boss, enemy_lv) * gold_mul))
 	_maybe_drop_gear()
 	queue_free()
 
@@ -170,7 +219,9 @@ func _maybe_drop_gear() -> void:
 			pool.append(key)
 	if pool.is_empty():
 		return
-	var chance: float = StoryCombat.GEAR_DROP_CHANCE_BOSS if is_boss else StoryCombat.GEAR_DROP_CHANCE_GRUNT
+	## 관문 대장은 웹판 "고유 장비 1 확정"을 그대로 좁혀 드롭 확률을 100%로
+	## 올린다(고유로 바뀌는지는 아래 UNIQUE_CHANCE 굴림이 그대로 가른다).
+	var chance: float = 1.0 if is_champion else (StoryCombat.GEAR_DROP_CHANCE_BOSS if is_boss else StoryCombat.GEAR_DROP_CHANCE_GRUNT)
 	if randf() < chance:
 		var picked: String = pool[randi() % pool.size()]
 		## **2026-09-13 추가(같은 날 더 더, 고유) — gear.js rollDrop() 그대로:
