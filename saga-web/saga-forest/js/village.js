@@ -1083,6 +1083,7 @@
     core.gainExp(10);
     core.log('📦 ' + def.name + '에게 소포를 전했다 — 🪙 ' + core.fmt(DELIVERY_REWARD) +
       ' (누적 ' + s.delivery.n + '건)', 'good');
+    checkTasks();
     core.emit('changed');
     core.persist();
     return { kind: 'quest', name: def.name,
@@ -1118,6 +1119,7 @@
     buildNpcs();
     if (global.DG.mail) { global.DG.mail.ensureMoveIn(); }
     rollDay();
+    if (!st().tasks) { rollTasks(today()); }   // 첫 부팅 — rollDay()가 "오늘=오늘"로 건너뛴 자리
     syncPlanted();
   }
 
@@ -1126,6 +1128,105 @@
    * **이사와 편지도 여기서만 굴린다** — 프레임마다 굴리면 하루가 몇 번씩 지나간다.
    * 부탁을 지우기 **전에** 어제 누구를 도왔는지 먼저 챙긴다(감사장이 거기서 나온다).
    */
+  /* ── 오늘의 일과판 (PLAN §5.1, 표준 A·H) ──────────────────────
+   * 값을 내는 함수(`counterOf`·`taskList`·`weeklyTaskInfo`)는 세이브를 **읽기만**
+   * 한다. 세이브가 바뀌는 곳은 `rollTasks()`(날이 바뀔 때, `rollDay()`가 부른다)
+   * 와 `checkTasks()`(진행이 다 찼는지, 채집·선물·기증·잡초·배달 결과 자리마다
+   * 한 줄씩 부른다) 둘뿐이다.
+   */
+
+  /** 일과 종류별 지금 값 — 전부 **팔아도 줄지 않는 누계**(`caughtCatCount`·
+   *  `s.gathered`·`s.giftTotal`·`s.donateTotal`·`s.weedPulled`·`s.delivery.n`) */
+  function counterOf(kind, cat) {
+    var s = st();
+    if (kind === 'gather') { return cat ? caughtCatCount(cat) : (s.gathered || 0); }
+    if (kind === 'gatherAny') { return s.gathered || 0; }
+    if (kind === 'gift') { return s.giftTotal || 0; }
+    if (kind === 'donate') { return s.donateTotal || 0; }
+    if (kind === 'weed') { return s.weedPulled || 0; }
+    if (kind === 'deliver') { return (s.delivery && s.delivery.n) || 0; }
+    return 0;
+  }
+
+  /** 날이 바뀔 때만 부른다(`rollDay()` 안에서) — 오늘 셋 + 이번 주 하나를 새로 뽑는다.
+   *  행사일이면 셋째(탐험) 줄이 그 행사 전용 과제로 바뀐다(§5.1 "행사날은 1줄 고정") */
+  function rollTasks(d) {
+    var s = st();
+    var picks = VD.pickDayTasks(d).slice();
+    var ev = VD.eventOf();     // town.js 의 event()와 같은 결 — 날짜 밀기(dayShift)는 아직 안 탄다
+    var evTask = VD.eventTaskOf(ev);
+    if (evTask) { picks[2] = evTask; }
+    var allDoneBefore = s.tasks && s.tasks.list && s.tasks.list.length &&
+      s.tasks.list.every(function (t) { return t.done; }) &&
+      (!s.tasks.weekly || s.tasks.weekly.done);
+    s.tasks = {
+      day: d,
+      list: picks.map(function (p) {
+        return { key: p.key, name: p.name, kind: p.kind, cat: p.cat || null,
+          need: p.n, reward: p.reward, base: counterOf(p.kind, p.cat), done: false };
+      }),
+      week: s.tasks ? s.tasks.week : null,
+      weekly: s.tasks ? s.tasks.weekly : null,
+      streak: allDoneBefore ? ((s.tasks && s.tasks.streak) || 0) + 1 : 0
+    };
+    var wk = global.DG.turnip ? global.DG.turnip.week(d) : Math.floor(d / 7);
+    if (s.tasks.week !== wk || !s.tasks.weekly) {
+      var wp = VD.pickWeekTask(wk);
+      s.tasks.week = wk;
+      s.tasks.weekly = { key: wp.key, name: wp.name, kind: wp.kind,
+        need: wp.n, reward: wp.reward, base: counterOf(wp.kind, null), done: false };
+    }
+  }
+
+  /** 화면이 보는 오늘 셋 — 진행·완료 여부까지 얹어 순수하게 낸다 */
+  function taskList() {
+    var s = st();
+    if (!s.tasks || !s.tasks.list) { return []; }
+    return s.tasks.list.map(function (t, i) {
+      var have = Math.max(0, counterOf(t.kind, t.cat) - t.base);
+      return { i: i, key: t.key, name: t.name, got: Math.min(have, t.need), need: t.need,
+        pct: Math.min(100, Math.round(have / t.need * 100)), done: !!t.done };
+    });
+  }
+
+  /** 화면이 보는 이번 주 과제 */
+  function weeklyTaskInfo() {
+    var s = st();
+    if (!s.tasks || !s.tasks.weekly) { return null; }
+    var w = s.tasks.weekly;
+    var have = Math.max(0, counterOf(w.kind, null) - w.base);
+    return { key: w.key, name: w.name, got: Math.min(have, w.need), need: w.need,
+      pct: Math.min(100, Math.round(have / w.need * 100)), done: !!w.done };
+  }
+
+  function applyTaskReward(t) {
+    core.save.player.gold += t.reward;
+    core.gainFeat(2, '일과');
+    core.log('✅ 일과 완료 — ' + t.name + ' · 🪙 +' + core.fmt(t.reward), 'good');
+    core.emit('toast', '✅ ' + t.name + ' · 🪙 +' + t.reward);
+  }
+
+  /**
+   * 진행이 다 찼는지 살핀다 — 채집(bagAdd)·선물(giveGift)·기증(museum.donate)
+   * ·잡초(pullWeed)·배달(talkCourier) 결과 자리마다 한 줄씩 부른다.
+   */
+  function checkTasks() {
+    var s = st();
+    if (!s.tasks) { return []; }
+    var filled = [], i;
+    for (i = 0; i < (s.tasks.list || []).length; i++) {
+      var t = s.tasks.list[i];
+      if (t.done) { continue; }
+      if (counterOf(t.kind, t.cat) - t.base >= t.need) { t.done = true; applyTaskReward(t); filled.push(t); }
+    }
+    var w = s.tasks.weekly;
+    if (w && !w.done && counterOf(w.kind, null) - w.base >= w.need) {
+      w.done = true; applyTaskReward(w); filled.push(w);
+    }
+    if (filled.length) { core.emit('changed'); }
+    return filled;
+  }
+
   function rollDay() {
     var s = st(), d = today();
     if (s.day === d) { return false; }
@@ -1150,6 +1251,7 @@
     s.day = d;
     s.used = {};
     s.requests = {};
+    rollTasks(d);                  // 오늘의 일과 3 + 이번 주 과제(§5.1)
     growWeeds();                   // 안 뽑으면 날마다 는다
     buildProps();                  // 갈라진 자리와 조개는 아침마다 자리가 바뀐다
     syncPlanted();                 // 하루가 지났으니 묘목이 자랐을 수 있다
@@ -1353,6 +1455,7 @@
     /* 도감 — 한 번이라도 손에 넣은 것은 여기 남는다 (팔아도 지워지지 않는다) */
     if (!s.caught) { s.caught = {}; }
     s.caught[item.key] = (s.caught[item.key] || 0) + (n || 1);
+    checkTasks();   // 오늘의 일과(§5.1) — "채집" 축은 여기 한 곳으로 다 지나간다
   }
 
   /** 이 종류를 잡아 본 적이 있나 (도감) */
@@ -1365,6 +1468,15 @@
     var list = VD.ITEMS[cat], n = 0, i;
     if (!list) { return 0; }
     for (i = 0; i < list.length; i++) { n += bagCount(list[i].key); }
+    return n;
+  }
+
+  /** `bagCatCount`와 달리 **팔아도 줄지 않는다** — 일과 진행은 늘 앞으로만 가야
+   *  한다(§5.1). `s.caught`(도감, 잡아 본 적이 있으면 남는다)를 센다 */
+  function caughtCatCount(cat) {
+    var list = VD.ITEMS[cat], n = 0, i, s = st();
+    if (!list) { return 0; }
+    for (i = 0; i < list.length; i++) { n += (s.caught && s.caught[list[i].key]) || 0; }
     return n;
   }
 
@@ -1562,9 +1674,11 @@
     var i = parseInt(prop.id.slice(2), 10);
     if (isNaN(i) || !s.weeds[i]) { return null; }
     s.weeds.splice(i, 1);
+    s.weedPulled = (s.weedPulled || 0) + 1;
     buildProps();
     syncPlanted();
     core.gainFeat(1, '잡초');
+    checkTasks();
     core.emit('changed');
     core.persist();
     return { kind: 'weed', text: '🌿 잡초를 뽑았다 (남은 것 ' + s.weeds.length + ')' };
@@ -1792,12 +1906,14 @@
 
     s.bag[key] -= 1;
     s.gifted[heroId] = s.day;
+    s.giftTotal = (s.giftTotal || 0) + 1;   // 팔아도 안 주는 것과 달리 늘 앞으로만 간다(§5.1)
     s.friend[heroId] = friendOf(heroId) + up;
     core.save.player.fame += up * 5;
     core.gainFeat(3, '선물');
     core.gainExp(10);
     core.log('🎁 ' + res.ref.name + ' 에게 ' + it.emoji + ' ' + it.name + ' 을(를) 건넸다 — ' +
       (loved ? '아주 반긴다! ' : '') + '친밀도 +' + up + ' (' + s.friend[heroId] + ')', 'good');
+    checkTasks();
     core.emit('changed');
     core.persist();
     return { kind: 'gift', name: res.ref.name, loved: loved,
@@ -1924,6 +2040,8 @@
     sneaking: sneaking, toggleSneak: toggleSneak, setAutoSneak: setAutoSneak,
     buyTool: buyTool, hasTool: hasTool,
     rollDay: rollDay, today: today, status: status, state: st,
+    /** 오늘의 일과판(§5.1) */
+    taskList: taskList, weeklyTaskInfo: weeklyTaskInfo, checkTasks: checkTasks, counterOf: counterOf,
     castLine: castLine, hookLine: hookLine, fishState: fishState,
     BITE_WINDOW: BITE_WINDOW,
     plant: plant, plantable: plantable, canPlantHere: canPlantHere,

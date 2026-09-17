@@ -92,6 +92,10 @@
     });
     els['sheet-close'].addEventListener('click', closeSheet);
     els.scrim.addEventListener('click', closeSheet);
+    els.profile.addEventListener('click', function (e) {
+      if (!e.target.closest('[data-act="open-tasks"]')) { return; }
+      openSheet('town');
+    });
     global.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         if (els['dock-more'] && els['dock-more'].classList.contains('show')) { closeMore(); return; }
@@ -500,6 +504,23 @@
   var PHASE_ICON = { dawn: '🌄', day: '☀️', even: '🌇', night: '🌙' };
   var SEASON_ICON = { spring: '🌸', summer: '🌿', autumn: '🍁', winter: '❄️' };
 
+  /** 화면에 늘 있는 "지금 할 일" 한 줄(§5.1, 표준 A) — 일과 탭을 안 열어도 보인다 */
+  function taskGoalLine() {
+    var V = global.DG.village;
+    if (!V || !V.taskList) { return ''; }
+    var list = V.taskList();
+    if (!list.length) { return ''; }
+    var t = null, i, doneN = 0;
+    for (i = 0; i < list.length; i++) {
+      if (list[i].done) { doneN++; } else if (!t) { t = list[i]; }
+    }
+    if (!t) {
+      return '<div class="p-goal ready" data-act="open-tasks">🎯 오늘 일과를 다 했습니다(' + doneN + '/' + list.length + ')</div>';
+    }
+    return '<div class="p-goal" data-act="open-tasks">🎯 ' + esc(t.name) +
+      ' <b>' + t.got + '/' + t.need + '</b> · (' + doneN + '/' + list.length + ')</div>';
+  }
+
   function renderTop() {
     var p = core.save.player;
     var need = core.expNeed(p.level);
@@ -519,6 +540,7 @@
           SEASON_ICON[st.season.key] + ' ' + st.season.name +
           ' · ' + st.phase.name + ' · 채집 <b>' + core.fmt(st.gathered) +
           '</b></div>' +
+        taskGoalLine() +
       '</div>';
 
     els.wallet.innerHTML =
@@ -1308,10 +1330,38 @@
     return html;
   }
 
+  /** 오늘의 일과판(§5.1, 표준 A·H) — 게시판(🪧) 상호작용이 여는 마을(town) 시트
+   *  맨 위에 얹는다. 셋 다 완료하고 이번 주 과제까지 마치면 연속(streak)이 는다. */
+  function taskBoardSection() {
+    var V = global.DG.village;
+    if (!V || !V.taskList) { return ''; }
+    var list = V.taskList(), w = V.weeklyTaskInfo();
+    var s = V.state();
+    var html = '<div class="sec"><h4>오늘의 일과 <small class="muted">' +
+      (s.tasks ? (s.tasks.streak || 0) + '일째' : '') + '</small></h4>';
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i];
+      html += '<div class="card' + (t.done ? ' done' : '') + '">' +
+        '<div class="stat-row"><span>' + esc(t.name) + '</span>' +
+          '<b>' + (t.done ? '✓ 완료' : t.got + ' / ' + t.need) + '</b></div>' +
+        (t.done ? '' : '<div class="bar sm"><i style="width:' + t.pct + '%"></i></div>') +
+      '</div>';
+    }
+    if (w) {
+      html += '<div class="card' + (w.done ? ' done' : '') + '"><div class="stat-row">' +
+        '<span>🗓️ ' + esc(w.name) + '</span>' +
+        '<b>' + (w.done ? '✓ 완료' : w.got + ' / ' + w.need) + '</b></div>' +
+        (w.done ? '' : '<div class="bar sm"><i style="width:' + w.pct + '%"></i></div>') +
+      '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function viewTown() {
     var T = global.DG.town, V = global.DG.village, VD = global.DG.villageData;
     var stt = T.status(), VV = global.DG.villageView;
-    var html = '', i;
+    var html = taskBoardSection(), i;
 
     html += '<div class="sec"><h4>마을</h4><div class="card">' +
       '<div class="flagrow">' +

@@ -96,6 +96,12 @@ body.tilted #vignette {
 .p-title { font-size: 13px; font-weight: 700; letter-spacing: -.2px; }
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
+.p-goal {
+  margin-top: 2px; font-size: 11px; font-weight: 600; cursor: pointer;
+  color: #ffd76a; font-variant-numeric: tabular-nums;
+}
+.p-goal b { color: #fff; }
+.p-goal.ready { color: #7ee787; }
 
 /* 자동·손쓰기만 붙박이, 나머지(살금살금·3D·시점·도움말·어드민·리셋)는
    "더보기" 뒤로 접는다 — #dock-more 와 같은 결(사가스토리·사가국지에서 먼저 밟았다) */

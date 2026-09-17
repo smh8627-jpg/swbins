@@ -1278,6 +1278,113 @@ window.DG_NO_TUNE = true;
         '채집물 되살아남 · 부탁 초기화';
     });
 
+    /* ── 오늘의 일과판(PLAN §5.1, 표준 A·H) ──────────────────── */
+
+    t('오늘의 일과 — 부팅 직후 세 줄이 비어 있지 않다(표준 A)', function () {
+      var list = V.taskList();
+      return list.length === 3 && list.every(function (t) { return t.name && t.need > 0; }) &&
+        ('오늘: ' + list.map(function (t) { return t.name; }).join(' · '));
+    });
+
+    t('오늘의 일과 — 날짜 해시로 정해진다(같은 날 같은 셋, 여러 날 걸치면 갈린다)', function () {
+      var VDx = DG.villageData;
+      var a1 = VDx.pickDayTasks(19000).map(function (t) { return t.key; }).join(',');
+      var a2 = VDx.pickDayTasks(19000).map(function (t) { return t.key; }).join(',');
+      var days = [19000, 19010, 19020, 19030, 19040, 19050, 19060];
+      var uniq = {};
+      days.forEach(function (d) { uniq[VDx.pickDayTasks(d).map(function (t) { return t.key; }).join(',')] = true; });
+      return a1 === a2 && Object.keys(uniq).length > 1 &&
+        (Object.keys(uniq).length + '가지 조합(' + days.length + '일 표본)');
+    });
+
+    t('오늘의 일과 — 100일 굴려도 세 줄의 축이 늘 채집·주민·탐험 하나씩이다', function () {
+      var VDx = DG.villageData;
+      var bad = 0;
+      for (var d = 10000; d < 10100; d++) {
+        var picks = VDx.pickDayTasks(d);
+        var axes = picks.map(function (p) { return p.axis; });
+        if (axes[0] !== 'gather' || axes[1] !== 'social' || axes[2] !== 'explore') { bad++; }
+      }
+      return bad === 0 && '100일 표본 — 축 어긋남 0';
+    });
+
+    t('오늘의 일과 — 날이 바뀌면 진행이 다시 0부터 시작한다', function () {
+      var s = V.state();
+      s.tasks.list[0].got = s.tasks.list[0].need;   // 오늘 하나는 다 채운 셈(base 안 건드리고 흉내)
+      s.day = V.today() - 1;
+      V.rollDay();
+      var list = V.taskList();
+      return s.day === V.today() && list.every(function (t) { return t.got === 0 && !t.done; }) &&
+        ('day=' + s.day + ' · 진행 전부 0');
+    });
+
+    t('오늘의 일과 — 채집이 진행을 채운다(팔아도 안 줄어든다)', function () {
+      var s = V.state();
+      var keep = JSON.parse(JSON.stringify(s.tasks));
+      var it = VD.ITEMS.flower[0];
+      s.tasks.list[0] = { key: 'gather_flower', name: '꽃 3', kind: 'gather', cat: 'flower',
+        need: 3, reward: 10, base: V.counterOf('gather', 'flower'), done: false };
+      V.bagAdd(it, 3);
+      var after = V.taskList()[0];
+      V.sell(it.key, 3);                    // 다 팔아도 방금 채운 진행은 그대로여야 한다
+      var afterSell = V.taskList()[0];
+      s.tasks = keep;
+      return after.got === 3 && after.done && afterSell.got === 3 && afterSell.done &&
+        '채집 3/3 완료 · 판 뒤에도 그대로';
+    });
+
+    t('오늘의 일과 — 선물·잡초·기증·배달이 진행을 채운다', function () {
+      var s = V.state();
+      var keep = JSON.parse(JSON.stringify(s.tasks));
+      var raw = V.raw();
+      s.tasks.list[1] = { key: 'gift', name: '선물', kind: 'gift', need: 1, reward: 10,
+        base: V.counterOf('gift'), done: false };
+      s.tasks.list[2] = { key: 'weed', name: '잡초', kind: 'weed', need: 1, reward: 10,
+        base: V.counterOf('weed'), done: false };
+      s.tasks.weekly = { key: 'w_donate', name: '기증', kind: 'donate', need: 1, reward: 10,
+        base: V.counterOf('donate'), done: false };
+
+      var res = raw.residents[0];
+      s.gifted = {}; s.bag.apple = 1;
+      raw.player.x = res.x; raw.player.y = res.y;
+      V.giveGift(res.id, 'apple');
+      var giftOk = V.taskList()[1].done;
+
+      if (!s.weeds.length) { s.weeds.push({ x: raw.player.x, y: raw.player.y }); V.buildProps(); }
+      var wp = raw.props.filter(function (p) { return p.kind === 'weed'; })[0];
+      var weedOk = false;
+      if (wp) { V.pullWeed(wp); weedOk = V.taskList()[2].done; }
+
+      var key = Object.keys(VD.ITEMS).map(function (c) { return VD.ITEMS[c][0]; })
+        .filter(function (i) { return !DG.museum.donated(i.key); })[0];
+      var donateOk = false;
+      if (key) {
+        s.bag[key.key] = (s.bag[key.key] || 0) + 1;
+        var museumProp = raw.props.filter(function (p) { return p.kind === 'museum'; })[0];
+        if (museumProp) {
+          raw.player.x = museumProp.x; raw.player.y = museumProp.y;
+          DG.museum.donate(key.key);
+          donateOk = V.weeklyTaskInfo().done;
+        }
+      }
+      s.tasks = keep;
+      return giftOk && weedOk && (!key || donateOk) &&
+        ('선물 완료 · 잡초 완료' + (key ? ' · 기증 완료' : ' · 기증은 자리 없어 생략'));
+    });
+
+    t('오늘의 일과 — 행사날은 셋째 줄이 행사 과제로 고정된다', function () {
+      var s = V.state();
+      var keep = JSON.parse(JSON.stringify(s.tasks));
+      C.setTune('time.event', 'seollal');       // 설날 강제 — up 칸이 없는 유일한 행사라 골랐다
+      s.day = V.today() - 1;
+      V.rollDay();
+      var list = V.taskList();
+      C.setTune('time.event', null);
+      var ok = list[2] && list[2].key === 'ev_seollal';
+      s.tasks = keep;
+      return ok && ('셋째 줄=' + (list[2] && list[2].name));
+    });
+
     /* ── 자동 마을살이 ────────────────────────────────── */
 
     t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {

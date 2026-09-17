@@ -54,11 +54,13 @@
 
     s.bag[key] -= 1;
     s.donated[key] = true;
+    s.donateTotal = (s.donateTotal || 0) + 1;   // 오늘의 일과(§5.1) — donated 는 종류별 한 번뿐이라 따로 센다
     var fame = 20 + Math.floor(it.price / 10);
     core.save.player.fame += fame;
     core.gainFeat(3, '기증');
     core.gainExp(12);
     core.log('🏛️ ' + it.emoji + ' ' + it.name + ' 을(를) 사고에 들였다 — 🎖️ +' + fame, 'good');
+    if (V().checkTasks) { V().checkTasks(); }
     core.emit('changed');
     core.persist();
 
