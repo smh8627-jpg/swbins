@@ -46,11 +46,12 @@ const RealmWar := preload("res://games/saga_realm/data/realm_war.gd")
 const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 const RealmGrowth := preload("res://games/saga_realm/data/realm_growth.gd")
 const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
+const RealmTraits := preload("res://games/saga_realm/data/realm_traits.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const SessionCard := preload("res://saga_core/ui/session_card.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 13  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id)
+const SAVE_VERSION := 14  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id) → 14(특성·야망: officer_ambition/enemies_subverted, PLAN 101-2 REALM ③)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 ## **2026-09-14 추가 — 시나리오(RealmCities.SCENARIO_CAO_CITIES 키).**
@@ -130,6 +131,18 @@ var officer_loyal: Dictionary = {RealmOfficerPool.STARTING_OFFICER: RealmDiplo.b
 ## lv=1·rank=0(배율 1.0)이라 기존 값과 다르지 않다.
 var officer_growth: Dictionary = {}
 var _done_this_month: Dictionary = {}  # officer_id -> bool
+
+## **2026-09-17 추가 — PLAN 101-2 REALM ③후보(웹판 §5-1 "인물 특성·야망").**
+## `officer_growth`와 같은 지연 초기화 패턴 — officer_id -> {k, prog, done,
+## fail_months}. `k`(야망 종류)는 `RealmTraits.ambition_of(id)`로 결정적으로
+## 뽑히고 이후 안 바뀐다. 특성(traits)은 세이브에 안 담는다(결정적이라
+## 매번 다시 계산해도 같다, `realm_traits.gd` 머리말 참고).
+var officer_ambition: Dictionary = {}
+## 야망 "숙적"(적 무장을 계략으로 하나 제거) 진행도 — 이간 이탈 성공·매수
+## 성공 둘 다 여기서 센다(`plot()` 참고). 세력 전체가 공유하는 값이라
+## 사람별로 나누지 않는다(재야 성 편입 문턱을 세력 전체로 재는 "고향"과
+## 같은 결).
+var enemies_subverted := 0
 
 ## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).**
 ## enemy_id -> {troops, wall, max_wall, train, tech, captured}. _init_enemies()
@@ -354,6 +367,8 @@ func start_scenario(id: String) -> void:
 	officer_city = {RealmOfficerPool.STARTING_OFFICER: RealmCities.DEFAULT_CITY}
 	officer_loyal = {RealmOfficerPool.STARTING_OFFICER: RealmDiplo.base_loyal(RealmOfficerPool.STARTING_OFFICER)}
 	officer_growth = {}
+	officer_ambition = {}
+	enemies_subverted = 0
 	_done_this_month.clear()
 	viewing_map = false
 
@@ -385,20 +400,35 @@ func _init_quiz() -> void:
 
 func _growth(id: String) -> Dictionary:
 	if not officer_growth.has(id):
-		officer_growth[id] = {"lv": 1, "exp": 0, "rank": 0, "feats": 0}
+		officer_growth[id] = {"lv": 1, "exp": 0, "rank": 0, "feats": 0, "bonus": {}}
 	return officer_growth[id]
 
 
 ## officer.js off.stats() 축약 — 나이(aging)는 이 슬라이스에 없어(REALM
 ## PLAN 4절에도 없는 항목) 성장 배율만 곱한다. Characters.find(id)가 없으면
 ## (없는 id) 0을 돌려준다.
+## **2026-09-17 추가 — `bonus`(야망 달성 "능력 +2 영구", PLAN 101-2 REALM
+## ③).** 배율이 아니라 평평한 덧셈이라 곱셈 뒤에 더한다 — `_add_growth_
+## bonus()`만 이 값을 채운다.
 func _effective_stat(id: String, stat_key: String) -> float:
 	var h = Characters.find(id)
 	if h == null:
 		return 0.0
 	var base: float = float(h.stats.get(stat_key, 0))
 	var g: Dictionary = officer_growth.get(id, {"lv": 1, "rank": 0})
-	return base * RealmGrowth.grow_mul(int(g.get("lv", 1)), int(g.get("rank", 0)))
+	var mul := base * RealmGrowth.grow_mul(int(g.get("lv", 1)), int(g.get("rank", 0)))
+	var bonus: Dictionary = g.get("bonus", {})
+	return mul + float(bonus.get(stat_key, 0))
+
+
+## 야망 달성 보상("능력 +2 영구") — `officer_growth[id].bonus[stat_key]`에
+## 누적한다(같은 사람이 같은 축 야망을 두 번 이룰 일은 없지만, 겹쳐도
+## 안전하게 더하기만 한다).
+func _add_growth_bonus(id: String, stat_key: String, amount: int) -> void:
+	var g := _growth(id)
+	var bonus: Dictionary = g.get("bonus", {})
+	bonus[stat_key] = int(bonus.get(stat_key, 0)) + amount
+	g.bonus = bonus
 
 
 ## 경험을 준다 — 레벨이 오르면 _effective_stat()가 그만큼 곱해진다.
@@ -460,7 +490,11 @@ func promote(id: String) -> Dictionary:
 	g.feats = int(g.feats) - int(cost.feats)
 	gold -= int(cost.gold)
 	g.rank = int(g.rank) + 1
-	officer_loyal[id] = clampi(int(officer_loyal.get(id, 50)) + 12, 0, 100)
+	## PLAN 101-2 REALM ③후보 — 탐욕(웹판 §5-1 "상 받으면 충성 +50%").
+	var loyal_gain := 12
+	if RealmTraits.has_trait(id, "greedy"):
+		loyal_gain = roundi(float(loyal_gain) * RealmTraits.TRAIT_GREEDY_REWARD_MUL)
+	officer_loyal[id] = clampi(int(officer_loyal.get(id, 50)) + loyal_gain, 0, 100)
 	return {"ok": true, "rank": int(g.rank), "name": RealmGrowth.rank_name(int(g.rank)), "loyal": int(officer_loyal[id])}
 
 
@@ -686,6 +720,7 @@ func next_month() -> void:
 	else:
 		diplomacy_peace_streak = 0
 
+	_tick_ambitions()
 	_check_defection()
 	_run_enemy_ai()
 	_run_enemy_economy()
@@ -741,13 +776,105 @@ func _check_defection() -> void:
 	for id: String in roster:
 		if int(officer_loyal.get(id, 50)) > RealmDiplo.DEFECT_LOYAL_FLOOR:
 			continue
-		if _rng.randf() > RealmDiplo.DEFECT_CHANCE:
+		## PLAN 101-2 REALM ③후보 — 충직(자기 이탈 확률을 낮춘다, `realm_
+		## traits.gd` TRAIT_LOYAL_DEFECT_MUL 머리말 참고)과 야망 좌절
+		## "이간 취약 ×1.5"(재해석 — 자기 이탈 확률에 건다) 둘 다 여기서 곱한다.
+		var chance := RealmDiplo.DEFECT_CHANCE
+		if RealmTraits.has_trait(id, "loyal_heart"):
+			chance *= RealmTraits.TRAIT_LOYAL_DEFECT_MUL
+		var amb: Dictionary = officer_ambition.get(id, {})
+		if int(amb.get("fail_months", 0)) > RealmTraits.AMBITION_FRUSTRATE_MONTHS:
+			chance *= RealmTraits.AMBITION_FRUSTRATE_DEFECT_MUL
+		if _rng.randf() > chance:
 			continue
 		leaving.append(id)
 	for id: String in leaving:
 		roster.erase(id)
 		officer_city.erase(id)
 		officer_loyal.erase(id)
+
+
+## `officer_growth()`와 같은 지연 초기화 — 처음 보는 무장이면 `RealmTraits.
+## ambition_of()`로 결정적인 야망 하나를 배정한다(이후 절대 안 바뀐다).
+func _ambition(id: String) -> Dictionary:
+	if not officer_ambition.has(id):
+		officer_ambition[id] = {"k": RealmTraits.ambition_of(id), "prog": 0, "done": false, "fail_months": 0}
+	return officer_ambition[id]
+
+
+## PLAN 101-2 REALM ③후보 — 웹판 §5-1 "무장 카드에 특성 배지 2개·야망
+## 한 줄과 진행 막대"의 3D 판. 이 슬라이스엔 그림 카드가 없어(전부 텍스트
+## `ChoicePrompt` 라벨) 승진·전임처럼 **사람을 직접 고르는 화면**에만
+## 한 줄로 얹는다(등용·태수·출진은 자동 선택이라 고르는 화면 자체가 없다).
+func officer_hint(id: String) -> String:
+	var badge := RealmTraits.trait_badge(id)
+	var amb := _ambition(id)
+	var def: Dictionary = RealmTraits.AMBITIONS.get(String(amb.k), {})
+	var mark := "달성" if bool(amb.get("done", false)) else "%d/%d" % [int(amb.get("prog", 0)), int(def.get("target", 1))]
+	return "%s 야망:%s(%s)" % [badge, String(def.get("name", "")), mark]
+
+
+## PLAN 101-2 REALM ③후보(웹판 §5-1) — 달마다 로스터 전원의 야망 진행도를
+## 다시 잰다. 대부분은 "지금 상태가 문턱을 넘었는가"를 그대로 다시 계산하는
+## 절대값 판정이라(연속 개월만 예외 — 태수) 저장된 `prog`는 표시용 스냅샷일
+## 뿐 판정 자체는 매번 새로 한다(진단이 "결과가 재현 가능"하려면 이쪽이
+## 과거 이벤트를 따로 누적하는 것보다 안전하다).
+func _tick_ambitions() -> void:
+	for id: String in roster:
+		if Characters.find(id) == null:
+			continue
+		var amb := _ambition(id)
+		if bool(amb.get("done", false)):
+			continue
+		var key: String = String(amb.k)
+		var def: Dictionary = RealmTraits.AMBITIONS.get(key, {})
+		if def.is_empty():
+			continue
+		var target := int(def.target)
+		var prog := 0
+		match key:
+			"governor":
+				var is_gov := false
+				for city_id: String in cities.keys():
+					if _governor_at(city_id) == id:
+						is_gov = true
+						break
+				prog = mini(target, int(amb.get("prog", 0)) + 1) if is_gov else 0
+			"hometown":
+				prog = mini(target, cities.size())
+			"rival":
+				prog = mini(target, enemies_subverted)
+			"wealth":
+				prog = mini(target, gold)
+			"fame":
+				prog = mini(target, int(_growth(id).get("rank", 0)))
+			"scholar":
+				prog = mini(target, quiz.learned.size())
+		amb.prog = prog
+		if prog >= target:
+			amb.done = true
+			amb.fail_months = 0
+			_grant_ambition_reward(id, key)
+		else:
+			amb.fail_months = int(amb.get("fail_months", 0)) + 1
+			## 웹판 §5-1 "12달 넘게 좌절이면 충성 -3/달" — 이간 취약 배율은
+			## `_check_defection()`이 이 `fail_months`를 직접 읽어 적용한다.
+			if int(amb.fail_months) > RealmTraits.AMBITION_FRUSTRATE_MONTHS:
+				officer_loyal[id] = clampi(int(officer_loyal.get(id, 50)) - RealmTraits.AMBITION_FRUSTRATE_LOYAL_HIT, 0, 100)
+		officer_ambition[id] = amb
+
+
+## 야망 달성 보상 — 웹판 §5-1 "충성 +20·능력 +2 영구" 그대로.
+func _grant_ambition_reward(id: String, key: String) -> void:
+	officer_loyal[id] = clampi(int(officer_loyal.get(id, 50)) + RealmTraits.AMBITION_DONE_LOYAL, 0, 100)
+	var stat_key := String(RealmTraits.AMBITIONS[key].get("reward_stat", "wisdom"))
+	_add_growth_bonus(id, stat_key, RealmTraits.AMBITION_DONE_STAT)
+	var h = Characters.find(id)
+	if h != null:
+		Toast.show(self, "🎯 %s — 야망 \"%s\"을(를) 이루었다! 충성 +%d · %s +%d" % [
+			String(h.name), String(RealmTraits.AMBITIONS[key].name),
+			RealmTraits.AMBITION_DONE_LOYAL, stat_key, RealmTraits.AMBITION_DONE_STAT,
+		], 3.0)
 
 
 const AI_MARCH_CHANCE := 0.20  # 재해석 — 아래 _run_enemy_ai() 머리말 참고
@@ -1076,9 +1203,15 @@ func attack(enemy_id: String) -> Dictionary:
 	c.troops = 0
 	c.food = int(c.food) - need
 
+	## PLAN 101-2 REALM ③후보 — 호전(웹판 §5-1 "일기토 발생률" 재해석,
+	## `realm_traits.gd` TRAIT_MILITANT_MIGHT_MUL 참고 — 일기토가 없어
+	## 대신 출진 위력을 올린다).
+	var atk_might := _effective_stat(officer_id, "might")
+	if RealmTraits.has_trait(officer_id, "militant"):
+		atk_might *= RealmTraits.TRAIT_MILITANT_MIGHT_MUL
 	var atk := {
 		"troops": troops, "start": troops, "train": int(c.train), "tech": int(c.tech),
-		"best_command": _effective_stat(officer_id, "command"), "best_might": _effective_stat(officer_id, "might"),
+		"best_command": _effective_stat(officer_id, "command"), "best_might": atk_might,
 		"officer_count": 1,
 	}
 	## **2026-09-12 갱신 — 이간·매수로 이름 있는 수비 무장이 생겼다.**
@@ -1322,6 +1455,9 @@ func plot(kind: String, enemy_id: String) -> Dictionary:
 				found.append(target_id)
 			result["defected"] = true
 			enemies[enemy_id] = e
+			## PLAN 101-2 REALM ③후보 — 야망 "숙적"(적 무장을 계략으로 하나
+			## 제거) 진행도.
+			enemies_subverted += 1
 	elif kind == "bribe":
 		var target_id: String = String(chk.target_id)
 		(e.officers as Array).erase(target_id)
@@ -1332,6 +1468,7 @@ func plot(kind: String, enemy_id: String) -> Dictionary:
 		officer_loyal[target_id] = RealmDiplo.BRIBE_LOYAL_SET
 		result["target"] = target_id
 		result["home_city"] = RealmCities.DEFAULT_CITY
+		enemies_subverted += 1  # 위와 같은 이유 — 매수도 "적 무장을 꺾은" 것으로 친다
 
 	diplomacy[force_id] = dip
 	return result
@@ -1426,6 +1563,13 @@ func _plot_check(kind: String, enemy_id: String) -> Dictionary:
 			var th = Characters.find(target_id)
 			var target_rarity := int(th.rarity) if th != null else 3
 			chance = RealmDiplo.bribe_chance(mine_wisdom, guard_wisdom, sec, target_loyal2, target_rarity)
+			## PLAN 101-2 REALM ③후보 — 탐욕(매수 대상이면 쉽게 넘어옴)·
+			## 청렴(반대짝, 매수 저항). 웹판 §5-1 그대로.
+			if RealmTraits.has_trait(target_id, "greedy"):
+				chance *= RealmTraits.TRAIT_GREEDY_BRIBE_MUL
+			if RealmTraits.has_trait(target_id, "honest"):
+				chance *= RealmTraits.TRAIT_HONEST_BRIBE_MUL
+			chance = clampf(chance, 0.05, 0.9)
 		_:
 			chance = RealmDiplo.plot_chance(mine_wisdom, guard_wisdom, sec)
 
@@ -1544,6 +1688,14 @@ func quiz_answer(p: Dictionary, choice_idx: int) -> Dictionary:
 					reward.found = got
 		else:
 			reward.gold = int(rw.rgold)
+
+		## PLAN 101-2 REALM ③후보 — 학구(웹판 §5-1 "문답 상금 ×1.3"). 문답은
+		## 특정 무장이 푸는 행동이 아니라(플레이어 조작), 지금 조망 중인 성의
+		## 태수가 대신한다고 재해석했다 — `gov_mul()`이 성 살림에 태수의
+		## 자질을 얹는 것과 같은 자리(태수가 없으면 배율 없음).
+		var gov_id := _governor_at(current_city)
+		if not gov_id.is_empty() and RealmTraits.has_trait(gov_id, "scholarly"):
+			reward.gold = roundi(float(reward.gold) * RealmTraits.TRAIT_SCHOLARLY_QUIZ_MUL)
 
 		gold += int(reward.gold)
 	else:
@@ -1688,6 +1840,8 @@ func save() -> bool:
 		"quiz": quiz,
 		"result": result,
 		"diplomacy_peace_streak": diplomacy_peace_streak,
+		"officer_ambition": officer_ambition,
+		"enemies_subverted": enemies_subverted,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -1747,6 +1901,10 @@ func try_load() -> bool:
 		quiz = loaded_quiz
 	result = String(data.get("result", ""))
 	diplomacy_peace_streak = int(data.get("diplomacy_peace_streak", 0))
+	var loaded_officer_ambition: Variant = data.get("officer_ambition", {})
+	if typeof(loaded_officer_ambition) == TYPE_DICTIONARY:
+		officer_ambition = loaded_officer_ambition
+	enemies_subverted = int(data.get("enemies_subverted", 0))
 	_done_this_month.clear()
 	return true
 

@@ -25,7 +25,7 @@ func _on_pressed() -> void:
 		var city_name := String(RealmCities.any_by_id(city_id).get("name", city_id))
 		var h = Characters.find(id)
 		choices.append({
-			"label": "%s (%s)" % [String(h.name), city_name],
+			"label": "%s (%s) %s" % [String(h.name), city_name, RealmSaveState.officer_hint(id)],
 			"cb": func() -> void: _pick_destination(id, city_id, layer_box),
 		})
 	layer_box["layer"] = ChoicePrompt.build(self, "전임 — 누구를", choices)

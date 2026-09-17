@@ -27,9 +27,10 @@ func _on_pressed() -> void:
 		var rank := int(g.get("rank", 0))
 		var cost := RealmGrowth.promote_cost(rank)
 		choices.append({
-			"label": "%s — %s Lv.%d (공 %d/%d)" % [
+			"label": "%s — %s Lv.%d (공 %d/%d) %s" % [
 				String(h.name), RealmGrowth.rank_name(rank), int(g.get("lv", 1)),
 				int(g.get("feats", 0)), int(cost.feats),
+				RealmSaveState.officer_hint(id),
 			],
 			"cb": func() -> void: _run(id, layer_box),
 		})
