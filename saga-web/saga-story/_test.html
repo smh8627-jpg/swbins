@@ -82,6 +82,9 @@ window.DG_NO_TUNE = true;
 <script src="js/hero.js"></script>
 <script src="js/side.js"></script>
 <script src="js/side-view.js"></script>
+<script src="js/vendor/three.iife.js"></script>
+<script src="js/toon3d.js"></script>
+<script src="js/asset3d.js"></script>
 <script src="js/gear.js"></script>
 <script src="js/job.js"></script>
 <script src="js/quest.js"></script>
@@ -2787,6 +2790,17 @@ window.DG_NO_TUNE = true;
       for (i = 0; i < E.MAX + 5; i++) { arr = E.push(arr, { t: i, msg: 'e' + i }); }
       var ok = arr.length === E.MAX && arr[0].msg === 'e5' && arr[arr.length - 1].msg === ('e' + (E.MAX + 4));
       return ok && (E.MAX + 5) + '건 넣어 ' + arr.length + '건 남음(오래된 것부터 밀림)';
+    });
+
+    t('asset3d — mapClips 순수 함수 (다른 판과 같은 표, 이 판은 asset3d.js 자체가 이제껏 진단 밖)', function () {
+      var A3 = DG.asset3d;
+      if (!A3 || typeof A3.mapClips !== 'function') { return false; }
+      var m = A3.mapClips(['Armature|mixamo.com|Idle_Loop', 'Walk.001', 'Anim_Attack_Slash', 'RunCycle']);
+      var empty = A3.mapClips([]);
+      return m.idle === 'Armature|mixamo.com|Idle_Loop' && m.walk === 'Walk.001' &&
+        m.attack === 'Anim_Attack_Slash' && m.run === 'RunCycle' &&
+        empty.idle === undefined && !!empty.alias &&
+        ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
     });
 
     t('런타임 에러 없음', function () {

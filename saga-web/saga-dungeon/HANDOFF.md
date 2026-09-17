@@ -3037,3 +3037,14 @@ PLAN §6·§7.3 에 남겨 뒀다.
 
 **검증** — `node -c js/errlog.js js/admin.js sw.js` 통과, `bash tools/precheck.sh
 saga-web/saga-dungeon` → PRECHECK OK.
+
+## 2026-09-17 — asset3d.js mapClips 진단 추가 (지금까지 미검증이던 순수 함수)
+
+사가국지 `_test.html`에 3D 진단 공백을 메꾸다가, `asset3d.js`는 이 판 `_test.html`이
+이미 싣고 있는데도(line 115) `mapClips()`(GLB 클립 이름을 idle·walk·attack 등 자리에
+맞춰 주는 순수 함수, 사가고·사가의숲엔 이미 진단이 있었다) 진단이 하나도 없던 것을
+발견해 메꿨다. 새 스크립트를 얹지 않고 기존에 이미 로드된 `asset3d.js`에 진단 1항목만
+추가한 것이라 위험이 없다.
+
+**검증** — `bash tools/precheck.sh saga-web/saga-dungeon` → PRECHECK OK. `sw.js` 버전은
+안 건드림(`_test.html`은 SHELL 캐시 목록에 없다).

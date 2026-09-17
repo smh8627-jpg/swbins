@@ -95,3 +95,21 @@
 추가, `VERSION` `side-v0.46.8` → `side-v0.47.0`.
 
 **검증** — `node -c` 통과, `bash tools/precheck.sh saga-web/saga-story` → PRECHECK OK.
+
+## 2026-09-17 — asset3d.js를 _test.html에 얹고 mapClips 진단 추가
+
+사가국지 3D 진단 공백을 메꾸다가 이 판도 `_test.html`이 `asset3d.js`(GLB 클립 이름
+매칭 `mapClips()` 등)를 아예 안 실어 진단 0항목이던 것을 발견해 메꿨다. `index.html`과
+같은 순서로 `side-view.js` 뒤·`gear.js` 앞에 `vendor/three.iife.js`·`toon3d.js`·
+`asset3d.js`만 추가했다(`portrait3d.js`·`ssao3d.js`·`post3d.js`·`side-view3d.js`는
+`mapClips` 진단에 필요 없어 안 얹음 — `game.js`의 `global.DG.sideView3d` 참조는 전부
+`if (global.DG.sideView3d)`로 존재 확인 뒤 부르므로 안 얹어도 안전).
+
+새 진단 1항목: `mapClips` — 사가고·사가의숲과 같은 표로 검증(뒤섞인 클립 이름 4개가
+제자리를 찾는지, 빈 목록이 빈 표인지).
+
+**검증** — `node -c` 대상 없음(html 자체 편집), `bash tools/precheck.sh
+saga-web/saga-story` → PRECHECK OK. `sw.js` 버전 안 건드림(`_test.html`은 SHELL 목록
+밖). 헤드리스 3회 확인은 이번에도 안 돌렸다(사용자 실기 확인 몫) — 대신 `asset3d.js`
+모듈 최상위에 THREE·DOM 의존 부작용이 없는지(전부 함수 안에서만 `three()`를 늦게
+부른다) 코드로 확인했다.
