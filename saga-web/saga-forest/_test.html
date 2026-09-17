@@ -2054,6 +2054,41 @@ window.DG_NO_TUNE = true;
       return !dup && bundleN === 5 && (bundleN + '개 시설 · 겹치는 자리 없음');
     });
 
+    t('번들 시설 — 마지막 기증 순간 바로 선다 (museum.donate() 가 buildProps() 를 부른다)', function () {
+      var s = V.state(), VD = DG.villageData;
+      var savedDonated = s.donated, savedBag = JSON.parse(JSON.stringify(s.bag || {}));
+      s.donated = {};
+      V.buildProps();
+      goMuseum();
+      var fossils = VD.ITEMS.fossil, i, lastKey = fossils[fossils.length - 1].key;
+      for (i = 0; i < fossils.length - 1; i++) {
+        s.donated[fossils[i].key] = true;   // 마지막 한 종만 남기고 미리 다 채워 둔다
+      }
+      s.bag[lastKey] = 1;
+      var res = DG.museum.donate(lastKey);
+      var stele = V.raw().props.filter(function (p) { return p.id === 'bundle_fossil'; })[0];
+
+      s.donated = savedDonated; s.bag = savedBag;
+      V.buildProps();
+
+      return res.bundleCompleted === 'fossil' && res.text.indexOf('🎉') >= 0 && !!stele &&
+        '마지막 기증에 bundleCompleted=fossil · 석비가 그 자리에서 바로 선다';
+    });
+
+    t('번들 시설 — 갈래를 안 다 채운 기증은 bundleCompleted 가 없다', function () {
+      var s = V.state(), VD = DG.villageData;
+      var savedDonated = s.donated, savedBag = JSON.parse(JSON.stringify(s.bag || {}));
+      s.donated = {};
+      goMuseum();
+      var firstKey = VD.ITEMS.fossil[0].key;
+      s.bag[firstKey] = 1;
+      var res = DG.museum.donate(firstKey);
+
+      s.donated = savedDonated; s.bag = savedBag;
+
+      return !res.bundleCompleted && res.text.indexOf('🎉') < 0 && '첫 한 종만 들이면 축하 문구 없음';
+    });
+
     t('도감과 사고는 다른 자리다 (팔아도 도감은 남는다)', function () {
       var s = V.state();
       s.donated = {};

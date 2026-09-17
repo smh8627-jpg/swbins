@@ -1575,9 +1575,11 @@
     }
     html += '</div>';
 
-    /* 전시실 넷 */
+    /* 전시실 넷 — 갈래를 다 채우면 마을에 시설이 서는 번들(PLAN §5.3, 2026-09-17) */
+    var bundles = VD.BUNDLES || {};
     for (i = 0; i < stt.cats.length; i++) {
-      var c = stt.cats[i], rows = '';
+      var c = stt.cats[i], rows = '', bd = bundles[c.cat.key];
+      var bundleDone = bd && c.total > 0 && c.done >= c.total;
       for (j = 0; j < c.all.length; j++) {
         var it = c.all[j];
         var has = M.donated(it.key);
@@ -1586,7 +1588,10 @@
           (has ? it.emoji : '❔') + '</span>';
       }
       html += '<div class="sec"><h4>' + c.cat.icon + ' ' + c.cat.name + '</h4>' +
-        dexBar(c.done, c.total) + '<div class="biogrid">' + rows + '</div></div>';
+        dexBar(c.done, c.total) + '<div class="biogrid">' + rows + '</div>' +
+        (bd ? '<small class="muted">' + (bundleDone ? '✓ 다 채웠습니다 — 마을에 시설이 섰습니다'
+                                                     : '다 채우면 마을에 시설이 하나 섭니다') + '</small>' : '') +
+        '</div>';
     }
     return html;
   }

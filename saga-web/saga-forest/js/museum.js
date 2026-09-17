@@ -46,11 +46,20 @@
     return { ok: true };
   }
 
+  /** 갈래 하나(bug/fish/fossil/shell)의 done/total — byCat() 은 넷을 한꺼번에
+   *  훑어 매번 만들기엔 과하니, donate() 는 이 홑겹만 쓴다 */
+  function catStatus(catKey) {
+    var all = VD().ITEMS[catKey] || [], done = 0;
+    for (var i = 0; i < all.length; i++) { if (donated(all[i].key)) { done++; } }
+    return { done: done, total: all.length };
+  }
+
   function donate(key) {
     var chk = canDonate(key);
     if (!chk.ok) { return { kind: 'no', text: chk.why }; }
     var s = st(), it = VD().item(key);
     var before = count().done;
+    var catBefore = catStatus(it.cat);
 
     s.bag[key] -= 1;
     s.donated[key] = true;
@@ -59,14 +68,26 @@
     core.save.player.fame += fame;
     core.gainFeat(3, '기증');
     core.gainExp(12);
-    core.log('🏛️ ' + it.emoji + ' ' + it.name + ' 을(를) 사고에 들였다 — 🎖️ +' + fame, 'good');
+
+    /* 번들(PLAN §5.3) — 이 기증으로 갈래가 막 다 채워졌으면 마을 시설이 선다.
+       village.js buildProps() 는 날짜가 넘어갈 때만 저절로 도니, 시설이
+       완성 "순간" 바로 보이려면 여기서 한 번 더 불러야 한다 */
+    var catAfter = catStatus(it.cat);
+    var bundle = VD().BUNDLES && VD().BUNDLES[it.cat];
+    var justCompleted = !!bundle && catBefore.done < catBefore.total && catAfter.done >= catAfter.total;
+    if (justCompleted && V().buildProps) { V().buildProps(); }
+
+    var text = '🏛️ ' + it.emoji + ' ' + it.name + ' 을(를) 사고에 들였다 — 🎖️ +' + fame;
+    if (justCompleted) { text += ' — 🎉 ' + bundle.name + '!'; }
+    core.log(text, 'good');
     if (V().checkTasks) { V().checkTasks(); }
     core.emit('changed');
     core.persist();
 
     var after = count().done;
-    return { kind: 'donate', text: '🏛️ ' + it.name + ' 을(를) 들였다 — 🎖️ +' + fame,
-             grew: grade(after).name !== grade(before).name };
+    return { kind: 'donate', text: text,
+             grew: grade(after).name !== grade(before).name,
+             bundleCompleted: justCompleted ? it.cat : null };
   }
 
   /** 갈래별 현황 */
