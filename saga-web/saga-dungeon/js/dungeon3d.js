@@ -1535,6 +1535,48 @@
       clnode2.position.set(p.x, y, p.z);
       clnode2.rotation.y = p.rot || 0;
       g.add(clnode2);
+    } else if (p.t === 't_factory' || p.t === 't_solar' || p.t === 't_tower' ||
+               p.t === 't_pylon' || p.t === 't_hologram') {
+      /* §5.7 시대 퓨전(2026-09-18) — biome 마다 하나(field3d.js eraLayerAt()).
+         전부 실제 GLB 가 없다(현대·미래 소품 팩을 아직 못 구했다) — PLAN
+         원문이 "CC0 조합 또는 절차 생성" 둘 다 열어 둬 이번엔 절차 생성으로
+         간다. 나중에 GLB 를 구하면 AS3.build 의 이 키로만 등록하면
+         자동으로 갈아 끼워진다(다른 소품과 같은 결). */
+      var eraShape = function () {
+        var sg = new T.Group();
+        if (p.t === 't_factory') {
+          /* 고분 옆 폐공장 굴뚝 — 붉은 벽돌색 원통 모양(상자로 근사) + 검은 아가리 */
+          box(sg, 0, p.h * 0.5, 0, 22, p.h, 22, 0x5a3a30, 'flat', true);
+          box(sg, 0, p.h, 0, 14, 6, 14, 0x1a1a1a, 'flat', false);
+        } else if (p.t === 't_solar') {
+          /* 기와집 옆 태양광 판 — 기둥 하나 + 기울어진 짙은 남색 판 */
+          box(sg, 0, p.h * 0.32, 0, 5, p.h * 0.64, 5, 0x5a5a5a, 'flat', true);
+          var panel = box(sg, 0, p.h * 0.62, 0, 46, 4, 30, 0x1c3a5e, 'flat', true);
+          panel.rotation.x = -0.4;
+        } else if (p.t === 't_tower') {
+          /* 늪 위 녹슨 관측탑 — 가는 기둥 넷 + 꼭대기 전망대(녹슨 주황) */
+          var lp = 16;
+          box(sg, lp, p.h * 0.5, lp, 6, p.h, 6, 0x6b4a34, 'flat', true);
+          box(sg, -lp, p.h * 0.5, lp, 6, p.h, 6, 0x6b4a34, 'flat', true);
+          box(sg, lp, p.h * 0.5, -lp, 6, p.h, 6, 0x6b4a34, 'flat', true);
+          box(sg, -lp, p.h * 0.5, -lp, 6, p.h, 6, 0x6b4a34, 'flat', true);
+          box(sg, 0, p.h, 0, 44, 10, 44, 0x9a5a2e, 'flat', true);
+        } else if (p.t === 't_pylon') {
+          /* 산채에 케이블카 기둥 — 회색 격자 기둥 + 가로 활대 */
+          box(sg, 0, p.h * 0.5, 0, 14, p.h, 14, 0x7a7f88, 'flat', true);
+          box(sg, 0, p.h * 0.96, 0, 64, 6, 10, 0x5a5f68, 'flat', true);
+        } else {
+          /* 사당에 홀로그램 비석 — 돌 받침(제단과 같은 재질) + 청록 발광 기둥 */
+          box(sg, 0, 6, 0, 40, 12, 40, mix(stone, 0xffffff, 0.2), 'flat', true);
+          box(sg, 0, p.h * 0.5, 0, 16, p.h * 0.9, 4, 0x5adfe8, 'glow', false);
+        }
+        return sg;
+      };
+      var eranode = AS3 ? AS3.build(p.t, seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
+        p.h * 1.1, null, eraShape) : eraShape();
+      eranode.position.set(p.x, y, p.z);
+      eranode.rotation.y = p.rot || 0;
+      g.add(eranode);
     }
   }
 
@@ -1874,7 +1916,10 @@
      `attachWeapon()`으로 뽑아냈다(전엔 `foeGear()` 안에만 있었다) */
   var WPN_MUL = {
     club: 1.3, axe: 1.7, sword: 1.8, spear: 2.6, halberd: 2.8, guandao: 2.8,
-    staff: 2.3, bow: 1.7, scroll: 1.0, fan: 1.5, brush: 1.5
+    staff: 2.3, bow: 1.7, scroll: 1.0, fan: 1.5, brush: 1.5,
+    /* §5.7 시대 퓨전(2026-09-18) — 전자창은 halberd 급 길이, 동력장갑은
+       자루 없이 손을 감싸는 상자라 club 보다도 짧다. */
+    lance_e: 2.7, gauntlet: 1.2
   };
   function attachWeapon(g, weapon, handX, handZ, shoulderY, r) {
     var wcol = 0xb9c2cf, woodcol = 0x5a4a34;
@@ -1962,6 +2007,33 @@
       var tnode = AS3 ? AS3.build('wpn:' + weapon, 'foe', r * WPN_MUL[weapon], null, thinShape) : thinShape();
       tnode.position.set(handX, shoulderY, handZ);
       g.add(tnode);
+    } else if (weapon === 'lance_e') {
+      /* §5.7 시대 퓨전(2026-09-18) — 전자창(電子槍). 자루 비례는 halberd와
+         같지만 날 대신 발광 촉(staff의 파란 정육면체 결)을 얹어 "미래
+         무기"임을 실루엣으로 알린다. 실제 GLB 는 없다 — 이 fallback 이 늘 쓰인다
+         (AS3.build 는 'wpn:lance_e' 자산이 없으면 그대로 fallback 만 돌려준다). */
+      var laceShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 0, 0, r * 0.12, r * 2.6, r * 0.12, wcol, 'flat', true);
+        box(sg, 0, r * 1.25, 0, r * 0.22, r * 0.7, r * 0.22, 0x6fe0ff, 'glow', false);
+        return sg;
+      };
+      var lnode = AS3 ? AS3.build('wpn:lance_e', 'foe', r * WPN_MUL.lance_e, null, laceShape) : laceShape();
+      lnode.position.set(handX, shoulderY, handZ);
+      g.add(lnode);
+    } else if (weapon === 'gauntlet') {
+      /* §5.7 시대 퓨전(2026-09-18) — 동력장갑(動力裝甲). 자루가 없는 첫
+         무기라 다른 branches처럼 긴 막대를 안 세우고, 손 둘레를 감싸는
+         짧고 두꺼운 상자 + 발광 너클로 그린다. */
+      var gauShape = function () {
+        var sg = new T.Group();
+        box(sg, 0, 0, 0, r * 0.55, r * 0.55, r * 0.55, wcol, 'flat', true);
+        box(sg, 0, r * 0.32, r * 0.3, r * 0.5, r * 0.16, r * 0.16, 0xff8c3c, 'glow', false);
+        return sg;
+      };
+      var gnode = AS3 ? AS3.build('wpn:gauntlet', 'foe', r * WPN_MUL.gauntlet, null, gauShape) : gauShape();
+      gnode.position.set(handX, shoulderY, handZ);
+      g.add(gnode);
     }
   }
   function foeGear(g, look, hh, r, tint) {

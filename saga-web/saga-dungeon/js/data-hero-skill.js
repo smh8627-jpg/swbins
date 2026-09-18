@@ -583,6 +583,162 @@
       name: '율법계(律法計)', emoji: '🪨', shape: 'curse',
       v: 46, r: 145, sec: 6, cd: 18,
       desc: '돌에 새긴 그 셈법대로, 준 만큼 되받게 한다.'
+    },
+
+    /* 2026-09-18 — PLAN §5.7 시대 퓨전, `data-hero-ext.js`(현대·미래 30)
+       전원. 이 파일은 다섯 판 공통이 아니라(루트 CLAUDE.md 목록엔 data.js
+       뿐이다) 105명 때와 같은 규칙을 그대로 얹기만 하면 됐다 — name·desc
+       는 era/faction/quote 에서만 소재를 따고, 실명은 안 쓴다(가명 정책
+       진단이 이 SIG 표 전체를 이미 훑는다). */
+    md_ceo: {
+      name: '자본지휘(資本指揮)', emoji: '💼', shape: 'buff',
+      eff: 'atkPct', v: 30, sec: 8, cd: 20,
+      desc: '사람을 남기는 셈이라던 그 믿음이 전군의 손끝을 벼린다.'
+    },
+    md_scientist: {
+      name: '가설논(假說論)', emoji: '🔬', shape: 'curse',
+      v: 44, r: 150, sec: 6, cd: 18,
+      desc: '증명 전에도 시도한다는 그 태도가 다가선 적을 크게 무르게 한다.'
+    },
+    md_athlete: {
+      name: '쾌속돌(快速突)', emoji: '🏃', shape: 'dash',
+      v: 2.6, far: 2.4, cd: 17,
+      desc: '몸이 먼저 답을 안다는 그 감각이 앞으로 세차게 뻗는다.'
+    },
+    md_explorer: {
+      name: '원행참(遠行斬)', emoji: '🧭', shape: 'swing',
+      v: 3.3, r: 2.2, kb: 50, cd: 16,
+      desc: '지도에 없는 곳을 가겠다는 뜻이 앞을 크게 벤다.'
+    },
+    md_doctor: {
+      name: '인술활(仁術活)', emoji: '🩺', shape: 'heal',
+      v: 25, cd: 20,
+      desc: '손이 늦으면 마음이라도 먼저 간다는 다짐이 그 자리에서 상처를 다스린다.'
+    },
+    md_chef: {
+      name: '정미결(正味訣)', emoji: '🍳', shape: 'buff',
+      eff: 'hpPct', v: 24, sec: 8, cd: 20,
+      desc: '정직함에서 온다는 그 맛이 둘레의 기운을 다시 채운다.'
+    },
+    md_pilot: {
+      name: '이륙시(離陸矢)', emoji: '✈️', shape: 'bolt',
+      v: 2.3, shots: 3, spread: 0.38, cd: 11,
+      desc: '마지막 확인 뒤에 오는 이륙처럼, 화살 셋이 정확히 꽂힌다.'
+    },
+    md_firefighter: {
+      name: '화진진(火鎭陣)', emoji: '🚒', shape: 'nova',
+      el: 'fire', v: 3.4, r: 150, cd: 16,
+      desc: '먼저 뛰어든다는 다짐이 불길을 사방으로 눌러 놓는다.'
+    },
+    md_developer: {
+      name: '연쇄율(連鎖律)', emoji: '🎮', shape: 'chain',
+      v: 2.2, hops: 4, r: 260, kb: 15, cd: 15,
+      desc: '버그도 이야기의 일부라는 그 눈이 적에서 적으로 옮겨 붙는다.'
+    },
+    md_journalist: {
+      name: '필경계(筆鏡計)', emoji: '📰', shape: 'curse',
+      v: 42, r: 145, sec: 5, cd: 18,
+      desc: '묻지 않으면 아무도 모른다는 집요함이 다가선 적을 크게 무르게 한다.'
+    },
+    md_architect: {
+      name: '축형훈(築衡訓)', emoji: '🏙️', shape: 'buff',
+      eff: 'guardPct', v: 38, sec: 8, cd: 20,
+      desc: '무너지지 않는 게 첫째라는 그 다짐이 버티는 힘이 된다.'
+    },
+    md_musician: {
+      name: '현율결(絃律訣)', emoji: '🎻', shape: 'buff',
+      eff: 'atkSpdPct', v: 26, sec: 8, cd: 22,
+      desc: '박자는 마음이 먼저 맞춘다는 그 가락이 전군의 손끝을 재촉한다.'
+    },
+    md_lawyer: {
+      name: '정변론(正辯論)', emoji: '⚖️', shape: 'curse',
+      v: 43, r: 145, sec: 5, cd: 18,
+      desc: '말보다 근거가 이긴다는 그 논리가 다가선 적을 크게 무르게 한다.'
+    },
+    md_photographer: {
+      name: '순간결(瞬間訣)', emoji: '📷', shape: 'buff',
+      eff: 'critPct', v: 20, sec: 8, cd: 20,
+      desc: '지나가면 다시 안 온다는 그 눈이 결정적인 순간의 손끝을 벼린다.'
+    },
+    md_entrepreneur: {
+      name: '개척가(開拓駕)', emoji: '🚀', shape: 'dash',
+      v: 2.5, far: 2.3, cd: 17,
+      desc: '없던 길이라 제가 낸다는 그 뜻이 앞으로 세차게 뻗는다.'
+    },
+    ft_astronaut: {
+      name: '성해훈(星海訓)', emoji: '🧑‍🚀', shape: 'buff',
+      eff: 'allResPct', v: 22, sec: 8, cd: 20,
+      desc: '돌아갈 곳이 없다는 각오가 둘레를 두루 지켜 준다.'
+    },
+    ft_hacker: {
+      name: '은선계(隱線計)', emoji: '💻', shape: 'curse',
+      el: 'emp', v: 45, r: 150, sec: 6, cd: 18,
+      desc: '문은 찾는 것이라는 그 침착함이 다가선 적을 크게 무르게 한다.'
+    },
+    ft_bioeng: {
+      name: '생결활(生結活)', emoji: '🧬', shape: 'heal',
+      v: 26, cd: 20,
+      desc: '생명은 과정이라는 믿음이 그 자리에서 상처를 다스린다.'
+    },
+    ft_dronecmd: {
+      name: '편대시(編隊矢)', emoji: '🛸', shape: 'bolt',
+      el: 'emp', v: 2.3, shots: 3, spread: 0.42, cd: 11,
+      desc: '눈이 백 개라는 그 지휘가 화살 셋을 정확히 꽂는다.'
+    },
+    ft_airesearch: {
+      name: '지연진(智淵陣)', emoji: '🤖', shape: 'nova',
+      el: 'emp', v: 3.6, r: 160, cd: 15,
+      desc: '안 생각하는 게 더 무섭다는 그 통찰이 둘레를 크게 뒤흔든다.'
+    },
+    ft_cyberdoc: {
+      name: '접합활(接合活)', emoji: '🦾', shape: 'heal',
+      v: 25, cd: 20,
+      desc: '몸이 바뀌어도 사람은 안 바뀐다는 믿음이 그 자리에서 상처를 다스린다.'
+    },
+    ft_orbitmech: {
+      name: '궤도참(軌道斬)', emoji: '🛰️', shape: 'swing',
+      v: 3.2, r: 2.2, kb: 48, cd: 16,
+      desc: '떠 있는 것도 결국 손이 잡는다는 그 솜씨가 앞을 크게 벤다.'
+    },
+    ft_climateeng: {
+      name: '기후진(氣候陣)', emoji: '🌪️', shape: 'nova',
+      el: 'lit', v: 3.3, r: 155, cd: 16,
+      desc: '날씨도 설계할 수 있다는 그 자신감이 둘레를 크게 뒤흔든다.'
+    },
+    ft_quantumphy: {
+      name: '양자계(量子計)', emoji: '⚛️', shape: 'curse',
+      v: 46, r: 145, sec: 6, cd: 18,
+      desc: '관측하기 전엔 정해지지 않는다는 그 이치가 다가선 적을 크게 무르게 한다.'
+    },
+    ft_nanotech: {
+      name: '미세결(微細訣)', emoji: '🔬', shape: 'buff',
+      eff: 'hpPct', v: 24, sec: 8, cd: 20,
+      desc: '작은 것이 가장 크게 바꾼다는 믿음이 둘레의 기운을 다시 채운다.'
+    },
+    ft_marspioneer: {
+      name: '화적가(火赤駕)', emoji: '🔴', shape: 'dash',
+      v: 2.6, far: 2.4, cd: 17,
+      desc: '붉은 땅도 결국 사람의 땅이 된다는 그 걸음이 앞으로 세차게 뻗는다.'
+    },
+    ft_roboteng: {
+      name: '관절기(關節機)', emoji: '🦿', shape: 'summon',
+      v: 1, str: 1.3, big: true, sec: 14, cd: 30,
+      desc: '관절 하나가 걸음 전부를 바꾼다는 그 손끝이 전장에 기계를 세운다.'
+    },
+    ft_ewarfare: {
+      name: '신호전(信號戰)', emoji: '📡', shape: 'chain',
+      el: 'emp', v: 2.3, hops: 4, r: 270, kb: 18, cd: 16,
+      desc: '안 보이는 싸움이 진짜라는 그 감각이 적에서 적으로 옮겨 붙는다.'
+    },
+    ft_hologramartist: {
+      name: '환영계(幻影計)', emoji: '🎭', shape: 'curse',
+      v: 41, r: 140, sec: 5, cd: 16,
+      desc: '빛으로도 마음을 그릴 수 있다는 그 재주가 다가선 적을 크게 무르게 한다.'
+    },
+    ft_fusioneng: {
+      name: '융로진(融爐陣)', emoji: '☢️', shape: 'nova',
+      el: 'fire', v: 3.8, r: 165, cd: 15,
+      desc: '별의 불을 손안에 가뒀다는 그 힘이 둘레를 크게 뒤흔든다.'
     }
   };
 

@@ -21,6 +21,7 @@
 
   var els = {};
   var openTab = null;          // 열려 있는 시트 이름 (null 이면 닫힘)
+  var dexEra = 'all';          // 도감 인물 era 필터(§5.7 시대 퓨전) — 'all'|'past'|'modern'|'future'
   var openDetailRef = null;    // 열려 있는 상세 화면 { kind, id }
 
   function hero() { return global.DG.hero; }
@@ -200,6 +201,7 @@
         return;
       }
       if (act === 'quest-reroll') { global.DG.quest.reroll(); return; }
+      if (act === 'dex-era') { dexEra = b.getAttribute('data-era') || 'all'; renderSheet(); return; }
       if (act === 'town-wp') {
         var wf = parseInt(b.getAttribute('data-floor'), 10) || 1;
         encClose();
@@ -1251,15 +1253,41 @@
 
   /* ── 도감 ─────────────────────────────────────────────── */
 
+  /** era → 필터 갈래 셋(§5.7). 기존 넷(삼국지·한국사·일본사·세계사)은
+   *  전부 '과거' 하나로 묶는다 — 갈래를 다섯 세 개(과거·현대·미래)로만
+   *  늘렸다(era 자체를 갈래로 쓰면 4+2=6개라 시트 폭이 좁은 폰에서 버겁다). */
+  function eraGroupOf(era) {
+    if (era === '현대') { return 'modern'; }
+    if (era === '미래') { return 'future'; }
+    return 'past';
+  }
+  /** 인물 카드의 "시대 아이콘"(§5.7 수치 절) — era 문자열 그대로 하나씩. */
+  function eraIcon(era) { return era === '현대' ? '🏙️' : (era === '미래' ? '🚀' : '📜'); }
+  var DEX_ERA_TABS = [
+    { key: 'all', label: '전체' }, { key: 'past', label: '과거' },
+    { key: 'modern', label: '현대' }, { key: 'future', label: '미래' }
+  ];
+  function dexEraBar() {
+    var out = '<div class="dexera">', i, t;
+    for (i = 0; i < DEX_ERA_TABS.length; i++) {
+      t = DEX_ERA_TABS[i];
+      out += '<button class="btn tiny' + (dexEra === t.key ? ' on' : ' ghost') +
+        '" data-act="dex-era" data-era="' + t.key + '">' + esc(t.label) + '</button>';
+    }
+    return out + '</div>';
+  }
+
   function viewDex() {
+    var heroesShown = dexEra === 'all' ? data.heroes :
+      data.heroes.filter(function (h) { return eraGroupOf(h.era) === dexEra; });
     var hC = Object.keys(core.save.dex.heroes).length;
     var pC = Object.keys(core.save.dex.pets).length;
     var themes = (global.DG.dungeonData && global.DG.dungeonData.THEMES) || [];
     var rC = Object.keys(core.save.dex.regions || {}).length;
     var relics = (global.DG.town && global.DG.town.fieldRelics) ? global.DG.town.fieldRelics() : [];
     var lC = Object.keys(core.save.dex.relics || {}).length;
-    return '<div class="sec"><h4>인물</h4>' + dexBar(hC, data.heroes.length) +
-             dexGrid(data.heroes, core.save.dex.heroes) + '</div>' +
+    return '<div class="sec"><h4>인물</h4>' + dexEraBar() + dexBar(hC, data.heroes.length) +
+             dexGrid(heroesShown, core.save.dex.heroes) + '</div>' +
            '<div class="sec"><h4>펫</h4>' + dexBar(pC, data.pets.length) +
              dexGrid(data.pets, core.save.dex.pets) + '</div>' +
            '<div class="sec"><h4>지역</h4>' + dexBar(rC, themes.length || 1) +
@@ -2293,7 +2321,7 @@
             (h.hanja ? '<span class="hanja">' + esc(h.hanja) + '</span>' : '') + '</div>' +
           '<div class="dt-tags">' +
             '<span class="tag fac" style="background:' + fac.color + '">' + fac.mark + ' ' + esc(h.faction) + '</span>' +
-            '<span class="tag">' + esc(h.era) + '</span>' +
+            '<span class="tag">' + eraIcon(h.era) + ' ' + esc(h.era) + '</span>' +
             '<span class="tag" style="color:' + rar.color + '">' + rar.label + '</span>' +
             '<span class="tag">' + data.traitMark[h.trait] + '</span>' +
           '</div>';

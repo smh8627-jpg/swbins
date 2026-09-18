@@ -58,6 +58,11 @@
     { key: 'w_jukjang',  slot: 'weapon', name: '죽장',       main: 'wisdom',  base: 8,  look: 'staff' },
     { key: 'w_bilbut',   slot: 'weapon', name: '필묵',       main: 'wisdom',  base: 7,  look: 'brush' },
     { key: 'w_byeongseo',slot: 'weapon', name: '병서',       main: 'command', base: 8,  look: 'scroll' },
+    /* 2026-09-18 — PLAN §5.7 시대 퓨전. 무장(halberd 자리)·도독(sword 자리)에
+       미래 밑감을 하나씩 얹었다 — WEAPON_CLASS(data-skill.js)만 갈래를 정하고
+       직업 자체는 안 늘렸다(무기가 직업을 정하는 이 판의 규칙 그대로). */
+    { key: 'w_lance_e',  slot: 'weapon', name: '전자창',     main: 'might',   base: 13, look: 'lance_e' },
+    { key: 'w_gauntlet', slot: 'weapon', name: '동력장갑',   main: 'might',   base: 12, look: 'gauntlet' },
 
     // ── 갑주 ──────────────────────────────────────────────
     // look(2026-09-06 추가) — 3D 화면(dungeon3d.js의 foeGear)이 갑주 tier를

@@ -429,8 +429,59 @@
         out.push({ t: 'log', x: l.x, z: l.z, s: 1, rot: rnd(141) * 6.28, h: 12 });
       }
     }
+    /* §5.7 시대 퓨전 — 이 칸이 그 마을의 시대 층 자리면 얹는다(위 eraLayerAt) */
+    var era = eraLayerAt(cx, cz, seed, theme);
+    if (era) { out.push(era); }
     out.kind = kind;
     return out;
+  }
+
+  /* ── 시대 층(§5.7 시대 퓨전, 2026-09-18) ────────────────────────
+   * "biome 별 decor 레시피에 시대 층 1개" — 손으로 지은 마을 넷(모루골 등)엔
+   * biome 이 없어(§28-8 Phase 3 주석 참고) 안 뜨고, **절차 생성 마을**에서만
+   * theme('town:ruins' 등 다섯 biome)로 켜진다.
+   * `chunkAt()`처럼 확률로 스폰하지 않는다 — "마을당 1~2개"를 확률로
+   * 흉내 내면 두 개가 가까이 붙어 나올 수 있어(§9 진단 "스폰 95 간격을
+   * 지킨다") seed 하나당 **정해진 한두 칸**만 고른다(자리 자체가 결정적).
+   * 실제 kind(위 kindOf())가 그 칸에서 물·동굴로 나오면(드묾) 안 세운다 —
+   * clutterAt() 이 이미 그 둘을 걸러 준다.
+   */
+  var ERA_LAYER = {
+    'town:ruins':    't_factory',     // 고분 옆 폐공장 굴뚝
+    'town:forest':   't_solar',       // 기와집 옆 태양광 판
+    'town:swamp':    't_tower',       // 늪 위 녹슨 관측탑
+    'town:mountain': 't_pylon',       // 산채에 케이블카 기둥
+    'town:shrine':   't_hologram'     // 사당에 홀로그램 비석
+  };
+  /** 이 seed·theme 조합이 세우는 시대 층 칸들 — 순수 함수, 자가진단이 그대로 부른다.
+   *  둘째 자리는 seed 로 40% 만 켜진다("1~2개") — 첫째 자리와 X 축으로 반대쪽에
+   *  둬 CHUNK(200) 여러 칸만큼 떨어뜨린다(95 간격 요구를 여유 있게 넘는다). */
+  function eraLayerSlots(seed, theme) {
+    var t = ERA_LAYER[theme];
+    if (!t) { return []; }
+    var out = [];
+    var cx1 = 3 + Math.floor(mix(seed + 900, 1) * 2);        // 3~4
+    var cz1 = Math.floor(mix(seed + 900, 2) * 5) - 2;        // -2~2
+    out.push({ t: t, cx: cx1, cz: cz1 });
+    if (mix(seed + 900, 5) < 0.4) {
+      var cx2 = -4 - Math.floor(mix(seed + 900, 3) * 2);     // -5~-4
+      var cz2 = Math.floor(mix(seed + 900, 4) * 5) - 2;      // -2~2
+      out.push({ t: t, cx: cx2, cz: cz2 });
+    }
+    return out;
+  }
+  /** chunkAt()/clutterAt() 과 같은 프레임 좌표계로 낸다({t,x,z,s,rot,h}) —
+   *  이 칸이 시대 층 자리가 아니면 null. */
+  function eraLayerAt(cx, cz, seed, theme) {
+    var slots = eraLayerSlots(seed, theme), i;
+    for (i = 0; i < slots.length; i++) {
+      if (slots[i].cx === cx && slots[i].cz === cz) {
+        var ox = cx * CHUNK + CHUNK / 2, oz = cz * CHUNK + CHUNK / 2;
+        return { t: slots[i].t, x: ox, z: oz, s: 1,
+          rot: mix(cx * 71 + seed + 900, cz * 53 - seed) * 6.28, h: 90 };
+      }
+    }
+    return null;
   }
 
   /** 어느 조각들을 세울까 — 반경 안의 것만(6절 "플레이어 주변 Chunk 만 활성화") */
@@ -460,6 +511,8 @@
     /* 전부 순수 함수다 — 자가진단이 값으로 본다 */
     mix: mix, seedOf: seedOf, heightAt: heightAt,
     kindOf: kindOf, chunkAt: chunkAt, clutterAt: clutterAt, ringOf: ringOf, survey: survey,
-    corridorNameAt: corridorNameAt
+    corridorNameAt: corridorNameAt,
+    /** §5.7 시대 퓨전 — 자가진단이 seed·theme 만으로 자리·간격을 확인한다 */
+    eraLayerSlots: eraLayerSlots, eraLayerAt: eraLayerAt, ERA_LAYER: ERA_LAYER
   };
 })(window);

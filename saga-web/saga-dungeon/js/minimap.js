@@ -365,7 +365,11 @@
     tree: '#5fae5f', tree_dead: '#8a7050', rock: '#9a9a92',
     pillar: '#b8ab8c', wall: '#b8ab8c', altar: '#c9a4f5',
     cavemouth: '#0c0a08', fire: '#f0a244', tent: '#c9915a',
-    pond: '#6fb4e8', reed: '#7fbf7f', post: '#d8c48a'
+    pond: '#6fb4e8', reed: '#7fbf7f', post: '#d8c48a',
+    /* §5.7 시대 퓨전(2026-09-18) — biome당 하나뿐이라 자동지도에서도
+       "여기 있다"는 눈에 띄어야 한다(field3d.js eraLayerAt 참고). */
+    t_factory: '#5a3a30', t_solar: '#1c3a5e', t_tower: '#9a5a2e',
+    t_pylon: '#7a7f88', t_hologram: '#5adfe8'
     /* path(길)는 이미 road 칸 색으로 충분해 점을 안 찍는다 — 안 그러면
        길이 온통 점으로 덮여 오히려 abstract해진다. */
   };

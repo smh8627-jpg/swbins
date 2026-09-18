@@ -90,7 +90,10 @@
     spear: 'warrior', club: 'warrior', axe: 'warrior', halberd: 'warrior',
     fan: 'scholar', brush: 'scholar',
     sword: 'marshal', guandao: 'marshal',
-    staff: 'mystic', scroll: 'mystic'
+    staff: 'mystic', scroll: 'mystic',
+    /* §5.7 시대 퓨전(2026-09-18) — 전자창은 halberd(무장) 자리, 동력장갑은
+       sword(도독) 자리를 잇는다. 새 직업이 아니라 기존 다섯 나무 그대로다. */
+    lance_e: 'warrior', gauntlet: 'marshal'
   };
 
   /** 맨몸일 때 — 인물의 기질을 본다 */

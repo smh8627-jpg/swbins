@@ -89,6 +89,7 @@ window.requestAnimationFrame = function () { return 0; };
 </script>
 <script src="js/errlog.js"></script>
 <script src="js/data.js"></script>
+<script src="js/data-hero-ext.js"></script>
 <script src="js/data-enemy.js"></script>
 <script src="js/data-item.js"></script>
 <script src="js/data-gem.js"></script>
@@ -181,8 +182,10 @@ window.requestAnimationFrame = function () { return 0; };
     t('데이터는 그대로 물려받았다', function () {
       /* 2026-09-09 — 펫 도감 64종 추가(PLAN §60 "GLB 자산 확장", 사용자
          확정)로 41→105. 2026-09-10 — 인물(HEROES) 일본사 신설(20)+세계사
-         비유럽 보강(15)으로 70→105. */
-      return D.heroes.length === 105 && D.pets.length === 105 &&
+         비유럽 보강(15)으로 70→105. 2026-09-18 — §5.7 시대 퓨전, 이 판
+         전용 data-hero-ext.js 가 현대·미래 30을 105에 push 해 135(다섯
+         판 공통 data.js 자체는 그대로 105 — §10-Q1). 펫은 안 늘었다. */
+      return D.heroes.length === 135 && D.pets.length === 105 &&
         ('인물 ' + D.heroes.length + ' · 펫 ' + D.pets.length);
     });
 
@@ -731,6 +734,70 @@ window.requestAnimationFrame = function () { return 0; };
       var after = C.save.dex.worldBoss[ed.id].count;
       return n1 > 0 && n2 === n1 && mid === before + 1 && after === mid &&
         ('첫 지급 후 drops ' + n1 + ' · 재호출 후 ' + n2 + ' · 토벌첩 count ' + before + '→' + mid + '→' + after);
+    });
+
+    /* ── 시대 퓨전 — 현대·미래 인물 30·미래 무기 look 2·시대 층(PLAN §5.7, 2026-09-18) ── */
+
+    t('퓨전 — 인물 이름 30이 실명 블랙리스트에 없다 (§5.7)', function () {
+      /* 위 "가명 정책" 진단(5158줄 부근)이 Dx.heroes 전체를 이미 훑어
+         이 30명도 자동으로 걸린다 — 여기서는 §5.7 문안 그대로, 그 30명만
+         따로 뽑아 한 번 더 확인한다(같은 BLACK 표를 그대로 복사했다 —
+         두 진단이 서로 다른 걸 검증하는 게 아니라 "이 절 스스로 완결되게"
+         하려는 의도적 중복이다). */
+      var BLACK = ['유비', '관우', '조조', '사마의', '하후돈', '장료', '순욱', '손권', '주유',
+        '육손', '태사자', '감녕', '여포', '초선', '방통', '화타', '맹획', '봉추',
+        '이순신', '을지문덕', '강감찬', '김유신', '계백', '연개소문', '광개토대왕', '세종대왕',
+        '장영실', '최무선', '대조영', '왕건', '정약용', '허준', '신사임당',
+        '안중근', '이토 히로부미', '히로부미', '하얼빈', '뤼순', '유관순', '아우내', '서대문',
+        '김구', '백범', '원효', '김정호', '곽재우', '논개', '이황', '황희', '정몽주', '선죽교',
+        '히미코', '노부나가', '히데요시', '이에야스', '다케다 신겐', '우에스기 겐신',
+        '마사무네', '유키무라', '미야모토 무사시', '핫토리 한조',
+        '카이사르', '시저', '알렉산더', '한니발', '샤를마뉴', '잔다르크', '나폴레옹', '다빈치',
+        '레오니다스', '엘리자베스', '넬슨', '마키아벨리', '뉴턴', '미켈란젤로',
+        '칭기즈칸', '징기스칸', '쿠빌라이', '만사무사', '샤카', '클레오파트라',
+        '함무라비', '아틸라', '적토마', '절영'];
+      var ext = D.heroes.filter(function (h) { return h.era === '현대' || h.era === '미래'; });
+      var HS = DG.heroSkillData, hit = [], i, j, text;
+      for (i = 0; i < ext.length; i++) {
+        text = (D.bio(ext[i].id) || '') + ' ' + ext[i].quote;
+        var sig = HS.sigOf(ext[i].id);
+        if (sig) { text += ' ' + sig.name + ' ' + sig.desc; }
+        for (j = 0; j < BLACK.length; j++) {
+          if (text.indexOf(BLACK[j]) >= 0) { hit.push(ext[i].id + '←' + BLACK[j]); }
+        }
+      }
+      return ext.length === 30 && hit.length === 0 &&
+        (ext.length + '명(현대·미래) 검사, 걸린 실명 없음');
+    });
+
+    t('퓨전 — 135 인물 전원 sigOf가 null이 아니다 (§5.7)', function () {
+      var HS = DG.heroSkillData;
+      var missing = D.heroes.filter(function (h) { return !HS.sigOf(h.id); });
+      return D.heroes.length === 135 && missing.length === 0 &&
+        (D.heroes.length + '명 전원 sigOf 확인, 미확보 ' + missing.length + '명');
+    });
+
+    t('퓨전 — 시대 층 decor가 스폰 95 간격을 지킨다 (§5.7)', function () {
+      var F = DG.field3d, i, s = [];
+      /* 둘째 자리는 seed 로 40% 만 뜬다(field3d.js eraLayerSlots) — 씨앗을
+         여럿 굴려 둘 다 뜬 경우를 찾는다(2026-09-18 규칙, 결정적 탐색이라
+         30번이면 사실상 반드시 걸린다: 0.6^30 ≈ 2e-7). */
+      for (i = 0; i < 30; i++) {
+        s = F.eraLayerSlots(1000 + i, 'town:forest');
+        if (s.length === 2) { break; }
+      }
+      if (s.length !== 2) { return false; }
+      var dx = (s[0].cx - s[1].cx) * F.CHUNK, dz = (s[0].cz - s[1].cz) * F.CHUNK;
+      var dist = Math.hypot(dx, dz);
+      return dist >= 95 && ('두 자리 간격 ' + Math.round(dist) + '(≥95)');
+    });
+
+    t('퓨전 — lance_e 밑감이 무장을 열고 gauntlet이 도독을 연다 (§5.7)', function () {
+      var SD = DG.skillData;
+      var clsL = SD.classOf(null, 'lance_e').key;
+      var clsG = SD.classOf(null, 'gauntlet').key;
+      return clsL === 'warrior' && clsG === 'marshal' &&
+        ('lance_e→' + clsL + ' · gauntlet→' + clsG);
     });
 
     t('탈출하면 노획물이 확정된다', function () {

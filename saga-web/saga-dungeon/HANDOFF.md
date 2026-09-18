@@ -3579,3 +3579,85 @@ ctx·room에 직접 물려 검증했다(town 모듈 전체를 부팅할 필요�
 타이트한지 여유로운지(HP 배율 손 계산만 했다), 부위 파괴 아이콘·3D
 무기 소실이 실제로 보이는지(이번이 처음), 15분마다 마을을 옮겨 다니는
 동선이 억지스러운지 — §7.2에 반영.
+
+## 2026-09-18 — PLAN §5.7 시대 퓨전 구현 (Phase 5, 코드분)
+
+§8 로드맵 Phase 4(월드 보스)에 이어 마지막 후보 Phase 5를 짰다. §10-Q1
+확정대로 `data.js`(다섯 판 공통)는 한 글자도 안 건드리고 새 파일
+`data-hero-ext.js`로 실험한다.
+
+- **인물 30 — `data-hero-ext.js`(신설)**: 부팅 시 `DG.data.heroes`
+  (=`data.js`의 `HEROES` 배열, **참조가 같다**)에 push 만 한다 — `find()`·
+  `bio()`·도감·가명 정책 진단이 전부 이 배열을 그대로 읽으므로 새 파일
+  하나로 105명과 완전히 같은 대접을 받는다. 현대 15(`md_*`)·미래 15
+  (`ft_*`), rarity 는 PLAN 수치 그대로 5는 3명(현대 2·미래 1)·나머지는
+  3~4(13/13)로 갈랐다. faction 은 나라 대신 업계·기관(재계·해커연합
+  등 — 전부 가상), name·quote 는 실제 인물·기업명을 안 쓰고 "그런 일을
+  하는 사람"만 그렸다(예: 재벌 총수 → 금상/金想, 우주비행사 → 성해/星海).
+  **반드시 `data.js` 뒤에 실려야 한다** — index.html·_test.html·
+  _admin.html·_demo.html 넷 다 `data.js` 바로 다음 줄에 스크립트 태그를
+  끼웠다.
+- **서명 무예 30 — `data-hero-skill.js`에 그대로 추가**: 이 파일은
+  다섯 판 공통이 아니라(루트 CLAUDE.md 목록엔 없다) 105명 때 세운 계약
+  (name·desc 는 era/faction/quote 에서만, 실명 금지, `v` 고정값)을 한
+  줄도 안 바꾸고 30개를 얹었다. 아홉 모양 중 여덟(설계·양자·궤도 등
+  "생각하는 직업"이 많아 curse·buff·nova·heal 이 쏠릴 뻔했는데, 로봇
+  공학자에게 `summon`(관절기關節機 — 로봇을 소환)을 줘 억지로라도 아홉
+  모양을 다 건드렸다).
+- **미래 무기 look 2 — `data-item.js`+`data-skill.js`+`dungeon3d.js`**:
+  `lance_e`(전자창, 무장/halberd 자리)·`gauntlet`(동력장갑, 도독/sword
+  자리) — `WEAPON_CLASS`에 두 줄만 추가해 기존 다섯 나무 그대로 열었다
+  (새 직업 없음). 3D 는 실제 GLB 가 없어 절차 도형(전자창=긴 자루+발광
+  촉, 동력장갑=자루 없이 손을 감싸는 상자+발광 너클)으로 fallback —
+  PLAN 원문이 "CC0 조합 또는 절차 생성" 둘 다 허용해 이번엔 후자다.
+  나중에 GLB 를 구하면 `asset3d.js` 에 `wpn:lance_e`/`wpn:gauntlet` 키로
+  등록만 하면 자동으로 갈아 끼워진다(다른 무기와 같은 결).
+- **시대 층 decor — PLAN 은 `town.js`라 적었지만 실제로는 `field3d.js`
+  다(이번 구현이 스스로 정정한 것, 조사해 보니 그랬다)**: 손으로 지은
+  마을 넷(모루골 등)은 `theme.biome` 자체가 없어(§28-8 Phase 3 이전
+  코드) biome 별 decor를 못 건다 — biome(`town:ruins` 등 다섯)은
+  **절차 생성 마을**에만 있다. `chunkAt()`(충돌 판정도 겸한다, 회귀
+  위험 큼)이 아니라 순수 장식 층 `clutterAt()`에 얹었다 — 그래서 시대
+  층 건물은 **판정에 안 걸려 뚫고 지나간다**(잡초 층과 같은 자리, 의도한
+  단순화·상의 안 함). "마을당 1~2개"·"스폰 95 간격"을 확률로 흉내 내면
+  두 개가 붙어 나올 위험이 있어, seed 하나당 **정해진 칸 하나(+40%
+  확률로 둘째, X 축 반대쪽이라 늘 CHUNK(200) 몇 배 이상 떨어진다)**로
+  아예 자리를 고정했다(`eraLayerSlots`/`eraLayerAt`, 순수 함수). 다섯
+  biome → 폐공장 굴뚝·태양광 판·녹슨 관측탑·케이블카 기둥·홀로그램
+  비석, 전부 절차 도형(GLB 없음). `minimap.js` `PROP_COLOR`에도 다섯
+  색을 얹어 자동지도에서도 보인다.
+- **기계화 변종 10 — `data-enemy.js`**: 새 GLB 없이 기존 짐승형 파생
+  규칙(같은 `body`, 색·이름·수치만 다시 굴림)을 한 번 더 썼다 — 늑대
+  기본형 1 + 기존 body 9종(demon_green·crab·dino_raptor·dino_para·
+  treant·dino_stego·cyclops·dino_trex·cthulhu) 재사용. 저항은 phys/chi
+  대신 `emp`(§5.1 세계 축이 이미 쓰는 결)로 몰았고, 절반엔 `atkEl:'emp'`
+  도 얹었다. tier 1~4에 3/3/2/2로 흩었다.
+- **도감 era 필터 + 카드 아이콘 — `ui.js`**: 기존 넷(삼국지·한국사·
+  일본사·세계사)은 '과거' 하나로 묶고 전체·과거·현대·미래 네 버튼(`dexEra`
+  모듈 변수, `data-act="dex-era"`)으로 인물 그리드만 거른다(펫·지역·유적
+  탭은 그대로). 카드 상세엔 era 태그 앞에 아이콘(📜·🏙️·🚀) 하나만
+  얹었다 — 새 CSS 는 `.dexera` 한 줄뿐.
+- **잃은 것(의도적, 상의 안 함)**: 2D 초상은 `sprite.js`의 `ruleLook()`
+  (trait 기반 규칙, might→창·wisdom→죽간)을 그대로 타 현대·미래 인물도
+  옛 실루엣으로 나온다 — 전용 초상 자산(§5.7 원문 "CC0 저폴리 캐릭터
+  팩")을 못 구해서다. §5.8 때 "2D 는 코드가 그리는 벡터라 새로 못
+  그린다"고 이미 확인한 것과 같은 벽이다.
+
+**검증** — `node -c`(data-hero-ext.js·data-hero-skill.js·data-item.js·
+data-skill.js·data-enemy.js·field3d.js·dungeon3d.js·minimap.js·ui.js)
+통과, `bash tools/precheck.sh saga-web/saga-dungeon` → PRECHECK OK.
+`sw.js` `dungeon-v0.124.0` → `v0.125.0`(파일 목록에 data-hero-ext.js
+추가). node 로 데이터 계층만 따로 부팅해 확인: 인물 135명·SIG 135개
+정확히 일치, `lance_e`→warrior·`gauntlet`→marshal, 다섯 biome 모두
+`eraLayerSlots`가 값을 낸다(비-biome 테마는 빈 배열). `_test.html`에
+§5.7 진단 4개(실명 블랙리스트·135 sigOf·시대 층 95 간격·무기 look→직업)
+추가 — 헤드리스는 안 띄웠다(이 판 규칙), 인라인 스크립트만 `sed`로 뽑아
+`node --check`로 구문 확인.
+
+**실기 확인 남음**: 2D 초상이 시대에 안 맞아 보이는지, 3D 무기 도형이
+어울리는지, 절차 마을에서 시대 층 건물이 실제로 뜨는지, 기계화 몬스터
+색이 원본과 헷갈리지 않는지, era 필터 버튼이 폰 폭에서 안 넘치는지 —
+§7.2에 반영.
+
+**남은 것**: §8 로드맵 Phase 0~5 전부 코드분으로 닫혔다 — 다음은 Phase 6
+(그래픽 통일, §6.1·§6.3)이거나, 밀린 실기 확인 세션(§7.2·§10-Q6)이다.

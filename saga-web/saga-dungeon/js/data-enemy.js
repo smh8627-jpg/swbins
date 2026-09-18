@@ -216,7 +216,24 @@
     { name: '집게괴', emoji: '🦀', kind: 'beast', color: '#a8503a', form: 'quad', body: 'crab', tier: 1, resist: { phys: 10 }, biome: 'swamp' },
     { name: '고목정', emoji: '🌳', kind: 'beast', color: '#4a6a3a', form: 'ogre', body: 'treant', tier: 2, resist: { phys: 10 }, biome: 'forest' },
     { name: '외눈귀', emoji: '👁️', kind: 'beast', color: '#7a6a5a', form: 'ogre', body: 'cyclops', tier: 3, resist: { phys: 15 }, biome: 'mountain' },
-    { name: '심연촉수귀', emoji: '🐙', kind: 'beast', color: '#2a3a4a', form: 'dragon', body: 'cthulhu', tier: 4, resist: { chi: 20 } }
+    { name: '심연촉수귀', emoji: '🐙', kind: 'beast', color: '#2a3a4a', form: 'dragon', body: 'cthulhu', tier: 4, resist: { chi: 20 } },
+
+    /* 2026-09-18 — PLAN §5.7 시대 퓨전 "기계화 변종 10". 새 GLB 를 안 받고
+       위 짐승형 파생과 똑같은 규칙(같은 body, 색·이름·수치만 다시 굴린다)
+       을 한 번 더 썼다 — 다만 색은 금속 팔레트(은·동·강철회)로, 저항은
+       phys/chi 대신 emp(§5.1 세계 축이 이미 쓰는 결)로 몰았다. "몸은
+       그대로, 겉만 금속이다"라 새 이름도 실제 동물명이 아니라 그 겉을
+       묘사한다 — 이름 정책에 걸릴 실명이 없다. */
+    { name: '강철랑', emoji: '🐺', kind: 'beast', color: '#aab4bd', form: 'quad', tier: 1, resist: { emp: 30 } },
+    { name: '동합귀', emoji: '👹', kind: 'beast', color: '#b87333', form: 'ogre', body: 'demon_green', tier: 1, resist: { emp: 30 } },
+    { name: '철갑해', emoji: '🦀', kind: 'beast', color: '#8a95a0', form: 'quad', body: 'crab', tier: 1, resist: { emp: 25, phys: 10 }, biome: 'swamp' },
+    { name: '강철익수', emoji: '🦎', kind: 'beast', color: '#7a8a94', form: 'quad', body: 'dino_raptor', tier: 2, resist: { emp: 35, phys: 10 } },
+    { name: '동력파룡', emoji: '🦕', kind: 'beast', color: '#9aa8b4', form: 'quad', body: 'dino_para', tier: 2, resist: { emp: 35 }, atkEl: 'emp' },
+    { name: '청동거목', emoji: '🌳', kind: 'beast', color: '#5f8a7a', form: 'ogre', body: 'treant', tier: 2, resist: { emp: 35, phys: 10 }, biome: 'forest' },
+    { name: '강철판갑', emoji: '🦕', kind: 'beast', color: '#6a7480', form: 'quad', body: 'dino_stego', tier: 3, resist: { emp: 40, phys: 20 } },
+    { name: '기계외안', emoji: '👁️', kind: 'beast', color: '#8a8f9a', form: 'ogre', body: 'cyclops', tier: 3, resist: { emp: 40 }, atkEl: 'emp', biome: 'mountain' },
+    { name: '초강폭룡', emoji: '🦖', kind: 'beast', color: '#5a626e', form: 'quad', body: 'dino_trex', tier: 4, resist: { emp: 45, phys: 15 } },
+    { name: '강철촉수귀', emoji: '🐙', kind: 'beast', color: '#4a5a68', form: 'dragon', body: 'cthulhu', tier: 4, resist: { emp: 45, chi: 10 }, atkEl: 'emp' }
   ];
 
   /* id(2026-09-18, §5.4 월드 보스) — 이전엔 아무도 개체를 식별할 필요가
