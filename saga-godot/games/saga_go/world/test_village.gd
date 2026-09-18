@@ -62,6 +62,7 @@ func _refresh_goal_board() -> void:
 func _print_density_report() -> void:
 	var test_map := load("res://games/saga_go/data/test_map.gd")
 	var density := load("res://saga_core/world/density_report.gd")
+	var terrain := load("res://games/saga_go/world/terrain_builder.gd")
 	for region_id in ["village", "coast", "ruins"]:
 		var origin: Vector3 = test_map.origin_of(region_id)
 		var size: Vector2i = test_map.size(region_id)
@@ -73,7 +74,13 @@ func _print_density_report() -> void:
 			var local: Vector3 = (node as Node3D).global_position - origin
 			if abs(local.x) <= half_w and abs(local.z) <= half_h:
 				points.append(Vector2(local.x / tile + size.x * 0.5, local.z / tile + size.y * 0.5))
-		var walkable := func(x: int, y: int) -> bool: return test_map.tile_at(x, y, region_id) != "^"
+		## 2026-09-18 고침 — "^"(산)만 걸러내던 예전 식은 강("~")도 걸어
+		## 들어갈 수 있는 칸처럼 셌다. terrain_builder.gd LEGEND가 이미
+		## 칸마다 walkable 진위를 들고 있으니(강은 false) 그걸 그대로
+		## 쓴다 — 포구는 격자 절반이 바다라 이 한 줄로 분모가 크게
+		## 줄어든다(PLAN 101-1 E, HISTORY 09-18 재측정 참고).
+		var walkable := func(x: int, y: int) -> bool:
+			return terrain.LEGEND[test_map.tile_at(x, y, region_id)].walkable
 		var report: Dictionary = density.report(size, tile, points, 60.0, walkable)
 		print("DENSITY %s total=%d empty=%d empty_pct=%.1f" % [region_id, report.total, report.empty, report.empty_pct])
 

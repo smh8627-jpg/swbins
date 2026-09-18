@@ -100,6 +100,20 @@ const WHALEBONE_ID := "coast_whalebone"
 const WHALEBONE_GRID := Vector2i(2, 7)
 const WHALEBONE_DISCOVERY_RADIUS := 15.0
 
+## 2026-09-18, PLAN 101-1 E(발견 밀도) — `test_village.gd` 워크어블 판정을
+## LEGEND.walkable로 고친 뒤(강은 걸을 수 없다) 다시 재니 포구가 61.2%
+## →41.4%로 이미 줄었지만 여전히 10% 기준을 넘는다. 격자를 손으로 짚어
+## (density_report.gd의 60m 고정 반경 기준) 지금 안 닿는 자리 셋에 순수
+## 발견 셋을 더 얹는다 — whalebone과 같은 결. "닻"은 다리(DOCK_GRID)
+## 옆이라 배가 오가던 자리라는 결이 자연스럽고, 그물더미·조개무지는
+## 어부·게와 이미 있는 "바닷가 잡동사니" 결을 그대로 늘린 것뿐이다.
+const BEACH_DEBRIS := [
+	{"id": "coast_anchor", "grid": Vector2i(4, 4), "shape": "anchor"},
+	{"id": "coast_netpile", "grid": Vector2i(6, 6), "shape": "netpile"},
+	{"id": "coast_shellmidden", "grid": Vector2i(1, 6), "shape": "shellmidden"},
+]
+const BEACH_DEBRIS_TRIGGER_RADIUS := 15.0
+
 ## 포구 콘텐츠 확장(2026-09-16, "GO 포구 콘텐츠 확장") — npc_builder.gd
 ## VILLAGERS의 상인(offer_a/b 한 번뿐인 제안) 패턴을 그대로 옮긴다.
 ## npc_builder.gd를 직접 의존하지 않고 이 파일 안에서 다시 짠 것은 위
@@ -204,6 +218,7 @@ func _build_harbor() -> void:
 	_build_boat()
 	_build_ruins_gate()
 	_build_whalebone()
+	_build_beach_debris()
 	_build_return_trigger()
 
 
@@ -310,6 +325,38 @@ func _build_whalebone() -> void:
 		add_child(mi)
 
 	_add_discovery_area(WHALEBONE_ID, pos, WHALEBONE_DISCOVERY_RADIUS)
+
+
+## region3_ruins.gd _build_debris()와 같은 결(다른 모양 primitive 여러 개
+## + 선택지 없는 순수 발견 하나씩) — PLAN 101-1 E, BEACH_DEBRIS 참고.
+func _build_beach_debris() -> void:
+	var ground: float = TerrainBuilder.LEGEND["D"].height
+	for d in BEACH_DEBRIS:
+		var pos := TestMap.world_pos(d.grid.x, d.grid.y, COAST_REGION) + Vector3(0, ground, 0)
+		var mi := MeshInstance3D.new()
+		match d.shape:
+			"anchor":
+				var mesh := PrismMesh.new()
+				mesh.size = Vector3(0.15, 1.1, 0.6)
+				mi.mesh = mesh
+				mi.rotation = Vector3(deg_to_rad(90.0), 0, 0)
+				mi.position = pos + Vector3(0, 0.15, 0)
+			"netpile":
+				var mesh := SphereMesh.new()
+				mesh.radius = 0.55
+				mesh.height = 0.5
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.2, 0)
+			"shellmidden":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(0.9, 0.3, 0.9)
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.15, 0)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.62, 0.56, 0.42)
+		mi.material_override = mat
+		add_child(mi)
+		_add_discovery_area(d.id, pos, BEACH_DEBRIS_TRIGGER_RADIUS)
 
 
 ## npc_builder.gd _spawn()/_build_body()와 같은 골격 — 대화만 하는 주민
