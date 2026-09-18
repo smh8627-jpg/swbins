@@ -1,0 +1,126 @@
+{
+  "name": "forest_green",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "ground",
+      "band": "base",
+      "hex": "#63b04a"
+    },
+    {
+      "role": "ground",
+      "band": "light",
+      "hex": "#9acc89"
+    },
+    {
+      "role": "ground",
+      "band": "dark",
+      "hex": "#407230"
+    },
+    {
+      "role": "path",
+      "band": "base",
+      "hex": "#cbab74"
+    },
+    {
+      "role": "path",
+      "band": "light",
+      "hex": "#ddc8a5"
+    },
+    {
+      "role": "path",
+      "band": "dark",
+      "hex": "#846f4b"
+    },
+    {
+      "role": "leaf",
+      "band": "base",
+      "hex": "#3f8f3a"
+    },
+    {
+      "role": "leaf",
+      "band": "light",
+      "hex": "#82b67f"
+    },
+    {
+      "role": "leaf",
+      "band": "dark",
+      "hex": "#295d26"
+    },
+    {
+      "role": "stem",
+      "band": "base",
+      "hex": "#6b4a2e"
+    },
+    {
+      "role": "stem",
+      "band": "light",
+      "hex": "#9f8977"
+    },
+    {
+      "role": "stem",
+      "band": "dark",
+      "hex": "#46301e"
+    },
+    {
+      "role": "water",
+      "band": "base",
+      "hex": "#4fbcda"
+    },
+    {
+      "role": "water",
+      "band": "light",
+      "hex": "#8dd3e7"
+    },
+    {
+      "role": "water",
+      "band": "dark",
+      "hex": "#337a8e"
+    },
+    {
+      "role": "stone",
+      "band": "base",
+      "hex": "#a9a7a2"
+    },
+    {
+      "role": "stone",
+      "band": "light",
+      "hex": "#c7c6c3"
+    },
+    {
+      "role": "stone",
+      "band": "dark",
+      "hex": "#6e6d69"
+    },
+    {
+      "role": "accent",
+      "band": "base",
+      "hex": "#e85a6a"
+    },
+    {
+      "role": "accent",
+      "band": "light",
+      "hex": "#f0949e"
+    },
+    {
+      "role": "accent",
+      "band": "dark",
+      "hex": "#973b45"
+    },
+    {
+      "role": "sky",
+      "band": "base",
+      "hex": "#8fc7e8"
+    },
+    {
+      "role": "sky",
+      "band": "light",
+      "hex": "#b6dbf0"
+    },
+    {
+      "role": "sky",
+      "band": "dark",
+      "hex": "#5d8197"
+    }
+  ]
+}

@@ -49,6 +49,19 @@ PALETTES = {
 		"sand": (0.76, 0.68, 0.50),
 		"shrine_wood": (0.50, 0.42, 0.30),
 	},
+	## saga-forest PLAN.md §6.3 "green"(기본) 바이옴 판별 팔레트 base8.
+	## TILES(grass/path 등)·FOG_COLOR 앵커에서 그대로 옮겼다(2026-09-19,
+	## Kenney Fantasy Town Kit 킷배싱 건물의 diffuse 를 이 팔레트로 스냅).
+	"forest_green": {
+		"ground": (0.388, 0.690, 0.290),   # 땅 #63b04a
+		"path": (0.796, 0.671, 0.455),     # 길 #cbab74
+		"leaf": (0.247, 0.561, 0.227),     # 잎 #3f8f3a
+		"stem": (0.420, 0.290, 0.180),     # 줄기 #6b4a2e
+		"water": (0.310, 0.737, 0.855),    # 물 #4fbcda
+		"stone": (0.663, 0.655, 0.635),    # 돌 #a9a7a2
+		"accent": (0.910, 0.353, 0.416),   # 강조 #e85a6a
+		"sky": (0.561, 0.780, 0.910),      # 하늘/안개 #8fc7e8
+	},
 }
 
 LIGHT_MIX = 0.35  # 흰색 쪽으로 섞는 비율

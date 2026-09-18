@@ -1329,3 +1329,65 @@ SCATTER, §5.5~5.7 전부 — 다음엔 그중 스코프가 작고 명확한 것
 **남은 것**: 텍스처 팔레트 스냅(§6.4, `palette.py`), 짐승 외 다른 배우
 (정령 §5.5 등 나중에 생길 것들)에도 같은 외곽선 적용, §5.4 3♥·10♥,
 §5.5~5.7 전부.
+
+## 2026-09-19 — PLAN §6.2·§6.4: 사진측량 집 셋을 Kenney 킷배싱으로 교체
+
+이어서 진행하다가 사용자가 "원신급이 나와야해"→"가능하겠어?"로 기대치를
+물어, 원신 IP 재현(저작권)·원신 급 완성도(전문 아티스트 인력·예산)는
+불가능하고 "셰이딩 스타일만 흉내"까지가 한계라고 설명했다. 사용자가
+"지금처럼 말고" → "에셋 자체를 새로 구함"을 골라, 방향을 툰 재질 씌우기
+에서 **원본 에셋 자체를 스타일라이즈드로 교체**로 틀었다.
+
+- **받은 것**: Kenney "Fantasy Town Kit"(CC0, `kenney.nl` 직접 zip, 856개
+  파일 중 모듈 벽·지붕·굴뚝 10개만 사용). KayKit "Forest Nature Pack"도
+  같이 검토했으나(§6.4 다음 후보, 자연물 NAT_REAL 대체용) **itch.io
+  다운로드는 클릭 흐름이라 자동화가 까다로워 이번엔 못 받았다** —
+  csrf_token으로 `/download_url`까지는 서명 URL을 받아냈지만 그 다음
+  `/file/<id>` 트리거가 404 (세션/키 결합 방식을 못 풀었다). 다음에
+  이어갈 것.
+- **킷배싱**(신설 `tools/asset-forge/kitbash.py`): Kenney 모듈은 1×1
+  셀 +X변에 벽 하나(회전 0/90/180/270°로 나머지 세 변)를 두는 관례다.
+  RECIPES 셋으로 조립: `house_wood_home`(문+창+지붕+굴뚝),
+  `house_wood_cottage`(문+원형창+고딕 지붕, 굴뚝 없이 실루엣 구분),
+  `house_stone_museum`(석재 벽+평지붕, "곳간" 느낌). 부품·공유 텍스처는
+  `assets/models/buildings/kenney_parts/`, 조립 결과는
+  `assets/generated/buildings/`.
+- **함정 하나**: Kenney 의 `.glb` 도 텍스처를 임베드 안 하고
+  `images[].uri: "Textures/colormap.png"` **외부 상대경로**로 참조한다
+  (보통 glb는 다 임베드하는데 이 킷은 예외) — 부품만 복사하고
+  `Textures/` 폴더를 안 옮기면 trimesh 가 `baseColorTexture=None`으로
+  조용히 실패한다(에러 없이 재질이 통째로 날아간다). `kenney_parts/`
+  밑에 `Textures/colormap.png` 를 같이 둬야 한다.
+- **팔레트 스냅**(§6.4 첫 실사용): `palette.py`에 `forest_green`
+  팔레트를 추가(PLAN §6.3 green 바이옴 base8 그대로, 24색). 조립된
+  집 셋에 `snap-glb`를 그 자리에서 덮어썼다 — Kenney 원본 colormap.png
+  는 캐릭터 피부색·깃발 등도 같이 담은 공용 아틀라스라 그대로 두면
+  세계 색감과 어긋난다. `preview` 로 전/후 텍스처 비교 PNG 한 장 봤다
+  (색은 팔레트로 확실히 바뀜, 다만 이 아틀라스는 856개 부품 전체가
+  공유해서 이 집 셋이 실제로 쓰는 영역만 보고 판단하긴 어려웠다).
+- **배선**: `asset3d.js`에 `BLD_GEN`(`assets/generated/buildings/`)
+  신설, `building:home`·`tailor`·`museum` 세 키를 새 GLB로 바꿨다.
+  `/realistic/` 경로가 아니므로 `looksRealistic()`을 안 타 보통
+  건물처럼 `toon3d.delam()`을 그대로 받는다(§10-Q3 실사 예외 처리가
+  필요 없어졌다). 옛 PolyScan 집 셋 파일은 이 판에서만 지웠다
+  (`saga-dungeon` 등은 하드링크 별도 사본이라 안 건드림, `saga-forest`
+  안에서만 orphan이라 지운 것 — `assets/ASSET_LICENSES.md`에 옛 절은
+  "교체됨"으로 남기고 새 절을 추가했다).
+- **탑성(`ruinTower`, Renvylle Castle)은 이번 교체에서 뺐다** — 유일한
+  대형 유적 자산이라 그대로 두고, §10-Q3(재질만 툰) 상태 그대로다.
+- **검증** — `kitbash.py`·`palette.py` 둘 다 `python -m py_compile`
+  통과, 조립 결과 bounds 가 NaN/Inf 없이 유한한지 스크립트로 확인,
+  텍스처가 3개 GLB 전부(7/6/6 지오메트리)에 실제로 붙었는지 재로드해
+  확인. **렌더된 화면은 이번에도 못 봤다**(헤드리스·서버는 사용자
+  요청 시에만 — §2-보안·§검증 규칙 그대로) — 실루엣·비례·팔레트가
+  실제로 잘 어울리는지는 실기 확인 대기.
+
+**실기 확인 남음**: 집 셋의 실제 렌더(외곽선·툰 램프와 어울리는지,
+지붕 크기가 벽 대비 과하거나 작지 않은지, 굴뚝 위치가 지붕을 뚫고
+나온 것처럼 자연스러운지), 팔레트 스냅 후 색이 §6.3 green 바이옴과
+실제로 잘 섞이는지.
+
+**남은 것**: KayKit Forest Nature Pack 받기(itch.io 자동 다운로드
+막힌 부분 재시도 또는 사용자가 직접 받아 전달) → NAT_REAL(바위·나무
+사진측량) 교체, 킷배싱 레시피에 캠프 마을 3종·주민 집 외형 3종
+추가(§6.4), 짐승 외 다른 배우 외곽선, §5.4 3♥·10♥, §5.5~5.7 전부.

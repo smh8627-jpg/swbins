@@ -369,11 +369,12 @@
     mushnub: 0.5,
     /* 성간충 — 여우(0.55)보다 조금 작게, "Small" 이름값대로 눈대중 잡았다 */
     spacebug: 0.45,
-    /* 건물 — house_wooden·house_cottage·house_stone(PolyScan 실사)은 셋 다
-       비슷한 단층 초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
+    /* 건물 — home·tailor·museum(2026-09-19부터 Kenney Fantasy Town Kit
+       킷배싱, 이전엔 PolyScan 실사 house_wooden 등)은 셋 다 비슷한 단층
+       초가 비례라 키를 맞춰 나란히 서도 안 어색하다. signpost·
        banner_thin_red·box_small(KayKit)은 훨씬 작은 소품이라 낮게 잡는다 */
     shop: 3.0, home: 3.2, tailor: 2.8, museum: 3.4, board: 1.3, mail: 0.9, pole: 2.4,
-    /* House_2·House_1·House_3(Quaternius) — 마을 건물(house_wooden 등,
+    /* House_2·House_1·House_3(Quaternius) — 마을 건물(home 등,
        3.0~3.4m)보다 한 단 작게 잡아 "캠프의 소박한 오두막" 느낌을 준다.
        셋 다 정규화로 키 1 에서 시작하므로(build() 가 늘 그렇게 눕힌다) 실제
        원본 비례는 모른다 — 나란히 서도 다 같은 키로 안 보이게 일부러 조금씩

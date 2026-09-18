@@ -521,12 +521,15 @@ Mixamo 실사(아래 절)가 재배포 금지라 공개 저장소에서 캐릭�
 계열 사진측량뿐이다). `tree:common:autumn`·`tree:common:snow`·`tree:birch`는
 이번 항목에서 못 채웠다 — 다른 CC0 출처(OpenGameArt 등)가 나오면 다음에 다시 볼 것.
 
-## PolyScan — 마을 3D 건물(집 셋), 하드링크 (2026-09-09, `saga-dungeon`에서 옮김)
+## PolyScan — 마을 3D 건물(집 셋), 하드링크 (2026-09-09, `saga-dungeon`에서 옮김) — **2026-09-19 이 판에서 교체됨**
 
-PLAN 6절 "작은 마을" 착수 — `home`(집)·`tailor`(침선방)·`museum`(사고) 셋에
-쓴다. 새로 받지 않고 `saga-dungeon`이 이미 확인해 둔 CC0 를 그대로
-하드링크했다(md5 동일). 라이선스 확인 근거는
-`../../saga-dungeon/assets/ASSET_LICENSES.md`의 같은 파일명 절 참고.
+PLAN 6절 "작은 마을" 착수 때 `home`(집)·`tailor`(침선방)·`museum`(사고)
+셋에 썼던 것. **2026-09-19 부로 이 판(`saga-forest`)에서는 세 파일을
+지우고 아래 "Kenney Fantasy Town Kit" 절의 킷배싱 조립물로 갈아 끼웠다**
+— §6.2 가 우려하던 대로 사진측량 PBR 텍스처가 툰 셰이딩과 안 어울려서다.
+`saga-dungeon`·`saga-story`·`saga-realm`은 여전히 이 파일들을 그대로
+쓴다(하드링크라 그쪽 사본은 안 건드렸다) — 이 절은 그 판들을 위해 남겨
+둔다.
 
 | 항목 | |
 |---|---|
@@ -534,11 +537,43 @@ PLAN 6절 "작은 마을" 착수 — `home`(집)·`tailor`(침선방)·`museum`(
 | **라이선스** | CC0 1.0 — 사이트가 "재배포·상업적 이용 모두 자유, 표시 의무 없음"으로 명시 |
 | **받은 곳** | `saga-dungeon/assets/models/buildings/realistic/`에서 하드링크(원 출처는 `polyscann.com`, 로그인 없이 CDN 직접 다운로드) |
 
-| 파일 | 이 판에서 쓰는 곳 |
+| 파일(다른 판에서 계속 씀) | 이 판에서 쓰던 곳(2026-09-19 이전) |
 |---|---|
-| `models/buildings/realistic/house_wooden.glb` | **집**(`home`) |
-| `models/buildings/realistic/house_stone.glb` | **사고**(`museum`) — 돌집이라 "곳간"에 어울려서 골랐다 |
-| `models/buildings/realistic/house_cottage.glb` | **침선방**(`tailor`) |
+| `models/buildings/realistic/house_wooden.glb` | 집(`home`) |
+| `models/buildings/realistic/house_stone.glb` | 사고(`museum`) |
+| `models/buildings/realistic/house_cottage.glb` | 침선방(`tailor`) |
+
+## Kenney — Fantasy Town Kit(CC0), 부품 다운로드 + 킷배싱 (2026-09-19)
+
+위 PolyScan 사진측량 집 셋을 대체한다. `home`·`tailor`·`museum` 은 툰
+셰이딩에 맞춘 스타일라이즈드 저폴리 모듈로 다시 지었다 — 사용자 요청
+("에셋 자체를 새로 구함")에 따라 원본 CC0 팩을 새로 받아 쓴 첫 사례.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Kenney (<https://kenney.nl>) |
+| **라이선스** | CC0 1.0(Creative Commons Zero) — 상업 이용 포함 자유, 표시 의무 없음 |
+| **받은 곳** | `https://kenney.nl/assets/fantasy-town-kit` 직접 zip(로그인 불필요), GLB 포맷 사용 |
+| **원본 개수** | 856개 파일(모듈 벽·지붕·굴뚝·분수·수레 등) 중 이 판은 벽 6종 + 지붕 3종 + 굴뚝 1종만 골라 씀 |
+
+부품 원본은 `models/buildings/kenney_parts/`(공유 텍스처
+`Textures/colormap.png` 포함, 512×512 하나를 856개 부품이 공용). 조립
+결과(§10-Q4 커밋 방식대로 `assets/generated/`)는
+`assets/generated/buildings/`:
+
+| 생성 파일 | 이 판에서 쓰는 곳 | 조립 레시피(`tools/asset-forge/kitbash.py` RECIPES) |
+|---|---|---|
+| `house_wood_home.glb` | 집(`home`) | wall-wood-door + wall-wood×2 + wall-wood-window-round(0/90/180/270°) + roof-gable + chimney |
+| `house_wood_cottage.glb` | 침선방(`tailor`) | wall-wood-door + wall-wood-window-round + wall-wood×2 + roof-high-gable(더 뾰족한 지붕으로 실루엣 구분) |
+| `house_stone_museum.glb` | 사고(`museum`) | wall-door + wall×2 + wall-window-stone(석재 벽) + roof-flat(곳간 느낌) |
+
+텍스처는 `tools/asset-forge/palette.py`(`forest_green` 팔레트, PLAN.md
+§6.3 green 바이옴 base8 그대로)로 스냅해 세계 색감에 맞췄다 — Kenney
+원본 colormap.png 는 이 셋 말고도 캐릭터 피부색·깃발 등 다른 색을 함께
+담고 있어 그대로 두면 어색했다. **재현 방법**: `kitbash.py build-all`
+→ `palette.py snap-glb`(자세한 순서는 두 스크립트의 docstring). 렌더된
+실제 화면(외곽선·명암과 잘 어울리는지)은 이번에도 미확인 —
+`SAGA-HANDOFF.md`/이 판 `HANDOFF.md` 2026-09-19 절 "실기 확인 대기" 참고.
 
 ## Kenney·KayKit — 게시판·우편함·마을기 대역, 하드링크 (2026-09-09, `saga-dungeon`에서 옮김)
 

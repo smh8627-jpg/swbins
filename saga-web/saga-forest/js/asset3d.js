@@ -41,6 +41,13 @@
   var PROP = 'assets/models/props/';
   var BLD = 'assets/models/buildings/';
   var BLD_REAL = 'assets/models/buildings/realistic/';
+  /* 2026-09-19 — Kenney Fantasy Town Kit(CC0) 부품을 tools/asset-forge/
+     kitbash.py 로 조립하고 palette.py 로 §6.3 forest_green 팔레트에 스냅한
+     결과물. `/realistic/` 경로가 아니라 `looksRealistic()`을 안 타고
+     보통 건물처럼 toon3d.delam() 을 그대로 받는다 — 애초에 사진측량 PBR을
+     팔레트로 우겨넣던 §6.2 계획을 접고 스타일 자체를 바꿨다(경위는
+     HANDOFF.md 2026-09-19 절) */
+  var BLD_GEN = 'assets/generated/buildings/';
   var ANI = 'assets/models/animals/';
   var MON = 'assets/models/monsters/';
   var PEOPLE = 'assets/models/people/regular/';
@@ -312,13 +319,18 @@
     /* 마을 3D 건물 (PLAN 6절 "작은 마을") — village.js 의 props 가 이미 갖고
        있던 shop·home·board·mail·tailor·pole·museum 을 처음으로 GLB 로 세운다.
        셋 다 정확히 하나뿐인 건물이라 나무·바위처럼 변종(oneOf) 배열을 안 쓰고
-       kind 하나에 파일 하나씩 고정했다. `saga-dungeon`·`saga-story`·
-       `saga-realm`이 이미 확인해 둔 같은 CC0 를 하드링크로 옮겨 왔다(md5
-       동일, `assets/ASSET_LICENSES.md` 참고) — 새로 받은 파일은 없다 */
-    'building:home': BLD_REAL + 'house_wooden.glb',
+       kind 하나에 파일 하나씩 고정했다.
+       **2026-09-19 — home·tailor·museum 교체**: PolyScan 사진측량
+       house_wooden·house_cottage·house_stone(하드링크, 여전히 `saga-dungeon`
+       등에서는 쓰는 중)은 §6.2 가 우려하던 대로 툰 셰이딩과 안 어울려
+       Kenney Fantasy Town Kit(CC0) 모듈 조립으로 갈아 끼웠다 — 경위는
+       `assets/ASSET_LICENSES.md` "Kenney Fantasy Town Kit" 절, 조립은
+       `tools/asset-forge/kitbash.py`(RECIPES), 팔레트 스냅은 `palette.py
+       forest_green`. `shop`(MarketStand_1, 이미 스타일라이즈드)은 그대로 */
+    'building:home': BLD_GEN + 'house_wood_home.glb',
     'building:shop': BLD + 'MarketStand_1.glb',
-    'building:tailor': BLD_REAL + 'house_cottage.glb',
-    'building:museum': BLD_REAL + 'house_stone.glb',
+    'building:tailor': BLD_GEN + 'house_wood_cottage.glb',
+    'building:museum': BLD_GEN + 'house_stone_museum.glb',
     'building:board': PROP + 'signpost.glb',
     'building:mail': PROP + 'box_small.gltf.glb',
     'building:pole': PROP + 'banner_thin_red.gltf.glb',
