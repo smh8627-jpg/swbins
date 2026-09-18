@@ -712,8 +712,12 @@
       html += '<div>💰 금 ' + (card.gold >= 0 ? '+' : '') + core.fmt(card.gold) + '</div>' +
         '<div>📦 장비 ' + (card.items || 0) + '점</div>';
     } else {
-      html += '<div>💰 잃은 금 ' + core.fmt(card.lostGold || 0) + '</div>' +
-        '<div>📦 잃은 장비 ' + (card.lostItems || 0) + '점</div>';
+      var toGrave = (card.lostGold || card.lostItems) &&
+        card.next && card.next.indexOf('유품 회수') >= 0;
+      html += '<div>💰 ' + (toGrave ? '유품으로 남은 금' : '잃은 금') + ' ' +
+        core.fmt(card.lostGold || 0) + '</div>' +
+        '<div>📦 ' + (toGrave ? '유품으로 남은 장비' : '잃은 장비') + ' ' +
+        (card.lostItems || 0) + '점</div>';
     }
     html += '<div>🏅 공적 +' + (card.feat || 0) + '</div>' +
       '<div>📖 도감 ' + card.dexPct + '%</div>' +

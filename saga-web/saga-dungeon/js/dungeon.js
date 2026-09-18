@@ -369,7 +369,7 @@
     var room = {
       kind: kind, index: index, cleared: false,
       enemies: [], drops: [], doors: [], chest: null, well: null, shrine: null, vein: null,
-      merchant: null, puzzle: null, captive: null, forage: null
+      merchant: null, puzzle: null, captive: null, forage: null, grave: null
     };
     var n;
     if (kind === 'boss') {
@@ -723,6 +723,12 @@
     /* 역참(驛站) — 원작의 웨이포인트. **다섯 층마다** 밟으면 다음부터 거기서 시작한다.
        "최고의 절반" 하나로 갈음하던 자리를, 원작처럼 **밟은 곳**으로 바꿨다 */
     if (run.floor % WAYPOINT_EVERY === 0) { markWaypoint(run.floor); }
+    /* 유품(§5.2) — 이 층에 지난 사망의 노획물이 있으면 첫 방에 표식을 세운다 */
+    var gv = dstate().grave;
+    if (gv && gv.floor === run.floor) {
+      run.room.grave = { x: ROOM_W * 0.3, y: ROOM_H * 0.5, taken: false };
+      core.emit('toast', '🪦 유품이 이 층에 있다');
+    }
     run.fieldSpawnCd = 4;
     spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
   }
@@ -1014,13 +1020,15 @@
 
   function die() {
     var lostGold = Math.round(run.loot.gold), lostItems = run.loot.items.length;
+    var lostItemsArr = run.loot.items.slice();
     var floor = run.floor;
     dstate().deaths = (dstate().deaths || 0) + 1;
     core.log('💀 제' + floor + '층에서 쓰러졌다 — 노획물 소실 (금 ' +
       core.fmt(lostGold) + ' · 장비 ' + lostItems + '점)', 'bad');
     run = null;
     core.emit('dungeon:end', { reason: 'dead', floor: floor, lost: { gold: lostGold, items: lostItems } });
-    /* 결사(決死) — 원작의 하드코어. 쓰러지면 그 판이 끝난다 */
+    /* 결사(決死) — 원작의 하드코어. 쓰러지면 그 판이 끝난다. 유품도 없다 —
+       하드코어는 되돌릴 길이 아예 없어야 한다(§5.2). */
     if (hardcore()) {
       dstate().fallen = { floor: floor, at: Date.now() };
       core.log('☠️ 결사 — 제' + floor + '층에서 스러졌다. 이 판은 여기까지다', 'bad');
@@ -1029,9 +1037,59 @@
       core.persist();
       return;
     }
+    /* 유품(§5.2) — 잃은 노획물이 그 층에 남는다. 회수 전에 다시 죽으면
+       옛 유품은 사라지고 새 것만 남는다(덮어쓰기, 1개만 유지). */
+    if (lostGold > 0 || lostItemsArr.length) {
+      dstate().grave = { floor: floor, gold: lostGold, items: lostItemsArr, at: Date.now() };
+    }
     core.emit('toast', '💀 제' + floor + '층에서 패퇴 — 노획물을 잃었습니다');
     core.emit('changed');
     core.persist();
+  }
+
+  /* ── 유품(遺品, §5.2) ─────────────────────────────────────
+   * 죽으면 노획물이 그 층 표식으로 남고 가방엔 안 들어온다. 다음에 그
+   * 층에 닿으면 표식을 밟아 되찾는다 — 금은 100%, 장비는 3점까지 고른다.
+   */
+  var GRAVE_ITEM_MAX = 3;
+
+  /** 지금 유품이 있는 층인가(층 안 조회용) */
+  function graveOf() { return dstate().grave || null; }
+
+  /** 표식을 밟았다 — 고를 카드를 연다 */
+  function openGrave() {
+    var g = dstate().grave;
+    if (!run || !g || g.floor !== run.floor) { return null; }
+    run.graveChoice = { gold: g.gold, items: g.items.slice(), picked: [] };
+    return run.graveChoice;
+  }
+
+  /** 회수할 장비를 고르거나 뺀다 — 상한 3(GRAVE_ITEM_MAX) */
+  function toggleGraveItem(idx) {
+    if (!run || !run.graveChoice || !run.graveChoice.items[idx]) { return false; }
+    var picked = run.graveChoice.picked, at = picked.indexOf(idx);
+    if (at >= 0) { picked.splice(at, 1); return true; }
+    if (picked.length >= GRAVE_ITEM_MAX) { return false; }
+    picked.push(idx);
+    return true;
+  }
+
+  /** 고른 대로 확정한다 — 금 100%, 장비는 고른 만큼만(나머지 소멸) */
+  function claimGrave() {
+    if (!run || !run.graveChoice) { return null; }
+    var gc = run.graveChoice, IT = global.DG.item, kept = 0, i;
+    core.save.player.gold += gc.gold;
+    for (i = 0; i < gc.picked.length; i++) {
+      var it = gc.items[gc.picked[i]];
+      if (it && IT.add(it).kept) { kept++; }
+    }
+    run.graveChoice = null;
+    dstate().grave = null;
+    core.log('🪦 유품 회수 · 금 ' + core.fmt(gc.gold) + ' · 장비 ' + kept + '점', 'good');
+    core.emit('toast', '🪦 유품을 되찾았다');
+    core.emit('changed');
+    core.persist();
+    return { gold: gc.gold, items: kept };
   }
 
   /* ── 피해 · 회복 ─────────────────────────────────────── */
@@ -2267,6 +2325,12 @@
       sfx('chest');
       core.emit('toast', '🎁 보물상자!');
     }
+    if (room.grave && !room.grave.taken && dist(p, room.grave) < P_R + 20) {
+      room.grave.taken = true;
+      openGrave();
+      sfx('shrine');
+      core.emit('toast', '🪦 유품 발견 · 되찾을 것을 고르세요');
+    }
     if (room.well && !room.well.used && dist(p, room.well) < P_R + 20) {
       room.well.used = true;
       healBy(run.hpMax * 0.4);
@@ -3382,7 +3446,8 @@
   function status() {
     if (!run) {
       var d = dstate();
-      return { active: false, best: d.best || 0, runs: d.runs || 0, kills: d.kills || 0, deaths: d.deaths || 0 };
+      return { active: false, best: d.best || 0, runs: d.runs || 0, kills: d.kills || 0, deaths: d.deaths || 0,
+                grave: d.grave || null };
     }
     /* 네 칸 — 선두가 걸어 둔 무예. 빈 칸도 그대로 넘긴다(화면이 흐리게 그린다) */
     var skills = [], got = slotSkills();
@@ -3410,6 +3475,7 @@
       cleared: run.room.cleared, kind: run.room.kind,
       loot: { gold: Math.round(run.loot.gold), items: run.loot.items.length },
       boons: run.boons, choice: run.choice, merchantChoice: run.merchantChoice,
+      graveChoice: run.graveChoice,
       boonPicks: run.boonPicks || 0, boonMax: BOON_MAX_STACK,
       kills: run.kills, best: dstate().best || 0,
       atk: Math.round(atkOf()), reach: Math.round(reachOf()),
@@ -3479,6 +3545,9 @@
     _forceElemDmg: function (v) { forcedElemDmg = v; },
     _forceCrit: function (v) { forcedCrit = v; },
     buyMerchant: buyMerchant, leaveMerchant: leaveMerchant,
+    /** 유품(§5.2) — openGrave 는 자가진단용으로도 쓴다(표식을 안 밟고 바로 열어 봄) */
+    graveOf: graveOf, openGrave: openGrave,
+    toggleGraveItem: toggleGraveItem, claimGrave: claimGrave, GRAVE_ITEM_MAX: GRAVE_ITEM_MAX,
     /** 마을 들판 방랑 상인(PLAN §60 후보 1) — town.js/ui.js가 독자 재고
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
     rollMerchantStock: rollMerchantStock,

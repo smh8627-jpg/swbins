@@ -904,6 +904,15 @@
       chnode.position.set(r.chest.x, 0, r.chest.y);
       wallGroup.add(chnode);
     }
+    if (r && r.grave) {
+      /* 유품(§5.2) — 마을 서약비('vow' 표식, 위 buildActor)와 같은 비석
+         도형을 재사용한다(PLAN 원문 "비석 GLB 재사용"). 회수했어도(taken)
+         플레이어가 이 방을 떠나기 전까지는 자리를 남겨 둔다 — 방금 밟은
+         자리가 지워지면 "됐다"는 확인이 안 서 보인다. */
+      box(wallGroup, r.grave.x, 17, r.grave.y, 16, 34, 8, 0x6a6a75, 'flat', true);
+      box(wallGroup, r.grave.x, 36, r.grave.y, 12, 4, 10,
+        r.grave.taken ? 0x555b66 : 0xe06565, 'glow', false);
+    }
     if (r && r.well && !r.well.used) {
       box(wallGroup, r.well.x, 11, r.well.y, 30, 22, 30, 0x555b66, 'flat', true);
       box(wallGroup, r.well.x, 22, r.well.y, 22, 2, 22, 0x3aa9c9, 'glow', false);

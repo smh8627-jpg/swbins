@@ -872,6 +872,7 @@ body.dg3d #dg-canvas { background: transparent !important; border-color: transpa
 }
 .dg-card:hover { border-color: var(--gold); background: rgba(40,44,54,.96); }
 .dg-card:active { transform: scale(.98); }
+.dg-card.on { background: rgba(120,90,40,.35); box-shadow: 0 0 0 2px var(--gold) inset; }
 .dg-ce { font-size: 26px; line-height: 1; }
 .dg-card b { font-size: 13px; }
 .dg-card small { font-size: 11px; color: var(--ink-dim); line-height: 1.5; }

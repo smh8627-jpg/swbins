@@ -3304,3 +3304,49 @@ sfx.js·ui.js·core.js) 통과, `bash tools/precheck.sh saga-web/saga-dungeon`
 **실기 확인 남음**: 화면 흔들림·플래시·채도 강도가 적당한지, 서명 무예
 컷인 위치·크기가 다른 HUD와 안 겹치는지, 저스트 회피가 보스 전투에서
 실제로 체감되는지 — §7.2에 반영.
+
+## 2026-09-18 — PLAN §5.2 유품(遺品) 구현 (Phase 2, 코드분)
+
+§5.8 로 Phase 1 세 후보(목표판·축복·손맛)가 코드분으로 닫힌 뒤, §8 로드맵
+다음 칸인 Phase 2 §5.2 유품을 이어 구현했다. 죽으면 노획물이 그 층
+표식으로 남고, 다음에 그 층에 닿으면 밟아 되찾는 순환이다.
+
+- **저장**: `dstate().grave = { floor, gold, items:[…], at }` 신설(별도
+  `freshSave` 마이그레이션 없음 — 이 판은 `dstate()` 자체가 lazy init
+  이라 필드 하나 더 얹는 것으로 끝난다). `die()` 에서 결사(하드코어)가
+  아니고 잃은 게 있으면 덮어쓴다(1개만 유지 — 회수 전에 다시 죽으면
+  옛 유품은 그냥 사라진다). 결사는 `die()` 의 하드코어 분기가 먼저
+  `return` 해 애초에 이 코드에 안 닿는다.
+- **표식**: `buildFloor()` 에서 그 층이 유품 층이면 첫 방(`fight`
+  고정)에 `run.room.grave = {x,y,taken}` 를 세우고 토스트를 띄운다
+  ("유품이 이 층에 있다"). 다음 방으로 넘어가면(`goRoom`) 사라진다 —
+  이 판 방 구조가 순차 진행이라 "층 전체" 대신 "첫 방" 으로 단순화했다,
+  PLAN 원문엔 없던 판단이라 여기 적는다.
+- **회수**: `room.chest`(상자)와 같은 근접 판정으로 `openGrave()` 가
+  자동으로 열려 `run.graveChoice`(금·장비 목록·고른 자리)를 만든다.
+  `toggleGraveItem(idx)` 로 최대 3점까지 고르고(4번째부터 막힌다)
+  `claimGrave()` 로 확정 — 금은 늘 100%, 고른 장비만 `item.add()`,
+  나머지는 소멸. 축복(§5.1)·행상(POI: Merchant)과 같은
+  `dungeon-view.js` `renderChoice()` 카드 자리를 그대로 셋째 갈래로
+  얹었다(`data-grave-toggle`/`data-grave-confirm`).
+- **표식 그림**: 마을 서약비(`vow` 마크)가 쓰던 비석 도형을
+  `dungeon3d.js` 방 소품 자리에 그대로 재사용(PLAN 원문 "비석 GLB
+  재사용" 그대로 — 실제로는 GLB 가 아니라 box 도형이었다, 이 판 다른
+  POI 들도 GLB 실패시 도형 그대로 남는 결이라 어긋나지 않는다).
+  2D(`dungeon-view.js` 캔버스)는 기존 `thingItem` 자리에 💀 하나만
+  얹었다.
+- **사망 카드**: `goals.js` `buildCard()` 가 이번 사망으로 유품이
+  남았으면 "다음 할 것"을 "제N층 유품 회수"로 덮는다. `ui.js`
+  `showGoalsCard()` 는 그 경우에만 "잃은 금/장비"를 "유품으로 남은
+  금/장비"로 바꿔 쓴다 — 결사로 진짜 잃었을 때(유품이 안 생겼을 때)는
+  기존 문구 그대로.
+
+**검증** — `node -c`(dungeon.js·dungeon-view.js·dungeon3d.js·ui.js·
+goals.js) 통과, `bash tools/precheck.sh saga-web/saga-dungeon` →
+PRECHECK OK. `sw.js` `dungeon-v0.120.0` → `v0.121.0`. `_test.html`에
+§5.2 진단 4개(사망시 유품 이전·재진입 표식+3점 선택 회수·회차간 덮어쓰기·
+결사 무유품) 추가, 인라인 스크립트는 마지막 `<script>` 블록만 뽑아
+`node -c`로 구문 확인(헤드리스는 안 띄웠다, 이 판 규칙).
+
+**실기 확인 남음**: 표식이 첫 방 0.3W 자리가 자연스러운지, 회수 카드
+3점 선택 손맛, 사망 카드 문구가 헷갈리지 않는지 — §7.2에 반영.

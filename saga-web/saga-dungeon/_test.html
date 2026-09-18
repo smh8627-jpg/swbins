@@ -445,6 +445,86 @@ window.requestAnimationFrame = function () { return 0; };
         ('창 안 콤보 +' + inCombo + '(슬로우 ' + inSlow + ') · 창 밖 콤보 ' + outCombo);
     });
 
+    /* ── 유품(遺品) — 죽음 비용과 회수(PLAN §5.2, 2026-09-18) ────────── */
+
+    t('유품 — 죽으면 노획물이 그 층 유품으로 남고 가방엔 안 들어온다 (§5.2)', function () {
+      DN.enter({ floor: 21 });
+      var raw = DN.raw();
+      raw.loot.gold = 250;
+      raw.loot.items = [IT.roll(21, { tier: 0, unid: false })];
+      var bagBefore = IT.bag().length;
+      raw.player.invuln = 0; raw.hp = 1;
+      DN._hurt(9999);
+      var g = DN.state().grave;
+      var bagAfter = IT.bag().length;
+      var ok = !DN.active() && !!g && g.floor === 21 && g.gold === 250 &&
+        g.items.length === 1 && bagAfter === bagBefore;
+      DN.state().grave = null;                          // 다음 진단을 위해 정리
+      return ok && ('유품 제' + (g && g.floor) + '층 · 금 ' + (g && g.gold) +
+        ' · 가방 그대로(' + bagBefore + '→' + bagAfter + ')');
+    });
+
+    t('유품 — 그 층에 다시 닿으면 표식이 서고, 밟으면 금 100%·장비 3점까지 골라 돌아온다 (§5.2)', function () {
+      DN.enter({ floor: 9 });
+      var raw = DN.raw();
+      raw.loot.gold = 300;
+      var items = [];
+      for (var i = 0; i < 4; i++) { items.push(IT.roll(9, { tier: 0, unid: false })); }
+      raw.loot.items = items;
+      raw.player.invuln = 0; raw.hp = 1;
+      DN._hurt(9999);                                   // 사망 → 유품 남김
+      var gold0 = C.save.player.gold;
+      DN.enter({ floor: 9 });                            // 같은 층 재진입
+      var raw2 = DN.raw();
+      var marked = !!raw2.room.grave;
+      raw2.player.x = raw2.room.grave.x; raw2.player.y = raw2.room.grave.y;
+      DN.update(0.016);                                  // 근접 판정 → 자동으로 연다
+      var gc0 = DN.status().graveChoice;
+      var opened = !!gc0 && gc0.items.length === 4;
+      for (var k = 0; k < 4; k++) { DN.toggleGraveItem(k); }
+      var picked3 = DN.status().graveChoice.picked.length === 3;    // 넷째는 상한에 막힌다
+      var r = DN.claimGrave();
+      var bagGain = C.save.player.gold - gold0;
+      var cleared = DN.state().grave === null;
+      DN.leave();
+      return marked && opened && picked3 && r.items === 3 && bagGain === 300 && cleared &&
+        ('표식 ' + marked + ' · 고른 장비 ' + r.items + '/4 · 금 +' + bagGain);
+    });
+
+    t('유품 — 회수 전에 다시 죽으면 옛 유품은 사라지고 새 것만 남는다 (§5.2)', function () {
+      DN.enter({ floor: 2 });
+      var raw = DN.raw();
+      raw.loot.gold = 50; raw.loot.items = [];
+      raw.player.invuln = 0; raw.hp = 1;
+      DN._hurt(9999);
+      var first = DN.state().grave.floor;
+      DN.enter({ floor: 4 });
+      var raw2 = DN.raw();
+      raw2.loot.gold = 80; raw2.loot.items = [];
+      raw2.player.invuln = 0; raw2.hp = 1;
+      DN._hurt(9999);
+      var g = DN.state().grave;
+      var ok = first === 2 && g.floor === 4 && g.gold === 80;
+      DN.state().grave = null;
+      return ok && ('옛 유품(제' + first + '층) → 새 유품(제' + g.floor + '층, 금 ' + g.gold + ')');
+    });
+
+    t('유품 — 결사에서는 유품이 안 생긴다 (§5.2)', function () {
+      DN.state().grave = null;                           // 이전 진단 잔여물 정리
+      DN.setHardcore();
+      DN.enter({ floor: 3 });
+      var raw = DN.raw();
+      raw.loot.gold = 999; raw.loot.items = [];
+      raw.player.invuln = 0; raw.hp = 1;
+      DN._hurt(9999);
+      var fallen = !!DN.state().fallen;
+      var noGrave = DN.state().grave === null;
+      /* 정리 — 이후 진단도 dungeon.enter 를 계속 쓴다(결사·낙사 상태를 남기지 않는다) */
+      DN.state().fallen = null;
+      DN.state().hardcore = false;
+      return fallen && noGrave && ('결사 사망 · fallen ' + fallen + ' · 유품 없음 ' + noGrave);
+    });
+
     t('탈출하면 노획물이 확정된다', function () {
       var raw = DN.raw();
       raw.loot.gold = 400;

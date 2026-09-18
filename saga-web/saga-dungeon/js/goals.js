@@ -257,6 +257,9 @@
     } else if (reason === 'dead' && payload && payload.lost) {
       card.lostGold = payload.lost.gold || 0;
       card.lostItems = payload.lost.items || 0;
+      /* §5.2 — 잃은 게 있어 유품이 남았으면 "다음 할 것"을 그 회수로 덮는다 */
+      var DGN = global.DG.dungeon, grave = DGN && DGN.graveOf && DGN.graveOf();
+      if (grave && grave.floor === floor) { card.next = '제' + floor + '층 유품 회수'; }
     }
     /* 세션을 여기서 닫는다 — 다음 판은 새 기준값에서 다시 잰다 */
     sess.start = Date.now();

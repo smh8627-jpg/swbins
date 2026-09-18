@@ -353,7 +353,11 @@
       var m = e.target.closest('[data-buy]');
       if (m) { d().buyMerchant(Number(m.getAttribute('data-buy'))); renderChoice(); return; }
       var lv = e.target.closest('[data-leave-merchant]');
-      if (lv) { d().leaveMerchant(); renderChoice(); }
+      if (lv) { d().leaveMerchant(); renderChoice(); return; }
+      var gt = e.target.closest('[data-grave-toggle]');
+      if (gt) { d().toggleGraveItem(Number(gt.getAttribute('data-grave-toggle'))); renderChoice(); return; }
+      var gf = e.target.closest('[data-grave-confirm]');
+      if (gf) { d().claimGrave(); renderChoice(); }
     });
 
 
@@ -850,11 +854,13 @@
     var st = d().status();
     var c = st.active ? st.choice : null;
     var mc = st.active ? st.merchantChoice : null;
+    var gc = st.active ? st.graveChoice : null;
     var k = c ? 'b:' + c.join(',') :
-      (mc ? 'm:' + mc.map(function (r) { return r.item.uid; }).join(',') : '');
+      (mc ? 'm:' + mc.map(function (r) { return r.item.uid; }).join(',') :
+      (gc ? 'g:' + gc.items.map(function (it) { return it.uid; }).join(',') + '|' + gc.picked.join(',') : ''));
     if (k === choiceKey) { return; }
     choiceKey = k;
-    if (!c && !mc) { choiceEl.classList.remove('show'); choiceEl.innerHTML = ''; return; }
+    if (!c && !mc && !gc) { choiceEl.classList.remove('show'); choiceEl.innerHTML = ''; return; }
     var html;
     if (c) {
       /* §5.1 — 축 아이콘(무예🗡·인물👤·세계🌐)과 희귀도 테두리색(TIERS 재사용:
@@ -877,7 +883,7 @@
         core.fmt(30 * st.floor) + ')</button>' +
         '<small class="muted">축복은 이 회차에만 남습니다 — 죽거나 나가면 사라집니다 (' +
         (st.boonPicks || 0) + '/' + (st.boonMax || 8) + ')</small></div>';
-    } else {
+    } else if (mc) {
       /* 행상(POI: Merchant) — 은사와 같은 석판 틀을 쓰되 물건·값을 보여 준다 */
       var IT = global.DG.item;
       html = '<div class="dg-choice-in"><h4>🧺 행상 · 살 것을 고른다</h4><div class="dg-cards">';
@@ -893,6 +899,25 @@
       html += '</div><button class="dg-card" data-leave-merchant style="margin-top:10px">' +
         '떠난다</button>' +
         '<small class="muted">이 행상은 여기서만 만난다 — 놓치면 다시 안 옵니다</small></div>';
+    } else {
+      /* 유품(§5.2) — 금은 자동(100%), 장비는 눌러서 3점까지 고른다.
+         고른 카드는 테두리로 표시한다(picked 배열에 있으면 .on). */
+      var IT3 = global.DG.item, graveMax = d().GRAVE_ITEM_MAX || 3;
+      html = '<div class="dg-choice-in"><h4>🪦 유품 · 되찾을 것을 고른다 (최대 ' +
+        graveMax + ')</h4><div class="dg-cards">';
+      for (var gi = 0; gi < gc.items.length; gi++) {
+        var git = gc.items[gi], gt = IT3.tierOf(git);
+        var on = gc.picked.indexOf(gi) >= 0;
+        html += '<button class="dg-card' + (on ? ' on' : '') + '" data-grave-toggle="' + gi +
+          '" style="border-color:' + gt.color + '">' +
+          '<b style="color:' + gt.color + '">' + IT3.name(git) + '</b>' +
+          '<small>' + gt.name + '</small>' +
+          (on ? '<i class="dg-have">되찾는다</i>' : '') +
+          '</button>';
+      }
+      html += '</div><button class="dg-card" data-grave-confirm style="margin-top:10px">확인 · 금 ' +
+        core.fmt(gc.gold) + ' + 장비 ' + gc.picked.length + '점</button>' +
+        '<small class="muted">고르지 않은 장비는 사라집니다 — 금은 늘 전부 돌아옵니다</small></div>';
     }
     choiceEl.innerHTML = html;
     choiceEl.classList.add('show');
@@ -1103,6 +1128,7 @@
         items.push({ z: o.x + o.y, kind: 'jar', o: o });
       }
     }
+    thingItem(items, run.room.grave, '💀');
     thingItem(items, run.room.chest, run.room.chest && run.room.chest.taken ? '📭' : '🎁');
     thingItem(items, run.room.well, run.room.well && run.room.well.used ? '🕳️' : '💧');
     thingItem(items, run.room.shrine, run.room.shrine && run.room.shrine.used ? '🪨' : '⛩️');
