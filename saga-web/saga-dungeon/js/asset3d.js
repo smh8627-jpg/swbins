@@ -1080,12 +1080,27 @@
     return wrap;
   }
 
+  /* 2026-09-18 — PLAN §6.1-3 후속 과제. 외곽선은 **배우**(사람·짐승·몬스터
+     GLB)만 받는다 — 이 asset3d.js 는 그것들과 나무·바위·건물·무기·갑주까지
+     같은 `build()`/`delam()` 경로를 태우므로(사가고처럼 소품 전용 파일이
+     따로 없다), kind 문자열이 아니라 **최종 GLB 폴더**로 가른다. 폴더 셋은
+     위 표(PEOPLE·PEOPLE_QRPG·PEOPLE_MONSTERS_Q·ANIMALS·ANIMALS_EXTRA*·
+     `monsters/quaternius_dino`·`monsters/quaternius_cute`)가 전부
+     `models/(people|animals|monsters)/` 밑이라 이 한 정규식으로 잡힌다.
+     NATURE·PROPS·BLD·DUN·WPN·GEAR 는 전부 빠진다(의도, 방 경계·무기에
+     테두리가 생기는 위험을 피한다 — 화면 확인 없이 짠 이번 손질에서도
+     그 위험만은 여전히 안 무릅쓴다). */
+  function isActorAsset(url) {
+    return typeof url === 'string' && /\/models\/(people|animals|monsters)\//.test(url);
+  }
+
   /* ── PBR 을 벗긴다 — 환경맵 없는 이 판의 조명에 그대로 쓰면 새까맣게
    *  선다(사가고가 2026-08-29 에 먼저 밟은 함정, `SAGA-HANDOFF.md` 참고) */
-  function delam(root) {
+  function delam(root, url) {
     var t = three();
     var TN = global.DG.toon3d;
     var toon = !!(TN && TN.TOON_ON());
+    var wantOutline = !!(TN && TN.OUTLINE_ON()) && isActorAsset(url);
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       /* **법선이 아예 없는 GLB**(2026-09-04, "House"·"Wood" 새까만 자리로
@@ -1125,6 +1140,7 @@
         });
       });
       o.material = Array.isArray(o.material) ? out : out[0];
+      if (toon && wantOutline) { TN.outline(o); }
     });
   }
 
@@ -1187,7 +1203,7 @@
           var waitN = c.waiting.length;
           inflight--;
           c.state = 'ok'; c.gltf = gltf;
-          delam(gltf.scene);
+          delam(gltf.scene, url);
           c.clips = gltf.animations || [];
           c.map = mapClips(c.clips.map(function (a) { return a.name; }));
           flush(c, c);
@@ -1514,7 +1530,7 @@
     DEFAULTS: DEFAULTS, restore: restore, heroRecipe: heroRecipe, ANIM_SRC: ANIM_SRC,
     build: build, buildHero: buildHero, step: step, play: play, rawScene: rawScene, tick: tick,
     ownAllMat: ownAllMat, flashAllMat: flashAllMat,
-    tuned: tuned, set: set, stats: stats,
+    tuned: tuned, set: set, stats: stats, isActorAsset: isActorAsset,
     clear: function () { var k; for (k in REG) { if (Object.prototype.hasOwnProperty.call(REG, k)) { delete REG[k]; } } cache = {}; return REG; }
   };
 })(window);

@@ -3661,3 +3661,48 @@ data-skill.js·data-enemy.js·field3d.js·dungeon3d.js·minimap.js·ui.js)
 
 **남은 것**: §8 로드맵 Phase 0~5 전부 코드분으로 닫혔다 — 다음은 Phase 6
 (그래픽 통일, §6.1·§6.3)이거나, 밀린 실기 확인 세션(§7.2·§10-Q6)이다.
+
+## 2026-09-18 — PLAN §6.1-3 외곽선(뒤집힌 헐), 배우만 (Phase 6 착수)
+
+§8 로드맵이 Phase 0~5 코드분을 다 닫아 다음으로 남긴 Phase 6(그래픽
+통일)에 착수했다. §6.1 항목 3이 2026-09-17에 "다음 손질 후보"로 적어
+둔 절충안(`box()` 호출부 태그 대신 GLB 폴더 판별)을 그대로 짰다 —
+사가고의 `toon3d.js` 외곽선(뒤집힌 헐, 스키닝 정점 셰이더로 법선 방향
+밀기)을 그대로 이식했다.
+
+- **`js/toon3d.js`**: `outline(mesh)`·`outlineMaterial(width, skinned)`·
+  `OUTLINE_ON()`을 사가고 파일에서 그대로 옮겼다(셰이더 문자열 한 글자도
+  안 바꿈). 폭은 바운딩구 반지름의 3%, 재질은 폭·스키닝 유무로 캐싱,
+  이미 얹은 메시엔 `mesh.userData._toonOutline`으로 재호출을 막는다.
+- **`js/asset3d.js`**: 새 `isActorAsset(url)` — `/models/(people|animals|
+  monsters)/`에 걸리면 배우. 이 판은 사가고와 달리 소품 전용 파일이
+  없어 나무·바위·건물·무기·갑주까지 전부 같은 `AS3.build()`/`delam()`
+  경로를 타므로, `kind` 문자열이 아니라 **최종 REG URL의 폴더**로
+  갈랐다(node vm으로 대조: `beast`·`monster:dino_raptor`·`monster:
+  cthulhu`·`hero`·`pet:tiger` 전부 true, `tree`·`house`·`pillar`·
+  `wpn:sword`·`gear:armor:plate` 전부 false — 예상대로였다). `delam(root,
+  url)`로 시그니처를 늘려 `pump()`의 `ld.load` 콜백(이미 클로저에 `url`을
+  쥐고 있었다)에서 그대로 넘긴다. `toon && wantOutline`일 때만
+  `TN.outline(o)` — 툰이 꺼지면(예전 Lambert) 외곽선도 자동으로 안 걸린다.
+  `isActorAsset`을 `DG.asset3d`에 노출(진단용).
+- **몸(body)·옷(outfit)·머리(hair)가 다 `people/` 밑의 별도 GLB라 셋
+  다 외곽선을 받는다** — 실루엣이 부위별로 안 끊기게 하려면 이게 맞다
+  (상의 안 함, 사가고와 같은 구조라 그대로 따름). **무기·갑주(GEAR·WPN)엔
+  외곽선이 없다** — 몸통과 어색하게 갈릴 위험은 §7.2에 남겼다.
+
+**검증** — `node -c`(toon3d.js·asset3d.js) 통과. `node` vm으로 REG 전체를
+로드해 `isActorAsset` 분류 표(위)를 직접 대조. `_test.html`에 순수 함수
+진단 2개 추가(`isActorAsset` 분류·`outline()` 재호출 멱등성+재질 캐시
+히트+`side=BackSide`) — 인라인 스크립트만 `sed`/`awk`로 뽑아
+`node --check`로 구문 확인(헤드리스는 이 판 규칙대로 안 띄웠다).
+`sw.js` `dungeon-v0.125.0` → `v0.126.0`. `bash tools/precheck.sh
+saga-web/saga-dungeon` → PRECHECK OK.
+
+**실기 확인 남음**: 외곽선이 배우 몸엔 있고 무기·갑주엔 없어 어색한지,
+짐승·몬스터 88종에 실제로 뜨는지, 스킨드메시 자세가 바뀌어도 안
+어긋나는지 — §7.2에 반영.
+
+**남은 것**: §6.1 나머지(1 톤매핑 곡선·5 지형 트라이플레이너·6 그림자·
+7 카메라 확인)와 §6.3(팔레트 스냅·kitbash·타일 24, 외부 python 스크립트
++ 실제 텍스처/에셋 필요 — 스코프가 크다, 다음엔 그중 하나만 골라 좁혀서
+갈 것)이 Phase 6 안에 남았다.

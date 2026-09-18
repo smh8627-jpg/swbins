@@ -5305,6 +5305,42 @@ window.requestAnimationFrame = function () { return 0; };
         ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
     });
 
+    /* ── 그래픽 통일 Phase 6 — 외곽선은 배우만 (PLAN §6.1-3, 2026-09-18) ── */
+
+    t('외곽선 — isActorAsset이 사람·짐승·몬스터 GLB만 배우로 가른다 (PLAN §6.1-3)', function () {
+      var A3 = DG.asset3d;
+      if (!A3 || typeof A3.isActorAsset !== 'function') { return false; }
+      var actorUrls = [
+        A3.REG.beast, A3.REG.beast_big, A3.REG['monster:dino_raptor'],
+        A3.REG['monster:cthulhu'], A3.REG.hero[0].body, A3.REG['pet:tiger']
+      ];
+      var nonActorUrls = [
+        A3.REG.tree, A3.REG.house[0], A3.REG.pillar, A3.REG['wpn:sword'],
+        A3.REG['gear:armor:plate']
+      ];
+      var allActor = actorUrls.every(function (u) { return A3.isActorAsset(u); });
+      var noneActor = nonActorUrls.every(function (u) { return !A3.isActorAsset(u); });
+      return allActor && noneActor && !A3.isActorAsset(null) && !A3.isActorAsset(undefined) &&
+        ('배우 ' + actorUrls.length + '종 전부 true · 지형·건물·무기·갑주 ' + nonActorUrls.length + '종 전부 false');
+    });
+
+    t('외곽선 — outline()은 배우 mesh에 한 번만 걸리고 재질은 폭별로 캐싱된다 (PLAN §6.1-3)', function () {
+      var TN = DG.toon3d;
+      if (!TN || typeof TN.outline !== 'function' || typeof window.THREE === 'undefined') { return false; }
+      var T = window.THREE;
+      var geo = new T.SphereGeometry(2, 6, 6);
+      var mesh = new T.Mesh(geo, new T.MeshToonMaterial());
+      var parent = new T.Group();
+      parent.add(mesh);
+      var out1 = TN.outline(mesh);
+      var out2 = TN.outline(mesh);   // 이미 얹었으면 다시 안 만든다
+      var childCountOk = parent.children.length === 2;   // 원본 + 외곽선 하나뿐
+      var mat1 = TN.outlineMaterial(0.05, false);
+      var mat2 = TN.outlineMaterial(0.05, false);
+      return !!out1 && out1 === out2 && childCountOk && mat1 === mat2 && out1.material.side === T.BackSide &&
+        ('outline 재호출 동일 인스턴스 · 부모 자식 수 ' + parent.children.length + ' · 재질 캐시 히트 · side=BackSide');
+    });
+
     t('목표판 — 부팅 직후 세 줄이 비어 있지 않다 (PLAN §5.6)', function () {
       var G = DG.goals;
       if (!G) { return false; }
