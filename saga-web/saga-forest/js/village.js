@@ -2212,6 +2212,7 @@
     sell: sell, sellAll: sellAll, questProgress: questProgress,
     caughtCount: caughtCount, shake: shake, speedMul: speedMul,
     weedCount: weedCount, pullWeed: pullWeed, growWeeds: growWeeds, WEED_MAX: WEED_MAX,
+    WEED_PER_DAY: WEED_PER_DAY,
     shopLevel: shopLevel, SHOP_TIERS: SHOP_TIERS,
     giveGift: giveGift, giftLike: giftLike, giftDislike: giftDislike, giftedToday: giftedToday,
     buildProps: buildProps, forestMargin: forestMargin, biomeAt: biomeAt, BIOMES: BIOMES,

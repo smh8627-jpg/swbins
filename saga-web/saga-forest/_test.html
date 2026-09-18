@@ -2919,6 +2919,39 @@ window.DG_NO_TUNE = true;
       return hi > lo && ('정갈할 때 등급 ' + hi + ' · 거칠 때 ' + lo);
     });
 
+    t('마을 평가 — 별은 등급 순번+1, 1~5 사이', function () {
+      var T = DG.town;
+      var b = T.beauty();
+      return b.stars === b.level + 1 && b.stars >= 1 && b.stars <= 5 &&
+        ('등급 ' + b.level + ' → 별 ' + b.stars);
+    });
+
+    t('마을 평가 — 다음날 최악에도 등급이 그대로면 경고 없음, 문턱 넘으면 뜬다', function () {
+      var T = DG.town, s = V.state(), G = VD.BEAUTY_GRADES;
+      var keep = s.weeds.slice(), i;
+      s.weeds = [];
+      V.buildProps();
+      var b0 = T.beauty();
+      if (b0.level <= 0) {                 // 이미 바닥 등급이면 더 떨어질 데가 없다
+        s.weeds = keep; V.buildProps(); V.syncPlanted();
+        return true;
+      }
+      var maxGrow = V.WEED_PER_DAY;
+      var safeWeeds = Math.max(0, Math.floor((b0.score - maxGrow * 3 - G[b0.level].at) / 3));
+      s.weeds = [];
+      for (i = 0; i < safeWeeds; i++) { s.weeds.push({ x: 100 + i, y: 100 }); }
+      V.buildProps();
+      var safe = T.beautyWarning();
+      s.weeds = [];
+      for (i = 0; i < safeWeeds + 1; i++) { s.weeds.push({ x: 100 + i, y: 100 }); }
+      V.buildProps();
+      var tipped = T.beautyWarning();
+      s.weeds = keep;
+      V.buildProps(); V.syncPlanted();
+      return safe === null && !!tipped &&
+        ('안전 ' + safeWeeds + '포기: 경고 없음 · +1포기: "' + tipped.text + '"');
+    });
+
     /* ── 어드민 손잡이 ──────────────────────────────────── */
 
     t('자가진단은 어드민 손잡이를 읽지도 쓰지도 않는다', function () {

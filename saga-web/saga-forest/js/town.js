@@ -178,8 +178,31 @@
 
     var G = VD().BEAUTY_GRADES, g = G[0];
     for (i = 0; i < G.length; i++) { if (score >= G[i].at) { g = G[i]; } }
-    return { score: score, grade: g.name, level: G.indexOf(g),
-             weeds: weeds, flowers: flowers, planted: planted };
+    return { score: score, grade: g.name, level: G.indexOf(g), stars: G.indexOf(g) + 1,
+             weeds: weeds, flowers: flowers, planted: planted, home: home, museum: museum };
+  }
+
+  /**
+   * §5.8② 경고 — 잡초를 하나도 안 뽑고 내일 최악으로(하루 최대치) 늘면
+   * 지금 별(등급)에서 떨어지는가. 떨어질 상황이면 마을 게시판·하루 마무리
+   * 카드 양쪽에 같은 문구를 낸다. 이미 바닥 등급이면 더 떨어질 데가 없다.
+   */
+  function beautyWarning() {
+    var b = beauty(), G = VD().BEAUTY_GRADES;
+    if (b.level <= 0) { return null; }
+    var Vmod = global.DG.village;
+    var maxGrow = Vmod ? Vmod.WEED_PER_DAY : 3;
+    var worst = b.score - maxGrow * 3;
+    if (worst >= G[b.level].at) { return null; }
+    var raw = Vmod ? Vmod.raw() : null, res = raw ? raw.residents : [];
+    var who = null;
+    if (res && res.length) {
+      var idx = Math.floor(core.hash2(V().state().day, 42) * res.length);
+      who = res[idx].ref ? res[idx].ref.name : null;
+    }
+    return { weeds: b.weeds, who: who,
+      text: '🌿 잡초 ' + b.weeds + '포기' + (who ? ' — ' + who + ' 님이 걱정합니다' : '') +
+            '. 지금 뽑으면 늦지 않습니다' };
   }
 
   /** 오늘 이 갈래가 비싸게 팔리나 (없으면 1) */
@@ -210,7 +233,7 @@
     flag: flag, setFlag: setFlag, flagBg: flagBg, flagFg: flagFg, flagSym: flagSym,
     event: event, next: next, priceMul: priceMul, isNewYear: isNewYear,
     weather: weather, raining: raining,
-    starNow: starNow, wish: wish, wishesOn: wishesOn, beauty: beauty,
+    starNow: starNow, wish: wish, wishesOn: wishesOn, beauty: beauty, beautyWarning: beautyWarning,
     /** 자가진단용 — 흐르는 별을 억지로 세운다. undefined 를 주면 다시 시각을 본다 */
     _setStar: function (v) { starOverride = v; },
     WISH_MAX: WISH_MAX, STAR_SLOT: STAR_SLOT, STAR_AT: STAR_AT, STAR_MS: STAR_MS,

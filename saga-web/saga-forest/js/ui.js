@@ -1474,15 +1474,21 @@
     html += '<small class="muted">깃대(🚩)에 걸립니다. 점을 찍어 그리는 대신 ' +
       '바탕·무늬색·무늬 셋을 고릅니다.</small></div>';
 
-    /* 마을 평가 — 잡초를 뽑고 꽃을 심은 값 */
+    /* 마을 평가 — 잡초를 뽑고 꽃을 심은 값. §5.8② — 별 5로 보여주고
+       조건(잡초·꽃·심은 나무·집·사고)을 공개한다. */
     var bt = stt.beauty, sh = V.shopLevel();
+    var warn = global.DG.town.beautyWarning ? global.DG.town.beautyWarning() : null;
     html += '<div class="sec"><h4>마을 평가</h4><div class="card">' +
-      '<div class="stat-row"><span>등급</span><b>' + esc(bt.grade) + ' · ' + bt.score + '점</b></div>' +
+      '<div class="stat-row"><span>' + esc(bt.grade) + '</span><b>' +
+        '★'.repeat(bt.stars) + '☆'.repeat(5 - bt.stars) + ' · ' + bt.score + '점</b></div>' +
       '<div class="stat-row"><span>잡초</span><b>🌿 ' + bt.weeds + '포기 (-' + bt.weeds * 3 + ')</b></div>' +
       '<div class="stat-row"><span>꽃</span><b>🌸 ' + bt.flowers + '송이</b></div>' +
       '<div class="stat-row"><span>심어 둔 것</span><b>🌱 ' + bt.planted + '</b></div>' +
-      '<small class="muted">잡초는 <b>안 뽑으면 날마다 늡니다</b>. ' +
-      '평가가 높으면 주민이 잘 떠나지 않습니다. 평가서는 월요일 아침에 옵니다.</small>' +
+      '<div class="stat-row"><span>집 꾸미기</span><b>🏠 +' + Math.round(bt.home / 4) + '</b></div>' +
+      '<div class="stat-row"><span>사고 기증</span><b>🏛️ +' + bt.museum * 2 + '</b></div>' +
+      (warn ? '<small class="muted" style="color:var(--bad,#c0392b)">⚠ ' + esc(warn.text) + '</small>'
+            : '<small class="muted">잡초는 <b>안 뽑으면 날마다 늡니다</b>. ' +
+              '평가가 높으면 주민이 잘 떠나지 않습니다. 평가서는 월요일 아침에 옵니다.</small>') +
       '</div></div>';
 
     /* 전방 */
@@ -1955,6 +1961,7 @@
     if (!el) { return; }
     var ratingUp = info.ratingAfter - info.ratingBefore;
     var metLine = info.metId && global.DG.data ? global.DG.data.find(info.metId) : null;
+    var warn = global.DG.town && global.DG.town.beautyWarning ? global.DG.town.beautyWarning() : null;
     el.innerHTML =
       '<div class="enc-card">' +
         '<h3 style="margin:0 0 6px;font-size:17px">🌙 어제 하루</h3>' +
@@ -1963,6 +1970,7 @@
         (info.donated ? '<div class="stat-row"><span>기증</span><b>' + info.donated + '</b></div>' : '') +
         '<div class="stat-row"><span>마을 평가</span><b>' + (ratingUp >= 0 ? '+' : '') + ratingUp + '</b></div>' +
         (metLine ? '<div class="stat-row"><span>가장 가까워진 사람</span><b>' + esc(metLine.name) + '</b></div>' : '') +
+        (warn ? '<div class="p-goal" style="margin-top:8px;color:var(--bad,#c0392b)">⚠ ' + esc(warn.text) + '</div>' : '') +
         (info.next ? '<div class="p-goal" style="margin-top:8px">오늘 · 🎯 ' + esc(info.next) + '</div>' : '') +
         '<button class="btn primary wide" id="daylog-ok">확인</button>' +
       '</div>';
