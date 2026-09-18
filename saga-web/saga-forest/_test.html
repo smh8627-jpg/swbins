@@ -211,6 +211,66 @@ window.DG_NO_TUNE = true;
         'attack·hit 모두 idle 대타';
     });
 
+    /* ── 툰 재질·외곽선 (PLAN §6.1, 2026-09-19 §10-Q3 + 배우 외곽선) ── */
+
+    t('toon3d.OUTLINE_ON — 툰이 꺼지면 외곽선도 같이 꺼진다', function () {
+      var TN = DG.toon3d;
+      var C = DG.core;
+      C.setTune({ 'world3d.toon': 0 });
+      var offBoth = TN.OUTLINE_ON();
+      C.setTune({ 'world3d.toon': null, 'world3d.outline': 0 });
+      var offOnly = TN.OUTLINE_ON() === false && TN.TOON_ON() === true;
+      C.setTune({ 'world3d.outline': null });
+      var backToDefault = TN.OUTLINE_ON() === true;
+      return offBoth === false && offOnly && backToDefault &&
+        '툰 꺼짐→외곽선도 꺼짐 · 외곽선만 꺼짐(툰은 켜짐) · 기본값(둘 다 켬)으로 복귀';
+    });
+
+    t('toon3d.addOutline — 메시마다 살짝 부풀린 BackSide 복제를 같은 부모에 덧붙인다', function () {
+      var TN = DG.toon3d;
+      var geo = new THREE.BoxGeometry(1, 1, 1);
+      var mat = new THREE.MeshToonMaterial({ color: 0xffffff });
+      var mesh = new THREE.Mesh(geo, mat);
+      var root = new THREE.Group();
+      root.add(mesh);
+      TN.addOutline(root, 0.05);
+      var dup = root.children[root.children.length - 1];
+      return root.children.length === 2 && dup !== mesh &&
+        dup.material.side === THREE.BackSide && dup.material.color.getHex() !== mat.color.getHex() &&
+        Math.abs(dup.scale.x - 1.05) < 1e-9 &&
+        ('자식 1개 → 2개 · BackSide · 부풀린 배율 ' + dup.scale.x.toFixed(3));
+    });
+
+    t('toon3d.addOutline — 스킨 메시는 같은 skeleton 에 다시 물려 복제한다', function () {
+      var TN = DG.toon3d;
+      var geo = new THREE.BoxGeometry(1, 1, 1);
+      var mat = new THREE.MeshToonMaterial({ color: 0xffffff });
+      var bone = new THREE.Bone();
+      var skeleton = new THREE.Skeleton([bone]);
+      var mesh = new THREE.SkinnedMesh(geo, mat);
+      mesh.bind(skeleton);
+      var root = new THREE.Group();
+      root.add(mesh);
+      TN.addOutline(root, 0.05);
+      var dup = root.children[root.children.length - 1];
+      return dup.isSkinnedMesh === true && dup.skeleton === skeleton &&
+        'SkinnedMesh 복제도 같은 skeleton 을 공유';
+    });
+
+    t('toon3d.addOutline — world3d.outline 을 끄면 아무 것도 안 붙인다', function () {
+      var TN = DG.toon3d;
+      var C = DG.core;
+      var geo = new THREE.BoxGeometry(1, 1, 1);
+      var mesh = new THREE.Mesh(geo, new THREE.MeshToonMaterial());
+      var root = new THREE.Group();
+      root.add(mesh);
+      C.setTune({ 'world3d.outline': 0 });
+      TN.addOutline(root);
+      var before = root.children.length;
+      C.setTune({ 'world3d.outline': null });
+      return before === 1 && '손잡이를 끄면 자식 그대로 1개';
+    });
+
     /* ── 3D 마을 화면 (PLAN 40절 PHASE 2 — Player 3D) ─────── */
 
     t('village-view3d — three 는 실려 있으니 available, init 을 안 불렀으니 active 는 아니다', function () {

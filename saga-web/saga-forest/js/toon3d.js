@@ -74,6 +74,58 @@
     return new t.MeshToonMaterial(o);
   }
 
+  var outlineMat = null;
+  function outlineMaterial() {
+    if (outlineMat) { return outlineMat; }
+    var t = three();
+    if (!t) { return null; }
+    outlineMat = new t.MeshBasicMaterial({ color: 0x211a14, side: t.BackSide, toneMapped: false });
+    return outlineMat;
+  }
+
+  /** 외곽선 손잡이 — 배우(주민·짐승·NPC)에만 쓴다(PLAN §6.1). 땅 타일은
+   *  InstancedMesh 격자라 칸마다 붙이면 화면 전체가 검은 테두리로 뒤덮일
+   *  위험이 커 일부러 안 건다(§6.1 주석 그대로). 기본은 툰과 같이 켜지지만
+   *  손잡이를 따로 둬 외곽선만 되돌릴 길을 남긴다. */
+  function OUTLINE_ON() {
+    var core = global.DG && global.DG.core;
+    if (!TOON_ON()) { return false; }
+    return core && core.tuned ? (core.tuned('world3d.outline', 1) ? true : false) : true;
+  }
+
+  /**
+   * 뒤집힌 헐(inverted-hull) 외곽선 — SkinnedMesh 포함, 몸 하나(root) 안의
+   * Mesh/SkinnedMesh 마다 살짝 부풀린 뒷면 전용(BackSide) 복제를 같은
+   * 부모에 덧붙인다. 스킨 메시는 같은 skeleton 에 다시 물려(`bind()`)
+   * 걸을 때 몸과 같이 움직인다. 원본 메시는 손 안 댄다 — 지웠다 되돌릴
+   * 필요가 있으면 root 를 통째로 버리면 같이 사라진다(별도 목록 안 남긴다).
+   */
+  function addOutline(root, width) {
+    var t = three();
+    var mat = outlineMaterial();
+    if (!t || !mat || !OUTLINE_ON()) { return; }
+    var w = width || 0.045;
+    var targets = [];
+    root.traverse(function (o) { if (o.isMesh || o.isSkinnedMesh) { targets.push(o); } });
+    targets.forEach(function (o) {
+      var dup;
+      if (o.isSkinnedMesh) {
+        dup = new t.SkinnedMesh(o.geometry, mat);
+        dup.bind(o.skeleton, o.bindMatrix);
+      } else {
+        dup = new t.Mesh(o.geometry, mat);
+      }
+      dup.position.copy(o.position);
+      dup.quaternion.copy(o.quaternion);
+      dup.scale.copy(o.scale).multiplyScalar(1 + w);
+      dup.castShadow = false;
+      dup.receiveShadow = false;
+      dup.renderOrder = (o.renderOrder || 0) - 1;
+      o.parent.add(dup);
+    });
+  }
+
   global.DG = global.DG || {};
-  global.DG.toon3d = { ramp: ramp, toonify: toonify, lambertLike: lambertLike, TOON_ON: TOON_ON };
+  global.DG.toon3d = { ramp: ramp, toonify: toonify, lambertLike: lambertLike, TOON_ON: TOON_ON,
+    addOutline: addOutline, OUTLINE_ON: OUTLINE_ON };
 })(window);

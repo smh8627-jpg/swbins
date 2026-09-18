@@ -555,6 +555,26 @@
    *  (그쪽은 애초에 환경맵을 받게 만든 텍스처가 아니라 벗기는 쪽이 더 낫다) */
   function looksRealistic(url) { return typeof url === 'string' && url.indexOf('/realistic/') >= 0; }
 
+  /** §10-Q3(2026-09-18 확정) — 사진측량 PBR(`/realistic/`)도 툰이 켜져 있으면
+   *  같이 덮는다. 단, 꺼져 있을 때는 예전 그대로 PBR 을 지킨다(이 경로만
+   *  Lambert 로 낮추지 않는다 — 원래 실사로 남기자고 따로 뺐던 자리라, 툰이
+   *  꺼지면 그 취지를 그대로 존중한다). 물(`waterMaterial()`)은 이 GLB
+   *  파이프라인을 안 타므로 안 건드린다. */
+  function toonifyRealistic(root) {
+    var t = three();
+    var TN = global.DG.toon3d;
+    if (!t || !TN || !TN.TOON_ON()) { return; }
+    root.traverse(function (o) {
+      if (!o.isMesh || !o.material) { return; }
+      var one = Array.isArray(o.material) ? o.material : [o.material];
+      var out = one.map(function (m) {
+        if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
+        return TN.toonify(m);
+      });
+      o.material = Array.isArray(o.material) ? out : out[0];
+    });
+  }
+
   function delam(root) {
     var t = three();
     var TN = global.DG.toon3d;
@@ -602,7 +622,7 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
-      if (!looksRealistic(url)) { delam(gltf.scene); }
+      if (!looksRealistic(url)) { delam(gltf.scene); } else { toonifyRealistic(gltf.scene); }
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));
       flush(c, c);
@@ -876,6 +896,9 @@
         model.userData.actions = acts;
         model.userData.clipMap = mapClips(clips.map(function (a) { return a.name; }));
       }
+      /* 외곽선(PLAN §6.1 "배우만 골라 붙이는 절충안") — 사람(주민·NPC)은
+         전부 이 kind='hero' 길을 타므로 여기 한 곳에만 걸면 된다 */
+      if (global.DG.toon3d) { global.DG.toon3d.addOutline(model); }
       cb(model);
     }
   }
@@ -910,6 +933,9 @@
         wrapped.userData.actions = acts;
         wrapped.userData.clipMap = c.map;
       }
+      /* 외곽선 — 배우 중 사람이 아닌 나머지(짐승)만 여기서 건다. 나무·바위·
+         건물 등 나머지 kind 는 그대로 둔다(§6.1 "땅·소품은 안 건다") */
+      if (kind === 'animal' && global.DG.toon3d) { global.DG.toon3d.addOutline(wrapped); }
       cb(wrapped);
     });
   }
