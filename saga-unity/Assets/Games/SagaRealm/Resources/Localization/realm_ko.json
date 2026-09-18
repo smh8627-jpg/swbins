@@ -82,6 +82,8 @@
     { "key": "city.zangke", "value": "장가" },
     { "key": "city.jiuzhen", "value": "구진" },
     { "key": "city.hepu", "value": "합포" },
+    { "key": "city.rinan", "value": "일남" },
+    { "key": "city.yunnan", "value": "운남" },
     { "key": "officer.sg_zhugeliang", "value": "현책" },
     { "key": "officer.kr_yisunsin", "value": "해장" },
     { "key": "officer.jp_musashi", "value": "이도인" },

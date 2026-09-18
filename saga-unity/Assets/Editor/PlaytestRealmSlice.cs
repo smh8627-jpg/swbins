@@ -79,7 +79,7 @@ namespace Saga.EditorTools
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
-            AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen,
+            AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -148,7 +148,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1149,7 +1149,15 @@ namespace Saga.EditorTools
                 {
                     // 19차 확장(2026-09-18) — 건녕의 둘째 목표(월수와 형제
                     // 가지, 16차 규칙을 원래 세 국경 성 밖으로 처음 확장).
-                    if (!AttackChainStep(RealmEnemyCity.JianningId, RealmEnemyCity.ZangkeId, Phase.AttackJiaozhi, RealmEnemyCity.ZangkeId)) return;
+                    if (!AttackChainStep(RealmEnemyCity.JianningId, RealmEnemyCity.ZangkeId, Phase.AttackYunnan, RealmEnemyCity.ZangkeId)) return;
+                    break;
+                }
+
+                case Phase.AttackYunnan:
+                {
+                    // 21차 확장(2026-09-18) — 건녕의 셋째 목표(월수·장가와
+                    // 형제 가지, 목표가 셋으로 늘어난 첫 사례).
+                    if (!AttackChainStep(RealmEnemyCity.JianningId, RealmEnemyCity.YunnanId, Phase.AttackJiaozhi, RealmEnemyCity.YunnanId)) return;
                     break;
                 }
 
@@ -1165,7 +1173,15 @@ namespace Saga.EditorTools
                 {
                     // 20차 확장(2026-09-18) — 교지를 함락한 뒤 이어지는
                     // 교주 사슬의 다음 단계(TargetFrom("jiaozhi")).
-                    if (!AttackChainStep(RealmEnemyCity.JiaozhiId, RealmEnemyCity.JiuzhenId, Phase.QuizCorrect)) return;
+                    if (!AttackChainStep(RealmEnemyCity.JiaozhiId, RealmEnemyCity.JiuzhenId, Phase.AttackRinan)) return;
+                    break;
+                }
+
+                case Phase.AttackRinan:
+                {
+                    // 21차 확장(2026-09-18) — 구진을 함락한 뒤 이어지는
+                    // 교주 사슬의 다음 단계(TargetFrom("jiuzhen")).
+                    if (!AttackChainStep(RealmEnemyCity.JiuzhenId, RealmEnemyCity.RinanId, Phase.QuizCorrect)) return;
                     break;
                 }
 

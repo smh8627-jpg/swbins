@@ -255,6 +255,18 @@ namespace Saga.Realm.Data
             // 갖고 있다). land는 원작 그대로 river. wall은
             // RealmEnemyCity.cs 합포 정의(3200)와 맞춘다.
             ["hepu"] = new RealmCityDef("hepu", "합포", RealmLand.River, agri: 170, comm: 220, wall: 3200, pop: 85000, mapX: 58, mapY: 99),
+            // 51장 "대규모 콘텐츠" 21차 확장(2026-09-18) — 구진(jiuzhen)을
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계(원작 LINKS:
+            // jiuzhen-rinan, "한(漢)의 땅이라 부르는 가장 남쪽 끝"). land는
+            // 원작이 hill이라 다른 성들과 같은 이유로 Plain 처리. wall은
+            // RealmEnemyCity.cs 일남 정의(2800)와 맞춘다.
+            ["rinan"] = new RealmCityDef("rinan", "일남", RealmLand.Plain, agri: 160, comm: 120, wall: 2800, pop: 55000, mapX: 42, mapY: 112),
+            // 21차 확장 — 건녕(jianning)의 셋째 목표(원작 LINKS:
+            // jianning-yunnan, "구름 남쪽의 큰 호수" — 건녕은 이미
+            // 월수·장가를 갖고 있다). land는 원작이 mount라 다른 성들과
+            // 같은 이유로 Plain 처리. wall은 RealmEnemyCity.cs 운남
+            // 정의(2900)와 맞춘다.
+            ["yunnan"] = new RealmCityDef("yunnan", "운남", RealmLand.Plain, agri: 140, comm: 130, wall: 2900, pop: 46000, mapX: 8, mapY: 104),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

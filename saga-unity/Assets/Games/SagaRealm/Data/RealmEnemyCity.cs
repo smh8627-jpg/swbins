@@ -181,6 +181,21 @@ namespace Saga.Realm.Data
     /// wall은 원작 그대로(구진 3000·합포 3200), troops=wall×0.23 반올림
     /// (700·750). 둘 다 원작 land 그대로(구진 plain·합포 river, 보정
     /// 불필요). 건녕의 남은 이웃(운남)은 다음 확장 후보로 남긴다.
+    /// **51장 21차 확장(2026-09-18, 같은 날 "사가유니티 이어해")** — 교주
+    /// 사슬 하나(구진→일남)와, **건녕(jianning)의 셋째 목표**(운남)를
+    /// 함께 열었다. ① 구진→일남(원작 LINKS: jiuzhen-rinan, "한(漢)의
+    /// 땅이라 부르는 가장 남쪽 끝" — 향림(xianglin)으로 더 뻗을 수 있어
+    /// 다음 확장 후보). ② 건녕→운남(원작 LINKS: jianning-yunnan, "구름
+    /// 남쪽의 큰 호수") — 건녕은 이미 월수·장가 둘을 목표로 갖고 있어
+    /// **형제 가지가 셋으로 늘어난 첫 사례**다(운남의 원작 LINKS 다음
+    /// 칸 영창(yongchang)은 남중보다 더 먼 서역 방면이라 이번엔 안
+    /// 골랐다 — 다음 확장 후보). `TargetsFrom`/공격·계략 고르기 패널이
+    /// 목표 개수와 무관하게 동작하는 걸 다시 확인(이번엔 목표 3개짜리
+    /// 패널). train은 일남이 정상적인 한 단계 더 깊은 자식 규칙(구진
+    /// 220+15=235), 운남이 형제 가지 규칙(건녕 140+15=155, 월수·장가와
+    /// 같음). wall은 원작 그대로(일남 2800·운남 2900), troops=wall×0.23
+    /// 반올림(650·650 — 우연히 같음). 둘 다 원작 land가 hill/mount라
+    /// 다른 성들과 같은 이유로 Plain 처리.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -257,6 +272,8 @@ namespace Saga.Realm.Data
         public const string ZangkeId = "zangke";
         public const string JiuzhenId = "jiuzhen";
         public const string HepuId = "hepu";
+        public const string RinanId = "rinan";
+        public const string YunnanId = "yunnan";
 
         public static readonly string[] AllIds =
         {
@@ -264,7 +281,7 @@ namespace Saga.Realm.Data
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
-            JiaozhiId, ZangkeId, JiuzhenId, HepuId,
+            JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -432,6 +449,18 @@ namespace Saga.Realm.Data
             // 규칙을 또 한 번 확장). train은 남해 자신의 160+15=175
             // (창오와 같은 깊이의 형제 가지).
             [HepuId] = new RealmEnemyCityDef(HepuId, "합포", RealmLand.River, baseWall: 3200, baseTroops: 750, baseTrain: 175, baseTech: 100, attackFromCityId: "nanhai"),
+            // 일남은 구진(jiuzhen)과만 맞닿아 있다(원작 LINKS:
+            // jiuzhen-rinan, "한(漢)의 땅이라 부르는 가장 남쪽 끝") —
+            // 21차 확장, 구진을 함락해야 열리는 교주 사슬의 다음 단계.
+            // train은 구진 자신의 220+15=235. 향림(xianglin)으로 더
+            // 뻗을 수 있어 다음 확장 후보로 남긴다.
+            [RinanId] = new RealmEnemyCityDef(RinanId, "일남", RealmLand.Plain, baseWall: 2800, baseTroops: 650, baseTrain: 235, baseTech: 100, attackFromCityId: "jiuzhen"),
+            // 운남은 건녕(jianning)과 맞닿아 있다(원작 LINKS:
+            // jianning-yunnan, "구름 남쪽의 큰 호수") — 21차 확장, 건녕의
+            // 셋째 목표(건녕은 이미 월수·장가를 갖고 있다 — 형제 가지가
+            // 셋으로 늘어난 첫 사례). train은 건녕 자신의 140+15=155
+            // (월수·장가와 같은 깊이의 형제 가지).
+            [YunnanId] = new RealmEnemyCityDef(YunnanId, "운남", RealmLand.Plain, baseWall: 2900, baseTroops: 650, baseTrain: 155, baseTech: 100, attackFromCityId: "jianning"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

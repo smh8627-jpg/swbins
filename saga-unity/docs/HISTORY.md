@@ -7369,3 +7369,37 @@ UI가 그대로 건녕용 2버튼 고르기 패널을 낸다. train은 교지가
 이 3연속에 포함). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM
 완료 요약(적국 33→35, 성 36→38)·16~20차 절 갱신·"다음 작업"(21차
 후보: 구진→일남, 건녕→운남)·테스트 상태·실기 확인 대기 전부 갱신.
+
+## REALM 51장 21차 확장 — 구진→일남·건녕 셋째 목표 운남 (2026-09-19, 새 세션 "사가유니티 이어해")
+
+20차가 남긴 후보 중 교주 사슬 하나(구진→일남)와, **건녕의 셋째 목표
+(운남)**를 함께 열었다. ① 구진→일남(원작 LINKS: jiuzhen-rinan, "한
+(漢)의 땅이라 부르는 가장 남쪽 끝" — 향림(xianglin)으로 더 뻗을 수
+있어 다음 확장 후보). ② 건녕→운남(원작 LINKS: jianning-yunnan, "구름
+남쪽의 큰 호수") — 건녕은 이미 월수·장가 둘을 목표로 갖고 있어
+**형제 가지가 셋으로 늘어난 첫 사례**다. `TargetsFrom()`/공격·계략
+고르기 패널이 목표 개수와 무관하게 계속 잘 동작하는지 이번엔 3목표
+케이스로 확인했다 — 역시 코드 변경 없이 데이터만 늘려 끝났다. train은
+일남이 정상적인 한 단계 더 깊은 자식 규칙(구진 220+15=235), 운남이
+형제 가지 규칙(건녕 140+15=155, 월수·장가와 같음). wall은 원작
+그대로(일남 2800·운남 2900), troops=wall×0.23 반올림(650·650 —
+우연히 같음). 둘 다 원작 land가 hill/mount라 다른 성들과 같은 이유로
+Plain 처리.
+
+- `RealmEnemyCity.cs` — `RinanId`·`YunnanId` 신설, `AllIds`·`Catalog`에 추가.
+  (`RunanId`="여남"과 이름이 비슷해 헷갈리기 쉽다 — `RinanId`="일남"은
+  전혀 다른 성이니 주의.)
+- `RealmCityData.cs` — 같은 두 성 추가(17차 함정 재발 방지, 처음부터
+  두 파일 다 같이 고침).
+- `PlaytestRealmSlice.cs` — 기존 `Phase.AttackZangke`(→AttackYunnan로
+  다음 단계 변경)·`Phase.AttackJiuzhen`(→AttackRinan로 다음 단계 변경)
+  수정. 새 `Phase.AttackYunnan`(건녕→운남, enemyId 명시)·
+  `Phase.AttackRinan`(구진→일남, 목표 하나뿐이라 enemyId 생략) 신설.
+  OK 로그 문구에 "chain-21st(yunnan+rinan)" 추가.
+- 로컬라이제이션: `city.rinan`/`city.yunnan`(ko/en) 신설.
+
+컴파일 확인(`tools/unity-batch.sh` 경유, error CS 0건) + `PlaytestRealmSlice`
+3연속 OK(운남·일남 함락 로그 매 회 확인 — 건녕의 첫 3목표 라우팅도
+이 3연속에 포함). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM
+완료 요약(적국 35→37, 성 38→40)·16~21차 절 갱신·"다음 작업"(22차
+후보: 일남→향림, 운남→영창)·테스트 상태·실기 확인 대기 전부 갱신.
