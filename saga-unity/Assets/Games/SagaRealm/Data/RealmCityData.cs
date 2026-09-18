@@ -267,6 +267,17 @@ namespace Saga.Realm.Data
             // 같은 이유로 Plain 처리. wall은 RealmEnemyCity.cs 운남
             // 정의(2900)와 맞춘다.
             ["yunnan"] = new RealmCityDef("yunnan", "운남", RealmLand.Plain, agri: 140, comm: 130, wall: 2900, pop: 46000, mapX: 8, mapY: 104),
+            // 51장 "대규모 콘텐츠" 22차 확장(2026-09-19) — 일남(rinan)을
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계(원작 LINKS:
+            // rinan-xianglin, 임읍국이 일어난 바로 그 현). land는 원작
+            // 그대로 plain. wall은 RealmEnemyCity.cs 상림 정의(3200)와
+            // 맞춘다.
+            ["xianglin"] = new RealmCityDef("xianglin", "상림", RealmLand.Plain, agri: 180, comm: 150, wall: 3200, pop: 60000, mapX: 38, mapY: 118),
+            // 22차 확장 — 운남(yunnan)을 함락한 뒤 이어지는 남중 사슬의
+            // 다음 단계(원작 LINKS: yunnan-yongchang, "머나먼 서쪽 땅").
+            // land는 원작 그대로 plain. wall은 RealmEnemyCity.cs 영창
+            // 정의(3400)와 맞춘다.
+            ["yongchang"] = new RealmCityDef("yongchang", "영창", RealmLand.Plain, agri: 170, comm: 200, wall: 3400, pop: 60000, mapX: -8, mapY: 98),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -7403,3 +7403,34 @@ Plain 처리.
 이 3연속에 포함). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM
 완료 요약(적국 35→37, 성 38→40)·16~21차 절 갱신·"다음 작업"(22차
 후보: 일남→향림, 운남→영창)·테스트 상태·실기 확인 대기 전부 갱신.
+
+## REALM 51장 22차 확장 — 일남→상림·운남→영창 (2026-09-19, 같은 날 "사가유니티 이어해")
+
+21차가 남긴 두 후보를 함께 열었다. ① 일남→상림(원작 LINKS:
+rinan-xianglin, 실제 후한서·양서에 나오는 일남군 속현이자 임읍국이
+일어난 바로 그 현). ② 운남→영창(원작 LINKS: yunnan-yongchang, "머나먼
+서쪽 땅, 천축의 물건도 이 길을 거쳐 온다"). 21차 절의 "향림"은
+표기 실수였다 — 원작 지명 象林의 정확한 한글 표기는 **상림**(HISTORY
+21차 절은 그대로 두고 여기 correction만 남긴다), saga-web/saga-realm/
+js/data-city.js 349행 그대로 옮겼다. 둘 다 정상적인 한 단계 더 깊은
+자식(형제 가지 아님): 상림 train=일남 235+15=250, 영창 train=운남
+155+15=170. wall은 원작 그대로(상림 3200·영창 3400), troops=wall×0.23
+반올림(750·800). 둘 다 원작 land가 이미 plain이라 보정 불필요.
+
+- `RealmEnemyCity.cs` — `XianglinId`·`YongchangId` 신설, `AllIds`·
+  `Catalog`에 추가(처음부터 두 파일 다 같이 고쳐 17차 함정 재발 방지).
+- `RealmCityData.cs` — 같은 두 성 추가.
+- `PlaytestRealmSlice.cs` — 기존 `Phase.AttackYunnan`(→AttackYongchang로
+  다음 단계 변경)·`Phase.AttackRinan`(→AttackXianglin로 다음 단계 변경)
+  수정. 새 `Phase.AttackYongchang`(운남→영창, enemyId 생략 — 목표
+  하나뿐)·`Phase.AttackXianglin`(일남→상림, 마찬가지) 신설. OK 로그
+  문구에 "chain-22nd(yongchang+xianglin)" 추가.
+- 로컬라이제이션: `city.xianglin`/`city.yongchang`(ko/en) 신설.
+
+컴파일 확인(`tools/unity-batch.sh` 경유, error CS 0건) + `PlaytestRealmSlice`
+3연속 OK(영창·상림 함락 로그 매 회 확인 — `-quit` 없이 `-executeMethod
+Saga.EditorTools.PlaytestRealmSlice.Run`으로 불러 스스로 종료하게 함,
+`-quit`을 같이 주면 Tick 루프가 끝나기 전에 에디터가 먼저 닫혀 로그가
+전혀 안 남는다). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM
+완료 요약(적국 37→39, 성 40→42)·22차 절 갱신·"다음 작업"(23차 후보:
+상림→노용/전충, 영창→신독)·테스트 상태·실기 확인 대기 전부 갱신.
