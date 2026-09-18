@@ -7405,3 +7405,14 @@ PROJECT_STATE.md` 참고. 요약:
 - `landmarks_builder.gd`에 순수 발견 넷(돌무더기·이끼바위·허수아비·이정표, `village_cairn/mossstone/scarecrow/milestone`)을 그 네 모퉁이(8,1)(1,9)(8,9)(5,9)에 얹었다 — cave/shrine과 같은 결(선택지 없음, DISCOVERY_RADIUS 25 그대로). codex_state.gd TOTAL place 17→21.
 - 재측정: **마을 59.7%→46.8%**(empty 37→29). 이걸로 이번 세션의 101-1 E 작업 마무리 — 세 지역 다 처음보다 크게 낮췄지만(80→32, 61→17, 60→47) 10% 기준 자체는 아직 셋 다 못 채웠다. 더 낮추려면 남은 빈 칸이 흩어진 낱개 칸이라(이번처럼 한 점이 여럿을 한 번에 덮는 효율이 안 나옴) 점을 늘리는 대신 반경 자체를 늘리는 등 다른 접근이 필요해 보인다 — 다음에 판단할 것.
 - 헤드리스 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과, md5 불변.
+
+## GO 손맛 표준 연결 — combat_feel.gd (2026-09-18) — PLAN 101-3 C
+
+- `combat_feel.gd`가 지금까지 DUNGEON 기본 공격·STORY 무예 18곳에만 연결돼 있었다(GO/FOREST/REALM 아직). GO부터 잇는다 — `bandit_encounter.gd`의 속공/필살(플레이어→적)과 적 통상격/강타(적→플레이어) 네 자리에 `CombatFeel.hit()`을 연결. 필살은 이 판에 따로 치명타 판정이 없어 crit=true로 올려 무게감(hitstop 120ms)만 빌렸다. 완전 회피(간발 성공, dmg 0)는 안 부름.
+- 연결 과정에서 진짜 버그 둘을 잡음(둘 다 GO 자가진단으로 처음 걸림, DUNGEON/STORY 회귀엔 안 걸렸던 이유도 같이 확인):
+  1. `combat_feel.gd::_first_mesh()`가 직속 자식만 얕게 훑어 DUNGEON/STORY의 캡슐(직속 자식)에선 됐지만 GO의 뼈대 있는 GLB(character-*.glb, 메시가 2단 이상 안쪽)에선 못 찾았다 — 재귀 탐색으로 고침(얕은 경우 결과 그대로라 기존 두 판은 안 바뀜).
+  2. `_do_popup()`가 `label.global_position`을 `scene.add_child(label)` **전에** 대입했다 — 트리 밖 노드의 global_position 대입은 Godot 4가 조용히 항등행렬 기준으로 계산한다(glb_utils.gd fit_height 때와 같은 함정). scene 루트가 원점이라 지금까지 우연히 값이 맞았을 뿐 — add_child 순서를 바꿔 고침.
+- `bandit_encounter.gd`에 `CelShaderApply.apply_to(_visual)` 한 줄 추가(npc_builder.gd·player.gd와 같은 자리) — 이게 있어야 cel_toon 재질이 생기고 hit_flash uniform이 실제로 걸린다. 기존 `_set_visual_color`(강타 예고 주황 틴트, `material_override`)와 안 부딪힘(material_override가 항상 서피스 override를 덮으므로).
+- `camera_rig.gd`(GO)에 `dungeon_camera_rig.gd`와 같은 `shake()`+"camera_rig" 그룹 등록 추가(회전 드래그 입력은 안 건드림, position만 흔듦).
+- 자가진단(임시 씬+스크립트, 커밋 전 지움) — camera_rig 그룹·cel_toon 부착·플레이어 공격 신호·적 공격 신호·완전 회피 시 미발동 5가지, 3회 동일·오류 0. `tools/godot_regress.sh` 다섯 판 통과.
+- FOREST·REALM은 아직(combat_feel.gd 공통 상태 줄 참고).

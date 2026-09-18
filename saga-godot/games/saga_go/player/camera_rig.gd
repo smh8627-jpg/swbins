@@ -19,9 +19,34 @@ var _dragging := false
 var _drag_start := Vector2.ZERO
 var _drag_confirmed := false
 
+## PLAN 101-2 GO(2026-09-18, combat_feel.gd 연결) — dungeon_camera_rig.gd
+## shake()와 같은 결. 이 노드의 `position`만 흔든다(rotation_degrees는
+## 위 드래그 조작이 쓰니 건드리지 않는다) — SpringArm3D가 자식이라 흔들림이
+## 저절로 카메라까지 전해진다.
+var _shake_amp_m := 0.0
+var _shake_until_msec := 0
+
 func _ready() -> void:
 	spring_arm.spring_length = 9.0
 	rotation_degrees.x = -35.0
+	add_to_group("camera_rig")
+
+
+func _process(_delta: float) -> void:
+	if Time.get_ticks_msec() < _shake_until_msec:
+		position = Vector3(
+			randf_range(-_shake_amp_m, _shake_amp_m),
+			randf_range(-_shake_amp_m, _shake_amp_m),
+			0.0)
+	elif position != Vector3.ZERO:
+		position = Vector3.ZERO
+		_shake_amp_m = 0.0
+
+
+func shake(amp_m: float, dur_sec: float) -> void:
+	var until := Time.get_ticks_msec() + int(dur_sec * 1000.0)
+	_shake_until_msec = maxi(_shake_until_msec, until)
+	_shake_amp_m = maxf(_shake_amp_m, amp_m)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:

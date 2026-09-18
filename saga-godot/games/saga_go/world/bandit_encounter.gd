@@ -24,6 +24,7 @@ const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const DuelHud := preload("res://saga_core/ui/duel_hud.gd")
+const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 
 ## 2026-09-11 GLB 교체 — 플레이어(character-a)·주민(b·c)과 다른 글자를 써서
 ## 산적임을 옷 색만으로도 구별한다(docs/ASSET_GUIDE.md). 실측·스케일 근거는
@@ -157,6 +158,12 @@ func _spawn_visual() -> void:
 		mi.material_override = mat
 		_visual = mi
 	add_child(_visual)
+	## PLAN 101-2 GO(2026-09-18, combat_feel.gd 연결) — npc_builder.gd·
+	## player.gd와 같은 한 줄. GLB 쪽만 실제로 먹는다(캡슐 fallback은
+	## albedo_texture가 없어 CelShaderApply가 조용히 건너뛴다) — 이걸
+	## 붙여야 cel_toon 재질이 생기고, 그래야 combat_feel.gd 피격 플래시
+	## (hit_flash uniform)가 실제로 걸린다.
+	CelShaderApply.apply_to(_visual)
 
 func _spawn_area() -> void:
 	_area = Area3D.new()
@@ -197,6 +204,20 @@ func _process(delta: float) -> void:
 			_cooldown_left -= delta
 			if _cooldown_left <= 0.0:
 				_state = State.IDLE
+
+## PLAN 101-2 GO(2026-09-18, combat_feel.gd 연결) — 적이 플레이어를
+## 때렸을 때 hit_flash·숫자 팝을 걸 대상. Player.tscn "Visual"(character-a.glb
+## 인스턴스) 자식까지 내려가야 실제 메시가 잡힌다(combat_feel.gd
+## _first_mesh가 재귀 탐색으로 고쳐졌지만, "Visual"이 아예 없으면
+## Player 루트를 그냥 준다 — CombatFeel.hit()은 메시를 못 찾아도
+## hitstop·흔들림·팝은 그대로 낸다).
+func _player_visual() -> Node3D:
+	var player := get_tree().get_first_node_in_group("player")
+	if player == null:
+		return null
+	var visual := (player as Node).get_node_or_null("Visual")
+	return (visual as Node3D) if visual != null else player
+
 
 func _player_in_range() -> bool:
 	for b in _area.get_overlapping_bodies():
@@ -297,8 +318,14 @@ func _do_act(kind: String) -> void:
 	if r.get("ok", false):
 		if kind == "quick":
 			_pulse_visual(1.15)
+			CombatFeel.hit(_visual, float(r.get("dmg", 0.0)), false)
 		elif kind == "ult":
 			_pulse_visual(1.4)
+			## PLAN 101-2 GO(2026-09-18, combat_feel.gd 연결) — 필살은 이
+			## 판에 별도 치명타 판정이 없어(속공/필살 둘뿐) crit=true로
+			## 올려 hitstop 120ms(치명 값)를 빌려 쓴다 — 무게감 차이만
+			## 필요하지 실제 "치명타" 개념을 새로 두는 게 아니다.
+			CombatFeel.hit(_visual, float(r.get("dmg", 0.0)), true)
 	_refresh_combat_ui()
 	if _duel.over:
 		_finish_fight()
@@ -325,8 +352,14 @@ func _on_duel_event(e: Dictionary) -> void:
 			else:
 				var col: Color = Color(0.2, 1.0, 0.4, 0.35) if dodged else Color(1.0, 0.15, 0.15, 0.45)
 				_screen_flash(col)
+			## PLAN 101-2 GO(2026-09-18, combat_feel.gd 연결) — 완전히
+			## 피했으면(dmg 0) 손맛을 걸 대미지 자체가 없다, 건너뛴다.
+			var heavy_dmg: float = e.get("dmg", 0.0)
+			if heavy_dmg > 0.0:
+				CombatFeel.hit(_player_visual(), heavy_dmg, false)
 		"hit":
 			_screen_flash(Color(1.0, 0.15, 0.15, 0.3))
+			CombatFeel.hit(_player_visual(), float(e.get("dmg", 0.0)), false)
 
 func _refresh_combat_ui() -> void:
 	if not _duel:

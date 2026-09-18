@@ -150,10 +150,18 @@ func _tick_flash() -> void:
 		_flash_state.erase(key)
 
 
-func _first_mesh(target: Node3D) -> MeshInstance3D:
+## 재귀 탐색(2026-09-18, GO 연결 때 고침) — DUNGEON 몬스터·STORY 무예는
+## 캡슐 하나(직속 자식)라 예전 얕은 탐색으로도 됐지만, GO/FOREST가 쓰는
+## 뼈대 있는 GLB(character-*.glb 등)는 실제 MeshInstance3D가 2단 이상
+## 안쪽(Skeleton3D 밑)에 있어 못 찾았다 — 얕은 경우엔 그대로 같은 결과를
+## 주니(첫 자식에서 바로 걸림) 기존 두 판은 동작이 안 바뀐다.
+func _first_mesh(target: Node) -> MeshInstance3D:
+	if target is MeshInstance3D:
+		return target
 	for child in target.get_children():
-		if child is MeshInstance3D:
-			return child
+		var found := _first_mesh(child)
+		if found != null:
+			return found
 	return null
 
 
@@ -169,8 +177,12 @@ func _do_popup(target: Node3D, amount: float, crit: bool) -> void:
 	label.pixel_size = 0.01 * (POPUP_CRIT_SCALE if crit else 1.0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
-	label.global_position = target.global_position + Vector3(0, 1.2, 0)
+	## 2026-09-18 고침 — 트리 밖 노드의 global_position 대입은 Godot 4가
+	## 조용히 항등행렬 기준으로 계산한다(glb_utils.gd fit_height와 같은
+	## 함정, GO 연결 자가진단으로 처음 걸림 — scene 루트가 원점이라 지금
+	## 판들에선 우연히 값이 맞았을 뿐이다). add_child를 먼저 하면 정상.
 	scene.add_child(label)
+	label.global_position = target.global_position + Vector3(0, 1.2, 0)
 	var tw := label.create_tween()
 	tw.tween_property(label, "position:y", label.position.y + POPUP_RISE_M, POPUP_SEC)
 	tw.parallel().tween_property(label, "modulate:a", 0.0, POPUP_SEC)
