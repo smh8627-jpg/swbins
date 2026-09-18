@@ -79,6 +79,18 @@ const WATERFALL_WATER_COLOR := Color(0.25, 0.45, 0.62, 0.72) # terrain_builder.g
 ## 가까이 왔다는 것만 확인하면 되니 더 관대해도 된다.
 const DISCOVERY_RADIUS := 25.0
 
+## 2026-09-18, PLAN 101-1 E(발견 밀도) — `test_village.gd` 워크어블 판정을
+## LEGEND.walkable로 고친 뒤 재도 마을은 59.7%(HISTORY 09-18, 포구·폐허는
+## 이미 처리). 기존 8지점(굴·사당·폭포·집 둘·역참·폐허·다리)이 중앙에
+## 몰려 있어 네 모퉁이가 안 닿는다 — 코너마다 순수 발견 하나씩(돌무더기·
+## 이끼바위·허수아비·이정표), whalebone과 같은 결.
+const FIELD_MARKERS := [
+	{"id": "village_cairn", "grid": Vector2i(8, 1), "shape": "cairn"},
+	{"id": "village_mossstone", "grid": Vector2i(1, 9), "shape": "mossstone"},
+	{"id": "village_scarecrow", "grid": Vector2i(8, 9), "shape": "scarecrow"},
+	{"id": "village_milestone", "grid": Vector2i(5, 9), "shape": "milestone"},
+]
+
 
 func _ready() -> void:
 	_add_cave()
@@ -89,6 +101,7 @@ func _ready() -> void:
 	_add_waterfall()
 	_add_waystation()
 	_add_beacon()
+	_add_field_markers()
 
 
 ## PLAN.md 101-2 GO ⑤"봉수대" — 마을 몫. 숲 모퉁이(9,1), 사당(2,1)·
@@ -100,6 +113,47 @@ func _add_beacon() -> void:
 	tower.grid = Vector2i(9, 1)
 	tower.region_label = "마을"
 	add_child(tower)
+
+
+## region3_ruins.gd _build_debris()/region2_coast.gd _build_beach_debris()와
+## 같은 결(primitive 여러 모양 + 선택지 없는 순수 발견 하나씩) — PLAN
+## 101-1 E, FIELD_MARKERS 참고.
+func _add_field_markers() -> void:
+	for m in FIELD_MARKERS:
+		var ch: String = TestMap.tile_at(m.grid.x, m.grid.y)
+		var ground: float = TerrainBuilder.LEGEND[ch].height
+		var pos := TestMap.world_pos(m.grid.x, m.grid.y) + Vector3(0, ground, 0)
+		var mi := MeshInstance3D.new()
+		match m.shape:
+			"cairn":
+				var mesh := CylinderMesh.new()
+				mesh.top_radius = 0.25
+				mesh.bottom_radius = 0.5
+				mesh.height = 0.9
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.45, 0)
+			"mossstone":
+				var mesh := SphereMesh.new()
+				mesh.radius = 0.5
+				mesh.height = 0.8
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.3, 0)
+			"scarecrow":
+				var mesh := CapsuleMesh.new()
+				mesh.radius = 0.12
+				mesh.height = 2.0
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 1.0, 0)
+			"milestone":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(0.4, 1.0, 0.2)
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.5, 0)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.48, 0.44, 0.36) if m.shape != "mossstone" else Color(0.3, 0.36, 0.24)
+		mi.material_override = mat
+		add_child(mi)
+		_add_discovery_area(m.id, pos, self)
 
 
 func _box(size: Vector3, color: Color) -> MeshInstance3D:
