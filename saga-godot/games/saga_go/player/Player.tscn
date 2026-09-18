@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/player/camera_rig.gd" id="2"]
-[ext_resource type="PackedScene" path="res://assets/characters/character-a.glb" id="3"]
+[ext_resource type="PackedScene" path="res://assets/characters_vroid/AvatarSample_A.glb" id="3"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.9
@@ -16,10 +16,15 @@ shape = SubResource("CapsuleShape1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
 
 [node name="Visual" parent="." instance=ExtResource("3")]
-## character-a.glb(CC0 Kenney Blocky Characters, assets/characters/,
-## ASSET_GUIDE.md 참고) — 2026-09-11 GLB 교체. 실측 키 2.7m를 기존 캡슐
-## 총높이 3.4에 맞춰 1.25배 키웠다. 바닥 피벗이라 y=0에 그대로 세운다.
-transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)
+## 2026-09-19 — VRoid AvatarSample_A.glb로 교체(사용자 지시, 102-6 갈림길
+## 중 "VRoid 계열" 선택). PLAN 105 Q-h(1.7m 표준 vs 지금 승인판 3.4m
+## 세계 배율 충돌)는 아직 미해결이라 세계 쪽(카메라·충돌·지역 크기)은
+## 안 건드리고, 기존 character-a.glb가 그랬던 것처럼 이 캡슐(총높이
+## 3.4m)에 맞춰 모델만 실측 키(1.558m)로 역산해 키웠다 — fit_height(1.7)
+## 유틸은 아직 안 썼다(그걸 쓰면 세계가 반토막 나는 문제가 그대로 남아
+## 있음, HISTORY.md 7385 참고). 애니메이션(idle/walk/sprint)이 이
+## GLB엔 없어서 103-4 Mixamo 리타겟 전까지는 정지 포즈로만 선다.
+transform = Transform3D(2.182, 0, 0, 0, 2.182, 0, 0, 0, 2.182, 0, 0, 0)
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")

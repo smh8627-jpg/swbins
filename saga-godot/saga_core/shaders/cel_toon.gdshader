@@ -25,6 +25,12 @@ void fragment() {
 	vec4 tex = texture(albedo_texture, UV);
 	ALBEDO = mix(tex.rgb * albedo_tint.rgb, vec3(1.0), hit_flash);
 	ALPHA = tex.a * albedo_tint.a;
+	// VRoid 얼굴처럼 겹친 알파컷아웃 레이어(눈썹·눈꺼풀선·홍채 등, 원래
+	// BaseMaterial3D transparency ALPHA_SCISSOR/ALPHA_DEPTH_PRE_PASS)를
+	// blend_mix 그대로 두면 반투명 정렬이 깨져 하얗게 날아가 보인다
+	// (2026-09-19 VRoid 교체 중 실기로 발견). 컷아웃으로 강제해 깊이
+	// 버퍼 기준으로 또렷하게 겹치게 한다.
+	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = 1.0;
 }
 
@@ -38,6 +44,7 @@ void light() {
 	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), rim_power) * rim_strength;
 	rim *= smoothstep(0.0, 0.3, ndotl);
 
-	DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * lit;
-	DIFFUSE_LIGHT += rim_color * rim * LIGHT_COLOR * ATTENUATION;
+	vec3 direct = ALBEDO * LIGHT_COLOR * ATTENUATION * lit;
+	vec3 rim_light = rim_color * rim * LIGHT_COLOR * ATTENUATION;
+	DIFFUSE_LIGHT += clamp(direct + rim_light, vec3(0.0), vec3(1.0));
 }

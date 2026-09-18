@@ -12,9 +12,19 @@ const OUTLINE_SHADER := preload("res://saga_core/shaders/cel_outline.gdshader")
 
 ## root 아래 모든 MeshInstance3D의 서피스 재질을 cel_toon 셰이더로 덮는다.
 ## 반환값은 적용된 서피스 개수.
+## VRoid GLB의 "Face" 메시는 같은 자리에 겹친 알파컷아웃 데칼 여러 장
+## (눈썹·눈꺼풀선·홍채·하이라이트 등)으로 얼굴을 쌓는다 — 겹친 서피스가
+## 전부 같은 깊이값이라 cel_toon(단일 재질)으로 바꾸면 깊이 판정이
+## 서피스 순서에 휘둘려 얼굴이 하얗게 비거나 이목구비가 빠진다(2026-09-19
+## VRoid 교체 중 실기로 확인). 그대로 두면 임포트된 원래 재질이 이미
+## 올바르게 겹쳐 그린다 — Face만 변환에서 뺀다.
+const SKIP_MESH_NAMES := ["Face"]
+
 static func apply_to(root: Node) -> int:
 	var applied := 0
 	for mesh_instance in _find_mesh_instances(root):
+		if mesh_instance.name in SKIP_MESH_NAMES:
+			continue
 		applied += _apply_one(mesh_instance)
 	return applied
 

@@ -17,20 +17,20 @@
 
 ## 현재 작업
 
-- **2026-09-19②, 103-3 Fantasy Town 모듈 4/4 스냅** — `roof-gable`·`pillar-stone`·`planks`도 `go_village`로 스냅(4종 다 같은 `colormap.png` 공유 확인, md5 동일 — 17색 왕복 검증 4/4). 103-3 표 "Fantasy Town 모듈 4" 행 완료.
-- 그 앞(①, 같은 날): `tools/asset-forge/palette.py` 신설(`build`·`snap-glb`·`preview`), `wall-block.glb` 첫 검증. **씬 미연결**(103-5 사람 확인 먼저). PC 함정: `py`/`python`/`python3` 단독은 exit 9009 — **`py -3 <script>.py`로만** 부른다.
-- 그 앞(2026-09-18): FOREST 발견 격자(Q-f 해소) + 101-3 C 완결 — **101-2/3/4 후보 전부 소진**.
+- **2026-09-19③ GO 그래픽 3연타+VRoid 착수**(상세 HISTORY.md): 흰색 날아감=glow 아니라 `cel_toon.gdshader` 클램프 누락(고침) · `ground_noise.gdshader` 신규(색조 믹스라야 보임) · 안개 밀도↑ · 외곽선 원래 정상 · Player→VRoid(세계 스케일 유지, 모델만 역산). 미해결은 "알려진 오류" 참고. 회귀 3회 통과.
+- 2026-09-19② 103-3 Fantasy Town 4/4 스냅(씬 미연결) · ① palette.py 신설(`py -3`로만) · 09-18 FOREST 발견 격자+101-3 C 완결.
 
 ## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
-1. **팔레트 결과물 사람 확인** — `variants/*__go_village.glb` 4종이 GO 톤에 맞는지(씬 미연결, `preview`로 비교 PNG 재생성). 확인되면 씬에 물리고 Modular Cave·character-a~d로 넓힌다.
-2. **실기 확인 몰아서**(아래) — 사용자 몫.
-3. **102장 그래픽 1차**: 톤 승인(GUI) → 102-1 스케일·102-4/5는 Q-h·Q-b 대기.
+1. **VRoid 얼굴·애니 해결** — "알려진 오류" 참고. 애니는 103-4 Mixamo 선행.
+2. **팔레트 결과물 사람 확인** — `variants/*__go_village.glb` 4종 GO 톤 확인 후 씬 연결 + Modular Cave·character-a~d로 확장.
+3. **실기 확인 몰아서**(아래) — 사용자 몫. 105 Q-h(1.7m vs 3.4m 세계)도 결정 대기.
 
 ## 알려진 오류
 
 - 코드 오류: 없음(회귀 오류 0). `ChoicePrompt` 클로저 null 크래시 2026-09-16 고침.
-- 그래픽 결함(오류 아님): 셀셰이더에서 흰 알베도 + rim + glow 가 겹쳐 하얗게 날아감 — 102-2 처방(`glow_bloom→0`·`hdr_threshold 1.0`) 2026-09-18 적용, GUI 미확인.
+- 그래픽 결함(2026-09-19③ 해소): 흰 알베도+rim+glow 날아가던 것 — `cel_toon.gdshader` 클램프로 고침.
+- **신규(미해결)**: GO Player(VRoid) 얼굴이 하얗게 빈다 — Face를 cel_toon 변환에서 빼도 그대로라 VRM 겹친 알파컷아웃 데칼(MToon z-offset)이 Godot glTF 임포트에서 안 살아남는 듯(HISTORY.md). 애니도 없음(T포즈, 103-4 전까지 원래 그럼).
 - 문서: `saga-unity/`와 그래픽 목표가 갈라섰다(이쪽 카툰, 그쪽 사실적) — 개념 공유 안 함.
 
 ## 테스트 상태

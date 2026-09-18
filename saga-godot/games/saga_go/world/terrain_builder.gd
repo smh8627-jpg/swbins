@@ -90,10 +90,11 @@ func _build() -> void:
 			_add_tile_quads(st, center, half, own_color, col00, col10, col01, col11)
 
 	var mesh := st.commit()
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 0.95
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED  # 감김 방향 계산이 틀려도 안 뚫리게
+	## PLAN 102-5 경량판 — 단색 정점 칠 위에 값 노이즈로 얼룩을 얹는다
+	## (saga_core/shaders/ground_noise.gdshader 참고. 103 tilegen 타일이
+	## 생기면 진짜 트라이플레이너로 교체).
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://saga_core/shaders/ground_noise.gdshader")
 
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh

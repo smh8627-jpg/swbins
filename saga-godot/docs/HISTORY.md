@@ -7455,3 +7455,15 @@ PROJECT_STATE.md` 참고. 요약:
 - `assets/generated/variants/{roof-gable,pillar-stone,planks}__go_village.glb` 3개 추가. 헤드리스 에디터 임포트 1회(오류 0), `.import`/`project.godot` 잡음 없음, `tools/godot_regress.sh` 다섯 판 3회 통과.
 - **여전히 씬엔 안 물렸다** — 103-5 절차상 사람이 톤을 먼저 확인해야 한다(마을집·기둥·지붕·판자를 실제로 쓰는 landmarks_builder.gd `_build_village`류를 건드리면 이미 실기 승인 난 GO 마을 외형이 바로 바뀐다, 위험이 크다고 판단해 보류).
 - 다음: 사람이 `variants/*__go_village.glb` 4종 확인 → 맞으면 씬 연결 + Modular Cave(굴혈)·character-a~d(NPC 옷)로 palette.py 확장.
+
+## GO 그래픽 3연타 + VRoid 교체 착수 (2026-09-19③) — 사용자 스크린샷 실기 확인
+
+- 사용자가 "확인해줘"를 반복하며 스크린샷으로 직접 이어감(GUI 톤 승인을 처음 실제로 밟은 사례). "흰색 날아감"을 102-2가 `glow_bloom→0`으로 처방했다 기록됐는데 실측하니 밝기 150.81→144.24(4%)뿐 — 진범은 `cel_toon.gdshader::light()`가 직접광+림을 클램프 없이 더해 1.0을 넘긴 것. `DIFFUSE_LIGHT += clamp(direct+rim_light, 0, 1)`로 고쳐 132.94까지 내려감(화면 확인). env_pc/mobile의 glow_intensity 0.6/0.5→0.2·threshold→1.3은 남겨둠(해 없음, 주범 아니었음).
+- `ground_noise.gdshader` 신규(102-5 경량판, 103 tilegen 전까지) — 값 노이즈로 밝기만 곱하면 안개+AgX에 눌려 안 보임(디버그 마젠타/시안으로 셰이더 작동은 확인) → 색조를 다른 톤과 섞는 방식(`mix(COLOR.rgb, patch_tint, ...)`)으로 바꿔서야 눈에 보임(분산 18→36). `terrain_builder.gd` Ground 재질 StandardMaterial3D→이 셰이더.
+- `fog_density` 0.006→0.012·`fog_sky_affect` 0.5→0.85(env_pc/mobile) — sky_horizon_color·fog_light_color는 원래도 같았고 밀도가 너무 낮아 실제로 안 번지고 있었다.
+- 외곽선(`cel_outline.gdshader`)은 버그 아님 — `CelShaderApply`가 Player/NPC에 이미 next_pass로 걸고 있었다. 픽셀 대조(x=476~477에서 어두운 값)로 2px짜리 라인 실재 확인, 설계값(폰 1px 안팎) 그대로 얇아서 안 보였을 뿐.
+- **VRoid 교체**(102-6 갈림길, 사용자가 "VRoid로" 명시 지시): `Player.tscn` Visual `character-a.glb`→`assets/characters_vroid/AvatarSample_A.glb`. 105 Q-h(1.7m 표준 vs 승인판 3.4m 세계) 미해결이라 세계(카메라·충돌·지역 크기)는 안 건드리고, headless 스크립트로 GLB 실측 키(1.558m)를 재 기존 캡슐(3.4m) 기준으로 역산한 스케일(×2.182)만 Visual에 줬다 — character-a.glb가 이미 같은 방식(2.7m→1.25배)으로 맞춰져 있던 것과 같은 결.
+- **얼굴 하얗게 빔(미해결)**: VRoid Face 메시는 같은 자리에 겹친 알파컷아웃 데칼 7장(눈썹·눈꺼풀선·홍채·하이라이트 등, Unity MToon의 z-offset 트릭)으로 이목구비를 쌓는데, `CelShaderApply`로 단일 cel_toon 재질로 바꾸면 하얗게 빈다. Face를 변환 대상에서 뺐는데도(`SKIP_MESH_NAMES`) 여전히 하얗다 — cel_toon 탓이 아니라 Godot glTF 임포트 자체가 이 겹친 데칼의 순서·오프셋을 못 살리는 것으로 보인다. 다음 세션이 볼 곳: 얼굴을 평면 텍스처 하나로 합쳐 굽거나, 서피스별 `render_priority`/근소한 로컬 z 오프셋을 수동으로 줘야 할 수 있음.
+- 애니메이션(idle/walk/sprint)도 이 GLB엔 없어 T포즈로 정지 — 103-4 Mixamo 리타겟 전까지는 원래 이렇다. `player.gd::_play_anim()`은 `_anim`이 null이면 조용히 넘어가게 이미 방어돼 있어 크래시는 없음.
+- `tools/godot_regress.sh` 다섯 판 3회 통과(GO md5만 바뀜, 나머지 동일), `.import`/`project.godot` 잡음 없음(매 단계마다 재확인).
+- 다음: 얼굴 데칼 문제 해결(위 참고) → 그 다음 103-4 Mixamo 리타겟으로 애니 연결. 105 Q-h(세계 스케일 재조정 범위)는 여전히 사용자 결정 대기.
