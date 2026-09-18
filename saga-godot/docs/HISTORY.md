@@ -7368,3 +7368,11 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_succession.gd/.tscn`, 커밋 전 지움) 20가지 — `_pick_heir` 네 갈래(지정·이탈 후 낙마·자동 동률 관직 비교·빈 로스터)·`_succeed_lord` 가드(빈 로스터)·효과(신군주 충성 100·충직 무변화·야심 -25+충격창 생성·충격창 만료일 월경계 계산 11+3→2/201·후계 소비·경계 클램프)·손잡이 꺼짐이면 500번 굴려도 무반응·`current_lord_id`가 실제로 `base_loyal()` 결과를 바꾸는지·세이브 4필드 JSON 왕복. HEROES 105명 전체를 훑어 loyal_heart·ambitious·둘 다 아닌 예시를 하나씩 결정적으로 찾아 썼다(3인 재야 풀만으론 셋 다 안 걸려 처음엔 그 검증 하나가 조용히 스킵됐다 — 다음에 이런 "표본이 너무 작아 조건에 안 걸리는" 함정 참고). 전부 통과, 3회 동일.
 - `tools/godot_regress.sh` 다섯 판 오류 0·md5 불변. **REALM 101-2 후보 ①~⑥ 전부 완료** — 다섯 판 51장 확장 진척이 모두 후보 소진 상태에 들어간다(FOREST ④만 105 Q-f로 열려 있음).
 - 다음: PLAN 102장 그래픽 1차(WorldEnvironment 재설정→톤 승인→아웃라인) 또는 105장 열린 질문 답 받기. FOREST ④는 여전히 사용자 결정 대기.
+
+## 그래픽 1차 — WorldEnvironment 재설정 (2026-09-18) — PLAN 102-2
+
+- env_pc.tres·env_mobile.tres 를 102-2 표 목표값대로 갱신: tonemap_mode 2→4(AgX), adjustment_enabled on(contrast 1.05·saturation 1.10, LUT는 103장 팔레트 대기라 미설정), glow_bloom 0.05→0.0·glow_hdr_threshold 1.0 명시(Mobile glow_intensity 0.6→0.5), fog_light_color=sky_horizon_color(0.75,0.8,0.78)·fog_sky_affect 0.5, ssao_radius 1.0·ssao_intensity 2.0 명시.
+- PC 전용: ssr_enabled·volumetric_fog_enabled 끔(66-2 "물 단순화"+성능). sdfgi_enabled 는 105장 Q-b(SDFGI vs LightmapGI) 미결이라 손대지 않고 그대로 둠.
+- sky 색(팔레트 기반)·color_correction LUT 텍스처는 103장 팔레트 JSON 이 아직 없어 보류.
+- 이 PC 에 Godot 실행 파일이 없어 4.7-stable win64 를 스크래치패드에 새로 받음(에디터+콘솔 exe 한 zip 에 둘 다 들어 있었음). 헤드리스 에디터 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과(md5 3회 동일·오류 0), `.import`/`project.godot` 잡음 없음.
+- 다음: 102-2 남은 항목(LUT·팔레트 sky)은 103 파이프라인 이후. "흰 옷 날아가는" 결함은 이 변경으로 잡힐 것으로 보이나 GUI 미확인 — 102-1 스케일(`fit_height`)·102-3 아웃라인 셰이더가 이어지는 순서, "톤 사람 승인"은 실기 확인 몰아서 목록에 추가.
