@@ -138,6 +138,18 @@ namespace Saga.Realm.Data
     /// troops=wall×0.23 반올림(850·850 — 우연히 같음). land는 원작
     /// 그대로 옮기되 창오(hill)는 다른 hill/mount 성들과 같은 이유로
     /// Plain 처리, 건녕은 원작 plain 그대로.
+    /// **51장 18차 확장(2026-09-18, 같은 날 "사가유니티 이어해")** — 17차가
+    /// 남긴 후보 중 한 갈래씩 더 이었다. ① 창오→울림(원작 LINKS:
+    /// cangwu-yulin, "숲이 짙은 산골, 코끼리가 짐을 나른다" — 울림은
+    /// 교지(jiaozhi)로 더 뻗어 교주 사슬이 계속 이어질 수 있다).
+    /// ② 건녕→월수(원작 LINKS: jianning-yuexi, "서쪽 산길, 강족과 맞닿은
+    /// 변경" — 원작 LINKS상 월수는 더 이상 이웃이 없어 이 사슬의 막다른
+    /// 끝). 건녕의 다른 이웃(장가·운남)은 여전히 열려 있어 다음 확장
+    /// 후보로 남긴다. 남해의 다른 이웃(합포)도 아직 안 골랐다 — 이번에도
+    /// 관례대로 한 갈래씩만. train은 부모의 train+15 그대로: 울림
+    /// 175+15=190, 월수 140+15=155. wall은 원작 그대로(울림 3400·월수
+    /// 2800), troops=wall×0.23 반올림(800·650). land는 둘 다 원작이
+    /// hill/mount라 다른 성들과 같은 이유로 Plain 처리.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -208,13 +220,15 @@ namespace Saga.Realm.Data
         public const string ZhutiId = "zhuti";
         public const string CangwuId = "cangwu";
         public const string JianningId = "jianning";
+        public const string YulinId = "yulin";
+        public const string YuexiId = "yuexi";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
-            ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId,
+            ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -346,6 +360,18 @@ namespace Saga.Realm.Data
             // 125+15=140. 월수·장가·운남 셋으로 더 뻗는 허브라 다음 확장
             // 후보로 남긴다.
             [JianningId] = new RealmEnemyCityDef(JianningId, "건녕", RealmLand.Plain, baseWall: 3800, baseTroops: 850, baseTrain: 140, baseTech: 100, attackFromCityId: "zhuti"),
+            // 울림은 창오(cangwu)와만 맞닿아 있다(원작 LINKS: cangwu-yulin,
+            // "숲이 짙은 산골, 코끼리가 짐을 나른다") — 18차 확장, 창오를
+            // 함락해야 열리는 교주 사슬의 다음 단계. train은 창오 자신의
+            // 175+15=190. 교지(jiaozhi)로 더 뻗을 수 있어 다음 확장 후보로
+            // 남긴다.
+            [YulinId] = new RealmEnemyCityDef(YulinId, "울림", RealmLand.Plain, baseWall: 3400, baseTroops: 800, baseTrain: 190, baseTech: 100, attackFromCityId: "cangwu"),
+            // 월수는 건녕(jianning)과만 맞닿아 있다(원작 LINKS:
+            // jianning-yuexi, "서쪽 산길, 강족과 맞닿은 변경") — 18차
+            // 확장, 건녕을 함락해야 열리는 남중 사슬의 다음 단계. train은
+            // 건녕 자신의 140+15=155. 원작 LINKS상 더 이상 이웃이 없어
+            // (잎사귀) 이 사슬은 여기서 끝난다.
+            [YuexiId] = new RealmEnemyCityDef(YuexiId, "월수", RealmLand.Plain, baseWall: 2800, baseTroops: 650, baseTrain: 155, baseTech: 100, attackFromCityId: "jianning"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

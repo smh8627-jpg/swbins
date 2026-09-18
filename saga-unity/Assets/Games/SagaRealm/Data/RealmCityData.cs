@@ -219,6 +219,18 @@ namespace Saga.Realm.Data
             // 아우르는 다스림의 중심"). land는 원작 그대로 plain. wall은
             // RealmEnemyCity.cs 건녕 정의(3800)와 맞춘다.
             ["jianning"] = new RealmCityDef("jianning", "건녕", RealmLand.Plain, agri: 200, comm: 180, wall: 3800, pop: 85000, mapX: 14, mapY: 92),
+            // 51장 "대규모 콘텐츠" 18차 확장(2026-09-18) — 창오(cangwu)를
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계(원작 LINKS:
+            // cangwu-yulin, "숲이 짙은 산골, 코끼리가 짐을 나른다"). 원작
+            // land hill은 다른 성들과 같은 이유로 Plain 처리. wall은
+            // RealmEnemyCity.cs 울림 정의(3400)와 맞춘다.
+            ["yulin"] = new RealmCityDef("yulin", "울림", RealmLand.Plain, agri: 190, comm: 160, wall: 3400, pop: 80000, mapX: 52, mapY: 95),
+            // 18차 확장 — 건녕(jianning)을 함락한 뒤 이어지는 남중 사슬의
+            // 다음 단계이자 마지막 칸(원작 LINKS: jianning-yuexi, "서쪽
+            // 산길, 강족과 맞닿은 변경" — 월수엔 다른 LINKS가 없다). 원작
+            // land mount는 다른 성들과 같은 이유로 Plain 처리. wall은
+            // RealmEnemyCity.cs 월수 정의(2800)와 맞춘다.
+            ["yuexi"] = new RealmCityDef("yuexi", "월수", RealmLand.Plain, agri: 120, comm: 100, wall: 2800, pop: 42000, mapX: 4, mapY: 78),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

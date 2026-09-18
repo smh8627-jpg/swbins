@@ -76,6 +76,8 @@
     { "key": "city.zhuti", "value": "주제" },
     { "key": "city.cangwu", "value": "창오" },
     { "key": "city.jianning", "value": "건녕" },
+    { "key": "city.yulin", "value": "울림" },
+    { "key": "city.yuexi", "value": "월수" },
     { "key": "officer.sg_zhugeliang", "value": "현책" },
     { "key": "officer.kr_yisunsin", "value": "해장" },
     { "key": "officer.jp_musashi", "value": "이도인" },

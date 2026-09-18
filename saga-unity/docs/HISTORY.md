@@ -7257,3 +7257,35 @@ agri/comm/pop/mapX/mapY는 `saga-web/saga-realm/js/data-city.js` 원본
 "51장 17차" 절·"다음 작업"(18차 후보로 갱신)·알려진 오류(새 함정)·
 테스트 상태·실기 확인 대기 전부 갱신, 상한 15360B 안으로 다른 절도
 같이 줄임(위 "마지막 갱신" 줄 압축).
+
+## REALM 51장 18차 확장 — 창오→울림·건녕→월수 (2026-09-18, 같은 세션 "사가유니티 이어해")
+
+17차가 남긴 후보 중 한 갈래씩 더 이었다: **창오→울림**(원작 LINKS
+cangwu-yulin, "숲이 짙은 산골, 코끼리가 짐을 나른다" — 울림은 교지
+(jiaozhi)로 더 뻗어 교주 사슬이 계속 이어질 수 있다), **건녕→월수**
+(원작 LINKS jianning-yuexi, "서쪽 산길, 강족과 맞닿은 변경" — 원작
+LINKS상 월수는 더 이상 이웃이 없어 남중 사슬이 여기서 끝난다). 건녕의
+다른 이웃(장가·운남)·남해의 다른 이웃(합포)은 여전히 다음 확장 후보로
+남겼다(관례대로 한 갈래씩). train은 17차와 같은 "정상적인 한 단계 더
+깊은 자식" 규칙(부모 train+15) — 울림 175+15=190, 월수 140+15=155.
+wall은 원작 그대로(울림 3400·월수 2800), troops=wall×0.23 반올림
+(800·650). 둘 다 원작 land가 hill/mount라 다른 성들과 같은 이유로
+Plain 처리.
+
+- `RealmEnemyCity.cs` — `YulinId`·`YuexiId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 두 성 추가(agri/comm/pop/mapX/mapY는
+  `saga-web/saga-realm/js/data-city.js` 원본 그대로, wall은
+  `RealmEnemyCity.cs`와 맞춤) — **17차가 겪은 함정(둘 중 한 파일만
+  고쳐 `AbsorbCity()`가 조용히 실패하던 것)을 이번엔 처음부터 두 파일
+  다 같이 고쳐 피했다.**
+- `PlaytestRealmSlice.cs` — `Phase.AttackYulin`/`Phase.AttackYuexi`
+  신설(AttackJianning 다음, QuizCorrect 앞) — 둘 다 목표가 하나뿐인
+  성이라 `enemyId` 생략. OK 로그 문구에 "chain-18th(yulin+yuexi)" 추가.
+- 로컬라이제이션: `city.yulin`/`city.yuexi`(ko/en) 신설.
+
+컴파일 확인(`tools/unity-batch.sh` 경유, error CS 0건 — 이번엔 함정 없이
+한 번에 통과) + `PlaytestRealmSlice` 3연속 OK(울림·월수 함락 로그 매 회
+확인). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM 완료 요약
+(적국 29→31, 성 32→34)·16~18차 절을 하나로 합쳐 압축(상한 15360B
+여유 확보)·"다음 작업"(19차 후보로 갱신)·테스트 상태·실기 확인 대기
+전부 갱신.
