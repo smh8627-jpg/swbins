@@ -7349,3 +7349,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 자가진단(임시 `_diag_labyrinth.gd/.tscn`, 커밋 전 지움) 35가지 — 은사 합산·상한·정산(기억 조각=층수+클리어+은사 보너스)·주간 변형자 결정성·영구 강화 단계·실제 씬 인스턴스화해 층0 발판 2~3개, 보물/휴식/전투 노드 개별 함수 직접 호출, 정규 흐름(커밋→클리어→1초 뒤 자동 진행) 한 번은 실제로 기다려 확인, 5층 보스 처치 시 고유 장비+주문서+기억 조각. **함정 둘** — ① `Array[String]` 변수에 삼항연산자(`A if cond else B`, 배열 리터럴 두 개)를 대입하면 런타임에 "Array를 Array[String]에 대입 못 함" 에러(if/elif 재대입으로 고침, dungeon_boons.gd가 애초에 이 형태를 안 쓴 이유였다) ② 다른 노드의 `_ready()` 안에서 `get_tree().root.add_child()`를 바로 부르면 "부모가 자식 설정 중" 에러로 조용히 실패(`add_child.call_deferred()`로 고침) — 둘 다 다음 진단에 참고.
 - `tools/godot_regress.sh` 다섯 판 오류 0·md5 불변(2026-09-18), `StoryLabyrinth.tscn` 자체도 3회 동일·오류 0.
 - 다음: REALM ⑤(이벤트 체인)·FOREST ④(발견 격자, PLAN 105 Q-f 열림 대기).
+
+## REALM 이벤트 체인 (2026-09-18) — PLAN 101-2 REALM ⑤후보
+- 웹판 saga-realm/PLAN.md §5-2 "관계·이벤트 체인"(CK3 이벤트 체인·코에이 "역사 이벤트")을 옮겼다. 웹은 이 항목도 아직 미착수(§8 로드맵 Phase 2, 미착수)라 DUNGEON①·STORY④⑤와 같은 선례로 설계만 출처 삼았다. **재해석 — "관계"가 없다.** 웹판은 무장 54+HEROES 105 중 가명 오마주 관계 20~30쌍(의형제·원수·사제)을 엮지만, 3D 로스터는 보통 1~5명뿐이고 관계 표 자체가 없다 — 대신 **이미 있는 101-2 ③(특성·야망)을 조건으로 삼는 1인 서사 카드**로 좁혔다. 12종 대신 8종(특성 7채널+야망 "숙적" 1채널)으로 시작.
+- 신규 `data/realm_events.gd` — EVENTS 8개(+체인 전용 후속 2개, 무작위 발생 후보에선 빠진다), 각 3택(공격/방어/유틸 축, 웹판 그대로)에 충성·금·경험 효과. `EVENT_CHANCE`(18%)·`MAX_CONCURRENT`(2)도 웹판 수치 그대로. `pick_for(officer_id, ambition_key, rng)`가 그 무장의 특성 2개·야망 1개와 겹치는 후보 중 하나를 결정된 `_rng`로 고른다.
+- `realm_save_state.gd`: `_tick_events()`(next_month() 체인에 `_tick_ambitions()` 다음으로 합류, 이미 걸린 카드가 있는 무장은 제외) · `ready_events()`(due_month/year가 지금 이하인 것만) · `resolve_event(index, choice_idx)`(효과 적용+체인이 있으면 `chain_months` 뒤로 새 카드 예약, "숙적" 야망은 `ambition_progress` 플래그로 진척). `active_events`/`events_done` 신설(SAVE_VERSION 14→15, 필드 추가뿐이라 마이그레이션 변환 없음).
+- 신규 `ui/realm_event_button.gd`("사건" 버튼, RealmHUD 맨 위 — realm_promote_button.gd와 같은 ChoicePrompt 2단 패턴: 대기 카드 고르기 → 그 카드의 3택 고르기) — `RealmHUD.tscn`에 배선.
+- 자가진단(임시 `_diag_realm_events.gd/.tscn`, 커밋 전 지움) 21가지 — 표 구조(선택지 3·축 3중복 0)·체인 전용 항목이 굴림 후보에서 빠지는지·`pick_for`가 실제로 그 무장의 특성/야망과 맞는 것만 돌려주는지·`_tick_events` 동시 상한 준수·`ready_events` 미래 예약분 제외·`resolve_event` 충성/금/exp 반영·인덱스 오류 거부·체인 예약(월 경계 11+4→3, 201년 롤오버까지)·"숙적" 야망 진척·JSON 왕복. **함정** — `var x := dict.get(key, default)`처럼 `:=`로 Variant 반환값을 받으면 이 프로젝트 설정에서 "타입이 Variant로 추론됨" 경고가 에러로 격상돼 스크립트 로드 자체가 실패한다(`int(...)`로 명시 캐스팅해 고침, STORY 세션의 함정 둘과 같은 결의 "진단 코드 자체의 함정" 목록에 추가). 전부 통과, 3회 동일.
+- `tools/godot_regress.sh` 다섯 판 오류 0·md5 불변.
+- 다음: REALM ⑥(계승)·FOREST ④(발견 격자, PLAN 105 Q-f 열림 대기).

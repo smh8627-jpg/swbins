@@ -47,11 +47,12 @@ const RealmDiplo := preload("res://games/saga_realm/data/realm_diplo.gd")
 const RealmGrowth := preload("res://games/saga_realm/data/realm_growth.gd")
 const RealmQuizData := preload("res://games/saga_realm/data/realm_quiz_data.gd")
 const RealmTraits := preload("res://games/saga_realm/data/realm_traits.gd")
+const RealmEvents := preload("res://games/saga_realm/data/realm_events.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const SessionCard := preload("res://saga_core/ui/session_card.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 14  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id) → 14(특성·야망: officer_ambition/enemies_subverted, PLAN 101-2 REALM ③)
+const SAVE_VERSION := 15  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id) → 14(특성·야망: officer_ambition/enemies_subverted, PLAN 101-2 REALM ③) → 15(이벤트 체인: active_events/events_done, PLAN 101-2 REALM ⑤)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 ## **2026-09-14 추가 — 시나리오(RealmCities.SCENARIO_CAO_CITIES 키).**
@@ -143,6 +144,16 @@ var officer_ambition: Dictionary = {}
 ## 사람별로 나누지 않는다(재야 성 편입 문턱을 세력 전체로 재는 "고향"과
 ## 같은 결).
 var enemies_subverted := 0
+
+## **2026-09-18 추가 — PLAN 101-2 REALM ⑤후보(웹판 §5-2 "관계·이벤트
+## 체인").** `realm_events.gd` 머리말 참고 — 웹판 `{id, step, due, who}`를
+## 그대로 옮기되 `step`은 항상 이 사람 한 명의 체인이라(관계가 아니라
+## 1인 서사) 따로 안 센다. `due_month`/`due_year`가 그 카드가 **플레이어
+## 화면에 뜨는(고를 수 있는) 시점**이고, 새로 걸린 이벤트는 즉시(now) 뜬다
+## — 체인 후속만 `chain_months` 뒤로 예약된다. `ready_events()`가 이미
+## 도달한 것만 골라준다.
+var active_events: Array = []  # [{id, officer, due_month, due_year}]
+var events_done: Dictionary = {}  # id(String) -> count(int)
 
 ## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).**
 ## enemy_id -> {troops, wall, max_wall, train, tech, captured}. _init_enemies()
@@ -724,6 +735,7 @@ func next_month() -> void:
 		diplomacy_peace_streak = 0
 
 	_tick_ambitions()
+	_tick_events()
 	_check_defection()
 	_run_enemy_ai()
 	_run_enemy_economy()
@@ -878,6 +890,96 @@ func _grant_ambition_reward(id: String, key: String) -> void:
 			String(h.name), String(RealmTraits.AMBITIONS[key].name),
 			RealmTraits.AMBITION_DONE_LOYAL, stat_key, RealmTraits.AMBITION_DONE_STAT,
 		], 3.0)
+
+
+## PLAN 101-2 REALM ⑤후보(웹판 §5-2) — 달마다 한 번, 로스터 중 이미 걸린
+## 카드가 없는 무장을 골라 `RealmEvents.EVENT_CHANCE`(18%) 확률로 새 이벤트를
+## 하나 건다(웹판 "세력당 동시 진행 체인 최대 2" — `active_events`엔 아직
+## 도달 안 한 체인 후속도 포함되므로, 체인이 밀려 있으면 새 이벤트가 덜
+## 뜬다는 뜻도 된다, 웹판과 같은 결).
+func _tick_events() -> void:
+	if active_events.size() >= RealmEvents.MAX_CONCURRENT or roster.is_empty():
+		return
+	if _rng.randf() > RealmEvents.EVENT_CHANCE:
+		return
+	var busy: Dictionary = {}
+	for e: Dictionary in active_events:
+		busy[String(e.officer)] = true
+	var candidates: Array = []
+	for id: String in roster:
+		if not busy.has(id):
+			candidates.append(id)
+	if candidates.is_empty():
+		return
+	var officer_id: String = candidates[_rng.randi_range(0, candidates.size() - 1)]
+	var amb := _ambition(officer_id)
+	var event_id := RealmEvents.pick_for(officer_id, String(amb.k), _rng)
+	if event_id.is_empty():
+		return
+	active_events.append({"id": event_id, "officer": officer_id, "due_month": month, "due_year": year})
+
+
+## 지금 화면에 띄워 고를 수 있는 이벤트들 — `active_events`의 인덱스를
+## 그대로 돌려준다(`resolve_event()`가 그 인덱스로 다시 찾는다). 체인
+## 후속이 아직 예약된 미래 달이면(`due_year`/`due_month`가 지금보다 뒤)
+## 빠진다.
+func ready_events() -> Array[int]:
+	var out: Array[int] = []
+	for i in active_events.size():
+		var e: Dictionary = active_events[i]
+		if int(e.due_year) < year or (int(e.due_year) == year and int(e.due_month) <= month):
+			out.append(i)
+	return out
+
+
+## choice_idx로 고른 효과를 얹고 카드를 치운다 — 체인이 있으면 `chain_months`
+## 뒤로 후속을 새로 건다(같은 무장). 인덱스가 비정상이면(이미 처리됐거나
+## UI가 낡은 목록을 들고 있으면) 조용히 false.
+func resolve_event(index: int, choice_idx: int) -> bool:
+	if index < 0 or index >= active_events.size():
+		return false
+	var e: Dictionary = active_events[index]
+	var def: Dictionary = RealmEvents.by_key(String(e.id))
+	var choices: Array = def.get("choices", [])
+	if def.is_empty() or choice_idx < 0 or choice_idx >= choices.size():
+		return false
+	var choice: Dictionary = choices[choice_idx]
+	var officer_id: String = String(e.officer)
+
+	officer_loyal[officer_id] = clampi(int(officer_loyal.get(officer_id, 50)) + int(choice.get("loyal", 0)), 0, 100)
+	gold = maxi(0, gold + int(choice.get("gold", 0)))
+	if int(choice.get("exp", 0)) > 0:
+		gain_exp(officer_id, int(choice.exp))
+	## 야망 "숙적"(realm_traits.gd AMBITIONS.rival) 진척 — realm_events.gd
+	## rival_chance 항목의 두 선택이 이 플래그를 켠다(같은 판정 없이 곧바로
+	## "계략 성공"으로 재해석 — 실제 계략 성공률 판정은 plot()이 이미
+	## 따로 있어 여기서 다시 굴리지 않는다, 이벤트 자체가 "기회가 왔다"는
+	## 서사라 고르면 곧바로 진척된다).
+	if bool(choice.get("ambition_progress", false)):
+		var amb := _ambition(officer_id)
+		if String(amb.k) == "rival" and not bool(amb.get("done", false)):
+			amb.prog = int(amb.get("prog", 0)) + 1
+
+	active_events.remove_at(index)
+	events_done[String(e.id)] = int(events_done.get(String(e.id), 0)) + 1
+
+	var chain_id := String(choice.get("chain", ""))
+	if not chain_id.is_empty():
+		var due_m := month
+		var due_y := year
+		for _i in int(choice.get("chain_months", 3)):
+			due_m += 1
+			if due_m > 12:
+				due_m = 1
+				due_y += 1
+		active_events.append({"id": chain_id, "officer": officer_id, "due_month": due_m, "due_year": due_y})
+
+	var h = Characters.find(officer_id)
+	Toast.show(self, "%s %s — %s: %s" % [
+		String(def.get("emoji", "📜")), String(h.name) if h != null else officer_id,
+		String(def.get("name", "")), String(choice.get("label", "")),
+	], 3.0)
+	return true
 
 
 const AI_MARCH_CHANCE := 0.20  # 재해석 — 아래 _run_enemy_ai() 머리말 참고
@@ -1921,6 +2023,8 @@ func save() -> bool:
 		"diplomacy_peace_streak": diplomacy_peace_streak,
 		"officer_ambition": officer_ambition,
 		"enemies_subverted": enemies_subverted,
+		"active_events": active_events,
+		"events_done": events_done,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -1984,6 +2088,10 @@ func try_load() -> bool:
 	if typeof(loaded_officer_ambition) == TYPE_DICTIONARY:
 		officer_ambition = loaded_officer_ambition
 	enemies_subverted = int(data.get("enemies_subverted", 0))
+	var loaded_active_events: Variant = data.get("active_events", [])
+	active_events = loaded_active_events if typeof(loaded_active_events) == TYPE_ARRAY else []
+	var loaded_events_done: Variant = data.get("events_done", {})
+	events_done = loaded_events_done if typeof(loaded_events_done) == TYPE_DICTIONARY else {}
 	_done_this_month.clear()
 	return true
 
