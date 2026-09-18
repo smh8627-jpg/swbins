@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Saga.Realm.Data;
@@ -41,10 +42,17 @@ namespace Saga.Realm.UI
         [SerializeField] private GameObject _quizPanel;
         [SerializeField] private GameObject _archivePanel;
         [SerializeField] private GameObject _settingsPanel;
+        // PLAN.md 51장 16차 확장(2026-09-18) "성 하나당 목표 하나" 제약을
+        // 풀면서 신설 — 목표가 둘 이상인 성에서 공격 버튼을 누르면 이
+        // 패널이 먼저 뜬다(하나뿐이면 옛날처럼 바로 공격, ExecuteAttack()
+        // 참고). 위 [SerializeField] 승격 사고(2026-09-15) 재발을 막으려고
+        // 처음부터 [SerializeField]로 선언한다.
+        [SerializeField] private GameObject _attackPanel;
         [SerializeField] private Transform _cityButtonsRoot;
         [SerializeField] private Transform _plotButtonsRoot;
         [SerializeField] private Transform _quizButtonsRoot;
         [SerializeField] private Transform _archiveButtonsRoot;
+        [SerializeField] private Transform _attackButtonsRoot;
         [SerializeField] private Text _quizQuestionText;
         [SerializeField] private Text _quizProgressText;
         [SerializeField] private Text _settingsToggleLabel;
@@ -142,6 +150,52 @@ namespace Saga.Realm.UI
             BuildQuizPanel(canvas.transform);
             BuildArchivePanel(canvas.transform);
             BuildSettingsPanel(canvas.transform);
+            BuildAttackPanel(canvas.transform);
+        }
+
+        /// <summary>PLAN.md 51장 16차 확장(2026-09-18) — 목표가 둘 이상인
+        /// 성에서 어디를 칠지 고르는 패널. 함락 진행에 따라 목록이 바뀌지
+        /// 않는 성(공격 대상은 정적 카탈로그)이라 계략 패널과 달리 값
+        /// 자체는 안 바뀌지만, 열 때마다 "지금 성"이 바뀌어 있을 수 있어
+        /// 성 패널(RefreshCityPanel)과 같은 결로 열 때마다 다시 짓는다.</summary>
+        private void BuildAttackPanel(Transform parent)
+        {
+            _attackPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(560f, 480f),
+                new Color(0f, 0f, 0f, 0.75f));
+            _attackPanel.SetActive(false);
+
+            RealmUiKit.NewText(_attackPanel.transform, RealmLocalization.T("panel.attack_title", "칠 곳을 고르세요"), new Vector2(0.5f, 1f), new Vector2(0f, -60f),
+                new Vector2(500f, 60f), 30);
+
+            var root = new GameObject("AttackButtons", typeof(RectTransform));
+            root.transform.SetParent(_attackPanel.transform, false);
+            var rootRect = (RectTransform)root.transform;
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.sizeDelta = Vector2.zero;
+            rootRect.anchoredPosition = Vector2.zero;
+            _attackButtonsRoot = root.transform;
+
+            RealmUiKit.NewButton(_attackPanel.transform, RealmLocalization.T("settings.close"), new Vector2(0.5f, 0f), new Vector2(0f, 30f),
+                new Vector2(300f, 70f), () => _attackPanel.SetActive(false));
+        }
+
+        private void RefreshAttackPanel(List<string> targets)
+        {
+            for (int i = _attackButtonsRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(_attackButtonsRoot.GetChild(i).gameObject);
+            }
+
+            float y = -150f;
+            foreach (var enemyId in targets)
+            {
+                var def = RealmEnemyCity.Get(enemyId);
+                string capturedId = enemyId;
+                RealmUiKit.NewButton(_attackButtonsRoot, def.Name, new Vector2(0.5f, 1f), new Vector2(0f, y),
+                    new Vector2(460f, 84f), () => ChooseAttackTarget(capturedId));
+                y -= 100f;
+            }
         }
 
         /// <summary>명령 10종 — rtk.js ORDERS 순서, 두 열(왼쪽 5·오른쪽 5)로
@@ -356,6 +410,7 @@ namespace Saga.Realm.UI
             _quizPanel.SetActive(false);
             _archivePanel.SetActive(false);
             _settingsPanel.SetActive(false);
+            _attackPanel.SetActive(false);
         }
 
         /// <summary>서고(godot REALM 10절) — 익힌 문제를 최근 순으로 다시
@@ -581,13 +636,34 @@ namespace Saga.Realm.UI
             PlayOutcomeSfx(ok);
         }
 
+        /// <summary>PLAN.md 51장 16차 확장(2026-09-18) — 목표가 하나면 옛날
+        /// 그대로 바로 공격(클릭 한 번 유지), 둘 이상이면 고르기 패널을
+        /// 먼저 연다. 목표가 아예 없으면(대부분의 성) 옛날처럼 Attack()이
+        /// 스스로 "칠 적국이 없습니다" 에러를 돌려주게 그대로 둔다.</summary>
         private void ExecuteAttack()
         {
+            var targets = RealmEnemyCity.TargetsFrom(RealmCityState.CurrentCity);
+            if (targets.Count > 1)
+            {
+                CloseAllPanels();
+                RefreshAttackPanel(targets);
+                _attackPanel.SetActive(true);
+                return;
+            }
+
             var result = RealmWarState.Attack(RealmCityState.CurrentCity);
             RealmToast.Instance?.Show(result.Message, 6f);
             // 출진 자체가 무효면 error, 유효하면 전투 결과(승/패)로 고른다
             // (Won은 Ok=true일 때만 뜻이 있다 — RealmWarState.AttackResult 참고).
             PlayOutcomeSfx(result.Won);
+        }
+
+        private void ChooseAttackTarget(string enemyId)
+        {
+            var result = RealmWarState.Attack(RealmCityState.CurrentCity, enemyId);
+            RealmToast.Instance?.Show(result.Message, 6f);
+            PlayOutcomeSfx(result.Won);
+            _attackPanel.SetActive(false);
         }
 
         private void ChoosePlot(string key)

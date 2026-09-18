@@ -1060,7 +1060,7 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 | DUNGEON | 5.1 축복 3택 5.2 유품(죽음 비용·회수) 5.3 부적 던전 티어 5.4 월드 보스 75초 5.5 난입 파도 5.6 목표판·카드 5.7 시대 퓨전 5.8 손맛 2차·가시화 | **5.8 → 5.1 → 5.2** (5.7 은 웹 선행 결과 뒤. 5.8 중 hitstop·타격 VFX·죽음 표식 은 2026-09-17 완료 — 101-3 C·F 표 참고, **`LootMarker`는 101-3 F 항목이라 이 5.2(플레이어 죽음 비용·회수, 아직 미착수)와 다른 것 — 혼동 주의**. 나머지 G 항목(데칼·장비 소켓)은 남음, 성장 연출은 2026-09-17 완료) | `PlayerCombat`·`DungeonEnemy`·`DungeonFloorRunner`·`HeroState`·`DamagePopup`·`HitSpark`·`LootMarker`·`CameraRig` |
 | FOREST | 5.1 일과판 5.2 마무리 카드 5.3 마을 번들 5.4 관계 하트 5.5 발견 격자+정령 60 5.6 축제 5.7 택배 사슬 5.8 채집 손맛 | **5.1+5.2 → 5.4 → 5.5** | `ForestState`·`ForestVillager`·`ForestHomeState`·`ForestGroundBuilder` |
 | STORY | 5-1 직업 정체성(고유 조작) 5-2 무예 유파 재해석 5-3 비경 미니던전 5-4 관문 대장 주간 보스 5-5 이동 손맛 5-6 목표판·카드 5-7 손맛 표준 5-8 동료 교대 | **5-5 → 5-7 → 5-1** (전직 4직이 이미 있어 고유 조작 1개씩 얹기 쉬움. 5-7 은 2026-09-17 완료 — hitstop·shake·flash·popup 전부, 크리티컬 전역 슬로모는 웹판 원문 그대로 유지) | `StoryPlayerController`·`StoryCombat`·`StoryJobState`·`StoryEnemy` |
-| REALM | 5-1 인물 특성·야망 5-2 관계 이벤트 체인 5-3 일기토·설전 5-4 시작 시나리오·이정표 5-5 승리 조건·결과 카드 5-6 지형·진형 개입 5-7 월간 요약 카드 5-8 계승 | **5-7 → 5-4 → 5-3** (51장 사슬 확장은 5-4 이정표로 흡수. 공통 선행 A·B 는 2026-09-17 `RealmSessionTracker` 로 이식 완료 — 5-7 아이디어를 그대로 써 "월간" 트리거로 변형) | `RealmCommandUi`·`RealmWarState`·`RealmOfficer`·`RealmQuizState`·`RealmSessionTracker` |
+| REALM | 5-1 인물 특성·야망 5-2 관계 이벤트 체인 5-3 일기토·설전 5-4 시작 시나리오·이정표 5-5 승리 조건·결과 카드 5-6 지형·진형 개입 5-7 월간 요약 카드 5-8 계승 | **5-7 → 5-3** (공통 선행 A·B 는 2026-09-17 `RealmSessionTracker` 로 이식 완료 — 5-7 아이디어를 그대로 써 "월간" 트리거로 변형. **Q-U2(사슬 계속 vs 5-4 전환)는 2026-09-18 "사슬 계속"으로 결정 — 웹 미검증인 5-4(새 시나리오 6종)는 이 트랙에 안 옮긴다.** 세 사슬 끝(회계·영안·오원)이 원작 LINKS상 진짜 막다른 끝이라 "성 하나당 목표 하나" 제약을 풀고 16차 확장(장안→천수·장사→남해·강주→주제)으로 계속 늘림 — `RealmEnemyCity.TargetsFrom()`·`RealmCommandUi` 공격 고르기 패널 신설, 자세한 경위는 `docs/HISTORY.md` 2026-09-18) | `RealmCommandUi`·`RealmWarState`·`RealmOfficer`·`RealmQuizState`·`RealmSessionTracker`·`RealmEnemyCity` |
 
 **공통 선행(다섯 판 동시, SagaCore 에 1벌)**: `GoalBoard`(A, 3줄 위젯 — 게임별 공급자 인터페이스 `IGoalSource` 를 각 asmdef 가 구현) · `SessionCard`(B, Timeline 5초 카드) · `HitFeedback`(C — 아래) · `Cadence`(H, 로컬 시계 기반 일일/주간 키). SagaCore→게임 단방향 의존(49장)은 그대로.
 
@@ -1186,7 +1186,6 @@ Slice 승인/재설계 결정.** 100단계에서 무조건 다음 콘텐츠로 �
 - **Q3′ 스타일 불일치**: SAGA-DESIGN §6.0-1 은 "한 스타일(툰)" 인데 이 트랙은 66-2 로 사실적이다. **트랙 간 불일치를 허용**(웹·godot=툰, unity=사실)할지, 공통 문서를 "트랙마다 한 스타일" 로 고칠지. 이 PLAN 은 허용을 전제로 썼다.
 - **Q4(§10-Q4) 생성 에셋 커밋**: `Assets/Art/Generated/` 산출물을 커밋할지, 스크립트+씨앗만 두고 세션 시작 시 재생성할지(Unity 는 .meta 가 따라붙어 재생성 시 GUID 가 바뀌면 씬 참조가 깨진다 — **커밋 쪽을 권장**, 크기 상한 판별 20MB).
 - **Q-U1 101 착수 순서**: 공통 선행(GoalBoard·SessionCard·HitFeedback·Cadence)을 먼저 다섯 판에 깔지, 한 판(GO)에서 A~C 를 끝까지 보여 준 뒤 확장할지. (권장: GO 한 판 끝까지 → 사용자 GUI 확인 → 확장)
-- **Q-U2 REALM 51장 사슬**: 10차(시상→건업) 이후도 계속 늘릴지, 101-2 의 5-4 이정표·5-7 요약 카드로 전환할지. 성 21 이면 E 는 충분하고 A·B·H 가 비어 있다.
 - **Q-U3 Shader Graph 배선 일정**: SSS·헤어카드 노드 연결(사람 GUI) 을 언제 할지. 그때까지 피부는 근사 유지.
 - **Q-U4 Mixamo 캐릭터 추가**: 인물 105 를 이 트랙에서 몇 명까지 실제 모델로 갈지(현재 3). 나머지는 Maria/Abe/Brute 3 베이스 + 장비 소켓(101-3 G) 변형으로 갈지.
 

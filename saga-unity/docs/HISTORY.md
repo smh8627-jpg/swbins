@@ -7105,3 +7105,68 @@ Scene`) 필요했음. 컴파일 3회(각 단계) + `PlaytestStorySlice` 3연속 
 그대로). `docs/PROJECT_STATE.md` "다음 작업"도 갱신(실기 확인 몰아서 →
 104-1⑤·102-4 → REALM 51장 확장 → 105 열린 질문 순, 전부 사용자 결정
 또는 실기 확인 대기).
+
+## PLAN Q-U2 결정 — REALM 51장 16차, "성 하나당 목표 하나" 제약 해제 (2026-09-18, 같은 세션 "REALM 51장 방향 결정")
+
+STORY 101-3 F·G 이식(위 절)을 커밋·푸시한 뒤, 사용자가 "사가유니티 이어해줘"를
+다시 보내 다음 우선순위 항목을 진행. `docs/PROJECT_STATE.md` "다음 작업"
+목록이 전부 사용자 결정 대기 항목이라(104-1⑤·102-4는 105 Q1 대기, REALM
+51장은 방향 미정, 105 열린 질문들) 먼저 AskUserQuestion으로 방향을 물었고
+사용자가 "REALM 51장 방향 결정(Q-U2)"을 선택.
+
+**조사**: PLAN.md Q-U2("10차 이후도 계속 늘릴지, 5-4 이정표로 전환할지")가
+쓰인 시점 이후 이미 15차까지 진행돼 있었다 — 다시 확인해 보니 세 사슬
+(허창·복양·진류) 끝(회계·영안·오원)이 saga-web/saga-realm/js/data-city.js
+전체 LINKS(교주·서역·남중·막북·임읍·균열·묘역까지 전부 grep)를 뒤져도
+**진짜 더 뻗을 링크가 없는** 확정된 막다른 끝임을 확인했다. 대신 이미
+목표 하나를 쓴 국경 성들(장안·한중·하비·업·장사·강주·상군·운중) 쪽엔 아직
+안 쓴 링크가 여럿 남아 있었다(예: changan-tianshui, changsha-nanhai,
+jiangzhou-zhuti) — 지금까지 지켜 온 "성 하나당 목표 하나" 개발 관례가
+실제 병목이었다.
+
+이 사실을 사용자에게 보고하고 두 번째 질문("사슬 확장 방식")을 물었다 —
+"성 하나당 복수 목표 허용(구조 변경)" vs "그대로 둘 때 가능한 만큼만".
+사용자가 전자를 선택.
+
+**구현**:
+- `RealmEnemyCity.cs` — `TargetsFrom(ourCityId)`(전부 반환, `List<string>`)
+  신설, 옛 `TargetFrom()`은 `TargetsFrom().FirstOrDefault()` 격의 호환
+  래퍼로 남김. 데이터 모델 자체는 원래도 다중 목표를 막지 않았다(`Catalog`
+  가 목표 id로 키가 잡히지 출진 성으로 잡히지 않는다) — 진짜 바뀐 건
+  `TargetFrom`이 첫째만 돌려주던 로직뿐.
+- `RealmWarState.Attack()`/`Plot()` — `string enemyId = null` 선택 인자
+  추가. 생략하면 옛 동작(`TargetFrom`), 명시하면 `TargetsFrom(fromCityId)
+  .Contains(enemyId)`로 검증(엉뚱한 성 공격 방지).
+- `RealmCommandUi.cs` — "공격" 버튼(`ExecuteAttack()`)이 목표 개수를 먼저
+  본다. 하나면 옛날처럼 바로 공격(기존 UX·테스트 전부 무변경), 둘 이상이면
+  새 고르기 패널(`_attackPanel`/`_attackButtonsRoot`, 성 패널
+  `RefreshCityPanel()`과 같은 결)을 연다. 계략(`Plot`)은 이번 라운드에서
+  고르기 UI를 안 만들었다 — 목표 둘인 성에서 계략은 여전히 `TargetFrom`의
+  첫째에만 걸린다(알려진 틈으로 `PROJECT_STATE.md`에 남김).
+- 신규 성 3곳(16차): 장안→천수(원작 LINKS changan-tianshui), 장사→남해
+  (changsha-nanhai, 교주 관문), 강주→주제(jiangzhou-zhuti, 남중 관문).
+  wall은 `saga-web/saga-realm/js/data-city.js` 원본 그대로(4400·4400·3200),
+  troops=wall×0.23 반올림, train은 "출진 성 자신의 train+15"(형제 가지
+  규칙 그대로 — 장안 65+15=80, 장사 145+15=160, 강주 110+15=125).
+  `RealmCityData.cs`(성 정의)·`RealmEnemyCity.cs`(적 성 정의) 둘 다 추가.
+- 로컬라이제이션: `panel.attack_title` 신설(ko/en) + 그동안 빠져 있던
+  jianye/kuaiji/yunzhong/shangjun/shuofang/wuyuan city.* 항목(en json에
+  없어 영어 모드에서 한국어로 새던 것)을 이번 김에 다 채웠다.
+- `PlaytestRealmSlice.cs` — `AttackChainStep()`에 `enemyId` 선택 인자
+  추가(다중 목표 성 공략 시 명시), `CheckMultiTargetAttack()` 신설(장안이
+  실제로 목표 둘을 갖는지, 공격 버튼이 즉시 공격 대신 고르기 패널을
+  여는지, 잘못된 목표 id를 거절하는지 확인 — 실제 공격은 안 하고 패널만
+  열었다 닫는다, `AttackChainStep()`이 바로 다음에 진짜 함락을 하므로
+  중복 함락 방지). 새 Phase 셋(AttackTianshui/AttackNanhai/AttackZhuti)을
+  기존 사슬의 맨 끝(AttackKuaiji 다음)에 추가 — 중간에 안 끼워 넣어 기존
+  순서 회귀 위험을 없앴다.
+
+**실제로 걸린 함정**: `CheckMultiTargetAttack()`을 처음 KillEnemies 루프
+안(각 잡졸 타격마다 도는 자리)에 넣을 뻔했는데, 이건 STORY 세션의
+`CheckGroundDecalCap()` 함정과 같은 종류라 처음부터 별도 시점(사슬 끝,
+루프 밖)에 배치해 피했다.
+
+컴파일 3회(각 단계) + 씬 재생성(`Saga/Build TestCity Scene`, `_attackPanel`
+GameObject 신설로 필요) + `PlaytestRealmSlice` 3연속 OK. `PLAN.md`
+101-2 REALM 행 갱신 + 105장 Q-U2 항목 삭제(해결됨), `docs/PROJECT_STATE.md`
+REALM 행·다음 작업 갱신.

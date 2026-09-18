@@ -101,6 +101,29 @@ namespace Saga.Realm.Data
     /// 세 사슬(허창·복양·진류) 전부 확정된 막다른 끝. 원작 land는 hill인데
     /// 진양·한중 등과 같은 이유로 Plain 처리. wall 2700은 원작 그대로,
     /// troops=wall×0.23 반올림=600, train=삭방의 120+15=135.
+    /// **51장 16차 확장(2026-09-18, PLAN.md Q-U2 사용자 결정)** — 세 사슬의
+    /// 끝(회계·영안·오원)은 원작 LINKS를 교주·서역·남중·막북·균열·임읍·
+    /// 묘역까지 전부 뒤져도 더 뻗을 링크가 진짜로 없다(확인 완료). 대신
+    /// **"성 하나당 목표 하나" 제약을 풀어** 이미 목표가 있는 국경 성에서
+    /// 둘째 목표를 열었다 — 데이터 모델은 원래도 이걸 막지 않았다
+    /// (`Catalog`는 목표 id로 키가 잡히지 `attackFromCityId`로 잡히지
+    /// 않는다, 같은 성을 출진지로 둔 항목을 여럿 둬도 원래 무해했다).
+    /// 진짜 바뀐 건 `TargetFrom()`이 첫째만 돌려주던 것을 `TargetsFrom()`
+    /// (전부 반환)으로 일반화하고, `RealmWarState.Attack()/Plot()`이 목표
+    /// id를 인자로 받게 되고, UI(`RealmCommandUi`)가 목표가 여럿이면
+    /// 고르는 패널을 새로 연 것 — 3장. ① 장안(changan)의 둘째 목표
+    /// (원작 LINKS: changan-tianshui, "농서의 요충" — 한중(hanzhong)과도
+    /// 맞닿지만 천수는 한 성에만 준다). ② 장사(changsha)의 둘째 목표
+    /// (원작 LINKS: changsha-nanhai, 교주 관문). ③ 강주(jiangzhou)의
+    /// 둘째 목표(원작 LINKS: jiangzhou-zhuti, 남중 관문). train은 셋 다
+    /// "같은 출진 성의 기존 목표와 같은 깊이"(형제 가지) 규칙으로
+    /// 출진 성 자신의 train+15 그대로: 장안 65+15=80(한중과 같음), 장사
+    /// 145+15=160(시상과 같음), 강주 110+15=125(영안과 같음). wall은 원작
+    /// 그대로(천수 4400·남해 4400·주제 3200), troops=wall×0.23 반올림
+    /// (1000·1000·750). 셋 다 land는 원작 그대로 옮기되 hill인 천수만
+    /// 다른 hill/mount 성들과 같은 이유로 Plain 처리(주제는 원작 river
+    /// 그대로). 교주(nanhai 너머 창오·합포)·남중(zhuti 너머 건녕)은 더
+    /// 깊이 뻗을 수 있는 새 지역이라 다음 확장 후보로 남긴다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -166,13 +189,16 @@ namespace Saga.Realm.Data
         public const string ShangjunId = "shangjun";
         public const string ShuofangId = "shuofang";
         public const string WuyuanId = "wuyuan";
+        public const string TianshuiId = "tianshui";
+        public const string NanhaiId = "nanhai";
+        public const string ZhutiId = "zhuti";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
-            ShuofangId, WuyuanId,
+            ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -275,20 +301,50 @@ namespace Saga.Realm.Data
             // 복양 사슬의 새 일곱째 단계 목표. 오원엔 다른 LINKS가 없어
             // (잎사귀) 이 사슬의 마지막 칸이다.
             [WuyuanId] = new RealmEnemyCityDef(WuyuanId, "오원", RealmLand.Plain, baseWall: 2700, baseTroops: 600, baseTrain: 135, baseTech: 100, attackFromCityId: "shuofang"),
+            // 천수는 장안(changan)과 맞닿아 있다(원작 LINKS: changan-tianshui,
+            // "농서의 요충") — 16차 확장, 장안의 둘째 목표(장안은 이미
+            // 한중을 갖고 있다 — 성 하나당 목표 하나 제약을 이번에 풀었다,
+            // 위 클래스 주석 참고). train은 장안 자신의 65+15=80(한중과 같은
+            // 깊이의 형제 가지).
+            [TianshuiId] = new RealmEnemyCityDef(TianshuiId, "천수", RealmLand.Plain, baseWall: 4400, baseTroops: 1000, baseTrain: 80, baseTech: 100, attackFromCityId: "changan"),
+            // 남해는 장사(changsha)와 맞닿아 있다(원작 LINKS:
+            // changsha-nanhai, 교주로 드는 첫 관문) — 16차 확장, 장사의
+            // 둘째 목표(장사는 이미 시상을 갖고 있다). train은 장사 자신의
+            // 145+15=160(시상과 같은 깊이의 형제 가지).
+            [NanhaiId] = new RealmEnemyCityDef(NanhaiId, "남해", RealmLand.Plain, baseWall: 4400, baseTroops: 1000, baseTrain: 160, baseTech: 100, attackFromCityId: "changsha"),
+            // 주제는 강주(jiangzhou)와 맞닿아 있다(원작 LINKS:
+            // jiangzhou-zhuti, 남중으로 드는 첫 관문, "노수를 건너야
+            // 닿는다") — 16차 확장, 강주의 둘째 목표(강주는 이미 영안을
+            // 갖고 있다). train은 강주 자신의 110+15=125(영안과 같은 깊이의
+            // 형제 가지).
+            [ZhutiId] = new RealmEnemyCityDef(ZhutiId, "주제", RealmLand.River, baseWall: 3200, baseTroops: 750, baseTrain: 125, baseTech: 100, attackFromCityId: "jiangzhou"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
 
-        /// <summary>이 성에서 칠 수 있는 적 성 id — 없으면 null(장안·수춘·
-        /// 진양처럼 아직 다음 목표가 안 붙은 성, 또는 wan처럼 아예 우리
-        /// 목록에 없는 성).</summary>
-        public static string TargetFrom(string ourCityId)
+        /// <summary>이 성에서 칠 수 있는 적 성 id 전부 — 51장 16차 확장
+        /// (2026-09-18, PLAN.md Q-U2) "성 하나당 목표 하나" 제약을 풀면서
+        /// 옛 `TargetFrom()`(단수)을 대체한다. 없으면 빈 리스트. 대부분
+        /// 성은 여전히 하나뿐이라 `Count`로 UI가 "바로 공격" vs "고르기"를
+        /// 가른다(`RealmCommandUi.ExecuteAttack()` 참고).</summary>
+        public static List<string> TargetsFrom(string ourCityId)
         {
+            var result = new List<string>();
             foreach (var def in Catalog.Values)
             {
-                if (def.AttackFromCityId == ourCityId) return def.Id;
+                if (def.AttackFromCityId == ourCityId) result.Add(def.Id);
             }
-            return null;
+            return result;
+        }
+
+        /// <summary>옛 호출부 호환용 — 목표가 여럿이면 그중 하나(순서는
+        /// `Catalog` 내부 순서, 정해서 고르는 화면이 필요하면 `TargetsFrom`
+        /// 을 직접 쓸 것). 목표가 하나뿐인 성이 압도적으로 많아 대부분
+        /// 호출부는 이 메서드로 충분하다.</summary>
+        public static string TargetFrom(string ourCityId)
+        {
+            var list = TargetsFrom(ourCityId);
+            return list.Count > 0 ? list[0] : null;
         }
 
         public static RealmEnemyRecord NewRecord(string id)

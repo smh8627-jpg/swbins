@@ -78,6 +78,7 @@ namespace Saga.EditorTools
             AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackShangjun, AttackShuofang, AttackWuyuan, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
+            AttackTianshui, AttackNanhai, AttackZhuti,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -146,7 +147,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1066,7 +1067,33 @@ namespace Saga.EditorTools
                     // (TargetFrom("jianye")), 원작 LINKS: jianye-kuaiji
                     // ("강동의 끝"), 스물 중 가장 어렵다. 이 사슬의 마지막
                     // 칸 — 회계는 원작 LINKS상 더 이상 이웃이 없다.
-                    if (!AttackChainStep(RealmEnemyCity.JianyeId, RealmEnemyCity.KuaijiId, Phase.QuizCorrect)) return;
+                    if (!AttackChainStep(RealmEnemyCity.JianyeId, RealmEnemyCity.KuaijiId, Phase.AttackTianshui)) return;
+                    break;
+                }
+
+                case Phase.AttackTianshui:
+                {
+                    // 51장 16차 확장(2026-09-18, PLAN.md Q-U2) — "성 하나당
+                    // 목표 하나" 제약을 풀고 이미 목표(한중)가 있는 장안에
+                    // 둘째 목표를 열었다. TargetsFrom("changan")이 정확히
+                    // 둘(한중·천수)을 돌려주는지, 공격 UI가 목표 둘일 때
+                    // 고르기 패널을 여는지부터 먼저 본다.
+                    if (!CheckMultiTargetAttack()) { Fail(); return; }
+                    if (!AttackChainStep(RealmEnemyCity.ChanganId, RealmEnemyCity.TianshuiId, Phase.AttackNanhai, RealmEnemyCity.TianshuiId)) return;
+                    break;
+                }
+
+                case Phase.AttackNanhai:
+                {
+                    // 16차 확장 — 장사의 둘째 목표(시상에 이어).
+                    if (!AttackChainStep(RealmEnemyCity.ChangshaId, RealmEnemyCity.NanhaiId, Phase.AttackZhuti, RealmEnemyCity.NanhaiId)) return;
+                    break;
+                }
+
+                case Phase.AttackZhuti:
+                {
+                    // 16차 확장 — 강주의 둘째 목표(영안에 이어).
+                    if (!AttackChainStep(RealmEnemyCity.JiangzhouId, RealmEnemyCity.ZhutiId, Phase.QuizCorrect, RealmEnemyCity.ZhutiId)) return;
                     break;
                 }
 
@@ -1250,8 +1277,13 @@ namespace Saga.EditorTools
         /// return;` 한 줄이면 된다.
         /// (code-review 지적, 2026-09-16 — 14벌 거의 동일한 ~30줄
         /// 블록을 손으로 복사해 오던 것을 여기 하나로 모았다. 새 사슬을
-        /// 늘릴 때 도시 id 하나 잘못 옮겨 적는 실수를 원천 차단한다.)</summary>
-        private static bool AttackChainStep(string fromCityId, string expectedCapturedId, Phase nextPhase)
+        /// 늘릴 때 도시 id 하나 잘못 옮겨 적는 실수를 원천 차단한다.)
+        /// <paramref name="enemyId"/>는 51장 16차 확장(2026-09-18)부터 —
+        /// fromCityId가 목표를 둘 이상 가진 성이면 `RealmWarState.Attack()`
+        /// 이 어느 쪽인지 모호해지니 명시한다(생략하면 옛날처럼
+        /// `TargetFrom`의 단일 값에 맡긴다, 목표가 하나뿐인 성은 그대로
+        /// 안전).</summary>
+        private static bool AttackChainStep(string fromCityId, string expectedCapturedId, Phase nextPhase, string enemyId = null)
         {
             var roster = new List<string>(RealmCityState.RosterIds);
             var officerCityIds = new List<string>();
@@ -1269,7 +1301,7 @@ namespace Saga.EditorTools
             city.Troops = 100000;
             city.Food = 100000;
 
-            var result = RealmWarState.Attack(fromCityId);
+            var result = RealmWarState.Attack(fromCityId, enemyId);
             if (!result.Ok || !result.Won || RealmCityState.CityRecord(expectedCapturedId) == null ||
                 !RealmCityState.ActiveCityIds.Contains(expectedCapturedId))
             {
@@ -1511,6 +1543,72 @@ namespace Saga.EditorTools
             refreshMethod.Invoke(ui, null);
 
             Debug.Log("[PlaytestRealmSlice] command UI panels OK - settings panel actually toggles, orders/save labels follow language, save button actually writes a file");
+            return true;
+        }
+
+        /// <summary>PLAN.md 51장 16차 확장(2026-09-18, PLAN.md Q-U2 사용자
+        /// 결정 "성 하나당 복수 목표 허용") — 장안(changan)이 실제로 목표를
+        /// 둘(한중·천수) 갖는지, 조망 성을 장안으로 돌린 뒤 "공격" 버튼을
+        /// 누르면(리플렉션으로 private ExecuteAttack() 직접 호출) 즉시
+        /// 공격하는 대신 고르기 패널이 뜨는지 본다. **실제로 공격까지
+        /// 하지는 않는다** — RealmCommandUi를 거치지 않는 AttackChainStep()
+        /// 이 바로 다음에 진짜 함락을 수행하니, 여기서 먼저 함락해 버리면
+        /// "이미 함락한 성입니다"로 그 단계가 깨진다. 그래서 패널만 열어
+        /// 확인하고 바로 닫는다.</summary>
+        private static bool CheckMultiTargetAttack()
+        {
+            var targets = RealmEnemyCity.TargetsFrom(RealmEnemyCity.ChanganId);
+            if (targets.Count != 2 || !targets.Contains(RealmEnemyCity.HanzhongId) || !targets.Contains(RealmEnemyCity.TianshuiId))
+            {
+                Debug.LogError($"[PlaytestRealmSlice] TargetsFrom(\"changan\")이 기대와 다름 — count={targets.Count} [{string.Join(",", targets)}](기대=한중+천수 둘)");
+                return false;
+            }
+
+            var ui = Object.FindFirstObjectByType<RealmCommandUi>();
+            if (ui == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi 인스턴스를 못 찾음");
+                return false;
+            }
+
+            RealmCityState.SetCurrentCity(RealmEnemyCity.ChanganId);
+
+            var attackPanel = typeof(RealmCommandUi).GetField("_attackPanel", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ui) as GameObject;
+            if (attackPanel == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._attackPanel이 null — 씬 재로드 후 참조가 안 살아남음");
+                return false;
+            }
+
+            var executeMethod = typeof(RealmCommandUi).GetMethod("ExecuteAttack", BindingFlags.NonPublic | BindingFlags.Instance);
+            executeMethod.Invoke(ui, null);
+
+            if (!attackPanel.activeSelf)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 목표가 둘인 성(장안)에서 공격 버튼을 눌렀는데 고르기 패널이 안 뜸 — 즉시 공격해 버렸을 위험");
+                return false;
+            }
+
+            var buttonsRoot = typeof(RealmCommandUi).GetField("_attackButtonsRoot", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ui) as Transform;
+            if (buttonsRoot == null || buttonsRoot.childCount != 2)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 공격 고르기 패널의 버튼 개수 이상 — {(buttonsRoot == null ? "null" : buttonsRoot.childCount.ToString())}(기대=2)");
+                return false;
+            }
+
+            attackPanel.SetActive(false); // 다음 단계(AttackChainStep)가 실제 함락을 수행하니 열어 둔 채로 넘기지 않는다.
+
+            // 목표가 아닌 성 id를 강제로 넘기면 거절하는지(RealmWarState.Attack()
+            // 의 TargetsFrom().Contains() 가드) — 회계(kuaiji)는 장안에서
+            // 못 치는 성이다.
+            var wrongResult = RealmWarState.Attack(RealmEnemyCity.ChanganId, RealmEnemyCity.KuaijiId);
+            if (wrongResult.Ok)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 장안에서 회계(자기 목표가 아닌 성)를 공격했는데 안 막힘 — msg={wrongResult.Message}");
+                return false;
+            }
+
+            Debug.Log("[PlaytestRealmSlice] multi-target attack UI OK - changan(2 targets: hanzhong+tianshui) opens a picker with 2 buttons instead of attacking immediately, wrong enemyId rejected");
             return true;
         }
 

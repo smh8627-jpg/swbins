@@ -51,11 +51,16 @@ namespace Saga.Realm.Data
         }
 
         /// <summary>출진할 수 있는가 — war.js canMarch()를 이 슬라이스
-        /// 범위(성 하나당 적 하나·물길 없음)로 좁힌 것. 목표는 fromCityId로
-        /// 정해진다(RealmEnemyCity.TargetFrom).</summary>
-        public static AttackResult Attack(string fromCityId)
+        /// 범위(물길 없음)로 좁힌 것. 목표는 보통 fromCityId 하나로 정해지지만
+        /// (RealmEnemyCity.TargetFrom), 51장 16차 확장(2026-09-18, PLAN.md
+        /// Q-U2)부터 국경 성 일부가 목표를 둘 갖는다 — 그런 성은 `enemyId`를
+        /// 명시해야 한다(생략하면 `TargetFrom`이 그중 하나만 골라 버려
+        /// 플레이어가 고른 것과 다를 수 있다, `RealmCommandUi.ExecuteAttack()`
+        /// 이 이 경우 고르기 패널을 먼저 연다).</summary>
+        public static AttackResult Attack(string fromCityId, string enemyId = null)
         {
-            string enemyId = RealmEnemyCity.TargetFrom(fromCityId);
+            if (enemyId == null) enemyId = RealmEnemyCity.TargetFrom(fromCityId);
+            else if (!RealmEnemyCity.TargetsFrom(fromCityId).Contains(enemyId)) enemyId = null;
             if (enemyId == null) return new AttackResult(false, RealmLocalization.T("war.err_no_target", "이 성에서는 칠 적국이 없습니다"));
 
             var def = RealmEnemyCity.Get(enemyId);
@@ -160,12 +165,14 @@ namespace Saga.Realm.Data
         }
 
         /// <summary>계략을 건다 — diplo.js plot() 을 이 슬라이스 범위로
-        /// 좁힌 것. 목표는 Attack()과 같이 fromCityId로 정해진다. 이간·
-        /// 매수(적 무장 대상)는 적 성에 무장이 없어 범위 밖 —
-        /// RealmPlotData.cs 클래스 주석 참고.</summary>
-        public static PlotResult Plot(string kind, string fromCityId)
+        /// 좁힌 것. 목표는 Attack()과 같이 fromCityId로 정해진다(목표가
+        /// 둘인 성은 `enemyId`를 명시할 것 — Attack()과 같은 이유,
+        /// 16차 확장 참고). 이간·매수(적 무장 대상)는 적 성에 무장이
+        /// 없어 범위 밖 — RealmPlotData.cs 클래스 주석 참고.</summary>
+        public static PlotResult Plot(string kind, string fromCityId, string enemyId = null)
         {
-            string enemyId = RealmEnemyCity.TargetFrom(fromCityId);
+            if (enemyId == null) enemyId = RealmEnemyCity.TargetFrom(fromCityId);
+            else if (!RealmEnemyCity.TargetsFrom(fromCityId).Contains(enemyId)) enemyId = null;
             if (enemyId == null) return new PlotResult(false, RealmLocalization.T("plot.err_no_target", "이 성에서는 계략을 걸 적국이 없습니다"));
 
             var enemy = _enemies[enemyId];

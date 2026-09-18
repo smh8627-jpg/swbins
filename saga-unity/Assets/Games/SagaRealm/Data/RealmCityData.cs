@@ -191,6 +191,23 @@ namespace Saga.Realm.Data
             // 원작 land는 hill인데 진양·한중 등과 같은 이유로 Plain 처리.
             // wall은 RealmEnemyCity.cs 오원 정의(2700)와 맞춘다.
             ["wuyuan"] = new RealmCityDef("wuyuan", "오원", RealmLand.Plain, agri: 120, comm: 90, wall: 2700, pop: 36000, mapX: 38, mapY: -15),
+            // 51장 "대규모 콘텐츠" 16차 확장(2026-09-18) — "성 하나당 목표
+            // 하나" 제약을 풀고(PLAN.md Q-U2, 사용자 결정) 국경 성이 여러
+            // 방향으로 뻗을 수 있게 했다. 장안(changan)의 둘째 목표(원작
+            // LINKS: changan-tianshui, 3차 확장 때 "다음 확장 후보"로만
+            // 적어 뒀던 자리) — 한중(hanzhong)과도 맞닿지만(tianshui-hanzhong)
+            // 한 성만 갖는다. 원작 land hill은 다른 성들과 같은 이유로
+            // Plain 처리. wall은 RealmEnemyCity.cs 천수 정의(4400)와 맞춘다.
+            ["tianshui"] = new RealmCityDef("tianshui", "천수", RealmLand.Plain, agri: 220, comm: 180, wall: 4400, pop: 140000, mapX: 22, mapY: 36),
+            // 16차 확장 — 장사(changsha)의 둘째 목표(원작 LINKS:
+            // changsha-nanhai, 교주(交州) 관문). land는 원작 그대로 plain.
+            // wall은 RealmEnemyCity.cs 남해 정의(4400)와 맞춘다.
+            ["nanhai"] = new RealmCityDef("nanhai", "남해", RealmLand.Plain, agri: 260, comm: 280, wall: 4400, pop: 140000, mapX: 70, mapY: 88),
+            // 16차 확장 — 강주(jiangzhou)의 둘째 목표(원작 LINKS:
+            // jiangzhou-zhuti, 남중(南中) 관문, "노수를 건너야 닿는다").
+            // land는 원작 그대로 river. wall은 RealmEnemyCity.cs 주제
+            // 정의(3200)와 맞춘다.
+            ["zhuti"] = new RealmCityDef("zhuti", "주제", RealmLand.River, agri: 160, comm: 140, wall: 3200, pop: 55000, mapX: 20, mapY: 82),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
