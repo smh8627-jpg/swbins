@@ -99,11 +99,17 @@
 
   /* ── 던전 ─────────────────────────────────────────────── */
 
-  /** 은사 점수 — 오래 버티는 쪽을 먼저 집는다 */
-  var BOON_SCORE = {
-    wall: 100, fury: 92, drain: 88, haste: 84, ghost: 80, ward: 78,
-    crit: 70, pierce: 66, reach: 60, mend: 58, dash: 50, greed: 40, eye: 36, scout: 20
-  };
+  /** 축복(§5.1) 점수 — 옛 BOONS(스탯%, 고정 키 표)가 세 축 체계로
+   *  갈렸다(2026-09-18). 이제 키 하나하나가 아니라 **축·희귀도**로 매긴다 —
+   *  "오래 버티는 쪽을 먼저 집는다"는 옛 취지를 인물 축(생존기·위력)을
+   *  가장 높게 쳐서 그대로 이어간다. */
+  var BOON_AXIS_SCORE = { hero: 70, skill: 60, world: 50 };
+  var BOON_RARITY_BONUS = { legendary: 20, rare: 10, common: 0 };
+  function boonScore(key) {
+    var b = global.DG.dungeonData ? global.DG.dungeonData.boonByKey(key) : null;
+    if (!b) { return 40; }
+    return (BOON_AXIS_SCORE[b.axis] || 40) + (BOON_RARITY_BONUS[b.rarity] || 0);
+  }
 
   /** 다음 방 우선순위 — 체력이 깎였으면 우물부터 */
   function doorScore(kind, hpRatio) {
@@ -154,10 +160,10 @@
     var p = run.player;
     var hpRatio = run.hpMax ? run.hp / run.hpMax : 1;
 
-    if (run.choice) {                               // 은사 고르기
+    if (run.choice) {                               // 축복 고르기(§5.1)
       var bestKey = null, bs = -1;
       for (var i = 0; i < run.choice.length; i++) {
-        var sc = BOON_SCORE[run.choice[i]] || 40;
+        var sc = boonScore(run.choice[i]);
         if (sc > bs) { bs = sc; bestKey = run.choice[i]; }
       }
       if (bestKey) { D.pickBoon(bestKey); }

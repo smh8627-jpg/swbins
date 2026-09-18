@@ -421,13 +421,15 @@
     heroes:  { gold: 3000, feat: 100, label: '인물' },
     pets:    { gold: 1500, feat: 60,  label: '펫' },
     regions: { gold: 800,  feat: 30,  label: '지역' },
-    relics:  { gold: 1200, feat: 50,  label: '유적' }
+    relics:  { gold: 1200, feat: 50,  label: '유적' },
+    boons:   { gold: 1200, feat: 50,  label: '은사첩' }
   };
   function dexTotal(cat) {
     if (cat === 'heroes') { return data.heroes.length; }
     if (cat === 'pets') { return data.pets.length; }
     if (cat === 'regions') { return (global.DG.dungeonData && global.DG.dungeonData.THEMES.length) || 0; }
     if (cat === 'relics') { return (global.DG.town && global.DG.town.fieldRelics) ? global.DG.town.fieldRelics().length : 0; }
+    if (cat === 'boons') { return (global.DG.dungeonData && global.DG.dungeonData.BOONS.length) || 0; }
     return 0;
   }
   function checkDexComplete(cat) {

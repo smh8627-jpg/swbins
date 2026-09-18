@@ -127,6 +127,15 @@
 - **세이브**: `run.boons` 는 회차(저장 안 함). 메타 `save.dex.boons = {key:true}` 신설 — `freshSave()` 에 추가, `mergeDeep` 이 옛 세이브에 채운다(마이그레이션 코드 없음). `DEX_COMPLETE` 에 `boons` 갈래, 완성 보상은 기존 파이프라인.
 - **진단 문안**: "축복 — 세 카드가 서로 다른 축이다(100회)" · "축복 — 거절하면 금이 층×30 만큼 든다" · "축복 — 화+뇌 시너지가 처치 시 반경 80 화상을 건다" · "축복 — 처음 본 축복은 은사첩에 남고 회차가 끝나도 지워지지 않는다". 전부 `core.hash2` 로 굴려 씨앗 무관.
 - **범위**: `data-dungeon.js`(BOONS→3축 표), `dungeon.js`(rollBoonChoice·strike 시너지·applyShapeSkill 강화값), `ui.js`(카드·HUD 띠·도감), `core.js`(dex.boons). **우선순위 1**. 충돌: 없음 — 은사 회차 한정 규칙·strike 단일 통로·모양 10 유지. 무예 갈래는 더 늘리지 않는다(사용자 "그냥 모방" 정정).
+- **구현(2026-09-18)**: `BOONS`(옛 14개 스탯% 은사)를 3축 36개로 **전부 교체**했다 — 무예 축 18(모양 9×common/legendary), 인물 축 6(cd·dmg 각 common/rare + legendary 2종), 세계 축 12(원소쌍 조합, common 6·rare 4·legendary 2). `rollBoonChoice()`는 축마다 하나씩 뽑아 구조적으로 축 중복이 없다(`axisPool`→`rollFromAxis`, 등급을 `core.hash2`로 굴리고 후보가 없으면 한 단계 물러선다 — `Math.random()`을 안 써서 `tryCatchPet()`과 같은 이유로 진단이 다른 자리의 난수열을 안 민다). `descend()`는 이제 `DD.isBossFloor()`(기존 "3층마다"와 같은 함수)일 때만, `run.boonPicks`가 8 미만일 때만 `rollBoonChoice()`를 부른다 — 매 층마다 뜨던 옛 방식을 대신한다. `pickBoon()`은 처음 고르는 축복을 `save.dex.boons`(은사첩)에 등록하고, 새 `rejectBoon()`이 금 30×층을 받고 넘긴다.
+  - **무예 축**: PLAN 원문의 "무예 4칸 중 하나"가 아니라 **그 모양(shape)을 쓰는 무예 전부**에 건다(어느 칸인지 추적 안 함 — 후하지만 로그라이트 특성상 문제없어 그대로 감수). `applyShapeSkill()`의 아홉 분기 전부에 `boonVal()` 한 줄씩만 얹었다(swing→`swingRangePct`, bolt→`boltShotAdd`, nova→`novaExtraRing`, dash→`dashInvulnAdd`, chain→`chainHopsAdd`, summon→`summonCountAdd`, curse→`curseDurPct`, heal→`healBonusPct`, buff→`buffDurPct`) — 새 통로를 안 만들고 기존 `boonVal()` 범용 합산을 그대로 재사용했다.
+  - **인물 축**: `castSigSkill()`에서 `sigCdPct`·`sigDmgPct`를 그대로 곱·감산한다. "부대 전원 흔들림·플래시"는 dungeon-view.js의 카메라 흔들림 변수가 모듈 로컬이라 못 건드려 기존 `ring` fx 연출로 대신했다(단순화, 실기 확인 대상). 그림자 서명(`hr_shadow_l`)은 새 `tryShadowSig()`가 평타 두 곳(들판 `stepFieldCombat`·방 `update`)에서 부대 3~5번째 인물의 `HS.sigOf()`를 확률로 얹는다.
+  - **세계 축**: 12조합 전부 `strike()`/`kill()` 안에서만 계산한다("새 통로 없음" 그대로 지켰다) — 크리 전 판정(뇌빙 확정크리)·데미지 배율(결빙·빙염·부식)·크리 부가(빙인·폭기)·콤보 부가(작열·경혈)는 `strike()`에, 처치 반경 80 셋(폭발·부패·감전은 예외로 즉발 피해·저지)은 `kill(e, kind, dmg)`(호출 하나뿐이라 인자를 늘렸다)에 넣었다. 두 원소가 한 타격에 실렸는지는 새 `hasElemInHit(el, kind, edmg)`가 "타격 결 kind" 또는 "무기에 박은 보석 elemDmgOf()"로 판정한다.
+  - **자가진단 전용 훅**: `DN._rollBoonChoice`(층 게이팅 없이 굴리기), `DN._forceElemDmg(v|null)`(원소 배합 강제 — 사가고 `weather.force()`와 같은 결, 실제 장비 세공에 기대면 세계 축 시너지를 결정적으로 못 검증한다).
+  - **auto.js**: `BOON_SCORE`(옛 키 표)를 `boonScore(key)`(축·희귀도 점수)로 갈아엎었다. `_test.html`의 "자동 — 은사는 오래 버티는 쪽" 회귀도 새 키로 다시 썼다.
+  - **잃은 것**: 옛 체계의 `hpPct`·`atkPct`·`moveSpdPct` 같은 순수 스탯 성장이 새 체계엔 없다(세 축 다 스탯%가 아니라 구조·시너지). 생존력 성장은 §5.2(유품)·§5.8(손맛)이 다른 방식으로 맡는 쪽으로 방향을 잡았다 — 실제 사망률 변화는 실기 확인 몫.
+  - **밸런스 추정(실측 아님, §9 실기 확인 필요)**: 8스택 전형 조합(legendary skill×2~3 + hero dmg + world synergy 다수)을 손으로 어림하면 skillMul() 보너스 +20~30%(skillPct 합), 서명 위력 +25~65%, 세계 시너지 조건부 +15~30% — 그런데 **평타는 세 축 어디에서도 안 커진다**(새 축은 전부 스킬·서명·시너지에만 붙는다), 그래서 평타 비중이 큰 실제 플레이의 블렌디드 DPS 상승은 대략 ×1.4~1.9 로 어림된다 — 목표 ×2.2 이내에 여유 있게 들어오지만, 정확한 값은 `_admin.html` 시뮬레이터(§9) 실측이 필요하다.
+  - **검증** — `node -c`(data-dungeon.js·dungeon.js·auto.js·dungeon-view.js·core.js·ui.js) 통과, `bash tools/precheck.sh saga-web/saga-dungeon` → PRECHECK OK. `_test.html`에 §5.1 진단 4항목 추가 + 기존 자동선택 테스트 갱신 — 헤드리스로는 안 띄웠고(이 판 규칙) 인라인 스크립트를 `new Function()`으로 구문만 확인했다. 실기 확인 남음: 위 밸런스 어림값 실측, "부대 전원 흔들림" 단순화가 화면에서 어색하지 않은지, 카드 UI(축 아이콘·테두리색)가 실제로 잘 읽히는지.
 
 ### 5.2 유품(遺品) — 죽음 비용과 회수, 죽어도 남는 것
 - **참고**: 다크소울 소울 회수, 하데스(죽음→서사), 로그라이트 메타 진행. **표준**: F·B.
@@ -252,8 +261,9 @@
 - 전투: hitstop 0.08 이 "버벅임" 으로 느껴지는지 / 강공격·회피·F 버튼 배치가 미니맵·조이스틱과 안 겹치는지 / 어그로 "!" 타이밍·소리 / chain 손맛 / 회피 굴림 모션(레시피별 대체) / 서명 무예 105 각 체감(어드민 시험 발동으로) / 투장 무예 발동 손맛
 - 콘텐츠: 방랑 상인 만나서 사기 / 길목 발견거리·유적·탐험 문턱 토스트 / 마을 경비(넉백으로 마을 진입 안 함) / 위성 마을 NPC 배치(미완)
 - 그래픽·에셋: 갑주 GLB 2 fit / 몬스터 88종 GLB 첫 표시(`monster:` lookup 고침 뒤) / 공룡 6·괴물 5 크기·위압감(`외눈귀` 사람 크기, `집게괴` quad 근사) / 외모 커스텀 6 버튼 / 티어별 색 구분
-- UI: 설정 시트 그래픽 품질 즉시 반영 / 진동 지원 기기에서만 줄 뜸 / 전체지도 안내문 겹침 / 목표판(§5.6) `#goals` 줄이 지갑 줄과 안 겹치는지·폰 폭 펼침 탭 동작
+- UI: 설정 시트 그래픽 품질 즉시 반영 / 진동 지원 기기에서만 줄 뜸 / 전체지도 안내문 겹침 / 목표판(§5.6) `#goals` 줄이 지갑 줄과 안 겹치는지·폰 폭 펼침 탭 동작 / 축복(§5.1) 카드 축 아이콘·테두리색이 실제로 잘 읽히는지·거절 버튼 오조작 여부
 - 동행: 장비 바꿔도 장면 재진입 전엔 겉모습 안 바뀜(알려진 한계)
+- 밸런스(§5.1): 8스택 회차 DPS 가 0스택의 2.2배 이내인지 `_admin.html` 시뮬레이터 실측 / "부대 전원 흔들림" 을 `ring` fx로 대신한 것이 어색하지 않은지
 
 ### 7.3 Phase 0 작업
 1. **완료(2026-09-17)** — 오류 링버퍼 50건(`window.onerror`·`unhandledrejection`) → localStorage → `_admin.html` "오류" 탭 보기·복사. 새 `js/errlog.js`(사가고와 같은 규격, `index.html` 맨 첫 스크립트). `_test.html`에 순수 함수 `push()` 상한 진단 1항목 추가.

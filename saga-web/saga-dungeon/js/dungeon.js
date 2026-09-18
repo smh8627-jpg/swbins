@@ -212,8 +212,13 @@
   /** 선두(부대 첫 인물) — 원작의 인물 하나에 해당하는 자리 */
   function leadId() { return core.save.party[0] || null; }
 
+  /** 자가진단 전용(§5.1 세계 축 검증) — 실제 장비 세공과 무관하게 원소
+   *  배합을 강제한다. `null`이면 해제(실제 장비 값으로 되돌아간다). 시각·
+   *  장비 의존 값을 진단에서 붙드는 다른 판의 `weather.force()`와 같은 결. */
+  var forcedElemDmg = null;
   /** 지금 무기에 박힌 원소 피해 { fire: n, … } */
   function elemDmgOf() {
+    if (forcedElemDmg) { return forcedElemDmg; }
     var id = leadId();
     return id ? global.DG.item.elemDamage(id) : {};
   }
@@ -603,7 +608,7 @@
     run = {
       mode: md.key,
       floor: floor, startFloor: floor,
-      boons: {}, choice: null,
+      boons: {}, choice: null, boonPicks: 0,   // 축복(§5.1) — 회차 전체 상한 8은 boonPicks로 센다
       hpMax: 0, hp: 0,
       buffs: {}, minions: [],          // 잠깐짜리 무예 · 분신 (회차 안에서만 산다)
       mp: MP_MAX, mpMax: MP_MAX,
@@ -697,7 +702,8 @@
     return true;
   }
 
-  /** 층을 내려간다 — 노획물이 확정되고 은사를 고른다 */
+  /** 층을 내려간다 — 노획물이 확정되고, 3층마다(보스층 주기와 같다)
+   *  축복(§5.1)을 하나 고른다. 8스택 다 찼으면 더 안 뜬다. */
   function descend() {
     settleLoot('층 답파');
     dstate().clears += 1;
@@ -708,7 +714,8 @@
     core.gainFeat(2 + Math.floor(run.floor / 2), '던전 답파');
     run.floor += 1;
     run.hpMax = hpMaxOf();
-    run.choice = rollBoonChoice();
+    run.choice = (DD.isBossFloor(run.floor) && (run.boonPicks || 0) < BOON_MAX_STACK)
+      ? rollBoonChoice() : null;
     buildFloor();
     core.log('🪜 제' + run.floor + '층으로 내려간다', 'good');
     /* 장비가 닳는다 — 원작처럼 쓰면 닳고 다 닳으면 부서진다.
@@ -721,32 +728,80 @@
     return true;
   }
 
-  /** 은사 후보 3개 (겹침 상한을 지킨다) */
+  /** 축복(§5.1) 회차 전체 상한 — 3층마다 1 + 사당방 보너스, 합쳐서 8 */
+  var BOON_MAX_STACK = 8;
+  /** 희귀도 가중치 — 일반 60 · 희귀 30 · 전설 10 */
+  function rollRarity(seedBase, salt) {
+    var r = core.hash2(seedBase, salt);
+    if (r < 0.10) { return 'legendary'; }
+    if (r < 0.40) { return 'rare'; }
+    return 'common';
+  }
+  function axisPool(axis, rarity, shapes) {
+    return DD.BOONS.filter(function (b) {
+      if (b.axis !== axis || b.rarity !== rarity) { return false; }
+      if (axis === 'skill' && !shapes[b.shape]) { return false; }
+      return true;
+    });
+  }
+  /** 축 하나에서 카드 하나 — 등급을 굴리고, 그 등급에 후보가 없으면
+   *  (예: 아직 장착한 무예가 그 모양이 아니다) 한 단계씩 물러선다. */
+  function rollFromAxis(axis, shapes, seedBase, saltRarity, saltPick) {
+    var order = ['legendary', 'rare', 'common'];
+    var rarity = rollRarity(seedBase, saltRarity);
+    var start = order.indexOf(rarity);
+    var pool = [];
+    for (var i = start; i < order.length && !pool.length; i++) {
+      pool = axisPool(axis, order[i], shapes);
+    }
+    if (!pool.length) { return null; }
+    var idx = Math.floor(core.hash2(seedBase, saltPick) * pool.length);
+    return pool[idx].key;
+  }
+
+  /**
+   * 축복 후보 셋 — 무예·인물·세계 세 축에서 하나씩(§5.1). 같은 축이 두
+   * 번 나올 수 없다(축 하나당 후보 하나씩 뽑는 구조라 저절로 그렇다).
+   * `Math.random()`을 안 쓴다 — `tryCatchPet()`과 같은 이유(이 파일 위쪽
+   * 주석 참고)로, 진단이 100회를 돌려도 다른 자리의 Math 수열을 안 민다.
+   */
   function rollBoonChoice() {
-    var pool = [], i;
-    for (i = 0; i < DD.BOONS.length; i++) {
-      var b = DD.BOONS[i];
-      if ((run.boons[b.key] || 0) < b.max) { pool.push(b.key); }
+    if (!run || (run.boonPicks || 0) >= BOON_MAX_STACK) { return []; }
+    var equipped = slotSkills(), shapes = {}, i;
+    for (i = 0; i < equipped.length; i++) {
+      if (equipped[i]) { shapes[equipped[i].sk.shape] = true; }
     }
-    var out = [];
-    while (out.length < 3 && pool.length) {
-      var idx = Math.floor(Math.random() * pool.length);
-      out.push(pool[idx]);
-      pool.splice(idx, 1);
-    }
+    var seedBase = run.floor * 131 + (run.boonPicks || 0) * 17 + run.kills;
+    var out = [], skillKey = rollFromAxis('skill', shapes, seedBase, 1, 2),
+      heroKey = rollFromAxis('hero', shapes, seedBase, 3, 4),
+      worldKey = rollFromAxis('world', shapes, seedBase, 5, 6);
+    if (skillKey) { out.push(skillKey); }
+    if (heroKey) { out.push(heroKey); }
+    if (worldKey) { out.push(worldKey); }
     return out;
   }
 
-  /** 은사 하나를 실제로 얹는다 — 고르기(`pickBoon`)와 구출 보상(이벤트방)이
+  /** 처음 본 축복은 "은사첩"에 남는다(메타 진행, §5.1) — 유적·펫 도감과
+   *  같은 결(dex:new → ui.js checkDexComplete). 회차가 끝나도 안 지워진다. */
+  function registerBoonDex(key) {
+    var dex = core.save.dex.boons;
+    if (!dex || dex[key]) { return; }
+    dex[key] = true;
+    core.emit('dex:new', { cat: 'boons', id: key });
+  }
+
+  /** 축복 하나를 실제로 얹는다 — 고르기(`pickBoon`)와 구출 보상(이벤트방)이
    *  같이 쓴다. 상한 확인·체력 재계산·즉시 회복까지 여기 한 곳에 모았다. */
   function applyBoon(key) {
     var b = DD.boonByKey(key);
     if (!b) { return null; }
     if ((run.boons[key] || 0) >= b.max) { return null; }
     run.boons[key] = (run.boons[key] || 0) + 1;
+    run.boonPicks = (run.boonPicks || 0) + 1;
     run.hpMax = hpMaxOf();
     var heal = b.eff.healOnPick;
     if (heal) { healBy(run.hpMax * heal / 100); }
+    registerBoonDex(key);
     core.emit('changed');
     return b;
   }
@@ -756,11 +811,23 @@
     var b = applyBoon(key);
     if (!b) { return false; }
     run.choice = null;
-    core.log('🎴 은사 · ' + b.name + ' (' + run.boons[key] + '중첩)', 'good');
+    core.log('🎴 축복 · ' + b.name + ' (' + b.rarity + ')', 'good');
     return true;
   }
 
-  /** 사당방에서 바로 하나 받는다 */
+  /** 축복을 거절한다 — 금 30×층을 내고 이번 기회를 넘긴다(§5.1). */
+  function rejectBoon() {
+    if (!run || !run.choice) { return false; }
+    var cost = 30 * run.floor;
+    core.save.player.gold = Math.max(0, core.save.player.gold - cost);
+    run.choice = null;
+    core.log('🎴 축복을 거절했다 · 금 -' + core.fmt(cost), 'warn');
+    core.emit('toast', '🎴 축복 거절 · 금 -' + core.fmt(cost));
+    core.emit('changed');
+    return true;
+  }
+
+  /** 사당방에서 바로 하나 받는다 — 8스택 다 찼으면 조용히 빈 채로 온다. */
   function shrineBoon() {
     var c = rollBoonChoice();
     if (!c.length) { return null; }
@@ -1668,6 +1735,8 @@
         if (!run) { return; }
         if (Math.random() * 100 < boonVal('echoPct')) { strike(near); }
         if (!run) { return; }
+        tryShadowSig();                     // §5.1 인물 축 — 그림자 서명
+        if (!run) { return; }
       }
 
       /* 적 */
@@ -1976,6 +2045,8 @@
       strike(near);
       if (!run) { return; }
       if (Math.random() * 100 < boonVal('echoPct')) { strike(near); }
+      if (!run) { return; }
+      tryShadowSig();                       // §5.1 인물 축 — 그림자 서명
       if (!run) { return; }
     }
 
@@ -2342,22 +2413,66 @@
    * @param kind 'phys'(칼) | 'chi'(기) — 적의 저항이 이 결을 보고 깎는다.
    *             안 주면 물리다(평타·회전참·돌진).
    */
+  /** §5.1 세계 축 — 이 결이 이번 타격에 실려 있나(무기 자체 결 kind, 또는
+   *  보석으로 박은 결 edmg[el]>0). phys는 edmg에 없는 자리라 kind로만 본다. */
+  function hasElemInHit(el, kind, edmg) {
+    if (el === 'phys') { return kind === 'phys'; }
+    return kind === el || (edmg[el] || 0) > 0;
+  }
+  /** 반경 안의 살아 있는 다른 적 (world 축 처치·크리 부가효과가 같이 쓴다) */
+  function nearbyAlive(center, r) {
+    var out = [];
+    if (!run || !run.room) { return out; }
+    for (var i = 0; i < run.room.enemies.length; i++) {
+      var t = run.room.enemies[i];
+      if (t === center || t.hp <= 0) { continue; }
+      if (dist(t, center) <= r + (t.r || 0)) { out.push(t); }
+    }
+    return out;
+  }
+  function addDot(t, el, dps, sec) {
+    if (!t.dots) { t.dots = []; }
+    t.dots.push({ el: el, dps: dps, t: sec });
+  }
+
   function strike(e, mul, kb, kind) {
     kind = kind || 'phys';
     wakeEnemy(e);
+    var edmg = elemDmgOf();
+    var hasWd = function (k) { return !!(run && run.boons[k]); };
+    var hasEl = function (el) { return hasElemInHit(el, kind, edmg); };
     var dmg = atkOf() * (mul || 1) * (0.86 + Math.random() * 0.28);
     var critChance = boonVal('critPct') + core.effect('critPct');
     var crit = Math.random() * 100 < critChance;
+    /* §5.1 세계 축 — 뇌빙(빙+뇌): 슬로우된 적에게 뇌 결이 닿으면 반드시 크리 */
+    if (!crit && e.slow > 0 && hasEl('lit') && hasWd('wd_cold_lit')) { crit = true; }
     if (crit) { dmg *= 1.85; }
     dmg *= 1 + boonVal('piercePct') / 100 * 0.5;
+    /* §5.1 세계 축 — 결빙(빙+기): 슬로우된 적에게 주는 피해 +30% */
+    if (e.slow > 0 && hasWd('wd_cold_chi')) { dmg *= 1.3; }
+    /* §5.1 세계 축 — 빙염(화+빙): 화상과 슬로우가 겹친 적에게 +15% */
+    if (e.slow > 0 && hasWd('wd_fire_cold') && e.dots &&
+        e.dots.some(function (d) { return d.el === 'fire'; })) {
+      dmg *= 1.15;
+    }
     /* 주박·멸에 걸린 적은 더 아파한다 */
     if (e.hex && e.hex.t > 0) { dmg *= 1 + e.hex.v / 100; }
     /* 저항 — 관통(貫通) 은사가 저항도 절반만큼 뚫는다(방어를 무시하듯) */
     var res = resistOf(e, kind) * (1 - boonVal('piercePct') / 100 * 0.5);
+    /* §5.1 세계 축 — 부식(독+전자): 저항 -20 */
+    if (hasEl('pois') && hasEl('emp') && hasWd('wd_pois_emp')) { res = Math.max(0, res - 20); }
     if (res > 0) { dmg *= 1 - res / 100; }
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     e.hurt = 0.2;
+    /* §5.1 세계 축 — 크리티컬 부가효과 둘 */
+    if (crit && hasWd('wd_phys_cold') && hasEl('phys')) {
+      e.slow = Math.max(e.slow || 0, 2); e.slowMul = 0.6;   // 빙인
+    }
+    if (crit && hasWd('wd_fire_chi') && hasEl('fire')) {
+      var burned = nearbyAlive(e, 80), bi;                   // 폭기
+      for (bi = 0; bi < burned.length; bi++) { addDot(burned[bi], 'fire', Math.max(1, Math.round(dmg * 0.12)), 2); }
+    }
     /* 넉백 — 보스는 거의 안 밀린다 */
     var push = (kb === undefined ? 8 : kb) * (e.boss ? 0.25 : 1);
     if (push && run) {
@@ -2404,6 +2519,14 @@
         text: run.combo + ' 연속!', life: 0.5,
         color: run.combo >= 12 ? '#ff5a5a' : (run.combo >= 6 ? '#ffb454' : '#ffe066') });
     }
+    /* §5.1 세계 축 — 작열(물리+화): 콤보 6 이상에서 물리 타격에 화상 */
+    if (hasWd('wd_phys_fire') && hasEl('phys') && hasEl('fire') && run.combo >= 6) {
+      addDot(e, 'fire', Math.max(1, Math.round(dmg * 0.15)), 2);
+    }
+    /* §5.1 세계 축 — 경혈(물리+기): 3연속마다 기력 회복 */
+    if (hasWd('wd_phys_chi') && hasEl('phys') && hasEl('chi') && run.combo % 3 === 0) {
+      run.mp = Math.min(run.mpMax, run.mp + 5);
+    }
 
     /* 원소 — 무기에 박은 보석이 얹는다. **결마다 저항이 따로**다(원작과 같다).
        한 대에 여러 결이 같이 들어갈 수 있다 — 원작의 무기 피해가 그렇다. */
@@ -2414,7 +2537,7 @@
       hurtPlayer(Math.max(1, Math.round(dmg * elS.thorn)));
       if (!run) { return; }
     }
-    if (e.hp <= 0) { kill(e); }
+    if (e.hp <= 0) { kill(e, kind, dmg); }
   }
 
   /**
@@ -2453,11 +2576,41 @@
     }
   }
 
-  function kill(e) {
+  /** @param {string} [kind] 마지막 일격의 결 — §5.1 세계 축 처치 시너지가 본다
+   *  @param {number} [dmg] 마지막 일격의 피해량 — 시너지 부가 피해의 기준값 */
+  function kill(e, kind, dmg) {
     run.kills += 1;
     dstate().kills = (dstate().kills || 0) + 1;
     run.hitstopT = Math.max(run.hitstopT || 0, e.boss ? 0.18 : 0.11);   // 처치는 한 대 맞은 것보다 더 묵직하게
     core.emit('dungeon:kill', { e: e, floor: run.floor });
+    /* §5.1 세계 축 — 처치 트리거 3종(폭발·부패·저지, 전부 반경 80) */
+    if (run.boons && kind) {
+      var kEdmg = elemDmgOf();
+      var kHasEl = function (el) { return hasElemInHit(el, kind, kEdmg); };
+      if (run.boons.wd_fire_lit && kHasEl('fire') && kHasEl('lit')) {
+        var b1 = nearbyAlive(e, 80), i1;
+        for (i1 = 0; i1 < b1.length; i1++) { addDot(b1[i1], 'fire', Math.max(1, Math.round((dmg || 1) * 0.15)), 3); }
+      }
+      if (run.boons.wd_phys_pois && kHasEl('phys') && kHasEl('pois')) {
+        var b2 = nearbyAlive(e, 80), i2;
+        for (i2 = 0; i2 < b2.length; i2++) { addDot(b2[i2], 'pois', Math.max(1, Math.round((dmg || 1) * 0.12)), 3); }
+      }
+      if (run.boons.wd_phys_emp && kHasEl('phys') && kHasEl('emp')) {
+        var b3 = nearbyAlive(e, 80), i3;
+        for (i3 = 0; i3 < b3.length; i3++) { b3[i3].slow = Math.max(b3[i3].slow || 0, 2.5); b3[i3].slowMul = 0.55; }
+      }
+      /* 감전(물리+뇌) — 재귀 strike() 없이 즉발 피해만(연쇄가 서로를 다시
+         트리거하는 무한 루프를 피한다) */
+      if (run.boons.wd_phys_lit && kHasEl('phys') && kHasEl('lit')) {
+        var near4 = nearbyAlive(e, 80);
+        if (near4.length) {
+          var t4 = near4[0];
+          t4.hp -= Math.max(1, Math.round((dmg || 1) * 0.5));
+          fx.push({ t: 'elem', x: t4.x, y: t4.y - (t4.r || 0) - 6, v: Math.round((dmg || 1) * 0.5),
+            el: 'lit', color: elemColorOf('lit'), life: 0.6, dot: false });
+        }
+      }
+    }
     var drain = boonVal('drainPct');
     if (drain) { healBy(run.hpMax * drain / 100); }
     run.mp = Math.min(run.mpMax, run.mp + MP_ON_KILL);
@@ -2590,17 +2743,36 @@
     return (HS && id) ? HS.sigOf(id) : null;
   }
 
+  /** §5.1 인물 축 — 그림자 서명(hr_shadow_l). 평타가 맞을 때마다 확률로
+   *  부대 3~5번째(0-index 2~4) 인물의 서명 무예를 얹는다. 파일럿 무예처럼
+   *  쿨다운·MP 를 안 쓴다 — "얹힌다"는 표현 그대로 평타에 곁들이는 보너스. */
+  function tryShadowSig() {
+    var pct = boonVal('shadowSigPct');
+    if (!pct || Math.random() * 100 >= pct) { return; }
+    var HS = global.DG.heroSkillData, party = core.save.party;
+    if (!HS) { return; }
+    for (var i = 2; i <= 4 && i < party.length; i++) {
+      var sk = HS.sigOf(party[i]);
+      if (sk) { applyShapeSkill(sk, sk.v); return; }
+    }
+  }
+
   function castSigSkill() {
     if (!run || run.choice) { return false; }
     var sk = activeSigSkill();
     if (!sk) { return false; }
     var p = run.player;
     if (p.sigSkCd > 0 || p.dash) { return false; }
-    p.sigSkCd = sk.cd;
+    /* §5.1 인물 축 — 심법(쿨감 sigCdPct·위력 sigDmgPct). 위력 축복을 가졌으면
+       "부대 전원 흔들림·플래시"를 기존 'ring' 연출로 대신한다(카메라 흔들림
+       자체는 dungeon-view.js 안 로컬 변수라 여기서 못 건드린다 — 단순화). */
+    p.sigSkCd = sk.cd * (1 - boonVal('sigCdPct') / 100);
     p.atkAnim = castPoseSecOf(sk);
     p.castAnim = !MELEE_SHAPES[sk.shape];
     sfx('setsk');                          // 새 효과음 자산 없이 투장 무예 것을 빌린다
-    applyShapeSkill(sk, sk.v);
+    if (boonVal('sigDmgPct') > 0) { fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.6 }); }
+    applyShapeSkill(sk, sk.v * (1 + boonVal('sigDmgPct') / 100));
+    if (!run) { return true; }
     core.emit('dungeon:skill', 'sig:' + leadId());
     return true;
   }
@@ -2857,7 +3029,8 @@
     var p = run.player, room = run.room, j;
 
     if (sk.shape === 'swing') {
-      var radius = reachOf() * (sk.r || 2.0);
+      /* §5.1 무예 축 — 검세 확장(swingRangePct) */
+      var radius = reachOf() * (sk.r || 2.0) * (1 + boonVal('swingRangePct') / 100);
       fx.push({ t: 'whirl', x: p.x, y: p.y, r: radius, life: 0.3,
         el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
       for (j = 0; j < room.enemies.length; j++) {
@@ -2869,21 +3042,25 @@
       }
 
     } else if (sk.shape === 'nova') {
-      var nr = (sk.r || 130);
-      fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.55,
-        el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
-      for (j = 0; j < room.enemies.length; j++) {
-        var ne = room.enemies[j];
-        if (ne.hp <= 0) { continue; }
-        if (dist(p, ne) <= nr + ne.r) {
-          strike(ne, v * skillMul(), sk.kb || 0, sk.el || 'phys');
+      /* §5.1 무예 축 — 이중/삼중 파동(novaExtraRing): 링이 한두 번 더 터진다 */
+      var nr = (sk.r || 130), novaTimes = 1 + boonVal('novaExtraRing');
+      for (var nt = 0; nt < novaTimes; nt++) {
+        fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.55,
+          el: sk.el || null, color: sk.el ? elemColorOf(sk.el) : null });
+        for (j = 0; j < room.enemies.length; j++) {
+          var ne = room.enemies[j];
+          if (ne.hp <= 0) { continue; }
+          if (dist(p, ne) <= nr + ne.r) {
+            strike(ne, v * skillMul(), sk.kb || 0, sk.el || 'phys');
+          }
         }
       }
 
     } else if (sk.shape === 'bolt') {
+      /* §5.1 무예 축 — 연사(boltShotAdd): 발수가 는다 */
       var bdx = p.dirX || p.facing, bdy = p.dirY || 0;
       var bl = Math.sqrt(bdx * bdx + bdy * bdy) || 1;
-      var shots = sk.shots || 1;
+      var shots = (sk.shots || 1) + boonVal('boltShotAdd');
       for (j = 0; j < shots; j++) {
         /* 여럿이면 부챗살로 퍼진다 (연사) */
         var ang = Math.atan2(bdy / bl, bdx / bl) +
@@ -2896,35 +3073,42 @@
       }
 
     } else if (sk.shape === 'dash') {
+      /* §5.1 무예 축 — 신법 가속(dashInvulnAdd): 무적 시간이 는다 */
       var ddx = p.dirX || p.facing, ddy = p.dirY || 0;
       var dl = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
       p.dash = { t: 0.2 * (sk.far || 1), dx: ddx / dl, dy: ddy / dl, hit: {},
                  mul: v * skillMul(), el: sk.el || 'phys' };
-      p.invuln = 0.34 * (sk.far || 1);
+      p.invuln = 0.34 * (sk.far || 1) + boonVal('dashInvulnAdd');
 
     } else if (sk.shape === 'buff') {
-      addBuff(sk.eff, v, sk.sec || 6);
-      if (sk.eff === 'atkSpdPct') { p.rallyUntil = Date.now() + (sk.sec || 6) * 1000; }
+      /* §5.1 무예 축 — 기세 지속(buffDurPct) */
+      var buffSec = (sk.sec || 6) * (1 + boonVal('buffDurPct') / 100);
+      addBuff(sk.eff, v, buffSec);
+      if (sk.eff === 'atkSpdPct') { p.rallyUntil = Date.now() + buffSec * 1000; }
       fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.55 });
 
     } else if (sk.shape === 'heal') {
-      healBy(run.hpMax * v / 100);
-      fx.push({ t: 'get', x: p.x, y: p.y, text: '+' + Math.round(run.hpMax * v / 100),
+      /* §5.1 무예 축 — 치유 증폭(healBonusPct) */
+      var healAmt = run.hpMax * v / 100 * (1 + boonVal('healBonusPct') / 100);
+      healBy(healAmt);
+      fx.push({ t: 'get', x: p.x, y: p.y, text: '+' + Math.round(healAmt),
                 color: '#6ea24a', life: 0.9 });
 
     } else if (sk.shape === 'curse') {
-      var cr = sk.r || 130;
+      /* §5.1 무예 축 — 저주 지속(curseDurPct) */
+      var cr = sk.r || 130, curseSec = (sk.sec || 5) * (1 + boonVal('curseDurPct') / 100);
       for (j = 0; j < room.enemies.length; j++) {
         var ce = room.enemies[j];
         if (ce.hp <= 0 || dist(p, ce) > cr + ce.r) { continue; }
-        ce.slow = Math.max(ce.slow || 0, sk.sec || 5);
+        ce.slow = Math.max(ce.slow || 0, curseSec);
         ce.slowMul = 0.35;
-        ce.hex = { v: v, t: sk.sec || 5 };            // 받는 피해가 늘어난다
+        ce.hex = { v: v, t: curseSec };               // 받는 피해가 늘어난다
       }
       fx.push({ t: 'ring', x: p.x, y: p.y, life: 0.55 });
 
     } else if (sk.shape === 'summon') {
-      summon(Math.round(v), sk.sec || 12, sk.str || 1, !!sk.big);
+      /* §5.1 무예 축 — 분신 증원(summonCountAdd) */
+      summon(Math.round(v) + boonVal('summonCountAdd'), sk.sec || 12, sk.str || 1, !!sk.big);
 
     } else if (sk.shape === 'chain') {
       /* 연환(連環) — 가장 가까운 적을 치고, 아직 안 맞은 적 중 가장 가까운
@@ -2932,7 +3116,8 @@
        * nova(제자리서 터진다)와 달리 **적을 좇아 옮겨 다닌다** — 표적이
        * 흩어져 있을 때 값어치가 는다. 한 번 튈 때마다 12%씩 약해진다.
        * 새 fx 종류를 안 만든다 — nova 가 쓰는 'ring' 을 맞는 자리마다 찍는다. */
-      var hops = sk.hops || 3, chainR = sk.r || 260, hit = [], cur = null, bd = 1e9, ci;
+      /* §5.1 무예 축 — 연환 확장(chainHopsAdd) */
+      var hops = (sk.hops || 3) + boonVal('chainHopsAdd'), chainR = sk.r || 260, hit = [], cur = null, bd = 1e9, ci;
       for (j = 0; j < room.enemies.length; j++) {
         ci = room.enemies[j];
         if (ci.hp <= 0) { continue; }
@@ -3132,6 +3317,7 @@
       cleared: run.room.cleared, kind: run.room.kind,
       loot: { gold: Math.round(run.loot.gold), items: run.loot.items.length },
       boons: run.boons, choice: run.choice, merchantChoice: run.merchantChoice,
+      boonPicks: run.boonPicks || 0, boonMax: BOON_MAX_STACK,
       kills: run.kills, best: dstate().best || 0,
       atk: Math.round(atkOf()), reach: Math.round(reachOf()),
       /* 강공격·회피(2026-09-10) — 스킬과 같은 자리(cd/cdMax)로 내준다.
@@ -3193,7 +3379,11 @@
     pickupField: pickupField,
     active: active, enter: enter, leave: leave, update: update,
     setInput: setInput, moveTo: moveTo,
-    pickBoon: pickBoon, goRoom: goRoom,
+    pickBoon: pickBoon, rejectBoon: rejectBoon, goRoom: goRoom,
+    /** 자가진단용(§5.1) — 축복 3택을 직접 굴려 본다(층 게이팅과 무관하게) */
+    _rollBoonChoice: rollBoonChoice,
+    /** 자가진단 전용(§5.1) — 원소 배합을 강제한다(null이면 해제) */
+    _forceElemDmg: function (v) { forcedElemDmg = v; },
     buyMerchant: buyMerchant, leaveMerchant: leaveMerchant,
     /** 마을 들판 방랑 상인(PLAN §60 후보 1) — town.js/ui.js가 독자 재고
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */

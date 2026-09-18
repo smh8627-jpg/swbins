@@ -30,40 +30,139 @@
   }
 
   /**
-   * 은사(恩賜) — 회차 한정 강화.
-   *   eff  던전 안에서만 쓰이는 값 (dungeon.js 가 읽는다)
-   *   max  같은 은사를 몇 번까지 겹칠 수 있는지
-   *   world 로 시작하는 키는 core.effect() 에 그대로 합산된다 (드랍·금 같은 것)
+   * 축복(祝福) — PLAN §5.1(2026-09-18, 은사를 회차 빌드로 재해석).
+   * 옛 은사(BOONS)는 전부 스탯 %(공격력·체력·속도…)라 "뭘 골라도 같았다" —
+   * 그 자리를 세 축으로 대신한다. `axis`(skill/hero/world)·`rarity`
+   * (common/rare/legendary) 로 나뉘고, `dungeon.js` `rollBoonChoice()`가
+   * 축마다 하나씩 뽑아 세 장을 만든다(같은 축이 두 번 나올 수 없다 —
+   * 축 하나에 후보 하나씩 뽑는 구조라 자동으로 충족된다).
+   *
+   *   skill 축   걸어 둔 무예의 모양(shape)을 강화한다 — 모양별로 common
+   *              1개 + legendary 1개(수치 2배 + skillPct 보너스 합성).
+   *              "무예 4칸 중 하나"가 아니라 **그 모양을 쓰는 무예 전부**에
+   *              걸린다(어느 칸인지 세이브·UI로 추적하지 않는 단순화 —
+   *              PLAN §5.1 원문보다 후하지만 로그라이트 특성상 문제 없다).
+   *   hero  축   서명 무예(activeSigSkill)를 강화 — 쿨감/위력/그림자 서명.
+   *   world 축   원소 시너지 12조합 — 실제 판정은 dungeon.js strike()/kill()
+   *              안의 전용 분기(worldSynergy*)가 한다. eff 는 legendary
+   *              둘만 "두 효과 합성"의 둘째 효과(skillPct)로 쓰인다.
+   *
+   *   max   같은 축복을 몇 번까지 겹칠 수 있는지 — 새 축복은 전부 1(다시
+   *         안 나온다). 옛 %스탯 은사와 달리 "몇 겹" 개념이 없다.
+   *   eff   dungeon.js 가 boonVal(key)로 읽는 범용 수치(있으면 합산).
+   *         world 축의 특수 판정(화상·시너지 피해 등)은 eff가 아니라
+   *         run.boons에 키가 있는지(hasBoon)만으로 켜진다.
+   *
+   * 대가로 옛 체계가 주던 hpPct·atkPct 같은 순수 스탯 성장은 사라졌다 —
+   * 생존력 성장은 §5.2(유품)·§5.8(손맛)이 다른 축에서 맡는 쪽으로
+   * 사용자와 방향을 맞췄다(HANDOFF 2026-09-18 참고).
    */
   var BOONS = [
-    { key: 'fury',   name: '맹공(猛攻)',   emoji: '⚔️', max: 5,
-      desc: '공격력 +18%',            eff: { atkPct: 18 } },
-    { key: 'wall',   name: '철벽(鐵壁)',   emoji: '🛡️', max: 5,
-      desc: '최대 체력 +20% · 즉시 그만큼 회복', eff: { hpPct: 20, healOnPick: 20 } },
-    { key: 'haste',  name: '연격(連擊)',   emoji: '💨', max: 4,
-      desc: '공격 속도 +14%',          eff: { atkSpdPct: 14 } },
-    { key: 'dash',   name: '질주(疾走)',   emoji: '🏃', max: 3,
-      desc: '이동 속도 +16%',          eff: { moveSpdPct: 16 } },
-    { key: 'pierce', name: '관통(貫通)',   emoji: '🗡️', max: 4,
-      desc: '적 방어를 25% 무시',       eff: { piercePct: 25 } },
-    { key: 'drain',  name: '흡혈(吸血)',   emoji: '🩸', max: 4,
-      desc: '적을 잡으면 체력 3% 회복',  eff: { drainPct: 3 } },
-    { key: 'crit',   name: '일격(一擊)',   emoji: '✨', max: 5,
-      desc: '치명타 확률 +8%',          eff: { critPct: 8 } },
-    { key: 'reach',  name: '장병(長兵)',   emoji: '📏', max: 3,
-      desc: '공격 사거리 +18%',         eff: { reachPct: 18 } },
-    { key: 'greed',  name: '재물운(財)',   emoji: '🪙', max: 4,
-      desc: '던전에서 얻는 금 +30%',     eff: { goldPct: 30 } },
-    { key: 'eye',    name: '탐색안(眼)',   emoji: '🔎', max: 4,
-      desc: '좋은 물건이 나올 확률 +20%', eff: { worldFindPct: 20 } },
-    { key: 'mend',   name: '회복술(治)',   emoji: '🌿', max: 3,
-      desc: '층에 들어설 때 체력 25% 회복', eff: { healOnFloor: 25 } },
-    { key: 'ghost',  name: '분신(分身)',   emoji: '👥', max: 3,
-      desc: '공격 시 22% 확률로 한 번 더', eff: { echoPct: 22 } },
-    { key: 'ward',   name: '수호부(符)',   emoji: '🧿', max: 3,
-      desc: '받는 피해 -12%',           eff: { guardPct: 12 } },
-    { key: 'scout',  name: '척후(斥候)',   emoji: '🗺️', max: 2,
-      desc: '방을 들어서면 그 방이 바로 밝아진다', eff: { reveal: 1 } }
+    /* ── 무예 축 — 모양 아홉 × (common·legendary) ────────────── */
+    { key: 'sk_swing_c', axis: 'skill', rarity: 'common', shape: 'swing', max: 1,
+      name: '검세 확장(劍勢)', emoji: '⚔️', desc: '베기(swing) 무예의 범위 +25%',
+      eff: { swingRangePct: 25 } },
+    { key: 'sk_swing_l', axis: 'skill', rarity: 'legendary', shape: 'swing', max: 1,
+      name: '검세 극(劍勢極)', emoji: '⚔️', desc: '베기 무예의 범위 +50% · 무예 위력 +10%',
+      eff: { swingRangePct: 50, skillPct: 10 } },
+    { key: 'sk_bolt_c', axis: 'skill', rarity: 'common', shape: 'bolt', max: 1,
+      name: '연사(連射)', emoji: '🏹', desc: '기공탄(bolt) 무예가 +1발 나간다',
+      eff: { boltShotAdd: 1 } },
+    { key: 'sk_bolt_l', axis: 'skill', rarity: 'legendary', shape: 'bolt', max: 1,
+      name: '연사 극(連射極)', emoji: '🏹', desc: '기공탄 무예가 +2발 · 무예 위력 +10%',
+      eff: { boltShotAdd: 2, skillPct: 10 } },
+    { key: 'sk_nova_c', axis: 'skill', rarity: 'common', shape: 'nova', max: 1,
+      name: '이중 파동(二重波動)', emoji: '💥', desc: '터짐(nova) 무예가 한 번 더 터진다',
+      eff: { novaExtraRing: 1 } },
+    { key: 'sk_nova_l', axis: 'skill', rarity: 'legendary', shape: 'nova', max: 1,
+      name: '삼중 파동(三重波動)', emoji: '💥', desc: '터짐 무예가 두 번 더 터진다 · 무예 위력 +10%',
+      eff: { novaExtraRing: 2, skillPct: 10 } },
+    { key: 'sk_dash_c', axis: 'skill', rarity: 'common', shape: 'dash', max: 1,
+      name: '신법 가속(身法)', emoji: '🏃', desc: '돌진(dash) 무예의 무적 시간 +0.1초',
+      eff: { dashInvulnAdd: 0.1 } },
+    { key: 'sk_dash_l', axis: 'skill', rarity: 'legendary', shape: 'dash', max: 1,
+      name: '신법 극(身法極)', emoji: '🏃', desc: '돌진 무예의 무적 시간 +0.2초 · 무예 위력 +10%',
+      eff: { dashInvulnAdd: 0.2, skillPct: 10 } },
+    { key: 'sk_chain_c', axis: 'skill', rarity: 'common', shape: 'chain', max: 1,
+      name: '연환 확장(連環)', emoji: '🔗', desc: '연환(chain) 무예가 +2번 더 튄다',
+      eff: { chainHopsAdd: 2 } },
+    { key: 'sk_chain_l', axis: 'skill', rarity: 'legendary', shape: 'chain', max: 1,
+      name: '연환 극(連環極)', emoji: '🔗', desc: '연환 무예가 +4번 더 튄다 · 무예 위력 +10%',
+      eff: { chainHopsAdd: 4, skillPct: 10 } },
+    { key: 'sk_summon_c', axis: 'skill', rarity: 'common', shape: 'summon', max: 1,
+      name: '분신 증원(分身增員)', emoji: '👥', desc: '분신(summon) 무예의 소환 수 +1',
+      eff: { summonCountAdd: 1 } },
+    { key: 'sk_summon_l', axis: 'skill', rarity: 'legendary', shape: 'summon', max: 1,
+      name: '분신 극(分身極)', emoji: '👥', desc: '분신 무예의 소환 수 +2 · 무예 위력 +10%',
+      eff: { summonCountAdd: 2, skillPct: 10 } },
+    { key: 'sk_curse_c', axis: 'skill', rarity: 'common', shape: 'curse', max: 1,
+      name: '저주 지속(呪縛)', emoji: '🕸️', desc: '저주(curse) 무예의 지속시간 +40%',
+      eff: { curseDurPct: 40 } },
+    { key: 'sk_curse_l', axis: 'skill', rarity: 'legendary', shape: 'curse', max: 1,
+      name: '저주 극(呪縛極)', emoji: '🕸️', desc: '저주 무예의 지속시간 +80% · 무예 위력 +10%',
+      eff: { curseDurPct: 80, skillPct: 10 } },
+    { key: 'sk_heal_c', axis: 'skill', rarity: 'common', shape: 'heal', max: 1,
+      name: '치유 증폭(治癒)', emoji: '🌿', desc: '치유(heal) 무예의 회복량 +30%',
+      eff: { healBonusPct: 30 } },
+    { key: 'sk_heal_l', axis: 'skill', rarity: 'legendary', shape: 'heal', max: 1,
+      name: '치유 극(治癒極)', emoji: '🌿', desc: '치유 무예의 회복량 +60% · 무예 위력 +10%',
+      eff: { healBonusPct: 60, skillPct: 10 } },
+    { key: 'sk_buff_c', axis: 'skill', rarity: 'common', shape: 'buff', max: 1,
+      name: '기세 지속(氣勢)', emoji: '🔥', desc: '기세(buff) 무예의 지속시간 +50%',
+      eff: { buffDurPct: 50 } },
+    { key: 'sk_buff_l', axis: 'skill', rarity: 'legendary', shape: 'buff', max: 1,
+      name: '기세 극(氣勢極)', emoji: '🔥', desc: '기세 무예의 지속시간 +100% · 무예 위력 +10%',
+      eff: { buffDurPct: 100, skillPct: 10 } },
+
+    /* ── 인물 축 — 서명 무예 강화 ────────────────────────────── */
+    { key: 'hr_cd_c', axis: 'hero', rarity: 'common', max: 1,
+      name: '심법 단축(心法)', emoji: '👤', desc: '서명 무예 쿨다운 -25%',
+      eff: { sigCdPct: 25 } },
+    { key: 'hr_dmg_c', axis: 'hero', rarity: 'common', max: 1,
+      name: '심법 증폭(心法增幅)', emoji: '👤', desc: '서명 무예 위력 +40% · 발동 시 부대 전원 흔들림',
+      eff: { sigDmgPct: 40 } },
+    { key: 'hr_cd_r', axis: 'hero', rarity: 'rare', max: 1,
+      name: '심법 단축 상(心法上)', emoji: '👤', desc: '서명 무예 쿨다운 -32%',
+      eff: { sigCdPct: 32 } },
+    { key: 'hr_dmg_r', axis: 'hero', rarity: 'rare', max: 1,
+      name: '심법 증폭 상(心法增幅上)', emoji: '👤', desc: '서명 무예 위력 +50% · 발동 시 부대 전원 흔들림',
+      eff: { sigDmgPct: 50 } },
+    { key: 'hr_combo_l', axis: 'hero', rarity: 'legendary', max: 1,
+      name: '심법 대성(心法大成)', emoji: '👤', desc: '서명 무예 쿨다운 -15% · 위력 +25% (합성)',
+      eff: { sigCdPct: 15, sigDmgPct: 25 } },
+    { key: 'hr_shadow_l', axis: 'hero', rarity: 'legendary', max: 1,
+      name: '그림자 서명(影銘)', emoji: '🌑', desc: '부대 3~5번째 인물의 서명 무예가 20% 확률로 평타에 얹힌다',
+      eff: { shadowSigPct: 20 } },
+
+    /* ── 세계 축 — 원소 시너지 12조합. 실제 판정은 dungeon.js
+       worldSynergyStrike()/worldSynergyOnKill() — eff 는 legendary 둘의
+       "두 효과 합성" 둘째 효과(skillPct)에만 쓰인다. */
+    { key: 'wd_fire_lit', axis: 'world', rarity: 'common', max: 1, pair: ['fire', 'lit'],
+      name: '폭발(爆發)', emoji: '💥', desc: '화+뇌 — 처치 시 반경 80 안 적에게 화상을 건다', eff: {} },
+    { key: 'wd_cold_chi', axis: 'world', rarity: 'common', max: 1, pair: ['cold', 'chi'],
+      name: '결빙(結氷)', emoji: '❄️', desc: '빙+기 — 슬로우된 적에게 주는 피해 +30%', eff: {} },
+    { key: 'wd_phys_fire', axis: 'world', rarity: 'common', max: 1, pair: ['phys', 'fire'],
+      name: '작열(灼熱)', emoji: '🔥', desc: '물리+화 — 콤보 6 이상에서 물리 타격에 화상이 붙는다', eff: {} },
+    { key: 'wd_phys_cold', axis: 'world', rarity: 'common', max: 1, pair: ['phys', 'cold'],
+      name: '빙인(氷刃)', emoji: '🗡️', desc: '물리+빙 — 치명타가 대상을 얼려 슬로우를 건다', eff: {} },
+    { key: 'wd_phys_chi', axis: 'world', rarity: 'common', max: 1, pair: ['phys', 'chi'],
+      name: '경혈(經穴)', emoji: '🌀', desc: '물리+기 — 3연속 타격마다 기력을 되찾는다', eff: {} },
+    { key: 'wd_phys_pois', axis: 'world', rarity: 'common', max: 1, pair: ['phys', 'pois'],
+      name: '부패(腐敗)', emoji: '☠️', desc: '물리+독 — 처치 시 반경 80 안 적에게 독을 퍼뜨린다', eff: {} },
+    { key: 'wd_pois_emp', axis: 'world', rarity: 'rare', max: 1, pair: ['pois', 'emp'],
+      name: '부식(腐蝕)', emoji: '🧪', desc: '독+전자 — 적의 저항 -20', eff: {} },
+    { key: 'wd_phys_lit', axis: 'world', rarity: 'rare', max: 1, pair: ['phys', 'lit'],
+      name: '감전(感電)', emoji: '⚡', desc: '물리+뇌 — 처치 시 가까운 적 하나에게 번개가 옮는다', eff: {} },
+    { key: 'wd_phys_emp', axis: 'world', rarity: 'rare', max: 1, pair: ['phys', 'emp'],
+      name: '저지(沮止)', emoji: '🧲', desc: '물리+전자 — 처치 시 반경 80 안 적을 슬로우 건다', eff: {} },
+    { key: 'wd_fire_cold', axis: 'world', rarity: 'rare', max: 1, pair: ['fire', 'cold'],
+      name: '빙염(氷炎)', emoji: '🌡️', desc: '화+빙 — 화상과 슬로우가 겹친 적에게 피해 +15%', eff: {} },
+    { key: 'wd_fire_chi', axis: 'world', rarity: 'legendary', max: 1, pair: ['fire', 'chi'],
+      name: '폭기(爆氣)', emoji: '💫', desc: '화+기 — 치명타가 반경 80 안 적에게 화상을 퍼뜨린다 · 무예 위력 +8%',
+      eff: { skillPct: 8 } },
+    { key: 'wd_cold_lit', axis: 'world', rarity: 'legendary', max: 1, pair: ['cold', 'lit'],
+      name: '뇌빙(雷氷)', emoji: '🌩️', desc: '빙+뇌 — 슬로우된 적을 치면 반드시 치명타 · 무예 위력 +8%',
+      eff: { skillPct: 8 } }
   ];
 
   function boonByKey(k) {

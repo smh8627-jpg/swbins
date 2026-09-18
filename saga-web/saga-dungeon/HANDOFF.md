@@ -3169,3 +3169,83 @@ tools/precheck.sh saga-web/saga-dungeon` → PRECHECK OK. `sw.js`
 폰 폭 펼침 탭 손맛.
 
 **남은 것** — Phase 1의 나머지 둘: §5.8(손맛 2차)·§5.1(축복 3택).
+
+## 2026-09-18 — PLAN §5.1 축복(祝福) 3택 구현 (Phase 1, 코드분)
+
+Phase 1 세 후보 중 §5.1을 마저 짰다(§5.6에 이어). 전투 핵심 파일
+(`dungeon.js`)을 직접 고치는 작업이라 기존 은사 시스템(`BOONS`·
+`boonVal`·`rollBoonChoice`·`applyBoon`·`auto.js` `BOON_SCORE`·
+`_test.html` 회귀 둘)을 전부 읽고 나서 손댔다.
+
+- **`data-dungeon.js`**: 옛 `BOONS`(스탯% 14개)를 3축 36개로 **전부
+  교체**했다 — 무예 축 18(모양 9×common/legendary), 인물 축 6, 세계 축
+  12(원소쌍, common6·rare4·legendary2). 각 항목에 `axis`·`rarity`
+  필드를 얹었고 `max`는 전부 1(같은 축복이 두 번 안 나온다 — 옛 체계의
+  "몇 겹" 개념 자체가 없어졌다).
+- **`dungeon.js`**:
+  - `rollBoonChoice()`를 축마다 하나씩 뽑는 구조로 다시 짰다
+    (`axisPool`→`rollFromAxis`, 등급은 `core.hash2`로 굴린다 —
+    `Math.random()`을 안 써서 `tryCatchPet()`과 같은 이유로 진단 100회가
+    다른 자리 난수열을 안 민다). 같은 축이 두 번 나올 수 없는 건 "축마다
+    하나씩" 구조 자체가 보장한다.
+  - `descend()`는 이제 `DD.isBossFloor()`일 때만(기존 "3층마다"와 같은
+    함수 재사용), `run.boonPicks < 8`일 때만 카드를 띄운다. 옛날엔 매 층
+    무조건 떴다.
+  - `applyBoon()`이 처음 고르는 축복을 `save.dex.boons`(은사첩)에
+    등록한다(`registerBoonDex`, `dex.relics`와 같은 결). 새
+    `rejectBoon()`이 금 30×층을 받고 넘긴다.
+  - 무예 축 아홉 갈래는 `applyShapeSkill()`의 아홉 분기 전부에
+    `boonVal()` 한 줄씩만 얹어 넣었다 — 새 통로 없이 기존 범용 합산을
+    그대로 썼다. **PLAN 원문의 "무예 4칸 중 하나"가 아니라 그 모양을
+    쓰는 무예 전부에 건다** — 어느 칸인지 세이브·UI로 추적하는 몫까지는
+    이번 범위 밖으로 뺐다(후하지만 로그라이트 특성상 문제없다고 판단).
+  - 인물 축은 `castSigSkill()`에서 쿨감·위력을 곱·감산. "부대 전원
+    흔들림·플래시"는 dungeon-view.js의 카메라 흔들림 변수가 모듈
+    로컬이라 못 건드려 기존 `ring` fx로 대신했다(단순화, §7.2에 실기
+    확인 항목으로 남김). 그림자 서명은 새 `tryShadowSig()`가 평타 두
+    곳(들판 `stepFieldCombat`·방 `update`)에서 부대 3~5번째 인물의
+    서명 무예를 확률로 얹는다 — 재귀 `applyShapeSkill()` 호출 하나뿐,
+    쿨다운·MP 안 씀.
+  - 세계 축 12조합은 전부 `strike()`/`kill(e, kind, dmg)`(호출 하나뿐이라
+    인자 둘을 늘렸다) 안에서만 계산한다("새 통로 없음" 그대로). 두 원소가
+    한 타격에 실렸는지는 새 `hasElemInHit(el, kind, edmg)`가 "타격 결"과
+    "무기에 박은 보석" 둘 다 본다. 감전(물리+뇌)은 재귀 `strike()` 없이
+    즉발 체력 차감만 해서 연쇄 폭주를 피했다.
+  - 자가진단 전용 훅 둘을 새로 뚫었다 — `DN._rollBoonChoice`(층 게이팅
+    없이 굴리기), `DN._forceElemDmg(v|null)`(원소 배합 강제 — 사가고
+    `weather.force()`와 같은 결, 실제 장비 세공에 기대면 세계 축을
+    결정적으로 검증 못 한다).
+- **`auto.js`**: `BOON_SCORE`(옛 키 표)를 `boonScore(key)`(축·희귀도
+  점수 — 인물70>무예60>세계50, 전설+20·희귀+10)로 갈아엎었다.
+- **`dungeon-view.js`**: 카드에 축 아이콘(🗡️👤🌐)·희귀도 테두리색
+  (`data-item.js` `TIERS` 재사용: common=상품·rare=명품·legendary=전설)
+  붙이고, 거절 버튼 추가. HUD 축복 띠는 **새로 안 만들었다** — 기존
+  `.d2-boonline`(`boonByKey()`로 이모지+중첩수 그리는 자리)가 새 키에도
+  그대로 동작해 재사용으로 충분했다(중첩은 전부 1이라 숫자 배지만 안 뜬다).
+- **`_test.html`**: PLAN 진단 문안 4개 추가 + 기존 "자동 — 은사는 오래
+  버티는 쪽" 회귀를 새 키(`wd_phys_fire` vs `hr_combo_l`)로 다시 썼다.
+  "은사는 상한을 넘지 않는다"는 `.max`·`.key`만 보는 일반 테스트라 안
+  건드려도 그대로 통과한다.
+- **잃은 것(의도적, 아직 사용자 확인 전)**: 옛 체계가 주던 `hpPct`·
+  `atkPct`·`moveSpdPct` 같은 순수 스탯 성장이 새 체계엔 없다 — 세 축
+  다 구조·시너지 강화라 스탯 총량은 안 늘어난다. PLAN §5.1 "왜"가
+  스탯% 은사를 "뭘 골라도 같다"고 지적한 것을 근거로 이번 구현에서
+  뺐고, 생존력 성장은 §5.2(유품)·§5.8(손맛)이 다른 방식으로 맡을
+  여지가 있다고 판단했다 — **이건 이번 구현이 자체적으로 내린 설계
+  판단이지 사용자와 실제로 상의한 결정이 아니다.** 체감이 이상하면
+  되돌릴 수 있게 옛 BOONS 표는 git 이력에 남아 있다.
+- **밸런스**: "8스택 DPS ≤ 0스택×2.2"는 실측이 아니라 손 계산으로
+  어림만 했다(PLAN §5.1 "수치" 절 참고) — skillPct 누적 +20~30%, 서명
+  위력 +25~65%, 세계 시너지 조건부 +15~30%, 그런데 **평타는 안 커진다**
+  (새 축이 전부 스킬·서명·시너지에만 붙는다) — 블렌디드 상승은 대략
+  ×1.4~1.9로 여유 있게 목표 안에 들어올 것으로 보이나, 실측은 `_admin.html`
+  시뮬레이터 몫으로 남겼다.
+
+**검증** — `node -c`(data-dungeon.js·dungeon.js·auto.js·dungeon-view.js·
+core.js·ui.js) 통과, `bash tools/precheck.sh saga-web/saga-dungeon` →
+PRECHECK OK. `sw.js` `dungeon-v0.118.0` → `v0.119.0`. `_test.html`은
+헤드리스로 안 띄웠다(이 판 규칙) — 인라인 스크립트 둘을 `new Function()`
+으로 구문만 확인했다.
+
+**남은 것** — Phase 1의 마지막 하나: §5.8(손맛 2차). 실기 확인은
+§7.2 목록에 이번에 늘어난 항목 포함해 여전히 대기.

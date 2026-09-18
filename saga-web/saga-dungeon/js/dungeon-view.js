@@ -342,6 +342,8 @@
     choiceEl.addEventListener('click', function (e) {
       var b = e.target.closest('[data-boon]');
       if (b) { d().pickBoon(b.getAttribute('data-boon')); renderChoice(); return; }
+      var rj = e.target.closest('[data-reject-boon]');
+      if (rj) { d().rejectBoon(); renderChoice(); return; }
       var m = e.target.closest('[data-buy]');
       if (m) { d().buyMerchant(Number(m.getAttribute('data-buy'))); renderChoice(); return; }
       var lv = e.target.closest('[data-leave-merchant]');
@@ -849,19 +851,26 @@
     if (!c && !mc) { choiceEl.classList.remove('show'); choiceEl.innerHTML = ''; return; }
     var html;
     if (c) {
-      html = '<div class="dg-choice-in"><h4>은사(恩賜)를 하나 받는다</h4><div class="dg-cards">';
+      /* §5.1 — 축 아이콘(무예🗡·인물👤·세계🌐)과 희귀도 테두리색(TIERS 재사용:
+         common=상품, rare=명품, legendary=전설). */
+      var AXIS_ICON = { skill: '🗡️', hero: '👤', world: '🌐' };
+      var RARITY_TIER = { common: 0, rare: 2, legendary: 4 };
+      var IT2 = global.DG.itemData;
+      html = '<div class="dg-choice-in"><h4>축복(祝福)을 하나 고른다</h4><div class="dg-cards">';
       for (var i = 0; i < c.length; i++) {
         var b = global.DG.dungeonData.boonByKey(c[i]);
         if (!b) { continue; }
-        var have = st.boons[b.key] || 0;
-        html += '<button class="dg-card" data-boon="' + b.key + '">' +
-          '<span class="dg-ce">' + b.emoji + '</span>' +
-          '<b>' + b.name + '</b>' +
+        var tierColor = (IT2 && IT2.TIERS[RARITY_TIER[b.rarity]]) ? IT2.TIERS[RARITY_TIER[b.rarity]].color : '#d0c8b8';
+        html += '<button class="dg-card" data-boon="' + b.key + '" style="border-color:' + tierColor + '">' +
+          '<span class="dg-ce">' + (AXIS_ICON[b.axis] || '') + b.emoji + '</span>' +
+          '<b style="color:' + tierColor + '">' + b.name + '</b>' +
           '<small>' + b.desc + '</small>' +
-          (have ? '<i class="dg-have">보유 ' + have + '</i>' : '') +
           '</button>';
       }
-      html += '</div><small class="muted">은사는 이 회차에만 남습니다 — 죽거나 나가면 사라집니다</small></div>';
+      html += '</div><button class="dg-card" data-reject-boon style="margin-top:10px">거절한다 (금 -' +
+        core.fmt(30 * st.floor) + ')</button>' +
+        '<small class="muted">축복은 이 회차에만 남습니다 — 죽거나 나가면 사라집니다 (' +
+        (st.boonPicks || 0) + '/' + (st.boonMax || 8) + ')</small></div>';
     } else {
       /* 행상(POI: Merchant) — 은사와 같은 석판 틀을 쓰되 물건·값을 보여 준다 */
       var IT = global.DG.item;

@@ -302,6 +302,64 @@ window.requestAnimationFrame = function () { return 0; };
         (b.name + ' 상한 ' + b.max);
     });
 
+    t('축복 — 세 카드가 서로 다른 축이다(100회) (§5.1)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw(), bad = 0, i;
+      for (i = 0; i < 100; i++) {
+        raw.boonPicks = 0;                    // 상한(8)에 안 걸리게 매번 리셋
+        raw.floor = 1 + i;
+        var c = DN._rollBoonChoice();
+        var axes = c.map(function (k) { return DG.dungeonData.boonByKey(k).axis; });
+        var uniq = axes.filter(function (a, idx) { return axes.indexOf(a) === idx; });
+        if (uniq.length !== axes.length) { bad++; }
+      }
+      DN.leave();
+      return bad === 0 && ('100회 중 축 중복 ' + bad + '건');
+    });
+
+    t('축복 — 거절하면 금이 층×30만큼 든다 (§5.1)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.floor = 5;
+      raw.choice = DN._rollBoonChoice();
+      var g0 = C.save.player.gold;
+      var ok = raw.choice.length > 0 && DN.rejectBoon();
+      var spent = g0 - C.save.player.gold;
+      DN.leave();
+      return ok && spent === 150 && !raw.choice && ('금 -' + spent);
+    });
+
+    t('축복 — 화+뇌 시너지가 처치 시 반경 80 화상을 건다 (§5.1)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.room.enemies.length = 0;
+      var e1 = DN._spawnEnemy(1, false, { spawned: true, x: 300, y: 180 });
+      var e2 = DN._spawnEnemy(1, false, { spawned: true, x: 330, y: 180 });   // 반경 80 안
+      raw.room.enemies.push(e1, e2);
+      raw.boons.wd_fire_lit = 1;
+      DN._forceElemDmg({ fire: 5 });          // 뇌(kind)+화(보석) 둘 다 갖춘 타격
+      e1.hp = 1;
+      DN._strike(e1, 999, 0, 'lit');
+      DN._forceElemDmg(null);
+      var burned = !!(e2.dots && e2.dots.some(function (d) { return d.el === 'fire'; }));
+      DN.leave();
+      return e1.hp <= 0 && burned && '처치 반경 80 화상 확인';
+    });
+
+    t('축복 — 처음 본 축복은 은사첩에 남고 회차가 끝나도 지워지지 않는다 (§5.1)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      var key = DG.dungeonData.BOONS[0].key;
+      delete C.save.dex.boons[key];
+      raw.choice = [key];
+      DN.pickBoon(key);
+      var registered = C.save.dex.boons[key] === true;
+      DN.leave();                             // 회차가 끝나도
+      var survives = C.save.dex.boons[key] === true;   // 은사첩은 안 지워진다
+      delete C.save.dex.boons[key];
+      return registered && survives && '은사첩 등록 유지';
+    });
+
     t('탈출하면 노획물이 확정된다', function () {
       var raw = DN.raw();
       raw.loot.gold = 400;
@@ -2522,14 +2580,15 @@ window.requestAnimationFrame = function () { return 0; };
       return went && ('제' + st.floor + '층으로 진입');
     });
 
-    t('자동 — 은사는 오래 버티는 쪽을 고른다', function () {
+    t('자동 — 축복은 축·희귀도가 높은 쪽을 고른다 (2026-09-18, §5.1)', function () {
       DN.enter({ floor: 1 });
       var raw = DN.raw();
-      raw.choice = ['greed', 'wall'];      // 재물운 vs 철벽 → 철벽을 골라야 한다
+      /* wd_phys_fire(세계·common) vs hr_combo_l(인물·legendary) → 후자가 이겨야 한다 */
+      raw.choice = ['wd_phys_fire', 'hr_combo_l'];
       AU._tickDungeon(0.1);
-      var picked = raw.boons.wall === 1 && !raw.choice;
+      var picked = raw.boons.hr_combo_l === 1 && !raw.choice;
       DN.leave();
-      return picked && '철벽 선택';
+      return picked && '심법 대성(전설) 선택';
     });
 
     t('채집·낚시방(POI: Forage) — 약초는 항아리처럼 스치면 뜬다', function () {
