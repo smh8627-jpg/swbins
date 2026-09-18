@@ -232,6 +232,9 @@
           toast('🎁 ' + (gv.name ? gv.name + ' — ' : '') + gv.text);
           if (gv.kind === 'gift' && global.DG.sfx) { global.DG.sfx.play(gv.loved ? 'gift_love' : 'gift_ok'); }
         }
+      } else if (act === 'v-follow') {
+        var fw = global.DG.village.requestFollow(b.getAttribute('data-who'));
+        if (fw) { toast(fw.text); }
       } else if (act === 'v-wbuy') {
         var wb = global.DG.wear.buy(b.getAttribute('data-kind'), id);
         if (wb) { toast(wb.text); }
@@ -803,7 +806,13 @@
       html += '<div class="hint">🎁 지금 <b>' + esc(folk.ref.name) + '</b> 곁입니다 — ' +
         (gifted ? '오늘은 이미 건넸습니다.'
                 : '아래에서 하나를 골라 건넬 수 있습니다 (하루 한 번). ' +
-                  '<b>좋아하는 갈래</b>를 주면 정이 훨씬 늡니다.') + '</div>';
+                  '<b>좋아하는 갈래</b>를 주면 정이 훨씬 늡니다.') +
+        /* §5.4 7♥ 해제 "동행" — 이미 다른 이와 걷고 있으면(folk.followStatus())
+           안 보인다, 그쪽이 눌러서 알 일이다 */
+        (V.canFollow(folk.id) && !global.DG.folk.followStatus()
+          ? ' <button class="btn tiny" data-act="v-follow" data-who="' + folk.id +
+              '">🚶 함께 걷기 (' + global.DG.folk.FOLLOW_SEC + '초)</button>'
+          : '') + '</div>';
     }
     for (i = 0; i < list.length; i++) {
       var e = list[i];
@@ -1061,6 +1070,8 @@
       var lv = global.DG.mail.leavingOf(res.id);
       var ty2 = global.DG.folk.typeOf(res.id);
       var heart = V.heartOf(res.id), nextU = V.heartNext(res.id);
+      var fs = global.DG.folk.followStatus();
+      var following = fs && fs.id === res.id;
       html += '<button class="card partyrow" data-act="detail" data-kind="hero" data-id="' + res.id + '">' +
         '<span class="pr-ico">' + pt('hero', res.ref, 44) + '</span>' +
         '<span class="pr-meta"><b>' + esc(res.ref.name) + ' <small class="muted">' +
@@ -1070,7 +1081,8 @@
           ' · 💗 ' + heart + '/10' + (nextU ? ' (다음 ' + nextU.at + '♥ — ' + esc(nextU.name) + ')' : ' (다 열었다)') +
           ' · 친밀도 ' + V.friendOf(res.id) +
           ' · 🎁 ' + esc(CAT_NAME[V.giftLike(res.id)] || V.giftLike(res.id)) + ' 를 반긴다' +
-          (lv ? ' · 💭 떠날 뜻 (' + lv.left + '일)' : '') + '</small></span>' +
+          (lv ? ' · 💭 떠날 뜻 (' + lv.left + '일)' : '') +
+          (following ? ' · 🚶 함께 걷는 중 (' + Math.ceil(fs.left) + '초)' : '') + '</small></span>' +
         '</button>';
     }
     html += '</div>';

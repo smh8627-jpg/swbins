@@ -25,8 +25,13 @@
   var CHAT_CHANCE = 0.45;
   var LINE_MS = 2400;          // 한 마디가 떠 있는 시간
   var EARSHOT = 230;           // 이 안에 있으면 들린다
+  /* 동행(PLAN §5.4 하트 7♥ 해제) — 30초간 어슬렁을 접고 나를 따라 걷는다.
+     `home` 자리는 안 건드린다 — 풀리면 다음 어슬렁 걸음이 그 자리 둘레로
+     저절로 되돌아간다(따라온 자리에 얼어붙지 않는다). */
+  var FOLLOW_SEC = 30, FOLLOW_DIST = 40;
 
   var chat = null;             // { a, b, lines, i, t, heard }
+  var follow = null;           // { id, t } — t 는 남은 초
   var look = 0;
   var seeded = false;
 
@@ -190,10 +195,36 @@
       }
     }
 
-    /* 2. 어슬렁 — 제 자리 둘레를 조금씩 돈다 */
+    /* 1.5 동행 — 30초 셈. 따라오던 사람이 마을을 떠났으면 그 자리에서 끝난다 */
+    if (follow) {
+      var stillHere = false;
+      for (i = 0; i < res.length; i++) { if (res[i].id === follow.id) { stillHere = true; break; } }
+      if (!stillHere) { follow = null; }
+      else {
+        follow.t -= dt;
+        if (follow.t <= 0) { follow = null; }
+      }
+    }
+
+    /* 2. 어슬렁 — 제 자리 둘레를 조금씩 돈다(동행 중인 사람은 따라 걷는다) */
     for (i = 0; i < res.length; i++) {
       var r = res[i];
       if (!r.home) { r.home = { x: r.x, y: r.y }; }
+
+      if (follow && r.id === follow.id) {
+        r.aim = null;                                 // 어슬렁 목표는 접어 둔다(풀리면 새로 잡는다)
+        var pdx = raw.player.x - r.x, pdy = raw.player.y - r.y;
+        var pd = Math.hypot(pdx, pdy);
+        if (pd > FOLLOW_DIST) {
+          var fstep = Math.min(SPEED * dt, pd - FOLLOW_DIST);
+          var fnx = r.x + (pdx / pd) * fstep, fny = r.y + (pdy / pd) * fstep;
+          if (V().walkable(fnx, fny)) {
+            r.x = fnx; r.y = fny;
+            if (Math.abs(pdx) > 1) { r.facing = pdx > 0 ? 1 : -1; }
+          }
+        }
+        continue;
+      }
       if (inChat(r.id)) { continue; }               // 말하는 중에는 서 있는다
 
       if (r.pause === undefined) { r.pause = rnd() * PAUSE_VAR; }
@@ -248,13 +279,26 @@
       : null;
   }
 
+  /** 동행 시작 — 이미 누구랑 걷고 있으면(같은 사람이든 아니든) 거절한다.
+   *  하트 문턱(7♥) 판정은 여기서 안 본다 — `village.js` 가 부르기 전에 잰다
+   *  (진짜 "따라 걷는 것"만 이 파일 몫, 자격 판정은 하트를 쥔 쪽 몫). */
+  function startFollow(id) {
+    if (follow) { return false; }
+    follow = { id: id, t: FOLLOW_SEC };
+    return true;
+  }
+  function stopFollow() { follow = null; }
+  function followStatus() { return follow ? { id: follow.id, left: follow.t } : null; }
+
   global.DG = global.DG || {};
   global.DG.folk = {
     WANDER: WANDER, CHAT_DIST: CHAT_DIST, EARSHOT: EARSHOT, LINE_MS: LINE_MS,
+    FOLLOW_SEC: FOLLOW_SEC, FOLLOW_DIST: FOLLOW_DIST,
     update: update, lineOf: lineOf, inChat: inChat, current: current, status: status,
     typeOf: typeOf, say: say,
+    startFollow: startFollow, stopFollow: stopFollow, followStatus: followStatus,
     /** 자가진단용 — 두 사람을 바로 말 붙이게 한다 */
     _start: start, _end: endChat,
-    _reset: function () { chat = null; look = 0; reseed(); }
+    _reset: function () { chat = null; follow = null; look = 0; reseed(); }
   };
 })(window);

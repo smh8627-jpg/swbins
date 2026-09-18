@@ -1939,6 +1939,32 @@
     return null;
   }
 
+  /** 하트로 푸는 해제 하나의 문턱 — `HEART_UNLOCKS`(§5.4)를 이름으로 찾는다.
+   *  표 순서·값이 바뀌어도 자리(인덱스)에 안 얽매이게. 없는 이름이면 못
+   *  풀리는 것으로(Infinity) 본다. */
+  function heartUnlockAt(name) {
+    var U = VD.HEART_UNLOCKS;
+    for (var i = 0; i < U.length; i++) { if (U[i].name === name) { return U[i].at; } }
+    return Infinity;
+  }
+
+  /** 동행(PLAN §5.4, 7♥ 해제) — 자격 판정은 여기(하트를 쥔 쪽)가 하고,
+   *  실제 "따라 걷기"는 `folk.js` 몫이다. */
+  function canFollow(id) { return heartOf(id) >= heartUnlockAt('동행'); }
+
+  function requestFollow(id) {
+    if (!canFollow(id)) { return { kind: 'no', text: '아직 그 정도로 정이 깊지 않습니다' }; }
+    var F = global.DG.folk;
+    if (!F || !F.startFollow(id)) {
+      return { kind: 'no', text: '이미 다른 이와 함께 걷고 있습니다' };
+    }
+    var h = global.DG.data ? global.DG.data.find(id) : null;
+    core.log('🚶 ' + (h ? h.name : id) + ' 이(가) 잠시 함께 걷습니다', 'good');
+    core.emit('changed');
+    return { kind: 'follow', text: '🚶 ' + (h ? h.name : id) + ' 와(과) 함께 걷습니다 (' +
+      F.FOLLOW_SEC + '초)' };
+  }
+
   /** 부탁 하나를 만든다 — 오늘 안에 가져오면 금과 친밀도 */
   /**
    * 부탁 하나를 만든다.
@@ -2208,6 +2234,7 @@
     focus: focus, interact: interact, spent: spent,
     talk: talk, requestOf: requestOf, friendOf: friendOf, talkNpc: talkNpc,
     heartOf: heartOf, bumpHeart: bumpHeart, heartNext: heartNext,
+    heartUnlockAt: heartUnlockAt, canFollow: canFollow, requestFollow: requestFollow,
     bagList: bagList, bagCount: bagCount, bagCatCount: bagCatCount, bagAdd: bagAdd,
     sell: sell, sellAll: sellAll, questProgress: questProgress,
     caughtCount: caughtCount, shake: shake, speedMul: speedMul,

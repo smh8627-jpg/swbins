@@ -20,7 +20,11 @@
   var core = global.DG.core;
 
   var STAY_MIN = core.tuned('move.stayMin', 8);        // 이만큼 머문 뒤부터 떠날 뜻을 비친다
-  var FRIEND_KEEP = core.tuned('move.friendKeep', 3); // 친밀도가 이만큼이면 떠나지 않는다
+  var FRIEND_KEEP = core.tuned('move.friendKeep', 3); // 친밀도가 이만큼이면 떠나지 않는다(안부 편지에서만 쓴다)
+  /* §10-Q6(2026-09-18) 결정 — 떠날 뜻 "후보" 를 고르는 기준만 `friend`
+     대신 `heart` 로 바꾼다(§5.4 진단 "하트 2 이하만 이사 후보"). 확률
+     자체(LEAVE_CHANCE·마을 평가 배율)는 그대로 — 후보에 드느냐만 바뀐다. */
+  var HEART_LEAVE_KEEP = core.tuned('move.heartLeaveKeep', 2);
   var LEAVE_CHANCE = core.tuned('move.chance', 0.12); // 하루 판정
   var NOTICE_DAYS = core.tuned('move.noticeDays', 3); // 비친 뒤 이만큼 지나면 떠난다
   var MAIL_MAX = 40;
@@ -282,8 +286,8 @@
       var rid = s.residents[i];
       if (s.leaving[rid] !== undefined) { continue; }
       var stay = s.day - (s.moveIn[rid] === undefined ? s.day : s.moveIn[rid]);
-      var fr = s.friend[rid] || 0;
-      if (stay < STAY_MIN || fr >= FRIEND_KEEP) { continue; }
+      var vh = global.DG.village ? global.DG.village.heartOf(rid) : 0;
+      if (stay < STAY_MIN || vh > HEART_LEAVE_KEEP) { continue; }
       /* 마을이 정갈할수록 잘 떠나지 않는다 — 잡초를 뽑고 꽃을 심은 값이다 */
       var bt = global.DG.town ? global.DG.town.beauty() : null;
       var chance = LEAVE_CHANCE * (bt ? Math.max(0.3, 1 - bt.level * 0.18) : 1);
@@ -452,7 +456,7 @@
 
   global.DG = global.DG || {};
   global.DG.mail = {
-    STAY_MIN: STAY_MIN, NOTICE_DAYS: NOTICE_DAYS, FRIEND_KEEP: FRIEND_KEEP,
+    STAY_MIN: STAY_MIN, NOTICE_DAYS: NOTICE_DAYS, FRIEND_KEEP: FRIEND_KEEP, HEART_LEAVE_KEEP: HEART_LEAVE_KEEP,
     list: list, unread: unread, find: find, open: open, take: take, reply: reply,
     write: write, wroteToday: wroteToday,
     leavingOf: leavingOf, keep: keep, onNewDay: onNewDay, status: status,
