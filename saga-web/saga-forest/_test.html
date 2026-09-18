@@ -3306,6 +3306,44 @@ window.DG_NO_TUNE = true;
         ('하트 6 → 거절 · 하트 7 → 동행 시작(' + reqYes.text + ')');
     });
 
+    t('고유 대화(PLAN §5.4 5♥ 해제) — 주민은 하트 5부터 열전(BIOS) 한 줄을 돌려준다', function () {
+      var s = V.state(), res = V.raw().residents, r = res[0];
+      var savedHeart = JSON.parse(JSON.stringify(s.hearts[r.id] || {}));
+      var savedReq = s.requests[r.id];
+      s.requests[r.id] = { want: 'fruit', n: 1, done: true };
+      s.hearts[r.id] = { h: 4, lastTalk: s.day, gainDay: 0, gained: 0 };
+      var t4 = V.talk(r).text;
+      s.hearts[r.id] = { h: 5, lastTalk: s.day, gainDay: 0, gained: 0 };
+      var t5 = V.talk(r).text;
+      var bio = DG.data.bio(r.id);
+      s.hearts[r.id] = savedHeart;
+      s.requests[r.id] = savedReq;
+      return (!bio || t4.indexOf(bio) < 0) && (!bio || t5.indexOf(bio) >= 0) &&
+        ('하트4: 평소 인사 · 하트5: ' + (bio ? '열전 한 줄 포함' : 'BIOS 없는 인물이라 스킵'));
+    });
+
+    t('고유 대화(PLAN §5.4 5♥ 해제) — NPC 도 하트 5부터 대사 셋 중 하나로 갈리고, 대화하면 하트가 오른다', function () {
+      var s = V.state(), npc = V.raw().npcs.filter(function (n) { return n.kind === 'angler'; })[0];
+      var savedHeart = JSON.parse(JSON.stringify(s.hearts[npc.id] || {}));
+      if (!s.quests) { s.quests = {}; }
+      var savedQuests = JSON.parse(JSON.stringify(s.quests));
+      s.quests[npc.kind] = true;   // 부탁을 이미 끝낸 것으로 — 인사말 갈림만 본다
+      s.hearts[npc.id] = { h: 4, lastTalk: s.day, gainDay: 0, gained: 0 };
+      var low = V.talkNpc(npc).text;
+      s.hearts[npc.id] = { h: 5, lastTalk: s.day, gainDay: 0, gained: 0 };
+      var high = V.talkNpc(npc).text;
+      var uniq = DG.villageData.NPCS.angler.uniq;
+      s.hearts[npc.id] = { h: 0, lastTalk: -1, gainDay: 0, gained: 0 };
+      var beforeH = V.heartOf(npc.id);
+      V.talkNpc(npc);
+      var afterH = V.heartOf(npc.id);
+      s.hearts[npc.id] = savedHeart;
+      s.quests = savedQuests;
+      return low === DG.villageData.NPCS.angler.line && uniq.indexOf(high) >= 0 &&
+        beforeH === 0 && afterH === 1 &&
+        ('하트4: 평소 인사 · 하트5: 고유 대사 셋 중 하나 · 대화 1회 → 하트 +1');
+    });
+
     /* ── PLAN 40절 PHASE 4 첫 칸: 짐승 ─────────────────────── */
 
     t('짐승 — buildAnimals() 는 좌표 해시로 정해지므로 재현된다', function () {

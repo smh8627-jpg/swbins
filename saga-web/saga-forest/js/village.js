@@ -1069,6 +1069,16 @@
    *  하나(VD.QUESTS)로 정해 둔 부탁이 하나씩 있다 — 아직 안 끝났으면 그
    *  부탁을, 끝났으면 원래 인사말을 돌려준다. 만나 본 적을 남겨야
    *  explorer(탐험가)의 "다 만나 봤나" 부탁을 셀 수 있다. */
+  /** NPC 인사말 — 하트 5 해제 "고유 대화"(§5.4 HEART_UNLOCKS)면 `def.uniq`
+   *  셋 중 하루 단위로 고정된 하나를, 아니면 평소 `def.line`을 돌려준다. */
+  function npcLine(npc, def) {
+    if (def.uniq && def.uniq.length && heartOf(npc.id) >= heartUnlockAt('고유 대화')) {
+      var i = Math.floor(core.hash2(idNum(npc.id), st().day) * def.uniq.length) % def.uniq.length;
+      return def.uniq[i];
+    }
+    return def.line;
+  }
+
   function talkNpc(npc) {
     var def = VD.NPCS[npc.kind];
     if (!def) { return null; }
@@ -1078,13 +1088,19 @@
       s.metNpcs[npc.kind] = true;
       core.persist();
     }
+    /* 하트(PLAN §5.4) "대화" +1 — 주민과 같은 결로, 오늘 이 NPC와 처음
+       말을 건 것이면 한 번만. NPC 일곱도 "주민 5 + NPC 7" 중 하나다 —
+       지금까지는 이 대화 자리에서만 하트가 오르고(부탁 완수는 아래),
+       선물은 아직 못 준다(§10 열린 질문 감). */
+    var hr0 = heartRec(npc.id);
+    if (hr0.lastTalk !== s.day) { hr0.lastTalk = s.day; bumpHeart(npc.id, 1); }
     /* 배달원(PLAN 45절, 2026-09-11)은 QUESTS 표가 없는 유일한 NPC라 아래
        일반 흐름(한 번뿐인 부탁)을 안 타고 여기서 갈라진다 — talkCourier() 참고 */
     if (npc.kind === 'courier') { return talkCourier(); }
     var q = VD.QUESTS[npc.kind];
-    if (!q) { return { kind: 'talk', name: def.name, text: def.line }; }
+    if (!q) { return { kind: 'talk', name: def.name, text: npcLine(npc, def) }; }
     if (!s.quests) { s.quests = {}; }
-    if (s.quests[npc.kind]) { return { kind: 'talk', name: def.name, text: def.line }; }
+    if (s.quests[npc.kind]) { return { kind: 'talk', name: def.name, text: npcLine(npc, def) }; }
     var prog = questProgress(npc.kind);
     if (prog.have < prog.need) {
       return { kind: 'quest', name: def.name,
@@ -1092,6 +1108,7 @@
     }
     s.quests[npc.kind] = true;
     core.save.player.gold += q.reward;
+    bumpHeart(npc.id, 2);   // 부탁 완수 — 주민과 같은 결(PLAN §5.4)
     core.gainFeat(1, '부탁');
     core.gainExp(12);
     core.log('🧭 ' + def.name + '의 부탁 「' + q.title + '」을 마쳤다 — 🪙 ' + core.fmt(q.reward), 'good');
@@ -1113,11 +1130,14 @@
     if (!s.delivery) { s.delivery = { carrying: false, n: 0 }; }
     if (!s.delivery.carrying) {
       return { kind: 'talk', name: def.name,
-        text: '아직 소포가 없구먼 — 마을 택배 접수대에서 받아 오게' };
+        text: heartOf('npc_courier') >= heartUnlockAt('고유 대화')
+          ? npcLine({ id: 'npc_courier' }, def)
+          : '아직 소포가 없구먼 — 마을 택배 접수대에서 받아 오게' };
     }
     s.delivery.carrying = false;
     s.delivery.n = (s.delivery.n || 0) + 1;
     core.save.player.gold += DELIVERY_REWARD;
+    bumpHeart('npc_courier', 2);   // 배달 완수 — 부탁 완수와 같은 결(PLAN §5.4)
     core.gainFeat(1, '배달');
     core.gainExp(10);
     core.log('📦 ' + def.name + '에게 소포를 전했다 — 🪙 ' + core.fmt(DELIVERY_REWARD) +
@@ -1948,6 +1968,16 @@
     return Infinity;
   }
 
+  /** 5♥ 해제 "고유 대화"(§5.4 HEART_UNLOCKS) — 주민은 실제 역사 인물이라
+   *  새로 쓰지 않고, 이미 실명 없이 다듬어진 열전(BIOS, data.js §"열전")
+   *  한 줄을 그대로 돌려쓴다. 절차적 생성 인물(saga-go 전용 genchar) 등
+   *  BIOS가 없는 인물은 아직 못 여는 것으로(null) 본다 — 새로 지어내지 않는다. */
+  function uniqLineOf(id) {
+    if (heartOf(id) < heartUnlockAt('고유 대화')) { return null; }
+    var bio = global.DG.data ? global.DG.data.bio(id) : '';
+    return bio ? '문득 지난 이야기가 떠오르는구려... ' + bio : null;
+  }
+
   /** 동행(PLAN §5.4, 7♥ 해제) — 자격 판정은 여기(하트를 쥔 쪽)가 하고,
    *  실제 "따라 걷기"는 `folk.js` 몫이다. */
   function canFollow(id) { return heartOf(id) >= heartUnlockAt('동행'); }
@@ -2034,8 +2064,10 @@
     var ty = F ? F.typeOf(res.id) : null;
 
     if (req.done) {
+      var uniq = uniqLineOf(res.id);
       return { kind: 'talk', name: res.ref.name,
-               text: ty ? ty.idle
+               text: uniq ? uniq
+                        : ty ? ty.idle
                         : '오늘은 고마웠소. ' + VD.phaseOf(new Date().getHours()).hello + '.' };
     }
     if (bagCount(req.want) >= req.n) {
