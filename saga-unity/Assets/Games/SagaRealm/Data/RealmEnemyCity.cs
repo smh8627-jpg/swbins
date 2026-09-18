@@ -124,6 +124,20 @@ namespace Saga.Realm.Data
     /// 다른 hill/mount 성들과 같은 이유로 Plain 처리(주제는 원작 river
     /// 그대로). 교주(nanhai 너머 창오·합포)·남중(zhuti 너머 건녕)은 더
     /// 깊이 뻗을 수 있는 새 지역이라 다음 확장 후보로 남긴다.
+    /// **51장 17차 확장(2026-09-18, 새 세션 "사가유니티 이어해")** — 16차가
+    /// 다음 후보로 남긴 두 곳을 이었다. ① 남해→창오(원작 LINKS:
+    /// nanhai-cangwu, "산과 강이 겹치는 안쪽 땅, 길이 하나뿐"). 남해의
+    /// 다른 이웃(합포, LINKS: nanhai-hepu)도 계속 뻗지만 이번엔 창오
+    /// 쪽만 골랐다(다음 확장 후보로 남김 — 지금까지 관례대로 한 갈래씩).
+    /// ② 주제→건녕(원작 LINKS: zhuti-jianning, "남중 여러 부족을 아우르는
+    /// 다스림의 중심" — 월수·장가·운남 셋으로 더 뻗는 허브라 다음 확장
+    /// 여지가 넓다). 둘 다 16차의 "형제 가지"가 아니라 정상적인 한 단계
+    /// 더 깊은 자식(부모 자신이 아니라 부모의 목표 성에서 이어짐)이라
+    /// train은 옛 규칙(부모의 train+15) 그대로: 창오 160+15=175, 건녕
+    /// 125+15=140. wall은 원작 그대로(창오 3600·건녕 3800),
+    /// troops=wall×0.23 반올림(850·850 — 우연히 같음). land는 원작
+    /// 그대로 옮기되 창오(hill)는 다른 hill/mount 성들과 같은 이유로
+    /// Plain 처리, 건녕은 원작 plain 그대로.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -192,13 +206,15 @@ namespace Saga.Realm.Data
         public const string TianshuiId = "tianshui";
         public const string NanhaiId = "nanhai";
         public const string ZhutiId = "zhuti";
+        public const string CangwuId = "cangwu";
+        public const string JianningId = "jianning";
 
         public static readonly string[] AllIds =
         {
             XiaopeiId, DingtaoId, LuoyangId, XiapiId, YeId, ChanganId, ShouchunId, JinyangId,
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
-            ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId,
+            ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -318,6 +334,18 @@ namespace Saga.Realm.Data
             // 갖고 있다). train은 강주 자신의 110+15=125(영안과 같은 깊이의
             // 형제 가지).
             [ZhutiId] = new RealmEnemyCityDef(ZhutiId, "주제", RealmLand.River, baseWall: 3200, baseTroops: 750, baseTrain: 125, baseTech: 100, attackFromCityId: "jiangzhou"),
+            // 창오는 남해(nanhai)와만 맞닿아 있다(원작 LINKS: nanhai-cangwu,
+            // "산과 강이 겹치는 안쪽 땅, 길이 하나뿐") — 17차 확장, 남해를
+            // 함락해야 열리는 교주 사슬의 다음 단계. train은 남해 자신의
+            // 160+15=175(정상적인 한 단계 더 깊은 자식 — 16차의 "형제 가지"
+            // 규칙과는 다르다).
+            [CangwuId] = new RealmEnemyCityDef(CangwuId, "창오", RealmLand.Plain, baseWall: 3600, baseTroops: 850, baseTrain: 175, baseTech: 100, attackFromCityId: "nanhai"),
+            // 건녕은 주제(zhuti)와만 맞닿아 있다(원작 LINKS: zhuti-jianning,
+            // "남중 여러 부족을 아우르는 다스림의 중심") — 17차 확장, 주제를
+            // 함락해야 열리는 남중 사슬의 다음 단계. train은 주제 자신의
+            // 125+15=140. 월수·장가·운남 셋으로 더 뻗는 허브라 다음 확장
+            // 후보로 남긴다.
+            [JianningId] = new RealmEnemyCityDef(JianningId, "건녕", RealmLand.Plain, baseWall: 3800, baseTroops: 850, baseTrain: 140, baseTech: 100, attackFromCityId: "zhuti"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

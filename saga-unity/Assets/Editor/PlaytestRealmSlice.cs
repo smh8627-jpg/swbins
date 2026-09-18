@@ -78,7 +78,7 @@ namespace Saga.EditorTools
             AttackChangan, AttackShouchun, AttackJinyang, AttackYunzhong, AttackShangjun, AttackShuofang, AttackWuyuan, AttackHanzhong, AttackRunan,
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
-            AttackTianshui, AttackNanhai, AttackZhuti,
+            AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -147,7 +147,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1094,7 +1094,23 @@ namespace Saga.EditorTools
                 case Phase.AttackZhuti:
                 {
                     // 16차 확장 — 강주의 둘째 목표(영안에 이어).
-                    if (!AttackChainStep(RealmEnemyCity.JiangzhouId, RealmEnemyCity.ZhutiId, Phase.QuizCorrect, RealmEnemyCity.ZhutiId)) return;
+                    if (!AttackChainStep(RealmEnemyCity.JiangzhouId, RealmEnemyCity.ZhutiId, Phase.AttackCangwu, RealmEnemyCity.ZhutiId)) return;
+                    break;
+                }
+
+                case Phase.AttackCangwu:
+                {
+                    // 17차 확장(2026-09-18) — 남해를 함락한 뒤 이어지는
+                    // 교주 사슬의 다음 단계(TargetFrom("nanhai")).
+                    if (!AttackChainStep(RealmEnemyCity.NanhaiId, RealmEnemyCity.CangwuId, Phase.AttackJianning)) return;
+                    break;
+                }
+
+                case Phase.AttackJianning:
+                {
+                    // 17차 확장(2026-09-18) — 주제를 함락한 뒤 이어지는
+                    // 남중 사슬의 다음 단계(TargetFrom("zhuti")).
+                    if (!AttackChainStep(RealmEnemyCity.ZhutiId, RealmEnemyCity.JianningId, Phase.QuizCorrect)) return;
                     break;
                 }
 

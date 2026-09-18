@@ -208,6 +208,17 @@ namespace Saga.Realm.Data
             // land는 원작 그대로 river. wall은 RealmEnemyCity.cs 주제
             // 정의(3200)와 맞춘다.
             ["zhuti"] = new RealmCityDef("zhuti", "주제", RealmLand.River, agri: 160, comm: 140, wall: 3200, pop: 55000, mapX: 20, mapY: 82),
+            // 51장 "대규모 콘텐츠" 17차 확장(2026-09-18) — 남해(nanhai)를
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계(원작 LINKS:
+            // nanhai-cangwu, "산과 강이 겹치는 안쪽 땅, 길이 하나뿐").
+            // 원작 land hill은 다른 성들과 같은 이유로 Plain 처리. wall은
+            // RealmEnemyCity.cs 창오 정의(3600)와 맞춘다.
+            ["cangwu"] = new RealmCityDef("cangwu", "창오", RealmLand.Plain, agri: 200, comm: 180, wall: 3600, pop: 90000, mapX: 60, mapY: 92),
+            // 17차 확장 — 주제(zhuti)를 함락한 뒤 이어지는 남중 사슬의
+            // 다음 단계(원작 LINKS: zhuti-jianning, "남중 여러 부족을
+            // 아우르는 다스림의 중심"). land는 원작 그대로 plain. wall은
+            // RealmEnemyCity.cs 건녕 정의(3800)와 맞춘다.
+            ["jianning"] = new RealmCityDef("jianning", "건녕", RealmLand.Plain, agri: 200, comm: 180, wall: 3800, pop: 85000, mapX: 14, mapY: 92),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

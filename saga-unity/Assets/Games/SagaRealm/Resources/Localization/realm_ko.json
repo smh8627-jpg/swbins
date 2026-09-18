@@ -74,6 +74,8 @@
     { "key": "city.tianshui", "value": "천수" },
     { "key": "city.nanhai", "value": "남해" },
     { "key": "city.zhuti", "value": "주제" },
+    { "key": "city.cangwu", "value": "창오" },
+    { "key": "city.jianning", "value": "건녕" },
     { "key": "officer.sg_zhugeliang", "value": "현책" },
     { "key": "officer.kr_yisunsin", "value": "해장" },
     { "key": "officer.jp_musashi", "value": "이도인" },

@@ -7207,3 +7207,53 @@ REALM 행·다음 작업 갱신.
 무관 — 16차 확장 때 `_attackPanel` 신설이 씬 재생성이 필요했던 것과
 달리 이번엔 필드 추가가 없다). `docs/PROJECT_STATE.md` REALM
 "알려진 틈"·"다음 작업"·테스트 상태·실기 확인 대기 네 군데 갱신.
+
+## REALM 51장 17차 확장 — 교주·남중 한 단계 더 (2026-09-18, 같은 세션 "사가유니티 이어해")
+
+계략 고르기 UI를 마친 뒤, PLAN·PROJECT_STATE의 "다음 작업" 3번(REALM 교주·
+남중 더 뻗기)을 이었다. 16차가 "다음 확장 후보"로 남긴 두 곳 중 한 단계씩:
+**남해→창오**(원작 LINKS nanhai-cangwu, "산과 강이 겹치는 안쪽 땅, 길이
+하나뿐")·**주제→건녕**(원작 LINKS zhuti-jianning, "남중 여러 부족을
+아우르는 다스림의 중심"). 남해의 다른 이웃(합포)·건녕의 다른 이웃(월수·
+장가·운남 — 셋으로 뻗는 허브)은 다음 확장 후보로 남겼다(지금까지 관례대로
+한 갈래씩).
+
+이번 둘은 16차의 "형제 가지"(같은 출진 성이 갖는 둘째 목표, 성 하나당
+목표 하나 제약을 푼 예외)가 아니라 **정상적인 한 단계 더 깊은 자식**이라
+train은 옛 규칙(부모의 train+15)을 그대로 썼다 — 창오 160+15=175(부모
+남해), 건녕 125+15=140(부모 주제). wall은 원작 그대로(창오 3600·건녕
+3800), troops=wall×0.23 반올림(850·850, 우연히 같음). land는 창오(원작
+hill)만 다른 hill/mount 성들과 같은 이유로 Plain 처리, 건녕은 원작
+plain 그대로.
+
+- `RealmEnemyCity.cs` — `CangwuId`·`JianningId` 신설, `AllIds`·`Catalog`에
+  추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackCangwu`/`Phase.AttackJianning`
+  신설(AttackZhuti 다음, QuizCorrect 앞), 둘 다 목표가 하나뿐인 성이라
+  `enemyId` 생략(다른 단순 체인 스텝과 같은 결). OK 로그 문구에
+  "chain-17th(cangwu+jianning)" 추가.
+- 로컬라이제이션: `city.cangwu`/`city.jianning`(ko/en) 신설.
+
+**실제로 걸린 함정** — `RealmEnemyCity.cs`만 고치고 컴파일·헤드리스를
+돌렸는데, 창오 공략 단계에서 `AttackChainStep()`이 "ok=True won=True인데
+공략 실패"로 걸렸다. 원인: 함락 가능 여부(`RealmWarState.Attack()`)와
+플레이 가능한 성으로 편입하는 것(`RealmCityState.AbsorbCity()`)이 서로
+다른 카탈로그를 본다 — 후자는 `RealmCityData.Get(cityId)`가 있어야만
+동작하고, **없으면 에러 없이 조용히 return**한다(`if (def == null)
+return;`). `RealmEnemyCity.cs`에만 새 성을 추가하고 `RealmCityData.cs`
+(agri/comm/pop/좌표 정의)를 빠뜨려서 전투는 이겼는데 성이 안 편입됐다.
+헤드리스 검증이 `RealmCityState.ActiveCityIds.Contains()`로 편입 여부를
+따로 확인하는 덕에 잡혔다(전투 승패만 봤으면 조용히 새고 지나갈 뻔).
+`RealmCityData.cs`에 두 성 추가(wall은 `RealmEnemyCity.cs` 정의와 맞춤,
+agri/comm/pop/mapX/mapY는 `saga-web/saga-realm/js/data-city.js` 원본
+그대로) 뒤 재검증해 해소 — **새 REALM 성은 두 파일(`RealmEnemyCity.cs`+
+`RealmCityData.cs`) 항상 같이 고칠 것**을 `PROJECT_STATE.md` "알려진
+오류"에 새 항목으로 남겼다.
+
+컴파일 확인(`tools/unity-batch.sh` 경유, error CS 0건, 함정 수정 전후
+두 번) + `PlaytestRealmSlice` 3연속 OK(창오·건녕 함락 로그 매 회 확인).
+씬 재생성 불필요(데이터·체인 단계 추가뿐, GameObject 구성 무변경).
+`docs/PROJECT_STATE.md` REALM 완료 요약(적국 27→29, 성 30→32)·새
+"51장 17차" 절·"다음 작업"(18차 후보로 갱신)·알려진 오류(새 함정)·
+테스트 상태·실기 확인 대기 전부 갱신, 상한 15360B 안으로 다른 절도
+같이 줄임(위 "마지막 갱신" 줄 압축).

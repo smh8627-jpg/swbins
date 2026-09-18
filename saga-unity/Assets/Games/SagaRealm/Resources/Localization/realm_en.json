@@ -74,6 +74,8 @@
     { "key": "city.tianshui", "value": "Tianshui" },
     { "key": "city.nanhai", "value": "Nanhai" },
     { "key": "city.zhuti", "value": "Zhuti" },
+    { "key": "city.cangwu", "value": "Cangwu" },
+    { "key": "city.jianning", "value": "Jianning" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },
