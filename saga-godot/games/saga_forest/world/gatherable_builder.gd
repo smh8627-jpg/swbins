@@ -69,6 +69,7 @@ const DEFS := [
 ]
 
 var _in_range: Dictionary = {}  # id(String) -> bool
+var _roots: Dictionary = {}  # id(String) -> Node3D, CombatFeel.pickup() 팝업 자리용
 
 
 func _ready() -> void:
@@ -82,6 +83,7 @@ func _build(d: Dictionary) -> void:
 	root.name = "Gather_%s" % d.id
 	root.position = ForestMap.world_pos(d.grid.x, d.grid.y) + Vector3(0, ground, 0)
 	add_child(root)
+	_roots[d.id] = root
 
 	var mesh: Mesh = GLBUtils.extract_mesh(d.glb) if d.glb != "" else null
 	var mi := MeshInstance3D.new()
@@ -159,3 +161,4 @@ func _gather(d: Dictionary) -> void:
 	ForestSaveState.mark_gathered(d.id)
 	ForestSaveState.add_item(d.item_label, 1)
 	Toast.show(self, "%s(을)를 %s — %s +1" % [d.name, d.hint, d.item_label], 2.5)
+	CombatFeel.pickup(_roots.get(d.id), "%s +1" % d.item_label)

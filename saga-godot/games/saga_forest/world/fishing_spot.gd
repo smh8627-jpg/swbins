@@ -132,3 +132,4 @@ func _hook() -> void:
 	else:
 		ForestSaveState.add_item(FISH_ITEM_LABEL, 1)
 		Toast.show(self, "🐟 낚았다 — %s +1" % FISH_ITEM_LABEL, 2.5)
+		CombatFeel.pickup(self, "%s +1" % FISH_ITEM_LABEL)

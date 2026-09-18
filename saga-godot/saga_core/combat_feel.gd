@@ -47,6 +47,7 @@ signal shake_triggered(amp_m: float, dur_ms: int)
 signal flash_triggered(target: Node)
 signal popup_triggered(amount: float, crit: bool)
 signal sound_triggered(idx: int)
+signal pickup_triggered(label: String)
 
 const HITSTOP_MS := 70
 const HITSTOP_CRIT_MS := 120
@@ -72,6 +73,22 @@ func hit(target: Node3D, amount: float, crit: bool) -> void:
 		_do_flash(target)
 		_do_popup(target, amount, crit)
 	_do_sound()
+
+
+## PLAN 101-4 순서 2(FOREST 연결), 2026-09-18. 웹 §5 "채집 손맛" 후보용 —
+## hit()의 5요소 중 hitstop·흔들림·피격 플래시는 "맞았다"는 전투 신호라
+## 채집(forest_creature.gd 헤더 "전투·포획·HP는 이번에도 안 만든다")엔
+## 안 맞는다. 순간성 있는 둘(숫자 팝·타격음)만 추려 label 문자열로 띄운다
+## (데미지 숫자 대신 "과일 +1" 같은 텍스트 — _do_popup은 amount:float
+## 포맷 고정이라 따로 둔다). REALM은 대상이 없어 못 붙였다 — 일기토·
+## 공성 전부 ChoicePrompt/토스트로 푸는 턴제 판정이라 카메라 rig도
+## MeshInstance3D 타겟도 씬에 없다(realm_war.gd 헤더 "실시간 타이밍
+## 입력은 안 넣는다"와 같은 결).
+func pickup(target: Node3D, label: String) -> void:
+	if is_instance_valid(target):
+		_do_pickup_popup(target, label)
+	_do_sound()
+	pickup_triggered.emit(label)
 
 
 func _do_hitstop(crit: bool) -> void:
@@ -188,6 +205,26 @@ func _do_popup(target: Node3D, amount: float, crit: bool) -> void:
 	tw.parallel().tween_property(label, "modulate:a", 0.0, POPUP_SEC)
 	tw.tween_callback(label.queue_free)
 	popup_triggered.emit(amount, crit)
+
+
+func _do_pickup_popup(target: Node3D, label: String) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var lbl := Label3D.new()
+	lbl.text = label
+	lbl.modulate = Color(0.6, 1.0, 0.6)
+	lbl.font_size = 40
+	lbl.pixel_size = 0.01
+	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lbl.no_depth_test = true
+	## _do_popup과 같은 함정(2026-09-18) — add_child 먼저, global_position 나중.
+	scene.add_child(lbl)
+	lbl.global_position = target.global_position + Vector3(0, 1.2, 0)
+	var tw := lbl.create_tween()
+	tw.tween_property(lbl, "position:y", lbl.position.y + POPUP_RISE_M, POPUP_SEC)
+	tw.parallel().tween_property(lbl, "modulate:a", 0.0, POPUP_SEC)
+	tw.tween_callback(lbl.queue_free)
 
 
 func _do_sound() -> void:

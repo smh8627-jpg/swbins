@@ -7416,3 +7416,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `camera_rig.gd`(GO)에 `dungeon_camera_rig.gd`와 같은 `shake()`+"camera_rig" 그룹 등록 추가(회전 드래그 입력은 안 건드림, position만 흔듦).
 - 자가진단(임시 씬+스크립트, 커밋 전 지움) — camera_rig 그룹·cel_toon 부착·플레이어 공격 신호·적 공격 신호·완전 회피 시 미발동 5가지, 3회 동일·오류 0. `tools/godot_regress.sh` 다섯 판 통과.
 - FOREST·REALM은 아직(combat_feel.gd 공통 상태 줄 참고).
+
+## FOREST 채집 손맛 + REALM 손맛 대상 없음 판정 (2026-09-18) — PLAN 101-3 C 마무리
+
+- "사가고돗 이어 해"로 이어감. PROJECT_STATE "다음 작업 2"가 "FOREST·REALM에 combat_feel.gd 연결"이었는데, 코드를 보니 FOREST는 forest_creature.gd 헤더에 이미 "전투·포획·HP는 이번에도 안 만든다"고 못박혀 있고, REALM은 일기토·공성(realm_attack_button.gd·realm_war.gd)이 전부 ChoicePrompt/토스트 턴제 계산이라 camera_rig 그룹도 MeshInstance3D 타겟도 씬에 없다 — 둘 다 `hit()`을 있는 그대로 못 붙인다.
+- **REALM**: 연결 대상 자체가 없다고 판정, PLAN 101-4 순서 2에 사유를 적고 완료 처리(realm_war.gd 헤더도 이미 "실시간 타이밍 입력은 안 넣는다"고 105-Q3 취지로 전제하고 있어 새 결정이 아니라 기존 결정의 재확인).
+- **FOREST**: 101-2 웹 §5 후보 원문 목록엔 "채집 손맛"이 있었다(3D 이식 순서 표엔 번호가 안 붙어 누락돼 있었음) — hit()의 5요소 중 순간성 있는 둘(숫자 팝·타격음)만 추려 `combat_feel.gd`에 `pickup(target, label)` 신설. hitstop·흔들림·피격 플래시(전투 신호)는 뺐다 — 채집 리듬에 시간 정지가 끼면 안 어울린다는 판단.
+- `gatherable_builder.gd`: `_roots`(id→Node3D root) 딕셔너리를 `_build()`에서 채워 두고 `_gather()` 성공 시 `CombatFeel.pickup(_roots[d.id], "%s +1" % d.item_label)`. `fishing_spot.gd::_hook()` 성공 분기에도 `CombatFeel.pickup(self, "물고기 +1")`.
+- `_do_pickup_popup()`은 `_do_popup()`과 같은 add_child-먼저 순서(2026-09-18① 버그와 같은 함정)로 처음부터 맞춰 썼다.
+- `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음. **PLAN 101-3 C(손맛 표준) 다섯 판 전부 완료** — GO/DUNGEON/STORY `hit()`, FOREST `pickup()`, REALM 대상없음.
+- 다음: 102장 그래픽(톤 승인 GUI 대기)·105장 Q-h/Q-b/Q-f 사용자 결정 대기 — 코드로 더 내려받을 항목이 지금은 없다.

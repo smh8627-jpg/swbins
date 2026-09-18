@@ -2751,7 +2751,7 @@ Combat Core 생성
 ## 101-4. 이식 공통 순서
 
 1. `saga_core/ui/goal_board.gd`(목표판 3줄) + `session_card.gd`(마무리 카드) — 다섯 판 HUD 에 같은 노드. 데이터는 판별 `*_state.gd` 가 `GoalBoard.set_goals(now, session, week)` 로 넣는다.
-2. `saga_core/combat_feel.gd`(101-3).
+2. `saga_core/combat_feel.gd`(101-3) — 전투 있는 판(GO·DUNGEON·STORY)만 `hit()`. **FOREST는 전투가 없어(4절 "전투·포획·HP는 안 만든다")** `pickup()`(2026-09-18 신설, 숫자 팝+타격음만)을 채집·낚시 성공에 붙인다. **REALM은 대상 자체가 없다** — 일기토·공성 전부 ChoicePrompt/토스트 턴제 판정이라 카메라 rig·MeshInstance3D 타겟이 씬에 없다(105-Q3 "실시간 타이밍 입력은 안 넣는다"와 같은 결) — 연결 대상 없음으로 완료 처리.
 3. 판별 ① 후보부터 표 순서대로. 한 세션에 후보 하나. 각 후보 끝에 헤드리스 3회 md5 + HISTORY 항목.
 4. 웹 §5 가 "검증 실패" 로 판정한 후보는 3D 에서 뺀다(SAGA-DESIGN §2-1).
 
