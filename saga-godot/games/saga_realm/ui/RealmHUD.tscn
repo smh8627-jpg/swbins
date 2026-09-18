@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://saga_core/ui/goal_board.gd" id="14"]
 [ext_resource type="Script" path="res://games/saga_realm/ui/realm_status_label.gd" id="1"]
@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://games/saga_realm/ui/realm_archive_button.gd" id="12"]
 [ext_resource type="Script" path="res://games/saga_realm/ui/realm_promote_button.gd" id="13"]
 [ext_resource type="Script" path="res://games/saga_realm/ui/realm_event_button.gd" id="15"]
+[ext_resource type="Script" path="res://games/saga_realm/ui/realm_succession_button.gd" id="16"]
 
 [node name="RealmHUD" type="CanvasLayer"]
 
@@ -47,6 +48,17 @@ theme_override_colors/font_color = Color(1, 1, 1, 0.9)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 5
 script = ExtResource("1")
+
+[node name="SuccessionButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -160.0
+offset_top = -990.0
+offset_right = -40.0
+offset_bottom = -930.0
+script = ExtResource("16")
 
 [node name="EventButton" type="Button" parent="."]
 anchor_left = 1.0

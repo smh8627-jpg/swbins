@@ -52,7 +52,7 @@ const Toast := preload("res://saga_core/ui/toast.gd")
 const SessionCard := preload("res://saga_core/ui/session_card.gd")
 
 const SAVE_PATH := "user://save_realm.json"
-const SAVE_VERSION := 15  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id) → 14(특성·야망: officer_ambition/enemies_subverted, PLAN 101-2 REALM ③) → 15(이벤트 체인: active_events/events_done, PLAN 101-2 REALM ⑤)
+const SAVE_VERSION := 16  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id) → 14(특성·야망: officer_ambition/enemies_subverted, PLAN 101-2 REALM ③) → 15(이벤트 체인: active_events/events_done, PLAN 101-2 REALM ⑤) → 16(계승: lord_succession_enabled/current_lord_id/heir_id/_succession_shock_until, PLAN 101-2 REALM ⑥)
 const RNG_SEED := 20260824  # 루트 CLAUDE.md 진단 시드와 같은 값(우연 아님, 관례를 따름)
 
 ## **2026-09-14 추가 — 시나리오(RealmCities.SCENARIO_CAO_CITIES 키).**
@@ -154,6 +154,21 @@ var enemies_subverted := 0
 ## 도달한 것만 골라준다.
 var active_events: Array = []  # [{id, officer, due_month, due_year}]
 var events_done: Dictionary = {}  # id(String) -> count(int)
+
+## **2026-09-18 추가 — PLAN 101-2 REALM ⑥후보(웹판 §5-2, 정확히는 §5-8
+## "군주 사망·계승").** 웹판은 "군주를 노쇠·죽음에서 빼 둔 구멍을 닫는다"고
+## 적었지만, 그 전제(부하 무장 전원의 나이·자연사 시뮬레이션)가 이 슬라이스엔
+## 아예 없다 — **대폭 재해석**: 나이 대신 매달 아주 낮은 고정 확률로
+## "군주 유고"를 굴린다(§10-Q2가 이미 확정한 "기본 꺼짐, 사용자가 켠다"
+## 손잡이는 그대로 살렸다). `RealmDiplo.LORD_ID`(상수, 시작 군주 조조)는
+## 안 바꾸고 `current_lord_id`(변수)를 새로 둬 계승마다 이 값만 옮긴다 —
+## `hire()`가 이제 이 값으로 신규 무장 시작 충성을 잰다(위 참고).
+var lord_succession_enabled := false
+var current_lord_id: String = RealmDiplo.LORD_ID
+var heir_id := ""  # 로스터 id 또는 ""(미지정 — 계승 때 자동으로 고른다)
+## officer_id -> {month, year} — 계승 충격 창(3달, 웹판 그대로). "야심"
+## 특성만 이 창 안에서 이탈 판정 배율이 오른다(_check_defection() 참고).
+var _succession_shock_until: Dictionary = {}
 
 ## **2026-09-12 추가 — 적 목표(realm_war.gd 첫 전투 슬라이스).**
 ## enemy_id -> {troops, wall, max_wall, train, tech, captured}. _init_enemies()
@@ -642,7 +657,10 @@ func _do_hire(officer_id: String, debate_mul: float = 1.0) -> Dictionary:
 	found.erase(target_id)
 	roster.append(target_id)
 	officer_city[target_id] = current_city  # 찾아낸(수색한) 성에 배치된다
-	officer_loyal[target_id] = RealmDiplo.base_loyal(target_id)
+	## PLAN 101-2 REALM ⑥후보(계승) — 계승이 있었으면 그 뒤로 들어오는 사람은
+	## 새 군주 기준으로 시작 충성을 잰다(current_lord_id, 기본값은 LORD_ID와
+	## 같다 — 계승이 한 번도 없었으면 이전과 동치).
+	officer_loyal[target_id] = RealmDiplo.base_loyal(target_id, current_lord_id)
 	_done_this_month[target_id] = true  # rtk.js: 들어온 달에는 일하지 않는다
 	return {"ok": true, "hired": target_id, "chance": chance}
 
@@ -736,6 +754,7 @@ func next_month() -> void:
 
 	_tick_ambitions()
 	_tick_events()
+	_tick_succession()
 	_check_defection()
 	_run_enemy_ai()
 	_run_enemy_economy()
@@ -800,6 +819,14 @@ func _check_defection() -> void:
 		var amb: Dictionary = officer_ambition.get(id, {})
 		if int(amb.get("fail_months", 0)) > RealmTraits.AMBITION_FRUSTRATE_MONTHS:
 			chance *= RealmTraits.AMBITION_FRUSTRATE_DEFECT_MUL
+		## PLAN 101-2 REALM ⑥후보(계승) — 웹판 §5-8 "야심은 -25 + 3달 안에
+		## 이탈 판정 ×2". 창이 지났으면(비교가 실패하면) 그냥 지나간다 —
+		## _succeed_lord()가 심은 값을 여기서 지우지 않아도(자연 소멸) 되는
+		## 이유는 이 비교 하나로 충분해서다(굳이 매달 청소 안 해도 안전).
+		if _succession_shock_until.has(id) and RealmTraits.has_trait(id, "ambitious"):
+			var due: Dictionary = _succession_shock_until[id]
+			if year < int(due.year) or (year == int(due.year) and month <= int(due.month)):
+				chance *= SUCCESSION_AMBITIOUS_DEFECT_MUL
 		if _rng.randf() > chance:
 			continue
 		leaving.append(id)
@@ -807,6 +834,7 @@ func _check_defection() -> void:
 		roster.erase(id)
 		officer_city.erase(id)
 		officer_loyal.erase(id)
+		_succession_shock_until.erase(id)
 
 
 ## `officer_growth()`와 같은 지연 초기화 — 처음 보는 무장이면 `RealmTraits.
@@ -980,6 +1008,84 @@ func resolve_event(index: int, choice_idx: int) -> bool:
 		String(def.get("name", "")), String(choice.get("label", "")),
 	], 3.0)
 	return true
+
+
+## PLAN 101-2 REALM ⑥후보(웹판 §5-8) — 나이 시스템이 없어 매달 고정 확률로
+## "군주 유고"를 굴린다(손잡이 꺼짐이면 건드리지 않는다). 0.6%/달은 대략
+## 평균 14년에 한 번 — 웹판 "65세+ 사망 확률은 부하의 절반"이 이 슬라이스엔
+## 잴 기준(부하 사망 확률 자체)이 없어 직접 낮게 잡은 값이다.
+const LORD_DEATH_CHANCE_MONTHLY := 0.006
+const SUCCESSION_DEFAULT_LOYAL_HIT := -15   # 웹판 "-10~-20" 중간값
+const SUCCESSION_AMBITIOUS_LOYAL_HIT := -25 # 웹판 "야심은 -25" 그대로
+const SUCCESSION_AMBITIOUS_DEFECT_MUL := 2.0 # 웹판 "이탈 판정 ×2" 그대로
+const SUCCESSION_SHOCK_MONTHS := 3           # 웹판 "3달 안에" 그대로
+
+
+func _tick_succession() -> void:
+	if not lord_succession_enabled:
+		return
+	if _rng.randf() > LORD_DEATH_CHANCE_MONTHLY:
+		return
+	_succeed_lord()
+
+
+## 지정된 후계(로스터에 아직 있으면)가 있으면 그 사람, 없으면 웹판 그대로
+## "충성 최고 → 관직 최고" 순으로 자동 고른다. 로스터가 비어 있으면(극단
+## 상황) ""을 돌려 계승 자체를 건너뛴다.
+func _pick_heir() -> String:
+	if not heir_id.is_empty() and roster.has(heir_id):
+		return heir_id
+	var best := ""
+	var best_loyal := -1
+	var best_rank := -1
+	for id: String in roster:
+		var loyal := int(officer_loyal.get(id, 50))
+		var g: Dictionary = officer_growth.get(id, {"rank": 0})
+		var rank := int(g.get("rank", 0))
+		if loyal > best_loyal or (loyal == best_loyal and rank > best_rank):
+			best = id
+			best_loyal = loyal
+			best_rank = rank
+	return best
+
+
+## 웹판 §5-8 "사망 시 후계자가 군주(충성 100 고정 이양), 다른 무장 충성
+## -10~-20(충직 0·야심 -25+3달 이탈×2)" 그대로 — AI 자동 후계까지는
+## 이 슬라이스에 적(AI 세력) 무장 로스터·군주 개념이 없어(§4 "제외") 옮기지
+## 않는다(우리 세력 한정, 웹판도 "AI도 같은 함수"일 뿐 새 판정은 아니다).
+func _succeed_lord() -> void:
+	if roster.is_empty():
+		return
+	var new_lord := _pick_heir()
+	if new_lord.is_empty():
+		return
+	var old_lord_id := current_lord_id
+	current_lord_id = new_lord
+	officer_loyal[new_lord] = 100
+	for id: String in roster:
+		if id == new_lord:
+			continue
+		var hit := SUCCESSION_DEFAULT_LOYAL_HIT
+		if RealmTraits.has_trait(id, "loyal_heart"):
+			hit = 0
+		elif RealmTraits.has_trait(id, "ambitious"):
+			hit = SUCCESSION_AMBITIOUS_LOYAL_HIT
+			var due_m := month
+			var due_y := year
+			for _i in SUCCESSION_SHOCK_MONTHS:
+				due_m += 1
+				if due_m > 12:
+					due_m = 1
+					due_y += 1
+			_succession_shock_until[id] = {"month": due_m, "year": due_y}
+		officer_loyal[id] = clampi(int(officer_loyal.get(id, 50)) + hit, 0, 100)
+	heir_id = ""  # 이번 지정은 소비됐다 — 다음 계승을 위해선 다시 지정해야 한다
+	var old_h = Characters.find(old_lord_id)
+	var new_h = Characters.find(new_lord)
+	Toast.show(self, "⚰️ %s 별세 — 👑 %s 즉위" % [
+		String(old_h.name) if old_h != null else old_lord_id,
+		String(new_h.name) if new_h != null else new_lord,
+	], 4.0)
 
 
 const AI_MARCH_CHANCE := 0.20  # 재해석 — 아래 _run_enemy_ai() 머리말 참고
@@ -2025,6 +2131,10 @@ func save() -> bool:
 		"enemies_subverted": enemies_subverted,
 		"active_events": active_events,
 		"events_done": events_done,
+		"lord_succession_enabled": lord_succession_enabled,
+		"current_lord_id": current_lord_id,
+		"heir_id": heir_id,
+		"succession_shock_until": _succession_shock_until,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
@@ -2092,6 +2202,11 @@ func try_load() -> bool:
 	active_events = loaded_active_events if typeof(loaded_active_events) == TYPE_ARRAY else []
 	var loaded_events_done: Variant = data.get("events_done", {})
 	events_done = loaded_events_done if typeof(loaded_events_done) == TYPE_DICTIONARY else {}
+	lord_succession_enabled = bool(data.get("lord_succession_enabled", false))
+	current_lord_id = String(data.get("current_lord_id", RealmDiplo.LORD_ID))
+	heir_id = String(data.get("heir_id", ""))
+	var loaded_shock: Variant = data.get("succession_shock_until", {})
+	_succession_shock_until = loaded_shock if typeof(loaded_shock) == TYPE_DICTIONARY else {}
 	_done_this_month.clear()
 	return true
 
