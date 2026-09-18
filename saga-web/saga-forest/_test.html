@@ -2111,6 +2111,34 @@ window.DG_NO_TUNE = true;
       return !res.bundleCompleted && res.text.indexOf('🎉') < 0 && '첫 한 종만 들이면 축하 문구 없음';
     });
 
+    t('마을 평가 상한 — _capBeauty 순수 함수: 상한 미만은 그대로, 상한 이상은 번들 완성 여부로 갈린다 (PLAN §5.3)', function () {
+      var T = DG.town, G = VD.BEAUTY_GRADES, topAt = G[G.length - 1].at;
+      var below = T._capBeauty(topAt - 50, false, G);          // 상한보다 한참 아래 — 안 막힌다
+      var atTopNotFull = T._capBeauty(topAt, false, G);        // 상한 딱 걸림, 번들 미완 — 막힌다
+      var atTopFull = T._capBeauty(topAt, true, G);            // 상한 딱 걸림, 번들 완성 — 안 막힌다
+      var overTopFull = T._capBeauty(topAt + 999, true, G);    // 아무리 높아도 번들 완성이면 그대로
+      return below.score === topAt - 50 && !below.capped &&
+        atTopNotFull.score === topAt - 1 && atTopNotFull.capped &&
+        atTopFull.score === topAt && !atTopFull.capped &&
+        overTopFull.score === topAt + 999 && !overTopFull.capped &&
+        ('상한 미만 통과 · 상한서 번들 미완이면 -1점 clamp(' + atTopNotFull.score + ') · 번들 완성이면 안 막힘');
+    });
+
+    t('마을 평가 상한 — beauty()가 museum.allBundlesDone()을 그대로 반영한다 (PLAN §5.3, 실제 배선 확인)', function () {
+      var T = DG.town, MU = DG.museum;
+      var origFn = MU.allBundlesDone;
+      MU.allBundlesDone = function () { return false; };
+      var bFalse = T.beauty();
+      MU.allBundlesDone = function () { return true; };
+      var bTrue = T.beauty();
+      MU.allBundlesDone = origFn;
+      /* score 자체은 게임 상태(잡초·꽃 등)에 달려 있어 값을 안 잰다 —
+         여기서 잰다: bundlesFull 필드가 배선을 그대로 따라가는지, 그리고
+         "번들을 다 채운 쪽은 절대로 안 막힌다"는 안전한 성질만. */
+      return bFalse.bundlesFull === false && bTrue.bundlesFull === true && !bTrue.capped &&
+        ('bundlesFull=false→' + bFalse.bundlesFull + ' · true→' + bTrue.bundlesFull + ' · 완성 쪽은 capped 항상 거짓');
+    });
+
     t('도감과 사고는 다른 자리다 (팔아도 도감은 남는다)', function () {
       var s = V.state();
       s.donated = {};

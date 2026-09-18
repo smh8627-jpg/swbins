@@ -251,7 +251,7 @@
     $('weedn').value = V.weedCount();
     var b = T.beauty();
     $('beauty').textContent = '마을 평가 ' + b.grade + ' · ' + b.score + '점 (꽃 ' +
-      b.flowers + ' · 심은 것 ' + b.planted + ')';
+      b.flowers + ' · 심은 것 ' + b.planted + ')' + (b.capped ? ' · 상한 걸림(번들 미완)' : '');
   }
 
   function renderFolks() {

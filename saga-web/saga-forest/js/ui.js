@@ -1489,6 +1489,11 @@
       (warn ? '<small class="muted" style="color:var(--bad,#c0392b)">⚠ ' + esc(warn.text) + '</small>'
             : '<small class="muted">잡초는 <b>안 뽑으면 날마다 늡니다</b>. ' +
               '평가가 높으면 주민이 잘 떠나지 않습니다. 평가서는 월요일 아침에 옵니다.</small>') +
+      /* §5.3 "4개 완성 시 마을 평가 상한 해제"(2026-09-18) — 상한에 막혀
+         있을 때만 보인다. 이미 네 갈래를 다 채웠으면(bundlesFull) 조용히
+         빠진다 — 더 알릴 것이 없다. */
+      (bt.capped ? '<small class="muted">🏛️ 사고 네 갈래(곤충·물고기·화석·조개)를 다 채우면 ' +
+              '최고 등급까지 오를 수 있습니다.</small>' : '') +
       '</div></div>';
 
     /* 전방 */

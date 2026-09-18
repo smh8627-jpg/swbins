@@ -161,6 +161,19 @@
    * 잡초를 뽑고 꽃을 심고 사고를 채운 만큼 오른다.
    * 평가가 높으면 **주민이 잘 떠나지 않는다**(mail.js 가 본다) — 그게 이 점수의 값이다.
    */
+  /** §5.3 "4개 완성 시 마을 평가 상한 해제"(2026-09-18)의 순수 부분 — 사고
+   *  네 갈래(곤충·물고기·화석·조개)를 다 채우기 전엔 최고 등급을 못 딴다.
+   *  잡초를 다 뽑고 꽃·나무·집치장·기증만으로 점수를 채워도 상한(최고
+   *  등급 문턱 바로 아래)에 막힌다 — "정갈함"만으론 안 되고 사고를
+   *  완성해야 마을이 "이름난 마을"까지 간다는 신호. `grades`는
+   *  `at` 오름차순 배열(`BEAUTY_GRADES`) — 게임 상태 없이도 값으로
+   *  검증할 수 있게 순수 함수로 뽑아 뒀다. */
+  function capBeauty(score, bundlesFull, grades) {
+    var topAt = grades[grades.length - 1].at;
+    var capped = !bundlesFull && score >= topAt;
+    return { score: capped ? topAt - 1 : score, capped: capped };
+  }
+
   function beauty() {
     var V2 = V(), raw = V2.raw();
     var flowers = 0, i;
@@ -176,10 +189,16 @@
                 Math.round(home / 4) + museum * 2;
     score = Math.max(0, score);
 
-    var G = VD().BEAUTY_GRADES, g = G[0];
-    for (i = 0; i < G.length; i++) { if (score >= G[i].at) { g = G[i]; } }
-    return { score: score, grade: g.name, level: G.indexOf(g), stars: G.indexOf(g) + 1,
-             weeds: weeds, flowers: flowers, planted: planted, home: home, museum: museum };
+    var G = VD().BEAUTY_GRADES;
+    var MU = global.DG.museum;
+    var bundlesFull = MU && MU.allBundlesDone ? MU.allBundlesDone() : false;
+    var cap = capBeauty(score, bundlesFull, G);
+
+    var g = G[0];
+    for (i = 0; i < G.length; i++) { if (cap.score >= G[i].at) { g = G[i]; } }
+    return { score: cap.score, grade: g.name, level: G.indexOf(g), stars: G.indexOf(g) + 1,
+             weeds: weeds, flowers: flowers, planted: planted, home: home, museum: museum,
+             bundlesFull: bundlesFull, capped: cap.capped };
   }
 
   /**
@@ -234,6 +253,7 @@
     event: event, next: next, priceMul: priceMul, isNewYear: isNewYear,
     weather: weather, raining: raining,
     starNow: starNow, wish: wish, wishesOn: wishesOn, beauty: beauty, beautyWarning: beautyWarning,
+    _capBeauty: capBeauty,
     /** 자가진단용 — 흐르는 별을 억지로 세운다. undefined 를 주면 다시 시각을 본다 */
     _setStar: function (v) { starOverride = v; },
     WISH_MAX: WISH_MAX, STAR_SLOT: STAR_SLOT, STAR_AT: STAR_AT, STAR_MS: STAR_MS,

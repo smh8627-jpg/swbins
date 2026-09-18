@@ -108,6 +108,17 @@
     return { done: done, total: total };
   }
 
+  /** PLAN §5.3 "안 한 것" 목록의 마지막 한 줄 — 네 번들(곤충·물고기·화석·조개)
+   *  이 전부 다 찼는가. `town.js` `beauty()`가 마을 평가 최고 등급 상한을
+   *  여기에 건다(§5.8②가 그날 생겨 비로소 연결 대상이 생겼다, 2026-09-18). */
+  function allBundlesDone() {
+    var list = byCat();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].total <= 0 || list[i].done < list[i].total) { return false; }
+    }
+    return list.length > 0;
+  }
+
   function grade(n) {
     var G = VD().MUSEUM_GRADES, g = G[0];
     if (n === undefined) { n = count().done; }
@@ -136,6 +147,7 @@
   global.DG = global.DG || {};
   global.DG.museum = {
     donated: donated, near: near, canDonate: canDonate, donate: donate,
-    byCat: byCat, count: count, grade: grade, offerable: offerable, status: status
+    byCat: byCat, count: count, grade: grade, offerable: offerable, status: status,
+    allBundlesDone: allBundlesDone
   };
 })(window);
