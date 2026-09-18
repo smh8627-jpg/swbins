@@ -80,7 +80,7 @@ namespace Saga.EditorTools
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
             AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
-            AttackYongchang, AttackXianglin,
+            AttackYongchang, AttackXianglin, AttackDianchong, AttackShendu,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -149,7 +149,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/chain-23rd(shendu+dianchong)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1166,7 +1166,15 @@ namespace Saga.EditorTools
                 {
                     // 22차 확장(2026-09-19) — 운남을 함락한 뒤 이어지는
                     // 남중 사슬의 다음 단계(TargetFrom("yunnan")).
-                    if (!AttackChainStep(RealmEnemyCity.YunnanId, RealmEnemyCity.YongchangId, Phase.AttackJiaozhi)) return;
+                    if (!AttackChainStep(RealmEnemyCity.YunnanId, RealmEnemyCity.YongchangId, Phase.AttackShendu)) return;
+                    break;
+                }
+
+                case Phase.AttackShendu:
+                {
+                    // 23차 확장(2026-09-19) — 영창을 함락한 뒤 이어지는
+                    // 남중 사슬의 다음 단계(TargetFrom("yongchang")).
+                    if (!AttackChainStep(RealmEnemyCity.YongchangId, RealmEnemyCity.ShenduId, Phase.AttackJiaozhi)) return;
                     break;
                 }
 
@@ -1198,7 +1206,15 @@ namespace Saga.EditorTools
                 {
                     // 22차 확장(2026-09-19) — 일남을 함락한 뒤 이어지는
                     // 교주 사슬의 다음 단계(TargetFrom("rinan")).
-                    if (!AttackChainStep(RealmEnemyCity.RinanId, RealmEnemyCity.XianglinId, Phase.QuizCorrect)) return;
+                    if (!AttackChainStep(RealmEnemyCity.RinanId, RealmEnemyCity.XianglinId, Phase.AttackDianchong)) return;
+                    break;
+                }
+
+                case Phase.AttackDianchong:
+                {
+                    // 23차 확장(2026-09-19) — 상림을 함락한 뒤 이어지는
+                    // 교주 사슬의 다음 단계(TargetFrom("xianglin")).
+                    if (!AttackChainStep(RealmEnemyCity.XianglinId, RealmEnemyCity.DianchongId, Phase.QuizCorrect)) return;
                     break;
                 }
 

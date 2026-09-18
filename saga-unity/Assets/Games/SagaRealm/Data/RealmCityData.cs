@@ -278,6 +278,16 @@ namespace Saga.Realm.Data
             // land는 원작 그대로 plain. wall은 RealmEnemyCity.cs 영창
             // 정의(3400)와 맞춘다.
             ["yongchang"] = new RealmCityDef("yongchang", "영창", RealmLand.Plain, agri: 170, comm: 200, wall: 3400, pop: 60000, mapX: -8, mapY: 98),
+            // 51장 "대규모 콘텐츠" 23차 확장(2026-09-19) — 상림(xianglin)을
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계(원작 LINKS:
+            // xianglin-dianchong, "임읍국의 도성"). land는 원작 그대로
+            // plain. wall은 RealmEnemyCity.cs 전충 정의(3800)와 맞춘다.
+            ["dianchong"] = new RealmCityDef("dianchong", "전충", RealmLand.Plain, agri: 220, comm: 200, wall: 3800, pop: 72000, mapX: 40, mapY: 128),
+            // 23차 확장 — 영창(yongchang)을 함락한 뒤 이어지는 남중 사슬의
+            // 다음 단계(원작 LINKS: yongchang-shendu, "한서가 '신독'이라
+            // 적은 땅"). land는 원작 그대로 plain. wall은 RealmEnemyCity.cs
+            // 신독 정의(4000)와 맞춘다.
+            ["shendu"] = new RealmCityDef("shendu", "신독", RealmLand.Plain, agri: 220, comm: 240, wall: 4000, pop: 95000, mapX: -22, mapY: 100),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

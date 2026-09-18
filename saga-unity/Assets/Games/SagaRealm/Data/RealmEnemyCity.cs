@@ -207,6 +207,18 @@ namespace Saga.Realm.Data
     /// 155+15=170. wall은 원작 그대로(상림 3200·영창 3400),
     /// troops=wall×0.23 반올림(750·800). 둘 다 원작 land가 이미 plain이라
     /// 보정 불필요.
+    /// **51장 23차 확장(2026-09-19, 같은 날 "23차도 이어해")** — 22차가
+    /// 남긴 후보 중 한 갈래씩 골랐다. ① 상림→전충(원작 LINKS:
+    /// xianglin-dianchong — 상림의 다른 이웃 노용(luorong, 잎사귀 하나
+    /// 뿐)보다 전충을 골랐다, "임읍국의 도성"이라 landmark이고 비경·
+    /// 서권·구속 셋으로 더 뻗는 허브라 다음 확장 여지가 넓다 — 17차
+    /// 건녕을 고른 것과 같은 이유). ② 영창→신독(원작 LINKS: yongchang-
+    /// shendu, "한서가 '신독'이라 적은 땅" — 영창의 유일한 이웃, landmark,
+    /// 건타라·대하·목건타·사이 넷으로 더 뻗는 허브). 둘 다 정상적인 한
+    /// 단계 더 깊은 자식(부모의 train+15): 전충 250+15=265, 신독
+    /// 170+15=185. wall은 원작 그대로(전충 3800·신독 4000),
+    /// troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
+    /// 보정 불필요.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -287,6 +299,8 @@ namespace Saga.Realm.Data
         public const string YunnanId = "yunnan";
         public const string XianglinId = "xianglin";
         public const string YongchangId = "yongchang";
+        public const string DianchongId = "dianchong";
+        public const string ShenduId = "shendu";
 
         public static readonly string[] AllIds =
         {
@@ -295,6 +309,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
+            DianchongId, ShenduId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -486,6 +501,18 @@ namespace Saga.Realm.Data
             // 다음 단계. train은 운남 자신의 155+15=170. 신독(shendu)으로
             // 더 뻗을 수 있어 다음 확장 후보로 남긴다.
             [YongchangId] = new RealmEnemyCityDef(YongchangId, "영창", RealmLand.Plain, baseWall: 3400, baseTroops: 800, baseTrain: 170, baseTech: 100, attackFromCityId: "yunnan"),
+            // 전충은 상림(xianglin)과만 맞닿아 있다(원작 LINKS:
+            // xianglin-dianchong, "임읍국의 도성") — 23차 확장, 상림을
+            // 함락해야 열리는 교주 사슬의 다음 단계. train은 상림 자신의
+            // 250+15=265. 비경·서권·구속 셋으로 더 뻗는 허브라 다음 확장
+            // 후보로 남긴다. 상림의 다른 이웃(노용)은 이번엔 안 골랐다.
+            [DianchongId] = new RealmEnemyCityDef(DianchongId, "전충", RealmLand.Plain, baseWall: 3800, baseTroops: 850, baseTrain: 265, baseTech: 100, attackFromCityId: "xianglin"),
+            // 신독은 영창(yongchang)과만 맞닿아 있다(원작 LINKS:
+            // yongchang-shendu, "한서가 '신독'이라 적은 땅") — 23차 확장,
+            // 영창을 함락해야 열리는 남중 사슬의 다음 단계. train은 영창
+            // 자신의 170+15=185. 건타라·대하·목건타·사이 넷으로 더 뻗는
+            // 허브라 다음 확장 후보로 남긴다.
+            [ShenduId] = new RealmEnemyCityDef(ShenduId, "신독", RealmLand.Plain, baseWall: 4000, baseTroops: 900, baseTrain: 185, baseTech: 100, attackFromCityId: "yongchang"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

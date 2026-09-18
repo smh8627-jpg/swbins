@@ -86,6 +86,8 @@
     { "key": "city.yunnan", "value": "Yunnan" },
     { "key": "city.xianglin", "value": "Xianglin" },
     { "key": "city.yongchang", "value": "Yongchang" },
+    { "key": "city.dianchong", "value": "Dianchong" },
+    { "key": "city.shendu", "value": "Shendu" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },

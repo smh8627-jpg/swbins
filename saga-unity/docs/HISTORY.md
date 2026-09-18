@@ -7434,3 +7434,33 @@ Saga.EditorTools.PlaytestRealmSlice.Run`으로 불러 스스로 종료하게 함
 전혀 안 남는다). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM
 완료 요약(적국 37→39, 성 40→42)·22차 절 갱신·"다음 작업"(23차 후보:
 상림→노용/전충, 영창→신독)·테스트 상태·실기 확인 대기 전부 갱신.
+
+## REALM 51장 23차 확장 — 상림→전충·영창→신독 (2026-09-19, 같은 날 "23차도 이어해")
+
+22차가 남긴 후보 중 한 갈래씩 골랐다. ① 상림→전충(원작 LINKS:
+xianglin-dianchong, "임읍국의 도성" — 상림의 다른 이웃 노용(luorong)은
+잎사귀 하나뿐이라 이번엔 전충을 골랐다, 비경·서권·구속 셋으로 더
+뻗는 허브라 17차 건녕을 고른 것과 같은 이유). ② 영창→신독(원작
+LINKS: yongchang-shendu, "한서가 '신독'이라 적은 땅" — 영창의 유일한
+이웃, landmark, 건타라·대하·목건타·사이 넷으로 더 뻗는 허브). 둘 다
+정상적인 한 단계 더 깊은 자식(부모의 train+15): 전충 250+15=265,
+신독 170+15=185. wall은 원작 그대로(전충 3800·신독 4000),
+troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
+보정 불필요.
+
+- `RealmEnemyCity.cs` — `DianchongId`·`ShenduId` 신설, `AllIds`·
+  `Catalog`에 추가.
+- `RealmCityData.cs` — 같은 두 성 추가.
+- `PlaytestRealmSlice.cs` — 기존 `Phase.AttackYongchang`(→AttackShendu로
+  다음 단계 변경)·`Phase.AttackXianglin`(→AttackDianchong로 다음 단계
+  변경) 수정. 새 `Phase.AttackShendu`(영창→신독)·`Phase.AttackDianchong`
+  (상림→전충) 신설, 둘 다 목표 하나뿐이라 enemyId 생략. OK 로그 문구에
+  "chain-23rd(shendu+dianchong)" 추가.
+- 로컬라이제이션: `city.dianchong`/`city.shendu`(ko/en) 신설.
+
+컴파일 확인(`tools/unity-batch.sh` 경유, error CS 0건) + `PlaytestRealmSlice`
+3연속 OK(신독·전충 함락 로그 매 회 확인, `-executeMethod`만 쓰고 `-quit`
+안 줌). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM 완료 요약
+(적국 39→41, 성 42→44)·23차 절 갱신·"다음 작업"(24차 후보: 상림→노용,
+전충→비경/서권/구속 중 하나, 신독→건타라/대하/목건타/사이 중 하나)·
+테스트 상태·실기 확인 대기 전부 갱신.

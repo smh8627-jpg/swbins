@@ -86,6 +86,8 @@
     { "key": "city.yunnan", "value": "운남" },
     { "key": "city.xianglin", "value": "상림" },
     { "key": "city.yongchang", "value": "영창" },
+    { "key": "city.dianchong", "value": "전충" },
+    { "key": "city.shendu", "value": "신독" },
     { "key": "officer.sg_zhugeliang", "value": "현책" },
     { "key": "officer.kr_yisunsin", "value": "해장" },
     { "key": "officer.jp_musashi", "value": "이도인" },
