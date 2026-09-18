@@ -37,6 +37,9 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
     <button class="icon-btn" id="btn-more" title="도구 더 보기" aria-expanded="false"><span data-icon="ellipsis">⋯</span></button>
   </div>
   <div class="glass wallet" id="wallet"></div>
+  <!-- 목표판(§5.6): 지금 · 이번 세션 · 이번 주 세 줄. #top 그리드의 한 줄로 낀다
+       (따로 fixed 좌표를 안 잡아도 지갑 높이가 늘어나면 같이 밀린다). -->
+  <div class="glass" id="goals"></div>
 </div>
 
 <!-- 자동 순회 상태 -->
@@ -126,6 +129,7 @@ try{if(location.protocol!=='file:'&&/\/index\.html$/.test(location.pathname))his
 <script src="js/vendor.js"></script>
 <script src="js/forge.js"></script>
 <script src="js/quest.js"></script>
+<script src="js/goals.js"></script>
 <script src="js/auto.js"></script>
 <script src="js/icon.js"></script>
 <script src="js/ui.js"></script>

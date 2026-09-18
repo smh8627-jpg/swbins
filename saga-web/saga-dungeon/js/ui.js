@@ -71,7 +71,7 @@
 
   function init() {
     ['profile', 'wallet', 'camp', 'autobar', 'loadbar', 'dock', 'dock-more', 'sheet',
-     'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
+     'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast', 'goals'].forEach(function (id) {
       els[id] = $(id);
     });
     if (els.loadbar && !els.loadbar.firstChild) { els.loadbar.innerHTML = '<i></i>'; }
@@ -109,6 +109,12 @@
       if (openDetailRef) { closeDetail(); return; }
       if (openTab) { closeSheet(); }
     });
+
+    /* 목표판(§5.6) — 폰 폭에서는 첫 줄만 보이다가 탭하면 셋 다 펼쳐진다.
+       css 가 실제 접고 펴는 일을 한다(넓은 화면은 처음부터 셋 다 보인다). */
+    if (els.goals) {
+      els.goals.addEventListener('click', function () { els.goals.classList.toggle('open'); });
+    }
 
     /* 본영(첫 화면)의 버튼들 — 시트와 같은 data-act 규칙을 쓴다 */
     els.camp.addEventListener('click', function (e) {
@@ -158,6 +164,7 @@
         return;
       }
       if (act === 'enc-close') { encClose(); return; }
+      if (act === 'goals-card-close') { encClose(); return; }
       if (act === 'key-remap') {
         var DV0 = global.DG.dungeonView;
         if (DV0 && DV0.beginRemap) { DV0.beginRemap(b.getAttribute('data-action')); renderSheet(); }
@@ -483,7 +490,8 @@
     }
 
     core.on('toast', toast);
-    core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); });
+    core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); renderGoals(); });
+    core.on('goals:card', showGoalsCard);
     core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
@@ -491,7 +499,7 @@
       checkDexComplete(p.cat);
     });
 
-    renderTop(); renderCamp();
+    renderTop(); renderCamp(); renderGoals();
   }
 
   /* ── 시트 ─────────────────────────────────────────────── */
@@ -643,6 +651,47 @@
       coin('🍖', core.fmt(core.save.items.feed), '사료', false, 'ham');
     /* 지갑은 값이 바뀔 때마다 다시 그려지므로 그릴 때마다 한 번 훑는다 */
     if (global.DG.icon) { global.DG.icon.sweep(els.wallet); }
+  }
+
+  /** 목표판(§5.6) — 지금·이번 세션·이번 주 세 줄. 폰에서는 첫 줄만 보이다가
+   *  탭하면 펼쳐진다(css .goals.open). */
+  function renderGoals() {
+    if (!els.goals) { return; }
+    var G = global.DG.goals;
+    if (!G) { return; }
+    var L = G.lines();
+    function row(icon, l) {
+      return '<div class="goal-row"><span class="gi">' + icon + '</span>' +
+        '<span class="gl">' + esc(l.label) + '</span>' +
+        '<span class="gp">' + l.progress + '/' + l.target + '</span></div>';
+    }
+    els.goals.innerHTML =
+      row('⏱️', L.now) + row('🎯', L.session) + row('📅', L.weekly);
+  }
+
+  /** 세션 카드 — 탈출·사망·마을 귀환 대신 이 판은 dungeon:end 하나로 셋을
+   *  다 잡는다(집에 오는 유일한 길이 굴혈에서 나오는 것뿐이라). 탭 닫기는
+   *  goals.js 가 조용히 세션만 마감하고 카드는 안 띄운다(볼 사람이 없다). */
+  function showGoalsCard(card) {
+    if (!card || card.reason === 'hidden') { return; }
+    var title = card.reason === 'leave' ? '🚪 던전에서 나왔다' : '💀 패퇴했다';
+    var html = '<div class="enc-card">' +
+      '<h3 style="margin:0 0 4px;font-size:18px">' + title + '</h3>' +
+      '<small class="muted">제' + card.floor + '층까지</small>' +
+      '<div class="sec">';
+    if (card.reason === 'leave') {
+      html += '<div>💰 금 ' + (card.gold >= 0 ? '+' : '') + core.fmt(card.gold) + '</div>' +
+        '<div>📦 장비 ' + (card.items || 0) + '점</div>';
+    } else {
+      html += '<div>💰 잃은 금 ' + core.fmt(card.lostGold || 0) + '</div>' +
+        '<div>📦 잃은 장비 ' + (card.lostItems || 0) + '점</div>';
+    }
+    html += '<div>🏅 공적 +' + (card.feat || 0) + '</div>' +
+      '<div>📖 도감 ' + card.dexPct + '%</div>' +
+      '</div>' +
+      '<div class="sec"><h4>다음 할 것</h4><div>' + esc(card.next) + '</div></div>' +
+      '<button class="btn primary wide" data-act="goals-card-close">확인</button></div>';
+    encOpen(html);
   }
 
   /**

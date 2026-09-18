@@ -65,6 +65,15 @@
       ai: {                               // 사관(AI) 사용 기록 · 길조 (ai.js)
         spent: 0, calls: 0, log: [], buff: null
       },
+      /* 목표판(§5.6) — 실제 자리는 js/goals.js 의 S() 가 지연 초기화한다.
+         여기 있는 건 새 세이브의 기본 모양일 뿐(mergeDeep 이 옛 세이브에 채운다). */
+      goals: {
+        counts: {},
+        now: { idx: 0, base: 0 },
+        session: { idx: 0, base: 0, start: Date.now(), gold0: 120, feat0: 0 },
+        weekly: { week: null, base: {}, bundleDone: {}, claimed: false, poolIdx: 0, poolBase: 0 },
+        daily: { date: null, base: {}, bundleDone: {}, claimed: false }
+      },
       settings: {
         mapStyle: 0, tilt: 1,
         mode: 'offline',                  // 'offline' | 'online' (net.js)

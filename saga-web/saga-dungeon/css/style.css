@@ -75,11 +75,13 @@ body.tilted #vignette {
 #top {
   position: fixed; top: 0; left: 0; right: 0; z-index: 10;
   display: grid; grid-template-columns: auto 1fr auto;
-  grid-template-areas: "profile . tools" "wallet wallet wallet";
+  grid-template-areas: "profile . tools" "wallet wallet wallet" "goals goals goals";
   gap: 10px; padding: calc(12px + var(--safe-t)) calc(12px + var(--safe-r)) 0 calc(12px + var(--safe-l));
   pointer-events: none;
 }
 #top > * { pointer-events: auto; }
+#goals { grid-area: goals; }
+#goals:empty { display: none; }
 
 .profile {
   grid-area: profile;
@@ -135,6 +137,19 @@ a.icon-btn { display: flex; align-items: center; justify-content: center; text-d
 }
 .coin span { font-size: 12.5px; }
 .coin.hi { background: var(--gold-soft); color: #ffd794; }
+
+/* 목표판(§5.6) — 지금 · 이번 세션 · 이번 주 세 줄 */
+#goals {
+  grid-area: goals; padding: 6px 10px; border-radius: 12px;
+  display: flex; flex-direction: column; gap: 3px; cursor: pointer;
+}
+.goal-row {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; white-space: nowrap;
+}
+.goal-row .gi { flex: 0 0 auto; }
+.goal-row .gl { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; opacity: .9; }
+.goal-row .gp { flex: 0 0 auto; font-variant-numeric: tabular-nums; opacity: .7; }
 
 /* ── 좌하단 위젯 ──────────────────────────────────────── */
 #widgets {
@@ -562,9 +577,13 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
      (390px 실측: 넘침 3개 → 0개) */
   #top {
     grid-template-columns: 1fr;
-    grid-template-areas: "profile" "tools" "wallet";
+    grid-template-areas: "profile" "tools" "wallet" "goals";
     gap: 7px;
   }
+  /* 폰 폭에서는 목표판이 첫 줄(지금)만 보이다가 탭하면 셋 다 펼쳐진다 —
+     좁은 화면에서 세 줄을 늘 다 보이면 프로필·지갑을 밀어낸다. */
+  #goals .goal-row:nth-child(n+2) { display: none; }
+  #goals.open .goal-row:nth-child(n+2) { display: flex; }
   .profile { min-width: 0; overflow: hidden; }
   .p-title, .p-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tools { gap: 6px; justify-content: flex-end; }

@@ -24,6 +24,7 @@
     <button class="icon-btn" id="btn-reset">r</button>
   </div>
   <div class="glass wallet" id="wallet"></div>
+  <div class="glass" id="goals"></div>
 </div>
 <div id="autobar"></div><div id="camp"></div>
 <nav id="dock">
@@ -125,6 +126,7 @@ window.requestAnimationFrame = function () { return 0; };
 <script src="js/vendor.js"></script>
 <script src="js/forge.js"></script>
 <script src="js/quest.js"></script>
+<script src="js/goals.js"></script>
 <script src="js/auto.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/game.js"></script>
@@ -4802,6 +4804,53 @@ window.requestAnimationFrame = function () { return 0; };
         m.attack === 'Anim_Attack_Slash' && m.run === 'RunCycle' &&
         empty.idle === undefined && !!empty.alias &&
         ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
+    });
+
+    t('목표판 — 부팅 직후 세 줄이 비어 있지 않다 (PLAN §5.6)', function () {
+      var G = DG.goals;
+      if (!G) { return false; }
+      var L = G.lines();
+      var ok = L.now.label && L.now.target > 0 &&
+        L.session.label && L.session.target > 0 &&
+        L.weekly.label && L.weekly.target >= 0;
+      return ok && ('지금: ' + L.now.label + ' · 세션: ' + L.session.label + ' · 주간: ' + L.weekly.label);
+    });
+
+    t('목표판 — 하나를 채우면 같은 줄에 다음 목표가 즉시 들어온다 (PLAN §5.6)', function () {
+      var G = DG.goals;
+      var before = G.lines().now;
+      var st = G._state();
+      var pool = G._pools.now;
+      var cand = pool[st.now.idx % pool.length];
+      var i;
+      for (i = 0; i < cand.target; i++) { G._bump(cand.counter); }
+      var after = G.lines().now;
+      return before.label !== after.label && after.progress === 0 &&
+        ('전: ' + before.label + ' → 후: ' + after.label);
+    });
+
+    t('일일 — 날짜를 바꿔 부팅하면 일일 목표가 새로 뽑히고 done 이 비워진다 (PLAN §5.6)', function () {
+      var G = DG.goals;
+      G.lines();                                  // 세이브 자리부터 보장
+      var st = G._state();
+      st.daily.date = '옛날';
+      st.daily.bundleDone = { d_relic: true };
+      st.daily.claimed = true;
+      G.lines();                                  // S() 가 ensureDaily() 를 다시 굴린다
+      var st2 = G._state();
+      return st2.daily.date === G.todayKey() && !st2.daily.claimed &&
+        Object.keys(st2.daily.bundleDone).length === 0 &&
+        ('오늘 키 ' + st2.daily.date + ' · 묶음 done ' + Object.keys(st2.daily.bundleDone).length + '개');
+    });
+
+    t('카드 — 탈출 카드에 next 필드가 있다 (PLAN §5.6)', function () {
+      var got = null;
+      C.on('goals:card', function (c) { got = c; });
+      if (DN.active()) { DN.leave(); }
+      DN.enter({ floor: 1 });
+      DN.leave();
+      return !!(got && got.reason === 'leave' && typeof got.next === 'string' && got.next.length > 0) &&
+        ('next: ' + got.next);
     });
 
     t('런타임 에러 없음', function () {

@@ -125,6 +125,9 @@
     /* 행상 — 회차가 끝날 때마다 새 물건이 온다(vendor.js 가 dungeon:end 를 듣는다) */
     if (global.DG.vendor) { global.DG.vendor.init(); }
 
+    /* 목표판(§5.6) — vendor.js 와 같은 자리, 같은 이유로 여기서 켠다 */
+    if (global.DG.goals) { global.DG.goals.init(); }
+
     /* 던전이 끝나면 마을로 돌아온다.
        **dungeonView.init() 보다 먼저 걸어 둔다** — 화면도 dungeon:end 를 듣고
        스스로 내려가는데, 그때 마을이 이미 켜져 있어야 한 틱 검게 깜빡이지 않는다.
