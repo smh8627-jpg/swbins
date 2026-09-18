@@ -1493,6 +1493,20 @@ window.DG_NO_TUNE = true;
       return info.gathered === 4 && info.gold === 77 && ('채집 +' + info.gathered + ' · 금 +' + info.gold);
     });
 
+    t('침구 — 잠들면(sleepNow) 날짜는 그대로에 카드만 미리 뜬다', function () {
+      var s = V.state();
+      var keep = { day: s.day, dayMark: JSON.parse(JSON.stringify(s.dayMark || {})), dayLog: s.dayLog,
+        gold: C.save.player.gold };
+      V.snapshotDayMark();                      // 오늘 시작점을 지금으로 다시 박는다
+      C.save.player.gold += 55;
+      var dayBefore = s.day;
+      V.sleepNow();
+      var dayAfter = s.day, pending = V.dayLogPending(), info = V.dayLogInfo();
+      s.day = keep.day; s.dayMark = keep.dayMark; s.dayLog = keep.dayLog; C.save.player.gold = keep.gold;
+      return dayBefore === dayAfter && pending && !!info && info.gold === 55 &&
+        ('날짜 그대로(' + dayAfter + ') · 카드 금 +' + info.gold);
+    });
+
     /* ── 자동 마을살이 ────────────────────────────────── */
 
     t('자동 — 켜고 끈 상태가 세이브에 남는다', function () {

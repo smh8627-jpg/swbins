@@ -1303,6 +1303,18 @@
     };
   }
 
+  /**
+   * §5.1 트리거 ① — 침구(요) 상호작용 "오늘을 마친다".
+   * **`rollDay()`를 부르지 않는다**(실시간 규칙, PLAN §5.1) — 날짜·과제·
+   * 마을은 그대로 두고, 지금까지 쌓인 값만 `buildDayLog()`로 미리 카드에
+   * 띄워 본다. 자정이 넘으면 `rollDay()`가 다시 온전한 하루치로 갈아 낸다.
+   */
+  function sleepNow() {
+    buildDayLog(st().day);
+    core.persist();
+    return { kind: 'sleep', text: '🛌 오늘을 돌아봅니다' };
+  }
+
   /** 화면이 보는 어제 요약 — 아직 안 보여줬으면 true */
   function dayLogPending() { var l = st().dayLog; return !!(l && !l.shown); }
   /** 오늘 첫 일과 미리보기 = "내일 한 가지" */
@@ -2222,7 +2234,7 @@
     /** 오늘의 일과판(§5.1) */
     taskList: taskList, weeklyTaskInfo: weeklyTaskInfo, checkTasks: checkTasks, counterOf: counterOf,
     /** 하루 마무리 카드(§5.2) */
-    dayLogPending: dayLogPending, dayLogInfo: dayLogInfo, dayLogSeen: dayLogSeen,
+    dayLogPending: dayLogPending, dayLogInfo: dayLogInfo, dayLogSeen: dayLogSeen, sleepNow: sleepNow,
     snapshotDayMark: snapshotDayMark,
     castLine: castLine, hookLine: hookLine, fishState: fishState,
     BITE_WINDOW: BITE_WINDOW,

@@ -181,6 +181,9 @@
       }
       if (act === 'v-do') {
         doInteract();
+      } else if (act === 'v-sleep') {
+        var sl = global.DG.village.sleepNow();
+        if (sl) { toast(sl.text); checkDayCard(); }
       } else if (act === 'v-sell') {
         var got = global.DG.village.sell(id, parseInt(b.getAttribute('data-n'), 10) || 1);
         if (got) { toast('🪙 +' + core.fmt(got)); }
@@ -700,11 +703,22 @@
     if (f.type === 'furn') {
       var fd = VD.furn(f.obj.key);
       key = 'fu|' + f.obj.key + '|' + Math.round(f.obj.x) + '|' + Math.round(f.obj.y);
-      html = '<div class="focus-card">' +
-        '<span class="fc-ico">🪑</span>' +
-        '<span class="fc-meta"><b>' + esc(fd ? fd.name : '가구') + '</b>' +
-          '<small class="muted">거두면 창고로 들어갑니다 — ' + core.actHint() + '</small></span>' +
-        '<button class="btn" data-act="v-do">거둔다</button></div>';
+      if (fd && fd.bed) {
+        /* §5.1 트리거 ① — 침구. 거두는 길도 남겨 두되(v-do), 잠드는 쪽을
+           기본으로 앞세운다. */
+        html = '<div class="focus-card">' +
+          '<span class="fc-ico">🛌</span>' +
+          '<span class="fc-meta"><b>' + esc(fd.name) + '</b>' +
+            '<small class="muted">오늘을 돌아봅니다 — ' + core.actHint() + '</small></span>' +
+          '<button class="btn primary" data-act="v-sleep">잠든다</button>' +
+          '<button class="btn ghost tiny" data-act="v-do">거둔다</button></div>';
+      } else {
+        html = '<div class="focus-card">' +
+          '<span class="fc-ico">🪑</span>' +
+          '<span class="fc-meta"><b>' + esc(fd ? fd.name : '가구') + '</b>' +
+            '<small class="muted">거두면 창고로 들어갑니다 — ' + core.actHint() + '</small></span>' +
+          '<button class="btn" data-act="v-do">거둔다</button></div>';
+      }
       if (key !== focusKey) { focusKey = key; els.focusbar.innerHTML = html; }
       els.focusbar.classList.add('show');
       return;

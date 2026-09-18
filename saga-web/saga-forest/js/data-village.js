@@ -531,6 +531,9 @@
 
   var FURNITURE = [
     { key: 'bangseok',  name: '방석',     price: 400,  set: 'anbang', form: 'cushion' },
+    /* 2026-09-18 — §5.1 침구 트리거(HANDOFF 참고): 안방에 이걸 놓아야
+       "오늘을 마친다" 상호작용이 생긴다. bed:true 가 그 표식이다. */
+    { key: 'yo',        name: '요',       price: 1000, set: 'anbang', form: 'bedding', bed: true },
     { key: 'hwabun',    name: '화분',     price: 700,  set: 'ddeul',  form: 'plant' },
     { key: 'deungjan',  name: '등잔',     price: 800,  set: 'anbang', form: 'lamp' },
     { key: 'soban',     name: '소반',     price: 900,  set: 'anbang', form: 'table' },

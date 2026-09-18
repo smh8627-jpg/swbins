@@ -2300,11 +2300,13 @@
       case 'lamp':     furnLamp(q.x, q.y, u, now); break;
       case 'plant':    furnPlant(q.x, q.y, u); break;
       case 'cushion':  furnCushion(q.x, q.y, u, set); break;
+      case 'bedding':  furnBedding(q.x, q.y, u, set); break;
       default:         furnGayageum(q.x, q.y, u); break;
     }
     if (focused) {
       ring(q.x, q.y + 2 * u, u * 0.8, 'rgba(255,206,92,.95)');
-      bubble(d.name + ' — 거둔다 [' + core.actHint() + ']', q.x, q.y - 52 * u, '#8a5a10', '#fff0c9');
+      var actLabel = d.bed ? '잠든다' : '거둔다';
+      bubble(d.name + ' — ' + actLabel + ' [' + core.actHint() + ']', q.x, q.y - 52 * u, '#8a5a10', '#fff0c9');
     }
   }
 
@@ -2480,6 +2482,19 @@
     ctx.moveTo(x - 13 * u, y - 3 * u); ctx.lineTo(x - 16 * u, y - 1 * u);
     ctx.moveTo(x + 13 * u, y - 3 * u); ctx.lineTo(x + 16 * u, y - 1 * u);
     ctx.stroke();
+  }
+
+  /** §5.1 침구(요) — 넓게 편 요 위에 개켜 둔 이불, 머리맡에 베개 */
+  function furnBedding(x, y, u, set) {
+    ctx.fillStyle = set.color;
+    roundRect(x - 20 * u, y - 9 * u, 40 * u, 11 * u, 4 * u);
+    ctx.fill();
+    ctx.fillStyle = '#f4ece0';                        /* 베개 */
+    roundRect(x - 20 * u, y - 16 * u, 13 * u, 8 * u, 2.5 * u);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';         /* 개켜 둔 이불 */
+    roundRect(x + 1 * u, y - 12 * u, 18 * u, 6 * u, 2 * u);
+    ctx.fill();
   }
 
   function furnGayageum(x, y, u) {

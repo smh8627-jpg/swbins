@@ -989,3 +989,38 @@ PLAN.md §10 일곱 질문을 Q1 순서부터 처리:
 **검증** — `node --check js/data-village.js` 통과. `bash tools/precheck.sh
 saga-web/saga-forest` → PRECHECK OK. `sw.js` `village-v0.62.0` →
 `village-v0.63.0`.
+
+## 2026-09-18 — §5.1 침구 트리거(①) 구현, Phase 1 마지막 셋 중 하나 닫음
+
+2026-09-17에 트리거 ②(자정 넘겨 첫 부팅)만 하고 미뤘던 트리거 ①(침구)을 마저
+지었다. 이 판에 "침구" 가구가 아예 없었던 게 미룬 이유였다.
+
+- `data-village.js`: `FURNITURE`에 안방 가구 "요"(`key: 'yo'`, `price: 1000`,
+  `bed: true`) 신설. 전방 진열(`shopToday()`)이 `VD.FURNITURE` 전체를 그대로
+  훑으므로 등록만으로 자동으로 팔린다.
+- `village.js`: `sleepNow()` 신설 — **`rollDay()`를 부르지 않는다**(PLAN
+  §5.1 "실시간 규칙" 그대로). `buildDayLog(s.day)`만 다시 굴려 지금까지
+  쌓인 값(채집·금·기증·마을 평가 변화)으로 카드를 미리 만든다. 날짜·과제·
+  마을 상태는 안 건드린다 — 자정이 지나면 `rollDay()`가 그때 다시 온전한
+  하루치로 갈아 낸다.
+- `ui.js`: 놓인 가구가 `bed`면 초점 카드가 "잠든다"(`v-sleep`, 기본)와
+  "거둔다"(`v-do`, 기존 그대로 유지 — 여전히 창고로 거둘 수 있다) 둘 다
+  보여준다. `v-sleep`은 `sleepNow()` 뒤 바로 `checkDayCard()`를 불러 다음
+  주기(tickRefresh)까지 안 기다리고 그 자리에서 카드가 뜬다.
+- `village-view.js`: 캔버스가 그리는 가구 도형에 `bedding` 케이스 추가
+  (`furnBedding` — 편 요 + 베개 + 개킨 이불), 포커스 말풍선도 `d.bed`면
+  "거둔다" 대신 "잠든다"로 갈린다(이 라벨은 캔버스가 직접 그리는 것이라
+  ui.js HTML 카드와 별개로 손대야 했다).
+- `_test.html`: "침구 — 잠들면(sleepNow) 날짜는 그대로에 카드만 미리 뜬다"
+  회귀 진단 1항목 추가 — 기존 "채집·금 변화" 테스트와 같은 요령(스냅샷 뒤
+  금만 올리고 확인, 끝나면 상태 복원).
+
+**검증** — `node --check` 4개 파일(data-village.js·village.js·ui.js·
+village-view.js) 전부 통과, `bash tools/precheck.sh saga-web/saga-forest`
+→ PRECHECK OK. `sw.js` `village-v0.63.0` → `village-v0.64.0`. **헤드리스
+확인은 안 함**(이 판 규칙 — `_test.html` RESULT·실제 화면은 사용자 실기
+몫). 특히 새로 그린 `furnBedding` 모양과 "요"를 실제로 사서 놓아 보는 것은
+사용자가 확인해야 한다.
+
+**남은 것** — Phase 1의 나머지 둘: §5.8② 평가 별 5(조건 공개·경고), §5.8①
+낚시 줌인(카메라 손대는 몫, 3D 파일을 봐야 한다).
