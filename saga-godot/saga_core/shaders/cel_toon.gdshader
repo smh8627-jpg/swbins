@@ -17,10 +17,13 @@ uniform float band_softness : hint_range(0.0, 1.0) = 0.08;
 uniform vec3 rim_color : source_color = vec3(1.0, 0.95, 0.85);
 uniform float rim_power : hint_range(0.5, 8.0) = 4.5;
 uniform float rim_strength : hint_range(0.0, 2.0) = 0.3;
+// PLAN 102-3 — combat_feel.gd ③ 피격 플래시가 이 uniform으로 흰색을 섞는다
+// (0=평소, 1=완전 흰색). saga_core/combat_feel.gd::_do_flash/_tick_flash 참고.
+uniform float hit_flash : hint_range(0.0, 1.0) = 0.0;
 
 void fragment() {
 	vec4 tex = texture(albedo_texture, UV);
-	ALBEDO = tex.rgb * albedo_tint.rgb;
+	ALBEDO = mix(tex.rgb * albedo_tint.rgb, vec3(1.0), hit_flash);
 	ALPHA = tex.a * albedo_tint.a;
 	ROUGHNESS = 1.0;
 }

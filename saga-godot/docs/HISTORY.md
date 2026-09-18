@@ -7376,3 +7376,11 @@ PROJECT_STATE.md` 참고. 요약:
 - sky 색(팔레트 기반)·color_correction LUT 텍스처는 103장 팔레트 JSON 이 아직 없어 보류.
 - 이 PC 에 Godot 실행 파일이 없어 4.7-stable win64 를 스크래치패드에 새로 받음(에디터+콘솔 exe 한 zip 에 둘 다 들어 있었음). 헤드리스 에디터 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과(md5 3회 동일·오류 0), `.import`/`project.godot` 잡음 없음.
 - 다음: 102-2 남은 항목(LUT·팔레트 sky)은 103 파이프라인 이후. "흰 옷 날아가는" 결함은 이 변경으로 잡힐 것으로 보이나 GUI 미확인 — 102-1 스케일(`fit_height`)·102-3 아웃라인 셰이더가 이어지는 순서, "톤 사람 승인"은 실기 확인 몰아서 목록에 추가.
+
+## 그래픽 1차 — 102-3 셰이더 배선 + 102-1 fit_height (2026-09-18)
+
+- `cel_toon.gdshader`에 `hit_flash` uniform 추가(0~1, ALBEDO를 흰색으로 mix). `combat_feel.gd::_do_flash/_tick_flash`가 이제 cel_toon 서피스 override 재질(Player·NPC)엔 이 uniform으로 플래시를 걸고, 아직 텍스처가 없는 단색 몬스터는 예전 `albedo_color` 근사를 그대로 유지(둘 다 자가진단 3회 통과).
+- 신규 `cel_outline.gdshader`(뒤집힌 헐, cull_front·unshaded, thickness 0.015·color (0.08,0.06,0.10)) — `cel_shader_apply.gd::_apply_one`이 cel_toon 재질의 `next_pass`로 자동으로 얹는다. 이 함수를 부르는 곳이 지금 Player·NPC뿐이라 대상 범위(102-3 "Player·NPC")가 자연히 맞는다. Enemy·채집물은 아직 이 재질 자체가 없어 이번엔 빠짐.
+- `glb_utils.gd::fit_height(node, target_height)` 신설 — **아직 아무 데도 안 부름**. 구현 중 실제 버그 하나 잡음: 트리 밖 노드의 `global_transform`은 Godot 4가 조용히 항등행렬로 반환한다(엔진 에러 로그, 크래시는 아님) — 자가진단(회전 자식 포함)으로 잡아 `_relative_transform()`(로컬 transform 직접 합성)으로 고쳤다.
+- **PLAN 105장 Q-h 신설**: 102-1 표(사람 1.7m)와 지금 승인받은 세 판(GO·DUNGEON·FOREST, 실측 키 3.4m 안팎으로 카메라·충돌·지역 크기가 이미 튜닝됨)이 정면충돌한다는 걸 발견 — fit_height를 실제 캐릭터에 연결하는 건 이 답이 나온 뒤로 미룸.
+- 헤드리스 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과·md5 불변, `.import`/`project.godot` 잡음 없음. 임시 자가진단(`_diag_celshader.gd`)은 커밋 전 지움.

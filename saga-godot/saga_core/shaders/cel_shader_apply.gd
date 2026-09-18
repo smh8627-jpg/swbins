@@ -8,6 +8,7 @@ extends RefCounted
 ## 비어 검게 나온다).
 
 const CEL_SHADER := preload("res://saga_core/shaders/cel_toon.gdshader")
+const OUTLINE_SHADER := preload("res://saga_core/shaders/cel_outline.gdshader")
 
 ## root 아래 모든 MeshInstance3D의 서피스 재질을 cel_toon 셰이더로 덮는다.
 ## 반환값은 적용된 서피스 개수.
@@ -38,6 +39,11 @@ static func _apply_one(mesh_instance: MeshInstance3D) -> int:
 		shader_mat.shader = CEL_SHADER
 		shader_mat.set_shader_parameter("albedo_texture", (original as BaseMaterial3D).albedo_texture)
 		shader_mat.set_shader_parameter("albedo_tint", (original as BaseMaterial3D).albedo_color)
+		## PLAN 102-3 아웃라인 — 뒤집힌 헐 셰이더를 next_pass로 얹는다.
+		## Player·NPC(이 함수를 부르는 곳)에만 자연히 걸린다.
+		var outline_mat := ShaderMaterial.new()
+		outline_mat.shader = OUTLINE_SHADER
+		shader_mat.next_pass = outline_mat
 		mesh_instance.set_surface_override_material(surface_index, shader_mat)
 		count += 1
 	return count

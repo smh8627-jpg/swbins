@@ -42,3 +42,50 @@ static func find_all_mesh_instances(node: Node) -> Array[MeshInstance3D]:
 	for c in node.get_children():
 		result.append_array(find_all_mesh_instances(c))
 	return result
+
+## PLAN 102-1 — 임포트 직후 이 한 줄로 실측 높이를 맞춘다(문 2.2m·층 3m와
+## 같은 스케일 표 기준, 사람 target_height 1.7m). node의 모든
+## MeshInstance3D를 훑어 node 기준(자신은 제외한) 결합 AABB를 구하고, 그
+## 높이가 target_height가 되게 node.scale을 한 번에 정한다 — 축마다
+## 다르게 늘리지 않는다(102-1 "균일 스케일" 원칙).
+##
+## `global_transform`은 안 쓴다 — 이 함수는 `scene.instantiate()` 직후,
+## 아직 트리에 안 붙은 상태로 부르는 게 정상 용법인데, Godot 4는 트리 밖
+## 노드의 `global_transform`을 조용히 항등행렬로 반환한다(엔진 에러 로그만
+## 남기고 계속 돈다 — 자가진단에서 실제로 잡아냈다). 그래서 `_relative_
+## transform()`으로 node까지의 로컬 transform만 직접 곱해 구한다.
+##
+## **아직 어디서도 호출하지 않는다.** 지금 다섯 판은 캐릭터마다 임의
+## 배율(플레이어·NPC 1.25배 등, 102-7 "스케일 뒤죽박죽")을 써 왔고, 그
+## 결과 실측 캐릭터 키가 이미 3.4m 안팎(카메라·충돌·지역 크기 전부 이
+## 키에 맞춰 튜닝됨 — GO/DUNGEON/FOREST는 사용자 실기 승인까지 받았다).
+## 여기서 1.7m로 바로 되돌리면 승인받은 세 판의 카메라 거리·충돌 반경·
+## 이동 체감이 한꺼번에 반토막 난다. 기존 배율을 이걸로 바꿔치기하는 건
+## PLAN 105장 Q-h(2026-09-18 신설)로 결정이 나거나 새 캐릭터를 붙일 때
+## 쓸 준비만 해 둔 것이다.
+static func fit_height(node: Node3D, target_height: float) -> void:
+	var combined := AABB()
+	var has_any := false
+	for mi in find_all_mesh_instances(node):
+		if mi.mesh == null:
+			continue
+		var xform := _relative_transform(node, mi)
+		var world_aabb: AABB = xform * mi.mesh.get_aabb()
+		combined = world_aabb if not has_any else combined.merge(world_aabb)
+		has_any = true
+	if not has_any or combined.size.y <= 0.0001:
+		push_warning("GLBUtils.fit_height: 메시를 찾지 못함 — %s" % node.name)
+		return
+	node.scale = Vector3.ONE * (target_height / combined.size.y)
+
+## descendant의 로컬 transform들을 ancestor 바로 아래 기준까지만
+## 곱해 합친다(ancestor 자신의 transform은 뺀다 — fit_height가 ancestor.
+## scale을 정하기 전 상태를 보려는 것이므로).
+static func _relative_transform(ancestor: Node, descendant: Node) -> Transform3D:
+	var xform := Transform3D.IDENTITY
+	var cur: Node = descendant
+	while cur != null and cur != ancestor:
+		if cur is Node3D:
+			xform = (cur as Node3D).transform * xform
+		cur = cur.get_parent()
+	return xform
