@@ -235,6 +235,23 @@
         DH.enterHorde();
         return;
       }
+      if (act === 'gate-normal') {
+        var DG1 = global.DG.dungeon, TG1 = global.DG.town;
+        encClose();
+        closeSheet();
+        if (TG1) { TG1.leave(); }
+        DG1.enter({ floor: 1 });
+        return;
+      }
+      if (act === 'gate-sigil') {
+        var DG2 = global.DG.dungeon, TG2 = global.DG.town;
+        var sid = b.getAttribute('data-id');
+        encClose();
+        closeSheet();
+        if (TG2) { TG2.leave(); }
+        if (!DG2.enterNightmare(sid)) { toast('⚠️ 그 부적을 쓸 수 없습니다'); }
+        return;
+      }
       if (act === 'field-merchant-buy') {
         var fmi = parseInt(b.getAttribute('data-idx'), 10);
         var row2 = fieldMerchantStock && fieldMerchantStock[fmi];
@@ -714,15 +731,25 @@
     /* 난입(§5.5) — "층" 이 아니라 "생존 시간"으로 읽는다. 완주(horde)든
        도중 사망(dead + hordeSecs)이든 부제줄은 같은 결이다. */
     var isHorde = card.hordeSecs != null;
+    /* 부적 던전(§5.3) — 완주(nightmare)·시간초과(nightmare-fail)·도중
+       사망(dead + nmTier) 셋 다 "층" 대신 "티어"로 읽는다. */
+    var isNm = card.nmTier != null;
     var title = card.reason === 'horde' ? '🏆 난입 완주!' :
-      (isHorde ? '💀 난입 · 쓰러졌다' : (card.reason === 'leave' ? '🚪 던전에서 나왔다' : '💀 패퇴했다'));
+      isHorde ? '💀 난입 · 쓰러졌다' :
+      card.reason === 'nightmare' ? '📜 부적 던전 완주!' :
+      card.nmFail ? '⏱️ 부적 던전 · 시간 초과' :
+      isNm ? '💀 부적 던전 · 쓰러졌다' :
+      card.reason === 'leave' ? '🚪 던전에서 나왔다' : '💀 패퇴했다';
     var sub = isHorde ? (Math.floor(card.hordeSecs / 60) + '분 ' + (card.hordeSecs % 60) + '초 생존') :
+      isNm ? ('티어 ' + card.nmTier + (card.nmNext ? ' · 다음 부적 획득' : '')) :
       ('제' + card.floor + '층까지');
     var html = '<div class="enc-card">' +
       '<h3 style="margin:0 0 4px;font-size:18px">' + title + '</h3>' +
       '<small class="muted">' + sub + '</small>' +
       '<div class="sec">';
-    if (card.reason === 'leave' || card.reason === 'horde') {
+    if (card.nmFail) {
+      html += '<div class="hint">시간을 못 맞춰 그 방까지의 노획물을 못 챙겼습니다 — 부적은 이미 썼습니다.</div>';
+    } else if (card.reason === 'leave' || card.reason === 'horde' || card.reason === 'nightmare') {
       html += '<div>💰 금 ' + (card.gold >= 0 ? '+' : '') + core.fmt(card.gold) + '</div>' +
         '<div>📦 장비 ' + (card.items || 0) + '점</div>';
     } else {
@@ -873,11 +900,13 @@
   }
 
   /**
-   * 굴혈(窟穴) 입구 — 원작의 던전 입구다. **고르는 창이 없다.**
-   * 밟으면 제1층부터 내려간다 — 깊은 데로 뛰어넘는 것은 역참의 일이다.
+   * 굴혈(窟穴) 입구 — 원작의 던전 입구다. 예전엔 "고르는 창이 없다" 고
+   * 적혀 있었다(제1층부터 바로 내려갔다) — §5.3(부적 던전, 2026-09-18)이
+   * 그 전제를 깼다. 이제 밟으면 일반/부적 중 고르는 카드가 한 장 뜬다.
+   * 깊은 층으로 뛰어넘는 것은 여전히 역참의 일이다.
    */
   function enterGate() {
-    var D = global.DG.dungeon, T = global.DG.town;
+    var D = global.DG.dungeon;
     if (D.fallen()) {
       toast('☠️ 결사로 스러진 판입니다 — 상단 👤 에서 새 이름으로');
       return;
@@ -886,10 +915,38 @@
       toast('⚠️ 부대가 없습니다 — 군교 ⚔️ 에게 먼저 가세요');
       return;
     }
-    encClose();
-    closeSheet();
-    if (T) { T.leave(); }
-    D.enter({ floor: 1 });
+    openGateChoice();
+  }
+
+  /** 일반 던전(제1층부터)과 부적 던전(§5.3, 가진 부적만큼) 중 고른다 */
+  function openGateChoice() {
+    var IT = global.DG.item;
+    var sigs = IT.sigils();
+    var html = '<div class="enc-card">' +
+      '<h3 style="margin:0 0 4px;font-size:18px">🕳️ 굴혈(窟穴)</h3>' +
+      '<small class="muted">어느 길로 내려갈지 고릅니다.</small>' +
+      '<button class="btn wide" style="margin-top:10px" data-act="gate-normal">' +
+      '🕳️ 일반 던전 · 제1층부터</button>';
+    if (sigs.length) {
+      /* 변형자는 부적 seed 로 결정적이라(§5.3) 쓰기 전에 미리 보여줄 수
+         있다 — 어떤 부적을 쓸지 고르는 데 그게 핵심 정보다. */
+      var DD2 = global.DG.dungeonData;
+      html += '<div class="sec"><h4>📜 부적 던전</h4>';
+      for (var i = 0; i < sigs.length; i++) {
+        var sg = sigs[i], preview = DD2 ? DD2.rollMods(sg.seed) : null;
+        var modTxt = preview ? preview.mods.map(function (k) {
+          var m = DD2.modByKey(k); return m ? m.emoji : '';
+        }).join(' ') : '';
+        html += '<button class="btn wide ghost" data-act="gate-sigil" data-id="' + sg.id + '" ' +
+          'style="text-align:left">티어 <b>' + sg.tier + '</b> 부적' +
+          (modTxt ? ' <span style="float:right">' + modTxt + '</span>' : '') + '</button>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div class="hint">부적이 없습니다 — 던전 제10층+ 보스나 난입(§5.5) 15분 완주에서 얻습니다.</div>';
+    }
+    html += '<button class="btn primary wide" data-act="enc-close">물러난다</button></div>';
+    encOpen(html);
   }
 
   /**

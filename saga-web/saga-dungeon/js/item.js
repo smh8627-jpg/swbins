@@ -33,6 +33,11 @@
     if (!s.gear.mats.gem) { s.gear.mats.gem = {}; }
     if (!s.gear.mats.rune) { s.gear.mats.rune = {}; }
     if (!s.gear.mats.jewel) { s.gear.mats.jewel = []; }
+    /* 부적(符籍, §5.3) — 주옥과 같은 결(낱개, id로 가리킨다)이지만 세공에
+       안 쓰인다(굴혈 앞에서 소모한다). `seed` 는 표시용 `id` 문자열과
+       별개인 정수 — `core.hash2(seed,…)` 가 문자열을 그대로 곱하면
+       NaN 이 나오므로 변형자를 결정적으로 굴리는 자리엔 이걸 쓴다. */
+    if (!s.gear.mats.sigil) { s.gear.mats.sigil = []; }
     return s.gear;
   }
 
@@ -326,6 +331,40 @@
   /** 주머니에서 뺀다 (박거나 버릴 때) */
   function removeJewel(id) {
     var list = jewels();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) { return list.splice(i, 1)[0]; }
+    }
+    return null;
+  }
+
+  /* ── 부적(符籍, §5.3) ────────────────────────────────────────
+   * 티어 10+ 보스·난입 완주(§5.5)에서 드랍한다. 굴혈 앞에서 하나를 써
+   * 나이트메어 던전에 들어간다 — 쓰면 사라진다(세공용 재료가 아니다).
+   */
+  var SIGIL_CAP = 20;
+
+  function sigils() { return gear().mats.sigil; }
+  function sigilCap() { return SIGIL_CAP; }
+
+  function sigilById(id) {
+    var list = sigils();
+    for (var i = 0; i < list.length; i++) { if (list[i].id === id) { return list[i]; } }
+    return null;
+  }
+
+  /** 부적 하나를 얻는다. 가득 찼으면(20) 조용히 못 넣는다(주옥과 같은 규칙 —
+   *  바닥에 흘리진 않는다, 어차피 소모품이라 "잃었다" 는 느낌이 덜하다). */
+  function addSigil(tier) {
+    if (sigils().length >= sigilCap()) { return { ok: false, reason: 'full' }; }
+    var n = gear().seq++;
+    var made = { id: 's' + n, seed: n, tier: core.clamp(Math.round(tier), 1, 10) };
+    sigils().push(made);
+    return { ok: true, sigil: made };
+  }
+
+  /** 굴혈 앞에서 쓴다(소모) — 못 찾으면 null */
+  function removeSigil(id) {
+    var list = sigils();
     for (var i = 0; i < list.length; i++) {
       if (list[i].id === id) { return list.splice(i, 1)[0]; }
     }
@@ -1190,6 +1229,9 @@
     addMat: addMat, matCount: matCount, matList: matList, effKor: effKor,
     /* 주옥 */
     jewels: jewels, jewelCap: jewelCap, jewelById: jewelById,
-    addJewel: addJewel, removeJewel: removeJewel
+    addJewel: addJewel, removeJewel: removeJewel,
+    /* 부적(§5.3) */
+    sigils: sigils, sigilCap: sigilCap, sigilById: sigilById,
+    addSigil: addSigil, removeSigil: removeSigil
   };
 })(window);

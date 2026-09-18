@@ -186,10 +186,10 @@
   /* ── 적 ───────────────────────────────────────────────── */
 
   function enemyHp(floor, boss) {
-    return Math.round(24 * Math.pow(1.26, floor - 1) * (boss ? 7 : 1) * mode().hp);
+    return Math.round(24 * Math.pow(1.26, floor - 1) * (boss ? 7 : 1) * mode().hp * nmMul());
   }
   function enemyDmg(floor, boss) {
-    return Math.round(5 * Math.pow(1.20, floor - 1) * (boss ? 2.2 : 1) * mode().dmg);
+    return Math.round(5 * Math.pow(1.20, floor - 1) * (boss ? 2.2 : 1) * mode().dmg * nmMul());
   }
 
   /**
@@ -282,6 +282,10 @@
     if (el && el.resist && el.resist[kind]) { n += el.resist[kind]; }
     /* 난도가 오르면 조금 더 버틴다 (원작에서 헬의 내성이 더 높은 그 감각) */
     n += (mode().resist || 0);
+    /* 부적 '수호' 변형자(§5.3) — 부적이 지정한 결에만 +40(applyElem이
+       kind 자리에 원소 키를 그대로 넘겨 온다, resistOf는 phys·chi 뿐
+       아니라 원소 키도 이미 받아 왔다) */
+    if (run && run.nightmare && run.nightmare.resistElem === kind) { n += 40; }
     return core.clamp(n, 0, RESIST_CAP);
   }
 
@@ -290,9 +294,11 @@
     return null;
   }
 
-  /** 이 층에서 정예가 나올 확률 — 깊을수록 잦다 */
+  /** 이 층에서 정예가 나올 확률 — 깊을수록 잦다. 부적 '군단' 변형자는
+   *  두 배(§5.3) — 마지막 방(정예 무리)은 forceElite 로 이 자리를 안 탄다. */
   function eliteChance(floor) {
-    return Math.min(0.30, 0.06 + floor * 0.012);
+    var base = Math.min(0.30, 0.06 + floor * 0.012);
+    return nmHasMod('elite2x') ? Math.min(0.6, base * 2) : base;
   }
 
   function spawnEnemy(floor, boss, opts) {
@@ -645,14 +651,31 @@
     }
     if (run) { return false; }
     var horde = !!opts.horde;
-    /* 난입(§5.5)은 층이 없다 — 지금까지 밟은 최고 층을 적 배율 기준으로만
-       빌린다(spawnEnemy 가 floor 인자를 요구해서다, 화면엔 안 보인다). */
-    var floor = horde ? Math.max(1, dstate().best || 1) : Math.max(1, Math.round(opts.floor || 1));
+    /* 부적(§5.3) — 굴혈 앞에서 쓸 부적 하나를 미리 고른다. 여기서 없으면
+       (남이 먼저 썼거나 id 오타) 아예 안 들어간다 — run을 만들기 전에
+       실패해야 이도 저도 아닌 상태가 안 생긴다. */
+    var IT0 = global.DG.item;
+    var sig = opts.sigilId && IT0 && IT0.sigilById ? IT0.sigilById(opts.sigilId) : null;
+    if (opts.sigilId && !sig) {
+      core.emit('toast', '⚠️ 그 부적을 찾을 수 없습니다');
+      return false;
+    }
+    var nmMods = sig ? DD.rollMods(sig.seed) : null;
+    /* 난입(§5.5)·부적(§5.3)은 층이 없다 — 지금까지 밟은 최고 층을 적 배율
+       기준으로만 빌린다(spawnEnemy 가 floor 인자를 요구해서다, 화면엔 안
+       보인다). 부적은 최소 10층부터(드랍 조건과 맞춘다). */
+    var floor = horde ? Math.max(1, dstate().best || 1) :
+      sig ? Math.max(10, dstate().best || 10) : Math.max(1, Math.round(opts.floor || 1));
     /* 난도는 들어갈 때 정해지고 회차 내내 바뀌지 않는다 */
     var md = modeOf(opts.mode || dstate().mode);
     if ((dstate().best || 0) < md.need) { md = MODES[0]; }
+    if (sig) { IT0.removeSigil(sig.id); }     // 여기서부터는 실패해도 되돌리지 않는다(원작도 소모품)
     run = {
       mode: horde ? 'horde' : md.key, horde: horde,
+      /* 부적(§5.3) — 없으면 null. `run.nightmare.roomT` 는 'timer' 변형자일
+         때만 뜻이 있다(없으면 그냥 안 줄어든 채로 논다). */
+      nightmare: sig ? { sigilId: sig.id, tier: sig.tier, mods: nmMods.mods,
+        resistElem: nmMods.resistElem, roomT: 75 } : null,
       floor: floor, startFloor: floor,
       boons: {}, choice: null, boonPicks: 0,   // 축복(§5.1) — 회차 전체 상한 8은 boonPicks로 센다
       hpMax: 0, hp: 0,
@@ -679,6 +702,9 @@
       dstate().horde = dstate().horde || { best: 0, runs: 0 };
       dstate().horde.runs += 1;
       core.log('⚔️ 난입(亂入) 시작', 'info');
+    } else if (sig) {
+      buildNightmareRoom();
+      core.log('📜 부적 던전 · 티어 ' + sig.tier + ' 진입', 'info');
     } else {
       buildFloor();
       dstate().runs += 1;
@@ -822,8 +848,10 @@
     core.gainFeat(feat, '난입 완주');
     var hs = dstate().horde || (dstate().horde = { best: 0, runs: 0 });
     if (secs > (hs.best || 0)) { hs.best = secs; }
-    /* 10분 이상이면 부적 1(PLAN 원문) — 부적 재료 자체가 §5.3(아직 미착수)
-       에서 신설되는 것이라 지금은 줄 자리가 없다. §5.3 착수 때 같이 잇는다. */
+    /* 10분 이상이면 부적 1(PLAN 원문, §5.3 착수로 이제 줄 자리가 생겼다) */
+    if (secs >= 600 && global.DG.item && global.DG.item.addSigil) {
+      global.DG.item.addSigil(1);
+    }
     var s = settleLoot('난입 완주');
     run = null;
     core.emit('dungeon:end', { reason: 'horde', floor: 0,
@@ -835,21 +863,117 @@
     return { secs: secs, gold: gold, feat: feat };
   }
 
+  /* ── 부적(符籍) 던전 — 나이트메어 티어(§5.3) ──────────────────
+   * 5방 고정(문·복도 구조는 그대로, `goRoom`/`makeDoors`를 같이 쓴다),
+   * 보스층 없이 마지막 방만 정예 무리. 적 배율·보상 배율은 티어(T)로,
+   * 변형자는 부적 seed 로 결정적이다(§5.3 진단 문안).
+   */
+  var NM_ROOM_TOTAL = 5;
+  var NM_ROOM_TIMER = 75;         // 'timer' 변형자일 때 방마다 이만큼(초)
+
+  function nmHasMod(key) { return !!(run && run.nightmare && run.nightmare.mods.indexOf(key) >= 0); }
+  /** 적 배율 — 1 + 0.35×T (§5.3 수치표, 진단이 이 형태를 그대로 잰다) */
+  function nmMul() { return (run && run.nightmare) ? 1 + 0.35 * run.nightmare.tier : 1; }
+  /** 보상 배율 — 티어분(1+0.25×T) × 변형자 '풍요'(있으면 1.5) */
+  function nmLootMul() {
+    if (!run || !run.nightmare) { return 1; }
+    var m = 1 + 0.25 * run.nightmare.tier;
+    if (nmHasMod('loot')) { m *= 1.5; }
+    return m;
+  }
+
+  /** 방마다 문은 하나뿐이다 — 5방 고정이라 상자방·사당방 같은 갈림길이
+   *  없다(makeDoors의 다양한 kind 는 이 회차엔 안 맞는다, PLAN "5방 고정"
+   *  이 뜻하는 대로 "가 볼 곳"이 아니라 "다음"만 있다). 마지막 방은
+   *  descend() 대신 endNightmareClear() 로 가게 kind 를 'stair' 로 둔다. */
+  function nmDoors(isLast) { return [{ kind: isLast ? 'stair' : 'fight', y: ROOM_H * 0.5 }]; }
+
+  function buildNightmareRoom() {
+    run.rooms = [];
+    run.roomIdx = 0;
+    run.roomTotal = NM_ROOM_TOTAL;
+    run.room = makeRoom('fight', run.floor, 0, NM_ROOM_TOTAL);
+    run.room.doors = nmDoors(false);
+    run.corridors = doorCorridors(run.room.doors);
+    run.player = makePlayer();
+    run.shots = [];
+    run.foeShots = [];
+    run.companion = spawnCompanion();
+    if (nmHasMod('timer')) { run.nightmare.roomT = NM_ROOM_TIMER; }
+  }
+
+  /** 방이 다 찼는데(5방) 시간 안에 못 끝냈다 — 노획물만 잃고 마을로 */
+  function endNightmareFail() {
+    if (!run || !run.nightmare) { return null; }
+    var tier = run.nightmare.tier;
+    core.log('⏱️ 부적 던전 · 티어 ' + tier + '에서 시간이 다 되어 실패했다', 'bad');
+    core.emit('toast', '⏱️ 시간 초과 — 부적 던전 실패');
+    run = null;
+    core.emit('dungeon:end', { reason: 'nightmare-fail', floor: 0, nightmare: { tier: tier } });
+    core.emit('changed');
+    core.persist();
+    return true;
+  }
+
+  /** 5방을 다 치웠다 — 노획물 확정 + 다음 티어 부적 60% */
+  function endNightmareClear() {
+    if (!run || !run.nightmare) { return null; }
+    var tier = run.nightmare.tier;
+    var s = settleLoot('부적 던전 완주');
+    core.gainFeat(4 + tier, '부적 던전 완주');
+    var nm = dstate();
+    if (tier > (nm.nmBest || 0)) { nm.nmBest = tier; }
+    var got = null;
+    if (tier < 10 && Math.random() < 0.6) {
+      var r = global.DG.item.addSigil(tier + 1);
+      if (r.ok) { got = r.sigil; }
+    }
+    run = null;
+    core.log('📜 부적 던전 완주 · 티어 ' + tier +
+      (got ? (' · 다음 부적(티어 ' + got.tier + ') 획득') : ''), 'good');
+    core.emit('toast', '📜 부적 던전 완주! 티어 ' + tier);
+    core.emit('dungeon:end', { reason: 'nightmare', floor: 0,
+      nightmare: { tier: tier, nextSigil: !!got }, loot: s });
+    core.emit('changed');
+    core.persist();
+    return { tier: tier, gotNext: !!got };
+  }
+
   /** 다음 방으로 */
   function goRoom(kind) {
     if (!run || !run.room.cleared) { return false; }
-    if (kind === 'stair') { return descend(); }
+    if (kind === 'stair') { return run.nightmare ? endNightmareClear() : descend(); }
     run.roomIdx += 1;
-    var isBoss = DD.isBossFloor(run.floor) && run.roomIdx >= run.roomTotal - 1;
-    run.room = makeRoom(isBoss ? 'boss' : kind, run.floor, run.roomIdx, run.roomTotal);
-    run.room.doors = makeDoors(run.floor, run.roomIdx, run.roomTotal);
+    var isLast = run.roomIdx >= run.roomTotal - 1;
+    if (run.nightmare) {
+      /* 마지막 방 — "정예 무리"(PLAN 원문). 일반 elite 방(하나만 정예)과
+         달리 방 전체를 정예로 채운다 — `spawnEnemy`의 forceElite 를 그대로
+         재사용해 스탯 계산(등급별 hp/dmg 배율)을 새로 안 만든다. */
+      run.room = makeRoom('fight', run.floor, run.roomIdx, run.roomTotal);
+      if (isLast) {
+        var packN = 4 + Math.min(3, Math.floor(run.nightmare.tier / 3));
+        run.room.enemies = [];
+        for (var pi = 0; pi < packN; pi++) {
+          run.room.enemies.push(spawnEnemy(run.floor, false, { forceElite: true }));
+        }
+        run.room.cleared = false;
+      }
+      run.room.doors = nmDoors(isLast);
+      run.nightmare.roomT = NM_ROOM_TIMER;
+    } else {
+      var isBoss = DD.isBossFloor(run.floor) && isLast;
+      run.room = makeRoom(isBoss ? 'boss' : kind, run.floor, run.roomIdx, run.roomTotal);
+      run.room.doors = makeDoors(run.floor, run.roomIdx, run.roomTotal);
+    }
     run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
     run.player.x = WALL + 40;
     run.player.y = ROOM_H * 0.5;
     if (run.companion) { run.companion.x = WALL + 70; run.companion.y = ROOM_H * 0.5 + 34; }
     target = null;
-    run.fieldSpawnCd = 4;
-    spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
+    if (!run.nightmare) {
+      run.fieldSpawnCd = 4;
+      spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
+    }
     core.emit('dungeon:room', run.room);
     return true;
   }
@@ -1127,6 +1251,9 @@
        (floor 는 적 배율용 대역값이다) 유품 층 번호가 엉뚱하게 겹칠 수
        있다. 최고 생존 기록만 남기고 간단히 끝낸다. */
     if (run.horde) { dieHorde(); return; }
+    /* 부적 던전(§5.3) 사망도 같은 이유(floor 대역값)로 결사·유품과 안
+       엮인다 — 실패로 끝내고 부적은 이미 굴혈에서 소모됐으니 그걸로 끝. */
+    if (run.nightmare) { dieNightmare(); return; }
     var lostGold = Math.round(run.loot.gold), lostItems = run.loot.items.length;
     var lostItemsArr = run.loot.items.slice();
     var floor = run.floor;
@@ -1169,6 +1296,23 @@
     core.emit('dungeon:end', { reason: 'dead', floor: 0,
       horde: { secs: secs }, lost: { gold: lostGold, items: lostItems } });
     core.emit('toast', '💀 난입 · ' + secs + '초 생존');
+    core.emit('changed');
+    core.persist();
+  }
+
+  /** 부적 던전(§5.3) 전용 사망 — 부적은 이미 굴혈에서 소모됐으니 되돌려
+   *  주지 않는다(원작 소모품 규칙 그대로). `dstate().nmBest`는 완주만
+   *  올린다(die는 실패지 기록이 아니다). */
+  function dieNightmare() {
+    var tier = run.nightmare.tier;
+    var lostGold = Math.round(run.loot.gold), lostItems = run.loot.items.length;
+    dstate().deaths = (dstate().deaths || 0) + 1;
+    core.log('💀 부적 던전 · 티어 ' + tier + '에서 쓰러졌다 (금 ' +
+      core.fmt(lostGold) + ' · 장비 ' + lostItems + '점)', 'bad');
+    run = null;
+    core.emit('dungeon:end', { reason: 'dead', floor: 0,
+      nightmare: { tier: tier }, lost: { gold: lostGold, items: lostItems } });
+    core.emit('toast', '💀 부적 던전 실패 · 티어 ' + tier);
     core.emit('changed');
     core.persist();
   }
@@ -1254,6 +1398,7 @@
     if (run.player.invuln > 0) { return; }        // 돌진 중에는 맞지 않는다
     amount = amount * (1 - boonVal('guardPct') / 100);
     if (el && el !== 'phys') { amount *= 1 - elemResOf(el) / 100; }
+    if (nmHasMod('glass')) { amount *= 1.5; }   // 부적 '유리대포' 변형자(§5.3) — 받는 피해도 는다
     amount = Math.max(1, amount);
     run.hp -= amount;
     run.player.hurt = 0.28;
@@ -2143,6 +2288,16 @@
         endHordeSurvive();
         if (!run) { return; }
       }
+    } else if (run.nightmare) {
+      /* 부적 던전(§5.3) — 들판 로머도 안 돈다(방 단위 구조 유지). '촉박'
+         변형자일 때만 방 시계가 뜻이 있다 — 아니면 roomT 는 그냥 안 줄어든다. */
+      if (nmHasMod('timer')) {
+        run.nightmare.roomT -= dt;
+        if (run.nightmare.roomT <= 0 && !run.room.cleared) {
+          endNightmareFail();
+          if (!run) { return; }
+        }
+      }
     } else {
       /* 필드 사냥 보충 — 들판을 걸어다니는 동안 로머가 상한 밑으로 떨어지면
          주기적으로 하나씩 채운다(PLAN 10절 "랜덤 필드 구조") */
@@ -2309,6 +2464,11 @@
       if (el && el.regen && en.hp < en.hpMax) {      // 되살아나는 — 피가 아문다
         en.hp = Math.min(en.hpMax, en.hp + en.hpMax * el.regen * dt);
       }
+      /* 부적 '재생' 변형자(§5.3) — 정예 접두 '되살아나는' 위와 같은 결이지만
+         전원(잡졸까지)에게 초당 1% */
+      if (nmHasMod('regen') && en.hp < en.hpMax) {
+        en.hp = Math.min(en.hpMax, en.hp + en.hpMax * 0.01 * dt);
+      }
       /* 독(毒) — 몇 초에 걸쳐 들어간다 */
       if (en.dots && en.dots.length) {
         for (var di2 = en.dots.length - 1; di2 >= 0; di2--) {
@@ -2326,7 +2486,8 @@
         chill = 1 - (en.slowMul || 0.45);
       }
       var espd = (62 + Math.min(40, run.floor * 1.5)) *
-                 (el && el.spd ? el.spd : 1) * chill;
+                 (el && el.spd ? el.spd : 1) * chill *
+                 (nmHasMod('speed') ? 1.3 : 1);   // 부적 '광란' 변형자(§5.3)
       /* 궁수·조총병은 붙지 않고 RANGED_STOP 거리에서 멈춘다 — 나머지는 그대로
          닿을 때까지 다가온다(옛 동작과 완전히 같다) */
       var lookW = en.ref && en.ref.look && en.ref.look.weapon;
@@ -2429,6 +2590,11 @@
       else if (roll < 0.62) { dropPotion(room, jr.x, jr.y); }
       else if (roll < 0.70) { dropMat(room, jr.x, jr.y, -10); }
       else if (roll < 0.74) { dropItem(room, jr.x, jr.y, -8); }
+      /* 부적 '매복' 변형자(§5.3) — 절반 확률로 항아리 자리에서 적이 튄다 */
+      if (nmHasMod('jar') && Math.random() < 0.5) {
+        room.enemies.push(spawnEnemy(run.floor, false, { spawned: true, x: jr.x, y: jr.y }));
+        core.emit('toast', '🏺 항아리에서 적이 튀어나왔다!');
+      }
     }
 
     /* 함정(spike) — 항아리처럼 한 번 깨지고 끝이 아니라, 벗어날 때까지
@@ -2716,6 +2882,7 @@
     /* §5.1 세계 축 — 부식(독+전자): 저항 -20 */
     if (hasEl('pois') && hasEl('emp') && hasWd('wd_pois_emp')) { res = Math.max(0, res - 20); }
     if (res > 0) { dmg *= 1 - res / 100; }
+    if (nmHasMod('glass')) { dmg *= 1.5; }   // 부적 '유리대포' 변형자(§5.3) — 주는 피해도 는다
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     e.hurt = 0.08;   /* §5.8① 피격 플래시 80ms(적 전용 — 플레이어 쪽 hurtTint 는 안 건드림) */
@@ -3134,12 +3301,17 @@
 
   function dropGold(room, x, y, mul) {
     var g = Math.round(5 * Math.pow(1.19, run.floor - 1) * mul * mode().gold *
-      (1 + boonVal('goldPct') / 100) * (1 + core.effect('goldPct') / 100));
+      (1 + boonVal('goldPct') / 100) * (1 + core.effect('goldPct') / 100) * nmLootMul());
     room.drops.push({ kind: 'gold', gold: g, x: jitter(x), y: jitter(y) });
   }
 
   function dropItem(room, x, y, bias) {
-    var it = global.DG.item.roll(run.floor + 1, { bias: (bias || 0) + mode().bias });
+    /* 부적 보상 배율(§5.3 nmLootMul)은 "물건 값" 보다 "등급 운"으로 더
+       느껴져서(수·비율이 아니라 하나짜리 드랍이라) bias 를 올리는 쪽으로
+       옮겨 실었다 — 배율 1.5배 = bias +20 정도로 어림했다(티어 1당 대략
+       그 정도 확률 차가 나는 값, rollTier 의 find 가중과 같은 형태). */
+    var b = (bias || 0) + mode().bias + Math.round((nmLootMul() - 1) * 40);
+    var it = global.DG.item.roll(run.floor + 1, { bias: b });
     room.drops.push({ kind: 'item', item: it, x: jitter(x), y: jitter(y) });
   }
 
@@ -3589,7 +3761,7 @@
     if (!run) {
       var d = dstate();
       return { active: false, best: d.best || 0, runs: d.runs || 0, kills: d.kills || 0, deaths: d.deaths || 0,
-                grave: d.grave || null, horde: d.horde || { best: 0, runs: 0 } };
+                grave: d.grave || null, horde: d.horde || { best: 0, runs: 0 }, nmBest: d.nmBest || 0 };
     }
     /* 네 칸 — 선두가 걸어 둔 무예. 빈 칸도 그대로 넘긴다(화면이 흐리게 그린다) */
     var skills = [], got = slotSkills();
@@ -3623,6 +3795,13 @@
       horde: run.horde ? {
         t: Math.round(run.hordeT), remain: Math.max(0, HORDE_DURATION - run.hordeT),
         wave: run.hordeWave, level: run.hordeLevel, enemies: run.room.enemies.length
+      } : null,
+      /* 부적 던전(§5.3) — 회차 중일 때만 채운다. mods 는 키 배열 그대로
+         내준다(화면이 DD.modByKey 로 이름·이모지를 붙인다). */
+      nightmare: run.nightmare ? {
+        tier: run.nightmare.tier, mods: run.nightmare.mods,
+        resistElem: run.nightmare.resistElem,
+        roomT: nmHasMod('timer') ? Math.max(0, run.nightmare.roomT) : null
       } : null,
       boonPicks: run.boonPicks || 0, boonMax: BOON_MAX_STACK,
       kills: run.kills, best: dstate().best || 0,
@@ -3703,6 +3882,12 @@
     HORDE_DURATION: HORDE_DURATION,
     /** 자가진단용 — 파도를 직접 굴려 본다(30초를 안 기다리고) */
     _spawnHordeWave: spawnHordeWave,
+    /** 부적 던전(§5.3) — `enter({sigilId})` 그대로도 되지만 이름을 하나
+     *  내준다(위 enterHorde와 같은 이유). */
+    enterNightmare: function (sigilId) { return enter({ sigilId: sigilId }); },
+    NM_ROOM_TOTAL: NM_ROOM_TOTAL, NM_ROOM_TIMER: NM_ROOM_TIMER,
+    /** 자가진단 전용 — 지금 회차의 변형자 판정을 직접 읽는다 */
+    _nmHasMod: nmHasMod, _nmMul: nmMul, _nmLootMul: nmLootMul,
     /** 마을 들판 방랑 상인(PLAN §60 후보 1) — town.js/ui.js가 독자 재고
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
     rollMerchantStock: rollMerchantStock,

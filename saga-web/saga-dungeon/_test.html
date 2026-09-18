@@ -587,6 +587,87 @@ window.requestAnimationFrame = function () { return 0; };
         ('fallen ' + fallen + ' · 유품 ' + grave + ' · 최고기록 ' + hs.best + '초');
     });
 
+    /* ── 부적(符籍) 던전 — 나이트메어 티어(PLAN §5.3, 2026-09-18) ────── */
+
+    t('부적 — 변형자는 부적 id 로 결정적이다(같은 부적 두 번 굴려 같음) (§5.3)', function () {
+      var DDx = DG.dungeonData;
+      var a = DDx.rollMods(777), b = DDx.rollMods(777);
+      var c = DDx.rollMods(778);
+      return JSON.stringify(a) === JSON.stringify(b) &&
+        JSON.stringify(a) !== JSON.stringify(c) &&
+        ('777 두 번 같음, 778 과는 다름 · mods ' + a.mods.join(','));
+    });
+
+    t('부적 — 티어 T 적 배율이 1+0.35T 다 (§5.3)', function () {
+      var r5 = IT.addSigil(5);
+      DN.enterNightmare(r5.sigil.id);
+      var mul = DN._nmMul();
+      DN.leave();
+      return Math.abs(mul - (1 + 0.35 * 5)) < 1e-9 && ('티어5 배율 ' + mul.toFixed(3));
+    });
+
+    t('부적 — 75초(촉박) 변형자는 시간이 다 되면 방을 실패로 끝낸다 (§5.3)', function () {
+      var r1 = IT.addSigil(2);
+      DN.enterNightmare(r1.sigil.id);
+      var raw = DN.raw();
+      raw.nightmare.mods = ['timer'];    // 진단은 변형자 종류를 강제해도 된다(다른 §5.x 진단과 같은 결)
+      raw.room.cleared = false;
+      raw.nightmare.roomT = 0.001;
+      DN.update(0.05);
+      var ended = !DN.active();
+      return ended && '시간 초과 → 회차 종료';
+    });
+
+    t('부적 — 클리어하면 티어 T+1 부적이 60% 문턱으로 나온다 (§5.3)', function () {
+      var origRandom = Math.random;
+      try {
+        var r1 = IT.addSigil(3);
+        DN.enterNightmare(r1.sigil.id);
+        DN.raw().room.cleared = true;
+        Math.random = function () { return 0.59; };   // 문턱 안쪽 — 반드시 나온다
+        var before1 = IT.sigils().length;
+        DN.goRoom('stair');
+        var gotIn = IT.sigils().length > before1;
+        Math.random = origRandom;
+
+        var r2 = IT.addSigil(3);
+        DN.enterNightmare(r2.sigil.id);
+        DN.raw().room.cleared = true;
+        Math.random = function () { return 0.61; };   // 문턱 밖 — 안 나온다
+        var before2 = IT.sigils().length;
+        DN.goRoom('stair');
+        var gotOut = IT.sigils().length > before2;
+
+        return gotIn && !gotOut &&
+          ('0.59→받음 ' + gotIn + ' · 0.61→안받음 ' + !gotOut);
+      } finally {
+        Math.random = origRandom;
+      }
+    });
+
+    t('부적 — 사망해도 결사 낙사·유품은 안 생기고, 클리어해야만 nmBest 가 오른다 (§5.3)', function () {
+      DN.state().grave = null;
+      var nmBestBefore = DN.state().nmBest || 0;
+      var r1 = IT.addSigil(4);
+      DN.enterNightmare(r1.sigil.id);
+      var raw = DN.raw();
+      raw.player.invuln = 0; raw.hp = 1;
+      DN._hurt(9999);
+      var grave1 = DN.state().grave;
+      var nmBestAfterDeath = DN.state().nmBest || 0;
+
+      var r2 = IT.addSigil(4);
+      DN.enterNightmare(r2.sigil.id);
+      raw = DN.raw();
+      raw.room.enemies.length = 0;
+      raw.room.cleared = true;
+      DN.goRoom('stair');
+      var nmBestAfterClear = DN.state().nmBest || 0;
+
+      return !grave1 && nmBestAfterDeath === nmBestBefore && nmBestAfterClear >= 4 &&
+        ('사망은 기록 그대로(' + nmBestAfterDeath + ') · 클리어 후 ' + nmBestAfterClear);
+    });
+
     t('탈출하면 노획물이 확정된다', function () {
       var raw = DN.raw();
       raw.loot.gold = 400;

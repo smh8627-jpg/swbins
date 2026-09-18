@@ -192,10 +192,51 @@
     { key: 'forage',   weight: 8 }     // 채집·낚시방(POI: Forage, PLAN 12절, 2026-08-30 추가) — 약초 셋 + 못 하나
   ];
 
+  /** 부적(符籍) 변형자(§5.3) — 나이트메어 던전에 얹힌다. 값은 dungeon.js
+   *  각 훅 자리(strike·resistOf·엔진 loop 등)가 `mods` 배열에 키가 있는지로
+   *  읽는다 — 여기는 이름·설명뿐이고 수치 자체는 이 판 규칙대로 dungeon.js
+   *  쪽에 있다(은사(BOONS)가 eff 를 들고, dungeon.js 가 읽기만 하는 것과는
+   *  반대 결이다 — 변형자 수치는 전투 코드 곳곳에 걸쳐 있어 한 곳에 모으는
+   *  이득이 없었다). */
+  var MODS = [
+    { key: 'speed',   name: '광란(狂亂)',       emoji: '💨', desc: '적 이동속도 +30%' },
+    { key: 'resist',  name: '수호(守護)',       emoji: '🛡️', desc: '적이 지정한 원소 결에 저항 +40%' },
+    { key: 'elite2x', name: '군단(軍團)',       emoji: '👥', desc: '정예가 두 배 자주 나온다' },
+    { key: 'loot',    name: '풍요(豊饒)',       emoji: '💰', desc: '노획물 +50%' },
+    { key: 'timer',   name: '촉박(促迫)',       emoji: '⏱️', desc: '방마다 75초 안에 끝내야 한다' },
+    { key: 'jar',     name: '매복(埋伏)',       emoji: '🏺', desc: '항아리를 깨면 적이 튀어나올 수 있다' },
+    { key: 'dark',    name: '암흑(暗黑)',       emoji: '🌑', desc: '시야가 좁아진다' },
+    { key: 'regen',   name: '재생(再生)',       emoji: '💚', desc: '적 체력이 초당 1% 아문다' },
+    { key: 'glass',   name: '유리대포(琉璃大砲)', emoji: '💎', desc: '주고받는 피해가 50%씩 는다' }
+  ];
+  var MOD_ELEMS = ['fire', 'cold', 'lit', 'pois', 'emp'];
+
+  function modByKey(k) {
+    for (var i = 0; i < MODS.length; i++) { if (MODS[i].key === k) { return MODS[i]; } }
+    return null;
+  }
+
+  /** 부적 id 로 변형자 2~3개를 결정적으로 뽑는다(PLAN §5.3 "core.hash2(부적
+   *  id) 로 결정적" — 같은 부적을 두 번 굴려도 같은 결과가 나와야 한다).
+   *  'resist' 가 뽑히면 지정할 원소도 같이 결정적으로 고른다. */
+  function rollMods(sigilId) {
+    var core = global.DG.core;
+    var n = core.hash2(sigilId, 90) < 0.5 ? 2 : 3;
+    var chosen = [], guard = 0;
+    while (chosen.length < n && guard < 30) {
+      var k = MODS[Math.floor(core.hash2(sigilId, 91 + chosen.length + guard) * MODS.length)].key;
+      guard++;
+      if (chosen.indexOf(k) < 0) { chosen.push(k); }
+    }
+    var resistElem = chosen.indexOf('resist') >= 0
+      ? MOD_ELEMS[Math.floor(core.hash2(sigilId, 95) * MOD_ELEMS.length)] : null;
+    return { mods: chosen, resistElem: resistElem };
+  }
+
   global.DG = global.DG || {};
   global.DG.dungeonData = {
-    THEMES: THEMES, BOONS: BOONS, ROOMS: ROOMS, JARS: JARS,
-    themeOf: themeOf, boonByKey: boonByKey,
+    THEMES: THEMES, BOONS: BOONS, ROOMS: ROOMS, JARS: JARS, MODS: MODS,
+    themeOf: themeOf, boonByKey: boonByKey, modByKey: modByKey, rollMods: rollMods,
     /** 층당 방 수 · 보스 주기 */
     roomsFor: function (floor) { return 4 + Math.min(5, Math.floor(floor / 3)); },
     isBossFloor: function (floor) { return floor % 3 === 0; }

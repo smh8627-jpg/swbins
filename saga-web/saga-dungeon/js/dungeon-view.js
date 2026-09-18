@@ -663,6 +663,30 @@
       setTip(false);
       return;
     }
+    /* 부적 던전(§5.3) — 층 대신 티어·변형자·(있으면) 방 시계를 말한다 */
+    if (st.nightmare) {
+      var kn = 'nm|' + st.nightmare.tier + '|' + st.room + '|' +
+        Math.ceil(st.nightmare.roomT || 0) + '|' + st.loot.gold;
+      if (kn === hudKey) { return; }
+      hudKey = kn;
+      var DDn = global.DG.dungeonData;
+      var modIcons = st.nightmare.mods.map(function (k2) {
+        var m = DDn && DDn.modByKey(k2);
+        return m ? '<span title="' + m.name + ' — ' + m.desc + '">' + m.emoji + '</span>' : '';
+      }).join(' ');
+      hud.innerHTML =
+        '<div class="dg-row1">' +
+          '<b class="dg-floor">📜 티어 ' + st.nightmare.tier + '</b>' +
+          '<span class="dg-theme">' + modIcons + '</span>' +
+          '<span class="dg-room">' + st.room + ' / ' + st.roomTotal + ' 방' +
+            (st.nightmare.roomT != null ? ' · ' + Math.ceil(st.nightmare.roomT) + 's' : '') +
+            (st.cleared ? ' · <b class="ok">정리됨</b>' : '') + '</span>' +
+          '<button class="btn tiny ghost dg-leave" data-act="leave" ' +
+            'title="지금까지 주운 것을 확정하고 나온다">🚪 탈출</button>' +
+        '</div>';
+      setTip(false);
+      return;
+    }
     setTip(false);
     var k = st.floor + '|' + st.room + '|' + st.loot.gold + '|' +
             st.loot.items + '|' + JSON.stringify(st.boons) + '|' + (st.cleared ? 1 : 0);
