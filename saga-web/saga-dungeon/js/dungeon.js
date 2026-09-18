@@ -85,6 +85,45 @@
     if (S) { S.play(k, o); }
   }
 
+  /* ── 손맛 2차(§5.8, 2026-09-18) — 설정 손잡이 ───────────────
+   * PLAN §5.8 "UI·조작" 은 딱 둘만 준다 — 화면 흔들림 0~2, 타격 정지
+   * on/off. 소리·플래시·숫자 팝은 이 손잡이의 대상이 아니다(소리는
+   * 이미 자기 on/off 가 있다, snd-toggle). */
+  function hitstopEnabled() {
+    var s = core.save && core.save.settings;
+    return !s || s.hitstop !== false;   // 기본 true
+  }
+  /* 화면 흔들림 배율(shakeMul)은 이 파일이 그림을 안 그려서 안 쓴다 —
+     `dungeon-view.js`·`fx3d.js` 가 각자 렌더 자리에서 `core.save.settings.shake`
+     를 직접 읽는다(같은 공식, 중복 정의). */
+
+  /* ── 타격음 3종 라운드로빈 + 무기 look 결(§5.8①) ────────────
+   * 콤보 수로 순서를 돌린다(같은 무기를 연달아 때려도 매번 같은 소리가
+   * 안 나게) — `run.combo` 는 strike() 가 이미 매 타격마다 올린다.
+   * 무기 look 은 sfx.js `play()` 의 opts.lpMul 로 저역통과 주파수만
+   * 밀어 밝고 어두운 인상을 가른다 — 도검·활은 위로(더 쨍하게), 둔기는
+   * 아래로(더 둔탁하게), 기공류(부채·지팡이·붓·병서)는 중간. */
+  var HIT_CUES = ['hit1', 'hit2', 'hit3'];
+  var WEAPON_LP_MUL = {
+    sword: 1.3, guandao: 1.15, axe: 1.1, halberd: 1.15, spear: 1.2,
+    club: 0.55,
+    bow: 1.35,
+    fan: 0.9, staff: 0.9, brush: 0.9, scroll: 0.9
+  };
+  function hitSfx() {
+    var idx = (run.combo || 0) % HIT_CUES.length;
+    var IT = global.DG.item, w = IT ? IT.equipped(leadId()).weapon : null;
+    var look = (w && !IT.isBroken(w)) ? ((IT.baseOf(w) || {}).look) : null;
+    sfx(HIT_CUES[idx], { lpMul: WEAPON_LP_MUL[look] || 1 });
+  }
+
+  /** §5.8③ 성장 가시화 — 지금 무기 등급(0~4, 없으면 -1). `data-item.js`
+   *  `TIERS` 인덱스 그대로(3=보물·4=전설, §5.1 카드 테두리색과 같은 표). */
+  function weaponTierOf() {
+    var IT = global.DG.item, w = IT ? IT.equipped(leadId()).weapon : null;
+    return (w && !IT.isBroken(w)) ? IT.tierOf(w).key : -1;
+  }
+
   /* ── 은사 값 ─────────────────────────────────────────── */
 
   /**
@@ -216,6 +255,10 @@
    *  배합을 강제한다. `null`이면 해제(실제 장비 값으로 되돌아간다). 시각·
    *  장비 의존 값을 진단에서 붙드는 다른 판의 `weather.force()`와 같은 결. */
   var forcedElemDmg = null;
+  /** 자가진단 전용(§5.8① hitstop 3단 검증, 2026-09-18) — 크리 여부를
+   *  강제한다. `null`이면 해제(실제 확률로 되돌아간다). 위 `forcedElemDmg`
+   *  와 같은 결 — 크리는 `Math.random()` 이라 결정적 진단이 안 됐다. */
+  var forcedCrit = null;
   /** 지금 무기에 박힌 원소 피해 { fire: n, … } */
   function elemDmgOf() {
     if (forcedElemDmg) { return forcedElemDmg; }
@@ -620,6 +663,7 @@
       fieldTreasureCd: 90,                 // 필드 보물 조우 재확인 주기(초) — PLAN §60 후보 1
       fieldMerchantCd: 60,                 // 필드 방랑 상인 재확인 주기(초) — PLAN §60 후보 1 나머지 절반
       hitstopT: 0,                        // 타격 정지(hitstop) 남은 초 — 2026-09-10 "전투가 심심하다"
+      slowT: 0,                           // §5.8② 저스트 회피 슬로우 남은 초(2026-09-18)
       combo: 0, comboT: 0,                // 연속 타격 수 · 끊기는 문턱(초)
       kills: 0, startedAt: Date.now(), dead: false
     };
@@ -1867,6 +1911,10 @@
        "전투가 심심하다 — 모션이 없어서 그런가"(사용자) 대응 — 새 애니메이션을
        더는 대신, 있는 모션(넉백·번쩍임·칼궤적)이 훨씬 묵직하게 느껴지게 한다. */
     if (run.hitstopT > 0) { run.hitstopT -= dt; dt *= 0.08; }
+    /* §5.8② 저스트 회피 슬로우(2026-09-18) — hitstop 처럼 "멎는" 게 아니라
+       0.2초 동안 조금 느리게(×0.4) 가는 보너스 창이다. hitstop 과 동시에
+       걸리면 hitstop 이 우선(더 짧고 강한 쪽이 이긴다 — else if). */
+    else if (run.slowT > 0) { run.slowT -= dt; dt *= 0.4; }
     /* 연속 타격(콤보) — 일정 시간 안에 다시 안 때리면 끊긴다(strike()가 갱신) */
     if (run.comboT > 0) {
       run.comboT -= dt;
@@ -2443,7 +2491,7 @@
     var hasEl = function (el) { return hasElemInHit(el, kind, edmg); };
     var dmg = atkOf() * (mul || 1) * (0.86 + Math.random() * 0.28);
     var critChance = boonVal('critPct') + core.effect('critPct');
-    var crit = Math.random() * 100 < critChance;
+    var crit = forcedCrit !== null ? forcedCrit : (Math.random() * 100 < critChance);
     /* §5.1 세계 축 — 뇌빙(빙+뇌): 슬로우된 적에게 뇌 결이 닿으면 반드시 크리 */
     if (!crit && e.slow > 0 && hasEl('lit') && hasWd('wd_cold_lit')) { crit = true; }
     if (crit) { dmg *= 1.85; }
@@ -2464,7 +2512,7 @@
     if (res > 0) { dmg *= 1 - res / 100; }
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
-    e.hurt = 0.2;
+    e.hurt = 0.08;   /* §5.8① 피격 플래시 80ms(적 전용 — 플레이어 쪽 hurtTint 는 안 건드림) */
     /* §5.1 세계 축 — 크리티컬 부가효과 둘 */
     if (crit && hasWd('wd_phys_cold') && hasEl('phys')) {
       e.slow = Math.max(e.slow || 0, 2); e.slowMul = 0.6;   // 빙인
@@ -2505,15 +2553,31 @@
     }
     fx.push({ t: 'hit', x: e.x, y: e.y - e.r, v: dmg, crit: crit, life: 0.6,
               resist: res >= 20 });
-    sfx(crit ? 'crit' : 'hit');
-
-    /* 타격 정지(hitstop) — update()가 dt를 확 줄여 몇 프레임 묵직하게 만든다.
-       크리티컬은 더 길게(Math.max라 짧은 값이 겹쳐도 안 줄어든다). */
-    run.hitstopT = Math.max(run.hitstopT || 0, crit ? 0.09 : 0.05);
+    /* §5.8③ 성장 가시화 — 보물(3) 이상 무기는 때릴 때마다 잔광, 전설(4)은
+       파티클(burst)도 하나 더 — 새 3D 지오메트리 없이 기존 fx 표만 재사용 */
+    var wTier = weaponTierOf();
+    if (wTier >= 3) {
+      fx.push({ t: 'trail', x: e.x, y: e.y - e.r * 0.4, life: wTier >= 4 ? 0.3 : 0.22,
+        color: wTier >= 4 ? '#c7a76c' : '#00c000' });
+    }
+    if (wTier >= 4) {
+      fx.push({ t: 'burst', x: e.x, y: e.y - e.r * 0.4, life: 0.3, color: '#c7a76c',
+        seed: Math.random() * 6.28 });
+    }
     /* 연속 타격(콤보) — COMBO_WINDOW 안에 다시 때리면 쌓인다(update()가 끊는다).
-       PLAN 15절 "필수: 콤보" — 3부터 화면에 띄운다(1·2는 콤보라 부르기 민망하다). */
+       PLAN 15절 "필수: 콤보" — 3부터 화면에 띄운다(1·2는 콤보라 부르기 민망하다).
+       §5.8① 타격음 라운드로빈이 이 값을 쓰므로 소리보다 먼저 올린다. */
     run.combo = (run.combo || 0) + 1;
     run.comboT = COMBO_WINDOW;
+    if (crit) { sfx('crit'); } else { hitSfx(); }
+
+    /* §5.8① 타격 정지(hitstop) — 잡졸 60ms·정예 90ms·크리 120ms(2026-09-18,
+       기존엔 크리·평타 둘뿐이었다). update()가 dt를 확 줄여 몇 프레임
+       묵직하게 만든다. `hitstop` 설정이 꺼져 있으면 아예 안 건다(멀미 배려). */
+    if (hitstopEnabled()) {
+      var hsMs = crit ? 120 : (e.elite ? 90 : 60);
+      run.hitstopT = Math.max(run.hitstopT || 0, hsMs / 1000);
+    }
     if (run.combo >= 3 && run.player) {
       fx.push({ t: 'get', x: run.player.x, y: run.player.y - P_R - 30,
         text: run.combo + ' 연속!', life: 0.5,
@@ -2581,7 +2645,12 @@
   function kill(e, kind, dmg) {
     run.kills += 1;
     dstate().kills = (dstate().kills || 0) + 1;
-    run.hitstopT = Math.max(run.hitstopT || 0, e.boss ? 0.18 : 0.11);   // 처치는 한 대 맞은 것보다 더 묵직하게
+    /* 처치는 한 대 맞은 것보다 더 묵직하게 — §5.8① 3단(잡졸/정예/크리)의
+       대상이 아니라("처치"는 그 셋과 다른 결의 이벤트) 값은 그대로 두고
+       설정 손잡이만 같이 탄다 */
+    if (hitstopEnabled()) {
+      run.hitstopT = Math.max(run.hitstopT || 0, e.boss ? 0.18 : 0.11);
+    }
     core.emit('dungeon:kill', { e: e, floor: run.floor });
     /* §5.1 세계 축 — 처치 트리거 3종(폭발·부패·저지, 전부 반경 80) */
     if (run.boons && kind) {
@@ -2661,6 +2730,21 @@
      "강공격"·"회피"에 정확히 대응한다. */
   var HEAVY_CD = 1.3, HEAVY_MUL = 2.6, HEAVY_KB = 26, HEAVY_RECOVER = 0.16;
   var DODGE_CD = 0.9, DODGE_SEC = 0.16, DODGE_SPD = 520, DODGE_INVULN = 0.22;
+  /* §5.8② 저스트 회피(2026-09-18) — 적 공격이 0.15초 안에 터질 때 회피하면
+     보너스. **보스 패턴(`en.slamWarn`)만** 예고(telegraph)가 있다 — 잡몹은
+     `en.cd<=0`이면 그 프레임에 바로 맞는 구조라 예고 자체가 없다. 잡몹까지
+     다루려면 전투 AI 전체에 새 예고 타이머를 얹어야 해 범위 밖으로 뒀다
+     (이번 구현이 스스로 내린 판단 — 사용자와 상의한 적 없다). */
+  var JUST_DODGE_WINDOW = 0.15, JUST_DODGE_SLOW = 0.2;
+  function justDodgeTarget() {
+    if (!run || !run.room) { return null; }
+    var list = run.room.enemies, i;
+    for (i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (e.hp > 0 && e.slamWarn > 0 && e.slamWarn <= JUST_DODGE_WINDOW) { return e; }
+    }
+    return null;
+  }
 
   /** 강공격 — 평타보다 훨씬 세고 크게 밀치지만, 감아 치는 동안(HEAVY_RECOVER)
    *  평타가 못 낀다(atkCd를 같이 밀어 둔다) 그리고 쿨다운이 있다.
@@ -2699,7 +2783,16 @@
     p.dodge = { t: DODGE_SEC, dx: ddx / dl, dy: ddy / dl };
     p.invuln = Math.max(p.invuln || 0, DODGE_INVULN);
     p.dodgeCd = DODGE_CD;
-    sfx('dash');
+    /* §5.8② 저스트 회피 — 창 안이면 콤보+3·슬로우 0.2초·다른 소리 */
+    var justE = justDodgeTarget();
+    if (justE) {
+      run.combo = (run.combo || 0) + 3;
+      run.comboT = COMBO_WINDOW;
+      run.slowT = Math.max(run.slowT || 0, JUST_DODGE_SLOW);
+      sfx('dodgeJust');
+    } else {
+      sfx('dash');
+    }
     return true;
   }
 
@@ -3384,6 +3477,7 @@
     _rollBoonChoice: rollBoonChoice,
     /** 자가진단 전용(§5.1) — 원소 배합을 강제한다(null이면 해제) */
     _forceElemDmg: function (v) { forcedElemDmg = v; },
+    _forceCrit: function (v) { forcedCrit = v; },
     buyMerchant: buyMerchant, leaveMerchant: leaveMerchant,
     /** 마을 들판 방랑 상인(PLAN §60 후보 1) — town.js/ui.js가 독자 재고
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */

@@ -102,7 +102,7 @@
     if (f.t === 'elem') { return hexOf(f.color, 0xffffff); }
     if (f.t === 'get') { return hexOf(f.color, 0xf0c45a); }
     if (f.foe) { return 0xff7878; }
-    if (f.crit) { return 0xffdc78; }
+    if (f.crit) { return 0xff8c3c; }   /* §5.8① 크리 숫자는 뚜렷한 주황(2026-09-18, 옛 0xffdc78 은 노랑에 가까웠다) */
     if (f.resist) { return 0x9696a0; }
     return 0xffffff;
   }
@@ -128,7 +128,7 @@
       return {
         kind: 'num', hex: numHex(f), alpha: a, k: k,
         text: textOf(f),
-        size: f.crit ? 26 : (f.t === 'elem' ? 17 : 20),
+        size: f.crit ? 28 : (f.t === 'elem' ? 17 : 20),   /* §5.8① 크리 1.4배(20×1.4=28, 2026-09-18) */
         rise: 34 + (fu - f.life) * (f.t === 'elem' ? 40 : 46),
         glow: !!f.crit
       };
@@ -189,19 +189,29 @@
     return null;
   }
 
+  /** §5.8① 화면 흔들림 배율(0~2, 기본 1) — PLAN "UI·조작" 손잡이. 0 이면
+   *  이 함수가 부르는 모든 흔들림이 0으로 죽는다(끈 것처럼 보인다). */
+  function shakeMul() {
+    var s = core.save && core.save.settings;
+    var v = s && typeof s.shake === 'number' ? s.shake : 1;
+    return Math.max(0, Math.min(2, v));
+  }
+
   /**
    * 이 이벤트가 화면을 얼마나 흔드나. 2D 층이 쓰던 그 수치다 —
    * 격파 4(보스 12) · 내가 맞으면 6. 스킬 파문은 살짝만 얹는다.
+   * §5.8①(2026-09-18) — 내가 때릴 때(평타 1.5·크리 4)도 흔들리게 채웠다.
    */
   function shakeOf(f) {
     if (!f) { return 0; }
-    if (f.t === 'pop') { return f.boss ? 12 : 4; }
-    if (f.t === 'hit' && f.foe) { return 6; }
+    var m = shakeMul();
+    if (f.t === 'pop') { return (f.boss ? 12 : 4) * m; }
+    if (f.t === 'hit' && f.foe) { return 6 * m; }
     /* 2026-09-10 — "전투가 심심하다"(사용자) 대응. 여태 이쪽(적을 때린 쪽)엔
-       흔들림이 전혀 없었다 — 맞았을 때만(위 foe) 흔들렸다. 크리티컬만
-       살짝 얹는다(평타까지 흔들면 한 대 한 대가 다 시끄러워진다). */
-    if (f.t === 'hit' && f.crit) { return 3; }
-    if (f.t === 'ring') { return 3; }
+       흔들림이 전혀 없었다 — 맞았을 때만(위 foe) 흔들렸다. §5.8①로 평타도
+       살짝 흔들리게(1.5px 급) 됐다 — 크리는 그보다 뚜렷하게(4px 급). */
+    if (f.t === 'hit' && !f.foe) { return (f.crit ? 4 : 1.5) * m; }
+    if (f.t === 'ring') { return 3 * m; }
     return 0;
   }
 

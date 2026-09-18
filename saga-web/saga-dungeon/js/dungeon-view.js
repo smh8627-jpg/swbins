@@ -50,6 +50,12 @@
   }
   function beginRemap(action) { remapping = action; }
   var shake = 0;
+  /** §5.8① 화면 흔들림 배율(0~2, 기본 1) — 3D fx3d.js `shakeMul()` 과 같은 값 */
+  function shakeMul() {
+    var s = core.save && core.save.settings;
+    var v = s && typeof s.shake === 'number' ? s.shake : 1;
+    return Math.max(0, Math.min(2, v));
+  }
   var lastHp = 0;
   /* 바닥에 남는 핏자국 — 원작에서 방을 치우고 나면 남는 그 자국이다.
      판정과 무관한 순수 장식이라 세이브에도 run 에도 넣지 않는다(방이 바뀌면 사라진다). */
@@ -933,6 +939,12 @@
     ctx.clearRect(0, 0, m.cw, m.ch);
     ctx.save();
 
+    /* §5.8③ 콤보 12+ 화면 채도 +10%(2026-09-18) — ctx.restore() 가 되돌리므로
+       이 draw() 호출 안에서만 걸린다. 3D 는 후처리(post3d.js)에 채도 조절
+       패스 자체가 없어(톤매핑·블룸·비네트뿐) 이번엔 2D만 — 손대려면 셰이더
+       패스를 새로 추가해야 해 손맛(연출) 범위를 넘는다고 판단해 스킵했다. */
+    if ((run.combo || 0) >= 12) { ctx.filter = 'saturate(1.1)'; }
+
     if (shake > 0) {
       ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
       shake -= 0.7;
@@ -1312,12 +1324,19 @@
 
     /* 피격 시 화면이 붉어진다 + 흔들림 */
     var st = d().status();
+    var shMul = shakeMul();
     if (st.active) {
-      if (st.hp < lastHp) { shake = Math.max(shake, 6); }
+      if (st.hp < lastHp) { shake = Math.max(shake, 6 * shMul); }
       lastHp = st.hp;
       for (i = 0; i < fxs2.length; i++) {
         if (fxs2[i].t === 'pop' && fxs2[i].life > 0.42) {
-          shake = Math.max(shake, fxs2[i].boss ? 12 : 4);
+          shake = Math.max(shake, (fxs2[i].boss ? 12 : 4) * shMul);
+        }
+        /* §5.8① 내가 때릴 때도 흔든다(2026-09-18) — 평타 1.5px·크리 4px.
+           'hit'는 life 0.6 에서 태어나므로 pop 의 0.42(0.45-0.03) 와 같은
+           결로 "막 태어난 것만" 잡는다(0.6-0.03=0.57) */
+        if (fxs2[i].t === 'hit' && !fxs2[i].foe && fxs2[i].life > 0.57) {
+          shake = Math.max(shake, (fxs2[i].crit ? 4 : 1.5) * shMul);
         }
       }
       var low = st.hpMax ? st.hp / st.hpMax : 1;
@@ -1837,11 +1856,12 @@
     if (f.t === 'hit') {
       p = proj(m, f.x, f.y);
       var up = (0.6 - f.life) * 26;
-      ctx.font = (f.crit ? '700 17px ' : '600 13px ') + D2_FONT;
+      /* §5.8① 크리 숫자는 1.4배(13×1.4=18)·주황(2026-09-18, 3D fx3d.js 와 같은 색) */
+      ctx.font = (f.crit ? '700 18px ' : '600 13px ') + D2_FONT;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       /* 저항에 깎인 타격은 **흐린 잿빛**이다 — 숫자만 보고도 "안 통한다" 를 안다 */
       ctx.fillStyle = f.foe ? 'rgba(255,120,120,' + (f.life / 0.7) + ')'
-                            : (f.crit ? 'rgba(255,220,120,' + (f.life / 0.6) + ')'
+                            : (f.crit ? 'rgba(255,140,60,' + (f.life / 0.6) + ')'
                                       : (f.resist ? 'rgba(150,150,160,' + (f.life / 0.6) + ')'
                                                   : 'rgba(255,255,255,' + (f.life / 0.6) + ')'));
       ctx.fillText((f.crit ? '★' : '') + f.v, p.x, p.y - 24 - up);

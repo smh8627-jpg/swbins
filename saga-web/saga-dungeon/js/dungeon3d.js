@@ -2601,7 +2601,9 @@
         var eWalking = e.aggro && Math.hypot(p.x - e.x, p.y - e.y) > (e.r || 12) + (d().P_R || 13) + 8;
         var eAnim = e.hurt > 0 ? 'hit' : (!e.aggro ? 'idle' : (eWalking ? 'walk' : 'attack'));
         AS3.step(a.node.userData.mixerNode, { t: nowT, walking: eWalking, anim: eAnim });
-        AS3.flashAllMat(ensureFlash(a.node), e.hurt, 0.2);
+        /* §5.8① 피격 플래시 80ms(2026-09-18) — span 을 e.hurt 초기값(dungeon.js
+           strike() 의 0.08)과 맞춰야 최고 밝기(1.0)에 실제로 닿는다 */
+        AS3.flashAllMat(ensureFlash(a.node), e.hurt, 0.08);
         if (e.shade) { ensureShade(a.node); }
       }
     }

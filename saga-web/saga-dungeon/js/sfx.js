@@ -48,6 +48,16 @@
     hurt:  { gap: 0.15, l: [{ v: 'tone', f: 180, f2: 72, dur: 0.18, wave: 'sawtooth', gain: 0.17 }] },
     /* 회피(전용 회피 버튼) — 스치는 바람 소리 하나만. 2026-09-10 */
     dash:  { gap: 0.1,  l: [{ v: 'noise', dur: 0.12, lp: 1800, lp2: 600, gain: 0.14 }] },
+    /* 저스트 회피(§5.8②, 2026-09-18) — 보통 회피보다 한 톤 위로 스치고 짧은
+       "됐다" 종소리를 얹는다. 판정(0.15s 창)은 dungeon.js 가 한다 */
+    dodgeJust: { gap: 0.1, l: [{ v: 'noise', dur: 0.1, lp: 2400, lp2: 900, gain: 0.15 },
+                                { v: 'tone', f: 700, f2: 1400, dur: 0.12, wave: 'sine', gain: 0.08 }] },
+    /* 타격음 3종 라운드로빈(§5.8①, 2026-09-18) — dungeon.js 가 콤보 수로
+       순서를 돌리고, 무기 look 결은 play() 의 opts.lpMul 로 얹는다(밝을수록
+       도검·활, 둔할수록 둔기 — WEAPON_LP_MUL 표 참고) */
+    hit1:  { gap: 0.05, l: [{ v: 'noise', dur: 0.06,  lp: 1100, lp2: 380, gain: 0.15 }] },
+    hit2:  { gap: 0.05, l: [{ v: 'noise', dur: 0.08,  lp: 800,  lp2: 260, gain: 0.17 }] },
+    hit3:  { gap: 0.05, l: [{ v: 'noise', dur: 0.055, lp: 1400, lp2: 480, gain: 0.14 }] },
     /* 강공격 — 평타보다 굵고 낮게 짓누르는 소리. 2026-09-10 */
     heavy: { gap: 0.1,  l: [{ v: 'noise', dur: 0.16, lp: 700, lp2: 220, gain: 0.22 },
                             { v: 'tone', f: 140, f2: 60, dur: 0.15, wave: 'sawtooth', gain: 0.1 }] },
@@ -303,7 +313,8 @@
   }
 
   /** 잡음 한 줌 — 짧은 버퍼를 만들어 저역 통과로 깎는다 */
-  function playNoise(L, t0, mul) {
+  function playNoise(L, t0, mul, lpMul) {
+    lpMul = lpMul || 1;
     var n = Math.max(1, Math.floor(ctx.sampleRate * L.dur));
     var buf = ctx.createBuffer(1, n, ctx.sampleRate);
     var d = buf.getChannelData(0), i;
@@ -312,8 +323,8 @@
     src.buffer = buf;
     var f = ctx.createBiquadFilter();
     f.type = 'lowpass';
-    f.frequency.setValueAtTime(L.lp || 1000, t0);
-    if (L.lp2) { f.frequency.exponentialRampToValueAtTime(Math.max(40, L.lp2), t0 + L.dur); }
+    f.frequency.setValueAtTime((L.lp || 1000) * lpMul, t0);
+    if (L.lp2) { f.frequency.exponentialRampToValueAtTime(Math.max(40, L.lp2 * lpMul), t0 + L.dur); }
     var g = ctx.createGain();
     envelope(g, t0, L.dur, (L.gain || 0.1) * mul);
     src.connect(f); f.connect(g); g.connect(master);
@@ -357,13 +368,17 @@
     if (voices >= VOICE_MAX) { return false; }
 
     var mul = (opts && typeof opts.vol === 'number') ? opts.vol : 1;
+    /* §5.8① 무기 look 결 — 노이즈 켜의 저역통과 주파수만 배로 밀어 밝고
+       어두운 인상을 가른다(도검·활은 위로, 둔기는 아래로). 다른 30여 개
+       기존 큐는 opts.lpMul 을 안 주니 1(무변화) 그대로다 */
+    var lpMul = (opts && typeof opts.lpMul === 'number') ? opts.lpMul : 1;
     var i, L;
     try {
       voices++;
       for (i = 0; i < cue.l.length; i++) {
         L = cue.l[i];
         var at = now + (L.at || 0);
-        if (L.v === 'noise') { playNoise(L, at, mul); }
+        if (L.v === 'noise') { playNoise(L, at, mul, lpMul); }
         else if (L.v === 'chime') { playChime(L, at, mul); }
         else { playTone(L, at, mul); }
       }

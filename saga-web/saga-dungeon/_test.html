@@ -360,6 +360,91 @@ window.requestAnimationFrame = function () { return 0; };
       return registered && survives && '은사첩 등록 유지';
     });
 
+    t('손맛 — strike 한 번에 hitstop·흔들림·플래시·숫자·소리 다섯 이벤트가 모두 난다 (§5.8①)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.room.enemies.length = 0;
+      var e = DN._spawnEnemy(1, false, { spawned: true, x: 300, y: 180 });
+      e.hp = 99999;
+      raw.room.enemies.push(e);
+      raw.hitstopT = 0;
+      DN._forceCrit(false);
+      var S = DG.sfx; S._clear();
+      DN._strike(e, 1, 0, 'phys');
+      DN._forceCrit(null);
+      var hitstopMs = Math.round(raw.hitstopT * 1000);
+      var hitstopOn = hitstopMs > 0;
+      var flashOn = e.hurt === 0.08;
+      var numberOn = DN.fx().some(function (f) { return f.t === 'hit' && f.x === e.x && !f.foe; });
+      var tail = S._tail(1);
+      var soundOn = tail.length > 0 && tail[0].indexOf('hit') === 0;
+      var FX3 = DG.fx3d;
+      var shakeOn = FX3 ? FX3.shakeOf({ t: 'hit', crit: false, foe: false }) > 0 : true;
+      DN.leave();
+      return hitstopOn && flashOn && numberOn && soundOn && shakeOn &&
+        ('hitstop ' + hitstopMs + 'ms · 플래시 ' + e.hurt + ' · 숫자 ' + numberOn +
+         ' · 소리 ' + tail[0] + ' · 흔들림 ' + shakeOn);
+    });
+
+    t('손맛 — 크리 hitstop이 120ms다 (§5.8①)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.room.enemies.length = 0;
+      var e = DN._spawnEnemy(1, false, { spawned: true, x: 300, y: 180 });
+      e.hp = 99999;
+      raw.room.enemies.push(e);
+      raw.hitstopT = 0;
+      DN._forceCrit(true);
+      DN._strike(e, 1, 0, 'phys');
+      DN._forceCrit(null);
+      var ms = Math.round(raw.hitstopT * 1000);
+      DN.leave();
+      return ms === 120 && ('크리 hitstop ' + ms + 'ms');
+    });
+
+    t('손맛 — 타격음 셋이 순서대로 돈다 (§5.8①)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.room.enemies.length = 0;
+      var e = DN._spawnEnemy(1, false, { spawned: true, x: 300, y: 180 });
+      e.hp = 99999;
+      raw.room.enemies.push(e);
+      raw.combo = 0;
+      DN._forceCrit(false);
+      var S = DG.sfx, seq = [], i;
+      S._clear();
+      for (i = 0; i < 3; i++) {
+        DN._strike(e, 1, 0, 'phys');
+        seq.push(S._tail(1)[0]);
+      }
+      DN._forceCrit(null);
+      var allHit = seq.every(function (k) { return ['hit1', 'hit2', 'hit3'].indexOf(k) >= 0; });
+      var uniq = seq.filter(function (v, idx) { return seq.indexOf(v) === idx; });
+      DN.leave();
+      return allHit && uniq.length === 3 && ('순서: ' + seq.join('→'));
+    });
+
+    t('저스트 회피 — 0.15s 창 안 회피는 콤보 +3 이고 밖은 0 (§5.8②)', function () {
+      DN.enter({ floor: 1 });
+      var raw = DN.raw();
+      raw.room.enemies.length = 0;
+      var boss = DN._spawnEnemy(1, true, { spawned: true, x: 300, y: 180 });
+      raw.room.enemies.push(boss);
+      raw.player.dodgeCd = 0; raw.player.dodge = null; raw.player.dash = null;
+      raw.combo = 0; raw.slowT = 0;
+      boss.slamWarn = 0.1;                    // 창 안(0.15s 이내)
+      DN.doDodge();
+      var inCombo = raw.combo, inSlow = raw.slowT > 0;
+      raw.player.dodgeCd = 0; raw.player.dodge = null;
+      raw.combo = 0; raw.slowT = 0;
+      boss.slamWarn = 0.5;                    // 창 밖
+      DN.doDodge();
+      var outCombo = raw.combo;
+      DN.leave();
+      return inCombo === 3 && inSlow && outCombo === 0 &&
+        ('창 안 콤보 +' + inCombo + '(슬로우 ' + inSlow + ') · 창 밖 콤보 ' + outCombo);
+    });
+
     t('탈출하면 노획물이 확정된다', function () {
       var raw = DN.raw();
       raw.loot.gold = 400;

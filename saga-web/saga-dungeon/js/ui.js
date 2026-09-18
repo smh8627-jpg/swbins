@@ -139,6 +139,14 @@
         var lbl = el.nextElementSibling;
         if (lbl) { lbl.textContent = Math.round(v * 100) + '%'; }
       }
+      if (act === 'shake-set') {
+        var sv = parseFloat(el.value);
+        if (isNaN(sv)) { return; }
+        core.save.settings.shake = Math.max(0, Math.min(2, sv));
+        core.persist();
+        var slbl = el.nextElementSibling;
+        if (slbl) { slbl.textContent = '×' + core.save.settings.shake; }
+      }
     });
 
     /* 마을 창(역참·결사비)의 눌림도 시트와 같은 data-act 결을 따른다 */
@@ -183,6 +191,12 @@
       if (act === 'gq-set') {
         var D30 = global.DG.dungeon3d;
         if (D30 && D30.set) { D30.set('dg3d.quality', b.getAttribute('data-level')); renderSheet(); }
+        return;
+      }
+      if (act === 'hitstop-toggle') {
+        core.save.settings.hitstop = core.save.settings.hitstop === false;
+        core.persist();
+        renderSheet();
         return;
       }
       if (act === 'quest-reroll') { global.DG.quest.reroll(); return; }
@@ -495,6 +509,9 @@
     core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); renderGoals(); });
     core.on('goals:card', showGoalsCard);
     core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
+    core.on('dungeon:skill', function (v) {
+      if (typeof v === 'string' && v.indexOf('sig:') === 0) { sigCutin(v.slice(4)); }
+    });
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
@@ -540,6 +557,10 @@
       gq += '</div><div class="hint">낮음일수록 그림자를 끄고 화면 해상도를 줄여 가벼워집니다. ' +
         '자동은 실제 프레임 속도를 보고 스스로 오갑니다.</div>';
     }
+    /* §5.8① 손맛 손잡이(2026-09-18, 멀미 배려) — 화면 흔들림 0~2, 타격 정지 on/off */
+    var s = core.save.settings;
+    var shakeV = typeof s.shake === 'number' ? s.shake : 1;
+    var hitstopOn = s.hitstop !== false;
     return '<div class="hint">이동 키는 ⌨️ 키설정에 있습니다.</div>' +
       '<div class="key-row"><b>효과음</b>' +
         '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
@@ -547,7 +568,13 @@
         '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
         (on ? '' : ' disabled') + '>' +
         '<span class="key-cur">' + vol + '%</span></div>' +
-      vibRow + gq;
+      vibRow + gq +
+      '<div class="key-row"><b>화면 흔들림</b>' +
+        '<input type="range" min="0" max="2" step="0.5" value="' + shakeV + '" data-act="shake-set">' +
+        '<span class="key-cur">×' + shakeV + '</span></div>' +
+      '<div class="key-row"><b>타격 정지</b>' +
+        '<button data-act="hitstop-toggle">' + (hitstopOn ? '켜짐' : '꺼짐') + '</button></div>' +
+      '<div class="hint">멀미가 있으면 화면 흔들림을 0으로, 타격 정지를 꺼짐으로 두세요.</div>';
   }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고
@@ -694,6 +721,35 @@
       '<div class="sec"><h4>다음 할 것</h4><div>' + esc(card.next) + '</div></div>' +
       '<button class="btn primary wide" data-act="goals-card-close">확인</button></div>';
     encOpen(html);
+  }
+
+  /** §5.8③ 서명 무예 컷인(2026-09-18) — 발동 0.4초 동안 인물 초상을 잠깐
+   *  보여준다. `portrait3d.js`는 정지 이미지를 굽는 유틸일 뿐 애니메이션
+   *  API가 없어 재사용할 게 없었다 — 대신 기존 2D 초상(`sprite.portraitCard`,
+   *  §5.1 카드·도감이 이미 쓰는 것과 같은 함수)을 얹고 CSS 페이드만 준다.
+   *  2D·3D 어느 화면이든 같은 HUD 오버레이라 렌더러와 무관하게 여기 둔다. */
+  var sigCutinEl = null, sigCutinTimer = null;
+  function sigCutin(heroId) {
+    var S = global.DG.sprite;
+    var h = data.find(heroId);
+    if (!h || !S) { return; }
+    if (!sigCutinEl) {
+      sigCutinEl = document.createElement('div');
+      sigCutinEl.id = 'sig-cutin';
+      sigCutinEl.style.cssText = 'position:fixed;left:12px;bottom:120px;width:64px;height:74px;' +
+        'border-radius:8px;overflow:hidden;pointer-events:none;z-index:60;opacity:0;' +
+        'transition:opacity 0.12s ease-out;box-shadow:0 4px 16px rgba(0,0,0,.5)';
+      var img = document.createElement('img');
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      sigCutinEl.appendChild(img);
+      document.body.appendChild(sigCutinEl);
+    }
+    sigCutinEl.firstChild.src = S.portraitCard('hero', h, 128, 148);
+    sigCutinEl.style.opacity = '1';
+    if (sigCutinTimer) { global.clearTimeout(sigCutinTimer); }
+    sigCutinTimer = global.setTimeout(function () {
+      if (sigCutinEl) { sigCutinEl.style.opacity = '0'; }
+    }, 400);
   }
 
   /**
