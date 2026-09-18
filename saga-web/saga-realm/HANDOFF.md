@@ -1186,3 +1186,27 @@ PLAN.md §10 일곱 질문을 Q1 순서부터 처리:
 - Q7 도전 기록 공유: 로컬 최고 기록만(권장안) 채택, 공유 코드 문자열은 안 만듦.
 
 코드 변경 없음, PLAN.md §10 문구만 갱신.
+
+## 2026-09-18 — PLAN §7-2 QA 프리셋 마저 둘 추가(6·8 겨냥)
+
+코드만으로 닫을 수 있는 Phase 0 항목 정리 중, 사가국지 §7-2 의 "다음 차례"로
+남겨뒀던 QA 프리셋 둘을 그말에 추가했다(admin.js PRESETS):
+
+- ⏳ 노쇠·유물 확인: 설정 후 R.state().year 를 228로 직접 밀어(208+20) 로스터에
+  60/65/90세 문턱을 고루 걸고, OFF.equip() 으로 장수 셋에게 새 유물 3종
+  (itm_timeshard·itm_purifier·itm_boneseal)을 채운다.
+- 🕰️ 원정 사건 뻥튀기: core.setTune('war.journeyEventChance', 1) 로 올리고
+  WAR.canJourney/WAR.startJourney 로 갈 수 있는 가장 먼 성으로 원정을 보낸다 —
+  "한 달 진행"을 누르면 시간 뒤틀림 등 6종 사건 중 하나가 뜬다.
+
+조사 중 발견한 것 — 기존 "일기토 강제"·"원정 진행 중" 두 프리셋은 st.camps
+(진을 친 포위 상태, encamp() 와 같은 스키마)를 쓰고 있어 내가 만들려던
+"원정(journey) 중 사건"과는 다른 개념이었다 — 버그가 아니라 의도된 다른
+기능(도착 후 포위)이었다. 새 프리셋은 실제 "원정"(st.journeys,
+WAR.startJourney)을 써서 rollJourneyEvent()가 도는 사건을 겨눴다.
+
+**검증** — `node --check admin.js` 통과, `bash tools/precheck.sh
+saga-web/saga-realm` → PRECHECK OK. `sw.js` `realm-v1.26.1` →
+`realm-v1.27.0`. 프리셋 버튼 클릭 실제 확인은 사용자 실기 몫(특히 원정
+프리셋은 194년 지도 연결성에 따라 가장 먼 성이 1달거리일 수도 있어
+재시도가 필요할 수 있다).

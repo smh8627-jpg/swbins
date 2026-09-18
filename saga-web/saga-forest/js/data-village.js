@@ -434,8 +434,14 @@
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
+  /** 자가진단용 — 그날의 날씨를 억지로 고정한다. null 을 주면 다시 날짜 해시를 본다
+   *  (`town.js` `_setStar`·`turnip.js` `_setOpen` 과 같은 결의 진단용 구멍 —
+   *  `knob()` 은 자가진단이 안 읽으므로 별도로 둔다) */
+  var weatherOverride = null;
+
   /** 그날의 날씨 */
   function weatherOf(date, seasonKey) {
+    if (weatherOverride && WEATHERS[weatherOverride]) { return WEATHERS[weatherOverride]; }
     var k = knob('time.weather');
     if (k && WEATHERS[k]) { return WEATHERS[k]; }
     var dt = date || new Date();
@@ -1027,6 +1033,7 @@
     TASK_POOL: TASK_POOL, TASK_AXES: TASK_AXES, WEEKLY_POOL: WEEKLY_POOL, CAT_NAME: CAT_NAME,
     pickDayTasks: pickDayTasks, pickWeekTask: pickWeekTask, eventTaskOf: eventTaskOf,
     WEATHERS: WEATHERS, weather: weather, weatherOf: weatherOf, inWeather: inWeather,
+    _setWeather: function (v) { weatherOverride = v; },
     HOME_TIERS: HOME_TIERS, HOME_GRADES: HOME_GRADES,
     pick: pick, pickHybrid: pickHybrid, item: item, phaseOf: phaseOf,
     BEAUTY_GRADES: BEAUTY_GRADES,

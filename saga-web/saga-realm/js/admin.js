@@ -543,11 +543,12 @@
         st.camps.push(cp);
         cp.officers.forEach(function (id) { OFF.rec(id).camp = cp.id; });
       }],
-    /* SAGA-DESIGN §8 QA 프리셋(PLAN §7-2 "QA 프리셋", §7-1 실기 확인 목록의
-       예시 셋 그대로) — 게임을 열자마자 그 상황이 카메라 앞에 있게 만든다.
-       세 QA 프리셋은 실기 확인 8항목 중 1(3D 지도)·3(확장 지역)·4(전투 3D)·
-       5(괴물 지역)를 겨눈다. 2(지도 조작)·6(시장·원정 사건)·7(가명)·8(노쇠)는
-       아직 — 다음 차례(HANDOFF.md 참고). */
+    /* SAGA-DESIGN §8 QA 프리셋(PLAN §7-2 "QA 프리셋") — 게임을 열자마자 그
+       상황이 카메라 앞에 있게 만든다. 다섯 QA 프리셋이 실기 확인 8항목 중
+       1(3D 지도)·3(확장 지역)·4(전투 3D)·5(괴물 지역)·6(시장·원정 사건·유물)·
+       8(노쇠)을 겨눈다. 2(지도 조작)·7(가명)은 상태를 안 타는 항목이라
+       프리셋 없이 아무 판이나 열어서 보면 된다(2026-09-18, 아래 두 프리셋
+       추가로 마저 닫음 — HANDOFF.md 참고). */
     ['🌊 해협 접경', '194년 · 인형이 소패 대신 김해·대마도만 쥔 판 — 3D 지도 카메라가 열자마자 해협을 향한다',
       function () {
         R.setup('bei', '194');
@@ -586,6 +587,34 @@
         };
         st.camps.push(cp);
         OFF.rec(mine.id).camp = cp.id;
+      }],
+    /* 2026-09-18 — §7-1 나머지 중 6(유물 카드·시장·원정 사건)·8(노쇠 문턱)을
+       마저 겨눈다. 시장 💰판다·🌾산다 버튼은 위 "재정 · 공적 넉넉" 프리셋의
+       금 100만으로 이미 눌러볼 수 있어 새로 안 만들었다. 2(지도 조작)·
+       7(가명)은 상태를 안 타는 항목이라 프리셋이 필요 없다 — 아무 판이나
+       열어서 손 감각·이름 표기만 보면 된다. */
+    ['⏳ 노쇠 · 유물 확인', '208년에서 20년을 더 밀어(228년) 로스터에 60/65/90세 문턱이 고루 걸리게, 새 유물 3종(균열·폐허·묘역)을 장수 셋에게 채워 카드로 보임',
+      function () {
+        R.setup('bei', '208');
+        R.state().year = 228;
+        var mine = OFF.ofForce('bei');
+        ['itm_timeshard', 'itm_purifier', 'itm_boneseal'].forEach(function (itemId, i) {
+          if (mine[i]) { OFF.equip(mine[i].id, itemId); }
+        });
+      }],
+    ['🕰️ 원정 사건 뻥튀기', '194년 · 인형 — 원정 사건 확률을 100%로 올리고 갈 수 있는 가장 먼 성으로 원정을 보낸다. "한 달 진행"을 눌러 시간 뒤틀림·유물 발견 등 6종 사건을 본다(1달짜리 길이 걸리면 사건 없이 바로 도착 — 그땐 다시 눌러 다른 목적지로)',
+      function () {
+        R.setup('bei', '194');
+        C.setTune('war.journeyEventChance', 1);
+        var mine = OFF.ofForce('bei');
+        if (!mine.length) { return; }
+        var farthest = null, bestMonths = 0;
+        CD.CITIES.forEach(function (d) {
+          var chk = WAR.canJourney('xiaopei', d.id, 2000);
+          if (chk.ok && chk.months > bestMonths) { bestMonths = chk.months; farthest = d.id; }
+        });
+        if (!farthest) { return; }
+        WAR.startJourney('xiaopei', farthest, [mine[0].id], 2000);
       }]
   ];
 

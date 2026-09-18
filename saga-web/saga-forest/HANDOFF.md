@@ -971,3 +971,21 @@ PLAN.md §10 일곱 질문을 Q1 순서부터 처리:
   취향 판단이 필요해 보류 — 사용자 결정 대기.
 
 코드 변경 없음, PLAN.md §10 문구만 갱신.
+
+## 2026-09-18 — §7 Phase 0 코드 항목 5·6 마저 닫음
+
+실기 없이 코드만으로 닫을 수 있는 Phase 0 항목을 정리하던 중:
+
+- 항목 5(진단 구멍): `data-village.js`에 `weatherOverride`+`_setWeather(v)` 신설.
+  `weatherOf()`가 `knob()`보다 먼저 이 값을 본다 — `town.js` `_setStar`·
+  `turnip.js` `_setOpen`과 같은 결이다. `knob()`은 주석에 "자가진단·데모는
+  안 읽는다"고 이미 적혀 있어 자가진단 쪽엔 별도 구멍이 필요했다. 실제
+  축제·행사 진단 항목 자체는 Phase 4(달력, 미착수)와 맞물려 있어 이번엔
+  구멍만 뚫었다.
+- 항목 6(sw.js VERSION precheck): 조사해 보니 루트 `tools/precheck.sh`
+  (다섯 판 공통)에 이미 있었다 — js 고치고 sw.js 그대로면 WARN. 이 판
+  전용으로 새로 만들 것 없이 완료로 표시.
+
+**검증** — `node --check js/data-village.js` 통과. `bash tools/precheck.sh
+saga-web/saga-forest` → PRECHECK OK. `sw.js` `village-v0.62.0` →
+`village-v0.63.0`.
