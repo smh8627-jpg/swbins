@@ -7436,3 +7436,14 @@ PROJECT_STATE.md` 참고. 요약:
 - 재측정: **18.0%→0.8%**(empty 108→5). 이걸로 **FOREST 101-2 후보 ①~⑥ 전부 완료** — REALM에 이어 두 번째로 다섯 판 51장 후보가 소진 상태에 들어간다(GO·DUNGEON·STORY도 후보 표 기준으로는 대부분 끝, 실기 확인만 남음).
 - 임시 디버그 출력(여러 반경·빈 칸 좌표 print)은 최종 커밋 전에 지우고 `DENSITY_RADIUS_M` 단일 상수만 남김. `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음.
 - 다음: 다섯 판 101-2/101-3/101-4 후보가 전부 소진됐다 — 남은 코드 작업은 102장 그래픽(Q-h·Q-b·GUI 톤 승인 대기)뿐. 사용자 실기 확인·105 Q-h/Q-b 답이 다음 진행을 막는다.
+
+## 103장 착수 — tools/asset-forge/palette.py 신설 (2026-09-19)
+
+- 101장(다섯 판 손맛·발견 밀도) 후보가 전부 끝나고 102장(그래픽)은 GUI 톤 승인·105 Q-h/Q-b 대기라, 남은 코드 작업이 없어 보였다. 사용자에게 "아직 손 안 댄 103장 팔레트 파이프라인을 지금 시작할지" 물었고(다섯 판 시각 정체성을 직접 정하는 새 서브시스템이라 먼저 확인) "팔레트 파이프라인 시작"으로 답 받음.
+- SAGA-DESIGN.md §7.2 1번(palette.py)을 `tools/asset-forge/palette.py`로 신설 — `tools/obj-split`·`tools/glb-compress`와 같이 다섯 판·두 트랙이 공유하는 빌드 도구 폴더(게임 코드 공유 금지 원칙은 빌드 도구엔 안 걸림, 105-Q 로 이미 확인된 결). 세 명령: `build`(하드코딩된 base8 → 명/암 섞어 24색 JSON, 흰/검 35% 믹스), `snap-glb`(trimesh로 GLB의 PBRMaterial.baseColorTexture·vertex_colors를 팔레트 24색 중 유클리드 최근접으로 전부 교체해 새 GLB로 내보냄, 24색뿐이라 KD-tree 없이 브로드캐스트로 충분히 빠름), `preview`(전/후 텍스처를 붙인 비교 PNG 1장 — 3D GUI 스크린샷 금지 규칙과 무관한 평면 이미지 비교).
+- **GO 팔레트(go_village, 8역할×3단=24색)**: 새로 지어내지 않고 이미 실기 승인 난 `terrain_builder.gd` LEGEND 색 8종(grass·forest·path·village_wall·mountain_stone·water·sand·shrine_wood)을 그대로 base로 썼다 — 팔레트가 지금 화면과 어긋나면 "통일"이 아니라 "또 다른 스타일"이 된다는 판단.
+- **왕복 검증**: `assets/buildings/wall-block.glb`(512×512 컬러맵, 무지개색 아틀라스라 지금 GO 톤과 안 맞았음)에 스냅 → `assets/generated/variants/wall-block__go_village.glb`. 재로드해 unique color 17개(≤24) 확인, `preview`로 만든 비교 PNG로 눈으로도 확인(좌 원본 무지개 아틀라스, 우 스냅 결과는 GO 갈색·초록·회청 계열로 조화로움). **씬엔 아직 안 물렸다** — 103-5 절차상 다음 단계(사람 확인)로 남겨 둠.
+- 헤드리스 에디터 임포트 1회(신규 파일 `.import` 생성 확인, 오류 0) — trimesh가 내보낸 GLB에 텍스처가 companion PNG(`_0.png`)로 같이 추출되는 걸 확인(기존 원본 팩엔 없던 패턴이지만 Godot이 알아서 만든 정상 .import 산출물, 문제 아님). 비교 PNG는 res:// 트리에서 뺐다(Godot이 불필요하게 .import 만드는 것 방지, 이미 이 대화에서 확인됨).
+- **PC 함정 하나 확정**(다음 세션도 겪을 것): 이 PC 는 `python`/`python3`가 WindowsApps 스토어 스텁이고, `py` 단독으로 불러도 스크립트 셰뱅(`#!/usr/bin/env python3`)을 따라가 같은 스텁으로 샌다(exit 9009, "Python" 한 줄만 찍힘). **`py -3 <script>.py`로 버전을 못박아야** 정상 동작 — `py --version`·`py -c "..."`는 멀쩡해서 처음엔 원인을 못 찾다가 obj-split/split.py로도 재현해 확인.
+- `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음(신규 assets/generated/ 파일만 추가).
+- 다음: 사람이 `wall-block__go_village.glb`(또는 `preview` PNG)를 보고 톤이 맞는지 확인 → 맞으면 씬에 물리고 103-3 표 나머지(Modular Cave·character-a~d 등)로 palette.py 사용을 넓힌다.

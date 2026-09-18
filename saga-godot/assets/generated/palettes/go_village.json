@@ -1,0 +1,126 @@
+{
+  "name": "go_village",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "grass",
+      "band": "base",
+      "hex": "#618c3d"
+    },
+    {
+      "role": "grass",
+      "band": "light",
+      "hex": "#98b481"
+    },
+    {
+      "role": "grass",
+      "band": "dark",
+      "hex": "#3f5b28"
+    },
+    {
+      "role": "forest",
+      "band": "base",
+      "hex": "#295224"
+    },
+    {
+      "role": "forest",
+      "band": "light",
+      "hex": "#748e70"
+    },
+    {
+      "role": "forest",
+      "band": "dark",
+      "hex": "#1b3517"
+    },
+    {
+      "role": "path",
+      "band": "base",
+      "hex": "#9e8052"
+    },
+    {
+      "role": "path",
+      "band": "light",
+      "hex": "#c0ac8e"
+    },
+    {
+      "role": "path",
+      "band": "dark",
+      "hex": "#675335"
+    },
+    {
+      "role": "village_wall",
+      "band": "base",
+      "hex": "#c7ad6b"
+    },
+    {
+      "role": "village_wall",
+      "band": "light",
+      "hex": "#dbca9f"
+    },
+    {
+      "role": "village_wall",
+      "band": "dark",
+      "hex": "#817146"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "base",
+      "hex": "#8c8780"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "light",
+      "hex": "#b4b1ac"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "dark",
+      "hex": "#5b5853"
+    },
+    {
+      "role": "water",
+      "band": "base",
+      "hex": "#40739e"
+    },
+    {
+      "role": "water",
+      "band": "light",
+      "hex": "#83a4c0"
+    },
+    {
+      "role": "water",
+      "band": "dark",
+      "hex": "#294b67"
+    },
+    {
+      "role": "sand",
+      "band": "base",
+      "hex": "#c2ad80"
+    },
+    {
+      "role": "sand",
+      "band": "light",
+      "hex": "#d7caac"
+    },
+    {
+      "role": "sand",
+      "band": "dark",
+      "hex": "#7e7153"
+    },
+    {
+      "role": "shrine_wood",
+      "band": "base",
+      "hex": "#806b4c"
+    },
+    {
+      "role": "shrine_wood",
+      "band": "light",
+      "hex": "#ac9f8b"
+    },
+    {
+      "role": "shrine_wood",
+      "band": "dark",
+      "hex": "#534632"
+    }
+  ]
+}

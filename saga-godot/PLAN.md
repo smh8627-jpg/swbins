@@ -2858,7 +2858,7 @@ assets/generated/
 ```
 
 - 원본 팩(`assets/characters/…` 등)과 섞지 않는다. 생성물은 씨앗으로 재생성 가능해야 한다(파일명에 `s<seed>`).
-- 스크립트는 저장소 루트 `tools/asset-forge/`(SAGA-DESIGN §7.2 — palette.py·kitbash.py·procgen.py·tilegen.py·spritegen.py·sfxgen.py). Python 3.14 + Pillow + numpy + trimesh 가 이 PC 에 있음이 확인됐다(Blender 없음). 스크립트는 다섯 판·두 트랙이 같이 쓰되 **출력만** 각 프로젝트로 간다(코드 공유 금지 원칙은 게임 코드 얘기, 빌드 도구는 예외 — 105장 Q 로 확인).
+- 스크립트는 저장소 루트 `tools/asset-forge/`(SAGA-DESIGN §7.2 — palette.py 신설(2026-09-19)·kitbash.py·procgen.py·tilegen.py·spritegen.py·sfxgen.py 는 아직). Python 3.12(문서상 3.14 는 오기) + Pillow + numpy + trimesh 확인됨(Blender 없음). 스크립트는 다섯 판·두 트랙이 같이 쓰되 **출력만** 각 프로젝트로 간다(코드 공유 금지 원칙은 게임 코드 얘기, 빌드 도구는 예외 — 105장 Q 로 확인). **실행 함정**: 이 PC 는 `python`/`python3` 가 WindowsApps 스토어 스텁이고, `py` 단독도 스크립트의 `#!/usr/bin/env python3` 셰뱅을 읽어 같은 스텁으로 샌다(exit 9009, "Python" 한 줄만 찍고 끝) — 반드시 `py -3 tools/asset-forge/<script>.py`로 버전을 못박아 부른다.
 
 ## 103-2. `.import` 규칙
 
