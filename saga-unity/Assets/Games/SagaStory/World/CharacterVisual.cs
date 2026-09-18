@@ -46,6 +46,31 @@ namespace Saga.Story.World
             }
         }
 
+        private const string FallbackSocketName = "WeaponSocket (fallback)";
+
+        /// <summary>PLAN.md 101-3 G "장비 가시화" — DUNGEON/GO `CharacterVisual.
+        /// FindOrCreateWeaponSocket()`과 같은 로직(무기를 쥘 소켓). Humanoid
+        /// Animator(Maria 등)는 오른손 본을 그대로 쓰고, 리깅 없는 폴백은
+        /// 시각 루트 밑에 고정 오프셋 자식을 만든다. **`animator.isHuman`로
+        /// 먼저 거른다** — Animator는 있어도 Avatar가 없거나 Humanoid가
+        /// 아니면 `GetBoneTransform`이 예외를 던진다(다른 판이 이미 겪음).</summary>
+        public static Transform FindOrCreateWeaponSocket(GameObject visualRoot, Animator animator)
+        {
+            if (animator != null && animator.isHuman)
+            {
+                var hand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+                if (hand != null) return hand;
+            }
+
+            var existing = visualRoot.transform.Find(FallbackSocketName);
+            if (existing != null) return existing;
+
+            var socket = new GameObject(FallbackSocketName).transform;
+            socket.SetParent(visualRoot.transform, false);
+            socket.localPosition = new Vector3(0.35f, 1.1f, 0.15f);
+            return socket;
+        }
+
         /// <summary>GLB 모델을 못 찾았을 때(다른 PC에 아직 안 받아 둔 경우 등)
         /// 쓰는 예전 primitive capsule 대체 — 씬 빌드 자체가 깨지지 않게 한다.</summary>
         public static Transform SpawnFallbackCapsule(Transform parent, float targetHeight, Color tint)

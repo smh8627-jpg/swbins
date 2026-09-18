@@ -14,12 +14,26 @@ namespace Saga.Story.World
         // 67장 "사운드" BGM(2026-09-15, StoryAudio.cs 참고).
         [SerializeField] private AudioClip bgmClip;
 
+        private StoryCameraFollow _cameraFollow;
+
         private void Start()
         {
             StorySaveState.TryLoad();
             StorySettingsState.ApplyToAllScalers();
             StorySettingsState.ApplyGraphicsQuality();
             StoryAudio.PlayBgm(bgmClip);
+            StoryJobState.LeveledUp += OnLeveledUp; // PLAN.md 101-3 G "성장 연출"(DUNGEON/GO와 같은 결, 이번에 처음 연결).
+            _cameraFollow = StoryCameraFollow.Instance;
+        }
+
+        private void OnDestroy()
+        {
+            StoryJobState.LeveledUp -= OnLeveledUp;
+        }
+
+        private void OnLeveledUp(int newLevel)
+        {
+            _cameraFollow?.PlayLevelUpCut();
         }
     }
 }

@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Saga.Story.World
 {
@@ -17,8 +19,20 @@ namespace Saga.Story.World
     public class StoryCameraFollow : MonoBehaviour
     {
         private const float YOffset = 2.6f;
-        private const float ZDistance = 16f;
+        private const float BaseZDistance = 16f;
         private const float YLerpRate = 3f;
+
+        // PLAN.md 101-3 G "성장 연출"(2026-09-17 다음 세션 몫) — DUNGEON/GO
+        // `CameraRig.PlayLevelUpCut()`와 같은 결(줌을 당겼다 되돌리는 카메라
+        // 펀치인). 이 판은 오빗 카메라가 없어 "줌"이 아니라 ZDistance를
+        // 좁혀 같은 효과를 낸다 — 그래서 상수였던 ZDistance를 가변 필드로
+        // 바꿨다(다른 값은 그대로 옮김, 합계 1.2초 스킵 가능).
+        private const float LevelUpZDistance = 8f;
+        private const float LevelUpZoomInSec = 0.3f;
+        private const float LevelUpHoldSec = 0.6f;
+        private const float LevelUpZoomOutSec = 0.3f;
+        private float _zDistance = BaseZDistance;
+        private Coroutine _levelUpRoutine;
 
         /// <summary>`DialogueLabel.Instance`·`RealmToast.Instance`와 같은
         /// 결 — 씬에 하나뿐이라 다른 컴포넌트(StoryPlayerController 등)가
@@ -39,7 +53,7 @@ namespace Saga.Story.World
         private void Start()
         {
             var pos = transform.position;
-            pos.z = -ZDistance;
+            pos.z = -_zDistance;
             transform.position = pos;
             transform.rotation = Quaternion.identity;
             _followY = pos.y;
@@ -52,6 +66,54 @@ namespace Saga.Story.World
         {
             _shakeMagnitude = magnitude;
             _shakeTimer = duration;
+        }
+
+        /// <summary>`GameBootstrap.OnLeveledUp()`이 부른다 — ZDistance를
+        /// LevelUpZDistance까지 당겼다 잠깐 멎었다 되돌린다. 아무 키나
+        /// 누르면 그 프레임에 원래 거리로 바로 돌아간다(DUNGEON/GO
+        /// `CameraRig.PlayLevelUpCut()`과 같은 결).</summary>
+        public void PlayLevelUpCut()
+        {
+            if (_levelUpRoutine != null) StopCoroutine(_levelUpRoutine);
+            _levelUpRoutine = StartCoroutine(LevelUpCutRoutine());
+        }
+
+        private IEnumerator LevelUpCutRoutine()
+        {
+            float startDistance = _zDistance;
+            float t = 0f;
+            while (t < LevelUpZoomInSec)
+            {
+                if (AnyKeyPressed()) { _zDistance = startDistance; _levelUpRoutine = null; yield break; }
+                t += Time.deltaTime;
+                _zDistance = Mathf.Lerp(startDistance, LevelUpZDistance, t / LevelUpZoomInSec);
+                yield return null;
+            }
+            _zDistance = LevelUpZDistance;
+
+            t = 0f;
+            while (t < LevelUpHoldSec)
+            {
+                if (AnyKeyPressed()) break;
+                t += Time.deltaTime;
+                yield return null;
+            }
+
+            t = 0f;
+            while (t < LevelUpZoomOutSec)
+            {
+                t += Time.deltaTime;
+                _zDistance = Mathf.Lerp(LevelUpZDistance, startDistance, t / LevelUpZoomOutSec);
+                yield return null;
+            }
+            _zDistance = startDistance;
+            _levelUpRoutine = null;
+        }
+
+        private static bool AnyKeyPressed()
+        {
+            var kb = Keyboard.current;
+            return kb != null && kb.anyKey.wasPressedThisFrame;
         }
 
         private void Update()
@@ -75,7 +137,7 @@ namespace Saga.Story.World
             var pos = transform.position;
             pos.x = _player.position.x + shakeOffset.x;
             pos.y = _followY + shakeOffset.y;
-            pos.z = -ZDistance;
+            pos.z = -_zDistance;
             transform.position = pos;
         }
     }

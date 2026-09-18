@@ -162,6 +162,11 @@ namespace Saga.EditorTools
                     if (!CheckPlayerHudLocalization()) { Fail(); return; }
                     if (!CheckActionButtonLocalization()) { Fail(); return; }
                     if (!CheckGoalBoardAndSessionCard()) { Fail(); return; }
+                    // PLAN.md 101-3 G "성장 연출" — 세션에서 가장 먼저 돌려야
+                    // 한다(CheckLevelUpCut() 클래스 주석 참고). 잡졸을 죽이기
+                    // 시작하면 그 자체로 GainExp()가 걸려 나중엔 이미 다른
+                    // 레벨업이 지나간 뒤일 수 있다.
+                    if (!CheckLevelUpCut()) { Fail(); return; }
                     _enemyIndex = 0;
                     _phase = Phase.TalkNpc;
                     break;
@@ -275,6 +280,12 @@ namespace Saga.EditorTools
                             return;
                         }
                         Debug.Log($"[PlaytestStorySlice] killed {ExpectedEnemyCount} grunts, quest done, kills={StoryQuestState.Kills}");
+                        // PLAN.md 101-3 G "지형 반응" 캡 검증 — 이제서야 돈다.
+                        // 위 per-hit ActiveCount 델타 비교(각 잡졸 타격마다)가
+                        // 아직 남아 있는 동안 40개를 더 스폰하면 ActiveCount가
+                        // 캡(32)에 눌어붙어 다음 잡졸의 델타 비교가 항상 실패한다
+                        // (실제로 겪음 — 루프 안에 넣었다가 인덱스 1부터 깨짐).
+                        if (!CheckGroundDecalCap()) { Fail(); return; }
                         _phase = Phase.KillBoss;
                         break;
                     }
@@ -298,6 +309,8 @@ namespace Saga.EditorTools
                     // 기다리는 대신 매번 0으로 되돌려 "판정 자체"만 격리해서 본다.
                     SetPrivate(_storyController, "_attackCooldownLeft", 0f);
                     int hitSparkBefore = HitSpark.SpawnCount;
+                    int groundDecalBefore = StoryGroundDecal.ActiveCount;
+                    int lootMarkerBefore = StoryLootMarker.SpawnCount;
                     InvokePrivate(_storyController, "TryAttack");
 
                     if (_enemyIndex == 0 && !CheckHitFeedback()) { Fail(); return; }
@@ -307,6 +320,22 @@ namespace Saga.EditorTools
                     if (HitSpark.SpawnCount != hitSparkBefore + 1)
                     {
                         Debug.LogError($"[PlaytestStorySlice] 잡졸 #{_enemyIndex} 타격에 HitSpark가 안 생김 — SpawnCount {hitSparkBefore} → {HitSpark.SpawnCount}");
+                        Fail();
+                        return;
+                    }
+
+                    // PLAN.md 101-3 G "지형 반응"(2026-09-18 STORY 이식) — 타격마다 HitMark 데칼.
+                    if (StoryGroundDecal.ActiveCount <= groundDecalBefore)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 잡졸 #{_enemyIndex} 타격에 지형 데칼이 안 생김 — ActiveCount {groundDecalBefore} → {StoryGroundDecal.ActiveCount}");
+                        Fail();
+                        return;
+                    }
+
+                    // PLAN.md 101-3 F "죽음"(2026-09-18 STORY 이식) — 처치마다 유품 마커.
+                    if (StoryLootMarker.SpawnCount != lootMarkerBefore + 1)
+                    {
+                        Debug.LogError($"[PlaytestStorySlice] 잡졸 #{_enemyIndex} 처치에 유품 마커가 안 생김 — SpawnCount {lootMarkerBefore} → {StoryLootMarker.SpawnCount}");
                         Fail();
                         return;
                     }
@@ -710,6 +739,7 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    if (!CheckWeaponVisualBeforeJob()) { Fail(); return; }
                     if (!StoryJobState.ChooseJob("warrior"))
                     {
                         Debug.LogError("[PlaytestStorySlice] ChooseJob(\"warrior\") 실패");
@@ -722,6 +752,7 @@ namespace Saga.EditorTools
                         Fail();
                         return;
                     }
+                    if (!CheckWeaponVisualAfterJob()) { Fail(); return; }
                     if (StoryJobState.ChooseJob("archer"))
                     {
                         Debug.LogError("[PlaytestStorySlice] 이미 전직했는데 재전직이 성공함(재전직 방지 결함)");
@@ -871,6 +902,95 @@ namespace Saga.EditorTools
             Debug.Log(animator == null
                 ? "[PlaytestStorySlice] hit feedback OK - shake 확인(player Animator는 null, 폴백 캡슐 케이스라 hitstop 검증 스킵)"
                 : "[PlaytestStorySlice] hit feedback OK - shake + hitstop(Animator.speed=0) 확인");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-3 G "성장 연출"(2026-09-18 STORY 이식) — GO/
+        /// DUNGEON `CheckLevelUpCut()`과 같은 결. 호출부(Phase.Init)가
+        /// **세션에서 가장 먼저** 부른다 — KillEnemies 단계부터는 잡졸을
+        /// 죽일 때마다 `StoryJobState.GainExp()`가 걸려, 나중에 확인하면
+        /// 이미 다른 레벨업 컷이 지나갔거나 겹쳤을 수 있다(GO가 실제로
+        /// 겪은 함정과 같은 종류).</summary>
+        private static bool CheckLevelUpCut()
+        {
+            var cam = StoryCameraFollow.Instance;
+            if (cam == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] 성장 연출 검증용 StoryCameraFollow를 못 찾음");
+                return false;
+            }
+
+            var zField = typeof(StoryCameraFollow).GetField("_zDistance", BindingFlags.NonPublic | BindingFlags.Instance);
+            float before = (float)zField.GetValue(cam);
+
+            StoryJobState.GainExp(StoryCombat.ExpNeed(StoryJobState.Level) + 1f);
+
+            float after = (float)zField.GetValue(cam);
+            if (Mathf.Approximately(after, before))
+            {
+                Debug.LogError($"[PlaytestStorySlice] 레벨업 직후 카메라 거리(zDistance)가 안 바뀜 — {after}");
+                return false;
+            }
+            Debug.Log($"[PlaytestStorySlice] level-up cut OK - 레벨업 직후 zDistance {before:F2}→{after:F2}");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-3 G "지형 반응"(2026-09-18 STORY 이식) — GO
+        /// `PlaytestHeadless.CheckGroundDecal()`과 같은 결, "최대 32" 캡이
+        /// 지켜지는지 직접 40개를 스폰해 확인한다.</summary>
+        private static bool CheckGroundDecalCap()
+        {
+            for (int i = 0; i < 40; i++)
+            {
+                StoryGroundDecal.Spawn(Vector3.zero, StoryGroundDecal.Kind.HitMark);
+            }
+            if (StoryGroundDecal.ActiveCount > 32)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 지형 데칼 최대 32 캡이 안 지켜짐 — ActiveCount={StoryGroundDecal.ActiveCount}");
+                return false;
+            }
+            Debug.Log($"[PlaytestStorySlice] ground decal cap OK - ActiveCount={StoryGroundDecal.ActiveCount}(≤32)");
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-3 G "장비 가시화"(2026-09-18, 사용자 선택
+        /// "직업별 무기 소켓") — 전직 전엔 맨손(`StoryWeaponVisual.
+        /// CurrentWeaponRoot`가 null)이어야 한다. `CheckWeaponVisualAfterJob()`
+        /// 과 짝(전/후 비교) — GO `CheckWeaponVisual()`이 등급 전/후 칼날
+        /// 크기를 비교하는 것과 같은 결.</summary>
+        private static bool CheckWeaponVisualBeforeJob()
+        {
+            var weaponVisual = Object.FindFirstObjectByType<StoryWeaponVisual>();
+            if (weaponVisual == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] 무기 가시화 검증용 StoryWeaponVisual을 못 찾음");
+                return false;
+            }
+            if (weaponVisual.CurrentWeaponRoot != null)
+            {
+                Debug.LogError("[PlaytestStorySlice] 전직 전인데 이미 무기가 들려 있음(맨손이어야 함)");
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>전직(무사) 직후 검 모양(자루+칼날 둘)이 실제로 소켓 밑에
+        /// 생겼는지 본다.</summary>
+        private static bool CheckWeaponVisualAfterJob()
+        {
+            var weaponVisual = Object.FindFirstObjectByType<StoryWeaponVisual>();
+            var root = weaponVisual != null ? weaponVisual.CurrentWeaponRoot : null;
+            if (root == null)
+            {
+                Debug.LogError("[PlaytestStorySlice] 전직(warrior) 후에도 무기가 안 생김");
+                return false;
+            }
+            if (root.childCount < 2)
+            {
+                Debug.LogError($"[PlaytestStorySlice] 검(무사) 무기에 부품이 모자람 — childCount={root.childCount}(기대≥2, 자루+칼날)");
+                return false;
+            }
+            Debug.Log($"[PlaytestStorySlice] weapon visual OK - 전직(warrior) 후 검 모양 생김(부품 {root.childCount}개)");
             return true;
         }
 

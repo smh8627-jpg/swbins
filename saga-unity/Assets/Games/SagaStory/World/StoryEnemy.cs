@@ -125,6 +125,7 @@ namespace Saga.Story.World
             Vector3 popupPos = transform.position + Vector3.up * height;
             DamagePopup.Spawn(popupPos, amount, crit);
             HitSpark.Spawn(popupPos, crit);
+            StoryGroundDecal.Spawn(transform.position, StoryGroundDecal.Kind.HitMark); // PLAN.md 101-3 G "지형 반응".
 
             if (_visualGo != null)
             {
@@ -153,6 +154,7 @@ namespace Saga.Story.World
             if (_dead) return;
             _dead = true;
             StoryAudio.PlaySfx(deathClip);
+            StoryLootMarker.Spawn(transform.position); // PLAN.md 101-3 F "죽음" — Destroy 전에, transform이 아직 유효할 때.
             StoryQuestState.AddKill();
             if (isBoss) StoryQuestState.AddBossKill();
             StoryJobState.GainExp(isBoss ? StoryCombat.BossExp : StoryCombat.GruntExp);

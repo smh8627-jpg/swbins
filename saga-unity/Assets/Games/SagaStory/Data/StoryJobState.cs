@@ -20,6 +20,12 @@ namespace Saga.Story.Data
 
         public static event Action<int> LeveledUp;
 
+        // PLAN.md 101-3 G "장비 가시화"(2026-09-18, `StoryWeaponVisual.cs`
+        // 전용) — 전직은 딱 한 번뿐이라(1절 CanChooseJob) 매 프레임 폴링
+        // 대신 이벤트로 배선한다. DUNGEON `HeroState.EquipmentChanged`·GO
+        // `Inventory.ItemGained`와 같은 결.
+        public static event Action<string> JobChosen;
+
         public static bool HasJob => Job != NoJob;
 
         /// <summary>core.js gainExp() 그대로 — 한 번에 여러 레벨을 넘을 수
@@ -46,6 +52,7 @@ namespace Saga.Story.Data
             if (!CanChooseJob) return false;
             if (!StoryCombat.JobsTier1.ContainsKey(jobKey)) return false;
             Job = jobKey;
+            JobChosen?.Invoke(jobKey);
             return true;
         }
 
@@ -55,11 +62,17 @@ namespace Saga.Story.Data
 
         public static string JobDisplayName => HasJob ? StoryCombat.JobsTier1[Job].Name : "";
 
+        /// <summary>세이브 로드·(테스트의) 상태 초기화 둘 다 이 경로를 탄다
+        /// — `JobChosen`도 같이 쏴서 `StoryWeaponVisual`이 그때그때 손의
+        /// 무기를 다시 맞추게 한다(2026-09-18, PLAN.md 101-3 G "장비
+        /// 가시화" 이식 중 발견 — Restore가 이 이벤트를 안 쏘면 이전 세션이
+        /// 남긴 무기 모델이 새 Job 상태와 안 맞게 손에 그대로 남는다).</summary>
         public static void Restore(int level, float exp, string job)
         {
             Level = Mathf.Max(1, level);
             Exp = Mathf.Max(0f, exp);
             Job = string.IsNullOrEmpty(job) ? NoJob : job;
+            JobChosen?.Invoke(Job);
         }
     }
 }

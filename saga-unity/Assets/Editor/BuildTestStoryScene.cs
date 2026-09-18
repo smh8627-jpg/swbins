@@ -254,6 +254,7 @@ namespace Saga.EditorTools
             var storyController = playerGo.AddComponent<StoryPlayerController>();
             SetPrivateField(storyController, "visual", visual);
             SetPrivateField(storyController, "animator", playerAnimator);
+            playerGo.AddComponent<StoryWeaponVisual>(); // PLAN.md 101-3 G "장비 가시화".
 
             return (playerGo, storyController);
         }

@@ -26,12 +26,18 @@ namespace Saga.Story.Player
         private const float TurnRate = 12f; // DUNGEON PlayerController.cs와 같은 결 — LerpAngle의 보간 배율(각속도 아님).
         private const float AttackRange = 2.2f;
         private const float AttackCooldown = 0.36f; // 무예 연참(連斬) cd 0.36(js/data-job.js)
+        private const float FootprintIntervalSec = 0.35f; // PLAN.md 101-3 G "지형 반응" — 발자국 간격, DUNGEON/GO PlayerController.cs와 같은 값.
 
         [SerializeField] private Transform visual;
         // 44장 "Player" 교체 — Maria가 배정되면 채워짐(BuildTestStoryScene.
         // BuildPlayerVisual 참고). 이 판은 플레이어가 피격당하지 않아(Hit/
         // Death 트리거 대상이 없음) Speed+Attack만 쓴다.
         [SerializeField] private Animator animator;
+
+        // PLAN.md 101-3 G "장비 가시화"(2026-09-18, `StoryWeaponVisual.cs`
+        // 전용) — DUNGEON/GO `PlayerController.Visual`/`.Animator`와 같은 결.
+        public Transform Visual => visual;
+        public Animator Animator => animator;
         [SerializeField] private HoldButton leftButton;
         [SerializeField] private HoldButton rightButton;
         [SerializeField] private HoldButton climbUpButton;
@@ -44,6 +50,7 @@ namespace Saga.Story.Player
         private float _sweepCooldownLeft;
         private float _boltCooldownLeft;
         private float _braceCooldownLeft;
+        private float _footprintCooldown;
         private float _buffUntilTime; // Time.time 기준 — 기합(氣合) 지속시간, StoryCombat.BraceSeconds
         private StoryRope _ropeArea;
         private bool _onRope;
@@ -226,6 +233,17 @@ namespace Saga.Story.Player
             if (animator != null)
             {
                 animator.SetFloat("Speed", Mathf.Abs(axis) > 0.05f ? 1f : 0f);
+            }
+
+            // PLAN.md 101-3 G "지형 반응" — 땅 위를 걷는 동안 일정 간격으로 발자국.
+            if (Mathf.Abs(axis) > 0.05f && _controller.isGrounded)
+            {
+                _footprintCooldown -= dt;
+                if (_footprintCooldown <= 0f)
+                {
+                    _footprintCooldown = FootprintIntervalSec;
+                    StoryGroundDecal.Spawn(transform.position, StoryGroundDecal.Kind.Footprint);
+                }
             }
         }
 

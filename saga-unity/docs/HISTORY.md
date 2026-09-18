@@ -7046,3 +7046,62 @@ GroundDecal 호출) · `SagaGo.asmdef`(URP Runtime 참조) ·
 job 스탯) "직업별 무기 프리팹" 같은 재해석이 필요 — 사용자와 먼저 상의할 것.
 사용자가 "커밋 푸시하고 새로운 세션에서 할게"라고 해서 이번 세션은 GO
 확장까지만 하고 STORY는 다음 세션으로 넘긴다.
+
+## PLAN 101-3 F·G — STORY로 확장, 표 완결 (2026-09-18, 새 세션 "사가유니티 이어해줘")
+
+PROJECT_STATE "다음 세션은 여기부터"가 가리킨 STORY 101-3 F·G 이식을
+진행. F(죽음)·G-지형 반응·G-성장 연출은 이전 세션 Explore 조사대로
+straightforward했다:
+
+- **F 죽음** — `StoryLootMarker.cs`(신규, GO `LootMarker.cs` 사본 —
+  효과음 없이 조용히 사라지는 결도 그대로). `StoryEnemy.Die()`가
+  `Destroy()` 전에 `transform.position`으로 호출.
+- **G 지형 반응** — `StoryGroundDecal.cs`(신규, DUNGEON/GO 사본).
+  발자국은 `StoryPlayerController.Walk()`(축 입력 있고 `isGrounded`일 때
+  0.35s 간격), 타격 흔적은 `StoryEnemy.TakeDamage()`. asmdef 문제 없음
+  (SagaStory는 전역 어셈블리).
+- **G 성장 연출** — `StoryCameraFollow.ZDistance`(상수)를 `_zDistance`
+  (가변 필드)로 바꾸고 `PlayLevelUpCut()`(GO/DUNGEON과 같은 결, 줌 대신
+  카메라 거리를 당겼다 되돌리는 코루틴) 추가. `GameBootstrap`이
+  `StoryJobState.LeveledUp`을 처음 구독(그동안 구독자 0명).
+
+**G 장비 가시화 — 사용자 결정**: AskUserQuestion으로 "직업별 무기 소켓
+구현" vs "STORY는 건너뛴다" 중 물었고, 사용자가 전자를 선택. STORY엔
+`ItemData`/등급 시스템이 없어(순수 job 스탯) DUNGEON/GO의 "등급별
+이미시브 림" 방식을 그대로 못 쓴다 — 대신 "직업별 다른 무기"로 재해석:
+무사→검(자루+칼날, DUNGEON/GO와 같은 primitive), 궁수→활(활대+시위,
+Unity CreatePrimitive엔 곡선이 없어 시위 걸린 수직 활대로 근사),
+협객→표창(45도 회전한 얇은 사각판), 방사→지팡이(샤프트+발광 구슬).
+`CharacterVisual.FindOrCreateWeaponSocket()`을 STORY `CharacterVisual.cs`
+에 새로 포트(DUNGEON/GO와 같은 로직). `StoryJobState`에 `JobChosen`
+이벤트를 신설해 `ChooseJob()` 성공 시 쏘고, `StoryWeaponVisual`이
+구독해 무기를 다시 짓는다.
+
+**헤드리스 검증 중 실제로 잡은 버그**: `StoryJobState.Restore()`가
+`JobChosen`을 안 쏘던 최초 구현에서, `PlaytestStorySlice`의 Init 단계가
+세션 중간에 `Restore(1, 0f, NoJob)`으로 상태를 리셋해도 `StoryWeaponVisual`
+이 그 사실을 몰라 이전 세션(디스크 세이브)이 남긴 무기 모델을 그대로
+들고 있었다 — "전직 전인데 이미 무기가 들려 있음" 실패로 드러남.
+`Restore()`도 `JobChosen`을 쏘도록 고쳐 해결(세이브 로드·상태 초기화
+둘 다 시각을 다시 맞추게 됨) — `docs/PROJECT_STATE.md` "알려진 오류"에
+일반 원칙으로 남겨 둠(장착/보유 상태를 보고 시각을 짓는 컴포넌트는
+그 상태의 `Restore()`/로드 경로도 같은 이벤트를 쏘는지 확인할 것).
+
+또 하나: `CheckGroundDecalCap()`(캡 32 검증, 40개 강제 스폰)을 처음엔
+KillEnemies 루프 안(`_enemyIndex==0`)에 넣었다가, 그 뒤 이어지는 per-hit
+ActiveCount 델타 비교가 캡에 눌어붙은 값과 계속 비교하게 돼 잡졸 #1부터
+깨졌다 — 루프를 다 돈 뒤(잡졸 10마리 처치 확인 직후, KillBoss 전환
+직전)로 옮겨 해결.
+
+`PlaytestStorySlice.cs`에 `CheckLevelUpCut()`(Phase.Init, 세션 첫
+레벨업으로 강제)·`CheckGroundDecalCap()`·per-hit `StoryGroundDecal`/
+`StoryLootMarker` 카운터 비교·`CheckWeaponVisualBeforeJob()`/
+`CheckWeaponVisualAfterJob()`을 추가. `BuildTestStoryScene.BuildPlayer()`
+에 `StoryWeaponVisual` 컴포넌트 추가 — 씬 재생성(`Saga/Build TestField
+Scene`) 필요했음. 컴파일 3회(각 단계) + `PlaytestStorySlice` 3연속 OK.
+
+이로써 **PLAN 101-3(C·F·G) 표가 다섯 판 중 해당하는 GO·DUNGEON·STORY
+셋 다 완전히 닫혔다** — FOREST·REALM은 애초에 해당 없음(101-3 표 각주
+그대로). `docs/PROJECT_STATE.md` "다음 작업"도 갱신(실기 확인 몰아서 →
+104-1⑤·102-4 → REALM 51장 확장 → 105 열린 질문 순, 전부 사용자 결정
+또는 실기 확인 대기).
