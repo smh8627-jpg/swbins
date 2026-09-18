@@ -1770,3 +1770,21 @@ Chicken·Deer·Panda·Penguin·Pig, 14종)에 안 들어 있었다(2026-09-14 �
   postinstall로 같이 깔린다)가 실제로 동작한다(`-i in.fbx -o out --binary`).
   이전 세션들의 "session scratch, 저장소엔 미커밋"이 가리키던 게 이것이다 —
   다음에 이 도구가 있는지부터 다시 찾아 헤매지 않아도 된다.
+
+## 들판 지형 트라이플레이너 텍스처 3장 (2026-09-18, `textures/land/`, PLAN §6.1 항목 5)
+
+새로 CC0 사진을 받아오지 않고 **다섯 판 안에 이미 있는 CC0 1.0 텍스처를
+그대로 옮겼다**(saga-forest가 2026-09-XX에 먼저 이 셋을 이렇게 모아 둔
+전례를 그대로 따른다 — `saga-forest/assets/ASSET_LICENSES.md`의 같은 절
+참고).
+
+| 파일 | 옮겨 온 곳 | 원 출처 |
+|---|---|---|
+| `assets/textures/land/grass.webp` | `saga-forest/assets/textures/land/grass.webp`(← `saga-go/.../grass1.webp`) | ambientCG `Grass005`(CC0 1.0) |
+| `assets/textures/land/dirt.webp` | `saga-forest/assets/textures/land/dirt.webp`(← `saga-go/.../road1.webp`) | ambientCG `Ground081`(CC0 1.0) |
+| `assets/textures/land/stone.webp` | 이 폴더 `assets/textures/dungeon/floor_stone.webp`(사본) | polyhaven(CC0 1.0) — 위 "Poly Haven — 바닥·벽 돌 텍스처" 절 |
+
+`js/terrain3d.js`가 `MeshToonMaterial.onBeforeCompile`로 세 장을 셋 다 한
+칸(들판 타일)에 실시간 블렌드한다(트라이플레이너 UV + 경사·노이즈 가중,
+PLAN §6.1-5) — 방(room) 바닥은 그대로 `groundMat()`(노이즈 반점)을 쓴다,
+안 건드렸다.

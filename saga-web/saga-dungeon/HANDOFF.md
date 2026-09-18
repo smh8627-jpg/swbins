@@ -3706,3 +3706,66 @@ saga-web/saga-dungeon` → PRECHECK OK.
 7 카메라 확인)와 §6.3(팔레트 스냅·kitbash·타일 24, 외부 python 스크립트
 + 실제 텍스처/에셋 필요 — 스코프가 크다, 다음엔 그중 하나만 골라 좁혀서
 갈 것)이 Phase 6 안에 남았다.
+
+## 2026-09-18 — PLAN §6.1-5 지형 트라이플레이너 3타일 + 노이즈 블렌드
+
+바로 위 세션이 Phase 6 안에 남긴 목록 중 지형(§6.1 항목 5)을 좁혀서 짰다.
+"트라이플레이너"는 SAGA-DESIGN §6.1·§7.2가 둘 다 못박은 실시간 셰이더
+기법(월드 좌표 3방향 투영 + 노멀 가중, UV 없이 늘어짐이 없다)이다 —
+`buildField()`의 들판 칸이 `heightAt()` 높이에 맞춰 **계단처럼 놓인 개별
+평판**이라(연속 heightmap 메시가 아니다), 인접 칸끼리 높이가 다르면 그
+사이 옆면(수직에 가까운 면)이 드러난다 — 바로 이 옆면에 옛 `groundMat()`
+(단색+반점, UV 반복)을 쓰면 텍스처가 늘어져 보였을 자리라, 트라이플레이너가
+실제로 쓸모 있는 지점이었다.
+
+- **텍스처 3장 — 새로 안 받았다.** `saga-forest/assets/textures/land/`가
+  이미 이 셋(잔디·흙·돌)을 다섯 판 재사용 관례로 모아 둔 전례가 있어
+  (`grass.webp`=ambientCG Grass005, `dirt.webp`=ambientCG Ground081, 둘
+  다 saga-go 경유·CC0), 그 두 장을 그대로 옮기고 `stone.webp`는 이 판
+  자신의 `floor_stone.webp`(polyhaven, 방 바닥에 이미 쓰던 것)를 사본
+  으로 만들었다. `assets/ASSET_LICENSES.md`에 출처·경위 기록.
+- **`js/terrain3d.js`(신설)**: `fieldGroundMaterial(hex)`가
+  `MeshToonMaterial`을 만들고 `onBeforeCompile`로 `map_fragment` 청크를
+  갈아 끼운다(사가고 `world3d.js`의 `swayify()`와 같은 패턴 — 조명·톤매핑·
+  안개·그림자 조각은 옛 청크 그대로 안 건드린다). 버텍스에 `vTriWorldPos`·
+  `vTriWorldNormal` varying을 추가(`#include <beginnormal_vertex>`·
+  `#include <begin_vertex>` 뒤에 한 줄씩), 프래그먼트는 노멀 |x|,|y|,|z|
+  가중(트라이플레이너)·경사(slope, `1-|n.y|`) 기반 돌 비중·절차 노이즈
+  (해시 기반 value noise, fbm 2옥타브, 텍스처 fetch 없이 셰이더 안에서
+  계산) 기반 잔디/흙 전환을 짠 뒤 `diffuseColor.rgb *= blend`로 곱한다 —
+  테마 tint(`material.color`)가 자동으로 얹힌다(옛 `groundMat()`과 같은
+  자리). `customProgramCacheKey`로 다른 프로그램과 안 섞이게 갈랐다.
+  onBeforeCompile 본체는 `patchShader(shader, grass, dirt, stone)`로
+  따로 뽑아 `DG.terrain3d`에 노출했다 — GPU·실제 material 없이도 셰이더
+  **문자열**만으로 자가진단이 값을 잰다.
+- **`js/dungeon3d.js`**: `groundBox()`(방 바닥 skirt에도 쓰는 원래 함수)는
+  그대로 두고, 새 `fieldTileBox()`(들판 칸에만, `terrain3d`가 없거나
+  텍스처가 안 실렸으면 `groundBox()`로 조용히 돌아간다)를 `fieldJobChunk()`
+  의 타일 생성 한 줄에서만 썼다. 방(room) 바닥(`texMat()`, 별도 함수)과
+  먼 배경(`skirt`)은 안 건드렸다 — PLAN이 가리키는 자리는 `buildField()`
+  뿐이다.
+- **검증(GPU 없이)** — `node` vm으로 실제 three r169의 `THREE.ShaderLib.
+  toon.vertexShader`/`fragmentShader` 원본에 `patchShader()`를 그대로
+  적용해 결과 문자열을 대조: `vTriWorldPos`·`vTriWorldNormal` varying이
+  정확한 자리에 들어갔는지, `#include <map_fragment>` 지시문이 정확히
+  사라졌는지(부분 문자열 `map_pars_fragment`와 안 헷갈리게 정확한 지시문
+  문자열로 대조), `triSample`·`diffuseColor.rgb *= __blend;`가 그 자리에
+  있는지, 유니폼 3장이 바인딩됐는지 — 전부 일치. `_test.html`에 같은
+  검증(브라우저의 실제 `window.THREE.ShaderLib`로) + `_slopeRockWeight`
+  순수 함수(평지 0·수직 1·중간 단조증가) 진단 2개 추가. `node -c`
+  (terrain3d.js·dungeon3d.js) 통과. `sw.js` `dungeon-v0.126.0` →
+  `v0.127.0`(js 목록에 `terrain3d.js` 추가). `bash tools/precheck.sh
+  saga-web/saga-dungeon` → PRECHECK OK.
+- **GPU로 실제 렌더 결과(픽셀)를 본 적은 없다** — 셰이더 문자열 치환이
+  정확한 자리에 들어갔음은 확인했지만, blend 가중치 상수(경사 임계
+  0.15~0.45, 노이즈 임계 0.35~0.65, 텍스처/노이즈 스케일 1/220·1/340)가
+  실제로 "잔디·흙·돌이 자연스럽게 갈린다"로 보이는지는 손 계산만 했다.
+
+**실기 확인 남음**: 들판이 실제로 잔디·흙·돌 세 갈래로 보이는지, 계단
+옆면에 돌이 자연스럽게 앉는지, 테마 tint가 텍스처를 못 알아볼 만큼
+짙게 덮지 않는지, 텍스처 3장(그래스 307KB 포함) 로딩이 폰에서 끊김을
+만드는지 — §7.2에 반영.
+
+**남은 것**: §6.1의 나머지 절반(길(road) 데칼, 풀 바람 셰이더) + 1 톤매핑
+곡선·6 그림자·7 카메라 확인, 그리고 §6.3(팔레트 스냅·kitbash·타일 24)이
+Phase 6 안에 남았다.

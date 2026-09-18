@@ -809,6 +809,22 @@
     g.add(m);
     return m;
   }
+  /* 2026-09-18 — PLAN §6.1-5, 들판 칸 바닥만(`fieldJobChunk`) 트라이플레이너
+     3타일(잔디·흙·돌, `js/terrain3d.js`)로 — 계단처럼 놓인 칸끼리 옆면(경사
+     큰 면)이 드러나도 늘어지지 않는다. 아주 먼 배경(`skirt`)은 여전히
+     `groundBox()`(노이즈 반점) — 카메라에서 멀어 디테일 차이가 안 보이고,
+     `terrain3d`가 없거나 텍스처가 아직 안 실렸으면 조용히 이쪽으로 돌아간다. */
+  function fieldTileBox(g, x, y, z, sx, sy, sz, hex, cast) {
+    var TR = global.DG.terrain3d;
+    var tm = TR ? TR.fieldGroundMaterial(hex) : null;
+    if (!tm) { return groundBox(g, x, y, z, sx, sy, sz, hex, cast); }
+    var m = new T.Mesh(geo('box', function () { return new T.BoxGeometry(1, 1, 1); }), tm);
+    m.position.set(x, y, z);
+    m.scale.set(sx, sy, sz);
+    if (cast) { m.castShadow = true; }
+    g.add(m);
+    return m;
+  }
 
   /** 층 테마 색 — `data-dungeon.js` 의 테마를 읽어 돌 색을 정한다 */
   function themeHex(run) {
@@ -1288,7 +1304,7 @@
     if (ring === 0) { return; }               // 방이 걸친 조각은 방 바닥이 맡는다
     var gx = cx * F.CHUNK, gz = cz * F.CHUNK;
     var hh = F.heightAt(gx + F.CHUNK / 2, gz + F.CHUNK / 2, seed, W, H);
-    var tile = groundBox(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
+    var tile = fieldTileBox(fieldGroup, gx + F.CHUNK / 2, hh - 6, gz + F.CHUNK / 2,
       F.CHUNK + 2, 12, F.CHUNK + 2, mix(stone, 0x141018, groundK), false);
     tile.receiveShadow = true;
 

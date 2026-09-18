@@ -115,6 +115,7 @@ window.requestAnimationFrame = function () { return 0; };
 <script src="js/field3d.js"></script>
 <script src="js/toon3d.js"></script>
 <script src="js/asset3d.js"></script>
+<script src="js/terrain3d.js"></script>
 <script src="js/field-instance.js"></script>
 <script src="js/portrait3d.js"></script>
 <script src="js/dungeon3d.js"></script>
@@ -5339,6 +5340,42 @@ window.requestAnimationFrame = function () { return 0; };
       var mat2 = TN.outlineMaterial(0.05, false);
       return !!out1 && out1 === out2 && childCountOk && mat1 === mat2 && out1.material.side === T.BackSide &&
         ('outline 재호출 동일 인스턴스 · 부모 자식 수 ' + parent.children.length + ' · 재질 캐시 히트 · side=BackSide');
+    });
+
+    /* ── 그래픽 통일 Phase 6 — 지형 트라이플레이너 블렌드 (PLAN §6.1-5, 2026-09-18) ── */
+
+    t('지형 — patchShader가 실제 MeshToonMaterial 셰이더에 트라이플레이너 코드를 정확히 심는다 (PLAN §6.1-5)', function () {
+      var TR = DG.terrain3d;
+      if (!TR || typeof TR.patchShader !== 'function' || typeof window.THREE === 'undefined') { return false; }
+      var T = window.THREE;
+      var shader = {
+        vertexShader: T.ShaderLib.toon.vertexShader,
+        fragmentShader: T.ShaderLib.toon.fragmentShader,
+        uniforms: {}
+      };
+      TR.patchShader(shader, { name: 'grass' }, { name: 'dirt' }, { name: 'stone' });
+      var vOk = shader.vertexShader.indexOf('vTriWorldPos') >= 0 && shader.vertexShader.indexOf('vTriWorldNormal') >= 0;
+      /* 원본 청크가 남아 있으면(치환 실패) 잔디·흙·돌이 안 나오고 예전 단색으로
+         돌아간다 — `#include <map_fragment>` 지시문이 정확히 사라졌는지 확인 */
+      var includeGone = shader.fragmentShader.indexOf('#include <map_fragment>') === -1;
+      var triOk = shader.fragmentShader.indexOf('triSample') >= 0 &&
+        shader.fragmentShader.indexOf('diffuseColor.rgb *= __blend;') >= 0;
+      var uOk = shader.uniforms.uGrassMap.value.name === 'grass' &&
+        shader.uniforms.uDirtMap.value.name === 'dirt' &&
+        shader.uniforms.uStoneMap.value.name === 'stone' && shader.uniforms.uTexScale.value > 0;
+      return vOk && includeGone && triOk && uOk &&
+        ('버텍스 varying 2개 · map_fragment 소거 · 트라이플레이너 블렌드 코드 삽입 · 텍스처 유니폼 3개 배선');
+    });
+
+    t('지형 — 경사(slope) 기반 돌 가중치가 평지에서 0, 수직면에서 1로 단조 증가한다 (PLAN §6.1-5)', function () {
+      var TR = DG.terrain3d;
+      if (!TR || typeof TR._slopeRockWeight !== 'function') { return false; }
+      var flat = TR._slopeRockWeight(1);       // normal.y=1 → 완전 평지
+      var vertical = TR._slopeRockWeight(0);   // normal.y=0 → 완전 수직(계단 옆면)
+      var mid = TR._slopeRockWeight(0.7);
+      var monotone = flat <= mid && mid <= vertical;
+      return flat === 0 && vertical === 1 && monotone &&
+        ('평지 rockW=' + flat + ' · 중간(normalY=0.7) rockW=' + mid.toFixed(3) + ' · 수직 rockW=' + vertical);
     });
 
     t('목표판 — 부팅 직후 세 줄이 비어 있지 않다 (PLAN §5.6)', function () {
