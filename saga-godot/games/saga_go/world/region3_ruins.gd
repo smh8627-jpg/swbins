@@ -54,6 +54,24 @@ const RELIC_ID := "ruins_relic"
 const RELIC_GRID := Vector2i(1, 1)
 const RELIC_TRIGGER_RADIUS := 14.0
 
+## 2026-09-18, PLAN 101-1 E(발견 밀도) 진단 — `SAGA_DENSITY_REPORT=1`로
+## 재보니 폐허가 80.0% 빈 칸(HISTORY 09-16)이었다. 이유는 이 지역
+## `codex_discoverable` 점이 ENTRY_GRID·RELIC_GRID 단 둘뿐이라서다(NPC·
+## 짐승·인물 조우는 이 그룹에 안 든다 — density_report.gd는 순수 "장소"
+## 발견만 잰다). "결사"(HeroEncounter3, TestVillage.tscn (5,5))의 최후
+## 항전이라는 이 지역 자리값 그대로, 흩어진 전장 잔해 넷을 숲 칸(T,
+## (2,2)(4,2)(2,4)(4,4) — ENTRY·RELIC과 안 겹치는 자리)에 얹는다.
+## whalebone(region2_coast.gd)과 같은 결 — 선택지 없는 순수 발견, kind
+## 기본값 "place" 그대로. 재측정: 80.0%→28.0%(HISTORY 09-18 상세).
+const DEBRIS := [
+	{"id": "ruins_shield", "grid": Vector2i(2, 2), "shape": "box"},
+	{"id": "ruins_helm", "grid": Vector2i(4, 2), "shape": "sphere"},
+	{"id": "ruins_arrows", "grid": Vector2i(2, 4), "shape": "box_thin"},
+	{"id": "ruins_banner", "grid": Vector2i(4, 4), "shape": "capsule"},
+]
+const DEBRIS_TRIGGER_RADIUS := 14.0
+const DEBRIS_COLOR := Color(0.4, 0.36, 0.3)
+
 var _layer: CanvasLayer
 var _triggered := false
 
@@ -64,6 +82,7 @@ func _ready() -> void:
 	_build_return_trigger()
 	_build_relic()
 	_build_beacon()
+	_build_debris()
 
 
 ## PLAN.md 101-2 GO ⑤"봉수대" — 폐허 몫. 기존 콘텐츠(입구·귀환·유물)와
@@ -135,6 +154,46 @@ func _travel_to_harbor(player: Node3D) -> void:
 	(player as Node3D).global_position = TestMap.world_pos(HARBOR_GATE_GRID.x, HARBOR_GATE_GRID.y, "coast") + Vector3(0, ground + 1.0, 0)
 	Toast.show(self, "포구로 돌아왔다.", 2.5)
 	_triggered = false
+
+
+## PLAN 101-1 E — 위 DEBRIS 상수 참고. 넷 다 region2_coast.gd
+## _build_whalebone()과 같은 결(선택지 없는 순수 발견, primitive
+## 하나+`_add_discovery_area()`) — 모양만 넷이 서로 달라 한눈에 구별된다.
+func _build_debris() -> void:
+	var ground: float = TerrainBuilder.LEGEND["T"].height
+	for d in DEBRIS:
+		var pos: Vector3 = TestMap.world_pos(d.grid.x, d.grid.y, RUINS_REGION) + Vector3(0, ground, 0)
+		var mi := MeshInstance3D.new()
+		match d.shape:
+			"box":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(1.1, 0.15, 0.7)
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.1, 0)
+			"sphere":
+				var mesh := SphereMesh.new()
+				mesh.radius = 0.4
+				mesh.height = 0.7
+				mi.mesh = mesh
+				mi.position = pos + Vector3(0, 0.35, 0)
+			"box_thin":
+				var mesh := BoxMesh.new()
+				mesh.size = Vector3(1.6, 0.08, 0.08)
+				mi.mesh = mesh
+				mi.rotation = Vector3(0, deg_to_rad(35.0), 0)
+				mi.position = pos + Vector3(0, 0.1, 0)
+			"capsule":
+				var mesh := CapsuleMesh.new()
+				mesh.radius = 0.08
+				mesh.height = 2.4
+				mi.mesh = mesh
+				mi.rotation = Vector3(0, 0, deg_to_rad(12.0))
+				mi.position = pos + Vector3(0, 1.2, 0)
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = DEBRIS_COLOR
+		mi.material_override = mat
+		add_child(mi)
+		_add_discovery_area(d.id, pos, DEBRIS_TRIGGER_RADIUS)
 
 
 ## region2_coast.gd _build_driftwood()/_build_boat()와 같은 결 — primitive

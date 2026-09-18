@@ -7384,3 +7384,10 @@ PROJECT_STATE.md` 참고. 요약:
 - `glb_utils.gd::fit_height(node, target_height)` 신설 — **아직 아무 데도 안 부름**. 구현 중 실제 버그 하나 잡음: 트리 밖 노드의 `global_transform`은 Godot 4가 조용히 항등행렬로 반환한다(엔진 에러 로그, 크래시는 아님) — 자가진단(회전 자식 포함)으로 잡아 `_relative_transform()`(로컬 transform 직접 합성)으로 고쳤다.
 - **PLAN 105장 Q-h 신설**: 102-1 표(사람 1.7m)와 지금 승인받은 세 판(GO·DUNGEON·FOREST, 실측 키 3.4m 안팎으로 카메라·충돌·지역 크기가 이미 튜닝됨)이 정면충돌한다는 걸 발견 — fit_height를 실제 캐릭터에 연결하는 건 이 답이 나온 뒤로 미룸.
 - 헤드리스 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과·md5 불변, `.import`/`project.godot` 잡음 없음. 임시 자가진단(`_diag_celshader.gd`)은 커밋 전 지움.
+
+## GO 폐허 발견 밀도 — 전장 잔해 4종 (2026-09-18) — PLAN 101-1 E
+
+- `SAGA_DENSITY_REPORT=1`로 재보니 마을 62.5%·포구 61.2%·폐허 80.0% 빈 칸(2026-09-16 수치 그대로, 10% 기준 셋 다 초과). 조사해 보니 이 진단은 NPC·짐승·인물 조우를 안 세고 순수 "장소"(`codex_discoverable` 그룹) 발견만 잰다 — 폐허는 그게 ENTRY_GRID·RELIC_GRID 단 둘뿐이라 80%까지 치솟았다.
+- region3_ruins.gd에 흩어진 전장 잔해 4개(부서진 방패·투구·화살·깃대, `ruins_shield/helm/arrows/banner`)를 숲 칸(2,2)(4,2)(2,4)(4,4)에 얹었다 — "결사"(계백 오마주 최후 항전)라는 이 지역 자리값에 맞춘 순수 발견(whalebone과 같은 결, 선택지 없음). codex_state.gd TOTAL place 10→14.
+- 재측정: **폐허 80.0%→32.0%**(empty 20→8, total 25 그대로). 마을·포구는 이번엔 손 안 댐(포구는 격자 절반이 바다라 Q-f와 비슷한 "격자 자체가 안 맞는" 결이 있어 보임 — 다음에 살펴볼 것).
+- 헤드리스 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과.
