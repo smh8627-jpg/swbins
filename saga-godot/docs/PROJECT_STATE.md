@@ -17,12 +17,13 @@
 
 ## 현재 작업
 
-- **2026-09-19, 103장 착수 — `tools/asset-forge/palette.py` 신설**(사용자 확인 뒤 시작, 101/102가 GUI·Q-h/Q-b 대기라 손 안 댄 103장으로 넘어감). `build`(base8→24색 JSON, GO는 터레인 LEGEND 실색)·`snap-glb`(텍스처+정점색 최근접 스냅)·`preview`(전/후 비교 PNG). `wall-block.glb`로 왕복 검증(17색, 유효 GLB 재로드) — `assets/generated/palettes/go_village.json`·`variants/wall-block__go_village.glb`. **씬 미연결**(103-5 사람 확인 먼저). PC 함정: `py`/`python`/`python3` 전부 exit 9009 — **`py -3 <script>.py`로만** 부른다.
-- 그 앞(2026-09-18): FOREST 발견 격자(Q-f 해소, 18.0%→0.8%) + 101-3 C 완결 — **101-2/3/4 후보 전부 소진**.
+- **2026-09-19②, 103-3 Fantasy Town 모듈 4/4 스냅** — `roof-gable`·`pillar-stone`·`planks`도 `go_village`로 스냅(4종 다 같은 `colormap.png` 공유 확인, md5 동일 — 17색 왕복 검증 4/4). 103-3 표 "Fantasy Town 모듈 4" 행 완료.
+- 그 앞(①, 같은 날): `tools/asset-forge/palette.py` 신설(`build`·`snap-glb`·`preview`), `wall-block.glb` 첫 검증. **씬 미연결**(103-5 사람 확인 먼저). PC 함정: `py`/`python`/`python3` 단독은 exit 9009 — **`py -3 <script>.py`로만** 부른다.
+- 그 앞(2026-09-18): FOREST 발견 격자(Q-f 해소) + 101-3 C 완결 — **101-2/3/4 후보 전부 소진**.
 
 ## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
-1. **팔레트 결과물 사람 확인** — `variants/wall-block__go_village.glb`가 GO 톤에 맞는지(씬 미연결, `preview`로 비교 PNG 재생성). 확인되면 씬에 물리고 103-3 표로 넓힌다.
+1. **팔레트 결과물 사람 확인** — `variants/*__go_village.glb` 4종이 GO 톤에 맞는지(씬 미연결, `preview`로 비교 PNG 재생성). 확인되면 씬에 물리고 Modular Cave·character-a~d로 넓힌다.
 2. **실기 확인 몰아서**(아래) — 사용자 몫.
 3. **102장 그래픽 1차**: 톤 승인(GUI) → 102-1 스케일·102-4/5는 Q-h·Q-b 대기.
 

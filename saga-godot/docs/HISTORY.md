@@ -7447,3 +7447,11 @@ PROJECT_STATE.md` 참고. 요약:
 - **PC 함정 하나 확정**(다음 세션도 겪을 것): 이 PC 는 `python`/`python3`가 WindowsApps 스토어 스텁이고, `py` 단독으로 불러도 스크립트 셰뱅(`#!/usr/bin/env python3`)을 따라가 같은 스텁으로 샌다(exit 9009, "Python" 한 줄만 찍힘). **`py -3 <script>.py`로 버전을 못박아야** 정상 동작 — `py --version`·`py -c "..."`는 멀쩡해서 처음엔 원인을 못 찾다가 obj-split/split.py로도 재현해 확인.
 - `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음(신규 assets/generated/ 파일만 추가).
 - 다음: 사람이 `wall-block__go_village.glb`(또는 `preview` PNG)를 보고 톤이 맞는지 확인 → 맞으면 씬에 물리고 103-3 표 나머지(Modular Cave·character-a~d 등)로 palette.py 사용을 넓힌다.
+
+## 103-3 Fantasy Town 모듈 4/4 스냅 (2026-09-19②)
+
+- 같은 날 앞서 만든 `palette.py`·`go_village` 팔레트를 wall-block 하나에서 Fantasy Town 킷 나머지 셋(roof-gable·pillar-stone·planks)으로 넓혔다 — 103-3 표 "Fantasy Town 모듈 4(벽·판자·지붕·기둥)" 행.
+- 스냅 전 4개 원본 GLB의 `baseColorTexture` md5를 찍어 보니 넷 다 완전히 같은 텍스처(`ba059759`, 512×512) — Kenney 킷 관례대로 한 장의 colormap.png를 부품마다 다른 UV로 재사용하고 있었다. 그래서 팔레트 스냅 결과도 4개 다 유니크 컬러 17개로 동일 — 새 사실이라기보다 확인.
+- `assets/generated/variants/{roof-gable,pillar-stone,planks}__go_village.glb` 3개 추가. 헤드리스 에디터 임포트 1회(오류 0), `.import`/`project.godot` 잡음 없음, `tools/godot_regress.sh` 다섯 판 3회 통과.
+- **여전히 씬엔 안 물렸다** — 103-5 절차상 사람이 톤을 먼저 확인해야 한다(마을집·기둥·지붕·판자를 실제로 쓰는 landmarks_builder.gd `_build_village`류를 건드리면 이미 실기 승인 난 GO 마을 외형이 바로 바뀐다, 위험이 크다고 판단해 보류).
+- 다음: 사람이 `variants/*__go_village.glb` 4종 확인 → 맞으면 씬 연결 + Modular Cave(굴혈)·character-a~d(NPC 옷)로 palette.py 확장.
