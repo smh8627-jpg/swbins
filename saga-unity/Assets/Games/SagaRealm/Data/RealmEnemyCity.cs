@@ -167,6 +167,20 @@ namespace Saga.Realm.Data
     /// 그대로, 장가(hill)는 다른 hill/mount 성들과 같은 이유로 Plain
     /// 처리. 건녕의 남은 이웃(운남)·남해의 남은 이웃(합포)은 다음 확장
     /// 후보로 남긴다.
+    /// **51장 20차 확장(2026-09-18, 같은 날 "사가유니티 이어해")** — 교주
+    /// 사슬 하나(교지→구진)와, **남해(nanhai)의 둘째 목표**(합포)를 함께
+    /// 열었다. ① 교지→구진(원작 LINKS: jiaozhi-jiuzhen, "벼가 두 번
+    /// 여무는 들, 남쪽으로 갈수록 낯설어진다" — 일남(rinan)으로 더 뻗을
+    /// 수 있어 다음 확장 후보로 남긴다). ② 남해→합포(원작 LINKS:
+    /// nanhai-hepu, "진주가 나는 바닷가, 배가 곧 재물이다") — 남해는
+    /// 이미 창오(17차)를 목표로 갖고 있어 19차(건녕→장가)와 같은 결로
+    /// "형제 가지" 규칙을 또 한 번 확장했다(합포의 원작 LINKS 쪽 다음
+    /// 칸이 이미 우리 성인 교지라 합포 자체가 이 방향의 마지막 칸이다).
+    /// train은 형제 가지 규칙대로 남해 자신의 train+15=175(창오와 같음),
+    /// 구진은 정상적인 한 단계 더 깊은 자식 규칙대로 교지의 205+15=220.
+    /// wall은 원작 그대로(구진 3000·합포 3200), troops=wall×0.23 반올림
+    /// (700·750). 둘 다 원작 land 그대로(구진 plain·합포 river, 보정
+    /// 불필요). 건녕의 남은 이웃(운남)은 다음 확장 후보로 남긴다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -241,6 +255,8 @@ namespace Saga.Realm.Data
         public const string YuexiId = "yuexi";
         public const string JiaozhiId = "jiaozhi";
         public const string ZangkeId = "zangke";
+        public const string JiuzhenId = "jiuzhen";
+        public const string HepuId = "hepu";
 
         public static readonly string[] AllIds =
         {
@@ -248,7 +264,7 @@ namespace Saga.Realm.Data
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
-            JiaozhiId, ZangkeId,
+            JiaozhiId, ZangkeId, JiuzhenId, HepuId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -404,6 +420,18 @@ namespace Saga.Realm.Data
             // 규칙을 원래 세 국경 성 밖으로 처음 확장). train은 건녕
             // 자신의 140+15=155(월수와 같은 깊이의 형제 가지).
             [ZangkeId] = new RealmEnemyCityDef(ZangkeId, "장가", RealmLand.Plain, baseWall: 3000, baseTroops: 700, baseTrain: 155, baseTech: 100, attackFromCityId: "jianning"),
+            // 구진은 교지(jiaozhi)와만 맞닿아 있다(원작 LINKS:
+            // jiaozhi-jiuzhen, "벼가 두 번 여무는 들") — 20차 확장,
+            // 교지를 함락해야 열리는 교주 사슬의 다음 단계. train은
+            // 교지 자신의 205+15=220. 일남(rinan)으로 더 뻗을 수 있어
+            // 다음 확장 후보로 남긴다.
+            [JiuzhenId] = new RealmEnemyCityDef(JiuzhenId, "구진", RealmLand.Plain, baseWall: 3000, baseTroops: 700, baseTrain: 220, baseTech: 100, attackFromCityId: "jiaozhi"),
+            // 합포는 남해(nanhai)와 맞닿아 있다(원작 LINKS: nanhai-hepu,
+            // "진주가 나는 바닷가") — 20차 확장, 남해의 둘째 목표(남해는
+            // 이미 창오를 갖고 있다 — 19차 장가와 같은 결로 형제 가지
+            // 규칙을 또 한 번 확장). train은 남해 자신의 160+15=175
+            // (창오와 같은 깊이의 형제 가지).
+            [HepuId] = new RealmEnemyCityDef(HepuId, "합포", RealmLand.River, baseWall: 3200, baseTroops: 750, baseTrain: 175, baseTech: 100, attackFromCityId: "nanhai"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

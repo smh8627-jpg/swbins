@@ -79,7 +79,7 @@ namespace Saga.EditorTools
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
-            AttackZangke, AttackJiaozhi,
+            AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -148,7 +148,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1102,8 +1102,19 @@ namespace Saga.EditorTools
                 case Phase.AttackCangwu:
                 {
                     // 17차 확장(2026-09-18) — 남해를 함락한 뒤 이어지는
-                    // 교주 사슬의 다음 단계(TargetFrom("nanhai")).
-                    if (!AttackChainStep(RealmEnemyCity.NanhaiId, RealmEnemyCity.CangwuId, Phase.AttackJianning)) return;
+                    // 교주 사슬의 다음 단계. 20차부터 남해가 합포도 목표로
+                    // 가져 목표가 둘이 됐으므로 enemyId를 명시해야 한다
+                    // (changan과 같은 이유).
+                    if (!AttackChainStep(RealmEnemyCity.NanhaiId, RealmEnemyCity.CangwuId, Phase.AttackHepu, RealmEnemyCity.CangwuId)) return;
+                    break;
+                }
+
+                case Phase.AttackHepu:
+                {
+                    // 20차 확장(2026-09-18) — 남해의 둘째 목표(창오와
+                    // 형제 가지, 19차 장가와 같은 결로 형제 가지 규칙을
+                    // 또 한 번 확장).
+                    if (!AttackChainStep(RealmEnemyCity.NanhaiId, RealmEnemyCity.HepuId, Phase.AttackJianning, RealmEnemyCity.HepuId)) return;
                     break;
                 }
 
@@ -1146,7 +1157,15 @@ namespace Saga.EditorTools
                 {
                     // 19차 확장(2026-09-18) — 울림을 함락한 뒤 이어지는
                     // 교주 사슬의 다음 단계(TargetFrom("yulin")).
-                    if (!AttackChainStep(RealmEnemyCity.YulinId, RealmEnemyCity.JiaozhiId, Phase.QuizCorrect)) return;
+                    if (!AttackChainStep(RealmEnemyCity.YulinId, RealmEnemyCity.JiaozhiId, Phase.AttackJiuzhen)) return;
+                    break;
+                }
+
+                case Phase.AttackJiuzhen:
+                {
+                    // 20차 확장(2026-09-18) — 교지를 함락한 뒤 이어지는
+                    // 교주 사슬의 다음 단계(TargetFrom("jiaozhi")).
+                    if (!AttackChainStep(RealmEnemyCity.JiaozhiId, RealmEnemyCity.JiuzhenId, Phase.QuizCorrect)) return;
                     break;
                 }
 

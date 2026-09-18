@@ -244,6 +244,17 @@ namespace Saga.Realm.Data
             // Plain 처리. wall은 RealmEnemyCity.cs 장가 정의(3000)와
             // 맞춘다.
             ["zangke"] = new RealmCityDef("zangke", "장가", RealmLand.Plain, agri: 150, comm: 120, wall: 3000, pop: 50000, mapX: 28, mapY: 98),
+            // 51장 "대규모 콘텐츠" 20차 확장(2026-09-18) — 교지(jiaozhi)를
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계(원작 LINKS:
+            // jiaozhi-jiuzhen, "벼가 두 번 여무는 들"). land는 원작
+            // 그대로 plain. wall은 RealmEnemyCity.cs 구진 정의(3000)와
+            // 맞춘다.
+            ["jiuzhen"] = new RealmCityDef("jiuzhen", "구진", RealmLand.Plain, agri: 200, comm: 140, wall: 3000, pop: 70000, mapX: 44, mapY: 107),
+            // 20차 확장 — 남해(nanhai)의 둘째 목표(원작 LINKS:
+            // nanhai-hepu, "진주가 나는 바닷가" — 남해는 이미 창오를
+            // 갖고 있다). land는 원작 그대로 river. wall은
+            // RealmEnemyCity.cs 합포 정의(3200)와 맞춘다.
+            ["hepu"] = new RealmCityDef("hepu", "합포", RealmLand.River, agri: 170, comm: 220, wall: 3200, pop: 85000, mapX: 58, mapY: 99),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

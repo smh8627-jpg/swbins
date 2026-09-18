@@ -7328,3 +7328,44 @@ UI가 그대로 건녕용 2버튼 고르기 패널을 낸다. train은 교지가
 완료 요약(적국 31→33, 성 34→36)·16~19차 절 갱신(형제 가지 규칙 확장
 사례 추가)·"다음 작업"(20차 후보: 남해→합포, 교지→구진, 건녕→운남)·
 테스트 상태·실기 확인 대기 전부 갱신.
+
+## REALM 51장 20차 확장 — 교지→구진·남해 둘째 목표 합포 (2026-09-18, 같은 세션 "사가유니티 이어해")
+
+19차가 남긴 후보 중 교주 사슬 하나(교지→구진)와, **남해의 둘째 목표
+(합포)**를 함께 열었다. ① 교지→구진(원작 LINKS: jiaozhi-jiuzhen,
+"벼가 두 번 여무는 들, 남쪽으로 갈수록 낯설어진다" — 일남(rinan)으로
+더 뻗을 수 있어 다음 확장 후보). ② 남해→합포(원작 LINKS: nanhai-hepu,
+"진주가 나는 바닷가, 배가 곧 재물이다") — 19차의 건녕→장가와 같은
+결로, **형제 가지 규칙을 또 한 번 원래 세 국경 성 밖으로 확장**했다
+(원작 LINKS상 합포의 다음 칸이 이미 우리 성인 교지라 합포 자체가
+이 방향의 마지막 칸). train은 구진이 정상적인 한 단계 더 깊은 자식
+규칙(교지 205+15=220), 합포가 형제 가지 규칙(남해 160+15=175, 창오와
+같음). wall은 원작 그대로(구진 3000·합포 3200), troops=wall×0.23
+반올림(700·750). 둘 다 원작 land 그대로(구진 plain·합포 river, 보정
+불필요).
+
+- `RealmEnemyCity.cs` — `JiuzhenId`·`HepuId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 두 성 추가(17차 함정 재발 방지, 처음부터
+  두 파일 다 같이 고침).
+- `PlaytestRealmSlice.cs` — 기존 `Phase.AttackCangwu`·`Phase.AttackJiaozhi`
+  호출을 각각 `enemyId` 명시/다음 단계 변경으로 고쳤다 — 합포를 추가하는
+  순간 남해가 목표 둘(창오·합포)이 돼서 `AttackCangwu`도 19차의
+  `AttackYuexi`와 같은 이유로 `enemyId`가 필요해졌다. 새
+  `Phase.AttackHepu`(남해→합포, enemyId 명시)·`Phase.AttackJiuzhen`
+  (교지→구진) 신설, 순서는 AttackCangwu→**AttackHepu**→AttackJianning→
+  …→AttackJiaozhi→**AttackJiuzhen**→QuizCorrect. OK 로그 문구에
+  "chain-20th(hepu+jiuzhen)" 추가.
+- 로컬라이제이션: `city.jiuzhen`/`city.hepu`(ko/en) 신설.
+
+**패턴 확인**: 목표를 하나 더 가진 성이 이미 있는 상태에서 그 성을
+출진지로 쓰는 기존 체인 스텝은, 새 목표를 추가하는 시점에 반드시
+`enemyId`를 명시로 바꿔야 한다는 규칙이 이번에 또 한 번 확인됐다(19차
+때 `AttackYuexi`, 이번엔 `AttackCangwu`) — `TargetFrom()`이 `Catalog`
+딕셔너리 내부 순서에 의존하므로, 목표가 늘어나는 순간 옛 암묵적 선택이
+더는 안전하지 않다.
+
+컴파일 확인(`tools/unity-batch.sh` 경유, error CS 0건) + `PlaytestRealmSlice`
+3연속 OK(합포·구진 함락 로그 매 회 확인 — 남해의 첫 다중 목표 경로도
+이 3연속에 포함). 씬 재생성 불필요. `docs/PROJECT_STATE.md` REALM
+완료 요약(적국 33→35, 성 36→38)·16~20차 절 갱신·"다음 작업"(21차
+후보: 구진→일남, 건녕→운남)·테스트 상태·실기 확인 대기 전부 갱신.
