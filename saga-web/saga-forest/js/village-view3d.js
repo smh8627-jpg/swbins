@@ -698,11 +698,19 @@
     return ((y % height) + height) % height;
   }
 
-  var WEATHER_FX = { rain: null, snow: null, firefly: null };
+  var WEATHER_FX = { rain: null, snow: null, firefly: null, fireflyBoost: null };
   var weatherClock = 0;
   var RAIN_N = 140, RAIN_H = 14, RAIN_SPEED = 9;
   var SNOW_N = 90, SNOW_H = 12, SNOW_SPEED = 1.6;
   var FIREFLY_N = 40, FIREFLY_R = 18, FIREFLY_H = 3.2;
+  /* PLAN §5.3 "밤 파티클 배율 ×3" — 사고 곤충 갈래를 다 채우면 서는
+     반딧불이 정원(`fireflyplot`)만의 국지 무리. 앰비언트 반딧불이(위
+     `FIREFLY_N` 셋)는 언제나 인물 둘레에 고르게 흩어지는데, 정원은
+     "그 자리에 몰려든다"는 인상을 줘야 해서 훨씬 좁은 반경에 따로
+     한 무리를 더 얹는다 — 두 무리를 합치면 그 자리만 유독 짙어 보인다.
+     정확한 밀도 배율(×3)을 식으로 맞추기보다 **눈에 띄는 고정 수**를
+     골랐다(실기 확인 전까지는 숫자 자체가 정답인지 알 수 없다). */
+  var FIREFLY_BOOST_N = 24, FIREFLY_BOOST_R = 5, FIREFLY_BOOST_H = 2.4;
 
   /**
    * 비·눈·반딧불이 파티클(PLAN 21·22절)을 미리 지어 둔다. **인물은 늘
@@ -735,6 +743,19 @@
     WEATHER_FX.rain = makePoints(RAIN_N, area, RAIN_H, 0.06, 0x9fc3e8, 0.55);
     WEATHER_FX.snow = makePoints(SNOW_N, area, SNOW_H, 0.14, 0xffffff, 0.9);
     WEATHER_FX.firefly = makePoints(FIREFLY_N, FIREFLY_R, FIREFLY_H, 0.22, 0xf6ef8a, 0.85);
+    /* 정원 무리는 원점(인물)이 아니라 `fireflyplot`의 **세계 좌표**를 따라
+       다녀야 하므로 `makePoints()`(늘 원점 중심)로 짓고 매 프레임
+       `syncWeatherFX()`가 그 자리로 그룹을 옮긴다(스캐터 소품과 같은 요령,
+       `syncScatter()`의 `(p.x-px)*scale` 변환 참고). */
+    WEATHER_FX.fireflyBoost = makePoints(FIREFLY_BOOST_N, FIREFLY_BOOST_R, FIREFLY_BOOST_H, 0.22, 0xf6ef8a, 0.9);
+  }
+
+  /** PLAN §5.3 — 사고 곤충 갈래를 다 채우면 서는 그 시설을 찾는다(고정 자리
+   *  하나뿐이지만 배열 전체를 본다). 순수 함수 — scene 없이도 값으로
+   *  검증된다. */
+  function fireflyPlotOf(props) {
+    for (var i = 0; i < props.length; i++) { if (props[i].kind === 'fireflyplot') { return props[i]; } }
+    return null;
   }
 
   var meteorGroup, meteorHead, meteorTail, meteorUpVec, meteorDirVec, METEOR_TAIL_LEN = 2.6;
@@ -852,6 +873,20 @@
     if (WEATHER_FX.firefly) {
       WEATHER_FX.firefly.visible = fly;
       if (fly) { floatStep(WEATHER_FX.firefly); }
+    }
+    if (WEATHER_FX.fireflyBoost) {
+      var V = global.DG.village, plot = null, raw = null, scale = WORLD_SCALE();
+      if (fly && V) {
+        raw = V.raw();
+        var cullU = CULL_R() / scale;
+        plot = fireflyPlotOf(raw.props);
+        if (plot && Math.hypot(plot.x - raw.player.x, plot.y - raw.player.y) > cullU) { plot = null; }
+      }
+      WEATHER_FX.fireflyBoost.visible = !!plot;
+      if (plot) {
+        WEATHER_FX.fireflyBoost.position.set((plot.x - raw.player.x) * scale, 0, (plot.y - raw.player.y) * scale);
+        floatStep(WEATHER_FX.fireflyBoost);
+      }
     }
   }
 
@@ -1615,6 +1650,7 @@
     /** 진단 전용 — PLAN 40절 PHASE 5 Weather/Ambient: 날씨→파티클, 밤 반딧불이, 낙하 감기(모두 순수 함수) */
     weatherShows: weatherShows,
     fireflyVisible: fireflyVisible,
+    fireflyPlotOf: fireflyPlotOf,
     wrapY: wrapY,
     skyDark: skyDark,
     weatherFog: function (wk) { return WEATHER_FOG[wk] != null ? WEATHER_FOG[wk] : 1; },

@@ -483,6 +483,15 @@ window.DG_NO_TUNE = true;
         '비/눈 배타적 · 반딧불이는 밤+비/눈 아닐 때만';
     });
 
+    t('village-view3d — fireflyPlotOf 는 fireflyplot 소품만 골라내고, 없으면 null (PLAN §5.3 밤 파티클 배율)', function () {
+      var VV3 = DG.villageView3d;
+      var none = VV3.fireflyPlotOf([{ kind: 'stele' }, { kind: 'bench' }]);
+      var found = VV3.fireflyPlotOf([{ kind: 'stele' }, { kind: 'fireflyplot', x: 10, y: 20 }, { kind: 'bench' }]);
+      var empty = VV3.fireflyPlotOf([]);
+      return none === null && empty === null && found && found.x === 10 && found.y === 20 &&
+        '없으면 null · 있으면 그 소품(x=10,y=20) 그대로';
+    });
+
     t('village-view3d — meteorPose(유성, PLAN 20절)는 st 없으면 null, 있으면 t=0.5(가운데)에서 가장 밝고 x 해시가 도는 방향을 정한다', function () {
       var VV3 = DG.villageView3d;
       var none = VV3.meteorPose(null);
