@@ -274,10 +274,13 @@ namespace Saga.Realm.UI
         /// <summary>diplo.js "계략은 성공률을 숨기지 않는다" — 성공률이
         /// 지금 조망 성·로스터 상태에 따라 매번 바뀌므로(RealmWarState
         /// .PreviewPlotChance), 정적으로 한 번 짓지 않고 열 때마다 버튼을
-        /// 다시 만든다(RealmCityBuilder.Rebuild()와 같은 결).</summary>
+        /// 다시 만든다(RealmCityBuilder.Rebuild()와 같은 결). 51장 16차
+        /// 확장(2026-09-18)의 "알려진 틈" 후속(2026-09-18) — 목표가 둘인
+        /// 성(장안·장사·강주)에서는 계략도 목표를 고를 수 있어야 해서
+        /// 패널 높이를 행 4개(계략 2종×목표 2곳)까지 늘렸다.</summary>
         private void BuildPlotPanel(Transform parent)
         {
-            _plotPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 420f),
+            _plotPanel = RealmUiKit.NewPanel(parent, new Vector2(0.5f, 0.5f), new Vector2(680f, 620f),
                 new Color(0f, 0f, 0f, 0.75f));
             _plotPanel.SetActive(false);
 
@@ -297,6 +300,12 @@ namespace Saga.Realm.UI
                 new Vector2(300f, 70f), () => _plotPanel.SetActive(false));
         }
 
+        /// <summary>51장 16차 확장의 "알려진 틈" 후속(2026-09-18) — 목표가
+        /// 둘 이상인 성(장안·장사·강주)에서는 계략 종류만으로 목표를 못
+        /// 정하므로, 그런 성에서는 "계략×목표" 조합을 행마다 하나씩 낸다
+        /// (`ChooseAttackTarget`과 같은 결로 enemyId를 같이 캡처). 목표가
+        /// 하나뿐인 대부분 성은 옛날처럼 계략 종류만 나열(enemyId 생략 —
+        /// `RealmWarState.Plot()`이 `TargetFrom()`으로 스스로 찾는다).</summary>
         private void RefreshPlotPanel()
         {
             for (int i = _plotButtonsRoot.childCount - 1; i >= 0; i--)
@@ -304,17 +313,35 @@ namespace Saga.Realm.UI
                 Destroy(_plotButtonsRoot.GetChild(i).gameObject);
             }
 
+            var targets = RealmEnemyCity.TargetsFrom(RealmCityState.CurrentCity);
+            float chance = RealmWarState.PreviewPlotChance(RealmCityState.CurrentCity);
+            string chanceText = chance > 0f ? $"{Mathf.RoundToInt(chance * 100f)}%" : RealmLocalization.T("plot.no_officer", "무장 없음");
+
             float y = -150f;
             foreach (var key in RealmPlotData.AllKeys)
             {
                 var plot = RealmPlotData.Get(key);
-                float chance = RealmWarState.PreviewPlotChance(RealmCityState.CurrentCity);
-                string chanceText = chance > 0f ? $"{Mathf.RoundToInt(chance * 100f)}%" : RealmLocalization.T("plot.no_officer", "무장 없음");
-                string label = string.Format(RealmLocalization.T("ui.plot_label", "{0} {1} ({2}냥, 성공률 {3})"), plot.Emoji, plot.Name, plot.Gold, chanceText);
                 string capturedKey = key;
-                RealmUiKit.NewButton(_plotButtonsRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y),
-                    new Vector2(600f, 84f), () => ChoosePlot(capturedKey));
-                y -= 100f;
+                if (targets.Count > 1)
+                {
+                    foreach (var enemyId in targets)
+                    {
+                        var def = RealmEnemyCity.Get(enemyId);
+                        string capturedEnemy = enemyId;
+                        string label = string.Format(RealmLocalization.T("ui.plot_label_target", "{0} {1} → {2} ({3}냥, 성공률 {4})"),
+                            plot.Emoji, plot.Name, def.Name, plot.Gold, chanceText);
+                        RealmUiKit.NewButton(_plotButtonsRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y),
+                            new Vector2(600f, 84f), () => ChoosePlot(capturedKey, capturedEnemy));
+                        y -= 100f;
+                    }
+                }
+                else
+                {
+                    string label = string.Format(RealmLocalization.T("ui.plot_label", "{0} {1} ({2}냥, 성공률 {3})"), plot.Emoji, plot.Name, plot.Gold, chanceText);
+                    RealmUiKit.NewButton(_plotButtonsRoot, label, new Vector2(0.5f, 1f), new Vector2(0f, y),
+                        new Vector2(600f, 84f), () => ChoosePlot(capturedKey));
+                    y -= 100f;
+                }
             }
         }
 
@@ -666,9 +693,9 @@ namespace Saga.Realm.UI
             _attackPanel.SetActive(false);
         }
 
-        private void ChoosePlot(string key)
+        private void ChoosePlot(string key, string enemyId = null)
         {
-            var result = RealmWarState.Plot(key, RealmCityState.CurrentCity);
+            var result = RealmWarState.Plot(key, RealmCityState.CurrentCity, enemyId);
             RealmToast.Instance?.Show(result.Message, 6f);
             PlayOutcomeSfx(result.Ok);
             if (result.Ok) _plotPanel.SetActive(false);

@@ -1079,6 +1079,7 @@ namespace Saga.EditorTools
                     // 둘(한중·천수)을 돌려주는지, 공격 UI가 목표 둘일 때
                     // 고르기 패널을 여는지부터 먼저 본다.
                     if (!CheckMultiTargetAttack()) { Fail(); return; }
+                    if (!CheckMultiTargetPlot()) { Fail(); return; }
                     if (!AttackChainStep(RealmEnemyCity.ChanganId, RealmEnemyCity.TianshuiId, Phase.AttackNanhai, RealmEnemyCity.TianshuiId)) return;
                     break;
                 }
@@ -1609,6 +1610,62 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestRealmSlice] multi-target attack UI OK - changan(2 targets: hanzhong+tianshui) opens a picker with 2 buttons instead of attacking immediately, wrong enemyId rejected");
+            return true;
+        }
+
+        /// <summary>51장 16차 확장의 "알려진 틈" 후속(2026-09-18) — 계략도
+        /// 목표가 둘인 성(장안)에서 "계략×목표" 조합 버튼(2종×2목표=4개)을
+        /// 내는지 본다. CheckMultiTargetAttack()과 같은 이유로 **실제로
+        /// 계략을 걸지는 않는다** — 걸면 금 소모·enemy stat 변화가 다음
+        /// AttackChainStep()의 전투 결과에 영향을 줘 그 단계가 깨질 수
+        /// 있다. 패널만 열어 버튼 개수를 보고 바로 닫는다.</summary>
+        private static bool CheckMultiTargetPlot()
+        {
+            var ui = Object.FindFirstObjectByType<RealmCommandUi>();
+            if (ui == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi 인스턴스를 못 찾음");
+                return false;
+            }
+
+            RealmCityState.SetCurrentCity(RealmEnemyCity.ChanganId);
+
+            var plotPanel = typeof(RealmCommandUi).GetField("_plotPanel", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ui) as GameObject;
+            if (plotPanel == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] RealmCommandUi._plotPanel이 null — 씬 재로드 후 참조가 안 살아남음");
+                return false;
+            }
+
+            var toggleMethod = typeof(RealmCommandUi).GetMethod("TogglePlotPanel", BindingFlags.NonPublic | BindingFlags.Instance);
+            toggleMethod.Invoke(ui, null);
+
+            if (!plotPanel.activeSelf)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 목표가 둘인 성(장안)에서 계략 버튼을 눌렀는데 패널이 안 뜸");
+                return false;
+            }
+
+            var buttonsRoot = typeof(RealmCommandUi).GetField("_plotButtonsRoot", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(ui) as Transform;
+            if (buttonsRoot == null || buttonsRoot.childCount != 4)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 계략 고르기 패널의 버튼 개수 이상 — {(buttonsRoot == null ? "null" : buttonsRoot.childCount.ToString())}(기대=4, 계략 2종×목표 2곳)");
+                return false;
+            }
+
+            plotPanel.SetActive(false); // 실제로 계략을 걸면 다음 AttackChainStep()의 전투 결과가 흔들린다 — 열어서 확인만 하고 닫는다.
+
+            // 목표가 아닌 성 id를 강제로 넘기면 거절하는지(RealmWarState.Plot()
+            // 의 TargetsFrom().Contains() 가드) — 회계(kuaiji)는 장안에서
+            // 못 거는 성이다.
+            var wrongResult = RealmWarState.Plot("rumor", RealmEnemyCity.ChanganId, RealmEnemyCity.KuaijiId);
+            if (wrongResult.Ok)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 장안에서 회계(자기 목표가 아닌 성)에 계략을 걸었는데 안 막힘 — msg={wrongResult.Message}");
+                return false;
+            }
+
+            Debug.Log("[PlaytestRealmSlice] multi-target plot UI OK - changan(2 targets: hanzhong+tianshui) opens a 4-button (2 kinds x 2 targets) picker, wrong enemyId rejected");
             return true;
         }
 

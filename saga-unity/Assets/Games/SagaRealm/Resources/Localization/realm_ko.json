@@ -342,6 +342,7 @@
     { "key": "quiz.wrong", "value": "❌ 오답 — 정답은 \"{0}\". {1}" },
     { "key": "ui.order_label", "value": "{0} ({1}냥)" },
     { "key": "ui.plot_label", "value": "{0} {1} ({2}냥, 성공률 {3})" },
+    { "key": "ui.plot_label_target", "value": "{0} {1} → {2} ({3}냥, 성공률 {4})" },
     { "key": "war.captured", "value": "{0}을(를) 함락했다! (아군 손실 {1}, 적 손실 {2}) — 이제 우리 성입니다" },
     { "key": "war.err_already_captured", "value": "이미 함락한 성입니다" },
     { "key": "war.err_no_food", "value": "군량이 모자랍니다 ({0} 필요)" },

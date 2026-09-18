@@ -7170,3 +7170,40 @@ jiangzhou-zhuti) — 지금까지 지켜 온 "성 하나당 목표 하나" 개�
 GameObject 신설로 필요) + `PlaytestRealmSlice` 3연속 OK. `PLAN.md`
 101-2 REALM 행 갱신 + 105장 Q-U2 항목 삭제(해결됨), `docs/PROJECT_STATE.md`
 REALM 행·다음 작업 갱신.
+
+## REALM 계략(Plot) 고르기 UI — Q-U2 "알려진 틈" 해소 (2026-09-18, 새 세션 "사가유니티 이어해")
+
+위 Q-U2 절이 범위 밖으로 남긴 틈을 메웠다: 목표가 둘인 성(장안·장사·
+강주)에서 계략을 걸면 `RealmWarState.Plot()`이 `enemyId`를 안 받는 옛
+호출부라 `TargetFrom()`(카탈로그 순서상 첫째)에만 걸리던 문제.
+`Attack()`/`ExecuteAttack()`이 이미 같은 문제를 고른기 패널로 푼 결을
+그대로 계략에도 옮겼다 — `RealmWarState.Plot()`/`RealmEnemyCity` 자체는
+이미 51장 16차 확장 때 `enemyId` 선택 인자·`TargetsFrom()` 가드를 갖추고
+있어 손댈 필요가 없었다(클래스 주석 그대로).
+
+- `RealmCommandUi.RefreshPlotPanel()` — `RealmEnemyCity.TargetsFrom(현재
+  성)`이 둘 이상이면 "계략×목표" 조합(현재 계략 2종×목표 최대 2곳=4버튼)
+  을 낸다, 하나뿐이면 옛날처럼 계략 종류만 나열(기존 UX·라벨 무변경).
+  새 로컬라이제이션 키 `ui.plot_label_target`(ko/en 둘 다 추가) — 목표
+  성 이름을 "{계략} → {목표성} ({금액}, {성공률})" 순서로 끼워 넣는다.
+  `_plotPanel` 높이를 420→620으로 늘렸다(행 4개까지 담기 위해, 다른
+  필드 anchoring은 무변경).
+- `ChoosePlot(string key, string enemyId = null)` — 고르기 패널에서
+  캡처한 `enemyId`를 `RealmWarState.Plot()`에 그대로 넘긴다. 기본값
+  null이라 목표 하나뿐인 성의 기존 호출부(단일 인자)는 그대로 컴파일된다.
+- `PlaytestRealmSlice.CheckMultiTargetPlot()` 신설 — `CheckMultiTargetAttack
+  ()`과 같은 자리(Phase.AttackTianshui, 장안을 조망 성으로 쓰는 시점)에서
+  같이 부른다. **실제로 계략을 걸지는 않는다** — 걸면 금 소모·적 성
+  훈련도/병력이 바뀌어 바로 다음 `AttackChainStep()`의 전투 결과가
+  흔들릴 위험이 있어(원래 함정과 같은 이유), 패널을 열어 버튼 개수(4)만
+  확인하고 실행 전에 닫은 뒤, 잘못된 목표 id(회계)를 직접
+  `RealmWarState.Plot()`에 넘겨 거절되는지만 따로 확인한다.
+
+컴파일 확인(`tools/unity-batch.sh` 경유, error CS 0건) + `PlaytestRealmSlice`
+3연속 OK(exit 0, "multi-target plot UI OK" 로그 매 회 1줄씩 — 계략도
+장안 목표 둘에서 4버튼 고르기 패널이 뜨고 잘못된 목표는 거절됨을 확인).
+씬 재생성 불필요(패널·라벨은 `RealmCommandUi.Build()`가 런타임에 짓는
+런타임 UI라 `BuildTestCityScene.cs`가 만드는 정적 GameObject 구성과
+무관 — 16차 확장 때 `_attackPanel` 신설이 씬 재생성이 필요했던 것과
+달리 이번엔 필드 추가가 없다). `docs/PROJECT_STATE.md` REALM
+"알려진 틈"·"다음 작업"·테스트 상태·실기 확인 대기 네 군데 갱신.

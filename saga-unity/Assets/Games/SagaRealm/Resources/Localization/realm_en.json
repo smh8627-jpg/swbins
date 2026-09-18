@@ -342,6 +342,7 @@
     { "key": "quiz.wrong", "value": "❌ Wrong — the answer was \"{0}\". {1}" },
     { "key": "ui.order_label", "value": "{0} ({1} Gold)" },
     { "key": "ui.plot_label", "value": "{0} {1} ({2} Gold, {3} success)" },
+    { "key": "ui.plot_label_target", "value": "{0} {1} → {2} ({3} Gold, {4} success)" },
     { "key": "war.captured", "value": "Captured {0}! (Our losses {1}, enemy losses {2}) — now our city" },
     { "key": "war.err_already_captured", "value": "This city has already been captured." },
     { "key": "war.err_no_food", "value": "Not enough provisions ({0} needed)" },
