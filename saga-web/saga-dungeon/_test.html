@@ -668,6 +668,71 @@ window.requestAnimationFrame = function () { return 0; };
         ('사망은 기록 그대로(' + nmBestAfterDeath + ') · 클리어 후 ' + nmBestAfterClear);
     });
 
+    /* ── 월드 보스 — 실시간 75초 전투(PLAN §5.4, 2026-09-18) ─────────── */
+
+    t('월드 보스 — 슬롯이 같으면 마을·자리가 같다(Date 고정) (§5.4)', function () {
+      var slot = 12345;
+      var town1 = DN._wbPickTown(slot), town2 = DN._wbPickTown(slot);
+      var fakeCtx = { roomW: DN.ROOM_W, roomH: DN.ROOM_H, wall: DN.WALL, anchor: { x: 0, y: 0 } };
+      var p1 = DN._wbPickPos(fakeCtx, slot), p2 = DN._wbPickPos(fakeCtx, slot);
+      return town1 === town2 && p1.x === p2.x && p1.y === p2.y &&
+        ('마을 ' + town1 + ' 두 번 같음 · 자리 (' + Math.round(p1.x) + ',' + Math.round(p1.y) + ') 두 번 같음');
+    });
+
+    t('월드 보스 — 무기 부위가 부서지면 그 패턴(보스 강타)이 안 터진다 (§5.4)', function () {
+      var ed = DG.enemyData.bosses[0];         // 황건 두목 — look.weapon 'club' → bossSlam
+      var e1 = DN._spawnEnemy(1, true, { ref: ed, x: 0, y: 0 });
+      e1.slamCd = 0;
+      DN._bossPattern(e1, { x: 100, y: 0 }, 100, 0.1);
+      var armedBefore = e1.slamWarn > 0;
+      var e2 = DN._spawnEnemy(1, true, { ref: ed, x: 0, y: 0 });
+      e2.wbWeaponBroken = true;
+      e2.slamCd = 0;
+      DN._bossPattern(e2, { x: 100, y: 0 }, 100, 0.1);
+      var armedAfter = e2.slamWarn > 0;
+      return armedBefore && !armedAfter &&
+        ('봉인 전 예고 ' + armedBefore + ' · 봉인 후 예고 ' + armedAfter);
+    });
+
+    t('월드 보스 — 75초가 지나면 도주 처리되고 보상은 정확히 30% 다 (§5.4)', function () {
+      DN.state().world.bossDone = {};
+      var ed = DG.enemyData.bosses[0];
+      function mkBoss(slot) {
+        var ctx = { room: { enemies: [], drops: [] } };
+        var b = DN._spawnEnemy(1, true, { ref: ed, x: 0, y: 0 });
+        b.worldBoss = true; b.wbSlot = slot; b.wbPartsBroken = 0;
+        return { ctx: ctx, boss: b };
+      }
+      var full = mkBoss(910001), fled = mkBoss(910002);
+      DN._grantWorldBossReward(full.boss, full.ctx.room, false);
+      DN._wbFlee(fled.boss, fled.ctx);
+      var g1 = full.ctx.room.drops.filter(function (d) { return d.kind === 'gold'; })[0].gold;
+      var g2 = fled.ctx.room.drops.filter(function (d) { return d.kind === 'gold'; })[0].gold;
+      var ratio = g2 / g1;
+      var fledHp0 = fled.boss.hp === 0;
+      return Math.abs(ratio - 0.3) < 0.02 && fledHp0 &&
+        ('전액 금 ' + g1 + ' · 도주 금 ' + g2 + ' · 비율 ' + ratio.toFixed(2) + ' · hp ' + fled.boss.hp);
+    });
+
+    t('월드 보스 — 같은 슬롯은 두 번 보상하지 않는다 (§5.4)', function () {
+      DN.state().world.bossDone = {};
+      var ed = DG.enemyData.bosses[0];
+      var ctx = { room: { enemies: [], drops: [] } };
+      var b = DN._spawnEnemy(1, true, { ref: ed, x: 0, y: 0 });
+      b.worldBoss = true; b.wbSlot = 920001; b.wbPartsBroken = 0;
+      /* 토벌첩 count 는 앞선 진단(§5.4 30% 배율 검증)이 이미 같은 보스로
+         한 번 올려놨을 수 있다 — 절대값이 아니라 **델타**로 잰다. */
+      var before = (C.save.dex.worldBoss[ed.id] && C.save.dex.worldBoss[ed.id].count) || 0;
+      DN._grantWorldBossReward(b, ctx.room, false);
+      var n1 = ctx.room.drops.length;
+      var mid = C.save.dex.worldBoss[ed.id].count;
+      DN._grantWorldBossReward(b, ctx.room, false);   // 같은 슬롯 재호출
+      var n2 = ctx.room.drops.length;
+      var after = C.save.dex.worldBoss[ed.id].count;
+      return n1 > 0 && n2 === n1 && mid === before + 1 && after === mid &&
+        ('첫 지급 후 drops ' + n1 + ' · 재호출 후 ' + n2 + ' · 토벌첩 count ' + before + '→' + mid + '→' + after);
+    });
+
     t('탈출하면 노획물이 확정된다', function () {
       var raw = DN.raw();
       raw.loot.gold = 400;

@@ -2225,7 +2225,19 @@
     /* 몬스터 다양화 — 사람 형 적은 무기·투구·망토·수염을 `look` 데이터 그대로
        걸친다. 옛 도형 시절부터 있던 정보인데 여태 3D 화면엔 하나도 안 실렸다 */
     if (!isBeast && enemyDef && enemyDef.look) {
-      foeGear(g, enemyDef.look, hh, r, col);
+      /* 세계 보스(§5.4) 부위 파괴 — 부서진 조각만 'none'으로 덮어써서 넘긴다.
+         enemyDef.look(=e.ref.look) 자체는 절대 안 건드린다 — 그 보스종의
+         공용 정의라, 고치면 다음에 스폰되는 같은 보스까지 무기 없이 나온다. */
+      var lk = enemyDef.look;
+      if (ref && ref.worldBoss && (ref.wbWeaponBroken || ref.wbArmorBroken || ref.wbHelmBroken)) {
+        lk = {
+          weapon: ref.wbWeaponBroken ? 'none' : lk.weapon,
+          helm: ref.wbHelmBroken ? 'none' : lk.helm,
+          armor: ref.wbArmorBroken ? 'none' : lk.armor,
+          beard: lk.beard, cape: lk.cape
+        };
+      }
+      foeGear(g, lk, hh, r, col);
     }
     return g;
   }
@@ -2598,7 +2610,11 @@
     for (i = 0; i < es.length; i++) {
       var e = es[i];
       if (e.hp <= 0) { continue; }
-      var a = actorOf('e' + i + ':' + (e.ref && e.ref.id), 'foe', e);
+      /* 세계 보스(§5.4) 부위 파괴 — 키에 부서진 부위를 섞어 넣으면 부서질
+         때마다 actorOf 가 새 몸(새 look)을 짓는다. sweep() 이 옛 키를
+         "이번 프레임에 안 보였다"로 알아서 치운다 — 수동 정리 필요 없다. */
+      var wbk = e.worldBoss ? (':' + (e.wbWeaponBroken ? 1 : 0) + (e.wbArmorBroken ? 1 : 0) + (e.wbHelmBroken ? 1 : 0)) : '';
+      var a = actorOf('e' + i + ':' + (e.ref && e.ref.id) + wbk, 'foe', e);
       a.node.position.set(e.x, groundYAt(e.x, e.y), e.y);
       a.node.rotation.y = Math.atan2(p.x - e.x, p.y - e.y);
       /* 맞은 직후에는 흔들린다 */

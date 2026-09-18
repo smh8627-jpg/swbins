@@ -1473,6 +1473,7 @@
     }
     D().stepFieldCombat(dt, ctx, fx);
     D().pickupField(ctx, fx);
+    D().stepWorldBoss(ctx, fx);   // 세계 보스(§5.4) — 예고·출현·75초 제한을 스스로 관리한다
     /* 체력이 0까지 떨어지면 던전과 완전히 같게 처리한다(hurtPlayer→die() 그대로) —
        dungeon:end 가 곧바로 town.enter({fromDungeon:true})를 다시 불러 굴혈 앞으로
        돌려보낸다. 마을은 안전지대 예외를 안 둔다(사용자 확정) — 대신 돌아온
@@ -1524,6 +1525,10 @@
     var anchor = anchorOf(wild ? nearestTownId(player.x, player.y) : CURRENT_TOWN);
     return {
       town: true, wild: wild, theme: currentTheme(),
+      /* townId(2026-09-18, §5.4 월드 보스) — 지금 활성 마을 id 그대로.
+         `theme.name`으로 되짚을 수도 있지만, 슬롯 배정(town.js 밖,
+         dungeon.js stepWorldBoss)이 TOWNS 키를 직접 쓰므로 여기서 그대로 준다. */
+      townId: CURRENT_TOWN,
       floor: 0, startFloor: 0, roomIdx: undefined,
       roomW: ROOM_W, roomH: ROOM_H, wall: WALL, pr: P_R,
       anchor: anchor, noRoom: wild,
@@ -1564,8 +1569,35 @@
       loot: { gold: 0, items: 0 },
       boons: {}, choice: null,
       kills: 0, best: st.best || 0,
-      atk: 0, reach: 0
+      atk: 0, reach: 0,
+      /* 월드 보스(§5.4) HUD — 지금 마을이 이번 슬롯의 대상일 때만 채운다.
+         순수 조회다(dungeon-view.js 렌더 전용, 상태를 안 바꾼다). */
+      wb: worldBossHud()
     };
+  }
+
+  /** status() 의 wb 필드 — 예고 중이면 카운트다운, 전투 중이면 이름·HP%·
+   *  부위 3·남은 시간을 낸다. 둘 다 아니면 null(HUD가 그 줄을 안 그린다). */
+  function worldBossHud() {
+    var D2 = D(), W = D2.state().world;
+    if (!W || W.townId !== CURRENT_TOWN) { return null; }
+    var now = D2.wbNow();
+    var slot = Math.floor(now / D2.WB_SLOT_MS), slotStart = slot * D2.WB_SLOT_MS;
+    if (W.slot !== slot) { return null; }   // 이 마을이 다음 슬롯 대상이 되기 전(다른 슬롯 잔상 방지)
+    if (now >= slotStart - D2.WB_NOTICE_MS && now < slotStart) {
+      return { phase: 'notice', remain: Math.max(0, Math.ceil((slotStart - now) / 1000)) };
+    }
+    if (now >= slotStart && now < slotStart + D2.WB_FIGHT_MS) {
+      var b = D2.worldBossIn(room);
+      if (!b) { return null; }
+      return {
+        phase: 'active', name: D2.enemyName(b),
+        hp: Math.max(0, Math.round(b.hp)), hpMax: b.hpMax,
+        remain: Math.max(0, Math.ceil((b.wbEndAt - now) / 1000)),
+        parts: { weapon: !b.wbWeaponBroken, armor: !b.wbArmorBroken, helm: !b.wbHelmBroken }
+      };
+    }
+    return null;
   }
 
   global.DG = global.DG || {};

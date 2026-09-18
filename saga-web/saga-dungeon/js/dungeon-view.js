@@ -633,15 +633,35 @@
     if (!st.active) { return; }
     /* 마을은 층도 방도 노획도 없다 — "여기가 어디인가" 만 말한다 */
     if (st.town) {
-      var kt = 'town|' + (st.best || 0);
+      var wb = st.wb;
+      var kt = 'town|' + (st.best || 0) + '|' +
+        (wb ? (wb.phase + '|' + wb.remain + '|' + (wb.hp || 0)) : '');
       if (kt === hudKey) { return; }
       hudKey = kt;
+      var wbHtml = '';
+      /* 월드 보스(§5.4) — 예고 중엔 카운트다운만, 전투 중엔 이름·HP%·
+         부위 3(무기🗡️·갑주🛡️·머리⛑️, 부서지면 아이콘이 빠진다)·남은 시간 */
+      if (wb && wb.phase === 'notice') {
+        var nmm = Math.floor(wb.remain / 60), nss = wb.remain % 60;
+        wbHtml = '<div class="dg-row1">' +
+          '<b class="dg-floor">⚠️ 세계 보스 예고</b>' +
+          '<span class="dg-room">' + nmm + ':' + (nss < 10 ? '0' : '') + nss + ' 후 출현</span>' +
+        '</div>';
+      } else if (wb && wb.phase === 'active') {
+        var pct = Math.max(0, Math.round(100 * wb.hp / wb.hpMax));
+        var parts = (wb.parts.weapon ? '🗡️' : '') + (wb.parts.armor ? '🛡️' : '') + (wb.parts.helm ? '⛑️' : '');
+        wbHtml = '<div class="dg-row1">' +
+          '<b class="dg-floor">⚔️ ' + wb.name + '</b>' +
+          '<span class="dg-theme">' + pct + '%</span>' +
+          '<span class="dg-room">' + parts + ' · ' + wb.remain + 's</span>' +
+        '</div>';
+      }
       hud.innerHTML =
         '<div class="dg-row1">' +
           '<b class="dg-floor">🏯 마을</b>' +
           '<span class="dg-theme">' + st.theme.name + '</span>' +
           '<span class="dg-room">최고 제' + (st.best || 0) + '층</span>' +
-        '</div>';
+        '</div>' + wbHtml;
       setTip(true);
       return;
     }

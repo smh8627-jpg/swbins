@@ -286,6 +286,8 @@
        kind 자리에 원소 키를 그대로 넘겨 온다, resistOf는 phys·chi 뿐
        아니라 원소 키도 이미 받아 왔다) */
     if (run && run.nightmare && run.nightmare.resistElem === kind) { n += 40; }
+    /* 세계 보스(§5.4) 갑주 부위 파괴 — 칼이 잘 들게 된다 */
+    if (e.wbArmorBroken) { n -= 25; }
     return core.clamp(n, 0, RESIST_CAP);
   }
 
@@ -307,8 +309,11 @@
        종류를 쓰려고 한 번 고른 ref를 그대로 물려준다 — 안 주면(옛 호출
        전부) 예전처럼 이 자리에서 새로 고른다, 회귀 없음. */
     var ref = opts.ref || pickEnemyRef(floor, boss);
-    var hp = enemyHp(floor, boss);
-    var dmg = enemyDmg(floor, boss);
+    /* opts.hp/opts.dmg(2026-09-18, §5.4 월드 보스) — 세계 보스는 일반 보스
+       공식(층 기반)이 아니라 자기만의 배율(HP ×8)을 쓴다. 안 주면(기존
+       호출 전부) 예전 그대로 enemyHp/enemyDmg 가 굴린다 — 회귀 없음. */
+    var hp = opts.hp !== undefined ? opts.hp : enemyHp(floor, boss);
+    var dmg = opts.dmg !== undefined ? opts.dmg : enemyDmg(floor, boss);
     var r = boss ? 22 : 13;
 
     /* 정예 — 보스는 이미 특별하므로 붙이지 않는다. 분신에도 안 붙는다.
@@ -627,6 +632,10 @@
     var s = core.save;
     if (!s.dungeon) { s.dungeon = { best: 0, runs: 0, kills: 0, clears: 0, mode: 'normal' }; }
     if (!s.dungeon.mode) { s.dungeon.mode = 'normal'; }
+    /* 월드 보스(§5.4) — 슬롯(15분 단위)마다 마을·자리가 결정적으로 갈린다.
+       `bossDone`은 슬롯 번호를 키로 이중 보상을 막는다(끝없이 안 늘게
+       stepWorldBoss가 지난 슬롯을 솎아 낸다). */
+    if (!s.dungeon.world) { s.dungeon.world = { slot: null, townId: null, spawned: false, bossDone: {} }; }
     return s.dungeon;
   }
 
@@ -1420,6 +1429,11 @@
    * 공용 타이머**다(보스 하나는 평생 무기 하나만 쓰므로 겹칠 일이 없다).
    */
   function bossPattern(en, p, ed, dt) {
+    /* 세계 보스(§5.4) 무기 부위가 부서지면 이 패턴 자체가 안 나온다
+       ("부위 파괴 시 그 패턴 봉인", PLAN 원문) — `en.ref.look`은 data-enemy.js
+       의 공용 정의라 여기서 지우면 그 보스종 전체가 오염된다, 그래서 이
+       개체 하나만의 플래그(`wbWeaponBroken`)로 우회한다. */
+    if (en.wbWeaponBroken) { return; }
     var lookW = en.ref && en.ref.look && en.ref.look.weapon;
     if (lookW === 'axe') { return bossCharge(en, p, dt); }
     if (lookW === 'spear' || lookW === 'halberd') { return bossThrust(en, p, dt); }
@@ -2015,6 +2029,197 @@
     var n = 0, i;
     for (i = 0; i < es.length; i++) { if (es[i].field && es[i].hp > 0) { n++; } }
     return n;
+  }
+
+  /* ── 월드 보스(§5.4) — 실시간 75초 전투 ──────────────────────────
+   * 15분마다(실시간 슬롯, `Math.floor(now/900000)`) 마을 넷 중 하나의
+   * 들판에 예고가 뜨고, 슬롯이 시작하면 보스가 나온다. 전투 자체는 새
+   * 시스템이 아니다 — `room.enemies`에 `field:true`로 얹으면 위
+   * `stepFieldCombat`(플레이어 자동공격·적 AI·`bossPattern`)이 이미
+   * 처리한다. 이 절이 새로 다루는 건 (1) 슬롯 스케줄링 (2) 부위 3(무기·
+   * 갑주·머리) HP 문턱 (3) 75초 제한 도주 (4) 참가 보상 넷뿐이다.
+   *
+   * `wbNow()` — Date.now() 를 직접 안 쓰고 이 함수를 거친다. 진단이
+   * `_forceNow(v)`로 고정해 슬롯·창구를 결정적으로 재현한다(사가고
+   * `weather.force()`와 같은 결, PLAN §9).
+   */
+  var WB_SLOT_MS = 900000, WB_NOTICE_MS = 180000, WB_FIGHT_MS = 75000;
+  var WB_TOWN_IDS = ['moru', 'jajak', 'galdae', 'sogeum'];   // town.js TOWNS 키와 그대로 맞춘다
+  var WB_PART_ORDER = ['weapon', 'armor', 'helm'];
+  var WB_PART_HP_PCT = [0.8, 0.6, 0.4];   // 부위 HP 각 20% — 이 문턱을 지나면 그 부위가 부서진다
+  var forcedNow = null;
+  function wbNow() { return forcedNow !== null ? forcedNow : Date.now(); }
+
+  /** 슬롯 → 마을 id. 순수 함수(같은 slot 이면 늘 같은 마을). */
+  function wbPickTown(slot) {
+    return WB_TOWN_IDS[Math.floor(core.hash2(slot, 0) * WB_TOWN_IDS.length)];
+  }
+  /** 슬롯 → 보스 정의(BOSSES 풀 전체에서, 층 tier 게이팅 없이). */
+  function wbPickBossRef(slot) {
+    var ed = global.DG.enemyData;
+    var pool = ed && ed.bosses;
+    if (!pool || !pool.length) { return null; }
+    return pool[Math.floor(core.hash2(slot, 3) * pool.length)];
+  }
+  /** 슬롯 → 그 마을 들판의 자리. `ctx`는 그 마을이 활성일 때의 raw() —
+   *  방 치수·anchor 가 마을마다 달라 ctx 로 받는다(spawnFieldTreasure와 같은 요령).
+   *  hash2 로만 고르므로 같은 (slot,ctx) 조합이면 늘 같은 좌표가 나온다. */
+  function wbPickPos(ctx, slot) {
+    var rw = (ctx && ctx.roomW) || ROOM_W, rh = (ctx && ctx.roomH) || ROOM_H;
+    var wl = (ctx && ctx.wall) || WALL;
+    var ax = (ctx && ctx.anchor) ? ctx.anchor.x : 0, ay = (ctx && ctx.anchor) ? ctx.anchor.y : 0;
+    var cx0 = ax + rw * 0.5, cy0 = ay + rh * 0.5;
+    var R = fieldRadiusUnits(), i, a0, d0, x, y;
+    for (i = 0; i < 8; i++) {
+      a0 = core.hash2(slot, 10 + i * 2) * Math.PI * 2;
+      d0 = (wl + 120) + core.hash2(slot, 11 + i * 2) * Math.max(60, R - wl - 120);
+      x = cx0 + Math.cos(a0) * d0;
+      y = cy0 + Math.sin(a0) * d0;
+      if (Math.hypot(x - cx0, y - cy0) < TOWN_SAFE_R) { continue; }
+      if (inRoomRect(x, y, ctx) || fieldBlockedAt(x, y, ctx)) { continue; }
+      return { x: x, y: y };
+    }
+    return { x: cx0 + wl + 140, y: cy0 };   // 8번 다 막혔으면 안전지대 바로 밖 고정점(드묾)
+  }
+
+  /** 지금 그 방에 살아 있는 월드 보스(있으면 하나뿐이다). */
+  function wbFindBoss(room) {
+    if (!room || !room.enemies) { return null; }
+    for (var i = 0; i < room.enemies.length; i++) {
+      if (room.enemies[i].worldBoss && room.enemies[i].hp > 0) { return room.enemies[i]; }
+    }
+    return null;
+  }
+
+  /** 예고 표식 하나를 켜고 끈다 — room.marks 에 얹으면 자동지도·3D 화면·
+   *  touchCheck(town.js) 이 공짜로 그린다(road·relic 표식과 같은 요령). */
+  function wbEnsureNoticeMark(ctx, on) {
+    var room = ctx && ctx.room;
+    if (!room || !room.marks) { return; }
+    var idx = -1, i;
+    for (i = 0; i < room.marks.length; i++) { if (room.marks[i].key === 'worldboss') { idx = i; break; } }
+    if (on && idx < 0) {
+      var pos = wbPickPos(ctx, dstate().world.slot);
+      room.marks.push({ key: 'worldboss', name: '세계 보스 예고', emoji: '⚠️',
+        x: pos.x, y: pos.y, worldBossNotice: true });
+    } else if (!on && idx >= 0) {
+      room.marks.splice(idx, 1);
+    }
+  }
+
+  function wbSpawn(ctx, slot) {
+    var ref = wbPickBossRef(slot);
+    if (!ref) { return; }
+    var pos = wbPickPos(ctx, slot);
+    var best = dstate().best || 1;
+    var hp = Math.round(enemyHp(best, false) * 8);      // PLAN 수치: 체력 8배
+    var dmg = enemyDmg(best, true);
+    var e = spawnEnemy(best, true, { x: pos.x, y: pos.y, ref: ref, hp: hp, dmg: dmg });
+    e.field = true;
+    e.worldBoss = true;
+    e.wbSlot = slot;
+    e.wbEndAt = slot * WB_SLOT_MS + WB_FIGHT_MS;
+    e.wbPartsBroken = 0;
+    ctx.room.enemies.push(e);
+    core.log('⚔️ 세계 보스 — ' + ref.name + ' 출현! 75초', 'good');
+    core.emit('toast', '⚔️ 세계 보스 출현! 75초 안에 처치하세요');
+  }
+
+  /** HP 문턱(80·60·40%)을 지날 때마다 부위 하나씩(무기→갑주→머리) 부순다.
+   *  실제 효과는 bossPattern(무기)·resistOf(갑주)·strike 크리(머리) 세 곳에
+   *  나뉘어 있다 — 이 함수는 플래그만 세운다. */
+  function wbCheckParts(e, fxArr) {
+    var pct = e.hp / e.hpMax;
+    while (e.wbPartsBroken < WB_PART_HP_PCT.length && pct <= WB_PART_HP_PCT[e.wbPartsBroken]) {
+      var part = WB_PART_ORDER[e.wbPartsBroken];
+      e.wbPartsBroken++;
+      if (part === 'weapon') { e.wbWeaponBroken = true; }
+      else if (part === 'armor') { e.wbArmorBroken = true; }
+      else { e.wbHelmBroken = true; }
+      if (fxArr) { fxArr.push({ t: 'pop', x: e.x, y: e.y - e.r, life: 0.4, boss: true }); }
+      core.log('💥 세계 보스 부위 파괴 — ' + (part === 'weapon' ? '무기' : part === 'armor' ? '갑주' : '머리'), 'good');
+      core.emit('toast', '💥 부위 파괴!');
+    }
+  }
+
+  /** 참가 보상 — 처치(fled=false)면 전액 + 부적 1 + 토벌첩, 도주(fled=true,
+   *  75초 초과)면 30%만. `room`은 호출자가 명시로 준다(kill() 흐름은
+   *  `run.room`이지만, 시간 초과 흐름은 run이 아예 없을 수 있어서다).
+   *  `best`(현재 최고 층) 기준으로 굴린다 — 마을 필드는 floor 가 늘 0이라
+   *  기존 dropItem/dropGold 그대로 부르면 보상이 하찮아진다. */
+  function grantWorldBossReward(e, room, fled) {
+    var W = dstate().world;
+    if (W.bossDone[e.wbSlot]) { return; }
+    W.bossDone[e.wbSlot] = true;
+    var best = dstate().best || 1;
+    var bossCtx = { floor: best, boons: {} };
+    withRun(bossCtx, null, function () {
+      dropGold(room, e.x, e.y, fled ? 1.8 : 6);
+      if (!fled) {
+        dropItem(room, e.x, e.y, 55);   // §9 dropItem 주석의 "1.5배≈+20" 어림으로 "전설 확률 ×3" 을 옮긴 값(이번 구현 판단)
+        dropMat(room, e.x, e.y, 30);
+      }
+    });
+    if (fled) {
+      core.log('💨 세계 보스가 시간 안에 쓰러지지 않아 물러났다 · 보상 30%', 'bad');
+      core.emit('toast', '💨 세계 보스가 물러났다 (보상 30%)');
+      return;
+    }
+    var tier = core.clamp(Math.ceil(best / 3), 1, 10);
+    var sig = global.DG.item && global.DG.item.addSigil ? global.DG.item.addSigil(tier) : null;
+    if (!core.save.dex.worldBoss) { core.save.dex.worldBoss = {}; }
+    var dex = core.save.dex.worldBoss;
+    if (!dex[e.ref.id]) { dex[e.ref.id] = { count: 0, firstAt: Date.now() }; }
+    dex[e.ref.id].count++;
+    core.gainFeat(20 + best * 2, '세계 보스 토벌');
+    core.emit('worldboss:kill', { id: e.ref.id });   // goals.js §5.6 주간 묶음이 듣는다
+    core.log('🏆 세계 보스 처치 — ' + enemyName(e) + (sig && sig.ok ? ' · 부적(티어 ' + sig.sigil.tier + ') 획득' : ''), 'good');
+    core.emit('toast', '🏆 세계 보스 격파!');
+    core.emit('changed');
+    core.persist();
+  }
+
+  /**
+   * town.js update() 가 매 틱 부른다(다른 spawnField* 와 같은 자리).
+   * @param ctx town.js raw() — `townId` 필드(2026-09-18 추가)로 지금 마을을 안다.
+   * @param fxArr 부위 파괴 연출을 받을 배열(town.js 의 fx()).
+   */
+  function stepWorldBoss(ctx, fxArr) {
+    if (!ctx || !ctx.town || ctx.wild) { return; }
+    var now = wbNow();
+    var slot = Math.floor(now / WB_SLOT_MS), slotStart = slot * WB_SLOT_MS;
+    var W = dstate().world;
+    if (W.slot !== slot) {
+      W.slot = slot; W.townId = wbPickTown(slot); W.spawned = false;
+      /* 지난 슬롯 done 기록은 굳이 안 지운다(하루 96개, 무한 누적 아님 —
+         세이브를 좀먹을 만큼 크지 않다). */
+    }
+    var here = ctx.townId === W.townId;
+    var notice = here && now >= slotStart - WB_NOTICE_MS && now < slotStart;
+    var active = here && now >= slotStart && now < slotStart + WB_FIGHT_MS;
+    wbEnsureNoticeMark(ctx, notice);
+    if (!here) { return; }
+    if (active) {
+      if (W.bossDone[slot]) { return; }
+      var b = wbFindBoss(ctx.room);
+      if (b) {
+        wbCheckParts(b, fxArr);
+        if (now >= b.wbEndAt) { wbFlee(b, ctx); }
+      } else if (!W.spawned) {
+        W.spawned = true;
+        wbSpawn(ctx, slot);
+      }
+      return;
+    }
+    if (!notice) {
+      var stray = wbFindBoss(ctx.room);   // 창구가 끝났는데 아직 살아 있으면 정리
+      if (stray) { wbFlee(stray, ctx); }
+    }
+  }
+
+  function wbFlee(e, ctx) {
+    e.hp = 0;
+    grantWorldBossReward(e, ctx.room, true);
   }
 
   /**
@@ -2862,7 +3067,8 @@
     var hasWd = function (k) { return !!(run && run.boons[k]); };
     var hasEl = function (el) { return hasElemInHit(el, kind, edmg); };
     var dmg = atkOf() * (mul || 1) * (0.86 + Math.random() * 0.28);
-    var critChance = boonVal('critPct') + core.effect('critPct');
+    /* 세계 보스(§5.4) 머리 부위 파괴 — 급소가 열려 크리 확률 +15%p */
+    var critChance = boonVal('critPct') + core.effect('critPct') + (e.wbHelmBroken ? 15 : 0);
     var crit = forcedCrit !== null ? forcedCrit : (Math.random() * 100 < critChance);
     /* §5.1 세계 축 — 뇌빙(빙+뇌): 슬로우된 적에게 뇌 결이 닿으면 반드시 크리 */
     if (!crit && e.slow > 0 && hasEl('lit') && hasWd('wd_cold_lit')) { crit = true; }
@@ -3095,6 +3301,9 @@
     core.gainExp(Math.round((1 + Math.floor(run.floor / 3)) * mode().exp));
     global.DG.hero.awardParty(1 + Math.floor(run.floor / 4));
     tryCatchPet(e);
+    /* 세계 보스(§5.4) — 위 일반 처치 보상(run.floor=0 이라 미미하다)과
+       별개로, best 층 기준의 참가 보상을 따로 준다(아래 grantWorldBossReward). */
+    if (e.worldBoss) { grantWorldBossReward(e, run.room, false); }
   }
 
   /* 2026-09-10 — "강공격이랑 전용 회피 버튼도"(사용자). 평타(위 update() "내
@@ -3899,6 +4108,18 @@
     /** 화면 전용 — 상태를 직접 읽는다 (쓰지는 말 것) */
     raw: function () { return run; },
     fx: function () { return fx; },
-    moveTarget: function () { return target; }
+    moveTarget: function () { return target; },
+    /** 월드 보스(§5.4) — town.js update() 가 매 틱 부른다. */
+    stepWorldBoss: stepWorldBoss, wbNow: wbNow,
+    WB_SLOT_MS: WB_SLOT_MS, WB_NOTICE_MS: WB_NOTICE_MS, WB_FIGHT_MS: WB_FIGHT_MS,
+    worldBossIn: function (room) { return wbFindBoss(room); },
+    /** 진단 전용 — 스케줄링을 시간 없이 순수 함수로 재현한다 */
+    _wbPickTown: wbPickTown, _wbPickBossRef: wbPickBossRef, _wbPickPos: wbPickPos,
+    _wbSpawn: wbSpawn, _wbCheckParts: wbCheckParts, _wbFlee: wbFlee,
+    _grantWorldBossReward: grantWorldBossReward,
+    /** 진단 전용 — 보스 패턴 하나를 직접 굴려 본다(무기 부위 봉인 확인용) */
+    _bossPattern: bossPattern,
+    /** 진단 전용(§9, "Date.now 를 고정") — 사가고 weather.force() 와 같은 결 */
+    _forceNow: function (v) { forcedNow = v; }
   };
 })(window);

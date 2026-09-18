@@ -3491,3 +3491,91 @@ data-dungeon.js·ui.js) 통과, bash tools/precheck.sh saga-web/saga-dungeon
 **실기 확인 남음**: 변형자 9종 체감, 문 하나짜리 단순 진행이 밋밋한지,
 정예 무리 수가 티어별로 맞는지, 실패시 노획물 전손이 납득되는지 —
 §7.2에 반영.
+
+## 2026-09-18 — PLAN §5.4 월드 보스 구현 (Phase 4, 코드분)
+
+§8 로드맵 Phase 0~3 코드분이 오늘 전부 닫혀(실기 확인만 남음) Phase 4로
+넘어갔다. 새 전투 시스템을 안 만들고 **기존 필드 전투(`stepFieldCombat`)에
+보스 하나를 `field:true`로 얹는 것**으로 끝냈다 — 이 절이 새로 다루는 건
+슬롯 스케줄링·부위 3·75초 제한·참가 보상 넷뿐이다.
+
+- **스케줄링(`dungeon.js` `stepWorldBoss`, town.js `update()`가 다른
+  spawnField* 와 같은 자리에서 매 틱 부른다)**: `Math.floor(wbNow()/900000)`
+  슬롯마다 `core.hash2(slot,0)`로 마을(모루골·자작재·갈대나루·소금벌 중
+  하나), `core.hash2(slot,3)`으로 보스(`enemyData.bosses` 11종 전체 —
+  PLAN 원문 "10종"은 §5.4 작성 뒤 천룡이 추가된 옛 숫자, 안 고쳤다),
+  `core.hash2(slot,10+…)`로 자리를 굴린다 — 셋 다 slot 하나의 순수
+  함수라 같은 슬롯이면 서버 없이도 모두가 같은 걸 본다.
+  **`wbNow()`**(`Date.now()` 대신 이걸 쓴다) — 사가고 `weather.force()`
+  와 같은 결로 `_forceNow(v|null)`가 진단에서 고정한다.
+- **HP 8배 해석**: PLAN 문구 "체력 8배"를 "일반 보스 배율(×7)의 8배"가
+  아니라 "**잡졸 기준값의 8배**"(`enemyHp(best,false)*8`)로 읽었다 —
+  전자로 읽으면 56배가 되어 문맥(§4 "왜"의 "짧고 굵게")과 안 맞는다고
+  판단했다(PLAN 밖 판단, 실측 없음 — §7.2에 올렸다).
+- **부위 3(무기·갑주·머리) — "패턴 봉인"을 문자 그대로 구현할 자리가
+  이미 있었다**: `bossPattern()`이 무기 종류(`look.weapon`)로 강타·
+  돌진·찌르기·연격 넷을 가르는 걸 오늘 오전 커밋(§5.1 이전 세션)에서
+  이미 봤다 — 무기 부위가 부서지면 `bossPattern()` 맨 위에서 그냥
+  return 하게 했다. 단 `en.ref.look`은 그 보스종 전체가 공유하는
+  data-enemy.js 원본이라 **직접 못 고친다** — 개체 하나의 플래그
+  (`wbWeaponBroken`)로 우회했다. 갑주·머리는 대응하는 기존 자리가
+  없어(패턴 데이터 자체가 부위별로 안 갈려 있다) 이번 구현이 새로
+  판단했다: 갑주 파괴 → `resistOf()` -25%p, 머리 파괴 → `strike()`
+  크리 확률 +15%p(둘 다 PLAN 밖 판단, 상의 없음). HP 80/60/40% 문턱을
+  지날 때마다 하나씩(무기→갑주→머리 순, PLAN 원문 순서) 부서진다 —
+  "부위 HP 각 20%"를 "총 HP의 누적 문턱"으로 옮긴 것이다(부위별 피해
+  분산·조준 UI가 이 판엔 없어서다 — 평타가 자동으로 가장 가까운 적만
+  때리는 구조라 애초에 "부위를 노려 때린다"가 불가능하다).
+- **3D — 부서지면 실제로 사라진다**: `dungeon3d.js` `foeGear()` 호출을
+  `enemyDef.look`(공유 원본) 대신 부서진 조각만 'none'으로 덮어쓴 얕은
+  복사로 바꿨다. 액터 캐시(`actorOf`)는 부서짐 여부를 키에 섞어
+  (`e.wbWeaponBroken` 등 3비트) 넣는 것만으로 재구성됐다 — `sweep()`이
+  매 프레임 "안 보인 키"를 이미 치워 주므로 수동 정리가 필요 없었다.
+- **75초 제한·도주**: `e.wbEndAt = slot*900000+75000`, 지나도 안 죽었으면
+  `wbFlee()`가 `hp=0`으로 죽이고(다른 필드 로머도 죽어도 안 지운다,
+  기존 관례 그대로) 30% 보상만 준다.
+- **참가 보상이 왜 kill()에 안 얹혀 있나**: 마을 필드는 `ctx.floor`가
+  늘 0이라(town.js raw() 고정값, "tier1만 마을에 나온다"는 옛 주석과
+  같은 이유) 일반 kill()의 dropGold/dropItem이 `run.floor+1=1` 로
+  굴러 보상이 하찮아진다. 그래서 `grantWorldBossReward(e, room, fled)`
+  가 **best 층으로 덮어쓴 임시 ctx**(`{floor:best, boons:{}}`)를
+  `withRun`으로 잠깐 끼워 dropGold/dropItem/dropMat을 부른다 —
+  `kill()`이 이미 준 미미한 보상(run.floor=0 기준) 위에 이게 별도로
+  더 얹힌다, 중복이지만 무해하다. "전설 확률 ×3"은 dropItem 자체 주석의
+  "1.5배≈bias+20" 어림을 그대로 늘려 bias 55로 옮겼다(정확한 확률 곡선
+  실측은 안 했다, PLAN 밖 판단). 부적은 `item.js`가 §5.3에서 이미
+  마련해 둔 `addSigil(tier)`를 그대로 썼다(tier = ⌈best/3⌉, 1~10 clamp).
+  `save.dex.worldBoss`(토벌첩) 신설 — PLAN 원문의 `save.world` 최상위
+  키 대신 `dstate().world`(=`save.dungeon.world`) 에 슬롯·마을·bossDone
+  을 뒀다 — 이 판의 다른 모든 던전 상태가 `dstate()` 하나에 모이는
+  기존 결을 따랐다(구조적 판단, PLAN 표기와 다르다).
+- **예고 표식**: `room.marks`에 `key:'worldboss'`로 얹으면 자동지도·3D·
+  `touchCheck`(마을)가 공짜로 그린다 — road·relic 표식과 같은 재사용.
+  `ui.js` 'town:mark' 핸들러에 `worldBossNotice` 갈래만 하나 추가(밟아도
+  여는 창 없이 토스트만).
+- **HUD**: `town.js status()`가 `wb` 필드(예고면 카운트다운, 전투면
+  이름·HP%·부위 아이콘 3(🗡️🛡️⛑️, 부서지면 빠진다)·남은 초)를 순수
+  계산으로 내고, `dungeon-view.js renderHud()`의 town 가지가 그 값이
+  있을 때만 둘째 줄을 덧그린다(§5.6 `#goals` 줄과 같은 "있으면 얹는다"
+  결).
+- **goals.js §5.6 주간 묶음 스텁 해제**: `w_worldboss` — 이제
+  `core.emit('worldboss:kill', …)`을 `bump('worldboss')`로 잇는다.
+  `w_sigil`(부적 티어3)은 §5.3이 끝났어도 **그대로 스텁**이다 —
+  카운터를 이으려면 `item.js addSigil()`에 훅이 하나 더 필요해 이번
+  범위 밖으로 뺐다.
+
+**검증** — node -c(dungeon.js·town.js·ui.js·dungeon-view.js·dungeon3d.js·
+goals.js·data-enemy.js·core.js) 통과, bash tools/precheck.sh
+saga-web/saga-dungeon → PRECHECK OK. sw.js dungeon-v0.123.0 → v0.124.0.
+_test.html에 §9 진단 문안 4개(슬롯 결정성·무기 부위 파괴→패턴 봉인·75초
+도주 보상 정확히 30%·같은 슬롯 이중 보상 없음) 추가 — 전부 town.js를
+거치지 않고 `DN._wbPickTown`/`_wbPickPos`/`_bossPattern`/
+`_grantWorldBossReward`/`_wbFlee` 같은 순수 함수를 손으로 만든 가짜
+ctx·room에 직접 물려 검증했다(town 모듈 전체를 부팅할 필요가 없어서다).
+헤드리스는 안 띄웠다(이 판 규칙) — 인라인 스크립트만 `sed`로 뽑아
+`node --check`로 구문만 확인했다.
+
+**실기 확인 남음**: 예고 HUD가 지갑·목표판 줄과 안 겹치는지, 75초가
+타이트한지 여유로운지(HP 배율 손 계산만 했다), 부위 파괴 아이콘·3D
+무기 소실이 실제로 보이는지(이번이 처음), 15분마다 마을을 옮겨 다니는
+동선이 억지스러운지 — §7.2에 반영.

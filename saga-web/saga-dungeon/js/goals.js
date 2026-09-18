@@ -54,12 +54,16 @@
     { id: 'd_floor3',   counter: 'floor',    target: 3, label: '3개 층' }
   ];
   var WEEKLY_BUNDLE = [
-    { id: 'w_worldboss', stub: true, label: '월드 보스 1회(§5.4, 미구현)' },
+    /* 2026-09-18 — §5.4(월드 보스) 코드분이 들어와 스텁을 풀었다(주석대로
+       "두 시스템이 들어오면" 이었지만 이번 세션은 §5.4 하나만 다룬다 —
+       w_sigil 은 §5.3 완성 뒤에도 여전히 stub 다, 별도로 카운터를 잇는
+       세션이 필요하다). */
+    { id: 'w_worldboss', counter: 'worldboss', target: 1, label: '월드 보스 1회' },
     { id: 'w_sigil',     stub: true, label: '부적 티어 3(§5.3, 미구현)' },
     { id: 'w_hero',      counter: 'hero', target: 1, label: '인물 합류 1' }
   ];
 
-  var COUNTER_KEYS = ['relic', 'hero', 'merchant', 'roadmark', 'room', 'floor', 'levelup', 'clearLeave'];
+  var COUNTER_KEYS = ['relic', 'hero', 'merchant', 'roadmark', 'room', 'floor', 'levelup', 'clearLeave', 'worldboss'];
 
   /* ── 날짜 키 (로컬 달력, saga-story quest.js todayKey() 와 같은 결) ──── */
 
@@ -294,6 +298,7 @@
       else if (p.cat === 'heroes') { bump('hero'); }
     });
     core.on('town:npc', function (o) { if (o && o.key === 'fieldmerchant') { bump('merchant'); } });
+    core.on('worldboss:kill', function () { bump('worldboss'); });   // §5.4 처치(dungeon.js grantWorldBossReward)
     core.on('town:mark', function (o) { if (o && o.roadMark) { bump('roadmark'); } });
     core.on('dungeon:room', function () { bump('room'); });
     core.on('dungeon:floor', function () { bump('floor'); });
