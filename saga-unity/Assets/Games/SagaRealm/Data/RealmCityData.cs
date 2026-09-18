@@ -231,6 +231,19 @@ namespace Saga.Realm.Data
             // land mount는 다른 성들과 같은 이유로 Plain 처리. wall은
             // RealmEnemyCity.cs 월수 정의(2800)와 맞춘다.
             ["yuexi"] = new RealmCityDef("yuexi", "월수", RealmLand.Plain, agri: 120, comm: 100, wall: 2800, pop: 42000, mapX: 4, mapY: 78),
+            // 51장 "대규모 콘텐츠" 19차 확장(2026-09-18) — 울림(yulin)을
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계(원작 LINKS:
+            // yulin-jiaozhi, "붉은 강이 바다로 드는 삼각주"). land는 원작
+            // 그대로 river. wall은 RealmEnemyCity.cs 교지 정의(4600)와
+            // 맞춘다.
+            ["jiaozhi"] = new RealmCityDef("jiaozhi", "교지", RealmLand.River, agri: 280, comm: 260, wall: 4600, pop: 150000, mapX: 48, mapY: 102),
+            // 19차 확장 — 건녕(jianning)의 둘째 목표(원작 LINKS:
+            // jianning-zangke, "협곡을 낀 물길" — 건녕은 이미 월수를
+            // 갖고 있다, 16차 "형제 가지" 규칙을 원래 세 국경 성 밖으로
+            // 처음 확장). 원작 land hill은 다른 성들과 같은 이유로
+            // Plain 처리. wall은 RealmEnemyCity.cs 장가 정의(3000)와
+            // 맞춘다.
+            ["zangke"] = new RealmCityDef("zangke", "장가", RealmLand.Plain, agri: 150, comm: 120, wall: 3000, pop: 50000, mapX: 28, mapY: 98),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

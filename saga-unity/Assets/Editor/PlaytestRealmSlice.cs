@@ -79,6 +79,7 @@ namespace Saga.EditorTools
             AttackChengdu, AttackJiangxia, AttackJiangzhou, AttackXiangyang,
             AttackYongan, AttackJiangling, AttackChangsha, AttackChaisang, AttackJianye, AttackKuaiji,
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
+            AttackZangke, AttackJiaozhi,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -147,7 +148,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1125,8 +1126,27 @@ namespace Saga.EditorTools
                 case Phase.AttackYuexi:
                 {
                     // 18차 확장(2026-09-18) — 건녕을 함락한 뒤 이어지는
-                    // 남중 사슬의 다음 단계이자 마지막 칸(TargetFrom("jianning")).
-                    if (!AttackChainStep(RealmEnemyCity.JianningId, RealmEnemyCity.YuexiId, Phase.QuizCorrect)) return;
+                    // 남중 사슬의 다음 단계이자 막다른 끝(TargetFrom이었던
+                    // 자리 — 19차부터 건녕이 장가도 목표로 가져 목표가
+                    // 둘이 됐으므로 enemyId를 명시해야 한다, changan과
+                    // 같은 이유).
+                    if (!AttackChainStep(RealmEnemyCity.JianningId, RealmEnemyCity.YuexiId, Phase.AttackZangke, RealmEnemyCity.YuexiId)) return;
+                    break;
+                }
+
+                case Phase.AttackZangke:
+                {
+                    // 19차 확장(2026-09-18) — 건녕의 둘째 목표(월수와 형제
+                    // 가지, 16차 규칙을 원래 세 국경 성 밖으로 처음 확장).
+                    if (!AttackChainStep(RealmEnemyCity.JianningId, RealmEnemyCity.ZangkeId, Phase.AttackJiaozhi, RealmEnemyCity.ZangkeId)) return;
+                    break;
+                }
+
+                case Phase.AttackJiaozhi:
+                {
+                    // 19차 확장(2026-09-18) — 울림을 함락한 뒤 이어지는
+                    // 교주 사슬의 다음 단계(TargetFrom("yulin")).
+                    if (!AttackChainStep(RealmEnemyCity.YulinId, RealmEnemyCity.JiaozhiId, Phase.QuizCorrect)) return;
                     break;
                 }
 

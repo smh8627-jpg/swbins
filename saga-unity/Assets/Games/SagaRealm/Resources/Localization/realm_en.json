@@ -78,6 +78,8 @@
     { "key": "city.jianning", "value": "Jianning" },
     { "key": "city.yulin", "value": "Yulin" },
     { "key": "city.yuexi", "value": "Yuexi" },
+    { "key": "city.jiaozhi", "value": "Jiaozhi" },
+    { "key": "city.zangke", "value": "Zangke" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },

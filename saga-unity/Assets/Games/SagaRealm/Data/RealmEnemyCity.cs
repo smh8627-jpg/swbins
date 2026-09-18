@@ -150,6 +150,23 @@ namespace Saga.Realm.Data
     /// 175+15=190, 월수 140+15=155. wall은 원작 그대로(울림 3400·월수
     /// 2800), troops=wall×0.23 반올림(800·650). land는 둘 다 원작이
     /// hill/mount라 다른 성들과 같은 이유로 Plain 처리.
+    /// **51장 19차 확장(2026-09-18, 같은 날 "사가유니티 이어해")** — 이번엔
+    /// 교주 사슬 하나(울림→교지)와, **건녕(jianning)의 둘째 목표**(장가)를
+    /// 함께 열었다. ① 울림→교지(원작 LINKS: yulin-jiaozhi, "붉은 강이
+    /// 바다로 드는 삼각주, 교주에서 가장 큰 저자" — 구진(jiuzhen)으로 더
+    /// 뻗을 수 있어 다음 확장 후보로 남긴다). ② 건녕→장가(원작 LINKS:
+    /// jianning-zangke, "협곡을 낀 물길, 배는 못 다녀도 걷기는 험하다").
+    /// 건녕은 이미 월수(18차)를 목표로 갖고 있어 **16차의 "형제 가지"
+    /// 규칙을 처음으로 원래 세 국경 성(장안·장사·강주) 밖으로 확장**한
+    /// 사례다 — `TargetsFrom`/공격·계략 고르기 패널이 이미 목표 개수와
+    /// 무관하게 동작하도록 짜여 있어(16차 때부터) 코드는 한 줄도 안
+    /// 고쳤다, 데이터만 늘렸다. train은 형제 가지 규칙대로 건녕 자신의
+    /// train+15=155(월수와 같음), 교지는 정상적인 한 단계 더 깊은 자식
+    /// 규칙대로 울림의 190+15=205. wall은 원작 그대로(교지 4600·장가
+    /// 3000), troops=wall×0.23 반올림(1050·700). 교지는 원작 river
+    /// 그대로, 장가(hill)는 다른 hill/mount 성들과 같은 이유로 Plain
+    /// 처리. 건녕의 남은 이웃(운남)·남해의 남은 이웃(합포)은 다음 확장
+    /// 후보로 남긴다.
     /// </summary>
     public class RealmEnemyRecord
     {
@@ -222,6 +239,8 @@ namespace Saga.Realm.Data
         public const string JianningId = "jianning";
         public const string YulinId = "yulin";
         public const string YuexiId = "yuexi";
+        public const string JiaozhiId = "jiaozhi";
+        public const string ZangkeId = "zangke";
 
         public static readonly string[] AllIds =
         {
@@ -229,6 +248,7 @@ namespace Saga.Realm.Data
             HanzhongId, RunanId, ChengduId, JiangxiaId, JiangzhouId, XiangyangId,
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
+            JiaozhiId, ZangkeId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -372,6 +392,18 @@ namespace Saga.Realm.Data
             // 건녕 자신의 140+15=155. 원작 LINKS상 더 이상 이웃이 없어
             // (잎사귀) 이 사슬은 여기서 끝난다.
             [YuexiId] = new RealmEnemyCityDef(YuexiId, "월수", RealmLand.Plain, baseWall: 2800, baseTroops: 650, baseTrain: 155, baseTech: 100, attackFromCityId: "jianning"),
+            // 교지는 울림(yulin)과만 맞닿아 있다(원작 LINKS: yulin-jiaozhi,
+            // "붉은 강이 바다로 드는 삼각주, 교주에서 가장 큰 저자") —
+            // 19차 확장, 울림을 함락해야 열리는 교주 사슬의 다음 단계.
+            // train은 울림 자신의 190+15=205. 구진(jiuzhen)으로 더 뻗을
+            // 수 있어 다음 확장 후보로 남긴다.
+            [JiaozhiId] = new RealmEnemyCityDef(JiaozhiId, "교지", RealmLand.River, baseWall: 4600, baseTroops: 1050, baseTrain: 205, baseTech: 100, attackFromCityId: "yulin"),
+            // 장가는 건녕(jianning)과 맞닿아 있다(원작 LINKS:
+            // jianning-zangke, "협곡을 낀 물길") — 19차 확장, 건녕의
+            // 둘째 목표(건녕은 이미 월수를 갖고 있다 — 16차 "형제 가지"
+            // 규칙을 원래 세 국경 성 밖으로 처음 확장). train은 건녕
+            // 자신의 140+15=155(월수와 같은 깊이의 형제 가지).
+            [ZangkeId] = new RealmEnemyCityDef(ZangkeId, "장가", RealmLand.Plain, baseWall: 3000, baseTroops: 700, baseTrain: 155, baseTech: 100, attackFromCityId: "jianning"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
