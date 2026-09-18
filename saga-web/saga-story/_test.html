@@ -1049,6 +1049,21 @@ window.DG_NO_TUNE = true;
          ' · 점수 회복 ' + refunded + ' · 다른 길(궁수) 재전직 ' + rejoined);
     });
 
+    t('전직 되돌리기는 하루 1회로 막힌다 (2026-09-18, §10-Q3)', function () {
+      unlearn();
+      delete C.save.jobResetDay;
+      C.save.player.level = 12;
+      J.join('warrior');
+      var first = J.resetJob();                // 오늘 첫 되돌리기 — 통과
+      J.join('warrior');
+      var second = J.resetJob();                // 같은 날 두 번째 — 막힌다
+      var stillWarrior = C.save.job === 'warrior';
+      unlearn();
+      delete C.save.jobResetDay;
+      return first && !second && stillWarrior &&
+        ('오늘 첫 되돌리기 ' + first + ' · 두 번째는 막힘 ' + !second + ' · 직업 유지 ' + stillWarrior);
+    });
+
     t('무예 점수는 있는 만큼만 쓴다', function () {
       unlearn();
       C.save.player.level = 11;                // 30점

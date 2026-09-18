@@ -76,8 +76,12 @@
    *  더 얹는다(2026-09-11, 사용자 요청 — 다섯 판 전체 퓨전 순서와는 별개로
    *  사가스토리만 먼저 넣는 예외). resetJob() 이 무명으로 돌아가고 무예
    *  점수를 전부 돌려준다 — 그 뒤에 join() 으로 처음부터 **다른 길**을
-   *  고를 수 있다. 되돌린 대가(비용·쿨타임)는 없다 — 아직 무엇이 적당한지
-   *  실기기로 확인하기 전이라 우선 자유롭게 열어 둔다. */
+   *  고를 수 있다. **하루 1회, 무료**(§10-Q3, 2026-09-18 확정) — 금 비용은
+   *  안 두고, 대신 실제 달력 날짜(`todayKey()`)로 하루 한 번만 잠근다. */
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+  }
   /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
   function sfx(key) {
     var S = global.DG.sfx;
@@ -103,8 +107,14 @@
   function resetJob() {
     st();
     if (core.save.job === 'none') { return false; }
+    var today = todayKey();
+    if (core.save.jobResetDay === today) {
+      core.emit('toast', '⚠️ 전직 되돌리기는 하루에 한 번만 됩니다');
+      return false;
+    }
     core.save.job = 'none';
     core.save.skills = {};
+    core.save.jobResetDay = today;
     sfx('jobup');
     core.log('🔄 전직을 되돌렸다 — 처음부터 다른 길을 고를 수 있다', 'info');
     core.emit('toast', '🔄 전직을 되돌렸습니다');
