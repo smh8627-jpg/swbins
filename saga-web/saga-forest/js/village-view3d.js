@@ -969,6 +969,12 @@
     ready = true;
     syncVisibility();
     buildPlayer();
+    /* §5.8① 낚시 성공 줌 인 — `sfx.js`가 이미 듣는 같은 이벤트를 그대로
+       구독한다(다른 상태 cast·miss 는 무시). `init()`은 `game.js`에서
+       한 번만 부르므로 중복 구독 걱정이 없다. */
+    C().on('village:fish', function (e) {
+      if (e && e.state === 'catch') { triggerFishZoom(); }
+    });
   }
 
   /** 물 재질(PLAN 12절 "파동·반사") — 나머지 여덟 칸(MeshLambertMaterial)과
@@ -1091,6 +1097,14 @@
    *  매 프레임 줄이며, 그동안은 idle/walk 로 안 덮어쓴다(재생 도중 끊기지
    *  않는다) — 한 번 다 튼 뒤엔 저절로 걷기/멈춤으로 돌아온다. */
   var actionTimer = 0;
+
+  /** §5.8① 낚시 성공 줌 인 — 0.2초 동안 카메라를 살짝 당겼다 되돌린다.
+   *  `userZoom`(사람이 손으로 정한 배율)은 그대로 두고, 그 위에 잠깐
+   *  덧씌우는 펄스라 손 배율과 안 부딪힌다. */
+  var FISH_ZOOM_DUR = 0.2, FISH_ZOOM_PEAK = 0.18;
+  var fishZoomTimer = 0;
+  function triggerFishZoom() { fishZoomTimer = FISH_ZOOM_DUR; }
+
   function triggerAction() {
     if (!player.actions || !player.clipMap) { return; }
     var name = player.clipMap.interaction || player.clipMap.attack;
@@ -1162,9 +1176,12 @@
     /* userZoom 이 커질수록(확대) 거리를 좁힌다 — 그래서 여기선 나눈다.
        iso 쪽 끝값은 ISO_DIST()·ISO_TILT() 를 camPose 가 쓰던 (수평 반지름, 높이) 짝으로
        미리 풀어 둔다 — camPose 자체는 그 둘의 뜻(거리·기울기)을 몰라도 된다 */
-    var radius0 = CAM_DIST() / userZoom, height0 = CAM_HIGH() / userZoom;
+    if (fishZoomTimer > 0) { fishZoomTimer = Math.max(0, fishZoomTimer - dt); }
+    var zoomPulse = 1 + FISH_ZOOM_PEAK * (fishZoomTimer / FISH_ZOOM_DUR);
+    var radius0 = CAM_DIST() / userZoom / zoomPulse, height0 = CAM_HIGH() / userZoom / zoomPulse;
     var isoDist = ISO_DIST(), isoTilt = ISO_TILT();
-    var radius1 = (isoDist * isoTilt) / userZoom, height1 = (isoDist * (1 - isoTilt * 0.55)) / userZoom;
+    var radius1 = (isoDist * isoTilt) / userZoom / zoomPulse,
+        height1 = (isoDist * (1 - isoTilt * 0.55)) / userZoom / zoomPulse;
     var pos = camPose(camTiltMix, facingYaw, mouseYaw, radius0, height0, radius1, height1);
     camera.position.set(pos.x, pos.y, pos.z);
     camera.lookAt(0, PLAYER_H() * 0.75, 0);
@@ -1563,9 +1580,10 @@
     /** ui.js 의 doInteract() 가 손을 쓴 순간마다 부른다 — 나무 흔들기·낚시
      *  던지기·상자 열기 등에 몸짓 한 번(interaction/attack 클립). 그런 클립이
      *  없는 조합이면 조용히 아무 일도 안 한다 */
-    triggerAction: triggerAction,
+    triggerAction: triggerAction, triggerFishZoom: triggerFishZoom,
     /** 진단 전용 — 지금 한 번짜리 몸짓이 재생 중이면 남은 초(순수 상태 조회) */
     actionTimer: function () { return actionTimer; },
+    fishZoomTimer: function () { return fishZoomTimer; },
     /** 진단·QA 전용 — 세로 드래그로 잇는 시점 높이(0 어깨너머~1 부감), 진단용 순수 함수 */
     camTiltMix: function () { return camTiltMix; },
     setCamTiltMix: setCamTiltMix,

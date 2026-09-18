@@ -1051,3 +1051,31 @@ tools/precheck.sh saga-web/saga-forest` → PRECHECK OK. `sw.js`
 
 **남은 것** — Phase 1 마지막 하나: §5.8① 낚시 줌인(카메라, 3D 파일을
 봐야 하는 몫이라 이어서 진행).
+
+## 2026-09-18 — §5.8① 낚시 줌 인 구현, Phase 1 코드분 전부 닫힘
+
+Phase 1(루프)에 남아 있던 마지막 하나. 카메라를 손대는 몫이라 미뤄 뒀던
+것을 `village-view3d.js`에 넣었다.
+
+- `fishZoomTimer`(0.2s 감소 카운터) + `triggerFishZoom()` 신설. `init()`
+  안에서 `sfx.js`가 이미 듣던 `village:fish` 이벤트를 그대로 구독해
+  `state==='catch'`일 때만 튼다 — `init()`은 `game.js`에서 한 번만 불러
+  중복 구독 걱정이 없다.
+- `syncCamera()`의 radius0·height0·radius1·height1 넷을 새 `zoomPulse`
+  (1 + 0.18 × 남은시간/0.2)로 한 번 더 나눠 0.2초 동안 살짝 당겼다 풀린다.
+  **사람이 손으로 정한 `userZoom`은 안 건드리고 그 위에 덧씌우는 배율이라**
+  핀치줌 등 기존 카메라 조작과 안 부딪힌다.
+- `triggerAction`(몸짓)과 달리 `player.actions` 준비 여부에 기대지 않아
+  init 전에도 타이머는 그대로 세워진다 — `_test.html`에 그 성질 진단
+  1항목 추가(`fishZoomTimer()` 게터도 `actionTimer()`와 같은 자리에 신설).
+
+이걸로 **사가의숲 Phase 1(루프)의 코드분이 전부 닫혔다** — 일과판·마무리
+카드·채집 손맛 ①(침구·별5·줌인 포함) 모두 코드는 끝났고, 남은 건 §7
+실기 확인 목록과 이번 세 가지(요 가구·별 표시·낚시 줌인)가 실제 화면에서
+어떻게 보이는지뿐이다.
+
+**검증** — `node --check js/village-view3d.js` 통과. `bash
+tools/precheck.sh saga-web/saga-forest` → PRECHECK OK. `sw.js`
+`village-v0.65.0` → `village-v0.66.0`. **헤드리스 확인은 안 함** — 카메라
+줌이 실제로 자연스러운지(당기는 정도 0.18, 시간 0.2s가 적당한지)는
+WebGL 화면이 있어야 보이는 것이라 여느 3D 시각 효과처럼 실기 확인 몫.

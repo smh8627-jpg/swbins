@@ -439,6 +439,14 @@ window.DG_NO_TUNE = true;
       return before === 0 && after === 0 && '몸짓 표 없음 → 조용히 무시, 남은 시간 그대로 0';
     });
 
+    t('village-view3d — triggerFishZoom(§5.8① 낚시 줌 인)은 init 여부와 무관하게 타이머를 0.2초로 세운다', function () {
+      var VV3 = DG.villageView3d;
+      var before = VV3.fishZoomTimer();
+      VV3.triggerFishZoom();
+      var after = VV3.fishZoomTimer();
+      return before === 0 && after === 0.2 && ('0 → ' + after + 's');
+    });
+
     /* ── PLAN 40절 PHASE 5: Weather · Day/Night · Ambient (3D) ──────
      * scene 없이도 확인되는 순수 함수만 — init() 은 진단에서 안 부른다
      * (WebGL 컨텍스트·GLB 로딩까지 얽혀 여태 3D 진단이 전부 그래 왔다).
