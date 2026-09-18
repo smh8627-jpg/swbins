@@ -7426,3 +7426,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `_do_pickup_popup()`은 `_do_popup()`과 같은 add_child-먼저 순서(2026-09-18① 버그와 같은 함정)로 처음부터 맞춰 썼다.
 - `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음. **PLAN 101-3 C(손맛 표준) 다섯 판 전부 완료** — GO/DUNGEON/STORY `hit()`, FOREST `pickup()`, REALM 대상없음.
 - 다음: 102장 그래픽(톤 승인 GUI 대기)·105장 Q-h/Q-b/Q-f 사용자 결정 대기 — 코드로 더 내려받을 항목이 지금은 없다.
+
+## FOREST 발견 격자 — Q-f 해소 + 반경 10m 실측 + 랜드마크 11점 (2026-09-18③) — PLAN 101-2 FOREST ④
+
+- 105 Q-f("GO의 60m 반경을 FOREST에 그대로 쓰면 무의미")를 사용자 답 없이 이 세션이 직접 재서 정했다. `forest_village.gd::_print_density_report()`에 반경을 여러 값(10/15/20/25/30m)으로 임시로 돌려 봄 — r=10m: empty 108/600(18.0%), r=15m: 22/600(3.7%, 이미 신호가 죽음), r=20m 이상은 0.0~0.2%(GO의 60m과 같은 "거의 전부 덮임" 문제 재현). **10m**을 최종값으로 택해 `DENSITY_RADIUS_M` 상수로 남김(forest_village.gd).
+- r=10m 빈 칸 108개의 좌표를 출력해 보니 거의 전부 지도 테두리(숲 경계 "T" 2겹, LEGEND상 walkable=true라 GO 포구/마을 때와 달리 워크어블 버그는 아니었다 — 그냥 비어 있었을 뿐)에 몰려 있었다.
+- 신규 `forest_landmarks.gd`(GO `landmarks_builder.gd` FIELD_MARKERS와 같은 결 — 순수 장식, 선택지·보상 없음) — 그루터기·뿌리혹·장승·돌탑×2·이끼바위·벌집·개미탑·이정표·장작더미·선돌·우물 11점을 빈 클러스터마다 하나씩. FOREST엔 CodexState "discover" 갈래가 없어(forest_village.gd 헤더) Area3D·보상 로직 없이 `codex_discoverable` 그룹에만 넣는다 — 밀도 진단이 위치만 집어간다.
+- `TestVillageForest.tscn`에 `Landmarks` 노드 추가(load_steps 17→18).
+- 재측정: **18.0%→0.8%**(empty 108→5). 이걸로 **FOREST 101-2 후보 ①~⑥ 전부 완료** — REALM에 이어 두 번째로 다섯 판 51장 후보가 소진 상태에 들어간다(GO·DUNGEON·STORY도 후보 표 기준으로는 대부분 끝, 실기 확인만 남음).
+- 임시 디버그 출력(여러 반경·빈 칸 좌표 print)은 최종 커밋 전에 지우고 `DENSITY_RADIUS_M` 단일 상수만 남김. `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음.
+- 다음: 다섯 판 101-2/101-3/101-4 후보가 전부 소진됐다 — 남은 코드 작업은 102장 그래픽(Q-h·Q-b·GUI 톤 승인 대기)뿐. 사용자 실기 확인·105 Q-h/Q-b 답이 다음 진행을 막는다.

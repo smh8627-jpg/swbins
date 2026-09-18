@@ -10,6 +10,13 @@ const Toast := preload("res://saga_core/ui/toast.gd")
 const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
 const VillagerBuilder := preload("res://games/saga_forest/world/villager_builder.gd")
 
+## PLAN 105 Q-f(이 세션 판단, 2026-09-18③) — GO는 60m(48m 타일의 1.25칸)를
+## 쓰지만 FOREST 지도(90×60m, 3m 타일)엔 60m가 거의 지도 전체라 empty_pct가
+## 늘 0.0으로 나왔다. 타일 비율을 그대로 옮기면(3.75m) 이번엔 반대로
+## 무의미해져서(전부 empty), 실측해 신호가 사는 값(r=10m: 18.0%, r=15m부터는
+## 3.7%로 죽는다)으로 이 세션이 직접 골랐다 — forest_landmarks.gd 헤더 참고.
+const DENSITY_RADIUS_M := 10.0
+
 var _player: Node3D = null
 
 
@@ -51,7 +58,8 @@ func _refresh_goal_board() -> void:
 ## 원칙대로 다섯 판을 억지로 맞추지 않는다), "codex_discoverable" 그룹을
 ## 집·주민 5·낚시터·박물관·바이옴 생물의 실제 배치 지점으로 대신 채운다
 ## (villager_builder.gd·forest_house.gd·fishing_spot.gd·museum.gd·
-## forest_creature_builder.gd). 평소엔 안 돌린다 — 회귀 md5 흔들림 방지.
+## forest_creature_builder.gd·forest_landmarks.gd). 평소엔 안 돌린다 —
+## 회귀 md5 흔들림 방지. 반경은 DENSITY_RADIUS_M(GO와 다른 값, 위 주석).
 func _print_density_report() -> void:
 	var density := load("res://saga_core/world/density_report.gd")
 	var size: Vector2i = ForestMap.size()
@@ -63,7 +71,7 @@ func _print_density_report() -> void:
 		var p: Vector3 = (node as Node3D).global_position
 		if abs(p.x) <= half_w and abs(p.z) <= half_h:
 			points.append(Vector2(p.x / tile + size.x * 0.5, p.z / tile + size.y * 0.5))
-	var report: Dictionary = density.report(size, tile, points, 60.0)
+	var report: Dictionary = density.report(size, tile, points, DENSITY_RADIUS_M)
 	print("DENSITY village total=%d empty=%d empty_pct=%.1f" % [report.total, report.empty, report.empty_pct])
 
 
