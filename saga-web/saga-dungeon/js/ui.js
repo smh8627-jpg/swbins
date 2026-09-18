@@ -227,6 +227,14 @@
         openVow();
         return;
       }
+      if (act === 'town-horde') {
+        var DH = global.DG.dungeon, TH = global.DG.town;
+        encClose();
+        closeSheet();
+        if (TH) { TH.leave(); }
+        DH.enterHorde();
+        return;
+      }
       if (act === 'field-merchant-buy') {
         var fmi = parseInt(b.getAttribute('data-idx'), 10);
         var row2 = fieldMerchantStock && fieldMerchantStock[fmi];
@@ -703,12 +711,18 @@
    *  goals.js 가 조용히 세션만 마감하고 카드는 안 띄운다(볼 사람이 없다). */
   function showGoalsCard(card) {
     if (!card || card.reason === 'hidden') { return; }
-    var title = card.reason === 'leave' ? '🚪 던전에서 나왔다' : '💀 패퇴했다';
+    /* 난입(§5.5) — "층" 이 아니라 "생존 시간"으로 읽는다. 완주(horde)든
+       도중 사망(dead + hordeSecs)이든 부제줄은 같은 결이다. */
+    var isHorde = card.hordeSecs != null;
+    var title = card.reason === 'horde' ? '🏆 난입 완주!' :
+      (isHorde ? '💀 난입 · 쓰러졌다' : (card.reason === 'leave' ? '🚪 던전에서 나왔다' : '💀 패퇴했다'));
+    var sub = isHorde ? (Math.floor(card.hordeSecs / 60) + '분 ' + (card.hordeSecs % 60) + '초 생존') :
+      ('제' + card.floor + '층까지');
     var html = '<div class="enc-card">' +
       '<h3 style="margin:0 0 4px;font-size:18px">' + title + '</h3>' +
-      '<small class="muted">제' + card.floor + '층까지</small>' +
+      '<small class="muted">' + sub + '</small>' +
       '<div class="sec">';
-    if (card.reason === 'leave') {
+    if (card.reason === 'leave' || card.reason === 'horde') {
       html += '<div>💰 금 ' + (card.gold >= 0 ? '+' : '') + core.fmt(card.gold) + '</div>' +
         '<div>📦 장비 ' + (card.items || 0) + '점</div>';
     } else {
@@ -843,6 +857,7 @@
          발판에 들어서면 활성 마을이 저절로 갈린다(travel() 은퇴). */
       if (o.key === 'gate' || o.key === 'exit_dungeon') { enterGate(); }
       else if (o.key === 'waypoint') { openWaypoint(); }
+      else if (o.key === 'horde') { openHorde(); }
       /* 길 위의 발견거리(PLAN §60 후보 2) — 창을 안 띄운다. 토스트만
          뜨고 그 자리에서 바로 보상까지 끝난다(town.js rewardRoadMark). */
       else if (o.roadMark) { global.DG.town.rewardRoadMark(o); }
@@ -947,6 +962,28 @@
         '쓰러지는 순간 이 판이 끝납니다 — 그 대신 무엇도 더 드리지 않습니다. ' +
         '원작의 하드코어가 정확히 그러합니다.</small>' +
         '<button class="btn wide ghost" data-act="town-vow">☠️ 이름을 새긴다</button>';
+    }
+    html += '<button class="btn primary wide" data-act="enc-close">물러난다</button></div>';
+    encOpen(html);
+  }
+
+  /** 난입(亂入, §5.5) — 방 하나에서 파도를 버틴다. 결사비와 달리 되돌릴
+   *  것도 없어(15분이거나 죽음이거나) 확인만 가볍게 받는다. */
+  function openHorde() {
+    var D = global.DG.dungeon;
+    var hs = D.state().horde || { best: 0, runs: 0 };
+    var html = '<div class="enc-card">' +
+      '<h3 style="margin:0 0 4px;font-size:18px">⚔️ 난입(亂入)</h3>' +
+      '<small class="muted">방 하나에 파도가 30초마다 밀려옵니다. 15분을 버티거나, ' +
+      '쓰러질 때까지. 레벨이 오를 때마다(처치 기준) 그 자리에서 하나를 고릅니다.</small>' +
+      '<div class="sec"><div>🏆 최고 기록 ' + (hs.best ? Math.floor(hs.best / 60) + '분 ' +
+      (hs.best % 60) + '초' : '없음') + '</div><div>🔁 도전 ' + (hs.runs || 0) + '회</div></div>';
+    if (D.fallen()) {
+      html += '<div class="hint warn">이 판은 결사로 스러졌습니다 — 새 이름으로 시작하세요.</div>';
+    } else if (!core.save.party.length) {
+      html += '<div class="hint warn">부대가 없습니다 — 먼저 인물을 등용하세요.</div>';
+    } else {
+      html += '<button class="btn wide ghost" data-act="town-horde">⚔️ 시작한다</button>';
     }
     html += '<button class="btn primary wide" data-act="enc-close">물러난다</button></div>';
     encOpen(html);

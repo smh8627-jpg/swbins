@@ -645,6 +645,24 @@
       setTip(true);
       return;
     }
+    /* 난입(§5.5) — 층·방 대신 파도·레벨·남은 시간을 말한다 */
+    if (st.horde) {
+      var kh = 'horde|' + st.horde.wave + '|' + Math.ceil(st.horde.remain) + '|' +
+        st.horde.level + '|' + st.loot.gold;
+      if (kh === hudKey) { return; }
+      hudKey = kh;
+      var mm = Math.floor(st.horde.remain / 60), ss = Math.floor(st.horde.remain % 60);
+      hud.innerHTML =
+        '<div class="dg-row1">' +
+          '<b class="dg-floor">⚔️ 파도 ' + st.horde.wave + '</b>' +
+          '<span class="dg-theme">Lv.' + st.horde.level + '</span>' +
+          '<span class="dg-room">' + mm + ':' + (ss < 10 ? '0' : '') + ss + ' 남음</span>' +
+          '<button class="btn tiny ghost dg-leave" data-act="leave" ' +
+            'title="지금까지 주운 것을 확정하고 나온다(생존 기록은 안 남는다)">🚪 나간다</button>' +
+        '</div>';
+      setTip(false);
+      return;
+    }
     setTip(false);
     var k = st.floor + '|' + st.room + '|' + st.loot.gold + '|' +
             st.loot.items + '|' + JSON.stringify(st.boons) + '|' + (st.cleared ? 1 : 0);

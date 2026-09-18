@@ -252,15 +252,21 @@
       dexPct: dexPct(),
       next: lines().session.label
     };
-    if (reason === 'leave' && payload && payload.loot) {
+    if ((reason === 'leave' || reason === 'horde') && payload && payload.loot) {
       card.items = payload.loot.items || 0;
     } else if (reason === 'dead' && payload && payload.lost) {
       card.lostGold = payload.lost.gold || 0;
       card.lostItems = payload.lost.items || 0;
-      /* §5.2 — 잃은 게 있어 유품이 남았으면 "다음 할 것"을 그 회수로 덮는다 */
-      var DGN = global.DG.dungeon, grave = DGN && DGN.graveOf && DGN.graveOf();
-      if (grave && grave.floor === floor) { card.next = '제' + floor + '층 유품 회수'; }
+      /* §5.2 — 잃은 게 있어 유품이 남았으면 "다음 할 것"을 그 회수로 덮는다.
+         난입(§5.5) 사망은 유품이 안 생기므로 payload.horde 가 있으면 건너뛴다. */
+      if (!payload.horde) {
+        var DGN = global.DG.dungeon, grave = DGN && DGN.graveOf && DGN.graveOf();
+        if (grave && grave.floor === floor) { card.next = '제' + floor + '층 유품 회수'; }
+      }
     }
+    /* 난입(§5.5) — 생존 초를 카드에 얹는다. 완주(reason:'horde')든 도중
+       사망(reason:'dead', payload.horde 있음)이든 공통이다. */
+    if (payload && payload.horde) { card.hordeSecs = payload.horde.secs || 0; }
     /* 세션을 여기서 닫는다 — 다음 판은 새 기준값에서 다시 잰다 */
     sess.start = Date.now();
     sess.gold0 = core.save.player.gold;

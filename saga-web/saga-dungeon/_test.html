@@ -525,6 +525,68 @@ window.requestAnimationFrame = function () { return 0; };
       return fallen && noGrave && ('결사 사망 · fallen ' + fallen + ' · 유품 없음 ' + noGrave);
     });
 
+    /* ── 난입(亂入) — 15분 생존 파도(PLAN §5.5, 2026-09-18) ──────────── */
+
+    t('난입 — 파도 N 의 적 수는 6+2N 이고 40 을 넘지 않는다 (§5.5)', function () {
+      DN.enterHorde();
+      var raw = DN.raw();
+      raw.room.enemies.length = 0; raw.hordeWave = 0;
+      DN._spawnHordeWave();                      // 파도 1
+      var n1 = raw.room.enemies.length;
+      raw.room.enemies.length = 0; raw.hordeWave = 20;
+      DN._spawnHordeWave();                      // 파도 21 → 6+42=48 → 40 상한
+      var n21 = raw.room.enemies.length;
+      DN.leave();
+      return n1 === 8 && n21 === 40 && ('파도1 ' + n1 + '마리 · 파도21 ' + n21 + '마리(상한)');
+    });
+
+    t('난입 — 레벨(처치 경험)이 오르면 3택이 뜨고, 8스택 상한을 넘어서도 계속 뜬다 (§5.5)', function () {
+      DN.enterHorde();
+      var raw = DN.raw();
+      raw.hordeLevel = 1; raw.kills = 10;         // 레벨2 문턱(1²×10)
+      DN.update(0.016);
+      var leveled1 = raw.hordeLevel === 2 && Array.isArray(raw.choice) && raw.choice.length > 0;
+      if (leveled1) { DN.pickBoon(raw.choice[0]); }
+      raw.boonPicks = 999;                        // 일반 회차라면 여기서 막힐 상한
+      raw.kills = 40;                             // 레벨3 문턱(2²×10)
+      DN.update(0.016);
+      var leveled2 = raw.hordeLevel === 3 && Array.isArray(raw.choice) && raw.choice.length > 0;
+      DN.leave();
+      return leveled1 && leveled2 && ('레벨 ' + raw.hordeLevel + ' · 8스택 넘어서도 3택 ' + leveled2);
+    });
+
+    t('난입 — 15분이 되면 생존 종료 보상이 붙는다 (§5.5)', function () {
+      DN.enterHorde();
+      var raw = DN.raw();
+      var gold0 = C.save.player.gold;
+      raw.hordeT = DN.HORDE_DURATION;
+      raw.loot.gold = 50; raw.loot.items = [];
+      DN.update(0.016);
+      var ended = !DN.active();
+      var hs = DN.state().horde;
+      var gained = C.save.player.gold - gold0;
+      return ended && hs.best >= DN.HORDE_DURATION && gained === 770 &&
+        ('완주 · 최고기록 ' + hs.best + '초 · 금 +' + gained);
+    });
+
+    t('난입 — 사망해도 결사 낙사·유품은 안 생기고, 최고 생존 기록만 남는다 (§5.5)', function () {
+      DN.setHardcore();
+      DN.state().grave = null;
+      DN.enterHorde();
+      var raw = DN.raw();
+      raw.hordeT = 123;
+      raw.player.invuln = 0; raw.hp = 1;
+      DN._hurt(9999);
+      var fallen = !!DN.state().fallen;
+      var grave = DN.state().grave;
+      var hs = DN.state().horde;
+      /* 정리 — 이후 진단도 dungeon.enter 를 계속 쓴다 */
+      DN.state().fallen = null;
+      DN.state().hardcore = false;
+      return !fallen && !grave && hs.best >= 123 &&
+        ('fallen ' + fallen + ' · 유품 ' + grave + ' · 최고기록 ' + hs.best + '초');
+    });
+
     t('탈출하면 노획물이 확정된다', function () {
       var raw = DN.raw();
       raw.loot.gold = 400;

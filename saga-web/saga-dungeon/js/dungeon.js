@@ -644,12 +644,15 @@
       return false;
     }
     if (run) { return false; }
-    var floor = Math.max(1, Math.round(opts.floor || 1));
+    var horde = !!opts.horde;
+    /* 난입(§5.5)은 층이 없다 — 지금까지 밟은 최고 층을 적 배율 기준으로만
+       빌린다(spawnEnemy 가 floor 인자를 요구해서다, 화면엔 안 보인다). */
+    var floor = horde ? Math.max(1, dstate().best || 1) : Math.max(1, Math.round(opts.floor || 1));
     /* 난도는 들어갈 때 정해지고 회차 내내 바뀌지 않는다 */
     var md = modeOf(opts.mode || dstate().mode);
     if ((dstate().best || 0) < md.need) { md = MODES[0]; }
     run = {
-      mode: md.key,
+      mode: horde ? 'horde' : md.key, horde: horde,
       floor: floor, startFloor: floor,
       boons: {}, choice: null, boonPicks: 0,   // 축복(§5.1) — 회차 전체 상한 8은 boonPicks로 센다
       hpMax: 0, hp: 0,
@@ -665,32 +668,35 @@
       hitstopT: 0,                        // 타격 정지(hitstop) 남은 초 — 2026-09-10 "전투가 심심하다"
       slowT: 0,                           // §5.8② 저스트 회피 슬로우 남은 초(2026-09-18)
       combo: 0, comboT: 0,                // 연속 타격 수 · 끊기는 문턱(초)
+      /* 난입(§5.5) 전용 — 일반 회차에서는 안 건드린다 */
+      hordeT: 0, hordeWaveCd: HORDE_WAVE_INTERVAL, hordeWave: 0, hordeLevel: 1,
       kills: 0, startedAt: Date.now(), dead: false
     };
     run.hpMax = hpMaxOf();
     run.hp = run.hpMax;
-    buildFloor();
-    dstate().runs += 1;
-    core.log('🕳️ 던전 진입 · 제' + floor + '층 (' + DD.themeOf(floor).name + ') · ' +
-      md.name, 'info');
+    if (horde) {
+      buildHordeRoom();
+      dstate().horde = dstate().horde || { best: 0, runs: 0 };
+      dstate().horde.runs += 1;
+      core.log('⚔️ 난입(亂入) 시작', 'info');
+    } else {
+      buildFloor();
+      dstate().runs += 1;
+      core.log('🕳️ 던전 진입 · 제' + floor + '층 (' + DD.themeOf(floor).name + ') · ' +
+        md.name, 'info');
+      registerRegion(floor);
+    }
     /* 손이 비어 있으면 첫 무예 하나를 얹어 준다 — 배운 게 없으면 평타밖에 없다 */
     if (global.DG.skill) { global.DG.skill.ensureStarter(leadId()); }
-    registerRegion(floor);
     core.emit('dungeon:enter', run);
     core.emit('changed');
     return true;
   }
 
-  function buildFloor() {
-    var total = DD.roomsFor(run.floor);
-    run.rooms = [];
-    run.roomIdx = 0;
-    var firstKind = 'fight';
-    run.room = makeRoom(firstKind, run.floor, 0, total);
-    run.roomTotal = total;
-    run.room.doors = makeDoors(run.floor, 0, total);
-    run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
-    run.player = {
+  /** 플레이어 전투 상태 하나 — 층 진입(`buildFloor`)·난입 진입
+   *  (`buildHordeRoom`)이 똑같이 쓴다(§5.5, 2026-09-18 분리). */
+  function makePlayer() {
+    return {
       x: WALL + 40, y: ROOM_H * 0.5, atkCd: 0, phase: 0, walking: false, facing: 1, hurt: 0,
       atkAnim: 0,                         // 공격 자세 남은 시간(초) — 3D·2D 렌더가 읽는다
       cds: [0, 0, 0, 0],                  // 스킬 쿨다운 (남은 초)
@@ -711,6 +717,18 @@
          무예 — 장비가 아니라 이 인물이 선두면 상시 켜지는 넷째 기본기. */
       sigSkCd: 0                          // 서명 무예 재사용 대기(초)
     };
+  }
+
+  function buildFloor() {
+    var total = DD.roomsFor(run.floor);
+    run.rooms = [];
+    run.roomIdx = 0;
+    var firstKind = 'fight';
+    run.room = makeRoom(firstKind, run.floor, 0, total);
+    run.roomTotal = total;
+    run.room.doors = makeDoors(run.floor, 0, total);
+    run.corridors = doorCorridors(run.room.doors);   // PLAN §28-4 Phase 2
+    run.player = makePlayer();
     run.shots = [];
     run.foeShots = [];
     /* 동행(同行) — 부대 2번째 인물이 있으면 용병처럼 곁에서 같이 싸운다
@@ -731,6 +749,90 @@
     }
     run.fieldSpawnCd = 4;
     spawnFieldEncounters(2 + Math.min(2, Math.floor(run.floor / 6)));
+  }
+
+  /* ── 난입(亂入, §5.5) ─────────────────────────────────────
+   * 방 하나에 파도로 계속 밀어붙인다 — 문도 상자도 없다, 15분 생존 또는
+   * 사망으로 끝난다. `dungeon.js` 의 방·전투·축복 시스템을 그대로 빌려
+   * 쓴다(PLAN 원문 "기존 spawnEnemy·축복 3택 UI 를 전부 재사용"). 방
+   * 크기를 원문대로 3배로 키우려면 `ROOM_W`/`ROOM_H` 를 쓰는 렌더·이동·
+   * 필드 코드 전부를 방마다 다른 크기로 다시 짜야 해서(2D·3D·미니맵·
+   * 코너 경계 전부) 범위를 넘는다고 보고 **표준 방 크기 그대로** 썼다 —
+   * PLAN 원문에 없던 판단이라 여기 적는다. */
+  var HORDE_WAVE_INTERVAL = 30;     // 파도 간격(초)
+  var HORDE_ENEMY_CAP = 40;         // 동시 적 상한
+  var HORDE_DURATION = 900;         // 생존 목표(초) = 15분
+
+  function buildHordeRoom() {
+    run.rooms = [];
+    run.roomIdx = 0;
+    run.roomTotal = 1;
+    run.room = makeRoom('fight', run.floor, 0, 1);
+    run.room.enemies = [];            // 파도가 직접 채운다
+    run.room.doors = [];              // 문 없음 — 나가는 길은 "나간다" 뿐
+    run.room.cleared = true;
+    run.corridors = [];
+    run.player = makePlayer();
+    run.shots = [];
+    run.foeShots = [];
+    run.companion = spawnCompanion();
+    spawnHordeWave();
+  }
+
+  /** 파도 하나 — 적 수 6+2×파도(상한 40), 티어는 파도/8 (PLAN §5.5 수치표) */
+  function spawnHordeWave() {
+    if (!run || !run.horde) { return; }
+    run.hordeWave += 1;
+    var room = run.room;
+    var want = Math.min(HORDE_ENEMY_CAP - room.enemies.length, 6 + 2 * run.hordeWave);
+    var tier = Math.floor(run.hordeWave / 8);
+    for (var i = 0; i < want; i++) {
+      room.enemies.push(spawnEnemy(run.floor + tier, false, { spawned: true }));
+    }
+    room.cleared = false;
+    core.emit('toast', '⚔️ 파도 ' + run.hordeWave);
+    core.emit('changed');
+  }
+
+  /** 레벨(처치 경험) — 파도와 별개로 누적 처치(`run.kills`)가 기준이다.
+   *  레벨 L 을 찍으려면 처치가 L² × 10 이 되어야 한다(§5.5 "경험 곡선"). */
+  function hordeLevelCheck() {
+    if (!run || !run.horde || run.choice) { return; }
+    var leveled = false, guard = 0;
+    while (run.kills >= run.hordeLevel * run.hordeLevel * 10 && guard < 5) {
+      run.hordeLevel += 1;
+      leveled = true;
+      guard++;
+    }
+    if (!leveled) { return; }
+    var c = rollBoonChoice();
+    if (c.length) {
+      run.choice = c;
+      sfx('shrine');
+      core.emit('toast', '⭐ 레벨 ' + run.hordeLevel + ' · 하나를 고르세요');
+    }
+  }
+
+  /** 15분 생존 — 시간 비례 보상을 주고 끝낸다(사망은 `die()` 의 별도 갈래) */
+  function endHordeSurvive() {
+    if (!run || !run.horde) { return null; }
+    var secs = Math.round(run.hordeT);
+    var gold = Math.round(secs * 0.8), feat = Math.max(1, Math.round(secs / 20));
+    core.save.player.gold += gold;
+    core.gainFeat(feat, '난입 완주');
+    var hs = dstate().horde || (dstate().horde = { best: 0, runs: 0 });
+    if (secs > (hs.best || 0)) { hs.best = secs; }
+    /* 10분 이상이면 부적 1(PLAN 원문) — 부적 재료 자체가 §5.3(아직 미착수)
+       에서 신설되는 것이라 지금은 줄 자리가 없다. §5.3 착수 때 같이 잇는다. */
+    var s = settleLoot('난입 완주');
+    run = null;
+    core.emit('dungeon:end', { reason: 'horde', floor: 0,
+      horde: { secs: secs, gold: gold, feat: feat }, loot: s });
+    core.log('🏆 난입 완주 · ' + secs + '초 생존 · 금 +' + core.fmt(gold), 'good');
+    core.emit('toast', '🏆 난입 완주! ' + secs + '초 생존');
+    core.emit('changed');
+    core.persist();
+    return { secs: secs, gold: gold, feat: feat };
   }
 
   /** 다음 방으로 */
@@ -816,7 +918,9 @@
    * 주석 참고)로, 진단이 100회를 돌려도 다른 자리의 Math 수열을 안 민다.
    */
   function rollBoonChoice() {
-    if (!run || (run.boonPicks || 0) >= BOON_MAX_STACK) { return []; }
+    /* 난입(§5.5)은 8스택 상한을 안 본다 — 15분 동안 레벨이 그 이상 오른다
+       (원문 "회차 한정 아니라 난입 한정"). 일반 회차 상한은 그대로. */
+    if (!run || (!run.horde && (run.boonPicks || 0) >= BOON_MAX_STACK)) { return []; }
     var equipped = slotSkills(), shapes = {}, i;
     for (i = 0; i < equipped.length; i++) {
       if (equipped[i]) { shapes[equipped[i].sk.shape] = true; }
@@ -1019,6 +1123,10 @@
   }
 
   function die() {
+    /* 난입(§5.5) 사망은 결사·유품과 다른 결이다 — "층" 이 진짜가 아니라서
+       (floor 는 적 배율용 대역값이다) 유품 층 번호가 엉뚱하게 겹칠 수
+       있다. 최고 생존 기록만 남기고 간단히 끝낸다. */
+    if (run.horde) { dieHorde(); return; }
     var lostGold = Math.round(run.loot.gold), lostItems = run.loot.items.length;
     var lostItemsArr = run.loot.items.slice();
     var floor = run.floor;
@@ -1043,6 +1151,24 @@
       dstate().grave = { floor: floor, gold: lostGold, items: lostItemsArr, at: Date.now() };
     }
     core.emit('toast', '💀 제' + floor + '층에서 패퇴 — 노획물을 잃었습니다');
+    core.emit('changed');
+    core.persist();
+  }
+
+  /** 난입(§5.5) 전용 사망 — 결사·유품과 안 엮인다(die() 위 주석). 지금까지
+   *  버틴 초가 기록에 남는다(생존 완주와 같은 `dstate().horde.best`). */
+  function dieHorde() {
+    var secs = Math.round(run.hordeT || 0);
+    var lostGold = Math.round(run.loot.gold), lostItems = run.loot.items.length;
+    dstate().deaths = (dstate().deaths || 0) + 1;
+    var hs = dstate().horde || (dstate().horde = { best: 0, runs: 0 });
+    if (secs > (hs.best || 0)) { hs.best = secs; }
+    core.log('💀 난입 · ' + secs + '초 생존 후 쓰러졌다 (금 ' +
+      core.fmt(lostGold) + ' · 장비 ' + lostItems + '점)', 'bad');
+    run = null;
+    core.emit('dungeon:end', { reason: 'dead', floor: 0,
+      horde: { secs: secs }, lost: { gold: lostGold, items: lostItems } });
+    core.emit('toast', '💀 난입 · ' + secs + '초 생존');
     core.emit('changed');
     core.persist();
   }
@@ -2003,22 +2129,38 @@
     }
     var rally = rallyOn();
 
-    /* 필드 사냥 보충 — 들판을 걸어다니는 동안 로머가 상한 밑으로 떨어지면
-       주기적으로 하나씩 채운다(PLAN 10절 "랜덤 필드 구조") */
-    run.fieldSpawnCd -= dt;
-    if (run.fieldSpawnCd <= 0) {
-      run.fieldSpawnCd = 4;
-      if (fieldEnemyCount() < FIELD_ENEMY_CAP) { spawnFieldEncounters(1); }
-    }
-    run.fieldTreasureCd -= dt;
-    if (run.fieldTreasureCd <= 0) {
-      run.fieldTreasureCd = 90;
-      spawnFieldTreasure();
-    }
-    run.fieldMerchantCd -= dt;
-    if (run.fieldMerchantCd <= 0) {
-      run.fieldMerchantCd = 60;
-      spawnFieldMerchant();
+    if (run.horde) {
+      /* 난입(§5.5) — 들판 로머·보물·상인은 안 돈다(문도 복도도 없다).
+         대신 파도 타이머·생존 시계·레벨 판정이 그 자리를 대신한다. */
+      run.hordeT += dt;
+      run.hordeWaveCd -= dt;
+      if (run.hordeWaveCd <= 0) {
+        run.hordeWaveCd = HORDE_WAVE_INTERVAL;
+        spawnHordeWave();
+      }
+      hordeLevelCheck();
+      if (run.hordeT >= HORDE_DURATION) {
+        endHordeSurvive();
+        if (!run) { return; }
+      }
+    } else {
+      /* 필드 사냥 보충 — 들판을 걸어다니는 동안 로머가 상한 밑으로 떨어지면
+         주기적으로 하나씩 채운다(PLAN 10절 "랜덤 필드 구조") */
+      run.fieldSpawnCd -= dt;
+      if (run.fieldSpawnCd <= 0) {
+        run.fieldSpawnCd = 4;
+        if (fieldEnemyCount() < FIELD_ENEMY_CAP) { spawnFieldEncounters(1); }
+      }
+      run.fieldTreasureCd -= dt;
+      if (run.fieldTreasureCd <= 0) {
+        run.fieldTreasureCd = 90;
+        spawnFieldTreasure();
+      }
+      run.fieldMerchantCd -= dt;
+      if (run.fieldMerchantCd <= 0) {
+        run.fieldMerchantCd = 60;
+        spawnFieldMerchant();
+      }
     }
 
     /* 돌진 — 조작을 무시하고 정해진 방향으로 밀고 나간다 */
@@ -3447,7 +3589,7 @@
     if (!run) {
       var d = dstate();
       return { active: false, best: d.best || 0, runs: d.runs || 0, kills: d.kills || 0, deaths: d.deaths || 0,
-                grave: d.grave || null };
+                grave: d.grave || null, horde: d.horde || { best: 0, runs: 0 } };
     }
     /* 네 칸 — 선두가 걸어 둔 무예. 빈 칸도 그대로 넘긴다(화면이 흐리게 그린다) */
     var skills = [], got = slotSkills();
@@ -3476,6 +3618,12 @@
       loot: { gold: Math.round(run.loot.gold), items: run.loot.items.length },
       boons: run.boons, choice: run.choice, merchantChoice: run.merchantChoice,
       graveChoice: run.graveChoice,
+      /* 난입(§5.5) — 회차 중일 때만 채운다. 화면은 이 필드가 있으면 HUD를
+         일반 층 표시 대신 타이머·파도로 바꿔 그린다. */
+      horde: run.horde ? {
+        t: Math.round(run.hordeT), remain: Math.max(0, HORDE_DURATION - run.hordeT),
+        wave: run.hordeWave, level: run.hordeLevel, enemies: run.room.enemies.length
+      } : null,
       boonPicks: run.boonPicks || 0, boonMax: BOON_MAX_STACK,
       kills: run.kills, best: dstate().best || 0,
       atk: Math.round(atkOf()), reach: Math.round(reachOf()),
@@ -3548,6 +3696,13 @@
     /** 유품(§5.2) — openGrave 는 자가진단용으로도 쓴다(표식을 안 밟고 바로 열어 봄) */
     graveOf: graveOf, openGrave: openGrave,
     toggleGraveItem: toggleGraveItem, claimGrave: claimGrave, GRAVE_ITEM_MAX: GRAVE_ITEM_MAX,
+    /** 난입(§5.5) — `enter({horde:true})` 그대로도 되지만 화면 코드가 매번
+     *  옵션 객체를 쓰지 않게 이름을 하나 내준다. */
+    enterHorde: function () { return enter({ horde: true }); },
+    HORDE_WAVE_INTERVAL: HORDE_WAVE_INTERVAL, HORDE_ENEMY_CAP: HORDE_ENEMY_CAP,
+    HORDE_DURATION: HORDE_DURATION,
+    /** 자가진단용 — 파도를 직접 굴려 본다(30초를 안 기다리고) */
+    _spawnHordeWave: spawnHordeWave,
     /** 마을 들판 방랑 상인(PLAN §60 후보 1) — town.js/ui.js가 독자 재고
      *  상태를 굴릴 때 쓴다. `run.merchantChoice`와는 별개다. */
     rollMerchantStock: rollMerchantStock,
