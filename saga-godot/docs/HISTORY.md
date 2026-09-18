@@ -7340,3 +7340,12 @@ PROJECT_STATE.md` 참고. 요약:
 - 두 번째 함정 — "normal"과 "champion" 두 처치를 비교해 exp 배율을 재려 했는데, `add_boss_kill()`이 부르는 `check_quests()`가 "q_boss1"(첫 보스 처치 일회성 보상)·"r_boss"(보스 2마리마다 반복 보상)를 같이 태워 비교값이 오염됐다 — 두 측정 직전마다 `StoryCombat.QUESTS`/`REPEAT_QUESTS`를 전부 "이미 깼다"로 채워 재발을 막았다(이 슬라이스는 보스를 잡을 때마다 사명 시스템도 같이 반응한다는 걸 몰랐던 함정, 비슷한 진단을 짤 때 참고).
 - 헤드리스 에디터 임포트 0 에러, `tools/godot_regress.sh` 다섯 판 스모크 오류 0·md5 전부 불변·project.godot/.import 잡음 없음.
 - 다음: STORY ⑤(비경, 경로 선택 미니던전+진입 축복 3택) 또는 REALM ⑤(이벤트 체인)·FOREST ④(발견 격자, PLAN 105 Q-f 열림 대기). "나머지 다섯 사냥터에 보스 추가"는 이 후보와 별개로 남겨 둔 자리.
+
+## STORY 비경 (2026-09-18) — PLAN 101-2 STORY ⑤후보
+- 웹판 saga-story/PLAN.md §5-3(경로 선택 미니던전+진입 축복 3택+기억 조각), 같은 날 확정된 §10 Q5("발판 기반 노드 지도로 한정")를 옮겼다. **재해석 — 축복.** 원안 "인물 서명 효과를 빌려 쓴다"는 이 트랙 인물이 전직 스승 장식뿐(수치 보정 없음, STORY 직업 정체성 세션 참고)이라 DUNGEON ①처럼 **이 판에 실제 있는 채널**(공격/방어/유틸 3축, 9종)로 다시 짰다.
+- 신규 `story_labyrinth.gd`(데이터: BLESSINGS 9·노드 풀 5종·주간 변형자·기억 단가), `story_labyrinth_state.gd`(오토로드, 회차 한정 boons 합산 — dungeon_run_state.gd와 같은 뼈대), `story_labyrinth_gate.gd`(허도 문, ChoicePrompt로 "입장/기억을 새긴다"), `StoryLabyrinth.tscn`(5층: 1~4층은 발판 2~3개 중 K로 확정, 5층은 곧바로 보스).
+- `story_player.gd` 6곳에 배율 합류(max_hp·take_damage·speed·_attack 쿨다운·_effective_atk·_melee_hit) — `_effective_atk()`/`_melee_hit()` 두 곳만 고치면 기본 공격+무예 18곳 전부가 자동으로 은사를 받는다(기존 ATTACK_RANGE 직접 참조 수십 곳을 안 건드렸다). `story_save_state.gd`에 기억 조각·영구 강화(`memory_tier`, 최대 HP +2%×10단, SAVE_VERSION 15→16)·`grant_labyrinth_scroll()`.
+- **재해석 — 죽음.** STORY는 설계상 게임오버가 없다(`take_damage()` 머리말) — 전역 죽음 시스템을 새로 만들지 않고, `story_labyrinth.gd`가 매 프레임 hp<=0만 스스로 관찰해 "패퇴"(비경 전용)로 다룬다.
+- 자가진단(임시 `_diag_labyrinth.gd/.tscn`, 커밋 전 지움) 35가지 — 은사 합산·상한·정산(기억 조각=층수+클리어+은사 보너스)·주간 변형자 결정성·영구 강화 단계·실제 씬 인스턴스화해 층0 발판 2~3개, 보물/휴식/전투 노드 개별 함수 직접 호출, 정규 흐름(커밋→클리어→1초 뒤 자동 진행) 한 번은 실제로 기다려 확인, 5층 보스 처치 시 고유 장비+주문서+기억 조각. **함정 둘** — ① `Array[String]` 변수에 삼항연산자(`A if cond else B`, 배열 리터럴 두 개)를 대입하면 런타임에 "Array를 Array[String]에 대입 못 함" 에러(if/elif 재대입으로 고침, dungeon_boons.gd가 애초에 이 형태를 안 쓴 이유였다) ② 다른 노드의 `_ready()` 안에서 `get_tree().root.add_child()`를 바로 부르면 "부모가 자식 설정 중" 에러로 조용히 실패(`add_child.call_deferred()`로 고침) — 둘 다 다음 진단에 참고.
+- `tools/godot_regress.sh` 다섯 판 오류 0·md5 불변(2026-09-18), `StoryLabyrinth.tscn` 자체도 3회 동일·오류 0.
+- 다음: REALM ⑤(이벤트 체인)·FOREST ④(발견 격자, PLAN 105 Q-f 열림 대기).

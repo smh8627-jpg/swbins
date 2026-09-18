@@ -254,8 +254,11 @@ var _job_buff_speed_mul := 1.0
 ## 잠깐 어긋난다).
 var hp := StoryCombat.START_HP
 
+## PLAN 101-2 STORY ⑤(비경, 2026-09-18) — StorySaveState.memory_hp_mult()가
+## 곱한다(영구 강화 단수, 비경 밖에서도 항상 적용 — 은사와 달리 회차 한정이
+## 아니다). 기존 합(START_HP+장비+전직)에 곱하는 자리라 다른 계산은 안 건드린다.
 var max_hp: float:
-	get: return StoryCombat.START_HP + float(StorySaveState.gear_totals().hp) + float(StorySaveState.job_grow().hp)
+	get: return (StoryCombat.START_HP + float(StorySaveState.gear_totals().hp) + float(StorySaveState.job_grow().hp)) * StorySaveState.memory_hp_mult()
 
 ## 방사(mage) 전직의 jb.mp(+40)를 반영한 MP 최대치 — mp_bar.gd가 폴링한다.
 var max_mp: float:
@@ -283,7 +286,18 @@ func take_damage(amount: float) -> void:
 	## `_job_buff_guard`를 그대로 쓴다(변수 선언부 머리말 참고, tier2
 	## 버프가 생기며 chain만으로는 어느 버프가 걸렸는지 구분이 안 된다).
 	var guard_mul: float = (1.0 - _job_buff_guard) if _job_buff_time_left > 0.0 else 1.0
-	hp = clampf(hp - amount * (1.0 - cut) * guard_mul, 0.0, max_hp)
+	## PLAN 101-2 STORY ⑤(비경) — 방어 축 은사(철벽)의 dmg_taken_mult(),
+	## 회차 밖이면 boons가 비어 있어 1.0(무해).
+	hp = clampf(hp - amount * (1.0 - cut) * guard_mul * StoryLabyrinthState.dmg_taken_mult(), 0.0, max_hp)
+
+
+## PLAN 101-2 STORY ⑤(비경) — StoryLabyrinthState가 healOnPick·healOnClear를
+## 적용할 때 부르는 공개 헬퍼. pct는 0~1 분수(기존 스킬들의 heal 계산과
+## 같은 단위, story_combat.gd skill_mul() 결과와 동일하게 소수로 받는다).
+func heal_pct(pct: float) -> void:
+	if pct <= 0.0:
+		return
+	hp = clampf(hp + max_hp * pct, 0.0, max_hp)
 
 
 func _ready() -> void:
@@ -680,7 +694,8 @@ func _walk(delta: float) -> void:
 	## job 버프에 이동속도 배율을 얹었다. 기합(brace)과는 별개 곱.
 	var speed := RUN_SPEED * (StoryCombat.BRACE_SPEED_MUL if _buff_time_left > 0.0 else 1.0) \
 		* (_job_buff_speed_mul if _job_buff_time_left > 0.0 else 1.0) \
-		* (StoryCombat.ARCHER_DRAW_MOVE_MUL if _archer_charging else 1.0)
+		* (StoryCombat.ARCHER_DRAW_MOVE_MUL if _archer_charging else 1.0) \
+		* StoryLabyrinthState.move_speed_mult()  # PLAN 101-2 STORY ⑤(비경, 질주 은사)
 	velocity.x = axis * speed
 
 	if absf(axis) > 0.05:
@@ -847,12 +862,14 @@ func _effective_atk() -> float:
 	if _signature_next_mul != 1.0:
 		atk *= _signature_next_mul
 		_signature_next_mul = 1.0
+	atk *= StoryLabyrinthState.atk_mult()  # PLAN 101-2 STORY ⑤(비경, 맹공 은사) — 기본 공격·무예 전부 이 한 곳을 거친다
 	return atk
 
 
 ## 정면 판정 공용 — 연참(reach)·기탄(reach*2)이 같이 쓴다. mul은 무예별
 ## 배율(연참 1.0·기탄 BOLT_MUL), range는 사거리.
 func _melee_hit(range_m: float, mul: float) -> void:
+	range_m *= StoryLabyrinthState.reach_mult()  # PLAN 101-2 STORY ⑤(비경, 장병 은사) — 18곳 전부 이 한 곳을 거친다
 	for enemy in get_tree().get_nodes_in_group("story_enemy"):
 		var e := enemy as Node3D
 		if e == null:
@@ -868,7 +885,9 @@ func _melee_hit(range_m: float, mul: float) -> void:
 
 
 func _attack() -> void:
-	_attack_cd_left = ATTACK_COOLDOWN
+	## PLAN 101-2 STORY ⑤(비경, 연격 은사) — 기본 공격에만 건다(무예 쿨다운은
+	## 갈래마다 따로라 이번 범위 밖, story_labyrinth.gd 헤더 참고).
+	_attack_cd_left = ATTACK_COOLDOWN / StoryLabyrinthState.atk_speed_mult()
 	_play_anim("sprint")  # 전용 공격 애니메이션이 없어 임시로 빌림(재해석, 실기 확인 때 다시 볼 것)
 	_melee_hit(ATTACK_RANGE, 1.0)
 

@@ -12,10 +12,11 @@ extends Node
 ## 애초에 저장할 상태 자체가 없다).
 
 const StoryCombat := preload("res://games/saga_story/data/story_combat.gd")
+const StoryLabyrinth := preload("res://games/saga_story/data/story_labyrinth.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 
 const SAVE_PATH := "user://save_story.json"
-const SAVE_VERSION := 15  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1), 13→14: repeat_progress/daily_done_day(반복/일일 사명), 14→15: weekly_champion_week(관문 대장)
+const SAVE_VERSION := 16  # 1→2: mats, 2→3: has_weapon, 3→4: equipped, 4→5: gold, 5→6: job(1차 전직), 6→7: skills(SP 투자), 7→8: scroll_bonus/scroll_left(주문서), 8→9: bosses/feat/achievements(업적), 9→10: quests_done(사명), 10→11: stage_kills(사냥터별 킬 수 사명), 11→12: visited_stages(q_explore1), 12→13: talks(q_talk1), 13→14: repeat_progress/daily_done_day(반복/일일 사명), 14→15: weekly_champion_week(관문 대장), 15→16: memory_fragments/memory_tier(비경)
 
 var level := 1
 var exp := 0
@@ -115,6 +116,54 @@ func add_boss_kill() -> void:
 ## VERSION 13→14 머리말)의 day index와 같은 정신 — 달력 월요일 기준은
 ## 아니고 7일 단위 정수 몫이다, 헤드리스 진단은 이 값을 직접 넣고 뺀다.
 var weekly_champion_week: Dictionary = {}
+
+
+## PLAN 101-2 STORY ⑤(비경, 2026-09-18) — story_labyrinth.gd 헤더의 "기억
+## 조각"(메타 재화). 회차(run) 자체는 세이브에 안 남지만(StoryLabyrinthState,
+## 회차 한정) 조각과 그걸로 새긴 영구 단수는 여기 남는다 — StorySaveState가
+## "저장이 이어지는 한 유지"되는 값들의 자리라는 기존 원칙 그대로.
+var memory_fragments := 0
+var memory_tier := 0  # 0~StoryLabyrinth.MEMORY_TIER_MAX, 단마다 최대 HP +2%
+
+
+func add_memory_fragments(n: int) -> void:
+	if n <= 0:
+		return
+	memory_fragments += n
+	Toast.show(self, "💠 기억 조각 +%d(보유 %d)" % [n, memory_fragments], 2.5)
+
+
+func can_upgrade_memory() -> bool:
+	if memory_tier >= StoryLabyrinth.MEMORY_TIER_MAX:
+		return false
+	return memory_fragments >= StoryLabyrinth.memory_upgrade_cost(memory_tier)
+
+
+func upgrade_memory() -> bool:
+	if not can_upgrade_memory():
+		return false
+	memory_fragments -= StoryLabyrinth.memory_upgrade_cost(memory_tier)
+	memory_tier += 1
+	return true
+
+
+func memory_hp_mult() -> float:
+	return 1.0 + StoryLabyrinth.MEMORY_HP_PCT_PER_TIER * memory_tier / 100.0
+
+
+## §5-3 클리어 보상 "주문서" — 사명 보상(_grant_quest_scroll)과 같은 자리지만
+## 대상(무기/방어구)을 정해 주지 않는다, 낄 수 있는 슬롯 중 아무 데나 랜덤
+## 하나를 굴린다(story_labyrinth.gd 보스 처치 보상이 부른다).
+func grant_labyrinth_scroll() -> void:
+	var keys := StoryCombat.SCROLLS.keys()
+	keys.shuffle()
+	for k: String in keys:
+		var sc: Dictionary = StoryCombat.SCROLLS[k]
+		var target_slot: String = "weapon" if String(sc.get("for", "")) == "weapon" else _pick_scrollable_armor_slot()
+		if target_slot.is_empty() or not can_scroll(target_slot):
+			continue
+		apply_scroll(target_slot, sc)
+		return
 
 
 func current_week() -> int:
@@ -534,6 +583,8 @@ func save() -> bool:
 		"repeat_progress": repeat_progress,
 		"daily_done_day": daily_done_day,
 		"weekly_champion_week": weekly_champion_week,
+		"memory_fragments": memory_fragments,
+		"memory_tier": memory_tier,
 		"mats": mats,
 		"equipped": equipped,
 		"gold": gold,
@@ -583,6 +634,8 @@ func try_load() -> bool:
 	daily_done_day = loaded_daily_done_day if typeof(loaded_daily_done_day) == TYPE_DICTIONARY else {}
 	var loaded_weekly_champion_week: Variant = data.get("weekly_champion_week", {})
 	weekly_champion_week = loaded_weekly_champion_week if typeof(loaded_weekly_champion_week) == TYPE_DICTIONARY else {}
+	memory_fragments = int(data.get("memory_fragments", 0))
+	memory_tier = clampi(int(data.get("memory_tier", 0)), 0, StoryLabyrinth.MEMORY_TIER_MAX)
 	var loaded_mats: Variant = data.get("mats", {})
 	mats = loaded_mats if typeof(loaded_mats) == TYPE_DICTIONARY else {}
 	var loaded_equipped: Variant = data.get("equipped", {})

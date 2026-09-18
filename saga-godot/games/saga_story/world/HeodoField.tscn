@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://games/saga_story/world/story_town.gd" id="1"]
 [ext_resource type="Environment" path="res://assets/environment/env_pc.tres" id="2"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://games/saga_story/world/story_job_trainer.gd" id="10"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_sky.gd" id="11"]
 [ext_resource type="Script" path="res://games/saga_story/world/story_talk_npc.gd" id="12"]
+[ext_resource type="Script" path="res://games/saga_story/world/story_labyrinth_gate.gd" id="13"]
 
 [node name="HeodoField" type="Node3D"]
 script = ExtResource("1")
@@ -66,6 +67,10 @@ npc_key = "healer"
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.5, 0, 0)
 script = ExtResource("12")
 npc_key = "wanderer"
+
+[node name="LabyrinthGate" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24, 0, 0)
+script = ExtResource("13")
 
 [node name="PortalToField" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.6, 0, 0)
