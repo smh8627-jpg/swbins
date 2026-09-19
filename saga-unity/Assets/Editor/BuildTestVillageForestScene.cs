@@ -29,6 +29,15 @@ namespace Saga.EditorTools
         // GO가 이미 검증해 둔 나무 GLB·캐릭터 GLB를 그대로 재사용
         // (VERTICAL_SLICE_FOREST.md 2절 "새 자산을 안 구하고 GO가 검증해
         // 둔 나무 GLB를 재사용할 수 있다").
+        // 101-2 5.8① "채집 손맛 — 효과음 3종 라운드로빈"(ForestGatherFeel.cs) —
+        // 새 에셋 없이 이미 임포트된 Kenney Interface Sounds 3종을 돌려쓴다.
+        private static readonly string[] GatherClipPaths =
+        {
+            "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_001.ogg",
+            "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_002.ogg",
+            "Assets/Art/Audio/Kenney_InterfaceSounds/confirmation_003.ogg",
+        };
+
         private const string TreeGlbPath = "Assets/Art/Vegetation/tree_oak.glb";
         private const string VillagerGlbPath = "Assets/Art/Characters/character-b.glb";
         private const string PlayerGlbPath = "Assets/Art/Characters/character-a.glb";
@@ -129,12 +138,27 @@ namespace Saga.EditorTools
             return go;
         }
 
+        private static AudioClip[] _gatherClips;
+
+        private static AudioClip[] LoadGatherClips()
+        {
+            if (_gatherClips != null) return _gatherClips;
+            var clips = new AudioClip[GatherClipPaths.Length];
+            for (int i = 0; i < GatherClipPaths.Length; i++)
+            {
+                clips[i] = AssetDatabase.LoadAssetAtPath<AudioClip>(GatherClipPaths[i]);
+            }
+            _gatherClips = clips;
+            return _gatherClips;
+        }
+
         private static void BuildFruitTree()
         {
             var go = new GameObject("FruitTree");
             go.transform.position = FruitTreeSpawn;
             var tree = go.AddComponent<ForestFruitTree>();
             SetPrivateField(tree, "treeModel", _treeGlb);
+            SetPrivateField(tree, "gatherClips", LoadGatherClips());
         }
 
         private static void BuildVillager()
@@ -225,6 +249,7 @@ namespace Saga.EditorTools
             SetPrivateField(spot, "category", category);
             SetPrivateField(spot, "pool", ForestMuseumState.ItemsOf(category));
             SetPrivateField(spot, "spotColor", color);
+            SetPrivateField(spot, "gatherClips", LoadGatherClips());
         }
 
         private static (GameObject playerGo, Transform playerTransform) BuildPlayer()

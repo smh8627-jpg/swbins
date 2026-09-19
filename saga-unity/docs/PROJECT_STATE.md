@@ -1,7 +1,7 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-20 (이어서 **PLAN 101-2 5.5 DUNGEON 난입(亂入)** — Room1(중심 마을)의 표식(`HordeGate`)을 밟으면 격리된 고정 방(`HordeArena`, `HordeRunner`)으로 텔레포트해 30초마다 파도. 레벨업 3택은 5.1 `BlessingState`를 그대로 재사용(시작 시 회차 축복을 비우고 종료 시 되돌림). 새 파일 `HordeRunner`·`HordeGate`·`HordeState`, `DungeonFormulas`에 순수 함수 둘, `DungeonEnemy`에 `RoomId`·`AnyDied`, `SaveState` v7. 경위는 HISTORY grep. 컴파일 0 오류, 헤드리스 재검증 OK(완주·사망 두 경로)). DUNGEON 101-2(5.8·5.1~5.5) 전부 완료 — 남은 건 5.7(웹 선행 뒤).
+마지막 갱신: 2026-09-20 (이어서 **PLAN 101-2 5.8① FOREST 채집 손맛** — 웹판 "채집 5요소"를 재해석: 새 `ForestGatherFeel`(진입점)·`ForestGatherPopup`(`DamagePopup` 결)·`ForestGatherBump`(`HitSpark` 결)·`ForestGatherStreak`(8초 창·3연속마다 보너스, 세이브 없음). `ForestCollectSpot`·`ForestFruitTree`에 배선, SFX는 기존 Kenney confirmation_001~003.ogg 라운드로빈. 컴파일 0 오류, 헤드리스 3연속 OK, 씬 재빌드로 배선 확인). DUNGEON 101-2 전부 완료(5.7만 웹 선행 뒤). FOREST 101-2(5.1~5.5, 5.8①) 완료 — 남은 건 5.6·5.7·5.8②③.
 
 ## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
 
@@ -13,7 +13,7 @@ Maria(플레이어)·Abe(잡졸)·Brute(두목) 셋만 mixamo.com 실자산 확�
 |---|---|---|---|---|---|
 | GO | `TestVillage` | 완료 — 도적의 습격(이동·촌장·상인·나그네·조우·전투·등용·EXP·장비·루트·저장 v11) | 동물 Group·나그네·은닉 보물·산신당·행운 돌탑·동굴 유물·채집·오버월드 지도 · **101-2 ④⑦③ 전부 완료(2026-09-19)**: 일과판·승급 3택(`PerkState`)·75초 토벌(`RareWolfEncounter`+`DuelRules.Raid`) | Player·주요 Enemy·Environment·Building·Props 전부 GLB/PBR | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
 | DUNGEON | `TestDungeon` | 완료 — 첫 방→무리·엘리트/보스·방 종류(우물·상자·성소·행상)·회피·강공격·필드(방 2+복도)·동행 | 마을 넷·층 진행·매복·구출·수수께끼·은닉 창고·빌드(회전베기)·도감·보석/영웅 상태 · **101-2 5.1~5.5 완료(5.7 남음)** | Player·잡졸(황건적)·미니보스/두목·Environment·Building | 전부 붙음(SFX 실클립 통일). **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-17)** |
-| FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **5.1~5.5 완료(2026-09-20)**: 마을 번들(`ForestMuseumState`, 곤충/버섯/화석/화초) | Environment 완료 | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
+| FOREST | `TestVillageForest` | 완료(이동 전용 컨트롤러) — 마을·집·주민 | 벽지/장판·가구 자유 배치(1m 격자)·생물(Flee/Group)·과일나무·채집·좌판·밀어내기 전투 · **5.1~5.5 완료(2026-09-20)**: 마을 번들(`ForestMuseumState`, 곤충/버섯/화석/화초) · **5.8① 완료(2026-09-20)**: 채집 손맛(`ForestGatherFeel`) | Environment 완료 | 전부 붙음. **목표판/세션카드(A·B)**. 101-3 해당 없음 |
 | STORY | `TestField` | 완료 — 2.5D 횡스크롤(Z 고정)·잡졸 10·두목·사명 2·볼트·로프 | 척후병 NPC·사건·관계·선택(51장 완결)·전직(Lv.10, 무사/궁수/협객/방사, `StoryJobChoiceUi` 팝업까지 실제 검증) | 척후병 실제 모델 | 전부 붙음. **목표판/세션카드(101-2 A·B)**. **101-3 C·F·G 전부 완료(2026-09-18)** — C(hitstop/shake, 2026-09-17) + F 죽음(`StoryLootMarker`) + G 지형 반응(`StoryGroundDecal`, 발자국+타격 흔적) + G 성장 연출(`StoryCameraFollow.PlayLevelUpCut()`, ZDistance 가변화) + G 장비 가시화(`StoryWeaponVisual`, "직업별 무기": 무사→검·궁수→활·협객→표창·방사→지팡이) |
 | REALM | `TestCity` | 완료(경영형, 캐릭터 없음) — 명령·계략(유언비어·화계)·문답 36·서고·월드맵·전투·함락 편입 | **적국 55, 성 58**(51장 35차 — **교주·남중·복양(막북) 세 사슬 전부 완전히 닫힘**, 트리 상세는 HISTORY 2026-09-18~19 grep) | 도시 Environment/Building | 전부 붙음. **목표판/세션카드(101-2 A·B — "월간 요약 카드"로 변형)**. 101-3 해당 없음(캐릭터·실시간 전투 없음) |
 
@@ -39,7 +39,7 @@ STORY 세부(경위는 HISTORY grep): `StoryJobState.JobChosen` 이벤트로 `Re
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
-1. **PLAN 101-2 이어서** — GO ④⑦③ 완료, 다음 ①②⑥⑧ 사용자 결정 대기(⑤ 모바일 빌드 뒤). DUNGEON 5.1~5.5 완료 — 다음 5.7(웹 선행 뒤). FOREST 5.1·5.2·5.3·5.4·5.5 완료 — 다음 5.6/5.7/5.8. STORY·REALM도 착수 가능.
+1. **PLAN 101-2 이어서** — GO ④⑦③, DUNGEON 5.1~5.5, FOREST 5.1~5.5·5.8① 완료. 다음: GO①②⑥⑧(사용자 결정 대기, ⑤는 모바일 빌드 뒤)·DUNGEON 5.7(웹 선행 뒤)·FOREST 5.6/5.7/5.8②③. STORY·REALM도 착수 가능.
 2. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록, GO 일과판 신규 포함). 사용자 몫.
    - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
    - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
@@ -76,7 +76,7 @@ REALM 계략(Plot) 고르기 UI·51장 16~35차 확장(교주·남중·복양 �
 | `PlaytestHeadless`(GO) | 2026-09-19 기준 3연속 OK, 이번 세션 미변경 |
 | `PlaytestDungeonHeadless` | **재검증 OK**(2026-09-20, 5.5 뒤 — 10 frames, no errors. 완주·사망 두 종료 경로 다 새로 확인) |
 | `PlaytestDungeonFloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` | **재검증 OK**(`DungeonEnemy` 핵심 변경이라 하위 슬라이스까지 전부 재확인) |
-| `PlaytestForestHeadless` | **재검증 OK**(2026-09-20, 5.3 뒤. `OnAllBundlesCompleted()`의 `SpawnFlag()` 누락을 실제로 잡아냄, 수정 후 통과) |
+| `PlaytestForestHeadless` | **3연속 OK**(2026-09-20, 5.8① 채집 손맛 뒤 — `CheckGatherFeel()` 신규) |
 | `PlaytestOverworldMap`(GO) | 이전 세션 기준 1회 재검증 OK, 이번 세션 미변경 |
 | `PlaytestStorySlice` | **3연속 OK**(2026-09-18, 101-3 F·G·장비가시화 확장 뒤 — 죽음 표식/지형 데칼/레벨업 줌/직업별 무기 전부 새 검증 포함) |
 | `PlaytestRealmSlice` | **3연속 OK**(2026-09-19, 51장 16~35차 확장(교주·남중·복양 세 사슬 완전히 닫힘) 뒤 — 다중 목표 공격(전충·운중 목표 3, 최다 동률)·계략 고르기·잘못된 목표 거절·신규 성 30개 함락 전부 새 검증 포함) |
@@ -86,7 +86,7 @@ REALM 계략(Plot) 고르기 UI·51장 16~35차 확장(교주·남중·복양 �
 
 - GO: 조우·전투·등용 손맛, 상점·퀘스트 대사 3단계, 은닉 보물·산신당·돌탑·유물, 채집, 목표판/세션카드, hitstop 체감, 유품 마커·무기 소켓·지형 데칼(101-3 F·G), 일과판·승급 3택 UI, **75초 토벌 손맛(저스트 회피 타이밍·부위 게이지·완파 보너스, 101-2 ③, 2026-09-19 신규 — 이게 첫 실기 확인)**
 - DUNGEON: 카메라 각도, 아홉 슬라이스, 목표판/세션카드, hitstop·타격VFX·레벨업줌·무기소켓·지형데칼 체감(101-3 전체), **축복·유품·부적 던전·월드 보스·난입 체감(101-2 5.1~5.5, 신규 — 난입은 표식 위치·파도 난이도 포함 첫 실기 확인)**
-- FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, **마을 번들 채집·시설·깃발(5.3 신규, 첫 확인)**
+- FOREST: 벽지/장판, 가구 배치, 생물·과일나무·좌판, 목표판/세션카드, 마을 번들(5.3), **채집 손맛 체감(5.8①, 2026-09-20 신규 — 첫 확인)**
 - STORY: 두목 크기·타격감, 사건·관계·선택 흐름, 전직 팝업, 목표판/세션카드, hitstop/shake/flash/popup/타격 VFX 체감, **유품 마커·지형 데칼(발자국/타격 흔적)·레벨업 줌·직업별 무기(검/활/표창/지팡이) 실제로 보이는지(101-3 F·G, 2026-09-18 신규 — 이게 첫 실기 확인)**
 - REALM: 월드맵, 적국 사슬 진행 체감, 패널 여덟 실제 조작, 목표판/세션카드, **공격·계략 고르기 패널(신독·전충·운중 등 다중 목표 성) 실제 조작감(51장 16~35차, 2026-09-18~19 신규 — 이게 첫 실기 확인)**
 - 공통: BGM 음량, 설정 패널 6줄, Volume 프로파일 톤 일치, SessionCard DoF 체감

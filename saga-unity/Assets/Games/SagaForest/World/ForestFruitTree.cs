@@ -26,13 +26,16 @@ namespace Saga.Forest.World
         private const float ToastSec = 3f;
 
         [SerializeField] private GameObject treeModel; // BuildTestVillageForestScene.cs가 tree_oak.glb를 채운다.
+        [SerializeField] private AudioClip[] gatherClips; // BuildTestVillageForestScene.cs가 채운다 — 101-2 5.8① 라운드로빈.
 
         private float _cooldownLeft;
         private Transform _player;
+        private Transform _visual;
 
         private void Awake()
         {
             if (transform.childCount == 0) BuildVisual();
+            _visual = transform.Find("Visual");
             var playerGo = GameObject.FindWithTag("Player");
             _player = playerGo != null ? playerGo.transform : null;
         }
@@ -82,6 +85,8 @@ namespace Saga.Forest.World
                 string.Format(ForestLocalization.T("fruit.gather_toast", "나무를 흔들었다 — {0}을(를) 주웠다 (보유 {1}개)"),
                     FruitName, ForestState.FruitCount),
                 ToastSec);
+
+            ForestGatherFeel.Play(transform.position + Vector3.up * 2.6f, _visual, FruitName, gatherClips);
         }
     }
 }

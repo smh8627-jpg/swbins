@@ -86,6 +86,7 @@ namespace Saga.EditorTools
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
                 CheckMuseum();
+                CheckGatherFeel();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -440,6 +441,51 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestForestHeadless] museum bundle OK - 채집 자리 발견+쿨다운, 갈래별 시설 스폰, 네 갈래 완성 시 깃발까지 확인");
+        }
+
+        /// <summary>PLAN.md 101-2 5.8① "채집 손맛" — `ForestGatherFeel`이
+        /// 채집이 성사될 때마다 정확히 한 번 트리거되고, 3연속 안에
+        /// 리듬 보너스가 실제로 지급되는지 값으로 확인한다(팝업·범프·
+        /// 효과음 자체는 시각/청각이라 실기 확인 몫 — `CheckMuseum()`의
+        /// insectSpot과 겹치지 않게 버섯 자리를 따로 쓴다, 그쪽 쿨다운
+        /// 검증과 안 부딪히도록).</summary>
+        private static void CheckGatherFeel()
+        {
+            var spots = Object.FindObjectsByType<ForestCollectSpot>(FindObjectsSortMode.None);
+            var categoryField = typeof(ForestCollectSpot).GetField("category", BindingFlags.NonPublic | BindingFlags.Instance);
+            ForestCollectSpot mushroomSpot = null;
+            foreach (var s in spots)
+            {
+                if ((ForestMuseumState.Category)categoryField.GetValue(s) == ForestMuseumState.Category.Mushroom) mushroomSpot = s;
+            }
+            if (mushroomSpot == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 버섯(Mushroom) 채집 자리를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var playerGo = GameObject.FindWithTag("Player");
+            playerGo.transform.position = mushroomSpot.transform.position;
+
+            var updateMethod = typeof(ForestCollectSpot).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            var cooldownField = typeof(ForestCollectSpot).GetField("_cooldownLeft", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            ForestGatherFeel.ResetForTest();
+            for (int i = 0; i < 3; i++)
+            {
+                cooldownField.SetValue(mushroomSpot, 0f); // 실기 손맛은 쿨다운 2초를 기다리지만, 여긴 리듬 보너스 값만 본다.
+                updateMethod.Invoke(mushroomSpot, null);
+            }
+
+            if (ForestGatherFeel.TriggerCount != 3 || ForestGatherFeel.BonusCount != 1)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 채집 손맛 카운터가 이상함 — TriggerCount={ForestGatherFeel.TriggerCount}(기대 3) BonusCount={ForestGatherFeel.BonusCount}(기대 1, 3연속째)");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log("[PlaytestForestHeadless] gather feel OK - 채집마다 한 번씩 트리거, 3연속째 리듬 보너스 지급 확인");
         }
     }
 }

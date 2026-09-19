@@ -7816,3 +7816,22 @@ FOREST 순서(5.1+5.2→5.4→5.5→5.3)의 마지막 항목. FOREST 101-2 후�
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0, `ProjectSettings/`·`Packages/` 변경 없음) → 씬 재빌드(`BuildTestVillageForestScene.Build`) → `PlaytestForestHeadless`(`-quit` 안 줌) — 첫 실행 FAIL(위 함정), 버그 위치를 좁히려 임시 `Debug.Log` 진단 한 줄 추가해 재실행(상태는 true인데 오브젝트가 없음을 확인) → `ForestBootstrap.cs`에 빠진 `SpawnFlag()` 호출 추가 → 임시 진단 로그 제거 → 재실행 10 frames no errors, 새 museum 체크 전부 통과. `docs/PROJECT_STATE.md` 갱신(FOREST 완료 요약에 101-2 5.1~5.5 표기, "다음 작업"을 5.6/5.7/5.8로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 REALM 요약 등 여러 줄 압축). `PLAN.md` 101-2 FOREST 행에 5.3 완료·재해석 이유·대응 파일(`ForestMuseumState`·`ForestCollectSpot`·`ForestMuseumDecorator`) 추가. **FOREST 101-2(5.1~5.5) 전부 닫혔다** — 다음 세션이 FOREST에서 새로 이어받을 항목은 5.6(축제)·5.7(택배 사슬)·5.8(채집 손맛 표준) 중 아무거나, 우선순위상 5.6이 먼저.
 
 **참고**: 이 세션은 같은 saga-unity 프로젝트에서 STORY 5-2·REALM 5-1·DUNGEON 5.7을 각각 병렬로 이어가는 다른 포크와 동시에 돌았다 — Unity 배치 모드 컴파일 한 번이 약 210초 걸린 적이 있어(락 경합으로 추정), 같은 프로젝트에 여러 Unity 배치 프로세스를 동시에 띄우면 서로 대기하거나 결과가 흔들릴 수 있다는 걸 실제로 겪었다. 문서 파일(PLAN.md·PROJECT_STATE.md·HISTORY.md)도 여러 포크가 동시에 덮어쓸 수 있어 경합 가능성이 있다 — 다음 세션은 이 커밋 이후의 최신 상태를 다시 읽고 이어갈 것.
+
+## 2026-09-20 — PLAN 101-2 5.8① FOREST 채집 손맛 ("사가 유니티 이어 해" 세션, FOREST 5.3(마을 번들) 다음)
+
+FOREST 순서 다음 후보(5.6 축제/5.7 택배 사슬/5.8 채집 손맛 표준) 중 5.8①(채집 5요소)을 골랐다 — 5.6·5.7은 새 달력(음력 8행사)·새 목적지 체계가 필요해 범위가 크고, 5.8①은 이미 있는 `ForestCollectSpot`·`ForestFruitTree`에 얹기만 하면 돼(새 저장 스키마 없음, 웹판도 "세이브: 없음(계산)") 가장 좁게 닫힌다.
+
+**웹판을 그대로 안 옮긴 이유**: 웹판 §5.8(`saga-web/saga-forest/PLAN.md` 177행)은 "아이템 아이콘 0.6s 포물선 → 가방"을 전제하는데 이 트랙엔 가방이 없다(`ForestMuseumState.cs` 클래스 주석과 같은 이유). 대신 `SagaDungeon/World/DamagePopup.cs`(TextMesh, 카메라를 보며 떠오르다 사라짐) 결로 발견 이름을 그대로 띄운다. "효과음 3종 라운드로빈(기존 20 중 갈래별)"도 새 오디오 자산이 없어 이미 임포트된 Kenney Interface Sounds 3종(confirmation_001~003.ogg)을 갈래 구분 없이 공유해서 돌려쓴다. "연속 채집 3회마다 리듬 보너스"는 낚시·"손짓" 입력이 없어 채집 성사 자체를 박자로 센다(8초 창, 2026-09-18 웹 구현 노트의 "손짓 타이밍 8초"를 그대로 옮김). 보너스 보상은 아이템 인벤토리가 없어 이 트랙 통화(과일, `ForestState.AddFruit`)로 대신했다.
+
+- `Data/ForestGatherStreak.cs`(신규) — 정적 클래스, `Time.time` 기반 8초 창 안이면 박자를 잇고 아니면 1로 리셋. 3의 배수가 된 순간 `true`를 돌려준다(호출부가 보너스 지급 여부로 쓴다). 세이브 없음(웹판 5.8 "세이브: 없음(계산)" 그대로) — 세션이 끝나면 리셋돼도 무방.
+- `World/ForestGatherPopup.cs`(신규) — `DamagePopup.cs`와 같은 결(TextMesh, 0.6초, 카메라 빌보드). 보너스면 금색, 아니면 흰색.
+- `World/ForestGatherBump.cs`(신규) — `HitSpark.cs`처럼 풀링 없이 짧은 수명(0.25초)에 기대는 일회성 컴포넌트. `Visual` 자식에 얹어 사인 반 주기로 스케일을 키웠다 원래대로 돌린 뒤 스스로 뗀다.
+- `World/ForestGatherFeel.cs`(신규) — 위 셋 + SFX 라운드로빈 + `ForestGatherStreak`을 한곳에 모은 진입점(`Play(worldPos, visual, label, clips)`). `TriggerCount`·`BonusCount`(헤드리스 진단 전용, `HitSpark.SpawnCount`와 같은 결)와 `ResetForTest()`도 갖는다.
+- `World/ForestCollectSpot.cs`·`World/ForestFruitTree.cs` — `Awake()`에서 `Visual` 자식 참조를 캐시해 두고, 채집이 성사되는 기존 분기(토스트를 띄우던 자리) 바로 뒤에 `ForestGatherFeel.Play(...)` 한 줄만 추가. 둘 다 새 `[SerializeField] AudioClip[] gatherClips` 필드(씬 빌더가 채운다).
+- `Editor/BuildTestVillageForestScene.cs` — `GatherClipPaths`(confirmation_001~003.ogg) + `LoadGatherClips()`(캐시) 신설, `BuildFruitTree()`·`BuildCollectSpot()` 양쪽에 `SetPrivateField(..., "gatherClips", LoadGatherClips())` 추가.
+
+**검증**: `Editor/PlaytestForestHeadless.cs`에 `CheckGatherFeel()` 신설 — `CheckMuseum()`이 이미 쓰던 곤충 자리 대신 **버섯 자리를 따로 써서**(곤충 자리의 쿨다운 검증과 안 부딪히게) 리플렉션으로 `_cooldownLeft`를 매번 0으로 되돌리며 `Update()`를 3번 연달아 부른 뒤 `ForestGatherFeel.TriggerCount==3`·`BonusCount==1`(3연속째)을 확인한다. 팝업·범프·SFX 자체는 시각/청각이라 실기 확인 몫 — 값으로 확인 가능한 트리거 횟수·보너스 지급만 헤드리스가 본다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(오류 0, `ProjectSettings/`·`Packages/` 변경 없음) → `PlaytestForestHeadless`(신규 체크 포함, `-quit` 안 줌) 1차 OK(기존 씬에 새 필드가 비어 있어도 무음 폴백으로 안 깨짐 확인) → 씬 재빌드(`BuildTestVillageForestScene.Build`, gatherClips 실제 배선) → 재실행 2회 추가, 총 3연속 OK("museum bundle OK"·"gather feel OK" 둘 다 매번 출력). `docs/PROJECT_STATE.md` 갱신(FOREST 요약에 5.8① 추가, "다음 작업"·테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md`는 101-2 FOREST 행 우선순위 서술이 이미 "5.1+5.2→5.4→5.5→5.3 완료" 형태라 5.8①을 같은 문장에 덧붙이는 대신 이 HISTORY 항목으로 경위를 남긴다(장 번호·표 구조는 안 건드림).
+
+**참고**: 이 PC엔 Unity 6000.3.24f1이 `C:\Program Files\Unity\Hub\Editor\6000.3.24f1`에 있다(폴더 CLAUDE.md가 적어 둔 기본 Hub 경로와 다른 PC — 세션 시작 시 `find`로 새로 확인해야 한다는 경고 그대로 실제로 달랐다). 커밋 시점에 `git status`에 이 세션과 무관한 변경(`saga-godot/saga_core/shaders/cel_shader_apply.gd`, 새 png 하나)이 같이 떠 있었다 — 다른 세션이 같은 트리에서 동시에 돈 흔적이라 손대지 않고 `saga-unity/` 경로만 좁혀 커밋했다.

@@ -21,6 +21,7 @@ namespace Saga.Forest.World
         [SerializeField] private ForestMuseumState.Category category;
         [SerializeField] private string[] pool;
         [SerializeField] private Color spotColor = Color.white;
+        [SerializeField] private AudioClip[] gatherClips; // BuildTestVillageForestScene.cs가 채운다 — 101-2 5.8① 라운드로빈.
 
         private static readonly Dictionary<ForestMuseumState.Category, Vector3> Positions =
             new Dictionary<ForestMuseumState.Category, Vector3>();
@@ -33,11 +34,13 @@ namespace Saga.Forest.World
         private readonly System.Random _rng = new System.Random(20260824); // 루트 CLAUDE.md 진단 시드 관례.
         private float _cooldownLeft;
         private Transform _player;
+        private Transform _visual;
 
         private void Awake()
         {
             Positions[category] = transform.position;
             if (transform.childCount == 0) BuildVisual();
+            _visual = transform.Find("Visual");
             var playerGo = GameObject.FindWithTag("Player");
             _player = playerGo != null ? playerGo.transform : null;
         }
@@ -70,6 +73,9 @@ namespace Saga.Forest.World
                 ? "{0}을(를) 처음으로 발견했다! (도감에 기록됨)"
                 : "{0}을(를) 발견했다(이미 도감에 있음)";
             DialogueLabel.Instance?.Show(string.Format(ForestLocalization.T(key, fallback), item), ToastSec);
+
+            string popupLabel = isNew ? $"NEW! {item}" : item;
+            ForestGatherFeel.Play(transform.position + Vector3.up * 1.2f, _visual, popupLabel, gatherClips);
         }
     }
 }
