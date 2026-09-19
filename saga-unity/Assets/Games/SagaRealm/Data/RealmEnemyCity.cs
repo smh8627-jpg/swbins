@@ -310,6 +310,7 @@ namespace Saga.Realm.Data
         public const string MoqietuoId = "moqietuo";
         public const string SheyiId = "sheyi";
         public const string ZhuwuId = "zhuwu";
+        public const string XiquanId = "xiquan";
 
         public static readonly string[] AllIds =
         {
@@ -319,6 +320,7 @@ namespace Saga.Realm.Data
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
             DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId, MoqietuoId, SheyiId, ZhuwuId,
+            XiquanId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -586,6 +588,14 @@ namespace Saga.Realm.Data
             // 더 뻗는 LINKS 없음). train은 노용 자신의 265+15=280. 노용은
             // 자식이 하나뿐이라 enemyId 불필요. land는 원작 그대로 river.
             [ZhuwuId] = new RealmEnemyCityDef(ZhuwuId, "주오", RealmLand.River, baseWall: 2600, baseTroops: 598, baseTrain: 280, baseTech: 100, attackFromCityId: "luorong"),
+            // 서권은 전충(dianchong)과만 맞닿아 있다(원작 LINKS: dianchong-xiquan,
+            // "산을 낀 서쪽 현, 코끼리가 짐을 나른다") — 31차 확장, 전충의
+            // 둘째 자식(비경과 형제 가지, 24차가 안 골랐던 두 이웃 서권·구속
+            // 중 이번엔 서권을 골랐다 — 구속은 다음 확장 후보로 남긴다).
+            // train은 전충 자신의 265+15=280(비경과 동률). land는 원작
+            // hill을 Plain으로 보정(건타라·대하와 같은 이유). 원작에 더
+            // 뻗는 LINKS 없어(잎사귀) 이 가지는 여기서 끝.
+            [XiquanId] = new RealmEnemyCityDef(XiquanId, "서권", RealmLand.Plain, baseWall: 2700, baseTroops: 621, baseTrain: 280, baseTech: 100, attackFromCityId: "dianchong"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

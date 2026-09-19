@@ -81,7 +81,7 @@ namespace Saga.EditorTools
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
             AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
             AttackYongchang, AttackXianglin, AttackDianchong, AttackShendu,
-            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo, AttackSheyi, AttackZhuwu,
+            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin, AttackDaxia, AttackWuyishanli, AttackMoqietuo, AttackSheyi, AttackZhuwu, AttackXiquan,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -1292,10 +1292,19 @@ namespace Saga.EditorTools
 
                 case Phase.AttackBijing:
                 {
-                    // 24차 확장(2026-09-19) — 전충을 함락한 뒤 이어지는
-                    // 교주 사슬의 다음 단계(TargetFrom("dianchong")),
-                    // 이 사슬은 여기서 끝.
-                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.BijingId, Phase.QuizCorrect)) return;
+                    // 24차 확장(2026-09-19) — 전충의 첫째 목표(31차부터
+                    // 서권과 형제 가지가 돼 enemyId 명시 — xianglin과 같은
+                    // 이유).
+                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.BijingId, Phase.AttackXiquan, RealmEnemyCity.BijingId)) return;
+                    break;
+                }
+
+                case Phase.AttackXiquan:
+                {
+                    // 31차 확장(2026-09-19) — 전충의 둘째 목표(비경과 형제
+                    // 가지, TargetFrom("dianchong")), 원작에 더 뻗는 LINKS
+                    // 없어 이 가지는 여기서 끝.
+                    if (!AttackChainStep(RealmEnemyCity.DianchongId, RealmEnemyCity.XiquanId, Phase.QuizCorrect, RealmEnemyCity.XiquanId)) return;
                     break;
                 }
 

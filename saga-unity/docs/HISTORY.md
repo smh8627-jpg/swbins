@@ -7595,3 +7595,16 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 주오 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 49→50·성 52→53, 16~30차 절 갱신, "다음 작업"(31차 후보: 전충의 다른 이웃 서권 또는 구속) · 테스트 상태 · 실기 확인 대기 전부 갱신, 14664B로 15KB 상한 안쪽 유지).
+
+## 2026-09-19 — REALM 51장 31차 확장(전충→서권)
+
+29~30차 뒤 남은 후보(전충의 다른 이웃 서권/구속, 24차에서 비경을 골랐을 때 남긴 형제 가지) 중 서권을 골랐다(원작 LINKS: dianchong-xiquan, "산을 낀 서쪽 현, 코끼리가 짐을 나른다" — 다른 이웃 구속도 원작에 더 뻗는 LINKS가 없어 둘 다 잎사귀, 임의로 서권을 골랐다. 구속은 다음 확장 후보로 남긴다). train은 전충 자신의 265+15=280(비경과 동률, 전충이 목표 둘로 늘어난 첫 사례 — xianglin 22차·shendu 24차와 같은 패턴). wall은 원작 그대로(2700), troops=wall×0.23 반올림(621). land는 원작 hill을 Plain으로 보정(건타라·대하와 같은 이유).
+
+- `RealmEnemyCity.cs` — `XiquanId` 신설, `AllIds`·`Catalog`에 추가(`attackFromCityId: "dianchong"`).
+- `RealmCityData.cs` — 같은 성 추가.
+- `PlaytestRealmSlice.cs` — 전충이 목표 둘이 됐으니 `Phase.AttackBijing`에 enemyId(BijingId) 명시 추가(xianglin·shendu와 같은 이유), 다음 단계를 새 `Phase.AttackXiquan`으로 바꾸고 그 안에서 QuizCorrect로 복귀. OK 로그 문구는 안 바꿈(30차 문구 그대로 유지, xiquan은 개별 로그 줄로 확인).
+- 로컬라이제이션: `city.xiquan`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 서권 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 로컬라이제이션 JSON 추가 뒤 1회 더 재검증(문법 확인 `node -e "JSON.parse(...)"` 포함). 씬 재생성 불필요.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 50→51·성 53→54, 16~31차 절 갱신, "다음 작업"(32차 후보: 전충의 마지막 이웃 구속 — 고르면 전충 갈래 완전히 닫힘) · 테스트 상태 · 실기 확인 대기 전부 갱신, 14910B로 15KB 상한 안쪽 유지).

@@ -333,6 +333,12 @@ namespace Saga.Realm.Data
             // land는 원작 그대로 river. wall은 RealmEnemyCity.cs 주오
             // 정의(2600)와 맞춘다.
             ["zhuwu"] = new RealmCityDef("zhuwu", "주오", RealmLand.River, agri: 130, comm: 120, wall: 2600, pop: 38000, mapX: 30, mapY: 130),
+            // 51장 "대규모 콘텐츠" 31차 확장(2026-09-19) — 전충(dianchong)의
+            // 둘째 자식(비경과 형제 가지, 24차가 안 골랐던 서권을 이번에
+            // 채운다 — 구속은 다음 확장 후보로 남긴다). land는 원작 hill을
+            // Plain으로 보정. wall은 RealmEnemyCity.cs 서권 정의(2700)와
+            // 맞춘다.
+            ["xiquan"] = new RealmCityDef("xiquan", "서권", RealmLand.Plain, agri: 140, comm: 110, wall: 2700, pop: 40000, mapX: 50, mapY: 120),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
