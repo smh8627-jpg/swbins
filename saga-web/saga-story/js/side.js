@@ -51,6 +51,15 @@
   function critMul() { return core.tuned('crit.mul', 1.6); }      // 그때 곱하는 값
   function knockPow() { return core.tuned('hit.knock', 62); }     // 맞은 적이 밀리는 힘
 
+  /* 손맛 표준(§5-7, SAGA-DESIGN §3-C) — hitstop 은 잡졸 70ms·보스 90ms·급소
+     120ms(사가블로 dungeon.js 와 같은 3단, 이 판은 보스가 급소보다 덜 묵직하게
+     잡았다 — 보스는 이미 12~17배 피해라 손맛보다 "밀리지 않는다"쪽이 더 크다).
+     타격음은 같은 'hit' 계열 셋을 라운드로빈(피치 ±6%)으로 돌려 연타가 다
+     같은 소리로 안 들리게 한다. */
+  var HIT_CUES = ['hit', 'hit2', 'hit3'];
+  var HITSTOP_NORMAL = 0.07, HITSTOP_CRIT = 0.12, HITSTOP_BOSS = 0.09;
+  var HURT_FLASH = 0.08;   // 피격 플래시 — 급소든 아니든 한 값(표준 80ms)
+
   /** 소리 한 번 — sfx.js 가 없어도 규칙은 그대로 돈다(진단·데모가 그렇다) */
   function sfx(key) {
     var S = global.DG.sfx;
@@ -279,7 +288,7 @@
       miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
       npcs: buildNpcs(stg), talk: null,
       chatCd: CHAT_EVERY * (0.7 + Math.random() * 0.6),
-      kills: 0, gold: 0
+      kills: 0, gold: 0, hitstopT: 0, hitSeq: 0
     };
     st().stage = stg.key;
     for (var i = 0; i < stg.spawn; i++) { spawnEnemy(); }
@@ -710,16 +719,27 @@
     var dmg = atkOf() * (mul || 1) * (0.88 + Math.random() * 0.24) * (crit ? critMul() : 1);
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
-    e.hurt = crit ? 0.3 : 0.22;
+    e.hurt = HURT_FLASH;
     /* 탱커형(PLAN 13절)은 보스처럼 밀리지 않는다 — 맷집이 그 컨셉이다 */
     if (!e.boss && e.role !== 'tank') {
       var away = (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1;
       e.kx = (e.kx || 0) + away * knockPow() * (crit ? 1.5 : 1) * (mul >= 2 ? 1.4 : 1);
     }
     fx.push({ t: 'hit', x: e.x + e.w / 2, y: e.y, v: dmg, life: 0.6, crit: crit });
-    /* 화면 층이 읽는다 — 큰 것은 화면이 흔들리고, 손이 한 박자 멎는다 */
-    if (crit || dmg >= 100) { fx.push({ t: 'shake', x: e.x, y: e.y, life: 0.22, big: crit }); }
-    sfx(crit ? 'crit' : 'hit');
+    /* 손맛 표준(§5-7) — hitstop 은 한 대 맞을 때마다 걸린다(dt 를 낮춰 이
+       프레임의 물리·쿨다운이 같이 늦춰진다, update() 머리 참고). 흔들림은
+       이제 **모든 타격**에 걸린다(2px/80ms) — 급소·거함타(100 이상)는 그
+       위에 더 크게(8px/220ms·3.6px/180ms, 예전 그대로). */
+    run.hitstopT = Math.max(run.hitstopT || 0, e.boss ? HITSTOP_BOSS : (crit ? HITSTOP_CRIT : HITSTOP_NORMAL));
+    var shAmt = crit ? 8 : (dmg >= 100 ? 3.6 : 2);
+    var shSpan = crit ? 0.22 : (dmg >= 100 ? 0.18 : 0.08);
+    fx.push({ t: 'shake', x: e.x, y: e.y, life: shSpan, span: shSpan, amt: shAmt, big: crit });
+    if (crit) {
+      sfx('crit');
+    } else {
+      run.hitSeq = ((run.hitSeq || 0) + 1) % HIT_CUES.length;
+      sfx(HIT_CUES[run.hitSeq]);
+    }
     if (e.hp <= 0) { kill(e); }
   }
 
@@ -960,6 +980,13 @@
   function update(dt) {
     if (!run) { return; }
     dt = Math.min(dt, 0.05);
+    /* 손맛 표준(§5-7) — 타격 정지(hitstop). 한 대 맞은 순간 몇 프레임만 확
+       늦춘다(멈추지는 않는다 — dt=0 이면 몇몇 카운트다운이 얼어붙은 티가
+       난다). 실제 경과 시간(줄지 않은 dt)으로 hitstopT 를 줄이고, 이
+       프레임에 쓸 dt 만 낮춰 이동·물리·쿨다운이 같이 늦춰진다("화면
+       전체"가 아니라 판정 dt 만 — 사가블로 dungeon.js `update()`와 같은
+       요령). */
+    if (run.hitstopT > 0) { run.hitstopT -= dt; dt *= 0.15; }
     var p = run.player, stg = run.stage, i;
 
     /* 대화창을 연 채 자리를 뜨면 저절로 닫는다 — 닫는 것을 잊고 걸어가도 막혀 있지 않게 */

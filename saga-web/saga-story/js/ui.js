@@ -186,6 +186,11 @@
         if (SV3) { SV3.setQuality(b.getAttribute('data-level')); renderSheet(); }
         return;
       }
+      if (act === 'shake-set') {
+        var SV1 = global.DG.sideView;
+        if (SV1) { SV1.setShakeLevel(parseInt(b.getAttribute('data-level'), 10) || 0); renderSheet(); }
+        return;
+      }
       if (act === 's-enter') {
         global.DG.side.enter(b.getAttribute('data-stage'));
       } else if (act === 's-leave') {
@@ -334,8 +339,9 @@
    *  방향은 여전히 없다(이 판의 조작은 방향키 넷뿐이라 "감도"가 걸릴 자리가
    *  없다) */
   var QUALITY_LABEL = { auto: '자동', low: '낮음', medium: '보통', high: '높음' };
+  var SHAKE_LABEL = ['없음', '약', '보통'];
   function viewSettings() {
-    var SF = global.DG.sfx, SV3 = global.DG.sideView3d, BG = global.DG.bgm;
+    var SF = global.DG.sfx, SV3 = global.DG.sideView3d, SV = global.DG.sideView, BG = global.DG.bgm;
     if (!SF) { return '<div class="hint">소리 모듈을 찾을 수 없습니다</div>'; }
     var on = SF.enabled(), vol = Math.round(SF.volume() * 100);
     var vib = SF.vibrateEnabled();
@@ -367,6 +373,19 @@
       gq += '</div><div class="hint">낮음일수록 그림자를 끄고 화면 해상도를 줄여 가벼워집니다. ' +
         '자동은 실제 프레임 속도를 보고 스스로 오갑니다.</div>';
     }
+    /* 손맛 표준(§5-7) — 화면 흔들림 세기. 멀미 배려용이라 감각(그래픽)
+       설정이지 소리 설정이 아니다 — gq 와 같은 버튼 3개짜리 자리에 둔다. */
+    var shakeRow = '';
+    if (SV) {
+      var slv = SV.shakeLevel();
+      shakeRow = '<div class="key-row"><b>화면 흔들림</b><span class="key-cur">' +
+        SHAKE_LABEL[slv] + '</span></div><div class="key-row" style="gap:6px">';
+      for (var sl = 0; sl < SHAKE_LABEL.length; sl++) {
+        shakeRow += '<button class="btn tiny' + (slv === sl ? ' primary' : ' ghost') +
+          '" data-act="shake-set" data-level="' + sl + '">' + SHAKE_LABEL[sl] + '</button>';
+      }
+      shakeRow += '</div>';
+    }
     return '<div class="hint">이동 키는 ⌨️ 키설정에 있습니다.</div>' +
       '<div class="key-row"><b>효과음</b>' +
         '<button data-act="snd-toggle">' + (on ? '켜짐' : '꺼짐') + '</button></div>' +
@@ -374,7 +393,7 @@
         '<input type="range" min="0" max="100" value="' + vol + '" data-act="snd-vol"' +
         (on ? '' : ' disabled') + '>' +
         '<span class="key-cur">' + vol + '%</span></div>' +
-      bgmRow + vibRow + gq;
+      bgmRow + vibRow + gq + shakeRow;
   }
 
   /** 2026-09-09 — 이동 키 다시 지정. WASD·방향키는 코드에 그대로 박혀 있고

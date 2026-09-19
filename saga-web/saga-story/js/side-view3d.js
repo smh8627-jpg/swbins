@@ -726,7 +726,8 @@
    *  아직 도형이면 흰빛으로 번쩍이는 예전 방식 그대로다 */
   function stepActor(shell, animName) {
     if (shell.userData.flashMats) {
-      var k = (shell.userData.hurtNow || 0) > 0 ? Math.min(1, shell.userData.hurtNow * 3) : 0;
+      var hn = shell.userData.hurtNow || 0;
+      var k = hn > 0 ? Math.min(1, hn / (shell.userData.hurtSpan || (1 / 3))) : 0;
       var fm = shell.userData.flashMats, j;
       for (j = 0; j < fm.length; j++) { fm[j].emissive.setRGB(k * 0.9, k * 0.15, k * 0.1); }
     }
@@ -754,11 +755,21 @@
   }
 
   var TINT_WHITE = null;   // tintHurt() 프레임당(배우 수만큼) new Color 하지 않게 재사용
-  function tintHurt(g, hurt) {
+  /**
+   * 손맛 표준(§5-7) — `span` 은 이 플래시가 통째로 가시는 시간(초)이다.
+   * `hurt`(남은 값)를 `span`으로 나눠 갓 맞은 순간(hurt===span)엔 항상
+   * 흰빛이 꽉 차고, 0으로 갈수록 원래 색으로 돌아온다. 호출하는 쪽이 `hurt`
+   * 초기값과 이 `span`을 같게 맞춰야 한다(안 맞으면 처음부터 옅거나, 다
+   * 꺼지기 전에 흰빛에 눌러앉는다). `span` 을 안 주면(옛 호출부, 플레이어
+   * 피격처럼 §5-7 밖의 자리) 예전 계수(`hurt*3`, 대략 0.33 로 정규화)로
+   * 그대로 간다 — 그쪽 화면은 이번 손질로 안 바뀐다.
+   */
+  function tintHurt(g, hurt, span) {
     g.userData.hurtNow = hurt;
+    g.userData.hurtSpan = span || (1 / 3);
     if (!g.userData.body) { return; }   // GLB 로 갈렸으면 stepActor 의 flashMats 몫이다
     if (!TINT_WHITE) { TINT_WHITE = new (three()).Color(0xffffff); }
-    var k = hurt > 0 ? Math.min(1, hurt * 3) : 0;
+    var k = hurt > 0 ? Math.min(1, hurt / g.userData.hurtSpan) : 0;
     g.userData.body.material.color.copy(g.userData.baseColor).lerp(TINT_WHITE, k);
     g.userData.head.material.color.copy(g.userData.baseColor).lerp(TINT_WHITE, k);
   }
@@ -849,7 +860,7 @@
       }
       em.visible = true;
       place(em, e.x + e.w / 2, stg.floor - (e.y + e.h), e.dir);
-      tintHurt(em, e.hurt || 0);
+      tintHurt(em, e.hurt || 0, 0.08);   // §5-7 표준 80ms(side.js HURT_FLASH 와 같은 값)
       stepActor(em, (e.hurt || 0) > 0 ? 'hit' : ((e.atkAnim || 0) > 0 ? 'attack' : 'walk'));
       if (!em.userData.mixer) {
         var eb = Math.abs(Math.sin((Date.now() + i * 130) / 110)) * 2.4;

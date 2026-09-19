@@ -377,16 +377,39 @@
     drawFadeOverlay();
   }
 
-  /** 지금 얼마나 흔들려야 하나 — fx 의 남은 목숨에서 곧바로 낸다(따로 상태를 안 둔다) */
+  /* 손맛 표준(§5-7) — 흔들림 세기 설정(0 없음·1 약·2 보통). 기본은 2(보통) —
+     이 손잡이가 생기기 전부터 있던 세기를 그대로 유지해, 새로 값을 만지지
+     않은 사람은 화면이 안 달라진다. side.js 는 'shake' 한 줄만 남기고
+     세기·위상·이 설정은 전부 화면 층(여기)이 정한다. */
+  function shakeSettings() {
+    var s = core.save.settings || (core.save.settings = {});
+    if (typeof s.shakeLevel !== 'number') { s.shakeLevel = 2; }
+    return s;
+  }
+  function shakeLevel() { return shakeSettings().shakeLevel; }
+  function setShakeLevel(v) {
+    var s = shakeSettings();
+    s.shakeLevel = Math.max(0, Math.min(2, v | 0));
+    core.persist();
+    return s.shakeLevel;
+  }
+  function shakeMul() { var lv = shakeLevel(); return lv === 0 ? 0 : (lv === 1 ? 0.5 : 1); }
+
+  /** 지금 얼마나 흔들려야 하나 — fx 의 남은 목숨에서 곧바로 낸다(따로 상태를 안 둔다).
+   *  §5-7(2026-09-19) — side.js 가 `amt`·`span` 을 실어 오면 그 값을 그대로 쓰고
+   *  (모든 타격에 2px/80ms, 급소·거함타는 더 크게), 안 실려 있으면(보스킬·피격
+   *  같은 옛 호출) `big` 이진값으로 옛 두 단계 그대로 돌아간다 — 그 호출부는
+   *  안 건드렸다. */
   function shakeOf(list) {
     var amp = 0, i;
     for (i = 0; i < list.length; i++) {
       var f = list[i];
       if (f.t !== 'shake') { continue; }
-      var span = f.big ? 0.22 : 0.18;
-      amp = Math.max(amp, (f.big ? 8 : 3.6) * Math.min(1, Math.max(0, f.life / span)));
+      var span = f.span || (f.big ? 0.22 : 0.18);
+      var mag = f.amt !== undefined ? f.amt : (f.big ? 8 : 3.6);
+      amp = Math.max(amp, mag * Math.min(1, Math.max(0, f.life / span)));
     }
-    return amp;
+    return amp * shakeMul();
   }
 
   /** 맞았을 때 화면 가장자리가 붉어진다 — 체력 막대를 안 봐도 안다 */
@@ -1042,6 +1065,7 @@
     _cam: function () { return camX; },
     /** 진단용 — **흔들림의 세기는 화면 층이 정한다**(side.js 는 'shake' 한 줄만 남긴다) */
     _shake: shakeOf,
+    shakeLevel: shakeLevel, setShakeLevel: setShakeLevel,
     /** 진단용 — 화면의 그 자리가 어느 조작인가 (폰에는 방향키가 없다) */
     _zone: function (x, y) { return readZone({ clientX: x, clientY: y }); },
     /** 진단·QA 전용 — 사람이 핀치·휠로 조절한 화면 확대 배율 */

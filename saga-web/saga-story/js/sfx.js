@@ -53,6 +53,14 @@
     swing:  { gap: 0.05, l: [{ v: 'noise', dur: 0.06, lp: 3200, lp2: 900, gain: 0.10 }] },
     hit:    { gap: 0.04, l: [{ v: 'noise', dur: 0.06, lp: 1800, lp2: 500, gain: 0.15 },
                              { v: 'tone', f: 640, f2: 300, dur: 0.06, wave: 'square', gain: 0.07 }] },
+    /* 손맛 표준(§5-7) — 'hit' 라운드로빈 짝 둘. 필터·박자는 그대로, 톤 층
+       주파수만 ±6% 밀어 연타가 다 같은 소리로 안 들리게 한다(사가블로
+       hit1/2/3 이 필터로 가른 것과 달리, 이 판은 PLAN 원문의 "피치 변주"
+       그대로 갔다). */
+    hit2:   { gap: 0.04, l: [{ v: 'noise', dur: 0.06, lp: 1800, lp2: 500, gain: 0.15 },
+                             { v: 'tone', f: 602, f2: 282, dur: 0.06, wave: 'square', gain: 0.07 }] },
+    hit3:   { gap: 0.04, l: [{ v: 'noise', dur: 0.06, lp: 1800, lp2: 500, gain: 0.15 },
+                             { v: 'tone', f: 678, f2: 318, dur: 0.06, wave: 'square', gain: 0.07 }] },
     /* 적이 사라질 때 — 원작의 그 짧은 '펑' */
     kill:   { gap: 0.05, l: [{ v: 'noise', dur: 0.14, lp: 2600, lp2: 300, gain: 0.14 },
                              { v: 'tone', f: 520, f2: 160, dur: 0.14, wave: 'triangle', gain: 0.10 }] },
