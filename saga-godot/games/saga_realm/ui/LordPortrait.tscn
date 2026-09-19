@@ -1,0 +1,59 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://games/saga_realm/ui/lord_portrait.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/characters_vroid/AvatarSample_A.glb" id="2"]
+[ext_resource type="Script" path="res://games/saga_go/player/anim_library_loader.gd" id="3"]
+
+[node name="LordPortrait" type="Control" groups=["lord_portrait"]]
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+offset_left = 40.0
+offset_top = 150.0
+offset_right = 260.0
+offset_bottom = 410.0
+script = ExtResource("1")
+
+[node name="Panel" type="Panel" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+modulate = Color(1, 1, 1, 0.85)
+
+[node name="Viewport" type="SubViewportContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="Viewport"]
+size = Vector2i(220, 260)
+
+[node name="Camera3D" type="Camera3D" parent="Viewport/SubViewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0.9)
+current = true
+fov = 30.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Viewport/SubViewport"]
+transform = Transform3D(0.866, -0.433, 0.25, 0, 0.5, 0.866, -0.5, -0.75, 0.433, 0, 2, 0)
+light_energy = 1.1
+
+[node name="Visual" parent="Viewport/SubViewport" instance=ExtResource("2")]
+## games/saga_go/player/Player.tscn과 같은 자리표시자(AvatarSample_A, 103-4).
+## 인물별 실제 얼굴 구분은 나중에(위 lord_portrait.gd 머리말 참고).
+transform = Transform3D(1.091, 0, 0, 0, 1.091, 0, 0, 0, 1.091, 0, 0, 0)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Viewport/SubViewport/Visual"]
+script = ExtResource("3")
+library_path = "res://assets/characters_vroid/anim/AvatarSample_A_lib.res"
+
+[node name="NameLabel" type="Label" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -32.0
+offset_bottom = -6.0
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+horizontal_alignment = 1
+text = "👑"

@@ -1,5 +1,6 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
+[ext_resource type="PackedScene" path="res://games/saga_realm/ui/LordPortrait.tscn" id="17"]
 [ext_resource type="Script" path="res://saga_core/ui/goal_board.gd" id="14"]
 [ext_resource type="Script" path="res://games/saga_realm/ui/realm_status_label.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_realm/ui/realm_order_button.gd" id="2"]
@@ -202,6 +203,8 @@ offset_top = -80.0
 offset_right = -40.0
 offset_bottom = -20.0
 script = ExtResource("4")
+
+[node name="LordPortrait" parent="." instance=ExtResource("17")]
 
 [node name="GoalBoard" type="Label" parent="."]
 anchor_left = 1.0

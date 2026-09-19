@@ -50,6 +50,7 @@ const RealmTraits := preload("res://games/saga_realm/data/realm_traits.gd")
 const RealmEvents := preload("res://games/saga_realm/data/realm_events.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const SessionCard := preload("res://saga_core/ui/session_card.gd")
+const LordPortrait := preload("res://games/saga_realm/ui/lord_portrait.gd")
 
 const SAVE_PATH := "user://save_realm.json"
 const SAVE_VERSION := 16  # 1(성 하나) → 2(성 여러 곳) → 3(officer_city) → 4(enemies) → 5(diplomacy) → 6(정복 성 편입) → 7(충성·계략) → 8(문답) → 9(이간·매수) → 10(인구 증감+재해: cities[].disaster/d_left) → 11(승진/관직: officer_growth) → 12(승패 판정: result) → 13(시나리오: scenario_id) → 14(특성·야망: officer_ambition/enemies_subverted, PLAN 101-2 REALM ③) → 15(이벤트 체인: active_events/events_done, PLAN 101-2 REALM ⑤) → 16(계승: lord_succession_enabled/current_lord_id/heir_id/_succession_shock_until, PLAN 101-2 REALM ⑥)
@@ -1082,10 +1083,12 @@ func _succeed_lord() -> void:
 	heir_id = ""  # 이번 지정은 소비됐다 — 다음 계승을 위해선 다시 지정해야 한다
 	var old_h = Characters.find(old_lord_id)
 	var new_h = Characters.find(new_lord)
+	var new_lord_name := String(new_h.name) if new_h != null else new_lord
 	Toast.show(self, "⚰️ %s 별세 — 👑 %s 즉위" % [
 		String(old_h.name) if old_h != null else old_lord_id,
-		String(new_h.name) if new_h != null else new_lord,
+		new_lord_name,
 	], 4.0)
+	LordPortrait.show_lord(self, new_lord_name, 4.0)
 
 
 const AI_MARCH_CHANCE := 0.20  # 재해석 — 아래 _run_enemy_ai() 머리말 참고
