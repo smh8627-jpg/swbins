@@ -920,9 +920,12 @@
         if (Math.sqrt(dx * dx + dy * dy) < r) { strike(e, mul); }
       }
     } else if (eff === 'bolt' || eff === 'arrow') {
+      /* 관통 표시선(§5-7 남은 조각) — ox 는 쏜 자리에 고정, 화면 층이 여기부터
+         지금까지를 선으로 그어 "뚫고 지나간다"를 보여 준다(bolt 만, 화살은 점 하나로 족하다) */
       run.shots.push({ x: p.x + P_W / 2, y: p.y + P_H * 0.4, dir: p.facing,
                        spd: eff === 'arrow' ? 640 : 520, life: 1.2,
-                       mul: mul, pierce: eff === 'bolt', kind: sk.key, hit: {} });
+                       mul: mul, pierce: eff === 'bolt', kind: sk.key, hit: {},
+                       ox: p.x + P_W / 2 });
     } else if (eff === 'volley') {
       /* 여러 발 — 높이를 조금씩 달리해 한 줄로 겹치지 않게 한다 */
       var n = sk.shots || 2;
@@ -939,6 +942,14 @@
       if (sk.invuln) { p.invuln = Math.max(p.invuln, sk.invuln); }
       var lo = Math.min(from, p.x) - 10, hi = Math.max(from, p.x) + P_W + 10;
       fx.push({ t: 'dash', x: lo, y: p.y, w: hi - lo, h: P_H, life: 0.22 });
+      /* 돌진 잔상(§5-7 남은 조각) — 밀고 나간 순간은 한 프레임뿐이라(순간이동에
+         가깝다) 지나간 자리에 몸 그림자 여럿을 심어 "몸이 지나갔다"는 궤적을 남긴다.
+         빛줄기 하나(위 'dash')만으로는 몸의 형체가 안 남아 허전했다 */
+      var ghostN = 4;
+      for (var gk = 1; gk <= ghostN; gk++) {
+        fx.push({ t: 'ghost', x: from + P_W / 2 + (p.x - from) * (gk / (ghostN + 1)),
+                  y: p.y + P_H, life: 0.16 - gk * 0.01 });
+      }
       for (j = 0; j < run.enemies.length; j++) {
         e = run.enemies[j];
         if (e.x + e.w > lo && e.x < hi && Math.abs((e.y + e.h) - (p.y + P_H)) < 60) {
@@ -951,7 +962,16 @@
       var band = { x: rx, y: p.y - 220, w: 340 + P_W, h: 300 };
       fx.push({ t: 'rain', x: band.x, y: band.y, w: band.w, h: band.h, life: 0.5 });
       for (j = 0; j < run.enemies.length; j++) {
-        if (overlap(band, run.enemies[j])) { strike(run.enemies[j], mul); }
+        e = run.enemies[j];
+        if (overlap(band, e)) {
+          strike(e, mul);
+          /* 착탄 다발(§5-7 남은 조각) — 화살비는 한 몸에도 여러 점이 동시에
+             꽂힌다. 겉을 씌우는 'rain' 하나만으로는 몸에 닿는 느낌이 없었다 */
+          for (var rk = 0; rk < 3; rk++) {
+            fx.push({ t: 'impact', x: e.x + Math.random() * e.w,
+                      y: e.y + Math.random() * e.h * 0.6, life: 0.22 + Math.random() * 0.1 });
+          }
+        }
       }
     } else if (eff === 'heal') {
       var pct = sk.heal ? (sk.heal[0] + sk.heal[1] * Math.max(0, lvOf(sk) - 1)) : 0.2;

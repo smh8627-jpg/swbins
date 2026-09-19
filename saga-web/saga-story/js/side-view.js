@@ -357,8 +357,22 @@
     /* 기탄 */
     for (i = 0; i < run.shots.length; i++) {
       var sh = run.shots[i];
+      var shx = sh.x - camX;
+      if (sh.pierce && sh.ox !== undefined) {
+        /* 관통 표시선(§5-7) — 화살(점 하나)과 달리, 꿰뚫는 것은 쏜 자리부터
+           지금까지가 선으로 남아 "뚫고 지나간다"가 눈에 보인다 */
+        var gTr = ctx.createLinearGradient(sh.ox - camX, sh.y, shx, sh.y);
+        gTr.addColorStop(0, 'rgba(150,210,255,0)');
+        gTr.addColorStop(1, 'rgba(150,210,255,0.45)');
+        ctx.strokeStyle = gTr;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(sh.ox - camX, sh.y);
+        ctx.lineTo(shx, sh.y);
+        ctx.stroke();
+      }
       ctx.beginPath();
-      ctx.arc(sh.x - camX, sh.y, 9, 0, Math.PI * 2);
+      ctx.arc(shx, sh.y, 9, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(150,210,255,0.9)';
       ctx.fill();
     }
@@ -1016,6 +1030,24 @@
         gd.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = gd;
         ctx.fillRect(x, f.y, f.w, f.h);
+      } else if (f.t === 'ghost') {
+        /* 돌진 잔상(§5-7) — 지나간 자리에 몸 그림자 여럿 */
+        ctx.globalAlpha = Math.min(0.4, Math.max(0, f.life) * 3);
+        ctx.fillStyle = 'rgba(210,230,255,0.9)';
+        ctx.fillRect(x - 20, f.y - 56, 40, 56);
+        ctx.globalAlpha = 1;
+      } else if (f.t === 'impact') {
+        /* 착탄 다발(§5-7) — 화살비가 몸에 꽂히는 작은 X 자국, 커지며 사라진다 */
+        var ik = 1 - Math.min(1, f.life / 0.3);
+        ctx.globalAlpha = Math.max(0, 1 - ik);
+        ctx.strokeStyle = 'rgba(220,235,255,0.95)';
+        ctx.lineWidth = 2;
+        var is = 5 + ik * 5;
+        ctx.beginPath();
+        ctx.moveTo(x - is, f.y - is); ctx.lineTo(x + is, f.y + is);
+        ctx.moveTo(x + is, f.y - is); ctx.lineTo(x - is, f.y + is);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       } else if (f.t === 'rain') {
         ctx.fillStyle = 'rgba(150,200,255,' + Math.min(0.22, f.life * 0.5) + ')';
         ctx.fillRect(x, f.y, f.w, f.h);
