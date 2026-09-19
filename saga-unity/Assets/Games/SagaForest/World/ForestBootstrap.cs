@@ -1,6 +1,7 @@
 using UnityEngine;
 using Saga.Forest.Audio;
 using Saga.Forest.Data;
+using Saga.Forest.UI;
 
 namespace Saga.Forest.World
 {
@@ -22,6 +23,44 @@ namespace Saga.Forest.World
             ForestSettingsState.ApplyToAllScalers();
             ForestSettingsState.ApplyGraphicsQuality();
             ForestAudio.PlayBgm(bgmClip);
+
+            // PLAN.md 101-2 5.3 "마을 번들" — 실시간 완성은 이벤트로,
+            // 로드 직후 "이미 완성돼 있던 것"은 이벤트 없이 상태를 직접
+            // 훑어 조용히 다시 세운다(ForestMuseumState.cs 클래스 주석 참고
+            // — Restore()가 이벤트를 안 쏘는 이유).
+            ForestMuseumState.BundleCompleted += OnBundleCompleted;
+            ForestMuseumState.AllBundlesCompleted += OnAllBundlesCompleted;
+            foreach (ForestMuseumState.Category c in System.Enum.GetValues(typeof(ForestMuseumState.Category)))
+            {
+                if (ForestMuseumState.IsBundleDone(c))
+                {
+                    ForestMuseumDecorator.SpawnBundleDecoration(c, ForestCollectSpot.PositionOf(c));
+                }
+            }
+            if (ForestMuseumState.AllBundlesDone)
+            {
+                ForestMuseumDecorator.SpawnFlag(Vector3.zero);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            ForestMuseumState.BundleCompleted -= OnBundleCompleted;
+            ForestMuseumState.AllBundlesCompleted -= OnAllBundlesCompleted;
+        }
+
+        private void OnBundleCompleted(ForestMuseumState.Category category)
+        {
+            ForestMuseumDecorator.SpawnBundleDecoration(category, ForestCollectSpot.PositionOf(category));
+            DialogueLabel.Instance?.Show(
+                ForestLocalization.T("museum.bundle_done_toast", "🎉 도감 한 갈래를 다 채웠다 — 마을에 새 시설이 생겼다!"), 4f);
+        }
+
+        private void OnAllBundlesCompleted()
+        {
+            ForestMuseumDecorator.SpawnFlag(Vector3.zero);
+            DialogueLabel.Instance?.Show(
+                ForestLocalization.T("museum.all_done_toast", "🚩 네 갈래를 모두 채웠다 — 마을 어귀에 깃발이 섰다!"), 4f);
         }
     }
 }

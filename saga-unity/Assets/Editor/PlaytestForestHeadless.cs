@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using Saga.Core;
 using Saga.Forest.Data;
 using Saga.Forest.UI;
+using Saga.Forest.World;
 
 namespace Saga.EditorTools
 {
@@ -84,6 +85,7 @@ namespace Saga.EditorTools
                 CheckSettingsPanel();
                 CheckActionButtonLocalization();
                 CheckGoalBoardAndSessionCard();
+                CheckMuseum();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -338,6 +340,106 @@ namespace Saga.EditorTools
             }
 
             Debug.Log("[PlaytestForestHeadless] goal board / session card OK - 3 lines filled, source auto-found, card shows and auto-closes");
+        }
+
+        /// <summary>PLAN.md 101-2 5.3 "마을 번들"(2026-09-20 추가) — 네
+        /// `ForestCollectSpot`이 실제로 존별로 하나씩 있는지, 걸어서 가까이
+        /// 가면(리플렉션으로 `Update()`를 직접 불러 쿨다운·거리 판정까지
+        /// 실제로 타는지) 처음 발견이 기록되고 같은 프레임 중복 호출은 안
+        /// 늘어나는지 확인한다. 나머지 항목은 `ForestMuseumState.Record()`를
+        /// 직접 불러 번들 완성·시설 스폰·전체 완성 깃발까지 빠르게 훑는다
+        /// (DUNGEON `CheckSigilState`처럼 순수 상태 API를 직접 두드리는 결).</summary>
+        private static void CheckMuseum()
+        {
+            var spots = Object.FindObjectsByType<ForestCollectSpot>(FindObjectsSortMode.None);
+            if (spots.Length != 4)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] ForestCollectSpot이 4개가 아님 — {spots.Length}");
+                _hadError = true;
+                return;
+            }
+
+            var categoryField = typeof(ForestCollectSpot).GetField("category", BindingFlags.NonPublic | BindingFlags.Instance);
+            ForestCollectSpot insectSpot = null;
+            foreach (var s in spots)
+            {
+                if ((ForestMuseumState.Category)categoryField.GetValue(s) == ForestMuseumState.Category.Insect) insectSpot = s;
+            }
+            if (insectSpot == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 곤충(Insect) 채집 자리를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var playerGo = GameObject.FindWithTag("Player");
+            if (playerGo == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 마을 번들 검증용 player를 못 찾음");
+                _hadError = true;
+                return;
+            }
+            playerGo.transform.position = insectSpot.transform.position;
+
+            var updateMethod = typeof(ForestCollectSpot).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            int before = ForestMuseumState.DiscoveredCountOf(ForestMuseumState.Category.Insect);
+            updateMethod.Invoke(insectSpot, null);
+            int afterFirst = ForestMuseumState.DiscoveredCountOf(ForestMuseumState.Category.Insect);
+            updateMethod.Invoke(insectSpot, null); // 같은 프레임 — 쿨다운에 걸려 늘면 안 됨.
+            int afterSecond = ForestMuseumState.DiscoveredCountOf(ForestMuseumState.Category.Insect);
+
+            if (afterFirst != before + 1 || afterSecond != afterFirst)
+            {
+                Debug.LogError($"[PlaytestForestHeadless] 채집 자리 발견 카운트가 이상함 — before={before} afterFirst={afterFirst}(기대 {before + 1}) afterSecond={afterSecond}(기대 {afterFirst}, 쿨다운)");
+                _hadError = true;
+                return;
+            }
+
+            // 나머지는 상태 API로 빠르게 채워 번들 완성·시설 스폰·전체 완성을 확인한다.
+            foreach (var item in ForestMuseumState.ItemsOf(ForestMuseumState.Category.Insect))
+            {
+                ForestMuseumState.Record(ForestMuseumState.Category.Insect, item);
+            }
+            if (!ForestMuseumState.IsBundleDone(ForestMuseumState.Category.Insect) || GameObject.Find("Decor_FireflyJar") == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 곤충 번들 완성인데 IsBundleDone/시설(Decor_FireflyJar)이 없음");
+                _hadError = true;
+                return;
+            }
+
+            foreach (var item in ForestMuseumState.ItemsOf(ForestMuseumState.Category.Mushroom))
+            {
+                ForestMuseumState.Record(ForestMuseumState.Category.Mushroom, item);
+            }
+            foreach (var item in ForestMuseumState.ItemsOf(ForestMuseumState.Category.Fossil))
+            {
+                ForestMuseumState.Record(ForestMuseumState.Category.Fossil, item);
+            }
+            if (GameObject.Find("Decor_MushroomCap") == null || GameObject.Find("Decor_FossilStele") == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 버섯/화석 번들 시설이 안 생김");
+                _hadError = true;
+                return;
+            }
+            if (ForestMuseumState.AllBundlesDone)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 화초 갈래를 아직 안 채웠는데 AllBundlesDone==true");
+                _hadError = true;
+                return;
+            }
+
+            foreach (var item in ForestMuseumState.ItemsOf(ForestMuseumState.Category.Flower))
+            {
+                ForestMuseumState.Record(ForestMuseumState.Category.Flower, item);
+            }
+            if (!ForestMuseumState.AllBundlesDone || GameObject.Find("Decor_MuseumFlagPole") == null)
+            {
+                Debug.LogError("[PlaytestForestHeadless] 네 번째 번들 완성 후 AllBundlesDone/깃발(Decor_MuseumFlagPole)이 없음");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log("[PlaytestForestHeadless] museum bundle OK - 채집 자리 발견+쿨다운, 갈래별 시설 스폰, 네 갈래 완성 시 깃발까지 확인");
         }
     }
 }

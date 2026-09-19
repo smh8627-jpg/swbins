@@ -67,6 +67,7 @@ namespace Saga.EditorTools
             BuildHomeFurniture(houseGo);
             BuildFinishStall();
             BuildCreatures();
+            BuildMuseum();
             var (playerGo, playerTransform) = BuildPlayer();
             BuildCurveDriver(playerTransform);
             BuildPostProcessingVolume();
@@ -197,6 +198,33 @@ namespace Saga.EditorTools
         {
             var go = new GameObject("Creatures");
             go.AddComponent<ForestCreatureBuilder>();
+        }
+
+        /// <summary>PLAN.md 101-2 5.3 "마을 번들"(2026-09-20) — 네 바이옴 존
+        /// (`ForestBiomeData.Zones`) 중심에서 살짝 비껴 둔다(그 존의 창조물
+        /// den 둘과 안 겹치는 자리 — `ForestCreatureBuilder.cs` 좌표 주석
+        /// 참고, 존마다 den 두 개가 중심과 대각선 방향으로 퍼져 있어 반대
+        /// 대각선으로 6m씩 옮기면 셋 다 안 겹친다).</summary>
+        private static void BuildMuseum()
+        {
+            BuildCollectSpot(ForestMuseumState.Category.Insect, new Vector3(-19f, 0f, -14f),
+                new Color(0.55f, 0.85f, 0.95f)); // 어둑숲 — 반짝벌레류, 차가운 빛.
+            BuildCollectSpot(ForestMuseumState.Category.Mushroom, new Vector3(-19f, 0f, 14f),
+                new Color(0.75f, 0.35f, 0.6f)); // 버섯숲.
+            BuildCollectSpot(ForestMuseumState.Category.Fossil, new Vector3(19f, 0f, 14f),
+                new Color(0.55f, 0.5f, 0.42f)); // 바위 지대.
+            BuildCollectSpot(ForestMuseumState.Category.Flower, new Vector3(19f, 0f, -14f),
+                new Color(0.95f, 0.6f, 0.75f)); // 꽃밭.
+        }
+
+        private static void BuildCollectSpot(ForestMuseumState.Category category, Vector3 pos, Color color)
+        {
+            var go = new GameObject($"CollectSpot_{category}");
+            go.transform.position = pos;
+            var spot = go.AddComponent<ForestCollectSpot>();
+            SetPrivateField(spot, "category", category);
+            SetPrivateField(spot, "pool", ForestMuseumState.ItemsOf(category));
+            SetPrivateField(spot, "spotColor", color);
         }
 
         private static (GameObject playerGo, Transform playerTransform) BuildPlayer()

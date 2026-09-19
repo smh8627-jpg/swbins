@@ -12,7 +12,9 @@ namespace Saga.Forest.Data
     /// </summary>
     public static class ForestSaveState
     {
-        private const int SaveVersion = 4; // v4 — 가구 "자유 배치"로 재설계, homeAnchors(고정 여섯)를 homePlaceX/Y/Ids(격자 칸)로 교체.
+        private const int SaveVersion = 5; // v4 — 가구 "자유 배치"로 재설계, homeAnchors(고정 여섯)를 homePlaceX/Y/Ids(격자 칸)로 교체.
+        // v5 — PLAN.md 101-2 5.3 "마을 번들"(ForestMuseumState) 저장. v4 이하 세이브는
+        // museumDiscovered가 null로 채워지고 Restore(null)은 조용히 빈 도감으로 둔다.
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_forest.json");
 
@@ -31,6 +33,7 @@ namespace Saga.Forest.Data
             public string[] homeFloors;
             public string homeCurWall;
             public string homeCurFloor;
+            public string[] museumDiscovered;
         }
 
         /// <summary>Playtest*.cs 전용 — GameBootstrap이 매 Play 시작마다
@@ -70,6 +73,7 @@ namespace Saga.Forest.Data
                 homeFloors = finishes.Floors,
                 homeCurWall = finishes.CurWall,
                 homeCurFloor = finishes.CurFloor,
+                museumDiscovered = ForestMuseumState.Snapshot(),
             };
 
             try
@@ -116,6 +120,10 @@ namespace Saga.Forest.Data
                 // 잃는다 — REALM 세이브 버전 올림과 같은 관례(첫 슬라이스
                 // 스키마 변경엔 마이그레이션 경로를 안 만든다, PLAN.md 28장).
                 ForestHomeState.RestorePlacements(data.homePlaceX, data.homePlaceY, data.homePlaceIds);
+            }
+            if (data.version >= 5)
+            {
+                ForestMuseumState.Restore(data.museumDiscovered);
             }
 
             Transform player = FindPlayer();
