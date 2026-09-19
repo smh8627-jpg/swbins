@@ -1,7 +1,14 @@
 # PROJECT_STATE — saga-unity (상태만, ≤15KB, 덮어쓴다)
 
 **규칙**(`../../SAGA-DESIGN.md` §9 상태 파일): 여기엔 **지금 상태만** 적고 세션이 끝나면 **덮어쓴다**. 날짜별 경위·판단 이유·대화 인용은 `docs/HISTORY.md` 에 append 한다(2026-09-16 재편 전 본문 5,532줄은 그쪽 첫 절에 그대로 있다). 넘치면 `tools/precheck.sh` 가 막는다.
-마지막 갱신: 2026-09-19 (이어서 **REALM 51장 23차 확장**(상림→전충·영창→신독, 아래 절 참고) — 16~22차(국경 성 확장+계략 고르기 UI+두 사슬 계속 뻗기)는 2026-09-18~19. **PLAN 101-3 C·F·G — 다섯 판 전부 적용 완료**(이전 세션).
+마지막 갱신: 2026-09-19 (이어서 **이 PC에 Maria/Abe/Brute Mixamo 실자산을 처음 확보 + GUI 스크린샷 육안 확인**, 아래 "캐릭터 자산" 절 참고). REALM 51장 23차 확장(상림→전충·영창→신독) — 16~22차(국경 성 확장+계략 고르기 UI+두 사슬 계속 뻗기)는 2026-09-18~19. **PLAN 101-3 C·F·G — 다섯 판 전부 적용 완료**(이전 세션).
+
+## 캐릭터 자산 — 이 PC 기준 (2026-09-19)
+
+`Assets/Art/CharactersRealistic/`(`.gitignore`, 로컬 전용이라 **PC마다 새로 받아야 함**)가 이 PC엔 비어 있었다 — Maria(플레이어)·Abe(잡졸)·Brute(두목) 전부 mixamo.com에서 새로 받았다(로그인은 사람이, 검색·다운로드는 CDP 자동화 — 회사 관리 PC라 새 크롬 프로필을 띄우면 확장 프로그램·계정 인증이 끼어들어 `--disable-extensions --disable-sync`로 우회함). 셋 다 `SetupXxxCharacterImport.Setup()` 리깅 성공(에러 0). 씬 재빌드로 반영, GUI 스크린샷 육안 확인:
+- Maria(idle/run/attack) — 갑옷·헤어 색 정상 렌더링. **다만 파판(FF16)급과는 거리가 멀다** — 범용 Mixamo 스톡 캐릭터+맨 조명 테스트 씬 수준(66-2장 "현실적 기대치" 표가 이미 경고한 그대로).
+- Abe/Brute — Dungeon 씬에 배치 확인(Missing Prefab 없음), 실제 조명 아래 렌더링 확인(카메라 각도 문제로 전신 구도는 못 얻었으나 파편적으로 정상 표시 확인).
+- 새 GUI 확인 도구 `Assets/Editor/PlaytestDungeonEnemiesGui.cs` 추가(Boss/Escort 근처로 플레이어 텔레포트 — 아래 "함정" 절 두 건 참고).
 
 ## 완료 요약 — 다섯 게임 × 진척
 
@@ -29,18 +36,17 @@ DoF(105 Q-U5): PC 프로파일에만 `DepthOfField` 오버라이드 — `Session
 
 STORY 세부: `StoryJobState.JobChosen` 이벤트 신설(전직·세이브 로드 둘 다 배선) — `Restore()`도 이 이벤트를 쏘도록 고쳐야 했다(안 그러면 세션 중 상태 리셋 뒤 손의 무기가 새 Job과 안 맞고 그대로 남는 버그를 헤드리스 검증에서 실제로 잡았다). `StoryWeaponVisual`은 무기 메시 자산이 없어 DUNGEON/GO `WeaponVisual`과 같은 결로 primitive를 코드로 짓는다(검=자루+칼날, 활=활대+시위, 표창=회전한 사각판, 지팡이=샤프트+구슬).
 
-## REALM 51장 16~23차 — 국경 확장 (2026-09-18~19, 16차는 Q-U2 결정)
+## REALM 51장 16~23차 — 국경 확장 (2026-09-18~19, 완료·요약만)
 
-16차: 세 사슬 끝(회계·영안·오원)이 원작 LINKS상 진짜 막다른 끝임을 확인하고, **"성 하나당 목표 하나" 제약을 풀어** 국경 성 3곳에 둘째 목표를 열었다(장안→천수, 장사→남해=교주 관문, 강주→주제=남중 관문). `RealmEnemyCity.TargetsFrom(cityId)`(복수 반환)가 옛 `TargetFrom`을 대체, `RealmWarState.Attack()`/`Plot()`이 `enemyId` 선택 인자를 받음, `RealmCommandUi`에 공격·계략 둘 다 고르기 패널(목표 둘 이상일 때만 뜨고 하나면 옛날처럼 바로 실행) — 계략 고르기는 처음엔 "알려진 틈"으로 미뤘다가 같은 세션에 마저 닫음.
-17~23차: 두 사슬을 계속 뻗었다 — 교주: 남해→{창오→울림→교지→구진→일남→상림→전충, 합포}, 남중: 주제→건녕→{월수,장가,운남→영창→신독}. 대부분은 정상적인 한 단계 더 깊은 자식(train=부모+15)인데, 19·20·21차가 각각 건녕(장가)·남해(합포)·건녕(운남)에 형제 가지를 더해 **건녕은 이제 목표가 셋**(형제 가지가 셋으로 늘어난 첫 사례) — `TargetsFrom`/고르기 패널이 목표 개수와 무관하게 계속 잘 동작한다. 22~23차(일남→상림→전충, 운남→영창→신독)는 다시 정상적인 한 단계 더 깊은 자식으로 돌아갔다(형제 가지 아님) — 전충·신독 둘 다 landmark 이자 향후 여러 갈래로 더 뻗는 허브라 17차 건녕을 고른 것과 같은 이유로 골랐다. 새 목표를 추가할 때마다 그 도시를 출진지로 쓰는 기존 `AttackChainStep`은 `enemyId`를 명시로 바꿔야 한다(안 그러면 어느 목표인지 불명확) — 매 확장 라운드마다 반복 확인된 패턴. 월수는 잎사귀(더 이상 이웃 없음)라 그 갈래는 끝. 남은 후보: 상림의 다른 이웃 노용, 전충→비경/서권/구속 중 하나, 신독→건타라/대하/목건타/사이 중 하나.
-- **실제로 걸린 함정(17차, 18차부터 해소)**: `RealmEnemyCity.cs`에만 새 성을 추가하고 `RealmCityData.cs`(플레이 가능 성 정의)를 빠뜨리면 `RealmCityState.AbsorbCity()`가 **에러 없이 조용히 return**한다(함락 자체는 `Ok=true`로 성공해 버림). 헤드리스 검증이 `ActiveCityIds.Contains()`로 편입 여부를 따로 확인하는 덕에 잡혔다 — **새 REALM 성은 항상 두 파일 다 같이 고칠 것**.
-- **헤드리스 실행은 `-executeMethod`만 쓰고 `-quit`을 같이 주지 않는다**: `PlaytestRealmSlice.Run()`은 `EditorApplication.isPlaying = true`만 걸고 바로 리턴하는데, `-quit`을 같이 주면 Play 모드 Tick 루프가 끝나기 전에 에디터가 먼저 종료돼 로그가 전혀 안 남는다(22차 검증 때 처음 이 방식으로 직접 돌려 확인, 지금까지는 사람이 메뉴로 눌렀을 가능성). `Run()`이 끝나면 `EditorApplication.Exit()`를 스스로 불러 프로세스가 종료된다.
+"성 하나당 목표 하나" 제약을 풀고(`RealmEnemyCity.TargetsFrom()` 복수 반환, `RealmCommandUi` 공격·계략 고르기 패널) 교주·남중 두 사슬을 남해/주제에서 각각 전충·신독까지 뻗었다(적국 41·성 44, 위 표 참고). 경위는 `docs/HISTORY.md` 2026-09-18~19 grep. 남은 후보: 상림 이웃 노용, 전충→비경/서권/구속, 신독→건타라/대하/목건타/사이 중 각 한 갈래.
 
 ## 다음 작업 (우선순위, 상세는 PLAN 해당 장 · 경위는 HISTORY 날짜 grep)
 
 1. **실기 GUI 확인 몰아서** — "실기 확인 대기" 전부(아래 목록, STORY·REALM 신규 항목 포함, REALM엔 계략 고르기 패널·17~23차 신규 성 열여섯도 포함). 사용자 몫.
+   - **다른 PC로 이어받으면** `CharactersRealistic/`가 비어 있음 — mixamo.com에서 새로 받을 것(로그인은 사람 몫). 목록은 `SetupXxxCharacterImport.cs`의 `AnimMap`/`BodyFileName`.
+   - Dungeon Abe/Brute **전신 구도 스크린샷은 아직 못 얻음**(카메라 클로즈업, 파편만 확인) — `PlaytestDungeonEnemiesGui.cs`의 `TeleportPos`/줌 더 조정하면 재시도 가능.
 2. **PLAN 104-1 ⑤·102-4** — `Assets/Art/*_candidates` 정리, 105 Q1 결정 대기.
-3. **REALM 교주·남중 더 뻗기(24차 후보)** — 전충→비경/서권/구속 중 하나, 신독→건타라/대하/목건타/사이 중 하나(각 한 갈래씩). 사용자와 방향 상의(또는 그대로 "계속 확장" 기조 유지, 지금까지처럼 물으면 이어감).
+3. **REALM 24차 후보** — 위 "51장 16~23차" 절의 "남은 후보" 그대로(전충·신독·상림 갈래). 사용자와 방향 상의.
 4. **PLAN 105 열린 질문(Q1·Q3′·Q4·Q-U3·Q-U4)** — 전부 사용자 결정 대기(Q-U2는 2026-09-18 해결·삭제됨).
 
 REALM 계략(Plot) 고르기 UI(2026-09-18)·51장 17~23차 확장(2026-09-18~19) 모두 완료됐다 — 다음 세션이 새로 이어받을 잔여 작업 없음.
@@ -61,6 +67,8 @@ REALM 계략(Plot) 고르기 UI(2026-09-18)·51장 17~23차 확장(2026-09-18~19
 - 에디터 빌드 스크립트가 채우는 참조 필드는 반드시 `[SerializeField]`.
 - **`animator?.SetTrigger(...)` 쓰지 말 것** — `if (animator != null)`로 명시.
 - **REALM 새 성은 `RealmEnemyCity.cs`·`RealmCityData.cs` 둘 다 고칠 것** — `RealmCityState.AbsorbCity()`가 후자에 정의가 없으면 조용히 실패한다(에러 없음, 위 51장 17차 절 참고).
+- **DUNGEON `DungeonFloorRunner`는 문 표지 구역 근접 시 `RepositionPlayerToEntry()`로 위치를 되돌린다** — 확인용 수동 텔레포트가 이 반경에 걸리면 조용히 스폰으로 복귀한다(2026-09-19 실제로 겪음). 확인 동안만 `floorRunner.enabled = false`.
+- **DUNGEON `CameraRig` 기본값(zoom=6·pitch=55°)은 `DungeonRoomBuilder.WallHeight`(4m) 천장 위로 뜬다** — 벽지 텍스처만 꽉 찬 클로즈업이 찍힌다(2026-09-19 실제로 겪음). 확인용은 리플렉션으로 `_zoom`≤3·`_pitchDeg`≤30.
 
 ## 테스트 상태 (2026-09-19 기준, 전부 배치 모드, 이 PC Unity 6000.3.24f1로 실제 실행)
 
@@ -68,12 +76,13 @@ REALM 계략(Plot) 고르기 UI(2026-09-18)·51장 17~23차 확장(2026-09-18~19
 |---|---|
 | `-batchmode -nographics -quit` 컴파일(`tools/unity-batch.sh` 경유) | exit 0, 오류 0(STORY 101-3 F·G 확장 뒤 재확인) |
 | `PlaytestHeadless`(GO) | 이전 세션(2026-09-17) 기준 3연속 OK, 이번 세션 미변경 |
-| `PlaytestDungeonHeadless` | 이전 세션 기준 5연속 OK, 이번 세션 미변경 |
+| `PlaytestDungeonHeadless` | **재검증 OK**(2026-09-19, Abe/Brute 실자산으로 씬 재빌드 뒤 — 10 frames, no errors) |
+| `PlaytestDungeonFloorProgression` | **재검증 OK**(2026-09-19, 같은 이유 — 12 room advances, floor 4, no errors, 런타임 스폰 경로 포함) |
 | `PlaytestForestHeadless` | 이전 세션 기준 3연속 OK, 이번 세션 미변경 |
 | `PlaytestOverworldMap`(GO) | 이전 세션 기준 1회 재검증 OK, 이번 세션 미변경 |
 | `PlaytestStorySlice` | **3연속 OK**(2026-09-18, 101-3 F·G·장비가시화 확장 뒤 — 죽음 표식/지형 데칼/레벨업 줌/직업별 무기 전부 새 검증 포함) |
 | `PlaytestRealmSlice` | **3연속 OK**(2026-09-19, 51장 16~23차 확장 + 계략 고르기 UI 뒤 — 장안·건녕(목표 3)·남해 다중 목표 공격·계략 고르기 패널·잘못된 목표 거절·16개 신규 성 함락 전부 새 검증 포함) |
-| GUI 실제 Play 확인 | GO 라이팅 톤·`TestCharacterRealistic`(Maria idle/run/attack) 만. 나머지 미확인(STORY 신규 101-3 F·G도 포함) |
+| GUI 실제 Play 확인 | GO 라이팅 톤·`TestCharacterRealistic`(Maria idle/run/attack)·**Dungeon Abe/Brute(2026-09-19, `PlaytestDungeonEnemiesGui.cs` 신규, 파편적 확인)**. 나머지 미확인(STORY 신규 101-3 F·G도 포함) |
 
 ## 실기 확인 대기 (항목명만 — 경위는 HISTORY grep)
 

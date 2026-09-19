@@ -7464,3 +7464,29 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 (적국 39→41, 성 42→44)·23차 절 갱신·"다음 작업"(24차 후보: 상림→노용,
 전충→비경/서권/구속 중 하나, 신독→건타라/대하/목건타/사이 중 하나)·
 테스트 상태·실기 확인 대기 전부 갱신.
+
+## 캐릭터 자산(Maria/Abe/Brute) 이 PC에 처음 확보 + GUI 육안 확인 (2026-09-19, 새 세션 "사가유니티 그래픽 파판급이냐" 질문에서 이어짐)
+
+사용자가 "그래픽이 파판(FF16) 정도 나왔어?"라고 물어 PLAN 66-2장 문서만 보고 답했더니 "확인해줘"로 실기 확인을 요청. 이 PC의 `Assets/Art/CharactersRealistic/`가 비어 있어(Mixamo 산출물은 `.gitignore`, PC마다 로컬 재획득 필요) `PlaytestCharacterRealisticGui.cs`를 돌려도 Missing Prefab만 뜸(캐릭터 자체가 없음) — 사용자가 "직접해줘"로 자동화를 요청해 mixamo.com 다운로드 자동화를 시도했다.
+
+**브라우저 자동화 시행착오**: 최신 크롬은 기본 프로필 경로로 원격 디버깅을 거부해 별도 `--user-data-dir` 프로필이 필요했다. 첫 시도는 회사 관리 정책으로 새 프로필이 구글 계정 로그인/Claude 확장 OAuth+캡차/IDM/otp.ee 같은 무관한 인증 화면을 자동으로 띄워 즉시 중단(계정 인증 영역은 건드리지 않음). `--disable-extensions --disable-sync --no-first-run` 플래그로 그 소음을 다 끄니 mixamo.com 탭만 깨끗하게 뜸 — 로그인은 사용자가 직접 하고, 이후 검색·다운로드는 Node(v24 내장 `WebSocket`)로 짠 얇은 CDP 클라이언트(`cdp_eval.js`/`cdp_cmd.js`/`mixamo_download_anim.js`, 세션 스크래치패드)로 캐릭터 카드 클릭·Format/Skin `<select>` 값 설정·Download 버튼 클릭을 자동화했다. 완료된 다운로드는 브라우저 기본 Downloads 폴더에 떨어져(`Page.setDownloadBehavior`가 이 크롬 버전에서 안 먹음) 매번 `mv`로 프로젝트 폴더에 옮겨야 했다.
+
+받은 것 — 전부 FBX for Unity:
+- **Maria**("Maria W/Prop J J Ong") 몸 + 8클립(idle/walk/run/attack/hit/dodge/death/interaction, `SetupMixamoCharacterImport.cs` 레시피 그대로)
+- **Abe**(검색 "abe") 몸(Mixamo 내부명 `Ch39_nonPBR.fbx`→`Abe.fbx`로 리네임) + 5클립(Idle/Walking/Punching/"Hit Reaction"→`HitReaction`/Dying, 공백 제거 리네임 필요 — `SetupAbeCharacterImport.cs`가 공백 없는 파일명을 기대함)
+- **Brute**(검색 "brute") — 캐릭터를 바꾸면 직전 선택한 애니메이션이 "sticky"하게 새 캐릭터에 씌워져(Dying on Brute) 캐릭터 페이지의 T-pose 다운로드 다이얼로그(Format+Pose만 있는 것)를 못 열었다. 우회: "Idle" 애니메이션을 **With Skin**으로 받아 몸(`Brute.fbx`) 대신 쓰고, 같은 "Idle"을 다시 **Without Skin**으로 받아 클립으로 씀(Humanoid Avatar 생성은 바인드 포즈만 있으면 되고 어떤 애니메이션 프레임이 같이 왔는지는 무관하다는 점을 이용) + 나머지 4클립(Walking/"Slash Advance"→`SlashAdvance`/"Hit Reaction"→`HitReaction`/Dying).
+
+세 캐릭터 전부 `SetupXxxCharacterImport.Setup()` 배치 실행 — 리깅 에러 0, `AbeAnimated.prefab`·`BruteAnimated.prefab` 저장 확인. `BuildTestCharacterRealisticScene.Build()`·`BuildTestDungeonScene.Build()`로 씬 재빌드(Maria 몸 FBX GUID가 이 PC에서 새로 생겨 기존 커밋된 씬의 Missing Prefab 참조를 씬 재생성으로 해소). `BuildMariaSkinSplit.Build()`도 재실행.
+
+**GUI 스크린샷 확인**(`PlaytestCharacterRealisticGui.cs`, 이전 세션이 만든 도구 재사용 — `ShotDir`가 예전 PC 사용자 계정 `C:/Users/Windows/...`로 박혀 있어 이 PC 경로로 고침):
+- 1차는 셰이더 컴파일 미완료로 시안색 플랫 실루엣(66-2장 ⑩ 기록된 알려진 증상, 120프레임 대기로도 이 PC에선 부족) — 캐시 쌓인 뒤 재실행하니 갑옷·헤어·검 색까지 정상.
+- **결론: 파판(FF16)급과는 거리가 멀다** — 갑옷·헤어는 또렷하지만 딱 봐도 범용 Mixamo 스톡 캐릭터+맨 조명 테스트 씬 수준. PLAN 66-2장 "현실적 기대치" 표가 이미 정직하게 적어 둔 그대로(라이팅/후처리는 근접 가능, 캐릭터 얼굴·피부·헤어는 근접 어려움).
+
+**Dungeon Abe/Brute 확인용 신규 도구 `PlaytestDungeonEnemiesGui.cs`** — Boss(Brute, `BossSpawn=(9,0,0)`)·Escort(Abe, `BossEscortSpawns`) 근처로 플레이어를 텔레포트(카메라가 따라옴, 44장 Boss 교체 절과 같은 패턴). 두 가지 함정을 실제로 겪고 고침:
+1. `DungeonFloorRunner`가 문 표지 구역 근접을 감지해 방을 진행시키며 `RepositionPlayerToEntry()`로 위치를 스폰으로 되돌린다 — 텔레포트 직후 `floorRunner.enabled = false`로 꺼서 해결.
+2. `CameraRig` 기본값(zoom=6·pitch=55°)이 `DungeonRoomBuilder.WallHeight`(4m) 천장보다 높이 떠서(계산상 높이 ≈5.9m) 카메라가 천장 메시 안/위로 들어가 스크린샷이 돌벽 텍스처로 꽉 참 — 리플렉션으로 `_zoom=3f`·`_pitchDeg=30f`로 낮춰 해결(둘 다 각 필드의 `Min` 상수 그대로).
+어두운 던전 기본 조명 아래에서는 실루엣만 겨우 보여, 확인용으로만 조명(Directional intensity·ambient·임시 Point Light)을 크게 올려 재촬영 — Maria 중심에 주변 캐릭터 팔다리가 프레임 가장자리에 걸쳐 보이는 수준까지 확인(완전한 전신 구도는 카메라 각도상 아직 못 얻음, 다음 세션 과제로 `PROJECT_STATE.md`에 남김).
+
+**회귀 검증**: 씬을 Abe/Brute 실자산으로 재빌드했으니 `PlaytestDungeonHeadless`(10 frames, no errors)·`PlaytestDungeonFloorProgression`(12 room advances, floor 4, no errors — 런타임 스폰 경로 포함) 재실행, 둘 다 통과. `ProjectSettings/`·`Packages/` 부작용 없음(`tools/unity-batch.sh`로 매번 원복 확인).
+
+`docs/PROJECT_STATE.md` 갱신(캐릭터 자산 절 신설, REALM 16~23차 서술 절은 이미 완료된 내용이라 압축, 함정 2건 추가, 테스트 상태·다음 작업 갱신).
