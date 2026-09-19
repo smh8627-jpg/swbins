@@ -4166,21 +4166,32 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     t('에셋 — 인물이 서로 다른 몸을 나눠 입는다 (id 해시로 대부분의 몸이 실제로 쓰인다)', function () {
       var A = DG.asset3d;
+      /* heroPool()이 기본으로는 realistic:true 표시가 붙은 몸을 뽑기에서
+         뺀다(world3d.realisticPeople 손잡이를 켠 사람만 만난다) — 그래서
+         가만두면 이 풀은 늘 원래 여섯 벌(qrpg_*)뿐이고, 105명이 거기로만
+         쏠려도 "고장" 신호가 안 잡힌다. 이 항목이 실제로 재려는 건 "스물몇
+         벌짜리 실사 풀"에서 해시가 고르게 퍼지는가이니, 재는 동안만 손잡이를
+         켜 둔다(DG_NO_TUNE이라 메모리에만 남고 저장은 안 된다). */
+      C.setTune('world3d.realisticPeople', 1);
       A.restore();
       var seen = {}, i;
       for (i = 0; i < D.heroes.length; i++) {
         seen[A.urlOf('hero', D.heroes[i]).split('/').pop()] = 1;
       }
+      var chainOk = A.chain('hero', D.heroes[0]) === 'glb';
+      var poolLen = A.DEFAULTS.hero.length, seenLen = Object.keys(seen).length;
+      var seenStr = Object.keys(seen).sort().join(' · ');
+      C.setTune('world3d.realisticPeople', null);   // null = 손잡이를 아예 지운다(0을 넣으면 칸이 남아 tuneCount()가 흔들린다)
+      A.restore();
       /* 원래 이름이 "여섯 벌"이던 옛 테스트(풀이 작을 때는 70명이 골고루 퍼져
          전부 다 걸렸다) — 2026-09-05 실사 인물을 스물여섯 벌까지 늘리고 나니
          70명/26벌 확률상 한둘은 안 걸려도(기대 미사용 개수 ≈ 1.8개) 정상이다
-         (직접 측정: 25/26 걸림). 그래서 **완전 커버리지**가 아니라 "대부분
-         걸린다"(풀 크기 - 5 이상, 우연이 아니라 실제로 골고루 퍼진다는 뜻 —
-         해시가 고장나 하나로 뭉치면 이 문턱에 걸린다)로 완화했다 */
-      return Object.keys(seen).length >= A.DEFAULTS.hero.length - 5 &&
-        A.chain('hero', D.heroes[0]) === 'glb' &&
-        (Object.keys(seen).length + '/' + A.DEFAULTS.hero.length + '벌 걸림 — ' +
-         Object.keys(seen).sort().join(' · '));
+         (직접 측정: 25/26 걸림, 그 뒤 풀이 27벌로 하나 더 늘어 지금은 26/27).
+         그래서 **완전 커버리지**가 아니라 "대부분 걸린다"(풀 크기 - 5 이상,
+         우연이 아니라 실제로 골고루 퍼진다는 뜻 — 해시가 고장나 하나로
+         뭉치면 이 문턱에 걸린다)로 완화했다 */
+      return seenLen >= poolLen - 5 && chainOk &&
+        (seenLen + '/' + poolLen + '벌 걸림 — ' + seenStr);
     });
 
     t('에셋 — 같은 사람은 늘 같은 몸을 입는다 (id 해시)', function () {
