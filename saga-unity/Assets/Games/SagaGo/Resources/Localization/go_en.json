@@ -52,6 +52,8 @@
     { "key": "encounter.victory_base", "value": "Defeated the {0} — it's joined your party! (Power {1})\n+{2} EXP · +{3} Gold" },
     { "key": "encounter.quest_done_suffix", "value": "\nQuest Complete — the Village Elder rewards you (+{0} EXP)" },
     { "key": "encounter.levelup_suffix", "value": " — Level Up! ({0} → {1})" },
+    { "key": "perk.title", "value": "Level Up! Pick a trait" },
+    { "key": "perk.reject", "value": "Decline — +10 Gold" },
     { "key": "encounter.loot_equipped", "value": "\nFound {0} — equipped it immediately." },
     { "key": "encounter.loot_plain", "value": "\nFound {0}." },
     { "key": "encounter.retreat_clean", "value": "Retreated." },

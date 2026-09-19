@@ -126,6 +126,7 @@ namespace Saga.EditorTools
                 // 수 있어, 그 뒤에 이 체크가 돌면 배치 모드 프레임 시간
                 // 편차로 두 레벨업 컷이 겹쳐 간헐적으로 실패할 수 있다.
                 CheckLevelUpCut();
+                CheckPerkChoice();
                 CheckBanditLootMarker();
                 CheckWeaponVisual();
                 // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
@@ -554,6 +555,108 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log($"[PlaytestHeadless] level-up cut OK - 레벨업 직후 zoom {zoomBefore:F2}→{zoomAfter:F2}");
+        }
+
+        /// <summary>PLAN.md 101-2 ⑦ "승급 3택"(2026-09-19 추가) — 직전
+        /// <see cref="CheckLevelUpCut"/>의 강제 레벨업이 GameBootstrap 배선을
+        /// 타고 실제로 카드를 띄웠는지부터 본다(STORY `StoryJobChoiceUi`
+        /// 검증과 같은 결 — 위젯 자체와 게임 상태를 나눠 본다). 그 다음
+        /// 버튼 클릭을 흉내 내 하나를 고르고(배율만 바뀌고 기초 능력치는
+        /// 그대로인지), 새로 하나 더 굴려 거절 경로(골드 +10)까지 확인한다.
+        /// 마지막으로 RollChoice()를 여러 번 굴려 매번 축 셋이 다 다른지 본다.</summary>
+        private static void CheckPerkChoice()
+        {
+            var ui = Object.FindFirstObjectByType<PerkChoiceUi>();
+            if (ui == null)
+            {
+                Debug.LogError("[PlaytestHeadless] 승급 3택 검증용 PerkChoiceUi를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            if (!ui.IsShowing)
+            {
+                Debug.LogError("[PlaytestHeadless] 승급 3택 — 레벨업 후에도 카드가 안 뜸(GameBootstrap 배선 확인)");
+                _hadError = true;
+                return;
+            }
+
+            var uiType = typeof(PerkChoiceUi);
+            var offerField = uiType.GetField("_offer", BindingFlags.NonPublic | BindingFlags.Instance);
+            var offer = (PerkState.PerkDef[])offerField.GetValue(ui);
+            if (offer == null || offer.Length != 3)
+            {
+                Debug.LogError($"[PlaytestHeadless] 승급 3택 — 뜬 카드가 3장이 아님(count={offer?.Length ?? -1})");
+                _hadError = true;
+                return;
+            }
+
+            float atkStatBefore = PartyState.Atk;
+            float atkBonusBefore = PlayerStats.AtkBonus;
+            var chosenAxis = offer[0].Axis;
+            float multBefore = chosenAxis == PerkState.Axis.Atk ? PerkState.AtkMultiplier
+                : chosenAxis == PerkState.Axis.Def ? PerkState.DefMultiplier : PerkState.KiMultiplier;
+
+            var chooseIndex = uiType.GetMethod("ChooseIndex", BindingFlags.NonPublic | BindingFlags.Instance);
+            chooseIndex.Invoke(ui, new object[] { 0 }); // 버튼 onClick과 같은 경로.
+
+            if (ui.IsShowing)
+            {
+                Debug.LogError("[PlaytestHeadless] 승급 3택 — 카드 선택 후에도 패널이 안 닫힘");
+                _hadError = true;
+                return;
+            }
+            if (!PerkState.HasPerk(chosenAxis))
+            {
+                Debug.LogError($"[PlaytestHeadless] 승급 3택 — 고른 축({chosenAxis})에 특성이 안 앉음");
+                _hadError = true;
+                return;
+            }
+            float multAfter = chosenAxis == PerkState.Axis.Atk ? PerkState.AtkMultiplier
+                : chosenAxis == PerkState.Axis.Def ? PerkState.DefMultiplier : PerkState.KiMultiplier;
+            if (!(multAfter > multBefore))
+            {
+                Debug.LogError($"[PlaytestHeadless] 승급 3택 — 선택 후 배율이 안 오름({multBefore:F2}→{multAfter:F2})");
+                _hadError = true;
+                return;
+            }
+            if (!Mathf.Approximately(PartyState.Atk, atkStatBefore) || !Mathf.Approximately(PlayerStats.AtkBonus, atkBonusBefore))
+            {
+                Debug.LogError("[PlaytestHeadless] 승급 3택 — 특성 선택이 기초 능력치를 직접 바꿈(배율로만 적용돼야 함)");
+                _hadError = true;
+                return;
+            }
+
+            // 거절 경로 — 새 카드를 하나 더 굴려 직접 띄운 뒤 거절 버튼(private
+            // Reject())을 흉내 낸다. onRejected로 PerkState.Reject를 그대로
+            // 넘겨 실제 배선과 같은 경로(골드 +10)를 태운다.
+            int goldBefore = GoldState.Gold;
+            var rejectOffer = PerkState.RollChoice();
+            ui.Show(rejectOffer, PerkState.Choose, PerkState.Reject);
+            var rejectMethod = uiType.GetMethod("Reject", BindingFlags.NonPublic | BindingFlags.Instance);
+            rejectMethod.Invoke(ui, null);
+            if (ui.IsShowing || GoldState.Gold != goldBefore + PerkState.RejectGoldReward)
+            {
+                Debug.LogError($"[PlaytestHeadless] 승급 3택 — 거절 경로 실패(showing={ui.IsShowing}, gold {goldBefore}->{GoldState.Gold})");
+                _hadError = true;
+                return;
+            }
+
+            // 축 분포 — 여러 번 굴려도 매번 공/수/보 셋이 서로 다른지.
+            for (int i = 0; i < 50; i++)
+            {
+                var rolled = PerkState.RollChoice();
+                var axes = new System.Collections.Generic.HashSet<PerkState.Axis>();
+                foreach (var p in rolled) axes.Add(p.Axis);
+                if (rolled.Length != 3 || axes.Count != 3)
+                {
+                    Debug.LogError($"[PlaytestHeadless] 승급 3택 — {i}번째 굴림에서 축이 안 겹쳐야 하는데 겹침(distinct={axes.Count})");
+                    _hadError = true;
+                    return;
+                }
+            }
+
+            Debug.Log($"[PlaytestHeadless] perk choice OK - 레벨업 카드 표시·선택({chosenAxis} {multBefore:F2}→{multAfter:F2})·거절(+{PerkState.RejectGoldReward} gold)·축 분포 50회 확인");
         }
 
         /// <summary>PLAN.md 101-3 F "죽음"(2026-09-17 추가) — DUNGEON

@@ -30,6 +30,11 @@ namespace Saga.Go.Data
         public int FoeN;
         public bool Dodged;
 
+        // PLAN.md 101-2 ⑦ "승급 3택" 보(補) 축 — PerkState.KiMultiplier를 여기 앉힌다.
+        // 기본 1f면 웹판 duel.js 그대로. Create() 밖에서 호출부가 직접 세팅한다
+        // (Create 시그니처를 안 늘려 기존 호출부를 안 건드리려고).
+        public float KiMul = 1f;
+
         public float Dealt;
         public int Hits, Ults, DodgeTry, DodgeOk;
         public float Taken;
@@ -103,7 +108,7 @@ namespace Saga.Go.Data
 
             float dmg = Mathf.Round(MyAtk * QuickMul * (0.9f + Random.value * 0.2f));
             Cd = QuickCd;
-            Ki = Mathf.Min(KiMax, Ki + QuickKi);
+            Ki = Mathf.Min(KiMax, Ki + QuickKi * KiMul);
             Hp -= dmg;
             Dealt += dmg;
             Hits++;

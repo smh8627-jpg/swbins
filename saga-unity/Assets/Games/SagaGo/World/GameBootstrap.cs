@@ -2,6 +2,7 @@ using UnityEngine;
 using Saga.Go.Audio;
 using Saga.Go.Data;
 using Saga.Go.Player;
+using Saga.Go.UI;
 
 namespace Saga.Go.World
 {
@@ -22,6 +23,9 @@ namespace Saga.Go.World
         // 같은 결(캐싱 후 레벨업 이벤트에 카메라 컷 연결).
         private CameraRig _cameraRig;
 
+        // PLAN.md 101-2 ⑦ "승급 3택"(2026-09-19) — 같은 레벨업 이벤트에 얹는다.
+        private PerkChoiceUi _perkChoiceUi;
+
         private void Start()
         {
             SaveState.TryLoad();
@@ -31,6 +35,7 @@ namespace Saga.Go.World
             GoAudio.PlayBgm(bgmClip);
             PlayerStats.LeveledUp += OnLeveledUp;
             _cameraRig = Object.FindFirstObjectByType<CameraRig>();
+            _perkChoiceUi = Object.FindFirstObjectByType<PerkChoiceUi>();
         }
 
         private void OnDestroy()
@@ -41,6 +46,14 @@ namespace Saga.Go.World
         private void OnLeveledUp(int newLevel)
         {
             _cameraRig?.PlayLevelUpCut();
+
+            // 이미 카드가 떠 있으면(짧은 시간에 여러 번 레벨업) 새로 안 띄운다 —
+            // 먼저 뜬 카드의 선택이 끝난 뒤 다음 레벨업이 와야 다시 뜬다.
+            if (_perkChoiceUi != null && !_perkChoiceUi.IsShowing)
+            {
+                var offer = PerkState.RollChoice();
+                _perkChoiceUi.Show(offer, PerkState.Choose, PerkState.Reject);
+            }
         }
 
         /// <summary>

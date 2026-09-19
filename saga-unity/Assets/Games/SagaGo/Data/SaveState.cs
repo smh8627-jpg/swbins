@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 10;
+        private const int SaveVersion = 11;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -58,6 +58,9 @@ namespace Saga.Go.Data
             public bool[] dailyDone;
             public bool dailyStampGranted;
             public int dailyStamps;
+            // v11(PLAN.md 101-2 ⑦ 승급 3택, 2026-09-19) — v10까지는 없던 필드.
+            // 축(공/수/보) 순서로 최대 3개, PerkState.Restore가 id로 되찾는다.
+            public List<string> perkIds;
         }
 
         public static bool Save()
@@ -85,6 +88,7 @@ namespace Saga.Go.Data
                 dailyDone = DailyTaskState.SnapshotDone(),
                 dailyStampGranted = DailyTaskState.SnapshotDayStampGranted(),
                 dailyStamps = DailyTaskState.Stamps,
+                perkIds = PerkState.SnapshotIds(),
             };
 
             try
@@ -130,6 +134,7 @@ namespace Saga.Go.Data
             GatherState.Restore(data.gatheredSpots);
             WorldEventState.Restore(data.worldFlags);
             DailyTaskState.Restore(data.dailyDate, data.dailyProgress, data.dailyDone, data.dailyStampGranted, data.dailyStamps);
+            PerkState.Restore(data.perkIds ?? new List<string>());
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -247,6 +252,14 @@ namespace Saga.Go.Data
                 data.dailyDone = Array.Empty<bool>();
                 data.dailyStampGranted = false;
                 data.dailyStamps = 0;
+                return data;
+            }
+            if (fromVersion == 10)
+            {
+                // v10엔 승급 특성 필드가 없었다 — 아직 하나도 안 고른 것과
+                // 같은 기본값(빈 목록)으로 채운다.
+                data.version = 11;
+                data.perkIds = new List<string>();
                 return data;
             }
             return null;

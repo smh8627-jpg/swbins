@@ -252,9 +252,11 @@ namespace Saga.Go.World
         {
             _state = State.Fight;
             float foeHp = Mathf.Max(1f, Mathf.Round(FoePower * FoeHpMul));
-            float atk = PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus;
-            float def = PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus;
+            // PLAN.md 101-2 ⑦ "승급 3택" — BanditEncounter.StartFight()와 같은 배율 적용.
+            float atk = (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier;
+            float def = (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier;
             _duel = DuelRules.Create(foeHp, atk, def);
+            _duel.KiMul = PerkState.KiMultiplier;
             _combatRoot.SetActive(true);
             RefreshCombatUi();
 

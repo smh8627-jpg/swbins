@@ -7662,3 +7662,23 @@ DFS 순서 재배선: 기존 사슬은 운중→상군→삭방→오원→(바�
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건, float→int 인자 오류 1회 겪고 고침)·`PlaytestHeadless`(GO) 3연속 실행(`Saga.EditorTools.PlaytestHeadless.Run`, `-quit` 안 줌) — 처음 2회는 세이브 오염으로 간헐 실패, 원인 수정 후 3연속 OK. `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복).
 
 `docs/PROJECT_STATE.md` 갱신(GO 완료 요약에 101-2 ④ 추가, 세이브 버전 v9→v10 표기, "다음 작업" 1순위를 "PLAN 101-2 이어서"로 교체하고 Q1을 사실상 처리된 것으로 정리, 테스트 상태·실기 확인 대기·알려진 함정(세이브 오염) 갱신 — 15KB 상한에 걸려 REALM/STORY 절 여러 곳을 압축해 15360B로 맞춤).
+
+## 2026-09-19 — PLAN 101-2 ⑦ GO 승급 3택 ("사가 유니티 이어 해" 세션)
+
+101-2 GO 표의 ④(일과판, 이번 세션 앞부분에서 완성) 다음 순서. 웹판 §5 ⑦(`saga-web/saga-go/PLAN.md` 198행, "특성 갈래" — 승급 시 공(攻)·수(守)·보(補) 축 카드 3, 풀 12, 인물당 최대 3특성·같은 축 둘 금지, 거절=단사 10, 특성은 배율로만)을 이 트랙 실제 시스템에 맞춰 재해석했다. saga-godot이 이미 "부대 레벨업마다"로 재해석해 실기 승인(101-2 서두 2026-09-19 결정)을 받았으니 그 설계 의도만 참고하고, UI·수치는 그쪽 코드를 보지 않고 새로 짰다(코드 공유 없음 원칙).
+
+이 트랙 GO엔 `hero.js` 같은 개별 인물 rank 시스템이 없다(`PartyState`는 등용 인원수만 센다) — 그래서 "승급"을 `PlayerStats.LeveledUp`(플레이어 전체 레벨업)으로 재해석했다. "인물당 최대 3특성·같은 축 둘 금지"는 축을 3개(공/수/보)로 고정하고 축마다 정확히 하나씩만 보유하는 구조로 못박아, 별도의 "다 찼으면 그만" 상태 없이 구조적으로 불변식을 지키게 했다 — 매 레벨업마다 항상 카드 3장(축 하나씩)을 제안하고, 이미 그 축에 특성이 있어도 다시 제안하며 고르면 교체(갈아 끼움)한다.
+
+- `Data/PerkState.cs`(신설) — 축(Atk/Def/Support) × 4 = 풀 12(효과 +5~8%, 웹판 수치 그대로). `RollChoice()`가 축마다 무작위 하나씩 정확히 3장을 돌려주고, `Choose(perk)`는 그 축을 갈아 끼우며(기초 능력치는 안 건드림), `Reject()`는 `GoldState.Add(10)`(웹판 "단사 10"을 이 트랙 통화로 재해석). `AtkMultiplier`/`DefMultiplier`/`KiMultiplier`로 배율만 노출.
+- `Data/DuelRules.cs` — `KiMul` 필드(기본 1f) 추가, `Act("quick")`의 Ki 획득에 곱한다. "보(補)" 축을 필살기 충전 가속으로 재해석(이 판엔 회복 시스템이 없어 가장 "지원"에 가까운 기존 수치).
+- `World/BanditEncounter.cs`·`World/RareWolfEncounter.cs` — `StartFight()`에서 atk/def 합산 값에 `PerkState.AtkMultiplier`/`DefMultiplier`를 곱하고 `_duel.KiMul = PerkState.KiMultiplier`(기초 능력치 자체는 그대로 — 101-2 ⑦ "기본치 불변" 규칙).
+- `UI/PerkChoiceUi.cs`(신설) — `StoryJobChoiceUi.cs`와 같은 결(자기 캔버스를 스스로 짓는 단일 컴포넌트)이되, GO는 이미 `EncounterUiKit`(캔버스/패널/텍스트/버튼 공용 부품)이 뽑혀 있어 그대로 재사용. 카드 3장(세로) + 거절 버튼.
+- `World/GameBootstrap.cs` — `PlayerStats.LeveledUp` 핸들러에서 카메라 컷(기존)에 이어 `PerkChoiceUi.Show(PerkState.RollChoice(), PerkState.Choose, PerkState.Reject)` 호출(이미 떠 있으면 새로 안 띄움).
+- `Editor/BuildTestVillageScene.cs` — `BuildPerkChoiceUi()` 신설, GoalBoardUi 뒤·Bootstrap 앞에서 호출. **씬을 재빌드해야 반영됨**(`-executeMethod Saga.EditorTools.BuildTestVillageScene.Build`) — 처음 헤드리스 검증에서 "PerkChoiceUi를 못 찾음"으로 실패하고서야 이걸 놓친 걸 알았다.
+- `SaveState.cs` — v10→v11(`perkIds`, 축 순서로 최대 3개). v10 이하는 빈 목록.
+- `Resources/Localization/go_ko.json`·`go_en.json` — `perk.title`·`perk.reject` 키 추가(GO 전용, 다섯 판 공유 아님 — `settings.*`만 공유).
+- `Editor/PlaytestHeadless.cs` — 새 `CheckPerkChoice()`(`CheckLevelUpCut()` 바로 뒤). 직전 강제 레벨업이 GameBootstrap 배선을 타고 실제로 카드를 띄웠는지부터 확인(STORY `StoryJobChoiceUi` 검증과 같은 결 — 위젯과 게임 상태를 나눠 본다), 버튼 클릭 흉내(`ChooseIndex` 리플렉션)로 하나를 고른 뒤 배율만 오르고 `PartyState.Atk`/`PlayerStats.AtkBonus`는 안 바뀌는지, 새로 굴린 카드로 거절 경로(`Reject` 리플렉션, 골드+10)까지, 마지막으로 `RollChoice()` 50회 굴려 매번 축 셋이 다 다른지 확인.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건) → 씬 재빌드(`BuildTestVillageScene.Build`) → `PlaytestHeadless`(GO) 3연속 OK(`Saga.EditorTools.PlaytestHeadless.Run`, `-quit` 안 줌; 1회차는 씬 재빌드 전이라 PerkChoiceUi를 못 찾아 실패, 재빌드 후 2~4회차 전부 OK). `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복).
+
+`docs/PROJECT_STATE.md` 갱신(GO 완료 요약에 101-2 ⑦ 추가, 세이브 버전 v10→v11, "다음 작업" 1순위를 "GO ③ 75초 토벌"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축).

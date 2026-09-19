@@ -52,6 +52,8 @@
     { "key": "encounter.victory_base", "value": "{0}을 물리쳤다 — 부대에 합류했다! (전투력 {1})\n경험치 +{2} · 돈 +{3}냥" },
     { "key": "encounter.quest_done_suffix", "value": "\n퀘스트 완료 — 촌장이 사례하다 (경험치 +{0})" },
     { "key": "encounter.levelup_suffix", "value": " — 레벨업! ({0} → {1})" },
+    { "key": "perk.title", "value": "승급! 특성을 하나 고르세요" },
+    { "key": "perk.reject", "value": "거절 — 돈 +10" },
     { "key": "encounter.loot_equipped", "value": "\n{0}을(를) 주웠다 — 바로 갖췄다." },
     { "key": "encounter.loot_plain", "value": "\n{0}을(를) 주웠다." },
     { "key": "encounter.retreat_clean", "value": "물러났다." },

@@ -78,6 +78,7 @@ namespace Saga.EditorTools
             BuildDebugOverlay();
             BuildSettingsUi();
             BuildGoalBoardUi();
+            BuildPerkChoiceUi();
             BuildBootstrap();
             var joystick = BuildMobileHud();
 
@@ -510,6 +511,17 @@ namespace Saga.EditorTools
             var boardGo = new GameObject("GoalBoard");
             var board = boardGo.AddComponent<GoalBoard>();
             board.Init(tracker);
+        }
+
+        /// <summary>PLAN.md 101-2 ⑦ "승급 3택"(2026-09-19) — GameBootstrap이
+        /// FindFirstObjectByType로 찾아 레벨업마다 띄운다. Player 유무와
+        /// 무관해(자기 캔버스를 스스로 짓는다) 어느 자리에서 불러도 되지만
+        /// GoalBoardUi 뒤·Bootstrap 앞에 둔다(다른 UI 빌더들과 같은 줄).</summary>
+        private static void BuildPerkChoiceUi()
+        {
+            var go = new GameObject("PerkChoiceUI");
+            var ui = go.AddComponent<PerkChoiceUi>();
+            ui.Build();
         }
 
         /// <summary>씬이 다 올라온 뒤 저장 파일을 되돌린다(saga-godot test_village.gd와 같은 역할).</summary>

@@ -323,10 +323,13 @@ namespace Saga.Go.World
             _state = State.Fight;
             float foeHp = Mathf.Max(1f, Mathf.Round(FoePower * FoeHpMul));
             // PLAN.md 59~65장 — 부대(PartyState) + 내 레벨(PlayerStats) + 낀
-            // 장비(Inventory) 세 축을 합쳐 실제 전투력을 만든다.
-            float atk = PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus;
-            float def = PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus;
+            // 장비(Inventory) 세 축을 합쳐 실제 전투력을 만든다. 기초 능력치
+            // 자체는 안 건드리고(101-2 ⑦ "기본치 불변" 규칙) 승급 특성 배율만
+            // 여기서 곱한다.
+            float atk = (PartyState.Atk + PlayerStats.AtkBonus + Inventory.AtkBonus) * PerkState.AtkMultiplier;
+            float def = (PartyState.Def + PlayerStats.DefBonus + Inventory.DefBonus) * PerkState.DefMultiplier;
             _duel = DuelRules.Create(foeHp, atk, def);
+            _duel.KiMul = PerkState.KiMultiplier;
             _combatRoot.SetActive(true);
             RefreshCombatUi();
 
