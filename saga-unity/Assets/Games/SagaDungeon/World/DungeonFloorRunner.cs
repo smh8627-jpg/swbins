@@ -232,10 +232,20 @@ namespace Saga.Dungeon.World
 
         private void Descend()
         {
+            // PLAN.md 101-2 5.3 "부적 던전" — 방금 떠나는 층(증가 전 _floor)이
+            // 변형자 층이었으면 클리어 보상을 준다. FloorDescended가 사용자
+            // 접근점(CurrentFloor)을 새 층으로 바꾸기 전에 여기서 먼저 계산한다.
+            int sigilBonus = SigilState.ClearBonusGold(_floor);
+            if (sigilBonus > 0) HeroState.AddGold(sigilBonus);
+
             _floor++;
             _roomIndex = 0;
             _roomTotal = DungeonFormulas.RoomsFor(_floor);
-            DialogueLabel.Instance?.Show($"🪜 제{_floor}층으로 내려간다", 4f);
+
+            string msg = $"🪜 제{_floor}층으로 내려간다";
+            if (sigilBonus > 0) msg += $"\n📜 부적 층 클리어 — 금 {sigilBonus} 추가 획득";
+            if (SigilState.IsSigilFloor(_floor)) msg += $"\n⚠ 부적 층 — {SigilState.Label(SigilState.ModOf(_floor))}";
+            DialogueLabel.Instance?.Show(msg, 4f);
             BuildRoomContent("fight");
             RepositionPlayerToEntry();
             FloorDescended?.Invoke(_floor);
@@ -289,8 +299,10 @@ namespace Saga.Dungeon.World
             go.transform.localPosition = localOffset;
             var enemy = go.AddComponent<DungeonEnemy>();
             enemy.SetSpawnContext(RoomId, gruntModel);
+            // PLAN.md 101-2 5.3 "부적 던전" 변형자 — 정상 층은 배율 1이라 그대로.
             enemy.ConfigureCombat(
-                DungeonFormulas.EnemyHp(_floor, false), DungeonFormulas.EnemyDmg(_floor, false),
+                DungeonFormulas.EnemyHp(_floor, false) * SigilState.EnemyHpMultiplier(_floor),
+                DungeonFormulas.EnemyDmg(_floor, false) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.RewardExp(_floor, false), DungeonFormulas.RewardGold(_floor, false),
                 "wp_axe", null, false, "황건적",
                 new Color(0.72f, 0.64f, 0.3f), 1f);
@@ -312,7 +324,8 @@ namespace Saga.Dungeon.World
             var enemy = go.AddComponent<DungeonEnemy>();
             enemy.SetSpawnContext(RoomId, gruntModel);
             enemy.ConfigureCombat(
-                DungeonFormulas.EliteHp(_floor), DungeonFormulas.EliteDmg(_floor),
+                DungeonFormulas.EliteHp(_floor) * SigilState.EnemyHpMultiplier(_floor),
+                DungeonFormulas.EliteDmg(_floor) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.EliteRewardExp(_floor), DungeonFormulas.EliteRewardGold(_floor),
                 "wp_saber", null, false, "폐허의 황건 정예",
                 new Color(0.75f, 0.35f, 0.15f), 1.25f);
@@ -330,7 +343,8 @@ namespace Saga.Dungeon.World
             var enemy = go.AddComponent<DungeonEnemy>();
             enemy.SetSpawnContext(RoomId, eliteModel);
             enemy.ConfigureCombat(
-                DungeonFormulas.EnemyHp(_floor, true), DungeonFormulas.EnemyDmg(_floor, true),
+                DungeonFormulas.EnemyHp(_floor, true) * SigilState.EnemyHpMultiplier(_floor),
+                DungeonFormulas.EnemyDmg(_floor, true) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.RewardExp(_floor, true), DungeonFormulas.RewardGold(_floor, true),
                 "wp_greatblade", "gem_ruby", isBoss, displayName,
                 color, withEscorts ? 2.0f : 1.8f);

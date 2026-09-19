@@ -104,6 +104,7 @@ namespace Saga.EditorTools
                 // 기본값(6)이라 결정적으로 통과한다.
                 CheckLevelUpCut();
                 CheckLootMarker();
+                CheckSigilState();
                 CheckWeaponVisual();
                 CheckWhirl();
                 CheckDebugHud();
@@ -220,6 +221,50 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log("[PlaytestDungeonHeadless] loot marker OK - 사망마다 LootMarker.Spawn 호출 확인(픽업 경로는 이후 자연 프레임에서 같이 검증됨)");
+        }
+
+        /// <summary>PLAN.md 101-2 5.3 "부적 던전"(2026-09-19 추가) — `SigilState`는
+        /// UnityEngine 의존이 없는 순수 함수라 게임 오브젝트 없이 직접 호출해
+        /// 값을 본다(`DungeonFormulas`류와 같은 결). 층9(층10 미만)·층11(보스층
+        /// 아님)은 부적 층이 아니고, 층12(보스층·10 이상)는 부적 층에 정예 폭증
+        /// (hp×2·dmg×1), 층15는 유리대포(hp×1·dmg×1.5)가 항상 걸리는지 —
+        /// 그리고 `ModOf`가 결정적인지(같은 층 두 번 호출해도 같음) 확인한다.</summary>
+        private static void CheckSigilState()
+        {
+            if (SigilState.IsSigilFloor(9) || SigilState.IsSigilFloor(11) || !SigilState.IsSigilFloor(12))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] SigilState.IsSigilFloor 조건이 어긋남 — 9={SigilState.IsSigilFloor(9)} 11={SigilState.IsSigilFloor(11)} 12={SigilState.IsSigilFloor(12)}(기대 false/false/true)");
+                _hadError = true;
+                return;
+            }
+
+            if (SigilState.ModOf(12) != SigilState.ModOf(12))
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] SigilState.ModOf가 결정적이지 않음(같은 층인데 값이 다름)");
+                _hadError = true;
+                return;
+            }
+
+            bool eliteSurgeOk = Mathf.Approximately(SigilState.EnemyHpMultiplier(12), 2f) && Mathf.Approximately(SigilState.EnemyDamageMultiplier(12), 1f);
+            bool glassCannonOk = Mathf.Approximately(SigilState.EnemyHpMultiplier(15), 1f) && Mathf.Approximately(SigilState.EnemyDamageMultiplier(15), 1.5f);
+            bool normalFloorOk = Mathf.Approximately(SigilState.EnemyHpMultiplier(9), 1f) && Mathf.Approximately(SigilState.EnemyDamageMultiplier(11), 1f);
+            if (!eliteSurgeOk || !glassCannonOk || !normalFloorOk)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] SigilState 배율이 기대와 다름 — 12층 hp×{SigilState.EnemyHpMultiplier(12)} dmg×{SigilState.EnemyDamageMultiplier(12)}, 15층 hp×{SigilState.EnemyHpMultiplier(15)} dmg×{SigilState.EnemyDamageMultiplier(15)}");
+                _hadError = true;
+                return;
+            }
+
+            int bonus12 = SigilState.ClearBonusGold(12);
+            int expectedBonus12 = DungeonFormulas.RewardGold(12, true);
+            if (bonus12 != expectedBonus12 || SigilState.ClearBonusGold(11) != 0)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] SigilState.ClearBonusGold가 기대와 다름 — 12층={bonus12}(기대 {expectedBonus12}), 11층={SigilState.ClearBonusGold(11)}(기대 0)");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log($"[PlaytestDungeonHeadless] sigil state OK - 층12=정예 폭증(hp×2), 층15=유리대포(dmg×1.5), 결정적, 클리어 보상 {bonus12}");
         }
 
         /// <summary>PLAN.md 101-2 5.2 "유품"(2026-09-19 추가) — 플레이어를 실제로

@@ -7737,3 +7737,19 @@ DUNGEON 순서(5.8→5.1→5.2)의 마지막 항목. 지금까지 죽으면 `Pla
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건, `ProjectSettings/`·`Packages/` 부작용 없음) → `PlaytestDungeonHeadless`(`Saga.EditorTools.PlaytestDungeonHeadless.Run`, `-quit` 안 줌) 10 frames no errors, 새 grave marker 체크 통과("사망 시 금 85 전부 유품으로, HeroState.Gold=0") → `PlaytestDungeonFloorProgression`도 12 room advances·floor 4 no errors(회귀 없음). 이 사건은 씬 구성(GameObject 추가) 변경이 없어(기존 컴포넌트에 로직만 얹음, `GraveMarker`는 런타임에 코드로 스폰) 씬 재빌드는 불필요했다.
 
 `docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 5.1·5.2 완료 표기, "다음 작업"을 "DUNGEON 5.1·5.2 완료 — 다음은 5.3(부적 던전 티어)"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 DUNGEON 행에 5.2 완료·재해석 이유 추가(대응 파일에 `GraveMarker` 추가).
+
+## 2026-09-19 — PLAN 101-2 5.3 DUNGEON 부적 던전 (같은 "사가 유니티 이어 해" 세션, 5.2 유품 다음, "응 진행 해줘")
+
+DUNGEON 순서(5.8→5.1→5.2→5.3)의 마지막 항목. 이걸로 DUNGEON 101-2가 전부 닫혔다.
+
+**웹판을 그대로 안 옮긴 이유**: 웹판 §5.3(`saga-web/saga-dungeon/PLAN.md` 155행, 미착수)은 "굴혈(마을) 앞에서 티어 1~10 + 변형자 2~3개를 골라 들어가는 소모품형 던전"을 전제한다 — 부적 인벤토리(상한 20)·드랍 확률·티어 선택 카드까지 통째로 새 메타 시스템이 필요하다. 이 트랙엔 그 전제가 셋 다 없다: 가방이 없고(5.2에서 이미 확인한 사실), "굴혈 앞에서 고르고 들어가는" 허브 자체가 없다(편도 절차적 진행). 그래서 "선택해서 들어가는 소모품 던전"이 아니라 **"층 10 이후 보스층마다 자동으로 걸리는 변형자"**로 좁혔다 — 뽑기 확률도 없앴다(선택 UI가 없어 "안 뽑힘"이면 그 세션은 그냥 밋밋해지므로, 매 보스층 확실히 걸리게). 변형자 풀도 웹판 9개(이동속도·원소저항·정예2배·보물·시간제한·소환·어둠·재생·유리대포)에서 **정예 폭증·유리대포 둘로 좁혔다** — 원소·시야 시스템이 없어 나머지는 걸 게 없었다.
+
+- `Data/SigilState.cs`(신규) — `DungeonFormulas.cs`와 같은 결(UnityEngine 의존 없는 순수 C#). `IsSigilFloor(floor)`(층10 이상이고 보스층이면 항상 true — 뽑기 없음), `ModOf(floor)`(층 번호만으로 결정 — `(floor/3)%2`, 웹판 "변형자는 부적 id로 결정적이다" 요구사항을 부적 id 대신 floor로 충족), `EnemyHpMultiplier`(정예 폭증 층에서 ×2)·`EnemyDamageMultiplier`(유리대포 층에서 ×1.5, 적이 주는 피해)·`PlayerDamageMultiplier`(유리대포 층에서 플레이어가 주는 피해도 같이 ×1.5 — "유리대포"란 이름의 핵심, 서로 배율)·`ClearBonusGold`(그 층 두목 보상만큼 한 번 더 — 새 상수 없이 기존 `DungeonFormulas.RewardGold` 재사용).
+- 적용 지점 — `World/DungeonFloorRunner.cs`의 `SpawnGrunt`·`SpawnElite`·`SpawnSolo`(세 스폰 지점 전부) hp/dmg 인자에 곱함. `Data/HeroState.cs`의 `HitDamage`에 `SigilState.PlayerDamageMultiplier(DungeonFloorRunner.Instance?.CurrentFloor ?? 1)` 곱함(5.1의 `BlessingState.AtkMultiplier`와 같은 자리, 곱셈 체인만 하나 늘었다). `Descend()`가 층을 늘리기 **전**에 방금 떠나는 층의 `ClearBonusGold`를 계산해 지급하고, 늘린 뒤엔 기존 "🪜 제N층으로 내려간다" 토스트에 클리어 보상·다음 층 변형자 안내를 이어 붙였다(새 UI 없음, 기존 `DialogueLabel` 토스트 재사용 — 5.1·5.2와 같은 절제).
+- **세이브·인벤토리 없음** — 웹판의 `save.dungeon.nmBest`·부적 인벤토리는 이 트랙엔 대응 개념이 없어(변형자가 층 번호에서 즉시 계산되는 순수 함수라 저장할 상태 자체가 없다) 안 만들었다.
+
+**검증**: `Editor/PlaytestDungeonHeadless.cs`에 `CheckSigilState()` 신설 — `SigilState`가 UnityEngine 의존 없는 순수 함수라 게임 오브젝트 없이 직접 호출해 값만 본다(`DungeonFormulas`류 검증과 같은 결, `SimulateDungeonFloors.cs`는 `DungeonFormulas` 자체를 안 건드려서 안 돌림). 층9(층10 미만)·층11(보스층 아님)은 부적 층이 아니고, 층12(보스층·10 이상, `(12/3)%2==0`)는 정예 폭증(hp×2·dmg×1), 층15(`(15/3)%2==1`)는 유리대포(hp×1·dmg×1.5)가 항상 걸리는지, `ModOf`가 결정적인지(같은 층 두 번 호출해도 같은 값), `ClearBonusGold(12)`가 `DungeonFormulas.RewardGold(12, true)`와 정확히 같은지 전부 확인한다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건) → `PlaytestDungeonHeadless`(`-quit` 안 줌) 10 frames no errors, 새 sigil state 체크 통과("층12=정예 폭증(hp×2), 층15=유리대포(dmg×1.5), 결정적, 클리어 보상 465") → `PlaytestDungeonFloorProgression`도 12 room advances·floor 4 no errors(회귀 없음 — 이 검증은 층 10 밑이라 변형자를 직접 밟지는 않지만 스폰 경로에 곱셈이 하나 더 얹혔는데도 예외 없음을 확인). 씬 재빌드 불필요(GameObject 구성 안 바뀜, 전부 기존 컴포넌트에 로직만 얹음).
+
+`docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 5.1~5.3 전부 완료 표기, "다음 작업"을 "DUNGEON 5.1~5.3 완료 — 다음은 5.4"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 DUNGEON 행에 5.3 완료·재해석 이유 추가(대응 파일에 `SigilState` 추가). **DUNGEON 101-2(5.8~5.3) 전부 닫혔다** — 다음 세션이 DUNGEON에서 새로 이어받을 101-2 항목은 5.4(월드 보스 75초)부터.

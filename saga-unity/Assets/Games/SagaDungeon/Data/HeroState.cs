@@ -52,8 +52,11 @@ namespace Saga.Dungeon.Data
 
         /// <summary>js/dungeon.js:140 — `Math.max(4, p.atk * ... / 6)` 한 타 피해.
         /// PLAN.md 101-2 5.1 "축복 3택" 공(攻) 축(<see cref="BlessingState.AtkMultiplier"/>)을
-        /// 곱한다 — 평타·강공격·회전베기가 전부 이 값을 밑값으로 쓰므로 세 공격 다 같이 큰다.</summary>
-        public static float HitDamage => Math.Max(4f, Atk / 6f) * BlessingState.AtkMultiplier;
+        /// 곱한다 — 평타·강공격·회전베기가 전부 이 값을 밑값으로 쓰므로 세 공격 다 같이 큰다.
+        /// PLAN.md 101-2 5.3 "부적 던전" 유리대포 변형자(<see cref="SigilState.PlayerDamageMultiplier"/>)도
+        /// 같은 자리에 곱한다 — 그 층에선 플레이어도 더 세게 때린다.</summary>
+        public static float HitDamage => Math.Max(4f, Atk / 6f) * BlessingState.AtkMultiplier
+            * SigilState.PlayerDamageMultiplier(DungeonFloorRunner.Instance?.CurrentFloor ?? 1);
 
         /// <summary>회피(Player/PlayerController.cs) 중에만 켜진다 — 켜져
         /// 있는 동안 TakeDamage가 전부 무시된다(dungeon.js `p.invuln`과
