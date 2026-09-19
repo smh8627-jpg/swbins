@@ -298,6 +298,16 @@ namespace Saga.Realm.Data
             // hill을 Plain으로 보정(이 트랙 enum엔 Hill이 없음). wall은
             // RealmEnemyCity.cs 건타라 정의(3400)와 맞춘다.
             ["jiantuoluo"] = new RealmCityDef("jiantuoluo", "건타라", RealmLand.Plain, agri: 160, comm: 180, wall: 3400, pop: 58000, mapX: -18, mapY: 92),
+            // 51장 "대규모 콘텐츠" 25차 확장(2026-09-19) — 상림(xianglin)의
+            // 둘째 자식(전충과 형제 가지, 22차가 안 골랐던 쪽). land는
+            // 원작 그대로 plain. wall은 RealmEnemyCity.cs 노용 정의(2800)와
+            // 맞춘다.
+            ["luorong"] = new RealmCityDef("luorong", "노용", RealmLand.Plain, agri: 160, comm: 130, wall: 2800, pop: 46000, mapX: 34, mapY: 122),
+            // 25차 확장 — 건타라(jiantuoluo)를 함락한 뒤 이어지는 남중
+            // 사슬의 다음 단계이자 이 갈래의 끝. land는 원작 mount를
+            // Plain으로 보정(이 트랙 enum엔 Hill/Mount가 없음). wall은
+            // RealmEnemyCity.cs 계빈 정의(2800)와 맞춘다.
+            ["jibin"] = new RealmCityDef("jibin", "계빈", RealmLand.Plain, agri: 120, comm: 140, wall: 2800, pop: 40000, mapX: -25, mapY: 80),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

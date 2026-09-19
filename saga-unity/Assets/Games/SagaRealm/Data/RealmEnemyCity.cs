@@ -303,6 +303,8 @@ namespace Saga.Realm.Data
         public const string ShenduId = "shendu";
         public const string BijingId = "bijing";
         public const string JiantuoluoId = "jiantuoluo";
+        public const string LuorongId = "luorong";
+        public const string JibinId = "jibin";
 
         public static readonly string[] AllIds =
         {
@@ -311,7 +313,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
-            DianchongId, ShenduId, BijingId, JiantuoluoId,
+            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -531,6 +533,19 @@ namespace Saga.Realm.Data
             // (대하·마게타·사위) 중 대하도 한 단계 더 뻗지만 이번엔
             // 건타라를 골랐다.
             [JiantuoluoId] = new RealmEnemyCityDef(JiantuoluoId, "건타라", RealmLand.Plain, baseWall: 3400, baseTroops: 782, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
+            // 노용은 상림(xianglin)과만 맞닿아 있다(원작 LINKS:
+            // xianglin-luorong, "상림과 나란한 옛 현") — 25차 확장,
+            // 전충과 형제 가지(둘 다 상림의 자식, train은 상림 자신의
+            // 250+15=265로 전충과 동률). 22차가 안 골랐던 쪽을 이번에
+            // 채운다. 원작에 더 뻗는 LINKS 없어 여기서 끝(주오는 노용이
+            // 아니라 상림의 또 다른 자식이라 별개 후보로 남는다).
+            [LuorongId] = new RealmEnemyCityDef(LuorongId, "노용", RealmLand.Plain, baseWall: 2800, baseTroops: 644, baseTrain: 265, baseTech: 100, attackFromCityId: "xianglin"),
+            // 계빈은 건타라(jiantuoluo)와만 맞닿아 있다(원작 LINKS:
+            // jiantuoluo-jibin, "카슈미르의 옛 이름") — 25차 확장, 건타라를
+            // 함락해야 열리는 남중 사슬의 다음 단계이자 이 갈래의 끝(원작에
+            // 더 뻗는 LINKS 없음). train은 건타라 자신의 200+15=215.
+            // land는 원작 mount라 Plain으로 보정(hill과 같은 이유).
+            [JibinId] = new RealmEnemyCityDef(JibinId, "계빈", RealmLand.Plain, baseWall: 2800, baseTroops: 644, baseTrain: 215, baseTech: 100, attackFromCityId: "jiantuoluo"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

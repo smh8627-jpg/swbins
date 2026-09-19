@@ -7503,3 +7503,18 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 `tools/unity-batch.sh` 없이 Unity.exe를 직접 불렀다가(경로 문제) `ProjectSettings/ProjectVersion.txt`·`EditorSettings.asset`·`Packages/manifest.json`·`packages-lock.json` 네 파일이 조용히 고쳐진 것을 커밋 전에 `git checkout --`으로 원복(기존 "함정" 절 그대로 재현·확인). 컴파일 확인(error CS 0건) + `PlaytestRealmSlice` 3연속 OK(비경·건타라 함락 로그 매 회 확인, `-executeMethod Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌). 씬 재생성 불필요.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 41→43·성 44→46, 16~24차 절 갱신, "다음 작업"(25차 후보: 노용·건타라→계빈·신독 잔여 갈래) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15353B로 15KB 상한 안쪽 유지).
+
+## REALM 51장 25차 확장 — 상림 둘째 자식 노용·건타라→계빈 (2026-09-19, 새 세션 "사가 유니티 이어 해")
+
+24차가 남긴 후보(노용, 건타라→계빈, 신독의 다른 이웃 대하/마게타/사위) 중 두 갈래를 골랐다. ① 상림의 둘째 자식 노용(원작 LINKS: xianglin-luorong, "상림과 나란한 옛 현" — 22차가 상림의 두 자식 전충·노용 중 전충만 골랐던 나머지 쪽을 이번에 채운다. train은 상림 자신의 250+15=265로 전충과 동률인 형제 가지, 원작에 더 뻗는 LINKS 없어 여기서 끝). ② 건타라→계빈(원작 LINKS: jiantuoluo-jibin, "카슈미르의 옛 이름" — 신독의 네 이웃 중 건타라·대하 둘만 한 단계 더 뻗는데(각각 계빈·오익산리), 24차가 이미 건타라를 골랐으니 그 다음 단계. train은 건타라 자신의 200+15=215, 원작에 더 뻗는 LINKS 없어 이 갈래도 끝). wall은 둘 다 원작 그대로(노용 2800·계빈 2800 — 우연히 같음), troops=wall×0.23 반올림(둘 다 644). land 보정: 노용은 원작이 이미 plain이라 그대로, 계빈은 원작 mount라 Plain으로 보정(이 트랙 enum엔 Hill/Mount가 없음, 23~24차의 hill 보정과 같은 이유).
+
+노용을 추가하면서 **상림이 처음으로 목표 둘(전충·노용)을 가진 성이 됐다** — 건녕(51장 19차, 형제 가지 규칙 원래 세 국경 성 밖으로 첫 확장)과 같은 패턴을 이 사슬에 처음 적용한다:
+
+- `RealmEnemyCity.cs` — `LuorongId`·`JibinId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 두 성 추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackXianglin`의 다음 단계를 새 `Phase.AttackLuorong`으로 바꾸고(노용을 먼저 공략), `AttackLuorong`이 `Phase.AttackDianchong`으로 이어지게 신설. 상림이 목표 둘을 갖게 됐으니 `AttackLuorong`·`AttackDianchong` 둘 다 `AttackChainStep`에 `enemyId`를 명시(생략하면 모호해짐, changan·jianning과 같은 이유). `Phase.AttackJiantuoluo`의 다음 단계를 새 `Phase.AttackJibin`으로 바꾸고 그 다음은 기존 `Phase.AttackJiaozhi`로 복귀(건타라는 자식이 계빈 하나뿐이라 enemyId 불필요). OK 로그 문구에 "chain-25th(luorong+jibin)" 추가.
+- 로컬라이제이션: `city.luorong`/`city.jibin`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 노용·계빈 함락 로그와 상림 다중 목표(enemyId 명시) 분기 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 43→45·성 46→48, 16~25차 절 갱신, "다음 작업"(26차 후보: 신독의 다른 이웃 대하/마게타/사위) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15323B로 15KB 상한 안쪽 유지).

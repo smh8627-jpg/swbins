@@ -90,6 +90,8 @@
     { "key": "city.shendu", "value": "Shendu" },
     { "key": "city.bijing", "value": "Bijing" },
     { "key": "city.jiantuoluo", "value": "Jiantuoluo" },
+    { "key": "city.luorong", "value": "Luorong" },
+    { "key": "city.jibin", "value": "Jibin" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },

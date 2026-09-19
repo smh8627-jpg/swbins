@@ -81,7 +81,7 @@ namespace Saga.EditorTools
             AttackTianshui, AttackNanhai, AttackZhuti, AttackCangwu, AttackJianning, AttackYulin, AttackYuexi,
             AttackZangke, AttackJiaozhi, AttackHepu, AttackJiuzhen, AttackYunnan, AttackRinan,
             AttackYongchang, AttackXianglin, AttackDianchong, AttackShendu,
-            AttackBijing, AttackJiantuoluo,
+            AttackBijing, AttackJiantuoluo, AttackLuorong, AttackJibin,
             QuizCorrect, QuizWrong, QuizArchive,
             SaveLoad, Done,
         }
@@ -150,7 +150,7 @@ namespace Saga.EditorTools
 
                 bool ok = !_hadError && _phase == Phase.Done;
                 Debug.Log(ok
-                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/chain-23rd(shendu+dianchong)/chain-24th(jiantuoluo+bijing)/quiz/save-load all verified, no errors"
+                    ? "[PlaytestRealmSlice] OK - world-map/location gate/ships gate/orders(10)/draft/search/hire/city-assignment/war/diplo(rumor+fire)/captured-city-absorb/multi-target-attack(16th)/multi-target-plot/chain-17th(cangwu+jianning)/chain-18th(yulin+yuexi)/chain-19th(jiaozhi+zangke)/chain-20th(hepu+jiuzhen)/chain-21st(yunnan+rinan)/chain-22nd(yongchang+xianglin)/chain-23rd(shendu+dianchong)/chain-24th(jiantuoluo+bijing)/chain-25th(luorong+jibin)/quiz/save-load all verified, no errors"
                     : $"[PlaytestRealmSlice] FAIL - error={_hadError} phase={_phase} frames={_framesSeen}");
                 EditorApplication.Exit(ok ? 0 : 1);
             }
@@ -1183,7 +1183,16 @@ namespace Saga.EditorTools
                 {
                     // 24차 확장(2026-09-19) — 신독을 함락한 뒤 이어지는
                     // 남중 사슬의 다음 단계(TargetFrom("shendu")).
-                    if (!AttackChainStep(RealmEnemyCity.ShenduId, RealmEnemyCity.JiantuoluoId, Phase.AttackJiaozhi)) return;
+                    if (!AttackChainStep(RealmEnemyCity.ShenduId, RealmEnemyCity.JiantuoluoId, Phase.AttackJibin)) return;
+                    break;
+                }
+
+                case Phase.AttackJibin:
+                {
+                    // 25차 확장(2026-09-19) — 건타라를 함락한 뒤 이어지는
+                    // 남중 사슬의 다음 단계이자 이 갈래의 끝
+                    // (TargetFrom("jiantuoluo")).
+                    if (!AttackChainStep(RealmEnemyCity.JiantuoluoId, RealmEnemyCity.JibinId, Phase.AttackJiaozhi)) return;
                     break;
                 }
 
@@ -1215,15 +1224,24 @@ namespace Saga.EditorTools
                 {
                     // 22차 확장(2026-09-19) — 일남을 함락한 뒤 이어지는
                     // 교주 사슬의 다음 단계(TargetFrom("rinan")).
-                    if (!AttackChainStep(RealmEnemyCity.RinanId, RealmEnemyCity.XianglinId, Phase.AttackDianchong)) return;
+                    if (!AttackChainStep(RealmEnemyCity.RinanId, RealmEnemyCity.XianglinId, Phase.AttackLuorong)) return;
+                    break;
+                }
+
+                case Phase.AttackLuorong:
+                {
+                    // 25차 확장(2026-09-19) — 상림의 둘째 목표(전충과 형제
+                    // 가지, 목표가 둘이 됐으니 enemyId 명시 — changan과
+                    // 같은 이유).
+                    if (!AttackChainStep(RealmEnemyCity.XianglinId, RealmEnemyCity.LuorongId, Phase.AttackDianchong, RealmEnemyCity.LuorongId)) return;
                     break;
                 }
 
                 case Phase.AttackDianchong:
                 {
-                    // 23차 확장(2026-09-19) — 상림을 함락한 뒤 이어지는
-                    // 교주 사슬의 다음 단계(TargetFrom("xianglin")).
-                    if (!AttackChainStep(RealmEnemyCity.XianglinId, RealmEnemyCity.DianchongId, Phase.AttackBijing)) return;
+                    // 23차 확장(2026-09-19) — 상림의 첫째 목표(25차부터
+                    // 노용과 형제 가지가 돼 enemyId 명시).
+                    if (!AttackChainStep(RealmEnemyCity.XianglinId, RealmEnemyCity.DianchongId, Phase.AttackBijing, RealmEnemyCity.DianchongId)) return;
                     break;
                 }
 
