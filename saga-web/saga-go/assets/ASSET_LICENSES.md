@@ -1307,6 +1307,16 @@ QRPG와 같은 결로 `anim`을 `body`와 같은 파일로 줘(제 클립을 그
   **사용자가 그것을 알고 품질을 먼저 골랐다**(2026-08-28) — 그래서 얹었다.
   되돌리려면 손잡이 `prop3d.house` 를 0 으로 내리면 기와지붕 코드로 돌아간다
 
+## VRM 애니메 아바타 (2026-09-20, saga-forest 에서 옮김)
+
+`assets/models/people/anime/avatar_{sample_a,sample_b,sample_c,custom_01}.glb` —
+VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
+저작권 포기·상업 이용 무료·표시 의무 없음) + 이 저장소가 GUI 자동화로 새로
+빚은 avatar_custom_01(라이선스는 상업 이용 허가 CC BY로 내보냄). 넷 다
+`saga-forest/assets/ASSET_LICENSES.md`의 같은 절과 같은 파일(md5 동일) —
+자세한 출처·내보내기 경위는 그쪽 문서 참고. `js/asset3d.js`의
+`HERO_RECIPES_ANIME`(기본 꺼짐, `world3d.animeAvatar` 손잡이)로만 쓰인다.
+
 ---
 
 ## 이 폴더에 절대 넣지 말 것

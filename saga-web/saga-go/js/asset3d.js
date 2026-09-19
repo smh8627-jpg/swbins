@@ -171,6 +171,22 @@
     { key: 'mpfb_v23', body: PEOPLE_MPFB + 'v23.glb', realistic: true }   // young_caucasian_male2 + long01 + male_casualsuit01
   ]);
 
+  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+     경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
+     공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
+     GUI 자동화로 새로 빚은 avatar_custom_01 — 넷 다 사가의숲과 같은 파일(md5 동일,
+     assets/ASSET_LICENSES.md 참고). VRM 뼈 이름(`J_Bip_*`)은 이 판의 QRPG/MPFB
+     뼈와 안 맞아 아래 `boneNameMap()`에 VRM_TO_UAL1_BONES 보충표를 얹는다.
+     **기본은 꺼짐**(0, 위 `realistic` 계열과 같은 결) — 손잡이를 켜기 전엔
+     기존 QRPG 배정에 전혀 안 끼어든다. */
+  var PEOPLE_ANIME = PEOPLE + 'anime/';
+  var HERO_RECIPES_ANIME = ['a', 'b', 'c'].map(function (n) {
+    return { key: 'anime_avatar_' + n, body: PEOPLE_ANIME + 'avatar_sample_' + n + '.glb' };
+  }).concat([
+    { key: 'anime_avatar_custom01', body: PEOPLE_ANIME + 'avatar_custom_01.glb' }
+  ]);
+  function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 0) ? true : false; }
+
   /**
    * 옛 인물 조합 — **몸 하나 + 옷 하나 + 머리 하나**가 한 벌이다. 셋 다 뼈 개수(65)와
    * 이름·순서가 파일 열둘(몸 둘·옷 넷·머리 여섯) 전부 한 글자도 안 다르다(직접
@@ -374,6 +390,10 @@
   /** 인물의 몸·옷·머리 조합 — 표에 적힌 것이 조합 객체일 때만 준다(테스트가
    *  `register('hero', 'a.glb')` 처럼 문자열 하나로 덮어써도 안 깨지게) */
   function heroRecipe(ref) {
+    if (wantsAnimeAvatar()) {
+      var arec = oneOf(HERO_RECIPES_ANIME, ref);
+      if (arec) { return arec; }
+    }
     var h = lookup('hero', ref);
     if (!h) { return null; }
     var v = oneOf(heroPool(h.url), ref);
@@ -602,18 +622,38 @@
    * 원본의 클립들을 이 몸에 맞게 다시 굽는다. 못 하면 빈 배열 — 그러면
    * 이 몸은 **가만히 선다**(뒤틀리는 것보다는 낫다).
    */
+  /** VRM Humanoid(VRoid, `J_Bip_C/L/R_*`) → 이 판 뼈 이름 표(2026-09-20, 사가의숲
+   *  asset3d.js에서 옮김). 손가락은 뺐다 — 이 판 로코모션 클립이 손가락을 안
+   *  건드려 굳이 안 옮겨도 무방하다. 항등 매칭이 하나도 안 걸리는 VRM 몸에만
+   *  덧붙는 보충표라, 기존 QRPG·MPFB(이미 이름이 같아 항등만으로 되던 몸)는 이
+   *  표를 안 거친다 — 손 안 댐. */
+  var VRM_TO_UAL1_BONES = {
+    J_Bip_C_Hips: 'pelvis', J_Bip_C_Spine: 'spine_01', J_Bip_C_Chest: 'spine_02',
+    J_Bip_C_UpperChest: 'spine_03', J_Bip_C_Neck: 'neck_01', J_Bip_C_Head: 'Head',
+    J_Bip_L_Shoulder: 'clavicle_l', J_Bip_L_UpperArm: 'upperarm_l', J_Bip_L_LowerArm: 'lowerarm_l', J_Bip_L_Hand: 'hand_l',
+    J_Bip_R_Shoulder: 'clavicle_r', J_Bip_R_UpperArm: 'upperarm_r', J_Bip_R_LowerArm: 'lowerarm_r', J_Bip_R_Hand: 'hand_r',
+    J_Bip_L_UpperLeg: 'thigh_l', J_Bip_L_LowerLeg: 'calf_l', J_Bip_L_Foot: 'foot_l', J_Bip_L_ToeBase: 'ball_l',
+    J_Bip_R_UpperLeg: 'thigh_r', J_Bip_R_LowerLeg: 'calf_r', J_Bip_R_Foot: 'foot_r', J_Bip_R_ToeBase: 'ball_r'
+  };
+
   /**
-   * 목표 뼈 이름 → 원본 뼈 이름 표. **이름이 같은 것만** 잇는다(항등).
+   * 목표 뼈 이름 → 원본 뼈 이름 표. **이름이 같은 것만** 먼저 잇고(항등) —
    * 겹치지 않는 뼈(손가락 · IK · 이 몸에만 있는 `Root`·`Chest`)는 표에 안 넣는다 —
-   * 표에 없으면 그 뼈는 건드리지 않고 제 자세로 남는다. 그게 맞는 동작이다.
+   * 표에 없으면 그 뼈는 건드리지 않고 제 자세로 남는다. 그 위에 VRM 표를
+   * 덧붙인다(항등으로 이미 잡힌 이름은 건드리지 않는다).
    */
   function boneNameMap(tm, sm) {
-    var map = {}, n = 0, i;
+    var map = {}, n = 0, i, vname;
     if (!tm.skeleton || !sm.skeleton) { return { map: map, count: 0 }; }
     var have = {}, sb = sm.skeleton.bones, tb = tm.skeleton.bones;
     for (i = 0; i < sb.length; i++) { have[sb[i].name] = 1; }
     for (i = 0; i < tb.length; i++) {
       if (have[tb[i].name]) { map[tb[i].name] = tb[i].name; n++; }
+    }
+    for (i = 0; i < tb.length; i++) {
+      if (map[tb[i].name]) { continue; }
+      vname = VRM_TO_UAL1_BONES[tb[i].name];
+      if (vname && have[vname]) { map[tb[i].name] = vname; n++; }
     }
     return { map: map, count: n };
   }
@@ -1297,6 +1337,11 @@
     ANIM_SRC: ANIM_SRC, heroRecipe: heroRecipe,
     REALISTIC_ON: REALISTIC_ON, heroPool: heroPool,
     build: build, step: step, play: play, primitive: primitive, stats: stats,
+    /** 진단 전용 — VRM 애니메 아바타 손잡이·레시피·뼈 매핑표 조회(2026-09-20) */
+    wantsAnimeAvatar: wantsAnimeAvatar,
+    heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
+    vrmToUal1Bones: function () { return VRM_TO_UAL1_BONES; },
+    boneNameMap: boneNameMap,
     /** 표를 비운다 (진단이 제 뒤를 치울 때) */
     clear: function () {
       var k; for (k in REG) { if (Object.prototype.hasOwnProperty.call(REG, k)) { delete REG[k]; } }
