@@ -29,8 +29,16 @@
    * `points` 는 발자취({lat,lng,kind}), `cur` 는 지금 위치({lat,lng})다.
    * 위도(lat) 스팬이 아주 좁아도(제자리걸음) 나눗셈이 터지지 않게 최소
    * 스팬(약 90m 어치)을 둔다.
+   *
+   * `extra`(선택, PLAN §5① 봉수대) — 봉수대·역참·성채 같은 점 표시용.
+   * **범위(bounds)엔 안 넣는다** — 27개 봉수대는 나라를 가로질러 흩어져
+   * 있어서, 넣으면 발자취(코앞 수백 m)가 그 거대한 스팬에 묻혀 점 하나로
+   * 뭉개진다. 그래서 `extra`는 발자취·지금 위치로만 정한 같은 축척 위에
+   * 얹힐 뿐이고, 화면 밖으로 나가면(±1 밖) 그린 쪽에서 지운다(진짜 지도가
+   * 화면 밖 표식을 안 그리는 것과 같다).
    */
-  function project(points, cur) {
+  function project(points, cur, extra) {
+    extra = extra || [];
     var all = points.concat([cur]);
     var minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
     var i, p;
@@ -56,6 +64,11 @@
     return {
       trail: points.map(put),
       cur: put(cur),
+      pois: extra.map(function (pt) {
+        var pp = put(pt);
+        pp.t = pt.t; pp.name = pt.name;
+        return pp;
+      }),
       span: { lat: spanLat, lng: spanLng }
     };
   }
@@ -110,14 +123,40 @@
     var wl = W();
     var cur = wl ? wl.worldToLatLng(pos.x, pos.y) : { lat: 0, lng: 0 };
     var trail = core.save.player.trail || [];
-    var pr = project(trail, cur);
+
+    /* 봉수대(PLAN §5①) — 27개 자리 전부(불 안 올린 건 흐리게) + 불 올린
+       권역 반경의 역참·성채(48절 규칙의 예외). extra 라 범위(bounds)엔
+       안 낀다 — project() 머리 참고 */
+    var BC = global.DG.beacon, pois = [];
+    if (BC && wl) {
+      var bl = BC.list(), i2;
+      for (i2 = 0; i2 < bl.length; i2++) {
+        pois.push({ lat: bl[i2].lat, lng: bl[i2].lng,
+          t: BC.lit(bl[i2].key) ? 'beacon-lit' : 'beacon', name: bl[i2].name });
+      }
+      var rev = BC.revealedAll();
+      for (i2 = 0; i2 < rev.length; i2++) {
+        var rp = wl.worldToLatLng(rev[i2].x, rev[i2].y);
+        pois.push({ lat: rp.lat, lng: rp.lng, t: rev[i2].type, name: rev[i2].name });
+      }
+    }
+
+    var pr = project(trail, cur, pois);
     var pad = 26;
     var side = Math.min(cw, ch) - pad * 2;
     var ox = (cw - side) / 2, oy = (ch - side) / 2;
     var mm = MM();
     var TINT = mm ? mm.TINT : {};
+    var POI_STYLE = {
+      beacon: { c: 'rgba(255,157,61,.45)', r: 4 },
+      'beacon-lit': { c: '#ff5a1e', r: 5 },
+      station: { c: '#7fd0ff', r: 2.6 },
+      fort: { c: '#c9a7ff', r: 2.6 }
+    };
 
     function px(pt) { return { x: ox + (pt.x + 1) / 2 * side, y: oy + (pt.y + 1) / 2 * side }; }
+    /* 화면(정사각형) 밖으로 난 점은 안 그린다 — 진짜 지도가 화면 밖 표식을 접는 것과 같다 */
+    function onscreen(pt) { return pt.x >= -1 && pt.x <= 1 && pt.y >= -1 && pt.y <= 1; }
 
     /* 발자취 — 지형 빛깔로 점 하나씩 */
     var i, p, sp;
@@ -128,6 +167,24 @@
       ctx.beginPath(); ctx.arc(sp.x, sp.y, 3, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
+
+    /* 봉수대·역참·성채 — 발자취 위, 지금 위치 아래 */
+    for (i = 0; i < pr.pois.length; i++) {
+      p = pr.pois[i];
+      if (!onscreen(p)) { continue; }
+      var st = POI_STYLE[p.t];
+      if (!st) { continue; }
+      sp = px(p);
+      ctx.fillStyle = st.c;
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, st.r, 0, Math.PI * 2); ctx.fill();
+      if (p.t === 'beacon-lit' || p.t === 'beacon') {
+        ctx.font = '600 9px system-ui, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,.75)';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.name, sp.x, sp.y - st.r - 3);
+        ctx.textAlign = 'left';
+      }
+    }
 
     /* 지금 위치 — 금빛으로 크게 강조 */
     var cp = px(pr.cur);

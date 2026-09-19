@@ -72,6 +72,16 @@
         if (!E) { return []; }
         return E.EVENTS.filter(function (e) { return e.record; })
           .map(function (e) { return { id: e.id, name: e.record, hint: e.name }; });
+      } },
+    /* 명소(PLAN §5 ①) — 봉수대. beacon.js 가 유일한 소유자다(다른 갈래처럼
+       "있는 것을 읽어 와 같이 센다"). 27개뿐이라 다른 갈래보다 훨씬 작다 */
+    { key: 'landmark', name: '명소', emoji: '🗼',
+      list: function () {
+        var B = global.DG.beacon;
+        if (!B) { return []; }
+        return B.list().map(function (b) {
+          return { id: b.key, name: b.name + ' 봉수대', hint: b.region.name + ' 권역' };
+        });
       } }
   ];
 
@@ -87,7 +97,10 @@
     people: { exp: 8, gold: 6 },
     beast: { exp: 6, gold: 4 },
     event: { exp: 10, gold: 0 },
-    record: { exp: 14, gold: 0 }
+    record: { exp: 14, gold: 0 },
+    /* landmark(봉수대)는 beacon.js 의 light() 가 이미 금·공적·丹을 크게 주므로
+       여기는 발견 도장에 붙는 소액만(다른 갈래와 같은 결) */
+    landmark: { exp: 20, gold: 0 }
   };
 
   /** 이 발견이 "숨은 곳" 같은 특별한 것인가 — 있으면 hint 문자열, 없으면 null */

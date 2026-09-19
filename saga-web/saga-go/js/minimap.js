@@ -47,7 +47,9 @@
     fort:    { c: '#c9a7ff', r: 3.4 },
     mine:    { c: '#8affb0', r: 3.4 },
     npc:     { c: '#e6dccd', r: 2.1 },
-    place:   { c: '#f2e4b6', r: 2.6 }
+    place:   { c: '#f2e4b6', r: 2.6 },
+    beacon:      { c: '#ff9d3d', r: 3.2 },
+    'beacon-lit': { c: '#ff5a1e', r: 3.6 }
   };
 
   var node = null, canvas = null, ctx = null;
@@ -186,6 +188,20 @@
     if (G && G.places) {
       var gs = G.places();
       for (i = 0; i < gs.length; i++) { put('place', gs[i].x, gs[i].y, gs[i].name, true); }
+    }
+
+    /* 봉수대(PLAN §5①) — 27개는 세 나라에 흩어져 있어(수백~수천 km) `project()`
+       가 거리와 무관하게 방향만 재는 이 함수에 그냥 넘기면 **먼 나라의 것까지
+       늘 테두리에 화살표로 뜬다**(잡음). 그래서 여기서 먼저 6km 안으로 거른다
+       — 그 안이면 "가까워지고 있다"는 뜻이고, 밖이면 어차피 걸어갈 거리가 아니다 */
+    var BC = global.DG.beacon, NEAR_BEACON = 6000;
+    if (BC && BC.list) {
+      var bl = BC.list();
+      for (i = 0; i < bl.length; i++) {
+        var bw = BC.worldPos(bl[i]);
+        if (Math.hypot(bw.x - pos.x, bw.y - pos.y) > NEAR_BEACON) { continue; }
+        put(BC.lit(bl[i].key) ? 'beacon-lit' : 'beacon', bw.x, bw.y, bl[i].name, true);
+      }
     }
 
     return out;

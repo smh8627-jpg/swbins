@@ -83,6 +83,11 @@
         if (ns && ns.inRange) { core.emit('station:request', ns.station); }
         return;
       }
+      if (e.target.closest('[data-act="beacon"]')) {
+        var BC = global.DG.beacon, nb = BC && BC.nearest();
+        if (nb && nb.inRange) { core.emit('beacon:request', nb.beacon); }
+        return;
+      }
       var appr = e.target.closest('[data-act="approach"]');
       if (appr) {
         var tx = parseFloat(appr.getAttribute('data-tx')), ty = parseFloat(appr.getAttribute('data-ty'));
@@ -357,6 +362,11 @@
           (ns.inRange ? ' — 들르기' : ' · ' + Math.round(ns.dist) + 'm') });
       }
     }
+    var BC = global.DG.beacon, nb = BC ? BC.nearestUnlit() : null;
+    if (nb) {
+      cands.push({ d: nb.dist, txt: '🗼 ' + esc(nb.beacon.name) + ' 봉수대' +
+        (nb.dist <= BC.HIT_RADIUS ? ' — 불 올리기' : ' · ' + Math.round(nb.dist) + 'm') });
+    }
     if (!cands.length) { return '걸으면 새로운 것을 만납니다'; }
     cands.sort(function (a, b) { return a.d - b.d; });
     return cands[0].txt;
@@ -497,11 +507,26 @@
       '</div>';
   }
 
+  /** 봉수대 카드(PLAN §5 ①) — 이미 올린 것은 안 뜬다(더 할 게 없다) */
+  function nearBeaconCard(nb) {
+    var b = nb.beacon;
+    return '<div class="near-card">' +
+        '<div class="near-ico" style="border-color:#ff9d3d">🗼</div>' +
+        '<div class="near-meta"><b>' + esc(b.name) + ' 봉수대</b>' +
+          '<small style="color:#ff9d3d">' + b.region.name + ' 권역 · ' + Math.round(nb.dist) + 'm</small></div>' +
+        (nb.inRange
+          ? '<button class="btn primary" data-act="beacon">불을 올린다</button>'
+          : approachBtn(global.DG.beacon.worldPos(b).x, global.DG.beacon.worldPos(b).y)) +
+      '</div>';
+  }
+
   function renderNear() {
     var w = global.DG.world;
     var n = w.nearest();
     var ns = w.nearestStation();
-    if (!n && !ns) {
+    var BC = global.DG.beacon;
+    var nb = BC ? BC.nearestUnlit() : null;
+    if (!n && !ns && !nb) {
       els.near.classList.remove('show');
       nearUid = null;
       return;
@@ -512,10 +537,12 @@
     var key = (n ? n.spawn.uid + '|' + n.inRange + '|' + Math.round(n.dist / 5) : '-') + '||' +
       (ns ? ns.station.key + '|' + ns.inRange + '|' + Math.round(ns.dist / 5) + '|' +
         Math.ceil(stn.stateOf(ns.station.key).left / 1000) + '|' +
-        (global.DG.rogue && global.DG.rogue.occupied(ns.station) ? 'R' : '-') : '-');
+        (global.DG.rogue && global.DG.rogue.occupied(ns.station) ? 'R' : '-') : '-') + '||' +
+      (nb ? nb.beacon.key + '|' + (nb.dist <= BC.HIT_RADIUS) + '|' + Math.round(nb.dist / 5) : '-');
     if (key !== nearUid) {
       nearUid = key;
-      els.near.innerHTML = (n ? nearSpawnCard(n) : '') + (ns ? nearStationCard(ns) : '');
+      els.near.innerHTML = (n ? nearSpawnCard(n) : '') + (ns ? nearStationCard(ns) : '') +
+        (nb ? nearBeaconCard({ beacon: nb.beacon, dist: nb.dist, inRange: nb.dist <= BC.HIT_RADIUS }) : '');
     }
     els.near.classList.add('show');
   }

@@ -101,6 +101,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/sky3d.js"></script>
 <script src="js/water3d.js"></script>
 <script src="js/station.js"></script>
+<script src="js/beacon.js"></script>
 <script src="js/event.js"></script>
 <script src="js/codex.js"></script>
 <script src="js/ambient.js"></script>
@@ -6214,6 +6215,71 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       for (i = 0; i < E.MAX + 5; i++) { arr = E.push(arr, { t: i, msg: 'e' + i }); }
       var ok = arr.length === E.MAX && arr[0].msg === 'e5' && arr[arr.length - 1].msg === ('e' + (E.MAX + 4));
       return ok && (E.MAX + 5) + '건 넣어 ' + arr.length + '건 남음(오래된 것부터 밀림)';
+    });
+
+    /* ── 봉수대(PLAN §5①, 2026-09-19) ──────────────────────
+     * 오르면 지도가 열린다 — 권역(27 대표점)마다 하나, 좌표 해시로 자리를
+     * 고정하고, 3초 홀드로 확정 보상 + 반경 1.5km 역참·성채를 미리 드러낸다
+     * (48절 "가 보기 전까지 안 뜬다"의 예외). 아직 실기(헤드리스) 확인 전.
+     */
+    t('봉수대 — 권역마다 하나(27개), 좌표 해시로 늘 같은 자리', function () {
+      var BC = DG.beacon;
+      if (!BC) { return false; }
+      var a = BC.list();
+      BC._resetForTest();
+      var b = BC.list();
+      var same = a.length === 27 && b.length === 27;
+      for (var i = 0; i < a.length && same; i++) {
+        if (a[i].key !== b[i].key || a[i].lat !== b[i].lat || a[i].lng !== b[i].lng) { same = false; }
+      }
+      return same && ('27개 · 캐시를 지워도 같은 자리(' + a[0].name + ' ' +
+        a[0].lat.toFixed(4) + ',' + a[0].lng.toFixed(4) + ')');
+    });
+
+    t('봉수대 — 반경 30m 안에서 3초를 채우면 불이 오르고 확정 보상을 받는다', function () {
+      var BC = DG.beacon;
+      C.save.beacons = {};
+      var b = BC.list()[0];
+      var w = BC.worldPos(b);
+      C.save.player.pos.x = w.x; C.save.player.pos.y = w.y;
+      var g0 = C.save.player.gold, f0 = C.save.player.feat;
+      BC.holdStart();
+      var lit = false;
+      for (var i = 0; i < 40 && !lit; i++) { BC.tick(0.1); lit = BC.lit(b.key); }
+      BC.holdEnd();
+      return lit && C.save.player.gold === g0 + BC.REWARD.gold &&
+        C.save.player.feat === f0 + BC.REWARD.feat &&
+        ('3초 홀드로 점화 · 🪙 +' + BC.REWARD.gold + ' · 공적 +' + BC.REWARD.feat);
+    });
+
+    t('봉수대 — 두 번 올려도 보상은 한 번뿐이다', function () {
+      var BC = DG.beacon;
+      var b = BC.list()[0];   // 앞 테스트에서 이미 불을 올렸다
+      var g0 = C.save.player.gold;
+      var r = BC.light(b);
+      return r.ok === false && r.reason === 'already' && C.save.player.gold === g0 &&
+        '두 번째는 거절 · 보상 없음';
+    });
+
+    t('봉수대 — 올리면 반경 1.5km 안 역참·성채가 오버월드에 뜬다(48절 예외)', function () {
+      var BC = DG.beacon;
+      var b2 = BC.list()[1];
+      var beforeUnlit = BC.revealedNear(b2);
+      var w2 = BC.worldPos(b2);
+      C.save.player.pos.x = w2.x; C.save.player.pos.y = w2.y;
+      BC.light(b2);
+      var afterLit = BC.revealedNear(b2);
+      return beforeUnlit.length === 0 && afterLit.length > 0 &&
+        ('불 안 올린 권역 0개 노출 → 올리면 ' + afterLit.length + '개(역참·성채) 노출');
+    });
+
+    t('봉수대 — 값을 내는 함수는 세이브를 안 건드린다(살피기)', function () {
+      var BC = DG.beacon;
+      var before = JSON.stringify(C.save);
+      BC.list(); BC.nearest(); BC.nearestUnlit();
+      BC.revealedNear(BC.list()[2]); BC.lit(BC.list()[2].key);
+      var after = JSON.stringify(C.save);
+      return before === after && '세이브 그대로';
     });
 
     t('런타임 에러 없음', function () {

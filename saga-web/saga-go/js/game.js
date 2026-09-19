@@ -371,6 +371,7 @@
     global.DG.ambient.tick();           // 그 사이를 메우는 풍경·발자국(축1)
     global.DG.milestone.tick();         // 이번 주 누적 거리 사다리(축1 다음 후보)
     global.DG.codex.tick();             // 지나가며 본 것에 도장을 찍는다
+    if (global.DG.beacon) { global.DG.beacon.tick(dt); }   // 봉수대 3초 홀드(§5①)
     if (!global.DG_NO_DRAW) {
       world.draw();
       global.DG.minimap.tick(dt);      // 미니맵은 매 프레임이 아니라 제 박자로 다시 그린다
