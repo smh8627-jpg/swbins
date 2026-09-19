@@ -7490,3 +7490,16 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 **회귀 검증**: 씬을 Abe/Brute 실자산으로 재빌드했으니 `PlaytestDungeonHeadless`(10 frames, no errors)·`PlaytestDungeonFloorProgression`(12 room advances, floor 4, no errors — 런타임 스폰 경로 포함) 재실행, 둘 다 통과. `ProjectSettings/`·`Packages/` 부작용 없음(`tools/unity-batch.sh`로 매번 원복 확인).
 
 `docs/PROJECT_STATE.md` 갱신(캐릭터 자산 절 신설, REALM 16~23차 서술 절은 이미 완료된 내용이라 압축, 함정 2건 추가, 테스트 상태·다음 작업 갱신).
+
+## REALM 51장 24차 확장 — 전충→비경·신독→건타라 (2026-09-19, 새 세션 "사가 유니티 이어 해")
+
+23차가 남긴 후보(상림 이웃 노용, 전충→비경/서권/구속, 신독→건타라/대하/목건타/사이) 중 웹판 원본 `saga-web/saga-realm/js/data-city.js`의 LINKS를 grep해 각 사슬 하나씩 골랐다. ① 전충→비경(원작 LINKS: dianchong-bijing, "진주조개를 캐는 배가 나가는 해안 현" — 전충의 다른 이웃 서권·구속도 원작에 더 뻗는 LINKS가 없어 셋 다 잎사귀, 임의로 비경을 골랐다. 이 사슬은 여기서 끝). ② 신독→건타라(원작 LINKS: shendu-jiantuoluo, "간다라의 저자" — 신독의 네 이웃 중 건타라·대하 둘만 한 단계 더 뻗고(각각 계빈·오익산리), 마게타·사위는 잎사귀. 건타라·대하가 동급이라 임의로 건타라를 골랐다). 둘 다 정상적인 한 단계 더 깊은 자식(부모의 train+15): 비경 265+15=280, 건타라 185+15=200. wall은 원작 그대로(비경 3000·건타라 3400), troops=wall×0.23 반올림(690·782). land는 비경이 원작 river라 그대로, 건타라는 원작 hill이라 Plain으로 보정(이 트랙 enum엔 Hill이 없음 — 상군 때와 같은 보정).
+
+- `RealmEnemyCity.cs` — `BijingId`·`JiantuoluoId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 두 성 추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackDianchong`(→AttackBijing으로 다음 단계 변경)·`Phase.AttackShendu`(→AttackJiantuoluo로 다음 단계 변경) 수정. 새 `Phase.AttackBijing`(전충→비경, 사슬 끝이라 다음은 QuizCorrect)·`Phase.AttackJiantuoluo`(신독→건타라, 다음은 기존 AttackJiaozhi로 복귀) 신설. OK 로그 문구에 "chain-24th(jiantuoluo+bijing)" 추가.
+- 로컬라이제이션: `city.bijing`/`city.jiantuoluo`(ko/en) 신설.
+
+`tools/unity-batch.sh` 없이 Unity.exe를 직접 불렀다가(경로 문제) `ProjectSettings/ProjectVersion.txt`·`EditorSettings.asset`·`Packages/manifest.json`·`packages-lock.json` 네 파일이 조용히 고쳐진 것을 커밋 전에 `git checkout --`으로 원복(기존 "함정" 절 그대로 재현·확인). 컴파일 확인(error CS 0건) + `PlaytestRealmSlice` 3연속 OK(비경·건타라 함락 로그 매 회 확인, `-executeMethod Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌). 씬 재생성 불필요.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 41→43·성 44→46, 16~24차 절 갱신, "다음 작업"(25차 후보: 노용·건타라→계빈·신독 잔여 갈래) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15353B로 15KB 상한 안쪽 유지).

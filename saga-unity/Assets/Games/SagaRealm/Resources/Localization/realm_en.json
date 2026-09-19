@@ -88,6 +88,8 @@
     { "key": "city.yongchang", "value": "Yongchang" },
     { "key": "city.dianchong", "value": "Dianchong" },
     { "key": "city.shendu", "value": "Shendu" },
+    { "key": "city.bijing", "value": "Bijing" },
+    { "key": "city.jiantuoluo", "value": "Jiantuoluo" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },

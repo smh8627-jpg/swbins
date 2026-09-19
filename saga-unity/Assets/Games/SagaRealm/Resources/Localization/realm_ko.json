@@ -88,6 +88,8 @@
     { "key": "city.yongchang", "value": "영창" },
     { "key": "city.dianchong", "value": "전충" },
     { "key": "city.shendu", "value": "신독" },
+    { "key": "city.bijing", "value": "비경" },
+    { "key": "city.jiantuoluo", "value": "건타라" },
     { "key": "officer.sg_zhugeliang", "value": "현책" },
     { "key": "officer.kr_yisunsin", "value": "해장" },
     { "key": "officer.jp_musashi", "value": "이도인" },

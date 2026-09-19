@@ -288,6 +288,16 @@ namespace Saga.Realm.Data
             // 적은 땅"). land는 원작 그대로 plain. wall은 RealmEnemyCity.cs
             // 신독 정의(4000)와 맞춘다.
             ["shendu"] = new RealmCityDef("shendu", "신독", RealmLand.Plain, agri: 220, comm: 240, wall: 4000, pop: 95000, mapX: -22, mapY: 100),
+            // 51장 "대규모 콘텐츠" 24차 확장(2026-09-19) — 전충(dianchong)을
+            // 함락한 뒤 이어지는 교주 사슬의 다음 단계, 여기서 끝(원작
+            // LINKS에 더 없음). land는 원작 그대로 river. wall은
+            // RealmEnemyCity.cs 비경 정의(3000)와 맞춘다.
+            ["bijing"] = new RealmCityDef("bijing", "비경", RealmLand.River, agri: 150, comm: 170, wall: 3000, pop: 50000, mapX: 44, mapY: 124),
+            // 24차 확장 — 신독(shendu)을 함락한 뒤 이어지는 남중 사슬의
+            // 다음 단계(원작 LINKS: shendu-jiantuoluo). land는 원작
+            // hill을 Plain으로 보정(이 트랙 enum엔 Hill이 없음). wall은
+            // RealmEnemyCity.cs 건타라 정의(3400)와 맞춘다.
+            ["jiantuoluo"] = new RealmCityDef("jiantuoluo", "건타라", RealmLand.Plain, agri: 160, comm: 180, wall: 3400, pop: 58000, mapX: -18, mapY: 92),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -301,6 +301,8 @@ namespace Saga.Realm.Data
         public const string YongchangId = "yongchang";
         public const string DianchongId = "dianchong";
         public const string ShenduId = "shendu";
+        public const string BijingId = "bijing";
+        public const string JiantuoluoId = "jiantuoluo";
 
         public static readonly string[] AllIds =
         {
@@ -309,7 +311,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
-            DianchongId, ShenduId,
+            DianchongId, ShenduId, BijingId, JiantuoluoId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -513,6 +515,22 @@ namespace Saga.Realm.Data
             // 자신의 170+15=185. 건타라·대하·목건타·사이 넷으로 더 뻗는
             // 허브라 다음 확장 후보로 남긴다.
             [ShenduId] = new RealmEnemyCityDef(ShenduId, "신독", RealmLand.Plain, baseWall: 4000, baseTroops: 900, baseTrain: 185, baseTech: 100, attackFromCityId: "yongchang"),
+            // 비경은 전충(dianchong)과만 맞닿아 있다(원작 LINKS:
+            // dianchong-bijing, "진주조개를 캐는 배가 나가는 해안 현") —
+            // 24차 확장, 전충을 함락해야 열리는 교주 사슬의 다음 단계.
+            // train은 전충 자신의 265+15=280. land는 원작이 river.
+            // 다른 이웃(서권·구속)은 셋 다 잎사귀라 이번엔 임의로 비경을
+            // 골랐다 — 이 사슬은 여기서 끝(더 뻗을 LINKS 없음).
+            [BijingId] = new RealmEnemyCityDef(BijingId, "비경", RealmLand.River, baseWall: 3000, baseTroops: 690, baseTrain: 280, baseTech: 100, attackFromCityId: "dianchong"),
+            // 건타라는 신독(shendu)과만 맞닿아 있다(원작 LINKS:
+            // shendu-jiantuoluo, "간다라의 저자") — 24차 확장, 신독을
+            // 함락해야 열리는 남중 사슬의 다음 단계. train은 신독 자신의
+            // 185+15=200. land는 원작 hill이라 Plain으로 보정(이 트랙
+            // enum엔 Hill이 없음, 상군과 같은 보정). 계빈(jibin)으로 한
+            // 단계 더 뻗을 수 있어 다음 확장 후보로 남긴다. 다른 이웃
+            // (대하·마게타·사위) 중 대하도 한 단계 더 뻗지만 이번엔
+            // 건타라를 골랐다.
+            [JiantuoluoId] = new RealmEnemyCityDef(JiantuoluoId, "건타라", RealmLand.Plain, baseWall: 3400, baseTroops: 782, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;
