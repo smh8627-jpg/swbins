@@ -60,10 +60,21 @@
     return ' data-p3="' + P3.keyOf('hero', ref, w, h) + '"';
   }
 
+  /** 이미 구워 둔 3D 초상이 있으면 그걸로 바로 시작한다 — 없으면 fallback 그림.
+   *  매번 캔버스 그림으로 시작했다가 40ms 뒤 갈아 끼우면, 이미 구운 인물도
+   *  다시 볼 때마다 2D 그림이 잠깐 비쳤다 3D 로 바뀌어 깜빡이는 것처럼 보였다
+   *  (2026-09-19, "초상이 2D 스프라이트랑 겹쳐서 깜빡인다" 제보로 발견). */
+  function p3src(ref, w, h, fallback) {
+    var P3 = global.DG.portrait3d;
+    var baked = P3 && P3.of ? P3.of('hero', ref, w, h) : null;
+    return { src: baked || fallback, done: baked ? ' data-p3-done="1"' : '' };
+  }
+
   function pt(ref, size) {
     var sz = size || 40;
-    return '<img class="pt" alt=""' + p3tag(ref, sz, sz) + ' src="' +
-      global.DG.sprite.portrait('hero', ref, sz) + '">';
+    var p = p3src(ref, sz, sz, global.DG.sprite.portrait('hero', ref, sz));
+    return '<img class="pt" alt=""' + p3tag(ref, sz, sz) + p.done + ' src="' +
+      p.src + '">';
   }
 
   /**
@@ -75,8 +86,9 @@
    */
   function ptBig(ref, w, h) {
     w = w || 200; h = h || 224;
-    return '<img class="pt" alt=""' + p3tag(ref, w, h) + ' src="' +
-      global.DG.sprite.portraitCard('hero', ref, w, h) + '">';
+    var p = p3src(ref, w, h, global.DG.sprite.portraitCard('hero', ref, w, h));
+    return '<img class="pt" alt=""' + p3tag(ref, w, h) + p.done + ' src="' +
+      p.src + '">';
   }
 
   function forceColor(id) {

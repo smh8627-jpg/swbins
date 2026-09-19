@@ -336,14 +336,21 @@
     return ' data-p3="' + keyOf(kind, ref, w, h) + '"';
   }
 
-  /** 초상 `<img>` 태그를 통째로 만든다(정사각形 자리용). 그림은 여태처럼 `sprite`
-   *  것으로 시작하고, 다 구워지면 `sweep()`이 `src`만 갈아 끼운다(화면은 한 번도
-   *  비지 않는다). `cls`는 `pt` 뒤에 덧붙는 꾸밈 클래스(예: 실패 카드의 `dark`) */
+  /** 초상 `<img>` 태그를 통째로 만든다(정사각形 자리용). **이미 구워 둔 그림이
+   *  있으면 그걸로 바로 시작한다** — 매번 캔버스 그림으로 시작했다가 40ms 뒤
+   *  갈아 끼우면, 이미 구운 인물도 다시 볼 때마다(대화·교전 등 반복해서 여는
+   *  화면) 2D 그림이 잠깐 비쳤다 3D 로 바뀌어 깜빡이는 것처럼 보였다
+   *  (2026-09-19, "초상이 2D 스프라이트랑 겹쳐서 깜빡인다" 제보로 발견).
+   *  아직 안 구웠으면 여태처럼 `sprite` 그림으로 시작하고 `sweep()`이 갈아
+   *  끼운다(화면은 한 번도 비지 않는다). `cls`는 `pt` 뒤에 덧붙는 꾸밈
+   *  클래스(예: 실패 카드의 `dark`) */
   function img(kind, ref, size, cls) {
     var S = global.DG.sprite;
-    var src = S ? S.portrait(kind, ref, size) : '';
+    var baked = of(kind, ref, size, size);
+    var src = baked || (S ? S.portrait(kind, ref, size) : '');
     return '<img class="pt' + (cls ? ' ' + cls : '') + '" alt=""' +
-      tag(kind, ref, size, size) + ' src="' + src + '">';
+      tag(kind, ref, size, size) + (baked ? ' data-p3-done="1"' : '') +
+      ' src="' + src + '">';
   }
 
   global.DG = global.DG || {};

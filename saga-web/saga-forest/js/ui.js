@@ -54,11 +54,22 @@
     return ' data-p3="' + P3.keyOf(kind, ref, w, h) + '"';
   }
 
+  /** 이미 구워 둔 3D 초상이 있으면 그걸로 바로 시작한다 — 없으면 fallback 그림.
+   *  매번 캔버스 그림으로 시작했다가 40ms 뒤 갈아 끼우면, 이미 구운 인물도
+   *  다시 볼 때마다 2D 그림이 잠깐 비쳤다 3D 로 바뀌어 깜빡이는 것처럼 보였다
+   *  (2026-09-19, "초상이 2D 스프라이트랑 겹쳐서 깜빡인다" 제보로 발견). */
+  function p3src(kind, ref, w, h, fallback) {
+    var P3 = global.DG.portrait3d;
+    var baked = P3 && P3.of ? P3.of(kind, ref, w, h) : null;
+    return { src: baked || fallback, done: baked ? ' data-p3-done="1"' : '' };
+  }
+
   /** 스프라이트 초상 <img> (캐시되므로 목록에 여러 번 써도 가볍다) */
   function pt(kind, ref, size) {
     var sz = size || 48;
-    return '<img class="pt" alt=""' + p3tag(kind, ref, sz, sz) + ' src="' +
-      global.DG.sprite.portrait(kind, ref, sz) + '">';
+    var p = p3src(kind, ref, sz, sz, global.DG.sprite.portrait(kind, ref, sz));
+    return '<img class="pt" alt=""' + p3tag(kind, ref, sz, sz) + p.done + ' src="' +
+      p.src + '">';
   }
 
   var TITLES = [
@@ -1823,11 +1834,12 @@
     var chk = hero().rankUpCheck(h.id);
     var cost = chk.cost || hero().rankUpCost(g.rank);
 
+    var p3h = p3src('hero', h, 150, 172, global.DG.sprite.portraitCard('hero', h, 150, 172));
     var out = '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
-        '<img class="dt-portrait" alt=""' + p3tag('hero', h, 150, 172) + ' src="' +
-          global.DG.sprite.portraitCard('hero', h, 150, 172) + '">' +
+        '<img class="dt-portrait" alt=""' + p3tag('hero', h, 150, 172) + p3h.done + ' src="' +
+          p3h.src + '">' +
         '<div class="dt-head">' +
           '<div class="dt-name"><b>' + esc(h.name) + '</b>' +
             (h.hanja ? '<span class="hanja">' + esc(h.hanja) + '</span>' : '') + '</div>' +
@@ -1933,11 +1945,12 @@
       if (Object.prototype.hasOwnProperty.call(core.save.petEquip, k) &&
           core.save.petEquip[k] === p.id) { wearer = data.find(k); }
     }
+    var p3p = p3src('pet', p, 150, 172, global.DG.sprite.portraitCard('pet', p, 150, 172));
     return '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
-        '<img class="dt-portrait" alt=""' + p3tag('pet', p, 150, 172) + ' src="' +
-          global.DG.sprite.portraitCard('pet', p, 150, 172) + '">' +
+        '<img class="dt-portrait" alt=""' + p3tag('pet', p, 150, 172) + p3p.done + ' src="' +
+          p3p.src + '">' +
         '<div class="dt-head">' +
           '<div class="dt-name"><b>' + esc(p.name) + '</b></div>' +
           '<div class="dt-tags">' +

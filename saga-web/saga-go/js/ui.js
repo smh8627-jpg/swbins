@@ -35,6 +35,14 @@
     return global.DG.portrait3d.tag(kind, ref, w, h);
   }
 
+  /** 이미 구워 둔 3D 초상이 있으면 그걸로 바로 시작한다(없으면 fallback 그림) —
+   *  `portrait3d.img()`와 같은 이유(2026-09-19, 깜빡임 제보). */
+  function p3src(kind, ref, w, h, fallback) {
+    var P3 = global.DG.portrait3d;
+    var baked = P3 && P3.of ? P3.of(kind, ref, w, h) : null;
+    return { src: baked || fallback, done: baked ? ' data-p3-done="1"' : '' };
+  }
+
   var TITLES = [
     [4000, '패왕(霸王)'], [2000, '제후(諸侯)'], [900, '태수(太守)'],
     [350, '장군(將軍)'], [120, '교위(校尉)'], [30, '유사(有司)'], [0, '무명(無名)']
@@ -1062,12 +1070,13 @@
     var inParty = core.save.party.indexOf(h.id) >= 0;
     var chk = hero().rankUpCheck(h.id);
     var cost = chk.cost || hero().rankUpCost(g.rank);
+    var p3h = p3src('hero', h, 150, 172, global.DG.sprite.portraitCard('hero', h, 150, 172));
 
     var out = '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
-        '<img class="dt-portrait" alt=""' + p3tag('hero', h, 150, 172) + ' src="' +
-          global.DG.sprite.portraitCard('hero', h, 150, 172) + '">' +
+        '<img class="dt-portrait" alt=""' + p3tag('hero', h, 150, 172) + p3h.done + ' src="' +
+          p3h.src + '">' +
         '<div class="dt-head">' +
           '<div class="dt-name"><b>' + esc(h.name) + '</b>' +
             (h.hanja ? '<span class="hanja">' + esc(h.hanja) + '</span>' : '') + '</div>' +
@@ -1262,11 +1271,12 @@
       if (Object.prototype.hasOwnProperty.call(core.save.petEquip, k) &&
           core.save.petEquip[k] === p.id) { wearer = data.find(k); }
     }
+    var p3p = p3src('pet', p, 150, 172, global.DG.sprite.portraitCard('pet', p, 150, 172));
     return '<div class="dt-card">' +
       '<button class="icon-btn sm dt-x" data-act="dt-close">✕</button>' +
       '<div class="dt-top">' +
-        '<img class="dt-portrait" alt=""' + p3tag('pet', p, 150, 172) + ' src="' +
-          global.DG.sprite.portraitCard('pet', p, 150, 172) + '">' +
+        '<img class="dt-portrait" alt=""' + p3tag('pet', p, 150, 172) + p3p.done + ' src="' +
+          p3p.src + '">' +
         '<div class="dt-head">' +
           '<div class="dt-name"><b>' + esc(p.name) + '</b></div>' +
           '<div class="dt-tags">' +
