@@ -1788,3 +1788,13 @@ Chicken·Deer·Panda·Penguin·Pig, 14종)에 안 들어 있었다(2026-09-14 �
 칸(들판 타일)에 실시간 블렌드한다(트라이플레이너 UV + 경사·노이즈 가중,
 PLAN §6.1-5) — 방(room) 바닥은 그대로 `groundMat()`(노이즈 반점)을 쓴다,
 안 건드렸다.
+
+## VRM 애니메 아바타 (2026-09-20, saga-forest 에서 옮김)
+
+`assets/models/people/anime/avatar_{sample_a,sample_b,sample_c,custom_01}.glb` —
+VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
+저작권 포기·상업 이용 무료·표시 의무 없음) + 이 저장소가 GUI 자동화로 새로
+빚은 avatar_custom_01(라이선스는 상업 이용 허가 CC BY로 내보냄). 넷 다
+`saga-forest/assets/ASSET_LICENSES.md`의 같은 절과 같은 파일(md5 동일) —
+자세한 출처·내보내기 경위는 그쪽 문서 참고. `js/asset3d.js`의
+`HERO_RECIPES_ANIME`(기본 꺼짐, `world3d.animeAvatar` 손잡이)로만 쓰인다.

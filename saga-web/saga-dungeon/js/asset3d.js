@@ -86,6 +86,24 @@
     })
   );
 
+  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+     경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
+     공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
+     GUI 자동화로 새로 빚은 avatar_custom_01 — 넷 다 사가의숲과 같은 파일(md5 동일,
+     assets/ASSET_LICENSES.md 참고). **`HERO_RECIPES`/`HERO_RECIPES_LIGHT`에는
+     안 얹는다** — 위 §"캐릭터 100개" 주석대로 그 두 표 길이가 늘면
+     `dungeon3d.js`의 `QRPG_SEEDS`(손으로 확인해 둔 해시 자리)가 다른 자리로
+     튄다. 그래서 완전히 별도 표로 두고 `heroRecipe()`에 우선 분기 하나만
+     더한다. **기본은 꺼짐**(0) — 손잡이를 켜기 전엔 기존 배정에 전혀 안
+     끼어든다. */
+  var PEOPLE_ANIME = 'assets/models/people/anime/';
+  var HERO_RECIPES_ANIME = ['a', 'b', 'c'].map(function (n) {
+    return { key: 'anime_avatar_' + n, body: PEOPLE_ANIME + 'avatar_sample_' + n + '.glb' };
+  }).concat([
+    { key: 'anime_avatar_custom01', body: PEOPLE_ANIME + 'avatar_custom_01.glb' }
+  ]);
+  function wantsAnimeAvatar() { return tuned('world3d.animeAvatar', 0) ? true : false; }
+
   /* 2026-09-07(이어서) — 사용자가 itch.io 팩 둘을 직접 받아 전달: Quaternius
      "Universal Base Characters"(몸, 제 클립 없음) + "Universal Animation
      Library 2"(UAL2, 클립 43개 — Sword_*·Shield_*·Zombie_*·TreeChopping 등
@@ -986,6 +1004,10 @@
     return (s.indexOf('me:') === 0) ? 'hero' : 'hero_light';
   }
   function heroRecipe(seed) {
+    if (wantsAnimeAvatar()) {
+      var arec = oneOf(HERO_RECIPES_ANIME, seed);
+      if (arec) { return arec; }
+    }
     var h = lookup(heroKindFor(seed));
     if (!h) { return null; }
     var v = oneOf(h.url, seed);
@@ -1286,13 +1308,31 @@
     var b = new t.Box3().setFromObject(obj);
     return Math.max(1e-4, b.max.y - b.min.y);
   }
+  /** VRM Humanoid(VRoid, `J_Bip_C/L/R_*`) → 이 판 뼈 이름 표(2026-09-20, 사가의숲
+   *  asset3d.js에서 옮김). 손가락은 뺐다 — 이 판 로코모션 클립이 손가락을 안
+   *  건드려 굳이 안 옮겨도 무방하다. 항등 매칭이 하나도 안 걸리는 VRM 몸에만
+   *  덧붙는 보충표라, 기존 QRPG·MPFB(이미 이름이 같아 항등만으로 되던 몸)는 이
+   *  표를 안 거친다 — 손 안 댐. */
+  var VRM_TO_UAL1_BONES = {
+    J_Bip_C_Hips: 'pelvis', J_Bip_C_Spine: 'spine_01', J_Bip_C_Chest: 'spine_02',
+    J_Bip_C_UpperChest: 'spine_03', J_Bip_C_Neck: 'neck_01', J_Bip_C_Head: 'Head',
+    J_Bip_L_Shoulder: 'clavicle_l', J_Bip_L_UpperArm: 'upperarm_l', J_Bip_L_LowerArm: 'lowerarm_l', J_Bip_L_Hand: 'hand_l',
+    J_Bip_R_Shoulder: 'clavicle_r', J_Bip_R_UpperArm: 'upperarm_r', J_Bip_R_LowerArm: 'lowerarm_r', J_Bip_R_Hand: 'hand_r',
+    J_Bip_L_UpperLeg: 'thigh_l', J_Bip_L_LowerLeg: 'calf_l', J_Bip_L_Foot: 'foot_l', J_Bip_L_ToeBase: 'ball_l',
+    J_Bip_R_UpperLeg: 'thigh_r', J_Bip_R_LowerLeg: 'calf_r', J_Bip_R_Foot: 'foot_r', J_Bip_R_ToeBase: 'ball_r'
+  };
   function boneNameMap(tm, sm) {
-    var map = {}, n = 0, i;
+    var map = {}, n = 0, i, vname;
     if (!tm.skeleton || !sm.skeleton) { return { map: map, count: 0 }; }
     var have = {}, sb = sm.skeleton.bones, tb = tm.skeleton.bones;
     for (i = 0; i < sb.length; i++) { have[sb[i].name] = 1; }
     for (i = 0; i < tb.length; i++) {
       if (have[tb[i].name]) { map[tb[i].name] = tb[i].name; n++; }
+    }
+    for (i = 0; i < tb.length; i++) {
+      if (map[tb[i].name]) { continue; }
+      vname = VRM_TO_UAL1_BONES[tb[i].name];
+      if (vname && have[vname]) { map[tb[i].name] = vname; n++; }
     }
     return { map: map, count: n };
   }
@@ -1550,6 +1590,11 @@
     build: build, buildHero: buildHero, step: step, play: play, rawScene: rawScene, tick: tick,
     ownAllMat: ownAllMat, flashAllMat: flashAllMat,
     tuned: tuned, set: set, stats: stats, isActorAsset: isActorAsset, isSwayAsset: isSwayAsset,
+    /** 진단 전용 — VRM 애니메 아바타 손잡이·레시피·뼈 매핑표 조회(2026-09-20) */
+    wantsAnimeAvatar: wantsAnimeAvatar,
+    heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
+    vrmToUal1Bones: function () { return VRM_TO_UAL1_BONES; },
+    boneNameMap: boneNameMap,
     clear: function () { var k; for (k in REG) { if (Object.prototype.hasOwnProperty.call(REG, k)) { delete REG[k]; } } cache = {}; return REG; }
   };
 })(window);
