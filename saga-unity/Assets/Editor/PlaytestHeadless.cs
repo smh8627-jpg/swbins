@@ -128,6 +128,13 @@ namespace Saga.EditorTools
                 CheckLevelUpCut();
                 CheckBanditLootMarker();
                 CheckWeaponVisual();
+                // 반드시 마지막 — DailyTaskState 진단이 SaveState.TryLoad()로
+                // 세이브 파일을 v9 모양으로 잠깐 바꿔치기해 로드하는데, 이건
+                // 살아있는 PartyState/Inventory/GoldState 등을 그 v9 기본값으로
+                // 되돌린다(finally에서 파일 자체는 원복하지만 이미 메모리에
+                // 반영된 상태까지는 안 되돌아온다) — 그 뒤에 다른 체크가 이어지면
+                // 그 체크들이 지워진 상태를 보게 된다.
+                CheckDailyTasks();
             }
             if (_framesSeen >= FramesToRun)
             {
@@ -617,6 +624,173 @@ namespace Saga.EditorTools
                 return;
             }
             Debug.Log($"[PlaytestHeadless] weapon visual OK - 무기 교체 시 칼날 길이 {lengthBefore:F2}→{lengthAfter:F2}(등급 갱신 반영)");
+        }
+
+        /// <summary>PLAN.md 101-2 ④ 일과판(2026-09-19, GO 첫 실장) — 날짜 해시
+        /// 선택의 결정성("같은 날은 같은 셋"), 진행→완료→도장 누적, 도장 7=
+        /// 주간 보상 실제 지급, 저장/로드 왕복, v9 이하 파일 마이그레이션까지
+        /// private 필드를 리플렉션으로 통제해 확인한다(SessionCard._closeTimer
+        /// 조작과 같은 결 — 실제 달력 날짜가 몇이든, 오늘 실제로 어떤 셋이
+        /// 뽑히든 결과가 안정적이게).</summary>
+        private static void CheckDailyTasks()
+        {
+            var t = typeof(DailyTaskState);
+            var selectForDate = t.GetMethod("SelectForDate", BindingFlags.NonPublic | BindingFlags.Static);
+            var checkAllDone = t.GetMethod("CheckAllDone", BindingFlags.NonPublic | BindingFlags.Static);
+            var selectedField = t.GetField("_selected", BindingFlags.NonPublic | BindingFlags.Static);
+            var progressField = t.GetField("_progress", BindingFlags.NonPublic | BindingFlags.Static);
+            var doneField = t.GetField("_done", BindingFlags.NonPublic | BindingFlags.Static);
+            var dateField = t.GetField("_date", BindingFlags.NonPublic | BindingFlags.Static);
+            var stampGrantedField = t.GetField("_dayStampGranted", BindingFlags.NonPublic | BindingFlags.Static);
+            var stampsField = t.GetField("_stamps", BindingFlags.NonPublic | BindingFlags.Static);
+
+            // 결정성 — 같은 날짜 문자열은 항상 같은 셋.
+            selectForDate.Invoke(null, new object[] { "2026-09-19" });
+            var firstSelected = (int[])selectedField.GetValue(null);
+            selectForDate.Invoke(null, new object[] { "2026-01-01" }); // 다른 날짜로 한 번 흔든 뒤
+            selectForDate.Invoke(null, new object[] { "2026-09-19" }); // 되돌아와도 같은지
+            var secondSelected = (int[])selectedField.GetValue(null);
+            bool sameSelection = firstSelected.Length == secondSelected.Length;
+            if (sameSelection)
+            {
+                for (int i = 0; i < firstSelected.Length; i++)
+                {
+                    if (firstSelected[i] != secondSelected[i]) { sameSelection = false; break; }
+                }
+            }
+            if (!sameSelection || firstSelected.Length != 3)
+            {
+                Debug.LogError($"[PlaytestHeadless] 일과 — 날짜 해시가 비결정적이거나 하루 3개가 아님(count={firstSelected.Length}, 결정적={sameSelection})");
+                _hadError = true;
+                return;
+            }
+
+            // 진행 → 완료 → 도장 1 누적(오늘 실제로 뽑힌 게 어떤 조합이든
+            // 상관없이 "셋 다 완료하면 도장"만 확인 — Kind는 안 건드린다).
+            int n = firstSelected.Length;
+            stampsField.SetValue(null, 0);
+            stampGrantedField.SetValue(null, false);
+            progressField.SetValue(null, new int[n]);
+            var done = new bool[n];
+            doneField.SetValue(null, done);
+
+            int goldBefore = GoldState.Gold;
+            int expBefore = PlayerStats.Exp;
+
+            for (int i = 0; i < n; i++) done[i] = true;
+            checkAllDone.Invoke(null, null);
+
+            if (DailyTaskState.Stamps != 1)
+            {
+                Debug.LogError($"[PlaytestHeadless] 일과 — 셋 다 완료했는데 도장이 안 오름(stamps={DailyTaskState.Stamps})");
+                _hadError = true;
+                return;
+            }
+            if (goldBefore != GoldState.Gold || expBefore != PlayerStats.Exp)
+            {
+                Debug.LogError("[PlaytestHeadless] 일과 — 도장 1개(7 아님)인데 주간 보상이 지급됨");
+                _hadError = true;
+                return;
+            }
+
+            // 도장 6개를 더 쌓아 7번째에서 주간 보상(금+100·경험치+150) 지급 확인.
+            // 경험치는 PlayerStats.Exp가 "현재 레벨 안에서의 경험치"라 레벨업이
+            // 끼면 그대로 더해지지 않는다(넘친 만큼 다음 레벨로 넘어가며 줄어듦) —
+            // 그래서 경험치는 델타 대신 레벨업 이벤트 카운트로 "실제로 지급은
+            // 됐다"만 확인한다(정확한 exp 산술은 PlayerStats.AddExp 자체의 책임,
+            // 여기서 재검증하지 않는다).
+            int levelUpCount = 0;
+            void CountLevelUp(int _) => levelUpCount++;
+            PlayerStats.LeveledUp += CountLevelUp;
+            for (int i = 0; i < 6; i++)
+            {
+                stampGrantedField.SetValue(null, false);
+                checkAllDone.Invoke(null, null);
+            }
+            PlayerStats.LeveledUp -= CountLevelUp;
+            if (DailyTaskState.Stamps != DailyTaskState.StampsPerReward)
+            {
+                Debug.LogError($"[PlaytestHeadless] 일과 — 도장이 {DailyTaskState.StampsPerReward}까지 안 쌓임(stamps={DailyTaskState.Stamps})");
+                _hadError = true;
+                return;
+            }
+            bool expProgressed = PlayerStats.Exp != expBefore || levelUpCount > 0;
+            if (GoldState.Gold != goldBefore + 100 || !expProgressed)
+            {
+                Debug.LogError($"[PlaytestHeadless] 일과 — 도장 {DailyTaskState.StampsPerReward} 주간 보상 미지급(gold {goldBefore}->{GoldState.Gold}, exp {expBefore}->{PlayerStats.Exp}, levelUps={levelUpCount})");
+                _hadError = true;
+                return;
+            }
+
+            // 저장/로드 왕복(+ 구버전 v9 마이그레이션)은 실제
+            // persistentDataPath/save.json을 두 번 덮어쓴다(온전한 왕복 저장 한
+            // 번, v9 모양 가짜 한 번) — GameBootstrap.Start()가 부팅마다
+            // SaveState.TryLoad()를 부르기 때문에, 이 파일을 원래 모습(테스트
+            // 시작 전 상태, 파일이 아예 없었을 수도 있음)으로 되돌리지 않으면
+            // **다음번 헤드리스 실행**이 이 테스트가 남긴 세이브를 이어받아
+            // CheckWeaponVisual 등 앞선 체크가 간헐적으로 깨진다(실제로 겪음,
+            // 2026-09-19). 그래서 두 조작 전체를 try/finally로 감싸고, try
+            // 안의 모든 실패 경로(return 포함)에서도 finally가 반드시 돈다.
+            string savePath = System.IO.Path.Combine(Application.persistentDataPath, "save.json");
+            string originalSaveJson = System.IO.File.Exists(savePath) ? System.IO.File.ReadAllText(savePath) : null;
+            try
+            {
+                // 저장/로드 왕복 — 지금 상태(도장 7·오늘 날짜)를 저장했다가
+                // 메모리에서 지운 뒤 다시 불러 복원되는지.
+                string savedDate = DailyTaskState.CurrentDate;
+                int savedStamps = DailyTaskState.Stamps;
+                if (!SaveState.Save())
+                {
+                    Debug.LogError("[PlaytestHeadless] 일과 — SaveState.Save() 실패(Player 태그를 못 찾았나)");
+                    _hadError = true;
+                    return;
+                }
+                dateField.SetValue(null, "");
+                selectedField.SetValue(null, System.Array.Empty<int>());
+                progressField.SetValue(null, System.Array.Empty<int>());
+                doneField.SetValue(null, System.Array.Empty<bool>());
+                stampsField.SetValue(null, 0);
+                if (!SaveState.TryLoad())
+                {
+                    Debug.LogError("[PlaytestHeadless] 일과 — SaveState.TryLoad() 실패");
+                    _hadError = true;
+                    return;
+                }
+                if (DailyTaskState.CurrentDate != savedDate || DailyTaskState.Stamps != savedStamps)
+                {
+                    Debug.LogError($"[PlaytestHeadless] 일과 — 저장/로드 왕복 불일치(date {savedDate}->{DailyTaskState.CurrentDate}, stamps {savedStamps}->{DailyTaskState.Stamps})");
+                    _hadError = true;
+                    return;
+                }
+
+                // 구버전(v9, 일과 필드 없음) 로드 — 마이그레이션이 예외 없이
+                // 빈 날짜·도장 0으로 채우는지.
+                const string v9Json = "{\"version\":9,\"playerPos\":[0,0,0],\"partyMembers\":[],\"level\":1,\"exp\":0," +
+                    "\"ownedItems\":[],\"equippedWeapon\":null,\"equippedArmor\":null,\"questBanditStage\":0," +
+                    "\"caveTreasureFound\":false,\"gold\":100,\"merchantSold\":false,\"gatheredSpots\":[]," +
+                    "\"shrineBlessed\":false,\"rareWolfDefeated\":false,\"worldFlags\":[]}";
+                System.IO.File.WriteAllText(savePath, v9Json);
+                stampsField.SetValue(null, -1); // 로드 전 값과 확실히 다르게 표시
+                if (!SaveState.TryLoad())
+                {
+                    Debug.LogError("[PlaytestHeadless] 일과 — v9 세이브 로드(마이그레이션) 실패");
+                    _hadError = true;
+                    return;
+                }
+                if (DailyTaskState.CurrentDate != "" || DailyTaskState.Stamps != 0)
+                {
+                    Debug.LogError($"[PlaytestHeadless] 일과 — v9 마이그레이션 결과가 기대와 다름(date=\"{DailyTaskState.CurrentDate}\" stamps={DailyTaskState.Stamps})");
+                    _hadError = true;
+                    return;
+                }
+            }
+            finally
+            {
+                if (originalSaveJson != null) System.IO.File.WriteAllText(savePath, originalSaveJson);
+                else if (System.IO.File.Exists(savePath)) System.IO.File.Delete(savePath);
+            }
+
+            Debug.Log("[PlaytestHeadless] daily tasks OK - deterministic pick, stamp/weekly reward, save/load round-trip, v9 migration all verified");
         }
     }
 }

@@ -97,6 +97,7 @@ namespace Saga.Go.World
             }
 
             _lastWishTime = Time.time;
+            DailyTaskState.ReportProgress(DailyTaskState.Kind.CairnWish, 1);
             var outcome = Roll();
             if (outcome.Gold > 0) GoldState.Add(outcome.Gold);
             if (outcome.Exp > 0) PlayerStats.AddExp(outcome.Exp);

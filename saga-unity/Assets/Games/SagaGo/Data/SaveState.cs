@@ -14,7 +14,7 @@ namespace Saga.Go.Data
     /// </summary>
     public static class SaveState
     {
-        private const int SaveVersion = 9;
+        private const int SaveVersion = 10;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save.json");
 
@@ -50,6 +50,14 @@ namespace Saga.Go.Data
             // 위 세 bool 필드를 하나로 접었다. v8 이하 파일을 읽을 땐 MigrateStep(8,...)이
             // 세 bool을 보고 이 목록을 채운다.
             public List<string> worldFlags;
+            // v10(PLAN.md 101-2 ④ 일과판, 2026-09-19) — v9까지는 없던 필드.
+            // dailyProgress/dailyDone은 dailyDate 기준으로 뽑힌 오늘의 일과
+            // 셋과 같은 길이(DailyTaskState.Restore가 해시로 다시 뽑아 맞춘다).
+            public string dailyDate;
+            public int[] dailyProgress;
+            public bool[] dailyDone;
+            public bool dailyStampGranted;
+            public int dailyStamps;
         }
 
         public static bool Save()
@@ -72,6 +80,11 @@ namespace Saga.Go.Data
                 merchantSold = ShopState.MerchantSold,
                 gatheredSpots = new List<string>(GatherState.GatheredIds),
                 worldFlags = new List<string>(WorldEventState.TriggeredIds),
+                dailyDate = DailyTaskState.CurrentDate,
+                dailyProgress = DailyTaskState.SnapshotProgress(),
+                dailyDone = DailyTaskState.SnapshotDone(),
+                dailyStampGranted = DailyTaskState.SnapshotDayStampGranted(),
+                dailyStamps = DailyTaskState.Stamps,
             };
 
             try
@@ -116,6 +129,7 @@ namespace Saga.Go.Data
             ShopState.Restore(data.merchantSold);
             GatherState.Restore(data.gatheredSpots);
             WorldEventState.Restore(data.worldFlags);
+            DailyTaskState.Restore(data.dailyDate, data.dailyProgress, data.dailyDone, data.dailyStampGranted, data.dailyStamps);
 
             Transform player = FindPlayer();
             if (player != null && data.playerPos != null && data.playerPos.Length == 3)
@@ -219,6 +233,20 @@ namespace Saga.Go.Data
                 if (data.caveTreasureFound) data.worldFlags.Add("cave_treasure");
                 if (data.shrineBlessed) data.worldFlags.Add("shrine_blessing");
                 if (data.rareWolfDefeated) data.worldFlags.Add("rare_wolf");
+                return data;
+            }
+            if (fromVersion == 9)
+            {
+                // v9엔 일과판 필드가 없었다 — 아직 오늘 일과를 안 뽑은 것과
+                // 같은 기본값(빈 날짜)으로 채운다. DailyTaskState.Restore가
+                // 빈 날짜를 보면 다음 EnsureToday() 호출 때 오늘 날짜로
+                // 새로 뽑는다(도장 0부터 시작 — 진행 손실이랄 게 없다).
+                data.version = 10;
+                data.dailyDate = "";
+                data.dailyProgress = Array.Empty<int>();
+                data.dailyDone = Array.Empty<bool>();
+                data.dailyStampGranted = false;
+                data.dailyStamps = 0;
                 return data;
             }
             return null;

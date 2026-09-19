@@ -7,11 +7,11 @@ namespace Saga.Go.UI
 {
     /// <summary>
     /// PLAN.md 101-2 "다섯 게임 × 웹 §5 후보" — GO 첫 이식(④ 일과판+마무리
-    /// 카드) 중 "UI 뼈대만"에 해당하는 부분. 웹판 §5 ④가 설계한 날짜
-    /// 해시 일과 풀 8·주간 사다리는 아직 없다(웹 자체도 미검증) — 이
-    /// 클래스는 <see cref="IGoalSource"/> 세 줄 중 실제 값이 있는 것만
-    /// 채우고("지금"=가장 가까운 은닉 보물, "이번 세션"=걸은 거리·번 금),
-    /// "이번 주"는 ⑦ 승급 3택이 아직 이식되지 않아 자리만 잡아 둔 문구다.
+    /// 카드). <see cref="IGoalSource"/> 세 줄: "지금"=가장 가까운 은닉
+    /// 보물, "이번 세션"=<see cref="DailyTaskState"/>의 오늘의 일과 3 중
+    /// 남은 것, "이번 주"=일과 도장이 쌓이는 주간 사다리(2026-09-19,
+    /// 101-2 서두 결정으로 착수 — 자세한 설계 재해석 이유는
+    /// DailyTaskState.cs 클래스 주석 참고).
     ///
     /// 무입력 5분 또는 앱 백그라운드 전환을 세션 끝으로 보고
     /// <see cref="SessionCard"/>를 띄운다(웹판 §5 ④의 "5분 무입력" 그대로,
@@ -25,6 +25,7 @@ namespace Saga.Go.UI
         private Transform _player;
         private Vector3 _lastPlayerPos;
         private float _walkedMeters;
+        private float _walkedMetersSinceDailyReport; // DailyTaskState.ReportProgress는 int만 받아 정수 m 단위로만 넘긴다 — 나머지는 여기 이월.
         private int _sessionStartGold;
         private float _idleTimer;
         private bool _summaryShown;
@@ -57,6 +58,13 @@ namespace Saga.Go.UI
             if (moved > MoveEpsilon)
             {
                 _walkedMeters += moved;
+                _walkedMetersSinceDailyReport += moved;
+                int wholeMeters = Mathf.FloorToInt(_walkedMetersSinceDailyReport);
+                if (wholeMeters > 0)
+                {
+                    DailyTaskState.ReportProgress(DailyTaskState.Kind.Walk, wholeMeters);
+                    _walkedMetersSinceDailyReport -= wholeMeters;
+                }
                 _idleTimer = 0f;
                 _summaryShown = false;
             }
@@ -112,13 +120,8 @@ namespace Saga.Go.UI
             return nearest == null ? "-" : $"은닉 보물까지 {nearestDist:F0}m";
         }
 
-        public string GoalLineSession()
-        {
-            int goldGained = GoldState.Gold - _sessionStartGold;
-            string goldStr = goldGained >= 0 ? $"+{goldGained}" : goldGained.ToString();
-            return $"이동 {_walkedMeters:F0}m · 금 {goldStr}";
-        }
+        public string GoalLineSession() => DailyTaskState.SessionLineText();
 
-        public string GoalLineWeek() => "다음 승급 이정표 준비 중(101-2 ⑦ 대기)";
+        public string GoalLineWeek() => DailyTaskState.WeekLineText();
     }
 }

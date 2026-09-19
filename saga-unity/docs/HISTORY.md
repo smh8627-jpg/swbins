@@ -7644,3 +7644,21 @@ DFS 순서 재배선: 기존 사슬은 운중→상군→삭방→오원→(바�
 **REALM 51장 국경 확장 결론**: 교주(16~32차 관련분)·남중(16~29차)·복양/막북(12~15차, 33~35차) 세 사슬 모두 웹판 원본 LINKS 기준으로 완전히 닫혔다(적국 55·성 58). 더 늘리려면 새 지역이나 51장 밖 다른 축이 필요 — 사용자 결정 대기.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약을 "교주·남중·복양 세 사슬 전부 완전히 닫힘"으로 압축(상세는 HISTORY 위임, 문서 크기 여유 확보), "다음 작업"(REALM 국경 확장 후속은 사용자 결정 대기로 변경) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15291B로 15KB(15360B) 상한 안쪽 유지).
+
+## 2026-09-19 — 105 Q1 사실상 처리 + PLAN 101-2 ④ GO 일과판 첫 실장
+
+**Q1 결정 경위**: 사용자에게 "godot·unity 중 그래픽 투자 우선 트랙"을 물으며 두 트랙 진척을 실제로 비교해 보고했다(godot: GO·DUNGEON·FOREST 3판 실기 승인, STORY·REALM도 101-2 항목 다수 완료, 성 107개 / unity: 다섯 판 다 Vertical Slice만, 101-2는 대부분 첫 항목만). 사용자가 "godot 실기 승인을 검증으로 인정, unity로 포트 진행"으로 답해 — Q1(트랙 우선순위) 자체보다 **더 구체적인 하위 결정**(PLAN.md 101-2 "웹에서 통한 것부터" 게이트를 saga-godot 실기 승인으로도 충족된 것으로 인정)으로 정리됐다. PLAN.md 101-2 서두에 이 결정을 기록(코드는 안 베낌, 설계 검증만 인정).
+
+이 결정으로 열린 첫 작업 — GO 101-2 ④ 일과판(웹판 §5 ④, `saga-web/saga-go/PLAN.md` 158행) 완성. 웹판 풀 8(걷기·조우 3·역참 2·사건 2·비석 3·토벌 1·반려 500m·사당 1) 중 역참·비석·사당·반려는 이 트랙에 없고, 발견형 콘텐츠(숨은 보물·산신당·동쪽 숲 유물·채집)는 전부 `WorldEventState`/`GatherState`로 "한 번뿐"이라 반복되는 일과가 못 된다(자리가 유한) — 그래서 실제로 **몇 번이고 반복 가능한** 시스템 넷(걷기·도적 조우 승리·희귀 늑대 토벌·성황당 기원)으로 풀을 재구성했다.
+
+- `Data/DailyTaskState.cs`(신설) — 날짜 문자열(yyyy-MM-dd)을 직접 구현한 안정 해시(`string.GetHashCode()`는 프로세스마다 값이 달라질 수 있어 안 씀)로 시드를 만들어 `System.Random` Fisher-Yates로 풀 4를 섞고 앞 3개를 뽑는다(같은 날짜=항상 같은 셋). 진행 리포트(`ReportProgress(Kind, amount)`), 셋 다 완료 시 도장 1(`CheckAllDone`), 도장 7=금+100·경험치+150 지급.
+- `GoSessionTracker.cs` — `GoalLineSession()`(이번 세션 — 오늘의 일과 중 남은 것)·`GoalLineWeek()`(이번 주 — 도장 진행)를 실값으로 교체(기존 placeholder 지움). Update()에서 이동량을 정수 m 단위로 이월해 `ReportProgress(Kind.Walk, ...)` 호출(DailyTaskState는 int만 받음 — float 그대로 넘기면 컴파일 에러, 처음에 겪음).
+- `BanditEncounter.cs`/`RareWolfEncounter.cs`/`LuckyCairn.cs` — 각각 승리/기원 시점에 한 줄씩 `DailyTaskState.ReportProgress(...)` 훅.
+- `SaveState.cs` — v9→v10(dailyDate/dailyProgress/dailyDone/dailyStampGranted/dailyStamps). v9 이하는 빈 날짜로 채워 다음 `EnsureToday()`가 오늘 날짜로 새로 뽑는다(진행 손실 없음 — 애초에 없던 기능이라 잃을 진행이 없다).
+- `PlaytestHeadless.cs` — 새 `CheckDailyTasks()`(반드시 프레임 3 체크 시퀀스의 **마지막**, 이유는 아래 함정 참고). 리플렉션으로 `DailyTaskState`의 private 정적 필드/메서드를 직접 조작해: 날짜 해시 결정성, 진행→완료→도장, 도장 7 주간 보상(경험치는 레벨업이 끼면 절대값 델타로 못 재기 때문에 `PlayerStats.LeveledUp` 이벤트 카운트로 대체 확인), 저장/로드 왕복, v9 마이그레이션(수기로 v9 모양 JSON을 실제 세이브 파일에 잠깐 써넣고 확인)까지 전부 검증.
+
+**함정(실제로 겪음)**: `CheckDailyTasks()`가 `SaveState.Save()`를 실제로 부르면 `Application.persistentDataPath/save.json`(`AppData/LocalLow/DefaultCompany/SAGA/save.json`)이 진짜로 남는다. `GameBootstrap.Start()`가 부팅마다 `TryLoad()`를 부르므로, 이 파일을 "Save() 호출 **직후**" 시점으로 되돌리면 그 자체가 오염이다(그 시점 상태엔 이미 이번 테스트가 만든 값이 들어 있다) — 반드시 **그 어떤 Save()도 부르기 전** 원본(없었으면 파일 자체를 삭제)으로 되돌려야 한다. 처음엔 v9-마이그레이션 서브블록만 try/finally로 감쌌다가, 실제로 다음 헤드리스 실행에서 `CheckWeaponVisual`이 "이미 장착된 무기라 칼날 크기 변화 없음"으로 간헐 실패하는 걸 겪고서야 전체(저장/로드 왕복 + v9 마이그레이션)를 하나의 try/finally로 다시 묶었다. 오염된 실제 세이브 파일도 수동으로 지웠다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건, float→int 인자 오류 1회 겪고 고침)·`PlaytestHeadless`(GO) 3연속 실행(`Saga.EditorTools.PlaytestHeadless.Run`, `-quit` 안 줌) — 처음 2회는 세이브 오염으로 간헐 실패, 원인 수정 후 3연속 OK. `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복).
+
+`docs/PROJECT_STATE.md` 갱신(GO 완료 요약에 101-2 ④ 추가, 세이브 버전 v9→v10 표기, "다음 작업" 1순위를 "PLAN 101-2 이어서"로 교체하고 Q1을 사실상 처리된 것으로 정리, 테스트 상태·실기 확인 대기·알려진 함정(세이브 오염) 갱신 — 15KB 상한에 걸려 REALM/STORY 절 여러 곳을 압축해 15360B로 맞춤).

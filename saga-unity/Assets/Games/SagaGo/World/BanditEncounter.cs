@@ -407,6 +407,7 @@ namespace Saga.Go.World
 
             if (cleared)
             {
+                DailyTaskState.ReportProgress(DailyTaskState.Kind.BanditWin, 1);
                 PartyState.Recruit(RecruitId);
 
                 // PLAN.md 66장 Reward — 등용 외에 경험치·장비 보상도 준다.

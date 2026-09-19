@@ -332,6 +332,7 @@ namespace Saga.Go.World
             if (cleared)
             {
                 WorldEventState.TryTrigger(EventId);
+                DailyTaskState.ReportProgress(DailyTaskState.Kind.WolfWin, 1);
 
                 int levelBefore = PlayerStats.Level;
                 PlayerStats.AddExp(ExpReward);
