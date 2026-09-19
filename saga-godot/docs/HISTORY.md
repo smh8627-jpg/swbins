@@ -7586,3 +7586,15 @@ PROJECT_STATE.md` 참고. 요약:
   - **Q-e**: `tools/asset-forge/`는 애초에 저장소 루트(`C:\swbins\tools\asset-forge`)에 있어(saga-godot 밑이 아님) 처음부터 공유 위치였다 — 지움.
 - Q1(완성판 트랙)·Q-b(SDFGI vs LightmapGI, 승인판 그래픽 톤 변경이라 실기 확인 몰아서 하기 전엔 보류 문구 추가)·Q-d(사람 몫 셋)·Q-g(부위 파괴 조준)는 진짜 열려 있어 그대로 둠.
 - 코드 변경 없음(문서만). `bash tools/precheck.sh` 통과.
+
+## FOREST VRoid 아바타 적용 — Q3(a)를 DUNGEON 다음으로 FOREST에도 (2026-09-19⑮)
+
+- Downloads 폴더에서 사용자가 이미 만들어 둔 VRoid 조형(`model.vroid`, `saga_forest_avatar_01.vrm`, Q-d "VRoid 조형" 몫)을 발견 — GO Player.tscn과 같은 파이프라인으로 FOREST에 연결했다.
+- `assets/characters_vroid/saga_forest_avatar_01.{vrm,glb}`로 들여옴(.vrm 그대로 .glb 복사 — VRM은 표준 glTF 바이너리라 Godot이 그대로 읽는다, AvatarSample_A와 같은 전례).
+- 얼굴: `tools/asset-forge/vroid_face_bake_project.py`(Blender 4.2.4 LTS 포터블, 새로 받음·커밋 안 함)를 그대로 재사용 — MATERIALS 로그로 이 모델도 AvatarSample_A와 똑같은 VRoid Studio 표준 명명(N00_000_00_Face*_00_FACE/EYE/SKIN)을 따르는 걸 확인, 스크립트 수정 없이 한 번에 성공(`generated/saga_forest_avatar_01_Face_Baked.png`, 264KB) — 이목구비 합성 결과를 직접 열어 확인함.
+- **`cel_shader_apply.gd` 일반화**: `BAKED_FACE_TEXTURE` 단일 상수(AvatarSample_A 전용)였던 걸 `FACE_BAKE_BY_GLB` 딕셔너리(GLB 경로→베이크 텍스처)로 바꿨다. `root.scene_file_path`로 어느 GLB에서 온 Visual인지 구분한다 — headless 프로브 스크립트로 `PackedScene.instantiate()`된 뿌리 노드가 실제로 원본 glb 경로를 들고 있는지 먼저 실측 확인 후 반영(안 그랬으면 GO 얼굴 텍스처가 FOREST에 잘못 씌워질 뻔했다).
+- 스케일: headless 스크립트로 `GLBUtils.find_all_mesh_instances()` 합산 AABB 높이 실측(1.643m) → 105 Q-h 1.7m 표준에 맞춰 ×1.0344 (GO/DUNGEON/FOREST 다른 캐릭터와 같은 결, capsule은 이미 1.7m 표준으로 안 건드림).
+- `ForestPlayer.tscn` Visual ext_resource를 `character-a.glb`→새 VRoid glb로 교체. 애니메이션 없음(T포즈) — GO와 같은 이유, 103-4 Mixamo 리타겟 전까지 그대로. `villager_builder.gd`(FOREST 주민)는 안 건드림 — Q3(a)는 "주역만" VRoid라는 원칙 그대로.
+- PLAN 102-6·103-4에 반영, 105 Q-c 삭제 때 같이 남았던 후보 폴더 행도 마저 지움.
+- Godot 4.7 헤드리스 재확보(스크래치패드, 새 세션이라 이전 캐시 없음) → 임포트 1회 → `tools/godot_regress.sh` 다섯 판 통과(issues=0, `.import`/`project.godot` 잡음 없음).
+- 다음: 사용자 실기로 FOREST 아바타 얼굴·1.7m 스케일 체감(GO와 같은 확인 항목에 합류). DUNGEON 플레이어도 VRoid로 바꿀지는 계속 열려 있음 — 사람이 조형 하나 더 만들면 `FACE_BAKE_BY_GLB`에 한 줄만 추가하면 된다.

@@ -2817,12 +2817,12 @@ Combat Core 생성
 | 폴더 | 내용 | 판정 | 이유·조건 |
 |---|---|---|---|
 | `assets/characters/` character-a~d (Kenney Blocky) | 플레이어·NPC·산적 | **교체 대기(보류)** | 각진 블록 얼굴이 셀 램프와 안 맞음(66-2). 대체 GLB 확정 전까지 지우지 않는다(마이그레이션 규칙) |
-| `assets/characters_vroid/` AvatarSample_A | GO 플레이어 기준 캐릭터 | **Q3 결정(a)** | 하이폴(29542) 애니 비율. 2026-09-19 사용자가 "VRoid로" 명시 지시해 GO `Player.tscn`에 적용 완료(a: VRoid 주역 + 저폴리 나머지). DUNGEON/FOREST 플레이어도 VRoid로 바꿀지는 별도 확인 필요 — 아직 character-a.glb(저폴리) 그대로 |
+| `assets/characters_vroid/` AvatarSample_A | GO 플레이어 기준 캐릭터 | **Q3 결정(a)** | 하이폴(29542) 애니 비율. 2026-09-19 사용자가 "VRoid로" 명시 지시해 GO `Player.tscn`에 적용 완료(a: VRoid 주역 + 저폴리 나머지) |
+| `assets/characters_vroid/` saga_forest_avatar_01 | FOREST 플레이어 기준 캐릭터 | **Q3 결정(a) 적용** | 2026-09-19⑮ 사용자가 VRoid Studio로 직접 조형해 전달(Q-d "VRoid 조형" 몫). GO와 같은 파이프라인(베이크·1.7m 스케일)으로 `ForestPlayer.tscn`에 적용. DUNGEON 플레이어는 아직 character-a.glb(저폴리) 그대로 — 셋 다 바꿀지는 계속 열려 있음 |
 | `assets/buildings/` (Fantasy Town 모듈) | 마을집·기둥 | **남김** | 66-2 결론대로 셰이더+팔레트 스냅+painterly 톤으로 충분. `colormap.png` 를 팔레트 24색으로 스냅 |
 | `assets/vegetation/`·`rocks/` (Nature Kit) | 나무·바위 | **교체(Quaternius Stylized Nature)** | 뭉게 캐노피가 목표 톤에 맞음. 사람이 itch.io 에서 받아 줘야 함. 그 전엔 팔레트 스냅만 |
 | `assets/dungeon/` (Modular Cave) | 방·복도·문 | **남김** | 굴혈 mood 팔레트 3종 스냅 |
 | `assets/shrine/` altar-stone | 옛 사당 | **남김** | |
-| `assets/_candidates_66-2/kaykit_medieval_hex/` | 후보 4종 | **뺄 것(불채택 확정)** | 씬에 안 물림. 삭제는 105장 Q 로 사용자 확인 뒤 |
 | `assets/environment/` env_*.tres | 환경 | **남김·102-2 로 재설정** | |
 
 ## 102-7. "허접해 보이는" 10가지 — 이 트랙 해당 여부
@@ -2881,7 +2881,7 @@ assets/generated/
 ## 103-4. VRoid·Mixamo 활용 조건
 
 - **Mixamo**: 인간형 GLB(character-a~d 는 리그가 Kenney 자체 — 리타겟 필요, VRoid 는 VRM 휴머노이드) 를 FBX 로 올려 자동 리깅 + 애니(idle·walk·run·attack·hit·dodge·death) 받기 → Godot `BoneMap`(`SkeletonProfileHumanoid`) 리타겟. 라이선스는 게임 사용 허용. 사람이 Adobe 계정으로 다운로드해야 한다(자동화 불가).
-- **VRoid**: 105장 Q3 결정(a, 2026-09-19) — 인물 105 조형은 사람 몫이라 현실적으로 **주역 5~10명만** VRoid, 나머지는 kitbash 저폴리. GO 플레이어(AvatarSample_A)부터 적용, DUNGEON/FOREST 플레이어도 같은 VRoid로 바꿀지는 별도 확인 필요(102-6). `cel_toon` 으로만 렌더(MToon 원본 셰이더는 안 씀).
+- **VRoid**: 105장 Q3 결정(a, 2026-09-19) — 인물 105 조형은 사람 몫이라 현실적으로 **주역 5~10명만** VRoid, 나머지는 kitbash 저폴리. GO(AvatarSample_A)·FOREST(saga_forest_avatar_01) 플레이어에 적용 완료. DUNGEON 플레이어도 같은 VRoid로 바꿀지는 열려 있음(사람이 조형 하나 더 만들어 줘야 함, Q-d) — `cel_shader_apply.gd`의 `FACE_BAKE_BY_GLB` 표에 GLB 경로만 추가하면 같은 파이프라인으로 붙는다. `cel_toon` 으로만 렌더(MToon 원본 셰이더는 안 씀).
 - 66-1/66-2 와의 관계: 66-1 결정(Godot 유지)·66-2 결정(카툰 방향·원작 리소스 금지·Kenney 순차 교체)은 그대로. 이 장은 "무엇으로 교체하나" 의 실행 계획이다. AI 생성(SAGA-DESIGN §7.4)은 소품·건물 텍스처에만, 원작 IP 프롬프트 금지, 결과물도 팔레트 스냅.
 
 ## 103-5. 판정 절차(새 에셋 하나를 들일 때)

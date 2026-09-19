@@ -34,20 +34,31 @@ const OUTLINE_SHADER := preload("res://saga_core/shaders/cel_outline.gdshader")
 ## - FaceBrow·FaceEyeline·FaceMouth: SKIN 위에 이미 같은 내용이 구워져
 ##   있으니 그대로 두면 이중으로 겹쳐 그려진다 — 완전히 지운다.
 const LAYERED_FACE_MESH_NAMES := ["Face"]
-const BAKED_FACE_TEXTURE := preload("res://assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png")
 const SKIN_KEY := "SKIN"
 const HIDE_KEYS := ["FaceBrow", "FaceEyeline", "FaceMouth"]
 
+## VRoid GLB 경로별 베이크 텍스처 — 2026-09-19⑮, FOREST용 두 번째 캐릭터가
+## 붙으며 AvatarSample_A 전용이던 단일 상수를 GLB 단위 표로 바꿨다. `root`
+## (Player.tscn 등의 Visual 인스턴스)의 `scene_file_path`가 곧 이 GLB 경로다
+## (`PackedScene.instantiate()`가 뿌리 노드에 그대로 남겨 준다 — 실측 확인).
+const FACE_BAKE_BY_GLB := {
+	"res://assets/characters_vroid/AvatarSample_A.glb":
+		preload("res://assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png"),
+	"res://assets/characters_vroid/saga_forest_avatar_01.glb":
+		preload("res://assets/characters_vroid/generated/saga_forest_avatar_01_Face_Baked.png"),
+}
+
 static func apply_to(root: Node) -> int:
+	var baked_face: Texture2D = FACE_BAKE_BY_GLB.get(root.scene_file_path)
 	var applied := 0
 	for mesh_instance in _find_mesh_instances(root):
-		if mesh_instance.name in LAYERED_FACE_MESH_NAMES:
-			_apply_baked_face(mesh_instance)
+		if mesh_instance.name in LAYERED_FACE_MESH_NAMES and baked_face != null:
+			_apply_baked_face(mesh_instance, baked_face)
 			continue
 		applied += _apply_one(mesh_instance)
 	return applied
 
-static func _apply_baked_face(mesh_instance: MeshInstance3D) -> void:
+static func _apply_baked_face(mesh_instance: MeshInstance3D, baked_face: Texture2D) -> void:
 	var mesh := mesh_instance.mesh
 	if mesh == null:
 		return
@@ -69,7 +80,7 @@ static func _apply_baked_face(mesh_instance: MeshInstance3D) -> void:
 			mat.albedo_color = Color(0, 0, 0, 0)
 			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		elif SKIN_KEY in original_name:
-			mat.albedo_texture = BAKED_FACE_TEXTURE
+			mat.albedo_texture = baked_face
 			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		else:
 			## EyeWhite·EyeIris·EyeHighlight — 원래 자기 텍스처 그대로.
