@@ -7641,3 +7641,11 @@ PROJECT_STATE.md` 참고. 요약:
 - "vroid 다한거?" 질문에 답하며 확인: GO·FOREST만 VRoid고 DUNGEON·STORY는 아직 Kenney였는데, 같은 시간대 다른 세션이 커밋 `adba94eb`로 둘 다 AvatarSample_A로 이미 교체·회귀 통과시켜 놓은 걸 발견 — 중복 작업 안 하고 PROJECT_STATE 완료 요약 표 + 알려진 오류(DUNGEON Torch 조명 부족, AgX 이후 화면이 까맣게 보임)만 반영.
 - Downloads `새 폴더\model.vroid`를 "DUNGEON용으로 새로 만든 캐릭터인가" 하고 열어봤다 — zip 구조 확인(`v1model/meta.json`+`data.bin`, VRoid Studio 고유 포맷) 후 썸네일 추출해 보니 갈색 머리+하와이안 셔츠, `saga_forest_avatar_01.vrm`과 같은 캐릭터였다. `docs/HISTORY.md` ⑮(09-19) 기록과 대조해 **이미 FOREST에 적용된 아바타의 VRoid Studio 소스 프로젝트 파일**임을 확인 — 새 미사용 자산이 아니었다. DUNGEON용으로 쓸 만한 대기 중인 새 VRoid 조형은 없음.
 - 코드 변경 없음(문서만). `bash tools/precheck.sh` 통과, PROJECT_STATE 15331B(≤15KB).
+
+## DUNGEON 전용 VRoid 캐릭터 새로 조형 — 내보내기까지 (2026-09-20)
+
+- "완전히 새로 디자인한 캐릭터"(AskUserQuestion 답) 요청 — AvatarSample_A 재사용은 밋밋하다는 지적. VRoid Studio 2.14.0(레지스트리로 설치 위치 확인, `C:\Users\user\AppData\Local\Programs\VRoidStudio\2.14.0`) 를 `SetCursorPos`+`mouse_event` 좌표 클릭으로 조작(ASSET_GUIDE 2026-09-13 기록과 같은 방식, 이번엔 windowed 창을 `Force-Foreground`로 앞에 세우는 헬퍼 `gui_automation.ps1` 새로 작성 — Alt 키다운/`SetForegroundWindow`/`BringWindowToTop` 조합, 그냥 `SetForegroundWindow`만으론 창이 안 앞으로 안 나왔다).
+- 새로 만들기(남성 베이스) → 얼굴 세트 프리셋 하나 변경(눈매 샤프하게) → 헤어를 스파이키 단발로 바꾸고 색상 hex `#2E2E38`(흑청)로 재지정 → 의상을 빨간 후드+크롭 팬츠 프리셋으로 교체. 슬라이더 하나하나가 아니라 "프리셋 고르기" 위주로 진행(빠르고 신뢰도 높음 — 슬라이더 미세조정은 스크린샷 판독이 어려워 이번엔 안 함).
+- VRM 내보내기 설정에서 포맷은 기존 AvatarSample_A와 같은 **VRM1.0**(`VRMC_vrm` 확장자 존재로 확인) 유지, 아바타 이름 `dungeon_hero_01`·제작자 `saga-godot`, 허가 설정도 AvatarSample_A와 동일하게(아바타 이용 허가=모든 유저, 상업 이용=개인 및 법인 상업 이용 허용, 재배포 허용, 수정 허용) 맞춤 — 마우스 휠 스크롤(`mouse_event` 0x0800, `BitConverter`로 음수→uint32 변환 필요)로 다단 설정 화면을 훑음.
+- 내보낸 파일(`Downloads\새 폴더\dungeon_hero_01.vrm`, 14.3MB)을 `assets/characters_vroid/dungeon_hero_01.{vrm,glb}`로 복사해 들여옴. **씬 연결은 다음 세션 몫**(사용자가 "완료하면 내일 이어" 요청으로 중단) — 얼굴 베이크(Blender 필요)·1.7m 스케일 재계산·Mixamo 리타겟·`DungeonPlayer.tscn` 교체 남음, 순서는 PROJECT_STATE에 적음.
+- VRoid Studio·(이미 꺼져 있던) Godot 프로세스 전부 종료 확인.
