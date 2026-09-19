@@ -1149,7 +1149,16 @@ window.DG_NO_TUNE = true;
       }
       raw.player.x = tree.x; raw.player.y = tree.y;      // 앞에 세운다
       var f = V.focus();
-      var r = V.interact();
+      /* 나무 흔들기(shake)는 공용 Math.random()으로 19%(벌집 8+가구 6+돈 5)
+         확률로 "여느 때처럼 열매" 대신 다른 갈래로 샌다(§5.8① 아래 "채집
+         손맛 표준 C" 항목들이 clearBees()로 조심하는 그 함정과 같은 결) —
+         이 항목이 재려는 것은 "채집 자체가 되는가"지 그 확률표가 아니니
+         재는 동안만 갈래를 열매 쪽으로 붙들어 둔다("재지 않는 축은 끝값으로
+         붙든다"). */
+      var origRandom = Math.random;
+      Math.random = function () { return 0.99; };
+      var r;
+      try { r = V.interact(); } finally { Math.random = origRandom; }
       var again = V.interact();
       return f && f.obj === tree && r && r.kind === 'gather' &&
         V.spent(tree) && again.kind === 'empty' &&
@@ -1606,6 +1615,16 @@ window.DG_NO_TUNE = true;
       var s = V.state();
       var keep = { day: s.day, dayMark: JSON.parse(JSON.stringify(s.dayMark || {})), dayLog: s.dayLog,
         gold: C.save.player.gold, gathered: s.gathered };
+      /* bagAdd()는 checkTasks()도 함께 부른다(§5.1 "오늘의 일과") — 마침
+         쌓여 있던 채집 일과가 이 +4로 문턱을 넘으면 applyTaskReward()가
+         조용히 금을 더 얹는다(실측: +77 넣었는데 +177로 나왔다, 일과 보상
+         100). 재려는 축은 "명시적으로 넣은 값이 그대로 반영되는가"지 일과
+         보상 여부가 아니니, 임시로 오늘 일과를 전부 완료 처리해 두어
+         checkTasks()가 새로 건드릴 것이 없게 만든다("재지 않는 축은
+         끝값으로 붙든다"). */
+      var tasksBefore = s.tasks ? JSON.parse(JSON.stringify(s.tasks)) : null;
+      if (s.tasks && s.tasks.list) { s.tasks.list.forEach(function (t) { t.done = true; }); }
+      if (s.tasks && s.tasks.weekly) { s.tasks.weekly.done = true; }
       V.snapshotDayMark();                      // 오늘 시작점을 지금으로 다시 박는다
       V.bagAdd(VD.ITEMS.flower[0], 4);
       C.save.player.gold += 77;
@@ -1613,7 +1632,7 @@ window.DG_NO_TUNE = true;
       V.rollDay();
       var info = V.dayLogInfo();
       s.day = keep.day; s.dayMark = keep.dayMark; s.dayLog = keep.dayLog;
-      s.gathered = keep.gathered; C.save.player.gold = keep.gold;
+      s.gathered = keep.gathered; C.save.player.gold = keep.gold; s.tasks = tasksBefore;
       return info.gathered === 4 && info.gold === 77 && ('채집 +' + info.gathered + ' · 금 +' + info.gold);
     });
 
