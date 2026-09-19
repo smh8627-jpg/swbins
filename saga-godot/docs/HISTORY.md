@@ -7499,3 +7499,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 실기로 확인: 새로 만든 임시 검증 씬(빈 씬+GLB+가까운 카메라)은 물리 낙하·조준 각도 맞추기가 까다로워 포기하고, 대신 **실제 TestVillage**에서 `camera_rig.gd`의 `spring_arm.spring_length`를 3-9.0→2.5(뒤늦게 9.0으로 원복)로 잠깐 좁혀 스크린샷 — 눈썹(갈색)·홍채(눈 디테일)까지 또렷이 나옴. 이전 "완전히 하얗게 빔"에서 뚜렷이 개선됐다. 피부가 여전히 좀 창백해 보이는 건 씬 전체에 낀 안개(fog_density 0.012) 때문으로 보임(건물·바닥도 같이 뿌옇게 찍힘) — 별개 결함인지는 사용자 실기에서 안개 옅은 시간대로 재확인 필요.
 - `tools/godot_regress.sh` 다섯 판 통과(md5 이전 실행과 완전히 동일 — 결정적), `.import`/`project.godot`/`camera_rig.gd` 잡음 없음(스크린샷 테스트용으로 잠깐 바꾼 `spring_arm.spring_length`·`rotation_degrees.x`는 정확히 원복 확인). 스크린샷 테스트에 쓴 스크래치 씬(`_scratch_facecam.tscn` 등)은 커밋 전 삭제.
 - 다음: 사용자 실기 확인(얼굴 최종 판정) → 103-4 Mixamo 리타겟(애니메이션 연결)으로.
+
+## GO 마을 팔레트 씬 연결 — go_village 스냅 변형 적용 (2026-09-19⑥) — PLAN 103-3/103-5
+
+- 103-3 표의 "쓰는 곳" 마지막 단계(103-5 절차 5번, "씬 1곳에 물리고 회귀") — 지난 세션이 만든 `wall-block__go_village.glb`·`roof-gable__go_village.glb`·`pillar-stone__go_village.glb`·`planks__go_village.glb`(`assets/generated/variants/`) 중 마을집·역참에 쓰는 두 장만 연결했다.
+- `landmarks_builder.gd`의 `WALL_GLB`·`ROOF_GLB` 상수를 원본 `assets/buildings/*.glb`에서 팔레트 변형 경로로 바꿨다(`_add_village`·`_add_waystation`이 이 상수를 그대로 쓰므로 두 자리 다 자동 적용). `PILLAR_GLB`(폐허 기둥)·`PLANK_GLB`(다리 널판)는 그대로 뒀다 — 둘 다 "go_village" 색이 아니라 103-3 표가 예고한 "폐허"·"시대 퓨전" 팔레트를 기다려야 할 자리라(폐허는 이 판 자체가 시대혼합 컨셉, 마을 초록으로 물들이면 어긋난다) 판단 보류.
+- `tools/godot_regress.sh` 다섯 판 통과(issues=0, `.import`/`project.godot` 잡음 없음). GO md5만 이전과 다름(로드하는 GLB 경로가 바뀌었으니 당연) — GO 자체는 3회 동일해 결정적임을 확인.
+- 다음: 사용자가 실기로 마을집 색감 확인(이전 회색 원본 대비 팔레트가 실제로 배어드는지). 폐허·시대 퓨전 팔레트는 아직 없음 — 필요해지면 palette.py PALETTES에 새 항목부터.

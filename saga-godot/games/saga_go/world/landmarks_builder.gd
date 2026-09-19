@@ -16,8 +16,13 @@ const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const ShrineTrial := preload("res://games/saga_go/world/shrine_trial.gd")
 const BeaconTower := preload("res://games/saga_go/world/beacon_tower.gd")
 
-const WALL_GLB := "res://assets/buildings/wall-block.glb"
-const ROOF_GLB := "res://assets/buildings/roof-gable.glb"
+## 103-3 스냅(2026-09-19) — 마을집·역참(_add_village·_add_waystation)만
+## go_village 팔레트 변형으로 바꿨다. 폐허 기둥·다리 널판(PILLAR_GLB·
+## PLANK_GLB)은 아직 그 자리에 맞는 팔레트(103-3 표의 "폐허" 갈래)가
+## 없어 원본 Kenney 색 그대로 남겨뒀다 — palette.py PALETTES에 그 항목이
+## 생기면 마저 스냅한다.
+const WALL_GLB := "res://assets/generated/variants/wall-block__go_village.glb"
+const ROOF_GLB := "res://assets/generated/variants/roof-gable__go_village.glb"
 const PILLAR_GLB := "res://assets/buildings/pillar-stone.glb"
 const PLANK_GLB := "res://assets/buildings/planks.glb"
 const CAVE_GATE_GLB := "res://assets/dungeon/gate-rock.glb"
