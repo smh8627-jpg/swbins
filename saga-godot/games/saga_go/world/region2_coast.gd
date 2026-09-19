@@ -33,6 +33,7 @@ const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const CelShaderApply := preload("res://saga_core/shaders/cel_shader_apply.gd")
 const BeaconTower := preload("res://games/saga_go/world/beacon_tower.gd")
+const VegetationBuilder := preload("res://games/saga_go/world/vegetation_builder.gd")
 
 const PLANK_GLB := "res://assets/buildings/planks.glb"
 
@@ -210,6 +211,14 @@ func _build_harbor() -> void:
 	terrain.name = "CoastTerrain"
 	terrain.set("region_id", COAST_REGION)
 	add_child(terrain)
+	## 103-3 스냅(2026-09-19) — 이 지도엔 T(숲) 칸이 없어(REGIONS["coast"]
+	## 참고) 나무는 안 서고, ^(산) 테두리 32칸에 go_coast 팔레트 변형
+	## 바위만 선다(vegetation_builder.gd REGION_ROCK_*_GLB).
+	var vegetation := Node3D.new()
+	vegetation.set_script(VegetationBuilder)
+	vegetation.name = "CoastVegetation"
+	vegetation.set("region_id", COAST_REGION)
+	add_child(vegetation)
 	_build_dock()
 	_build_gull()
 	_build_crab()

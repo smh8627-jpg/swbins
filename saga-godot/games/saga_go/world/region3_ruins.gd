@@ -29,6 +29,7 @@ const TerrainBuilder := preload("res://games/saga_go/world/terrain_builder.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 const Toast := preload("res://saga_core/ui/toast.gd")
 const BeaconTower := preload("res://games/saga_go/world/beacon_tower.gd")
+const VegetationBuilder := preload("res://games/saga_go/world/vegetation_builder.gd")
 
 const RUINS_REGION := "ruins"
 
@@ -78,6 +79,7 @@ var _triggered := false
 
 func _ready() -> void:
 	_build_terrain()
+	_build_vegetation()
 	_build_entry_discovery()
 	_build_return_trigger()
 	_build_relic()
@@ -102,6 +104,18 @@ func _build_terrain() -> void:
 	terrain.name = "RuinsTerrain"
 	terrain.set("region_id", RUINS_REGION)
 	add_child(terrain)
+
+
+## 103-3 스냅(2026-09-19) — TerrainBuilder와 같은 패턴으로 vegetation_
+## builder.gd를 region_id="ruins"로 인스턴스한다. 이 지역 T(숲) 4칸·
+## ^(산) 테두리에 나무·바위가 서고, go_ruins 팔레트 변형 GLB를 쓴다
+## (REGION_TREE_GLB·REGION_ROCK_*_GLB, vegetation_builder.gd 참고).
+func _build_vegetation() -> void:
+	var vegetation := Node3D.new()
+	vegetation.set_script(VegetationBuilder)
+	vegetation.name = "RuinsVegetation"
+	vegetation.set("region_id", RUINS_REGION)
+	add_child(vegetation)
 
 
 ## region2_coast.gd `_travel_to_ruins()`가 도착 즉시 discover()를 부르니

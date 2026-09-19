@@ -1,0 +1,126 @@
+{
+  "name": "go_coast",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "sand",
+      "band": "base",
+      "hex": "#c2ad80"
+    },
+    {
+      "role": "sand",
+      "band": "light",
+      "hex": "#d7caac"
+    },
+    {
+      "role": "sand",
+      "band": "dark",
+      "hex": "#7e7153"
+    },
+    {
+      "role": "water",
+      "band": "base",
+      "hex": "#40739e"
+    },
+    {
+      "role": "water",
+      "band": "light",
+      "hex": "#83a4c0"
+    },
+    {
+      "role": "water",
+      "band": "dark",
+      "hex": "#294b67"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "base",
+      "hex": "#8c8780"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "light",
+      "hex": "#b4b1ac"
+    },
+    {
+      "role": "mountain_stone",
+      "band": "dark",
+      "hex": "#5b5853"
+    },
+    {
+      "role": "driftwood",
+      "band": "base",
+      "hex": "#6b4c2e"
+    },
+    {
+      "role": "driftwood",
+      "band": "light",
+      "hex": "#9f8b77"
+    },
+    {
+      "role": "driftwood",
+      "band": "dark",
+      "hex": "#46321e"
+    },
+    {
+      "role": "bone_white",
+      "band": "base",
+      "hex": "#e0dbcc"
+    },
+    {
+      "role": "bone_white",
+      "band": "light",
+      "hex": "#ebe8de"
+    },
+    {
+      "role": "bone_white",
+      "band": "dark",
+      "hex": "#928f85"
+    },
+    {
+      "role": "beach_debris",
+      "band": "base",
+      "hex": "#9e8f6b"
+    },
+    {
+      "role": "beach_debris",
+      "band": "light",
+      "hex": "#c0b69f"
+    },
+    {
+      "role": "beach_debris",
+      "band": "dark",
+      "hex": "#675d46"
+    },
+    {
+      "role": "boat_gray",
+      "band": "base",
+      "hex": "#8c806b"
+    },
+    {
+      "role": "boat_gray",
+      "band": "light",
+      "hex": "#b4ac9f"
+    },
+    {
+      "role": "boat_gray",
+      "band": "dark",
+      "hex": "#5b5346"
+    },
+    {
+      "role": "crab_red",
+      "band": "base",
+      "hex": "#bf3824"
+    },
+    {
+      "role": "crab_red",
+      "band": "light",
+      "hex": "#d67e70"
+    },
+    {
+      "role": "crab_red",
+      "band": "dark",
+      "hex": "#7c2417"
+    }
+  ]
+}

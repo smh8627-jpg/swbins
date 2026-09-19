@@ -33,10 +33,29 @@ const ROCK_LARGE_SCALE := 2.6
 const ROCK_SMALL_SCALE := 3.5
 const CROP_SCALE := 2.5
 
-const TREE_GLB := "res://assets/vegetation/tree_oak.glb"
-const ROCK_LARGE_GLB := "res://assets/rocks/rock_largeA.glb"
-const ROCK_SMALL_GLB := "res://assets/rocks/rock_smallA.glb"
+## 103-3 스냅(2026-09-19) — 나무·바위는 지역마다 다른 팔레트 변형을 쓴다
+## (포구엔 숲 칸이 없어 나무 변형은 안 만들었다). `region_id`가 landmarks_
+## builder.gd의 TerrainBuilder·BeaconTower와 같은 패턴으로 밖에서
+## `.set("region_id", ...)`돼 들어온다 — 기본값 "village"는 지금까지의
+## TestVillage 그대로다. 모르는 region_id 는 `.get()` 기본값으로 원본
+## Kenney 색(마을과 같음)으로 조용히 떨어진다.
+const REGION_TREE_GLB := {
+	"village": "res://assets/generated/variants/tree_oak__go_village.glb",
+	"ruins": "res://assets/generated/variants/tree_oak__go_ruins.glb",
+}
+const REGION_ROCK_LARGE_GLB := {
+	"village": "res://assets/generated/variants/rock_largeA__go_village.glb",
+	"coast": "res://assets/generated/variants/rock_largeA__go_coast.glb",
+	"ruins": "res://assets/generated/variants/rock_largeA__go_ruins.glb",
+}
+const REGION_ROCK_SMALL_GLB := {
+	"village": "res://assets/generated/variants/rock_smallA__go_village.glb",
+	"coast": "res://assets/generated/variants/rock_smallA__go_coast.glb",
+	"ruins": "res://assets/generated/variants/rock_smallA__go_ruins.glb",
+}
 const CROP_GLB := "res://assets/vegetation/crops_wheatStageB.glb"
+
+var region_id := "village"
 
 
 func _ready() -> void:
@@ -59,7 +78,7 @@ func _scatter_trees() -> void:
 	var positions: Array[Vector3] = []
 	var scales: Array[float] = []
 	var yaws: Array[float] = []
-	var rows := TestMap.ROWS
+	var rows := TestMap.rows_of(region_id)
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in row.length():
@@ -69,14 +88,14 @@ func _scatter_trees() -> void:
 				var jx := (_hash(x, y, i * 2) - 0.5) * TestMap.TILE_SIZE * 0.8
 				var jz := (_hash(x, y, i * 2 + 1) - 0.5) * TestMap.TILE_SIZE * 0.8
 				var s := 0.7 + _hash(x, y, i * 2 + 100) * 0.6
-				positions.append(TestMap.world_pos(x, y) + Vector3(jx, ground, jz))
+				positions.append(TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz))
 				scales.append(s)
 				yaws.append(_hash(x, y, i * 2 + 200) * TAU)
 
 	if positions.is_empty():
 		return
 
-	var tree_mesh := GLBUtils.extract_mesh(TREE_GLB)
+	var tree_mesh := GLBUtils.extract_mesh(REGION_TREE_GLB.get(region_id, REGION_TREE_GLB["village"]))
 	if tree_mesh == null:
 		return
 
@@ -122,7 +141,7 @@ func _scatter_crops() -> void:
 	var positions: Array[Vector3] = []
 	var scales: Array[float] = []
 	var yaws: Array[float] = []
-	var rows := TestMap.ROWS
+	var rows := TestMap.rows_of(region_id)
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in row.length():
@@ -132,7 +151,7 @@ func _scatter_crops() -> void:
 				var jx := (_hash(x, y, i * 2 + 700) - 0.5) * TestMap.TILE_SIZE * 0.85
 				var jz := (_hash(x, y, i * 2 + 701) - 0.5) * TestMap.TILE_SIZE * 0.85
 				var s := 0.8 + _hash(x, y, i * 2 + 800) * 0.4
-				positions.append(TestMap.world_pos(x, y) + Vector3(jx, ground, jz))
+				positions.append(TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz))
 				scales.append(s)
 				yaws.append(_hash(x, y, i * 2 + 900) * TAU)
 
@@ -164,7 +183,7 @@ func _scatter_rocks() -> void:
 	var positions: Array[Vector3] = []
 	var use_large: Array[bool] = []
 	var yaws: Array[float] = []
-	var rows := TestMap.ROWS
+	var rows := TestMap.rows_of(region_id)
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in row.length():
@@ -173,7 +192,7 @@ func _scatter_rocks() -> void:
 			for i in ROCKS_PER_MOUNTAIN_TILE:
 				var jx := (_hash(x, y, i * 3 + 500) - 0.5) * TestMap.TILE_SIZE * 0.6
 				var jz := (_hash(x, y, i * 3 + 501) - 0.5) * TestMap.TILE_SIZE * 0.6
-				positions.append(TestMap.world_pos(x, y) + Vector3(jx, ground, jz))
+				positions.append(TestMap.world_pos(x, y, region_id) + Vector3(jx, ground, jz))
 				use_large.append(_hash(x, y, i * 3 + 502) > 0.5)
 				yaws.append(_hash(x, y, i * 3 + 503) * TAU)
 
@@ -183,8 +202,8 @@ func _scatter_rocks() -> void:
 	## 큰 바위·작은 바위 두 GLB를 섞어 산 능선이 다 똑같아 보이지 않게 한다
 	## — MultiMesh는 메시 하나당 하나라 종류별로 둘을 만든다(draw call 2회,
 	## 여전히 칸마다 노드를 만드는 것보단 훨씬 싸다).
-	var large_mesh := GLBUtils.extract_mesh(ROCK_LARGE_GLB)
-	var small_mesh := GLBUtils.extract_mesh(ROCK_SMALL_GLB)
+	var large_mesh := GLBUtils.extract_mesh(REGION_ROCK_LARGE_GLB.get(region_id, REGION_ROCK_LARGE_GLB["village"]))
+	var small_mesh := GLBUtils.extract_mesh(REGION_ROCK_SMALL_GLB.get(region_id, REGION_ROCK_SMALL_GLB["village"]))
 
 	var large_positions: Array[Transform3D] = []
 	var small_positions: Array[Transform3D] = []

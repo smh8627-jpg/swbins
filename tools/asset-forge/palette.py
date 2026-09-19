@@ -72,6 +72,20 @@ PALETTES = {
 		"cave_dark": (0.20, 0.20, 0.22),
 		"plains": (0.38, 0.55, 0.24),
 	},
+	## saga-godot PLAN.md 103-3 "포구" 갈래 base8 — go_village과 같은 원칙.
+	## terrain_builder.gd LEGEND["D"](모래)·water 앵커(go_village과 같은
+	## 값)·region2_coast.gd의 실제 소품 색(선착장·표류물 나무·갈매기·
+	## 고래뼈·해변 잡동사니·조각배·게)에서 그대로 뽑았다(2026-09-19).
+	"go_coast": {
+		"sand": (0.76, 0.68, 0.50),
+		"water": (0.25, 0.45, 0.62),
+		"mountain_stone": (0.55, 0.53, 0.50),
+		"driftwood": (0.42, 0.30, 0.18),
+		"bone_white": (0.88, 0.86, 0.80),
+		"beach_debris": (0.62, 0.56, 0.42),
+		"boat_gray": (0.55, 0.50, 0.42),
+		"crab_red": (0.75, 0.22, 0.14),
+	},
 	## saga-forest PLAN.md §6.3 "green"(기본) 바이옴 판별 팔레트 base8.
 	## TILES(grass/path 등)·FOG_COLOR 앵커에서 그대로 옮겼다(2026-09-19,
 	## Kenney Fantasy Town Kit 킷배싱 건물의 diffuse 를 이 팔레트로 스냅).
@@ -289,10 +303,12 @@ def snap_glb(in_path, palette_path, out_path, only_suffix=None, exclude_node_pre
 		if not _material_matches(mat, only_suffix) or _node_excluded(scene, name, exclude_node_prefix):
 			skipped.append(name)
 			continue
+		touched_this = False
 		tex = getattr(mat, "baseColorTexture", None) if mat is not None else None
 		if tex is not None:
 			visual.material.baseColorTexture = snap_image(tex, palette_rgb)
 			touched.append("%s(texture)" % name)
+			touched_this = True
 		vc = getattr(visual, "vertex_colors", None)
 		if vc is not None and len(vc) > 0:
 			vc_arr = np.asarray(vc)
@@ -302,8 +318,23 @@ def snap_glb(in_path, palette_path, out_path, only_suffix=None, exclude_node_pre
 			new_vc = snapped if alpha is None else np.concatenate([snapped, alpha.astype(np.uint8)], axis=1)
 			geom.visual.vertex_colors = new_vc
 			touched.append("%s(vertex_colors)" % name)
+			touched_this = True
+		if not touched_this:
+			## 2026-09-19 — Kenney Nature Kit(tree_oak·rock_largeA/smallA)은
+			## 텍스처도 정점색도 없이 재질마다 단색 baseColorFactor 하나뿐
+			## (예: 나무 몸통 재질 하나, 수관 재질 하나). 이 경우 그 단색
+			## 하나를 24색 중 최근접으로 바꾼다 — 배열이 아니라 상수 색이라
+			## 위 두 갈래(snap_image·snap_rgb_array)로는 못 건드렸었다.
+			factor = getattr(mat, "baseColorFactor", None) if mat is not None else None
+			if factor is not None:
+				rgb = np.array([factor[:3]], dtype=np.float32)
+				snapped = snap_rgb_array(rgb.astype(np.uint8), palette_rgb)[0]
+				alpha = int(factor[3]) if len(factor) > 3 else 255
+				mat.baseColorFactor = np.array(
+					[snapped[0], snapped[1], snapped[2], alpha], dtype=np.uint8)
+				touched.append("%s(solid_color)" % name)
 	if not touched:
-		print("경고 — 텍스처도 정점색도 못 찾았습니다(%s). 그대로 내보냅니다." % in_path)
+		print("경고 — 텍스처도 정점색도 단색도 못 찾았습니다(%s). 그대로 내보냅니다." % in_path)
 	os.makedirs(os.path.dirname(out_path), exist_ok=True)
 	scene.export(out_path)
 	print("스냅 %s -> %s (%s)%s" % (
