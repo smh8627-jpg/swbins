@@ -61,6 +61,12 @@ namespace Saga.Realm.Data
             public List<string> quizWrongIds;
             public List<int> quizWrongCounts;
             public int quizTotal, quizCorrect, quizStreak, quizBestStreak;
+            // 101-2 5-1 "인물 특성·야망"(2026-09-20) — 특성·야망 종류·목표는
+            // id 해시로 결정적이라(RealmOfficerTraits.cs 클래스 주석) 세이브가
+            // 필요 없고, 달성 여부만 저장한다. quiz 필드와 같은 이유로 버전을
+            // 안 올렸다 — 없는 필드는 JsonUtility가 null로 채워 옛 세이브도 그냥
+            // "아직 아무도 달성 안 함" 상태로 시작한다.
+            public List<string> officerAmbitionsDone;
         }
 
         /// <summary>PlaytestRealmSlice.cs 전용 — GameBootstrap.Awake()가
@@ -127,6 +133,7 @@ namespace Saga.Realm.Data
                 quizCorrect = RealmQuizState.GetProgress().Correct,
                 quizStreak = RealmQuizState.GetProgress().Streak,
                 quizBestStreak = RealmQuizState.GetProgress().BestStreak,
+                officerAmbitionsDone = RealmOfficerTraits.SnapshotDone(),
             };
 
             try
@@ -181,6 +188,7 @@ namespace Saga.Realm.Data
             }
             RealmQuizState.Restore(data.quizLearned, data.quizWrongIds, data.quizWrongCounts,
                 data.quizTotal, data.quizCorrect, data.quizStreak, data.quizBestStreak);
+            RealmOfficerTraits.Restore(data.officerAmbitionsDone);
             return true;
         }
 

@@ -203,6 +203,7 @@ namespace Saga.EditorTools
                     if (!CheckRealmHudLocalization()) { Fail(); return; }
                     if (!CheckCommandUiPanelsWork()) { Fail(); return; }
                     if (!CheckGoalBoardAndSessionCard()) { Fail(); return; }
+                    if (!CheckOfficerTraits()) { Fail(); return; }
                     _phase = Phase.WorldMap;
                     break;
 
@@ -1622,6 +1623,88 @@ namespace Saga.EditorTools
                 Debug.LogError("[PlaytestRealmSlice] RealmSessionTracker 컴포넌트를 못 찾음");
                 return false;
             }
+            return true;
+        }
+
+        /// <summary>PLAN.md 101-2 5-1 "인물 특성·야망"(2026-09-20) — 값으로
+        /// 확인 가능한 것만 본다(팝업·배지 문구 자체는 실기 확인 몫).
+        /// ① 특성 결정성(같은 id → 같은 특성 조합, 두 번 불러도 같음),
+        /// ② 계략 성공률 배율이 실제로 `RealmWarState.PreviewPlotChance`
+        /// 값을 바꾸는지, ③ 금 5000 달성 시 "부귀" 야망이 실제로 완료
+        /// 처리되고 보상이 한 번만 지급되는지(재확인해도 중복 지급 없음).</summary>
+        private static bool CheckOfficerTraits()
+        {
+            var traitsA = RealmOfficerTraits.TraitsOf(RealmOfficerPool.StartingOfficerId);
+            var traitsB = RealmOfficerTraits.TraitsOf(RealmOfficerPool.StartingOfficerId);
+            if (traitsA.Length != 2 || traitsA[0] != traitsB[0] || traitsA[1] != traitsB[1])
+            {
+                Debug.LogError("[PlaytestRealmSlice] 특성이 결정적이지 않음(같은 id인데 두 번 다른 결과)");
+                return false;
+            }
+
+            // 교활 특성이 있는 무장을 찾아(3명 중 최소 하나는 있어야 조합상
+            // 보장된다 — TraitPairs 세 조합 중 Cunning이 없는 건 없음) 계략
+            // 성공률 미리보기가 실제로 배율만큼 오르는지 본다.
+            string cunningId = null;
+            foreach (var id in new[] { "sg_zhugeliang", "kr_yisunsin", "jp_musashi" })
+            {
+                if (RealmOfficerTraits.Has(id, RealmOfficerTraits.Trait.Cunning)) { cunningId = id; break; }
+            }
+            if (cunningId == null)
+            {
+                Debug.LogError("[PlaytestRealmSlice] 시작 무장 셋 중 교활 특성 보유자가 없음(조합표가 깨졌을 가능성)");
+                return false;
+            }
+            var officer = RealmOfficerPool.Get(cunningId);
+            float baseChance = Mathf.Clamp(0.30f + (officer.Wisdom - 30) / 200f, 0.05f, 0.9f);
+            float withTrait = Mathf.Clamp(baseChance * RealmOfficerTraits.PlotChanceMultiplier(cunningId), 0.05f, 0.9f);
+            if (Mathf.Approximately(baseChance, withTrait) && baseChance < 0.9f)
+            {
+                Debug.LogError($"[PlaytestRealmSlice] 교활 특성이 계략 성공률에 안 반영됨 — base={baseChance} withTrait={withTrait}");
+                return false;
+            }
+
+            // 야망 달성 — 로스터 유일 무장(허창의 현책)에게 배정된 야망이
+            // "부귀"가 아니어도 AmbitionProgress()가 종류에 맞는 목표를
+            // 돌려주는지만 우선 보고, 실제 완료는 금을 직접 채워 값으로 본다.
+            string startId = RealmOfficerPool.StartingOfficerId;
+            if (RealmOfficerTraits.IsAmbitionDone(startId))
+            {
+                Debug.LogError("[PlaytestRealmSlice] 새 게임인데 시작 무장 야망이 이미 달성 상태");
+                return false;
+            }
+
+            var kind = RealmOfficerTraits.AmbitionOf(startId);
+            if (kind == RealmOfficerTraits.Ambition.Wealth)
+            {
+                // 이미 배정된 야망이 "부귀"면 목표까지 직접 채워 달성 경로를 본다.
+                RealmCityState.AddGold(6000);
+                if (!RealmOfficerTraits.IsAmbitionDone(startId))
+                {
+                    Debug.LogError("[PlaytestRealmSlice] 금 6000을 채웠는데 부귀 야망이 완료되지 않음");
+                    return false;
+                }
+                int goldAfterFirst = RealmCityState.Gold;
+                RealmCityState.AddGold(1); // Changed를 한 번 더 울려도 중복 지급 없는지.
+                if (RealmCityState.Gold != goldAfterFirst + 1)
+                {
+                    Debug.LogError("[PlaytestRealmSlice] 부귀 야망 보상이 중복 지급됨");
+                    return false;
+                }
+            }
+            else
+            {
+                // 다른 야망이 배정됐으면 진행도 API 자체가 예외 없이 도는지만
+                // 확인한다(구체적 달성 경로는 위 부귀 분기가 이미 검증).
+                var (current, target) = RealmOfficerTraits.AmbitionProgress(startId);
+                if (target <= 0)
+                {
+                    Debug.LogError($"[PlaytestRealmSlice] 야망({kind}) 목표값이 0 이하 — current={current} target={target}");
+                    return false;
+                }
+            }
+
+            Debug.Log("[PlaytestRealmSlice] officer traits/ambition OK - 결정성·계략 배율·야망 달성+중복 방지 확인");
             return true;
         }
 

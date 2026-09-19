@@ -42,7 +42,7 @@ namespace Saga.Realm.Data
             float techF = 0.7f + Mathf.Clamp(army.Tech, 0, 900) / 900f * 0.6f;
 
             int bestCmd = 0, bestMight = 0;
-            float extra = 0f;
+            float extra = 0f, braveBonus = 0f;
             foreach (var id in army.OfficerIds)
             {
                 var o = RealmOfficerPool.Get(id);
@@ -50,9 +50,10 @@ namespace Saga.Realm.Data
                 if (o.Command > bestCmd) bestCmd = o.Command;
                 if (o.Might > bestMight) bestMight = o.Might;
                 extra += (o.Command + o.Might) / 2f;
+                braveBonus += RealmOfficerTraits.ArmyPowerBonus(id); // 101-2 5-1 "용맹" — 낀 인원수만큼 가산.
             }
-            float lead = 1f + bestCmd / 100f * 0.5f + bestMight / 100f * 0.25f +
-                         Mathf.Max(0, army.OfficerIds.Count - 1) * 0.03f;
+            float lead = (1f + bestCmd / 100f * 0.5f + bestMight / 100f * 0.25f +
+                         Mathf.Max(0, army.OfficerIds.Count - 1) * 0.03f) * (1f + braveBonus);
             if (extra == 0f) lead = 0.6f; // 장수 없는 군대는 오합지졸이다.
 
             return army.Troops * trainF * techF * lead * army.Morale;

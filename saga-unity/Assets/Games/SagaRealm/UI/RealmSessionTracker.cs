@@ -52,6 +52,11 @@ namespace Saga.Realm.UI
 
         private void OnCityStateChanged()
         {
+            // 101-2 5-1 "인물 특성·야망"(2026-09-20) — 매달 정산뿐 아니라
+            // 금·문답·전투가 바뀔 때마다 곧바로 달성 여부를 본다(재진입
+            // 안전 — RealmOfficerTraits.cs 클래스 주석 참고).
+            RealmOfficerTraits.CheckAmbitions();
+
             int deltaMonths = (RealmCityState.Year - _lastYear) * 12 + (RealmCityState.Month - _lastMonth);
             _lastYear = RealmCityState.Year;
             _lastMonth = RealmCityState.Month;

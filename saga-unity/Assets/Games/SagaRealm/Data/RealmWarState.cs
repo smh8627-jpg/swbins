@@ -137,7 +137,7 @@ namespace Saga.Realm.Data
         /// 슬라이스의 적 성에 치안 필드가 없어 뺐다(중립값으로 상쇄한
         /// 것과 같다 — RealmPlotData.cs 클래스 주석 참고).</summary>
         private static float PlotChance(RealmOfficer officer) =>
-            Mathf.Clamp(0.30f + (officer.Wisdom - 30) / 200f, 0.05f, 0.9f);
+            Mathf.Clamp((0.30f + (officer.Wisdom - 30) / 200f) * RealmOfficerTraits.PlotChanceMultiplier(officer.Id), 0.05f, 0.9f);
 
         /// <summary>계략을 걸 수 있는 무장 — Attack()과 같은 자리(출진
         /// 성)에 배치된, 이 달에 아직 안 쓴 사람 중 지력 최고. UI가 % 미리

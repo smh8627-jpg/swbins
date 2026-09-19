@@ -69,6 +69,7 @@ namespace Saga.Realm.UI
                 var atCity = RealmCityData.Get(RealmCityState.OfficerCityId(id));
                 sb.Append(officer != null ? officer.Name : id);
                 if (atCity != null) sb.Append('(').Append(atCity.Name).Append(')');
+                sb.Append(TraitsAndAmbitionOf(id));
             }
             sb.Append('\n');
             bool firstEnemy = true;
@@ -84,6 +85,46 @@ namespace Saga.Realm.UI
                     : string.Format(RealmLocalization.T("hud.enemy_status"), enemy.Troops, enemy.Wall, enemy.Train));
             }
             label.text = sb.ToString();
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<RealmOfficerTraits.Trait, string> TraitLabel =
+            new System.Collections.Generic.Dictionary<RealmOfficerTraits.Trait, string>
+            {
+                [RealmOfficerTraits.Trait.Brave] = "용맹",
+                [RealmOfficerTraits.Trait.Cunning] = "교활",
+                [RealmOfficerTraits.Trait.Wise] = "현명",
+            };
+
+        private static readonly System.Collections.Generic.Dictionary<RealmOfficerTraits.Ambition, string> AmbitionLabel =
+            new System.Collections.Generic.Dictionary<RealmOfficerTraits.Ambition, string>
+            {
+                [RealmOfficerTraits.Ambition.Wealth] = "부귀",
+                [RealmOfficerTraits.Ambition.Rival] = "숙적",
+                [RealmOfficerTraits.Ambition.Scholar] = "학문",
+            };
+
+        /// <summary>PLAN.md 101-2 5-1 "인물 특성·야망" — 웹판 "무장 카드에
+        /// 특성 배지 2개·야망 한 줄"을 이 판의 유일한 로스터 표시 자리
+        /// (텍스트 한 줄짜리 HUD)에 대괄호로 욱여넣는다. 야망 달성 후엔
+        /// 진행도 대신 체크 표시만 남긴다.</summary>
+        private static string TraitsAndAmbitionOf(string officerId)
+        {
+            var traits = RealmOfficerTraits.TraitsOf(officerId);
+            string traitStr = traits.Length > 0 ? TraitLabel[traits[0]] : "";
+            for (int i = 1; i < traits.Length; i++) traitStr += "·" + TraitLabel[traits[i]];
+
+            var kind = RealmOfficerTraits.AmbitionOf(officerId);
+            string ambStr;
+            if (RealmOfficerTraits.IsAmbitionDone(officerId))
+            {
+                ambStr = $"야망:{AmbitionLabel[kind]} 달성✓";
+            }
+            else
+            {
+                var (current, target) = RealmOfficerTraits.AmbitionProgress(officerId);
+                ambStr = $"야망:{AmbitionLabel[kind]} {current}/{target}";
+            }
+            return $"[{traitStr} {ambStr}]";
         }
     }
 }

@@ -131,6 +131,7 @@ namespace Saga.Realm.Data
 
                 var (firstGold, reviewGold) = LvReward[p.Lv];
                 gold = first ? firstGold : reviewGold;
+                if (RealmOfficerTraits.AnyWiseInRoster()) gold = Mathf.RoundToInt(gold * RealmOfficerTraits.WiseQuizMultiplier); // 101-2 5-1 "현명".
                 if (first) { _learned.Add(p.Id); _learnedOrder.Add(p.Id); }
                 RealmCityState.AddGold(gold);
             }
