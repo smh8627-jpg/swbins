@@ -319,3 +319,24 @@ itch.io의 name-your-own-price 배포 페이지가 JS 렌더링 SPA라 정적
 지점, 로그인은 불필요). 대신 `quaternius.com`의 정적 프리뷰 이미지만
 받아 형태 판단에 참고했다 — 실제 모델 파일은 다음에 사람이 itch.io에서
 한 번 받아 주면 이어서 임포트한다.
+
+## 2026-09-19 — Mixamo 모션(idle/walk/run/attack/hit/dodge/death/pickup)
+
+103-4 Mixamo 항목. 사람이 Adobe 계정으로 직접 받아 준 원본(Maria WProp
+J J Ong 캐릭터의 애니메이션 전용 FBX 8개, 메시·텍스처 없이 뼈대+키프레임만,
+saga-unity `Assets/Art/CharactersRealistic/`에 먼저 받아 둔 걸 재사용)을
+`assets/_mixamo_src/`로 복사. **라이선스: Mixamo 표준(게임 사용 허용,
+재배포 금지)** — saga-unity `CharactersRealistic`과 같은 이유로 원본도
+산출물도 로컬 전용(`.gitignore`: `assets/_mixamo_src/`·
+`assets/characters_vroid/anim/`), 다른 PC/세션은 원본을 다시 받아
+`tools/mixamo_retarget.gd`를 돌려야 한다.
+
+가져온 건 **동작(뼈대 회전 키프레임)뿐**이다 — Maria의 메시·텍스처(사실적
+스타일)는 복사하지 않았다. `tools/mixamo_retarget.gd`가 GUI Bone Map
+대화상자 없이 순수 계산으로 VRM Humanoid(`J_Bip_*`, GO `AvatarSample_A`·
+FOREST `saga_forest_avatar_01`)에 리타겟한다 — 원리·검증 방법(부모 체인
+1:1 대조, FK로 직접 발 높이 확인)은 스크립트 헤더 주석과 `docs/HISTORY.md`
+이 날짜 항목 참고. `player.gd`(GO·FOREST 공용)가 기대하는 이름
+(idle/walk/sprint)으로 묶은 `*_lib.res`를 `Player.tscn`/`ForestPlayer.tscn`의
+`AnimationPlayer`에 물렸다. DUNGEON/STORY는 아직 안 건드림(DUNGEON은
+character-a.glb 자체 애니로 충분, STORY 플레이어는 VRoid 아님).

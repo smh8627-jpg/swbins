@@ -7598,3 +7598,14 @@ PROJECT_STATE.md` 참고. 요약:
 - PLAN 102-6·103-4에 반영, 105 Q-c 삭제 때 같이 남았던 후보 폴더 행도 마저 지움.
 - Godot 4.7 헤드리스 재확보(스크래치패드, 새 세션이라 이전 캐시 없음) → 임포트 1회 → `tools/godot_regress.sh` 다섯 판 통과(issues=0, `.import`/`project.godot` 잡음 없음).
 - 다음: 사용자 실기로 FOREST 아바타 얼굴·1.7m 스케일 체감(GO와 같은 확인 항목에 합류). DUNGEON 플레이어도 VRoid로 바꿀지는 계속 열려 있음 — 사람이 조형 하나 더 만들면 `FACE_BAKE_BY_GLB`에 한 줄만 추가하면 된다.
+
+## 103-4 Mixamo 리타겟(GO·FOREST) — GUI Bone Map 없이 계산으로 (2026-09-19⑯)
+
+- Mixamo 로그인은 이 세션에서 대행 불가(브라우저 자동화 도구 없음)라고 안내했더니, 사용자가 "직접 했었는데?"·"사가 유니티에서는" — saga-unity `Assets/Art/CharactersRealistic/`에 이미 Mixamo Maria 모션(idle/walk/run/attack/hit/dodge/death/pickup, 뼈대+키프레임만, 메시 없음, gitignore)을 받아 둔 걸 알려줌. 그 애니메이션 전용 FBX 8개를 `assets/_mixamo_src/`로 복사(Maria 메시·텍스처 자체는 복사 안 함 — 사실적 스타일이 카툰 트랙에 안 섞이게).
+- Godot 정식 리타겟(Advanced Import Settings → BoneMap → Humanoid)은 GUI 전용이라 이 세션이 못 돌린다고 다시 안내했으나 "직접 해봐" 지시 — `tools/mixamo_retarget.gd` 신설, 계산으로 직접 구현: 본마다 상수 보정 쿼터니언 `C(i) = tgt_rest_global(i) * src_rest_global(i)^-1`(레스트 포즈에서 정확히 타깃 레스트가 나오도록)를 구해 매 프레임 소스 로컬→글로벌 누적→`C(i)` 곱해 타깃 글로벌→타깃 로컬로 되돌린다. 전제(매핑 22본이 두 스켈레톤에서 부모-자식 1:1 일치)를 `verify_chain.gd`로 먼저 실측 확인(전부 OK) — 안 그랬으면 이 나눗셈이 틀어진다.
+- 검증: 저장된 키값 직접 덤프(NaN 0건, 다리 관절이 주기적으로 스윙) + `Animation.rotation_track_interpolate`로 직접 FK 계산해 왼발/오른발 높이가 걷기 동안 번갈아 뜨는 것 확인(Skeleton3D.get_bone_global_pose는 단발 헤드리스 스크립트라 캐시가 안 갱신돼 못 씀 — FK를 직접 계산하는 우회로 확인). GUI로 눈으로 본 건 아니라서 실기 확인 목록에 남긴다.
+- 힙 높이 비율(다리 길이 차)로 Hips 위치 스케일(GO 0.851, FOREST 0.892), 회전은 전 본 공통. "In Place" 옵션이 walk/run에 실제로는 안 걸려 있었던 듯(Hips가 1초에 1.5m 전진) — 게임 코드 이동과 겹칠 수 있어 실기에서 체감 확인 필요.
+- `player.gd`(GO·FOREST 공용)가 기대하는 이름(idle/walk/sprint)으로 묶은 `AnimationLibrary`를 `.res`로 따로 구워(`_lib.res`) `ExtResource`로 참조 — `.tscn` 안에 `[sub_resource type="AnimationLibrary"] _data={...ExtResource...}`로 직접 써넣으면 파싱 단계에서 깨진다(`"int_resources.has(id)"` 에러, 이유 특정 못 함) 걸 실측으로 걸려 우회. `.tscn` 최상위 bracket 사이에 `##` 주석을 넣어도 같은 부류 파싱 에러 남(주석은 `[node]` 블록 안에서만 안전 — 기존 파일 관례 재확인).
+- DUNGEON(character-a.glb 자체 애니 있음)·STORY(VRoid 아님)는 범위 밖. `assets/_mixamo_src/`·`assets/characters_vroid/anim/` 둘 다 `.gitignore`(Mixamo ToS 재배포 금지, 리타겟해도 모션 자체는 Mixamo 것 — saga-unity와 같은 이유). `tools/mixamo_retarget.gd`는 재사용 가능하게 커밋.
+- `tools/godot_regress.sh` 다섯 판 3회 통과(issues=0, `.import`/`project.godot` 잡음 없음, GO/FOREST 재로드 파싱 오류 0).
+- 다음: 사용자 실기로 idle/walk/run 애니 체감(특히 walk/run 루트 이동 겹침 여부), VRoid 눈·입·팔레트·1.7m과 합류. DUNGEON 플레이어도 VRoid+Mixamo로 갈지는 열려 있음.

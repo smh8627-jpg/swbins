@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/player/camera_rig.gd" id="2"]
 [ext_resource type="PackedScene" path="res://assets/characters_vroid/AvatarSample_A.glb" id="3"]
+[ext_resource type="AnimationLibrary" path="res://assets/characters_vroid/anim/AvatarSample_A_lib.res" id="4"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.45
@@ -19,9 +20,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 ## 2026-09-19 — VRoid AvatarSample_A.glb(사용자 지시, 102-6 "VRoid 계열").
 ## 105 Q-h 결정(c, 2026-09-19)으로 세계를 1.7m 표준에 맞춰 다시 잡았다 —
 ## 모델 실측 키(1.558m)를 새 캡슐(총높이 1.7m)에 맞춰 역산(옛 2.182배의
-## 정확히 절반). 애니메이션(idle/walk/sprint)이 이 GLB엔 없어서 103-4
-## Mixamo 리타겟 전까지는 정지 포즈로만 선다.
+## 정확히 절반). 이 GLB 자체엔 애니메이션이 없다 — idle/walk/sprint는
+## 103-4(2026-09-19⑯)에서 Mixamo 리타겟한 걸 아래 AnimationPlayer로 재생한다.
 transform = Transform3D(1.091, 0, 0, 0, 1.091, 0, 0, 0, 1.091, 0, 0, 0)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Visual"]
+## 103-4 — Mixamo 를 VRoid Humanoid 로 리타겟(tools/mixamo_retarget.gd)해 묶은
+## AnimationLibrary(idle/walk/sprint/attack/hit/dodge/death/pickup). 산출물 .res 는
+## Mixamo ToS 상 로컬 전용(.gitignore) — 다른 PC 에선 이 씬을 열기 전에
+## assets/_mixamo_src/*.fbx 를 다시 받아 그 스크립트를 돌려야 한다.
+libraries = {
+"": ExtResource("4")
+}
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")

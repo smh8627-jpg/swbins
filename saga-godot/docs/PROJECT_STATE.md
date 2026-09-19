@@ -17,14 +17,12 @@
 
 ## 현재 작업
 
-- **09-19⑮ FOREST VRoid 아바타 적용**: 사용자가 만든 아바타를 GO와 같은 파이프라인(베이크·1.7m)으로 `ForestPlayer.tscn`에 연결. `cel_shader_apply.gd`를 GLB별 베이크 표로 일반화. 회귀 통과, 실기 확인 대기.
-- **09-19⑫ 105 Q-h(c) 적용 — 1.7m 재튜닝**: 세 판 캐릭터 계열 GLB·캡슐을 3.4m의 절반으로, GO 카메라를 102-1 목표(8m·줌 6~11·FOV 50)로. 지역/반경/초목은 범위 밖. 회귀 통과.
+- **09-19⑯ 103-4 Mixamo 리타겟(GO·FOREST)**: saga-unity에 받아 둔 Mixamo 모션(Maria, 뼈대만)을 GUI Bone Map 없이 계산으로 VRM Humanoid에 리타겟(`tools/mixamo_retarget.gd` 신설 — 부모 체인 1:1 대조 + FK로 발 높이 직접 계산해 검증). idle/walk/sprint를 `Player.tscn`·`ForestPlayer.tscn`에 연결, 회귀 통과. 산출물은 Mixamo ToS로 로컬 전용(`.gitignore`). DUNGEON(자체 애니 있음)·STORY(비-VRoid)는 범위 밖. T포즈 탈출, 실기 확인 대기.
 
 ## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
-1. **사용자 실기 확인**(아래) — VRoid 눈·입 최종 · 팔레트 색감 · **1.7m 재튜닝 체감**.
-2. **103-4 Mixamo 리타겟** — 애니(T포즈 탈출). 목표 키(1.7m) 확정됨. Adobe 다운로드는 사람 몫.
-3. **"시대 퓨전" 팔레트** — 이 판에 아직 그 소재(녹슨 금속·홀로그램) 소품 자체가 없어, 소품이 생기기 전엔 착수 안 함.
+1. **사용자 실기 확인**(아래) — VRoid 눈·입 최종 · 팔레트 색감 · 1.7m 재튜닝 체감 · **Mixamo idle/walk/run 애니 체감(GO·FOREST)**.
+2. **"시대 퓨전" 팔레트** — 이 판에 아직 그 소재(녹슨 금속·홀로그램) 소품 자체가 없어, 소품이 생기기 전엔 착수 안 함.
 
 ## 알려진 오류
 

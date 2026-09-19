@@ -12,3 +12,8 @@ ios/
 # OS
 Thumbs.db
 .DS_Store
+
+# Mixamo 원본(FBX)과 그 리타겟 산출물 — ToS 상 재배포 금지, saga-unity
+# CharactersRealistic 과 같은 이유로 로컬 전용(리타겟해도 모션 자체는 Mixamo 것)
+assets/_mixamo_src/
+assets/characters_vroid/anim/
