@@ -7687,3 +7687,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `codex_state.gd` TOTAL["place"] 21→43(다섯 벌 md5 대상 아님, GO 전용 파일).
 - 회귀 다섯 판 3회 issues=0, 잡음 없음.
 - **미룬 것**: 102장 그래픽 개편(LightmapGI/ReflectionProbe/접지 그림자 Decal/트라이플레이너 지형) — 전부 "실제로 뭘 그리는지"가 핵심인 항목이라 헤드리스로는 위치·크기가 맞는지 확인이 안 된다(더미 렌더러). 잘못 짚으면 승인된 다섯 판 화면에 안 보이는 리소스만 얹거나 성능만 깎을 위험이 있어, 숫자를 확신 없이 넣기보다 사람 확인 몫으로 남겨 둠.
+
+## 104 Phase 0 재점검 + 103 procgen.py 신설 (2026-09-20⑥, 새 세션, "사가고돗이어해" → 사용자가 "103·104 다 해" 선택)
+
+- Godot 4.7 실행 파일을 새로 받아 확보(PC 마다 다름, 커밋 안 함). `--headless --editor --quit` 최초 임포트 뒤 `godot_regress.sh` 재실행 — 다섯 판 md5 09-20⑤와 완전히 동일, issues=0, `.import`/`project.godot` 잡음 없음.
+- 세이브 버전: 5판(`save_state.gd`/`dungeon_save_state.gd`/`forest_save_state.gd`/`story_save_state.gd`/`realm_save_state.gd`) 전부 `SAVE_VERSION`+`_migrate`/`_migrate_step` 계약 유지 확인(09-16 보강 이후 퇴행 없음).
+- ChoicePrompt 클로저(09-16 "선언 후 대입" 버그) 39개 호출부(09-16 감사 때 30개에서 증가) 전수 재확인 — 전부 `layer_box`/`box` 등 Dictionary 우회 관용구이거나 `_layer`류 멤버 필드라 안전. 새 버그 없음.
+- **`tools/asset-forge/procgen.py` 신설**(103장) — `make_rock`(이코사구 노이즈 뒤틀기, 스무딩 없음) · `make_stele`(사각기둥+네모뿔 지붕) · `make_fence`(기둥+가로대 2단) · `make_wall`(벽돌쌓기 오프셋+씨앗 지터). `rock`/`stele`/`fence`/`wall` 서브커맨드 + `batch` (연속 씨앗, `<kind>_s<seed>_<nn>.glb` 파일명 규칙). scipy 미설치라 `mesh.fix_normals()`/`vertex_normals`가 `ModuleNotFoundError`로 죽는 걸 확인해 `pip install scipy`로 해결(PLAN.md 103-1에 반영).
+- 샘플 10개(rock×4·stele×2·fence×2·wall×2)를 `saga-godot/assets/generated/props/`에 실제로 생성해 헤드리스 임포트 — 오류 0, `.import` 10개 정상 생성. 이후 regress 재실행해도 다섯 대표 씬 md5 불변(신규 소품이 아직 어느 씬에도 안 물려 있어 당연한 결과).
+- **씬에 배치하지 않음** — SAGA-DESIGN §8-1(실기 확인 전 같은 판에 새 콘텐츠 안 얹음)을 존중해 도구만 완성, 배치는 사용자 실기 확인 뒤 판단.
+- 다음: tilegen.py/spritegen.py/sfxgen.py(103장 나머지), 또는 사용자 실기 확인 결과 반영.

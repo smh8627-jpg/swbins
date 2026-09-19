@@ -15,18 +15,20 @@
 
 **공통(saga_core)**: `data/characters.gd`(인물 105, id 불변)·`data/pets.gd`(신수 11) · `ui/toast.gd`·`ui/virtual_joystick.gd`·`ui/goal_board.gd`+`ui/session_card.gd`(101-4, 목표판 3줄·마무리 카드, 다섯 판 전부 붙음)·`ui/duel_hud.gd` · `combat_feel.gd`(101-3, 다섯 판 끝 — GO/DUNGEON/STORY `hit()`·FOREST `pickup()`·REALM 대상없음) · `world/world_curve_material.gd`+`shaders/curved_*`(FOREST 구면) · `world/density_report.gd`(104-5, 발견 밀도, FOREST는 반경 10m) · `shaders/cel_toon.gdshader`+`cel_shader_apply.gd`(66-2/102-3, hit_flash+아웃라인 next_pass 자동) · `world/glb_utils.gd::fit_height()`(102-1, 여전히 미호출). 렌더러 Forward+/Mobile 이중(66-1, `env_pc.tres`·`env_mobile.tres`, 102-2 값).
 
-## 현재 작업 — 중단 지점(09-20⑤, 다음 세션 이어서)
+## 현재 작업 — 중단 지점(09-20⑥, 다음 세션 이어서)
 
-- **DUNGEON 전용 VRoid 씬 연결 + Torch 조명 구조 버그 + GO 발견 밀도 셋(표 참고) + 죽은 코드 재감사(HISTORY 09-20④) 전부 완료.**
-- **102 그래픽 개편(LightmapGI/ReflectionProbe/접지 그림자/트라이플레이너)은 의도적으로 안 건드림** — 헤드리스 더미 렌더러로는 위치·크기가 맞는지 확인 불가, 실기 확인 세션 몫으로 남김.
-- STORY는 아직 AvatarSample_A 임시(사람이 조형 하나 더 만들면 DUNGEON과 같은 5단계).
+- **DUNGEON VRoid·Torch 조명·GO 발견 밀도·죽은 코드 재감사(09-20④⑤) 완료.**
+- **104 재점검**(09-20⑥) — regress 재통과(md5 불변) · 세이브 버전 5판 `_migrate` 확인 · ChoicePrompt 클로저 39개 재전수(안전).
+- **103 procgen.py 신설**(`tools/asset-forge/procgen.py`) — rock·stele·fence·wall 4종. 샘플 10개 `assets/generated/props/`에 생성, 임포트 오류 0. **씬 배치 아직 안 함**(§8-1 보류).
+- 102 개편은 여전히 안 건드림(헤드리스 확인 불가). STORY는 AvatarSample_A 임시.
 
 ## 다음 작업 (우선순위)
 
-1. **사용자 실기·색감 확인**(아래) — DUNGEON 새 VRoid·조명·GO 새 랜드마크 21개 최우선, GO/FOREST 1.7m 재튜닝 · walk/run 세로 들썩임 · 굴혈 mood 3 톤.
-2. **102 그래픽 개편** — 실기 확인 세션에서 사람이 값을 봐 가며 잡을 것(헤드리스로 위치·크기 확인 불가).
+1. **사용자 실기·색감 확인**(아래 목록).
+2. **102 그래픽 개편** — 실기 확인 세션에서 사람이 값을 봐 가며 잡을 것.
 3. **STORY 전용 VRoid**(사람이 조형 몫).
-4. **"시대 퓨전" 팔레트** — 소품 없어 보류.
+4. **procgen 소품 배치 판단** — 실기 확인 뒤 결정. 103 나머지(tilegen·spritegen·sfxgen)는 아직.
+5. **"시대 퓨전" 팔레트** — 소품 없어 보류.
 
 ## 알려진 오류
 
@@ -34,7 +36,7 @@
 
 ## 테스트 상태
 
-- 헤드리스: 임포트 오류 0 · `godot_regress.sh` 다섯 판 통과(md5 동일).
+- 헤드리스: 임포트 오류 0(procgen 소품 포함) · `godot_regress.sh` 통과(md5 불변).
 - GUI: 다섯 대표 씬 정상 렌더(포구는 세이브 위치 복원 때문에 못 봄). PC 빌드: 다섯 판 1회 성공.
 
 ## 실기 확인 대기 (항목명만 — 상세는 `docs/HISTORY.md` 해당 날짜)
