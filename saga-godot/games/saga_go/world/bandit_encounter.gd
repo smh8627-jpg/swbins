@@ -51,7 +51,7 @@ const TOAST_SEC := 4.0
 @export var foe_name := "산적"
 @export var foe_power := 120.0
 @export var foe_hp_mul := 7.0           # 웹판 event.js "event.foeHpMul" 기본값
-@export var bandit_scale := 1.25
+@export var bandit_scale := 0.625  # 105 Q-h 결정(c, 2026-09-19) — 1.7m 표준, 옛 1.25배의 절반
 @export var event_title := "🗡️ 도적의 습격"
 @export var event_quote := "\"길세를 내고 가라. 아니면 두고 가든지.\""
 ## PLAN.md 101-2 GO ⑥"75초 토벌" — 이 인스턴스가 "토벌" 대상이면 75.0
@@ -149,10 +149,10 @@ func _spawn_visual() -> void:
 		## 보이는 것보단 낫다(hurt_soldier 등 다른 primitive 사건과 같은 경계).
 		var mi := MeshInstance3D.new()
 		var mesh := CapsuleMesh.new()
-		mesh.radius = 0.9
-		mesh.height = 3.4
+		mesh.radius = 0.45
+		mesh.height = 1.7
 		mi.mesh = mesh
-		mi.position = Vector3(0, 1.7, 0)
+		mi.position = Vector3(0, 0.85, 0)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = _base_color
 		mi.material_override = mat

@@ -65,10 +65,10 @@ func _ready() -> void:
 func _spawn_visual() -> void:
 	var mi := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.85
-	mesh.height = 3.2
+	mesh.radius = 0.425
+	mesh.height = 1.6
 	mi.mesh = mesh
-	mi.position = Vector3(0, 1.6, 0)
+	mi.position = Vector3(0, 0.8, 0)
 	var mat := StandardMaterial3D.new()
 	## rarity 5=금빛, 낮을수록 은빛 쪽으로 — GO의 hero_encounter.gd와 같은 감각.
 	var t: float = clampf((int(_hero.rarity) - 1) / 4.0, 0.0, 1.0)
@@ -78,9 +78,9 @@ func _spawn_visual() -> void:
 
 	var cs := CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
-	shape.radius = 0.85
-	shape.height = 3.2
-	cs.position = Vector3(0, 1.6, 0)
+	shape.radius = 0.425
+	shape.height = 1.6
+	cs.position = Vector3(0, 0.8, 0)
 	cs.shape = shape
 	add_child(cs)
 

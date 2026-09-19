@@ -8,9 +8,12 @@ extends Node3D
 @onready var spring_arm: SpringArm3D = $SpringArm3D
 
 const ROTATE_SPEED := 0.006
-const MIN_ZOOM := 4.0
-const MAX_ZOOM := 16.0
+## PLAN 102-1·105 Q-h(c, 2026-09-19) — 1.7m 표준 캐릭터 기준 거리 8m,
+## 줌 범위 6~11m(옛 4~16m는 3.4m 거인 기준이었다).
+const MIN_ZOOM := 6.0
+const MAX_ZOOM := 11.0
 const ZOOM_STEP := 1.0
+const DEFAULT_ZOOM := 8.0
 const MIN_PITCH := 15.0
 const MAX_PITCH := 70.0
 const DRAG_THRESHOLD := 10.0
@@ -27,7 +30,7 @@ var _shake_amp_m := 0.0
 var _shake_until_msec := 0
 
 func _ready() -> void:
-	spring_arm.spring_length = 9.0
+	spring_arm.spring_length = DEFAULT_ZOOM
 	rotation_degrees.x = -35.0
 	add_to_group("camera_rig")
 

@@ -130,7 +130,8 @@ const FISHER_TALK_RADIUS := 14.0
 const FISHER_TALK_GAP_SEC := 45.0
 const FISHER_LINE := "그물은 무겁지만 바다는 정직하지."
 const FISHER_OFFER_EVENT_ID := "offer_npc_fisher"
-const NPC_CHAR_SCALE := 1.25
+## 105 Q-h 결정(c, 2026-09-19) — 1.7m 표준, npc_builder.gd와 같은 값.
+const NPC_CHAR_SCALE := 0.625
 const LINE_SHOW_SEC := 4.0
 
 var _village_layer: CanvasLayer
@@ -401,10 +402,10 @@ func _build_fisher_body() -> Node3D:
 
 	var body := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.9
-	mesh.height = 3.4
+	mesh.radius = 0.45
+	mesh.height = 1.7
 	body.mesh = mesh
-	body.position = Vector3(0, 1.7, 0)
+	body.position = Vector3(0, 0.85, 0)
 	return body
 
 

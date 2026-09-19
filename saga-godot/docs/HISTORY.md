@@ -7555,3 +7555,19 @@ PROJECT_STATE.md` 참고. 요약:
 - 옛 `vroid_face_bake_masks.py`·`vroid_face_bake_combine.py`(잘못된 가정으로 짠 스크립트) 삭제, `vroid_face_bake_project.py`로 교체.
 - `tools/godot_regress.sh` 다섯 판 통과(issues=0, `.import`/`project.godot` 잡음 없음).
 - 다음: 사용자 실기로 최종 눈·입 확인(안개 속에서도 충분히 또렷한지). 103-4 Mixamo 리타겟으로.
+
+## 105 Q-h 결정(c) 적용 — 캐릭터 계열을 1.7m 표준으로 재튜닝 (2026-09-19⑫)
+
+- 사용자가 105장 Q-h 세 선택지 중 "(c) 세계 전체를 1.7m 기준으로 다시 튜닝(카메라·충돌·지역 크기 전부)"을 택함.
+- 조사(서브에이전트 전수 조사) 결과: DUNGEON 방(room-small.glb 등 실측 12×12m·벽 4.4m)·FOREST 마을(TILE_SIZE 3.0m·집 6×4×6m)은 애초에 GLB 실측/사람 스케일로 지어져 있었다. DUNGEON 일반 몬스터 캡슐도 이미 height=1.7*scale_mul로 인간 스케일이었다. 어긋난 건 GO·DUNGEON·FOREST 셋이 공유하는 **캐릭터 계열**(플레이어·NPC·영웅 조우·도적 조우) 하나뿐 — GLB 시각 스케일과 콜리전 캡슐이 옛 "3.4m 거인" 관례(1.25배·2.182배, 캡슐 0.9r/3.4h)를 그대로 썼다.
+- 그래서 실제로 고친 범위: 옛 3.4m 계열 리터럴을 **전부 정확히 절반**으로(3.4m→1.7m이 정확히 반이라 캡슐·시각 스케일 다 깔끔히 절반):
+  - `Player.tscn`(GO/DUNGEON/FOREST) 캡슐 0.9r/3.4h→0.45r/1.7h, 오프셋 1.7→0.85. GO Visual 2.182→1.091(VRoid), DUNGEON/FOREST Visual 1.25→0.625(character-a.glb).
+  - `npc_builder.gd`·`region2_coast.gd`(GO)·`villager_builder.gd`(FOREST)의 `NPC_CHAR_SCALE` 1.25→0.625, 각 fallback 캡슐도 0.45/1.7·오프셋 0.85로.
+  - `hero_encounter.gd`(GO)·`dungeon_hero_encounter.gd`(DUNGEON) 인물 조우 캡슐 0.85r/3.2h→0.425r/1.6h, 오프셋 0.8.
+  - `bandit_encounter.gd`(GO) `bandit_scale` 1.25→0.625, fallback 캡슐 동일 절반. `TestVillage.tscn`의 "도적 두목" 오버라이드 `bandit_scale` 1.4→0.7(비율 유지).
+  - `simple_event.gd`(GO) `vis_scale` 1.25→0.625.
+  - GO `camera_rig.gd` — PLAN 102-1이 원래부터 목표로 적어 둔 값(거리 8·줌 6~11·FOV 50)을 그대로 구현: `MIN_ZOOM`/`MAX_ZOOM` 4~16→6~11, `_ready()` 기본 스프링 길이 9.0→`DEFAULT_ZOOM`(8.0), `Camera3D`에 `fov=50` 추가.
+- **범위 밖으로 남긴 것**(캐릭터 키와 무관하다고 확인함): GO `TILE_SIZE`(48m)·`REGIONS`(마을 11×11 등)·`TALK_RADIUS`/`TRIGGER_RADIUS`/`TOWER_HEIGHT` 등 상호작용 반경·`TREE_SCALE` 등 초목 스케일(전부 GLB 실측이나 판 자체 페이싱 기준, 3.4m 거인 보정이 아니었다). DUNGEON `ROOM_HALF`/`WALL_HEIGHT`/`GATE_HALF_WIDTH`(GLB 실측). DUNGEON `dungeon_camera_rig.gd`·FOREST의 같은 스크립트 재사용(spring_length 12/14·pitch 55/62)도 그대로 — 세계가 원래 사람 스케일이라 손댈 이유가 없었다. player.gd `WALK_SPEED` 등 이동 속도, DUNGEON 스킬 사거리 22개 파일(BASE_REACH/BASE_SPD 환산)도 안 건드림 — 캐릭터 GLB 키가 아니라 진작부터 별개로 튜닝된 값들이라 이번 결정과 무관.
+- STORY `StoryPlayer.tscn`도 같은 1.25배 Visual을 쓰지만 캡슐이 이미 0.6r/1.8h로 별도 설계라 이번 범위에서 뺐다(게이트 미기록 판이라 급하지 않음) — 참고로만 남김.
+- 검증: Godot 4.7-stable(win64, 콘솔 exe 스크래치패드에 새로 받음, 커밋 안 함) `--headless --editor --quit` 1회(임포트 갱신) 후 `git diff -- project.godot '*.import'` 깨끗함 확인, `tools/godot_regress.sh` 다섯 판 3회 md5 동일·issues=0 통과.
+- 다음: 사용자 실기로 세 판 캐릭터 크기·GO 카메라 거리/줌 체감 확인. 확인 끝나면 103-4 Mixamo 리타겟(목표 키 1.7m 확정) 착수.

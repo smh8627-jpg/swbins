@@ -18,8 +18,9 @@ const LINE_SHOW_SEC := 4.0
 
 ## character-a.glb는 플레이어 몫(Player.tscn) — 주민마다 다른 글자를 써서
 ## 최소한 옷 색만으로도 플레이어·서로와 구별되게 한다(같은 킷 공유,
-## docs/ASSET_GUIDE.md 참고). 실측 키(2.7m)·스케일(1.25배)도 플레이어와 같다.
-const NPC_CHAR_SCALE := 1.25
+## docs/ASSET_GUIDE.md 참고). 실측 키(2.7m)·스케일도 플레이어와 같다 —
+## 105 Q-h 결정(c, 2026-09-19)으로 1.7m 표준에 맞춰 옛 1.25배의 절반.
+const NPC_CHAR_SCALE := 0.625
 
 ## 2026-09-11② — GO 사건 다양화(VERTICAL_SLICE §31 "마을의 부탁"). 촌장에게
 ## quest_* 필드를 추가했다 — 있으면 처음 말 걸었을 때 사명 제안 패널을
@@ -110,10 +111,10 @@ func _build_body(glb_path: String) -> Node3D:
 
 	var body := MeshInstance3D.new()
 	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.9
-	mesh.height = 3.4
+	mesh.radius = 0.45
+	mesh.height = 1.7
 	body.mesh = mesh
-	body.position = Vector3(0, 1.7, 0)
+	body.position = Vector3(0, 0.85, 0)
 	return body
 
 ## 지나가다 듣는 한 마디다(웹판 npc.js와 같은 감각) — 누르는 대화창은

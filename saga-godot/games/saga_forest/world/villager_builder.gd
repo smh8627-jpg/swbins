@@ -31,7 +31,7 @@ const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.
 const Toast := preload("res://saga_core/ui/toast.gd")
 const ChoicePrompt := preload("res://games/saga_go/ui/choice_prompt.gd")
 
-const NPC_CHAR_SCALE := 1.25  # GO npc_builder.gd와 같은 값(같은 킷, 같은 실측 키)
+const NPC_CHAR_SCALE := 0.625  # GO npc_builder.gd와 같은 값(105 Q-h 결정, 1.7m 표준)
 const TALK_RADIUS := 5.0
 const TALK_GAP_SEC := 45.0
 const LINE_SHOW_SEC := 4.0
@@ -155,10 +155,10 @@ func _build_body(glb_path: String) -> Node3D:
 	if scene == null:
 		var fallback := MeshInstance3D.new()
 		var mesh := CapsuleMesh.new()
-		mesh.radius = 0.9
-		mesh.height = 3.4
+		mesh.radius = 0.45
+		mesh.height = 1.7
 		fallback.mesh = mesh
-		fallback.position = Vector3(0, 1.7, 0)
+		fallback.position = Vector3(0, 0.85, 0)
 		return fallback
 
 	var inst := scene.instantiate()
