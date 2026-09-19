@@ -7697,3 +7697,10 @@ PROJECT_STATE.md` 참고. 요약:
 - 샘플 10개(rock×4·stele×2·fence×2·wall×2)를 `saga-godot/assets/generated/props/`에 실제로 생성해 헤드리스 임포트 — 오류 0, `.import` 10개 정상 생성. 이후 regress 재실행해도 다섯 대표 씬 md5 불변(신규 소품이 아직 어느 씬에도 안 물려 있어 당연한 결과).
 - **씬에 배치하지 않음** — SAGA-DESIGN §8-1(실기 확인 전 같은 판에 새 콘텐츠 안 얹음)을 존중해 도구만 완성, 배치는 사용자 실기 확인 뒤 판단.
 - 다음: tilegen.py/spritegen.py/sfxgen.py(103장 나머지), 또는 사용자 실기 확인 결과 반영.
+
+## 103 tilegen.py 신설 (2026-09-20⑦, 같은 세션 이어서, "현재 작업 완료되면 다른 작업 이어서")
+
+- `tools/asset-forge/tilegen.py` — 102-5 트라이플레이너용 512 지형 타일(베이스컬러+노멀+러프니스) 6종(grass/dirt/stone/sand/snow/lava) 생성. 저해상도 난수 격자를 감싸기(wrap) 패딩 후 수동 이중선형 보간으로 512까지 올려 **완전 시임리스**(경계 픽셀 차이 실측 1~7/255, uint8 반올림 수준) — `np.roll` 감싸기 인덱싱으로 미분한 노멀맵도 마찬가지. `--palette`/`--role` 옵션으로 palette.py 의 `load_role_rgb01()`을 그대로 재사용해 판별 색을 입힐 수 있다(안 주면 내장 기본색).
+- 샘플 18장(6종×3장)을 `saga-godot/assets/generated/tiles/`에 실제로 생성, 헤드리스 임포트 오류 0(.import 18개). regress 재실행 — 다섯 대표 씬 md5 불변, `.import`/`project.godot` 잡음 없음.
+- **셰이더/씬 배선은 안 함** — 102-5(트라이플레이너 지형)는 여전히 실기 확인 전 보류 대상(§8-1). 이번은 도구+샘플 산출물까지만.
+- 103장 남은 것: spritegen.py·sfxgen.py.
