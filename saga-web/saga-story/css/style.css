@@ -285,6 +285,16 @@ body.focus #top, body.focus #autobar, body.focus #dock { display: none !importan
 .card.set4 { border-color: rgba(181,123,245,.5); }
 .stat-row.set2 { color: var(--blue); }
 .stat-row.set4 { color: var(--purple); }
+
+/* 스승(§5-1) — 무예 탭 "고유 조작" 카드 안, 차수별 넷을 가로로 늘어놓는다 */
+.mentor-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.mentor-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 56px; opacity: .5;
+}
+.mentor-chip.on { opacity: 1; }
+.mentor-chip small { font-size: 10px; text-align: center; color: var(--ink-dim); line-height: 1.25; }
+.mentor-chip.on small { color: var(--ink); }
 .muted { color: var(--ink-dim); }
 .warn { color: var(--bad); }
 small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
@@ -974,6 +984,15 @@ body.tilted3 #vignette {
 .hud-sk.potion { border-color: rgba(208,89,107,.55); }
 .hud-sk.potion small { color: #f0b7bf; }
 .hud-out { margin-left: auto; }
+/* 고유 조작(§5-1) — 회피를 길게 누르는 동안 차는 게이지. PLAN 은 "링"을
+   말했지만 이 판의 쿨다운 표시가 이미 사각 채움(u)이라, 같은 결로 아래에
+   가늘게 하나 더 얹는 쪽으로 단순화했다(원 안을 새로 그리는 대신). */
+.hud-sk i.hold {
+  position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px;
+  border-radius: 2px; background: rgba(122,199,255,.9); width: 0; pointer-events: none;
+}
+.hud-sk.armed { box-shadow: 0 0 0 2px rgba(122,199,255,.85) inset; }
+.hud-sk.armed i.hold { background: rgba(255,220,120,.95); }
 
 /* ── 손가락 조작판 (2026-09-01) ─────────────────────────────
  * 화면을 숨은 넷으로 나눠 짚던 예전 방식은 손가락뿐인 기기에서 이 단추가

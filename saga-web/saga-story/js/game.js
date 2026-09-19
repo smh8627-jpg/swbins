@@ -123,7 +123,7 @@
       else if (k === 'arrowdown' || k === 's' || k === km.down) { S.setInput('down', true); }
       else if (k === ' ') { S.setInput('jump', true); }
       else if (k === 'q') { S.drink(); }
-      else if (k === 'shift') { S.dodge(); }
+      else if (k === 'shift') { if (!e.repeat) { S.holdStart(); } }   // §5-1 — 길게 누르면 고유 조작
       else if (k === 'm') { ui.toggleOverworldMap(); }
       else if (k >= '1' && k <= '8') { S.castSkill(parseInt(k, 10) - 1); }
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) >= 0) {
@@ -137,10 +137,12 @@
       else if (k === 'arrowright' || k === 'd' || k === km.right) { S.setInput('right', false); }
       else if (k === 'arrowup' || k === 'w' || k === km.up) { S.setInput('up', false); }
       else if (k === 'arrowdown' || k === 's' || k === km.down) { S.setInput('down', false); }
+      else if (k === 'shift') { S.holdEnd(); }
     });
     global.addEventListener('blur', function () {
       S.setInput('left', false); S.setInput('right', false);
       S.setInput('up', false); S.setInput('down', false);
+      S.cancelHold();
     });
   }
 

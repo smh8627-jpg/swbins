@@ -177,6 +177,12 @@
   var WALL_KICK_VX = 320, WALL_KICK_VY = 620, WALL_KICK_DUR = 0.22;
   var ROLL_SPEED = 1200;      // 이 낙하 속도를 넘겨 착지하면 경직 대신 구른다
   var ROLL_DUR = 0.15, ROLL_MUL = 1.4;
+  /* 고유 조작(§5-1) — 회피를 **길게 누르면** 나온다. 수치(창·배율·발수 등)는
+     job.js signature()(직업 갈래 + 스승 보정)가 다 정해 준다 — 여기 값은
+     side.js 쪽 판정에만 필요한 입력·상태 상수뿐이다. */
+  var SIG_SHADOW_MUL = 1.6;      // 그림자 걷기(협객) 동안 이동 배율 — 대시와 다른 "미는" 느낌
+  var SIG_SHADOW_HIT_GRACE = 1.2; // 그림자 걷기 뒤 "첫 타" 보너스가 살아 있는 여유 시간
+  var SIG_CHAIN_R = 150;         // 전(電) 속성 사슬이 옆 몸을 찾는 반경
   /* 공격 몸짓(2026-09-10) — `asset3d.js`의 몸짓 표에는 이미 attack 자리가
      있었는데(saga-dungeon이 실제로 쓰고 있다) 이 판은 한 번도 부른 적이
      없었다. 판정은 그대로(때리는 순간 이미 strike()가 끝낸다) — 이건 그
@@ -305,7 +311,15 @@
                 cds: [0, 0, 0, 0, 0, 0], buff: null,
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0,
                 dodgeAnim: 0, drinkAnim: 0,
-                coyoteT: 0, jumpBufferT: 0, rollT: 0, wallKickT: 0, wallKickDir: 0 },
+                coyoteT: 0, jumpBufferT: 0, rollT: 0, wallKickT: 0, wallKickDir: 0,
+                /* 고유 조작(§5-1) — holding/holdT 는 "회피를 누르고 있다"는 입력
+                   상태, 나머지는 갈래별로 하나씩만 쓴다(무사=parry, 궁수=archer,
+                   협객=shadow, 방사=elem — 서로 겹쳐 켜질 일이 없다) */
+                holding: false, holdT: 0, holdArmed: false, sigCd: 0, sigNone: false,
+                parryT: 0, parryNextMul: 1, parryBonus: 1,
+                shadowT: 0, shadowHitT: 0, shadowHitMul: 1,
+                archerCharging: false, archerMoveMul: 1, archerBuff: null,
+                elemLeft: 0, elemIdx: 0 },
       enemies: [], dying: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), forage: buildForageZone(stg), ambush: buildAmbush(stg),
       miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
@@ -744,6 +758,126 @@
     return true;
   }
 
+  /* ── 고유 조작(§5-1) ──────────────────────────────────────
+   * 회피 버튼(키)을 **길게 누르면** 나온다 — 짧게 뗐으면 그냥 dodge().
+   * 입력은 game.js(Shift keydown/keyup)·ui.js(회피 단추 pointerdown/up)
+   * 둘 다 holdStart()/holdEnd() 만 부르면 되고, 판정은 여기 다 있다. */
+
+  function holdStart() {
+    if (!run) { return; }
+    var p = run.player;
+    if (p.climb || p.holding) { return; }
+    p.holding = true; p.holdT = 0; p.holdArmed = false; p.sigNone = false;
+  }
+
+  /** 회피 임계(job.js `JD.SIGNATURE_HOLD`)를 넘는 순간 한 번만 불린다 —
+   *  갈래별로 그 자리에서 바로 터지는 셋(무사·협객·방사)과, 놓는 순간에야
+   *  힘이 정해지는 하나(궁수)로 나뉜다. */
+  function armSignature() {
+    var p = run.player, J = global.DG.job;
+    p.holdArmed = true;
+    var sig = J && J.signature ? J.signature() : null;
+    if (!sig || p.sigCd > 0 || run.mp < sig.cost) {
+      p.sigNone = true;
+      if (sig) { core.emit('toast', '⚠️ 고유 조작을 쓸 수 없습니다'); }
+      return;
+    }
+    run.mp -= sig.cost;
+    p.sigCd = sig.cd;
+    if (sig.job === 'warrior') {
+      p.parryT = sig.window;
+      p.parryNextMul = sig.nextMul;
+      fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: 44, life: sig.window });
+      sfx('dodge');
+    } else if (sig.job === 'rogue') {
+      p.shadowT = sig.dur;
+      p.invuln = Math.max(p.invuln, sig.dur);
+      p.shadowHitMul = sig.firstHitMul;
+      p.shadowHitT = SIG_SHADOW_HIT_GRACE;
+      fx.push({ t: 'dash', x: p.x - 20, y: p.y, w: P_W + 40, h: P_H, life: sig.dur });
+      sfx('dodge');
+    } else if (sig.job === 'mage') {
+      p.elemLeft = sig.shots;
+      p.elemIdx = 0;
+      fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: 44, life: 0.3 });
+      sfx('skill');
+    } else if (sig.job === 'archer') {
+      p.archerCharging = true;
+      p.archerMoveMul = sig.moveMul;
+      /* 힘은 놓는 순간(releaseSignature)에 눌린 시간으로 정해진다 */
+    }
+    core.emit('side:skill', 'sig:' + sig.key);
+  }
+
+  /** 궁수의 당기기 — 놓는 순간, 눌린 시간(0.4~1.2s)만큼 다음 화살·연사에 실을
+   *  관통·위력을 정해 둔다. 다른 갈래는 armSignature() 에서 이미 다 끝났으므로
+   *  여기서는 charging 표시만 끈다. */
+  function releaseSignature() {
+    var p = run.player, J = global.DG.job;
+    p.archerCharging = false;
+    if (p.sigNone) { return; }
+    var sig = J && J.signature ? J.signature() : null;
+    if (!sig || sig.job !== 'archer') { return; }
+    var t = core.clamp(p.holdT, sig.minHold, sig.maxHold);
+    var ratio = (t - sig.minHold) / (sig.maxHold - sig.minHold);
+    p.archerBuff = { mul: sig.mulMin + (sig.mulMax - sig.mulMin) * ratio, pierce: sig.pierceAdd };
+    fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: 40, life: 0.3 });
+    sfx('skill');
+  }
+
+  /** 회피 버튼(키)을 뗐다 — 임계를 못 넘겼으면 짧게 눌렀다 뗀 것이니
+   *  그냥 회피, 넘겼으면 갈래에 맞게 고유 조작을 마무리한다. */
+  function holdEnd() {
+    if (!run) { return; }
+    var p = run.player;
+    if (!p.holding) { return; }
+    p.holding = false;
+    if (!p.holdArmed) { dodge(); return; }
+    releaseSignature();
+    p.holdT = 0;
+  }
+
+  /** 창(blur)에서 손 뗌 — 회피(짧게 뗀 것과 같은 판정)도, 고유 조작 마무리도
+   *  안 부른다. 포커스를 잃는 순간까지 뗀 게 아니므로 그냥 손을 놓는다. */
+  function cancelHold() {
+    if (!run) { return; }
+    var p = run.player;
+    p.holding = false; p.holdT = 0; p.holdArmed = false;
+    p.archerCharging = false;
+  }
+
+  /** 원소 전환(방사)이 실은 속성 — fire(지속)·ice(둔화)는 몸에 상태를 걸고,
+   *  lightning(사슬)은 그 자리에서 옆 몸 하나를 더 때린다(재귀 없음 — 사슬의
+   *  사슬은 안 만든다). 새 적 데이터 칸이 아니라 살아 있는 동안만의 런타임
+   *  값이다(§2-2 — data-enemy.js 는 안 늘렸다). */
+  function applyElem(e, elem, mul) {
+    if (elem === 'fire') { e.burnT = Math.max(e.burnT || 0, 3); }
+    else if (elem === 'ice') { e.slowT = Math.max(e.slowT || 0, 2); }
+    else if (elem === 'lightning') {
+      var best = null, bd = SIG_CHAIN_R;
+      for (var i = 0; i < run.enemies.length; i++) {
+        var o = run.enemies[i];
+        if (o === e) { continue; }
+        var dx = (o.x + o.w / 2) - (e.x + e.w / 2), dy = (o.y + o.h / 2) - (e.y + e.h / 2);
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d < bd) { bd = d; best = o; }
+      }
+      if (best) { strike(best, mul); }
+    }
+    fx.push({ t: 'impact', x: e.x + e.w / 2, y: e.y + e.h * 0.3, life: 0.3 });
+  }
+
+  var ELEM_CYCLE = ['fire', 'ice', 'lightning'];
+
+  /** 원소 전환(§5-1) — 남은 발수만큼 화·빙·전을 돌려 가며 물린다(없으면 null,
+   *  castSkill()의 bolt·volley·rain 세 자리에서만 부른다). */
+  function takeElem(p) {
+    if (!p.elemLeft || p.elemLeft <= 0) { return null; }
+    var kind = ELEM_CYCLE[p.elemIdx % ELEM_CYCLE.length];
+    p.elemIdx++; p.elemLeft--;
+    return kind;
+  }
+
   /* ── 판정 ─────────────────────────────────────────────── */
 
   /** 지금 걸려 있는 북돋움 (없으면 null) */
@@ -781,16 +915,23 @@
    * 판정을 흔들지 않으면서 "때렸다" 는 감각을 주는 가장 싼 값이다.
    * 다만 **보스는 밀리지 않는다**(밀리면 달려드는 패턴이 뜻을 잃는다).
    */
-  function strike(e, mul, forceCrit) {
+  function strike(e, mul, forceCrit, elem) {
+    var p = run.player, m = mul || 1;
+    /* 고유 조작(§5-1) — 받아치기·그림자 걷기가 예약해 둔 "다음 한 타" 보너스를
+       여기 한 곳에서 꺼내 쓰고 곧바로 지운다(둘이 겹칠 일은 없다 — 갈래가
+       다르면 둘 다 0/1이다). elem 은 castSkill() 이 쏠 때 실어 보낸 원소뿐이라
+       melee·aoe·dash 등 나머지 효과에는 안 걸린다(§5-1 "다음 3발" 범위 그대로) */
+    if (p.parryBonus !== 1) { m *= p.parryBonus; p.parryBonus = 1; }
+    if (p.shadowHitT > 0) { m *= p.shadowHitMul; p.shadowHitT = 0; }
     var crit = forceCrit || Math.random() < critRate();
-    var dmg = atkOf() * (mul || 1) * (0.88 + Math.random() * 0.24) * (crit ? critMul() : 1);
+    var dmg = atkOf() * m * (0.88 + Math.random() * 0.24) * (crit ? critMul() : 1);
     dmg = Math.max(1, Math.round(dmg));
     e.hp -= dmg;
     e.hurt = HURT_FLASH;
     /* 탱커형(PLAN 13절)은 보스처럼 밀리지 않는다 — 맷집이 그 컨셉이다 */
     if (!e.boss && e.role !== 'tank') {
       var away = (e.x + e.w / 2) - (run.player.x + P_W / 2) >= 0 ? 1 : -1;
-      e.kx = (e.kx || 0) + away * knockPow() * (crit ? 1.5 : 1) * (mul >= 2 ? 1.4 : 1);
+      e.kx = (e.kx || 0) + away * knockPow() * (crit ? 1.5 : 1) * (m >= 2 ? 1.4 : 1);
     }
     fx.push({ t: 'hit', x: e.x + e.w / 2, y: e.y, v: dmg, life: 0.6, crit: crit });
     /* 손맛 표준(§5-7) — hitstop 은 한 대 맞을 때마다 걸린다(dt 를 낮춰 이
@@ -807,6 +948,7 @@
       run.hitSeq = ((run.hitSeq || 0) + 1) % HIT_CUES.length;
       sfx(HIT_CUES[run.hitSeq]);
     }
+    if (elem) { applyElem(e, elem, m); }
     if (e.hp <= 0) { kill(e); }
   }
 
@@ -887,6 +1029,17 @@
     if (!run) { return; }
     var p = run.player;
     if (p.invuln > 0) { return; }
+    /* 받아치기(§5-1, 무사 고유 조작) — 창 안에 맞으면 무효화하고, 그제서야
+       "다음 한 타" 보너스가 켜진다(눌렀다고 바로 켜지지 않는다 — 실제로
+       받아쳐야 한다). strike() 가 p.parryBonus 를 꺼내 쓰고 지운다. */
+    if (p.parryT > 0) {
+      p.parryT = 0;
+      p.parryBonus = p.parryNextMul;
+      fx.push({ t: 'ring', x: p.x + P_W / 2, y: p.y + P_H / 2, r: 50, life: 0.3 });
+      sfx('crit');
+      core.emit('toast', '🛡️ 받아쳤다!');
+      return;
+    }
     var G = global.DG.gear;
     var cut = G ? G.cut(power().def) : 0;
     var b = buffOn();
@@ -982,6 +1135,17 @@
     var sb = JB ? JB.schoolBonus(sk) : null;
     mul *= sb ? sb.dmgMul : 1;
 
+    /* 궁수 당기기(§5-1) — 화살·연사 한 번에만 실린다(다음 화살 하나뿐, 평타처럼
+       계속 나가는 자리에 얹으면 힘이 안 보이게 흩어진다). 관통은 shots 의
+       pierceLeft(§5-1) 로 남는다 — 원래 화살(pierce:false)은 첫 하나에서
+       멈추던 것을, 이만큼 더 뚫고 지나가게 한다. */
+    var pierceAdd = 0;
+    if (p.archerBuff && (eff === 'arrow' || eff === 'volley')) {
+      mul *= p.archerBuff.mul;
+      pierceAdd = p.archerBuff.pierce;
+      p.archerBuff = null;
+    }
+
     if (eff === 'melee') {
       var hits = sk.hits || 1;
       var box = hitBox();
@@ -1005,16 +1169,19 @@
          지금까지를 선으로 그어 "뚫고 지나간다"를 보여 준다(bolt 만, 화살은 점 하나로 족하다) */
       run.shots.push({ x: p.x + P_W / 2, y: p.y + P_H * 0.4, dir: p.facing,
                        spd: eff === 'arrow' ? 640 : 520, life: 1.2,
-                       mul: mul, pierce: eff === 'bolt', kind: sk.key, hit: {},
+                       mul: mul, pierce: eff === 'bolt', pierceLeft: pierceAdd,
+                       elem: takeElem(p), kind: sk.key, hit: {},
                        ox: p.x + P_W / 2 });
     } else if (eff === 'volley') {
       /* 여러 발 — 높이를 조금씩 달리해 한 줄로 겹치지 않게 한다.
-         유파(§5-2) 연·화·탄 세트가 발수를 늘린다(2=+1·4=+2) */
+         유파(§5-2) 연·화·탄 세트가 발수를 늘린다(2=+1·4=+2). 원소 전환(§5-1)은
+         "발"이 곧 이 낱개 화살이라 — 여러 발 중 남는 만큼만 물든다. */
       var n = (sk.shots || 2) + (sb ? sb.shotsAdd : 0);
       for (j = 0; j < n; j++) {
         run.shots.push({ x: p.x + P_W / 2, y: p.y + P_H * (0.3 + 0.16 * j), dir: p.facing,
                          spd: 600 + j * 34, life: 1.1,
-                         mul: mul, pierce: false, kind: sk.key, hit: {} });
+                         mul: mul, pierce: false, pierceLeft: pierceAdd,
+                         elem: takeElem(p), kind: sk.key, hit: {} });
       }
     } else if (eff === 'dash') {
       /* 밀고 나간다 — 지나간 자리의 적을 벤다. 은신보는 잠깐 맞지 않는다 */
@@ -1047,7 +1214,7 @@
       for (j = 0; j < run.enemies.length; j++) {
         e = run.enemies[j];
         if (overlap(band, e)) {
-          strike(e, mul);
+          strike(e, mul, false, takeElem(p));
           /* 착탄 다발(§5-7 남은 조각) — 화살비는 한 몸에도 여러 점이 동시에
              꽂힌다. 겉을 씌우는 'rain' 하나만으로는 몸에 닿는 느낌이 없었다 */
           for (var rk = 0; rk < 3; rk++) {
@@ -1105,6 +1272,21 @@
     if (p.jumpBufferT > 0) { p.jumpBufferT -= dt; }
     if (p.rollT > 0) { p.rollT -= dt; }
     if (p.wallKickT > 0) { p.wallKickT -= dt; }
+    /* 고유 조작(§5-1) — 회피를 누르고 있는 동안만 holdT 가 쌓이고, 임계
+       (job.js JD.SIGNATURE_HOLD)를 넘는 순간 딱 한 번 armSignature() 가 돈다.
+       그 뒤(홀드 도중)에는 다시 안 불린다 — holdArmed 가 막는다. */
+    if (p.holding) {
+      p.holdT += dt;
+      var J0 = global.DG.job, sig0 = J0 && J0.signature ? J0.signature() : null;
+      if (!p.holdArmed && sig0 && p.holdT >= sig0.hold) { armSignature(); }
+    }
+    if (p.sigCd > 0) { p.sigCd -= dt; }
+    if (p.parryT > 0) { p.parryT -= dt; }
+    if (p.shadowHitT > 0) { p.shadowHitT -= dt; }
+    if (p.shadowT > 0) {
+      p.shadowT -= dt;
+      p.invuln = Math.max(p.invuln, p.shadowT);   // 이동이 끝나는 순간과 무적이 함께 끝난다
+    }
     var bf = buffOn();
     run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
@@ -1112,7 +1294,9 @@
 
     if (p.dropThru > 0) { p.dropThru -= dt; }
 
-    var mul = bf ? bf.speed : 1;
+    /* 궁수 당기기(§5-1) — 힘을 모으는 동안 이동이 느려진다(누른 시간이 곧
+       위력이니 "가만히 서서 당긴다"는 선택을 만든다) */
+    var mul = (bf ? bf.speed : 1) * (p.archerCharging ? p.archerMoveMul : 1);
 
     if (p.climb) {
       /* 줄에 매달린 동안은 **중력도 좌우 이동도 없다** — ↑↓ 로만 오르내린다.
@@ -1138,11 +1322,17 @@
         p.vx = p.facing;
       } else if (p.wallKickT > 0) {
         p.vx = p.wallKickDir;
+      } else if (p.shadowT > 0) {
+        /* 그림자 걷기(협객, §5-1) — dash 처럼 한 프레임에 튀는 게 아니라
+           밀고 가는 "이동"이라, 벽 차기·착지 롤과 같은 요령으로 입력을
+           덮어쓴다(입력을 놓아도 이어진다). */
+        p.vx = p.facing;
       } else {
         p.vx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
         if (p.vx) { p.facing = p.vx > 0 ? 1 : -1; }
       }
-      var moveMul = p.rollT > 0 ? ROLL_MUL : (p.wallKickT > 0 ? (WALL_KICK_VX / SPEED) : 1);
+      var moveMul = p.rollT > 0 ? ROLL_MUL :
+        (p.wallKickT > 0 ? (WALL_KICK_VX / SPEED) : (p.shadowT > 0 ? SIG_SHADOW_MUL : 1));
       p.x = core.clamp(p.x + p.vx * SPEED * mul * moveMul * dt, 0, stg.width - P_W);
       if (p.vx) { p.phase += dt * 9; }
 
@@ -1233,8 +1423,12 @@
         if (sh.hit[si]) { continue; }
         if (overlap({ x: sh.x - 10, y: sh.y - 10, w: 20, h: 20 }, se)) {
           sh.hit[si] = true;
-          strike(se, sh.mul === undefined ? 2.1 : sh.mul);
-          if (sh.pierce === false) { spent = true; break; }
+          strike(se, sh.mul === undefined ? 2.1 : sh.mul, false, sh.elem);
+          /* 관통 +1(§5-1, 궁수 당기기) — 원래 첫 하나에서 멈추던 화살·연사가
+             pierceLeft 만큼 더 뚫고 지나간다(무제한 관통인 bolt 는 그대로). */
+          if (sh.pierce === false) {
+            if (sh.pierceLeft > 0) { sh.pierceLeft--; } else { spent = true; break; }
+          }
         }
       }
       if (spent || sh.life <= 0 || sh.x < -20 || sh.x > stg.width + 20) { run.shots.splice(i, 1); }
@@ -1267,6 +1461,16 @@
       var e = run.enemies[i];
       if (e.hurt > 0) { e.hurt -= dt; }
       if (e.atkAnim > 0) { e.atkAnim -= dt; }
+      /* 원소 전환(§5-1, 방사 고유 조작)의 화(火)·빙(氷) — 살아 있는 동안만의
+         런타임 상태다(data-enemy.js 는 안 늘렸다, §2-2). 이 프레임에 죽으면
+         이 루프 자리(i)가 바로 kill() 로 지워지므로 i-- 로 다음 원소를 안
+         건너뛴다. */
+      if (e.burnT > 0) {
+        e.hp -= e.hpMax * 0.05 * dt;
+        e.burnT -= dt;
+        if (e.hp <= 0) { kill(e); i--; continue; }
+      }
+      if (e.slowT > 0) { e.slowT -= dt; }
       e.phase += dt * 6;
       var dx = (p.x + P_W / 2) - (e.x + e.w / 2);
       var near = Math.abs(dx) < (e.boss ? 420 : 260) && Math.abs((p.y + P_H) - (e.y + e.h)) < 70;
@@ -1334,7 +1538,7 @@
           }
         }
       }
-      e.x += (holding ? 0 : e.dir * e.spd * (near ? 1.25 : 0.7) * chargeMul) * dt;
+      e.x += (holding ? 0 : e.dir * e.spd * (near ? 1.25 : 0.7) * chargeMul * (e.slowT > 0 ? 0.6 : 1)) * dt;
       /* 밀린 만큼 미끄러지고 곧 잦아든다 — 맞는 동안은 못 붙는다는 뜻이기도 하다 */
       if (e.kx) {
         e.x += e.kx * dt;
@@ -1581,6 +1785,15 @@
     base.def = power().def;
     base.dodge = { cd: Math.max(0, run.player.dodgeCd), cdMax: DODGE_COOL,
       ready: run.player.dodgeCd <= 0 };
+    /* 고유 조작(§5-1) — 회피 단추의 "길게 누름" 게이지가 이 값을 본다.
+       job.js signature() 가 없으면(무명) hasSig 가 거짓이라 게이지가 안 뜬다. */
+    var J1 = global.DG.job, sig1 = J1 && J1.signature ? J1.signature() : null;
+    base.hold = {
+      hasSig: !!sig1, holding: !!run.player.holding, t: run.player.holdT || 0,
+      thresh: sig1 ? sig1.hold : 0.18, armed: !!run.player.holdArmed,
+      sigCd: Math.max(0, run.player.sigCd || 0), sigCdMax: sig1 ? sig1.cd : 0,
+      sigReady: (run.player.sigCd || 0) <= 0 && run.mp >= (sig1 ? sig1.cost : 1e9)
+    };
     /* 줄·문·마을 사람 — 조작 띠가 '↑' 를 언제 띄울지 이 넷으로 정한다 */
     base.climbing = !!run.player.climb;
     base.resting = run.player.resting > 0.4;
@@ -1618,6 +1831,7 @@
     GRAV: GRAV, SPEED: SPEED, P_W: P_W, P_H: P_H, REACH: REACH, CLIMB: CLIMB,
     enter: enter, leave: leave, resume: resume, active: active, update: update,
     setInput: setInput, jump: jump, dodge: dodge, castSkill: castSkill, drink: drink,
+    holdStart: holdStart, holdEnd: holdEnd, cancelHold: cancelHold,
     travel: travel, useUp: useUp, useDown: useDown, dropThrough: dropThrough,
     grabRope: grabRope,
     ropeAt: ropeAt, portalAt: portalAt, npcAt: npcAt, talk: talk, closeTalk: closeTalk, letGo: letGo,

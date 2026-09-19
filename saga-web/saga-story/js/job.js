@@ -102,9 +102,74 @@
     sfx('jobup');
     core.log('🎓 ' + j.name + ' 이(가) 되었다 — ' + j.desc, 'good');
     core.emit('toast', j.emoji + ' ' + j.name);
+    /* 스승(§5-1) — 그 갈래의 차수(tier)에 맞는 스승 한 명의 초상·대사를 띄운다.
+       ui.js 가 'mentor' 를 들어 인물 이름·대사로 토스트를 띄운다(도감에 없어도
+       그냥 소개만 한다 — 등용 여부는 mentorBoost() 가 따로 본다). */
+    var root = rootOf(key);
+    if (root) {
+      var list = JD.mentorsOf(root);
+      var m = list[Math.min(j.tier - 1, list.length - 1)];
+      if (m) {
+        if (!core.save.player.mentorSeen) { core.save.player.mentorSeen = {}; }
+        core.save.player.mentorSeen[key] = true;
+        core.emit('mentor', { jobKey: key, heroId: m });
+      }
+    }
     core.emit('changed');
     core.persist();
     return true;
+  }
+
+  /** 전직 갈래의 뿌리(1차 키) — 'warrior'|'archer'|'rogue'|'mage'. 무명이거나
+   *  자리 사슬이 무명까지 안 닿으면(있을 수 없지만) null. §5-1 고유 조작·
+   *  스승은 2~4차에도 안 바뀌고 이 뿌리 하나로만 정해진다. */
+  function rootOf(key) {
+    var j = JD.job(key);
+    if (!j || j.key === 'none') { return null; }
+    while (j.from && j.from !== 'none') { j = JD.job(j.from); }
+    return j.from === 'none' ? j.key : null;
+  }
+
+  /** 지금 직업의 스승 넷 (무명이면 빈 배열) */
+  function mentors() {
+    st();
+    var r = rootOf(core.save.job);
+    return r ? JD.mentorsOf(r) : [];
+  }
+
+  /** 스승 중 하나라도 도감(등용)에 있으면 참 — 고유 조작이 한 단 오른다 */
+  function mentorBoost() {
+    var list = mentors(), dex = core.save.dex && core.save.dex.heroes;
+    if (!dex) { return false; }
+    for (var i = 0; i < list.length; i++) { if (dex[list[i]]) { return true; } }
+    return false;
+  }
+
+  /** 지금 직업의 고유 조작(§5-1) — 스승 보정까지 적용해 돌려준다(무명이면 null).
+   *  side.js 는 이 값만 받아 쓴다(입력 임계·수치가 뭔지는 몰라도 된다). */
+  function signature() {
+    st();
+    var r = rootOf(core.save.job);
+    if (!r) { return null; }
+    var s = JD.signatureOf(r);
+    if (!s) { return null; }
+    var boost = mentorBoost();
+    var out = {
+      job: r, key: s.key, name: s.name, emoji: s.emoji, desc: s.desc, boost: boost,
+      cost: JD.SIGNATURE_COST, cd: JD.SIGNATURE_COOL, hold: JD.SIGNATURE_HOLD
+    };
+    if (r === 'warrior') {
+      out.window = boost ? s.windowBoost : s.window; out.nextMul = s.nextMul;
+    } else if (r === 'archer') {
+      out.minHold = s.minHold; out.maxHold = s.maxHold; out.mulMin = s.mulMin;
+      out.mulMax = boost ? s.mulMaxBoost : s.mulMax;
+      out.pierceAdd = s.pierceAdd; out.moveMul = s.moveMul;
+    } else if (r === 'rogue') {
+      out.dur = s.dur; out.firstHitMul = boost ? s.firstHitMulBoost : s.firstHitMul;
+    } else if (r === 'mage') {
+      out.shots = boost ? s.shotsBoost : s.shots;
+    }
+    return out;
   }
 
   /** 전직을 되돌린다 — 무명으로 돌아가고 찍은 무예 점수를 전부 되찾는다.
@@ -271,6 +336,7 @@
     canJoin: canJoin, join: join, resetJob: resetJob, canRaise: canRaise, raise: raise,
     bar: bar, mulOf: mulOf, grow: grow,
     schoolCounts: schoolCounts, activeSchools: activeSchools, schoolBonus: schoolBonus,
-    dodgeCdMul: dodgeCdMul
+    dodgeCdMul: dodgeCdMul,
+    rootOf: rootOf, mentors: mentors, mentorBoost: mentorBoost, signature: signature
   };
 })(window);

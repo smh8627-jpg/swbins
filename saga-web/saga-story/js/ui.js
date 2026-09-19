@@ -199,8 +199,6 @@
         global.DG.side.castSkill(parseInt(b.getAttribute('data-i'), 10) || 0);
       } else if (act === 's-drink') {
         if (!global.DG.side.drink()) { toast('탕약이 없거나 체력이 가득합니다'); }
-      } else if (act === 's-dodge') {
-        global.DG.side.dodge();
       } else if (act === 'talk-close') {
         global.DG.side.closeTalk();
       } else if (act === 'talk-shop') {
@@ -304,6 +302,10 @@
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
+    });
+    core.on('mentor', function (p) {
+      var h = data.find(p.heroId);
+      if (h) { toast('🎓 스승 ' + h.name + '(' + h.hanja + ') — "' + h.quote + '"'); }
     });
 
     renderTop(); renderCamp();
@@ -606,6 +608,24 @@
 
   /* ── 아래 조작 띠 (사냥 중) ───────────────────────────── */
 
+  /* 회피 단추 — 짧게 누르면 dodge(), 길게 누르면 직업별 고유 조작(§5-1).
+   * click 이 아니라 pointerdown/up 으로 직접 여닫는다(click 을 그대로 두면
+   * 누를 때마다 dodge() 가 한 번 더 불려 "회피 + 고유 조작"이 겹친다).
+   * DOM 이 renderHudBar() 에서 다시 만들어질 때마다 새로 붙인다. */
+  function bindDodgeHold() {
+    var btn = document.getElementById('hud-dodge');
+    if (!btn) { return; }
+    var S = global.DG.side;
+    var down = false;
+    btn.addEventListener('pointerdown', function (e) {
+      down = true; e.preventDefault(); S.holdStart();
+    });
+    var up = function () { if (down) { down = false; S.holdEnd(); } };
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointercancel', up);
+    btn.addEventListener('pointerleave', up);
+  }
+
   var hudKey = null;
   function renderHudBar() {
     if (!els.hud) { return; }
@@ -633,12 +653,14 @@
       }
       html += '<button class="hud-sk potion" data-act="s-drink" title="탕약을 마신다 (Q)">' +
         '<b>🧪</b><small class="pn"></small></button>' +
-        '<button class="hud-sk" data-act="s-dodge" title="회피 — 짧게 미끄러지며 잠깐 무적 (Shift)">' +
-        '<b>💨</b><u></u></button>' +
+        '<button class="hud-sk" id="hud-dodge" ' +
+        'title="회피 — 짧게 (Shift) · 길게 누르면 직업별 고유 조작(§5-1)">' +
+        '<b>💨</b><u></u><i class="hold"></i></button>' +
         '<button class="btn tiny ghost hud-out" data-act="s-leave">🚪 나온다</button>' +
         '</div></div>';
       els.hud.innerHTML = html;
       hudKey = key;
+      bindDodgeHold();
     }
     var atkBtn = els.hud.querySelector('.hud-sk[data-i="' + atkI + '"]');
     if (atkBtn && atkI >= 0 && st.skills[atkI]) {
@@ -646,11 +668,18 @@
       atkBtn.classList.toggle('ready', sk.ready);
       atkBtn.querySelector('u').style.height = (sk.cdMax ? (sk.cd / sk.cdMax * 100) : 0) + '%';
     }
-    var dodgeBtn = els.hud.querySelector('[data-act="s-dodge"]');
+    var dodgeBtn = document.getElementById('hud-dodge');
     if (dodgeBtn && st.dodge) {
       dodgeBtn.classList.toggle('ready', st.dodge.ready);
       dodgeBtn.querySelector('u').style.height =
         (st.dodge.cdMax ? (st.dodge.cd / st.dodge.cdMax * 100) : 0) + '%';
+      /* 고유 조작(§5-1) 게이지 — armed 뒤에는 꽉 채워 "터졌다"를 보여 준다.
+         st.hold.hasSig 가 거짓(무명)이면 눌러도 그냥 회피만 된다 */
+      var hd = st.hold || {};
+      var pct = hd.armed ? 100 : (hd.thresh ? Math.min(100, (hd.t / hd.thresh) * 100) : 0);
+      dodgeBtn.classList.toggle('armed', !!hd.armed);
+      var holdEl = dodgeBtn.querySelector('i.hold');
+      if (holdEl) { holdEl.style.width = (hd.hasSig ? pct : 0) + '%'; }
     }
     var pn = els.hud.querySelector('.pn');
     if (pn) { pn.textContent = st.potions; }
@@ -945,6 +974,28 @@
         ? '<div class="btn-row"><button class="btn ghost" data-act="j-reset">🔄 전직을 되돌린다</button></div>'
         : '') +
       '</div></div>';
+
+    /* 고유 조작 + 스승(§5-1) — 회피를 길게 눌러 쓰는 조작 하나와, 1~4차 전직마다
+       하나씩 만난 스승 넷. 스승 중 하나라도 도감(등용)에 있으면 수치가 오른다. */
+    var sig = J.signature();
+    if (sig) {
+      var mlist = J.mentors(), dex = core.save.dex.heroes;
+      html += '<div class="sec"><h4>고유 조작 <small class="muted">— 회피를 길게 누르면</small></h4>' +
+        '<div class="card">' +
+        '<div class="stat-row"><span>' + sig.emoji + ' <b>' + esc(sig.name) + '</b></span>' +
+          '<span class="muted">기력 ' + sig.cost + ' · 쿨 ' + sig.cd + 's</span></div>' +
+        '<div class="stat-row"><span class="muted">' + esc(sig.desc) + '</span>' +
+          '<b>' + (sig.boost ? '🎓 스승 보정 ON' : '스승 보정 OFF') + '</b></div>' +
+        '<div class="mentor-row">' +
+        mlist.map(function (id, mi) {
+          var h = data.find(id);
+          if (!h) { return ''; }
+          var got = !!dex[id];
+          return '<div class="mentor-chip' + (got ? ' on' : '') + '">' + pt('hero', h, 40) +
+            '<small>' + (mi + 1) + '차 · ' + esc(h.name) + (got ? ' ✅' : '') + '</small></div>';
+        }).join('') +
+        '</div></div></div>';
+    }
 
     /* 전직 */
     var nexts = JD.nextJobs(me.key);

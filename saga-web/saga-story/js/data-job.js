@@ -454,9 +454,52 @@
     return JOBS.filter(function (j) { return j.from === jobKey; });
   }
 
+  /**
+   * 스승(§5-1) — 갈래 뿌리(1차 키)마다 넷, `data.js` HEROES 에서 그 갈래
+   * 무기·기질에 맞춰 골랐다(faction·stats·emoji 로 고른다는 PLAN 원문을
+   * 이 판의 실제 인물 풀에 대면 "직업 이모지·대사와 맞는 인물"이 가장
+   * 뚜렷한 기준이었다 — 예: 방사 🔮 는 일본사 히미코(🔮 그대로), 협객 은
+   * 일본사 한조(🥷, 암습)). 1~4차 전직마다 하나씩 순서대로 뜬다.
+   */
+  var MENTORS = {
+    warrior: ['sg_lubu', 'kr_gyebaek', 'jp_musashi', 'eu_leonidas'],
+    archer: ['sg_huangzhong', 'sg_taishici', 'jp_yoshitsune', 'wd_genghis'],
+    rogue: ['jp_hanzo', 'sg_ganning', 'jp_tomoegozen', 'wd_shaka'],
+    mage: ['jp_himiko', 'sg_zhugeliang', 'wd_ibnsina', 'eu_davinci']
+  };
+
+  /**
+   * 고유 조작(§5-1) — 회피를 **길게 누르면** 나오는, 효과 9 밖의 "조작" 하나
+   * (side.js 입력 층에서만 판정한다, castSkill() 이 아니다 — §2-1 유지).
+   * 갈래 뿌리마다 하나뿐이고 cost·cd 는 공통이다. `*Boost` 필드는 그 갈래
+   * 스승 넷 중 하나라도 도감에 있으면 켜진다(job.js `signature()` 참고).
+   */
+  var SIGNATURE_COST = 12, SIGNATURE_COOL = 6, SIGNATURE_HOLD = 0.18;
+  var SIGNATURES = {
+    warrior: { key: 'parry', name: '받아치기', emoji: '🛡️',
+      window: 0.25, windowBoost: 0.32, nextMul: 1.5,
+      desc: '0.25s 안에 맞으면 무효 + 다음 타격 위력 ×1.5' },
+    archer: { key: 'pull', name: '당기기', emoji: '🏹',
+      minHold: 0.4, maxHold: 1.2, mulMin: 1.0, mulMax: 2.2, mulMaxBoost: 2.5,
+      pierceAdd: 1, moveMul: 0.4,
+      desc: '누르는 시간(0.4~1.2s)만큼 관통 +1·위력↑, 그 동안 이동 40%' },
+    rogue: { key: 'shadow', name: '그림자 걷기', emoji: '🌑',
+      dur: 0.5, firstHitMul: 1.8, firstHitMulBoost: 2.1,
+      desc: '0.5s 무적 이동(적 통과) + 그 뒤 첫 타 ×1.8' },
+    mage: { key: 'elem', name: '원소 전환', emoji: '🔮',
+      shots: 3, shotsBoost: 4,
+      desc: '다음 화살·마탄·비 3발에 화(지속)·빙(둔화)·전(사슬) 속성' }
+  };
+
+  function mentorsOf(rootKey) { return MENTORS[rootKey] || []; }
+  function signatureOf(rootKey) { return SIGNATURES[rootKey] || null; }
+
   global.DG = global.DG || {};
   global.DG.jobData = {
     JOBS: JOBS, SKILLS: SKILLS, SCHOOLS: SCHOOLS, SP_PER_LEVEL: SP_PER_LEVEL,
-    job: job, skill: skill, skillsOf: skillsOf, nextJobs: nextJobs, schoolDef: schoolDef
+    MENTORS: MENTORS, SIGNATURES: SIGNATURES,
+    SIGNATURE_COST: SIGNATURE_COST, SIGNATURE_COOL: SIGNATURE_COOL, SIGNATURE_HOLD: SIGNATURE_HOLD,
+    job: job, skill: skill, skillsOf: skillsOf, nextJobs: nextJobs, schoolDef: schoolDef,
+    mentorsOf: mentorsOf, signatureOf: signatureOf
   };
 })(window);

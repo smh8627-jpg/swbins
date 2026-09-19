@@ -541,17 +541,21 @@ window.DG_NO_TUNE = true;
         ('오른쪽으로 ' + Math.round(dist) + 'px · 무적 O · 식는 동안 재사용 거절');
     });
 
-    t('회피 단추 — 조작 띠에 있고, 누르면 실제로 회피한다', function () {
+    t('회피 단추 — 조작 띠에 있고, 짧게 누르면 실제로 회피한다 (§5-1)', function () {
       var run = S.raw(), p = run.player;
       p.dodgeCd = 0;
       DG.ui.renderHudBar();
-      var btn = document.querySelector('#hud [data-act="s-dodge"]');
+      /* click 대신 holdStart/holdEnd — §5-1 부터 이 단추는 click 이 아니라
+         pointerdown/up 으로 여닫는다(짧으면 회피, 길면 고유 조작). 단추가
+         실제로 있는지(#hud-dodge)만 DOM 으로 확인하고, 눌림 자체는 그
+         단추가 부르는 것과 같은 함수로 낸다. */
+      var btn = document.getElementById('hud-dodge');
       if (!btn) { return false; }
       var x0 = p.x;
-      btn.click();
+      S.holdStart(); S.holdEnd();          // 임계(0.18s) 전에 바로 뗐다 — 짧게 누른 것
       var moved = p.x !== x0 && p.dodgeCd > 0;
       p.dodgeCd = 0;
-      return moved && '단추로 실제 이동 O';
+      return moved && '단추 있음 + 짧게 눌러 실제 이동 O';
     });
 
     /* ── 멀리서 쏘는 적 ─────────────────────────────────── */
@@ -1205,6 +1209,187 @@ window.DG_NO_TUNE = true;
       unlearn();
       return kept && blocked === '무예 점수가 없습니다' &&
         ('찍어 둔 23점 그대로 · 더 못 찍음 "' + blocked + '"');
+    });
+
+    /* ── 고유 조작 + 스승(PLAN §5-1) ────────────────────────
+     * 회피를 길게 누르면 나오는 갈래별 고유 조작(§2-1 밖의 "조작") + 스승 넷.
+     * job.js signature()/mentors() 는 세이브를 안 건드리는 값이라 unlearn()
+     * 만으로 매 항목이 독립된다. side.js 쪽(hold 입력·발동)은 진행 중인
+     * run 을 그대로 쓰되, 건드린 타이머·쿨을 항목 끝에서 되돌린다. */
+
+    t('고유 조작(§5-1) — 무명은 없고, 갈래마다 다른 조작이 나온다', function () {
+      unlearn();
+      var none = J.signature();
+      C.save.player.level = 10;
+      J.join('warrior');
+      var w = J.signature();
+      unlearn();
+      C.save.player.level = 10;
+      J.join('archer');
+      var a = J.signature();
+      unlearn();
+      return none === null && w && w.key === 'parry' && a && a.key === 'pull' &&
+        w.key !== a.key && ('무명 null · 무사 ' + w.key + ' · 궁수 ' + a.key);
+    });
+
+    t('스승(§5-1) — 넷 중 하나라도 도감(등용)에 있으면 고유 조작 수치가 오른다', function () {
+      unlearn();
+      C.save.player.level = 10;
+      J.join('warrior');
+      var sigBefore = J.signature(), before = sigBefore.window;
+      var mentors = J.mentors();
+      C.save.dex.heroes[mentors[0]] = { count: 1, firstAt: Date.now() };
+      var sigAfter = J.signature(), after = sigAfter.window;
+      delete C.save.dex.heroes[mentors[0]];
+      unlearn();
+      return mentors.length === 4 && !sigBefore.boost && sigAfter.boost && after > before &&
+        ('스승 넷 · 보정 전 ' + before + 's → 보정 후 ' + after + 's');
+    });
+
+    t('고유 조작(§5-1) — 임계(0.18s) 전에 떼면 회피, 넘기면 고유 조작이 잡힌다', function () {
+      unlearn();
+      C.save.player.level = 10;
+      J.join('warrior');
+      J.raise('w_cut');
+      var run = S.raw(), p = run.player;
+      restInput(); p.climb = null; run.hitstopT = 0;
+      p.holding = false; p.holdT = 0; p.holdArmed = false; p.sigCd = 0; p.dodgeCd = 0;
+      p.parryT = 0; p.parryBonus = 1;
+      run.mp = run.mpMax;
+      var x0 = p.x;
+      S.holdStart();
+      S.update(0.05);                 // 임계(0.18s) 전 — 아직 안 잡힌다
+      var notYet = !p.holdArmed;
+      S.holdEnd();                    // 짧게 뗐다 — 그냥 회피
+      var dodged = p.x !== x0 && p.parryT === 0;
+      p.dodgeCd = 0; p.holdT = 0; p.holdArmed = false;
+      var x1 = p.x;
+      S.holdStart();
+      for (var k = 0; k < 5; k++) { S.update(0.05); }   // 총 0.25s — 임계 넘김
+      var armed = p.holdArmed && p.parryT > 0;
+      S.holdEnd();                    // 길게 뗐다 — 놓는 순간 dodge() 는 안 불린다
+      var noExtraDodge = p.x === x1;
+      p.sigCd = 0; p.parryT = 0; p.parryBonus = 1; restInput();
+      return notYet && dodged && armed && noExtraDodge &&
+        '짧게: 회피(이동 O) · 길게: 고유 조작(추가 이동 X)';
+    });
+
+    t('고유 조작(§5-1) — 무사 받아치기: 창 안에 맞으면 무효화 + 다음 타격 ×1.5', function () {
+      unlearn();
+      C.save.player.level = 10;
+      J.join('warrior');
+      J.raise('w_cut');
+      var run = S.raw(), p = run.player;
+      restInput(); p.climb = null; run.hitstopT = 0;
+      p.holding = false; p.holdT = 0; p.holdArmed = false; p.sigCd = 0; p.dodgeCd = 0;
+      p.parryT = 0; p.parryBonus = 1; p.invuln = 0; p.cds[0] = 0;
+      run.mp = run.mpMax;
+      S.holdStart();
+      for (var k = 0; k < 5; k++) { S.update(0.05); }   // 0.25s — 임계 넘겨 발동
+      var armedOk = p.holdArmed && p.parryT > 0;
+      var e = run.enemies[0];
+      e.x = p.x; e.y = p.y; e.cd = 0; e.dmg = 5; e.hp = e.hpMax;
+      var hp0 = run.hp;
+      S.update(0.03);                  // 창 안에 맞는다 — 무효화되어야 한다
+      var negated = run.hp === hp0 && p.parryBonus > 1;
+      p.facing = 1; e.x = p.x + S.P_W + 5; e.y = p.y;
+      var eHp0 = e.hp;
+      var casted = S.castSkill(0);     // 다음 타격(평타) — ×1.5 를 먹는다
+      var used = casted && p.parryBonus === 1 && e.hp < eHp0;
+      S.holdEnd();
+      p.sigCd = 0; p.parryT = 0; p.parryBonus = 1; e.cd = 1; restInput();
+      return armedOk && negated && used &&
+        '창 안 무효화 O · 다음 타격 보너스 적용·소진 O';
+    });
+
+    t('고유 조작(§5-1) — 궁수 당기기: 당기는 동안 느려지고, 놓으면 관통·위력이 오른다', function () {
+      unlearn();
+      C.save.player.level = 10;
+      J.join('archer');
+      J.raise('a_shot');
+      var run = S.raw(), p = run.player;
+      restInput(); p.climb = null; run.hitstopT = 0;
+      p.holding = false; p.holdT = 0; p.holdArmed = false; p.sigCd = 0; p.dodgeCd = 0;
+      p.archerCharging = false; p.archerBuff = null; p.cds[0] = 0; p.facing = 1;
+      run.mp = run.mpMax; run.shots.length = 0;
+      S.setInput('right', true);
+      S.holdStart();
+      for (var k = 0; k < 4; k++) { S.update(0.05); }   // 0.2s — 임계 넘겨 charging 시작
+      var armedNow = p.archerCharging;
+      var x0b = p.x;
+      for (k = 0; k < 5; k++) { S.update(0.05); }        // 추가 0.25s(총 0.45s, 전부 charging)
+      var chargeDist = p.x - x0b;
+      /* 0.25s 동안 40% 속도면 SPEED(270)×0.25×0.4 ≈ 27px — 정상 속도(67.5px)의 절반도 안 된다 */
+      var slowed = armedNow && chargeDist > 0 && chargeDist < 30;
+      S.holdEnd();
+      var buffOk = p.archerBuff && p.archerBuff.mul > 1 && p.archerBuff.pierce === 1;
+      var casted = S.castSkill(0);     // 화살 하나 — 관통 pierceLeft 를 실어야 한다
+      var sh = run.shots[run.shots.length - 1];
+      var shotOk = !!sh && sh.pierceLeft === 1;
+      run.shots.length = 0; p.sigCd = 0; p.archerBuff = null; restInput();
+      return slowed && buffOk && casted && shotOk &&
+        '당기는 동안 느려짐 O(' + Math.round(chargeDist) + 'px) · 관통 +1 실림 O';
+    });
+
+    t('고유 조작(§5-1) — 협객 그림자 걷기: 무적 이동 + 그 뒤 첫 타 ×1.8', function () {
+      unlearn();
+      C.save.player.level = 10;
+      J.join('rogue');
+      J.raise('r_twin');
+      var run = S.raw(), p = run.player;
+      restInput(); p.climb = null; run.hitstopT = 0;
+      p.holding = false; p.holdT = 0; p.holdArmed = false; p.sigCd = 0; p.dodgeCd = 0;
+      p.shadowT = 0; p.shadowHitT = 0; p.invuln = 0; p.cds[0] = 0; p.facing = 1;
+      run.mp = run.mpMax;
+      var x0 = p.x;
+      S.holdStart();
+      for (var k = 0; k < 4; k++) { S.update(0.05); }   // 0.2s — 임계 넘겨 발동
+      var moved = p.x > x0 && p.invuln > 0;             // 밀려 나가며 무적
+      var armedNow = p.shadowHitT > 0;
+      S.holdEnd();
+      var e = run.enemies[0];
+      e.x = p.x + S.P_W + 5; e.y = p.y; e.hp = e.hpMax; e.cd = 1;
+      var eHp0 = e.hp;
+      var casted = S.castSkill(0);      // 그 뒤 첫 타 — ×1.8
+      var used = casted && p.shadowHitT === 0 && e.hp < eHp0;
+      p.sigCd = 0; e.cd = 1; restInput();
+      return moved && armedNow && used &&
+        '무적 이동 O · 첫 타 보너스 적용·소진 O';
+    });
+
+    t('고유 조작(§5-1) — 방사 원소 전환: 화(지속)·빙(둔화)이 발마다 실린다', function () {
+      unlearn();
+      C.save.player.level = 10;
+      J.join('mage');
+      J.raise('m_fire');
+      var run = S.raw(), p = run.player;
+      restInput(); p.climb = null; run.hitstopT = 0;
+      p.holding = false; p.holdT = 0; p.holdArmed = false; p.sigCd = 0; p.dodgeCd = 0;
+      p.elemLeft = 0; p.elemIdx = 0; p.cds[0] = 0; p.facing = 1;
+      run.mp = run.mpMax; run.shots.length = 0;
+      S.holdStart();
+      for (var k = 0; k < 4; k++) { S.update(0.05); }   // 0.2s — 임계 넘겨 3발 장전
+      var loaded = p.elemLeft === 3;
+      S.holdEnd();
+
+      var e1 = run.enemies[0];
+      e1.x = p.x + S.P_W / 2; e1.y = p.y + S.P_H * 0.4; e1.hp = e1.hpMax; e1.burnT = 0;
+      S.castSkill(0);                   // 화구 1발째 — fire
+      S.update(0.01);                   // 쏘자마자 맞는다
+      var fireOk = e1.burnT > 0;
+      p.cds[0] = 0;
+
+      var e2 = run.enemies[1];
+      e2.x = p.x + S.P_W / 2; e2.y = p.y + S.P_H * 0.4; e2.hp = e2.hpMax; e2.slowT = 0;
+      S.castSkill(0);                   // 화구 2발째 — ice
+      S.update(0.01);
+      var iceOk = e2.slowT > 0;
+      var leftAfter = p.elemLeft;
+
+      run.shots.length = 0; p.sigCd = 0; p.elemLeft = 0; p.elemIdx = 0;
+      e1.cd = e2.cd = 1; e1.burnT = 0; e2.slowT = 0; restInput();
+      return loaded && fireOk && iceOk && leftAfter === 1 &&
+        '3발 장전 O · 1발째 화(지속) O · 2발째 빙(둔화) O · 1발 남음';
     });
 
     t('윗자리는 아랫자리 무예를 5 이상 익혀야 오른다', function () {
