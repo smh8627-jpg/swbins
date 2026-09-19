@@ -7532,3 +7532,13 @@ PROJECT_STATE.md` 참고. 요약:
 - `forest_biome_scatter.gd`(바이옴 장식물)는 이미 바이옴별 tint를 쓰고 있어 손 안 댐 — 이번은 나무(`forest_vegetation_builder.gd`)만.
 - `tools/godot_regress.sh` 다섯 판 통과(issues=0, md5 3회 동일, `.import`/`project.godot` 잡음 없음).
 - 다음: 사용자 실기로 네 바이옴 경계에서 나무 색이 부자연스럽지 않은지 확인(PROJECT_STATE "실기 확인 대기" FOREST 줄에 추가).
+
+## VRoid 얼굴 재확인 — cull_mode 판정은 오판, 진범은 베이크 텍스처 (2026-09-19⑩)
+
+- 사용자가 "VRoid 다시 확인해줘"로 명시 요청 — CLAUDE.md 규칙대로 이번엔 실제로 GUI 스크린샷을 찍었다(평소엔 몰아서, 요청 시엔 바로).
+- `camera_rig.gd`의 `spring_arm.spring_length`(9.0→2.2→3.2)·`rotation_degrees.x`(-35→-12→-18)를 임시로 바꿔 windowed exe로 TestVillage 실행 → 얼굴 클로즈업 스크린샷(4배 확대 크롭). 확인 뒤 정확히 원복, `git diff` 로 잡음 없음 확인.
+- 결과: 09-19⑤가 "실질적으로 해결"이라 판정한 건 오판이었다. 눈 자리는 완전한 검은 사각형, 피부는 이목구비 없는 밋밋한 흰색 — `cull_mode` 수정(09-19⑤)은 실제로 적용돼 있었지만(코드 확인) 증상을 못 고쳤다.
+- `assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png`(Blender 헤드리스 베이크 산출물)를 직접 열어보니 원인이 명확: 얼굴 UV에 안 맞는 거울 대칭 아틀라스 조각들 + 눈 위치에 검은 사각 블록 — 애초에 베이크 자체가 깨져 있었다. `cel_shader_apply.gd`는 7서피스 전부 이 텍스처 한 장을 그대로 물릴 뿐이라 코드 문제가 아니다.
+- 09-19⑤가 "해결"로 오판한 이유: 그때 스크린샷은 먼 카메라(spring_length 축소는 했지만 이번보다 덜 당김)+안개(fog_density 0.012)로 흐릿하게 찍혀 뭉개진 아틀라스가 "눈썹·홍채 디테일"처럼 보였을 뿐.
+- 코드는 안 건드림(문서 정정만) — PROJECT_STATE "그래픽 결함"을 해소→미해결로 되돌리고, "실기 확인 대기" GO 줄에서 VRoid 얼굴 항목 제거(더 이상 사용자 확인이 필요한 게 아니라 확정된 버그), "다음 작업" 1순위로 "베이크 재작업"을 올렸다.
+- 다음: Blender 헤드리스 베이크 스크립트(`tools/asset-forge/`)가 왜 이런 아틀라스를 뱉는지 원인부터. 103-4 Mixamo보다 먼저 — 얼굴이 깨진 채로 애니를 붙여봐야 확인이 안 된다.
