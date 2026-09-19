@@ -1020,6 +1020,7 @@ namespace Saga.EditorTools
             SetPrivateField(boss, "rewardGold", 40);       // 잡졸(8)의 5배, 같은 이유
             SetPrivateField(boss, "rewardItemId", "wp_glaive");
             SetPrivateField(boss, "isBoss", true);
+            SetPrivateField(boss, "isWorldBoss", true); // PLAN.md 101-2 5.4 "월드 보스" — 이 고정 배치 두목도 75초 두목전.
             SetPrivateField(boss, "displayName", "황건적 두목");
             SetPrivateField(boss, "bodyColor", new Color(0.45f, 0.08f, 0.08f)); // 짙은 적갈 — 잡졸의 누런 두건과 구분
             SetPrivateField(boss, "visualScale", 1.6f);

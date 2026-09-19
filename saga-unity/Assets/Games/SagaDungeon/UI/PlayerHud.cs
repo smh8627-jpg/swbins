@@ -51,6 +51,15 @@ namespace Saga.Dungeon.UI
                          $"{weapon} ({atk})  {floorLine}\n" +
                          $"{QuestState.ObjectiveText}"; // "퀘스트 시스템" 슬라이스
 
+            // PLAN.md 101-2 5.4 "월드 보스" — 75초 두목전이 진행 중일 때만 카운트다운을 얹는다.
+            var worldBoss = DungeonEnemy.ActiveWorldBoss;
+            if (worldBoss != null)
+            {
+                string timer = string.Format(DungeonLocalization.T("hud.worldboss_timer", "⏱ 두목전 — {0:0}초"),
+                    Mathf.Max(0f, worldBoss.WorldBossTimeLeft));
+                label.text += $"\n{timer}";
+            }
+
             if (healthBarFill != null)
             {
                 healthBarFill.fillAmount = HeroState.HpMax > 0 ? (float)HeroState.Hp / HeroState.HpMax : 0f;

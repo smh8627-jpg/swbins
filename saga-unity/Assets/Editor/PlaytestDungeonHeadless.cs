@@ -105,6 +105,7 @@ namespace Saga.EditorTools
                 CheckLevelUpCut();
                 CheckLootMarker();
                 CheckSigilState();
+                CheckWorldBoss();
                 CheckWeaponVisual();
                 CheckWhirl();
                 CheckDebugHud();
@@ -265,6 +266,74 @@ namespace Saga.EditorTools
             }
 
             Debug.Log($"[PlaytestDungeonHeadless] sigil state OK - 층12=정예 폭증(hp×2), 층15=유리대포(dmg×1.5), 결정적, 클리어 보상 {bonus12}");
+        }
+
+        /// <summary>PLAN.md 101-2 5.4 "월드 보스"(2026-09-19 추가) — 두목 더미를
+        /// 세워 아직 아무도 안 부른 `Update()`를 리플렉션으로 한 번 직접
+        /// 불러(`SessionCard` 만료 검증과 같은 결) Idle→Chase 전환·타이머
+        /// 시작을 확인하고, 부위 파괴 보상·완파까지 실제로 죽여 확인한다.
+        /// 별도 더미로 시간 초과(도망) 경로도 확인한다 — `_worldBossTimeLeft`를
+        /// 리플렉션으로 만료 직전까지 깎은 뒤 `Update()`를 한 번 더 불러
+        /// `Flee()`가 타는지 본다.</summary>
+        private static void CheckWorldBoss()
+        {
+            var playerGo = GameObject.FindWithTag("Player");
+            if (playerGo == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 월드 보스 검증용 player를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            var updateMethod = typeof(DungeonEnemy).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            var boss = SpawnDummyEnemy(playerGo.transform.position + new Vector3(1f, 0f, 0f), isWorldBoss: true);
+            updateMethod.Invoke(boss, null); // Idle→Chase, 타이머 시작.
+
+            if (DungeonEnemy.ActiveWorldBoss != boss || !(boss.WorldBossTimeLeft > 0f))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 월드 보스 타이머가 시작 안 됨 — ActiveWorldBoss={(DungeonEnemy.ActiveWorldBoss == boss)}, timeLeft={boss.WorldBossTimeLeft}");
+                _hadError = true;
+                Object.Destroy(boss.gameObject);
+                return;
+            }
+
+            float bossHp = (float)GetPrivate(boss, "hp"); // SpawnDummyEnemy 기본값 24.
+            int goldBefore = HeroState.Gold;
+            boss.TakeDamage(bossHp * 0.30f); // 70%로 낮춰 첫 문턱(75%)만 넘긴다.
+            if (HeroState.Gold <= goldBefore)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 월드 보스 부위 파괴 보상이 안 나옴(첫 문턱)");
+                _hadError = true;
+                Object.Destroy(boss.gameObject);
+                return;
+            }
+
+            boss.TakeDamage(bossHp); // 확실히 죽인다 — 남은 두 문턱+완파 보너스+사망 보상까지 한 번에.
+            if (DungeonEnemy.ActiveWorldBoss != null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 월드 보스 사망 후에도 ActiveWorldBoss가 안 지워짐");
+                _hadError = true;
+                return;
+            }
+
+            // 시간 초과(도망) 경로 — 별도 더미. Destroy()는 이 프레임 끝에야
+            // 실제로 처리돼(Unity 표준 동작) 같은 프레임 안에서 `fleeBoss == null`을
+            // 곧바로 기대할 수 없다(LootMarker류와 같은 이유로 파괴 자체는 여기서
+            // 안 본다) — 대신 동기 부작용(보상·ActiveWorldBoss 해제)만 확인한다.
+            var fleeBoss = SpawnDummyEnemy(playerGo.transform.position + new Vector3(-1f, 0f, 0f), isWorldBoss: true);
+            updateMethod.Invoke(fleeBoss, null); // Idle→Chase, 타이머 시작.
+            SetPrivate(fleeBoss, "_worldBossTimeLeft", 0.0001f);
+            int goldBeforeFlee = HeroState.Gold;
+            updateMethod.Invoke(fleeBoss, null); // 다음 프레임 취급 — 타임아웃 → Flee().
+
+            if (HeroState.Gold <= goldBeforeFlee || DungeonEnemy.ActiveWorldBoss != null)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 월드 보스 도망 경로가 어긋남 — gold {goldBeforeFlee}→{HeroState.Gold}, ActiveWorldBoss null={DungeonEnemy.ActiveWorldBoss == null}");
+                _hadError = true;
+                return;
+            }
+
+            Debug.Log($"[PlaytestDungeonHeadless] world boss OK - 타이머 시작·부위 파괴 보상·완파 정산·시간 초과 도망(축소 보상) 전부 확인");
         }
 
         /// <summary>PLAN.md 101-2 5.2 "유품"(2026-09-19 추가) — 플레이어를 실제로
@@ -748,17 +817,25 @@ namespace Saga.EditorTools
             Debug.Log($"[PlaytestDungeonHeadless] ground decal OK - 타격마다 생성 확인, 캡 이후 ActiveCount={GroundDecal.ActiveCount}(<=32)");
         }
 
-        private static DungeonEnemy SpawnDummyEnemy(Vector3 position)
+        private static DungeonEnemy SpawnDummyEnemy(Vector3 position, bool isWorldBoss = false)
         {
             var go = new GameObject("WhirlTestDummy");
             go.transform.position = position;
-            return go.AddComponent<DungeonEnemy>();
+            var enemy = go.AddComponent<DungeonEnemy>();
+            if (isWorldBoss) SetPrivate(enemy, "isWorldBoss", true);
+            return enemy;
         }
 
         private static object GetPrivate(object target, string fieldName)
         {
             var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
             return field?.GetValue(target);
+        }
+
+        private static void SetPrivate(object target, string fieldName, object value)
+        {
+            var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            field?.SetValue(target, value);
         }
     }
 }

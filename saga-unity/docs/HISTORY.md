@@ -7753,3 +7753,21 @@ DUNGEON 순서(5.8→5.1→5.2→5.3)의 마지막 항목. 이걸로 DUNGEON 101
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건) → `PlaytestDungeonHeadless`(`-quit` 안 줌) 10 frames no errors, 새 sigil state 체크 통과("층12=정예 폭증(hp×2), 층15=유리대포(dmg×1.5), 결정적, 클리어 보상 465") → `PlaytestDungeonFloorProgression`도 12 room advances·floor 4 no errors(회귀 없음 — 이 검증은 층 10 밑이라 변형자를 직접 밟지는 않지만 스폰 경로에 곱셈이 하나 더 얹혔는데도 예외 없음을 확인). 씬 재빌드 불필요(GameObject 구성 안 바뀜, 전부 기존 컴포넌트에 로직만 얹음).
 
 `docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 5.1~5.3 전부 완료 표기, "다음 작업"을 "DUNGEON 5.1~5.3 완료 — 다음은 5.4"로 교체, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 DUNGEON 행에 5.3 완료·재해석 이유 추가(대응 파일에 `SigilState` 추가). **DUNGEON 101-2(5.8~5.3) 전부 닫혔다** — 다음 세션이 DUNGEON에서 새로 이어받을 101-2 항목은 5.4(월드 보스 75초)부터.
+
+## 2026-09-19 — PLAN 101-2 5.4 DUNGEON 월드 보스 (같은 "사가 유니티 이어 해" 세션, 5.3 부적 던전 다음, "응 진행 해줘")
+
+DUNGEON 순서(5.8→5.1→5.2→5.3→5.4)의 마지막 항목. 이걸로 DUNGEON 101-2가 전부 닫혔다.
+
+**웹판을 그대로 안 옮긴 이유**: 웹판 §5.4(`saga-web/saga-dungeon/PLAN.md` 168행, 미착수)는 "15분마다 마을 4곳 중 하나의 필드에 예고와 함께 스폰되는" 실시간 슬롯형 월드 보스를 전제한다 — GO처럼 플레이어가 계속 되돌아오는 지속 마을이 있어야 성립한다. 이 트랙 DUNGEON은 편도 절차적 진행이라(5.2·5.3에서 이미 확인한 제약) 그런 "재방문 가능한 필드"가 없다. 그래서 "실시간 슬롯에 뜨는 별개의 필드 보스"가 아니라 **이미 있는 "층 끝 두목"(`SpawnSolo`의 withEscorts=true 분기, 그리고 `Editor/BuildTestDungeonScene.cs`의 고정 배치 `BuildBoss()`) 자체를 75초 제한 전투로 승격**시켰다 — GO의 101-2 ③이 "야생 조우"가 아니라 이미 있던 "토벌" 결(`RareWolfEncounter`)에 얹은 것과 같은 판단.
+
+- `World/DungeonEnemy.cs` — `[SerializeField] private bool isWorldBoss;` 신설(`isBoss`는 미니보스도 true라 구분이 안 됨). `Update()`가 Idle→Chase 전환(아그로) 순간 `isWorldBoss`면 75초 타이머를 켜고(`_worldBossTimeLeft`·`_worldBossActive`) 정적 참조 `ActiveWorldBoss`에 자신을 등록, 매 프레임 그 타이머를 깎다가 0 이하면 `Flee()`(도망 — 보상 30%, 도감·유품마커·장비드랍 없음, 웹판 "도망 보상 30%" 그대로). `TakeDamage()`가 `isWorldBoss`면 `CheckWorldBossPartBreak()`을 불러 GO `RareWolfEncounter.CheckPartBreak()`(101-2 ③)와 똑같은 75/50/25% 누적 문턱으로 부위 3(투구/갑주/무기 — 사람형 두목이라 GO의 다리/몸통/급소 대신 장구 이름)을 하나씩 깨며 부위당 보너스 골드 + 전부 깨면 완파 보너스를 준다. `Die()`·`OnDisable()`도 `ActiveWorldBoss` 참조를 정리한다.
+- `ConfigureCombat()`에 `bool newIsWorldBoss = false` 선택 인자 추가(기존 호출부 안 건드림). `World/DungeonFloorRunner.cs`의 `SpawnSolo()`가 `withEscorts`(보스만 true, 미니보스는 false)를 그대로 `newIsWorldBoss`로 넘긴다. `Editor/BuildTestDungeonScene.cs`의 `BuildBoss()`(Room4 고정 배치)에도 `SetPrivateField(boss, "isWorldBoss", true)` 한 줄 추가 — 절차적 두목과 고정 배치 두목 둘 다 월드 보스가 되게.
+- `UI/PlayerHud.cs` — `DungeonEnemy.ActiveWorldBoss`가 있을 때만 기존 HUD 텍스트 아래 카운트다운 한 줄을 얹는다(새 Canvas 없음, 0.5초 갱신 주기 그대로 재사용).
+- **저스트 회피(웹판 "공격 0.15s 전 회피 성공")는 스코프에서 뺐다** — GO의 raid 모드는 `DuelRules`라는 턴제 판정 계층이 있어 "예고(Tell) 구간"을 숫자로 관리하지만, DUNGEON `DungeonEnemy.Update()`는 사거리 안이면 즉시 공격하는 실시간 AI라 "공격 예고" 상태 자체가 없다 — 새로 만들려면 텔레그래프 애니메이션·타이밍 판정을 통째로 새로 짜야 해 이번 항목 범위를 넘는다고 보고 뺐다. 이미 있는 회피(무적 0.22초)가 "제때 피하면 안 맞는다"는 같은 방향의 보상을 이미 준다는 점으로 갈음.
+- `Resources/Localization/dungeon_ko.json`·`dungeon_en.json` — `worldboss.start`·`worldboss.part_broken`·`worldboss.full_break`·`worldboss.fled`·`hud.worldboss_timer` 키 추가.
+
+**검증**: `Editor/PlaytestDungeonHeadless.cs`의 `SpawnDummyEnemy()`에 `isWorldBoss` 선택 인자 추가(리플렉션 `SetPrivate()` 헬퍼 신설, 기존 `GetPrivate()`과 짝). 새 `CheckWorldBoss()` — `Update()`를 리플렉션으로 직접 불러(`SessionCard` 만료 검증과 같은 결) Idle→Chase 전환·타이머 시작을 확인하고, 실제로 때려 부위 파괴 보상·완파까지 죽여서 확인, 별도 더미로 `_worldBossTimeLeft`를 리플렉션으로 만료 직전까지 깎은 뒤 다시 `Update()`를 불러 도망 경로(축소 보상·`ActiveWorldBoss` 해제)를 확인한다. **함정(실제로 겪음)**: 도망 검증에서 처음엔 `Destroy(gameObject)` 직후 같은 프레임 안에서 `fleeBoss == null`이 바로 true가 될 거라 가정했는데 실제로는 그 프레임 끝까지 `false`로 나왔다(Unity의 지연 파괴가 이 경로에선 즉시 페이크널로 안 바뀜) — `LootMarker` 검증류가 원래부터 "파괴 자체는 안 보고 부작용만 본다"고 해 온 이유를 이번에 직접 겪었다, 그 원칙대로 파괴 단정을 빼고 보상·참조 해제만 확인하도록 고쳤다.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건) → 씬 재빌드(`BuildTestDungeonScene.Build`, `BuildBoss()`에 필드 하나 추가라 재빌드 필요) → `PlaytestDungeonHeadless`(`-quit` 안 줌) 10 frames no errors, 새 world boss 체크 통과 → `PlaytestDungeonFloorProgression`·`FieldAmbush`·`Shortcut`·`Town2`·`Towns34` 전부 재검증 OK(`DungeonEnemy.Update()`/`TakeDamage()`/`Die()`가 이 트랙 전투의 핵심 통로라 하위 슬라이스 다섯 개 전부 다시 돌렸다 — 회귀 없음).
+
+`docs/PROJECT_STATE.md` 갱신(DUNGEON 완료 요약에 101-2 5.1~5.4 전부 완료 표기, 테스트 상태·실기 확인 대기 갱신 — 15KB 상한에 걸려 여러 줄 압축). `PLAN.md` 101-2 DUNGEON 행에 5.4 완료·재해석 이유 추가. **DUNGEON 101-2(5.8~5.4) 전부 닫혔다** — 남은 항목은 5.5(난입 파도)·5.6(목표판·카드, 101-2 A·B로 이미 대응됨)·5.7(시대 퓨전, 웹 선행 대기)뿐이라 다음 세션이 이어받을 실질 항목은 5.5.

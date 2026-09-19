@@ -46,6 +46,11 @@ namespace Saga.Dungeon.World
         [SerializeField] private bool isBoss;
         [SerializeField] private string displayName = "황건적";
 
+        // PLAN.md 101-2 5.4 "월드 보스" — isBoss는 미니보스("황건 살수")도
+        // true라 따로 뒀다. 진짜 층 끝 두목("황건적 두목", 절차적 SpawnSolo의
+        // withEscorts 또는 Editor/BuildTestDungeonScene.cs BuildBoss())에만 켠다.
+        [SerializeField] private bool isWorldBoss;
+
         // Localization — displayName 자체가 BestiaryState.Record()의 저장 키라
         // (기존 세이브 호환) 그 값은 안 건드리고, 화면 표시용으로만 이 표를
         // 거친다. 종류가 넷뿐이라(잡졸/정예/살수/두목) 새 id 필드를 따로
@@ -80,6 +85,31 @@ namespace Saga.Dungeon.World
         [SerializeField] private string roomId = "room1";
 
         private const float ToastSec = 5f;
+
+        // PLAN.md 101-2 5.4 "월드 보스" — 웹판 §5.4의 실시간 슬롯·필드 스폰은
+        // 이 트랙에 대응 개념이 없어(편도 진행, 재방문 없는 필드) 안 옮기고
+        // "그 두목전 자체가 75초 제한"으로 좁혔다. 부위 3은 GO 101-2 ③
+        // "75초 토벌"(`RareWolfEncounter`+`DuelRules.Raid`)의 75/50/25% 문턱
+        // 관례를 그대로 재사용 — 사람형 두목이라 다리/몸통/급소 대신
+        // 갑주 부위 이름을 쓴다.
+        private const float WorldBossTimeLimitSec = 75f;      // 웹판 그대로.
+        private const float FleeRewardMultiplier = 0.3f;      // 웹판 "도망 보상 30%".
+        private const float PartBonusGoldMultiplier = 0.15f;  // 부위 하나 파괴마다.
+        private const float FullBreakBonusGoldMultiplier = 0.5f; // 부위 3 전부 파괴 시 추가.
+        private static readonly float[] WorldBossPartThresholds = { 0.75f, 0.50f, 0.25f };
+        private static readonly string[] WorldBossPartNames = { "투구", "갑주", "무기" };
+
+        private float _worldBossTimeLeft;
+        private bool _worldBossActive;
+        private readonly bool[] _worldBossPartBroken = new bool[WorldBossPartThresholds.Length];
+
+        /// <summary>지금 75초 두목전이 진행 중인 그 개체 — `PlayerHud.cs`가
+        /// 폴링해 카운트다운을 보여준다. 한 씬엔 두목이 하나뿐이라(절차적
+        /// 진행도 방 하나씩) 이 정적 참조로 충분하다.</summary>
+        public static DungeonEnemy ActiveWorldBoss { get; private set; }
+
+        public bool IsWorldBoss => isWorldBoss;
+        public float WorldBossTimeLeft => _worldBossTimeLeft;
 
         public static readonly List<DungeonEnemy> Active = new List<DungeonEnemy>();
 
@@ -124,7 +154,7 @@ namespace Saga.Dungeon.World
         /// 같은 제약(Awake가 아직 안 돈 상태에서만 의미가 있다).</summary>
         public void ConfigureCombat(float newHp, float newDmg, int newRewardExp, int newRewardGold,
             string newRewardItemId, string newRewardGemId, bool newIsBoss, string newDisplayName,
-            Color newBodyColor, float newVisualScale)
+            Color newBodyColor, float newVisualScale, bool newIsWorldBoss = false)
         {
             hp = newHp;
             dmg = newDmg;
@@ -136,6 +166,7 @@ namespace Saga.Dungeon.World
             displayName = newDisplayName;
             bodyColor = newBodyColor;
             visualScale = newVisualScale;
+            isWorldBoss = newIsWorldBoss;
         }
 
         private void Awake()
@@ -154,7 +185,12 @@ namespace Saga.Dungeon.World
         }
 
         private void OnEnable() => Active.Add(this);
-        private void OnDisable() => Active.Remove(this);
+
+        private void OnDisable()
+        {
+            Active.Remove(this);
+            if (ActiveWorldBoss == this) ActiveWorldBoss = null;
+        }
 
         /// <summary>44장 "주요 Enemy" 교체 — `modelPrefab`에 Animator가
         /// 이미 붙어 있으면(`SetupAbeCharacterImport.cs`가 구운
@@ -191,11 +227,34 @@ namespace Saga.Dungeon.World
         {
             if (_state == State.Dead || _player == null) return;
 
+            if (isWorldBoss && _worldBossActive)
+            {
+                _worldBossTimeLeft -= Time.deltaTime;
+                if (_worldBossTimeLeft <= 0f)
+                {
+                    Flee();
+                    return;
+                }
+            }
+
             float dist = Vector3.Distance(transform.position, _player.position);
 
             if (_state == State.Idle)
             {
-                if (dist <= aggroRadius) _state = State.Chase;
+                if (dist <= aggroRadius)
+                {
+                    _state = State.Chase;
+                    if (isWorldBoss)
+                    {
+                        _worldBossActive = true;
+                        _worldBossTimeLeft = WorldBossTimeLimitSec;
+                        ActiveWorldBoss = this;
+                        string startMsg = string.Format(
+                            DungeonLocalization.T("worldboss.start", "⏱ 두목전 시작 — {0:0}초 안에 쓰러뜨려라"),
+                            WorldBossTimeLimitSec);
+                        DialogueLabel.Instance?.Show(startMsg, 3f);
+                    }
+                }
                 return;
             }
 
@@ -278,6 +337,8 @@ namespace Saga.Dungeon.World
                 _flashRoutine = StartCoroutine(FlashHit());
             }
 
+            if (isWorldBoss) CheckWorldBossPartBreak(); // 죽는 타격도 문턱을 넘겼으면 완파 보너스까지 같이 정산.
+
             if (_curHp <= 0f)
             {
                 Die();
@@ -286,6 +347,53 @@ namespace Saga.Dungeon.World
             {
                 _animator?.SetTrigger("Hit");
             }
+        }
+
+        /// <summary>PLAN.md 101-2 5.4 "월드 보스" 부위 3 — GO `RareWolfEncounter.
+        /// CheckPartBreak()`와 같은 결(같은 기세 풀을 누적 문턱으로 읽어
+        /// 넘길 때마다 하나씩), 여기선 별도 풀 없이 hp 비율 그대로 쓴다.</summary>
+        private void CheckWorldBossPartBreak()
+        {
+            float hpFrac = hp > 0f ? Mathf.Clamp01(_curHp / hp) : 0f;
+            for (int i = 0; i < WorldBossPartThresholds.Length; i++)
+            {
+                if (_worldBossPartBroken[i] || hpFrac > WorldBossPartThresholds[i]) continue;
+                _worldBossPartBroken[i] = true;
+
+                int bonus = Mathf.RoundToInt(rewardGold * PartBonusGoldMultiplier);
+                HeroState.AddGold(bonus);
+                string msg = string.Format(DungeonLocalization.T("worldboss.part_broken", "🛡 {0} 파괴! — 돈 +{1}냥"),
+                    WorldBossPartNames[i], bonus);
+
+                if (_worldBossPartBroken[0] && _worldBossPartBroken[1] && _worldBossPartBroken[2])
+                {
+                    int fullBonus = Mathf.RoundToInt(rewardGold * FullBreakBonusGoldMultiplier);
+                    HeroState.AddGold(fullBonus);
+                    msg += string.Format(DungeonLocalization.T("worldboss.full_break", "\n💥 완파! — 돈 +{0}냥 추가"), fullBonus);
+                }
+                DialogueLabel.Instance?.Show(msg, 3f);
+            }
+        }
+
+        /// <summary>PLAN.md 101-2 5.4 "월드 보스" — 웹판 "75초가 지나면 전투가
+        /// 끝나고 보상이 30%다". `Die()`와 달리 도감 등록·유품마커·장비 드랍이
+        /// 없다(진짜로 못 잡은 것 — 축소 보상만 받고 자리를 뜬다).</summary>
+        private void Flee()
+        {
+            _state = State.Dead;
+            _worldBossActive = false;
+            if (ActiveWorldBoss == this) ActiveWorldBoss = null;
+
+            int fleeExp = Mathf.RoundToInt(rewardExp * FleeRewardMultiplier);
+            int fleeGold = Mathf.RoundToInt(rewardGold * FleeRewardMultiplier);
+            HeroState.AddExp(fleeExp);
+            HeroState.AddGold(fleeGold);
+
+            string msg = string.Format(
+                DungeonLocalization.T("worldboss.fled", "{0}이(가) 시간이 다 되어 달아났다 — 경험치 +{1} · 돈 +{2}냥(줄어든 보상)"),
+                LocalizedDisplayName, fleeExp, fleeGold);
+            DialogueLabel.Instance?.Show(msg, ToastSec);
+            Destroy(gameObject);
         }
 
         private IEnumerator FlashHit()
@@ -300,6 +408,8 @@ namespace Saga.Dungeon.World
         private void Die()
         {
             _state = State.Dead;
+            _worldBossActive = false;
+            if (ActiveWorldBoss == this) ActiveWorldBoss = null;
             SfxPlayer.PlayEnemyDeath();
 
             int levelBefore = HeroState.Level;

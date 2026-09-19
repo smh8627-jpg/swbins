@@ -68,6 +68,11 @@
     { "key": "grave.dropped_none", "value": "쓰러졌다가 정신을 차렸다." },
     { "key": "grave.card_title", "value": "쓰러졌다" },
     { "key": "grave.card_lost", "value": "유품으로 금 {0} — 돌아가기 전에 되찾을 것" },
-    { "key": "grave.card_lost_none", "value": "잃은 것 없음" }
+    { "key": "grave.card_lost_none", "value": "잃은 것 없음" },
+    { "key": "worldboss.start", "value": "⏱ 두목전 시작 — {0:0}초 안에 쓰러뜨려라" },
+    { "key": "worldboss.part_broken", "value": "🛡 {0} 파괴! — 돈 +{1}냥" },
+    { "key": "worldboss.full_break", "value": "\n💥 완파! — 돈 +{0}냥 추가" },
+    { "key": "worldboss.fled", "value": "{0}이(가) 시간이 다 되어 달아났다 — 경험치 +{1} · 돈 +{2}냥(줄어든 보상)" },
+    { "key": "hud.worldboss_timer", "value": "⏱ 두목전 — {0:0}초" }
   ]
 }

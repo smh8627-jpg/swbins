@@ -68,6 +68,11 @@
     { "key": "grave.dropped_none", "value": "You fell, then came to." },
     { "key": "grave.card_title", "value": "You fell" },
     { "key": "grave.card_lost", "value": "Left {0} Gold as a grave — recover it before you leave" },
-    { "key": "grave.card_lost_none", "value": "Lost nothing" }
+    { "key": "grave.card_lost_none", "value": "Lost nothing" },
+    { "key": "worldboss.start", "value": "⏱ Boss fight! — defeat it within {0:0}s" },
+    { "key": "worldboss.part_broken", "value": "🛡 {0} broken! — +{1} Gold" },
+    { "key": "worldboss.full_break", "value": "\n💥 Full break! — +{0} Gold bonus" },
+    { "key": "worldboss.fled", "value": "{0} fled as time ran out — +{1} EXP · +{2} Gold (reduced reward)" },
+    { "key": "hud.worldboss_timer", "value": "⏱ Boss fight — {0:0}s" }
   ]
 }

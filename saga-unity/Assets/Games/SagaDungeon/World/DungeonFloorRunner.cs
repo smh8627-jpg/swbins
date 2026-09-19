@@ -342,12 +342,14 @@ namespace Saga.Dungeon.World
             go.transform.localPosition = SoloOffset;
             var enemy = go.AddComponent<DungeonEnemy>();
             enemy.SetSpawnContext(RoomId, eliteModel);
+            // PLAN.md 101-2 5.4 "월드 보스" — withEscorts는 "boss" 종류(층 끝
+            // 진짜 두목)에만 true라(미니보스는 false) 그대로 재사용한다.
             enemy.ConfigureCombat(
                 DungeonFormulas.EnemyHp(_floor, true) * SigilState.EnemyHpMultiplier(_floor),
                 DungeonFormulas.EnemyDmg(_floor, true) * SigilState.EnemyDamageMultiplier(_floor),
                 DungeonFormulas.RewardExp(_floor, true), DungeonFormulas.RewardGold(_floor, true),
                 "wp_greatblade", "gem_ruby", isBoss, displayName,
-                color, withEscorts ? 2.0f : 1.8f);
+                color, withEscorts ? 2.0f : 1.8f, newIsWorldBoss: withEscorts);
             go.SetActive(true);
 
             if (withEscorts)
