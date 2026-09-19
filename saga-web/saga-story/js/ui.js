@@ -80,7 +80,7 @@
   }
 
   function init() {
-    ['profile', 'wallet', 'camp', 'hud', 'talkbox', 'touchpad', 'autobar', 'dock',
+    ['profile', 'wallet', 'goalboard', 'camp', 'hud', 'talkbox', 'touchpad', 'autobar', 'dock',
      'sheet', 'sheet-title', 'sheet-body', 'sheet-close', 'scrim', 'toast'].forEach(function (id) {
       els[id] = $(id);
     });
@@ -300,6 +300,7 @@
     core.on('toast', toast);
     core.on('changed', function () { renderTop(); renderSheet(); renderCamp(); });
     core.on('dg:keyremap', function () { if (openTab === 'keys') { renderSheet(); } });
+    core.on('side:end', openSessionCard);   // 세션 마무리 카드(§5-6)
     core.on('dex:new', function (p) {
       var ent = data.find(p.id);
       if (ent) { toast('📖 도감 신규 등록 · ' + ent.name); }
@@ -313,7 +314,7 @@
   var SHEET_TITLE = {
     field: '🏃 사냥터', bag: '🎒 가방', job: '🥋 무예', shop: '🏪 저자',
     dex: '📖 도감', log: '📜 기록', keys: '⌨️ 키설정', settings: '⚙️ 설정',
-    achieve: '🏅 업적'
+    achieve: '🏅 업적', sessionEnd: '🚪 이번 사냥 요약'
   };
 
   /** 업적(PLAN 33절) — 사명과 달리 한 번 이루면 다시 안 없어진다.
@@ -331,6 +332,40 @@
         '<div class="stat-row"><span class="muted">' + esc(d.desc) + '</span>' +
         '<span class="muted">' + (a.done ? '✅ 달성' : '') + '</span></div></div>';
     }
+    return html;
+  }
+
+  /* ── 세션 마무리 카드(§5-6) ─────────────────────────────
+   * 시트(도감·서당 등과 같은 DOM)를 재사용한다 — 새 열만 하나(sessionEnd).
+   * 사냥터를 나가거나 죽으면 openSessionCard() 가 열고, 5초 뒤 저 혼자
+   * 닫힌다(그 사이 사람이 다른 시트를 열면 타이머는 그걸 안 건드린다 —
+   * openTab 이 'sessionEnd' 일 때만 닫으려 든다). */
+  var sessionCardData = null;
+  var sessionCardTimer = null;
+  function openSessionCard(got) {
+    sessionCardData = got;
+    openSheet('sessionEnd');
+    if (sessionCardTimer) { global.clearTimeout(sessionCardTimer); }
+    sessionCardTimer = global.setTimeout(function () {
+      sessionCardTimer = null;
+      if (openTab === 'sessionEnd') { closeSheet(); }
+    }, 5000);
+  }
+
+  function viewSessionEnd() {
+    var g = sessionCardData || {};
+    var html = '';
+    if (g.dead) {
+      html += '<div class="hint">💀 쓰러졌습니다 — 주운 금은 절반만 남았습니다.</div>';
+    }
+    html += '<div class="stat-row"><span>사냥터</span><b>' + esc(g.stage || '-') + '</b></div>' +
+      '<div class="stat-row"><span>잡은 수</span><b>' + (g.kills || 0) + '마리</b></div>' +
+      '<div class="stat-row"><span>경험치</span><b>' + core.fmt(g.exp || 0) + '</b></div>' +
+      '<div class="stat-row"><span>금</span><b>🪙 ' + core.fmt(g.gold || 0) + '</b></div>';
+    if (g.gear) { html += '<div class="stat-row"><span>주운 장비</span><b>📦 ' + g.gear + '</b></div>'; }
+    if (g.feat) { html += '<div class="stat-row"><span>업적 진척</span><b>🏅 +' + g.feat + '</b></div>'; }
+    html += '<div class="card on"><div class="stat-row"><span><b>다음에 할 것</b></span></div>' +
+      '<div class="stat-row"><span>' + esc(g.next || '🏃 사냥터로 돌아가기') + '</span></div></div>';
     return html;
   }
 
@@ -447,7 +482,8 @@
           : openTab === 'dex' ? viewDex()
           : openTab === 'keys' ? viewKeys()
           : openTab === 'settings' ? viewSettings()
-          : openTab === 'achieve' ? viewAchieve() : viewLog();
+          : openTab === 'achieve' ? viewAchieve()
+          : openTab === 'sessionEnd' ? viewSessionEnd() : viewLog();
     els['sheet-body'].innerHTML = v;
   }
 
@@ -483,6 +519,31 @@
       coin('🍖', core.fmt(core.save.items.feed), '사료', false, 'ham');
     /* 지갑은 값이 바뀔 때마다 다시 그려지므로 그릴 때마다 한 번 훑는다 */
     if (global.DG.icon) { global.DG.icon.sweep(els.wallet); }
+
+    renderGoals();
+  }
+
+  /**
+   * 목표판(§5-6) — HUD 상단 3줄. renderTop() 과 같은 결로 돈다('changed' +
+   * tickRefresh() 0.15s 주기) — 사냥 중 킬마다 'changed' 가 안 뜨는 것들도
+   * (잡기 수 등) 이 주기 덕에 몇 프레임 안에 눈에 붙는다.
+   * 3줄: ① 추적 사명 ② 이번 접속 목표 ③ 다음 예고(§5-4 관문 대장 전까지의 대역).
+   */
+  function renderGoals() {
+    if (!els.goalboard) { return; }
+    var Q = global.DG.quest;
+    if (!Q) { els.goalboard.innerHTML = ''; return; }
+    var t = Q.trackedInfo();
+    var s = Q.sessionGoalInfo();
+    var n = Q.nextInfo();
+    els.goalboard.innerHTML =
+      '<div class="goal-row">📋 ' +
+        (t ? esc(t.name) + ' <b>' + t.n + '/' + t.goal + '</b>' : '추적 중인 사명이 없습니다') +
+      '</div>' +
+      '<div class="goal-row">⏱️ 이번 접속: ' + esc(s.label) + ' <b>' + s.n + '/' + s.goal + '</b></div>' +
+      '<div class="goal-row">🔜 ' +
+        (n ? '다음: ' + esc(n.name) + ' (Lv.' + n.need + ')' : '다음 목표 없음 — 레벨을 올리세요') +
+      '</div>';
   }
 
   /**

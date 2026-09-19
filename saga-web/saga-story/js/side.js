@@ -66,6 +66,18 @@
     if (S) { S.play(key); }
   }
 
+  /** 세션 카드(§5-6)의 "도감 진척" 몫 — 업적만 반영한다. **인물 등용은 뺐다**:
+     이 판엔 등용서를 써서 도감에 새 인물을 들이는 길이 아직 없어서(가방에
+     '등용서' 재화만 있고 소비하는 자리가 없다), 재는 값 자체가 늘 0이라
+     넣어 봐야 죽은 줄이다. 그 길이 생기면 여기 더한다. */
+  function achieveDoneCount() {
+    var A = global.DG.achieve;
+    if (!A) { return 0; }
+    var list = A.list(), n = 0;
+    for (var i = 0; i < list.length; i++) { if (list[i].done) { n++; } }
+    return n;
+  }
+
   var run = null;               // 지금 사냥 중인 판
   var input = { left: false, right: false, jump: false, up: false, down: false };
   var fx = [];
@@ -299,7 +311,8 @@
       miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
       npcs: buildNpcs(stg), talk: null,
       chatCd: CHAT_EVERY * (0.7 + Math.random() * 0.6),
-      kills: 0, gold: 0, hitstopT: 0, hitSeq: 0
+      kills: 0, gold: 0, hitstopT: 0, hitSeq: 0,
+      expGained: 0, gearFound: 0, feat0: achieveDoneCount()   // 세션 카드(§5-6) 몫 — 들어올 때 스냅
     };
     st().stage = stg.key;
     for (var i = 0; i < stg.spawn; i++) { spawnEnemy(); }
@@ -315,7 +328,16 @@
 
   function leave() {
     if (!run) { return null; }
-    var got = { gold: Math.round(run.gold), kills: run.kills, stage: run.stage.name };
+    var Q = global.DG.quest;
+    /* 세션 마무리 카드(§5-6) — got 를 ui.js 가 그대로 5초짜리 시트에 얹는다.
+       run 을 지우기 전에 다 챙긴다(exp·gear·feat 는 run 에 쌓아 둔 값,
+       feat 는 들어올 때 스냅과 지금의 차, next 는 quest.js 가 우선순위대로 고른다) */
+    var got = {
+      gold: Math.round(run.gold), kills: run.kills, stage: run.stage.name,
+      exp: run.expGained, gear: run.gearFound,
+      feat: achieveDoneCount() - run.feat0,
+      next: Q ? Q.nextTodo() : null
+    };
     core.save.player.gold += got.gold;
     core.log('🚪 ' + got.stage + ' 에서 나왔다 · 🪙 ' + core.fmt(got.gold) +
       ' · ' + got.kills + '마리', 'info');
@@ -812,7 +834,9 @@
                          x: e.x + e.w / 2 - 12, y: e.y, vy: -240, n: 1 });
       }
     }
-    core.gainExp((6 + lv * 4) * (e.boss ? 15 : (e.rare ? RARE_GAIN_MUL : (e.mini ? MINI_GAIN_MUL : 1))) * GAIN_EXP);
+    var expAmt = Math.round((6 + lv * 4) * (e.boss ? 15 : (e.rare ? RARE_GAIN_MUL : (e.mini ? MINI_GAIN_MUL : 1))) * GAIN_EXP);
+    core.gainExp(expAmt);
+    run.expGained += expAmt;   // 세션 카드(§5-6) — 이 판에서 잡아 얻은 경험치만 잰다(사명 보상 등은 안 잡는다)
     /* 사명(quest.js)이 이 소식을 듣는다 — 규칙이 서로를 부르지 않게 알림으로만 잇는다 */
     core.emit('side:kill', { ref: e.ref, boss: !!e.boss, lv: lv, stage: run.stage.key });
     if (global.DG.hero.awardParty) { global.DG.hero.awardParty((2 + lv) * (e.boss ? 8 : 1)); }
@@ -875,13 +899,19 @@
   }
 
   function die() {
-    var stg = run.stage;
+    var stg = run.stage, Q = global.DG.quest;
     st().deaths = (st().deaths || 0) + 1;
+    var goldKept = Math.round(run.gold * 0.5);
     core.log('💀 ' + stg.name + ' 에서 쓰러졌다 — 주운 금은 절반만 남는다', 'bad');
-    core.save.player.gold += Math.round(run.gold * 0.5);
-    var name = stg.name;
+    core.save.player.gold += goldKept;
+    var got = {
+      dead: true, stage: stg.name, gold: goldKept, kills: run.kills,
+      exp: run.expGained, gear: run.gearFound,
+      feat: achieveDoneCount() - run.feat0,
+      next: Q ? Q.nextTodo() : null
+    };
     run = null;
-    core.emit('side:end', { dead: true, stage: name });
+    core.emit('side:end', got);
     core.emit('toast', '💀 쓰러졌습니다');
     core.emit('changed');
     core.persist();
@@ -1329,6 +1359,7 @@
               var made = GG.make(d.key);
               /* 가방이 가득 차면 **줍지 못하고 그대로 남는다** — 원작의 그 답답함이다 */
               if (!GG.put(made)) { sfx('bagfull'); continue; }
+              run.gearFound += 1;   // 세션 카드(§5-6) — 실제로 주운 것만(가방 가득 차 못 주우면 안 잰다)
               /* 고유(固有)는 소리부터 다르다 — 원작에서 유니크가 그렇다 */
               sfx(d.uniq ? 'uniq' : 'gear');
               core.emit('toast', (d.uniq ? '⭐ 고유 · ' : '📦 ') + GG.nameOf(made));

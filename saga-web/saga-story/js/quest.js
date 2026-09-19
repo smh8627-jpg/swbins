@@ -114,6 +114,7 @@
     r.taken = Date.now();
     r.n = 0;                                    // 받은 뒤부터 센다
     r.visited = null;                           // 'visit' 전용 — 밟은 사냥터 집합도 새로 센다
+    core.save.track = key;                      // 목표판(§5-6) — 사명 받으면 자동 추적
     sfx('quest');
     core.log('📋 사명을 받았다 — ' + d.name, 'info');
     core.emit('changed');
@@ -152,6 +153,8 @@
     core.log('📋 ' + d.name + ' 을(를) 마쳤다 — ' + bits.join(' · '), 'good');
     core.emit('toast', '📋 ' + d.name + ' 완수!');
     core.emit('questdone', d.name);   // 화면 배너(PLAN 35절) — js/side.js 가 받는다
+    /* 목표판(§5-6) — 방금 바친 게 추적 중이던 것이면 다음 것을 자동으로 문다 */
+    if (core.save.track === key) { autoAdvanceTrack(); }
     core.emit('changed');
     core.persist();
     return true;
@@ -159,8 +162,23 @@
 
   /* ── 쌓이는 것 세기 ───────────────────────────────────── */
 
+  /* 목표판(§5-6) "이번 접속" 줄 전용 — 사명과 달리 **받지 않아도** 세어 둔다.
+     새로고침·재부팅마다 새로 시작하는 메모리 값이라 세이브에 안 담는다(PLAN
+     "session{...}는 메모리만"). 금은 이벤트가 따로 없어 core.save.player.gold
+     의 오름폭만 누적한다(써서 준 것은 안 뺀다 — "이번 접속에 번 금"이 목적). */
+  var session = { kills: 0, bossKills: 0, gathers: 0, gold: 0, visited: {}, goldSeen: undefined, goal: null };
+
+  function onChanged() {
+    var g = core.save.player.gold;
+    if (session.goldSeen === undefined) { session.goldSeen = g; return; }
+    if (g > session.goldSeen) { session.gold += (g - session.goldSeen); }
+    session.goldSeen = g;
+  }
+
   function onKill(info) {
     var q = st(), i;
+    session.kills += 1;
+    if (info.boss) { session.bossKills += 1; }
     for (i = 0; i < QD.QUESTS.length; i++) {
       var d = QD.QUESTS[i];
       if (!taken(d.key)) { continue; }
@@ -177,6 +195,7 @@
 
   /** 채집(PLAN 15절 "아이템 수집") — side.js 가 캘 때마다 알린다 */
   function onGather(info) {
+    session.gathers += 1;
     for (var i = 0; i < QD.QUESTS.length; i++) {
       var d = QD.QUESTS[i];
       if (!taken(d.key) || d.goal.type !== 'gather') { continue; }
@@ -191,6 +210,7 @@
   function onStage(run) {
     if (!run || !run.stage) { return; }
     var key = run.stage.key;
+    session.visited[key] = true;
     for (var i = 0; i < QD.QUESTS.length; i++) {
       var d = QD.QUESTS[i];
       if (!taken(d.key) || d.goal.type !== 'visit') { continue; }
@@ -213,6 +233,114 @@
     void info;
   }
 
+  /* ── 목표판(§5-6) — 추적 사명 · 이번 접속 목표 · 다음 예고 ──────────
+   * §5-4(관문 대장·주간)가 아직 없어(로드맵 Phase 3), PLAN 이 적은 "이번
+   * 주" 줄은 **다음 예고**(추적이 끝나면 이어질 사명)로 대신 채운다 —
+   * 그 절이 들어오면 이 자리를 바꾼다(HANDOFF 에 남긴다). */
+
+  /** "지금 화면에 보일 수 있나" — 다 찼어도(바치기 전까지는) 그대로 보여준다.
+   *  **읽기 전용**이다. autoAdvanceTrack() 을 부르지 않는다 — 예전엔 이 자리에서
+   *  바로 물게 했더니, HUD 를 그리는 renderGoals() 가 'changed' 마다(거의 매
+   *  clearQuests() 마다) 이 함수를 불러 **테스트가 기대하지 않은 사명을 조용히
+   *  자동으로 받아 버려**, "받기 전엔 0 이어야 한다" 류의 기존 사명 진단이 깨졌다
+   *  (2026-09-19 발견). 판정을 바꾸는 자리는 ensureDailyTrack()·turnIn() 뿐이다. */
+  function trackable(key) { return !!key && !!QD.find(key) && taken(key); }
+
+  /** 추적할 만한 사명 하나를 고른다. `exclude` 를 주면 그것 말고 찾는다
+   *  (다음 예고용) — 이미 받아 둔 것(못 채운 것) 중에서 먼저 찾고,
+   *  없으면 새로 받을 수 있는 것 중 첫 번째를 고른다. */
+  function findCandidate(exclude) {
+    var lv = core.save.player.level, i, d;
+    for (i = 0; i < QD.QUESTS.length; i++) {
+      d = QD.QUESTS[i];
+      if (d.key === exclude || lv < d.need) { continue; }
+      if (taken(d.key) && !full(d.key)) { return d.key; }
+    }
+    for (i = 0; i < QD.QUESTS.length; i++) {
+      d = QD.QUESTS[i];
+      if (d.key === exclude || lv < d.need) { continue; }
+      if (!d.repeat && doneCount(d.key) > 0) { continue; }
+      if (d.daily && doneToday(d.key)) { continue; }
+      if (taken(d.key)) { continue; }
+      return d.key;
+    }
+    return null;
+  }
+
+  /** 실제로 추적을 바꾸는 유일한 두 자리(ensureDailyTrack·turnIn)가 부른다.
+   *  화면을 그리는 쪽(trackedInfo)은 절대 이걸 부르지 않는다. */
+  function autoAdvanceTrack() {
+    var key = findCandidate(null);
+    if (!key) { core.save.track = null; return null; }
+    if (!taken(key)) { take(key); }              // take() 가 core.save.track 을 스스로 문다
+    else { core.save.track = key; }
+    return key;
+  }
+
+  /** 하루 첫 부팅(PLAN §5-6 "일일 사명 2 자동 추적") — 아직 안 받았고
+   *  오늘 몫이 남은 일일 사명을 전부 받아 둔다. 추적 중인 게 없으면 새로 문다. */
+  function ensureDailyTrack() {
+    for (var i = 0; i < QD.QUESTS.length; i++) {
+      var d = QD.QUESTS[i];
+      if (d.daily && !taken(d.key) && !doneToday(d.key)) { take(d.key); }
+    }
+    if (!trackable(core.save.track)) { autoAdvanceTrack(); }
+  }
+
+  /** HUD 1줄 — 추적 중인 사명. **읽기만 한다**(위 trackable() 주석 참고) —
+   *  아무것도 추적 중이 아니면 null 을 돌려주고, HUD 는 "없습니다"로 보여준다.
+   *  다음 부팅(ensureDailyTrack)이나 다음 사명 완수(turnIn)가 되면 저절로 채워진다. */
+  function trackedInfo() {
+    var key = core.save.track;
+    if (!trackable(key)) { return null; }
+    var d = QD.find(key);
+    return { key: key, name: d.name, n: progress(key), goal: d.goal.n };
+  }
+
+  var SESSION_GOALS = [
+    { type: 'kill', n: 30, label: '사냥 30마리', get: function () { return session.kills; } },
+    { type: 'boss', n: 1, label: '두목 1마리 토벌', get: function () { return session.bossKills; } },
+    { type: 'gather', n: 20, label: '채집 20개', get: function () { return session.gathers; } },
+    { type: 'gold', n: 3000, label: '금 3000 벌기', get: function () { return session.gold; } },
+    { type: 'visit', n: 2, label: '사냥터 2곳 밟기', get: function () { return Object.keys(session.visited).length; } }
+  ];
+
+  /** HUD 2줄 — "이번 접속" 목표. 다 채우면 그 자리에서 다음 후보를 새로 고른다
+   *  (부팅마다 하나가 아니라, 이 접속 동안 계속 이어지게). */
+  function sessionGoalInfo() {
+    if (!session.goal) { session.goal = core.pick(SESSION_GOALS); }
+    var g = session.goal, n = g.get();
+    if (n >= g.n) {
+      var next = core.pick(SESSION_GOALS);
+      session.goal = next; g = next; n = g.get();
+    }
+    return { label: g.label, n: Math.min(n, g.n), goal: g.n };
+  }
+
+  /** HUD 3줄 — 다음 예고(§5-4 관문 대장이 들어오기 전까지의 대역, 위 주석 참고) */
+  function nextInfo() {
+    var key = findCandidate(core.save.track);
+    if (!key) { return null; }
+    var d = QD.find(key);
+    return { key: key, name: d.name, need: d.need };
+  }
+
+  /** 세션 마무리 카드(§5-6)의 "다음에 할 것 1개" — 미완 추적 사명 > 열린 전직 > 다음 예고 순 */
+  function nextTodo() {
+    var t = trackedInfo();
+    if (t) { return '📋 ' + t.name + ' (' + t.n + '/' + t.goal + ')'; }
+    var J = global.DG.job, JD = global.DG.jobData;
+    if (J && JD) {
+      var opts = JD.nextJobs(core.save.job);
+      for (var i = 0; i < opts.length; i++) {
+        if (!J.canJoin(opts[i].key)) { return '🎓 ' + opts[i].name + ' 로 전직할 수 있습니다'; }
+      }
+    }
+    var n = nextInfo();
+    if (n) { return '🔜 ' + n.name + '(Lv.' + n.need + ')'; }
+    return '🏃 사냥터로 돌아가기';
+  }
+
   var bound = false;
   function init() {
     if (bound) { return; }
@@ -222,6 +350,8 @@
     core.on('side:enter', onStage);
     core.on('side:travel', onStage);
     core.on('side:talk', onTalk);
+    core.on('changed', onChanged);
+    ensureDailyTrack();
   }
 
   global.DG = global.DG || {};
@@ -232,6 +362,10 @@
     _onKill: onKill, _onGather: onGather, _onStage: onStage, _onTalk: onTalk,
     /** 진단 전용 — 일일 사명(PLAN 33절)의 '오늘' 표기. 실제 시각 없이도
      *  세이브에 이 문자열을 직접 넣어 "이미 오늘 했다"를 흉내낼 수 있다 */
-    _todayKey: todayKey, doneToday: doneToday
+    _todayKey: todayKey, doneToday: doneToday,
+    /* 목표판(§5-6) */
+    ensureDailyTrack: ensureDailyTrack, trackedInfo: trackedInfo,
+    sessionGoalInfo: sessionGoalInfo, nextInfo: nextInfo, nextTodo: nextTodo,
+    _session: session   // 진단 전용 — 초기화 없이 그대로 들여다본다
   };
 })(window);

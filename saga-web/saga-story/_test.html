@@ -1476,6 +1476,79 @@ window.DG_NO_TUNE = true;
         '오늘 바침 → 잠김 → 날짜 바뀌니 다시 받음';
     });
 
+    /* ── 목표판 + 세션 마무리 카드(PLAN §5-6) ──────────────── */
+
+    t('목표판(§5-6) — 부팅(ensureDailyTrack) 직후 3줄이 비어 있지 않다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      C.save.track = null;
+      Q.ensureDailyTrack();
+      var t1 = Q.trackedInfo();
+      var s1 = Q.sessionGoalInfo();
+      var n1 = Q.nextInfo();
+      clearQuests();
+      return !!t1 && !!t1.name && !!s1 && !!s1.label && !!n1 && !!n1.name &&
+        ('추적 ' + t1.name + ' · 접속목표 ' + s1.label + ' · 다음 ' + n1.name);
+    });
+
+    t('목표판(§5-6) — trackedInfo() 는 읽기만 한다(렌더마다 몰래 사명을 받지 않는다)', function () {
+      /* 2026-09-19 에 실제로 걸렸던 회귀 — HUD 를 그리는 쪽이 이 함수를 불러
+         '받기 전엔 0이어야 한다' 류의 기존 사명 진단을 깨뜨렸었다.
+         'changed' 를 여러 번 터뜨려도(=화면이 여러 번 다시 그려져도)
+         사명이 저 혼자 받아지면 안 된다. */
+      clearQuests();
+      C.save.player.level = 12;
+      for (var i = 0; i < 5; i++) { C.emit('changed'); Q.trackedInfo(); }
+      /* rec() 는 조회만 해도(taken() 등) 빈 칸을 만들어 둔다(기존부터 그랬다,
+         list() 가 매번 다 훑으며 그런다) — 그래서 키가 느는 것 자체가 아니라
+         **실제로 받은(taken 시각이 찍힌) 것이 하나도 없는지**를 본다 */
+      var untouched = Object.keys(C.save.quests).every(function (k) {
+        return !C.save.quests[k].taken;
+      });
+      clearQuests();
+      return untouched && '5회 다시 그려도 실제로 받아진 사명 0건';
+    });
+
+    t('목표판(§5-6) — 사명을 받으면 자동 추적되고, 바치면 다음이 자동으로 문다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      C.save.track = null;
+      Q.take('q_first');
+      var t1 = Q.trackedInfo();
+      var trackedFirst = t1 && t1.key === 'q_first';
+      for (var i = 0; i < 10; i++) { Q._onKill({ boss: false, stage: 'field' }); }
+      Q.turnIn('q_first');
+      var t2 = Q.trackedInfo();
+      var advanced = t2 && t2.key !== 'q_first';
+      clearQuests();
+      return trackedFirst && advanced &&
+        ('받자마자 추적 · 바치자 다음(' + (t2 && t2.name) + ')으로');
+    });
+
+    t('목표판(§5-6) — 세션 마무리 카드(side:end) 에 next 가 있다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      if (S.active()) { S.leave(); }
+      S.enter('field');
+      var got = S.leave();
+      return !!got && typeof got.next === 'string' && got.next.length > 0 &&
+        typeof got.exp === 'number' && ('next=' + got.next);
+    });
+
+    t('목표판(§5-6) — 일일 사명이 부팅마다 자동으로 받아진다', function () {
+      clearQuests();
+      C.save.player.level = 12;
+      Q.ensureDailyTrack();
+      var got1 = Q.taken('d_hunt') && Q.taken('d_gather');
+      /* 오늘 이미 다 바친 척 — lastDoneDay 만 오늘로 표시해 둔다 */
+      C.save.quests.d_hunt.taken = 0; C.save.quests.d_hunt.lastDoneDay = Q._todayKey();
+      C.save.quests.d_gather.taken = 0; C.save.quests.d_gather.lastDoneDay = Q._todayKey();
+      Q.ensureDailyTrack();
+      var notRetaken = !Q.taken('d_hunt') && !Q.taken('d_gather');
+      clearQuests();
+      return got1 && notRetaken && '첫 부팅 자동 수령 · 오늘 다 바친 뒤엔 다시 안 받음';
+    });
+
     t('업적(PLAN 33절) — 문턱을 넘으면 한 번만 터진다', function () {
       var A = DG.achieve;
       delete C.save.achievements;             // 깨끗이 시작
