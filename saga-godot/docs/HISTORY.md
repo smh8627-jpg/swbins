@@ -7571,3 +7571,8 @@ PROJECT_STATE.md` 참고. 요약:
 - STORY `StoryPlayer.tscn`도 같은 1.25배 Visual을 쓰지만 캡슐이 이미 0.6r/1.8h로 별도 설계라 이번 범위에서 뺐다(게이트 미기록 판이라 급하지 않음) — 참고로만 남김.
 - 검증: Godot 4.7-stable(win64, 콘솔 exe 스크래치패드에 새로 받음, 커밋 안 함) `--headless --editor --quit` 1회(임포트 갱신) 후 `git diff -- project.godot '*.import'` 깨끗함 확인, `tools/godot_regress.sh` 다섯 판 3회 md5 동일·issues=0 통과.
 - 다음: 사용자 실기로 세 판 캐릭터 크기·GO 카메라 거리/줌 체감 확인. 확인 끝나면 103-4 Mixamo 리타겟(목표 키 1.7m 확정) 착수.
+
+## Q-c 정리 — 미채택 후보 폴더 삭제 (2026-09-19⑬)
+
+- 사용자 확인 후 `assets/_candidates_66-2/kaykit_medieval_hex/`(316KB, 코드 참조 0건, 66-2에서 불채택됐던 후보) 삭제. PLAN 105 Q-c 지움.
+- 다음 실제 진행 가능 작업 없음 — 다섯 판 다 실기 확인 대기(GO 1.7m 재튜닝·팔레트 색감 포함)이거나 103-4는 사람의 Mixamo 다운로드, 팔레트 확장(Modular Cave·NPC 옷)은 GO 변형 확인이 먼저 필요.
