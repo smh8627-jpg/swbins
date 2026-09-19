@@ -12,28 +12,31 @@ const OUTLINE_SHADER := preload("res://saga_core/shaders/cel_outline.gdshader")
 
 ## root 아래 모든 MeshInstance3D의 서피스 재질을 cel_toon 셰이더로 덮는다.
 ## 반환값은 적용된 서피스 개수.
-## VRoid GLB의 "Face" 메시는 같은 자리에 겹친 알파컷아웃 데칼 여러 장
-## (눈썹·눈꺼풀선·홍채·하이라이트 등, transparency=ALPHA_SCISSOR)으로
-## 얼굴을 쌓는다 — 전부 같은 깊이값(진짜 z-offset이 아니라 원래 Unity
-## MToon의 렌더큐 순서에만 기댐)이라 카메라 거리가 멀어지면(3인칭 카메라
-## 9m 안팎) Godot의 불투명 큐 정렬이 흔들려 서피스 순서가 뒤바뀌고
-## 이목구비가 사라진 채 살빛만 남는다(2026-09-19 VRoid 교체 중 실기로
-## 발견). 런타임 정렬 강제(transparency+render_priority)는 단순 씬에선
-## 됐지만 실제 게임 씬에선 원인을 못 찾은 채로 계속 깨졌다.
+## VRoid GLB의 "Face" 메시는 같은 자리에 겹친 알파컷아웃 데칼 7장
+## (피부·눈흰자·홍채·하이라이트·눈썹·눈꺼풀선·입)으로 얼굴을 쌓는다 —
+## 원래 Unity MToon의 렌더큐 순서에만 기대는 방식이라 Godot에 그대로
+## 들여오면 카메라 거리에 따라 서피스 순서가 흔들려 하얗게 빈다
+## (2026-09-19④). cull_mode(09-19⑤)는 진범이 아니었다 — 실제 원인은
+## `AvatarSample_A_Face_Baked.png` 1차 베이크 산출물 자체가 "7서피스가
+## 하나의 UV 아틀라스를 공유한다"는 잘못된 가정으로 만들어져 깨져
+## 있었던 것(09-19⑩). Blender "Selected to Active" 투사 베이크로 다시
+## 구워(`tools/asset-forge/vroid_face_bake_project.py`) SKIN 서피스
+## **한 장에** 눈·눈썹·입까지 전부 합성해 넣었다(09-19⑪).
 ##
-## **그래서 오프라인에서 7장을 한 장으로 미리 구웠다**(Blender 헤드리스
-## 파이프라인, `tools/asset-forge/` 스크립트 참고, 결과물은
-## `assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png`).
-## 7개 서피스 전부 같은 완성 텍스처를 쓰므로 어느 게 위에 그려지든
-## 결과가 같아야 하는데 — **여전히 GO 실기 씬에서 하얗게 빈다(2026-09-19④,
-## 미해결)**. transparency(SCISSOR/DISABLED 둘 다 시도)·shading_mode
-## (UNSHADED로 바꿔도 그대로) 둘 다 원인이 아님을 확인했다. 다음 세션이
-## 이어서 볼 것: `cull_mode`(이 메시가 원래 CULL_DISABLED였을 가능성 —
-## 새 StandardMaterial3D 기본값 CULL_BACK이 이 메시 노멀 방향과 안
-## 맞아서 앞면이 컬링되고 있을 수 있다, 아직 실기로 못 재봄). 경위는
-## HISTORY.md 2026-09-19④.
+## SKIN 메시 자체를 trimesh로 실측(09-19⑫)하니 눈 소켓 자리엔 SKIN
+## 정점이 **하나도 없다**(진짜 지오메트리 구멍 — 텍스처만의 문제가
+## 아니다). 그래서:
+## - SKIN: 새로 구운 합성 텍스처(입·눈썹·눈꺼풀선까지 이미 얹혀 있다).
+## - EyeWhite·EyeIris·EyeHighlight: SKIN에 구멍 난 자리를 채우는
+##   유일한 지오메트리라 반드시 그려야 한다 — 원래 자기 전용 텍스처를
+##   그대로 쓴다(이 셋은 애초에 서로 겹치지도, 카메라 거리로 순서가
+##   흔들리지도 않았다 — 문제는 늘 SKIN 쪽이었다).
+## - FaceBrow·FaceEyeline·FaceMouth: SKIN 위에 이미 같은 내용이 구워져
+##   있으니 그대로 두면 이중으로 겹쳐 그려진다 — 완전히 지운다.
 const LAYERED_FACE_MESH_NAMES := ["Face"]
 const BAKED_FACE_TEXTURE := preload("res://assets/characters_vroid/generated/AvatarSample_A_Face_Baked.png")
+const SKIN_KEY := "SKIN"
+const HIDE_KEYS := ["FaceBrow", "FaceEyeline", "FaceMouth"]
 
 static func apply_to(root: Node) -> int:
 	var applied := 0
@@ -49,19 +52,30 @@ static func _apply_baked_face(mesh_instance: MeshInstance3D) -> void:
 	if mesh == null:
 		return
 	for surface_index in mesh.get_surface_count():
+		## 덮어쓰기 전에 원본 재질을 먼저 읽어야 한다(덮은 뒤엔
+		## get_active_material이 이 override를 돌려준다).
+		var original := mesh_instance.get_active_material(surface_index)
+		var original_name: String = original.resource_name if original else ""
+		var hide := false
+		for key in HIDE_KEYS:
+			if key in original_name:
+				hide = true
+				break
+
 		var mat := StandardMaterial3D.new()
-		mat.albedo_texture = BAKED_FACE_TEXTURE
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-		## 원본 VRM 얼굴 재질은 KHR_materials_unlit(무광원)이었다 — 새로
-		## 만드는 이 재질도 같게 맞춘다(원본과 다르게 라이트를 받게 두면
-		## 안 되는 게 맞다).
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		## 원인 확정(2026-09-19⑤, cull_mode 검증): Face_00_SKIN·FaceBrow·
-		## FaceEyeline·EyeHighlight 서피스는 원본이 CULL_DISABLED(양면)인데
-		## 새 StandardMaterial3D 기본값 CULL_BACK이 이 메시의 노멀 방향과
-		## 안 맞아 앞면이 컬링돼 하얗게 비어 있었다. 7서피스 전부 같은
-		## 텍스처를 쓰므로 양면 렌더링은 안전하다.
 		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		if hide:
+			mat.albedo_color = Color(0, 0, 0, 0)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		elif SKIN_KEY in original_name:
+			mat.albedo_texture = BAKED_FACE_TEXTURE
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		else:
+			## EyeWhite·EyeIris·EyeHighlight — 원래 자기 텍스처 그대로.
+			var orig_tex: Texture2D = (original as BaseMaterial3D).albedo_texture if original is BaseMaterial3D else null
+			mat.albedo_texture = orig_tex
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 		mesh_instance.set_surface_override_material(surface_index, mat)
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
