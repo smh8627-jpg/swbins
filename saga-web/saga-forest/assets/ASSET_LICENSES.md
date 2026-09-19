@@ -842,3 +842,48 @@ data-village.js·village.js·village-view3d.js) 구문 확인, `_test.html`
   조각, Pickup_*(택배 소포 모양을 상자 대신 이걸로 바꾸는 안)
 - 실기 확인 전 — 성간충이 실제로 우주기지 안에서 자연스럽게 보이는지,
   이모지(👾) 폴백이 어색하지 않은지는 사용자가 직접 봐야 한다
+
+## VRoid Studio 공식 샘플 아바타 — 애니메 비례 인물 시험 (2026-09-19)
+
+사용자가 "원신급이 나와야해"로 그래픽 기대치를 밀어붙여, 인물 쪽(§"원신급"
+요청 ②) 레버로 받았다. VRoid Hub 자체는 Cloudflare 로 막혀 있어(curl 로
+403) GitHub 미러(`madjin/vrm-samples`, 이 저장소도 CC0/조건부 라이선스를
+파일별로 구분해 문서화해 둠)를 거쳤다.
+
+| 항목 | |
+|---|---|
+| **만든 이** | Pixiv Inc.(VRoid Studio) |
+| **라이선스** | CC0(저작권 포기) — VRoid 공식 FAQ("Do VRoid Studio's sample models come with conditions of use?") 및 `github.com/madjin/vrm-samples` README "CC0 license models" 절 확인. `AvatarSample_A·B·C` 세 개가 이 CC0 부류(VRoid 자체 제공 `VRoidPreset_A~Z` 프리셋과는 다른 라이선스이니 혼동 주의 — 그쪽은 저작권 비포기 "조건부 사용" 부류) |
+| **받은 곳** | `https://raw.githubusercontent.com/madjin/vrm-samples/master/vroid/stable/AvatarSample_{A,B,C}.vrm` |
+| **원본 크기** | A 15.1MB · B 15.4MB · C 13.1MB(대부분 텍스처) |
+
+**가공**: VRM(=glTF 2.0 GLB + VRM 확장)의 텍스처만 pygltflib 로 직접
+줄였다(`tools/asset-forge/`에 아직 스크립트로 올리지 않음 — 임시
+스크래치패드 1회성, 필요하면 재작성). `pbrMetallicRoughness.baseColorTexture`
+로 실제 쓰이는 이미지 15장만 최대 512px 로 Pillow 재인코딩, 나머지(노멀맵·
+MToon 매트캡/스펙큘러·썸네일 등 plain `THREE.GLTFLoader`가 안 읽는 채널)는
+8×8 자리표시자로 비웠다 — 인덱스는 안 바꿔 JSON 재배선 위험이 없다. 스킨·
+메시·애니메이션이 걸린 220~261개 bufferView 는 원본과 바이트가 같은지
+스크립트 자체 검증(전부 OK). 결과 4.7~5.6MB — 여전히 이 판 다른 GLB보다
+크다(원본이 VRoid 통짜 캐릭터라 메시·블렌드셰이프 자체가 무겁다, Draco·
+메시 단순화는 이번엔 손 안 댐, 다음 후보).
+
+| 파일 | 이 판에서 쓰는 곳 |
+|---|---|
+| `models/people/anime/avatar_sample_a.glb` | `hero` kind, key `anime_avatar_a`(`world3d.animeAvatar` 손잡이, 기본 꺼짐) |
+| `models/people/anime/avatar_sample_b.glb` | 〃 `anime_avatar_b` |
+| `models/people/anime/avatar_sample_c.glb` | 〃 `anime_avatar_c` |
+
+**뼈 이름**: VRM Humanoid 표준(`J_Bip_C/L/R_*`)이라 이 판의 공용 애니메이션
+(UAL1/UE 마네킹 이름)과 하나도 안 겹친다 — `asset3d.js`의 `boneNameMap()`에
+`VRM_TO_UAL1_BONES` 보충표(핵심 22뼈, 손가락 제외)를 추가해 기존
+`retargetInto()` 파이프라인(MPFB 20종이 이미 쓰는 그 경로)을 그대로
+태웠다. 재질은 VRM 이 `KHR_materials_unlit`로 내보내 `delam()`이 놓치는
+`MeshBasicMaterial`을 전용 `toonifyAnime()`으로 따로 받는다(`delam()` 자체는
+안 건드림 — 그 함수를 쓰는 다른 700여 개 GLB에 영향 없게).
+
+**의도적으로 기본 꺼짐**: `world3d.animeAvatar`(기본 0) — 렌더 확인이
+전혀 안 되는 채로 만든 새 몸이라, 손잡이를 켜기 전엔 기존 주민·NPC
+배정에 전혀 안 끼어든다(`HERO_RECIPES_MIXAMO`/`wantsMixamoReal()`과
+같은 결). **실기 확인 전 — 손잡이를 켜고 실제로 걷는 모습·비례·재질이
+이 판 톤(§6.1 툰+외곽선+림 라이트)과 어울리는지는 전부 미확인.**

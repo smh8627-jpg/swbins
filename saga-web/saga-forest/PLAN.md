@@ -196,6 +196,7 @@
 - **3D**(`village-view3d.js`, three r169): SAGA-DESIGN §6.1 그대로 — `MeshToonMaterial` 3단 램프 + 뒤집힌 헐 외곽선(1.03), ACESFilmic·노출 1.0, 안개는 **기본 꺼짐 유지**(사용자 결정) — 켜면 near 30/far 320·색은 `FOG_COLOR` 바이옴별. 그림자는 high 만(기존). 초목 InstancedMesh 8종 유지·상한 2000. 픽셀 비율 상한 1.5(`QUALITY_PRESET` 에 이미 있음).
   **재질(2026-09-17 땅·소품, 2026-09-19 배우 외곽선 + §10-Q3 실사 병합으로 마저)** — `js/toon3d.js`. 땅 배경판·타일 8종(물 제외, `initTerrain()`), `asset3d.js`의 `delam()`·`primitive()` 모두 `world3d.toon`(기본 1) 손잡이로 Toon/Lambert 선택. 물(`waterMaterial()`, HDRI 반사 PBR)은 여전히 안 건드림 — GLB 파이프라인을 안 타는 별도 절차 재질이라 툰 대상이 아니다. `/realistic/`(탑성 등 사진측량)은 **§10-Q3(2026-09-18 확정)대로 툰이 켜져 있으면 같이 덮는다**(`toonifyRealistic()`, 새 함수 — 꺼져 있을 때는 예전처럼 PBR 그대로, Lambert 로 낮추지 않는다). **외곽선은 배우(주민·NPC·짐승)만 붙였다** — 땅은 여전히 안 건다(`InstancedMesh` 격자 전체가 테두리로 뒤덮일 위험은 그대로 유효). `toon3d.addOutline(root, width)`(뒤집힌 헐: 메시마다 1.045배 부풀린 BackSide 복제, SkinnedMesh 는 같은 skeleton 에 재바인딩) + 새 손잡이 `world3d.outline`(기본 1, 툰이 꺼지면 같이 꺼진다) — `asset3d.js`의 `loadHeroRecipe().assemble()`(사람 — 주민+NPC 공용 경로) 과 `buildGeneric()`의 `kind==='animal'` 분기 두 곳에서 부른다. **검증** — `node -c` 통과, `_test.html`에 진단 4항목(OUTLINE_ON 이 TOON_ON 을 따라가는지 · 메시 복제·BackSide·배율 · SkinnedMesh 도 skeleton 공유 · 손잡이 끄면 안 붙음)을 실제 THREE(r169, 이 파일이 로드해 둔 라이브러리) 객체로 추가 — 렌더 결과(실제로 검게 테두리가 보이는지)는 화면이 있어야 해 실기/헤드리스 확인 몫. **후처리 자동 끔(§8-6)은 이 판엔 해당 없음** — `post3d.js` 자체가 없다(별도 렌더 타깃 합성 패스 없이 `renderer.render()`를 바로 씀).
   **림 라이트(2026-09-19, "원신 느낌" 요청분)** — `toon3d.js`의 `applyRimLight()`. 지오메트리를 안 늘리는 프레넬 항 하나를 `onBeforeCompile`로 `MeshToonMaterial` 셰이더(공용 청크 `common`·`worldpos_vertex`·`dithering_fragment`)에 더한다 — 외곽선과 달리 드로우콜이 안 늘어 땅·소품·배우 전부(즉 `toonify()`·`lambertLike()`를 타는 모든 것)에 건다. 손잡이 `world3d.rim`(기본 1, 외곽선처럼 툰이 꺼지면 같이 꺼진다). 색·강도는 `applyRimLight()` 안에 고정값(따뜻한 흰빛 0xfff4d6, 세기 0.35, 프레넬 지수 2.2) — 손잡이 표로 노출은 아직 안 함. **검증은 `node -c`와 청크 이름이 실제 vendor three(r169, `js/vendor/three.iife.js`)의 MeshToonMaterial 템플릿에 그대로 있는지 소스 대조까지만** — GLSL 컴파일 자체·번지는 두께가 과한지는 WebGL 컨텍스트가 있어야 해 실기 확인 몫이다.
+  **하늘 그라디언트·반딧불이 반짝임·물비늘(2026-09-19, "원신급" 요청 ③환경 레버)** — 셋 다 `village-view3d.js`. (1) `makeSkyDome()`: 카메라를 따라다니는 큰 구(반지름 380) 하나에 수직 그라디언트 `ShaderMaterial`(텍스처 없음, 드로우콜 +1) — `syncSky()`가 매 프레임 위치를, 바이옴·시간대·날씨가 바뀔 때만 위/아래 색(`lighten`/`darken`)을 갱신한다. 손잡이 `village3d.sky`(기본 1). (2) 반딧불이(앰비언트·정원 무리 둘 다)에 캔버스로 구운 방사형 발광 스프라이트 + 가산 블렌딩 + 정점색 기반 반짝임(위아래 흔들림과 다른 위상의 sin)을 얹었다 — 개수도 40→64/24→36 로 늘림. (3) 물(`waterMaterial()`) 재질 자체(PBR+HDRI 반사)는 그대로 두고 — "반사는 공짜로 얻는다"는 기존 결정이 맞다 — 같은 `onBeforeCompile` 자리에 해시 기반 반짝임(물비늘) 프래그먼트 항만 추가, 손잡이 `village3d.waterSparkle`(기본 1). 셋 다 `node -c`·vendor three 청크 대조까지만 확인, 실제 렌더는 실기 확인 대기(HANDOFF.md 2026-09-19 절).
 - **주의 — 구면 투영과 3D 카메라**: 2D 의 굽은 지평선 감각을 3D 에서도 내려면 `camTiltMix`(기본 1, 3/4 부감) 를 낮추는 게 아니라 **원경 안개·하늘 그라디언트로 지평선을 밝게** 처리한다. 2D/3D 토글 시 카메라 중심·줌이 같은 타일을 가리켜야 한다(진단 `camPose` 항목 유지).
 
 ### 6.2 아트 바이블 적용
@@ -224,6 +225,32 @@
 - `tilegen.py`: 잔디·흙·모래·돌·눈 5 타일 × 바이옴 팔레트(3D 바닥 트라이플레이너, 2D 는 그대로).
 - `spritegen.py`: 정령 아이콘 60(바이옴 12 × 5 형태 변주), 번들 6 아이콘, 하트·목표판 UI.
 - 우선 교체 대상(코드가 그리는 것, §2-6): 캔버스 상자·우편함·게시판(`draw*`)·2D 짐승 이모지 4종(늑대·토끼·오리·뱀)+성간충·주민 초상 카드. 사람 손그림 필요한 것: 없음(전부 스크립트로 가능).
+
+### 6.5 인물 애니메 비례 시험 — VRoid 아바타 (2026-09-19, "원신급" 요청 ②)
+
+사람 비례를 실사(Mixamo/MPFB)·QRPG 저폴리가 아니라 애니메(원신류) 쪽으로
+당겨 본 첫 시도. VRoid Studio 공식 CC0 샘플(`AvatarSample_A/B/C`, 출처·
+가공·라이선스는 `assets/ASSET_LICENSES.md` 해당 절)을 `assets/models/people/anime/`
+에 두고, `asset3d.js`에 `HERO_RECIPES_ANIME`+`wantsAnimeAvatar()`
+(`world3d.animeAvatar`, **기본 꺼짐**)로 걸었다. VRM Humanoid 뼈 이름
+(`J_Bip_*`)이 이 판 공용 UAL1 애니메이션과 하나도 안 겹쳐 `boneNameMap()`에
+`VRM_TO_UAL1_BONES` 보충표(핵심 22뼈)를 추가해 기존 `retargetInto()`
+(MPFB 20종이 이미 쓰는 경로)를 그대로 태웠다. 재질은 VRM 의
+`KHR_materials_unlit`→`MeshBasicMaterial`을 `delam()`이 못 잡아 전용
+`toonifyAnime()`을 새로 뺐다(`delam()` 자체는 안 건드림).
+
+**기본 꺼짐인 이유**: 렌더 확인이 전혀 안 되는 채로(헤드리스·서버는
+사용자 요청 시에만) 새 몸·새 뼈 매핑을 만들었다. 손잡이를 켜기 전엔
+기존 주민·NPC 배정에 전혀 안 끼어든다 — `HERO_RECIPES_MIXAMO`와 같은
+결의 안전장치.
+
+**다음(실기 확인 뒤 결정)**: 손잡이를 켜서 실제로 걷는 모습·비례·
+`toonifyAnime()`이 §6.1 툰+외곽선+림 라이트와 어울리는지 확인 → 어울리면
+주민 105명 중 일부를 이 몸으로 실제 배정(§6.4 "우선 교체 대상"과 같은
+결의 다음 단계), 안 어울리면 재질·텍스처 팔레트 스냅(§6.4 `palette.py`)
+으로 한 번 더 다듬거나 다른 무료 애니메 팩을 찾는다. 손가락 뼈는 이번엔
+안 옮겼다(로코모션 클립이 안 건드려서) — 손짓 몸짓(§5.4 등)에 손가락이
+필요해지면 그때 표를 늘린다.
 
 ## 7. 버그·안정화
 

@@ -271,6 +271,39 @@ window.DG_NO_TUNE = true;
       return before === 1 && '손잡이를 끄면 자식 그대로 1개';
     });
 
+    /* ── VRM 애니메 아바타 뼈 매핑 (2026-09-19, §"원신급" 요청 ②) ─────── */
+
+    t('asset3d.boneNameMap — VRM(J_Bip_*) 몸은 항등 매칭이 0개라 VRM_TO_UAL1_BONES 표로 보충된다', function () {
+      var A3 = DG.asset3d;
+      function mockSkinned(names) {
+        return { skeleton: { bones: names.map(function (n) { return { name: n }; }) } };
+      }
+      var vrmBody = mockSkinned(['J_Bip_C_Hips', 'J_Bip_C_Spine', 'J_Bip_L_UpperArm', 'J_Bip_R_Foot', 'NoMatchBone']);
+      var ual1 = mockSkinned(['pelvis', 'spine_01', 'upperarm_l', 'foot_r', 'spine_02']);
+      var r = A3.boneNameMap(vrmBody, ual1);
+      return r.count === 4 && r.map.J_Bip_C_Hips === 'pelvis' && r.map.J_Bip_L_UpperArm === 'upperarm_l' &&
+        !r.map.NoMatchBone && '매칭 4개(못 찾은 NoMatchBone 은 제외)';
+    });
+
+    t('asset3d.boneNameMap — 이름이 이미 같은 몸(QRPG·MPFB 결)은 VRM 표를 안 거치고 항등으로만 잡힌다', function () {
+      var A3 = DG.asset3d;
+      function mockSkinned(names) {
+        return { skeleton: { bones: names.map(function (n) { return { name: n }; }) } };
+      }
+      var same = mockSkinned(['pelvis', 'spine_01', 'upperarm_l']);
+      var ual1 = mockSkinned(['pelvis', 'spine_01', 'upperarm_l', 'foot_r']);
+      var r = A3.boneNameMap(same, ual1);
+      return r.count === 3 && r.map.pelvis === 'pelvis' && '항등 매칭 3개, VRM 표 간섭 없음';
+    });
+
+    t('asset3d — 애니메 아바타 손잡이(world3d.animeAvatar)는 기본 꺼짐, 레시피 셋은 anime 경로를 가리킨다', function () {
+      var A3 = DG.asset3d;
+      var recs = A3.heroRecipesAnime();
+      var allAnime = recs.every(function (r) { return r.body.indexOf('/people/anime/') >= 0; });
+      return A3.wantsAnimeAvatar() === false && recs.length === 3 && allAnime &&
+        '기본 꺼짐 · 레시피 3개 다 people/anime/ 경로';
+    });
+
     /* ── 3D 마을 화면 (PLAN 40절 PHASE 2 — Player 3D) ─────── */
 
     t('village-view3d — three 는 실려 있으니 available, init 을 안 불렀으니 active 는 아니다', function () {

@@ -51,6 +51,13 @@
   var ANI = 'assets/models/animals/';
   var MON = 'assets/models/monsters/';
   var PEOPLE = 'assets/models/people/regular/';
+  /* 2026-09-19 — VRoid Studio 공식 CC0 샘플 아바타(AvatarSample_A/B/C,
+     `github.com/madjin/vrm-samples`, 저작권 포기·상업 이용 무료·표시
+     의무 없음 확인). 애니메 비례(§"원신급" 요청 ②) 시험용 — pygltflib 로
+     텍스처만 512px 이하로 줄였다(정점·스킨은 그대로, ASSET_LICENSES.md
+     참고). VRM 뼈 이름(`J_Bip_*`)은 UAL1 과 안 맞아 `boneNameMap()`의
+     VRM_TO_UAL1_BONES 표를 거쳐야 걷는다(아래 `retargetInto` 앞 참고) */
+  var PEOPLE_ANIME = 'assets/models/people/anime/';
   var ANIM_SRC = 'assets/models/anim/UAL1_Standard.glb';
   /* 2026-09-02 — 사용자가 "사람도 실사로" 요청, Mixamo(mixamo.com) 에서 직접 받아 온
      것을 fbx2gltf 로 변환해 넣었다. Quaternius 조합형(몸+옷+머리 따로)과 달리 이
@@ -79,6 +86,17 @@
     { key: 'mixamo_maria', body: PEOPLE_REAL + 'maria_body.glb', anim: ANIM_SRC_REAL }
   ];
   function wantsMixamoReal() { return core().tuned('world3d.mixamoReal', 0) ? true : false; }
+
+  /* 2026-09-19 — 위 PEOPLE_ANIME 셋. `anim` 을 안 줘 기본 `ANIM_SRC`(UAL1)를
+     빌린다 — rec.anim !== rec.body 라 `loadHeroRecipe().assemble()`이 자동으로
+     `retargetInto()`를 태운다(몸마다 한 번만, `parts.body.heroClips`에 캐시).
+     **기본은 꺼짐**(0, `HERO_RECIPES_MIXAMO`·`wantsMixamoReal()`과 같은 결) —
+     렌더 확인이 안 되는 채로 만든 새 몸이라 손잡이를 켜기 전엔 기존 주민·
+     NPC 배정에 전혀 안 끼어든다. */
+  var HERO_RECIPES_ANIME = ['a', 'b', 'c'].map(function (n) {
+    return { key: 'anime_avatar_' + n, body: PEOPLE_ANIME + 'avatar_sample_' + n + '.glb' };
+  });
+  function wantsAnimeAvatar() { return core().tuned('world3d.animeAvatar', 0) ? true : false; }
 
   /* 되돌림 자리 — 위 QRPG 조차 못 실리면(파일 손상 등) 이 옛 조합형으로 한 번 더
      갈아탄다. 2026-08-29 이전 기본값, 사람 비례는 QRPG보다 단순하지만 훨씬 가볍다 */
@@ -587,6 +605,37 @@
     });
   }
 
+  /** 2026-09-19 — VRoid CC0 샘플 아바타(§"원신급" 요청 ②인물 레버,
+   *  `assets/models/people/anime/`). VRM 은 재질을 `KHR_materials_unlit`
+   *  로 내보내 GLTFLoader 가 `MeshStandardMaterial`이 아니라
+   *  `MeshBasicMaterial`로 읽는다 — 그래서 아래 `delam()`(Standard/Physical만
+   *  본다)을 그냥 태우면 한 곳도 안 걸려 원본 재질 그대로 남는다. `delam()`
+   *  자체를 고치지 않고 이 경로 전용 함수를 따로 둔 것은 `MeshBasicMaterial`
+   *  이 이 프로젝트 다른 자리(외곽선 등)에서 "일부러 조명 무시" 용도로도
+   *  쓰이기 때문 — 전역으로 바꾸면 그쪽까지 건드릴 위험이 있다. */
+  function looksAnime(url) { return typeof url === 'string' && url.indexOf('/people/anime/') >= 0; }
+  function toonifyAnime(root) {
+    var t = three();
+    var TN = global.DG.toon3d;
+    if (!t || !TN) { return; }
+    var toon = TN.TOON_ON();
+    root.traverse(function (o) {
+      if (!o.isMesh || !o.material) { return; }
+      var one = Array.isArray(o.material) ? o.material : [o.material];
+      var out = one.map(function (m) {
+        if (!m || !m.isMeshBasicMaterial) { return m; }
+        if (toon) { return TN.toonify(m); }
+        return new t.MeshLambertMaterial({
+          color: m.color ? m.color.clone() : new t.Color(0xffffff),
+          map: m.map || null, vertexColors: !!m.vertexColors,
+          transparent: !!m.transparent, opacity: m.opacity,
+          alphaTest: m.alphaTest || 0, side: m.side
+        });
+      });
+      o.material = Array.isArray(o.material) ? out : out[0];
+    });
+  }
+
   function delam(root) {
     var t = three();
     var TN = global.DG.toon3d;
@@ -634,7 +683,9 @@
     ld.load(url, function (gltf) {
       c.state = 'ok';
       c.gltf = gltf;
-      if (!looksRealistic(url)) { delam(gltf.scene); } else { toonifyRealistic(gltf.scene); }
+      if (looksRealistic(url)) { toonifyRealistic(gltf.scene); }
+      else if (looksAnime(url)) { toonifyAnime(gltf.scene); }
+      else { delam(gltf.scene); }
       c.clips = gltf.animations || [];
       c.map = mapClips(c.clips.map(function (a) { return a.name; }));
       flush(c, c);
@@ -752,15 +803,35 @@
     return found;
   }
 
-  /** 목표 뼈 이름 → 원본 뼈 이름 표. 이름이 같은 것만 잇는다(항등) —
-   *  saga-go `asset3d.js`의 `boneNameMap()`과 동일 */
+  /** VRM Humanoid(VRoid, `J_Bip_C/L/R_*`) → UAL1/UE 마네킹 이름 표(2026-09-19,
+   *  "원신급" 요청 ②인물 레버). 손가락은 뺐다 — UAL1 로코모션 클립이 손가락을
+   *  안 건드려 굳이 안 옮겨도 무방하다(§PLAN 참고). `boneNameMap()`의 항등
+   *  매칭이 하나도 안 걸리는 이 몸에만 덧붙는 보충표라, 기존 QRPG·MPFB(이미
+   *  UAL1과 이름이 같아 항등만으로 되던 몸)는 이 표를 안 거친다 — 손 안 댐. */
+  var VRM_TO_UAL1_BONES = {
+    J_Bip_C_Hips: 'pelvis', J_Bip_C_Spine: 'spine_01', J_Bip_C_Chest: 'spine_02',
+    J_Bip_C_UpperChest: 'spine_03', J_Bip_C_Neck: 'neck_01', J_Bip_C_Head: 'Head',
+    J_Bip_L_Shoulder: 'clavicle_l', J_Bip_L_UpperArm: 'upperarm_l', J_Bip_L_LowerArm: 'lowerarm_l', J_Bip_L_Hand: 'hand_l',
+    J_Bip_R_Shoulder: 'clavicle_r', J_Bip_R_UpperArm: 'upperarm_r', J_Bip_R_LowerArm: 'lowerarm_r', J_Bip_R_Hand: 'hand_r',
+    J_Bip_L_UpperLeg: 'thigh_l', J_Bip_L_LowerLeg: 'calf_l', J_Bip_L_Foot: 'foot_l', J_Bip_L_ToeBase: 'ball_l',
+    J_Bip_R_UpperLeg: 'thigh_r', J_Bip_R_LowerLeg: 'calf_r', J_Bip_R_Foot: 'foot_r', J_Bip_R_ToeBase: 'ball_r'
+  };
+
+  /** 목표 뼈 이름 → 원본 뼈 이름 표. 이름이 같은 것만 먼저 잇고(항등) —
+   *  saga-go `asset3d.js`의 `boneNameMap()`과 동일 — 그 위에 VRM 표를
+   *  덧붙인다(항등으로 이미 잡힌 이름은 건드리지 않는다). */
   function boneNameMap(tm, sm) {
-    var map = {}, n = 0, i;
+    var map = {}, n = 0, i, vname;
     if (!tm.skeleton || !sm.skeleton) { return { map: map, count: 0 }; }
     var have = {}, sb = sm.skeleton.bones, tb = tm.skeleton.bones;
     for (i = 0; i < sb.length; i++) { have[sb[i].name] = 1; }
     for (i = 0; i < tb.length; i++) {
       if (have[tb[i].name]) { map[tb[i].name] = tb[i].name; n++; }
+    }
+    for (i = 0; i < tb.length; i++) {
+      if (map[tb[i].name]) { continue; }
+      vname = VRM_TO_UAL1_BONES[tb[i].name];
+      if (vname && have[vname]) { map[tb[i].name] = vname; n++; }
     }
     return { map: map, count: n };
   }
@@ -842,6 +913,16 @@
       var mrec = oneOf(HERO_RECIPES_MIXAMO, ref);
       if (mrec) {
         loadHeroRecipe(mrec, function (model) {
+          if (model) { cb(model); return; }
+          buildHeroDefault(ref, cb);
+        });
+        return;
+      }
+    }
+    if (wantsAnimeAvatar()) {
+      var arec = oneOf(HERO_RECIPES_ANIME, ref);
+      if (arec) {
+        loadHeroRecipe(arec, function (model) {
           if (model) { cb(model); return; }
           buildHeroDefault(ref, cb);
         });
@@ -989,6 +1070,11 @@
     TREE_STYLIZED: TREE_STYLIZED,
     BUSH_STYLIZED: BUSH_STYLIZED,
     LOG_STYLIZED: LOG_STYLIZED,
-    stats: function () { return { built: built, swapped: swapped, broke: broke }; }
+    stats: function () { return { built: built, swapped: swapped, broke: broke }; },
+    /** 진단 전용 — VRM 애니메 아바타(§"원신급" 요청 ②) 손잡이·레시피·뼈 매핑표 조회 */
+    wantsAnimeAvatar: wantsAnimeAvatar,
+    heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
+    vrmToUal1Bones: function () { return VRM_TO_UAL1_BONES; },
+    boneNameMap: boneNameMap
   };
 })(typeof window !== 'undefined' ? window : this);

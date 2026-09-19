@@ -73,6 +73,17 @@
     }
     return FOG_ON();
   }
+  /** 하늘 그라디언트(2026-09-19, "원신급" 요청 이어서 ③환경 레버) — PLAN §6.1
+   *  이 예전부터 적어 둔 "camTiltMix 를 낮추는 게 아니라 원경 안개·하늘
+   *  그라디언트로 지평선을 밝게" 를 실제로 얹는다. **기본 켬**(1) — 안개
+   *  (기본 꺼짐)와 달리 그림자·InstancedMesh 처럼 드로우콜을 늘리는 게
+   *  아니라 구 하나(`skyDome`)뿐이라 끌 이유가 안개만큼 크지 않다. */
+  function SKY_ON() { return C().tuned('village3d.sky', 1) ? true : false; }
+  function setSkyOn(v) {
+    C().setTune('village3d.sky', v ? 1 : 0);
+    if (skyDome) { skyDome.visible = SKY_ON(); }
+    return SKY_ON();
+  }
   function CAM_DIST() { return C().tuned('village3d.camDist', 7.5); }
   function CAM_HIGH() { return C().tuned('village3d.camHeight', 4); }
   /** 3/4 부감(쿼터뷰) 쪽 끝값 — 거리·기울기. tilt 가 클수록 카메라가 더 눕는다(수평 반지름이
@@ -590,6 +601,7 @@
   var FOG_COLOR = { green: 0x8fc7e8, meadow: 0xbfe0a8, dark: 0x445a48, mushroom: 0x5f7a68, rocky: 0x9a988a };
   var curBiome = null, curPhase = null;
   var hemiLight = null, sunLight = null;
+  var skyDome = null;
 
   /**
    * 시간대별 조명(PLAN 40절 PHASE 5 Day/Night — "처음에는 실제 시간 시스템까지
@@ -630,6 +642,14 @@
     return (r << 16) | (g << 8) | b;
   }
 
+  /** hex 색을 f(0~1)만큼 흰색 쪽으로 — darken() 짝, 하늘 그라디언트 지평선 쪽에 쓴다 */
+  function lighten(hex, f) {
+    var r = Math.round(((hex >> 16) & 255) + (255 - ((hex >> 16) & 255)) * f);
+    var g = Math.round(((hex >> 8) & 255) + (255 - ((hex >> 8) & 255)) * f);
+    var b = Math.round((hex & 255) + (255 - (hex & 255)) * f);
+    return (r << 16) | (g << 8) | b;
+  }
+
   /** 시간대·날씨 밝기를 곱한 값 — 순수 함수 */
   function skyDark(ph, wk) {
     return (PHASE_DARK[ph] != null ? PHASE_DARK[ph] : 1) * (WEATHER_DARK[wk] != null ? WEATHER_DARK[wk] : 1);
@@ -639,6 +659,10 @@
   function syncSky() {
     var V = global.DG.village, VD = global.DG.villageData;
     if (!V || !V.biomeAt || !scene) { return; }
+    /* 하늘 구는 카메라를 늘 둘러싸야 해서(원경 스카이박스) 색이 안 바뀌는
+       프레임에도 위치만은 매번 옮긴다 — 바이옴 판정과 달리 카메라는 쉬지
+       않고 움직인다 */
+    if (skyDome && camera) { skyDome.position.copy(camera.position); }
     var raw = V.raw(), TILE = V.TILE;
     var b = V.biomeAt(Math.floor(raw.player.x / TILE), Math.floor(raw.player.y / TILE));
     var ph = (VD && VD.phaseOf) ? VD.phaseOf(new Date().getHours()).key : 'day';
@@ -652,6 +676,11 @@
       var fogMul = WEATHER_FOG[wk] != null ? WEATHER_FOG[wk] : 1;
       scene.fog.near = FOG_NEAR * fogMul;
       scene.fog.far = FOG_FAR * fogMul;
+    }
+    if (skyDome) {
+      skyDome.visible = SKY_ON();
+      skyDome.material.uniforms.bottomColor.value.setHex(lighten(c, 0.35));
+      skyDome.material.uniforms.topColor.value.setHex(darken(c, 0.55));
     }
     var sunCfg = PHASE_SUN[ph] || PHASE_SUN.day;
     if (sunLight) { sunLight.color.setHex(sunCfg.color); sunLight.intensity = sunCfg.intensity * (WEATHER_DARK[wk] != null ? WEATHER_DARK[wk] : 1); }
@@ -703,7 +732,11 @@
   var weatherClock = 0;
   var RAIN_N = 140, RAIN_H = 14, RAIN_SPEED = 9;
   var SNOW_N = 90, SNOW_H = 12, SNOW_SPEED = 1.6;
-  var FIREFLY_N = 40, FIREFLY_R = 18, FIREFLY_H = 3.2;
+  /* 2026-09-19 — "원신급" 요청 이어서 파티클 확장: 40→64. Points 는 드로우콜
+     하나뿐이라(정점 수만 늘어남) 이 정도 증가는 QUALITY_PRESET 등급과 무관하게
+     저사양에서도 무리 없다고 보고 등급별 분기는 안 뒀다 — 체감 무거우면
+     다음에 QUALITY_PRESET 표에 편입 */
+  var FIREFLY_N = 64, FIREFLY_R = 18, FIREFLY_H = 3.2;
   /* PLAN §5.3 "밤 파티클 배율 ×3" — 사고 곤충 갈래를 다 채우면 서는
      반딧불이 정원(`fireflyplot`)만의 국지 무리. 앰비언트 반딧불이(위
      `FIREFLY_N` 셋)는 언제나 인물 둘레에 고르게 흩어지는데, 정원은
@@ -711,7 +744,30 @@
      한 무리를 더 얹는다 — 두 무리를 합치면 그 자리만 유독 짙어 보인다.
      정확한 밀도 배율(×3)을 식으로 맞추기보다 **눈에 띄는 고정 수**를
      골랐다(실기 확인 전까지는 숫자 자체가 정답인지 알 수 없다). */
-  var FIREFLY_BOOST_N = 24, FIREFLY_BOOST_R = 5, FIREFLY_BOOST_H = 2.4;
+  var FIREFLY_BOOST_N = 36, FIREFLY_BOOST_R = 5, FIREFLY_BOOST_H = 2.4;
+
+  /** 반딧불이 전용 부드러운 발광 스프라이트 — 캔버스 방사형 그라디언트 하나를
+   *  런타임에 구워(별도 이미지 자산 없음) `PointsMaterial.map`으로 쓴다.
+   *  가산 블렌딩과 같이 쓰면 각진 사각/원 점 대신 "밤에 번지는 빛" 인상을
+   *  준다 — 비·눈은 그대로 예전 딱딱한 점(빗방울·눈은 오히려 또렷해야
+   *  자연스럽다). `document` 가 없는 자리(자가진단 등)에선 조용히 null. */
+  var fireflyGlowTex = null;
+  function fireflyGlow(t) {
+    if (fireflyGlowTex) { return fireflyGlowTex; }
+    if (typeof document === 'undefined' || !document.createElement) { return null; }
+    var size = 64, cv = document.createElement('canvas');
+    cv.width = cv.height = size;
+    var ctx = cv.getContext('2d');
+    if (!ctx) { return null; }
+    var g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.4, 'rgba(255,255,255,0.55)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+    fireflyGlowTex = new t.CanvasTexture(cv);
+    return fireflyGlowTex;
+  }
 
   /**
    * 비·눈·반딧불이 파티클(PLAN 21·22절)을 미리 지어 둔다. **인물은 늘
@@ -721,34 +777,49 @@
   function buildWeatherFX(t) {
     var area = RENDER_R() * 1.3;
 
-    function makePoints(n, spreadXZ, spreadY, size, color, opacity) {
+    function makePoints(n, spreadXZ, spreadY, size, color, opacity, glow) {
       var geo = new t.BufferGeometry();
       var pos = new Float32Array(n * 3);
       var base = new Float32Array(n);
-      for (var i = 0; i < n; i++) {
+      var i;
+      for (i = 0; i < n; i++) {
         pos[i * 3] = (Math.random() * 2 - 1) * spreadXZ;
         pos[i * 3 + 2] = (Math.random() * 2 - 1) * spreadXZ;
         base[i] = Math.random() * spreadY;
         pos[i * 3 + 1] = base[i];
       }
       geo.setAttribute('position', new t.BufferAttribute(pos, 3));
-      var mat = new t.PointsMaterial({ color: color, size: size, transparent: true, opacity: opacity, depthWrite: false });
+      var matOpts = { color: color, size: size, transparent: true, opacity: opacity, depthWrite: false };
+      if (glow) {
+        var tex = fireflyGlow(t);
+        if (tex) { matOpts.map = tex; matOpts.blending = t.AdditiveBlending; matOpts.vertexColors = true; }
+      }
+      var mat = new t.PointsMaterial(matOpts);
       var pts = new t.Points(geo, mat);
       pts.visible = false;
       pts.userData.base = base;
       pts.userData.spreadY = spreadY;
+      /* 반딧불이 반짝임(§ "원신급" 요청 이어서) — 정점색을 밝기 스칼라로
+         써서(vertexColors, 세 채널 같은 값) 재질 고유색(노란빛)에 곱해진다.
+         `floatStep(pts, true)` 가 매 프레임 이 값을 위아래 흔들림과 같은
+         sin 계열로 다시 먹인다(위상만 다르게 줘 흔들림과 안 겹친다) */
+      if (glow && matOpts.vertexColors) {
+        var col = new Float32Array(n * 3);
+        for (i = 0; i < n * 3; i++) { col[i] = 1; }
+        geo.setAttribute('color', new t.BufferAttribute(col, 3));
+      }
       scene.add(pts);
       return pts;
     }
 
-    WEATHER_FX.rain = makePoints(RAIN_N, area, RAIN_H, 0.06, 0x9fc3e8, 0.55);
-    WEATHER_FX.snow = makePoints(SNOW_N, area, SNOW_H, 0.14, 0xffffff, 0.9);
-    WEATHER_FX.firefly = makePoints(FIREFLY_N, FIREFLY_R, FIREFLY_H, 0.22, 0xf6ef8a, 0.85);
+    WEATHER_FX.rain = makePoints(RAIN_N, area, RAIN_H, 0.06, 0x9fc3e8, 0.55, false);
+    WEATHER_FX.snow = makePoints(SNOW_N, area, SNOW_H, 0.14, 0xffffff, 0.9, false);
+    WEATHER_FX.firefly = makePoints(FIREFLY_N, FIREFLY_R, FIREFLY_H, 0.28, 0xf6ef8a, 0.9, true);
     /* 정원 무리는 원점(인물)이 아니라 `fireflyplot`의 **세계 좌표**를 따라
        다녀야 하므로 `makePoints()`(늘 원점 중심)로 짓고 매 프레임
        `syncWeatherFX()`가 그 자리로 그룹을 옮긴다(스캐터 소품과 같은 요령,
        `syncScatter()`의 `(p.x-px)*scale` 변환 참고). */
-    WEATHER_FX.fireflyBoost = makePoints(FIREFLY_BOOST_N, FIREFLY_BOOST_R, FIREFLY_BOOST_H, 0.22, 0xf6ef8a, 0.9);
+    WEATHER_FX.fireflyBoost = makePoints(FIREFLY_BOOST_N, FIREFLY_BOOST_R, FIREFLY_BOOST_H, 0.28, 0xf6ef8a, 0.95, true);
   }
 
   /** PLAN §5.3 — 사고 곤충 갈래를 다 채우면 서는 그 시설을 찾는다(고정 자리
@@ -809,12 +880,22 @@
     pos.needsUpdate = true;
   }
 
-  function floatStep(pts) {
+  function floatStep(pts, twinkle) {
     var pos = pts.geometry.attributes.position, base = pts.userData.base;
+    var col = twinkle ? pts.geometry.attributes.color : null;
     for (var i = 0; i < base.length; i++) {
       pos.array[i * 3 + 1] = base[i] + Math.sin(weatherClock * 0.8 + i) * 0.4 + 0.6;
+      if (col) {
+        /* 위상을 위아래 흔들림(0.8·+i)과 다르게(1.3·+i*1.7) 줘 밝기가 높이와
+           박자를 맞춰 기계적으로 안 보이게 했다. 0.45~1.0 사이로만 어둡혀
+           아예 안 보이는 순간은 없게(반딧불이가 완전히 꺼지면 사라진 것
+           처럼 보인다) */
+        var v = 0.725 + Math.sin(weatherClock * 1.3 + i * 1.7) * 0.275;
+        col.array[i * 3] = col.array[i * 3 + 1] = col.array[i * 3 + 2] = v;
+      }
     }
     pos.needsUpdate = true;
+    if (col) { col.needsUpdate = true; }
   }
 
   /** 물결 반짝임 점(PLAN 12절) 창고 — 자리는 `syncTerrain()`이 물 칸을 세우는
@@ -873,7 +954,7 @@
     }
     if (WEATHER_FX.firefly) {
       WEATHER_FX.firefly.visible = fly;
-      if (fly) { floatStep(WEATHER_FX.firefly); }
+      if (fly) { floatStep(WEATHER_FX.firefly, true); }
     }
     if (WEATHER_FX.fireflyBoost) {
       var V = global.DG.village, plot = null, raw = null, scale = WORLD_SCALE();
@@ -886,7 +967,7 @@
       WEATHER_FX.fireflyBoost.visible = !!plot;
       if (plot) {
         WEATHER_FX.fireflyBoost.position.set((plot.x - raw.player.x) * scale, 0, (plot.y - raw.player.y) * scale);
-        floatStep(WEATHER_FX.fireflyBoost);
+        floatStep(WEATHER_FX.fireflyBoost, true);
       }
     }
   }
@@ -936,6 +1017,48 @@
     });
   }
 
+  /** 하늘 그라디언트 구(§ SKY_ON) — 카메라를 둘러싼 큰 뒤집힌 구 하나에
+   *  수직 그라디언트 셰이더만 얹는다(텍스처·추가 지오메트리 없음, 드로우콜
+   *  +1). `syncSky()`가 매 프레임 카메라 위치로 옮기고(항상 시야를 둘러싸게),
+   *  바이옴·시간대·날씨가 바뀔 때만 위/아래 색을 새로 먹인다. 반지름
+   *  380(카메라 far=400보다 안쪽, 가장 먼 지형·NPC(~113m)보다 훨씬 밖) —
+   *  실제 3D 오브젝트라 별도 깊이 트릭 없이 거리로 자연히 맨 뒤에 선다. */
+  function makeSkyDome(t) {
+    if (!t) { return null; }
+    var geo = new t.SphereGeometry(380, 24, 16);
+    var mat = new t.ShaderMaterial({
+      uniforms: {
+        topColor: { value: new t.Color(0x4a7fd1) },
+        bottomColor: { value: new t.Color(0xdcefff) },
+        exponent: { value: 0.7 }
+      },
+      vertexShader: [
+        'varying vec3 vWorldPos;',
+        'void main() {',
+        '  vWorldPos = ( modelMatrix * vec4( position, 1.0 ) ).xyz;',
+        '  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform vec3 topColor;',
+        'uniform vec3 bottomColor;',
+        'uniform float exponent;',
+        'varying vec3 vWorldPos;',
+        'void main() {',
+        '  float h = normalize( vWorldPos ).y;',
+        '  float k = pow( max( h, 0.0 ), exponent );',
+        '  gl_FragColor = vec4( mix( bottomColor, topColor, k ), 1.0 );',
+        '}'
+      ].join('\n'),
+      side: t.BackSide,
+      fog: false
+    });
+    var mesh = new t.Mesh(geo, mat);
+    mesh.matrixAutoUpdate = true;
+    mesh.visible = SKY_ON();
+    return mesh;
+  }
+
   function init(cv) {
     var t = three();
     canvas = cv;
@@ -959,6 +1082,8 @@
     scene = new t.Scene();
     scene.background = new t.Color(0x8fc7e8);
     scene.fog = FOG_ON() ? new t.Fog(0x8fc7e8, FOG_NEAR, FOG_FAR) : null;
+    skyDome = makeSkyDome(t);
+    if (skyDome) { scene.add(skyDome); }
 
     camera = new t.PerspectiveCamera(FOV(), 1, 0.1, 400);
 
@@ -1026,9 +1151,18 @@
    *  완전히 안 맞물린다(진폭이 4.5cm 뿐이라 눈에 크게 띄진 않는다). 물 전체를
    *  하나의 큰 평면으로 잇는 편이 이음매는 없겠지만 지금의 칸별 InstancedMesh
    *  구조를 갈아엎어야 해서 이번엔 안 건드렸다 */
+  /** 물비늘 반짝임(2026-09-19, "원신급" 요청 이어서 §"물 재질도 다시 검토") —
+   *  **재질 자체(PBR+HDRI 반사)는 그대로 둔다**, "반사는 공짜로 얻는다"는
+   *  기존 이유가 여전히 맞다(§waterMaterial 머리말). 대신 같은 `onBeforeCompile`
+   *  자리에 프래그먼트 항 하나만 더해 — 월드 xz 를 격자로 잘라 칸마다
+   *  해시 난수를 뽑고, 문턱값을 넘는 칸만 `uTime`에 따라 반짝이게 한다
+   *  (원신류 스타일라이즈드 물의 "표면에 잔별처럼 반짝이는" 인상). 손잡이
+   *  `village3d.waterSparkle`(기본 1) — 꺼지면 예전 그대로 순수 PBR 반사뿐. */
+  function WATER_SPARKLE_ON() { return C().tuned('village3d.waterSparkle', 1) ? true : false; }
   function waterMaterial(t, color, map) {
     var mat = new t.MeshStandardMaterial({ color: color, map: map, roughness: 0.18, metalness: 0.25 });
     var amp = WATER_WAVE_AMP(), freq = WATER_WAVE_FREQ(), speed = WATER_WAVE_SPEED();
+    var sparkle = WATER_SPARKLE_ON();
     mat.onBeforeCompile = function (shader) {
       shader.uniforms.uTime = { value: 0 };
       shader.vertexShader = 'uniform float uTime;\n' + shader.vertexShader.replace(
@@ -1037,6 +1171,26 @@
         '  transformed.y += sin((instanceMatrix[3].x + instanceMatrix[3].z) * ' + freq.toFixed(4) +
         ' + uTime * ' + speed.toFixed(4) + ') * ' + amp.toFixed(4) + ';'
       );
+      if (sparkle) {
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <common>',
+          '#include <common>\nvarying vec2 vSparkleXZ;'
+        ).replace(
+          '#include <worldpos_vertex>',
+          '#include <worldpos_vertex>\nvSparkleXZ = ( modelMatrix * vec4( transformed, 1.0 ) ).xz;'
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <common>',
+          '#include <common>\nuniform float uTime;\nvarying vec2 vSparkleXZ;\nfloat sparkleHash( vec2 p ) { return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ); }'
+        ).replace(
+          '#include <dithering_fragment>',
+          'vec2 sparkleCell = floor( vSparkleXZ * 3.0 );\n' +
+          'float sparkleN = sparkleHash( sparkleCell + floor( uTime * 1.6 ) );\n' +
+          'float sparkleGlint = step( 0.985, sparkleN ) * ( 0.5 + 0.5 * sin( uTime * 20.0 + sparkleN * 40.0 ) );\n' +
+          'gl_FragColor.rgb += sparkleGlint * vec3( 1.0, 0.98, 0.85 ) * 0.6;\n' +
+          '#include <dithering_fragment>'
+        );
+      }
       waterShader = shader;
     };
     return mat;
@@ -1662,6 +1816,11 @@
     /** 설정 화면(⚙️) — 지금 실제로 도는 등급(low/medium/high), 손잡이 원값('auto' 포함), 고르기 */
     quality: tier, qualityRaw: QUALITY, setQuality: setQuality,
     fogOn: FOG_ON, setFogOn: setFogOn,
+    /** 진단 전용 — 하늘 그라디언트 구(§ SKY_ON), 손잡이·인스턴스 조회 */
+    skyOn: SKY_ON, setSkyOn: setSkyOn,
+    skyDome: function () { return skyDome; },
+    /** 진단 전용 — 물 반짝임 손잡이(재질 생성 시점 값이라 되돌리려면 3D 를 다시 켜야 한다) */
+    waterSparkleOn: WATER_SPARKLE_ON,
     /** 진단 전용 — 2026-09-10 "실내에선 3D를 끈 것처럼" 고침: ready 와 무관하게
      *  지금 집·동굴 안이라 3D가 눌려 있는지만 순수하게 본다 */
     indoorSuppressed: indoorSuppressed,
