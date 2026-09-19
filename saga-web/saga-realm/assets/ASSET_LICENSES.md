@@ -259,3 +259,15 @@ Ultimate Monsters" 절)와 완전히 같다.
 전투(`battle3d.js` `setupDuel()`)에서 같은 팩 인물끼리 마주 세우면 몸이
 겹칠 수 있다는 뜻이다(예: 강해·고전이 둘 다 Warrior). 네 파일 합쳐
 약 10.5MB — 균열·폐허(합쳐 약 2.3MB)보다 훨씬 무겁다.
+
+## VRM 애니메 아바타 (2026-09-20, saga-forest 에서 옮김)
+
+`assets/models/people/anime/avatar_{sample_a,sample_b,sample_c,custom_01}.glb` —
+VRoid Studio 공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples,
+저작권 포기·상업 이용 무료·표시 의무 없음) + 이 저장소가 GUI 자동화로 새로
+빚은 avatar_custom_01(라이선스는 상업 이용 허가 CC BY로 내보냄). 넷 다
+`saga-forest/assets/ASSET_LICENSES.md`의 같은 절과 같은 파일(md5 동일) —
+자세한 출처·내보내기 경위는 그쪽 문서 참고. 이 판은 인물이 안 걷어(정지
+초상뿐) `anim`을 몸 파일 자신으로 줘 리타깃을 안 건다(위 MPFB와 같은
+이유). `js/asset3d.js`의 `HERO_RECIPES_ANIME`(기본 꺼짐, `world3d.animeAvatar`
+손잡이)로만 쓰인다.

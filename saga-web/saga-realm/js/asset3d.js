@@ -79,6 +79,28 @@
   ];
   var ANIM_SRC = ANIM_DIR + 'UAL1_Standard.glb';
 
+  /* 2026-09-20 — "원신급" VRM 애니메 아바타(사가의숲 asset3d.js에서 먼저 만든 것,
+     경위는 saga-forest HANDOFF.md 2026-09-19 절)를 이 판에도 옮긴다. VRoid Studio
+     공식 CC0 샘플 AvatarSample_A/B/C(github.com/madjin/vrm-samples) + 이 저장소가
+     GUI 자동화로 새로 빚은 avatar_custom_01. **위 MPFB와 같은 이유로 리타깃을
+     안 건다** — 이 판은 인물이 안 걷고 `portrait3d.js` 정지 초상뿐이라
+     `anim`을 몸 파일 자신으로 준다(클립 0개 → `buildHero()`가 mixer 없이
+     bind pose로 멈춘다). VRM 뼈 이름(`J_Bip_*`)을 UAL1로 리타깃 없이 그대로
+     물리면 위 MPFB 주석이 겪은 뒤틀림 버그가 그대로 나서 일부러 이 길을
+     피했다. **기본은 꺼짐**(0) — 손잡이를 켜기 전엔 기존 배정에 전혀 안
+     끼어든다. */
+  var PEOPLE_ANIME = 'assets/models/people/anime/';
+  var HERO_RECIPES_ANIME = ['a', 'b', 'c'].map(function (n) {
+    var f = PEOPLE_ANIME + 'avatar_sample_' + n + '.glb';
+    return { key: 'anime_avatar_' + n, body: f, anim: f };
+  }).concat([
+    (function () {
+      var f = PEOPLE_ANIME + 'avatar_custom_01.glb';
+      return { key: 'anime_avatar_custom01', body: f, anim: f };
+    })()
+  ]);
+  function wantsAnimeAvatar() { return core.tuned('world3d.animeAvatar', 0) ? true : false; }
+
   /* ── 클립 이름 → 표준 슬롯(2026-09-10, 사가블로 asset3d.js 에서 그대로 옮김) ──
    * GLB 마다 클립 이름이 다 다르다("Attack1_swordShield" 같은 식) — 실제 이름을
    * 하나하나 맞추는 대신 낱말로 어림잡아 `idle`·`attack`·`hit` 같은 표준 슬롯에
@@ -452,6 +474,10 @@
    */
   function heroRecipe(ref) {
     if (ref && ref.monster) { return { body: ref.monster, anim: ref.monster }; }
+    if (wantsAnimeAvatar()) {
+      var arec = oneOf(HERO_RECIPES_ANIME, ref);
+      if (arec) { return arec; }
+    }
     var h = lookup('hero', ref);
     if (!h) { return null; }
     var v = oneOf(h.url, ref);
@@ -690,6 +716,9 @@
     play: play,
     step: step,
     ANIM_SRC: ANIM_SRC,
+    /** 진단 전용 — VRM 애니메 아바타 손잡이·레시피 조회(2026-09-20) */
+    wantsAnimeAvatar: wantsAnimeAvatar,
+    heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
     primitive: primitive,
     three: three,
     REG: function () { return REG; },
