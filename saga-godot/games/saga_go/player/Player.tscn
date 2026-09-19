@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_go/player/camera_rig.gd" id="2"]
 [ext_resource type="PackedScene" path="res://assets/characters_vroid/AvatarSample_A.glb" id="3"]
-[ext_resource type="AnimationLibrary" path="res://assets/characters_vroid/anim/AvatarSample_A_lib.res" id="4"]
+[ext_resource type="Script" path="res://games/saga_go/player/anim_library_loader.gd" id="4"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape1"]
 radius = 0.45
@@ -25,13 +25,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 transform = Transform3D(1.091, 0, 0, 0, 1.091, 0, 0, 0, 1.091, 0, 0, 0)
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Visual"]
-## 103-4 — Mixamo 를 VRoid Humanoid 로 리타겟(tools/mixamo_retarget.gd)해 묶은
-## AnimationLibrary(idle/walk/sprint/attack/hit/dodge/death/pickup). 산출물 .res 는
-## Mixamo ToS 상 로컬 전용(.gitignore) — 다른 PC 에선 이 씬을 열기 전에
-## assets/_mixamo_src/*.fbx 를 다시 받아 그 스크립트를 돌려야 한다.
-libraries = {
-"": ExtResource("4")
-}
+script = ExtResource("4")
+library_path = "res://assets/characters_vroid/anim/AvatarSample_A_lib.res"
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")

@@ -17,11 +17,11 @@
 
 ## 현재 작업
 
-- **09-19⑰ Modular Cave 굴혈 mood 3 시안**: DUNGEON엔 GO 같은 승인된 기준색이 없어 `palette.py`에 `dungeon_dirt`·`dungeon_limestone`·`dungeon_lava` base8을 새로 지어 4종 GLB 스냅(12개), 씬엔 안 물림 — 사람 확인 대기. 용암은 예비 판단상 톤이 안 어두워 재작업 여지.
+- **09-19⑱ Mixamo 실기 확인 — 버그 2개 고침**: windowed 스크린샷으로 직접 확인하니 T포즈였다. `.tscn`의 `libraries={...}` 텍스트 대입이 실제론 등록 안 됨(→ `anim_library_loader.gd` 런타임 등록으로 우회) + `mixamo_retarget.gd`가 idle/walk/run까지 `LOOP_NONE`으로 저장해 1프레임에 얼어붙음(→ `LOOP_CLIPS`만 `LOOP_LINEAR`). 재확인(2초 간격 스크린샷)으로 idle 순환 확정. 경위 `docs/HISTORY.md` ⑱.
 
 ## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
-1. **사용자 실기·색감 확인**(아래) — VRoid 눈·입 · 1.7m · Mixamo idle/walk/run(GO·FOREST) · **굴혈 mood 3 톤**(`assets/generated/variants/*__dungeon_*.glb`).
+1. **사용자 실기·색감 확인**(아래) — VRoid 눈·입 · 1.7m · walk/run 루트 이동 체감(GO·FOREST) · **굴혈 mood 3 톤**(`assets/generated/variants/*__dungeon_*.glb`).
 2. **"시대 퓨전" 팔레트** — 소품 자체가 없어 소품 생기기 전엔 착수 안 함.
 
 ## 알려진 오류

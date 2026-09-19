@@ -46,6 +46,11 @@ const BONE_MAP = {
 }
 
 const CLIPS = ["idle", "walk", "run", "attack", "hit", "dodge", "death", "pickup"]
+## idle/walk/run 은 이동 루프라 계속 돌아야 한다 — 나머지(공격·피격·구르기·
+## 죽음·줍기)는 한 번만 재생하고 마지막 프레임에 멈춰야 하는 동작이라 LOOP_NONE
+## 그대로 둔다. 2026-09-19 실기 스크린샷에서 idle이 첫 재생 뒤 그대로 얼어붙는
+## 걸 보고 뒤늦게 발견 — 처음엔 LOOP_NONE 하나로 전부 저장했었다.
+const LOOP_CLIPS = ["idle", "walk", "run"]
 
 var src_parent := {}
 var src_rest := {}
@@ -92,7 +97,8 @@ func _init():
 			continue
 		var out_path = "%s/%s_%s.res" % [OUT_DIR, out_prefix, clip]
 		_retarget_one(src_path, correction, chain_order, hips_src_name,
-			hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path)
+			hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path,
+			LOOP_CLIPS.has(clip))
 
 	_build_library(out_prefix)
 	print("DONE")
@@ -178,7 +184,7 @@ func _depth(name, parent_map):
 
 
 func _retarget_one(src_path, correction, chain_order, hips_src_name,
-		hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path):
+		hips_rest_local_pos, tgt_hips_rest_pos, pos_scale, out_path, should_loop := false):
 	var packed = load(src_path)
 	var inst = packed.instantiate()
 	var skel = _find_skeleton(inst)
@@ -190,7 +196,7 @@ func _retarget_one(src_path, correction, chain_order, hips_src_name,
 
 	var out_anim = Animation.new()
 	out_anim.length = length
-	out_anim.loop_mode = Animation.LOOP_NONE
+	out_anim.loop_mode = Animation.LOOP_LINEAR if should_loop else Animation.LOOP_NONE
 
 	var rot_track := {}
 	for src_name in chain_order:

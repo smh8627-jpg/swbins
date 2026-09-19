@@ -7616,3 +7616,14 @@ PROJECT_STATE.md` 참고. 요약:
 - `assets/dungeon/`(corridor·gate·gate-rock·room-small, colormap.png 하나 공유) 전부 3 mood 로 스냅 → `assets/generated/variants/*__dungeon_{dirt,limestone,lava}.glb` 12개. 비교 PNG는 GO 때 확립한 대로 res:// 트리 밖 스크래치패드에만 뒀다(Godot .import 잡음 방지).
 - 눈으로 본 예비 판단(비교 PNG 직접 확인): dirt·limestone은 그럭저럭 갈래가 읽히는데, **lava는 스냅 결과가 밝은 주황/회색 얼룩 위주로 나와 "용암 동굴" 느낌이 약하다** — wall/floor/rock을 더 어둡게 다시 잡아야 할 걸로 보임. 사람 확인 뒤 반영.
 - 헤드리스 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과, `.import`/`project.godot` 잡음 없음. **씬엔 안 물렸다** — 103-5 절차대로 사람이 톤 확인해야 다음 단계.
+
+## Mixamo 리타겟 실기 확인 — 진짜 버그 둘 발견·고침 (2026-09-19⑱)
+
+- "실기를 직접 해줄래" 지시 — GUI 스크린샷 습관적 금지 규칙의 명시적 예외로 windowed exe(`Start-Process` + `System.Drawing` 캡처)로 GO `TestVillage.tscn`을 직접 띄워 봄. **T포즈 그대로 서 있었다** — 헤드리스 수치 검증(FK로 발 높이 계산 등)만으로는 못 잡은 실제 버그.
+- **버그 1**: `.tscn` 텍스트에 `libraries = {"": ExtResource(...)}` 를 직접 써넣으면 파싱은 되지만(`AnimationPlayer.get_animation_library_list()` 가 빈 배열) 실제로 라이브러리가 등록 안 된다 — `add_animation_library()` 를 코드로 부르면 정상 동작. `games/saga_go/player/anim_library_loader.gd` 신설(export `library_path`, `_ready()`에서 `add_animation_library("", load(library_path))`)로 우회, Player.tscn·ForestPlayer.tscn 둘 다 적용.
+- **버그 2(부수 발견)**: 그 우회로 고치는 과정에서 AnimationPlayer 노드 바로 위에 `##` 주석을 두면(라이브러리 프로퍼티 설명 등) `script = ExtResource(...)` 자체가 안 먹는다(`get_script()` 가 null) — **주석은 노드 블록의 첫 프로퍼티 "바로 앞"에 두면 깨진다**(Visual 노드처럼 `transform=` 앞엔 여러 줄 와도 되는데 AnimationPlayer의 `script=` 앞은 안 됨, 원인 특정 못 함 — 일반화하지 말고 새 노드에 script 줄 앞엔 주석 안 두는 쪽으로 회피). 주석을 지우니 `script` 정상 적용됨.
+- **버그 3(진짜 원인)**: 위 둘을 고친 뒤에도 idle 이 딱 1프레임에서 얼어붙어 있었다(스크린샷 두 장이 완전히 똑같은 포즈) — `tools/mixamo_retarget.gd` 가 전부 `Animation.LOOP_NONE` 으로 저장해서 idle/walk/run 도 1초 재생 뒤 마지막 프레임에 멈추는 게 정상 동작이었다. `LOOP_CLIPS = ["idle","walk","run"]` 만 `LOOP_LINEAR` 로 저장하게 고치고 GO·FOREST 둘 다 재생성.
+- 재확인(windowed 재실행, 2초 간격 스크린샷 3장): GO 캐릭터 팔·다리 포즈가 프레임마다 바뀜 — idle 순환 확정. FOREST 도 같은 코드 경로라 반영(먼 거리라 육안 확인은 약함, 메커니즘은 동일).
+- walk.fbx 가 "In Place" 안 걸려 있던 것(⑯ 기록)은 이번 확인 범위 밖 — 다음에 실제로 걸어 보며 체감 확인.
+- 교훈: **헤드리스 수치 검증(FK 계산 등)은 "데이터가 옳다"만 증명하지 "런타임에 실제로 재생된다"는 증명 못 한다** — `.tscn` 프로퍼티 텍스트 대입·주석 위치 같은 씬 파일 특유의 함정은 실제로 띄워봐야 잡힌다. Godot 헤드리스 검증(`--headless --editor --quit`)은 파싱 오류만 잡지 이런 조용한 무동작은 안 걸린다.
+- `tools/godot_regress.sh` 다섯 판 재확인 통과, GUI 확인 끝나고 Godot 프로세스 전부 PID로 정리.
