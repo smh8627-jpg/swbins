@@ -214,6 +214,9 @@
     acc.jump += dt;
     if (dy < -30 && p.onGround && acc.jump > 0.5) { acc.jump = 0; S.jump(); }
 
+    /* 회피=대시(§5-5) 자동 사용 — 적이 때리려는 순간(atkAnim) 붙어 있으면 무적 창을 쓴다 */
+    if (e.atkAnim > 0 && Math.abs(dx) < S.REACH * 1.4 && st2.dodge.ready) { S.dodge(); }
+
     /* 때린다 — **띠에 놓인 것을 종류대로** 쓴다. skipIdx 는 안 건드린다
        (완전 자동일 땐 -1 이라 다 쓰고, 수동 조작 중엔 "공격" 자리라 사람이 쥔다) */
     var near = Math.abs(dx) < S.REACH && Math.abs(dy) < 50;

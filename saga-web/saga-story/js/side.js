@@ -149,12 +149,22 @@
   var LEVELUP_DUR = 2.0;      // 레벨업 배너(PLAN 35절)가 뜬 채 머무는 시간
   var QUESTDONE_DUR = 2.0;    // 사명 완료 배너(PLAN 35절)가 뜬 채 머무는 시간
   var ITEMPOP_DUR = 0.9;      // 아이템 획득 팝업(PLAN 35절)이 위로 뜨며 사라지는 시간
-  /* 회피(PLAN 12절) — 스킬(mp·띠 자리)과는 별개로 늘 쓸 수 있는 방어 동작이다.
-     기력을 안 쓰는 대신 저 혼자 식는 시간(DODGE_COOL)을 둔다 — 공짜인데
-     남발되면 무적 시간이 전투를 무의미하게 만든다 */
-  var DODGE_COOL = 3.0;
+  /* 회피(PLAN 12절 → §5-5 "대시로 재정의") — 스킬(mp·띠 자리)과는 별개로 늘 쓸
+     수 있는 방어 동작이다. 하데스·데드셀식 대시처럼 **짧고 자주** 쓰게
+     PLAN §5-5 수치로 맞췄다(예전엔 3.0s/0.35s 로 훨씬 무거웠다 — 회피가
+     귀해서 전투 리듬에 잘 안 끼었었다). 공중에서도 그대로 쓸 수 있어
+     "공중 1회 포함"을 따로 셀 필요가 없다(식는 시간 0.9s 가 사실상 그 역할). */
+  var DODGE_COOL = 0.9;
   var DODGE_DIST = 140;
-  var DODGE_INVULN = 0.35;
+  var DODGE_INVULN = 0.12;
+  /* 이동 손맛(§5-5) — 코요테 타임·점프 버퍼·벽 차기·착지 롤. 넷 다 판정을
+     안 흔들고(방향·타이밍만 너그럽게 받아 준다) "손에 붙는" 감각만 더한다. */
+  var COYOTE_TIME = 0.1;      // 발판을 막 떠난 뒤에도 이만큼은 점프를 받아 준다
+  var JUMP_BUFFER = 0.12;     // 착지 직전 눌러 둔 점프를 이만큼 기억한다
+  var WALL_TOL = 10;          // 발판 옆면 판정 여유(px) — 전용 walls 배열이 없어 발판 자체로 판정
+  var WALL_KICK_VX = 320, WALL_KICK_VY = 620, WALL_KICK_DUR = 0.22;
+  var ROLL_SPEED = 1200;      // 이 낙하 속도를 넘겨 착지하면 경직 대신 구른다
+  var ROLL_DUR = 0.15, ROLL_MUL = 1.4;
   /* 공격 몸짓(2026-09-10) — `asset3d.js`의 몸짓 표에는 이미 attack 자리가
      있었는데(saga-dungeon이 실제로 쓰고 있다) 이 판은 한 번도 부른 적이
      없었다. 판정은 그대로(때리는 순간 이미 strike()가 끝낸다) — 이건 그
@@ -282,7 +292,8 @@
                 onGround: true, phase: 0, atkCd: 0, hurt: 0, invuln: 0,
                 cds: [0, 0, 0, 0, 0, 0], buff: null,
                 climb: null, dropThru: 0, resting: 0, dodgeCd: 0,
-                dodgeAnim: 0, drinkAnim: 0 },
+                dodgeAnim: 0, drinkAnim: 0,
+                coyoteT: 0, jumpBufferT: 0, rollT: 0, wallKickT: 0, wallKickDir: 0 },
       enemies: [], dying: [], drops: [], shots: [], eshots: [], gathers: buildGathers(stg),
       chest: buildChest(stg), forage: buildForageZone(stg), ambush: buildAmbush(stg),
       miniboss: buildMiniboss(stg), merchant: buildMerchant(stg), rescue: buildRescue(stg),
@@ -642,20 +653,52 @@
     if (k === 'down' && v) { useDown(); }
   }
 
-  /** 점프 — 줄에 매달렸으면 손을 떼고 튀고, ↓ 를 누른 채면 발판을 빠져나간다 */
+  /** 벽 차기(§5-5) 판정 — 공중에서 발판 옆면에 붙어 있으면 반대쪽으로 튈 방향을
+   *  돌려준다(0 이면 벽이 아니다). 전용 `walls` 배열이 없어 발판(`stg.plats`)
+   *  자체의 옆면(표면부터 바닥까지)을 벽으로 삼는다(PLAN §5-5 대안 그대로). */
+  function wallSide(p) {
+    var stg = run.stage;
+    for (var i = 0; i < stg.plats.length; i++) {
+      var pl = stg.plats[i], top = pl[1], left = pl[0], right = pl[0] + pl[2];
+      if (p.y >= stg.floor || p.y + P_H <= top) { continue; }
+      if (Math.abs((p.x + P_W) - left) < WALL_TOL) { return -1; }  // 발판 왼쪽 옆면 → 왼쪽으로 튄다
+      if (Math.abs(p.x - right) < WALL_TOL) { return 1; }          // 발판 오른쪽 옆면 → 오른쪽으로 튄다
+    }
+    return 0;
+  }
+
+  /** 점프 — 줄에 매달렸으면 손을 떼고 튀고, ↓ 를 누른 채면 발판을 빠져나간다.
+   *  땅이 아니어도 코요테 창(§5-5) 안이면 그대로 받고, 벽 옆이면 차고 튄다,
+   *  둘 다 아니면 점프 버퍼(§5-5)에 담아 착지하는 순간 이어 쓴다. */
   function jump() {
     if (!run) { return false; }
     var p = run.player;
     if (p.climb) {
-      letGo(input.left ? -SPEED * 0.8 : (input.right ? SPEED * 0.8 : 0));
+      /* 줄에서 손 떼며 점프 — 수평 가속 +30%(§5-5, 예전엔 그냥 0.8배였다) */
+      letGo(input.left ? -SPEED * 0.8 * 1.3 : (input.right ? SPEED * 0.8 * 1.3 : 0));
       return true;
     }
-    if (!p.onGround) { return false; }
-    if (input.down && dropThrough()) { return true; }
-    p.vy = -JUMP;
-    p.onGround = false;
-    sfx('jump');
-    return true;
+    if (p.onGround || p.coyoteT > 0) {
+      p.coyoteT = 0;
+      if (input.down && dropThrough()) { return true; }
+      p.vy = -JUMP;
+      p.onGround = false;
+      sfx('jump');
+      return true;
+    }
+    var w = wallSide(p);
+    if (w) {
+      /* 좌우 이동은 매 프레임 입력으로 다시 정해지므로(아래 update()), 킥 방향은
+         wallKickT 동안만 그 값을 강제로 덮어써 살려 둔다(착지 롤과 같은 요령) */
+      p.wallKickT = WALL_KICK_DUR; p.wallKickDir = w;
+      p.vy = -WALL_KICK_VY; p.facing = w;
+      p.x += w * 2;   // 옆면에서 살짝 떼어 놓는다 — 안 그러면 같은 프레임에 다시 걸린다
+      fx.push({ t: 'dust', x: p.x + (w > 0 ? 0 : P_W), y: p.y + P_H * 0.6, life: 0.28 });
+      sfx('jump');
+      return true;
+    }
+    p.jumpBufferT = JUMP_BUFFER;
+    return false;
   }
 
   /** 회피(PLAN 12절) — 보고 있는 쪽(←→ 를 누르고 있으면 그쪽, 아니면 바라보는
@@ -1017,6 +1060,10 @@
     if (p.atkCd > 0) { p.atkCd -= dt; }   // 공격 몸짓 타이머(판정과 무관, 화면 층만 본다)
     if (p.dodgeAnim > 0) { p.dodgeAnim -= dt; }
     if (p.drinkAnim > 0) { p.drinkAnim -= dt; }
+    if (p.coyoteT > 0) { p.coyoteT -= dt; }
+    if (p.jumpBufferT > 0) { p.jumpBufferT -= dt; }
+    if (p.rollT > 0) { p.rollT -= dt; }
+    if (p.wallKickT > 0) { p.wallKickT -= dt; }
     var bf = buffOn();
     run.mp = Math.min(run.mpMax, run.mp + MP_REGEN * (bf ? bf.regen : 1) * dt);
     if (p.invuln > 0) { p.invuln -= dt; }
@@ -1043,10 +1090,19 @@
         p.y = p.climb.bottom - P_H; p.climb = null; p.onGround = true;
       }
     } else {
-      /* 좌우 */
-      p.vx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-      if (p.vx) { p.facing = p.vx > 0 ? 1 : -1; }
-      p.x = core.clamp(p.x + p.vx * SPEED * mul * dt, 0, stg.width - P_W);
+      /* 좌우 — 착지 롤·벽 차기 동안은 입력과 무관하게 그 방향으로 밀린다
+         (§5-5, 둘 다 "손 놓아도 몸이 이어서 움직인다"는 짧은 창) */
+      var wasGround = p.onGround;
+      if (p.rollT > 0) {
+        p.vx = p.facing;
+      } else if (p.wallKickT > 0) {
+        p.vx = p.wallKickDir;
+      } else {
+        p.vx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+        if (p.vx) { p.facing = p.vx > 0 ? 1 : -1; }
+      }
+      var moveMul = p.rollT > 0 ? ROLL_MUL : (p.wallKickT > 0 ? (WALL_KICK_VX / SPEED) : 1);
+      p.x = core.clamp(p.x + p.vx * SPEED * mul * moveMul * dt, 0, stg.width - P_W);
       if (p.vx) { p.phase += dt * 9; }
 
       /* 중력 · 발판 */
@@ -1073,8 +1129,27 @@
       }
       if (p.onGround && wasFalling) {
         sfx('land');
-        /* 세게 떨어졌을 때만 먼지가 인다 — 계단을 걸어 내려갈 때마다 일면 어지럽다 */
-        if (p.vyPrev > 620) { fx.push({ t: 'dust', x: p.x + P_W / 2, y: p.y + P_H, life: 0.32 }); }
+        if (p.vyPrev > ROLL_SPEED) {
+          /* 착지 롤(§5-5) — 세게 떨어져도 굳어 서지 않고 보던 방향으로 구르며
+             속도를 살린다. 이 판엔 원래 착지 경직이 없었으니 "경직 대신"이
+             아니라 그 자리에 새로 얹는 보상 동작이다. */
+          p.rollT = ROLL_DUR;
+          fx.push({ t: 'dust', x: p.x + P_W / 2, y: p.y + P_H, life: 0.4 });
+        } else if (p.vyPrev > 620) {
+          /* 세게 떨어졌을 때만 먼지가 인다 — 계단을 걸어 내려갈 때마다 일면 어지럽다 */
+          fx.push({ t: 'dust', x: p.x + P_W / 2, y: p.y + P_H, life: 0.32 });
+        }
+        if (p.jumpBufferT > 0) {
+          /* 점프 버퍼(§5-5) — 착지 직전 눌러 둔 입력을 여기서 그대로 이어 쓴다 */
+          p.jumpBufferT = 0; p.rollT = 0;
+          p.vy = -JUMP; p.onGround = false;
+          sfx('jump');
+        }
+      }
+      if (wasGround && !p.onGround && p.vy >= 0) {
+        /* 코요테 타임(§5-5) — 발판을 걸어서 막 떠난 직후에도 잠깐은 점프를 받아 준다.
+           `jump()`가 직접 onGround 를 끈 경우(진짜 점프)는 vy 가 이미 음수라 안 걸린다 */
+        p.coyoteT = COYOTE_TIME;
       }
 
       /* 떨어지다가 줄에 닿았을 때 ↑ 를 누르고 있으면 그대로 매달린다 */

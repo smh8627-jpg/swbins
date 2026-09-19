@@ -191,6 +191,67 @@ window.DG_NO_TUNE = true;
       return landed && passed && '착지 O · 아래에서 통과 O';
     });
 
+    /* ── 이동 손맛(§5-5) — 코요테 타임·점프 버퍼·벽 차기·착지 롤. 판정을
+       안 흔들고 방향·타이밍만 너그럽게 받아 주는 것들이라, 상태를 손으로
+       흉내 내 놓고 jump()/update() 가 그대로 받아 주는지만 본다. */
+
+    t('코요테 타임 — 발판을 떠난 직후(창 안)엔 공중에서도 점프가 받아진다', function () {
+      var run = S.raw(), p = run.player;
+      p.climb = null; p.onGround = false; p.wallKickT = 0; p.jumpBufferT = 0;
+      p.x = 80; p.y = 200;               // 발판·벽 옆이 아닌 허공
+      p.coyoteT = 0.08;                  // 창(0.1s) 안이라고 흉내
+      var ok = S.jump();
+      var r = ok && p.vy < 0 && p.coyoteT <= 0;
+      p.wallKickT = 0;
+      return r && ('점프 O · vy=' + Math.round(p.vy) + ' · 창 소모됨');
+    });
+
+    t('코요테 타임 — 창 밖(벽도 없음)이면 공중 점프는 버퍼에만 담긴다', function () {
+      var run = S.raw(), p = run.player;
+      p.climb = null; p.onGround = false; p.coyoteT = 0; p.wallKickT = 0; p.jumpBufferT = 0;
+      p.x = 80; p.y = 200;
+      var ok = S.jump();
+      return ok === false && p.jumpBufferT > 0 && '실패 · 점프 버퍼에 담김';
+    });
+
+    t('점프 버퍼 — 착지 직전 눌러 둔 점프가 착지 순간 그대로 이어진다', function () {
+      var run = S.raw(), p = run.player;
+      p.climb = null; p.rollT = 0; p.wallKickT = 0; p.coyoteT = 0;
+      p.x = 80; p.y = run.stage.floor - S.P_H - 30;
+      p.vy = 300; p.onGround = false;
+      p.jumpBufferT = 0.3;                // 넉넉히 담아 두고 착지까지 버티는지만 본다
+      for (var i = 0; i < 20 && p.vy >= 0; i++) { S.update(0.03); }
+      var r = p.onGround === false && p.vy < 0 && p.jumpBufferT <= 0;
+      return r && ('착지하자마자 다시 뜀, vy=' + Math.round(p.vy));
+    });
+
+    t('벽 차기 — 발판 옆면에 붙어 공중 점프하면 반대쪽으로 튄다', function () {
+      var run = S.raw(), p = run.player;
+      var pl = run.stage.plats[0], right = pl[0] + pl[2];
+      p.climb = null; p.onGround = false; p.coyoteT = 0; p.jumpBufferT = 0;
+      p.x = right + 2; p.y = pl[1] + 20;  // 발판 오른쪽 옆면, 표면 바로 아래
+      p.facing = -1;
+      var ok = S.jump();
+      var r = ok && p.wallKickDir === 1 && p.vy < 0 && p.facing === 1;
+      p.wallKickT = 0;
+      return r && ('오른쪽으로 튐 · vy=' + Math.round(p.vy));
+    });
+
+    t('착지 롤 — 낙하 속도가 크면 착지 뒤 잠깐 입력 없이도 밀린다', function () {
+      var run = S.raw(), p = run.player;
+      p.climb = null; p.onGround = false; p.wallKickT = 0; p.jumpBufferT = 0;
+      p.x = 80; p.facing = 1;
+      p.y = run.stage.floor - S.P_H - 500;
+      p.vy = 1300;                        // ROLL_SPEED(1200) 을 넘긴 낙하
+      for (var i = 0; i < 30 && !p.onGround; i++) { S.update(0.03); }
+      var rolled = p.onGround && p.rollT > 0;
+      var x0 = p.x;
+      S.update(0.03);
+      var moved = p.x !== x0;             // 손 놓아도(입력 없이) 구르며 밀린다
+      p.rollT = 0;
+      return rolled && moved && '착지 롤 O · 입력 없이도 밀림';
+    });
+
     /* ── 줄과 문 (원작의 세로 이동) ─────────────────────
        항목은 **자기가 쓸 상태를 스스로 만들고 남긴 것은 스스로 치운다.**
        줄을 타는 동안 적에게 맞아 죽으면 판이 끝나 뒤 항목이 줄줄이 넘어진다 —
