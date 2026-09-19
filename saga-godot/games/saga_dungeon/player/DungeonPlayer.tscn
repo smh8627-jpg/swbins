@@ -1,8 +1,9 @@
-[gd_scene load_steps=84 format=3]
+[gd_scene load_steps=85 format=3]
 
 [ext_resource type="Script" path="res://games/saga_go/player/player.gd" id="1"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/dungeon_camera_rig.gd" id="2"]
-[ext_resource type="PackedScene" path="res://assets/characters/character-a.glb" id="3"]
+[ext_resource type="PackedScene" path="res://assets/characters_vroid/AvatarSample_A.glb" id="3"]
+[ext_resource type="Script" path="res://games/saga_go/player/anim_library_loader.gd" id="84"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/player_health.gd" id="4"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/melee_attack.gd" id="5"]
 [ext_resource type="Script" path="res://games/saga_dungeon/player/boon_speed_sync.gd" id="6"]
@@ -96,13 +97,17 @@ shape = SubResource("CapsuleShape1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, 0)
 
 [node name="Visual" parent="." instance=ExtResource("3")]
-## GO의 Player.tscn과 같은 재사용(character-a.glb). 105 Q-h 결정(c,
-## 2026-09-19)으로 1.7m 표준에 맞춰 옛 1.25배의 절반으로 줄였다. 직업
-## 5종은 이제 데이터+장비로 구분되지만(DungeonItems.WEAPON_CLASS,
-## JobLabel UI), 손에 쥔 무기 3D 모델·직업별 외형은 여전히 없다 — 이
-## 판엔 "무기를 손에 그려 붙이는" 시스템 자체가 아직 없다(노획도 바닥의
-## 색 박스일 뿐).
-transform = Transform3D(0.625, 0, 0, 0, 0.625, 0, 0, 0, 0.625, 0, 0, 0)
+## GO/FOREST/REALM이 쓰는 VRoid 자리표시자(AvatarSample_A, 103-4)로 교체
+## (옛 character-a.glb Kenney 블록 캐릭터는 볼거리가 크게 떨어진다는
+## 지적으로 09-20 교체). 직업 5종은 이제 데이터+장비로 구분되지만
+## (DungeonItems.WEAPON_CLASS, JobLabel UI), 손에 쥔 무기 3D 모델·직업별
+## 외형은 여전히 없다 — 이 판엔 "무기를 손에 그려 붙이는" 시스템 자체가
+## 아직 없다(노획도 바닥의 색 박스일 뿐, 이번 교체 범위 밖).
+transform = Transform3D(1.091, 0, 0, 0, 1.091, 0, 0, 0, 1.091, 0, 0, 0)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Visual"]
+script = ExtResource("84")
+library_path = "res://assets/characters_vroid/anim/AvatarSample_A_lib.res"
 
 [node name="CameraRig" type="Node3D" parent="."]
 script = ExtResource("2")
