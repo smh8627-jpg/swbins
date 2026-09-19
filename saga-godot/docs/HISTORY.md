@@ -7635,3 +7635,9 @@ PROJECT_STATE.md` 참고. 요약:
 - 검증: 임시 스크립트(`verify_inplace.gd`, 스크래치패드)로 재생성한 `AvatarSample_A_walk/run/idle.res`의 Hips 위치 트랙을 프레임마다 훑어 `max_horizontal_drift=0.0` 확인(수정 전엔 컸을 것 — 비교값은 안 남김). GO(AvatarSample_A)·FOREST(saga_forest_avatar_01) 둘 다 재생성.
 - `tools/godot_regress.sh` 다섯 판 3회 통과, `.import`/`project.godot` 잡음 없음. 재생성된 `assets/characters_vroid/anim/*.res`는 `.gitignore` 대상(로컬 전용)이라 커밋 대상 아님 — 커밋은 `tools/mixamo_retarget.gd` 만.
 - 실기 확인은 그대로 남는다: 세로 들썩임 크기·발이 미끄러지듯 안 보이는지는 실제로 걸어봐야 한다(PROJECT_STATE "실기 확인 대기" GO/DUNGEON walk/run 항목).
+
+## DUNGEON·STORY VRoid 교체 문서 반영 + model.vroid 정체 확인 (2026-09-20)
+
+- "vroid 다한거?" 질문에 답하며 확인: GO·FOREST만 VRoid고 DUNGEON·STORY는 아직 Kenney였는데, 같은 시간대 다른 세션이 커밋 `adba94eb`로 둘 다 AvatarSample_A로 이미 교체·회귀 통과시켜 놓은 걸 발견 — 중복 작업 안 하고 PROJECT_STATE 완료 요약 표 + 알려진 오류(DUNGEON Torch 조명 부족, AgX 이후 화면이 까맣게 보임)만 반영.
+- Downloads `새 폴더\model.vroid`를 "DUNGEON용으로 새로 만든 캐릭터인가" 하고 열어봤다 — zip 구조 확인(`v1model/meta.json`+`data.bin`, VRoid Studio 고유 포맷) 후 썸네일 추출해 보니 갈색 머리+하와이안 셔츠, `saga_forest_avatar_01.vrm`과 같은 캐릭터였다. `docs/HISTORY.md` ⑮(09-19) 기록과 대조해 **이미 FOREST에 적용된 아바타의 VRoid Studio 소스 프로젝트 파일**임을 확인 — 새 미사용 자산이 아니었다. DUNGEON용으로 쓸 만한 대기 중인 새 VRoid 조형은 없음.
+- 코드 변경 없음(문서만). `bash tools/precheck.sh` 통과, PROJECT_STATE 15331B(≤15KB).
