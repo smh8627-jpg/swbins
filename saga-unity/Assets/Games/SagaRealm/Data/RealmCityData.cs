@@ -313,6 +313,11 @@ namespace Saga.Realm.Data
             // 원작 hill을 Plain으로 보정. wall은 RealmEnemyCity.cs 대하
             // 정의(3200)와 맞춘다.
             ["daxia"] = new RealmCityDef("daxia", "대하", RealmLand.Plain, agri: 150, comm: 170, wall: 3200, pop: 52000, mapX: -15, mapY: 86),
+            // 51장 "대규모 콘텐츠" 27차 확장(2026-09-19) — 대하(daxia)를
+            // 함락한 뒤 이어지는 남중 사슬의 다음 단계이자 이 갈래의 끝.
+            // land는 원작 hill을 Plain으로 보정. wall은 RealmEnemyCity.cs
+            // 오익산리 정의(2600)와 맞춘다.
+            ["wuyishanli"] = new RealmCityDef("wuyishanli", "오익산리", RealmLand.Plain, agri: 110, comm: 130, wall: 2600, pop: 36000, mapX: -32, mapY: 88),
         };
 
         public static RealmCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

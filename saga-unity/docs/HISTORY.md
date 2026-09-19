@@ -7533,3 +7533,18 @@ troops=wall×0.23 반올림(850·900). 둘 다 원작 land가 이미 plain이라
 `tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 대하 함락 로그와 신독 다중 목표(enemyId 명시) 분기 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
 
 `docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 45→46·성 48→49, 16~26차 절 갱신, "다음 작업"(27차 후보: 대하→오익산리, 또는 신독 잎사귀 마게타/사위) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15353B로 15KB 상한 안쪽 유지).
+
+## REALM 51장 27차 확장 — 대하→오익산리 (2026-09-19, 새 세션 "사가 유니티 이어 해")
+
+26차가 남긴 후보(대하→오익산리, 신독 잎사귀 마게타/사위) 중 계속 뻗는 쪽을 골랐다. 오익산리(원작 LINKS: daxia-wuyishanli, "알렉산드리아라 불리던 땅의 한역 이름" — 대하의 유일한 이웃, 원작에 더 뻗는 LINKS 없어 이 갈래는 여기서 끝). train은 대하 자신의 200+15=215. wall은 원작 그대로(2600), troops=wall×0.23 반올림(598). land는 원작 hill이라 Plain으로 보정(24·26차와 같은 이유).
+
+대하는 자식이 오익산리 하나뿐이라(신독처럼 형제 가지가 아님) `enemyId` 명시가 필요 없다 — 25·26차의 다중 목표 성(상림·신독)과 달리 단순 단일 체인 삽입.
+
+- `RealmEnemyCity.cs` — `WuyishanliId` 신설, `AllIds`·`Catalog`에 추가.
+- `RealmCityData.cs` — 같은 성 추가.
+- `PlaytestRealmSlice.cs` — `Phase.AttackDaxia`의 다음 단계를 새 `Phase.AttackWuyishanli`로 바꾸고, 그 다음은 기존 `Phase.AttackJiantuoluo`로 복귀. OK 로그 문구에 "chain-27th(wuyishanli)" 추가.
+- 로컬라이제이션: `city.wuyishanli`(ko/en) 신설.
+
+`tools/unity-batch.sh -- <Unity 인자...>`로 컴파일(error CS 0건)·`PlaytestRealmSlice` 3연속 실행(`Saga.EditorTools.PlaytestRealmSlice.Run`, `-quit` 안 줌) — 오익산리 함락 로그 매 회 확인, `ProjectSettings/`·`Packages/` 부작용 없음(래퍼가 매번 원복). 씬 재생성 불필요.
+
+`docs/PROJECT_STATE.md` 갱신(REALM 완료 요약 적국 46→47·성 49→50, 16~27차 절 갱신, "다음 작업"(28차 후보: 신독 잎사귀 마게타/사위 중 하나, 고르면 신독 갈래 전부 닫힘) · 테스트 상태 · 실기 확인 대기 전부 갱신, 15352B로 15KB 상한 안쪽 유지).

@@ -306,6 +306,7 @@ namespace Saga.Realm.Data
         public const string LuorongId = "luorong";
         public const string JibinId = "jibin";
         public const string DaxiaId = "daxia";
+        public const string WuyishanliId = "wuyishanli";
 
         public static readonly string[] AllIds =
         {
@@ -314,7 +315,7 @@ namespace Saga.Realm.Data
             YonganId, JianglingId, ChangshaId, ChaisangId, JianyeId, KuaijiId, YunzhongId, ShangjunId,
             ShuofangId, WuyuanId, TianshuiId, NanhaiId, ZhutiId, CangwuId, JianningId, YulinId, YuexiId,
             JiaozhiId, ZangkeId, JiuzhenId, HepuId, RinanId, YunnanId, XianglinId, YongchangId,
-            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId,
+            DianchongId, ShenduId, BijingId, JiantuoluoId, LuorongId, JibinId, DaxiaId, WuyishanliId,
         };
 
         private static readonly Dictionary<string, RealmEnemyCityDef> Catalog = new Dictionary<string, RealmEnemyCityDef>
@@ -555,6 +556,12 @@ namespace Saga.Realm.Data
             // 한 단계 더 뻗을 수 있어 다음 확장 후보로 남긴다. 다른 이웃
             // (마게타·사위)은 둘 다 잎사귀.
             [DaxiaId] = new RealmEnemyCityDef(DaxiaId, "대하", RealmLand.Plain, baseWall: 3200, baseTroops: 736, baseTrain: 200, baseTech: 100, attackFromCityId: "shendu"),
+            // 오익산리는 대하(daxia)와만 맞닿아 있다(원작 LINKS:
+            // daxia-wuyishanli, "알렉산드리아라 불리던 땅의 한역 이름") —
+            // 27차 확장, 대하를 함락해야 열리는 남중 사슬의 다음 단계이자
+            // 이 갈래의 끝(원작에 더 뻗는 LINKS 없음). train은 대하 자신의
+            // 200+15=215. land는 원작 hill이라 Plain으로 보정.
+            [WuyishanliId] = new RealmEnemyCityDef(WuyishanliId, "오익산리", RealmLand.Plain, baseWall: 2600, baseTroops: 598, baseTrain: 215, baseTech: 100, attackFromCityId: "daxia"),
         };
 
         public static RealmEnemyCityDef Get(string id) => Catalog.TryGetValue(id, out var d) ? d : null;

@@ -93,6 +93,7 @@
     { "key": "city.luorong", "value": "Luorong" },
     { "key": "city.jibin", "value": "Jibin" },
     { "key": "city.daxia", "value": "Daxia" },
+    { "key": "city.wuyishanli", "value": "Wuyishanli" },
     { "key": "officer.sg_zhugeliang", "value": "Hyeonchaek" },
     { "key": "officer.kr_yisunsin", "value": "Haejang" },
     { "key": "officer.jp_musashi", "value": "Idoin" },
