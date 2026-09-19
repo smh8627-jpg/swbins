@@ -7523,3 +7523,12 @@ PROJECT_STATE.md` 참고. 요약:
 - `region2_coast.gd`·`region3_ruins.gd`에 `VegetationBuilder` 인스턴스(각각 region_id="coast"/"ruins") 추가 — 이 두 지역엔 지금까지 나무·바위가 전혀 없었다(TerrainBuilder만 있었음). 포구는 T(숲) 칸이 없어 산 테두리 바위만, 폐허는 나무+바위 둘 다 선다. TestVillage 메인 지도는 `region_id` 기본값 "village" 라 손 안 대고도 자동으로 go_village 변형을 쓰게 됨.
 - `tools/godot_regress.sh` 다섯 판 통과(issues=0, `.import`/`project.godot` 잡음 없음). 이번 세션 내내 시스템이 유독 느려(회귀 1회에 20분 안팎) 원인은 못 밝혔지만 결과 자체는 정상.
 - 다음: 사용자 실기로 포구 바위·폐허 나무/바위 색감 확인.
+
+## FOREST 나무 바이옴별 색조 4갈래 (2026-09-19⑨) — PLAN 103-3
+
+- GO의 지역별 팔레트 지역화(09-19⑧)를 이어, PLAN 103-3 표 "FOREST 바이옴 5" 줄의 나무 갈래를 착수. FOREST는 GO와 달리 GLB 변형(스냅)이 아니라 tint 방식을 썼다 — `forest_vegetation_builder.gd`가 이미 `material_override = WorldCurveMaterial.vertex_color_material(...)`로 원본 텍스처를 완전히 버리고 정점색×`tint_color` 하나로만 칠하기 때문(구면 곡률 셰이더 요구사항, 102-3). GO식으로 팔레트 스냅 GLB를 새로 구워도 이 머티리얼이 덮어써 무의미했을 것.
+- `ForestBiome.biome_at(x,y)`로 나무마다 소속 바이옴(meadow/dark/mush/rocky — forest_biome.gd, "green" 5번째는 코드상 없어 4갈래로 처리)을 구해 자리 배열을 바이옴별로 분리. 각 바이옴을 별도 `MultiMeshInstance3D`(`Trees_<biome>`)로 짓고 `BIOME_TREE_TINT` 딕셔너리 색을 tint로 준다 — GO `vegetation_builder.gd`의 "바위 큰/작은 두 MultiMesh" 패턴과 같은 이유(MultiMesh 하나엔 머티리얼 하나뿐).
+- 색은 `ForestBiome`의 땅 색을 그대로 베끼지 않고 "나뭇잎다운" 톤으로 옮겼다(땅과 나무가 같은 색이면 밋밋해서) — meadow 밝은 연두, dark 짙은 녹, mush 탁한 녹회, rocky 마른 녹갈.
+- `forest_biome_scatter.gd`(바이옴 장식물)는 이미 바이옴별 tint를 쓰고 있어 손 안 댐 — 이번은 나무(`forest_vegetation_builder.gd`)만.
+- `tools/godot_regress.sh` 다섯 판 통과(issues=0, md5 3회 동일, `.import`/`project.godot` 잡음 없음).
+- 다음: 사용자 실기로 네 바이옴 경계에서 나무 색이 부자연스럽지 않은지 확인(PROJECT_STATE "실기 확인 대기" FOREST 줄에 추가).

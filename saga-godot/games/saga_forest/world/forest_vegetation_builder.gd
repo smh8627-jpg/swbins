@@ -12,6 +12,7 @@ extends Node3D
 ## 붕 뜬 것처럼 보인다(world_curve.gdshaderinc 주석 그대로).
 
 const ForestMap := preload("res://games/saga_forest/data/village_map.gd")
+const ForestBiome := preload("res://games/saga_forest/data/forest_biome.gd")
 const GLBUtils := preload("res://games/saga_go/world/glb_utils.gd")
 const WorldCurveMaterial := preload("res://saga_core/world/world_curve_material.gd")
 
@@ -19,6 +20,24 @@ const TREE_GLB := "res://assets/vegetation/tree_oak.glb"
 const TREE_SCALE := 4.5  # VERTICAL_SLICE_FOREST.md 2절 — GO가 이미 검증한 값 그대로
 const TREES_PER_EDGE_TILE := 2
 const CURVE_AMOUNT := 0.004
+
+## PLAN 103-3 "FOREST 바이옴 5" — GO처럼 GLB 변형을 따로 굽지 않는다.
+## FOREST 나무는 이미 material_override(vertex_color_material)로
+## 원본 텍스처를 버리고 정점색×tint_color 하나로만 칠해지므로(구면
+## 곡률 셰이더가 요구하는 방식), 바이옴 구분은 GLB 대신 forest_biome_
+## scatter.gd 가 이미 쓰는 것과 같은 방식 — 바이옴별 tint_color 하나씩
+## 이다. 바이옴 하나마다 MultiMeshInstance3D 를 따로 둬야 색이 갈린다
+## (한 MultiMesh는 머티리얼 하나뿐이라 — GO vegetation_builder.gd 의
+## "바위 큰/작은 두 MultiMesh" 패턴과 같은 이유). ForestBiome.biome_at()
+## 의 땅 색(meadow 밝은 풀·dark 짙은 숲·mush 축축한 녹회색·rocky
+## 메마른 회녹)을 그대로 베끼지 않고 "나뭇잎다운" 톤으로 옮겼다 —
+## 땅과 나무가 완전히 같은 색이면 밋밋해 보여서다.
+const BIOME_TREE_TINT := {
+	"meadow": Color(0.85, 0.95, 0.5),
+	"dark": Color(0.32, 0.4, 0.28),
+	"mush": Color(0.55, 0.62, 0.48),
+	"rocky": Color(0.6, 0.58, 0.46),
+}
 
 
 func _ready() -> void:
@@ -34,57 +53,76 @@ static func _hash(gx: int, gy: int, salt: int) -> float:
 
 func _scatter_trees() -> void:
 	var ground := 0.0
-	var positions: Array[Vector3] = []
-	var scales: Array[float] = []
-	var yaws: Array[float] = []
+	## 바이옴 키(meadow/dark/mush/rocky)별로 자리를 따로 모은다 — 각각
+	## 다른 MultiMeshInstance3D가 되어야 tint_color가 갈린다.
+	var by_biome: Dictionary = {}
+	for key in BIOME_TREE_TINT:
+		by_biome[key] = {"positions": [], "scales": [], "yaws": []}
+
 	var rows := ForestMap.ROWS
 	for y in rows.size():
 		var row: String = rows[y]
 		for x in row.length():
 			if row[x] != "T":
 				continue
+			var biome_key: String = String(ForestBiome.biome_at(x, y).key)
+			var bucket: Dictionary = by_biome[biome_key]
 			for i in TREES_PER_EDGE_TILE:
 				var jx := (_hash(x, y, i * 2) - 0.5) * ForestMap.TILE_SIZE * 0.8
 				var jz := (_hash(x, y, i * 2 + 1) - 0.5) * ForestMap.TILE_SIZE * 0.8
 				var s := 0.7 + _hash(x, y, i * 2 + 100) * 0.6
-				positions.append(ForestMap.world_pos(x, y) + Vector3(jx, ground, jz))
-				scales.append(s)
-				yaws.append(_hash(x, y, i * 2 + 200) * TAU)
+				bucket.positions.append(ForestMap.world_pos(x, y) + Vector3(jx, ground, jz))
+				bucket.scales.append(s)
+				bucket.yaws.append(_hash(x, y, i * 2 + 200) * TAU)
 
-	if positions.is_empty():
+	var any_tree := false
+	for key: String in by_biome:
+		if not by_biome[key].positions.is_empty():
+			any_tree = true
+			break
+	if not any_tree:
 		return
 
 	var tree_mesh := GLBUtils.extract_mesh(TREE_GLB)
 	if tree_mesh == null:
 		return
 
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = tree_mesh
-	mm.instance_count = positions.size()
-
-	var mmi := MultiMeshInstance3D.new()
-	mmi.multimesh = mm
-	mmi.name = "Trees"
-	mmi.material_override = WorldCurveMaterial.vertex_color_material(CURVE_AMOUNT)
-	add_child(mmi)
-
 	var trunks := StaticBody3D.new()
 	trunks.name = "TreeTrunkCollisions"
 	add_child(trunks)
 
-	for i in positions.size():
-		var s: float = scales[i] * TREE_SCALE
-		var basis := Basis(Vector3.UP, yaws[i]).scaled(Vector3(s, s, s))
-		var base_pos: Vector3 = positions[i]
-		mm.set_instance_transform(i, Transform3D(basis, base_pos))
+	for key: String in by_biome:
+		var bucket: Dictionary = by_biome[key]
+		var positions: Array = bucket.positions
+		if positions.is_empty():
+			continue
+		var scales: Array = bucket.scales
+		var yaws: Array = bucket.yaws
 
-		## GO vegetation_builder.gd와 같은 값(줄기만 막는다, 캐노피는 안
-		## 막는다) — 걷는 느낌을 그대로 물려받는다.
-		var cs := CollisionShape3D.new()
-		var shape := CylinderShape3D.new()
-		shape.radius = 0.4 * scales[i]
-		shape.height = 3.0 * scales[i]
-		cs.shape = shape
-		cs.position = base_pos + Vector3(0, 1.5 * scales[i], 0)
-		trunks.add_child(cs)
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = tree_mesh
+		mm.instance_count = positions.size()
+
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.name = "Trees_%s" % key
+		mmi.material_override = WorldCurveMaterial.vertex_color_material(
+			CURVE_AMOUNT, 0.95, BIOME_TREE_TINT[key])
+		add_child(mmi)
+
+		for i in positions.size():
+			var s: float = scales[i] * TREE_SCALE
+			var basis := Basis(Vector3.UP, yaws[i]).scaled(Vector3(s, s, s))
+			var base_pos: Vector3 = positions[i]
+			mm.set_instance_transform(i, Transform3D(basis, base_pos))
+
+			## GO vegetation_builder.gd와 같은 값(줄기만 막는다, 캐노피는 안
+			## 막는다) — 걷는 느낌을 그대로 물려받는다.
+			var cs := CollisionShape3D.new()
+			var shape := CylinderShape3D.new()
+			shape.radius = 0.4 * scales[i]
+			shape.height = 3.0 * scales[i]
+			cs.shape = shape
+			cs.position = base_pos + Vector3(0, 1.5 * scales[i], 0)
+			trunks.add_child(cs)
