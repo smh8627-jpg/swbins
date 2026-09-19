@@ -17,12 +17,12 @@
 
 ## 현재 작업
 
-- **09-19⑯ 103-4 Mixamo 리타겟(GO·FOREST)**: saga-unity에 받아 둔 Mixamo 모션(Maria, 뼈대만)을 GUI Bone Map 없이 계산으로 VRM Humanoid에 리타겟(`tools/mixamo_retarget.gd` 신설 — 부모 체인 1:1 대조 + FK로 발 높이 직접 계산해 검증). idle/walk/sprint를 `Player.tscn`·`ForestPlayer.tscn`에 연결, 회귀 통과. 산출물은 Mixamo ToS로 로컬 전용(`.gitignore`). DUNGEON(자체 애니 있음)·STORY(비-VRoid)는 범위 밖. T포즈 탈출, 실기 확인 대기.
+- **09-19⑰ Modular Cave 굴혈 mood 3 시안**: DUNGEON엔 GO 같은 승인된 기준색이 없어 `palette.py`에 `dungeon_dirt`·`dungeon_limestone`·`dungeon_lava` base8을 새로 지어 4종 GLB 스냅(12개), 씬엔 안 물림 — 사람 확인 대기. 용암은 예비 판단상 톤이 안 어두워 재작업 여지.
 
 ## 다음 작업 (우선순위 — 상세는 PLAN 해당 장)
 
-1. **사용자 실기 확인**(아래) — VRoid 눈·입 최종 · 팔레트 색감 · 1.7m 재튜닝 체감 · **Mixamo idle/walk/run 애니 체감(GO·FOREST)**.
-2. **"시대 퓨전" 팔레트** — 이 판에 아직 그 소재(녹슨 금속·홀로그램) 소품 자체가 없어, 소품이 생기기 전엔 착수 안 함.
+1. **사용자 실기·색감 확인**(아래) — VRoid 눈·입 · 1.7m · Mixamo idle/walk/run(GO·FOREST) · **굴혈 mood 3 톤**(`assets/generated/variants/*__dungeon_*.glb`).
+2. **"시대 퓨전" 팔레트** — 소품 자체가 없어 소품 생기기 전엔 착수 안 함.
 
 ## 알려진 오류
 

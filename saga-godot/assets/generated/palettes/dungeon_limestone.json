@@ -1,0 +1,126 @@
+{
+  "name": "dungeon_limestone",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "wall",
+      "band": "base",
+      "hex": "#9e998a"
+    },
+    {
+      "role": "wall",
+      "band": "light",
+      "hex": "#c0bdb3"
+    },
+    {
+      "role": "wall",
+      "band": "dark",
+      "hex": "#67635a"
+    },
+    {
+      "role": "floor",
+      "band": "base",
+      "hex": "#7a7566"
+    },
+    {
+      "role": "floor",
+      "band": "light",
+      "hex": "#a9a59c"
+    },
+    {
+      "role": "floor",
+      "band": "dark",
+      "hex": "#504c42"
+    },
+    {
+      "role": "rock",
+      "band": "base",
+      "hex": "#b2ad9e"
+    },
+    {
+      "role": "rock",
+      "band": "light",
+      "hex": "#cdcac0"
+    },
+    {
+      "role": "rock",
+      "band": "dark",
+      "hex": "#747167"
+    },
+    {
+      "role": "stalactite",
+      "band": "base",
+      "hex": "#bfbaa8"
+    },
+    {
+      "role": "stalactite",
+      "band": "light",
+      "hex": "#d6d2c7"
+    },
+    {
+      "role": "stalactite",
+      "band": "dark",
+      "hex": "#7c796d"
+    },
+    {
+      "role": "moss",
+      "band": "base",
+      "hex": "#4c6642"
+    },
+    {
+      "role": "moss",
+      "band": "light",
+      "hex": "#8b9c84"
+    },
+    {
+      "role": "moss",
+      "band": "dark",
+      "hex": "#32422b"
+    },
+    {
+      "role": "vein",
+      "band": "base",
+      "hex": "#8c856b"
+    },
+    {
+      "role": "vein",
+      "band": "light",
+      "hex": "#b4af9f"
+    },
+    {
+      "role": "vein",
+      "band": "dark",
+      "hex": "#5b5646"
+    },
+    {
+      "role": "water",
+      "band": "base",
+      "hex": "#4c808f"
+    },
+    {
+      "role": "water",
+      "band": "light",
+      "hex": "#8bacb6"
+    },
+    {
+      "role": "water",
+      "band": "dark",
+      "hex": "#32535d"
+    },
+    {
+      "role": "shadow",
+      "band": "base",
+      "hex": "#333338"
+    },
+    {
+      "role": "shadow",
+      "band": "light",
+      "hex": "#7a7a7e"
+    },
+    {
+      "role": "shadow",
+      "band": "dark",
+      "hex": "#212124"
+    }
+  ]
+}

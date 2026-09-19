@@ -1,0 +1,126 @@
+{
+  "name": "dungeon_dirt",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "wall",
+      "band": "base",
+      "hex": "#66523d"
+    },
+    {
+      "role": "wall",
+      "band": "light",
+      "hex": "#9c8e81"
+    },
+    {
+      "role": "wall",
+      "band": "dark",
+      "hex": "#423528"
+    },
+    {
+      "role": "floor",
+      "band": "base",
+      "hex": "#473829"
+    },
+    {
+      "role": "floor",
+      "band": "light",
+      "hex": "#887e74"
+    },
+    {
+      "role": "floor",
+      "band": "dark",
+      "hex": "#2e241b"
+    },
+    {
+      "role": "rock",
+      "band": "base",
+      "hex": "#6b665c"
+    },
+    {
+      "role": "rock",
+      "band": "light",
+      "hex": "#9f9c95"
+    },
+    {
+      "role": "rock",
+      "band": "dark",
+      "hex": "#46423c"
+    },
+    {
+      "role": "root",
+      "band": "base",
+      "hex": "#4c381f"
+    },
+    {
+      "role": "root",
+      "band": "light",
+      "hex": "#8b7e6d"
+    },
+    {
+      "role": "root",
+      "band": "dark",
+      "hex": "#322414"
+    },
+    {
+      "role": "moss",
+      "band": "base",
+      "hex": "#425c33"
+    },
+    {
+      "role": "moss",
+      "band": "light",
+      "hex": "#84957a"
+    },
+    {
+      "role": "moss",
+      "band": "dark",
+      "hex": "#2b3c21"
+    },
+    {
+      "role": "vein",
+      "band": "base",
+      "hex": "#947a47"
+    },
+    {
+      "role": "vein",
+      "band": "light",
+      "hex": "#b9a988"
+    },
+    {
+      "role": "vein",
+      "band": "dark",
+      "hex": "#60502e"
+    },
+    {
+      "role": "water",
+      "band": "base",
+      "hex": "#2e4c5c"
+    },
+    {
+      "role": "water",
+      "band": "light",
+      "hex": "#778b95"
+    },
+    {
+      "role": "water",
+      "band": "dark",
+      "hex": "#1e323c"
+    },
+    {
+      "role": "shadow",
+      "band": "base",
+      "hex": "#333338"
+    },
+    {
+      "role": "shadow",
+      "band": "light",
+      "hex": "#7a7a7e"
+    },
+    {
+      "role": "shadow",
+      "band": "dark",
+      "hex": "#212124"
+    }
+  ]
+}

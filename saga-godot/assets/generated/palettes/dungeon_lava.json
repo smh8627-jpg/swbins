@@ -1,0 +1,126 @@
+{
+  "name": "dungeon_lava",
+  "roles": 8,
+  "colors": [
+    {
+      "role": "wall",
+      "band": "base",
+      "hex": "#3d2924"
+    },
+    {
+      "role": "wall",
+      "band": "light",
+      "hex": "#817470"
+    },
+    {
+      "role": "wall",
+      "band": "dark",
+      "hex": "#281b17"
+    },
+    {
+      "role": "floor",
+      "band": "base",
+      "hex": "#2e1f1a"
+    },
+    {
+      "role": "floor",
+      "band": "light",
+      "hex": "#776d6a"
+    },
+    {
+      "role": "floor",
+      "band": "dark",
+      "hex": "#1e1411"
+    },
+    {
+      "role": "rock",
+      "band": "base",
+      "hex": "#4c382e"
+    },
+    {
+      "role": "rock",
+      "band": "light",
+      "hex": "#8b7e77"
+    },
+    {
+      "role": "rock",
+      "band": "dark",
+      "hex": "#32241e"
+    },
+    {
+      "role": "ember",
+      "band": "base",
+      "hex": "#d9591a"
+    },
+    {
+      "role": "ember",
+      "band": "light",
+      "hex": "#e6936a"
+    },
+    {
+      "role": "ember",
+      "band": "dark",
+      "hex": "#8d3a11"
+    },
+    {
+      "role": "lava_glow",
+      "band": "base",
+      "hex": "#f28c1f"
+    },
+    {
+      "role": "lava_glow",
+      "band": "light",
+      "hex": "#f7b46d"
+    },
+    {
+      "role": "lava_glow",
+      "band": "dark",
+      "hex": "#9d5b14"
+    },
+    {
+      "role": "ash",
+      "band": "base",
+      "hex": "#574c47"
+    },
+    {
+      "role": "ash",
+      "band": "light",
+      "hex": "#928b88"
+    },
+    {
+      "role": "ash",
+      "band": "dark",
+      "hex": "#38322e"
+    },
+    {
+      "role": "vein",
+      "band": "base",
+      "hex": "#994c24"
+    },
+    {
+      "role": "vein",
+      "band": "light",
+      "hex": "#bd8b70"
+    },
+    {
+      "role": "vein",
+      "band": "dark",
+      "hex": "#633217"
+    },
+    {
+      "role": "shadow",
+      "band": "base",
+      "hex": "#1f1414"
+    },
+    {
+      "role": "shadow",
+      "band": "light",
+      "hex": "#6d6767"
+    },
+    {
+      "role": "shadow",
+      "band": "dark",
+      "hex": "#140d0d"
+    }
+  ]
+}

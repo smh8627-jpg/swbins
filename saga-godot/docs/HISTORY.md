@@ -7609,3 +7609,10 @@ PROJECT_STATE.md` 참고. 요약:
 - DUNGEON(character-a.glb 자체 애니 있음)·STORY(VRoid 아님)는 범위 밖. `assets/_mixamo_src/`·`assets/characters_vroid/anim/` 둘 다 `.gitignore`(Mixamo ToS 재배포 금지, 리타겟해도 모션 자체는 Mixamo 것 — saga-unity와 같은 이유). `tools/mixamo_retarget.gd`는 재사용 가능하게 커밋.
 - `tools/godot_regress.sh` 다섯 판 3회 통과(issues=0, `.import`/`project.godot` 잡음 없음, GO/FOREST 재로드 파싱 오류 0).
 - 다음: 사용자 실기로 idle/walk/run 애니 체감(특히 walk/run 루트 이동 겹침 여부), VRoid 눈·입·팔레트·1.7m과 합류. DUNGEON 플레이어도 VRoid+Mixamo로 갈지는 열려 있음.
+
+## Modular Cave 굴혈 mood 3 시안 — dungeon_dirt·limestone·lava (2026-09-19⑰)
+
+- "이어해줘" 재지시(두 번째 확인 요청엔 답 안 하고 반복) — 자동 진행 가능한 게 DUNGEON 팔레트 새로 짓기뿐이라 판단, `tools/asset-forge/palette.py`의 `PALETTES`에 세 mood base8 추가(흙/석회/용암, "shadow" 롤만 go_ruins `cave_dark` 재사용해 새 색 최소화).
+- `assets/dungeon/`(corridor·gate·gate-rock·room-small, colormap.png 하나 공유) 전부 3 mood 로 스냅 → `assets/generated/variants/*__dungeon_{dirt,limestone,lava}.glb` 12개. 비교 PNG는 GO 때 확립한 대로 res:// 트리 밖 스크래치패드에만 뒀다(Godot .import 잡음 방지).
+- 눈으로 본 예비 판단(비교 PNG 직접 확인): dirt·limestone은 그럭저럭 갈래가 읽히는데, **lava는 스냅 결과가 밝은 주황/회색 얼룩 위주로 나와 "용암 동굴" 느낌이 약하다** — wall/floor/rock을 더 어둡게 다시 잡아야 할 걸로 보임. 사람 확인 뒤 반영.
+- 헤드리스 임포트 오류 0, `tools/godot_regress.sh` 다섯 판 통과, `.import`/`project.godot` 잡음 없음. **씬엔 안 물렸다** — 103-5 절차대로 사람이 톤 확인해야 다음 단계.

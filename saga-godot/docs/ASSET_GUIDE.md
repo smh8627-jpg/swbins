@@ -340,3 +340,17 @@ FOREST `saga_forest_avatar_01`)에 리타겟한다 — 원리·검증 방법(부
 (idle/walk/sprint)으로 묶은 `*_lib.res`를 `Player.tscn`/`ForestPlayer.tscn`의
 `AnimationPlayer`에 물렸다. DUNGEON/STORY는 아직 안 건드림(DUNGEON은
 character-a.glb 자체 애니로 충분, STORY 플레이어는 VRoid 아님).
+
+## 2026-09-19 — Modular Cave 굴혈 mood 3(흙·석회·용암), 103-3 표
+
+DUNGEON엔 GO의 `terrain_builder` LEGEND 같은 "이미 화면에 승인된" 기준색이
+없어서(102-6 판정과 달리 procgen 색 자체가 없다), `tools/asset-forge/palette.py`의
+`dungeon_dirt`·`dungeon_limestone`·`dungeon_lava` base8은 **새로 지어낸 첫
+시안**이다(셋 다 "shadow" 롤만 go_ruins의 `cave_dark`를 재사용해 새 색을
+최소화). `assets/dungeon/` 4종(corridor·gate·gate-rock·room-small) 전부
+스냅 → `assets/generated/variants/*__dungeon_{dirt,limestone,lava}.glb`
+12개, 헤드리스 임포트 오류 0. **씬엔 안 물렸다** — 103-5 절차대로 사람이
+톤을 먼저 봐야 한다(비교 PNG는 res:// 트리 밖 스크래치패드에만 뒀다,
+Godot이 불필요한 `.import`를 만들지 않게). 예비 판단: 용암 쪽은 스냅
+결과가 주황/회색 위주로 나와 "용암 동굴"보다는 그냥 밝은 얼룩으로 보인다
+— 더 어두운 벽·바닥 톤으로 재작업이 필요해 보인다(사람 확인 후 반영).
