@@ -1447,6 +1447,12 @@
       var pt = box(g, p.x, y + 1, p.z, F.CHUNK + 2, 3, 46, 0x4a3f30, 'flat', false);
       pt.rotation.y = p.rot;
       pt.receiveShadow = true;
+      /* PLAN §6.1 마지막 조각(길 데칼, road3d.js, 2026-09-19) — 단색 상자
+         대신 흙 텍스처 + 가장자리 알파 페이드로 갈아 끼운다. 못 받으면
+         (자가진단 등, three 없음) 위 단색 상자 그대로 남는다(fallback) */
+      var RD = global.DG.road3d;
+      var roadMat = RD ? RD.material((F.CHUNK + 2) / TILE) : null;
+      if (roadMat) { pt.material = roadMat; }
     } else if (p.t === 'post') {
       /* 2026-09-05 — 표지판을 실사화(Kenney CC0 'signpost', asset3d.js 참고).
          못 받으면 옛 도형(기둥+판)으로 그대로 돌아간다 */

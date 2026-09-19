@@ -3835,3 +3835,59 @@ hero/pet 150×172)에 `p3src()`를 추가해 캐시가 있으면 처음부터 �
 **남은 것**: §6.1의 마지막 남은 조각(길(road) 데칼) + 1 톤매핑 곡선·6
 그림자·7 카메라 확인, 그리고 §6.3(팔레트 스냅·kitbash·타일 24)이 Phase 6
 안에 남았다.
+
+## 2026-09-19 (이어서) — PLAN §6.1 길(road) 데칼 — Phase 6 §6.1 마지막 조각
+
+바로 위 세션이 남긴 목록에서 길(road) 데칼 하나만 좁혀서 갔다 — 이제
+§6.1은 항목 1(톤매핑 곡선)만 빼고 전부 코드분으로 닫혔다.
+
+- **새 `js/road3d.js`**: `dungeon3d.js`의 `p.t==='path'`가 단색 상자
+  (`0x4a3f30`)로만 그리던 길을, `terrain3d.js`가 이미 싣는 흙 텍스처
+  (`assets/textures/land/dirt.webp`, 새 파일 없이 재사용) + 가장자리 알파
+  페이드로 갈아 끼웠다. 진짜 `THREE.DecalGeometry` 투영은 안 썼다 — 이
+  판의 길은 처음부터 크기·방향이 고정된 독립 평판이라 텍스처 + 가장자리
+  흐림만으로 충분하다고 판단했다(이 판·다른 네 판 어디에도 Decal 선례가
+  없어 새로 만들지 않고 기존 `onBeforeCompile` 셰이더 패치 요령을 그대로
+  썼다 — `terrain3d.js`·`sway3d.js`와 같은 결).
+- **BoxGeometry 윗면 UV**의 `vUv.y`(박스 로컬 z축=길 폭 46)가 0..1을
+  그대로 쓴다는 점을 이용해, 한복판(0.5)에서 알파 1·가장자리(0·1)에서
+  0으로 `smoothstep` 페이드한다(`min(smoothstep(0,0.22,v), smoothstep(1,
+  0.78,v))`). `onBeforeCompile`로 `#include <map_fragment>` 뒤에 이
+  알파 감쇠만 보탠다.
+- **텍스처는 동기로 물렸다**(`terrain3d.js`의 `loadTex()`와 같은 요령,
+  `TextureLoader().load()` — 그림은 비동기로 와도 텍스처 객체는 그 자리에
+  있다) — `dungeon3d.js`의 옛 `texMat()`처럼 맵을 **나중에** 갈아 끼우면
+  첫 컴파일 때 `USE_UV`가 안 잡혀 `vUv`가 없는 셰이더에 이 파일이 `vUv.y`를
+  참조하다 컴파일 에러가 날 뻔했다(디자인 단계에서 짚어 피함, 실제로
+  겪은 버그는 아니다).
+- **`dungeon3d.js`**: `path` 가지에서 `box()`로 상자를 세운 뒤(폴백,
+  three 가 없거나 road3d 를 못 받으면 이 단색 그대로 남는다) `pt.material
+  = RD.material((F.CHUNK+2)/TILE)`로 갈아 끼운다 — `TILE`(70, 방 바닥·벽
+  텍스처와 같은 눈금)을 그대로 재사용해 길이 방향 반복 횟수를 맞췄다
+  (`pond`가 `box()`로 세운 뒤 `.material`을 바꿔 끼우는 것과 같은 패턴).
+- **검증(GPU 없이)** — `node -c`(road3d.js·dungeon3d.js) 통과. node vm으로
+  실제 three의 `THREE.ShaderLib.lambert` 원본에 `patchShader()`를 그대로
+  적용해: `#include <map_fragment>` 지시문 개수가 그대로인 채 그 뒤에
+  가장자리 페이드 코드가 이어붙는지 대조 — 일치. `smoothstep` 산식을 JS로
+  그대로 옮겨 한복판(0.5)=1·가장자리(0·1)=0·중간(0.1)이 0과 1 사이인지도
+  대조 — 일치(`_slopeRockWeight`와 같은 요령). `_test.html`에 진단 3개
+  추가(패치 문자열 대조·페이드 산식 단조성·`material()` 싱글턴+캐시 키) —
+  세 번째(`material()` 호출)는 `TextureLoader`가 DOM 을 필요로 해 이
+  세션의 node vm(순수 JS, DOM 없음)으로는 직접 못 돌렸다 — 실제 브라우저
+  (헤드리스·사용자 확인)에서 도는 자리라 판단만 하고 코드는 그대로 뒀다,
+  구조상 문제될 자리는 없다고 본다. 헤드리스는 이 판 규칙대로 안 띄웠다.
+  `index.html`·`sw.js`(CACHE 목록+`dungeon-v0.128.0`→`v0.129.0`)·
+  `_test.html`에 `js/road3d.js` 등록. `bash tools/precheck.sh
+  saga-web/saga-dungeon` → PRECHECK OK.
+- **PLAN §7.2 보정** — 지난 세션(풀 바람 셰이더)이 실기 확인 목록을
+  HANDOFF 에만 적고 PLAN.md §7.2 본문엔 실제로 못 옮겼던 것을 이번에
+  같이 옮겼다(풀 바람 셰이더 항목 + 이번 길 데칼 항목).
+
+**실기 확인 남음**: 길이 잔디에 자연스럽게 스미는지, 가장자리 페이드 폭
+(0~0.22·0.78~1)이 좁거나 넓어 보이는지, 길과 실제 지형(terrain3d) 색조가
+어긋나 보이는지, `material()`이 실제 브라우저에서 예외 없이 도는지(위
+검증 한계 참고) — §7.2에 반영.
+
+**남은 것**: §6.1 항목 1(톤매핑 곡선)만 Phase 6 안에 남았다. §6.3(팔레트
+스냅·kitbash·타일 24)은 여전히 스코프가 크다 — 다음엔 그중 하나만 골라
+좁혀서 갈 것.
