@@ -639,6 +639,11 @@
     if (opt === 'flat') { m.flatShading = true; }
     if (opt === 'glow') { m.emissive = new T.Color(hex); m.emissiveIntensity = 0.7; }
     if (opt === 'water') { m.transparent = true; m.opacity = 0.78; m.depthWrite = false; }
+    /* PLAN §6.1 항목 5(풀 바람 셰이더, sway3d.js) — 잡초 층 도형 fallback만
+       흔든다(GLB 는 asset3d.js delam() 이 따로 건다). BoxGeometry 는 면마다
+       정점이 안 갈려 있어 flatShading 이 원래도 no-op 이라 opt 를 'flat'
+       대신 'sway'로 바꿔도 겉모습이 달라지지 않는다(§6.4 교체표 참고) */
+    if (opt === 'sway' && global.DG.sway3d) { global.DG.sway3d.swayify(m); }
     matCache[k] = m;
     return m;
   }
@@ -1477,7 +1482,8 @@
       pdnode.rotation.y = ((Math.round(p.x) + Math.round(p.z)) % 360) * Math.PI / 180;
       g.add(pdnode);
     } else if (p.t === 'reed') {
-      box(g, p.x, y + p.h / 2, p.z, 3, p.h, 3, 0x3f5a34, 'flat', false);
+      /* 갈대는 이 판에 GLB 가 없다(위 §6.4) — 도형 그대로, 그래서 늘 흔들린다 */
+      box(g, p.x, y + p.h / 2, p.z, 3, p.h, 3, 0x3f5a34, 'sway', false);
     } else if (p.t === 'cavemouth') {
       /* 동굴 입구 — 사가고가 이미 "광산 어귀"로 적어 둔 그 Mine 을 세운다 */
       var caveShape = function () {
@@ -1540,10 +1546,13 @@
          다르게 둬서 GLB 가 못 오는 자리(file:// 단독판 등)에서도 그 성격이 읽힌다 */
       var clutterCol = p.t === 'flower' ? 0xd88fc0 : (p.t === 'log' ? 0x4a3826 :
         (p.t === 'mushroom' ? 0xc94f4f : 0x3f5a34));
+      /* 풀·꽃·덤불만 바람에 흔든다(PLAN §6.1-5 나머지 절반, sway3d.js) — 통나무·
+         버섯은 뿌리·갓이 뻣뻣해 그대로 'flat' */
+      var clutterOpt = (p.t === 'grass' || p.t === 'flower' || p.t === 'bush') ? 'sway' : 'flat';
       var clutterShape = function () {
         var sg = new T.Group();
-        if (p.t === 'log') { box(sg, 0, p.h / 2, 0, p.h * 2.2, p.h, p.h * 0.9, clutterCol, 'flat', false); }
-        else { box(sg, 0, p.h / 2, 0, p.h * 0.7, p.h, p.h * 0.7, clutterCol, 'flat', false); }
+        if (p.t === 'log') { box(sg, 0, p.h / 2, 0, p.h * 2.2, p.h, p.h * 0.9, clutterCol, clutterOpt, false); }
+        else { box(sg, 0, p.h / 2, 0, p.h * 0.7, p.h, p.h * 0.7, clutterCol, clutterOpt, false); }
         return sg;
       };
       var clnode2 = AS3 ? AS3.build(p.t, seed + ':' + Math.round(p.x) + ':' + Math.round(p.z),
@@ -2569,6 +2578,9 @@
        포함, asset3d.js 참고)을 프레임당 하나씩만 흘려보낸다 — fieldJobStep과
        같은 예산제 요령. */
     if (AS()) { AS().tick(); }
+    /* 잎·풀 흔들림 시계(PLAN §6.1-5 나머지 절반, sway3d.js) — 이 render()는
+       dt 를 안 들고 있어(위 AS().tick()과 같은 사정) sway3d 가 스스로 잰다 */
+    if (global.DG.sway3d) { global.DG.sway3d.tick(); }
 
     /* 조명 */
     var L = lightPlan(run.floor, run.room && run.room.kind, DARK());

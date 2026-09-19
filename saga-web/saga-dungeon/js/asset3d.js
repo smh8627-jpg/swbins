@@ -1094,6 +1094,17 @@
     return typeof url === 'string' && /\/models\/(people|animals|monsters)\//.test(url);
   }
 
+  /* 2026-09-19 — PLAN §6.1-5가 나중으로 미룬 "풀 바람 셰이더"(sway3d.js).
+     잡초 GLB(`assets/models/nature/` 밑 Grass·Flowers·Bush·Shrub, 위
+     `NATURE_STYLIZED`·`DEFAULTS` 표 참고)만 흔든다 — 나무·바위·통나무·
+     표지판은 파일 이름으로 자동으로 빠진다(뿌리까지 통째로 흔들리면
+     어색하다, 사가고가 GLB 나무를 sway 밖에 둔 이유와 같다). `models/
+     animals/` 밑 물고기 펫 `Flower_Horn.glb` 처럼 이름만 겹치는 것은
+     폴더 접두(`/models/nature/`)로 먼저 걸러 안 걸린다. */
+  function isSwayAsset(url) {
+    return typeof url === 'string' && /\/models\/nature\//.test(url) && /grass|flower|bush|shrub/i.test(url);
+  }
+
   /* ── PBR 을 벗긴다 — 환경맵 없는 이 판의 조명에 그대로 쓰면 새까맣게
    *  선다(사가고가 2026-08-29 에 먼저 밟은 함정, `SAGA-HANDOFF.md` 참고) */
   function delam(root, url) {
@@ -1101,6 +1112,8 @@
     var TN = global.DG.toon3d;
     var toon = !!(TN && TN.TOON_ON());
     var wantOutline = !!(TN && TN.OUTLINE_ON()) && isActorAsset(url);
+    var SW = global.DG.sway3d;
+    var wantSway = !!SW && isSwayAsset(url);
     root.traverse(function (o) {
       if (!o.isMesh || !o.material) { return; }
       /* **법선이 아예 없는 GLB**(2026-09-04, "House"·"Wood" 새까만 자리로
@@ -1113,31 +1126,37 @@
       var one = Array.isArray(o.material) ? o.material : [o.material];
       var out = one.map(function (m) {
         if (!m || (!m.isMeshStandardMaterial && !m.isMeshPhysicalMaterial)) { return m; }
+        var nm;
         /* 2026-09-17 — SAGA-DESIGN §6.1 적용분. 툰 손잡이가 켜져 있으면
            `toon3d.toonify()`(DoubleSide·알파클립까지 옮긴다), 꺼져 있으면
            예전 그대로 Lambert 로 벗긴다 */
         if (toon) {
-          var tm = TN.toonify(m);
-          tm.side = t.DoubleSide;   // 이 판의 방침(위 주석) — 툰이어도 그대로 지킨다
-          return tm;
+          nm = TN.toonify(m);
+          nm.side = t.DoubleSide;   // 이 판의 방침(위 주석) — 툰이어도 그대로 지킨다
+        } else {
+          /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
+             검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
+             뜬다 — 2026-09-03, saga-realm 에서 먼저 밟은 함정 */
+          nm = new t.MeshLambertMaterial({
+            color: m.color ? m.color.clone() : new t.Color(0xffffff),
+            map: m.map || null, vertexColors: !!m.vertexColors,
+            transparent: !!m.transparent, opacity: m.opacity,
+            alphaTest: m.alphaTest || 0,
+            /* **뒤집힌 면(winding)도 있는 채로 받는다** — 2026-09-05, poly.pizza
+               'Pond'(CC-BY)에서 물 표면 사각형 하나가 통째로 반대로 감겨 있어
+               `side: m.side`(기본 FrontSide) 그대로 두면 이 각도에서 컬링돼
+               안 보였다(지오메트리는 와이어프레임으로 확인하면 분명히 있다 —
+               단면 컬링만의 문제). 실사 스캔·저다각형 팩 가릴 것 없이 이런
+               면이 또 나올 수 있어 **항상 DoubleSide로 받는다** — 그리기 비용은
+               미미하고, 맞는 면이면 결과가 똑같다 */
+            side: t.DoubleSide
+          });
         }
-        /* vertexColors 를 안 옮기면(정점빛깔로 색을 주고 baseColorFactor 는
-           검게 비워 둔 옷감이 있다) 그 자리가 조명과 무관하게 통째로 새까맣게
-           뜬다 — 2026-09-03, saga-realm 에서 먼저 밟은 함정 */
-        return new t.MeshLambertMaterial({
-          color: m.color ? m.color.clone() : new t.Color(0xffffff),
-          map: m.map || null, vertexColors: !!m.vertexColors,
-          transparent: !!m.transparent, opacity: m.opacity,
-          alphaTest: m.alphaTest || 0,
-          /* **뒤집힌 면(winding)도 있는 채로 받는다** — 2026-09-05, poly.pizza
-             'Pond'(CC-BY)에서 물 표면 사각형 하나가 통째로 반대로 감겨 있어
-             `side: m.side`(기본 FrontSide) 그대로 두면 이 각도에서 컬링돼
-             안 보였다(지오메트리는 와이어프레임으로 확인하면 분명히 있다 —
-             단면 컬링만의 문제). 실사 스캔·저다각형 팩 가릴 것 없이 이런
-             면이 또 나올 수 있어 **항상 DoubleSide로 받는다** — 그리기 비용은
-             미미하고, 맞는 면이면 결과가 똑같다 */
-          side: t.DoubleSide
-        });
+        /* PLAN §6.1-5 나머지 절반(풀 바람 셰이더, sway3d.js) — 잡초 GLB(위
+           wantSway)만, 이 GLB 안의 재질 전부에 건다(잎·줄기가 낱장 메시로
+           안 갈려 있어도 통째로 흔드는 편이 자연스럽다) */
+        if (wantSway) { SW.swayify(nm); }
+        return nm;
       });
       o.material = Array.isArray(o.material) ? out : out[0];
       if (toon && wantOutline) { TN.outline(o); }
@@ -1530,7 +1549,7 @@
     DEFAULTS: DEFAULTS, restore: restore, heroRecipe: heroRecipe, ANIM_SRC: ANIM_SRC,
     build: build, buildHero: buildHero, step: step, play: play, rawScene: rawScene, tick: tick,
     ownAllMat: ownAllMat, flashAllMat: flashAllMat,
-    tuned: tuned, set: set, stats: stats, isActorAsset: isActorAsset,
+    tuned: tuned, set: set, stats: stats, isActorAsset: isActorAsset, isSwayAsset: isSwayAsset,
     clear: function () { var k; for (k in REG) { if (Object.prototype.hasOwnProperty.call(REG, k)) { delete REG[k]; } } cache = {}; return REG; }
   };
 })(window);

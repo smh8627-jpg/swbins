@@ -116,6 +116,7 @@ window.requestAnimationFrame = function () { return 0; };
 <script src="js/toon3d.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/terrain3d.js"></script>
+<script src="js/sway3d.js"></script>
 <script src="js/field-instance.js"></script>
 <script src="js/portrait3d.js"></script>
 <script src="js/dungeon3d.js"></script>
@@ -5376,6 +5377,63 @@ window.requestAnimationFrame = function () { return 0; };
       var monotone = flat <= mid && mid <= vertical;
       return flat === 0 && vertical === 1 && monotone &&
         ('평지 rockW=' + flat + ' · 중간(normalY=0.7) rockW=' + mid.toFixed(3) + ' · 수직 rockW=' + vertical);
+    });
+
+    /* ── 그래픽 통일 Phase 6 — 풀 바람 셰이더 (PLAN §6.1-5 나머지 절반, sway3d.js, 2026-09-19) ── */
+
+    t('흔들림 — patchShader가 실제 MeshLambertMaterial 셰이더에 정점 흔들림 코드를 정확히 심는다', function () {
+      var SW = DG.sway3d;
+      if (!SW || typeof SW.patchShader !== 'function' || typeof window.THREE === 'undefined') { return false; }
+      var T = window.THREE;
+      var shader = {
+        vertexShader: T.ShaderLib.lambert.vertexShader,
+        fragmentShader: T.ShaderLib.lambert.fragmentShader,
+        uniforms: {}
+      };
+      var includeCountBefore = shader.vertexShader.split('#include <begin_vertex>').length - 1;
+      SW.patchShader(shader);
+      var includeCountAfter = shader.vertexShader.split('#include <begin_vertex>').length - 1;
+      /* 지시문을 지우지 않고 그 뒤에 이어붙였는지 — 정확히 이 순서로 붙어야
+         원래 정점 자리(begin_vertex)가 다 채워진 뒤에 흔들림이 더해진다 */
+      var spliced = shader.vertexShader.indexOf('#include <begin_vertex>\n#ifdef USE_INSTANCING') >= 0;
+      var swOk = shader.vertexShader.indexOf('swPhase') >= 0 &&
+        shader.vertexShader.indexOf('transformed.x += sin(uSwTime') >= 0;
+      var uOk = shader.uniforms.uSwTime.value === 0 && shader.uniforms.uSwAmt.value > 0;
+      return includeCountBefore === includeCountAfter && spliced && swOk && uOk &&
+        ('#include <begin_vertex> 지시문 수 그대로(' + includeCountAfter + ') · 그 뒤에 흔들림 코드 삽입 · 유니폼 배선');
+    });
+
+    t('흔들림 — swayify()는 재질마다 onBeforeCompile을 걸고 프로그램 캐시 키를 "sway"로 가른다', function () {
+      var SW = DG.sway3d;
+      if (!SW || typeof SW.swayify !== 'function' || typeof window.THREE === 'undefined') { return false; }
+      var T = window.THREE;
+      var m1 = new T.MeshLambertMaterial(), m2 = new T.MeshToonMaterial();
+      SW.swayify(m1); SW.swayify(m2);
+      var before = SW._registeredCount();
+      var fakeShader1 = { vertexShader: T.ShaderLib.lambert.vertexShader, uniforms: {} };
+      var fakeShader2 = { vertexShader: T.ShaderLib.toon.vertexShader, uniforms: {} };
+      m1.onBeforeCompile(fakeShader1);
+      m2.onBeforeCompile(fakeShader2);
+      var after = SW._registeredCount();
+      var sameKey = m1.customProgramCacheKey() === 'sway' && m2.customProgramCacheKey() === 'sway';
+      return typeof m1.onBeforeCompile === 'function' && typeof m2.onBeforeCompile === 'function' &&
+        sameKey && (after - before) === 2 &&
+        ('재질 2개 모두 onBeforeCompile 배선 · cacheKey="sway" 공유 · onBeforeCompile 호출로 등록 +2');
+    });
+
+    t('흔들림 — isSwayAsset이 잡초 GLB(풀·꽃·덤불)만 가르고 나무·통나무·물고기 펫은 뺀다', function () {
+      var A3 = DG.asset3d;
+      if (!A3 || typeof A3.isSwayAsset !== 'function') { return false; }
+      var swayUrls = ['assets/models/nature/Grass_2.glb', 'assets/models/nature/Grass_Short.glb',
+        'assets/models/nature/Flowers.glb', 'assets/models/nature/Bush_1.glb',
+        'assets/models/nature/realistic/Shrub_04.glb'];
+      var noneUrls = ['assets/models/nature/CommonTree_1.glb', 'assets/models/nature/Rock_1.glb',
+        'assets/models/nature/realistic/Log_a.glb', 'assets/models/props/signpost.glb',
+        'assets/models/animals/extra2/Flower_Horn.glb'];   // 이름만 겹치는 물고기 펫(폴더 접두로 걸러야 함)
+      var allSway = swayUrls.every(function (u) { return A3.isSwayAsset(u); });
+      var noneSway = noneUrls.every(function (u) { return !A3.isSwayAsset(u); });
+      return allSway && noneSway && !A3.isSwayAsset(null) && !A3.isSwayAsset(undefined) &&
+        ('잡초 GLB ' + swayUrls.length + '종 전부 true · 나무·바위·통나무·표지판·물고기펫 ' + noneUrls.length + '종 전부 false');
     });
 
     t('목표판 — 부팅 직후 세 줄이 비어 있지 않다 (PLAN §5.6)', function () {

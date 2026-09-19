@@ -3778,3 +3778,60 @@ Phase 6 안에 남았다.
 반복해서 열 때마다 2D→3D 로 깜빡였다. `pt()`와 도감 상세 두 자리(`dt-portrait`,
 hero/pet 150×172)에 `p3src()`를 추가해 캐시가 있으면 처음부터 그 그림으로
 시작하게 고쳤다. `node -c js/ui.js` 통과. 실기 확인 대기.
+
+## 2026-09-19 — PLAN §6.1-5 풀 바람 셰이더(나머지 절반) — Phase 6 계속
+
+앞선 두 세션이 Phase 6(그래픽 통일)에 남긴 목록(외곽선·지형 트라이플레이너
+완료, §6.1 나머지 절반은 길 데칼·풀 바람 셰이더) 중 하나만 좁혀서 갔다 —
+사가고 `world3d.js`의 `swayify()`(잎·풀 정점 흔들림)를 이 판에 그대로
+옮겼다. 길(road) 데칼은 손 안 댔다(다음 몫으로 남긴다).
+
+- **새 `js/sway3d.js`**: `swayify(material)`이 `onBeforeCompile`로
+  `#include <begin_vertex>` 뒤에 사인·코사인 흔들림 한 줄을 보탠다(셰이더
+  문자열은 사가고 것 한 글자도 안 바꿈). `customProgramCacheKey`를
+  `'sway'`로 갈라 컴파일 프로그램이 안 섞이게 한다(`toon3d.js` 외곽선과
+  같은 이유). 손잡이는 `world3d.sway`/`world3d.swayAmt` — 사가고와 같은
+  키를 그대로 썼다(툰·외곽선처럼 어드민 UI엔 안 올리고 콘솔 전용, 이 판
+  관례).
+- **`render()`가 dt 를 안 들고 있다** — 사가고의 `syncSway(dt)`처럼 프레임
+  간격을 받을 자리가 없어(`AS().tick()`도 같은 사정), `sway3d.js`가
+  `performance.now()` 델타로 시계를 스스로 재는 `tick()`을 새로 만들고
+  `dungeon3d.js`의 `render()`에서 `AS().tick()` 바로 옆에 불렀다. 꺼져
+  있으면(`world3d.sway=0`) 마지막 자세로 멎는다(사가고 주석과 같은 뜻).
+- **두 갈래에 건다(사가고에 없던 사정)** — 이 판은 잡초(grass·flower·
+  bush)에 이미 실제 GLB(Kenney/Poly Haven, `assets/models/nature/`)가
+  있어(사가고는 잎·풀·갈대가 늘 도형이다), 도형 fallback만 흔들면 GLB가
+  도착한 뒤엔 안 보인다. 그래서:
+  1. `dungeon3d.js`의 `mat(hex,'sway')` — 옛 `'flat'` opt 대신(BoxGeometry는
+     정점이 안 갈려 있어 `flatShading`이 원래도 no-op, §6.4 교체표 참고)
+     grass·flower·bush 잡초 fallback과 GLB가 없는 `reed`(갈대)에 건다.
+  2. `asset3d.js`의 `delam()` — 새 `isActorAsset()`짝 `isSwayAsset(url)`이
+     `/models/nature/` 밑 파일명에서 grass·flower·bush·shrub만 골라(나무·
+     바위·통나무·표지판은 자동으로 빠진다 — 뿌리까지 통째로 흔들리면
+     어색하다는 사가고의 이유와 같다), 재질을 만드는 그 자리(toonify/
+     Lambert 벗기기)에서 바로 `SW.swayify(nm)`를 건다. `models/animals/`
+     밑 물고기 펫 `Flower_Horn.glb`처럼 이름만 겹치는 것은 폴더 접두로
+     먼저 걸러 안 걸린다(node로 대조 확인).
+- **검증(GPU 없이)** — `node -c`(sway3d.js·dungeon3d.js·asset3d.js) 통과.
+  node vm으로 실제 three의 `THREE.ShaderLib.lambert` 원본에 `patchShader()`를
+  그대로 적용해: `#include <begin_vertex>` 지시문 개수가 그대로(안 지워짐)
+  인 채 그 뒤에 흔들림 코드가 이어붙는지, `uSwTime`/`uSwAmt` 유니폼이
+  배선됐는지 대조 — 일치. `isSwayAsset` 분류표(잡초 GLB 5종 true, 나무·
+  바위·통나무·표지판·물고기펫 5종 false)도 node로 대조 — 일치.
+  `_test.html`에 흔들림 진단 3개 추가(patchShader 문자열 대조·swayify
+  재질별 onBeforeCompile 배선+cacheKey 공유·isSwayAsset 분류) — 헤드리스는
+  안 띄웠다(이 판 규칙), node vm/직접 함수 호출로만 값을 잤다. `index.html`·
+  `sw.js`(CACHE 목록+`dungeon-v0.127.0`→`v0.128.0`)·`_test.html`에
+  `js/sway3d.js` 등록. `bash tools/precheck.sh saga-web/saga-dungeon` →
+  PRECHECK OK.
+
+**실기 확인 남음**: 잡초(풀·꽃·덤불)가 실제로 바람에 흔들리는 것처럼
+보이는지, 갈대가 자연스러운 폭·속도로 흔드는지, 같은 재질을 쓰는 낱개
+잡초끼리 한 박자로(위상 차이 없이) 흔드는 것이 어색해 보이는지(인스턴싱이
+아니라 낱개 Mesh라 위상을 못 갈랐다, 위 설명 참고), GLB 잡초가 도착하기
+전(도형 fallback)과 후(GLB)의 흔들림 폭·속도 차이가 눈에 띄는지 — §7.2에
+반영할 것.
+
+**남은 것**: §6.1의 마지막 남은 조각(길(road) 데칼) + 1 톤매핑 곡선·6
+그림자·7 카메라 확인, 그리고 §6.3(팔레트 스냅·kitbash·타일 24)이 Phase 6
+안에 남았다.

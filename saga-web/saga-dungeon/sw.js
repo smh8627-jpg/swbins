@@ -11,7 +11,7 @@
  *       사내 http 주소로 폰에서 열면 홈 화면 추가는 되지만 이 캐시는 동작하지 않는다.
  */
 
-var VERSION = 'dungeon-v0.127.0';
+var VERSION = 'dungeon-v0.128.0';
 var APP_CACHE = 'yd-app-' + VERSION;
 var TILE_CACHE = 'yd-tiles-v1';
 var TILE_MAX = 500;
@@ -54,6 +54,7 @@ var SHELL = [
   './js/toon3d.js',
   './js/asset3d.js',
   './js/terrain3d.js',
+  './js/sway3d.js',
   './js/field-instance.js',
   './js/dungeon3d.js',
   './js/fx3d.js',
