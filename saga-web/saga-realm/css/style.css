@@ -95,6 +95,12 @@ body.tilted #vignette {
 .p-title { font-size: 13px; font-weight: 700; letter-spacing: -.2px; }
 .p-sub { font-size: 10.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .p-sub b { color: var(--gold); font-weight: 600; }
+/* 이정표 한 줄 (PLAN §5-4) — 이름 옆에 좁은 진척 막대 */
+.p-goal { font-size: 10px; color: var(--ink-dim); white-space: nowrap; display: flex; align-items: center; gap: 5px; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.p-goal b { color: var(--gold); font-weight: 600; }
+.p-goal .gbar { display: inline-block; width: 42px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; flex: 0 0 auto; }
+.p-goal .gbar i { display: block; height: 100%; background: linear-gradient(90deg, #d9a441, #f7c96b); }
+.stars { color: var(--gold); font-size: 12px; letter-spacing: 1px; font-weight: 400; }
 
 /* 2026-09-01 — 아이콘 다섯 개를 한 줄로 늘어놓으니 좁은 폰 폭에서 profile 과
    합친 너비가 뷰포트를 넘어 오른쪽(어드민·리셋)이 화면 밖으로 밀려났다.
@@ -498,7 +504,7 @@ small.muted { display: block; margin-top: 7px; font-size: 10.5px; }
   /* ── 사가국지: 폰에서 손이 닿게 ─────────────────────────
      상단이 프로필·살림 두 줄로 접히므로 지도를 그만큼 내린다.
      안 내리면 지도의 북쪽 성들이 상단 유리판 밑으로 들어가 못 눌린다 */
-  #realm { top: 148px; bottom: calc(80px + var(--safe-b)); }
+  #realm { top: 162px; bottom: calc(80px + var(--safe-b)); }
   .p-sub { white-space: nowrap; }              /* "수입 388/월" 의 '월' 이 떨어져 나갔다 */
   .rlab { font-size: 3.2px; }                  /* 성 이름을 손에 든 채 읽을 크기로 */
   .rlegend { font-size: 10px; gap: 3px 8px; padding-top: 3px; }

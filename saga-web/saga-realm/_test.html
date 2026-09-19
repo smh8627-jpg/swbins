@@ -72,6 +72,7 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 <script src="js/sfx.js"></script>
 <script src="js/vendor/three.iife.js"></script>
 <script src="js/toon3d.js"></script>
+<script src="js/anim-own.js"></script>
 <script src="js/asset3d.js"></script>
 <script src="js/account.js"></script>
 <script src="js/hero.js"></script>
@@ -1632,16 +1633,18 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
 
     /* ── 시나리오 ────────────────────────────────────── */
 
-    t('시나리오마다 서른 성이 빠짐없이, 겹치지 않게 나뉜다', function () {
-      /* 하나만 빠뜨려도 주인 없는 성이 생겨 아무도 못 치고 못 뺏긴다 */
+    t('시나리오마다 중국 서른 성이 빠짐없이, 겹치지 않게 나뉜다', function () {
+      /* 하나만 빠뜨려도 주인 없는 성이 생겨 아무도 못 치고 못 뺏긴다.
+         ④⑤ 는 확장 지역(`garrison` 있는 성)도 세력이 쥐고 시작하므로 그만큼은 서른 밖이다 */
       var bad = [], line = [];
       for (var s = 0; s < FD.SCENARIOS.length; s++) {
-        var sc = FD.SCENARIOS[s], seen = {}, n = 0, i, j;
+        var sc = FD.SCENARIOS[s], seen = {}, n = 0, i, j, extra = 0;
         for (i = 0; i < sc.forces.length; i++) {
           var f = sc.forces[i];
           for (j = 0; j < f.cities.length; j++) {
             if (seen[f.cities[j]]) { bad.push(sc.id + ':' + f.cities[j] + ' 겹침'); }
             if (!CD.find(f.cities[j])) { bad.push(sc.id + ':' + f.cities[j] + ' 없는 성'); }
+            else if (CD.find(f.cities[j]).garrison) { extra++; continue; }
             seen[f.cities[j]] = true; n++;
           }
           if (!off.find(f.lord)) { bad.push(sc.id + ':' + f.lord + ' 없는 군주'); }
@@ -1651,9 +1654,9 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
           }
         }
         if (n !== 30) { bad.push(sc.id + '년 성 ' + n + '곳'); }
-        line.push(sc.year + '년 ' + sc.name + ' 세력 ' + sc.forces.length);
+        line.push(sc.id + ' 세력 ' + sc.forces.length + (extra ? '(+확장 ' + extra + ')' : ''));
       }
-      return bad.length === 0 && FD.SCENARIOS.length === 3 && (line.join(' · '));
+      return bad.length === 0 && FD.SCENARIOS.length === 6 && (line.join(' · '));
     });
 
     t('시나리오를 고르면 그 해, 그 판에서 시작한다', function () {
@@ -1740,6 +1743,225 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
       });
       R.setup('cao');
       return bad.length === 0 && (line.join(' · '));
+    });
+
+    /* ── 시나리오 ④⑤⑥ + 이정표 (PLAN §5-4) ─────────────── */
+
+    /** 이 항목 안에서만 난수를 갈아 끼운다(공유 씨앗 순번을 안 민다 — PLAN §2-13) */
+    function withSeed(seed, fn) {
+      var keep = Math.random, a = seed >>> 0;
+      Math.random = function () {
+        a = (a + 0x6D2B79F5) >>> 0;
+        var x = a;
+        x = Math.imul(x ^ (x >>> 15), x | 1);
+        x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+      };
+      try { return fn(); } finally { Math.random = keep; }
+    }
+
+    t('④ 백지 — 양평 하나·무장 셋·병 팔천, 중원은 194년 그대로', function () {
+      R.setup('gwan', 'blank');
+      var st = R.state();
+      var mine = R.citiesOf('gwan');
+      var team = off.ofForce('gwan').map(function (h) { return h.id; }).sort();
+      var ok = st.scen === 'blank' && st.year === 194 && mine.length === 1 && mine[0] === 'yangping' &&
+        R.city('yangping').troops === 8000 && team.length === 3 &&
+        FD.force('gwan').lord === 'kr2_pasodan' && off.rec('kr2_pasodan').force === 'gwan' &&
+        R.city('yangping').gov === off.atCity('yangping', 'gwan')[0].id &&
+        R.city('xuchang').force === 'cao' && R.city('xiaopei').force === 'bei' &&
+        R.liveForces().length === 14 && R.city('guknae').force === null &&
+        st.milestone && st.milestone.idx === 0;
+      R.setup('cao');
+      return ok && ('양평 병 8000 · 무장 ' + team.length + ' · 살아 있는 깃발 14');
+    });
+
+    t('④ 백지 — 첫 두 해를 가만히 두어도 씨앗 다섯 모두 멸망하지 않는다', function () {
+      var alive = [];
+      [20260824, 1, 7, 42, 99].forEach(function (sd) {
+        withSeed(sd, function () {
+          R.setup('gwan', 'blank');
+          var st = R.state(), i;
+          for (i = 0; i < 24; i++) { st.result = null; R.endMonth(); }
+          alive.push(R.citiesOf('gwan').length);
+        });
+      });
+      R.setup('cao');
+      return alive.every(function (n) { return n >= 1; }) && ('24달 뒤 성 ' + alive.join('·'));
+    });
+
+    t('⑤ 균열의 왕 — 균열 일곱 성과 괴물 아홉, 사람 무장은 "이질" 이라 충성이 10 낮게 끌린다', function () {
+      R.setup('gyun', 'rift');
+      var st = R.state();
+      var mine = R.citiesOf('gyun');
+      var team = off.ofForce('gyun');
+      var f = FD.force('gyun'), keep = f.alien;
+      /* 사람(재야에서 등용될 만한 삼국지 무장) — 이질이면 -10, 괴물은 그대로 */
+      var man = 'rf_mizhu', mon = 'fu_seonghon';
+      var withA = off.baseLoyal(man, 'gyun'), monA = off.baseLoyal(mon, 'gyun');
+      f.alien = null;
+      var withoutA = off.baseLoyal(man, 'gyun'), monB = off.baseLoyal(mon, 'gyun');
+      f.alien = keep;
+      var ok = mine.length === 7 && mine.every(function (id) { return CD.find(id).prov === 'fu'; }) &&
+        team.length === 9 && f.lord === 'fu_jongwang' &&
+        R.city('jongmal').troops === CD.find('jongmal').garrison &&
+        R.city('yamato').force === null && st.milestone.idx === 0 &&
+        withoutA - withA === 10 && monA === monB;
+      R.setup('cao');
+      return ok && ('성 7 · 무장 ' + team.length + ' · 이질 ' + withoutA + '→' + withA + ' · 괴물 ' + monA + ' 그대로');
+    });
+
+    t('⑥ 군웅 무작위 — 씨앗이 같으면 같은 천하, 다르면 다른 천하, 성 수·서른 성은 그대로', function () {
+      var bad = [], sigs = [];
+      [1, 2, 3, 20260824].forEach(function (sd) {
+        FD.use('chaos', sd);
+        var seen = {}, sig = [], n = 0;
+        FD.FORCES.forEach(function (f) {
+          var base = FD.scenario('chaos').forces.filter(function (b) { return b.id === f.id; })[0];
+          if (f.cities.length !== base.cities.length) { bad.push(sd + ':' + f.id + ' 성 수가 바뀜'); }
+          f.cities.forEach(function (c) {
+            if (seen[c]) { bad.push(sd + ':' + c + ' 겹침'); }
+            seen[c] = true; n++;
+          });
+          sig.push(f.id + '=' + f.cities.join(','));
+        });
+        if (n !== 30) { bad.push(sd + ': 성 ' + n); }
+        sigs.push(sig.join(';'));
+      });
+      FD.use('chaos', 1);
+      var again = FD.FORCES.map(function (f) { return f.id + '=' + f.cities.join(','); }).join(';');
+      FD.use('194');
+      var distinct = {}; sigs.forEach(function (s) { distinct[s] = true; });
+      return bad.length === 0 && again === sigs[0] && Object.keys(distinct).length === 4 &&
+        ('씨앗 4개 → 배치 4가지 · 같은 씨앗 재현 · 성 수 유지');
+    });
+
+    t('⑥ 군웅 무작위 — 씨앗이 세이브에 남아 새로고침해도 같은 지도', function () {
+      R.setup('cao', 'chaos', 4242);
+      var st = R.state();
+      var before = ['xuchang', 'ye', 'luoyang', 'jianye', 'chengdu'].map(function (c) { return R.city(c).force; }).join(',');
+      var home = R.citiesOf('cao').sort().join(',');
+      C.persist();
+      C.load();
+      var after = ['xuchang', 'ye', 'luoyang', 'jianye', 'chengdu'].map(function (c) { return R.city(c).force; }).join(',');
+      var st2 = R.state();
+      var ok = st.seed === 4242 && st2.scen === 'chaos' && FD.seed() === 4242 &&
+        FD.force('cao').cities.slice().sort().join(',') === home && before === after;
+      R.setup('cao');
+      return ok && ('씨앗 4242 → 조조 ' + home);
+    });
+
+    t('이정표 — 여섯 판 모두 다섯 단, 조건은 단조 증가·보상은 500~2000', function () {
+      var bad = [], line = [];
+      FD.SCENARIOS.forEach(function (sc) {
+        [1, 3, 19].forEach(function (base) {
+          var ms = FD.milestonesFor(sc.id, base);
+          if (ms.length !== 5) { bad.push(sc.id + ':' + ms.length + '단'); return; }
+          var prevGold = 0, prevN = 0;
+          ms.forEach(function (m, i) {
+            if (!m.name || !m.desc || !m.cond) { bad.push(sc.id + ':' + i + ' 빈칸'); }
+            if (m.gold < 500 || m.gold > 2000 || m.gold <= prevGold) { bad.push(sc.id + ':' + i + ' 금 ' + m.gold); }
+            prevGold = m.gold;
+            if (m.cond.c === 'core' && sc.id !== 'blank' && sc.id !== 'rift') {
+              if (m.cond.n <= prevN || m.cond.n > 30) { bad.push(sc.id + ':' + i + ' 성 ' + m.cond.n); }
+              prevN = m.cond.n;
+            }
+          });
+          if (!ms[4].relic) { bad.push(sc.id + ': 마지막 단에 보물이 없다'); }
+        });
+        line.push(sc.id);
+      });
+      return bad.length === 0 && (line.join('·') + ' 모두 5단');
+    });
+
+    t('이정표 — 사다리는 시작 성 수로 눈금이 달라진다(조조 208 은 21→30, 공융 194 는 4→30)', function () {
+      R.setup('cao', '208');
+      var big = R.milestones().map(function (m) { return m.cond.n; }).join(',');
+      R.setup('rong', '194');
+      var small = R.milestones().map(function (m) { return m.cond.n; }).join(',');
+      R.setup('cao');
+      return big === '21,22,24,27,30' && small === '4,9,15,22,30' && ('조조 208 ' + big + ' · 공융 194 ' + small);
+    });
+
+    t('이정표 — ④ 백지: 단마다 금이 나가고 재야가 드러나며 한 번 지급한 단은 다시 안 나온다', function () {
+      R.setup('gwan', 'blank');
+      var st = R.state(), f = R.force('gwan');
+      var g0 = f.gold;
+      var none = R.checkMilestones().length;                                   // 아무것도 안 깼다
+      ['guknae', 'nakrang'].forEach(function (c) { R.city(c).force = 'gwan'; });
+      var a1 = R.checkMilestones();                                            // 3성 → 1단
+      var goldA = f.gold - g0;
+      var again = R.checkMilestones().length;                                  // 같은 조건을 또 불러도 0
+      ['daebang', 'wirye', 'geumseong', 'gimhae'].forEach(function (c) { R.city(c).force = 'gwan'; });
+      var a2 = R.checkMilestones();                                            // 한국 7성 → 2단
+      R.city('beiping').force = 'gwan';
+      var a3 = R.checkMilestones();                                            // 중국 첫 성 → 3단
+      var ok = none === 0 && a1.length === 1 && a1[0].name === '세 성' && goldA === 500 && again === 0 &&
+        a2.length === 1 && a2[0].idx === 1 && a3.length === 1 && a3[0].idx === 2 &&
+        st.milestone.idx === 3 && a1[0].found.length === 0;
+      var prog = R.milestoneView();
+      R.setup('cao');
+      return ok && prog.cur.name === '열 성의 깃발' && prog.progress.cur === 8 && prog.progress.need === 10 &&
+        ('1단 금 +500 · 재호출 0 · 3단까지 · 다음 "' + prog.cur.name + '" ' + prog.progress.cur + '/' + prog.progress.need);
+    });
+
+    t('이정표 — 한 달에 여러 단을 넘으면 차례로 모두 주고, 마지막 단은 보물을 씌운다', function () {
+      R.setup('gwan', 'blank');
+      var st = R.state(), f = R.force('gwan');
+      var g0 = f.gold;
+      CD.CITIES.forEach(function (c) { if (c.prov === 'kr' || !c.garrison) { R.city(c.id).force = 'gwan'; } });
+      var out = R.checkMilestones();
+      var relic = out.length && out[out.length - 1].relic;
+      var held = off.ofForce('gwan').filter(function (h) { return !!off.rec(h.id).item; }).length;
+      var total = out.reduce(function (s, g) { return s + g.gold; }, 0);
+      var ok = out.length === 5 && st.milestone.idx === 5 && f.gold - g0 === total && total === 5800 &&
+        !!relic && held >= 1 && R.milestoneView().cur === null;
+      R.setup('cao');
+      return ok && ('5단 한꺼번에 · 금 +' + total + ' · 보물 ' + (relic ? relic.name + '→' + relic.who : '없음'));
+    });
+
+    t('이정표 — 옛 세이브(칸 없음)는 지금을 기준으로 0단에서 다시 시작한다', function () {
+      R.setup('cao', '194');
+      var st = R.state();
+      delete st.milestone;
+      var st2 = R.state();
+      var ok = !!st2.milestone && st2.milestone.idx === 0 && st2.milestone.base.core === 3 &&
+        R.milestones().length === 5;
+      R.setup('cao');
+      return ok && ('칸이 없어도 0/5 · 기준 성 3');
+    });
+
+    t('이정표 — 화면: 상단 한 줄·시나리오 여섯 장·카드는 다른 카드가 닫힌 뒤에 뜬다', function () {
+      /* 앞 항목이 이정표 카드를 줄 세워 뒀을 수 있다 — 대기열을 비우고 시작 */
+      var guard = 0;
+      while (document.getElementById('encounter').classList.contains('show') && guard++ < 20) { DG.ui.closeEnc(); }
+      R.setup('gwan', 'blank');
+      C.emit('changed');
+      var goal = document.querySelector('#profile .p-goal');
+      var goalTxt = goal ? goal.textContent : '';
+      DG.ui.showScenPick();
+      var cards = document.querySelectorAll('#encounter [data-act="pick-scen"]').length;
+      var stars = document.querySelectorAll('#encounter .stars').length;
+      DG.ui.closeEnc();
+      DG.ui.showForcePick('blank');
+      var blankFlags = document.querySelectorAll('#encounter [data-act="pick-force"]').length;
+      DG.ui.showForcePick('chaos');
+      var chaosFlags = document.querySelectorAll('#encounter [data-act="pick-force"]').length;
+      var hidden = document.getElementById('encounter').textContent.indexOf('무작위') >= 0;
+      DG.ui.closeEnc(); FD.use('blank');
+      /* 다른 카드가 떠 있는 동안 이정표가 나오면 줄을 선다 */
+      DG.ui.showScenPick();
+      C.emit('rtk:milestone', [{ idx: 0, name: '세 성', desc: '성 세 곳을 쥔다', gold: 500, found: [], relic: null }]);
+      var stillPick = document.querySelectorAll('#encounter [data-act="pick-scen"]').length === 6;
+      DG.ui.closeEnc();
+      var shown = document.getElementById('encounter').textContent;
+      var card = shown.indexOf('🚩') >= 0 && shown.indexOf('세 성') >= 0 && shown.indexOf('+500') >= 0;
+      DG.ui.closeEnc();
+      var gone = document.getElementById('encounter').innerHTML === '';
+      R.setup('cao'); FD.use('194');
+      return goalTxt.indexOf('🚩') >= 0 && goalTxt.indexOf('1/5') >= 0 && cards === 6 && stars === 6 &&
+        blankFlags === 1 && chaosFlags === 13 && hidden && stillPick && card && gone &&
+        ('상단 "' + goalTxt.replace(/\s+/g, ' ').trim() + '" · 판 6 · 백지 깃발 1 · 무작위 깃발 13');
     });
 
     /* ── 폰에서 손이 닿는가 ──────────────────────────── */
@@ -2101,6 +2323,147 @@ window.DG_NO_DRAW = true; window.DG_NO_ACCOUNT = true; window.DG_NO_TUNE = true;
         m.attack === 'Anim_Attack_Slash' && m.run === 'RunCycle' &&
         empty.idle === undefined && !!empty.alias &&
         ('idle←' + m.idle + ' · walk←' + m.walk + ' · attack←' + m.attack + ' · 빈 목록 → 빈 표');
+    });
+
+    /* ── 자체 몸짓 (anim-own.js, 2026-09-20) ─────────────────────
+       Mixamo 는 공개 저장소에 못 올려서 VRM 몸짓을 코드로 짰다. 렌더 없이 FK 로 잰다 — 눈으로 보는 일은 실기 몫. */
+
+    t('anim-own — 아홉 클립이 같은 뼈 전부를 움직이고, 값이 유한·단위이며, 반복 클립은 이어진다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), clips = OA.clipData(rig), i, j, bad = [];
+      if (clips.length !== 9) { return false; }
+      var sig = function (c) { return c.tracks.map(function (x) { return x.bone + ':' + x.kind; }).sort().join(','); };
+      var s0 = sig(clips[0]);
+      clips.forEach(function (c) {
+        if (sig(c) !== s0) { bad.push(c.name + ' 트랙 집합'); }
+        c.tracks.forEach(function (tr) {
+          var w = tr.kind === 'q' ? 4 : 3, n = tr.times.length, k, l;
+          for (k = 0; k < tr.values.length; k++) { if (!isFinite(tr.values[k])) { bad.push(c.name + ' 비유한'); break; } }
+          if (tr.kind === 'q') {
+            for (k = 0; k < n; k++) {
+              l = Math.hypot(tr.values[k * 4], tr.values[k * 4 + 1], tr.values[k * 4 + 2], tr.values[k * 4 + 3]);
+              if (Math.abs(l - 1) > 1e-4) { bad.push(c.name + ' 비단위 ' + tr.bone); break; }
+            }
+          }
+          if (c.loop) {
+            var d = 0, d2 = 0;
+            for (k = 0; k < w; k++) {
+              d = Math.max(d, Math.abs(tr.values[k] - tr.values[(n - 1) * w + k]));
+              d2 = Math.max(d2, Math.abs(tr.values[k] + tr.values[(n - 1) * w + k]));
+            }
+            if (tr.kind === 'q') { d = Math.min(d, d2); }
+            if (d > 1e-3) { bad.push(c.name + ' 루프 ' + tr.bone); }
+          }
+        });
+      });
+      return bad.length === 0 && ('아홉 클립 · 트랙 ' + clips[0].tracks.length + '개씩 · 루프 셋 이음매 0');
+    });
+
+    t('anim-own — 걷기·달리기: 왼발이 나갈 때 오른팔이 나가고, 발바닥은 땅에 붙어 있다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), B = OA.BONES, m = OA.math, fr = rig.frame;
+      var clips = OA.clipData(rig, ['Walk_Loop', 'Run_Loop', 'Idle_Loop']);
+      var by = {}; clips.forEach(function (c) { by[c.name] = c; });
+      var fwd = function (v) { return m.vdot(v, fr.f); };
+      var W = OA.fkAt(rig, by.Walk_Loop, 0.25), R = OA.fkAt(rig, by.Run_Loop, by.Run_Loop.duration * 0.25);
+      var stride = fwd(W[B.lfoot].p) - fwd(W[B.rfoot].p), arms = fwd(W[B.rhand].p) - fwd(W[B.lhand].p);
+      var runStride = fwd(R[B.lfoot].p) - fwd(R[B.rfoot].p);
+      var worst = 0;
+      ['Idle_Loop', 'Walk_Loop', 'Run_Loop'].forEach(function (nm) {
+        var c = by[nm], k;
+        for (k = 0; k <= 60; k++) {
+          var pts = OA.groundPoints(rig, OA.fkAt(rig, c, c.duration * k / 60));
+          var dev = Math.min.apply(null, pts) - rig.rest.minUp;
+          /* 박히는 것(음수)은 언제나 안 되고, 뜨는 것(양수)은 달리기의 공중 뜸만 허용한다 */
+          worst = Math.max(worst, -dev, nm === 'Run_Loop' ? 0 : dev);
+        }
+      });
+      return stride > 0.3 && arms > 0.2 && runStride > 0.35 && worst < 0.008 &&
+        ('걷기 보폭 ' + stride.toFixed(2) + 'm · 팔 차 ' + arms.toFixed(2) + 'm · 달리기 보폭 ' + runStride.toFixed(2) + 'm · 발 접지 오차 최대 ' + (worst * 1000).toFixed(1) + 'mm');
+    });
+
+    t('anim-own — 공격은 뒤에서 앞으로 휘두르고, 쓰러지면 눕고, 구르기는 한 바퀴 돌아 일어선다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), B = OA.BONES, m = OA.math, fr = rig.frame;
+      var clips = OA.clipData(rig, ['Attack', 'Death', 'Dodge', 'Hit', 'Jump', 'Land']);
+      var by = {}; clips.forEach(function (c) { by[c.name] = c; });
+      var fwd = function (v) { return m.vdot(v, fr.f); }, up = function (v) { return m.vdot(v, fr.u); };
+      var A0 = OA.fkAt(rig, by.Attack, 0.3 * by.Attack.duration), A1 = OA.fkAt(rig, by.Attack, 0.46 * by.Attack.duration);
+      var swing = fwd(A1[B.rhand].p) - fwd(A0[B.rhand].p), raised = up(A0[B.rhand].p) > up(A0[B.head].p);
+      var D = OA.fkAt(rig, by.Death, by.Death.duration);
+      var torso = m.vsub(D[B.head].p, D[B.hips].p);
+      var lying = up(D[B.head].p) < 0.3 && Math.abs(m.vdot(torso, fr.u)) < 0.3 * m.vlen(torso) &&
+        fwd(D[B.head].p) < fwd(D[B.hips].p) - 0.3;
+      var G0 = OA.fkAt(rig, by.Dodge, 0), G1 = OA.fkAt(rig, by.Dodge, by.Dodge.duration);
+      var stood = Math.abs(up(G1[B.hips].p) - up(G0[B.hips].p)) < 0.02;
+      var head0 = OA.fkAt(rig, by.Hit, 0)[B.head].p, head1 = OA.fkAt(rig, by.Hit, 0.22 * by.Hit.duration)[B.head].p;
+      var flinch = fwd(head1) < fwd(head0) - 0.06;
+      var J1 = OA.fkAt(rig, by.Jump, by.Jump.duration * 0.42), Jc = OA.fkAt(rig, by.Jump, by.Jump.duration * 0.24);
+      var jumped = up(J1[B.lhand].p) > up(J1[B.head].p) && up(Jc[B.hips].p) < 0.72;
+      var Ld = OA.fkAt(rig, by.Land, by.Land.duration);
+      var landed = Math.abs(up(Ld[B.hips].p) - up(G0[B.hips].p)) < 0.02;
+      return raised && swing > 0.3 && lying && stood && flinch && jumped && landed &&
+        ('휘두름 ' + swing.toFixed(2) + 'm · 쓰러진 머리 높이 ' + up(D[B.head].p).toFixed(2) + ' · 구르기 뒤 서 있는 높이 그대로');
+    });
+
+    t('anim-own — 어느 클립에서도 관절이 땅에 박히거나 각속도가 튀지 않는다', function () {
+      var OA = DG.ownAnim, rig = OA.refRig(), fr = rig.frame, m = OA.math, clips = OA.clipData(rig);
+      var lowest = 1e9, lowName = '', maxAv = 0, maxName = '';
+      clips.forEach(function (c) {
+        var k, nm;
+        for (k = 0; k <= 80; k++) {
+          var W = OA.fkAt(rig, c, c.duration * k / 80);
+          for (nm in W) {
+            if (/Index|Middle|Ring|Little|Thumb/.test(nm)) { continue; }
+            var y = m.vdot(W[nm].p, fr.u);
+            if (y < lowest) { lowest = y; lowName = c.name + ':' + nm; }
+          }
+        }
+        c.tracks.forEach(function (tr) {
+          if (tr.kind !== 'q') { return; }
+          var i;
+          for (i = 1; i < tr.times.length; i++) {
+            var a = tr.values.slice(i * 4 - 4, i * 4), b = tr.values.slice(i * 4, i * 4 + 4);
+            var d = Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]);
+            var av = 2 * Math.acos(Math.min(1, d)) * 180 / Math.PI / (tr.times[i] - tr.times[i - 1]);
+            if (av > maxAv) { maxAv = av; maxName = c.name; }
+          }
+        });
+      });
+      return lowest > -0.045 && maxAv < 3200 &&
+        ('가장 낮은 관절 ' + (lowest * 100).toFixed(1) + 'cm(' + lowName + ') · 최대 각속도 ' + Math.round(maxAv) + '°/s(' + maxName + ')');
+    });
+
+    t('anim-own — 실제 three 뼈대에 굽혀 믹서로 돌려도 FK 계산과 같은 자리에 선다', function () {
+      var OA = DG.ownAnim, TH = window.THREE, rig = OA.refRig();
+      if (!TH || !TH.AnimationMixer) { return '(three 없음 — 건너뜀)'; }
+      var bones = {}, root = new TH.Group();
+      rig.order.forEach(function (nm) {
+        var n = rig.by[nm], b = new TH.Bone();
+        b.name = nm; b.position.set(n.p[0], n.p[1], n.p[2]); b.quaternion.set(n.q[0], n.q[1], n.q[2], n.q[3]);
+        bones[nm] = b;
+        (n.parent ? bones[n.parent] : root).add(b);
+      });
+      var clips = OA.clipsFor(root, TH);
+      var names = clips.map(function (c) { return c.name; });
+      var map = DG.asset3d.mapClips(names);
+      var slotsOk = ['idle', 'walk', 'run', 'attack', 'hit', 'dodge', 'death', 'jump', 'land'].every(function (s) {
+        return !!map[s] && !map.alias[s];
+      });
+      var walk = clips.filter(function (c) { return c.name === 'Walk_Loop'; })[0];
+      var mx = new TH.AnimationMixer(root), act = mx.clipAction(walk);
+      act.play(); mx.update(0.25); root.updateMatrixWorld(true);
+      var p = new TH.Vector3(); bones[OA.BONES.lfoot].getWorldPosition(p);
+      var W = OA.fkAt(rig, OA.clipData(rig, ['Walk_Loop'])[0], 0.25), q = W[OA.BONES.lfoot].p;
+      var err = Math.hypot(p.x - q[0], p.y - q[1], p.z - q[2]);
+      return clips.length === 9 && slotsOk && err < 0.004 &&
+        ('AnimationClip 9 · mapClips 아홉 자리 전부 제 이름(대타 0) · 왼발 위치 오차 ' + (err * 1000).toFixed(2) + 'mm');
+    });
+
+    t('anim-own — VRM 몸(anime 경로)만 자체 몸짓 길을 탄다', function () {
+      var A3 = DG.asset3d;
+      var on = A3.wantsOwnAnim('assets/models/people/anime/avatar_sample_a.glb') &&
+        A3.wantsOwnAnim('assets/generated/people/anime/npc_keeper.glb');
+      var others = !A3.wantsOwnAnim('assets/models/people/quaternius_rpg/Warrior.glb') &&
+        !A3.wantsOwnAnim('assets/models/people/regular/Male_Peasant.gltf');
+      return on && others && 'anime 경로만 켜짐';
     });
 
     t('런타임 에러 없음', function () {

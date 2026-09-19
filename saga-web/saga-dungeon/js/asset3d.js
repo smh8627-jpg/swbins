@@ -22,6 +22,11 @@
 
   var T = null;
   function three() { if (!T) { T = global.THREE || null; } return T; }
+  /** 2026-09-20 — VRM(`/people/anime/`) 몸은 남의 몸짓(UAL1)을 뼈 이름표로 다시 굽는 대신 `anim-own.js` 가 코드로 짠
+   *  자체 몸짓을 입는다(Mixamo 는 약관상 공개 저장소에 못 올린다). 기본 켜짐, `world3d.ownAnim`=0 이면 예전 길(UAL1) */
+  function wantsOwnAnim(url) {
+    return !!(global.DG.ownAnim && typeof url === 'string' && url.indexOf('/people/anime/') >= 0 && tuned('world3d.ownAnim', 1));
+  }
 
   /* ── 손잡이 — 이 판의 core.js 에는 tuned 가 없다(dungeon3d.js 와 같은 사정) */
   var knobs = {};
@@ -1019,7 +1024,7 @@
   }
 
   /* ── 애니메이션 이름 맞추기 — 사가고와 같은 요령 ─────── */
-  var SLOTS = ['idle', 'walk', 'run', 'sprint', 'attack', 'hit', 'dodge', 'death', 'interaction'];
+  var SLOTS = ['idle', 'walk', 'run', 'sprint', 'attack', 'hit', 'dodge', 'death', 'interaction', 'jump', 'land'];
   /* 2026-09-07 — Wasp(poly.pizza Animated Enemies)는 걷기 없이 Attack·Death·
      Flying 셋뿐이라 idle 에 'fly' 낱말을 더해야 가만있을 때도 날갯짓이 돈다 */
   var WORDS = {
@@ -1031,7 +1036,9 @@
     hit: ['hit', 'hurt', 'damage', 'gethit', 'takedamage', 'impact', 'flinch'],
     dodge: ['dodge', 'roll', 'evade', 'sidestep'],
     death: ['death', 'die', 'dead', 'dying', 'defeat'],
-    interaction: ['interact', 'interaction', 'use', 'pick', 'gather', 'talk', 'open', 'action']
+    interaction: ['interact', 'interaction', 'use', 'pick', 'gather', 'talk', 'open', 'action'],
+    jump: ['jump', 'leap', 'hop'],
+    land: ['land', 'landing']
   };
   function normName(s) {
     var n = String(s || '');
@@ -1053,7 +1060,7 @@
   var FALLBACK = {
     run: ['walk', 'idle'], sprint: ['run', 'walk'], walk: ['run', 'idle'],
     hit: ['idle'], dodge: ['run', 'walk'], attack: ['interaction', 'idle'],
-    death: ['hit', 'idle'], interaction: ['idle'], idle: ['walk']
+    death: ['hit', 'idle'], interaction: ['idle'], idle: ['walk'], jump: ['idle'], land: ['idle']
   };
   function mapClips(names) {
     var list = (names || []).map(function (n) { return { raw: n, n: normName(n) }; });
@@ -1438,13 +1445,14 @@
     if (!GLB_ON() || !rec) { return shell; }
 
     var parts = {}, pending = 4;
+    var own = !rec.anim && wantsOwnAnim(rec.body);   // VRM 몸 → 자체 몸짓(UAL1 을 받으러 가지 않는다)
     function onOne() { pending--; if (pending === 0) { scheduleHeavy(assemble); } }
     acquire(rec.body, function (c) { parts.body = c; onOne(); });
     /* outfit·hair 는 조합형(옛 Quaternius) 레시피에만 있다 — QRPG 통짜 스킨은
        둘 다 없으니 헛수고로 받으러 가지 않고 바로 다음 칸으로 넘어간다 */
     if (rec.outfit) { acquire(rec.outfit, function (c) { parts.outfit = c; onOne(); }); } else { onOne(); }
     if (rec.hair) { acquire(rec.hair, function (c) { parts.hair = c; onOne(); }); } else { onOne(); }
-    acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); });
+    if (own) { onOne(); } else { acquire(rec.anim || ANIM_SRC, function (c) { parts.anim = c; onOne(); }); }
 
     function assemble() {
       if (!parts.body) { shell.userData.assetState = 'fail'; return; }
@@ -1455,6 +1463,23 @@
       shell.add(model);
       shell.userData.assetState = 'glb';
       var animC = parts.anim;
+      if (own) {
+        /* 몸이 조립된 장면에서 실제 뼈를 읽어 그 몸에 맞춰 굽는다 — 몸마다 한 번(캐시). 못 만들면 UAL1 길로 되돌아간다 */
+        if (!parts.body.ownClips) { parts.body.ownClips = global.DG.ownAnim.clipsFor(model, t) || []; }
+        if (parts.body.ownClips.length) {
+          var oc = parts.body.ownClips, om = new t.AnimationMixer(model), oa = {}, oi;
+          for (oi = 0; oi < oc.length; oi++) { oa[oc[oi].name] = om.clipAction(oc[oi]); }
+          shell.userData.mixer = om;
+          shell.userData.actions = oa;
+          shell.userData.clipMap = mapClips(oc.map(function (a) { return a.name; }));
+          shell.userData.ownAnim = true;
+          animC = null;                              // 아래 UAL1 길은 건너뛴다
+        } else {
+          own = false;
+          acquire(ANIM_SRC, function (c) { parts.anim = c; assemble(); });
+          return;
+        }
+      }
       if (animC && animC.clips && animC.clips.length) {
         var clips = animC.clips;
         /* 2026-09-05 — 몸이 제 클립이 없어(QRPG는 있다, rec.anim===rec.body)
@@ -1591,7 +1616,7 @@
     ownAllMat: ownAllMat, flashAllMat: flashAllMat,
     tuned: tuned, set: set, stats: stats, isActorAsset: isActorAsset, isSwayAsset: isSwayAsset,
     /** 진단 전용 — VRM 애니메 아바타 손잡이·레시피·뼈 매핑표 조회(2026-09-20) */
-    wantsAnimeAvatar: wantsAnimeAvatar,
+    wantsAnimeAvatar: wantsAnimeAvatar, wantsOwnAnim: wantsOwnAnim,
     heroRecipesAnime: function () { return HERO_RECIPES_ANIME; },
     vrmToUal1Bones: function () { return VRM_TO_UAL1_BONES; },
     boneNameMap: boneNameMap,

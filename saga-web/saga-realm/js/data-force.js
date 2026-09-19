@@ -166,6 +166,21 @@
   };
 
   /**
+   * 시나리오 ④ 백지(白地)에서 양평 수령을 따라나선 무장 둘 — 이 판에서만 선다.
+   * `FORCES_BLANK` 의 세력 표에만 실려 있고, 다른 시나리오에서는 그냥 재야로
+   * 흩어진다(`scatterFree` — 어느 표에도 안 적힌 사람의 원칙). 이름 정책에
+   * 따라 지어낸 이름이다.
+   */
+  var BLANK_OFFICERS = [
+    { id: 'kr2_yeoyul',    name: '여율', hanja: '呂律', era: '한국(가상)', faction: '양평',
+      rarity: 3, trait: 'wisdom', emoji: '📯', quote: '성문은 여닫는 사람이 정하는 겁니다.',
+      stats: { might: 48, wisdom: 78, command: 64 } },
+    { id: 'kr2_gokdol',    name: '곡돌', hanja: '曲突', era: '한국(가상)', faction: '양평',
+      rarity: 3, trait: 'might', emoji: '🐎', quote: '길이 없으면 내가 지나간 자리가 길이오.',
+      stats: { might: 78, wisdom: 44, command: 62 } }
+  ];
+
+  /**
    * 일본 지역(2026-09-09 확장, `data-city.js` 참고) 수비 무장 9인.
    * KOREA_OFFICERS 와 같은 결 — `FORCES`/`roster()` 에 안 실려 어느 세력에도
    * 자동 배분되지 않고, `force:null` 로 해당 성에 바로 선다.
@@ -812,16 +827,50 @@
       officers: ['rf_zhangren', 'rf_yanyan', 'rf_fazheng', 'rf_wuyi', 'sg_pangtong'] }
   ];
 
+  /* ── 시나리오 ④⑤ — 중국 밖에서 시작한다 (PLAN §5-4) ─────────────
+   * 194년 표에 **깃발 하나를 더 꽂는다.** 중국 열세 세력은 그대로라 판이 얼지도
+   * 쏠리지도 않고, 새 깃발만 확장 지역의 성에서 출발한다.
+   *
+   *   start     이 시나리오에서 **고를 수 있는** 깃발(나머지는 AI 몫)
+   *   troops    시작 성의 병력 — 숫자면 그 값, 'garrison' 이면 `data-city.js` 수비병 그대로.
+   *             없으면 다른 세력과 같다(3000 + 인구/90). 확장 지역 성은 원래 수비병이 있어서
+   *             `rtk.seedNeutral()` 이 이 세력의 성은 건드리지 않는다.
+   *   alien     이 era 가 아닌 무장은 "이질" — 등용해도 충성이 10 낮게 끌린다(`officer.baseLoyal`)
+   */
+  var FORCES_BLANK = FORCES_194.concat([
+    { id: 'gwan', name: '관북', color: '#6fb7b0', creed: 'balanced', start: true,
+      lord: 'kr2_pasodan', cities: ['yangping'], troops: 8000,
+      officers: ['kr2_yeoyul', 'kr2_gokdol'] }
+  ]);
+
+  var FORCES_RIFT = FORCES_194.concat([
+    { id: 'gyun', name: '균왕', color: '#b070e0', creed: 'aggressive', start: true,
+      alien: '균열(가상)', troops: 'garrison',
+      lord: 'fu_jongwang',
+      cities: ['jongmal', 'cheongwe', 'noeseong', 'gangcheol', 'yuri', 'hwanyeong', 'janyeong'],
+      officers: ['fu_myeongje', 'fu_seonghon', 'fu_yuseong', 'fu_noejang', 'fu_gangma',
+                 'fu_yugwi', 'fu_hwanryeong', 'fu_janhon'] }
+  ]);
+
   var SCENARIOS = [
-    { id: '194', year: 194, name: '군웅할거', hanja: '群雄割據',
+    { id: '194', year: 194, name: '군웅할거', hanja: '群雄割據', stars: 1,
       desc: '열세 깃발이 한꺼번에 섰다. 누구를 잡아도 갈 길이 멀다.',
       forces: FORCES_194, pacts: [] },
-    { id: '200', year: 200, name: '관도', hanja: '官渡',
+    { id: '200', year: 200, name: '관도', hanja: '官渡', stars: 2,
       desc: '하북의 고문과 중원의 패헌이 마주 섰다. 패창도 옥형도 이미 없다.',
       forces: FORCES_200, pacts: [] },
-    { id: '208', year: 208, name: '적벽', hanja: '赤壁',
+    { id: '208', year: 208, name: '적벽', hanja: '赤壁', stars: 3,
       desc: '패헌이 스물 가까운 성을 쥐고 강을 내려온다. 벽해와 인형은 손을 잡았다.',
-      forces: FORCES_208, pacts: [['quan', 'bei', 'ally', 24]] }
+      forces: FORCES_208, pacts: [['quan', 'bei', 'ally', 24]] },
+    { id: 'blank', year: 194, name: '백지', hanja: '白地', stars: 3,
+      desc: '요동의 관문 하나, 무장 셋, 병 팔천. 중원은 열세 깃발이 싸우는 그대로다.',
+      forces: FORCES_BLANK, pacts: [], playable: ['gwan'] },
+    { id: 'rift', year: 194, name: '균열의 왕', hanja: '龜裂之王', stars: 3,
+      desc: '바다 너머 균열의 일곱 성과 괴물 아홉. 사람을 거두려 해도 이질이라 마음이 안 붙는다.',
+      forces: FORCES_RIFT, pacts: [], playable: ['gyun'] },
+    { id: 'chaos', year: 194, name: '군웅 무작위', hanja: '群雄亂數', stars: 2,
+      desc: '같은 열세 깃발, 다른 지도. 성 배치를 주사위가 섞는다 — 판마다 처음 보는 천하다.',
+      forces: FORCES_194, pacts: [], shuffle: true }
   ];
 
   function scenario(id) {
@@ -839,11 +888,56 @@
   var FORCES = [];
   var current = null;
 
-  function use(id) {
+  var curSeed = 0;
+
+  /** mulberry32 — 같은 씨앗이면 같은 수열. 시나리오 ⑥ 의 성 섞기 전용(공유 난수를 안 민다) */
+  function mulberry(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /**
+   * ⑥ 군웅 무작위 — **표는 그대로, 성만 섞는다.** 세력마다 가진 성의 수(와 군주·무장)는
+   * 194년 표와 같고, 서른 성을 씨앗으로 섞어 그 수만큼 나눠 준다. 세력의 첫 성이
+   * 본거지(군주가 앉는 자리)라 본거지도 함께 바뀐다.
+   */
+  function shuffledForces(list, seed) {
+    var pool = [], i, j, k;
+    for (i = 0; i < list.length; i++) {
+      for (j = 0; j < list[i].cities.length; j++) { pool.push(list[i].cities[j]); }
+    }
+    var rnd = mulberry(seed);
+    for (i = pool.length - 1; i > 0; i--) {
+      j = Math.floor(rnd() * (i + 1));
+      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    var out = [], at = 0;
+    for (i = 0; i < list.length; i++) {
+      var nf = {};
+      for (k in list[i]) { if (Object.prototype.hasOwnProperty.call(list[i], k)) { nf[k] = list[i][k]; } }
+      nf.cities = pool.slice(at, at + list[i].cities.length);
+      at += list[i].cities.length;
+      out.push(nf);
+    }
+    return out;
+  }
+
+  /**
+   * @param seed  섞는 시나리오(`shuffle:true`)만 쓴다. 세이브에 적어 두고 다시 세울 때 그대로 넣는다.
+   */
+  function use(id, seed) {
     var sc = scenario(id);
     current = sc;
+    curSeed = (seed >>> 0) || 0;
+    var list = sc.shuffle ? shuffledForces(sc.forces, curSeed) : sc.forces;
     FORCES.length = 0;
-    for (var s = 0; s < sc.forces.length; s++) { FORCES.push(sc.forces[s]); }
+    for (var s = 0; s < list.length; s++) { FORCES.push(list[s]); }
     forceById = {};
     for (s = 0; s < FORCES.length; s++) { forceById[FORCES[s].id] = FORCES[s]; }
     return sc;
@@ -889,9 +983,77 @@
     return [f.lord].concat(f.officers);
   }
 
+  /* ── 이정표(MILESTONES) — PLAN §5-4 ───────────────────────
+   * 시나리오마다 다섯 단. 이정표는 **조건 + 보상**이 든 표일 뿐 판정은 `rtk.checkMilestones()`
+   * 한 곳이다(표를 하나 더 두면 시나리오가 하나 는다).
+   *
+   * 조건 `cond` (`rtk.condProgress`)
+   *   { c:'cities', n }            내 성이 n 곳 이상
+   *   { c:'core',   n }            중국 30성(`garrison` 없는 성) 중 n 곳 이상
+   *   { c:'prov',   prov, all }    그 지역 성을 전부 / { any:true } 하나라도
+   *   { c:'city',   id }           그 성을 쥔다
+   *   { c:'rank',   n, min }       세력 순위가 n 위 안이고 성이 min 곳 이상
+   * 보상: gold(500~2000)·reveal(재야 몇 명이 드러난다)·relic(보물 하나)
+   *
+   * 중국 판 셋과 ⑥ 은 **사다리**다 — 시작 성 수가 세력마다 3배씩 달라서 절대 성 수로 못 박으면
+   * 큰 세력은 시작하자마자 다 깨고 작은 세력은 끝이 안 보인다. 남은 성(30 − 시작)의 몫으로 잡는다.
+   */
+  var CORE_TOTAL = 30;
+
+  var LADDER = [
+    { name: '첫 발걸음',     frac: 0.10, gold: 500 },
+    { name: '뿌리내림',       frac: 0.25, gold: 800,  reveal: 1 },
+    { name: '군웅의 한 축',   frac: 0.45, gold: 1200 },
+    { name: '천하의 태반',    frac: 0.70, gold: 1600, reveal: 1 },
+    { name: '중원 평정',      frac: 1.00, gold: 2000, relic: true }
+  ];
+
+  var MILESTONES_FIXED = {
+    blank: [
+      { name: '세 성',        desc: '성 세 곳을 쥔다',                     cond: { c: 'cities', n: 3 },  gold: 500 },
+      { name: '반도 평정',    desc: '한국 지역 일곱 성을 모두 쥔다',       cond: { c: 'prov', prov: 'kr', all: true }, gold: 800, reveal: 1 },
+      { name: '관문 밖으로',  desc: '중국 땅의 성 하나를 빼앗는다',        cond: { c: 'core', n: 1 },    gold: 1000 },
+      { name: '열 성의 깃발', desc: '성 열 곳을 쥔다',                     cond: { c: 'cities', n: 10 }, gold: 1500, reveal: 1 },
+      { name: '천하의 다섯째', desc: '성 열 곳 이상으로 세력 5위 안에 든다', cond: { c: 'rank', n: 5, min: 10 }, gold: 2000, relic: true }
+    ],
+    rift: [
+      { name: '균열 너머',    desc: '야마토를 함락해 일본 땅에 발을 디딘다', cond: { c: 'city', id: 'yamato' }, gold: 600 },
+      { name: '열도 평정',    desc: '일본 지역 일곱 성을 모두 쥔다',       cond: { c: 'prov', prov: 'jp', all: true }, gold: 900, reveal: 1 },
+      { name: '반도 상륙',    desc: '한국 지역의 성 하나를 빼앗는다',      cond: { c: 'prov', prov: 'kr', any: true }, gold: 1200 },
+      { name: '중원 진입',    desc: '중국 땅의 성 하나를 빼앗는다',        cond: { c: 'core', n: 1 },    gold: 1600, reveal: 1 },
+      { name: '균열의 왕좌',  desc: '성 열다섯 곳 이상으로 세력 3위 안에 든다', cond: { c: 'rank', n: 3, min: 15 }, gold: 2000, relic: true }
+    ]
+  };
+
+  /**
+   * 이 시나리오의 이정표 다섯 단(조건이 풀려 있는 표). 사다리는 시작 시점의 중국 성 수(`baseCore`)로 푼다.
+   * 항상 새 배열을 준다 — 호출한 쪽이 고쳐도 표가 안 상한다.
+   */
+  function milestonesFor(scenId, baseCore) {
+    var fixed = MILESTONES_FIXED[scenId], out = [], i;
+    if (fixed) {
+      for (i = 0; i < fixed.length; i++) { out.push(JSON.parse(JSON.stringify(fixed[i]))); }
+      return out;
+    }
+    var base = Math.max(0, Math.min(CORE_TOTAL - 1, baseCore || 0));
+    var rest = CORE_TOTAL - base, prev = base;
+    for (i = 0; i < LADDER.length; i++) {
+      var need = Math.min(CORE_TOTAL, Math.max(prev + 1, base + Math.ceil(rest * LADDER[i].frac)));
+      var m = { name: LADDER[i].name, cond: { c: 'core', n: need }, gold: LADDER[i].gold };
+      m.desc = i === LADDER.length - 1 ? '중국 서른 성을 모두 쥔다' : '중국 땅의 성 ' + need + '곳을 쥔다';
+      if (LADDER[i].reveal) { m.reveal = LADDER[i].reveal; }
+      if (LADDER[i].relic) { m.relic = true; }
+      out.push(m);
+      prev = need;
+    }
+    return out;
+  }
+
   global.DG = global.DG || {};
   global.DG.forceData = {
     OFFICERS: OFFICERS, FORCES: FORCES, NAVY: NAVY, navyOf: navyOf,
+    CORE_TOTAL: CORE_TOTAL, milestonesFor: milestonesFor, seed: function () { return curSeed; },
+    BLANK_OFFICERS: BLANK_OFFICERS,
     KOREA_OFFICERS: KOREA_OFFICERS, KOREA_GARRISON: KOREA_GARRISON,
     JAPAN_OFFICERS: JAPAN_OFFICERS, JAPAN_GARRISON: JAPAN_GARRISON,
     JIAOZHOU_OFFICERS: JIAOZHOU_OFFICERS, JIAOZHOU_GARRISON: JIAOZHOU_GARRISON,

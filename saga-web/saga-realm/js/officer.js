@@ -40,6 +40,11 @@
     for (var k = 0; k < kr.length; k++) {
       if (!data.find(kr[k].id)) { data.heroes.push(kr[k]); }
     }
+    /* ④ 백지의 양평 수령 일행(2026-09-20) — 그 시나리오 표에서만 세력에 든다 */
+    var bl = FD.BLANK_OFFICERS || [];
+    for (var b2 = 0; b2 < bl.length; b2++) {
+      if (!data.find(bl[b2].id)) { data.heroes.push(bl[b2]); }
+    }
     /* 일본 지역 수비 무장(2026-09-09) — 같은 방식으로 얹는다 */
     var jp = FD.JAPAN_OFFICERS || [];
     for (var jj = 0; jj < jp.length; jj++) {
@@ -468,6 +473,9 @@
     if (lord && lord.trait === h.trait) { v += 12; }
     v -= (h.rarity - 3) * 6;                       // 귀한 사람일수록 붙들기 어렵다
     if (h.era !== '삼국지') { v -= 4; }             // 재야에서 온 이방인
+    /* ⑤ 균열의 왕(PLAN §5-4) — 그 세력의 era 가 아닌 사람은 "이질" 이라 마음이 덜 붙는다.
+       등용 때와 매달 끌려가는 목표(`driftLoyalty`)가 둘 다 이 함수라 한 곳에서 걸린다 */
+    if (f.alien && h.era !== f.alien) { v -= 10; }
     return core.clamp(v, 25, 85);
   }
 
