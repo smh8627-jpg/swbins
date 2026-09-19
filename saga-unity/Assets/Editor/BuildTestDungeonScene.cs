@@ -290,6 +290,15 @@ namespace Saga.EditorTools
         private static readonly Vector3 Crossroads2Center = new Vector3(30f, 0f, -30f);
         private static readonly Vector3 ShortcutCorridorNorth2Center = new Vector3(30f, 0f, -15f);
 
+        // "난입(亂入)" 슬라이스(PLAN.md 101-2 5.5) — 웹판 "모루골 결사비 옆 표식"을
+        // Room1(모루골 역할) 빈 구석에 세우되, 파도는 기존 콘텐츠와 안 겹치는
+        // 완전히 새로운 고정 방(HordeArena)에서 진행한다(`HordeRunner.cs`
+        // 클래스 주석 참고) — 다른 어떤 좌표계와도 안 이어진 완전 격리 좌표.
+        // Room1 잡졸(5,0)~(6.5,±3.5)·두목(9,0)·부하(8,±2.5)·우물(-2,5)·상자
+        // (-2,-5)·사당(-8,-4)·decorOffset(-8,5)와 안 겹치는 SE 빈 구석에 표식을 둔다.
+        private static readonly Vector3 HordeGateSpawn = new Vector3(8f, 0f, -8f);
+        private static readonly Vector3 HordeArenaCenter = new Vector3(60f, 0f, 60f);
+
         // "마을 장식 보강" 슬라이스 — 마을 셋(Town2·3·4) 정주 촌민에 공통으로
         // 쓰는 옷 색(따뜻한 베이지) — 전투원(잡졸=황건, 두목=적갈)과 겹치지
         // 않는 톤으로 "민간인"임을 색으로도 가른다.
@@ -338,6 +347,7 @@ namespace Saga.EditorTools
             BuildDodgeButton(playerController);
             BuildMobileHud();
             BuildBlessingChoiceUi();
+            BuildHordeArena();
             BuildBootstrap();
 
             AssetDatabase.SaveAssets();
@@ -1640,6 +1650,30 @@ namespace Saga.EditorTools
             var go = new GameObject("BlessingChoiceUI");
             var ui = go.AddComponent<BlessingChoiceUi>();
             ui.Build();
+        }
+
+        /// <summary>PLAN.md 101-2 5.5 "난입"(2026-09-20) — Room1의 표식
+        /// (`HordeGate`)과 격리된 고정 방(`HordeArena`, `HordeRunner`가 얹힌다)
+        /// 둘을 짓는다. 방은 다른 방과 똑같은 표준 셸(문 없이 완전히 막힘 —
+        /// 텔레포트로만 드나든다)이라 `Build()`만 부르고 `OpenXDoor()`는 안 부른다.</summary>
+        private static void BuildHordeArena()
+        {
+            var gateGo = new GameObject("HordeGate");
+            gateGo.transform.position = HordeGateSpawn;
+            gateGo.AddComponent<HordeGate>();
+
+            var arenaGo = new GameObject("HordeArena");
+            arenaGo.transform.position = HordeArenaCenter;
+            var arenaBuilder = arenaGo.AddComponent<DungeonRoomBuilder>();
+            SetPrivateField(arenaBuilder, "biome", SagaBiome.Ruins);
+            SetPrivateField(arenaBuilder, "decorOffset", new Vector3(-8f, 0f, 5f));
+            SetPrivateField(arenaBuilder, "gateModel", _gateGlb);
+            SetPrivateField(arenaBuilder, "roomModel", _roomGlb);
+            AssignEnvironmentMaterials(arenaBuilder);
+            arenaBuilder.Build();
+
+            var runner = arenaGo.AddComponent<HordeRunner>();
+            SetPrivateField(runner, "gruntModel", _characterD);
         }
 
         private static void BuildBootstrap()

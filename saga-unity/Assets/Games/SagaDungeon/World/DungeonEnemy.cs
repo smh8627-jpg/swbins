@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -111,7 +112,15 @@ namespace Saga.Dungeon.World
         public bool IsWorldBoss => isWorldBoss;
         public float WorldBossTimeLeft => _worldBossTimeLeft;
 
+        /// <summary>PLAN.md 101-2 5.5 "난입" — `HordeRunner`가 처치 수를 세려면
+        /// 방을 가리지 않는 이 개체의 roomId를 밖에서 읽어야 한다.</summary>
+        public string RoomId => roomId;
+
         public static readonly List<DungeonEnemy> Active = new List<DungeonEnemy>();
+
+        /// <summary>PLAN.md 101-2 5.5 "난입" 전용 훅 — `Die()`가 보상을 이미
+        /// 다 준 뒤 부른다. 도망(`Flee()`)은 안 죽은 것이므로 안 쏜다.</summary>
+        public static event Action<DungeonEnemy> AnyDied;
 
         /// <summary>"타격감 2차"(PLAN.md 101-3 C hitstop) — PlayerCombat이
         /// 가해자·피해자 두 Animator를 같이 잠깐 멈추려면 이 적 쪽
@@ -436,6 +445,7 @@ namespace Saga.Dungeon.World
             // PLAN.md 101-3 F "죽음"(2026-09-17) — 보상은 이미 위에서 다
             // 줬다, 이건 그 자리에 남는 시각적 표식뿐(LootMarker.cs 클래스 주석 참고).
             LootMarker.Spawn(transform.position);
+            AnyDied?.Invoke(this);
 
             if (_animator != null)
             {

@@ -63,6 +63,12 @@ namespace Saga.Dungeon.World
         /// 맡고, 여기는 요약 카드만.</summary>
         private void OnHeroDied(int lostGold)
         {
+            // PLAN.md 101-2 5.5 "난입" — 난입 중 사망은 HordeRunner가 자기
+            // 결과 카드(파도·처치·보상)를 따로 띄운다(같은 이벤트를 같이
+            // 구독한다, `HordeRunner.OnHeroDiedDuringHorde` 참고) — 이
+            // 기본 "쓰러졌다" 카드로 덮이면 안 된다.
+            if (HordeRunner.Instance != null && HordeRunner.Instance.IsActive) return;
+
             string lostLine = lostGold > 0
                 ? string.Format(DungeonLocalization.T("grave.card_lost", "유품으로 금 {0} — 돌아가기 전에 되찾을 것"), lostGold)
                 : DungeonLocalization.T("grave.card_lost_none", "잃은 것 없음");

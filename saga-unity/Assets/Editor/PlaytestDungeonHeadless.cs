@@ -115,6 +115,7 @@ namespace Saga.EditorTools
                 CheckGoalBoardAndSessionCard();
                 CheckGraveMarker(); // SessionCard를 띄우므로 CheckGoalBoardAndSessionCard 뒤(그 체크가 "시작부터 숨김" 전제를 이미 다 씀).
                 CheckGroundDecal();
+                CheckHorde(); // PLAN.md 101-2 5.5 — CheckGraveMarker가 이미 HeroState.Hp를 0으로 만들어 둬 이 체크 맨 앞에서 FullHeal()로 되돌린다.
             }
 
             if (_framesSeen >= FramesToRun)
@@ -815,6 +816,168 @@ namespace Saga.EditorTools
             }
 
             Debug.Log($"[PlaytestDungeonHeadless] ground decal OK - 타격마다 생성 확인, 캡 이후 ActiveCount={GroundDecal.ActiveCount}(<=32)");
+        }
+
+        /// <summary>PLAN.md 101-2 5.5 "난입"(2026-09-20 추가) — 순수 공식(파도별
+        /// 적 수·티어) 먼저 확인한 뒤, 실제로 두 회차(완주/사망)를 다 돌려
+        /// `BlessingState`가 "난입 한정"으로 잠깐 비워지고 끝나면 원래대로
+        /// 돌아오는지, 15분 생존·사망 둘 다 `HordeRunner.EndRun()`으로 모여
+        /// 세이브 통계(`HordeState`)가 늘고 남은 적이 청소되는지 확인한다.
+        /// `CheckGraveMarker`가 이미 HeroState.Hp를 0으로 만들어 뒀으므로
+        /// 맨 앞에서 `FullHeal()`로 되돌린다.</summary>
+        private static void CheckHorde()
+        {
+            if (DungeonFormulas.HordeEnemyCount(1) != 8 || DungeonFormulas.HordeEnemyCount(20) != 40)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] HordeEnemyCount 공식이 어긋남 — wave1={DungeonFormulas.HordeEnemyCount(1)}(기대 8), wave20={DungeonFormulas.HordeEnemyCount(20)}(기대 40, 상한)");
+                _hadError = true;
+                return;
+            }
+            if (DungeonFormulas.HordeTier(7) != 1 || DungeonFormulas.HordeTier(8) != 1 || DungeonFormulas.HordeTier(16) != 2)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] HordeTier 공식이 어긋남 — wave7={DungeonFormulas.HordeTier(7)}(기대 1) wave8={DungeonFormulas.HordeTier(8)}(기대 1) wave16={DungeonFormulas.HordeTier(16)}(기대 2)");
+                _hadError = true;
+                return;
+            }
+
+            var runner = HordeRunner.Instance;
+            var playerGo = GameObject.FindWithTag("Player");
+            var blessingUi = Object.FindFirstObjectByType<BlessingChoiceUi>();
+            if (runner == null || playerGo == null || blessingUi == null)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 난입 검증용 HordeRunner/player/BlessingChoiceUi를 못 찾음");
+                _hadError = true;
+                return;
+            }
+
+            HeroState.FullHeal();
+
+            // "난입 한정" — 회차용 축복을 하나 미리 쌓아 두고 난입 동안 비워지는지 본다.
+            var preOffer = BlessingState.RollChoice(new System.Random(1));
+            BlessingState.Choose(preOffer[0]); // offer[0]은 항상 공(攻) 축(BlessingState.RollChoice 참고).
+            float atkBefore = BlessingState.AtkMultiplier;
+            if (Mathf.Approximately(atkBefore, 1f))
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 난입 사전 축복이 안 앉음(AtkMultiplier==1)");
+                _hadError = true;
+                return;
+            }
+
+            Vector3 returnPos = playerGo.transform.position;
+            int runsBefore = HordeState.Runs;
+            runner.StartRun(returnPos);
+
+            if (!runner.IsActive || runner.Wave != 1)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] StartRun 직후 상태가 이상함 — IsActive={runner.IsActive} Wave={runner.Wave}(기대 true/1)");
+                _hadError = true;
+                return;
+            }
+            if (!Mathf.Approximately(BlessingState.AtkMultiplier, 1f))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 난입 시작 시 회차 축복이 안 비워짐 — AtkMultiplier={BlessingState.AtkMultiplier}(기대 1)");
+                _hadError = true;
+                return;
+            }
+            int aliveWave1 = DungeonEnemy.CountAliveInRoom("horde");
+            if (aliveWave1 != DungeonFormulas.HordeEnemyCount(1))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 난입 파도1 스폰 수가 다름 — {aliveWave1}(기대 {DungeonFormulas.HordeEnemyCount(1)})");
+                _hadError = true;
+                return;
+            }
+
+            // 레벨업 3택이 난입 중에도 뜨는지 — 뜨면 0번(첫 카드)을 골라 닫는다.
+            HeroState.AddExp(HeroState.ExpToNext + 1);
+            if (!blessingUi.IsShowing)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 난입 중 레벨업인데 축복 3택이 안 뜸");
+                _hadError = true;
+                return;
+            }
+            var chooseIndex = typeof(BlessingChoiceUi).GetMethod("ChooseIndex", BindingFlags.NonPublic | BindingFlags.Instance);
+            chooseIndex.Invoke(blessingUi, new object[] { 0 });
+            if (blessingUi.IsShowing)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 난입 축복 3택 선택 후에도 패널이 안 닫힘");
+                _hadError = true;
+                return;
+            }
+
+            // 15분 생존 종료 — 실시간 대기 대신 타이머를 목표 직전으로 밀어 두고
+            // Update()를 한 번 더 돌려 그 프레임에 넘기게 한다(CheckWorldBoss와 같은 결).
+            var updateMethod = typeof(HordeRunner).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+            SetPrivate(runner, "_survivalTimer", 15f * 60f - 0.001f);
+            int goldBefore = HeroState.Gold;
+            updateMethod.Invoke(runner, null);
+
+            if (runner.IsActive)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 15분 생존 종료가 EndRun을 안 부름 — 여전히 IsActive");
+                _hadError = true;
+                return;
+            }
+            if (HordeState.Runs != runsBefore + 1)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 완주 후 HordeState.Runs가 안 늘어남 — {HordeState.Runs}(기대 {runsBefore + 1})");
+                _hadError = true;
+                return;
+            }
+            if (HeroState.Gold <= goldBefore)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 완주 보상 금이 안 붙음 — {goldBefore}→{HeroState.Gold}");
+                _hadError = true;
+                return;
+            }
+            if (!Mathf.Approximately(BlessingState.AtkMultiplier, atkBefore))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 난입 종료 후 회차 축복이 복원 안 됨 — AtkMultiplier={BlessingState.AtkMultiplier}(기대 {atkBefore})");
+                _hadError = true;
+                return;
+            }
+            if (Vector3.Distance(playerGo.transform.position, returnPos) > 0.01f)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 완주 후 원래 자리로 복귀 안 함 — {playerGo.transform.position}(기대 {returnPos})");
+                _hadError = true;
+                return;
+            }
+            if (DungeonEnemy.CountAliveInRoom("horde") != 0)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 완주 후 남은 난입 적이 안 치워짐 — {DungeonEnemy.CountAliveInRoom("horde")}(기대 0)");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestDungeonHeadless] horde survive OK - 완주 보상 {goldBefore}→{HeroState.Gold}, runs={HordeState.Runs}, 축복 복원 확인, 남은 적 청소 확인");
+
+            // 두 번째 회차 — 사망으로 끝나는 경로. HeroState.Died를 GameBootstrap도
+            // 같이 구독하므로("쓰러졌다" 기본 카드) 그 핸들러가 난입 활성 중엔
+            // 스킵하는지는 별도로 안 본다(SessionCard 내용까지는 이 체크가 안 봄) —
+            // IsActive==false로 EndRun이 확실히 탔는지만 본다.
+            HeroState.FullHeal();
+            float atkBeforeSecondRun = BlessingState.AtkMultiplier;
+            runsBefore = HordeState.Runs;
+            runner.StartRun(playerGo.transform.position);
+            HeroState.TakeDamage(999999f);
+
+            if (runner.IsActive)
+            {
+                Debug.LogError("[PlaytestDungeonHeadless] 난입 중 사망이 EndRun을 안 부름 — 여전히 IsActive");
+                _hadError = true;
+                return;
+            }
+            if (HordeState.Runs != runsBefore + 1)
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 사망 종료 후 HordeState.Runs가 안 늘어남 — {HordeState.Runs}(기대 {runsBefore + 1})");
+                _hadError = true;
+                return;
+            }
+            if (!Mathf.Approximately(BlessingState.AtkMultiplier, atkBeforeSecondRun))
+            {
+                Debug.LogError($"[PlaytestDungeonHeadless] 사망 종료 후 회차 축복이 복원 안 됨 — AtkMultiplier={BlessingState.AtkMultiplier}(기대 {atkBeforeSecondRun})");
+                _hadError = true;
+                return;
+            }
+            Debug.Log($"[PlaytestDungeonHeadless] horde death OK - 사망으로도 EndRun 확인, runs={HordeState.Runs}");
         }
 
         private static DungeonEnemy SpawnDummyEnemy(Vector3 position, bool isWorldBoss = false)

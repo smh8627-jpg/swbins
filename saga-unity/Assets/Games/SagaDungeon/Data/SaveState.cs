@@ -23,7 +23,10 @@ namespace Saga.Dungeon.Data
         // 무시하도록 짜서 옛 세이브도 그대로 로드된다(새로 층2부터 시작).
         // v6 — PLAN.md 101-2 5.1 "축복 3택"(BlessingState) 저장. v5 이하 세이브는
         // blessings가 null로 채워지고 Restore(null)는 조용히 아무것도 안 앉힌다.
-        private const int SaveVersion = 6;
+        // v7 — PLAN.md 101-2 5.5 "난입"(HordeState) 저장. 웹판 `save.dungeon.horde
+        // = {best, runs}` 그대로. v6 이하 세이브는 두 필드가 int 기본값 0으로
+        // 채워지고 Restore(0, 0)이 그대로 앉아 "아직 안 해봄"과 같은 뜻이 된다.
+        private const int SaveVersion = 7;
 
         private static string SavePath => Path.Combine(Application.persistentDataPath, "save_dungeon.json");
 
@@ -45,6 +48,8 @@ namespace Saga.Dungeon.Data
             public bool captiveFreed;
             public int dungeonFloor; // v5 — DungeonFloorRunner.CurrentFloor, 0이면 "없음"(v4 이하 세이브).
             public string[] blessings; // v6 — BlessingState.SnapshotIds(), 축별 최대 3개.
+            public int hordeBestSurvivalSec; // v7 — HordeState.BestSurvivalSec.
+            public int hordeRuns; // v7 — HordeState.Runs.
         }
 
         public static bool Save()
@@ -68,6 +73,8 @@ namespace Saga.Dungeon.Data
                 captiveFreed = QuestState.CaptiveFreed,
                 dungeonFloor = DungeonFloorRunner.Instance?.CurrentFloor ?? 0,
                 blessings = BlessingState.SnapshotIds().ToArray(),
+                hordeBestSurvivalSec = HordeState.BestSurvivalSec,
+                hordeRuns = HordeState.Runs,
             };
 
             try
@@ -120,6 +127,10 @@ namespace Saga.Dungeon.Data
             if (data.version >= 6)
             {
                 BlessingState.Restore(data.blessings);
+            }
+            if (data.version >= 7)
+            {
+                HordeState.Restore(data.hordeBestSurvivalSec, data.hordeRuns);
             }
 
             Transform player = FindPlayer();

@@ -60,6 +60,16 @@ namespace Saga.Dungeon.UI
                 label.text += $"\n{timer}";
             }
 
+            // PLAN.md 101-2 5.5 "난입" — 진행 중일 때만 파도·타이머를 얹는다.
+            var horde = HordeRunner.Instance;
+            if (horde != null && horde.IsActive)
+            {
+                string hordeLine = string.Format(
+                    DungeonLocalization.T("hud.horde", "⚔ 난입 — 파도 {0} · 남은 {1:0}초 · 처치 {2}"),
+                    horde.Wave, horde.TimeLeft, horde.KillCount);
+                label.text += $"\n{hordeLine}";
+            }
+
             if (healthBarFill != null)
             {
                 healthBarFill.fillAmount = HeroState.HpMax > 0 ? (float)HeroState.Hp / HeroState.HpMax : 0f;

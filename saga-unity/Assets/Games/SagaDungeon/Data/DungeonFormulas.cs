@@ -95,6 +95,16 @@ namespace Saga.Dungeon.Data
 
         /// <summary>문 라벨·토스트에 쓰는 한글 표시 이름 — 원작 상표 없는
         /// 순수 설명형 이름(루트 CLAUDE.md 이름 정책).</summary>
+        /// <summary>PLAN.md 101-2 5.5 "난입(亂入)" — 웹판 §5.5(`saga-web/saga-dungeon/PLAN.md`
+        /// 170행, 2026-09-19 기준 미착수)의 "파도 N 의 적 수는 6+2N, 40을 안 넘는다"
+        /// 공식 그대로. <see cref="World.HordeRunner"/>가 이 두 순수 함수만 쓴다 —
+        /// `SimulateDungeonFloors.cs`류가 씬 없이도 그대로 검증할 수 있게 여기 둔다.</summary>
+        public static int HordeEnemyCount(int wave) => Math.Min(40, 6 + 2 * wave);
+
+        /// <summary>웹판 "티어는 파도/8" — 이 트랙 층 공식(EnemyHp/EnemyDmg 등)의
+        /// floor 인자로 그대로 넣는다(최소 1층 취급).</summary>
+        public static int HordeTier(int wave) => Math.Max(1, wave / 8);
+
         public static string KindDisplayName(string kind) => kind switch
         {
             "fight" => "잡졸 무리",
